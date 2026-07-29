@@ -10,15 +10,18 @@ import (
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/component"
 	"github.com/valerii/hub/backend/ent/environment"
+	"github.com/valerii/hub/backend/ent/filemetadata"
 	entissue "github.com/valerii/hub/backend/ent/issue"
 	"github.com/valerii/hub/backend/ent/label"
 	"github.com/valerii/hub/backend/ent/predicate"
 	entproject "github.com/valerii/hub/backend/ent/project"
+	"github.com/valerii/hub/backend/ent/projectmember"
 	"github.com/valerii/hub/backend/ent/testcase"
 	"github.com/valerii/hub/backend/ent/testcaseversion"
 	"github.com/valerii/hub/backend/ent/testresult"
 	"github.com/valerii/hub/backend/ent/testrun"
 	"github.com/valerii/hub/backend/ent/testsuite"
+	"github.com/valerii/hub/backend/ent/user"
 	"github.com/valerii/hub/backend/ent/workflowstatus"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
@@ -406,6 +409,35 @@ func (r *EntRepository) CountLabelsInProject(ctx context.Context, projectID uuid
 			label.IDIn(ids...),
 			label.DeletedAtIsNil(),
 			label.HasProjectWith(entproject.ID(projectID)),
+		).
+		Count(ctx)
+}
+
+// CountProjectMembers считает, сколько из userIDs — участники projectID (A3W2-2-001).
+// Mutation: убрать HasProjectWith / HasUserWith → non-member проходит AssignTesters.
+func (r *EntRepository) CountProjectMembers(ctx context.Context, projectID uuid.UUID, userIDs []uuid.UUID) (int, error) {
+	if len(userIDs) == 0 {
+		return 0, nil
+	}
+	return r.client.ProjectMember.Query().
+		Where(
+			projectmember.HasProjectWith(entproject.IDEQ(projectID)),
+			projectmember.HasUserWith(user.IDIn(userIDs...)),
+		).
+		Count(ctx)
+}
+
+// CountFilesInProject считает файлы из ids внутри projectID (A3W2-2-002).
+// Mutation: убрать HasProjectWith → чужой FileID проходит ExecuteTestResult.
+func (r *EntRepository) CountFilesInProject(ctx context.Context, projectID uuid.UUID, ids []uuid.UUID) (int, error) {
+	if len(ids) == 0 {
+		return 0, nil
+	}
+	return r.client.FileMetadata.Query().
+		Where(
+			filemetadata.IDIn(ids...),
+			filemetadata.DeletedAtIsNil(),
+			filemetadata.HasProjectWith(entproject.IDEQ(projectID)),
 		).
 		Count(ctx)
 }
@@ -959,6 +991,15 @@ func (r *EntRepository) BatchCreateTestResults(ctx context.Context, runID uuid.U
 	}
 
 	return r.client.TestResult.CreateBulk(bulk...).Save(ctx)
+}
+
+// DeleteTestResults удаляет результаты по ID (A3W2-2-003 compensating cleanup).
+func (r *EntRepository) DeleteTestResults(ctx context.Context, ids []uuid.UUID) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	_, err := r.client.TestResult.Delete().Where(testresult.IDIn(ids...)).Exec(ctx)
+	return err
 }
 
 // ---------------------------------------------------------------------------

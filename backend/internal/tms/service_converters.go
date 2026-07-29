@@ -341,7 +341,8 @@ func buildSnapshot(tc *ent.TestCase) (map[string]interface{}, error) {
 }
 
 // snapshotToUpdateInput конвертирует снимок версии в UpdateTestCaseInput для rollback.
-func snapshotToUpdateInput(snapshot map[string]interface{}) UpdateTestCaseInput {
+// A3W2-2-005: Marshal/Unmarshal steps fail-closed (как buildSnapshot / A2W2-2-010).
+func snapshotToUpdateInput(snapshot map[string]interface{}) (UpdateTestCaseInput, error) {
 	input := UpdateTestCaseInput{}
 
 	if v, ok := snapshot["title"].(string); ok {
@@ -366,11 +367,15 @@ func snapshotToUpdateInput(snapshot map[string]interface{}) UpdateTestCaseInput 
 		input.Status = &v
 	}
 	if v, ok := snapshot["steps"]; ok {
-		stepsJSON, _ := json.Marshal(v)
-		var steps []schema.TestStep
-		if err := json.Unmarshal(stepsJSON, &steps); err == nil {
-			input.Steps = &steps
+		stepsJSON, err := json.Marshal(v)
+		if err != nil {
+			return input, fmt.Errorf("сериализация steps snapshot: %w", err)
 		}
+		var steps []schema.TestStep
+		if err := json.Unmarshal(stepsJSON, &steps); err != nil {
+			return input, fmt.Errorf("десериализация steps snapshot: %w", err)
+		}
+		input.Steps = &steps
 	}
 	if v, ok := snapshot["full_name"].(string); ok {
 		input.FullName = &v
@@ -385,7 +390,7 @@ func snapshotToUpdateInput(snapshot map[string]interface{}) UpdateTestCaseInput 
 		input.ExternalID = &v
 	}
 
-	return input
+	return input, nil
 }
 
 // normalizeErrorPattern извлекает основной паттерн из сообщения об ошибке (первые 100 рун).

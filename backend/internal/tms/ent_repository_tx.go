@@ -266,6 +266,115 @@ func (r *EntRepository) CreateAutomaticImportRun(
 	return r.GetTestRun(ctx, run.ID)
 }
 
+// ImportResultsToExistingRun — A3W2-2-003: batch results + recompute stats в одной Ent tx.
+// Mutation: убрать tx / commit до stats → inject-fail оставляет partial results + stale stats.
+func (r *EntRepository) ImportResultsToExistingRun(
+	ctx context.Context,
+	runID uuid.UUID,
+	results []CreateTestResultInput,
+) error {
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return fmt.Errorf("начало транзакции existing-run import: %w", err)
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_ = tx.Rollback()
+		}
+	}()
+
+	if len(results) > 0 {
+		if len(results) > maxBatchCreateTestResults {
+			return fmt.Errorf("слишком много результатов для batch (макс. %d)", maxBatchCreateTestResults)
+		}
+		bulk := make([]*ent.TestResultCreate, 0, len(results))
+		for _, ri := range results {
+			rc := tx.TestResult.Create().
+				SetRunID(runID).
+				SetStatus(testresult.Status(ri.Status))
+			if ri.Comment != "" {
+				rc = rc.SetComment(ri.Comment)
+			}
+			if len(ri.StepResults) > 0 {
+				rc = rc.SetStepResults(ri.StepResults)
+			}
+			if ri.DurationMs != nil {
+				rc = rc.SetDurationMs(*ri.DurationMs)
+			}
+			if ri.AllureUUID != "" {
+				rc = rc.SetAllureUUID(ri.AllureUUID)
+			}
+			if ri.ErrorMessage != "" {
+				rc = rc.SetErrorMessage(ri.ErrorMessage)
+			}
+			if ri.ErrorTrace != "" {
+				rc = rc.SetErrorTrace(ri.ErrorTrace)
+			}
+			if ri.IsFlaky {
+				rc = rc.SetIsFlaky(true)
+			}
+			if ri.MatchStrategy != "" {
+				rc = rc.SetMatchStrategy(testresult.MatchStrategy(ri.MatchStrategy))
+			}
+			if ri.TestCaseID != nil {
+				rc = rc.SetTestCaseID(*ri.TestCaseID)
+			}
+			if ri.ExecutedByID != nil {
+				rc = rc.SetExecutedByID(*ri.ExecutedByID)
+			}
+			if ri.StartedAt != nil {
+				rc = rc.SetStartedAt(*ri.StartedAt)
+			}
+			if ri.CompletedAt != nil {
+				rc = rc.SetCompletedAt(*ri.CompletedAt)
+			}
+			bulk = append(bulk, rc)
+		}
+		if _, err := tx.TestResult.CreateBulk(bulk...).Save(ctx); err != nil {
+			return fmt.Errorf("batch results в existing-run tx: %w", err)
+		}
+	}
+
+	all, err := tx.TestResult.Query().
+		Where(testresult.HasRunWith(testrun.ID(runID))).
+		All(ctx)
+	if err != nil {
+		return fmt.Errorf("list results в existing-run tx: %w", err)
+	}
+	stats := TestRunStats{TotalCount: len(all)}
+	for _, res := range all {
+		switch string(res.Status) {
+		case "passed":
+			stats.PassedCount++
+		case "failed":
+			stats.FailedCount++
+		case "broken":
+			stats.BrokenCount++
+		case "skipped":
+			stats.SkippedCount++
+		default:
+			stats.UnknownCount++
+		}
+	}
+	if _, err := tx.TestRun.UpdateOneID(runID).
+		SetTotalCount(stats.TotalCount).
+		SetPassedCount(stats.PassedCount).
+		SetFailedCount(stats.FailedCount).
+		SetSkippedCount(stats.SkippedCount).
+		SetBrokenCount(stats.BrokenCount).
+		SetUnknownCount(stats.UnknownCount).
+		Save(ctx); err != nil {
+		return fmt.Errorf("update stats в existing-run tx: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit existing-run import: %w", err)
+	}
+	committed = true
+	return nil
+}
+
 // AbortOrphanTestRun — cleanup при частичном импорте (fallback без tx).
 func (r *EntRepository) AbortOrphanTestRun(ctx context.Context, runID uuid.UUID) error {
 	now := time.Now().UTC()

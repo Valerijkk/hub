@@ -45,7 +45,7 @@ func ExportNormalizeErrorPattern(msg string) string {
 }
 
 // ExportSnapshotToUpdateInput конвертирует snapshot в UpdateTestCaseInput для hubtest.
-func ExportSnapshotToUpdateInput(snapshot map[string]interface{}) UpdateTestCaseInput {
+func ExportSnapshotToUpdateInput(snapshot map[string]interface{}) (UpdateTestCaseInput, error) {
 	return snapshotToUpdateInput(snapshot)
 }
 

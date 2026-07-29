@@ -25,6 +25,11 @@ type automaticImporter interface {
 	CreateAutomaticImportRun(ctx context.Context, projectID uuid.UUID, input CreateTestRunInput, results []CreateTestResultInput, stats TestRunStats) (*ent.TestRun, error)
 }
 
+// existingRunImporter — A3W2-2-003: batch+stats в одной Ent tx для ExistingRun.
+type existingRunImporter interface {
+	ImportResultsToExistingRun(ctx context.Context, runID uuid.UUID, results []CreateTestResultInput) error
+}
+
 // ImportAllureResults импортирует результаты Allure в TMS.
 // Создаёт автоматический прогон, матчит результаты к тест-кейсам,
 // сохраняет raw JSON в MongoDB, структурированные результаты в PostgreSQL.
@@ -128,14 +133,34 @@ func (s *TMSService) ImportAllureToExistingRun(ctx context.Context, projectID, r
 	}
 
 	resultInputs, _ := s.buildAllureResultInputs(ctx, projectID, allureResults)
-	if len(resultInputs) > 0 {
-		if _, err = s.repo.BatchCreateTestResults(ctx, run.ID, resultInputs); err != nil {
-			return nil, apperrors.NewInternal("ошибка пакетного создания результатов")
-		}
-	}
 
-	if err := s.recomputeRunStats(ctx, run.ID); err != nil {
-		return nil, err
+	if eri, ok := s.repo.(existingRunImporter); ok {
+		// A3W2-2-003: PG batch+stats в одной Ent tx.
+		if err := eri.ImportResultsToExistingRun(ctx, run.ID, resultInputs); err != nil {
+			return nil, apperrors.NewInternal("ошибка импорта результатов")
+		}
+	} else {
+		// Mock fallback: batch → recompute с compensating delete при fail.
+		var created []*ent.TestResult
+		if len(resultInputs) > 0 {
+			var batchErr error
+			created, batchErr = s.repo.BatchCreateTestResults(ctx, run.ID, resultInputs)
+			if batchErr != nil {
+				return nil, apperrors.NewInternal("ошибка пакетного создания результатов")
+			}
+		}
+		if err := s.recomputeRunStats(ctx, run.ID); err != nil {
+			if len(created) > 0 {
+				ids := make([]uuid.UUID, len(created))
+				for i, c := range created {
+					ids[i] = c.ID
+				}
+				if delErr := s.repo.DeleteTestResults(ctx, ids); delErr != nil {
+					slog.Error("не удалось откатить partial allure results", "error", delErr, "run_id", run.ID)
+				}
+			}
+			return nil, err
+		}
 	}
 
 	return s.GetTestRunDetail(ctx, projectID, run.ID)

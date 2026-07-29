@@ -41,6 +41,10 @@ type TestCaseRepository interface {
 	CountTestCasesInProject(ctx context.Context, projectID uuid.UUID, ids []uuid.UUID) (int, error)
 	// CountLabelsInProject считает метки из ids, принадлежащие projectID (P1-BE-12).
 	CountLabelsInProject(ctx context.Context, projectID uuid.UUID, ids []uuid.UUID) (int, error)
+	// CountProjectMembers считает, сколько из userIDs — участники projectID (A3W2-2-001).
+	CountProjectMembers(ctx context.Context, projectID uuid.UUID, userIDs []uuid.UUID) (int, error)
+	// CountFilesInProject считает файлы из ids, принадлежащие projectID (A3W2-2-002).
+	CountFilesInProject(ctx context.Context, projectID uuid.UUID, ids []uuid.UUID) (int, error)
 }
 
 // TestCaseVersionRepository управляет версиями (снимками) тест-кейсов.
@@ -121,6 +125,8 @@ type TestResultRepository interface {
 	ListTestResultsByRunIDs(ctx context.Context, runIDs []uuid.UUID) ([]*ent.TestResult, error)
 	// BatchCreateTestResults массово создаёт результаты (для импорта Allure).
 	BatchCreateTestResults(ctx context.Context, runID uuid.UUID, inputs []CreateTestResultInput) ([]*ent.TestResult, error)
+	// DeleteTestResults удаляет результаты по ID (compensating cleanup ExistingRun import, A3W2-2-003).
+	DeleteTestResults(ctx context.Context, ids []uuid.UUID) error
 	// GetTestResult возвращает результат по ID с подгруженными связями.
 	GetTestResult(ctx context.Context, resultID uuid.UUID) (*ent.TestResult, error)
 	// GetTestResultInRun возвращает результат только если он принадлежит runID (A2W2-1-001).

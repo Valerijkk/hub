@@ -283,11 +283,18 @@ func (s *TMSService) ExecuteTestResult(ctx context.Context, projectID, runID, re
 		return nil, apperrors.NewInternal("ошибка обновления результата")
 	}
 
-	// Привязываем файлы к результату
+	// Привязываем файлы к результату (A3W2-2-002: только файлы проекта).
 	if len(req.FileIDs) > 0 {
 		fileUUIDs, err := parseUUIDs(req.FileIDs)
 		if err != nil {
 			return nil, apperrors.NewBadRequest("некорректный ID файла")
+		}
+		n, err := s.repo.CountFilesInProject(ctx, projectID, fileUUIDs)
+		if err != nil {
+			return nil, apperrors.NewInternal("ошибка проверки файлов")
+		}
+		if n != len(fileUUIDs) {
+			return nil, apperrors.NewNotFound("файл не найден")
 		}
 		if err := s.repo.AddFilesToResult(ctx, runID, resultID, fileUUIDs); err != nil {
 			return nil, apperrors.NewInternal("ошибка привязки файлов к результату")
@@ -309,6 +316,7 @@ func (s *TMSService) ExecuteTestResult(ctx context.Context, projectID, runID, re
 }
 
 // AssignTestersToRun назначает тестировщиков на прогон.
+// A3W2-2-001: только участники проекта (зеркало tracker assignee / TASK-088).
 func (s *TMSService) AssignTestersToRun(ctx context.Context, projectID, runID uuid.UUID, req AssignTestersRequest) (*TestRunDetailResponse, error) {
 	if _, err := s.repo.GetTestRunInProject(ctx, projectID, runID); err != nil {
 		if ent.IsNotFound(err) {
@@ -320,6 +328,16 @@ func (s *TMSService) AssignTestersToRun(ctx context.Context, projectID, runID uu
 	userIDs, err := parseUUIDs(req.UserIDs)
 	if err != nil {
 		return nil, apperrors.NewBadRequest("некорректный ID пользователя")
+	}
+	if len(userIDs) > 0 {
+		n, err := s.repo.CountProjectMembers(ctx, projectID, userIDs)
+		if err != nil {
+			return nil, apperrors.NewInternal("ошибка проверки участников")
+		}
+		if n != len(userIDs) {
+			// 400 — как TASK-088 assignee; UUID валиден, но не member проекта.
+			return nil, apperrors.NewBadRequest("пользователь не является участником проекта")
+		}
 	}
 
 	if err := s.repo.AssignTestersToRun(ctx, runID, userIDs); err != nil {

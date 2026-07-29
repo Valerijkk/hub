@@ -240,7 +240,18 @@ func (s *TMSService) DeleteTestCase(ctx context.Context, projectID uuid.UUID, ca
 		return apperrors.NewInternal("ошибка получения тест-кейса")
 	}
 	// A2W2-3-003: soft-delete scoped by projectID (repo TOCTOU guard).
-	return s.repo.DeleteTestCase(ctx, projectID, existing.ID)
+	// A3W2-2-006: сырой Ent/constraint не утекает наружу.
+	if err := s.repo.DeleteTestCase(ctx, projectID, existing.ID); err != nil {
+		var appErr *apperrors.AppError
+		if errors.As(err, &appErr) {
+			return err
+		}
+		if ent.IsNotFound(err) {
+			return apperrors.NewNotFound("тест-кейс не найден")
+		}
+		return apperrors.NewInternal("ошибка удаления тест-кейса")
+	}
+	return nil
 }
 
 // RollbackTestCase откатывает тест-кейс к указанной версии.
@@ -269,7 +280,10 @@ func (s *TMSService) RollbackTestCase(ctx context.Context, projectID uuid.UUID, 
 	}
 
 	// Применяем снимок как обновление (optimistic lock на текущей version)
-	input := snapshotToUpdateInput(version.Snapshot)
+	input, err := snapshotToUpdateInput(version.Snapshot)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка применения снимка версии")
+	}
 	input.Version = existing.Version
 	updated, err := s.snapshotAndUpdateTestCase(ctx, existing.ID, userID, existing.Version, currentSnapshot, "перед откатом к версии", input)
 	if err != nil {
@@ -330,7 +344,15 @@ func (s *TMSService) LinkTestCaseToIssue(ctx context.Context, projectID uuid.UUI
 		}
 		return apperrors.NewInternal("ошибка получения задачи")
 	}
-	return s.repo.LinkTestCaseToIssue(ctx, tc.ID, issueID)
+	// A3W2-2-006: wrap raw repo err → AppError.
+	if err := s.repo.LinkTestCaseToIssue(ctx, tc.ID, issueID); err != nil {
+		var appErr *apperrors.AppError
+		if errors.As(err, &appErr) {
+			return err
+		}
+		return apperrors.NewInternal("ошибка привязки тест-кейса к задаче")
+	}
+	return nil
 }
 
 // UnlinkTestCaseFromIssue отвязывает тест-кейс от задачи трекера.
@@ -349,7 +371,15 @@ func (s *TMSService) UnlinkTestCaseFromIssue(ctx context.Context, projectID uuid
 		}
 		return apperrors.NewInternal("ошибка получения задачи")
 	}
-	return s.repo.UnlinkTestCaseFromIssue(ctx, tc.ID, issueID)
+	// A3W2-2-006: wrap raw repo err → AppError.
+	if err := s.repo.UnlinkTestCaseFromIssue(ctx, tc.ID, issueID); err != nil {
+		var appErr *apperrors.AppError
+		if errors.As(err, &appErr) {
+			return err
+		}
+		return apperrors.NewInternal("ошибка отвязки тест-кейса от задачи")
+	}
+	return nil
 }
 
 // GetTestCaseLinks возвращает задачи, привязанные к тест-кейсу.
