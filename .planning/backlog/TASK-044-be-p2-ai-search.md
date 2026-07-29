@@ -1,6 +1,6 @@
 # TASK-044 — AI stream/privacy + search JQL/SSRF
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · На проверке
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Закрыта
 > Источник: TASK-008 W12 · Classes: P2-BE-17,P2-BE-18 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P2-BACKEND.md`
 
 ## [OUTCOME]
@@ -66,7 +66,7 @@ Meili SSRF hubtest + stream cancel mid-read IT. Status → Исправлена.
 
 ## [REWORK 2026-07-29 be1 — stream cancel mutation-proof]
 
-**Статус: На проверке** (мутацию закрытия делает независимый агент).
+**Статус: Закрыта** (W2-044 независимая мутация PASS).
 
 ### Guard
 - `adapter_stream.go`: HTTP request на `context.WithoutCancel(ctx)` — Body.Read не маскирует mid-loop cancel.
@@ -92,3 +92,11 @@ go test -tags hubtest -count=1 -timeout=90s \
 ```
 
 Handoff: независимая мутация (не автор фикса) → Закрыта.
+
+## [W2-044 MUTATION — 2026-07-29 be2]
+
+**PASS.** Evidence: `.planning/audits/total-2026-07/MUTATION-2026-07-29-W2-044.md`
+
+- Stream cancel: drop mid-loop `ctx.Err` → `TestChatCompletionStream_CancelMidRead_P2BE17` RED (~5.01s, nil err) ✓
+- Meili SSRF: `validateMeiliHost` allow-all → `TestValidateMeiliHost_BlocksMetadata_P2BE18` RED ✓
+- Restore → GREEN оба; mock-gap нет → **Закрыта**

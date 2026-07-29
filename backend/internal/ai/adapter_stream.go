@@ -61,8 +61,12 @@ func (a *OpenAIAdapter) ChatCompletionStream(ctx context.Context, baseURL, apiKe
 	}
 	scanner := bufio.NewScanner(io.LimitReader(resp.Body, maxResponseBytes))
 	scanner.Buffer(make([]byte, 0, 64*1024), 256*1024)
-	// MUTATION: mid-loop ctx.Err removed (TASK-044 independent check)
+	// ctx.Err до Scan: после cancel в onDelta не блокируемся на следующем Read
+	// (HTTP — WithoutCancel; иначе mid-loop guard не mutation-proof, P2-BE-17).
 	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		if !scanner.Scan() {
 			break
 		}
