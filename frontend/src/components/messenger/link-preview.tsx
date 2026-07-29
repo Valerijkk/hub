@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchLinkPreview, type LinkPreviewData } from "@/api/messenger";
+import { isSafeUrl, sanitizeUrl } from "@/lib/safe-url";
 
 /**
  * Пропсы компонента LinkPreview.
@@ -29,7 +30,7 @@ function InternalIssuePreview({
 }) {
 	return (
 		<a
-			href={url}
+			href={sanitizeUrl(url)}
 			className="mt-2 flex items-center gap-2 rounded-lg border border-[var(--blue)]/20 bg-[var(--gB)] p-3 transition-colors hover:bg-[var(--gB)]"
 		>
 			<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--gB)]">
@@ -75,7 +76,7 @@ function GitHubPreview({
 }) {
 	return (
 		<a
-			href={url}
+			href={sanitizeUrl(url)}
 			target="_blank"
 			rel="noopener noreferrer"
 			className="mt-2 flex items-center gap-2 rounded-lg border border-[var(--b2)] bg-[var(--raised)] p-3 transition-colors hover:bg-[var(--hover)]"
@@ -137,7 +138,7 @@ function GenericPreview({ url }: { url: string }) {
 
 	return (
 		<a
-			href={url}
+			href={sanitizeUrl(url)}
 			target="_blank"
 			rel="noopener noreferrer"
 			className="mt-2 flex overflow-hidden rounded-lg border transition-colors hover:bg-raised/30"
@@ -172,8 +173,13 @@ function GenericPreview({ url }: { url: string }) {
 /**
  * LinkPreview — определяет тип ссылки и рендерит соответствующее превью.
  * Поддерживает: внутренние задачи Hub, GitHub, generic OG-preview.
+ * A3W9-3-003: unsafe-схемы (javascript:/data:/…) → null, без href.
  */
 export function LinkPreview({ url }: LinkPreviewProps) {
+	if (!isSafeUrl(url)) {
+		return null;
+	}
+
 	// Проверяем внутреннюю ссылку на задачу
 	const internalMatch = url.match(INTERNAL_ISSUE_RE);
 	if (internalMatch) {

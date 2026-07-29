@@ -10,6 +10,7 @@ import {
 } from "@/api/messenger";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useInvalidateMessages } from "@/hooks/use-invalidate";
+import { isSafeUrl } from "@/lib/safe-url";
 import { cn } from "@/lib/utils";
 import { useAIStore } from "@/stores/ai-store";
 import { useAuthStore } from "@/stores/auth-store";
@@ -189,11 +190,15 @@ function MessageItemInner({
 	 */
 	const extractedUrls = useMemo(() => {
 		const urls = new Set<string>();
+		const addUrl = (u: string) => {
+			// A3W9-3-003: только whitelist-схемы попадают в LinkPreview.
+			if (isSafeUrl(u)) urls.add(u);
+		};
 		if (messageContentText) {
 			const matches = messageContentText.match(URL_REGEX);
 			if (matches) {
 				for (const u of matches) {
-					urls.add(u);
+					addUrl(u);
 				}
 			}
 		}
@@ -202,13 +207,13 @@ function MessageItemInner({
 				if (!node || typeof node !== "object") return;
 				const n = node as Record<string, unknown>;
 				if (n.type === "a" && typeof n.url === "string") {
-					urls.add(n.url);
+					addUrl(n.url);
 				}
 				if (typeof n.text === "string") {
 					const matches = n.text.match(URL_REGEX);
 					if (matches) {
 						for (const u of matches) {
-							urls.add(u);
+							addUrl(u);
 						}
 					}
 				}
@@ -493,7 +498,7 @@ function MessageItemInner({
 											className={cn(
 												"flex items-center gap-1.5 px-2.5 py-0.5 border border-[var(--b2)] rounded-full text-[13px] cursor-pointer hover:bg-[var(--hover)] hover:border-[var(--b3)] hover:-translate-y-px transition-[color,background-color,border-color,box-shadow,transform,filter,opacity]",
 												hasReacted &&
-													"border-[rgba(52,211,153,.2)] bg-[rgba(52,211,153,.04)]",
+													"border-[color-mix(in_srgb,var(--green)_20%,transparent)] bg-[var(--gG)]",
 											)}
 											onClick={() =>
 												void import("@/api/messenger").then((m) =>
