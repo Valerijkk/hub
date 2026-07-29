@@ -84,6 +84,10 @@ export interface Bookmark {
 	id: string;
 	message_id: string;
 	channel_id: string;
+	/** Имя канала для UI (A3W9-2-001); без него — fallback «Канал». */
+	channel_name?: string;
+	/** Превью текста сообщения; без него — fallback «Сообщение». */
+	content_preview?: string;
 	created_at: string;
 }
 

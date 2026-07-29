@@ -126,11 +126,14 @@ type MessageResponse struct {
 }
 
 // BookmarkResponse — ответ с данными закладки.
+// ChannelName / ContentPreview — enrich для UI (A3W9-2-001); пустые, если канал/сообщение недоступны.
 type BookmarkResponse struct {
-	ID        string    `json:"id"`
-	MessageID string    `json:"message_id"`
-	ChannelID string    `json:"channel_id"`
-	CreatedAt time.Time `json:"created_at"`
+	ID             string    `json:"id"`
+	MessageID      string    `json:"message_id"`
+	ChannelID      string    `json:"channel_id"`
+	ChannelName    string    `json:"channel_name,omitempty"`
+	ContentPreview string    `json:"content_preview,omitempty"`
+	CreatedAt      time.Time `json:"created_at"`
 }
 
 // PinnedMessageResponse — ответ с данными закреплённого сообщения.

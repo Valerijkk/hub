@@ -159,7 +159,13 @@ func TestBookmarks_AddListRemove(t *testing.T) {
 	ctx := context.Background()
 	userID := uuid.New()
 	channelID := setupChannelWithMembers(repo, "public", false, userID)
+	repo.channels[channelID].Name = "general"
 	messageID := "msg-bookmark"
+	repo.messages[messageID] = &messenger.MessageDocument{
+		ID:          messageID,
+		ChannelID:   channelID,
+		ContentText: "Hello from bookmark preview",
+	}
 
 	require.NoError(t, svc.AddBookmark(ctx, userID, messageID, channelID))
 
@@ -168,6 +174,8 @@ func TestBookmarks_AddListRemove(t *testing.T) {
 	require.Len(t, list, 1)
 	assert.Equal(t, messageID, list[0].MessageID)
 	assert.Equal(t, channelID.String(), list[0].ChannelID)
+	assert.Equal(t, "general", list[0].ChannelName, "A3W9-2-001: channel_name enrich")
+	assert.Equal(t, "Hello from bookmark preview", list[0].ContentPreview, "A3W9-2-001: content_preview enrich")
 
 	bookmarkID := uuid.MustParse(list[0].ID)
 	require.NoError(t, svc.RemoveBookmark(ctx, userID, bookmarkID))
@@ -356,10 +364,10 @@ func TestLeaveChannel(t *testing.T) {
 
 // TestToggleStarAndMute проверяет сценарий: toggle star and mute.
 func TestToggleStarAndMute(t *testing.T) {
-	svc, _, _ := newTestService()
+	svc, repo, _ := newTestService()
 	ctx := context.Background()
 	userID := uuid.New()
-	channelID := uuid.New()
+	channelID := setupChannelWithMembers(repo, "public", false, userID)
 
 	starred, err := svc.ToggleStar(ctx, channelID, userID)
 	require.NoError(t, err)

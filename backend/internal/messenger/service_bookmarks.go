@@ -8,8 +8,12 @@ import (
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
+// Максимальная длина превью текста закладки (руны).
+const bookmarkPreviewMaxRunes = 120
+
 // AddBookmark добавляет закладку пользователя на сообщение.
 // Требуется membership в канале (P1-BE-16).
+// A3W3-2-003: сообщение должно принадлежать channelID (как TogglePin).
 func (s *MessengerService) AddBookmark(ctx context.Context, userID uuid.UUID, messageID string, channelID uuid.UUID) error {
 	isMember, err := s.repo.IsMember(ctx, channelID, userID)
 	if err != nil {
@@ -17,6 +21,14 @@ func (s *MessengerService) AddBookmark(ctx context.Context, userID uuid.UUID, me
 	}
 	if !isMember {
 		return apperrors.NewForbidden("вы не являетесь участником канала")
+	}
+
+	msg, err := s.repo.FindMessageByID(ctx, messageID)
+	if err != nil {
+		return apperrors.NewNotFound("сообщение не найдено")
+	}
+	if msg.ChannelID != channelID {
+		return apperrors.NewNotFound("сообщение не найдено")
 	}
 
 	_, err = s.repo.AddBookmark(ctx, userID, messageID, channelID)
@@ -38,20 +50,41 @@ func (s *MessengerService) RemoveBookmark(ctx context.Context, userID, bookmarkI
 	return nil
 }
 
-// ListBookmarks возвращает все закладки пользователя.
+// ListBookmarks возвращает все закладки пользователя с channel_name и content_preview (A3W9-2-001).
 func (s *MessengerService) ListBookmarks(ctx context.Context, userID uuid.UUID) ([]BookmarkResponse, error) {
 	bookmarks, err := s.repo.ListBookmarks(ctx, userID)
 	if err != nil {
 		return nil, apperrors.NewInternal("ошибка получения закладок")
 	}
+
+	// Кеш имён каналов — один GetChannel на уникальный channel_id.
+	channelNames := make(map[uuid.UUID]string, len(bookmarks))
 	result := make([]BookmarkResponse, 0, len(bookmarks))
 	for _, b := range bookmarks {
-		result = append(result, BookmarkResponse{
+		resp := BookmarkResponse{
 			ID:        b.ID.String(),
 			MessageID: b.MessageID,
 			ChannelID: b.ChannelID.String(),
 			CreatedAt: b.CreatedAt,
-		})
+		}
+
+		if name, ok := channelNames[b.ChannelID]; ok {
+			resp.ChannelName = name
+		} else {
+			ch, chErr := s.repo.GetChannel(ctx, b.ChannelID)
+			if chErr == nil && ch != nil && ch.Name != "" {
+				resp.ChannelName = ch.Name
+				channelNames[b.ChannelID] = ch.Name
+			} else {
+				channelNames[b.ChannelID] = ""
+			}
+		}
+
+		if msg, msgErr := s.repo.FindMessageByID(ctx, b.MessageID); msgErr == nil && msg != nil {
+			resp.ContentPreview = truncateRunes(msg.ContentText, bookmarkPreviewMaxRunes)
+		}
+
+		result = append(result, resp)
 	}
 	return result, nil
 }

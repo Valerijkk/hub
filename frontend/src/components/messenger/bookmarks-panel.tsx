@@ -1,3 +1,7 @@
+/**
+ * BookmarksPanel отображает список сохранённых сообщений пользователя.
+ * Доступен из sidebar мессенджера. Позволяет удалять закладки и переходить к сообщениям.
+ */
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
@@ -7,10 +11,18 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toastApiError } from "@/lib/format-api-error";
 
-/**
- * BookmarksPanel отображает список сохранённых сообщений пользователя.
- * Доступен из sidebar мессенджера. Позволяет удалять закладки и переходить к сообщениям.
- */
+/** Primary accessible label: channel name, never raw UUID (A3W9-2-001). */
+function bookmarkTitle(bm: Bookmark): string {
+	const name = bm.channel_name?.trim();
+	return name || "Канал";
+}
+
+/** Subtitle preview: message text, never raw message_id UUID. */
+function bookmarkSubtitle(bm: Bookmark): string {
+	const preview = bm.content_preview?.trim();
+	return preview || "Сообщение";
+}
+
 export function BookmarksPanel() {
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
@@ -65,49 +77,54 @@ export function BookmarksPanel() {
 				>
 					{(bookmarks) => (
 						<div className="space-y-2 p-4">
-							{bookmarks.map((bm) => (
-								<div
-									key={bm.id}
-									className="flex items-start gap-3 rounded-md border p-3"
-								>
-									<button
-										type="button"
-										className="min-w-0 flex-1 text-left"
-										onClick={() => handleNavigate(bm)}
+							{bookmarks.map((bm) => {
+								const title = bookmarkTitle(bm);
+								const subtitle = bookmarkSubtitle(bm);
+								return (
+									<div
+										key={bm.id}
+										className="flex items-start gap-3 rounded-md border p-3"
 									>
-										<p className="text-sm font-medium">{bm.channel_id}</p>
-										<p className="mt-0.5 line-clamp-2 text-xs text-t2">
-											{bm.message_id}
-										</p>
-										<p className="mt-1 text-xs text-t2">
-											{new Date(bm.created_at).toLocaleDateString("ru-RU")}
-										</p>
-									</button>
-									<Button
-										variant="ghost"
-										size="icon"
-										className="h-7 w-7 shrink-0"
-										title="Удалить из закладок"
-										aria-label="Удалить из закладок"
-										onClick={() => void handleRemove(bm)}
-									>
-										<svg
-											aria-hidden="true"
-											className="h-3.5 w-3.5"
-											fill="none"
-											viewBox="0 0 24 24"
-											stroke="currentColor"
-											strokeWidth={2}
+										<button
+											type="button"
+											className="min-w-0 flex-1 text-left"
+											aria-label={`${title}: ${subtitle}`}
+											onClick={() => handleNavigate(bm)}
 										>
-											<path
-												strokeLinecap="round"
-												strokeLinejoin="round"
-												d="M6 18L18 6M6 6l12 12"
-											/>
-										</svg>
-									</Button>
-								</div>
-							))}
+											<p className="text-sm font-medium">{title}</p>
+											<p className="mt-0.5 line-clamp-2 text-xs text-t2">
+												{subtitle}
+											</p>
+											<p className="mt-1 text-xs text-t2">
+												{new Date(bm.created_at).toLocaleDateString("ru-RU")}
+											</p>
+										</button>
+										<Button
+											variant="ghost"
+											size="icon"
+											className="h-7 w-7 shrink-0"
+											title="Удалить из закладок"
+											aria-label="Удалить из закладок"
+											onClick={() => void handleRemove(bm)}
+										>
+											<svg
+												aria-hidden="true"
+												className="h-3.5 w-3.5"
+												fill="none"
+												viewBox="0 0 24 24"
+												stroke="currentColor"
+												strokeWidth={2}
+											>
+												<path
+													strokeLinecap="round"
+													strokeLinejoin="round"
+													d="M6 18L18 6M6 6l12 12"
+												/>
+											</svg>
+										</Button>
+									</div>
+								);
+							})}
 						</div>
 					)}
 				</QueryStateView>
