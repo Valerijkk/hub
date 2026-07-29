@@ -98,11 +98,11 @@ curl -sS -X POST http://localhost:8080/api/auth/magic-link/verify \
 | GET | `/projects/trash` | Список удалённых проектов |
 | GET | `/projects/:projectId` | Получить проект по ID |
 | PUT | `/projects/:projectId` | Обновить проект |
-| POST | `/projects/:projectId/archive` | Архивировать проект |
-| POST | `/projects/:projectId/unarchive` | Разархивировать проект |
+| POST | `/projects/:projectId/archive` | Архивировать проект (`active` → `archived`; soft-deleted → 404) |
+| POST | `/projects/:projectId/unarchive` | Разархивировать проект (`archived` → `active`; soft-deleted → 404) |
 | DELETE | `/projects/:projectId` | Удалить проект (в корзину) |
-| POST | `/projects/:projectId/restore` | Восстановить из корзины |
-| DELETE | `/projects/:projectId/permanent` | Удалить проект навсегда (hard-delete из корзины) |
+| POST | `/projects/:projectId/restore` | Восстановить из корзины (`deleted` → `active`, сбрасывает `deleted_at`) |
+| DELETE | `/projects/:projectId/permanent` | Hard-delete только из корзины (`status=deleted`) + system admin/founder; иначе 400/403 |
 
 ### Участники
 

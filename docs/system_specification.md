@@ -295,8 +295,8 @@ Source FR: FR-INTR-02
 
 ### PUT /api/intranet/news/:newsId/poll
 Auth: Bearer; RBAC: автор поста или admin
-Request: { "question"?, "options"?, "closed"?, "version" }
-Responses: 200; 401; 403; 404; 409 (version); 422 (правка options после первого голоса)
+Request: { "question"?, "options"?, "closed"?, "version" }  // version ≥1 обязателен
+Responses: 200; 400 (version omit/<1); 401; 403; 404; 409 (version conflict); 422 (правка options после первого голоса)
 Source FR: FR-INTR-03
 
 ### GET /api/intranet/onboarding/templates
