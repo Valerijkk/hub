@@ -1,12 +1,39 @@
 # ♻️🔒 A3 FE SprintBacklog filter REGRESS + sprint-store leaks
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P1** · Статус: **Открыта**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P1** · Статус: **На проверке**  
 > Источник: A3 · **Owner lock: правим ВСЕ A3 open** · TASK-008 · кластер A3W10-3  
 > Исполнитель: **fe1** · Ветка исполнения: `cursor-grok-4.5` (не пушить в `master`)
 
 ## [OUTCOME]
 
 Все четыре A3W10-3 finding ID закрыты: SprintBacklog снова запрашивает/фильтрует только issues без спринта (регресс TASK-082 после merge TASK-093), VelocityChart не путает loading с empty, Zustand `sprint-store` и `selectedIssues` не держат данные чужого проекта при смене `projectId`.
+
+## Progress (fe1 · 2026-07-29)
+
+| ID | Status | Evidence |
+|----|--------|----------|
+| A3W10-3-001 | FIXED | `sprint-backlog.tsx` `listIssues(..., {sprint_id:"none"})` + `filterIssuesWithoutSprint`; `sprint-backlog-filter.test.tsx` PASS |
+| A3W10-3-002 | FIXED | `sprint-store.ts` `velocityLoading`; `velocity-chart.tsx` loading UI; `velocity-chart-loading.test.tsx` PASS |
+| A3W10-3-003 | FIXED | clear `sprints`/`velocity` at fetch start; `sprint-store-stale-clear.test.ts` PASS |
+| A3W10-3-004 | FIXED | `setSelectedIssues(new Set())` on `projectId`; `sprint-backlog-selection-leak.test.tsx` PASS |
+
+### Mutation proofs
+
+| ID | Мутация → красный тест |
+|----|------------------------|
+| 001 | убрать `sprint_id:"none"` / filter → filter test FAIL |
+| 002 | `if (false && velocityLoading)` → loading test FAIL |
+| 003 | не сбрасывать store при старте fetch → stale-clear FAIL |
+| 004 | убрать `setSelectedIssues(new Set())` → selection-leak FAIL |
+
+### Commands
+
+```
+npx tsc --noEmit  # PASS
+vitest run …/tracker/sprint-{backlog-filter,backlog-selection-leak,backlog-error,store-stale-clear,store-error} + velocity-chart-loading  # 12/12 PASS
+```
+
+Handoff: **fe-ver → code-reviewer**
 
 ## [ROLE]
 
