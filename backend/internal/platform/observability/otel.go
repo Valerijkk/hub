@@ -2,6 +2,7 @@ package observability
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -179,10 +180,16 @@ func finishOperationSpan(span trace.Span, err error) {
 	if span == nil {
 		return
 	}
-	if err != nil {
+	// A3W4-3-001: Canceled/DeadlineExceeded — штатная отмена, не Error-status.
+	if err != nil && !isBenignContextError(err) {
 		recordRedactedSpanError(span, "operation_error")
 	}
 	span.End()
+}
+
+// isBenignContextError — context.Canceled / DeadlineExceeded (graceful shutdown, client abort).
+func isBenignContextError(err error) bool {
+	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
 }
 
 // recordRedactedSpanError пишет Error-status без сырого текста ошибки (W4-A3-003).
