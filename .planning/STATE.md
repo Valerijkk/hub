@@ -65,6 +65,13 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-29 (fe1 · TASK-129 A3W11-1-001 wire→ApiError)
+
+- **Сделано:** `client.ts` — `mapWireToApiError` (`error`→`message`, `request_id`, 429 `Retry-After`); `request` + `getBlob`.
+- **ID:** A3W11-1-001 → FIXED; задача «На проверке».
+- **Тесты:** vitest client-api + format-api-error **21/21**; mutation: `as ApiError` без map → 3 FAIL.
+- **Docs:** wiki API.md:47 уже верна относительно кода (N/A sync).
+
 ## Session note — 2026-07-28 (fe2+docs · TASK-123 dead export + docs drift)
 
 - **Сделано:** удалён dead export `useRooms`; BUSINESS webcam consistency; NF-11 → `wiring_fiber.go`; REST summary ~252 OpenAPI.

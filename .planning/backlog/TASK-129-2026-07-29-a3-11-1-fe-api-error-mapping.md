@@ -1,6 +1,6 @@
 # ♻️🔒 A3 FE client.ts wire error→ApiError.message REGRESS
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P1** · Статус: **Открыта**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P1** · Статус: **На проверке**  
 > Источник: A3W11-1-001 REGRESS · Stage A3 FINAL · TASK-008  
 > Исполнитель: **fe1**
 
@@ -96,3 +96,23 @@
 - Коммит(ы) ссылают задачу в теле:  
   `Задача: .planning/backlog/TASK-129-2026-07-29-a3-11-1-fe-api-error-mapping.md`  
   subject может содержать `(A3W11-1-001)`.
+
+## [EVIDENCE — fe1 2026-07-29]
+
+| ID | Verdict | Evidence |
+|----|---------|----------|
+| A3W11-1-001 | **FIXED** | `mapWireToApiError` в `client.ts` (`request` + `getBlob`); wiki `API.md:47` соответствует коду (docs N/A) |
+
+**Команды (PASS):**
+```
+cd frontend && node scripts/link-testframework-node-modules.mjs \
+  && ./node_modules/.bin/tsc --noEmit \
+  && ./node_modules/.bin/biome check ./src/api/client.ts \
+  && npx vitest run ../testframework/stages/unit/frontend-test/domains/auth/client-api.test.ts \
+                   ../testframework/stages/unit/frontend-test/domains/platform/format-api-error.test.ts
+```
+→ tsc OK · biome client OK · **21/21** PASS (client-api 12 + format-api-error 9).
+
+**Mutation:** в `mapWireToApiError` вернуть `as ApiError` без `error`→`message` → краснеют 3 wire-теста (`message === "rate limited" | "not found" | "export forbidden"` → `undefined`). После restore — 4/4 wire green.
+
+**Fallback:** JSON без `error` / не-string `error` / пустая строка → `response.statusText`; невалидный JSON → `{ code: status, message: statusText }`.

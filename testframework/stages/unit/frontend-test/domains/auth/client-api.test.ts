@@ -1,6 +1,32 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	it,
+	vi,
+} from "vitest";
+
+const { toastError, toastDismiss } = vi.hoisted(() => ({
+	toastError: vi.fn(),
+	toastDismiss: vi.fn(),
+}));
+
+vi.mock("sonner", () => ({
+	toast: {
+		error: toastError,
+		dismiss: toastDismiss,
+	},
+}));
+
 import { downloadCalendarExport } from "@/api/calendar";
-import { api } from "@/api/client";
+import { api, type ApiError } from "@/api/client";
+import "@/i18n";
+import {
+	formatApiError,
+	resetRateLimitToastForTests,
+	toastApiError,
+} from "@/lib/format-api-error";
 import { useAuthStore } from "@/stores/auth-store";
 
 function resetAuthStore(): void {
@@ -10,6 +36,23 @@ function resetAuthStore(): void {
 		refreshToken: "refresh-token",
 		user: null,
 		isAuthenticated: true,
+	});
+}
+
+const WIRE_REQUEST_ID = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+
+function wireErrorResponse(
+	status: number,
+	body: { error: string; request_id: string },
+	headers?: Record<string, string>,
+): Response {
+	return new Response(JSON.stringify(body), {
+		status,
+		statusText: status === 429 ? "Too Many Requests" : "Error",
+		headers: {
+			"Content-Type": "application/json",
+			...headers,
+		},
 	});
 }
 
@@ -296,5 +339,137 @@ describe("import-export FormData via api.post", () => {
 		expect(String(fetchMock.mock.calls[0]?.[0])).toContain(
 			"/api/projects/proj-1/import/issues?mode=preview",
 		);
+	});
+});
+
+describe("api client wire error → ApiError (A3W11-1-001)", () => {
+	beforeEach(() => {
+		resetAuthStore();
+		vi.restoreAllMocks();
+		vi.useFakeTimers();
+		toastError.mockClear();
+		toastDismiss.mockClear();
+		useAuthStore.getState().setTokens("wire-access", "wire-refresh");
+	});
+
+	afterEach(() => {
+		resetRateLimitToastForTests();
+		vi.useRealTimers();
+	});
+
+	it("request: maps TZ wire error→message + request_id; 429 Retry-After → toast countdown", async () => {
+		vi.stubGlobal(
+			"fetch",
+			vi.fn(async () =>
+				wireErrorResponse(
+					429,
+					{ error: "rate limited", request_id: WIRE_REQUEST_ID },
+					{ "Retry-After": "5" },
+				),
+			),
+		);
+
+		let thrown: unknown;
+		try {
+			await api.get("/rate-limited");
+		} catch (err) {
+			thrown = err;
+		}
+
+		const apiErr = thrown as ApiError;
+		expect(apiErr.code).toBe(429);
+		expect(apiErr.message).toBe("rate limited");
+		expect(apiErr.request_id).toBe(WIRE_REQUEST_ID);
+		expect(apiErr.retry_after).toBe(5);
+
+		const formatted = formatApiError(apiErr);
+		expect(formatted).toContain("5");
+		expect(formatted.toLowerCase()).not.toContain("unknown");
+
+		toastApiError(apiErr);
+		expect(toastError).toHaveBeenCalledWith(
+			expect.stringContaining("5"),
+			expect.objectContaining({
+				id: "hub-api-rate-limit",
+				description: expect.stringContaining(WIRE_REQUEST_ID),
+			}),
+		);
+	});
+
+	it("request: 404 wire error reaches formatApiError with request_id toast", async () => {
+		vi.stubGlobal(
+			"fetch",
+			vi.fn(async () =>
+				wireErrorResponse(404, {
+					error: "not found",
+					request_id: WIRE_REQUEST_ID,
+				}),
+			),
+		);
+
+		let thrown: unknown;
+		try {
+			await api.get("/missing");
+		} catch (err) {
+			thrown = err;
+		}
+
+		const apiErr = thrown as ApiError;
+		expect(apiErr.code).toBe(404);
+		expect(apiErr.message).toBe("not found");
+		expect(apiErr.request_id).toBe(WIRE_REQUEST_ID);
+		expect(formatApiError(apiErr)).toBe("not found");
+
+		toastApiError(apiErr);
+		expect(toastError).toHaveBeenCalledWith(
+			"not found",
+			expect.objectContaining({
+				description: expect.stringContaining(WIRE_REQUEST_ID),
+			}),
+		);
+	});
+
+	it("getBlob: maps wire error→message and request_id", async () => {
+		vi.stubGlobal(
+			"fetch",
+			vi.fn(async () =>
+				wireErrorResponse(403, {
+					error: "export forbidden",
+					request_id: WIRE_REQUEST_ID,
+				}),
+			),
+		);
+
+		let thrown: unknown;
+		try {
+			await api.getBlob("/calendar/export.ics?from=a&to=b");
+		} catch (err) {
+			thrown = err;
+		}
+
+		const apiErr = thrown as ApiError;
+		expect(apiErr.code).toBe(403);
+		expect(apiErr.message).toBe("export forbidden");
+		expect(apiErr.request_id).toBe(WIRE_REQUEST_ID);
+		expect(formatApiError(apiErr)).toBe("export forbidden");
+	});
+
+	it("request: invalid JSON on error path falls back to statusText", async () => {
+		vi.stubGlobal(
+			"fetch",
+			vi.fn(
+				async () =>
+					new Response("not-json", {
+						status: 502,
+						statusText: "Bad Gateway",
+						headers: { "Content-Type": "text/plain" },
+					}),
+			),
+		);
+
+		await expect(api.get("/broken")).rejects.toMatchObject({
+			code: 502,
+			message: "Bad Gateway",
+		});
 	});
 });

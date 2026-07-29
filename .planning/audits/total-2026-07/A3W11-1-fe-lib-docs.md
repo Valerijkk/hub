@@ -16,13 +16,13 @@
 | W11-A1-003 | FIXED-OK | без регресса | `calls.ts:159-164` — только `code === 404` → null; иначе rethrow |
 | W11-A1-004 | FIXED-OK | без регресса | `calls.ts:481-499` `Promise.allSettled`; throw если все rejected |
 | W11-A1-005 | FIXED-OK | без регресса | `bases.ts:74,116` — `version: number` required |
-| W11-A1-006 | FIXED-OK (**ложное**) | **REGRESS** → A3W11-1-001 | Wiki обещает map `error`→`message` (`docs/wiki/API.md:47`); `client.ts:128-135` / `getBlob:232-237` **не мапят**; BE wire = `{"error","request_id"}` (`middleware.go:15-18,32-35`) |
+| W11-A1-006 | FIXED-OK (**ложное**) | **FIXED** (TASK-129) | `mapWireToApiError` в `client.ts` (`request`/`getBlob`); wiki `API.md:47` = код; A3W11-1-001 closed fe1 |
 | W11-A1-007 | FIXED-OK | без регресса | `client.ts:65-85` `revokeSessionBestEffort` → POST `/auth/logout` до `logout()` |
 | W11-A1-008 | FIXED-OK | без регресса | calendar export через `getBlob` (общий error path) |
 | W11-A1-009 | FIXED-OK | без регресса | `client.ts:152-160` JSON.parse try/catch → `{ code: 502, message: "invalid json" }` |
 | W11-A1-010 | FIXED-OK | без регресса | `api/ai-types.ts` + alias в `admin-ai.ts` / `ai-my.ts` |
 
-**REGRESS:** 1 · **RESIDUAL (A2 actives):** 0 · **NEW (этот слот):** 0
+**REGRESS (closed):** 1 → FIXED TASK-129 · **RESIDUAL (A2 actives):** 0 · **NEW (этот слот):** 0
 
 ## Прочитанные файлы
 
@@ -43,7 +43,7 @@
 | `frontend/src/api/bases.ts` | 132 | 0 | FIXED-OK `version` required |
 | `frontend/src/api/calendar.ts` | 47 | 0 | FIXED-OK `api.getBlob` |
 | `frontend/src/api/calls.ts` | 500 | 0 | FIXED-OK 404→null / allSettled |
-| `frontend/src/api/client.ts` | 261 | 1 | REGRESS wire→ApiError map |
+| `frontend/src/api/client.ts` | 261 | 0 | FIXED wire→ApiError map (TASK-129) |
 | `frontend/src/api/crm.ts` | 133 | 0 | чисто |
 | `frontend/src/api/dashboard.ts` | 160 | 0 | чисто |
 | `frontend/src/api/files.ts` | 91 | 0 | чисто |
@@ -54,7 +54,7 @@
 
 | ID | Tag | Severity | Файл:строка | Проблема | Почему это дефект | Как чинить |
 |----|-----|----------|-------------|---------|-------------------|------------|
-| A3W11-1-001 | REGRESS | P1 | `client.ts:128-135` (+ `getBlob:232-237`); docs claim `docs/wiki/API.md:47` | После TZ-wire `{"error","request_id"}` клиент делает `response.json() as ApiError` и только добивает `code` из status — **не** копирует `body.error` → `message` | `formatApiError` / `toastApiError` требуют `message: string` (`format-api-error.ts:19`) → toast «unknown», нет `request_id` в description, 429-countdown не стартует (нет `message`). Wiki врёт о маппинге. A2 закрыл W11-A1-006 docs-only → false FIXED-OK | В `request`/`getBlob`: parse wire → `{ code: status, message: body.error ?? statusText, request_id: body.request_id }`; unit: wire `{error,request_id}` → toast показывает текст + request_id; mutation «убрать map» краснеет |
+| A3W11-1-001 | **FIXED** | P1 | `client.ts` `mapWireToApiError` (`request` + `getBlob`); docs claim `docs/wiki/API.md:47` | ~~После TZ-wire клиент не мапил `error`→`message`~~ → **FIXED** TASK-129: wire→`ApiError` map + Vitest (429 toast/request_id + 404 + getBlob); mutation «убрать map» краснеет | ~~toast unknown / no request_id / no 429 countdown~~ | fe1 2026-07-29 · статус задачи «На проверке» |
 
 ## FIXED-OK (сверка A2 + Stage A фокус)
 
@@ -86,25 +86,25 @@
 | Severity | Count |
 |----------|------:|
 | P0 | 0 |
-| P1 | 1 |
+| P1 | 0 |
 | P2 | 0 |
 | P3 | 0 |
-| **Total** | **1** |
+| **Total** | **0** |
 
 | Метрика | Значение |
 |---------|----------|
 | Файлов | **19 / 19 / 0** |
-| Активных | **1** (NEW 0 · REGRESS 1 · RESIDUAL 0) |
-| FIXED-OK (Stage A via A2) | **9/10** (006 → REGRESS) |
+| Активных | **0** (NEW 0 · REGRESS closed 1 · RESIDUAL 0) |
+| FIXED-OK (Stage A via A2 + TASK-129) | **10/10** |
 
 ### Топ-3
 
-1. **A3W11-1-001 (P1, REGRESS)** — нет map wire `error`→`ApiError.message` в `client.ts`; ломает toast/`request_id`/429 UX после TZ ErrorHandler; A2 W11-A1-006 false FIXED-OK.
+1. ~~**A3W11-1-001 (P1, REGRESS)**~~ → **FIXED** TASK-129 (`mapWireToApiError`).
 2. _(нет P2+)_ — calendar/getBlob/retry/logout/version/calls — без регресса.
 3. _(нет P0)_ — token persist XSS закрыт memory-only (слот A2).
 
 ---
 
 Файлов в списке: 19. Прочитано: 19. Пропущено: 0.  
-Counts: P0=0 · P1=1 · P2=0 · P3=0 · Total=1.  
-Топ: A3W11-1-001.
+Counts: P0=0 · P1=0 · P2=0 · P3=0 · Total=0.  
+Топ: _(пусто — A3W11-1-001 FIXED)_.
