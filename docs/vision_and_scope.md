@@ -39,7 +39,7 @@
 | CRITICAL security blockers | 0 | **12/12 FIXED** в коде (v2.0.1); PG-03 ротация секретов в git history — manual ops |
 | Unit coverage (security-critical) | ≥ 80% | **6/6 пакетов ≥80%** ✅ (auth, ws, rbac, audit, calls, platform/middleware) |
 | Unit coverage (overall `internal/`) | ≥ 50% (gate), ≥ 82% (wave) | **83.0%** ✅ (2026-06-22 Docker baseline; Wave C, `-tags hubtest`) |
-| Frontend Vitest | Unit-тесты модулей | **167** files ✅ (`stages/unit/frontend-test/`, measured 2026-07-29; 61 `.ts` + 106 `.tsx`) |
+| Frontend Vitest | Unit-тесты модулей | **176** files ✅ (`stages/unit/frontend-test/`, measured 2026-07-29; 61 `.ts` + 115 `.tsx`) |
 | E2E critical paths | Playwright | **20 spec-файлов** ✅ (`testframework/stages/e2e/domains/`) |
 | Global search Ctrl+K (US-M07) | UI + user-scope backend | **UI ✅** (PR #15: Calls, Settings, Admin) |
 | Lighthouse Performance/Accessibility | ≥ 90 | CI artifact job (PR #27, non-blocking); formal gate — backlog |
@@ -71,7 +71,7 @@
 | US-M03 | Как разработчик, хочу управлять задачами (9 типов) с кастомным workflow | CRUD, связи (blocks/relates/duplicates/clones/causes), комментарии, optimistic lock, чеклисты |
 | US-M04 | Как команда, хочу общаться в каналах с тредами и реакциями | Публичные/приватные каналы, DM, треды, presence, typing indicator |
 | US-M05 | Как QA, хочу вести тест-кейсы и получать результаты из CI (Allure) | Парсер Allure JSON, матчинг по ID/annotation, уведомления, создание бага из failed |
-| US-M06 | Как участник, хочу созвоны с screen share (и webcam с Phase 16) до 50 человек | LiveKit; запись audio+screen; webcam Phase 16 (ADR-TZ-REWRITE) |
+| US-M06 | Как участник, хочу созвоны с screen share и webcam до 50 человек | LiveKit; запись audio+screen; webcam UI shipped (`CallControls` / LiveKit); polish — backlog |
 | US-M07 | Как пользователь, хочу глобальный поиск (Ctrl+K) по всем сущностям | User-scope фильтрация; задачи, кейсы, пользователи, проекты, каналы, файлы; JQL для задач |
 | US-M08 | Как новый пользователь, хочу пройти онбординг | Профиль → тур (6 карточек) → тема/accent → создание/вступление в проект |
 | US-M09 | Как Admin, хочу управлять режимом регистрации | Открытая регистрация ИЛИ только по инвайтам — настройка в админ-панели |
@@ -620,7 +620,7 @@ Edge-cases: сниппет результата не раскрывает кон
 - PLSH-01: Per-page ambient body gradients
 - PLSH-02: Skeleton loading states для виджетов
 - PLSH-03: Smooth theme toggle transition
-- Phase 16: Gantt UI (`/projects/$id/gantt`), webcam в звонках, hub-mail transactional
+- Phase 16+: Gantt UI shipped (`/projects/$id/gantt`); webcam UI shipped (`CallControls` / LiveKit); hub-mail transactional — residual
 
 ## Связанные документы
 

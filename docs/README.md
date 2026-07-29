@@ -81,7 +81,7 @@
 # Полный backend regression
 cd backend && go generate ./ent && go build -tags release ./... \
   && go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...
-# (в backend/internal/ нет *_test.go — все 805 *_test.go в backend/testframework/, measured 2026-07-29;
+# (в backend/internal/ нет *_test.go — все 811 *_test.go в backend/testframework/, measured 2026-07-29;
 #  покрытие internal меряется флагом -coverpkg=./internal/...)
 
 # Frontend regression

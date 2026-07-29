@@ -1,6 +1,6 @@
 # Hub — Конкурентный аудит и backlog фич
 
-> **Обновлено:** 2026-07-29 (A3W11-4 inventory/webcam/HEAD drift) · исходный снимок позиции 2026-06-23  
+> **Обновлено:** 2026-07-29 (TASK-183 C-W19 inventory/AGENTS/spec drift) · исходный снимок позиции 2026-06-23  
 > **Связанные документы:** [competitive_analysis_2026.md](./competitive_analysis_2026.md) · [user_needs_analysis_2026.md](./user_needs_analysis_2026.md) · [.planning/decisions/specs/PLATFORM-VISION-v4.md](../.planning/decisions/specs/PLATFORM-VISION-v4.md)  
 > **Цель:** best practices от лидеров рынка + приоритизированный backlog для Hub v2.5–v4.5+.
 
@@ -98,7 +98,7 @@ Hub — **self-hosted corporate super-app** для команд 10–50 чело
 1. ~~12 CRITICAL security blockers~~ — ✅ v2.0.1
 2. ~~Test coverage ≥50% overall / ≥80% security~~ — ✅ **83.0%** / **6/6 ≥80%** (2026-06-22 Docker baseline)
 3. Secret rotation в git history — ⏳ **FA-06 manual** — единственный prod-блокер
-4. ~~Vitest smoke tests auth + admin~~ — ✅ 99/99 tests
+4. ~~Vitest smoke tests auth + admin~~ — ✅ **176** files (`stages/unit/frontend-test/`, measured 2026-07-29)
 5. ~~E2E critical paths~~ — ✅ 20 Playwright specs
 6. ~~Test framework migration~~ — ✅ 488 testframework / 0 internal
 7. ~~Squash PR v2.5-trust~~ — ✅ merged PR #1 2026-06-22

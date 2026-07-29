@@ -73,7 +73,7 @@
 | NFR-27 | File upload path | Presigned PUT в SeaweedFS; обязательный `size` + ContentLength bind ≤25 MB (ADR-STORAGE-NF09-SIZE-2026); backend buffer max 25 MB |
 | NFR-28 | Tenancy | Single-tenant (1 instance = 1 team) |
 | NFR-29 | Test coverage gate | ≥50% overall ✅ **83.0%** (2026-06-22 Docker baseline); ≥80% security-critical ✅ **6/6** |
-| NFR-30 | Frontend test gate | Vitest **99+** tests; Playwright **20** E2E specs ✅ |
+| NFR-30 | Frontend test gate | Vitest **176** files; Playwright **20** E2E specs ✅ |
 
 ## Модель данных (ER — ключевые сущности)
 
@@ -687,10 +687,10 @@ DFD user-scoped поиска: `[User Ctrl+K] → GET /search?types=wiki_page →
 | CRITICAL security (12) | Blockers | **FIXED** в коде |
 | Overall coverage | 11.5% → 56.6% | **83.0%** (2026-06-22 Docker baseline) |
 | Playwright E2E | not present | **20 specs** |
-| Frontend Vitest | 0 | **94** files (`testframework/stages/unit/frontend-test/`, measured 2026-07-28) |
+| Frontend Vitest | 0 | **176** files (`testframework/stages/unit/frontend-test/`, measured 2026-07-29; 61 `.ts` + 115 `.tsx`) |
 | Test framework migration | in progress | **488 / 0 internal** ✅ |
 | Lighthouse CI | missing | **artifact job** (PR #27) |
 | Squash PR v2.5-trust | pending | **merged PR #1** ✅ |
 
 ---
-*Последнее обновление: 2026-06-23 — Wave C complete, COV 83.0% (2026-06-22 Docker baseline), FA-06 manual blocker, Lighthouse CI*
+*Последнее обновление: 2026-07-29 — TASK-183 inventory recount BE **811** / Vitest **176**; NFR-30 sync; COV 83.0% baseline 2026-06-22; FA-06 manual blocker*

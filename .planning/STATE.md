@@ -68,6 +68,13 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-29 (docs-writer · TASK-183 C-W19-DOC-001 inventory/AGENTS/spec)
+
+- **FIXED** C-W19-DOC-001: shell recount HEAD `35644ed9` (`cursor-grok-4.5`) — BE `*_test.go` **811** / Vitest **176** (61 `.ts` + 115 `.tsx`) / hooks **39**; дата measure **2026-07-29**.
+- Синхрон: `AGENTS.md`, `docs/{README,test_plan,TESTING,testframework_strategy,TROUBLESHOOTING,system_specification,user_needs_analysis_2026,vision_and_scope,competitive_audit}.md`.
+- Anti-stale: убраны live `515` / `99/99` / Vitest `94` / HEAD `bbdaf16`; US-M06 webcam → shipped (не Phase 16 IN).
+- Статус TASK-183 → **На проверке**. TASK-008 не закрывали.
+
 ## Session note — 2026-07-29 (fe2 · TASK-182 HR pending leave error≠empty)
 
 - **FIXED** C-W19-FE-005: admin `listPendingLeave` fail → секция + QueryErrorAlert/retry (не silent empty); empty queue только success+len0.
@@ -724,9 +731,9 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 | Product score | **89/100** |
 | REST API | **286+** endpoints |
 | Ent schemas | **82** |
-| Backend tests | **515** files в `backend/testframework/` (measured 2026-07-27; was 499 on 2026-07-26) · **0** в `internal/*_test.go` |
+| Backend tests | **811** files в `backend/testframework/` (measured 2026-07-29; was 515 → 805) · **0** в `internal/*_test.go` |
 | Playwright E2E | **20** specs (`testframework/stages/e2e/domains/`) |
-| Frontend Vitest | **99/99** pass · 37 files `testframework/stages/unit/frontend-test/domains/` · 0 in `src/` |
+| Frontend Vitest | **176** files (`stages/unit/frontend-test/`, measured 2026-07-29; 61 `.ts` + 115 `.tsx`) · 0 in `src/` |
 | Planning index | `.planning/archive/july-2026/INDEX-JULY-2026.md` |
 
 ### Покрытие ключевых пакетов (2026-06-22 Docker baseline, Phase 125 / FA-11)
@@ -778,9 +785,9 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 
 ## Test Framework / Wave C — live summary
 
-- **TF Wave B:** COMPLETE — backend tests только в `testframework/` (**515** files,
-  measured 2026-07-27; was 499 on 2026-07-26 / earlier migration note had 495) · `internal/` = **0** ·
-  Vitest **99/99** · E2E **20** specs · CI `-tags hubtest`.
+- **TF Wave B:** COMPLETE — backend tests только в `testframework/` (**811** files,
+  measured 2026-07-29; was 515 → 805) · `internal/` = **0** ·
+  Vitest **176** files · E2E **20** specs · CI `-tags hubtest`.
 - **Wave C FA-01–FA-12:** COMPLETE кроме **FA-06** (PG-03 secret rotation, manual).
   FA-10 qa-gate PASS. Детали: `.planning/archive/tasks/TASKS-PHASES-121-FINAL-AUDIT.md`,
   аудиты `.planning/audits/2026-06/`. Полные таблицы закрытия — в
