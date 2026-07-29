@@ -116,6 +116,22 @@ Stage A2 (brief): [A2-DEDUP-2026-07-28.md](../audits/total-2026-07/A2-DEDUP-2026
 | [TASK-174](TASK-174-2026-07-29-a3-9-3-components.md) | 🔒 A3 FE LinkPreview XSS whitelist | P2 | На проверке | fe1 | A3W9-3 · 4 |
 | [TASK-175](TASK-175-2026-07-29-a3-9-4-components.md) | 🧹 A3 FE checklist/automation/comment error UI | P2 | Открыта | fe2 | A3W9-4 · 6 |
 | [TASK-176](TASK-176-2026-07-29-a3-9-5-components.md) | 🧹 A3 FE avatar/popover/select hub tokens | P3 | Открыта | fe2 | A3W9-5 · 3 |
+| [TASK-177](TASK-177-2026-07-29-c-w19-deactivate-ban-ws-kill.md) | 🔒 C-W19 Deactivate/Ban не рвёт живой WS | P2 | На проверке | be1 | C-W19-001 · 2 |
+| [TASK-178](TASK-178-2026-07-29-c-w19-gdpr-mongo-erase-retry.md) | 🔒 C-W19 GDPR Mongo erase retry после Commit | P2 | На проверке | be1 | C-W19-002 · 1 |
+| [TASK-179](TASK-179-2026-07-29-c-w19-fe-webhook-sprint-completed.md) | 🐛 C-W19 FE sprint.completed после BE trim | P2 | На проверке | fe1 | C-W19-FE-001 · 1 |
+| [TASK-180](TASK-180-2026-07-29-c-w19-link-preview-modules-tc.md) | 🔒 C-W19 modules LinkPreview XSS + TC membership | P2 | Открыта | fe1+be2 | C-W19-FE-002 · 2 |
+| [TASK-181](TASK-181-2026-07-29-c-w19-webhook-softdelete-deactivate.md) | 🔒 C-W19 soft-delete project гасит webhooks | P2 | На проверке | be2 | C-W19-FE-004 · 1 |
+| [TASK-182](TASK-182-2026-07-29-c-w19-hr-pending-leave-error.md) | 🧹 C-W19 HR pending leave error≠empty | P3 | На проверке | fe2 | C-W19-FE-005 · 1 |
+| [TASK-183](TASK-183-2026-07-29-c-w19-docs-inventory-drift.md) | 🧹 C-W19 docs inventory + AGENTS/spec drift | P2 | На проверке | docs-writer | C-W19-DOC-001 · 1 |
+| [TASK-184](TASK-184-2026-07-29-c-w19-last-team-member.md) | 🐛 C-W19 RemoveTeamMember last-member orphan | P3 | Открыта | be1 | C-W19-TT-001 · 1 |
+| [TASK-185](TASK-185-2026-07-29-c-w19-allure-existingrun-partial.md) | 🐛 C-W19 Allure ExistingRun silent partial | P2 | На проверке | be2 | C-W19-TT-002 · 1 |
+| [TASK-186](TASK-186-2026-07-29-audit-fe-calls-error-empty.md) | 🧹 Audit FE calls calendar/dialog error≠empty | P2 | На проверке | fe2 | FE-MC-001…003 · 3 |
+| [TASK-187](TASK-187-2026-07-29-audit-fe-pipeline-sanitize.md) | 🔒 Audit FE pipeline-status sanitizeUrl | P2 | На проверке | fe1 | FE-TA-001 · 1 |
+| [TASK-188](TASK-188-2026-07-29-audit-be-push-telegram-rl.md) | 🔒 Audit BE PushSender layering + Telegram RL | P2 | Открыта | be2 | ASN-001…002 · 2 |
+| [TASK-189](TASK-189-2026-07-29-audit-be-v4-calendar-poll.md) | 🔒 Audit BE calendar trash + draft poll IDOR | P2 | Открыта | be1 | BE-V4-001…003 · 3 |
+| [TASK-190](TASK-190-2026-07-29-audit-be-tracker-messenger-softdelete.md) | 🔒 Audit BE tracker/messenger soft-delete + CreateChannel | P2 | Открыта | be1+be2 | AUDIT-TM-001…004 · 4 |
+| [TASK-191](TASK-191-2026-07-29-audit-ent-automationrule-softdelete.md) | 🔒 Audit ent AutomationRule soft-delete | P2 | Открыта | be1 | EA-001 · 1 |
+| [TASK-192](TASK-192-2026-07-29-audit-fe-settings-version-ol.md) | 🔒 Audit FE settings version OL (webhooks/AI) | P2 | На проверке | fe1 | FE-SMA-001…002 · 2 |
 | [TASK-009](TASK-009-project-routes-rbac.md) | project routes без RBAC | **P0** | Исправлена | be1 | W1-A5-001 |
 | [TASK-010](TASK-010-promote-to-issue-rbac.md) | promote-to-issue без PermTaskCreate | **P0** | Исправлена | be1 | W3-A2-001 |
 | [TASK-011](TASK-011-webhook-event-match.md) | webhook UI events ≠ NATS subjects | **P0** | Исправлена | be1 | W4-A5-001 |
