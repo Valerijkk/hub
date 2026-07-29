@@ -7,6 +7,7 @@ import {
 	listTimeLogs,
 	logTime,
 } from "@/api/tracker";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,7 +62,11 @@ export function TimeTracker({
 	}, [isTimerForThisIssue, tick]);
 
 	// Логи времени
-	const { data: timeLogs } = useQuery({
+	const {
+		data: timeLogs,
+		isError: timeLogsError,
+		refetch: refetchTimeLogs,
+	} = useQuery({
 		queryKey: ["timeLogs", projectId, issueKey],
 		queryFn: () => listTimeLogs(projectId, issueKey),
 	});
@@ -208,32 +213,40 @@ export function TimeTracker({
 				</div>
 			</div>
 
-			{/* Список логов */}
-			{timeLogs && timeLogs.length > 0 && (
+			{/* Список логов — error≠empty (A3W9-4-006) */}
+			{(timeLogsError || (timeLogs && timeLogs.length > 0)) && (
 				<div className="space-y-2 border-t pt-3">
 					<p className="text-sm font-medium">История</p>
-					{timeLogs.map((log) => (
-						<div
-							key={log.id}
-							className="flex items-center justify-between rounded-md border p-2"
-						>
-							<div className="flex items-center gap-2">
-								<Avatar className="h-5 w-5">
-									<AvatarImage src={log.user.avatar_url} />
-									<AvatarFallback className="text-[10px]">
-										{log.user.name.charAt(0).toUpperCase()}
-									</AvatarFallback>
-								</Avatar>
-								<span className="text-sm">{log.user.name}</span>
-								{log.description && (
-									<span className="text-xs text-t2">— {log.description}</span>
-								)}
+					{timeLogsError ? (
+						<QueryErrorAlert
+							message="Не удалось загрузить историю времени"
+							retry={() => void refetchTimeLogs()}
+							compact
+						/>
+					) : (
+						timeLogs?.map((log) => (
+							<div
+								key={log.id}
+								className="flex items-center justify-between rounded-md border p-2"
+							>
+								<div className="flex items-center gap-2">
+									<Avatar className="h-5 w-5">
+										<AvatarImage src={log.user.avatar_url} />
+										<AvatarFallback className="text-[10px]">
+											{log.user.name.charAt(0).toUpperCase()}
+										</AvatarFallback>
+									</Avatar>
+									<span className="text-sm">{log.user.name}</span>
+									{log.description && (
+										<span className="text-xs text-t2">— {log.description}</span>
+									)}
+								</div>
+								<span className="text-sm font-medium">
+									{formatMinutes(log.minutes)}
+								</span>
 							</div>
-							<span className="text-sm font-medium">
-								{formatMinutes(log.minutes)}
-							</span>
-						</div>
-					))}
+						))
+					)}
 				</div>
 			)}
 		</div>

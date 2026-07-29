@@ -13,6 +13,7 @@ import {
 	listWorkflowStatuses,
 	type WorkflowStatusResponse,
 } from "@/api/tracker";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -33,7 +34,12 @@ interface AutomationRulesPanelProps {
 /** PROD-01: правила workflow-автоматизации (макс. 3). */
 export function AutomationRulesPanel({ projectId }: AutomationRulesPanelProps) {
 	const queryClient = useQueryClient();
-	const { data: rules = [], isLoading } = useQuery({
+	const {
+		data: rules = [],
+		isLoading,
+		isError,
+		refetch,
+	} = useQuery({
 		queryKey: ["automation-rules", projectId],
 		queryFn: () => listAutomationRules(projectId),
 	});
@@ -191,42 +197,50 @@ export function AutomationRulesPanel({ projectId }: AutomationRulesPanelProps) {
 				</CardHeader>
 				<CardContent>
 					{isLoading && <p className="text-sm text-t3">Загрузка…</p>}
-					{!isLoading && rules.length === 0 && (
+					{isError && (
+						<QueryErrorAlert
+							message="Не удалось загрузить правила автоматизации"
+							retry={() => void refetch()}
+							compact
+						/>
+					)}
+					{!isLoading && !isError && rules.length === 0 && (
 						<p className="text-sm text-t3">Нет правил автоматизации</p>
 					)}
 					<ul className="space-y-3">
-						{rules.map((rule) => (
-							<li
-								key={rule.id}
-								className="flex items-center justify-between gap-3 rounded-lg border border-b1 p-3"
-							>
-								<div>
-									<p className="font-medium text-sm">{rule.name}</p>
-									<p className="text-xs text-t3">
-										{rule.trigger_type} → {rule.action_type}
-										{!rule.enabled ? " · выкл." : ""}
-									</p>
-								</div>
-								<div className="flex gap-2">
-									<Button
-										type="button"
-										variant="outline"
-										size="sm"
-										onClick={() => toggleMutation.mutate(rule)}
-									>
-										{rule.enabled ? "Выкл" : "Вкл"}
-									</Button>
-									<Button
-										type="button"
-										variant="destructive"
-										size="sm"
-										onClick={() => deleteMutation.mutate(rule.id)}
-									>
-										Удалить
-									</Button>
-								</div>
-							</li>
-						))}
+						{!isError &&
+							rules.map((rule) => (
+								<li
+									key={rule.id}
+									className="flex items-center justify-between gap-3 rounded-lg border border-b1 p-3"
+								>
+									<div>
+										<p className="font-medium text-sm">{rule.name}</p>
+										<p className="text-xs text-t3">
+											{rule.trigger_type} → {rule.action_type}
+											{!rule.enabled ? " · выкл." : ""}
+										</p>
+									</div>
+									<div className="flex gap-2">
+										<Button
+											type="button"
+											variant="outline"
+											size="sm"
+											onClick={() => toggleMutation.mutate(rule)}
+										>
+											{rule.enabled ? "Выкл" : "Вкл"}
+										</Button>
+										<Button
+											type="button"
+											variant="destructive"
+											size="sm"
+											onClick={() => deleteMutation.mutate(rule.id)}
+										>
+											Удалить
+										</Button>
+									</div>
+								</li>
+							))}
 					</ul>
 				</CardContent>
 			</Card>

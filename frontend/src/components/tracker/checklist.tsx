@@ -128,7 +128,7 @@ export function Checklist({ items, onChange, disabled }: ChecklistProps) {
 							type="button"
 							onClick={() => handleDelete(item.id)}
 							disabled={disabled}
-							className="opacity-0 group-hover:opacity-100 text-t2 hover:text-destructive transition-opacity text-sm px-1"
+							className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 text-t2 hover:text-destructive transition-opacity text-sm px-1"
 							title="Удалить"
 							aria-label="Удалить пункт"
 						>

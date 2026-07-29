@@ -81,7 +81,7 @@ export function QueryErrorAlert({
 			role="alert"
 			className="flex flex-col items-center justify-center gap-3 rounded-[var(--r4)] border border-b1 bg-card/80 p-6 text-center"
 		>
-			<div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500/10 text-red-500">
+			<div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--red)]/10 text-[var(--red)]">
 				<svg
 					className="h-5 w-5"
 					fill="none"

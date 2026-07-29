@@ -40,7 +40,7 @@ const PRIORITY_COLORS: Record<string, string> = {
 const TYPE_COLORS: Record<string, string> = {
 	task: "bg-blue/[0.08] text-blue",
 	bug: "bg-red/[0.08] text-red",
-	story: "bg-emerald-500/[0.08] text-emerald-400",
+	story: "bg-green/[0.08] text-green",
 	epic: "bg-[var(--purpleS)]/[0.08] text-[var(--purpleS)]",
 };
 
@@ -273,9 +273,12 @@ export function JQLSearchPage({ projectId }: JQLSearchPageProps) {
 				</div>
 			)}
 
-			{/* Ошибка */}
+			{/* Ошибка — role=alert для AT (A3W9-4-005) */}
 			{error && (
-				<div className="rounded-[var(--r3)] border border-red/20 bg-red/[0.05] p-3 text-[13px] text-red">
+				<div
+					role="alert"
+					className="rounded-[var(--r3)] border border-red/20 bg-red/[0.05] p-3 text-[13px] text-red"
+				>
 					{formatApiError(error)}
 				</div>
 			)}
@@ -341,7 +344,7 @@ export function JQLSearchPage({ projectId }: JQLSearchPageProps) {
 											className={cn(
 												"text-[10px] font-semibold px-2 py-0.5",
 												TYPE_COLORS[item.type] ??
-													"bg-gray-500/10 text-gray-600",
+													"bg-[var(--gray)]/10 text-[var(--gray)]",
 											)}
 										>
 											{item.type}
@@ -353,7 +356,7 @@ export function JQLSearchPage({ projectId }: JQLSearchPageProps) {
 											className={cn(
 												"text-[10px] font-semibold px-2 py-0.5",
 												PRIORITY_COLORS[item.priority] ??
-													"bg-gray-500/10 text-gray-600",
+													"bg-[var(--gray)]/10 text-[var(--gray)]",
 											)}
 										>
 											{item.priority}

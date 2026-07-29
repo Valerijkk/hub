@@ -28,7 +28,7 @@ export function NotificationBell() {
 				<Button
 					variant="ghost"
 					size="icon"
-					className="relative h-7 w-7 text-[#D1D2D3]/40 hover:text-white hover:bg-white/[0.05]"
+					className="relative h-7 w-7 text-t2/40 hover:text-white hover:bg-white/[0.05]"
 					aria-label={
 						unreadCount > 0
 							? `Уведомления, непрочитанных: ${unreadCount}`
@@ -40,7 +40,7 @@ export function NotificationBell() {
 					{unreadCount > 0 && (
 						<span
 							aria-hidden="true"
-							className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 animate-scale-in items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-medium text-white"
+							className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 animate-scale-in items-center justify-center rounded-full bg-[var(--red)] px-1 text-[10px] font-medium text-white"
 						>
 							{unreadCount > 99 ? "99+" : unreadCount}
 						</span>

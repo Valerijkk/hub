@@ -25,17 +25,17 @@ const PRIORITY_CONFIG: Record<string, { color: string; label: string }> = {
 	trivial: { color: "var(--gray)", label: "Тривиальный" },
 };
 
-/** Конфигурация типов задач — Lucide SVG-иконки с цветами. */
+/** Конфигурация типов задач — Lucide SVG-иконки с --hub / semantic tokens. */
 const TYPE_CONFIG: Record<string, { icon: LucideIcon; color: string }> = {
-	bug: { icon: Bug, color: "text-red-500" },
-	task: { icon: CheckSquare, color: "text-blue-500" },
-	story: { icon: BookOpen, color: "text-green-500" },
-	epic: { icon: Zap, color: "text-purple-500" },
-	sub_task: { icon: ClipboardList, color: "text-gray-500" },
-	improvement: { icon: Rocket, color: "text-cyan-500" },
-	tech_debt: { icon: Wrench, color: "text-amber-500" },
-	spike: { icon: Search, color: "text-indigo-500" },
-	release: { icon: Tag, color: "text-pink-500" },
+	bug: { icon: Bug, color: "text-[var(--red)]" },
+	task: { icon: CheckSquare, color: "text-[var(--blue)]" },
+	story: { icon: BookOpen, color: "text-[var(--green)]" },
+	epic: { icon: Zap, color: "text-[var(--purple)]" },
+	sub_task: { icon: ClipboardList, color: "text-[var(--gray)]" },
+	improvement: { icon: Rocket, color: "text-[var(--blue)]" },
+	tech_debt: { icon: Wrench, color: "text-[var(--amber)]" },
+	spike: { icon: Search, color: "text-[var(--purple)]" },
+	release: { icon: Tag, color: "text-[var(--orange)]" },
 };
 
 /** Пропсы компонента IssueCard. */
@@ -96,7 +96,7 @@ export function IssueCard({ issue, projectId }: IssueCardProps) {
 	const priority = PRIORITY_CONFIG[issue.priority] ?? PRIORITY_CONFIG.medium!;
 	const typeConfig = TYPE_CONFIG[issue.issue_type] ?? {
 		icon: ClipboardList,
-		color: "text-gray-500",
+		color: "text-[var(--gray)]",
 	};
 
 	/**
