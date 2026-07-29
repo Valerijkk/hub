@@ -43,6 +43,8 @@ type mockRepo struct {
 	findInviteByCodeErr error
 	findMemberErr       error
 	removeTeamMemberErr error
+	memberCountErr      error
+	createTeamMidFail   error
 }
 
 func newMockRepo() *mockRepo {
@@ -171,9 +173,19 @@ func (m *mockRepo) UpdateStatus(_ context.Context, id uuid.UUID, status entproje
 	if setDeletedAt {
 		now := time.Now()
 		p.DeletedAt = &now
-	} else {
-		p.DeletedAt = nil
 	}
+	// A3W1-A5-001: setDeletedAt=false не очищает deleted_at (только RestoreFromTrash).
+	p.UpdatedAt = time.Now()
+	return p, nil
+}
+
+func (m *mockRepo) RestoreFromTrash(_ context.Context, id uuid.UUID) (*ent.Project, error) {
+	p, ok := m.projects[id]
+	if !ok {
+		return nil, notFoundErr()
+	}
+	p.Status = entproject.StatusActive
+	p.DeletedAt = nil
 	p.UpdatedAt = time.Now()
 	return p, nil
 }
@@ -184,6 +196,9 @@ func (m *mockRepo) Delete(_ context.Context, id uuid.UUID) error {
 }
 
 func (m *mockRepo) MemberCount(_ context.Context, projectID uuid.UUID) (int, error) {
+	if m.memberCountErr != nil {
+		return 0, m.memberCountErr
+	}
 	return m.memberCountMap[projectID], nil
 }
 
@@ -341,6 +356,25 @@ func (m *mockRepo) CreateTeam(_ context.Context, name, description string) (*ent
 	t := &ent.Team{ID: uuid.New(), Name: name, Description: description, CreatedAt: time.Now()}
 	m.teams[t.ID] = t
 	m.teamMembers[t.ID] = make(map[uuid.UUID]struct{})
+	return t, nil
+}
+
+// CreateTeamWithCreator — атомарный mock: mid-fail откатывает команду (A3W1-A5-003).
+func (m *mockRepo) CreateTeamWithCreator(ctx context.Context, creatorID uuid.UUID, name, description string) (*ent.Team, error) {
+	t, err := m.CreateTeam(ctx, name, description)
+	if err != nil {
+		return nil, err
+	}
+	if m.createTeamMidFail != nil {
+		delete(m.teams, t.ID)
+		delete(m.teamMembers, t.ID)
+		return nil, m.createTeamMidFail
+	}
+	if _, err := m.AddTeamMember(ctx, t.ID, creatorID); err != nil {
+		delete(m.teams, t.ID)
+		delete(m.teamMembers, t.ID)
+		return nil, err
+	}
 	return t, nil
 }
 

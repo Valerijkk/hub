@@ -99,18 +99,21 @@ func startProjectNATSServer(t *testing.T) *natsclient.Client {
 	return client
 }
 
-// TestPermanentDelete_Success проверяет сценарий: permanent удаление успех.
+// TestPermanentDelete_Success проверяет сценарий: permanent удаление успех (trash + admin).
 func TestPermanentDelete_Success(t *testing.T) {
 	svc, repo, _ := newTestService()
 	ctx := context.Background()
 	ownerID := uuid.New()
+	adminID := uuid.New()
+	repo.admins[adminID] = true
 
 	created, err := svc.CreateProject(ctx, ownerID, "Gone", "GONE", "")
 	require.NoError(t, err)
 	projectID, err := uuid.Parse(created.ID)
 	require.NoError(t, err)
 
-	require.NoError(t, svc.PermanentDelete(ctx, projectID))
+	require.NoError(t, svc.DeleteProject(ctx, projectID))
+	require.NoError(t, svc.PermanentDelete(ctx, projectID, adminID))
 	_, ok := repo.projects[projectID]
 	assert.False(t, ok)
 }
@@ -119,7 +122,9 @@ func TestPermanentDelete_Success(t *testing.T) {
 func TestPermanentDelete_NotFound(t *testing.T) {
 	repo := &crossLinkRepo{mockRepo: *newMockRepo()}
 	svc := project.NewProjectService(repo, &mockCache{}, nil)
-	err := svc.PermanentDelete(context.Background(), uuid.New())
+	adminID := uuid.New()
+	repo.admins[adminID] = true
+	err := svc.PermanentDelete(context.Background(), uuid.New(), adminID)
 	require.Error(t, err)
 }
 

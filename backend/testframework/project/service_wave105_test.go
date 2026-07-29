@@ -40,7 +40,7 @@ type teamConstraintRepo struct {
 	mockRepo
 }
 
-func (r *teamConstraintRepo) CreateTeam(_ context.Context, _, _ string) (*ent.Team, error) {
+func (r *teamConstraintRepo) CreateTeamWithCreator(_ context.Context, _ uuid.UUID, _, _ string) (*ent.Team, error) {
 	return nil, constraintErr()
 }
 
@@ -114,7 +114,7 @@ type teamFailRepo struct {
 	err error
 }
 
-func (r *teamFailRepo) CreateTeam(_ context.Context, _, _ string) (*ent.Team, error) {
+func (r *teamFailRepo) CreateTeamWithCreator(_ context.Context, _ uuid.UUID, _, _ string) (*ent.Team, error) {
 	return nil, r.err
 }
 
