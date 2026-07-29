@@ -22,7 +22,7 @@
 
 - После TASK-132: 805 уже drift → **807**; Vitest 167→**170**
 - AGENTS 515 / Vitest 99; system_spec 94; user_needs bbdaf16; vision webcam Phase 16
-- Live recount 2026-07-29 HEAD `35644ed9` (`cursor-grok-4.5`): BE **811** / Vitest **176** (61 `.ts` + 115 `.tsx`)
+- Live recount 2026-07-29 HEAD `0dfdc9f0` (`cursor-grok-4.5`): BE **812** / Vitest **179** (61 `.ts` + 118 `.tsx`)
 
 ## [ACCEPTANCE]
 
@@ -34,10 +34,10 @@
 ## [EVIDENCE] — 2026-07-29
 
 ```
-BE=811  (backend/testframework/**/*_test.go)
-VITEST=176  (61 .test.ts + 115 .test.tsx under stages/unit/frontend-test)
+BE=812  (backend/testframework/**/*_test.go)
+VITEST=179  (61 .test.ts + 118 .test.tsx under stages/unit/frontend-test)
 HOOKS=39  (backend/internal/**/export_hooks.go)
-HEAD=35644ed999d236379f18b0dc7b41af59a53c3ace (short 35644ed9)
+HEAD=0dfdc9f0496ddd095fcd2d0580e5bed651e16de2 (short 0dfdc9f0)
 branch=cursor-grok-4.5
 ```
 

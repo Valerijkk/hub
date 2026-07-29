@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: planning-audit-pw-in-progress
 stopped_at: Planning audit 2026-07 PW1–PW5 · coverage remeasured · phase matrix live
-last_updated: "2026-07-29T18:25:00.000Z"
-last_activity: 2026-07-29 · docs-writer TASK-183 inventory recount 811/176 · На проверке
+last_updated: "2026-07-29T18:40:00.000Z"
+last_activity: 2026-07-29 · docs-writer TASK-183 inventory recount 812/179 · На проверке
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -49,12 +49,12 @@ coverage:
     gate_floor_82: miss
 inventory_measured_2026_07_29:
     frontend_route_tsx: 72
-    backend_testframework_test_go: 811
-    vitest_frontend_test_files: 176
+    backend_testframework_test_go: 812
+    vitest_frontend_test_files: 179
     ent_entity_schemas: 82
     zustand_stores: 12
     go_mod: "1.25.0"
-    head_short: "35644ed9"
+    head_short: "0dfdc9f0"
     branch: "cursor-grok-4.5"
 spec_coverage:
     fr_total: 28
@@ -68,9 +68,18 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-29 (fe1 · TASK-192 FE settings/AI version OL)
+
+- **FIXED** FE-SMA-001: webhook toggle/delete/deliveries — `version` в DTO + PUT; toast на fail.
+- **FIXED** FE-SMA-002: AI privacy + ai-store — `version` в load/save; 409 → toast + refresh.
+- **FIXED** FE-SMA-003 (optional): marketplace «Мои» — `mineLoading` / `listLoading` ≠ empty.
+- TASK-179: `AVAILABLE_EVENTS` без `sprint.completed` — без регрессии.
+- Тесты: webhooks-version-ol · ai-privacy-version-ol · marketplace-mine-loading · TASK-179 · ai-store; mutation omit version → RED, restore GREEN.
+- Статус TASK-192 → **На проверке**. Handoff: fe-ver → code-reviewer. TASK-008 / README не трогали.
+
 ## Session note — 2026-07-29 (docs-writer · TASK-183 C-W19-DOC-001 inventory/AGENTS/spec)
 
-- **FIXED** C-W19-DOC-001: shell recount HEAD `35644ed9` (`cursor-grok-4.5`) — BE `*_test.go` **811** / Vitest **176** (61 `.ts` + 115 `.tsx`) / hooks **39**; дата measure **2026-07-29**.
+- **FIXED** C-W19-DOC-001: shell recount HEAD `0dfdc9f0` (`cursor-grok-4.5`) — BE `*_test.go` **812** / Vitest **179** (61 `.ts` + 118 `.tsx`) / hooks **39**; дата measure **2026-07-29**.
 - Синхрон: `AGENTS.md`, `docs/{README,test_plan,TESTING,testframework_strategy,TROUBLESHOOTING,system_specification,user_needs_analysis_2026,vision_and_scope,competitive_audit}.md`.
 - Anti-stale: убраны live `515` / `99/99` / Vitest `94` / HEAD `bbdaf16`; US-M06 webcam → shipped (не Phase 16 IN).
 - Статус TASK-183 → **На проверке**. TASK-008 не закрывали.
@@ -731,9 +740,9 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 | Product score | **89/100** |
 | REST API | **286+** endpoints |
 | Ent schemas | **82** |
-| Backend tests | **811** files в `backend/testframework/` (measured 2026-07-29; was 515 → 805) · **0** в `internal/*_test.go` |
+| Backend tests | **812** files в `backend/testframework/` (measured 2026-07-29; was 515 → 805) · **0** в `internal/*_test.go` |
 | Playwright E2E | **20** specs (`testframework/stages/e2e/domains/`) |
-| Frontend Vitest | **176** files (`stages/unit/frontend-test/`, measured 2026-07-29; 61 `.ts` + 115 `.tsx`) · 0 in `src/` |
+| Frontend Vitest | **179** files (`stages/unit/frontend-test/`, measured 2026-07-29; 61 `.ts` + 118 `.tsx`) · 0 in `src/` |
 | Planning index | `.planning/archive/july-2026/INDEX-JULY-2026.md` |
 
 ### Покрытие ключевых пакетов (2026-06-22 Docker baseline, Phase 125 / FA-11)
@@ -785,9 +794,9 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 
 ## Test Framework / Wave C — live summary
 
-- **TF Wave B:** COMPLETE — backend tests только в `testframework/` (**811** files,
+- **TF Wave B:** COMPLETE — backend tests только в `testframework/` (**812** files,
   measured 2026-07-29; was 515 → 805) · `internal/` = **0** ·
-  Vitest **176** files · E2E **20** specs · CI `-tags hubtest`.
+  Vitest **179** files · E2E **20** specs · CI `-tags hubtest`.
 - **Wave C FA-01–FA-12:** COMPLETE кроме **FA-06** (PG-03 secret rotation, manual).
   FA-10 qa-gate PASS. Детали: `.planning/archive/tasks/TASKS-PHASES-121-FINAL-AUDIT.md`,
   аудиты `.planning/audits/2026-06/`. Полные таблицы закрытия — в

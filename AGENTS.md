@@ -146,8 +146,8 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 | Product score | **89/100** |
 | REST API | **286+** endpoints |
 | Ent schemas | **82** |
-| Backend tests (`testframework/`) | **811** files · 0 in `internal/` (measured 2026-07-29; was 515 → 805) |
-| Vitest | **176** files (`stages/unit/frontend-test/`; measured 2026-07-29; 61 `.ts` + 115 `.tsx`) |
+| Backend tests (`testframework/`) | **812** files · 0 in `internal/` (measured 2026-07-29; was 515 → 805) |
+| Vitest | **179** files (`stages/unit/frontend-test/`; measured 2026-07-29; 61 `.ts` + 118 `.tsx`) |
 | Playwright E2E | **20** specs |
 | qa-gate (FA-10) | build ✅ · hubtest ✅ · race ✅ · Biome ✅ · e2e-smoke **3/3** ✅ |
 
@@ -200,7 +200,7 @@ docker compose -f docker-compose.local.yml up -d
 
 # Backend regression (local)
 # ВАЖНО: -tags hubtest обязателен — export_hooks.go (39 файлов) под этим тегом,
-# без него testframework не компилируется. Тестов в internal/ нет (все 811 в testframework/, measured 2026-07-29).
+# без него testframework не компилируется. Тестов в internal/ нет (все 812 в testframework/, measured 2026-07-29).
 cd backend && go build -tags release ./... && go vet ./... \
   && go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...
 

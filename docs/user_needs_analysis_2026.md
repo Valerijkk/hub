@@ -58,10 +58,10 @@
 | Backend coverage (`internal/`) | **83.0%** (2026-06-22 Docker baseline; Wave C, `-tags hubtest`) |
 | Security-critical ≥80% | **6/6** (auth, ws, rbac, audit, calls, platform/middleware) |
 | REST API (OpenAPI paths) | **252** (`swagger.json`, 2026-07-28); route inventory ~286 |
-| Frontend Vitest | **176** files (`stages/unit/frontend-test/`, measured 2026-07-29; 61 `.ts` + 115 `.tsx`) |
+| Frontend Vitest | **179** files (`stages/unit/frontend-test/`, measured 2026-07-29; 61 `.ts` + 118 `.tsx`) |
 | Playwright E2E | **20** specs |
 | 12 CRITICAL security blockers | **Закрыты** (v2.0.1) |
-| Ветка | `cursor-grok-4.5` · HEAD `35644ed9` |
+| Ветка | `cursor-grok-4.5` · HEAD `0dfdc9f0` |
 | Prod-блокер | **FA-06** PG-03 secret rotation (manual) |
 
 ### 1.3 Ценностное предложение
