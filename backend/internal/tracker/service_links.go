@@ -2,6 +2,7 @@ package tracker
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 
 	"github.com/google/uuid"
@@ -39,7 +40,15 @@ func (s *TrackerService) CreateIssueLink(ctx context.Context, projectID uuid.UUI
 
 	link, err := s.repo.CreateIssueLink(ctx, source.ID, targetID, req.LinkType, req.CustomType)
 	if err != nil {
-		return nil, err
+		// A3W1-2-005: AppError пробрасываем; сырой repo/sql → Internal/Conflict.
+		var ae *apperrors.AppError
+		if errors.As(err, &ae) {
+			return nil, ae
+		}
+		if ent.IsConstraintError(err) {
+			return nil, apperrors.NewConflict("связь этого типа между этими задачами уже существует")
+		}
+		return nil, apperrors.NewInternal("ошибка создания связи")
 	}
 
 	// Логируем активность

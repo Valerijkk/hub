@@ -1,6 +1,6 @@
 # TASK-134 — 🔒 A3 tracker services: labels scope + residual batch
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P1** · Статус: **Открыта**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P1** · Статус: **На проверке**  
 > Источник: A3W1-2-tracker-services.md · Stage A3 FINAL · TASK-008  
 > Исполнитель: **be1** · Finding IDs: `A3W1-2-001`..`A3W1-2-006`
 
@@ -113,3 +113,24 @@
 - Docs sync только если изменился user-visible API contract (коды 400/404 на labels/rules — при смене контракта обновить wiki/API)
 - Conventional Commits RU; no Co-authored-by / AI trailers
 - Коммит: тело → `Задача: .planning/backlog/TASK-134-2026-07-29-a3-1-2-tracker-services.md` + `(A3W1-2-00N)` в subject при желании
+
+## [EVIDENCE] be1 2026-07-29
+
+**Verdict: 6/6 FIXED** · статус файла: **На проверке** (README по указанию owner не трогали)
+
+| ID | Evidence |
+|----|----------|
+| A3W1-2-001 | `service_issues.go` CountLabelsInProject; `TestUpdateIssue_RejectsForeignLabel_A3W1_2_001` |
+| A3W1-2-002 | `FindLabelGroupInProject`; `TestCreateLabel_RejectsForeignGroup_A3W1_2_002` |
+| A3W1-2-003 | `ensureActionChannelInProject`; `TestCreateUpdateRule_RejectsForeignChannel_A3W1_2_003` |
+| A3W1-2-004 | `WithIssue` eager; `TestListThreadIssueLinks_NoNPlusOne_A3W1_2_004` (findIssueByIDCalls) |
+| A3W1-2-005 | AppError wrap; `TestCreateIssueLink_MapsRepoErrToAppError_A3W1_2_005` |
+| A3W1-2-006 | Exist→404/409; `TestUpdateComment_MissingVsVersionConflict_A3W1_2_006` |
+
+```
+go test -tags hubtest -race -count=1 -timeout=300s -vet=off ./testframework/tracker/ \
+  -run 'A3W1_2_|P1BE03|UpdateDeleteComment_Scoped_A3_011|...'
+ok  github.com/.../testframework/tracker  (~1.7s focused / PASS targeted)
+```
+
+Mutation notes — см. таблицу Mutation в ACCEPTANCE (каждый ID краснеет при откате guard).

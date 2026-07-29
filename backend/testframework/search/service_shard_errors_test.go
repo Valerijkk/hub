@@ -1,12 +1,14 @@
 ﻿package search_test
+
 import (
-	"github.com/valerii/hub/backend/internal/search"
 	"context"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/valerii/hub/backend/internal/search"
 )
 
 // A2W5-A5-006 / A2W5-A4-003: missing entity tables → total outage error, не empty success.
@@ -36,18 +38,5 @@ func TestSearch_AllShardsWithMembership_RecoversFromMissingTables(t *testing.T) 
 	assert.ErrorIs(t, err, search.ErrSearchUnavailable)
 }
 
-func TestGetUserChannelIDs_DBClosed(t *testing.T) {
-	db := newScopeTestDB(t)
-	require.NoError(t, db.Close())
-	svc := search.ExportNewSearchServiceSQL(db)
-	_, err := search.ExportGetUserChannelIDs(svc, context.Background(), uuid.New())
-	require.Error(t, err)
-}
-
-func TestSearchMessages_NoChannelMembership(t *testing.T) {
-	db := newScopeTestDB(t)
-	svc := search.ExportNewSearchServiceFull(nil, db, nil)
-	results, err := search.ExportSearchMessages(svc, context.Background(), "hello", uuid.New())
-	require.NoError(t, err)
-	assert.Nil(t, results)
-}
+// A3W5-5-002: дубли closed-DB / nil-mongo сняты —
+// каноны: TestGetUserChannelIDs_ClosedDB, TestSearchMessages_NilMongoReturnsEmpty.

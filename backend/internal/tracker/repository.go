@@ -123,6 +123,8 @@ type LabelRepository interface {
 	DeleteLabel(ctx context.Context, projectID, labelID uuid.UUID) error
 	// CountLabelsInProject считает, сколько из labelIDs принадлежат проекту (P1-BE-03).
 	CountLabelsInProject(ctx context.Context, projectID uuid.UUID, labelIDs []uuid.UUID) (int, error)
+	// FindLabelGroupInProject возвращает группу меток только если она ∈ projectID (A3W1-2-002).
+	FindLabelGroupInProject(ctx context.Context, projectID, groupID uuid.UUID) (*ent.LabelGroup, error)
 	// CreateLabelGroup создаёт новую группу меток в проекте.
 	CreateLabelGroup(ctx context.Context, projectID uuid.UUID, name string) (*ent.LabelGroup, error)
 	// ListLabelGroups возвращает все группы меток проекта с вложенными метками.

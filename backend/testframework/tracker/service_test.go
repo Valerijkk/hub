@@ -49,6 +49,8 @@ type mockRepo struct {
 
 	// Для проверки update с оптимистичной блокировкой
 	updateVersionError bool
+	// A3W1-2-004: счётчик FindIssueByID для assert отсутствия N+1.
+	findIssueByIDCalls int
 }
 
 func newMockRepo() *mockRepo {
@@ -145,6 +147,7 @@ func (m *mockRepo) FindIssueByKey(_ context.Context, projectID uuid.UUID, issueK
 }
 
 func (m *mockRepo) FindIssueByID(_ context.Context, id uuid.UUID) (*ent.Issue, error) {
+	m.findIssueByIDCalls++
 	i, ok := m.issues[id]
 	if !ok {
 		return nil, &ent.NotFoundError{}
@@ -648,6 +651,14 @@ func (m *mockRepo) CountLabelsInProject(_ context.Context, _ uuid.UUID, labelIDs
 	return n, nil
 }
 
+func (m *mockRepo) FindLabelGroupInProject(_ context.Context, _ uuid.UUID, groupID uuid.UUID) (*ent.LabelGroup, error) {
+	g, ok := m.labelGroups[groupID]
+	if !ok {
+		return nil, &ent.NotFoundError{}
+	}
+	return g, nil
+}
+
 func (m *mockRepo) CreateLabelGroup(_ context.Context, _ uuid.UUID, name string) (*ent.LabelGroup, error) {
 	id := uuid.New()
 	g := &ent.LabelGroup{
@@ -822,7 +833,12 @@ func (m *mockRepo) ListIssueMessageLinksByThread(_ context.Context, channelID uu
 	var out []*ent.IssueMessageLink
 	for _, l := range m.issueMessageLinks {
 		if l.ChannelID == channelID && l.MessageID == messageID {
-			out = append(out, l)
+			// A3W1-2-004: симулируем eager WithIssue (как EntRepository).
+			cp := *l
+			if iss, ok := m.issues[l.IssueID]; ok {
+				cp.Edges.Issue = iss
+			}
+			out = append(out, &cp)
 		}
 	}
 	return out, nil

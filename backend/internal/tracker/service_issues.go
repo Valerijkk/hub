@@ -336,6 +336,16 @@ func (s *TrackerService) UpdateIssue(ctx context.Context, projectID uuid.UUID, i
 			}
 			labelIDs = append(labelIDs, id)
 		}
+		// A3W1-2-001: как CreateIssue (P1-BE-03) — метки только из этого проекта.
+		if len(labelIDs) > 0 {
+			n, err := s.repo.CountLabelsInProject(ctx, projectID, labelIDs)
+			if err != nil {
+				return nil, apperrors.NewInternal("ошибка проверки меток")
+			}
+			if n != len(labelIDs) {
+				return nil, apperrors.NewBadRequest("метка не принадлежит проекту")
+			}
+		}
 		input.Labels = &labelIDs
 	}
 

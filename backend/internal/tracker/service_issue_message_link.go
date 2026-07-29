@@ -181,12 +181,9 @@ func (s *TrackerService) ListThreadIssueLinks(
 	}
 	out := make([]IssueMessageLinkResponse, 0, len(links))
 	for _, l := range links {
+		// A3W1-2-004: Issue подгружается batch/eager в ListIssueMessageLinksByThread.
 		if l.Edges.Issue == nil {
-			iss, issErr := s.repo.FindIssueByID(ctx, l.IssueID)
-			if issErr != nil {
-				continue
-			}
-			l.Edges.Issue = iss
+			continue
 		}
 		if l.Edges.Issue.Edges.Project == nil || l.Edges.Issue.Edges.Project.ID != projectID {
 			continue

@@ -11,6 +11,7 @@ import (
 	"github.com/valerii/hub/backend/ent/issue"
 	"github.com/valerii/hub/backend/ent/reaction"
 	"github.com/valerii/hub/backend/ent/user"
+	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
 // ---------------------------------------------------------------------------
@@ -112,7 +113,22 @@ func (r *EntRepository) UpdateComment(ctx context.Context, issueID, authorID, co
 		return nil, fmt.Errorf("обновление комментария: %w", err)
 	}
 	if affected == 0 {
-		return nil, &ent.NotFoundError{}
+		// A3W1-2-006: как UpdateIssue — alive+wrong version → 409; missing/soft-deleted/wrong author → 404.
+		alive, existErr := r.client.Comment.Query().
+			Where(
+				comment.IDEQ(commentID),
+				comment.HasIssueWith(issue.IDEQ(issueID)),
+				comment.HasAuthorWith(user.IDEQ(authorID)),
+				comment.DeletedAtIsNil(),
+			).
+			Exist(ctx)
+		if existErr != nil {
+			return nil, fmt.Errorf("проверка комментария после conflict: %w", existErr)
+		}
+		if !alive {
+			return nil, apperrors.NewNotFound("комментарий не найден")
+		}
+		return nil, apperrors.NewConflict("version mismatch: комментарий был изменён другим пользователем")
 	}
 	return r.client.Comment.Query().
 		Where(comment.IDEQ(commentID), comment.DeletedAtIsNil()).

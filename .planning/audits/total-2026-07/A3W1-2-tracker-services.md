@@ -59,12 +59,12 @@
 
 | ID | Tag | Severity | Файл:строка | Проблема | Почему это дефект | Как чинить |
 |----|-----|----------|-------------|----------|-------------------|------------|
-| A3W1-2-001 | NEW | P1 | `service_issues.go:330-339` | `UpdateIssue` принимает `Labels` без `CountLabelsInProject` | CreateIssue (P1-BE-03, `:96-104`) отклоняет чужие метки; Update → `ClearLabels().AddLabelIDs` без scope → cross-project M2M. Тест только UUID parse (`service_wave112_test.go:56-74`), нет foreign-label denial | Перед `input.Labels = &labelIDs` — `CountLabelsInProject`; mismatch → 400; Ent-тест зеркало `TestCreateIssue_RejectsForeignLabel_P1BE03` |
-| A3W1-2-002 | NEW | P2 | `service_labels.go:17-26` | `CreateLabel`: `groupID` парсится, **не** проверяется ∈ `projectID` | `repo.CreateLabel` делает `SetGroupID` без scope (`repo_labels.go:25-26`) → метка проекта A может ссылаться на LabelGroup проекта B | `FindLabelGroupInProject` / count; NotFound → 404/400 |
-| A3W1-2-003 | NEW | P2 | `automation_service.go:140-143` (+ Create/Update path `:47-77`, `:81-115`) | `action_config.channel_id` только non-empty; нет `FindChannelInProject` | Engine постит в любой UUID канала (`automation_engine.go:90-105`) без project filter → правило проекта A → пост в канал проекта B | В Create/UpdateRule: `FindChannelInProject(projectID, channelID)`; mismatch → 400/404 |
-| A3W1-2-004 | NEW | P3 | `service_issue_message_link.go:183-189` | `ListThreadIssueLinks`: `FindIssueByID` в цикле | N+1 при многих связях треда | Batch load / WithIssue eager в `ListIssueMessageLinksByThread` |
-| A3W1-2-005 | NEW | P3 | `service_links.go:40-42` | `CreateIssueLink` возвращает `err` репо без wrap в AppError | Non-AppError может утечь наверх (в отличие от соседних методов) | Маппить constraint/internal → AppError; AppError пробрасывать |
-| A3W1-2-006 | NEW | P3 | `service_comments.go:92-95` | Любой `ent.IsNotFound` от `UpdateComment` → 409 «version mismatch» | Repo `affected==0` покрывает missing/wrong author/soft-deleted **и** version conflict (`repo_comments.go:114-115`); DeleteComment корректно даёт 404. Клиент получает 409 вместо 404 | Как в `UpdateIssue`: distinguish alive+wrong version → 409 vs missing → 404 |
+| A3W1-2-001 | FIXED | P1 | `service_issues.go` | `UpdateIssue` принимал `Labels` без `CountLabelsInProject` | CreateIssue (P1-BE-03) отклоняет чужие метки; Update → cross-project M2M | FIXED TASK-134: `CountLabelsInProject` + `TestUpdateIssue_RejectsForeignLabel_A3W1_2_001` |
+| A3W1-2-002 | FIXED | P2 | `service_labels.go` | `CreateLabel`: `groupID` без project scope | метка A → LabelGroup B | FIXED TASK-134: `FindLabelGroupInProject` + `TestCreateLabel_RejectsForeignGroup_A3W1_2_002` |
+| A3W1-2-003 | FIXED | P2 | `automation_service.go` | `channel_id` только non-empty | правило A → канал B | FIXED TASK-134: `ensureActionChannelInProject` + `TestCreateUpdateRule_RejectsForeignChannel_A3W1_2_003` |
+| A3W1-2-004 | FIXED | P3 | `service_issue_message_link.go` / `repo_issue_message_link.go` | N+1 `FindIssueByID` | batch/eager | FIXED TASK-134: `WithIssue` eager + call-count assert |
+| A3W1-2-005 | FIXED | P3 | `service_links.go` | raw repo err | AppError wrap | FIXED TASK-134: constraint→409 / else→500 + AppError passthrough |
+| A3W1-2-006 | FIXED | P3 | `service_comments.go` / `repo_comments.go` | любой IsNotFound → 409 | alive+wrong version → 409; missing → 404 | FIXED TASK-134: Exist distinguish + `TestUpdateComment_MissingVsVersionConflict_A3W1_2_006` |
 
 ## Чисто
 
@@ -79,9 +79,9 @@
 | Severity | Count |
 |----------|------:|
 | P0 | 0 |
-| P1 | 1 |
-| P2 | 2 |
-| P3 | 3 |
-| **Total** | **6** |
+| P1 | 0 |
+| P2 | 0 |
+| P3 | 0 |
+| **Total** | **0** |
 
-A2 baseline: 2 active → FIXED-OK 2 · REGRESS 0 · RESIDUAL 0 · NEW 6.
+A3 residual NEW 6 → FIXED 6 (TASK-134, 2026-07-29). A2 baseline: FIXED-OK 2 · REGRESS 0.

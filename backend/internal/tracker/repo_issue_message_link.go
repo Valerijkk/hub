@@ -38,11 +38,15 @@ func (r *EntRepository) ListIssueMessageLinksByThread(
 	channelID uuid.UUID,
 	messageID string,
 ) ([]*ent.IssueMessageLink, error) {
+	// A3W1-2-004: eager Issue+Project — без N+1 FindIssueByID в ListThreadIssueLinks.
 	return r.client.IssueMessageLink.Query().
 		Where(
 			issuemessagelink.ChannelIDEQ(channelID),
 			issuemessagelink.MessageIDEQ(messageID),
 		).
+		WithIssue(func(q *ent.IssueQuery) {
+			q.WithProject()
+		}).
 		Order(ent.Desc(issuemessagelink.FieldCreatedAt)).
 		All(ctx)
 }

@@ -230,17 +230,8 @@ func TestShareFilter_NotOwnerForbidden(t *testing.T) {
 	assert.ErrorIs(t, err, search.ErrFilterForbidden)
 }
 
-func TestSearch_NormalizesLimit(t *testing.T) {
-	db := newScopeTestDB(t)
-	userID := uuid.New()
-	svc := search.NewSearchService(&mockSearchRepo{}, db, nil)
-
-	for _, limit := range []int{0, -1, 100} {
-		results, _, err := svc.Search(context.Background(), "hub", userID, nil, limit)
-		require.NoError(t, err)
-		assert.Empty(t, results)
-	}
-}
+// A3W5-5-001: hollow NormalizesLimit убран — clamp по Len:
+// TestPostgresSearch_LimitClamp_A3W55_001 (limit_clamp_a3w55_test.go).
 
 func TestSearch_FiltersByType(t *testing.T) {
 	db := newScopeTestDB(t)

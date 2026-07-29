@@ -20,6 +20,13 @@ func (s *TrackerService) CreateLabel(ctx context.Context, projectID uuid.UUID, r
 		if err != nil {
 			return nil, apperrors.NewBadRequest("некорректный group_id")
 		}
+		// A3W1-2-002: группа меток должна принадлежать тому же проекту.
+		if _, err := s.repo.FindLabelGroupInProject(ctx, projectID, id); err != nil {
+			if ent.IsNotFound(err) {
+				return nil, apperrors.NewNotFound("группа меток не найдена")
+			}
+			return nil, apperrors.NewInternal("ошибка проверки группы меток")
+		}
 		groupID = &id
 	}
 

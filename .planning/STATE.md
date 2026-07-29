@@ -65,6 +65,12 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-29 (be1 · TASK-134 A3W1-2 tracker services)
+
+- **6/6 FIXED** (A3W1-2-001…006): UpdateIssue CountLabelsInProject; CreateLabel FindLabelGroupInProject; Create/UpdateRule FindChannelInProject; ListThreadIssueLinks WithIssue eager; CreateIssueLink AppError wrap; UpdateComment 404≠409.
+- **Hubtest:** `./testframework/tracker/` focused A3W1_2_* + P1BE03/A3_011 — PASS (Docker golang:1.25, isolated worktree; shared branch ent generate был нестабилен).
+- **Статус:** На проверке → be-ver → code-reviewer. README не трогали (owner).
+
 ## Session note — 2026-07-29 (be1 · TASK-155 A3W5-3 ai service)
 
 - **9/9 FIXED** (A3W5-3-001…009): UTF-8 composer trim; IncrementUsage/settings upsert; issue_lookup fail-closed; preference consent false; VersionEQ+409; WS `AI stream failed`; BotUserRepository; flow asserts.

@@ -164,19 +164,11 @@ func TestSearchScopedEntities_EmptyProjectIDsReturnNothing(t *testing.T) {
 	assert.Nil(t, channels)
 }
 
+// A3W5-5-002: канон nil-mongo / no-membership messages
+// (дубли wave106/wave114/shard_errors/NoChannels сняты).
 func TestSearchMessages_NilMongoReturnsEmpty(t *testing.T) {
 	svc := search.ExportNewSearchServiceFull(nil, newScopeTestDB(t), nil)
 	results, err := search.ExportSearchMessages(svc, context.Background(), "hello", uuid.New())
-	require.NoError(t, err)
-	assert.Nil(t, results)
-}
-
-func TestSearchMessages_NoChannelsReturnsEmpty(t *testing.T) {
-	db := newScopeTestDB(t)
-	svc := search.ExportNewSearchServiceFull(nil, db, nil)
-	userID := uuid.New()
-
-	results, err := search.ExportSearchMessages(svc, context.Background(), "hello", userID)
 	require.NoError(t, err)
 	assert.Nil(t, results)
 }

@@ -75,6 +75,17 @@ func (r *EntRepository) CountLabelsInProject(ctx context.Context, projectID uuid
 		Count(ctx)
 }
 
+// FindLabelGroupInProject возвращает группу меток только внутри projectID (A3W1-2-002).
+func (r *EntRepository) FindLabelGroupInProject(ctx context.Context, projectID, groupID uuid.UUID) (*ent.LabelGroup, error) {
+	return r.client.LabelGroup.Query().
+		Where(
+			labelgroup.IDEQ(groupID),
+			labelgroup.HasProjectWith(project.IDEQ(projectID)),
+			labelgroup.DeletedAtIsNil(),
+		).
+		Only(ctx)
+}
+
 // CreateLabelGroup создаёт новую группу меток в проекте.
 func (r *EntRepository) CreateLabelGroup(ctx context.Context, projectID uuid.UUID, name string) (*ent.LabelGroup, error) {
 	return r.client.LabelGroup.Create().

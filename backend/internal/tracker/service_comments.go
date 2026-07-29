@@ -2,6 +2,7 @@ package tracker
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 
 	"github.com/google/uuid"
@@ -90,8 +91,13 @@ func (s *TrackerService) UpdateComment(ctx context.Context, projectID uuid.UUID,
 	}
 	c, err := s.repo.UpdateComment(ctx, existing.ID, userID, commentID, input)
 	if err != nil {
+		// A3W1-2-006: AppError (404 missing / 409 version) пробрасываем; сырой NotFound → 404.
+		var ae *apperrors.AppError
+		if errors.As(err, &ae) {
+			return nil, ae
+		}
 		if ent.IsNotFound(err) {
-			return nil, apperrors.NewConflict("version mismatch: комментарий был изменён другим пользователем")
+			return nil, apperrors.NewNotFound("комментарий не найден")
 		}
 		return nil, apperrors.NewInternal("ошибка обновления комментария")
 	}

@@ -44,8 +44,8 @@
 
 | ID | Tag | Sev | Файл:строка | Проблема | Почему дефект | Как чинить |
 |----|-----|-----|-------------|---------|---------------|------------|
-| A3W5-5-001 | NEW (хвост W5-A5-007 / A2W5-A5-006) | P3 | `service_wave106_test.go:40-54`; `service_test.go:233-242` | `TestSearch_LimitCappedAtFifty` по имени про clamp `limit>50`, по факту только `ErrSearchUnavailable` на missing `issues`; `TestSearch_NormalizesLimit` — `Empty` без membership, без assert на эффективный limit | Мутация `service.go:62-64` (`limit > 50` → `limit > 500` / убрать clamp / default≠20) → оба теста зелёные; clamp не доказан | Postgres: засеять >20 hit’ов; `Search(..., limit=100)` → `Len==20` (или актуальный default); `limit=0/-1` → тот же cap; переименовать wave106-тест |
-| A3W5-5-002 | NEW | P3 | `service_scope_test.go:167-181`; `service_shard_errors_test.go:39-52`; `service_wave106_test.go:85-114`; `service_wave114_test.go:15-28` | 3× nil-mongo / no-membership messages + 2× `GetUserChannelIDs` closed-DB | Не assert-free, но нулевой инкремент (класс бывшего W5-A5-005 empty-scope drift) | Один канон nil-mongo + один closed-DB; остальные удалить |
+| A3W5-5-001 | **FIXED** (TASK-157) | P3 | `limit_clamp_a3w55_test.go` · was `service_wave106_test.go:40-54`; `service_test.go:233-242` | clamp по Len | — | Postgres multi-shard seed → `Len==20` for limit 100/0/-1; wave106 → `TestSearch_MissingIssuesTable_Unavailable`; hollow NormalizesLimit убран |
+| A3W5-5-002 | **FIXED** (TASK-157) | P3 | каноны: `TestSearchMessages_NilMongoReturnsEmpty` · `TestGetUserChannelIDs_ClosedDB` | дубли сняты | — | удалены дубли scope/shard_errors/wave106/wave114 |
 
 ## Чисто (перепроверено)
 
