@@ -11,36 +11,40 @@ interface Props {
 	data?: DashboardWidgetData;
 }
 
-/** Конфиг статусов с glow-цветами. */
+/** Конфиг статусов — semantic tokens, без raw *-500 / inline rgba (A3W9-2-005). */
 const STATUS_CONFIG: Record<
 	string,
-	{ color: string; glow: string; pulse: boolean; label: string }
+	{ color: string; glow: string; pulse: boolean; label: string; badge: string }
 > = {
 	healthy: {
-		color: "bg-green-500",
-		glow: "0 0 8px rgba(34,197,94,0.6)",
+		color: "bg-[var(--green)]",
+		glow: "shadow-[0_0_8px_var(--gG)]",
 		pulse: true,
 		label: "Работает",
+		badge: "bg-[var(--gG)] text-[var(--green)]",
 	},
 	unhealthy: {
-		color: "bg-red-500",
-		glow: "0 0 8px rgba(239,68,68,0.6)",
+		color: "bg-[var(--red)]",
+		glow: "shadow-[0_0_8px_var(--gR)]",
 		pulse: false,
 		label: "Ошибка",
+		badge: "bg-[var(--gR)] text-[var(--red)]",
 	},
 	degraded: {
-		color: "bg-yellow-500",
-		glow: "0 0 8px rgba(234,179,8,0.6)",
+		color: "bg-[var(--amber)]",
+		glow: "shadow-[0_0_8px_var(--amber)]",
 		pulse: true,
 		label: "Деградация",
+		badge: "bg-[var(--amber)]/10 text-[var(--amber)]",
 	},
 };
 
 const DEFAULT_STATUS = {
-	color: "bg-gray-400",
-	glow: "none",
+	color: "bg-[var(--t3)]",
+	glow: "",
 	pulse: false,
 	label: "Неизвестно",
+	badge: "bg-[var(--t3)]/20 text-[var(--t3)]",
 };
 
 /** Виджет здоровья сервисов. */
@@ -80,8 +84,7 @@ export function SystemHealthWidget({ data }: Props) {
 					>
 						<div className="relative flex items-center justify-center">
 							<span
-								className={`h-2.5 w-2.5 rounded-full ${config.color}`}
-								style={{ boxShadow: config.glow }}
+								className={`h-2.5 w-2.5 rounded-full ${config.color} ${config.glow}`}
 							/>
 							{config.pulse && (
 								<span
@@ -93,13 +96,7 @@ export function SystemHealthWidget({ data }: Props) {
 							{name}
 						</span>
 						<span
-							className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full ${
-								status === "healthy"
-									? "bg-green-500/10 text-green-400"
-									: status === "unhealthy"
-										? "bg-red-500/10 text-red-400"
-										: "bg-yellow-500/10 text-yellow-400"
-							}`}
+							className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full ${config.badge}`}
 						>
 							{config.label}
 						</span>

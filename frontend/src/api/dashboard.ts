@@ -29,6 +29,8 @@ export interface TaskSummary {
 	title: string;
 	status: string;
 	priority: number;
+	/** UUID проекта — обязателен для Link на issue (A3W9-2-002/003). */
+	project_id: string;
 	due_date?: string;
 }
 

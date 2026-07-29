@@ -33,7 +33,8 @@ type Repository interface {
 	AggregateProjectIssueStats(ctx context.Context, projectID uuid.UUID) (*ProjectIssueAgg, error)
 	// ListProjectIssuesWithStatusAssignee устарел для hot path; оставлен для совместимости тестов.
 	ListProjectIssuesWithStatusAssignee(ctx context.Context, projectID uuid.UUID) ([]*ent.Issue, error)
-	ListProjectCompletedIssuesSince(ctx context.Context, projectID uuid.UUID, since time.Time) ([]*ent.Issue, error)
+	// AggregateProjectCompletedByDay — A3W7-4-005: counts done/day без .All() всех issues периода.
+	AggregateProjectCompletedByDay(ctx context.Context, projectID uuid.UUID, since, until time.Time) (map[string]int, error)
 	CountProjectCompletedIssuesInRange(ctx context.Context, projectID uuid.UUID, start, end time.Time) (int, error)
 	ListProjectRecentTestRuns(ctx context.Context, projectID uuid.UUID, limit int) ([]*ent.TestRun, error)
 	ListProjectActivityLogs(ctx context.Context, projectID uuid.UUID, limit int) ([]*ent.ActivityLog, error)
@@ -68,6 +69,7 @@ func (r *EntRepository) ListMyOpenTasks(ctx context.Context, userID uuid.UUID, l
 			issue.DeletedAtIsNil(),
 		).
 		WithStatus().
+		WithProject(). // A3W9-2-002/003: project_id для FE Link
 		Order(ent.Desc(issue.FieldPriority)).
 		Limit(limit).
 		All(ctx)
@@ -103,6 +105,7 @@ func (r *EntRepository) ListUserDeadlineIssues(ctx context.Context, userID uuid.
 			issue.DeletedAtIsNil(),
 		).
 		WithStatus().
+		WithProject(). // A3W9-2-002/003: project_id для FE Link
 		Order(ent.Asc(issue.FieldDueDate)).
 		Limit(limit).
 		All(ctx)
@@ -201,15 +204,19 @@ func (r *EntRepository) ListProjectIssuesWithStatusAssignee(ctx context.Context,
 		All(ctx)
 }
 
-func (r *EntRepository) ListProjectCompletedIssuesSince(ctx context.Context, projectID uuid.UUID, since time.Time) ([]*ent.Issue, error) {
-	return r.client.Issue.Query().
-		Where(
-			issue.HasProjectWith(project.ID(projectID)),
-			issue.HasStatusWith(workflowstatus.CategoryEQ(workflowstatus.CategoryDone)),
-			issue.UpdatedAtGTE(since),
-			issue.DeletedAtIsNil(),
-		).
-		All(ctx)
+// AggregateProjectCompletedByDay — A3W7-4-005: Count per day, без материализации всех done-issues.
+// Mutation: вернуть .All() issues периода → тест hygiene краснеет.
+func (r *EntRepository) AggregateProjectCompletedByDay(ctx context.Context, projectID uuid.UUID, since, until time.Time) (map[string]int, error) {
+	out := make(map[string]int)
+	for d := since; d.Before(until); d = d.AddDate(0, 0, 1) {
+		dayEnd := d.AddDate(0, 0, 1)
+		count, err := r.CountProjectCompletedIssuesInRange(ctx, projectID, d, dayEnd)
+		if err != nil {
+			return nil, fmt.Errorf("count completed on %s: %w", d.Format("2006-01-02"), err)
+		}
+		out[d.Format("01-02")] = count
+	}
+	return out, nil
 }
 
 func (r *EntRepository) CountProjectCompletedIssuesInRange(ctx context.Context, projectID uuid.UUID, start, end time.Time) (int, error) {

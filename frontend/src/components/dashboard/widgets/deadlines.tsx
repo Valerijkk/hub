@@ -7,6 +7,7 @@ import {
 	type DashboardWidgetData,
 	isPersonalData,
 } from "@/components/dashboard/widget-data";
+import { TaskRowLink } from "@/components/dashboard/widgets/task-row-link";
 import { Badge } from "@/components/ui/badge";
 
 interface Props {
@@ -20,7 +21,7 @@ function daysRemaining(dueDate: string): number {
 	return Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-/** Стили срочности по оставшимся дням. */
+/** Стили срочности по оставшимся дням — semantic tokens (A3W9-2-004). */
 function getDeadlineStyle(days: number): {
 	variant: "destructive" | "default" | "outline" | "secondary";
 	className: string;
@@ -29,14 +30,14 @@ function getDeadlineStyle(days: number): {
 		return {
 			variant: "destructive",
 			className:
-				"bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
+				"bg-[var(--gR)] text-[var(--red)] border-[var(--red)]/20",
 		};
 	if (days <= 1) return { variant: "destructive", className: "" };
 	if (days <= 3)
 		return {
 			variant: "default",
 			className:
-				"bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+				"bg-[var(--amber)]/10 text-[var(--amber)] border-[var(--amber)]/20",
 		};
 	return { variant: "outline", className: "" };
 }
@@ -63,13 +64,14 @@ export function DeadlinesWidget({ data }: Props) {
 				const style = days !== null ? getDeadlineStyle(days) : null;
 
 				return (
-					<div
+					<TaskRowLink
 						key={task.id}
-						className="flex items-center justify-between gap-2 rounded-lg border border-border/50 p-2.5 text-sm"
+						task={task}
+						className="flex items-center justify-between gap-2 rounded-lg border border-border/50 p-2.5 text-sm no-underline text-inherit hover:bg-white/[0.04] transition-colors"
 					>
 						<div className="flex items-center gap-2.5 min-w-0">
 							<CalendarClock
-								className={`h-4 w-4 shrink-0 ${days !== null && days <= 1 ? "text-red-500" : "text-t2"}`}
+								className={`h-4 w-4 shrink-0 ${days !== null && days <= 1 ? "text-[var(--red)]" : "text-t2"}`}
 							/>
 							<div className="min-w-0">
 								<p className="truncate">
@@ -88,7 +90,7 @@ export function DeadlinesWidget({ data }: Props) {
 								{days <= 0 ? "Просрочено" : `${days}д`}
 							</Badge>
 						)}
-					</div>
+					</TaskRowLink>
 				);
 			})}
 		</div>

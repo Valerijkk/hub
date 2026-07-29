@@ -7,15 +7,16 @@ import {
 	type DashboardWidgetData,
 	isPersonalData,
 } from "@/components/dashboard/widget-data";
+import { TaskRowLink } from "@/components/dashboard/widgets/task-row-link";
 import { Badge } from "@/components/ui/badge";
 
-/** Цветовые точки приоритетов. */
+/** Цветовые точки приоритетов — semantic tokens (A3W9-2-004). */
 const PRIORITY_COLORS: Record<number, string> = {
-	5: "bg-red-500",
-	4: "bg-orange-500",
-	3: "bg-yellow-500",
-	2: "bg-blue-400",
-	1: "bg-slate-400",
+	5: "bg-[var(--red)]",
+	4: "bg-[var(--orange)]",
+	3: "bg-[var(--amber)]",
+	2: "bg-[var(--blue)]",
+	1: "bg-[var(--t3)]",
 };
 
 const PRIORITY_LABELS: Record<number, string> = {
@@ -70,14 +71,15 @@ export function MyTasksWidget({ data }: Props) {
 	return (
 		<div className="space-y-0.5">
 			{tasks.slice(0, 10).map((task: TaskSummary) => (
-				<div
+				<TaskRowLink
 					key={task.id}
-					className="group flex items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors duration-150 hover:bg-white/[0.04]"
+					task={task}
+					className="group flex items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-sm no-underline text-inherit transition-colors duration-150 hover:bg-white/[0.04]"
 				>
 					<div className="flex items-center gap-2.5 min-w-0">
 						{/* Точка статуса (8px) */}
 						<div
-							className={`h-2 w-2 shrink-0 rounded-full ${PRIORITY_COLORS[task.priority] ?? "bg-slate-400"}`}
+							className={`h-2 w-2 shrink-0 rounded-full ${PRIORITY_COLORS[task.priority] ?? "bg-[var(--t3)]"}`}
 							role="img"
 							aria-label={PRIORITY_LABELS[task.priority] ?? "Приоритет"}
 							title={PRIORITY_LABELS[task.priority] ?? ""}
@@ -94,7 +96,7 @@ export function MyTasksWidget({ data }: Props) {
 						<StatusIcon status={task.status} />
 						{task.status}
 					</Badge>
-				</div>
+				</TaskRowLink>
 			))}
 		</div>
 	);

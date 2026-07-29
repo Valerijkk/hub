@@ -61,8 +61,10 @@ func TestGetPersonalDashboardData_WithTasksDeadlinesAndTime(t *testing.T) {
 	require.NotNil(t, data)
 	require.Len(t, data.MyTasks, 1)
 	assert.Equal(t, "DASH-1", data.MyTasks[0].Key)
+	assert.Equal(t, projectID, data.MyTasks[0].ProjectID, "A3W9-2-002/003: project_id для FE Link")
 	require.Len(t, data.Deadlines, 1)
 	assert.Equal(t, "Personal task", data.Deadlines[0].Title)
+	assert.Equal(t, projectID, data.Deadlines[0].ProjectID)
 	assert.Equal(t, 45, data.TimeToday)
 }
 
