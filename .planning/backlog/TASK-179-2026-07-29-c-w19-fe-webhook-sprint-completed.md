@@ -32,7 +32,9 @@ UI webhooks не предлагает `sprint.completed` после BE-trim (TAS
 
 ## [EVIDENCE]
 
-- **Fix:** `frontend/src/modules/settings/webhooks.tsx` — `AVAILABLE_EVENTS` без `sprint.completed` (export + comment C-W19-FE-001).
-- **Test:** `testframework/stages/unit/frontend-test/domains/platform/webhook-events-sprint-completed-c-w19.test.tsx`
-- **Mutation:** временно добавить `"sprint.completed"` в массив → оба `it` FAIL; restore → GREEN.
-- **BE contract:** Create/Update с неизвестным event → 400 (TASK-152 `allowedWebhookEvents`); wiki/API.md уже документирует trim.
+- **Fix:** `frontend/src/modules/settings/webhooks.tsx` — `AVAILABLE_EVENTS` без `sprint.completed` (export + comment C-W19-FE-001). SHA: `4b4a409e`
+- **Test:** `testframework/stages/unit/frontend-test/domains/platform/webhook-events-sprint-completed-c-w19.test.tsx` — 2/2 PASS. SHA: `a5cb26fd`
+- **Mutation:** временно добавить `"sprint.completed"` в массив → **оба it FAIL** (not.toContain + queryByText null); restore → GREEN.
+- **Регрессия:** trash-webhooks-p1 + tokens-dead-ui-authz-p2 + TASK-179 = 14/14 PASS.
+- **BE contract:** Create/Update с неизвестным event → 400 (TASK-152); wiki/API.md уже документирует trim.
+- **Docs:** `df67ac7d` · статус «На проверке» · README не трогали (constraint).
