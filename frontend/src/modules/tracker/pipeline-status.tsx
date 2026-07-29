@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { listWorkflowRuns, type WorkflowRunResponse } from "@/api/github";
+import { isSafeUrl, sanitizeUrl } from "@/lib/safe-url";
 
 // ---------------------------------------------------------------------------
 // Типы
@@ -259,14 +260,10 @@ export function PipelineStatus({ projectId }: PipelineStatusProps) {
 			<div className="space-y-1.5">
 				{runs.slice(0, 10).map((run) => {
 					const cfg = getStatusConfig(run);
-					return (
-						<a
-							key={run.id}
-							href={run.html_url}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
-						>
+					const rowClass =
+						"flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors hover:bg-gray-50 dark:hover:bg-gray-800";
+					const body = (
+						<>
 							{/* Иконка статуса */}
 							<span
 								className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${cfg.bgColor}`}
@@ -295,6 +292,25 @@ export function PipelineStatus({ projectId }: PipelineStatusProps) {
 							>
 								{cfg.label}
 							</span>
+						</>
+					);
+					// FE-TA-001: unsafe API url → без href (не javascript:/data:)
+					if (!isSafeUrl(run.html_url)) {
+						return (
+							<div key={run.id} className={rowClass}>
+								{body}
+							</div>
+						);
+					}
+					return (
+						<a
+							key={run.id}
+							href={sanitizeUrl(run.html_url)}
+							target="_blank"
+							rel="noopener noreferrer"
+							className={rowClass}
+						>
+							{body}
 						</a>
 					);
 				})}
