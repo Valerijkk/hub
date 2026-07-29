@@ -321,3 +321,30 @@ func (s *SessionService) RevokeSession(ctx context.Context, userID, sessionID uu
 	s.publishSessionEnded(userID.String(), sessionID.String(), "revoked")
 	return nil
 }
+
+// RevokeAllUserSessions инвалидирует все сессии (DB + Redis) и публикует
+// auth.session.{uid}.revoked для WS Bridge → UnregisterBySession (C-W19-001 / TASK-177).
+// Вызывается из audit.DeactivateUser / BanUser — тот же kill-path, что Logout/Revoke.
+// Fail-closed: ошибка list/invalidate возвращается caller'у (не silent success).
+func (s *SessionService) RevokeAllUserSessions(ctx context.Context, userID uuid.UUID) error {
+	sessions, err := s.repo.ListUserSessions(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("revoke all sessions: list: %w", err)
+	}
+	sessionIDs := make([]string, 0, len(sessions))
+	for _, sess := range sessions {
+		sessionIDs = append(sessionIDs, sess.ID.String())
+	}
+	if err := s.invalidateUserSessions(ctx, userID); err != nil {
+		return fmt.Errorf("revoke all sessions: %w", err)
+	}
+	if len(sessionIDs) == 0 {
+		// Нет DB-сессий — всё равно рвём все WS пользователя (empty sid → UnregisterUser).
+		s.publishSessionEnded(userID.String(), "", "revoked")
+		return nil
+	}
+	for _, sid := range sessionIDs {
+		s.publishSessionEnded(userID.String(), sid, "revoked")
+	}
+	return nil
+}

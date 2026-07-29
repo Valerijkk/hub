@@ -36,6 +36,12 @@ func wireAuth(d *serverDeps) {
 	)
 	d.authSvc = authSvc
 
+	// C-W19-001 / TASK-177: Deactivate/Ban → Redis invalidate + NATS revoked → WS kill.
+	// auditSvc создан в wireInfra до wireAuth — подключаем SessionRevoker здесь.
+	if d.auditSvc != nil {
+		d.auditSvc.SetSessionRevoker(authSvc.Sessions)
+	}
+
 	// ORG-06: purge pending users старше 7 дней.
 	cron.Schedule(d.rootCtx, time.Hour, "pending-user-purge", func(ctx context.Context) error {
 		n, err := authSvc.Org.PurgeExpiredPending(ctx)

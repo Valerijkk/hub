@@ -62,12 +62,19 @@ type AuditService struct {
 	repo       Repository
 	redis      *redis.Client // optional — используется для инвалидации auth-кэшей (ME-13).
 	msgEraser  MessageEraser // optional — Mongo messages by sender_id (P1-BE-34).
+	sessions   SessionRevoker // optional — C-W19-001: Redis+NATS session kill on deactivate/ban.
 }
 
 // MessageEraser удаляет персональные сообщения пользователя (Mongo messenger).
 // Опциональная зависимость: если nil, шаг пропускается (тесты без Mongo).
 type MessageEraser interface {
 	DeleteMessagesBySender(ctx context.Context, senderID uuid.UUID) (int64, error)
+}
+
+// SessionRevoker — C-W19-001: DB+Redis invalidate + NATS revoked/logout → WS Bridge kill.
+// Реализация: auth.SessionService.RevokeAllUserSessions (не дублировать pipeline).
+type SessionRevoker interface {
+	RevokeAllUserSessions(ctx context.Context, userID uuid.UUID) error
 }
 
 // NewAuditService создаёт новый сервис аудита.
@@ -82,6 +89,12 @@ func NewAuditService(repo Repository, rdb *redis.Client) *AuditService {
 // SetMessageEraser подключает стирание Mongo-сообщений при GDPR erase (P1-BE-34).
 func (s *AuditService) SetMessageEraser(e MessageEraser) {
 	s.msgEraser = e
+}
+
+// SetSessionRevoker подключает session-kill path (Redis + NATS revoked) для Deactivate/Ban.
+// C-W19-001: без этого живой WS жертвы не рвётся. Wiring: wireAuth → authSvc.Sessions.
+func (s *AuditService) SetSessionRevoker(r SessionRevoker) {
+	s.sessions = r
 }
 
 // IsSystemAdmin возвращает true, если пользователь — системный администратор.
@@ -396,9 +409,16 @@ func (s *AuditService) deactivateUser(ctx context.Context, userID uuid.UUID) err
 		return fmt.Errorf("деактивация пользователя: %w", err)
 	}
 
-	// Отзываем все сессии
-	if _, err := s.repo.DeleteUserSessions(ctx, userID); err != nil {
+	// C-W19-001 / C-W19-003: session-kill fail-closed — Redis Del + NATS revoked
+	// (тот же path, что Logout/Revoke). Без SessionRevoker — DB-only fallback для тестов.
+	if s.sessions != nil {
+		if err := s.sessions.RevokeAllUserSessions(ctx, userID); err != nil {
+			slog.Error("revoke sessions on deactivate", "error", err, "user_id", userID)
+			return fmt.Errorf("revoke sessions on deactivate: %w", err)
+		}
+	} else if _, err := s.repo.DeleteUserSessions(ctx, userID); err != nil {
 		slog.Error("revoke sessions on deactivate", "error", err, "user_id", userID)
+		return fmt.Errorf("revoke sessions on deactivate: %w", err)
 	}
 
 	// ME-13: инвалидируем закэшированный статус, чтобы запретить доступ

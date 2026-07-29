@@ -9,7 +9,8 @@ type SessionCreatedEvent struct {
 }
 
 // SessionEndedEvent публикуется в NATS на "auth.session.{userID}.{logout|revoked}"
-// после Logout/Revoke, чтобы WS Bridge вызвал UnregisterBySession (A2W3-4-002 / TASK-109).
+// после Logout/Revoke/Deactivate/Ban, чтобы WS Bridge вызвал UnregisterBySession
+// (A2W3-4-002 / TASK-109 / C-W19-001).
 type SessionEndedEvent struct {
 	UserID    string `json:"user_id"`
 	SessionID string `json:"session_id"`

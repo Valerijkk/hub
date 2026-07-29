@@ -131,6 +131,7 @@ Telegram         → Только notify bind/delivery (НЕ login)
 | Code compare | `subtle.ConstantTimeCompare` | SEC-07 ✅ |
 | Refresh storage | SHA-256 hash in Redis | NF-12 ✅ |
 | Session list | User видит device/IP, может отозвать | `/auth/sessions` |
+| Admin Deactivate/Ban → WS kill | Redis invalidate + NATS `auth.session.{uid}.revoked` → Bridge UnregisterBySession (C-W19-001); fail-closed при ошибке kill (C-W19-003) | `audit/service.go` + `auth.SessionService.RevokeAllUserSessions` |
 | RBAC | System (Admin/Member) → Project roles → Custom | `rbac/` |
 
 **Запрещено (v1–v4 без ADR):** пароли; OAuth-провайдеры соцсетей.  
