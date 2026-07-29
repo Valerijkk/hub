@@ -76,7 +76,7 @@ Stage A2 (brief): [A2-DEDUP-2026-07-28.md](../audits/total-2026-07/A2-DEDUP-2026
 | [TASK-134](TASK-134-2026-07-29-a3-1-2-tracker-services.md) | 🔒 A3 tracker services: labels scope + residual batch | P1 | На проверке | be1 | A3W1-2 · 6 |
 | [TASK-135](TASK-135-2026-07-29-a3-1-3-tracker-repos.md) | 🐛 A3 tracker repos/automation residual | P2 | На проверке | be1 | A3W1-3 · 3 |
 | [TASK-136](TASK-136-2026-07-29-a3-1-4-sprint.md) | 🐛 A3 sprint residual (CompleteSprint soft-delete etc) | P2 | На проверке | be1 | A3W1-4 · 3 |
-| [TASK-137](TASK-137-2026-07-29-a3-1-5-project.md) | 🔒 A3 project archive/permanent-delete/resurrect residual | P2 | На проверке | be1 | A3W1-5 · 6 |
+| [TASK-137](TASK-137-2026-07-29-a3-1-5-project.md) | 🔒 A3 project archive/permanent-delete/resurrect residual | P2 | Открыта | be1 | A3W1-5 · 6 |
 | [TASK-138](TASK-138-2026-07-29-a3-2-1-tms-handlers.md) | 🧹 A3 TMS handlers residual | P3 | На проверке | be2 | A3W2-1 · 1 |
 | [TASK-139](TASK-139-2026-07-29-a3-2-2-tms-services.md) | 🔒 A3 TMS services: AssignTesters/FileIDs/ImportAllure scope | P2 | На проверке | be2 | A3W2-2 · 6 |
 | [TASK-140](TASK-140-2026-07-29-a3-2-3-tms-repos.md) | 🐛 A3 TMS repos list caps residual | P2 | На проверке | be2 | A3W2-3 · 3 |
