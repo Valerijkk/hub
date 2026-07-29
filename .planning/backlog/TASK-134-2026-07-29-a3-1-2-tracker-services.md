@@ -114,28 +114,39 @@
 - Conventional Commits RU; no Co-authored-by / AI trailers
 - Коммит: тело → `Задача: .planning/backlog/TASK-134-2026-07-29-a3-1-2-tracker-services.md` + `(A3W1-2-00N)` в subject при желании
 
-## [EVIDENCE] be1 2026-07-29
+## [EVIDENCE] be1 2026-07-29 (re-verify)
 
 **Verdict: 6/6 FIXED** · статус файла: **На проверке** (README по указанию owner не трогали)
 
 | ID | Evidence |
 |----|----------|
-| A3W1-2-001 | `service_issues.go` CountLabelsInProject; `TestUpdateIssue_RejectsForeignLabel_A3W1_2_001` |
-| A3W1-2-002 | `FindLabelGroupInProject`; `TestCreateLabel_RejectsForeignGroup_A3W1_2_002` |
-| A3W1-2-003 | `ensureActionChannelInProject`; `TestCreateUpdateRule_RejectsForeignChannel_A3W1_2_003` |
-| A3W1-2-004 | `WithIssue` eager; `TestListThreadIssueLinks_NoNPlusOne_A3W1_2_004` (findIssueByIDCalls) |
-| A3W1-2-005 | AppError wrap; `TestCreateIssueLink_MapsRepoErrToAppError_A3W1_2_005` |
-| A3W1-2-006 | Exist→404/409; `TestUpdateComment_MissingVsVersionConflict_A3W1_2_006` |
+| A3W1-2-001 | `service_issues.go` `CountLabelsInProject` перед UpdateIssue Labels; Ent `TestUpdateIssue_RejectsForeignLabel_A3W1_2_001` → 400 |
+| A3W1-2-002 | `FindLabelGroupInProject` + CreateLabel; `TestCreateLabel_RejectsForeignGroup_A3W1_2_002` → 404 |
+| A3W1-2-003 | `ensureActionChannelInProject` в Create/UpdateRule; `TestCreateUpdateRule_RejectsForeignChannel_A3W1_2_003` → 404 |
+| A3W1-2-004 | `ListIssueMessageLinksByThread` `WithIssue(+Project)`; `TestListThreadIssueLinks_NoNPlusOne_A3W1_2_004` (`findIssueByIDCalls` unchanged) |
+| A3W1-2-005 | CreateIssueLink: AppError passthrough / constraint→409 / else→500; `TestCreateIssueLink_MapsRepoErrToAppError_A3W1_2_005` |
+| A3W1-2-006 | repo Exist alive→409 else→404; service AppError passthrough; `TestUpdateComment_MissingVsVersionConflict_A3W1_2_006` |
 
 ```
-# focused
-go test -tags hubtest -race -count=1 -timeout=300s -vet=off ./testframework/tracker/ \
-  -run 'A3W1_2_|RejectsForeignLabel_P1BE03|UpdateDeleteComment_Scoped_A3_011'
-ok  github.com/valerii/hub/backend/testframework/tracker  3.327s
+# focused (iso backend + clean ent; Docker golang:1.25-bookworm)
+go test -tags hubtest -race -count=1 -timeout=300s ./testframework/tracker/ \
+  -run 'A3W1_2_|A3_011|P1BE03|CreateLabel$|CreateIssueLink|ListThread'
+ok  github.com/valerii/hub/backend/testframework/tracker  4.269s
 
-# regression
-go test -tags hubtest -race -count=1 -timeout=600s -vet=off ./testframework/tracker/
-ok  github.com/valerii/hub/backend/testframework/tracker  38.573s
+# regression (skip SoftDelete_A2W8 — тесты читают /backend/... path вне iso-mount)
+go test -tags hubtest -race -count=1 -timeout=600s ./testframework/tracker/ -skip 'SoftDelete_A2W8'
+ok  github.com/valerii/hub/backend/testframework/tracker  8.500s
 ```
 
-Mutation notes — см. таблицу Mutation в ACCEPTANCE (каждый ID краснеет при откате guard).
+### Mutation notes (per ID)
+
+| ID | Сломать | Ожидание |
+|----|---------|----------|
+| A3W1-2-001 | убрать `CountLabelsInProject` в UpdateIssue | `TestUpdateIssue_RejectsForeignLabel_A3W1_2_001` FAIL |
+| A3W1-2-002 | принять любой groupID без `FindLabelGroupInProject` | `TestCreateLabel_RejectsForeignGroup_A3W1_2_002` FAIL |
+| A3W1-2-003 | только non-empty без `FindChannelInProject` | `TestCreateUpdateRule_RejectsForeignChannel_A3W1_2_003` FAIL |
+| A3W1-2-004 | вернуть per-link `FindIssueByID` | `TestListThreadIssueLinks_NoNPlusOne_A3W1_2_004` FAIL |
+| A3W1-2-005 | `return nil, err` без wrap | `TestCreateIssueLink_MapsRepoErrToAppError_A3W1_2_005` FAIL |
+| A3W1-2-006 | любой IsNotFound → 409 | missing → 404 assert FAIL |
+
+Handoff: **be-ver → code-reviewer**
