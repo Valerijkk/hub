@@ -49,12 +49,12 @@
 
 | Метрика | Значение |
 |---------|----------|
-| Backend `testframework/**/*_test.go` | **760** файлов (measured 2026-07-29; was 515 → 580 → 652) |
+| Backend `testframework/**/*_test.go` | **804** файлов (measured 2026-07-29; was 515 → 580 → 652) |
 | Backend `internal/*_test.go` | **0** (TF-M08 ✅) |
 | Backend `export_hooks.go` (`//go:build hubtest`) | **39** файлов (measured 2026-07-29) |
 | Statement coverage `internal/` | **83.0%** (2026-06-22 Docker baseline) |
 | Security-critical packages ≥80% | **6/6** ✅ (auth, ws, rbac, audit, calls, platform/middleware) |
-| Frontend Vitest | **129** files в `testframework/stages/unit/frontend-test/` (measured 2026-07-29; 56 `.ts` + 73 `.tsx`) |
+| Frontend Vitest | **167** files в `stages/unit/frontend-test/` (measured 2026-07-29; 61 `.ts` + 106 `.tsx`) |
 | Playwright specs | **20** files в `testframework/stages/e2e/domains/` |
 | Lighthouse CI | artifact job (master push, non-blocking) |
 | TypeScript | `tsc --noEmit` — 0 errors (CI) |
@@ -213,4 +213,4 @@ File: path:line
 | `.cursor/skills/qa-gate/SKILL.md` | Полный gate |
 
 ---
-*Последнее обновление: 2026-07-29 — inventory **760** BE `*_test.go` / **37** export_hooks / Vitest **94** files; COV 83% остаётся baseline прогона 2026-06-22*
+*Последнее обновление: 2026-07-29 — inventory **804** BE `*_test.go` / **39** export_hooks / Vitest **167** files; COV 83% остаётся baseline прогона 2026-06-22*

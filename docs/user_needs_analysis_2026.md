@@ -58,7 +58,7 @@
 | Backend coverage (`internal/`) | **83.0%** (2026-06-22 Docker baseline; Wave C, `-tags hubtest`) |
 | Security-critical ≥80% | **6/6** (auth, ws, rbac, audit, calls, platform/middleware) |
 | REST API (OpenAPI paths) | **252** (`swagger.json`, 2026-07-28); route inventory ~286 |
-| Frontend Vitest | **94** files (`testframework/stages/unit/frontend-test/`) |
+| Frontend Vitest | **167** files (`stages/unit/frontend-test/`, measured 2026-07-29; 61 `.ts` + 106 `.tsx`) |
 | Playwright E2E | **20** specs |
 | 12 CRITICAL security blockers | **Закрыты** (v2.0.1) |
 | Ветка | `master` · HEAD `bbdaf16` |

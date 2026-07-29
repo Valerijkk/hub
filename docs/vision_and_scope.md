@@ -39,7 +39,7 @@
 | CRITICAL security blockers | 0 | **12/12 FIXED** в коде (v2.0.1); PG-03 ротация секретов в git history — manual ops |
 | Unit coverage (security-critical) | ≥ 80% | **6/6 пакетов ≥80%** ✅ (auth, ws, rbac, audit, calls, platform/middleware) |
 | Unit coverage (overall `internal/`) | ≥ 50% (gate), ≥ 82% (wave) | **83.0%** ✅ (2026-06-22 Docker baseline; Wave C, `-tags hubtest`) |
-| Frontend Vitest | Unit-тесты модулей | **94** files ✅ (`testframework/stages/unit/frontend-test/`, measured 2026-07-28) |
+| Frontend Vitest | Unit-тесты модулей | **167** files ✅ (`stages/unit/frontend-test/`, measured 2026-07-29; 61 `.ts` + 106 `.tsx`) |
 | E2E critical paths | Playwright | **20 spec-файлов** ✅ (`testframework/stages/e2e/domains/`) |
 | Global search Ctrl+K (US-M07) | UI + user-scope backend | **UI ✅** (PR #15: Calls, Settings, Admin) |
 | Lighthouse Performance/Accessibility | ≥ 90 | CI artifact job (PR #27, non-blocking); formal gate — backlog |

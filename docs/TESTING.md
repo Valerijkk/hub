@@ -30,10 +30,10 @@
 
 | Слой | Метрика |
 |------|---------|
-| Backend test files (`backend/testframework/`) | **760** `_test.go` (0 в `internal/` после TF-M08; measured 2026-07-29) |
+| Backend test files (`backend/testframework/`) | **804** `_test.go` (0 в `internal/` после TF-M08; measured 2026-07-29) |
 | Backend `export_hooks.go` | **39** (`//go:build hubtest`; measured 2026-07-29) |
 | Backend `internal/*_test.go` | **0** |
-| Frontend Vitest | **129** files (`testframework/stages/unit/frontend-test/`; measured 2026-07-29; 56 `.ts` + 73 `.tsx`) |
+| Frontend Vitest | **167** files (`stages/unit/frontend-test/`; measured 2026-07-29; 61 `.ts` + 106 `.tsx`) |
 | Playwright | **20** spec files (`stages/e2e/domains/`) |
 | Overall `internal/` coverage | **83.0%** (2026-06-22 Docker baseline) |
 
@@ -508,4 +508,4 @@ WCAG 2.1 AA (целевой для v2.0 Redesign)
 
 ---
 
-*Последнее обновление: 2026-07-29 — inventory **760** BE `*_test.go` / **39** export_hooks / Vitest **129** files; COV 83% остаётся baseline прогона 2026-06-22*
+*Последнее обновление: 2026-07-29 — inventory **804** BE `*_test.go` / **39** export_hooks / Vitest **167** files; COV 83% остаётся baseline прогона 2026-06-22*

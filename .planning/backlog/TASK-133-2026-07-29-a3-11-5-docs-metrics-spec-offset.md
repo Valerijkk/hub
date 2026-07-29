@@ -1,6 +1,6 @@
 # TASK-133 — 🧹 A3 docs inventory/strategy Vitest + list-issues offset
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Открыта**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
 > Источник: A3 W11-5 fe-lib-docs · TASK-008 Stage A3 FINAL  
 > Исполнитель: **docs-writer** · Finding IDs: `A3W11-5-001`, `A3W11-5-002`, `A3W11-5-003`
 
