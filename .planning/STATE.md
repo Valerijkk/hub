@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: planning-audit-pw-in-progress
 stopped_at: Planning audit 2026-07 PW1–PW5 · coverage remeasured · phase matrix live
-last_updated: "2026-07-27T00:45:00.000Z"
-last_activity: 2026-07-27 · planning-audit PW waves · coverage 81.9% (2026-07-27)
+last_updated: "2026-07-29T12:30:00.000Z"
+last_activity: 2026-07-29 · be1 TASK-171 A3W8-5 soft-delete + Cascades · На проверке
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -65,6 +65,13 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-29 (be1 · TASK-171 A3W8-5 Team/WorkflowStatus soft + Cascades)
+
+- **7/7 FIXED** (A3W8-5-001…007): Team/WorkflowStatus `deleted_at`+`updated_at`; soft `DeleteWorkflowStatus` + 409 при issues; OnDelete Cascade members/versions/results/deliveries/from_transitions(+to_status).
+- **Hubtest:** `./testframework/ent/ -run TASK171` PASS (9); `./testframework/tracker/ -run TASK171|IdempotentSoft` PASS (3); project smoke PASS.
+- **Migrate:** `20260729_task171_soft_delete_ondelete_cascade.sql` — `needs-owner-apply`.
+- **Статус:** На проверке → be-ver → code-reviewer. README не трогали (owner).
+
 ## Session note — 2026-07-29 (be1 · TASK-155 A3W5-3 ai service)
 
 - **9/9 FIXED** (A3W5-3-001…009): UTF-8 composer trim; usage/settings upsert; issue_lookup fail-closed; consent Default(false)+Create deny; VersionEQ 409; WS sanitize; BotUserRepository; bot-flow asserts.
@@ -82,8 +89,8 @@ spec_coverage:
 ## Session note — 2026-07-29 (be1 · TASK-134 A3W1-2 tracker services)
 
 - **6/6 FIXED** (A3W1-2-001…006): UpdateIssue `CountLabelsInProject`; CreateLabel `FindLabelGroupInProject`; Create/UpdateRule `ensureActionChannelInProject`; ListThreadIssueLinks `WithIssue` eager; CreateIssueLink AppError wrap; UpdateComment 404≠409.
-- **Hubtest:** focused A3W1_2_* + P1BE03/A3_011 PASS (3.3s); full `./testframework/tracker/` PASS (38.6s, `-race`).
-- **Статус:** На проверке → be-ver → code-reviewer. README не трогали (owner).
+- **Hubtest (re-verify после crash):** focused A3W1_2_* + P1BE03/A3_011 PASS (2.1s); full `./testframework/tracker/` PASS (6.5s, `-race`). Mutation smoke A3W1-2-001: без guard → FAIL, guard восстановлен.
+- **Статус:** На проверке → be-ver → code-reviewer. README не трогали (owner). Чужой WIP (workflow soft-delete / project repo) не коммитили.
 
 ## Session note — 2026-07-29 (be1 · TASK-137 A3W1-5 project residual)
 
