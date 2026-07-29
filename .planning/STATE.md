@@ -65,6 +65,12 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-29 (fe1 · TASK-128 A3W10-5 TMS canMutate + auth routes)
+
+- **Сделано:** `canMutateProject` на case detail (Edit/link/unlink) и runs list/detail (`RunHeader`); `/onboarding` + `/login` `beforeLoad`; avatar `revokeObjectURL`. 5/5 FIXED → **На проверке**.
+- **Тесты:** tms `can-mutate-authz-ui` + auth guards/revoke — 20 PASS; tms domain 27/27; `tsc --noEmit` PASS.
+- **Docs:** QUICKSTART — redirect guards login/onboarding; README backlog не трогали.
+
 ## Session note — 2026-07-29 (be2 · TASK-152 A3W4-5 apigateway)
 
 - **Сделано:** ListActive + `project.DeletedAtIsNil`; Update webhook VersionEQ/409; trim `sprint.completed` allowlist + `WebhookFilterSubjects`; CreateAPIKey name MaxLen→400; docs `wiki/API.md`; статус задачи **На проверке**.
