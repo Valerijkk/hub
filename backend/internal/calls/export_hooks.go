@@ -161,6 +161,28 @@ func ExportRecordingServiceSetCreateRecording(
 	s.createRecording = fn
 }
 
+// ExportCallServiceSetCreateCall подменяет CreateCall DB для hubtest (A3W3-A5-001).
+func ExportCallServiceSetCreateCall(
+	s *CallService,
+	fn func(ctx context.Context, roomName string, channelID, createdBy uuid.UUID) (*ent.Call, error),
+) {
+	s.createCall = fn
+}
+
+// ExportCallServiceSetCreateInstantCall подменяет CreateInstantCall DB для hubtest (A3W3-A5-001).
+func ExportCallServiceSetCreateInstantCall(
+	s *CallService,
+	fn func(ctx context.Context, roomName string, createdBy uuid.UUID, inviteCode, title string) (*ent.Call, error),
+) {
+	s.createInstantCall = fn
+}
+
+// ExportMaxCallTitleRunes — лимит title для hubtest (A3W3-A5-004).
+func ExportMaxCallTitleRunes() int { return maxCallTitleRunes }
+
+// ExportMaxGuestNameRunes — лимит guest_name для hubtest (A3W3-A5-004).
+func ExportMaxGuestNameRunes() int { return maxGuestNameRunes }
+
 // ExportGenerateInviteCode — crypto/rand base62 invite для hubtest (A2W3-5-003).
 func ExportGenerateInviteCode() (string, error) {
 	return generateInviteCode()

@@ -322,6 +322,8 @@ func (r *EntRepository) GetChannelMemberRole(ctx context.Context, channelID, use
 
 // GetProjectIDByChannel возвращает project_id канала.
 // Необходим для привязки записей к проекту.
+// A3W3-A5-003: nil ProjectID → NotFound (не (uuid.Nil, nil)), чтобы StartRecording дал 400,
+// а CreateScheduledCall сохранил Forbidden через IsNotFound.
 func (r *EntRepository) GetProjectIDByChannel(ctx context.Context, channelID uuid.UUID) (uuid.UUID, error) {
 	ch, err := r.db.Channel.Query().
 		Where(
@@ -333,7 +335,7 @@ func (r *EntRepository) GetProjectIDByChannel(ctx context.Context, channelID uui
 		return uuid.Nil, err
 	}
 	if ch.ProjectID == nil {
-		return uuid.Nil, nil
+		return uuid.Nil, &ent.NotFoundError{}
 	}
 	return *ch.ProjectID, nil
 }
@@ -552,10 +554,12 @@ func (r *EntRepository) DeactivateScheduledCall(ctx context.Context, id uuid.UUI
 // FindConflictingCalls ищет запланированные звонки, которые пересекаются с заданным временным окном
 // для каналов, в которых состоят указанные участники.
 func (r *EntRepository) FindConflictingCalls(ctx context.Context, participantIDs []uuid.UUID, windowStart, windowEnd time.Time) ([]*ent.ScheduledCall, error) {
-	// Сначала находим все каналы, в которых состоят указанные участники
+	// Сначала находим все каналы, в которых состоят указанные участники.
+	// A3W3-A5-002: только активные каналы (DeletedAtIsNil), как ShareActiveChannel / IsChannelMember.
 	members, err := r.db.ChannelMember.Query().
 		Where(
 			channelmember.UserIDIn(participantIDs...),
+			channelmember.HasChannelWith(channel.DeletedAtIsNil()),
 		).
 		All(ctx)
 	if err != nil {

@@ -2,6 +2,7 @@ package calls
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -127,7 +128,14 @@ func (s *RecordingService) StartRecording(ctx context.Context, callID, userID uu
 	}
 	projectID, err := s.repo.GetProjectIDByChannel(ctx, *callEnt.ChannelID)
 	if err != nil {
+		// A3W3-A5-003: канал без project_id → NotFound/явная ошибка → 400, не FK 500.
+		if ent.IsNotFound(err) || errors.Is(err, ErrInvalidInput) {
+			return nil, ErrInvalidInput
+		}
 		return nil, fmt.Errorf("не удалось получить проект канала: %w", err)
+	}
+	if projectID == uuid.Nil {
+		return nil, ErrInvalidInput
 	}
 
 	// Проверяем лимит активных записей

@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/utils/v2"
@@ -83,6 +84,9 @@ func (h *Handler) CreateInstantCall(c fiber.Ctx) error {
 	userName := userNameFromCtx(c)
 	resp, err := h.service.CreateInstantCall(c.Context(), userID, userName, req.Title)
 	if err != nil {
+		if errors.Is(err, ErrInvalidInput) {
+			return fiber.NewError(fiber.StatusBadRequest, "некорректный title")
+		}
 		slog.Error("ошибка создания instant звонка", "error", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "не удалось создать звонок")
 	}
@@ -422,11 +426,18 @@ func (h *Handler) GuestJoinCall(c fiber.Ctx) error {
 	if req.InviteCode == "" || req.GuestName == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "invite_code и guest_name обязательны")
 	}
+	// A3W3-A5-004: guest_name rune-cap до JWT/service (дубль service — fail-fast на HTTP).
+	if utf8.RuneCountInString(req.GuestName) > maxGuestNameRunes {
+		return fiber.NewError(fiber.StatusBadRequest, "guest_name слишком длинный")
+	}
 
 	resp, err := h.service.GuestJoin(c.Context(), req.InviteCode, req.GuestName)
 	if err != nil {
 		if errors.Is(err, ErrCallNotFound) {
 			return fiber.NewError(fiber.StatusNotFound, "звонок не найден или завершён")
+		}
+		if errors.Is(err, ErrInvalidInput) {
+			return fiber.NewError(fiber.StatusBadRequest, "guest_name слишком длинный")
 		}
 		slog.Error("ошибка гостевого входа", "error", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "ошибка генерации токена")

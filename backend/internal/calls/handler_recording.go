@@ -46,6 +46,9 @@ func (h *Handler) StartRecording(c fiber.Ctx) error {
 		if errors.Is(err, ErrCallForbidden) {
 			return fiber.NewError(fiber.StatusForbidden, "недостаточно прав для записи звонка")
 		}
+		if errors.Is(err, ErrInvalidInput) {
+			return fiber.NewError(fiber.StatusBadRequest, "у канала нет привязанного проекта")
+		}
 		slog.Error("ошибка начала записи", "error", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "не удалось начать запись")
 	}
