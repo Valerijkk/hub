@@ -15,9 +15,11 @@ describe("UserAISettings", () => {
 	it("loads and toggles external AI consent", async () => {
 		vi.spyOn(aiApi, "getAIPreferences").mockResolvedValue({
 			allow_external_ai: true,
+			version: 1,
 		});
 		const patchSpy = vi.spyOn(aiApi, "updateAIPreferences").mockResolvedValue({
 			allow_external_ai: false,
+			version: 2,
 		});
 
 		render(<UserAISettings />);
@@ -29,6 +31,11 @@ describe("UserAISettings", () => {
 		fireEvent.click(screen.getByRole("checkbox"));
 		fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
 
-		expect(patchSpy).toHaveBeenCalledWith({ allow_external_ai: false });
+		await waitFor(() => {
+			expect(patchSpy).toHaveBeenCalledWith({
+				allow_external_ai: false,
+				version: 1,
+			});
+		});
 	});
 });

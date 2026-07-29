@@ -8,6 +8,7 @@ function resetAIStore(): void {
 		botDisplayName: "@hub-ai",
 		models: [],
 		selectedModel: null,
+		preferenceVersion: 0,
 		panelOpen: false,
 		prefillInput: null,
 		loaded: false,
@@ -72,19 +73,27 @@ describe("ai-store", () => {
 		vi.spyOn(aiApi, "getAIPreferences").mockResolvedValue({
 			default_model: "deepseek-chat",
 			allow_external_ai: true,
+			version: 5,
 		});
 		await useAIStore.getState().loadModels();
 		expect(useAIStore.getState().selectedModel).toBe("deepseek-chat");
+		expect(useAIStore.getState().preferenceVersion).toBe(5);
 	});
 
-	it("saveSelectedModel persists preference", async () => {
+	it("saveSelectedModel persists preference with version", async () => {
+		useAIStore.setState({ preferenceVersion: 5 });
 		const patchSpy = vi.spyOn(aiApi, "updateAIPreferences").mockResolvedValue({
 			default_model: "llama3",
 			allow_external_ai: true,
+			version: 6,
 		});
 		await useAIStore.getState().saveSelectedModel("llama3");
-		expect(patchSpy).toHaveBeenCalledWith({ default_model: "llama3" });
+		expect(patchSpy).toHaveBeenCalledWith({
+			default_model: "llama3",
+			version: 5,
+		});
 		expect(useAIStore.getState().selectedModel).toBe("llama3");
+		expect(useAIStore.getState().preferenceVersion).toBe(6);
 	});
 
 	it("loadBotInfo fail does not set loaded (W11-A2-002)", async () => {
