@@ -54,7 +54,7 @@ inventory_measured_2026_07_29:
     ent_entity_schemas: 82
     zustand_stores: 12
     go_mod: "1.25.0"
-    head_short: "0dfdc9f0"
+    head_short: "d868ba77"
     branch: "cursor-grok-4.5"
 spec_coverage:
     fr_total: 28
@@ -79,7 +79,7 @@ spec_coverage:
 
 ## Session note — 2026-07-29 (docs-writer · TASK-183 C-W19-DOC-001 inventory/AGENTS/spec)
 
-- **FIXED** C-W19-DOC-001: shell recount HEAD `0dfdc9f0` (`cursor-grok-4.5`) — BE `*_test.go` **812** / Vitest **179** (61 `.ts` + 118 `.tsx`) / hooks **39**; дата measure **2026-07-29**.
+- **FIXED** C-W19-DOC-001: shell recount HEAD `d868ba77` (`cursor-grok-4.5`) — BE `*_test.go` **812** / Vitest **179** (61 `.ts` + 118 `.tsx`) / hooks **39**; дата measure **2026-07-29**.
 - Синхрон: `AGENTS.md`, `docs/{README,test_plan,TESTING,testframework_strategy,TROUBLESHOOTING,system_specification,user_needs_analysis_2026,vision_and_scope,competitive_audit}.md`.
 - Anti-stale: убраны live `515` / `99/99` / Vitest `94` / HEAD `bbdaf16`; US-M06 webcam → shipped (не Phase 16 IN).
 - Статус TASK-183 → **На проверке**. TASK-008 не закрывали.
