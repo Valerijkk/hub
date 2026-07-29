@@ -65,6 +65,13 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-29 (be1 · TASK-168 A3W8-2 schemas)
+
+- **6/6 FIXED** (A3W8-2-001…006): FileMetadata `NonNegative`+uploader `Required`+`entity_id` Validate(UUID|me|temp); Cascade CoffeeRound→pairs, HubBase→tables, GH/GL Integration→links, Comment→reactions; `access_token` NotEmpty.
+- **Migrate:** `backend/migrations/20260729_task168_filemetadata_ondelete_cascade.sql` (needs-owner-apply вне test).
+- **Hubtest:** `./testframework/ent/ -run TASK168` PASS (WIP 169/170/171 aside на время прогона — ломают compile пакета).
+- **Статус:** На проверке → be-ver → code-reviewer. README не трогали (owner: только SCOPE).
+
 ## Session note — 2026-07-29 (be2 · TASK-164 A3W7-3 integrations)
 
 - **3/3 FIXED** (A3W7-3-001…003): `ListSprintIssues` + GH/GL `FindIssue*` → `DeletedAtIsNil`; `/link-preview` issue path → `IsProjectMember` + per-user cache + Fiber v3 handler/auth order.
