@@ -15,7 +15,8 @@ import (
 )
 
 // TestChatCompletionStream_CancelMidRead_P2BE17 — после первого delta cancel;
-// без ctx.Err() в цикле Scan блокируется на втором чанке ≥5s → RED.
+// без mid-loop ctx.Err() до следующего Scan блокируется на втором чанке ≥5s → RED.
+// HTTP request = WithoutCancel(ctx), поэтому Body.Read сам не отдаёт Canceled.
 func TestChatCompletionStream_CancelMidRead_P2BE17(t *testing.T) {
 	blockSecond := make(chan struct{})
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -64,7 +64,31 @@ Meili SSRF hubtest + stream cancel mid-read IT. Status → Исправлена.
 - Meili SSRF: validateMeiliHost allow-all → TestValidateMeiliHost_BlocksMetadata_P2BE18 / TestNewMeiliIndexerFromEnv_RejectsMetadataHost_P2BE18 RED
 - Stream cancel: drop ctx.Err mid-loop → TestChatCompletionStream_CancelMidRead_P2BE17 stays GREEN (HTTP request ctx). Gap → Открыта.
 
+## [REWORK 2026-07-29 be1 — stream cancel mutation-proof]
 
-## [REWORK 2026-07-29 stream mutation-proof]
+**Статус: На проверке** (мутацию закрытия делает независимый агент).
 
-HTTP request uses context.WithoutCancel(ctx); cancel stop = mid-loop ctx.Err. Status → На проверке.
+### Guard
+- `adapter_stream.go`: HTTP request на `context.WithoutCancel(ctx)` — Body.Read не маскирует mid-loop cancel.
+- Цикл SSE: `ctx.Err()` **до** `scanner.Scan()` — после `cancel()` в `onDelta` не ждём следующий Read.
+
+### Тест
+- `TestChatCompletionStream_CancelMidRead_P2BE17` — httptest не выходит по `r.Context().Done()`; второй чанк блокируется 5s; без mid-loop `ctx.Err` → nil/`≥5s` FAIL.
+
+### Evidence (локально)
+```
+# GREEN
+go test -tags hubtest -count=1 -timeout=90s -run 'TestChatCompletionStream_CancelMidRead_P2BE17' ./testframework/ai/
+→ ok 1.575s
+
+# MUTATION smoke: убрать if ctx.Err() до Scan
+→ FAIL 5.01s — Expected context canceled, got nil
+
+# related TASK-044
+go test -tags hubtest -count=1 -timeout=90s \
+  -run 'TestChatCompletionStream_CancelMidRead_P2BE17|TestGetUserPreference_DefaultAllowExternalAIFalse|TestValidateMeiliHost_BlocksMetadata_P2BE18|TestNewMeiliIndexerFromEnv_RejectsMetadataHost_P2BE18|TestToEntPredicates_ORBuildsUnion' \
+  ./testframework/ai/ ./testframework/search/
+→ ok ai · ok search
+```
+
+Handoff: независимая мутация (не автор фикса) → Закрыта.
