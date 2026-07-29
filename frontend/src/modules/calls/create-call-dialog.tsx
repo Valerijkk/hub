@@ -15,6 +15,7 @@ import {
 	type MemberResponse,
 	type ProjectResponse,
 } from "@/api/projects";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -103,17 +104,28 @@ export function CreateCallDialog({
 	const [participantIds, setParticipantIds] = useState<string[]>([]);
 	const [participantSearch, setParticipantSearch] = useState("");
 
-	const { data: channels } = useQuery({
+	const {
+		data: channels,
+		isError: channelsError,
+		refetch: refetchChannels,
+	} = useQuery({
 		queryKey: ["messenger", "channels"],
 		queryFn: getChannels,
 	});
 
-	const { data: projects } = useQuery({
+	const {
+		data: projects,
+		isError: projectsError,
+		refetch: refetchProjects,
+	} = useQuery({
 		queryKey: ["projects"],
 		queryFn: listProjects,
 	});
 
 	const projectList = (projects ?? []) as ProjectResponse[];
+	const channelList = channels ?? [];
+	const projectsEmpty = !projectsError && projectList.length === 0;
+	const channelsEmpty = !channelsError && channelList.length === 0;
 
 	// Если проект ещё не выбран — подставить первый из списка (можно сменить в UI).
 	useEffect(() => {
@@ -278,53 +290,84 @@ export function CreateCallDialog({
 							/>
 						</div>
 
-						{/* Проект */}
+						{/* Проект — FE-MC-002: fail ≠ «нет проектов» */}
 						<div className="space-y-2">
 							<Label className="text-sm font-medium">Проект</Label>
-							<Select
-								value={projectId}
-								onValueChange={(v) => {
-									setProjectId(v);
-									setParticipantIds([]);
-								}}
-							>
-								<SelectTrigger
-									className="h-11 rounded-xl"
-									aria-label="Выбор проекта"
+							{projectsError ? (
+								<QueryErrorAlert
+									compact
+									message="Не удалось загрузить проекты"
+									retry={() => void refetchProjects()}
+								/>
+							) : (
+								<Select
+									value={projectId}
+									onValueChange={(v) => {
+										setProjectId(v);
+										setParticipantIds([]);
+									}}
 								>
-									<SelectValue placeholder="Выберите проект" />
-								</SelectTrigger>
-								<SelectContent>
-									{projectList.length === 0 ? (
-										<SelectItem value="__none" disabled>
-											Нет доступных проектов
-										</SelectItem>
-									) : (
-										projectList.map((p) => (
-											<SelectItem key={p.id} value={p.id}>
-												{p.key ? `${p.key} — ${p.name}` : p.name}
+									<SelectTrigger
+										className="h-11 rounded-xl"
+										aria-label="Выбор проекта"
+									>
+										<SelectValue placeholder="Выберите проект" />
+									</SelectTrigger>
+									<SelectContent>
+										{projectsEmpty ? (
+											<SelectItem value="__none" disabled>
+												Нет доступных проектов
 											</SelectItem>
-										))
-									)}
-								</SelectContent>
-							</Select>
+										) : (
+											projectList.map((p) => (
+												<SelectItem key={p.id} value={p.id}>
+													{p.key ? `${p.key} — ${p.name}` : p.name}
+												</SelectItem>
+											))
+										)}
+									</SelectContent>
+								</Select>
+							)}
 						</div>
 
-						{/* Канал */}
+						{/* Канал — FE-MC-002 / FE-MC-004 */}
 						<div className="space-y-2">
 							<Label className="text-sm font-medium">Канал</Label>
-							<Select value={channelId} onValueChange={setChannelId}>
-								<SelectTrigger className="h-11 rounded-xl">
-									<SelectValue placeholder="Выберите канал" />
-								</SelectTrigger>
-								<SelectContent>
-									{(channels ?? []).map((ch) => (
-										<SelectItem key={ch.id} value={ch.id}>
-											{ch.name || ch.id.slice(0, 8)}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
+							{channelsError ? (
+								<QueryErrorAlert
+									compact
+									message="Не удалось загрузить каналы"
+									retry={() => void refetchChannels()}
+								/>
+							) : (
+								<Select value={channelId} onValueChange={setChannelId}>
+									<SelectTrigger
+										className="h-11 rounded-xl"
+										aria-label="Выбор канала"
+									>
+										<SelectValue
+											placeholder={
+												channelsEmpty
+													? "Нет доступных каналов"
+													: "Выберите канал"
+											}
+										/>
+									</SelectTrigger>
+									<SelectContent>
+										{channelsEmpty ? (
+											<SelectItem value="__none" disabled>
+												Нет доступных каналов
+											</SelectItem>
+										) : (
+											channelList.map((ch) => (
+												<SelectItem key={ch.id} value={ch.id}>
+													{ch.name || ch.id.slice(0, 8)}
+												</SelectItem>
+											))
+										)}
+									</SelectContent>
+								</Select>
+							)}
 						</div>
 
 						{/* Участники */}
@@ -361,9 +404,10 @@ export function CreateCallDialog({
 												<button
 													type="button"
 													onClick={() => removeParticipant(uid)}
+													aria-label={`Удалить участника ${member.name}`}
 													className="ml-0.5 rounded-full p-0.5 text-t2 hover:bg-destructive/20 hover:text-destructive transition-colors"
 												>
-													<X className="h-3 w-3" />
+													<X className="h-3 w-3" aria-hidden="true" />
 												</button>
 											</span>
 										);
