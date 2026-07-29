@@ -1,7 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, Inbox, ListTodo } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { type IssueResponse, listIssues } from "@/api/tracker";
+import {
+	filterIssuesWithoutSprint,
+	type IssueResponse,
+	listIssues,
+} from "@/api/tracker";
 import { QueryErrorAlert } from "@/components/query-state-view";
 import { Button } from "@/components/ui/button";
 import { toastApiError } from "@/lib/format-api-error";
@@ -18,6 +22,8 @@ interface SprintBacklogProps {
  * и задачи в спринтах со статусом planning.
  * Поддерживает выбор задач и перемещение в спринт.
  *
+ * A3W10-3-001: backlog = sprint_id:"none" + filterIssuesWithoutSprint.
+ * A3W10-3-004: clear selectedIssues при смене projectId.
  * A2W10-A3-002: fail load ≠ empty «Бэклог пуст».
  */
 export function SprintBacklog({ projectId }: SprintBacklogProps) {
@@ -30,8 +36,11 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 	const loadBacklog = useCallback(async () => {
 		setLoading(true);
 		try {
-			const resp = await listIssues(projectId, { limit: 100 });
-			setBacklogIssues(resp.items);
+			const resp = await listIssues(projectId, {
+				limit: 100,
+				sprint_id: "none",
+			});
+			setBacklogIssues(filterIssuesWithoutSprint(resp.items));
 			setLoadError(false);
 		} catch (err) {
 			setLoadError(true);
@@ -42,6 +51,8 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 	}, [projectId]);
 
 	useEffect(() => {
+		// A3W10-3-004: не переносить UUID задач чужого проекта в move.
+		setSelectedIssues(new Set());
 		void fetchSprints(projectId);
 		void loadBacklog();
 	}, [projectId, fetchSprints, loadBacklog]);
