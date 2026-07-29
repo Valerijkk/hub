@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: planning-audit-pw-in-progress
 stopped_at: Planning audit 2026-07 PW1–PW5 · coverage remeasured · phase matrix live
-last_updated: "2026-07-29T17:05:00.000Z"
-last_activity: 2026-07-29 · fe2 TASK-186 calls error≠empty + a11y · На проверке
+last_updated: "2026-07-29T17:25:00.000Z"
+last_activity: 2026-07-29 · be1 TASK-177 C-W19 deactivate/ban WS kill · На проверке
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -64,6 +64,24 @@ spec_coverage:
 ---
 
 # Состояние проекта Hub
+
+## Session note — 2026-07-29 (be1 · TASK-177 C-W19 deactivate/ban WS kill)
+
+- **2/2 FIXED** C-W19-001 / C-W19-003: Deactivate/Ban → `SessionService.RevokeAllUserSessions` (Redis Del + NATS `revoked`) → Bridge рвёт живой WS; kill fail → fail-closed admin error.
+- Wiring: `wireAuth` → `auditSvc.SetSessionRevoker(authSvc.Sessions)`.
+- Тесты: audit mock revoker + fail-closed; auth NATS/Redis; ws live NATS e2e. Mutation: remove publish → RED → restore GREEN.
+- Commits: `88494530` fix · `460fa131` test · `a09bdc0e` task file.
+- Docs: `docs/security_guidelines.md`. Статус: **На проверке**. Handoff: be-ver → code-reviewer. TASK-008 не закрывать.
+
+## Session note — 2026-07-29 (fe1 · TASK-187 FE-TA pipeline sanitize + P3)
+
+- **FIXED** FE-TA-001: `pipeline-status` — `isSafeUrl`/`sanitizeUrl` на `html_url` (unsafe → без `<a href>`).
+- **FIXED** FE-TA-002: `issue-attachments` — whitelist URL; unsafe → disabled chip без href.
+- **FIXED** FE-TA-003: planning-poker — `loadFailed` → `QueryErrorAlert`+retry; empty → «не найдена».
+- **FIXED** FE-TA-004: automation secondary statuses/channels — `isError` + compact alert (не пустой Select).
+- FE-TA-005 (token cluster) — out of scope (hygiene).
+- Vitest tracker: 21 PASS (sanitize + error≠empty + source-guard `href={run.html_url}` banned). tsc OK.
+- Статус: **На проверке**. Handoff: fe-ver → code-reviewer. TASK-008 не закрывали.
 
 ## Session note — 2026-07-29 (fe2 · TASK-186 calls error≠empty + a11y)
 
