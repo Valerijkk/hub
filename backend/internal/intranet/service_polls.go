@@ -73,15 +73,16 @@ func (s *Service) UpdateNewsPoll(ctx context.Context, userID, newsID uuid.UUID, 
 	if err := s.requireAuthorOrAdmin(ctx, userID, post); err != nil {
 		return nil, err
 	}
+	// A3W7-2-002: version обязателен (как news TASK-095); VersionEQ в repo.
+	if req.Version < 1 {
+		return nil, ErrInvalidInput
+	}
 	poll, err := s.repo.GetNewsPollByPostID(ctx, newsID)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, ErrNotFound
 		}
 		return nil, fmt.Errorf("get news poll for update: %w", err)
-	}
-	if req.Version > 0 && poll.Version != req.Version {
-		return nil, ErrVersionConflict
 	}
 	if req.Question != nil {
 		q := strings.TrimSpace(*req.Question)
@@ -112,7 +113,7 @@ func (s *Service) UpdateNewsPoll(ctx context.Context, userID, newsID uuid.UUID, 
 	})
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return nil, ErrNotFound
+			return nil, ErrVersionConflict
 		}
 		return nil, fmt.Errorf("update news poll: %w", err)
 	}

@@ -218,7 +218,10 @@ func (r *EntRepository) UpdateNewsPoll(ctx context.Context, pollID uuid.UUID, in
 	if err != nil {
 		return nil, fmt.Errorf("begin update news poll tx: %w", err)
 	}
-	upd := tx.NewsPoll.UpdateOneID(pollID).AddVersion(1)
+	// A3W7-2-002: VersionEQ в WHERE — иначе TOCTOU app-check → lost update.
+	upd := tx.NewsPoll.UpdateOneID(pollID).
+		Where(newspoll.VersionEQ(in.Version)).
+		AddVersion(1)
 	if in.Question != nil {
 		upd.SetQuestion(strings.TrimSpace(*in.Question))
 	}

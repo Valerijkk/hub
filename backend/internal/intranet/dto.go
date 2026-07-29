@@ -37,6 +37,7 @@ type VoteNewsPollRequest struct {
 }
 
 // UpdateNewsPollRequest — правка news-опроса (FR-INTR-03).
+// Version обязателен (≥1); omit/0 → 400; stale → 409 (A3W7-2-002).
 type UpdateNewsPollRequest struct {
 	Question *string  `json:"question,omitempty"`
 	Options  []string `json:"options,omitempty"`
