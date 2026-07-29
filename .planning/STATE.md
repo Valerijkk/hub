@@ -65,6 +65,13 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-29 (fe2 · TASK-175 A3W9-4 components)
+
+- **Сделано:** checklist delete focus; automation/comments/time-tracker error≠empty; JQL `role="alert"`; token drift → `var(--*)` в зоне слота.
+- **ID:** A3W9-4-001…006 → FIXED; задача «На проверке» (README не трогали).
+- **Тесты:** vitest a3w9-4-* (tracker/search/platform) + tracker domain 86 PASS; mutation notes в файле задачи.
+- **OOS tsc:** `projects/$projectId/index.lazy.tsx` version (TASK-130 WIP).
+
 ## Session note — 2026-07-29 (be1 · TASK-166 A3W7-5 marketplace/dev)
 
 - **Сделано:** public catalog без `review_note`/`reviewer_*`; currency `TrimSpace`+`ToUpper` до Save; ReviewNote rune cap 2000; seed transitions/links/channels propagate DB-err.
