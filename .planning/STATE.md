@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: planning-audit-pw-in-progress
 stopped_at: Planning audit 2026-07 PW1–PW5 · coverage remeasured · phase matrix live
-last_updated: "2026-07-29T13:00:00.000Z"
-last_activity: 2026-07-29 · be1 TASK-169 A3W8-3 HubTable/JournalEntry Cascade · На проверке
+last_updated: "2026-07-29T17:00:00.000Z"
+last_activity: 2026-07-29 · fe1 TASK-179 C-W19 FE sprint.completed trim · На проверке
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -64,6 +64,13 @@ spec_coverage:
 ---
 
 # Состояние проекта Hub
+
+## Session note — 2026-07-29 (be2 · TASK-181 C-W19-004 webhook soft-delete deactivate)
+
+- **FIXED** C-W19-004 / C-W19-FE-004: `SoftDeleteWithCrossLinkCleanup` в той же tx `SetIsActive(false)` на webhook endpoints; `ListWebhookEndpointsByProject` + `project.DeletedAtIsNil()` (trash → пустой list).
+- ListActive `HasProjectWith(DeletedAtIsNil)` не ослабляли (TASK-152 lock).
+- Тесты: `testframework/apigateway/task181_c_w19_004_test.go` (runtime + source mutation).
+- Docs: `docs/wiki/API.md`. Статус: **На проверке**. Handoff: be-ver → code-reviewer.
 
 ## Session note — 2026-07-29 (be1 · TASK-169 A3W8-3 HubTable/JournalEntry Cascade)
 
@@ -164,6 +171,13 @@ spec_coverage:
 - **Сделано:** CRM purge/retention/soft-restore call-maps; Deactivate cache Del assert; hollow NoError siblings удалены.
 - **ID:** A3W6-5-001…007 → FIXED; задача «На проверке» (README не трогали).
 - **Тесты:** `./testframework/audit/` hubtest -race PASS (10.3s, isolated worktree).
+
+## Session note — 2026-07-29 (fe1 · TASK-179 C-W19 FE sprint.completed)
+
+- **Сделано:** убран мёртвый `sprint.completed` из `AVAILABLE_EVENTS` / UI webhooks (синхрон с BE allowlist TASK-152); export константы для теста.
+- **ID:** C-W19-FE-001 → FIXED; задача «На проверке».
+- **Тесты:** vitest webhook-events-sprint-completed-c-w19 2/2; mutation — вернуть event → RED.
+- **Docs:** wiki/API уже без event; STATE sync. OOS: TASK-192 version OL, calls, BE.
 
 ## Session note — 2026-07-29 (fe1 · TASK-173 A3W9-2 bookmarks/widgets)
 
