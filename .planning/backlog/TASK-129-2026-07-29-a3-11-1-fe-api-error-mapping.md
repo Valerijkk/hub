@@ -1,6 +1,6 @@
 # ♻️🔒 A3 FE client.ts wire error→ApiError.message REGRESS
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P1** · Статус: **На проверке**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P1** · Статус: **Закрыта**  
 > Источник: A3W11-1-001 REGRESS · Stage A3 FINAL · TASK-008  
 > Исполнитель: **fe1**
 

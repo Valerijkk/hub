@@ -65,15 +65,15 @@ Stage A2 (brief): [A2-DEDUP-2026-07-28.md](../audits/total-2026-07/A2-DEDUP-2026
 | [TASK-123](TASK-123-2026-07-28-fe-lib-dead-export-docs-drift.md) | 🧹 FE dead export + docs drift | P2 | На проверке | fe2+docs | A2W11 · 4 |
 | [TASK-124](TASK-124-2026-07-29-a3-10-1-fe-routes-modules.md) | 🧹 A3 FE routes A1: accounting/marketplace/bases error≠empty + noopener | P3 | Открыта | fe1 | A3W10-1 · 5 |
 | [TASK-125](TASK-125-2026-07-29-a3-10-2-fe-routes-modules.md) | 🔒🧹 A3 FE routes A2: github/gitlab sanitizeUrl + canMutate CI | P2 | На проверке | fe1 | A3W10-2 · 5 |
-| [TASK-126](TASK-126-2026-07-29-a3-10-3-fe-sprint-backlog-regress.md) | ♻️🔒 A3 FE SprintBacklog filter REGRESS + sprint-store leaks | P1 | Открыта | fe1 | A3W10-3 · 4 |
+| [TASK-126](TASK-126-2026-07-29-a3-10-3-fe-sprint-backlog-regress.md) | ♻️🔒 A3 FE SprintBacklog filter REGRESS + sprint-store leaks | P1 | Закрыта · MUTATION-2026-07-29-W2-fe-p1 | fe1 | A3W10-3 · 4 |
 | [TASK-127](TASK-127-2026-07-29-a3-10-4-fe-error-empty-settings.md) | 🧹 A3 FE routes A4: error≠empty messenger/project/TMS/settings | P2 | На проверке | fe1 | A3W10-4 · 6 |
 | [TASK-128](TASK-128-2026-07-29-a3-10-5-fe-tms-onboarding-auth.md) | 🔒 A3 FE TMS canMutate + onboarding auth + login redirect | P2 | На проверке | fe1 | A3W10-5 · 5 |
-| [TASK-129](TASK-129-2026-07-29-a3-11-1-fe-api-error-mapping.md) | ♻️🔒 A3 FE client.ts wire error→ApiError.message REGRESS | P1 | Открыта | fe1 | A3W11-1 · 1 |
+| [TASK-129](TASK-129-2026-07-29-a3-11-1-fe-api-error-mapping.md) | ♻️🔒 A3 FE client.ts wire error→ApiError.message REGRESS | P1 | Закрыта · MUTATION-2026-07-29-W2-fe-p1 | fe1 | A3W11-1 · 1 |
 | [TASK-130](TASK-130-2026-07-29-a3-11-2-fe-projects-sprint-version.md) | ♻️🔒 A3 FE projects/sprint API missing version (TASK-095) | P1 | На проверке | fe1 | A3W11-2 · 2 |
 | [TASK-131](TASK-131-2026-07-29-a3-11-3-fe-stores-guards.md) | 🧹 A3 FE stores: loadLayout silent fail + reaction_toggled guard | P3 | На проверке | fe1 | A3W11-3 · 2 |
 | [TASK-132](TASK-132-2026-07-29-a3-11-4-docs-inventory-drift.md) | 🧹 A3 docs README inventory + webcam/competitive HEAD drift | P2 | Открыта | docs-writer | A3W11-4 · 3 |
 | [TASK-133](TASK-133-2026-07-29-a3-11-5-docs-metrics-spec-offset.md) | 🧹 A3 docs inventory/strategy Vitest + list-issues offset | P2 | На проверке | docs-writer | A3W11-5 · 3 |
-| [TASK-134](TASK-134-2026-07-29-a3-1-2-tracker-services.md) | 🔒 A3 tracker services: labels scope + residual batch | P1 | Открыта | be1 | A3W1-2 · 6 |
+| [TASK-134](TASK-134-2026-07-29-a3-1-2-tracker-services.md) | 🔒 A3 tracker services: labels scope + residual batch | P1 | На проверке | be1 | A3W1-2 · 6 |
 | [TASK-135](TASK-135-2026-07-29-a3-1-3-tracker-repos.md) | 🐛 A3 tracker repos/automation residual | P2 | На проверке | be1 | A3W1-3 · 3 |
 | [TASK-136](TASK-136-2026-07-29-a3-1-4-sprint.md) | 🐛 A3 sprint residual (CompleteSprint soft-delete etc) | P2 | Открыта | be1 | A3W1-4 · 3 |
 | [TASK-137](TASK-137-2026-07-29-a3-1-5-project.md) | 🔒 A3 project archive/permanent-delete/resurrect residual | P2 | Открыта | be1 | A3W1-5 · 6 |
@@ -110,7 +110,7 @@ Stage A2 (brief): [A2-DEDUP-2026-07-28.md](../audits/total-2026-07/A2-DEDUP-2026
 | [TASK-168](TASK-168-2026-07-29-a3-8-2-schemas.md) | 🐛 A3 schemas OnDelete Cascade batch (coffee/hub/integrations) | P2 | Открыта | be1 | A3W8-2 · 6 |
 | [TASK-169](TASK-169-2026-07-29-a3-8-3-schemas.md) | 🐛 A3 HubTable/JournalEntry Cascade | P2 | Открыта | be1 | A3W8-3 · 2 |
 | [TASK-170](TASK-170-2026-07-29-a3-8-4-schemas.md) | 🐛 A3 sprint active unique + SetNull issues | P2 | На проверке | be1 | A3W8-4 · 2 |
-| [TASK-171](TASK-171-2026-07-29-a3-8-5-schemas.md) | 🔒 A3 Team/WorkflowStatus soft-delete + OnDelete Cascades | P1 | Открыта | be1 | A3W8-5 · 7 |
+| [TASK-171](TASK-171-2026-07-29-a3-8-5-schemas.md) | 🔒 A3 Team/WorkflowStatus soft-delete + OnDelete Cascades | P1 | На проверке | be1 | A3W8-5 · 7 |
 | [TASK-172](TASK-172-2026-07-29-a3-9-1-components.md) | 🧹 A3 FE admin error≠empty pending/limits/trash | P2 | Открыта | fe1 | A3W9-1 · 5 |
 | [TASK-173](TASK-173-2026-07-29-a3-9-2-components.md) | 🧹 A3 FE bookmarks UUID + deadlines links | P2 | На проверке | fe1 | A3W9-2 · 5 |
 | [TASK-174](TASK-174-2026-07-29-a3-9-3-components.md) | 🔒 A3 FE LinkPreview XSS whitelist | P2 | На проверке | fe1 | A3W9-3 · 4 |
