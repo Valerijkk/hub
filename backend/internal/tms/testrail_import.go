@@ -224,6 +224,13 @@ func (s *TMSService) importTestRailCases(ctx context.Context, projectID uuid.UUI
 			SortOrder: len(suiteName2ID),
 		})
 		if err != nil {
+			// A3W2-4-005: fail CreateSuite не маскируется как полный успех.
+			result.Errors++
+			result.ValidationErrors = append(result.ValidationErrors, ImportValidationError{
+				Row:     0,
+				Field:   "section",
+				Message: "failed to create suite: " + section,
+			})
 			slog.Error("failed to create suite for TestRail import", "section", section, "error", err)
 			continue
 		}
@@ -279,6 +286,7 @@ func (s *TMSService) importTestRailCases(ctx context.Context, projectID uuid.UUI
 // ---------------------------------------------------------------------------
 
 // parseTestRailCSV парсит CSV-экспорт TestRail в структуры TestRailCase.
+// A3W2-4-002: records cap (паритет с ImportFromCSV / maxImportRecords).
 func parseTestRailCSV(data []byte) ([]TestRailCase, error) {
 	// W2-A4-010 / P3-BE-07: только tryReadCSV (мёртвый csv.NewReader удалён).
 	records, err := tryReadCSV(data, ',')
@@ -294,6 +302,10 @@ func parseTestRailCSV(data []byte) ([]TestRailCase, error) {
 
 	if len(records) < 2 {
 		return nil, fmt.Errorf("CSV file is empty or contains only headers")
+	}
+
+	if len(records)-1 > maxImportRecords {
+		return nil, fmt.Errorf("слишком много записей для импорта (макс. %d)", maxImportRecords)
 	}
 
 	// Строим индекс столбцов.
@@ -344,10 +356,17 @@ func csvField(row []string, colMap map[string]int, field string) string {
 }
 
 // parseTestRailXML парсит XML-экспорт TestRail в структуры TestRailCase.
+// A3W2-4-002: depth + records cap (паритет с ImportFromXML / allure/junit).
 func parseTestRailXML(data []byte) ([]TestRailCase, error) {
+	if err := assertXMLMaxDepth(data, maxImportNestDepth); err != nil {
+		return nil, err
+	}
 	var root TestRailXMLRoot
 	if err := xml.Unmarshal(data, &root); err != nil {
 		return nil, fmt.Errorf("error parsing TestRail XML: %w", err)
+	}
+	if len(root.Cases) > maxImportRecords {
+		return nil, fmt.Errorf("слишком много записей для импорта (макс. %d)", maxImportRecords)
 	}
 	return root.Cases, nil
 }

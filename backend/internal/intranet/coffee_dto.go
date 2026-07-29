@@ -49,11 +49,13 @@ type CoffeeRoundResponse struct {
 }
 
 // CoffeeMyMatchResponse — текущий match пользователя (последний раунд).
+// Partners — все напарники (пара: 1; тройка: 2). Partner — первый из Partners (BWC FE).
 type CoffeeMyMatchResponse struct {
-	RoundID   *uuid.UUID            `json:"round_id,omitempty"`
-	RoundAt   *time.Time            `json:"round_at,omitempty"`
-	Partner   *CoffeePartnerResponse `json:"partner,omitempty"`
-	Unpaired  bool                  `json:"unpaired"`
+	RoundID  *uuid.UUID              `json:"round_id,omitempty"`
+	RoundAt  *time.Time              `json:"round_at,omitempty"`
+	Partner  *CoffeePartnerResponse  `json:"partner,omitempty"`
+	Partners []CoffeePartnerResponse `json:"partners,omitempty"`
+	Unpaired bool                    `json:"unpaired"`
 }
 
 // CoffeeStatsResponse — для admin перед запуском.

@@ -24,9 +24,9 @@ import (
 
 // ExportTestCasesToCSV записывает тест-кейсы в CSV-формат.
 // Колонки: Key, Title, Type, Priority, Status, Steps, Precondition, Suite.
+// A3W2-4-004: Flush + w.Error() — как ExportRunResultsToCSV (W2-A4-013).
 func ExportTestCasesToCSV(writer io.Writer, cases []TestCaseExportData) error {
 	w := csv.NewWriter(writer)
-	defer w.Flush()
 
 	if err := w.Write([]string{"Key", "Title", "Type", "Priority", "Status", "Steps", "Precondition", "Suite"}); err != nil {
 		return fmt.Errorf("ошибка записи заголовков CSV: %w", err)
@@ -40,6 +40,10 @@ func ExportTestCasesToCSV(writer io.Writer, cases []TestCaseExportData) error {
 		}
 	}
 
+	w.Flush()
+	if err := w.Error(); err != nil {
+		return fmt.Errorf("ошибка записи CSV: %w", err)
+	}
 	return nil
 }
 

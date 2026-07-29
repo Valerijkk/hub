@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"math/rand"
 	"time"
 
@@ -56,7 +57,9 @@ func (s *Service) SetCoffeeEnrollment(ctx context.Context, userID uuid.UUID, act
 	return s.GetCoffeeEnrollment(ctx, userID)
 }
 
-// GetMyCoffeeMatch возвращает пару из последнего раунда.
+// GetMyCoffeeMatch возвращает партнёров из последнего раунда.
+// A3W7-2-003: тройка → оба напарника в Partners[]; пара → один. Partner = Partners[0] (BWC).
+// Storage тройки = 2 hub-рёбра (A-B, A-C); spoke degree=1 — второго партнёра берём через hub.
 func (s *Service) GetMyCoffeeMatch(ctx context.Context, userID uuid.UUID) (*CoffeeMyMatchResponse, error) {
 	rnd, err := s.repo.GetLatestCoffeeRound(ctx)
 	if ent.IsNotFound(err) {
@@ -73,33 +76,99 @@ func (s *Service) GetMyCoffeeMatch(ctx context.Context, userID uuid.UUID) (*Coff
 		return nil, fmt.Errorf("get enrollment: %w", err)
 	}
 
-	pair, err := s.repo.FindUserPairInRound(ctx, rnd.ID, userID)
-	if ent.IsNotFound(err) {
-		t := rnd.CreatedAt.UTC()
+	t := rnd.CreatedAt.UTC()
+	partners := coffeePartnersForUser(rnd.Edges.Pairs, userID)
+	if len(partners) == 0 {
 		return &CoffeeMyMatchResponse{
 			RoundID:  &rnd.ID,
 			RoundAt:  &t,
 			Unpaired: rnd.UnpairedCount > 0,
 		}, nil
 	}
-	if err != nil {
-		return nil, fmt.Errorf("find pair: %w", err)
+	resp := &CoffeeMyMatchResponse{
+		RoundID:  &rnd.ID,
+		RoundAt:  &t,
+		Partners: partners,
+	}
+	p := partners[0]
+	resp.Partner = &p
+	return resp, nil
+}
+
+// coffeePartnersForUser — прямые соседи + для spoke тройки второй участник через hub (degree≥2).
+func coffeePartnersForUser(pairs []*ent.CoffeePair, userID uuid.UUID) []CoffeePartnerResponse {
+	if len(pairs) == 0 {
+		return nil
+	}
+	deg := make(map[uuid.UUID]int, len(pairs)*2)
+	type edge struct {
+		a, b *ent.User
+	}
+	edges := make([]edge, 0, len(pairs))
+	for _, p := range pairs {
+		a, b := p.Edges.ParticipantA, p.Edges.ParticipantB
+		if a == nil || b == nil {
+			continue
+		}
+		deg[a.ID]++
+		deg[b.ID]++
+		edges = append(edges, edge{a: a, b: b})
 	}
 
-	var partner *ent.User
-	switch {
-	case pair.Edges.ParticipantA != nil && pair.Edges.ParticipantA.ID == userID:
-		partner = pair.Edges.ParticipantB
-	case pair.Edges.ParticipantB != nil && pair.Edges.ParticipantB.ID == userID:
-		partner = pair.Edges.ParticipantA
+	seen := make(map[uuid.UUID]struct{})
+	var partners []CoffeePartnerResponse
+	add := func(u *ent.User) {
+		if u == nil || u.ID == userID {
+			return
+		}
+		if _, ok := seen[u.ID]; ok {
+			return
+		}
+		seen[u.ID] = struct{}{}
+		partners = append(partners, toCoffeePartner(u))
 	}
-	t := rnd.CreatedAt.UTC()
-	p := toCoffeePartner(partner)
-	return &CoffeeMyMatchResponse{
-		RoundID: &rnd.ID,
-		RoundAt: &t,
-		Partner: &p,
-	}, nil
+
+	var hubs []*ent.User
+	for _, e := range edges {
+		switch {
+		case e.a.ID == userID:
+			add(e.b)
+			if deg[e.b.ID] >= 2 {
+				hubs = append(hubs, e.b)
+			}
+		case e.b.ID == userID:
+			add(e.a)
+			if deg[e.a.ID] >= 2 {
+				hubs = append(hubs, e.a)
+			}
+		}
+	}
+	// Spoke тройки: один прямой сосед (hub) — добавить второго spoke с того же hub.
+	for _, hub := range hubs {
+		for _, e := range edges {
+			switch {
+			case e.a.ID == hub.ID:
+				add(e.b)
+			case e.b.ID == hub.ID:
+				add(e.a)
+			}
+		}
+	}
+	return partners
+}
+
+// notifyCoffeeMatch — ADR-INTRANET-U05 §3 / A3W7-2-001: best-effort; err → slog.WarnContext.
+func (s *Service) notifyCoffeeMatch(ctx context.Context, userID uuid.UUID, partner CoffeePartnerResponse) {
+	if s.coffeeNotifier == nil {
+		return
+	}
+	if err := s.coffeeNotifier.NotifyCoffeeMatch(ctx, userID, partner); err != nil {
+		slog.WarnContext(ctx, "intranet: notify coffee match failed",
+			"user_id", userID,
+			"partner_id", partner.UserID,
+			"error", err,
+		)
+	}
 }
 
 // GetCoffeeStats — число активных участников (admin preview).
@@ -169,12 +238,10 @@ func (s *Service) RunCoffeeMatching(ctx context.Context, adminID uuid.UUID) (*Co
 		cp.Edges.ParticipantB = userByID[p[1]]
 		createdPairs = append(createdPairs, toCoffeePairResponse(cp))
 
-		if s.coffeeNotifier != nil {
-			pa := toCoffeePartner(userByID[p[0]])
-			pb := toCoffeePartner(userByID[p[1]])
-			_ = s.coffeeNotifier.NotifyCoffeeMatch(ctx, p[0], pb)
-			_ = s.coffeeNotifier.NotifyCoffeeMatch(ctx, p[1], pa)
-		}
+		pa := toCoffeePartner(userByID[p[0]])
+		pb := toCoffeePartner(userByID[p[1]])
+		s.notifyCoffeeMatch(ctx, p[0], pb)
+		s.notifyCoffeeMatch(ctx, p[1], pa)
 	}
 
 	createdTriples := make([]CoffeeTripleResponse, 0, len(triples))
@@ -187,17 +254,15 @@ func (s *Service) RunCoffeeMatching(ctx context.Context, adminID uuid.UUID) (*Co
 			ParticipantB: toCoffeePartner(userByID[t[1]]),
 			ParticipantC: toCoffeePartner(userByID[t[2]]),
 		})
-		if s.coffeeNotifier != nil {
-			pa := toCoffeePartner(userByID[t[0]])
-			pb := toCoffeePartner(userByID[t[1]])
-			pc := toCoffeePartner(userByID[t[2]])
-			_ = s.coffeeNotifier.NotifyCoffeeMatch(ctx, t[0], pb)
-			_ = s.coffeeNotifier.NotifyCoffeeMatch(ctx, t[0], pc)
-			_ = s.coffeeNotifier.NotifyCoffeeMatch(ctx, t[1], pa)
-			_ = s.coffeeNotifier.NotifyCoffeeMatch(ctx, t[1], pc)
-			_ = s.coffeeNotifier.NotifyCoffeeMatch(ctx, t[2], pa)
-			_ = s.coffeeNotifier.NotifyCoffeeMatch(ctx, t[2], pb)
-		}
+		pa := toCoffeePartner(userByID[t[0]])
+		pb := toCoffeePartner(userByID[t[1]])
+		pc := toCoffeePartner(userByID[t[2]])
+		s.notifyCoffeeMatch(ctx, t[0], pb)
+		s.notifyCoffeeMatch(ctx, t[0], pc)
+		s.notifyCoffeeMatch(ctx, t[1], pa)
+		s.notifyCoffeeMatch(ctx, t[1], pc)
+		s.notifyCoffeeMatch(ctx, t[2], pa)
+		s.notifyCoffeeMatch(ctx, t[2], pb)
 	}
 
 	resp := CoffeeRoundResponse{

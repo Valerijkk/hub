@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/csv"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -23,6 +24,8 @@ import (
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
+var errInjectStatsFail = errors.New("inject stats fail")
+
 // ---------------------------------------------------------------------------
 // Мок tms.Repository
 // ---------------------------------------------------------------------------
@@ -38,6 +41,8 @@ type mockRepository struct {
 	issues       map[uuid.UUID]*ent.Issue
 	linkedIssues  map[uuid.UUID][]uuid.UUID // testCaseID -> ID задач
 	environments  map[uuid.UUID]*ent.Environment
+	projectMembers map[uuid.UUID]map[uuid.UUID]bool // projectID -> userID -> member
+	files          map[uuid.UUID]*ent.FileMetadata
 
 	caseCounter  int
 	issueCounter int
@@ -47,6 +52,12 @@ type mockRepository struct {
 	getLastResultsBatchCalls  int
 	listResultsByRunIDsCalls  int
 	getLastResultSingleCalls  int
+
+	// Inject hooks for A3W2-2-003 / A3W2-2-006.
+	failUpdateStats   bool
+	deleteCaseErr     error
+	linkIssueErr      error
+	unlinkIssueErr    error
 }
 
 func (m *mockRepository) CreateEnvironment(_ context.Context, projectID uuid.UUID, input tms.CreateEnvironmentInput) (*ent.Environment, error) {
@@ -127,16 +138,18 @@ func (m *mockRepository) GetLatestTestRunForEnvironment(ctx context.Context, pro
 
 func newMockRepo() *mockRepository {
 	return &mockRepository{
-		testCases:    make(map[uuid.UUID]*ent.TestCase),
-		versions:     make(map[uuid.UUID]*ent.TestCaseVersion),
-		runs:         make(map[uuid.UUID]*ent.TestRun),
-		results:      make(map[uuid.UUID]*ent.TestResult),
-		runResults:   make(map[uuid.UUID][]uuid.UUID),
-		suites:       make(map[uuid.UUID]*ent.TestSuite),
-		components:   make(map[uuid.UUID]*ent.Component),
-		issues:       make(map[uuid.UUID]*ent.Issue),
-		linkedIssues: make(map[uuid.UUID][]uuid.UUID),
-		environments: make(map[uuid.UUID]*ent.Environment),
+		testCases:      make(map[uuid.UUID]*ent.TestCase),
+		versions:       make(map[uuid.UUID]*ent.TestCaseVersion),
+		runs:           make(map[uuid.UUID]*ent.TestRun),
+		results:        make(map[uuid.UUID]*ent.TestResult),
+		runResults:     make(map[uuid.UUID][]uuid.UUID),
+		suites:         make(map[uuid.UUID]*ent.TestSuite),
+		components:     make(map[uuid.UUID]*ent.Component),
+		issues:         make(map[uuid.UUID]*ent.Issue),
+		linkedIssues:   make(map[uuid.UUID][]uuid.UUID),
+		environments:   make(map[uuid.UUID]*ent.Environment),
+		projectMembers: make(map[uuid.UUID]map[uuid.UUID]bool),
+		files:          make(map[uuid.UUID]*ent.FileMetadata),
 	}
 }
 
@@ -238,6 +251,9 @@ func (m *mockRepository) UpdateTestCase(_ context.Context, id uuid.UUID, input t
 }
 
 func (m *mockRepository) DeleteTestCase(_ context.Context, _ uuid.UUID, id uuid.UUID) error {
+	if m.deleteCaseErr != nil {
+		return m.deleteCaseErr
+	}
 	delete(m.testCases, id)
 	return nil
 }
@@ -259,6 +275,36 @@ func (m *mockRepository) CountTestCasesInProject(_ context.Context, projectID uu
 func (m *mockRepository) CountLabelsInProject(_ context.Context, _ uuid.UUID, ids []uuid.UUID) (int, error) {
 	// Мок не хранит метки отдельно — для unit-тестов FK считаем валидными.
 	return len(ids), nil
+}
+
+func (m *mockRepository) CountProjectMembers(_ context.Context, projectID uuid.UUID, userIDs []uuid.UUID) (int, error) {
+	// A3W2-2-001: если projectMembers задан — считаем только членов; иначе все userIDs валидны (legacy unit).
+	members, scoped := m.projectMembers[projectID]
+	if !scoped {
+		return len(userIDs), nil
+	}
+	n := 0
+	for _, id := range userIDs {
+		if members[id] {
+			n++
+		}
+	}
+	return n, nil
+}
+
+func (m *mockRepository) CountFilesInProject(_ context.Context, projectID uuid.UUID, ids []uuid.UUID) (int, error) {
+	// A3W2-2-002 stub: файлы из m.files, принадлежащие projectID.
+	n := 0
+	for _, id := range ids {
+		f, ok := m.files[id]
+		if !ok {
+			continue
+		}
+		if f.Edges.Project != nil && f.Edges.Project.ID == projectID {
+			n++
+		}
+	}
+	return n, nil
 }
 
 func (m *mockRepository) CreateTestCaseVersion(_ context.Context, testCaseID, userID uuid.UUID, versionNumber int, snapshot map[string]interface{}, description string) (*ent.TestCaseVersion, error) {
@@ -510,6 +556,9 @@ func (m *mockRepository) ReopenTestRun(_ context.Context, id uuid.UUID) (*ent.Te
 }
 
 func (m *mockRepository) UpdateTestRunStats(_ context.Context, id uuid.UUID, stats tms.TestRunStats) (*ent.TestRun, error) {
+	if m.failUpdateStats {
+		return nil, errInjectStatsFail
+	}
 	run, ok := m.runs[id]
 	if !ok {
 		return nil, &ent.NotFoundError{}
@@ -535,8 +584,13 @@ func (m *mockRepository) UpdateTestResult(_ context.Context, runID, id uuid.UUID
 	if !ok {
 		return nil, &ent.NotFoundError{}
 	}
-	if r.Edges.Run != nil && r.Edges.Run.ID != runID {
-		return nil, &ent.NotFoundError{}
+	// A3W2-2-004: require Edges.Run.ID==runID OR entry in runResults; иначе NotFound.
+	scoped := false
+	if r.Edges.Run != nil {
+		if r.Edges.Run.ID != runID {
+			return nil, &ent.NotFoundError{}
+		}
+		scoped = true
 	}
 	if ids, ok := m.runResults[runID]; ok {
 		found := false
@@ -549,6 +603,10 @@ func (m *mockRepository) UpdateTestResult(_ context.Context, runID, id uuid.UUID
 		if !found {
 			return nil, &ent.NotFoundError{}
 		}
+		scoped = true
+	}
+	if !scoped {
+		return nil, &ent.NotFoundError{}
 	}
 	if input.Status != nil {
 		r.Status = testresult.Status(*input.Status)
@@ -579,15 +637,36 @@ func (m *mockRepository) ListTestResults(_ context.Context, runID uuid.UUID) ([]
 	return items, nil
 }
 
-func (m *mockRepository) BatchCreateTestResults(_ context.Context, _ uuid.UUID, inputs []tms.CreateTestResultInput) ([]*ent.TestResult, error) {
+func (m *mockRepository) BatchCreateTestResults(_ context.Context, runID uuid.UUID, inputs []tms.CreateTestResultInput) ([]*ent.TestResult, error) {
 	var results []*ent.TestResult
 	for range inputs {
 		id := uuid.New()
-		r := &ent.TestResult{ID: id, CreatedAt: time.Now()}
+		r := &ent.TestResult{
+			ID:        id,
+			CreatedAt: time.Now(),
+			Edges:     ent.TestResultEdges{Run: &ent.TestRun{ID: runID}},
+		}
 		m.results[id] = r
+		m.runResults[runID] = append(m.runResults[runID], id)
 		results = append(results, r)
 	}
 	return results, nil
+}
+
+func (m *mockRepository) DeleteTestResults(_ context.Context, ids []uuid.UUID) error {
+	for _, id := range ids {
+		delete(m.results, id)
+		for runID, rids := range m.runResults {
+			filtered := rids[:0]
+			for _, rid := range rids {
+				if rid != id {
+					filtered = append(filtered, rid)
+				}
+			}
+			m.runResults[runID] = filtered
+		}
+	}
+	return nil
 }
 
 func (m *mockRepository) IncrementTestCaseCounter(_ context.Context, _ uuid.UUID) (int, error) {
@@ -607,11 +686,17 @@ func (m *mockRepository) FindIssueInProject(_ context.Context, projectID, issueI
 }
 
 func (m *mockRepository) LinkTestCaseToIssue(_ context.Context, testCaseID, issueID uuid.UUID) error {
+	if m.linkIssueErr != nil {
+		return m.linkIssueErr
+	}
 	m.linkedIssues[testCaseID] = append(m.linkedIssues[testCaseID], issueID)
 	return nil
 }
 
 func (m *mockRepository) UnlinkTestCaseFromIssue(_ context.Context, testCaseID, issueID uuid.UUID) error {
+	if m.unlinkIssueErr != nil {
+		return m.unlinkIssueErr
+	}
 	ids := m.linkedIssues[testCaseID]
 	for i, id := range ids {
 		if id == issueID {
@@ -788,10 +873,12 @@ func (m *mockRepository) AddTestCasesToRun(_ context.Context, runID uuid.UUID, c
 			Status: "unknown",
 			Edges: ent.TestResultEdges{
 				TestCase: m.testCases[caseID],
+				Run:      &ent.TestRun{ID: runID},
 			},
 			CreatedAt: time.Now(),
 		}
 		m.results[id] = r
+		m.runResults[runID] = append(m.runResults[runID], id)
 	}
 	return nil
 }
@@ -1124,7 +1211,9 @@ func TestExecuteTestResult_UpdatesStats(t *testing.T) {
 		ID:        resultID,
 		Status:    "unknown",
 		CreatedAt: time.Now(),
+		Edges:     ent.TestResultEdges{Run: &ent.TestRun{ID: runID}},
 	}
+	repo.runResults[runID] = []uuid.UUID{resultID}
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
 	passedStatus := "passed"

@@ -69,7 +69,8 @@ func TestEntRepository_CoffeeUpsertAndPreviousPairs(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, rounds, 2)
 
-	pair, err := repo.FindUserPairInRound(ctx, round2.ID, u2.ID)
+	pair, err := repo.FindUserPairsInRound(ctx, round2.ID, u2.ID)
 	require.NoError(t, err)
-	assert.NotNil(t, pair)
+	require.Len(t, pair, 1)
+	assert.NotNil(t, pair[0])
 }

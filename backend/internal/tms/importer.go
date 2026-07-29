@@ -8,12 +8,14 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"log/slog"
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	"github.com/xuri/excelize/v2"
 	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/schema"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
@@ -384,7 +386,9 @@ func handleImport(svc *TMSService, c fiber.Ctx, projectID, userID uuid.UUID) (*I
 		if strings.Contains(msg, "файл слишком большой") {
 			return nil, fiber.NewError(fiber.StatusRequestEntityTooLarge, "файл слишком большой")
 		}
-		return nil, apperrors.NewBadRequest("ошибка парсинга файла: " + msg)
+		// A3W2-4-003: фиксированное сообщение клиенту; internals только в slog (как A2W2-4-007).
+		slog.Error("ошибка парсинга файла импорта TMS", "error", err, "format", format)
+		return nil, apperrors.NewBadRequest("некорректный файл импорта")
 	}
 
 	// Валидация
@@ -508,6 +512,30 @@ type TestCaseExportData struct {
 	Suite        string
 }
 
+// formatTestStepsForExport сериализует шаги в plain text для колонки Steps.
+// Формат совместим с parseTestRailSteps / ImportFromCSV (A3W2-4-001).
+func formatTestStepsForExport(steps []schema.TestStep) string {
+	if len(steps) == 0 {
+		return ""
+	}
+	var b strings.Builder
+	for i, step := range steps {
+		if i > 0 {
+			b.WriteByte('\n')
+		}
+		order := step.Order
+		if order <= 0 {
+			order = i + 1
+		}
+		action := strings.TrimSpace(step.Action)
+		if kw := strings.TrimSpace(step.Keyword); kw != "" {
+			action = strings.TrimSpace(kw + " " + action)
+		}
+		fmt.Fprintf(&b, "%d. %s", order, action)
+	}
+	return b.String()
+}
+
 // TestRunExportData содержит данные прогона для экспорта.
 type TestRunExportData struct {
 	Title     string
@@ -560,6 +588,8 @@ func handleExportTestCases(svc *TMSService, ctx context.Context, projectID uuid.
 			Type:         string(tc.CaseType),
 			Priority:     string(tc.Priority),
 			Status:       string(tc.Status),
+			// A3W2-4-001: plain text (нумерованные строки) — round-trip через CSV Steps / parseTestRailSteps.
+			Steps:        formatTestStepsForExport(tc.Steps),
 			Precondition: tc.Precondition,
 			Suite:        suite,
 		})

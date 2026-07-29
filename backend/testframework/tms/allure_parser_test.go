@@ -341,6 +341,9 @@ func (m *mockMatcherRepo) CreateSuite(_ context.Context, _ uuid.UUID, _ tms.Crea
 func (m *mockMatcherRepo) GetSuite(_ context.Context, _ uuid.UUID) (*ent.TestSuite, error) {
 	return nil, nil
 }
+func (m *mockMatcherRepo) GetSuiteInProject(_ context.Context, _, _ uuid.UUID) (*ent.TestSuite, error) {
+	return nil, nil
+}
 func (m *mockMatcherRepo) ListSuites(_ context.Context, _ uuid.UUID) ([]*ent.TestSuite, error) {
 	return nil, nil
 }
@@ -356,6 +359,9 @@ func (m *mockMatcherRepo) CreateComponent(_ context.Context, _ uuid.UUID, _, _ s
 }
 func (m *mockMatcherRepo) ListComponents(_ context.Context, _ uuid.UUID) ([]*ent.Component, error) {
 	return nil, nil
+}
+func (m *mockMatcherRepo) CountComponentsInProject(_ context.Context, _ uuid.UUID, ids []uuid.UUID) (int, error) {
+	return len(ids), nil
 }
 func (m *mockMatcherRepo) DeleteComponent(_ context.Context, _, _ uuid.UUID) error { return nil }
 func (m *mockMatcherRepo) CreateTestRun(_ context.Context, _ uuid.UUID, _ tms.CreateTestRunInput) (*ent.TestRun, error) {
@@ -388,11 +394,27 @@ func (m *mockMatcherRepo) UpdateTestResult(_ context.Context, _, _ uuid.UUID, _ 
 func (m *mockMatcherRepo) ListTestResults(_ context.Context, _ uuid.UUID) ([]*ent.TestResult, error) {
 	return nil, nil
 }
+func (m *mockMatcherRepo) ListTestResultsByRunIDs(_ context.Context, _ []uuid.UUID) ([]*ent.TestResult, error) {
+	return nil, nil
+}
 func (m *mockMatcherRepo) BatchCreateTestResults(_ context.Context, _ uuid.UUID, _ []tms.CreateTestResultInput) ([]*ent.TestResult, error) {
 	return nil, nil
 }
+func (m *mockMatcherRepo) DeleteTestResults(_ context.Context, _ []uuid.UUID) error { return nil }
 func (m *mockMatcherRepo) IncrementTestCaseCounter(_ context.Context, _ uuid.UUID) (int, error) {
 	return 0, nil
+}
+func (m *mockMatcherRepo) CountTestCasesInProject(_ context.Context, _ uuid.UUID, ids []uuid.UUID) (int, error) {
+	return len(ids), nil
+}
+func (m *mockMatcherRepo) CountLabelsInProject(_ context.Context, _ uuid.UUID, ids []uuid.UUID) (int, error) {
+	return len(ids), nil
+}
+func (m *mockMatcherRepo) CountProjectMembers(_ context.Context, _ uuid.UUID, userIDs []uuid.UUID) (int, error) {
+	return len(userIDs), nil
+}
+func (m *mockMatcherRepo) CountFilesInProject(_ context.Context, _ uuid.UUID, ids []uuid.UUID) (int, error) {
+	return len(ids), nil
 }
 func (m *mockMatcherRepo) FindIssueInProject(_ context.Context, _, _ uuid.UUID) (*ent.Issue, error) {
 	return nil, &ent.NotFoundError{}
@@ -405,6 +427,9 @@ func (m *mockMatcherRepo) AddTestCasesToRun(_ context.Context, _ uuid.UUID, _ []
 	return nil
 }
 func (m *mockMatcherRepo) GetTestResult(_ context.Context, _ uuid.UUID) (*ent.TestResult, error) {
+	return nil, nil
+}
+func (m *mockMatcherRepo) GetTestResultInRun(_ context.Context, _, _ uuid.UUID) (*ent.TestResult, error) {
 	return nil, nil
 }
 func (m *mockMatcherRepo) ListTestRunResults(_ context.Context, _ uuid.UUID) ([]*ent.TestResult, error) {
@@ -422,10 +447,47 @@ func (m *mockMatcherRepo) GetTestRunWithResultsInProject(_ context.Context, _, _
 func (m *mockMatcherRepo) AddFilesToResult(_ context.Context, _, _ uuid.UUID, _ []uuid.UUID) error {
 	return nil
 }
+func (m *mockMatcherRepo) GetLastResultForTestCase(_ context.Context, _ uuid.UUID) (*ent.TestResult, error) {
+	return nil, nil
+}
+func (m *mockMatcherRepo) GetLastResultsForTestCases(_ context.Context, _ []uuid.UUID) (map[uuid.UUID]*ent.TestResult, error) {
+	return map[uuid.UUID]*ent.TestResult{}, nil
+}
 func (m *mockMatcherRepo) StoreAllureResults(_ context.Context, _ uuid.UUID, _ []tms.AllureResult) error {
 	return nil
 }
 func (m *mockMatcherRepo) GetAllureResultsByRunID(_ context.Context, _ uuid.UUID) ([]tms.AllureResult, error) {
+	return nil, nil
+}
+func (m *mockMatcherRepo) CreateEnvironment(_ context.Context, _ uuid.UUID, _ tms.CreateEnvironmentInput) (*ent.Environment, error) {
+	return nil, nil
+}
+func (m *mockMatcherRepo) GetEnvironment(_ context.Context, _ uuid.UUID) (*ent.Environment, error) {
+	return nil, nil
+}
+func (m *mockMatcherRepo) GetEnvironmentInProject(_ context.Context, _, _ uuid.UUID) (*ent.Environment, error) {
+	return nil, nil
+}
+func (m *mockMatcherRepo) ListEnvironmentsByProject(_ context.Context, _ uuid.UUID) ([]*ent.Environment, error) {
+	return nil, nil
+}
+func (m *mockMatcherRepo) UpdateEnvironment(_ context.Context, _, _ uuid.UUID, _ tms.UpdateEnvironmentInput) (*ent.Environment, error) {
+	return nil, nil
+}
+func (m *mockMatcherRepo) DeleteEnvironment(_ context.Context, _, _ uuid.UUID) error { return nil }
+func (m *mockMatcherRepo) GetLatestTestRunForEnvironment(_ context.Context, _, _ uuid.UUID) (*ent.TestRun, error) {
+	return nil, nil
+}
+func (m *mockMatcherRepo) GetTestCaseLinkedIssues(_ context.Context, _ uuid.UUID) ([]*ent.Issue, error) {
+	return nil, nil
+}
+func (m *mockMatcherRepo) GetIssueLinkedTestCases(_ context.Context, _ uuid.UUID) ([]*ent.TestCase, error) {
+	return nil, nil
+}
+func (m *mockMatcherRepo) GetProjectIssuesWithTestCases(_ context.Context, _ uuid.UUID) ([]*ent.Issue, error) {
+	return nil, nil
+}
+func (m *mockMatcherRepo) CreateBugIssue(_ context.Context, _, _, _ uuid.UUID, _, _, _ string) (*ent.Issue, error) {
 	return nil, nil
 }
 

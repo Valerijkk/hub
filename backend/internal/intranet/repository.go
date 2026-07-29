@@ -44,7 +44,8 @@ type Repository interface {
 	GetLatestCoffeeRound(ctx context.Context) (*ent.CoffeeRound, error)
 	GetPreviousRoundPairKeys(ctx context.Context) (map[string]struct{}, error)
 	ListCoffeeRounds(ctx context.Context, limit int) ([]*ent.CoffeeRound, error)
-	FindUserPairInRound(ctx context.Context, roundID, userID uuid.UUID) (*ent.CoffeePair, error)
+	// FindUserPairsInRound — все рёбра user в раунде (пара:1, тройка:2); A3W7-2-003.
+	FindUserPairsInRound(ctx context.Context, roundID, userID uuid.UUID) ([]*ent.CoffeePair, error)
 }
 
 // EntRepository реализует Repository через Ent.
