@@ -15,13 +15,13 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toastApiError } from "@/lib/format-api-error";
 import { canMutateProject } from "@/lib/permissions";
 
-const AVAILABLE_EVENTS = [
+/** Allowlist UI = BE `allowedWebhookEvents` (TASK-152). `sprint.completed` снят — нет NATS producer (C-W19-FE-001). */
+export const AVAILABLE_EVENTS = [
 	"issue.created",
 	"issue.updated",
 	"issue.status_changed",
 	"test_run.completed",
-	"sprint.completed",
-];
+] as const;
 
 /** Страница управления вебхуками проекта. */
 export function WebhooksPage({
