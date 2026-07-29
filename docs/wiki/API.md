@@ -130,7 +130,7 @@ curl -sS -X POST http://localhost:8080/api/auth/magic-link/verify \
 | POST | `/teams/` | Создать команду |
 | GET | `/teams/` | Список команд |
 | POST | `/teams/:teamId/members` | Добавить участника в команду |
-| DELETE | `/teams/:teamId/members/:userId` | Удалить участника из команды |
+| DELETE | `/teams/:teamId/members/:userId` | Удалить участника из команды (последний участник → 409 Conflict) |
 | POST | `/teams/:teamId/projects/:projectId` | Привязать команду к проекту |
 
 ---

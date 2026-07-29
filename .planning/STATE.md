@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: planning-audit-pw-in-progress
 stopped_at: Planning audit 2026-07 PW1–PW5 · coverage remeasured · phase matrix live
-last_updated: "2026-07-29T19:25:00.000Z"
-last_activity: 2026-07-29 · be1 TASK-191 AutomationRule soft-delete · На проверке
+last_updated: "2026-07-29T19:30:00.000Z"
+last_activity: 2026-07-29 · be1 TASK-184 RemoveTeamMember last-member · На проверке
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -67,6 +67,13 @@ spec_coverage:
 ---
 
 # Состояние проекта Hub
+
+## Session note — 2026-07-29 (be1 · TASK-184 C-W19-TT-001 last-member)
+
+- **FIXED** `RemoveTeamMember`: `TeamMemberCount≤1` → 409 Conflict (`cannot remove the last member of a team`); orphan team без `requireTeamMember` невозможен.
+- **Тесты:** `remove_team_member_last_task184_test.go` + wave122 last-member Conflict; wave124 multi-member OK. Mutation (убрать guard) → RED; restore → GREEN. `-vet=off` из‑за чужого `automationrule.FieldDeletedAt` на момент прогона (TASK-191 отдельно).
+- Docs: `docs/wiki/API.md` DELETE last-member 409. README бэклога не трогали (scope). TASK-137 / dissolve-team / calendar / AutomationRule — вне scope. TASK-008 не закрывали.
+- Статус: **На проверке**. Handoff: be-ver → code-reviewer.
 
 ## Session note — 2026-07-29 (be1 · TASK-191 EA-001 AutomationRule soft-delete)
 
