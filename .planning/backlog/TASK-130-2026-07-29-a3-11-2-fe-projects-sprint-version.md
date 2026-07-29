@@ -1,6 +1,6 @@
 # TASK-130 — ♻️🔒 A3 FE projects/sprint API missing version (TASK-095)
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P1** · Статус: **Открыта**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P1** · Статус: **На проверке**  
 > Источник: A3 W11-2 fe-lib-docs · TASK-008 Stage A3 · regression после TASK-095  
 > Исполнитель: **fe1** · Finding IDs: `A3W11-2-001`, `A3W11-2-002`
 

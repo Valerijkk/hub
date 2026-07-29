@@ -89,8 +89,11 @@ export function ProjectPage() {
 	});
 
 	const editMutation = useMutation({
-		mutationFn: (data: { name?: string; description?: string }) =>
-			updateProject(projectId, data),
+		mutationFn: (data: {
+			name?: string;
+			description?: string;
+			version: number;
+		}) => updateProject(projectId, data),
 		onSuccess: () => {
 			void queryClient.invalidateQueries({ queryKey: ["project", projectId] });
 			void queryClient.invalidateQueries({ queryKey: ["projects"] });
@@ -112,9 +115,13 @@ export function ProjectPage() {
 			toast.error(i18n.t("common:validation.nameCannotBeEmpty"));
 			return;
 		}
+		if (!project) {
+			return;
+		}
 		editMutation.mutate({
 			name: editName.trim(),
 			description: editDescription.trim(),
+			version: project.version,
 		});
 	}
 

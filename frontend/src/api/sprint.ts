@@ -17,6 +17,7 @@ export interface SprintResponse {
 	end_date: string;
 	retro_notes?: Record<string, unknown>;
 	issue_count: number;
+	version: number;
 	created_at: string;
 	updated_at: string;
 }
@@ -56,12 +57,13 @@ export interface CreateSprintRequest {
 	end_date: string;
 }
 
-/** Запрос на обновление спринта. */
+/** Запрос на обновление спринта (version — optimistic lock, BE required). */
 export interface UpdateSprintRequest {
 	name?: string;
 	goal?: string;
 	start_date?: string;
 	end_date?: string;
+	version: number;
 }
 
 /** Заметки ретроспективы. */

@@ -47,8 +47,15 @@
 
 | ID | Tag | Severity | Файл:строка | Проблема | Почему это дефект | Как чинить |
 |----|-----|----------|-------------|---------|-------------------|------------|
-| A3W11-2-001 | NEW | P1 | `projects.ts:15-19` (+ `:39-50`) | `UpdateProjectRequest` / `ProjectResponse` без `version` | После TASK-095 BE: `version` required (`project/dto.go:13-17`, `service.go:165-168`). UI `index.lazy.tsx:89-116` шлёт `{name,description}` → **400** на каждом edit. FE не может прочитать `version` из ответа | Добавить `version: number` в request+response; UI передаёт `project.version`; mutation-тест: omit version → 400 / stale → 409 |
-| A3W11-2-002 | NEW | P2 | `sprint.ts:52-57` (+ `:11-22`) | `UpdateSprintRequest` / `SprintResponse` без `version` | BE после TASK-095: `UpdateSprintRequest.Version` required + `SprintResponse.Version` (`sprint/dto.go:18-24,52-62`). FE-клиент отстал — любой вызов `updateSprint` без version → 400; Stage A отмечал «без version — как на бэке» — бэк уже ушёл вперёд | Зеркалить BE DTO (`version` в response + required в update); обновить callers при появлении UI edit |
+| A3W11-2-001 | NEW → **FIXED** | P1 | `projects.ts` + `index.lazy.tsx` | ~~`UpdateProjectRequest` / `ProjectResponse` без `version`~~ | ~~После TASK-095 BE: `version` required…~~ | **FIXED (TASK-130):** `version` в request+response; UI `updateProject(..., { …, version: project.version })`; Vitest `projects-sprint-version.test.ts` |
+| A3W11-2-002 | NEW → **FIXED** | P2 | `sprint.ts` | ~~`UpdateSprintRequest` / `SprintResponse` без `version`~~ | ~~BE после TASK-095…~~ | **FIXED (TASK-130):** DTO sync; callers UI edit нет (API-only); tsc fixture omit → `@ts-expect-error` |
+
+### Remediation evidence (TASK-130, 2026-07-29)
+
+| ID | Status | Evidence |
+|----|--------|----------|
+| A3W11-2-001 | **FIXED** | `frontend/src/api/projects.ts` — `UpdateProjectRequest.version`, `ProjectResponse.version`; `index.lazy.tsx` — `version: project.version`; test `projects-sprint-version.test.ts` |
+| A3W11-2-002 | **FIXED** | `frontend/src/api/sprint.ts` — `UpdateSprintRequest.version`, `SprintResponse.version`; fixture `projects-sprint-version-required.fixture.ts` |
 
 ## FIXED-OK (сверка A2 + Stage A фокус)
 
@@ -71,22 +78,23 @@
 | Severity | Count |
 |----------|------:|
 | P0 | 0 |
-| P1 | 1 |
-| P2 | 1 |
+| P1 | 0 (was 1 → FIXED TASK-130) |
+| P2 | 0 (was 1 → FIXED TASK-130) |
 | P3 | 0 |
-| **Total** | **2** |
+| **Total active** | **0** |
 
 | Метрика | Значение |
 |---------|----------|
 | Файлов | **19 / 19 / 0** |
-| Активных | **2** (NEW 2 · REGRESS 0 · RESIDUAL 0) |
+| Активных | **0** (NEW 0 · REGRESS 0 · RESIDUAL 0; оба FIXED TASK-130) |
 | FIXED-OK (A2 actives) | **1/1** (`A2W11-2-001`) |
 | FIXED-OK (Stage A via A2) | **14** без регресса |
+| FIXED (A3 NEW → TASK-130) | **2/2** (`A3W11-2-001`, `A3W11-2-002`) |
 
 ### Топ-3
 
-1. **A3W11-2-001 (P1, NEW)** — `projects.ts` без optimistic `version` → edit проекта ломается после TASK-095.
-2. **A3W11-2-002 (P2, NEW)** — `sprint.ts` без `version` на update/response (тот же FE sync gap).
+1. ~~**A3W11-2-001 (P1, NEW)**~~ → **FIXED** TASK-130 — projects/sprint `version` DTO + UI.
+2. ~~**A3W11-2-002 (P2, NEW)**~~ → **FIXED** TASK-130.
 3. _(нет P0 / REGRESS)_ — JWT sessionStorage и cursor pagination **FIXED-OK**.
 
 ---

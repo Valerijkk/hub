@@ -11,11 +11,12 @@ interface CreateProjectRequest {
 	description?: string;
 }
 
-/** Запрос на обновление проекта. */
-interface UpdateProjectRequest {
+/** Запрос на обновление проекта (version — optimistic lock, BE required). */
+export interface UpdateProjectRequest {
 	name?: string;
 	description?: string;
 	avatar_url?: string;
+	version: number;
 }
 
 /** Запрос на добавление участника в проект. */
@@ -45,6 +46,7 @@ export interface ProjectResponse {
 	status: string;
 	member_count: number;
 	my_role?: string;
+	version: number;
 	created_at: string;
 	updated_at: string;
 }
