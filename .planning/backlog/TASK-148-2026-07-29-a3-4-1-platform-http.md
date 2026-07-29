@@ -92,3 +92,16 @@
 - Коммит(ы) ссылают задачу в теле:  
   `Задача: .planning/backlog/TASK-148-2026-07-29-a3-4-1-platform-http.md`  
   subject может содержать `(A3W4-1-001)`.
+
+## [EVIDENCE — be1 2026-07-29]
+
+- **Verdict:** A3W4-1-001 FIXED (на проверке be-ver)
+- **Changes:** `middleware_test.go` — `TestRequestID_RejectsInvalid` (spaces / `<>` / slash) + `TestRequestID_RejectsOversized` (ascii 129 + rune 129 рун). `requestid.go` не менялся.
+- **PASS:**
+  ```
+  go test -tags hubtest -race -count=1 ./testframework/platform/middleware/ -run 'TestRequestID_'
+  go test -tags hubtest -race -count=1 ./testframework/platform/middleware/
+  ```
+  оба ok.
+- **Mutation:** `validRequestID` → `return true` → краснеют `TestRequestID_RejectsInvalid/*` и `TestRequestID_RejectsOversized/*` (UUID parse + NotEqual client). Revert подтверждён re-run green.
+- **Handoff:** be-ver → code-reviewer
