@@ -1,6 +1,6 @@
 # 🔒🧹 A3 FE routes A2: github/gitlab sanitizeUrl + canMutate CI
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Открыта**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
 > Источник: A3 · **Owner lock: правим ВСЕ A3 open** · TASK-008 · кластер A3W10-2  
 > Ветка исполнения: `cursor-grok-4.5` (не пушить в `master`)
 
@@ -129,3 +129,21 @@
 - Docs sync: только если меняется user-visible контракт wiki — для этих UI-фиксов обычно достаточно STATE one-liner + статус backlog; wiki не трогать без изменения API.
 - Read-only audit; правки кода — по контракту задачи.
 - Не ослаблять whitelist `SAFE_URL_RE` (не добавлять `javascript:` / `data:` «для удобства»).
+
+## Progress (fe1 · 2026-07-29)
+
+| ID | Status | Evidence |
+|----|--------|----------|
+| A3W10-2-001 | FIXED | `lib/safe-url.ts`; `github-links`/`gitlab-pipeline` `href={sanitizeUrl(...)}`; messenger `render-content` → shared lib |
+| A3W10-2-002 | FIXED | `TriggerCIPanel`/`GitHubLinks` `canMutate?` + `canMutateProject`; viewer → null/hide CTA |
+| A3W10-2-003 | FIXED | `window.open(safe, "_blank", "noopener,noreferrer")`; unsafe → skip open |
+| A3W10-2-004 | FIXED | **delete** `import-export.tsx` (0 call-sites; grep clean) |
+| A3W10-2-005 | FIXED | `fetchBurndown` `loading` true/false; chart «Загрузка…» ≠ empty |
+
+**004 decision:** delete (не wire) — нет usages / очевидного issues toolbar.
+
+**Tests:** vitest tracker+tms+messenger **61 files / 139 tests PASS**; new: safe-url, github-links-sanitize-authz, gitlab-pipeline-sanitize, trigger-ci-authz-noopener, burndown-chart-loading, import-export-deleted.
+
+**Mutation notes:** см. комментарии в тестах (ослабить SAFE_URL_RE / убрать canMutate guard / raw window.open / вернуть import-export / empty при loading).
+
+**Handoff:** fe-ver → code-reviewer. README бэклога не трогали (инструкция оркестратора).
