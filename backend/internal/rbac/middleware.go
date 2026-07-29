@@ -43,6 +43,10 @@ func RequireAuth() fiber.Handler {
 }
 
 // RequireSystemRole возвращает middleware, проверяющий системную роль пользователя.
+//
+// Deprecated: для admin-гейтов используйте RequireAdmin (ORG-04 / auth.IsSystemAdmin).
+// При role == "admin" допускает founder через IsSystemAdmin — иначе exact-match
+// режет founder (A3W6-3-002 / копипаст-footgun vs RequireAdmin).
 func RequireSystemRole(role string, repo Repository) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		userIDStr, ok := c.Locals("userID").(string)
@@ -58,6 +62,14 @@ func RequireSystemRole(role string, repo Repository) fiber.Handler {
 		u, err := repo.GetUser(c.Context(), userUUID)
 		if err != nil {
 			return fiber.NewError(fiber.StatusUnauthorized, "user not found")
+		}
+
+		// A3W6-3-002: "admin" ≡ IsSystemAdmin (founder || admin), не exact string.
+		if role == "admin" {
+			if !auth.IsSystemAdmin(u.SystemRole) {
+				return fiber.NewError(fiber.StatusForbidden, "insufficient system role")
+			}
+			return c.Next()
 		}
 
 		if string(u.SystemRole) != role {

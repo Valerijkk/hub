@@ -33,3 +33,8 @@ func ExportPermissionNames(perm Permission) []string {
 func ExportValidatePermissionNames(names []string) error {
 	return validatePermissionNames(names)
 }
+
+// ExportInvalidateByPatternScript — Lua SCAN+DEL (A3W6-3-003 comment/script sync).
+func ExportInvalidateByPatternScript() string {
+	return invalidateByPatternScript
+}

@@ -9,8 +9,9 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// invalidateByPatternScript — атомарный SCAN+UNLINK в одном EVAL.
+// invalidateByPatternScript — атомарный SCAN+DEL в одном EVAL.
 // W6-A3-014: без Lua окно SCAN→DEL позволяет concurrent Set оставить stale key до TTL.
+// A3W6-3-003: комментарий и скрипт согласованы на DEL (не UNLINK).
 const invalidateByPatternScript = `
 local cursor = "0"
 local n = 0
@@ -66,7 +67,7 @@ func (c *PermissionCache) Invalidate(ctx context.Context, userID, projectID stri
 	return c.rdb.Del(ctx, cacheKey(userID, projectID)).Err()
 }
 
-// InvalidateProject удаляет все кешированные разрешения проекта атомарно (Lua SCAN+UNLINK).
+// InvalidateProject удаляет все кешированные разрешения проекта атомарно (Lua SCAN+DEL).
 func (c *PermissionCache) InvalidateProject(ctx context.Context, projectID string) error {
 	pattern := fmt.Sprintf("rbac:*:%s", projectID)
 	return c.invalidateByPattern(ctx, pattern)
