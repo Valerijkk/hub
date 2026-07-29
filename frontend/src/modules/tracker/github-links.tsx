@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
 import {
 	createBranch,
@@ -6,6 +7,7 @@ import {
 	listGitHubLinks,
 	listIntegrations,
 } from "@/api/github";
+import { getProject } from "@/api/projects";
 import { QueryErrorAlert } from "@/components/query-state-view";
 import {
 	Select,
@@ -15,6 +17,8 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { toastApiError } from "@/lib/format-api-error";
+import { canMutateProject } from "@/lib/permissions";
+import { sanitizeUrl } from "@/lib/safe-url";
 
 // ---------------------------------------------------------------------------
 // Типы
@@ -26,6 +30,8 @@ interface GitHubLinksProps {
 	issueKey: string;
 	/** ID проекта для получения интеграций. */
 	projectId: string;
+	/** Явный override; иначе берём из `project.my_role`. */
+	canMutate?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -220,12 +226,23 @@ function CreateBranchDialog({
  * GitHubLinks -- секция GitHub на странице задачи.
  * Отображает привязанные PR/коммиты, статус PR, кнопку создания ветки.
  */
-export function GitHubLinks({ issueKey, projectId }: GitHubLinksProps) {
+export function GitHubLinks({
+	issueKey,
+	projectId,
+	canMutate: canMutateProp,
+}: GitHubLinksProps) {
 	const [links, setLinks] = useState<GitHubLinkResponse[]>([]);
 	const [integrations, setIntegrations] = useState<IntegrationResponse[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [loadError, setLoadError] = useState(false);
 	const [showBranchDialog, setShowBranchDialog] = useState(false);
+
+	const { data: project } = useQuery({
+		queryKey: ["project", projectId],
+		queryFn: () => getProject(projectId),
+		enabled: Boolean(projectId) && canMutateProp === undefined,
+	});
+	const canMutate = canMutateProp ?? canMutateProject(project?.my_role);
 
 	const fetchData = useCallback(async () => {
 		try {
@@ -281,7 +298,7 @@ export function GitHubLinks({ issueKey, projectId }: GitHubLinksProps) {
 				<h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
 					GitHub
 				</h4>
-				{integrations.length > 0 && (
+				{canMutate && integrations.length > 0 && (
 					<button
 						type="button"
 						className="rounded-md px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20"
@@ -304,7 +321,7 @@ export function GitHubLinks({ issueKey, projectId }: GitHubLinksProps) {
 					{pullRequests.map((link) => (
 						<a
 							key={link.id}
-							href={link.url}
+							href={sanitizeUrl(link.url)}
 							target="_blank"
 							rel="noopener noreferrer"
 							className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-800"
@@ -323,7 +340,7 @@ export function GitHubLinks({ issueKey, projectId }: GitHubLinksProps) {
 					{commits.map((link) => (
 						<a
 							key={link.id}
-							href={link.url}
+							href={sanitizeUrl(link.url)}
 							target="_blank"
 							rel="noopener noreferrer"
 							className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-800"
@@ -341,7 +358,7 @@ export function GitHubLinks({ issueKey, projectId }: GitHubLinksProps) {
 			)}
 
 			{/* Диалог создания ветки */}
-			{showBranchDialog && (
+			{canMutate && showBranchDialog && (
 				<CreateBranchDialog
 					issueKey={issueKey}
 					projectId={projectId}
