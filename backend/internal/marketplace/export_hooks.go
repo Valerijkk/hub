@@ -41,6 +41,22 @@ func ExportIsValidCurrency(c string) bool {
 	return isValidCurrency(c)
 }
 
+func ExportNormalizeCurrency(c string) string {
+	return normalizeCurrency(c)
+}
+
+func ExportMaxReviewNoteRunes() int {
+	return maxReviewNoteRunes
+}
+
+func ExportToListingResponse(l *ent.MarketplaceListing) ListingResponse {
+	return toListingResponse(l)
+}
+
+func ExportToListingResponsePrivate(l *ent.MarketplaceListing) ListingResponse {
+	return toListingResponsePrivate(l)
+}
+
 func ExportFormatPrice(price *int64, currency string) string {
 	return formatPrice(price, currency)
 }

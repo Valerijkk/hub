@@ -106,10 +106,13 @@ func toListingResponseOpts(l *ent.MarketplaceListing, allowEmail bool) ListingRe
 		Status:      ListingStatus(l.Status),
 		PriceCents:  l.PriceCents,
 		Currency:    l.Currency,
-		ReviewNote:  l.ReviewNote,
 		Version:     l.Version,
 		CreatedAt:   l.CreatedAt,
 		UpdatedAt:   l.UpdatedAt,
+	}
+	// A3W7-5-001: публичная витрина (allowEmail=false) не отдаёт admin review_note / reviewer.
+	if allowEmail {
+		resp.ReviewNote = l.ReviewNote
 	}
 	if l.ReviewedAt != nil {
 		t := l.ReviewedAt.UTC()
@@ -119,7 +122,7 @@ func toListingResponseOpts(l *ent.MarketplaceListing, allowEmail bool) ListingRe
 		resp.AuthorID = l.Edges.Author.ID
 		resp.AuthorName = displayName(l.Edges.Author, allowEmail)
 	}
-	if l.Edges.Reviewer != nil {
+	if allowEmail && l.Edges.Reviewer != nil {
 		resp.ReviewerID = &l.Edges.Reviewer.ID
 		resp.ReviewerName = displayName(l.Edges.Reviewer, allowEmail)
 	}
@@ -149,9 +152,14 @@ func isValidCategory(c ListingCategory) bool {
 	}
 }
 
+// normalizeCurrency — A3W7-5-003: TrimSpace+ToUpper до Save (избегаем Ent MaxLen 500 на "USD ").
+func normalizeCurrency(c string) string {
+	return strings.ToUpper(strings.TrimSpace(c))
+}
+
 // isValidCurrency — W7-A5-006: allowlist ISO-4217 (типичные для Hub).
 func isValidCurrency(c string) bool {
-	switch strings.ToUpper(strings.TrimSpace(c)) {
+	switch normalizeCurrency(c) {
 	case "RUB", "USD", "EUR", "GBP", "CNY", "KZT", "BYN":
 		return true
 	default:

@@ -21,6 +21,9 @@ var (
 	ErrInvalidStatus   = errors.New("invalid listing status for operation")
 )
 
+// maxReviewNoteRunes — A3W7-5-004: лимит admin note на service (без schema MaxLen/migrate).
+const maxReviewNoteRunes = 2000
+
 // Notifier — уведомления mod queue / author.
 type Notifier interface {
 	NotifyListingSubmitted(ctx context.Context, adminIDs []uuid.UUID, listing ListingResponse, authorID uuid.UUID) error
@@ -109,6 +112,8 @@ func (s *Service) ListPending(ctx context.Context, userID uuid.UUID, page, perPa
 }
 
 func (s *Service) CreateListing(ctx context.Context, userID uuid.UUID, req CreateListingRequest) (*ListingResponse, error) {
+	// A3W7-5-003: нормализуем currency до validate+Save.
+	req.Currency = normalizeCurrency(req.Currency)
 	if err := validateListingInput(req.Title, req.Description, req.Category, req.PriceCents, req.Currency); err != nil {
 		return nil, err
 	}
@@ -165,7 +170,10 @@ func (s *Service) UpdateListing(ctx context.Context, userID, id uuid.UUID, req U
 		price = req.PriceCents
 	}
 	if req.Currency != nil {
-		currency = *req.Currency
+		// A3W7-5-003: нормализуем до validate+Save.
+		n := normalizeCurrency(*req.Currency)
+		req.Currency = &n
+		currency = n
 	}
 	if err := validateListingInput(title, desc, cat, price, currency); err != nil {
 		return nil, err
@@ -200,12 +208,13 @@ func (s *Service) ApproveListing(ctx context.Context, reviewerID, id uuid.UUID, 
 	if err != nil {
 		return nil, err
 	}
-	resp := toListingResponse(l)
+	// Private для admin/author notify; публичный DTO — только в broadcast витрины.
+	resp := toListingResponsePrivate(l)
 	if s.notifier != nil && l.Edges.Author != nil {
 		_ = s.notifier.NotifyListingDecision(ctx, l.Edges.Author.ID, true, resp, reviewerID)
 	}
 	if s.broadcaster != nil {
-		_ = s.broadcaster.BroadcastApprovedListing(ctx, resp)
+		_ = s.broadcaster.BroadcastApprovedListing(ctx, toListingResponse(l))
 	}
 	return &resp, nil
 }
@@ -218,7 +227,8 @@ func (s *Service) RejectListing(ctx context.Context, reviewerID, id uuid.UUID, r
 	if err != nil {
 		return nil, err
 	}
-	resp := toListingResponse(l)
+	// Private: author получает review_note с причиной отклонения.
+	resp := toListingResponsePrivate(l)
 	if s.notifier != nil && l.Edges.Author != nil {
 		_ = s.notifier.NotifyListingDecision(ctx, l.Edges.Author.ID, false, resp, reviewerID)
 	}
@@ -306,6 +316,10 @@ func (s *Service) transitionReview(ctx context.Context, id uuid.UUID, req Review
 	}
 	if req.Version < 1 {
 		return nil, ErrVersionConflict
+	}
+	// A3W7-5-004: rune cap ReviewNote до Save.
+	if utf8.RuneCountInString(req.ReviewNote) > maxReviewNoteRunes {
+		return nil, ErrInvalidInput
 	}
 	l, err := s.repo.SetListingStatus(ctx, id, status, &reviewerID, req.ReviewNote, req.Version)
 	if err != nil {
