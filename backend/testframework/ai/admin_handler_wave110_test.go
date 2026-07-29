@@ -102,7 +102,7 @@ func TestAdminHandler_UpdateProvider_Success(t *testing.T) {
 	resp.Body.Close()
 
 	enabled := false
-	patchBody, _ := json.Marshal(ai.UpdateProviderRequest{Enabled: &enabled})
+	patchBody, _ := json.Marshal(ai.UpdateProviderRequest{Enabled: &enabled, Version: created.Version})
 	req = httptest.NewRequest(http.MethodPatch, "/api/admin/ai/providers/"+created.ID, bytes.NewReader(patchBody))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err = app.Test(req)

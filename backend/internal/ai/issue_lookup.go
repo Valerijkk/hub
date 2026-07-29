@@ -55,15 +55,17 @@ func (l *TrackerIssueLookup) IssueContext(ctx context.Context, userID uuid.UUID,
 	if err != nil {
 		return "", "", err
 	}
-	if l.access != nil {
-		ok, err := l.access.CanViewProject(ctx, userID, proj.ID)
-		if err != nil {
-			return "", "", err
-		}
-		if !ok {
-			// Не раскрываем существование чужой задачи.
-			return "", "", &ent.NotFoundError{}
-		}
+	// A3W5-3-004: access==nil → deny (fail-closed), зеркало authorizeReview / TASK-085.
+	if l.access == nil {
+		return "", "", fmt.Errorf("issue access checker not configured")
+	}
+	ok, err := l.access.CanViewProject(ctx, userID, proj.ID)
+	if err != nil {
+		return "", "", err
+	}
+	if !ok {
+		// Не раскрываем существование чужой задачи.
+		return "", "", &ent.NotFoundError{}
 	}
 	issue, err := l.tracker.GetIssue(ctx, proj.ID, issueKey)
 	if err != nil {

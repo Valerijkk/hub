@@ -93,7 +93,7 @@ func TestEnsureBotUser_Parallel_TASK113(t *testing.T) {
 		i := i
 		go func() {
 			defer wg.Done()
-			ids[i], errs[i] = ai.EnsureBotUser(ctx, client)
+			ids[i], errs[i] = ai.EnsureBotUser(ctx, ai.NewEntBotUserRepository(client))
 		}()
 	}
 	wg.Wait()

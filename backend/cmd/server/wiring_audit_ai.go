@@ -71,7 +71,7 @@ func wireAuditMailAI(d *serverDeps) {
 	d.aiSvc = aiSvc
 	d.aiHandler = aiHandler
 
-	botUserID, err := aimod.EnsureBotUser(d.ctx, d.db)
+	botUserID, err := aimod.EnsureBotUser(d.ctx, aimod.NewEntBotUserRepository(d.db))
 	if err != nil {
 		slog.Error("failed to ensure @hub-ai bot user", "error", err)
 		os.Exit(1)

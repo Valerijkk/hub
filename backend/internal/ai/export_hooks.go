@@ -281,6 +281,11 @@ func ExportMapProviderMutateError(err error) (int, string) {
 	return mapProviderMutateError(err)
 }
 
+// ExportMsgAIStreamFailed — hubtest для A3W5-3-007 (WS sanitize).
+func ExportMsgAIStreamFailed() string {
+	return msgAIStreamFailed
+}
+
 // ExportNormalizePolicyText — hubtest для A2W5-A2-006.
 func ExportNormalizePolicyText(s string) string {
 	return normalizePolicyText(s)

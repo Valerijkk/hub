@@ -28,8 +28,8 @@ func (AIUserPreference) Fields() []ent.Field {
 			Optional().
 			MaxLen(100),
 		field.Bool("allow_external_ai").
-			Default(true).
-			Comment("M3-030: user consent to send prompts to external LLM APIs"),
+			Default(false).
+			Comment("M3-030: user consent to send prompts to external LLM APIs; A3W5-3-005 default deny"),
 		field.Time("updated_at").
 			Default(nowUTC).
 			UpdateDefault(nowUTC),

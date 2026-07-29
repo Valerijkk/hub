@@ -62,6 +62,7 @@ func TestEntRepository_ProviderCRUDAndModels(t *testing.T) {
 	disabled := false
 	updated, err := repo.UpdateProvider(ctx, created.ID, ai.UpdateProviderInput{
 		Enabled: &disabled,
+		Version: created.Version,
 	})
 	require.NoError(t, err)
 	assert.False(t, updated.Enabled)
@@ -71,7 +72,7 @@ func TestEntRepository_ProviderCRUDAndModels(t *testing.T) {
 	assert.Empty(t, models)
 
 	enabled := true
-	_, err = repo.UpdateProvider(ctx, created.ID, ai.UpdateProviderInput{Enabled: &enabled})
+	_, err = repo.UpdateProvider(ctx, created.ID, ai.UpdateProviderInput{Enabled: &enabled, Version: updated.Version})
 	require.NoError(t, err)
 
 	models, err = repo.ListModels(ctx, &userID)
@@ -173,6 +174,7 @@ func TestEntRepository_UpdateProvider_AllFields(t *testing.T) {
 		MaxRPM:     &maxRPM,
 		RuResident: &ru,
 		APIKey:     &emptyKey,
+		Version:    created.Version,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "Renamed", updated.Name)
@@ -185,7 +187,7 @@ func TestEntRepository_UpdateProvider_AllFields(t *testing.T) {
 	assert.Empty(t, updated.APIKeyEnc)
 
 	newKey := "sk-new"
-	_, err = repo.UpdateProvider(ctx, created.ID, ai.UpdateProviderInput{APIKey: &newKey})
+	_, err = repo.UpdateProvider(ctx, created.ID, ai.UpdateProviderInput{APIKey: &newKey, Version: updated.Version})
 	require.NoError(t, err)
 	got, err := repo.GetProvider(ctx, created.ID)
 	require.NoError(t, err)
@@ -202,7 +204,7 @@ func TestEntRepository_UpdateProvider_InvalidURL(t *testing.T) {
 	require.NoError(t, err)
 
 	bad := "file:///etc/passwd"
-	_, err = repo.UpdateProvider(ctx, created.ID, ai.UpdateProviderInput{BaseURL: &bad})
+	_, err = repo.UpdateProvider(ctx, created.ID, ai.UpdateProviderInput{BaseURL: &bad, Version: created.Version})
 	require.Error(t, err)
 }
 

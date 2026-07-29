@@ -94,6 +94,9 @@ func (h *Handler) UpdatePreferences(c fiber.Ctx) error {
 		if errors.Is(err, ErrModelNotAllowed) {
 			return fiber.NewError(fiber.StatusBadRequest, "model not available")
 		}
+		if errors.Is(err, ErrVersionConflict) {
+			return fiber.NewError(fiber.StatusConflict, "version conflict")
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, "failed to save preferences")
 	}
 	return c.JSON(resp)

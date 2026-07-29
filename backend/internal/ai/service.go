@@ -23,10 +23,15 @@ var (
 	ErrProviderNotFound       = fmt.Errorf("provider not found")
 	// ErrQueryRequired — AssistJQL: пустой/blank query (A3W5-1-002 → HTTP 400).
 	ErrQueryRequired = fmt.Errorf("query is required")
+	// ErrVersionConflict — optimistic lock stale (A3W5-3-006 / NFR-24 → HTTP 409).
+	ErrVersionConflict = fmt.Errorf("version conflict")
 )
 
 // DefaultDailyRequestLimit — requests/day на пользователя (M3-027).
 const DefaultDailyRequestLimit = 500
+
+// msgAIStreamFailed — фиксированный WS error payload (A3W5-3-007); сырой err только в slog.
+const msgAIStreamFailed = "AI stream failed"
 
 const jqlAssistSystemPrompt = `Ты конвертируешь запрос на естественном языке в Hub JQL (Jira Query Language).
 Поддерживаемые поля: status, priority, type, assignee, created, updated.
@@ -164,6 +169,7 @@ func (s *Service) UpdateUserProvider(ctx context.Context, userID, providerID uui
 	input := UpdateProviderInput{
 		Name: req.Name, BaseURL: req.BaseURL, Models: req.Models,
 		Enabled: req.Enabled, RuResident: req.RuResident,
+		Version: req.Version,
 	}
 	if req.APIKey != nil {
 		input.APIKey = req.APIKey
@@ -226,6 +232,7 @@ func (s *Service) UpdateProvider(ctx context.Context, id uuid.UUID, req UpdatePr
 	input := UpdateProviderInput{
 		Name: req.Name, BaseURL: req.BaseURL, Models: req.Models,
 		Enabled: req.Enabled, Priority: req.Priority, MaxRPM: req.MaxRPM, RuResident: req.RuResident,
+		Version: req.Version,
 	}
 	if req.APIKey != nil {
 		input.APIKey = req.APIKey
@@ -329,13 +336,14 @@ func (s *Service) GetUserPreference(ctx context.Context, userID uuid.UUID) (*Use
 	if rec != nil {
 		resp.DefaultModel = rec.DefaultModel
 		resp.AllowExternalAI = rec.AllowExternalAI
+		resp.Version = rec.Version
 	}
 	return resp, nil
 }
 
 // SaveUserPreference — default model и privacy для ModelPicker.
 func (s *Service) SaveUserPreference(ctx context.Context, userID uuid.UUID, req UpdateUserPreferenceRequest) (*UserPreferenceResponse, error) {
-	input := SaveUserPreferenceInput{}
+	input := SaveUserPreferenceInput{Version: req.Version}
 	if req.DefaultModel != nil {
 		model := strings.TrimSpace(*req.DefaultModel)
 		if model != "" {
@@ -530,7 +538,8 @@ func (s *Service) runChatStream(ctx context.Context, userID uuid.UUID, req ChatC
 	})
 	if err != nil {
 		slog.Warn("ai stream failed", "error", err, "stream_id", streamID)
-		publish("error", map[string]interface{}{"message": err.Error()})
+		// A3W5-3-007: клиенту фиксированная строка; detail только в slog.
+		publish("error", map[string]interface{}{"message": msgAIStreamFailed})
 		return
 	}
 	outTokens := len(full.String()) / 4
@@ -631,6 +640,7 @@ func toProviderResponse(p *ent.AIProvider) ProviderResponse {
 		RuResident:   p.RuResident,
 		Scope:        string(p.Scope),
 		HasAPIKey:    p.APIKeyEnc != "",
+		Version:      p.Version,
 		CreatedAt:    p.CreatedAt.UTC().Format(time.RFC3339),
 		UpdatedAt:    p.UpdatedAt.UTC().Format(time.RFC3339),
 	}

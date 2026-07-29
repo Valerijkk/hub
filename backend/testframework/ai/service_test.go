@@ -56,6 +56,7 @@ func (m *mockRepo) CreateProvider(_ context.Context, input ai.CreateProviderInpu
 		Models:       input.Models,
 		Enabled:      input.Enabled,
 		Scope:        scope,
+		Version:      1,
 		CreatedAt:    time.Now().UTC(),
 		UpdatedAt:    time.Now().UTC(),
 	}
@@ -73,9 +74,18 @@ func (m *mockRepo) CreateProvider(_ context.Context, input ai.CreateProviderInpu
 }
 
 func (m *mockRepo) UpdateProvider(_ context.Context, id uuid.UUID, input ai.UpdateProviderInput) (*ent.AIProvider, error) {
+	if input.Version <= 0 {
+		return nil, ai.ErrVersionConflict
+	}
 	p, err := m.GetProvider(context.Background(), id)
 	if err != nil {
 		return nil, err
+	}
+	if p.Version == 0 {
+		p.Version = 1
+	}
+	if input.Version != p.Version {
+		return nil, ai.ErrVersionConflict
 	}
 	if input.Name != nil {
 		p.Name = *input.Name
@@ -83,6 +93,7 @@ func (m *mockRepo) UpdateProvider(_ context.Context, id uuid.UUID, input ai.Upda
 	if input.Enabled != nil {
 		p.Enabled = *input.Enabled
 	}
+	p.Version++
 	return p, nil
 }
 

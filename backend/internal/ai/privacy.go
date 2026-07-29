@@ -16,6 +16,7 @@ type UserPreferenceRecord struct {
 	DefaultModel      string
 	DefaultProviderID *uuid.UUID
 	AllowExternalAI   bool
+	Version           int
 }
 
 // externalAIAllowed — согласие пользователя на external LLM.

@@ -28,6 +28,9 @@ func mapProviderMutateError(err error) (status int, msg string) {
 	if errors.Is(err, ErrProviderNotFound) {
 		return fiber.StatusNotFound, msgProviderNotFound
 	}
+	if errors.Is(err, ErrVersionConflict) {
+		return fiber.StatusConflict, "version conflict"
+	}
 	if errors.Is(err, ErrEncryptionRequired) {
 		return fiber.StatusBadRequest, msgEncryptionRequired
 	}

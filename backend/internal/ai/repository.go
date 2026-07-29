@@ -62,6 +62,8 @@ type UpdateProviderInput struct {
 	Priority   *int
 	MaxRPM     *int
 	RuResident *bool
+	// Version — optimistic lock (A3W5-3-006 / NFR-24); stale → ErrVersionConflict.
+	Version int
 }
 
 // ModelInfo — модель для frontend picker.

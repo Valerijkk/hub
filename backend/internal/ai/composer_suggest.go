@@ -92,13 +92,29 @@ func normalizeComposerCompletion(prefix, raw string) string {
 	if s == "" {
 		return ""
 	}
-	if strings.HasPrefix(s, prefix) {
-		s = strings.TrimSpace(strings.TrimPrefix(s, prefix))
-	} else {
-		lowerPrefix := strings.ToLower(strings.TrimSpace(prefix))
-		if strings.HasPrefix(strings.ToLower(s), lowerPrefix) {
-			s = strings.TrimSpace(s[len(prefix):])
-		}
+	prefix = strings.TrimSpace(prefix)
+	if prefix == "" {
+		return strings.TrimSpace(s)
+	}
+	// A3W5-3-001: case/UTF-8-safe trim — не s[len(prefix):] после ToLower (байты ≠ руны).
+	if end := equalFoldPrefixLen(s, prefix); end > 0 {
+		s = strings.TrimSpace(s[end:])
 	}
 	return strings.TrimSpace(s)
+}
+
+// equalFoldPrefixLen возвращает байтовый индекс конца префикса в s при EqualFold-совпадении,
+// иначе 0. Сравнение по рунам — безопасно для кириллицы/mixed-case.
+func equalFoldPrefixLen(s, prefix string) int {
+	pr := []rune(prefix)
+	sr := []rune(s)
+	if len(pr) == 0 || len(sr) < len(pr) {
+		return 0
+	}
+	for i := range pr {
+		if !strings.EqualFold(string(pr[i]), string(sr[i])) {
+			return 0
+		}
+	}
+	return len(string(sr[:len(pr)]))
 }

@@ -99,9 +99,9 @@ spec_coverage:
 
 ## Session note — 2026-07-29 (be1 · TASK-155 A3W5-3 ai service)
 
-- **9/9 FIXED** (A3W5-3-001…009): UTF-8 composer trim; IncrementUsage/settings upsert; issue_lookup fail-closed; preference consent false; VersionEQ+409; WS `AI stream failed`; BotUserRepository; flow asserts.
-- **Hubtest:** `./testframework/ai/` — BLOCKED на shared branch (parallel `ent generate` + tracker workflow soft-delete drift TASK-171). Код готов к re-run be-ver.
-- **Docs:** `docs/wiki/API.md` (preferences/providers version + consent default + stream sanitize). Статус: **На проверке**.
+- **9/9 FIXED** (A3W5-3-001…009): UTF-8 composer trim; IncrementUsage/settings upsert+retry; issue_lookup fail-closed; preference consent false; VersionEQ+409; WS `AI stream failed`; BotUserRepository; flow asserts (+ mention/consent fixtures).
+- **Hubtest:** `go test -tags hubtest -race -count=1 -timeout=600s ./testframework/ai/` → **PASS** (~19.6s).
+- **Docs:** `docs/wiki/API.md` (preferences/providers version + consent default + stream sanitize). Статус: **На проверке** → be-ver → code-reviewer. README не трогали.
 
 ## Session note — 2026-07-29 (be2 · TASK-147 A3W3-A5 calls)
 
