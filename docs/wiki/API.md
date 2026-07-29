@@ -458,6 +458,8 @@ curl -sS -X POST http://localhost:8080/api/auth/magic-link/verify \
 | POST | `/projects/:projectId/tms/allure/import` | Импорт Allure results (новый прогон) |
 | POST | `/projects/:projectId/tms/runs/:runId/allure` | Импорт Allure в существующий прогон |
 
+> **ExistingRun fail-closed (C-W19-TT-002 / TASK-185):** при ошибке Mongo `StoreAllureResults` или infra-ошибке матчера (≠ NotFound) endpoint возвращает **500** с фиксированным сообщением; PG-результаты не пишутся. Create-path (`/allure/import`) Mongo остаётся best-effort после PG commit. Unmapped TC (нет совпадения) — по-прежнему допустим.
+
 ### CI/CD Webhooks
 
 > **Auth (фактическое поведение):** оба endpoint под `authMw` — требуется `Authorization: Bearer <JWT>` (или `X-API-Key`). Заголовок `X-Hub-Token` из Swagger **не обрабатывается** хендлером. RBAC `RequirePermission` на webhook-роутах пока **не применяется** (см. FA-02-02 — IDOR backlog); используйте `/tms/allure/import` (требует `PermTestRunCreate`) для строгой проверки прав.
