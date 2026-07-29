@@ -1,6 +1,6 @@
 # 🐛 A3 messenger repos list caps/soft-delete
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Открыта**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
 > Исполнитель: **be1** · Источник: A3 Stage FINAL · `A3W3-3-messenger-repos.md` · TASK-008
 
 ## [OUTCOME]
