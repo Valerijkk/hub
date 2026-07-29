@@ -19,6 +19,10 @@ func (s *Service) GetNewsPoll(ctx context.Context, userID, newsID uuid.UUID) (*N
 		}
 		return nil, fmt.Errorf("get news for poll: %w", err)
 	}
+	// BE-V4-003 / TASK-189: draft poll — как GetNews, без IDOR по UUID.
+	if err := s.requirePublishedNewsOrAuthorOrAdmin(ctx, userID, post); err != nil {
+		return nil, err
+	}
 	poll, err := s.repo.GetNewsPollByPostID(ctx, newsID)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -40,6 +44,10 @@ func (s *Service) VoteNewsPoll(ctx context.Context, userID, newsID uuid.UUID, re
 			return nil, ErrNotFound
 		}
 		return nil, fmt.Errorf("get news for vote: %w", err)
+	}
+	// BE-V4-003 / TASK-189: draft poll vote — member без published → 404.
+	if err := s.requirePublishedNewsOrAuthorOrAdmin(ctx, userID, post); err != nil {
+		return nil, err
 	}
 	poll, err := s.repo.GetNewsPollByPostID(ctx, newsID)
 	if err != nil {
@@ -201,4 +209,16 @@ func (s *Service) requireAuthorOrAdmin(ctx context.Context, userID uuid.UUID, po
 		return nil
 	}
 	return s.requireAdmin(ctx, userID)
+}
+
+// requirePublishedNewsOrAuthorOrAdmin — draft: только автор/admin; иначе ErrNotFound (как GetNews).
+// Mutation: убрать вызов → member читает/голосует draft poll по UUID FAIL.
+func (s *Service) requirePublishedNewsOrAuthorOrAdmin(ctx context.Context, userID uuid.UUID, post *ent.NewsPost) error {
+	if post.Published {
+		return nil
+	}
+	if err := s.requireAuthorOrAdmin(ctx, userID, post); err != nil {
+		return ErrNotFound
+	}
+	return nil
 }
