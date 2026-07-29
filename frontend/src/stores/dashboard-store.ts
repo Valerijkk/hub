@@ -106,6 +106,9 @@ export const useDashboardStore = create<DashboardState>()((set, get) => ({
 			}));
 		} catch (err) {
 			console.error("Ошибка загрузки раскладки", err);
+			// error≠empty: fail API ≠ «пустая раскладка / default успех».
+			set({ error: "Не удалось загрузить раскладку" });
+			throw err;
 		}
 	},
 

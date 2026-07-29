@@ -78,16 +78,23 @@ function PersonalDashboard() {
 		user?.display_name || user?.name || user?.email?.split("@")[0] || "";
 
 	// A13-012: personal data + layout in parallel (was serial .then waterfall).
+	// A3W11-3-001: default только после успешного load; fail → error в store, без setLayout.
 	useEffect(() => {
-		void Promise.all([fetchPersonal(), loadLayout("personal")]).then(() => {
-			const current = useDashboardStore.getState().layouts.personal;
-			if (!current || current.length === 0) {
-				setLayout("personal", personalDefault);
-			}
-		});
+		void Promise.all([fetchPersonal(), loadLayout("personal")])
+			.then(() => {
+				const current = useDashboardStore.getState().layouts.personal;
+				if (!current || current.length === 0) {
+					setLayout("personal", personalDefault);
+				}
+			})
+			.catch(() => {
+				/* loadLayout уже выставил error; default не подставляем */
+			});
 	}, [fetchPersonal, loadLayout, setLayout]);
 
-	const items = personalItems ?? personalDefault;
+	const layoutLoadFailed =
+		Boolean(error) && personalItems === undefined && Boolean(personalData);
+	const items = personalItems ?? (layoutLoadFailed ? [] : personalDefault);
 
 	return (
 		<div className="flex flex-col h-full animate-fade-in">
@@ -217,12 +224,41 @@ function PersonalDashboard() {
 						))}
 					</div>
 				) : error && !personalData ? (
-					<div className="flex flex-col items-center justify-center py-20 gap-3 text-t2 dash-enter dash-enter-3">
+					<div
+						role="alert"
+						className="flex flex-col items-center justify-center py-20 gap-3 text-t2 dash-enter dash-enter-3"
+					>
 						<p className="text-sm font-medium">{error}</p>
 						<button
 							type="button"
 							className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
-							onClick={() => fetchPersonal()}
+							onClick={() => void fetchPersonal()}
+						>
+							Попробовать снова
+						</button>
+					</div>
+				) : layoutLoadFailed ? (
+					<div
+						role="alert"
+						className="flex flex-col items-center justify-center py-20 gap-3 text-t2 dash-enter dash-enter-3"
+					>
+						<p className="text-sm font-medium">{error}</p>
+						<button
+							type="button"
+							className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+							onClick={() => {
+								void loadLayout("personal")
+									.then(() => {
+										const current =
+											useDashboardStore.getState().layouts.personal;
+										if (!current || current.length === 0) {
+											setLayout("personal", personalDefault);
+										}
+									})
+									.catch(() => {
+										/* error уже в store */
+									});
+							}}
 						>
 							Попробовать снова
 						</button>

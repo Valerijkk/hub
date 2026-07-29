@@ -40,16 +40,24 @@ function AdminDashboard() {
 	const [activeTab, setActiveTab] = useState("dashboard");
 
 	useEffect(() => {
-		fetchAdmin();
-		loadLayout("admin").then(() => {
-			const current = useDashboardStore.getState().layouts.admin;
-			if (!current || current.length === 0) {
-				setLayout("admin", adminDefault);
-			}
-		});
+		void fetchAdmin();
+		// A3W11-3-001: default только после успешного load; fail → без setLayout.
+		void loadLayout("admin")
+			.then(() => {
+				const current = useDashboardStore.getState().layouts.admin;
+				if (!current || current.length === 0) {
+					setLayout("admin", adminDefault);
+				}
+			})
+			.catch(() => {
+				/* loadLayout уже выставил error */
+			});
 	}, [fetchAdmin, loadLayout, setLayout]);
 
-	const items = layouts.admin ?? adminDefault;
+	const adminItems = layouts.admin;
+	const layoutLoadFailed =
+		Boolean(error) && adminItems === undefined && Boolean(adminData);
+	const items = adminItems ?? (layoutLoadFailed ? [] : adminDefault);
 
 	return (
 		<div className="flex-1 overflow-y-auto p-6 animate-[eu_450ms_var(--spring)]">
@@ -127,6 +135,32 @@ function AdminDashboard() {
 								type="button"
 								className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
 								onClick={() => void fetchAdmin()}
+							>
+								Попробовать снова
+							</button>
+						</div>
+					) : layoutLoadFailed ? (
+						<div
+							role="alert"
+							className="flex flex-col items-center justify-center py-16 gap-3 text-t2"
+						>
+							<p className="text-sm font-medium">{error}</p>
+							<button
+								type="button"
+								className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+								onClick={() => {
+									void loadLayout("admin")
+										.then(() => {
+											const current =
+												useDashboardStore.getState().layouts.admin;
+											if (!current || current.length === 0) {
+												setLayout("admin", adminDefault);
+											}
+										})
+										.catch(() => {
+											/* error уже в store */
+										});
+								}}
 							>
 								Попробовать снова
 							</button>

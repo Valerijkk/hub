@@ -79,7 +79,12 @@ function ProjectDashboard() {
 			const fromApi = remoteTemplates?.[key];
 			const layout = fromApi ?? LOCAL_TEMPLATES[key] ?? projectDev;
 			setLayout("project", layout);
-			await loadLayout("project", projectId);
+			// A3W11-3-001: локальный шаблон уже применён; fail reload не откатывает toast.
+			try {
+				await loadLayout("project", projectId);
+			} catch {
+				/* error в store; UI покажет banner/retry */
+			}
 			void queryClient.invalidateQueries({
 				queryKey: ["dashboard", "layout", projectId],
 			});
@@ -89,20 +94,29 @@ function ProjectDashboard() {
 	});
 
 	useEffect(() => {
-		fetchProject(projectId);
-		loadLayout("project", projectId).then(() => {
-			const current = useDashboardStore.getState().layouts.project;
-			if (!current || current.length === 0) {
-				setLayout("project", projectDev);
-			}
-		});
+		void fetchProject(projectId);
+		// A3W11-3-001: default только после успешного load; fail → без setLayout.
+		void loadLayout("project", projectId)
+			.then(() => {
+				const current = useDashboardStore.getState().layouts.project;
+				if (!current || current.length === 0) {
+					setLayout("project", projectDev);
+				}
+			})
+			.catch(() => {
+				/* loadLayout уже выставил error */
+			});
 	}, [projectId, fetchProject, loadLayout, setLayout]);
 
-	const items =
-		layouts.project ??
-		remoteTemplates?.[template] ??
-		LOCAL_TEMPLATES[template] ??
-		projectDev;
+	const projectItems = layouts.project;
+	const layoutLoadFailed =
+		Boolean(error) && projectItems === undefined && Boolean(projectData);
+	const items = layoutLoadFailed
+		? []
+		: (projectItems ??
+			remoteTemplates?.[template] ??
+			LOCAL_TEMPLATES[template] ??
+			projectDev);
 
 	return (
 		<div className="animate-[eu_450ms_var(--spring)_both]">
@@ -141,6 +155,31 @@ function ProjectDashboard() {
 						type="button"
 						className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
 						onClick={() => void fetchProject(projectId)}
+					>
+						Попробовать снова
+					</button>
+				</div>
+			) : layoutLoadFailed ? (
+				<div
+					role="alert"
+					className="flex flex-col items-center justify-center py-16 gap-3 text-t2"
+				>
+					<p className="text-sm font-medium">{error}</p>
+					<button
+						type="button"
+						className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+						onClick={() => {
+							void loadLayout("project", projectId)
+								.then(() => {
+									const current = useDashboardStore.getState().layouts.project;
+									if (!current || current.length === 0) {
+										setLayout("project", projectDev);
+									}
+								})
+								.catch(() => {
+									/* error уже в store */
+								});
+						}}
 					>
 						Попробовать снова
 					</button>

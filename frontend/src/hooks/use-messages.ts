@@ -128,6 +128,8 @@ export function useMessages(channelId: string | undefined) {
 				case "reaction_toggled": {
 					const reactEvt = data as Record<string, unknown>;
 					const msgId = (reactEvt.message_id ?? reactEvt.id) as string;
+					// A3W11-3-002: мусорный/undefined reactions не затирает кэш.
+					if (!msgId || !Array.isArray(reactEvt.reactions)) break;
 					const reactions = reactEvt.reactions as Message["reactions"];
 					queryClient.setQueryData(queryKey, (old: unknown) => {
 						if (!old) return old;

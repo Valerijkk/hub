@@ -1,8 +1,19 @@
 # 🧹 A3 FE stores: loadLayout silent fail + reaction_toggled guard
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P3** · Статус: **Открыта**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P3** · Статус: **На проверке**  
 > Источник: A3W11-3-fe-lib-docs.md · Stage A3 FINAL · TASK-008  
 > Finding IDs: **A3W11-3-001**, **A3W11-3-002**
+
+## Evidence (fe1 · 2026-07-29)
+
+| ID | Status | Path |
+|----|--------|------|
+| A3W11-3-001 | FIXED | `frontend/src/stores/dashboard-store.ts` `loadLayout` catch → `error` + rethrow; consumers без default поверх fail |
+| A3W11-3-002 | FIXED | `frontend/src/hooks/use-messages.ts` `Array.isArray(reactEvt.reactions)` |
+
+- Tests: `layout-load-error.test.ts`, `reaction-toggled-guard.test.tsx`
+- Mutation: strip set/throw → 001 FAIL; strip Array.isArray → 002 FAIL; restore → green
+- README: не трогали (owner: «На проверке» в этом файле)
 
 ## [OUTCOME]
 
