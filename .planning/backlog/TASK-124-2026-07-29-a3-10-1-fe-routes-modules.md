@@ -1,6 +1,6 @@
 # 🧹 A3 FE routes A1: accounting/marketplace/bases error≠empty + noopener
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P3** · Статус: **Открыта**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P3** · Статус: **На проверке**  
 > Источник: A3 · **Owner lock: правим ВСЕ A3 open** · TASK-008 · кластер A3W10-1  
 > Ветка исполнения: `cursor-grok-4.5` (не пушить в `master`)
 
@@ -111,3 +111,23 @@
 - Коммиты: RU conventional description; **без** `Co-authored-by` / Generated-by / AI attribution.
 - Docs sync: только если меняется user-visible контракт wiki — для этих P3 UI-фиксов обычно достаточно STATE one-liner + статус backlog; wiki не трогать без изменения API.
 - Read-only audit; правки кода — по контракту задачи.
+
+## [Progress] fe1 2026-07-29
+
+| ID | Status | Evidence |
+|----|--------|----------|
+| A3W10-1-001 | FIXED | `accounting-page.tsx` — `isError`+`QueryErrorAlert` на P&L / invoices / trial; тест `accounting-secondary-error.test.tsx` |
+| A3W10-1-002 | FIXED | `TemplateSelector` — `loadError`+loading+`QueryErrorAlert`; тест `template-selector-error.test.tsx` |
+| A3W10-1-003 | FIXED | `recordings-list.tsx` `window.open(..., "noopener,noreferrer")`; тест `recordings-download-noopener.test.tsx` |
+| A3W10-1-004 | FIXED | marketplace pending: `pendingError\|\|length\|\|pendingLoading` + alert; тест `marketplace-pending-error.test.tsx` |
+| A3W10-1-005 | FIXED | bases main: detail/table `isError`/`isPending`+alert; кейс в `bases-page-error.test.tsx` |
+
+**Mutation notes**
+- 001: убрать `incomeStatementError` ветку → assert P&L alert FAIL
+- 002: рендерить grid при `loadError` → alert assert FAIL
+- 003: `window.open(url, "_blank")` без 3-го arg → noopener assert FAIL
+- 004: гейт только `pendingItems.length > 0` → heading/alert pending FAIL
+- 005: убрать `detailError` alert → main alert assert FAIL
+
+**Команды:** `npx tsc --noEmit` PASS · vitest v4 + recordings-download **18 files / 31 tests** PASS.  
+**Статус:** На проверке → fe-ver → code-reviewer. README не трогали.
