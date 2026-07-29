@@ -4,6 +4,7 @@ package database
 import (
 	"context"
 	dbsql "database/sql"
+	"fmt"
 	"log/slog"
 	"os"
 	"strconv"
@@ -46,6 +47,13 @@ func NewPostgresClient(ctx context.Context, url string) (*ent.Client, *dbsql.DB,
 	}
 	rawDB := drv.DB()
 	applyPoolLimits(rawDB)
+
+	// A3W4-4-001: fail-closed как Mongo/Redis — Ping до Schema.Create / slog connected.
+	if err := rawDB.PingContext(ctx); err != nil {
+		_ = drv.Close()
+		return nil, nil, fmt.Errorf("ping postgres: %w", err)
+	}
+
 	client := ent.NewClient(ent.Driver(drv))
 
 	if envBool("DEV_MODE", false) {
