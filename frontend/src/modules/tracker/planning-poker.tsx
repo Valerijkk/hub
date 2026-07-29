@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import * as pokerApi from "@/api/sprint";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { Button } from "@/components/ui/button";
 import { toastApiError } from "@/lib/format-api-error";
 import { useSprintStore } from "@/stores/sprint-store";
@@ -120,7 +121,20 @@ export function PlanningPoker({
 		);
 	}
 
-	if (loadFailed || !pokerSession) {
+	// FE-TA-003: сеть/500 ≠ «сессия не найдена»
+	if (loadFailed) {
+		return (
+			<div className="bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-5">
+				<QueryErrorAlert
+					message="Не удалось загрузить сессию Planning Poker"
+					retry={() => void loadSession()}
+					compact
+				/>
+			</div>
+		);
+	}
+
+	if (!pokerSession) {
 		return (
 			<div className="bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-5">
 				<p className="text-[13px] text-t2 text-center py-8">

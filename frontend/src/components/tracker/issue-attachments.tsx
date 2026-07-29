@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 import { uploadFile } from "@/api/files";
 import { toastApiError } from "@/lib/format-api-error";
+import { isSafeUrl, sanitizeUrl } from "@/lib/safe-url";
 import { cn } from "@/lib/utils";
 
 export interface IssueAttachmentItem {
@@ -151,41 +152,63 @@ export function IssueAttachments({
 
 			{allAttachments.length > 0 && (
 				<div className="flex gap-[10px] flex-wrap">
-					{allAttachments.map((att) => (
-						<a
-							key={att.file_id}
-							href={att.url || `/api/files/${att.file_id}/download`}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="flex items-center gap-[10px] px-4 py-[10px] bg-gradient-to-br from-card to-raised border border-b1 rounded-[var(--r3)] text-[13px] cursor-pointer transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200 hover:border-b2 hover:-translate-y-px hover:shadow-[var(--sh2)]"
-						>
-							<span className="w-[18px] h-[18px] text-blue">
-								{getFileIcon(att.mime_type)}
-							</span>
-							<div className="flex-1 min-w-0">
-								<p className="text-[13px] font-medium truncate text-t1 transition-colors">
-									{att.file_name}
-								</p>
-								<p className="text-t3 text-[11px]">
-									{formatFileSize(att.file_size)}
-								</p>
-							</div>
-							<svg
-								aria-hidden="true"
-								className="h-4 w-4 text-t2/50 group-hover:text-primary shrink-0 transition-colors"
-								fill="none"
-								viewBox="0 0 24 24"
-								stroke="currentColor"
-								strokeWidth={2}
+					{allAttachments.map((att) => {
+						const candidate = att.url || `/api/files/${att.file_id}/download`;
+						const chipClass =
+							"flex items-center gap-[10px] px-4 py-[10px] bg-gradient-to-br from-card to-raised border border-b1 rounded-[var(--r3)] text-[13px] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200";
+						const chipBody = (
+							<>
+								<span className="w-[18px] h-[18px] text-blue">
+									{getFileIcon(att.mime_type)}
+								</span>
+								<div className="flex-1 min-w-0">
+									<p className="text-[13px] font-medium truncate text-t1 transition-colors">
+										{att.file_name}
+									</p>
+									<p className="text-t3 text-[11px]">
+										{formatFileSize(att.file_size)}
+									</p>
+								</div>
+								<svg
+									aria-hidden="true"
+									className="h-4 w-4 text-t2/50 group-hover:text-primary shrink-0 transition-colors"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									strokeWidth={2}
+								>
+									<path
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+									/>
+								</svg>
+							</>
+						);
+						// FE-TA-002: unsafe url → без <a href>
+						if (!isSafeUrl(candidate)) {
+							return (
+								<div
+									key={att.file_id}
+									className={`${chipClass} opacity-60 cursor-not-allowed`}
+									aria-disabled="true"
+								>
+									{chipBody}
+								</div>
+							);
+						}
+						return (
+							<a
+								key={att.file_id}
+								href={sanitizeUrl(candidate)}
+								target="_blank"
+								rel="noopener noreferrer"
+								className={`${chipClass} cursor-pointer hover:border-b2 hover:-translate-y-px hover:shadow-[var(--sh2)]`}
 							>
-								<path
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-								/>
-							</svg>
-						</a>
-					))}
+								{chipBody}
+							</a>
+						);
+					})}
 				</div>
 			)}
 

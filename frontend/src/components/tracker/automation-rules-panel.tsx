@@ -43,11 +43,19 @@ export function AutomationRulesPanel({ projectId }: AutomationRulesPanelProps) {
 		queryKey: ["automation-rules", projectId],
 		queryFn: () => listAutomationRules(projectId),
 	});
-	const { data: statuses = [] } = useQuery({
+	const {
+		data: statuses = [],
+		isError: statusesError,
+		refetch: refetchStatuses,
+	} = useQuery({
 		queryKey: ["workflow-statuses", projectId],
 		queryFn: () => listWorkflowStatuses(projectId),
 	});
-	const { data: channels = [] } = useQuery({
+	const {
+		data: channels = [],
+		isError: channelsError,
+		refetch: refetchChannels,
+	} = useQuery({
 		queryKey: ["channels"],
 		queryFn: () => getChannels(),
 	});
@@ -112,6 +120,24 @@ export function AutomationRulesPanel({ projectId }: AutomationRulesPanelProps) {
 						До 3 правил на проект. Пример: при переходе в статус → сообщение в
 						канал.
 					</p>
+					{(statusesError || channelsError) && (
+						<div className="space-y-2">
+							{statusesError && (
+								<QueryErrorAlert
+									message="Не удалось загрузить статусы workflow"
+									retry={() => void refetchStatuses()}
+									compact
+								/>
+							)}
+							{channelsError && (
+								<QueryErrorAlert
+									message="Не удалось загрузить каналы"
+									retry={() => void refetchChannels()}
+									compact
+								/>
+							)}
+						</div>
+					)}
 					<div className="space-y-2">
 						<Label htmlFor="rule-name">Название</Label>
 						<Input
@@ -143,16 +169,21 @@ export function AutomationRulesPanel({ projectId }: AutomationRulesPanelProps) {
 						{triggerType === "status_changed" && (
 							<div className="space-y-2">
 								<Label>Статус</Label>
-								<Select value={statusId} onValueChange={setStatusId}>
+								<Select
+									value={statusId}
+									onValueChange={setStatusId}
+									disabled={statusesError}
+								>
 									<SelectTrigger>
 										<SelectValue placeholder="Выберите статус" />
 									</SelectTrigger>
 									<SelectContent>
-										{(statuses as WorkflowStatusResponse[]).map((s) => (
-											<SelectItem key={s.id} value={s.id}>
-												{s.name}
-											</SelectItem>
-										))}
+										{!statusesError &&
+											(statuses as WorkflowStatusResponse[]).map((s) => (
+												<SelectItem key={s.id} value={s.id}>
+													{s.name}
+												</SelectItem>
+											))}
 									</SelectContent>
 								</Select>
 							</div>
@@ -160,16 +191,21 @@ export function AutomationRulesPanel({ projectId }: AutomationRulesPanelProps) {
 					</div>
 					<div className="space-y-2">
 						<Label>Канал</Label>
-						<Select value={channelId} onValueChange={setChannelId}>
+						<Select
+							value={channelId}
+							onValueChange={setChannelId}
+							disabled={channelsError}
+						>
 							<SelectTrigger>
 								<SelectValue placeholder="Куда отправить сообщение" />
 							</SelectTrigger>
 							<SelectContent>
-								{projectChannels.map((ch) => (
-									<SelectItem key={ch.id} value={ch.id}>
-										#{ch.name}
-									</SelectItem>
-								))}
+								{!channelsError &&
+									projectChannels.map((ch) => (
+										<SelectItem key={ch.id} value={ch.id}>
+											#{ch.name}
+										</SelectItem>
+									))}
 							</SelectContent>
 						</Select>
 					</div>
@@ -179,6 +215,8 @@ export function AutomationRulesPanel({ projectId }: AutomationRulesPanelProps) {
 							createMutation.isPending ||
 							!name.trim() ||
 							!channelId ||
+							statusesError ||
+							channelsError ||
 							(triggerType === "status_changed" && !statusId) ||
 							rules.length >= 3
 						}
