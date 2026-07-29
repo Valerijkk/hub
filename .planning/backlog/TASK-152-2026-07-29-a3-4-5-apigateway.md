@@ -157,6 +157,8 @@
 
 **Mutation notes:** см. ACCEPTANCE таблицу — IT написаны под мутацию (убрать filter / VersionEQ / вернуть allowlist / убрать rune guard).
 
-**Регрессия:** `go test -tags hubtest -race -count=1 ./testframework/apigateway/`
+**Регрессия:** `go test -tags hubtest -race -count=1 ./testframework/apigateway/` → **PASS** 9.012s (isolated worktree `.worktrees/task152-a3w45`; main `ent/` mid-codegen OOS).
 
-**OOS / risks:** FE `webhooks.tsx` ещё показывает `sprint.completed` и PUT без `version` — UI сломается до FE-фиксов (вне SCOPE be2). README не трогали (инструкция сессии).
+**Коммит:** `95a25a21` (без Co-authored-by). Статус: **На проверке**. README не трогали.
+
+**OOS / risks:** FE `webhooks.tsx` ещё показывает `sprint.completed` и PUT без `version` — UI сломается до FE-фиксов (вне SCOPE be2).
