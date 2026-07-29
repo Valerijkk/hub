@@ -3,7 +3,10 @@
 package dev
 
 import (
+	"context"
+
 	"github.com/gofiber/fiber/v3"
+	"github.com/google/uuid"
 )
 
 // ExportDemoUser — строка демо-пользователя для hubtest.
@@ -156,4 +159,19 @@ func ExportCollectRoutes(app *fiber.App) []ExportRouteEntry {
 		out[i] = ExportRouteEntry{Method: r.Method, Path: r.Path}
 	}
 	return out
+}
+
+// ExportSeedWorkflowTransitions — A3W7-5-002 mutation: Create-fail → err.
+func ExportSeedWorkflowTransitions(h *Handler, ctx context.Context, projectID uuid.UUID, statusMap map[string]uuid.UUID) (int, error) {
+	return h.seedWorkflowTransitions(ctx, projectID, statusMap)
+}
+
+// ExportSeedIssueLinks — A3W7-5-002.
+func ExportSeedIssueLinks(h *Handler, ctx context.Context, issueMap map[string]uuid.UUID) (int, error) {
+	return h.seedIssueLinks(ctx, issueMap)
+}
+
+// ExportSeedChannels — A3W7-5-002.
+func ExportSeedChannels(h *Handler, ctx context.Context, projectID uuid.UUID, userIDs map[string]uuid.UUID) (int, error) {
+	return h.seedChannels(ctx, projectID, userIDs)
 }
