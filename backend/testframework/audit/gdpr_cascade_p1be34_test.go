@@ -94,9 +94,10 @@ func TestDeleteUserGDPR_CascadeIncludesFilesMembershipsScrub_P1BE34(t *testing.T
 	assert.Equal(t, target, repo.hardDeleted[0])
 }
 
-// TestDeleteUserGDPR_MessageEraserFailAbortsHardDelete_P1BE34 —
-// мутация: fail Mongo erase → HardDelete не вызван.
-func TestDeleteUserGDPR_MessageEraserFailAbortsHardDelete_P1BE34(t *testing.T) {
+// TestDeleteUserGDPR_MessageEraserFailAfterCommit_A3W64_001 —
+// A3W6-4-001: Mongo после Commit — fail eraser не откатывает HardDelete;
+// Ent cascade уже закоммичен (orphan messages — trade-off vs partial erasure).
+func TestDeleteUserGDPR_MessageEraserFailAfterCommit_A3W64_001(t *testing.T) {
 	repo := &gdprFullCascadeRepo{}
 	eraser := &stubMessageEraser{failErr: errGDPRCascadeStep}
 	svc := audit.NewAuditService(repo, nil)
@@ -104,7 +105,37 @@ func TestDeleteUserGDPR_MessageEraserFailAbortsHardDelete_P1BE34(t *testing.T) {
 
 	err := svc.DeleteUserGDPR(context.Background(), uuid.New(), uuid.New(), nil)
 	require.Error(t, err)
+	require.Len(t, repo.hardDeleted, 1, "HardDelete already committed before mongo erase")
+	require.Len(t, eraser.calls, 1)
+}
+
+// TestDeleteUserGDPR_HardDeleteFailKeepsMongoIntact_A3W64_001 —
+// мутация: HardDelete fail → eraser не вызван (messages intact).
+// Mutation: вернуть DeleteMessagesBySender внутрь WithTx до Commit → eraser.calls непустой / тест краснеет.
+func TestDeleteUserGDPR_HardDeleteFailKeepsMongoIntact_A3W64_001(t *testing.T) {
+	repo := &gdprHardDeleteFailRepo{}
+	eraser := &stubMessageEraser{}
+	svc := audit.NewAuditService(repo, nil)
+	svc.SetMessageEraser(eraser)
+
+	err := svc.DeleteUserGDPR(context.Background(), uuid.New(), uuid.New(), nil)
+	require.Error(t, err)
+	assert.Empty(t, eraser.calls, "mongo erase must not run before successful Ent Commit")
 	assert.Empty(t, repo.hardDeleted)
+}
+
+type gdprHardDeleteFailRepo struct {
+	gdprFullCascadeRepo
+}
+
+func (r *gdprHardDeleteFailRepo) HardDeleteUser(context.Context, uuid.UUID) error {
+	return errGDPRCascadeStep
+}
+
+// WithTx обязан пробрасывать *gdprHardDeleteFailRepo, иначе embedded WithTx
+// отдаёт *gdprFullCascadeRepo и override HardDeleteUser не вызывается.
+func (r *gdprHardDeleteFailRepo) WithTx(_ context.Context, fn func(audit.Repository) error) error {
+	return fn(r)
 }
 
 // TestDeleteUserGDPR_FilesFailAbortsHardDelete_P1BE34 —

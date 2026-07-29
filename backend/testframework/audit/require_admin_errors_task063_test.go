@@ -15,7 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/internal/audit"
 )
 
@@ -59,7 +58,8 @@ func TestHandler_requireAdmin_RepoError_500_P3BE08(t *testing.T) {
 
 func TestHandler_requireAdmin_UserNotFound_401_P3BE08(t *testing.T) {
 	adminID := uuid.New()
-	repo := &adminErrRepo{adminMockRepo: adminMockRepo{adminID: adminID}, err: &ent.NotFoundError{}}
+	// A3W6-4-003: typed sentinel, не ent.NotFoundError в handler.
+	repo := &adminErrRepo{adminMockRepo: adminMockRepo{adminID: adminID}, err: audit.ErrUserNotFound}
 	svc := audit.NewAuditService(repo, nil)
 	h := audit.NewHandler(svc)
 
