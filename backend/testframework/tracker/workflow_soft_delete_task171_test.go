@@ -14,8 +14,8 @@ import (
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/workflowstatus"
 	"github.com/valerii/hub/backend/ent/workflowtransition"
-	"github.com/valerii/hub/backend/internal/tracker"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
+	"github.com/valerii/hub/backend/internal/tracker"
 )
 
 // TestDeleteWorkflowStatus_SoftDelete_TASK171 — A3W8-5-002.
@@ -92,6 +92,7 @@ func TestEntRepository_DeleteWorkflowStatus_IdempotentSoft(t *testing.T) {
 	err = env.repo.DeleteWorkflowStatus(env.ctx, env.projectID, st.ID)
 	require.True(t, ent.IsNotFound(err), "second soft-delete must NotFound, got %v", err)
 
+	// sanity: deleted_at set
 	got, err := env.client.WorkflowStatus.Get(env.ctx, st.ID)
 	require.NoError(t, err)
 	require.NotNil(t, got.DeletedAt)
