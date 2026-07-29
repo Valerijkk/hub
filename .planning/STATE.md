@@ -65,25 +65,6 @@ spec_coverage:
 
 # Состояние проекта Hub
 
-## Session note — 2026-07-29 (be2 · TASK-140 A3W2-3 tms repos residual)
-
-- **A3W2-3-001/002/003 FIXED:** list/batch caps на ByRunIDs/WithResults/env/issues/AddCases; GetLastResults per-case First; CountLabels + linked edges DeletedAtIsNil.
-- hubtest: `TestTask140_*` PASS (3.1s); статус задачи «На проверке».
-- Контракт: list truncate; AddCases/last-results oversized → err.
-
-## Session note — 2026-07-29 (be2 · TASK-141 A3W2-4 tms import residual)
-
-- **A3W2-4-001..005 FIXED:** export Steps plain text; TestRail depth/records caps; handleImport fixed 400 msg; CSV Flush w.Error; CreateSuite fail → Errors/Partial.
-- Tests: `backend/testframework/tms/task141_a3w2_4_residual_test.go` (mutation per ID).
-- Hubtest: be-ver re-run after exclusive `go generate ./ent/` (parallel generate thrash blocked local PASS).
-- Status: На проверке · handoff be-ver → code-reviewer.
-
-## Session note — 2026-07-29 (be1 · TASK-134 A3W1-2 tracker services)
-
-- **6/6 FIXED** (A3W1-2-001…006): UpdateIssue CountLabelsInProject; CreateLabel FindLabelGroupInProject; Create/UpdateRule FindChannelInProject; ListThreadIssueLinks WithIssue eager; CreateIssueLink AppError wrap; UpdateComment 404≠409.
-- **Hubtest:** `./testframework/tracker/` focused A3W1_2_* + P1BE03/A3_011 — PASS (Docker golang:1.25, isolated worktree; shared branch ent generate был нестабилен).
-- **Статус:** На проверке → be-ver → code-reviewer. README не трогали (owner).
-
 ## Session note — 2026-07-29 (be1 · TASK-155 A3W5-3 ai service)
 
 - **9/9 FIXED** (A3W5-3-001…009): UTF-8 composer trim; IncrementUsage/settings upsert; issue_lookup fail-closed; preference consent false; VersionEQ+409; WS `AI stream failed`; BotUserRepository; flow asserts.
@@ -123,9 +104,8 @@ spec_coverage:
 ## Session note — 2026-07-29 (be2 · TASK-152 A3W4-5 apigateway)
 
 - **Сделано:** ListActive + `project.DeletedAtIsNil`; Update webhook VersionEQ/409; trim `sprint.completed` allowlist + `WebhookFilterSubjects`; CreateAPIKey name MaxLen→400; docs `wiki/API.md`; статус задачи **На проверке**.
-- **Тесты:** `go test -tags hubtest -race -count=1 ./testframework/apigateway/` **PASS** 9.012s (isolated worktree; main `ent/` mid-codegen OOS).
+- **Тесты:** `testframework/apigateway/task152_a3w4_5_test.go` (+ правки существующих).
 - **Риск:** FE `webhooks.tsx` ещё показывает `sprint.completed` / PUT без `version` (вне SCOPE).
-- **Коммит:** `95a25a21` · handoff be-ver → code-reviewer.
 
 ## Session note — 2026-07-29 (be1 · TASK-161 A3W6-5 audit tests)
 
@@ -746,3 +726,7 @@ pilot; FA-06 manual; затем CAL-SYNC / QA-HARDENING / Redesign по прио
 ---
 
 *Обновляется после каждой фазы и `/handoff-sync`*
+
+## Session note — 2026-07-29 (be2 · TASK-141 A3W2-4 tms import residual)
+
+- A3W2-4-001..005 FIXED in TMS import/export; hubtest task141_*; status На проверке; be-ver: exclusive go generate then hubtest.

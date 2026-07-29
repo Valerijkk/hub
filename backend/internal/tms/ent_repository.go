@@ -1224,6 +1224,7 @@ func (r *EntRepository) AssignTestersToRun(ctx context.Context, runID uuid.UUID,
 
 // GetTestRunWithResults возвращает прогон с результатами, тест-кейсами, файлами и назначенными.
 // Без project-scope — для внутренних путей; HTTP-facing — GetTestRunWithResultsInProject.
+// A3W2-3-001: nested WithResults Limit (truncate).
 func (r *EntRepository) GetTestRunWithResults(ctx context.Context, runID uuid.UUID) (*ent.TestRun, error) {
 	return r.client.TestRun.Query().
 		Where(testrun.ID(runID)).
@@ -1233,12 +1234,14 @@ func (r *EntRepository) GetTestRunWithResults(ctx context.Context, runID uuid.UU
 			q.WithTestCase().
 				WithExecutedBy().
 				WithFiles().
-				Order(ent.Asc(testresult.FieldCreatedAt))
+				Order(ent.Asc(testresult.FieldCreatedAt)).
+				Limit(maxListTestResults)
 		}).
 		Only(ctx)
 }
 
 // GetTestRunWithResultsInProject — detail/export только внутри projectID (A3-012).
+// A3W2-3-001: nested WithResults Limit (truncate).
 func (r *EntRepository) GetTestRunWithResultsInProject(ctx context.Context, projectID, runID uuid.UUID) (*ent.TestRun, error) {
 	return r.client.TestRun.Query().
 		Where(
@@ -1251,7 +1254,8 @@ func (r *EntRepository) GetTestRunWithResultsInProject(ctx context.Context, proj
 			q.WithTestCase().
 				WithExecutedBy().
 				WithFiles().
-				Order(ent.Asc(testresult.FieldCreatedAt))
+				Order(ent.Asc(testresult.FieldCreatedAt)).
+				Limit(maxListTestResults)
 		}).
 		Only(ctx)
 }
@@ -1311,12 +1315,14 @@ func (r *EntRepository) GetEnvironmentInProject(ctx context.Context, projectID, 
 }
 
 // ListEnvironmentsByProject возвращает все окружения проекта.
+// A3W2-3-001: hard cap (truncate).
 func (r *EntRepository) ListEnvironmentsByProject(ctx context.Context, projectID uuid.UUID) ([]*ent.Environment, error) {
 	return r.client.Environment.Query().
 		Where(
 			environment.HasProjectWith(entproject.ID(projectID)),
 			environment.DeletedAtIsNil(),
 		).
+		Limit(maxListEnvironments).
 		All(ctx)
 }
 
