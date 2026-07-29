@@ -219,9 +219,13 @@ func (r *EntRepository) CreateWebhookEndpoint(ctx context.Context, projectID uui
 }
 
 func (r *EntRepository) ListWebhookEndpointsByProject(ctx context.Context, projectID uuid.UUID) ([]*ent.WebhookEndpoint, error) {
+	// C-W19-004 / TASK-181: project в корзине — пустой list (не stale PUT на «живой» endpoint trash).
 	return r.client.WebhookEndpoint.Query().
 		Where(
-			webhookendpoint.HasProjectWith(project.ID(projectID)),
+			webhookendpoint.HasProjectWith(
+				project.ID(projectID),
+				project.DeletedAtIsNil(),
+			),
 			webhookendpoint.DeletedAtIsNil(),
 		).
 		All(ctx)

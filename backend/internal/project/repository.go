@@ -16,6 +16,7 @@ import (
 	"github.com/valerii/hub/backend/ent/team"
 	"github.com/valerii/hub/backend/ent/teammember"
 	"github.com/valerii/hub/backend/ent/user"
+	"github.com/valerii/hub/backend/ent/webhookendpoint"
 	"github.com/valerii/hub/backend/ent/workflowstatus"
 )
 
@@ -630,6 +631,8 @@ func (r *EntRepository) DeleteIssueLink(ctx context.Context, linkID uuid.UUID) e
 
 // SoftDeleteWithCrossLinkCleanup атомарно удаляет кросс-проектные связи и
 // soft-delete'ит проект в одной Ent-транзакции (A2W1-A5-001).
+// C-W19-004 / TASK-181: в той же tx гасит webhook endpoints (IsActive=false),
+// чтобы outbound не зависел только от ListActive HasProjectWith(DeletedAtIsNil).
 func (r *EntRepository) SoftDeleteWithCrossLinkCleanup(ctx context.Context, projectID uuid.UUID) (outgoing, incoming []*ent.IssueLink, err error) {
 	tx, err := r.client.Tx(ctx)
 	if err != nil {
@@ -675,6 +678,17 @@ func (r *EntRepository) SoftDeleteWithCrossLinkCleanup(ctx context.Context, proj
 		if err = tx.IssueLink.DeleteOneID(link.ID).Exec(ctx); err != nil {
 			return nil, nil, fmt.Errorf("delete incoming cross-project link %s: %w", link.ID, err)
 		}
+	}
+
+	// C-W19-004: deactivate before marking project deleted — same tx, fail-closed.
+	if _, err = tx.WebhookEndpoint.Update().
+		Where(
+			webhookendpoint.HasProjectWith(project.IDEQ(projectID)),
+			webhookendpoint.DeletedAtIsNil(),
+		).
+		SetIsActive(false).
+		Save(ctx); err != nil {
+		return nil, nil, fmt.Errorf("deactivate webhook endpoints for soft-deleted project: %w", err)
 	}
 
 	if _, err = tx.Project.UpdateOneID(projectID).
