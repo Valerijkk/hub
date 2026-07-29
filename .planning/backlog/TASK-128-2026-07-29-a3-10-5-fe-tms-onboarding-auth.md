@@ -1,9 +1,26 @@
 # 🔒 A3 FE TMS canMutate + onboarding auth + login redirect
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Открыта**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
 > Источник: A3 · **Owner lock: правим ВСЕ A3 open** · TASK-008 · кластер A3W10-5  
 > Ветка исполнения: `cursor-grok-4.5` (не пушить в `master`)  
 > Исполнитель: **fe1** · Finding IDs: `A3W10-5-001`…`A3W10-5-005`
+
+## Progress (fe1 · 2026-07-29)
+
+| ID | Status | Evidence |
+|----|--------|----------|
+| A3W10-5-001 | FIXED | `cases_.$caseKey.lazy.tsx` — `canMutate`; Edit/link/unlink/`onStartEditing` hidden for viewer |
+| A3W10-5-002 | FIXED | `runs.lazy.tsx` create Dialog; `runs_.$runId.tsx` + `RunHeader` `canMutate`; table Add optional |
+| A3W10-5-003 | FIXED | `onboarding.tsx` `beforeLoad` → `/login` / completed → `/projects` |
+| A3W10-5-004 | FIXED | `login.tsx` `beforeLoad` → `/projects` или `/onboarding` |
+| A3W10-5-005 | FIXED | `onboarding.lazy.tsx` `revokeObjectURL` cleanup + fail → `null` |
+
+**Тесты:** `can-mutate-authz-ui.test.tsx` (11) · `onboarding-login-guards.test.ts` (6) · `onboarding-avatar-revoke.test.tsx` (3) — PASS; `tsc --noEmit` PASS; tms domain 27/27 PASS.
+
+**Mutation notes:** убрать `canMutate` gate / `beforeLoad` / `revokeObjectURL` → соответствующие assert FAIL.
+
+**Handoff:** fe-ver → code-reviewer. README backlog не трогали (инструкция волны).
+
 
 ## [OUTCOME]
 
@@ -169,3 +186,16 @@
 - **Где:** `onboarding.lazy.tsx` `URL.createObjectURL` без revoke
 - **Дефект:** утечка blob URL при смене файла / уходе со шага
 - **Fix:** revoke на replace + unmount cleanup
+
+## Progress (fe1 · 2026-07-29)
+
+| ID | Status | Evidence |
+|----|--------|----------|
+| A3W10-5-001 | FIXED | `cases_.$caseKey.lazy.tsx` — `canMutate`; Edit/link/unlink/StepEditor gated; vitest `can-mutate-authz-ui` |
+| A3W10-5-002 | FIXED | `runs.lazy.tsx` + `runs_.$runId.tsx` + `RunHeader`/`RunResultsTable` `canMutate` |
+| A3W10-5-003 | FIXED | `onboarding.tsx` `beforeLoad` → `/login` / `/projects` |
+| A3W10-5-004 | FIXED | `login.tsx` `beforeLoad` → `/projects` / `/onboarding` |
+| A3W10-5-005 | FIXED | `onboarding.lazy.tsx` `revokeObjectURL` cleanup |
+
+**Команды:** `npx tsc --noEmit` PASS · vitest tms+auth TASK-128 **36/36** PASS  
+**Статус:** На проверке · Handoff: fe-ver → code-reviewer

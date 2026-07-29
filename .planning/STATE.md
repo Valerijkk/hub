@@ -65,10 +65,16 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-29 (be1 · TASK-135 A3W1-3 tracker repos residual)
+
+- **3/3 FIXED:** A3W1-A3-001 FilterSubjects+known-no-op Ack; A3W1-A3-002 executeRule Post/Notify → error → Nak; A3W1-A3-003 StartTimer `DeletedAtIsNil`.
+- hubtest tracker: focused ok 4.178s · full `./testframework/tracker/` ok 12.654s (-race).
+- Статус: **На проверке** → be-ver → code-reviewer.
+
 ## Session note — 2026-07-29 (fe1 · TASK-128 A3W10-5 TMS canMutate + auth routes)
 
 - **Сделано:** `canMutateProject` на case detail (Edit/link/unlink) и runs list/detail (`RunHeader`); `/onboarding` + `/login` `beforeLoad`; avatar `revokeObjectURL`. 5/5 FIXED → **На проверке**.
-- **Тесты:** tms `can-mutate-authz-ui` + auth guards/revoke — 20 PASS; tms domain 27/27; `tsc --noEmit` PASS.
+- **Тесты:** vitest tms+auth (guards/revoke/can-mutate) **36/36** PASS; `tsc --noEmit` PASS.
 - **Docs:** QUICKSTART — redirect guards login/onboarding; README backlog не трогали.
 
 ## Session note — 2026-07-29 (be2 · TASK-152 A3W4-5 apigateway)

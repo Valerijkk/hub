@@ -35,6 +35,8 @@ curl -X POST http://localhost:8080/api/dev/seed
 3. Получите **6-значный код** на почту (Resend / hub-mail)
 4. Введите код на странице верификации — вы в системе
 
+Уже аутентифицированный пользователь на `/login` уходит в `/projects` (или `/onboarding`, если онбординг не завершён). `/onboarding` без сессии редиректит на `/login`; при `onboarding_completed` — на `/projects` (`beforeLoad` в stub-роутах).
+
 В dev-режиме (`DEV_MODE=true`) доступен **dev-login** для E2E и локальной отладки без почты.
 
 ### Telegram
