@@ -1,6 +1,6 @@
 # 🧹 A3 FE admin error≠empty pending/limits/trash
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Открыта**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
 > Источник: A3 · **Owner lock: правим ВСЕ A3 open** · TASK-008 · кластер A3W9-1  
 > Ветка исполнения: `cursor-grok-4.5` (не пушить в `master`)
 
@@ -119,3 +119,19 @@
 - Коммиты: RU conventional description; **без** `Co-authored-by` / Generated-by / AI attribution.
 - Docs sync: только если меняется user-visible контракт wiki — для этих P2 UI-фиксов обычно достаточно STATE one-liner + статус backlog; wiki не трогать без изменения API.
 - Read-only audit; правки кода — по контракту задачи.
+
+## [PROGRESS]
+
+**Verdict:** 5/5 FIXED · статус **На проверке** · handoff **fe-ver → code-reviewer**
+
+| ID | Status | Evidence |
+|----|--------|----------|
+| A3W9-1-001 | FIXED | `pending-users-panel.tsx` — `loadError` + `QueryErrorAlert`; empty только `!loadError` |
+| A3W9-1-002 | FIXED | `resource-limits.tsx` — `loadError` + alert/retry; save-форма не при fail; timer/cancelled OK |
+| A3W9-1-003 | FIXED | `trash-manager.tsx` — `loadError` + alert; «Корзина пуста» только без error; tabs ARIA OK |
+| A3W9-1-004 | FIXED | `audit-log.tsx` — banner `QueryErrorAlert` над таблицей; «Записи не найдены» только без error |
+| A3W9-1-005 | FIXED | `CallChat.tsx` — `aria-label` + `aria-pressed` на logging toggle |
+
+**Regression:** `npx tsc --noEmit` PASS · `vitest domains/admin/` 31/31 PASS · calls logging a11y + regressions PASS
+
+**Mutation notes:** см. отчёт fe1 (убрать `loadError`/`QueryErrorAlert` / `aria-*` → assert краснеет).

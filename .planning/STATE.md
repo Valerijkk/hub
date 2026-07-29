@@ -65,6 +65,19 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-29 (fe1 · TASK-172 A3W9-1 admin error≠empty)
+
+- **Сделано:** `loadError` + `QueryErrorAlert`/retry в pending-users, resource-limits, trash-manager, audit-log; CallChat logging toggle — `aria-label` + `aria-pressed`.
+- **ID:** A3W9-1-001…005 → FIXED; задача «На проверке» (README по инструкции оркестратора не трогали).
+- **Тесты:** admin domain 31/31 + call-chat-logging-a11y; tsc PASS.
+
+## Session note — 2026-07-29 (fe1 · TASK-131 A3W11-3 loadLayout + reaction guard)
+
+- **Сделано:** `dashboard-store.loadLayout` → `error` + rethrow; dashboard/admin consumers без default поверх fail + alert/retry; `use-messages` `reaction_toggled` → `Array.isArray(reactions)`.
+- **ID:** A3W11-3-001, A3W11-3-002 → FIXED; задача «На проверке» (README не трогали).
+- **Тесты:** `layout-load-error.test.ts` + `reaction-toggled-guard.test.tsx`; mutation red/green.
+- **Overlap:** `sprint-store` не трогали (TASK-126).
+
 ## Session note — 2026-07-29 (fe1 · TASK-126 A3W10-3 sprint backlog/store)
 
 - **Сделано:** восстановлен фильтр бэклога `sprint_id:"none"` + `filterIssuesWithoutSprint`; `velocityLoading` (empty≠loading); сброс `sprints`/`velocity` при старте fetch; clear `selectedIssues` на смене `projectId`.
@@ -78,6 +91,14 @@ spec_coverage:
 - **ID:** A3W11-4-001/002/003 → FIXED; задача «На проверке» (README бэклога не трогали).
 - **Evidence:** shell count 760; `rg` anti-stale `618|bbdaf16|webcams — Phase 16 IN` пусто в целевых файлах.
 - **Assumption:** inventory снова устареет — дата measure в комментарии обязательна.
+
+## Session note — 2026-07-29 (be2 · TASK-138 A3W2-1-001 UpdateSuite OL)
+
+- **Сделано:** UpdateSuite — `version` required (DTO) + SuiteResponse.version; repo `VersionEQ`+`AddVersion(1)` → 409; service passthrough AppError.
+- **ID:** A3W2-1-001 → FIXED; задача «На проверке» (README бэклога не трогали).
+- **Тесты:** hubtest `update_suite_optimistic_a3w2_1_001_test.go` (omit→400, stale→409, sequential + Ent Postgres).
+- **Docs:** wiki API.md + TECHNICAL.md PUT suites `version` OL.
+- **Assumption:** FE TMS suite edit — out of scope (breaking 400 без version ожидаем).
 
 ## Session note — 2026-07-29 (fe1 · TASK-130 A3W11-2 projects/sprint version)
 

@@ -143,6 +143,12 @@ export function CallChat({ callId }: CallChatProps) {
 					<button
 						type="button"
 						onClick={toggleChatLogging}
+						aria-pressed={chatLoggingEnabled}
+						aria-label={
+							chatLoggingEnabled
+								? "Выключить логирование чата"
+								: "Включить логирование чата"
+						}
 						className={cn(
 							"flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] transition-colors",
 							chatLoggingEnabled

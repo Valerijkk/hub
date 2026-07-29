@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getLimits, type ResourceLimit, updateLimit } from "@/api/admin";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { toastApiError } from "@/lib/format-api-error";
 
 /** Описания лимитов на русском. */
@@ -17,6 +18,7 @@ export function ResourceLimits() {
 	const [limits, setLimits] = useState<ResourceLimit[]>([]);
 	const [values, setValues] = useState<Record<string, string>>({});
 	const [loading, setLoading] = useState(true);
+	const [loadError, setLoadError] = useState(false);
 	const [saving, setSaving] = useState(false);
 	const [toast, setToast] = useState("");
 	const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -27,30 +29,36 @@ export function ResourceLimits() {
 		toastTimerRef.current = setTimeout(() => setToast(""), 3000);
 	};
 
-	useEffect(() => {
-		let cancelled = false;
+	const load = useCallback(async (signal?: { cancelled: boolean }) => {
 		setLoading(true);
-		getLimits()
-			.then((data) => {
-				if (cancelled) return;
-				setLimits(data);
-				const vals: Record<string, string> = {};
-				for (const l of data) {
-					vals[l.key] = l.value;
-				}
-				setValues(vals);
-			})
-			.catch((err) => {
-				if (!cancelled) toastApiError(err, "Не удалось загрузить лимиты");
-			})
-			.finally(() => {
-				if (!cancelled) setLoading(false);
-			});
+		setLoadError(false);
+		try {
+			const data = await getLimits();
+			if (signal?.cancelled) return;
+			setLimits(data);
+			const vals: Record<string, string> = {};
+			for (const l of data) {
+				vals[l.key] = l.value;
+			}
+			setValues(vals);
+		} catch (err) {
+			if (!signal?.cancelled) {
+				setLoadError(true);
+				toastApiError(err, "Не удалось загрузить лимиты");
+			}
+		} finally {
+			if (!signal?.cancelled) setLoading(false);
+		}
+	}, []);
+
+	useEffect(() => {
+		const signal = { cancelled: false };
+		void load(signal);
 		return () => {
-			cancelled = true;
+			signal.cancelled = true;
 			if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
 		};
-	}, []);
+	}, [load]);
 
 	/** Сохранить все изменённые лимиты. */
 	const handleSave = async () => {
@@ -76,6 +84,16 @@ export function ResourceLimits() {
 	if (loading) {
 		return (
 			<div className="py-8 text-center text-t3 text-[13px]">Загрузка...</div>
+		);
+	}
+
+	// A3W9-1-002: fail ≠ пустая save-форма / «нет лимитов»
+	if (loadError) {
+		return (
+			<QueryErrorAlert
+				message="Не удалось загрузить лимиты"
+				retry={() => void load()}
+			/>
 		);
 	}
 

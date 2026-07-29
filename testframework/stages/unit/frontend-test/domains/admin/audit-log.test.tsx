@@ -109,4 +109,25 @@ describe("AuditLogViewer", () => {
 		expect(screen.getByText(/HubHighHTTP5xxRate/)).toBeInTheDocument();
 		expect(screen.getByText(/warning/)).toBeInTheDocument();
 	});
+
+	it("shows empty copy only after successful empty load", async () => {
+		render(<AuditLogViewer />);
+		expect(await screen.findByText("Записи не найдены")).toBeInTheDocument();
+		expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+	});
+
+	it("shows banner+retry on fetchLogs fail, not empty-as-fail (A3W9-1-004)", async () => {
+		mockGetAuditLogs.mockRejectedValue(new Error("network"));
+		render(<AuditLogViewer />);
+
+		await waitFor(() => {
+			expect(screen.getByRole("alert")).toHaveTextContent(
+				/не удалось загрузить журнал аудита/i,
+			);
+		});
+		expect(screen.queryByText("Записи не найдены")).not.toBeInTheDocument();
+		expect(
+			screen.getByRole("button", { name: /попробовать снова/i }),
+		).toBeInTheDocument();
+	});
 });

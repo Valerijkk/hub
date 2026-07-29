@@ -6,6 +6,7 @@ import {
 	type PendingUser,
 	rejectPendingUser,
 } from "@/api/admin-org";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toastApiError } from "@/lib/format-api-error";
 
@@ -15,17 +16,19 @@ import { toastApiError } from "@/lib/format-api-error";
 export function PendingUsersPanel() {
 	const [pending, setPending] = useState<PendingUser[]>([]);
 	const [loading, setLoading] = useState(true);
+	const [loadError, setLoadError] = useState(false);
 	const [actionId, setActionId] = useState<string | null>(null);
 	const [rejectTarget, setRejectTarget] = useState<PendingUser | null>(null);
 
 	const load = useCallback(async () => {
 		setLoading(true);
+		setLoadError(false);
 		try {
 			const items = await listPendingUsers();
 			setPending(items ?? []);
 		} catch (err) {
+			setLoadError(true);
 			toastApiError(err, "Не удалось загрузить очередь");
-			setPending([]);
 		} finally {
 			setLoading(false);
 		}
@@ -83,6 +86,12 @@ export function PendingUsersPanel() {
 
 			{loading ? (
 				<p className="text-[13px] text-t3 py-2">Загрузка...</p>
+			) : loadError ? (
+				<QueryErrorAlert
+					message="Не удалось загрузить очередь"
+					retry={() => void load()}
+					compact
+				/>
 			) : pending.length === 0 ? (
 				<p className="text-[13px] text-t3 py-2">Нет заявок на регистрацию</p>
 			) : (

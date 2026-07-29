@@ -5,6 +5,7 @@ import {
 	banUser,
 	getAuditLogs,
 } from "@/api/admin";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import {
 	Select,
 	SelectContent,
@@ -81,6 +82,7 @@ export function AuditLogViewer() {
 	const [total, setTotal] = useState(0);
 	const [page, setPage] = useState(1);
 	const [loading, setLoading] = useState(false);
+	const [loadError, setLoadError] = useState(false);
 	const [expandedId, setExpandedId] = useState<string | null>(null);
 	const [banTarget, setBanTarget] = useState<AuditLogEntry | null>(null);
 	const [banReason, setBanReason] = useState("");
@@ -93,6 +95,7 @@ export function AuditLogViewer() {
 
 	const fetchLogs = useCallback(async (signal?: { cancelled: boolean }) => {
 		setLoading(true);
+		setLoadError(false);
 		try {
 			const resp = await getAuditLogs({ ...filters, page });
 			if (signal?.cancelled) return;
@@ -100,6 +103,7 @@ export function AuditLogViewer() {
 			setTotal(resp.total);
 		} catch (err) {
 			if (!signal?.cancelled) {
+				setLoadError(true);
 				toastApiError(err, "Не удалось загрузить журнал аудита");
 			}
 		} finally {
@@ -350,6 +354,16 @@ export function AuditLogViewer() {
 				</button>
 			</div>
 
+			{loadError && !loading && (
+				<div className="mb-4">
+					<QueryErrorAlert
+						message="Не удалось загрузить журнал аудита"
+						retry={() => void fetchLogs()}
+						compact
+					/>
+				</div>
+			)}
+
 			<table
 				className="w-full"
 				aria-label="Журнал аудита"
@@ -411,7 +425,7 @@ export function AuditLogViewer() {
 								Загрузка...
 							</td>
 						</tr>
-					) : entries.length === 0 ? (
+					) : loadError && entries.length === 0 ? null : entries.length === 0 ? (
 						<tr>
 							<td
 								colSpan={7}
