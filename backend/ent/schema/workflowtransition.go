@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -24,13 +25,13 @@ func (WorkflowTransition) Fields() []ent.Field {
 			Immutable(),
 	}
 }
+
 // Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
 func (WorkflowTransition) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		VersionMixin{},
 	}
 }
-
 
 // Рёбра (edges) сущности WorkflowTransition.
 func (WorkflowTransition) Edges() []ent.Edge {
@@ -39,9 +40,11 @@ func (WorkflowTransition) Edges() []ent.Edge {
 			Ref("from_transitions").
 			Unique().
 			Required(),
+		// Cascade: hard-purge target status удаляет входящие переходы (A3W8-5-007 to_status).
 		edge.To("to_status", WorkflowStatus.Type).
 			Unique().
-			Required(),
+			Required().
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 

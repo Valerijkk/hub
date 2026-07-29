@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -78,7 +79,8 @@ func (TestRun) Edges() []ent.Edge {
 			Ref("created_runs").
 			Unique().
 			Required(),
-		edge.To("results", TestResult.Type),
+		edge.To("results", TestResult.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("assignees", User.Type),
 		edge.From("environment", Environment.Type).
 			Ref("test_runs").

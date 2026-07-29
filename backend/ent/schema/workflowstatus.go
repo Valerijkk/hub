@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -34,11 +35,19 @@ func (WorkflowStatus) Fields() []ent.Field {
 		field.Int("wip_limit").
 			Default(0).
 			Comment("WIP лимит: 0 = без лимита"),
+		field.Time("deleted_at").
+			Optional().
+			Nillable().
+			Comment("Время мягкого удаления (корзина 30 дней)"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
+		field.Time("updated_at").
+			Default(nowUTC).
+			UpdateDefault(nowUTC),
 	}
 }
+
 // Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
 func (WorkflowStatus) Mixin() []ent.Mixin {
 	return []ent.Mixin{
@@ -46,8 +55,8 @@ func (WorkflowStatus) Mixin() []ent.Mixin {
 	}
 }
 
-
 // Рёбра (edges) сущности WorkflowStatus.
+// OnDelete Cascade на from_transitions — owned child (A3W8-5-007).
 func (WorkflowStatus) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("project", Project.Type).
@@ -55,7 +64,8 @@ func (WorkflowStatus) Edges() []ent.Edge {
 			Unique().
 			Required(),
 		edge.To("issues", Issue.Type),
-		edge.To("from_transitions", WorkflowTransition.Type),
+		edge.To("from_transitions", WorkflowTransition.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.From("to_transitions", WorkflowTransition.Type).
 			Ref("to_status"),
 	}
@@ -69,5 +79,7 @@ func (WorkflowStatus) Indexes() []ent.Index {
 		index.Edges("project").
 			Fields("name").
 			Unique(),
+		index.Fields("deleted_at"),
+		index.Edges("project").Fields("deleted_at"),
 	}
 }

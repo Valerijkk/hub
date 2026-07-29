@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -55,7 +56,8 @@ func (WebhookEndpoint) Edges() []ent.Edge {
 			Ref("webhook_endpoints").
 			Unique().
 			Required(),
-		edge.To("deliveries", WebhookDelivery.Type),
+		edge.To("deliveries", WebhookDelivery.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 

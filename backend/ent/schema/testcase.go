@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -109,7 +110,8 @@ func (TestCase) Edges() []ent.Edge {
 			Ref("created_test_cases").
 			Unique().
 			Required(),
-		edge.To("versions", TestCaseVersion.Type),
+		edge.To("versions", TestCaseVersion.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("results", TestResult.Type),
 		edge.To("labels", Label.Type),
 		edge.To("linked_issues", Issue.Type),
