@@ -148,6 +148,10 @@ func (h *Handler) AssistJQL(c fiber.Ctx) error {
 		if errors.Is(err, ErrContentPolicyViolation) {
 			return fiber.NewError(fiber.StatusBadRequest, err.Error())
 		}
+		// A3W5-1-002: пустой query — 400, не catch-all 502.
+		if errors.Is(err, ErrQueryRequired) {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		}
 		return fiber.NewError(fiber.StatusBadGateway, err.Error())
 	}
 	return c.JSON(resp)
@@ -226,7 +230,14 @@ func (h *Handler) ChatCompletions(c fiber.Ctx) error {
 			if errors.Is(err, ErrContentPolicyViolation) {
 				return fiber.NewError(fiber.StatusBadRequest, err.Error())
 			}
-			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+			// A3W5-1-001: stream preflight — те же sentinel, что non-stream (не 400 + err.Error()).
+			if errors.Is(err, ErrNoProvider) || errors.Is(err, ErrProviderDisabled) {
+				return fiber.NewError(fiber.StatusServiceUnavailable, err.Error())
+			}
+			if errors.Is(err, ErrAllProvidersFailed) {
+				return fiber.NewError(fiber.StatusBadGateway, err.Error())
+			}
+			return fiber.NewError(fiber.StatusBadGateway, "provider error")
 		}
 		return c.Status(fiber.StatusAccepted).JSON(StreamStartResponse{
 			StreamID: req.StreamID,

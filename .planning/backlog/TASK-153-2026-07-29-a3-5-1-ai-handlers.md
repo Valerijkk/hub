@@ -1,6 +1,6 @@
 # 🐛 A3 AI stream ErrNoProvider mapping
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Открыта**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
 > Источник: A3W5-1-001 NEW · A3W5-1-002/003 RESIDUAL · Stage A3 FINAL · TASK-008  
 > Исполнитель: **be1**
 
@@ -112,3 +112,21 @@ Stream-ветка `ChatCompletions` мапит `ErrNoProvider` / `ErrProviderDis
 - Ветка исполнения по волне; **не** push/merge в `master`.
 - Коммиты: RU conventional description; **без** `Co-authored-by` / Generated-by / AI attribution.
 - Docs sync: если wiki/API обещает статусы stream chat — синхронизировать в том же PR; иначе STATE one-liner + backlog status.
+
+## Progress (be1 · 2026-07-29)
+
+| ID | Status | Evidence |
+|----|--------|----------|
+| A3W5-1-001 | FIXED | `handler.go` stream: NoProvider/Disabled→503, AllProvidersFailed→502, catch-all `"provider error"` (не `err.Error()`/400) |
+| A3W5-1-002 | FIXED | `ErrQueryRequired` sentinel в `service.go` + `errors.Is`→400 в AssistJQL |
+| A3W5-1-003 | FIXED | `handler_wave115_test.go`: Stream quota→429, consent→403, no-provider→503; EmptyQuery→400 |
+
+**Assumption:** sentinel `ErrQueryRequired` (не handler-early TrimSpace).
+
+**Mutation:**
+- убрать stream NoProvider→503 → `TestHandler_ChatCompletions_Stream_NoProvider` краснеет;
+- вернуть AssistJQL empty→catch-all 502 → `TestHandler_AssistJQL_EmptyQuery` краснеет.
+
+**Tests:** `go test -tags hubtest ./testframework/ai/ -run Stream_|AssistJQL_Empty` — прогон блокировался concurrent corruption `backend/ent/*` (uuid redeclared / mid-generate) соседними агентами волны; `go build ./internal/ai` зелёный при стабильном ent. Повторный hubtest — на be-ver / интеграции волны.
+
+**Handoff:** be-ver → code-reviewer.

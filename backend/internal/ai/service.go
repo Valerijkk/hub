@@ -21,6 +21,8 @@ var (
 	ErrSettingsTooLong        = fmt.Errorf("system prompt too long")
 	ErrSettingsNotConfigured  = fmt.Errorf("settings store not configured")
 	ErrProviderNotFound       = fmt.Errorf("provider not found")
+	// ErrQueryRequired — AssistJQL: пустой/blank query (A3W5-1-002 → HTTP 400).
+	ErrQueryRequired = fmt.Errorf("query is required")
 )
 
 // DefaultDailyRequestLimit — requests/day на пользователя (M3-027).
@@ -550,7 +552,7 @@ func (s *Service) runChatStream(ctx context.Context, userID uuid.UUID, req ChatC
 func (s *Service) AssistJQL(ctx context.Context, userID uuid.UUID, req JQLAssistRequest) (*JQLAssistResponse, error) {
 	query := strings.TrimSpace(req.Query)
 	if query == "" {
-		return nil, fmt.Errorf("query is required")
+		return nil, ErrQueryRequired
 	}
 	model, err := s.DefaultModel(ctx, userID)
 	if err != nil {
