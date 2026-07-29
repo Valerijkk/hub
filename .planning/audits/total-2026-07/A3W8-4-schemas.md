@@ -62,8 +62,10 @@ Recording `version` — **ADR exclusion** (unclear-12 / ADR-ENT-VERSION-MIXIN §
 
 | ID | Tag | Sev | Файл:строка | Проблема | Почему дефект | Как чинить |
 |----|-----|-----|-------------|---------|---------------|------------|
-| A3W8-4-001 | NEW | P2 | `sprint.go:71-72` | Индекс `project+status` **не** Unique; нет partial unique на `status=active` (+ `deleted_at IS NULL`) | DB не запрещает ≥2 active sprint в проекте; app-guard `StartSprintAtomic` — единственная защита (W19 C-002 / W1-A4-009). Soft-delete усложняет полный Unique | Partial unique `(project_id) WHERE status='active' AND deleted_at IS NULL` (Atlas/SQL) + runtime duplicate-start RED |
-| A3W8-4-002 | NEW | P3 | `sprint.go:64` | `edge.To("issues")` без `entsql.OnDelete(SetNull)` | ADR optional_ref: Issue.sprint optional; hard DELETE sprint при живых issues → FK trap (soft-delete путь OnDelete не вызывает; PermanentDelete project каскадит оба) | `Annotations(entsql.OnDelete(entsql.SetNull))` на Sprint→issues |
+| A3W8-4-001 | FIXED | P2 | `sprint.go` Indexes | Индекс `project+status` **не** Unique; нет partial unique на `status=active` (+ `deleted_at IS NULL`) | DB не запрещает ≥2 active sprint в проекте; app-guard `StartSprintAtomic` — единственная защита (W19 C-002 / W1-A4-009). Soft-delete усложняет полный Unique | **FIXED TASK-170:** `IndexWhere("status = 'active' AND deleted_at IS NULL").Unique()` + migrate `20260729_task170_…sql`; hubtest `TestConstraint_TASK170_*` |
+| A3W8-4-002 | FIXED | P3 | `sprint.go` Edges | `edge.To("issues")` без `entsql.OnDelete(SetNull)` | ADR optional_ref: Issue.sprint optional; hard DELETE sprint при живых issues → FK trap (soft-delete путь OnDelete не вызывает; PermanentDelete project каскадит оба) | **FIXED TASK-170:** `Annotations(entsql.OnDelete(entsql.SetNull))` + migrate FK SET NULL; hubtest `TestCascade_TASK170_SprintHardDeleteSetsIssueSprintNull` |
+
+> Remediation 2026-07-29 · TASK-170 · be1 → be-ver. Migrate SQL: `needs-owner-apply` (pre-migrate cleanup duplicate actives).
 
 ## Чисто (подтверждено после remediation)
 
@@ -72,7 +74,7 @@ Recording `version` — **ADR exclusion** (unclear-12 / ADR-ENT-VERSION-MIXIN §
 | UUID PK | **17/17** `field.UUID("id").Default(uuid.New).Immutable()` |
 | VersionMixin | org, poll, project, projecttemplate, role, savedfilter, scheduledcall, sprint |
 | Soft-delete | project, scheduledcall, sprint, recording (+ indexes `deleted_at`) |
-| OnDelete | Project Cascade owned_child; Org NoAction; Poll/Option Cascade |
+| OnDelete | Project Cascade owned_child; Org NoAction; Poll/Option Cascade; Sprint→issues SetNull (TASK-170) |
 | Sensitive | org `invite_token`; push p256dh/auth; session refresh |
 | Junction/append-only | outbox, pinnedmessage, projectmember, pollvote, reaction, session — version/soft N/A |
 | Recording/Push version | ADR unclear-12 exclusion — не gap |
@@ -85,8 +87,8 @@ Recording `version` — **ADR exclusion** (unclear-12 / ADR-ENT-VERSION-MIXIN §
 |----------|------:|
 | P0 | 0 |
 | P1 | 0 |
-| P2 | 1 |
-| P3 | 1 |
-| **Total open** | **2** |
+| P2 | 0 |
+| P3 | 0 |
+| **Total open** | **0** |
 
-FIXED-OK (A2): **6/6** · NEW: **2** · REGRESS: **0** · RESIDUAL A2: **0**
+FIXED-OK (A2): **6/6** · NEW→FIXED (A3): **2/2** · REGRESS: **0** · RESIDUAL A2: **0**

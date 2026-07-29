@@ -65,6 +65,20 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-29 (be1 · TASK-155 A3W5-3 ai service)
+
+- **9/9 FIXED** (A3W5-3-001…009): UTF-8 composer trim; usage/settings upsert; issue_lookup fail-closed; consent Default(false)+Create deny; VersionEQ 409; WS sanitize; BotUserRepository; bot-flow asserts.
+- **Hubtest:** `./testframework/ai/` `-race` PASS (~19s). Mutation 001 observed red→green.
+- **Approval:** Atlas ALTER DEFAULT `allow_external_ai` — waiting owner (schema+Create already deny).
+- **Статус:** На проверке → be-ver → code-reviewer. README не трогали.
+
+## Session note — 2026-07-29 (be1 · TASK-170 A3W8-4 sprint schemas)
+
+- **2/2 FIXED** (A3W8-4-001/002): partial unique active sprint (`IndexWhere` + migrate SQL); Sprint→issues `OnDelete(SetNull)`.
+- **Hubtest:** `./testframework/ent/ -run TASK170` PASS (5); `./testframework/sprint/ -run SoftDelete|SecondActive|StartSprintAtomic` PASS.
+- **Migrate:** `20260729_task170_sprint_active_unique_setnull.sql` — `needs-owner-apply` + pre-migrate cleanup duplicates.
+- **Статус:** На проверке → be-ver → code-reviewer. README не трогали (owner).
+
 ## Session note — 2026-07-29 (be1 · TASK-134 A3W1-2 tracker services)
 
 - **6/6 FIXED** (A3W1-2-001…006): UpdateIssue `CountLabelsInProject`; CreateLabel `FindLabelGroupInProject`; Create/UpdateRule `ensureActionChannelInProject`; ListThreadIssueLinks `WithIssue` eager; CreateIssueLink AppError wrap; UpdateComment 404≠409.
