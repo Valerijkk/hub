@@ -137,12 +137,12 @@ Stage A2 (brief): [A2-DEDUP-2026-07-28.md](../audits/total-2026-07/A2-DEDUP-2026
 | [TASK-011](TASK-011-webhook-event-match.md) | webhook UI events ≠ NATS subjects | **P0** | Исправлена | be1 | W4-A5-001 |
 | [TASK-012](TASK-012-webhook-project-scope.md) | webhook dispatch без project-scope | **P0** | Исправлена | be1 | W4-A5-002 |
 | [TASK-013](TASK-013-tracker-project-scope-idor.md) | Tracker IDOR workflow/fields/refs | P1 | Исправлена | be1 | W12 P1-BE-01..04 |
-| [TASK-014](TASK-014-project-acl-sprint-tx.md) | Project ACL + sprint atomic | P1 | Исправлена | be2→rework | W12 P1-BE-05..09 · ACL+Ent mid-fail |
+| [TASK-014](TASK-014-project-acl-sprint-tx.md) | Project ACL + sprint atomic | P1 | Закрыта | be2→rework · W1-be1 PASS | W12 P1-BE-05..09 · MUTATION-2026-07-29-W1-be1 |
 | [TASK-015](TASK-015-tms-project-scope-idor-refs.md) | TMS suite/env IDOR + FK | P1 | Исправлена | be2 | W12 P1-BE-10..12 · W18-C2 PASS |
 | [TASK-016](TASK-016-tms-import-limits-steps.md) | TMS import limits + steps | P1 | Исправлена | be2 | W12 P1-BE-13..14 · W18-C2 PASS |
 | [TASK-017](TASK-017-messenger-membership-idor.md) | Messenger membership IDOR | P1 | Исправлена | be1 | W12 P1-BE-15..20 |
 | [TASK-018](TASK-018-ws-calls-authz-race.md) | WS race + scheduled calls authz | P1 | Исправлена | be1 | W12 P1-BE-21..22 |
-| [TASK-019](TASK-019-platform-ssrf-outbox-pool-config.md) | Platform SSRF/outbox/pool/config | P1 | Исправлена | be2→rework | W12 P1-BE-23..26 · To4 normalize proof |
+| [TASK-019](TASK-019-platform-ssrf-outbox-pool-config.md) | Platform SSRF/outbox/pool/config | P1 | Закрыта | be2→rework · W1-be1 PASS | W12 P1-BE-23..26 · MUTATION-2026-07-29-W1-be1 |
 | [TASK-020](TASK-020-apigateway-webhook-create-contract.md) | Webhook secret once + allowlist | P1 | Исправлена | be2 | W12 P1-BE-27..28 · W18-C2 PASS |
 | [TASK-021](TASK-021-ai-policy-bot-authz.md) | AI policy + bot authz | P1 | Исправлена | be1 | W12 P1-BE-29..31 |
 | [TASK-022](TASK-022-search-nf03-softdelete.md) | Search soft-delete + private | P1 | Исправлена | be2 | W12 P1-BE-32 · W18-C2 PASS |
@@ -168,7 +168,7 @@ Stage A2 (brief): [A2-DEDUP-2026-07-28.md](../audits/total-2026-07/A2-DEDUP-2026
 | [TASK-042](TASK-042-be-p2-perm-messenger-ws-calls.md) | BE perm/messenger/ws/calls | P2 | Исправлена | be1→rework | W12 P2-BE-12..15 · NATS via_invite |
 | [TASK-043](TASK-043-be-p2-platform-outbox-obs.md) | BE platform outbox/obs | P2 | Исправлена · W18-C2b | be2 | W12 P2-BE-16 |
 | [TASK-044](TASK-044-be-p2-ai-search.md) | AI stream/privacy + search JQL/SSRF | P2 | Исправлена | be1→rework | W12 P2-BE-17/18 · Meili+cancel IT |
-| [TASK-045](TASK-045-be-p2-rbac-gdpr-integrations-storage.md) | BE rbac/gdpr/imex/storage | P2 | Исправлена | be2→rework | W12 P2-BE-19..21 · Confirm ghost IT |
+| [TASK-045](TASK-045-be-p2-rbac-gdpr-integrations-storage.md) | BE rbac/gdpr/imex/storage | P2 | Закрыта | be2→rework · W1-be1 PASS | W12 P2-BE-19..21 · MUTATION-2026-07-29-W1-be1 |
 | [TASK-046](TASK-046-be-p2-ent-unique-fk-check.md) | BE Ent unique/FK/CHECK | P2 | Исправлена | be1→rework | W12 P2-BE-22 · enttest runtime |
 | [TASK-047](TASK-047-fe-p2-error-vs-empty.md) | FE error≠empty sweep | P2 | Исправлена | fe1 | W12 P2-FE-01 |
 | [TASK-048](TASK-048-fe-p2-mutation-feedback.md) | FE mutation feedback | P2 | Исправлена · W18-C5 | fe2 | W12 P2-FE-02 |
