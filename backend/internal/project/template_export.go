@@ -10,6 +10,7 @@ import (
 	"github.com/gofiber/utils/v2"
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent/projecttemplate"
+	apperr "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
 // maxTemplateImportBytes — лимит JSON-файла шаблона (совпадает с Fiber BodyLimit 25 MB).
@@ -108,7 +109,8 @@ func (h *TemplateHandler) ExportTemplateHandler(c fiber.Ctx) error {
 
 	data, err := h.svc.ExportTemplate(c.Context(), id)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		// A3W1-A5-005: не fiber.NewError(..., err.Error()) — без утечки internals.
+		return apperr.NewInternal("failed to export template")
 	}
 
 	c.Set("Content-Type", "application/json")

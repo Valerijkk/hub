@@ -213,7 +213,22 @@ func validateProjectAvatarURL(raw string) error {
 }
 
 // ArchiveProject переводит проект в статус archived.
+// Soft-deleted (корзина) нельзя архивировать — иначе ClearDeletedAt-resurrect через PermProjectEdit (A3W1-A5-001).
 func (s *ProjectService) ArchiveProject(ctx context.Context, projectID uuid.UUID) (*ProjectResponse, error) {
+	cur, err := s.repo.FindByID(ctx, projectID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("project not found")
+		}
+		return nil, apperrors.NewInternal("failed to find project")
+	}
+	if cur.Status == project.StatusDeleted {
+		return nil, apperrors.NewNotFound("project not found")
+	}
+	if cur.Status != project.StatusActive {
+		return nil, apperrors.NewBadRequest("only active projects can be archived")
+	}
+
 	p, err := s.repo.UpdateStatus(ctx, projectID, project.StatusArchived, false)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -225,7 +240,22 @@ func (s *ProjectService) ArchiveProject(ctx context.Context, projectID uuid.UUID
 }
 
 // UnarchiveProject возвращает проект из archived в active.
+// Soft-deleted нельзя «воскресить» через unarchive (A3W1-A5-001).
 func (s *ProjectService) UnarchiveProject(ctx context.Context, projectID uuid.UUID) (*ProjectResponse, error) {
+	cur, err := s.repo.FindByID(ctx, projectID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("project not found")
+		}
+		return nil, apperrors.NewInternal("failed to find project")
+	}
+	if cur.Status == project.StatusDeleted {
+		return nil, apperrors.NewNotFound("project not found")
+	}
+	if cur.Status != project.StatusArchived {
+		return nil, apperrors.NewBadRequest("only archived projects can be unarchived")
+	}
+
 	p, err := s.repo.UpdateStatus(ctx, projectID, project.StatusActive, false)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -302,8 +332,20 @@ func (s *ProjectService) notifyLinkDeleted(ctx context.Context, otherIssue *ent.
 }
 
 // RestoreProject восстанавливает проект из корзины (active, cleared deleted_at).
+// ClearDeletedAt только здесь — не через Archive/Unarchive (A3W1-A5-001).
 func (s *ProjectService) RestoreProject(ctx context.Context, projectID uuid.UUID) (*ProjectResponse, error) {
-	p, err := s.repo.UpdateStatus(ctx, projectID, project.StatusActive, false)
+	cur, err := s.repo.FindByID(ctx, projectID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("project not found")
+		}
+		return nil, apperrors.NewInternal("failed to find project")
+	}
+	if cur.Status != project.StatusDeleted {
+		return nil, apperrors.NewBadRequest("only deleted projects can be restored")
+	}
+
+	p, err := s.repo.RestoreFromTrash(ctx, projectID)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("project not found")
@@ -313,10 +355,29 @@ func (s *ProjectService) RestoreProject(ctx context.Context, projectID uuid.UUID
 	return toProjectResponse(p, s.memberCountOrZero(ctx, projectID), ""), nil
 }
 
-// PermanentDelete выполняет жёсткое удаление проекта. Только admin.
-func (s *ProjectService) PermanentDelete(ctx context.Context, projectID uuid.UUID) error {
-	err := s.repo.Delete(ctx, projectID)
+// PermanentDelete выполняет жёсткое удаление проекта из корзины.
+// TZ: hard-delete только Admin/GDPR и только status=deleted (A3W1-A5-002).
+func (s *ProjectService) PermanentDelete(ctx context.Context, projectID, actorID uuid.UUID) error {
+	cur, err := s.repo.FindByID(ctx, projectID)
 	if err != nil {
+		if ent.IsNotFound(err) {
+			return apperrors.NewNotFound("project not found")
+		}
+		return apperrors.NewInternal("failed to find project")
+	}
+	if cur.Status != project.StatusDeleted {
+		return apperrors.NewBadRequest("project must be in trash before permanent delete")
+	}
+
+	ok, err := s.repo.IsSystemAdmin(ctx, actorID)
+	if err != nil {
+		return apperrors.NewInternal("failed to check admin role")
+	}
+	if !ok {
+		return apperrors.NewForbidden("only system admin can permanently delete projects")
+	}
+
+	if err := s.repo.Delete(ctx, projectID); err != nil {
 		if ent.IsNotFound(err) {
 			return apperrors.NewNotFound("project not found")
 		}
@@ -509,16 +570,14 @@ func toInviteResponse(inv *ent.Invite, frontendURL string) *InviteResponse {
 }
 
 // CreateTeam создаёт команду; создатель сразу становится участником (ownership без миграции Team).
+// A3W1-A5-003: create + add creator в одной Ent-tx.
 func (s *ProjectService) CreateTeam(ctx context.Context, creatorID uuid.UUID, name, description string) (*TeamResponse, error) {
-	t, err := s.repo.CreateTeam(ctx, name, description)
+	t, err := s.repo.CreateTeamWithCreator(ctx, creatorID, name, description)
 	if err != nil {
 		if ent.IsConstraintError(err) {
 			return nil, apperrors.NewConflict("team name already exists")
 		}
 		return nil, apperrors.NewInternal("failed to create team")
-	}
-	if _, err := s.repo.AddTeamMember(ctx, t.ID, creatorID); err != nil {
-		return nil, apperrors.NewInternal("failed to add team creator")
 	}
 	return toTeamResponse(t, 1), nil
 }

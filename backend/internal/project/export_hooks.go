@@ -48,3 +48,13 @@ func ExportToTemplateResponse(t *ent.ProjectTemplate) *TemplateResponse {
 func ExportSetAfterAddTeamLinkHook(fn func(ctx context.Context) error) {
 	afterAddTeamLinkHook = fn
 }
+
+// ExportSetAfterCreateTeamHook инъектирует mid-fail после CreateTeam внутри tx (A3W1-A5-003).
+func ExportSetAfterCreateTeamHook(fn func(ctx context.Context) error) {
+	afterCreateTeamHook = fn
+}
+
+// ExportMaxTemplateImportBytes возвращает лимит импорта шаблона для hubtest (A3W1-A5-006).
+func ExportMaxTemplateImportBytes() int {
+	return maxTemplateImportBytes
+}

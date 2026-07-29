@@ -238,7 +238,8 @@ func (h *TemplateHandler) RegisterRoutes(api fiber.Router, authMw fiber.Handler)
 func (h *TemplateHandler) ListTemplates(c fiber.Ctx) error {
 	templates, err := h.svc.ListTemplates(c.Context())
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		// A3W1-A5-005: не fiber.NewError(..., err.Error()) — без утечки internals.
+		return apperr.NewInternal("failed to list templates")
 	}
 	return c.JSON(templates)
 }

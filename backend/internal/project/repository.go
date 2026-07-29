@@ -27,7 +27,11 @@ type Repository interface {
 	ListTrash(ctx context.Context, userID uuid.UUID) ([]*ent.Project, error)
 	Create(ctx context.Context, name, key, description string, ownerID uuid.UUID) (*ent.Project, error)
 	Update(ctx context.Context, id uuid.UUID, version int, name, description, avatarURL *string) (*ent.Project, error)
+	// UpdateStatus меняет status; setDeletedAt=true ставит deleted_at.
+	// setDeletedAt=false НЕ очищает deleted_at (A3W1-A5-001) — для Restore см. RestoreFromTrash.
 	UpdateStatus(ctx context.Context, id uuid.UUID, status project.Status, setDeletedAt bool) (*ent.Project, error)
+	// RestoreFromTrash — единственный путь ClearDeletedAt + status=active (A3W1-A5-001).
+	RestoreFromTrash(ctx context.Context, id uuid.UUID) (*ent.Project, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 	MemberCount(ctx context.Context, projectID uuid.UUID) (int, error)
 	MemberCountBatch(ctx context.Context, projectIDs []uuid.UUID) (map[uuid.UUID]int, error)
@@ -51,6 +55,8 @@ type Repository interface {
 
 	// Операции с командами
 	CreateTeam(ctx context.Context, name, description string) (*ent.Team, error)
+	// CreateTeamWithCreator атомарно создаёт команду и добавляет создателя (A3W1-A5-003).
+	CreateTeamWithCreator(ctx context.Context, creatorID uuid.UUID, name, description string) (*ent.Team, error)
 	// ListTeamsByUserID возвращает команды, где userID — участник (P1-BE-08 ACL).
 	ListTeamsByUserID(ctx context.Context, userID uuid.UUID) ([]*ent.Team, error)
 	FindTeamByID(ctx context.Context, id uuid.UUID) (*ent.Team, error)
@@ -226,15 +232,23 @@ func (r *EntRepository) Update(ctx context.Context, id uuid.UUID, version int, n
 	return update.Save(ctx)
 }
 
-// UpdateStatus обновляет статус проекта и опционально устанавливает deleted_at.
+// UpdateStatus обновляет статус проекта.
+// setDeletedAt=true → soft-delete (SetDeletedAt). Иначе deleted_at не трогаем:
+// ClearDeletedAt только в RestoreFromTrash (A3W1-A5-001 — нельзя воскресить через archive).
 func (r *EntRepository) UpdateStatus(ctx context.Context, id uuid.UUID, status project.Status, setDeletedAt bool) (*ent.Project, error) {
 	update := r.client.Project.UpdateOneID(id).SetStatus(status)
 	if setDeletedAt {
 		update = update.SetDeletedAt(time.Now().UTC())
-	} else {
-		update = update.ClearDeletedAt()
 	}
 	return update.Save(ctx)
+}
+
+// RestoreFromTrash возвращает проект из корзины: status=active + ClearDeletedAt.
+func (r *EntRepository) RestoreFromTrash(ctx context.Context, id uuid.UUID) (*ent.Project, error) {
+	return r.client.Project.UpdateOneID(id).
+		SetStatus(project.StatusActive).
+		ClearDeletedAt().
+		Save(ctx)
 }
 
 // Delete выполняет жёсткое удаление проекта из базы данных.
@@ -440,7 +454,7 @@ func (r *EntRepository) DeleteInvite(ctx context.Context, projectID, inviteID uu
 	return nil
 }
 
-// CreateTeam создаёт команду с указанным именем и описанием.
+// CreateTeam создаёт команду с указанным именем и описанием (без участников).
 func (r *EntRepository) CreateTeam(ctx context.Context, name, description string) (*ent.Team, error) {
 	create := r.client.Team.Create().SetName(name)
 	if description != "" {
@@ -448,6 +462,53 @@ func (r *EntRepository) CreateTeam(ctx context.Context, name, description string
 	}
 	return create.Save(ctx)
 }
+
+// CreateTeamWithCreator атомарно создаёт команду и добавляет создателя.
+// A3W1-A5-003: mid-fail после create → rollback, orphan team не остаётся.
+func (r *EntRepository) CreateTeamWithCreator(ctx context.Context, creatorID uuid.UUID, name, description string) (*ent.Team, error) {
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin create team tx: %w", err)
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_ = tx.Rollback()
+		}
+	}()
+
+	create := tx.Team.Create().SetName(name)
+	if description != "" {
+		create = create.SetDescription(description)
+	}
+	t, err := create.Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// hubtest-инъекция mid-fail после CreateTeam (см. ExportSetAfterCreateTeamHook).
+	if afterCreateTeamHook != nil {
+		if err := afterCreateTeamHook(ctx); err != nil {
+			return nil, err
+		}
+	}
+
+	if _, err := tx.TeamMember.Create().
+		SetTeamID(t.ID).
+		SetUserID(creatorID).
+		Save(ctx); err != nil {
+		return nil, fmt.Errorf("add team creator: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit create team: %w", err)
+	}
+	committed = true
+	return t, nil
+}
+
+// afterCreateTeamHook — опциональная инъекция после CreateTeam внутри tx (только hubtest).
+var afterCreateTeamHook func(ctx context.Context) error
 
 // ListTeamsByUserID возвращает команды, в которых состоит пользователь.
 func (r *EntRepository) ListTeamsByUserID(ctx context.Context, userID uuid.UUID) ([]*ent.Team, error) {

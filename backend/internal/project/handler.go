@@ -294,8 +294,12 @@ func (h *Handler) PermanentDeleteProject(c fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
 
-	if err := h.service.PermanentDelete(c.Context(), projectID); err != nil {
+	if err := h.service.PermanentDelete(c.Context(), projectID, userID); err != nil {
 		return err
 	}
 
