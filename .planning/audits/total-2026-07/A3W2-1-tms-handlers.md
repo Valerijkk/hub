@@ -60,7 +60,7 @@
 
 | ID | Tag | Sev | Файл:строка | Проблема | Почему дефект | Как чинить |
 |----|-----|-----|-------------|---------|---------------|------------|
-| A3W2-1-001 | NEW | P3 | `dto.go:73–78`, `251–261`; `handler_suites.go:72–92` | После TASK-095 `TestSuite` имеет `VersionMixin`, но API: `UpdateSuiteRequest` без `version`, `SuiteResponse` не отдаёт `version`; repo `UpdateSuite` без `VersionEQ`/`AddVersion` | NFR-24 / ADR-ENT-VERSION-MIXIN: mutable entity с version в схеме, update — last-write-wins; клиент не может сделать OL (контраст с `UpdateTestCaseRequest.Version`) | `version` в Request+Response; validate required; service→repo `VersionEQ`+`AddVersion` → 409; regression concurrent PUT |
+| A3W2-1-001 | FIXED | P3 | `dto.go` UpdateSuiteRequest/SuiteResponse + `ent_repository.go` VersionEQ; hubtest `update_suite_optimistic_a3w2_1_001_test.go` | ~~UpdateSuite без OL~~ → `version` required + VersionEQ/AddVersion → 409; SuiteResponse.version | NFR-24 / ADR-ENT-VERSION-MIXIN | FIXED TASK-138 |
 
 ## Чисто (перепроверено)
 

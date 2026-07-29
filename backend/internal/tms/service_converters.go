@@ -116,6 +116,7 @@ func toSuiteResponse(suite *ent.TestSuite) *SuiteResponse {
 		Name:        suite.Name,
 		Description: suite.Description,
 		SortOrder:   suite.SortOrder,
+		Version:     suite.Version,
 		CreatedAt:   suite.CreatedAt,
 		UpdatedAt:   suite.UpdatedAt,
 	}

@@ -411,7 +411,7 @@ curl -sS -X POST http://localhost:8080/api/auth/magic-link/verify \
 |---|---|---|
 | POST | `/projects/:projectId/tms/suites/` | Создать набор |
 | GET | `/projects/:projectId/tms/suites/` | Список наборов |
-| PUT | `/projects/:projectId/tms/suites/:suiteId` | Обновить набор |
+| PUT | `/projects/:projectId/tms/suites/:suiteId` | Обновить набор (`version` required → 409 при конфликте) |
 | DELETE | `/projects/:projectId/tms/suites/:suiteId` | Удалить набор |
 
 ### Компоненты

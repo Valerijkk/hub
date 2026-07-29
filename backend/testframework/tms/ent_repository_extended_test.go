@@ -219,7 +219,7 @@ func TestEntRepository_SuiteUpdateDeleteMove(t *testing.T) {
 	require.NoError(t, err)
 
 	renamed := "Child renamed"
-	updated, err := repo.UpdateSuite(ctx, projectID, child.ID, tms.UpdateSuiteInput{Name: &renamed})
+	updated, err := repo.UpdateSuite(ctx, projectID, child.ID, tms.UpdateSuiteInput{Name: &renamed, Version: child.Version})
 	require.NoError(t, err)
 	assert.Equal(t, renamed, updated.Name)
 

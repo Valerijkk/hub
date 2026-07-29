@@ -75,6 +75,8 @@ type UpdateSuiteRequest struct {
 	Name        *string `json:"name,omitempty" validate:"omitempty,min=1,max=200"`
 	Description *string `json:"description,omitempty"`
 	SortOrder   *int    `json:"sort_order,omitempty"`
+	// Version — optimistic lock (A3W2-1-001 / NFR-24); omit/0 → 400 StructValidator.
+	Version int `json:"version" validate:"required"`
 }
 
 // CreateComponentRequest — тело запроса на создание компонента.
@@ -256,6 +258,7 @@ type SuiteResponse struct {
 	SortOrder   int             `json:"sort_order"`
 	ParentID    string          `json:"parent_id,omitempty"`
 	Children    []SuiteResponse `json:"children,omitempty"`
+	Version     int             `json:"version"`
 	CreatedAt   time.Time       `json:"created_at"`
 	UpdatedAt   time.Time       `json:"updated_at"`
 }

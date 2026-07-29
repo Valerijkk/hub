@@ -42,14 +42,17 @@ func NewEntRepository(client *ent.Client) *EntRepository {
 	return &EntRepository{client: client}
 }
 
-// Hard caps для unbounded All / InsertMany (A2W2-3-001/002).
-const (
-	maxListTestResults       = 10000
-	maxListSuites            = 2000
-	maxListComponents        = 1000
-	maxListTestCaseVersions  = 500
+// Hard caps для unbounded All / InsertMany (A2W2-3 / A3W2-3-001).
+// var (не const): hubtest временно снижает лимит для mutation на .Limit(...).
+var (
+	maxListTestResults        = 10000
+	maxListSuites             = 2000
+	maxListComponents         = 1000
+	maxListTestCaseVersions   = 500
+	maxListEnvironments       = 500
+	maxListProjectIssues      = 10000
 	maxBatchCreateTestResults = 5000
-	maxMongoAllureResults    = 5000
+	maxMongoAllureResults     = 5000
 )
 
 // ---------------------------------------------------------------------------
@@ -393,6 +396,7 @@ func (r *EntRepository) CountTestCasesInProject(ctx context.Context, projectID u
 }
 
 // CountLabelsInProject считает метки из ids внутри projectID (P1-BE-12).
+// A3W2-3-002: DeletedAtIsNil — soft-deleted labels не входят в count.
 func (r *EntRepository) CountLabelsInProject(ctx context.Context, projectID uuid.UUID, ids []uuid.UUID) (int, error) {
 	if len(ids) == 0 {
 		return 0, nil
@@ -400,6 +404,7 @@ func (r *EntRepository) CountLabelsInProject(ctx context.Context, projectID uuid
 	return r.client.Label.Query().
 		Where(
 			label.IDIn(ids...),
+			label.DeletedAtIsNil(),
 			label.HasProjectWith(entproject.ID(projectID)),
 		).
 		Count(ctx)
@@ -503,14 +508,17 @@ func (r *EntRepository) ListSuites(ctx context.Context, projectID uuid.UUID) ([]
 		All(ctx)
 }
 
-// UpdateSuite обновляет папку только внутри projectID (P1-BE-10).
+// UpdateSuite обновляет папку только внутри projectID (P1-BE-10) с optimistic lock (A3W2-1-001).
+// Mutation: снять testsuite.VersionEQ(input.Version) → stale update проходит (last-write-wins).
 func (r *EntRepository) UpdateSuite(ctx context.Context, projectID, id uuid.UUID, input UpdateSuiteInput) (*ent.TestSuite, error) {
 	update := r.client.TestSuite.Update().
 		Where(
 			testsuite.IDEQ(id),
+			testsuite.VersionEQ(input.Version),
 			testsuite.DeletedAtIsNil(),
 			testsuite.HasProjectWith(entproject.ID(projectID)),
-		)
+		).
+		AddVersion(1)
 
 	if input.Name != nil {
 		update = update.SetName(*input.Name)
@@ -527,7 +535,20 @@ func (r *EntRepository) UpdateSuite(ctx context.Context, projectID, id uuid.UUID
 		return nil, fmt.Errorf("обновление папки: %w", err)
 	}
 	if affected == 0 {
-		return nil, &ent.NotFoundError{}
+		alive, existErr := r.client.TestSuite.Query().
+			Where(
+				testsuite.IDEQ(id),
+				testsuite.DeletedAtIsNil(),
+				testsuite.HasProjectWith(entproject.ID(projectID)),
+			).
+			Exist(ctx)
+		if existErr != nil {
+			return nil, fmt.Errorf("проверка папки после conflict: %w", existErr)
+		}
+		if !alive {
+			return nil, &ent.NotFoundError{}
+		}
+		return nil, apperrors.NewConflict("version mismatch: папка была изменена другим пользователем")
 	}
 
 	return r.GetSuite(ctx, id)
@@ -870,6 +891,7 @@ func (r *EntRepository) ListTestResults(ctx context.Context, runID uuid.UUID) ([
 }
 
 // ListTestResultsByRunIDs возвращает результаты нескольких прогонов одним запросом (A2W2-2-001).
+// A3W2-3-001: hard cap (truncate), как ListTestResults.
 func (r *EntRepository) ListTestResultsByRunIDs(ctx context.Context, runIDs []uuid.UUID) ([]*ent.TestResult, error) {
 	if len(runIDs) == 0 {
 		return nil, nil
@@ -880,6 +902,7 @@ func (r *EntRepository) ListTestResultsByRunIDs(ctx context.Context, runIDs []uu
 		WithExecutedBy().
 		WithRun().
 		Order(ent.Asc(testresult.FieldCreatedAt)).
+		Limit(maxListTestResults).
 		All(ctx)
 }
 
@@ -969,10 +992,13 @@ func (r *EntRepository) UnlinkTestCaseFromIssue(ctx context.Context, testCaseID,
 }
 
 // GetTestCaseLinkedIssues возвращает задачи, привязанные к тест-кейсу.
+// A3W2-3-003: edge DeletedAtIsNil — задачи из корзины не возвращаются.
 func (r *EntRepository) GetTestCaseLinkedIssues(ctx context.Context, testCaseID uuid.UUID) ([]*ent.Issue, error) {
 	tc, err := r.client.TestCase.Query().
 		Where(testcase.ID(testCaseID)).
-		WithLinkedIssues().
+		WithLinkedIssues(func(q *ent.IssueQuery) {
+			q.Where(entissue.DeletedAtIsNil())
+		}).
 		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("получение привязанных задач: %w", err)
@@ -981,10 +1007,13 @@ func (r *EntRepository) GetTestCaseLinkedIssues(ctx context.Context, testCaseID 
 }
 
 // GetIssueLinkedTestCases возвращает тест-кейсы, привязанные к задаче (обратная связь).
+// A3W2-3-003: edge DeletedAtIsNil — TC из корзины не возвращаются.
 func (r *EntRepository) GetIssueLinkedTestCases(ctx context.Context, issueID uuid.UUID) ([]*ent.TestCase, error) {
 	issue, err := r.client.Issue.Query().
 		Where(entissue.ID(issueID)).
-		WithLinkedTestCases().
+		WithLinkedTestCases(func(q *ent.TestCaseQuery) {
+			q.Where(testcase.DeletedAtIsNil())
+		}).
 		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("получение привязанных тест-кейсов: %w", err)
@@ -994,13 +1023,17 @@ func (r *EntRepository) GetIssueLinkedTestCases(ctx context.Context, issueID uui
 
 // GetProjectIssuesWithTestCases возвращает живые задачи проекта с привязанными тест-кейсами.
 // P3-BE-05 / W2-A3-010: DeletedAtIsNil — coverage не включает корзину.
+// A3W2-3-001: hard cap; A3W2-3-003: linked TC без soft-deleted.
 func (r *EntRepository) GetProjectIssuesWithTestCases(ctx context.Context, projectID uuid.UUID) ([]*ent.Issue, error) {
 	return r.client.Issue.Query().
 		Where(
 			entissue.HasProjectWith(entproject.ID(projectID)),
 			entissue.DeletedAtIsNil(),
 		).
-		WithLinkedTestCases().
+		WithLinkedTestCases(func(q *ent.TestCaseQuery) {
+			q.Where(testcase.DeletedAtIsNil())
+		}).
+		Limit(maxListProjectIssues).
 		All(ctx)
 }
 
@@ -1088,30 +1121,29 @@ func (r *EntRepository) GetLastResultForTestCase(ctx context.Context, testCaseID
 		First(ctx)
 }
 
-// GetLastResultsForTestCases возвращает последний результат по каждому caseID одним запросом (A2W2-2-001).
-// Результаты отсортированы по created_at DESC; в map остаётся первый (самый свежий) на case.
+// GetLastResultsForTestCases возвращает последний результат по каждому caseID (A2W2-2-001).
+// A3W2-3-001: per-case Limit 1 (First) — не грузим всю history в память; вход capped как batch.
 func (r *EntRepository) GetLastResultsForTestCases(ctx context.Context, caseIDs []uuid.UUID) (map[uuid.UUID]*ent.TestResult, error) {
 	out := make(map[uuid.UUID]*ent.TestResult, len(caseIDs))
 	if len(caseIDs) == 0 {
 		return out, nil
 	}
-	results, err := r.client.TestResult.Query().
-		Where(testresult.HasTestCaseWith(testcase.IDIn(caseIDs...))).
-		WithTestCase().
-		Order(ent.Desc(testresult.FieldCreatedAt)).
-		All(ctx)
-	if err != nil {
-		return nil, err
+	if len(caseIDs) > maxBatchCreateTestResults {
+		return nil, fmt.Errorf("слишком много тест-кейсов для last-results (макс. %d)", maxBatchCreateTestResults)
 	}
-	for _, res := range results {
-		if res.Edges.TestCase == nil {
-			continue
+	for _, caseID := range caseIDs {
+		res, err := r.client.TestResult.Query().
+			Where(testresult.HasTestCaseWith(testcase.ID(caseID))).
+			WithTestCase().
+			Order(ent.Desc(testresult.FieldCreatedAt)).
+			First(ctx)
+		if err != nil {
+			if ent.IsNotFound(err) {
+				continue
+			}
+			return nil, err
 		}
-		tcID := res.Edges.TestCase.ID
-		if _, exists := out[tcID]; exists {
-			continue
-		}
-		out[tcID] = res
+		out[caseID] = res
 	}
 	return out, nil
 }
@@ -1121,7 +1153,14 @@ func (r *EntRepository) GetLastResultsForTestCases(ctx context.Context, caseIDs 
 // ---------------------------------------------------------------------------
 
 // AddTestCasesToRun массово создаёт TestResult записи (со статусом "unknown") для каждого тест-кейса.
+// A3W2-3-001: max batch size — как BatchCreateTestResults (err, не truncate).
 func (r *EntRepository) AddTestCasesToRun(ctx context.Context, runID uuid.UUID, caseIDs []uuid.UUID) error {
+	if len(caseIDs) > maxBatchCreateTestResults {
+		return fmt.Errorf("слишком много тест-кейсов для add-to-run (макс. %d)", maxBatchCreateTestResults)
+	}
+	if len(caseIDs) == 0 {
+		return nil
+	}
 	bulk := make([]*ent.TestResultCreate, 0, len(caseIDs))
 	for _, caseID := range caseIDs {
 		create := r.client.TestResult.Create().

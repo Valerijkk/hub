@@ -2,6 +2,7 @@ package tms
 
 import (
 	"context"
+	"errors"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
@@ -53,15 +54,21 @@ func (s *TMSService) ListSuites(ctx context.Context, projectID uuid.UUID) ([]Sui
 }
 
 // UpdateSuite обновляет папку только внутри projectID (P1-BE-10).
+// A3W2-1-001: VersionEQ conflict → 409, не маскировать в 500.
 func (s *TMSService) UpdateSuite(ctx context.Context, projectID, suiteID uuid.UUID, req UpdateSuiteRequest) (*SuiteResponse, error) {
 	input := UpdateSuiteInput{
 		Name:        req.Name,
 		Description: req.Description,
 		SortOrder:   req.SortOrder,
+		Version:     req.Version,
 	}
 
 	suite, err := s.repo.UpdateSuite(ctx, projectID, suiteID, input)
 	if err != nil {
+		var appErr *apperrors.AppError
+		if errors.As(err, &appErr) {
+			return nil, err
+		}
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("папка не найдена")
 		}

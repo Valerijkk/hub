@@ -43,9 +43,10 @@ func TestSuiteAndComponentCRUD(t *testing.T) {
 	suiteID, err := uuid.Parse(suite.ID)
 	require.NoError(t, err)
 	newName := "Regression v2"
-	updated, err := svc.UpdateSuite(ctx, projectID, suiteID, tms.UpdateSuiteRequest{Name: &newName})
+	updated, err := svc.UpdateSuite(ctx, projectID, suiteID, tms.UpdateSuiteRequest{Name: &newName, Version: suite.Version})
 	require.NoError(t, err)
 	assert.Equal(t, "Regression v2", updated.Name)
+	assert.Equal(t, suite.Version+1, updated.Version)
 
 	comp, err := svc.CreateComponent(ctx, projectID, tms.CreateComponentRequest{
 		Name:        "Payments",
@@ -90,7 +91,7 @@ func TestListTestCases_InvalidSuiteID(t *testing.T) {
 func TestUpdateSuite_NotFound(t *testing.T) {
 	svc := tms.NewTMSService(newMockRepo(), nil)
 	name := "x"
-	_, err := svc.UpdateSuite(context.Background(), uuid.New(), uuid.New(), tms.UpdateSuiteRequest{Name: &name})
+	_, err := svc.UpdateSuite(context.Background(), uuid.New(), uuid.New(), tms.UpdateSuiteRequest{Name: &name, Version: 1})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "не найдена")
 }

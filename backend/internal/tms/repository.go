@@ -268,6 +268,7 @@ type UpdateSuiteInput struct {
 	Name        *string
 	Description *string
 	SortOrder   *int
+	Version     int
 }
 
 // CreateTestRunInput содержит данные для создания прогона.

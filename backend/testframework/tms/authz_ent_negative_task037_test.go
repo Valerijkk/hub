@@ -69,7 +69,7 @@ func TestUpdateSuite_ServiceRejectsForeignProject_Ent_TASK037(t *testing.T) {
 	require.NoError(t, err)
 
 	name := "Hacked via service"
-	_, err = svc.UpdateSuite(ctx, foreign.ID, suite.ID, tms.UpdateSuiteRequest{Name: &name})
+	_, err = svc.UpdateSuite(ctx, foreign.ID, suite.ID, tms.UpdateSuiteRequest{Name: &name, Version: suite.Version})
 	require.Error(t, err)
 	require.True(t, strings.Contains(err.Error(), "не найден"),
 		"cross-project suite update must 404, got %v", err)

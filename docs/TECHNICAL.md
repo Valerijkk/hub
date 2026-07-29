@@ -1263,7 +1263,7 @@ backend/internal/
 | GET | /projects/:projectId/tms/cases/:caseKey/links | Список связей с задачами | JWT + RBAC |
 | POST | /projects/:projectId/tms/suites | Создать suite (папку) | JWT + RBAC |
 | GET | /projects/:projectId/tms/suites | Список suites | JWT + RBAC |
-| PUT | /projects/:projectId/tms/suites/:suiteId | Обновить suite | JWT + RBAC |
+| PUT | /projects/:projectId/tms/suites/:suiteId | Обновить suite (`version` OL) | JWT + RBAC |
 | DELETE | /projects/:projectId/tms/suites/:suiteId | Удалить suite | JWT + RBAC |
 | POST | /projects/:projectId/tms/components | Создать компонент | JWT + RBAC |
 | GET | /projects/:projectId/tms/components | Список компонентов | JWT + RBAC |

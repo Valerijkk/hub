@@ -49,7 +49,7 @@ func TestUpdateSuite_RejectsForeignProject_P1BE10(t *testing.T) {
 	require.NoError(t, err)
 
 	name := "Hacked"
-	_, err = repo.UpdateSuite(ctx, foreign.ID, suite.ID, tms.UpdateSuiteInput{Name: &name})
+	_, err = repo.UpdateSuite(ctx, foreign.ID, suite.ID, tms.UpdateSuiteInput{Name: &name, Version: suite.Version})
 	require.True(t, ent.IsNotFound(err), "cross-project suite update must 404, got %v", err)
 
 	got, err := repo.GetSuite(ctx, suite.ID)

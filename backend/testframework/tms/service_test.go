@@ -300,7 +300,7 @@ func (m *mockRepository) GetTestCaseVersion(_ context.Context, testCaseID, versi
 func (m *mockRepository) CreateSuite(_ context.Context, projectID uuid.UUID, input tms.CreateSuiteInput) (*ent.TestSuite, error) {
 	id := uuid.New()
 	s := &ent.TestSuite{
-		ID: id, Name: input.Name, CreatedAt: time.Now(), UpdatedAt: time.Now(),
+		ID: id, Name: input.Name, Version: 1, CreatedAt: time.Now(), UpdatedAt: time.Now(),
 		Edges: ent.TestSuiteEdges{Project: &ent.Project{ID: projectID}},
 	}
 	if input.ParentID != nil {
@@ -347,9 +347,20 @@ func (m *mockRepository) UpdateSuite(_ context.Context, projectID, id uuid.UUID,
 	if s.Edges.Project == nil || s.Edges.Project.ID != projectID {
 		return nil, &ent.NotFoundError{}
 	}
+	if s.Version != input.Version {
+		return nil, apperrors.NewConflict("version mismatch: папка была изменена другим пользователем")
+	}
 	if input.Name != nil {
 		s.Name = *input.Name
 	}
+	if input.Description != nil {
+		s.Description = *input.Description
+	}
+	if input.SortOrder != nil {
+		s.SortOrder = *input.SortOrder
+	}
+	s.Version++
+	s.UpdatedAt = time.Now()
 	return s, nil
 }
 
