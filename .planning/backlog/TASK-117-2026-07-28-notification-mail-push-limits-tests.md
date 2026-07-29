@@ -1,6 +1,6 @@
 # TASK-117 — 📧 Notification/mail/push limits + tests
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Исправлена  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: На проверке
 > Источник: W7 notification · **Owner lock: правим ВСЕ 254 A2 open** · TASK-008
 
 ## [OUTCOME]

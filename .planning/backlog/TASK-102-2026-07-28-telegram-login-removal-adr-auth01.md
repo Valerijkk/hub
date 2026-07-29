@@ -1,6 +1,6 @@
 # TASK-102 — 📐 Telegram login surface: ADR-AUTH-01 cleanup
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: **Исправлена**  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Закрыта · MUTATION-2026-07-29-W4  
 > Источник: A2W6 Telegram · ADR-AUTH-01 · **Owner lock: правим ВСЕ 254 A2 open** · TASK-008  
 > Закрыто: 2026-07-28 · be1 · ветка `fix/auth/task-102-telegram-login`
 

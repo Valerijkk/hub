@@ -1,6 +1,6 @@
 # TASK-103 — 📐 JWT: no sessionStorage / no WS ?token=
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: **Исправлена**  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Закрыта · MUTATION-2026-07-29-W6  
 > Источник: A2W3/W11 JWT · **Owner lock: правим ВСЕ 254 A2 open** · TASK-008
 
 ## [OUTCOME]

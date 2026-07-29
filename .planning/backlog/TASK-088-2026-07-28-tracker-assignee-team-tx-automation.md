@@ -1,6 +1,6 @@
 # TASK-088 — 🔒 Tracker: assignee membership + AddTeam tx + automation Nak
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Исправлена  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Закрыта · MUTATION-2026-07-29-W4
 > Источник: A2W1 · Stage A2 dedup · TASK-008
 
 ## [OUTCOME]

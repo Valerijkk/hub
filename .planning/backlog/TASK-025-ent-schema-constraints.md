@@ -1,6 +1,6 @@
 ﻿# TASK-025 — Ent: coffee unique, notif pref partial unique, journal↔invoice O2O
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Исправлена  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Закрыта
 
 > Источник: TASK-008 W12 · Classes: P1-BE-40..42 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P1-BACKEND.md`
 

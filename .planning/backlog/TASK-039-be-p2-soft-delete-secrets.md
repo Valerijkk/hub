@@ -1,6 +1,6 @@
 # TASK-039 — Soft-delete consistency + secrets hardening
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Исправлена  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Закрыта
 > W18-C2b: PASS (be1 mutation) · артефакт `.planning/audits/total-2026-07/W18-C2b-MUTATION.md`  
 > Источник: TASK-008 W12 · Classes: P2-BE-08,P2-BE-09 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P2-BACKEND.md`
 

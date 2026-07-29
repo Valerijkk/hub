@@ -1,6 +1,6 @@
 # TASK-118 — 💼 v4 CRM/HR/calendar/coffee round residuals
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Исправлена  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: На проверке
 > Источник: W7 v4 residual · **Owner lock: правим ВСЕ 254 A2 open** · TASK-008
 
 ## [OUTCOME]

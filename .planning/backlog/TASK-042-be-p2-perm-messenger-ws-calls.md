@@ -1,6 +1,6 @@
 # TASK-042 — Weak perm + messenger + WS revoke + calls guest
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · На проверке
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: На проверке
 > Источник: TASK-008 W12 · Classes: P2-BE-12..15 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P2-BACKEND.md`
 
 ## [OUTCOME]

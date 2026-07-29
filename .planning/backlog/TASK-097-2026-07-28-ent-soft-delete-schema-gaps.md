@@ -1,6 +1,6 @@
 # TASK-097 — 📐 Ent soft-delete gaps: deleted_at + list filters
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: **Исправлена**  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Закрыта · MUTATION-2026-07-29-W6  
 > Источник: A2W8 soft-delete · ADR/migrate · **Owner lock: правим ВСЕ 254 A2 open** · TASK-008  
 > Закрыто: 2026-07-28 · be2 · ветка `fix/ent/task-097-soft-delete`
 

@@ -1,6 +1,6 @@
 # TASK-050 — FE tokens/JIT + dead UI + authz hide
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Исправлена  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Закрыта
 > Источник: TASK-008 W12 · Classes: P2-FE-05,P2-FE-06,P2-FE-16 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P2-FRONTEND.md`
 
 ## [OUTCOME]

@@ -1,6 +1,6 @@
 # TASK-100 — 📐 Backup MaintenanceGate distributed (U04)
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: **Исправлена**  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Закрыта · MUTATION-2026-07-29-W5  
 > Источник: W7-A4-003 · **Owner lock: правим ВСЕ 254 A2 open** · TASK-008
 
 ## [OUTCOME]

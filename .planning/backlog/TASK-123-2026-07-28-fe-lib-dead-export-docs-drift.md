@@ -1,6 +1,6 @@
 # TASK-123 — 🧹 FE lib dead export + docs drift NF-11
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: **Исправлена**  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: На проверке  
 > Источник: A2W11 residual · **Owner lock: правим ВСЕ 254 A2 open** · TASK-008  
 > Закрыта: 2026-07-28 · Исполнитель: fe2+docs · ветка `fix/frontend/task-123-dead-export-docs`
 

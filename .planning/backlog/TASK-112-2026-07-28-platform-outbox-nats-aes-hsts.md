@@ -1,6 +1,6 @@
 # TASK-112 — 🐛 Platform: NATS/HSTS/AES-AAD/RL/webhook tests
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: **Исправлена**  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: На проверке  
 > Источник: A2W4 residual · **Owner lock: правим ВСЕ 254 A2 open** · TASK-008
 
 ## [OUTCOME]

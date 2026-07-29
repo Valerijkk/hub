@@ -1,6 +1,6 @@
 ﻿# TASK-031 — FE sprint/poker loading vs empty vs error
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Исправлена  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Закрыта
 > Источник: TASK-008 W12 · Classes: FE-P1-SPRINT-UI · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P1-FRONTEND.md`
 
 ## [OUTCOME]

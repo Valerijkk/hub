@@ -1,6 +1,6 @@
 ﻿# TASK-033 — FE error≠empty, ErrorBoundary reset, auth race
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: **Исправлена**  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Закрыта  
 > Источник: TASK-008 W12 · Classes: FE-P1-ERROR-AS-EMPTY · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P1-FRONTEND.md`
 
 ## [OUTCOME]

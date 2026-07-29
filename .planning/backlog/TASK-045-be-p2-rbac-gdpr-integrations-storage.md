@@ -1,6 +1,6 @@
 # TASK-045 — RBAC/GDPR + imex + storage/mail/dashboard
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Закрыта
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Закрыта
 > W18-C2b: FAIL → rework → W1-be1 checker **PASS** 2026-07-29. Evidence: `.planning/audits/total-2026-07/MUTATION-2026-07-29-W1-be1.md`  
 > Источник: TASK-008 W12 · Classes: P2-BE-19..21 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P2-BACKEND.md`
 

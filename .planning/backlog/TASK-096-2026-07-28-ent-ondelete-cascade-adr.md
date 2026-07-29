@@ -1,6 +1,6 @@
 # TASK-096 — 📐 Ent OnDelete/cascade: ADR + FK policy
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: **Исправлена**  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Закрыта · MUTATION-2026-07-29-W6  
 > Источник: A2W8 OnDelete · ADR-first · **Owner lock: правим ВСЕ 254 A2 open** · TASK-008
 > Закрыто: 2026-07-28 · be1 · ADR-ENT-ONDELETE-CASCADE-2026 Accepted (owner: апрув migrate не требуется)
 

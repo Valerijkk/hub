@@ -1,6 +1,6 @@
 ﻿# TASK-019 — Platform: SSRF IPv4-mapped, outbox PubAck, pool, prod defaults
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Закрыта
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Закрыта
 > W18-C2 mutation (be1): **FAIL** → rework → W1-be1 checker **PASS** 2026-07-29. Evidence: `.planning/audits/total-2026-07/MUTATION-2026-07-29-W1-be1.md`  
 > Источник: TASK-008 W12 · Classes: P1-BE-23..26 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P1-BACKEND.md`
 

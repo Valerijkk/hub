@@ -1,6 +1,6 @@
 ﻿# TASK-091 — 🐛 TMS: createBug runId binding + reports batch
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Исправлена  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Закрыта · MUTATION-2026-07-29-W4
 > Источник: A2W2 · Stage A2 dedup · TASK-008
 
 ## [OUTCOME]

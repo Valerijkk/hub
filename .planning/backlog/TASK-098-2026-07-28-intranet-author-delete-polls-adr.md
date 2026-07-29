@@ -1,6 +1,6 @@
 # TASK-098 — 📐 Intranet FR-INTR-07/08 author-delete + polls
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: **Исправлена**  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Закрыта · MUTATION-2026-07-29-W6  
 > Источник: W7-A2-001 · **Owner lock: правим ВСЕ 254 A2 open** · TASK-008  
 > Закрыто: 2026-07-28 · be1 · ветка `fix/intranet/task-098-author-delete`
 

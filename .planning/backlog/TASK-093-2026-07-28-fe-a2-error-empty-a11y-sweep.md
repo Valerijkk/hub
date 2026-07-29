@@ -1,6 +1,6 @@
 # TASK-093 — 🧹 FE A2: error≠empty residual + a11y delete focus
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: **Исправлена**  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: На проверке  
 > Источник: A2W9/W10/W11 · Stage A2 dedup · TASK-008
 
 ## [OUTCOME]

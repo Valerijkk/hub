@@ -1,6 +1,6 @@
 # TASK-053 — FE auth session + WS guards + dropzone
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: **Исправлена**  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Закрыта  
 > Источник: TASK-008 W12 · Classes: P2-FE-09..11 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P2-FRONTEND.md`
 
 ## [OUTCOME]

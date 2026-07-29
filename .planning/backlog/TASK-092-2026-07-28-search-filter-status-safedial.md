@@ -1,6 +1,6 @@
 # TASK-092 — 🔒 Search: filter HTTP status + Meili SafeDial
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Исправлена  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Закрыта · MUTATION-2026-07-29-W4
 > Источник: A2W5-A4 · Stage A2 dedup · TASK-008
 
 ## [OUTCOME]

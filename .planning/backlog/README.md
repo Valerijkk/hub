@@ -20,41 +20,41 @@ Stage A2 (brief): [A2-DEDUP-2026-07-28.md](../audits/total-2026-07/A2-DEDUP-2026
 | ID | Задача | Приоритет | Статус | Исполнитель | Источник |
 |----|--------|-----------|--------|-------------|----------|
 | [TASK-008](TASK-008-total-audit-program.md) | Тотальный пофайловый аудит | P1 | В работе (A✅ · A2✅ · A3✅ 195→TASK-124…176 · B P0–P3✅ · не закрывать) | Grok + субагенты | Owner 2026-07-28 |
-| [TASK-081](TASK-081-2026-07-28-tms-completerun-project-id-webhook.md) | ♻️🐛 TMS CompleteTestRun → webhook `project_id` | **P1** | На проверке | be1 | A2W4-5-001 REGRESS |
-| [TASK-082](TASK-082-2026-07-28-fe-sprint-backlog-without-sprint-filter.md) | 🐛 FE SprintBacklog без фильтра sprint | **P1** | На проверке | fe1 | A2W10-A3-001 |
-| [TASK-083](TASK-083-2026-07-28-fe-trash-hard-delete-api.md) | 🐛 FE Trash hard-delete без API | **P1** | На проверке | fe2 | A2W10-A5-001 |
-| [TASK-084](TASK-084-2026-07-28-storage-confirm-entity-scope.md) | 🔒 Storage Confirm non-issue scope | **P1** | На проверке | be2 | W7-A4-002 |
-| [TASK-085](TASK-085-2026-07-28-ai-task044-regress-bundle.md) | ♻️ AI TASK-044 false-close (RPM/JQL/stream) | P2 | На проверке | be1 | A2W5 REGRESS |
-| [TASK-086](TASK-086-2026-07-28-webhook-delivery-ctx-id.md) | ♻️ Webhook ctx + X-Hub-Delivery | P2 | На проверке | be2 | A2W4-5-002/003 |
+| [TASK-081](TASK-081-2026-07-28-tms-completerun-project-id-webhook.md) | ♻️🐛 TMS CompleteTestRun → webhook `project_id` | **P1** | Закрыта · MUTATION-2026-07-29-W3 | be1 | A2W4-5-001 REGRESS |
+| [TASK-082](TASK-082-2026-07-28-fe-sprint-backlog-without-sprint-filter.md) | 🐛 FE SprintBacklog без фильтра sprint | **P1** | Закрыта · MUTATION-2026-07-29-W3 | fe1 | A2W10-A3-001 |
+| [TASK-083](TASK-083-2026-07-28-fe-trash-hard-delete-api.md) | 🐛 FE Trash hard-delete без API | **P1** | Закрыта · MUTATION-2026-07-29-W3 | fe2 | A2W10-A5-001 |
+| [TASK-084](TASK-084-2026-07-28-storage-confirm-entity-scope.md) | 🔒 Storage Confirm non-issue scope | **P1** | Закрыта · MUTATION-2026-07-29-W3 | be2 | W7-A4-002 |
+| [TASK-085](TASK-085-2026-07-28-ai-task044-regress-bundle.md) | ♻️ AI TASK-044 false-close (RPM/JQL/stream) | P2 | Закрыта · MUTATION-2026-07-29-W4 | be1 | A2W5 REGRESS |
+| [TASK-086](TASK-086-2026-07-28-webhook-delivery-ctx-id.md) | ♻️ Webhook ctx + X-Hub-Delivery | P2 | Закрыта · MUTATION-2026-07-29-W3 | be2 | A2W4-5-002/003 |
 | [TASK-087](TASK-087-2026-07-28-outbox-claim-lease-flush.md) | 🐛 Outbox claim lease during flush | P2 | На проверке | be1 | A2W4-2-001 NEW |
-| [TASK-088](TASK-088-2026-07-28-tracker-assignee-team-tx-automation.md) | 🔒 Tracker assignee/team tx/automation Nak | P2 | На проверке | be1 | A2W1 |
+| [TASK-088](TASK-088-2026-07-28-tracker-assignee-team-tx-automation.md) | 🔒 Tracker assignee/team tx/automation Nak | P2 | Закрыта · MUTATION-2026-07-29-W4 | be1 | A2W1 |
 | [TASK-089](TASK-089-2026-07-28-messenger-crm-invoice-guards.md) | 🔒 Messenger reaction + CRM + invoice | P2 | На проверке | be2 | A2W3/W7 |
 | [TASK-090](TASK-090-2026-07-28-audit-purge-error-contract.md) | 🔒 Audit purge fail-closed + errors | P2 | На проверке | be1 | A2W6 |
-| [TASK-091](TASK-091-2026-07-28-tms-createbug-reports-batch.md) | 🐛 TMS createBug + reports N+1 | P2 | На проверке | be2 | A2W2 |
-| [TASK-092](TASK-092-2026-07-28-search-filter-status-safedial.md) | 🔒 Search 403 + Meili SafeDial | P2 | На проверке | be2 | A2W5-A4 |
+| [TASK-091](TASK-091-2026-07-28-tms-createbug-reports-batch.md) | 🐛 TMS createBug + reports N+1 | P2 | Закрыта · MUTATION-2026-07-29-W4 | be2 | A2W2 |
+| [TASK-092](TASK-092-2026-07-28-search-filter-status-safedial.md) | 🔒 Search 403 + Meili SafeDial | P2 | Закрыта · MUTATION-2026-07-29-W4 | be2 | A2W5-A4 |
 | [TASK-093](TASK-093-2026-07-28-fe-a2-error-empty-a11y-sweep.md) | 🧹 FE A2 error≠empty + a11y | P2 | На проверке | fe1 | A2W9/W10/W11 |
-| [TASK-094](TASK-094-2026-07-28-coffee-pairs-triple-edge.md) | ☕ Coffee Pairs[] triple-edges | P3 | На проверке | be2 | A2W7-2-N01 |
-| [TASK-095](TASK-095-2026-07-28-ent-version-mixin-adr-rollout.md) | 📐 Ent VersionMixin ADR + rollout | **P1** | На проверке | arch→be1 | A2W8 · 19 rows |
-| [TASK-096](TASK-096-2026-07-28-ent-ondelete-cascade-adr.md) | 📐 Ent OnDelete/cascade ADR | **P1** | На проверке | arch→be1 | A2W8 · 4 |
-| [TASK-097](TASK-097-2026-07-28-ent-soft-delete-schema-gaps.md) | 📐 Ent soft-delete schema gaps | **P1** | На проверке | be2 | A2W8/W7 · 7 |
-| [TASK-098](TASK-098-2026-07-28-intranet-author-delete-polls-adr.md) | 📐 Intranet author-delete + polls U03 | **P1** | На проверке | product→be1 | W7-A2-001 |
-| [TASK-099](TASK-099-2026-07-28-storage-nf09-size-zero-adr.md) | 📐 Storage NF-09 size==0 | **P1** | На проверке | product→be2 | W7-A4-001 |
-| [TASK-100](TASK-100-2026-07-28-backup-maintenance-gate-distributed-adr.md) | 📐 Backup MaintenanceGate U04 | **P1** | На проверке | devops→be1 | W7-A4-003 |
-| [TASK-101](TASK-101-2026-07-28-ai-ollama-localhost-consent-adr.md) | 📐 AI Ollama localhost consent | **P1** | На проверке | product→be1 | A2W5-A2-005 |
-| [TASK-102](TASK-102-2026-07-28-telegram-login-removal-adr-auth01.md) | 📐 Telegram login cleanup ADR-AUTH-01 | **P1** | На проверке | be1 | A2W6 · 7 |
-| [TASK-103](TASK-103-2026-07-28-jwt-ws-handshake-adr.md) | 📐 JWT/WS handshake (no ?token=) | P2 | На проверке | arch→be+fe | A2W3/W11 · 3 |
+| [TASK-094](TASK-094-2026-07-28-coffee-pairs-triple-edge.md) | ☕ Coffee Pairs[] triple-edges | P3 | Закрыта · MUTATION-2026-07-29-W4 | be2 | A2W7-2-N01 |
+| [TASK-095](TASK-095-2026-07-28-ent-version-mixin-adr-rollout.md) | 📐 Ent VersionMixin ADR + rollout | **P1** | Закрыта · MUTATION-2026-07-29-W5 | arch→be1 | A2W8 · 19 rows |
+| [TASK-096](TASK-096-2026-07-28-ent-ondelete-cascade-adr.md) | 📐 Ent OnDelete/cascade ADR | **P1** | Закрыта · MUTATION-2026-07-29-W6 | arch→be1 | A2W8 · 4 |
+| [TASK-097](TASK-097-2026-07-28-ent-soft-delete-schema-gaps.md) | 📐 Ent soft-delete schema gaps | **P1** | Закрыта · MUTATION-2026-07-29-W6 | be2 | A2W8/W7 · 7 |
+| [TASK-098](TASK-098-2026-07-28-intranet-author-delete-polls-adr.md) | 📐 Intranet author-delete + polls U03 | **P1** | Закрыта · MUTATION-2026-07-29-W6 | product→be1 | W7-A2-001 |
+| [TASK-099](TASK-099-2026-07-28-storage-nf09-size-zero-adr.md) | 📐 Storage NF-09 size==0 | **P1** | Закрыта · MUTATION-2026-07-29-W3 | product→be2 | W7-A4-001 |
+| [TASK-100](TASK-100-2026-07-28-backup-maintenance-gate-distributed-adr.md) | 📐 Backup MaintenanceGate U04 | **P1** | Закрыта · MUTATION-2026-07-29-W5 | devops→be1 | W7-A4-003 |
+| [TASK-101](TASK-101-2026-07-28-ai-ollama-localhost-consent-adr.md) | 📐 AI Ollama localhost consent | **P1** | Закрыта · MUTATION-2026-07-29-W5 | product→be1 | A2W5-A2-005 |
+| [TASK-102](TASK-102-2026-07-28-telegram-login-removal-adr-auth01.md) | 📐 Telegram login cleanup ADR-AUTH-01 | **P1** | Закрыта · MUTATION-2026-07-29-W4 | be1 | A2W6 · 7 |
+| [TASK-103](TASK-103-2026-07-28-jwt-ws-handshake-adr.md) | 📐 JWT/WS handshake (no ?token=) | P2 | Закрыта · MUTATION-2026-07-29-W6 | arch→be+fe | A2W3/W11 · 3 |
 | [TASK-104](TASK-104-2026-07-28-docs-cursor-pagination-adr.md) | 📐 Docs/API cursor vs offset | P2 | Закрыта · mutation N/A | sa→be+docs | A2W11 · 2 |
 | [TASK-105](TASK-105-2026-07-28-docs-vision-g07-wiki-kpi-adr.md) | 📐 Docs G-07 wiki KPI | **P1** | Закрыта · mutation N/A | product→docs | A2W11-5-001 |
-| [TASK-106](TASK-106-2026-07-28-intranet-coffee-dm-notify-adr.md) | 📐 Intranet FR-INTR-11 DM/notify U05 | P2 | На проверке | product→be2 | W7-A2-008 |
+| [TASK-106](TASK-106-2026-07-28-intranet-coffee-dm-notify-adr.md) | 📐 Intranet FR-INTR-11 DM/notify U05 | P2 | Закрыта · MUTATION-2026-07-29-W5 | product→be2 | W7-A2-008 |
 | [TASK-107](TASK-107-2026-07-28-ent-indexes-composite-fk-polymorphic.md) | 🔒 Ent indexes/FK/polymorphic | P2 | На проверке | be1 | A2W8 · 8 |
-| [TASK-108](TASK-108-2026-07-28-messenger-invite-dm-unread-scope.md) | 🔒 Messenger invite/DM/unread/bot | P2 | На проверке | be1 | A2W3 · 9 |
-| [TASK-109](TASK-109-2026-07-28-ws-revoke-nats-publish.md) | 🔒 WS revoke → UnregisterBySession | P2 | На проверке | be1 | A2W3-4-002 |
-| [TASK-110](TASK-110-2026-07-28-calls-recording-room-guest-code.md) | 📞 Calls recording/room/guest | P2 | На проверке | be2 | A2W3 · 3 |
+| [TASK-108](TASK-108-2026-07-28-messenger-invite-dm-unread-scope.md) | 🔒 Messenger invite/DM/unread/bot | P2 | Закрыта · MUTATION-2026-07-29-W5 | be1 | A2W3 · 9 |
+| [TASK-109](TASK-109-2026-07-28-ws-revoke-nats-publish.md) | 🔒 WS revoke → UnregisterBySession | P2 | Закрыта · MUTATION-2026-07-29-W3 | be1 | A2W3-4-002 |
+| [TASK-110](TASK-110-2026-07-28-calls-recording-room-guest-code.md) | 📞 Calls recording/room/guest | P2 | Закрыта · MUTATION-2026-07-29-W5 | be2 | A2W3 · 3 |
 | [TASK-111](TASK-111-2026-07-28-tms-wave2-services-import-batch.md) | 🐛 TMS W2 residual batch | P2 | На проверке | be2 | A2W2 · 24 |
 | [TASK-112](TASK-112-2026-07-28-platform-outbox-nats-aes-hsts.md) | 🐛 Platform NATS/HSTS/AES/RL | P2 | На проверке | be1 | A2W4 · 9 |
-| [TASK-113](TASK-113-2026-07-28-ai-residual-sanitize-tests-policy.md) | 🔒 AI residual sanitize/tests | P2 | На проверке | be1 | A2W5 · 18 FIXED |
+| [TASK-113](TASK-113-2026-07-28-ai-residual-sanitize-tests-policy.md) | 🔒 AI residual sanitize/tests | P2 | Закрыта · MUTATION-2026-07-29-W6 | be1 | A2W5 · 18 FIXED |
 | [TASK-114](TASK-114-2026-07-28-audit-gdpr-limits-layering-tests.md) | 🔒 Audit/GDPR residual | P2 | На проверке | be1 | A2W6 · 14 |
-| [TASK-115](TASK-115-2026-07-28-rbac-permission-middleware-hygiene.md) | 🔒 RBAC permission hygiene | P2 | На проверке | be2 | A2W6 · 5 |
+| [TASK-115](TASK-115-2026-07-28-rbac-permission-middleware-hygiene.md) | 🔒 RBAC permission hygiene | P2 | Закрыта · MUTATION-2026-07-29-W6 | be2 | A2W6 · 5 |
 | [TASK-116](TASK-116-2026-07-28-auth-avatar-xss-validation-tests.md) | 🔒 Auth AvatarURL + session assert | P2 | На проверке | be1 | A2W6 · 2 |
 | [TASK-117](TASK-117-2026-07-28-notification-mail-push-limits-tests.md) | 📧 Notification/mail/push limits | P2 | На проверке | be2 | W7-A1 · 7 |
 | [TASK-118](TASK-118-2026-07-28-v4-crm-hr-calendar-lists-trash.md) | 💼 v4 CRM/HR/calendar residual | P2 | На проверке | be2 | W7-A2 · 5 |
@@ -71,7 +71,7 @@ Stage A2 (brief): [A2-DEDUP-2026-07-28.md](../audits/total-2026-07/A2-DEDUP-2026
 | [TASK-129](TASK-129-2026-07-29-a3-11-1-fe-api-error-mapping.md) | ♻️🔒 A3 FE client.ts wire error→ApiError.message REGRESS | P1 | Закрыта · MUTATION-2026-07-29-W2-fe-p1 | fe1 | A3W11-1 · 1 |
 | [TASK-130](TASK-130-2026-07-29-a3-11-2-fe-projects-sprint-version.md) | ♻️🔒 A3 FE projects/sprint API missing version (TASK-095) | P1 | На проверке | fe1 | A3W11-2 · 2 |
 | [TASK-131](TASK-131-2026-07-29-a3-11-3-fe-stores-guards.md) | 🧹 A3 FE stores: loadLayout silent fail + reaction_toggled guard | P3 | На проверке | fe1 | A3W11-3 · 2 |
-| [TASK-132](TASK-132-2026-07-29-a3-11-4-docs-inventory-drift.md) | 🧹 A3 docs README inventory + webcam/competitive HEAD drift | P2 | Открыта | docs-writer | A3W11-4 · 3 |
+| [TASK-132](TASK-132-2026-07-29-a3-11-4-docs-inventory-drift.md) | 🧹 A3 docs README inventory + webcam/competitive HEAD drift | P2 | На проверке | docs-writer | A3W11-4 · 3 |
 | [TASK-133](TASK-133-2026-07-29-a3-11-5-docs-metrics-spec-offset.md) | 🧹 A3 docs inventory/strategy Vitest + list-issues offset | P2 | На проверке | docs-writer | A3W11-5 · 3 |
 | [TASK-134](TASK-134-2026-07-29-a3-1-2-tracker-services.md) | 🔒 A3 tracker services: labels scope + residual batch | P1 | На проверке | be1 | A3W1-2 · 6 |
 | [TASK-135](TASK-135-2026-07-29-a3-1-3-tracker-repos.md) | 🐛 A3 tracker repos/automation residual | P2 | На проверке | be1 | A3W1-3 · 3 |
@@ -81,27 +81,27 @@ Stage A2 (brief): [A2-DEDUP-2026-07-28.md](../audits/total-2026-07/A2-DEDUP-2026
 | [TASK-139](TASK-139-2026-07-29-a3-2-2-tms-services.md) | 🔒 A3 TMS services: AssignTesters/FileIDs/ImportAllure scope | P2 | На проверке | be2 | A3W2-2 · 6 |
 | [TASK-140](TASK-140-2026-07-29-a3-2-3-tms-repos.md) | 🐛 A3 TMS repos list caps residual | P2 | На проверке | be2 | A3W2-3 · 3 |
 | [TASK-141](TASK-141-2026-07-29-a3-2-4-tms-import.md) | 🐛 A3 TMS import/export TestRail residual | P2 | На проверке | be2 | A3W2-4 · 5 |
-| [TASK-142](TASK-142-2026-07-29-a3-2-5-bases.md) | 🧹 A3 bases residual | P3 | Открыта | be2 | A3W2-5 · 3 |
+| [TASK-142](TASK-142-2026-07-29-a3-2-5-bases.md) | 🧹 A3 bases residual | P3 | На проверке | be2 | A3W2-5 · 3 |
 | [TASK-143](TASK-143-2026-07-29-a3-3-1-messenger-handlers.md) | 🧹 A3 messenger handlers poll test wrong URL | P2 | На проверке | be1 | A3W3-1 · 1 |
 | [TASK-144](TASK-144-2026-07-29-a3-3-2-messenger-services.md) | 🔒 A3 messenger services Join/Create/Bookmark | P2 | На проверке | be1 | A3W3-2 · 6 |
 | [TASK-145](TASK-145-2026-07-29-a3-3-3-messenger-repos.md) | 🐛 A3 messenger repos list caps/soft-delete | P2 | На проверке | be1 | A3W3-3 · 3 |
-| [TASK-146](TASK-146-2026-07-29-a3-3-4-ws.md) | 🧹 A3 WS query+ticket mutation gap | P3 | Открыта | be1 | A3W3-4 · 1 |
+| [TASK-146](TASK-146-2026-07-29-a3-3-4-ws.md) | 🧹 A3 WS query+ticket mutation gap | P3 | На проверке | be1 | A3W3-4 · 1 |
 | [TASK-147](TASK-147-2026-07-29-a3-3-5-calls.md) | 🐛 A3 calls LiveKit orphan + conflicts soft-delete | P2 | На проверке | be2 | A3W3-5 · 4 |
-| [TASK-148](TASK-148-2026-07-29-a3-4-1-platform-http.md) | 🧹 A3 platform Request-ID mutation test | P3 | Открыта | be1 | A3W4-1 · 1 |
+| [TASK-148](TASK-148-2026-07-29-a3-4-1-platform-http.md) | 🧹 A3 platform Request-ID mutation test | P3 | На проверке | be1 | A3W4-1 · 1 |
 | [TASK-149](TASK-149-2026-07-29-a3-4-2-platform-nats-outbox.md) | 🔒 A3 outbox panic dead-letter + claim/Flush | P2 | На проверке | be1 | A3W4-2 · 3 |
-| [TASK-150](TASK-150-2026-07-29-a3-4-3-platform-obs.md) | 🧹 A3 obs cancel→Error + UUID cardinality | P3 | Открыта | be1 | A3W4-3 · 2 |
+| [TASK-150](TASK-150-2026-07-29-a3-4-3-platform-obs.md) | 🧹 A3 obs cancel→Error + UUID cardinality | P3 | На проверке | be1 | A3W4-3 · 2 |
 | [TASK-151](TASK-151-2026-07-29-a3-4-4-platform-core.md) | 🐛 A3 Postgres Ping + cron timeout test | P2 | На проверке | be1 | A3W4-4 · 2 |
 | [TASK-152](TASK-152-2026-07-29-a3-4-5-apigateway.md) | 🔒 A3 apigateway soft-delete webhooks + VersionEQ | P2 | На проверке | be2 | A3W4-5 · 4 |
 | [TASK-153](TASK-153-2026-07-29-a3-5-1-ai-handlers.md) | 🐛 A3 AI stream ErrNoProvider mapping | P2 | На проверке | be1 | A3W5-1 · 3 |
 | [TASK-154](TASK-154-2026-07-29-a3-5-2-ai-adapters.md) | 🐛 A3 OfflineAI stream Timeout residual | P2 | На проверке | be1 | A3W5-2 · 3 |
 | [TASK-155](TASK-155-2026-07-29-a3-5-3-ai-service.md) | ♻️🔒 A3 AI service REGRESS + consent/version/IDOR | P2 | На проверке | be1 | A3W5-3 · 9 |
 | [TASK-156](TASK-156-2026-07-29-a3-5-4-search-core.md) | ♻️🔒 A3 Meili operator dial REGRESS + JQL | P2 | На проверке | be2 | A3W5-4 · 3 |
-| [TASK-157](TASK-157-2026-07-29-a3-5-5-search-tests.md) | 🧹 A3 search tests limit clamp | P3 | Открыта | be2 | A3W5-5 · 2 |
+| [TASK-157](TASK-157-2026-07-29-a3-5-5-search-tests.md) | 🧹 A3 search tests limit clamp | P3 | На проверке | be2 | A3W5-5 · 2 |
 | [TASK-158](TASK-158-2026-07-29-a3-6-2-auth-tests.md) | 🔒 A3 auth tests deactivated JWT + founder race | P2 | На проверке | be1 | A3W6-2 · 4 |
 | [TASK-159](TASK-159-2026-07-29-a3-6-3-rbac.md) | 🐛 A3 RBAC DeleteCustomRole cache-fail | P2 | На проверке | be2 | A3W6-3 · 3 |
 | [TASK-160](TASK-160-2026-07-29-a3-6-4-audit-core.md) | 🔒 A3 GDPR Mongo eraser outside Ent tx | P2 | На проверке | be1 | A3W6-4 · 3 |
 | [TASK-161](TASK-161-2026-07-29-a3-6-5-audit-tests.md) | 🧹 A3 audit tests CRM purge/Retention gaps | P2 | На проверке | be1 | A3W6-5 · 7 |
-| [TASK-162](TASK-162-2026-07-29-a3-7-1-notification-mail.md) | 🐛 A3 mail DailyLimit distributed | P3 | Открыта | be2 | A3W7-1 · 2 |
+| [TASK-162](TASK-162-2026-07-29-a3-7-1-notification-mail.md) | 🐛 A3 mail DailyLimit distributed | P3 | На проверке | be2 | A3W7-1 · 2 |
 | [TASK-163](TASK-163-2026-07-29-a3-7-2-v4-business.md) | ♻️ A3 coffee notify REGRESS + poll VersionEQ | P2 | На проверке | be2 | A3W7-2 · 3 |
 | [TASK-164](TASK-164-2026-07-29-a3-7-3-integrations.md) | 🔒 A3 integrations trash filter + link-preview membership | P2 | На проверке | be2 | A3W7-3 · 3 |
 | [TASK-165](TASK-165-2026-07-29-a3-7-4-storage-dash-backup.md) | 🐛 A3 storage/dashboard/backup residual | P2 | На проверке | be1 | A3W7-4 · 5 |
@@ -123,7 +123,7 @@ Stage A2 (brief): [A2-DEDUP-2026-07-28.md](../audits/total-2026-07/A2-DEDUP-2026
 | [TASK-181](TASK-181-2026-07-29-c-w19-webhook-softdelete-deactivate.md) | 🔒 C-W19 soft-delete project гасит webhooks | P2 | На проверке | be2 | C-W19-FE-004 · 1 |
 | [TASK-182](TASK-182-2026-07-29-c-w19-hr-pending-leave-error.md) | 🧹 C-W19 HR pending leave error≠empty | P3 | На проверке | fe2 | C-W19-FE-005 · 1 |
 | [TASK-183](TASK-183-2026-07-29-c-w19-docs-inventory-drift.md) | 🧹 C-W19 docs inventory + AGENTS/spec drift | P2 | На проверке | docs-writer | C-W19-DOC-001 · 1 |
-| [TASK-184](TASK-184-2026-07-29-c-w19-last-team-member.md) | 🐛 C-W19 RemoveTeamMember last-member orphan | P3 | Открыта | be1 | C-W19-TT-001 · 1 |
+| [TASK-184](TASK-184-2026-07-29-c-w19-last-team-member.md) | 🐛 C-W19 RemoveTeamMember last-member orphan | P3 | На проверке | be1 | C-W19-TT-001 · 1 |
 | [TASK-185](TASK-185-2026-07-29-c-w19-allure-existingrun-partial.md) | 🐛 C-W19 Allure ExistingRun silent partial | P2 | На проверке | be2 | C-W19-TT-002 · 1 |
 | [TASK-186](TASK-186-2026-07-29-audit-fe-calls-error-empty.md) | 🧹 Audit FE calls calendar/dialog error≠empty | P2 | На проверке | fe2 | FE-MC-001…003 · 3 |
 | [TASK-187](TASK-187-2026-07-29-audit-fe-pipeline-sanitize.md) | 🔒 Audit FE pipeline-status sanitizeUrl | P2 | На проверке | fe1 | FE-TA-001 · 1 |
@@ -164,20 +164,20 @@ Stage A2 (brief): [A2-DEDUP-2026-07-28.md](../audits/total-2026-07/A2-DEDUP-2026
 | [TASK-038](TASK-038-be-p2-ol-softdelete-tx-lists.md) | BE OL/soft-mutate/tx/lists | P2 | Закрыта | be1 | W12 P2-BE-03..06 · W18-C3 PASS (partial residual OK) |
 | [TASK-039](TASK-039-be-p2-soft-delete-secrets.md) | BE soft-delete + secrets | P2 | Закрыта | be2 | W12 P2-BE-08,09 |
 | [TASK-040](TASK-040-be-p2-fail-closed-ratelimit.md) | BE fail-closed + rate-limit | P2 | Закрыта | be1 | W12 P2-BE-10 · W18-C3 PASS |
-| [TASK-041](TASK-041-be-p2-sprint-poker-start.md) | BE sprint poker/start | P2 | Закрыта · MUTATION-2026-07-29-W1-be2 | be1→rework | W12 P2-BE-11 · second Start conflict |
-| [TASK-042](TASK-042-be-p2-perm-messenger-ws-calls.md) | BE perm/messenger/ws/calls | P2 | Закрыта · MUTATION-2026-07-29-W1-be2 | be1→rework | W12 P2-BE-12..15 · NATS via_invite |
+| [TASK-041](TASK-041-be-p2-sprint-poker-start.md) | BE sprint poker/start | P2 | На проверке · MUTATION-2026-07-29-W1-be2 | be1→rework | W12 P2-BE-11 · second Start conflict |
+| [TASK-042](TASK-042-be-p2-perm-messenger-ws-calls.md) | BE perm/messenger/ws/calls | P2 | На проверке · MUTATION-2026-07-29-W1-be2 | be1→rework | W12 P2-BE-12..15 · NATS via_invite |
 | [TASK-043](TASK-043-be-p2-platform-outbox-obs.md) | BE platform outbox/obs | P2 | Закрыта | be2 | W12 P2-BE-16 |
 | [TASK-044](TASK-044-be-p2-ai-search.md) | AI stream/privacy + search JQL/SSRF | P2 | Закрыта · MUTATION-2026-07-29-W2-044 | be1→rework · W2-044 PASS | W12 P2-BE-17/18 · Meili+cancel IT |
 | [TASK-045](TASK-045-be-p2-rbac-gdpr-integrations-storage.md) | BE rbac/gdpr/imex/storage | P2 | Закрыта · MUTATION-2026-07-29-W1-be1 | be2→rework · W1-be1 PASS | W12 P2-BE-19..21 · MUTATION-2026-07-29-W1-be1 |
-| [TASK-046](TASK-046-be-p2-ent-unique-fk-check.md) | BE Ent unique/FK/CHECK | P2 | Закрыта · MUTATION-2026-07-29-W1-be2 | be1→rework | W12 P2-BE-22 · enttest runtime |
+| [TASK-046](TASK-046-be-p2-ent-unique-fk-check.md) | BE Ent unique/FK/CHECK | P2 | На проверке · MUTATION-2026-07-29-W1-be2 | be1→rework | W12 P2-BE-22 · enttest runtime |
 | [TASK-047](TASK-047-fe-p2-error-vs-empty.md) | FE error≠empty sweep | P2 | Закрыта | fe1 | W12 P2-FE-01 |
 | [TASK-048](TASK-048-fe-p2-mutation-feedback.md) | FE mutation feedback | P2 | Закрыта | fe2 | W12 P2-FE-02 |
 | [TASK-049](TASK-049-fe-p2-a11y-names-dialogs.md) | FE a11y names/dialogs | P2 | Закрыта | fe1 | W12 P2-FE-03,04 |
 | [TASK-050](TASK-050-fe-p2-tokens-dead-ui.md) | FE tokens/dead UI/authz | P2 | Закрыта | fe1 | W12 P2-FE-05,06,16 |
 | [TASK-051](TASK-051-fe-p2-effects-hooks-race.md) | FE effects/hooks race | P2 | Закрыта | fe2 | W12 P2-FE-07 |
-| [TASK-052](TASK-052-fe-p2-api-dto-gaps.md) | FE API DTO gaps | P2 | Закрыта · MUTATION-2026-07-29-W1-fe1 | fe2→rework | W12 P2-FE-08 · tsc fixture |
+| [TASK-052](TASK-052-fe-p2-api-dto-gaps.md) | FE API DTO gaps | P2 | Открыта · MUTATION-2026-07-29-W1-fe1 | fe2→rework | W12 P2-FE-08 · tsc fixture |
 | [TASK-053](TASK-053-fe-p2-auth-ws-upload.md) | FE auth/WS/upload | P2 | Закрыта | fe2 | W12 P2-FE-09..11 |
-| [TASK-054](TASK-054-fe-p2-docs-metrics-drift.md) | Docs metrics drift | P2 | Закрыта · MUTATION-2026-07-29-W1-fe1 | docs→rework | W12 P2-FE-12 · inventory script |
+| [TASK-054](TASK-054-fe-p2-docs-metrics-drift.md) | Docs metrics drift | P2 | Открыта · MUTATION-2026-07-29-W1-fe1 | docs→rework | W12 P2-FE-12 · inventory script |
 | [TASK-055](TASK-055-fe-p2-shell-tracker-ux.md) | FE shell + tracker UX | P2 | Закрыта | fe2 | W12 P2-FE-13,14 |
 | [TASK-056](TASK-056-fe-p2-i18n-push-rooms.md) | FE i18n/push/rooms | P2 | Закрыта | fe2 | W12 P2-FE-15 |
 | [TASK-057](TASK-057-be-p3-silent-error-swallow.md) | BE silent error swallow | P3 | На проверке | be1 | W12 P3-BE-01 |

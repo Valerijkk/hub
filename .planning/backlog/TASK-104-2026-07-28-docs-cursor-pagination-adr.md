@@ -1,6 +1,6 @@
 # TASK-104 — 📐 Docs/API: cursor vs offset list-issues
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: **Исправлена**  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Закрыта  
 > Источник: A2W11 pagination · **Owner lock: правим ВСЕ 254 A2 open** · TASK-008  
 > Закрыто: 2026-07-28 · be1+docs · ветка `fix/tracker/task-104-pagination`
 

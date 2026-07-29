@@ -1,6 +1,6 @@
 # TASK-116 — 🔒 Auth: AvatarURL scheme + ListSessions assert
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Исправлена  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: На проверке
 > Источник: A2W6 auth residual · **Owner lock: правим ВСЕ 254 A2 open** · TASK-008
 
 ## Evidence (be1 · 2026-07-28)

@@ -1,6 +1,6 @@
 # TASK-095 — 📐 Ent VersionMixin: ADR + rollout version
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: **Исправлена**  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Закрыта · MUTATION-2026-07-29-W5  
 > Источник: A2W8 VersionMixin · ADR-first · **Owner lock: правим ВСЕ 254 A2 open** · TASK-008  
 > Закрыто: 2026-07-28 · be1 · ветка `fix/ent/task-095-version-mixin`
 

@@ -1,6 +1,6 @@
 # TASK-067 — V4 storage/dashboard + dev login/seed
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P3** · Статус: Исправлена  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P3** · Статус: На проверке
 > Источник: TASK-008 W12 · Classes: P3-BE-15,P3-BE-16 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P3-BACKEND.md`
 
 ## [OUTCOME]

@@ -1,6 +1,6 @@
 # TASK-101 — 📐 AI Ollama localhost consent vs SafeDial
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Исправлена  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Закрыта · MUTATION-2026-07-29-W5
 > Источник: A2W5-A2-005 · **Owner lock: правим ВСЕ 254 A2 open** · TASK-008  
 > Approval record: owner 2026-07-28 — отдельный ADR approve не требуется; код + ADR-AI-OLLAMA-LOOPBACK-2026
 

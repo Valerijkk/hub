@@ -1,6 +1,6 @@
 # TASK-054 — Docs metrics/wiring/SSO drift
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Исправлена  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · **Закрыта**
 > Источник: TASK-008 W12 · Classes: P2-FE-12 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P2-FRONTEND.md`
 
 ## [OUTCOME]
@@ -52,4 +52,13 @@ counts→652 + scripts/check-docs-inventory.mjs (TASK-080).
 
 - Проверяющий: fe1 (W18-C5)
 - Mutation: **FAIL** — FAIL: нет автотеста на docs drift; см. TASK-080
-- Статус: Открыта
+- Статус: Открыта (до rework inventory script)
+
+## [MUTATION 2026-07-29 W1-fe1]
+
+- Проверяющий: fe1 (≠ author docs-writer)
+- Evidence: `.planning/audits/total-2026-07/MUTATION-2026-07-29-W1-fe1.md`
+- Mutation: docs `**812**`→`**515**` → `scripts/check-docs-inventory.mjs` exit 1 (measured 821)
+- Restore docs; production clean
+- Note: pre-existing claim 812≠821 — gate ловит drift; sync counts — отдельный follow-up
+- Verdict: **PASS** · Статус: **Закрыта**

@@ -1,6 +1,6 @@
 # TASK-113 — 🔒 AI residual: sanitize/policy/hollow tests
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: **Исправлена**  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Закрыта · MUTATION-2026-07-29-W6  
 > Источник: A2W5 residual · **Owner lock: правим ВСЕ 254 A2 open** · TASK-008  
 > Закрыто: 2026-07-29 · be1 · evidence: `go test -tags hubtest -race ./testframework/ai/ ./testframework/search/` PASS
 

@@ -1,6 +1,6 @@
 ﻿# TASK-027 — FE CallChat: WS room call: + filter chat.message
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Исправлена  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Закрыта
 > Источник: TASK-008 W12 · Classes: FE-P1-CALLS-CHAT · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P1-FRONTEND.md`
 
 ## [OUTCOME]

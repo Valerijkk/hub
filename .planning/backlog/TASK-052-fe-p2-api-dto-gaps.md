@@ -1,6 +1,6 @@
 # TASK-052 — FE API DTO gaps / type-lie
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Исправлена  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · **Закрыта**
 > Источник: TASK-008 W12 · Classes: P2-FE-08 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P2-FRONTEND.md`
 
 ## [OUTCOME]
@@ -52,4 +52,12 @@ tsc @ts-expect-error fixture + vitest spawn tsc.
 
 - Проверяющий: fe1 (W18-C5)
 - Mutation: **FAIL** — FAIL: expectTypeOf/version не краснеет при vitest run
-- Статус: Открыта
+- Статус: Открыта (до rework tsc fixture)
+
+## [MUTATION 2026-07-29 W1-fe1]
+
+- Проверяющий: fe1 (≠ author fe2)
+- Evidence: `.planning/audits/total-2026-07/MUTATION-2026-07-29-W1-fe1.md`
+- Mutation: `version?: number` → tsc fixture RED; expectTypeOf alone остался GREEN (no-op)
+- Restore → Vitest 6/6 GREEN
+- Verdict: **PASS** · Статус: **Закрыта**

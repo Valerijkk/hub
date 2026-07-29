@@ -1,6 +1,6 @@
 # TASK-086 — ♻️ Webhook delivery: context + X-Hub-Delivery
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Исправлена  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Закрыта · MUTATION-2026-07-29-W3
 > Источник: A2W4-5-002 · Stage A2 dedup · TASK-008
 
 ## [OUTCOME]

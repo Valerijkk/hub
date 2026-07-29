@@ -1,6 +1,6 @@
 # TASK-065 — Platform HTTP + obs residuals
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P3** · Статус: Исправлена  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P3** · Статус: На проверке
 > Источник: TASK-008 W12 · Classes: P3-BE-11,P3-BE-12 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P3-BACKEND.md`
 
 ## [OUTCOME]

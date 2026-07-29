@@ -1,6 +1,6 @@
 ﻿# TASK-016 — TMS import: LimitReader/depth + steps mapping
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Исправлена  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Закрыта
 > W18-C2 mutation (be1): **PASS** — oversized 413 + Steps mapping RED→GREEN. Evidence: `.planning/audits/total-2026-07/W18-C2-MUTATION.md`  
 > Источник: TASK-008 W12 · Classes: P1-BE-13..14 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P1-BACKEND.md`
 
