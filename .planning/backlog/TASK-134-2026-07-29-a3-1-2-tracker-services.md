@@ -128,9 +128,14 @@
 | A3W1-2-006 | Exist→404/409; `TestUpdateComment_MissingVsVersionConflict_A3W1_2_006` |
 
 ```
+# focused
 go test -tags hubtest -race -count=1 -timeout=300s -vet=off ./testframework/tracker/ \
-  -run 'A3W1_2_|P1BE03|UpdateDeleteComment_Scoped_A3_011|...'
-ok  github.com/.../testframework/tracker  (~1.7s focused / PASS targeted)
+  -run 'A3W1_2_|RejectsForeignLabel_P1BE03|UpdateDeleteComment_Scoped_A3_011'
+ok  github.com/valerii/hub/backend/testframework/tracker  3.327s
+
+# regression
+go test -tags hubtest -race -count=1 -timeout=600s -vet=off ./testframework/tracker/
+ok  github.com/valerii/hub/backend/testframework/tracker  38.573s
 ```
 
 Mutation notes — см. таблицу Mutation в ACCEPTANCE (каждый ID краснеет при откате guard).

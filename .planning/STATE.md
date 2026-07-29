@@ -65,12 +65,17 @@ spec_coverage:
 
 # Состояние проекта Hub
 
-## Session note — 2026-07-29 (be1 · TASK-168 A3W8-2 schemas)
+## Session note — 2026-07-29 (be1 · TASK-134 A3W1-2 tracker services)
 
-- **6/6 FIXED** (A3W8-2-001…006): FileMetadata `NonNegative`+uploader `Required`+`entity_id` Validate(UUID|me|temp); Cascade CoffeeRound→pairs, HubBase→tables, GH/GL Integration→links, Comment→reactions; `access_token` NotEmpty.
-- **Migrate:** `backend/migrations/20260729_task168_filemetadata_ondelete_cascade.sql` (needs-owner-apply вне test).
-- **Hubtest:** `./testframework/ent/ -run TASK168` PASS (WIP 169/170/171 aside на время прогона — ломают compile пакета).
-- **Статус:** На проверке → be-ver → code-reviewer. README не трогали (owner: только SCOPE).
+- **6/6 FIXED** (A3W1-2-001…006): UpdateIssue `CountLabelsInProject`; CreateLabel `FindLabelGroupInProject`; Create/UpdateRule `ensureActionChannelInProject`; ListThreadIssueLinks `WithIssue` eager; CreateIssueLink AppError wrap; UpdateComment 404≠409.
+- **Hubtest:** focused A3W1_2_* + P1BE03/A3_011 PASS (3.3s); full `./testframework/tracker/` PASS (38.6s, `-race`).
+- **Статус:** На проверке → be-ver → code-reviewer. README не трогали (owner).
+
+## Session note — 2026-07-29 (be1 · TASK-137 A3W1-5 project residual)
+
+- **6/6 FIXED** (A3W1-A5-001…006): Archive/Unarchive на trash → 404 без ClearDeletedAt; PermanentDelete только deleted+system admin; CreateTeamWithCreator Ent-tx; JoinByInvite MemberCount fail-closed; template List/Export без raw `err.Error()`; import >25MB → 413.
+- **Hubtest (isolated worktree):** `go test -tags hubtest -race -count=1 ./testframework/project/` PASS.
+- **Docs:** `docs/wiki/API.md` — archive/unarchive/restore/permanent semantics. Статус: **На проверке** → be-ver → code-reviewer. README не трогали (owner: только SCOPE).
 
 ## Session note — 2026-07-29 (be2 · TASK-164 A3W7-3 integrations)
 
