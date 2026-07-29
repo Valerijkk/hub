@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: planning-audit-pw-in-progress
 stopped_at: Planning audit 2026-07 PW1–PW5 · coverage remeasured · phase matrix live
-last_updated: "2026-07-29T17:10:00.000Z"
-last_activity: 2026-07-29 · be2 TASK-181 C-W19 webhook soft-delete deactivate · На проверке
+last_updated: "2026-07-29T17:05:00.000Z"
+last_activity: 2026-07-29 · fe2 TASK-186 calls error≠empty + a11y · На проверке
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -64,6 +64,12 @@ spec_coverage:
 ---
 
 # Состояние проекта Hub
+
+## Session note — 2026-07-29 (fe2 · TASK-186 calls error≠empty + a11y)
+
+- **6/6 FIXED** (FE-MC-001…006): channels fail → alert/retry (не пустая сетка); projects/channels dialog fail → alert (empty только success+len0); popover × / channel select / remove participant / week slot a11y names.
+- **Тесты:** vitest calls `error-empty` + `a11y` + recordings-noopener **9/9 PASS**; mutation `channelsError=false` → RED.
+- **Статус:** На проверке → fe-ver → code-reviewer. README не трогали (scope). TASK-008 не закрывали.
 
 ## Session note — 2026-07-29 (be2 · TASK-181 C-W19-004 webhook soft-delete deactivate)
 
