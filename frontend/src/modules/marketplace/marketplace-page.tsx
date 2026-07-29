@@ -18,6 +18,7 @@ import {
 	updateListing,
 	withdrawListing,
 } from "@/api/marketplace";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { isSystemAdmin } from "@/lib/is-system-admin";
@@ -64,7 +65,12 @@ export function MarketplacePage() {
 		enabled: tab === "mine",
 	});
 
-	const { data: pendingData } = useQuery({
+	const {
+		data: pendingData,
+		isError: pendingError,
+		refetch: refetchPending,
+		isPending: pendingLoading,
+	} = useQuery({
 		queryKey: ["marketplace", "pending"],
 		queryFn: listPendingListings,
 		enabled: isAdmin,
@@ -233,55 +239,68 @@ export function MarketplacePage() {
 				</Button>
 			</form>
 
-			{isAdmin && pendingItems.length > 0 && (
-				<section className="space-y-3 rounded-xl border border-amber-500/30 bg-amber-500/[0.04] p-4">
-					<h2 className="text-sm font-semibold">
-						Очередь модерации ({pendingItems.length})
-					</h2>
-					<ul className="space-y-2">
-						{pendingItems.map((item) => (
-							<li
-								key={item.id}
-								className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-b1 p-3 bg-[var(--bg)]"
-							>
-								<div>
-									<p className="font-medium">{item.title}</p>
-									<p className="text-sm text-t2">
-										{item.author_name} · {CATEGORY_LABELS[item.category]}
-									</p>
-								</div>
-								<div className="flex gap-2">
-									<Button
-										type="button"
-										size="sm"
-										onClick={() =>
-											approveMutation.mutate({
-												id: item.id,
-												version: item.version,
-											})
-										}
+			{isAdmin &&
+				(pendingError || pendingItems.length > 0 || pendingLoading) && (
+					<section className="space-y-3 rounded-xl border border-amber-500/30 bg-amber-500/[0.04] p-4">
+						<h2 className="text-sm font-semibold">
+							Очередь модерации
+							{!pendingError && !pendingLoading
+								? ` (${pendingItems.length})`
+								: ""}
+						</h2>
+						{pendingLoading ? (
+							<p className="text-sm text-t3">Загрузка…</p>
+						) : pendingError ? (
+							<QueryErrorAlert
+								message="Не удалось загрузить очередь модерации"
+								retry={() => void refetchPending()}
+							/>
+						) : (
+							<ul className="space-y-2">
+								{pendingItems.map((item) => (
+									<li
+										key={item.id}
+										className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-b1 p-3 bg-[var(--bg)]"
 									>
-										Одобрить
-									</Button>
-									<Button
-										type="button"
-										size="sm"
-										variant="outline"
-										onClick={() =>
-											rejectMutation.mutate({
-												id: item.id,
-												version: item.version,
-											})
-										}
-									>
-										Отклонить
-									</Button>
-								</div>
-							</li>
-						))}
-					</ul>
-				</section>
-			)}
+										<div>
+											<p className="font-medium">{item.title}</p>
+											<p className="text-sm text-t2">
+												{item.author_name} · {CATEGORY_LABELS[item.category]}
+											</p>
+										</div>
+										<div className="flex gap-2">
+											<Button
+												type="button"
+												size="sm"
+												onClick={() =>
+													approveMutation.mutate({
+														id: item.id,
+														version: item.version,
+													})
+												}
+											>
+												Одобрить
+											</Button>
+											<Button
+												type="button"
+												size="sm"
+												variant="outline"
+												onClick={() =>
+													rejectMutation.mutate({
+														id: item.id,
+														version: item.version,
+													})
+												}
+											>
+												Отклонить
+											</Button>
+										</div>
+									</li>
+								))}
+							</ul>
+						)}
+					</section>
+				)}
 
 			<div className="flex flex-wrap items-center gap-2 border-b border-b1">
 				<button

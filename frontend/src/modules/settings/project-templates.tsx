@@ -23,17 +23,27 @@ export function TemplateSelector({
 }) {
 	const [templates, setTemplates] = useState<ProjectTemplate[]>([]);
 	const [selected, setSelected] = useState<string | null>(null);
+	const [loading, setLoading] = useState(true);
+	const [loadError, setLoadError] = useState(false);
+
+	const fetchTemplates = useCallback(async () => {
+		try {
+			setLoading(true);
+			const data = await api.get<ProjectTemplate[]>("/project-templates");
+			setTemplates(data ?? []);
+			setLoadError(false);
+		} catch (err: unknown) {
+			setLoadError(true);
+			setTemplates([]);
+			toastApiError(err, "Не удалось загрузить шаблоны");
+		} finally {
+			setLoading(false);
+		}
+	}, []);
 
 	useEffect(() => {
-		api
-			.get<ProjectTemplate[]>("/project-templates")
-			.then((data) => {
-				setTemplates(data ?? []);
-			})
-			.catch((err: unknown) => {
-				toastApiError(err, "Не удалось загрузить шаблоны");
-			});
-	}, []);
+		void fetchTemplates();
+	}, [fetchTemplates]);
 
 	const handleSelect = (id: string) => {
 		setSelected(id);
@@ -54,33 +64,42 @@ export function TemplateSelector({
 	return (
 		<div className="space-y-2">
 			<p className="text-sm font-medium">Выберите шаблон проекта:</p>
-			<div className="grid grid-cols-2 gap-2">
-				{templates.map((t) => (
-					<button
-						key={t.id}
-						type="button"
-						onClick={() => handleSelect(t.id)}
-						className={`rounded-md border p-3 text-left text-sm ${
-							selected === t.id
-								? "border-blue-500 bg-blue-50 dark:bg-blue-950"
-								: "hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
-						}`}
-					>
-						<div className="flex items-center gap-2">
-							<span className="font-mono text-xs text-gray-400">
-								{typeIcon(t.template_type)}
-							</span>
-							<span className="font-medium">{t.name}</span>
-							{t.is_system && (
-								<span className="text-xs text-gray-400">Системный</span>
+			{loading ? (
+				<p className="text-sm text-gray-500">Загрузка...</p>
+			) : loadError ? (
+				<QueryErrorAlert
+					message="Не удалось загрузить шаблоны"
+					retry={() => void fetchTemplates()}
+				/>
+			) : (
+				<div className="grid grid-cols-2 gap-2">
+					{templates.map((t) => (
+						<button
+							key={t.id}
+							type="button"
+							onClick={() => handleSelect(t.id)}
+							className={`rounded-md border p-3 text-left text-sm ${
+								selected === t.id
+									? "border-blue-500 bg-blue-50 dark:bg-blue-950"
+									: "hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+							}`}
+						>
+							<div className="flex items-center gap-2">
+								<span className="font-mono text-xs text-gray-400">
+									{typeIcon(t.template_type)}
+								</span>
+								<span className="font-medium">{t.name}</span>
+								{t.is_system && (
+									<span className="text-xs text-gray-400">Системный</span>
+								)}
+							</div>
+							{t.description && (
+								<p className="mt-1 text-xs text-gray-500">{t.description}</p>
 							)}
-						</div>
-						{t.description && (
-							<p className="mt-1 text-xs text-gray-500">{t.description}</p>
-						)}
-					</button>
-				))}
-			</div>
+						</button>
+					))}
+				</div>
+			)}
 		</div>
 	);
 }

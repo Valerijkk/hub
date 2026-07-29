@@ -49,7 +49,12 @@ export function BasesPage() {
 		queryFn: listBases,
 	});
 
-	const { data: baseDetail } = useQuery({
+	const {
+		data: baseDetail,
+		isError: detailError,
+		isPending: detailPending,
+		refetch: refetchDetail,
+	} = useQuery({
 		queryKey: ["bases", selectedBaseId],
 		queryFn: () => {
 			if (!selectedBaseId) {
@@ -60,7 +65,12 @@ export function BasesPage() {
 		enabled: !!selectedBaseId,
 	});
 
-	const { data: tableView } = useQuery({
+	const {
+		data: tableView,
+		isError: tableError,
+		isPending: tablePending,
+		refetch: refetchTable,
+	} = useQuery({
 		queryKey: ["bases", selectedBaseId, "table", selectedTableId],
 		queryFn: () => {
 			if (!selectedBaseId || !selectedTableId) {
@@ -271,7 +281,18 @@ export function BasesPage() {
 						</p>
 					)}
 
-					{selectedBaseId && baseDetail && (
+					{selectedBaseId && detailPending && (
+						<p className="text-[13px] text-t3 py-12 text-center">Загрузка…</p>
+					)}
+
+					{selectedBaseId && detailError && (
+						<QueryErrorAlert
+							message="Не удалось загрузить базу"
+							retry={() => void refetchDetail()}
+						/>
+					)}
+
+					{selectedBaseId && baseDetail && !detailError && (
 						<>
 							<form
 								className="flex flex-wrap items-end gap-2 rounded-lg border border-b1 bg-[var(--card)] p-3"
@@ -337,7 +358,18 @@ export function BasesPage() {
 								))}
 							</div>
 
-							{selectedTableId && tableView && (
+							{selectedTableId && tablePending && (
+								<p className="text-[13px] text-t3">Загрузка таблицы…</p>
+							)}
+
+							{selectedTableId && tableError && (
+								<QueryErrorAlert
+									message="Не удалось загрузить таблицу"
+									retry={() => void refetchTable()}
+								/>
+							)}
+
+							{selectedTableId && tableView && !tableError && (
 								<div className="space-y-4">
 									<form
 										className="flex flex-wrap items-end gap-2 rounded-lg border border-b1 p-3"

@@ -62,7 +62,7 @@ export function RecordingsList({ projectId }: RecordingsListProps) {
 	const handleDownload = useCallback(async (recordingId: string) => {
 		try {
 			const data = await callsApi.getRecordingDownloadURL(recordingId);
-			window.open(data.url, "_blank");
+			window.open(data.url, "_blank", "noopener,noreferrer");
 		} catch (err) {
 			toastApiError(err, "Не удалось скачать запись");
 		}
