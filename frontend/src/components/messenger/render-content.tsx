@@ -1,18 +1,6 @@
 /** Рендерер Plate JSON для содержимого сообщений. */
 
-/**
- * Whitelist безопасных схем для <a href>. Блокирует `javascript:`,
- * `data:`, `vbscript:` и другие опасные схемы.
- */
-const SAFE_URL_RE = /^(https?:|mailto:|\/|#)/i;
-
-/**
- * Санитизация URL для href. Небезопасное → `"#"` (no-op).
- * Если строка не проходит whitelist схем.
- */
-function sanitizeUrl(url: unknown): string {
-	return typeof url === "string" && SAFE_URL_RE.test(url) ? url : "#";
-}
+import { sanitizeUrl } from "@/lib/safe-url";
 
 /**
  * Безопасное приведение к строке для React children.
