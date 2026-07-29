@@ -55,23 +55,28 @@ func (r *EntRepository) CreateChannel(ctx context.Context, input CreateChannelIn
 
 // GetChannel возвращает канал по ID с загрузкой участников.
 // Soft-deleted каналы скрыты (A8-005 / TZ trash).
+// A3W3-3-001: eager WithMembers ограничен listMembersCap (как ListMembers).
 func (r *EntRepository) GetChannel(ctx context.Context, channelID uuid.UUID) (*ent.Channel, error) {
 	return r.client.Channel.Query().
 		Where(
 			channel.ID(channelID),
 			channel.DeletedAtIsNil(),
 		).
-		WithMembers().
+		WithMembers(func(q *ent.ChannelMemberQuery) {
+			q.Limit(listMembersCap)
+		}).
 		Only(ctx)
 }
 
-// ListUserChannels возвращает все активные каналы, в которых состоит пользователь.
+// ListUserChannels возвращает активные каналы, в которых состоит пользователь.
+// A3W3-3-001: hard cap userChannelMembershipCap (sidebar/search scope).
 func (r *EntRepository) ListUserChannels(ctx context.Context, userID uuid.UUID) ([]*ent.Channel, error) {
 	return r.client.Channel.Query().
 		Where(
 			channel.DeletedAtIsNil(),
 			channel.HasMembersWith(channelmember.UserID(userID)),
 		).
+		Limit(userChannelMembershipCap).
 		All(ctx)
 }
 
@@ -228,20 +233,27 @@ func (r *EntRepository) RemoveMember(ctx context.Context, channelID, userID uuid
 }
 
 // FindDMChannel ищет существующий DM-канал по ключу дедупликации.
+// A3W3-3-001: eager WithMembers ограничен listMembersCap.
 func (r *EntRepository) FindDMChannel(ctx context.Context, dmKey string) (*ent.Channel, error) {
 	return r.client.Channel.Query().
 		Where(
 			channel.DmKey(dmKey),
 			channel.DeletedAtIsNil(),
 		).
-		WithMembers().
+		WithMembers(func(q *ent.ChannelMemberQuery) {
+			q.Limit(listMembersCap)
+		}).
 		Only(ctx)
 }
 
-// ListMembers возвращает участников канала с загрузкой связи user (cap A2W3-3-002).
+// ListMembers возвращает участников активного (не soft-deleted) канала с user
+// (cap A2W3-3-002; soft-delete predicate A3W3-3-002 — симметрия с IsMember/GetChannelMemberIDs).
 func (r *EntRepository) ListMembers(ctx context.Context, channelID uuid.UUID) ([]*ent.ChannelMember, error) {
 	return r.client.ChannelMember.Query().
-		Where(channelmember.ChannelID(channelID)).
+		Where(
+			channelmember.ChannelID(channelID),
+			channelmember.HasChannelWith(channel.DeletedAtIsNil()),
+		).
 		WithUser().
 		Limit(listMembersCap).
 		All(ctx)

@@ -152,7 +152,7 @@ func (s *PresenceService) GetCustomStatus(ctx context.Context, userID string) (s
 }
 
 // GetOnlineUserIDs возвращает ID всех пользователей со статусом "online"
-// (heartbeat менее 5 минут назад).
+// (heartbeat менее presenceAwayThreshold (90s) назад). A3W3-3-003.
 func (s *PresenceService) GetOnlineUserIDs(ctx context.Context) ([]string, error) {
 	minScore := fmt.Sprintf("%d", time.Now().Add(-presenceAwayThreshold).Unix())
 	maxScore := "+inf"
