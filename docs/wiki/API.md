@@ -824,8 +824,8 @@ Anti-repeat: старается не повторять пары из преды
 | Метод | Путь | Описание | Статус |
 |---|---|---|---|
 | POST | `/intranet/news` | + опциональный `poll` (вопрос, 2–10 вариантов) | shipped (TASK-098) |
-| GET | `/intranet/news/:newsId/poll` | Опрос поста + агрегаты голосов | shipped (TASK-098) |
-| POST | `/intranet/news/:newsId/poll/vote` | Голос (1 вариант; повторный → 422) | shipped (TASK-098) |
+| GET | `/intranet/news/:newsId/poll` | Опрос поста + агрегаты голосов; draft → 404 для non-author | shipped (TASK-098, TASK-189) |
+| POST | `/intranet/news/:newsId/poll/vote` | Голос (1 вариант; повторный → 422); draft → 404 для non-author | shipped (TASK-098, TASK-189) |
 | PUT | `/intranet/news/:newsId/poll` | Правка/закрытие опроса (после первого голоса → 422) | shipped (TASK-098) |
 | GET | `/intranet/onboarding/templates` | Системные шаблоны dev/non-dev (admin) | planned |
 | POST | `/intranet/onboarding/assignments` | Назначить шаблон новичку (admin; re-assign → 409 без confirm) | planned |
@@ -839,7 +839,7 @@ Anti-repeat: старается не повторять пары из преды
 
 ## Calendar (MOD-04, Phase 41)
 
-Единый календарь: созвоны, спринты, дедлайны задач, одобренные отпуска (только проекты пользователя для tracker-событий).
+Единый календарь: созвоны, спринты, дедлайны задач, одобренные отпуска (только проекты пользователя для tracker-событий). Soft-deleted leave/sprint не попадают в `/events` и `.ics` (TASK-189 / BE-V4-001…002).
 
 | Метод | Путь | Описание |
 |---|---|---|

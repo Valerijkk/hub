@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: planning-audit-pw-in-progress
 stopped_at: Planning audit 2026-07 PW1–PW5 · coverage remeasured · phase matrix live
-last_updated: "2026-07-29T18:55:00.000Z"
-last_activity: 2026-07-29 · be2 TASK-188 PushSender layering + Telegram RL · На проверке
+last_updated: "2026-07-29T19:20:00.000Z"
+last_activity: 2026-07-29 · be1 TASK-189 calendar trash + draft poll IDOR · На проверке
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -68,6 +68,13 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-29 (be1 · TASK-189 BE-V4 calendar trash + draft poll)
+
+- **FIXED** BE-V4-001/002: `ListApprovedLeaveInRange` / `ListSprintsInRange` → `DeletedAtIsNil`.
+- **FIXED** BE-V4-003: `GetNewsPoll` / `VoteNewsPoll` → `requirePublishedNewsOrAuthorOrAdmin` (draft → 404 non-author).
+- **Тесты:** `leave_sprint_trash_task189_test.go`, `draft_poll_idor_task189_test.go`; mutation RED×3 → restore GREEN; `./testframework/{calendar,intranet}/` hubtest+race PASS.
+- Docs: `docs/wiki/API.md`, `docs/system_specification.md`. Не трогали coffee/partners (163), preview (180). TASK-008 не закрывали.
+- Статус: **На проверке**. Handoff: be-ver → code-reviewer.
 ## Session note — 2026-07-29 (be2 · TASK-188 ASN-001/002 PushSender + Telegram RL)
 
 - **FIXED** ASN-001: `PushSender` → `PushSubscriptionStore` (CRUD в `Repository`); `push.go` без `*ent.Client` / ent import; wiring `NewPushSender(notifRepo, …)`.

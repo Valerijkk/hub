@@ -130,7 +130,7 @@ Stage A2 (brief): [A2-DEDUP-2026-07-28.md](../audits/total-2026-07/A2-DEDUP-2026
 | [TASK-188](TASK-188-2026-07-29-audit-be-push-telegram-rl.md) | 🔒 Audit BE PushSender layering + Telegram RL | P2 | На проверке | be2 | ASN-001…002 · 2 |
 | [TASK-189](TASK-189-2026-07-29-audit-be-v4-calendar-poll.md) | 🔒 Audit BE calendar trash + draft poll IDOR | P2 | Открыта | be1 | BE-V4-001…003 · 3 |
 | [TASK-190](TASK-190-2026-07-29-audit-be-tracker-messenger-softdelete.md) | 🔒 Audit BE tracker/messenger soft-delete + CreateChannel | P2 | Открыта | be1+be2 | AUDIT-TM-001…004 · 4 |
-| [TASK-191](TASK-191-2026-07-29-audit-ent-automationrule-softdelete.md) | 🔒 Audit ent AutomationRule soft-delete | P2 | Открыта | be1 | EA-001 · 1 |
+| [TASK-191](TASK-191-2026-07-29-audit-ent-automationrule-softdelete.md) | 🔒 Audit ent AutomationRule soft-delete | P2 | На проверке | be1 | EA-001 · 1 |
 | [TASK-192](TASK-192-2026-07-29-audit-fe-settings-version-ol.md) | 🔒 Audit FE settings version OL (webhooks/AI) | P2 | На проверке | fe1 | FE-SMA-001…002 · 2 |
 | [TASK-009](TASK-009-project-routes-rbac.md) | project routes без RBAC | **P0** | Исправлена | be1 | W1-A5-001 |
 | [TASK-010](TASK-010-promote-to-issue-rbac.md) | promote-to-issue без PermTaskCreate | **P0** | Исправлена | be1 | W3-A2-001 |

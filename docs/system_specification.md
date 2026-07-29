@@ -285,12 +285,14 @@ Auth: Bearer
 Responses: 200 { "id","question","closed","voted_option_id"|null,
                  "options":[{"id","text","votes_count","percent"}], "total_votes" }
           (percent виден только после собственного голоса или автору поста); 401; 404
+          (unpublished draft: 404 для non-author/non-admin — как GetNews; TASK-189 / BE-V4-003)
 Source FR: FR-INTR-02, FR-INTR-03
 
 ### POST /api/intranet/news/:newsId/poll/vote
 Auth: Bearer
 Request: { "option_id": "uuid" }
-Responses: 200 {агрегаты как в GET}; 400 (option чужого poll); 401; 404; 422 (повторный голос / poll closed); 429
+Responses: 200 {агрегаты как в GET}; 400 (option чужого poll); 401; 404
+          (в т.ч. draft для non-author); 422 (повторный голос / poll closed); 429
 Source FR: FR-INTR-02
 
 ### PUT /api/intranet/news/:newsId/poll
