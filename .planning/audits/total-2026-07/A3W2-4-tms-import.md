@@ -71,11 +71,11 @@
 
 | ID | Tag | Severity | Файл:строка | Проблема | Почему это дефект | Как чинить |
 |----|-----|----------|-------------|---------|-------------------|------------|
-| A3W2-4-001 | NEW | P2 | `importer.go:557–565` | `handleExportTestCases` не заполняет `TestCaseExportData.Steps` (поле остаётся `""`) | CSV/JSON/XML/Excel колонка Steps всегда пустая → потеря шагов при export/reimport; writers и `exporter_test` ожидают Steps | Сериализовать `tc.Steps` (как в snapshot / plain text) в `exportData.Steps` |
-| A3W2-4-002 | NEW | P2 | `testrail_import.go:282–326`, `:347–352` | `parseTestRailCSV` / `parseTestRailXML` без `assertXMLMaxDepth` / `maxImportRecords` (в отличие от allure/junit/importer) | После фикса A2W2-4-001 CI-путь закрыт; TestRail XML nest / CSV rows в пределах 25 MB всё ещё amplifies alloc | Depth+len/records cap перед Unmarshal/ReadAll; тест mutation как task111 |
-| A3W2-4-003 | NEW | P3 | `importer.go:382–387` | `handleImport` отдаёт `"ошибка парсинга файла: " + err.Error()` клиенту | Тот же класс утечки internals, что закрыт для TestRail (A2W2-4-007) | Фиксированное сообщение + slog; детали только в лог |
-| A3W2-4-004 | NEW | P3 | `exporter.go:27–43` | `ExportTestCasesToCSV`: `defer w.Flush()` без проверки `w.Error()` | `ExportRunResultsToCSV` уже проверяет Flush (W2-A4-013); ошибки io.Writer на кейсах теряются | После Flush: `if err := w.Error(); err != nil { return … }` |
-| A3W2-4-005 | NEW | P3 | `testrail_import.go:222–229` | `CreateSuite` fail → `continue` без `Errors++` / `Partial` | Секция молча не создаётся; кейсы импортируются без suite; `Partial=false` при полном Created | `result.Errors++` (+ optional ValidationErrors); `Partial` учтёт |
+| A3W2-4-001 | FIXED | P2 | `importer.go` handleExportTestCases | `formatTestStepsForExport` → `exportData.Steps` (TASK-141) | was: Steps always `""` | Evidence: `TestTask141_ExportTestCases_StepsFilled` + mutation |
+| A3W2-4-002 | FIXED | P2 | `testrail_import.go` parseTestRailCSV/XML | depth + `maxImportRecords` (TASK-141) | was: unbounded nest/rows | Evidence: `TestTask141_ParseTestRailXML_DepthCap` / `_CSV_RecordsCap` |
+| A3W2-4-003 | FIXED | P3 | `importer.go` handleImport | fixed `"некорректный файл импорта"` + slog (TASK-141) | was: `err.Error()` leak | Evidence: `TestTask141_HandleImport_FixedParseError` |
+| A3W2-4-004 | FIXED | P3 | `exporter.go` ExportTestCasesToCSV | Flush + `w.Error()` (TASK-141) | was: silent Flush fail | Evidence: `TestTask141_ExportTestCasesToCSV_FlushError` |
+| A3W2-4-005 | FIXED | P3 | `testrail_import.go` CreateSuite fail | `Errors++` + Partial (TASK-141) | was: silent continue | Evidence: `TestTask141_ImportTestRail_CreateSuiteFail_Partial` |
 
 ## Фокус-чеклист
 
@@ -84,12 +84,12 @@
 | LimitReader handleImport / TestRail | **FIXED-OK** |
 | Steps mapping (import) | **FIXED-OK** |
 | JSON/XML depth allure/junit/importer | **FIXED-OK** |
-| TestRail parser depth/records | **NEW** A3W2-4-002 |
+| TestRail parser depth/records | **FIXED** A3W2-4-002 (TASK-141) |
 | Matcher !IsNotFound + project mock | **FIXED-OK** |
 | Export ListTestCases pagination | **FIXED-OK** |
-| Export Steps populated | **NEW** A3W2-4-001 |
+| Export Steps populated | **FIXED** A3W2-4-001 (TASK-141) |
 | ImportResult.Partial | **FIXED-OK** |
-| TestRail handler err.Error | **FIXED-OK**; generic import — **NEW** A3W2-4-003 |
+| TestRail handler err.Error | **FIXED-OK**; generic import — **FIXED** A3W2-4-003 (TASK-141) |
 | A3-010 / A3-012 | **FIXED-OK** |
 | Path traversal / secrets in logs | чисто |
 
@@ -100,23 +100,20 @@
 - Filename только суффикс (`detectImportFormat` / TestRail ToLower); нет path traversal.
 - Importer caps 25 MB / 5000 records / depth 32 — на месте.
 
-### Сводка counts (активные)
+### Сводка counts (после TASK-141)
 
-| Severity | Count |
-|----------|------:|
-| P0 | 0 |
-| P1 | 0 |
-| P2 | 2 |
-| P3 | 3 |
-| **Total** | **5** |
+| Severity open | Count |
+|---------------|------:|
+| P0–P3 open | **0** |
+| FIXED (A3W2-4-001..005) | **5** |
 
 | Tag | Count |
 |-----|------:|
 | FIXED-OK (A2W2-4 closes) | 7 |
-| NEW | 5 |
+| FIXED (A3 residual TASK-141) | 5 |
+| NEW open | 0 |
 | REGRESS | 0 |
-| RESIDUAL | 0 |
 
-A2 baseline: 7 open → **0 residual** · REGRESS 0 · NEW 5 (P2=2 · P3=3).
+A3 residual 5 → **0 open** · TASK-141 **На проверке** · hubtest + mutation RED_OK.
 
-**Return:** `.planning/audits/total-2026-07/A3W2-4-tms-import.md` · **25/25** · **P0=0 / P1=0 / P2=2 / P3=3** · top IDs: `A3W2-4-001`, `A3W2-4-002`, `A3W2-4-003`, `A3W2-4-004`, `A3W2-4-005`.
+**Return:** `.planning/audits/total-2026-07/A3W2-4-tms-import.md` · remediation TASK-141 · **5/5 FIXED**.
