@@ -2,9 +2,12 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { listGitLabIntegrations, triggerPipeline } from "@/api/gitlab";
+import { getProject } from "@/api/projects";
 import { listTestCases, type TestCaseResponse } from "@/api/tms";
 import { Badge } from "@/components/ui/badge";
 import { toastApiError } from "@/lib/format-api-error";
+import { canMutateProject } from "@/lib/permissions";
+import { sanitizeUrl } from "@/lib/safe-url";
 import { cn } from "@/lib/utils";
 
 /** Лимит кейсов в UI запуска CI — без пагинации (W10-A2-015). */
@@ -12,23 +15,36 @@ export const CI_CASES_FETCH_LIMIT = 500;
 
 interface Props {
 	projectId: string;
+	/** Явный override; иначе берём из `project.my_role`. */
+	canMutate?: boolean;
 }
 
 /**
  * TriggerCIPanel — компонент для запуска CI-пайплайна с выбранными тест-кейсами.
  * Позволяет выбрать интеграцию, ветку, отметить кейсы и запустить пайплайн.
  */
-export function TriggerCIPanel({ projectId }: Props) {
+export function TriggerCIPanel({
+	projectId,
+	canMutate: canMutateProp,
+}: Props) {
 	const [selectedCaseIds, setSelectedCaseIds] = useState<Set<string>>(
 		new Set(),
 	);
 	const [branch, setBranch] = useState("main");
 	const [search, setSearch] = useState("");
 
+	const { data: project } = useQuery({
+		queryKey: ["project", projectId],
+		queryFn: () => getProject(projectId),
+		enabled: Boolean(projectId) && canMutateProp === undefined,
+	});
+	const canMutate = canMutateProp ?? canMutateProject(project?.my_role);
+
 	// Загружаем GitLab-интеграции
 	const { data: integrations, isLoading: intLoading } = useQuery({
 		queryKey: ["gitlab-integrations", projectId],
 		queryFn: () => listGitLabIntegrations(projectId),
+		enabled: canMutate,
 	});
 
 	const [selectedIntegration, setSelectedIntegration] = useState<string>("");
@@ -41,6 +57,7 @@ export function TriggerCIPanel({ projectId }: Props) {
 				limit: CI_CASES_FETCH_LIMIT,
 				status: "active",
 			}),
+		enabled: canMutate,
 	});
 
 	const cases: TestCaseResponse[] = casesData?.items ?? [];
@@ -86,7 +103,12 @@ export function TriggerCIPanel({ projectId }: Props) {
 				action: data.web_url
 					? {
 							label: "Открыть",
-							onClick: () => window.open(data.web_url, "_blank"),
+							onClick: () => {
+								const safe = sanitizeUrl(data.web_url);
+								if (safe !== "#") {
+									window.open(safe, "_blank", "noopener,noreferrer");
+								}
+							},
 						}
 					: undefined,
 			});
@@ -113,6 +135,10 @@ export function TriggerCIPanel({ projectId }: Props) {
 			setSelectedCaseIds(new Set(filteredCases.map((c) => c.id)));
 		}
 	}, [filteredCases, selectedCaseIds.size]);
+
+	if (!canMutate) {
+		return null;
+	}
 
 	const noIntegrations =
 		!intLoading && (!integrations || integrations.length === 0);
