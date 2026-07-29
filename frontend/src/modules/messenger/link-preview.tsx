@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getLinkPreview, type LinkPreviewResponse } from "@/api/messenger";
+import { isSafeUrl, sanitizeUrl } from "@/lib/safe-url";
 
 // ---------------------------------------------------------------------------
 // Типы
@@ -178,14 +179,22 @@ function ExternalPreview({ data }: { data: LinkPreviewResponse }) {
  * - Внутренние задачи: тип + ключ + title + статус + assignee
  * - Тест-кейсы: иконка + title + статус
  * - Внешние URL: OG image + title + description + domain
+ * C-W19-FE-002: unsafe-схемы (javascript:/data:/…) → null, без href.
  */
 export function LinkPreview({ url }: LinkPreviewProps) {
 	const [data, setData] = useState<LinkPreviewResponse | null>(null);
-	const [loading, setLoading] = useState(true);
+	const [loading, setLoading] = useState(() => isSafeUrl(url));
 	const [error, setError] = useState(false);
 
 	useEffect(() => {
 		let cancelled = false;
+
+		if (!isSafeUrl(url)) {
+			setData(null);
+			setLoading(false);
+			setError(false);
+			return;
+		}
 
 		async function fetchPreview() {
 			try {
@@ -204,11 +213,16 @@ export function LinkPreview({ url }: LinkPreviewProps) {
 			}
 		}
 
+		setLoading(true);
+		setError(false);
 		fetchPreview();
 		return () => {
 			cancelled = true;
 		};
 	}, [url]);
+
+	// A3W9-3-003 / C-W19-FE-002: не рендерить карточку для unsafe URL.
+	if (!isSafeUrl(url)) return null;
 
 	if (loading) {
 		return (
@@ -223,7 +237,7 @@ export function LinkPreview({ url }: LinkPreviewProps) {
 
 	return (
 		<a
-			href={url}
+			href={sanitizeUrl(url)}
 			target="_blank"
 			rel="noopener noreferrer"
 			className="mt-1 block max-w-[400px] rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800/50"
