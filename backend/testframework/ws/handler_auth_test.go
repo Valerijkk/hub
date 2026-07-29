@@ -3,6 +3,7 @@ package ws_test
 // Тесты HTTP-обработчика WebSocket: интеграционные и unit-сценарии testframework.
 import (
 	"context"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -99,6 +100,30 @@ func TestWSHandler_QueryToken_Denied(t *testing.T) {
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.Equal(t, fiber.StatusUnauthorized, resp.StatusCode)
+}
+
+// TestWSHandler_QueryToken_WithValidTicket_Denied — A3W3-4-001: валидный
+// ticket subprotocol + непустой ?token= → 401 именно из query-guard
+// (не «missing ticket»). Мутация: убрать deny ?token= в handler.go → FAIL.
+func TestWSHandler_QueryToken_WithValidTicket_Denied(t *testing.T) {
+	hub := ws.NewHub()
+	svc, magic, _ := newWSAuthService(t)
+	access := wsAccessToken(t, svc, magic)
+	ticket := wsTicketForAccess(t, svc, access)
+
+	app := fiber.New()
+	app.Get("/ws", ws.Handler(hub, svc, ws.ExportAllowAllAuthorizer()))
+
+	req := httptest.NewRequest(fiber.MethodGet, "/ws?token="+access, nil)
+	req.Header.Set("Sec-WebSocket-Protocol", ws.WSTicketProtocolPrefix+ticket)
+	resp, err := app.Test(req, 5*time.Second)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, fiber.StatusUnauthorized, resp.StatusCode)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	require.NoError(t, err)
+	assert.Contains(t, string(body), "token query parameter is not allowed",
+		"401 должен быть из query-guard, не из missing/invalid ticket")
 }
 
 // TestWSHandler_InvalidTicket_Unauthorized — битый/чужой ticket → 401.

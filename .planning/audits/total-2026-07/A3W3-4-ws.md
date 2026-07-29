@@ -50,7 +50,7 @@
 | `backend/testframework/ws/authorizer_test.go` | 203 | 0 | чисто |
 | `backend/testframework/ws/bridge_lifecycle_test.go` | 63 | 0 | чисто |
 | `backend/testframework/ws/bridge_test.go` | 205 | 0 | чисто |
-| `backend/testframework/ws/handler_auth_test.go` | 167 | 1 | NEW — mutation gap query+ticket |
+| `backend/testframework/ws/handler_auth_test.go` | 167+ | 0 | FIXED — `TestWSHandler_QueryToken_WithValidTicket_Denied` (A3W3-4-001 / TASK-146) |
 | `backend/testframework/ws/hub_shutdown_test.go` | 160 | 0 | чисто |
 | `backend/testframework/ws/hub_test.go` | 359 | 0 | чисто |
 | `backend/testframework/ws/origin_test.go` | 58 | 0 | чисто |
@@ -63,7 +63,7 @@
 
 | ID | Tag | Severity | Файл:строка | Проблема | Почему дефект | Как чинить |
 |----|-----|----------|-------------|----------|---------------|------------|
-| A3W3-4-001 | NEW | P3 | `handler_auth_test.go:88–102` (vs prod `handler.go:157–160`) | `TestWSHandler_QueryToken_Denied` шлёт только `?token=` **без** ticket subprotocol | Комментарий prod: отказ даже при параллельном subprotocol. Мутация «убрать deny `?token=`, оставить ticket-required» оставляет тест зелёным (401 из-за missing ticket), а JWT снова может попадать в proxy/access URI при `?token=`+ticket | Добавить кейс: valid ticket **и** `?token=` → 401; mutation: удалить query-guard → FAIL |
+| A3W3-4-001 | FIXED | P3 | `handler_auth_test.go` `TestWSHandler_QueryToken_WithValidTicket_Denied` (vs prod `handler.go:157–160`) | ~~`TestWSHandler_QueryToken_Denied` шлёт только `?token=` без ticket~~ | ~~Мутация query-guard оставляла query-only зелёным~~ | TASK-146: valid ticket **и** `?token=` → 401 + body `token query parameter is not allowed`; mutation (убрать guard) → FAIL (500 upgrade), query-only PASS |
 
 ## FIXED-OK (сводка)
 
@@ -89,8 +89,8 @@
 | P0 | 0 |
 | P1 | 0 |
 | P2 | 0 |
-| P3 | 1 |
-| **Total** | **1** |
+| P3 | 0 |
+| **Total** | **0** |
 
 ### Теги vs A2
 
@@ -99,7 +99,8 @@
 | FIXED-OK (A2 active → closed) | 1 (`A2W3-4-001`) |
 | FIXED-OK (Stage A cascade) | 10 |
 | RESIDUAL | 0 |
-| NEW | 1 (`A3W3-4-001`) |
+| NEW | 0 |
+| FIXED (A3) | 1 (`A3W3-4-001` · TASK-146) |
 | REGRESS | 0 |
 
-**Топ IDs:** `A3W3-4-001` (query+ticket mutation gap).
+**Топ IDs:** — (A3W3-4-001 CLOSED TASK-146).
