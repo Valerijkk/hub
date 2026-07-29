@@ -58,12 +58,12 @@
 
 | ID | Tag | Severity | Файл:строка | Проблема | Почему это дефект | Как чинить |
 |----|-----|----------|-------------|---------|-------------------|------------|
-| A3W2-2-001 | NEW | P2 | `service_runs.go:312-325` | `AssignTestersToRun`: `userIDs` только parse UUID; нет membership ∈ project | Repo `AddAssigneeIDs` без scope (`ent_repository.go:1178-1183`) → любой существующий user UUID в org можно назначить на прогон проекта A (зеркало tracker assignee / TASK-088) | Перед assign: `IsProjectMember` / count membership; mismatch → 404/400; Ent denial-тест |
-| A3W2-2-002 | NEW | P2 | `service_runs.go:286-294` | `ExecuteTestResult`: `FileIDs` → `AddFilesToResult` без project-scope файлов | `AddFileIDs` без `HasProjectWith` (`ent_repository.go:1222-1236`) → M2M к чужому file UUID; detail отдаёт metadata чужого файла | Count/Find files in project; mismatch → 404; иначе не Add |
-| A3W2-2-003 | NEW | P2 | `service_import.go:126-139` | `ImportAllureToExistingRun`: Mongo dump → `BatchCreateTestResults` → `recomputeRunStats` без общей Ent tx / abort | Sibling A2W2-2-004 закрыл только create-path; fail batch после Mongo / fail recompute → частичные results + stale stats | Batch+stats в tx; при fail — не оставлять half-written results (или compensating delete) |
-| A3W2-2-004 | RESIDUAL (W2-A2-016) | P2 | `service_test.go:522-541` | mock `UpdateTestResult`: если `Edges.Run==nil` и `runResults[runID]` отсутствует — membership не проверяется | Wave122 Execute happy-path зелёный без `HasRunWith`; регрессия A3-008 на mock-слое не ловится (prod Ent покрыт `result_scope_a3008_*`) | Требовать `Edges.Run.ID==runID` **или** entry в `runResults`; иначе NotFound |
-| A3W2-2-005 | NEW | P3 | `service_converters.go:367-372` | `snapshotToUpdateInput`: `_ = json.Marshal` + ignore Unmarshal err для steps | `buildSnapshot` (A2W2-2-010) уже fail-closed; rollback path молча теряет steps → откат без шагов | Проверять err; при fail — return error из Rollback / не применять битый snapshot |
-| A3W2-2-006 | NEW | P3 | `service_test_cases.go:243`, `:333`, `:352` | `DeleteTestCase` / `Link` / `Unlink` возвращают сырой `repo` err | Non-AppError (Ent/constraint) может утечь наверх без `{"error","request_id"}` контракта | Wrap → AppError; AppError пробрасывать |
+| A3W2-2-001 | FIXED | P2 | `service_runs.go` + `CountProjectMembers` | `AssignTestersToRun`: membership ∈ project | non-member → 400 | TASK-139 · `a3w2_2_tms_services_task139_test.go` |
+| A3W2-2-002 | FIXED | P2 | `service_runs.go` + `CountFilesInProject` | `ExecuteTestResult` FileIDs project-scope | foreign FileID → 404 | TASK-139 · Ent+mock denial |
+| A3W2-2-003 | FIXED | P2 | `ImportResultsToExistingRun` tx + mock compensating delete | ExistingRun import без half-written | inject fail → cleanup | TASK-139 |
+| A3W2-2-004 | FIXED | P2 | mock `UpdateTestResult` | require Edges.Run / runResults | без scope → NotFound | TASK-139 (mock guard + тест) |
+| A3W2-2-005 | FIXED | P3 | `snapshotToUpdateInput` | Marshal/Unmarshal steps fail-closed | corrupt steps → error | TASK-139 |
+| A3W2-2-006 | FIXED | P3 | `Delete`/`Link`/`Unlink` | wrap → AppError | raw Ent text не утекает | TASK-139 |
 
 ## Чисто
 
@@ -73,14 +73,14 @@
 - A3-003/004/007/008/009/012/017 service-path invariants держатся; nil-TC CreateBug + Ent mutation hint живы.
 - FSM Start/Complete/Reopen; NATS nil-safe PublishJSON.
 
-### Сводка counts (активные)
+### Сводка counts (после TASK-139)
 
-| Severity | Count |
-|----------|------:|
-| P0 | 0 |
-| P1 | 0 |
-| P2 | 4 |
-| P3 | 2 |
-| **Total** | **6** |
+| Severity | Count open | FIXED |
+|----------|------:|------:|
+| P0 | 0 | — |
+| P1 | 0 | — |
+| P2 | 0 | 4 |
+| P3 | 0 | 2 |
+| **Total open** | **0** | **6** |
 
-A2 baseline open: 11 → FIXED-OK 11 · REGRESS 0 · RESIDUAL 1 (W2-A2-016) · NEW 5.
+A3 active → **6/6 FIXED** (TASK-139, be2, 2026-07-29). Mutation red/green 001–006 PASS.

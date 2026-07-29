@@ -762,3 +762,9 @@ pilot; FA-06 manual; затем CAL-SYNC / QA-HARDENING / Redesign по прио
 ## Session note — 2026-07-29 (be2 · TASK-141 A3W2-4 tms import residual)
 
 - A3W2-4-001..005 FIXED in TMS import/export; hubtest task141_*; status На проверке; be-ver: exclusive go generate then hubtest.
+
+## Session note — 2026-07-29 (be2 · TASK-139 A3W2-2 tms services)
+
+- A3W2-2-001..006 FIXED: AssignTesters membership (400), FileIDs project-scope (404), ImportAllure ExistingRun tx/compensating, mock UpdateTestResult scope, snapshot steps fail-closed, Delete/Link/Unlink AppError.
+- hubtest `./testframework/tms/...` PASS; mutation 001–006 red/green ALL_OK.
+- Коммиты: `1dbf42f4` fix · `9e634ee5` test · статус TASK → На проверке (README не трогали). Handoff: be-ver → code-reviewer.

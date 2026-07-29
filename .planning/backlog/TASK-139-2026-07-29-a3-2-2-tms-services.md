@@ -1,6 +1,6 @@
 # 🔒 A3 TMS services: AssignTesters/FileIDs/ImportAllure scope
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Открыта**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
 > Источник: A3W2-2-tms-services.md · Stage A3 FINAL · TASK-008  
 > Исполнитель: **be2** · Finding IDs: **A3W2-2-001** … **A3W2-2-006**
 
