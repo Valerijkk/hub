@@ -31,6 +31,13 @@ frontend/tsconfig.tsbuildinfo
 .gsd/
 .planning/intel/
 
+# Git worktrees агентов — рабочие копии, не содержимое репозитория.
+# Ветки живут в git и переживают удаление каталога; сами каталоги временные.
+.worktrees/
+backend/.worktrees/
+ent_gen_tmp/
+backend/ent_gen_tmp/
+
 # Environment & secrets
 .env
 .env.local
