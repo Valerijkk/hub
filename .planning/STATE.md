@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: planning-audit-pw-in-progress
 stopped_at: Planning audit 2026-07 PW1–PW5 · coverage remeasured · phase matrix live
-last_updated: "2026-07-29T17:35:00.000Z"
-last_activity: 2026-07-29 · be2 TASK-185 Allure ExistingRun fail-closed · На проверке
+last_updated: "2026-07-29T18:25:00.000Z"
+last_activity: 2026-07-29 · docs-writer TASK-183 inventory recount 811/176 · На проверке
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -47,12 +47,15 @@ coverage:
     baseline_2026_06_22: 83.0
     delta_pp: -1.1
     gate_floor_82: miss
-inventory_measured_2026_07_27:
+inventory_measured_2026_07_29:
     frontend_route_tsx: 72
-    backend_testframework_test_go: 515
+    backend_testframework_test_go: 811
+    vitest_frontend_test_files: 176
     ent_entity_schemas: 82
     zustand_stores: 12
     go_mod: "1.25.0"
+    head_short: "35644ed9"
+    branch: "cursor-grok-4.5"
 spec_coverage:
     fr_total: 28
     fr_with_phase: 9

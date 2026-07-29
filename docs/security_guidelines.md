@@ -70,7 +70,7 @@
 | BE-H3 / H-03 | ✅ **FIXED** | `dashboard/service.go:180-210` | Фильтр по `userID` / `projectID` |
 | BE-H4 / H-04 | ✅ **FIXED** | `apigateway/service.go` + `wiring_integrations.go` (API gateway worker) | Worker pool + `defer Close()` |
 | BE-H5 / H-05 | ✅ **FIXED** | `wiring_infra.go:18-26` + `wiring_messenger.go:36-54` | `rawDB` shared pool в `/health` (`/live`/`/ready`) |
-| BE-H6 / H-06 | ✅ **FIXED** | `audit/service.go:376-451`, `audit/handler.go:364` | `DeleteUserGDPR` каскад + `errors.Join` частичных ошибок |
+| BE-H6 / H-06 | ✅ **FIXED** | `audit/service.go` DeleteUserGDPR + `gdpr_mongo_retry.go` | Каскад Ent tx; Mongo erase post-Commit; C-W19-002 JetStream retry `audit.gdpr.mongo_erase` |
 | BE-H7 / H-07 | ✅ **FIXED** | `audit/retention.go:98-127`, `audit/service.go:252-268` | `RunRetentionCleanup` cron + S3 purge записей; `PurgeExpired` корзины 30d |
 | FE-H1 | ✅ **FIXED** | `api/client.ts:97-108` | Single-flight mutex `refreshing` |
 | FE-H2 | ✅ **FIXED** | `stores/auth-store.ts:46-88` | `BroadcastChannel` + storage fallback |
