@@ -1,20 +1,8 @@
 # 🔒 A3 outbox panic dead-letter + claim/Flush
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Открыта**  
 > Источник: A3 · **Owner lock: правим ВСЕ A3 open** · TASK-008 · слот A3W4-2  
 > Исполнитель: **be1** · Ветка исполнения: `cursor-grok-4.5` (не пушить в `master`)
-
-## Progress (be1 · 2026-07-29)
-
-| ID | Status | Evidence |
-|----|--------|----------|
-| A3W4-2-001 | FIXED | `worker.go` recover → `recordPublishFailure`; tests panic attempts≥1 / seed9→failed |
-| A3W4-2-002 | FIXED | claim lease via `published_at` (без enum/migrate); dual-worker + stamp lost-race tests |
-| A3W4-2-003 | FIXED | `PublishWithTraceContext` → `PublishMsg` (Flush+hook); flush fail hubtest |
-
-**Path 002:** без schema `processing` — lease на `published_at` + TTL 30s reclaim.  
-**Hubtest:** `go test -tags hubtest -count=1 ./testframework/platform/outbox/` PASS (8.087s); nats package PASS на повторных прогонах. `-race` full pair intermittent из‑за parallel `go generate` на shared branch (ent mid-write).  
-**Handoff:** be-ver → code-reviewer.
 
 ## [OUTCOME]
 
