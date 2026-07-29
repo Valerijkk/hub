@@ -8,7 +8,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"sync"
 	"time"
 )
 
@@ -29,10 +28,8 @@ type Service struct {
 	client *http.Client
 	// store — опционально admin SystemSetting (Hub server); nil → только cfg.
 	store SettingsStore
-
-	mu       sync.Mutex
-	dayKey   string // UTC YYYY-MM-DD
-	perEmail map[string]int
+	// slots — daily_limit counter; по умолчанию Memory, в prod — Redis (A3W7-1-001).
+	slots DailySlotStore
 }
 
 // NewService создаёт mail service.
@@ -45,9 +42,9 @@ func NewService(cfg Config) *Service {
 		cfg.AlertsEnabled = true
 	}
 	return &Service{
-		cfg:      cfg,
-		client:   &http.Client{Timeout: 10 * time.Second},
-		perEmail: make(map[string]int),
+		cfg:    cfg,
+		client: &http.Client{Timeout: 10 * time.Second},
+		slots:  NewMemoryDailySlotStore(),
 	}
 }
 
@@ -58,6 +55,15 @@ func (s *Service) SetSettingsStore(store SettingsStore) {
 		return
 	}
 	s.store = store
+}
+
+// SetDailySlotStore подключает shared counter (Redis INCR+TTL до UTC midnight).
+// A3W7-1-001: без shared store N реплик умножают лимит; restart обнуляет окно.
+func (s *Service) SetDailySlotStore(slots DailySlotStore) {
+	if s == nil || slots == nil {
+		return
+	}
+	s.slots = slots
 }
 
 // SetAlertsEnabled явно включает/выключает alerts на уровне cfg (тесты / override).
@@ -88,7 +94,7 @@ func (s *Service) SendAlert(ctx context.Context, req SendRequest) error {
 	if !enabled {
 		return ErrAlertsDisabled
 	}
-	if err := s.reserveDailySlot(req.To, limit); err != nil {
+	if err := s.reserveDailySlot(ctx, req.To, limit); err != nil {
 		return err
 	}
 
@@ -114,7 +120,7 @@ func (s *Service) SendAlert(ctx context.Context, req SendRequest) error {
 	}
 	payload, err := json.Marshal(body)
 	if err != nil {
-		s.releaseDailySlot(req.To)
+		s.releaseDailySlot(ctx, req.To)
 		return fmt.Errorf("hub-mail: marshal: %w", err)
 	}
 	// Detach from Fiber RequestCtx: fasthttp переиспользует ctx после ответа/timeout теста
@@ -123,7 +129,7 @@ func (s *Service) SendAlert(ctx context.Context, req SendRequest) error {
 	defer httpCancel()
 	httpReq, err := http.NewRequestWithContext(httpCtx, http.MethodPost, "https://api.resend.com/emails", bytes.NewReader(payload))
 	if err != nil {
-		s.releaseDailySlot(req.To)
+		s.releaseDailySlot(ctx, req.To)
 		return fmt.Errorf("hub-mail: create request: %w", err)
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
@@ -131,12 +137,12 @@ func (s *Service) SendAlert(ctx context.Context, req SendRequest) error {
 
 	resp, err := s.client.Do(httpReq)
 	if err != nil {
-		s.releaseDailySlot(req.To)
+		s.releaseDailySlot(ctx, req.To)
 		return fmt.Errorf("hub-mail: send: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode >= 400 {
-		s.releaseDailySlot(req.To)
+		s.releaseDailySlot(ctx, req.To)
 		respBody, readErr := io.ReadAll(io.LimitReader(resp.Body, maxResendResponseBodyBytes))
 		if readErr != nil {
 			return fmt.Errorf("hub-mail: API error (status %d): %w", resp.StatusCode, readErr)
@@ -179,25 +185,18 @@ func (s *Service) effectivePolicy(ctx context.Context) (enabled bool, limit int)
 	return enabled, limit
 }
 
-func (s *Service) reserveDailySlot(email string, limit int) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	today := time.Now().UTC().Format("2006-01-02")
-	if s.dayKey != today {
-		s.dayKey = today
-		s.perEmail = make(map[string]int)
+func (s *Service) reserveDailySlot(ctx context.Context, email string, limit int) error {
+	if s.slots == nil {
+		s.slots = NewMemoryDailySlotStore()
 	}
-	if s.perEmail[email] >= limit {
-		return ErrDailyLimitExceeded
-	}
-	s.perEmail[email]++
-	return nil
+	return s.slots.Reserve(ctx, email, limit)
 }
 
-func (s *Service) releaseDailySlot(email string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.perEmail[email] > 0 {
-		s.perEmail[email]--
+func (s *Service) releaseDailySlot(ctx context.Context, email string) {
+	if s.slots == nil {
+		return
+	}
+	if err := s.slots.Release(ctx, email); err != nil {
+		slog.WarnContext(ctx, "mail daily slot release failed", "to", email, "error", err)
 	}
 }
