@@ -24,6 +24,22 @@ func AutomationUnknownSubjectTotal() uint64 {
 	return automationUnknownSubjectTotal.Load()
 }
 
+// AutomationFilterSubjects — JetStream filter: только kinds, которые обрабатывает engine.
+// A3W1-A3-001: широкий project.*.issue.> ловил updated/comment_created/link_created → Nak-шторм.
+var AutomationFilterSubjects = []string{
+	"project.*.issue.moved",
+	"project.*.issue.created",
+	"project.*.issue.assigned",
+}
+
+// knownNoOpIssueEventKinds — ожидаемые issue-события без automation-правил.
+// Ack/Term без метрики; Nak только для мусора (TASK-088 / A2W1-A3-002).
+var knownNoOpIssueEventKinds = map[string]struct{}{
+	"updated":         {},
+	"comment_created": {},
+	"link_created":    {},
+}
+
 // AutomationConsumer выполняет правила автоматизации по JetStream-событиям трекера.
 type AutomationConsumer struct {
 	nc     *natsclient.Client
@@ -49,11 +65,11 @@ func (c *AutomationConsumer) Start(ctx context.Context) error {
 		return err
 	}
 	cons, err := stream.CreateOrUpdateConsumer(ctx, jetstream.ConsumerConfig{
-		Durable:       "automation-dispatcher",
-		FilterSubject: "project.*.issue.>",
-		AckPolicy:     jetstream.AckExplicitPolicy,
-		MaxDeliver:    5,
-		AckWait:       30 * time.Second,
+		Durable:        "automation-dispatcher",
+		FilterSubjects: AutomationFilterSubjects,
+		AckPolicy:      jetstream.AckExplicitPolicy,
+		MaxDeliver:     5,
+		AckWait:        30 * time.Second,
 	})
 	if err != nil {
 		return err
@@ -123,10 +139,15 @@ func (c *AutomationConsumer) processMessage(ctx context.Context, msg jetstream.M
 			processErr = c.engine.HandleIssueAssigned(ctx, evt)
 		}
 	default:
-		// A2W1-A3-002 / TASK-088: неизвестный subject → Nak + метрика (не молчаливый Ack).
-		slog.Warn("automation: unknown subject", "subject", msg.Subject(), "kind", kind)
-		automationUnknownSubjectTotal.Add(1)
-		processErr = errAutomationUnknownSubject
+		if _, knownNoOp := knownNoOpIssueEventKinds[kind]; knownNoOp {
+			// A3W1-A3-001: известный no-op (updated/comment/link) — Ack без Nak/метрики.
+			processErr = nil
+		} else {
+			// A2W1-A3-002 / TASK-088: неизвестный subject → Nak + метрика (не молчаливый Ack).
+			slog.Warn("automation: unknown subject", "subject", msg.Subject(), "kind", kind)
+			automationUnknownSubjectTotal.Add(1)
+			processErr = errAutomationUnknownSubject
+		}
 	}
 	if processErr != nil {
 		if nakErr := msg.Nak(); nakErr != nil {
