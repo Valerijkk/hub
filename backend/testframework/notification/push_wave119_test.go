@@ -31,7 +31,7 @@ func TestPushSender_QueueOverflow(t *testing.T) {
 	priv, pub, err := webpush.GenerateVAPIDKeys()
 	require.NoError(t, err)
 
-	push := notification.NewPushSender(notification.ExportRepositoryDB(repo), config.WebPushConfig{
+	push := notification.NewPushSender(repo, config.WebPushConfig{
 		VAPIDPublicKey: pub, VAPIDPrivateKey: priv, VAPIDSubject: "mailto:test@hub.local",
 	})
 	require.NotNil(t, push)
@@ -52,7 +52,7 @@ func TestPushSender_sendToUser_NoSubscriptions(t *testing.T) {
 	priv, pub, err := webpush.GenerateVAPIDKeys()
 	require.NoError(t, err)
 
-	push := notification.NewPushSender(notification.ExportRepositoryDB(repo), config.WebPushConfig{
+	push := notification.NewPushSender(repo, config.WebPushConfig{
 		VAPIDPublicKey: pub, VAPIDPrivateKey: priv, VAPIDSubject: "mailto:test@hub.local",
 	})
 	require.NotNil(t, push)

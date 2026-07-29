@@ -292,7 +292,7 @@ func TestHandler_PushSubscribe_InvalidEndpoint(t *testing.T) {
 	svc, repo, ctx, userID := newNotificationTestEnv(t)
 	priv, pub, err := generateTestVAPIDKeys(t)
 	require.NoError(t, err)
-	push := notification.NewPushSender(notification.ExportRepositoryDB(repo), config.WebPushConfig{
+	push := notification.NewPushSender(repo, config.WebPushConfig{
 		VAPIDPublicKey: pub, VAPIDPrivateKey: priv, VAPIDSubject: "mailto:test@hub.local",
 	})
 	require.NotNil(t, push)
@@ -323,7 +323,7 @@ func TestHandler_PushSubscribe_Success(t *testing.T) {
 	svc, repo, _, userID := newNotificationTestEnv(t)
 	priv, pub, err := generateTestVAPIDKeys(t)
 	require.NoError(t, err)
-	push := notification.NewPushSender(notification.ExportRepositoryDB(repo), config.WebPushConfig{
+	push := notification.NewPushSender(repo, config.WebPushConfig{
 		VAPIDPublicKey: pub, VAPIDPrivateKey: priv, VAPIDSubject: "mailto:test@hub.local",
 	})
 	require.NotNil(t, push)
@@ -375,7 +375,7 @@ func TestHandler_PushUnsubscribe_Success(t *testing.T) {
 	svc, repo, _, userID := newNotificationTestEnv(t)
 	priv, pub, err := generateTestVAPIDKeys(t)
 	require.NoError(t, err)
-	push := notification.NewPushSender(notification.ExportRepositoryDB(repo), config.WebPushConfig{
+	push := notification.NewPushSender(repo, config.WebPushConfig{
 		VAPIDPublicKey: pub, VAPIDPrivateKey: priv, VAPIDSubject: "mailto:test@hub.local",
 	})
 	require.NotNil(t, push)

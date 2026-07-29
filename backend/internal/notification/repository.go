@@ -9,6 +9,7 @@ import (
 	"github.com/valerii/hub/backend/ent/issue"
 	"github.com/valerii/hub/backend/ent/notification"
 	"github.com/valerii/hub/backend/ent/notificationpreference"
+	"github.com/valerii/hub/backend/ent/pushsubscription"
 	"github.com/valerii/hub/backend/ent/user"
 )
 
@@ -352,4 +353,78 @@ func (r *Repository) ClearUserTelegram(ctx context.Context, userID uuid.UUID) er
 		ClearTelegramID().
 		Save(ctx)
 	return err
+}
+
+// --- PushSubscriptionStore (ASN-001: CRUD для PushSender без *ent.Client) ---
+
+// ListPushSubscriptions возвращает все Web Push подписки пользователя.
+func (r *Repository) ListPushSubscriptions(ctx context.Context, userID uuid.UUID) ([]PushSub, error) {
+	rows, err := r.db.PushSubscription.Query().
+		Where(pushsubscription.UserID(userID)).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]PushSub, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, pushSubFromEnt(row))
+	}
+	return out, nil
+}
+
+// DeletePushSubscription удаляет подписку по ID (мёртвые/unsafe endpoints).
+func (r *Repository) DeletePushSubscription(ctx context.Context, id uuid.UUID) error {
+	return r.db.PushSubscription.DeleteOneID(id).Exec(ctx)
+}
+
+// UpdateOwnPushSubscription обновляет ключи своей подписки (A2-005: UserID в Where).
+func (r *Repository) UpdateOwnPushSubscription(ctx context.Context, userID uuid.UUID, endpoint, p256dhKey, authKey, userAgent string) (int, error) {
+	return r.db.PushSubscription.Update().
+		Where(
+			pushsubscription.Endpoint(endpoint),
+			pushsubscription.UserID(userID),
+		).
+		SetP256dhKey(p256dhKey).
+		SetAuthKey(authKey).
+		SetUserAgent(userAgent).
+		Save(ctx)
+}
+
+// PushEndpointExists проверяет, занят ли endpoint любой подпиской.
+func (r *Repository) PushEndpointExists(ctx context.Context, endpoint string) (bool, error) {
+	return r.db.PushSubscription.Query().
+		Where(pushsubscription.Endpoint(endpoint)).
+		Exist(ctx)
+}
+
+// CreatePushSubscription создаёт новую Web Push подписку.
+func (r *Repository) CreatePushSubscription(ctx context.Context, userID uuid.UUID, endpoint, p256dhKey, authKey, userAgent string) error {
+	_, err := r.db.PushSubscription.Create().
+		SetUserID(userID).
+		SetEndpoint(endpoint).
+		SetP256dhKey(p256dhKey).
+		SetAuthKey(authKey).
+		SetUserAgent(userAgent).
+		Save(ctx)
+	return err
+}
+
+// DeleteOwnPushSubscription удаляет подписку caller'а по endpoint (A2-005).
+func (r *Repository) DeleteOwnPushSubscription(ctx context.Context, userID uuid.UUID, endpoint string) (int, error) {
+	return r.db.PushSubscription.Delete().
+		Where(
+			pushsubscription.Endpoint(endpoint),
+			pushsubscription.UserID(userID),
+		).
+		Exec(ctx)
+}
+
+func pushSubFromEnt(row *ent.PushSubscription) PushSub {
+	return PushSub{
+		ID:        row.ID,
+		UserID:    row.UserID,
+		Endpoint:  row.Endpoint,
+		P256dhKey: row.P256dhKey,
+		AuthKey:   row.AuthKey,
+	}
 }

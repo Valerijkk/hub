@@ -172,11 +172,15 @@ func ExportPushQueueLen(p *PushSender) int {
 	return len(p.queue)
 }
 
-func ExportPushSendToSubscription(p *PushSender, ctx context.Context, sub *ent.PushSubscription, payload []byte) {
+func ExportPushSendToSubscription(p *PushSender, ctx context.Context, sub PushSub, payload []byte) {
 	if p == nil {
 		return
 	}
 	p.sendToSubscription(ctx, sub, payload)
+}
+
+func ExportPushSubFromEnt(sub *ent.PushSubscription) PushSub {
+	return pushSubFromEnt(sub)
 }
 
 func ExportIsQuietHours(svc *NotificationService, ctx context.Context, userID uuid.UUID) bool {
@@ -221,6 +225,18 @@ func ExportTGBindTTL() time.Duration {
 
 func ExportTGLinkCodePrefix() string {
 	return tgLinkCodePrefix
+}
+
+func ExportTGLinkCodeFailsPrefix() string {
+	return tgLinkCodeFailsPrefix
+}
+
+func ExportTGLinkCodeVerifyMax() int {
+	return tgLinkCodeVerifyMax
+}
+
+func ExportTGLinkCodeTTL() time.Duration {
+	return tgLinkCodeTTL
 }
 
 func ExportConsumerStart(c *Consumer, ctx context.Context) error {

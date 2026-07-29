@@ -15,7 +15,7 @@ func wireNotification(d *serverDeps) {
 	// Notification routes (уведомления: in-app + Telegram + Web Push)
 	notifRepo := notifmod.NewRepository(d.db)
 	telegramSender := notifmod.NewTelegramSender(cfg.Telegram.BotToken)
-	pushSender := notifmod.NewPushSender(d.db, cfg.WebPush)
+	pushSender := notifmod.NewPushSender(notifRepo, cfg.WebPush)
 	notifSvc := notifmod.NewNotificationService(notifRepo, d.nc, telegramSender, pushSender)
 	notifConsumer := notifmod.NewConsumer(d.nc, notifRepo, notifSvc)
 	if err := notifConsumer.Start(d.rootCtx); err != nil {

@@ -19,7 +19,7 @@ import (
 // TestNewPushSender_NilWhenKeysMissing проверяет отклонение при new push sender nil when keys отсутствующий.
 func TestNewPushSender_NilWhenKeysMissing(t *testing.T) {
 	_, repo, _, _ := newNotificationTestEnv(t)
-	assert.Nil(t, notification.NewPushSender(notification.ExportRepositoryDB(repo), config.WebPushConfig{}))
+	assert.Nil(t, notification.NewPushSender(repo, config.WebPushConfig{}))
 }
 
 // TestPushSender_VAPIDPublicKeyAndNilSafeSend проверяет сценарий: push sender vapid public key and nil safe отправка.
@@ -28,7 +28,7 @@ func TestPushSender_VAPIDPublicKeyAndNilSafeSend(t *testing.T) {
 	priv, pub, err := webpush.GenerateVAPIDKeys()
 	require.NoError(t, err)
 
-	push := notification.NewPushSender(notification.ExportRepositoryDB(repo), config.WebPushConfig{
+	push := notification.NewPushSender(repo, config.WebPushConfig{
 		VAPIDPublicKey: pub, VAPIDPrivateKey: priv, VAPIDSubject: "mailto:test@hub.local",
 	})
 	require.NotNil(t, push)
@@ -45,7 +45,7 @@ func TestPushSender_StartStopLifecycle(t *testing.T) {
 	priv, pub, err := webpush.GenerateVAPIDKeys()
 	require.NoError(t, err)
 
-	push := notification.NewPushSender(notification.ExportRepositoryDB(repo), config.WebPushConfig{
+	push := notification.NewPushSender(repo, config.WebPushConfig{
 		VAPIDPublicKey: pub, VAPIDPrivateKey: priv, VAPIDSubject: "mailto:test@hub.local",
 	})
 	require.NotNil(t, push)

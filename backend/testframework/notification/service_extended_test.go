@@ -264,7 +264,7 @@ func TestSaveSubscription_ValidatesEndpoint(t *testing.T) {
 	_, repo, ctx, userID := newNotificationTestEnv(t)
 	priv, pub, err := generateTestVAPIDKeys(t)
 	require.NoError(t, err)
-	push := notification.NewPushSender(notification.ExportRepositoryDB(repo), config.WebPushConfig{
+	push := notification.NewPushSender(repo, config.WebPushConfig{
 		VAPIDPublicKey: pub, VAPIDPrivateKey: priv, VAPIDSubject: "mailto:test@hub.local",
 	})
 	require.NotNil(t, push)
@@ -278,7 +278,7 @@ func TestSaveSubscription_CreateAndUpdate(t *testing.T) {
 	_, repo, ctx, userID := newNotificationTestEnv(t)
 	priv, pub, err := generateTestVAPIDKeys(t)
 	require.NoError(t, err)
-	push := notification.NewPushSender(notification.ExportRepositoryDB(repo), config.WebPushConfig{
+	push := notification.NewPushSender(repo, config.WebPushConfig{
 		VAPIDPublicKey: pub, VAPIDPrivateKey: priv, VAPIDSubject: "mailto:test@hub.local",
 	})
 	require.NotNil(t, push)
@@ -299,7 +299,7 @@ func TestRemoveSubscription_DeletesByEndpoint(t *testing.T) {
 	_, repo, ctx, userID := newNotificationTestEnv(t)
 	priv, pub, err := generateTestVAPIDKeys(t)
 	require.NoError(t, err)
-	push := notification.NewPushSender(notification.ExportRepositoryDB(repo), config.WebPushConfig{
+	push := notification.NewPushSender(repo, config.WebPushConfig{
 		VAPIDPublicKey: pub, VAPIDPrivateKey: priv, VAPIDSubject: "mailto:test@hub.local",
 	})
 	require.NotNil(t, push)
@@ -350,7 +350,7 @@ func TestPushSender_sendToUser_UnsafeEndpointRemoved(t *testing.T) {
 	_, repo, ctx, userID := newNotificationTestEnv(t)
 	priv, pub, err := generateTestVAPIDKeys(t)
 	require.NoError(t, err)
-	push := notification.NewPushSender(notification.ExportRepositoryDB(repo), config.WebPushConfig{
+	push := notification.NewPushSender(repo, config.WebPushConfig{
 		VAPIDPublicKey: pub, VAPIDPrivateKey: priv, VAPIDSubject: "mailto:test@hub.local",
 	})
 	require.NotNil(t, push)

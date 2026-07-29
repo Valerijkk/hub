@@ -21,7 +21,7 @@ func TestPushSender_sendToSubscription_ValidEndpointSendFails(t *testing.T) {
 	priv, pub, err := webpush.GenerateVAPIDKeys()
 	require.NoError(t, err)
 
-	push := notification.NewPushSender(notification.ExportRepositoryDB(repo), config.WebPushConfig{
+	push := notification.NewPushSender(repo, config.WebPushConfig{
 		VAPIDPublicKey: pub, VAPIDPrivateKey: priv, VAPIDSubject: "mailto:test@hub.local",
 	})
 	require.NotNil(t, push)
@@ -38,7 +38,7 @@ func TestPushSender_sendToSubscription_ValidEndpointSendFails(t *testing.T) {
 
 	payload := []byte(`{"title":"t","body":"b"}`)
 	require.NotPanics(t, func() {
-		notification.ExportPushSendToSubscription(push, ctx, saved, payload)
+		notification.ExportPushSendToSubscription(push, ctx, notification.ExportPushSubFromEnt(saved), payload)
 	})
 
 	// W7-A1-008: https-endpoint при ошибке отправки не удаляется.
@@ -55,7 +55,7 @@ func TestPushSender_sendToSubscription_UnsafeEndpointDeleted(t *testing.T) {
 	priv, pub, err := webpush.GenerateVAPIDKeys()
 	require.NoError(t, err)
 
-	push := notification.NewPushSender(notification.ExportRepositoryDB(repo), config.WebPushConfig{
+	push := notification.NewPushSender(repo, config.WebPushConfig{
 		VAPIDPublicKey: pub, VAPIDPrivateKey: priv, VAPIDSubject: "mailto:test@hub.local",
 	})
 	require.NotNil(t, push)
@@ -69,7 +69,7 @@ func TestPushSender_sendToSubscription_UnsafeEndpointDeleted(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	notification.ExportPushSendToSubscription(push, ctx, saved, []byte(`{"title":"x"}`))
+	notification.ExportPushSendToSubscription(push, ctx, notification.ExportPushSubFromEnt(saved), []byte(`{"title":"x"}`))
 
 	exists, err := notification.ExportRepositoryDB(repo).PushSubscription.Query().Exist(ctx)
 	require.NoError(t, err)
