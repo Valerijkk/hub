@@ -19,3 +19,16 @@ func newSafeStreamHTTPClient() *http.Client {
 		},
 	}
 }
+
+// newOfflineAIStreamHTTPClient — SSE для Ollama/loopback без Client.Timeout (A3W5-2-001).
+// Dial — только AllowLoopback после ValidateOfflineAIURL; cloud SafeDial не ослабляется.
+func newOfflineAIStreamHTTPClient() *http.Client {
+	return &http.Client{
+		Transport: &http.Transport{
+			DialContext:           safehttp.SafeDialContextAllowLoopback(),
+			TLSHandshakeTimeout:   5 * time.Second,
+			ResponseHeaderTimeout: 30 * time.Second,
+			IdleConnTimeout:       90 * time.Second,
+		},
+	}
+}

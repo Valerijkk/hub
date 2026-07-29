@@ -50,7 +50,10 @@ func (a *OpenAIAdapter) ChatCompletionStream(ctx context.Context, baseURL, apiKe
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode >= 400 {
-		raw, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		raw, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		if err != nil {
+			return fmt.Errorf("read error body: %w", err)
+		}
 		return fmt.Errorf("provider HTTP %d: %s", resp.StatusCode, truncate(string(raw), 512))
 	}
 	scanner := bufio.NewScanner(io.LimitReader(resp.Body, maxResponseBytes))

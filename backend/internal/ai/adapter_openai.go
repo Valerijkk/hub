@@ -31,6 +31,9 @@ type OpenAIAdapter struct {
 	// offlineClient — loopback-only dialer (ADR-AI-OLLAMA-LOOPBACK / P1-BE-U01).
 	// nil в hubtest с ExportNewOpenAIAdapterWithClient (custom transport).
 	offlineClient *http.Client
+	// offlineStreamClient — offline SSE без Client.Timeout (A3W5-2-001 / TASK-154).
+	// Non-stream chat остаётся на offlineClient с bounded Timeout.
+	offlineStreamClient *http.Client
 	// skipOutboundURLValidate — только hubtest (ExportNewOpenAIAdapterWithClient + httptest).
 	// Production NewOpenAIAdapter всегда валидирует BaseURL (SSRF).
 	skipOutboundURLValidate bool
@@ -39,9 +42,10 @@ type OpenAIAdapter struct {
 // NewOpenAIAdapter — adapter с SSRF-safe HTTP client + offline loopback client.
 func NewOpenAIAdapter() *OpenAIAdapter {
 	return &OpenAIAdapter{
-		client:        safehttp.NewSafeHTTPClient(90 * time.Second),
-		streamClient:  newSafeStreamHTTPClient(),
-		offlineClient: safehttp.NewOfflineAIHTTPClient(90 * time.Second),
+		client:              safehttp.NewSafeHTTPClient(90 * time.Second),
+		streamClient:        newSafeStreamHTTPClient(),
+		offlineClient:       safehttp.NewOfflineAIHTTPClient(90 * time.Second),
+		offlineStreamClient: newOfflineAIStreamHTTPClient(),
 	}
 }
 
@@ -63,7 +67,7 @@ func (a *OpenAIAdapter) resolveHTTPClient(base string) (*http.Client, error) {
 	return a.client, nil
 }
 
-// resolveStreamHTTPClient — как resolveHTTPClient, но предпочитает streamClient (без whole-request Timeout).
+// resolveStreamHTTPClient — как resolveHTTPClient, но предпочитает stream*Client (без whole-request Timeout).
 func (a *OpenAIAdapter) resolveStreamHTTPClient(base string) (*http.Client, error) {
 	c, err := a.resolveHTTPClient(base)
 	if err != nil {
@@ -75,9 +79,13 @@ func (a *OpenAIAdapter) resolveStreamHTTPClient(base string) (*http.Client, erro
 		}
 		return c, nil
 	}
-	// offline / SafeDial path: streamClient только для cloud SafeDial client
+	// Cloud SafeDial → streamClient без Timeout.
 	if c == a.client && a.streamClient != nil {
 		return a.streamClient, nil
+	}
+	// Offline/Ollama loopback → offlineStreamClient без Timeout (A3W5-2-001).
+	if c == a.offlineClient && a.offlineStreamClient != nil {
+		return a.offlineStreamClient, nil
 	}
 	return c, nil
 }
