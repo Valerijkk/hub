@@ -124,7 +124,9 @@ func TestWorkerConstants(t *testing.T) {
 // newTestEntClient поднимает sqlite3 in-memory ent-клиент с авто-миграцией.
 func newTestEntClient(t *testing.T) *ent.Client {
 	t.Helper()
-	dsn := "file:outboxtest_" + uuid.New().String() + "?mode=memory&cache=shared&_fk=1"
+	// _busy_timeout: dual-worker claim (A3W4-2-002) на shared-memory SQLite
+	// иначе падает «database table is locked» без ретрая драйвера.
+	dsn := "file:outboxtest_" + uuid.New().String() + "?mode=memory&cache=shared&_fk=1&_busy_timeout=5000"
 	client := enttest.Open(t, "sqlite3", dsn)
 	t.Cleanup(func() { _ = client.Close() })
 	return client
@@ -141,68 +143,80 @@ func insertOutboxEvent(t *testing.T, client *ent.Client, eventType string, paylo
 	return evt
 }
 
-// TestProcessEvent_PanicInPublish_NoCrash — главная гарантия HI-09:
-// если outbox.ExportWorkerNats(w).Publish() паникует (здесь — потому что outbox.ExportWorkerNats(w) == nil),
-// processEvent не должен «утонуть» — он обязан восстановиться через
-// defer recover() и вернуться нормально.
-//
-// До HI-09 паника на одном событии валила всю горутину worker'а; теперь
-// она локализована в processEvent.
+// TestProcessEvent_PanicInPublish_NoCrash — HI-09 + A3W4-2-001:
+// nil nats → panic в PublishMsgAck; recover локален; attempts≥1, last_error
+// содержит "panic", status pending пока attempts < max.
 func TestProcessEvent_PanicInPublish_NoCrash(t *testing.T) {
 	client := newTestEntClient(t)
 	w := outbox.NewWorker(client, nil) // nil nats — гарантированный panic в Publish
 
 	evt := insertOutboxEvent(t, client, "test.event", []byte(`{"x":1}`))
 
-	// Сам вызов НЕ должен паниковать — recover внутри processEvent должен
-	// "поглотить" панику. require.NotPanics проверяет это явно.
 	require.NotPanics(t, func() {
 		outbox.ExportWorkerProcessEvent(w, context.Background(), evt)
 	}, "processEvent must recover from publish panic")
 
-	// Состояние события в БД: статус остался pending (опубликован не был),
-	// attempts/last_error не обновились (запись в БД произошла бы ПОСЛЕ
-	// успешного Publish, а publish паникнул).
 	reloaded, err := client.OutboxEvent.Get(context.Background(), evt.ID)
 	require.NoError(t, err)
 	assert.Equal(t, outboxevent.StatusPending, reloaded.Status,
-		"event should remain in pending after publish panic")
+		"event should remain pending after publish panic (attempts < max)")
+	assert.GreaterOrEqual(t, reloaded.Attempts, 1,
+		"A3W4-2-001: panic must call recordPublishFailure (attempts++)")
+	assert.Contains(t, reloaded.LastError, "panic",
+		"last_error must record panic cause")
 }
 
-// TestProcessBatch_OneFailedEventDoesNotBlockOthers — все события из батча
-// проходят через processEvent; одна паника не должна валить остальные.
-// Здесь все 3 события вызывают panic (nil nats), но требование к HI-09 —
-// чтобы processBatch продолжал итерироваться по всем записям и завершился
-// штатно (без re-panic). Статус всех остаётся pending — это ожидаемо, так как
-// publish паникнул для каждого.
+// TestProcessEvent_PanicAtMaxAttempts_DeadLetters — A3W4-2-001:
+// seed attempts=max-1 + panic → status=failed (dead-letter).
+func TestProcessEvent_PanicAtMaxAttempts_DeadLetters(t *testing.T) {
+	client := newTestEntClient(t)
+	w := outbox.NewWorker(client, nil)
+	ctx := context.Background()
+
+	evt := insertOutboxEvent(t, client, "poison.event", []byte(`{"x":1}`))
+	max := outbox.ExportMaxPublishAttempts()
+	_, err := client.OutboxEvent.UpdateOneID(evt.ID).
+		SetAttempts(max - 1).
+		Save(ctx)
+	require.NoError(t, err)
+	evt.Attempts = max - 1
+
+	require.NotPanics(t, func() {
+		outbox.ExportWorkerProcessEvent(w, ctx, evt)
+	})
+
+	reloaded, err := client.OutboxEvent.Get(ctx, evt.ID)
+	require.NoError(t, err)
+	assert.Equal(t, outboxevent.StatusFailed, reloaded.Status)
+	assert.Equal(t, max, reloaded.Attempts)
+	assert.Contains(t, reloaded.LastError, "panic")
+}
+
+// TestProcessBatch_OneFailedEventDoesNotBlockOthers — HI-09 + A3W4-2-001:
+// одна паника не валит батч; attempts на каждом panic-evt обновлены.
 func TestProcessBatch_OneFailedEventDoesNotBlockOthers(t *testing.T) {
 	client := newTestEntClient(t)
 	w := outbox.NewWorker(client, nil)
 	ctx := context.Background()
 
-	// Три события в БД.
 	e1 := insertOutboxEvent(t, client, "event.one", []byte(`{"i":1}`))
 	e2 := insertOutboxEvent(t, client, "event.two", []byte(`{"i":2}`))
 	e3 := insertOutboxEvent(t, client, "event.three", []byte(`{"i":3}`))
 
-	// processBatch не должен паниковать, даже если каждое processEvent
-	// внутри обрабатывает свою панику.
 	require.NotPanics(t, func() {
 		outbox.ExportWorkerProcessBatch(w, ctx)
 	}, "processBatch must not propagate panics from individual processEvent calls")
 
-	// Все три события должны оставаться в pending (Publish паникнул для
-	// каждого; UpdateOne не успел отработать).
 	for _, e := range []*ent.OutboxEvent{e1, e2, e3} {
 		reloaded, err := client.OutboxEvent.Get(ctx, e.ID)
 		require.NoError(t, err)
 		assert.Equal(t, outboxevent.StatusPending, reloaded.Status,
-			"event %s should remain in pending after publish panic", e.EventType)
+			"event %s should remain pending after publish panic", e.EventType)
+		assert.GreaterOrEqual(t, reloaded.Attempts, 1,
+			"event %s: panic must bump attempts", e.EventType)
+		assert.Contains(t, reloaded.LastError, "panic")
 	}
 
-	// Главное: pending-records *по-прежнему* видны querу. Если бы паника
-	// унесла worker — мы бы это не увидели в тестовом окружении, но как
-	// дополнительный sanity-check: query всё ещё работает.
 	pending, err := client.OutboxEvent.Query().
 		Where(outboxevent.StatusEQ(outboxevent.StatusPending)).
 		Count(ctx)
@@ -210,10 +224,8 @@ func TestProcessBatch_OneFailedEventDoesNotBlockOthers(t *testing.T) {
 	assert.Equal(t, 3, pending, "all three events still queryable as pending")
 }
 
-// TestProcessEvent_NilNATS_RecoversWithoutLosingRow — nil-NATS паникует в Publish;
-// defer recover оставляет событие в БД (не happy-path publish).
-// W4-A2-008 / P3-BE-02: прежнее имя SuccessIsTracked вводило в заблуждение.
-// Реальный success — TestProcessEvent_PublishSuccess_MarksPublished.
+// TestProcessEvent_NilNATS_RecoversWithoutLosingRow — nil-NATS паникует;
+// recover + recordPublishFailure; строка остаётся в БД (не published).
 func TestProcessEvent_NilNATS_RecoversWithoutLosingRow(t *testing.T) {
 	client := newTestEntClient(t)
 	w := outbox.NewWorker(client, nil)
@@ -229,6 +241,7 @@ func TestProcessEvent_NilNATS_RecoversWithoutLosingRow(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, outboxevent.StatusPending, reloaded.Status,
 		"nil-NATS panic must not mark event published")
+	assert.GreaterOrEqual(t, reloaded.Attempts, 1)
 
 	cnt, err := client.OutboxEvent.Query().Count(ctx)
 	require.NoError(t, err)

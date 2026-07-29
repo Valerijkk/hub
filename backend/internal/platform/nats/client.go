@@ -166,11 +166,13 @@ func (c *Client) PublishMsgAck(ctx context.Context, msg *nats.Msg) error {
 // PublishWithTraceContext публикует данные в core NATS, перенося trace-context
 // из ctx в NATS headers (W3C traceparent/tracestate). Хелпер для прямых
 // publish в обход outbox, чтобы трейс не рвался на асинхронной границе.
+// A3W4-2-003: Flush через PublishMsg — тот же контракт, что P1-BE-24
+// (буфер подтверждён сервером; hook между Publish и Flush для hubtest).
 func (c *Client) PublishWithTraceContext(ctx context.Context, subject string, data []byte) error {
 	msg := nats.NewMsg(subject)
 	msg.Data = data
 	InjectTraceContext(ctx, msg.Header)
-	return c.Conn.PublishMsg(msg)
+	return c.PublishMsg(msg)
 }
 
 // EnsureStreams создаёт единый JetStream stream EVENTS, агрегирующий события

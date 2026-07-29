@@ -32,6 +32,21 @@ func ExportWorkerProcessBatch(w *Worker, ctx context.Context) {
 	w.processBatch(ctx)
 }
 
+// ExportWorkerClaimAndRelease wraps claimAndRelease for dual-worker hubtest (A3W4-2-002).
+func ExportWorkerClaimAndRelease(w *Worker, ctx context.Context) ([]*ent.OutboxEvent, error) {
+	return w.claimAndRelease(ctx)
+}
+
+// ExportStampClaimLease wraps stampClaimLease for hubtest (lost-race / lease).
+func ExportStampClaimLease(w *Worker, ctx context.Context, tx *ent.Tx, evt *ent.OutboxEvent, now time.Time) (bool, error) {
+	return w.stampClaimLease(ctx, tx, evt, now)
+}
+
+// ExportClaimLeaseTTL — A3W4-2-002: TTL reclaim orphan lease (published_at на pending).
+func ExportClaimLeaseTTL() time.Duration {
+	return claimLeaseTTL
+}
+
 // ExportWorkerRecordPublishFailure wraps recordPublishFailure for hubtest.
 func ExportWorkerRecordPublishFailure(w *Worker, ctx context.Context, evt *ent.OutboxEvent, err error) {
 	w.recordPublishFailure(ctx, evt, err)

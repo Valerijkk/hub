@@ -2,6 +2,7 @@ package outbox
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"runtime/debug"
 	"strings"
@@ -21,6 +22,9 @@ const (
 	maxPublishAttempts = 10
 	batchLimit         = 50
 	pollInterval       = 100 * time.Millisecond
+	// claimLeaseTTL — сколько published_at на pending держит claim без schema/enum
+	// processing (A3W4-2-002). Crash mid-publish: at-least-once retry после TTL.
+	claimLeaseTTL = 30 * time.Second
 )
 
 // betweenOutboxEventsHook — только hubtest: между событиями батча (cancel mid-batch).
@@ -64,6 +68,8 @@ func (w *Worker) ProcessLoop(ctx context.Context) {
 // fallback без lock (Ent/SQLite отвергает SELECT FOR UPDATE, см. tracker StartTimer).
 // A2W4-2-001 / TASK-087: claim Commit ДО NATS PublishMsg/Flush — row-lock не
 // держится на время flush (до 50×5s). Publish и mark published — вне claim-tx.
+// A3W4-2-002: после SELECT — atomic stamp published_at (lease) WHERE ещё
+// claim-available; второй worker не видит те же строки как свободный pending.
 // HI-09: одно сбойное событие не должно валить весь loop.
 func (w *Worker) processBatch(ctx context.Context) {
 	w.markExhaustedFailed(ctx)
@@ -91,9 +97,14 @@ func (w *Worker) processBatch(ctx context.Context) {
 	}
 }
 
-// claimAndRelease выбирает pending под SKIP LOCKED и сразу Commit'ит claim-tx.
+// claimAndRelease выбирает pending под SKIP LOCKED, ставит claim-lease
+// (published_at) и сразу Commit'ит claim-tx.
 // Дальнейший NATS publish идёт уже без открытой транзакции/row-lock
 // (A2W4-2-001: publish after commit claim).
+//
+// WHY lease без enum processing: schema сегодня pending|published|failed;
+// migrate/enum — только с owner approve. published_at на pending = lease
+// start; reclaim после claimLeaseTTL (crash mid-publish → at-least-once OK).
 func (w *Worker) claimAndRelease(ctx context.Context) ([]*ent.OutboxEvent, error) {
 	tx, err := w.client.Tx(ctx)
 	if err != nil {
@@ -106,15 +117,57 @@ func (w *Worker) claimAndRelease(ctx context.Context) ([]*ent.OutboxEvent, error
 		}
 	}()
 
-	events, err := w.claimPending(ctx, tx)
+	now := time.Now().UTC()
+	events, err := w.claimPending(ctx, tx, now)
 	if err != nil {
 		return nil, err
 	}
+
+	claimed := make([]*ent.OutboxEvent, 0, len(events))
+	for _, evt := range events {
+		ok, stampErr := w.stampClaimLease(ctx, tx, evt, now)
+		if stampErr != nil {
+			return nil, stampErr
+		}
+		if ok {
+			claimed = append(claimed, evt)
+		}
+	}
+
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 	committed = true
-	return events, nil
+	return claimed, nil
+}
+
+// stampClaimLease атомарно помечает строку claim-lease через published_at.
+// Where claim-available: второй concurrent worker получает NotFound → skip.
+func (w *Worker) stampClaimLease(ctx context.Context, tx *ent.Tx, evt *ent.OutboxEvent, now time.Time) (bool, error) {
+	_, err := tx.OutboxEvent.UpdateOneID(evt.ID).
+		Where(claimAvailablePreds(now)...).
+		SetPublishedAt(now).
+		Save(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return false, nil
+		}
+		return false, fmt.Errorf("stamp claim lease: %w", err)
+	}
+	evt.PublishedAt = &now
+	return true, nil
+}
+
+// claimAvailablePreds — pending + attempts + (нет lease / lease протух).
+func claimAvailablePreds(now time.Time) []predicate.OutboxEvent {
+	return []predicate.OutboxEvent{
+		outboxevent.StatusEQ(outboxevent.StatusPending),
+		outboxevent.AttemptsLT(maxPublishAttempts),
+		outboxevent.Or(
+			outboxevent.PublishedAtIsNil(),
+			outboxevent.PublishedAtLT(now.Add(-claimLeaseTTL)),
+		),
+	}
 }
 
 // markExhaustedFailed переводит застрявшие pending с attempts≥10 в failed
@@ -136,13 +189,10 @@ func (w *Worker) markExhaustedFailed(ctx context.Context) {
 	}
 }
 
-// claimPending выбирает pending-события под row-lock (SKIP LOCKED на Postgres).
-func (w *Worker) claimPending(ctx context.Context, tx *ent.Tx) ([]*ent.OutboxEvent, error) {
+// claimPending выбирает claim-available pending под row-lock (SKIP LOCKED на Postgres).
+func (w *Worker) claimPending(ctx context.Context, tx *ent.Tx, now time.Time) ([]*ent.OutboxEvent, error) {
 	base := func(extra ...predicate.OutboxEvent) *ent.OutboxEventQuery {
-		preds := []predicate.OutboxEvent{
-			outboxevent.StatusEQ(outboxevent.StatusPending),
-			outboxevent.AttemptsLT(maxPublishAttempts),
-		}
+		preds := claimAvailablePreds(now)
 		preds = append(preds, extra...)
 		return tx.OutboxEvent.Query().
 			Where(preds...).
@@ -190,6 +240,8 @@ func (w *Worker) processEvent(ctx context.Context, evt *ent.OutboxEvent) {
 				"panic", r,
 				"stack", string(debug.Stack()),
 			)
+			// A3W4-2-001: panic = publish-failure → attempts↑ / dead-letter at max.
+			w.recordPublishFailure(ctx, evt, fmt.Errorf("panic: %v", r))
 		}
 	}()
 
@@ -212,7 +264,7 @@ func (w *Worker) processEvent(ctx context.Context, evt *ent.OutboxEvent) {
 		return
 	}
 
-	now := time.Now()
+	now := time.Now().UTC()
 	if _, saveErr := w.client.OutboxEvent.UpdateOneID(evt.ID).
 		SetStatus(outboxevent.StatusPublished).
 		SetPublishedAt(now).
@@ -227,11 +279,14 @@ func (w *Worker) processEvent(ctx context.Context, evt *ent.OutboxEvent) {
 
 // recordPublishFailure инкрементирует attempts и сохраняет last_error.
 // W4-A2-002: при attempts≥10 статус → failed (dead-letter), иначе pending.
+// ClearPublishedAt снимает claim-lease, чтобы retry/другой worker могли взять
+// строку сразу (не ждать claimLeaseTTL).
 func (w *Worker) recordPublishFailure(ctx context.Context, evt *ent.OutboxEvent, err error) {
 	attempts := evt.Attempts + 1
 	upd := w.client.OutboxEvent.UpdateOneID(evt.ID).
 		SetAttempts(attempts).
-		SetLastError(err.Error())
+		SetLastError(err.Error()).
+		ClearPublishedAt()
 	if attempts >= maxPublishAttempts {
 		upd = upd.SetStatus(outboxevent.StatusFailed)
 		slog.Error("outbox: event dead-lettered after max attempts",
@@ -247,4 +302,6 @@ func (w *Worker) recordPublishFailure(ctx context.Context, evt *ent.OutboxEvent,
 			"error", saveErr,
 		)
 	}
+	// Синхронизируем in-memory для повторных panic/fail в том же батче.
+	evt.Attempts = attempts
 }
