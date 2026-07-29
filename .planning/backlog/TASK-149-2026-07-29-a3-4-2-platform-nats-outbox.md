@@ -13,14 +13,15 @@
 | A3W4-2-003 | FIXED | `PublishWithTraceContext` → `PublishMsg` (Flush+hook); `publish_trace_flush_task149_test.go` |
 
 **Path 002:** без schema `processing` — lease на `published_at` + TTL 30s reclaim (orphan → at-least-once).  
-**Hubtest (re-verify):**  
-`go test -tags hubtest -race -count=1 -timeout=300s ./testframework/platform/outbox/ ./testframework/platform/nats/` → **PASS** (outbox 3.425s, nats 12.123s).  
+**Hubtest (re-verify be1 2026-07-29, isolate temp copy — shared `backend/ent/*` был race-corrupted соседними generate):**  
+`go test -tags hubtest -race -count=1 -timeout=300s ./testframework/platform/outbox/ ./testframework/platform/nats/` → **PASS** (outbox 3.880s, nats 6.956s).  
+Flush-тест 003: hook гасит embedded NATS server (ForceClose клиента недостаточен).  
 **Mutation notes:**  
 - 001: убрать `recordPublishFailure` из recover → attempts остаются 0 → краснеют panic-тесты.  
 - 002: Commit claim без `stampClaimLease` → второй `ClaimAndRelease` забирает те же ID.  
 - 003: `return c.Conn.PublishMsg(msg)` без Flush → hook не участвует / err==nil → flush-тест краснеет.  
 **Handoff:** be-ver → code-reviewer.  
-**Note:** prod+tests попали в историю shared-ветки вместе с соседними коммитами; критерий готовности — поведение HEAD + green hubtest выше.
+**Note:** prod+tests в истории shared-ветки; README по инструкции исполнителя не трогали (уже «На проверке»).
 
 ## [OUTCOME]
 
