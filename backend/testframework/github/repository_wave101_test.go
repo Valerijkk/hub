@@ -1,16 +1,19 @@
 ﻿package github_test
+
 import (
-	"github.com/valerii/hub/backend/internal/github"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/issue"
+	"github.com/valerii/hub/backend/ent/testcase"
+	"github.com/valerii/hub/backend/internal/github"
 )
 
 func TestEntRepository_UpdateIssueStatus(t *testing.T) {
@@ -40,6 +43,15 @@ func TestHandler_GetLinkPreview_WithPreviewService(t *testing.T) {
 	svc := github.NewGitHubService(env.repo, nil)
 	preview := github.NewLinkPreviewService(&previewMockRepo{
 		issues: map[string]*ent.Issue{},
+		testCases: map[string]*ent.TestCase{
+			"HUB-TC-1": {
+				ID:      uuid.New(),
+				CaseKey: "HUB-TC-1",
+				Title:   "Smoke",
+				Status:  testcase.StatusActive,
+				Edges:   ent.TestCaseEdges{Project: &ent.Project{ID: env.projectID}},
+			},
+		},
 	}, nil)
 	h := github.NewHandler(svc, preview)
 

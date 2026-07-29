@@ -182,6 +182,10 @@ func (m *githubMockRepo) IsProjectMember(_ context.Context, _, _ uuid.UUID) (boo
 	return true, nil
 }
 
+func (m *githubMockRepo) FindTestCaseByKey(_ context.Context, _ string) (*ent.TestCase, error) {
+	return nil, &ent.NotFoundError{}
+}
+
 func (m *githubMockRepo) MarkTestCasesOutdatedByFiles(_ context.Context, changedFiles []string) ([]string, error) {
 	if len(changedFiles) == 0 {
 		return nil, nil

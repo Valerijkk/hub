@@ -51,6 +51,9 @@ type Repository interface {
 	// IsProjectMember — W7-A3-002 / P1-BE-37: ListGitHubLinks требует membership.
 	IsProjectMember(ctx context.Context, userID, projectID uuid.UUID) (bool, error)
 
+	// FindTestCaseByKey — link-preview TC path (C-W19-FE-002); soft-deleted → NotFound.
+	FindTestCaseByKey(ctx context.Context, caseKey string) (*ent.TestCase, error)
+
 	// MarkTestCasesOutdatedByFiles находит test cases со статусом "synced",
 	// у которых ClassName/FullName совпадает с одним из переданных путей файлов
 	// (с нормализацией / и \ → .), помечает их sync_status = "outdated"
@@ -363,6 +366,18 @@ func (r *EntRepository) IsProjectMember(ctx context.Context, userID, projectID u
 			projectmember.HasUserWith(user.IDEQ(userID)),
 		).
 		Exist(ctx)
+}
+
+// FindTestCaseByKey ищет тест-кейс по ключу (например "HUB-TC-1") с проектом.
+// C-W19-FE-002: soft-deleted → NotFound. Mutation: убрать DeletedAtIsNil → trash находится.
+func (r *EntRepository) FindTestCaseByKey(ctx context.Context, caseKey string) (*ent.TestCase, error) {
+	return r.client.TestCase.Query().
+		Where(
+			testcase.CaseKey(caseKey),
+			testcase.DeletedAtIsNil(),
+		).
+		WithProject().
+		Only(ctx)
 }
 
 // MarkTestCasesOutdatedByFiles находит test cases со статусом "synced",

@@ -13,10 +13,12 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/issue"
+	"github.com/valerii/hub/backend/ent/testcase"
 )
 
 type previewMockRepo struct {
-	issues map[string]*ent.Issue
+	issues    map[string]*ent.Issue
+	testCases map[string]*ent.TestCase
 }
 
 func (m *previewMockRepo) CreateIntegration(context.Context, uuid.UUID, github.CreateIntegrationInput) (*ent.GitHubIntegration, error) {
@@ -62,6 +64,12 @@ func (m *previewMockRepo) LogActivity(context.Context, uuid.UUID, string) error 
 func (m *previewMockRepo) IsProjectMember(context.Context, uuid.UUID, uuid.UUID) (bool, error) {
 	return true, nil
 }
+func (m *previewMockRepo) FindTestCaseByKey(_ context.Context, caseKey string) (*ent.TestCase, error) {
+	if tc, ok := m.testCases[caseKey]; ok {
+		return tc, nil
+	}
+	return nil, &ent.NotFoundError{}
+}
 func (m *previewMockRepo) MarkTestCasesOutdatedByFiles(context.Context, []string) ([]string, error) {
 	return nil, nil
 }
@@ -97,11 +105,25 @@ func TestGetLinkPreview_IssueURL(t *testing.T) {
 }
 
 func TestGetLinkPreview_TestCaseURL(t *testing.T) {
-	svc := github.NewLinkPreviewService(&previewMockRepo{issues: map[string]*ent.Issue{}}, nil)
+	projectID := uuid.New()
+	repo := &previewMockRepo{
+		issues: map[string]*ent.Issue{},
+		testCases: map[string]*ent.TestCase{
+			"HUB-TC-99": {
+				ID:      uuid.New(),
+				CaseKey: "HUB-TC-99",
+				Title:   "Login flow",
+				Status:  testcase.StatusActive,
+				Edges:   ent.TestCaseEdges{Project: &ent.Project{ID: projectID}},
+			},
+		},
+	}
+	svc := github.NewLinkPreviewService(repo, nil)
 	resp, err := svc.GetLinkPreview(context.Background(), uuid.New(), "https://hub.local/projects/x/tms/cases/test-cases/HUB-TC-99")
 	require.NoError(t, err)
 	assert.Equal(t, "test_case", resp.Type)
-	assert.Equal(t, "HUB-TC-99", resp.Title)
+	assert.Equal(t, "Login flow", resp.Title)
+	assert.Equal(t, "active", resp.Status)
 }
 
 func TestGetLinkPreview_CacheHit(t *testing.T) {
