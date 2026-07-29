@@ -345,7 +345,7 @@ curl -sS -X POST http://localhost:8080/api/auth/magic-link/verify \
 
 | Метод | Путь | Описание |
 |---|---|---|
-| GET | `/messenger/bookmarks` | Список закладок |
+| GET | `/messenger/bookmarks` | Список закладок (`channel_name`, `content_preview` — optional enrich для UI) |
 | POST | `/messenger/bookmarks` | Добавить закладку |
 | DELETE | `/messenger/bookmarks/:bookmarkId` | Удалить закладку |
 
@@ -552,7 +552,7 @@ curl -sS -X POST http://localhost:8080/api/auth/magic-link/verify \
 
 | Метод | Путь | Описание |
 |---|---|---|
-| GET | `/dashboard/personal` | Персональный дашборд (мои задачи, активность) |
+| GET | `/dashboard/personal` | Персональный дашборд (мои задачи, активность; `TaskSummary.project_id` для ссылок на issue) |
 | GET | `/dashboard/project/:projectId` | Проектный дашборд (статистика; только член проекта; иначе 403) |
 | GET | `/dashboard/admin` | Админский дашборд (общая статистика) |
 | GET | `/dashboard/layout` | Получить layout дашборда |
@@ -734,8 +734,8 @@ API-ключи для программного доступа, webhook-подп�
 |---|---|---|
 | GET | `/admin/limits` | Лимиты ресурсов (проекты, участники и др.) |
 | PUT | `/admin/limits/:key` | Обновить лимит |
-| GET | `/admin/trash` | Корзина (удалённые сущности). Query `type`: `issue` \| `test_case` \| `file` \| `project` \| `newspost` \| `scheduled_call` \| `crm_contact` \| `crm_deal` (retention 30 дней, NFR-11) |
-| POST | `/admin/trash/:type/:id/restore` | Восстановить из корзины (`newspost` — FR-INTR-08; `scheduled_call` — FR-CAL-05: вся RRULE-серия; `crm_contact`/`crm_deal` — W7-A2-006) |
+| GET | `/admin/trash` | Корзина (удалённые сущности). Query `type`: `issue` \| `test_case` \| `file` \| `project` \| `newspost` \| `scheduled_call` \| `crm_contact` \| `crm_deal` \| `hubbase` (retention 30 дней, NFR-11) |
+| POST | `/admin/trash/:type/:id/restore` | Восстановить из корзины (`newspost` — FR-INTR-08; `scheduled_call` — FR-CAL-05: вся RRULE-серия; `crm_contact`/`crm_deal` — W7-A2-006; `hubbase` — cascade base+tables+columns+records, A3W2-A5-001) |
 
 ### Управление пользователями
 

@@ -65,6 +65,13 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-29 (fe1 · TASK-173 A3W9-2 bookmarks/widgets)
+
+- **Сделано:** bookmarks `channel_name`/`content_preview` (BE+FE); deadlines/my-tasks `Link`+`project_id`; tokens system-health/unread/priority.
+- **ID:** A3W9-2-001…005 → FIXED; задача «На проверке» (README не трогали).
+- **Тесты:** vitest 7/7 (bookmarks-preview + a3w9-2-widgets + bookmarks-error); BE `TestBookmarks_AddListRemove` PASS; wiki/API additive fields.
+- **OOS:** dashboard hubtest compile (schema webhookendpoint); tsc time-tracker/index.lazy чужие WIP.
+
 ## Session note — 2026-07-29 (fe2 · TASK-175 A3W9-4 components)
 
 - **Сделано:** checklist delete focus; automation/comments/time-tracker error≠empty; JQL `role="alert"`; token drift → `var(--*)` в зоне слота.

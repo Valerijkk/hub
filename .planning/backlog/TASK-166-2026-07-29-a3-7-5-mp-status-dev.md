@@ -1,11 +1,26 @@
 # 🔒 A3 marketplace review_note public catalog
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Открыта**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
 > Исполнитель: **be1** · Источник: A3 Stage FINAL · `A3W7-5-mp-status-dev.md` · TASK-008
 
 ## [OUTCOME]
 
 Публичная витрина marketplace (`ListApproved` / `toListingResponse`) не отдаёт admin `review_note`; currency нормализуется до Save; `ReviewNote` ограничен по rune; seed helpers при DB-err поднимают err (не silent 200).
+
+## Progress (be1 · 2026-07-29)
+
+| ID | Status | Evidence |
+|----|--------|----------|
+| A3W7-5-001 | FIXED | `dto.go` `toListingResponseOpts`: note/reviewer только при `allowEmail`; IT `TestListApproved_ReviewNoteHidden_A3W75001` |
+| A3W7-5-002 | FIXED | `seed.go` transitions/links/channels → `return …, err`; IT `TestSeed*_CreateFailPropagates_A3W75002` |
+| A3W7-5-003 | FIXED | `normalizeCurrency` до validate+Save в Create/Update; IT `TestCurrencyNormalize_A3W75003` |
+| A3W7-5-004 | FIXED | `maxReviewNoteRunes=2000` в `transitionReview`; IT `TestReviewNoteRuneCap_A3W75004` |
+
+**Regression (hubtest, `-vet=off` при параллельном ent-gen):**  
+`go test -tags hubtest -race -count=1 -timeout=300s ./testframework/marketplace/ ./testframework/dev/ ./testframework/status/`  
+→ `ok marketplace 5.034s` · `ok dev 3.215s` · `ok status 2.396s`
+
+**Mutation notes:** см. handoff be-ver (table в OUTPUT).
 
 ## [ROLE]
 
