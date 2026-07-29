@@ -8,13 +8,19 @@
 
 | ID | Status | Evidence |
 |----|--------|----------|
-| A3W4-2-001 | FIXED | `worker.go` recover → `recordPublishFailure`; tests panic attempts≥1 / seed9→failed |
-| A3W4-2-002 | FIXED | claim lease via `published_at` (без enum/migrate); dual-worker + stamp lost-race tests |
-| A3W4-2-003 | FIXED | `PublishWithTraceContext` → `PublishMsg` (Flush+hook); flush fail hubtest |
+| A3W4-2-001 | FIXED | `worker.go` recover → `recordPublishFailure`; `outbox_test.go` panic attempts≥1 / seed9→failed / batch attempts |
+| A3W4-2-002 | FIXED | claim lease via `published_at` (без enum/migrate); `claim_dual_worker_task149_test.go` + stamp lost-race |
+| A3W4-2-003 | FIXED | `PublishWithTraceContext` → `PublishMsg` (Flush+hook); `publish_trace_flush_task149_test.go` |
 
-**Path 002:** без schema `processing` — lease на `published_at` + TTL 30s reclaim.  
-**Hubtest:** `go test -tags hubtest -count=1 ./testframework/platform/outbox/` PASS (8.087s); nats package PASS на повторных прогонах. `-race` full pair intermittent из‑за parallel `go generate` на shared branch (ent mid-write).  
-**Handoff:** be-ver → code-reviewer.
+**Path 002:** без schema `processing` — lease на `published_at` + TTL 30s reclaim (orphan → at-least-once).  
+**Hubtest (re-verify):**  
+`go test -tags hubtest -race -count=1 -timeout=300s ./testframework/platform/outbox/ ./testframework/platform/nats/` → **PASS** (outbox 3.425s, nats 12.123s).  
+**Mutation notes:**  
+- 001: убрать `recordPublishFailure` из recover → attempts остаются 0 → краснеют panic-тесты.  
+- 002: Commit claim без `stampClaimLease` → второй `ClaimAndRelease` забирает те же ID.  
+- 003: `return c.Conn.PublishMsg(msg)` без Flush → hook не участвует / err==nil → flush-тест краснеет.  
+**Handoff:** be-ver → code-reviewer.  
+**Note:** prod+tests попали в историю shared-ветки вместе с соседними коммитами; критерий готовности — поведение HEAD + green hubtest выше.
 
 ## [OUTCOME]
 
