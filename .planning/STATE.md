@@ -65,6 +65,14 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-29 (docs-writer · TASK-133 A3W11-5 inventory + list-issues cursor)
+
+- **Сделано:** один канон inventory measured 2026-07-29 — BE `*_test.go` **804** / `export_hooks` **39** / Vitest **167** files (61 `.ts` + 106 `.tsx`) в шести docs; strategy Vitest без «37/99»; `system_specification` list-issues пример → `?cursor=…&limit=50` (NFR-14).
+- **ID:** A3W11-5-001/002/003 → FIXED; задача «На проверке».
+- **Evidence:** `node scripts/check-docs-inventory.mjs` OK; mutation 652 / «37 файлов, 99 тестов» / `offset=0` → RED, restore → GREEN.
+- **OOS:** `system_specification.md` KPI Vitest `:690`; wiki/API уже cursor.
+- **Risk:** BE inventory растёт параллельной A3-волной — канон = замер на момент коммита; drift-script TASK-080.
+
 ## Session note — 2026-07-29 (be1 · TASK-136 A3W1-4 sprint soft-delete + retro OL)
 
 - **Сделано:** CompleteSprint/metrics без trash issues; PUT `/retro` VersionEQ → 409; wiki API sync.
