@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -37,13 +36,13 @@ func TestHandler_ListPins_InvalidChannelID(t *testing.T) {
 	assert.NotEqual(t, http.StatusOK, resp.StatusCode)
 }
 
-// TestHandler_GetPollResults_InvalidChannelID проверяет отклонение при HTTP-обработчик получение опрос results некорректный channel id.
-func TestHandler_GetPollResults_InvalidChannelID(t *testing.T) {
+// TestHandler_GetPollResults_InvalidPollID проверяет 400 от parsePollID на каноническом GET /polls/:pollId.
+func TestHandler_GetPollResults_InvalidPollID(t *testing.T) {
 	app, _, _ := setupMessengerHandlerApp(t)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/messenger/channels/not-a-uuid/polls/"+uuid.New().String()+"/results", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/messenger/polls/not-a-uuid", nil)
 	resp, err := app.Test(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
-	assert.NotEqual(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }

@@ -1,6 +1,6 @@
 # TASK-143 — 🧹 A3 messenger handlers poll test wrong URL
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Открыта**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
 > Исполнитель: **be1** · Источник: A3 Stage FINAL · `A3W3-1-messenger-handlers.md` · TASK-008
 
 ## [OUTCOME]
