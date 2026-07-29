@@ -1,14 +1,21 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { getAIPreferences, updateAIPreferences } from "@/api/ai";
+import type { ApiError } from "@/api/client";
 import { BYOKSettings } from "@/components/ai/byok-settings";
 import { QueryErrorAlert } from "@/components/query-state-view";
 import { Button } from "@/components/ui/button";
 import { toastApiError } from "@/lib/format-api-error";
 
+function isConflictError(err: unknown): boolean {
+	if (!err || typeof err !== "object") return false;
+	return (err as ApiError).code === 409;
+}
+
 /** Приватность AI пользователя + BYOK (M3-030, Phase 18). */
 export function UserAISettings() {
 	const [allowExternal, setAllowExternal] = useState(true);
+	const [version, setVersion] = useState(0);
 	const [loading, setLoading] = useState(true);
 	const [loadError, setLoadError] = useState(false);
 	const [loaded, setLoaded] = useState(false);
@@ -19,6 +26,7 @@ export function UserAISettings() {
 		try {
 			const pref = await getAIPreferences();
 			setAllowExternal(pref.allow_external_ai ?? true);
+			setVersion(pref.version ?? 0);
 			setLoadError(false);
 			setLoaded(true);
 		} catch (err) {
@@ -37,10 +45,19 @@ export function UserAISettings() {
 	const handleSave = async () => {
 		setSaving(true);
 		try {
-			await updateAIPreferences({ allow_external_ai: allowExternal });
+			const saved = await updateAIPreferences({
+				allow_external_ai: allowExternal,
+				version,
+			});
+			setVersion(saved.version ?? version);
 			toast.success("Настройки AI сохранены");
 		} catch (err) {
-			toastApiError(err, "Не удалось сохранить");
+			if (isConflictError(err)) {
+				toastApiError(err, "Конфликт версии — обновите и повторите");
+				void refresh();
+			} else {
+				toastApiError(err, "Не удалось сохранить");
+			}
 		} finally {
 			setSaving(false);
 		}

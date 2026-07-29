@@ -12,6 +12,8 @@ interface AIStore {
 	botDisplayName: string;
 	models: AIModelInfo[];
 	selectedModel: string | null;
+	/** OL для PATCH /ai/preferences (FE-SMA-002). */
+	preferenceVersion: number;
 	panelOpen: boolean;
 	prefillInput: string | null;
 	/** true только после успешного loadBotInfo — fail не блокирует retry. */
@@ -34,6 +36,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
 	botDisplayName: "@hub-ai",
 	models: [],
 	selectedModel: null,
+	preferenceVersion: 0,
 	panelOpen: false,
 	prefillInput: null,
 	loaded: false,
@@ -58,7 +61,10 @@ export const useAIStore = create<AIStore>((set, get) => ({
 		try {
 			const [resp, pref] = await Promise.all([
 				getAIModels(),
-				getAIPreferences().catch(() => ({ default_model: "" })),
+				getAIPreferences().catch(() => ({
+					default_model: "",
+					version: 0,
+				})),
 			]);
 			const preferred =
 				pref.default_model &&
@@ -69,6 +75,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
 			set((s) => ({
 				models: resp.models,
 				selectedModel: s.selectedModel ?? preferred ?? first,
+				preferenceVersion: pref.version ?? 0,
 				modelsError: false,
 			}));
 		} catch {
@@ -79,9 +86,14 @@ export const useAIStore = create<AIStore>((set, get) => ({
 	setSelectedModel: (model) => set({ selectedModel: model }),
 	saveSelectedModel: async (model) => {
 		const prev = get().selectedModel;
+		const version = get().preferenceVersion;
 		set({ selectedModel: model });
 		try {
-			await updateAIPreferences({ default_model: model });
+			const saved = await updateAIPreferences({
+				default_model: model,
+				version,
+			});
+			set({ preferenceVersion: saved.version ?? version });
 		} catch {
 			// rollback optimistic выбора при fail sync
 			set({ selectedModel: prev });

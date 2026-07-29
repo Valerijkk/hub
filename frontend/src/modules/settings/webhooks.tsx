@@ -110,13 +110,24 @@ export function WebhooksPage({
 	}
 
 	const handleToggleActive = async (ep: WebhookEndpoint) => {
-		await updateWebhook(ep.id, { is_active: !ep.is_active });
-		fetchEndpoints();
+		try {
+			await updateWebhook(ep.id, {
+				is_active: !ep.is_active,
+				version: ep.version,
+			});
+			void fetchEndpoints();
+		} catch (err) {
+			toastApiError(err, "Не удалось изменить статус вебхука");
+		}
 	};
 
 	const handleDelete = async (id: string) => {
-		await deleteWebhook(id);
-		fetchEndpoints();
+		try {
+			await deleteWebhook(id);
+			void fetchEndpoints();
+		} catch (err) {
+			toastApiError(err, "Не удалось удалить вебхук");
+		}
 	};
 
 	const handleShowDeliveries = async (id: string) => {
@@ -124,9 +135,13 @@ export function WebhooksPage({
 			setShowDeliveriesFor(null);
 			return;
 		}
-		const data = await listDeliveries(id);
-		setDeliveries(data ?? []);
-		setShowDeliveriesFor(id);
+		try {
+			const data = await listDeliveries(id);
+			setDeliveries(data ?? []);
+			setShowDeliveriesFor(id);
+		} catch (err) {
+			toastApiError(err, "Не удалось загрузить доставки");
+		}
 	};
 
 	const toggleEvent = (event: string) => {
