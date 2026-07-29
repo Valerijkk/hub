@@ -164,6 +164,14 @@ func ExportPushSendToUser(p *PushSender, ctx context.Context, userID uuid.UUID, 
 	p.sendToUser(ctx, pushMessage{userID: userID, title: title, body: body, url: url})
 }
 
+// ExportPushQueueLen — глубина очереди push (cap 200); для assert drop при overflow (A3W7-1-002).
+func ExportPushQueueLen(p *PushSender) int {
+	if p == nil || p.queue == nil {
+		return 0
+	}
+	return len(p.queue)
+}
+
 func ExportPushSendToSubscription(p *PushSender, ctx context.Context, sub *ent.PushSubscription, payload []byte) {
 	if p == nil {
 		return

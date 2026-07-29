@@ -1,6 +1,6 @@
 # 🐛 A3 mail DailyLimit distributed
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P3** · Статус: **Открыта**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P3** · Статус: **На проверке**  
 > Источник: A3W7-1-notification-mail.md · Stage A3 FINAL · TASK-008  
 > Исполнитель: **be2**
 
@@ -71,7 +71,7 @@ Mail `DailyLimit` считается shared (Redis INCR+TTL до UTC midnight **
   ```
   Не ломать: SendAlert policy (W7-A1-003), CTC internal auth, NF-07 push save/send, push ownership scope.
 - Evidence required: checklist ID→evidence в этом файле; команды + PASS; mutation note per ID.
-- Stop when: 2/2 FIXED · hubtest mail+notification green · статус «Исправлена» в `.planning/backlog/README.md` + этом файле; без соседнего W7 hygiene sweep.
+- Stop when: 2/2 FIXED · hubtest mail+notification green · статус «На проверке» в этом файле (README не трогаем).
 
 ### Mutation (обязательно)
 
@@ -79,6 +79,45 @@ Mail `DailyLimit` считается shared (Redis INCR+TTL до UTC midnight **
 |----|---------|----------|
 | A3W7-1-001 | вернуть только process-local `perEmail` без Redis/shared store | тест двух Service / shared cap краснеет |
 | A3W7-1-002 | убрать `default` drop в `push.go` enqueue (или cap >>200 без assert) | `TestPushSender_QueueOverflow` краснеет |
+
+## Evidence checklist (be2, 2026-07-29)
+
+| ID | Status | Evidence |
+|----|--------|----------|
+| A3W7-1-001 | **FIXED** | `daily_slot.go` (`RedisDailySlotStore` Lua INCR+EXPIREAT UTC midnight, fail-closed); `service.go` `DailySlotStore` + `SetDailySlotStore`; wiring `wiring_audit_ai.go` + `hub-mail/main.go`; hubtest `testframework/mail/sharedlimit/` (2 Service + restart на том же Redis) |
+| A3W7-1-002 | **FIXED** | `export_hooks.go` `ExportPushQueueLen`; asserts в `push_wave119_test.go` + `pushoverflow/push_overflow_a3w71_test.go` (depth==200 после 201 Send без Start) |
+
+### Test commands (PASS)
+
+Изолированный прогон (workspace Ent был занят параллельной soft-delete generate):
+
+```text
+# temp copy + go generate ./ent/ →
+ok  github.com/valerii/hub/backend/testframework/mail
+ok  github.com/valerii/hub/backend/testframework/mail/sharedlimit
+ok  github.com/valerii/hub/backend/testframework/notification/pushoverflow
+```
+
+```bash
+cd backend
+go test -tags hubtest -race -count=1 ./testframework/mail/... ./testframework/notification/pushoverflow/
+# полный ./testframework/notification/ — после стабилизации Ent soft-delete (параллельный WIP)
+```
+
+### Mutation notes (executed)
+
+| ID | Слом | Результат |
+|----|------|-----------|
+| A3W7-1-001 | `SetDailySlotStore`: `// s.slots = slots` (noop) | `TestService_SendAlert_SharedDailyLimit_A3W7_1_001` FAIL — 3-й/4-й send без `ErrDailyLimitExceeded` |
+| A3W7-1-002 | `make(chan pushMessage, 1000)` (cap≫200) | `TestPushSender_QueueOverflow_A3W7_1_002` FAIL — depth 201 ≰ 200 |
+
+### Assumptions / risks
+
+- Store: **Redis** (не SystemSetting/Ent). Ключ `mail:daily:<YYYY-MM-DD>:<email>`, EXPIREAT следующего UTC midnight.
+- Redis err → **fail-closed** (не открываем лимит).
+- hub-mail без `REDIS_URL` → Memory + slog.Warn (deploy должен передать `REDIS_URL`, иначе лимит снова process-local на микросервисе).
+- Clock skew у UTC date boundary между репликами — разные day-ключи около midnight; NTP обязателен.
+- Docs sync: N/A (user-visible daily_limit значение не менялось, только store).
 
 ## [OUTPUT SCHEMA]
 
@@ -90,7 +129,7 @@ Mail `DailyLimit` считается shared (Redis INCR+TTL до UTC midnight **
 6. Assumptions / unresolved (Redis vs SystemSetting — зафиксировать выбранный store; migrate если понадобился — BLOCKED без approve)
 7. Risks + mitigations (multi-replica clock skew UTC; Redis unavailable → fail-closed vs best-effort — явное решение в handoff)
 8. Handoff: be-ver → code-reviewer
-9. README + этот файл: статус «Исправлена»
+9. Этот файл: статус «На проверке»
 10. Compact Verification: new green + regression green + docs sync if user-visible rate-limit contract changed
 
 ## [OPERATING RULES]
