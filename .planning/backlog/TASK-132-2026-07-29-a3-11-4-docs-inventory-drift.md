@@ -7,8 +7,8 @@
 ## [EXECUTION REPORT]
 
 - **Verdict:** три ID **FIXED** (CONFIRMED)
-- **Recount:** `(Get-ChildItem -Recurse -Filter *_test.go backend/testframework).Count` = **760** (2026-07-29); audit имел 759 — канон = 760
-- **A3W11-4-001:** `docs/README.md` + siblings (`test_plan`, `TROUBLESHOOTING`, `TESTING`, `testframework_strategy`) → **760** / measured 2026-07-29
+- **Recount:** `(Get-ChildItem -Recurse -Filter *_test.go backend/testframework).Count` = **805** (2026-07-29 re-verify); канон = 805
+- **A3W11-4-001:** `docs/README.md` + siblings → **805** / measured 2026-07-29 (fix-round-1 после независимого FAIL 760)
 - **A3W11-4-002:** gap Calls → webcams ✅ shipped; polish — backlog (согласовано с `:132` / BUSINESS)
 - **A3W11-4-003:** строка ветка — snapshot 2026-06-23 без SHA / без претензии на live tip
 - **Anti-stale:** `rg -n "618|bbdaf16|webcams — Phase 16 IN" docs/README.md docs/competitive_audit.md` → пусто

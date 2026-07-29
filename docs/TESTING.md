@@ -30,7 +30,7 @@
 
 | Слой | Метрика |
 |------|---------|
-| Backend test files (`backend/testframework/`) | **804** `_test.go` (0 в `internal/` после TF-M08; measured 2026-07-29) |
+| Backend test files (`backend/testframework/`) | **805** `_test.go` (0 в `internal/` после TF-M08; measured 2026-07-29) |
 | Backend `export_hooks.go` | **39** (`//go:build hubtest`; measured 2026-07-29) |
 | Backend `internal/*_test.go` | **0** |
 | Frontend Vitest | **167** files (`stages/unit/frontend-test/`; measured 2026-07-29; 61 `.ts` + 106 `.tsx`) |
@@ -508,4 +508,4 @@ WCAG 2.1 AA (целевой для v2.0 Redesign)
 
 ---
 
-*Последнее обновление: 2026-07-29 — inventory **804** BE `*_test.go` / **39** export_hooks / Vitest **167** files; COV 83% остаётся baseline прогона 2026-06-22*
+*Последнее обновление: 2026-07-29 — inventory **805** BE `*_test.go` / **39** export_hooks / Vitest **167** files; COV 83% остаётся baseline прогона 2026-06-22*

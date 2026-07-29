@@ -49,7 +49,7 @@
 
 | Метрика | Значение |
 |---------|----------|
-| Backend `testframework/**/*_test.go` | **804** файлов (measured 2026-07-29; was 515 → 580 → 652) |
+| Backend `testframework/**/*_test.go` | **805** файлов (measured 2026-07-29; was 515 → 580 → 652) |
 | Backend `internal/*_test.go` | **0** (TF-M08 ✅) |
 | Backend `export_hooks.go` (`//go:build hubtest`) | **39** файлов (measured 2026-07-29) |
 | Statement coverage `internal/` | **83.0%** (2026-06-22 Docker baseline) |
@@ -213,4 +213,4 @@ File: path:line
 | `.cursor/skills/qa-gate/SKILL.md` | Полный gate |
 
 ---
-*Последнее обновление: 2026-07-29 — inventory **804** BE `*_test.go` / **39** export_hooks / Vitest **167** files; COV 83% остаётся baseline прогона 2026-06-22*
+*Последнее обновление: 2026-07-29 — inventory **805** BE `*_test.go` / **39** export_hooks / Vitest **167** files; COV 83% остаётся baseline прогона 2026-06-22*
