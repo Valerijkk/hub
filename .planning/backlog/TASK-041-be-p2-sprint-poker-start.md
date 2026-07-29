@@ -1,6 +1,6 @@
 # TASK-041 — Sprint poker CAS/RBAC + StartSprint atomic
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Исправлена  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · На проверке
 > Источник: TASK-008 W12 · Classes: P2-BE-11 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P2-BACKEND.md`
 
 ## [OUTCOME]
@@ -55,3 +55,10 @@ Ent sequential second Start → ErrActiveSprintConflict (не SQLite race).
 - Vote after reveal: drop reject on Lua result 0 → `TestPoker_VoteAfterReveal_Rejected` RED ✓ (miniredis)
 - Dual Start: remove `ErrActiveSprintConflict` in `StartSprintAtomic` → `TestStartSprintAtomic_Ent_Concurrent` stays **GREEN** (SQLite tx serialization masks missing conflict). Mock concurrent embeds guard in mock.
 - Need Ent-runtime test that sequential/second Start after first active → conflict without relying on SQLite single-tx accident.
+
+## [W1-be2 MUTATION — 2026-07-29]
+
+**PASS.** Evidence: .planning/audits/total-2026-07/MUTATION-2026-07-29-W1-be2.md
+
+- Remove ErrActiveSprintConflict in StartSprintAtomic → TestStartSprintAtomic_Ent_SecondActiveConflicts RED
+- GREEN after restore. W18 SQLite concurrent gap closed by sequential Ent test.

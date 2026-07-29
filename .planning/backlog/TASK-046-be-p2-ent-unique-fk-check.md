@@ -1,6 +1,6 @@
 # TASK-046 — Ent unique/FK/CHECK (без VersionMixin ADR)
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Исправлена  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · На проверке
 > Источник: TASK-008 W12 · Classes: P2-BE-22 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P2-BACKEND.md`
 
 ## [OUTCOME]
@@ -54,3 +54,10 @@ enttest Component unique + JournalLine XOR CHECK runtime.
 
 - `TestSchema_P2BE22_UniqueFKCheck` RED when Unique/CHECK strings removed from schema source — but test is **source grep only**, not Ent-runtime duplicate Create / XOR insert.
 - Insufficient vs ACCEPTANCE «duplicate (project,name)→unique; XOR debit/credit CHECK». Need enttest like TASK-025.
+
+## [W1-be2 MUTATION — 2026-07-29]
+
+**PASS.** Evidence: .planning/audits/total-2026-07/MUTATION-2026-07-29-W1-be2.md
+
+- migrate/schema.go Unique false / drop XOR Checks → TestComponent_UniqueNamePerProject_P2BE22, TestJournalLine_DebitXorCredit_P2BE22 RED
+- GREEN after restore. Runtime enttest (not schema grep).

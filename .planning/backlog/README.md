@@ -164,12 +164,12 @@ Stage A2 (brief): [A2-DEDUP-2026-07-28.md](../audits/total-2026-07/A2-DEDUP-2026
 | [TASK-038](TASK-038-be-p2-ol-softdelete-tx-lists.md) | BE OL/soft-mutate/tx/lists | P2 | Исправлена | be1 | W12 P2-BE-03..06 · W18-C3 PASS (partial residual OK) |
 | [TASK-039](TASK-039-be-p2-soft-delete-secrets.md) | BE soft-delete + secrets | P2 | Исправлена · W18-C2b | be2 | W12 P2-BE-08,09 |
 | [TASK-040](TASK-040-be-p2-fail-closed-ratelimit.md) | BE fail-closed + rate-limit | P2 | Исправлена | be1 | W12 P2-BE-10 · W18-C3 PASS |
-| [TASK-041](TASK-041-be-p2-sprint-poker-start.md) | BE sprint poker/start | P2 | Исправлена | be1→rework | W12 P2-BE-11 · second Start conflict |
-| [TASK-042](TASK-042-be-p2-perm-messenger-ws-calls.md) | BE perm/messenger/ws/calls | P2 | Исправлена | be1→rework | W12 P2-BE-12..15 · NATS via_invite |
+| [TASK-041](TASK-041-be-p2-sprint-poker-start.md) | BE sprint poker/start | P2 | Закрыта · MUTATION-2026-07-29-W1-be2 | be1→rework | W12 P2-BE-11 · second Start conflict |
+| [TASK-042](TASK-042-be-p2-perm-messenger-ws-calls.md) | BE perm/messenger/ws/calls | P2 | Закрыта · MUTATION-2026-07-29-W1-be2 | be1→rework | W12 P2-BE-12..15 · NATS via_invite |
 | [TASK-043](TASK-043-be-p2-platform-outbox-obs.md) | BE platform outbox/obs | P2 | Исправлена · W18-C2b | be2 | W12 P2-BE-16 |
-| [TASK-044](TASK-044-be-p2-ai-search.md) | AI stream/privacy + search JQL/SSRF | P2 | Исправлена | be1→rework | W12 P2-BE-17/18 · Meili+cancel IT |
+| [TASK-044](TASK-044-be-p2-ai-search.md) | AI stream/privacy + search JQL/SSRF | P2 | Открыта | be1→rework | W12 P2-BE-17/18 · Meili+cancel IT |
 | [TASK-045](TASK-045-be-p2-rbac-gdpr-integrations-storage.md) | BE rbac/gdpr/imex/storage | P2 | Закрыта | be2→rework · W1-be1 PASS | W12 P2-BE-19..21 · MUTATION-2026-07-29-W1-be1 |
-| [TASK-046](TASK-046-be-p2-ent-unique-fk-check.md) | BE Ent unique/FK/CHECK | P2 | Исправлена | be1→rework | W12 P2-BE-22 · enttest runtime |
+| [TASK-046](TASK-046-be-p2-ent-unique-fk-check.md) | BE Ent unique/FK/CHECK | P2 | Закрыта · MUTATION-2026-07-29-W1-be2 | be1→rework | W12 P2-BE-22 · enttest runtime |
 | [TASK-047](TASK-047-fe-p2-error-vs-empty.md) | FE error≠empty sweep | P2 | Исправлена | fe1 | W12 P2-FE-01 |
 | [TASK-048](TASK-048-fe-p2-mutation-feedback.md) | FE mutation feedback | P2 | Исправлена · W18-C5 | fe2 | W12 P2-FE-02 |
 | [TASK-049](TASK-049-fe-p2-a11y-names-dialogs.md) | FE a11y names/dialogs | P2 | Исправлена | fe1 | W12 P2-FE-03,04 |

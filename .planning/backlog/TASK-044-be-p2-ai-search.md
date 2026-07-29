@@ -1,6 +1,6 @@
 # TASK-044 — AI stream/privacy + search JQL/SSRF
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Исправлена  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · На проверке
 > Источник: TASK-008 W12 · Classes: P2-BE-17,P2-BE-18 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P2-BACKEND.md`
 
 ## [OUTCOME]
@@ -56,3 +56,10 @@ Meili SSRF hubtest + stream cancel mid-read IT. Status → Исправлена.
 - Drop `issue.Or` wrap → `TestToEntPredicates_ORBuildsUnion` RED ✓
 - **Fail:** no hubtest for Meili SSRF (`MEILI_HOST=http://169.254.169.254` → nil indexer)
 - **Fail:** no hubtest for stream cancel mid-read (`adapter_stream` ctx.Err)
+
+## [W1-be2 MUTATION — 2026-07-29]
+
+**FAIL.** Evidence: .planning/audits/total-2026-07/MUTATION-2026-07-29-W1-be2.md
+
+- Meili SSRF: validateMeiliHost allow-all → TestValidateMeiliHost_BlocksMetadata_P2BE18 / TestNewMeiliIndexerFromEnv_RejectsMetadataHost_P2BE18 RED
+- Stream cancel: drop ctx.Err mid-loop → TestChatCompletionStream_CancelMidRead_P2BE17 stays GREEN (HTTP request ctx). Gap → Открыта.
