@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
@@ -16,6 +17,16 @@ var (
 	ErrInvalidInput    = errors.New("invalid base input")
 	ErrVersionConflict = errors.New("base version conflict")
 )
+
+// MaxNameRunes — зеркало Ent MaxLen(200) на service-слое (A3W2-A5-003 → 400, не 500).
+const MaxNameRunes = 200
+
+func validateNameLen(name string) error {
+	if utf8.RuneCountInString(name) > MaxNameRunes {
+		return ErrInvalidInput
+	}
+	return nil
+}
 
 // Service — логика no-code БД (V4-04).
 type Service struct {
@@ -74,6 +85,9 @@ func (s *Service) CreateBase(ctx context.Context, ownerID uuid.UUID, req CreateB
 	if name == "" {
 		return nil, ErrInvalidInput
 	}
+	if err := validateNameLen(name); err != nil {
+		return nil, err
+	}
 	// W2-A5-001: base+Main+Name атомарно в repo.CreateBase (одна Ent tx).
 	b, err := s.repo.CreateBase(ctx, ownerID, CreateBaseRequest{
 		Name:        name,
@@ -98,6 +112,9 @@ func (s *Service) UpdateBase(ctx context.Context, userID, id uuid.UUID, req Upda
 	}
 	if req.Name != nil {
 		trimmed := strings.TrimSpace(*req.Name)
+		if err := validateNameLen(trimmed); err != nil {
+			return nil, err
+		}
 		req.Name = &trimmed
 	}
 	if _, err := s.repo.UpdateBase(ctx, id, req); err != nil {
@@ -125,6 +142,9 @@ func (s *Service) CreateTable(ctx context.Context, userID, baseID uuid.UUID, req
 	name := strings.TrimSpace(req.Name)
 	if name == "" {
 		return nil, ErrInvalidInput
+	}
+	if err := validateNameLen(name); err != nil {
+		return nil, err
 	}
 	if _, err := s.authorizeBase(ctx, baseID, userID); err != nil {
 		return nil, err
@@ -173,8 +193,12 @@ func (s *Service) GetTableView(ctx context.Context, userID, baseID, tableID uuid
 }
 
 func (s *Service) CreateColumn(ctx context.Context, userID, baseID, tableID uuid.UUID, req CreateColumnRequest) (*ColumnResponse, error) {
-	if strings.TrimSpace(req.Name) == "" {
+	name := strings.TrimSpace(req.Name)
+	if name == "" {
 		return nil, ErrInvalidInput
+	}
+	if err := validateNameLen(name); err != nil {
+		return nil, err
 	}
 	if _, err := s.authorizeBase(ctx, baseID, userID); err != nil {
 		return nil, err
@@ -186,7 +210,7 @@ func (s *Service) CreateColumn(ctx context.Context, userID, baseID, tableID uuid
 		}
 		return nil, fmt.Errorf("get table meta: %w", err)
 	}
-	req.Name = strings.TrimSpace(req.Name)
+	req.Name = name
 	if req.ColType == "" {
 		req.ColType = ColumnText
 	}

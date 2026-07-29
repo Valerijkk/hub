@@ -155,7 +155,8 @@ func (s *RBACService) DeleteCustomRole(ctx context.Context, projectID, roleID uu
 	// A3W6-3-001: роль уже удалена в Tx — не отдаём 500 на cache-only fail
 	// (симметрия с ClearCustomRole / A2W6-A3-003). Stale bitmask до TTL допустим.
 	if invErr := s.cache.InvalidateProject(ctx, projectID.String()); invErr != nil {
-		return fmt.Errorf("invalidate project cache after delete role: %w", invErr)
+		slog.WarnContext(ctx, "rbac: invalidate project cache after delete role failed",
+			"project_id", projectID, "role_id", roleID, "error", invErr)
 	}
 	return nil
 }

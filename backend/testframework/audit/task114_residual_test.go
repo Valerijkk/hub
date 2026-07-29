@@ -192,7 +192,7 @@ func TestAuditService_PurgeExpired_CapturesCutoffs_A2W6A5001(t *testing.T) {
 	}
 }
 
-// --- A2W6-A5-004 / A3W6-5-002 / A3W2-A5-001: SoftDelete/Restore call map ×9 (hubbase) ---
+// --- A2W6-A5-004 / A3W2-A5-001: SoftDelete/Restore call map ×9 (hubbase) ---
 // Мутация: убрать case "hubbase" → assert.Equal краснеет.
 
 func TestAuditService_SoftDelete_RecordsAllTypes_A2W6A5004(t *testing.T) {

@@ -24,6 +24,15 @@ var ErrCannotDeleteFounder = errors.New("cannot delete founder account")
 // ErrCannotModifyFounder — A1-009: ban/deactivate founder запрещены (ORG-04).
 var ErrCannotModifyFounder = errors.New("cannot ban or deactivate founder account")
 
+// ErrBanReasonRequired — A3W6-4-002: BanUser без причины.
+var ErrBanReasonRequired = errors.New("укажите причину блокировки")
+
+// ErrCannotBanSelf — A3W6-4-002: admin не может забанить сам себя.
+var ErrCannotBanSelf = errors.New("нельзя заблокировать самого себя")
+
+// ErrUserNotFound — A3W6-4-003: пользователь отсутствует (IsSystemAdmin / admin gate).
+var ErrUserNotFound = errors.New("user not found")
+
 // ErrInvalidResourceLimitKey — A1-013: PUT /admin/limits/{key} только allowlist.
 var ErrInvalidResourceLimitKey = errors.New("invalid resource limit key")
 
@@ -257,6 +266,8 @@ func (s *AuditService) ListTrash(ctx context.Context, entityType string, project
 		items, total, err = s.repo.ListDeletedCRMContacts(ctx, cutoff, offset, perPage)
 	case "crm_deal":
 		items, total, err = s.repo.ListDeletedCRMDeals(ctx, cutoff, offset, perPage)
+	case "hubbase":
+		items, total, err = s.repo.ListDeletedHubBases(ctx, cutoff, offset, perPage)
 	default:
 		return resp, nil
 	}
@@ -296,6 +307,8 @@ func (s *AuditService) RestoreItem(ctx context.Context, entityType string, entit
 		return s.repo.RestoreCRMContact(ctx, entityID)
 	case "crm_deal":
 		return s.repo.RestoreCRMDeal(ctx, entityID)
+	case "hubbase":
+		return s.repo.RestoreHubBase(ctx, entityID)
 	default:
 		return fmt.Errorf("неизвестный тип сущности: %s", entityType)
 	}
@@ -321,6 +334,8 @@ func (s *AuditService) SoftDelete(ctx context.Context, entityType string, entity
 		return s.repo.SoftDeleteCRMContact(ctx, entityID, now)
 	case "crm_deal":
 		return s.repo.SoftDeleteCRMDeal(ctx, entityID, now)
+	case "hubbase":
+		return s.repo.SoftDeleteHubBase(ctx, entityID, now)
 	default:
 		return fmt.Errorf("неизвестный тип сущности: %s", entityType)
 	}
@@ -354,6 +369,7 @@ func (s *AuditService) PurgeExpired(ctx context.Context) error {
 	purge("scheduled_calls", func() (int, error) { return s.repo.PurgeExpiredScheduledCalls(ctx, cutoff) })
 	purge("crm_contacts", func() (int, error) { return s.repo.PurgeExpiredCRMContacts(ctx, cutoff) })
 	purge("crm_deals", func() (int, error) { return s.repo.PurgeExpiredCRMDeals(ctx, cutoff) })
+	purge("hubbases", func() (int, error) { return s.repo.PurgeExpiredHubBases(ctx, cutoff) })
 
 	return errors.Join(errs...)
 }
@@ -396,10 +412,10 @@ func (s *AuditService) deactivateUser(ctx context.Context, userID uuid.UUID) err
 func (s *AuditService) BanUser(ctx context.Context, targetUserID, adminUserID uuid.UUID, reason, ipAddress, userAgent string) error {
 	return observability.TimedVoid(ctx, "audit.BanUser", func(ctx context.Context) error {
 		if reason == "" {
-			return errors.New("укажите причину блокировки")
+			return ErrBanReasonRequired
 		}
 		if targetUserID == adminUserID {
-			return errors.New("нельзя заблокировать самого себя")
+			return ErrCannotBanSelf
 		}
 
 		if err := s.deactivateUser(ctx, targetUserID); err != nil {
@@ -470,9 +486,10 @@ func (s *AuditService) ReassignTasks(ctx context.Context, fromUserID, toUserID u
 // A1-004 / ORG-04 / P2-BE-19: target=founder запрещён всегда (включая self-erase).
 // Self-erase founder оставляет org без founder — break-glass только через ADR.
 //
-// A2W6-A4-003: все Ent-шаги (включая HardDelete) выполняются в одной транзакции;
-// ошибка mid-cascade → Rollback (нет partial erasure). Mongo eraser вызывается
-// внутри tx до HardDelete: fail → Rollback Ent.
+// A2W6-A4-003 / A3W6-4-001: все Ent-шаги (включая HardDelete) — одна транзакция;
+// mid-cascade fail → Rollback. Mongo eraser — строго ПОСЛЕ Commit: иначе Mongo ok +
+// Ent Rollback → user жив, chat-история уже стёрта (cross-store partial erasure).
+// Trade-off: Mongo fail после Commit → user удалён, orphan messages (retry erase по sender_id).
 func (s *AuditService) DeleteUserGDPR(ctx context.Context, actorID, userID uuid.UUID, reassignTo *uuid.UUID) error {
 	role, err := s.repo.GetUserSystemRole(ctx, userID)
 	if err != nil {
@@ -566,15 +583,6 @@ func (s *AuditService) DeleteUserGDPR(ctx context.Context, actorID, userID uuid.
 			return err
 		}
 
-		if s.msgEraser != nil {
-			if err := run("delete mongo messages", func() error {
-				_, e := s.msgEraser.DeleteMessagesBySender(ctx, userID)
-				return e
-			}); err != nil {
-				return err
-			}
-		}
-
 		// Аудит до HardDelete — actor в details (accountability).
 		if _, err := txRepo.CreateAuditLog(ctx, "gdpr_deletion", "user", userID.String(),
 			&actorID, nil, map[string]interface{}{
@@ -591,6 +599,15 @@ func (s *AuditService) DeleteUserGDPR(ctx context.Context, actorID, userID uuid.
 		return nil
 	}); err != nil {
 		return err
+	}
+
+	// A3W6-4-001: Mongo только после успешного Ent Commit.
+	if s.msgEraser != nil {
+		if _, err := s.msgEraser.DeleteMessagesBySender(ctx, userID); err != nil {
+			slog.Error("GDPR mongo erase after commit failed",
+				"error", err, "user_id", userID, "actor_id", actorID)
+			return fmt.Errorf("delete mongo messages: %w", err)
+		}
 	}
 
 	slog.Info("user deleted (GDPR)", "user_id", userID, "actor_id", actorID)

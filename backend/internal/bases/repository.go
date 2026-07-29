@@ -153,11 +153,10 @@ func (r *EntRepository) SoftDeleteBase(ctx context.Context, id uuid.UUID) error 
 
 	now := time.Now().UTC()
 
+	// A3W2-A5-002: все tableIDs базы (вкл. уже soft-deleted) — иначе orphans
+	// у таблицы, удалённой раньше через SoftDeleteTable без cascade детей.
 	tableIDs, err := tx.HubTable.Query().
-		Where(
-			hubtable.HasBaseWith(hubbase.ID(id)),
-			hubtable.DeletedAtIsNil(),
-		).
+		Where(hubtable.HasBaseWith(hubbase.ID(id))).
 		IDs(ctx)
 	if err != nil {
 		return fmt.Errorf("list tables for cascade soft-delete: %w", err)
@@ -313,12 +312,49 @@ func (r *EntRepository) UpdateTable(ctx context.Context, tableID uuid.UUID, req 
 }
 
 func (r *EntRepository) SoftDeleteTable(ctx context.Context, tableID uuid.UUID) error {
+	// A3W2-A5-002: симметрия SoftDeleteBase — soft-delete columns+records в одной tx.
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return fmt.Errorf("begin soft-delete table tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
 	now := time.Now().UTC()
-	_, err := r.client.HubTable.UpdateOneID(tableID).
-		Where(hubtable.DeletedAtIsNil()).
+	if _, err := tx.HubRecord.Update().
+		Where(
+			hubrecord.HasTableWith(hubtable.ID(tableID)),
+			hubrecord.DeletedAtIsNil(),
+		).
+		SetDeletedAt(now).
+		Save(ctx); err != nil {
+		return fmt.Errorf("cascade soft-delete table records: %w", err)
+	}
+	if _, err := tx.HubColumn.Update().
+		Where(
+			hubcolumn.HasTableWith(hubtable.ID(tableID)),
+			hubcolumn.DeletedAtIsNil(),
+		).
+		SetDeletedAt(now).
+		Save(ctx); err != nil {
+		return fmt.Errorf("cascade soft-delete table columns: %w", err)
+	}
+	affected, err := tx.HubTable.Update().
+		Where(
+			hubtable.IDEQ(tableID),
+			hubtable.DeletedAtIsNil(),
+		).
 		SetDeletedAt(now).
 		Save(ctx)
-	return err
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return &ent.NotFoundError{}
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit soft-delete table: %w", err)
+	}
+	return nil
 }
 
 func (r *EntRepository) CreateColumn(ctx context.Context, tableID uuid.UUID, req CreateColumnRequest) (*ent.HubColumn, error) {

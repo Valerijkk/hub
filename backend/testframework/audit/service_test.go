@@ -58,6 +58,9 @@ func (s *gdprStubRepo) ListDeletedCRMContacts(context.Context, time.Time, int, i
 func (s *gdprStubRepo) ListDeletedCRMDeals(context.Context, time.Time, int, int) ([]audit.TrashItem, int, error) {
 	return nil, 0, nil
 }
+func (s *gdprStubRepo) ListDeletedHubBases(context.Context, time.Time, int, int) ([]audit.TrashItem, int, error) {
+	return nil, 0, nil
+}
 func (s *gdprStubRepo) RestoreIssue(context.Context, uuid.UUID) error   { return nil }
 func (s *gdprStubRepo) RestoreTestCase(context.Context, uuid.UUID) error { return nil }
 func (s *gdprStubRepo) RestoreFile(context.Context, uuid.UUID) error    { return nil }
@@ -66,6 +69,7 @@ func (s *gdprStubRepo) RestoreNewsPost(context.Context, uuid.UUID) error { retur
 func (s *gdprStubRepo) RestoreScheduledCall(context.Context, uuid.UUID) error { return nil }
 func (s *gdprStubRepo) RestoreCRMContact(context.Context, uuid.UUID) error { return nil }
 func (s *gdprStubRepo) RestoreCRMDeal(context.Context, uuid.UUID) error    { return nil }
+func (s *gdprStubRepo) RestoreHubBase(context.Context, uuid.UUID) error    { return nil }
 func (s *gdprStubRepo) SoftDeleteIssue(context.Context, uuid.UUID, time.Time) error {
 	return nil
 }
@@ -90,6 +94,9 @@ func (s *gdprStubRepo) SoftDeleteCRMContact(context.Context, uuid.UUID, time.Tim
 func (s *gdprStubRepo) SoftDeleteCRMDeal(context.Context, uuid.UUID, time.Time) error {
 	return nil
 }
+func (s *gdprStubRepo) SoftDeleteHubBase(context.Context, uuid.UUID, time.Time) error {
+	return nil
+}
 func (s *gdprStubRepo) PurgeExpiredIssues(context.Context, time.Time) (int, error) {
 	return 0, nil
 }
@@ -112,6 +119,9 @@ func (s *gdprStubRepo) PurgeExpiredCRMContacts(context.Context, time.Time) (int,
 	return 0, nil
 }
 func (s *gdprStubRepo) PurgeExpiredCRMDeals(context.Context, time.Time) (int, error) {
+	return 0, nil
+}
+func (s *gdprStubRepo) PurgeExpiredHubBases(context.Context, time.Time) (int, error) {
 	return 0, nil
 }
 func (s *gdprStubRepo) DeactivateUser(context.Context, uuid.UUID) error { return nil }

@@ -15,6 +15,10 @@ import (
 	"github.com/valerii/hub/backend/ent/crmcontact"
 	"github.com/valerii/hub/backend/ent/crmdeal"
 	"github.com/valerii/hub/backend/ent/filemetadata"
+	"github.com/valerii/hub/backend/ent/hubbase"
+	"github.com/valerii/hub/backend/ent/hubcolumn"
+	"github.com/valerii/hub/backend/ent/hubrecord"
+	"github.com/valerii/hub/backend/ent/hubtable"
 	"github.com/valerii/hub/backend/ent/issue"
 	"github.com/valerii/hub/backend/ent/newspost"
 	"github.com/valerii/hub/backend/ent/project"
@@ -53,6 +57,8 @@ type Repository interface {
 	// W7-A2-006: CRM soft-delete → единая admin trash.
 	ListDeletedCRMContacts(ctx context.Context, cutoff time.Time, offset, limit int) ([]TrashItem, int, error)
 	ListDeletedCRMDeals(ctx context.Context, cutoff time.Time, offset, limit int) ([]TrashItem, int, error)
+	// A3W2-A5-001: HubBase soft-delete → единая admin trash (type=hubbase).
+	ListDeletedHubBases(ctx context.Context, cutoff time.Time, offset, limit int) ([]TrashItem, int, error)
 
 	// Корзина — восстановление
 	RestoreIssue(ctx context.Context, id uuid.UUID) error
@@ -63,6 +69,7 @@ type Repository interface {
 	RestoreScheduledCall(ctx context.Context, id uuid.UUID) error
 	RestoreCRMContact(ctx context.Context, id uuid.UUID) error
 	RestoreCRMDeal(ctx context.Context, id uuid.UUID) error
+	RestoreHubBase(ctx context.Context, id uuid.UUID) error
 
 	// Корзина — мягкое удаление
 	SoftDeleteIssue(ctx context.Context, id uuid.UUID, when time.Time) error
@@ -73,6 +80,7 @@ type Repository interface {
 	SoftDeleteScheduledCall(ctx context.Context, id uuid.UUID, when time.Time) error
 	SoftDeleteCRMContact(ctx context.Context, id uuid.UUID, when time.Time) error
 	SoftDeleteCRMDeal(ctx context.Context, id uuid.UUID, when time.Time) error
+	SoftDeleteHubBase(ctx context.Context, id uuid.UUID, when time.Time) error
 
 	// Корзина — окончательное удаление
 	PurgeExpiredIssues(ctx context.Context, cutoff time.Time) (int, error)
@@ -83,6 +91,7 @@ type Repository interface {
 	PurgeExpiredScheduledCalls(ctx context.Context, cutoff time.Time) (int, error)
 	PurgeExpiredCRMContacts(ctx context.Context, cutoff time.Time) (int, error)
 	PurgeExpiredCRMDeals(ctx context.Context, cutoff time.Time) (int, error)
+	PurgeExpiredHubBases(ctx context.Context, cutoff time.Time) (int, error)
 
 	// Администрирование пользователей
 	DeactivateUser(ctx context.Context, userID uuid.UUID) error
@@ -682,6 +691,189 @@ func (r *entRepository) PurgeExpiredCRMDeals(ctx context.Context, cutoff time.Ti
 		Exec(ctx)
 }
 
+// ListDeletedHubBases — мягко удалённые HubBase в окне retention (A3W2-A5-001).
+func (r *entRepository) ListDeletedHubBases(ctx context.Context, cutoff time.Time, offset, limit int) ([]TrashItem, int, error) {
+	query := r.client.HubBase.Query().
+		Where(hubbase.DeletedAtNotNil(), hubbase.DeletedAtGT(cutoff))
+	total, err := query.Clone().Count(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("подсчёт удалённых hubbase: %w", err)
+	}
+	items, err := query.
+		Order(ent.Desc(hubbase.FieldDeletedAt)).
+		Offset(offset).
+		Limit(limit).
+		All(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("список удалённых hubbase: %w", err)
+	}
+	result := make([]TrashItem, 0, len(items))
+	for _, item := range items {
+		result = append(result, TrashItem{
+			ID:         item.ID,
+			Name:       item.Name,
+			EntityType: "hubbase",
+			DeletedAt:  *item.DeletedAt,
+		})
+	}
+	return result, total, nil
+}
+
+// RestoreHubBase сбрасывает deleted_at по дереву base→tables→columns→records (A3W2-A5-001).
+func (r *entRepository) RestoreHubBase(ctx context.Context, id uuid.UUID) error {
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return fmt.Errorf("begin restore hubbase tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	tableIDs, err := tx.HubTable.Query().
+		Where(hubtable.HasBaseWith(hubbase.ID(id))).
+		IDs(ctx)
+	if err != nil {
+		return fmt.Errorf("list tables for hubbase restore: %w", err)
+	}
+	if len(tableIDs) > 0 {
+		if _, err := tx.HubRecord.Update().
+			Where(hubrecord.HasTableWith(hubtable.IDIn(tableIDs...))).
+			ClearDeletedAt().
+			Save(ctx); err != nil {
+			return fmt.Errorf("restore hubbase records: %w", err)
+		}
+		if _, err := tx.HubColumn.Update().
+			Where(hubcolumn.HasTableWith(hubtable.IDIn(tableIDs...))).
+			ClearDeletedAt().
+			Save(ctx); err != nil {
+			return fmt.Errorf("restore hubbase columns: %w", err)
+		}
+		if _, err := tx.HubTable.Update().
+			Where(hubtable.IDIn(tableIDs...)).
+			ClearDeletedAt().
+			Save(ctx); err != nil {
+			return fmt.Errorf("restore hubbase tables: %w", err)
+		}
+	}
+	if err := tx.HubBase.UpdateOneID(id).ClearDeletedAt().Exec(ctx); err != nil {
+		return fmt.Errorf("restore hubbase: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit restore hubbase: %w", err)
+	}
+	return nil
+}
+
+// SoftDeleteHubBase — cascade soft-delete дерева (симметрия bases.SoftDeleteBase).
+func (r *entRepository) SoftDeleteHubBase(ctx context.Context, id uuid.UUID, when time.Time) error {
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return fmt.Errorf("begin soft-delete hubbase tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	tableIDs, err := tx.HubTable.Query().
+		Where(hubtable.HasBaseWith(hubbase.ID(id))).
+		IDs(ctx)
+	if err != nil {
+		return fmt.Errorf("list tables for hubbase soft-delete: %w", err)
+	}
+	if len(tableIDs) > 0 {
+		if _, err := tx.HubRecord.Update().
+			Where(
+				hubrecord.HasTableWith(hubtable.IDIn(tableIDs...)),
+				hubrecord.DeletedAtIsNil(),
+			).
+			SetDeletedAt(when).
+			Save(ctx); err != nil {
+			return fmt.Errorf("cascade soft-delete hubbase records: %w", err)
+		}
+		if _, err := tx.HubColumn.Update().
+			Where(
+				hubcolumn.HasTableWith(hubtable.IDIn(tableIDs...)),
+				hubcolumn.DeletedAtIsNil(),
+			).
+			SetDeletedAt(when).
+			Save(ctx); err != nil {
+			return fmt.Errorf("cascade soft-delete hubbase columns: %w", err)
+		}
+		if _, err := tx.HubTable.Update().
+			Where(
+				hubtable.IDIn(tableIDs...),
+				hubtable.DeletedAtIsNil(),
+			).
+			SetDeletedAt(when).
+			Save(ctx); err != nil {
+			return fmt.Errorf("cascade soft-delete hubbase tables: %w", err)
+		}
+	}
+	affected, err := tx.HubBase.Update().
+		Where(hubbase.IDEQ(id), hubbase.DeletedAtIsNil()).
+		SetDeletedAt(when).
+		Save(ctx)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return &ent.NotFoundError{}
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit soft-delete hubbase: %w", err)
+	}
+	return nil
+}
+
+// PurgeExpiredHubBases hard-delete дерева HubBase старше retention (A3W2-A5-001).
+// Порядок: records→columns→tables→bases (FK; HubBase→tables без OnDelete Cascade).
+func (r *entRepository) PurgeExpiredHubBases(ctx context.Context, cutoff time.Time) (int, error) {
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("begin purge hubbase tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	baseIDs, err := tx.HubBase.Query().
+		Where(hubbase.DeletedAtNotNil(), hubbase.DeletedAtLT(cutoff)).
+		IDs(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("list expired hubbases: %w", err)
+	}
+	if len(baseIDs) == 0 {
+		return 0, nil
+	}
+	tableIDs, err := tx.HubTable.Query().
+		Where(hubtable.HasBaseWith(hubbase.IDIn(baseIDs...))).
+		IDs(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("list tables for hubbase purge: %w", err)
+	}
+	if len(tableIDs) > 0 {
+		if _, err := tx.HubRecord.Delete().
+			Where(hubrecord.HasTableWith(hubtable.IDIn(tableIDs...))).
+			Exec(ctx); err != nil {
+			return 0, fmt.Errorf("purge hubbase records: %w", err)
+		}
+		if _, err := tx.HubColumn.Delete().
+			Where(hubcolumn.HasTableWith(hubtable.IDIn(tableIDs...))).
+			Exec(ctx); err != nil {
+			return 0, fmt.Errorf("purge hubbase columns: %w", err)
+		}
+		if _, err := tx.HubTable.Delete().
+			Where(hubtable.IDIn(tableIDs...)).
+			Exec(ctx); err != nil {
+			return 0, fmt.Errorf("purge hubbase tables: %w", err)
+		}
+	}
+	n, err := tx.HubBase.Delete().
+		Where(hubbase.IDIn(baseIDs...)).
+		Exec(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("purge hubbases: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("commit purge hubbase: %w", err)
+	}
+	return n, nil
+}
+
 // ---------------------------------------------------------------------------
 // User admin — деактивация, GDPR-удаление, переназначение задач
 // ---------------------------------------------------------------------------
@@ -798,9 +990,13 @@ func (r *entRepository) HardDeleteUser(ctx context.Context, userID uuid.UUID) er
 
 // IsSystemAdmin возвращает true, если у пользователя установлена системная роль admin.
 // Используется audit handler.requireAdmin для проверки доступа к admin-эндпоинтам.
+// A3W6-4-003: NotFound → ErrUserNotFound (handler без ent.IsNotFound).
 func (r *entRepository) IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bool, error) {
 	u, err := r.client.User.Get(ctx, userID)
 	if err != nil {
+		if ent.IsNotFound(err) {
+			return false, ErrUserNotFound
+		}
 		return false, err
 	}
 	return u.SystemRole == user.SystemRoleFounder || u.SystemRole == user.SystemRoleAdmin, nil
