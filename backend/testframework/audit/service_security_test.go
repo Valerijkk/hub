@@ -27,6 +27,7 @@ type mockAuditRepo struct {
 	deactivateErr         error
 	deactivateIDs         []uuid.UUID
 	deleteSessIDs         []uuid.UUID
+	deleteSessErr         error // C-W19-003: fail-closed fallback без SessionRevoker
 	reassignAssignedCalls [][2]uuid.UUID
 	reassignReportedCalls [][2]uuid.UUID
 	reassignAssignedN     int
@@ -127,6 +128,9 @@ func (m *mockAuditRepo) DeactivateUser(_ context.Context, userID uuid.UUID) erro
 
 func (m *mockAuditRepo) DeleteUserSessions(_ context.Context, userID uuid.UUID) (int, error) {
 	m.deleteSessIDs = append(m.deleteSessIDs, userID)
+	if m.deleteSessErr != nil {
+		return 0, m.deleteSessErr
+	}
 	return 1, nil
 }
 
