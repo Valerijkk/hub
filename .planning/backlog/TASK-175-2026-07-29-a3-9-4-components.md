@@ -1,12 +1,35 @@
 # 🧹 A3 FE checklist/automation/comment error UI
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Открыта**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
 > Источник: A3 · **Owner lock: правим ВСЕ A3 open** · TASK-008 · кластер A3W9-4  
 > Ветка исполнения: `cursor-grok-4.5` (не пушить в `master`)
 
 ## [OUTCOME]
 
 Все шесть A3W9-4 finding ID закрыты: checklist delete видим на focus, automation-rules и comment-list и time-tracker показывают error≠empty, JQL error block с `role="alert"`, raw Tailwind/`#hex` в зоне слота заменены на `--hub` / semantic tokens.
+
+## [Progress — fe2 2026-07-29]
+
+| ID | Status | Evidence |
+|----|--------|----------|
+| A3W9-4-001 | FIXED | `checklist.tsx` — `group-focus-within:opacity-100 focus-visible:opacity-100`; тест `a3w9-4-checklist-delete-focus.test.tsx` |
+| A3W9-4-002 | FIXED | `automation-rules-panel.tsx` — `isError` + `QueryErrorAlert`; empty только `!isError && length===0`; тест `a3w9-4-automation-rules-error.test.tsx` |
+| A3W9-4-003 | FIXED | `comment-list.tsx` — `isError` + compact alert/retry; форма остаётся; тест `a3w9-4-comment-list-error.test.tsx` |
+| A3W9-4-004 | FIXED | tokens: issue-card/form, comment internal amber, bell `var(--red)`, query-state/route-error, jql TYPE/PRIORITY fallbacks; тесты issue-card-tokens + hub-tokens-p3 |
+| A3W9-4-005 | FIXED | `jql-search-page.tsx` error block `role="alert"`; тест `a3w9-4-jql-error-alert.test.tsx` |
+| A3W9-4-006 | FIXED | `time-tracker.tsx` — `timeLogsError` + «История» + compact alert; тест `a3w9-4-time-tracker-error.test.tsx` |
+
+**Mutation notes:**
+- 001: убрать `group-focus-within`/`focus-visible` → assert className краснеет
+- 002: empty без `!isError` → «Нет правил» при fail → тест краснеет
+- 003: убрать alert → нет `role=alert` / есть «Нет комментариев» при fail
+- 004: вернуть `text-red-500` / `#D1D2D3` → token asserts краснеют
+- 005: убрать `role="alert"` → getByRole fails
+- 006: не показывать История на error → getByText(«История») fails
+
+**Регрессия:** vitest tracker domain 40 files / 86 tests PASS; TASK-175 suite 8 files / 13 tests PASS. `tsc --noEmit` — pre-existing fail OOS: `index.lazy.tsx` missing `version` (TASK-130 WIP на ветке), не из scope этой задачи.
+
+**Handoff:** fe-ver → code-reviewer. README backlog не трогали (по инструкции исполнения).
 
 ## [ROLE]
 
