@@ -752,7 +752,7 @@ Create API key: `name` ≤255 рун; иначе **400** (не 500).
 | POST | `/admin/users/:id/deactivate` | Деактивировать пользователя |
 | POST | `/admin/users/:id/ban` | Заблокировать пользователя (`{"reason": "..."}`) |
 | POST | `/admin/users/:id/reassign` | Переназначить задачи пользователя |
-| DELETE | `/admin/users/:id/gdpr` | GDPR-удаление пользователя |
+| DELETE | `/admin/users/:id/gdpr` | GDPR-удаление: Ent HardDelete в tx; Mongo messages post-Commit; fail eraser → JetStream retry `audit.gdpr.mongo_erase` (C-W19-002) |
 
 ### Режим регистрации
 
