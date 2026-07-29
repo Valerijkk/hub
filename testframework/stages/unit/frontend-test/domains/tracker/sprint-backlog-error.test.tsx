@@ -1,15 +1,24 @@
 import { screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import * as trackerApi from "@/api/tracker";
 import { SprintBacklog } from "@/modules/tracker/sprint-backlog";
 import { renderWithProviders } from "../../render";
 
-vi.mock("@/api/tracker");
+const listIssues = vi.fn();
+const fetchSprints = vi.fn().mockResolvedValue(undefined);
+const moveIssueToSprint = vi.fn().mockResolvedValue(undefined);
+
+vi.mock("@/api/tracker", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("@/api/tracker")>();
+	return {
+		...actual,
+		listIssues: (...args: unknown[]) => listIssues(...args),
+	};
+});
 vi.mock("@/stores/sprint-store", () => ({
 	useSprintStore: () => ({
 		sprints: [],
-		fetchSprints: vi.fn(),
-		moveIssueToSprint: vi.fn(),
+		fetchSprints,
+		moveIssueToSprint,
 	}),
 }));
 vi.mock("@tanstack/react-router", () => ({
@@ -23,11 +32,13 @@ vi.mock("@/lib/format-api-error", () => ({
 
 describe("SprintBacklog error≠empty (A2W10-A3-002 / TASK-093)", () => {
 	beforeEach(() => {
-		vi.clearAllMocks();
+		listIssues.mockReset();
+		fetchSprints.mockClear();
+		moveIssueToSprint.mockClear();
 	});
 
 	it("shows alert + retry instead of «Бэклог пуст» when listIssues fails", async () => {
-		vi.mocked(trackerApi.listIssues).mockRejectedValue(new Error("network"));
+		listIssues.mockRejectedValue(new Error("network"));
 
 		renderWithProviders(<SprintBacklog projectId="proj-1" />);
 
