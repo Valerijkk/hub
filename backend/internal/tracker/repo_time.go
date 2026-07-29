@@ -77,7 +77,9 @@ func (r *EntRepository) StartTimer(ctx context.Context, issueID, userID uuid.UUI
 	defer func() { _ = tx.Rollback() }()
 
 	// Lock parent issue row so concurrent open-timer creates serialize.
+	// A3W1-A3-003: soft-deleted issue → NotFound (как LogTime/StopTimer), без orphan timer.
 	err = tx.Issue.UpdateOneID(issueID).
+		Where(issue.DeletedAtIsNil()).
 		SetUpdatedAt(time.Now().UTC()).
 		Exec(ctx)
 	if err != nil {
