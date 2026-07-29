@@ -634,6 +634,17 @@ func (s *AuditService) DeleteUserGDPR(ctx context.Context, actorID, userID uuid.
 		if _, err := s.msgEraser.DeleteMessagesBySender(ctx, userID); err != nil {
 			slog.Error("GDPR mongo erase after commit failed",
 				"error", err, "user_id", userID, "actor_id", actorID)
+			// C-W19-002: compensating JetStream retry — user уже HardDelete, messages orphan
+			// до успешного consumer. DeleteMany по sender_id идемпотентен.
+			if s.eraseRetry != nil {
+				if qErr := s.eraseRetry.EnqueueMongoErase(ctx, userID, actorID); qErr != nil {
+					slog.Error("GDPR mongo erase retry enqueue failed",
+						"error", qErr, "user_id", userID, "actor_id", actorID)
+					return fmt.Errorf("delete mongo messages: %w; enqueue retry: %v", err, qErr)
+				}
+				slog.Warn("GDPR mongo erase retry enqueued",
+					"user_id", userID, "actor_id", actorID, "subject", SubjectGDPRMongoErase)
+			}
 			return fmt.Errorf("delete mongo messages: %w", err)
 		}
 	}
