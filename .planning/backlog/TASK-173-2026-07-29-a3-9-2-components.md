@@ -1,6 +1,6 @@
 # 🧹 A3 FE bookmarks UUID + deadlines links
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Открыта**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
 > Источник: A3 · **Owner lock: правим ВСЕ A3 open** · TASK-008 · кластер A3W9-2  
 > Ветка исполнения: `cursor-grok-4.5` (не пушить в `master`)
 
@@ -138,3 +138,25 @@
 - Коммиты: RU conventional description; **без** `Co-authored-by` / Generated-by / AI attribution.
 - Docs sync: additive bookmark/task-summary fields → wiki/API при наличии таблицы; иначе STATE one-liner + backlog status.
 - Read-only audit; правки кода — по контракту задачи.
+
+## Progress (fe1 · 2026-07-29)
+
+**Verdict:** 5/5 FIXED · статус **На проверке** (README не трогали по инструкции делегирования)
+
+| ID | Evidence |
+|----|----------|
+| A3W9-2-001 | BE `BookmarkResponse.channel_name/content_preview` + `ListBookmarks` enrich; FE `bookmarks-panel` title/subtitle ≠ UUID; Vitest `bookmarks-preview.test.tsx` |
+| A3W9-2-002 | BE `TaskSummary.project_id` + `WithProject` + Deadlines mapping; FE `TaskRowLink` + `deadlines.tsx` Link; Vitest link attrs |
+| A3W9-2-003 | тот же DTO + `my-tasks.tsx` через `TaskRowLink` |
+| A3W9-2-004 | `var(--red/--amber/--orange/--blue/--t3)` в deadlines/my-tasks; source-guard тест |
+| A3W9-2-005 | system-health/unread → `var(--green/--red/--amber)` + `shadow-[…var(--gG/--gR)]`; нет inline rgba |
+
+**Mutation notes:**
+- 001: вернуть `{bm.channel_id}` / `{bm.message_id}` в panel → `bookmarks-preview` RED (UUID в DOM / нет «general»)
+- 002/003: убрать `TaskRowLink`/`Link` → `getByRole("link")` RED
+- 004: вернуть `bg-red-500` → source-guard RED
+- 005: вернуть `bg-green-500` + `style={{boxShadow: rgba…}}` → source-guard RED
+
+**Tests:** vitest messenger+dashboard TASK-173 — 7/7 PASS; `TestBookmarks_AddListRemove` PASS; dashboard wave107 ProjectID — compile blocked OOS (`ent/schema/webhookendpoint` unused import, параллельный TASK-171). tsc: OOS errors в `time-tracker` / `index.lazy` (чужие WIP).
+
+**001 approach:** BE enrich (channel cache + FindMessageByID), не FE N+1.
