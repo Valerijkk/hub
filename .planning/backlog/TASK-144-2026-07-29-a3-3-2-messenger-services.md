@@ -154,6 +154,18 @@
 | A3W3-2-005 | FIXED | ClosePoll IsMember до Close; тест `TestClosePoll_CreatorLeftForbiddenBeforeClose_A3W3_2_005` |
 | A3W3-2-006 | FIXED | AddMembers/DeleteChannel AppError wrap; тест `TestAddMembers_DeleteChannel_WrapAppError_A3W3_2_006` |
 
-Observed: `go test -tags hubtest -count=1 ./testframework/messenger/ -run A3W3_2` → **PASS** (`ok … 2.817s`).  
-Full `./testframework/messenger/` после этого — BLOCKED sandbox: broken Go 1.25 toolchain (`no such tool "link"` / incomplete std) + parallel Ent soft-delete drift (`workflowstatus.FieldDeletedAt`).  
-Handoff: **be-ver → code-reviewer**. README не трогали (указание owner).
+Observed (be1 restart 2026-07-29, Go 1.25.0 sdk):
+- `go test -tags hubtest -count=1 -timeout=180s ./testframework/messenger/ -run A3W3_2` → **PASS** (`ok … 1.088s`)
+- `go test -tags hubtest -race -count=1 -timeout=300s ./testframework/messenger/` → **PASS** (`ok … 3.601s`)
+
+Mutation (prod service_* → тест краснеет → restore):
+| ID | Откат | Assert |
+|----|-------|--------|
+| 001 | `isMember, _ := …` в JoinChannel | `TestJoinChannel_IsMemberError_A3W3_2_001` RED |
+| 002 | убрать `DeleteChannel` при fail extra | `TestCreateChannel_ExtraMembersFailRollsBack_A3W3_2_002` RED |
+| 003 | убрать `msg.ChannelID != channelID` | `TestAddBookmark_RejectsCrossChannel_A3W3_2_003` RED |
+| 004 | NotFound→Internal в ToggleStar | `TestToggleStarMuteUnmute_NonMemberForbidden_A3W3_2_004` RED |
+| 005 | убрать IsMember до ClosePoll | `TestClosePoll_CreatorLeftForbiddenBeforeClose_A3W3_2_005` RED |
+| 006 | голый `return s.repo.AddMembers` | `TestAddMembers_DeleteChannel_WrapAppError_A3W3_2_006` RED |
+
+Handoff: **be-ver → code-reviewer**. README не трогали (указание owner). Статус: **На проверке**.

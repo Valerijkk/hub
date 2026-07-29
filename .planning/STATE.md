@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: planning-audit-pw-in-progress
 stopped_at: Planning audit 2026-07 PW1–PW5 · coverage remeasured · phase matrix live
-last_updated: "2026-07-29T12:30:00.000Z"
-last_activity: 2026-07-29 · be1 TASK-171 A3W8-5 soft-delete + Cascades · На проверке
+last_updated: "2026-07-29T13:00:00.000Z"
+last_activity: 2026-07-29 · be1 TASK-144 A3W3-2 messenger services · На проверке
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -64,6 +64,12 @@ spec_coverage:
 ---
 
 # Состояние проекта Hub
+
+## Session note — 2026-07-29 (be1 · TASK-144 A3W3-2 messenger services)
+
+- **Сделано:** 6/6 A3W3-2 FIXED — Join IsMember fail-closed, Create extra-members rollback, bookmark channel-scope, star/mute NotFound→403, ClosePoll membership до close, AddMembers/DeleteChannel AppError wrap; hubtest messenger `-race` PASS + 6/6 mutation RED.
+- **Коммит:** `18b3d72c` (+ docs evidence); статус **На проверке**; README не трогали.
+- **Handoff:** be-ver → code-reviewer.
 
 ## Session note — 2026-07-29 (be1 · TASK-171 A3W8-5 Team/WorkflowStatus soft + Cascades)
 
