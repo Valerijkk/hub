@@ -343,12 +343,19 @@ func (s *BackupService) DeleteBackup(ctx context.Context, backupID uuid.UUID) er
 		return err
 	}
 
-	// Удаляем из S3
+	// Удаляем из S3 (A3W7-4-002: slog + fail-closed — DB row не трогаем при S3 err).
 	if s.s3Client != nil {
-		_, _ = s.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		if _, err := s.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
 			Bucket: &s.s3Bucket,
 			Key:    &record.S3Key,
-		})
+		}); err != nil {
+			slog.WarnContext(ctx, "s3 delete backup failed",
+				"backup_id", backupID,
+				"s3_key", record.S3Key,
+				"error", err,
+			)
+			return fmt.Errorf("delete backup from s3: %w", err)
+		}
 	}
 
 	return s.repo.Delete(ctx, backupID)
@@ -431,10 +438,17 @@ func (s *BackupService) cleanupOldBackups(ctx context.Context) {
 
 	for _, r := range records[s.maxBackups:] {
 		if s.s3Client != nil {
-			_, _ = s.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
+			if _, err := s.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
 				Bucket: &s.s3Bucket,
 				Key:    &r.S3Key,
-			})
+			}); err != nil {
+				slog.WarnContext(ctx, "s3 delete old backup failed",
+					"backup_id", r.ID,
+					"s3_key", r.S3Key,
+					"error", err,
+				)
+				continue // не удаляем DB row при S3 fail — иначе orphan ZIP
+			}
 		}
 		if err := s.repo.Delete(ctx, r.ID); err != nil {
 			slog.Error("ошибка удаления старого бэкапа", "id", r.ID, "error", err)

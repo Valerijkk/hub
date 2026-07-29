@@ -276,6 +276,10 @@ func (h *Handler) DeleteFile(c fiber.Ctx) error {
 	}
 
 	if err := h.storage.DeleteFile(c.Context(), fileID); err != nil {
+		// A3W7-4-004: SoftDelete NotFound (race/повтор) → 404, как Confirm/Download.
+		if ent.IsNotFound(err) {
+			return fiber.NewError(fiber.StatusNotFound, "file not found")
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, "failed to delete file")
 	}
 

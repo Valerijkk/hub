@@ -135,6 +135,7 @@ func (h *Handler) Admin(c fiber.Ctx) error {
 // @Param project_id query string false "ID проекта (для проектного дашборда)"
 // @Success 200 {object} LayoutDTO "Раскладка"
 // @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет членства в проекте"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
 // @Router /api/dashboard/layout [get]
@@ -156,6 +157,10 @@ func (h *Handler) GetLayout(c fiber.Ctx) error {
 
 	layout, err := h.service.GetLayout(c.Context(), userID, dashType, projectID)
 	if err != nil {
+		// A3W7-4-003: stranger project_id → 403
+		if errors.Is(err, ErrForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "недостаточно прав для просмотра раскладки проекта")
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, "ошибка загрузки раскладки")
 	}
 

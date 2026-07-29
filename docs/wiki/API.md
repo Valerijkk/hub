@@ -507,9 +507,9 @@ curl -sS -X POST http://localhost:8080/api/auth/magic-link/verify \
 
 | Метод | Путь | Описание |
 |---|---|---|
-| POST | `/calls/guest-join` | Присоединиться к звонку как гость (без аккаунта) |
+| POST | `/calls/guest-join` | Присоединиться к звонку как гость (без аккаунта); `guest_name` ≤100 runes → 400 |
 | POST | `/calls/` | Создать звонок в канале (только член канала; иначе 403) |
-| POST | `/calls/instant` | Создать мгновенный звонок |
+| POST | `/calls/instant` | Создать мгновенный звонок; `title` ≤255 runes → 400 |
 | GET | `/calls/invite/:code` | Присоединиться по коду приглашения |
 | GET | `/calls/channel/:channelId` | Получить активный звонок канала |
 | POST | `/calls/:callId/join` | Присоединиться к звонку |
@@ -524,7 +524,7 @@ curl -sS -X POST http://localhost:8080/api/auth/magic-link/verify \
 
 | Метод | Путь | Описание |
 |---|---|---|
-| POST | `/calls/:callId/recording/start` | Начать запись (только член канала звонка) |
+| POST | `/calls/:callId/recording/start` | Начать запись (только член канала звонка); канал без `project_id` → 400 |
 | POST | `/calls/:callId/recording/stop` | Остановить запись (член канала; `recording_id` принадлежит `callId`) |
 | GET | `/projects/:projectId/recordings` | Список записей проекта |
 | GET | `/recordings/:recordingId/download` | URL для скачивания записи |
@@ -553,10 +553,10 @@ curl -sS -X POST http://localhost:8080/api/auth/magic-link/verify \
 | Метод | Путь | Описание |
 |---|---|---|
 | GET | `/dashboard/personal` | Персональный дашборд (мои задачи, активность; `TaskSummary.project_id` для ссылок на issue) |
-| GET | `/dashboard/project/:projectId` | Проектный дашборд (статистика; только член проекта; иначе 403) |
-| GET | `/dashboard/admin` | Админский дашборд (общая статистика) |
-| GET | `/dashboard/layout` | Получить layout дашборда |
-| PUT | `/dashboard/layout` | Сохранить layout (позиции виджетов) |
+| GET | `/dashboard/project/:projectId` | Проектный дашборд (статистика; только член проекта → иначе 403; critical PG widgets fail-closed → 500, не silent empty) |
+| GET | `/dashboard/admin` | Админский дашборд (общая статистика; critical counts fail-closed → 500; TopProjects fail-closed) |
+| GET | `/dashboard/layout` | Получить layout (`project_id` → только член проекта, иначе 403) |
+| PUT | `/dashboard/layout` | Сохранить layout (позиции виджетов; `project_id` → membership) |
 | GET | `/dashboard/templates` | Список шаблонов дашбордов |
 | POST | `/dashboard/templates/apply` | Применить шаблон |
 
@@ -1022,29 +1022,29 @@ AI gateway, @hub-ai bot, ModelPicker, JQL assist. User routes требуют JWT
 | Метод | Путь | Описание |
 |---|---|---|
 | GET | `/ai/models` | Список доступных моделей (system + BYOK) |
-| GET | `/ai/preferences` | Default model пользователя |
-| PATCH | `/ai/preferences` | Сохранить default model + `allow_external_ai` (M3-030) |
+| GET | `/ai/preferences` | Default model + `allow_external_ai` + `version` (nil-record / create без явного consent → `allow_external_ai=false`, A3W5-3-005) |
+| PATCH | `/ai/preferences` | Сохранить default model + `allow_external_ai`; при update обязателен `version` → **409** при conflict (A3W5-3-006) |
 | GET | `/ai/usage/today` | Дневная квота (tokens, requests, limit 500) |
 | GET | `/ai/bot` | Системный пользователь @hub-ai (user_id для DM) |
 | POST | `/ai/jql/assist` | NL → Hub JQL (`{"query": "..."}`) |
 | POST | `/ai/composer/suggest` | Tab-дополнение сообщения в мессенджере (`{"prefix": "..."}`) |
-| POST | `/ai/v1/chat/completions` | OpenAI-compatible proxy (stream → 202 + WS) |
+| POST | `/ai/v1/chat/completions` | OpenAI-compatible proxy (stream → 202 + WS; error event: фиксированное `AI stream failed`, без raw LLM err) |
 
 ### BYOK (user-scoped providers)
 
 | Метод | Путь | Описание |
 |---|---|---|
-| GET | `/ai/my/providers` | Список user-scoped провайдеров |
+| GET | `/ai/my/providers` | Список user-scoped провайдеров (`version` в ответе) |
 | POST | `/ai/my/providers` | Добавить BYOK провайдер |
-| PATCH | `/ai/my/providers/:id` | Обновить BYOK провайдер |
+| PATCH | `/ai/my/providers/:id` | Обновить BYOK провайдер (`version` required → **409** при conflict) |
 
 ### Admin AI
 
 | Метод | Путь | Описание |
 |---|---|---|
-| GET | `/admin/ai/providers` | Реестр провайдеров |
+| GET | `/admin/ai/providers` | Реестр провайдеров (`version` в ответе) |
 | POST | `/admin/ai/providers` | Создать провайдер |
-| PATCH | `/admin/ai/providers/:id` | Обновить провайдер |
+| PATCH | `/admin/ai/providers/:id` | Обновить провайдер (`version` required → **409** при conflict) |
 | POST | `/admin/ai/providers/:id/test` | Ping провайдера |
 | GET | `/admin/ai/usage/summary` | Агрегат usage за сегодня |
 | GET | `/admin/ai/usage/history` | История по дням (`?days=7`) |

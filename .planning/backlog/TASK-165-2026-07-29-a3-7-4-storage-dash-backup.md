@@ -1,6 +1,6 @@
 # TASK-165 — 🐛 A3 storage/dashboard/backup residual
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Открыта**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
 > Исполнитель: **be1** · Источник: A3 Stage FINAL · `A3W7-4-storage-dash-backup.md` · TASK-008
 
 ## [OUTCOME]
@@ -116,3 +116,24 @@ Critical dashboard PG widgets fail-closed (не silent empty 200); backup S3 del
 - Docs sync только если изменился user-visible API contract (403 GetLayout / 500 ProjectStats — кратко в wiki/API или STATE при закрытии)
 - Conventional Commits RU; no Co-authored-by / AI trailers
 - Коммит (если просят): `fix(dashboard|storage|backup): …` + тело со ссылкой на этот файл и `(A3W7-4-00N)`
+
+## [EVIDENCE] — be1 2026-07-29
+
+### Verdict: **5/5 FIXED** · статус **На проверке** · handoff → be-ver
+
+| ID | Status | Fix (file) | Test | Mutation |
+|----|--------|------------|------|----------|
+| A3W7-4-001 | FIXED | `dashboard/service.go` Aggregate/Admin counts → `return err` | `TestGetProjectStats_AggregateFailClosed_A3W74_001`, `TestGetAdminStats_CountsFailClosed_A3W74_001` | slog+`return stats,nil` → RED |
+| A3W7-4-002 | FIXED | `backup/service.go` slog.WarnContext + **fail-closed** DeleteBackup (DB row остаётся); cleanup skip DB on S3 err | `TestDeleteBackup_S3FailClosedWarn_A3W74_002`, `TestCleanupOldBackups_S3FailWarn_A3W74_002` | `_, _ = DeleteObject` → RED |
+| A3W7-4-003 | FIXED | `dashboard/service.go` + `handler.go` GetLayout membership → ErrForbidden/403 | `TestGetLayout_StrangerProjectForbidden_A3W74_003` | убрать IsProjectMember → RED |
+| A3W7-4-004 | FIXED | `storage/handler.go` SoftDelete NotFound → 404 | `TestHandler_DeleteFile_SoftDeleteNotFound404_A3W74_004` | убрать IsNotFound map → RED |
+| A3W7-4-005 | FIXED | `dashboard/repository.go` `AggregateProjectCompletedByDay` (Count/day); service uses it | `TestAggregateProjectCompletedByDay_Bounded_A3W74_005` | вернуть `.All()` → RED |
+
+**A3W7-4-002 choice:** fail-closed DeleteBackup (не удаляем DB при S3 fail) + Warn; cleanup — Warn + skip DB delete.
+
+**Hubtest (частичный, 2026-07-29):** `./testframework/dashboard/` **ok** · `./testframework/storage/` **ok** (~10–14s). Полный `./testframework/backup/` + повторный полный прогон — **blocked** параллельной порчей `backend/ent/` другими агентами (uuid redeclared / missing packages). Код+тесты на диске; be-ver: повторить команду из ACCEPTANCE когда ent стабилен.
+
+```bash
+cd backend && go test -tags hubtest -race -count=1 -timeout=300s \
+  ./testframework/dashboard/ ./testframework/storage/ ./testframework/backup/
+```

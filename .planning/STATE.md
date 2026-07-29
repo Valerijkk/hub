@@ -65,6 +65,30 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-29 (be1 · TASK-155 A3W5-3 ai service)
+
+- **9/9 FIXED** (A3W5-3-001…009): UTF-8 composer trim; IncrementUsage/settings upsert; issue_lookup fail-closed; preference consent false; VersionEQ+409; WS `AI stream failed`; BotUserRepository; flow asserts.
+- **Hubtest:** `./testframework/ai/` — BLOCKED на shared branch (parallel `ent generate` + tracker workflow soft-delete drift TASK-171). Код готов к re-run be-ver.
+- **Docs:** `docs/wiki/API.md` (preferences/providers version + consent default + stream sanitize). Статус: **На проверке**.
+
+## Session note — 2026-07-29 (be2 · TASK-147 A3W3-A5 calls)
+
+- **4/4 FIXED** (A3W3-A5-001…004): orphan LiveKit room на DB-fail CreateCall/Instant; FindConflictingCalls + soft-delete channel; nil project_id → 400; title≤255 / guest_name≤100 runes → 400.
+- **Тесты:** `go test -tags hubtest -race -count=1 -timeout=300s ./testframework/calls/` PASS (в т.ч. `a3w3_a5_task147_test.go`).
+- **Статус:** На проверке → be-ver → code-reviewer.
+
+## Session note — 2026-07-29 (be1 · TASK-165 A3W7-4 storage/dashboard/backup residual)
+
+- **5/5 FIXED** (A3W7-4-001…005): ProjectStats/Admin counts fail-closed; backup S3 delete Warn+fail-closed; GetLayout membership; SoftDelete→404; burndown AggregateProjectCompletedByDay.
+- Hubtest: dashboard+storage PASS (частичный); полный backup+регрессия — re-run be-ver при стабильном `ent/`.
+- Docs: `docs/wiki/API.md` (layout 403 / project+admin fail-closed). Статус задачи: **На проверке**.
+
+## Session note — 2026-07-29 (fe1 · TASK-124 A3W10-1 routes/modules error≠empty)
+
+- **Сделано:** secondary accounting / TemplateSelector / marketplace pending / bases detail+table — `QueryErrorAlert`; recordings download `noopener,noreferrer`. 5/5 FIXED → **На проверке**.
+- **Тесты:** vitest v4 + `recordings-download-noopener` **31/31** PASS; `tsc --noEmit` PASS.
+- **Docs:** backlog TASK-124 Progress; README не трогали.
+
 ## Session note — 2026-07-29 (be1 · TASK-135 A3W1-3 tracker repos residual)
 
 - **3/3 FIXED:** A3W1-A3-001 FilterSubjects+known-no-op Ack; A3W1-A3-002 executeRule Post/Notify → error → Nak; A3W1-A3-003 StartTimer `DeletedAtIsNil`.
