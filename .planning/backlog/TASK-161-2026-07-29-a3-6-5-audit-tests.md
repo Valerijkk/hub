@@ -1,8 +1,22 @@
 # 🧹 A3 audit tests CRM purge/Retention gaps
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Открыта**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
 > Источник: A3W6-5-audit-tests.md · Stage A3 FINAL · TASK-008  
 > Исполнитель: **be1**
+
+## Evidence (be1 · 2026-07-29)
+
+| ID | Verdict | Evidence |
+|----|---------|----------|
+| A3W6-5-001 | FIXED | `CapturesCutoffs` wantKeys×8 + crm_*; hollow `PurgeExpired_Succeeds` удалён |
+| A3W6-5-002 | FIXED | mock SoftDelete/Restore CRM → call maps; `RecordsAllTypes` ×8; hollow AllTypes удалены |
+| A3W6-5-003 | FIXED | `CRMContact/CRMDeal_RetentionHidesOlderThan30Days` (−40d / cutoff −30d → total 0) |
+| A3W6-5-004 | FIXED | seed `UserStatusCacheKey` + `assert.False(mr.Exists)` после Deactivate |
+| A3W6-5-005 | FIXED | hollow `ListTrash_WithProjectFilter` удалён (цемент CapturesProjectID) |
+| A3W6-5-006 | FIXED | hollow Succeeds/AllTypes удалены |
+| A3W6-5-007 | FIXED | hollow `DeleteUserGDPR_Success` удалён (цемент SuccessCascadeCalls) |
+
+**hubtest:** `go test -tags hubtest -race -count=1 -timeout=600s -vet=off ./testframework/audit/` → **ok** 10.303s (isolated worktree; main tree concurrent ent regen).
 
 ## [OUTCOME]
 

@@ -83,6 +83,38 @@ func TestRepository_SoftDeleteAndRestoreCRMDeal_W7A2006(t *testing.T) {
 	assert.Equal(t, "Big Deal", got.Title)
 }
 
+// TestRepository_CRMContact_RetentionHidesOlderThan30Days — A3W6-5-003.
+// Мутация: снять DeletedAtGT(cutoff) в ListDeletedCRMContacts → total≠0.
+func TestRepository_CRMContact_RetentionHidesOlderThan30Days(t *testing.T) {
+	env := newAuditTrashEnv(t)
+	c := env.createCRMContact(t, "Old Contact Hide")
+	old := time.Now().UTC().Add(-40 * 24 * time.Hour)
+	cutoff := time.Now().UTC().Add(-30 * 24 * time.Hour)
+
+	require.NoError(t, env.repo.SoftDeleteCRMContact(env.ctx, c.ID, old))
+
+	items, total, err := env.repo.ListDeletedCRMContacts(env.ctx, cutoff, 0, 10)
+	require.NoError(t, err)
+	assert.Equal(t, 0, total)
+	assert.Empty(t, items)
+}
+
+// TestRepository_CRMDeal_RetentionHidesOlderThan30Days — A3W6-5-003.
+// Мутация: снять DeletedAtGT(cutoff) в ListDeletedCRMDeals → total≠0.
+func TestRepository_CRMDeal_RetentionHidesOlderThan30Days(t *testing.T) {
+	env := newAuditTrashEnv(t)
+	d := env.createCRMDeal(t, "Old Deal Hide")
+	old := time.Now().UTC().Add(-40 * 24 * time.Hour)
+	cutoff := time.Now().UTC().Add(-30 * 24 * time.Hour)
+
+	require.NoError(t, env.repo.SoftDeleteCRMDeal(env.ctx, d.ID, old))
+
+	items, total, err := env.repo.ListDeletedCRMDeals(env.ctx, cutoff, 0, 10)
+	require.NoError(t, err)
+	assert.Equal(t, 0, total)
+	assert.Empty(t, items)
+}
+
 func TestRepository_PurgeExpiredCRM_W7A2006(t *testing.T) {
 	env := newAuditTrashEnv(t)
 	c := env.createCRMContact(t, "Old Contact")

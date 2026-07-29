@@ -2,7 +2,6 @@ package audit_test
 
 // Тесты репозитория аудита: интеграционные и unit-сценарии testframework.
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -129,16 +128,6 @@ func TestRepository_ClearUserAssignments(t *testing.T) {
 	n, err := env.repo.ClearUserAssignments(env.ctx, env.userA)
 	require.NoError(t, err)
 	assert.Equal(t, 1, n)
-}
-
-// TestAuditService_DeleteUserGDPR_Success проверяет бизнес-логику: audit сервис удаление user gdpr успех.
-func TestAuditService_DeleteUserGDPR_Success(t *testing.T) {
-	repo := &userMgmtMockRepo{}
-	svc := audit.NewAuditService(repo, nil)
-	target := uuid.New()
-
-	require.NoError(t, svc.DeleteUserGDPR(context.Background(), uuid.New(), target, nil))
-	assert.Equal(t, target, repo.gdprUserID)
 }
 
 // TestRepository_PurgeExpiredFiles проверяет отклонение при репозиторий очистка просроченный files.

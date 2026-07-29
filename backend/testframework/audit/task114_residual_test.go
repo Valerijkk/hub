@@ -115,6 +115,21 @@ func TestHandler_DeleteUserGDPR_FounderForbidden_A2W6A4006(t *testing.T) {
 
 // --- A2W6-A4-003: Ent tx rollback mid-cascade ---
 
+// hardDeleteFailWrap — fail HardDelete внутри WithTx (Ent rollback proof без Mongo-in-tx).
+type hardDeleteFailWrap struct {
+	audit.Repository
+}
+
+func (w *hardDeleteFailWrap) HardDeleteUser(context.Context, uuid.UUID) error {
+	return errors.New("forced hard delete fail")
+}
+
+func (w *hardDeleteFailWrap) WithTx(ctx context.Context, fn func(audit.Repository) error) error {
+	return w.Repository.WithTx(ctx, func(txRepo audit.Repository) error {
+		return fn(&hardDeleteFailWrap{Repository: txRepo})
+	})
+}
+
 func TestDeleteUserGDPR_CascadeRollback_A2W6A4003(t *testing.T) {
 	env := newAuditTrashEnv(t)
 	iss := env.createIssue(t, nil)
@@ -127,8 +142,9 @@ func TestDeleteUserGDPR_CascadeRollback_A2W6A4003(t *testing.T) {
 		Save(env.ctx)
 	require.NoError(t, err)
 
-	svc := audit.NewAuditService(env.repo, nil)
-	svc.SetMessageEraser(&stubMessageEraser{failErr: errors.New("mongo down")})
+	eraser := &stubMessageEraser{}
+	svc := audit.NewAuditService(&hardDeleteFailWrap{Repository: env.repo}, nil)
+	svc.SetMessageEraser(eraser)
 
 	err = svc.DeleteUserGDPR(env.ctx, env.userB, env.userA, nil)
 	require.Error(t, err)
@@ -140,15 +156,21 @@ func TestDeleteUserGDPR_CascadeRollback_A2W6A4003(t *testing.T) {
 
 	_, err = env.client.User.Get(env.ctx, env.userA)
 	require.NoError(t, err, "user must not be hard-deleted")
+
+	// A3W6-4-001: Mongo erase не вызывается при Ent rollback.
+	assert.Empty(t, eraser.calls, "mongo erase must stay intact when Ent tx rolls back")
 }
 
 // --- A2W6-A5-001: PurgeExpired call counts + cutoffs ---
 
+// A3W6-5-001 / A3W2-A5-001: wantKeys×9 включая crm_* и hubbases.
+// Мутация: убрать PurgeExpiredHubBases из PurgeExpired → callCounts краснеет.
 func TestAuditService_PurgeExpired_CapturesCutoffs_A2W6A5001(t *testing.T) {
 	repo := &purgeMockRepo{
 		purgeCounts: map[string]int{
 			"issues": 1, "test_cases": 1, "files": 1,
 			"projects": 1, "newsposts": 1, "scheduled_calls": 1,
+			"crm_contacts": 1, "crm_deals": 1, "hubbases": 1,
 		},
 		cutoffs: make(map[string]time.Time),
 	}
@@ -158,7 +180,10 @@ func TestAuditService_PurgeExpired_CapturesCutoffs_A2W6A5001(t *testing.T) {
 	require.NoError(t, svc.PurgeExpired(context.Background()))
 	after := time.Now().Add(-audit.TrashRetentionDays*24*time.Hour + time.Minute)
 
-	wantKeys := []string{"issues", "test_cases", "files", "projects", "newsposts", "scheduled_calls"}
+	wantKeys := []string{
+		"issues", "test_cases", "files", "projects", "newsposts", "scheduled_calls",
+		"crm_contacts", "crm_deals", "hubbases",
+	}
 	for _, k := range wantKeys {
 		assert.Equal(t, 1, repo.callCounts[k], "purge %s must be called once", k)
 		c, ok := repo.cutoffs[k]
@@ -167,13 +192,14 @@ func TestAuditService_PurgeExpired_CapturesCutoffs_A2W6A5001(t *testing.T) {
 	}
 }
 
-// --- A2W6-A5-004: SoftDelete/Restore call map ---
+// --- A2W6-A5-004 / A3W6-5-002 / A3W2-A5-001: SoftDelete/Restore call map ×9 (hubbase) ---
+// Мутация: убрать case "hubbase" → assert.Equal краснеет.
 
 func TestAuditService_SoftDelete_RecordsAllTypes_A2W6A5004(t *testing.T) {
 	repo := &mockAuditRepo{}
 	svc := audit.NewAuditService(repo, nil)
 	id := uuid.New()
-	types := []string{"issue", "test_case", "file", "project", "newspost", "scheduled_call"}
+	types := []string{"issue", "test_case", "file", "project", "newspost", "scheduled_call", "crm_contact", "crm_deal", "hubbase"}
 	for _, et := range types {
 		require.NoError(t, svc.SoftDelete(context.Background(), et, id), et)
 	}
@@ -184,7 +210,7 @@ func TestAuditService_RestoreItem_RecordsAllTypes_A2W6A5004(t *testing.T) {
 	repo := &mockAuditRepo{}
 	svc := audit.NewAuditService(repo, nil)
 	id := uuid.New()
-	types := []string{"issue", "test_case", "file", "project", "newspost", "scheduled_call"}
+	types := []string{"issue", "test_case", "file", "project", "newspost", "scheduled_call", "crm_contact", "crm_deal", "hubbase"}
 	for _, et := range types {
 		require.NoError(t, svc.RestoreItem(context.Background(), et, id), et)
 	}

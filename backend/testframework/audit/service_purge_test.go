@@ -97,6 +97,14 @@ func (m *purgeMockRepo) PurgeExpiredCRMDeals(_ context.Context, cutoff time.Time
 	return m.purgeCounts["crm_deals"], nil
 }
 
+func (m *purgeMockRepo) PurgeExpiredHubBases(_ context.Context, cutoff time.Time) (int, error) {
+	m.track("hubbases", cutoff)
+	if m.purgeErr != nil {
+		return 0, m.purgeErr
+	}
+	return m.purgeCounts["hubbases"], nil
+}
+
 type trashListMockRepo struct {
 	mockAuditRepo
 	items        []audit.TrashItem
@@ -109,23 +117,6 @@ func (m *trashListMockRepo) ListDeletedIssues(_ context.Context, _ *uuid.UUID, c
 	m.lastCutoff = cutoff
 	m.cutoffCalled = true
 	return m.items, m.total, nil
-}
-
-// TestAuditService_PurgeExpired_Succeeds проверяет отклонение при audit сервис очистка просроченный succeeds.
-func TestAuditService_PurgeExpired_Succeeds(t *testing.T) {
-	repo := &purgeMockRepo{
-		purgeCounts: map[string]int{
-			"issues":     2,
-			"test_cases": 1,
-			"files":      0,
-			"projects":   3,
-			"newsposts":  1,
-		},
-	}
-	svc := audit.NewAuditService(repo, nil)
-
-	err := svc.PurgeExpired(context.Background())
-	require.NoError(t, err)
 }
 
 // TestAuditService_PurgeExpired_PropagatesError — A2W6-A4-001 / A2W6-A5-002:
@@ -179,30 +170,6 @@ func TestAuditService_ListTrash_UnknownTypeReturnsEmpty(t *testing.T) {
 	assert.Empty(t, resp.Items)
 	assert.Equal(t, 1, resp.Page)
 	assert.Equal(t, 50, resp.PerPage)
-}
-
-// TestAuditService_SoftDelete_AllTypes проверяет бизнес-логику: audit сервис soft удаление all types.
-func TestAuditService_SoftDelete_AllTypes(t *testing.T) {
-	repo := &mockAuditRepo{}
-	svc := audit.NewAuditService(repo, nil)
-	ctx := context.Background()
-	id := uuid.New()
-
-	for _, entityType := range []string{"issue", "test_case", "file", "project", "newspost", "scheduled_call", "crm_contact", "crm_deal"} {
-		require.NoError(t, svc.SoftDelete(ctx, entityType, id), entityType)
-	}
-}
-
-// TestAuditService_RestoreItem_AllTypes проверяет бизнес-логику: audit сервис restore item all types.
-func TestAuditService_RestoreItem_AllTypes(t *testing.T) {
-	repo := &mockAuditRepo{}
-	svc := audit.NewAuditService(repo, nil)
-	ctx := context.Background()
-	id := uuid.New()
-
-	for _, entityType := range []string{"issue", "test_case", "file", "project", "newspost", "scheduled_call", "crm_contact", "crm_deal"} {
-		require.NoError(t, svc.RestoreItem(ctx, entityType, id), entityType)
-	}
 }
 
 // TestAuditService_IsSystemAdmin проверяет бизнес-логику: audit сервис is system админ.

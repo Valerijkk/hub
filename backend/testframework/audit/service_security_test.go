@@ -161,6 +161,9 @@ func (m *mockAuditRepo) ListDeletedCRMContacts(context.Context, time.Time, int, 
 func (m *mockAuditRepo) ListDeletedCRMDeals(context.Context, time.Time, int, int) ([]audit.TrashItem, int, error) {
 	return nil, 0, nil
 }
+func (m *mockAuditRepo) ListDeletedHubBases(context.Context, time.Time, int, int) ([]audit.TrashItem, int, error) {
+	return nil, 0, nil
+}
 func (m *mockAuditRepo) RestoreIssue(_ context.Context, _ uuid.UUID) error {
 	m.restoreCalls = append(m.restoreCalls, "issue")
 	return nil
@@ -185,8 +188,18 @@ func (m *mockAuditRepo) RestoreScheduledCall(_ context.Context, _ uuid.UUID) err
 	m.restoreCalls = append(m.restoreCalls, "scheduled_call")
 	return nil
 }
-func (m *mockAuditRepo) RestoreCRMContact(context.Context, uuid.UUID) error { return nil }
-func (m *mockAuditRepo) RestoreCRMDeal(context.Context, uuid.UUID) error    { return nil }
+func (m *mockAuditRepo) RestoreCRMContact(_ context.Context, _ uuid.UUID) error {
+	m.restoreCalls = append(m.restoreCalls, "crm_contact")
+	return nil
+}
+func (m *mockAuditRepo) RestoreCRMDeal(_ context.Context, _ uuid.UUID) error {
+	m.restoreCalls = append(m.restoreCalls, "crm_deal")
+	return nil
+}
+func (m *mockAuditRepo) RestoreHubBase(_ context.Context, _ uuid.UUID) error {
+	m.restoreCalls = append(m.restoreCalls, "hubbase")
+	return nil
+}
 func (m *mockAuditRepo) SoftDeleteIssue(_ context.Context, _ uuid.UUID, _ time.Time) error {
 	m.softDeleteCalls = append(m.softDeleteCalls, "issue")
 	return nil
@@ -211,10 +224,16 @@ func (m *mockAuditRepo) SoftDeleteScheduledCall(_ context.Context, _ uuid.UUID, 
 	m.softDeleteCalls = append(m.softDeleteCalls, "scheduled_call")
 	return nil
 }
-func (m *mockAuditRepo) SoftDeleteCRMContact(context.Context, uuid.UUID, time.Time) error {
+func (m *mockAuditRepo) SoftDeleteCRMContact(_ context.Context, _ uuid.UUID, _ time.Time) error {
+	m.softDeleteCalls = append(m.softDeleteCalls, "crm_contact")
 	return nil
 }
-func (m *mockAuditRepo) SoftDeleteCRMDeal(context.Context, uuid.UUID, time.Time) error {
+func (m *mockAuditRepo) SoftDeleteCRMDeal(_ context.Context, _ uuid.UUID, _ time.Time) error {
+	m.softDeleteCalls = append(m.softDeleteCalls, "crm_deal")
+	return nil
+}
+func (m *mockAuditRepo) SoftDeleteHubBase(_ context.Context, _ uuid.UUID, _ time.Time) error {
+	m.softDeleteCalls = append(m.softDeleteCalls, "hubbase")
 	return nil
 }
 func (m *mockAuditRepo) PurgeExpiredIssues(context.Context, time.Time) (int, error)    { return 0, nil }
@@ -229,6 +248,9 @@ func (m *mockAuditRepo) PurgeExpiredCRMContacts(context.Context, time.Time) (int
 	return 0, nil
 }
 func (m *mockAuditRepo) PurgeExpiredCRMDeals(context.Context, time.Time) (int, error) {
+	return 0, nil
+}
+func (m *mockAuditRepo) PurgeExpiredHubBases(context.Context, time.Time) (int, error) {
 	return 0, nil
 }
 func (m *mockAuditRepo) ReassignAssignedIssues(_ context.Context, from, to uuid.UUID) (int, error) {
