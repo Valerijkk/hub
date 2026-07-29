@@ -25,7 +25,7 @@ interface BurndownChartProps {
  * Две линии: Ideal (прямая от total к 0) и Remaining (фактическая).
  */
 export function BurndownChart({ projectId, sprintId }: BurndownChartProps) {
-	const { burndown, error, fetchBurndown } = useSprintStore();
+	const { burndown, error, loading, fetchBurndown } = useSprintStore();
 
 	useEffect(() => {
 		void fetchBurndown(projectId, sprintId);
@@ -56,7 +56,24 @@ export function BurndownChart({ projectId, sprintId }: BurndownChartProps) {
 		);
 	}
 
-	if (burndown.length === 0) {
+	if (loading && burndown.length === 0 && !error) {
+		return (
+			<div className="bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-5">
+				<div className="flex items-center gap-2.5 mb-4">
+					<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500/10 to-blue-500/5">
+						<TrendingDown className="h-4 w-4 text-blue-400" />
+					</div>
+					<h2 className="text-[13px] font-bold uppercase tracking-[0.06em] text-t3">
+						Burndown
+					</h2>
+				</div>
+				<p className="text-[13px] text-t2">Загрузка…</p>
+				<div className="mt-3 h-48 animate-shimmer rounded-[var(--r2)] bg-card/50" />
+			</div>
+		);
+	}
+
+	if (!loading && !error && burndown.length === 0) {
 		return (
 			<div className="bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-5">
 				<div className="flex items-center gap-2.5 mb-4">

@@ -118,13 +118,16 @@ export const useSprintStore = create<SprintState>()((set, get) => ({
 	},
 
 	fetchBurndown: async (projectId, sprintId) => {
+		// A3W10-2-005: loading≠empty на первом fetch burndown.
+		set({ loading: true, error: null });
 		try {
 			const burndown = await sprintApi.getBurndown(projectId, sprintId);
-			set({ burndown, error: null });
+			set({ burndown, error: null, loading: false });
 		} catch {
 			set({
 				burndown: [],
 				error: "Не удалось загрузить burndown",
+				loading: false,
 			});
 		}
 	},
