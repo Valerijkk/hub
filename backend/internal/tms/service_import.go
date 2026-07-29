@@ -56,8 +56,12 @@ func (s *TMSService) ImportAllureResults(ctx context.Context, projectID, userID 
 		AllureRunID: req.AllureRunID,
 	}
 
-	// 2. Сопоставляем результаты (до PG-записи)
-	resultInputs, stats := s.buildAllureResultInputs(ctx, projectID, allureResults)
+	// 2. Сопоставляем результаты (до PG-записи).
+	// C-W19-TT-002: matchErr (infra ≠ NotFound) — fail-closed, не silent skip.
+	resultInputs, stats, err := s.buildAllureResultInputs(ctx, projectID, allureResults)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка сопоставления allure результатов")
+	}
 
 	var run *ent.TestRun
 	if ai, ok := s.repo.(automaticImporter); ok {
@@ -128,11 +132,17 @@ func (s *TMSService) ImportAllureToExistingRun(ctx context.Context, projectID, r
 		return nil, apperrors.NewBadRequest("пустой массив результатов Allure")
 	}
 
-	if err := s.repo.StoreAllureResults(ctx, run.ID, allureResults); err != nil {
-		slog.Error("ошибка сохранения allure результатов в MongoDB", "error", err, "run_id", run.ID)
+	// C-W19-TT-002 path A: match → Mongo → PG; fail-closed на Store/match infra err
+	// (не slog-only / не silent continue). Create-path Mongo остаётся best-effort.
+	resultInputs, _, err := s.buildAllureResultInputs(ctx, projectID, allureResults)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка сопоставления allure результатов")
 	}
 
-	resultInputs, _ := s.buildAllureResultInputs(ctx, projectID, allureResults)
+	if err := s.repo.StoreAllureResults(ctx, run.ID, allureResults); err != nil {
+		slog.Error("ошибка сохранения allure результатов в MongoDB", "error", err, "run_id", run.ID)
+		return nil, apperrors.NewInternal("ошибка сохранения allure результатов")
+	}
 
 	if eri, ok := s.repo.(existingRunImporter); ok {
 		// A3W2-2-003: PG batch+stats в одной Ent tx.
@@ -166,14 +176,16 @@ func (s *TMSService) ImportAllureToExistingRun(ctx context.Context, projectID, r
 	return s.GetTestRunDetail(ctx, projectID, run.ID)
 }
 
-func (s *TMSService) buildAllureResultInputs(ctx context.Context, projectID uuid.UUID, allureResults []AllureResult) ([]CreateTestResultInput, TestRunStats) {
+// buildAllureResultInputs сопоставляет Allure→TC. matchErr от Matcher (infra ≠ NotFound
+// после A2W2-4-003) — fail-closed (C-W19-TT-002); unmapped (nil,nil) допустим.
+func (s *TMSService) buildAllureResultInputs(ctx context.Context, projectID uuid.UUID, allureResults []AllureResult) ([]CreateTestResultInput, TestRunStats, error) {
 	resultInputs := make([]CreateTestResultInput, 0, len(allureResults))
 	stats := TestRunStats{}
 	for _, ar := range allureResults {
 		tc, strategy, matchErr := s.matcher.MatchTestCase(ctx, projectID, &ar)
 		if matchErr != nil {
 			slog.Error("ошибка матчинга allure результата", "error", matchErr, "uuid", ar.UUID)
-			continue
+			return nil, TestRunStats{}, matchErr
 		}
 
 		input := CreateTestResultInput{
@@ -221,7 +233,7 @@ func (s *TMSService) buildAllureResultInputs(ctx context.Context, projectID uuid
 			stats.UnknownCount++
 		}
 	}
-	return resultInputs, stats
+	return resultInputs, stats, nil
 }
 
 func (s *TMSService) abortImportRun(ctx context.Context, runID uuid.UUID) {
