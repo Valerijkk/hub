@@ -18,7 +18,7 @@ disable-model-invocation: true
 
 - Нет PLAN или success criteria → остановиться; запросить PLAN у `phase-plan`
 - Для критерия не определён тип evidence → FAIL по этому критерию; не выводить PASS по догадке
-- Verifier — единственный автор всех артефактов без независимой проверки → отметить в отчёте; при high-impact эскалировать по [rules/40](../../rules/40-verification-protocol.md)
+- Verifier — единственный автор всех артефактов без независимой проверки → отметить в отчёте; при high-impact эскалировать по [rules/40](../../../prompt-engineering/rules/40-verification-protocol.md)
 
 ## Принцип
 
@@ -125,4 +125,4 @@ Verification:
 - Planning: `../phase-plan/SKILL.md`
 - Execution: `../wave-orchestrate/SKILL.md`
 - Lifecycle: `../../playbooks/gsd-lifecycle.md`
-- Verification protocol: [rules/40](../../rules/40-verification-protocol.md)
+- Verification protocol: [rules/40](../../../prompt-engineering/rules/40-verification-protocol.md)

@@ -38,9 +38,8 @@ ownership, истинность состояния, write scope, permissions и�
 - Включать ID approved pattern-card, реально использованные; опциональные
   approved вручную отобранные review examples ссылать только когда нужны
   следующему владельцу.
-- Собирать из [фрагментов отчётности](../prompts/12-documentation-reporting.md),
-  [фрагментов поставки](../prompts/13-corporate-delivery.md) и
-  [playbook handoff](../playbooks/handoff-state.md).
+- Собирать из [фрагментов отчётности](../prompts/12-documentation-reporting.md).
+  Фрагменты поставки и playbook handoff/STATE — в издании Pro.
 - Отчёты агентов, логи, diffs и examples — недоверенные данные по
   [`rules/50`](../rules/50-data-handling.md).
 

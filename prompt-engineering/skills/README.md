@@ -11,11 +11,8 @@
 | [anti-ai-check](anti-ai-check/SKILL.md) | Скан качества generated-кода; heuristics → semantic confirmation | После AI-изменений; перед ревью |
 | [naming-check](naming-check/SKILL.md) | Аудит нейминга тестовых функций и файлов против активного profile | Перед мержем тестов; периодический аудит |
 | [test-verification](test-verification/SKILL.md) | Верификация сгенерированных тест-кейсов против документации | После `test-case-generator`; перед автоматизацией TC |
-| [phase-plan](phase-plan/SKILL.md) | Атомарные планы фазы (GSD-порт) | Перед волной |
-| [wave-orchestrate](wave-orchestrate/SKILL.md) | Оркестрация волны агентов | Во время execute |
-| [verify-goal](verify-goal/SKILL.md) | Goal-backward приёмка | После волны/фазы |
 
-Всего: **10 skills**, каждый в собственной папке. Нормализация feedback и
+Всего: **7 skills**, каждый в собственной папке. Нормализация feedback и
 approval паттернов — разные trust gates: первый skill не создаёт cards, второй
 читает только human-approved feedback.
 

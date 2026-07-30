@@ -13,10 +13,8 @@ Cursor требует корректный YAML frontmatter и wrapper; см.
 
 ## Ростер
 
-Для задач тестовой автоматизации начинай с `test-*` / `qa-auto` и таблицы
-Role ↔ recipe в [`../recipes/README.md`](../recipes/README.md).
-
-### Test-automation first
+Standard — **только тестовый фреймворк**. Начинай с таблицы Role ↔ recipe
+в [`../recipes/README.md`](../recipes/README.md).
 
 | Агент | Назначение | Режим |
 |-------|------------|-------|
@@ -24,28 +22,28 @@ Role ↔ recipe в [`../recipes/README.md`](../recipes/README.md).
 | [test-case-generator](test-case-generator.md) | TC из документации | test docs |
 | [test-debugger](test-debugger.md) | Отладка упавших/flaky тестов | diagnose/fix |
 | [test-documenter](test-documenter.md) | Документация тестового фреймворка | test docs |
-| [qa-auto](qa-auto.md) | Автотесты по принятым TC и трассируемость | write |
-| [qa-manual](qa-manual.md) | TC, тест-дизайн, UAT и ручные чек-листы | test docs |
-| [orchestrator](orchestrator.md) | Нормализация цели, волны, routing, goal-backward приёмка | координация |
 
-### Delivery / cross-cutting (сквозные роли)
+### Продуктовых ролей здесь нет
 
-| Агент | Назначение | Режим |
-|-------|------------|-------|
-| [product-owner](product-owner.md) | Scope, SMART, MoSCoW, KPI | docs/decision |
-| [architect](architect.md) | C4, ADR, framework options, границы | docs/decision |
-| [backend-dev](backend-dev.md) | Серверная реализация и unit/integration regression | write |
-| [frontend-dev](frontend-dev.md) | UI/UX реализация, a11y, frontend regression | write |
-| [code-reviewer](code-reviewer.md) | Defect-first pre-merge review продуктового diff | readonly |
-| [debugger](debugger.md) | Evidence-based root cause и triage | diagnose; fix only if allowed |
-| [security-reviewer](security-reviewer.md) | Независимый security review | readonly |
-| [devops](devops.md) | CI/CD, runtime, smoke и rollback | write |
-| [docs-writer](docs-writer.md) | Product/ops docs sync с проверкой по фактам | docs |
+Роли разработки — `orchestrator`, `product-owner`, `architect`, `backend-dev`,
+`frontend-dev`, `qa-manual`, `qa-auto`, `code-reviewer`, `debugger`,
+`security-reviewer`, `devops`, `docs-writer` — живут в издании **Pro**,
+в sibling-папке `prompt-engineering-pro/agents/`. Ссылкой она отсюда не
+достаётся намеренно: Standard переносится самостоятельным пакетом и не
+вправе зависеть от наличия Pro рядом.
 
-`qa-*`, `code-reviewer`, `debugger` относятся к продуктовому delivery.
-`test-*` относятся к test-framework toolkit и не подменяют продуктовые роли.
-`docs-writer` ведёт продуктовые/ops документы; `test-documenter` — только
-документацию тестового фреймворка.
+Граница проходит по объекту работы, а не по типу задачи:
+
+| | Объект | Издание |
+|---|--------|---------|
+| `test-*` | сам тестовый фреймворк | Standard |
+| `qa-manual`, `qa-auto` | продукт, который тестируют | Pro |
+| `docs-writer` | продуктовые и ops-документы | Pro |
+| `test-documenter` | документация тестового фреймворка | Standard |
+
+Поэтому `test-*` не подменяют продуктовые роли, а продуктовые не лезут
+внутрь фреймворка. Команде разработки нужны оба издания; команде
+автоматизации тестирования достаточно Standard.
 
 ## Общий контракт
 
@@ -74,21 +72,21 @@ Role ↔ recipe в [`../recipes/README.md`](../recipes/README.md).
 
 - `context-mapper` не нужен: first setup выполняет
   `skills/bootstrap-test-context/SKILL.md`, existing profile refresh —
-  `skills/refresh-test-context/SKILL.md`; orchestrator только маршрутизирует.
-- Framework selection/research входит в `architect`: options, primary sources,
-  compatibility evidence и ADR. Test-framework inventory остаётся у
-  bootstrap/refresh skills + `test-documenter`.
-- Feedback curation: `code-reviewer` фиксирует recurring evidence;
-  `docs-writer` переносит только одобренные решения в канон. Отдельный
-  `feedback-curator` нужен лишь при устойчивой очереди и собственном артефакте.
-- Phase outcome проверяет `skills/verify-goal/SKILL.md`, TC —
-  `skills/test-verification/SKILL.md`. Отдельный `eval-verifier` вводится только
-  при наличии самостоятельных AI-eval contracts/datasets, чтобы не дублировать
-  эти два гейта.
+  `skills/refresh-test-context/SKILL.md`.
+- Выбор и research фреймворка — не зона Standard: это роль `architect`
+  издания Pro. Здесь остаётся inventory уже существующего фреймворка
+  (bootstrap/refresh skills + `test-documenter`).
+- Feedback curation ведёт `skills/curate-review-feedback`. Отдельный
+  `feedback-curator` нужен лишь при устойчивой очереди и собственном
+  артефакте.
+- TC проверяет `skills/test-verification/SKILL.md`. Goal-backward приёмка
+  фазы — уровень Pro (`skills/verify-goal`). Отдельный `eval-verifier`
+  вводится только при наличии самостоятельных AI-eval contracts/datasets.
 
 ## Входы
 
 - Human request: можно кратко и свободно.
 - Delegation/CI/handoff: строгий master contract.
-- Волна: [`templates/wave-delegate.md`](templates/wave-delegate.md).
-- Полный процесс: [`../playbooks/corporate-delivery.md`](../playbooks/corporate-delivery.md).
+- Волна и полный delivery-процесс — издание Pro (`prompt-engineering-pro/`):
+  шаблон `agents/templates/wave-delegate.md`, плейбук
+  `playbooks/corporate-delivery.md`.

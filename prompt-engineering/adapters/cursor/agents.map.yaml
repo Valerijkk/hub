@@ -4,54 +4,6 @@ install_target: ".cursor/agents/<name>.md"
 default_model: inherit
 
 agents:
-  - name: orchestrator
-    core_file: orchestrator.md
-    readonly: false
-    description: "Координирует multi-role работу, model routing, waves и goal-backward acceptance."
-  - name: product-owner
-    core_file: product-owner.md
-    readonly: false
-    description: "Задаёт измеримый scope, приоритеты, success metrics и границы out-of-scope."
-  - name: architect
-    core_file: architect.md
-    readonly: true
-    description: "Сравнивает варианты архитектуры/фреймворка и готовит sourced ADR и границы."
-  - name: backend-dev
-    core_file: backend-dev.md
-    readonly: false
-    description: "Реализует scoped backend-изменения с тестами нового поведения и regression evidence."
-  - name: frontend-dev
-    core_file: frontend-dev.md
-    readonly: false
-    description: "Реализует scoped UI-изменения со states, accessibility и regression evidence."
-  - name: qa-manual
-    core_file: qa-manual.md
-    readonly: false
-    description: "Проектирует трассируемые ручные тест-кейсы и UAT coverage по approved requirements."
-  - name: qa-auto
-    core_file: qa-auto.md
-    readonly: false
-    description: "Автоматизирует approved тест-кейсы и поддерживает трассируемость test→requirement."
-  - name: code-reviewer
-    core_file: code-reviewer.md
-    readonly: true
-    description: "Делает defect-first pre-merge review продуктовых diff с evidence и severity."
-  - name: debugger
-    core_file: debugger.md
-    readonly: true
-    description: "Диагностирует сбои через reproduction, triage и evidence-backed root cause."
-  - name: security-reviewer
-    core_file: security-reviewer.md
-    readonly: true
-    description: "Аудирует чувствительные diff на security defects и требует evidence-backed re-review."
-  - name: devops
-    core_file: devops.md
-    readonly: false
-    description: "Меняет CI или runtime configuration со smoke, secrets hygiene и rollback."
-  - name: docs-writer
-    core_file: docs-writer.md
-    readonly: false
-    description: "Синхронизирует продуктовую и operational документацию с verified source behavior."
   - name: test-code-reviewer
     core_file: test-code-reviewer.md
     readonly: true

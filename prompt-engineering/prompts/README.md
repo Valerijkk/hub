@@ -15,8 +15,8 @@
 5. **Eval gate** — smoke/regression из `../evals/` после structural PASS.
 
 Production contracts: [`../recipes/`](../recipes/README.md). Эталоны assembly:
-[`EXPANDED-EXAMPLES.md`](EXPANDED-EXAMPLES.md). GSD-порт:
-[../gsd-port/README.md](../gsd-port/README.md).
+[`EXPANDED-EXAMPLES.md`](EXPANDED-EXAMPLES.md). GSD-порт и corporate-фрагменты —
+в издании Pro (`prompt-engineering-pro/`).
 
 ## Категории
 
@@ -34,9 +34,8 @@ Production contracts: [`../recipes/`](../recipes/README.md). Эталоны asse
 | 10 | [10-ci-automation.md](10-ci-automation.md) | CI-пайплайны, гейты, окружения, merge queue, метрики | 85 |
 | 11 | [11-performance-security-testing.md](11-performance-security-testing.md) | Нагрузочное, chaos, resilience, OWASP security | 85 |
 | 12 | [12-documentation-reporting.md](12-documentation-reporting.md) | Тест-документация, планы, отчёты, метрики, онбординг | 85 |
-| 13 | [13-corporate-delivery.md](13-corporate-delivery.md) | Corporate delivery: plan/waves/review/strangler/PR/handoff/verify/kit/ops | 112 |
 
-**Итого: 1000+ фрагментов** (тесты) **+ 112 corporate**.
+**Итого: 1000+ фрагментов** по тестированию. Категория 13 (corporate delivery, 112 фрагментов) переехала в Pro.
 
 ## Как пользоваться
 

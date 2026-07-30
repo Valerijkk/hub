@@ -95,7 +95,7 @@ disable-model-invocation: true
 
 ## Evidence до handoff
 
-Добавить блок [rules/40](../../rules/40-verification-protocol.md) — фокус на полноте плана, не на выполнении кода:
+Добавить блок [rules/40](../../../prompt-engineering/rules/40-verification-protocol.md) — фокус на полноте плана, не на выполнении кода:
 
 ```markdown
 Verification:
@@ -119,4 +119,4 @@ Verification:
 - Wave execution: `../wave-orchestrate/SKILL.md`
 - Goal acceptance: `../verify-goal/SKILL.md`
 - Lifecycle: `../../playbooks/gsd-lifecycle.md`
-- Verification: [rules/40](../../rules/40-verification-protocol.md)
+- Verification: [rules/40](../../../prompt-engineering/rules/40-verification-protocol.md)

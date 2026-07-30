@@ -9,15 +9,11 @@
 | [review-cycle.md](review-cycle.md) | Ревью-цикл тестового кода до мержа | anti-ai-check, naming-check, reviewer |
 | [debugging.md](debugging.md) | Красный CI → root cause → зелёный с профилактикой | debugger, reviewer, documenter |
 | [documentation.md](documentation.md) | Поддержание доков фреймворка в синхроне | documenter, refresh-test-context |
-| [corporate-delivery.md](corporate-delivery.md) | Scope→design→build→test→review→verify→handoff | orchestrator, corporate roles |
 | [model-routing.md](model-routing.md) | Catalog-backed выбор модели + fallback log | orchestrator, adapters |
-| [gsd-lifecycle.md](gsd-lifecycle.md) | Lifecycle discuss→plan→execute→verify→handoff (GSD-порт) | orchestrator, все роли |
-| [wave-execution.md](wave-execution.md) | Параллельные волны агентов с границами файлов | orchestrator |
-| [handoff-state.md](handoff-state.md) | STATE / session notes / handoff между агентами | orchestrator, любой |
-| [portable-kit-dry-run.md](portable-kit-dry-run.md) | Dry-run переноса kit (L1–L5 → пустой monorepo) | docs-writer, orchestrator |
 
-Индекс порта GSD: [../gsd-port/README.md](../gsd-port/README.md) ·
-Самодостаточный dry-run: [portable-kit-dry-run.md](portable-kit-dry-run.md)
+Плейбуки поставки — corporate-delivery, GSD lifecycle, волны, handoff/STATE
+и dry-run portable kit — переехали в издание Pro
+(`prompt-engineering-pro/playbooks/`) вместе с ролями разработки.
 
 Общие правила конвейеров:
 1. Гейт не пропускает — процесс возвращается на шаг владельца дефекта, не «проталкивается».

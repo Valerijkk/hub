@@ -4,7 +4,7 @@
 
 Слоты: `{{goal}}`, `{{module}}`, `{{files}}`, `{{role}}`, `{{ac}}`, `{{service}}`.
 
-> **Recipe assembly.** Фрагменты ниже — слоты `[ЧТО]` [мастер-шаблона](../agents/templates/_MASTER-PROMPT-TEMPLATE.md). Профиль категории: **[РОЛЬ]** orchestrator / tech-lead / {{role}} · **[КОНТЕКСТ]** `context/projects/<profile>/` + STATE + шаблоны `agents/templates/` · **[ФОРМАТ]** цель · границы · артефакт · Verification · **rationale** goal-backward от критерия приёмки · **assumptions** project-agnostic (без хардкода путей чужого репо) · **evidence** DoD проверяем командой/артефактом · **[УСЛОВИЯ]** верификация `rules/40`.
+> **Recipe assembly.** Фрагменты ниже — слоты `[ЧТО]` [мастер-шаблона](../../prompt-engineering/agents/templates/_MASTER-PROMPT-TEMPLATE.md). Профиль категории: **[РОЛЬ]** orchestrator / tech-lead / {{role}} · **[КОНТЕКСТ]** `context/projects/<profile>/` + STATE + шаблоны `agents/templates/` · **[ФОРМАТ]** цель · границы · артефакт · Verification · **rationale** goal-backward от критерия приёмки · **assumptions** project-agnostic (без хардкода путей чужого репо) · **evidence** DoD проверяем командой/артефактом · **[УСЛОВИЯ]** верификация `rules/40`.
 
 ## Planning (1–15)
 
