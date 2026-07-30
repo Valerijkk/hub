@@ -41,7 +41,7 @@ Coverage — Hub `/coverage-audit`; handoff — `/handoff` +
 | Strangler checklist | `/microservices-strangler` |
 
 Планы порта и portable kit (горизонт → 15.08.2026): [`.planning/archive/july-2026/ai-expansion/`](../.planning/archive/july-2026/ai-expansion/README.md)
-PE project-agnostic порт: [`prompt-engineering/gsd-port/`](../prompt-engineering/gsd-port/README.md) · [`PORTABLE-HUB-KIT.md`](../prompt-engineering/PORTABLE-HUB-KIT.md)
+PE project-agnostic порт (издание Pro): [`prompt-engineering-pro/gsd-port/`](../prompt-engineering-pro/gsd-port/README.md) · [`PORTABLE-HUB-KIT.md`](../prompt-engineering-pro/PORTABLE-HUB-KIT.md)
 
 Инвентарь upstream skills: `ai-expansion/03-GSD-PORT-INVENTORY.md`.
 

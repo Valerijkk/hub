@@ -54,9 +54,10 @@
 
 Планирование: [`.planning/README.md`](.planning/README.md) (навигация) · `.planning/STATE.md` · `.planning/COVERAGE.md` · `.planning/ROADMAP.md` · `.planning/archive/roadmaps/DISCUSS-ROADMAP-LOCKED.md`
 
-**Active (2026-07-30):** **Touchstone** Standard `0.2.0-rc.1` (`prompt-engineering/`) —
-foundation-ready, structural PASS, paired eval **NOT_RUN**; **Touchstone Pro**
-(`prompt-engineering-pro/`) — max GSD+Cursor+planning; [ai-expansion](.planning/archive/july-2026/ai-expansion/README.md)
+**Active (2026-07-31):** **Touchstone** `0.3.0-beta.1` — две линии по объекту
+работы: Standard (`prompt-engineering/`) для тестового фреймворка, Pro
+(`prompt-engineering-pro/`) для разработки продукта. Structural PASS,
+paired eval **NOT_RUN**; [ai-expansion](.planning/archive/july-2026/ai-expansion/README.md)
 qualified · July Rebuild planning · LiveKit stay · FA-06 manual.
 
 GSD + агенты: `.cursor/GSD-INTEGRATION.md`, `.cursor/REGULATION.md` §8 (GSD), §9 (test triage), §10 (docs sync)
@@ -133,7 +134,7 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 | Lighthouse CI (FB-06) | ✅ artifact job PR #27 (non-blocking) |
 | Волна 1 (roadmap 2026-07-03) | ✅ merged to `master` by user 2026-07-11 |
 | July Rebuild / QA-HARDENING | 📋 planning · kickoff ~конец июля |
-| AI quality layer / GSD / portable kit | **Touchstone** Standard+Pro `0.2.0-rc.1` foundation-ready · structural PASS · paired eval NOT_RUN |
+| AI quality layer / GSD / portable kit | **Touchstone** Standard+Pro `0.3.0-beta.1` foundation-ready · structural PASS · paired eval NOT_RUN |
 
 ### Метрики качества
 

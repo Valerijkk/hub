@@ -547,8 +547,11 @@ Slash: `.cursor/skills/qa-gate/SKILL.md`.
 
 | Издание | Путь | Назначение |
 |---------|------|------------|
-| **Standard** `0.2.0-rc.1` | [`prompt-engineering/`](../prompt-engineering/TOUCHSTONE.md) | Фундамент: context bootstrap, agents, recipes, evals, packager |
-| **Pro** `0.2.0-rc.1` | [`prompt-engineering-pro/`](../prompt-engineering-pro/START-HERE.md) | Max: GSD + prompt-contract + waves + mutation + planning ops |
+| **Standard** `0.3.0-beta.1` | [`prompt-engineering/`](../prompt-engineering/TOUCHSTONE.md) | Объект — **тестовый фреймворк**: context bootstrap, `test-*` агенты, recipes, evals, packager |
+| **Pro** `0.3.0-beta.1` | [`prompt-engineering-pro/`](../prompt-engineering-pro/START-HERE.md) | Объект — **продукт**: 12 ролей разработки, phase/wave/verify, corporate delivery, mutation |
+
+Деление по **объекту работы**, а не по уровню. Автоматизатору достаточно
+Standard; команде разработки нужны оба, Pro ставится поверх Standard.
 
 ### Назначение Standard
 
@@ -561,19 +564,28 @@ evals. Это не scaffold фреймворка. Bootstrap: `skills/bootstrap-t
 
 | Блок | Путь | Содержание |
 |------|------|------------|
-| Агенты | `prompt-engineering/agents/` | test-* (4) + corporate portable roster |
-| Скилы | `prompt-engineering/skills/` | bootstrap/refresh, curation, naming, test-verification, **phase-plan / wave-orchestrate / verify-goal** |
+| Агенты | `prompt-engineering/agents/` | только `test-*` (4): TC, ревью кода фреймворка, отладка, документация |
+| Скилы | `prompt-engineering/skills/` | bootstrap/refresh, curation, naming, anti-ai, test-verification (7) |
 | Правила | `prompt-engineering/rules/` | `00`–`50` (severity, quality, severity, evidence, data-handling) |
-| Плейбуки | `prompt-engineering/playbooks/` | onboarding, generation, review, debug, **gsd-lifecycle / wave / handoff** |
-| Промпты / recipes | `prompts/`, `recipes/` | fragments 01–13 + production recipes |
+| Плейбуки | `prompt-engineering/playbooks/` | onboarding, generation, review, debug, documentation, model-routing |
+| Промпты / recipes | `prompts/`, `recipes/` | fragments 01–12 (1000+) + production recipes |
 | Шаблоны | `agents/templates/` | `_MASTER-PROMPT-TEMPLATE` + phase/wave |
-| Portable kit | `PORTABLE-HUB-KIT.md`, `gsd-port/` | перенос; индекс GSD→PE |
+| Adapters | `adapters/cursor/` | маппинг 4 `test-*` ролей |
 
-### Состав Pro (надстройка)
+### Состав Pro (слой разработки)
 
-Слои `prompt-engineering-pro/layers/01`–`07` + extracts: prompt-contract,
-master-delegate, wave-protocol, **mutation-evidence**, backlog-task.
-Pro без Standard не ставится. Hub TZ (`60-tz-constraints`) в Pro **не** копируется.
+| Блок | Содержание |
+|------|------------|
+| `agents/` | 12 ролей: orchestrator, product-owner, architect, backend-dev, frontend-dev, qa-manual, qa-auto, code-reviewer, debugger, security-reviewer, devops, docs-writer |
+| `skills/` | phase-plan, wave-orchestrate, verify-goal |
+| `playbooks/` | corporate-delivery, gsd-lifecycle, wave-execution, handoff-state, portable-kit-dry-run |
+| `prompts/` | категория 13 — corporate delivery (112 фрагментов) |
+| `adapters/cursor/` | маппинг 12 ролей; `architect` / `code-reviewer` / `security-reviewer` — `readonly: true` |
+| `layers/`, `extracts/` | 7 слоёв практик + переносимые контракты, включая **mutation-evidence** |
+| `gsd-port/`, `PORTABLE-HUB-KIT.md` | перенос kit; индекс GSD→PE |
+
+Pro без Standard не ставится и не дублирует его context/rules/recipes/evals.
+Hub TZ (`60-tz-constraints`) в Pro **не** копируется.
 
 ### Ключевые механизмы
 
