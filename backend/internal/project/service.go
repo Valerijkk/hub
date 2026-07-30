@@ -622,9 +622,18 @@ func (s *ProjectService) AddTeamMember(ctx context.Context, teamID, actorID, use
 }
 
 // RemoveTeamMember удаляет пользователя из команды (только участник команды).
+// C-W19-TT-001 / TASK-184: last remaining member → 409 Conflict (orphan team
+// without requireTeamMember would lock AddTeamMember / AddTeamToProject forever).
 func (s *ProjectService) RemoveTeamMember(ctx context.Context, teamID, actorID, userID uuid.UUID) error {
 	if err := s.requireTeamMember(ctx, teamID, actorID); err != nil {
 		return err
+	}
+	count, err := s.repo.TeamMemberCount(ctx, teamID)
+	if err != nil {
+		return apperrors.NewInternal("failed to count team members")
+	}
+	if count <= 1 {
+		return apperrors.NewConflict("cannot remove the last member of a team")
 	}
 	if err := s.repo.RemoveTeamMember(ctx, teamID, userID); err != nil {
 		return apperrors.NewInternal("failed to remove team member")

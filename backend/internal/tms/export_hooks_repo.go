@@ -2,11 +2,21 @@
 
 package tms
 
-import "github.com/valerii/hub/backend/ent"
+import (
+	"context"
+
+	"github.com/valerii/hub/backend/ent"
+)
 
 // ExportEntRepositoryClient возвращает ent.Client из EntRepository для hubtest.
 func ExportEntRepositoryClient(r *EntRepository) *ent.Client {
 	return r.client
+}
+
+// ExportSetAfterExistingRunBatchHook инъектирует mid-fail после batch CreateBulk
+// внутри ImportResultsToExistingRun tx (A3W2-2-003 / TASK-139).
+func ExportSetAfterExistingRunBatchHook(fn func(ctx context.Context) error) {
+	afterExistingRunBatchHook = fn
 }
 
 // ExportMaxListTestResults — A3W2-3-001 list/nested results cap.

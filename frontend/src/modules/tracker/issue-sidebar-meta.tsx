@@ -125,7 +125,7 @@ export function IssueSidebarMeta({
 				</Badge>
 			</div>
 
-			{/* Исполнитель — read-only, без мёртвого cursor-pointer (A2W10-A3-008) */}
+			{/* Исполнитель — read-only, без ложного click-affordance (A2W10-A3-008) */}
 			<div className="mb-[18px]">
 				<div className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-t4 mb-[7px]">
 					Исполнитель

@@ -59,9 +59,16 @@ func (h *Handler) alertWebhookAuth(secret string) fiber.Handler {
 }
 
 func constantTimeEqualDigest(a, b string) bool {
+	eq, _ := constantTimeDigestCompare(a, b)
+	return eq
+}
+
+// constantTimeDigestCompare — SHA-256 digests + CTC; operandLen всегда sha256.Size
+// (W6-A4-010: без length-oracle на сырых строках).
+func constantTimeDigestCompare(a, b string) (equal bool, operandLen int) {
 	sumA := sha256.Sum256([]byte(a))
 	sumB := sha256.Sum256([]byte(b))
-	return subtle.ConstantTimeCompare(sumA[:], sumB[:]) == 1
+	return subtle.ConstantTimeCompare(sumA[:], sumB[:]) == 1, len(sumA)
 }
 
 // ReceiveAlertmanagerWebhook godoc

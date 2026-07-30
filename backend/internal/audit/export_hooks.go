@@ -80,6 +80,12 @@ func ExportConstantTimeEqualDigest(a, b string) bool {
 	return constantTimeEqualDigest(a, b)
 }
 
+// ExportConstantTimeEqualDigestOperandLen — hubtest: длина операндов CTC (должна быть sha256.Size).
+func ExportConstantTimeEqualDigestOperandLen(a, b string) int {
+	_, n := constantTimeDigestCompare(a, b)
+	return n
+}
+
 // ExportMongoEraseRetryProcessMsg — hubtest: C-W19-002 consumer path (Ack/Nak/Term).
 func ExportMongoEraseRetryProcessMsg(c *MongoEraseRetryConsumer, ctx context.Context, msg jetstream.Msg) {
 	c.processMsg(ctx, msg)

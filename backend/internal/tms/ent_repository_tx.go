@@ -336,6 +336,13 @@ func (r *EntRepository) ImportResultsToExistingRun(
 		}
 	}
 
+	// hubtest-инъекция mid-fail после batch, до stats (см. ExportSetAfterExistingRunBatchHook).
+	if afterExistingRunBatchHook != nil {
+		if err := afterExistingRunBatchHook(ctx); err != nil {
+			return err
+		}
+	}
+
 	all, err := tx.TestResult.Query().
 		Where(testresult.HasRunWith(testrun.ID(runID))).
 		All(ctx)
@@ -374,6 +381,10 @@ func (r *EntRepository) ImportResultsToExistingRun(
 	committed = true
 	return nil
 }
+
+// afterExistingRunBatchHook — опциональная инъекция после batch CreateBulk внутри tx (только hubtest).
+// Mutation A3W2-2-003: без общей Ent tx mid-fail оставляет partial results + stale stats.
+var afterExistingRunBatchHook func(ctx context.Context) error
 
 // AbortOrphanTestRun — cleanup при частичном импорте (fallback без tx).
 func (r *EntRepository) AbortOrphanTestRun(ctx context.Context, runID uuid.UUID) error {

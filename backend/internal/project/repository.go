@@ -680,6 +680,14 @@ func (r *EntRepository) SoftDeleteWithCrossLinkCleanup(ctx context.Context, proj
 		}
 	}
 
+	// hubtest-инъекция mid-fail после DeleteIssueLink (см. ExportSetAfterCrossLinkDeleteHook).
+	// Mutation A2W1-A5-001: убрать tx → inject-fail оставляет удалённые links / не откатывает.
+	if afterCrossLinkDeleteHook != nil {
+		if err := afterCrossLinkDeleteHook(ctx); err != nil {
+			return nil, nil, err
+		}
+	}
+
 	// C-W19-004: deactivate before marking project deleted — same tx, fail-closed.
 	if _, err = tx.WebhookEndpoint.Update().
 		Where(
@@ -704,6 +712,9 @@ func (r *EntRepository) SoftDeleteWithCrossLinkCleanup(ctx context.Context, proj
 	committed = true
 	return outgoing, incoming, nil
 }
+
+// afterCrossLinkDeleteHook — опциональная инъекция после DeleteIssueLink внутри tx (только hubtest).
+var afterCrossLinkDeleteHook func(ctx context.Context) error
 
 // ListTemplates возвращает все шаблоны проектов, упорядоченные по дате создания.
 func (r *EntRepository) ListTemplates(ctx context.Context) ([]*ent.ProjectTemplate, error) {
