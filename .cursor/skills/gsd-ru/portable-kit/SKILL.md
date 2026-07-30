@@ -23,8 +23,10 @@ disable-model-invocation: true
 |----------|------|
 | `.planning/archive/july-2026/ai-expansion/05-PORTABLE-KIT.md` | слои L1–L6, DoD переноса |
 | `.planning/archive/july-2026/ai-expansion/08-PORTABLE-KIT-DRY-RUN.md` | полный dry-run L1–L5 + PASS/FAIL (`corp-hub-starter`) |
-| `prompt-engineering/PORTABLE-HUB-KIT.md` | user-facing 10 шагов |
-| `prompt-engineering/INSTALL.md` | установка PE |
+| `prompt-engineering/PORTABLE-HUB-KIT.md` | user-facing 10 шагов · **Touchstone Standard** |
+| `prompt-engineering/TOUCHSTONE.md` | продукт Standard / связь с Pro |
+| `prompt-engineering/INSTALL.md` | установка Standard |
+| `prompt-engineering-pro/START-HERE.md` | **Touchstone Pro** (GSD+Cursor+planning max) |
 | `ai-expansion/04-PORTABLE-HUB-ARCH.md` | архитектурный контекст kit |
 | Playbook dry-run | `prompt-engineering/playbooks/portable-kit-dry-run.md` |
 

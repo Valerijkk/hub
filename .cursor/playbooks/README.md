@@ -69,6 +69,7 @@ Parent/orchestrator may explicitly override downstream model at launch only afte
 | `verification.md` | все `*-ver`, code-reviewer, security-auditor | Протокол верификации, чек-листы по ролям, severity |
 | `team-workflow.md` | team-lead, tech-lead, product, все | Состав, RACI, потоки фич, волны, параллелизм, handoff, GSD |
 | `prompt-contract.md` | **все агенты (32 файла)** | Natural-language intake → внутренний task contract; concise rationale/assumptions/evidence; prompt-injection boundary; risk-scaled verification; строгий §5.2 только для delegation/handoff |
+| **Touchstone** (вне playbooks/) | qa-auto*, docs-writer, team-lead | Standard [`prompt-engineering/`](../../prompt-engineering/TOUCHSTONE.md) · Pro [`prompt-engineering-pro/`](../../prompt-engineering-pro/START-HERE.md) — AI layer для TF + max GSD/Cursor/planning |
 
 ### 2.1 Обратная карта: агент → playbook-и
 
