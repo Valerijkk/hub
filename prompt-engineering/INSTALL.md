@@ -1,8 +1,13 @@
-# Установка AI quality layer в новый проект
+# Установка Touchstone Standard в новый проект
 
+> **Издание:** Touchstone Standard (`prompt-engineering/`).
 > Portable core обезличен. Generated context и вручную добавленные project
 > examples принадлежат конкретному проекту и не переносятся в другой автоматически.
 > Structural validator использует только Python standard library.
+>
+> Нужен max-пакет с GSD/Cursor/planning практиками — ставь сначала Standard,
+> затем подключай sibling `prompt-engineering-pro/` (рядом с этой папкой в
+> исходном репозитории продукта; не входит в portable package).
 
 ## Шаг 1. Собрать portable package
 

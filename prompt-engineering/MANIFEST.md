@@ -1,36 +1,45 @@
 ---
 manifest_version: 1
-toolkit_version: 0.1.0-alpha.1
-status: pre-release
+product: Touchstone
+edition: standard
+toolkit_version: 0.2.0-rc.1
+status: foundation-ready
 owner: automation-quality
 layer: test-automation-ai-quality
 source_registry: sources/PRIMARY-SOURCES.md
 validation_config: scripts/validation_manifest.json
 validation_status: STRUCTURAL_PASS
-last_validation: 2026-07-26
+last_validation: 2026-07-31
 provenance: official primary sources and repository inspection on 2026-07-26
+pro_edition: sibling prompt-engineering-pro/ (outside portable package)
 ---
 
-# Манифест тулкита
+# Манифест — Touchstone Standard
 
 ## Идентичность
 
-Этот дистрибутив — **AI quality layer для инженеров автоматизации тестирования**. Он даёт переносимые операционные инструкции, валидацию, evaluation, provenance и governance вокруг уже существующей среды автоматизации.
+Этот дистрибутив — **Touchstone Standard**: AI quality layer для инженеров
+автоматизации тестирования. Он даёт переносимые операционные инструкции,
+валидацию, evaluation, provenance и governance вокруг уже существующей среды
+автоматизации. Продуктовая карта: [TOUCHSTONE.md](TOUCHSTONE.md).
 
-Это не scaffold тестового фреймворка. Он не выбирает runners, не создаёт архитектуру фреймворка и не владеет проектными командами и путями.
+Это не scaffold тестового фреймворка. Он не выбирает runners, не создаёт
+архитектуру фреймворка и не владеет проектными командами и путями.
 
-Текущий статус — pre-release. `validation_status: STRUCTURAL_PASS` означает, что
-поведение валидатора и текущее дерево тулкита прошли структурные проверки. Это
-не означает, что тулкит eval-validated, эффективен или production-ready.
+Статус — **foundation-ready**. `STRUCTURAL_PASS` = дерево и валидатор прошли
+структурные проверки. Это **не** значит eval-validated или GA.
 
-Последнее структурное evidence на 2026-07-26:
+Последнее структурное evidence на 2026-07-31 (перезамер после добавления
+`TOUCHSTONE.md` / `CHANGELOG.md`):
 
-- source toolkit validation: 0 errors / 0 warnings;
-- combined tests: 55 PASS / 1 environmental SKIP, 56 total (создание symlink
-  недоступно; эквивалентные mocked Windows reparse тесты проходят);
-- portable package: 172 files (validator, inventory, task-packet builder),
-  inventory SHA-256 записан, packaged validation 0/0; сгенерированные
-  `context/projects/hub/` и `evals/smoke/` в пакет не входят.
+- source toolkit validation: 0 errors / 0 warnings, exit 0;
+- script tests: 54 passed / 1 skipped, 55 total (создание symlink недоступно;
+  эквивалентные mocked Windows reparse тесты проходят);
+- portable package: 174 files (validator, inventory, task-packet builder),
+  inventory SHA-256 записан; сгенерированные `context/projects/hub/` и
+  `evals/smoke/` в пакет не входят.
+
+Детали команд и мутационная проверка состава — [VERSION.md](VERSION.md).
 
 Метрики eval effectiveness остаются `NOT_RUN`.
 

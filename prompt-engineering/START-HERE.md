@@ -1,4 +1,9 @@
-# START HERE — AI для автоматизатора
+# START HERE — Touchstone Standard
+
+**Продукт:** [Touchstone](TOUCHSTONE.md) · Standard `0.2.0-rc.1`
+Нужен max-пакет (GSD + Cursor + planning)? → sibling
+`prompt-engineering-pro/START-HERE.md` (рядом с этой папкой в исходном репо;
+не внутри portable package).
 
 Все инструкции тулкита — на русском. Идентификаторы, пути, CLI и машинные enum
 (`UNKNOWN`, `NOT_RUN`, `ta.recipe.*`) остаются как в схемах.

@@ -1,4 +1,7 @@
-# Test Automation AI Quality Layer
+# Touchstone Standard — Test Automation AI Quality Layer
+
+**Продукт:** [Touchstone](TOUCHSTONE.md) · **Издание:** Standard `0.2.0-rc.1`
+**Pro (максималка):** sibling `prompt-engineering-pro/` (рядом в исходном репо)
 
 **Политика языка:** Все инструкции тулкита — на русском. Идентификаторы, пути, CLI и машинные enum остаются как в схемах.
 
@@ -8,6 +11,7 @@
 > тестовый фреймворк, превращает его факты и проверенные паттерны в контекст для
 > моделей, направляет специализированных агентов и измеряет качество результата.
 > Это **не** каркас тестового фреймворка и не каталог «магических промптов».
+> Эта папка — **фундамент Touchstone** для тестовых фреймворков.
 
 ## Ценность
 
@@ -36,14 +40,17 @@ hallucinated paths/commands, scope escapes, flaky-risk и стоимость. З
 Карта файлов и ownership: [MANIFEST.md](MANIFEST.md). Версия: [VERSION.md](VERSION.md).
 Использование/перенос: [LICENSE](LICENSE) и [NOTICE.md](NOTICE.md).
 
-**Текущий статус:** pre-release · source + packaged validators PASS (0 errors /
-0 warnings) · tests: 55 PASS / 1 environmental SKIP (56 total; symlink unavailable;
-mocked Windows reparse checks PASS) · package: 172 files, generated Hub
-profile/smoke/raw feedback excluded · effectiveness/ROI NOT_RUN.
+**Текущий статус:** Touchstone Standard · **foundation-ready** · structural
+validators PASS (0 errors / 0 warnings) · tests: 55 PASS / 1 environmental SKIP
+· package без generated Hub profile · effectiveness/ROI **NOT_RUN** (честный
+gate до GA). Версия: [VERSION.md](VERSION.md) · история: [CHANGELOG.md](CHANGELOG.md).
+
 Русская записка для руководителя:
 [docs/EXECUTIVE-OVERVIEW-RU.md](docs/EXECUTIVE-OVERVIEW-RU.md).
->
-> Архитектура заимствована у [GSD (get-shit-done)](https://github.com/gsd-build/get-shit-done): fill-in шаблоны, frontmatter-контракты агентов, workflows-плейбуки, references-правила.
+
+> Паттерны lifecycle заимствованы у [GSD (get-shit-done)](https://github.com/gsd-build/get-shit-done)
+> (fill-in шаблоны, frontmatter агентов, workflows, references) и усилены
+> Hub-практиками; полный max-пакет — в **Touchstone Pro**.
 
 ## Философия
 
@@ -65,27 +72,17 @@ profile/smoke/raw feedback excluded · effectiveness/ROI NOT_RUN.
 ## Структура
 
 ```
-prompt-engineering/
-├── README.md                  ← ты здесь
-├── INSTALL.md                 ← перенос, bootstrap и smoke
-├── agents/                    ← системные промпты агентов
-│   ├── README.md              ← ростер, когда какой агент
-│   ├── test-code-reviewer.md  ← ревью тестов: паттерны фреймворка + нейминг
-│   ├── test-case-generator.md ← тест-кейсы из документации + верификация
-│   ├── test-debugger.md       ← дебаг упавших/flaky тестов
-│   ├── test-documenter.md     ← документация тестового фреймворка
-│   └── templates/             ← готовые шаблоны промптов-запусков агентов
-├── skills/                    ← bootstrap/refresh/plan/generate/review/verify
-├── rules/                     ← правила для всех агентов (грузятся всегда)
-├── context/                   ← templates + generated project profiles
-├── patterns/                  ← candidate/approved pattern cards
-├── review-feedback/           ← ручной ввод примеров коллег после bootstrap
-├── adapters/, models/         ← интеграции и model routing
-├── scripts/, evals/           ← structural lint и regression/evaluation
-├── sources/                   ← первичные внешние источники
-├── docs/                      ← management overview / demo / KPI
-├── playbooks/                 ← сквозные процессы (онбординг, ревью-цикл, генерация, дебаг)
-└── prompts/                   ← фрагменты задач; production-вызовы собираются как recipes
+prompt-engineering/                 ← Touchstone Standard (эта папка)
+├── TOUCHSTONE.md                   ← продукт и границы изданий
+├── VERSION.md / CHANGELOG.md / MANIFEST.md
+├── START-HERE.md / INSTALL.md / PORTABLE-HUB-KIT.md
+├── agents/                         ← test-* + corporate portable
+├── skills/ / rules/ / playbooks/ / recipes/ / prompts/
+├── context/ / patterns/ / review-feedback/
+├── adapters/ / models/
+├── scripts/ / evals/
+├── sources/ / docs/ / gsd-port/
+└── (Hub sibling) prompt-engineering-pro/  ← Touchstone Pro
 ```
 
 ## Быстрый старт
