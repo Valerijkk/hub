@@ -29,7 +29,6 @@
     "adapters/**",
     "sources/**",
     "docs/**",
-    "gsd-port/README.md",
     "models/README.md",
     "models/registry.template.yaml",
     "scripts/validate_toolkit.py",
@@ -67,7 +66,6 @@
     "README.md",
     "START-HERE.md",
     "INSTALL.md",
-    "PORTABLE-HUB-KIT.md",
     "LICENSE",
     "NOTICE.md",
     "local-task-inputs/README.md",
@@ -200,7 +198,6 @@
     "adapters",
     "sources",
     "docs",
-    "gsd-port/README.md",
     "models/README.md",
     "models/registry.template.yaml",
     "scripts/validate_toolkit.py",
@@ -238,7 +235,6 @@
     "README.md",
     "START-HERE.md",
     "INSTALL.md",
-    "PORTABLE-HUB-KIT.md",
     "LICENSE",
     "NOTICE.md"
   ]

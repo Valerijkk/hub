@@ -104,9 +104,9 @@ prompt-engineering/                 ← Touchstone Standard (эта папка)
 
 Подробно: [INSTALL.md](INSTALL.md) и [playbooks/onboarding.md](playbooks/onboarding.md).
 
-**Слой Corporate/GSD:** [PORTABLE-HUB-KIT.md](PORTABLE-HUB-KIT.md) ·
-[gsd-port/README.md](gsd-port/README.md) · [agents/README.md](agents/README.md) ·
-[prompts/13-corporate-delivery.md](prompts/13-corporate-delivery.md).
+**Слой Corporate/GSD переехал в издание Pro.** Роли разработки, волны,
+GSD-порт и portable hub kit живут в sibling-папке `prompt-engineering-pro/`.
+Standard остаётся чисто про тестовый фреймворк.
 
 ## Роли и skills
 

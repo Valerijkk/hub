@@ -2,7 +2,7 @@
 manifest_version: 1
 product: Touchstone
 edition: standard
-toolkit_version: 0.2.0-rc.1
+toolkit_version: 0.3.0-beta.1
 status: foundation-ready
 owner: automation-quality
 layer: test-automation-ai-quality
@@ -11,7 +11,7 @@ validation_config: scripts/validation_manifest.json
 validation_status: STRUCTURAL_PASS
 last_validation: 2026-07-31
 provenance: official primary sources and repository inspection on 2026-07-26
-pro_edition: sibling prompt-engineering-pro/ (outside portable package)
+pro_edition: sibling prompt-engineering-pro/ >=0.3.0-beta.1 (outside portable package)
 ---
 
 # Манифест — Touchstone Standard
@@ -29,13 +29,13 @@ pro_edition: sibling prompt-engineering-pro/ (outside portable package)
 Статус — **foundation-ready**. `STRUCTURAL_PASS` = дерево и валидатор прошли
 структурные проверки. Это **не** значит eval-validated или GA.
 
-Последнее структурное evidence на 2026-07-31 (перезамер после добавления
-`TOUCHSTONE.md` / `CHANGELOG.md`):
+Последнее структурное evidence на 2026-07-31 (перезамер после выноса
+слоя разработки в издание Pro):
 
 - source toolkit validation: 0 errors / 0 warnings, exit 0;
 - script tests: 54 passed / 1 skipped, 55 total (создание symlink недоступно;
   эквивалентные mocked Windows reparse тесты проходят);
-- portable package: 174 files (validator, inventory, task-packet builder),
+- portable package: 148 files (validator, inventory, task-packet builder),
   inventory SHA-256 записан; сгенерированные `context/projects/hub/` и
   `evals/smoke/` в пакет не входят.
 

@@ -2,7 +2,7 @@
 name: touchstone-standard
 product: Touchstone
 edition: standard
-version: 0.2.0-rc.1
+version: 0.3.0-beta.1
 status: foundation-ready
 release_date: TODO
 owner: automation-quality
@@ -10,17 +10,38 @@ validation_status: STRUCTURAL_PASS
 last_validation: 2026-07-31
 release_eligibility: foundation-ready-eval-blocked
 provenance: MANIFEST.md
-supersedes: 0.1.0-alpha.1
+supersedes: 0.2.0-rc.1
 ---
 
 # Версия — Touchstone Standard
 
-Текущая semantic version: **`0.2.0-rc.1`**.
+Текущая semantic version: **`0.3.0-beta.1`**.
 
-Это **foundation-ready** издание линейки Touchstone для тестовых фреймворков.
-Корень поставки: эта папка `prompt-engineering/`. Продуктовая карта:
-[TOUCHSTONE.md](TOUCHSTONE.md). Максимальное издание в Hub monorepo:
-sibling folder `prompt-engineering-pro/` (не входит в portable package Standard).
+Это **foundation-ready** издание линейки Touchstone — AI-слой **для тестового
+фреймворка**. Корень поставки: эта папка. Продуктовая карта:
+[TOUCHSTONE.md](TOUCHSTONE.md).
+
+Издание для разработки продукта — Pro, sibling `prompt-engineering-pro/`
+(в portable package Standard не входит).
+
+## Ломающее изменение в `0.3.0-beta.1`
+
+Из Standard вынесены 26 файлов слоя разработки: 12 ролей продуктовой
+команды, три скила жизненного цикла фазы, пять плейбуков поставки,
+фрагменты категории 13, gsd-port и portable hub kit. Все они переехали
+в Pro.
+
+Причина: Standard раздавал корпоративный ростер автоматизаторам, которым
+он не нужен, и одновременно делал вид, что покрывает разработку. Теперь
+граница проходит по объекту работы — Standard про тестовый фреймворк,
+Pro про продукт.
+
+Кто ставил `0.2.0-rc.1` ради ростера — после обновления не найдёт его в
+Standard; нужно поставить Pro рядом. Package: 174 → 148 файлов.
+
+Почему `beta`, а не `rc`: release candidate обещает «релизим, если не
+всплывёт багов», а по собственным воротам издание к релизу не допущено,
+пока `paired eval` не прогнан.
 
 ## Что означает статус
 
@@ -34,14 +55,14 @@ sibling folder `prompt-engineering-pro/` (не входит в portable package 
 
 ## Evidence (structural)
 
-Замер 2026-07-31 на текущем дереве. Команды воспроизводимы из корня
+Замер 2026-07-31, перезамерено после выноса слоя разработки в Pro. Команды воспроизводимы из корня
 `prompt-engineering/`.
 
 | Проверка | Команда | Результат |
 |----------|---------|-----------|
 | Structural validation | `python scripts/validate_toolkit.py` | PASS · 0 errors / 0 warnings · exit 0 |
 | Script tests | `python -m pytest scripts/tests -q` | 54 passed / 1 skipped (55 total); SKIP — symlink недоступен |
-| Portable package | `python scripts/package_portable.py --root . --output <dst> --dry-run` | 174 files · exit 0 |
+| Portable package | `python scripts/package_portable.py --root . --output <dst> --dry-run` | 148 files · exit 0 |
 
 Package исключает generated Hub profile, smoke и raw feedback. Целостность
 состава защищена `required_paths` в `scripts/package_manifest.json`: удаление

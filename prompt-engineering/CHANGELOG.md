@@ -2,6 +2,33 @@
 
 Формат: Keep a Changelog · версии SemVer.
 
+## [0.3.0-beta.1] — 2026-07-31
+
+### Removed (BREAKING)
+
+- Слой разработки вынесен в издание Pro — 26 файлов: 12 продуктовых ролей
+  (orchestrator, product-owner, architect, backend-dev, frontend-dev,
+  qa-manual, qa-auto, code-reviewer, debugger, security-reviewer, devops,
+  docs-writer), скилы `phase-plan` / `wave-orchestrate` / `verify-goal`,
+  плейбуки corporate-delivery / gsd-lifecycle / wave-execution /
+  handoff-state / portable-kit-dry-run, категория промптов 13,
+  `gsd-port/`, `PORTABLE-HUB-KIT.md`, три corporate-шаблона запуска
+- Cursor-адаптер разделён: в Standard остались 4 маппинга `test-*`,
+  12 продуктовых уехали в Pro
+
+### Changed
+
+- Граница изданий проведена по **объекту работы**: Standard — тестовый
+  фреймворк, Pro — продукт, который разрабатывают
+- Версия `rc` → `beta`: release candidate обещает больше, чем позволяют
+  собственные ворота при `paired eval: NOT_RUN`
+- Portable package: 174 → 148 файлов
+
+### Migration
+
+Ставившим `0.2.0-rc.1` ради корпоративного ростера — установить Pro
+рядом со Standard. Роли не удалены, а переехали.
+
 ## [0.2.0-rc.1] — 2026-07-30
 
 ### Added
