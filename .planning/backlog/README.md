@@ -37,7 +37,7 @@ Stage A2 (brief): [A2-DEDUP-2026-07-28.md](../audits/total-2026-07/A2-DEDUP-2026
 
 | ID | Задача | Приоритет | Статус | Исполнитель | Источник |
 |----|--------|-----------|--------|-------------|----------|
-| [TASK-193](TASK-193-2026-07-30-tf-python-scaffold.md) | 🧪 Каркас Python-проекта /tests | P1 | Открыта | qa-auto1 | Трек 1 · фаза 128 |
+| [TASK-193](TASK-193-2026-07-30-tf-python-scaffold.md) | 🧪 Каркас Python-фреймворка в корне | P1 | Открыта | qa-auto1 | Трек 1 · фаза 128 |
 | [TASK-194](TASK-194-2026-07-30-tf-e2e-shared-fixtures.md) | 🧪 Общие фикстуры E2E: авторизация и данные | P1 | Открыта | qa-auto1 | Трек 1 · фаза 129 |
 | [TASK-195](TASK-195-2026-07-30-tf-e2e-mechanical.md) | 🧪 Перенос E2E: механическая часть | P1 | Открыта | qa-auto2 | Трек 1 · фаза 130 |
 | [TASK-196](TASK-196-2026-07-30-tf-e2e-rewrite.md) | 🧪 Перенос E2E: сценарии с переработкой | P2 | Открыта | qa-auto2 | Трек 1 · фаза 131 |
@@ -50,18 +50,31 @@ Stage A2 (brief): [A2-DEDUP-2026-07-28.md](../audits/total-2026-07/A2-DEDUP-2026
 **Раскладка после миграции:**
 
 ```
-backend/internal/<домен>/unit/   юниты на Go, рядом с кодом
-frontend/src/<модуль>/unit/      юниты на TS, рядом с кодом
-/tests/                          всё остальное — Python
-    integration/  e2e/  api/  load/  full/
+backend/internal/<домен>/unit/   юниты на Go
+frontend/src/<модуль>/unit/      юниты на TypeScript
+
+testframework/                   ВСЁ остальное — Python
+    integration/                 бэкенд, БД, NATS, внешние
+    e2e/                         UI через Playwright
+    api/                         веб-API целиком
+    load/                        нагрузка через Locust
+    full/                        сквозные сценарии
 ```
 
-Юниты пишут разработчики на языке своего слоя, остальное —
-тестировщики на Python.
+Юниты живут рядом с кодом и на языке своего слоя — их пишут
+разработчики. Всё остальное на **pytest + Playwright + Locust**
+в корневой `testframework/` — это работа тестировщиков.
+
+**Старое сносится.** Каталог `backend/testframework/` исчезает целиком,
+текущее содержимое корневой `testframework/` — тоже, кроме сценариев,
+переносимых задачами 195–199.
 
 ---
 
 ## Закрытые
+
+| ID | Задача | Приоритет | Статус | Исполнитель | Источник |
+|----|--------|-----------|--------|-------------|----------|
 | [TASK-008](archive/legacy/TASK-008-total-audit-program.md) | Тотальный пофайловый аудит | P1 | Закрыта (W20 FINAL вердикт A · hubtest PASS 50 ok · 2026-07-30) | Grok + субагенты | Owner 2026-07-28 |
 | [TASK-081](archive/2026-07-28/TASK-081-2026-07-28-tms-completerun-project-id-webhook.md) | ♻️🐛 TMS CompleteTestRun → webhook `project_id` | **P1** | Закрыта · MUTATION-2026-07-29-W3 | be1 | A2W4-5-001 REGRESS |
 | [TASK-082](archive/2026-07-28/TASK-082-2026-07-28-fe-sprint-backlog-without-sprint-filter.md) | 🐛 FE SprintBacklog без фильтра sprint | **P1** | Закрыта · MUTATION-2026-07-29-W3 | fe1 | A2W10-A3-001 |

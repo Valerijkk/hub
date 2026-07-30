@@ -38,15 +38,15 @@
 **Уточнение раскладки от владельца 2026-07-30:**
 
 ```
-backend/internal/<домен>/unit/     юниты на Go, рядом с функционалом
-frontend/src/<модуль>/unit/        юниты на TS, рядом с функционалом
+backend/internal/<домен>/unit/   юниты на Go, рядом с функционалом
+frontend/src/<модуль>/unit/      юниты на TS, рядом с функционалом
 
-/tests/                            всё остальное — Python
-    integration/                   бэкенд, БД, NATS, внешние
-    e2e/                           UI через Playwright
-    api/                           веб-API целиком
-    load/                          нагрузка через Locust
-    full/                          сквозные сценарии
+testframework/                   ВСЁ остальное — Python
+    integration/                 бэкенд, БД, NATS, внешние
+    e2e/                         UI через Playwright
+    api/                         веб-API целиком
+    load/                        нагрузка через Locust
+    full/                        сквозные сценарии
 ```
 
 Принцип: **юнит живёт рядом с кодом и на языке кода**, всё остальное —

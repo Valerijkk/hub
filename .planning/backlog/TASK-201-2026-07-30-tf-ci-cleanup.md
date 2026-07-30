@@ -17,10 +17,12 @@ CI гоняет юниты языком слоя и Python-фреймворк о
 
 - Files allowed:
   - `.github/workflows/**`
-  - `testframework/**` — удаление
+  - `backend/testframework/**` — удаление остатков после TASK-197
+  - `testframework/{stages,guides,pipeline}/**` — удаление остатков старого
   - `Makefile`, скрипты запуска
+  - `testframework/*.md` — документы переписываются под Python
 - Do not touch:
-  - `/tests/**` — уже настроено предыдущими задачами
+  - `testframework/**` — уже настроено предыдущими задачами
 - Constraints:
   - Docker поднят, `POSTGRES_TEST_URL` и `MONGODB_TEST_URL` выставлены
   - Коммиты: тип и scope английские, описание русское, ссылка на файл
@@ -47,9 +49,13 @@ CI гоняет юниты языком слоя и Python-фреймворк о
 
 - Done criteria:
   - Job юнитов: `go test ./internal/...` + `vitest`
-  - Job Python: pytest по `/tests`
+  - Job Python: pytest по `testframework/`
   - Job нагрузки — по расписанию, не на каждый PR
-  - `testframework/` в корне удалён
+  - `backend/testframework/` удалён полностью
+  - В корневой `testframework/` не осталось артефактов старого пайплайна:
+    `stages/`, `guides/`, `pipeline/`, старые `node_modules`
+  - `TESTING_GUIDE.md` и `PIPELINE.md` переписаны под Python, а не
+    поправлены: фреймворк другой, правка оставит следы старого
   - Документация запуска обновлена в README и `docs/TESTING.md`
 - Regression scope: полный прогон CI на тестовом PR зелёный
 - **Доказательство мутацией:** внести заведомо падающий тест в каждый job → каждый job краснеет отдельно. Проверяет, что job не проходит вхолостую из-за неверных путей

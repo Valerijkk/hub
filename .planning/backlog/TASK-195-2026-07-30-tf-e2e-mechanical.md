@@ -16,7 +16,7 @@
 ## [SCOPE AND CONSTRAINTS]
 
 - Files allowed:
-  - `/tests/e2e/**`
+  - `testframework/e2e/**`
   - `frontend/e2e/**` — только удаление перенесённого
 - Do not touch:
   - `frontend/src/**`

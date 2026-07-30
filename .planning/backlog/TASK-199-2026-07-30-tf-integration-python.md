@@ -5,7 +5,7 @@
 
 ## [OUTCOME]
 
-Интеграционные сценарии живут в `/tests/integration` на Python и покрывают связки между доменами.
+Интеграционные сценарии живут в `testframework/integration` на Python и покрывают связки между доменами.
 
 ## [ROLE]
 
@@ -16,8 +16,8 @@
 ## [SCOPE AND CONSTRAINTS]
 
 - Files allowed:
-  - `/tests/integration/**`
-  - `/tests/api/**`
+  - `testframework/integration/**`
+  - `testframework/api/**`
 - Do not touch:
   - `backend/internal/**` — продуктовый код
 - Constraints:
@@ -46,8 +46,8 @@
 ## [ACCEPTANCE]
 
 - Done criteria:
-  - Сценарии с БД, NATS, Mongo, Meilisearch — в `/tests/integration`
-  - Проверки веб-API целиком — в `/tests/api`
+  - Сценарии с БД, NATS, Mongo, Meilisearch — в `testframework/integration`
+  - Проверки веб-API целиком — в `testframework/api`
   - Каждый прогоняется на чистой БД
   - Параллельный запуск не ломает соседей
 - Regression scope: юниты в `internal/**/unit` остаются зелёными

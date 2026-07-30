@@ -16,7 +16,7 @@
 ## [SCOPE AND CONSTRAINTS]
 
 - Files allowed:
-  - `/tests/e2e/**`
+  - `testframework/e2e/**`
   - `frontend/e2e/**` — удаление
 - Do not touch:
   - `frontend/src/**`
@@ -48,7 +48,7 @@
   - Все 20 сценариев работают на Python
   - `frontend/e2e/` удалён вместе с его `node_modules`
   - CI больше не ставит зависимости старого E2E
-- Regression scope: полный прогон `/tests/e2e` зелёный
+- Regression scope: полный прогон `testframework/e2e` зелёный
 - **Доказательство мутацией:** сломать ожидание WebSocket-события → соответствующий сценарий краснеет
 - Evidence required: вывод прогонов до и после, SHA коммитов
 - Stop when: старый каталог удалён, все сценарии на Python

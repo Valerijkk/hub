@@ -5,7 +5,7 @@
 
 ## [OUTCOME]
 
-В `/tests/load` есть Locust-сценарии на горячие пути; известен профиль, при котором система деградирует.
+В `testframework/load` есть Locust-сценарии на горячие пути; известен профиль, при котором система деградирует.
 
 ## [ROLE]
 
@@ -16,7 +16,7 @@
 ## [SCOPE AND CONSTRAINTS]
 
 - Files allowed:
-  - `/tests/load/**`
+  - `testframework/load/**`
 - Do not touch:
   - продуктовый код
 - Constraints:

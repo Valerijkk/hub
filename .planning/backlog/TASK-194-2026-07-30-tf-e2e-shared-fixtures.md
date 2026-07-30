@@ -16,7 +16,7 @@ Playwright-тесты получают авторизованный контек
 ## [SCOPE AND CONSTRAINTS]
 
 - Files allowed:
-  - `/tests/e2e/conftest.py`, `/tests/e2e/fixtures/**`
+  - `testframework/e2e/conftest.py`, `testframework/e2e/fixtures/**`
 - Do not touch:
   - `frontend/e2e/**` — старые спеки переносятся в TASK-195
 - Constraints:
