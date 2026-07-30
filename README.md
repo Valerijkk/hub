@@ -82,7 +82,7 @@ Hub — self-hosted платформа для команд разработки 
 
 ## Архитектура
 
-Hub сегодня — **модульный монолит** на Go/Fiber (31+ внутренних модулей, 82 Ent-схемы) с уже вынесенными спутниками (`hub-mail`, `meilisearch-indexer`, внешний LiveKit). Принят ADR о поэтапном выносе доменов в микросервисы по стратегии **strangler fig** — без big-bang, обратимо (route-flip в Caddy):
+Hub сегодня — **модульный монолит** на Go/Fiber (33 внутренних модуля, 87 Ent-схем) с уже вынесенными спутниками (`hub-mail`, `meilisearch-indexer`, внешний LiveKit). Принят ADR о поэтапном выносе доменов в микросервисы по стратегии **strangler fig** — без big-bang, обратимо (route-flip в Caddy):
 
 ```
 Модульный монолит (hub-core)
@@ -231,7 +231,7 @@ docker compose -f docker-compose.prod.yml --env-file .env up -d
 
 | Слой | Стек | Кто пишет | Статус |
 |---|---|---|---|
-| Unit backend | Go (testify, `-tags hubtest`, `-race`) | be-разработчики | ✅ **515** test files (measured 2026-07-27; was 495), coverage **83%** (2026-06-22 Docker baseline) |
+| Unit backend | Go (testify, `-tags hubtest`, `-race`) | be-разработчики | ✅ **824** test files (measured 2026-07-29; was 515), coverage **80.2%** (2026-07-29) |
 | Unit frontend | TypeScript: Vitest + RTL | fe-разработчики | ✅ 99+ тестов |
 | E2E | Playwright (TS), smoke + full | QA | ✅ 20+ спеков (сейчас) |
 | Integration / API / contract / regression | **Python: pytest + allure-pytest + httpx + playwright-python** | QA-конвейер | 📋 целевой слой (фаза TF-PY, после выноса микросервисов) |
@@ -355,7 +355,7 @@ Playwright + Locust**. Каталоги `testframework/` в `backend/` и `front
 | 135 | Нагрузочные на Locust — новый слой |
 | 136 | CI и удаление старого фреймворка |
 
-Замеры на 2026-07-27: 515 Go-файлов в `backend/testframework/`, 0 юнитов рядом с
+Замеры на 2026-07-29: 824 Go-файла в `backend/testframework/`, 0 юнитов рядом с
 кодом, 0 юнитов во фронте, покрытие 81.9%.
 
 ### Трек 2 — вынос монолита в микросервисы
