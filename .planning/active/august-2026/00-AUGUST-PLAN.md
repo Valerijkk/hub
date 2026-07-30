@@ -10,7 +10,7 @@
 
 ## Трек 1 — Тестовый фреймворк на Python
 
-**Документ:** [`../planning-audit-2026-07/02-TEST-FRAMEWORK-MIGRATION.md`](../../audits/planning-audit-2026-07/02-TEST-FRAMEWORK-MIGRATION.md)
+**Документ:** [`audits/planning-audit-2026-07/02-TEST-FRAMEWORK-MIGRATION.md`](../../audits/planning-audit-2026-07/02-TEST-FRAMEWORK-MIGRATION.md)
 **Фазы:** 128–136
 
 Фреймворк выносится в корневую папку и переписывается целиком на Python:
@@ -107,7 +107,7 @@ tracker, identity, business, integrations, platform.
 | Сделано в июле | Результат |
 |---|---|
 | Аудит кода `grok-2026-07` | 261 находка, волны W1–W20 отработаны |
-| Аудит планирования | [`../planning-audit-2026-07/`](../planning-audit-2026-07/) — 11 находок |
+| Аудит планирования | [`audits/planning-audit-2026-07/`](../../audits/planning-audit-2026-07/) — 11 находок |
 | Свежий замер покрытия | 81.9% (2026-07-27), падение −1.1 п.п. от baseline |
 | Разведение счётчиков в `STATE.md` | `tasks_completed: 125` ≠ `goals_verified: 63` (TASK-004) |
 | Фазы под невыполненные FR | 126 (FR-INTR-08), 127 (FR-CAL-05) |
@@ -119,7 +119,7 @@ tracker, identity, business, integrations, platform.
 | Что | Кому | Документ |
 |---|---|---|
 | 7 вопросов по архитектуре сервисов | **архитектору** | [`01-MICROSERVICES-SPLIT.md §8`](01-MICROSERVICES-SPLIT.md) |
-| 14 решений серых зон, включая GDPR | **владельцу** | [`../planning-audit-2026-07/DECISIONS-PENDING.md`](../../audits/planning-audit-2026-07/DECISIONS-PENDING.md) |
-| Судьба модуля Wiki — строить / вынести / удалить | **владельцу** | [`../planning-audit-2026-07/WIKI-SCOPE-OPTIONS.md`](../../audits/planning-audit-2026-07/WIKI-SCOPE-OPTIONS.md) |
-| NFR-24 и NFR-11 — раскатывать или сузить формулировку | **владельцу** | [`../planning-audit-2026-07/NFR-24-VERSION-CLASSIFICATION.md`](../../audits/planning-audit-2026-07/NFR-24-VERSION-CLASSIFICATION.md) |
+| 14 решений серых зон, включая GDPR | **владельцу** | [`audits/planning-audit-2026-07/DECISIONS-PENDING.md`](../../audits/planning-audit-2026-07/DECISIONS-PENDING.md) |
+| Судьба модуля Wiki — строить / вынести / удалить | **владельцу** | [`audits/planning-audit-2026-07/WIKI-SCOPE-OPTIONS.md`](../../audits/planning-audit-2026-07/WIKI-SCOPE-OPTIONS.md) |
+| NFR-24 и NFR-11 — раскатывать или сузить формулировку | **владельцу** | [`audits/planning-audit-2026-07/NFR-24-VERSION-CLASSIFICATION.md`](../../audits/planning-audit-2026-07/NFR-24-VERSION-CLASSIFICATION.md) |
 | PG-03 ротация секретов — блокирует прод-катку | **ops** | `STATE.md: deploy_blockers` |

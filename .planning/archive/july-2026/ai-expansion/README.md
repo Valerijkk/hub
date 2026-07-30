@@ -3,10 +3,15 @@
 > **Горизонт:** 22.07.2026 → **15.08.2026**
 > **Суть:** портировать лучшее из GSD (Get Shit Done) на русский (практичнее оригинала), расширить `.cursor/agents/` + `prompt-engineering/`, собрать **переносимый kit** для bootstrap корпоративного хаба (урезанный GitHub-аналог + микросервисы + AI-команда).
 > **Код продукта:** не трогаем (July freeze). Только plans / agents / prompts / skills.
+>
+> **Продуктовая упаковка (2026-07-30):** линейка **Touchstone** —
+> Standard = [`prompt-engineering/TOUCHSTONE.md`](../../../../prompt-engineering/TOUCHSTONE.md) ·
+> Pro = [`prompt-engineering-pro/`](../../../../prompt-engineering-pro/README.md).
+> Этот каталог — исторический план и источники решений; поставка — соседние папки репо.
 
-## Текущий фокус (2026-07-26)
+## Текущий фокус (2026-07-30)
 
-**`prompt-engineering/`** — portable **AI quality layer для test automation**, не только corporate delivery:
+**Touchstone Standard** (`prompt-engineering/`) — portable **AI quality layer для test automation**:
 
 | Принцип | Описание |
 |---------|----------|
@@ -14,6 +19,7 @@
 | Human-in-the-loop | После bootstrap человек добавляет good/bad code examples + комментарии коллег |
 | Без MR-scanning | **Нет** автоматического сканирования закрытых MR/PR |
 | Eval | Harness implemented; effectiveness/ROI **NOT_RUN** |
+| Pro overlay | `prompt-engineering-pro/` — GSD max + Cursor contract + mutation + planning |
 
 Repo-scan provenance: [`.planning/audits/2026-07/repo-scan/PROVENANCE.md`](../../../audits/2026-07/repo-scan/PROVENANCE.md) — Must PASS здесь **qualified**, не erase historical pass.
 

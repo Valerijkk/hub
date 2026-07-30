@@ -1,7 +1,7 @@
 # Hub — `.planning/` index
 
 > Навигация по planning-артефактам. **Ничего не удаляем** — только раскладка по смыслу и датам.
-> Обновлено: 2026-07-28 (реорганизация 24 папок → 11 по смыслу и истории)
+> Обновлено: 2026-07-30 (Touchstone Standard/Pro · быстрые входы · индекс)
 
 ---
 
@@ -76,6 +76,16 @@
 | [`reference/edge-expansions/`](reference/edge-expansions/) | Edge/corner-кейсы по доменам — источник TC и материал для Swagger |
 | [`reference/seeds/`](reference/seeds/) | Отложенные идеи (SEED-001 rejected, SEED-002 active) |
 
+### Touchstone (вне `.planning/`, связано)
+
+Линейка AI quality layer для тестовых фреймворков. Planning хранит историю
+решений (`archive/july-2026/ai-expansion/`); поставка — соседние папки репо:
+
+| Издание | Путь | Роль |
+|---------|------|------|
+| Standard | [`prompt-engineering/`](../prompt-engineering/) | Фундамент: context, agents, recipes, evals |
+| Pro | [`prompt-engineering-pro/`](../prompt-engineering-pro/) | Max: GSD + Cursor practices + planning ops |
+
 ### Операционное
 
 | Папка | Что внутри |
@@ -108,6 +118,10 @@
 | Gray zones locked | [`decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md`](decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md) |
 | FA-06 / секреты | [`ops/production/PG-03-SECRET-ROTATION.md`](ops/production/PG-03-SECRET-ROTATION.md) |
 | Индекс июля | [`archive/july-2026/INDEX-JULY-2026.md`](archive/july-2026/INDEX-JULY-2026.md) |
+| **Touchstone Standard** (AI layer для TF) | [`../prompt-engineering/TOUCHSTONE.md`](../prompt-engineering/TOUCHSTONE.md) |
+| **Touchstone Pro** (GSD+Cursor+planning max) | [`../prompt-engineering-pro/START-HERE.md`](../prompt-engineering-pro/START-HERE.md) |
+| AI-expansion планы (источник Pro) | [`archive/july-2026/ai-expansion/README.md`](archive/july-2026/ai-expansion/README.md) |
+| Активный backlog задач | [`backlog/README.md`](backlog/README.md) |
 
 ---
 

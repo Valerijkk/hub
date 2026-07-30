@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: planning-audit-pw-in-progress
 stopped_at: Planning audit 2026-07 PW1–PW5 · coverage remeasured · phase matrix live
-last_updated: "2026-07-29T19:30:00.000Z"
-last_activity: 2026-07-30 · qa-auto1 TASK-184 RemoveTeamMember last-member · Закрыта
+last_updated: "2026-07-30T21:45:00.000Z"
+last_activity: 2026-07-30 · Touchstone Standard+Pro packaging · docs only
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -67,6 +67,18 @@ spec_coverage:
 ---
 
 # Состояние проекта Hub
+
+## Session note — 2026-07-30 (Touchstone Standard + Pro packaging)
+
+- **Touchstone Standard** (`prompt-engineering/`): продукт-идентичность `TOUCHSTONE.md`,
+  версия **`0.2.0-rc.1`** foundation-ready, CHANGELOG, обновлены README/START-HERE/INSTALL/MANIFEST/VERSION.
+  Structural PASS сохранён; effectiveness/ROI по-прежнему **NOT_RUN** (честный GA-gate).
+- **Touchstone Pro** (`prompt-engineering-pro/`): max-пакет — слои 01–07 + extracts
+  (prompt-contract, master-delegate, wave-protocol, mutation-evidence, backlog-task);
+  источники: GSD inventory, PE Standard, `.cursor/` (contract/team/verify), `.planning/` (backlog/STATE/mutation).
+- Синхрон: `.planning/README.md`, `.cursor/rules/70-prompt-engineering.mdc`,
+  `REGULATION.md` §20, `playbooks/README.md`, `AGENTS.md`.
+- Код продукта / validator scripts не менялись. Коммитов нет (ожидание запроса пользователя).
 
 ## Session note — 2026-07-30 (qa-auto1 · TASK-008 hubtest close)
 
