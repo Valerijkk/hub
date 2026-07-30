@@ -79,7 +79,7 @@ tsc @ts-expect-error fixture + vitest spawn tsc.
 
 - Проверяющий: fe1 (W18-C5)
 - Mutation: **FAIL** — FAIL: expectTypeOf/version не краснеет при vitest run
-- Статус: Открыта (до rework tsc fixture)
+- Статус: Закрыта · team-lead 2026-07-30 (до rework tsc fixture)
 
 ## [MUTATION 2026-07-29 W1-fe1]
 

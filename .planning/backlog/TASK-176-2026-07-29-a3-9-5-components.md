@@ -1,9 +1,17 @@
 # 🧹 A3 FE avatar/popover/select hub tokens
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P3** · Статус: **На проверке**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P3** · Статус: **Закрыта** · MUTATION-2026-07-30-teamlead  
 > Источник: A3 · **Owner lock: правим ВСЕ A3 open** · TASK-008 · кластер A3W9-5  
 > Ветка исполнения: `cursor-grok-4.5` (не пушить в `master`)  
 > Исполнитель: **fe2** · Handoff: **fe-ver → code-reviewer**
+
+> **Мутация подтверждена team-lead 2026-07-30.**
+> A3W9-5-002: возвращены `bg-popover` / `rounded-md` в
+> `frontend/src/components/ui/popover.tsx:22` →
+> тест `A3W9-5-002 PopoverContent uses hub floating-surface tokens` **FAIL**,
+> соседние 001 и 003 остались зелёными (изоляция подтверждена).
+> После отката — 3 passed.
+
 
 ## [OUTCOME]
 

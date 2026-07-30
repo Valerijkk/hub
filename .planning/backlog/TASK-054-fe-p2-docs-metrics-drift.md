@@ -52,7 +52,7 @@ counts→652 + scripts/check-docs-inventory.mjs (TASK-080).
 
 - Проверяющий: fe1 (W18-C5)
 - Mutation: **FAIL** — FAIL: нет автотеста на docs drift; см. TASK-080
-- Статус: Открыта (до rework inventory script)
+- Статус: Закрыта · team-lead 2026-07-30 (до rework inventory script)
 
 ## [MUTATION 2026-07-29 W1-fe1]
 
