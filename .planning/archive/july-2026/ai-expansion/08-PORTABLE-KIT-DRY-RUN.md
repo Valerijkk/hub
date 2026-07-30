@@ -2,7 +2,7 @@
 
 > **Дата:** 2026-07-23 · **Цель:** полный бумажный (и воспроизводимый) dry-run переноса AI kit из Hub в гипотетический **пустой** monorepo `corp-hub-starter`.
 > **Код продукта не создаём** — только дерево AI Ops / PE / planning.
-> **Канон слоёв:** [`05-PORTABLE-KIT.md`](05-PORTABLE-KIT.md) · **User guide:** [`prompt-engineering/PORTABLE-HUB-KIT.md`](../../../../prompt-engineering/PORTABLE-HUB-KIT.md)
+> **Канон слоёв:** [`05-PORTABLE-KIT.md`](05-PORTABLE-KIT.md) · **User guide:** [`prompt-engineering-pro/PORTABLE-HUB-KIT.md`](../../../../prompt-engineering-pro/PORTABLE-HUB-KIT.md)
 >
 > **SUPERSEDED EXECUTION PROCEDURE (2026-07-26):** этот файл сохраняет
 > исторический paper dry-run. Не выполнять старые raw-copy команды ниже.
@@ -314,7 +314,7 @@ git init
 | [`04-PORTABLE-HUB-ARCH.md`](04-PORTABLE-HUB-ARCH.md) | C4 / AI layer |
 | [`06-REDUCED-GITHUB-MODULE.md`](06-REDUCED-GITHUB-MODULE.md) | L5 blueprint |
 | [`07-ACCEPTANCE.md`](07-ACCEPTANCE.md) | gap «dry-run» → закрыт этим файлом |
-| [`PORTABLE-HUB-KIT.md`](../../../../prompt-engineering/PORTABLE-HUB-KIT.md) | user-facing 10 шагов |
+| [`PORTABLE-HUB-KIT.md`](../../../../prompt-engineering-pro/PORTABLE-HUB-KIT.md) | user-facing 10 шагов |
 | `.cursor/skills/gsd-ru/portable-kit/` | skill-обёртка |
 | `prompt-engineering/skills/bootstrap-test-context/` | бутстрап context |
 

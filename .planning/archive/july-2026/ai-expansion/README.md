@@ -59,8 +59,8 @@ Repo-scan provenance: [`.planning/audits/2026-07/repo-scan/PROVENANCE.md`](../..
 | GSD-RU skills (Hub-lite) | `.cursor/skills/gsd-ru/` |
 | Upstream GSD маршрутизация + P0/P1 mid-Aug | `.cursor/GSD-INTEGRATION.md` |
 | Prompt Engineering toolkit | `prompt-engineering/` |
-| PE → GSD port index | `prompt-engineering/gsd-port/README.md` |
-| Portable kit user guide | `prompt-engineering/PORTABLE-HUB-KIT.md` |
+| PE → GSD port index | `prompt-engineering-pro/gsd-port/README.md` |
+| Portable kit user guide | `prompt-engineering-pro/PORTABLE-HUB-KIT.md` |
 | Agent prompts (32) | `.cursor/agents/*.md` — секция **GSD-паттерны (Hub-усиленные)** |
 | Контракт промпта | `.cursor/playbooks/prompt-contract.md` |
 | Microservices ADR | `.planning/decisions/ADR-ARCH-MICROSERVICES-2026.md` |
@@ -69,7 +69,7 @@ Repo-scan provenance: [`.planning/audits/2026-07/repo-scan/PROVENANCE.md`](../..
 
 ## Быстрый старт (перенос в другой репо)
 
-См. [`prompt-engineering/PORTABLE-HUB-KIT.md`](../../../../prompt-engineering/PORTABLE-HUB-KIT.md), [`05-PORTABLE-KIT.md`](05-PORTABLE-KIT.md) и dry-run [`08-PORTABLE-KIT-DRY-RUN.md`](08-PORTABLE-KIT-DRY-RUN.md).
+См. [`prompt-engineering-pro/PORTABLE-HUB-KIT.md`](../../../../prompt-engineering-pro/PORTABLE-HUB-KIT.md), [`05-PORTABLE-KIT.md`](05-PORTABLE-KIT.md) и dry-run [`08-PORTABLE-KIT-DRY-RUN.md`](08-PORTABLE-KIT-DRY-RUN.md).
 
 Bootstrap: создать `context/projects/<profile>/` из явных roots → человек при
 необходимости вручную добавляет примеры кода и review-комментарии → **никакого**

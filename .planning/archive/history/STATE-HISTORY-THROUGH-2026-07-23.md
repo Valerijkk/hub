@@ -20,17 +20,17 @@
 ## Session note — 2026-07-23 (docs-writer · portable kit dry-run)
 
 - Создан [`.planning/archive/july-2026/ai-expansion/08-PORTABLE-KIT-DRY-RUN.md`](../july-2026/ai-expansion/08-PORTABLE-KIT-DRY-RUN.md): dry-run переноса kit в гипотетический **`corp-hub-starter`** — L1–L5, PASS/FAIL, expected tree, context-intake, пробная волна, риски.
-- Расширены (секции добавлены): [`05-PORTABLE-KIT.md`](../july-2026/ai-expansion/05-PORTABLE-KIT.md), [`prompt-engineering/PORTABLE-HUB-KIT.md`](../../../prompt-engineering/PORTABLE-HUB-KIT.md); playbook [`portable-kit-dry-run.md`](../../../prompt-engineering/playbooks/portable-kit-dry-run.md).
+- Расширены (секции добавлены): [`05-PORTABLE-KIT.md`](../july-2026/ai-expansion/05-PORTABLE-KIT.md), [`prompt-engineering-pro/PORTABLE-HUB-KIT.md`](../../../prompt-engineering-pro/PORTABLE-HUB-KIT.md); playbook [`portable-kit-dry-run.md`](../../../prompt-engineering-pro/playbooks/portable-kit-dry-run.md).
 - Синхрон: `ai-expansion/README`, `INDEX-JULY-2026`, `07-ACCEPTANCE` gap P2 CLOSED, `gsd-ru/portable-kit` → `08`.
 - Код продукта не трогали.
 
 ## Session note — 2026-07-23 (PE · new corporate agents qa/review/debug)
 
 - Созданы project-agnostic agents (100–180 строк, RU, `{{slots}}`, rules/40):
-  - [`prompt-engineering/agents/qa-manual.md`](../../../prompt-engineering/agents/qa-manual.md) (156)
-  - [`prompt-engineering/agents/qa-auto.md`](../../../prompt-engineering/agents/qa-auto.md) (117)
-  - [`prompt-engineering/agents/code-reviewer.md`](../../../prompt-engineering/agents/code-reviewer.md) (147)
-  - [`prompt-engineering/agents/debugger.md`](../../../prompt-engineering/agents/debugger.md) (156)
+  - [`prompt-engineering-pro/agents/qa-manual.md`](../../../prompt-engineering-pro/agents/qa-manual.md) (156)
+  - [`prompt-engineering-pro/agents/qa-auto.md`](../../../prompt-engineering-pro/agents/qa-auto.md) (117)
+  - [`prompt-engineering-pro/agents/code-reviewer.md`](../../../prompt-engineering-pro/agents/code-reviewer.md) (147)
+  - [`prompt-engineering-pro/agents/debugger.md`](../../../prompt-engineering-pro/agents/debugger.md) (156)
 - Ростер: [`prompt-engineering/agents/README.md`](../../../prompt-engineering/agents/README.md); зеркала — `70-prompt-engineering.mdc`, `REGULATION.md` §20, `gsd-port/README.md`, `prompt-engineering/README.md`.
 - `test-*.md` не трогали; роли разведены с test-code-reviewer / test-debugger / test-case-generator.
 - Код продукта не менялся.
@@ -45,25 +45,25 @@
 ## Session note — 2026-07-23 (PE · corporate agents max expand · be/fe/security/devops)
 
 - Расширены project-agnostic агенты (цель **120–200** строк, RU, без Hub-путей):
-  - [`prompt-engineering/agents/backend-dev.md`](../../../prompt-engineering/agents/backend-dev.md) (~126)
-  - [`prompt-engineering/agents/frontend-dev.md`](../../../prompt-engineering/agents/frontend-dev.md) (~138)
-  - [`prompt-engineering/agents/security-reviewer.md`](../../../prompt-engineering/agents/security-reviewer.md) (~129)
-  - [`prompt-engineering/agents/devops.md`](../../../prompt-engineering/agents/devops.md) (~141)
+  - [`prompt-engineering-pro/agents/backend-dev.md`](../../../prompt-engineering-pro/agents/backend-dev.md) (~126)
+  - [`prompt-engineering-pro/agents/frontend-dev.md`](../../../prompt-engineering-pro/agents/frontend-dev.md) (~138)
+  - [`prompt-engineering-pro/agents/security-reviewer.md`](../../../prompt-engineering-pro/agents/security-reviewer.md) (~129)
+  - [`prompt-engineering-pro/agents/devops.md`](../../../prompt-engineering-pro/agents/devops.md) (~141)
 - В каждом: шаблон приёма (§5.2 / wave-delegate), few-shot good/bad, anti-patterns, **цикл новое→регрессия**, акценты **rules/40**, DoD, handoff.
 - Код продукта не трогали.
 
 ## Session note — 2026-07-23 (PE · corporate agents max expand · orchestrator/PO/architect)
 
 - Расширены project-agnostic агенты (цель 120–200 строк, RU, без Hub-путей в теле — только `context/`):
-  - [`prompt-engineering/agents/orchestrator.md`](../../../prompt-engineering/agents/orchestrator.md) (~200)
-  - [`prompt-engineering/agents/product-owner.md`](../../../prompt-engineering/agents/product-owner.md) (~199)
-  - [`prompt-engineering/agents/architect.md`](../../../prompt-engineering/agents/architect.md) (~200)
+  - [`prompt-engineering-pro/agents/orchestrator.md`](../../../prompt-engineering-pro/agents/orchestrator.md) (~200)
+  - [`prompt-engineering-pro/agents/product-owner.md`](../../../prompt-engineering-pro/agents/product-owner.md) (~199)
+  - [`prompt-engineering-pro/agents/architect.md`](../../../prompt-engineering-pro/agents/architect.md) (~200)
 - В каждом: когда звать / **когда НЕ звать**, полный шаблон §5.2, anti-patterns таблица, few-shot good/bad×3, Verification rules/40 (этап 6 CRITICAL), handoff, связанные артефакты.
 - Код продукта не трогали.
 
 ## Session note — 2026-07-23 (PE · prompts/13 max expansion)
 
-- Расширен [`prompt-engineering/prompts/13-corporate-delivery.md`](../../../prompt-engineering/prompts/13-corporate-delivery.md): **48 → 112** промптов (RU, project-agnostic).
+- Расширен [`prompt-engineering-pro/prompts/13-corporate-delivery.md`](../../../prompt-engineering-pro/prompts/13-corporate-delivery.md): **48 → 112** промптов (RU, project-agnostic).
 - Категории: planning (1–15), waves (16–28), review (29–42), microservices strangler (43–56), reduced-GitHub PR-flow (57–68), handoff (69–80), verification (81–92), portable-kit (93–102), AI-team ops (103–112).
 - Слоты: `{{goal}}` `{{module}}` `{{files}}` `{{role}}` `{{ac}}` `{{service}}`.
 - Count в [`prompt-engineering/prompts/README.md`](../../../prompt-engineering/prompts/README.md) #13 → **112**. Промпты 01–12 не трогали.

@@ -30,7 +30,7 @@ packager-ом) и опциональный Hub corporate/GSD pack.
 9. Проверить `context/projects/<profile>/` и все `UNKNOWN`.
 10. Пробная волна: orchestrator → backend-dev (dry doc task).
 
-User-facing: [`prompt-engineering/PORTABLE-HUB-KIT.md`](../../../../prompt-engineering/PORTABLE-HUB-KIT.md).
+User-facing: [`prompt-engineering-pro/PORTABLE-HUB-KIT.md`](../../../../prompt-engineering-pro/PORTABLE-HUB-KIT.md).
 
 ## Версии / совместимость
 
