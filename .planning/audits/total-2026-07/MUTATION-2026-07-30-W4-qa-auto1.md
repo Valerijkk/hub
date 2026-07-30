@@ -1,7 +1,7 @@
 # MUTATION W4 slot 3 — TASK-152 (qa-auto1) · 2026-07-30
 
 > Checker: **qa-auto1** (!= be2 fixer) · Env: localhost · Evidence: `_mut-batch-w4-task152.json` (+ 001/002 first-run log)
-> Criteria: `.planning/backlog/TASK-152-2026-07-29-a3-4-5-apigateway.md` `[MUTATION CRITERIA]`
+> Criteria: `.planning/backlog/archive/2026-07-29/TASK-152-2026-07-29-a3-4-5-apigateway.md` `[MUTATION CRITERIA]`
 
 ## Verdict
 

@@ -1,6 +1,6 @@
 # MUTATION W13 slot 2 refill — TASK-131 (fe1) · 2026-07-30
 
-> Checker: **fe1** · Env: local Vitest · Criteria: `.planning/backlog/TASK-131-2026-07-29-a3-11-3-fe-stores-guards.md` `[MUTATION CRITERIA]`  
+> Checker: **fe1** · Env: local Vitest · Criteria: `.planning/backlog/archive/2026-07-29/TASK-131-2026-07-29-a3-11-3-fe-stores-guards.md` `[MUTATION CRITERIA]`  
 > Коммит: **не создавался** (инструкция слота).
 
 ## Verdict

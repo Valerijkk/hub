@@ -1,7 +1,7 @@
 # MUTATION W13 slot 1 — TASK-111 (be1) · 2026-07-30
 
 > Checker: **be1** · Env: host hubtest + Docker `deployments_default` for Ent/Postgres  
-> Criteria: `.planning/backlog/TASK-111-2026-07-28-tms-wave2-services-import-batch.md` `[MUTATION CRITERIA]`  
+> Criteria: `.planning/backlog/archive/2026-07-28/TASK-111-2026-07-28-tms-wave2-services-import-batch.md` `[MUTATION CRITERIA]`  
 > Коммит не создавался (инструкция слота).
 
 ## Verdict

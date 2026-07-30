@@ -1,6 +1,6 @@
 # MUTATION W5 slot 1 — TASK-135 (be1) · 2026-07-30
 
-> Checker: **be1** · Env: localhost:5432 / :27017 · Criteria: `.planning/backlog/TASK-135-2026-07-29-a3-1-3-tracker-repos.md` `[MUTATION CRITERIA]`
+> Checker: **be1** · Env: localhost:5432 / :27017 · Criteria: `.planning/backlog/archive/2026-07-29/TASK-135-2026-07-29-a3-1-3-tracker-repos.md` `[MUTATION CRITERIA]`
 > Коммит не создавался (инструкция слота).
 
 ## Verdict

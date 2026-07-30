@@ -44,13 +44,13 @@
 | Источник | Open ID (на момент A3) | Sev | Backlog | Coverage |
 |----------|------------------------|-----|---------|----------|
 | A3W6-1 | — | — | — | N/A (0 open) |
-| A3W6-2 | A3W6-2-001…004 | P2×2 / P3×2 | [TASK-158](../../backlog/TASK-158-2026-07-29-a3-6-2-auth-tests.md) | ✅ 4/4 |
-| A3W6-3 | A3W6-3-001…003 | P2 / P3×2 | [TASK-159](../../backlog/TASK-159-2026-07-29-a3-6-3-rbac.md) | ✅ 3/3 |
-| A3W6-4 | A3W6-4-001…003 | P2 / P3×2 | [TASK-160](../../backlog/TASK-160-2026-07-29-a3-6-4-audit-core.md) | ✅ 3/3 |
-| A3W6-5 | A3W6-5-001…007 | P2×4 / P3×3 | [TASK-161](../../backlog/TASK-161-2026-07-29-a3-6-5-audit-tests.md) | ✅ 7/7 |
-| A3W3-4 | A3W3-4-001 | P3 | [TASK-146](../../backlog/TASK-146-2026-07-29-a3-3-4-ws.md) | ✅ |
-| A3W5-4 | A3W5-4-001…003 | P2 / P3×2 | [TASK-156](../../backlog/TASK-156-2026-07-29-a3-5-4-search-core.md) | ✅ 3/3 |
-| A3W5-5 | A3W5-5-001…002 | P3×2 | [TASK-157](../../backlog/TASK-157-2026-07-29-a3-5-5-search-tests.md) | ✅ 2/2 |
+| A3W6-2 | A3W6-2-001…004 | P2×2 / P3×2 | [TASK-158](../../backlog/archive/2026-07-29/TASK-158-2026-07-29-a3-6-2-auth-tests.md) | ✅ 4/4 |
+| A3W6-3 | A3W6-3-001…003 | P2 / P3×2 | [TASK-159](../../backlog/archive/2026-07-29/TASK-159-2026-07-29-a3-6-3-rbac.md) | ✅ 3/3 |
+| A3W6-4 | A3W6-4-001…003 | P2 / P3×2 | [TASK-160](../../backlog/archive/2026-07-29/TASK-160-2026-07-29-a3-6-4-audit-core.md) | ✅ 3/3 |
+| A3W6-5 | A3W6-5-001…007 | P2×4 / P3×3 | [TASK-161](../../backlog/archive/2026-07-29/TASK-161-2026-07-29-a3-6-5-audit-tests.md) | ✅ 7/7 |
+| A3W3-4 | A3W3-4-001 | P3 | [TASK-146](../../backlog/archive/2026-07-29/TASK-146-2026-07-29-a3-3-4-ws.md) | ✅ |
+| A3W5-4 | A3W5-4-001…003 | P2 / P3×2 | [TASK-156](../../backlog/archive/2026-07-29/TASK-156-2026-07-29-a3-5-4-search-core.md) | ✅ 3/3 |
+| A3W5-5 | A3W5-5-001…002 | P3×2 | [TASK-157](../../backlog/archive/2026-07-29/TASK-157-2026-07-29-a3-5-5-search-tests.md) | ✅ 2/2 |
 | **Σ** | **23** | | **8 TASK** | **missed = 0** |
 
 Канон: [`A3-DEDUP-2026-07-29.md`](A3-DEDUP-2026-07-29.md) (unmapped 0).

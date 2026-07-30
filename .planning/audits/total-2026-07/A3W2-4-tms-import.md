@@ -2,7 +2,7 @@
 
 > TASK-008 · Stage A3 FINAL · READ-ONLY · 2026-07-29  
 > HEAD: `ee353287fc7bdb3ba4ab294adb20753893ac9558` (`ee353287`) · branch `cursor-grok-4.5`  
-> Baseline: [A2W2-4-tms-import.md](A2W2-4-tms-import.md) · remediation: [TASK-111](../../backlog/TASK-111-2026-07-28-tms-wave2-services-import-batch.md)  
+> Baseline: [A2W2-4-tms-import.md](A2W2-4-tms-import.md) · remediation: [TASK-111](../../backlog/archive/2026-07-28/TASK-111-2026-07-28-tms-wave2-services-import-batch.md)  
 > Периметр: 25 файлов (11 prod + 14 tests) · Прочитано: **25/25** · Пропущено: **0**
 
 ## Сверка с A2 (A2W2-4-*)

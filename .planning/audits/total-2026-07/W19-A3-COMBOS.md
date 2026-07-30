@@ -1,9 +1,9 @@
 # W19-A3 — Combinatorial defects (W18 FAILs × Stage B residual)
 
 > 2026-07-28 · Агент **W19-A3** (security-auditor) · ветка `cursor-grok-4.5` · **no push master**  
-> Задача: [TASK-008](../../backlog/TASK-008-total-audit-program.md) § Stage C / W19  
+> Задача: [TASK-008](../../backlog/archive/legacy/TASK-008-total-audit-program.md) § Stage C / W19  
 > Фокус: пары, где **finding/fix X + Y** на **текущем** коде после Stage B дают дефект тяжелее каждого по отдельности.  
-> Якоря: W18 FAILs **014, 019, 041, 042, 044, 045, 046, 052, 054** + catch-up [TASK-079](../../backlog/TASK-079-gdpr-mongo-eraser-fail-closed.md).  
+> Якоря: W18 FAILs **014, 019, 041, 042, 044, 045, 046, 052, 054** + catch-up [TASK-079](../../backlog/archive/legacy/TASK-079-gdpr-mongo-eraser-fail-closed.md).  
 > Метод: readonly code review + W18 mutation evidence; product code не правим.  
 > **Re-verify:** 2026-07-28 19:58 UTC+3 — все `path:line` ниже сверены с HEAD `cursor-grok-4.5` (W19-A3 pass; Stage B residual confirmed).
 

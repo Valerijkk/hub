@@ -27,12 +27,12 @@
 
 | Источник | Open ID (A3) | Sev | Backlog | Coverage |
 |----------|--------------|-----|---------|----------|
-| A3W3-1 | A3W3-1-001 | P2 | [TASK-143](../../backlog/TASK-143-2026-07-29-a3-3-1-messenger-handlers.md) | ✅ |
-| A3W3-2 | A3W3-2-001…006 | P2×3 / P3×3 | [TASK-144](../../backlog/TASK-144-2026-07-29-a3-3-2-messenger-services.md) | ✅ 6/6 |
-| A3W3-3 | A3W3-3-001…003 | P2 / P3×2 | [TASK-145](../../backlog/TASK-145-2026-07-29-a3-3-3-messenger-repos.md) | ✅ 3/3 |
-| A3W3-4 | A3W3-4-001 | P3 | [TASK-146](../../backlog/TASK-146-2026-07-29-a3-3-4-ws.md) | ✅ |
-| A3W3-5 | A3W3-A5-001…004 | P2 / P3×3 | [TASK-147](../../backlog/TASK-147-2026-07-29-a3-3-5-calls.md) | ✅ 4/4 |
-| A3W7-1 | A3W7-1-001…002 | P3×2 | [TASK-162](../../backlog/TASK-162-2026-07-29-a3-7-1-notification-mail.md) | ✅ 2/2 |
+| A3W3-1 | A3W3-1-001 | P2 | [TASK-143](../../backlog/archive/2026-07-29/TASK-143-2026-07-29-a3-3-1-messenger-handlers.md) | ✅ |
+| A3W3-2 | A3W3-2-001…006 | P2×3 / P3×3 | [TASK-144](../../backlog/archive/2026-07-29/TASK-144-2026-07-29-a3-3-2-messenger-services.md) | ✅ 6/6 |
+| A3W3-3 | A3W3-3-001…003 | P2 / P3×2 | [TASK-145](../../backlog/archive/2026-07-29/TASK-145-2026-07-29-a3-3-3-messenger-repos.md) | ✅ 3/3 |
+| A3W3-4 | A3W3-4-001 | P3 | [TASK-146](../../backlog/archive/2026-07-29/TASK-146-2026-07-29-a3-3-4-ws.md) | ✅ |
+| A3W3-5 | A3W3-A5-001…004 | P2 / P3×3 | [TASK-147](../../backlog/archive/2026-07-29/TASK-147-2026-07-29-a3-3-5-calls.md) | ✅ 4/4 |
+| A3W7-1 | A3W7-1-001…002 | P3×2 | [TASK-162](../../backlog/archive/2026-07-29/TASK-162-2026-07-29-a3-7-1-notification-mail.md) | ✅ 2/2 |
 | **Σ** | **17** | | **6 TASK** | **missed = 0** |
 
 Дедуп-канон: [`A3-DEDUP-2026-07-29.md`](A3-DEDUP-2026-07-29.md) строки TASK-143…147, 162.

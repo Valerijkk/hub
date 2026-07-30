@@ -1,7 +1,7 @@
 # MUTATION W6 slot 3 — TASK-128 (qa-auto1) · 2026-07-30
 
 > Checker: **qa-auto1** (!= fe1 fixer) · Env: local Vitest · Evidence: `_mut-batch-w6-task128.json` + `_reprove_w6_task128.log`  
-> Criteria: `.planning/backlog/TASK-128-2026-07-29-a3-10-5-fe-tms-onboarding-auth.md` `[MUTATION CRITERIA]`  
+> Criteria: `.planning/backlog/archive/2026-07-29/TASK-128-2026-07-29-a3-10-5-fe-tms-onboarding-auth.md` `[MUTATION CRITERIA]`  
 > Runner: `_run_mutations_w6_task128.py` (+ `_reprove_w6_task128.py` для `-t` regex escape)
 
 ## Verdict

@@ -1,6 +1,6 @@
 # MUTATION W13 slot 5 refill — TASK-076 (fe2) · 2026-07-30
 
-> Checker: **fe2** · Env: local Vitest · Criteria: `.planning/backlog/TASK-076-fe-p3-perf-stale.md` `[MUTATION CRITERIA]`  
+> Checker: **fe2** · Env: local Vitest · Criteria: `.planning/backlog/archive/legacy/TASK-076-fe-p3-perf-stale.md` `[MUTATION CRITERIA]`  
 > Коммит: **не создавался** (инструкция слота).
 
 ## Verdict

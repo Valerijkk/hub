@@ -1,6 +1,6 @@
 # MUTATION W8 slot 4 — TASK-123 (fe1) · 2026-07-30
 
-> Checker: **fe1** · Env: local Vitest · Criteria: `.planning/backlog/TASK-123-2026-07-28-fe-lib-dead-export-docs-drift.md` `[MUTATION CRITERIA]` (author: fe2 W7)  
+> Checker: **fe1** · Env: local Vitest · Criteria: `.planning/backlog/archive/2026-07-28/TASK-123-2026-07-28-fe-lib-dead-export-docs-drift.md` `[MUTATION CRITERIA]` (author: fe2 W7)  
 > Коммит: **не создавался** (инструкция слота).
 
 ## Verdict

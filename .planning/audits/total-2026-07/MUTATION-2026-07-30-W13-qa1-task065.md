@@ -1,7 +1,7 @@
 # MUTATION W13 slot 4 refill — TASK-065 (qa-auto1) · 2026-07-30
 
 > Checker: **qa-auto1** · Env: localhost `POSTGRES_TEST_URL` / `MONGODB_TEST_URL` · Go 1.25  
-> Criteria: `.planning/backlog/TASK-065-be-p3-platform-http-obs.md` `[MUTATION CRITERIA]`  
+> Criteria: `.planning/backlog/archive/legacy/TASK-065-be-p3-platform-http-obs.md` `[MUTATION CRITERIA]`  
 > Classes: **P3-BE-11**, **P3-BE-12** · Коммит: **не создавался** (инструкция слота).
 
 ## Verdict

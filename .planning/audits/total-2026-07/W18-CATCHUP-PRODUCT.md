@@ -58,7 +58,7 @@ Residual TF (68) + docs (13) — **не** разобраны в этой сес�
 
 | Finding | Task |
 |---------|------|
-| W18-C5-001 + 002 | [TASK-079](../../backlog/TASK-079-gdpr-mongo-eraser-fail-closed.md) |
-| TASK-054 FAIL (docs drift) | [TASK-080](../../backlog/TASK-080-docs-metrics-drift-autotest.md) |
+| W18-C5-001 + 002 | [TASK-079](../../backlog/archive/legacy/TASK-079-gdpr-mongo-eraser-fail-closed.md) |
+| TASK-054 FAIL (docs drift) | [TASK-080](../../backlog/archive/legacy/TASK-080-docs-metrics-drift-autotest.md) |
 
 P3 (003/004) — без отдельных задач (косметика / смежный consumer; зафиксированы здесь).

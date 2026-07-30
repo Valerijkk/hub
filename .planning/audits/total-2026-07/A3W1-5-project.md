@@ -88,7 +88,7 @@
 - Template DeleteTemplate — author/admin; SaveAsTemplate — membership; import `LimitReader` + size check.
 - HI-06 `TryConsumeInvite` атомарный; statuses/labels fail-closed; invite Link + `resolveFrontendURL`.
 - A2W1-A5-001/002 evidence: tx cleanup + AddTeam tx + unit/Ent tests PASS-пути в wave101 / TASK-088.
-- **TASK-137 (2026-07-29):** A3W1-A5-001…006 FIXED — hubtest `./testframework/project/` PASS; evidence в `.planning/backlog/TASK-137-2026-07-29-a3-1-5-project.md`.
+- **TASK-137 (2026-07-29):** A3W1-A5-001…006 FIXED — hubtest `./testframework/project/` PASS; evidence в `.planning/backlog/archive/2026-07-29/TASK-137-2026-07-29-a3-1-5-project.md`.
 
 ### Сводка counts (активные)
 

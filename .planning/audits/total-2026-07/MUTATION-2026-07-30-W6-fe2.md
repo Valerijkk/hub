@@ -1,6 +1,6 @@
 # MUTATION W6 slot 2 — TASK-127 (fe2) · 2026-07-30
 
-> Checker: **fe2** (!= fe1 criteria author) · Env: local Vitest · Criteria: `.planning/backlog/TASK-127-2026-07-29-a3-10-4-fe-error-empty-settings.md` `[MUTATION CRITERIA]`
+> Checker: **fe2** (!= fe1 criteria author) · Env: local Vitest · Criteria: `.planning/backlog/archive/2026-07-29/TASK-127-2026-07-29-a3-10-4-fe-error-empty-settings.md` `[MUTATION CRITERIA]`
 
 ## Verdict
 

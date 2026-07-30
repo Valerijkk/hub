@@ -1,7 +1,7 @@
 # MUTATION W13 slot 3 refill — TASK-143 (be2) · 2026-07-30
 
 > Checker: **be2** · Env: localhost Postgres/Mongo · Go 1.25 · `-tags hubtest`  
-> Criteria: `.planning/backlog/TASK-143-2026-07-29-a3-3-1-messenger-handlers.md` `[MUTATION CRITERIA]`  
+> Criteria: `.planning/backlog/archive/2026-07-29/TASK-143-2026-07-29-a3-3-1-messenger-handlers.md` `[MUTATION CRITERIA]`  
 > Коммит не создавался.
 
 ## Verdict

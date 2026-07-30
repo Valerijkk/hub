@@ -1,7 +1,7 @@
 # MUTATION W13 slot 2 refill RETRY — TASK-075 (fe1) · 2026-07-30
 
 > Checker: **fe1** · Env: local Vitest · Prior: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W13-fe1-task075.md` (9/11, 2 NOT_PROVEN)  
-> Criteria: `.planning/backlog/TASK-075-fe-p3-dead-ui-state.md` `[MUTATION CRITERIA]`  
+> Criteria: `.planning/backlog/archive/legacy/TASK-075-fe-p3-dead-ui-state.md` `[MUTATION CRITERIA]`  
 > Коммит: **не создавался**.
 
 ## Verdict

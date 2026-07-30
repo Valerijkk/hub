@@ -1,7 +1,7 @@
 # MUTATION W13 slot 3 refill — TASK-177 (be2) · 2026-07-30
 
 > Checker: **be2** · Env: localhost Postgres/Mongo · Go 1.25 · `-tags hubtest`  
-> Criteria: `.planning/backlog/TASK-177-2026-07-29-c-w19-deactivate-ban-ws-kill.md` `[MUTATION CRITERIA]`  
+> Criteria: `.planning/backlog/archive/2026-07-29/TASK-177-2026-07-29-c-w19-deactivate-ban-ws-kill.md` `[MUTATION CRITERIA]`  
 > Findings: **C-W19-001**, **C-W19-003** (2 IDs)  
 > Коммит не создавался. Prefer LiveNATS PROVEN (stub mock≠Ent не sole).
 

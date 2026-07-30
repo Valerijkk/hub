@@ -1,7 +1,7 @@
 # MUTATION W13 slot 4 refill — TASK-154 (qa-auto1) · 2026-07-30
 
 > Checker: **qa-auto1** · Env: localhost `POSTGRES_TEST_URL` / `MONGODB_TEST_URL` · Go 1.25  
-> Criteria: `.planning/backlog/TASK-154-2026-07-29-a3-5-2-ai-adapters.md` `[MUTATION CRITERIA]`  
+> Criteria: `.planning/backlog/archive/2026-07-29/TASK-154-2026-07-29-a3-5-2-ai-adapters.md` `[MUTATION CRITERIA]`  
 > Коммит: **не создавался** (инструкция слота).
 
 ## Verdict

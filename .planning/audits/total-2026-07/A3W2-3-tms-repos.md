@@ -66,7 +66,7 @@
 | A3W2-3-002 | FIXED | P3 | `ent_repository.go` CountLabels | без `label.DeletedAtIsNil()` | trash labels в count | TASK-140: DeletedAtIsNil |
 | A3W2-3-003 | FIXED | P3 | `ent_repository.go` linked edges | `WithLinked*` без soft-delete | trash в traceability | TASK-140: edge DeletedAtIsNil |
 
-Remediation: `.planning/backlog/TASK-140-2026-07-29-a3-2-3-tms-repos.md` · статус **На проверке** · hubtest `TestTask140_*` PASS.
+Remediation: `.planning/backlog/archive/2026-07-29/TASK-140-2026-07-29-a3-2-3-tms-repos.md` · статус **На проверке** · hubtest `TestTask140_*` PASS.
 
 ## Чисто (подтверждено после remediation)
 

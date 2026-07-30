@@ -1,7 +1,7 @@
 # MUTATION W13 slot 3 refill — TASK-042 (be2) · 2026-07-30
 
 > Checker: **be2** · Env: localhost Postgres/Mongo · Go 1.25 · `-tags hubtest`  
-> Criteria: `.planning/backlog/TASK-042-be-p2-perm-messenger-ws-calls.md` `[MUTATION CRITERIA]`  
+> Criteria: `.planning/backlog/archive/legacy/TASK-042-be-p2-perm-messenger-ws-calls.md` `[MUTATION CRITERIA]`  
 > Findings: **P2-BE-12**, **P2-BE-13**, **P2-BE-14**, **P2-BE-15** (+ **P2-BE-15-RL** GAP; handmade via_invite control)  
 > Коммит не создавался. Handler/service/WS kills; leftover MUTATED: **нет**.
 

@@ -1,7 +1,7 @@
 # MUTATION W13 slot 4 refill — TASK-060 (qa-auto1) · 2026-07-30
 
 > Checker: **qa-auto1** · Env: localhost `POSTGRES_TEST_URL` / `MONGODB_TEST_URL` · Go 1.25  
-> Criteria: `.planning/backlog/TASK-060-be-p3-utf8-rune-truncate.md` `[MUTATION CRITERIA]`  
+> Criteria: `.planning/backlog/archive/legacy/TASK-060-be-p3-utf8-rune-truncate.md` `[MUTATION CRITERIA]`  
 > Class: **P3-BE-04** · Коммит: **не создавался** (инструкция слота).
 
 ## Verdict

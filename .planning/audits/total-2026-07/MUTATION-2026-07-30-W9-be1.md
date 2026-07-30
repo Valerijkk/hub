@@ -1,6 +1,6 @@
 # MUTATION W9 slot 1 — TASK-090 (be1) · 2026-07-30
 
-> Checker: **be1** · Env: localhost · Criteria: `.planning/backlog/TASK-090-2026-07-28-audit-purge-error-contract.md` `[MUTATION CRITERIA]`
+> Checker: **be1** · Env: localhost · Criteria: `.planning/backlog/archive/2026-07-28/TASK-090-2026-07-28-audit-purge-error-contract.md` `[MUTATION CRITERIA]`
 > Коммит не создавался (инструкция слота).
 
 ## Verdict

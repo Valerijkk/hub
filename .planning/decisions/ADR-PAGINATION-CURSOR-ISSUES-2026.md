@@ -1,7 +1,7 @@
 # ADR-PAGINATION-CURSOR-ISSUES-2026 — List-issues: cursor, не offset
 
 > **Status:** Accepted · **Date:** 2026-07-28 · **Deciders:** Owner (TASK-104 lock: апрув не требуется; канон = код)  
-> **Findings:** A2W11-2-002, A2W11-5-002 · **Task:** `.planning/backlog/TASK-104-2026-07-28-docs-cursor-pagination-adr.md`
+> **Findings:** A2W11-2-002, A2W11-5-002 · **Task:** `.planning/backlog/archive/2026-07-28/TASK-104-2026-07-28-docs-cursor-pagination-adr.md`
 
 ## Context
 

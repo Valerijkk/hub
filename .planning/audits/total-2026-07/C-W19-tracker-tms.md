@@ -31,15 +31,15 @@
 | Источник | Open ID (A3) | Sev (на момент A3) | Backlog | Coverage |
 |----------|--------------|--------------------|---------|----------|
 | A3W1-1 handlers | — | — | — | N/A (0 open) |
-| A3W1-2 services | A3W1-2-001…006 | P1×1 / P2×2 / P3×3 | [TASK-134](../../backlog/TASK-134-2026-07-29-a3-1-2-tracker-services.md) | ✅ 6/6 |
-| A3W1-3 repos | A3W1-A3-001…003 | P2 / P3×2 | [TASK-135](../../backlog/TASK-135-2026-07-29-a3-1-3-tracker-repos.md) | ✅ 3/3 |
-| A3W1-4 sprint | A3W1-A4-001…003 | P2 / P3×2 | [TASK-136](../../backlog/TASK-136-2026-07-29-a3-1-4-sprint.md) | ✅ 3/3 |
-| A3W1-5 project | A3W1-A5-001…006 | P2×2 / P3×4 | [TASK-137](../../backlog/TASK-137-2026-07-29-a3-1-5-project.md) | ✅ 6/6 |
-| A3W2-1 handlers | A3W2-1-001 | P3 | [TASK-138](../../backlog/TASK-138-2026-07-29-a3-2-1-tms-handlers.md) | ✅ |
-| A3W2-2 services | A3W2-2-001…006 | P2×4 / P3×2 | [TASK-139](../../backlog/TASK-139-2026-07-29-a3-2-2-tms-services.md) | ✅ 6/6 |
-| A3W2-3 repos | A3W2-3-001…003 | P2 / P3×2 | [TASK-140](../../backlog/TASK-140-2026-07-29-a3-2-3-tms-repos.md) | ✅ 3/3 |
-| A3W2-4 import | A3W2-4-001…005 | P2×2 / P3×3 | [TASK-141](../../backlog/TASK-141-2026-07-29-a3-2-4-tms-import.md) | ✅ 5/5 |
-| A3W2-5 bases | A3W2-A5-001…003 | P3×3 | [TASK-142](../../backlog/TASK-142-2026-07-29-a3-2-5-bases.md) | ✅ 3/3 |
+| A3W1-2 services | A3W1-2-001…006 | P1×1 / P2×2 / P3×3 | [TASK-134](../../backlog/archive/2026-07-29/TASK-134-2026-07-29-a3-1-2-tracker-services.md) | ✅ 6/6 |
+| A3W1-3 repos | A3W1-A3-001…003 | P2 / P3×2 | [TASK-135](../../backlog/archive/2026-07-29/TASK-135-2026-07-29-a3-1-3-tracker-repos.md) | ✅ 3/3 |
+| A3W1-4 sprint | A3W1-A4-001…003 | P2 / P3×2 | [TASK-136](../../backlog/archive/2026-07-29/TASK-136-2026-07-29-a3-1-4-sprint.md) | ✅ 3/3 |
+| A3W1-5 project | A3W1-A5-001…006 | P2×2 / P3×4 | [TASK-137](../../backlog/archive/2026-07-29/TASK-137-2026-07-29-a3-1-5-project.md) | ✅ 6/6 |
+| A3W2-1 handlers | A3W2-1-001 | P3 | [TASK-138](../../backlog/archive/2026-07-29/TASK-138-2026-07-29-a3-2-1-tms-handlers.md) | ✅ |
+| A3W2-2 services | A3W2-2-001…006 | P2×4 / P3×2 | [TASK-139](../../backlog/archive/2026-07-29/TASK-139-2026-07-29-a3-2-2-tms-services.md) | ✅ 6/6 |
+| A3W2-3 repos | A3W2-3-001…003 | P2 / P3×2 | [TASK-140](../../backlog/archive/2026-07-29/TASK-140-2026-07-29-a3-2-3-tms-repos.md) | ✅ 3/3 |
+| A3W2-4 import | A3W2-4-001…005 | P2×2 / P3×3 | [TASK-141](../../backlog/archive/2026-07-29/TASK-141-2026-07-29-a3-2-4-tms-import.md) | ✅ 5/5 |
+| A3W2-5 bases | A3W2-A5-001…003 | P3×3 | [TASK-142](../../backlog/archive/2026-07-29/TASK-142-2026-07-29-a3-2-5-bases.md) | ✅ 3/3 |
 | **Σ A3 CSV** | **36** | | **9 TASK** | **missed = 0** |
 
 Канон: [`A3-DEDUP-2026-07-29.md`](A3-DEDUP-2026-07-29.md) (unmapped 0 для 195).

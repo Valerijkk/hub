@@ -1,7 +1,7 @@
 # MUTATION W13 slot 1 refill — TASK-181 (be1) · 2026-07-30
 
 > Checker: **be1** · Env: localhost Postgres/Mongo · Go 1.25 · `-tags hubtest`  
-> Criteria: `.planning/backlog/TASK-181-2026-07-29-c-w19-webhook-softdelete-deactivate.md` `[MUTATION CRITERIA]`  
+> Criteria: `.planning/backlog/archive/2026-07-29/TASK-181-2026-07-29-c-w19-webhook-softdelete-deactivate.md` `[MUTATION CRITERIA]`  
 > Finding alias: audit `C-W19-004` ≡ task `C-W19-FE-004` · Коммит не создавался.
 
 ## Verdict

@@ -1,7 +1,7 @@
 # MUTATION W13 slot 3 refill — TASK-121 (be2) · 2026-07-30
 
 > Checker: **be2** · Env: localhost hubtest · Go 1.25 · `-tags hubtest`  
-> Criteria: `.planning/backlog/TASK-121-2026-07-28-marketplace-status-dev-exposure.md` `[MUTATION CRITERIA]`  
+> Criteria: `.planning/backlog/archive/2026-07-28/TASK-121-2026-07-28-marketplace-status-dev-exposure.md` `[MUTATION CRITERIA]`  
 > Prior: W12 qa-auto2 — W7-A5-004 **GAP_NOTED** (weak final-state)  
 > Runner: `_run_mutations_w13_task121.py` · Evidence JSON: `_mut-batch-w13-task121.json`  
 > Коммит: **не создавался**. leftover MUTATED: **нет**.

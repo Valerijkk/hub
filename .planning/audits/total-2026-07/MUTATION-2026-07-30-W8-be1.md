@@ -1,6 +1,6 @@
 # MUTATION W8 slot 3 — TASK-116 (be1) · 2026-07-30
 
-> Checker: **be1** · Env: localhost (SQLite/Ent in-memory auth tests) · Criteria: `.planning/backlog/TASK-116-2026-07-28-auth-avatar-xss-validation-tests.md` `[MUTATION CRITERIA]`
+> Checker: **be1** · Env: localhost (SQLite/Ent in-memory auth tests) · Criteria: `.planning/backlog/archive/2026-07-28/TASK-116-2026-07-28-auth-avatar-xss-validation-tests.md` `[MUTATION CRITERIA]`
 > Коммит не создавался (инструкция слота).
 
 ## Verdict

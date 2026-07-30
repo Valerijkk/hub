@@ -1,7 +1,7 @@
 # MUTATION W12 slot 2 — TASK-121 (qa-auto2) · 2026-07-30
 
 > Checker: **qa-auto2** (!= be1 fixer) · Env: localhost hubtest  
-> Criteria: `.planning/backlog/TASK-121-2026-07-28-marketplace-status-dev-exposure.md` `[MUTATION CRITERIA]`  
+> Criteria: `.planning/backlog/archive/2026-07-28/TASK-121-2026-07-28-marketplace-status-dev-exposure.md` `[MUTATION CRITERIA]`  
 > Runner: `_run_mutations_w12_task121.py` · Evidence JSON: `_mut-batch-w12-task121.json`  
 > Коммит: **не создавался** (инструкция слота).
 

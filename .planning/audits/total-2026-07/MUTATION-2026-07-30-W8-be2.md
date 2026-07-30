@@ -1,7 +1,7 @@
 # MUTATION W8 slot 1 — TASK-087 (be2) · 2026-07-30
 
 > Checker: **be2** (!= be1 fixer) · Env: localhost · Go 1.25 · SQLite in-memory (`newTestEntClient`)  
-> Criteria: `.planning/backlog/TASK-087-2026-07-28-outbox-claim-lease-flush.md` `[MUTATION CRITERIA]`  
+> Criteria: `.planning/backlog/archive/2026-07-28/TASK-087-2026-07-28-outbox-claim-lease-flush.md` `[MUTATION CRITERIA]`  
 > Коммит не создавался (инструкция слота).
 
 ## Verdict

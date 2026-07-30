@@ -1,7 +1,7 @@
 # MUTATION W5 slot 3 — TASK-149 (qa-auto1) · 2026-07-30
 
 > Checker: **qa-auto1** (!= be1 fixer) · Env: localhost · Evidence: `_mut-batch-w5-task149.json`  
-> Criteria: `.planning/backlog/TASK-149-2026-07-29-a3-4-2-platform-nats-outbox.md` `[MUTATION CRITERIA]`  
+> Criteria: `.planning/backlog/archive/2026-07-29/TASK-149-2026-07-29-a3-4-2-platform-nats-outbox.md` `[MUTATION CRITERIA]`  
 > Runner: `_run_mutations_w5_task149.py`
 
 ## Verdict

@@ -1,6 +1,6 @@
 # MUTATION W13 slot 5 refill — TASK-074 (fe2) · 2026-07-30
 
-> Checker: **fe2** · Env: local Vitest · Criteria: `.planning/backlog/TASK-074-fe-p3-type-casts.md` `[MUTATION CRITERIA]`  
+> Checker: **fe2** · Env: local Vitest · Criteria: `.planning/backlog/archive/legacy/TASK-074-fe-p3-type-casts.md` `[MUTATION CRITERIA]`  
 > Коммит: **не создавался** (инструкция слота).
 
 ## Verdict

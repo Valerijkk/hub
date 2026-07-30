@@ -1,7 +1,7 @@
 # MUTATION W13 slot 4 refill FIX — TASK-184 (qa-auto1) · 2026-07-30
 
 > Checker/implementer: **qa-auto1** · Env: localhost `POSTGRES_TEST_URL` / `MONGODB_TEST_URL` · Go 1.25  
-> Criteria: `.planning/backlog/TASK-184-2026-07-29-c-w19-last-team-member.md` `[MUTATION CRITERIA]`  
+> Criteria: `.planning/backlog/archive/2026-07-29/TASK-184-2026-07-29-c-w19-last-team-member.md` `[MUTATION CRITERIA]`  
 > Prior GAP: [`MUTATION-2026-07-30-W13-qa1-task184.md`](MUTATION-2026-07-30-W13-qa1-task184.md)  
 > Коммит: **не создавался** (инструкция слота).
 

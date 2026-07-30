@@ -1,7 +1,7 @@
 # MUTATION W13 slot 1 refill retry — TASK-066 (be1) · 2026-07-30
 
 > Checker: **be1** · Env: localhost Postgres/Mongo · Go 1.25 · `-tags hubtest`  
-> Criteria: `.planning/backlog/TASK-066-be-p3-ai-auth-rbac-audit.md` `[MUTATION CRITERIA]`  
+> Criteria: `.planning/backlog/archive/legacy/TASK-066-be-p3-ai-auth-rbac-audit.md` `[MUTATION CRITERIA]`  
 > Prior: [MUTATION-2026-07-30-W13-be1-task066.md](./MUTATION-2026-07-30-W13-be1-task066.md) — **9/10 PROVEN**, **W6-A4-010 NOT_PROVEN**  
 > Коммит: **не создавался**.
 

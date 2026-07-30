@@ -1,7 +1,7 @@
 # MUTATION W13 slot 3 refill — TASK-148 (be2) · 2026-07-30
 
 > Checker: **be2** · Env: localhost Postgres/Mongo · Go 1.25 · `-tags hubtest`  
-> Criteria: `.planning/backlog/TASK-148-2026-07-29-a3-4-1-platform-http.md` `[MUTATION CRITERIA]`  
+> Criteria: `.planning/backlog/archive/2026-07-29/TASK-148-2026-07-29-a3-4-1-platform-http.md` `[MUTATION CRITERIA]`  
 > Finding: **A3W4-1-001** (1 ID)  
 > Коммит не создавался.
 

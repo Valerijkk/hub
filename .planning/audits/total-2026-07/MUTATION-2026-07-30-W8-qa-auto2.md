@@ -1,7 +1,7 @@
 # MUTATION W8 slot 2 — TASK-089 (qa-auto2) · 2026-07-30
 
 > Checker: **qa-auto2** (!= be2 fixer) · Env: localhost Mongo `:27017` + Postgres `:5432` (deployments-*)  
-> Criteria: `.planning/backlog/TASK-089-2026-07-28-messenger-crm-invoice-guards.md` `[MUTATION CRITERIA]`
+> Criteria: `.planning/backlog/archive/2026-07-28/TASK-089-2026-07-28-messenger-crm-invoice-guards.md` `[MUTATION CRITERIA]`
 
 ## Verdict
 

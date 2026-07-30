@@ -1,6 +1,6 @@
 # MUTATION W13 slot 5 refill — TASK-187 (fe2) · 2026-07-30
 
-> Checker: **fe2** · Env: local Vitest · Criteria: `.planning/backlog/TASK-187-2026-07-29-audit-fe-pipeline-sanitize.md` `[MUTATION CRITERIA]`  
+> Checker: **fe2** · Env: local Vitest · Criteria: `.planning/backlog/archive/2026-07-29/TASK-187-2026-07-29-audit-fe-pipeline-sanitize.md` `[MUTATION CRITERIA]`  
 > Prior: `MUTATION-2026-07-30-W11-fe1.md` (001–004 PROVEN; 005 N/A `test_does_not_catch`)  
 > Коммит: **не создавался** (инструкция слота).
 

@@ -1,7 +1,7 @@
 # MUTATION W13 slot 3 — TASK-141 (be2) · 2026-07-30
 
 > Checker: **be2** · Env: localhost Postgres/Mongo · Go 1.25 · `-tags hubtest`  
-> Criteria: `.planning/backlog/TASK-141-2026-07-29-a3-2-4-tms-import.md` `[MUTATION CRITERIA]`  
+> Criteria: `.planning/backlog/archive/2026-07-29/TASK-141-2026-07-29-a3-2-4-tms-import.md` `[MUTATION CRITERIA]`  
 > Driver: `.planning/audits/total-2026-07/_run_mutations_w13_task141.py`  
 > Коммит не создавался.
 

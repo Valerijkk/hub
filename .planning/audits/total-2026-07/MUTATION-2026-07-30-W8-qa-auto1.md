@@ -1,7 +1,7 @@
 # MUTATION W8 slot 5 — TASK-182 (qa-auto1) · 2026-07-30
 
 > Checker: **qa-auto1** (!= fe2 fixer) · Env: local Vitest  
-> Criteria: `.planning/backlog/TASK-182-2026-07-29-c-w19-hr-pending-leave-error.md` `[MUTATION CRITERIA]`  
+> Criteria: `.planning/backlog/archive/2026-07-29/TASK-182-2026-07-29-c-w19-hr-pending-leave-error.md` `[MUTATION CRITERIA]`  
 > Evidence JSON: `_mut-batch-w8-task182.json`
 
 ## Verdict

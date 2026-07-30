@@ -1,7 +1,7 @@
 # MUTATION W13 slot 3 refill — TASK-062 (be2) · 2026-07-30
 
 > Checker: **be2** · Env: localhost Postgres/Mongo · Go 1.25 · `-tags hubtest`  
-> Criteria: `.planning/backlog/TASK-062-be-p3-dead-code-layering.md` `[MUTATION CRITERIA]`  
+> Criteria: `.planning/backlog/archive/legacy/TASK-062-be-p3-dead-code-layering.md` `[MUTATION CRITERIA]`  
 > Findings: **14** IDs (P3-BE-07) · **7 PROVEN** · **6 GAP_NOTED** · **1 N/A**  
 > Коммит не создавался. leftover MUTATED: **нет**.
 

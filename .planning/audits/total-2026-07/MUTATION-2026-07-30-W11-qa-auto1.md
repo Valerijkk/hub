@@ -1,7 +1,7 @@
 # MUTATION W11 slot 3 — TASK-107 (qa-auto1) · 2026-07-30
 
 > Checker: **qa-auto1** · Env: localhost · Go 1.25 · Postgres env URL (не поднимали)  
-> Criteria: `.planning/backlog/TASK-107-2026-07-28-ent-indexes-composite-fk-polymorphic.md` `[MUTATION CRITERIA]`  
+> Criteria: `.planning/backlog/archive/2026-07-28/TASK-107-2026-07-28-ent-indexes-composite-fk-polymorphic.md` `[MUTATION CRITERIA]`  
 > Коммит: **не создавался** (инструкция слота).  
 > Batch: `_mut-batch-w11-task107.json` · runner: `_run_mutations_w11_task107.py`
 

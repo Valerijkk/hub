@@ -1,7 +1,7 @@
 # MUTATION W13 slot 3 refill — TASK-189 (be2) · 2026-07-30
 
 > Checker: **be2** · Env: localhost Postgres/Mongo · Go 1.25 · `-tags hubtest`  
-> Criteria: `.planning/backlog/TASK-189-2026-07-29-audit-be-v4-calendar-poll.md` `[MUTATION CRITERIA]`  
+> Criteria: `.planning/backlog/archive/2026-07-29/TASK-189-2026-07-29-audit-be-v4-calendar-poll.md` `[MUTATION CRITERIA]`  
 > Findings: **BE-V4-001**, **BE-V4-002**, **BE-V4-003** (3 IDs)  
 > Коммит не создавался. Ent + service kills; leftover MUTATED: **нет**.
 

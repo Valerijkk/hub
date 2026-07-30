@@ -1,6 +1,6 @@
 # MUTATION W13 slot 5 refill — TASK-070 (fe2) · 2026-07-30
 
-> Checker: **fe2** · Env: local Vitest · Criteria: `.planning/backlog/TASK-070-fe-p3-a11y-structure.md` `[MUTATION CRITERIA]`  
+> Checker: **fe2** · Env: local Vitest · Criteria: `.planning/backlog/archive/legacy/TASK-070-fe-p3-a11y-structure.md` `[MUTATION CRITERIA]`  
 > Коммит: **не создавался** (инструкция слота). TASK-069 файлы не трогались.
 
 ## Verdict

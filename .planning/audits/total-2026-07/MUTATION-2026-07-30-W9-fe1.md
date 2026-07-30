@@ -1,6 +1,6 @@
 # MUTATION W9 slot 5 — TASK-186 (fe1) · 2026-07-30
 
-> Checker: **fe1** · Env: local Vitest · Criteria: `.planning/backlog/TASK-186-2026-07-29-audit-fe-calls-error-empty.md` `[MUTATION CRITERIA]` (author: fe2 W7)  
+> Checker: **fe1** · Env: local Vitest · Criteria: `.planning/backlog/archive/2026-07-29/TASK-186-2026-07-29-audit-fe-calls-error-empty.md` `[MUTATION CRITERIA]` (author: fe2 W7)  
 > Коммит: **не создавался** (инструкция слота).
 
 ## Verdict

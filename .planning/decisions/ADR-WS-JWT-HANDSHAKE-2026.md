@@ -1,7 +1,7 @@
 # ADR-WS-JWT-HANDSHAKE-2026 — JWT вне sessionStorage + WS ticket/subprotocol
 
 > **Status:** Accepted · **Date:** 2026-07-28 · **Deciders:** owner lock TASK-008 / A2-DEDUP (отдельный approve не требуется)  
-> **Task:** `.planning/backlog/TASK-103-2026-07-28-jwt-ws-handshake-adr.md`  
+> **Task:** `.planning/backlog/archive/2026-07-28/TASK-103-2026-07-28-jwt-ws-handshake-adr.md`  
 > **Findings:** A2W3-4-001, A2W11-2-001, A2W11-3-002
 
 ## Context

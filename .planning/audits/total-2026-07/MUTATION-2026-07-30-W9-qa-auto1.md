@@ -1,7 +1,7 @@
 # MUTATION W9 slot 3 — TASK-140 (qa-auto1) · 2026-07-30
 
 > Checker: **qa-auto1** (!= be2 fixer) · Env: localhost (hubtest Ent sqlite; POSTGRES_TEST_URL set)  
-> Criteria: `.planning/backlog/TASK-140-2026-07-29-a3-2-3-tms-repos.md` `[MUTATION CRITERIA]`  
+> Criteria: `.planning/backlog/archive/2026-07-29/TASK-140-2026-07-29-a3-2-3-tms-repos.md` `[MUTATION CRITERIA]`  
 > Runner: `_run_mutations_w9_task140.py` · Evidence JSON: `_mut-batch-w9-task140.json`
 
 ## Verdict

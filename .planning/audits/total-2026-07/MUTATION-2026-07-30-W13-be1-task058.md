@@ -1,7 +1,7 @@
 # MUTATION W13 slot 1 refill — TASK-058 (be1) · 2026-07-30
 
 > Checker: **be1** · Env: localhost Postgres/Mongo · Go 1.25 · `-tags hubtest`  
-> Criteria: `.planning/backlog/TASK-058-be-p3-assert-free-tests.md` `[MUTATION CRITERIA]`  
+> Criteria: `.planning/backlog/archive/legacy/TASK-058-be-p3-assert-free-tests.md` `[MUTATION CRITERIA]`  
 > Driver: `.planning/audits/total-2026-07/_run_mutations_w13_task058.py`  
 > Raw: `_mut-batch-w13-task058.json`  
 > Коммит не создавался (инструкция слота).

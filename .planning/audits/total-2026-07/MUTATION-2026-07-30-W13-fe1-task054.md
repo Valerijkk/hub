@@ -1,7 +1,7 @@
 # MUTATION W13 slot 2 refill — TASK-054 (fe1) · 2026-07-30
 
 > Checker: **fe1** · Mode: **docs-only N/A close** · No FE/Vitest/prod mutation  
-> Criteria: `.planning/backlog/TASK-054-fe-p2-docs-metrics-drift.md` · Class P2-FE-12  
+> Criteria: `.planning/backlog/archive/legacy/TASK-054-fe-p2-docs-metrics-drift.md` · Class P2-FE-12  
 > Коммит: **не создавался**.
 
 ## Verdict

@@ -1,7 +1,7 @@
 # MUTATION W13 Stage C — TASK-079 (be2) · 2026-07-30
 
 > Checker: **be2** · Env: localhost Postgres/Mongo · Go 1.25 · `-tags hubtest`  
-> Criteria: `.planning/backlog/TASK-079-gdpr-mongo-eraser-fail-closed.md` `[MUTATION CRITERIA]`  
+> Criteria: `.planning/backlog/archive/legacy/TASK-079-gdpr-mongo-eraser-fail-closed.md` `[MUTATION CRITERIA]`  
 > Findings: **W18-C5-001**, **W18-C5-002** (2 code-mutable)  
 > HEAD baseline: `c10b874d` · Коммит **не** создавался.
 

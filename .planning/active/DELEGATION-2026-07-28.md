@@ -43,11 +43,11 @@ Scope каждой задачи определён **в её файле**, в б
 
 | ID | Файл | Приоритет |
 |----|------|-----------|
-| TASK-001 | [`../backlog/TASK-001-fr-intr-08-newspost-trash.md`](../backlog/TASK-001-fr-intr-08-newspost-trash.md) | **P0** |
-| TASK-002 | [`../backlog/TASK-002-fr-cal-05-series-trash.md`](../backlog/TASK-002-fr-cal-05-series-trash.md) | **P0** |
-| TASK-003 | [`../backlog/TASK-003-a14-002-test-granularity.md`](../backlog/TASK-003-a14-002-test-granularity.md) | P2 |
-| TASK-004 | [`../backlog/TASK-004-state-goals-verified-reconcile.md`](../backlog/TASK-004-state-goals-verified-reconcile.md) | P1 |
-| TASK-005 | [`../backlog/TASK-005-august-phase-dependencies.md`](../backlog/TASK-005-august-phase-dependencies.md) | P1 |
+| TASK-001 | [`../backlog/archive/legacy/TASK-001-fr-intr-08-newspost-trash.md`](../backlog/archive/legacy/TASK-001-fr-intr-08-newspost-trash.md) | **P0** |
+| TASK-002 | [`../backlog/archive/legacy/TASK-002-fr-cal-05-series-trash.md`](../backlog/archive/legacy/TASK-002-fr-cal-05-series-trash.md) | **P0** |
+| TASK-003 | [`../backlog/archive/legacy/TASK-003-a14-002-test-granularity.md`](../backlog/archive/legacy/TASK-003-a14-002-test-granularity.md) | P2 |
+| TASK-004 | [`../backlog/archive/legacy/TASK-004-state-goals-verified-reconcile.md`](../backlog/archive/legacy/TASK-004-state-goals-verified-reconcile.md) | P1 |
+| TASK-005 | [`../backlog/archive/legacy/TASK-005-august-phase-dependencies.md`](../backlog/archive/legacy/TASK-005-august-phase-dependencies.md) | P1 |
 
 Индекс: [`../backlog/README.md`](../backlog/README.md)
 
@@ -136,7 +136,7 @@ TASK-003      независима
 - Тип и scope английские, описание и тело русские:
   `fix(intranet): вернуть новость из корзины вместе с опросом`
 - В теле — ссылка на файл задачи путём:
-  `Задача: .planning/backlog/TASK-001-fr-intr-08-newspost-trash.md`
+  `Задача: .planning/backlog/archive/legacy/TASK-001-fr-intr-08-newspost-trash.md`
 - Соавторство любого вида запрещено абсолютно (`51-no-ai-coauthor.mdc`),
   `--no-verify` запрещён
 - Статус задачи в `../backlog/README.md` меняется **в том же коммите**,

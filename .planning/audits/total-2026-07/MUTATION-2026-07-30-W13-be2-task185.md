@@ -1,7 +1,7 @@
 # MUTATION W13 slot 3 refill — TASK-185 (be2) · 2026-07-30
 
 > Checker: **be2** · Env: localhost Postgres/Mongo · Go 1.25 · `-tags hubtest`  
-> Criteria: `.planning/backlog/TASK-185-2026-07-29-c-w19-allure-existingrun-partial.md` `[MUTATION CRITERIA]`  
+> Criteria: `.planning/backlog/archive/2026-07-29/TASK-185-2026-07-29-c-w19-allure-existingrun-partial.md` `[MUTATION CRITERIA]`  
 > Findings: **C-W19-TT-002-001**, **C-W19-TT-002-002** (2 IDs)  
 > Коммит не создавался. Service-layer kill; mock≠Ent GAP_NOTED (no live Mongo/Ent IT).
 

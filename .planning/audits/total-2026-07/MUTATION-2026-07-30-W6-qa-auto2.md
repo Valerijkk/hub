@@ -1,6 +1,6 @@
 # MUTATION W6 slot 4 — TASK-179 (qa-auto2) · 2026-07-30
 
-> Checker: **qa-auto2** (!= fe1 fixer) · Env: local Vitest · Criteria: `.planning/backlog/TASK-179-2026-07-29-c-w19-fe-webhook-sprint-completed.md` `[MUTATION CRITERIA]`
+> Checker: **qa-auto2** (!= fe1 fixer) · Env: local Vitest · Criteria: `.planning/backlog/archive/2026-07-29/TASK-179-2026-07-29-c-w19-fe-webhook-sprint-completed.md` `[MUTATION CRITERIA]`
 
 ## Verdict
 

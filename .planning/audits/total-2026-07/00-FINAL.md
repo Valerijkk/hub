@@ -1,7 +1,7 @@
 # TASK-008 — FINAL (Stage C / W20) · 2026-07-30
 
 > Дата: **2026-07-30** · Ветка: `cursor-grok-4.5` · Оркестратор / docs-writer + qa-auto1 re-hubtest  
-> Программа: [`.planning/backlog/TASK-008-total-audit-program.md`](../../backlog/TASK-008-total-audit-program.md)  
+> Программа: [`.planning/backlog/archive/legacy/TASK-008-total-audit-program.md`](../../backlog/archive/legacy/TASK-008-total-audit-program.md)  
 > Контроль мутаций: [`STAGE-C-MUTATION-WAVE-CONTROL-2026-07-30.md`](STAGE-C-MUTATION-WAVE-CONTROL-2026-07-30.md)  
 > **Вердикт: A** — gates 1–4 PASS · **TASK-008 Закрыта**
 

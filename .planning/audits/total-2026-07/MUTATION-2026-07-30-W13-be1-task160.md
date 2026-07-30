@@ -1,7 +1,7 @@
 # MUTATION W13 slot 1 refill — TASK-160 (be1) · 2026-07-30
 
 > Checker: **be1** · Env: localhost Postgres/Mongo · Go 1.25 · `-tags hubtest`  
-> Criteria: `.planning/backlog/TASK-160-2026-07-29-a3-6-4-audit-core.md` `[MUTATION CRITERIA]`  
+> Criteria: `.planning/backlog/archive/2026-07-29/TASK-160-2026-07-29-a3-6-4-audit-core.md` `[MUTATION CRITERIA]`  
 > Коммит не создавался (инструкция слота).
 
 ## Verdict

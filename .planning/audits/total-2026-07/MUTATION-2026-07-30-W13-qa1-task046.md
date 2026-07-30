@@ -1,7 +1,7 @@
 # MUTATION W13 slot 4 refill — TASK-046 (qa-auto1) · 2026-07-30
 
 > Checker: **qa-auto1** · Env: localhost `POSTGRES_TEST_URL` / `MONGODB_TEST_URL` · Go 1.25  
-> Criteria: `.planning/backlog/TASK-046-be-p2-ent-unique-fk-check.md` `[MUTATION CRITERIA]`  
+> Criteria: `.planning/backlog/archive/legacy/TASK-046-be-p2-ent-unique-fk-check.md` `[MUTATION CRITERIA]`  
 > Коммит: **не создавался** (инструкция слота).
 
 ## Verdict

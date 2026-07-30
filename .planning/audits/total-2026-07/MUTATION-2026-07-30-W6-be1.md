@@ -1,6 +1,6 @@
 # MUTATION W6 slot 1 — TASK-145 (be1) · 2026-07-30
 
-> Checker: **be1** · Env: SQLite in-memory (`newMessengerRepoEnv`; deployments-postgres/mongo up, не нужны для Ent-cap тестов) · Criteria: `.planning/backlog/TASK-145-2026-07-29-a3-3-3-messenger-repos.md` `[MUTATION CRITERIA]`
+> Checker: **be1** · Env: SQLite in-memory (`newMessengerRepoEnv`; deployments-postgres/mongo up, не нужны для Ent-cap тестов) · Criteria: `.planning/backlog/archive/2026-07-29/TASK-145-2026-07-29-a3-3-3-messenger-repos.md` `[MUTATION CRITERIA]`
 > Коммит не создавался (инструкция слота).
 
 ## Verdict

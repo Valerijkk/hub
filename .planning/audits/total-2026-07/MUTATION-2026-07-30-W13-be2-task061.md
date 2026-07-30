@@ -1,7 +1,7 @@
 # MUTATION W13 slot 3 refill — TASK-061 (be2) · 2026-07-30
 
 > Checker: **be2** · Env: localhost Postgres/Mongo · Go 1.25 · `-tags hubtest`  
-> Criteria: `.planning/backlog/TASK-061-be-p3-repo-lists-defense.md` `[MUTATION CRITERIA]`  
+> Criteria: `.planning/backlog/archive/legacy/TASK-061-be-p3-repo-lists-defense.md` `[MUTATION CRITERIA]`  
 > Findings: **11** runnable IDs (P3-BE-05, P3-BE-06) · **15** sub-kill runs  
 > Коммит не создавался. leftover MUTATED: **нет**.
 

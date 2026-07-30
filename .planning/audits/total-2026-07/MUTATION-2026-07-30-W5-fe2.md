@@ -1,6 +1,6 @@
 # MUTATION W5 slot 5 — TASK-125 (fe2) · 2026-07-30
 
-> Checker: **fe2** (!= fe1 criteria author) · Env: local Vitest · Criteria: `.planning/backlog/TASK-125-2026-07-29-a3-10-2-fe-routes-modules.md` `[MUTATION CRITERIA]`
+> Checker: **fe2** (!= fe1 criteria author) · Env: local Vitest · Criteria: `.planning/backlog/archive/2026-07-29/TASK-125-2026-07-29-a3-10-2-fe-routes-modules.md` `[MUTATION CRITERIA]`
 
 ## Verdict
 

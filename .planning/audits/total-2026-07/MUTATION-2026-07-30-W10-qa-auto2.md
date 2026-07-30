@@ -1,7 +1,7 @@
 # MUTATION W10 slot 3 — TASK-120 (qa-auto2) · 2026-07-30
 
 > Checker: **qa-auto2** (!= be2 fixer) · Env: localhost hubtest (mock + Ent sqlite; POSTGRES_TEST_URL set)  
-> Criteria: `.planning/backlog/TASK-120-2026-07-28-integrations-secrets-imex-trash.md` `[MUTATION CRITERIA]`  
+> Criteria: `.planning/backlog/archive/2026-07-28/TASK-120-2026-07-28-integrations-secrets-imex-trash.md` `[MUTATION CRITERIA]`  
 > Runner: `_run_mutations_w10_task120.py` · Evidence JSON: `_mut-batch-w10-task120.json`
 
 ## Verdict

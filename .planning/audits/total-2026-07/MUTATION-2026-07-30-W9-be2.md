@@ -1,7 +1,7 @@
 # MUTATION W9 slot 2 — TASK-117 (be2) · 2026-07-30
 
 > Checker: **be2** · Env: localhost · Go 1.25 · Postgres `localhost:5432`  
-> Criteria: `.planning/backlog/TASK-117-2026-07-28-notification-mail-push-limits-tests.md` `[MUTATION CRITERIA]`  
+> Criteria: `.planning/backlog/archive/2026-07-28/TASK-117-2026-07-28-notification-mail-push-limits-tests.md` `[MUTATION CRITERIA]`  
 > Коммит не создавался (инструкция слота).
 
 ## Verdict

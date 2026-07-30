@@ -1,7 +1,7 @@
 # MUTATION W13 slot 3 refill — TASK-191 (be2) · 2026-07-30
 
 > Checker: **be2** · Env: localhost Postgres/Mongo · Go 1.25 · `-tags hubtest`  
-> Criteria: `.planning/backlog/TASK-191-2026-07-29-audit-ent-automationrule-softdelete.md` `[MUTATION CRITERIA]`  
+> Criteria: `.planning/backlog/archive/2026-07-29/TASK-191-2026-07-29-audit-ent-automationrule-softdelete.md` `[MUTATION CRITERIA]`  
 > Findings: **EA-001-001**, **EA-001-002**, **EA-001-003** (3 IDs)  
 > Коммит не создавался. Ent runtime + schema source kills; leftover MUTATED: **нет**.  
 > Migrate SQL `20260729_task191_automationrule_soft_delete.sql` — **N/A runtime** (needs-owner-apply).

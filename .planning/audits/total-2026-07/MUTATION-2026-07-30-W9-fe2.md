@@ -1,7 +1,7 @@
 # MUTATION W9 slot 4 — TASK-172 (fe2) · 2026-07-30
 
 > Checker: **fe2** (!= fe1 criteria author) · Env: local Vitest  
-> Criteria: `.planning/backlog/TASK-172-2026-07-29-a3-9-1-components.md` `[MUTATION CRITERIA]`  
+> Criteria: `.planning/backlog/archive/2026-07-29/TASK-172-2026-07-29-a3-9-1-components.md` `[MUTATION CRITERIA]`  
 > Коммит: **не создавался** (инструкция слота).
 
 ## Verdict

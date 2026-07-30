@@ -1,7 +1,7 @@
 # MUTATION W13 slot 1 refill — TASK-067 (be1) · 2026-07-30
 
 > Checker: **be1** · Env: localhost Postgres/Mongo · Go 1.25 · `-tags hubtest`  
-> Criteria: `.planning/backlog/TASK-067-be-p3-v4-dev-storage.md` `[MUTATION CRITERIA]`  
+> Criteria: `.planning/backlog/archive/legacy/TASK-067-be-p3-v4-dev-storage.md` `[MUTATION CRITERIA]`  
 > Driver: `.planning/audits/total-2026-07/_run_mutations_w13_task067.py`  
 > Raw: `_mut-batch-w13-task067.json`  
 > Коммит не создавался (инструкция слота).

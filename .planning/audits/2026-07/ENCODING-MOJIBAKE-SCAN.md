@@ -1,7 +1,7 @@
 # Encoding / mojibake scan
 
 **Date:** 2026-07-28  
-**Task:** [TASK-007](../../backlog/TASK-007-utf8-mojibake-audit-fix.md)  
+**Task:** [TASK-007](../../backlog/archive/legacy/TASK-007-utf8-mojibake-audit-fix.md)  
 **Tracked files scanned:** 2684  
 **Hits before fix:** 33–39 (`backend/ent/schema/*.go` comments)  
 **Hits after fix:** **0**

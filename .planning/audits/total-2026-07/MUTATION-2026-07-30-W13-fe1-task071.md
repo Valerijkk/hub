@@ -1,6 +1,6 @@
 # MUTATION W13 slot 2 refill — TASK-071 (fe1) · 2026-07-30
 
-> Checker: **fe1** · Env: local Vitest · Criteria: `.planning/backlog/TASK-071-fe-p3-tokens-i18n.md` `[MUTATION CRITERIA]`  
+> Checker: **fe1** · Env: local Vitest · Criteria: `.planning/backlog/archive/legacy/TASK-071-fe-p3-tokens-i18n.md` `[MUTATION CRITERIA]`  
 > Коммит: **не создавался**.
 
 ## Verdict

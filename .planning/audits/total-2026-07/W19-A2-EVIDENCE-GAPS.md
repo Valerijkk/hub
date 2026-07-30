@@ -1,7 +1,7 @@
 # W19-A2 — пробелы evidence у задач TASK-009…056
 
 > 2026-07-28 · Агент **W19-A2** · ветка `cursor-grok-4.5` · **no push master**  
-> Задача: [TASK-008](../../backlog/TASK-008-total-audit-program.md) § Stage C / W19  
+> Задача: [TASK-008](../../backlog/archive/legacy/TASK-008-total-audit-program.md) § Stage C / W19  
 > Фокус: задачи в статусе **«Исправлена»** без адекватного evidence  
 > Режим: read-only по product code; сверка task body ↔ `W18-*-MUTATION.md`  
 > Перепроверка W19-A2 (2026-07-28 evening): README + тела TASK-009…056 + все 6  

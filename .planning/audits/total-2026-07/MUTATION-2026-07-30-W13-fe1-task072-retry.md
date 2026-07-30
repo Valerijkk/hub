@@ -1,6 +1,6 @@
 # MUTATION W13 slot 2 refill retry — TASK-072 (fe1) · 2026-07-30
 
-> Checker: **fe1** · Env: local Vitest · Criteria: `.planning/backlog/TASK-072-fe-p3-timers-cleanup.md` `[MUTATION CRITERIA]`  
+> Checker: **fe1** · Env: local Vitest · Criteria: `.planning/backlog/archive/legacy/TASK-072-fe-p3-timers-cleanup.md` `[MUTATION CRITERIA]`  
 > Prior: [MUTATION-2026-07-30-W13-fe1-task072.md](./MUTATION-2026-07-30-W13-fe1-task072.md) — W9-A2-017 / W10-A3-018 **NOT_PROVEN**  
 > Коммит: **не создавался**.
 

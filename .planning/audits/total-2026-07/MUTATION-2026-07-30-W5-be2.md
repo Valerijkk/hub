@@ -1,7 +1,7 @@
 # MUTATION W5 slot 2 — TASK-144 (be2) · 2026-07-30
 
 > Checker: **be2** (!= be1 fixer) · Env: localhost · Go 1.25.0  
-> Criteria: `.planning/backlog/TASK-144-2026-07-29-a3-3-2-messenger-services.md` `[MUTATION CRITERIA]`
+> Criteria: `.planning/backlog/archive/2026-07-29/TASK-144-2026-07-29-a3-3-2-messenger-services.md` `[MUTATION CRITERIA]`
 
 ## Verdict
 
