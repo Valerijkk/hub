@@ -1,6 +1,6 @@
 # Total Audit 2026-07 — индекс
 
-> TASK-008 · A ✅ · A2 ✅ · **A3 FINAL ✅** ([00-STAGE-A3-COMPLETE.md](00-STAGE-A3-COMPLETE.md)) · B P0–P3 ✅ (W21) · C ⚠️ · FINAL: [00-FINAL.md](00-FINAL.md) · 2026-07-29
+> TASK-008 · A ✅ · A2 ✅ · **A3 FINAL ✅** ([00-STAGE-A3-COMPLETE.md](00-STAGE-A3-COMPLETE.md)) · B P0–P3 ✅ · C mutation drained (W1–W13) · W20 FINAL draft [00-FINAL.md](00-FINAL.md) вердикт **B** · hubtest **FAIL** ([HUBTEST-2026-07-30-task008.md](HUBTEST-2026-07-30-task008.md)) · 2026-07-30
 
 | Волна | Зона | Статус | Файлов | P0 | P1 | P2 | P3 |
 |-------|------|--------|-------:|---:|---:|---:|---:|
@@ -67,6 +67,6 @@
 | W13–W17 фиксы | **COMPLETE** (P0–P2 код; P3 backlog) |
 | W18 мутация | **PARTIAL** — 39 PASS / 9 FAIL — [`W18-SUMMARY.md`](W18-SUMMARY.md) |
 | W19 cross | **COMPLETE** — [`W19-SUMMARY.md`](W19-SUMMARY.md) |
-| W20 FINAL | **COMPLETE** — [`00-FINAL.md`](00-FINAL.md) · hubtest local PASS · COV vs 81.9% NOT VERIFIED |
+| W20 FINAL | **DRAFT** — [`00-FINAL.md`](00-FINAL.md) вердикт **B** · gates 1–3 PASS · hubtest **FAIL** ([HUBTEST-2026-07-30-task008.md](HUBTEST-2026-07-30-task008.md)) · overall COV 80.2% (2026-07-29) vs 81.9% |
 
-**Audit + backlog A3 done** (дедуп → TASK-124…176). **TASK-008** остаётся открытым до remediation + method-comparable COV + owner merge.
+**Audit + backlog A3 done** (дедуп → TASK-124…176). Stage C mutation drained. **TASK-008** остаётся **В работе** до green hubtest (+ owner merge / FA-06 вне scope).

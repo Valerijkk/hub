@@ -1,0 +1,195 @@
+[
+  {
+    "id": "069",
+    "verdict": "FAIL",
+    "mutation": "CallPanel aria-label fullscreen → undefined",
+    "red": "STILL GREEN",
+    "green": "GREEN",
+    "reason": "not caught"
+  },
+  {
+    "id": "070",
+    "verdict": "FAIL",
+    "mutation": "CardTitle <h3> → <div>",
+    "red": "STILL GREEN",
+    "green": "GREEN",
+    "reason": "not caught"
+  },
+  {
+    "id": "071",
+    "verdict": "PASS",
+    "mutation": "SelectTrigger rounded-[var(--r2)] → rounded-md",
+    "red": "Test Files  1 failed (1) | FAIL  ../testframework/stages/unit/frontend-test/domains/platform/tokens-i18n-p3.test.tsx > P3-FE-03/04 · tokens + i18n primitives (TASK-071) > SelectTrigger uses hub radius/border tokens (not shadcn rounded-md/bo",
+    "green": "GREEN",
+    "reason": "RED→GREEN"
+  },
+  {
+    "id": "072",
+    "verdict": "FAIL",
+    "mutation": "timer-store: disable Number.isFinite(startedMs) guard",
+    "red": "STILL GREEN",
+    "green": "GREEN",
+    "reason": "not caught"
+  },
+  {
+    "id": "073",
+    "verdict": "PASS",
+    "mutation": "byok-settings: strip toastApiError(",
+    "red": "Test Files  1 failed (1) | FAIL  ../testframework/stages/unit/frontend-test/domains/platform/silent-fail-empty-p3.test.tsx > P3-FE-06 silent fail → error UI (TASK-073) > BYOK refresh calls toastApiError on reject (not silent empty) | Assert",
+    "green": "GREEN",
+    "reason": "RED→GREEN"
+  },
+  {
+    "id": "074",
+    "verdict": "PASS",
+    "mutation": "format-api-error: weaken code===\"number\" guard",
+    "red": "Test Files  1 failed (1) | FAIL  ../testframework/stages/unit/frontend-test/domains/platform/type-casts-p3.test.ts > P3-FE-07 type casts (TASK-074) > extractApiError does not treat plain Error as ApiError | AssertionError: expected 'import ",
+    "green": "GREEN",
+    "reason": "RED→GREEN"
+  },
+  {
+    "id": "075",
+    "verdict": "FAIL",
+    "mutation": "BASELINE FAIL: regex /Исполнитель[\\s\\S]{0,200}cursor-pointer/ hits comment",
+    "red": "baseline already RED",
+    "green": "n/a",
+    "reason": "baseline FAIL"
+  },
+  {
+    "id": "076",
+    "verdict": "PASS",
+    "mutation": "pipeline refetchInterval → constant 30_000",
+    "red": "Test Files  1 failed (1) | FAIL  ../testframework/stages/unit/frontend-test/domains/platform/perf-stale-p3.test.ts > TASK-076 P3-FE-09 perf / stale clock / Set hoist > pipeline refetchInterval only when queued/in_progress | AssertionError: ",
+    "green": "GREEN",
+    "reason": "RED→GREEN"
+  },
+  {
+    "id": "077",
+    "verdict": "FAIL",
+    "mutation": "client.ts: invalid JSON → throw SyntaxError",
+    "red": "n/a",
+    "green": "n/a",
+    "reason": "apply: miss C:\\Users\\Valerii\\Desktop\\hub\\frontend\\src\\api\\client.ts: \"\\t\\t} catch {\\n\\t\\t\\tconst parseError: ApiError = {\\n\\t\\t\\t\\tcode: 502,\\n\\t\\t\\t\\tmessage: \\\"invalid"
+  },
+  {
+    "id": "078",
+    "verdict": "PASS",
+    "mutation": "architecture.md: inject ~60+",
+    "red": "Test Files  1 failed (1) | FAIL  ../testframework/stages/unit/frontend-test/domains/platform/docs-spa-ux-p3.test.ts > TASK-078 P3-FE-13..15 docs / SPA / preview URLs > architecture.md pins route count (not ~60+) | AssertionError: expected '",
+    "green": "GREEN",
+    "reason": "RED→GREEN"
+  },
+  {
+    "id": "093",
+    "verdict": "PASS",
+    "mutation": "notification-panel: bg-[var(--blue)] → bg-blue-500",
+    "red": "Test Files  1 failed (1) | Tests  1 failed (1) | FAIL  ../testframework/stages/unit/frontend-test/domains/platform/notification-tokens.test.tsx > NotificationPanel tokens (A2W9-4-003 / TASK-093) > unread row uses design tokens, not raw Tail",
+    "green": "GREEN",
+    "reason": "RED→GREEN"
+  },
+  {
+    "id": "123",
+    "verdict": "PASS",
+    "mutation": "use-websocket: re-export useRooms",
+    "red": "Test Files  1 failed (1) | FAIL  ../testframework/stages/unit/frontend-test/domains/platform/i18n-push-rooms-p2.test.ts > useRooms dead export removed (A2W11-4-002 / TASK-123) > does not export useRooms (0 call sites → deleted) | AssertionE",
+    "green": "GREEN",
+    "reason": "RED→GREEN"
+  },
+  {
+    "id": "123docs",
+    "parent": "123",
+    "verdict": "PASS",
+    "mutation": "system_specification REST ~252 → 286",
+    "red": "Test Files  1 failed (1) | FAIL  ../testframework/stages/unit/frontend-test/domains/platform/docs-drift-task123.test.ts > docs drift NF-11 / REST / webcam (A2W11 / TASK-123) > A2W11-5-004: system_specification summary uses OpenAPI ~252 meth",
+    "green": "GREEN",
+    "reason": "RED→GREEN"
+  },
+  {
+    "id": "125",
+    "verdict": "FAIL",
+    "mutation": "SAFE_URL_RE allow javascript:",
+    "red": "n/a",
+    "green": "n/a",
+    "reason": "apply: miss C:\\Users\\Valerii\\Desktop\\hub\\frontend\\src\\lib\\safe-url.ts: \"export const SAFE_URL_RE = /^(https?:|mailto:\\\\/|#)/i;\""
+  },
+  {
+    "id": "127",
+    "verdict": "PASS",
+    "mutation": "sprint-backlog: force loadError/isError off",
+    "red": "Test Files  1 failed (1) | Tests  1 failed (1) | FAIL  ../testframework/stages/unit/frontend-test/domains/tracker/sprint-backlog-error.test.tsx > SprintBacklog error≠empty (A2W10-A3-002 / TASK-093) > shows alert + retry instead of «Бэклог п",
+    "green": "GREEN",
+    "reason": "RED→GREEN"
+  },
+  {
+    "id": "128",
+    "verdict": "FAIL",
+    "mutation": "canMutateProject always true",
+    "red": "n/a",
+    "green": "n/a",
+    "reason": "apply: miss C:\\Users\\Valerii\\Desktop\\hub\\frontend\\src\\lib\\permissions.ts: \"export function canMutateProject(role: string | null | undefined): boolean {\\n\\tif (!role) return t"
+  },
+  {
+    "id": "131",
+    "verdict": "PASS",
+    "mutation": "use-messages: strip Array.isArray(reactions)",
+    "red": "Test Files  1 failed (1) | FAIL  ../testframework/stages/unit/frontend-test/domains/messenger/reaction-toggled-guard.test.tsx > A3W11-3-002 · reaction_toggled reactions guard > skips update when reactions is undefined or non-array | Asserti",
+    "green": "GREEN",
+    "reason": "RED→GREEN"
+  },
+  {
+    "id": "173",
+    "verdict": "FAIL",
+    "mutation": "bookmarksTitle: return channel_id UUID",
+    "red": "n/a",
+    "green": "n/a",
+    "reason": "apply: miss C:\\Users\\Valerii\\Desktop\\hub\\frontend\\src\\components\\messenger\\bookmarks-panel.tsx: \"function bookmarkTitle(bm: Bookmark): string {\\n\\tconst name = bm.channel_name?.trim();\\n\\treturn n"
+  },
+  {
+    "id": "174",
+    "verdict": "PASS",
+    "mutation": "link-preview: isSafeUrl always true + raw href",
+    "red": "FAIL  ../testframework/stages/unit/frontend-test/domains/messenger/modules-link-preview-xss.test.tsx > modules LinkPreview URL whitelist (C-W19-FE-002) > does not render preview for javascript: URL | Error: expect(element).toBeEmptyDOMEleme",
+    "green": "GREEN",
+    "reason": "RED→GREEN"
+  },
+  {
+    "id": "179",
+    "verdict": "PASS",
+    "mutation": "AVAILABLE_EVENTS += \"sprint.completed\"",
+    "red": "Test Files  1 failed (1) | Tests  2 failed (2) | FAIL  ../testframework/stages/unit/frontend-test/domains/platform/webhook-events-sprint-completed-c-w19.test.tsx > TASK-179 C-W19-FE-001 webhook events allowlist > AVAILABLE_EVENTS does not i",
+    "green": "GREEN",
+    "reason": "RED→GREEN"
+  },
+  {
+    "id": "182",
+    "verdict": "PASS",
+    "mutation": "leave-requests: pendingError UI gate → false",
+    "red": "Test Files  1 failed (1) | FAIL  ../testframework/stages/unit/frontend-test/domains/hr/leave-pending-error.test.tsx > LeaveRequestsPage pending error≠empty (C-W19-FE-005 / TASK-182) > shows approval queue alert when listPendingLeave fails, ",
+    "green": "GREEN",
+    "reason": "RED→GREEN"
+  },
+  {
+    "id": "186",
+    "verdict": "PASS",
+    "mutation": "call-calendar: channelsError UI gate → false",
+    "red": "Test Files  1 failed (1) | FAIL  ../testframework/stages/unit/frontend-test/domains/calls/call-calendar-error-empty.test.tsx > CallCalendar channels error≠empty (FE-MC-001 / TASK-186) > shows alert+retry when getChannels fails, not month gr",
+    "green": "GREEN",
+    "reason": "RED→GREEN"
+  },
+  {
+    "id": "187",
+    "verdict": "PASS",
+    "mutation": "pipeline-status: raw href html_url",
+    "red": "Test Files  1 failed (1) | FAIL  ../testframework/stages/unit/frontend-test/domains/tracker/pipeline-status-sanitize.test.tsx [ ../testframework/stages/unit/frontend-test/domains/tracker/pipeline-status-sanitize.test.tsx ] | Error: Transfor",
+    "green": "GREEN",
+    "reason": "RED→GREEN"
+  },
+  {
+    "id": "192",
+    "verdict": "PASS",
+    "mutation": "webhooks toggle: omit version",
+    "red": "Test Files  1 failed (1) | FAIL  ../testframework/stages/unit/frontend-test/domains/platform/webhooks-version-ol.test.tsx > WebhooksPage version OL (FE-SMA-001 / TASK-192) > toggle active sends is_active + version | AssertionError: expected",
+    "green": "GREEN",
+    "reason": "RED→GREEN"
+  }
+]

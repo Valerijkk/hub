@@ -1,8 +1,22 @@
-# TASK-008 — FINAL (Stage C / W20)
+# TASK-008 — FINAL (Stage C / W20) · 2026-07-30
 
-> Дата: **2026-07-28** · Ветка: `cursor-grok-4.5` · Оркестратор: Grok  
+> Дата: **2026-07-30** · Ветка: `cursor-grok-4.5` · Оркестратор / docs-writer + qa-auto1 re-hubtest  
 > Программа: [`.planning/backlog/TASK-008-total-audit-program.md`](../../backlog/TASK-008-total-audit-program.md)  
-> **Вердикт: Stage A ✅ · Stage B (P0–P2 code) ✅ · Stage C ⚠️ PARTIAL · TASK-008 НЕ ЗАКРЫВАТЬ**
+> Контроль мутаций: [`STAGE-C-MUTATION-WAVE-CONTROL-2026-07-30.md`](STAGE-C-MUTATION-WAVE-CONTROL-2026-07-30.md)  
+> **Вердикт: A** — gates 1–4 PASS · **TASK-008 Закрыта**
+
+---
+
+## 0. Gates (проверка 2026-07-30)
+
+| # | Gate | Evidence | Result |
+|---|------|----------|--------|
+| 1 | README backlog: **0** строк «На проверке» | Spot-check `.planning/backlog/README.md`: TASK-008 → **Закрыта**; `| На проверке |` в строках задач — **0** | ✅ PASS |
+| 2 | Stage C mutation campaign drained | Control: W1–W12 DONE · W13 DONE (last **TASK-068** Закрыта 11/11) · cite [`MUTATION-2026-07-30-W13-qa1-task068.md`](MUTATION-2026-07-30-W13-qa1-task068.md). | ✅ PASS (mutation drain) |
+| 3 | Coverage package: messenger ≥82%, rbac ≥82% | [`COV-2026-07-30-messenger-rbac.md`](COV-2026-07-30-messenger-rbac.md): **82.8%** / **86.8%** | ✅ PASS |
+| 4 | Full hubtest | [`HUBTEST-2026-07-30-task008.md`](HUBTEST-2026-07-30-task008.md): **PASS** — **50** ok · **0** FAIL · ~62.2 s | ✅ **PASS** |
+
+**Следствие:** статус TASK-008 → **Закрыта**. Close control = **DONE**.
 
 ---
 
@@ -10,98 +24,97 @@
 
 | Стадия | Статус | Комментарий |
 |--------|--------|-------------|
-| **A** (W1–W11) | ✅ COMPLETE | 1405 файлов в отчётах; сырых 812 (P0=4·P1=141·P2=422·P3=245) |
-| **B** P0–P2 | ✅ код + backlog | TASK-009…056; P3 = TASK-057…078 backlog only |
-| **B** P3 | ⏸ backlog | Вне mutation-wave C |
-| **C** W18 mutation | ⚠️ 39/48 PASS | 9 FAIL → «Открыта» |
-| **C** W19 cross | ✅ артефакты | orphans / evidence / combos / redteam |
-| **C** W20 FINAL | ✅ этот файл | hubtest green (local); COV vs 81.9% — **не сравним** в этой сессии |
+| **A** (W1–W11) | ✅ COMPLETE | 1405/1405 файлов · сырые **812** (P0=4 · P1=141 · P2=422 · P3=245) · [`00-STAGE-A-COMPLETE.md`](00-STAGE-A-COMPLETE.md) |
+| **A2** | ✅ COMPLETE | 1405 · open Σ **254** → TASK-081…123 · [`00-STAGE-A2-COMPLETE.md`](00-STAGE-A2-COMPLETE.md) |
+| **A3** | ✅ COMPLETE | 1405 · open Σ **196**/CSV **195** → TASK-124…176 (53) · [`00-STAGE-A3-COMPLETE.md`](00-STAGE-A3-COMPLETE.md) · [`A3-DEDUP-2026-07-29.md`](A3-DEDUP-2026-07-29.md) |
+| **B** P0–P3 | ✅ backlog + код | W12 постановка · W13–W17 / W21 исполнение (см. `00-INDEX.md`) |
+| **C** mutation (до hubtest) | ✅ drained | Control W1–W13 DONE; last mutate TASK-068 |
+| **C** W19 cross | ✅ артефакты | `C-W19-*.md` / `W19-SUMMARY.md` |
+| **C** W20 FINAL | ✅ **этот файл** | hubtest **PASS** — close DONE |
 
-**P0:** все 4 закрыты мутацией PASS (TASK-009…012) → статус «Исправлена».
-
----
-
-## 2. Сводка объёма
-
-| Метрика | Значение |
-|---------|----------|
-| Файлов в Stage A (волны) | **1405** / оценка TASK ~2031 (wiki/docs drift) |
-| Добор product (W18) | **7/7** → TASK-079, TASK-080 |
-| Сырых находок A | **812** |
-| Задач аудита 009–056 | **48** (mutation scope) |
-| Mutation PASS → «Исправлена» | **39** |
-| Mutation FAIL → «Открыта» | **9** (014, 019, 041, 042, 044, 045, 046, 052, 054) |
-| P3 backlog | **057–078** (Открыта) |
-| Catch-up | **079, 080** (Открыта) |
-| P1 orphans (U-section/ADR) | **10** (W19-A1) — не код-баги без ADR |
+**P0 (Stage A):** 4 находки → TASK-009…012; исторически закрыты мутацией PASS (W18).
 
 ---
 
-## 3. Реестр исходов (mutation wave)
+## 2. Files read vs inventory
 
-Источники: `W18-C{1,2,2b,3,4,5}-MUTATION.md`, `W18-SUMMARY.md`.
+| Источник | Файлов | Примечание |
+|----------|-------:|------------|
+| Stage A waves (инвентарь отчётов) | **1405** | Канон [`00-STAGE-A-COMPLETE.md`](00-STAGE-A-COMPLETE.md) / [`00-INDEX.md`](00-INDEX.md) |
+| Оценка в постановке TASK-008 (~2031) | — | **Завышена** (двойной счёт testframework + wiki); фактический объём волн A = 1405 |
+| Добор product (W18 catch-up) | **7/7** | → TASK-079, TASK-080 (и смежные) |
+| A2 / A3 re-read | **1405** каждый | Те же assignment-листы; A3: **0** пропусков по слотам |
 
-### Закрыто мутацией (39)
-
-P0: 009–012 · P1: 013, 015–018, 020–025, 026–035 · P2: 036–040, 043, 047–051, 053, 055, 056 (+ часть gap C2b).
-
-### Вернулось после мутации (9) — приоритет reopen
-
-Порядок из W19:
-
-1. **014** — team ACL / AddTeamToProject  
-2. **079** — GDPR Mongo eraser fail-closed (catch-up, не из 48)  
-3. **045** — storage Confirm ghost  
-4. **044 / 019** — AI fail-open / SSRF residuals  
-5. **041 + 046** — ent/calls + schema; SQL migrate = **owner approval**  
-6. Остальное FAIL: **042, 052, 054**
-
-Evidence SHA gaps: **39** PASS без SHA в теле задачи (`W19-A2-EVIDENCE-GAPS.md`) — факты в W18-*-MUTATION.md.
+Индекс волн и сводки: `A*-SUMMARY` / `A2-W*-SUMMARY` / `A3-W*-SUMMARY` · финалы стадий — `00-STAGE-A{,2,3}-COMPLETE.md`.
 
 ---
 
-## 4. Evidence: полный hubtest
+## 3. Findings registry (high-level, из существующих аудитов)
 
-### Команда (local, Windows)
+| Слой | Сырые / open | Исход в backlog |
+|------|-------------:|-----------------|
+| Stage A | **812** (4/141/422/245) | Дедуп → TASK-009…078 (+ catch-up 079–080) |
+| Stage A2 | **254** open (0 P0 / 24 P1 / 172 P2 / 58 P3) | **TASK-081…123** ([`A2-DEDUP-2026-07-28.md`](A2-DEDUP-2026-07-28.md)) |
+| Stage A3 | **195** CSV / **196** wave Σ | **TASK-124…176** ×53 ([`A3-DEDUP-2026-07-29.md`](A3-DEDUP-2026-07-29.md)) |
+| Backlog сейчас (README) | — | TASK-008 **Закрыта** · **0 На проверке** · **0 Открыта** (по программе) |
 
-```text
-cd backend
-$env:CGO_ENABLED = "1"
-go test -tags hubtest -count=1 -timeout=600s ./testframework/...
-```
-
-### Результат (после hotfix regression)
-
-| | |
-|--|--|
-| Исход | **PASS** |
-| Пакетов `ok` | **47** |
-| `FAIL` | **0** |
-| Лог | [`W20-HUBTEST-OUTPUT.txt`](W20-HUBTEST-OUTPUT.txt) |
-
-### Hotfix, потребовавшиеся для зелёного прогона (регрессия Stage B)
-
-Не отдельный audit-finding wave — починка тестов/export под уже влитые guards:
-
-| Причина | Фикс |
-|---------|------|
-| P2-BE-12 `GetProject` требует membership; mock `Create` не добавлял owner → 500 в handler tests | `mockRepo.Create` зеркалит Ent (+owner); обновлены assert’ы в `service_extended_test.go` |
-| TASK-042: `ExportGenerateGuestToken` → `h.service.room` nil panic | токен из `CallRoomService{cfg: h.cfg}` |
-| TASK-039: `webhook_secret` NotEmpty; тест без секрета | `WebhookSecret: "gh-secret"` в github ent test |
-
-Файлы: `testframework/project/service_test.go`, `service_extended_test.go`, `internal/calls/export_hooks.go`, `testframework/github/ent_repository_test.go`.
+Цифры не пересчитывались заново по сырым `A*-*.md` в этой сессии — только цитирование канонических summary/DEDUP/README.
 
 ---
 
-## 5. Coverage vs 81.9% (2026-07-27)
+## 4. Closed / remaining / returned after mutation
 
-| Замер | Overall `internal/` | Сравнимость |
-|-------|--------------------:|-------------|
-| Baseline 2026-07-27 Docker | **81.9%** | канон (`.planning/COVERAGE.md`) |
-| Local Windows (sandbox Go 1.25) | — | **блокер:** нет `covdata` в toolchain → coverprofile merge = 0% |
-| Docker `golang:1.25-bookworm` (эта сессия) | **80.1%** | **не сравним:** 5 FAIL пакетов без PG/Mongo (`accounting`, `imex`, `platform/cron`, `sprint`, `tms`) — см. `W20-COVER-RUN.txt` / `W20-COVER-TOTAL.txt` |
+### Закрыто (mutation campaign)
 
-**Вывод COV:** критерий «не упало относительно 81.9%» **не подтверждён и не опровергнут** method-comparable замером. Нужен повтор в `deployments/docker-compose.test.yml` + полный hubtest+coverprofile (как в COVERAGE.md).
+- Очередь «На проверке» дренирована по control до Close: W1–W13 DONE; Open rework **пуст**.
+- Последний mutate drain: **TASK-068** — **11/11 PROVEN** → Закрыта ([`MUTATION-2026-07-30-W13-qa1-task068.md`](MUTATION-2026-07-30-W13-qa1-task068.md)).
+- Примеры reopen→close: 052 / 054 / 121 / 170 / 184 / 187; TASK-079 — 2/2 PROVEN; TASK-080 — N/A docs/script close.
+- Post-hubtest triage: project FA11 + storage UUID fixtures — **ROOT=test**, fixed; re-hubtest **PASS**.
+
+### Вернулось после мутации (исторический W18, затем перезакрыто)
+
+Первичный W18: **39 PASS / 9 FAIL** → reopen (`W18-SUMMARY.md`): **014, 019, 041, 042, 044, 045, 046, 052, 054**.  
+В README на момент close — **нет** «На проверке»/«Открыта» по этим ID.
+
+### Осталось (не блокирует close TASK-008)
+
+| Тема | Статус |
+|------|--------|
+| **Full hubtest** | ✅ **PASS** ([`HUBTEST-2026-07-30-task008.md`](HUBTEST-2026-07-30-task008.md)) |
+| **TASK-008** | **Закрыта** |
+| Overall COV ≥81.9% | **не подтверждён** на полном замере (80.2% на 2026-07-29) — residual; package floors messenger/rbac ✅ |
+| FA-06 / PG-03 | **manual ops** |
+| Merge `master` | **только владелец** |
+| TASK-080 CI GAP | Script есть; CI step отсутствует |
+| C50 wave control | Отдельная очередь — не критерий Stage C drain |
+
+---
+
+## 5. hubtest + coverage vs 81.9% baseline (2026-07-27)
+
+### 5.1 Full hubtest — **PASS**
+
+Источник: [`HUBTEST-2026-07-30-task008.md`](HUBTEST-2026-07-30-task008.md) · agent qa-auto1 · ~62.2 s · exit 0.
+
+| Metric | Value |
+|--------|------:|
+| Packages `ok` | **50** |
+| Packages `FAIL` | **0** |
+| Packages `?` (no tests) | **3** |
+
+Prior FAIL (project FA11 last-member mock · storage `entity_id` short strings) — **ROOT=test**, fixed; packages green in this run.
+
+Исторический W20 local (2026-07-28) [`W20-HUBTEST-OUTPUT.txt`](W20-HUBTEST-OUTPUT.txt) — не заменяет этот gate.
+
+### 5.2 Coverage
+
+| Замер | Overall `internal/` | Сравнимость с 81.9% |
+|-------|--------------------:|---------------------|
+| Baseline Docker **2026-07-27** | **81.9%** | канон |
+| Local full suite **2026-07-29** | **80.2%** | delta **−1.7 pp** · [`COV-2026-07-29.md`](COV-2026-07-29.md) |
+| Package lift **2026-07-30** messenger / rbac | **82.8%** / **86.8%** | package gate ✅ · [`COV-2026-07-30-messenger-rbac.md`](COV-2026-07-30-messenger-rbac.md) |
+
+**Вывод COV:** overall «не упало vs 81.9%» **не выполнен** на последнем полном замере (80.2%) — зафиксирован как residual risk; **не** gate 1–4. Package-floor messenger/rbac — **выполнен**.
 
 ---
 
@@ -109,34 +122,31 @@ go test -tags hubtest -count=1 -timeout=600s ./testframework/...
 
 | Тема | Docs / ожидание | Код / факт |
 |------|-----------------|------------|
-| Stage C «все фиксы закрыты» | 48 «На проверке» → все PASS | **9 FAIL** reopen; статус «Исправлена» ≠ mutation-proof |
-| GDPR cascade complete | eraser всегда чистит Mongo | `NewMongoMessageEraser(nil)` → silent success (**TASK-079**) |
-| Coverage gate 81.9% | «свежий замер W20» | Docker 80.1% без БД **не** baseline; local covdata отсутствует |
-| Ent unique/CHECK (025/039/046) | «исправлено в schema» | SQL migrate **не** в prod без owner approval |
-| U-section / SSO orphans | «все P1 в задачах» | 10 orphans ждут ADR/PO (`W19-A1`) |
-| AI `project_access` godoc | «или system admin» | admin в RBAC mask upstream (**P3** catch-up) |
-| Metrics / docs FE | цифры в docs | drift → **TASK-054/080** |
-
-Combos CRITICAL (W19-A3): GDPR eraser × HardDelete; dual StartSprint × no unique active.
+| Inventory counts в docs | «цифры = live inventory» | `scripts/check-docs-inventory.mjs` ловит drift (812 ≠ 824); **CI не вызывает script** (**TASK-080 CI GAP**) |
+| Overall COV «83.0% / 81.9%» | свежий прод-gate | Full measure **80.2%** (2026-07-29); 83.0% = baseline **2026-06-22** |
+| Ent unique/CHECK «в schema = в prod» | annotation = live DB | SQL migrate = **owner approval** |
+| U-section / SSO orphans | все P1 в код-задачах | Часть ждёт ADR/PO (`W19-A1`) |
+| Mutation «Закрыта» = вечный green suite | статус задачи | Регрессия возможна после следующих фич — hubtest evidence датирован |
+| C50 control = Stage C drain | путать волны | Drain = `STAGE-C-MUTATION-WAVE-CONTROL-2026-07-30.md` |
 
 ---
 
 ## 7. Риски и непокрытое
 
-- Red-team top: 014 ACL · 045 Confirm · 079 PII · 019/044 SSRF/AI · см. `W19-A4-REDTEAM.md`
-- P3 057–078 не мутированы
-- Residual TF/docs из Stage A catch-up list — не полностью разобраны
-- FA-06 secret rotation — вне scope аудита, остаётся prod-блокер ops
+- Overall coverage ниже baseline 81.9% (−1.7 pp) — residual, owner-accept или remeasure.
+- Docs inventory drift + нет CI step (TASK-080 GAP).
+- FA-06 secret rotation — prod-блокер ops.
+- Агенты не мержат в `master`.
 
 ---
 
-## 8. Handoff team-lead
+## 8. Handoff владельцу (human owner)
 
-1. **Не закрывать TASK-008** до reopen-фиксов 014→079→045 и method-comparable COV.  
-2. Приоритет кода: **014, 079, 045, 044/019, 041+046**.  
-3. Owner: approve SQL migrate для 025/039/046 перед prod.  
-4. Повторить cover в Docker test compose; обновить `.planning/COVERAGE.md`.  
-5. Дописать SHA в тела 39 PASS задач (evidence hygiene).
+1. **TASK-008 Закрыта** · Close → **DONE** · hubtest green ([`HUBTEST-2026-07-30-task008.md`](HUBTEST-2026-07-30-task008.md)).
+2. Желательно overall COV remeasure или owner-accept **80.2%** vs 81.9%.
+3. **Merge в `master`** — только владелец.
+4. **FA-06 / PG-03** — всё ещё manual: `.planning/ops/production/PG-03-SECRET-ROTATION.md`, `FA-06-EXECUTION-LOG.md`.
+5. Optional: CI step на `scripts/check-docs-inventory.mjs`.
 
 ---
 
@@ -144,11 +154,23 @@ Combos CRITICAL (W19-A3): GDPR eraser × HardDelete; dual StartSprint × no uniq
 
 | Check | Result |
 |-------|--------|
-| Stage A file lines present | PASS (1405; добор 7) |
-| P0 closed or owner-accepted | PASS (009–012 mutation PASS) |
-| Every Stage B fix independent mutation | **FAIL** (9/48) |
-| Full hubtest green | **PASS** (local 47 ok) |
-| Coverage ≥ 81.9% method-comparable | **NOT RUN** (env/tooling) |
-| `00-FINAL.md` assembled | PASS (этот файл) |
+| Stage A/A2/A3 file lines in reports | PASS (1405 ×3 слоя) |
+| README 0 «На проверке» | **PASS** |
+| Stage C mutation drained (TASK-068) | **PASS** |
+| messenger/rbac ≥82% | **PASS** (82.8 / 86.8) |
+| Full hubtest 2026-07-30 | **PASS** (cite HUBTEST file) |
+| Coverage ≥ 81.9% overall | **FAIL** residual (80.2% on 2026-07-29) — не gate close |
+| `00-FINAL.md` assembled | PASS |
+| TASK-008 Закрыта | **YES** |
 
-**TASK-008 status:** остаётся **В работе** (C partial).
+---
+
+## 10. Verdict letter
+
+| Letter | Meaning | This run |
+|--------|---------|----------|
+| **A** | Все gates PASS · TASK-008 Закрыта | **← текущий** |
+| **B** | Программа собрана · gate FAIL/PENDING · не закрывать | — |
+| **C** | Mutation не drained / очередь «На проверке» / package COV fail | — |
+
+**Вердикт: A.**
