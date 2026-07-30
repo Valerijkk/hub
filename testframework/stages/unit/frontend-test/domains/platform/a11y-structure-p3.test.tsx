@@ -61,8 +61,13 @@ describe("P3-FE-02 · a11y structure residual (TASK-070)", () => {
 		const { container } = render(
 			<EmptyState icon={Inbox} title="Пусто" description="Нет элементов" />,
 		);
-		const iconWrap = container.querySelector("[aria-hidden='true']");
+		// Explicit wrap aria-hidden (not lucide SVG default alone): first child is icon circle.
+		const iconWrap = container.firstElementChild?.firstElementChild;
 		expect(iconWrap).toBeTruthy();
+		expect(iconWrap).toHaveAttribute("aria-hidden", "true");
+		const iconSvg = iconWrap?.querySelector("svg");
+		expect(iconSvg).toBeTruthy();
+		expect(iconSvg).toHaveAttribute("aria-hidden", "true");
 	});
 
 	it("Avatar announces online status when data-online", async () => {

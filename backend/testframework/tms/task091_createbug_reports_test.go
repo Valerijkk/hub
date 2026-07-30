@@ -14,8 +14,8 @@ import (
 	"github.com/valerii/hub/backend/internal/tms"
 )
 
-// TestCreateBugFromFailedResult_ForeignRunDenied_TASK091 — A2W2-1-001/004.
-// Mutation: убрать GetTestResultInRun / HasRunWith → баг создастся → FAIL.
+// TestCreateBugFromFailedResult_ForeignRunDenied_TASK091 — wiring-only (mock).
+// Prod HasRunWith: TestEntRepository_GetTestResultInRun_RejectsForeignRun_TASK091.
 func TestCreateBugFromFailedResult_ForeignRunDenied_TASK091(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
@@ -44,6 +44,53 @@ func TestCreateBugFromFailedResult_ForeignRunDenied_TASK091(t *testing.T) {
 	})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "не найден")
+}
+
+// TestEntRepository_GetTestResultInRun_RejectsForeignRun_TASK091 — A2W2-1-001/004 на Postgres.
+// result ∈ run A, GetTestResultInRun(run B) + CreateBug(run B) → NotFound / «не найден».
+// Mutation: убрать testresult.HasRunWith(testrun.IDEQ(runID)) из GetTestResultInRun → RED.
+func TestEntRepository_GetTestResultInRun_RejectsForeignRun_TASK091(t *testing.T) {
+	entRepo, ctx, projectID, userID := newTMSPostgresRepoEnv(t)
+	repo := tms.NewCombinedRepository(entRepo, &tms.MongoRepository{})
+	svc := tms.NewTMSService(repo, nil)
+
+	runA, err := entRepo.CreateTestRun(ctx, projectID, tms.CreateTestRunInput{
+		Title: "Run A", RunType: "manual", CreatedByID: userID,
+	})
+	require.NoError(t, err)
+	runB, err := entRepo.CreateTestRun(ctx, projectID, tms.CreateTestRunInput{
+		Title: "Run B", RunType: "manual", CreatedByID: userID,
+	})
+	require.NoError(t, err)
+
+	tc, err := entRepo.CreateTestCase(ctx, projectID, tms.CreateTestCaseInput{
+		Title: "Failing case", CaseType: "classic", Priority: "medium", Status: "active", CreatedByID: userID,
+	})
+	require.NoError(t, err)
+
+	result, err := entRepo.CreateTestResult(ctx, runA.ID, tms.CreateTestResultInput{
+		TestCaseID: &tc.ID, Status: "failed", Comment: "boom",
+	})
+	require.NoError(t, err)
+
+	_, err = entRepo.GetTestResultInRun(ctx, runB.ID, result.ID)
+	require.True(t, ent.IsNotFound(err), "foreign-run result must be NotFound, got %v", err)
+
+	_, err = svc.CreateBugFromFailedResult(ctx, projectID, runB.ID, userID, result.ID, tms.CreateBugRequest{
+		Title: "should-not-create",
+	})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "не найден")
+
+	got, err := entRepo.GetTestResultInRun(ctx, runA.ID, result.ID)
+	require.NoError(t, err)
+	require.Equal(t, result.ID, got.ID)
+
+	bug, err := svc.CreateBugFromFailedResult(ctx, projectID, runA.ID, userID, result.ID, tms.CreateBugRequest{
+		Title: "real bug",
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, bug.ID)
 }
 
 // TestGetLastResultsForTestCases_Batch_TASK091 — A2W2-2-001.

@@ -2,7 +2,7 @@ package project_test
 
 // Тесты сервиса проектов (волна 122): интеграционные и unit-сценарии testframework.
 import (
-	"github.com/valerii/hub/backend/internal/project"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,6 +12,8 @@ import (
 	"github.com/valerii/hub/backend/ent/issuelink"
 	"github.com/valerii/hub/backend/ent/projectmember"
 	"github.com/valerii/hub/backend/ent/workflowstatus"
+	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
+	"github.com/valerii/hub/backend/internal/project"
 )
 
 // Фаза 122 — пробелы покрытия сервиса: cross-project delete, teams, invites..
@@ -90,7 +92,8 @@ func TestService_Wave122_ListTeams_WithMember(t *testing.T) {
 	assert.True(t, found)
 }
 
-// TestService_Wave122_RemoveTeamMember проверяет бизнес-логику: сервис wave 122 remove team участник.
+// TestService_Wave122_RemoveTeamMember — TASK-184 / C-W19-TT-001: last member → 409 Conflict
+// (orphan team запрещён; раньше wave122 ожидал empty members).
 func TestService_Wave122_RemoveTeamMember(t *testing.T) {
 	env := newProjectRepoEnv(t)
 	svc := project.NewProjectService(env.repo, nil, nil)
@@ -100,11 +103,16 @@ func TestService_Wave122_RemoveTeamMember(t *testing.T) {
 	_, err = env.repo.AddTeamMember(env.ctx, team.ID, env.owner.ID)
 	require.NoError(t, err)
 
-	require.NoError(t, svc.RemoveTeamMember(env.ctx, team.ID, env.owner.ID, env.owner.ID))
+	err = svc.RemoveTeamMember(env.ctx, team.ID, env.owner.ID, env.owner.ID)
+	require.Error(t, err)
+	var appErr *apperrors.AppError
+	require.True(t, errors.As(err, &appErr))
+	assert.Equal(t, 409, appErr.Code)
+	assert.Contains(t, appErr.Message, "cannot remove the last member")
 
 	members, err := env.repo.ListTeamMembers(env.ctx, team.ID)
 	require.NoError(t, err)
-	assert.Empty(t, members)
+	assert.Len(t, members, 1)
 }
 
 // TestService_Wave122_CreateInviteAndList проверяет бизнес-логику: сервис wave 122 создание приглашение and список.

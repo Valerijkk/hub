@@ -2,11 +2,15 @@ package marketplace_test
 
 import (
 	"context"
+	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/hook"
+	"github.com/valerii/hub/backend/ent/marketplacelisting"
 	"github.com/valerii/hub/backend/internal/marketplace"
 )
 
@@ -60,10 +64,9 @@ func TestListPending_PaginationCap_W7A5003(t *testing.T) {
 	assert.True(t, page1.HasMore)
 }
 
-// TestUpdateApproved_AtomicRemoderation_W7A5004 — после edit approved сразу pending,
-// нет окна approved+новый title.
-// Mutation: вернуть UpdateListing+SetListingStatus двумя шагами → можно прочитать
-// approved с новым title между ними (здесь: Get после UpdateApproved → всегда pending).
+// TestUpdateApproved_AtomicRemoderation_W7A5004 — один UPDATE: fields+pending.
+// Ent hook после каждого UpdateOne: mid-window approved+newTitle запрещён.
+// Mutation: split UpdateListing + SetListingStatus → hook видит approved+newTitle → RED.
 func TestUpdateApproved_AtomicRemoderation_W7A5004(t *testing.T) {
 	svc, adminID, memberID, client := setupMarketplaceServiceWithClient(t)
 	ctx := context.Background()
@@ -74,6 +77,23 @@ func TestUpdateApproved_AtomicRemoderation_W7A5004(t *testing.T) {
 	assert.Equal(t, StatusApproved, approved.Status)
 
 	newTitle := "Atomic Remoderation Title"
+	listingID := approved.ID
+
+	var sawApprovedWithNewTitle atomic.Bool
+	client.MarketplaceListing.Use(hook.On(func(next ent.Mutator) ent.Mutator {
+		return ent.MutateFunc(func(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+			v, err := next.Mutate(ctx, m)
+			if err != nil {
+				return v, err
+			}
+			row, gerr := client.MarketplaceListing.Get(ctx, listingID)
+			if gerr == nil && row.Status == marketplacelisting.StatusApproved && row.Title == newTitle {
+				sawApprovedWithNewTitle.Store(true)
+			}
+			return v, nil
+		})
+	}, ent.OpUpdateOne))
+
 	updated, err := svc.UpdateListing(ctx, memberID, approved.ID, UpdateListingRequest{
 		Title:   &newTitle,
 		Version: approved.Version,
@@ -82,11 +102,13 @@ func TestUpdateApproved_AtomicRemoderation_W7A5004(t *testing.T) {
 	assert.Equal(t, StatusPending, updated.Status)
 	assert.Equal(t, newTitle, updated.Title)
 
-	// Прямое чтение из БД: status не может быть approved с новым title.
 	row, err := client.MarketplaceListing.Get(ctx, approved.ID)
 	require.NoError(t, err)
 	assert.Equal(t, "pending", string(row.Status))
 	assert.Equal(t, newTitle, row.Title)
+
+	assert.False(t, sawApprovedWithNewTitle.Load(),
+		"W7-A5-004: mid-window approved+new title must not be visible between Saves")
 }
 
 // TestAuthorName_NoEmailOnPublicCatalog_W7A5005 — витрина без email PII.

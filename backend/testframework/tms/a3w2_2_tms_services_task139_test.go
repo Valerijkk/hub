@@ -267,6 +267,41 @@ func TestImportAllureToExistingRun_EntTx_A3W2_2_003(t *testing.T) {
 	assert.Len(t, results, 1)
 }
 
+// TestImportAllureToExistingRun_EntTxRollback_A3W2_2_003 — mid-fail после batch → rollback,
+// partial results и stale stats не остаются (prod Ent tx, не mock compensating).
+// Mutation: убрать tx / commit сразу после CreateBulk → после inject-fail orphan results.
+func TestImportAllureToExistingRun_EntTxRollback_A3W2_2_003(t *testing.T) {
+	entRepo, ctx, projectID, userID := newEntRepositoryTestEnv(t)
+
+	run, err := entRepo.CreateTestRun(ctx, projectID, tms.CreateTestRunInput{
+		Title: "existing-tx-rollback", CreatedByID: userID,
+	})
+	require.NoError(t, err)
+	beforeTotal := run.TotalCount
+
+	tms.ExportSetAfterExistingRunBatchHook(func(context.Context) error {
+		return errors.New("injected mid-fail after batch")
+	})
+	t.Cleanup(func() { tms.ExportSetAfterExistingRunBatchHook(nil) })
+
+	err = entRepo.ImportResultsToExistingRun(ctx, run.ID, []tms.CreateTestResultInput{
+		{Status: "passed", AllureUUID: "orphan-risk"},
+		{Status: "failed", AllureUUID: "orphan-risk-2"},
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "injected mid-fail")
+
+	results, err := entRepo.ListTestResults(ctx, run.ID)
+	require.NoError(t, err)
+	assert.Empty(t, results, "batch must roll back on mid-fail inside Ent tx")
+
+	got, err := entRepo.GetTestRun(ctx, run.ID)
+	require.NoError(t, err)
+	assert.Equal(t, beforeTotal, got.TotalCount, "stats must not update on rolled-back import")
+	assert.Equal(t, 0, got.PassedCount)
+	assert.Equal(t, 0, got.FailedCount)
+}
+
 // TestMockUpdateTestResult_RequiresRunScope_A3W2_2_004 —
 // без Edges.Run и без runResults → NotFound.
 // Mutation: ослабить mock (skip без Run) → тест краснеет.

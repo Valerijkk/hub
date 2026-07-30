@@ -61,6 +61,28 @@ describe("FE · PipelineStatus sanitizeUrl (FE-TA-001 / TASK-187)", () => {
 		expect(src).not.toMatch(/href=\{run\.html_url\}/);
 	});
 
+	it("source guard: hub tokens — нет text-green/red-600 / bg-gray-* (FE-TA-005)", async () => {
+		const fs = await import("node:fs");
+		const path = await import("node:path");
+		const src = fs.readFileSync(
+			path.resolve(
+				__dirname,
+				"../../../../../../frontend/src/modules/tracker/pipeline-status.tsx",
+			),
+			"utf8",
+		);
+		// FE-TA-005: raw Tailwind palette → design-system tokens (var(--green|red|gG|gR|…)).
+		expect(src).not.toMatch(/text-(green|red)-600/);
+		expect(src).not.toMatch(/bg-gray-/);
+		expect(src).not.toMatch(/text-gray-/);
+		expect(src).not.toMatch(/text-yellow-/);
+		expect(src).not.toMatch(/bg-(green|red|yellow)-/);
+		expect(src).toMatch(/text-\[var\(--green\)\]/);
+		expect(src).toMatch(/text-\[var\(--red\)\]/);
+		expect(src).toMatch(/bg-\[var\(--gG\)\]/);
+		expect(src).toMatch(/bg-\[var\(--gR\)\]/);
+	});
+
 	it("keeps safe https html_url as href", async () => {
 		listWorkflowRuns.mockResolvedValue([
 			{

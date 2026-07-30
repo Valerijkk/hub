@@ -165,9 +165,61 @@ func TestCreateUpdateRule_RejectsForeignChannel_A3W1_2_003(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// A3W1-2-004 — ListThreadIssueLinks без N+1 FindIssueByID
-// Mutation: вернуть per-link FindIssueByID loop → findIssueByIDCalls > 0 FAIL.
+// A3W1-2-004 — ListIssueMessageLinksByThread eager WithIssue(+Project)
+// Mutation (repo): убрать WithIssue из ListIssueMessageLinksByThread → Edges.Issue nil / service empty FAIL.
+// Secondary (mock): вернуть per-link FindIssueByID → findIssueByIDCalls растёт FAIL.
 // ---------------------------------------------------------------------------
+
+// TestListIssueMessageLinksByThread_EagerLoadsIssue_A3W1_2_004 — Ent path:
+// repo eager-loads Issue+Project; service ListThreadIssueLinks returns links without FindIssueByID.
+func TestListIssueMessageLinksByThread_EagerLoadsIssue_A3W1_2_004(t *testing.T) {
+	env := newTrackerRepoTestEnv(t)
+	svc := tracker.NewTrackerService(env.repo, nil)
+
+	ch, err := env.client.Channel.Create().
+		SetName("thread-links").
+		SetChannelType("public").
+		SetProjectID(env.projectID).
+		SetCreatedBy(env.userID).
+		Save(env.ctx)
+	require.NoError(t, err)
+
+	const messageID = "thread-root-eager"
+	var issueIDs []uuid.UUID
+	for i := 0; i < 3; i++ {
+		iss, err := env.repo.CreateIssue(env.ctx, env.projectID, tracker.CreateIssueInput{
+			Title: fmt.Sprintf("Eager%d", i), IssueType: "task", ReporterID: env.userID,
+		})
+		require.NoError(t, err)
+		issueIDs = append(issueIDs, iss.ID)
+		_, err = env.repo.CreateIssueMessageLink(env.ctx, iss.ID, ch.ID, env.userID, messageID, false)
+		require.NoError(t, err)
+	}
+
+	byThread, err := env.repo.ListIssueMessageLinksByThread(env.ctx, ch.ID, messageID)
+	require.NoError(t, err)
+	require.Len(t, byThread, 3)
+	for _, l := range byThread {
+		require.NotNil(t, l.Edges.Issue,
+			"A3W1-2-004: ListIssueMessageLinksByThread must WithIssue (mutation: remove WithIssue)")
+		require.NotNil(t, l.Edges.Issue.Edges.Project,
+			"A3W1-2-004: WithIssue must include WithProject")
+		assert.Equal(t, env.projectID, l.Edges.Issue.Edges.Project.ID)
+	}
+
+	links, err := svc.ListThreadIssueLinks(env.ctx, env.projectID, ch.ID, messageID)
+	require.NoError(t, err)
+	require.Len(t, links, 3,
+		"A3W1-2-004: without eager Issue edges service filters all links out")
+	gotIDs := make(map[string]struct{}, len(links))
+	for _, l := range links {
+		gotIDs[l.IssueID] = struct{}{}
+	}
+	for _, id := range issueIDs {
+		_, ok := gotIDs[id.String()]
+		assert.True(t, ok, "expected issue %s in ListThreadIssueLinks", id)
+	}
+}
 
 func TestListThreadIssueLinks_NoNPlusOne_A3W1_2_004(t *testing.T) {
 	svc, repo := newTestService()

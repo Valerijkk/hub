@@ -60,6 +60,20 @@ describe("P3-FE-07 type casts (TASK-074)", () => {
 	});
 
 	it("AdminAIProvider extends base; MyAIProvider is distinct shape", () => {
+		// Source-guard: kill recipes (merge My=Admin / lift priority onto base /
+		// priority only on My) must RED — fixtures alone do not catch type edits.
+		const src = readSrc("api/ai-types.ts");
+		expect(src).toMatch(
+			/export interface AdminAIProvider extends AIProviderBase\s*\{[^}]*\bpriority:\s*number\b/s,
+		);
+		expect(src).toMatch(/export type MyAIProvider\s*=\s*AIProviderBase\b/);
+		expect(src).not.toMatch(/export type MyAIProvider\s*=\s*AdminAIProvider\b/);
+		const baseBody = src.match(/export interface AIProviderBase\s*\{([^}]+)\}/)?.[1] ?? "";
+		expect(baseBody).not.toMatch(/\bpriority\b/);
+
+		expectTypeOf<AdminAIProvider>().toHaveProperty("priority");
+		expectTypeOf<MyAIProvider>().not.toHaveProperty("priority");
+
 		const admin: AdminAIProvider = {
 			id: "1",
 			name: "a",

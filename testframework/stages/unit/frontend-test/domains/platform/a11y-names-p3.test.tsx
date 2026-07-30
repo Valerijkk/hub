@@ -53,9 +53,10 @@ describe("P3-FE-01 · accessible names residual (TASK-069)", () => {
 			error: null,
 		});
 		render(<CallPanel />);
-		expect(
-			screen.getByRole("button", { name: "На весь экран" }),
-		).toBeInTheDocument();
+		// Require aria-label attribute — title alone must not satisfy this assert
+		// (W9-A1-016 kill: drop aria-label, keep title → RED).
+		const fullscreen = screen.getByRole("button", { name: "На весь экран" });
+		expect(fullscreen).toHaveAttribute("aria-label", "На весь экран");
 	});
 
 	it("CallReactionBar emoji buttons expose aria-label", () => {

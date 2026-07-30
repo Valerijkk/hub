@@ -36,8 +36,16 @@ describe("TASK-075 P3-FE-08 dead UI / unused state", () => {
 			fe("modules/tracker/issue-sidebar-meta.tsx"),
 			"utf8",
 		);
-		expect(src).not.toMatch(/Исполнитель[\s\S]{0,200}cursor-pointer/);
-		expect(src).not.toMatch(/Автор[\s\S]{0,200}cursor-pointer/);
+		// Slice people sections only — Status/Priority above legitimately use cursor-pointer.
+		// Match className=…cursor-pointer so comment text cannot self-match (W10-A3-019).
+		const peopleStart = src.indexOf("{/* Исполнитель");
+		const peopleEnd = src.indexOf("{/* Метки");
+		expect(peopleStart).toBeGreaterThanOrEqual(0);
+		expect(peopleEnd).toBeGreaterThan(peopleStart);
+		const people = src.slice(peopleStart, peopleEnd);
+		expect(people).toMatch(/Исполнитель/);
+		expect(people).toMatch(/Автор/);
+		expect(people).not.toMatch(/className="[^"]*cursor-pointer/);
 	});
 
 	it("run-execution-panel has no dead stepResults state", () => {
@@ -62,8 +70,10 @@ describe("TASK-075 P3-FE-08 dead UI / unused state", () => {
 			fe("routes/_authenticated/settings/profile.lazy.tsx"),
 			"utf8",
 		);
-		expect(src).toMatch(/aria-label="Загрузить фото профиля"/);
-		expect(src).toMatch(/fileInputRef\.current\?\.click\(\)/);
+		// Avatar circle must wire onClick→fileInput (W10-A5-016); button-only click is insufficient.
+		expect(src).toMatch(
+			/aria-label="Загрузить фото профиля"\s*\n\s*onClick=\{\(\) => fileInputRef\.current\?\.click\(\)\}/,
+		);
 		expect(src).not.toMatch(/department:/);
 		expect(src).toMatch(/const statusDuration = "1d"/);
 	});

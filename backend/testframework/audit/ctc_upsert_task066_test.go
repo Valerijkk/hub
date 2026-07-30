@@ -2,6 +2,7 @@ package audit_test
 
 import (
 	"context"
+	"crypto/sha256"
 	"net/http/httptest"
 	"sync"
 	"testing"
@@ -14,11 +15,16 @@ import (
 	"github.com/valerii/hub/backend/internal/audit"
 )
 
-// TestAlertWebhook_CTCFixedDigest_TASK066 — W6-A4-010: unequal-length reject + digest equal.
+// TestAlertWebhook_CTCFixedDigest_TASK066 — W6-A4-010: fixed-size digest CTC (не raw-string).
 func TestAlertWebhook_CTCFixedDigest_TASK066(t *testing.T) {
 	assert.True(t, audit.ExportConstantTimeEqualDigest("secret", "secret"))
 	assert.False(t, audit.ExportConstantTimeEqualDigest("secret", "secre"))
 	assert.False(t, audit.ExportConstantTimeEqualDigest("short", "much-longer-secret-value"))
+
+	// Digest-sensitive: CTC operands всегда sha256.Size — raw CTC kill даёт len(a) ≠ Size.
+	assert.Equal(t, sha256.Size, audit.ExportConstantTimeEqualDigestOperandLen("short", "much-longer-secret-value"))
+	assert.Equal(t, sha256.Size, audit.ExportConstantTimeEqualDigestOperandLen("x", "test-alert-secret"))
+	assert.Equal(t, sha256.Size, audit.ExportConstantTimeEqualDigestOperandLen("secret", "secret"))
 
 	repo := &mockAuditRepo{}
 	h := audit.NewHandler(audit.NewAuditService(repo, nil))

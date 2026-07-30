@@ -35,14 +35,18 @@ func TestConfirmUpload_RejectsAlreadyConfirmed_A4_006(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	require.NoError(t, repo.ConfirmUpload(ctx, fileID, "issue", "ISSUE-1"))
+	// entity_id — UUID v4 (Ent validateFileEntityID); не "ISSUE-1" и т.п.
+	boundEntityID := uuid.New().String()
+	hijackEntityID := uuid.New().String()
 
-	err = repo.ConfirmUpload(ctx, fileID, "issue", "ISSUE-HIJACK")
+	require.NoError(t, repo.ConfirmUpload(ctx, fileID, "issue", boundEntityID))
+
+	err = repo.ConfirmUpload(ctx, fileID, "issue", hijackEntityID)
 	require.ErrorIs(t, err, storage.ErrAlreadyConfirmed)
 
 	got, err := client.FileMetadata.Get(ctx, fileID)
 	require.NoError(t, err)
-	assert.Equal(t, "ISSUE-1", got.EntityID, "entity must not be rebinding on re-confirm")
+	assert.Equal(t, boundEntityID, got.EntityID, "entity must not be rebinding on re-confirm")
 	assert.Equal(t, filemetadata.StatusConfirmed, got.Status)
 }
 
@@ -88,8 +92,10 @@ func TestHandler_ConfirmUpload_AlreadyConfirmed_409_A4_006(t *testing.T) {
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
+	// Hijack payload тоже UUID: иначе Ent validator на Update даёт 500 вместо 409.
+	hijackID := uuid.New().String()
 	req = httptest.NewRequest(http.MethodPost, "/api/files/"+fileID.String()+"/confirm", bytes.NewReader([]byte(
-		`{"entityType":"message","entityId":"MSG-HIJACK"}`,
+		`{"entityType":"message","entityId":"`+hijackID+`"}`,
 	)))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err = app.Test(req)

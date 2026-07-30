@@ -104,12 +104,16 @@ func TestService_FA11_RemoveTeamMember_RepoError(t *testing.T) {
 
 	ctx := context.Background()
 	actorID := uuid.New()
+	otherID := uuid.New()
 	team, err := svc.CreateTeam(ctx, actorID, "FA11", "")
 	require.NoError(t, err)
 	teamID, err := uuid.Parse(team.ID)
 	require.NoError(t, err)
+	// TASK-184: TeamMemberCount≤1 → 409 before repo; keep ≥2 so FA11 hits removeTeamMemberErr.
+	_, err = repo.AddTeamMember(ctx, teamID, otherID)
+	require.NoError(t, err)
 
-	err = svc.RemoveTeamMember(ctx, teamID, actorID, uuid.New())
+	err = svc.RemoveTeamMember(ctx, teamID, actorID, otherID)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to remove team member")
 }

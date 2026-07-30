@@ -6,58 +6,143 @@ package project_test
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"os"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
+	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/enttest"
 	entproject "github.com/valerii/hub/backend/ent/project"
 	"github.com/valerii/hub/backend/ent/team"
 	"github.com/valerii/hub/backend/internal/platform/middleware"
 	"github.com/valerii/hub/backend/internal/project"
 )
 
+func postgresProjectTestURL(t *testing.T) string {
+	t.Helper()
+	uri := os.Getenv("POSTGRES_TEST_URL")
+	if uri == "" {
+		uri = "postgresql://hub:hub@localhost:5432/hub?sslmode=disable"
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	db, err := sql.Open("postgres", uri)
+	if err == nil {
+		err = db.PingContext(ctx)
+		_ = db.Close()
+	}
+	if err != nil {
+		fallback := "postgresql://hub:hub@localhost:5432/hub?sslmode=disable"
+		if uri != fallback {
+			db2, err2 := sql.Open("postgres", fallback)
+			if err2 == nil && db2.PingContext(ctx) == nil {
+				_ = db2.Close()
+				return fallback
+			}
+			if db2 != nil {
+				_ = db2.Close()
+			}
+		}
+		t.Fatalf("PostgreSQL недоступен для project ent-теста: %v", err)
+	}
+	return uri
+}
+
+func openProjectPostgresEnt(t *testing.T) *ent.Client {
+	t.Helper()
+	adminURI := postgresProjectTestURL(t)
+	dbName := "hub_project_" + strings.ReplaceAll(uuid.New().String(), "-", "")
+	admin, err := sql.Open("postgres", adminURI)
+	require.NoError(t, err)
+	_, err = admin.Exec("CREATE DATABASE " + dbName)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_, _ = admin.Exec("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = $1 AND pid <> pg_backend_pid()", dbName)
+		_, _ = admin.Exec("DROP DATABASE IF EXISTS " + dbName)
+		_ = admin.Close()
+	})
+	u, err := url.Parse(adminURI)
+	require.NoError(t, err)
+	u.Path = "/" + dbName
+	client := enttest.Open(t, "postgres", u.String())
+	t.Cleanup(func() { _ = client.Close() })
+	return client
+}
+
 // TestArchiveUnarchive_SoftDeleted_NoResurrect_A3W1_A5_001 —
-// archive/unarchive на trash → 404; deleted_at остаётся; Restore очищает.
-// Mutation: снова ClearDeletedAt в UpdateStatus(..., false) / убрать guard → assert DeletedAt краснеет.
+// EntRepository.UpdateStatus(..., false) не ClearDeletedAt; service Archive/Unarchive
+// на status=deleted → 404; RestoreFromTrash очищает deleted_at.
+// Mutation: вернуть ClearDeletedAt в archive-путь UpdateStatus(..., false) →
+// assert NotNil(DeletedAt) после UpdateStatus(archived/active, false) краснеет.
 func TestArchiveUnarchive_SoftDeleted_NoResurrect_A3W1_A5_001(t *testing.T) {
-	svc, repo, _ := newTestService()
+	client := openProjectPostgresEnt(t)
 	ctx := context.Background()
-	ownerID := uuid.New()
+	repo := project.NewEntRepository(client, nil)
 
-	created, err := svc.CreateProject(ctx, ownerID, "TrashGuard", "TRG", "")
+	owner, err := client.User.Create().
+		SetEmail("owner-" + uuid.New().String()[:8] + "@test.com").
+		SetName("Owner").
+		Save(ctx)
 	require.NoError(t, err)
-	projectID, err := uuid.Parse(created.ID)
+
+	created, err := repo.Create(ctx, "TrashGuard", "TRG", "", owner.ID)
 	require.NoError(t, err)
 
-	require.NoError(t, svc.DeleteProject(ctx, projectID))
-	require.NotNil(t, repo.projects[projectID].DeletedAt)
+	trashed, err := repo.UpdateStatus(ctx, created.ID, entproject.StatusDeleted, true)
+	require.NoError(t, err)
+	require.NotNil(t, trashed.DeletedAt, "soft-delete must set deleted_at")
 
-	_, err = svc.ArchiveProject(ctx, projectID)
+	// Прямой вызов EntRepository — именно здесь жил ClearDeletedAt-resurrect.
+	// Service-guard 404 не доходит до UpdateStatus; mockRepo мутацию прода не ловит.
+	archived, err := repo.UpdateStatus(ctx, created.ID, entproject.StatusArchived, false)
+	require.NoError(t, err)
+	require.NotNil(t, archived.DeletedAt, "archive UpdateStatus(..., false) must not ClearDeletedAt")
+	assert.Equal(t, entproject.StatusArchived, archived.Status)
+
+	unarchived, err := repo.UpdateStatus(ctx, created.ID, entproject.StatusActive, false)
+	require.NoError(t, err)
+	require.NotNil(t, unarchived.DeletedAt, "unarchive UpdateStatus(..., false) must not ClearDeletedAt")
+	assert.Equal(t, entproject.StatusActive, unarchived.Status)
+
+	// Вернуть в trash для service-guard (status=deleted).
+	_, err = repo.UpdateStatus(ctx, created.ID, entproject.StatusDeleted, true)
+	require.NoError(t, err)
+
+	svc := project.NewProjectService(repo, nil, nil)
+	_, err = svc.ArchiveProject(ctx, created.ID)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not found")
-	assert.NotNil(t, repo.projects[projectID].DeletedAt, "archive must not clear deleted_at")
-	assert.Equal(t, entproject.StatusDeleted, repo.projects[projectID].Status)
 
-	_, err = svc.UnarchiveProject(ctx, projectID)
+	_, err = svc.UnarchiveProject(ctx, created.ID)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not found")
-	assert.NotNil(t, repo.projects[projectID].DeletedAt, "unarchive must not clear deleted_at")
-	assert.Equal(t, entproject.StatusDeleted, repo.projects[projectID].Status)
 
-	restored, err := svc.RestoreProject(ctx, projectID)
+	got, err := repo.FindByID(ctx, created.ID)
+	require.NoError(t, err)
+	require.NotNil(t, got.DeletedAt, "service archive/unarchive must leave deleted_at")
+	assert.Equal(t, entproject.StatusDeleted, got.Status)
+
+	restored, err := svc.RestoreProject(ctx, created.ID)
 	require.NoError(t, err)
 	assert.Equal(t, "active", restored.Status)
-	assert.Nil(t, repo.projects[projectID].DeletedAt)
+
+	got, err = repo.FindByID(ctx, created.ID)
+	require.NoError(t, err)
+	assert.Nil(t, got.DeletedAt, "RestoreFromTrash must ClearDeletedAt")
+	assert.Equal(t, entproject.StatusActive, got.Status)
 }
 
 // TestPermanentDelete_ActiveAndNonAdmin_A3W1_A5_002 —

@@ -30,10 +30,12 @@ func TestEntRepository_CreatePendingAndConfirm(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, filemetadata.StatusPending, meta.Status)
 
-	require.NoError(t, repo.ConfirmUpload(ctx, fileID, "issue", "HUB-1"))
+	entityID := uuid.New().String()
+	require.NoError(t, repo.ConfirmUpload(ctx, fileID, "issue", entityID))
 	got, err := repo.GetActiveByID(ctx, fileID)
 	require.NoError(t, err)
 	assert.Equal(t, filemetadata.StatusConfirmed, got.Status)
+	assert.Equal(t, entityID, got.EntityID)
 }
 
 func TestEntRepository_ListOrphanPending(t *testing.T) {
