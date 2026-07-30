@@ -1,6 +1,6 @@
 # START HERE — Touchstone Pro
 
-Не читай всё дерево. Выбери сценарий.
+Издание для **разработки продукта**. Не читай всё дерево — выбери сценарий.
 
 ## Сценарий A — поставить Pro поверх Standard
 
@@ -14,35 +14,46 @@
 ```
 
 3. Прочитай [RELATIONSHIP.md](RELATIONSHIP.md) — что откуда грузить.
-4. Подключи адаптер Cursor/CI из Standard `adapters/`.
-5. Для волн/оркестрации используй extracts:
-   - [`extracts/prompt-contract.md`](extracts/prompt-contract.md)
-   - [`extracts/master-delegate.md`](extracts/master-delegate.md)
-   - [`extracts/wave-protocol.md`](extracts/wave-protocol.md)
-   - [`extracts/mutation-evidence.md`](extracts/mutation-evidence.md)
-   - [`extracts/backlog-task.md`](extracts/backlog-task.md)
+4. Подключи роли: [`adapters/cursor/agents.map.yaml`](adapters/cursor/agents.map.yaml)
+   ставит 12 ролей разработки в `.cursor/agents/`. Адаптер Standard ставит
+   рядом четыре `test-*` — имена не пересекаются, конфликта нет.
+5. Проверь `depends_on` в [VERSION.md](VERSION.md) против версии Standard.
 
-## Сценарий B — понять, чем Pro лучше Standard
+## Сценарий B — собрать команду разработки
 
-Открой [README.md](README.md) → таблица источников → [layers/02-gsd-max.md](layers/02-gsd-max.md)
-и [layers/05-verification-mutation.md](layers/05-verification-mutation.md).
+1. [`agents/README.md`](agents/README.md) — ростер и граница со Standard
+2. [`playbooks/corporate-delivery.md`](playbooks/corporate-delivery.md) —
+   scope → design → build → test → review → verify → handoff
+3. [`agents/templates/`](agents/templates/) — шаблоны запуска фазы и волны
 
-## Сценарий C — вести фазу как в Hub
+## Сценарий C — вести фазу
 
-1. [layers/02-gsd-max.md](layers/02-gsd-max.md) — lifecycle  
-2. [layers/04-team-orchestration.md](layers/04-team-orchestration.md) — волны  
-3. [layers/06-planning-ops.md](layers/06-planning-ops.md) — STATE / backlog  
-4. [layers/05-verification-mutation.md](layers/05-verification-mutation.md) — доказательство
+1. [`skills/phase-plan/SKILL.md`](skills/phase-plan/SKILL.md) — атомарный план
+2. [`skills/wave-orchestrate/SKILL.md`](skills/wave-orchestrate/SKILL.md) — волна
+3. [`skills/verify-goal/SKILL.md`](skills/verify-goal/SKILL.md) — goal-backward приёмка
+4. [`extracts/mutation-evidence.md`](extracts/mutation-evidence.md) — доказательство фикса
+
+Теория за этим порядком — [`layers/02-gsd-max.md`](layers/02-gsd-max.md).
 
 ## Сценарий D — только тестовый фреймворк
 
-Вернись в Standard: [`../prompt-engineering/START-HERE.md`](../prompt-engineering/START-HERE.md).
-Pro не заменяет bootstrap/context/recipes — он их усиливает оркестрацией и
-verification rigor.
+Pro не нужен. Иди в Standard:
+[`../prompt-engineering/START-HERE.md`](../prompt-engineering/START-HERE.md).
+
+Pro покрывает другой объект работы — продукт, а не фреймворк. Если задача
+про сам фреймворк, роли отсюда её только запутают.
+
+## Сценарий E — понять, что Pro добавляет
+
+[README.md](README.md) → раздел «Приколы Cursor» → [SOURCES.md](SOURCES.md).
 
 ## Запрещено
 
 - Ставить Pro без Standard
+- Дублировать в Pro то, что уже есть в Standard (context, rules, recipes,
+  evals, scripts) — только ссылка
 - Копировать Hub `.cursor/rules/60-tz-constraints.mdc` в чужой продукт «как есть»
 - Заявлять ROI Pro без отдельного paired eval
 - Считать галочку в отчёте агента доказательством без mutation/layer evidence
+- Отдавать ревью продуктового diff роли `test-code-reviewer`, а код
+  фреймворка — роли `code-reviewer`: это ошибка маршрутизации, а не мелочь
