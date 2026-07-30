@@ -1,6 +1,6 @@
 # 🔒 A3 FE LinkPreview XSS whitelist
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Закрыта**  
 > Источник: A3 · **Owner lock: правим ВСЕ A3W9-3 open** · TASK-008 · слот A3W9-3  
 > Исполнитель: **fe1** · Ветка исполнения: `cursor-grok-4.5` (не пушить в `master`)
 
@@ -147,3 +147,37 @@ npx vitest run …/link-preview-xss-whitelist …/channel-list-collapse-a11y …
 ```
 
 Handoff: **fe-ver → code-reviewer** (003 whitelist path).
+
+### Mutation prove (W6 slot 5 · fe1 · 2026-07-30)
+
+| ID | Verdict | Evidence |
+|----|---------|----------|
+| A3W9-3-001 | **PROVEN** | BREAK drop aria-* → RED `collapse button has aria-expanded…` → RESTORE GREEN |
+| A3W9-3-002 | **PROVEN** | BREAK `ID: uuid` → RED `falls back to neutral label…` + mutation it → RESTORE GREEN |
+| A3W9-3-003 | **PROVEN** | BREAK drop `isSafeUrl` early-null → RED javascript:/data: empty-DOM its → RESTORE GREEN |
+| A3W9-3-004 | **N/A** | GAP: нет Vitest; только `rg` empty + code FIXED. **Не fake-PROVEN.** |
+
+Отчёт: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W6-fe1.md` · prod restored · коммит не создавался.
+
+## [MUTATION CRITERIA] — verifier-ready
+
+Проверено по коду HEAD (2026-07-30). Слой **frontend**. Typecheck: `cd frontend && npx tsc --noEmit` — не ловит XSS/a11y/token regressions.
+
+| ID | что ломать (file:line + фрагмент) | какой тест (`it` / команда) | слой |
+|----|-----------------------------------|-----------------------------|------|
+| A3W9-3-001 | `channel-list.tsx:192-193` — убрать `aria-expanded={!collapsed}` и/или `aria-controls={panelId}` с collapse `<button>` | describe `ChannelList section collapse a11y (A3W9-3-001)` → `it("collapse button has aria-expanded and aria-controls pointing at panel id")` | frontend |
+| A3W9-3-002 | `pinned-messages.tsx:42` — `return \`ID: ${messageId}\`` вместо `"Закреплённое сообщение"` (или всегда UUID-label) | describe `resolvePinPreview (A3W9-3-002)` → `it("falls back to neutral label instead of UUID")`; `it("mutation: returning ID:uuid would fail neutral-label assert")` | frontend |
+| A3W9-3-003 | `link-preview.tsx:179-180` — убрать `if (!isSafeUrl(url)) return null`; **и/или** `message-item.tsx:195` — `addUrl` без `isSafeUrl(u)` (всегда `urls.add(u)`); **и/или** href без `sanitizeUrl` (`:33/:79/:141`) | describe `LinkPreview URL whitelist (A3W9-3-003)` → `it("does not render preview card for javascript: URL")`; `it("does not render preview card for data: URL")`; `it("mutation: drop isSafeUrl gate → javascript: would become href candidate")` | frontend |
+| A3W9-3-004 | вернуть литералы `rgba(52,211,153` / `rgba(13,14,18` в `channel-list.tsx` / `chat-view.tsx` / `message-composer.tsx` / `message-item.tsx` (вместо `var(--green|--gG|--void)`) | **GAP:** нет Vitest source-guard. Критерий: `rg "rgba\\(52,211,153|rgba\\(13,14,18" frontend/src/components/messenger/{channel-list,chat-view,message-composer,message-item}.tsx` → должен быть **empty**. `npx tsc --noEmit` **не** ловит. | frontend |
+
+### Gaps (mutation-proof)
+
+| Guard | Ловит тест на том же слое? | Примечание |
+|-------|----------------------------|------------|
+| collapse aria-* | ✅ RTL | |
+| pin preview ≠ UUID | ✅ unit | |
+| LinkPreview / extract isSafeUrl | ✅ Vitest | primary XSS |
+| token rgba literals (004) | ❌ Vitest | **GAP:** только manual `rg`; добавить source-guard it |
+| `npx tsc --noEmit` | ❌ | не ловит 001–004 |
+
+**Confidence:** CONFIRMED (003/001/002); 004 — GAP зафиксирован.

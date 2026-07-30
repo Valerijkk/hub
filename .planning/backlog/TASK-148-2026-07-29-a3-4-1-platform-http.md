@@ -1,8 +1,9 @@
 # 🧹 A3 platform Request-ID mutation test
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P3** · Статус: **На проверке**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P3** · Статус: **Закрыта**  
 > Источник: A3W4-1-001 NEW · Stage A3 FINAL · TASK-008  
-> Исполнитель: **be1**
+> Исполнитель: **be1** · Mutation checker: **be2** (W13 slot 3 refill)  
+> Mutation: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W13-be2-task148.md` · **1/1 PROVEN** (2026-07-30)
 
 ## [OUTCOME]
 
@@ -105,3 +106,34 @@
   оба ok.
 - **Mutation:** `validRequestID` → `return true` → краснеют `TestRequestID_RejectsInvalid/*` и `TestRequestID_RejectsOversized/*` (UUID parse + NotEqual client). Revert подтверждён re-run green.
 - **Handoff:** be-ver → code-reviewer
+
+## [MUTATION CRITERIA] — verifier-ready
+
+> W13 slot 3 / be2 · criteria only (no mutate) · 2026-07-30 · HEAD guards verified
+
+| ID | Production file:line (guard) | слой | Exact test RED | Kill recipe |
+|----|------------------------------|------|----------------|-------------|
+| A3W4-1-001 | `backend/internal/platform/middleware/requestid.go:36-46` `validRequestID` (empty / `maxRequestIDLen=128` `:12-13` / `requestIDPattern` `:16`); call-site `:24-26` | middleware | `TestRequestID_RejectsInvalid`; `TestRequestID_RejectsOversized` · `backend/testframework/platform/middleware/middleware_test.go` | `validRequestID` → `return true` и/или убрать maxLen/pattern → UUID≠client asserts RED |
+
+### Layer notes (mock vs Ent)
+
+| ID | Тест бьёт | Комментарий |
+|----|-----------|-------------|
+| 001 | Fiber `RequestID()` middleware | Guard в middleware — Ent N/A |
+
+`layer_mismatch IDs: (none)` · `mock≠Ent IDs: (none)`
+
+### Gaps
+
+- `TestRequestID_RejectsOversizedHeader_W4A1002` (task043) — prior W4 coverage; W13 kill target — RejectsInvalid/Oversized из TASK-148.
+- CopyString mutation (Pitfall 1) — optional adjacent; не в A3W4-1-001 acceptance.
+
+## [EVIDENCE — be2 mutation W13 refill 2026-07-30]
+
+**1/1 PROVEN** · report: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W13-be2-task148.md` · leftover MUTATED: нет · TASK → **Закрыта**
+
+| ID | Verdict | RED |
+|----|---------|-----|
+| A3W4-1-001 | PROVEN | `TestRequestID_RejectsInvalid`; `TestRequestID_RejectsOversized` |
+
+Kill: `validRequestID` → `return true` → UUID≠client asserts RED; restore → GREEN.

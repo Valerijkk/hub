@@ -1,7 +1,8 @@
 # 🐛 A3 messenger repos list caps/soft-delete
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
-> Исполнитель: **be1** · Источник: A3 Stage FINAL · `A3W3-3-messenger-repos.md` · TASK-008
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Закрыта**  
+> Исполнитель: **be1** · Источник: A3 Stage FINAL · `A3W3-3-messenger-repos.md` · TASK-008  
+> Mutation: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W6-be1.md` · runnable PROVEN 001a/001b/002 · N/A FindDM weak + 003 godoc
 
 ## [OUTCOME]
 
@@ -62,14 +63,7 @@
   - Ent: ListUserChannels / GetChannel WithMembers не тянут unbounded `.All()` без Limit (assert Limit в query path или cap-тест с >cap members).
   - Ent: soft-delete канала → ListMembers не возвращает прежний состав.
   - Presence: только комментарий; `go test` presence suite без регрессии порогов.
-- Mutation proof (обязательно зафиксировать в OUTPUT):
-
-| ID | Сломать | Ожидание |
-|----|---------|----------|
-| A3W3-3-001 | убрать `Limit` с ListUserChannels и/или `WithMembers` | тест cap краснеет |
-| A3W3-3-002 | убрать `HasChannelWith(DeletedAtIsNil)` с ListMembers | тест DeleteChannel→ListMembers краснеет |
-| A3W3-3-003 | N/A code mutation — evidence = diff godoc «5 минут» → «90s» / presenceAwayThreshold | reviewer видит синхрон с `presenceAwayThreshold` |
-
+- Mutation proof — см. **`[MUTATION CRITERIA]`** ниже (verifier-ready, 2026-07-30).
 - Regression scope:
   ```bash
   cd backend && go test -tags hubtest -race -count=1 -timeout=300s ./testframework/messenger/
@@ -77,6 +71,31 @@
   → PASS (в т.ч. TASK-108 invite/unread/caps, soft-delete channel CRUD, presence away/stale).
 - Evidence required: checklist ID→evidence в отчёте; команды + PASS; mutation note per ID (003 — godoc diff).
 - Stop when: 3/3 FIXED · hubtest messenger green · статус «Исправлена» в README + этом файле; без adjacent cleanup / Mongo/WS refactor.
+
+## [MUTATION CRITERIA] — verifier-ready
+
+| ID | что ломать (path:line + фрагмент) | какой тест | слой |
+|----|-----------------------------------|------------|------|
+| A3W3-3-001a | `backend/internal/messenger/ent_repository.go:74-80` — убрать `Limit(userChannelMembershipCap)` с `ListUserChannels` | `TestEntListUserChannels_HasHardCap_A3W3_3_001` | repository |
+| A3W3-3-001b | `ent_repository.go:66-67` (GetChannel) и/или `:244-245` (FindDM) — убрать `q.Limit(listMembersCap)` из `WithMembers` | `TestEntGetChannel_WithMembersCap_A3W3_3_001` (FindDM: `TestEntFindDMChannel_WithMembersCap_A3W3_3_001` — слабый, см. gaps) | repository |
+| A3W3-3-002 | `ent_repository.go:255-256` — убрать `HasChannelWith(channel.DeletedAtIsNil())` с `ListMembers` | `TestEntListMembers_SkipsSoftDeletedChannel_A3W3_3_002` | repository |
+| A3W3-3-003 | N/A runtime mutation — godoc only: `presence.go:154-155` («менее presenceAwayThreshold (90s)») | N/A code test; evidence = godoc sync with `presenceAwayThreshold` (не `TestGetOnlineUserIDs_ReturnsRecentHeartbeats` — порог кода не менялся) | docs/godoc |
+
+### Layer notes (mock vs Ent)
+
+| ID | Тест бьёт | Комментарий |
+|----|-----------|-------------|
+| 001a/b | EntRepository (`newMessengerRepoEnv`) | Cap в Ent query — **Ent OK** |
+| 002 | EntRepository soft-delete | Predicate в Ent — **Ent OK** |
+| 003 | godoc | Нет runtime guard → mutation N/A |
+
+`layer_mismatch IDs: (none)`
+
+### Gaps
+
+- `TestEntFindDMChannel_WithMembersCap_A3W3_3_001` — только 2 members → **не** ловит снятие Limit (всегда ≤cap). Канон мутации WithMembers — `TestEntGetChannel_WithMembersCap_A3W3_3_001` (cap+1).
+- TASK-145 в файле без Evidence/Progress checklist (README «На проверке») — verifier должен подтвердить green + mutation отдельно.
+- 003: нельзя PROVEN runtime-мутацией.
 
 ## [OUTPUT SCHEMA]
 
@@ -101,3 +120,25 @@
 - Claim CONFIRMED только с observed evidence (`go test` output / godoc diff).
 - Docs sync: N/A user-visible API (кроме статуса backlog README при закрытии); wiki не трогать.
 - Коммит (если просят): `fix(messenger): …` / `test(messenger): …` + тело со ссылкой на этот файл и `(A3W3-3-00x)`; без Co-authored-by.
+
+## Evidence (be1 · 2026-07-30)
+
+| ID | Status | Evidence |
+|----|--------|----------|
+| A3W3-3-001a | FIXED · PROVEN | Break `Limit` ListUserChannels → RED `TestEntListUserChannels_HasHardCap_A3W3_3_001` → restore GREEN |
+| A3W3-3-001b | FIXED · PROVEN (GetChannel) | Break GetChannel `WithMembers` Limit → RED `TestEntGetChannel_WithMembersCap_A3W3_3_001` → restore GREEN |
+| A3W3-3-001 FindDM | FIXED in code · **N/A** mutation (weak test, 2 members) | Break FindDM Limit → still PASS — не fake-PROVEN |
+| A3W3-3-002 | FIXED · PROVEN | Break soft-delete predicate ListMembers → RED `TestEntListMembers_SkipsSoftDeletedChannel_A3W3_3_002` → restore GREEN |
+| A3W3-3-003 | FIXED · **N/A** runtime | godoc `presenceAwayThreshold (90s)` sync; пороги кода не менялись |
+
+```text
+go test -tags hubtest -race -count=1 -timeout=300s ./testframework/messenger/ \
+  -run "TestEntListUserChannels_HasHardCap_A3W3_3_001|TestEntGetChannel_WithMembersCap_A3W3_3_001|TestEntListMembers_SkipsSoftDeletedChannel_A3W3_3_002"
+→ ok
+
+go test -tags hubtest -race -count=1 -timeout=300s ./testframework/messenger/
+→ ok ~6.1s
+```
+
+Mutation report: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W6-be1.md`  
+Статус **Закрыта**. Handoff: be-ver → code-reviewer. Коммит не создавался.

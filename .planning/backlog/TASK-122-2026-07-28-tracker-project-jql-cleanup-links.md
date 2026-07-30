@@ -1,7 +1,8 @@
 # TASK-122 — 🔒 Tracker/project: JQL via repo + DeleteProject links
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: На проверке
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Закрыта
 > Источник: A2W1 residual · **Owner lock: правим ВСЕ 254 A2 open** · TASK-008
+> Mutation: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W12-be1.md` · 2/2 PROVEN (A5 Ent twin)
 
 ## [OUTCOME]
 
@@ -71,3 +72,35 @@ go build -tags release ./internal/tracker/... ./internal/project/...
 go test -tags hubtest -race -count=1 -timeout=600s ./testframework/tracker/   # ok ~7s
 go test -tags hubtest -race -count=1 -timeout=600s ./testframework/project/   # ok ~7s
 ```
+
+## [MUTATION CRITERIA] — verifier-ready
+
+> W7 slot 3 / qa-auto1 · criteria only (no mutate) · 2026-07-30
+
+| ID | что ломать (path:line + фрагмент) | какой тест | слой |
+|----|-----------------------------------|------------|------|
+| A2W1-A2-001 | `tracker/service_issues.go:400` — обойти `repo.SearchIssuesJQL` (вернуть GetDB/прямой Ent); **или** `repo_issues.go:489-495` — убрать `issue.ProjectID`/`DeletedAtIsNil` scope | `TestEntRepository_SearchIssuesJQL_ProjectScoped` | repository (+ service layering) |
+| A2W1-A5-001 | `project/service.go:281-288` — ignore err от `SoftDeleteWithCrossLinkCleanup` / soft-delete при cleanup fail; **или** Ent `repository.go:636+` — soft-delete вне tx / continue после DeleteOne fail | `TestDeleteProject_CleanupListError_DoesNotSoftDelete`; `TestDeleteProject_CleanupDeleteError_DoesNotSoftDelete` | service (mock) |
+
+### Layer notes (mock vs Ent)
+
+| ID | Тест бьёт | Комментарий |
+|----|-----------|-------------|
+| A2-001 | EntRepository SearchIssuesJQL | Project scope — **Ent OK**; GetDB removal = compile |
+| A5-001 | mock `crossLinkRepo` SoftDeleteWithCrossLinkCleanup **+** Ent twin mid-fail | Service fail-closed — OK на mock; **Ent tx** — `TestSoftDeleteWithCrossLinkCleanup_TxRollbackOnMidFail_A2W1_A5_001` |
+
+`layer_mismatch IDs: (none)` — A2W1-A5-001 закрыт Ent twin (W12 be1)
+
+### Gaps
+
+- **A2W1-A5-001:** ~~нет Ent IT~~ → закрыто W12: `TestSoftDeleteWithCrossLinkCleanup_TxRollbackOnMidFail_A2W1_A5_001` + `ExportSetAfterCrossLinkDeleteHook`; mutation without Ent tx → RED (link not rolled back).
+- GetDB compile-gate — N/A runtime mutation (ожидаемо).
+
+## [MUTATION W12 be1] — 2026-07-30
+
+| ID | Verdict | Evidence |
+|----|---------|----------|
+| A2W1-A2-001 | **PROVEN** | drop `issueProjectIDEQ` → `TestEntRepository_SearchIssuesJQL_ProjectScoped` RED (len=2) → restore GREEN |
+| A2W1-A5-001 | **PROVEN** (service + Ent twin) | service: soft-delete on cleanup fail → Cleanup* RED; Ent: no-tx SoftDelete → twin RED (link not found) |
+
+Отчёт: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W12-be1.md`

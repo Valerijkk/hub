@@ -1,8 +1,8 @@
 # 🐛 A3 AI stream ErrNoProvider mapping
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Закрыта**  
 > Источник: A3W5-1-001 NEW · A3W5-1-002/003 RESIDUAL · Stage A3 FINAL · TASK-008  
-> Исполнитель: **be1**
+> Исполнитель: **be1** · Mutation: **qa-auto1** (W13 slot 4 refill · 2026-07-30)
 
 ## [OUTCOME]
 
@@ -130,3 +130,39 @@ Stream-ветка `ChatCompletions` мапит `ErrNoProvider` / `ErrProviderDis
 **Tests:** `go test -tags hubtest ./testframework/ai/ -run Stream_|AssistJQL_Empty` — прогон блокировался concurrent corruption `backend/ent/*` (uuid redeclared / mid-generate) соседними агентами волны; `go build ./internal/ai` зелёный при стабильном ent. Повторный hubtest — на be-ver / интеграции волны.
 
 **Handoff:** be-ver → code-reviewer.
+
+## [MUTATION CRITERIA] — verifier-ready
+
+> W13 slot 4 / qa-auto1 · criteria only (no mutate) · 2026-07-30
+
+| ID | prod file:line | слой | RED test (path + name) | kill recipe |
+|----|----------------|------|------------------------|-------------|
+| A3W5-1-001 | `backend/internal/ai/handler.go:236-243` (stream: NoProvider/Disabled→503, AllFailed→502, catch-all `"provider error"`) | handler (HTTP map) | `backend/testframework/ai/handler_wave115_test.go` · `TestHandler_ChatCompletions_Stream_NoProvider` | Убрать stream-ветки `ErrNoProvider`/`ErrProviderDisabled`/`ErrAllProvidersFailed` (вернуть catch-all 400/`err.Error()` или только `"provider error"` без 503) → RED: expect **503**, got 400/502 |
+| A3W5-1-002 | `handler.go:154-157` (`errors.Is(ErrQueryRequired)`→400) + `service.go:24-25` / `:564` (`ErrQueryRequired`) | handler+service sentinel | `backend/testframework/ai/handler_wave115_test.go` · `TestHandler_AssistJQL_EmptyQuery` | Убрать `ErrQueryRequired` map (empty → catch-all 502) и/или вернуть `fmt.Errorf("query is required")` без sentinel → RED: expect **400**, got 502 |
+| A3W5-1-003 | тот же stream map `:220-243` (quota/consent/no-provider paths) | handler (HTTP) | `handler_wave115_test.go` · `TestHandler_ChatCompletions_Stream_DailyQuotaExceeded` (+ `…_Stream_ConsentRequired`, `…_Stream_NoProvider`) | Инвертировать stream quota→не-429 / consent→не-403 / no-provider→не-503 → соответствующий Stream_* RED |
+
+### Layer notes (mock vs Ent)
+
+| ID | Тест бьёт | Flag |
+|----|-----------|------|
+| 001 | Fiber handler + mock AI service (sentinel inject) | **OK** — guard в handler; mock service = контракт слоя |
+| 002 | Handler AssistJQL + service sentinel | **OK** — sentinel в service, map в handler |
+| 003 | Handler stream HTTP status matrix | **OK** — тот же handler layer |
+
+`layer_mismatch IDs: (none)` · `mock≠Ent IDs: (none)` (нет Ent guard в scope)
+
+### Gaps
+
+- 001 и 003 делят `Stream_NoProvider` — при mutate бить 001 отдельно; 003 дополнительно quota+consent.
+- AssistJQL catch-all сейчас всё ещё `err.Error()` на unknown (не `"provider error"`) — вне ID; не мутировать как 001.
+
+## Progress (qa-auto1 mutation · 2026-07-30)
+
+| ID | Verdict | RED |
+|----|---------|-----|
+| A3W5-1-001 | PROVEN | `TestHandler_ChatCompletions_Stream_NoProvider` (503→400) |
+| A3W5-1-002 | PROVEN | `TestHandler_AssistJQL_EmptyQuery` (400→502) |
+| A3W5-1-003 | PROVEN | `Stream_DailyQuotaExceeded` + `Stream_ConsentRequired` + `Stream_NoProvider` |
+
+Evidence: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W13-qa1-task153.md`  
+Статус → **Закрыта** (3/3 runnable PROVEN). Leftover MUTATED: нет. Коммит: не создавался.

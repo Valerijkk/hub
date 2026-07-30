@@ -1,8 +1,9 @@
 # 🔒 A3 outbox panic dead-letter + claim/Flush
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Закрыта** · MUTATION-2026-07-30-W5-qa-auto1  
 > Источник: A3 · **Owner lock: правим ВСЕ A3 open** · TASK-008 · слот A3W4-2  
-> Исполнитель: **be1** · Ветка исполнения: `cursor-grok-4.5` (не пушить в `master`)
+> Исполнитель: be1 (fix) · Verifier: qa-auto1 (W5 slot 3, != be1) · Handoff: mutation gate done  
+> Ветка исполнения: `cursor-grok-4.5` (не пушить в `master`)
 
 ## Progress (be1 · 2026-07-29)
 
@@ -16,12 +17,41 @@
 **Hubtest (re-verify be1 2026-07-29, isolate temp copy — shared `backend/ent/*` был race-corrupted соседними generate):**  
 `go test -tags hubtest -race -count=1 -timeout=300s ./testframework/platform/outbox/ ./testframework/platform/nats/` → **PASS** (outbox 3.880s, nats 6.956s).  
 Flush-тест 003: hook гасит embedded NATS server (ForceClose клиента недостаточен).  
-**Mutation notes:**  
-- 001: убрать `recordPublishFailure` из recover → attempts остаются 0 → краснеют panic-тесты.  
-- 002: Commit claim без `stampClaimLease` → второй `ClaimAndRelease` забирает те же ID.  
-- 003: `return c.Conn.PublishMsg(msg)` без Flush → hook не участвует / err==nil → flush-тест краснеет.  
 **Handoff:** be-ver → code-reviewer.  
-**Note:** prod+tests в истории shared-ветки; README по инструкции исполнителя не трогали (уже «На проверке»).
+**Note:** prod+tests в истории shared-ветки; README по инструкции исполнителя не трогали (уже «На проверке»).  
+**Mutation:** см. **`[MUTATION CRITERIA]`** ниже (verifier-ready, 2026-07-30).
+
+## Progress (qa-auto1 · 2026-07-30 · W5 slot 3)
+
+Независимый Break→RED→restore→GREEN по `[MUTATION CRITERIA]` (!= be1).  
+Отчёт: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W5-qa-auto1.md` · batch `_mut-batch-w5-task149.json`.
+
+| ID | Verdict | RED test |
+|----|---------|----------|
+| A3W4-2-001 | **PROVEN** | `TestProcessEvent_PanicInPublish_NoCrash` |
+| A3W4-2-002 | **PROVEN** | `TestClaimAndRelease_DualWorker_DisjointIDs` + `TestStampClaimLease_LostRace_Skips` |
+| A3W4-2-003 | **PROVEN** | `TestPublishWithTraceContext_FlushAfterPublish_A3W4_2_003` |
+
+Dual-worker SQLite = sequential post-commit (не true concurrent SKIP LOCKED); мутация «без stamp» ловится — не fake-PROVEN.  
+Regression after restore: outbox ~5.5s · nats ~7.8s PASS.
+
+## [MUTATION CRITERIA] — verifier-ready
+
+| ID | что ломать (path:line + фрагмент) | какой тест | слой |
+|----|-----------------------------------|------------|------|
+| A3W4-2-001 | `backend/internal/platform/outbox/worker.go:243-244` — убрать `w.recordPublishFailure(...)` из `recover` (оставить только slog) | `TestProcessEvent_PanicInPublish_NoCrash` (+ `TestProcessEvent_PanicAtMaxAttempts_DeadLetters`, batch `TestProcessBatch_OneFailedEventDoesNotBlockOthers`) | worker (Ent outbox) |
+| A3W4-2-002 | `worker.go:128` / `stampClaimLease` `:146-158` — Commit claim без `SetPublishedAt` lease (не вызывать stamp / не Where claim-available) | `TestClaimAndRelease_DualWorker_DisjointIDs` (+ `TestStampClaimLease_LostRace_Skips`) | worker (Ent claim lease) |
+| A3W4-2-003 | `backend/internal/platform/nats/client.go:172-176` — `PublishWithTraceContext` → `c.Conn.PublishMsg(msg)` **без** `PublishMsg`/FlushTimeout | `TestPublishWithTraceContext_FlushAfterPublish_A3W4_2_003` (+ JSON: `TestPublishJSONContext_DropBeforeFlush_NoPanic_A3W4_2_003`) | nats client |
+
+### Layer notes (mock vs Ent)
+
+| ID | Тест бьёт | Комментарий |
+|----|-----------|-------------|
+| 001 | Ent/sqlite OutboxEvent + panic publisher | Guard в worker recover — Ent OK |
+| 002 | Ent OutboxEvent dual claim | Lease via `published_at` — Ent OK (не enum `processing`) |
+| 003 | embedded NATS + afterCorePublishHook | Flush contract — real NATS client OK |
+
+`layer_mismatch IDs: (none)` · gap: dual-worker на SQLite — sequential post-commit (не true concurrent PG SKIP LOCKED); семантика lease всё же бьёт в прод-guard
 
 ## [OUTCOME]
 

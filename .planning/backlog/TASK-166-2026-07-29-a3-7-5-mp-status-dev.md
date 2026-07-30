@@ -1,7 +1,21 @@
 # 🔒 A3 marketplace review_note public catalog
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
-> Исполнитель: **be1** · Источник: A3 Stage FINAL · `A3W7-5-mp-status-dev.md` · TASK-008
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Закрыта**  
+> Исполнитель: **be1** · Mutation: **qa-auto1** W13 slot 4 refill 2026-07-30  
+> Источник: A3 Stage FINAL · `A3W7-5-mp-status-dev.md` · TASK-008
+
+## Mutation (qa-auto1 · W13 slot 4 refill · 2026-07-30)
+
+Evidence: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W13-qa1-task166.md`
+
+| ID | Verdict | RED |
+|----|---------|-----|
+| A3W7-5-001 | PROVEN | `TestListApproved_ReviewNoteHidden_A3W75001` |
+| A3W7-5-002 | PROVEN | `TestSeedWorkflowTransitions_CreateFailPropagates_A3W75002` (+ links/channels suite) |
+| A3W7-5-003 | PROVEN | `TestCurrencyNormalize_A3W75003` |
+| A3W7-5-004 | PROVEN | `TestReviewNoteRuneCap_A3W75004` |
+
+**0 NOT_PROVEN** → статус **Закрыта**. Leftover MUTATED: нет.
 
 ## [OUTCOME]
 
@@ -129,3 +143,30 @@
 - Conventional Commits RU; no Co-authored-by / AI trailers
 - Коммит (если просят): `fix(marketplace): …` / `fix(dev): …` + тело со ссылкой на этот файл и `(A3W7-5-00N)`
   `Задача: .planning/backlog/TASK-166-2026-07-29-a3-7-5-mp-status-dev.md`
+
+## [MUTATION CRITERIA] — verifier-ready
+
+> W13 slot 3 refill / be2 · criteria only (no mutate) · 2026-07-30 · HEAD guards verified
+
+| ID | Production file:line (guard) | слой | Exact test RED | Kill recipe |
+|----|------------------------------|------|----------------|-------------|
+| A3W7-5-001 | `marketplace/dto.go:113-116` — `toListingResponseOpts(allowEmail=false)` не копирует `ReviewNote` (и reviewer) | DTO / service map | `TestListApproved_ReviewNoteHidden_A3W75001` · `backend/testframework/marketplace/a3w75_task166_test.go` | снова `resp.ReviewNote = l.ReviewNote` при `!allowEmail` → public note leak RED |
+| A3W7-5-002 | `dev/seed.go:278-280` / `:449-451` / `:660-662` — Create fail → `return …, err` (не slog+continue) | handler/seed helpers | `TestSeedWorkflowTransitions_CreateFailPropagates_A3W75002`; `TestSeedIssueLinks_CreateFailPropagates_A3W75002`; `TestSeedChannels_CreateFailPropagates_A3W75002` · `backend/testframework/dev/seed_partial_a3w75_task166_test.go` | вернуть slog+continue + `(n, nil)` в helper → Create-fail silent OK RED |
+| A3W7-5-003 | `marketplace/service.go:115-116` (+ Update `:172-175`); `dto.go:155-157` — `normalizeCurrency` до validate+Save | service | `TestCurrencyNormalize_A3W75003` · `a3w75_task166_test.go` | писать сырой `req.Currency` без normalize → `"USD "` / case RED |
+| A3W7-5-004 | `marketplace/service.go:24-25` + `:320-322` — `maxReviewNoteRunes=2000` → `ErrInvalidInput` | service | `TestReviewNoteRuneCap_A3W75004` · `a3w75_task166_test.go` | убрать rune cap → oversized note Save OK RED |
+
+### Layer notes (mock vs Ent)
+
+| ID | Тест бьёт | Flag |
+|----|-----------|------|
+| 001 | MarketplaceService ListApproved + Ent listing fixture | **OK** — DTO map поверх Ent |
+| 002 | Seed helpers + Ent Create fail fixtures | **OK** — real DB err propagate |
+| 003 | Create/Update listing + Ent persistence check | **OK** |
+| 004 | transitionReview / Approve path rune count | **OK** — service до Save |
+
+`layer_mismatch IDs: (none)` · `mock≠Ent IDs: (none)`
+
+### Gaps
+
+- Docs-only: **N/A** — все 4 ID runtime/hubtest.
+- Schema `MaxLen` на `review_note` — out of scope (service cap достаточно).

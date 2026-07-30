@@ -1,7 +1,8 @@
 # TASK-143 — 🧹 A3 messenger handlers poll test wrong URL
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
-> Исполнитель: **be1** · Источник: A3 Stage FINAL · `A3W3-1-messenger-handlers.md` · TASK-008
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Закрыта**  
+> Исполнитель: **be1** · Источник: A3 Stage FINAL · `A3W3-1-messenger-handlers.md` · TASK-008  
+> Mutation close: **be2** W13 slot 3 refill 2026-07-30 · 1/1 PROVEN
 
 ## [OUTCOME]
 
@@ -91,3 +92,31 @@
 - Claim CONFIRMED только с observed evidence (`go test` output).
 - Docs sync: N/A (контракт API не меняется) — кроме статуса backlog README при закрытии.
 - Коммит (если просят): `test(messenger): …` + тело со ссылкой на этот файл и `(A3W3-1-001)`.
+
+## [MUTATION CRITERIA] — verifier-ready
+
+> W13 slot 3 / be2 · criteria only (no mutate) · 2026-07-30 · finding = test hygiene; prod route already FIXED-OK
+
+| ID | Production file:line (guard) | слой | Exact test RED | Kill recipe |
+|----|------------------------------|------|----------------|-------------|
+| A3W3-1-001 | `backend/internal/messenger/handler_reactions.go:275-284` (`parsePollID` → 400 on bad UUID); caller `GetPollResults` `:400-401`; route `handler.go:115` `GET /polls/:pollId` | handler | `TestHandler_GetPollResults_InvalidPollID` · `backend/testframework/messenger/handler_wave114_test.go` | **(A)** ослабить `parsePollID` (accept-any / skip Parse → не 400) → assert 400 RED; **(B)** вернуть path `/api/messenger/channels/not-a-uuid/polls/<uuid>/results` при assert `StatusBadRequest` → 404≠400 RED |
+
+### Layer notes (mock vs Ent)
+
+| ID | Тест бьёт | Комментарий |
+|----|-----------|-------------|
+| A3W3-1-001 | Fiber handler `GetPollResults` → `parsePollID` | Guard в handler — **handler OK**; Ent N/A (нет repo на invalid UUID) |
+
+`layer_mismatch IDs: (none)`
+
+### Gaps
+
+- Finding был false-green **теста** (wrong URL), не дыра в prod. Мутация prod `(A)` доказывает, что исправленный тест реально бьёт `parsePollID`; `(B)` — anti-regression path.
+- Не мутировать prod route на legacy `/channels/…/polls/…/results` «ради теста» (SCOPE forbid) — только временно для proof, затем restore.
+
+## [MUTATION CLOSE — W13 be2 2026-07-30]
+
+**Verdict:** 1/1 **PROVEN** · статус **Закрыта**  
+Evidence: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W13-be2-task143.md`  
+Leftover MUTATED: нет.  
+Kill (A): `parsePollID` accept-any → `TestHandler_GetPollResults_InvalidPollID` RED (400→500); restore GREEN.

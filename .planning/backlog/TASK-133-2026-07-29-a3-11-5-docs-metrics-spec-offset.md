@@ -1,6 +1,6 @@
 # TASK-133 — 🧹 A3 docs inventory/strategy Vitest + list-issues offset
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Закрыта**  
 > Источник: A3 W11-5 fe-lib-docs · TASK-008 Stage A3 FINAL  
 > Исполнитель: **docs-writer** · Finding IDs: `A3W11-5-001`, `A3W11-5-002`, `A3W11-5-003`
 
@@ -179,3 +179,31 @@ Docs inventory (BE tests / export_hooks / Vitest) и пример list-issues в
 ```http
 GET /projects/:id/issues?cursor=<opaque>&limit=50
 ```
+
+## [MUTATION CRITERIA] — verifier-ready
+
+> W13 slot 3 / be2 · criteria only (no mutate) · 2026-07-30 · **docs-only** — runtime Go/Vitest mutation N/A
+
+| ID | Production file:line (guard) | слой | Exact test RED | Kill recipe |
+|----|------------------------------|------|----------------|-------------|
+| A3W11-5-001 | inventory rows in `docs/TESTING.md:33-36`, `docs/test_plan.md:52-57`, `docs/TROUBLESHOOTING.md:21,48`, `docs/vision_and_scope.md:42`, `docs/user_needs_analysis_2026.md:61`, `docs/testframework_strategy.md:76-77` | docs | N/A runtime — `rg -n "652|Vitest.*94" docs/{TESTING,test_plan,TROUBLESHOOTING,vision_and_scope,user_needs_analysis_2026,testframework_strategy}.md` (+ optional TASK-080 drift-script) FAIL | вернуть stale BE `652` / hooks `37` / Vitest `94` в любом из шести файлов |
+| A3W11-5-002 | `docs/testframework_strategy.md:78` (Vitest inventory line) | docs | N/A runtime — `rg -n "37 файлов|99 тестов" docs/testframework_strategy.md` FAIL | вернуть «37 файлов, 99 тестов» |
+| A3W11-5-003 | `docs/system_specification.md:144` (list-issues example; канон cursor = NFR-14 `:60`) | docs | N/A runtime — `rg -n "offset=0&limit" docs/system_specification.md` на примере issues FAIL | вернуть `?offset=0&limit=50` в примере list-issues (не intranet/wiki offset-строки) |
+
+### Layer notes (mock vs Ent)
+
+| ID | Тест бьёт | Комментарий |
+|----|-----------|-------------|
+| 001–003 | docs `rg` / drift-script | **N/A code mutation** — product runtime (tracker cursor) уже FIXED-OK; finding = docs example/metrics drift |
+
+`layer_mismatch IDs: (none)` — docs-only
+
+### Gaps
+
+- `offset=0` встречается в intranet/wiki примерах того же `system_specification.md` — whitelist при `rg`; мутация 003 только на **list-issues** `:144`.
+- Нет Go-теста на docs drift; PROVEN = grep/drift-script, не hubtest.
+
+## [MUTATION CLOSE — W13 be2 2026-07-30]
+
+**Verdict:** 3/3 **N/A** (docs `rg`/drift — no fake-PROVEN) · статус **Закрыта**  
+Evidence: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W13-be2-docs-132-133.md`

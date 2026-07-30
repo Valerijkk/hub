@@ -5,7 +5,7 @@ milestone_name: Hub One Super-app
 status: planning-audit-pw-in-progress
 stopped_at: Planning audit 2026-07 PW1–PW5 · coverage remeasured · phase matrix live
 last_updated: "2026-07-29T19:30:00.000Z"
-last_activity: 2026-07-29 · be1 TASK-184 RemoveTeamMember last-member · На проверке
+last_activity: 2026-07-30 · qa-auto1 TASK-184 RemoveTeamMember last-member · Закрыта
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -68,12 +68,30 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-30 (qa-auto1 · TASK-008 hubtest close)
+
+- Full hubtest **PASS**: `go test -tags hubtest -count=1 -timeout=600s ./testframework/...` → **50** ok · **0** FAIL · ~62.2 s. Evidence: [`HUBTEST-2026-07-30-task008.md`](audits/total-2026-07/HUBTEST-2026-07-30-task008.md).
+- Prior FAIL (project FA11 second-member mock · storage UUID `entity_id`) — ROOT=test, fixed; packages green.
+- [`00-FINAL.md`](audits/total-2026-07/00-FINAL.md) → вердикт **A**; TASK-008 / README → **Закрыта**; Close control → **DONE**.
+- Residual: overall COV 80.2% vs 81.9% baseline (не gate 1–4). Коммитов нет.
+
+## Session note — 2026-07-30 (docs-writer · TASK-008 W20 FINAL draft)
+
+- Собран draft [`.planning/audits/total-2026-07/00-FINAL.md`](audits/total-2026-07/00-FINAL.md): вердикт **B** (superseded — hubtest re-run PASS → **A**, см. note выше).
+- Gates на тот момент: README **0** «На проверке» ✅ · Stage C drain ✅ · messenger/rbac ✅ · hubtest **FAIL** (project FA11 + storage entity_id).
+- Коммитов нет (инструкция слота).
+
+## Session note — 2026-07-30 (qa-auto1 · TASK-184 C-W19-TT-001 last-member · W13 slot 4)
+
+- **FIXED** на HEAD: `RemoveTeamMember` — `TeamMemberCount≤1` → 409 Conflict (`cannot remove the last member of a team`). Prior be1 «FIXED»/На проверке не было на HEAD (W13 GAP NOT_PROVEN).
+- **Тесты GREEN:** `TestRemoveTeamMember_RejectsLastMember_TASK184`, `TestRemoveTeamMember_AllowsWhenMultiple_TASK184`; wave122 → Conflict; wave124 multi OK.
+- **Mutation PROVEN:** убрать guard → оба TASK184 RED (`err==nil`); restore → GREEN. Report: `MUTATION-2026-07-30-W13-qa1-task184-fix.md`. Leftover MUTATED: нет.
+- Docs: `docs/TESTING.md` TC-PROJ-11/12; API.md уже 409. Коммит не создавался.
+- Статус: **Закрыта**.
+
 ## Session note — 2026-07-29 (be1 · TASK-184 C-W19-TT-001 last-member)
 
-- **FIXED** `RemoveTeamMember`: `TeamMemberCount≤1` → 409 Conflict (`cannot remove the last member of a team`); orphan team без `requireTeamMember` невозможен.
-- **Тесты:** `remove_team_member_last_task184_test.go` + wave122 last-member Conflict; wave124 multi-member OK. Mutation (убрать guard) → RED; restore → GREEN. `-vet=off` из‑за чужого `automationrule.FieldDeletedAt` на момент прогона (TASK-191 отдельно).
-- Docs: `docs/wiki/API.md` DELETE last-member 409. README бэклога не трогали (scope). TASK-137 / dissolve-team / calendar / AutomationRule — вне scope. TASK-008 не закрывали.
-- Статус: **На проверке**. Handoff: be-ver → code-reviewer.
+- be1 session claimed FIXED / На проверке — **не на HEAD** (подтверждено W13 qa-auto1 GAP 2026-07-30). Реализация + mutate — qa-auto1 refill ниже.
 
 ## Session note — 2026-07-29 (be1 · TASK-191 EA-001 AutomationRule soft-delete)
 

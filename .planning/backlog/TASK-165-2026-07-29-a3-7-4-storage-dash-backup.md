@@ -1,6 +1,6 @@
 # TASK-165 — 🐛 A3 storage/dashboard/backup residual
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Закрыта**  
 > Исполнитель: **be1** · Источник: A3 Stage FINAL · `A3W7-4-storage-dash-backup.md` · TASK-008
 
 ## [OUTCOME]
@@ -119,7 +119,9 @@ Critical dashboard PG widgets fail-closed (не silent empty 200); backup S3 del
 
 ## [EVIDENCE] — be1 2026-07-29
 
-### Verdict: **5/5 FIXED** · статус **На проверке** · handoff → be-ver
+### Verdict: **5/5 FIXED** · статус **Закрыта** · mutation W13 refill 2026-07-30 · handoff → be-ver → code-reviewer
+
+**Mutation prove (W13 slot 1 refill / be1):** `.planning/audits/total-2026-07/MUTATION-2026-07-30-W13-be1-task165.md` — **5/5 PROVEN** (A3W7-4-004 mock≠Ent GAP_NOTED).
 
 | ID | Status | Fix (file) | Test | Mutation |
 |----|--------|------------|------|----------|
@@ -137,3 +139,32 @@ Critical dashboard PG widgets fail-closed (не silent empty 200); backup S3 del
 cd backend && go test -tags hubtest -race -count=1 -timeout=300s \
   ./testframework/dashboard/ ./testframework/storage/ ./testframework/backup/
 ```
+
+## [MUTATION CRITERIA] — verifier-ready
+
+> W13 slot 3 refill / be2 · criteria only (no mutate) · 2026-07-30 · HEAD guards verified
+
+| ID | Production file:line (guard) | слой | Exact test RED | Kill recipe |
+|----|------------------------------|------|----------------|-------------|
+| A3W7-4-001 | `dashboard/service.go:213-217` — Aggregate err → `return nil, err`; Admin `322-347` — Count* err → `return nil, err` (не slog+empty 200) | service | `TestGetProjectStats_AggregateFailClosed_A3W74_001`; `TestGetAdminStats_CountsFailClosed_A3W74_001`; `TestGetAdminStats_CountsFailClosed_BeforeTop_A3W74_001` · `backend/testframework/dashboard/task165_a3w74_test.go` | вернуть slog + `return stats, nil` / soft-skip Count* → Error-assert RED (200 empty) |
+| A3W7-4-002 | `backup/service.go:346-356` — DeleteBackup: `DeleteObject` err → `slog.WarnContext` + fail-closed (DB row остаётся); `cleanupOldBackups` `:441-450` — Warn + skip DB | service | `TestDeleteBackup_S3FailClosedWarn_A3W74_002`; `TestCleanupOldBackups_S3FailWarn_A3W74_002` · `backend/testframework/backup/s3_delete_warn_task165_test.go` | снова `_, _ = DeleteObject` без Warn/fail-closed → Warn/DB-row assert RED |
+| A3W7-4-003 | `dashboard/service.go:462-470` — `GetLayout` + non-nil `projectID` → `IsProjectMember` / `ErrForbidden` | service | `TestGetLayout_StrangerProjectForbidden_A3W74_003` · `task165_a3w74_test.go` | убрать membership check из GetLayout → stranger `err==nil` RED |
+| A3W7-4-004 | `storage/handler.go:278-281` — SoftDelete/`DeleteFile` NotFound → `ent.IsNotFound` → 404 | handler | `TestHandler_DeleteFile_SoftDeleteNotFound404_A3W74_004` · `backend/testframework/storage/delete_softdelete_404_task165_test.go` | убрать `ent.IsNotFound` map → NotFound → 500 RED |
+| A3W7-4-005 | `dashboard/repository.go:207-212+` — `AggregateProjectCompletedByDay` (Count/day), не `List*.All()` done-issues | EntRepository | `TestAggregateProjectCompletedByDay_Bounded_A3W74_005` · `task165_a3w74_test.go` | вернуть unbounded `.All()` / убрать aggregate method wiring → bounded hygiene RED |
+
+### Layer notes (mock vs Ent)
+
+| ID | Тест бьёт | Flag |
+|----|-----------|------|
+| 001 | Service + inject Aggregate fail (wrapper) / closed Ent client for CountUsers | **OK** — service fail-closed; Admin path hits Ent |
+| 002 | BackupService + failing S3 httptest stub + Ent backup row | **OK** — S3≠Ent; DB fail-closed на Ent |
+| 003 | GetLayout + Ent stranger (no ProjectMember) | **OK** |
+| 004 | Fiber Delete handler + mock SoftDelete→NotFound | **mock≠Ent** (GAP_NOTED): handler map через mock NotFound, не race SoftDelete на Ent |
+| 005 | EntRepository AggregateProjectCompletedByDay + done fixtures | **OK** — Ent aggregate |
+
+`layer_mismatch IDs: (none)` · `mock≠Ent IDs: A3W7-4-004`
+
+### Gaps
+
+- Docs-only: **N/A** — все 5 ID runtime/hubtest.
+- Soft optional charts (burndown/testRuns/activity) остаются soft-fail — kill 001 только critical Aggregate/Admin Count*.

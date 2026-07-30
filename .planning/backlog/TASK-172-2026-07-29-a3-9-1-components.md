@@ -1,8 +1,9 @@
 # 🧹 A3 FE admin error≠empty pending/limits/trash
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Закрыта**  
 > Источник: A3 · **Owner lock: правим ВСЕ A3 open** · TASK-008 · кластер A3W9-1  
-> Ветка исполнения: `cursor-grok-4.5` (не пушить в `master`)
+> Ветка исполнения: `cursor-grok-4.5` (не пушить в `master`)  
+> Mutation: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W9-fe2.md` · **5/5 PROVEN**
 
 ## [OUTCOME]
 
@@ -122,16 +123,40 @@
 
 ## [PROGRESS]
 
-**Verdict:** 5/5 FIXED · статус **На проверке** · handoff **fe-ver → code-reviewer**
+**Verdict:** 5/5 FIXED · **5/5 PROVEN** · статус **Закрыта** · handoff **fe-ver → code-reviewer**
 
 | ID | Status | Evidence |
 |----|--------|----------|
-| A3W9-1-001 | FIXED | `pending-users-panel.tsx` — `loadError` + `QueryErrorAlert`; empty только `!loadError` |
-| A3W9-1-002 | FIXED | `resource-limits.tsx` — `loadError` + alert/retry; save-форма не при fail; timer/cancelled OK |
-| A3W9-1-003 | FIXED | `trash-manager.tsx` — `loadError` + alert; «Корзина пуста» только без error; tabs ARIA OK |
-| A3W9-1-004 | FIXED | `audit-log.tsx` — banner `QueryErrorAlert` над таблицей; «Записи не найдены» только без error |
-| A3W9-1-005 | FIXED | `CallChat.tsx` — `aria-label` + `aria-pressed` на logging toggle |
+| A3W9-1-001 | FIXED · PROVEN | `pending-users-panel.tsx` — `loadError` + `QueryErrorAlert`; empty только `!loadError` |
+| A3W9-1-002 | FIXED · PROVEN | `resource-limits.tsx` — `loadError` + alert/retry; save-форма не при fail; timer/cancelled OK |
+| A3W9-1-003 | FIXED · PROVEN | `trash-manager.tsx` — `loadError` + alert; «Корзина пуста» только без error; tabs ARIA OK |
+| A3W9-1-004 | FIXED · PROVEN | `audit-log.tsx` — banner `QueryErrorAlert` над таблицей; «Записи не найдены» только без error |
+| A3W9-1-005 | FIXED · PROVEN | `CallChat.tsx` — `aria-label` + `aria-pressed` на logging toggle |
 
 **Regression:** `npx tsc --noEmit` PASS · `vitest domains/admin/` 31/31 PASS · calls logging a11y + regressions PASS
 
-**Mutation notes:** см. отчёт fe1 (убрать `loadError`/`QueryErrorAlert` / `aria-*` → assert краснеет).
+**Mutation:** `.planning/audits/total-2026-07/MUTATION-2026-07-30-W9-fe2.md` — Break→RED→restore→GREEN на каждом ID (omit `setLoadError` / remove aria-*).
+
+## [MUTATION CRITERIA] — verifier-ready
+
+Проверено по коду HEAD (2026-07-30 · W7 slot 4 · fe1). Слой **frontend**. Typecheck: `cd frontend && npx tsc --noEmit` — **PASS** (не ловит error≠empty / a11y regressions).
+
+| ID | что ломать (file:line + фрагмент) | какой тест (`it` / команда) | слой |
+|----|-----------------------------------|-----------------------------|------|
+| A3W9-1-001 | `pending-users-panel.tsx:29-30` — в `catch` не `setLoadError(true)` (и/или `:89-90` убрать ветку `loadError ? <QueryErrorAlert…>`); empty «Нет заявок…» без guard `!loadError` | describe `PendingUsersPanel (A3W9-1-001)` → `it("shows QueryErrorAlert on load fail, not empty copy")` | frontend |
+| A3W9-1-002 | `resource-limits.tsx:44-46` — не `setLoadError(true)` в catch; **и/или** `:91-93` убрать early `if (loadError) return <QueryErrorAlert…>` (рендерить save-форму при fail) | describe `ResourceLimits (A3W9-1-002)` → `it("shows alert+retry on getLimits fail, not save form")` | frontend |
+| A3W9-1-003 | `trash-manager.tsx:41-42` — не `setLoadError(true)`; **и/или** `:100-101` убрать `loadError && !loading ? QueryErrorAlert`; empty «Корзина пуста» без `!loadError` | describe `TrashManager (A3W9-1-003)` → `it("shows alert+retry on getTrash fail, not empty copy")` | frontend |
+| A3W9-1-004 | `audit-log.tsx:106` — не `setLoadError(true)` при fail fetch; **и/или** `:357-359` убрать banner `QueryErrorAlert`; «Записи не найдены» без guard `loadError` (`:428-434`) | `it("shows banner+retry on fetchLogs fail, not empty-as-fail (A3W9-1-004)")` | frontend |
+| A3W9-1-005 | `CallChat.tsx:146-151` — убрать `aria-pressed={chatLoggingEnabled}` и/или `aria-label={…логирование…}` с logging toggle | describe `CallChat logging toggle a11y (A3W9-1-005)` → `it("exposes aria-label and aria-pressed for logging toggle")` | frontend |
+
+### Gaps (mutation-proof)
+
+| Guard | Ловит тест на том же слое? | Примечание |
+|-------|----------------------------|------------|
+| pending/limits/trash/audit `loadError`+alert | ✅ RTL (api mock → UI) | mock API ≠ mock UI-guard; слой совпадает |
+| CallChat logging aria-* | ✅ RTL | |
+| CallChat residual `bg-green-500/15` tokens (`:154-156`) | ❌ Vitest | **GAP OOS** — не ID задачи; только visual/token drift |
+| `npx tsc --noEmit` | ❌ | не ловит 001–005 |
+
+**layer_mismatch:** нет (guards в FE, тесты RTL на тех же компонентах).  
+**Confidence:** CONFIRMED.

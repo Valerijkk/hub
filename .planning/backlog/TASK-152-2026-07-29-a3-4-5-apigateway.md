@@ -1,10 +1,10 @@
 # 🔒 A3 apigateway soft-delete webhooks + VersionEQ
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Закрыта** · MUTATION-2026-07-30-W4-qa-auto1  
 > Источник: A3W4-5-apigateway.md · Stage A3 FINAL · TASK-008 · кластер A3W4-5  
 > Ветка исполнения: `cursor-grok-4.5` (не пушить в `master`)  
 > Finding IDs: **A3W4-5-001** … **A3W4-5-004**  
-> Исполнитель: be2 · Handoff: be-ver → code-reviewer
+> Исполнитель: be2 · Verifier: qa-auto1 (W4 slot 3, != be2) · Handoff: done
 
 ## [OUTCOME]
 
@@ -159,6 +159,33 @@
 
 **Регрессия:** `go test -tags hubtest -race -count=1 ./testframework/apigateway/` → **PASS** 9.012s (isolated worktree `.worktrees/task152-a3w45`; main `ent/` mid-codegen OOS).
 
-**Коммит:** `95a25a21` (без Co-authored-by). Статус: **На проверке**. README не трогали.
+**Коммит:** `95a25a21` (без Co-authored-by). Статус be2: **На проверке** → verifier ниже.
 
 **OOS / risks:** FE `webhooks.tsx` ещё показывает `sprint.completed` и PUT без `version` — UI сломается до FE-фиксов (вне SCOPE be2).
+
+## Progress (qa-auto1 · 2026-07-30 · W4 slot 3)
+
+Независимый Break→RED→restore→GREEN по `[MUTATION CRITERIA]` (!= be2). Отчёт: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W4-qa-auto1.md`.
+
+| ID | Verdict | RED test |
+|----|---------|----------|
+| A3W4-5-001 | **PROVEN** | `TestListActiveWebhookEndpoints_SoftDeletedProject_Excluded` |
+| A3W4-5-002 | **PROVEN** | `TestUpdateWebhookEndpoint_VersionEQ_ConflictAndSuccess` |
+| A3W4-5-003 allowlist | **PROVEN** | `TestValidateWebhookEvents_SprintCompleted_Rejected` |
+| A3W4-5-003 FilterSubjects | **PROVEN** (не N/A — есть тест) | `TestWebhookFilterSubjects_CoversWebhookEvents` |
+| A3W4-5-004 | **PROVEN** | `TestCreateAPIKey_NameMaxLen_400` |
+
+Регрессия: `go test -tags hubtest -race -count=1 ./testframework/apigateway/` → **PASS** ~6.4s. Prod восстановлен. Коммит не создавался.
+
+Статус задачи: **Закрыта**.
+
+## [MUTATION CRITERIA] — verifier-ready
+
+> PROVEN 2026-07-29 team-lead · строки по HEAD кода · слой = реальный guard
+
+| ID | что ломать | какой тест | слой |
+|----|------------|------------|------|
+| A3W4-5-001 | `backend/internal/apigateway/repository.go:177` — убрать `webhookendpoint.HasProjectWith(project.DeletedAtIsNil()),` из Where `ListActiveWebhookEndpoints` | `TestListActiveWebhookEndpoints_SoftDeletedProject_Excluded` | repository |
+| A3W4-5-002 | `backend/internal/apigateway/repository.go:240` — убрать `webhookendpoint.VersionEQ(input.Version),` из Where `UpdateWebhookEndpoint` (фрагмент рядом: `AddVersion(1)`) | `TestUpdateWebhookEndpoint_VersionEQ_ConflictAndSuccess` | repository |
+| A3W4-5-003 | `backend/internal/apigateway/webhook.go:454-460` — вернуть `"sprint.completed": {}` в `allowedWebhookEvents` (trim-path; без producer) | `TestValidateWebhookEvents_SprintCompleted_Rejected` | service |
+| A3W4-5-004 | `backend/internal/apigateway/handler.go:125` — порог `utf8.RuneCountInString(req.Name) > 255` → `> 999999` | `TestCreateAPIKey_NameMaxLen_400` | handler |

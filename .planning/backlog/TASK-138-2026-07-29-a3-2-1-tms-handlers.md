@@ -1,8 +1,9 @@
 # TASK-138 — 🧹 A3 TMS handlers residual
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P3** · Статус: **На проверке**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P3** · Статус: **Закрыта**  
 > Источник: A3W2-1-tms-handlers.md · Stage A3 FINAL · TASK-008  
-> Исполнитель: **be2** · Finding IDs: `A3W2-1-001`
+> Исполнитель: **be2** · Finding IDs: `A3W2-1-001`  
+> Mutation: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W13-qa1-task138.md` · **1/1 PROVEN** (qa-auto1 W13 slot 4 refill, 2026-07-30)
 
 ## [OUTCOME]
 
@@ -150,3 +151,35 @@ Where(..., testcase.VersionEQ(input.Version)).
 ```
 
 Аналогично для `testsuite.VersionEQ` / `UpdateSuiteRequest` / `SuiteResponse`.
+
+## [MUTATION CRITERIA] — verifier-ready
+
+> W13 slot 3 / be2 · criteria only (no mutate) · 2026-07-30 · HEAD guards verified
+
+| ID | Production file:line (guard) | слой | Exact test RED | Kill recipe |
+|----|------------------------------|------|----------------|-------------|
+| A3W2-1-001 | `backend/internal/tms/dto.go:79` — `Version int` `validate:"required"`; `ent_repository.go:549` `testsuite.VersionEQ(input.Version)` + `:553` `AddVersion(1)`; response map `service_converters.go:119` / `dto.go:261` | DTO/handler + EntRepository | `TestUpdateSuite_RequiresVersion_StructValidator`; `TestEntRepository_UpdateSuite_OptimisticLock_A3W2_1_001` · `backend/testframework/tms/update_suite_optimistic_a3w2_1_001_test.go` | убрать `Version`/`validate:"required"` → omit/0→400 RED; снять `VersionEQ` → stale last-write-wins RED |
+
+### Layer notes (mock vs Ent)
+
+| ID | Тест бьёт | Комментарий |
+|----|-----------|-------------|
+| 001 StructValidator | Fiber handler + **mock** CreateSuite | Guard в DTO validate — mock OK для 400 |
+| 001 Ent OL | EntRepository Postgres `UpdateSuite` | **Ent OK** — канон VersionEQ/AddVersion |
+| 001 Service OL (`TestUpdateSuite_OptimisticLock_Service_A3W2_1_001`) | service + **mock** repo | **mock≠Ent** — 409 может жить в mock без prod `VersionEQ`; Ent-тест обязателен для PROVEN |
+
+`layer_mismatch IDs: (none)` · `mock≠Ent IDs: A3W2-1-001` (service-only path; GAP_NOTED — Ent RED закрывает OL)
+
+### Gaps
+
+- Response `version` (`toSuiteResponse`) не отдельный kill: omit Version в response ловится assert `created.Version` / happy-path в тех же тестах.
+- Concurrent PUT stress — out of scope; sequential stale+happy достаточно.
+
+## Progress (qa-auto1 · 2026-07-30 · W13 slot 4 refill)
+
+| ID | Verdict | RED |
+|----|---------|-----|
+| A3W2-1-001 | **PROVEN** | `TestEntRepository_UpdateSuite_OptimisticLock_A3W2_1_001` (drop VersionEQ) + `TestUpdateSuite_RequiresVersion_StructValidator` (drop validate required) |
+
+Evidence: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W13-qa1-task138.md`.  
+Service mock path не kill (mock≠Ent GAP_NOTED); Ent OL PROVEN. Leftover MUTATED: нет. Статус → **Закрыта**.

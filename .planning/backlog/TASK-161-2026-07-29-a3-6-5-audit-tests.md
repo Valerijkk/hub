@@ -1,8 +1,8 @@
 # 🧹 A3 audit tests CRM purge/Retention gaps
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Закрыта**  
 > Источник: A3W6-5-audit-tests.md · Stage A3 FINAL · TASK-008  
-> Исполнитель: **be1**
+> Исполнитель: **be1** · Mutation: **qa-auto1** W13 slot 4 refill 2026-07-30
 
 ## Evidence (be1 · 2026-07-29)
 
@@ -17,6 +17,22 @@
 | A3W6-5-007 | FIXED | hollow `DeleteUserGDPR_Success` удалён (цемент SuccessCascadeCalls) |
 
 **hubtest:** `go test -tags hubtest -race -count=1 -timeout=600s -vet=off ./testframework/audit/` → **ok** 10.303s (isolated worktree; main tree concurrent ent regen).
+
+## Mutation (qa-auto1 · W13 slot 4 refill · 2026-07-30)
+
+Evidence: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W13-qa1-task161.md`
+
+| ID | Verdict | RED |
+|----|---------|-----|
+| A3W6-5-001 | PROVEN + GAP_NOTED (mock≠Ent) | `TestAuditService_PurgeExpired_CapturesCutoffs_A2W6A5001` |
+| A3W6-5-002 | PROVEN + GAP_NOTED (mock≠Ent) | `SoftDelete`/`RestoreItem` `_RecordsAllTypes_A2W6A5004` |
+| A3W6-5-003 | PROVEN | `TestRepository_CRMContact/CRMDeal_RetentionHidesOlderThan30Days` |
+| A3W6-5-004 | PROVEN | `TestAuditService_DeactivateUser_InvalidatesCache` |
+| A3W6-5-005 | N/A | hollow deleted |
+| A3W6-5-006 | N/A | hollow deleted |
+| A3W6-5-007 | N/A | hollow deleted |
+
+**0 NOT_PROVEN** → статус **Закрыта**. Leftover MUTATED: нет.
 
 ## [OUTCOME]
 
@@ -125,3 +141,34 @@
 - Коммит(ы) ссылают задачу в теле:  
   `Задача: .planning/backlog/TASK-161-2026-07-29-a3-6-5-audit-tests.md`  
   subject может содержать `(A3W6-5-001)` и т.п.
+
+## [MUTATION CRITERIA] — verifier-ready
+
+> W13 slot 1 refill / be1 · criteria only (no mutate) · 2026-07-30 · HEAD guards verified
+
+| ID | Production file:line (guard) | слой | Exact test RED | Kill recipe |
+|----|------------------------------|------|----------------|-------------|
+| A3W6-5-001 | `backend/internal/audit/service.go:390-391` — `purge("crm_contacts"…)` / `purge("crm_deals"…)` в `PurgeExpired` | service | `TestAuditService_PurgeExpired_CapturesCutoffs_A2W6A5001` · `backend/testframework/audit/task114_residual_test.go` | убрать вызовы `crm_contacts`/`crm_deals` из `PurgeExpired` → wantKeys/callCounts×8 RED |
+| A3W6-5-002 | SoftDelete `service.go:353-356`; Restore `:326-329` — cases `"crm_contact"`/`"crm_deal"` | service | `TestAuditService_SoftDelete_RecordsAllTypes_A2W6A5004`; `TestAuditService_RestoreItem_RecordsAllTypes_A2W6A5004` · same file | убрать CRM cases / неверный type → RecordsAllTypes map RED |
+| A3W6-5-003 | `repository.go:613` `crmcontact.DeletedAtGT(cutoff)`; `:641` `crmdeal.DeletedAtGT(cutoff)` | EntRepository | `TestRepository_CRMContact_RetentionHidesOlderThan30Days`; `TestRepository_CRMDeal_RetentionHidesOlderThan30Days` · `backend/testframework/audit/repository_crm_trash_task118_test.go` | снять `DeletedAtGT(cutoff)` в ListDeletedCRM* → total≠0 RED |
+| A3W6-5-004 | `service.go:431-433` — `auth.InvalidateUserStatusCache` в `deactivateUser` | service | `TestAuditService_DeactivateUser_InvalidatesCache` · `backend/testframework/audit/service_deactivate_test.go` | убрать `InvalidateUserStatusCache` / не Del key → `mr.Exists` assert RED |
+| A3W6-5-005 | N/A | N/A | N/A | **N/A: hollow deleted** — `ListTrash_WithProjectFilter` удалён; цемент `TestHandler_ListTrash_CapturesProjectID_A2W6A5006` |
+| A3W6-5-006 | N/A | N/A | N/A | **N/A: hollow deleted** — Succeeds/AllTypes NoError-only siblings удалены; kill = 001/002 на CapturesCutoffs/RecordsAllTypes |
+| A3W6-5-007 | N/A | N/A | N/A | **N/A: hollow deleted** — `DeleteUserGDPR_Success` удалён; цемент `TestAuditService_DeleteUserGDPR_SuccessCascadeCalls_A2W6A5009` |
+
+### Layer notes (mock vs Ent)
+
+| ID | Тест бьёт | Flag |
+|----|-----------|------|
+| 001 | AuditService + purge mock repo call map | **mock≠Ent** (GAP_NOTED): callCounts на mock; prod wiring = service purge keys |
+| 002 | SoftDelete/Restore + mock softDeleteCalls/restoreCalls | **mock≠Ent** (GAP_NOTED): map assert на mock; prod = service switch cases |
+| 003 | Ent `ListDeletedCRMContacts/Deals` | **OK** — Ent predicate |
+| 004 | Deactivate + miniredis status cache key | **OK** — service Redis invalidate |
+| 005–007 | hollow removal | N/A |
+
+`layer_mismatch IDs: (none)` · `mock≠Ent IDs: A3W6-5-001, A3W6-5-002`
+
+### Gaps
+
+- Docs-only: **N/A** for 001–004 (runtime); 005–007 = hollow-deletion N/A (not docs).
+- Не ослаблять PropagatesError / non-CRM RetentionHides при mutate CRM-only.

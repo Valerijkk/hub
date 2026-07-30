@@ -1,7 +1,8 @@
 # TASK-164 — 🔒 A3 integrations trash filter + link-preview membership
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
-> Исполнитель: **be2** · Источник: A3 Stage FINAL · `A3W7-3-integrations.md` · TASK-008
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Закрыта**  
+> Исполнитель: **be2** · Источник: A3 Stage FINAL · `A3W7-3-integrations.md` · TASK-008  
+> Mutation proof: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W13-be2-task164.md` · 3/3 PROVEN (2026-07-30)
 
 ## [OUTCOME]
 
@@ -115,3 +116,28 @@ Sprint PDF / GH+GL issue lookup не видят soft-deleted issues; `/link-prev
 - Docs sync: wiki/API только если публичный контракт `/link-preview` меняется явно; иначе N/A + статус backlog
 - Conventional Commits RU; no Co-authored-by / AI trailers
 - Коммит (если просят): `fix(imex|github|gitlab): …` + тело со ссылкой на этот файл и `(A3W7-3-001)` / `(A3W7-3-002)` / `(A3W7-3-003)`
+
+## [MUTATION CRITERIA] — verifier-ready
+
+> W13 slot 3 refill / be2 · criteria only (no mutate) · 2026-07-30 · HEAD guards verified
+
+| ID | Production file:line (guard) | слой | Exact test RED | Kill recipe |
+|----|------------------------------|------|----------------|-------------|
+| A3W7-3-001 | `backend/internal/imex/repository.go:191-193` — `ListSprintIssues`: `.Where(issue.DeletedAtIsNil())` | EntRepository | `TestListSprintIssues_ExcludesTrash_A3W73_001` · `backend/testframework/imex/list_sprint_issues_trash_task164_test.go` | убрать `DeletedAtIsNil` из `ListSprintIssues` → soft-deleted снова в списке (Len≠1) RED |
+| A3W7-3-002 | `github/repository.go:307-312` + `gitlab/repository.go:204-209` (+ InProject `:322-327` / `:219-224`) — `FindIssueByKey*` + `DeletedAtIsNil` | EntRepository | `TestFindIssueByKey_ExcludesTrash_A3W73_002` · `backend/testframework/github/find_issue_trash_task164_test.go`; `TestFindIssueByKey_ExcludesTrash_A3W73_002` · `backend/testframework/gitlab/find_issue_trash_task164_test.go` | убрать `DeletedAtIsNil` с FindIssue* (GH и/или GL) → trash находится (`!ent.IsNotFound`) RED |
+| A3W7-3-003 | `backend/internal/github/preview.go:103-105` — `resolveIssuePreview`: `IsProjectMember` → denial `nil` (generic) | service | `TestGetLinkPreview_IssueMembership_A3W73_003` · `backend/testframework/github/link_preview_membership_task164_test.go` | убрать / skip `IsProjectMember` → foreign preview с title/status/assignee RED |
+
+### Layer notes (mock vs Ent)
+
+| ID | Тест бьёт | Flag |
+|----|-----------|------|
+| 001 | EntRepository `ListSprintIssues` + sqlite enttest | **OK** — Ent filter |
+| 002 | EntRepository FindIssue* + soft-delete fixture (GH+GL) | **OK** — Ent filter |
+| 003 | LinkPreviewService + mock repo (`IsProjectMember` / FindIssue) | **OK** — guard в service (не Ent); mock membership intentional |
+
+`layer_mismatch IDs: (none)` · `mock≠Ent IDs: (none)`
+
+### Gaps
+
+- Docs-only: **N/A** — все 3 ID runtime/hubtest.
+- GH FindIssueByKeyInProject trash покрыт тем же GH-тестом; GL — отдельный пакет.

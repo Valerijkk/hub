@@ -2,7 +2,8 @@
 
 > Phase 0 reconciliation: требование → код → тест.  
 > **Источники:** `.planning/PROJECT.md`, `docs/vision_and_scope.md`, `.planning/audits/code-review-final/SUMMARY.md`  
-> **Верификация coverage gate:** **2026-07-27** (Docker `-tags hubtest`, overall **81.9%**)  
+> **Актуальный coverage gate:** **2026-07-29** (local host `-tags hubtest`, overall **80.2%**)  
+> Previous gate: 2026-07-27 Docker **81.9%** (see ## Historical baselines)  
 > Historical package table: 2026-06-22 (see ## Historical baselines)  
 > **Источники:** `.planning/PROJECT.md`, `docs/vision_and_scope.md`, `.planning/audits/code-review-final/SUMMARY.md`
 
@@ -31,30 +32,68 @@
 
 ---
 
-## Current coverage gate (measured **2026-07-27**, Docker)
+## Current coverage gate (measured **2026-07-29**, local host)
+
+| Metric | Value | Measured |
+|--------|------:|----------|
+| Overall `internal/` statements | **80.2%** | **2026-07-29** |
+| Gate floor (>=82%) | **MISS (-1.8 pp under floor)** | 2026-07-29 |
+| vs previous gate (2026-07-27) | **-1.7 pp** (was 81.9%) | - |
+| vs 2026-06-22 Docker baseline | **-2.8 pp** (was 83.0%) | - |
+| Backend `testframework/**/*_test.go` | inventory not re-counted this run | 2026-07-29 |
+| Backend `internal/*_test.go` | **0** | 2026-07-29 |
+
+**Method:** local Windows host, `deployments_*` postgres/mongo/redis/nats,  
+`go test -tags=hubtest -count=1 -timeout=1200s -covermode=atomic -coverpkg=github.com/valerii/hub/backend/internal/... ./testframework/...`,  
+`go tool cover -func` -> overall statements.  
+**Caveat:** 11 FAIL packages (`ai` build failed -> `internal/ai` absent from profile). Contaminated sample - re-measure when green.
+
+**Evidence:** `.planning/audits/total-2026-07/COV-2026-07-29.md`, `COV-2026-07-29-func.txt`, `COV-2026-07-29-total.txt`.
+
+### Packages that look low / declined (2026-07-29 stmt)
+
+| Package | Now | vs 2026-06-22 |
+|---------|----:|--------------:|
+| messenger | **69.7%** | **-12.6 pp** |
+| rbac | 77.9% | -6.8 pp |
+| storage | 80.3% | -6.5 pp |
+| intranet | 76.0% | -5.3 pp |
+| github | 77.4% | -3.4 pp |
+| platform/redis | 66.7% | (no prior row) |
+
+Full table + FAIL list: `COV-2026-07-29.md`.
+
+### Package lift **2026-07-30** (TASK-008 / Stage C W-last) — messenger + rbac
+
+Package-scoped remeasure (`coverpkg=internal/{messenger,rbac}` + `testframework/{messenger,rbac}/...`):
+
+| Package | 2026-07-30 before | After | Gate ≥82% |
+|---------|------------------:|------:|:---------:|
+| messenger | 69.6% | **82.8%** | ✅ |
+| rbac | 77.5% | **86.8%** | ✅ |
+
+Evidence: `.planning/audits/total-2026-07/COV-2026-07-30-messenger-rbac.md`.  
+Overall `internal/` gate from 2026-07-29 (**80.2%**) not re-run this slice.
+
+### Historical baselines
+
+#### Coverage gate **2026-07-27** (Docker) - superseded 2026-07-29
 
 | Metric | Value | Measured |
 |--------|------:|----------|
 | Overall `internal/` statements | **81.9%** | **2026-07-27** |
-| Gate floor (≥82%) | **MISS (−0.1 pp under floor)** | 2026-07-27 |
-| vs previous baseline | **−1.1 pp** (was 83.0% on 2026-06-22) | — |
-| Backend `testframework/**/*_test.go` | **515** files | 2026-07-27 inventory |
-| Backend `internal/*_test.go` | **0** | 2026-07-27 |
+| Gate floor (>=82%) | **MISS (-0.1 pp under floor)** | 2026-07-27 |
+| vs previous baseline | **-1.1 pp** (was 83.0% on 2026-06-22) | - |
 
 **Method:** `golang:1.25-bookworm` on `hub_default`,  
 `go test -tags hubtest -count=1 -timeout=900s -covermode=atomic -coverpkg=./internal/... ./testframework/...`,  
-`go tool cover -func` → overall statements.
+`go tool cover -func` -> overall statements.
 
 **Evidence:** `.planning/audits/planning-audit-2026-07/cov-2026-07-27-REPORT.md`, `cov-2026-07-27-total.txt`.
 
-### Packages that declined vs 2026-06-22
+Per-package **statement** table for 2026-07-27 was **pending** (coverprofile export hit `proxy.golang.org` EOF).  
+Overall-only comparable decline at that time: **83.0% -> 81.9% (-1.1 pp)**.
 
-Per-package **statement** table for 2026-07-27 is **pending** a successful coverprofile export (second Docker run hit `proxy.golang.org` EOF).  
-Until that lands, the **only method-comparable decline** is overall: **83.0% → 81.9% (−1.1 pp)**.
-
-Do **not** mix 2026-06-22 statement package % with 2026-07-27 func-mean proxies.
-
-### Historical baselines
 
 Moved prior “current” package table here. Do not present as live without re-run date.
 

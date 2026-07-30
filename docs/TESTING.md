@@ -192,6 +192,8 @@ Vite build проверяет: импорты, tree-shaking, Tailwind 4, TanStac
 | TC-PROJ-08 | Invite: присоединение | Валидный invite-код | POST /invites/join {code} | 200, участник добавлен | `TestJoinByInvite_ValidCode`, `TestJoinByInvite_ExpiredCode` |
 | TC-PROJ-09 | Участник: смена роли | Owner | PUT /projects/:id/members/:userId {role: "tester"} | 200 | — (ручной) |
 | TC-PROJ-10 | Участник: удаление | Owner | DELETE /projects/:id/members/:userId | 200, удалён | `TestRemoveMember_LastOwner` |
+| TC-PROJ-11 | Team: last-member remove → 409 | Команда с 1 участником | DELETE /teams/:teamId/members/:userId | 409 Conflict, count=1 | `TestRemoveTeamMember_RejectsLastMember_TASK184` |
+| TC-PROJ-12 | Team: remove non-last OK, then last → 409 | Команда ≥2 участников | DELETE member; затем last | 200 затем 409, count=1 | `TestRemoveTeamMember_AllowsWhenMultiple_TASK184` |
 
 ### TRCK — Трекер задач
 

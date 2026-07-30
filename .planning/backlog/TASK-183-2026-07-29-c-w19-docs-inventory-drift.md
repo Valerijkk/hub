@@ -1,6 +1,6 @@
 # 🧹 C-W19: docs inventory recount + AGENTS/spec drift
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Закрыта**  
 > Источник: [`C-W19-fe-ai-platform.md`](../audits/total-2026-07/C-W19-fe-ai-platform.md) §3 Docs  
 > Исполнитель: **docs-writer** · Finding ID: `C-W19-DOC-001`
 
@@ -44,3 +44,30 @@ branch=cursor-grok-4.5
 Обновлены: AGENTS.md, docs/{README,test_plan,TESTING,testframework_strategy,TROUBLESHOOTING,system_specification,user_needs_analysis_2026,vision_and_scope,competitive_audit}.md, STATE.md, backlog README.
 
 TASK-008 не закрывали.
+
+## [MUTATION CRITERIA] — verifier-ready
+
+> W13 slot 1 refill / be1 · criteria only (no mutate) · 2026-07-30 · **docs-only → N/A code mutate**
+
+| ID | Production file:line (guard) | слой | Exact test RED | Kill recipe |
+|----|------------------------------|------|----------------|-------------|
+| C-W19-DOC-001 | **docs-only** — inventory цифры в `AGENTS.md` + `docs/{README,test_plan,TESTING,testframework_strategy,TROUBLESHOOTING,system_specification,user_needs_analysis_2026,vision_and_scope,competitive_audit}.md` = live shell recount HEAD | docs | N/A hubtest RED — evidence = shell recount ≡ docs (см. `C-VERIFY-docs-183-2026-07-29.md`) | **N/A code mutate** — не ломать prod; verifier = recount vs canon; stale `515`/`99`/`bbdaf16` as live HEAD → FAIL |
+
+### Layer notes (mock vs Ent)
+
+| ID | Тест бьёт | Flag |
+|----|-----------|------|
+| 001 | Shell recount + doc text | **docs-only** |
+
+`layer_mismatch IDs: (none)` · `mock≠Ent IDs: (none)` · `docs-only IDs: C-W19-DOC-001`
+
+### Gaps
+
+- Docs-only: **C-W19-DOC-001** → **N/A** code mutation (inventory/docs sync).
+- C-VERIFY 2026-07-29: live BE=821 / Vitest=180 vs docs 812/179 — re-sync before FIXED; не путать с code-mutation PROVEN.
+
+## [MUTATION RESULT] — 2026-07-30 W13 slot 1 refill (be1)
+
+- Verdict: **N/A** (docs-only) — **не** fake-PROVEN.
+- Report: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W13-be1-docs-183.md`
+- Status → **Закрыта**.

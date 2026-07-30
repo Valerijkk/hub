@@ -1,9 +1,10 @@
 # 🔒 A3 messenger services Join/Create/Bookmark
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
-> Исполнитель: **be1** · Источник: A3 Stage FINAL · `A3W3-2-messenger-services.md` · TASK-008  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Закрыта**  
+> Исполнитель: **be1** · Mutation prove: **be2** · Источник: A3 Stage FINAL · `A3W3-2-messenger-services.md` · TASK-008  
 > Finding IDs: **A3W3-2-001** … **A3W3-2-006** · ветка исполнения: `cursor-grok-4.5` (не пушить в `master`)  
 > Owner lock: правим **все** 6 open ID; WONTFIX запрещён без явного owner cancel в этом файле
+> Mutation: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W5-be2.md` · **6/6 PROVEN** (2026-07-30)
 
 ## [OUTCOME]
 
@@ -105,13 +106,7 @@
   | 005 | creator-left ClosePoll → нет пары «closed в БД + 403 клиенту» |
   | 006 | AddMembers/DeleteChannel fail path → AppError (проверяемо errors.As / status mapping) |
 
-- **Доказательство мутацией** (зафиксировать в OUTPUT):
-  1. Вернуть `isMember, _ := …` в Join → тест 001 краснеет
-  2. Убрать DeleteChannel при fail extra members → тест 002 краснеет (канал остаётся)
-  3. Убрать `msg.ChannelID == channelID` в AddBookmark → тест 003 краснеет
-  4. Снова мапить NotFound→Internal в ToggleStar → тест 004 краснеет
-  5. Вернуть Close-then-GetPollResults без pre-check / fallback → тест 005 краснеет
-  6. Вернуть голый `return s.repo.…` → тест 006 краснеет (или assert на тип err)
+- **Доказательство мутацией** — см. **`[MUTATION CRITERIA]`** ниже (verifier-ready, 2026-07-30).
 - Regression scope:
   ```bash
   cd backend && go test -tags hubtest -race -count=1 -timeout=300s ./testframework/messenger/
@@ -120,6 +115,27 @@
   Не гонять полный `/qa-gate` в одиночной задаче — gate на интеграции волны.
 - Evidence required: таблица ID→FIXED + команды + mutation notes в отчёте / секции Progress этого файла
 - Stop when: 6/6 FIXED, green messenger hubtest, статус задачи **Исправлена**, README синхронизирован, handoff be-ver — без adjacent cleanup / handler-repos
+
+## [MUTATION CRITERIA] — verifier-ready
+
+> Guard в **service**; тесты на mockRepository — OK (не Ent-guard). Не путать с repo soft-delete caps (TASK-145).
+
+| ID | что ломать (path:line + фрагмент) | какой тест | слой |
+|----|-----------------------------------|------------|------|
+| A3W3-2-001 | `backend/internal/messenger/service_channels.go:224-227` — вернуть `isMember, _ := s.repo.IsMember(...)` (глотать err) | `TestJoinChannel_IsMemberError_A3W3_2_001` | service |
+| A3W3-2-002 | `service_channels.go:68-74` — убрать `DeleteChannel` при fail `AddMembers(extra)` | `TestCreateChannel_ExtraMembersFailRollsBack_A3W3_2_002` | service |
+| A3W3-2-003 | `service_bookmarks.go:30-32` — убрать `msg.ChannelID != channelID` check | `TestAddBookmark_RejectsCrossChannel_A3W3_2_003` | service |
+| A3W3-2-004 | `service_channels.go:328-330` (Mute `:342-344`, Unmute `:354-356`) — NotFound→`NewInternal` вместо Forbidden | `TestToggleStarMuteUnmute_NonMemberForbidden_A3W3_2_004` | service |
+| A3W3-2-005 | `service_polls.go:183-189` — убрать IsMember до `ClosePoll` (Close затем GetPollResults) | `TestClosePoll_CreatorLeftForbiddenBeforeClose_A3W3_2_005` | service |
+| A3W3-2-006 | `service_channels.go:306-313` (+ DeleteChannel wrap `:189+`) — голый `return s.repo.AddMembers` / raw err | `TestAddMembers_DeleteChannel_WrapAppError_A3W3_2_006` | service |
+
+### Layer notes (mock vs Ent)
+
+| ID | Тест бьёт | Комментарий |
+|----|-----------|-------------|
+| 001–006 | mockRepository + service | Guard в service — mock OK; Ent не требуется |
+
+`layer_mismatch IDs: (none)` · gap: нет Ent IT на CreateChannel rollback / ClosePoll pre-check (не mismatch — слой фикса = service)
 
 ## [OUTPUT SCHEMA]
 
@@ -158,14 +174,22 @@ Observed (be1 restart 2026-07-29, Go 1.25.0 sdk):
 - `go test -tags hubtest -count=1 -timeout=180s ./testframework/messenger/ -run A3W3_2` → **PASS** (`ok … 1.088s`)
 - `go test -tags hubtest -race -count=1 -timeout=300s ./testframework/messenger/` → **PASS** (`ok … 3.601s`)
 
-Mutation (prod service_* → тест краснеет → restore):
-| ID | Откат | Assert |
-|----|-------|--------|
-| 001 | `isMember, _ := …` в JoinChannel | `TestJoinChannel_IsMemberError_A3W3_2_001` RED |
-| 002 | убрать `DeleteChannel` при fail extra | `TestCreateChannel_ExtraMembersFailRollsBack_A3W3_2_002` RED |
-| 003 | убрать `msg.ChannelID != channelID` | `TestAddBookmark_RejectsCrossChannel_A3W3_2_003` RED |
-| 004 | NotFound→Internal в ToggleStar | `TestToggleStarMuteUnmute_NonMemberForbidden_A3W3_2_004` RED |
-| 005 | убрать IsMember до ClosePoll | `TestClosePoll_CreatorLeftForbiddenBeforeClose_A3W3_2_005` RED |
-| 006 | голый `return s.repo.AddMembers` | `TestAddMembers_DeleteChannel_WrapAppError_A3W3_2_006` RED |
-
 Handoff: **be-ver → code-reviewer**. README не трогали (указание owner). Статус: **На проверке**.
+
+## Mutation prove (be2 · 2026-07-30 · W5 slot 2)
+
+| ID | Verdict | RED assert |
+|----|---------|------------|
+| A3W3-2-001 | **PROVEN** | Join → nil вместо 500 при swallow IsMember err |
+| A3W3-2-002 | **PROVEN** | DeletedAt == nil без rollback |
+| A3W3-2-003 | **PROVEN** | cross-channel bookmark создаётся (nil vs 404) |
+| A3W3-2-004 | **PROVEN** | non-member → 500 вместо 403 |
+| A3W3-2-005 | **PROVEN** | IsClosed=true при 403 creator-left |
+| A3W3-2-006 | **PROVEN** | raw `*errors.errorString` вместо AppError |
+
+Observed:
+- Break→RED→restore→GREEN per ID (mock service layer)
+- `go test -tags hubtest -count=1 -timeout=180s ./testframework/messenger/ -run A3W3_2` → **PASS**
+- Full package `-race` FAIL только на `TestAddReaction_Concurrent…` из-за OOS parallel mutation `mongo_repository.go` (не TASK-144)
+
+Статус: **Закрыта** · evidence: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W5-be2.md`

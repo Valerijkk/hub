@@ -1,6 +1,6 @@
 # TASK-008 — тотальный пофайловый аудит: 100 агентов, 20 волн, три стадии
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: В работе (A✅ · A2✅ · **A3 FINAL ✅** [`00-STAGE-A3-COMPLETE.md`](../audits/total-2026-07/00-STAGE-A3-COMPLETE.md) · **195→TASK-124…176** [`A3-DEDUP-2026-07-29.md`](../audits/total-2026-07/A3-DEDUP-2026-07-29.md) · COV · owner merge · B: P0–P3✅ W21 · C reopen ✅ · **не закрывать**)
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: **Закрыта** (A✅ · A2✅ · A3✅ · B P0–P3✅ · C mutation drained W1–W13 · package COV messenger/rbac ✅ · W20 [`00-FINAL.md`](../audits/total-2026-07/00-FINAL.md) вердикт **A** · hubtest [`HUBTEST-2026-07-30-task008.md`](../audits/total-2026-07/HUBTEST-2026-07-30-task008.md) **PASS** · 50 ok / 0 FAIL)
 
 ## [OUTCOME]
 

@@ -1,6 +1,6 @@
 # 🧹 A3 docs README inventory + webcam/competitive HEAD drift
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Закрыта**  
 > Источник: A3 W11-4 fe-lib-docs · Stage A3 FINAL · TASK-008  
 > Исполнитель: **docs-writer** · Finding IDs: `A3W11-4-001`, `A3W11-4-002`, `A3W11-4-003`
 
@@ -144,3 +144,31 @@ Inventory comment (форма):
 ```text
 # … все <N> *_test.go в backend/testframework/, measured YYYY-MM-DD;
 ```
+
+## [MUTATION CRITERIA] — verifier-ready
+
+> W13 slot 3 / be2 · criteria only (no mutate) · 2026-07-30 · **docs-only** — runtime Go/Vitest mutation N/A
+
+| ID | Production file:line (guard) | слой | Exact test RED | Kill recipe |
+|----|------------------------------|------|----------------|-------------|
+| A3W11-4-001 | `docs/README.md:84` (inventory comment; siblings `TESTING`/`test_plan`/…) | docs | N/A runtime — `rg -n "618" docs/README.md` (+ sibling drift checklist) FAIL | вернуть stale `618` (или расхождение с shell recount) в README/siblings |
+| A3W11-4-002 | `docs/competitive_audit.md:36` (Calls gap row) | docs | N/A runtime — `rg -n "webcams — Phase 16 IN" docs/competitive_audit.md` FAIL | вернуть «webcams — Phase 16 IN» вместо shipped+polish backlog |
+| A3W11-4-003 | `docs/competitive_audit.md:22` (ветка/HEAD snapshot) | docs | N/A runtime — `rg -n "bbdaf16" docs/competitive_audit.md` FAIL | вернуть live-tip SHA `bbdaf16` / `master · HEAD <sha>` без snapshot disclaimer |
+
+### Layer notes (mock vs Ent)
+
+| ID | Тест бьёт | Комментарий |
+|----|-----------|-------------|
+| 001–003 | docs `rg` / shell recount | **N/A code mutation** — нет prod guard в Go/FE; anti-drift = grep/checklist |
+
+`layer_mismatch IDs: (none)` — docs-only
+
+### Gaps
+
+- Нет hubtest/Vitest, который краснеет при docs drift; PROVEN только через `rg`/recount evidence (как ACCEPTANCE mutation proof).
+- Inventory цифра снова устареет без drift CI — не путать с product regression.
+
+## [MUTATION CLOSE — W13 be2 2026-07-30]
+
+**Verdict:** 3/3 **N/A** (docs `rg`/recount — no fake-PROVEN) · статус **Закрыта**  
+Evidence: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W13-be2-docs-132-133.md`

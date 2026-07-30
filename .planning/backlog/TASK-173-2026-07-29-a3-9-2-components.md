@@ -1,7 +1,9 @@
 # 🧹 A3 FE bookmarks UUID + deadlines links
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Закрыта**  
 > Источник: A3 · **Owner lock: правим ВСЕ A3 open** · TASK-008 · кластер A3W9-2  
+> Исполнитель: **fe1** · Mutation: **fe2** W11 · Finding IDs: A3W9-2-001…005  
+> Evidence: [`MUTATION-2026-07-30-W11-fe2.md`](../audits/total-2026-07/MUTATION-2026-07-30-W11-fe2.md) · 5/5 FE PROVEN · BE-001 enrich N/A  
 > Ветка исполнения: `cursor-grok-4.5` (не пушить в `master`)
 
 ## [OUTCOME]
@@ -160,3 +162,44 @@
 **Tests:** vitest messenger+dashboard TASK-173 — 7/7 PASS; `TestBookmarks_AddListRemove` PASS; dashboard wave107 ProjectID — compile blocked OOS (`ent/schema/webhookendpoint` unused import, параллельный TASK-171). tsc: OOS errors в `time-tracker` / `index.lazy` (чужие WIP).
 
 **001 approach:** BE enrich (channel cache + FindMessageByID), не FE N+1.
+
+## [MUTATION CRITERIA] — verifier-ready
+
+Проверено по коду HEAD (2026-07-30 · W7 slot 4 · fe1). Слой **frontend** (001 FE-label; BE enrich — отдельный слой, см. Gaps). Typecheck: `cd frontend && npx tsc --noEmit` — **PASS** (не ловит UUID-label / Link / token regressions).
+
+| ID | что ломать (file:line + фрагмент) | какой тест (`it` / команда) | слой |
+|----|-----------------------------------|-----------------------------|------|
+| A3W9-2-001 | `bookmarks-panel.tsx:15-17` — `bookmarkTitle` → `return bm.channel_id` (или `:21-23` `bookmarkSubtitle` → `bm.message_id`); **и/или** рендер сырого UUID как primary label кнопки | describe `BookmarksPanel preview labels (A3W9-2-001 / TASK-173)` → `it("shows channel_name + content_preview, not raw UUIDs as primary label")`; `it("falls back to «Канал»/«Сообщение»…")` | frontend |
+| A3W9-2-002 | `task-row-link.tsx:16-26` — убрать `Link` / всегда static container; **и/или** `deadlines.tsx:67` — не оборачивать row в `TaskRowLink` | describe `Dashboard widgets A3W9-2 (TASK-173)` → `it("deadlines row links to issue route with project_id + key (A3W9-2-002)")` | frontend |
+| A3W9-2-003 | то же `TaskRowLink` / `my-tasks.tsx:74` — убрать Link-обёртку | `it("my-tasks row uses the same Link pattern (A3W9-2-003)")` | frontend |
+| A3W9-2-004 | `deadlines.tsx` / `my-tasks.tsx:14-19` — вернуть `bg-red-500` / `bg-amber-500` / raw `*-500` вместо `var(--red|--amber|…)` | `it("deadlines/my-tasks source has no raw Tailwind priority colors (A3W9-2-004)")` | frontend |
+| A3W9-2-005 | `system-health.tsx:20-38` — `bg-green-500` + inline `style={{boxShadow: rgba…}}`; **и/или** `unread-messages.tsx:24,35-36` — `text-green-500`/`bg-amber-500` | `it("system-health/unread use semantic tokens, no *-500 or inline rgba glow (A3W9-2-005)")` | frontend |
+
+### Gaps (mutation-proof)
+
+| Guard | Ловит тест на том же слое? | Примечание |
+|-------|----------------------------|------------|
+| FE bookmarkTitle ≠ UUID | ✅ Vitest (mock useQuery data) | |
+| BE `channel_name`/`content_preview` enrich | ❌ FE Vitest | **layer_mismatch flag:** тест мокает `useQuery` с preview — **не** ловит откат BE `ListBookmarks`; нужен hubtest messenger |
+| TaskRowLink / deadlines / my-tasks | ✅ RTL (Link mock) | |
+| token source-guards 004/005 | ✅ `readFileSync` source it | |
+| `npx tsc --noEmit` | ❌ | не ловит 001–005 |
+
+**Confidence:** CONFIRMED (FE); BE-001 — GAP для mutation prove на BE-слое.
+
+## Mutation prove (fe2 · W11 slot 4 · 2026-07-30)
+
+**Verdict:** 5/5 FE **PROVEN** · BE enrich 001 → **N/A** (layer_mismatch, не fake-PROVEN) · статус **Закрыта**
+
+Evidence: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W11-fe2.md`
+
+| ID | Verdict |
+|----|---------|
+| A3W9-2-001 FE | PROVEN (`bookmarkTitle` → UUID → bookmarks-preview RED) |
+| A3W9-2-001 BE enrich | N/A — FE mock useQuery; нужен hubtest |
+| A3W9-2-002 | PROVEN (TaskRowLink static → deadlines link RED) |
+| A3W9-2-003 | PROVEN (тот же TaskRowLink → my-tasks link RED) |
+| A3W9-2-004 | PROVEN (raw `*-500` → source-guard RED) |
+| A3W9-2-005 | PROVEN (`bg-green-500` + rgba → source-guard RED) |
+
+Post-restore: 6/6 Vitest PASS. Коммит не создавался.

@@ -1,6 +1,6 @@
 # TASK-054 — Docs metrics/wiring/SSO drift
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · **Закрыта**
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · **Закрыта** (N/A docs-only · W13-fe1)
 > Источник: TASK-008 W12 · Classes: P2-FE-12 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P2-FRONTEND.md`
 
 ## [OUTCOME]
@@ -61,4 +61,12 @@ counts→652 + scripts/check-docs-inventory.mjs (TASK-080).
 - Mutation: docs `**812**`→`**515**` → `scripts/check-docs-inventory.mjs` exit 1 (measured 821)
 - Restore docs; production clean
 - Note: pre-existing claim 812≠821 — gate ловит drift; sync counts — отдельный follow-up
-- Verdict: **PASS** · Статус: **Закрыта**
+- Verdict: **PASS** (script layer) · README later stayed Открыта pending refill protocol
+
+## [MUTATION 2026-07-30 W13-fe1 refill]
+
+- Проверяющий: fe1 · Mode: **docs-only N/A** (не fake-PROVEN)
+- Evidence: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W13-fe1-task054.md`
+- Why N/A: SCOPE docs-only; нет Vitest/CI Exact RED в FE; kill recipe = docs/`rg`/optional TASK-080 script
+- Baseline snapshot: inventory script claimed 812 ≠ measured 824 (follow-up TASK-080)
+- Verdict: **N/A** · Статус: **Закрыта**

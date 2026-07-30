@@ -1,9 +1,10 @@
 # 🐛 A3 OfflineAI stream Timeout residual
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Закрыта**  
 > Источник: A3W5-2-ai-adapters.md · Stage A3 FINAL · TASK-008  
 > Finding IDs: **A3W5-2-001**, **A3W5-2-002**, **A3W5-2-003**  
-> Исполнитель: **be1**
+> Исполнитель: **be1** → **qa-auto1** (mutation W13 slot 4)  
+> Mutation: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W13-qa1-task154.md` · **3/3 PROVEN**
 
 ## [OUTCOME]
 
@@ -115,3 +116,28 @@ Offline/Ollama SSE использует HTTP-клиент без `Client.Timeout
 - Коммит(ы) ссылают задачу в теле:  
   `Задача: .planning/backlog/TASK-154-2026-07-29-a3-5-2-ai-adapters.md`  
   subject может содержать `(A3W5-2-001)` (и др. ID при атомарных коммитах)
+
+## [MUTATION CRITERIA] — verifier-ready
+
+> W13 slot 4 / qa-auto1 · criteria only (no mutate) · 2026-07-30
+
+| ID | prod file:line | слой | RED test (path + name) | kill recipe |
+|----|----------------|------|------------------------|-------------|
+| A3W5-2-001 | `adapter_openai.go:48` + `:86-89` (`offlineStreamClient` / `c == a.offlineClient` → stream client); `http_stream_client.go:25-34` (`newOfflineAIStreamHTTPClient` **без** `Client.Timeout`) | adapter HTTP stream | `backend/testframework/ai/task154_a3w5_2_adapters_test.go` · `TestOpenAIAdapter_OfflineStreamClient_NoWholeRequestTimeout_A3W52_001` (+ delayed: `TestOpenAIAdapter_OfflineStream_DelayedFirstEvent_A3W52_001`) | Вернуть offline stream на `NewOfflineAIHTTPClient(90s)` / убрать offline branch в `resolveStreamHTTPClient` → RED: `Timeout != 0` и/или delayed first event рвётся client deadline |
+| A3W5-2-002 | `adapter_stream.go:56-58` (`ReadAll` err → `fmt.Errorf("read error body: %w", err)`) | adapter SSE error-body | `task154_a3w5_2_adapters_test.go` · `TestOpenAIAdapter_StreamHTTPError_ReadBodyErr_A3W52_002` | Снова `raw, _ := io.ReadAll(...)` → RED: нет `"read error body"` в err (status-only message) |
+| A3W5-2-003 | `content_policy.go:16-28` (expanded denylist) + `:30-49` / `:69-79` (`policyHomoglyphFold` / `foldPolicyHomoglyphs`) | content policy | `task154_a3w5_2_adapters_test.go` · `TestCheckContentPolicy_HomoglyphAndInsertBypass_A3W52_003` | Убрать homoglyph fold / expanded patterns → RED: homoglyph/insert bypass проходит policy |
+
+### Layer notes (mock vs Ent)
+
+| ID | Тест бьёт | Flag |
+|----|-----------|------|
+| 001 | Adapter + export hooks / mock transport delayed SSE | **OK** — guard в adapter client resolve (не Ent) |
+| 002 | Adapter stream + `errBodyReader` | **OK** |
+| 003 | Pure `CheckContentPolicy` | **OK** |
+
+`layer_mismatch IDs: (none)` · `mock≠Ent IDs: (none)`
+
+### Gaps
+
+- DelayedFirstEvent может быть медленнее unit Timeout-assert — канон kill для 001 = NoWholeRequestTimeout (`Timeout==0`); Delayed — secondary.
+- Не ослаблять cloud `streamClient` / ValidateOutboundURL при mutate offline-only.

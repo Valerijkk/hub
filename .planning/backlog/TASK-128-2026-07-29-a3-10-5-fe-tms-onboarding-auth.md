@@ -1,6 +1,6 @@
 # 🔒 A3 FE TMS canMutate + onboarding auth + login redirect
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Закрыта**  
 > Источник: A3 · **Owner lock: правим ВСЕ A3 open** · TASK-008 · кластер A3W10-5  
 > Ветка исполнения: `cursor-grok-4.5` (не пушить в `master`)  
 > Исполнитель: **fe1** · Finding IDs: `A3W10-5-001`…`A3W10-5-005`
@@ -198,4 +198,40 @@
 | A3W10-5-005 | FIXED | `onboarding.lazy.tsx` `revokeObjectURL` cleanup |
 
 **Команды:** `npx tsc --noEmit` PASS · vitest tms+auth TASK-128 **36/36** PASS  
-**Статус:** На проверке · Handoff: fe-ver → code-reviewer
+**Статус:** Закрыта · Mutation: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W6-qa-auto1.md` (5/5 PROVEN) · Handoff: fe-ver → code-reviewer (gate закрыт)
+
+## Mutation prove (qa-auto1 · 2026-07-30 · W6 slot 3)
+
+| ID | Verdict | Evidence |
+|----|---------|----------|
+| A3W10-5-001 | **PROVEN** | `canMutate = true` → FAIL `viewer: hides Edit / link / unlink` → restore PASS |
+| A3W10-5-002 | **PROVEN** | list `canMutate = true` + RunHeader `{true ? (` → FAIL viewer CTA tests → restore PASS |
+| A3W10-5-003 | **PROVEN** | drop onboarding `beforeLoad` → FAIL unauth→/login → restore PASS |
+| A3W10-5-004 | **PROVEN** | drop login `beforeLoad` → FAIL auth→/projects|/onboarding → restore PASS |
+| A3W10-5-005 | **PROVEN** | drop `revokeObjectURL` → FAIL source assert → restore PASS |
+
+Regression: vitest 3 files / **20/20** PASS (~3.6s). Коммит не создавался.
+
+## [MUTATION CRITERIA] — verifier-ready
+
+Проверено по коду HEAD (2026-07-30). Слой **frontend**. Typecheck: `cd frontend && npx tsc --noEmit` — не ловит canMutate / beforeLoad / revoke (кроме отсутствующих типов).
+
+| ID | что ломать (file:line + фрагмент) | какой тест (`it` / команда) | слой |
+|----|-----------------------------------|-----------------------------|------|
+| A3W10-5-001 | `cases_.$caseKey.lazy.tsx:107` — `const canMutate = true` (игнор role) **или** убрать gates `:394` / `:594` / `:659` / `:710` (`canMutate ?` → всегда mutate UI) | describe `A3W10-5 TMS canMutate UI (TASK-128)` → `it("viewer: hides Edit / link / unlink")`; `it("viewer: no Добавить шаги without onStartEditing")` | frontend |
+| A3W10-5-002 | `runs.lazy.tsx:113` / `:197` — убрать `canMutate` вокруг «Новый прогон»; `runs_.$runId.tsx:56` / `:228` / `:278` — всегда `canMutate={true}` / всегда передавать mutation callbacks | `it("viewer: hides Новый прогон")`; `it("viewer (canMutate=false): hides Start / Add cases")`; `it("viewer: hides Complete / Reopen")` | frontend |
+| A3W10-5-003 | `frontend/src/routes/onboarding.tsx:12-18` — удалить `beforeLoad` (или не `redirect` при `!isAuthenticated`) | describe `A3W10-5-003 onboarding beforeLoad` → `it("unauthenticated → redirect /login")` | frontend |
+| A3W10-5-004 | `frontend/src/routes/login.tsx:168-174` — удалить `beforeLoad` auth redirect | describe `A3W10-5-004 login beforeLoad` → `it("authenticated + completed → redirect /projects")`; `it("authenticated + incomplete → redirect /onboarding")` | frontend |
+| A3W10-5-005 | `onboarding.lazy.tsx:204-210` — убрать `URL.revokeObjectURL(avatarPreview)` из cleanup `useEffect` | describe `A3W10-5-005 avatar blob revoke` → `it("production onboarding.lazy.tsx revokes blob URL in cleanup")`; `it("revokes previous blob when preview replaced")`; `it("revokes on unmount")` | frontend |
+
+### Gaps (mutation-proof)
+
+| Guard | Ловит тест на том же слое? | Примечание |
+|-------|----------------------------|------------|
+| case Edit/link/unlink + StepEditor | ✅ RTL | |
+| runs list/detail canMutate | ✅ RTL | |
+| onboarding/login beforeLoad | ✅ unit route | |
+| revokeObjectURL | ✅ source + RTL spy | |
+| `npx tsc --noEmit` | ❌ primary | не ловит удаление beforeLoad / canMutate |
+
+**Confidence:** CONFIRMED.

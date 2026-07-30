@@ -129,3 +129,27 @@
 **tsc:** файлы задачи чисты; полный `tsc --noEmit` на ветке красный из-за чужого WIP (`runs.lazy.tsx` unused `canMutate`) — вне scope.
 
 **Verdict:** 3/3 FIXED · статус **На проверке** · README не трогали (инструкция оркестратора).
+
+## [MUTATION CRITERIA] — verifier-ready
+
+Проверено по коду HEAD (2026-07-30, fe2 W13 slot 5). Слой **frontend**. Typecheck: `cd frontend && npx tsc --noEmit` — не ловит className/token regressions.
+
+| ID | file:line | Vitest path + `it` | kill recipe |
+|----|-----------|----------------------|-------------|
+| A3W9-5-001 | `frontend/src/components/ui/avatar.tsx:34` — online-dot `bg-[var(--green)]` | `domains/platform/a3w9-5-hub-tokens-p3.test.tsx` · describe `A3W9-5 · hub tokens avatar/popover/select (TASK-176)` → `it("A3W9-5-001 Avatar online-dot uses var(--green), not emerald-500")` | `bg-[var(--green)]` → `bg-emerald-500` → className asserts FAIL |
+| A3W9-5-002 | `frontend/src/components/ui/popover.tsx:22` — `rounded-[var(--r2)] border border-b1 bg-base text-t1` | same file → `it("A3W9-5-002 PopoverContent uses hub floating-surface tokens")` | вернуть `rounded-md` / `bg-popover` / `text-popover-foreground` → token asserts FAIL |
+| A3W9-5-003 | `frontend/src/components/ui/select.tsx:119` (SelectItem) + `:140` (SelectSeparator `bg-b1`) | same file → `it("A3W9-5-003 SelectItem/Separator align with Dropdown hub tokens")` | вернуть `rounded-sm` / `focus:bg-accent` / `bg-muted` → Item/Separator asserts FAIL |
+
+### Gaps (mutation-proof)
+
+| Guard | Ловит тест на том же слое? | Примечание |
+|-------|----------------------------|------------|
+| avatar / popover / select tokens | ✅ RTL className | 001–003 |
+| Trigger+Content Select | OOS | уже FIXED W9-A5-018 — не трогать |
+| `npx tsc --noEmit` | N/A | не primary |
+
+**Confidence:** CONFIRMED — 3/3 runnable.
+
+### Mutation verify (fe1 · 2026-07-30 W13)
+
+3/3 PROVEN — см. MUTATION-2026-07-30-W13-fe1-task176.md.

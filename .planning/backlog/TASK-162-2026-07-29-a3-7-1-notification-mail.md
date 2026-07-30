@@ -1,8 +1,9 @@
 # 🐛 A3 mail DailyLimit distributed
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P3** · Статус: **На проверке**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P3** · Статус: **Закрыта**  
 > Источник: A3W7-1-notification-mail.md · Stage A3 FINAL · TASK-008  
-> Исполнитель: **be2**
+> Исполнитель: **be2**  
+> Mutation refill: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W13-be2-task162.md` · **2/2 PROVEN** (2026-07-30)
 
 ## [OUTCOME]
 
@@ -144,3 +145,35 @@ go test -tags hubtest -race -count=1 ./testframework/mail/... ./testframework/no
   `Задача: .planning/backlog/TASK-162-2026-07-29-a3-7-1-notification-mail.md`  
   subject может содержать `(A3W7-1-001)` / `(A3W7-1-002)`.
 - Conventional Commits RU; no `Co-authored-by` / AI trailers.
+
+## [MUTATION CRITERIA] — verifier-ready
+
+> W13 slot 3 refill / be2 · criteria only (no mutate) · 2026-07-30 · HEAD guards verified
+
+| ID | Production file:line (guard) | слой | Exact test RED | Kill recipe |
+|----|------------------------------|------|----------------|-------------|
+| A3W7-1-001 | `backend/internal/mail/daily_slot.go:93-111` — `RedisDailySlotStore.Reserve` (Lua INCR+EXPIREAT); wiring `SetDailySlotStore` `service.go:62-66` + call `reserveDailySlot` `:188-192` | service / Redis store | `TestService_SendAlert_SharedDailyLimit_A3W7_1_001` · `backend/testframework/mail/sharedlimit/daily_limit_shared_a3w71_test.go` | noop `SetDailySlotStore` (`// s.slots = slots`) **или** оставить только process-local `MemoryDailySlotStore` без shared Redis → 3-й/4-й send без `ErrDailyLimitExceeded` RED |
+| A3W7-1-002 | `backend/internal/notification/push.go:90` — `make(chan pushMessage, 200)`; drop `Send` `default` `:141-142` | notification PushSender | `TestPushSender_QueueOverflow_A3W7_1_002` · `backend/testframework/notification/pushoverflow/push_overflow_a3w71_test.go` | убрать `default` drop **или** `cap >> 200` (напр. 1000) без обновления assert → depth ≰ 200 RED |
+
+### Layer notes (mock vs Ent)
+
+| ID | Тест бьёт | Flag |
+|----|-----------|------|
+| 001 | Two `mail.Service` + shared `RedisDailySlotStore` (real Redis) | **OK** — shared store; не Ent |
+| 002 | `PushSender` + `ExportPushQueueLen` (без Start / без Ent store) | **OK** — queue/drop в PushSender; Ent N/A |
+
+`layer_mismatch IDs: (none)` · `mock≠Ent IDs: (none)` · `docs-only IDs: (none)`
+
+### Gaps
+
+- Wave119 `TestPushSender_QueueOverflow` (`push_wave119_test.go:29`) — соседний assert; канон kill — `*_A3W7_1_002`.
+- Memory-only `TestMemoryDailySlotStore_IndependentServices` — anti-pattern proof, не shared-cap kill.
+
+### W13 slot 3 mutation refill (be2, 2026-07-30)
+
+| ID | Verdict | RED |
+|----|---------|-----|
+| A3W7-1-001 | **PROVEN** | `TestService_SendAlert_SharedDailyLimit_A3W7_1_001` |
+| A3W7-1-002 | **PROVEN** | `TestPushSender_QueueOverflow_A3W7_1_002` |
+
+Evidence: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W13-be2-task162.md` · leftover MUTATED: нет · коммит не создавался.

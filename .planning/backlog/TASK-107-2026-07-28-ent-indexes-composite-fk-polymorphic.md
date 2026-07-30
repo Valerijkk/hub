@@ -1,8 +1,9 @@
 # TASK-107 — 🔒 Ent indexes/FK/polymorphic IDs
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: На проверке  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Закрыта  
 > Источник: A2W8 indexes · **Owner lock: правим ВСЕ 254 A2 open** · TASK-008  
-> Закрыто: 2026-07-28 · be1 · ветка `fix/ent/task-107-indexes-fk`
+> Закрыто: 2026-07-28 · be1 · ветка `fix/ent/task-107-indexes-fk`  
+> Mutation prove: 2026-07-30 · qa-auto1 · 8/8 PROVEN · `.planning/audits/total-2026-07/MUTATION-2026-07-30-W11-qa-auto1.md`
 
 ## [OUTCOME]
 
@@ -54,6 +55,34 @@ Composite unique/indexes и polymorphic ID-типы из A2W8-1/2/3 исправ
 | A2W8-2-009 | HubBase owner+deleted_at; HubColumn unique `(table,name)` + table+deleted_at; HubRecord table+deleted_at | schema + runtime unique fail |
 | A2W8-3-002 | Invite `version` + `revoked_at`; soft revoke in project repo | schema + runtime + List/Find filter |
 | A2W8-3-006 | Notification `entity_id` UUID + `version`; MarkRead `AddVersion` | schema + runtime + notification tests |
+
+## [MUTATION CRITERIA] — verifier-ready
+
+| ID | что ломать (path:line + фрагмент) | какой тест | слой |
+|----|-----------------------------------|------------|------|
+| A2W8-1-004 | `backend/ent/schema/board.go:37-43,67-69` — убрать `updated_at`/`deleted_at` и/или `index.Edges("project").Fields("deleted_at")` | `TestSchema_TASK107_Markers` (+ Runtime: soft-delete Board) | schema (+ Ent runtime) |
+| A2W8-1-005 | `backend/ent/schema/aiuserpreference.go:22-25,52-55` — убрать FK edge `default_provider` / Field | `TestSchema_TASK107_Markers` + `TestSchema_TASK107_RuntimeConstraints` (orphan UUID) | schema + Ent FK |
+| A2W8-2-005 | `crmcontact.go:70` `index.Fields("email")`; `crmdeal.go` `index.Edges("owner").Fields("deleted_at")` — убрать | `TestSchema_TASK107_Markers` | schema (source) |
+| A2W8-2-007 | `gitlabintegration.go` `webhook_secret` — снова Optional / без NotEmpty | `TestSchema_TASK107_Markers` + Runtime empty secret fail | schema + Ent |
+| A2W8-2-008 | `githublink.go` / `gitlablink.go` — убрать unique `(integration, external_id, link_type)` | Markers + Runtime duplicate link | schema + Ent unique |
+| A2W8-2-009 | `hubcolumn.go` — убрать `index.Edges("table").Fields("name").Unique()` (и/или owner/table+deleted_at indexes) | Markers + Runtime duplicate column name | schema + Ent unique |
+| A2W8-3-002 | `invite.go` — убрать `version` / `revoked_at` | Markers + Runtime invite version/revoked | schema + Ent |
+| A2W8-3-006 | `notification.go:37-40,56-57` — `entity_id` снова string / убрать `version` | Markers + Runtime UUID entity_id + AddVersion | schema + Ent |
+
+### Layer notes (mock vs Ent)
+
+| ID | Тест бьёт | Комментарий |
+|----|-----------|-------------|
+| 1-004 / 2-005 | schema source (`os.ReadFile`) | Index-only без runtime assert — **schema OK**; 2-005 **нет** Runtime unique |
+| 1-005 / 2-007 / 2-008 / 2-009 / 3-002 / 3-006 | Markers + `enttest` RuntimeConstraints | Guard в Ent schema — **Ent OK** |
+
+`layer_mismatch IDs: (none)`
+
+### Gaps
+
+- **A2W8-2-005:** только Markers (index); Runtime не ловит снятие email/owner+deleted_at index на sqlite.
+- Markers = source-guard: ломает при удалении строки из schema; не доказывает migrate SQL drift без `20260728_task107_*.sql` assert (он есть в Markers).
+- После schema-мутации нужен `go generate` / rebuild — иначе `MUTATION_FAILED_TO_BUILD` (как TASK-170 class).
 
 ## [OUTPUT SCHEMA]
 

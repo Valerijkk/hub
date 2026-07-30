@@ -1,19 +1,21 @@
 # 🧹 A3 FE stores: loadLayout silent fail + reaction_toggled guard
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P3** · Статус: **На проверке**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P3** · Статус: **Закрыта** · MUTATION-2026-07-30-W13-fe1-task131  
 > Источник: A3W11-3-fe-lib-docs.md · Stage A3 FINAL · TASK-008  
 > Finding IDs: **A3W11-3-001**, **A3W11-3-002**
 
-## Evidence (fe1 · 2026-07-29)
+## Evidence (fe1 · 2026-07-29 · mutation refill 2026-07-30 W13)
 
 | ID | Status | Path |
 |----|--------|------|
-| A3W11-3-001 | FIXED | `frontend/src/stores/dashboard-store.ts` `loadLayout` catch → `error` + rethrow; consumers без default поверх fail |
-| A3W11-3-002 | FIXED | `frontend/src/hooks/use-messages.ts` `Array.isArray(reactEvt.reactions)` |
+| A3W11-3-001 | FIXED · **PROVEN** | `frontend/src/stores/dashboard-store.ts` `loadLayout` catch → `error` + rethrow; consumers без default поверх fail |
+| A3W11-3-002 | FIXED · **PROVEN** | `frontend/src/hooks/use-messages.ts` `Array.isArray(reactEvt.reactions)` |
 
 - Tests: `layout-load-error.test.ts`, `reaction-toggled-guard.test.tsx`
 - Mutation: strip set/throw → 001 FAIL; strip Array.isArray → 002 FAIL; restore → green
-- README: не трогали (owner: «На проверке» в этом файле)
+- Mutation W13 slot 2 refill (2026-07-30): silent catch → 001 RED; strip Array.isArray → 002 RED; restore → GREEN 5/5 — **PROVEN** 2/2
+- Report: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W13-fe1-task131.md`
+- README: **Закрыта**
 
 ## [OUTCOME]
 
@@ -101,3 +103,22 @@
 - Docs sync только если изменился user-visible контракт (иначе STATE one-liner при wave handoff)
 - Read-only investigation in scope OK; writes только по этому контракту
 - Не трогать `?token=` WS / presence / heartbeat — FIXED-OK в A3W11-3
+
+## [MUTATION CRITERIA] — verifier-ready
+
+Проверено по коду HEAD (2026-07-30, fe2 W13 slot 5). Слой **frontend**. Typecheck: `cd frontend && npx tsc --noEmit` — не ловит store/WS guards.
+
+| ID | file:line | Vitest path + `it` | kill recipe |
+|----|-----------|----------------------|-------------|
+| A3W11-3-001 | `frontend/src/stores/dashboard-store.ts:107-111` — `set({ error: "Не удалось загрузить раскладку" })` + `throw err` в `loadLayout` catch | `domains/dashboard/layout-load-error.test.ts` · describe `A3W11-3-001 · dashboard loadLayout error≠empty` → `it("sets error and rejects when getLayout fails")` | silent catch (убрать `set({ error })` и/или `throw`) → error/reject asserts FAIL |
+| A3W11-3-002 | `frontend/src/hooks/use-messages.ts:132` — `if (!msgId || !Array.isArray(reactEvt.reactions)) break` | `domains/messenger/reaction-toggled-guard.test.tsx` · describe `A3W11-3-002 · reaction_toggled reactions guard` → `it("skips update when reactions is undefined or non-array")`; `it("updates cache when reactions is a valid array")` | писать `reactions` as-is без `Array.isArray` → skip-assert FAIL (кэш затирается) |
+
+### Gaps (mutation-proof)
+
+| Guard | Ловит тест на том же слое? | Примечание |
+|-------|----------------------------|------------|
+| loadLayout error+rethrow | ✅ unit store | |
+| reaction_toggled Array.isArray | ✅ RTL hook + Query cache | |
+| `npx tsc --noEmit` | N/A | не primary |
+
+**Confidence:** CONFIRMED — 2/2 runnable.

@@ -1,8 +1,8 @@
 # 🧹 A3 obs cancel→Error + UUID cardinality
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P3** · Статус: **На проверке**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P3** · Статус: **Закрыта**  
 > Источник: A3W4-3-001 NEW · A3W4-3-002 RESIDUAL · Stage A3 FINAL · TASK-008  
-> Исполнитель: **be1**
+> Исполнитель: **be1** · Mutation checker: **be2** (W13 slot 3, 2026-07-30)
 
 ## [OUTCOME]
 
@@ -120,7 +120,7 @@
 
 ### Verdict
 
-**2/2 FIXED** · статус задачи: **На проверке** · handoff: be-ver → code-reviewer
+**2/2 FIXED** · статус задачи: **Закрыта** · mutation **2/2 PROVEN** (be2 W13) · handoff: be-ver → code-reviewer
 
 ### Checklist ID → FIXED
 
@@ -150,3 +150,36 @@
 cd backend && go test -tags hubtest -race -count=1 ./testframework/platform/observability/
 # ok  github.com/valerii/hub/backend/testframework/platform/observability  ~2.7s  EXIT=0
 ```
+
+## [MUTATION CRITERIA] — verifier-ready
+
+> W13 slot 3 / be2 · criteria only (no mutate) · 2026-07-30 · HEAD guards verified
+
+| ID | Production file:line (guard) | слой | Exact test RED | Kill recipe |
+|----|------------------------------|------|----------------|-------------|
+| A3W4-3-001 | `backend/internal/platform/observability/otel.go:183-186` `finishOperationSpan` carve-out via `isBenignContextError` (`:191-193`); `timing.go:18` `failed := err != nil && !isBenignContextError(err)` (+ `:29-31` slog.Debug) | observability (otel/timing) | `TestTimed_CancelNotErrorStatus_A3W4_3_001`; `TestTimed_DeadlineNotErrorStatus_A3W4_3_001`; `TestEndConsumerSpan_CancelNotErrorStatus_A3W4_3_001` · `backend/testframework/platform/observability/cancel_span_task150_test.go` | убрать carve-out (`if err != nil { recordRedactedSpanError… }`); Timed снова `failed = err != nil` → cancel Error-status / `error_count` RED |
+| A3W4-3-002 | `operation_label.go:45-50` segment loop + `isValidOperationSegment` `:55-69` (no hyphen); call-site `metrics.go:34` | observability (label) | `TestSanitizeOperationLabel_DomainUUIDToOther_A3W4_3_002`; `TestRecordOperation_DomainUUIDBucketsToOther_A3W4_3_002` · `backend/testframework/platform/observability/operation_label_uuid_task150_test.go` | вернуть charset с `-` / пропуск UUID-shaped rest → `tracker.<uuid>` ≠ `other` RED |
+
+### Layer notes (mock vs Ent)
+
+| ID | Тест бьёт | Комментарий |
+|----|-----------|-------------|
+| 001 | Timed / EndConsumerSpan + in-memory span/metrics | Guard в otel/timing — Ent N/A |
+| 002 | `ExportSanitizeOperationLabel` + `recordOperation` | Guard в sanitize — Ent N/A |
+
+`layer_mismatch IDs: (none)` · `mock≠Ent IDs: (none)`
+
+### Gaps
+
+- `TestTimed_RealErrorStillErrorStatus_A3W4_3_001` — regression (не kill target): real err всё ещё Error.
+- Prior W4-A3-008 bare-UUID (`operation_label_task065`) — complementary; domain+UUID kill — Task150 UUID test.
+
+## [MUTATION PROOF] — be2 W13 slot 3 · 2026-07-30
+
+| ID | Verdict | RED |
+|----|---------|-----|
+| A3W4-3-001 | **PROVEN** | `TestTimed_CancelNotErrorStatus_A3W4_3_001`; `TestTimed_DeadlineNotErrorStatus_A3W4_3_001`; `TestEndConsumerSpan_CancelNotErrorStatus_A3W4_3_001` |
+| A3W4-3-002 | **PROVEN** | `TestSanitizeOperationLabel_DomainUUIDToOther_A3W4_3_002`; `TestRecordOperation_DomainUUIDBucketsToOther_A3W4_3_002` |
+
+Evidence: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W13-be2-task150.md`  
+leftover MUTATED: **нет** · prod restored · no commit

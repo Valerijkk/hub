@@ -1,6 +1,6 @@
 # 🧹 A3 FE routes A1: accounting/marketplace/bases error≠empty + noopener
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P3** · Статус: **На проверке**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P3** · Статус: **Закрыта**  
 > Источник: A3 · **Owner lock: правим ВСЕ A3 open** · TASK-008 · кластер A3W10-1  
 > Ветка исполнения: `cursor-grok-4.5` (не пушить в `master`)
 
@@ -131,3 +131,34 @@
 
 **Команды:** `npx tsc --noEmit` PASS · vitest v4 + recordings-download **18 files / 31 tests** PASS.  
 **Статус:** На проверке → fe-ver → code-reviewer. README не трогали.
+
+## [MUTATION] fe1 W13 slot 2 refill · 2026-07-30
+
+**5/5 PROVEN** — evidence: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W13-fe1-task124.md`  
+RED: 001×3 alert / 002 alert / 003 noopener spy / 004 alert / 005 main alert · GREEN 5 files / 9 tests · UI restored · коммит не создавался.  
+**Статус:** **Закрыта**.
+
+## [MUTATION CRITERIA] — verifier-ready
+
+Проверено по коду HEAD (2026-07-30, fe1 W13 slot 2). Слой **frontend**. Typecheck: `cd frontend && npx tsc --noEmit` — не ловит error≠empty / noopener.
+
+| ID | file:line | Vitest path + `it` | kill recipe |
+|----|-----------|----------------------|-------------|
+| A3W10-1-001 | `frontend/src/modules/accounting/accounting-page.tsx:68` (`incomeStatementError`) + `:208-212` / `:322-326` / `:419-423` — `QueryErrorAlert` на P&L / invoices / trial | `domains/v4/accounting-secondary-error.test.tsx` · describe `AccountingPage secondary query error≠empty (A3W10-1-001)` > `it("shows P&L alert when getIncomeStatement fails")`; `it("shows invoices alert when listInvoices fails")`; `it("shows trial balance alert when getTrialBalance fails")` | убрать ветки `*Error ? QueryErrorAlert` (рендерить empty table / скрытый P&L) → alert asserts FAIL |
+| A3W10-1-002 | `frontend/src/modules/settings/project-templates.tsx:27` (`loadError`) + `:69-73` — `QueryErrorAlert` в `TemplateSelector` | `domains/v4/template-selector-error.test.tsx` · describe `TemplateSelector error≠empty (A3W10-1-002)` > `it("shows QueryErrorAlert when /project-templates fails")` | при `loadError` снова рендерить grid / silent empty → alert assert FAIL |
+| A3W10-1-003 | `frontend/src/modules/calls/recordings-list.tsx:65` — `window.open(data.url, "_blank", "noopener,noreferrer")` | `domains/calls/recordings-download-noopener.test.tsx` · describe `RecordingsList download noopener (A3W10-1-003)` > `it("passes noopener,noreferrer as third arg to window.open")` | `window.open(url, "_blank")` без 3-го arg → spy assert FAIL |
+| A3W10-1-004 | `frontend/src/modules/marketplace/marketplace-page.tsx:71` (`pendingError`) + `:245` / `:255-257` — секция при error + `QueryErrorAlert` | `domains/v4/marketplace-pending-error.test.tsx` · describe `MarketplacePage pending error≠empty (A3W10-1-004)` > `it("shows moderation queue alert when listPendingListings fails")` | гейт только `pendingItems.length > 0` (скрыть секцию при fail) → heading/alert FAIL |
+| A3W10-1-005 | `frontend/src/modules/bases/bases-page.tsx:54` (`detailError`) + `:288-292` — `QueryErrorAlert` в `<main>` | `domains/v4/bases-page-error.test.tsx` · describe `BasesPage error≠empty (W10-A1-006 / TASK-047)` > `it("shows alert in main when getBase fails for selected base (A3W10-1-005)")` | убрать `detailError` alert → main alert assert FAIL |
+
+### Gaps (mutation-proof)
+
+| Guard | Ловит тест на том же слое? | Примечание |
+|-------|----------------------------|------------|
+| secondary accounting alerts | ✅ RTL | 001 |
+| TemplateSelector loadError | ✅ RTL | 002 |
+| recordings noopener | ✅ RTL spy | 003 |
+| marketplace pending admin | ✅ RTL | 004 |
+| bases detail fail | ✅ RTL | 005 (list-sidebar alert = prior TASK-047) |
+| `npx tsc --noEmit` | N/A | не primary |
+
+**Confidence:** CONFIRMED — 5/5 runnable.

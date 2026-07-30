@@ -1,6 +1,6 @@
 # 🧹 A3 FE routes A4: error≠empty messenger/project/TMS/settings
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Закрыта**  
 > Источник: A3 · **Owner lock: правим ВСЕ A3 open** · TASK-008 · кластер A3W10-4  
 > Ветка исполнения: `cursor-grok-4.5` (не пушить в `master`)
 
@@ -134,21 +134,43 @@
 | A3W10-4-005 | FIXED | `settings/workflow.tsx` statuses/transitions isError+create block; `settings-workflow-error.test.tsx` |
 | A3W10-4-006 | FIXED | `settings/integrations.lazy.tsx` GH+GL; `settings-integrations-error.test.tsx` |
 
-**Mutation notes:** убрать `isError`-ветку → соответствующий тест краснеет (alert отсутствует / появляется empty CTA).
 **Verification:** `tsc --noEmit` PASS; vitest domains messenger+tracker+tms 156/156 PASS.
 **Handoff:** fe-ver → code-reviewer · статус **На проверке**.
 
-## Progress (fe1 · 2026-07-29)
+## Mutation prove (fe2 · 2026-07-30 · W6 slot 2)
 
-| ID | Status | Evidence |
-|----|--------|----------|
-| A3W10-4-001 | FIXED | `messenger/index.tsx` isError→QueryErrorAlert; `messenger-index-error.test.tsx` |
-| A3W10-4-002 | FIXED | `projects/$projectId/index.lazy.tsx` isError до not-found; `project-overview-error.test.tsx` |
-| A3W10-4-003 | FIXED | `tms/cases.lazy.tsx` isError до empty; `cases-list-error.test.tsx` |
-| A3W10-4-004 | FIXED | `settings/labels.tsx` alert+create hide; `settings-labels-error.test.tsx` |
-| A3W10-4-005 | FIXED | `settings/workflow.tsx` statuses/transitions isError+create block; `settings-workflow-error.test.tsx` |
-| A3W10-4-006 | FIXED | `settings/integrations.lazy.tsx` GH+GL; `settings-integrations-error.test.tsx` |
+| ID | Verdict | Evidence |
+|----|---------|----------|
+| A3W10-4-001 | **PROVEN** | BREAK `if (false && isError)` → RED `shows alert + retry…channels fail` → RESTORE GREEN |
+| A3W10-4-002 | **PROVEN** | BREAK project `isError` → RED `…«Проект не найден»…` → RESTORE GREEN |
+| A3W10-4-003 | **PROVEN** | BREAK cases `isError ?` → RED `…«Нет тест-кейсов»…` → RESTORE GREEN |
+| A3W10-4-004 | **PROVEN** | BREAK labels alerts + `loadError=false` → RED `shows alert, hides empty…` → RESTORE GREEN |
+| A3W10-4-005 | **PROVEN** | BREAK statuses alert + `loadError=false` → RED `shows alert and blocks create…` → RESTORE GREEN |
+| A3W10-4-005 transitions twin | **N/A** | нет отдельного `it` |
+| A3W10-4-006 | **PROVEN** | BREAK GH+GL alerts / empty+connect on fail → RED both `it` → RESTORE GREEN |
 
-**Mutation notes:** убрать `isError`-ветку → соответствующий тест краснеет (alert отсутствует / появляется empty CTA).
-**Verification:** `tsc --noEmit` PASS; vitest domains messenger+tracker+tms 156/156 PASS.
-**Handoff:** fe-ver → code-reviewer · статус **На проверке**.
+Отчёт: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W6-fe2.md` · **6/6 runnable PROVEN** · статус **Закрыта**.
+
+## [MUTATION CRITERIA] — verifier-ready
+
+Проверено по коду HEAD (2026-07-30). Слой **frontend**. Typecheck: `cd frontend && npx tsc --noEmit` — не ловит error≠empty ветки.
+
+| ID | что ломать (file:line + фрагмент) | какой тест (`it` / команда) | слой |
+|----|-----------------------------------|-----------------------------|------|
+| A3W10-4-001 | `frontend/src/routes/_authenticated/messenger/index.tsx:58-61` — убрать `if (isError) { … <QueryErrorAlert …/> }`; fail load падает в empty welcome | describe `MessengerIndex error≠empty (A3W10-4-001 / TASK-127)` → `it("shows alert + retry instead of welcoming empty when channels fail")` | frontend |
+| A3W10-4-002 | `frontend/src/routes/_authenticated/projects/$projectId/index.lazy.tsx:156-159` — убрать `isError` → `QueryErrorAlert`; fail → «Проект не найден» (`:170`) | describe `ProjectPage error≠empty (A3W10-4-002 / TASK-127)` → `it("shows alert + retry instead of «Проект не найден» when getProject fails")` | frontend |
+| A3W10-4-003 | `frontend/src/routes/_authenticated/projects/$projectId/tms/cases.lazy.tsx:443` — убрать ветку `isError ?` (alert/retry); fail → empty «Нет тест-кейсов» | describe `TestCasesPage error≠empty (A3W10-4-003 / TASK-127)` → `it("shows alert + retry instead of «Нет тест-кейсов» when listTestCases fails")` | frontend |
+| A3W10-4-004 | `frontend/src/routes/_authenticated/projects/$projectId/settings/labels.tsx:225` / `:272` — убрать `QueryErrorAlert` при `labelsError`/`groupsError`; empty + create UI при fail | describe `LabelsSettingsPage error≠empty (A3W10-4-004 / TASK-127)` → `it("shows alert, hides empty copy and create UI when listLabels fails")` | frontend |
+| A3W10-4-005 | `frontend/src/routes/_authenticated/projects/$projectId/settings/workflow.tsx:190` / `:297` — убрать `QueryErrorAlert` при `statusesError`/`transitionsError`; create не блокируется | describe `WorkflowSettingsPage error≠empty (A3W10-4-005 / TASK-127)` → `it("shows alert and blocks create when statuses query fails")` | frontend |
+| A3W10-4-006 | `frontend/src/routes/_authenticated/projects/$projectId/settings/integrations.lazy.tsx:91-92` (GitHub) и `:336-337` (GitLab) — убрать `isError && <QueryErrorAlert>`; empty + connect form при fail | describe `Integrations error≠empty (A3W10-4-006 / TASK-127)` → `it("GitHub: alert + no empty copy + no connect form on list fail")`; `it("GitLab: alert + no empty copy + no connect form on list fail")` | frontend |
+
+### Gaps (mutation-proof)
+
+| Guard | Ловит тест на том же слое? | Примечание |
+|-------|----------------------------|------------|
+| messenger / project / cases isError | ✅ RTL | |
+| labels / workflow / integrations isError | ✅ RTL | |
+| transitions-only fail (workflow) | ⚠️ partial | primary it — statuses fail; transitions twin без отдельного it |
+| `npx tsc --noEmit` | ❌ | не ловит UI error≠empty |
+
+**Confidence:** CONFIRMED.

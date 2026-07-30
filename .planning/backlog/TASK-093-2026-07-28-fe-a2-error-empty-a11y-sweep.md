@@ -1,7 +1,8 @@
 # TASK-093 — 🧹 FE A2: error≠empty residual + a11y delete focus
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: На проверке  
-> Источник: A2W9/W10/W11 · Stage A2 dedup · TASK-008
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Закрыта  
+> Источник: A2W9/W10/W11 · Stage A2 dedup · TASK-008  
+> Mutation: [MUTATION-2026-07-30-W13-fe1-task093.md](../audits/total-2026-07/MUTATION-2026-07-30-W13-fe1-task093.md) (13 PROVEN · 008 NOT_PROVEN) → retry [MUTATION-2026-07-30-W13-fe1-task093-008-retry.md](../audits/total-2026-07/MUTATION-2026-07-30-W13-fe1-task093-008-retry.md) — **A2W10-A2-008 PROVEN** · **14 PROVEN** runnable / GAP_NOTED documented
 
 ## [OUTCOME]
 
@@ -137,3 +138,69 @@ npx vitest run \
 ### Sweep 2 (fe1 · 2026-07-28)
 
 Owner lock: все WONTFIX закрыты (WONTFIX=0). Статус остаётся **Исправлена**.
+
+## [MUTATION CRITERIA] — verifier-ready
+
+Проверено по коду HEAD (2026-07-30, fe2 W7 slot 5). Слой **frontend** (кроме N/A). Typecheck: `cd frontend && npx tsc --noEmit` — не ловит error≠empty / a11y className.
+
+| ID | что ломать (file:line + фрагмент) | какой тест (`it` / команда) | слой |
+|----|-----------------------------------|-----------------------------|------|
+| A2W9-4-001 | `frontend/src/components/search/saved-filters.tsx:59` / `:81` — убрать `toastApiError` из catch; `:109-116` — убрать `if (loadError) QueryErrorAlert` | describe `SavedFilters error≠empty (A2W9-4-001 / TASK-093)` → `it("shows alert + retry…")`; `it("toasts on create failure…")` | frontend |
+| A2W9-4-002 | `notification-panel.tsx:320` — убрать `group-focus-within:flex` из className delete | describe `NotificationPanel delete focus (A2W9-4-002 / TASK-093)` → `it("delete button uses group-focus-within…")` | frontend |
+| A2W9-4-003 | `notification-panel.tsx:278` / `:302` — вернуть `border-blue-500` / `bg-blue-500` вместо `var(--blue)` / `var(--gB)` | describe `NotificationPanel tokens (A2W9-4-003 / TASK-093)` → `it("unread row uses design tokens…")` | frontend |
+| A2W11-3-001 | `use-presence.ts:75` — не экспортировать `isError` (или всегда `false`) | describe `usePresence isError (A2W11-3-001 / TASK-093)` → `it("exposes isError when presence poll fails…")` | frontend |
+| A2W11-3-003 | `use-presence.ts:46-52` — вернуть silent `catch {}` без `console.warn` | same describe → `it("logs heartbeat failures instead of empty catch (A2W11-3-003)")` | frontend |
+| A2W10-A3-002 | `sprint-backlog.tsx:46-48` / `:127-128` — silent catch + убрать `loadError` → `QueryErrorAlert` | describe `SprintBacklog error≠empty (A2W10-A3-002 / TASK-093)` → `it("shows alert + retry instead of «Бэклог пуст»…")` | frontend |
+| A2W10-A3-009 | `sprint-backlog.tsx:161` — убрать `aria-label` с checkbox | **GAP** — нет отдельного `it` на aria-label checkbox | frontend |
+| A2W10-A2-007 | `coverage-report.tsx:47-50` — убрать `role="button"` / `tabIndex` / `aria-label` | describe `CoverageReport keyboard expand (A2W10-A2-007 / TASK-093)` → `it("expandable issue row is keyboard-reachable")` | frontend |
+| A2W10-A2-008 | `cases.lazy.tsx:153` — убрать `<CaseTreePanel …/>` (или delete export) | describe `CaseTreePanel live export (A2W10-A2-008 / TASK-093)` → `it("renders suite tree…")` + `it("cases.lazy wires CaseTreePanel into TestCasesPage")` (source-guard + mount spy) | frontend |
+| A2W10-A2-006 | `issue-description.tsx:35` — заменить `plateValueSchema.safeParse` на always-accept / убрать zod | describe `API DTO gaps (P2-FE-08 / TASK-052)` → `it("parsePlateValue accepts plate nodes and rejects garbage")` | frontend |
+| A2W10-A3-004 | `issue-sidebar-meta.tsx:59` / `:92` / `:193` — убрать `htmlFor` на Label | describe `IssueSidebarMeta a11y (A2W10-A3-004/008 / TASK-093)` → `it("binds Status/Priority labels via htmlFor")` | frontend |
+| A2W10-A3-008 | `issue-sidebar-meta.tsx:128-145` — вернуть `cursor-pointer` на empty assignee | same describe → `it("assignee empty state is not a dead cursor-pointer control")` | frontend |
+| A2W10-A3-005 | `sprint-board.tsx:261-367` — обернуть action `Button` снова внутрь `<Link>` | describe `SprintBoard nested interactive (A2W10-A3-005 / TASK-093)` → `it("action button is not nested inside the sprint link")` | frontend |
+| A2W10-A3-006 | `planning-poker.tsx:161` — убрать `role="radiogroup"` / `aria-checked` | describe `PlanningPoker radiogroup (A2W10-A3-006 / TASK-093)` → `it("vote cards expose radiogroup + aria-checked")` | frontend |
+| A2W10-A3-007 | `admin/dashboard.tsx:66` — заменить `TabsList`/`TabsTrigger` на plain `<div>`/`<button>` | **GAP** — нет Vitest на Tabs semantics | frontend |
+| A2W10-A1-001…007 | accounting / backups / crm / recordings / api-keys / ai-privacy / project-templates isError | **GAP** — нет TASK-093-привязанных `it` (частично чужие A3/P-тесты) | frontend |
+| A2W10-A2-001…005 | webhooks / environments / github-links / burndown / import-export | **GAP** — нет TASK-093 mutation `it` | frontend |
+| A2W10-A3-003 | velocity store+chart error/retry | **GAP** — velocity-chart-loading ≠ error≠empty mutation для A2W10-A3-003 | frontend |
+| A2W10-A4-001 | ChatErrorBoundary `retryCount` remount | **GAP** — `error-boundary.test.tsx` = общий ErrorBoundary, не Chat remount | frontend |
+| A2W10-A4-002 | `$issueKey.tsx` isError ≠ not-found | **GAP** — нет dedicated `it` | frontend |
+| A2W10-A5-002/003 | cases/runs detail isError ≠ shimmer | **GAP** — нет dedicated `it` | frontend |
+
+### Gaps (mutation-proof)
+
+| Guard | Ловит тест на том же слое? | Примечание |
+|-------|----------------------------|------------|
+| saved-filters / presence / sprint-backlog / a11y subset | ✅ RTL | runnable для W8 |
+| notification tokens + delete focus | ✅ RTL | |
+| A2W10-A1-\* / A2W10-A2-001…005 / A4 / A5 / A3-003/007/009 | ❌ GAP | FIXED claimed без verifier-ready `it` |
+| `npx tsc --noEmit` | ❌ | не primary |
+| layer_mismatch | нет | RTL бьёт в prod-компоненты, не mock-guard |
+
+**Confidence:** PARTIAL — 14 ID runnable; ~18 FIXED без mutation-ready `it`.
+
+---
+
+## Mutation run (fe1 · W13 slot 2 · 2026-07-30)
+
+| ID | Verdict | RED |
+|----|---------|-----|
+| A2W9-4-001 | **PROVEN** | alert+retry; toasts on create failure |
+| A2W9-4-002 | **PROVEN** | group-focus-within delete |
+| A2W9-4-003 | **PROVEN** | design tokens ≠ blue-500 |
+| A2W11-3-001 | **PROVEN** | exposes isError |
+| A2W11-3-003 | **PROVEN** | heartbeat console.warn |
+| A2W10-A3-002 | **PROVEN** | alert ≠ «Бэклог пуст» |
+| A2W10-A2-007 | **PROVEN** | keyboard-reachable row |
+| A2W10-A2-008 | **PROVEN** (W13 refill) | cases.lazy unwire → RED `cases.lazy wires CaseTreePanel…` |
+| A2W10-A2-006 | **PROVEN** | parsePlateValue rejects garbage |
+| A2W10-A3-004 | **PROVEN** | htmlFor Status/Priority |
+| A2W10-A3-008 | **PROVEN** | no dead cursor-pointer |
+| A2W10-A3-005 | **PROVEN** | Button not nested in Link |
+| A2W10-A3-006 | **PROVEN** | radiogroup + aria-checked |
+| A2W10-A3-009 / A3-007 / A1-\* / A2-001…005 / A3-003 / A4 / A5 | **GAP_NOTED** | нет mutation `it` |
+| A2W10-A3-001 / A5-001 / A2W11-3-002 | **N/A** | другие TASK |
+
+Post-restore (W13): `11` files · `19` tests PASS. Leftover MUTATED: нет.  
+008 refill: see `MUTATION-2026-07-30-W13-fe1-task093-008-retry.md` — Break→RED→restore→GREEN.  
+Статус: **Закрыта** — A2W10-A2-008 PROVEN (route/lazy wiring guard); GAP_NOTED rows documented, не блокеры закрытия.

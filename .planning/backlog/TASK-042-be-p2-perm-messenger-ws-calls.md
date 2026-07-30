@@ -1,6 +1,6 @@
 # TASK-042 — Weak perm + messenger + WS revoke + calls guest
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: На проверке
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Закрыта
 > Источник: TASK-008 W12 · Classes: P2-BE-12..15 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P2-BACKEND.md`
 
 ## [OUTCOME]
@@ -90,5 +90,51 @@ NATS capture AcceptInvite via_invite=true из production PublishJSON.
 
 **PASS.** Evidence: .planning/audits/total-2026-07/MUTATION-2026-07-29-W1-be2.md
 
-- ia_invite: true→false → TestAcceptInvite_NATSPayloadViaInvite_P2_BE_13 RED
+- via_invite: true→false → TestAcceptInvite_NATSPayloadViaInvite_P2_BE_13 RED
 - Handmade PayloadViaInviteBool stays GREEN (control). GREEN after restore.
+
+## [MUTATION CRITERIA] — verifier-ready
+
+> W13 slot 3 refill / be2 · criteria only (no mutate) · 2026-07-30 · HEAD guards verified · Classes P2-BE-12..15
+
+| ID | Production file:line (guard) | слой | Exact test RED | Kill recipe |
+|----|------------------------------|------|----------------|-------------|
+| P2-BE-12 | `backend/internal/tracker/handler.go:73-74` — `boards.Post` → `rbac.RequirePermission(rbac.PermTaskEdit, …)` | handler middleware | `TestCreateBoard_ViewerForbidden_P2_BE_12` · `backend/testframework/tracker/create_board_perm_task042_test.go` | заменить `PermTaskEdit` → `PermProjectView` → viewer CreateBoard 201 → 403 assert RED |
+| P2-BE-13 | `backend/internal/messenger/service_channel_invites.go:199-205` — `AcceptInvite` PublishJSON `"via_invite": true` (без raw token) | service (NATS) | `TestAcceptInvite_NATSPayloadViaInvite_P2_BE_13` · `backend/testframework/messenger/invite_leave_forward_task042_test.go` | `"via_invite": true→false` / omit / publish token → NATS payload assert RED |
+| P2-BE-14 | `backend/internal/ws/bridge.go:249-252` — `handleAuthSessionEvent`: `revoked`/`logout` → `UnregisterBySession` | WS Bridge | `TestBridge_AuthRevoked_UnregistersClient_P2_BE_14` · `backend/testframework/ws/revoke_unregister_task042_test.go` | убрать `UnregisterBySession` call → client остаётся в room / done не закрыт → RED |
+| P2-BE-15 | `backend/internal/calls/service.go:23-24` + `generateInviteCode:27-33` — base62×`inviteCodeLength` (12) | service | `TestCreateInstantCall_InviteCodeFullUUID_P2_BE_15` · `backend/testframework/calls/guest_conflicts_dto_task042_test.go` | укоротить length (напр. 8) / hex-UUID slice → Len/Regexp assert RED |
+| P2-BE-15-RL | `backend/internal/calls/handler.go:42-47` — `guestRL` Max:10 / Window:1m на `POST /calls/guest-join` | handler RateLimit | **GAP** — нет Exact RED `it`/test на RL | **N/A** until hubtest asserts 429 after &gt;10/min (source-only сейчас) |
+
+### Layer notes (mock vs Ent)
+
+| ID | Тест бьёт | Flag |
+|----|-----------|------|
+| 12 | Fiber + Ent RBAC viewer vs editor | **OK** — Ent RBAC |
+| 13 | AcceptInvite + real NATS PublishJSON capture | **OK** — service+NATS; mock invite repo OK |
+| 13-ctrl | `TestAcceptInvite_PayloadViaInviteBool_P2_BE_13` handmade JSON map | **layer_mismatch** — **не** kill-target (W18 GREEN при mutate; control only) |
+| 14 | Hub + Bridge auth.session.revoked | **OK** — in-memory Hub (prod path) |
+| 15 | CallService CreateInstantCall invite | **OK** — Ent call fixture |
+| 15-RL | (нет теста) | **GAP** |
+
+`layer_mismatch IDs: P2-BE-13 handmade control (PayloadViaInviteBool)` · `mock≠Ent IDs: (none)` · `docs-only IDs: (none)` · `GAP IDs: P2-BE-15-RL`
+
+### Gaps
+
+- Docs-only: **N/A**.
+- Out-of-scope remaining (tms/auth/crm/hr/bot/unread TTL/full UUID migrate) — не в criteria table.
+- Auth publish `auth.session.*.revoked` на Logout — вне files allowed; kill только WS Unregister side.
+
+## [W13-be2 MUTATION — 2026-07-30]
+
+**PASS.** Evidence: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W13-be2-task042.md`
+
+| ID | Verdict | RED |
+|----|---------|-----|
+| P2-BE-12 | PROVEN | `TestCreateBoard_ViewerForbidden_P2_BE_12` (403→201) |
+| P2-BE-13 | PROVEN | `TestAcceptInvite_NATSPayloadViaInvite_P2_BE_13` |
+| P2-BE-13-ctrl | N/A | handmade `PayloadViaInviteBool` stayed GREEN (layer_mismatch) |
+| P2-BE-14 | PROVEN | `TestBridge_AuthRevoked_UnregistersClient_P2_BE_14` |
+| P2-BE-15 | PROVEN | `TestCreateInstantCall_InviteCodeFullUUID_P2_BE_15` |
+| P2-BE-15-RL | GAP_NOTED | нет Exact RED на guest RL |
+
+4/4 runnable PROVEN · no NOT_PROVEN → **Закрыта**. leftover MUTATED: нет.

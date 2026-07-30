@@ -1,20 +1,23 @@
 # ♻️🔒 A3 Meili operator dial REGRESS + JQL
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Закрыта**  
 > Источник: A3W5-4-001..003 · Stage A3 FINAL · TASK-008  
-> Исполнитель: **be2**
+> Исполнитель: **be2**  
+> Mutation: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W13-qa1-task156.md` (qa-auto1 W13 slot 4)
 
 ## [OUTCOME]
 
 Operator Meili (`127.0.0.1` / RFC1918 после `meiliAllowsOperatorPrivate`) снова дозванивается через dial allowlist без ослабления metadata/SSRF SafeDial; JQL comparison ops (`>`, `<`, `>=`, `<=`) на неподдерживаемых полях fail-closed (error, не silent-nil); `IndexAllIssues` не тихо обрезает org >5000 issues без warn/pagination/flag.
 
-## Evidence (be2 · 2026-07-29)
+## Evidence (be2 · 2026-07-29 · mutation qa-auto1 2026-07-30)
+
+**Вердикт:** 3/3 FIXED · mutation **3/3 PROVEN** · **0 NOT_PROVEN** → **Закрыта**.
 
 | ID | Status | Evidence |
 |----|--------|----------|
-| A3W5-4-001 | FIXED | `NewOperatorMeiliHTTPClient` / `SafeDialContextAllowOperatorPrivate` после `meiliAllowsOperatorPrivate`; публичный host — `NewSafeHTTPClient`. Тест: `TestNewMeiliIndexerFromEnv_OperatorLoopbackDial_A3W54_001` |
-| A3W5-4-002 | FIXED | `validateJQLCondition` в ParseJQL → `ErrUnsupportedJQLOperator`; `conditionToPredicate` never-match вместо silent-nil. Тест: `TestParseJQL_UnsupportedComparison_A3W54_002` |
-| A3W5-4-003 | FIXED | offset-пагинация `meiliIndexBatchSize` (default 5000). Тест: `TestIndexAllIssues_PaginatesBeyondBatch_A3W54_003` (batch=2, 3 issues) |
+| A3W5-4-001 | FIXED · PROVEN | `NewOperatorMeiliHTTPClient` / `SafeDialContextAllowOperatorPrivate` после `meiliAllowsOperatorPrivate`; публичный host — `NewSafeHTTPClient`. Тест: `TestNewMeiliIndexerFromEnv_OperatorLoopbackDial_A3W54_001` |
+| A3W5-4-002 | FIXED · PROVEN | `validateJQLCondition` в ParseJQL → `ErrUnsupportedJQLOperator`; `conditionToPredicate` never-match вместо silent-nil. Тест: `TestParseJQL_UnsupportedComparison_A3W54_002` |
+| A3W5-4-003 | FIXED · PROVEN | offset-пагинация `meiliIndexBatchSize` (default 5000). Тест: `TestIndexAllIssues_PaginatesBeyondBatch_A3W54_003` (batch=2, 3 issues) |
 
 ```
 cd backend && go test -tags hubtest -race -count=1 ./testframework/search/
@@ -147,3 +150,29 @@ cd backend && go test -tags hubtest -race -count=1 ./testframework/search/
   `Задача: .planning/backlog/TASK-156-2026-07-29-a3-5-4-search-core.md`  
   subject может содержать `(A3W5-4-001)` и др.
 - Conventional Commits RU description; no `Co-authored-by` / AI trailers.
+
+## [MUTATION CRITERIA] — verifier-ready
+
+> W13 slot 4 / qa-auto1 · **PROVEN 3/3** · 2026-07-30 · evidence: `MUTATION-2026-07-30-W13-qa1-task156.md`
+
+| ID | prod file:line | слой | RED test (path + name) | kill recipe |
+|----|----------------|------|------------------------|-------------|
+| A3W5-4-001 | `meilisearch_indexer.go:53-56` (`NewOperatorMeiliHTTPClient` после `meiliAllowsOperatorPrivate`); dial impl `platform/http/safedialer.go:292-329` | search Meili client / SafeDial | `backend/testframework/search/a3w5_4_task156_test.go` · `TestNewMeiliIndexerFromEnv_OperatorLoopbackDial_A3W54_001` | Вернуть только `NewSafeHTTPClient` (убрать operator branch) → DialContext(`127.0.0.1`) → `ErrBlockedAddress` → RED |
+| A3W5-4-002 | `jql.go:103-116` (`validateJQLCondition`); never-match fallback `conditionToPredicate` `:136-138` (+ peers) | JQL parse/predicate | `a3w5_4_task156_test.go` · `TestParseJQL_UnsupportedComparison_A3W54_002` | Убрать `validateJQLCondition` из Parse **и/или** снова `return nil` для `>` на priority → RED (Parse error assert / silent-nil unfiltered) |
+| A3W5-4-003 | `meilisearch_indexer.go:135-153` (offset loop + `Limit(batchSize)`; `meiliIndexBatchSize`) | indexer Ent query | `a3w5_4_task156_test.go` · `TestIndexAllIssues_PaginatesBeyondBatch_A3W54_003` | Голый `Limit(5000)` без offset-loop → batch=2 + 3 issues → count≠3 → RED |
+
+### Layer notes (mock vs Ent)
+
+| ID | Тест бьёт | Flag |
+|----|-----------|------|
+| 001 | FromEnv + DialContext on transport | **OK** — dial guard (не Ent) |
+| 002 | ParseJQL / validate | **OK** — pure JQL |
+| 003 | IndexAllIssues + Ent sqlite issues + fake Meili HTTP | **Ent OK** (query pagination на Ent) |
+
+`layer_mismatch IDs: (none)` · `mock≠Ent IDs: (none)`
+
+### Gaps
+
+- 002: мутировать validate **или** silent-nil отдельно — оба пути должны RED; prefer validate-first (Parse error).
+- 001: metadata/`169.254` must stay blocked после restore — не открывать SSRF ради RED.
+- Hostname→RFC1918 без IP-литерала — ops residual (не в kill recipe).

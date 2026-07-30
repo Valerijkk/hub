@@ -1,9 +1,10 @@
 # 🧹 A3 search tests limit clamp
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P3** · Статус: **На проверке**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P3** · Статус: **Закрыта**  
 > Источник: A3W5-5-search-tests.md · Stage A3 FINAL · TASK-008  
-> Исполнитель: **be2**  
-> Finding IDs: **A3W5-5-001**, **A3W5-5-002**
+> Исполнитель: **be2** · Mutation: **be2** W13 slot 3 refill  
+> Finding IDs: **A3W5-5-001**, **A3W5-5-002**  
+> Mutation evidence: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W13-be2-task157.md` (001 PROVEN · 002 N/A hygiene)
 
 ## [OUTCOME]
 
@@ -110,3 +111,36 @@
 - Коммит(ы) ссылают задачу в теле:  
   `Задача: .planning/backlog/TASK-157-2026-07-29-a3-5-5-search-tests.md`  
   subject может содержать `(A3W5-5-001)` / `(A3W5-5-002)`
+
+## [MUTATION CRITERIA] — verifier-ready
+
+> W13 slot 3 refill / be2 · criteria only (no mutate) · 2026-07-30 · HEAD guards verified
+
+| ID | Production file:line (guard) | слой | Exact test RED | Kill recipe |
+|----|------------------------------|------|----------------|-------------|
+| A3W5-5-001 | `backend/internal/search/service.go:62-64` — `if limit <= 0 \|\| limit > 50 { limit = 20 }` | service | `TestPostgresSearch_LimitClamp_A3W55_001` · `backend/testframework/search/limit_clamp_a3w55_test.go` | сменить `limit > 50` → `limit > 500` **или** убрать clamp / `default≠20` → `Len≠20` на `limit=100/0/-1` RED |
+| A3W5-5-002 | **hygiene dedupe (N/A code mutate)** — каноны: `TestSearchMessages_NilMongoReturnsEmpty` (`service_scope_test.go:169`) + `TestGetUserChannelIDs_ClosedDB` (`service_wave106_test.go:88`); дубли сняты | test hygiene | N/A runtime RED на prod guard — evidence = −дубли + один канон на класс | **N/A** — не мутировать prod ради dedupe; verifier checks compile + единственные каноны PASS |
+
+### Layer notes (mock vs Ent)
+
+| ID | Тест бьёт | Flag |
+|----|-----------|------|
+| 001 | Real Postgres `SearchService` + seed >20 hits (multi-shard) | **OK** — service clamp; не `TestSearch_LimitClampedToDefault` (hollow Unavailable) |
+| 002 | Surviving nil-mongo / closed-DB canons only | **docs/hygiene N/A** — no prod kill |
+
+`layer_mismatch IDs: (none)` · `mock≠Ent IDs: (none)` · `docs-only / hygiene N/A IDs: A3W5-5-002`
+
+### Mutation run (be2 · 2026-07-30 · W13 slot 3 refill)
+
+| ID | Verdict | RED |
+|----|---------|-----|
+| A3W5-5-001 | **PROVEN** | `TestPostgresSearch_LimitClamp_A3W55_001` — `limit > 50` → `limit > 500` → FAIL Len=30≠20 |
+| A3W5-5-002 | **N/A** | hygiene dedupe — not fake-PROVEN; canons nil-mongo + closed-DB PASS |
+
+Evidence: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W13-be2-task157.md` · leftover MUTATED: нет · статус **Закрыта**
+
+### Gaps
+
+- `TestSearch_LimitClampedToDefault` (`service_query_test.go:39`) остаётся Unavailable-path — **не** mutation target для 001.
+- Clamp proof только Postgres IT (`limit_clamp_a3w55_test.go`); sqlite hollow убран.
+- Hygiene **A3W5-5-002** → **N/A** code mutation (dedupe only).

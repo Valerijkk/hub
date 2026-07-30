@@ -1,8 +1,9 @@
 # 🔒 A3 TMS services: AssignTesters/FileIDs/ImportAllure scope
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Закрыта**  
 > Источник: A3W2-2-tms-services.md · Stage A3 FINAL · TASK-008  
-> Исполнитель: **be2** · Finding IDs: **A3W2-2-001** … **A3W2-2-006**
+> Исполнитель: **be2** · Finding IDs: **A3W2-2-001** … **A3W2-2-006**  
+> **STAGE-C W5 slot 4 (qa-auto2, 2026-07-30):** mutation 001–006 PROVEN; A3W2-2-003 layer_mismatch закрыт Ent IT `EntTxRollback` + inject hook.
 
 ## [OUTCOME]
 
@@ -80,14 +81,7 @@ TMS service-слой: `AssignTestersToRun` принимает только membe
   - mock residual: UpdateTestResult without run edge → NotFound
   - converters: corrupt steps JSON → error
   - test_cases: forced repo err → AppError
-- **Доказательство мутацией** (на прод-коде / реальном mock guard, не на тестовой утилите):
-  1. Убрать membership check в AssignTesters → denial-тест 001 краснеет
-  2. Убрать project-scope FileIDs → denial-тест 002 краснеет
-  3. Убрать tx/compensating delete в ExistingRun import → inject-fail тест 003 краснеет (остаются partial/stale)
-  4. Ослабить mock UpdateTestResult (снова skip без Run) → тест 004 краснеет
-  5. Вернуть `_ = json.Marshal` / ignore Unmarshal → тест 005 краснеет
-  6. Вернуть raw `return err` в Delete/Link/Unlink → тест 006 краснеет
-  - Приложить red/green вывод
+- **Доказательство мутацией** — см. **`[MUTATION CRITERIA]`** ниже (verifier-ready, 2026-07-30).
 - Regression scope:
   ```bash
   cd backend && go build -tags release ./internal/tms/...
@@ -96,6 +90,31 @@ TMS service-слой: `AssignTestersToRun` принимает только membe
   Не ломать: create-path ImportAllure tx (TASK-111), reports batch (TASK-091), suite/component IDOR, UpdateTestResult(project,run,result) Ent scope (`result_scope_a3008_*`)
 - Evidence required: checklist ID→FIXED+path; команды + PASS; mutation red/green; README статус «Исправлена»
 - Stop when: 6/6 FIXED, мутации доказаны, hubtest tms green, статус в README — **не** полировать handlers/repos/import-parsers соседних слотов
+
+## [MUTATION CRITERIA] — verifier-ready
+
+> Prefer Ent denial где guard в service зовёт Ent repo. Mock-only = не PROVEN для Ent-пути.
+
+| ID | что ломать (path:line + фрагмент) | какой тест | слой |
+|----|-----------------------------------|------------|------|
+| A3W2-2-001 | `backend/internal/tms/service_runs.go:332-340` — убрать блок `CountProjectMembers` / check `n != len(userIDs)` | **Prefer:** `TestAssignTestersToRun_EntNonMember_A3W2_2_001` · mock: `TestAssignTestersToRun_RejectsNonMember_A3W2_2_001` | service (+ Ent CountProjectMembers) |
+| A3W2-2-002 | `service_runs.go:292-298` — убрать `CountFilesInProject` / mismatch→404 | **Prefer:** `TestExecuteTestResult_EntForeignFile_A3W2_2_002` · mock: `TestExecuteTestResult_RejectsForeignFile_A3W2_2_002` | service (+ Ent CountFilesInProject) |
+| A3W2-2-003 | Mock: `service_import.go` — убрать `DeleteTestResults` compensating. Ent: early `tx.Commit()` сразу после `CreateBulk` (до stats/hook) | Mock: `TestImportAllureToExistingRun_CompensatingCleanup_A3W2_2_003`. Ent fail-closed: `TestImportAllureToExistingRun_EntTxRollback_A3W2_2_003` (+ happy `EntTx`) | Ent tx + mock fallback |
+| A3W2-2-004 | `backend/testframework/tms/service_test.go` — ослабить mock `UpdateTestResult` (skip scope без `Edges.Run`/`runResults`) | `TestMockUpdateTestResult_RequiresRunScope_A3W2_2_004` | mock (residual; prod Ent = `result_scope_a3008_*`) |
+| A3W2-2-005 | `service_converters.go` — вернуть `_ = json.Marshal` / ignore Unmarshal err | `TestSnapshotToUpdateInput_CorruptSteps_A3W2_2_005` (+ `TestRollbackTestCase_CorruptSnapshotSteps_A3W2_2_005`) | service/converters |
+| A3W2-2-006 | `service_test_cases.go` Delete/Link/Unlink wrap — снова голый `return err` | `TestDeleteLinkUnlink_WrapRawErr_A3W2_2_006` | service |
+
+### Layer notes (mock vs Ent)
+
+| ID | Тест бьёт | Комментарий |
+|----|-----------|-------------|
+| 001 | Ent + mock | Guard в service через `CountProjectMembers` — Ent denial = канон |
+| 002 | Ent + mock | Guard в service через `CountFilesInProject` — Ent denial = канон |
+| 003 | Ent tx inject-fail + mock compensating | Prod CombinedRepository → `ImportResultsToExistingRun` (Ent tx). Hook `afterExistingRunBatchHook` / `ExportSetAfterExistingRunBatchHook`. Mock compensating — fallback без `existingRunImporter` |
+| 004 | mock only | Намеренный residual mock; prod HasRunWith — отдельный Ent IT |
+| 005–006 | mock + service | Guard в service/converters — mock OK |
+
+`layer_mismatch IDs: (none — 003 closed W5 qa-auto2 EntTxRollback)`
 
 ## [OUTPUT SCHEMA]
 
@@ -118,3 +137,26 @@ TMS service-слой: `AssignTestersToRun` принимает только membe
 - Коммит(ы) ссылают задачу в теле:
   `Задача: .planning/backlog/TASK-139-2026-07-29-a3-2-2-tms-services.md`
   subject может содержать `(A3W2-2-001)` … или batch-ref на диапазон
+
+## [EVIDENCE] qa-auto2 · STAGE-C W5 slot 4 · 2026-07-30
+
+**Verdict: Закрыта** · 6/6 PROVEN · `layer_mismatch IDs: (none)`
+
+| ID | Mutation | Test | RED→GREEN |
+|----|----------|------|-----------|
+| A3W2-2-001 | убрать `CountProjectMembers` | `TestAssignTestersToRun_EntNonMember_A3W2_2_001` | PROVEN |
+| A3W2-2-002 | убрать `CountFilesInProject` | `TestExecuteTestResult_EntForeignFile_A3W2_2_002` | PROVEN |
+| A3W2-2-003 | mock: убрать `DeleteTestResults`; Ent: early `tx.Commit()` после batch | `CompensatingCleanup` + **`EntTxRollback`** (new) | PROVEN |
+| A3W2-2-004 | ослабить mock `UpdateTestResult` scope | `TestMockUpdateTestResult_RequiresRunScope_A3W2_2_004` | PROVEN |
+| A3W2-2-005 | `_ = json.Marshal` / ignore Unmarshal | `TestSnapshotToUpdateInput_CorruptSteps_A3W2_2_005` | PROVEN |
+| A3W2-2-006 | raw `return err` Delete | `TestDeleteLinkUnlink_WrapRawErr_A3W2_2_006` | PROVEN |
+
+**003 fix (layer_mismatch):** `afterExistingRunBatchHook` в `ent_repository_tx.go` + `ExportSetAfterExistingRunBatchHook` + `TestImportAllureToExistingRun_EntTxRollback_A3W2_2_003`.
+
+```
+go build -tags release ./internal/tms/...
+go test -tags hubtest -race -count=1 -timeout=300s ./testframework/tms/ -run A3W2_2_
+ok  github.com/valerii/hub/backend/testframework/tms  3.705s
+```
+
+Не коммитил (по запросу волны).

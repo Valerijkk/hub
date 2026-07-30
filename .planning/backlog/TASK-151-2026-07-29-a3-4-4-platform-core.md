@@ -1,8 +1,8 @@
 # 🐛 A3 Postgres Ping + cron timeout test
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Закрыта** · MUTATION-2026-07-30-W13-qa1-task151  
 > Источник: A3W4-4-001..002 · Stage A3 FINAL · TASK-008  
-> Исполнитель: **be1**
+> Исполнитель: **be1** (fix) · Verifier: **qa-auto1** (W13 slot 4 refill)
 
 ## [EXECUTION REPORT]
 
@@ -68,8 +68,43 @@ go test -tags hubtest -race -count=1 -timeout=120s \
 
 ## [ACCEPTANCE]
 
-Закрыто be1: 2/2 FIXED · Docker hubtest database+cron green · статус **На проверке** (README не трогали).
+Закрыто be1: 2/2 FIXED · Docker hubtest database+cron green · mutation qa-auto1 W13 **2/2 PROVEN** · статус **Закрыта**.
 
 ## [OPERATING RULES]
 
 - Scope only; коммиты ссылают задачу в теле.
+
+## [MUTATION CRITERIA] — verifier-ready
+
+> W13 slot 4 / qa-auto1 · criteria only (no mutate) · 2026-07-30
+
+| ID | prod file:line | слой | RED test (path + name) | kill recipe |
+|----|----------------|------|------------------------|-------------|
+| A3W4-4-001 | `backend/internal/platform/database/postgres.go:51-55` (`PingContext` + `drv.Close` до `Schema.Create` / slog) | database connect (real `sql.Open`+Ping) | `backend/testframework/platform/database/postgres_ping_a3w44_test.go` · `TestNewPostgresClient_UnreachableDSN_FailClosed_A3W44001` | Убрать блок `PingContext` (оставить Open→`ent.NewClient`→slog `connected`) → expect RED: `An error is expected but got nil` (+ slog connected) |
+| A3W4-4-002 | `backend/internal/platform/cron/cron.go:96` (`tickCtx, cancel := context.WithTimeout(ctx, tickTimeout)`) | cron `runTick` | `backend/testframework/platform/cron/cron_test.go` · `TestRunTick_TimeoutCancelsHang_A3W44002` | Заменить `WithTimeout` на `fn(ctx)` без бюджета → RED: `tick should have been cancelled by timeout` / `fn must observe context deadline` |
+
+### Layer notes (mock vs Ent)
+
+| ID | Тест бьёт | Flag |
+|----|-----------|------|
+| 001 | Real unreachable DSN (`127.0.0.1:1`) через `NewPostgresClient` | **Ent OK** (не mock; guard на connect path) |
+| 002 | `ExportRunTick` hang > budget | **OK** (unit cron; не Ent) |
+
+`layer_mismatch IDs: (none)` · `mock≠Ent IDs: (none)`
+
+### Gaps
+
+- LiveDSN sibling `TestNewPostgresClient_LiveDSN_PingOK_A3W44001` — Skip без compose; мутация 001 канон = UnreachableDSN.
+- Не мутировать оба ID одним diff — ambiguous RED mapping.
+
+## Progress (qa-auto1 · 2026-07-30 · W13 slot 4 refill)
+
+Независимый Break→RED→restore→GREEN по `[MUTATION CRITERIA]`.  
+Отчёт: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W13-qa1-task151.md`.
+
+| ID | Verdict | RED |
+|----|---------|-----|
+| A3W4-4-001 | **PROVEN** | `An error is expected but got nil` (+ slog connected) |
+| A3W4-4-002 | **PROVEN** | `tick should have been cancelled by timeout` |
+
+Leftover MUTATED: нет. Статус → **Закрыта**.

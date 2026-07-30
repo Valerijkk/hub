@@ -1,6 +1,6 @@
 # TASK-079 — GDPR Mongo eraser fail-closed + integration test
 
-> Заведено: 2026-07-28 · Автор: W18-C5 (auditor) · Приоритет: **P2** · Статус: На проверке
+> Заведено: 2026-07-28 · Автор: W18-C5 (auditor) · Приоритет: **P2** · Статус: Закрыта · MUTATION-2026-07-30-W13-be2-task079 (2/2 PROVEN)
 > Источник: TASK-008 W18 catch-up · Findings: W18-C5-001, W18-C5-002  
 > Отчёт: `.planning/audits/total-2026-07/W18-CATCHUP-PRODUCT.md`  
 > Rework 2026-07-28: fail-closed nil coll + Mongo DeleteMany IT (`gdpr_mongo_eraser_task079_test.go`)
@@ -48,3 +48,26 @@
 
 - Guard тестировать на реальном слое (Mongo), не только stub
 - Co-authored-by запрещён
+
+## [MUTATION CRITERIA] — verifier-ready
+
+> W13 Stage C mutate / be2 · **PROVEN** 2026-07-30 · HEAD guards · Findings **W18-C5-001**, **W18-C5-002** · evidence `MUTATION-2026-07-30-W13-be2-task079.md`
+
+| ID | Production file:line (guard) | слой | Exact test RED | Kill recipe |
+|----|------------------------------|------|----------------|-------------|
+| W18-C5-001 | `backend/internal/audit/gdpr_mongo.go:34-35` — `e == nil \|\| e.coll == nil` → `ErrMongoMessageEraserUnavailable` (не `(0,nil)`) | service / Mongo eraser | `TestMongoMessageEraser_NilColl_FailClosed` · `backend/testframework/audit/gdpr_mongo_eraser_task079_test.go` | вернуть `return 0, nil` при nil eraser/coll → ErrorIs / err≠nil assert RED |
+| W18-C5-002 | `backend/internal/audit/gdpr_mongo.go:37` — `DeleteMany(…, bson.M{"sender_id": senderID})` | repository (Mongo) | `TestMongoMessageEraser_DeleteBySender_EntMongo` · `backend/testframework/audit/gdpr_mongo_eraser_task079_test.go` | фильтр `"sender_id"`→`"user_id"` → DeletedCount=0 / remainA≠0 RED |
+
+### Layer notes (mock vs Ent)
+
+| ID | Тест бьёт | Flag |
+|----|-----------|------|
+| W18-C5-001 | pure nil eraser/coll (без Mongo) | **OK** |
+| W18-C5-002 | реальный `mongotest.Connect` + `DeleteMany` | **OK** (Mongo IT; Skip без Mongo) |
+
+`layer_mismatch IDs: (none)` · `mock≠Ent IDs: (none)` · `docs-only IDs: (none)` · `GAP IDs: (none)`
+
+### Gaps
+
+- Stage C mutate **PROVEN** 2026-07-30 — evidence: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W13-be2-task079.md`
+- Adjacent cascade abort на stub eraser уже в `gdpr_cascade_p1be34_test.go` — не дублировать как Exact RED для W18-C5-001 (guard = eraser nil-coll).

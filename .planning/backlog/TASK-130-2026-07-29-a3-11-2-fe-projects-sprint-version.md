@@ -1,8 +1,9 @@
 # TASK-130 — ♻️🔒 A3 FE projects/sprint API missing version (TASK-095)
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P1** · Статус: **На проверке**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P1** · Статус: **Закрыта**  
 > Источник: A3 W11-2 fe-lib-docs · TASK-008 Stage A3 · regression после TASK-095  
-> Исполнитель: **fe1** · Finding IDs: `A3W11-2-001`, `A3W11-2-002`
+> Исполнитель: **fe1** · Finding IDs: `A3W11-2-001`, `A3W11-2-002`  
+> Mutation prove: **fe2** · 2026-07-30 · STAGE-C W3 slot 1 · оба ID **PROVEN**
 
 ## [OUTCOME]
 
@@ -133,3 +134,34 @@ export interface UpdateNewsRequest {
 ```
 
 Аналогично для Project/Sprint update + поле `version` в response interface.
+
+## [MUTATION CRITERIA] — verifier-ready
+
+Проверено по коду HEAD (2026-07-30): DTO уже с `version`; UI projects передаёт `project.version`; sprint UI caller отсутствует. Vitest: `testframework/stages/unit/frontend-test/domains/tracker/projects-sprint-version.test.ts` + fixture `projects-sprint-version-required.fixture.ts` (`tsconfig.task130.json`).
+
+| ID | что ломать | какой тест | слой |
+|----|------------|------------|------|
+| A3W11-2-001 | **DTO (primary):** `frontend/src/api/projects.ts:19` — убрать `version: number` из `UpdateProjectRequest` **или** сделать `version?: number`. **Response:** `:49` — убрать `version: number` из `ProjectResponse`. **UI caller:** `frontend/src/routes/_authenticated/projects/$projectId/index.lazy.tsx:121-124` — убрать `version: project.version` из `editMutation.mutate({…})` (оставить только `name`/`description`). | **DTO required:** describe `projects/sprint API version (TASK-130 / A3W11-2)` → `it("updateProject requires version (mutation: omit → TS fail)")` (expectTypeOf param[1]). **DTO optional:** тот же describe → `it("tsc fixture: omit version is @ts-expect-error (mutation optional → unused)")` — `projects-sprint-version-required.fixture.ts:12-13` (`@ts-expect-error` unused → RED). **Response:** `it("ProjectResponse and SprintResponse expose version")` (ветка ProjectResponse). **Runtime forward:** `it("updateProject PUT body includes version from caller")` — краснеет только если `updateProject` перестанет прокидывать `version` в `api.put` body (не ловит «сделать optional»). **UI omit version:** Vitest **не** бьёт по `index.lazy.tsx` → критерий `cd frontend && npx tsc --noEmit` type error на `editMutation.mutate` / `updateProject` call (`index.lazy.tsx:121-124`); **GAP:** нет RTL/source-assert, что submit шлёт `version: project.version`. | frontend |
+| A3W11-2-002 | **DTO (primary):** `frontend/src/api/sprint.ts:66` — убрать `version: number` из `UpdateSprintRequest` **или** сделать `version?: number`. **Response:** `:20` — убрать `version: number` из `SprintResponse`. UI `updateSprint` callers в `frontend/src/**` нет (только API) — UI-мутация N/A. | **DTO required:** describe `projects/sprint API version (TASK-130 / A3W11-2)` → `it("updateSprint requires version (mutation: omit → TS fail)")` (expectTypeOf param[2]). **DTO optional:** `it("tsc fixture: omit version is @ts-expect-error (mutation optional → unused)")` — fixture `:15-16`. **Response:** `it("ProjectResponse and SprintResponse expose version")` (ветка SprintResponse). **Runtime forward:** `it("updateSprint PUT body includes version from caller")` — только strip/`api.put` без `version`, не «optional». Доп. app-wide: `npx tsc --noEmit` — type error в любом новом caller без `version` (сейчас callers нет). | frontend |
+
+### Gaps (mutation-proof)
+
+| Guard | Ловит тест на том же слое? | Примечание |
+|-------|----------------------------|------------|
+| `UpdateProjectRequest.version` required | ✅ Vitest + fixture tsc | primary proof |
+| `ProjectResponse.version` | ✅ expectTypeOf | |
+| UI `version: project.version` в mutate | ⚠️ только `npx tsc --noEmit` | **GAP:** нет Vitest на UI-слое; если ослабить DTO и UI одновременно — tsc app может не поймать UI, а DTO-тесты всё ещё RED |
+| `UpdateSprintRequest.version` required | ✅ Vitest + fixture tsc | primary proof |
+| `SprintResponse.version` | ✅ expectTypeOf | |
+| sprint edit UI | N/A | callers нет |
+
+**Confidence:** CONFIRMED (guards и `it`-имена сверены с исходниками; UI gap зафиксирован явно).
+
+## [MUTATION PROVE] — fe2 · 2026-07-30 · W3 slot 1
+
+| ID | Verdict | Evidence |
+|----|---------|----------|
+| A3W11-2-001 | **PROVEN** | DTO `version?: number` → RED `tsc fixture: omit version is @ts-expect-error (mutation optional → unused)`; restore → GREEN 7/7. UI omit `version: project.version` → RED `npx tsc --noEmit` TS2345 `index.lazy.tsx:121`; restore → GREEN exit 0. |
+| A3W11-2-002 | **PROVEN** | DTO `version?: number` → RED тот же fixture `it`; restore → GREEN 7/7. UI callers N/A. |
+
+Notes: `expectTypeOf` (`updateProject/updateSprint requires version`, Response expose) — runtime **no-op**, остаются GREEN при мутации (gap как в TASK-052); канон = tsc fixture. Response-strip не ловится Vitest без typecheck. Prod FE после prove без diff.

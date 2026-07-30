@@ -1,6 +1,6 @@
 # 🔒🧹 A3 FE routes A2: github/gitlab sanitizeUrl + canMutate CI
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Закрыта** · MUTATION-2026-07-30-W5-fe2  
 > Источник: A3 · **Owner lock: правим ВСЕ A3 open** · TASK-008 · кластер A3W10-2  
 > Ветка исполнения: `cursor-grok-4.5` (не пушить в `master`)
 
@@ -147,3 +147,41 @@
 **Mutation notes:** см. комментарии в тестах (ослабить SAFE_URL_RE / убрать canMutate guard / raw window.open / вернуть import-export / empty при loading).
 
 **Handoff:** fe-ver → code-reviewer. README бэклога не трогали (инструкция оркестратора).
+
+## [MUTATION CRITERIA] — verifier-ready
+
+Проверено по коду HEAD (2026-07-30). Слой везде **frontend**. App-wide typecheck: `cd frontend && npx tsc --noEmit` (не ловит runtime UI-guards).
+
+| ID | что ломать (file:line + фрагмент) | какой тест (`it` / команда) | слой |
+|----|-----------------------------------|-----------------------------|------|
+| A3W10-2-001 | `frontend/src/lib/safe-url.ts:5` — ослабить `SAFE_URL_RE` (добавить `javascript:`/`data:`) **или** `sanitizeUrl` (`:15-16`) всегда возвращать входную строку; **и/или** `github-links.tsx:324,343` / `gitlab-pipeline-status.tsx:275` — `href={link.url}` / `href={pipeline.web_url}` без `sanitizeUrl(...)` | describe `FE · sanitizeUrl (A3W10-2-001)` → `it("blocks javascript: and data: schemes → #")`; describe `FE · GitHubLinks sanitize + canMutate (A3W10-2-001/002)` → `it("sanitizes unsafe PR/commit href to #")`; describe `FE · GitLabPipelineStatus sanitizeUrl (A3W10-2-001)` → `it("sanitizes unsafe pipeline web_url to #")` | frontend |
+| A3W10-2-002 | `github-links.tsx:301` — убрать `canMutate &&` вокруг «+ Создать ветку»; `trigger-ci-dialog.tsx:139` — убрать early `if (!canMutate) return null` (всегда рендерить CTA) | `it("hides «+ Создать ветку» for viewer (canMutate=false)")`; describe `FE · TriggerCIPanel canMutate + noopener (A3W10-2-002/003)` → `it("returns null for viewer (canMutate=false) — no trigger CTA")` | frontend |
+| A3W10-2-003 | `trigger-ci-dialog.tsx:107-109` — `window.open(data.web_url, "_blank")` без `sanitizeUrl` / без `noopener,noreferrer` / без skip при `"#"` | `it("toast «Открыть» calls window.open with noopener; unsafe URL skips open")` | frontend |
+| A3W10-2-004 | восстановить `frontend/src/modules/tracker/import-export.tsx` (модуль `ImportExportToolbar`) так, чтобы `existsSync` / import path снова находили файл | describe `FE · ImportExportToolbar removed (A3W10-2-004)` → `it("import-export.tsx module is deleted (dead export cleanup)")` | frontend |
+| A3W10-2-005 | `sprint-store.ts:122` — убрать `set({ loading: true, error: null })` перед fetch; **и/или** `burndown-chart.tsx:59-70` — не ветвить loading → сразу empty «Нет данных…» (`:76-87`) | describe `FE · BurndownChart loading≠empty (A3W10-2-005)` → `it("shows loading UI while fetch is in flight, not empty copy")`; `it("sets loading true then false in store around fetchBurndown")` | frontend |
+
+### Gaps (mutation-proof)
+
+| Guard | Ловит тест на том же слое? | Примечание |
+|-------|----------------------------|------------|
+| `SAFE_URL_RE` / `sanitizeUrl` | ✅ Vitest | primary |
+| href callers github/gitlab | ✅ RTL sanitize | |
+| canMutate Trigger CI / Create branch | ✅ RTL | |
+| window.open noopener + skip unsafe | ✅ RTL spy | |
+| import-export deleted | ✅ existsSync-style it | |
+| burndown loading≠empty | ✅ RTL + store | |
+| app-wide `npx tsc --noEmit` | ⚠️ не primary | не ловит ослабление runtime whitelist / canMutate |
+
+**Confidence:** CONFIRMED (file:line + `it`-имена сверены с исходниками).
+
+## Mutation prove (fe2 · 2026-07-30 · W5 slot 5)
+
+| ID | Verdict | RED `it` |
+|----|---------|----------|
+| A3W10-2-001 | **PROVEN** | `blocks javascript: and data: schemes → #` (+ github/gitlab RTL) |
+| A3W10-2-002 | **PROVEN** | `hides «+ Создать ветку»…`; `returns null for viewer…` |
+| A3W10-2-003 | **PROVEN** | `toast «Открыть» calls window.open with noopener…` |
+| A3W10-2-004 | **PROVEN** | `import-export.tsx module is deleted…` |
+| A3W10-2-005 | **PROVEN** | `shows loading UI…`; `sets loading true then false…` |
+
+Evidence: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W5-fe2.md` · post-restore vitest **6 files / 14 tests PASS**.

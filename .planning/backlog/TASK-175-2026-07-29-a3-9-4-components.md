@@ -1,8 +1,9 @@
 # 🧹 A3 FE checklist/automation/comment error UI
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Закрыта**  
 > Источник: A3 · **Owner lock: правим ВСЕ A3 open** · TASK-008 · кластер A3W9-4  
-> Ветка исполнения: `cursor-grok-4.5` (не пушить в `master`)
+> Ветка исполнения: `cursor-grok-4.5` (не пушить в `master`)  
+> Mutation: **6/6 PROVEN** · `.planning/audits/total-2026-07/MUTATION-2026-07-30-W10-fe1.md` (fe1 · W10 slot 4)
 
 ## [OUTCOME]
 
@@ -30,6 +31,45 @@
 **Регрессия:** vitest tracker domain 40 files / 86 tests PASS; TASK-175 suite 8 files / 13 tests PASS. `tsc --noEmit` — pre-existing fail OOS: `index.lazy.tsx` missing `version` (TASK-130 WIP на ветке), не из scope этой задачи.
 
 **Handoff:** fe-ver → code-reviewer. README backlog не трогали (по инструкции исполнения).
+
+## [MUTATION PROOF — fe1 W10 slot 4 · 2026-07-30]
+
+| ID | Verdict | Evidence |
+|----|---------|----------|
+| A3W9-4-001 | **PROVEN** | BREAK focus classes → RED className assert → restore GREEN |
+| A3W9-4-002 | **PROVEN** | BREAK QueryErrorAlert/`!isError` → RED no role=alert → restore GREEN |
+| A3W9-4-003 | **PROVEN** | BREAK alert/empty guard → RED no role=alert → restore GREEN |
+| A3W9-4-004 | **PROVEN** | BREAK `text-red-500`/`bg-red-500` → RED token its → restore GREEN |
+| A3W9-4-005 | **PROVEN** | BREAK `role="alert"` → RED getByRole → restore GREEN |
+| A3W9-4-006 | **PROVEN** | BREAK silent history → RED no «История» → restore GREEN |
+
+Отчёт: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W10-fe1.md` · Suite post-restore: 7 files / 8 tests PASS. Статус → **Закрыта**.
+
+## [MUTATION CRITERIA] — verifier-ready
+
+Проверено по коду HEAD (2026-07-30 · W7 slot 4 · fe1). Слой **frontend**. Typecheck: `cd frontend && npx tsc --noEmit` — **PASS** (не ловит focus/error≠empty/token/a11y).
+
+| ID | что ломать (file:line + фрагмент) | какой тест (`it` / команда) | слой |
+|----|-----------------------------------|-----------------------------|------|
+| A3W9-4-001 | `checklist.tsx:131` — убрать `group-focus-within:opacity-100` и/или `focus-visible:opacity-100` (оставить только `opacity-0 group-hover:opacity-100`) | describe `Checklist delete focus (A3W9-4-001 / TASK-175)` → `it("delete control is revealed on group-focus-within / focus-visible without hover")` | frontend |
+| A3W9-4-002 | `automation-rules-panel.tsx:238-246` — убрать `isError && <QueryErrorAlert…>`; empty «Нет правил…» без `!isError` | describe `AutomationRulesPanel error≠empty (A3W9-4-002 / TASK-175)` → `it("shows alert+retry on list fail, not empty «Нет правил»")` | frontend |
+| A3W9-4-003 | `comment-list.tsx:157-158` — убрать `isError && <QueryErrorAlert…>`; empty при fail без guard | describe `CommentList error≠empty (A3W9-4-003 / TASK-175)` → `it("shows alert+retry on list fail; composer remains; not silent empty")` | frontend |
+| A3W9-4-004 | `issue-card` / bell / query-state — вернуть `text-red-500` / `bg-red-500` / `#D1D2D3` вместо `var(--red)` | describe `IssueCard tokens (A3W9-4-004 / TASK-175)` → `it("type icon uses semantic var(--red), not text-red-500")`; describe `Shared hub tokens (A3W9-4-004 / TASK-175)` → bell/QueryErrorAlert its | frontend |
+| A3W9-4-005 | `jql-search-page.tsx:279` — убрать `role="alert"` с error block | describe `JQLSearchPage error alert (A3W9-4-005 / TASK-175)` → `it("error block has role=alert when searchJQL fails")` | frontend |
+| A3W9-4-006 | `time-tracker.tsx:217-221` — не показывать «История»/alert при `timeLogsError` (тихая пустая история) | describe `TimeTracker error≠empty (A3W9-4-006 / TASK-175)` → `it("shows История + alert+retry when listTimeLogs fails")` | frontend |
+
+### Gaps (mutation-proof)
+
+| Guard | Ловит тест на том же слое? | Примечание |
+|-------|----------------------------|------------|
+| checklist focus classes | ✅ source/class assert | |
+| automation/comment/time-tracker error≠empty | ✅ RTL | |
+| hub tokens 004 (issue-card + shared) | ✅ RTL/html + source | issue-form / jql TYPE fallbacks — покрыты частично shared suite |
+| JQL role=alert | ✅ RTL | |
+| `npx tsc --noEmit` | ❌ | не ловит 001–006 |
+
+**layer_mismatch:** нет.  
+**Confidence:** CONFIRMED.
 
 ## [ROLE]
 

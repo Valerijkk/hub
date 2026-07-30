@@ -1,8 +1,9 @@
 # TASK-135 — 🐛 A3 tracker repos/automation residual
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Закрыта**  
 > Источник: A3W1-3-tracker-repos.md · Stage A3 FINAL · TASK-008  
-> Исполнитель: be1 · Handoff: be-ver → code-reviewer
+> Исполнитель: be1 · Handoff: be-ver → code-reviewer  
+> Mutation: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W5-be1.md` (4/4 PROVEN)
 
 ## [OUTCOME]
 
@@ -65,11 +66,29 @@ Automation consumer не Nak-штормит на known no-op issue subjects; act
 
 ### Mutation (обязательно)
 
-| ID | Сломать | Ожидание |
-|----|---------|----------|
-| A3W1-A3-001 | вернуть широкий `issue.>` + default Nak без known-ignore | тест no-op subject краснеет (Nak/redelivery) |
-| A3W1-A3-002 | снова `return nil` / slog-only в executeRule при Post/Notify err | тест action-fail краснеет (Ack вместо Nak) |
-| A3W1-A3-003 | убрать `DeletedAtIsNil` с StartTimer lock | тест soft-deleted StartTimer краснеет |
+См. **`[MUTATION CRITERIA]`** ниже (verifier-ready, 2026-07-30).
+
+## [MUTATION CRITERIA] — verifier-ready
+
+> Слой = реальный guard. Не мутировать только assert-хелпер. PROVEN не ставить без red→green на прод-коде.
+
+| ID | что ломать (path:line + фрагмент) | какой тест | слой |
+|----|-----------------------------------|------------|------|
+| A3W1-A3-001a | `backend/internal/tracker/automation_consumer.go:142-144` — убрать ветку `knownNoOpIssueEventKinds` (всегда `processErr = errAutomationUnknownSubject`) | `TestAutomationConsumer_AckKnownNoOpSubjects_A3W1_A3_001` | consumer |
+| A3W1-A3-001b | `automation_consumer.go:29-33` / `:69` — заменить `AutomationFilterSubjects` на широкий `project.*.issue.>` (или `FilterSubject`) | `TestAutomationConsumer_FilterSubjects_A3W1_A3_001` | consumer |
+| A3W1-A3-002 | `backend/internal/tracker/automation_engine.go:113-115` (и/или `:140-142`) — при Post/Notify err снова `return nil` / slog-only | `TestAutomationConsumer_NakOnPostMessageFail_A3W1_A3_002` | engine→consumer |
+| A3W1-A3-003 | `backend/internal/tracker/repo_time.go:81-82` — убрать `Where(issue.DeletedAtIsNil())` с StartTimer lock | `TestEntRepository_StartTimer_SoftDeleted_A3W1_A3_003` (+ source: `TestStartTimer_LockUsesDeletedAtIsNil_Source_A3W1_A3_003`) | repository |
+
+### Layer notes (mock vs Ent)
+
+| ID | Тест бьёт | Комментарий |
+|----|-----------|-------------|
+| 001a | unit `processMessage` + counting JSMsg | Guard в consumer — mock engine OK |
+| 001b | JetStream consumer Config.FilterSubjects | Guard подписки — NATS IT OK |
+| 002 | Ent rules + stubMessengerFail | Action fail → Nak; Ent list-rules path |
+| 003 | EntRepository (`newTrackerRepoTestEnv`) | Soft-delete lock — **Ent OK**, не mock |
+
+`layer_mismatch IDs: (none)`
 
 ## [OUTPUT SCHEMA]
 
@@ -114,14 +133,17 @@ go test -tags hubtest -race -count=1 -timeout=600s ./testframework/tracker/
 → ok  12.654s
 ```
 
-### Mutation notes
+### Mutation notes (W5 be1 · 2026-07-30) — **4/4 PROVEN**
 
-| ID | Сломать | Тест краснеет |
-|----|---------|---------------|
-| A3W1-A3-001 | широкий `issue.>` / убрать known-ignore → default Nak | `AckKnownNoOpSubjects` / `FilterSubjects` |
-| A3W1-A3-002 | `return nil` в executeRule при Post err | `NakOnPostMessageFail` / `PostMessageError` |
-| A3W1-A3-003 | убрать `DeletedAtIsNil` с lock | `StartTimer_SoftDeleted` / source guard |
+| ID | Verdict | RED test | BREAK |
+|----|---------|----------|-------|
+| A3W1-A3-001a | **PROVEN** | `AckKnownNoOpSubjects_A3W1_A3_001` | drop knownNoOp branch |
+| A3W1-A3-001b | **PROVEN** | `FilterSubjects_A3W1_A3_001` | wide `issue.>` FilterSubject |
+| A3W1-A3-002 | **PROVEN** | `NakOnPostMessageFail_A3W1_A3_002` | Post/Notify → `return nil` |
+| A3W1-A3-003 | **PROVEN** | `StartTimer_SoftDeleted` + source | drop `DeletedAtIsNil` on lock |
+
+Evidence: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W5-be1.md`
 
 ### Handoff
 
-be-ver → code-reviewer. Owner lock снят после статуса «На проверке».
+Статус **Закрыта** после mutation prove. be-ver → code-reviewer (fix code already on branch).
