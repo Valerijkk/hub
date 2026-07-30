@@ -10,6 +10,11 @@ vendor/
 *.out
 tmp/
 
+# Python (артефакты прогона тестов/скриптов; ломают validate_toolkit.py)
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
 # Node
 node_modules/
 dist/

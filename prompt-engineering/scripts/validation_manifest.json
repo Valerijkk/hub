@@ -4,7 +4,9 @@
     "global_exclude_globs": [
       "**/__pycache__",
       "**/__pycache__/**",
-      "**/*.pyc"
+      "**/*.pyc",
+      "**/.pytest_cache",
+      "**/.pytest_cache/**"
     ],
     "file_policy": {
       "allowed_text_extensions": [
