@@ -68,7 +68,7 @@ fix(авторизация): запретить выдачу JWT            <- s
 ```
 fix(intranet): вернуть новость из корзины вместе с опросом
 
-Задача: .planning/backlog/TASK-001-fr-intr-08-newspost-trash.md
+Задача: .planning/backlog/archive/legacy/TASK-001-fr-intr-08-newspost-trash.md
 Требование: FR-INTR-08 (docs/system_specification.md:231)
 
 <что и почему изменилось>
