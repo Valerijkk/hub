@@ -26,7 +26,7 @@
 | assumptions-analyzer | Допущения по фазе с evidence и confidence | R B S **ro** | не покрыт |
 | pattern-mapper | Новый файл → ближайший аналог в репо (PATTERNS.md) | R B S W | не покрыт |
 | planner | PLAN.md: задачи, зависимости, must_haves | R W B S N M | orchestrator (`phase-plan`) |
-| plan-checker | Проверка плана **до** исполнения, 12 измерений | R B S **ro** | не покрыт |
+| plan-checker | Проверка плана **до** исполнения, 14 измерений | R B S **ro** | не покрыт |
 | executor | Исполнение плана: атомарные коммиты, deviation, checkpoints | R W E B S M | backend-dev / frontend-dev / devops |
 | verifier | Goal-backward приёмка **после** исполнения | R W B S | orchestrator (`verify-goal`) |
 | integration-checker | Кросс-фазная проводка и E2E-потоки | R B S **ro** | не покрыт |
@@ -119,7 +119,7 @@ Read-only у GSD — не просьба в теле промпта, а отсу
 
 ### 2.4 Revision Gate: ограничитель цикла и детекция застоя
 
-Из `references/gates.md` — четыре типа ворот, к одному из которых обязан
+Из `get-shit-done/references/gates.md` (не агент — общий справочник GSD) — четыре типа ворот, к одному из которых обязан
 сводиться любой чекпоинт:
 
 | Ворота | Когда | Поведение при провале |
