@@ -8,7 +8,7 @@
 |---------|-------|------|
 | [corporate-delivery.md](corporate-delivery.md) | scope → design → build → test → review → verify → handoff | orchestrator, весь ростер |
 | [gsd-lifecycle.md](gsd-lifecycle.md) | discuss → plan → execute → verify → handoff (порт GSD) | orchestrator, все роли |
-| [wave-execution.md](wave-execution.md) | Параллельные волны с непересекающимися границами файлов | orchestrator |
+| [wave-execution.md](wave-execution.md) | Маршрутизация моделей в волне и evidence выбора | orchestrator |
 | [handoff-state.md](handoff-state.md) | STATE, session notes, передача между агентами | orchestrator, любой |
 | [portable-kit-dry-run.md](portable-kit-dry-run.md) | Dry-run переноса kit (L1–L5 в пустой monorepo) | docs-writer, orchestrator |
 | [discuss-and-research.md](discuss-and-research.md) | Что делать ДО плана: серые зоны, допущения, ресёрч, спайк | orchestrator, architect, product-owner |

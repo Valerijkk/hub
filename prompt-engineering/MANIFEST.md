@@ -9,7 +9,7 @@ layer: test-automation-ai-quality
 source_registry: sources/PRIMARY-SOURCES.md
 validation_config: scripts/validation_manifest.json
 validation_status: STRUCTURAL_PASS
-last_validation: 2026-07-31
+last_validation: 2026-08-01
 provenance: official primary sources and repository inspection on 2026-07-26
 pro_edition: sibling prompt-engineering-pro/ >=0.3.0-beta.1 (outside portable package)
 ---
@@ -29,8 +29,8 @@ pro_edition: sibling prompt-engineering-pro/ >=0.3.0-beta.1 (outside portable pa
 Статус — **foundation-ready**. `STRUCTURAL_PASS` = дерево и валидатор прошли
 структурные проверки. Это **не** значит eval-validated или GA.
 
-Последнее структурное evidence на 2026-07-31 (перезамер после выноса
-слоя разработки в издание Pro):
+Последнее структурное evidence на 2026-08-01 (перезамер после замены
+мутации продуктового кода на проверку чувствительности):
 
 - source toolkit validation: 0 errors / 0 warnings, exit 0;
 - script tests: 54 passed / 1 skipped, 55 total (создание symlink недоступно;

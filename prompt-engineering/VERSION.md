@@ -7,7 +7,7 @@ status: foundation-ready
 release_date: TODO
 owner: automation-quality
 validation_status: STRUCTURAL_PASS
-last_validation: 2026-07-31
+last_validation: 2026-08-01
 release_eligibility: foundation-ready-eval-blocked
 provenance: MANIFEST.md
 supersedes: 0.2.0-rc.1
@@ -55,7 +55,7 @@ Standard; нужно поставить Pro рядом. Package: 174 → 148 ф�
 
 ## Evidence (structural)
 
-Замер 2026-07-31, перезамерено после выноса слоя разработки в Pro. Команды воспроизводимы из корня
+Замер 2026-08-01, перезамерено после замены мутации на проверку чувствительности. Команды воспроизводимы из корня
 `prompt-engineering/`.
 
 | Проверка | Команда | Результат |

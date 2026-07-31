@@ -94,3 +94,4 @@ disable-model-invocation: true
 - Acceptance: `../verify-goal/SKILL.md`
 - Playbook: `../../playbooks/wave-execution.md`
 - Verification: [rules/40](../../../prompt-engineering/rules/40-verification-protocol.md)
+- [`../../extracts/wave-protocol.md`](../../extracts/wave-protocol.md) — инвариант волны, смерть слота, частичный результат
