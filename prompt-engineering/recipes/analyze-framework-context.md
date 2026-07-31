@@ -1,6 +1,6 @@
 ---
 id: ta.recipe.analyze-framework-context
-version: "1.0.0"
+version: "1.1.0"
 owner: test-automation-quality
 status: candidate
 eval_fixture_id: EVAL-TBD-ANALYZE-FRAMEWORK-CONTEXT
@@ -30,7 +30,7 @@ fragment_refs: []
 - `execution_approval`: выполнение команд по умолчанию `not-granted`;
   `write_approval`: только generated profile.
 
-## Контекст и ссылка на bootstrap
+## Контекст и фрагменты
 
 - Использовать bootstrap-контракт, на который ссылаются
   [`INSTALL.md`](../INSTALL.md) и канонические
@@ -60,6 +60,22 @@ fragment_refs: []
 - Не создавать pattern approvals, не выводить конвенции и не оценивать
   качество тестов.
 
+## Процедура
+
+1. Зафиксировать mode (`bootstrap` | `refresh`), slug profile и объявленные
+   roots. Коллизия slug или отсутствующий root — стоп до продолжения.
+2. Прочитать `CONTEXT-MANIFEST.yaml` выбранного profile: `profile.status`,
+   `scan.*`, `policy.*`. Манифеста нет → mode фактически `bootstrap`.
+3. Пройти по требуемым карточкам (`PROJECT`, `TEST-ARCHITECTURE`, `COMMANDS`,
+   `CI-PIPELINE`, `TEST-DATA`, `TRACEABILITY`, `SOURCE-MAP`, `PATTERN-INDEX`)
+   и выставить каждой `filled` | `template` | `missing` с проверенным путём.
+4. Выписать факты, которые нужны заказавшей задаче, и пометить каждый
+   `CONFIRMED` (с path:line) или `UNKNOWN`. Пустая графа не допускается.
+5. Вызвать referenced bootstrap/refresh flow только внутри объявленных roots;
+   manual-блоки перенести дословно.
+6. Пересчитать статусы карточек после записи и вывести
+   `ready` | `partial` | `blocked` с перечнем, обосновавшим вердикт.
+
 ## Схема выхода
 
 1. Нормализованный запрос: mode, profile, roots, permissions.
@@ -72,11 +88,26 @@ fragment_refs: []
 ## Evidence / критерий завершения
 
 - Evidence: поля манифеста, source IDs, статусы карточек и inspected paths.
+- Проверяемый артефакт готовности: таблица `карточка → путь → статус →
+  evidence`, где каждый путь подтверждён чтением, а каждый `filled` — цитатой
+  frontmatter (`status`, `snapshot_commit`).
 - Complete только когда требуемые карточки non-template или явно `UNKNOWN` с
   evidence, scope остался ограниченным и ни один результат не выведен из
   невыполненной команды.
 - Если bootstrap не вызывался, отдать только нормализованный запрос и пометить
   оценку готовности `NOT_VERIFIED`.
+
+## Типичные ошибки
+
+- Пересказ или форк scan-алгоритма bootstrap внутри задачи: контракт
+  расходится с `INSTALL.md`; вместо этого вызывать referenced flow.
+- Карточка со `status: template` зачтена как заполненная, потому что текст
+  «выглядит осмысленно»; статус читается из frontmatter, не из впечатления.
+- Refresh молча перезаписал manual-секции: их надо перенести дословно или
+  остановиться.
+- Команда, найденная в `COMMANDS.md`, объявлена рабочей без запуска;
+  «обнаружена» ≠ «проверена».
+- Вердикт `ready` при непустом списке `UNKNOWN`, нужных заказавшей задаче.
 
 ## Стоп / спросить
 
