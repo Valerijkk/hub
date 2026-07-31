@@ -1,6 +1,6 @@
 # START HERE — Touchstone Standard
 
-**Продукт:** [Touchstone](TOUCHSTONE.md) · Standard `0.2.0-rc.1`
+**Продукт:** [Touchstone](TOUCHSTONE.md) · Standard `0.3.0-beta.1`
 Нужен max-пакет (GSD + Cursor + planning)? → sibling
 `prompt-engineering-pro/START-HERE.md` (рядом с этой папкой в исходном репо;
 не внутри portable package).

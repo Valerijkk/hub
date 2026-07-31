@@ -24,7 +24,7 @@ recipes и validator — дублировать их запрещено.
 |--------|------------|
 | [`agents/`](agents/README.md) | 12 ролей разработки: orchestrator, product-owner, architect, backend-dev, frontend-dev, qa-manual, qa-auto, code-reviewer, debugger, security-reviewer, devops, docs-writer |
 | [`skills/`](skills/README.md) | phase-plan · wave-orchestrate · verify-goal |
-| [`playbooks/`](playbooks/README.md) | corporate-delivery · gsd-lifecycle · wave-execution · handoff-state · portable-kit-dry-run |
+| [`playbooks/`](playbooks/README.md) | corporate-delivery · gsd-lifecycle · wave-execution · handoff-state · portable-kit-dry-run · discuss-and-research · debug-forensics |
 | [`prompts/`](prompts/README.md) | Категория 13 — corporate delivery, 112 фрагментов |
 | [`adapters/`](adapters/README.md) | Cursor-маппинг 12 ролей |
 | [`extracts/`](extracts/README.md) | Переносимые контракты: prompt-contract, master-delegate, wave-protocol, mutation-evidence, backlog-task |
@@ -92,5 +92,5 @@ Pro — сборка того, что уже доказано на практи�
 
 ## Статус
 
-`foundation-ready` · требует Standard `0.2.x` · отдельный paired eval
+`foundation-ready` · требует Standard `>=0.3.0-beta.1` · отдельный paired eval
 Pro-пакета не гонялся (`NOT_RUN`). Подробно — [VERSION.md](VERSION.md).

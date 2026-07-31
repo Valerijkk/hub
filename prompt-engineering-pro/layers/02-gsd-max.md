@@ -18,12 +18,19 @@ discuss / clarify → plan (atomic) → execute waves → verify goal-backward �
 | Discuss gray zones | Неясное — до plan, не во время code | layer 06 |
 | Verify ≠ CI green | CI — необходимое, не достаточное; goal-verify отдельно | layer 05 |
 
-## Уже в Standard (не дублировать)
+## Где это живёт (не дублировать)
 
-- `prompt-engineering/playbooks/gsd-lifecycle.md`
-- `prompt-engineering/playbooks/wave-execution.md`
-- `prompt-engineering/playbooks/handoff-state.md`
-- skills: `phase-plan`, `wave-orchestrate`, `verify-goal`
+Всё перечисленное — в **Pro**: слой разработки переехал сюда из Standard
+при разделении изданий по объекту работы.
+
+- [`../playbooks/gsd-lifecycle.md`](../playbooks/gsd-lifecycle.md)
+- [`../playbooks/wave-execution.md`](../playbooks/wave-execution.md)
+- [`../playbooks/handoff-state.md`](../playbooks/handoff-state.md)
+- [`../playbooks/discuss-and-research.md`](../playbooks/discuss-and-research.md) — этап до плана
+- skills: [`phase-plan`](../skills/phase-plan/SKILL.md), [`wave-orchestrate`](../skills/wave-orchestrate/SKILL.md), [`verify-goal`](../skills/verify-goal/SKILL.md)
+
+В Standard остаётся то, что относится к тестовому фреймворку: context,
+rules, recipes, evals, validator.
 
 ## Hub-only усиления (в Pro — как опция)
 

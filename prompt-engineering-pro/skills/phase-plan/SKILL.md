@@ -338,7 +338,7 @@ Verification:
 - Not run / N/A: code tests (pre-execution)
 - Risks / assumptions: UNKNOWN slots, approval boundaries
 - Mode: self-check
-- Verdict: PASS | FAIL | PARTIAL
+- Verdict: PASS | FAIL | BLOCKED
 ```
 
 ## Handoff

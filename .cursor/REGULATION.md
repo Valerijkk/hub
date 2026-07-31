@@ -566,7 +566,7 @@ evals. Это не scaffold фреймворка. Bootstrap: `skills/bootstrap-t
 |------|------|------------|
 | Агенты | `prompt-engineering/agents/` | только `test-*` (4): TC, ревью кода фреймворка, отладка, документация |
 | Скилы | `prompt-engineering/skills/` | bootstrap/refresh, curation, naming, anti-ai, test-verification (7) |
-| Правила | `prompt-engineering/rules/` | `00`–`50` (severity, quality, severity, evidence, data-handling) |
+| Правила | `prompt-engineering/rules/` | `00` global, `10` naming, `20` quality, `30` severity, `40` verification, `50` data-handling |
 | Плейбуки | `prompt-engineering/playbooks/` | onboarding, generation, review, debug, documentation, model-routing |
 | Промпты / recipes | `prompts/`, `recipes/` | fragments 01–12 (1000+) + production recipes |
 | Шаблоны | `agents/templates/` | `_MASTER-PROMPT-TEMPLATE` + phase/wave |
@@ -578,7 +578,7 @@ evals. Это не scaffold фреймворка. Bootstrap: `skills/bootstrap-t
 |------|------------|
 | `agents/` | 12 ролей: orchestrator, product-owner, architect, backend-dev, frontend-dev, qa-manual, qa-auto, code-reviewer, debugger, security-reviewer, devops, docs-writer |
 | `skills/` | phase-plan, wave-orchestrate, verify-goal |
-| `playbooks/` | corporate-delivery, gsd-lifecycle, wave-execution, handoff-state, portable-kit-dry-run |
+| `playbooks/` | corporate-delivery, gsd-lifecycle, wave-execution, handoff-state, portable-kit-dry-run, discuss-and-research, debug-forensics |
 | `prompts/` | категория 13 — corporate delivery (112 фрагментов) |
 | `adapters/cursor/` | маппинг 12 ролей; `architect` / `code-reviewer` / `security-reviewer` — `readonly: true` |
 | `layers/`, `extracts/` | 7 слоёв практик + переносимые контракты, включая **mutation-evidence** |

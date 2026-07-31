@@ -24,6 +24,8 @@
 - New-behavior checks: {{new_behavior_checks}}
 - Regression scope: {{regression_scope}}
 - Evidence required: {{evidence_required}}
+    - Mutation spec (если фикс с тестом): {{что_ломаем}} / {{имя_теста}} / {{слой}}
+      Без неё verify-goal обязан поставить NOT_PROVEN → FAIL.
 - Stop when: {{stopping_condition}}
 
 [OUTPUT SCHEMA]

@@ -128,7 +128,7 @@ Owner: independent verifier или `orchestrator`; process:
 `skills/verify-goal/SKILL.md`.
 
 Для каждого success criterion приложите path, command/output, observed
-behavior или approved decision. Verdict — PASS, FAIL или PARTIAL. Completed
+behavior или approved decision. Verdict — PASS, FAIL или BLOCKED. Completed
 tasks без promised outcome — не PASS.
 
 ## 7. Docs and handoff

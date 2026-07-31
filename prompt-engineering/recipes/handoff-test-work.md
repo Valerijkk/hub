@@ -6,7 +6,6 @@ status: candidate
 eval_fixture_id: EVAL-TBD-HANDOFF-TEST-WORK
 fragment_refs:
   - ../prompts/12-documentation-reporting.md
-  - ../prompts/13-corporate-delivery.md
 ---
 
 # Передача тестовой работы

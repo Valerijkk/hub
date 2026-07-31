@@ -1,7 +1,7 @@
 # Layer 04 — Team Orchestration
 
 Источники: `.cursor/playbooks/team-workflow.md`, `.cursor/agents/team-lead.md` §5,
-Standard `playbooks/wave-execution.md`, `agents/orchestrator.md`.
+Pro `playbooks/wave-execution.md`, `agents/orchestrator.md`.
 
 ## Ростер Pro (portable)
 

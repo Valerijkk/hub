@@ -58,7 +58,7 @@
 6. **Делегирование** — полный `wave-delegate.md` каждому субагенту. Человеческий
    запрос полного шаблона не требует.
 7. **Сбор** outputs + Verification и routing log каждого вызова.
-8. **`skills/verify-goal/SKILL.md`** — PASS/FAIL/PARTIAL по criteria.
+8. **`skills/verify-goal/SKILL.md`** — PASS/FAIL/BLOCKED по criteria.
 9. **`playbooks/handoff-state.md`** → session note в `{{state_file}}`.
 
 ---
@@ -100,7 +100,7 @@
 ## Wave map (агент → files → depends)
 ## Results (по агентам)
 ## Model routing decisions / fallbacks
-## Goal-verify: PASS | FAIL | PARTIAL
+## Goal-verify: PASS | FAIL | BLOCKED
 ## Evidence vs success criteria
 ## Blockers / open questions
 ## Paths · Next · Verification (rules/40, уровень волны)

@@ -10,7 +10,7 @@
 | Inventory 79 skills → P0/P1 | `.planning/archive/july-2026/ai-expansion/03-GSD-PORT-INVENTORY.md` | 02 |
 | GSD-RU pack | `.cursor/skills/gsd-ru/` | 02, 04 |
 | Integration matrix | `.cursor/GSD-INTEGRATION.md` | 02 |
-| PE gsd-port | `prompt-engineering/gsd-port/` | 02 |
+| PE gsd-port | `prompt-engineering-pro/gsd-port/` | 02 |
 | Lifecycle / waves / handoff playbooks | `prompt-engineering/playbooks/{gsd-lifecycle,wave-execution,handoff-state}.md` | 02, 04 |
 
 ## Prompt Engineering (Standard)

@@ -1,6 +1,6 @@
 # Touchstone Standard — Test Automation AI Quality Layer
 
-**Продукт:** [Touchstone](TOUCHSTONE.md) · **Издание:** Standard `0.2.0-rc.1`
+**Продукт:** [Touchstone](TOUCHSTONE.md) · **Издание:** Standard `0.3.0-beta.1`
 **Pro (максималка):** sibling `prompt-engineering-pro/` (рядом в исходном репо)
 
 **Политика языка:** Все инструкции тулкита — на русском. Идентификаторы, пути, CLI и машинные enum остаются как в схемах.
@@ -41,7 +41,7 @@ hallucinated paths/commands, scope escapes, flaky-risk и стоимость. З
 Использование/перенос: [LICENSE](LICENSE) и [NOTICE.md](NOTICE.md).
 
 **Текущий статус:** Touchstone Standard · **foundation-ready** · structural
-validators PASS (0 errors / 0 warnings) · tests: 55 PASS / 1 environmental SKIP
+validators PASS (0 errors / 0 warnings) · tests: 54 passed / 1 environmental SKIP (55 total)
 · package без generated Hub profile · effectiveness/ROI **NOT_RUN** (честный
 gate до GA). Версия: [VERSION.md](VERSION.md) · история: [CHANGELOG.md](CHANGELOG.md).
 
@@ -75,13 +75,13 @@ gate до GA). Версия: [VERSION.md](VERSION.md) · история: [CHANGE
 prompt-engineering/                 ← Touchstone Standard (эта папка)
 ├── TOUCHSTONE.md                   ← продукт и границы изданий
 ├── VERSION.md / CHANGELOG.md / MANIFEST.md
-├── START-HERE.md / INSTALL.md / PORTABLE-HUB-KIT.md
-├── agents/                         ← test-* + corporate portable
+├── START-HERE.md / INSTALL.md
+├── agents/                         ← только test-* (4)
 ├── skills/ / rules/ / playbooks/ / recipes/ / prompts/
 ├── context/ / patterns/ / review-feedback/
 ├── adapters/ / models/
 ├── scripts/ / evals/
-├── sources/ / docs/ / gsd-port/
+├── sources/ / docs/
 └── (Hub sibling) prompt-engineering-pro/  ← Touchstone Pro
 ```
 
@@ -110,15 +110,21 @@ Standard остаётся чисто про тестовый фреймворк.
 
 ## Роли и skills
 
-Полный model-agnostic ростер: [agents/README.md](agents/README.md).
+Ростер Standard: [agents/README.md](agents/README.md). Здесь **только
+тестовый фреймворк** — четыре роли.
 
-| Группа | Роли |
-|--------|------|
-| Оркестрация/решения | orchestrator, product-owner, architect |
-| Реализация | backend-dev, frontend-dev, devops |
-| QA продукта | qa-manual, qa-auto, code-reviewer, debugger, security-reviewer |
-| Test-framework специализация | test-case-generator, test-code-reviewer, test-debugger, test-documenter |
-| Документация | docs-writer |
+| Роль | Объект работы |
+|------|---------------|
+| test-case-generator | Тест-кейсы из документации |
+| test-code-reviewer | Код тестового фреймворка |
+| test-debugger | Упавшие и мигающие тесты |
+| test-documenter | Документация тестового фреймворка |
+
+Роли разработки продукта — orchestrator, product-owner, architect,
+backend-dev, frontend-dev, qa-manual, qa-auto, code-reviewer, debugger,
+security-reviewer, devops, docs-writer — в издании **Pro**, sibling-папка
+`prompt-engineering-pro/`. Ссылкой отсюда не достаются намеренно: Standard
+переносится самостоятельным пакетом и не вправе зависеть от наличия Pro.
 
 Skills — явные процедуры, а не личности: bootstrap/refresh context,
 curation, planning, generation/review checks, goal verification и handoff.

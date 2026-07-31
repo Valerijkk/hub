@@ -5,7 +5,7 @@
 ### Added
 
 - Работающий состав вместо одной документации: 12 ролей разработки,
-  скилы `phase-plan` / `wave-orchestrate` / `verify-goal`, пять
+  скилы `phase-plan` / `wave-orchestrate` / `verify-goal`, семь
   плейбуков поставки, фрагменты категории 13, `gsd-port/`,
   `PORTABLE-HUB-KIT.md`, Cursor-адаптер на 12 ролей
 - Индексы разделов: `agents/`, `skills/`, `playbooks/`, `prompts/`, `adapters/`
