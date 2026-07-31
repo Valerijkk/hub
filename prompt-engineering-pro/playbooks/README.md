@@ -11,6 +11,8 @@
 | [wave-execution.md](wave-execution.md) | Параллельные волны с непересекающимися границами файлов | orchestrator |
 | [handoff-state.md](handoff-state.md) | STATE, session notes, передача между агентами | orchestrator, любой |
 | [portable-kit-dry-run.md](portable-kit-dry-run.md) | Dry-run переноса kit (L1–L5 в пустой monorepo) | docs-writer, orchestrator |
+| [discuss-and-research.md](discuss-and-research.md) | Что делать ДО плана: серые зоны, допущения, ресёрч, спайк | orchestrator, architect, product-owner |
+| [debug-forensics.md](debug-forensics.md) | Отладка дефекта и разбор провала прогона агента | debugger, orchestrator |
 
 Выбор модели — [`model-routing.md`](../../prompt-engineering/playbooks/model-routing.md) в Standard:
 маршрутизация одна на оба издания, дублировать её нельзя.
