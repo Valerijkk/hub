@@ -35,7 +35,7 @@ Production contracts: [`../recipes/`](../recipes/README.md). Эталоны asse
 | 11 | [11-performance-security-testing.md](11-performance-security-testing.md) | Нагрузочное, chaos, resilience, OWASP security | 85 |
 | 12 | [12-documentation-reporting.md](12-documentation-reporting.md) | Тест-документация, планы, отчёты, метрики, онбординг | 85 |
 
-**Итого: 1000+ фрагментов** по тестированию. Категория 13 (corporate delivery, 112 фрагментов) переехала в Pro.
+**Итого: ровно 1000 фрагментов** по тестированию. Категория 13 (corporate delivery, 112 фрагментов) переехала в Pro.
 
 ## Как пользоваться
 

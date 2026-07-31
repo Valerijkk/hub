@@ -1,6 +1,6 @@
 # Extract — Backlog Task (portable)
 
-> Сжатие Hub `.cursor/rules/57-backlog-tasks.mdc` + master-delegate.
+> Сжатие Hub практика backlog-задач Hub (провенанс — SOURCES.md) + master-delegate.
 > Одна папка · одна таблица · один формат.
 
 ## Имя файла

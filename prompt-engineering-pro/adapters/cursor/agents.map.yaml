@@ -38,7 +38,7 @@ agents:
     description: "Делает defect-first pre-merge review продуктовых diff с evidence и severity."
   - name: debugger
     core_file: debugger.md
-    readonly: true
+    readonly: false
     description: "Диагностирует сбои через reproduction, triage и evidence-backed root cause."
   - name: security-reviewer
     core_file: security-reviewer.md

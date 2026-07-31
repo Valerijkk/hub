@@ -1,6 +1,6 @@
 # Extract — Prompt Contract (portable)
 
-> Сжатая project-agnostic версия Hub `.cursor/playbooks/prompt-contract.md`.
+> Сжатая project-agnostic версия Hub практика prompt-contract Hub (провенанс — SOURCES.md).
 > Полный канон в Hub — там же; здесь — переносимое ядро для Touchstone Pro.
 
 ## 1. Нормализация запроса человека

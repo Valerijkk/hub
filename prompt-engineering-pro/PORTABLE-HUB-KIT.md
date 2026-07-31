@@ -1,19 +1,30 @@
 # Portable Test Automation AI Layer — как перенести
 
-> **Продукт:** [Touchstone Standard](../prompt-engineering/TOUCHSTONE.md) · версия см. [VERSION.md](VERSION.md)
-> **Pro (max):** sibling `prompt-engineering-pro/` (рядом в исходном репо)
+> **Продукт:** Touchstone · **Издание:** Pro · версия см. [VERSION.md](VERSION.md)
+> **База:** [Touchstone Standard](../prompt-engineering/TOUCHSTONE.md) — ставится первым
+> **Продуктовая карта Standard:** [TOUCHSTONE.md](../prompt-engineering/TOUCHSTONE.md)
 
-Переносимая прослойка между автоматизатором и AI: изучает существующий тестовый
-фреймворк, выдаёт моделям проверенный контекст/patterns и измеряет качество.
-Она не генерирует каркас приложения или тестового фреймворка.
+Как перенести корпоративный контур разработки в другой репозиторий: роли,
+процессы поставки, жизненный цикл фазы, волны и доказательства.
+
+Переносится **вместе со Standard**, а не вместо него: слой тестового
+фреймворка (context, recipes, evals, validator) живёт там и здесь не
+дублируется.
 
 ## Что получишь
 
-- Агенты (corporate + test) и шаблоны делегирования
-- GSD-lifecycle playbooks/skills на русском
+Из Pro:
+
+- 12 ролей разработки и шаблоны делегирования
+- GSD-lifecycle playbooks и скилы фазы на русском
+- Протокол волны, мутационное доказательство, пирамида evidence
+
+Из Standard (обязателен рядом):
+
 - Контекст конкретного тестового фреймворка с provenance/freshness
 - Pattern cards и места для ручных примеров коллег
 - Evidence-first prompt recipes и risk-scaled verification
+- Валидатор и упаковщик
 - Model router: GPT-5.6 Sol Pro orchestrator → доступные Cursor models
 - Structural validator и baseline-vs-assisted evals
 - Blueprint микросервисов (strangler) и «урезанного GitHub»
@@ -58,7 +69,7 @@
 
 - Microservices: `gsd-ru/microservices-strangler` / ADR pattern
 - Reduced GitHub: blueprint `06-REDUCED-GITHUB-MODULE.md`
-- Индекс GSD-порта: `prompt-engineering/gsd-port/README.md`
+- Индекс GSD-порта: `prompt-engineering-pro/gsd-port/README.md`
 - Полный dry-run: `.planning/archive/july-2026/ai-expansion/08-PORTABLE-KIT-DRY-RUN.md` (в репо-источнике)
 
 ---

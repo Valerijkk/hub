@@ -35,7 +35,7 @@
 - `rules/00-global-agent-rules.md`, `rules/40-verification-protocol.md`
 - Корпоративная поставка: `../playbooks/corporate-delivery.md`,
   `templates/corporate-wave.md`
-- Делегирование от orchestrator: `_MASTER-PROMPT-TEMPLATE.md` / `wave-delegate.md`
+- Делегирование от orchestrator: Standard `_MASTER-PROMPT-TEMPLATE.md` / Pro `templates/wave-delegate.md`
 
 Факты продукта — из active profile. Хардкод чужих репо-путей запрещён.
 
@@ -207,4 +207,4 @@ Handoff → {{who}}
 Playbooks: `../playbooks/corporate-delivery.md`,
 `../playbooks/gsd-lifecycle.md`, `../playbooks/handoff-state.md`. Templates:
 `templates/corporate-wave.md`, `templates/phase-kickoff.md`,
-`templates/_MASTER-PROMPT-TEMPLATE.md`. Следующие роли: `architect`, `orchestrator`.
+`../../prompt-engineering/agents/templates/_MASTER-PROMPT-TEMPLATE.md`. Следующие роли: `architect`, `orchestrator`.

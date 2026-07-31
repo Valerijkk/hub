@@ -28,7 +28,7 @@
 
 ## Corporate agents
 
-См. [../agents/README.md](../agents/README.md) — orchestrator, backend-dev, frontend-dev, architect, product-owner, qa-manual, qa-auto, code-reviewer, debugger, security-reviewer, devops.
+См. [../agents/README.md](../agents/README.md) — orchestrator, backend-dev, frontend-dev, architect, product-owner, qa-manual, qa-auto, code-reviewer, debugger, security-reviewer, devops, docs-writer.
 
 ## Hub-specific (не в PE)
 

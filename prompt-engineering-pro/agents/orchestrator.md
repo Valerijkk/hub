@@ -38,10 +38,11 @@
 - `rules/00-global-agent-rules.md`, `rules/40-verification-protocol.md`
 - playbooks: `../playbooks/gsd-lifecycle.md`,
   `../playbooks/wave-execution.md`, `../playbooks/handoff-state.md`,
-  `../playbooks/corporate-delivery.md`, `../playbooks/model-routing.md`
-- runtime registry, созданный из `models/registry.template.yaml`
+  `../playbooks/corporate-delivery.md`, `../../prompt-engineering/playbooks/model-routing.md`
+- runtime registry, созданный из Standard `models/registry.template.yaml`
 - skills: `phase-plan`, `wave-orchestrate`, `verify-goal`
-- templates: `_MASTER-PROMPT-TEMPLATE.md`, `wave-delegate.md`, `phase-kickoff.md`, `corporate-wave.md`
+- templates: `../../prompt-engineering/agents/templates/_MASTER-PROMPT-TEMPLATE.md` (Standard),
+  `templates/wave-delegate.md`, `templates/phase-kickoff.md`, `templates/corporate-wave.md`
 
 Факты проекта — **только** из active profile. Пути продукта в теле агента запрещены.
 
@@ -53,7 +54,7 @@
 3. **Карта файлов** — `{{files}}` + `{{out_of_scope}}`; пересечение → сериализация.
 4. **Route** — классифицировать complexity/context/risk/skill/cost/latency,
    отфильтровать только доступные модели текущего runtime-каталога и записать
-   decision/fallback log по `model-routing.md`.
+   decision/fallback log по `../../prompt-engineering/playbooks/model-routing.md`.
 5. **Волны** — параллель только при zero-overlap; default ≤4 агента.
 6. **Делегирование** — полный `wave-delegate.md` каждому субагенту. Человеческий
    запрос полного шаблона не требует.
@@ -79,7 +80,7 @@
 ## 6. Контракт делегирования
 
 Использовать `templates/wave-delegate.md`, основанный на
-`templates/_MASTER-PROMPT-TEMPLATE.md`. До запуска обязательны:
+`../../prompt-engineering/agents/templates/_MASTER-PROMPT-TEMPLATE.md`. До запуска обязательны:
 
 - outcome и ответственность роли;
 - files / do-not-touch / approval boundary;
@@ -190,6 +191,6 @@ Handoff → {{who}}
 Skills: `phase-plan`, `wave-orchestrate`, `verify-goal`. Playbooks:
 `../playbooks/gsd-lifecycle.md`, `../playbooks/wave-execution.md`,
 `../playbooks/handoff-state.md`, `../playbooks/corporate-delivery.md`,
-`../playbooks/model-routing.md`. Registry:
-`../models/registry.template.yaml`. Templates: `wave-delegate.md`,
-`phase-kickoff.md`, `corporate-wave.md`, `_MASTER-PROMPT-TEMPLATE.md`.
+`../../prompt-engineering/playbooks/model-routing.md`. Registry:
+`../../prompt-engineering/models/registry.template.yaml`. Templates: `wave-delegate.md`,
+`phase-kickoff.md`, `corporate-wave.md`, Standard `_MASTER-PROMPT-TEMPLATE.md`.

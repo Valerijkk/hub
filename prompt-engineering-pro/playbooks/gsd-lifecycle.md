@@ -12,7 +12,7 @@ review → goal-verify → handoff.
    or reorganized profile → `skills/refresh-test-context/SKILL.md`.
 2. **Discuss/Spec** — lock one falsifiable outcome, constraints, approval
    boundary, done and stop. Ask only material questions.
-3. **Route** — `playbooks/model-routing.md`; actual catalog snapshot +
+3. **Route** — `../../prompt-engineering/playbooks/model-routing.md`; actual catalog snapshot +
    decision/fallback log.
 4. **Plan** — `skills/phase-plan/SKILL.md`: atomic artifacts, files, depends,
    success criteria, evidence and regression scope.

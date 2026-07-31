@@ -1,6 +1,6 @@
 # Layer 07 — Cursor / Runtime Adapters
 
-Источники: Standard `adapters/`, `models/`, `playbooks/model-routing.md`,
+Источники: Standard `adapters/`, `models/`, `prompt-engineering/playbooks/model-routing.md`,
 `.cursor/REGULATION.md` §20, `.cursor/rules/70-prompt-engineering.mdc`.
 
 ## Адаптеры (канон в Standard)

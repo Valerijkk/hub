@@ -32,7 +32,7 @@
   stack/constraints/invariants
 - `rules/00-global-agent-rules.md`, `rules/40-verification-protocol.md`
 - Playbooks: `gsd-lifecycle.md`; strangler — skill/playbook/template из kit при наличии
-- Templates: `_MASTER-PROMPT-TEMPLATE.md`, `wave-delegate.md`
+- Templates: Standard `_MASTER-PROMPT-TEMPLATE.md`, Pro `templates/wave-delegate.md`
 - Auth/messaging/storage — **только** sourced invariants из active profile
 
 Пути продукта в теле агента запрещены — только слоты и active profile.
@@ -206,6 +206,6 @@ Handoff → {{who}}
 
 ## 12. Связанные артефакты
 
-Templates: `_MASTER-PROMPT-TEMPLATE.md`, `wave-delegate.md`. Playbooks:
+Templates: Standard `_MASTER-PROMPT-TEMPLATE.md`, Pro `templates/wave-delegate.md`. Playbooks:
 `gsd-lifecycle.md`, `handoff-state.md`. Цепочка: PO → architect →
 orchestrator / dev / devops.

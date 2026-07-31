@@ -10,7 +10,7 @@
 2. Проверить: пересечение файлов = 0 внутри волны.
 3. Для каждого агента заполнить `agents/templates/wave-delegate.md`: outcome,
    files, references, approval, evidence, done и stop.
-4. Выбрать модель по `model-routing.md` из текущего каталога; записать decision/fallback.
+4. Выбрать модель по `../../prompt-engineering/playbooks/model-routing.md` из текущего каталога; записать decision/fallback.
 5. Запустить ≤4 параллельно (или больше при явной карте).
 6. Собрать outputs, Verification и routing logs; конфликты → стоп и переплан.
 7. `skills/verify-goal/SKILL.md` по success criteria волны.

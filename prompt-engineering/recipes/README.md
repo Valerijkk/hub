@@ -36,20 +36,20 @@ Recipes — исполняемый слой качества над [`../prompts
 
 | ID | Файл | Рекомендуемая роль | Когда |
 |----|------|--------------------|-------|
-| `ta.recipe.analyze-framework-context` | [analyze-framework-context](analyze-framework-context.md) | `orchestrator` / `test-documenter` | готовность bootstrap/refresh |
-| `ta.recipe.plan-test-change` | [plan-test-change](plan-test-change.md) | `qa-auto` / `orchestrator` | ограниченный план изменения тестов |
-| `ta.recipe.design-test-cases` | [design-test-cases](design-test-cases.md) | `test-case-generator` / `qa-manual` | TC из требований |
-| `ta.recipe.generate-unit-tests` | [generate-unit-tests](generate-unit-tests.md) | `qa-auto` | реализация unit TC |
-| `ta.recipe.generate-api-tests` | [generate-api-tests](generate-api-tests.md) | `qa-auto` | API-контракт + denial TC |
-| `ta.recipe.generate-ui-e2e` | [generate-ui-e2e](generate-ui-e2e.md) | `qa-auto` | user-visible E2E |
+| `ta.recipe.analyze-framework-context` | [analyze-framework-context](analyze-framework-context.md) | `test-documenter` | готовность bootstrap/refresh |
+| `ta.recipe.plan-test-change` | [plan-test-change](plan-test-change.md) | `test-case-generator` · исполнение — Pro `qa-auto` | ограниченный план изменения тестов |
+| `ta.recipe.design-test-cases` | [design-test-cases](design-test-cases.md) | `test-case-generator` | TC из требований |
+| `ta.recipe.generate-unit-tests` | [generate-unit-tests](generate-unit-tests.md) | `test-case-generator` · реализация — Pro `qa-auto` | реализация unit TC |
+| `ta.recipe.generate-api-tests` | [generate-api-tests](generate-api-tests.md) | `test-case-generator` · реализация — Pro `qa-auto` | API-контракт + denial TC |
+| `ta.recipe.generate-ui-e2e` | [generate-ui-e2e](generate-ui-e2e.md) | `test-case-generator` · реализация — Pro `qa-auto` | user-visible E2E |
 | `ta.recipe.review-ai-test-code` | [review-ai-test-code](review-ai-test-code.md) | `test-code-reviewer` | readonly defect-first ревью |
 | `ta.recipe.debug-test-failure` | [debug-test-failure](debug-test-failure.md) | `test-debugger` | triage падающего теста |
 | `ta.recipe.hunt-flaky` | [hunt-flaky](hunt-flaky.md) | `test-debugger` | доказательство/фикс nondeterminism |
-| `ta.recipe.improve-test-data` | [improve-test-data](improve-test-data.md) | `qa-auto` | factories/fixtures/изоляция |
-| `ta.recipe.audit-ci-quality` | [audit-ci-quality](audit-ci-quality.md) | `devops` / `qa-auto` | evidence CI test gates |
-| `ta.recipe.security-negative-tests` | [security-negative-tests](security-negative-tests.md) | `qa-auto` + `security-reviewer` | покрытие authorized denial |
+| `ta.recipe.improve-test-data` | [improve-test-data](improve-test-data.md) | `test-documenter` · реализация — Pro `qa-auto` | factories/fixtures/изоляция |
+| `ta.recipe.audit-ci-quality` | [audit-ci-quality](audit-ci-quality.md) | `test-documenter` · CI-правки — Pro `devops` | evidence CI test gates |
+| `ta.recipe.security-negative-tests` | [security-negative-tests](security-negative-tests.md) | `test-case-generator` · ревью — Pro `security-reviewer` | покрытие authorized denial |
 | `ta.recipe.verify-test-change` | [verify-test-change](verify-test-change.md) | `test-code-reviewer` / independent verifier | пост-change verify |
-| `ta.recipe.handoff-test-work` | [handoff-test-work](handoff-test-work.md) | `orchestrator` | факты/evidence/следующий владелец |
+| `ta.recipe.handoff-test-work` | [handoff-test-work](handoff-test-work.md) | `test-documenter` | факты/evidence/следующий владелец |
 
 ## Политика метаданных
 
@@ -61,3 +61,14 @@ Recipes — исполняемый слой качества над [`../prompts
   evidence и одобрения владельца. Recipes со статусом `deprecated` указывают
   замену.
 - Плейсхолдеры eval fixture — только идентификаторы. Это не результаты тестов.
+
+## Роли в колонке «Рекомендуемая роль»
+
+Standard содержит четыре роли: `test-case-generator`, `test-code-reviewer`,
+`test-debugger`, `test-documenter`. Только они могут быть исполнителем
+рецепта в пакете, установленном без Pro.
+
+Пометка «Pro `<роль>`» означает, что шаг относится к продукту, а не к
+тестовому фреймворку, и выполняется ролью издания Pro. Без Pro такой шаг
+выполняет человек — рецепт от этого не ломается, но исполнителя внутри
+Standard у него нет.
