@@ -55,6 +55,7 @@ CHECK_ORDER = (
     "trailing_whitespace",
     "cursor_adapter",
     "provenance",
+    "recipes",
 )
 
 
@@ -1684,6 +1685,63 @@ class ToolkitValidator:
                     "configured source registry does not exist",
                 )
 
+    def check_recipes(self) -> None:
+        """Структура рецептов против recipes/_SCHEMA.md.
+
+        До появления этой проверки соответствие рецептов схеме не
+        проверялось ничем: секции разъезжались, а неверное имя секции
+        жило с момента создания файла и валидатор молчал.
+        """
+        config = self.config.get("recipes") or {}
+        required = list(config.get("required_sections") or [])
+        optional = set(config.get("optional_sections") or [])
+        if not required:
+            return
+        recipes_dir = self.root / "recipes"
+        if not recipes_dir.is_dir():
+            return
+        for path in sorted(recipes_dir.glob("*.md")):
+            name = path.name
+            if name.startswith("_") or name == "README.md":
+                continue
+            try:
+                text = path.read_text(encoding="utf-8")
+            except OSError:
+                continue
+            found = [
+                line[3:].strip()
+                for line in text.splitlines()
+                if line.startswith("## ")
+            ]
+            for section in required:
+                if section not in found:
+                    self.add(
+                        "recipes",
+                        "RCP001",
+                        path,
+                        1,
+                        "missing required section: %s" % section,
+                    )
+            allowed = set(required) | optional
+            for section in found:
+                if section not in allowed:
+                    self.add(
+                        "recipes",
+                        "RCP002",
+                        path,
+                        1,
+                        "unknown section not in schema: %s" % section,
+                    )
+            order = [s for s in found if s in required]
+            if order != [s for s in required if s in order]:
+                self.add(
+                    "recipes",
+                    "RCP003",
+                    path,
+                    1,
+                    "required sections out of schema order",
+                )
+
     def run(self, checks: Sequence[str]) -> List[Issue]:
         methods = {
             "file_policy": self.check_file_policy,
@@ -1699,6 +1757,7 @@ class ToolkitValidator:
             "trailing_whitespace": self.check_trailing_whitespace,
             "cursor_adapter": self.check_cursor_adapter,
             "provenance": self.check_provenance,
+            "recipes": self.check_recipes,
         }
         for check in checks:
             methods[check]()

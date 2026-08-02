@@ -17,16 +17,20 @@
 │    вопросы к документации → владельцу спеки ПАРАЛЛЕЛЬНО (не блокируют
 │    approved-часть, блокируют только зависящие кейсы)
 │
-3. PLAN (для нетривиального пакета): skills/phase-plan/SKILL.md
-│    files / depends / new checks / regression / done / stop
+3. PLAN (для нетривиального пакета): разрез на файлы, зависимости,
+│    новые проверки, объём регрессии, критерий готовности и остановки.
+│    Планирование фазы целиком — уровень издания Pro, здесь достаточно
+│    разреза пакета TC.
 │
-4. Автоматизация: qa-auto (или явно назначенный test coder)
+4. Автоматизация: назначенный test coder (в связке с Pro — роль qa-auto)
 │    вход: APPROVED TC; каждый тест ссылается на TC-ID (active profile TRACEABILITY)
 │    уровень — из TC («Уровень автоматизации»), инфраструктура — из
 │    `TEST-ARCHITECTURE.md`; недостающая инфраструктура — отдельной задачей ДО тестов
 │
 5. ЦИКЛ: targeted test → affected regression до green
 │    FAIL → triage code|test|infra|flaky до любого изменения expectation
+│    новый тест → проверка чувствительности (rules/40): сломать управляемый
+│    вход, убедиться в красном, вернуть, убедиться в зелёном
 │
 6. АВТОГЕЙТЫ: skills/anti-ai-check/SKILL.md +
 │    skills/naming-check/SKILL.md
@@ -37,7 +41,9 @@
 │
 8. Прогон в CI под флагами канона → зелёный
 │
-9. skills/verify-goal/SKILL.md: evidence по criteria автоматизации
+9. Приёмка: evidence по criteria автоматизации — каждый approved-TC имеет
+│    тест, у каждого нового теста вердикт чувствительности.
+│    Goal-backward приёмка фазы — уровень Pro
 │
 └─ 10. test-documenter (templates/docs-sync.md): TC-каталог (TC ↔ автотест),
        карта сьютов, coverage-док
@@ -56,8 +62,8 @@
 |-----|-------------|--------|
 | 1 | tc-generator | не пишет код тестов |
 | 2 | любой агент/человек ≠ автор шага 1 | не правит кейсы сам |
-| 3 | orchestrator / qa-auto | не смешивает независимые files в один plan |
-| 4–6 | qa-auto | не меняет TC (несогласие → возврат на шаг 2) |
+| 3 | test-case-generator (разрез пакета) | не смешивает независимые files в один plan |
+| 4–6 | test coder (Pro `qa-auto`, если есть) | не меняет TC (несогласие → возврат на шаг 2) |
 | 7 | test-code-reviewer | readonly |
-| 9 | verifier ≠ author | goal-backward, не «tasks done» |
+| 9 | проверяющий ≠ автор | evidence по criteria, не «задачи закрыты» |
 | 10 | test-documenter | не меняет тесты/TC |
