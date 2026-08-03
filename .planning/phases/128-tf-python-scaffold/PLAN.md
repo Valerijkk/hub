@@ -1,4 +1,10 @@
-# Phase 128 — TF Python scaffold (`/tests`)
+# Phase 128 — TF Python scaffold (`testframework/`)
+
+> Целевая раскладка и недельный порядок —
+> [`active/august-2026/05-AUGUST-DETAILED.md`](../../active/august-2026/05-AUGUST-DETAILED.md).
+> Юниты живут рядом с кодом, всё остальное — в корневой `testframework/`
+> (решение владельца 2026-07-30).
+
 
 **Status:** PLANNED  
 **Migration stage:** Э1  
@@ -7,7 +13,7 @@
 
 ## Goal
 
-Поднять каркас корневого Python-проекта `/tests` по дизайну
+Поднять каркас корневого Python-проекта `testframework/` по дизайну
 [`TF-MIGRATE-E4-TESTS-LAYOUT.md`](../../audits/planning-audit-2026-07/TF-MIGRATE-E4-TESTS-LAYOUT.md):
 `pyproject.toml`, корневой `conftest.py` (env + DB + auth), пустые пакеты
 `integration/`, `e2e/`, `load/`, `fixtures/`.

@@ -1,7 +1,7 @@
 # Hub — `.planning/` index
 
 > Навигация по planning-артефактам. **Ничего не удаляем** — только раскладка по смыслу и датам.
-> Обновлено: 2026-07-31 (Touchstone: граница изданий по объекту работы)
+> Обновлено: 2026-08-04 (детальный план августа) (Touchstone: граница изданий по объекту работы)
 
 ---
 
@@ -43,7 +43,7 @@
 | Папка | Что внутри |
 |-------|------------|
 | [`backlog/`](backlog/) | **Задачи исполнителям** — [таблица со ссылками](backlog/README.md), формат по мастер-промпту |
-| [`active/august-2026/`](active/august-2026/) | Планы на август: [индекс](active/august-2026/00-AUGUST-PLAN.md), [микросервисы](active/august-2026/01-MICROSERVICES-SPLIT.md) |
+| [`active/august-2026/`](active/august-2026/) | Планы на август: [действующий детальный](active/august-2026/05-AUGUST-DETAILED.md), [пересмотр приоритетов](active/august-2026/04-REVISED-PRIORITIES.md), [микросервисы отложены](active/august-2026/01-MICROSERVICES-SPLIT.md) |
 
 Задачи пишут **team-lead и architect**, по
 [мастер-промпту](../pro-qa-ai/agents/templates/_MASTER-PROMPT-TEMPLATE.md).
@@ -112,7 +112,8 @@
 
 | Нужно | Путь |
 |-------|------|
-| Планы на август | [`active/august-2026/00-AUGUST-PLAN.md`](active/august-2026/00-AUGUST-PLAN.md) |
+| **Планы на август — действующий** | [`active/august-2026/05-AUGUST-DETAILED.md`](active/august-2026/05-AUGUST-DETAILED.md) |
+| Почему порядок такой | [`active/august-2026/04-REVISED-PRIORITIES.md`](active/august-2026/04-REVISED-PRIORITIES.md) |
 | Что не так с планированием | [`audits/planning-audit-2026-07/00-PLANNING-AUDIT.md`](audits/planning-audit-2026-07/00-PLANNING-AUDIT.md) |
 | Реальный статус фаз | [`audits/planning-audit-2026-07/PHASE-STATUS-MATRIX.md`](audits/planning-audit-2026-07/PHASE-STATUS-MATRIX.md) |
 | Решения, ждущие владельца | [`audits/planning-audit-2026-07/DECISIONS-PENDING.md`](audits/planning-audit-2026-07/DECISIONS-PENDING.md) |

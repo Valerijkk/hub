@@ -2,15 +2,19 @@
 gsd_state_version: 1.0
 milestone: v4
 milestone_name: Hub One Super-app
-status: planning-audit-pw-in-progress
-stopped_at: Planning audit 2026-07 PW1–PW5 · coverage remeasured · phase matrix live
-last_updated: "2026-07-30T21:45:00.000Z"
-last_activity: 2026-07-30 · Touchstone Standard+Pro packaging · docs only
+status: august-2026-track-1-not-started
+stopped_at: Детальный план августа записан · трек 1 (тестовый фреймворк) к старту
+last_updated: "2026-08-04T00:00:00.000Z"
+last_activity: 2026-08-04 · pro-qa-ai 0.4.0-beta.1 · детальный план августа · docs only
 progress:
     total_phases: 125
     tasks_completed: 125
     goals_verified: 63
     phases_percent: 100
+    phases_percent_note: >-
+      100% относится к 125 фазам milestone v4. Фазы 128-136 (тестовый
+      фреймворк) заведены сверх него и не начаты — они не входят в этот
+      счётчик. Фактическое состояние августа: 0 из 9 фаз трека 1.
     notes: >-
       tasks_completed = checkbox/legacy completed_phases claim.
       goals_verified = count of classification==VERIFIED_PASS in
@@ -894,11 +898,18 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 
 ## Session Continuity
 
-**Last session:** 2026-07-26 (AI quality layer · RU instructions · STATE compact)
-**Stopped at:** structural/package validators PASS · tests 55 PASS / 1 SKIP ·
-package 172 files · smoke PARTIAL · paired eval/ROI NOT_RUN
-**Resume:** empty-repo portable install dry-run → paired baseline-vs-assisted
-pilot; FA-06 manual; затем CAL-SYNC / QA-HARDENING / Redesign по приоритету.
+**Last session:** 2026-08-04 (pro-qa-ai 0.4.0-beta.1 · детальный план августа)
+**Stopped at:** пакет pro-qa-ai собран и провалидирован (187 файлов,
+validator exit 0, тесты 41 passed / 1 skipped); детальный план августа
+записан в `active/august-2026/05-AUGUST-DETAILED.md`; трек 1 не начат.
+**Resume:** TASK-193 — каркас Python-фреймворка в корневой `testframework/`.
+Дальше по недельной раскладке плана: 193-194 → 195-196 → 197-198 →
+199-201.
+
+**Что зафиксировать до старта TASK-193:** способ замера покрытия.
+Baseline существует в двух несравнимых значениях (81.9% на 2026-07-27 и
+80.2% на 2026-07-29, разные способы). Выбрать один и мерить только им,
+иначе «просадка при переезде» окажется артефактом сравнения.
 
 Исторические session notes (≤2026-07-23) и старые completion logs:
 [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](archive/history/STATE-HISTORY-THROUGH-2026-07-23.md)

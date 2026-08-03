@@ -1,5 +1,11 @@
 # Phase 133 — Frontend units colocated (`src/`)
 
+> Целевая раскладка и недельный порядок —
+> [`active/august-2026/05-AUGUST-DETAILED.md`](../../active/august-2026/05-AUGUST-DETAILED.md).
+> Юниты живут рядом с кодом, всё остальное — в корневой `testframework/`
+> (решение владельца 2026-07-30).
+
+
 **Status:** PLANNED  
 **Migration stage:** Э4  
 **Estimate:** 5–8 person-days  
@@ -13,7 +19,7 @@
 
 ## Depends on
 
-- **128** tf-python-scaffold (scaffold + Vitest tooling conventions) — soft-hard: начинать после каркаса `/tests` и решения по colocated frontend layout.
+- **128** tf-python-scaffold (scaffold + Vitest tooling conventions) — soft-hard: начинать после каркаса `testframework/` и решения по colocated frontend layout.
 - Нет hard-dep на **132** (можно параллелить после 128).
 - Soft: стабильный frontend test script / link-testframework пока старые пути живы.
 

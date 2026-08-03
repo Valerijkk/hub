@@ -1,5 +1,11 @@
 # Phase 136 — TF CI cutover + delete legacy
 
+> Целевая раскладка и недельный порядок —
+> [`active/august-2026/05-AUGUST-DETAILED.md`](../../active/august-2026/05-AUGUST-DETAILED.md).
+> Юниты живут рядом с кодом, всё остальное — в корневой `testframework/`
+> (решение владельца 2026-07-30).
+
+
 **Status:** PLANNED  
 **Migration stage:** Э7  
 **Estimate:** 3–4 person-days  

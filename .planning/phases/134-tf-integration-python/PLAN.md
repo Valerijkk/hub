@@ -1,5 +1,11 @@
 # Phase 134 — Python integration layer
 
+> Целевая раскладка и недельный порядок —
+> [`active/august-2026/05-AUGUST-DETAILED.md`](../../active/august-2026/05-AUGUST-DETAILED.md).
+> Юниты живут рядом с кодом, всё остальное — в корневой `testframework/`
+> (решение владельца 2026-07-30).
+
+
 **Status:** PLANNED  
 **Migration stage:** Э5  
 **Estimate:** 5–7 person-days  
