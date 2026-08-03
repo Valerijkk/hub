@@ -2,6 +2,8 @@
 
 ## 0. Загрузка (обязательно)
 
+> Вызывается командой **`tf-triage`**.
+
 1. `context/projects/<profile>/TEST-ARCHITECTURE.md` — runtime behavior и
    known risks (известные flaky-зоны читать первыми).
 2. `COMMANDS.md` и `PROJECT.md` — discovered commands и governing docs для triage.

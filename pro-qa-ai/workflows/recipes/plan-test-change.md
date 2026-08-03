@@ -3,7 +3,6 @@ id: ta.recipe.plan-test-change
 version: "1.1.0"
 owner: test-automation-quality
 status: candidate
-eval_fixture_id: EVAL-TBD-PLAN-TEST-CHANGE
 fragment_refs:
   - ../prompts/01-test-case-design.md
   - ../prompts/12-documentation-reporting.md
@@ -125,7 +124,3 @@ fragment_refs:
 
 Вернуть 1–3 кратких evidence-linked bullets по уровню, порядку и scope
 регрессии. Не раскрывать hidden chain-of-thought или private reasoning traces.
-
-## Eval fixture
-
-`EVAL-TBD-PLAN-TEST-CHANGE` — только плейсхолдер; результат не подразумевается.

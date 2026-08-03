@@ -11,13 +11,12 @@ id: ta.recipe.<semantic-name>       # immutable and unique
 version: "1.0.0"                    # SemVer
 owner: <accountable-role>
 status: candidate                   # candidate | approved | deprecated
-eval_fixture_id: EVAL-TBD-<NAME>    # placeholder until a fixture is assigned
 fragment_refs:                      # existing prompt fragments, never copied
   - ../prompts/<category>.md
 ---
 ```
 
-`approved` требует наблюдаемого eval evidence и одобрения владельца.
+`approved` требует наблюдаемого evidence прогона и одобрения владельца.
 Плейсхолдер fixture ID не может обосновать повышение статуса.
 
 ## Обязательный нормализованный вход
@@ -56,15 +55,17 @@ completion_bar: <observable done criteria>
    инструменты/действия и точная граница human approval.
 5. **Ограничения / вне scope** — жёсткие инварианты и исключённая смежная работа.
 6. **Схема выхода** — стабильная, handoff-ready форма результата.
-7. **Evidence / критерий завершения** — наблюдаемое доказательство, обработка
+7. **Процедура** — пронумерованные шаги с наблюдаемым результатом каждого.
+   Шаг без наблюдаемого результата не шаг, а пожелание.
+8. **Типичные ошибки** — что делают неправильно и чем это оборачивается.
+   Раздел пишется по факту разбора, а не из общих соображений.
+9. **Evidence / критерий завершения** — наблюдаемое доказательство, обработка
    `NOT_RUN` и условия complete versus blocked/partial.
-8. **Стоп / спросить** — существенная неоднозначность, отсутствие authority,
+10. **Стоп / спросить** — существенная неоднозначность, отсутствие authority,
    конфликт или небезопасное условие, мешающее продолжению.
-9. **Обоснование** — запрашивать только краткое evidence-linked rationale.
+11. **Обоснование** — запрашивать только краткое evidence-linked rationale.
    Никогда не просить hidden chain-of-thought, scratchpad или private
    reasoning traces.
-10. **Eval fixture** — повторить плейсхолдер ID и указать, что результат не
-    подразумевается.
 
 ## Необязательные секции
 

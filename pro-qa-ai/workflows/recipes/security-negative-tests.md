@@ -3,7 +3,6 @@ id: ta.recipe.security-negative-tests
 version: "1.0.0"
 owner: security-test-automation
 status: candidate
-eval_fixture_id: EVAL-TBD-SECURITY-NEGATIVE-TESTS
 fragment_refs:
   - ../prompts/04-api-testing.md
   - ../prompts/11-performance-security-testing.md
@@ -19,7 +18,7 @@ fragment_refs:
 ## Нормализованные входы
 
 Нормализовать обычный язык; спрашивать всякий раз, когда целевая
-authorization, окружение, security oracle, scope, permissions или завершение
+authorization, окружение, security источник истины, scope, permissions или завершение
 существенно неоднозначны.
 
 - `profile`: выбранный заполненный context profile.
@@ -74,9 +73,34 @@ authorization, окружение, security oracle, scope, permissions или з
 5. Остаточные gaps, handoff responsible disclosure и компактная верификация
    [`rules/40`](../../standards/rules/40-verification-protocol.md).
 
+## Процедура
+
+1. Перечислить защищённые поверхности: что закрыто правами, подписью,
+   лимитом.
+2. Для каждой написать отказ, а не только доступ: без токена, с чужим,
+   с истёкшим, с недостаточными правами.
+3. Проверить второго пользователя. Тест с одним не может обнаружить
+   утечку между пользователями.
+4. Проверить, что в ответе при отказе нет данных: ни содержимого, ни
+   внутренних подробностей.
+5. Различить 401 и 403: «не знаем, кто ты» и «знаем, но нельзя» —
+   разные ответы, клиент ведёт себя по-разному.
+6. Пометить тесты как security-критичные: их ослабление проходит
+   отдельное ревью.
+
+## Типичные ошибки
+
+| Ошибка | Чем оборачивается |
+|---|---|
+| Проверить только доступ владельца | Ручка, отдающая данные кому угодно, проходит |
+| Один пользователь в тесте | Утечка между пользователями невидима |
+| Смешать 401 и 403 | Клиент показывает неверное сообщение в одном из случаев |
+| Настоящие токены в тесте | Секрет в истории репозитория; простым коммитом не убирается |
+| Ослабить проверку при рефакторинге | По диффу неотличимо от обычной правки теста |
+
 ## Evidence / критерий завершения
 
-- Evidence: source-backed oracle, bounded target approval, негативный исход,
+- Evidence: source-backed источник истины, bounded target approval, негативный исход,
   инвариант protected-state, отсутствие утечки данных и наблюдаемая регрессия.
 - Complete только когда все принятые denial TC и пути доступа покрыты, safety
   limits соблюдены, approved проверки проходят и независимый security reviewer
@@ -97,8 +121,3 @@ authorization, окружение, security oracle, scope, permissions или з
 Вернуть 1–3 кратких evidence-linked bullets по классам атак и границам
 безопасности. Не раскрывать hidden chain-of-thought или private reasoning
 traces.
-
-## Eval fixture
-
-`EVAL-TBD-SECURITY-NEGATIVE-TESTS` — только плейсхолдер; результат не
-подразумевается.

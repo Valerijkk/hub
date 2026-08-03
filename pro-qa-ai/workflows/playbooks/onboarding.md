@@ -23,29 +23,24 @@
    осознанно оставлен; human notes живут только в BEGIN/END MANUAL blocks.
    Расхождения «факт кода ↔ style guide» — решает владелец, решение в канон.
 
-4. ПОДКЛЮЧЕНИЕ АГЕНТОВ
-   Не копировать agents/*.md как runtime config.
-   Выбрать adapter из adapters/:
-   - Cursor → adapters/cursor/ (render wrapper + frontmatter)
-   - generic chat → adapters/generic-chat/
-   - CI → adapters/ci/
-   Проверить readonly/write permissions и approval boundary.
+4. ПОДКЛЮЧЕНИЕ КОМАНД
+   Пакет командный: поверхность из двенадцати команд описана в COMMANDS.md.
+   Скилы в skills/ — процедуры за ними, отдельной установки не требуют.
+   Модель и параметры генерации задаёт среда запуска, а не текст промпта.
+   Проверить границу разрешений: чтение свободно, запись и команды —
+   по контракту задачи.
 
-4a. MODEL REGISTRY
-   Снять snapshot актуального runtime catalog в копию
-   models/registry.template.yaml; настроить model-routing.md.
-   Cursor orchestrator: resolve текущую запись GPT-5.6 Sol Pro;
-   downstream wrappers по умолчанию model: inherit.
 
 5. SMOKE-ТЕСТ КОНВЕЙЕРА
-   a. test-code-reviewer + agents/templates/review-request.md — на diff с тестами.
-   b. test-case-generator + agents/templates/test-case-generation.md — на одну фичу со спекой.
-   c. test-verification — на выход шага b.
-   d. anti-ai-check — на весь репозиторий (первый прогон даст исторический долг —
-      зафиксировать как baseline, не чинить всё сразу).
-   e. naming-check — на одну тестовую директорию.
-   f. orchestrator → docs-only wave с routing/fallback log.
-   Гейт: context загружен; форматы соблюдены; permissions и routing подтверждены.
+   a. tf-status — контур видит профиль, называет следующее действие.
+   b. tf-cases — на одну фичу со спекой: кейсы с трассировкой и матрицей.
+   c. tf-verify — на выход шага b: гейт трассируемости и полноты.
+   d. tf-antiai — на весь репозиторий. Первый прогон даст исторический
+      долг: зафиксировать как базовую линию, не чинить всё сразу.
+   e. tf-naming — на одну тестовую директорию.
+   f. tf-review — на любой существующий тестовый файл.
+   Гейт: контекст загружен, форматы соблюдены, каждая команда вернула
+   отчёт своей формы, а не свободный текст.
 
 6. ФИКСАЦИЯ БАЗОВОЙ ЛИНИИ
    Исторический долг из шагов 5d/5e — списком в трекер (не блокирует новую работу).
@@ -61,8 +56,7 @@
 - [ ] Profile report: manifest `complete|partial`, все 8 docs существуют
 - [ ] Каждый populated fact имеет source ID; неизвестное = `UNKNOWN`
 - [ ] Smoke: 6/6 сценариев отработали по форматам
-- [ ] Adapter wrappers и readonly permissions проверены
-- [ ] Catalog snapshot + orchestrator/downstream routing проверены
+- [ ] Все шесть команд смоука вернули отчёт своей формы
 - [ ] Baseline долга зафиксирован
 - [ ] Регламент проекта ссылается на тулкит
 

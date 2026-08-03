@@ -174,7 +174,7 @@ transcripts или local eval records.
 ## Статус evaluation
 
 Все bundled metrics и result records начинаются как `NOT_RUN` с null values.
-Templates, fixture oracles и успешное demo — не measured effectiveness evidence.
+Шаблоны, критерии оценки и успешное demo — не measured effectiveness evidence.
 
 Paired pilot должен измерять first-pass acceptance, human review minutes,
 defects, hallucinated paths и commands, scope escapes, traceability, assertion

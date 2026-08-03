@@ -3,7 +3,6 @@ id: ta.recipe.design-test-cases
 version: "1.1.0"
 owner: test-case-design
 status: candidate
-eval_fixture_id: EVAL-TBD-DESIGN-TEST-CASES
 fragment_refs:
   - ../prompts/01-test-case-design.md
 ---
@@ -56,7 +55,7 @@ dependency-failure.
 ## Ограничения / вне scope
 
 - Документация определяет ожидаемое поведение; код может давать
-  implementation context, но не может молча задавать oracle.
+  implementation context, но не может молча задавать источник истины.
 - Не реализовывать автоматизацию, не чинить требования и не раздувать число
   кейсов дубликатами.
 
@@ -125,7 +124,3 @@ dependency-failure.
 
 Вернуть 1–3 кратких evidence-linked bullets по техникам тест-дизайна и выбору
 уровня. Не раскрывать hidden chain-of-thought или private reasoning traces.
-
-## Eval fixture
-
-`EVAL-TBD-DESIGN-TEST-CASES` — только плейсхолдер; результат не подразумевается.

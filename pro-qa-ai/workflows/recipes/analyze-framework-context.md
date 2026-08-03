@@ -3,7 +3,6 @@ id: ta.recipe.analyze-framework-context
 version: "1.1.0"
 owner: test-automation-quality
 status: candidate
-eval_fixture_id: EVAL-TBD-ANALYZE-FRAMEWORK-CONTEXT
 fragment_refs: []
 ---
 
@@ -122,8 +121,3 @@ fragment_refs: []
 
 Вернуть 1–3 кратких evidence-linked bullets по выбору mode и roots. Не
 раскрывать hidden chain-of-thought, scratch work или private reasoning traces.
-
-## Eval fixture
-
-`EVAL-TBD-ANALYZE-FRAMEWORK-CONTEXT` — только плейсхолдер; результат не
-подразумевается.

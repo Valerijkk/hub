@@ -2,6 +2,8 @@
 
 ## 0. Загрузка (обязательно)
 
+> Вызывается при обновлении карт контекста — команда **`tf-refresh`**.
+
 1. `context/projects/<profile>/PROJECT.md` § Governing documentation.
 2. `TEST-ARCHITECTURE.md`, `COMMANDS.md`, `CI-PIPELINE.md`, `TRACEABILITY.md`
    — текущее evidence-backed описание фреймворка.

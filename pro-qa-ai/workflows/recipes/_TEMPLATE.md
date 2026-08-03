@@ -3,7 +3,6 @@ id: ta.recipe.<semantic-name>
 version: "1.0.0"
 owner: <accountable-role>
 status: candidate
-eval_fixture_id: EVAL-TBD-<NAME>
 fragment_refs:
   - ../prompts/<category>.md
 ---
@@ -84,7 +83,3 @@ fragment_refs:
 
 Вернуть 1–3 кратких evidence-linked bullets по существенным выборам. Не
 раскрывать hidden chain-of-thought, scratch work или private reasoning traces.
-
-## Eval fixture
-
-`EVAL-TBD-<NAME>` — только плейсхолдер; результат оценки не подразумевается.
