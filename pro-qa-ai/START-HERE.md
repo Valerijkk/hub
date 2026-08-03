@@ -1,6 +1,6 @@
 # START HERE — Touchstone Standard
 
-**Продукт:** [Touchstone](TOUCHSTONE.md) · Standard `0.3.0-beta.1`
+**Продукт:** [Touchstone](TOUCHSTONE.md) · Standard `0.4.0-beta.1`
 
 AI-слой для инженера автоматизации тестирования. Ставится в репозиторий
 **существующего** тестового фреймворка, изучает его и дальше работает

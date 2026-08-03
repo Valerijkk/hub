@@ -4,7 +4,7 @@ product: Touchstone
 edition: pro
 version: 0.3.0-beta.1
 status: foundation-ready
-depends_on: touchstone-standard>=0.3.0-beta.1
+depends_on: touchstone-standard>=0.4.0-beta.1
 owner: automation-quality
 validation_status: CURATED_PACK
 release_eligibility: foundation-ready-eval-blocked

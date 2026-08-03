@@ -2,20 +2,20 @@
 name: touchstone-standard
 product: Touchstone
 edition: standard
-version: 0.3.0-beta.1
+version: 0.4.0-beta.1
 status: foundation-ready
 release_date: TODO
 owner: automation-quality
 validation_status: STRUCTURAL_PASS
-last_validation: 2026-08-01
+last_validation: 2026-08-03
 release_eligibility: foundation-ready-eval-blocked
 provenance: MANIFEST.md
-supersedes: 0.2.0-rc.1
+supersedes: 0.3.0-beta.1
 ---
 
 # Версия — Touchstone Standard
 
-Текущая semantic version: **`0.3.0-beta.1`**.
+Текущая semantic version: **`0.4.0-beta.1`**.
 
 Это **foundation-ready** издание линейки Touchstone — AI-слой **для тестового
 фреймворка**. Корень поставки: эта папка. Продуктовая карта:
@@ -23,6 +23,24 @@ supersedes: 0.2.0-rc.1
 
 Издание для разработки продукта — Pro, sibling `prompt-engineering-pro/`
 (в portable package Standard не входит).
+
+## Ломающее изменение в `0.4.0-beta.1`
+
+Папка переименована `prompt-engineering` → `pro-qa-ai`: имя описывает
+объект работы, а не способ.
+
+Убраны `evals/` (протокол замера, ни разу не прогнанный) и `adapters/`
+вместе со всей машинерией task-packet, существовавшей только ради
+адаптера generic-chat. `model-routing` и `models/` перенесены в издание
+Pro: выбор модели — вопрос оркестрации.
+
+Структура верхнего уровня сокращена с пятнадцати папок до девяти. Семь
+каталогов с разнородным «знанием» сведены в `standards/` и `workflows/`,
+записи работы — в `work/`. Прежние пути `rules/`, `practices/`,
+`patterns/`, `review-feedback/`, `playbooks/`, `recipes/`, `prompts/`,
+`planning/` на верхнем уровне больше не существуют.
+
+Из валидатора снята проверка `cursor_adapter` — проверять нечего.
 
 ## Ломающее изменение в `0.3.0-beta.1`
 
@@ -55,19 +73,19 @@ Standard; нужно поставить Pro рядом. Package: 174 → 148 ф�
 
 ## Evidence (structural)
 
-Замер 2026-08-01, перезамерено после замены мутации на проверку чувствительности. Команды воспроизводимы из корня
+Замер 2026-08-03, перезамерено после реорганизации структуры. Команды воспроизводимы из корня
 `pro-qa-ai/`.
 
 | Проверка | Команда | Результат |
 |----------|---------|-----------|
 | Structural validation | `python scripts/validate_toolkit.py` | PASS · 0 errors / 0 warnings · exit 0 |
-| Script tests | `python -m pytest scripts/tests -q` | 54 passed / 1 skipped (55 total); SKIP — symlink недоступен |
-| Portable package | `python scripts/package_portable.py --root . --output <dst> --dry-run` | 148 files · exit 0 |
+| Script tests | `python -m pytest scripts/tests -q` | 41 passed / 1 skipped (42 total); SKIP — symlink недоступен |
+| Portable package | `python scripts/package_portable.py --root . --output <dst> --dry-run` | 162 files · exit 0 |
 
 Package исключает generated Hub profile, smoke и raw feedback. Целостность
 состава защищена `required_paths` в `scripts/package_manifest.json`: удаление
 любого обязательного файла роняет пакер с exit 2 (проверено мутацией на
-`TOUCHSTONE.md` 2026-07-31).
+`COMMANDS.md`, `standards/` и `work/` 2026-08-03).
 
 ## Продвижение к GA `1.0.0`
 

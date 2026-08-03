@@ -1,6 +1,6 @@
 # Touchstone Standard — Test Automation AI Quality Layer
 
-**Продукт:** [Touchstone](TOUCHSTONE.md) · **Издание:** Standard `0.3.0-beta.1`
+**Продукт:** [Touchstone](TOUCHSTONE.md) · **Издание:** Standard `0.4.0-beta.1`
 **Pro (максималка):** sibling `prompt-engineering-pro/` (рядом в исходном репо)
 
 **Политика языка:** Все инструкции тулкита — на русском. Идентификаторы, пути, CLI и машинные enum остаются как в схемах.

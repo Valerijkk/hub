@@ -547,7 +547,7 @@ Slash: `.cursor/skills/qa-gate/SKILL.md`.
 
 | Издание | Путь | Назначение |
 |---------|------|------------|
-| **Standard** `0.3.0-beta.1` | [`pro-qa-ai/`](../pro-qa-ai/TOUCHSTONE.md) | Объект — **тестовый фреймворк**: context bootstrap, `test-*` агенты, recipes, evals, packager |
+| **Standard** `0.4.0-beta.1` | [`pro-qa-ai/`](../pro-qa-ai/TOUCHSTONE.md) | Объект — **тестовый фреймворк**: context bootstrap, `test-*` агенты, recipes, evals, packager |
 | **Pro** `0.3.0-beta.1` | [`prompt-engineering-pro/`](../prompt-engineering-pro/START-HERE.md) | Объект — **продукт**: 12 ролей разработки, phase/wave/verify, corporate delivery, mutation |
 
 Деление по **объекту работы**, а не по уровню. Автоматизатору достаточно

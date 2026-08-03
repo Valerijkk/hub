@@ -98,5 +98,5 @@ Pro — сборка того, что уже доказано на практи�
 
 ## Статус
 
-`foundation-ready` · требует Standard `>=0.3.0-beta.1` · отдельный paired eval
+`foundation-ready` · требует Standard `>=0.4.0-beta.1` · отдельный paired eval
 Pro-пакета не гонялся (`NOT_RUN`). Подробно — [VERSION.md](VERSION.md).

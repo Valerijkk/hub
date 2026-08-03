@@ -2,6 +2,40 @@
 
 Формат: Keep a Changelog · версии SemVer.
 
+## [0.4.0-beta.1] — 2026-08-03
+
+### Changed (BREAKING)
+
+- Папка переименована `prompt-engineering` → `pro-qa-ai`
+- Структура верхнего уровня: 15 папок → 9. Прежние `rules/`, `practices/`,
+  `patterns/`, `review-feedback/`, `playbooks/`, `recipes/`, `prompts/`,
+  `planning/` на верхнем уровне не существуют — они внутри `standards/`,
+  `workflows/` и `work/`
+- `review-feedback/` переименован в `standards/team-review/`
+
+### Removed (BREAKING)
+
+- `evals/` — протокол замера, ни разу не прогнанный
+- `adapters/` и машинерия task-packet: существовала только ради адаптера
+  generic-chat
+- Проверка `cursor_adapter` из валидатора
+
+### Moved
+
+- `model-routing.md` и `models/` — в издание Pro: выбор модели относится
+  к оркестрации
+
+### Added
+
+- `standards/team-review/threads/` — треды из реальных ревью, читаются
+  ревьюером ПЕРЕД общими практиками
+- `standards/practices/` — 10 файлов пар «плохо / хорошо», включая
+  security-tests, coverage, anti-ai
+- `work/planning/` — backlog, bugs, discussions, state
+- `work/reasoning/` — размышления агента, необязательные к исполнению
+- Команды `tf-*`: init, status, cover, cases, triage, review, gate
+- `COMMANDS.md` — маршрутизатор команд
+
 ## [Unreleased]
 
 ### Changed
