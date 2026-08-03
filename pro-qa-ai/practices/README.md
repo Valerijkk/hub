@@ -37,6 +37,9 @@
 | [negative-cases.md](negative-cases.md) | Обязательные негативные классы |
 | [api-tests.md](api-tests.md) | Специфика проверки API |
 | [ui-e2e.md](ui-e2e.md) | Специфика UI и сквозных сценариев |
+| [security-tests.md](security-tests.md) | Класс тестов, которые нельзя ослаблять |
+| [coverage.md](coverage.md) | Как мерить покрытие и не обмануться |
+| [anti-ai.md](anti-ai.md) | Признаки сгенерированного текста, похожего на тест |
 
 ## Как читать пары
 
