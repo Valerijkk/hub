@@ -1,8 +1,8 @@
-# Changelog — Touchstone Standard (`pro-qa-ai/`)
+# Changelog — pro-qa-ai
 
 Формат: Keep a Changelog · версии SemVer.
 
-## [0.4.0-beta.1] — 2026-08-03
+## [0.4.0-beta.1] — 2026-08-04
 
 ### Changed (BREAKING)
 
@@ -12,19 +12,23 @@
   `planning/` на верхнем уровне не существуют — они внутри `standards/`,
   `workflows/` и `work/`
 - `review-feedback/` переименован в `standards/team-review/`
-- Portable package: 148 → 162 файла
+- Переносимый пакет: 148 → 184 файла
 
 ### Removed (BREAKING)
 
 - `evals/` — протокол замера, ни разу не прогнанный
+- `model-routing.md` и `models/`: выбор модели задаёт среда запуска,
+  а не текст промпта
 - `adapters/` и машинерия task-packet: существовала только ради адаптера
   generic-chat
 - Проверка `cursor_adapter` из валидатора
 
-### Moved
-
-- `model-routing.md` и `models/` — в издание Pro: выбор модели относится
-  к оркестрации
+- Слой ревью схлопнут: `standards/team-review/{inbox,approved}` и
+  `TEMPLATE.md` со схемой `RF-*` удалены, остались `threads/` и `checks/`
+  со схемой `THREAD-*` / `CHECK-*`. Кто заполнял старый inbox —
+  переносит записи в `threads/inbox/`
+- `docs/EXECUTIVE-OVERVIEW.md` удалён: дублировал RU-версию по языку и
+  GOVERNANCE с ROI-METRICS по содержанию, и уже разошёлся с фактами
 
 ### Added
 
@@ -36,6 +40,13 @@
 - `work/reasoning/` — размышления агента, необязательные к исполнению
 - Команды `tf-*`: init, status, cover, cases, triage, review, gate
 - `COMMANDS.md` — маршрутизатор команд
+- Роль `test-sdet` — пишет код автотестов и фреймворка под них
+- `standards/code/` — 13 файлов: ООП, SOLID, DRY/KISS, параметризация,
+  техники тест-дизайна, шаги плюс устройство фреймворка
+- `standards/test-cases/` — формат кейса и три разобранных примера
+- `standards/team-review/checks/` — реестр проверяемых правил `CHECK-*`
+- Проверка `inline_paths` в валидаторе: пути в обратных кавычках раньше
+  не проверялись, и три из них протухли незамеченными
 
 ## [Unreleased]
 

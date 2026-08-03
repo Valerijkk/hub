@@ -25,4 +25,4 @@
 3. В references указывать generated context/pattern cards, а не копировать их содержимое.
 4. Scope ограничивать файлами, diff или доменом. Broad audit допустим только с явным outcome и stopping condition.
 5. Выход сверять с role-specific schema; факты сопровождаются evidence и confidence.
-6. Prompt body не назначает модель и runtime-параметры — это ответственность adapter/routing layer.
+6. Текст промпта не назначает модель и параметры генерации — это задаёт среда запуска. Идентификатор модели в промпте устаревает быстрее самого промпта.

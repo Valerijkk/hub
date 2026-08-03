@@ -4,15 +4,15 @@
 
 | Плейбук | Процесс | Участники |
 |---------|---------|-----------|
-| [onboarding.md](onboarding.md) | Первое подключение контура к репозиторию | tf-init, tf-status |
-| [test-generation.md](test-generation.md) | Документация → верифицированные TC → автотесты | tc-generator, test-verification, reviewer |
-| [review-cycle.md](review-cycle.md) | Ревью-цикл тестового кода до мержа | anti-ai-check, naming-check, reviewer |
-| [debugging.md](debugging.md) | Красный CI → root cause → зелёный с профилактикой | debugger, reviewer, documenter |
-| [documentation.md](documentation.md) | Поддержание доков фреймворка в синхроне | documenter, refresh-test-context |
+| [onboarding.md](onboarding.md) | Первое подключение контура к репозиторию | `tf-init`, `tf-status`, смоук шестью командами |
+| [test-generation.md](test-generation.md) | Документация → проверенные кейсы → автотесты | `test-case-generator` → `test-sdet` → `test-code-reviewer` → `test-documenter` |
+| [review-cycle.md](review-cycle.md) | Ревью тестового кода до мержа | `tf-gate` → `tf-antiai`, `tf-naming` → `test-code-reviewer` |
+| [debugging.md](debugging.md) | Красный CI → причина → зелёный с профилактикой | `test-debugger` → `test-code-reviewer` |
+| [documentation.md](documentation.md) | Поддержание документации фреймворка в синхроне | `test-documenter`, `tf-refresh`, `tf-curate` |
 
-Плейбуки поставки — corporate-delivery, GSD lifecycle, волны, handoff/STATE
-и dry-run portable kit — переехали в издание Pro
-вместе с ролями разработки — они вне этого пакета.
+Плейбуков поставки продукта здесь нет: корпоративный релизный цикл,
+волны, передача смены и dry-run — про другой объект работы. Этот пакет
+про тестовый фреймворк.
 
 Общие правила конвейеров:
 1. Гейт не пропускает — процесс возвращается на шаг владельца дефекта, не «проталкивается».
@@ -21,6 +21,8 @@
 4. **Verification по риску** ([rules/40](../../standards/rules/40-verification-protocol.md)):
    утверждения имеют evidence; непрогнанное = `NOT_RUN`; critical/high-impact
    требует independent gate.
-5. Human input может быть natural language; строгий master contract обязателен для delegation/CI/handoff.
-6. Модель выбирается только из актуального runtime catalog; core agents model-agnostic.
-7. External/destructive/prod действия остаются за явным approval gate.
+5. Человек ставит задачу свободно; строгий контракт обязателен между
+   агентами, в CI и при передаче смены — принимающий не видит переписку.
+6. Модель и параметры задаёт среда запуска; роли model-agnostic.
+7. Внешние, необратимые и продовые действия — только через явное
+   разрешение человека в этой сессии.
