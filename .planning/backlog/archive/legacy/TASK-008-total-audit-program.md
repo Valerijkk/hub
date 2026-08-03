@@ -39,7 +39,7 @@
 - Прошлый аудит планирования: [`../audits/planning-audit-2026-07/00-PLANNING-AUDIT.md`](../../../audits/planning-audit-2026-07/00-PLANNING-AUDIT.md)
 - Правила задач: [`../../.cursor/rules/57-backlog-tasks.mdc`](../../../../.cursor/rules/57-backlog-tasks.mdc)
 - Правила коммитов: [`../../.cursor/rules/50-git.mdc`](../../../../.cursor/rules/50-git.mdc)
-- Мастер-промпт: [`../../prompt-engineering/agents/templates/_MASTER-PROMPT-TEMPLATE.md`](../../../../prompt-engineering/agents/templates/_MASTER-PROMPT-TEMPLATE.md)
+- Мастер-промпт: [`../../pro-qa-ai/agents/templates/_MASTER-PROMPT-TEMPLATE.md`](../../../../pro-qa-ai/agents/templates/_MASTER-PROMPT-TEMPLATE.md)
 
 ### Чем этот аудит отличается от `grok-2026-07`
 

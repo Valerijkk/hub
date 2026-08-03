@@ -19,4 +19,4 @@ Standard держит свой адаптер с четырьмя `test-*` ро�
 он останавливается на корневой причине и плане фикса.
 
 Правила выбора модели и wrapper-шаблон — общие со Standard:
-[`playbooks/model-routing.md`](../../prompt-engineering/playbooks/model-routing.md).
+[`playbooks/model-routing.md`](../playbooks/model-routing.md).

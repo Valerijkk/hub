@@ -1,5 +1,5 @@
 ---
-slug: prompt-engineering-toolkit
+slug: pro-qa-ai-toolkit
 created: 2026-07-18
 type: quick
 status: complete
@@ -7,13 +7,13 @@ status: complete
 
 > **Historical baseline.** Current architecture/status:
 > [`09-AI-QUALITY-LAYER-REWORK.md`](../../july-2026/ai-expansion/09-AI-QUALITY-LAYER-REWORK.md)
-> and `prompt-engineering/VERSION.md`.
+> and `pro-qa-ai/VERSION.md`.
 
 # Quick Task: Portable Prompt Engineering Toolkit
 
 ## Цель
 
-Создать `prompt-engineering/` в корне hub — **обезличенный, переносимый в любой проект** тулкит промпт-инжиниринга для работы с тестовым фреймворком: агенты, шаблоны промптов, скилы, правила, контекст-темплейты, плейбуки и большая библиотека промптов (~1000). Архитектура заимствована у GSD (get-shit-done): templates / workflows / references / agent-contracts.
+Создать `pro-qa-ai/` в корне hub — **обезличенный, переносимый в любой проект** тулкит промпт-инжиниринга для работы с тестовым фреймворком: агенты, шаблоны промптов, скилы, правила, контекст-темплейты, плейбуки и большая библиотека промптов (~1000). Архитектура заимствована у GSD (get-shit-done): templates / workflows / references / agent-contracts.
 
 ## Ключевые решения
 
@@ -22,7 +22,7 @@ status: complete
 3. **Агенты (5)**: `test-code-reviewer` (паттерны фреймворка + нейминг функций/файлов), `test-case-generator` (TC из документации + верификация), `test-debugger`, `test-documenter`, + `context-intake` как скил-бутстрап.
 4. **Скилы (4)**: `context-intake`, `anti-ai-check` (говнокод + AI-комментарии), `naming-check`, `test-verification`.
 5. **Библиотека промптов**: 12 категорийных файлов × ~85 промптов ≈ 1000, все с `{{placeholders}}`.
-6. **Интеграция Hub** — `.cursor/rules/70-prompt-engineering.mdc` + секция в `.cursor/REGULATION.md`; Hub-специфика ТОЛЬКО там, тулкит остаётся чистым.
+6. **Интеграция Hub** — `.cursor/rules/70-pro-qa-ai.mdc` + секция в `.cursor/REGULATION.md`; Hub-специфика ТОЛЬКО там, тулкит остаётся чистым.
 
 ## Задачи
 
@@ -36,6 +36,6 @@ status: complete
 
 ## Верификация
 
-- Ни один файл `prompt-engineering/` не содержит Hub-специфичных путей/доменов вне явно помеченных примеров-иллюстраций.
+- Ни один файл `pro-qa-ai/` не содержит Hub-специфичных путей/доменов вне явно помеченных примеров-иллюстраций.
 - Каждый агент ссылается только на `context/` и `rules/` тулкита.
 - Библиотека промптов: суммарный счётчик в prompts/README.md ≈ 1000.

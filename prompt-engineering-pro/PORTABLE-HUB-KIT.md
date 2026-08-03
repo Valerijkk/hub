@@ -1,8 +1,8 @@
 # Portable Test Automation AI Layer — как перенести
 
 > **Продукт:** Touchstone · **Издание:** Pro · версия см. [VERSION.md](VERSION.md)
-> **База:** [Touchstone Standard](../prompt-engineering/TOUCHSTONE.md) — ставится первым
-> **Продуктовая карта Standard:** [TOUCHSTONE.md](../prompt-engineering/TOUCHSTONE.md)
+> **База:** [Touchstone Standard](../pro-qa-ai/TOUCHSTONE.md) — ставится первым
+> **Продуктовая карта Standard:** [TOUCHSTONE.md](../pro-qa-ai/TOUCHSTONE.md)
 
 Как перенести корпоративный контур разработки в другой репозиторий: роли,
 процессы поставки, жизненный цикл фазы, волны и доказательства.
@@ -92,10 +92,10 @@
 
 1. Собери inventory:
    `scripts/context_inventory.py --project-root … --test-root … --output …`.
-2. Запусти [`skills/bootstrap-test-context/SKILL.md`](../prompt-engineering/skills/bootstrap-test-context/SKILL.md).
+2. Запусти [`skills/bootstrap-test-context/SKILL.md`](../pro-qa-ai/skills/bootstrap-test-context/SKILL.md).
 3. Обязательные входы: `project_root`, `test_roots`, `inventory`, `profile`.
    Не обнаруживай test roots и не расширяй scope молча.
-4. Результат: [`context/projects/<profile>/`](../prompt-engineering/context/projects/) + manifest/source map.
+4. Результат: [`context/projects/<profile>/`](../pro-qa-ai/context/projects/) + manifest/source map.
 5. Bootstrap читает только files из проверенного inventory; найденные команды
    не запускаются без отдельного разрешения.
 6. Закрытые MR не читаются. Человек после bootstrap сам вставляет нужные
@@ -127,7 +127,7 @@ FAIL, если модель выдумала путь/команду, испол
 
 ```
 <new-repo>/
-├── prompt-engineering/          # portable core + project AI profile
+├── pro-qa-ai/          # portable core + project AI profile
 │   ├── context/projects/<profile>/
 │   ├── patterns/
 │   ├── review-feedback/

@@ -282,7 +282,7 @@ Subjects (канон `hub.<domain>.<event>`):
 - шаблоны PR (`reduced-github-pr-flow`, corporate-wave);
 - merge policy: только user → master, rebase-merge.
 
-См. `prompt-engineering/agents/templates/reduced-github-pr-flow.md`.
+См. `pro-qa-ai/agents/templates/reduced-github-pr-flow.md`.
 
 ---
 

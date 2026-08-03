@@ -207,4 +207,4 @@ Handoff → {{who}}
 Playbooks: `../playbooks/corporate-delivery.md`,
 `../playbooks/gsd-lifecycle.md`, `../playbooks/handoff-state.md`. Templates:
 `templates/corporate-wave.md`, `templates/phase-kickoff.md`,
-`../../prompt-engineering/agents/templates/_MASTER-PROMPT-TEMPLATE.md`. Следующие роли: `architect`, `orchestrator`.
+`../../pro-qa-ai/agents/templates/_MASTER-PROMPT-TEMPLATE.md`. Следующие роли: `architect`, `orchestrator`.

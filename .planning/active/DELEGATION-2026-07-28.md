@@ -1,7 +1,7 @@
 # Делегирование — волна закрытия остатков июля
 
 > Составлено: 2026-07-28 · Автор: team-lead · Исполнитель: Grok 4.5
-> Формат: [мастер-промпт](../../prompt-engineering/agents/templates/_MASTER-PROMPT-TEMPLATE.md)
+> Формат: [мастер-промпт](../../pro-qa-ai/agents/templates/_MASTER-PROMPT-TEMPLATE.md)
 
 ## [OUTCOME]
 

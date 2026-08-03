@@ -21,7 +21,7 @@
 
 [ROUTING]
 - Orchestrator runtime: {{orchestrator_model}}
-- Downstream selection: ../../../prompt-engineering/playbooks/model-routing.md
+- Downstream selection: ../../../playbooks/model-routing.md
 - Default adapter behavior: inherit; override only from an observed catalog entry
 - Decision/fallback log: {{routing_log}}
 

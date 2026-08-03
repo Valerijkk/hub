@@ -328,7 +328,7 @@ Goal (исход)
 
 ## Evidence до handoff
 
-Добавить блок [rules/40](../../../prompt-engineering/rules/40-verification-protocol.md) —
+Добавить блок [rules/40](../../../pro-qa-ai/rules/40-verification-protocol.md) —
 фокус на полноте плана, не на выполнении кода:
 
 ```markdown
@@ -357,5 +357,5 @@ Verification:
 - Mutation: [`../../extracts/mutation-evidence.md`](../../extracts/mutation-evidence.md)
 - Обязательный цикл: [`../../layers/02-gsd-max.md`](../../layers/02-gsd-max.md)
 - Уровни доказательств: [`../../layers/05-verification-mutation.md`](../../layers/05-verification-mutation.md)
-- Verification: [rules/40](../../../prompt-engineering/rules/40-verification-protocol.md)
-- Severity: [rules/30](../../../prompt-engineering/rules/30-severity-policy.md)
+- Verification: [rules/40](../../../pro-qa-ai/rules/40-verification-protocol.md)
+- Severity: [rules/30](../../../pro-qa-ai/rules/30-severity-policy.md)

@@ -92,7 +92,7 @@ hub-core
 
 ```
 .cursor/agents|playbooks|skills/gsd-ru|rules
-prompt-engineering/   # project-agnostic
+pro-qa-ai/   # project-agnostic
 .planning/            # STATE, ROADMAP, decisions, ai-expansion
 ```
 
@@ -240,7 +240,7 @@ MVP kit = процесс + агенты + CI-паттерны, **не** клон
   playbooks/       # team-workflow, prompt-contract, …
   skills/gsd-ru/   # RU GSD-lite
   rules/           # style, regression, docs-sync, tz (адаптировать)
-prompt-engineering/ # project-agnostic
+pro-qa-ai/ # project-agnostic
 .planning/          # STATE, ROADMAP, decisions, ai-expansion refs
 ```
 

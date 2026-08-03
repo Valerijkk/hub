@@ -69,7 +69,7 @@ Parent/orchestrator may explicitly override downstream model at launch only afte
 | `verification.md` | все `*-ver`, code-reviewer, security-auditor | Протокол верификации, чек-листы по ролям, severity |
 | `team-workflow.md` | team-lead, tech-lead, product, все | Состав, RACI, потоки фич, волны, параллелизм, handoff, GSD |
 | `prompt-contract.md` | **все агенты (32 файла)** | Natural-language intake → внутренний task contract; concise rationale/assumptions/evidence; prompt-injection boundary; risk-scaled verification; строгий §5.2 только для delegation/handoff |
-| **Touchstone** (вне playbooks/) | qa-auto*, docs-writer, team-lead | Standard [`prompt-engineering/`](../../prompt-engineering/TOUCHSTONE.md) · Pro [`prompt-engineering-pro/`](../../prompt-engineering-pro/START-HERE.md) — AI layer для TF + max GSD/Cursor/planning |
+| **Touchstone** (вне playbooks/) | qa-auto*, docs-writer, team-lead | Standard [`pro-qa-ai/`](../../pro-qa-ai/TOUCHSTONE.md) · Pro [`prompt-engineering-pro/`](../../prompt-engineering-pro/START-HERE.md) — AI layer для TF + max GSD/Cursor/planning |
 
 ### 2.1 Обратная карта: агент → playbook-и
 
@@ -114,7 +114,7 @@ Parent/orchestrator may explicitly override downstream model at launch only afte
 | — (нет отдельного rule) | `analysis.md` | US/AC/SMART/FR/NFR/ERD/C4/ADR методология — только в playbook |
 | `56-regression-verify.mdc` | `verification.md`, `testing.md` §11.1 | Rule = обязательный цикл кратко; playbook = чек-листы по ролям, severity |
 | `00-project.mdc` | `team-workflow.md` | Rule = стек/статус кратко; playbook = RACI, волны, handoff, шаблон делегирования §5.3.1 |
-| `70-prompt-engineering.mdc` | `prompt-contract.md` | Rule = карта тулкита `prompt-engineering/`; playbook = task normalization, concise rationale/assumptions/evidence, risk-scaled verification и handoff |
+| `70-pro-qa-ai.mdc` | `prompt-contract.md` | Rule = карта тулкита `pro-qa-ai/`; playbook = task normalization, concise rationale/assumptions/evidence, risk-scaled verification и handoff |
 
 Практический вывод: не хватает контекста из rule — ожидаемо, иди в playbook по этой таблице.
 

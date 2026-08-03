@@ -4,12 +4,12 @@
 
 ## Сценарий A — поставить Pro поверх Standard
 
-1. Установи [Standard](../prompt-engineering/INSTALL.md) в целевой репозиторий.
+1. Установи [Standard](../pro-qa-ai/INSTALL.md) в целевой репозиторий.
 2. Скопируй эту папку рядом:
 
 ```text
 <repo>/
-├── prompt-engineering/          # Standard (обязателен)
+├── pro-qa-ai/          # Standard (обязателен)
 └── prompt-engineering-pro/      # Pro (этот пакет)
 ```
 
@@ -38,7 +38,7 @@
 ## Сценарий D — только тестовый фреймворк
 
 Pro не нужен. Иди в Standard:
-[`../prompt-engineering/START-HERE.md`](../prompt-engineering/START-HERE.md).
+[`../pro-qa-ai/START-HERE.md`](../pro-qa-ai/START-HERE.md).
 
 Pro покрывает другой объект работы — продукт, а не фреймворк. Если задача
 про сам фреймворк, роли отсюда её только запутают.

@@ -44,7 +44,7 @@ criterion должен быть прикреплённый evidence нужног
 - Для критерия не определён тип evidence → FAIL по этому критерию; не выводить PASS по догадке
 - Verifier — единственный автор всех артефактов без независимой проверки → отметить в отчёте;
   при high-impact вердикт **BLOCKED** и эскалация по
-  [rules/40](../../../prompt-engineering/rules/40-verification-protocol.md)
+  [rules/40](../../../pro-qa-ai/rules/40-verification-protocol.md)
 
 ## Принцип
 
@@ -193,8 +193,8 @@ A4 проверяется для всего, что отдаёт наружу д
 | Класс риска требует L3–L4, собран L1–L2 | доказательство ниже планки, а не отсутствие результата |
 | `mutation_failed_to_build` или `layer_mismatch` | мутация guard не подтвердила и не опровергла |
 | Критерий проверяем только человеком, проверка не выполнена | зелёная автоматика этого критерия не закрывает |
-| Verifier = автор всей работы, класс high-impact | self-check не является независимым доказательством ([rules/40](../../../prompt-engineering/rules/40-verification-protocol.md)) |
-| Открытый CRITICAL/HIGH из review без mitigation | приёмка блокируется по severity ([rules/30](../../../prompt-engineering/rules/30-severity-policy.md)) |
+| Verifier = автор всей работы, класс high-impact | self-check не является независимым доказательством ([rules/40](../../../pro-qa-ai/rules/40-verification-protocol.md)) |
+| Открытый CRITICAL/HIGH из review без mitigation | приёмка блокируется по severity ([rules/30](../../../pro-qa-ai/rules/30-severity-policy.md)) |
 | PLAN сузил набор критериев относительно источника | верифицируется неполный контракт |
 
 **Соответствие словарю rules/40.** Общий вердикт этого скила — `PASS | FAIL | BLOCKED`.
@@ -331,8 +331,8 @@ evidence заполнен.
 - Mutation: [`../../extracts/mutation-evidence.md`](../../extracts/mutation-evidence.md)
 - Пирамида L0–L4: [`../../layers/05-verification-mutation.md`](../../layers/05-verification-mutation.md)
 - Обязательный цикл: [`../../layers/02-gsd-max.md`](../../layers/02-gsd-max.md)
-- Verification protocol: [rules/40](../../../prompt-engineering/rules/40-verification-protocol.md)
-- Severity: [rules/30](../../../prompt-engineering/rules/30-severity-policy.md)
+- Verification protocol: [rules/40](../../../pro-qa-ai/rules/40-verification-protocol.md)
+- Severity: [rules/30](../../../pro-qa-ai/rules/30-severity-policy.md)
 
 ## Куда записывается отчёт
 

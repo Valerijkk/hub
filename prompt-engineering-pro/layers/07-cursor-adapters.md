@@ -1,15 +1,15 @@
 # Layer 07 — Cursor / Runtime Adapters
 
-Источники: Standard `adapters/`, `models/`, `prompt-engineering/playbooks/model-routing.md`,
-`.cursor/REGULATION.md` §20, `.cursor/rules/70-prompt-engineering.mdc`.
+Источники: Standard `adapters/`, `models/`, `prompt-engineering-pro/playbooks/model-routing.md`,
+`.cursor/REGULATION.md` §20, `.cursor/rules/70-pro-qa-ai.mdc`.
 
 ## Адаптеры (канон в Standard)
 
 | Runtime | Путь |
 |---------|------|
-| Cursor IDE | `prompt-engineering/adapters/cursor/` |
-| CI bot | `prompt-engineering/adapters/ci/` |
-| Generic chat | `prompt-engineering/adapters/generic-chat/` |
+| Cursor IDE | `pro-qa-ai/adapters/cursor/` |
+| CI bot | `pro-qa-ai/adapters/ci/` |
+| Generic chat | `pro-qa-ai/adapters/generic-chat/` |
 
 ## Model routing (portable)
 

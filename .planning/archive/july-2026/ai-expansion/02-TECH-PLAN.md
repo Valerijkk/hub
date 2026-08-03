@@ -4,7 +4,7 @@
 
 Порт паттернов GSD + расширение AI-команды/PE + portable kit, без продового кода.
 
-**Уточнение 2026-07-26:** `prompt-engineering/` — portable **AI quality
+**Уточнение 2026-07-26:** `pro-qa-ai/` — portable **AI quality
 layer для test automation**: bootstrap создаёт `context/projects/<profile>/`
 из явных roots; humans вручную добавляют good/bad code + colleague comments
 после bootstrap; **без** closed MR scanning.
@@ -31,7 +31,7 @@ layer для test automation**: bootstrap создаёт `context/projects/<prof
 | 7 | GSD-секции analysis/ver/support | docs | `ba*,sa*,arch*,designer*,*-ver,devops,security` | 3 | 0.5д |
 | 8 | GSD-RU skills pack | docs | `.cursor/skills/gsd-ru/**` | 3 | 1д |
 | 9 | Update gsd-index | docs | `gsd-index/SKILL.md` | 8 | 0.2д |
-| 10 | PE playbook gsd-lifecycle | docs | `prompt-engineering/playbooks/gsd-lifecycle.md` | 3 | 0.5д |
+| 10 | PE playbook gsd-lifecycle | docs | `pro-qa-ai/playbooks/gsd-lifecycle.md` | 3 | 0.5д |
 | 11 | PE playbook wave-execution | docs | `playbooks/wave-execution.md` | 3 | 0.5д |
 | 12 | PE playbook handoff-state | docs | `playbooks/handoff-state.md` | 3 | 0.5д |
 | 13 | PE skills phase-plan/wave/verify | docs | `skills/{phase-plan,wave-orchestrate,verify-goal}/` | 10–12 | 1д |

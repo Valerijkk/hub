@@ -1,5 +1,5 @@
 ---
-slug: prompt-engineering-toolkit
+slug: pro-qa-ai-toolkit
 created: 2026-07-18
 completed: 2026-07-19
 type: quick
@@ -8,13 +8,13 @@ status: complete
 
 > **Historical baseline (2026-07-19).** Superseded for current use by
 > [`09-AI-QUALITY-LAYER-REWORK.md`](../../july-2026/ai-expansion/09-AI-QUALITY-LAYER-REWORK.md)
-> and `prompt-engineering/VERSION.md`.
+> and `pro-qa-ai/VERSION.md`.
 
 # Summary: Portable Prompt Engineering Toolkit
 
 ## Что сделано
 
-Создан `prompt-engineering/` — обезличенный (project-agnostic), переносимый в любой проект тулкит промпт-инжиниринга для работы с тестовым фреймворком. **53 Markdown-файла, 1000 промптов.** Архитектура по мотивам GSD (templates/rules/playbooks/context), вся проектная специфика вынесена в заполняемые `context/*.md`.
+Создан `pro-qa-ai/` — обезличенный (project-agnostic), переносимый в любой проект тулкит промпт-инжиниринга для работы с тестовым фреймворком. **53 Markdown-файла, 1000 промптов.** Архитектура по мотивам GSD (templates/rules/playbooks/context), вся проектная специфика вынесена в заполняемые `context/*.md`.
 
 ## Структура
 
@@ -41,7 +41,7 @@ status: complete
 
 ## Интеграция Hub
 
-- `.cursor/rules/70-prompt-engineering.mdc` — карта тулкита, правила работы с тестами через агентов, связь с Hub-канонами.
+- `.cursor/rules/70-pro-qa-ai.mdc` — карта тулкита, правила работы с тестами через агентов, связь с Hub-канонами.
 - `.cursor/REGULATION.md` §20 — назначение, состав, механизмы, правила для агентов Hub.
 - Тулкит остаётся чистым: Hub-специфика только в `context/*.md` (заполнит `context-intake`) и rule 70.
 
@@ -61,7 +61,7 @@ d36198d cursor integration — rule 70 + REGULATION §20
 
 ## Верификация выполнения
 
-- `find prompt-engineering -name '*.md' | wc -l` → 53 файла.
+- `find pro-qa-ai -name '*.md' | wc -l` → 53 файла.
 - Счётчик промптов → ровно 1000 (`grep -cE '^[0-9]+\. '`).
 - Все агенты/скилы содержат секцию верификации (rules/40).
 - Все launch-шаблоны ссылаются на `_MASTER-PROMPT-TEMPLATE.md`.

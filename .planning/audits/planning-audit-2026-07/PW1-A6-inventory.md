@@ -35,7 +35,7 @@ Hub uses **file-based TanStack Router**. Canonical inventory for “how many rou
 
 ## Docs updated in companion commit (A6)
 
-Canonical live claims corrected to measured numbers with note **«measured 2026-07-27»**. Historical audit/smoke reports under `.planning/audits/` and `prompt-engineering/evals/` left as dated snapshots (not rewritten wholesale).
+Canonical live claims corrected to measured numbers with note **«measured 2026-07-27»**. Historical audit/smoke reports under `.planning/audits/` and `pro-qa-ai/evals/` left as dated snapshots (not rewritten wholesale).
 
 ## Re-measure (PowerShell)
 

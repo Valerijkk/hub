@@ -3,7 +3,7 @@ manifest_version: 1
 product: Touchstone
 edition: pro
 version: 0.3.0-beta.1
-depends_on: ../prompt-engineering/
+depends_on: ../pro-qa-ai/
 status: foundation-ready
 owner: automation-quality
 ---

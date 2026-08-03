@@ -107,7 +107,7 @@ Emoji **не** в имени файла (Windows/git/агенты). Emoji — в
 ## Формат — по мастер-промпту
 
 Тело задачи пишется по
-[`prompt-engineering/agents/templates/_MASTER-PROMPT-TEMPLATE.md`](../../prompt-engineering/agents/templates/_MASTER-PROMPT-TEMPLATE.md).
+[`pro-qa-ai/agents/templates/_MASTER-PROMPT-TEMPLATE.md`](../../pro-qa-ai/agents/templates/_MASTER-PROMPT-TEMPLATE.md).
 
 Обязательные блоки:
 

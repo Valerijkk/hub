@@ -15,14 +15,14 @@ ceremonial wave; security, architecture, migration и cross-role изменен�
 Owner: `orchestrator`.
 
 1. Нормализуйте запрос через
-   `../../prompt-engineering/agents/templates/_MASTER-PROMPT-TEMPLATE.md`.
+   `../../pro-qa-ai/agents/templates/_MASTER-PROMPT-TEMPLATE.md`.
 2. Загрузите релевантные generated context/pattern cards. Profile отсутствует →
    явный `bootstrap-test-context`; stale profile → `refresh-test-context`.
    Отсутствующая approved card остаётся disclosed gap или идёт в manual
    curation — никогда не изобретайте её.
 3. Зафиксируйте outcome, scope, do-not-touch, evidence, done/stop и approval
    boundary.
-4. Примените `../../prompt-engineering/playbooks/model-routing.md` к текущему runtime catalog.
+4. Примените `../playbooks/model-routing.md` к текущему runtime catalog.
 5. Задавайте только вопросы, ответы на которые существенно меняют scope, risk,
    permissions или acceptance. Продолжайте независимую работу вокруг
    localized blocker.

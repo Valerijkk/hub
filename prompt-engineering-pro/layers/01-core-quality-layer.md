@@ -4,7 +4,7 @@ Pro **не заменяет** Standard. Этот слой = обязательн
 
 ## Канон
 
-Корень: [`../../prompt-engineering/`](../../prompt-engineering/)
+Корень: [`../../pro-qa-ai/`](../../pro-qa-ai/)
 
 | Нужно | Путь в Standard |
 |-------|-----------------|

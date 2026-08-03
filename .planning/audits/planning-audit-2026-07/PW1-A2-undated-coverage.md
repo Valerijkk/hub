@@ -72,7 +72,7 @@ Searched `AGENTS.md`, `README.md`, `docs/**`, `.planning/**`, `.cursor/rules/**`
 | `.planning/archive/tasks/TASKS-CLOSE-GAPS.md` rows with own dates (e.g. calls 80.2% on 2026-06-20) | Already dated nearby |
 | `.planning/audits/grok-2026-07/12-tests.md` | Already says `CI baseline 2026-06-22` adjacent |
 | `docs/TECHNICAL.md` / `docs/stack_and_tools.md` `≥82%` | Gate floor, not measured current % |
-| `prompt-engineering/**` | Conceptual “80% coverage”, not Hub metrics |
+| `pro-qa-ai/**` | Conceptual “80% coverage”, not Hub metrics |
 | File-count / Vitest / E2E counts | Inventory, not statement coverage |
 
 ---

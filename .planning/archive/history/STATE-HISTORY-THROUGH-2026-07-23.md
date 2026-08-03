@@ -31,7 +31,7 @@
   - [`prompt-engineering-pro/agents/qa-auto.md`](../../../prompt-engineering-pro/agents/qa-auto.md) (117)
   - [`prompt-engineering-pro/agents/code-reviewer.md`](../../../prompt-engineering-pro/agents/code-reviewer.md) (147)
   - [`prompt-engineering-pro/agents/debugger.md`](../../../prompt-engineering-pro/agents/debugger.md) (156)
-- Ростер: [`prompt-engineering/agents/README.md`](../../../prompt-engineering/agents/README.md); зеркала — `70-prompt-engineering.mdc`, `REGULATION.md` §20, `gsd-port/README.md`, `prompt-engineering/README.md`.
+- Ростер: [`pro-qa-ai/agents/README.md`](../../../pro-qa-ai/agents/README.md); зеркала — `70-pro-qa-ai.mdc`, `REGULATION.md` §20, `gsd-port/README.md`, `pro-qa-ai/README.md`.
 - `test-*.md` не трогали; роли разведены с test-code-reviewer / test-debugger / test-case-generator.
 - Код продукта не менялся.
 
@@ -66,11 +66,11 @@
 - Расширен [`prompt-engineering-pro/prompts/13-corporate-delivery.md`](../../../prompt-engineering-pro/prompts/13-corporate-delivery.md): **48 → 112** промптов (RU, project-agnostic).
 - Категории: planning (1–15), waves (16–28), review (29–42), microservices strangler (43–56), reduced-GitHub PR-flow (57–68), handoff (69–80), verification (81–92), portable-kit (93–102), AI-team ops (103–112).
 - Слоты: `{{goal}}` `{{module}}` `{{files}}` `{{role}}` `{{ac}}` `{{service}}`.
-- Count в [`prompt-engineering/prompts/README.md`](../../../prompt-engineering/prompts/README.md) #13 → **112**. Промпты 01–12 не трогали.
+- Count в [`pro-qa-ai/prompts/README.md`](../../../pro-qa-ai/prompts/README.md) #13 → **112**. Промпты 01–12 не трогали.
 
 ## Session note — 2026-07-22 (AI-expansion mid-Aug · GSD-порт · portable kit)
 
-**Запрос:** зафиксировать в планах порт лучших паттернов GSD (Get Shit Done) на русский (практичнее оригинала), расширить AI до **15.08.2026**, собрать переносимый шаблон (урезанный GitHub-flow + микросервисы + AI-команда), расширить промпты в `.cursor/agents/` и `prompt-engineering/`. Продовый код не трогали.
+**Запрос:** зафиксировать в планах порт лучших паттернов GSD (Get Shit Done) на русский (практичнее оригинала), расширить AI до **15.08.2026**, собрать переносимый шаблон (урезанный GitHub-flow + микросервисы + AI-команда), расширить промпты в `.cursor/agents/` и `pro-qa-ai/`. Продовый код не трогали.
 
 **Планы:** [`.planning/archive/july-2026/ai-expansion/`](../july-2026/ai-expansion/README.md) — `01` scope, `02` tech-plan (22 задачи, W1–W4), `03` GSD inventory, `04` portable arch, `05` kit, `06` reduced-GitHub blueprint.
 
@@ -91,16 +91,16 @@
 - Создан [`.cursor/playbooks/prompt-contract.md`](../../../.cursor/playbooks/prompt-contract.md) (**574 строки, §1–§15**) — единый контракт качества промпта для всей AI-команды Hub. По конвенции репо: практика в playbook, агенты ссылаются.
 - Содержание: §2 приём задачи (нет границ/контекста → **вернуть, не додумывать**), §3 формат ответа, §4 техники (CoT/few-shot/step-back/ReAct/self-consistency), §5 температура (код/факты — 0.0–0.2), §6 10-этапная верификация + обязательный блок `Verification`, §7 хендофф, **§8 матрица по всем 30 ролям** (контекст/формат/техники/temp/критический класс этапа 6/хендофф), §9 good-bad, §10 чек-лист, **§11 заполненные примеры по 7 архетипам** (исполнитель/верификатор/аналитик/QA/расследователь/оркестратор/документатор), §12 контекст-бюджет получателя, §13 встраивание GSD/slash-скилов + обязательные ворота, §14 антипаттерны промптинга (10 шт.), §15 калибровка.
 - **Все 32 agent-файла** получили секцию «Контракт промпта» со своей строкой матрицы. Доменная часть агентов не тронута.
-- Связи: `playbooks/README.md` (§2, §2.1, §2.2, §5 два новых ворот), `rules/70-prompt-engineering.mdc` §3.1, `REGULATION.md` §20.1, `GSD-INTEGRATION.md` (шапка: маршрутизация здесь ↔ встраивание в промпт в §13 контракта).
+- Связи: `playbooks/README.md` (§2, §2.1, §2.2, §5 два новых ворот), `rules/70-pro-qa-ai.mdc` §3.1, `REGULATION.md` §20.1, `GSD-INTEGRATION.md` (шапка: маршрутизация здесь ↔ встраивание в промпт в §13 контракта).
 - Побочно исправлены пре-существующие дефекты: нумерация секций `qa-manual-ver.md` (DoD был §8 после §9 → §10); битая ссылка на ADR моделей в `playbooks/README.md` (`../decisions/` → `../../.planning/decisions/`).
 - Проверено: 32/32 агента, нумерация §1–§15 непрерывна, **0 битых ссылок по всем 66 файлам `.cursor`**.
 
-## Session note — 2026-07-19 (Prompt Engineering Toolkit — `prompt-engineering/`)
+## Session note — 2026-07-19 (Prompt Engineering Toolkit — `pro-qa-ai/`)
 
-- Создан **обезличенный переносимый тулкит** `prompt-engineering/` для работы с тестовым фреймворком: **53 md-файла, 1000 промптов**. Quick task: `.planning/archive/quick/20260718-prompt-engineering-toolkit/` (PLAN + SUMMARY).
+- Создан **обезличенный переносимый тулкит** `pro-qa-ai/` для работы с тестовым фреймворком: **53 md-файла, 1000 промптов**. Quick task: `.planning/archive/quick/20260718-pro-qa-ai-toolkit/` (PLAN + SUMMARY).
 - Состав: 4 агента (test-code-reviewer/test-case-generator/test-debugger/test-documenter), 4 скила (context-intake/anti-ai-check/naming-check/test-verification), 5 rules, 5 playbooks, context/ (4 заполняемых шаблона), agents/templates/ (мастер-шаблон «кто/что/где + best practices» + 9 сценарных), prompts/ (12 категорий × ~85 = 1000).
 - **Ключевое:** обезличен (проектная специфика только в `context/*.md`, заполняет скил `context-intake`) → переносим в любой проект копированием + 1 прогон скила. Единый мастер-шаблон промпта (зеркало `team-lead.md` §5.2). **10-этапный протокол верификации** (`rules/40`) вшит во все агенты/скилы.
-- Интеграция Hub: `.cursor/rules/70-prompt-engineering.mdc` + `REGULATION.md` §20.
+- Интеграция Hub: `.cursor/rules/70-pro-qa-ai.mdc` + `REGULATION.md` §20.
 - Коммиты в `master`: e8d17c1, fc5b16c, e3ee28c, 99afba7, 9da8d7b, 299e8dc, 0b59609, 4a69e80, d36198d + финализация.
 - **Не активирован на Hub:** `context/*.md` пока в статусе template — прогнать `context-intake` для заполнения Hub-фактами, когда потребуется работа агентов на реальном коде.
 

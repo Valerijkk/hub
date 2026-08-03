@@ -74,7 +74,7 @@ Hub-native (не из списка 21 P0, но в pack): `portable-kit`, `micros
 
 | Sev | Место | Наблюдение | Рекомендация | Статус |
 |-----|-------|------------|--------------|--------|
-| **MEDIUM** | `prompt-engineering/skills/{phase-plan,wave-orchestrate,verify-goal}/SKILL.md` | PE-зеркало ядра цикла = **13–16 строк** (чеклист без шаблона/example/DoD). `gsd-ru` = **144–159**. Portable kit consumers получают «каркас», не operable skill. | До 15.08: расширить PE skills до ≥80 (project-agnostic шаблон + DoD + anti-patterns) **или** явно в `gsd-port/README` пометить «stub → копируй паттерн из playbooks». | open |
+| **MEDIUM** | `pro-qa-ai/skills/{phase-plan,wave-orchestrate,verify-goal}/SKILL.md` | PE-зеркало ядра цикла = **13–16 строк** (чеклист без шаблона/example/DoD). `gsd-ru` = **144–159**. Portable kit consumers получают «каркас», не operable skill. | До 15.08: расширить PE skills до ≥80 (project-agnostic шаблон + DoD + anti-patterns) **или** явно в `gsd-port/README` пометить «stub → копируй паттерн из playbooks». | open |
 | **MEDIUM** | `gsd-ru/README.md` § «Типовой день» + P0 discuss/spec | Lite-цикл **пропускает** discuss→spec (P0). Оркестратор без ba* и без upstream не имеет RU skill на «что строим». | В README: явный шаг «до phase-plan → ba discuss/spec **или** upstream `gsd-discuss-phase`/`gsd-spec-phase`»; не раздувать pack без нужды. | open |
 | **MEDIUM** | `.cursor/skills/gsd-index/SKILL.md` § роли | Таблица ролей всё ещё зовёт **upstream** `gsd-plan-phase` / `gsd-execute-phase` / `gsd-verify-work` первыми; `gsd-ru/*` только в отдельной таблице сверху. Риск: агент на машине **без** `~/.claude` идёт в «пустой» skill name. | В role-таблице для daily cycle поставить **primary = `gsd-ru/…`**, upstream — secondary. | open |
 | **LOW** | `gsd-ru/README.md` DoD пакета | 6 чекбоксов DoD остаются `[ ]` при фактически выполненном объёме/структуре (версия README: 2026-07-23 max expansion). | Проставить `[x]` после точечной сверки (или «статус: PASS» одной строкой). | open |
@@ -109,7 +109,7 @@ Hub-native (не из списка 21 P0, но в pack): `portable-kit`, `micros
 | `.planning/archive/july-2026/ai-expansion/03-GSD-PORT-INVENTORY.md` | Канон 79 / P0=21 |
 | `.cursor/GSD-INTEGRATION.md` | Маршрутизация + mid-Aug P0/P1 |
 | `.planning/archive/july-2026/ai-expansion/07-ACCEPTANCE.md` | G4/M5/M6 |
-| `prompt-engineering/gsd-port/README.md` | PE-зеркало |
+| `pro-qa-ai/gsd-port/README.md` | PE-зеркало |
 | `.cursor/skills/gsd-index/SKILL.md` | Быстрый индекс |
 
 ---

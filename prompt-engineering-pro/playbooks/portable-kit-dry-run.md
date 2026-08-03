@@ -56,4 +56,4 @@ adapter-пакетом целевого репозитория.
 - Handoff: [`handoff-state.md`](handoff-state.md)
 - Wave: [`wave-execution.md`](wave-execution.md)
 - Adapters: [`../adapters/`](../adapters/)
-- Model routing: [`model-routing.md`](../../prompt-engineering/playbooks/model-routing.md)
+- Model routing: [`model-routing.md`](../playbooks/model-routing.md)

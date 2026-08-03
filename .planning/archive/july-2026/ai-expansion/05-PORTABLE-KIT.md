@@ -18,11 +18,11 @@ packager-ом) и опциональный Hub corporate/GSD pack.
 
 ## Порядок копирования (в новый репо)
 
-1. Собрать `prompt-engineering/` через `scripts/package_portable.py`; проверить
+1. Собрать `pro-qa-ai/` через `scripts/package_portable.py`; проверить
    packaged output его `scripts/validate_toolkit.py`.
 2. `.cursor/playbooks/prompt-contract.md` + `team-workflow.md` (или PE corporate equivalents).
 3. `.cursor/skills/gsd-ru/` + нужные slash-skills (`test-triage`, `handoff-sync` аналоги).
-4. `.cursor/agents/` **или** только `prompt-engineering/agents/*` (corporate) — выбрать один стиль.
+4. `.cursor/agents/` **или** только `pro-qa-ai/agents/*` (corporate) — выбрать один стиль.
 5. `.cursor/rules/` минимальный набор: style, regression-verify, docs-sync, tz-constraints (адаптировать).
 6. `.planning/` шаблоны: `STATE.md`, `ROADMAP.md`, `README.md`, `decisions/`.
 7. Скопировать `ai-expansion/04`, `05`, `06`, `08` как reference.
@@ -36,7 +36,7 @@ User-facing: [`prompt-engineering-pro/PORTABLE-HUB-KIT.md`](../../../../prompt-e
 
 | Компонент | Версия kit | Примечание |
 |-----------|------------|------------|
-| Portable PE | `prompt-engineering/VERSION.md` | canonical semver/status |
+| Portable PE | `pro-qa-ai/VERSION.md` | canonical semver/status |
 | prompt-contract | 2026-07-26 | evidence-first + routing |
 | PE base | 2026-07-26 | context profiles, recipes, validator, packager |
 | GSD-RU | 2026-07-22 | lite, не full upstream |
@@ -56,7 +56,7 @@ User-facing: [`prompt-engineering-pro/PORTABLE-HUB-KIT.md`](../../../../prompt-e
 - Секреты, `.env`, `livekit-prod.yaml` с ключами
 - Coverage dumps
 - Prod-only runbooks с внутренними хостами (опционально обезличить)
-- Generated `prompt-engineering/context/projects/*`, local smoke/run evidence,
+- Generated `pro-qa-ai/context/projects/*`, local smoke/run evidence,
   project-only pattern/review content
 - `.planning/audits/`, `production/`, edge-expansions — не часть kit
 - Полный roster `.cursor/agents/` (32), если выбран стиль **PE corporate** (дублирование RACI)
@@ -69,9 +69,9 @@ User-facing: [`prompt-engineering-pro/PORTABLE-HUB-KIT.md`](../../../../prompt-e
 |------|----------------|---------------------------|
 | L1 | `.cursor/skills/gsd-ru/**` | RU GSD-lite skills |
 | L1 | `.cursor/playbooks/prompt-contract.md`, `team-workflow.md` | контракт + волны (адаптировать роли) |
-| L1 | `prompt-engineering/agents/{orchestrator,product-owner,architect,backend-dev,frontend-dev,security-reviewer,devops,test-*}.md` **или** `.cursor/agents/*` | один стиль агентов |
-| L1 | `prompt-engineering/rules/*.md` (+ минимальные `.cursor/rules`) | verification / naming / severity |
-| L2 | output `prompt-engineering/scripts/package_portable.py` | project-neutral PE toolkit |
+| L1 | `pro-qa-ai/agents/{orchestrator,product-owner,architect,backend-dev,frontend-dev,security-reviewer,devops,test-*}.md` **или** `.cursor/agents/*` | один стиль агентов |
+| L1 | `pro-qa-ai/rules/*.md` (+ минимальные `.cursor/rules`) | verification / naming / severity |
+| L2 | output `pro-qa-ai/scripts/package_portable.py` | project-neutral PE toolkit |
 | L3 | шаблоны `.planning/{STATE,ROADMAP,README}.md` + `ai-expansion/{04,05,06,08}` | planning + reference |
 | L4 | stubs на базе `ADR-ARCH-MICROSERVICES-2026`, `ADR-MODELS-GPT56-2026` | обезличенные ADR |
 | L5 | `06-REDUCED-GITHUB-MODULE.md`, skill `microservices-strangler` | blueprints процессов |

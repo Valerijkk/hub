@@ -55,7 +55,7 @@
 Планирование: [`.planning/README.md`](.planning/README.md) (навигация) · `.planning/STATE.md` · `.planning/COVERAGE.md` · `.planning/ROADMAP.md` · `.planning/archive/roadmaps/DISCUSS-ROADMAP-LOCKED.md`
 
 **Active (2026-07-31):** **Touchstone** `0.3.0-beta.1` — две линии по объекту
-работы: Standard (`prompt-engineering/`) для тестового фреймворка, Pro
+работы: Standard (`pro-qa-ai/`) для тестового фреймворка, Pro
 (`prompt-engineering-pro/`) для разработки продукта. Structural PASS,
 paired eval **NOT_RUN**; [ai-expansion](.planning/archive/july-2026/ai-expansion/README.md)
 qualified · July Rebuild planning · LiveKit stay · FA-06 manual.

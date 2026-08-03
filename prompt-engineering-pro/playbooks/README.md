@@ -14,7 +14,7 @@
 | [discuss-and-research.md](discuss-and-research.md) | Что делать ДО плана: серые зоны, допущения, ресёрч, спайк | orchestrator, architect, product-owner |
 | [debug-forensics.md](debug-forensics.md) | Отладка дефекта и разбор провала прогона агента | debugger, orchestrator |
 
-Выбор модели — [`model-routing.md`](../../prompt-engineering/playbooks/model-routing.md) в Standard:
+Выбор модели — [`model-routing.md`](../playbooks/model-routing.md) в Standard:
 маршрутизация одна на оба издания, дублировать её нельзя.
 
 ## Правила конвейеров

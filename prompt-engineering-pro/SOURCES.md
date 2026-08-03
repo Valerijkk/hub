@@ -1,7 +1,7 @@
 # Источники Touchstone Pro
 
 Карта «откуда взято лучшее». Пути — относительно корня репозитория Hub.
-В portable поставке Pro пути Standard остаются `../prompt-engineering/…`.
+В portable поставке Pro пути Standard остаются `../pro-qa-ai/…`.
 
 ## GSD
 
@@ -11,16 +11,16 @@
 | GSD-RU pack | `.cursor/skills/gsd-ru/` | 02, 04 |
 | Integration matrix | `.cursor/GSD-INTEGRATION.md` | 02 |
 | PE gsd-port | `prompt-engineering-pro/gsd-port/` | 02 |
-| Lifecycle / waves / handoff playbooks | `prompt-engineering/playbooks/{gsd-lifecycle,wave-execution,handoff-state}.md` | 02, 04 |
+| Lifecycle / waves / handoff playbooks | `pro-qa-ai/playbooks/{gsd-lifecycle,wave-execution,handoff-state}.md` | 02, 04 |
 
 ## Prompt Engineering (Standard)
 
 | Паттерн | Источник | Pro-слой |
 |---------|----------|----------|
-| AI quality layer | `prompt-engineering/` целиком | 01 |
-| Master delegate | `prompt-engineering/agents/templates/_MASTER-PROMPT-TEMPLATE.md` | 03 |
-| Rules 00–50 | `prompt-engineering/rules/` | 01, 05 |
-| Eval fixtures | `prompt-engineering/evals/` | 05 |
+| AI quality layer | `pro-qa-ai/` целиком | 01 |
+| Master delegate | `pro-qa-ai/agents/templates/_MASTER-PROMPT-TEMPLATE.md` | 03 |
+| Rules 00–50 | `pro-qa-ai/rules/` | 01, 05 |
+| Eval fixtures | `pro-qa-ai/evals/` | 05 |
 | Rework decisions | `.planning/archive/july-2026/ai-expansion/09-AI-QUALITY-LAYER-REWORK.md` | 01 |
 
 ## Cursor Hub
@@ -51,4 +51,4 @@
 | Источник | Использование |
 |----------|---------------|
 | [gsd-build/get-shit-done](https://github.com/gsd-build/get-shit-done) | Паттерны lifecycle (не полный vendor-copy) |
-| `prompt-engineering/sources/PRIMARY-SOURCES.md` | Primary sources Standard |
+| `pro-qa-ai/sources/PRIMARY-SOURCES.md` | Primary sources Standard |

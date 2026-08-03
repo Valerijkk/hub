@@ -1,17 +1,17 @@
 # AI Expansion — mid-August 2026
 
 > **Горизонт:** 22.07.2026 → **15.08.2026**
-> **Суть:** портировать лучшее из GSD (Get Shit Done) на русский (практичнее оригинала), расширить `.cursor/agents/` + `prompt-engineering/`, собрать **переносимый kit** для bootstrap корпоративного хаба (урезанный GitHub-аналог + микросервисы + AI-команда).
+> **Суть:** портировать лучшее из GSD (Get Shit Done) на русский (практичнее оригинала), расширить `.cursor/agents/` + `pro-qa-ai/`, собрать **переносимый kit** для bootstrap корпоративного хаба (урезанный GitHub-аналог + микросервисы + AI-команда).
 > **Код продукта:** не трогаем (July freeze). Только plans / agents / prompts / skills.
 >
 > **Продуктовая упаковка (2026-07-30):** линейка **Touchstone** —
-> Standard = [`prompt-engineering/TOUCHSTONE.md`](../../../../prompt-engineering/TOUCHSTONE.md) ·
+> Standard = [`pro-qa-ai/TOUCHSTONE.md`](../../../../pro-qa-ai/TOUCHSTONE.md) ·
 > Pro = [`prompt-engineering-pro/`](../../../../prompt-engineering-pro/README.md).
 > Этот каталог — исторический план и источники решений; поставка — соседние папки репо.
 
 ## Текущий фокус (2026-07-30)
 
-**Touchstone Standard** (`prompt-engineering/`) — portable **AI quality layer для test automation**:
+**Touchstone Standard** (`pro-qa-ai/`) — portable **AI quality layer для test automation**:
 
 | Принцип | Описание |
 |---------|----------|
@@ -58,7 +58,7 @@ Repo-scan provenance: [`.planning/audits/2026-07/repo-scan/PROVENANCE.md`](../..
 |-----|-----|
 | GSD-RU skills (Hub-lite) | `.cursor/skills/gsd-ru/` |
 | Upstream GSD маршрутизация + P0/P1 mid-Aug | `.cursor/GSD-INTEGRATION.md` |
-| Prompt Engineering toolkit | `prompt-engineering/` |
+| Prompt Engineering toolkit | `pro-qa-ai/` |
 | PE → GSD port index | `prompt-engineering-pro/gsd-port/README.md` |
 | Portable kit user guide | `prompt-engineering-pro/PORTABLE-HUB-KIT.md` |
 | Agent prompts (32) | `.cursor/agents/*.md` — секция **GSD-паттерны (Hub-усиленные)** |

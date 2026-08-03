@@ -70,13 +70,13 @@ spec_coverage:
 
 ## Session note — 2026-07-30 (Touchstone Standard + Pro packaging)
 
-- **Touchstone Standard** (`prompt-engineering/`): продукт-идентичность `TOUCHSTONE.md`,
+- **Touchstone Standard** (`pro-qa-ai/`): продукт-идентичность `TOUCHSTONE.md`,
   версия **`0.2.0-rc.1`** foundation-ready, CHANGELOG, обновлены README/START-HERE/INSTALL/MANIFEST/VERSION.
   Structural PASS сохранён; effectiveness/ROI по-прежнему **NOT_RUN** (честный GA-gate).
 - **Touchstone Pro** (`prompt-engineering-pro/`): max-пакет — слои 01–07 + extracts
   (prompt-contract, master-delegate, wave-protocol, mutation-evidence, backlog-task);
   источники: GSD inventory, PE Standard, `.cursor/` (contract/team/verify), `.planning/` (backlog/STATE/mutation).
-- Синхрон: `.planning/README.md`, `.cursor/rules/70-prompt-engineering.mdc`,
+- Синхрон: `.planning/README.md`, `.cursor/rules/70-pro-qa-ai.mdc`,
   `REGULATION.md` §20, `playbooks/README.md`, `AGENTS.md`.
 - Код продукта / validator scripts не менялись. Коммитов нет (ожидание запроса пользователя).
 
@@ -722,7 +722,7 @@ spec_coverage:
 
 ## Session note — 2026-07-26 (PE · инструкции только на русском)
 
-- Политика: человекочитаемые инструкции `prompt-engineering/` — **только RU**
+- Политика: человекочитаемые инструкции `pro-qa-ai/` — **только RU**
   (`rules/00` §0, README, START-HERE); id/пути/CLI/enum не переводятся.
 - Переведены skills, recipes, rules/10–30, adapters, patterns, review-feedback,
   docs/evals fixtures, MANIFEST/VERSION, context/templates; machine headers
@@ -748,7 +748,7 @@ spec_coverage:
 
 ## Session note — 2026-07-26 (Test Automation AI Quality Layer)
 
-- `prompt-engineering/` переработан из каталога bare prompts в переносимую
+- `pro-qa-ai/` переработан из каталога bare prompts в переносимую
   AI-прослойку автоматизаторов: generated context, approved patterns,
   production recipes, agents/skills, adapters/model router, validator/evals.
 - `/bootstrap-test-context` принимает `project_root`, `test_roots`, `inventory`,
@@ -866,7 +866,7 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 ## Pending Todos
 
 - **AI quality layer:** empty-repo install dry-run → paired eval pilot; ROI остаётся `NOT_RUN` до замера
-- **PE language:** инструкции `prompt-engineering/` только RU (машинные id/enum без перевода)
+- **PE language:** инструкции `pro-qa-ai/` только RU (машинные id/enum без перевода)
 - **FA-06 / PG-03:** Phase 0 ✅ · scripts ready · **Phase 1–3 manual** (единственный prod-блокер ops) · runbook `docs/runbooks/fa06-secret-rotation.md`
 - **Wave 1:** merged пользователем 2026-07-11; policy остаётся — агенты не пушат/не мержат master
 - **July return kickoff (~конец июля):** align по brief → перестройка планов · старт EPIC-CAL-SYNC / QA-HARDENING execution / Redesign по приоритету

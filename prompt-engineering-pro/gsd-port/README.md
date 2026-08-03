@@ -1,6 +1,6 @@
 # GSD → Prompt Engineering port
 
-Переносимые (project-agnostic) аналоги паттернов GSD внутри `prompt-engineering/`.
+Переносимые (project-agnostic) аналоги паттернов GSD внутри `pro-qa-ai/`.
 
 ## Playbooks
 

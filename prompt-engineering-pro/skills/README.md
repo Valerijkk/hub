@@ -15,6 +15,6 @@ curate-*) остались в Standard.
 достигнутый outcome это разные вещи.
 
 Протокол верификации, на который опираются все три, живёт в Standard:
-[`rules/40-verification-protocol.md`](../../prompt-engineering/rules/40-verification-protocol.md).
+[`rules/40-verification-protocol.md`](../../pro-qa-ai/rules/40-verification-protocol.md).
 Усиление Pro поверх него — пирамида L0–L4 и мутационный контракт:
 [`../layers/05-verification-mutation.md`](../layers/05-verification-mutation.md).

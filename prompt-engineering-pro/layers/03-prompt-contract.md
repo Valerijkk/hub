@@ -14,7 +14,7 @@ Delegate skeleton: [`../extracts/master-delegate.md`](../extracts/master-delegat
 
 ## Связь со Standard
 
-`prompt-engineering/agents/templates/_MASTER-PROMPT-TEMPLATE.md` = машинный скелет.
+`pro-qa-ai/agents/templates/_MASTER-PROMPT-TEMPLATE.md` = машинный скелет.
 Pro extract добавляет human-facing нормализацию и anti-injection (Hub §2.3).
 
 ## DoD слоя

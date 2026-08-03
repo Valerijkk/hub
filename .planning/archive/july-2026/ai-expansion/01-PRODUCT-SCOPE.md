@@ -24,7 +24,7 @@ microservices остаются расширением, а не ядром test-a
 
 - Зафиксировать в `.planning/archive/july-2026/ai-expansion/` полный план порта GSD → Hub/PE.
 - Расширить промпты `.cursor/agents/*` практиками GSD (goal-backward, atomic, wave, handoff, anti-patterns).
-- Расширить `prompt-engineering/`: GSD lifecycle/waves/handoff + corporate agents (не только тесты).
+- Расширить `pro-qa-ai/`: GSD lifecycle/waves/handoff + corporate agents (не только тесты).
 - Добавить path-based context bootstrap; закрытые MR не читать, примеры коллег
   человек добавляет вручную после bootstrap.
 - Добавить structural validator и paired baseline-vs-assisted eval contract.
@@ -74,7 +74,7 @@ microservices остаются расширением, а не ядром test-a
 | ADR-ARCH-MICROSERVICES-2026 | Карта сервисов в portable arch |
 | ADR-MODELS-GPT56-2026 | Cutover моделей в августе |
 | prompt-contract.md | Единый контракт промпта |
-| prompt-engineering/ (уже есть) | База PE, расширяем |
+| pro-qa-ai/ (уже есть) | База PE, расширяем |
 | GSD-INTEGRATION.md | Маршрутизация skills |
 
 ## Risks

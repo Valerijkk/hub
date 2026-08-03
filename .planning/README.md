@@ -46,7 +46,7 @@
 | [`active/august-2026/`](active/august-2026/) | Планы на август: [индекс](active/august-2026/00-AUGUST-PLAN.md), [микросервисы](active/august-2026/01-MICROSERVICES-SPLIT.md) |
 
 Задачи пишут **team-lead и architect**, по
-[мастер-промпту](../prompt-engineering/agents/templates/_MASTER-PROMPT-TEMPLATE.md).
+[мастер-промпту](../pro-qa-ai/agents/templates/_MASTER-PROMPT-TEMPLATE.md).
 Исполнитель задачу не сочиняет — выполняет и отчитывается.
 Правила: [`.cursor/rules/57-backlog-tasks.mdc`](../.cursor/rules/57-backlog-tasks.mdc).
 
@@ -85,7 +85,7 @@
 
 | Издание | Путь | Объект работы |
 |---------|------|---------------|
-| Standard | [`prompt-engineering/`](../prompt-engineering/) | Тестовый фреймворк: context, `test-*` агенты, recipes, evals |
+| Standard | [`pro-qa-ai/`](../pro-qa-ai/) | Тестовый фреймворк: context, `test-*` агенты, recipes, evals |
 | Pro | [`prompt-engineering-pro/`](../prompt-engineering-pro/) | Продукт: 12 ролей разработки, phase/wave/verify, mutation |
 
 ### Операционное
@@ -120,7 +120,7 @@
 | Gray zones locked | [`decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md`](decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md) |
 | FA-06 / секреты | [`ops/production/PG-03-SECRET-ROTATION.md`](ops/production/PG-03-SECRET-ROTATION.md) |
 | Индекс июля | [`archive/july-2026/INDEX-JULY-2026.md`](archive/july-2026/INDEX-JULY-2026.md) |
-| **Touchstone Standard** (AI layer для тестового фреймворка) | [`../prompt-engineering/TOUCHSTONE.md`](../prompt-engineering/TOUCHSTONE.md) |
+| **Touchstone Standard** (AI layer для тестового фреймворка) | [`../pro-qa-ai/TOUCHSTONE.md`](../pro-qa-ai/TOUCHSTONE.md) |
 | **Touchstone Pro** (роли разработки, волны, мутация) | [`../prompt-engineering-pro/START-HERE.md`](../prompt-engineering-pro/START-HERE.md) |
 | AI-expansion планы (источник Pro) | [`archive/july-2026/ai-expansion/README.md`](archive/july-2026/ai-expansion/README.md) |
 | Активный backlog задач | [`backlog/README.md`](backlog/README.md) |

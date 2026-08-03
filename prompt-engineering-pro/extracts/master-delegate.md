@@ -1,6 +1,6 @@
 # Extract — Master Delegate (portable)
 
-> Совместим с `prompt-engineering/agents/templates/_MASTER-PROMPT-TEMPLATE.md`.
+> Совместим с `pro-qa-ai/agents/templates/_MASTER-PROMPT-TEMPLATE.md`.
 > Для agent-to-agent / CI / handoff. Человек пишет свободно — принимающий нормализует.
 
 ```markdown

@@ -18,7 +18,7 @@
 Не переименовывать: их пути стоят в телах коммитов.
 
 Каждая задача — отдельный файл, написанный по
-[мастер-промпту](../../prompt-engineering/agents/templates/_MASTER-PROMPT-TEMPLATE.md).
+[мастер-промпту](../../pro-qa-ai/agents/templates/_MASTER-PROMPT-TEMPLATE.md).
 Правила ведения: [`.cursor/rules/57-backlog-tasks.mdc`](../../.cursor/rules/57-backlog-tasks.mdc)
 (с 2026-07-28: **`TASK-<NNN>-<YYYY-MM-DD>-<функциональный-слаг>.md`**, emoji в заголовке/таблице).
 

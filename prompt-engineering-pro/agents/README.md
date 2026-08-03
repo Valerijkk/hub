@@ -5,7 +5,7 @@
 Standard и сюда не дублируются.
 
 Файлы не назначают провайдера, model ID и sampling-параметры — выбор
-модели идёт через [`../../prompt-engineering/playbooks/model-routing.md`](../../prompt-engineering/playbooks/model-routing.md).
+модели идёт через [`../playbooks/model-routing.md`](../playbooks/model-routing.md).
 Подключение к Cursor — через [`../adapters/cursor/`](../adapters/cursor/):
 raw markdown в `.cursor/agents/` копировать нельзя, нужен frontmatter и wrapper.
 
@@ -49,7 +49,7 @@ raw markdown в `.cursor/agents/` копировать нельзя, нужен 
 | [`templates/corporate-wave.md`](templates/corporate-wave.md) | Корпоративная волна с несколькими ролями |
 
 Базовый мастер-контракт — в Standard:
-[`_MASTER-PROMPT-TEMPLATE.md`](../../prompt-engineering/agents/templates/_MASTER-PROMPT-TEMPLATE.md).
+[`_MASTER-PROMPT-TEMPLATE.md`](../../pro-qa-ai/agents/templates/_MASTER-PROMPT-TEMPLATE.md).
 Переносимое ядро того же контракта — [`../extracts/master-delegate.md`](../extracts/master-delegate.md).
 
 ## Общий контракт

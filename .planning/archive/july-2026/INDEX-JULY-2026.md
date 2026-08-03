@@ -21,7 +21,7 @@
 | Portable kit dry-run | [ai-expansion/08-PORTABLE-KIT-DRY-RUN.md](ai-expansion/08-PORTABLE-KIT-DRY-RUN.md) | L1–L5 → `corp-hub-starter`, PASS/FAIL |
 | AI quality layer rework | [ai-expansion/09-AI-QUALITY-LAYER-REWORK.md](ai-expansion/09-AI-QUALITY-LAYER-REWORK.md) | Context bootstrap, patterns, manual colleague examples, recipes/evals |
 | GSD-RU skills | `.cursor/skills/gsd-ru/` | RU lite |
-| PE portable guide | `prompt-engineering/PORTABLE-HUB-KIT.md` | 10 шагов переноса |
+| PE portable guide | `pro-qa-ai/PORTABLE-HUB-KIT.md` | 10 шагов переноса |
 | July repo-scan index | [`../audits/2026-07/repo-scan/INDEX.md`](../../audits/2026-07/repo-scan/INDEX.md) | 40 report slots, not 40 independent runs |
 | Repo-scan provenance | [`../audits/2026-07/repo-scan/PROVENANCE.md`](../../audits/2026-07/repo-scan/PROVENANCE.md) | Confidence classes; SCORECARD non-authoritative |
 

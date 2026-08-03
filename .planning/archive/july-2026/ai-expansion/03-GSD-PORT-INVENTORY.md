@@ -3,7 +3,7 @@
 > **Источник фактов:** `C:\Users\Valerii\.claude\skills\gsd-*/SKILL.md` — **79** skills (filesystem 2026-07-22).
 > Прочитано: YAML frontmatter (`name`/`description`) + первые ~40 строк каждого `SKILL.md`.
 > Политика: **паттерны и контракты**, не vendor-copy полных upstream текстов.
-> Цель порта: `.cursor/skills/gsd-ru/`, `prompt-engineering/`, усиление `.cursor/agents/`, маршрутизация в `.cursor/GSD-INTEGRATION.md`.
+> Цель порта: `.cursor/skills/gsd-ru/`, `pro-qa-ai/`, усиление `.cursor/agents/`, маршрутизация в `.cursor/GSD-INTEGRATION.md`.
 > Горизонт: **22.07.2026 → 15.08.2026** (см. `02-TECH-PLAN.md`).
 
 ## Статус GSD-RU (факт)
@@ -19,7 +19,7 @@
 | `portable-kit` | `.cursor/skills/gsd-ru/portable-kit/` | Hub-native (нет 1:1 upstream skill) |
 | `microservices-strangler` | `.cursor/skills/gsd-ru/microservices-strangler/` | Hub-native checklist поверх ADR-ARCH-MICROSERVICES |
 
-PE-зеркало (project-agnostic): `prompt-engineering/gsd-port/README.md` — playbooks `gsd-lifecycle`, `wave-execution`, `handoff-state` + skills `phase-plan`, `wave-orchestrate`, `verify-goal`.
+PE-зеркало (project-agnostic): `pro-qa-ai/gsd-port/README.md` — playbooks `gsd-lifecycle`, `wave-execution`, `handoff-state` + skills `phase-plan`, `wave-orchestrate`, `verify-goal`.
 
 ---
 
@@ -45,7 +45,7 @@ PE-зеркало (project-agnostic): `prompt-engineering/gsd-port/README.md` �
 | Target | Смысл |
 |--------|--------|
 | `gsd-ru/… (done)` | Уже в `.cursor/skills/gsd-ru/` |
-| `PE …` | `prompt-engineering/` (playbook/skill) |
+| `PE …` | `pro-qa-ai/` (playbook/skill) |
 | `agents …` | секция GSD-паттерны в `.cursor/agents/*.md` |
 | `GSD-INTEGRATION` | только маршрут upstream → когда звать |
 | `playbooks …` | `.cursor/playbooks/` |
@@ -301,7 +301,7 @@ PE-зеркало (project-agnostic): `prompt-engineering/gsd-port/README.md` �
 | Gap | Статус |
 |-----|--------|
 | Нет локального RU lite без `~/.claude` | **закрыт** — `.cursor/skills/gsd-ru/` (6 skills) |
-| PE без GSD-lifecycle | **закрыт** — `prompt-engineering/gsd-port/` + 3 playbooks + 3 skills |
+| PE без GSD-lifecycle | **закрыт** — `pro-qa-ai/gsd-port/` + 3 playbooks + 3 skills |
 | Agents: GSD по имени, мало «как думать» | **в работе** (W1–W2 tech plan: секции GSD-паттерны) |
 | Portable kit | **есть артефакты** — `05-PORTABLE-KIT.md`, `PORTABLE-HUB-KIT.md`, `gsd-ru/portable-kit` |
 | Microservices только ADR | **закрыт checklist** — `gsd-ru/microservices-strangler` |

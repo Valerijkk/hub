@@ -63,8 +63,8 @@ frontmatter/routing активированы раньше: Sol Pro orchestrator 
 остаётся для роли оркестратора: она закреплена за GPT-5.6 Sol Pro.
 
 Техническая реализация хранится в
-`prompt-engineering/models/registry.template.yaml` и
-`prompt-engineering/playbooks/model-routing.md`. Frontmatter миграция выполнена
+`pro-qa-ai/models/registry.template.yaml` и
+`pro-qa-ai/playbooks/model-routing.md`. Frontmatter миграция выполнена
 2026-07-26; explicit downstream override всё равно требует живого catalog check.
 
 ### Что меняется относительно as-is

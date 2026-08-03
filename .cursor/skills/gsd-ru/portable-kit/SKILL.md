@@ -24,8 +24,8 @@ disable-model-invocation: true
 | `.planning/archive/july-2026/ai-expansion/05-PORTABLE-KIT.md` | слои L1–L6, DoD переноса |
 | `.planning/archive/july-2026/ai-expansion/08-PORTABLE-KIT-DRY-RUN.md` | полный dry-run L1–L5 + PASS/FAIL (`corp-hub-starter`) |
 | `prompt-engineering-pro/PORTABLE-HUB-KIT.md` | user-facing 10 шагов · **Touchstone Pro** |
-| `prompt-engineering/TOUCHSTONE.md` | продукт Standard / связь с Pro |
-| `prompt-engineering/INSTALL.md` | установка Standard |
+| `pro-qa-ai/TOUCHSTONE.md` | продукт Standard / связь с Pro |
+| `pro-qa-ai/INSTALL.md` | установка Standard |
 | `prompt-engineering-pro/START-HERE.md` | **Touchstone Pro** (GSD+Cursor+planning max) |
 | `ai-expansion/04-PORTABLE-HUB-ARCH.md` | архитектурный контекст kit |
 | Playbook dry-run | `prompt-engineering-pro/playbooks/portable-kit-dry-run.md` |
@@ -44,11 +44,11 @@ disable-model-invocation: true
 ## Шаги переноса (10)
 
 1. Выбрать целевой слой L1–L5 (минимум L1+L2+L3).
-2. Собрать PE через `prompt-engineering/scripts/package_portable.py`; raw copy
+2. Собрать PE через `pro-qa-ai/scripts/package_portable.py`; raw copy
    source tree запрещён после появления generated profiles/local evidence.
 3. Copy `.cursor/skills/gsd-ru/` (этот пакет).
 4. Copy `prompt-contract.md` + `team-workflow.md` (адаптировать имена ролей).
-5. Agents: `.cursor/agents/` **или** только `prompt-engineering/agents/*` (corporate) — **один** стиль, не оба конфликтующих канона.
+5. Agents: `.cursor/agents/` **или** только `pro-qa-ai/agents/*` (corporate) — **один** стиль, не оба конфликтующих канона.
 6. Rules: verification (`40`), naming, severity из PE `rules/`; Hub-only TZ не копировать слепо.
 7. Создать `.planning/STATE.md` + `ROADMAP.md` (+ README навигация).
 8. Прогнать `/bootstrap-test-context` с явными project/test roots → получить
@@ -66,7 +66,7 @@ disable-model-invocation: true
 Слои: L1 [ ] L2 [ ] L3 [ ] L4 [ ] L5 [ ] L6 [ ]
 
 ### Copy
-- [ ] packaged prompt-engineering/ (validator PASS)
+- [ ] packaged pro-qa-ai/ (validator PASS)
 - [ ] .cursor/skills/gsd-ru/
 - [ ] playbooks: prompt-contract, team-workflow (adapted)
 - [ ] agents: cursor XOR pe-corporate
@@ -149,6 +149,6 @@ disable-model-invocation: true
 ## Связь
 
 - Спеки: `05-PORTABLE-KIT.md`, `08-PORTABLE-KIT-DRY-RUN.md`, `PORTABLE-HUB-KIT.md`
-- Playbook: `prompt-engineering/playbooks/portable-kit-dry-run.md`
+- Playbook: `pro-qa-ai/playbooks/portable-kit-dry-run.md`
 - Смежный skill: [microservices-strangler](../microservices-strangler/SKILL.md) (blueprint в L5)
 - Индекс: [gsd-ru/README.md](../README.md) · AI-expansion README

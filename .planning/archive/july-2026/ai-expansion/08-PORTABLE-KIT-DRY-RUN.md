@@ -17,14 +17,14 @@
 | Источник | Hub monorepo на диске (этот репозиторий) |
 | Режим | Historical paper dry-run; реальные шаги заменены packager workflow |
 | Scope | L1–L5 Must/Should из `05`; L6 Could — out of scope dry-run |
-| Стиль агентов | **Corporate PE** (`prompt-engineering/agents/*`) — не полный Hub `.cursor/agents/` (32 роли) |
+| Стиль агентов | **Corporate PE** (`pro-qa-ai/agents/*`) — не полный Hub `.cursor/agents/` (32 роли) |
 | Не копируем | `.env`, секреты, `livekit-prod.yaml` с ключами, coverage dumps, prod hosts runbooks |
 
 ### Предусловия PASS/FAIL
 
 | # | Условие | PASS | FAIL |
 |---|---------|------|------|
-| P0 | Источник содержит `prompt-engineering/`, `.cursor/skills/gsd-ru/`, `ai-expansion/05–06` | есть | отсутствует слой Must |
+| P0 | Источник содержит `pro-qa-ai/`, `.cursor/skills/gsd-ru/`, `ai-expansion/05–06` | есть | отсутствует слой Must |
 | P1 | Целевой репо пуст (только `.git` + README) или явная папка-песочница | чистое дерево | конфликт с чужим `.cursor/` |
 | P2 | Выбран один стиль агентов (PE corporate **или** Hub agents) | зафиксирован в STATE | оба стиля смешаны без RACI |
 
@@ -36,7 +36,7 @@
 corp-hub-starter/
 ├── README.md                          # продукт-заглушка starter
 ├── AGENTS.md                          # краткий указатель на PE + .planning
-├── prompt-engineering/                # L2 — validated packager output
+├── pro-qa-ai/                # L2 — validated packager output
 │   ├── PORTABLE-HUB-KIT.md
 │   ├── INSTALL.md
 │   ├── README.md
@@ -95,8 +95,8 @@ corp-hub-starter/
 |-----|----------|------|------|
 | L1.1 | Скопировать `.cursor/skills/gsd-ru/` | ≥6 skills + README | пустая папка / только 1 skill |
 | L1.2 | Скопировать `prompt-contract` + `team-workflow` в `.cursor/playbooks/` | оба файла; роли в team-workflow = PE corporate имена **или** явная карта alias | Hub-only имена без alias (`be1`/`fe1` без маппинга) |
-| L1.3 | Agents: скопировать `prompt-engineering/agents/{orchestrator,product-owner,architect,backend-dev,frontend-dev,security-reviewer,devops}.md` (+ test-*) в `.cursor/agents/` **или** оставить только PE path | один канон путей в AGENTS.md | дубликаты с разными DoD |
-| L1.4 | Минимальные rules: verification + naming/severity из `prompt-engineering/rules/` (+ docs-sync аналог) | rules читаются Cursor | rules ссылаются на Hub `backend/internal/...` без адаптации |
+| L1.3 | Agents: скопировать `pro-qa-ai/agents/{orchestrator,product-owner,architect,backend-dev,frontend-dev,security-reviewer,devops}.md` (+ test-*) в `.cursor/agents/` **или** оставить только PE path | один канон путей в AGENTS.md | дубликаты с разными DoD |
+| L1.4 | Минимальные rules: verification + naming/severity из `pro-qa-ai/rules/` (+ docs-sync аналог) | rules читаются Cursor | rules ссылаются на Hub `backend/internal/...` без адаптации |
 | L1.5 | Grep обезличенности PE agents | 0 хардкод-путей `Desktop/hub` / `backend/internal/auth` в PE agents | найдены Hub-only paths |
 
 Historical raw-copy commands were removed. `.cursor` Hub extensions are an
@@ -112,11 +112,11 @@ included in the project-neutral PE package.
 | L2.3 | `INSTALL.md` + `PORTABLE-HUB-KIT.md` на месте | ссылки относительные живые | битые ссылки на `.planning/archive/july-2026` без копии |
 
 ```powershell
-py -3 -B .\prompt-engineering\scripts\package_portable.py `
-  --root .\prompt-engineering `
-  --output <empty-repo>\prompt-engineering
-py -3 -B <empty-repo>\prompt-engineering\scripts\validate_toolkit.py `
-  --root <empty-repo>\prompt-engineering
+py -3 -B .\pro-qa-ai\scripts\package_portable.py `
+  --root .\pro-qa-ai `
+  --output <empty-repo>\pro-qa-ai
+py -3 -B <empty-repo>\pro-qa-ai\scripts\validate_toolkit.py `
+  --root <empty-repo>\pro-qa-ai
 ```
 
 ### L3 — Planning (Must)
@@ -191,9 +191,9 @@ material blocker; он не придумывает framework.
 
 ```powershell
 # Незаполненные плейсхолдеры вне примеров
-Select-String -Path "$dst\prompt-engineering\context\*.md" -Pattern "\{\{[A-Za-z0-9_]+\}\}"
+Select-String -Path "$dst\pro-qa-ai\context\*.md" -Pattern "\{\{[A-Za-z0-9_]+\}\}"
 # Hub-paths не должны появиться в context как «факт starter»
-Select-String -Path "$dst\prompt-engineering\context\*.md" -Pattern "Valerii\\Desktop\\hub|backend/internal/"
+Select-String -Path "$dst\pro-qa-ai\context\*.md" -Pattern "Valerii\\Desktop\\hub|backend/internal/"
 ```
 
 ---
@@ -214,8 +214,8 @@ Select-String -Path "$dst\prompt-engineering\context\*.md" -Pattern "Valerii\\De
 
 ```
 [РОЛЬ] backend-dev (docs-only dry-run)
-[ЗАДАЧА] Обновить README.md: секция «AI Ops» со ссылками на prompt-engineering/ и .planning/STATE.md
-[КОНТЕКСТ] corp-hub-starter после kit import; не трогать prompt-engineering/context
+[ЗАДАЧА] Обновить README.md: секция «AI Ops» со ссылками на pro-qa-ai/ и .planning/STATE.md
+[КОНТЕКСТ] corp-hub-starter после kit import; не трогать pro-qa-ai/context
 [ФОРМАТ] diff-описание + Verification
 [ЦИКЛ КАЧЕСТВА] новое: ссылки открываются; регрессия: не удалить существующий README intro
 ```
@@ -316,7 +316,7 @@ git init
 | [`07-ACCEPTANCE.md`](07-ACCEPTANCE.md) | gap «dry-run» → закрыт этим файлом |
 | [`PORTABLE-HUB-KIT.md`](../../../../prompt-engineering-pro/PORTABLE-HUB-KIT.md) | user-facing 10 шагов |
 | `.cursor/skills/gsd-ru/portable-kit/` | skill-обёртка |
-| `prompt-engineering/skills/bootstrap-test-context/` | бутстрап context |
+| `pro-qa-ai/skills/bootstrap-test-context/` | бутстрап context |
 
 ---
 

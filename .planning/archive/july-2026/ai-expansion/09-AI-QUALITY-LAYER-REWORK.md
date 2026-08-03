@@ -1,13 +1,13 @@
 # AI Quality Layer Rework — test automation
 
 > Дата решения: 2026-07-26
-> Scope: `.cursor/`, `prompt-engineering/`, связанная `.planning/`
+> Scope: `.cursor/`, `pro-qa-ai/`, связанная `.planning/`
 > Product code: не менять
 > Commit: только по отдельному запросу пользователя
 
 ## Goal
 
-`prompt-engineering/` становится переносимой AI-прослойкой для автоматизаторов,
+`pro-qa-ai/` становится переносимой AI-прослойкой для автоматизаторов,
 которая:
 
 1. изучает существующий тестовый фреймворк по заданным путям;
@@ -127,7 +127,7 @@ Eval dimensions:
 3. Agents/recipes/model router/adapters.
 4. Validator/evals/primary-source registry.
 5. Management docs + portable dry-run.
-6. Full sweep `.cursor/`, `prompt-engineering/`, `.planning/`.
+6. Full sweep `.cursor/`, `pro-qa-ai/`, `.planning/`.
 7. Independent review, docs sync, final acceptance.
 
 ## Acceptance
