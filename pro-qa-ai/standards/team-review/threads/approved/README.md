@@ -5,9 +5,9 @@
 
 | Тред | Правило | Severity | Суть |
 |------|---------|----------|------|
-| [THREAD-001](THREAD-001-timeout-in-config.md) | CHECK-001 | major | Таймаут ожидания внешнего ответа — из конфига окружения, не литералом |
-| [THREAD-002](THREAD-002-status-code-only.md) | CHECK-002 | blocker | Код ответа без проверки тела не считается покрытием ручки |
-| [THREAD-003](THREAD-003-shared-fixture-state.md) | CHECK-003 | blocker | Фикстура шире функции — только для неизменяемого |
+| [THREAD-001](THREAD-001-timeout-in-config.md) | [CHECK-001](../../checks/CHECK-001-timeout-from-config.md) | major | Таймаут ожидания внешнего ответа — из конфига окружения, не литералом |
+| [THREAD-002](THREAD-002-status-code-only.md) | [CHECK-002](../../checks/CHECK-002-response-body-checked.md) | blocker | Код ответа без проверки тела не считается покрытием ручки |
+| [THREAD-003](THREAD-003-shared-fixture-state.md) | [CHECK-003](../../checks/CHECK-003-shared-fixture-immutable.md) | blocker | Фикстура шире функции — только для неизменяемого |
 
 ## Как читать
 

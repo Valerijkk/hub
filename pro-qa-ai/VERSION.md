@@ -4,7 +4,7 @@ product: Touchstone
 edition: standard
 version: 0.4.0-beta.1
 status: foundation-ready
-release_date: TODO
+release_date: не выпущено — beta, GA после paired eval
 owner: automation-quality
 validation_status: STRUCTURAL_PASS
 last_validation: 2026-08-03

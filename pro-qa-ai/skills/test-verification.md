@@ -114,7 +114,7 @@ Questions to documentation:
   - <section> — <question>
 
 Matrix: M requirements, covered K (K/M%), gaps: G
-Verdict: APPROVED | NEEDS WORK
+Verdict: APPROVED | APPROVED WITH QUESTIONS | NEEDS WORK
 
 Verification:
 - Claims checked: traceability quotes, matrix, automation infra paths

@@ -81,4 +81,4 @@ def test_order_paid_after_confirmation(order_client, payment_stub, env):
 тестах. Поиск по вызовам `wait_until`, `wait_for`, `until`, `timeout=`
 с числом вместо ссылки на конфиг.
 
-Правило: [`CHECK-001`](../../approved/README.md)
+Правило: [`CHECK-001`](../../checks/README.md)

@@ -18,12 +18,12 @@ numerator и denominator и заявленной uncertainty.
 
 Единица — paired task:
 
-- один и тот же frozen fixture и repository revision;
+- один и тот же зафиксированный набор задач и ревизия репозитория;
 - одна и та же model и settings;
 - одни и те же tool и network permissions;
 - изолированные conversations;
 - один baseline output и один assisted output;
-- blinded human review по одному и тому же pre-approved oracle.
+- слепое ревью человеком по одному и тому же заранее согласованному критерию.
 
 Агрегируй только пары, удовлетворяющие этим controls. Фиксируй exclusions и
 причины.
@@ -68,7 +68,7 @@ run.
 - показывай median paired change и interquartile range;
 - показывай acceptance proportions с uncertainty;
 - перечисляй каждый critical/high defect и каждое scope или security event;
-- сегментируй по fixture category и model/toolkit version;
+- сегментируй по классу задач и версии пакета;
 - избегай объединения материально разных задач в один headline average.
 
 ## Quality и safety gates
@@ -99,11 +99,11 @@ Pilot owner должен задать numeric thresholds до начала runs.
 
 ## Pilot plan
 
-1. Сэмплируй задачи из обычной работы автоматизации по всем шести fixture
+1. Сэмплируй задачи из обычной работы автоматизации по всем классам
    categories.
-2. Используй не менее двух independent fixture instances на category до любого
+2. Используй не менее двух независимых задач на класс до любого
    directional conclusion.
-3. Pre-register fixture oracle, определение material-correction, thresholds и
+3. Зафиксируй до прогона критерий оценки, определение существенной правки, пороги и
    exclusion rules.
 4. Counterbalance arm order и blind reviewers.
 5. Фиксируй rework, а не только initial generation time.
@@ -126,7 +126,7 @@ productivity claim.
 
 Обязательные оговорки:
 
-- loaded hourly cost берётся у finance или management, не у автора eval;
+- loaded hourly cost берётся у finance или management, не у автора замера;
 - setup, maintenance, reviewer calibration и incident handling считаются costs;
 - avoided-defect value сообщается отдельно, пока finance не одобрит
   defensible model;

@@ -4,6 +4,7 @@
 
 | Плейбук | Процесс | Участники |
 |---------|---------|-----------|
+| [onboarding.md](onboarding.md) | Первое подключение контура к репозиторию | tf-init, tf-status |
 | [test-generation.md](test-generation.md) | Документация → верифицированные TC → автотесты | tc-generator, test-verification, reviewer |
 | [review-cycle.md](review-cycle.md) | Ревью-цикл тестового кода до мержа | anti-ai-check, naming-check, reviewer |
 | [debugging.md](debugging.md) | Красный CI → root cause → зелёный с профилактикой | debugger, reviewer, documenter |

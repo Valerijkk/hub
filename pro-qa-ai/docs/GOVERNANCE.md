@@ -4,7 +4,7 @@
 
 Эта политика регулирует portable AI quality layer для инженеров автоматизации
 тестирования: prompts, agents, skills, rules, context profiles, validators,
-eval fixtures, source mappings и run evidence.
+наборы задач замера, карты источников и evidence прогонов.
 
 Она не уполномочивает слой проектировать или заменять тестовый фреймворк.
 Архитектура фреймворка, runners, canonical commands, shared fixtures, CI и
@@ -20,13 +20,13 @@ production effectiveness и никакой broad rollout не одобрены.
 | Toolkit release и manifest | Automation quality lead | framework owner, security |
 | Prompts, agents и skills | Automation quality lead | активные automation engineers |
 | Canonical paths, commands и patterns | Test-framework owner | maintainers репозитория |
-| Eval fixtures и oracles | Independent eval owner | domain owner, automation quality |
+| Наборы задач замера и критерии | Независимый владелец замера | domain owner, automation quality |
 | Security patterns и injection suite | Security owner | privacy, platform owner |
 | Model/provider и data policy | AI governance или designated risk owner | legal/privacy, security, procurement |
 | Pilot scope и adoption | Engineering manager | все владельцы выше |
 | Incident response | Security или engineering incident commander | artifact owner, platform owner |
 
-Автор output не может быть единственным approver его eval oracle или critical
+Автор output не может быть единственным утверждающим критерий оценки своей работы или critical
 security finding.
 
 ## Разрешённое использование без дополнительного approval
@@ -60,7 +60,7 @@ destination и completion criteria.
   plugin или network destination;
 - обработкой confidential, regulated, personal или customer data через
   unapproved model/provider;
-- изменением eval oracles, metric definitions, thresholds или exclusions после
+- изменением критериев оценки, определений метрик, порогов или исключений после
   старта run;
 - объявлением версии тулкита validated, effective или production-ready.
 
@@ -80,12 +80,12 @@ Approval на одну задачу не создаёт standing approval для
   или timeout inflation без approved contract.
 - Заявления о measured ROI, quality или speed на основе templates,
   demonstrations или incomplete pairs.
-- Позволение модели одобрять свой security-sensitive output или менять oracle,
+- Позволение модели одобрять свой security-sensitive output или менять критерий оценки,
   которым он оценивается.
 
 ## Data handling
 
-1. Классифицируй fixture, context, source, output, transcript и telemetry data
+1. Классифицируй наборы задач, контекст, источники, выход, транскрипты и телеметрию
    перед использованием.
 2. По умолчанию используй synthetic или least-sensitive data.
 3. Удаляй credentials, personal data, customer payloads, internal hostnames и
@@ -134,7 +134,7 @@ Source precedence должен быть объявлен до использов
 
 ## Eval governance
 
-- Заморозь fixture, oracle, repository revision, model settings, tools и
+- Зафиксируй набор задач, критерий оценки, ревизию репозитория, настройки модели, инструменты и
   thresholds до paired runs.
 - Оставляй baseline safety controls включёнными.
 - Изолируй arm context и counterbalance order.
@@ -156,7 +156,7 @@ Release candidate eligible for approval только когда:
 2. validator unit tests проходят;
 3. валидатор не имеет ERROR findings на точном дистрибутиве;
 4. source links и actionable mappings прошли review;
-5. eval fixtures и oracles для intended use одобрены;
+5. наборы задач замера и критерии оценки для целевого применения одобрены;
 6. required paired pilot gates проходят;
 7. security и framework owners утверждают свои границы;
 8. known limitations и rollback steps задокументированы.
@@ -167,7 +167,7 @@ Pre-release можно делить для review при наличии findings
 ## Change control
 
 - Patch: clarifications или validator fixes без изменения expected contract.
-- Minor: новые совместимые checks, fixtures или roles.
+- Minor: новые совместимые проверки, практики или роли.
 - Major: breaking изменение manifest, context, prompt, approval или evaluation
   contract.
 - Любое ослабление политики требует approval accountable owner и rationale.
@@ -188,7 +188,7 @@ Pre-release можно делить для review при наличии findings
 - validator output раскрывает matched secret value.
 
 Уведоми incident owner, отзови или ротируй affected credentials когда применимо,
-оцени downstream exposure, исправь control, добавь regression fixture и
+оцени downstream exposure, исправь control, добавь регрессионный кейс и
 перезапусти affected gate. Не удаляй evidence вне approved retention process.
 
 ## Exceptions

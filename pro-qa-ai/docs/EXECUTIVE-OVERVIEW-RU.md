@@ -46,7 +46,7 @@ Bootstrap не читает закрытые MR, историю review или в
 - 14 production recipes поверх 1000 prompt fragments;
 - GSD-подобный lifecycle plan → execute → verify → handoff;
 - Sol Pro orchestrator и динамический выбор доступных Cursor models;
-- structural validator и eval fixtures;
+- структурный валидатор и протокол парного замера;
 - governance, approval и data-handling policy.
 
 ## Текущий статус
@@ -69,7 +69,7 @@ fallback и tool trace. Конфигурация не доказывает, чт
 ## Пилот
 
 1. Выбрать 12–24 типовые задачи автоматизаторов.
-2. Для каждой заморозить модель, права, репозиторий, вход и oracle.
+2. Для каждой зафиксировать модель, права, репозиторий, вход и критерий оценки.
 3. Сравнить bare-prompt и assisted режим в изолированных сессиях.
 4. Отдать результаты слепому ревьюеру.
 5. Измерить first-pass acceptance, review minutes, defects, hallucinations,

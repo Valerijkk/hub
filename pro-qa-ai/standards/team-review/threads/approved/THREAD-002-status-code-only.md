@@ -79,4 +79,4 @@ def test_get_orders_returns_only_own_orders(api, user_with_orders, other_user):
 Тест API, в котором единственное обращение к ответу — это код статуса.
 Признак: в теле теста нет ни разбора JSON, ни обращения к полям ответа.
 
-Правило: [`CHECK-002`](../../approved/README.md)
+Правило: [`CHECK-002`](../../checks/README.md)

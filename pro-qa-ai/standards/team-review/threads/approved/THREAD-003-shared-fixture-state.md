@@ -96,4 +96,4 @@ def test_add_item(api, user):
 Признак: объявление scope module, session или class рядом с объектом,
 который передаётся в вызовы записи.
 
-Правило: [`CHECK-003`](../../approved/README.md)
+Правило: [`CHECK-003`](../../checks/README.md)

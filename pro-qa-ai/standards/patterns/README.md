@@ -47,3 +47,6 @@ portable. Exporters обязаны enforce `reuse.scope`.
 
 Promotion всегда требует явного human approval. Deprecation сохраняет
 provenance и фиксирует replacement, если он есть.
+
+Жизненный цикл карточки: [`candidates/`](candidates/README.md) → человеческая
+приёмка → [`approved/`](approved/README.md). Кандидат в ревью не участвует.

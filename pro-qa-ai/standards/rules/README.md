@@ -6,12 +6,27 @@
 | Файл | Область | Кто обязан |
 |------|---------|------------|
 | [00-global-agent-rules.md](00-global-agent-rules.md) | Поведение любого агента тулкита | все |
-| [10-naming-conventions.md](10-naming-conventions.md) | Дефолтный канон нейминга (пока проектный не заполнен) | reviewer, naming-check |
-| [20-test-quality.md](20-test-quality.md) | Минимальные требования к качеству теста | reviewer, generator, debugger |
-| [30-severity-policy.md](30-severity-policy.md) | Единая шкала severity и политика блокировки | все, кто выдаёт находки |
+| [10-naming-conventions.md](10-naming-conventions.md) | Дефолтный канон нейминга (пока проектный не заполнен) | `test-code-reviewer`, `tf-naming` |
+| [20-test-quality.md](20-test-quality.md) | Минимальные требования к качеству теста | `test-code-reviewer`, `test-case-generator`, `test-debugger`, `test-sdet` |
+| [30-severity-policy.md](30-severity-policy.md) | Единая шкала severity и политика блокировки | все, кто выдаёт находки: `tf-review`, `tf-antiai`, `tf-naming` |
 | [40-verification-protocol.md](40-verification-protocol.md) | Risk-scaled taxonomy проверок + evidence block; independent gate для high-impact | все агенты и скилы |
-| [50-data-handling.md](50-data-handling.md) | Недоверенный контекст, ручные примеры коллег, redaction/provenance/approval | все, кто сканирует код или работает с examples |
+| [50-data-handling.md](50-data-handling.md) | Недоверенный контекст, ручные примеры коллег, redaction/provenance/approval | все, кто читает код или переносит примеры коллег |
 
-Приоритет при конфликте: active `context/projects/<profile>/` + linked approved
-cards (проектный канон) > `rules/` (дефолты тулкита). Расхождение фиксируется
-явно, молча не разрешается.
+## Приоритет при конфликте
+
+Единственная лестница — в [`standards/README.md`](../README.md). Здесь она
+не пересказывается: пересказ расходится с оригиналом.
+
+**Два правила команда переопределить не может ничем:**
+
+| Правило | Почему неотменяемо |
+|---------|--------------------|
+| [`40`](40-verification-protocol.md) | Что считается доказательством. Договорённость «нам хватает и так» не делает недоказанное доказанным |
+| [`50`](50-data-handling.md) | Секреты и недоверенные данные. Это граница безопасности, а не соглашение о стиле |
+
+Остальные четыре перебиваются профилем проекта и тредами команды —
+они дефолты, а не догма.
+
+Расхождение фиксируется явно: в профиле или в треде, с причиной. Молча
+не разрешается — иначе следующий человек прочитает правило и решит, что
+команда его нарушает.

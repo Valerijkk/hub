@@ -43,7 +43,7 @@ routed model действительно выполнился.
 - Структурный валидатор на Python stdlib с PowerShell-friendly запуском.
 - Configurable registry для route names, secret-like patterns, portability
   deny/allow rules, profile provenance и required manifests.
-- Baseline-versus-assisted eval suite: generation, review, debugging/flaky
+- Протокол парного сравнения baseline против assisted: генерация, ревью, разбор нестабильности
   tests, context grounding, scope control и prompt injection.
 - Primary-source registry, привязанный к конкретным controls.
 - Guidance по governance, demo и ROI measurement.
@@ -53,7 +53,7 @@ routed model действительно выполнился.
 
 - Test-automation engineers используют assisted templates и фиксируют execution
   evidence.
-- Automation quality owners поддерживают fixtures, oracles и validator policy.
+- Automation quality owners поддерживают наборы задач, критерии оценки и политику валидатора.
 - Framework owners утверждают canonical paths, commands и patterns.
 - Security reviewers утверждают secret, prompt-injection, MCP, network и
   external-action controls.
@@ -62,8 +62,8 @@ routed model действительно выполнился.
 
 ## Что меняется операционно
 
-Перед assistance команда замораживает task fixture, repository revision,
-commands, scope и acceptance oracle. Затем та же задача выполняется как
+Перед прогоном команда фиксирует набор задач, ревизию репозитория,
+команды, объём и критерий приёмки. Затем та же задача выполняется как
 baseline и с quality layer. Blinded human ревьюит оба outputs. Решения об
 adoption опираются на quality, risk, effort и cost вместе; меньшая latency или
 token use не компенсируют рост defects или scope escapes.
@@ -72,7 +72,7 @@ token use не компенсируют рост defects или scope escapes.
 
 1. Выбери 12–24 representative tasks по шести eval categories, используя
    synthetic или approved non-sensitive data.
-2. Заморозь model, settings, tool permissions, repository revision и fixture
+2. Зафиксируй модель, настройки, права инструментов, ревизию репозитория и набор задач
    для каждой пары.
 3. Counterbalance arm order и изолируй conversations.
 4. Blind reviewers относительно arm и фиксируй active review minutes.
@@ -84,7 +84,7 @@ Proposed entry criteria:
 
 - structural validator tests проходят;
 - intended toolkit distribution без unresolved ERROR findings;
-- fixture oracles имеют independent owner approval;
+- критерии оценки утверждены независимым владельцем;
 - data classification и retention одобрены;
 - sandbox и tool permissions задокументированы.
 
@@ -102,7 +102,7 @@ AI layer может готовить черновики тестов, reviews, d
 - решений по security, authentication, authorization, secrets и privacy;
 - CI/CD, deployment, infrastructure, destructive commands и external writes;
 - изменений архитектуры тестового фреймворка или canonical commands;
-- изменений eval oracles, acceptance thresholds или reported metrics;
+- изменений критериев оценки, порогов приёмки или публикуемых метрик;
 - использования confidential data или новых model/tool providers.
 
 Полная модель ответственности и escalation — в [Governance](GOVERNANCE.md).
