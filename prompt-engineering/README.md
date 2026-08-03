@@ -104,6 +104,10 @@ prompt-engineering/                 ← Touchstone Standard (эта папка)
 
 Подробно: [INSTALL.md](INSTALL.md) и [playbooks/onboarding.md](playbooks/onboarding.md).
 
+**Пакет командный.** Полная поверхность из десяти команд и типовые цепочки —
+[COMMANDS.md](COMMANDS.md). Первая команда в новом репозитории — `tf-init`,
+в уже настроенном — `tf-status`.
+
 **Слой Corporate/GSD переехал в издание Pro.** Роли разработки, волны,
 GSD-порт и portable hub kit живут в sibling-папке `prompt-engineering-pro/`.
 Standard остаётся чисто про тестовый фреймворк.
