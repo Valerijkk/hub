@@ -27,8 +27,9 @@
   `TEMPLATE.md` со схемой `RF-*` удалены, остались `threads/` и `checks/`
   со схемой `THREAD-*` / `CHECK-*`. Кто заполнял старый inbox —
   переносит записи в `threads/inbox/`
-- `docs/EXECUTIVE-OVERVIEW.md` удалён: дублировал RU-версию по языку и
-  GOVERNANCE с ROI-METRICS по содержанию, и уже разошёлся с фактами
+- Англоязычный обзор `EXECUTIVE-OVERVIEW` удалён: дублировал RU-версию
+  по языку, а GOVERNANCE и ROI-METRICS — по содержанию, и уже разошёлся
+  с фактами (55 тестов вместо 41, 162 файла вместо 184)
 
 ### Added
 
