@@ -1,22 +1,25 @@
 # prompts/ — библиотека prompt fragments и recipes
 
-> 1000 фрагментов по 12 категориям тестирования + 112 corporate-delivery. Это **не** готовые «лучшие промпты» сами по себе — однострочники-слоты `[ЧТО]`, которые собираются в production-recipe вместе с active profile и approved pattern cards. Слоты: `{{…}}` (или заполнение из `context/projects/<profile>/`).
+> 1000 фрагментов по 12 категориям тестирования. Это **не** готовые «лучшие промпты» сами по себе: однострочники-слоты, которые собираются в рецепт вместе с активным профилем и принятыми карточками паттернов. Слоты вида `{{…}}` заполняются из `context/projects/<profile>/` или руками.
 
 ## Production use
 
-**Bare fragment недостаточен.** Перед запуском собери recipe:
+**Голого фрагмента недостаточно.** Перед запуском собирается рецепт:
 
-1. **Context profile** — `../context/projects/<profile>/` (first setup через
-   `bootstrap-test-context`; stale/reorganized profile через
-   `refresh-test-context`; см. INSTALL).
-2. **Pattern cards** — `../patterns/` (approved cards для роли и домена).
-3. **Fragment** — выбери `#N` из категории ниже.
-4. **Assembly** — оберни фрагмент по профилю категории (блок «Recipe assembly» в шапке файла) + [мастер-шаблон](../../agents/templates/_MASTER-PROMPT-TEMPLATE.md).
-5. **Eval gate** — smoke/regression из `../evals/` после structural PASS.
+1. **Профиль контекста** — [`../../context/projects/`](../../context/projects/README.md).
+   Профиля нет — `tf-init`; профиль устарел — `tf-refresh`.
+2. **Карточки паттернов** — [`../../standards/patterns/`](../../standards/patterns/README.md),
+   только принятые и только для своей роли и домена.
+3. **Фрагмент** — выбрать `#N` из категории ниже.
+4. **Сборка** — обернуть фрагмент по профилю категории (блок «Recipe
+   assembly» в шапке файла) плюс
+   [мастер-шаблон](../../agents/templates/_MASTER-PROMPT-TEMPLATE.md).
 
-Production contracts: [`../recipes/`](../recipes/README.md). Эталоны assembly:
-[`EXPANDED-EXAMPLES.md`](EXPANDED-EXAMPLES.md). GSD-порт и corporate-фрагменты —
-вне этого пакета: он про тестовый фреймворк.
+Готовые контракты — [`../recipes/`](../recipes/README.md). Эталоны сборки —
+[`EXPANDED-EXAMPLES.md`](EXPANDED-EXAMPLES.md).
+
+Фрагменты корпоративной поставки в пакет не входят: он про тестовый
+фреймворк, а не про процесс выпуска продукта.
 
 ## Категории
 
