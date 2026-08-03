@@ -28,11 +28,11 @@ alwaysApply: false
 | Pro слои / extracts | `prompt-engineering-pro/layers/`, `extracts/` |
 | Перенос Standard | `pro-qa-ai/INSTALL.md` |
 | Project context | `pro-qa-ai/context/projects/<profile>/` |
-| Patterns / ручные примеры | `pro-qa-ai/patterns/`, `review-feedback/` |
+| Patterns / ручные примеры | `pro-qa-ai/standards/patterns/`, `review-feedback/` |
 | Агенты тестового фреймворка | `pro-qa-ai/agents/test-*.md` (4) |
 | Роли разработки | `prompt-engineering-pro/agents/` (12) |
-| Скилы / правила / плейбуки | `pro-qa-ai/{skills,rules,playbooks}/` |
-| Recipes / prompt fragments 01–12 | `pro-qa-ai/recipes/`, `prompts/` |
+| Скилы / правила / плейбуки | `pro-qa-ai/skills/, standards/rules/, workflows/playbooks/` |
+| Recipes / prompt fragments 01–12 | `pro-qa-ai/workflows/recipes/`, `prompts/` |
 | Corporate fragments 13 | `prompt-engineering-pro/prompts/` |
 | Master delegate | `pro-qa-ai/agents/templates/_MASTER-PROMPT-TEMPLATE.md` |
 | Mutation evidence (Pro) | `prompt-engineering-pro/extracts/mutation-evidence.md` |

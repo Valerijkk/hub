@@ -57,8 +57,8 @@ pro_edition: sibling prompt-engineering-pro/ >=0.3.0-beta.1 (outside portable pa
 ## Инвентарь quality layer
 
 - [Context bootstrap](skills/bootstrap-test-context/SKILL.md) и [контракты профилей](context/projects/README.md)
-- [Pattern cards](patterns/README.md) и [ручной feedback коллег](review-feedback/TEMPLATE.md)
-- [Production recipes](recipes/README.md)
+- [Pattern cards](standards/patterns/README.md) и [ручной feedback коллег](standards/team-review/TEMPLATE.md)
+- [Production recipes](workflows/recipes/README.md)
 - [Structural validator](scripts/validate_toolkit.py)
 - [Portable packager](scripts/package_portable.py) и [политика упаковки](scripts/package_manifest.json)
 - [Mechanical context inventory](scripts/context_inventory.py), его

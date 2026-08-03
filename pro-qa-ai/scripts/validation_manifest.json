@@ -61,7 +61,7 @@
   },
   "prompt_ids": {
     "include_globs": [
-      "prompts/[0-9][0-9]-*.md"
+      "workflows/prompts/[0-9][0-9]-*.md"
     ],
     "exclude_globs": [],
     "line_pattern": "^\\s*(?P<id>[0-9]+)\\.\\s+\\S",
@@ -180,9 +180,9 @@
     "include_globs": [
       "agents/**/*.md",
       "skills/**/*.md",
-      "rules/**/*.md",
-      "playbooks/**/*.md",
-      "prompts/**/*.md"
+      "standards/rules/**/*.md",
+      "workflows/playbooks/**/*.md",
+      "workflows/prompts/**/*.md"
     ],
     "exclude_globs": [],
     "negation_prefix_patterns": [
@@ -315,9 +315,9 @@
       "INSTALL.md",
       "agents/**/*.md",
       "skills/**/*.md",
-      "rules/**/*.md",
-      "playbooks/**/*.md",
-      "prompts/**/*.md",
+      "standards/rules/**/*.md",
+      "workflows/playbooks/**/*.md",
+      "workflows/prompts/**/*.md",
       "context/*.md",
       "context/templates/**/*.md",
       "context/templates/**/*.yaml"

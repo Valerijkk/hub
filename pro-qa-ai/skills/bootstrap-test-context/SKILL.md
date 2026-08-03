@@ -100,7 +100,7 @@ root и проверить записанные hash и size. Отклонять
 
 ## Выход (что появится)
 
-Скопировать нейтральные contracts из [`../../context/templates/`](../../context/templates/) в:
+Скопировать нейтральные contracts из [`../../context/templates/`](../../context/templates) в:
 
 ```text
 pro-qa-ai/context/projects/<profile>/
@@ -260,7 +260,7 @@ Bootstrap закончился — профиль существует, но е�
 
 1. **Человек читает профиль.** Это шаг приёмки, а не формальность: сгенерированные факты сверяются с тем, что человек знает о проекте. Что не подтвердилось — правится руками или переводится в `UNKNOWN`.
 2. **`tf-status`** — свести свежесть профиля, счётчики `UNKNOWN`, exclusions и limitations в одну сводку и увидеть, какие секции пусты.
-3. **`tf-review`** — после того как человек вручную скопировал выбранные snippets и комментарии коллег в [`../../review-feedback/inbox/`](../../review-feedback/inbox/) по [`../../review-feedback/TEMPLATE.md`](../../review-feedback/TEMPLATE.md). Bootstrap этого копирования не делает, отсутствующие комментарии не дотягивает и feedback не курирует.
+3. **`tf-review`** — после того как человек вручную скопировал выбранные snippets и комментарии коллег в [`../../review-feedback/inbox/`](../../standards/team-review/inbox) по [`../../standards/team-review/TEMPLATE.md`](../../standards/team-review/TEMPLATE.md). Bootstrap этого копирования не делает, отсутствующие комментарии не дотягивает и feedback не курирует.
 4. **`tf-curate`** — только после курирования feedback: pattern cards рождаются там, а не здесь.
 5. Все следующие обновления профиля — `tf-refresh`, а не повторный `tf-init`.
 

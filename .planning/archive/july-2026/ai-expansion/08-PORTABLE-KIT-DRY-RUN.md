@@ -96,7 +96,7 @@ corp-hub-starter/
 | L1.1 | Скопировать `.cursor/skills/gsd-ru/` | ≥6 skills + README | пустая папка / только 1 skill |
 | L1.2 | Скопировать `prompt-contract` + `team-workflow` в `.cursor/playbooks/` | оба файла; роли в team-workflow = PE corporate имена **или** явная карта alias | Hub-only имена без alias (`be1`/`fe1` без маппинга) |
 | L1.3 | Agents: скопировать `pro-qa-ai/agents/{orchestrator,product-owner,architect,backend-dev,frontend-dev,security-reviewer,devops}.md` (+ test-*) в `.cursor/agents/` **или** оставить только PE path | один канон путей в AGENTS.md | дубликаты с разными DoD |
-| L1.4 | Минимальные rules: verification + naming/severity из `pro-qa-ai/rules/` (+ docs-sync аналог) | rules читаются Cursor | rules ссылаются на Hub `backend/internal/...` без адаптации |
+| L1.4 | Минимальные rules: verification + naming/severity из `pro-qa-ai/standards/rules/` (+ docs-sync аналог) | rules читаются Cursor | rules ссылаются на Hub `backend/internal/...` без адаптации |
 | L1.5 | Grep обезличенности PE agents | 0 хардкод-путей `Desktop/hub` / `backend/internal/auth` в PE agents | найдены Hub-only paths |
 
 Historical raw-copy commands were removed. `.cursor` Hub extensions are an

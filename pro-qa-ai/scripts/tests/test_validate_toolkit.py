@@ -160,7 +160,7 @@ class ToolkitValidatorTests(unittest.TestCase):
 
     def test_prompt_sequence_finds_duplicate_and_gap(self) -> None:
         self.write(
-            "prompts/01-example.md",
+            "workflows/prompts/01-example.md",
             "# Prompts\n\n1. First\n3. Third\n3. Duplicate third\n",
         )
 

@@ -149,6 +149,6 @@ disable-model-invocation: true
 ## Связь
 
 - Спеки: `05-PORTABLE-KIT.md`, `08-PORTABLE-KIT-DRY-RUN.md`, `PORTABLE-HUB-KIT.md`
-- Playbook: `pro-qa-ai/playbooks/portable-kit-dry-run.md`
+- Playbook: `pro-qa-ai/workflows/playbooks/portable-kit-dry-run.md`
 - Смежный skill: [microservices-strangler](../microservices-strangler/SKILL.md) (blueprint в L5)
 - Индекс: [gsd-ru/README.md](../README.md) · AI-expansion README

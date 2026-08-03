@@ -32,7 +32,7 @@ disable-model-invocation: true
 
 Для каждой записи:
 
-1. Проверить frontmatter по [`../../review-feedback/TEMPLATE.md`](../../review-feedback/TEMPLATE.md).
+1. Проверить frontmatter по [`../../standards/team-review/TEMPLATE.md`](../../standards/team-review/TEMPLATE.md).
 2. Назначить или проверить стабильный ID `RF-<profile>-<nnn>`. Не переиспользовать IDs.
 3. Разделить:
    - review context;

@@ -13,7 +13,7 @@ generated test framework.
 - `profile`: optional lowercase slug. Если опущен, нормализуется имя каталога
   проекта.
 
-Skill копирует [`../templates/`](../templates/) в `<project-slug>/`, сканирует
+Skill копирует [`../templates/`](../templates) в `<project-slug>/`, сканирует
 только declared roots и заполняет:
 
 - `CONTEXT-MANIFEST.yaml`
@@ -26,7 +26,7 @@ Skill копирует [`../templates/`](../templates/) в `<project-slug>/`, с
 - `SOURCE-MAP.md`
 - `PATTERN-INDEX.md`
 
-Canonical starter artifacts живут только в [`../templates/`](../templates/).
+Canonical starter artifacts живут только в [`../templates/`](../templates).
 Не помещай project facts в `templates`.
 
 ## Lifecycle
@@ -34,7 +34,7 @@ Canonical starter artifacts живут только в [`../templates/`](../temp
 1. Bootstrap профиля из checked-out filesystem.
 2. Ревью всех значений `UNKNOWN` и source citations.
 3. Человек вручную вставляет выбранные code snippets и комментарии коллег в
-   [`../../review-feedback/inbox/`](../../review-feedback/inbox/). Bootstrap
+   [`../../review-feedback/inbox/`](../../standards/team-review/inbox). Bootstrap
    этого никогда не делает.
 4. Запусти [`curate-review-feedback`](../../skills/curate-review-feedback/SKILL.md),
    затем [`curate-pattern-cards`](../../skills/curate-pattern-cards/SKILL.md).

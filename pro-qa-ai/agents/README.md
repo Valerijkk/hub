@@ -14,7 +14,7 @@ Cursor требует корректный YAML frontmatter и wrapper; см.
 ## Ростер
 
 Standard — **только тестовый фреймворк**. Начинай с таблицы Role ↔ recipe
-в [`../recipes/README.md`](../recipes/README.md).
+в [`../workflows/recipes/README.md`](../workflows/recipes/README.md).
 
 | Агент | Назначение | Режим |
 |-------|------------|-------|

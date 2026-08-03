@@ -35,7 +35,7 @@ Promote или deprecate:
 - Не выполнять project commands и не мутировать project/test source.
 - Не копировать proprietary examples в templates или portable baseline.
 
-Следовать [`../../patterns/SCHEMA.md`](../../patterns/SCHEMA.md) точно.
+Следовать [`../../standards/patterns/SCHEMA.md`](../../standards/patterns/SCHEMA.md) точно.
 
 ## Workflow draft
 
@@ -67,7 +67,7 @@ Promote или deprecate:
 
 ### 4. Создать candidate
 
-Скопировать [`../../patterns/CARD-TEMPLATE.md`](../../patterns/CARD-TEMPLATE.md) в `patterns/candidates/<pattern-id>-<slug>.md`.
+Скопировать [`../../standards/patterns/CARD-TEMPLATE.md`](../../standards/patterns/CARD-TEMPLATE.md) в `patterns/candidates/<pattern-id>-<slug>.md`.
 
 Заполнить каждое обязательное поле и секцию:
 

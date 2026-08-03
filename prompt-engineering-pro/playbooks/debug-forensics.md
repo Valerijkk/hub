@@ -7,7 +7,7 @@
 > и переписываем постановку там, где просто баг.
 
 Красный CI тестового фреймворка — не сюда, а в Standard
-[`playbooks/debugging.md`](../../pro-qa-ai/playbooks/debugging.md).
+[`playbooks/debugging.md`](../../pro-qa-ai/workflows/playbooks/debugging.md).
 Здесь продуктовый дефект и качество агентского контура.
 
 ## Граница А ↔ Б
@@ -408,7 +408,7 @@ L0 (текст) не считается, минимум L1 (команда + к�
 - Контракт задачи и слота — [`../extracts/master-delegate.md`](../extracts/master-delegate.md), [`../extracts/wave-protocol.md`](../extracts/wave-protocol.md)
 - Состояние и передача — [`handoff-state.md`](handoff-state.md), [`../layers/06-planning-ops.md`](../layers/06-planning-ops.md)
 - Роль — [`../agents/debugger.md`](../agents/debugger.md)
-- Красный CI тестового фреймворка — Standard [`playbooks/debugging.md`](../../pro-qa-ai/playbooks/debugging.md)
+- Красный CI тестового фреймворка — Standard [`playbooks/debugging.md`](../../pro-qa-ai/workflows/playbooks/debugging.md)
 
 ## DoD
 

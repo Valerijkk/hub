@@ -566,8 +566,8 @@ evals. Это не scaffold фреймворка. Bootstrap: `skills/bootstrap-t
 |------|------|------------|
 | Агенты | `pro-qa-ai/agents/` | только `test-*` (4): TC, ревью кода фреймворка, отладка, документация |
 | Скилы | `pro-qa-ai/skills/` | bootstrap/refresh, curation, naming, anti-ai, test-verification (7) |
-| Правила | `pro-qa-ai/rules/` | `00` global, `10` naming, `20` quality, `30` severity, `40` verification, `50` data-handling |
-| Плейбуки | `pro-qa-ai/playbooks/` | onboarding, generation, review, debug, documentation, model-routing |
+| Правила | `pro-qa-ai/standards/rules/` | `00` global, `10` naming, `20` quality, `30` severity, `40` verification, `50` data-handling |
+| Плейбуки | `pro-qa-ai/workflows/playbooks/` | onboarding, generation, review, debug, documentation, model-routing |
 | Промпты / recipes | `prompts/`, `recipes/` | fragments 01–12 (1000+) + production recipes |
 | Шаблоны | `agents/templates/` | `_MASTER-PROMPT-TEMPLATE` + phase/wave |
 | Adapters | `adapters/cursor/` | маппинг 4 `test-*` ролей |

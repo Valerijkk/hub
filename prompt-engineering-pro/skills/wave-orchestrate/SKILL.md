@@ -38,7 +38,7 @@ disable-model-invocation: true
    - Files only / do not touch
    - Acceptance: done definition, проверки new-behavior, `{{regression_scope}}` из profile
    - Evidence required; stop when критерии выполнены или blocked
-   - Output schema §1–7 включая блок Verification ([rules/40](../../../pro-qa-ai/rules/40-verification-protocol.md))
+   - Output schema §1–7 включая блок Verification ([rules/40](../../../pro-qa-ai/standards/rules/40-verification-protocol.md))
 4. **Параллелизм** — по умолчанию ≤4 агента; больше только с явным disjoint map.
 5. **Собрать** — каждый агент возвращает outcome, paths touched, evidence, open questions, блок Verification.
 6. **Sync** — если один path изменён дважды или contracts конфликтуют → остановиться; не мержить молча.
@@ -93,5 +93,5 @@ disable-model-invocation: true
 - Planning: `../phase-plan/SKILL.md`
 - Acceptance: `../verify-goal/SKILL.md`
 - Playbook: `../../playbooks/wave-execution.md`
-- Verification: [rules/40](../../../pro-qa-ai/rules/40-verification-protocol.md)
+- Verification: [rules/40](../../../pro-qa-ai/standards/rules/40-verification-protocol.md)
 - [`../../extracts/wave-protocol.md`](../../extracts/wave-protocol.md) — инвариант волны, смерть слота, частичный результат

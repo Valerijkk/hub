@@ -28,7 +28,7 @@ description: Где я сейчас — свежесть контекста, с�
    требуется `profile=<slug>`.
 
 Угадывать профиль запрещено: работа на догадках нарушает
-[`rules/00`](../../rules/00-global-agent-rules.md) §1.
+[`rules/00`](../../standards/rules/00-global-agent-rules.md) §1.
 
 ## Процедура
 

@@ -90,7 +90,7 @@ GPT-5.6 Sol Pro — orchestrator default. Остальные модели выб
 ## Шаг 4. При необходимости вручную добавить опыт коллег
 
 Bootstrap **не читает закрытые MR**. После его завершения человек сам копирует
-в [review-feedback/inbox](review-feedback/inbox/):
+в [review-feedback/inbox](standards/team-review/inbox):
 
 - плохой фрагмент кода;
 - комментарий коллеги;

@@ -1,11 +1,11 @@
 # Context — evidence-backed project profiles
 
 Project-specific знания по test automation живут в изолированных профилях в
-[`projects/`](projects/). Остальной тулкит остаётся project-neutral.
+[`projects/`](projects). Остальной тулкит остаётся project-neutral.
 
 ## Новая модель профиля
 
-- [`templates/`](templates/) содержит только placeholder artifact contracts.
+- [`templates/`](templates) содержит только placeholder artifact contracts.
 - `projects/<project-slug>/` создаётся [`bootstrap-test-context`](../skills/bootstrap-test-context/SKILL.md).
 - Существующие профили обновляет [`refresh-test-context`](../skills/refresh-test-context/SKILL.md).
 
@@ -27,7 +27,7 @@ explicit roots
 
 Bootstrap не читает review history. После bootstrap человек вручную кладёт
 выбранные snippets и комментарии коллег в
-[`../review-feedback/inbox/`](../review-feedback/inbox/). Curation — отдельный
+[`../review-feedback/inbox/`](../standards/team-review/inbox). Curation — отдельный
 workflow с redaction gate.
 
 ## Правила security и evidence

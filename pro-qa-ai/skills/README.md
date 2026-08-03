@@ -38,5 +38,5 @@ description: <одна строка — что делает>
 Каждый skill обязан: (1) читать `context/projects/<profile>/` вместо угадывания
 путей; (2) завершаться evidence block и честным PASS/FAIL/PARTIAL/NOT_RUN;
 (3) не менять source code без явного шага/разрешения; (4) применять
-[rules/40](../rules/40-verification-protocol.md) по риску и
-[rules/50](../rules/50-data-handling.md) ко всему scanned/manual content.
+[rules/40](../standards/rules/40-verification-protocol.md) по риску и
+[rules/50](../standards/rules/50-data-handling.md) ко всему scanned/manual content.

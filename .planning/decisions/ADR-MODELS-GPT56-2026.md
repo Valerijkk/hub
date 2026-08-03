@@ -64,7 +64,7 @@ frontmatter/routing активированы раньше: Sol Pro orchestrator 
 
 Техническая реализация хранится в
 `pro-qa-ai/models/registry.template.yaml` и
-`pro-qa-ai/playbooks/model-routing.md`. Frontmatter миграция выполнена
+`pro-qa-ai/workflows/playbooks/model-routing.md`. Frontmatter миграция выполнена
 2026-07-26; explicit downstream override всё равно требует живого catalog check.
 
 ### Что меняется относительно as-is

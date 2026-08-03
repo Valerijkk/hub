@@ -66,7 +66,7 @@
 - Расширен [`prompt-engineering-pro/prompts/13-corporate-delivery.md`](../../../prompt-engineering-pro/prompts/13-corporate-delivery.md): **48 → 112** промптов (RU, project-agnostic).
 - Категории: planning (1–15), waves (16–28), review (29–42), microservices strangler (43–56), reduced-GitHub PR-flow (57–68), handoff (69–80), verification (81–92), portable-kit (93–102), AI-team ops (103–112).
 - Слоты: `{{goal}}` `{{module}}` `{{files}}` `{{role}}` `{{ac}}` `{{service}}`.
-- Count в [`pro-qa-ai/prompts/README.md`](../../../pro-qa-ai/prompts/README.md) #13 → **112**. Промпты 01–12 не трогали.
+- Count в [`pro-qa-ai/workflows/prompts/README.md`](../../../pro-qa-ai/workflows/prompts/README.md) #13 → **112**. Промпты 01–12 не трогали.
 
 ## Session note — 2026-07-22 (AI-expansion mid-Aug · GSD-порт · portable kit)
 

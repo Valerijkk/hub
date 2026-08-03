@@ -70,7 +70,7 @@ User-facing: [`prompt-engineering-pro/PORTABLE-HUB-KIT.md`](../../../../prompt-e
 | L1 | `.cursor/skills/gsd-ru/**` | RU GSD-lite skills |
 | L1 | `.cursor/playbooks/prompt-contract.md`, `team-workflow.md` | контракт + волны (адаптировать роли) |
 | L1 | `pro-qa-ai/agents/{orchestrator,product-owner,architect,backend-dev,frontend-dev,security-reviewer,devops,test-*}.md` **или** `.cursor/agents/*` | один стиль агентов |
-| L1 | `pro-qa-ai/rules/*.md` (+ минимальные `.cursor/rules`) | verification / naming / severity |
+| L1 | `pro-qa-ai/standards/rules/*.md` (+ минимальные `.cursor/rules`) | verification / naming / severity |
 | L2 | output `pro-qa-ai/scripts/package_portable.py` | project-neutral PE toolkit |
 | L3 | шаблоны `.planning/{STATE,ROADMAP,README}.md` + `ai-expansion/{04,05,06,08}` | planning + reference |
 | L4 | stubs на базе `ADR-ARCH-MICROSERVICES-2026`, `ADR-MODELS-GPT56-2026` | обезличенные ADR |

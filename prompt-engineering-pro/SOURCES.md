@@ -11,7 +11,7 @@
 | GSD-RU pack | `.cursor/skills/gsd-ru/` | 02, 04 |
 | Integration matrix | `.cursor/GSD-INTEGRATION.md` | 02 |
 | PE gsd-port | `prompt-engineering-pro/gsd-port/` | 02 |
-| Lifecycle / waves / handoff playbooks | `pro-qa-ai/playbooks/{gsd-lifecycle,wave-execution,handoff-state}.md` | 02, 04 |
+| Lifecycle / waves / handoff playbooks | `pro-qa-ai/workflows/playbooks/{gsd-lifecycle,wave-execution,handoff-state}.md` | 02, 04 |
 
 ## Prompt Engineering (Standard)
 
@@ -19,7 +19,7 @@
 |---------|----------|----------|
 | AI quality layer | `pro-qa-ai/` целиком | 01 |
 | Master delegate | `pro-qa-ai/agents/templates/_MASTER-PROMPT-TEMPLATE.md` | 03 |
-| Rules 00–50 | `pro-qa-ai/rules/` | 01, 05 |
+| Rules 00–50 | `pro-qa-ai/standards/rules/` | 01, 05 |
 | Eval fixtures | `pro-qa-ai/evals/` | 05 |
 | Rework decisions | `.planning/archive/july-2026/ai-expansion/09-AI-QUALITY-LAYER-REWORK.md` | 01 |
 

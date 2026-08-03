@@ -13,7 +13,7 @@
 
 Контекст проекта живёт в `context/projects/<profile>/`. Пока он не создан или
 устарел, любая команда работает на догадках — а **работа на догадках запрещена**
-([rules/00 — Контекст прежде действий](rules/00-global-agent-rules.md)).
+([rules/00 — Контекст прежде действий](standards/rules/00-global-agent-rules.md)).
 
 | Состояние | Что запускать |
 |---|---|
@@ -88,7 +88,7 @@ feedback и делает из него карточку. Пропускать п
    read-only.
 8. **`tf-review`** перед мержем.
 9. **Отдай на ревью коллеге.** Замечания, которые пришли, положи вручную в
-   `review-feedback/inbox/` по [шаблону](review-feedback/TEMPLATE.md) и прогони
+   `review-feedback/inbox/` по [шаблону](standards/team-review/TEMPLATE.md) и прогони
    **`tf-curate`** — со второго-третьего замечания слой начинает их учитывать.
 
 После шага 9 цикл замкнулся: следующая задача начинается уже не с нуля.
@@ -172,7 +172,7 @@ tf-status → tf-refresh → дальше по задаче
 
 Вердикты: `ЧУВСТВИТЕЛЕН`, `НЕ_ЧУВСТВИТЕЛЕН`, `СБОРКА_СЛОМАНА`, `НЕПРИМЕНИМО`.
 Полная процедура, границы применимости и то, чего это доказательство **не**
-доказывает — [rules/40 — протокол верификации](rules/40-verification-protocol.md).
+доказывает — [rules/40 — протокол верификации](standards/rules/40-verification-protocol.md).
 
 Коротко о границе: чувствительность доказывает, что утверждение теста зависит от
 наблюдаемого значения. Она **не** доказывает, что стаб возвращает то же, что
@@ -211,7 +211,7 @@ tf-status → tf-refresh → дальше по задаче
 | `COMMANDS.md` (этот, в корне пакета) | Команды **тулкита**: десять `tf-*` | Поставляется с пакетом |
 | `context/projects/<profile>/COMMANDS.md` | Команды **твоего проекта**: как ставить зависимости, как гонять тесты, как звать линтер | `tf-init`, обновляет `tf-refresh` |
 
-Правило из [rules/00](rules/00-global-agent-rules.md) касается второго файла:
+Правило из [rules/00](standards/rules/00-global-agent-rules.md) касается второго файла:
 команды проекта агент берёт **только** оттуда, CI-гейты — только из
 `CI-PIPELINE.md` профиля. Выдуманная команда идёт в находки против агента, а не
 в отчёт как факт.
@@ -223,10 +223,10 @@ tf-status → tf-refresh → дальше по задаче
 | Первый вход в пакет | [START-HERE.md](START-HERE.md) |
 | Установка | [INSTALL.md](INSTALL.md) |
 | Процедуры скилов | [skills/README.md](skills/README.md) |
-| Правила поведения агентов | [rules/00-global-agent-rules.md](rules/00-global-agent-rules.md) |
-| Планка качества одного теста | [rules/20-test-quality.md](rules/20-test-quality.md) |
-| Критерии severity | [rules/30-severity-policy.md](rules/30-severity-policy.md) |
-| Протокол верификации и чувствительность | [rules/40-verification-protocol.md](rules/40-verification-protocol.md) |
-| Недоверенный вход, secrets, redaction | [rules/50-data-handling.md](rules/50-data-handling.md) |
+| Правила поведения агентов | [rules/00-global-agent-rules.md](standards/rules/00-global-agent-rules.md) |
+| Планка качества одного теста | [rules/20-test-quality.md](standards/rules/20-test-quality.md) |
+| Критерии severity | [rules/30-severity-policy.md](standards/rules/30-severity-policy.md) |
+| Протокол верификации и чувствительность | [rules/40-verification-protocol.md](standards/rules/40-verification-protocol.md) |
+| Недоверенный вход, secrets, redaction | [rules/50-data-handling.md](standards/rules/50-data-handling.md) |
 | Структура контекста проекта | [context/README.md](context/README.md) |
 | Карта файлов и ownership | [MANIFEST.md](MANIFEST.md) |

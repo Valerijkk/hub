@@ -53,7 +53,7 @@ description: Покрыть тестами ручки, модуль или на�
 ### 3. Матрица покрытия — ДО первого кейса
 
 Строки — требования, колонки — обязательные классы из
-[`rules/20`](../../rules/20-test-quality.md):
+[`rules/20`](../../standards/rules/20-test-quality.md):
 
 | R | happy | валидация | denial | not found / конфликт | отказ завис. | идемпот. | границы |
 |---|-------|-----------|--------|----------------------|--------------|----------|---------|
@@ -85,10 +85,10 @@ description: Покрыть тестами ручки, модуль или на�
 ревью, а не мелочь.
 
 Рецепты под тип работы:
-[`design-test-cases`](../../recipes/design-test-cases.md),
-[`generate-unit-tests`](../../recipes/generate-unit-tests.md),
-[`generate-api-tests`](../../recipes/generate-api-tests.md),
-[`generate-ui-e2e`](../../recipes/generate-ui-e2e.md).
+[`design-test-cases`](../../workflows/recipes/design-test-cases.md),
+[`generate-unit-tests`](../../workflows/recipes/generate-unit-tests.md),
+[`generate-api-tests`](../../workflows/recipes/generate-api-tests.md),
+[`generate-ui-e2e`](../../workflows/recipes/generate-ui-e2e.md).
 
 ### 5. Прогон
 
@@ -97,7 +97,7 @@ description: Покрыть тестами ручки, модуль или на�
 ### 6. Проверка чувствительности — обязательна
 
 Каждый новый тест проверяется прогоном по
-[`rules/40`](../../rules/40-verification-protocol.md) §Доказательство
+[`rules/40`](../../standards/rules/40-verification-protocol.md) §Доказательство
 чувствительности:
 
 ```
