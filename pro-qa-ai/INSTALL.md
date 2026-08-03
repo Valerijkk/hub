@@ -1,13 +1,10 @@
-# Установка Touchstone Standard в новый проект
+# Установка pro-qa-ai в новый проект
 
-> **Издание:** Touchstone Standard (`pro-qa-ai/`).
-> Portable core обезличен. Generated context и вручную добавленные project
-> examples принадлежат конкретному проекту и не переносятся в другой автоматически.
-> Structural validator использует только Python standard library.
->
-> Нужен max-пакет с GSD/Cursor/planning практиками — ставь сначала Standard,
-> затем подключай sibling `prompt-engineering-pro/` (рядом с этой папкой в
-> исходном репозитории продукта; не входит в portable package).
+> **Пакет:** pro-qa-ai (`pro-qa-ai/`).
+> Переносимое ядро обезличено. Сгенерированный контекст и вручную
+> добавленные примеры принадлежат конкретному проекту и в другой репозиторий
+> автоматически не переносятся.
+> Валидатор использует только стандартную библиотеку Python.
 
 ## Шаг 1. Собрать portable package
 
@@ -79,7 +76,7 @@ profile=<project-slug>
 ## Шаг 3. При необходимости вручную добавить опыт коллег
 
 Bootstrap **не читает закрытые MR**. После его завершения человек сам копирует
-в [review-feedback/inbox](standards/team-review/inbox):
+в [team-review/threads/inbox](standards/team-review/threads/inbox/README.md):
 
 - плохой фрагмент кода;
 - комментарий коллеги;
@@ -96,9 +93,12 @@ py -3 -B .\pro-qa-ai\scripts\validate_toolkit.py `
   --root .\pro-qa-ai
 ```
 
-прогона имеют статус `NOT_RUN`; запрещено заполнять метрики ожидаемыми числами.
+Валидатор проверяет структуру: обязательные файлы на месте, ссылки живые,
+frontmatter корректен, плейсхолдеры не протекли. Метрики, требующие
+прогона, имеют статус `NOT_RUN`; заполнять их ожидаемыми числами запрещено.
 
-[START-HERE.md](START-HERE.md) и
+Экзит-код `0` — можно идти дальше. Ненулевой — читать вывод: он называет
+файл и причину.
 
 ## Шаг 4.1. Проверка, что контур живой
 
@@ -123,7 +123,7 @@ py -3 -B .\pro-qa-ai\scripts\validate_toolkit.py `
 
 Версия portable core — [VERSION.md](VERSION.md). При обновлении не затирай
 `context/projects/<profile>/`, `patterns/approved/` и
-`review-feedback/approved/`. После schema change запусти refresh + validator.
+`standards/team-review/threads/approved/`. После schema change запусти refresh + validator.
 
 ## Типичные проблемы установки
 
@@ -141,8 +141,7 @@ py -3 -B .\pro-qa-ai\scripts\validate_toolkit.py `
 - [ ] Portable package собран через `package_portable.py` (не raw-copy)
 - [ ] Создан inventory + `context/projects/<profile>/CONTEXT-MANIFEST.yaml`
 - [ ] Каждый факт имеет источник или `UNKNOWN`
-- [ ] Адаптер AI-инструмента подключён
-- [ ] Structural validator PASS на собранном package
-- [ ] Eval smoke выполнен или честно `NOT_RUN`
-- [ ] Ручные примеры (если есть) прошли redaction/provenance/approval
+- [ ] Валидатор структуры даёт экзит-код `0` на собранном пакете
+- [ ] Три проверки из шага 4.1 отработали
+- [ ] Треды коллег (если есть) обезличены и одобрены человеком
 - [ ] Ссылка из регламента проекта добавлена

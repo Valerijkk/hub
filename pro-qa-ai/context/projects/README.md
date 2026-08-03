@@ -34,7 +34,7 @@ Canonical starter artifacts живут только в [`../templates/`](../temp
 1. Bootstrap профиля из checked-out filesystem.
 2. Ревью всех значений `UNKNOWN` и source citations.
 3. Человек вручную вставляет выбранные code snippets и комментарии коллег в
-   [`../../review-feedback/inbox/`](../../standards/team-review/inbox). Bootstrap
+   [`../../standards/team-review/threads/inbox/`](../../standards/team-review/threads/inbox/README.md). Bootstrap
    этого никогда не делает.
 4. Запусти [`curate-review-feedback`](../../skills/curate-review-feedback.md),
    затем [`curate-pattern-cards`](../../skills/curate-pattern-cards.md).

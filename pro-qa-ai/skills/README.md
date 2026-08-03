@@ -1,42 +1,69 @@
-# skills/ — процедурные скилы
+# skills/ — процедуры
 
-> Скил — пошаговая процедура с проверяемым результатом. Не роль (это агенты), а чек-процесс: прогнал шаги → получил отчёт. Скилы запускает человек, агент или CI.
+Скил — пошаговая процедура с проверяемым результатом. Не роль (это
+[агенты](../agents/README.md)), а процесс: прогнал шаги → получил отчёт с
+вердиктом. Запускает человек, агент или CI.
 
-| Скил | Назначение | Когда запускать |
-|------|-----------|-----------------|
-| [bootstrap-test-context](bootstrap-test-context.md) | Read-only скан заданных project/test roots → generated profile | Первый запуск слоя в проекте |
-| [refresh-test-context](refresh-test-context.md) | Инкрементальный refresh profile с provenance/freshness | После изменения framework/CI/config |
-| [curate-review-feedback](curate-review-feedback.md) | Проверка вручную добавленных before/comment/after examples | После ручного заполнения `review-feedback/inbox/` |
-| [tf-init](tf-init.md) | Первый запуск: изучить репозиторий, наполнить контекст | Контура в репозитории ещё нет |
-| [tf-status](tf-status.md) | Где я: свежесть контекста, покрытие, что дальше | Начало сессии, в любой непонятной ситуации |
-| [tf-cases](tf-cases.md) | Спроектировать тест-кейсы из требований техниками тест-дизайна | Есть требование, нужен набор кейсов |
-| [tf-cover](tf-cover.md) | Покрыть тестами ручки, модуль, требования | Пришло новое либо есть непокрытое |
-| [tf-triage](tf-triage.md) | Упал тест: code, test, infra, flaky, stop | Красный тест или сообщение о баге |
-| [tf-gate](tf-gate.md) | Гейт перед сдачей: сборка, тесты, стабильность, чистота, секреты | До передачи на ревью |
-| [tf-review](tf-review.md) | Ревью тестового кода до мержа | Автор считает работу законченной |
-| [curate-pattern-cards](curate-pattern-cards.md) | Candidate → approved/deprecated с human gate | После context refresh или feedback curation |
-| [anti-ai-check](anti-ai-check.md) | Скан качества generated-кода; heuristics → semantic confirmation | После AI-изменений; перед ревью |
-| [naming-check](naming-check.md) | Аудит нейминга тестовых функций и файлов против активного profile | Перед мержем тестов; периодический аудит |
-| [test-verification](test-verification.md) | Верификация сгенерированных тест-кейсов против документации | После `test-case-generator`; перед автоматизацией TC |
+Один скил — **один файл** в этой папке, без вложенных каталогов.
 
-Всего: **14 skills**, каждый в собственной папке. Нормализация feedback и
-approval паттернов — разные trust gates: первый skill не создаёт cards, второй
-читает только human-approved feedback.
+## Что чем запускается
 
-## Формат скила
+Двенадцать команд `tf-*` за четырнадцатью файлами: две команды
+разворачиваются в пару скилов.
+
+| Команда | Скил | Назначение |
+|---------|------|------------|
+| `tf-init` | [tf-init](tf-init.md) → [bootstrap-test-context](bootstrap-test-context.md) | Первый запуск: изучить репозиторий, наполнить контекст |
+| `tf-refresh` | [refresh-test-context](refresh-test-context.md) | Инкрементально обновить профиль после изменений в репозитории |
+| `tf-status` | [tf-status](tf-status.md) | Где я: свежесть контекста, покрытие, что дальше |
+| `tf-cases` | [tf-cases](tf-cases.md) | Спроектировать кейсы из требований техниками тест-дизайна |
+| `tf-cover` | [tf-cover](tf-cover.md) | Покрыть тестами ручки, модуль, требования |
+| `tf-triage` | [tf-triage](tf-triage.md) | Упал тест: `code`, `test`, `infra`, `flaky`, `stop` |
+| `tf-gate` | [tf-gate](tf-gate.md) | Гейт перед сдачей: сборка, тесты, стабильность, чистота, секреты |
+| `tf-review` | [tf-review](tf-review.md) | Ревью тестового кода до мержа |
+| `tf-verify` | [test-verification](test-verification.md) | Верификация кейсов против документации до автоматизации |
+| `tf-naming` | [naming-check](naming-check.md) | Аудит имён файлов и кейсов против канона профиля |
+| `tf-antiai` | [anti-ai-check](anti-ai-check.md) | Скан качества сгенерированного кода; кандидаты, не вердикт |
+| `tf-curate` | [curate-review-feedback](curate-review-feedback.md) → [curate-pattern-cards](curate-pattern-cards.md) | Тред коллеги → правило `CHECK-NNN` → карточка паттерна |
+
+Полные контракты команд — [`../COMMANDS.md`](../COMMANDS.md).
+
+## Почему `tf-curate` — два скила
+
+Это два разных гейта доверия, и слияние их сломало бы главную гарантию:
+
+1. `curate-review-feedback` обезличивает тред и выделяет правило.
+   Карточек паттернов **не создаёт**.
+2. `curate-pattern-cards` читает **только** одобренное человеком и
+   создаёт карточку.
+
+Между ними стоит человек. Один скил на оба шага означал бы, что вставка
+сырого треда автоматически рождает канон.
+
+## Формат
 
 ```
-skills/<name>/SKILL.md
+skills/<name>.md
 ---
-name: <slug>
-description: <одна строка — что делает>
+name: <slug>              совпадает с именем файла
+description: <когда запускать и когда НЕ запускать>
 ---
 # /<name>
-Шаги с командами → формат отчёта → критерии PASS/FAIL
+Шаги с командами → формат отчёта → PASS / FAIL / PARTIAL / NOT_RUN
 ```
 
-Каждый skill обязан: (1) читать `context/projects/<profile>/` вместо угадывания
-путей; (2) завершаться evidence block и честным PASS/FAIL/PARTIAL/NOT_RUN;
-(3) не менять source code без явного шага/разрешения; (4) применять
-[rules/40](../standards/rules/40-verification-protocol.md) по риску и
-[rules/50](../standards/rules/50-data-handling.md) ко всему scanned/manual content.
+Имя в `name:` обязано совпадать с именем файла — это проверяет
+валидатор.
+
+## Обязательства скила
+
+Действуют для всех четырнадцати:
+
+1. Читать `context/projects/<profile>/` вместо угадывания путей.
+   Профиля нет — `tf-init`, а не догадка.
+2. Завершаться доказательством и честным вердиктом. `NOT_RUN` — законный
+   результат; выдуманное `PASS` — нет.
+3. Не менять исходный код без явного шага и разрешения.
+4. Применять [rules/40](../standards/rules/40-verification-protocol.md) по
+   уровню риска и [rules/50](../standards/rules/50-data-handling.md) ко
+   всему прочитанному и вставленному.

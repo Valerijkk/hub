@@ -40,7 +40,7 @@ discussions   почему пришли к тому, что записано в 
 | Факты о репозитории: команды, паттерны, нейминг | [`../context/`](../../context/README.md) |
 | Размышления агента, разбор вариантов | [`../reasoning/`](../reasoning/README.md) |
 | Общие практики автоматизации | [`../practices/`](../../standards/practices/README.md) |
-| Решения команды из ревью | [`../review-feedback/threads/`](../../standards/team-review/threads/README.md) |
+| Решения команды из ревью | [`team-review/threads/`](../../standards/team-review/threads/README.md) |
 
 ## Переносимость
 

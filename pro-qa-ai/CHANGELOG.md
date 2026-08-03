@@ -84,7 +84,6 @@
 ### Added
 
 - Продуктовая идентичность **Touchstone Standard** (`TOUCHSTONE.md`)
-- Связка с изданием **Touchstone Pro** (sibling `prompt-engineering-pro/`)
 - Production entry: обновлённые START-HERE / README / VERSION / MANIFEST
 
 ### Changed

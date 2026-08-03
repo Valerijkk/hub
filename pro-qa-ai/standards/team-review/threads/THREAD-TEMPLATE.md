@@ -68,4 +68,4 @@ status: active | superseded
 <Признак, по которому ревьюер найдёт такой же случай. Где возможно —
 команда поиска. Не «посмотреть внимательно».>
 
-Правило: [`CHECK-NNN`](../approved/README.md)
+Правило: [`CHECK-NNN`](../checks/README.md)

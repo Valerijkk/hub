@@ -52,7 +52,7 @@ profile=<name>
 
 ### 5–7 мин — знания коллег
 
-Открыть `standards/team-review/TEMPLATE.md`. Объяснить:
+Открыть `standards/team-review/threads/THREAD-TEMPLATE.md`. Объяснить:
 
 - автоматизатор вручную вставляет bad code, комментарий коллеги и good code;
 - curator не выдумывает пропущенное;

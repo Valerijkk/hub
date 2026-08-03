@@ -16,7 +16,7 @@
 
 1. Bootstrap project profile в [`../context/projects/`](../../context/projects).
 2. Человек вручную вставляет выбранные snippets и комментарии коллег в
-   [`../review-feedback/inbox/`](../team-review/inbox).
+   [`../team-review/threads/inbox/`](../team-review/threads/inbox/README.md).
 3. [`curate-review-feedback`](../../skills/curate-review-feedback.md)
    нормализует и редактирует запись. Он никогда не вызывает MR/PR API и не
    скрейпит reviews.

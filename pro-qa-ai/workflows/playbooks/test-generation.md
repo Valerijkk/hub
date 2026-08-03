@@ -45,7 +45,6 @@
 │
 9. Приёмка: evidence по criteria автоматизации — каждый approved-TC имеет
 │    тест, у каждого нового теста вердикт по утверждению.
-│    Goal-backward приёмка фазы — уровень Pro
 │
 └─ 10. test-documenter (templates/docs-sync.md): TC-каталог (TC ↔ автотест),
        карта сьютов, coverage-док

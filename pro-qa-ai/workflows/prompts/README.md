@@ -16,7 +16,7 @@
 
 Production contracts: [`../recipes/`](../recipes/README.md). Эталоны assembly:
 [`EXPANDED-EXAMPLES.md`](EXPANDED-EXAMPLES.md). GSD-порт и corporate-фрагменты —
-в издании Pro (`prompt-engineering-pro/`).
+вне этого пакета: он про тестовый фреймворк.
 
 ## Категории
 

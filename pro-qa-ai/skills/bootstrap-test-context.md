@@ -260,7 +260,7 @@ Bootstrap закончился — профиль существует, но е�
 
 1. **Человек читает профиль.** Это шаг приёмки, а не формальность: сгенерированные факты сверяются с тем, что человек знает о проекте. Что не подтвердилось — правится руками или переводится в `UNKNOWN`.
 2. **`tf-status`** — свести свежесть профиля, счётчики `UNKNOWN`, exclusions и limitations в одну сводку и увидеть, какие секции пусты.
-3. **`tf-review`** — после того как человек вручную скопировал выбранные snippets и комментарии коллег в [`../review-feedback/inbox/`](../standards/team-review/inbox) по [`../standards/team-review/TEMPLATE.md`](../standards/team-review/TEMPLATE.md). Bootstrap этого копирования не делает, отсутствующие комментарии не дотягивает и feedback не курирует.
+3. **`tf-review`** — после того как человек вручную скопировал выбранные snippets и комментарии коллег в [`../standards/team-review/threads/inbox/`](../standards/team-review/threads/inbox/README.md) по [`THREAD-TEMPLATE.md`](../standards/team-review/threads/THREAD-TEMPLATE.md). Bootstrap этого копирования не делает, отсутствующие комментарии не дотягивает и feedback не курирует.
 4. **`tf-curate`** — только после курирования feedback: pattern cards рождаются там, а не здесь.
 5. Все следующие обновления профиля — `tf-refresh`, а не повторный `tf-init`.
 

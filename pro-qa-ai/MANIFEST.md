@@ -1,7 +1,6 @@
 ---
 manifest_version: 1
-product: Touchstone
-edition: standard
+product: pro-qa-ai
 toolkit_version: 0.4.0-beta.1
 status: foundation-ready
 owner: automation-quality
@@ -11,14 +10,14 @@ validation_config: scripts/validation_manifest.json
 validation_status: STRUCTURAL_PASS
 last_validation: 2026-08-03
 provenance: official primary sources and repository inspection on 2026-07-26
-pro_edition: sibling prompt-engineering-pro/ >=0.3.0-beta.1 (outside portable package)
+
 ---
 
-# Манифест — Touchstone Standard
+# Манифест — pro-qa-ai
 
 ## Идентичность
 
-Этот дистрибутив — **Touchstone Standard**: AI quality layer для инженеров
+Этот дистрибутив — **pro-qa-ai**: AI quality layer для инженеров
 автоматизации тестирования. Он даёт переносимые операционные инструкции,
 валидацию, evaluation, provenance и governance вокруг уже существующей среды
 автоматизации. Продуктовая карта: [TOUCHSTONE.md](TOUCHSTONE.md).
@@ -57,7 +56,7 @@ pro_edition: sibling prompt-engineering-pro/ >=0.3.0-beta.1 (outside portable pa
 ## Инвентарь quality layer
 
 - [Context bootstrap](skills/bootstrap-test-context.md) и [контракты профилей](context/projects/README.md)
-- [Pattern cards](standards/patterns/README.md) и [ручной feedback коллег](standards/team-review/TEMPLATE.md)
+- [Pattern cards](standards/patterns/README.md) и [треды ревью коллег](standards/team-review/README.md)
 - [Production recipes](workflows/recipes/README.md)
 - [Structural validator](scripts/validate_toolkit.py)
 - [Portable packager](scripts/package_portable.py) и [политика упаковки](scripts/package_manifest.json)

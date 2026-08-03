@@ -27,7 +27,7 @@ explicit roots
 
 Bootstrap не читает review history. После bootstrap человек вручную кладёт
 выбранные snippets и комментарии коллег в
-[`../review-feedback/inbox/`](../standards/team-review/inbox). Curation — отдельный
+[`../standards/team-review/threads/inbox/`](../standards/team-review/threads/inbox/README.md). Curation — отдельный
 workflow с redaction gate.
 
 ## Правила security и evidence

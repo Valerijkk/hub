@@ -62,7 +62,7 @@ disable-model-invocation: true
 
 | Нужно | Источник |
 |---|---|
-| **Решения этой команды из реальных ревью** | [`review-feedback/threads/approved/`](../standards/team-review/threads/approved/README.md) — **читать первым** |
+| **Решения этой команды из реальных ревью** | [`team-review/threads/approved/`](../standards/team-review/threads/approved/README.md) — **читать первым** |
 | Где живут тесты, уровни, инфраструктура | профиль `TEST-ARCHITECTURE.md` |
 | Точные команды прогона и флаги | профиль `COMMANDS.md` |
 | Гейты и job-и | профиль `CI-PIPELINE.md` |
@@ -77,7 +77,7 @@ disable-model-invocation: true
 ### Порядок источников — жёсткий
 
 ```
-1. Треды и правила ЭТОЙ команды   review-feedback/threads/approved/
+1. Треды и правила ЭТОЙ команды   team-review/checks/ + threads/approved/
 2. Активный профиль проекта        context/projects/<profile>/
 3. Общие практики автоматизации    rules/20, patterns/approved/
 4. Общие практики кодирования      последнее
@@ -354,7 +354,7 @@ out-of-range вход; denial (чужой ресурс, отсутствующа
 | 9 | Трассируемость | Кейс связан с требованием | Связи нет там, где профиль её требует |
 | 10 | Артефакты | Рабочее дерево чистое | Профили покрытия, отчёты, временные файлы в дифе |
 | 11 | Прогон | Приложен лог с результатом | Заявлено «зелёный» без вывода |
-| 12 | Решения команды | Треды из `review-feedback/threads/approved/` учтены | Нарушено правило команды, зафиксированное тредом |
+| 12 | Решения команды | Правила из `team-review/checks/` учтены | Нарушено правило команды, зафиксированное тредом |
 
 Пункт 12 проверяется **первым по порядку чтения**, хотя стоит последним в
 таблице: решения команды перебивают общие практики, и находка по ним
@@ -448,6 +448,6 @@ Verification:
 - Severity и политика мержа: [`rules/30`](../standards/rules/30-severity-policy.md)
 - Осмысленность утверждения и протокол: [`rules/40`](../standards/rules/40-verification-protocol.md)
 - Недоверенные данные: [`rules/50`](../standards/rules/50-data-handling.md)
-- Знание из ревью коллег: [`review-feedback/approved/`](../standards/team-review/approved/README.md)
+- Знание из ревью коллег: [`team-review/`](../standards/team-review/README.md)
 - Соседние команды: `tf-init`, `tf-refresh`, `tf-status`, `tf-cover`,
   `tf-triage`, `tf-verify`, `tf-naming`, `tf-antiai`, `tf-curate`
