@@ -37,7 +37,7 @@ pro_edition: sibling prompt-engineering-pro/ >=0.3.0-beta.1 (outside portable pa
   эквивалентные mocked Windows reparse тесты проходят);
 - portable package: 162 files (validator, inventory, упаковщик),
   inventory SHA-256 записан; сгенерированные `context/projects/hub/` и
-  `evals/smoke/` в пакет не входят.
+  в пакет не входят.
 
 Детали команд и мутационная проверка состава — [VERSION.md](VERSION.md).
 
@@ -47,8 +47,8 @@ pro_edition: sibling prompt-engineering-pro/ >=0.3.0-beta.1 (outside portable pa
 
 | Слой | Содержимое | Ответственный владелец | Граница approval |
 |---|---|---|---|
-| Portable operating content | `agents/`, `skills/`, `rules/`, `playbooks/`, `prompts/`, `recipes/` | automation quality | framework и security review для изменений контракта |
-| Project context/knowledge | `context/`, `patterns/`, `review-feedback/` | владелец фреймворка целевого репозитория | generated facts и ручные examples требуют provenance/redaction/reuse scope |
+| Portable operating content | `agents/`, `skills/`, `standards/`, `workflows/` | automation quality | framework и security review для изменений контракта |
+| Project context/knowledge | `context/`, `standards/patterns/`, `standards/team-review/` | владелец фреймворка целевого репозитория | generated facts и ручные examples требуют provenance/redaction/reuse scope |
 | Structural validation | `scripts/` | automation quality | security утверждает secret/injection patterns и exceptions |
 | Source registry | `sources/` | automation quality | domain owner ревьюит изменённые mappings |
 | Management controls | `docs/` | engineering management | approval governance, data, provider и rollout |
@@ -66,10 +66,6 @@ pro_edition: sibling prompt-engineering-pro/ >=0.3.0-beta.1 (outside portable pa
   [schema](scripts/context_inventory.schema.json)
 - [Конфигурация валидации](scripts/validation_manifest.json)
 - [Unit-тесты валидатора](scripts/tests/test_validate_toolkit.py)
-- Eval protocol
-- Eval machine manifest
-- Eval run record
-- Шаблоны fixtures: generation, review, debug/flaky, context grounding, scope control и prompt injection
 - [Primary sources](sources/PRIMARY-SOURCES.md)
 - Management docs: [overview](docs/EXECUTIVE-OVERVIEW.md), [Russian overview](docs/EXECUTIVE-OVERVIEW-RU.md), [demo](docs/DEMO.md), [Russian leadership demo](docs/LEADERSHIP-DEMO-RU.md), [ROI metrics](docs/ROI-METRICS.md) и [governance](docs/GOVERNANCE.md)
 - [Version](VERSION.md)
@@ -88,9 +84,8 @@ Stdlib-валидатор проверяет:
 - явные инструкции, требующие раскрытия private reasoning;
 - неизвестные GSD route names относительно configurable route registry;
 - secret-like patterns с redacted diagnostics;
-- статическую форму Cursor adapter mapping/wrapper и readonly reviewer policy
-  (не runtime model catalog и не доступность data-policy);
 - project-specific leakage в portable core по reviewed deny и allow rules;
+- резолв путей в inline-code (бэктики), а не только markdown-ссылок;
 - trailing whitespace;
 - поля provenance тулкита и generated-context.
 

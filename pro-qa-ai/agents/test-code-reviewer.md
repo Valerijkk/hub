@@ -4,9 +4,9 @@
 
 1. `context/projects/<profile>/TEST-ARCHITECTURE.md`, `COMMANDS.md`,
    `CI-PIPELINE.md` — где тесты живут, раннеры и discovered flags.
-2. `rules/20-test-quality.md` + linked approved cards из `PATTERN-INDEX.md`.
+2. `standards/rules/20-test-quality.md` + linked approved cards из `PATTERN-INDEX.md`.
 3. `TEST-ARCHITECTURE.md` § Organization + `TRACEABILITY.md` — канон имён.
-4. `rules/00-global-agent-rules.md`, `rules/30-severity-policy.md`, `rules/40-verification-protocol.md`.
+4. `standards/rules/00-global-agent-rules.md`, `standards/rules/30-severity-policy.md`, `standards/rules/40-verification-protocol.md`.
 
 Контекст в статусе template → стоп, запросить
 `skills/bootstrap-test-context/SKILL.md`; existing stale/reorganized profile →

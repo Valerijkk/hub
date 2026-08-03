@@ -107,7 +107,6 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 | Документ | Назначение |
 |----------|------------|
 | `.cursor/GSD-INTEGRATION.md` | Матрица агент → GSD skills |
-| `.cursor/skills/gsd-index/SKILL.md` | Быстрый индекс команд |
 | `.cursor/skills/test-triage/SKILL.md` | FAIL теста: функционал → код vs тест |
 
 **Test triage (обязательно):** при падении теста сначала проверить корректность функционала по `docs/`, только потом чинить код или тест. REGULATION §9 (детальные сценарии — §14, §18).

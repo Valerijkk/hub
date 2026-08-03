@@ -5,7 +5,7 @@
 1. `context/projects/<profile>/PROJECT.md` § Governing documentation.
 2. `TEST-ARCHITECTURE.md`, `COMMANDS.md`, `CI-PIPELINE.md`, `TRACEABILITY.md`
    — текущее evidence-backed описание фреймворка.
-3. `rules/00-global-agent-rules.md`, `rules/40-verification-protocol.md`.
+3. `standards/rules/00-global-agent-rules.md`, `standards/rules/40-verification-protocol.md`.
 
 ## 1. Кто я
 

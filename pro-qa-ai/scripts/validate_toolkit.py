@@ -44,6 +44,7 @@ DEFAULT_CONFIG_NAME = "validation_manifest.json"
 CHECK_ORDER = (
     "file_policy",
     "links",
+    "inline_paths",
     "frontmatter",
     "skills",
     "prompt_ids",
@@ -564,6 +565,47 @@ class ToolkitValidator:
                     "validation tree exceeds max total bytes",
                 )
                 total_reported = True
+
+
+    def check_inline_paths(self) -> None:
+        """Пути, записанные в бэктиках, а не markdown-ссылкой.
+
+        Именно здесь копятся следы переездов: скрипты пересчёта правят
+        ссылки и не трогают текст, а check_links смотрит только ссылки.
+        """
+        settings = self.config.get("inline_paths")
+        if not settings:
+            return
+        roots = tuple(settings.get("package_roots", []))
+        pattern = re.compile(r"`([^`\n]+?\.(?:md|py|json|ya?ml))`")
+        for path in self.files(settings["include_globs"], settings.get("exclude_globs", [])):
+            text = self.read_text(path, "inline_paths")
+            if text is None:
+                continue
+            scan_text = without_fenced_blocks(text)
+            for match in pattern.finditer(scan_text):
+                raw = match.group(1).strip()
+                if raw.startswith(("http", "mailto", "<")) or "{{" in raw or "*" in raw:
+                    continue
+                if "<" in raw or ">" in raw or " " in raw:
+                    continue
+                if "/" not in raw:
+                    continue
+                candidates = [path.parent / raw]
+                if roots and raw.startswith(roots):
+                    candidates.append(self.root.parent / raw)
+                else:
+                    candidates.append(self.root / raw)
+                if any(c.resolve().exists() for c in candidates):
+                    continue
+                if True:
+                    self.add(
+                        "inline_paths",
+                        "PATH001",
+                        path,
+                        _line_number(scan_text, match.start(1)),
+                        f"inline path does not resolve: {raw}",
+                    )
 
     def check_links(self) -> None:
         settings = self.config["links"]
@@ -1745,6 +1787,7 @@ class ToolkitValidator:
         methods = {
             "file_policy": self.check_file_policy,
             "links": self.check_links,
+            "inline_paths": self.check_inline_paths,
             "frontmatter": self.check_frontmatter,
             "skills": self.check_skills,
             "prompt_ids": self.check_prompt_ids,

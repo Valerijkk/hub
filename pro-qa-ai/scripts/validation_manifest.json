@@ -397,5 +397,19 @@
       "Процедура",
       "Типичные ошибки"
     ]
+  },
+  "inline_paths": {
+    "include_globs": [
+      "**/*.md"
+    ],
+    "exclude_globs": [
+      "context/projects/**"
+    ],
+    "package_roots": [
+      "pro-qa-ai/",
+      "prompt-engineering-pro/",
+      ".cursor/",
+      ".planning/"
+    ]
   }
 }

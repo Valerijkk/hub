@@ -12,6 +12,7 @@
   `planning/` на верхнем уровне не существуют — они внутри `standards/`,
   `workflows/` и `work/`
 - `review-feedback/` переименован в `standards/team-review/`
+- Portable package: 148 → 162 файла
 
 ### Removed (BREAKING)
 

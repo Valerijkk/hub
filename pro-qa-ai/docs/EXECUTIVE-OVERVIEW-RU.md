@@ -43,7 +43,7 @@ Bootstrap не читает закрытые MR, историю review или в
 
 - воспроизводимую карту framework/CI/test data/traceability;
 - каталог проверенных patterns с provenance/freshness;
-- 14 production recipes поверх 1112 prompt fragments;
+- 14 production recipes поверх 1000 prompt fragments;
 - GSD-подобный lifecycle plan → execute → verify → handoff;
 - Sol Pro orchestrator и динамический выбор доступных Cursor models;
 - structural validator и eval fixtures;
@@ -54,7 +54,7 @@ Bootstrap не читает закрытые MR, историю review или в
 - Source и packaged validators: **PASS**, 0 errors / 0 warnings.
 - Combined security/tooling tests: **42 PASS / 1 environmental SKIP** (43 total;
   mocked Windows reparse checks PASS).
-- Portable package: **168 files**, Hub profile/smoke/raw inbox исключены.
+- Portable package: **162 files**, Hub profile/smoke/raw inbox исключены.
 - Eval effectiveness/ROI: **NOT_RUN**.
 - Release: **pre-release**, adoption blocked до измеримого пилота и sign-off.
 

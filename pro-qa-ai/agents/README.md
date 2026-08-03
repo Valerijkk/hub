@@ -5,11 +5,13 @@ model ID или sampling-параметры и не считаются гото�
 Проектные факты берутся только из `context/projects/<profile>/` и linked
 approved pattern cards.
 
-Подключение выполняется через `../adapters/`, а выбор модели —
 средой запуска, а не текстом промпта.
 В частности, raw core markdown нельзя просто скопировать в `.cursor/agents/`:
 Cursor требует корректный YAML frontmatter и wrapper; см.
-`../adapters/cursor/`.
+
+Модель и параметры генерации задаёт среда запуска, а не текст промпта.
+
+Шаблоны запуска — [`templates/README.md`](templates/README.md).
 
 ## Ростер
 
@@ -48,7 +50,7 @@ Standard — **только тестовый фреймворк**. Начина�
 ## Общий контракт
 
 1. Принять natural-language запрос и нормализовать его по
-   [`templates/_MASTER-PROMPT-TEMPLATE.md`](templates/_MASTER-PROMPT-TEMPLATE.md).
+   [`agents/templates/_MASTER-PROMPT-TEMPLATE.md`](templates/_MASTER-PROMPT-TEMPLATE.md).
    Не заставлять человека заполнять полный шаблон.
 2. Спросить только если неизвестность materially меняет outcome, scope, риск,
    разрешения или acceptance. Безопасные обратимые defaults перечислить как assumptions.
@@ -88,5 +90,5 @@ Standard — **только тестовый фреймворк**. Начина�
 - Human request: можно кратко и свободно.
 - Delegation/CI/handoff: строгий master contract.
 - Волна и полный delivery-процесс — издание Pro (`prompt-engineering-pro/`):
-  шаблон `agents/templates/wave-delegate.md`, плейбук
-  `playbooks/corporate-delivery.md`.
+  шаблон шаблон волны издания Pro, плейбук
+  плейбук поставки издания Pro.

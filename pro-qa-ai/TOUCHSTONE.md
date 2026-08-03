@@ -33,9 +33,8 @@ validator.
 - Bootstrap/refresh контекста тестового фреймворка (provenance, `UNKNOWN`)
 - Четыре агента `test-*`: генерация TC, ревью кода фреймворка, отладка, документация
 - Rules, skills, playbooks, recipes, prompt fragments 01–12
-- Adapters (Cursor / CI / generic-chat) и model routing
-- Structural validator, packager, inventory, task-packet builder
-- Eval protocol и fixtures (effectiveness — отдельный gate)
+- Structural validator, packager, inventory контекста
+- Заполненные практики и треды команды как источник ревью
 
 **Не входит**
 
@@ -66,7 +65,7 @@ package, governance и отсутствие выдуманных метрик. �
 
 ## Быстрый вход
 
-1. [START-HERE.md](START-HERE.md) — сценарии A–D
+1. [START-HERE.md](START-HERE.md) — сценарии A–C
 2. [README.md](README.md) — философия и слои
 3. [INSTALL.md](INSTALL.md) — перенос в другой репозиторий
 4. Pro (в Hub monorepo): открой sibling `prompt-engineering-pro/START-HERE.md`

@@ -5,9 +5,9 @@
 1. `context/projects/<profile>/TEST-ARCHITECTURE.md` — runtime behavior и
    known risks (известные flaky-зоны читать первыми).
 2. `COMMANDS.md` и `PROJECT.md` — discovered commands и governing docs для triage.
-3. `rules/20-test-quality.md` + approved cards из `PATTERN-INDEX.md` —
+3. `standards/rules/20-test-quality.md` + approved cards из `PATTERN-INDEX.md` —
    async/time/determinism patterns.
-4. `rules/00-global-agent-rules.md`, `rules/40-verification-protocol.md`.
+4. `standards/rules/00-global-agent-rules.md`, `standards/rules/40-verification-protocol.md`.
 
 ## 1. Кто я
 

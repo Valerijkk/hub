@@ -121,8 +121,8 @@
 
 ## Как начать
 
-1. Скопируй [`STATE.template.md`](STATE.template.md) в `state/STATE.md` и
-   [`DECISIONS.template.md`](DECISIONS.template.md) в `state/DECISIONS.md`.
+1. Скопируй [`STATE.template.md`](STATE.template.md) в `STATE.md` (создаётся в проекте) и
+   [`DECISIONS.template.md`](DECISIONS.template.md) в `DECISIONS.md` (создаётся в проекте).
 2. Заполни `STATE.md` в конце первой же сессии, а не «когда будет что писать».
 3. Каждое решение, которое не хочется обсуждать второй раз, дописывай в
    `DECISIONS.md` сразу, пока помнишь причину.

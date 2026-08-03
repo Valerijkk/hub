@@ -9,7 +9,7 @@ disable-model-invocation: true
 Команда «отревьюй эти тесты». Роль, которую она запускает, описана в
 [`agents/test-code-reviewer.md`](../../agents/test-code-reviewer.md); сборка
 входов и схема выхода — в
-[`recipes/review-ai-test-code.md`](../../workflows/recipes/review-ai-test-code.md). Здесь
+[`workflows/recipes/review-ai-test-code.md`](../../workflows/recipes/review-ai-test-code.md). Здесь
 — процедура: что проверять, в каком порядке, по какому признаку находить и как
 сдавать результат.
 
@@ -443,7 +443,7 @@ Verification:
 ## Ссылки
 
 - Роль и чек-лист: [`agents/test-code-reviewer.md`](../../agents/test-code-reviewer.md)
-- Сборка входов и схема выхода: [`recipes/review-ai-test-code.md`](../../workflows/recipes/review-ai-test-code.md)
+- Сборка входов и схема выхода: [`workflows/recipes/review-ai-test-code.md`](../../workflows/recipes/review-ai-test-code.md)
 - Планка качества и пять форм: [`rules/20`](../../standards/rules/20-test-quality.md)
 - Severity и политика мержа: [`rules/30`](../../standards/rules/30-severity-policy.md)
 - Чувствительность и протокол: [`rules/40`](../../standards/rules/40-verification-protocol.md)

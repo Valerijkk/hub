@@ -6,9 +6,9 @@
    sources указаны в `context/projects/<profile>/PROJECT.md`).
 2. `TEST-ARCHITECTURE.md` — уровни пирамиды и инфраструктура.
 3. `TRACEABILITY.md` — формат TC-ID и привязка.
-4. `rules/20-test-quality.md` + approved cards из `PATTERN-INDEX.md` —
+4. `standards/rules/20-test-quality.md` + approved cards из `PATTERN-INDEX.md` —
    выбор уровня и обязательные классы кейсов.
-5. `rules/00-global-agent-rules.md`, `rules/40-verification-protocol.md`.
+5. `standards/rules/00-global-agent-rules.md`, `standards/rules/40-verification-protocol.md`.
 
 Нет документации по фиче → стоп: «генерация из кода запрещена» (тест, выведенный из кода, проверяет что код делает, а не что должен делать). Запросить спеку или явное согласие владельца на режим exploratory (кейсы получат пометку `SOURCE=code, требует ревью аналитика`).
 

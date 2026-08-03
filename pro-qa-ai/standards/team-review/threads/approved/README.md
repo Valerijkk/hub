@@ -33,7 +33,7 @@
 Сырые треды — в [`../inbox/`](../../inbox/README.md), в ревью они не
 участвуют: не обезличены и не разобраны.
 
-Общие практики тестирования — в [`rules/20-test-quality.md`](../../../rules/20-test-quality.md)
+Общие практики тестирования — в [`standards/rules/20-test-quality.md`](../../../rules/20-test-quality.md)
 и карточках [`patterns/approved/`](../../../patterns/approved/README.md).
 Здесь только то, чего нет в общих практиках: решения этой команды и их
 причины.

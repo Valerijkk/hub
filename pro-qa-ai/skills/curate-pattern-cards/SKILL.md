@@ -99,7 +99,7 @@ Promote или deprecate:
 
 ## Workflow promotion
 
-Сам вызов — не human approval. Перед promotion проверить каждый gate из `patterns/SCHEMA.md`:
+Сам вызов — не human approval. Перед promotion проверить каждый gate из `standards/patterns/SCHEMA.md`:
 
 1. Provenance path, lines, commit и feedback IDs полны и verified.
 2. Bad/good snippets и rationale верны смыслу.

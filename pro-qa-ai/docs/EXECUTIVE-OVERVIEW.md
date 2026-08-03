@@ -12,7 +12,7 @@ provenance и governance вокруг существующей работы по
 
 Release status: **pre-release / eval NOT_RUN**. Structural validator зелёный
 для source и packaged distributions (0 errors, 0 warnings). Combined tests:
-55 PASS / 1 SKIP (создание symlink недоступно). Portable package из 172 files
+55 PASS / 1 SKIP (создание symlink недоступно). Portable package из 162 files
 провалидирован; generated project profiles и local smoke evidence исключены.
 Никакое заявление об effectiveness или ROI не одобрено, пока paired pilot не
 измерит оба arms.

@@ -52,7 +52,7 @@ profile=<name>
 
 ### 5–7 мин — знания коллег
 
-Открыть `review-feedback/TEMPLATE.md`. Объяснить:
+Открыть `standards/team-review/TEMPLATE.md`. Объяснить:
 
 - автоматизатор вручную вставляет bad code, комментарий коллеги и good code;
 - curator не выдумывает пропущенное;
@@ -64,7 +64,7 @@ profile=<name>
 
 ### 7–10 мин — production recipe
 
-Выбрать `recipes/review-ai-test-code.md` или `generate-api-tests.md`.
+Выбрать `workflows/recipes/review-ai-test-code.md` или `generate-api-tests.md`.
 Показать:
 
 - outcome;
@@ -92,7 +92,7 @@ py -3 -B -m unittest discover `
 
 ### 12–15 мин — измерение и решение
 
-Открыть `evals/README.md` и `docs/ROI-METRICS.md`.
+Открыть `standards/practices/coverage.md` и `docs/ROI-METRICS.md`.
 Объяснить paired baseline/assisted pilot и decision gates.
 
 ## Вопросы, к которым быть готовым

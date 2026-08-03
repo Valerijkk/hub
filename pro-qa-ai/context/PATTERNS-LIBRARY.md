@@ -9,7 +9,7 @@ filled_at: {{YYYY-MM-DD}}
 # Patterns Library — эталоны тестов
 
 > **DEPRECATED / READ-ONLY COMPATIBILITY.** Portable baseline теперь задаёт
-> `rules/20-test-quality.md`; project patterns живут в approved cards и active
+> `standards/rules/20-test-quality.md`; project patterns живут в approved cards и active
 > profile `PATTERN-INDEX.md`. Этот файл не обновляется новыми workflows.
 
 ---

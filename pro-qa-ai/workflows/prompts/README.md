@@ -1,6 +1,6 @@
 # prompts/ — библиотека prompt fragments и recipes
 
-> ~1000 фрагментов по 12 категориям тестирования + 112 corporate-delivery. Это **не** готовые «лучшие промпты» сами по себе — однострочники-слоты `[ЧТО]`, которые собираются в production-recipe вместе с active profile и approved pattern cards. Слоты: `{{…}}` (или заполнение из `context/projects/<profile>/`).
+> 1000 фрагментов по 12 категориям тестирования + 112 corporate-delivery. Это **не** готовые «лучшие промпты» сами по себе — однострочники-слоты `[ЧТО]`, которые собираются в production-recipe вместе с active profile и approved pattern cards. Слоты: `{{…}}` (или заполнение из `context/projects/<profile>/`).
 
 ## Production use
 

@@ -547,7 +547,7 @@ Slash: `.cursor/skills/qa-gate/SKILL.md`.
 
 | Издание | Путь | Назначение |
 |---------|------|------------|
-| **Standard** `0.4.0-beta.1` | [`pro-qa-ai/`](../pro-qa-ai/TOUCHSTONE.md) | Объект — **тестовый фреймворк**: context bootstrap, `test-*` агенты, recipes, evals, packager |
+| **Standard** `0.4.0-beta.1` | [`pro-qa-ai/`](../pro-qa-ai/TOUCHSTONE.md) | Объект — **тестовый фреймворк**: context bootstrap, `test-*` агенты, standards, workflows, packager |
 | **Pro** `0.3.0-beta.1` | [`prompt-engineering-pro/`](../prompt-engineering-pro/START-HERE.md) | Объект — **продукт**: 12 ролей разработки, phase/wave/verify, corporate delivery, mutation |
 
 Деление по **объекту работы**, а не по уровню. Автоматизатору достаточно
@@ -558,19 +558,18 @@ Standard; команде разработки нужны оба, Pro стави�
 Переносимая AI-прослойка: изучает **существующий** тестовый фреймворк по явным
 корням → generated profile с provenance → agents/recipes → structural validate +
 evals. Это не scaffold фреймворка. Bootstrap: `skills/bootstrap-test-context`
-(после `scripts/context_inventory.py`); закрытые MR не читаются.
+(после `pro-qa-ai/scripts/context_inventory.py`); закрытые MR не читаются.
 
 ### Состав Standard
 
 | Блок | Путь | Содержание |
 |------|------|------------|
 | Агенты | `pro-qa-ai/agents/` | только `test-*` (4): TC, ревью кода фреймворка, отладка, документация |
-| Скилы | `pro-qa-ai/skills/` | bootstrap/refresh, curation, naming, anti-ai, test-verification (7) |
+| Скилы | `pro-qa-ai/skills/` | bootstrap/refresh, curation, naming, anti-ai, test-verification + 7 команд `tf-*` (14) |
 | Правила | `pro-qa-ai/standards/rules/` | `00` global, `10` naming, `20` quality, `30` severity, `40` verification, `50` data-handling |
-| Плейбуки | `pro-qa-ai/workflows/playbooks/` | onboarding, generation, review, debug, documentation, model-routing |
-| Промпты / recipes | `prompts/`, `recipes/` | fragments 01–12 (1000+) + production recipes |
-| Шаблоны | `agents/templates/` | `_MASTER-PROMPT-TEMPLATE` + phase/wave |
-| Adapters | `adapters/cursor/` | маппинг 4 `test-*` ролей |
+| Плейбуки | `pro-qa-ai/workflows/playbooks/` | onboarding, test-generation, review-cycle, debugging, documentation (5) |
+| Промпты / recipes | `workflows/prompts/`, `workflows/recipes/` | fragments 01–12 (1000) + production recipes |
+| Шаблоны | `pro-qa-ai/agents/templates/` | `_MASTER-PROMPT-TEMPLATE` + 9 сценарных; phase/wave — в Pro |
 
 ### Состав Pro (слой разработки)
 
@@ -578,13 +577,14 @@ evals. Это не scaffold фреймворка. Bootstrap: `skills/bootstrap-t
 |------|------------|
 | `agents/` | 12 ролей: orchestrator, product-owner, architect, backend-dev, frontend-dev, qa-manual, qa-auto, code-reviewer, debugger, security-reviewer, devops, docs-writer |
 | `skills/` | phase-plan, wave-orchestrate, verify-goal |
-| `playbooks/` | corporate-delivery, gsd-lifecycle, wave-execution, handoff-state, portable-kit-dry-run, discuss-and-research, debug-forensics |
+| `playbooks/` | corporate-delivery, gsd-lifecycle, wave-execution, handoff-state, portable-kit-dry-run, discuss-and-research, debug-forensics, model-routing (8) |
 | `prompts/` | категория 13 — corporate delivery (112 фрагментов) |
 | `adapters/cursor/` | маппинг 12 ролей; `architect` / `code-reviewer` / `security-reviewer` — `readonly: true` |
 | `layers/`, `extracts/` | 7 слоёв практик + переносимые контракты, включая **mutation-evidence** |
+| `models/` | реестр моделей, перенесён из Standard |
 | `gsd-port/`, `PORTABLE-HUB-KIT.md` | перенос kit; индекс GSD→PE |
 
-Pro без Standard не ставится и не дублирует его context/rules/recipes/evals.
+Pro без Standard не ставится и не дублирует его context, standards и workflows.
 Hub TZ (`60-tz-constraints`) в Pro **не** копируется.
 
 ### Ключевые механизмы

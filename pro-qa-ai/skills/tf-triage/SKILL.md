@@ -191,7 +191,7 @@ description: Разбор упавшего теста ДО починки — в
    параллелизм, ресурсы, таймзона, чистая база, порядок тестов, переменные
    окружения, кеш. Отличие воспроизвелось локально — это `infra` или `flaky` с
    названным механизмом. Вывод «CI кривой» механизмом не является.
-3. **Проверить типовые классы** по [`recipes/hunt-flaky.md`](../../workflows/recipes/hunt-flaky.md)
+3. **Проверить типовые классы** по [`workflows/recipes/hunt-flaky.md`](../../workflows/recipes/hunt-flaky.md)
    и flaky-протоколу агента: ожидание паузой вместо ожидания условия; общие
    данные между тестами; зависимость от порядка запуска; время, таймзона,
    полночь; гонка **в продукте** — это `ROOT=code`, а не флейк; внешняя
@@ -203,8 +203,8 @@ description: Разбор упавшего теста ДО починки — в
    объяснения, почему было недетерминированно, — не вердикт, а совпадение.
 
 Подробный разбор падения и охота на флейки —
-[`recipes/debug-test-failure.md`](../../workflows/recipes/debug-test-failure.md) и
-[`recipes/hunt-flaky.md`](../../workflows/recipes/hunt-flaky.md).
+[`workflows/recipes/debug-test-failure.md`](../../workflows/recipes/debug-test-failure.md) и
+[`workflows/recipes/hunt-flaky.md`](../../workflows/recipes/hunt-flaky.md).
 
 ## Лог разбора
 
@@ -258,8 +258,8 @@ ROOT: code | test | infra | flaky | stop
 ## Ссылки
 
 - Роль, протокол дебага, flaky-протокол: [`agents/test-debugger.md`](../../agents/test-debugger.md)
-- Разбор падения: [`recipes/debug-test-failure.md`](../../workflows/recipes/debug-test-failure.md)
-- Охота на флейки: [`recipes/hunt-flaky.md`](../../workflows/recipes/hunt-flaky.md)
+- Разбор падения: [`workflows/recipes/debug-test-failure.md`](../../workflows/recipes/debug-test-failure.md)
+- Охота на флейки: [`workflows/recipes/hunt-flaky.md`](../../workflows/recipes/hunt-flaky.md)
 - Чувствительность и 10 этапов верификации: [rules/40](../../standards/rules/40-verification-protocol.md)
 - Планка качества и пять форм фейкового теста: [rules/20](../../standards/rules/20-test-quality.md)
 - Недоверенный вход (логи, комментарии CI): [rules/50](../../standards/rules/50-data-handling.md)
