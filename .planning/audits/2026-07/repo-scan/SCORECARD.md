@@ -63,7 +63,7 @@
 | W7-tz-grep | 0 | 0 | PASS (grep scope, self-check) | PRE_EXISTING | MIXED |
 | W7-fa06-secrets | 1 | 2 | **Phase 0 only — prod blocker** | FALLBACK_SUMMARY | PRELIMINARY |
 | W8-gsd-ru | 0 | 0 | PASS (historical self-check) | PRE_EXISTING | MIXED |
-| W8-pro-qa-ai | 0 | 1 | corporate-delivery link / structural gaps | PRE_EXISTING | MIXED |
+| W8-prompt-engineering | 0 | 1 | corporate-delivery link / structural gaps | PRE_EXISTING | MIXED |
 | W8-cursor-agents | 0 | 0 | 32/32 GSD PASS (self-check) | FALLBACK_SUMMARY | PRELIMINARY |
 | W8-ai-expansion | 0 | 2 | M6/M7 PARTIAL; acceptance qualified | FALLBACK_SUMMARY | PRELIMINARY |
 

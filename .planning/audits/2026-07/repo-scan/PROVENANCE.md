@@ -84,7 +84,7 @@ Per-file класс зафиксирован ниже (19 + 20 = **39** domain-�
 | [W7-tz-grep](./W7-tz-grep.md) | PRE_EXISTING | MIXED | false | historical_self_check: PASS (grep scope only) |
 | [W7-fa06-secrets](./W7-fa06-secrets.md) | FALLBACK_SUMMARY | PRELIMINARY | false | Phase 0 only — prod blocker |
 | [W8-gsd-ru](./W8-gsd-ru.md) | PRE_EXISTING | MIXED | false | historical_self_check: PASS (pack depth) |
-| [W8-pro-qa-ai](./W8-pro-qa-ai.md) | PRE_EXISTING | MIXED | false | historical_self_check: PASS (readonly audit scope) |
+| [W8-pro-qa-ai](./W8-prompt-engineering.md) | PRE_EXISTING | MIXED | false | historical_self_check: PASS (readonly audit scope) |
 | [W8-cursor-agents](./W8-cursor-agents.md) | FALLBACK_SUMMARY | PRELIMINARY | false | historical_self_check: PASS (G2 scope) |
 | [W8-ai-expansion](./W8-ai-expansion.md) | FALLBACK_SUMMARY | PRELIMINARY | false | historical_self_check: PASS (Must structural); M6/M7 open |
 
