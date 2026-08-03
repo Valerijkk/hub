@@ -9,6 +9,7 @@
 | [curate-review-feedback](curate-review-feedback/SKILL.md) | Проверка вручную добавленных before/comment/after examples | После ручного заполнения `review-feedback/inbox/` |
 | [tf-init](tf-init/SKILL.md) | Первый запуск: изучить репозиторий, наполнить контекст | Контура в репозитории ещё нет |
 | [tf-status](tf-status/SKILL.md) | Где я: свежесть контекста, покрытие, что дальше | Начало сессии, в любой непонятной ситуации |
+| [tf-cases](tf-cases/SKILL.md) | Спроектировать тест-кейсы из требований техниками тест-дизайна | Есть требование, нужен набор кейсов |
 | [tf-cover](tf-cover/SKILL.md) | Покрыть тестами ручки, модуль, требования | Пришло новое либо есть непокрытое |
 | [tf-triage](tf-triage/SKILL.md) | Упал тест: code, test, infra, flaky, stop | Красный тест или сообщение о баге |
 | [tf-review](tf-review/SKILL.md) | Ревью тестового кода до мержа | Автор считает работу законченной |
@@ -17,7 +18,7 @@
 | [naming-check](naming-check/SKILL.md) | Аудит нейминга тестовых функций и файлов против активного profile | Перед мержем тестов; периодический аудит |
 | [test-verification](test-verification/SKILL.md) | Верификация сгенерированных тест-кейсов против документации | После `test-case-generator`; перед автоматизацией TC |
 
-Всего: **12 skills**, каждый в собственной папке. Нормализация feedback и
+Всего: **13 skills**, каждый в собственной папке. Нормализация feedback и
 approval паттернов — разные trust gates: первый skill не создаёт cards, второй
 читает только human-approved feedback.
 

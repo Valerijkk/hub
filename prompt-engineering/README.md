@@ -104,6 +104,11 @@ prompt-engineering/                 ← Touchstone Standard (эта папка)
 
 Подробно: [INSTALL.md](INSTALL.md) и [playbooks/onboarding.md](playbooks/onboarding.md).
 
+**Знание команды сильнее общих практик.** Треды из реальных ревью лежат в
+[`review-feedback/threads/`](review-feedback/threads/README.md) и читаются
+ревьюером **до** общих практик из [`practices/`](practices/README.md).
+Порядок источников — в [`rules/20`](rules/20-test-quality.md).
+
 **Пакет командный.** Полная поверхность из десяти команд и типовые цепочки —
 [COMMANDS.md](COMMANDS.md). Первая команда в новом репозитории — `tf-init`,
 в уже настроенном — `tf-status`.
