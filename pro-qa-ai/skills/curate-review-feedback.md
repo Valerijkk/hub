@@ -32,7 +32,7 @@ disable-model-invocation: true
 
 Для каждой записи:
 
-1. Проверить frontmatter по [`../../standards/team-review/TEMPLATE.md`](../../standards/team-review/TEMPLATE.md).
+1. Проверить frontmatter по [`../standards/team-review/TEMPLATE.md`](../standards/team-review/TEMPLATE.md).
 2. Назначить или проверить стабильный ID `RF-<profile>-<nnn>`. Не переиспользовать IDs.
 3. Разделить:
    - review context;
@@ -126,4 +126,4 @@ Project-only или organization-only feedback никогда не копиро�
 - unresolved fields;
 - пути output и profile-index.
 
-Не создавать pattern cards в этом skill. Направлять approved feedback в [`curate-pattern-cards`](../curate-pattern-cards/SKILL.md).
+Не создавать pattern cards в этом skill. Направлять approved feedback в [`curate-pattern-cards`](curate-pattern-cards.md).

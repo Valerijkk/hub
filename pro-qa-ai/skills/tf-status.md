@@ -28,7 +28,7 @@ description: Где я сейчас — свежесть контекста, с�
    требуется `profile=<slug>`.
 
 Угадывать профиль запрещено: работа на догадках нарушает
-[`rules/00`](../../standards/rules/00-global-agent-rules.md) §1.
+[`rules/00`](../standards/rules/00-global-agent-rules.md) §1.
 
 ## Процедура
 
@@ -44,7 +44,7 @@ description: Где я сейчас — свежесть контекста, с�
 - все восемь артефактов профиля на месте, ни один `outputs[].status` не
   остался `template`.
 
-Контракт профиля — [`context/projects/README.md`](../../context/projects/README.md).
+Контракт профиля — [`context/projects/README.md`](../context/projects/README.md).
 Нет каталога или манифеста — лестница закончилась на первой ступени, дальше
 считать нечего.
 
@@ -102,8 +102,8 @@ force-push, shallow clone) или метаданные недоступны → 
 
 | Состояние | Команда |
 |---|---|
-| Профиля нет, манифест не читается, артефакты не на месте | `tf-init` ([`bootstrap-test-context`](../bootstrap-test-context/SKILL.md)) |
-| Профиль есть, но снимок отстал, `scan.status: partial` или артефакт остался `template` | `tf-refresh` ([`refresh-test-context`](../refresh-test-context/SKILL.md)) |
+| Профиля нет, манифест не читается, артефакты не на месте | `tf-init` ([`bootstrap-test-context`](bootstrap-test-context.md)) |
+| Профиль есть, но снимок отстал, `scan.status: partial` или артефакт остался `template` | `tf-refresh` ([`refresh-test-context`](refresh-test-context.md)) |
 | Контекст свежий, в карте покрытия есть непокрытое | `tf-cover` |
 | Свежо и непокрытого в карте нет | команды нет — так и написать |
 

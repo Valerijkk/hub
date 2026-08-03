@@ -9,8 +9,8 @@
 4. `standards/rules/00-global-agent-rules.md`, `standards/rules/30-severity-policy.md`, `standards/rules/40-verification-protocol.md`.
 
 Контекст в статусе template → стоп, запросить
-`skills/bootstrap-test-context/SKILL.md`; existing stale/reorganized profile →
-`skills/refresh-test-context/SKILL.md`.
+`skills/bootstrap-test-context.md`; existing stale/reorganized profile →
+`skills/refresh-test-context.md`.
 
 ## 1. Кто я
 

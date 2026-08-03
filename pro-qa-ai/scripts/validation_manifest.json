@@ -38,19 +38,22 @@
     "include_globs": [
       "**/*.md"
     ],
-    "exclude_globs": [],
+    "exclude_globs": [
+      "skills/README.md"
+    ],
     "required_globs": [
       "MANIFEST.md",
       "VERSION.md",
-      "skills/**/SKILL.md",
-      "evals/fixtures/*.md"
+      "skills/*.md"
     ]
   },
   "skills": {
     "include_globs": [
-      "skills/**/SKILL.md"
+      "skills/*.md"
     ],
-    "exclude_globs": [],
+    "exclude_globs": [
+      "skills/README.md"
+    ],
     "required_fields": [
       "name",
       "description"

@@ -14,5 +14,5 @@ Candidates могут содержать redacted project-derived evidence, по
 - не копируйте proprietary examples в portable baseline.
 
 Используйте [`../CARD-TEMPLATE.md`](../CARD-TEMPLATE.md) или
-[`../../../skills/curate-pattern-cards/SKILL.md`](../../../skills/curate-pattern-cards/SKILL.md).
+[`../../../skills/curate-pattern-cards.md`](../../../skills/curate-pattern-cards.md).
 Curator может нормализовать candidate, но только человек авторизует promotion.

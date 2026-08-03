@@ -49,12 +49,12 @@ Refresh достраивает, bootstrap строит заново.
 Прочитать declared roots и policy из `CONTEXT-MANIFEST.yaml`, затем потребовать точное
 совпадение root/policy с inventory.
 
-Остановиться и направить в [`bootstrap-test-context`](../bootstrap-test-context/SKILL.md), если profile или manifest не существует. Если declared roots переехали — запросить явные replacement roots и зафиксировать изменение границы; никогда не искать замену по файловой системе.
+Остановиться и направить в [`bootstrap-test-context`](bootstrap-test-context.md), если profile или manifest не существует. Если declared roots переехали — запросить явные replacement roots и зафиксировать изменение границы; никогда не искать замену по файловой системе.
 
 ## Унаследованная политика безопасности
 
 Применить все правила trust, exclusion, no-network, no-MR/PR, no-project-command и
-правило не менять источники из [`bootstrap-test-context`](../bootstrap-test-context/SKILL.md).
+правило не менять источники из [`bootstrap-test-context`](bootstrap-test-context.md).
 Отдельно одобренные read-only metadata/hash operations разрешены только когда
 записаны в manifest.
 
@@ -126,7 +126,7 @@ glob или выбирать дополнительный source path во вр�
 - `TRACEABILITY.md`
 - `SOURCE-MAP.md`
 
-Для `PATTERN-INDEX.md` обновлять только source freshness и stale references. Не создавать, не promote, не переписывать и не deprecate cards; для этого — [`curate-pattern-cards`](../curate-pattern-cards/SKILL.md).
+Для `PATTERN-INDEX.md` обновлять только source freshness и stale references. Не создавать, не promote, не переписывать и не deprecate cards; для этого — [`curate-pattern-cards`](curate-pattern-cards.md).
 
 Команды, newly discovered из source, всегда стартуют как `not-run`. Сохранять prior execution evidence только когда точная команда, working directory, prerequisites и source не изменились; иначе пометить stale и потребовать новое явное approval.
 

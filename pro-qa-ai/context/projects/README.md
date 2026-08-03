@@ -6,7 +6,7 @@ generated test framework.
 
 ## Создать профиль
 
-Вызови [`bootstrap-test-context`](../../skills/bootstrap-test-context/SKILL.md) с:
+Вызови [`bootstrap-test-context`](../../skills/bootstrap-test-context.md) с:
 
 - `project_root`: один filesystem root;
 - `test_roots`: один или несколько explicit roots;
@@ -36,9 +36,9 @@ Canonical starter artifacts живут только в [`../templates/`](../temp
 3. Человек вручную вставляет выбранные code snippets и комментарии коллег в
    [`../../review-feedback/inbox/`](../../standards/team-review/inbox). Bootstrap
    этого никогда не делает.
-4. Запусти [`curate-review-feedback`](../../skills/curate-review-feedback/SKILL.md),
-   затем [`curate-pattern-cards`](../../skills/curate-pattern-cards/SKILL.md).
-5. Запусти [`refresh-test-context`](../../skills/refresh-test-context/SKILL.md)
+4. Запусти [`curate-review-feedback`](../../skills/curate-review-feedback.md),
+   затем [`curate-pattern-cards`](../../skills/curate-pattern-cards.md).
+5. Запусти [`refresh-test-context`](../../skills/refresh-test-context.md)
    после изменений source или CI.
 
 ## Trust и privacy

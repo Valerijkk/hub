@@ -11,7 +11,7 @@
 │    выход: TC-набор + матрица трассируемости + вопросы к доке
 │    самоверификация пройдена (§2 шаг 4 агента)
 │
-2. ГЕЙТ: skills/test-verification/SKILL.md (templates/test-case-verification.md)
+2. ГЕЙТ: skills/test-verification.md (templates/test-case-verification.md)
 │    независимый исполнитель (≠ автор набора)
 │    APPROVED → дальше | NEEDS WORK → возврат в шаг 1 (адресно: REJECT/FIX/GAP)
 │    вопросы к документации → владельцу спеки ПАРАЛЛЕЛЬНО (не блокируют
@@ -32,8 +32,8 @@
 │    новый тест → проверка утверждения (rules/40): сломать управляемый
 │    вход, убедиться в красном, вернуть, убедиться в зелёном
 │
-6. АВТОГЕЙТЫ: skills/anti-ai-check/SKILL.md +
-│    skills/naming-check/SKILL.md
+6. АВТОГЕЙТЫ: skills/anti-ai-check.md +
+│    skills/naming-check.md
 │
 7. ГЕЙТ: test-code-reviewer (templates/review-request.md)
 │    сверка код ↔ TC: каждый approved-TC реализован, каждый тест трассируется

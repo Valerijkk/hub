@@ -61,7 +61,7 @@
 
 ## Как проверяется качество набора
 
-Скилом [`tf-verify`](../../skills/test-verification/SKILL.md): матрица
+Скилом [`tf-verify`](../../skills/test-verification.md): матрица
 требование × кейс, разбор значений, вердикт по трассируемости и полноте.
 
-Проектирование набора — [`tf-cases`](../../skills/tf-cases/SKILL.md).
+Проектирование набора — [`tf-cases`](../../skills/tf-cases.md).

@@ -784,7 +784,7 @@ class ToolkitValidator:
                 continue
             frontmatter = parse_frontmatter(text)
             if not frontmatter.present:
-                self.add("skills", "SKILL001", path, 1, "SKILL.md frontmatter is missing")
+                self.add("skills", "SKILL001", path, 1, "skill frontmatter is missing")
                 continue
             for field in settings["required_fields"]:
                 if not frontmatter.fields.get(field):
@@ -796,13 +796,13 @@ class ToolkitValidator:
                         "required skill field is missing or empty: %s" % field,
                     )
             name = frontmatter.fields.get("name", "")
-            if name and name != path.parent.name:
+            if name and name != path.stem:
                 self.add(
                     "skills",
                     "SKILL003",
                     path,
                     frontmatter.lines.get("name", 1),
-                    "skill name must equal its parent folder",
+                    "skill name must equal its file name",
                 )
             if name and not name_pattern.fullmatch(name):
                 self.add(

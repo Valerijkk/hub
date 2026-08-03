@@ -144,7 +144,7 @@ class ToolkitValidatorTests(unittest.TestCase):
 
     def test_frontmatter_and_skill_name_are_validated(self) -> None:
         self.write(
-            "skills/folder-name/SKILL.md",
+            "skills/file-name.md",
             "---\n"
             "name: other-name\n"
             "name: duplicate\n"

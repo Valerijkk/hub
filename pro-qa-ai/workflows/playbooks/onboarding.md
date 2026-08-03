@@ -11,7 +11,7 @@
 
 2. BOOTSTRAP (главный шаг)
    Сначала scripts/context_inventory.py на явные project/test roots
-   (output вне этих roots). Затем skills/bootstrap-test-context/SKILL.md
+   (output вне этих roots). Затем skills/bootstrap-test-context.md
    с обязательными project_root, test_roots, inventory, profile.
    Не обнаруживать test roots самостоятельно.
    Выход: context/projects/<profile>/ (manifest + 8 Markdown artifacts) + report.

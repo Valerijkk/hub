@@ -60,128 +60,14 @@ def test_bulk_above_limit_rejected(api):
 Ещё лучше — брать предел из того же источника, что и продукт, если он
 доступен: тогда изменение лимита не требует правки теста.
 
-## 3. Фикстура, делающая слишком много
+## Конструирование фикстур — не здесь
 
-Плохо:
+Как писать фабрику, лесенку фикстур, очистку и уникальность —
+[`../code/fixtures.md`](../code/fixtures.md). Здесь только то, что видно
+**в теле теста**: какие значения он подаёт и почему именно эти.
 
-```python
-@pytest.fixture
-def prepared_env(api):
-    user = api.create_user()
-    api.verify_email(user)
-    api.add_payment_method(user)
-    order = api.create_order(user)
-    api.pay(order)
-    api.ship(order)
-    return order
-```
-
-Хорошо:
-
-```python
-@pytest.fixture
-def paid_order(api, verified_user):
-    order = api.create_order(verified_user)
-    api.pay(order)
-    return order
-
-@pytest.fixture
-def shipped_order(api, paid_order):
-    api.ship(paid_order)
-    return paid_order
-```
-
-**Что сломается:** тесту на оплату не нужна отправка, но он её ждёт —
-прогон медленнее, а падение отправки роняет тест про оплату. Диагноз
-получается неверный: причина в шаге, к проверке не относящемся.
-
-Фикстуры строятся лесенкой, каждая доводит состояние ровно до нужного.
-
-## 4. Общий набор данных на весь прогон
-
-Плохо:
-
-```python
-# conftest.py
-@pytest.fixture(scope="session", autouse=True)
-def seed_database(db):
-    db.execute(open("fixtures/full_dump.sql").read())
-```
-
-Хорошо:
-
-```python
-@pytest.fixture
-def catalog_with_two_items(api):
-    phone = api.create_item(name="Телефон", category="electronics")
-    book = api.create_item(name="Книга", category="media")
-    yield SimpleNamespace(phone=phone, book=book)
-    api.delete_items([phone.id, book.id])
-```
-
-**Что сломается:** большой общий дамп создаёт невидимые связи. Тест
-проходит, потому что в дампе случайно есть подходящая запись; удалили её
-— упало пять тестов, и связь неочевидна. Плюс любой тест, пишущий в
-общие данные, ломает соседей.
-
-Данные создаются под проверку и удаляются после.
-
-## 5. Реальные данные в фикстурах
-
-Плохо:
-
-```python
-@pytest.fixture
-def customer(api):
-    return api.create_user(
-        email="a.ivanova@realcompany.ru",
-        phone="+79161234567",
-        passport="4510 123456",
-    )
-```
-
-Хорошо:
-
-```python
-@pytest.fixture
-def customer(api, unique_email):
-    return api.create_user(
-        email=unique_email,
-        phone="+7000" + str(random.randint(1000000, 9999999)),
-        passport="0000 000000",
-    )
-```
-
-**Что сломается:** тестовое окружение однажды отправит письмо или смс на
-реальный адрес. Персональные данные в репозитории — отдельная проблема,
-не техническая.
-
-Правило: в фикстурах только синтетические данные из заведомо
-недействительных диапазонов.
-
-## 6. Фикстура, зависящая от внешнего состояния
-
-Плохо:
-
-```python
-@pytest.fixture
-def existing_user(api):
-    return api.get_user_by_email("test@example.com")
-```
-
-Хорошо:
-
-```python
-@pytest.fixture
-def existing_user(api, unique_email):
-    return api.create_user(email=unique_email)
-```
-
-**Что сломается:** пользователь должен уже быть в базе — значит, кто-то
-его создал раньше, и это неявная зависимость от порядка либо от ручной
-подготовки окружения. На чистой базе всё падает, и причина не в коде.
-
-Фикстура создаёт то, что ей нужно, а не рассчитывает найти.
+Граница: практика отвечает на «какие данные брать», код — на «как
+устроен механизм, который их выдаёт».
 
 ## Проверка себя
 

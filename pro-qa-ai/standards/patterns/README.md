@@ -17,10 +17,10 @@
 1. Bootstrap project profile в [`../context/projects/`](../../context/projects).
 2. Человек вручную вставляет выбранные snippets и комментарии коллег в
    [`../review-feedback/inbox/`](../team-review/inbox).
-3. [`curate-review-feedback`](../../skills/curate-review-feedback/SKILL.md)
+3. [`curate-review-feedback`](../../skills/curate-review-feedback.md)
    нормализует и редактирует запись. Он никогда не вызывает MR/PR API и не
    скрейпит reviews.
-4. [`curate-pattern-cards`](../../skills/curate-pattern-cards/SKILL.md) создаёт
+4. [`curate-pattern-cards`](../../skills/curate-pattern-cards.md) создаёт
    candidate card.
 5. Человек проверяет provenance, rationale, distinguishing evidence, redaction,
    license, reuse scope и freshness перед promotion.

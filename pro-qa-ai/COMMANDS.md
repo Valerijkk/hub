@@ -51,18 +51,18 @@
 
 | Команда | Скил |
 |---|---|
-| `tf-init` | `skills/tf-init/` |
-| `tf-refresh` | `skills/refresh-test-context/` |
-| `tf-status` | `skills/tf-status/` |
-| `tf-cover` | `skills/tf-cover/` |
-| `tf-cases` | `skills/tf-cases/` |
-| `tf-triage` | `skills/tf-triage/` |
-| `tf-review` | `skills/tf-review/` |
-| `tf-gate` | `skills/tf-gate/` |
-| `tf-verify` | `skills/test-verification/` |
-| `tf-naming` | `skills/naming-check/` |
-| `tf-antiai` | `skills/anti-ai-check/` |
-| `tf-curate` | `skills/curate-review-feedback/`, затем `skills/curate-pattern-cards/` |
+| `tf-init` | `skills/tf-init.md` |
+| `tf-refresh` | `skills/refresh-test-context.md` |
+| `tf-status` | `skills/tf-status.md` |
+| `tf-cover` | `skills/tf-cover.md` |
+| `tf-cases` | `skills/tf-cases.md` |
+| `tf-triage` | `skills/tf-triage.md` |
+| `tf-review` | `skills/tf-review.md` |
+| `tf-gate` | `skills/tf-gate.md` |
+| `tf-verify` | `skills/test-verification.md` |
+| `tf-naming` | `skills/naming-check.md` |
+| `tf-antiai` | `skills/anti-ai-check.md` |
+| `tf-curate` | `skills/curate-review-feedback.md`, затем `skills/curate-pattern-cards.md` |
 
 Точные аргументы вызова, шаги и формат отчёта — в `SKILL.md` соответствующего
 каталога. Общий список скилов: [skills/README.md](skills/README.md).

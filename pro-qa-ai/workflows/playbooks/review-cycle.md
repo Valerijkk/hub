@@ -8,8 +8,8 @@
 diff с тестами готов
 │
 1. АВТОФИЛЬТРЫ (параллельно, машинные)
-│    a. skills/anti-ai-check/SKILL.md по diff — фейковые тесты, плейсхолдеры, мета-комментарии
-│    b. skills/naming-check/SKILL.md по diff — файлы + функции
+│    a. skills/anti-ai-check.md по diff — фейковые тесты, плейсхолдеры, мета-комментарии
+│    b. skills/naming-check.md по diff — файлы + функции
 │    c. линтеры/форматтеры проекта (active profile `COMMANDS.md`)
 │    CRITICAL/ERROR любого фильтра → возврат автору ДО ревью
 │

@@ -70,7 +70,7 @@ disable-model-invocation: true
 Режим diff: все изменённые кейсы. Полный аудит: выборка по доменам (размер из profile, напр. 10).
 
 1. Тело реализует сценарий и ожидание, подразумеваемые именем.
-2. Имя обещает error path, а тест только проверяет отсутствие panic → **ERROR** (lying name по [rules/30](../../standards/rules/30-severity-policy.md)).
+2. Имя обещает error path, а тест только проверяет отсутствие panic → **ERROR** (lying name по [rules/30](../standards/rules/30-severity-policy.md)).
 3. Лишние assertions сверх имени → **WARN**.
 
 ### 5. Helpers и fixtures (режим diff)
@@ -114,7 +114,7 @@ Verification:
 
 ## Ссылки
 
-- Naming baseline: [rules/10](../../standards/rules/10-naming-conventions.md) (defaults тулкита; profile перекрывает)
-- Severity (lying names): [rules/30](../../standards/rules/30-severity-policy.md)
-- Verification: [rules/40](../../standards/rules/40-verification-protocol.md)
-- Profile bootstrap: `../bootstrap-test-context/SKILL.md`
+- Naming baseline: [rules/10](../standards/rules/10-naming-conventions.md) (defaults тулкита; profile перекрывает)
+- Severity (lying names): [rules/30](../standards/rules/30-severity-policy.md)
+- Verification: [rules/40](../standards/rules/40-verification-protocol.md)
+- Profile bootstrap: `bootstrap-test-context.md`

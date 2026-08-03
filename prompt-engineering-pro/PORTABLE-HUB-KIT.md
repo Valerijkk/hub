@@ -92,7 +92,7 @@
 
 1. Собери inventory:
    `scripts/context_inventory.py --project-root … --test-root … --output …`.
-2. Запусти [`skills/bootstrap-test-context/SKILL.md`](../pro-qa-ai/skills/bootstrap-test-context/SKILL.md).
+2. Запусти [`skills/bootstrap-test-context/SKILL.md`](../pro-qa-ai/skills/bootstrap-test-context.md).
 3. Обязательные входы: `project_root`, `test_roots`, `inventory`, `profile`.
    Не обнаруживай test roots и не расширяй scope молча.
 4. Результат: [`context/projects/<profile>/`](../pro-qa-ai/context/projects/) + manifest/source map.

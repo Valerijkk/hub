@@ -53,7 +53,7 @@ description: Покрыть тестами ручки, модуль или на�
 ### 3. Матрица покрытия — ДО первого кейса
 
 Строки — требования, колонки — обязательные классы из
-[`rules/20`](../../standards/rules/20-test-quality.md):
+[`rules/20`](../standards/rules/20-test-quality.md):
 
 | R | happy | валидация | denial | not found / конфликт | отказ завис. | идемпот. | границы |
 |---|-------|-----------|--------|----------------------|--------------|----------|---------|
@@ -73,7 +73,7 @@ description: Покрыть тестами ручки, модуль или на�
 Матрица показывается человеку **до** написания тестов. Спорить о полноте
 покрытия дешевле на таблице, чем на готовом коде.
 
-Подробности формы — [`agents/test-case-generator.md`](../../agents/test-case-generator.md) §2.1.
+Подробности формы — [`agents/test-case-generator.md`](../agents/test-case-generator.md) §2.1.
 
 ### 4. Написание
 
@@ -85,10 +85,10 @@ description: Покрыть тестами ручки, модуль или на�
 ревью, а не мелочь.
 
 Рецепты под тип работы:
-[`design-test-cases`](../../workflows/recipes/design-test-cases.md),
-[`generate-unit-tests`](../../workflows/recipes/generate-unit-tests.md),
-[`generate-api-tests`](../../workflows/recipes/generate-api-tests.md),
-[`generate-ui-e2e`](../../workflows/recipes/generate-ui-e2e.md).
+[`design-test-cases`](../workflows/recipes/design-test-cases.md),
+[`generate-unit-tests`](../workflows/recipes/generate-unit-tests.md),
+[`generate-api-tests`](../workflows/recipes/generate-api-tests.md),
+[`generate-ui-e2e`](../workflows/recipes/generate-ui-e2e.md).
 
 ### 5. Прогон
 
@@ -97,7 +97,7 @@ description: Покрыть тестами ручки, модуль или на�
 ### 6. Проверка утверждения — обязательна
 
 Каждый новый тест проверяется прогоном по
-[`rules/40`](../../standards/rules/40-verification-protocol.md) §Доказательство
+[`rules/40`](../standards/rules/40-verification-protocol.md) §Доказательство
 осмысленности утверждения:
 
 ```
@@ -118,7 +118,7 @@ description: Покрыть тестами ручки, модуль или на�
 ### 7. Гейт TC
 
 Если набор кейсов формализован — прогнать `tf-verify`
-([`test-verification`](../test-verification/SKILL.md)). Он разбирает
+([`test-verification`](test-verification.md)). Он разбирает
 значения матрицы: обоснованный `N/A` принимается, `?` уходит в вопросы,
 а не в дыры покрытия.
 

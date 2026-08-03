@@ -21,7 +21,7 @@
   },
   "include_globs": [
     "agents/**",
-    "skills/**",
+    "skills/*.md",
     "standards/rules/**",
     "workflows/playbooks/**",
     "workflows/prompts/**",
@@ -240,6 +240,20 @@
     "workflows/README.md",
     "work/README.md",
     "standards/code/README.md",
-    "standards/test-cases/README.md"
+    "standards/test-cases/README.md",
+    "skills/anti-ai-check.md",
+    "skills/bootstrap-test-context.md",
+    "skills/curate-pattern-cards.md",
+    "skills/curate-review-feedback.md",
+    "skills/naming-check.md",
+    "skills/refresh-test-context.md",
+    "skills/test-verification.md",
+    "skills/tf-cases.md",
+    "skills/tf-cover.md",
+    "skills/tf-gate.md",
+    "skills/tf-init.md",
+    "skills/tf-review.md",
+    "skills/tf-status.md",
+    "skills/tf-triage.md"
   ]
 }

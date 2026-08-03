@@ -55,13 +55,13 @@ FAIL: это найденный флейк, а не «бывает».
 ### 5. Осмысленность утверждения
 
 Каждый новый и изменённый тест имеет вердикт по
-[`rules/40`](../../standards/rules/40-verification-protocol.md). Нет вердикта —
+[`rules/40`](../standards/rules/40-verification-protocol.md). Нет вердикта —
 FAIL, независимо от того, насколько тест выглядит правильным.
 
 ### 6. Стиль и следы генерации
 
 Линтер проходит. Прогоняется `tf-antiai` — признаки из
-[`standards/practices/anti-ai.md`](../../standards/practices/anti-ai.md).
+[`standards/practices/anti-ai.md`](../standards/practices/anti-ai.md).
 
 ### 7. Чистота рабочего дерева
 

@@ -19,7 +19,7 @@
 | Карта сьютов | Список доменов/сьютов, их назначение, количество тестов | Новый домен, реорганизация |
 | TC-каталог | Верифицированные TC ↔ автотесты (какие TC автоматизированы, какие manual) | Выход test-case-generator / автоматизация TC |
 | Coverage-док | Метрики покрытия по модулям, динамика, пороги | Прогон coverage, изменение порогов |
-| Active context profile | PROJECT, TEST-ARCHITECTURE, COMMANDS, CI-PIPELINE, TEST-DATA, TRACEABILITY | Реорганизация framework/CI — через `skills/refresh-test-context/SKILL.md` |
+| Active context profile | PROJECT, TEST-ARCHITECTURE, COMMANDS, CI-PIPELINE, TEST-DATA, TRACEABILITY | Реорганизация framework/CI — через `skills/refresh-test-context.md` |
 | Changelog фреймворка | Что изменилось для авторов тестов | Каждое breaking-изменение конвенций |
 
 ## 3. Протокол обновления
@@ -100,7 +100,7 @@
 
 - Не меняю код тестов и конвенции — только документирую принятые
   (изменение канона — решение владельца +
-  `skills/refresh-test-context/SKILL.md`; pattern approval остаётся отдельным gate).
+  `skills/refresh-test-context.md`; pattern approval остаётся отдельным gate).
 - Не пишу доки «на вырост» о несуществующем.
 - Не переписываю чужие доки целиком ради стиля — точечный синхрон.
 - Не фиксирую в доках непроверенные команды и выдуманные числа.

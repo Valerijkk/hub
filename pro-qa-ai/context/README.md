@@ -6,8 +6,8 @@ Project-specific знания по test automation живут в изолиро�
 ## Новая модель профиля
 
 - [`templates/`](templates) содержит только placeholder artifact contracts.
-- `projects/<project-slug>/` создаётся [`bootstrap-test-context`](../skills/bootstrap-test-context/SKILL.md).
-- Существующие профили обновляет [`refresh-test-context`](../skills/refresh-test-context/SKILL.md).
+- `projects/<project-slug>/` создаётся [`bootstrap-test-context`](../skills/bootstrap-test-context.md).
+- Существующие профили обновляет [`refresh-test-context`](../skills/refresh-test-context.md).
 
 Каждый профиль содержит manifest плюс артефакты project, test-architecture,
 command, CI, test-data, traceability, source-map и pattern-index. Каждый факт

@@ -6,7 +6,7 @@ scenario: обновление существующего profile после и�
 # Шаблон: refresh контекста
 
 ```
-Прогони skills/refresh-test-context/SKILL.md для profile="{{profile}}".
+Прогони skills/refresh-test-context.md для profile="{{profile}}".
 
 ## Что изменилось (подсказка, где перечитывать)
 - {{«реорганизовали e2e» | «сменили раннер X→Y» | «новый модуль Z» | «не знаю —

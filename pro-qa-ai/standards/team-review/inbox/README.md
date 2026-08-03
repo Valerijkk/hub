@@ -37,7 +37,7 @@ path/category, при необходимости rotate/revoke, и не созд
 
 ## Curation
 
-Запускайте [`curate-review-feedback`](../../../skills/curate-review-feedback/SKILL.md).
+Запускайте [`curate-review-feedback`](../../../skills/curate-review-feedback.md).
 Он создаёт нормализованный redacted draft вне raw quarantine и сообщает
 незакрытые gates. Human redaction/reuse review обязателен, прежде чем entry
 можно перенести в [`../approved/`](../approved). Сохраняйте только

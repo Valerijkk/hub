@@ -20,6 +20,7 @@ Standard — **только тестовый фреймворк**. Начина�
 
 | Агент | Назначение | Режим |
 |-------|------------|-------|
+| [test-sdet](test-sdet.md) | Пишет код автотестов и фреймворка под них | write |
 | [test-code-reviewer](test-code-reviewer.md) | Ревью кода тестового фреймворка | readonly |
 | [test-case-generator](test-case-generator.md) | TC из документации | test docs |
 | [test-debugger](test-debugger.md) | Отладка упавших/flaky тестов | diagnose/fix |
@@ -73,15 +74,15 @@ Standard — **только тестовый фреймворк**. Начина�
 Новые роли не добавляются, если уже есть один владелец процесса:
 
 - `context-mapper` не нужен: first setup выполняет
-  `skills/bootstrap-test-context/SKILL.md`, existing profile refresh —
-  `skills/refresh-test-context/SKILL.md`.
+  `skills/bootstrap-test-context.md`, existing profile refresh —
+  `skills/refresh-test-context.md`.
 - Выбор и research фреймворка — не зона Standard: это роль `architect`
   издания Pro. Здесь остаётся inventory уже существующего фреймворка
   (bootstrap/refresh skills + `test-documenter`).
 - Feedback curation ведёт `skills/curate-review-feedback`. Отдельный
   `feedback-curator` нужен лишь при устойчивой очереди и собственном
   артефакте.
-- TC проверяет `skills/test-verification/SKILL.md`. Goal-backward приёмка
+- TC проверяет `skills/test-verification.md`. Goal-backward приёмка
   фазы — уровень Pro (`skills/verify-goal`). Отдельный `eval-verifier`
   вводится только при наличии самостоятельных AI-eval contracts/datasets.
 

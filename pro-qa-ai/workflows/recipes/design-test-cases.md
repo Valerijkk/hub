@@ -98,7 +98,7 @@ dependency-failure.
   применимые негативные классы представлены или обоснованы, шаги
   воспроизводимы и не осталось изобретённых ожиданий.
 - Независимую приёмку следует вести через
-  [`test-verification`](../../skills/test-verification/SKILL.md).
+  [`test-verification`](../../skills/test-verification.md).
 
 ## Типичные ошибки
 

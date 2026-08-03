@@ -56,8 +56,8 @@ R3  Повторный заказ с тем же ключом идемпотен
 
 ### 3. Развернуть обязательные классы
 
-По [`rules/20`](../../standards/rules/20-test-quality.md) и
-[`standards/practices/negative-cases.md`](../../standards/practices/negative-cases.md):
+По [`rules/20`](../standards/rules/20-test-quality.md) и
+[`standards/practices/negative-cases.md`](../standards/practices/negative-cases.md):
 валидация, авторизация и denial, состояние (несуществующее и удалённое —
 разные случаи), идемпотентность, ограничения, границы.
 

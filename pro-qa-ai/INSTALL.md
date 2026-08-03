@@ -38,7 +38,7 @@ tf-init
 Она выполняет всё, что описано ниже: обходит явно заданные корни, извлекает
 команды запуска, проверяет их фактическим прогоном, выводит паттерны и
 нейминг из кода, собирает карту покрытия и пишет манифест провенанса.
-Процедура — [`skills/tf-init/SKILL.md`](skills/tf-init/SKILL.md).
+Процедура — [`skills/tf-init.md`](skills/tf-init.md).
 
 Ручной путь ниже нужен, если требуется контроль над каждым шагом либо
 машинный inventory для внешней обработки.
@@ -59,7 +59,7 @@ Inventory использует только stdlib, не запускает ко
 checks; bootstrap может читать только перечисленные и повторно проверенные
 `files[]`.
 
-Запусти explicit skill [bootstrap-test-context](skills/bootstrap-test-context/SKILL.md).
+Запусти explicit skill [bootstrap-test-context](skills/bootstrap-test-context.md).
 Автоматизатор задаёт только корень проекта, пути тестового фреймворка и имя
 профиля:
 
