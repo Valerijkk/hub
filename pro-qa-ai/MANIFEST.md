@@ -8,7 +8,7 @@ layer: test-automation-ai-quality
 source_registry: sources/PRIMARY-SOURCES.md
 validation_config: scripts/validation_manifest.json
 validation_status: STRUCTURAL_PASS
-last_validation: 2026-08-03
+last_validation: 2026-08-04
 provenance: official primary sources and repository inspection on 2026-07-26
 
 ---
@@ -18,9 +18,8 @@ provenance: official primary sources and repository inspection on 2026-07-26
 ## Идентичность
 
 Этот дистрибутив — **pro-qa-ai**: AI quality layer для инженеров
-автоматизации тестирования. Он даёт переносимые операционные инструкции,
-валидацию, evaluation, provenance и governance вокруг уже существующей среды
-автоматизации. Продуктовая карта: [TOUCHSTONE.md](TOUCHSTONE.md).
+автоматизации тестирования. Он даёт переносимые операционные инструкции, структурную валидацию,
+провенанс и правила владения вокруг уже существующей среды автоматизации. Продуктовая карта: [TOUCHSTONE.md](TOUCHSTONE.md).
 
 Это не scaffold тестового фреймворка. Он не выбирает runners, не создаёт
 архитектуру фреймворка и не владеет проектными командами и путями.
@@ -28,19 +27,20 @@ provenance: official primary sources and repository inspection on 2026-07-26
 Статус — **foundation-ready**. `STRUCTURAL_PASS` = дерево и валидатор прошли
 структурные проверки. Это **не** значит eval-validated или GA.
 
-Последнее структурное evidence на 2026-08-03 (перезамер после
-реорганизации структуры и переименования папки):
+Последнее структурное доказательство на 2026-08-04 (перезамер после
+схлопывания слоя ревью):
 
-- source toolkit validation: 0 errors / 0 warnings, exit 0;
-- script tests: 41 passed / 1 skipped, 42 total (создание symlink недоступно;
-  эквивалентные mocked Windows reparse тесты проходят);
-- portable package: 162 files (validator, inventory, упаковщик),
-  inventory SHA-256 записан; сгенерированные `context/projects/hub/` и
-  в пакет не входят.
+- валидация исходного тулкита: 0 ошибок / 0 предупреждений, exit 0;
+- тесты скриптов: 41 passed / 1 skipped, 42 всего (создание symlink
+  недоступно; эквивалентные mocked-тесты Windows reparse проходят);
+- переносимый пакет: 184 файла, SHA-256 инвентаря записан.
+  Сгенерированный `context/projects/hub/`, локальные прогоны и сырые
+  треды ревью в пакет не входят — проверено поломкой, а не чтением
+  конфига.
 
-Детали команд и проверка утверждения состава — [VERSION.md](VERSION.md).
+Детали команд и проверка целостности состава — [VERSION.md](VERSION.md).
 
-Метрики eval effectiveness остаются `NOT_RUN`.
+Метрики эффективности остаются `NOT_RUN`: парный замер не прогонялся.
 
 ## Владение слоями
 
@@ -66,7 +66,10 @@ provenance: official primary sources and repository inspection on 2026-07-26
 - [Конфигурация валидации](scripts/validation_manifest.json)
 - [Unit-тесты валидатора](scripts/tests/test_validate_toolkit.py)
 - [Primary sources](sources/PRIMARY-SOURCES.md)
-- Management docs: [overview](docs/EXECUTIVE-OVERVIEW.md), [Russian overview](docs/EXECUTIVE-OVERVIEW-RU.md), [demo](docs/DEMO.md), [Russian leadership demo](docs/LEADERSHIP-DEMO-RU.md), [ROI metrics](docs/ROI-METRICS.md) и [governance](docs/GOVERNANCE.md)
+- Управленческие документы: [обзор](docs/EXECUTIVE-OVERVIEW-RU.md),
+  [демо для руководителя](docs/LEADERSHIP-DEMO-RU.md),
+  [техническое демо](docs/DEMO.md), [метрики ROI](docs/ROI-METRICS.md),
+  [правила владения](docs/GOVERNANCE.md)
 - [Version](VERSION.md)
 
 ## Контракт структурной валидации
