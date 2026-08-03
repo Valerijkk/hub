@@ -50,7 +50,7 @@ oracle, scope воспроизведения, permissions, риск или за�
 - **Запрещено:** подгонка ассертов, blanket retries/timeouts, skips,
   несвязанные рефакторы, destructive VCS, production access, secrets или
   multi-variable эксперименты, выдаваемые за proof.
-- **Approval boundary:** execution, bisect/мутация истории, более широкая
+- **Approval boundary:** execution, bisect/проверка утверждения истории, более широкая
   диагностика или любой путь фикса, не одобренный заранее, требуют явного
   approval.
 

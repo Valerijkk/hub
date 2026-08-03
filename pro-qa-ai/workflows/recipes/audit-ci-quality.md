@@ -52,7 +52,7 @@ scope пайплайна, требуемые gates, внешний доступ,
 - **Запрещено:** правки CI, reruns/cancellations, чтение secrets, remote API
   calls, внешние комментарии, деплои, изменения spending или inferred
   утверждения о timing/pass.
-- **Approval boundary:** remote CI access, выполнение команд, мутация workflow
+- **Approval boundary:** remote CI access, выполнение команд, проверка утверждения workflow
   или cost-affecting действие требуют явного human approval.
 
 ## Ограничения / вне scope

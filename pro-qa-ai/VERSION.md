@@ -84,7 +84,7 @@ Standard; нужно поставить Pro рядом. Package: 174 → 148 ф�
 
 Package исключает generated Hub profile, smoke и raw feedback. Целостность
 состава защищена `required_paths` в `scripts/package_manifest.json`: удаление
-любого обязательного файла роняет пакер с exit 2 (проверено мутацией на
+любого обязательного файла роняет пакер с exit 2 (проверено чтением утверждения на
 `COMMANDS.md`, `standards/` и `work/` 2026-08-03).
 
 ## Продвижение к GA `1.0.0`

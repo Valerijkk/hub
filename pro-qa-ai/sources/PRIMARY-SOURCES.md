@@ -107,7 +107,7 @@ decision gates, incident response и explicit limitation statements.
 | SRC-OTEL-LIBRARIES-001 | [OpenTelemetry instrumentation libraries](https://opentelemetry.io/docs/concepts/instrumentation/libraries/) | Инжектить test exporters или processors, assert spans без production export и включать instrumentation name/version для provenance. |
 | SRC-OTEL-TRACES-001 | [OpenTelemetry traces](https://opentelemetry.io/docs/concepts/signals/traces/) | Коррелировать eval или automation operations с trace/span context при approval; никогда не прикреплять prompts, source code или credentials как unrestricted attributes. |
 
-Controls fed: generation и flaky-risk oracles, compile/test evidence, mutation
+Controls fed: generation и flaky-risk oracles, compile/test evidence, assertion
 sensitivity, strict typed records, deterministic telemetry tests и
 privacy-aware observability.
 

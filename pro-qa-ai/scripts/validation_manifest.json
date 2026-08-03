@@ -403,13 +403,16 @@
       "**/*.md"
     ],
     "exclude_globs": [
-      "context/projects/**"
+      "context/projects/**",
+      "standards/code/**",
+      "standards/test-cases/**"
     ],
     "package_roots": [
       "pro-qa-ai/",
       "prompt-engineering-pro/",
       ".cursor/",
       ".planning/"
-    ]
+    ],
+    "_note": "Обучающие каталоги исключены: в примерах пути вымышленные по замыслу (core/wait.py, specs/orders.md). Проверка ищет устаревшие ссылки на реальные файлы пакета, а не иллюстрации."
   }
 }

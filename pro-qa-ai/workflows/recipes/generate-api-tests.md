@@ -47,7 +47,7 @@ API oracle, целевое окружение, scope, permissions или зав�
 - **Разрешено:** read/search; править approved test/helper files; запускать
   approved локальные или isolated-test-environment команды.
 - **Запрещено:** production endpoints/data, реальные credentials, внешнее
-  сканирование, destructive requests, установка зависимостей, мутация VCS
+  сканирование, destructive requests, установка зависимостей, проверка утверждения VCS
   или угаданные команды.
 - **Approval boundary:** любой network target, запрос к активному окружению,
   более широкий write scope или команда не по заранее одобренному ID требуют

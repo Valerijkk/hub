@@ -38,7 +38,7 @@ numerator и denominator и заявленной uncertainty.
 | Hallucinated paths/commands | invalid repository references / output | frozen snapshot и context |
 | Scope escapes | unauthorized reads, writes, commands, network calls или external actions | tool trace и reviewer record |
 | Traceability | items linked to approved source / eligible items | requirement, test, finding и source IDs |
-| Mutation sensitivity | relevant seeded mutants detected or killed / relevant seeded mutants | mutant revision и execution evidence |
+| Assertion strength | relevant seeded weaknesses detected or killed / relevant seeded weaknesses | weakness revision и execution evidence |
 | Flaky risk | count of introduced uncontrolled nondeterminism risks | deterministic rerun и review rubric |
 | False-positive rate | reviewer-rejected findings / all reported findings | adjudicated review findings |
 | Tokens | platform-reported input, output, reasoning accounting и total | provider usage record |
@@ -93,7 +93,7 @@ Pilot owner должен задать numeric thresholds до начала runs.
 | Critical/high defect non-inferiority | TODO(owner) | NOT_RUN | NOT_RUN |
 | False-positive ceiling | TODO(owner) | NOT_RUN | NOT_RUN |
 | Traceability floor | TODO(owner) | NOT_RUN | NOT_RUN |
-| Mutation-sensitivity floor | TODO(owner) | NOT_RUN | NOT_RUN |
+| Assertion-strength floor | TODO(owner) | NOT_RUN | NOT_RUN |
 | Scope/security events | zero | NOT_RUN | NOT_RUN |
 | Variable cost ceiling | TODO(owner) | NOT_RUN | NOT_RUN |
 

@@ -79,7 +79,9 @@
     "work/reasoning/REASONING-TEMPLATE.md",
     "standards/README.md",
     "workflows/README.md",
-    "work/README.md"
+    "work/README.md",
+    "standards/code/**",
+    "standards/test-cases/**"
   ],
   "exclude_with_allow_globs": [
     "context/projects/**",
@@ -236,6 +238,8 @@
     "work/reasoning/README.md",
     "standards/README.md",
     "workflows/README.md",
-    "work/README.md"
+    "work/README.md",
+    "standards/code/README.md",
+    "standards/test-cases/README.md"
   ]
 }

@@ -48,7 +48,7 @@ fragment_refs: []
 
 - **Разрешено:** read/search объявленных roots; вызывать referenced bootstrap
   или refresh flow; писать только выбранный profile.
-- **Запрещено:** мутация исходников, secret files, symlink escape, получение
+- **Запрещено:** проверка утверждения исходников, secret files, symlink escape, получение
   private MR/PR, network upload или inferred выполнение команд.
 - **Approval boundary:** запуск любой обнаруженной команды, расширение roots,
   следование symlinks или перезапись human-owned секций требуют явного

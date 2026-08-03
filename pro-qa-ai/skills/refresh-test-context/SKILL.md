@@ -54,7 +54,7 @@ Refresh достраивает, bootstrap строит заново.
 ## Унаследованная политика безопасности
 
 Применить все правила trust, exclusion, no-network, no-MR/PR, no-project-command и
-no-source-mutation из [`bootstrap-test-context`](../bootstrap-test-context/SKILL.md).
+правило не менять источники из [`bootstrap-test-context`](../bootstrap-test-context/SKILL.md).
 Отдельно одобренные read-only metadata/hash operations разрешены только когда
 записаны в manifest.
 

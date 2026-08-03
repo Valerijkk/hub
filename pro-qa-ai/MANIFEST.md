@@ -39,7 +39,7 @@ pro_edition: sibling prompt-engineering-pro/ >=0.3.0-beta.1 (outside portable pa
   inventory SHA-256 записан; сгенерированные `context/projects/hub/` и
   в пакет не входят.
 
-Детали команд и мутационная проверка состава — [VERSION.md](VERSION.md).
+Детали команд и проверка утверждения состава — [VERSION.md](VERSION.md).
 
 Метрики eval effectiveness остаются `NOT_RUN`.
 
@@ -177,7 +177,7 @@ transcripts или local eval records.
 Templates, fixture oracles и успешное demo — не measured effectiveness evidence.
 
 Paired pilot должен измерять first-pass acceptance, human review minutes,
-defects, hallucinated paths и commands, scope escapes, traceability, mutation
+defects, hallucinated paths и commands, scope escapes, traceability, assertion
 sensitivity, flaky risk, false positives, tokens, tool calls и latency, где
 доступно.
 

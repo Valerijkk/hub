@@ -30,7 +30,7 @@ Production contracts: [`../recipes/`](../recipes/README.md). Эталоны asse
 | 06 | [06-test-review-quality.md](06-test-review-quality.md) | Ревью тестов, нейминг, качество, anti-AI, самопроверка | 85 |
 | 07 | [07-debugging-flaky.md](07-debugging-flaky.md) | Дебаг падений, flaky, triage, chaos-симптомы | 70 |
 | 08 | [08-test-data-mocking.md](08-test-data-mocking.md) | Данные, фикстуры, фабрики, билдеры, моки, стабы | 85 |
-| 09 | [09-coverage-analysis.md](09-coverage-analysis.md) | Покрытие (branch/mutation), gap-анализ по риску | 80 |
+| 09 | [09-coverage-analysis.md](09-coverage-analysis.md) | Покрытие, сила утверждений, gap-анализ по риску | 80 |
 | 10 | [10-ci-automation.md](10-ci-automation.md) | CI-пайплайны, гейты, окружения, merge queue, метрики | 85 |
 | 11 | [11-performance-security-testing.md](11-performance-security-testing.md) | Нагрузочное, chaos, resilience, OWASP security | 85 |
 | 12 | [12-documentation-reporting.md](12-documentation-reporting.md) | Тест-документация, планы, отчёты, метрики, онбординг | 85 |
