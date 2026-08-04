@@ -42,17 +42,3 @@ workflow с redaction gate.
 5. Product или test source не мутируется.
 6. Project-derived examples никогда не входят в portable baseline без human
    redaction, license и reuse-scope approval.
-
-## Legacy compatibility artifacts
-
-Эти исходные single-project templates доступны только для older consumers. Они
-deprecated, read-only compatibility артефакты:
-
-- [`PROJECT-CONTEXT.md`](PROJECT-CONTEXT.md)
-- [`TESTFRAMEWORK-MAP.md`](TESTFRAMEWORK-MAP.md)
-- [`NAMING-CONVENTIONS.md`](NAMING-CONVENTIONS.md)
-- [`PATTERNS-LIBRARY.md`](PATTERNS-LIBRARY.md)
-
-Bootstrap и refresh никогда их не перезаписывают. Новые consumers должны
-выбирать профиль в `projects/`; first setup использует `bootstrap-test-context`,
-а existing, stale или reorganized profile — `refresh-test-context`.

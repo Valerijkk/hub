@@ -39,6 +39,14 @@ supersedes: 0.3.0-beta.1
 Добавлена `inline_paths`: ссылки в обратных кавычках раньше не
 проверялись, и три пути протухли незамеченными.
 
+Роли и скилы приведены к единой форме: девять фиксированных секций у
+роли, семь у скила. Файлы, написанные под старую форму, валидатор теперь
+отклоняет (`agent_contract`, `skill_contract`).
+
+Удалён слой совместимости `context/{PROJECT-CONTEXT,TESTFRAMEWORK-MAP,
+NAMING-CONVENTIONS,PATTERNS-LIBRARY}.md`: его ничто не заполняло, а
+четыре скила из-за него носили колонку fallback.
+
 Два параллельных словаря слоя ревью схлопнуты в один. Каталоги
 `standards/team-review/{inbox,approved}` и `TEMPLATE.md` со схемой `RF-*`
 удалены; остались `threads/` и `checks/` со схемой `THREAD-*`/`CHECK-*`.
@@ -81,7 +89,7 @@ Package: 174 → 148 файлов.
 |----------|---------|-----------|
 | Structural validation | `python scripts/validate_toolkit.py` | PASS · 0 errors / 0 warnings · exit 0 |
 | Script tests | `python -m pytest scripts/tests -q` | 41 passed / 1 skipped (42 total); SKIP — symlink недоступен |
-| Portable package | `python scripts/package_portable.py --root . --output <dst> --dry-run` | 184 files · exit 0 |
+| Portable package | `python scripts/package_portable.py --root . --output <dst> --dry-run` | 180 files · exit 0 |
 
 Package исключает сгенерированный профиль Hub, локальные прогоны и сырые
 треды ревью. Целостность состава защищена `required_paths` в

@@ -8,8 +8,7 @@ disable-model-invocation: true
 
 > Процедура за командой **`tf-refresh`**.
 
-## Когда запускать — граница с bootstrap
-
+## Когда запускать
 | Ситуация | Команда |
 |---|---|
 | Профиля нет вовсе | `tf-init` (bootstrap) |
@@ -38,7 +37,7 @@ Refresh достраивает, bootstrap строит заново.
 Обновлять сгенерированные факты без расширения scope, выполнения project commands,
 чтения merge requests или перезаписи curated content.
 
-## Вызов
+## Вход
 
 ```text
 /refresh-test-context profile="<slug>" inventory="<path>"
@@ -51,7 +50,7 @@ Refresh достраивает, bootstrap строит заново.
 
 Остановиться и направить в [`bootstrap-test-context`](bootstrap-test-context.md), если profile или manifest не существует. Если declared roots переехали — запросить явные replacement roots и зафиксировать изменение границы; никогда не искать замену по файловой системе.
 
-## Унаследованная политика безопасности
+### Унаследованная политика безопасности
 
 Применить все правила trust, exclusion, no-network, no-MR/PR, no-project-command и
 правило не менять источники из [`bootstrap-test-context`](bootstrap-test-context.md).
@@ -70,7 +69,7 @@ glob или выбирать дополнительный source path во вр�
 - discovered commands остаются verbatim и `not-run`, пока нет отдельного execution approval и уже существующего evidence;
 - proprietary source examples не копируются в baseline patterns.
 
-## Граница ownership
+### Граница ownership
 
 Сгенерированные секции можно обновлять. Сохранять точно:
 
@@ -82,8 +81,7 @@ glob или выбирать дополнительный source path во вр�
 
 Если ownership неоднозначен — сохранить текст и сообщить для human review.
 
-## Инкрементальный workflow
-
+## Шаги
 ### 1. Валидировать существующий profile
 
 1. Распарсить manifest и все восемь Markdown-артефактов.
@@ -152,19 +150,39 @@ glob или выбирать дополнительный source path во вр�
 
 Установить status в `complete` или `partial`.
 
-## Верификация
+## Формат отчёта
 
-1. Изменился только каталог выбранного profile.
-2. Все артефакты profile по-прежнему существуют и парсятся.
-3. Каждый изменённый факт резолвится в текущие source IDs.
-4. Removed evidence больше не поддерживает claim.
-5. Manual blocks не изменены.
-6. Ни одна project command не выполнялась и не изобреталась; любая metadata/hash operation
+```
+tf-refresh · <профиль> · <дата>
+СНИМОК: <было> → <стало>
+ОБНОВЛЕНО: <артефакты и секции>
+СОХРАНЕНО БЕЗ ИЗМЕНЕНИЙ: <заполненное вручную>
+НОВЫЕ UNKNOWN: <какие факты перестали подтверждаться>
+ЗАКРЫТЫЕ UNKNOWN: <что удалось выяснить и чем>
+КОНФЛИКТЫ: <расхождение записанного с текущим — что требует человека>
+```
+
+## Критерий готовности
+- [ ] Изменился только каталог выбранного profile.
+- [ ] Все артефакты profile по-прежнему существуют и парсятся.
+- [ ] Каждый изменённый факт резолвится в текущие source IDs.
+- [ ] Removed evidence больше не поддерживает claim.
+- [ ] Manual blocks не изменены.
+- [ ] Ни одна project command не выполнялась и не изобреталась; любая metadata/hash operation
    явно одобрена и записана.
-7. Не читались review system, remote source, closed MR, secret value или binary.
-8. `PATTERN-INDEX.md` сохраняет решения curator и помечает stale cards.
+- [ ] Не читались review system, remote source, closed MR, secret value или binary.
+- [ ] `PATTERN-INDEX.md` сохраняет решения curator и помечает stale cards.
 
 Сообщить source deltas, changed artifacts, preserved manual sections, newly introduced значения `UNKNOWN` и требуемые human follow-ups.
+
+## Вердикт
+
+| Вердикт | Условие |
+|---------|---------|
+| PASS | Снимок догнал репозиторий, сгенерированные секции пересобраны |
+| PARTIAL | Часть секций пересобрана, остальные требуют решения человека |
+| FAIL | Профиль повреждён либо ручные секции затёрты — откат |
+| NOT_RUN | Профиля нет — нужен `tf-init`, а не обновление |
 
 ## Что дальше
 

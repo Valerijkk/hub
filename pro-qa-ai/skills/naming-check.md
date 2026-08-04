@@ -8,32 +8,34 @@ disable-model-invocation: true
 
 Сравнивает имена в `{{scope}}` с **конвенциями проекта**, а не с личным стилем. Вердикты: **ERROR** (блокирует рекомендацию мержа diff) | **WARN** (только в отчёте) | **OK**.
 
-## Когда использовать
-
+## Когда запускать
 - Перед мержем, когда изменились тестовые файлы или имена кейсов
 - Scoped-аудит: один домен, каталог или полное дерево тестов
 - После заполнения `bootstrap-test-context` — проверить, что новые тесты совпадают с наблюдаемым каноном
 
-## Когда остановиться
+## Стоп-условия
 
 - Правила нейминга в profile недоступны (`TEST-ARCHITECTURE.md` всё ещё `template` / всё `UNKNOWN`) → остановиться; сначала `bootstrap-test-context` и human review
 - Нет scope → запросить пути diff или список каталогов
 - Запрошен массовый rename legacy → отдельная chore-задача; этот skill только аудитит
 
-## Контекст (загрузить сначала)
+## Вход
 
-| Нужно | Primary | Legacy fallback |
-|------|---------|-----------------|
-| Канон имён файлов/кейсов | `context/projects/<profile>/TEST-ARCHITECTURE.md` § Organization | `context/NAMING-CONVENTIONS.md` |
-| Layout / levels | То же + `TEST-ARCHITECTURE.md` § Test topology | `context/TESTFRAMEWORK-MAP.md` |
-| Approved examples | `context/projects/<profile>/PATTERN-INDEX.md` → связанные cards в `patterns/approved/` | `context/PATTERNS-LIBRARY.md` A* examples |
-| Legacy exceptions | `PATTERN-INDEX.md` § Project-specific exceptions | NAMING §5 legacy zones |
-| Формат ID/traceability | `context/projects/<profile>/TRACEABILITY.md` § Identifier conventions | NAMING §3 |
+Область: дифф, каталог или срез дерева тестов. Плюс профиль — канон имён
+берётся из него, а не из общих правил нейминга.
+
+## Контекст
+| Нужно | Primary |
+|------|---------|
+| Канон имён файлов/кейсов | `context/projects/<profile>/TEST-ARCHITECTURE.md` § Organization |
+| Layout / levels | То же + `TEST-ARCHITECTURE.md` § Test topology |
+| Approved examples | `context/projects/<profile>/PATTERN-INDEX.md` → связанные cards в `patterns/approved/` |
+| Legacy exceptions | `PATTERN-INDEX.md` § Project-specific exceptions |
+| Формат ID/traceability | `context/projects/<profile>/TRACEABILITY.md` § Identifier conventions |
 
 Если profile и legacy расходятся, **побеждает profile** при `status: filled`; legacy — только fallback.
 
-## Workflow
-
+## Шаги
 ### 1. Собрать объекты
 
 Вход: `{{scope}}` = diff | directory | срез дерева тестов.
@@ -105,14 +107,30 @@ Verification:
 - Verdict: PASS | FAIL | PARTIAL
 ```
 
-## Политика
+## Критерий готовности
 
+- [ ] Канон взят из профиля, а не из общих представлений
+- [ ] Имена файлов и кейсов проверены отдельно
+- [ ] Согласованность имени с телом проверена на выборке
+- [ ] У каждого ERROR есть предложенное имя в форме проекта
+- [ ] Задокументированные исключения профиля дали WARN, а не ERROR
+
+## Вердикт
+
+| Вердикт | Условие |
+|---------|---------|
+| PASS | Ноль ERROR |
+| PARTIAL | ERROR нет, но есть WARN, требующие решения человека |
+| FAIL | Есть ERROR, включая имя-врун |
+| NOT_RUN | Канон нейминга в профиле недоступен — сверять не с чем |
+
+## Границы
 - **ERROR** блокирует рекомендацию мержа diff; **WARN** — нет.
 - Каждый **ERROR** включает **project-shaped** имя-замену (из pattern card или таблицы нейминга), а не общий совет «переименовать».
 - Массовые legacy-rename → отдельная задача; не расширять scope здесь.
 - Не повышать WARN до ERROR ради личного предпочтения.
 
-## Ссылки
+## Что дальше
 
 - Naming baseline: [rules/10](../standards/rules/10-naming-conventions.md) (defaults тулкита; profile перекрывает)
 - Severity (lying names): [rules/30](../standards/rules/30-severity-policy.md)

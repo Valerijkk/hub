@@ -57,6 +57,7 @@ CHECK_ORDER = (
     "provenance",
     "recipes",
     "agent_contract",
+    "skill_contract",
 )
 
 
@@ -1784,23 +1785,22 @@ class ToolkitValidator:
                     "required sections out of schema order",
                 )
 
-    def check_agent_contract(self) -> None:
-        """Единая форма файла роли против agents/README.md.
+    def _contract_scan(self, check: str, config: Dict[str, Any], folder: str,
+                       codes: Sequence[str]) -> None:
+        """Общая проверка формы файла: состав, порядок, чеклист.
 
-        До появления проверки четыре роли жили с нумерованными секциями,
-        пятая — с семантическими, а «критерий готовности» и контракт
-        передачи между ролями отсутствовали у всех. Расхождение формы
-        обнаруживалось только чтением всех файлов подряд.
+        Одна реализация на роли и скилы: два независимых прохода
+        разъезжаются, и второй начинает пропускать то, что ловит первый.
         """
-        config = self.config.get("agent_contract") or {}
         required = list(config.get("required_sections") or [])
         if not required:
             return
-        agents_dir = self.root / "agents"
-        if not agents_dir.is_dir():
+        folder_path = self.root / folder
+        if not folder_path.is_dir():
             return
         checklist_section = config.get("checklist_section")
-        for path in sorted(agents_dir.glob("*.md")):
+        missing_code, order_code, checklist_code = codes
+        for path in sorted(folder_path.glob("*.md")):
             if path.name.startswith("_") or path.name == "README.md":
                 continue
             try:
@@ -1817,34 +1817,29 @@ class ToolkitValidator:
                     found.append(line[3:].strip())
             for section in required:
                 if section not in found:
-                    self.add(
-                        "agent_contract",
-                        "AGENT001",
-                        path,
-                        1,
-                        "agent file is missing the required section: %s" % section,
-                    )
+                    self.add(check, missing_code, path, 1,
+                             "file is missing the required section: %s" % section)
             ordered = [item for item in found if item in required]
             expected = [item for item in required if item in ordered]
             if ordered != expected:
-                self.add(
-                    "agent_contract",
-                    "AGENT002",
-                    path,
-                    1,
-                    "required agent sections are out of the contracted order",
-                )
+                self.add(check, order_code, path, 1,
+                         "required sections are out of the contracted order")
             if checklist_section and checklist_section in found:
                 body = text.split("## %s" % checklist_section, 1)[1]
                 body = body.split(chr(10) + "## ", 1)[0]
                 if "- [ ]" not in body:
-                    self.add(
-                        "agent_contract",
-                        "AGENT003",
-                        path,
-                        1,
-                        "section %s must contain a checklist" % checklist_section,
-                    )
+                    self.add(check, checklist_code, path, 1,
+                             "section %s must contain a checklist" % checklist_section)
+
+    def check_skill_contract(self) -> None:
+        """Единая форма файла скила против skills/README.md."""
+        self._contract_scan("skill_contract", self.config.get("skill_contract") or {},
+                            "skills", ("SKILL010", "SKILL011", "SKILL012"))
+
+    def check_agent_contract(self) -> None:
+        """Единая форма файла роли против agents/README.md."""
+        self._contract_scan("agent_contract", self.config.get("agent_contract") or {},
+                            "agents", ("AGENT001", "AGENT002", "AGENT003"))
 
     def run(self, checks: Sequence[str]) -> List[Issue]:
         methods = {
@@ -1863,6 +1858,7 @@ class ToolkitValidator:
             "provenance": self.check_provenance,
             "recipes": self.check_recipes,
             "agent_contract": self.check_agent_contract,
+            "skill_contract": self.check_skill_contract,
         }
         for check in checks:
             methods[check]()
