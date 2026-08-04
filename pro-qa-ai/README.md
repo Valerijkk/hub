@@ -50,6 +50,9 @@ enum (`UNKNOWN`, `NOT_RUN`) остаются как в схемах.
 4. дальше командами: tf-cases, tf-cover, tf-gate, tf-review, tf-triage
 ```
 
+Порядок команд и ворота между ними —
+[`workflows/playbooks/phase-loop.md`](workflows/playbooks/phase-loop.md).
+
 Замечания коллег с ревью переносит **человек** в
 `standards/team-review/threads/inbox/`, дальше `tf-curate` превращает их
 в проверяемые правила `CHECK-*`.

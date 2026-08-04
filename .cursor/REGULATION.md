@@ -580,7 +580,7 @@ Slash: `.cursor/skills/qa-gate/SKILL.md`.
 
 | Механизм | Где применён в Hub |
 |----------|--------------------|
-| Фазовый цикл discuss → plan → execute → verify → ship | `.planning/phases/`, §17 |
+| Фазовый цикл: обсудить → спланировать → исполнить → проверить → сдать | [`playbooks/phase-loop.md`](playbooks/phase-loop.md), `.planning/phases/`, §17 |
 | Тяжёлая работа субагентам со свежим контекстом | §5 workflow, передача **путями**, не содержимым |
 | Память в артефактах | `.planning/STATE.md`, `.planning/decisions/` |
 | Четыре уровня проверки артефакта | [`.planning/VERIFICATION-LEVELS.md`](../.planning/VERIFICATION-LEVELS.md) |

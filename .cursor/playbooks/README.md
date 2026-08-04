@@ -3,6 +3,9 @@
 > Единый справочник команды. Агент начинает с STATE/индекса и загружает только
 > профильные docs/playbooks, необходимые для текущего outcome.
 > Регламент: `.cursor/REGULATION.md` · GSD: `.cursor/GSD-INTEGRATION.md` · Ростер файлов агентов: `.cursor/agents/*.md` · Planning-навигация: [`.planning/README.md`](../../.planning/README.md)
+>
+> **Хребет цикла — [`phase-loop.md`](phase-loop.md):** пять шагов на фазу и
+> ворота между ними. Остальные плейбуки раскрывают отдельные шаги.
 
 *Обновлено: 2026-07-26 — evidence-first prompt contract, dynamic model routing (ADR-MODELS-GPT56 amendment), agent frontmatter synced.*
 

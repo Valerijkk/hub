@@ -120,6 +120,7 @@ Planning хранит историю решений по нему (`archive/july
 | FA-06 / секреты | [`ops/production/PG-03-SECRET-ROTATION.md`](ops/production/PG-03-SECRET-ROTATION.md) |
 | Индекс июля | [`archive/july-2026/INDEX-JULY-2026.md`](archive/july-2026/INDEX-JULY-2026.md) |
 | AI-слой для тестового фреймворка | [`../pro-qa-ai/TOUCHSTONE.md`](../pro-qa-ai/TOUCHSTONE.md) |
+| Порядок фаз и ворота между ними | [`../.cursor/playbooks/phase-loop.md`](../.cursor/playbooks/phase-loop.md) |
 | Уровни проверки артефакта | [`VERIFICATION-LEVELS.md`](VERIFICATION-LEVELS.md) |
 | Что готово к выносу в продукт | [`EXTRACTION-CANDIDATES.md`](EXTRACTION-CANDIDATES.md) |
 | AI-expansion планы (история) | [`archive/july-2026/ai-expansion/README.md`](archive/july-2026/ai-expansion/README.md) |

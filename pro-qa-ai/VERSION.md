@@ -89,7 +89,7 @@ Package: 174 → 148 файлов.
 |----------|---------|-----------|
 | Structural validation | `python scripts/validate_toolkit.py` | PASS · 0 errors / 0 warnings · exit 0 |
 | Script tests | `python -m pytest scripts/tests -q` | 41 passed / 1 skipped (42 total); SKIP — symlink недоступен |
-| Portable package | `python scripts/package_portable.py --root . --output <dst> --dry-run` | 182 files · exit 0 |
+| Portable package | `python scripts/package_portable.py --root . --output <dst> --dry-run` | 183 files · exit 0 |
 
 Package исключает сгенерированный профиль Hub, локальные прогоны и сырые
 треды ревью. Целостность состава защищена `required_paths` в

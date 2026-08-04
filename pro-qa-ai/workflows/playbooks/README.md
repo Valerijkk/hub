@@ -1,9 +1,13 @@
 # playbooks/ — сквозные процессы
 
 > Плейбук отвечает на «как прогнать процесс целиком»: какие агенты/скилы, в каком порядке, с какими гейтами. Агенты знают свою роль; плейбук знает конвейер.
+>
+> Начинать с [phase-loop.md](phase-loop.md): он задаёт порядок, остальные
+> четыре раскрывают отдельные его шаги.
 
 | Плейбук | Процесс | Участники |
 |---------|---------|-----------|
+| [phase-loop.md](phase-loop.md) | **Хребет: пять шагов на объём и ворота между ними** | все |
 | [onboarding.md](onboarding.md) | Первое подключение контура к репозиторию | `tf-init`, `tf-status`, смоук шестью командами |
 | [test-generation.md](test-generation.md) | Документация → проверенные кейсы → автотесты | `test-case-generator` → `test-sdet` → `test-code-reviewer` → `test-documenter` |
 | [review-cycle.md](review-cycle.md) | Ревью тестового кода до мержа | `tf-gate` → `tf-antiai`, `tf-naming` → `test-code-reviewer` |
