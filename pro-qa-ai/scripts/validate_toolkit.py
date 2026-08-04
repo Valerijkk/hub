@@ -58,6 +58,7 @@ CHECK_ORDER = (
     "recipes",
     "agent_contract",
     "skill_contract",
+    "size_budget",
 )
 
 
@@ -1785,6 +1786,54 @@ class ToolkitValidator:
                     "required sections out of schema order",
                 )
 
+    def check_size_budget(self) -> None:
+        """Бюджет размера файлов инструкций.
+
+        Пакет про контекстную инженерию не имеет права грузить в агента
+        файл, который расходует его внимание до начала работы. Правило
+        без машинной проверки протухает: размер растёт по строке за
+        правку, и порог переходится незаметно.
+        """
+        settings = self.config.get("size_budget")
+        if not settings:
+            return
+        tiers = settings.get("tiers") or {}
+        default_kb = int(tiers.get("default_kb", settings.get("default_kb", 38)))
+        ceiling_kb = int(tiers.get("reference_kb", 90))
+        overrides = settings.get("overrides") or {}
+        reasons = settings.get("override_reasons") or {}
+        for path in self.files(settings["include_globs"], settings.get("exclude_globs", [])):
+            try:
+                size_kb = path.stat().st_size / 1024
+            except OSError:
+                continue
+            rel = path.relative_to(self.root).as_posix()
+            limit = int(overrides.get(rel, default_kb))
+            if rel in overrides and not reasons.get(rel):
+                self.add(
+                    "size_budget",
+                    "SIZE002",
+                    path,
+                    1,
+                    "size budget override needs a recorded reason",
+                )
+            if limit > ceiling_kb:
+                self.add(
+                    "size_budget",
+                    "SIZE003",
+                    path,
+                    1,
+                    "budget override of %dKB exceeds the %dKB ceiling" % (limit, ceiling_kb),
+                )
+            if size_kb > limit:
+                self.add(
+                    "size_budget",
+                    "SIZE001",
+                    path,
+                    1,
+                    "instruction file is %.1fKB, over its %dKB budget" % (size_kb, limit),
+                )
+
     def _contract_scan(self, check: str, config: Dict[str, Any], folder: str,
                        codes: Sequence[str]) -> None:
         """Общая проверка формы файла: состав, порядок, чеклист.
@@ -1859,6 +1908,7 @@ class ToolkitValidator:
             "recipes": self.check_recipes,
             "agent_contract": self.check_agent_contract,
             "skill_contract": self.check_skill_contract,
+            "size_budget": self.check_size_budget,
         }
         for check in checks:
             methods[check]()

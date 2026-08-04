@@ -442,5 +442,32 @@
       "Что дальше"
     ],
     "checklist_section": "Критерий готовности"
+  },
+  "size_budget": {
+    "include_globs": [
+      "agents/**/*.md",
+      "skills/*.md",
+      "standards/**/*.md",
+      "workflows/**/*.md",
+      "*.md",
+      "docs/*.md",
+      "context/*.md",
+      "work/**/*.md"
+    ],
+    "exclude_globs": [
+      "context/projects/**"
+    ],
+    "default_kb": 38,
+    "overrides": {
+      "skills/tf-review.md": 54
+    },
+    "tiers": {
+      "default_kb": 38,
+      "large_kb": 54,
+      "reference_kb": 90
+    },
+    "override_reasons": {
+      "skills/tf-review.md": "Полный каталог ревьюера: десять проверок с таблицами обнаружения в диффе. Нужен целиком на каждом ревью, дроблению не подлежит — ярус «большой»."
+    }
   }
 }

@@ -89,7 +89,11 @@ Stdlib-валидатор проверяет:
 - project-specific leakage в portable core по reviewed deny и allow rules;
 - резолв путей в inline-code (бэктики), а не только markdown-ссылок;
 - trailing whitespace;
-- поля provenance тулкита и generated-context.
+- поля provenance тулкита и generated-context;
+- единую форму файлов ролей и скилов: состав секций, их порядок, наличие
+  чеклиста готовности;
+- бюджет размера файлов инструкций по ярусам 38 / 54 / 90 КБ, включая
+  требование записанной причины у каждого исключения.
 
 Валидатор намеренно уже полного Markdown parser, YAML parser, secret scanner или
 reference implementation Agent Skills. Его пределы должны оставаться видимыми
