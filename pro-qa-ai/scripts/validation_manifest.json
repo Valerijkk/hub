@@ -471,5 +471,95 @@
     "override_reasons": {
       "skills/tf-review.md": "Полный каталог ревьюера: десять проверок с таблицами обнаружения в диффе. Нужен целиком на каждом ревью, дроблению не подлежит — ярус «большой»."
     }
+  },
+  "vocabulary": {
+    "include_globs": [
+      "**/*.md"
+    ],
+    "allow_globs": [
+      "CHANGELOG.md",
+      "VERSION.md",
+      "context/projects/**"
+    ],
+    "forbidden": [
+      {
+        "pattern": "издани\\w*\\s+(Pro|Standard)|в этом издании|издания Pro",
+        "hint": "линейка изданий упразднена — граница по объекту работы"
+      },
+      {
+        "pattern": "\\bbuild_task_packet\\b|task-packet",
+        "hint": "машинерия task-packet убрана в 0.4.0"
+      },
+      {
+        "pattern": "`?(adapters|evals)/",
+        "hint": "каталог удалён в 0.4.0"
+      },
+      {
+        "pattern": "\\bmodel-routing\\b|Sol Pro",
+        "hint": "выбор модели задаёт среда запуска"
+      },
+      {
+        "pattern": "review-feedback/(inbox|approved)|team-review/(inbox|approved)/",
+        "hint": "слой ревью схлопнут в threads/ и checks/"
+      },
+      {
+        "pattern": "prompt-engineering(-pro)?/",
+        "hint": "папка переименована в pro-qa-ai"
+      }
+    ]
+  },
+  "enums": {
+    "include_globs": [
+      "**/*.md"
+    ],
+    "exclude_globs": [
+      "CHANGELOG.md",
+      "VERSION.md",
+      "context/projects/**"
+    ],
+    "groups": [
+      {
+        "name": "вердикт утверждения",
+        "detect": "`(УТВЕРЖДЕНИ[А-Я_]+|НЕ_[А-Я_]+|НЕПРИМЕНИМО)`",
+        "values": [
+          "УТВЕРЖДЕНИЕ_ЕСТЬ",
+          "УТВЕРЖДЕНИЯ_НЕТ",
+          "НЕ_ПРОВЕРЕНО",
+          "НЕПРИМЕНИМО"
+        ]
+      },
+      {
+        "name": "класс причины падения",
+        "detect": "ROOT\\s*=\\s*`?([A-Za-z]+)`?",
+        "values": [
+          "code",
+          "test",
+          "infra",
+          "flaky",
+          "stop"
+        ]
+      }
+    ]
+  },
+  "roster": {
+    "include_globs": [
+      "**/*.md"
+    ],
+    "exclude_globs": [
+      "CHANGELOG.md",
+      "VERSION.md",
+      "context/projects/**"
+    ],
+    "detect": "`(test-(?:case-generator|sdet|code-reviewer|debugger|documenter)|qa-(?:manual|auto[0-9]?)|security-reviewer|devops|docs-writer|backend-dev|frontend-dev|product-owner|orchestrator)`"
+  },
+  "code_spans": {
+    "include_globs": [
+      "**/*.md"
+    ],
+    "exclude_globs": [
+      "CHANGELOG.md",
+      "VERSION.md",
+      "context/projects/**"
+    ]
   }
 }

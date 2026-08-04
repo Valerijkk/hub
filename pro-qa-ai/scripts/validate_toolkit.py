@@ -59,6 +59,10 @@ CHECK_ORDER = (
     "agent_contract",
     "skill_contract",
     "size_budget",
+    "vocabulary",
+    "enums",
+    "roster",
+    "code_spans",
 )
 
 
@@ -1834,6 +1838,108 @@ class ToolkitValidator:
                     "instruction file is %.1fKB, over its %dKB budget" % (size_kb, limit),
                 )
 
+    def _text_lines(self, path):
+        """Строки вне кодовых блоков — с номерами, начиная с 1."""
+        try:
+            raw = path.read_text(encoding="utf-8")
+        except OSError:
+            return []
+        out = []
+        fenced = False
+        for number, line in enumerate(raw.splitlines(), 1):
+            if line.lstrip().startswith("```"):
+                fenced = not fenced
+                continue
+            if not fenced:
+                out.append((number, line))
+        return out
+
+    def check_vocabulary(self) -> None:
+        """Понятия, удалённые из пакета, но оставшиеся в тексте.
+
+        Классы дефектов, которые не ловит ни одна структурная проверка:
+        ссылка на удалённое издание, на убранную подсистему, на скрипт,
+        которого больше нет. Файл при этом валиден и связен — он просто
+        обещает то, чего нет.
+        """
+        settings = self.config.get("vocabulary")
+        if not settings:
+            return
+        allow = settings.get("allow_globs", [])
+        for entry in settings.get("forbidden", []):
+            pattern = re.compile(entry["pattern"], re.IGNORECASE)
+            hint = entry.get("hint", "")
+            excludes = list(entry.get("exclude_globs", [])) + list(allow)
+            for path in self.files(settings["include_globs"], excludes):
+                for number, line in self._text_lines(path):
+                    if pattern.search(line):
+                        self.add(
+                            "vocabulary",
+                            "VOCAB001",
+                            path,
+                            number,
+                            "retired concept in text: %s%s" % (entry["pattern"], hint and " — " + hint),
+                        )
+
+    def check_enums(self) -> None:
+        """Разнобой машинных значений.
+
+        Одно значение, записанное двумя способами, — расхождение контракта:
+        принимающая сторона сверяет строку, а не смысл.
+        """
+        settings = self.config.get("enums")
+        if not settings:
+            return
+        for group in settings.get("groups", []):
+            canonical = set(group["values"])
+            pattern = re.compile(group["detect"])
+            for path in self.files(settings["include_globs"], settings.get("exclude_globs", [])):
+                for number, line in self._text_lines(path):
+                    for found in pattern.findall(line):
+                        if found not in canonical:
+                            self.add(
+                                "enums",
+                                "ENUM001",
+                                path,
+                                number,
+                                "value %s is not in the %s enum" % (found, group["name"]),
+                            )
+
+    def check_roster(self) -> None:
+        """Ссылки на роли, которых нет в ростере."""
+        settings = self.config.get("roster")
+        if not settings:
+            return
+        agents_dir = self.root / "agents"
+        if not agents_dir.is_dir():
+            return
+        known = {p.stem for p in agents_dir.glob("*.md") if p.name != "README.md"}
+        pattern = re.compile(settings["detect"])
+        for path in self.files(settings["include_globs"], settings.get("exclude_globs", [])):
+            for number, line in self._text_lines(path):
+                for found in pattern.findall(line):
+                    if found not in known:
+                        self.add(
+                            "roster",
+                            "ROLE001",
+                            path,
+                            number,
+                            "role %s is not in agents/" % found,
+                        )
+
+    def check_code_spans(self) -> None:
+        """Пустые и разорванные вставки кода."""
+        settings = self.config.get("code_spans")
+        if not settings:
+            return
+        empty = re.compile(r"(?<!`)``(?!`)")
+        for path in self.files(settings["include_globs"], settings.get("exclude_globs", [])):
+            for number, line in self._text_lines(path):
+                if empty.search(line):
+                    self.add("code_spans", "SPAN001", path, number, "empty code span")
+                elif line.count("`") % 2:
+                    self.add("code_spans", "SPAN002", path, number, "unbalanced code span")
+
     def _contract_scan(self, check: str, config: Dict[str, Any], folder: str,
                        codes: Sequence[str]) -> None:
         """Общая проверка формы файла: состав, порядок, чеклист.
@@ -1909,6 +2015,10 @@ class ToolkitValidator:
             "agent_contract": self.check_agent_contract,
             "skill_contract": self.check_skill_contract,
             "size_budget": self.check_size_budget,
+            "vocabulary": self.check_vocabulary,
+            "enums": self.check_enums,
+            "roster": self.check_roster,
+            "code_spans": self.check_code_spans,
         }
         for check in checks:
             methods[check]()
