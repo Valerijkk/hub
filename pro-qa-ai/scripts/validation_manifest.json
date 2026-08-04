@@ -452,7 +452,9 @@
       "*.md",
       "docs/*.md",
       "context/*.md",
-      "work/**/*.md"
+      "work/**/*.md",
+      "context/templates/*.md",
+      "sources/*.md"
     ],
     "exclude_globs": [
       "context/projects/**"
