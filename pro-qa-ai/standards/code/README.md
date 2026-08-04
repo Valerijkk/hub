@@ -36,6 +36,7 @@
 | Файл | О чём |
 |------|-------|
 | [layers.md](layers.md) | Слои и что в каком слое можно |
+| [suites.md](suites.md) | Сьюты: разделение по цене прогона, что где гоняется |
 | [api-clients.md](api-clients.md) | Клиенты внешних систем |
 | [fixtures.md](fixtures.md) | Фикстуры, фабрики, билдеры |
 | [page-objects.md](page-objects.md) | Объекты страниц для UI |

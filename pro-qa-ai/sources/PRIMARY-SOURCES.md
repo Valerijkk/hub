@@ -37,6 +37,19 @@ conformance.
 | SRC-GSD-REPO-001 | [gsd-build/get-shit-done](https://github.com/gsd-build/get-shit-done) | Трактовать GSD как inspiration/upstream, а не как неявную часть Hub; pin revision до копирования любого substantial upstream material. |
 | SRC-GSD-LICENSE-001 | [GSD MIT License](https://github.com/gsd-build/get-shit-done/blob/main/LICENSE) | Сохранять MIT copyright/license для скопированных substantial portions. Текущая local inventory revision — `UNKNOWN`, поэтому external redistribution остаётся gated. |
 
+| SRC-GSD-CONTEXT-001 | [CONTEXT.md](https://github.com/gsd-build/get-shit-done/blob/main/CONTEXT.md) | Запрет проверять исходник грепом вместо вызова; обязательные граничные фикстуры для параметров-лимитов; тест паритета при намеренном дублировании; таймауты на внешние вызовы с деградацией вместо исключения. |
+| SRC-GSD-SUITES-001 | [docs/TESTING-SUITES.md](https://github.com/gsd-build/get-shit-done/blob/main/docs/TESTING-SUITES.md) | Разделение сьютов маркером в имени файла, а не каталогом; разный состав прогона на мержреквесте и на главной ветке; структурные утверждения вместо сравнения текста ошибки. |
+| SRC-GSD-STANDARDS-001 | [docs/contributor-standards.md](https://github.com/gsd-build/get-shit-done/blob/main/docs/contributor-standards.md) | Поправка к принятому решению дописывается отдельной секцией; исходный текст не переписывается. |
+
+Дата доступа к четырём записям GSD: **2026-08-04**. Репозиторий
+`gsd-build/get-shit-done` на эту дату архивирован, разработка продолжена в
+`open-gsd/gsd-core`; изученная ревизия — архивная `main`.
+
+Вынесены **правила**, сформулированные заново под объект этого пакета.
+Существенные фрагменты текста не копировались, поэтому license gate по
+`SRC-GSD-LICENSE-001` не срабатывает; при копировании кода или прозы он
+применяется в полном объёме.
+
 Controls fed: [`NOTICE.md`](../NOTICE.md), provenance/reuse review, package
 license gate. Этот тулкит заявляет adapted patterns, а не official GSD status.
 
