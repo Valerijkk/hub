@@ -51,7 +51,6 @@ phase-plan → wave-run (×N) → goal-verify → handoff
 | Контракт промпта | `.cursor/playbooks/prompt-contract.md` |
 | Microservices ADR | `.planning/decisions/ADR-ARCH-MICROSERVICES-2026.md` |
 | AI-expansion | `.planning/archive/july-2026/ai-expansion/` |
-| PE-зеркало | `prompt-engineering-pro/skills/{phase-plan,wave-orchestrate,verify-goal}/` |
 
 ## Worked example (сквозной): bases security
 

@@ -77,7 +77,6 @@ spec_coverage:
 - **Touchstone Standard** (`pro-qa-ai/`): продукт-идентичность `TOUCHSTONE.md`,
   версия **`0.2.0-rc.1`** foundation-ready, CHANGELOG, обновлены README/START-HERE/INSTALL/MANIFEST/VERSION.
   Structural PASS сохранён; effectiveness/ROI по-прежнему **NOT_RUN** (честный GA-gate).
-- **Touchstone Pro** (`prompt-engineering-pro/`): max-пакет — слои 01–07 + extracts
   (prompt-contract, master-delegate, wave-protocol, mutation-evidence, backlog-task);
   источники: GSD inventory, PE Standard, `.cursor/` (contract/team/verify), `.planning/` (backlog/STATE/mutation).
 - Синхрон: `.planning/README.md`, `.cursor/rules/70-pro-qa-ai.mdc`,

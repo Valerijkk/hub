@@ -1,5 +1,11 @@
 # Portable Kit — спецификация содержимого
 
+> **Историческая запись.** Ссылки на `prompt-engineering-pro/` не
+> резолвятся: пакет удалён 2026-08-04 (коммит `0f1b4a93`, восстановление —
+> `git checkout 0f1b4a93 -- prompt-engineering-pro`). Текст не правится:
+> это снимок состояния на свою дату.
+
+
 ## Назначение
 
 Два слоя: project-neutral Test Automation AI Quality Layer (собирается безопасным

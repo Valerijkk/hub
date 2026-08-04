@@ -1,7 +1,7 @@
 # Hub — `.planning/` index
 
 > Навигация по planning-артефактам. **Ничего не удаляем** — только раскладка по смыслу и датам.
-> Обновлено: 2026-08-04 (детальный план августа) (Touchstone: граница изданий по объекту работы)
+> Обновлено: 2026-08-04 — детальный план августа; уровни проверки артефакта
 
 ---
 
@@ -14,6 +14,8 @@
 | [`ROADMAP.md`](ROADMAP.md) | Дорожная карта фаз (GSD) |
 | [`REQUIREMENTS.md`](REQUIREMENTS.md) | Требования |
 | [`COVERAGE.md`](COVERAGE.md) | Матрица покрытия тестами |
+| [`VERIFICATION-LEVELS.md`](VERIFICATION-LEVELS.md) | Четыре уровня проверки артефакта при приёмке фазы |
+| [`EXTRACTION-CANDIDATES.md`](EXTRACTION-CANDIDATES.md) | Что обкатано в Hub и готово к выносу в продукт |
 | [`config.json`](config.json) | GSD config |
 
 Старт сессии: **STATE** → этот README → нужная тема ниже.
@@ -76,17 +78,13 @@
 | [`reference/edge-expansions/`](reference/edge-expansions/) | Edge/corner-кейсы по доменам — источник TC и материал для Swagger |
 | [`reference/seeds/`](reference/seeds/) | Отложенные идеи (SEED-001 rejected, SEED-002 active) |
 
-### Touchstone (вне `.planning/`, связано)
+### Слой качества тестов (вне `.planning/`, связано)
 
-Линейка AI quality layer для тестовых фреймворков. Planning хранит историю
-решений (`archive/july-2026/ai-expansion/`); поставка — соседние папки репо:
+AI-слой для тестовых фреймворков живёт в [`pro-qa-ai/`](../pro-qa-ai/TOUCHSTONE.md).
+Planning хранит историю решений по нему (`archive/july-2026/ai-expansion/`).
 
-Деление по **объекту работы**, а не по уровню:
-
-| Издание | Путь | Объект работы |
-|---------|------|---------------|
-| Standard | [`pro-qa-ai/`](../pro-qa-ai/) | Тестовый фреймворк: context, `test-*` агенты, recipes, evals |
-| Pro | [`prompt-engineering-pro/`](../prompt-engineering-pro/) | Продукт: 12 ролей разработки, phase/wave/verify, mutation |
+Граница по **объекту работы**: `.cursor/` + `.planning/` — про продукт Hub,
+`pro-qa-ai/` — про тестовый фреймворк как таковой.
 
 ### Операционное
 
@@ -121,9 +119,10 @@
 | Gray zones locked | [`decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md`](decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md) |
 | FA-06 / секреты | [`ops/production/PG-03-SECRET-ROTATION.md`](ops/production/PG-03-SECRET-ROTATION.md) |
 | Индекс июля | [`archive/july-2026/INDEX-JULY-2026.md`](archive/july-2026/INDEX-JULY-2026.md) |
-| **Touchstone Standard** (AI layer для тестового фреймворка) | [`../pro-qa-ai/TOUCHSTONE.md`](../pro-qa-ai/TOUCHSTONE.md) |
-| **Touchstone Pro** (роли разработки, волны, мутация) | [`../prompt-engineering-pro/START-HERE.md`](../prompt-engineering-pro/START-HERE.md) |
-| AI-expansion планы (источник Pro) | [`archive/july-2026/ai-expansion/README.md`](archive/july-2026/ai-expansion/README.md) |
+| AI-слой для тестового фреймворка | [`../pro-qa-ai/TOUCHSTONE.md`](../pro-qa-ai/TOUCHSTONE.md) |
+| Уровни проверки артефакта | [`VERIFICATION-LEVELS.md`](VERIFICATION-LEVELS.md) |
+| Что готово к выносу в продукт | [`EXTRACTION-CANDIDATES.md`](EXTRACTION-CANDIDATES.md) |
+| AI-expansion планы (история) | [`archive/july-2026/ai-expansion/README.md`](archive/july-2026/ai-expansion/README.md) |
 | Активный backlog задач | [`backlog/README.md`](backlog/README.md) |
 
 ---

@@ -23,12 +23,9 @@ disable-model-invocation: true
 |----------|------|
 | `.planning/archive/july-2026/ai-expansion/05-PORTABLE-KIT.md` | слои L1–L6, DoD переноса |
 | `.planning/archive/july-2026/ai-expansion/08-PORTABLE-KIT-DRY-RUN.md` | полный dry-run L1–L5 + PASS/FAIL (`corp-hub-starter`) |
-| `prompt-engineering-pro/PORTABLE-HUB-KIT.md` | user-facing 10 шагов · **Touchstone Pro** |
 | `pro-qa-ai/TOUCHSTONE.md` | продукт Standard / связь с Pro |
 | `pro-qa-ai/INSTALL.md` | установка Standard |
-| `prompt-engineering-pro/START-HERE.md` | **Touchstone Pro** (GSD+Cursor+planning max) |
 | `ai-expansion/04-PORTABLE-HUB-ARCH.md` | архитектурный контекст kit |
-| Playbook dry-run | `prompt-engineering-pro/playbooks/portable-kit-dry-run.md` |
 
 ## Слои kit
 
@@ -149,6 +146,5 @@ disable-model-invocation: true
 ## Связь
 
 - Спеки: `05-PORTABLE-KIT.md`, `08-PORTABLE-KIT-DRY-RUN.md`, `PORTABLE-HUB-KIT.md`
-- Playbook: `prompt-engineering-pro/playbooks/portable-kit-dry-run.md`
 - Смежный skill: [microservices-strangler](../microservices-strangler/SKILL.md) (blueprint в L5)
 - Индекс: [gsd-ru/README.md](../README.md) · AI-expansion README

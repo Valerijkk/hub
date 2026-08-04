@@ -1,5 +1,11 @@
 # STATE history — through 2026-07-23
 
+> **Историческая запись.** Ссылки на `prompt-engineering-pro/` не
+> резолвятся: пакет удалён 2026-08-04 (коммит `0f1b4a93`, восстановление —
+> `git checkout 0f1b4a93 -- prompt-engineering-pro`). Текст не правится:
+> это снимок состояния на свою дату.
+
+
 > **Historical / non-canonical.** As-of notes and completion logs moved out of
 > live [`STATE.md`](../../STATE.md) on 2026-07-26 so session start stays short.
 > Numbers, model names, and status claims below may be stale — current truth is

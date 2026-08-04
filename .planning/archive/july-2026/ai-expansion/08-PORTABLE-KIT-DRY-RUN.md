@@ -1,5 +1,11 @@
 # Portable Kit — Dry-run переноса в `corp-hub-starter`
 
+> **Историческая запись.** Ссылки на `prompt-engineering-pro/` не
+> резолвятся: пакет удалён 2026-08-04 (коммит `0f1b4a93`, восстановление —
+> `git checkout 0f1b4a93 -- prompt-engineering-pro`). Текст не правится:
+> это снимок состояния на свою дату.
+
+
 > **Дата:** 2026-07-23 · **Цель:** полный бумажный (и воспроизводимый) dry-run переноса AI kit из Hub в гипотетический **пустой** monorepo `corp-hub-starter`.
 > **Код продукта не создаём** — только дерево AI Ops / PE / planning.
 > **Канон слоёв:** [`05-PORTABLE-KIT.md`](05-PORTABLE-KIT.md) · **User guide:** [`prompt-engineering-pro/PORTABLE-HUB-KIT.md`](../../../../prompt-engineering-pro/PORTABLE-HUB-KIT.md)
