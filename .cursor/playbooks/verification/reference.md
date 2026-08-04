@@ -154,8 +154,10 @@ product-ver (фича vs vision):
 - Верификатор: be-ver
 - Дата/время: 2026-07-02 14:05
 - Вердикт: verified: false
+
 ## Контекст и воспроизведение
 Проверял реализацию TMS-14 (пометка flaky + фильтр). Запустил go test -race ./internal/tms/...
+
 ## Регрессия
 - Команда: cd backend && go test -race -count=1 ./internal/tms/...
 - Результат: PASS
@@ -163,14 +165,17 @@ product-ver (фича vs vision):
 ```
 ok  hub/internal/tms  9.812s
 ```
+
 ## Сверка с docs/TZ
 Контракт GET /tms/cases?flaky сверен с wiki/API.md; NFR-13/14/24 из spec.
+
 ## Замечания
 | # | Severity | Файл:строка | Ожидалось | Фактически | Действие |
 |---|----------|-------------|-----------|------------|----------|
 | 1 | HIGH | tms/handler_cases.go:88 | limit ограничен ≤100 | limit не валидируется | добавить проверку, вернуть |
 | 2 | HIGH | tms/service.go:154 | ошибка обёрнута %w | return err без контекста | обернуть fmt.Errorf |
 | 3 | MEDIUM | tms/service.go:201 | slog c контекстом | fmt.Println для отладки | убрать/заменить slog |
+
 ## Итог
 FAIL: 2×HIGH блокируют. Возврат be. Регрессия зелёная, но контракт/стиль нарушены.
 ```
@@ -183,14 +188,17 @@ FAIL: 2×HIGH блокируют. Возврат be. Регрессия зелё
 - Верификатор: sa-ver
 - Дата/время: 2026-07-02 13:00
 - Вердикт: verified: false
+
 ## Воспроизведение
 Независимый пересчёт tms routes по RegisterRoutes; проверка ERD TestCase.
+
 ## Замечания
 | # | Severity | Раздел | Ожидалось | Фактически | Действие |
 |---|----------|--------|-----------|------------|----------|
 | 1 | CRITICAL | ERD TestCase | version int (NFR-24) | поле отсутствует | добавить version |
 | 2 | HIGH | wiki GET /tms/cases | пагинация limit≤100 | без ограничения | описать в контракте |
 | 3 | MEDIUM | inventory | tms=54 | пересчёт=52 | свести число |
+
 ## Итог
 FAIL: CRITICAL (version). Возврат SA, приложить пересчёт routes.
 ```
@@ -203,16 +211,19 @@ FAIL: CRITICAL (version). Возврат SA, приложить пересчёт
 - Верификатор: fe-ver
 - Дата/время: 2026-07-02 17:20
 - Вердикт: verified: false
+
 ## Регрессия
 - Команда: npx tsc --noEmit && npm run lint && npx vitest run
 - Результат: PASS
 - Лог: Test Files 37 passed (37) · Tests 99 passed (99)
+
 ## Замечания
 | # | Severity | Файл:строка | Ожидалось | Фактически | Действие |
 |---|----------|-------------|-----------|------------|----------|
 | 1 | HIGH | FlakyList.tsx:24 | хуки до return | useEffect после if(!id) return | перенести хук вверх |
 | 2 | HIGH | FlakyList.tsx:60 | key={item.id} | key={index} | стабильный ключ |
 | 3 | MEDIUM | FlakyList.tsx:75 | aria-label на иконке-кнопке | отсутствует | добавить aria |
+
 ## Итог
 FAIL: Rules of Hooks + key=index. Возврат fe. Регрессия зелёная, но дефекты корректности.
 ```
@@ -225,14 +236,17 @@ FAIL: Rules of Hooks + key=index. Возврат fe. Регрессия зелё
 - Верификатор: qa-auto-ver
 - Дата/время: 2026-07-02 18:00
 - Вердикт: verified: false
+
 ## Воспроизведение
 go test -race -count=3 ./internal/tms/... → 2/3 PASS, 1 FAIL (нестабильно).
+
 ## Замечания
 | # | Severity | Файл:строка | Ожидалось | Фактически | Действие |
 |---|----------|-------------|-----------|------------|----------|
 | 1 | HIGH | flaky_test.go:33 | детерминизм | зависит от time.Now() без фиксации | заморозить время/clock |
 | 2 | MEDIUM | flaky_test.go:20 | poll по условию | time.Sleep(2s) | заменить на waitFor |
 | 3 | MEDIUM | flaky_test.go | ссылка на TC | нет привязки к TC-TMS-14 | добавить трассировку |
+
 ## Итог
 FAIL: тест flaky (HIGH). Возврат qa. Перед фиксом — triage не требуется (ROOT=test, недетерминизм).
 ```

@@ -2,7 +2,7 @@
 
 > Часть плейбука. Канон и оглавление — [`../design.md`](../design.md).
 
-Переменные, палитра, типографика, отступы, тени, анимации, состояния.
+Переменные, палитра, типографика, отступы, тени, состояния.
 
 ---
 
@@ -252,62 +252,3 @@ focus — глобальный ring (наследуется), active — `bg-[va
 ---
 
 # 3. Компонентная библиотека Shadcn/ui
-## 2. Структура (layout)
-- ASCII-схема раскладки (см. 6.3)
-- Дерево компонентов: какие Shadcn-примитивы и в какой вложенности
-- Сетка/колонки, breakpoints поведение
-## 2. Структура (layout)
-
-+----------------------------------------------------+
-| Sheet (right, w-[560px], bg-card, shadow-xl, --r4) |
-| +------------------------------------------------+ |
-| | Header (sticky top, border-b b1)               | |
-| |  [HUB-123 t3 mono]        [Status Select] [X]  | |
-| |  [H2 text-xl t1: заголовок задачи]             | |
-| +------------------------------------------------+ |
-| | Body (ScrollArea, gap-6, p-6)                  | |
-| |  Meta row: [Assignee Avatar][Priority Badge]   | |
-| |            [Type Badge][Estimate]              | |
-| |  Description (prose, text-sm t2)               | |
-| |  Checklist (US-M03)                            | |
-| |  Time tracking (US-M12): [Timer btn][Manual]   | |
-| |  Linked PRs (US-S04): [GitHub badge list]      | |
-| |  Comments (thread): [Avatar][text][actions]    | |
-| +------------------------------------------------+ |
-| | Footer (sticky bottom, border-t b1)            | |
-| |  [Comment Input h-42]              [Send pri.] | |
-| +------------------------------------------------+ |
-+----------------------------------------------------+
-
-Дерево компонентов:
-<Sheet side="right">                         // Radix Dialog, поведение не трогать
-  <SheetContent className="w-[560px] p-0">
-    <header className="sticky top-0 border-b border-b1 bg-card p-6">
-      <span className="font-mono text-xs text-t3">HUB-123</span>
-      <StatusSelect />                        // <Select>, cva-варианты по статусу
-      <SheetClose />                          // Radix, Esc + click-outside из коробки
-      <h2 className="text-xl font-semibold text-t1">{title}</h2>
-    </header>
-    <ScrollArea className="flex-1">
-      <div className="flex flex-col gap-6 p-6">
-        <MetaRow />                           // Avatar + Badge (priority/type)
-        <Description />                        // prose text-sm text-t2
-        <Checklist />
-        <TimeTracker />                        // Timer + manual input
-        <LinkedPRs />                          // Badge variant="default" (blue glow)
-        <CommentThread />
-      </div>
-    </ScrollArea>
-    <footer className="sticky bottom-0 border-t border-b1 bg-card p-4">
-      <div className="flex gap-2">
-        <Input placeholder="Комментарий..." className="flex-1" />
-        <Button variant="default">Отправить</Button>
-      </div>
-    </footer>
-  </SheetContent>
-</Sheet>
-
-Breakpoints:
-- base (mobile): Sheet становится side="bottom", высота 90vh, w-full.
-- md и выше: side="right", w-[560px].
-- Доска слева скрывается на mobile (Sheet поверх всего экрана).

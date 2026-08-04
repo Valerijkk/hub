@@ -1,21 +1,142 @@
-# Дизайн: передача во фронтенд
+# Дизайн: спека и передача во фронтенд
 
 > Часть плейбука. Канон и оглавление — [`../design.md`](../design.md).
 
-Крайние случаи и разбивка задач для fe.
+Формат текстовой спеки, крайние случаи, разбивка задач для fe.
 
 ---
+
+## 6.1 Почему текстовая спека
+
+В Hub нет Figma. Дизайн-контракт живёт как **Markdown-спека** (`DESIGN-SPEC-<screen>.md`) плюс, при
+необходимости, HTML-мокап через `gsd-sketch`. Текст — это то, что `fe` может точно реализовать, а
+`designer-ver`/`fe-ver` — проверить.
+## 6.2 Обязательные разделы спеки
+
+Каждая дизайн-спека содержит ровно эти разделы:
+
+```
+# DESIGN-SPEC: <название экрана / компонента>
+
+## 1. Контекст
+- Связанные US/AC: US-Mxx, ...
+- Персона и сценарий: кто и зачем открывает экран
+- Точка входа / выхода (роут, откуда попадает пользователь)
+
+## 2. Структура (layout)
+- ASCII-схема раскладки (см. 6.3)
+- Дерево компонентов: какие Shadcn-примитивы и в какой вложенности
+- Сетка/колонки, breakpoints поведение
+
+## 3. Токены
+- Поверхности: какие --void/--base/--raised/--card/--input где
+- Текст: --t1/--t2/--t3 по элементам
+- Границы, радиусы (--rN), тени (--shN), spacing (шкала)
+- Акцент: где --primary, где статичные семантики
+
+## 4. Состояния
+- default / hover / active / focus / disabled для каждого интерактива
+- loading (скелетон), empty (EmptyState текст), error (сообщение + retry)
+
+## 5. Поведение
+- Что происходит по клику/вводу/drag
+- Async: оптимистичные обновления, инвалидация запросов
+- Навигация, hotkeys, фокус-менеджмент
+
+## 6. Доступность
+- Контраст ключевых пар (рассчитан)
+- aria-*, labels, порядок фокуса, keyboard-map
+- Цели нажатия
 
 ## 7. Edge-cases
 - Длинный текст / переполнение
 - 0 / 1 / много элементов
 - Оффлайн / медленная сеть
 - Права (RBAC): что видит Viewer vs Owner
+
 ## 8. Разбивка для fe (кто что делает)
 - fe1: <файлы/компоненты>
 - fe2: <файлы/компоненты>
 - точки синхронизации
 ```
+## 6.3 Пример ASCII-схемы раскладки
+
+Раскладку описывают ASCII-диаграммой — она однозначна и не требует Figma:
+
+```
++--------------------------------------------------------------+
+| PageHeader (sticky, page-header-blur)                        |
+|  [H1 text-2xl t1]              [Filter chips] [+ Button pri.] |
++--------------------------------------------------------------+
+| Toolbar: [Search input h-42] [Tabs] [View toggle]            |
++------------------+-------------------------------------------+
+| Sidebar (aside)  | Content (main)                            |
+| bg-sidebar       |  Card grid (gap-4)                        |
+| w-64 lg: only    |  +----------+ +----------+ +----------+   |
+|                  |  | Card r4  | | Card r4  | | Card r4  |   |
+|                  |  | sh1      | |          | |          |   |
+|                  |  +----------+ +----------+ +----------+   |
+|                  |  EmptyState (py-12) if no data           |
++------------------+-------------------------------------------+
+```
+## 6.4 Пример дерева компонентов
+
+```
+<ErrorBoundary>
+  <PageHeader>
+    <h1 className="text-2xl font-semibold text-t1">Sprint Backlog</h1>
+    <Button variant="default">+ Задача</Button>   // Ctrl+N
+  </PageHeader>
+  <div className="flex gap-4">
+    <aside className="hidden lg:block w-64">
+      <FilterPanel />                              // fe2
+    </aside>
+    <main className="flex-1">
+      {isLoading && <SkeletonList count={6} />}    // animate-shimmer
+      {isEmpty && <EmptyState icon={Inbox} title="Пусто" description="Создайте задачу" />}
+      {isError && <InlineError onRetry={refetch} />}
+      {data && <IssueList items={data} />}         // fe1
+    </main>
+  </div>
+</ErrorBoundary>
+```
+## 6.5 GSD-инструменты дизайна
+
+`designer`/`fe` используют GSD-скиллы для дизайна:
+
+| Скилл | Когда | Что даёт |
+|---|---|---|
+| `gsd-sketch` | Быстрый набросок нового экрана | Одноразовый HTML-мокап, мульти-вариант, до фиксации спеки |
+| `gsd-sketch-wrap-up` | После sketch | Упаковывает находки в persistent skill |
+| `gsd-ui-phase` | Фаза с фронтендом | Генерирует UI-SPEC.md (дизайн-контракт фазы) — база для DESIGN-SPEC |
+| `gsd-ui-review` | После реализации | Ретроспективный 6-pillar visual-аудит реализованного UI |
+
+Поток: `gsd-sketch` (варианты) → зафиксировать DESIGN-SPEC → `fe` реализует → `gsd-ui-review` / `fe-ver`.
+
+### Good / Bad — спека
+
+**Good:** спека содержит все 8 разделов, ASCII-раскладку, дерево компонентов с конкретными Shadcn,
+рассчитанный контраст и разбивку fe1/fe2. `fe` реализует без вопросов.
+
+**Bad:** спека — «сделать красиво как в Linear, тёмная тема». Нет токенов, нет состояний, нет edge-cases.
+`fe` домысливает, результат непредсказуем, `designer-ver` не может верифицировать.
+
+### Чек-лист спеки (§6)
+
+- [ ] Присутствуют все 8 разделов.
+- [ ] Есть ASCII-раскладка и дерево компонентов с конкретными Shadcn-примитивами.
+- [ ] Все токены названы (реальные из `app.css`).
+- [ ] Описаны состояния (5 интерактивных + loading/empty/error).
+- [ ] Рассчитан контраст, задан keyboard-map и aria.
+- [ ] Перечислены edge-cases и RBAC-видимость.
+- [ ] Работа разбита между fe1/fe2 без пересечения файлов.
+
+---
+
+# 7. Верификация дизайна (`designer-ver`)
+
+`designer-ver` — независимая нейросеть, проверяющая артефакт `designer` по коду и чек-листам. Не ставит
+`verified: true` без прохождения всех блоков ниже. Итог — отчёт с явными PASS/FAIL по пунктам.
 ## 7.1 Блок «Консистентность токенов»
 
 - [ ] Каждый токен из спеки существует в `frontend/src/app.css` (grep по имени переменной).
@@ -49,14 +170,17 @@
 # DESIGN-VER: <экран> — <дата HH:MM>
 
 verified: false            # true только при 0 FAIL
+
 ## Токены:        PASS/FAIL (детали)
 ## a11y:          PASS/FAIL (контраст-таблица)
 ## Responsive:    PASS/FAIL
 ## Дизайн-система: PASS/FAIL
+
 ## Findings
 - [CRITICAL] ...
 - [HIGH] ...
 - [MINOR] ...
+
 ## Вердикт
 - Причина отказа / условия для verified: true
 ```
@@ -145,6 +269,130 @@ verified: false            # true только при 0 FAIL
 
 ```
 # DESIGN-SPEC: Issue Detail Panel (панель задачи трекера)
+
+## 1. Контекст
+- US: US-M03 (управление задачами), US-M12 (таймтрекинг), US-S04 (GitHub-линки).
+- Персона: Алексей (Developer). Открывает панель из Kanban-доски кликом по карточке
+  или по hotkey Enter на выделенной карточке. Читает описание, меняет статус,
+  логирует время, оставляет комментарий.
+- Точка входа: роут /_authenticated/projects/$projectId/issues/$issueId
+  (открывается как Sheet справа поверх доски, доска остаётся видна слева).
+- Точка выхода: Esc или клик вне панели закрывает Sheet, фокус возвращается на карточку.
+
+## 2. Структура (layout)
+
++----------------------------------------------------+
+| Sheet (right, w-[560px], bg-card, shadow-xl, --r4) |
+| +------------------------------------------------+ |
+| | Header (sticky top, border-b b1)               | |
+| |  [HUB-123 t3 mono]        [Status Select] [X]  | |
+| |  [H2 text-xl t1: заголовок задачи]             | |
+| +------------------------------------------------+ |
+| | Body (ScrollArea, gap-6, p-6)                  | |
+| |  Meta row: [Assignee Avatar][Priority Badge]   | |
+| |            [Type Badge][Estimate]              | |
+| |  Description (prose, text-sm t2)               | |
+| |  Checklist (US-M03)                            | |
+| |  Time tracking (US-M12): [Timer btn][Manual]   | |
+| |  Linked PRs (US-S04): [GitHub badge list]      | |
+| |  Comments (thread): [Avatar][text][actions]    | |
+| +------------------------------------------------+ |
+| | Footer (sticky bottom, border-t b1)            | |
+| |  [Comment Input h-42]              [Send pri.] | |
+| +------------------------------------------------+ |
++----------------------------------------------------+
+
+Дерево компонентов:
+<Sheet side="right">                         // Radix Dialog, поведение не трогать
+  <SheetContent className="w-[560px] p-0">
+    <header className="sticky top-0 border-b border-b1 bg-card p-6">
+      <span className="font-mono text-xs text-t3">HUB-123</span>
+      <StatusSelect />                        // <Select>, cva-варианты по статусу
+      <SheetClose />                          // Radix, Esc + click-outside из коробки
+      <h2 className="text-xl font-semibold text-t1">{title}</h2>
+    </header>
+    <ScrollArea className="flex-1">
+      <div className="flex flex-col gap-6 p-6">
+        <MetaRow />                           // Avatar + Badge (priority/type)
+        <Description />                        // prose text-sm text-t2
+        <Checklist />
+        <TimeTracker />                        // Timer + manual input
+        <LinkedPRs />                          // Badge variant="default" (blue glow)
+        <CommentThread />
+      </div>
+    </ScrollArea>
+    <footer className="sticky bottom-0 border-t border-b1 bg-card p-4">
+      <div className="flex gap-2">
+        <Input placeholder="Комментарий..." className="flex-1" />
+        <Button variant="default">Отправить</Button>
+      </div>
+    </footer>
+  </SheetContent>
+</Sheet>
+
+Breakpoints:
+- base (mobile): Sheet становится side="bottom", высота 90vh, w-full.
+- md и выше: side="right", w-[560px].
+- Доска слева скрывается на mobile (Sheet поверх всего экрана).
+
+## 3. Токены
+Поверхности:
+- Sheet-контейнер: bg-card (#191a20 dark), shadow-[var(--sh4)].
+- Header/Footer: bg-card + border-b/border-t border-b1.
+- Комментарий-инпут: bg-[var(--input)].
+Текст:
+- Ключ задачи HUB-123: text-t3 font-mono.
+- Заголовок: text-t1 font-semibold text-xl.
+- Описание/комментарии: text-t2 text-sm.
+- Метаданные (дата, автор): text-t3 text-xs.
+Границы/радиусы/тени:
+- Разделители header/footer: border-b1.
+- Радиус контейнера: --r4; бейджи: rounded-full; инпут/кнопки: --r2.
+- Тень Sheet: --sh4.
+Акцент:
+- Кнопка "Отправить": variant="default" (--primary, accent-aware).
+- Бейдж статуса приоритета critical: --red; high: --orange.
+- Linked PR badge: variant="default" (--gB blue glow).
+
+## 4. Состояния
+Status Select:
+- default: bg-raised border-b1 text-t2.
+- hover: border-b2 text-t1.
+- focus: ring-2 ring-ring ring-offset-2.
+- open: Radix data-state=open (не трогать), поповер bg-card shadow-md animate-dropdown-in.
+- disabled (нет прав): opacity-50 pointer-events-none.
+Send button: default/hover(-translate-y-px+glow)/active(scale .96)/focus(ring)/disabled(opacity-50).
+Data:
+- loading: скелетоны meta+description (animate-shimmer), 3 строки комментариев-скелетонов.
+- empty comments: <EmptyState icon={MessageSquare} title="Пока нет комментариев"
+  description="Будьте первым" />.
+- error: <InlineError message="Не удалось загрузить задачу. request_id: {id}" onRetry={refetch} />.
+
+## 5. Поведение
+- Смена статуса: оптимистичное обновление (TanStack Query), при ошибке — откат + toast.
+- Таймер: Start/Stop пишет time-log; ручной ввод — модалка с полем длительности + описание.
+- Комментарий: Enter отправляет, Shift+Enter — новая строка; после успеха — очистка + прокрутка вниз.
+- Optimistic lock (version): при конфликте 409 — toast "Задача изменена, обновите" + refetch.
+- Esc закрывает Sheet (Radix), фокус возвращается на исходную карточку доски.
+- Hotkeys: 'c' фокус на комментарий, 's' открыть status select.
+
+## 6. Доступность
+Контраст (dark):
+- t1 #f2f3f5 на card #191a20 => ~13:1 (PASS текст).
+- t2 #9da0a8 на card #191a20 => ~5.6:1 (PASS текст).
+- t3 #a1a7b3 на card => ~6.4:1 (PASS, но только метаданные).
+- primary-foreground #fff на --primary blue => >4.5:1 (PASS).
+Клавиатура:
+- Tab: status -> close -> body-интерактивы -> comment input -> send.
+- Sheet focus-trap (Radix), Esc закрывает, возврат фокуса на триггер.
+- Timer/Send: Enter/Space активируют.
+Aria:
+- SheetContent role=dialog aria-labelledby={заголовок}.
+- Close button aria-label="Закрыть панель задачи".
+- Toast/ошибки в aria-live="polite".
+- Статус: не только цвет — бейдж с текстом статуса.
+Цели нажатия: close/timer/send >= 40px desktop, 44px mobile.
+
 ## 7. Edge-cases
 - Очень длинный заголовок: line-clamp-2, полный — в title-атрибуте.
 - Задача без описания: плейсхолдер "Нет описания" text-t3.
@@ -152,6 +400,7 @@ verified: false            # true только при 0 FAIL
 - Нет прав на изменение (Viewer): status select и send скрыты/disabled, панель read-only.
 - Оффлайн: баннер "Нет соединения", действия disabled, комментарий сохраняется в очередь.
 - Удалённая задача (404): EmptyState "Задача не найдена" + кнопка "К доске".
+
 ## 8. Разбивка для fe
 - fe1: Sheet-контейнер, Header, StatusSelect, Footer, comment input/send, состояния data.
 - fe2: Body-секции (MetaRow, Description, Checklist, TimeTracker, LinkedPRs, CommentThread).

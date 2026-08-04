@@ -453,14 +453,18 @@ Wave 4 (приёмка):
 
 ```
 # PLAN: <фаза N — название>
+
 ## Цель (goal)
 - Одно предложение: что фаза доставляет (goal-backward проверяемо).
+
 ## Depends on
 - Phase N-1 (артефакт X), API-контракт Y, Ent schema Z.
+
 ## Success criteria
 - [ ] Критерий 1 (проверяемый, привязан к AC/US)
 - [ ] Критерий 2
 - [ ] Регрессия слоя green
+
 ## Задачи (атомарные, ≤200-300 строк каждая)
 | # | Задача | Исполнитель | Файлы | Depends | Оценка |
 |---|--------|-------------|-------|---------|--------|
@@ -470,11 +474,14 @@ Wave 4 (приёмка):
 | 4 | Sprint handler+routes | be1 | sprint/handler.go | 3 | 0.5д |
 | 5 | Backlog UI list | fe1 | components/backlog/List.tsx | API#4 | 1д |
 | 6 | Filter panel | fe2 | components/backlog/Filters.tsx | API#4 | 0.5д |
+
 ## Волны
 - Wave 1: #1 (fundament) → Wave 2: #2,#3 ∥ дизайн → Wave 3: #4 → Wave 4: #5,#6 ∥ tests
+
 ## Риски
 - R1: optimistic lock конфликты при массовом reorder — митигация: version field + retry.
 - R2: API-контракт может измениться — зафиксировать первым коммитом.
+
 ## Verification
 - be-ver, fe-ver, qa-*-ver; финальная приёмка team-lead.
 ```
