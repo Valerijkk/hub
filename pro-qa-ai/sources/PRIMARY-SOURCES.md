@@ -41,9 +41,11 @@ conformance.
 | SRC-GSD-SUITES-001 | [docs/TESTING-SUITES.md](https://github.com/gsd-build/get-shit-done/blob/main/docs/TESTING-SUITES.md) | Разделение сьютов маркером в имени файла, а не каталогом; разный состав прогона на мержреквесте и на главной ветке; структурные утверждения вместо сравнения текста ошибки. |
 | SRC-GSD-STANDARDS-001 | [docs/contributor-standards.md](https://github.com/gsd-build/get-shit-done/blob/main/docs/contributor-standards.md) | Поправка к принятому решению дописывается отдельной секцией; исходный текст не переписывается. |
 
-Дата доступа к четырём записям GSD: **2026-08-04**. Репозиторий
+| SRC-GSD-CORE-001 | [open-gsd/gsd-core — TESTING-STANDARDS.md](https://github.com/open-gsd/gsd-core/blob/main/TESTING-STANDARDS.md) | Шесть контрактов теста; политика удаления плохих тестов вместо отключения; свойства вместо примеров для парсинга и обратимых пар; часы как параметр вместо подмены системного времени; классы непереносимости между ОС. |
+
+Дата доступа к пяти записям GSD: **2026-08-04**. Репозиторий
 `gsd-build/get-shit-done` на эту дату архивирован, разработка продолжена в
-`open-gsd/gsd-core`; изученная ревизия — архивная `main`.
+`open-gsd/gsd-core`. Изучены обе: архивная `main` первого и `main` второго.
 
 Вынесены **правила**, сформулированные заново под объект этого пакета.
 Существенные фрагменты текста не копировались, поэтому license gate по

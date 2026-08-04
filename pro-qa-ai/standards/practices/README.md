@@ -29,6 +29,7 @@
 | [assertions.md](assertions.md) | Что делает проверку настоящей, а что фиктивной |
 | [isolation.md](isolation.md) | Независимость, состояние, очистка |
 | [determinism.md](determinism.md) | Источники нестабильности и чем их заменять |
+| [portability.md](portability.md) | Тест не зависит от машины: пути, временные каталоги, переводы строк, права |
 | [test-data.md](test-data.md) | Данные, фикстуры, фабрики |
 | [negative-cases.md](negative-cases.md) | Обязательные негативные классы |
 | [api-tests.md](api-tests.md) | Специфика проверки API |
