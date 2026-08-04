@@ -56,6 +56,7 @@ CHECK_ORDER = (
     "trailing_whitespace",
     "provenance",
     "recipes",
+    "agent_contract",
 )
 
 
@@ -1738,7 +1739,7 @@ class ToolkitValidator:
         optional = set(config.get("optional_sections") or [])
         if not required:
             return
-        recipes_dir = self.root / "recipes"
+        recipes_dir = self.root / "workflows" / "recipes"
         if not recipes_dir.is_dir():
             return
         for path in sorted(recipes_dir.glob("*.md")):
@@ -1783,6 +1784,68 @@ class ToolkitValidator:
                     "required sections out of schema order",
                 )
 
+    def check_agent_contract(self) -> None:
+        """Единая форма файла роли против agents/README.md.
+
+        До появления проверки четыре роли жили с нумерованными секциями,
+        пятая — с семантическими, а «критерий готовности» и контракт
+        передачи между ролями отсутствовали у всех. Расхождение формы
+        обнаруживалось только чтением всех файлов подряд.
+        """
+        config = self.config.get("agent_contract") or {}
+        required = list(config.get("required_sections") or [])
+        if not required:
+            return
+        agents_dir = self.root / "agents"
+        if not agents_dir.is_dir():
+            return
+        checklist_section = config.get("checklist_section")
+        for path in sorted(agents_dir.glob("*.md")):
+            if path.name.startswith("_") or path.name == "README.md":
+                continue
+            try:
+                text = path.read_text(encoding="utf-8")
+            except OSError:
+                continue
+            found = []
+            fenced = False
+            for line in text.splitlines():
+                if line.lstrip().startswith("```"):
+                    fenced = not fenced
+                    continue
+                if not fenced and line.startswith("## "):
+                    found.append(line[3:].strip())
+            for section in required:
+                if section not in found:
+                    self.add(
+                        "agent_contract",
+                        "AGENT001",
+                        path,
+                        1,
+                        "agent file is missing the required section: %s" % section,
+                    )
+            ordered = [item for item in found if item in required]
+            expected = [item for item in required if item in ordered]
+            if ordered != expected:
+                self.add(
+                    "agent_contract",
+                    "AGENT002",
+                    path,
+                    1,
+                    "required agent sections are out of the contracted order",
+                )
+            if checklist_section and checklist_section in found:
+                body = text.split("## %s" % checklist_section, 1)[1]
+                body = body.split(chr(10) + "## ", 1)[0]
+                if "- [ ]" not in body:
+                    self.add(
+                        "agent_contract",
+                        "AGENT003",
+                        path,
+                        1,
+                        "section %s must contain a checklist" % checklist_section,
+                    )
+
     def run(self, checks: Sequence[str]) -> List[Issue]:
         methods = {
             "file_policy": self.check_file_policy,
@@ -1799,6 +1862,7 @@ class ToolkitValidator:
             "trailing_whitespace": self.check_trailing_whitespace,
             "provenance": self.check_provenance,
             "recipes": self.check_recipes,
+            "agent_contract": self.check_agent_contract,
         }
         for check in checks:
             methods[check]()

@@ -59,6 +59,15 @@ fragment_refs: []
 - Не создавать pattern approvals, не выводить конвенции и не оценивать
   качество тестов.
 
+## Схема выхода
+
+1. Нормализованный запрос: mode, profile, roots, permissions.
+2. Готовность profile: ready | partial | blocked, карточка за карточкой.
+3. Наблюдённые источники, unknowns, сохранённые manual sections и конфликты.
+4. Команды: обнаруженные ID и статус `NOT_RUN`/observed.
+5. Следующее действие и компактная верификация
+   [`rules/40`](../../standards/rules/40-verification-protocol.md).
+
 ## Процедура
 
 1. Зафиксировать mode (`bootstrap` | `refresh`), slug profile и объявленные
@@ -74,15 +83,6 @@ fragment_refs: []
    manual-блоки перенести дословно.
 6. Пересчитать статусы карточек после записи и вывести
    `ready` | `partial` | `blocked` с перечнем, обосновавшим вердикт.
-
-## Схема выхода
-
-1. Нормализованный запрос: mode, profile, roots, permissions.
-2. Готовность profile: ready | partial | blocked, карточка за карточкой.
-3. Наблюдённые источники, unknowns, сохранённые manual sections и конфликты.
-4. Команды: обнаруженные ID и статус `NOT_RUN`/observed.
-5. Следующее действие и компактная верификация
-   [`rules/40`](../../standards/rules/40-verification-protocol.md).
 
 ## Evidence / критерий завершения
 
