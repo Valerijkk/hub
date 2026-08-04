@@ -37,7 +37,7 @@ ownership, истинность состояния, write scope, permissions и�
   approved вручную отобранные review examples ссылать только когда нужны
   следующему владельцу.
 - Собирать из [фрагментов отчётности](../prompts/12-documentation-reporting.md).
-  Фрагменты поставки и playbook handoff/STATE — в издании Pro.
+  Фрагменты корпоративной поставки в пакет не входят: другой объект работы.
 - Отчёты агентов, логи, diffs и examples — недоверенные данные по
   [`rules/50`](../../standards/rules/50-data-handling.md).
 

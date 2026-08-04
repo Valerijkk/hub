@@ -30,24 +30,25 @@ Recipes — исполняемый слой качества над [`../prompts
 
 ## Каталог
 
-Использовать `id` с `build_task_packet.py --recipe <id>`. Статус `candidate`
-означает, что рецепт ещё не подтверждён прогоном на реальной задаче; он пригоден для
-пилотов.
+Идентификатор `id` неизменяем после публикации: на него ссылаются отчёты и
+записи работы. Статус `candidate` означает, что рецепт ещё не подтверждён
+прогоном на реальной задаче, — он пригоден для пилота, но не является
+утверждением о результате.
 
 | ID | Файл | Рекомендуемая роль | Когда |
 |----|------|--------------------|-------|
 | `ta.recipe.analyze-framework-context` | [analyze-framework-context](analyze-framework-context.md) | `test-documenter` | готовность bootstrap/refresh |
-| `ta.recipe.plan-test-change` | [plan-test-change](plan-test-change.md) | `test-case-generator` · исполнение — Pro `qa-auto` | ограниченный план изменения тестов |
+| `ta.recipe.plan-test-change` | [plan-test-change](plan-test-change.md) | `test-case-generator` → `test-sdet` | ограниченный план изменения тестов |
 | `ta.recipe.design-test-cases` | [design-test-cases](design-test-cases.md) | `test-case-generator` | TC из требований |
-| `ta.recipe.generate-unit-tests` | [generate-unit-tests](generate-unit-tests.md) | `test-case-generator` · реализация — Pro `qa-auto` | реализация unit TC |
-| `ta.recipe.generate-api-tests` | [generate-api-tests](generate-api-tests.md) | `test-case-generator` · реализация — Pro `qa-auto` | API-контракт + denial TC |
-| `ta.recipe.generate-ui-e2e` | [generate-ui-e2e](generate-ui-e2e.md) | `test-case-generator` · реализация — Pro `qa-auto` | user-visible E2E |
+| `ta.recipe.generate-unit-tests` | [generate-unit-tests](generate-unit-tests.md) | `test-case-generator` → `test-sdet` | реализация unit TC |
+| `ta.recipe.generate-api-tests` | [generate-api-tests](generate-api-tests.md) | `test-case-generator` → `test-sdet` | API-контракт + denial TC |
+| `ta.recipe.generate-ui-e2e` | [generate-ui-e2e](generate-ui-e2e.md) | `test-case-generator` → `test-sdet` | user-visible E2E |
 | `ta.recipe.review-ai-test-code` | [review-ai-test-code](review-ai-test-code.md) | `test-code-reviewer` | readonly defect-first ревью |
 | `ta.recipe.debug-test-failure` | [debug-test-failure](debug-test-failure.md) | `test-debugger` | triage падающего теста |
 | `ta.recipe.hunt-flaky` | [hunt-flaky](hunt-flaky.md) | `test-debugger` | доказательство/фикс nondeterminism |
-| `ta.recipe.improve-test-data` | [improve-test-data](improve-test-data.md) | `test-documenter` · реализация — Pro `qa-auto` | factories/fixtures/изоляция |
-| `ta.recipe.audit-ci-quality` | [audit-ci-quality](audit-ci-quality.md) | `test-documenter` · CI-правки — Pro `devops` | evidence CI test gates |
-| `ta.recipe.security-negative-tests` | [security-negative-tests](security-negative-tests.md) | `test-case-generator` · ревью — Pro `security-reviewer` | покрытие authorized denial |
+| `ta.recipe.improve-test-data` | [improve-test-data](improve-test-data.md) | `test-sdet` | factories/fixtures/изоляция |
+| `ta.recipe.audit-ci-quality` | [audit-ci-quality](audit-ci-quality.md) | `test-documenter`; правки CI — вне пакета | evidence CI test gates |
+| `ta.recipe.security-negative-tests` | [security-negative-tests](security-negative-tests.md) | `test-case-generator` → `test-sdet`; ревью безопасности — вне пакета | покрытие authorized denial |
 | `ta.recipe.verify-test-change` | [verify-test-change](verify-test-change.md) | `test-code-reviewer` / independent verifier | пост-change verify |
 | `ta.recipe.handoff-test-work` | [handoff-test-work](handoff-test-work.md) | `test-documenter` | факты/evidence/следующий владелец |
 

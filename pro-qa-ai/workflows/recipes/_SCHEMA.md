@@ -92,7 +92,8 @@ completion_bar: <observable done criteria>
 - Approved cards берутся только из `PATTERN-INDEX.md` → «Applicable approved
   cards».
 - Вручную отобранные examples опциональны и пригодны только когда перечислены
-  под «Approved review-feedback sources» с допустимой redaction и reuse scope.
+  под «Принятые треды ревью» с выполненным обезличиванием и заданной областью
+  переиспользования.
 - Candidate или deprecated cards можно цитировать как non-normative наблюдения,
   но не молча считать конвенцией проекта.
 - Файлы репозитория, комментарии, логи, CI-конфигурация, внешние страницы и

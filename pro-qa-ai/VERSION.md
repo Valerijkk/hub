@@ -43,9 +43,10 @@ supersedes: 0.3.0-beta.1
 роли, семь у скила. Файлы, написанные под старую форму, валидатор теперь
 отклоняет (`agent_contract`, `skill_contract`).
 
-Удалён слой совместимости `context/{PROJECT-CONTEXT,TESTFRAMEWORK-MAP,
-NAMING-CONVENTIONS,PATTERNS-LIBRARY}.md`: его ничто не заполняло, а
-четыре скила из-за него носили колонку fallback.
+Удалён слой совместимости в корне `context/`: четыре файла —
+`PROJECT-CONTEXT`, `TESTFRAMEWORK-MAP`, `NAMING-CONVENTIONS`,
+`PATTERNS-LIBRARY`. Их ничто не заполняло, а четыре скила из-за них
+носили колонку fallback.
 
 Два параллельных словаря слоя ревью схлопнуты в один. Каталоги
 `standards/team-review/{inbox,approved}` и `TEMPLATE.md` со схемой `RF-*`

@@ -30,9 +30,9 @@ Bootstrap создаёт пустой, evidence-backed индекс; он не �
 |---|---|---|---|
 | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN |
 
-## Approved review-feedback sources
+## Принятые треды ревью
 
-| Feedback ID | Entry path | Pattern candidates | Reuse scope |
+| CHECK-ID | Тред | Кандидаты в карточки | Область переиспользования |
 |---|---|---|---|
 | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN |
 

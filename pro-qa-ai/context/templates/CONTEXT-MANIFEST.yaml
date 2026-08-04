@@ -41,8 +41,8 @@ policy:
     - coverage
   excluded_paths:
     - pro-qa-ai/context
-    - pro-qa-ai/patterns
-    - pro-qa-ai/review-feedback
+    - pro-qa-ai/standards/patterns
+    - pro-qa-ai/standards/team-review
   excluded_content:
     - binary
     - archive
