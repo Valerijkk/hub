@@ -63,7 +63,11 @@ CHECK_ORDER = (
     "enums",
     "roster",
     "code_spans",
+    "duplication",
 )
+
+
+_BLANK_LINE = re.compile(chr(10) + r"\s*" + chr(10))
 
 
 @dataclass(frozen=True)
@@ -1940,6 +1944,68 @@ class ToolkitValidator:
                 elif line.count("`") % 2:
                     self.add("code_spans", "SPAN002", path, number, "unbalanced code span")
 
+    def check_duplication(self) -> None:
+        """Повтор текста между файлами.
+
+        Копия абзаца стоит токенов дважды: у отправителя и у получателя
+        контекста. Хуже цены — расхождение: правят одну копию, вторая
+        продолжает учить старому. Правило пакета — ссылка вместо
+        пересказа; здесь оно проверяется.
+        """
+        settings = self.config.get("duplication")
+        if not settings:
+            return
+        threshold = float(settings.get("threshold", 0.5))
+        minimum = int(settings.get("min_chars", 150))
+        shingle = int(settings.get("shingle", 5))
+        allowed = [tuple(pair) for pair in settings.get("allow_pairs", [])]
+        word = re.compile(r"[а-яёa-z0-9]+", re.IGNORECASE)
+        fence = re.compile(r"```.*?```", re.S)
+
+        blocks = []
+        for path in self.files(settings["include_globs"], settings.get("exclude_globs", [])):
+            try:
+                text = path.read_text(encoding="utf-8")
+            except OSError:
+                continue
+            rel = path.relative_to(self.root).as_posix()
+            for chunk in re.split(_BLANK_LINE, fence.sub("", text)):
+                flat = " ".join(chunk.split())
+                if len(flat) < minimum or flat[:1] in ("|", "#", ">"):
+                    continue
+                words = [m.group(0).lower() for m in word.finditer(flat)]
+                grams = {
+                    tuple(words[i:i + shingle])
+                    for i in range(max(0, len(words) - shingle + 1))
+                }
+                if len(grams) >= 12:
+                    blocks.append((rel, path, flat, grams))
+
+        reported = set()
+        for i in range(len(blocks)):
+            for j in range(i + 1, len(blocks)):
+                left, path, _, grams = blocks[i]
+                right, _, _, other = blocks[j]
+                if left == right:
+                    continue
+                pair = tuple(sorted((left, right)))
+                if pair in reported or pair in allowed:
+                    continue
+                union = len(grams | other)
+                if not union:
+                    continue
+                overlap = len(grams & other) / union
+                if overlap >= threshold:
+                    reported.add(pair)
+                    self.add(
+                        "duplication",
+                        "DUP001",
+                        path,
+                        1,
+                        "text repeats %s at %d%% overlap; link instead of restating"
+                        % (right, round(overlap * 100)),
+                    )
+
     def _contract_scan(self, check: str, config: Dict[str, Any], folder: str,
                        codes: Sequence[str]) -> None:
         """Общая проверка формы файла: состав, порядок, чеклист.
@@ -2019,6 +2085,7 @@ class ToolkitValidator:
             "enums": self.check_enums,
             "roster": self.check_roster,
             "code_spans": self.check_code_spans,
+            "duplication": self.check_duplication,
         }
         for check in checks:
             methods[check]()

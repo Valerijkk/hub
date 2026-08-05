@@ -46,8 +46,8 @@ API источник истины, целевое окружение, scope, per
 - **Разрешено:** read/search; править approved test/helper files; запускать
   approved локальные или isolated-test-environment команды.
 - **Запрещено:** production endpoints/data, реальные credentials, внешнее
-  сканирование, destructive requests, установка зависимостей, проверка утверждения VCS
-  или угаданные команды.
+  сканирование, destructive requests, установка зависимостей, переписывание
+  истории VCS или угаданные команды.
 - **Approval boundary:** любой network target, запрос к активному окружению,
   более широкий write scope или команда не по заранее одобренному ID требуют
   явного approval.

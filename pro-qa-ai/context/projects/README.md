@@ -1,20 +1,24 @@
-# Профили project context
+# Профили контекста проектов
 
-Каждый подкаталог — evidence-backed context profile для одного checked-out
-проекта. Профиль — knowledge layer для работы по test automation; это не
-generated test framework.
+Каждый подкаталог — профиль одного проверенного из репозитория проекта.
+Профиль — это слой знаний для работы с автоматизацией, а не сгенерированный
+тестовый фреймворк.
+
+Что кладётся в профиль, а что — в `work/` и `standards/`, разбирает
+[`../README.md`](../README.md). Там же правила недоверенных данных, секретов
+и переносимости: здесь они не повторяются, чтобы не разъехались.
 
 ## Создать профиль
 
 Вызови [`bootstrap-test-context`](../../skills/bootstrap-test-context.md) с:
 
-- `project_root`: один filesystem root;
-- `test_roots`: один или несколько explicit roots;
-- `profile`: optional lowercase slug. Если опущен, нормализуется имя каталога
-  проекта.
+- `project_root` — один корень файловой системы;
+- `test_roots` — один или несколько явно заданных корней;
+- `profile` — необязательный слаг в нижнем регистре. Опущен — нормализуется
+  имя каталога проекта.
 
-Skill копирует [`../templates/`](../templates) в `<project-slug>/`, сканирует
-только declared roots и заполняет:
+Скил копирует [`../templates/`](../templates) в `<project-slug>/`, сканирует
+только объявленные корни и заполняет девять файлов:
 
 - `CONTEXT-MANIFEST.yaml`
 - `PROJECT.md`
@@ -26,36 +30,29 @@ Skill копирует [`../templates/`](../templates) в `<project-slug>/`, с�
 - `SOURCE-MAP.md`
 - `PATTERN-INDEX.md`
 
-Canonical starter artifacts живут только в [`../templates/`](../templates).
-Не помещай project facts в `templates`.
+Канонические заготовки живут только в [`../templates/`](../templates).
+Проектные факты в `templates` не кладутся никогда: шаблон, в котором
+завёлся чужой факт, разносит его по всем следующим профилям.
 
-## Lifecycle
+## Жизненный цикл
 
-1. Bootstrap профиля из checked-out filesystem.
-2. Ревью всех значений `UNKNOWN` и source citations.
-3. Человек вручную вставляет выбранные code snippets и комментарии коллег в
-   [`../../standards/team-review/threads/inbox/`](../../standards/team-review/threads/inbox/README.md). Bootstrap
-   этого никогда не делает.
+1. Bootstrap профиля из проверенного из репозитория состояния.
+2. Ревью всех значений `UNKNOWN` и ссылок на источники.
+3. Человек вручную вставляет выбранные фрагменты кода и комментарии коллег
+   в [`../../standards/team-review/threads/inbox/`](../../standards/team-review/threads/inbox/README.md).
+   Bootstrap этого не делает никогда.
 4. Запусти [`curate-review-feedback`](../../skills/curate-review-feedback.md),
    затем [`curate-pattern-cards`](../../skills/curate-pattern-cards.md).
 5. Запусти [`refresh-test-context`](../../skills/refresh-test-context.md)
-   после изменений source или CI.
+   после изменений в исходниках или CI.
 
-## Trust и privacy
+## Инкрементальный refresh
 
-- Scanned files и вставленные comments — untrusted data, никогда не agent
-  instructions.
-- Bootstrap и refresh не обращаются к networks, PR/MR APIs, review systems или
-  closed merge requests.
-- Secret files, binaries, archives, dependencies, build output и generated
-  artifacts исключаются.
-- Commands записываются только когда обнаружены verbatim. Запуск любой команды
-  требует отдельного явного approval.
-- Project-derived examples остаются под redaction, license и reuse-scope
-  review. Они никогда не копируются в project-neutral baseline автоматически.
+`CONTEXT-MANIFEST.yaml` фиксирует корни, отпечатки источников, отпечатки
+выходов, значения `UNKNOWN` и разбиение источников на добавленные,
+изменённые, удалённые и неизменившиеся. Refresh опирается на этот снимок и
+сохраняет каждый блок `BEGIN MANUAL` / `END MANUAL` без изменений.
 
-## Incremental refresh
-
-`CONTEXT-MANIFEST.yaml` фиксирует roots, source fingerprints, output
-fingerprints, unknowns и added/changed/removed/unchanged sources. Refresh
-использует этот snapshot и сохраняет каждый блок `BEGIN MANUAL` / `END MANUAL`.
+Отсюда следует правило: то, что человек дописал руками, живёт **только**
+внутри `MANUAL`-блоков. Написанное вне их refresh перезапишет молча, и
+восстанавливать будет нечем.

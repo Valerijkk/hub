@@ -30,21 +30,11 @@ def test_b(api):
 
 ### Где вредит
 
-Плохо:
+Плохо: один параметризованный тест на все случаи ручки, а внутри тела
+`if` по ожидаемому исходу — в одной ветке успех, в другой отказ.
 
-```python
-@pytest.mark.parametrize("case", ALL_CASES)
-def test_orders(api, case):
-    order = api.post("/orders", json=case.payload)
-    if case.expect_error:
-        assert order.status_code == case.code
-        assert order.json()["errors"][0]["field"] == case.field
-    else:
-        assert order.status_code == 201
-        assert order.json()["status"] == case.status
-```
-
-Хорошо: два отдельных теста — на успех и на отказ.
+Хорошо: два теста, у каждого своя параметризация внутри своего класса
+случаев. Разбор с кодом — [`parametrization.md`](parametrization.md) §3.
 
 **Что сломается:** ветвление в теле означает, что тест проверяет два
 разных требования. При падении непонятно, какая ветка сработала, а
@@ -95,15 +85,8 @@ def test_discount(api):
             assert order["discount"] == expected
 ```
 
-Хорошо:
-
-```python
-@pytest.mark.parametrize("tier,expected_discount", [("basic", 0), ("premium", 100)])
-def test_discount_by_tier(api, tier, expected_discount):
-    user = make_user(tier=tier)
-    order = api.create_order(user, amount=1000)
-    assert order["discount"] == expected_discount
-```
+Хорошо: та же таблица случаев, отданная параметризации раннера —
+[`parametrization.md`](parametrization.md) §1.
 
 **Что сломается:** цикл внутри теста скрывает, какая итерация упала, и
 прогон останавливается на первой. Параметризация раннером даёт отдельный

@@ -561,5 +561,33 @@
       "VERSION.md",
       "context/projects/**"
     ]
+  },
+  "duplication": {
+    "include_globs": [
+      "**/*.md"
+    ],
+    "exclude_globs": [
+      "CHANGELOG.md",
+      "VERSION.md",
+      "context/projects/**",
+      "workflows/prompts/[0-9]*.md"
+    ],
+    "threshold": 0.5,
+    "min_chars": 150,
+    "shingle": 5,
+    "allow_pairs": [
+      [
+        "standards/team-review/checks/CHECK-002-response-body-checked.md",
+        "standards/team-review/threads/approved/THREAD-002-status-code-only.md"
+      ],
+      [
+        "standards/team-review/checks/CHECK-003-shared-fixture-immutable.md",
+        "standards/team-review/threads/approved/THREAD-003-shared-fixture-state.md"
+      ],
+      [
+        "standards/team-review/checks/CHECK-001-timeout-from-config.md",
+        "standards/team-review/threads/approved/THREAD-001-timeout-in-config.md"
+      ]
+    ]
   }
 }

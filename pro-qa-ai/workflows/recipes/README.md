@@ -31,43 +31,40 @@ Recipes — исполняемый слой качества над [`../prompts
 ## Каталог
 
 Идентификатор `id` неизменяем после публикации: на него ссылаются отчёты и
-записи работы. Статус `candidate` означает, что рецепт ещё не подтверждён
-прогоном на реальной задаче, — он пригоден для пилота, но не является
-утверждением о результате.
+записи работы. Колонка «Шаг» — место рецепта в
+[пятишаговом цикле](../playbooks/phase-loop.md); «любой» означает, что рецепт
+вызывается из любого шага, где тест покраснел.
 
-| ID | Файл | Рекомендуемая роль | Когда |
-|----|------|--------------------|-------|
-| `ta.recipe.analyze-framework-context` | [analyze-framework-context](analyze-framework-context.md) | `test-documenter` | готовность bootstrap/refresh |
-| `ta.recipe.plan-test-change` | [plan-test-change](plan-test-change.md) | `test-case-generator` → `test-sdet` | ограниченный план изменения тестов |
-| `ta.recipe.design-test-cases` | [design-test-cases](design-test-cases.md) | `test-case-generator` | TC из требований |
-| `ta.recipe.generate-unit-tests` | [generate-unit-tests](generate-unit-tests.md) | `test-case-generator` → `test-sdet` | реализация unit TC |
-| `ta.recipe.generate-api-tests` | [generate-api-tests](generate-api-tests.md) | `test-case-generator` → `test-sdet` | API-контракт + denial TC |
-| `ta.recipe.generate-ui-e2e` | [generate-ui-e2e](generate-ui-e2e.md) | `test-case-generator` → `test-sdet` | user-visible E2E |
-| `ta.recipe.review-ai-test-code` | [review-ai-test-code](review-ai-test-code.md) | `test-code-reviewer` | readonly defect-first ревью |
-| `ta.recipe.debug-test-failure` | [debug-test-failure](debug-test-failure.md) | `test-debugger` | triage падающего теста |
-| `ta.recipe.hunt-flaky` | [hunt-flaky](hunt-flaky.md) | `test-debugger` | доказательство/фикс nondeterminism |
-| `ta.recipe.improve-test-data` | [improve-test-data](improve-test-data.md) | `test-sdet` | factories/fixtures/изоляция |
-| `ta.recipe.audit-ci-quality` | [audit-ci-quality](audit-ci-quality.md) | `test-documenter`; правки CI — вне пакета | evidence CI test gates |
-| `ta.recipe.security-negative-tests` | [security-negative-tests](security-negative-tests.md) | `test-case-generator` → `test-sdet`; ревью безопасности — вне пакета | покрытие authorized denial |
-| `ta.recipe.verify-test-change` | [verify-test-change](verify-test-change.md) | `test-code-reviewer` / independent verifier | пост-change verify |
-| `ta.recipe.handoff-test-work` | [handoff-test-work](handoff-test-work.md) | `test-documenter` | факты/evidence/следующий владелец |
+| ID | Файл | Шаг | Рекомендуемая роль | Когда |
+|----|------|-----|--------------------|-------|
+| `ta.recipe.analyze-framework-context` | [analyze-framework-context](analyze-framework-context.md) | 1 | `test-documenter` | готовность bootstrap/refresh |
+| `ta.recipe.plan-test-change` | [plan-test-change](plan-test-change.md) | 1 | `test-case-generator` → `test-sdet` | ограниченный план изменения тестов |
+| `ta.recipe.design-test-cases` | [design-test-cases](design-test-cases.md) | 2 | `test-case-generator` | TC из требований |
+| `ta.recipe.generate-unit-tests` | [generate-unit-tests](generate-unit-tests.md) | 3 | `test-case-generator` → `test-sdet` | реализация unit TC |
+| `ta.recipe.generate-api-tests` | [generate-api-tests](generate-api-tests.md) | 3 | `test-case-generator` → `test-sdet` | API-контракт + denial TC |
+| `ta.recipe.generate-ui-e2e` | [generate-ui-e2e](generate-ui-e2e.md) | 3 | `test-case-generator` → `test-sdet` | user-visible E2E |
+| `ta.recipe.improve-test-data` | [improve-test-data](improve-test-data.md) | 3 | `test-sdet` | factories/fixtures/изоляция |
+| `ta.recipe.security-negative-tests` | [security-negative-tests](security-negative-tests.md) | 3 | `test-case-generator` → `test-sdet`; ревью безопасности — вне пакета | покрытие authorized denial |
+| `ta.recipe.review-ai-test-code` | [review-ai-test-code](review-ai-test-code.md) | 4 | `test-code-reviewer` | readonly defect-first ревью |
+| `ta.recipe.verify-test-change` | [verify-test-change](verify-test-change.md) | 4 | `test-code-reviewer`, но не автор изменения | пост-change verify |
+| `ta.recipe.audit-ci-quality` | [audit-ci-quality](audit-ci-quality.md) | 4 | `test-documenter`; правки CI — вне пакета | evidence CI test gates |
+| `ta.recipe.handoff-test-work` | [handoff-test-work](handoff-test-work.md) | 5 | `test-documenter` | факты/evidence/следующий владелец |
+| `ta.recipe.debug-test-failure` | [debug-test-failure](debug-test-failure.md) | любой | `test-debugger` | triage падающего теста |
+| `ta.recipe.hunt-flaky` | [hunt-flaky](hunt-flaky.md) | любой | `test-debugger` | доказательство/фикс nondeterminism |
 
 ## Политика метаданных
 
 - ID семантические и неизменяемые после публикации.
 - Версии — SemVer. Изменение контракта выхода требует major-версии.
-- `candidate` означает, что рецепт ещё не подтверждён прогоном; это не
-  утверждение о результатах качества.
+- `candidate` — рецепт не подтверждён прогоном на реальной задаче: пригоден
+  для пилота и ничего не утверждает о результате. Все четырнадцать сейчас в
+  этом статусе.
 - Повышение до `approved` требует прогона на реальной задаче, наблюдаемого
-  evidence и одобрения владельца. Recipes со статусом `deprecated` указывают
-  замену.
-- Статус рецепта — не заявление о его эффективности: он говорит только о том, применяли рецепт на практике или нет.
+  evidence и одобрения владельца. `deprecated` указывает замену.
 
 ## Роли в колонке «Рекомендуемая роль»
 
-Пакет содержит пять ролей: `test-case-generator`, `test-sdet`,
-`test-code-reviewer`, `test-debugger`, `test-documenter`. Только они могут
-быть исполнителем шага рецепта — ростер закрыт, см.
+Исполнителем шага рецепта может быть только роль из закрытого ростера —
 [`agents/README.md`](../../agents/README.md).
 
 Шаг, относящийся к продукту, а не к тестовому фреймворку, исполнителя

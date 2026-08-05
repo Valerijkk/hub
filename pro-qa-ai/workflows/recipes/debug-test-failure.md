@@ -49,9 +49,9 @@ fragment_refs:
 - **Запрещено:** подгонка ассертов, blanket retries/timeouts, skips,
   несвязанные рефакторы, destructive VCS, production access, secrets или
   multi-variable эксперименты, выдаваемые за proof.
-- **Approval boundary:** execution, bisect/проверка утверждения истории, более широкая
-  диагностика или любой путь фикса, не одобренный заранее, требуют явного
-  approval.
+- **Approval boundary:** execution, bisect и переписывание истории, более
+  широкая диагностика или любой путь фикса, не одобренный заранее, требуют
+  явного approval.
 
 ## Ограничения / вне scope
 
