@@ -113,5 +113,4 @@ user flow, окружение, scope, риск, permissions или done-крит
 ## Обоснование
 
 Вернуть 1–3 кратких evidence-linked bullets по границе потока, selectors и
-setup данных. Не раскрывать hidden chain-of-thought или private reasoning
-traces.
+setup данных.

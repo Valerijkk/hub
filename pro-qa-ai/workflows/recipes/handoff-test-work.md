@@ -112,4 +112,4 @@ ownership, истинность состояния, write scope, permissions и�
 ## Обоснование
 
 Вернуть 1–3 кратких evidence-linked bullets по статусу и приоритету следующего
-действия. Не раскрывать hidden chain-of-thought или private reasoning traces.
+действия.

@@ -64,6 +64,7 @@ CHECK_ORDER = (
     "roster",
     "code_spans",
     "duplication",
+    "handoff",
 )
 
 
@@ -2006,6 +2007,68 @@ class ToolkitValidator:
                         % (right, round(overlap * 100)),
                     )
 
+    def check_handoff(self) -> None:
+        """Переход между ролями описан с обеих сторон.
+
+        Роль A пишет, что отдаёт результат роли B; у B этого во входах
+        нет. Односторонне описанный переход разъезжается при первом же
+        изменении: A правит формат, B продолжает ждать прежний.
+        """
+        settings = self.config.get("handoff")
+        if not settings:
+            return
+        agents_dir = self.root / "agents"
+        if not agents_dir.is_dir():
+            return
+        token = re.compile(settings.get("token", r"`(test-[a-z-]+)`"))
+        inbound_title = settings["inbound_section"]
+        outbound_title = settings["outbound_section"]
+
+        roles = {}
+        for path in sorted(agents_dir.glob("*.md")):
+            if path.name.startswith("_") or path.name == "README.md":
+                continue
+            try:
+                text = path.read_text(encoding="utf-8")
+            except OSError:
+                continue
+
+            def section(title):
+                found = re.search(
+                    "^## " + re.escape(title) + chr(10) + "(.*?)(?=^## )",
+                    text,
+                    re.S | re.M,
+                )
+                return found.group(1) if found else ""
+
+            roles[path.stem] = (
+                path,
+                set(token.findall(section(inbound_title))),
+                set(token.findall(section(outbound_title))),
+            )
+
+        for name, (path, inbound, outbound) in roles.items():
+            for target in sorted(outbound):
+                if target in roles and name not in roles[target][1]:
+                    self.add(
+                        "handoff",
+                        "HAND001",
+                        path,
+                        1,
+                        "hands off to %s, but %s does not list it as an input"
+                        % (target, target),
+                    )
+            for source in sorted(inbound):
+                if source in roles and name not in roles[source][2]:
+                    self.add(
+                        "handoff",
+                        "HAND002",
+                        path,
+                        1,
+                        "expects input from %s, but %s does not list it as a consumer"
+                        % (source, source),
+                    )
+
     def _contract_scan(self, check: str, config: Dict[str, Any], folder: str,
                        codes: Sequence[str]) -> None:
         """Общая проверка формы файла: состав, порядок, чеклист.
@@ -2086,6 +2149,7 @@ class ToolkitValidator:
             "roster": self.check_roster,
             "code_spans": self.check_code_spans,
             "duplication": self.check_duplication,
+            "handoff": self.check_handoff,
         }
         for check in checks:
             methods[check]()

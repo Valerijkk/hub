@@ -113,4 +113,3 @@ API источник истины, целевое окружение, scope, per
 ## Обоснование
 
 Вернуть 1–3 кратких evidence-linked bullets по API-покрытию и выбору ассертов.
-Не раскрывать hidden chain-of-thought или private reasoning traces.

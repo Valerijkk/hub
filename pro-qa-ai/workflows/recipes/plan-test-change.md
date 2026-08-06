@@ -123,4 +123,4 @@ fragment_refs:
 ## Обоснование
 
 Вернуть 1–3 кратких evidence-linked bullets по уровню, порядку и scope
-регрессии. Не раскрывать hidden chain-of-thought или private reasoning traces.
+регрессии.

@@ -112,5 +112,4 @@ fragment_refs:
 ## Обоснование
 
 Вернуть 1–3 кратких evidence-linked bullets по triage и выбранному
-эксперименту/фиксу. Не раскрывать hidden chain-of-thought или private
-reasoning.
+эксперименту/фиксу.

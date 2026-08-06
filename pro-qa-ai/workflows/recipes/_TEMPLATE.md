@@ -82,5 +82,4 @@ fragment_refs:
 
 <!-- Необязательная секция; позиция — последняя. -->
 
-Вернуть 1–3 кратких evidence-linked bullets по существенным выборам. Не
-раскрывать hidden chain-of-thought, scratch work или private reasoning traces.
+Вернуть 1–3 кратких evidence-linked bullets по существенным выборам.

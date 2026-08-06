@@ -119,5 +119,4 @@ authorization, окружение, security источник истины, scope
 ## Обоснование
 
 Вернуть 1–3 кратких evidence-linked bullets по классам атак и границам
-безопасности. Не раскрывать hidden chain-of-thought или private reasoning
-traces.
+безопасности.

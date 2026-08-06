@@ -125,5 +125,4 @@ fragment_refs:
 
 ## Обоснование
 
-Вернуть 1–3 кратких evidence-linked bullets по границам теста и doubles. Не
-раскрывать hidden chain-of-thought или private reasoning traces.
+Вернуть 1–3 кратких evidence-linked bullets по границам теста и doubles.

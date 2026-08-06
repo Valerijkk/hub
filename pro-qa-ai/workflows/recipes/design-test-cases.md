@@ -123,4 +123,4 @@ dependency-failure.
 ## Обоснование
 
 Вернуть 1–3 кратких evidence-linked bullets по техникам тест-дизайна и выбору
-уровня. Не раскрывать hidden chain-of-thought или private reasoning traces.
+уровня.

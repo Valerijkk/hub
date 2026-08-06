@@ -111,4 +111,3 @@ TC, паттернам проекта и evidence нового поведени�
 ## Обоснование
 
 Вернуть 1–3 кратких evidence-linked bullets по вердикту и существенным gaps.
-Не раскрывать hidden chain-of-thought или private reasoning traces.

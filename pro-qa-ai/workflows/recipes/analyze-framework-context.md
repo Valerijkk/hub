@@ -119,5 +119,4 @@ fragment_refs: []
 
 ## Обоснование
 
-Вернуть 1–3 кратких evidence-linked bullets по выбору mode и roots. Не
-раскрывать hidden chain-of-thought, scratch work или private reasoning traces.
+Вернуть 1–3 кратких evidence-linked bullets по выбору mode и roots.

@@ -115,5 +115,4 @@ fragment_refs:
 ## Обоснование
 
 Вернуть 1–3 кратких evidence-linked bullets по дизайну factory/fixture и
-стратегии изоляции. Не раскрывать hidden chain-of-thought или private
-reasoning.
+стратегии изоляции.

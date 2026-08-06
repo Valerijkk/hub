@@ -113,4 +113,3 @@ scope пайплайна, требуемые gates, внешний доступ,
 ## Обоснование
 
 Вернуть 1–3 кратких evidence-linked bullets по вердикту и порядку remediation.
-Не раскрывать hidden chain-of-thought или private reasoning traces.

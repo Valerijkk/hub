@@ -589,5 +589,10 @@
         "standards/team-review/threads/approved/THREAD-001-timeout-in-config.md"
       ]
     ]
+  },
+  "handoff": {
+    "inbound_section": "Что приходит на вход",
+    "outbound_section": "Кто использует мой выход",
+    "token": "`(test-[a-z-]+)`"
   }
 }

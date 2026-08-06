@@ -113,5 +113,4 @@ timeouts.
 ## Обоснование
 
 Вернуть 1–3 кратких evidence-linked bullets по классификации и выбору
-эксперимента. Не раскрывать hidden chain-of-thought или private reasoning
-traces.
+эксперимента.
