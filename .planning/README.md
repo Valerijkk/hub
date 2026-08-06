@@ -16,6 +16,7 @@
 | [`COVERAGE.md`](COVERAGE.md) | Матрица покрытия тестами |
 | [`VERIFICATION-LEVELS.md`](VERIFICATION-LEVELS.md) | Четыре уровня проверки артефакта при приёмке фазы |
 | [`EXTRACTION-CANDIDATES.md`](EXTRACTION-CANDIDATES.md) | Что обкатано в Hub и готово к выносу в продукт |
+| [`journal/`](journal/README.md) | **Хроника по дням:** что происходило и когда, указателями на артефакты |
 | [`TOUCHSTONE-IDEAS.md`](TOUCHSTONE-IDEAS.md) | Копилка идей продукта: режимы, вход с нуля, механизмы экономии контекста |
 | [`config.json`](config.json) | GSD config |
 
@@ -125,6 +126,7 @@ Planning хранит историю решений по нему (`archive/july
 | Уровни проверки артефакта | [`VERIFICATION-LEVELS.md`](VERIFICATION-LEVELS.md) |
 | Что готово к выносу в продукт | [`EXTRACTION-CANDIDATES.md`](EXTRACTION-CANDIDATES.md) |
 | Идеи Touchstone | [`TOUCHSTONE-IDEAS.md`](TOUCHSTONE-IDEAS.md) |
+| Что происходило в конкретный день | [`journal/`](journal/README.md) |
 | AI-expansion планы (история) | [`archive/july-2026/ai-expansion/README.md`](archive/july-2026/ai-expansion/README.md) |
 | Активный backlog задач | [`backlog/README.md`](backlog/README.md) |
 
