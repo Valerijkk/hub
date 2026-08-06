@@ -594,5 +594,41 @@
     "inbound_section": "Что приходит на вход",
     "outbound_section": "Кто использует мой выход",
     "token": "`(test-[a-z-]+)`"
+  },
+  "egress": {
+    "include_globs": [
+      "agents/**/*.md",
+      "skills/*.md",
+      "standards/**/*.md",
+      "workflows/playbooks/*.md",
+      "workflows/recipes/*.md",
+      "*.md"
+    ],
+    "exclude_globs": [
+      "CHANGELOG.md",
+      "VERSION.md",
+      "context/projects/**",
+      "standards/rules/60-agency-and-egress.md",
+      "standards/rules/50-data-handling.md"
+    ],
+    "permission_window": 3,
+    "permission_pattern": "разрешени|запрещ|не выход|без спрос|человек|approval|нельзя|не отправ|не запуска|не читать|не ходит|стоп|вне пакета|rules/(50|60)",
+    "patterns": [
+      {
+        "code": "EGRESS001",
+        "pattern": "(скачать|загрузить|запросить|скачай|загрузи|запроси)(\\s+\\S+){0,3}\\s+(с|из|по)\\s+(интернет|сет[иь]|url|http)",
+        "hint": "network fetch mentioned"
+      },
+      {
+        "code": "EGRESS002",
+        "pattern": "(установи|поставь|добавь|установить|поставить)(\\s+\\S+){0,2}\\s*(пакет|зависимост|библиотек)",
+        "hint": "package install mentioned"
+      },
+      {
+        "code": "EGRESS003",
+        "pattern": "(отправ|передай|выгруз|отошл)\\w*(\\s+\\S+){0,3}\\s+(во\\s+внешн|наружу|в\\s+сервис|в\\s+модель|в\\s+облак)",
+        "hint": "external send mentioned"
+      }
+    ]
   }
 }

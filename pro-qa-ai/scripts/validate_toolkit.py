@@ -65,6 +65,7 @@ CHECK_ORDER = (
     "code_spans",
     "duplication",
     "handoff",
+    "egress",
 )
 
 
@@ -2069,6 +2070,42 @@ class ToolkitValidator:
                         % (source, source),
                     )
 
+    def check_egress(self) -> None:
+        """Следы самовольного выхода наружу в текстах пакета.
+
+        Пакет учит не ходить в сеть без разрешения — и не имеет права сам
+        приводить примеры, где агент это делает. Ловятся два класса:
+        адрес, собранный из содержимого репозитория, и указание сходить
+        наружу без упоминания разрешения.
+        """
+        settings = self.config.get("egress")
+        if not settings:
+            return
+        near = int(settings.get("permission_window", 3))
+        permission = re.compile(settings["permission_pattern"], re.IGNORECASE)
+        for entry in settings.get("patterns", []):
+            trigger = re.compile(entry["pattern"], re.IGNORECASE)
+            for path in self.files(settings["include_globs"], settings.get("exclude_globs", [])):
+                lines = self._text_lines(path)
+                index = {number: text for number, text in lines}
+                for number, line in lines:
+                    if not trigger.search(line):
+                        continue
+                    window = " ".join(
+                        index.get(number + shift, "")
+                        for shift in range(-near, near + 1)
+                    )
+                    if permission.search(window):
+                        continue
+                    self.add(
+                        "egress",
+                        entry.get("code", "EGRESS001"),
+                        path,
+                        number,
+                        "%s without a nearby permission or prohibition marker"
+                        % entry["hint"],
+                    )
+
     def _contract_scan(self, check: str, config: Dict[str, Any], folder: str,
                        codes: Sequence[str]) -> None:
         """Общая проверка формы файла: состав, порядок, чеклист.
@@ -2150,6 +2187,7 @@ class ToolkitValidator:
             "code_spans": self.check_code_spans,
             "duplication": self.check_duplication,
             "handoff": self.check_handoff,
+            "egress": self.check_egress,
         }
         for check in checks:
             methods[check]()
