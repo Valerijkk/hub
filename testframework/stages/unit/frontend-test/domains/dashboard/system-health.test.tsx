@@ -3,6 +3,23 @@ import { describe, expect, it } from "vitest";
 import type { AdminStats } from "@/api/dashboard";
 import { SystemHealthWidget } from "@/components/dashboard/widgets/system-health";
 
+function adminStatsWithHealth(
+	serviceHealth: AdminStats["service_health"],
+): AdminStats {
+	return {
+		total_users: 0,
+		active_users: 0,
+		total_projects: 0,
+		total_issues: 0,
+		dau: 0,
+		wau: 0,
+		mau: 0,
+		storage_used: 0,
+		service_health: serviceHealth,
+		top_projects: [],
+	};
+}
+
 describe("SystemHealthWidget", () => {
 	it("shows empty state when no service data", () => {
 		render(<SystemHealthWidget />);
@@ -11,12 +28,10 @@ describe("SystemHealthWidget", () => {
 	});
 
 	it("renders service names and healthy status", () => {
-		const data = {
-			service_health: {
-				postgres: "healthy",
-				redis: "healthy",
-			},
-		} as unknown as AdminStats;
+		const data = adminStatsWithHealth({
+			postgres: "healthy",
+			redis: "healthy",
+		});
 
 		render(<SystemHealthWidget data={data} />);
 
@@ -27,11 +42,7 @@ describe("SystemHealthWidget", () => {
 	});
 
 	it("renders unhealthy service label", () => {
-		const data = {
-			service_health: {
-				nats: "unhealthy",
-			},
-		} as unknown as AdminStats;
+		const data = adminStatsWithHealth({ nats: "unhealthy" });
 
 		render(<SystemHealthWidget data={data} />);
 
@@ -41,11 +52,7 @@ describe("SystemHealthWidget", () => {
 	});
 
 	it("renders degraded service label", () => {
-		const data = {
-			service_health: {
-				mongodb: "degraded",
-			},
-		} as unknown as AdminStats;
+		const data = adminStatsWithHealth({ mongodb: "degraded" });
 
 		render(<SystemHealthWidget data={data} />);
 

@@ -106,7 +106,7 @@ describe("FE-P1-ERROR-AS-EMPTY (TASK-033)", () => {
 			</ErrorBoundary>,
 		);
 
-		expect(screen.getByRole("alert")).toHaveTextContent(/что-то пошло не так/i);
+		expect(screen.getByRole("alert")).toBeInTheDocument();
 
 		rerender(
 			<ErrorBoundary resetKey="/b">

@@ -1,8 +1,20 @@
 import { fireEvent, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { CallSummary, PersonalData } from "@/api/dashboard";
 import { UpcomingCallsWidget } from "@/components/dashboard/widgets/upcoming-calls";
 import { useCallStore } from "@/stores/call-store";
 import { renderWithProviders } from "@testframework/render";
+
+function personalDataWithCall(call: CallSummary): PersonalData {
+	return {
+		my_tasks: [],
+		unread_count: 0,
+		upcoming_calls: [call],
+		recent_runs: [],
+		deadlines: [],
+		time_today: 0,
+	};
+}
 
 describe("UpcomingCallsWidget join (W9-A2-001)", () => {
 	beforeEach(() => {
@@ -16,16 +28,13 @@ describe("UpcomingCallsWidget join (W9-A2-001)", () => {
 
 		renderWithProviders(
 			<UpcomingCallsWidget
-				data={{
-					upcoming_calls: [
-						{
-							id: "call-xyz",
-							title: "Стендап",
-							scheduled_at: new Date().toISOString(),
-							channel_name: "dev",
-						},
-					],
-				}}
+				data={personalDataWithCall({
+					id: "call-xyz",
+					title: "Стендап",
+					scheduled_at: new Date().toISOString(),
+					channel_id: "channel-dev",
+					channel_name: "dev",
+				})}
 			/>,
 		);
 
@@ -41,15 +50,12 @@ describe("UpcomingCallsWidget join (W9-A2-001)", () => {
 
 		renderWithProviders(
 			<UpcomingCallsWidget
-				data={{
-					upcoming_calls: [
-						{
-							id: "call-no-channel",
-							title: "Ретро",
-							scheduled_at: new Date().toISOString(),
-						},
-					],
-				}}
+				data={personalDataWithCall({
+					id: "call-no-channel",
+					title: "Ретро",
+					scheduled_at: new Date().toISOString(),
+					channel_name: "retro",
+				})}
 			/>,
 		);
 
