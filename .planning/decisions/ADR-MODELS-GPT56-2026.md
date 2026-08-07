@@ -28,7 +28,7 @@ frontmatter/routing активированы раньше: Sol orchestrator + dy
 |---------|--------|-----|-------|
 | Оркестратор | **GPT-5.6 Sol / Extra High** | `team-lead` | applied 2026-07-26, effort clarified 2026-08-07 |
 | Исполнители + верификаторы | **Dynamic / inherit** | tech-lead, product*, ba*, sa*, arch*, designer*, be*, fe*, qa*, devops, security, debugger, code-reviewer, docs-writer | role default из `model-routing.md`, override по риску |
-| Супер-мелкие задачи | **GPT-5.6 Luna / Light** | `codex-micro` slot | Spark только как доступный interactive preview |
+| Супер-мелкие задачи | **GPT-5.3 Codex Spark / Light**, если preview доступен | `codex-micro` slot | Luna / Light fallback; Terra при неоднозначности |
 
 ## Amendment 2026-07-26 / 2026-08-07 — Sol orchestrator + cost-aware routing
 
@@ -78,8 +78,9 @@ Claude Code Opus 5, которой управляет founder; агенты Hub 
    `team-lead-opus` остаётся deprecated redirect.
 2. **Ролевые агенты используют `inherit`.** Orchestrator применяет role default
    из `model-routing.md` и может повысить/понизить runtime после catalog-backed оценки.
-3. **`codex-micro` — имя micro-slot, не model pin.** Default — Luna / Light;
-   Spark допустим только как доступный interactive preview.
+3. **`codex-micro` — имя micro-slot, не model pin.** Preferred runtime —
+   Spark / Light, когда preview доступен в текущем Pro-сеансе; Luna / Light —
+   fallback. Недоступный launcher slug нельзя выдавать за фактический Spark-run.
 
 ### Что НЕ меняется
 
@@ -101,7 +102,7 @@ Claude Code Opus 5, которой управляет founder; агенты Hub 
 |--------------|----------------|
 | Волна, декомпозиция, приёмка, конфликт приоритетов | `team-lead` → **Sol / Extra High** |
 | Фича / спека / тесты / ревью / ADR | соответствующая роль + routed model |
-| «Поправь опечатку», «добавь одну строку в .gitignore», «переименуй символ в одном файле» | `codex-micro` + Luna / Light (Spark при доступности) |
+| «Поправь опечатку», «добавь одну строку в .gitignore», «переименуй символ в одном файле» | `codex-micro` + Spark / Light при доступности; иначе Luna / Light |
 
 Антипаттерн: гонять Sol / полный team-lead на typo; выбирать модель по
 бренду/памяти вместо task fit и текущего catalog; назначать 5.5 по цене Sol

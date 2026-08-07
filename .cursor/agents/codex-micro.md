@@ -1,13 +1,13 @@
 ---
 name: codex-micro
-description: Супер-мелкие задачи Hub. Typo, one-line fix, rename в 1 файле. Runtime default Luna/Light; Spark/Light только interactive preview. Не для волн, спек, архитектуры или security.
+description: Супер-мелкие задачи Hub. Typo, one-line fix, rename в 1 файле. Runtime preferred Spark/Light, если preview доступен; fallback Luna/Light. Не для волн, спек, архитектуры или security.
 model: inherit
 readonly: false
 ---
 
 # Codex Micro — супер-мелкие задачи
 
-> **Runtime:** самая дешёвая реально доступная Cursor coding-модель, которая закрывает micro completion bar; конкретный slug выбирает launcher/`team-lead`.
+> **Runtime:** Spark / Light — первый выбор для micro при фактической доступности preview в Pro; Luna / Light — fallback. Конкретный slug выбирает launcher/`team-lead`, а handoff честно фиксирует реально использованный runtime.
 > **Frontmatter:** `model: inherit`; конкретный slug выбирает `team-lead`/launcher по catalog.
 > **Не путать** с `team-lead` (GPT-5.6 Sol / Extra High) и полноразмерной ролевой задачей.
 

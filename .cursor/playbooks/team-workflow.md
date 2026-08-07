@@ -32,7 +32,7 @@
 |---|---|---|---|
 | Оркестратор | `gpt-5.6-sol` | **GPT-5.6 Sol / Extra High** | `team-lead` держит цель, волны, риски и финальную приёмку; Ultra только для делимой большой задачи |
 | Downstream-работа | `inherit` | **Terra / Medium–High** по умолчанию | Sol для high-risk, Luna для механики; точный default зависит от роли |
-| Micro | `inherit` | **Luna / Light** | typo, one-file rename, однострочная правка; Spark допустим как interactive preview |
+| Micro | `inherit` | **Spark / Light**, если доступен; иначе Luna | typo, one-file rename, однострочная правка; не для security/architecture |
 | Portable agents | `inherit` | Launcher resolves | Role prompts не хардкодят model slug |
 
 **Политика выбора:**
@@ -55,7 +55,7 @@
 | `team-lead-opus` | deprecated | Исторический профиль эскалации | — |
 | `tech-lead` | Sol / High | Декомпозиция на фазы/планы | (ревью `team-lead`) |
 | `product` | Sol / High | Приоритеты, scope, MoSCoW | `product-ver` (Terra / High) |
-| `codex-micro` | Luna / Light | Супер-мелкие правки | — |
+| `codex-micro` | Spark / Light при доступности; иначе Luna / Light | Супер-мелкие правки | — |
 
 ### Аналитика и архитектура
 

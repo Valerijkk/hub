@@ -19,7 +19,7 @@
 - неоднозначность, архитектура, security, prod и финальная приёмка → **Sol**;
 - обычная разработка, анализ, тестирование и ревью → **Terra**;
 - чёткая механическая работа с эталоном результата → **Luna**;
-- near-instant итерация в одном файле → опционально **Codex Spark**, если он
+- near-instant итерация в одном файле → предпочтительно **Codex Spark**, если он
   доступен; это preview, не verifier и не модель для критичных решений.
 
 `Ultra` — режим оркестратора для большой задачи, которую действительно можно
@@ -76,7 +76,7 @@ Snapshot flexible-pricing на 2026-08-07, credits за 1M токенов:
 | `debugger` | **Terra / High** | Sol / Extra High для неизвестного cross-domain RCA | Terra для обычного RCA, Sol для тяжёлой неопределённости |
 | `code-reviewer` | **Terra / High** | Sol / Extra High для auth/security/migration | Независимый pre-merge challenge |
 | `docs-writer` | **Luna / Medium** | Terra / Medium для cross-domain docs | Дешёвый точный sync по заданным источникам |
-| `codex-micro` | **Luna / Light** | Spark / Light для интерактивной итерации; Terra при сомнении | Typo, rename, one-liner; строгий узкий scope |
+| `codex-micro` | **Spark / Light**, если доступен | Luna / Light; Terra при сомнении | Typo, rename, one-liner; строгий узкий scope |
 | `team-lead-opus` | deprecated | — | Не operational slot |
 
 `Extra High` в таблице соответствует «Очень высокий» в приложении. Если

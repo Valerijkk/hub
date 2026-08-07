@@ -27,6 +27,11 @@
 
 Дополнительно (не дублировать): `.planning/STATE.md`, `.planning/COVERAGE.md`, `.planning/ROADMAP.md`, `docs/wiki/`.
 
+Для решений о качестве кода и тестов загружай по задаче
+`.cursor/knowledge/code-practices/README.md`. Это evidence-aware каталог:
+hard controls обязательны по применимости, а SOLID/DRY/≤25 строк/POM/mocks и
+прочие формы — review heuristics, если отдельный ADR не повысил их до gate.
+
 ---
 
 ## 2. Команда агентов

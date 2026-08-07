@@ -19,6 +19,7 @@
 2. **`.planning/README.md`** — если нужен конкретный planning-артефакт (аудит, ADR, roadmap, prod-runbook) — навигация по папкам, не гадать путь руками.
 3. **`docs/README.md`** → нужные файлы «Единой базы знаний» (`vision_and_scope.md`, `system_specification.md`, `architecture.md`, `tz_constraints.md`, ...) — факты о продукте.
 4. **Этот файл** → §2/§2.1 «Карта playbook-ов» / обратная карта агент→playbook — найди свой playbook по роли; §0 — актуальная runtime-routing policy.
+   Для спорного code/test решения открой [`.cursor/knowledge/code-practices/README.md`](../knowledge/code-practices/README.md) и выбери только применимые controls/heuristics.
 5. **Свой файл агента** (`.cursor/agents/<role>.md`) — конкретные обязанности, DoD, с кем взаимодействуешь; ссылается на playbooks, не дублирует их.
 6. **Rules** (`.cursor/rules/*.mdc`). Always-applied: `00`, `50`, `60`.
    Glob/intelligent: `10`, `20`, `30`, `40`, `45`, `55`, `56`, `70`.
@@ -35,7 +36,7 @@
 |------|-------------|----------------|
 | Оркестратор `team-lead` | `gpt-5.6-sol` | **GPT-5.6 Sol / Extra High**; Ultra только для большой делимой задачи |
 | Ролевые исполнители и `*-ver` | `inherit` | Terra — основной default; Sol для high-risk; точная строка роли в `model-routing.md` |
-| Micro `codex-micro` | `inherit` | Luna / Light; Spark только как доступный interactive preview |
+| Micro `codex-micro` | `inherit` | Spark / Light preferred при доступном preview; Luna / Light fallback |
 | Portable agents | `inherit` | Launcher/model-router owns slug and sampling |
 | `team-lead-opus` | `inherit` | Deprecated compatibility redirect; not an escalation slot |
 
@@ -75,6 +76,11 @@ Parent/orchestrator may explicitly override downstream model at launch only afte
 | `team-workflow.md` | team-lead, tech-lead, product, все | Состав, RACI, потоки фич, волны, параллелизм, handoff, GSD |
 | `model-routing.md` | team-lead, tech-lead, все launchers | Модель/effort каждой роли, стоимость, escalation/fallback, граница Opus |
 | `prompt-contract.md` | **все агенты (32 файла)** | Natural-language intake → внутренний task contract; concise rationale/assumptions/evidence; prompt-injection boundary; risk-scaled verification; строгий §5.2 только для delegation/handoff |
+
+Evidence-aware примеры, hard controls, review warnings, negative sentinels и
+реестр источников находятся в [`../knowledge/code-practices/`](../knowledge/code-practices/README.md).
+Каталог не превращает эвристики (`≤25` строк, SOLID scorecards, POM everywhere)
+в автоматические блокирующие правила.
 
 ### 2.1 Обратная карта: агент → playbook-и
 
