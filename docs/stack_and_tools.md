@@ -12,6 +12,7 @@
 | Go | **1.25.0** | `backend/go.mod` | Backend, CLI, hub-mail |
 | TypeScript | **~5.7** | `frontend/package.json` | Frontend |
 | Node.js | **22** (CI), 20+ (local) | `.github/workflows/ci.yml` | Сборка, Vitest, Playwright |
+| Python | **3.12+ target** (локально bundled 3.12.13) | Phase 129 / `testframework/python/pyproject.toml` | pytest/httpx/Playwright black-box layer; scaffold ещё не создан |
 
 ---
 
@@ -20,7 +21,7 @@
 | Библиотека | Версия (go.mod) | Назначение |
 |------------|-----------------|------------|
 | Fiber | **v3.0.0-beta.3** | HTTP, WebSocket (fasthttp) |
-| Ent | **v0.14.1** | ORM, кодогенерация схем (**82 schemas**, `backend/ent/schema/`) |
+| Ent | **v0.14.1** | ORM, кодогенерация схем (**87 schemas**, `backend/ent/schema/`, measured 2026-08-07) |
 | Atlas | indirect (Ent) | SQL-миграции |
 | testify | **v1.11.1** | Unit/integration assertions |
 | aws-sdk-go-v2 / s3 | **v1.32.7** / **v1.71.1** | SeaweedFS S3 API |

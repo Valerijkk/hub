@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v4
 milestone_name: Hub One Super-app
-status: august-2026-track-1-not-started
-stopped_at: Детальный план августа записан · трек 1 (тестовый фреймворк) к старту
-last_updated: "2026-08-04T00:00:00.000Z"
-last_activity: 2026-08-04 · pro-qa-ai 0.4.0-beta.1 · детальный план августа · docs only
+status: test-rebase-phase-128-in-progress
+stopped_at: TASK-202 verified PASS · TASK-203 Docker/service baseline running
+last_updated: "2026-08-07T14:30:00.000Z"
+last_activity: 2026-08-07 · evidence-based replan 128–141 · TASK-202 inventory · no test moves
 progress:
     total_phases: 125
     tasks_completed: 125
     goals_verified: 63
     phases_percent: 100
     phases_percent_note: >-
-      100% относится к 125 фазам milestone v4. Фазы 128-136 (тестовый
-      фреймворк) заведены сверх него и не начаты — они не входят в этот
-      счётчик. Фактическое состояние августа: 0 из 9 фаз трека 1.
+      100% относится только к историческим 125 фазам milestone v4 и не означает
+      production-ready. Активная программа test-rebase — фазы 128-141; Phase
+      128 IN_PROGRESS, остальные PLANNED. Эти 14 фаз не входят в счётчик выше.
     notes: >-
       tasks_completed = checkbox/legacy completed_phases claim.
       goals_verified = count of classification==VERIFIED_PASS in
@@ -48,18 +48,40 @@ deploy_blockers:
 coverage:
     overall_internal_statements: 81.9
     measured: "2026-07-27"
+    status: historical_not_accepted_as_current_baseline
+    canonical_baseline: unknown_pending_TASK-203
     baseline_2026_06_22: 83.0
     delta_pp: -1.1
-    gate_floor_82: miss
-inventory_measured_2026_07_29:
-    frontend_route_tsx: 72
-    backend_testframework_test_go: 812
-    vitest_frontend_test_files: 179
-    ent_entity_schemas: 82
+    gate_floor_82: unverified
+inventory_measured_2026_08_07:
+    source_revision: f7fbdd7e
+    backend_testframework_test_go: 828
+    backend_declared_test_functions: 3663
+    vitest_frontend_test_files: 180
+    vitest_literal_cases: 517
+    playwright_specs: 20
+    playwright_declared_cases: 53
+    canonical_export_hooks: 39
+    target_python_tests: 0
+    ent_entity_schemas: 87
     zustand_stores: 12
     go_mod: "1.25.0"
-    head_short: "d868ba77"
     branch: "cursor-grok-4.5"
+active_program:
+    name: test-architecture-rebase
+    phases: "128-141"
+    current_phase: 128
+    completed_tasks:
+      - TASK-202
+    in_review: []
+    in_progress:
+      - TASK-203
+    blocked: []
+    target_layout:
+      - backend/tests/**
+      - frontend/tests/**
+      - testframework/python/**
+      - testframework/load/**
 spec_coverage:
     fr_total: 28
     fr_with_phase: 9
@@ -71,6 +93,46 @@ spec_coverage:
 ---
 
 # Состояние проекта Hub
+
+## Session note — 2026-08-07 (test architecture rebase + Phase 128)
+
+- Фактический stage: **broad internal beta**, не production-ready. Исторические
+  milestone COMPLETE не равны production acceptance; PG-03/FA-06 остаётся
+  внешним prod-blocker.
+- Test-план полностью rebased: 14 фаз 128–141, 28 TASK-193…220, target
+  `backend/tests/**` + `frontend/tests/**` + `testframework/python/**` +
+  `testframework/load/**`. Канон:
+  `active/august-2026/06-TEST-ARCHITECTURE-REBASE.md`.
+- TASK-202 построил воспроизводимый ledger: 1,028 rows; Go 828/3,663,
+  Vitest 180/517, Playwright 20/53, 39 canonical hooks, target Python 0.
+  Первый qa-auto-ver verdict = FAIL по четырём schema/entrypoint gaps; после
+  repair повторная независимая проверка = **PASS, verified true**. Ledger SHA:
+  `17019e9fa0f6ff43b341c12c84b2677b476a4bafcac564e0ddd40f5def62668c`.
+- Docker Desktop 4.40 / Engine 28.0.4 доступен после approved daemon access;
+  TASK-203 service-backed baseline запущен. Coverage остаётся UNKNOWN до
+  zero-failure результата ≥82%; historical 83.0/81.9/80.2 не смешиваются.
+- Legacy tests/hooks не перемещались и не удалялись. Cleanup разрешён только
+  TASK-219 после parity, sentinels и real CI green.
+- По явному founder authorization выполнен read-only policy extraction из
+  `pro-qa-ai/**`; source не менялся. Hub получил
+  `.cursor/rules/07-agent-safety.mdc`, усиленные delegation/handoff и запрет
+  push/PR/deploy без явного поручения. Локальные commits — атомарно allowlist-ом.
+
+## Session note — 2026-08-07 (team-lead onboarding + model routing)
+
+- Team-lead заонборжен по `AGENTS.md`, live `STATE`, `.planning/README.md`,
+  августовскому плану и `.cursor` regulation/playbooks. Канон следующей работы
+  не изменён: resume с TASK-193; до старта выбрать единый coverage baseline.
+- Добавлен `.cursor/playbooks/model-routing.md`: role defaults всех 32 агентов,
+  effort/escalation/fallback и cost snapshot. `team-lead` = Sol/Extra High;
+  Terra = основной engineering runtime; Luna = механика; Spark = optional preview.
+- Downstream frontmatter сохранён `inherit` для portable запуска; фактический
+  runtime/reason/fallback/catalog status обязателен в delegation/handoff.
+- `pro-qa-ai/**` закреплён как protected external zone Claude Code Opus 5 под
+  управлением founder. Внутренние Hub agents не читают её по умолчанию, не
+  меняют и не включают в волны; только явный founder handoff конкретного файла.
+- Синхронизированы ADR, AGENTS, REGULATION, team workflow, agent descriptions и
+  ownership rules. Product code/tests и `pro-qa-ai/**` не менялись.
 
 ## Session note — 2026-07-30 (Touchstone Standard + Pro packaging)
 
@@ -766,7 +828,7 @@ spec_coverage:
 - Prompt contract: natural-language intake, outcome/evidence/completion bar,
   untrusted-data boundary; explicit chain-of-thought disclosure и fake
   temperature controls удалены.
-- Model routing applied: `team-lead` = GPT-5.6 Sol Pro
+- Model routing applied: `team-lead` = GPT-5.6 Sol / Extra High
   (`model: gpt-5.6-sol`), остальные 31 agents = `inherit`; downstream выбирается
   по текущему Cursor catalog и фиксируется в handoff.
 - GSD-RU skill names приведены к parent folders; phantom routes = 0. Repo-scan
@@ -897,18 +959,16 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 
 ## Session Continuity
 
-**Last session:** 2026-08-04 (pro-qa-ai 0.4.0-beta.1 · детальный план августа)
-**Stopped at:** пакет pro-qa-ai собран и провалидирован (187 файлов,
-validator exit 0, тесты 41 passed / 1 skipped); детальный план августа
-записан в `active/august-2026/05-AUGUST-DETAILED.md`; трек 1 не начат.
-**Resume:** TASK-193 — каркас Python-фреймворка в корневой `testframework/`.
-Дальше по недельной раскладке плана: 193-194 → 195-196 → 197-198 →
-199-201.
+**Last session:** 2026-08-07 (test architecture rebase · Phase 128 IN_PROGRESS)
+**Stopped at:** TASK-202 verified PASS; TASK-203 canonical Docker baseline
+выполняется. Ни один legacy test/hook не перемещён и не удалён.
+**Resume:** принять TASK-203 только при zero-failure baseline и Go coverage
+≥82%; затем TASK-204 contract. После общего Phase 128 PASS: Phase 129 —
+`testframework/python` scaffold + health/auth slice.
 
-**Что зафиксировать до старта TASK-193:** способ замера покрытия.
-Baseline существует в двух несравнимых значениях (81.9% на 2026-07-27 и
-80.2% на 2026-07-29, разные способы). Выбрать один и мерить только им,
-иначе «просадка при переезде» окажется артефактом сравнения.
+**Coverage lock:** 83.0/81.9/80.2 — historical, несравнимые значения. TASK-203
+фиксирует единственный command/environment/profile contract; migration при
+значении ниже 82% остаётся BLOCKED без отдельного founder-approved TASK-204.
 
 Исторические session notes (≤2026-07-23) и старые completion logs:
 [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](archive/history/STATE-HISTORY-THROUGH-2026-07-23.md)

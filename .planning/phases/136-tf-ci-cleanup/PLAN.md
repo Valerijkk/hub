@@ -1,56 +1,50 @@
-# Phase 136 — TF CI cutover + delete legacy
+# PLAN: Phase 136 — Python API и integration
 
-> Целевая раскладка и недельный порядок —
-> [`active/august-2026/05-AUGUST-DETAILED.md`](../../active/august-2026/05-AUGUST-DETAILED.md).
-> Юниты живут рядом с кодом, всё остальное — в корневой `testframework/`
-> (решение владельца 2026-07-30).
+**Статус:** PLANNED · **Оценка:** 2–3 дня
 
+Канон: [`06-TEST-ARCHITECTURE-REBASE.md`](../../active/august-2026/06-TEST-ARCHITECTURE-REBASE.md).
 
-**Status:** PLANNED  
-**Migration stage:** Э7  
-**Estimate:** 3–4 person-days  
-**Branch (suggested):** `feat/qa/tf-ci-cleanup`
+## Цель (goal)
 
-## Goal
-
-Перевести `.github/workflows/ci.yml` (и related) на новую схему: юниты языком
-слоя, Python-фреймворк отдельной job. Удалить legacy:
-
-- `testframework/` (root)
-- `backend/testframework/` (если ещё не пуст после 132)
-- `frontend/e2e/` / TS Playwright node_modules paths
-
-Источник: [`02-TEST-FRAMEWORK-MIGRATION.md`](../../audits/planning-audit-2026-07/02-TEST-FRAMEWORK-MIGRATION.md) §Э7
+Расширить Python scaffold до API/integration contract, заменить все принятые
+backend black-box candidates достаточным parity evidence и не выдавать Python
+execution за Go coverage.
 
 ## Depends on
 
-- **130** + **131** — Python E2E parity 20/20
-- **132** — backend units colocated (or residual plan closed)
-- **133** — frontend units colocated
-- Soft: **134**, **135** jobs optional/manual wired
-
-## Deliverables
-
-- [ ] CI jobs: `backend-unit`, `frontend-unit`, `python-integration`, `e2e-smoke` (Python), `e2e-full` (Python)
-- [ ] Coverage gate path updated to `./internal/...`
-- [ ] Remove old pipelines / `link-testframework-node-modules` if unused
-- [ ] Docs sync: `AGENTS.md`, `testframework/PIPELINE.md` → `tests/README.md`, `docs/test_plan.md`
-- [ ] Delete legacy directories in final commit(s)
-
-## Out of scope
-
-- Changing coverage floor policy (open question)
-- FA-06 / deploy blockers
+- Phase 129 PASS (Python scaffold/API slice).
+- Phase 135 PASS (закрытый backend disposition ledger).
 
 ## Success criteria
 
-- [ ] Green CI on PR without TS Playwright
-- [ ] No references to deleted paths in docs/CI
-- [ ] qa-gate skill/commands updated
+- [ ] Core clients/settings/redaction/data isolation поддерживают API и services.
+- [ ] PostgreSQL, MongoDB, Redis и NATS profiles имеют fail-closed health checks.
+- [ ] Каждая `python-api|integration|contract|full` backend candidate row имеет
+  replacement, parity result и expected skip policy; `PARITY_REQUIRED = 0` в scope.
+- [ ] Go coverage публикуется отдельно и остаётся в принятом contract.
 
-## Risks
+## Задачи (атомарные)
 
-| Risk | Mitigation |
-|------|------------|
-| Minutes budget (student GH Actions) | Keep smoke small; full e2e on schedule/main |
-| Broken links in agents/rules | Repo-wide grep before delete |
+| Task ID | Outcome | Owner | Verifier | Files | Depends | Estimate |
+|---|---|---|---|---|---|---:|
+| TASK-199 | Core/API pilot: typed client, factories, schema/assertion helpers, isolation и representative API parity | qa-auto1 | qa-auto-ver | `testframework/python/{core,fixtures,api}/**`, `.planning/evidence/test-rebase/136/api/**` | Phase 129, Phase 135 | 1–1.5д |
+| TASK-216 | Infra integration expansion для PostgreSQL/Mongo/Redis/NATS и всех ledger candidates | qa-auto2 | qa-auto-ver | `testframework/python/{integration,full}/**`, `.planning/audits/test-rebase/inventory.json`, `.planning/evidence/test-rebase/136/integration/**` | TASK-199 | 1–1.5д |
+
+## Волны
+
+- Wave 1: TASK-199.
+- Wave 2: TASK-216 по service-isolated markers; затем общий parity reconciliation.
+
+## Риски
+
+| Риск | Mitigation |
+|---|---|
+| Shared DB collision под xdist | Run-id namespace, worker-owned data, deterministic cleanup, serial marker allowlist |
+| Недоступный service превращается в skip | Required profiles fail setup; optional skips только allowlisted |
+| Python replacement снижает Go coverage | Retain/add Go units или founder-approved gate; метрики не смешивать |
+
+## Verification
+
+- `qa-auto-ver`: два последовательных и parallel-safe runs, exact counts,
+  unexpected skip=0, sentinel red/green, redaction scan.
+- `be-ver`: Go coverage comparison и подтверждение, что Python не включён в profile.

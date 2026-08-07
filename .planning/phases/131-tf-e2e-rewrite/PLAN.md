@@ -1,57 +1,47 @@
-# Phase 131 — TF E2E rewrite specs (5)
+# PLAN: Phase 131 — frontend domain migration
 
-> Целевая раскладка и недельный порядок —
-> [`active/august-2026/05-AUGUST-DETAILED.md`](../../active/august-2026/05-AUGUST-DETAILED.md).
-> Юниты живут рядом с кодом, всё остальное — в корневой `testframework/`
-> (решение владельца 2026-07-30).
+**Статус:** PLANNED · **Оценка:** 2–3 дня
 
+Канон: [`06-TEST-ARCHITECTURE-REBASE.md`](../../active/august-2026/06-TEST-ARCHITECTURE-REBASE.md).
 
-**Status:** PLANNED  
-**Migration stage:** Э2 (rewrite)  
-**Estimate:** 4–5 person-days  
-**Branch (suggested):** `feat/qa/tf-e2e-rewrite`
+## Цель (goal)
 
-## Goal
-
-Переписать **5 non-mechanical** specs: auth waits/session, axe fixtures, AI async waits, tracker multi-step lifecycle.
-Матрица: [`TF-MIGRATE-E3-PLAYWRIGHT.md`](../../audits/planning-audit-2026-07/TF-MIGRATE-E3-PLAYWRIGHT.md)
+Перенести оставшиеся Vitest/RTL тесты в `frontend/tests/**`, сохранив dual-run,
+static gates и behavioral parity полного baseline inventory.
 
 ## Depends on
 
-- **129** tf-e2e-shared
-- **130** tf-e2e-mechanical (желательно — smoke уже зелёный; soft)
-
-## Specs in scope
-
-| Spec | Drivers | Target |
-|------|---------|--------|
-| `auth/logout.spec.ts` | waits / network | `test_logout.py` |
-| `auth/onboarding-profile.spec.ts` | auth session mutate | `test_onboarding_profile.py` |
-| `platform/a11y.spec.ts` | fixtures (axe) | `test_a11y.py` — **smoke** |
-| `ai/ai-hub.spec.ts` | auth + waits | `test_ai_hub.py` |
-| `tracker/project-lifecycle.spec.ts` | waits / multi-step | `test_project_lifecycle.py` |
-
-## Deliverables
-
-- [ ] 5 Python modules с паритетом
-- [ ] a11y в `smoke` marker
-- [ ] Явные timeout policy (no bare sleep)
-- [ ] Документ known flakes (ai-hub bot 45s)
-
-## Out of scope
-
-- Удаление TS tree (phase 136)
-- Locust
+- Phase 130 PASS (native harness и platform+auth wave).
 
 ## Success criteria
 
-- [ ] Full Python e2e 20/20 parity with TS intents
-- [ ] Smoke: login + a11y + critical-gate PASS
-- [ ] TS suite ещё может жить параллельно
+- [ ] Tracker/messenger/tms/calls и все оставшиеся frontend domains mapped.
+- [ ] Native collected count равен принятому Phase 128 frontend baseline
+  (snapshot: 180), либо ledger содержит verifier-approved split/consolidation.
+- [ ] Legacy и native suites green с нулём неожиданных skips и accepted coverage delta.
+- [ ] Legacy исходники и linker ещё не удалены.
 
-## Risks
+## Задачи (атомарные)
 
-| Risk | Mitigation |
-|------|------------|
-| ai-hub provider flaky | Assert reply **or** provider hint (as TS) |
-| Lifecycle trash timing | Stable testids; increase timeout only where TS had it |
+| Task ID | Outcome | Owner | Verifier | Files | Depends | Estimate |
+|---|---|---|---|---|---|---:|
+| TASK-207 | Tracker, messenger, tms и calls migration по SUT с parity artifacts | fe1 | fe-ver | `frontend/tests/{tracker,messenger,tms,calls}/**`, `.planning/audits/test-rebase/inventory.json`, `.planning/evidence/test-rebase/131/wave-a/**` | Phase 130 | 1–1.5д |
+| TASK-208 | Admin, ai, dashboard, hr, notifications, search, v4 и residual migration | fe2 | fe-ver | `frontend/tests/{admin,ai,dashboard,hr,notifications,search,v4}/**`, `frontend/tests/support/**`, `.planning/evidence/test-rebase/131/wave-b/**` | Phase 130 | 1–1.5д |
+
+## Волны
+
+- Wave 1: TASK-207 и TASK-208 параллельно; ownership directories не пересекаются.
+- Wave 2: общий native regression, inventory reconciliation и verifier sign-off.
+
+## Риски
+
+| Риск | Mitigation |
+|---|---|
+| Broad `v4` tests имеют несколько SUT | Split только с сохранёнными IDs и accepted mapping; не терять assertions |
+| Path-sensitive source guards | Обновить ожидаемый production path, не ослаблять guard |
+| Механический объём >3 дней | Стоп и replan; Phase 131 не закрывать частичным inventory |
+
+## Verification
+
+- `fe-ver`: native type/lint/unit/coverage full green; legacy full green.
+- `qa-auto-ver`: frontend `unmapped = 0`, parity required = 0, unexpected skip = 0.

@@ -1,50 +1,47 @@
-# Phase 134 — Python integration layer
+# PLAN: Phase 134 — backend work и realtime waves
 
-> Целевая раскладка и недельный порядок —
-> [`active/august-2026/05-AUGUST-DETAILED.md`](../../active/august-2026/05-AUGUST-DETAILED.md).
-> Юниты живут рядом с кодом, всё остальное — в корневой `testframework/`
-> (решение владельца 2026-07-30).
+**Статус:** PLANNED · **Оценка:** 2–3 дня
 
+Канон: [`06-TEST-ARCHITECTURE-REBASE.md`](../../active/august-2026/06-TEST-ARCHITECTURE-REBASE.md).
 
-**Status:** PLANNED  
-**Migration stage:** Э5  
-**Estimate:** 5–7 person-days  
-**Branch (suggested):** `feat/qa/tf-integration-python`
+## Цель (goal)
 
-## Goal
-
-Перенести в `tests/integration/` то, что по смыслу **интеграционное** (БД, NATS,
-Mongo, внешние интеграции через API), а не юнит — по мере выделения из бывшего
-`backend/testframework` и новых сценариев.
-
-Layout: [`TF-MIGRATE-E4-TESTS-LAYOUT.md`](../../audits/planning-audit-2026-07/TF-MIGRATE-E4-TESTS-LAYOUT.md)
+Перенести Go-native work/realtime tests в `backend/tests/**` с полным
+disposition ledger для tracker/project/sprint/tms/messenger/notification.
 
 ## Depends on
 
-- **128** tf-python-scaffold (hard)
-- Soft: **132** частично (чтобы не дублировать unit+integration)
-
-## Deliverables
-
-- [ ] Domains: auth, tracker, messenger, search, notification, bases, platform
-- [ ] DB fixtures (`pg`, `mongo`) skipif
-- [ ] Factories через API (`tests/fixtures/factories.py`)
-- [ ] CI job draft `integration-python` (включается в 136)
-
-## Out of scope
-
-- Browser E2E
-- Locust (135)
-- Импорт Go internal из Python
+- Phase 133 PASS.
 
 ## Success criteria
 
-- [ ] ≥1 тест на домен из списка выше green
-- [ ] Нет прямого SQL в e2e; integration может читать DB для assert
+- [ ] Все rows шести доменов имеют accepted Go target или связанный Python
+  replacement candidate; `unmapped = 0` в scope фазы.
+- [ ] Legacy/native domain suites green с равными required behaviors и skips.
+- [ ] Frozen Go coverage не просел без разобранной причины.
+- [ ] Legacy sources и hooks остаются до Phase 141.
 
-## Risks
+## Задачи (атомарные)
 
-| Risk | Mitigation |
-|------|------------|
-| Дубли с Go tests | Матрица: unit = logic; integration = wire+DB |
-| Flaky Docker | Same compose as hubtest; explicit health wait |
+| Task ID | Outcome | Owner | Verifier | Files | Depends | Estimate |
+|---|---|---|---|---|---|---:|
+| TASK-212 | Tracker/project/sprint/tms migration и API/integration candidate mapping | be1 | be-ver | `backend/tests/{tracker,project,sprint,tms}/**`, `.planning/audits/test-rebase/inventory.json`, `.planning/evidence/test-rebase/134/work/**` | Phase 133 | 1–1.5д |
+| TASK-213 | Messenger/notification migration, Redis/NATS classification и parity evidence | be2 | be-ver | `backend/tests/{messenger,notification}/**`, `.planning/audits/test-rebase/hooks.json`, `.planning/evidence/test-rebase/134/realtime/**` | Phase 133 | 1–1.5д |
+
+## Волны
+
+- Wave 1: TASK-212 и TASK-213 параллельно.
+- Wave 2: combined domain/race/coverage reconciliation.
+
+## Риски
+
+| Риск | Mitigation |
+|---|---|
+| TMS/tracker объём превышает фазу | Ledger-first; stop/replan вместо partial PASS |
+| Redis/NATS test ошибочно назван unit | Real broker/network rows остаются legacy до Phase 136 |
+| Source-path guard сломан move | Обновить только path resolution; invariant/assertion не ослаблять |
+
+## Verification
+
+- `be-ver`: legacy/native counts, race, coverage, hook consumer diff.
+- `qa-auto-ver`: phase-scope `unmapped = 0`, replacement links valid.

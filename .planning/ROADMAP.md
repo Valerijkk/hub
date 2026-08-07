@@ -165,48 +165,55 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 124: Floor ≥82% (tracker / tms / project)** - tracker: 81.3% → ≥82%; tms: 81.7% → ≥82%; project: 81.0% → ≥82%
 - [x] **Phase 125: COV ≥82%, Security ≥80%, Regression Gate** - COV overall: ≥82% → ✅ **82.6%**; auth: ≥80% → ✅ **82.4%**; ws: ≥80% → ✅ **87.7%**; rbac: ≥80% → ✅ **84.7%** (2026-06-21)
 
-### August 2026 — FR gaps + Python testframework + MS gate (TASK-005)
+### August 2026 — test architecture rebase (TASK-193…220)
 
-План: [`.planning/active/august-2026/00-AUGUST-PLAN.md`](active/august-2026/00-AUGUST-PLAN.md) · MS: [`01-MICROSERVICES-SPLIT.md`](active/august-2026/01-MICROSERVICES-SPLIT.md)
+Канон: [`06-TEST-ARCHITECTURE-REBASE.md`](active/august-2026/06-TEST-ARCHITECTURE-REBASE.md) ·
+карточки: [`backlog/README.md`](backlog/README.md). Старый недельный test-раздел
+`05-AUGUST-DETAILED.md` superseded этим каноном; остальные августовские темы
+сохраняются. Микросервисный split остаётся отложенным до re-audit после тестового
+фундамента.
 
-**Жёсткая зависимость треков:** фазы 128–136 (тестовый фундамент) → Трек 2 микросервисов.  
-**Фаза 133 — блокер этапа Э3** (`hub-shell` + Module Federation): во фронте сейчас 0 colocated unit-тестов.
+**Фактическая стадия:** broad internal beta, не production-ready. Исторические
+milestone COMPLETE не равны production acceptance; PG-03/FA-06 остаётся
+prod-blocker. Новая native/Python migration начата только с Phase 128 inventory;
+перемещение тестов запрещено до green baseline ≥82% или отдельного founder-approved
+coverage contract.
 
-| Phase | Status | Depends on | Notes |
-|------:|--------|------------|-------|
-| 126 Intranet NewsPost trash (FR-INTR-08) | IMPLEMENTED 2026-07-28 | — (schema `deleted_at` already) | TASK-001 |
-| 127 Calendar series trash (FR-CAL-05) | IMPLEMENTED 2026-07-28 | **126** (shared trash registration pattern) | TASK-002 · ent schema review |
-| 128 TF Python scaffold `/tests` | PLANNED | **A3 coverage baseline** (hard) | свежий COV перед миграцией |
-| 129 TF E2E shared (POM/fixtures) | PLANNED | **128** | |
-| 130 TF E2E mechanical port | PLANNED | **129** | |
-| 131 TF E2E rewrite | PLANNED | **129**; soft **130** | |
-| 132 TF backend units colocated | PLANNED | **128**; **A3 coverage** hard before cov drop | |
-| 133 TF frontend units colocated | PLANNED | **128**; parallel-ok vs 132 | **BLOCKS MS Э3** |
-| 134 TF integration Python | PLANNED | **128**; soft **132** | |
-| 135 TF Locust load | PLANNED | **128**; soft **134** | |
-| 136 TF CI cleanup | PLANNED | **130+131+132+133**; soft 134/135 | cutover old framework |
+| Phase | Status | Depends on | Outcome / tasks |
+|------:|--------|------------|-----------------|
+| 126 | IMPLEMENTED 2026-07-28 | — | Intranet NewsPost trash · TASK-001 |
+| 127 | IMPLEMENTED 2026-07-28 | 126 | Calendar series trash · TASK-002 |
+| 128 | IN PROGRESS | — | inventory + canonical baseline + contract · TASK-202/203/204 |
+| 129 | PLANNED | 128 PASS | `testframework/python` scaffold + API slice · TASK-193/205 |
+| 130 | PLANNED | 128 PASS | `frontend/tests` foundation · TASK-198/206 |
+| 131 | PLANNED | 130 | frontend domain migration · TASK-207/208 |
+| 132 | PLANNED | 128 PASS | `backend/tests` foundation + auth pilot · TASK-197/209 |
+| 133 | PLANNED | 132 | backend security/platform · TASK-210/211 |
+| 134 | PLANNED | 133 | backend work/realtime · TASK-212/213 |
+| 135 | PLANNED | 134 | backend business/integrations · TASK-214/215 |
+| 136 | PLANNED | 129, 135 | Python API/integration · TASK-199/216 |
+| 137 | PLANNED | 129 | Python E2E foundation + 3-spec smoke parity · TASK-194/217 |
+| 138 | PLANNED | 137 | Python E2E 20-spec/53-case parity · TASK-195/196 |
+| 139 | PLANNED | 129, 136 | Locust baseline · TASK-200 |
+| 140 | PLANNED | 131, 135, 136, 138, 139 | CI dual-run + sentinels · TASK-201/218 |
+| 141 | PLANNED | 140 + real CI green | allowlisted cutover + final verification · TASK-219/220 |
 
+```text
+128 ─┬─129────136──┬─139──┐
+     │  └─137─138──┤      │
+     ├─130─131─────┤      ├─140─141
+     └─132─133─134─135────┘
 ```
-126 ──► 127
-         │
-A3 cov ──► 128 ─┬─► 129 ─► 130 ─► 131 ─┐
-                ├─► 132 ───────────────┼─► 136
-                ├─► 133 ──(блокирует Э3 MS)─┤
-                ├─► 134 ───────────────┘
-                └─► 135
-```
 
-- [ ] **Phase 126: Intranet NewsPost trash** - FR-INTR-08 restore via admin trash (`newspost`)
-- [ ] **Phase 127: Calendar series trash** - FR-CAL-05 `scheduled_call` soft-delete + trash 30d
-- [ ] **Phase 128: TF Python scaffold** - `/tests` pytest каркас; **blocked on coverage baseline**
-- [ ] **Phase 129: TF E2E shared** - Playwright Python shared POM/fixtures
-- [ ] **Phase 130: TF E2E mechanical** - mechanical port of specs
-- [ ] **Phase 131: TF E2E rewrite** - idiomatic Python E2E
-- [ ] **Phase 132: TF backend units colocated** - Go tests → `backend/internal/**`
-- [ ] **Phase 133: TF frontend units colocated** - Vitest → `frontend/src/**` — **blocker for MS Э3**
-- [ ] **Phase 134: TF integration Python** - httpx integration suite
-- [ ] **Phase 135: TF Locust load** - load layer
-- [ ] **Phase 136: TF CI cleanup** - CI cutover + remove legacy testframework trees
+- [x] **Phase 126:** Intranet NewsPost trash
+- [x] **Phase 127:** Calendar series trash
+- [ ] **Phase 128:** status/baseline recovery — TASK-202 verified PASS;
+  TASK-203 service-backed Docker baseline выполняется
+- [ ] **Phases 129–139:** dual-run migration в целевые
+  `backend/tests/**`, `frontend/tests/**`, `testframework/python/**`,
+  `testframework/load/**`
+- [ ] **Phase 140:** CI dual-run; ни один legacy required path ещё не удаляется
+- [ ] **Phase 141:** cleanup только по parity manifest и после real CI green
 
 ## Phase Details
 
@@ -2339,16 +2346,20 @@ Sources: [`PHASE-STATUS-MATRIX.md`](audits/planning-audit-2026-07/PHASE-STATUS-M
 
 ### Phase 999.1: Unified test framework + test tree refactor (BACKLOG)
 
-**Goal:** Вынести интеграционные/E2E/Vitest тесты в `tests/`, построить фреймворк: Page Object, Flow Object, builders, SOLID/DRY/KISS, test design (BVA, equivalence, state transition). Go pure unit — co-located.
+> **SUPERSEDED 2026-08-07:** идея промотирована и перепланирована как
+> [Phases 128–141](active/august-2026/06-TEST-ARCHITECTURE-REBASE.md). Этот
+> раздел остаётся только историческим указателем и не является вторым планом.
+
+**Historical goal:** Вынести интеграционные/E2E/Vitest тесты в отдельную
+архитектуру; актуальные target paths и gates определены в rebase-каноне.
 
 **Spec:** `.planning/phases/999-test-framework/SPEC.md`
 
 **Requirements:** TBD (promote → arch + qa plan)
 
-**Plans:** 0 plans
+**Plans:** superseded by 14 executable plans
 
 Plans:
-- [ ] M1–M6 migration waves (see SPEC)
-- [ ] TBD (promote with `/gsd-review-backlog` when ready)
+- [x] Promoted to Phases 128–141; дальнейшее исполнение только по live канону
 
-**Suggested timing:** after Phase 15 Wave 5 (E2E) or parallel Wave 8 coverage if team capacity allows.
+**Suggested timing:** historical; не использовать для sequencing.

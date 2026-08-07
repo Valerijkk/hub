@@ -3,6 +3,13 @@
 > Единая база знаний QA. Обновляется при изменении стратегии, CI или coverage floor.  
 > Детали TC-*: `docs/TESTING.md` · Матрица: `.planning/COVERAGE.md` · Triage: `.cursor/skills/test-triage/SKILL.md`
 
+> **Migration status 2026-08-07:** текущая таблица и команды ниже описывают
+> исполняемый legacy-контур. Фазы 128–141 переводят unit/component тесты в
+> `backend/tests/**` и `frontend/tests/**`, Python black-box слой — в
+> `testframework/python/**`, Locust — в `testframework/load/**`. До принятого
+> parity и Phase 141 старые пути не удаляются. Канон:
+> [test architecture rebase](../.planning/active/august-2026/06-TEST-ARCHITECTURE-REBASE.md).
+
 ---
 
 ## Пирамида тестирования
@@ -43,19 +50,20 @@
 
 ---
 
-## Текущие метрики (2026-06-22)
+## Текущая инвентаризация (2026-08-07)
 
 Источник: `.planning/COVERAGE.md` · `.planning/audits/2026-06/AUDIT-SCORECARD.md`
 
 | Метрика | Значение |
 |---------|----------|
-| Backend `testframework/**/*_test.go` | **812** файлов (measured 2026-07-29; was 515 → 580 → 652 → 805) |
+| Backend `testframework/**/*_test.go` | **828** файлов / **3,663** declared tests |
 | Backend `internal/*_test.go` | **0** (TF-M08 ✅) |
-| Backend `export_hooks.go` (`//go:build hubtest`) | **39** файлов (measured 2026-07-29) |
-| Statement coverage `internal/` | **83.0%** (2026-06-22 Docker baseline) |
+| Backend `export_hooks.go` (`//go:build hubtest`) | **39** canonical files + 4 fragments; удаление запрещено до TASK-219 |
+| Statement coverage `internal/` | **UNKNOWN pending TASK-203**; 83.0/81.9/80.2 — historical non-comparable runs |
 | Security-critical packages ≥80% | **6/6** ✅ (auth, ws, rbac, audit, calls, platform/middleware) |
-| Frontend Vitest | **179** files в `stages/unit/frontend-test/` (measured 2026-07-29; 61 `.ts` + 118 `.tsx`) |
-| Playwright specs | **20** files в `testframework/stages/e2e/domains/` |
+| Frontend Vitest | **180** files / **517** literal cases в `stages/unit/frontend-test/` |
+| Playwright specs | **20** files / **53** declared cases (+6 runtime skip sites) |
+| Target Python tests | **0** до Phase 129 |
 | Lighthouse CI | artifact job (master push, non-blocking) |
 | TypeScript | `tsc --noEmit` — 0 errors (CI) |
 | Data races | 0 (CI `-race`) |

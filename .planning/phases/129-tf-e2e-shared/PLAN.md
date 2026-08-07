@@ -1,52 +1,48 @@
-# Phase 129 — TF E2E shared layer (fixtures / auth / POM)
+# PLAN: Phase 129 — Python scaffold и API vertical slice
 
-> Целевая раскладка и недельный порядок —
-> [`active/august-2026/05-AUGUST-DETAILED.md`](../../active/august-2026/05-AUGUST-DETAILED.md).
-> Юниты живут рядом с кодом, всё остальное — в корневой `testframework/`
-> (решение владельца 2026-07-30).
+**Статус:** PLANNED · **Оценка:** 1–2 дня
 
+Канон: [`06-TEST-ARCHITECTURE-REBASE.md`](../../active/august-2026/06-TEST-ARCHITECTURE-REBASE.md).
 
-**Status:** PLANNED  
-**Migration stage:** Э2 (shared rewrite)  
-**Estimate:** 3–4 person-days  
-**Branch (suggested):** `feat/qa/tf-e2e-shared`
+## Цель (goal)
 
-## Goal
-
-Переписать shared-слой Playwright с TypeScript на Python:
-fixtures, auth (seed + sessionStorage inject), env probes, POM, steps, a11y helper.
-
-Источник: `testframework/stages/e2e/shared/**`  
-План классов: [`TF-MIGRATE-E3-PLAYWRIGHT.md`](../../audits/planning-audit-2026-07/TF-MIGRATE-E3-PLAYWRIGHT.md) §Shared
+Неразрушительно создать standalone Python-проект в `testframework/**` и
+доказать один health+authenticated API flow, не меняя legacy runners.
 
 ## Depends on
 
-- **128** tf-python-scaffold
-
-## Deliverables
-
-- [ ] `tests/e2e/conftest.py` — page fixtures, skipUnless* → markers
-- [ ] `tests/fixtures/auth.py` — port `devLogin` / `authenticatePage`
-- [ ] `tests/e2e/pages/` — Login, AppShell, Messenger, Base
-- [ ] `tests/e2e/steps/auth.py`
-- [ ] `tests/e2e/helpers/a11y.py` — axe port (smoke-ready)
-- [ ] `tests/e2e/helpers/ai.py` — API helpers stub
-- [ ] Один smoke self-check: login branding via POM
-
-## Out of scope
-
-- Полный перенос 20 specs (phases 130–131)
-- CI cutover
+- Phase 128 PASS, включая frozen inventory и coverage contract.
 
 ## Success criteria
 
-- [ ] Python auth inject открывает `/projects` без UI login
-- [ ] axe helper возвращает список violations на login page
-- [ ] Документирован паритет с TS helpers
+- [ ] Python 3.13/`uv`/pytest/httpx stack зафиксирован lockfile и ставится clean.
+- [ ] `pytest --strict-markers` собирает ненулевой API slice и выполняет health +
+  auth against approved non-production profile.
+- [ ] Deliberate failing assertion делает новый runner red; secrets redacted.
+- [ ] `testframework/stages/**`, `guides/**` и `pipeline/**` не удалены/не сломаны.
 
-## Risks
+## Задачи (атомарные)
 
-| Risk | Mitigation |
-|------|------------|
-| Zustand persist shape drift | Snapshot payload keys from current `auth.ts` |
-| axe package choice | Pin version; same impact filter as TS |
+| Task ID | Outcome | Owner | Verifier | Files | Depends | Estimate |
+|---|---|---|---|---|---|---:|
+| TASK-193 | Non-destructive project scaffold, pinned dependencies, strict markers, typed env и artifact redaction | qa-auto1 | qa-auto-ver | `testframework/python/{pyproject.toml,uv.lock,conftest.py,README.md}`, `testframework/python/core/**` | Phase 128 | 0.75д |
+| TASK-205 | Health/auth vertical slice с isolated test user, cleanup и failing-sentinel evidence | qa-auto2 | qa-auto-ver | `testframework/python/api/platform/test_health.py`, `testframework/python/api/auth/test_auth.py`, `testframework/python/fixtures/auth.py`, `.planning/evidence/test-rebase/129/**` | TASK-193 | 0.75д |
+
+## Волны
+
+- Wave 1: TASK-193.
+- Wave 2: TASK-205.
+
+## Риски
+
+| Риск | Mitigation |
+|---|---|
+| Python отсутствует в PATH | Provision exact runtime; без clean install verdict BLOCKED |
+| DEV auth скрывает production contract | Маркер/profile явный; acceptance проверяет публичный authenticated response |
+| Scaffold затрёт root legacy | Inventory checksum check до/после; delete запрещён |
+
+## Verification
+
+- `qa-auto-ver`: clean install, non-zero collection, green slice, red sentinel,
+  два последовательных запуска без leaked data.
+- Phase 128 legacy smoke запускается без изменения entry point.

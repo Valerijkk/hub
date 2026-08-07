@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hub.local/schemas/test-rebase-inventory-v1.json",
+  "title": "Hub test-rebase source inventory",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "tool_version",
+    "revision",
+    "roots",
+    "expected",
+    "counts",
+    "rows",
+    "hooks"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "tool_version": { "type": "string" },
+    "revision": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "roots": { "type": "object" },
+    "expected": { "type": "object" },
+    "counts": { "type": "object" },
+    "rows": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/testRow" }
+    },
+    "hooks": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/hookFile" }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "testRow": {
+      "type": "object",
+      "required": [
+        "source_path",
+        "sha256",
+        "runner",
+        "domain",
+        "owner_wave",
+        "test_ids",
+        "test_count",
+        "skips",
+        "service_hints",
+        "dependency_hints",
+        "target_class",
+        "target_path",
+        "coverage_bearing",
+        "hook_consumers",
+        "baseline_status",
+        "replacement_status",
+        "parity_status",
+        "disposition",
+        "evidence",
+        "trace_ids"
+      ],
+      "properties": {
+        "source_path": { "type": "string" },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "runner": { "enum": ["go-test", "vitest", "playwright-ts"] },
+        "domain": { "type": "string" },
+        "owner_wave": {
+          "type": "string",
+          "enum": [
+            "P130/TASK-206",
+            "P131/TASK-207",
+            "P131/TASK-208",
+            "P133/TASK-210",
+            "P133/TASK-211",
+            "P134/TASK-212",
+            "P134/TASK-213",
+            "P135/TASK-214",
+            "P135/TASK-215",
+            "P138/TASK-195",
+            "P138/TASK-196"
+          ]
+        },
+        "test_ids": { "type": "array", "items": { "type": "string" } },
+        "test_count": { "type": "integer", "minimum": 0 },
+        "skips": {
+          "type": "object",
+          "required": ["count", "sites"],
+          "properties": {
+            "count": { "type": "integer", "minimum": 0 },
+            "sites": { "type": "array", "items": { "type": "string" } }
+          },
+          "additionalProperties": false
+        },
+        "service_hints": { "type": "array", "items": { "type": "string" } },
+        "dependency_hints": { "type": "array", "items": { "type": "string" } },
+        "target_class": { "enum": ["go-unit", "go-component", "frontend-unit", "python-e2e"] },
+        "target_path": { "type": "string" },
+        "coverage_bearing": { "type": "boolean" },
+        "hook_consumers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["hook_source", "symbol"],
+            "properties": {
+              "hook_source": { "type": "string" },
+              "symbol": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "baseline_status": { "type": "string" },
+        "replacement_status": { "type": "string" },
+        "parity_status": { "type": "string" },
+        "disposition": { "const": "retain-until-parity" },
+        "evidence": { "type": "array", "items": { "type": "string" } },
+        "trace_ids": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "hookFile": {
+      "type": "object",
+      "required": [
+        "source_path",
+        "sha256",
+        "module",
+        "package",
+        "canonical",
+        "symbols",
+        "deletion_decision"
+      ],
+      "properties": {
+        "source_path": { "type": "string" },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "module": { "type": "string" },
+        "package": { "type": "string" },
+        "canonical": { "type": "boolean" },
+        "symbols": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "consumer_test_files"],
+            "properties": {
+              "name": { "type": "string" },
+              "consumer_test_files": { "type": "array", "items": { "type": "string" } }
+            },
+            "additionalProperties": false
+          }
+        },
+        "deletion_decision": { "const": "none-in-task-202" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

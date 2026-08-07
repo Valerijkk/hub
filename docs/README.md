@@ -81,7 +81,7 @@
 # Полный backend regression
 cd backend && go generate ./ent && go build -tags release ./... \
   && go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...
-# (в backend/internal/ нет *_test.go — все 812 *_test.go в backend/testframework/, measured 2026-07-29;
+# (до cutover все 828 *_test.go в backend/testframework/, measured 2026-08-07;
 #  покрытие internal меряется флагом -coverpkg=./internal/...)
 
 # Frontend regression
@@ -92,6 +92,11 @@ docker compose --env-file .env.local -f docker-compose.local.yml up --build
 ```
 
 Skill: `/qa-gate` — останавливается на первой FAIL.
+
+Test-rebase 128–141: текущие команды сохраняются до dual-run/cutover; целевые
+пути — `backend/tests/**`, `frontend/tests/**`, `testframework/python/**` и
+`testframework/load/**`. Канон:
+[`.planning/active/august-2026/06-TEST-ARCHITECTURE-REBASE.md`](../.planning/active/august-2026/06-TEST-ARCHITECTURE-REBASE.md).
 
 ---
 *2026-07-19 — GLOSSARY, TROUBLESHOOTING, runbooks/, актуализация фактов и счётчиков · 2026-07-03 — реорганизация AI-команды, ADR-MICROSERVICES, ROADMAP-FINAL*

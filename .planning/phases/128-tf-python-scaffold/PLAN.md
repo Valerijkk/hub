@@ -1,62 +1,55 @@
-# Phase 128 — TF Python scaffold (`testframework/`)
+# PLAN: Phase 128 — status и baseline recovery
 
-> Целевая раскладка и недельный порядок —
-> [`active/august-2026/05-AUGUST-DETAILED.md`](../../active/august-2026/05-AUGUST-DETAILED.md).
-> Юниты живут рядом с кодом, всё остальное — в корневой `testframework/`
-> (решение владельца 2026-07-30).
+**Статус:** PLANNED · **Оценка:** 2–3 дня · **Блокирует:** Phase 129–141
 
+Канон: [`06-TEST-ARCHITECTURE-REBASE.md`](../../active/august-2026/06-TEST-ARCHITECTURE-REBASE.md).
 
-**Status:** PLANNED  
-**Migration stage:** Э1  
-**Estimate:** 2–3 person-days  
-**Branch (suggested):** `feat/qa/tf-python-scaffold`
+## Цель (goal)
 
-## Goal
-
-Поднять каркас корневого Python-проекта `testframework/` по дизайну
-[`TF-MIGRATE-E4-TESTS-LAYOUT.md`](../../audits/planning-audit-2026-07/TF-MIGRATE-E4-TESTS-LAYOUT.md):
-`pyproject.toml`, корневой `conftest.py` (env + DB + auth), пустые пакеты
-`integration/`, `e2e/`, `load/`, `fixtures/`.
-
-**Критерий:** один integration-тест проходит end-to-end против Docker local stack
-(`health` + authenticated API call).
-
-## Hard dependency
-
-- **BLOCKED on A3 coverage baseline** — [`01-PLANNING-FIXES.md`](../../audits/planning-audit-2026-07/01-PLANNING-FIXES.md) §A3  
-  (прогнать coverage gate, обновить `COVERAGE.md` с датой).  
-  Без baseline нельзя начинать миграцию — см. [`02-TEST-FRAMEWORK-MIGRATION.md`](../../audits/planning-audit-2026-07/02-TEST-FRAMEWORK-MIGRATION.md).
+Получить воспроизводимый live-status, полный migration ledger и единый
+taxonomy/coverage contract до любого scaffold или перемещения тестов.
 
 ## Depends on
 
-- **A3 coverage baseline** (planning-audit) — **hard**: свежий прогон coverage gate + запись в `COVERAGE.md` с датой **до** старта миграции (иначе потеря покрытия при переносе 515 файлов незаметна). См. [`01-PLANNING-FIXES.md`](../../audits/planning-audit-2026-07/01-PLANNING-FIXES.md) §A3 · [`02-TEST-FRAMEWORK-MIGRATION.md`](../../audits/planning-audit-2026-07/02-TEST-FRAMEWORK-MIGRATION.md).
-- Docker compose local/test stack доступен
-- Soft: фазы 126–127 (FR trash) не блокируют scaffold, но желательно закрыть P0 до большой миграции тестов.
-
-## Deliverables
-
-- [ ] `tests/pyproject.toml` + README
-- [ ] `tests/conftest.py` — `api_url`, `backend_available`, `seed_dev`, `dev_tokens`, `auth_headers`
-- [ ] `tests/fixtures/{auth,env,db,seed}.py` stubs
-- [ ] `tests/integration/platform/test_health.py` — green
-- [ ] `tests/integration/auth/test_dev_login.py` — green
-- [ ] Документировать команды install / pytest
-
-## Out of scope
-
-- Перенос E2E specs
-- Удаление `testframework/`
-- Locust scenarios (только пустая `load/` папка)
+- Нет фазовых зависимостей.
+- Нужны Go 1.25, Node 22, Python runtime и Docker для полного baseline; их
+  отсутствие фиксируется как BLOCKED/NOT_RUN, но не подменяется PASS.
 
 ## Success criteria
 
-- [ ] A3 baseline зафиксирован до merge этой фазы
-- [ ] `pytest tests/integration -q` green locally
-- [ ] Старый `testframework/` не удалён
+- [ ] Inventory охватывает baseline 828 Go / 180 Vitest / 20 E2E specs / 53
+  cases / 0 Python либо объясняет датированный drift; `unmapped = 0`.
+- [ ] Сохранён один полностью green coverage baseline с command, SHA, versions,
+  services, pass/fail/skip, profile hash и per-package values; Go overall ≥82%.
+  Значение ниже 82% блокирует фазу и любые перемещения, пока founder заранее
+  не утвердит новый denominator/threshold в TASK-204.
+- [ ] Каждая строка имеет taxonomy, target, coverage-bearing и hook consumers.
+- [ ] До принятия Phase 128 не изменены test paths, runners и legacy contents.
 
-## Risks
+## Задачи (атомарные)
 
-| Risk | Mitigation |
-|------|------------|
-| Dev-login only in DEV_MODE | Document; skipif when unavailable |
-| Windows vs Linux path/CI | Use pytest from `tests/` as cwd |
+| Task ID | Outcome | Owner | Verifier | Files | Depends | Estimate |
+|---|---|---|---|---|---|---:|
+| TASK-202 | Machine-readable inventory ledger с checksum, test IDs/counts, old→target mapping и live recount | qa-auto1 | qa-auto-ver | `.planning/audits/test-rebase/{inventory.py,schema.json,inventory.json,README.md}` | — | 0.75д |
+| TASK-203 | Канонический backend/frontend/E2E baseline на одном SHA; failed/skip/runtime evidence не теряется | devops-engineer | qa-auto-ver | `.planning/audits/test-rebase/baseline/**`, `.planning/COVERAGE.md` | TASK-202 | 1д |
+| TASK-204 | Утверждён taxonomy, parity, Go/frontend coverage и hook-consumer contract | arch | arch-ver | `.planning/decisions/ADR-TEST-ARCHITECTURE-REBASE-2026.md`, `.planning/audits/test-rebase/schema.json` | TASK-202, TASK-203 | 0.5д |
+
+## Волны
+
+- Wave 1: TASK-202.
+- Wave 2: TASK-203.
+- Wave 3: TASK-204 и независимая проверка; только после PASS разблокируются 129–141.
+
+## Риски
+
+| Риск | Mitigation |
+|---|---|
+| Docker/Python недоступны | Сохранить точный blocker; повторить на чистом/CI runner, не продолжать migration |
+| Coverage числа несравнимы | Один command+environment contract; исторические 83.0/81.9/80.2 только context |
+| Inventory теряет source-guard/skip/hook | Полный путь, checksum, test count, skip и consumer fields обязательны schema gate |
+
+## Verification
+
+- `qa-auto-ver`: schema validation, recount и `unmapped = 0`.
+- `be-ver`: воспроизводимость Go command/profile и hook counts.
+- `team-lead`: PASS или явный BLOCKED; частичный baseline не принимается.

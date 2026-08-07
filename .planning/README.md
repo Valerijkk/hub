@@ -1,7 +1,7 @@
 # Hub — `.planning/` index
 
 > Навигация по planning-артефактам. **Ничего не удаляем** — только раскладка по смыслу и датам.
-> Обновлено: 2026-08-04 — детальный план августа; уровни проверки артефакта
+> Обновлено: 2026-08-07 — live test-rebase 128–141; model routing; protected Opus ownership
 
 ---
 
@@ -33,7 +33,7 @@
 
 | Папка | Что внутри |
 |-------|------------|
-| [`phases/`](phases/) | Phase plans (GSD), 124 фазы + backlog `999-*` |
+| [`phases/`](phases/) | Phase plans (GSD), 129 каталогов с учётом активных 128–141 и исторического `999-*` |
 | [`milestones/`](milestones/) | Архивы завершённых milestone: v1.0 (01–07), v2.0 (08–13), v4 |
 | [`research/`](research/) | Research notes перед планированием фаз |
 | [`debug/`](debug/) | Сессии `gsd-debug` |
@@ -47,10 +47,11 @@
 | Папка | Что внутри |
 |-------|------------|
 | [`backlog/`](backlog/) | **Задачи исполнителям** — [таблица со ссылками](backlog/README.md), формат по мастер-промпту |
-| [`active/august-2026/`](active/august-2026/) | Планы на август: [действующий детальный](active/august-2026/05-AUGUST-DETAILED.md), [пересмотр приоритетов](active/august-2026/04-REVISED-PRIORITIES.md), [микросервисы отложены](active/august-2026/01-MICROSERVICES-SPLIT.md) |
+| [`active/august-2026/`](active/august-2026/) | Активный канон: [test architecture rebase 128–141](active/august-2026/06-TEST-ARCHITECTURE-REBASE.md); [05](active/august-2026/05-AUGUST-DETAILED.md) сохраняет остальные августовские приоритеты, его test-раздел superseded; [микросервисы отложены](active/august-2026/01-MICROSERVICES-SPLIT.md) |
 
-Задачи пишут **team-lead и architect**, по
-[мастер-промпту](../pro-qa-ai/agents/templates/_MASTER-PROMPT-TEMPLATE.md).
+Задачи пишут **team-lead и architect**, по внутреннему шаблону
+[`team-lead.md` §5.2](../.cursor/agents/team-lead.md) /
+[`team-workflow.md` §5.3.1](../.cursor/playbooks/team-workflow.md).
 Исполнитель задачу не сочиняет — выполняет и отчитывается.
 Правила: [`.cursor/rules/57-backlog-tasks.mdc`](../.cursor/rules/57-backlog-tasks.mdc).
 
@@ -80,13 +81,12 @@
 | [`reference/edge-expansions/`](reference/edge-expansions/) | Edge/corner-кейсы по доменам — источник TC и материал для Swagger |
 | [`reference/seeds/`](reference/seeds/) | Отложенные идеи (SEED-001 rejected, SEED-002 active) |
 
-### Слой качества тестов (вне `.planning/`, связано)
+### Внешняя QA-AI зона (вне `.planning/`)
 
-AI-слой для тестовых фреймворков живёт в [`pro-qa-ai/`](../pro-qa-ai/TOUCHSTONE.md).
-Planning хранит историю решений по нему (`archive/july-2026/ai-expansion/`).
-
-Граница по **объекту работы**: `.cursor/` + `.planning/` — про продукт Hub,
-`pro-qa-ai/` — про тестовый фреймворк как таковой.
+`pro-qa-ai/**` — личный toolkit founder, эксклюзивный исполнитель Claude Code
+Opus 5. Внутренние агенты Hub папку не сканируют и не меняют; planning хранит
+только исторические решения (`archive/july-2026/ai-expansion/`). Граница:
+[`.cursor/rules/70-pro-qa-ai.mdc`](../.cursor/rules/70-pro-qa-ai.mdc).
 
 ### Операционное
 
@@ -121,7 +121,7 @@ Planning хранит историю решений по нему (`archive/july
 | Gray zones locked | [`decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md`](decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md) |
 | FA-06 / секреты | [`ops/production/PG-03-SECRET-ROTATION.md`](ops/production/PG-03-SECRET-ROTATION.md) |
 | Индекс июля | [`archive/july-2026/INDEX-JULY-2026.md`](archive/july-2026/INDEX-JULY-2026.md) |
-| AI-слой для тестового фреймворка | [`../pro-qa-ai/TOUCHSTONE.md`](../pro-qa-ai/TOUCHSTONE.md) |
+| Handoff из внешней QA-AI зоны | Только явно переданный founder артефакт; правило `.cursor/rules/70-pro-qa-ai.mdc` |
 | Порядок фаз и ворота между ними | [`../.cursor/playbooks/phase-loop.md`](../.cursor/playbooks/phase-loop.md) |
 | Уровни проверки артефакта | [`VERIFICATION-LEVELS.md`](VERIFICATION-LEVELS.md) |
 | Что готово к выносу в продукт | [`EXTRACTION-CANDIDATES.md`](EXTRACTION-CANDIDATES.md) |

@@ -1,52 +1,47 @@
-# Phase 133 — Frontend units colocated (`src/`)
+# PLAN: Phase 133 — backend security и platform waves
 
-> Целевая раскладка и недельный порядок —
-> [`active/august-2026/05-AUGUST-DETAILED.md`](../../active/august-2026/05-AUGUST-DETAILED.md).
-> Юниты живут рядом с кодом, всё остальное — в корневой `testframework/`
-> (решение владельца 2026-07-30).
+**Статус:** PLANNED · **Оценка:** 2–3 дня
 
+Канон: [`06-TEST-ARCHITECTURE-REBASE.md`](../../active/august-2026/06-TEST-ARCHITECTURE-REBASE.md).
 
-**Status:** PLANNED  
-**Migration stage:** Э4  
-**Estimate:** 5–8 person-days  
-**Branch (suggested):** `feat/qa/tf-frontend-units-colocated`
+## Цель (goal)
 
-## Goal
-
-Перенести Vitest-юниты из `testframework/stages/unit/frontend-test/domains/**`
-в `frontend/src/<module>/**/*.test.ts(x)` (рядом с кодом). Сейчас юнитов рядом
-с кодом **0** — завести конвенцию и перенос по доменам.
+Перенести Go-native security/platform tests в `backend/tests/**`, а API/
+integration candidates оставить исполняемыми в legacy до Python parity.
 
 ## Depends on
 
-- **128** tf-python-scaffold (scaffold + Vitest tooling conventions) — soft-hard: начинать после каркаса `testframework/` и решения по colocated frontend layout.
-- Нет hard-dep на **132** (можно параллелить после 128).
-- Soft: стабильный frontend test script / link-testframework пока старые пути живы.
-
-## Blocks (machine-readable)
-
-- **BLOCKS:** Microservices split **Э3** (`hub-shell` + Module Federation / first front module) — см. [`.planning/active/august-2026/00-AUGUST-PLAN.md`](../../active/august-2026/00-AUGUST-PLAN.md) «Жёсткая зависимость» и [`01-MICROSERVICES-SPLIT.md`](../../active/august-2026/01-MICROSERVICES-SPLIT.md).
-- Причина: `frontend/src/**/*.test.ts(x)` сейчас **0**; резать SPA без colocated unit-тестов = регрессии без сигнала.
-## Deliverables
-
-- [ ] Конвенция `__tests__/` vs `*.test.tsx` рядом с файлом (зафиксировать в PLAN/README)
-- [ ] Перенос доменов: auth, admin, ai, tracker, v4, …
-- [ ] `npm run test:run` green без зависимости от `testframework/stages/unit`
-- [ ] Обновить docs (`test_plan` / TESTING) при cutover
-
-## Out of scope
-
-- E2E
-- Удаление root `testframework/` (136)
+- Phase 132 PASS (native runner/support и auth pilot).
 
 ## Success criteria
 
-- [ ] Vitest 99/99 (или актуальный счёт) из `frontend/src`
-- [ ] `testframework/stages/unit/frontend-test` опустошён
+- [ ] Auth remainder, rbac, audit, ws, calls, platform, apigateway, dev, ent и
+  status residual имеют accepted disposition.
+- [ ] Go-native replacements green с race и frozen coverage method.
+- [ ] Python candidates не удалены и связаны с Phase 136 inventory rows.
+- [ ] Hook removal отсутствует без `consumer = 0` + verifier evidence.
 
-## Risks
+## Задачи (атомарные)
 
-| Risk | Mitigation |
-|------|------------|
-| Shared `render.tsx` helpers | Перенести в `frontend/src/test-utils/` |
-| Path imports break | Codemod + tsc |
+| Task ID | Outcome | Owner | Verifier | Files | Depends | Estimate |
+|---|---|---|---|---|---|---:|
+| TASK-210 | Auth remainder + rbac/audit/ws/calls Go-native migration и Python-candidate links | be1 | be-ver | `backend/tests/{auth,rbac,audit,ws,calls}/**`, `.planning/audits/test-rebase/inventory.json`, `.planning/evidence/test-rebase/133/security/**` | Phase 132 | 1–1.5д |
+| TASK-211 | Platform/apigateway/dev/ent/status migration с nested mapping и DB/source-guard classification | be2 | be-ver | `backend/tests/{platform,apigateway,dev,ent,status}/**`, `.planning/audits/test-rebase/hooks.json`, `.planning/evidence/test-rebase/133/platform/**` | Phase 132 | 1–1.5д |
+
+## Волны
+
+- Wave 1: TASK-210 и TASK-211 параллельно по непересекающимся доменам.
+- Wave 2: combined legacy/native regression и coverage reconciliation.
+
+## Риски
+
+| Риск | Mitigation |
+|---|---|
+| Security test пропущен из-за service skip | Security/release scope fail-closed; expected skip allowlist |
+| Ent/SQLite принят за real DB integration | Engine-sensitive rows → Phase 136, исходник остаётся live |
+| Calls/WS timing flake | Event/polling evidence; не переносить bare sleeps как норму |
+
+## Verification
+
+- `be-ver`: domain race, coverage, counts, source guards и hooks.
+- `security-auditor`: auth/rbac/audit/ws critical negative paths не потеряны.

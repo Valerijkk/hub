@@ -1,7 +1,10 @@
 # Hub — Стратегия тестового фреймворка
 
-> **Статус:** принятая стратегия (решение пользователя 2026-07-03, эпик DOCS-EXCELLENCE / DOC-04).
-> **Реализация целевого состояния:** фаза **TF-PY** (`.planning/archive/july-2026/ROADMAP-FINAL-2026-07-03.md`), Depends on: микросервисный split Track P M2–M4.
+> **Статус:** принятая стратегия; implementation rebase начат 2026-08-07.
+> **Реализация целевого состояния:** фазы **128–141**,
+> [канон](../.planning/active/august-2026/06-TEST-ARCHITECTURE-REBASE.md).
+> Микросервисный split больше не является prerequisite: сначала тестовый
+> фундамент и evidence-based re-audit.
 > **Связанные документы:** `.cursor/playbooks/testing.md` (рабочие практики), `docs/test_plan.md` (тест-план), `docs/TESTING.md` (TC-матрица), `testframework/PIPELINE.md` (карта CI), `.planning/COVERAGE.md` (coverage + тайминги).
 
 ---
@@ -55,7 +58,7 @@ US/AC (vision_and_scope) / FR (system_specification)
 
 ---
 
-## 2. Текущее состояние (до фазы TF-PY)
+## 2. Текущее состояние (до cutover Phase 141)
 
 ### 2.1. Слои и стек
 
@@ -69,15 +72,16 @@ US/AC (vision_and_scope) / FR (system_specification)
 
 Go-тесты физически живут в `backend/testframework/` (не в `testframework/stages/`), потому что Go запрещает импорт `backend/internal/*` из другого модуля; логически это job `backend-test`.
 
-### 2.2. Метрики (снимок 2026-07)
+### 2.2. Метрики (inventory 2026-08-07)
 
 | Метрика | Значение |
 |---------|----------|
-| Backend test files | **812** `_test.go` (0 в `internal/`; measured 2026-07-29; was 515 → 580 → 652 → 805) |
-| Backend `export_hooks.go` | **39** (`//go:build hubtest`; measured 2026-07-29) |
-| Frontend Vitest | **179** files (`stages/unit/frontend-test/`; measured 2026-07-29; 61 `.ts` + 118 `.tsx`) |
-| Playwright E2E | 20 spec (smoke: 3) |
-| Statement coverage `internal/` | **83.0%** (2026-06-22 Docker baseline) при gate ≥82% |
+| Backend test files | **828** `_test.go` / **3,663** declared tests (0 в target `backend/tests/`) |
+| Backend `export_hooks.go` | **39** canonical + 4 fragments; deletion only TASK-219 |
+| Frontend Vitest | **180** files / **517** literal cases (`stages/unit/frontend-test/`) |
+| Playwright E2E | 20 specs / 53 declared cases (smoke: 3 specs) |
+| Target Python tests | **0** до Phase 129 |
+| Statement coverage `internal/` | **UNKNOWN pending TASK-203**; gate ≥82% не ослаблен |
 | Security-пакеты (auth/ws/rbac/audit/calls + platform) | 6/6 ≥80% |
 
 ### 2.3. Команды прогона (локально)
@@ -109,7 +113,7 @@ cd frontend && npm run test:e2e         # 20 spec, нужен backend
 
 ---
 
-## 3. Целевое состояние (решение 2026-07-03, фаза TF-PY)
+## 3. Целевое состояние (уточнено rebase 2026-08-07)
 
 ### 3.1. Матрица слоёв
 
@@ -117,9 +121,9 @@ cd frontend && npm run test:e2e         # 20 spec, нужен backend
 
 | Слой | Язык/стек | Где живёт | Кто пишет |
 |------|-----------|-----------|-----------|
-| Unit backend | **Go** (как сейчас) — вместе с кодом | `backend/testframework/{domain}/` (или рядом с сервисом после выноса) | be1/be2 |
-| Unit frontend | **TypeScript** (Vitest + RTL, как сейчас) | `testframework/stages/unit/frontend-test/` | fe1/fe2 |
-| Integration / API / contract / smoke / regression / E2E | **Python**: pytest + allure-pytest + httpx (API) + playwright-python (E2E) + pytest-xdist (параллелизм) | `testframework/` — по доменам/сервисам | qa-auto1/qa-auto2 **по верифицированным TC** |
+| Unit/component backend | **Go** | `backend/tests/{domain}/` | be1/be2 |
+| Unit/component frontend | **TypeScript** (Vitest + RTL) | `frontend/tests/{module}/` | fe1/fe2 |
+| Integration / API / contract / smoke / regression / E2E | **Python**: pytest + allure-pytest + httpx (API) + playwright-python (E2E) + pytest-xdist (параллелизм) | `testframework/python/` — по доменам/сервисам | qa-auto1/qa-auto2 **по верифицированным TC** |
 | Нагрузочные | **Python: Locust** (те же фикстуры/фабрики, что pytest-слой) | `testframework/load/` | qa-auto1/qa-auto2 |
 
 Обоснование выбора Python: стандарт индустрии QA-автоматизации (нанимаемость ручников и автоматизаторов), allure-pytest — самая зрелая Allure-интеграция (стыкуется с Hub TMS напрямую), отделение QA-слоя от языков продакшена соответствует модели «юниты пишут разработчики, остальное — QA-конвейер».
