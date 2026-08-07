@@ -165,7 +165,7 @@ export function PlanningPoker({
 						{FIBONACCI_VALUES.map((value) => (
 							<label
 								key={value}
-								className={`flex h-16 w-12 items-center justify-center rounded-[var(--r3)] border transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-250 hover:border-b2 hover:-translate-y-1 ${
+								className={`flex h-16 w-12 items-center justify-center rounded-[var(--r3)] border transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-250 hover:border-b2 hover:-translate-y-1 focus-within:outline-none focus-within:ring-2 focus-within:ring-[var(--blue)] focus-within:ring-offset-2 focus-within:ring-offset-[var(--base)] ${
 									selectedValue === value
 										? "border-blue shadow-[0_0_0_3px_rgba(91,156,245,0.1),_0_0_16px_rgba(91,156,245,0.06)] bg-blue/10"
 										: "bg-gradient-to-b from-card to-raised border-b1 hover:shadow-[var(--sh2)]"

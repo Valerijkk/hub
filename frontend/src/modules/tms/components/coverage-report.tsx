@@ -42,8 +42,15 @@ function IssueCoverageRow({ issue }: { issue: IssueCoverage }) {
 
 	return (
 		<>
-			<tr className="border-b transition-colors hover:bg-raised/50">
+			<tr className="relative cursor-pointer border-b transition-colors hover:bg-raised/50">
 				<td className="px-4 py-3">
+					<button
+						type="button"
+						aria-expanded={expanded}
+						aria-label={`${expanded ? "Свернуть" : "Развернуть"} покрытие ${issue.issue_key}`}
+						className="absolute inset-0 z-10 w-full cursor-pointer rounded-none bg-transparent p-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--blue)]"
+						onClick={toggle}
+					/>
 					<span className="font-medium text-primary">{issue.issue_key}</span>
 				</td>
 				<td className="px-4 py-3 text-sm">{issue.issue_title}</td>
@@ -67,16 +74,9 @@ function IssueCoverageRow({ issue }: { issue: IssueCoverage }) {
 					</div>
 				</td>
 				<td className="px-4 py-3 text-right text-xs">
-					<button
-						type="button"
-						tabIndex={0}
-						aria-expanded={expanded}
-						aria-label={`${expanded ? "Свернуть" : "Развернуть"} покрытие ${issue.issue_key}`}
-						className="rounded px-2 py-1 text-t2 hover:text-t1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--blue)]"
-						onClick={toggle}
-					>
+					<span className="text-t2">
 						{expanded ? "Свернуть" : "Развернуть"}
-					</button>
+					</span>
 				</td>
 			</tr>
 			{expanded &&
