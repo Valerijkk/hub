@@ -3,7 +3,6 @@ import { useState } from "react";
 import { getCoverageReport, type IssueCoverage } from "@/api/tms";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { activateOnEnterOrSpace } from "@/lib/keyboard";
 import { cn } from "@/lib/utils";
 
 /** Цвета статусов результатов для покрытия. */
@@ -43,15 +42,7 @@ function IssueCoverageRow({ issue }: { issue: IssueCoverage }) {
 
 	return (
 		<>
-			<tr
-				role="button"
-				tabIndex={0}
-				aria-expanded={expanded}
-				aria-label={`${expanded ? "Свернуть" : "Развернуть"} покрытие ${issue.issue_key}`}
-				className="cursor-pointer border-b transition-colors hover:bg-raised/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--blue)]"
-				onClick={toggle}
-				onKeyDown={activateOnEnterOrSpace(toggle)}
-			>
+			<tr className="border-b transition-colors hover:bg-raised/50">
 				<td className="px-4 py-3">
 					<span className="font-medium text-primary">{issue.issue_key}</span>
 				</td>
@@ -75,8 +66,17 @@ function IssueCoverageRow({ issue }: { issue: IssueCoverage }) {
 						<span className="text-xs text-t2">{passRate}%</span>
 					</div>
 				</td>
-				<td className="px-4 py-3 text-right text-xs text-t2">
-					{expanded ? "Свернуть" : "Развернуть"}
+				<td className="px-4 py-3 text-right text-xs">
+					<button
+						type="button"
+						tabIndex={0}
+						aria-expanded={expanded}
+						aria-label={`${expanded ? "Свернуть" : "Развернуть"} покрытие ${issue.issue_key}`}
+						className="rounded px-2 py-1 text-t2 hover:text-t1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--blue)]"
+						onClick={toggle}
+					>
+						{expanded ? "Свернуть" : "Развернуть"}
+					</button>
 				</td>
 			</tr>
 			{expanded &&

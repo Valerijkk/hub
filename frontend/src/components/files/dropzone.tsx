@@ -27,9 +27,8 @@ export function Dropzone({ projectId, entityType, entityId }: DropzoneProps) {
 	});
 
 	return (
-		<div
+		<section
 			{...dropZoneProps}
-			role="region"
 			aria-label="Зона загрузки файлов"
 			aria-busy={isUploading}
 			className={cn(
@@ -76,6 +75,6 @@ export function Dropzone({ projectId, entityType, entityId }: DropzoneProps) {
 					/>
 				</div>
 			)}
-		</div>
+		</section>
 	);
 }

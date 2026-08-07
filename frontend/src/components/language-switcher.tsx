@@ -30,8 +30,7 @@ export function LanguageSwitcher({
 
 	if (compact) {
 		return (
-			<div
-				role="group"
+			<fieldset
 				aria-label="Язык"
 				className={cn(
 					"flex items-center gap-0.5 rounded-md border p-0.5",
@@ -66,7 +65,7 @@ export function LanguageSwitcher({
 				>
 					EN
 				</button>
-			</div>
+			</fieldset>
 		);
 	}
 

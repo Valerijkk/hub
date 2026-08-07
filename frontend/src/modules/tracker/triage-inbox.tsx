@@ -49,11 +49,15 @@ export function TriageInbox({ projectId }: TriageInboxProps) {
 	const presetBootstrapFailed = useRef(false);
 
 	useEffect(() => {
+		// Смена проекта должна сбрасывать bootstrap-флаги, даже если refs стабильны.
+		void projectId;
 		presetBootstrapDone.current = false;
 		presetBootstrapFailed.current = false;
 	}, [projectId]);
 
 	useEffect(() => {
+		// mutationFn замыкает projectId; новый проект должен повторить bootstrap.
+		void projectId;
 		if (
 			!presetQuery.data ||
 			createPreset.isPending ||

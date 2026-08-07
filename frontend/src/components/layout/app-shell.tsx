@@ -68,6 +68,8 @@ export function AppShell() {
 
 	// Закрыть mobile overlay при смене route / Escape (W9-A2-008).
 	useEffect(() => {
+		// pathname — намеренный сигнал эффекта: закрываем overlay после навигации.
+		void pathname;
 		setMobileMenuOpen(false);
 	}, [pathname]);
 
