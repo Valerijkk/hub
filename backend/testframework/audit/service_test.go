@@ -167,6 +167,9 @@ func (s *gdprStubRepo) DeleteUserTeamMemberships(context.Context, uuid.UUID) (in
 }
 func (s *gdprStubRepo) ScrubUserAuditPII(context.Context, uuid.UUID) (int, error) { return 0, nil }
 func (s *gdprStubRepo) HardDeleteUser(context.Context, uuid.UUID) error { return nil }
+func (s *gdprStubRepo) ListAdminUsers(context.Context) ([]*ent.User, error) {
+	return nil, nil
+}
 func (s *gdprStubRepo) IsSystemAdmin(context.Context, uuid.UUID) (bool, error) {
 	return false, nil
 }

@@ -110,6 +110,31 @@ func (s *AuditService) IsSystemAdmin(ctx context.Context, userID uuid.UUID) (boo
 	return s.repo.IsSystemAdmin(ctx, userID)
 }
 
+// ListAdminUsers возвращает безопасный список пользователей для admin-панели.
+func (s *AuditService) ListAdminUsers(ctx context.Context) ([]AdminUserResponse, error) {
+	return observability.Timed(ctx, "audit.ListAdminUsers", func(ctx context.Context) ([]AdminUserResponse, error) {
+		users, err := s.repo.ListAdminUsers(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		result := make([]AdminUserResponse, 0, len(users))
+		for _, item := range users {
+			result = append(result, AdminUserResponse{
+				ID:          item.ID.String(),
+				Email:       item.Email,
+				Name:        item.Name,
+				DisplayName: item.DisplayName,
+				SystemRole:  string(item.SystemRole),
+				Status:      string(item.Status),
+				CreatedAt:   item.CreatedAt,
+			})
+		}
+
+		return result, nil
+	})
+}
+
 // ---- Журнал аудита ----
 
 // ListAuditLogs возвращает пагинированный список записей аудита с фильтрами (только для администратора).

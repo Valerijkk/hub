@@ -750,6 +750,7 @@ Create API key: `name` ≤255 рун; иначе **400** (не 500).
 
 | Метод | Путь | Описание |
 |---|---|---|
+| GET | `/admin/users` | Admin-only список пользователей. Ответ — массив объектов только с полями `id`, `email`, `name`, `display_name`, `system_role`, `status`, `created_at`; auth-секреты и поля вне фиксированного allowlist не возвращаются |
 | POST | `/admin/users/:id/deactivate` | Деактивировать пользователя |
 | POST | `/admin/users/:id/ban` | Заблокировать пользователя (`{"reason": "..."}`) |
 | POST | `/admin/users/:id/reassign` | Переназначить задачи пользователя |

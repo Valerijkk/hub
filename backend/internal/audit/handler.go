@@ -33,10 +33,32 @@ func (h *Handler) RegisterRoutesSimple(api fiber.Router, authMw fiber.Handler) {
 	admin.Put("/limits/:key", h.UpdateLimit)
 	admin.Get("/trash", h.ListTrash)
 	admin.Post("/trash/:type/:id/restore", h.RestoreItem)
+	admin.Get("/users", h.ListAdminUsers)
 	admin.Post("/users/:id/deactivate", h.DeactivateUser)
 	admin.Post("/users/:id/ban", h.BanUser)
 	admin.Post("/users/:id/reassign", h.ReassignTasks)
 	admin.Delete("/users/:id/gdpr", h.DeleteUserGDPR)
+}
+
+// ListAdminUsers godoc
+// @Summary Список пользователей для панели администратора
+// @Description Возвращает только безопасные поля профиля, необходимые текущему frontend-контракту.
+// @Tags Аудит
+// @Produce json
+// @Success 200 {array} AdminUserResponse "Пользователи"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Только для администратора"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/admin/users [get]
+func (h *Handler) ListAdminUsers(c fiber.Ctx) error {
+	users, err := h.service.ListAdminUsers(c.Context())
+	if err != nil {
+		slog.Error("ListAdminUsers failed", "error", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "не удалось загрузить пользователей")
+	}
+
+	return c.JSON(users)
 }
 
 // requireAdmin — middleware, проверяющий что пользователь является администратором.

@@ -36,6 +36,8 @@ type mockAuditRepo struct {
 	restoreCalls          []string
 }
 
+func (m *mockAuditRepo) ListAdminUsers(context.Context) ([]*ent.User, error) { return nil, nil }
+
 type createAuditLogCall struct {
 	action, entityType, entityID string
 	userID                       *uuid.UUID

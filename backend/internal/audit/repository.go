@@ -94,6 +94,7 @@ type Repository interface {
 	PurgeExpiredHubBases(ctx context.Context, cutoff time.Time) (int, error)
 
 	// Администрирование пользователей
+	ListAdminUsers(ctx context.Context) ([]*ent.User, error)
 	DeactivateUser(ctx context.Context, userID uuid.UUID) error
 	DeleteUserSessions(ctx context.Context, userID uuid.UUID) (int, error)
 	ReassignAssignedIssues(ctx context.Context, fromUserID, toUserID uuid.UUID) (int, error)
@@ -148,6 +149,22 @@ func (r *entRepository) WithTx(ctx context.Context, fn func(txRepo Repository) e
 		return fmt.Errorf("commit audit tx: %w", err)
 	}
 	return nil
+}
+
+// ListAdminUsers возвращает только поля, необходимые панели администратора.
+// Select не позволяет случайно протащить в HTTP-слой дополнительные поля профиля.
+func (r *entRepository) ListAdminUsers(ctx context.Context) ([]*ent.User, error) {
+	return r.client.User.Query().
+		Select(
+			user.FieldID,
+			user.FieldEmail,
+			user.FieldName,
+			user.FieldDisplayName,
+			user.FieldSystemRole,
+			user.FieldStatus,
+			user.FieldCreatedAt,
+		).
+		All(ctx)
 }
 
 // CreateAuditLog записывает новую запись в журнал аудита.

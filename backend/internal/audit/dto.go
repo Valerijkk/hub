@@ -6,6 +6,18 @@ import (
 	"github.com/google/uuid"
 )
 
+// AdminUserResponse — безопасное представление пользователя для панели администратора.
+// Auth-секреты и любые поля вне фиксированного allowlist намеренно не включены.
+type AdminUserResponse struct {
+	ID          string    `json:"id"`
+	Email       string    `json:"email"`
+	Name        string    `json:"name"`
+	DisplayName string    `json:"display_name"`
+	SystemRole  string    `json:"system_role"`
+	Status      string    `json:"status"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
 // AuditLogResponse — ответ с записью журнала аудита.
 type AuditLogResponse struct {
 	ID         string                 `json:"id"`
