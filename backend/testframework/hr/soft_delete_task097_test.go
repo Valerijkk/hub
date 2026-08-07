@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/enttest"
@@ -56,8 +56,8 @@ func TestEntRepository_LeaveSoftDelete_A2W8_3_001(t *testing.T) {
 
 	_, thisFile, _, ok := runtime.Caller(0)
 	require.True(t, ok)
-	root := filepath.Clean(filepath.Join(filepath.Dir(thisFile), "..", "..", ".."))
-	src, err := os.ReadFile(filepath.Join(root, "backend", "internal", "hr", "repository.go"))
+	backendRoot := filepath.Clean(filepath.Join(filepath.Dir(thisFile), "..", ".."))
+	src, err := os.ReadFile(filepath.Join(backendRoot, "internal", "hr", "repository.go"))
 	require.NoError(t, err)
 	assert.Contains(t, string(src), "SetDeletedAt")
 	assert.Contains(t, string(src), "DeletedAtIsNil")

@@ -36,8 +36,8 @@ func TestEntRepository_IntegrationSoftDelete_W7_A3_010(t *testing.T) {
 
 	_, thisFile, _, ok := runtime.Caller(0)
 	require.True(t, ok)
-	root := filepath.Clean(filepath.Join(filepath.Dir(thisFile), "..", "..", ".."))
-	src, err := os.ReadFile(filepath.Join(root, "backend", "internal", "gitlab", "repository.go"))
+	backendRoot := filepath.Clean(filepath.Join(filepath.Dir(thisFile), "..", ".."))
+	src, err := os.ReadFile(filepath.Join(backendRoot, "internal", "gitlab", "repository.go"))
 	require.NoError(t, err)
 	assert.Contains(t, string(src), "SetDeletedAt")
 	assert.NotContains(t, string(src), "GitLabIntegration.Delete()")

@@ -42,8 +42,8 @@ func TestEntRepository_SprintSoftDelete_A2W8_4_004(t *testing.T) {
 
 	_, thisFile, _, ok := runtime.Caller(0)
 	require.True(t, ok)
-	root := filepath.Clean(filepath.Join(filepath.Dir(thisFile), "..", "..", ".."))
-	src, err := os.ReadFile(filepath.Join(root, "backend", "internal", "sprint", "repository.go"))
+	backendRoot := filepath.Clean(filepath.Join(filepath.Dir(thisFile), "..", ".."))
+	src, err := os.ReadFile(filepath.Join(backendRoot, "internal", "sprint", "repository.go"))
 	require.NoError(t, err)
 	assert.Contains(t, string(src), "SetDeletedAt")
 	assert.Contains(t, string(src), "DeletedAtIsNil")
