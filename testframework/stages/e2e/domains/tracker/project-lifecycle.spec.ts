@@ -56,7 +56,7 @@ test.describe("Project lifecycle (FB-07)", () => {
 		await expect(page).toHaveURL(/\/projects/, { timeout: 15_000 });
 
 		await page.goto("/admin/trash");
-		await page.getByRole("button", { name: "Проекты" }).click();
+		await page.getByRole("tab", { name: "Проекты" }).click();
 		const trashRow = page.getByRole("row").filter({ hasText: projectName });
 		await expect(trashRow).toBeVisible({ timeout: 15_000 });
 

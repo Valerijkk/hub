@@ -27,7 +27,7 @@ test.describe("Admin operation metrics", () => {
 		await page.goto("/admin/dashboard");
 
 		await expect(page).toHaveURL(/\/admin\/dashboard/);
-		await page.getByRole("button", { name: "Метрики" }).click();
+		await page.getByRole("tab", { name: "Метрики" }).click();
 
 		await expect(page.getByText("Метрики операций")).toBeVisible();
 		await expect(

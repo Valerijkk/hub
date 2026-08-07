@@ -28,13 +28,13 @@ test.describe("Admin AI Provider Hub", () => {
 		await expect(page.locator("#main-content")).toBeVisible({
 			timeout: 30_000,
 		});
-		await expect(page.getByRole("button", { name: "Дашборд" })).toBeVisible({
+		await expect(page.getByRole("tab", { name: "Дашборд", selected: true })).toBeVisible({
 			timeout: 30_000,
 		});
-		await expect(page.getByRole("button", { name: "AI" })).toBeVisible({
+		await expect(page.getByRole("tab", { name: "AI" })).toBeVisible({
 			timeout: 15_000,
 		});
-		await page.getByRole("button", { name: "AI" }).click();
+		await page.getByRole("tab", { name: "AI" }).click();
 
 		await expect(page.getByRole("heading", { name: "AI Provider Hub" })).toBeVisible({
 			timeout: 15_000,
