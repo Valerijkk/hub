@@ -10,6 +10,7 @@ import {
 	updateProject,
 } from "@/api/projects";
 import { Dropzone } from "@/components/files/dropzone";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -37,7 +38,6 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import i18n from "@/i18n";
-import { QueryErrorAlert } from "@/components/query-state-view";
 import { toastApiError } from "@/lib/format-api-error";
 
 const NAME_MAX = 100;

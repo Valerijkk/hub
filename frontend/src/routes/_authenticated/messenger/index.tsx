@@ -3,6 +3,7 @@ import { Menu, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useChannelDrawer } from "@/components/messenger/channel-drawer-context";
 import { CreateChannelDialogContent } from "@/components/messenger/create-channel-dialog";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import {
 	Dialog,
 	DialogContent,
@@ -10,7 +11,6 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import { QueryErrorAlert } from "@/components/query-state-view";
 import { useChannels } from "@/hooks/use-channels";
 
 /**
