@@ -1246,7 +1246,12 @@ def run_check() -> int:
         for error in schema_contract_errors(on_disk, schema, root_schema=schema)
     ]
     errors.extend(validate_inventory(on_disk, live_source_paths=live_test_paths()))
-    expected_bytes = render(build_inventory())
+    expected = build_inventory()
+    # `revision` is provenance for the source snapshot, not a cachebuster for
+    # every later planning-only commit. validate_inventory already proves that
+    # it is an ancestor; compare all live inputs against that recorded value.
+    expected["revision"] = on_disk.get("revision")
+    expected_bytes = render(expected)
     actual_bytes = OUTPUT_PATH.read_bytes()
     if actual_bytes != expected_bytes:
         errors.append("generated ledger differs from current allow-listed inputs")
