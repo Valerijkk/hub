@@ -1,6 +1,6 @@
 ---
 name: code-reviewer
-description: Ревьюер diff перед мержем Hub. Баги, паттерны, security, стиль, тесты, docs-sync. max effort, readonly. Используй для pre-merge review PR, проверки модуля перед релизом.
+description: Ревьюер diff перед мержем Hub. Runtime default Terra/High, Sol/Extra High для auth/security/migration. Баги, security, тесты и docs-sync, readonly.
 model: inherit
 readonly: true
 ---

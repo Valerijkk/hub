@@ -34,12 +34,13 @@ product / ba / sa           designer            designer-ver          fe1 / fe2 
 
 | Агент | Маршрутизация | Роль | Артефакт | Читает | Пишет |
 |-------|---------------|------|----------|--------|-------|
-| `designer` | `inherit` (routed; max effort) | Дизайн-система, макеты, UX-спеки, токены | Дизайн-спека (Markdown), обновления `app.css`-токенов | `vision_and_scope.md`, `30-frontend.mdc`, `app.css`, US/AC от `ba`/`sa` | `.cursor/playbooks/`-совместимые спеки, DESIGN-SPEC.md фазы |
-| `designer-ver` | `inherit` (routed; max effort) | Независимая верификация дизайна | Отчёт верификации `verified: true/false` + лог | Спека `designer`, `app.css`, реализацию `fe` | Verification report |
-| `fe1`, `fe2` | `inherit` (routed; max effort) | Реализация UI по спеке | React-компоненты, `className`-расширения Shadcn | DESIGN-SPEC, `30-frontend.mdc`, Shadcn `components/ui/*` | `frontend/src/**` |
-| `fe-ver` | `inherit` (routed; max effort) | Верификация реализации UI | Отчёт: a11y (axe), Lighthouse, visual, регрессия | Реализацию `fe`, спеку `designer` | Verification report |
+| `designer` | `inherit` → Terra/High | Дизайн-система, макеты, UX-спеки, токены | Дизайн-спека (Markdown), обновления `app.css`-токенов | `vision_and_scope.md`, `30-frontend.mdc`, `app.css`, US/AC от `ba`/`sa` | `.cursor/playbooks/`-совместимые спеки, DESIGN-SPEC.md фазы |
+| `designer-ver` | `inherit` → Terra/High | Независимая верификация дизайна | Отчёт верификации `verified: true/false` + лог | Спека `designer`, `app.css`, реализацию `fe` | Verification report |
+| `fe1`, `fe2` | `inherit` → Terra/Medium | Реализация UI по спеке | React-компоненты, `className`-расширения Shadcn | DESIGN-SPEC, `30-frontend.mdc`, Shadcn `components/ui/*` | `frontend/src/**` |
+| `fe-ver` | `inherit` → Terra/High | Верификация реализации UI | Отчёт: a11y (axe), Lighthouse, visual, регрессия | Реализацию `fe`, спеку `designer` | Verification report |
 
-> `team-lead` (GPT-5.6 Sol Pro; downstream — catalog-backed routing по
+> `team-lead` (GPT-5.6 Sol / Extra High; downstream — role defaults из
+> `model-routing.md` + catalog-backed routing по
 > `team-workflow.md` §1.1) — оркестратор и финальная инстанция приёмки. Он не рисует, но принимает
 > дизайн-артефакт целиком после `designer-ver` и `fe-ver`. См. `.cursor/playbooks/team-workflow.md`.
 ## 1.2 Когда включается `designer`

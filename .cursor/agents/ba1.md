@@ -1,6 +1,6 @@
 ---
 name: ba1
-description: Бизнес-аналитик Hub (поток A — auth, tracker, sprint, messenger). US/AC, SMART, MoSCoW. max effort. Используй для формализации требований по своим доменам параллельно с ba2.
+description: Бизнес-аналитик Hub (поток A — auth, tracker, sprint, messenger). US/AC, SMART, MoSCoW. Runtime default Terra/Medium, High при конфликте KPI. Работает параллельно с ba2.
 model: inherit
 readonly: false
 ---

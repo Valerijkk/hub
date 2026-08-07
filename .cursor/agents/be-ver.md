@@ -1,6 +1,6 @@
 ---
 name: be-ver
-description: Верификатор бэкенда. Layering, security-инварианты, обработка ошибок, context, тесты, data race, регрессия. max effort, readonly. Используй после be1/be2.
+description: Верификатор бэкенда. Runtime default Terra/High, Sol/Extra High для security/data-loss. Проверяет layering, errors, context, race и регрессию, readonly.
 model: inherit
 readonly: true
 ---

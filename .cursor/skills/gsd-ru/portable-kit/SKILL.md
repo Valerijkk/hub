@@ -6,6 +6,11 @@ disable-model-invocation: true
 
 # portable-kit
 
+> **Ownership gate (2026-08-07):** внутренним агентам Hub запрещено запускать
+> этот skill, если scope включает `pro-qa-ai/**`. Эта зона принадлежит Claude
+> Code Opus 5 и управляется founder. Допустим только явный founder handoff
+> конкретного готового артефакта; иначе stop.
+
 Упаковка и перенос AI-операционного слоя (agents, PE, GSD-RU, playbooks, planning stubs) в **новый корпоративный репозиторий**.
 Исполнитель: **`docs-writer`** / **`team-lead`** / devops по задаче переноса.
 

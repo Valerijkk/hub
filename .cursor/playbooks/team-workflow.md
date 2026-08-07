@@ -26,13 +26,13 @@
 
 ## 1.1 Модельная политика
 
-> **Model policy (ADR-MODELS-GPT56, amended 2026-07-26):** `team-lead` frontmatter = `gpt-5.6-sol` (GPT-5.6 Sol Pro via catalog); все downstream agents = `model: inherit`. Конкретный runtime выбирает orchestrator/launcher по capability/cost/risk/context.
+> **Model policy (ADR-MODELS-GPT56, amended 2026-08-07):** `team-lead` frontmatter = `gpt-5.6-sol`; все downstream agents = `model: inherit`. Конкретный runtime и effort выбираются по обязательной ролевой матрице [`model-routing.md`](model-routing.md), затем уточняются по capability/cost/risk/context.
 
 | Слот | Frontmatter | Runtime | Политика |
 |---|---|---|---|
-| Оркестратор | `gpt-5.6-sol` | **GPT-5.6 Sol Pro** | `team-lead` держит цель, волны, риски и финальную приёмку |
-| Downstream-работа | `inherit` | Любая реально доступная Cursor-модель | `team-lead` выбирает по capability/cost/risk; override только после catalog + logging |
-| Micro | `inherit` | Lowest sufficient coding model | typo, one-file rename, однострочная правка; не security/архитектура |
+| Оркестратор | `gpt-5.6-sol` | **GPT-5.6 Sol / Extra High** | `team-lead` держит цель, волны, риски и финальную приёмку; Ultra только для делимой большой задачи |
+| Downstream-работа | `inherit` | **Terra / Medium–High** по умолчанию | Sol для high-risk, Luna для механики; точный default зависит от роли |
+| Micro | `inherit` | **Luna / Light** | typo, one-file rename, однострочная правка; Spark допустим как interactive preview |
 | Portable agents | `inherit` | Launcher resolves | Role prompts не хардкодят model slug |
 
 **Политика выбора:**
@@ -42,52 +42,53 @@
 - Задача субагенту описывает outcome, constraints, completion bar и evidence. Sampling-параметры не пишутся в prompt, если launcher ими не управляет.
 - `team-lead-opus` — исторический deprecated-профиль; обязательного отдельного escalation slot больше нет.
 - Только `team-lead` запускает волну и принимает фазу целиком. Micro-задачи не превращаются в волну.
+- `pro-qa-ai/**` не входит в scope внутренних волн: это эксклюзивная зона Claude Code Opus 5; только явный founder handoff конкретного артефакта.
 ## 1.2 Полный ростер (32 роли)
 
-> В таблице ниже указана **маршрутизация**, а не жёсткая модель. Конкретный downstream runtime выбирается по §1.1.
+> В таблице ниже указана **маршрутизация**, а не жёсткий frontmatter. Точные model/effort defaults всех ролей — `model-routing.md` §3.
 
 ### Оркестрация и продукт
 
 | Агент | Маршрутизация | Роль | Верификатор |
 |---|---|---|---|
-| `team-lead` | **GPT-5.6 Sol Pro** | Оркестратор волн, финальная приёмка | — (сам финальная инстанция) |
+| `team-lead` | **GPT-5.6 Sol / Extra High** | Оркестратор волн, финальная приёмка | — (сам финальная инстанция) |
 | `team-lead-opus` | deprecated | Исторический профиль эскалации | — |
-| `tech-lead` | router: capability/cost/risk | Декомпозиция на фазы/планы | (ревью `team-lead`) |
-| `product` | router: capability/cost/risk | Приоритеты, scope, MoSCoW | `product-ver` |
-| `codex-micro` | router: lowest sufficient coding model | Супер-мелкие правки | — |
+| `tech-lead` | Sol / High | Декомпозиция на фазы/планы | (ревью `team-lead`) |
+| `product` | Sol / High | Приоритеты, scope, MoSCoW | `product-ver` (Terra / High) |
+| `codex-micro` | Luna / Light | Супер-мелкие правки | — |
 
 ### Аналитика и архитектура
 
 | Роль (исполнители) | Маршрутизация | Артефакт | Верификатор |
 |---|---|---|---|
-| `ba1`, `ba2` | capability/cost/risk | User Stories, AC, `vision_and_scope.md` | `ba-ver` |
-| `sa1`, `sa2` | capability/cost/risk | FR/NFR, ERD, API-контракты, `system_specification.md` | `sa-ver` |
-| `arch` | capability/cost/risk | C4, deployment, стек, паттерны, `architecture.md` | `arch-ver` |
-| `designer` | capability/cost/risk | Дизайн-система, DESIGN-SPEC, токены | `designer-ver` |
+| `ba1`, `ba2` | Terra / Medium | User Stories, AC, `vision_and_scope.md` | `ba-ver` (Terra / High) |
+| `sa1`, `sa2` | Terra / High | FR/NFR, ERD, API-контракты, `system_specification.md` | `sa-ver` (Terra / High) |
+| `arch` | Sol / Extra High | C4, deployment, стек, паттерны, `architecture.md` | `arch-ver` (Terra / Extra High) |
+| `designer` | Terra / High | Дизайн-система, DESIGN-SPEC, токены | `designer-ver` (Terra / High) |
 
 ### Реализация
 
 | Роль (исполнители) | Маршрутизация | Артефакт | Верификатор |
 |---|---|---|---|
-| `be1`, `be2` | capability/cost/risk | Go backend (handler/service/repository, Ent, тесты) | `be-ver` |
-| `fe1`, `fe2` | capability/cost/risk | React/TS UI (компоненты, Shadcn className) | `fe-ver` |
+| `be1`, `be2` | Terra / Medium | Go backend (handler/service/repository, Ent, тесты) | `be-ver` (Terra / High) |
+| `fe1`, `fe2` | Terra / Medium | React/TS UI (компоненты, Shadcn className) | `fe-ver` (Terra / High) |
 
 ### Качество
 
 | Роль | Маршрутизация | Артефакт | Верификатор |
 |---|---|---|---|
-| `qa-manual` | capability/cost/risk | Тест-кейсы (TC), ручная приёмка, test_plan | `qa-manual-ver` |
-| `qa-auto1`, `qa-auto2` | capability/cost/risk | Автотесты (unit/integration/e2e), coverage | `qa-auto-ver` |
+| `qa-manual` | Terra / Medium | Тест-кейсы (TC), ручная приёмка, test_plan | `qa-manual-ver` (Terra / High) |
+| `qa-auto1`, `qa-auto2` | Terra / Medium | Автотесты (unit/integration/e2e), coverage | `qa-auto-ver` (Terra / High) |
 
 ### Support (вне основного цикла)
 
 | Агент | Маршрутизация | Назначение |
 |---|---|---|
-| `devops-engineer` | capability/cost/risk | Docker, CI/CD, K3s, Caddy, compose, деплой |
-| `security-auditor` | capability/cost/risk + independent pass | OWASP, ASVS L2, security-review, secrets |
-| `debugger` | capability/cost/risk | Root cause analysis по traceback/логам |
-| `code-reviewer` | independent model where available | Pre-merge review diff |
-| `docs-writer` | capability/cost/risk | README, wiki, Swagger, phase docs |
+| `devops-engineer` | Terra / High; Sol для prod | Docker, CI/CD, K3s, Caddy, compose, деплой |
+| `security-auditor` | Sol / Extra High | OWASP, ASVS L2, security-review, secrets |
+| `debugger` | Terra / High | Root cause analysis по traceback/логам |
+| `code-reviewer` | Terra / High; Sol для critical | Pre-merge review diff |
+| `docs-writer` | Luna / Medium; Terra для cross-domain | README, wiki, Swagger, phase docs |
 ## 1.3 Принцип «исполнитель + верификатор»
 
 Каждая производящая роль имеет **независимого** верификатора: отдельный запуск/контекст, который не
@@ -100,7 +101,7 @@
 
 ### Чек-лист состава (§1)
 
-- [ ] `team-lead` = GPT-5.6 Sol Pro, оркестратор и финальная приёмка.
+- [ ] `team-lead` = GPT-5.6 Sol / Extra High, оркестратор и финальная приёмка.
 - [ ] Downstream-модели выбраны по capability/cost/risk из реально доступных Cursor runtimes.
 - [ ] Portable agent использует `inherit`, если это поддерживается launcher-ом.
 - [ ] У каждой производящей роли есть персональный верификатор.
@@ -321,7 +322,7 @@ Wave 4 (приёмка):
 # 5. Оркестрация `team-lead`
 ## 5.1 Обязанности
 
-`team-lead` (GPT-5.6 Sol Pro) — дирижёр. Он:
+`team-lead` (GPT-5.6 Sol / Extra High) — дирижёр. Он:
 
 1. Принимает задачу/фазу, загружает контекст (`docs/`, `STATE.md`, `ROADMAP.md`, план `tech-lead`).
 2. Разбивает на волны и делегирует субагентам (см. §4).
@@ -373,7 +374,12 @@ Wave 4 (приёмка):
 [КОНТЕКСТ]
 Вот все вводные, которые у меня есть:
 - [факт 1: docs/PLAN/AC/API — конкретные пути и §]
-- [факт 2: границы файлов/модулей; что НЕ трогать]
+- [Allowed mutations: точные файлы/модули/системы]
+- [Do not touch: чужие/защищённые пути и состояния]
+- [Approval boundary: внешние/destructive действия, требующие founder]
+- [Source precedence и недоверенные входы]
+- [branch/HEAD, dirty paths и ownership пересечений]
+- [Stop when: material ambiguity/blocker/scope expansion]
 - [кто будет использовать результат? следующий агент / пользователь / baseline]
 - [какой уровень детализации нужен?]
 - [Depends on / артефакты предыдущей волны]
@@ -675,6 +681,12 @@ cd frontend && node scripts/link-testframework-node-modules.mjs && npx tsc --noE
 
 Статус ворот:
   regression: PASS (лог) | docs-sync: done | verified: <да/нет>
+
+Состояние рабочей копии:
+  branch: <name> | HEAD: <sha>
+  commits: <созданные commits или none>
+  dirty paths/owner: <незакоммиченное и кому принадлежит>
+  unfinished/blockers: <что не завершено и почему>
 ```
 ## 9.2 Пример (be1 → be-ver)
 
@@ -703,7 +715,8 @@ cd frontend && node scripts/link-testframework-node-modules.mjs && npx tsc --noE
 
 ### Чек-лист handoff (§9)
 
-- [ ] Есть все поля: что сделано / что проверить / артефакты / следующий шаг / статус ворот.
+- [ ] Есть все поля: что сделано / что проверить / артефакты / следующий шаг /
+  статус ворот / branch+HEAD / commits / dirty ownership / unfinished.
 - [ ] Описание простым языком (2–5 предложений).
 - [ ] Приложен лог регрессии; docs-sync отмечен.
 - [ ] `STATE.md` обновлён (`/handoff-sync`) в конце волны.

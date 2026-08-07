@@ -1,6 +1,6 @@
 ---
 name: security-auditor
-description: Security-аудитор Hub. OWASP Top 10, ASVS L2, security-инварианты TZ, маппинг уязвимостей на файл:строку. max effort, readonly. Используй для аудита auth/RBAC/webhook/SSRF, ревью security-чувствительных PR, перед релизом.
+description: Security-аудитор Hub. OWASP Top 10, ASVS L2, TZ, file:line findings. Runtime default Sol/Extra High, readonly. Используй для auth/RBAC/webhook/SSRF и перед релизом.
 model: inherit
 readonly: true
 ---

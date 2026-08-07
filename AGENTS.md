@@ -10,7 +10,7 @@
 
 **Roadmap v4:** `.planning/milestones/v4-super-app/SUMMARY.md` · Vision: `.planning/decisions/specs/PLATFORM-VISION-v4.md`
 
-Монорепо: `backend/` (Go, **82 Ent schemas**) + `frontend/` (React) + `cli/` + `deployments/` + **`testframework/`** (E2E + Vitest)
+Монорепо: `backend/` (Go, **87 Ent schemas**) + `frontend/` (React) + `cli/` + `deployments/` + **`testframework/`** (legacy E2E + Vitest; Python target в миграции)
 
 ### Расположение тестов (pipeline-aligned)
 
@@ -25,6 +25,13 @@
 Манифесты: `testframework/pipeline/jobs/*.yaml` · Карта: `testframework/PIPELINE.md`
 
 Перед Vitest/E2E: `node frontend/scripts/link-testframework-node-modules.mjs`
+
+**Test architecture rebase (IN PROGRESS, 2026-08-07):** текущие entrypoints
+выше остаются исполняемым каноном до dual-run/cutover. Цель фаз 128–141:
+`backend/tests/**` (Go), `frontend/tests/**` (Vitest/RTL),
+`testframework/python/**` (pytest/httpx/Playwright) и `testframework/load/**`
+(Locust). До Phase 141 legacy не удаляется. План:
+`.planning/active/august-2026/06-TEST-ARCHITECTURE-REBASE.md`.
 
 ---
 
@@ -54,11 +61,13 @@
 
 Планирование: [`.planning/README.md`](.planning/README.md) (навигация) · `.planning/STATE.md` · `.planning/COVERAGE.md` · `.planning/ROADMAP.md` · `.planning/archive/roadmaps/DISCUSS-ROADMAP-LOCKED.md`
 
-**Active (2026-07-31):** **Touchstone** Standard `0.4.0-beta.1` / Pro `0.3.0-beta.1` — две линии по объекту
-работы: Standard (`pro-qa-ai/`) для тестового фреймворка, Pro
-(`prompt-engineering-pro/`) для разработки продукта. Structural PASS,
-paired eval **NOT_RUN**; [ai-expansion](.planning/archive/july-2026/ai-expansion/README.md)
-qualified · July Rebuild planning · LiveKit stay · FA-06 manual.
+**Protected external zone (2026-08-07):** `pro-qa-ai/**` — личный QA-AI toolkit
+founder, эксклюзивный исполнитель Claude Code Opus 5. Внутренние агенты Hub
+папку не читают по умолчанию и не меняют; конкретный результат принимается
+только через явный founder handoff. Правило: `.cursor/rules/70-pro-qa-ai.mdc`.
+
+Agent safety: `.cursor/rules/07-agent-safety.mdc` — authority/egress, secret
+incident, dependency supply-chain, dirty-worktree handoff и provenance gate.
 
 GSD + агенты: `.cursor/GSD-INTEGRATION.md`, `.cursor/REGULATION.md` §8 (GSD), §9 (test triage), §10 (docs sync)
 
@@ -67,10 +76,10 @@ GSD + агенты: `.cursor/GSD-INTEGRATION.md`, `.cursor/REGULATION.md` §8 (G
 ## AI-команда (32 файла агентов)
 
 > Реорганизована 2026-07-02 под параллельную разработку. Ростер: **`.cursor/playbooks/README.md`** · RACI: `.cursor/playbooks/team-workflow.md` · модели: **`.planning/decisions/ADR-MODELS-GPT56-2026.md`**.
-> **Модели (ADR-MODELS-GPT56, amended 2026-07-26):** `team-lead` — **GPT-5.6 Sol Pro** (`model: gpt-5.6-sol`; Pro via catalog). Все downstream agents (включая `*-ver` и `codex-micro`) — `model: inherit`; orchestrator выбирает runtime по capability/cost/risk/context. `team-lead-opus` — deprecated redirect, не escalation slot.
+> **Модели (ADR-MODELS-GPT56, amended 2026-08-07):** `team-lead` — **GPT-5.6 Sol / Extra High** (`model: gpt-5.6-sol`; Ultra только для большой делимой задачи). Downstream frontmatter = `inherit`, но defaults явные: Terra — основная работа, Luna — механика, Sol — high-risk. Полная матрица 32 ролей, effort, цены и fallback: **`.cursor/playbooks/model-routing.md`**. `team-lead-opus` — deprecated redirect.
 
 ### Лидерство / продукт
-`team-lead` (оркестратор, Sol Pro), `tech-lead` (декомпозиция), `product` + `product-ver`, `codex-micro` (мелочь)
+`team-lead` (оркестратор, Sol / Extra High), `tech-lead` (декомпозиция), `product` + `product-ver`, `codex-micro` (мелочь)
 
 ### Аналитика / архитектура / дизайн (потоки + верификаторы)
 
@@ -96,7 +105,7 @@ GSD + агенты: `.cursor/GSD-INTEGRATION.md`, `.cursor/REGULATION.md` §8 (G
 
 ### Practices playbooks (`.cursor/playbooks/`)
 
-`backend.md` · `frontend.md` · `design.md` · `testing.md` (Allure + замер времени + MD↔автотесты) · `observability.md` · `code-comments.md` · `git-workflow.md` · `analysis.md` · `verification.md` · `team-workflow.md` · **`prompt-contract.md`** (контракт промпта: приём задачи, формат, техники, температура, 10-этапная верификация, матрица ролей — обязателен всем)
+`backend.md` · `frontend.md` · `design.md` · `testing.md` (Allure + замер времени + MD↔автотесты) · `observability.md` · `code-comments.md` · `git-workflow.md` · `analysis.md` · `verification.md` · `team-workflow.md` · **`model-routing.md`** · **`prompt-contract.md`** (контракт промпта: приём задачи, формат, техники, температура, 10-этапная верификация, матрица ролей — обязателен всем)
 
 ---
 
@@ -115,7 +124,7 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 
 ---
 
-## Текущий статус (2026-07-26)
+## Текущий статус (2026-08-07)
 
 > July Rebuild planning · LiveKit канон · метрики ниже = baseline master (без регрессии).
 
@@ -134,6 +143,7 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 | Волна 1 (roadmap 2026-07-03) | ✅ merged to `master` by user 2026-07-11 |
 | July Rebuild / QA-HARDENING | 📋 planning · kickoff ~конец июля |
 | AI quality layer / GSD / portable kit | **Touchstone** Standard `0.4.0-beta.1` + Pro `0.3.0-beta.1` foundation-ready · structural PASS · paired eval NOT_RUN |
+| Test architecture rebase (Ph 128–141) | 🚧 Phase 128 IN PROGRESS · TASK-202 verifier loop · no tests moved |
 
 ### Метрики качества
 
@@ -146,9 +156,9 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 | Product score | **89/100** |
 | REST API | **286+** endpoints |
 | Ent schemas | **82** |
-| Backend tests (`testframework/`) | **812** files · 0 in `internal/` (measured 2026-07-29; was 515 → 805) |
-| Vitest | **179** files (`stages/unit/frontend-test/`; measured 2026-07-29; 61 `.ts` + 118 `.tsx`) |
-| Playwright E2E | **20** specs |
+| Backend tests (`testframework/`) | **828** files / **3,663** declared tests · 0 in target `backend/tests/` (measured 2026-08-07) |
+| Vitest | **180** files / **517** literal cases (`stages/unit/frontend-test/`; measured 2026-08-07) |
+| Playwright E2E | **20** specs / **53** declared cases |
 | qa-gate (FA-10) | build ✅ · hubtest ✅ · race ✅ · Biome ✅ · e2e-smoke **3/3** ✅ |
 
 ### Следующие шаги
@@ -160,6 +170,7 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 | Wave C final audit FA-01–FA-12 | ✅ COMPLETE (кроме FA-06 manual) |
 | FA-10 e2e-smoke | ✅ 3/3 PASS |
 | PG-03 Secret rotation (FA-06) | ⏳ manual ops — **единственный prod-блокер** |
+| Test-rebase Phase 128 | 🚧 TASK-202 inventory → verifier repair; TASK-203 service baseline blocked locally (Docker unavailable) |
 | Merge Волна 1 → master | ✅ user merged 2026-07-11 |
 | July return / CAL-SYNC / QA-HARDENING / Redesign | 📋 planning → kickoff ~конец июля |
 | AI-layer paired pilot / physical empty-repo installation | ⏳ pre-release acceptance; package build/validation PASS |
@@ -200,7 +211,8 @@ docker compose -f docker-compose.local.yml up -d
 
 # Backend regression (local)
 # ВАЖНО: -tags hubtest обязателен — export_hooks.go (39 файлов) под этим тегом,
-# без него testframework не компилируется. Тестов в internal/ нет (все 812 в testframework/, measured 2026-07-29).
+# без него testframework не компилируется. До cutover все 828 Go test files
+# остаются в backend/testframework/ (measured 2026-08-07).
 cd backend && go build -tags release ./... && go vet ./... \
   && go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...
 
@@ -222,4 +234,4 @@ cd frontend && node scripts/link-testframework-node-modules.mjs && npx tsc --noE
 
 ---
 
-*Обновлено: 2026-07-11 — team-lead шаблон делегирования + цикличное QA/регрессия*
+*Обновлено: 2026-08-07 — team-lead onboarding, cost-aware model routing, protected Opus zone*

@@ -1,7 +1,7 @@
 ---
 name: arch-ver
 model: inherit
-description: Верификатор архитектуры. SOLID, KISS, реализуемость стеком, соответствие TZ и безопасности. max effort, readonly. Используй после arch.
+description: Верификатор архитектуры. Runtime default Terra/Extra High, Sol для prod/security ADR. Проверяет SOLID/KISS/TZ/реализуемость, readonly. Используй после arch.
 readonly: true
 ---
 

@@ -143,5 +143,5 @@ Hub разрабатывается на Windows, CI гоняет Linux в Docker
 
 - Паттерны Hub и команды прогона — [`40-testing`](40-testing.mdc)
 - Обязательная регрессия после фикса — [`56-regression-verify`](56-regression-verify.mdc)
-- Слой качества для тестового фреймворка — [`70-pro-qa-ai`](70-pro-qa-ai.mdc)
+- Protected ownership внешней QA-AI зоны — [`70-pro-qa-ai`](70-pro-qa-ai.mdc)
 - Уровни проверки артефакта — [`.planning/VERIFICATION-LEVELS.md`](../../.planning/VERIFICATION-LEVELS.md)

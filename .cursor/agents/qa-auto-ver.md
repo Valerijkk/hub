@@ -1,6 +1,6 @@
 ---
 name: qa-auto-ver
-description: Верификатор автоматизации. Детерминизм, отсутствие flaky/sleep, привязка TC↔автотест, покрытие, замер времени, регрессия. max effort, readonly. Используй после qa-auto1/qa-auto2.
+description: Верификатор автоматизации. Runtime default Terra/High, Sol для mutation/coverage gate. Проверяет детерминизм, flaky, TC↔автотест и регрессию, readonly.
 model: inherit
 readonly: true
 ---

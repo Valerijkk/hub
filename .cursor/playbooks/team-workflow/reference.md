@@ -80,7 +80,7 @@ FR/API. Единый источник истины.
 ### Финальный чек-лист team-workflow.md
 
 - [ ] `team-lead` делегирует **только** по шаблону §5.3.1; в условиях — цикл качества + регрессия.
-- [ ] `team-lead` (GPT-5.6 Sol Pro) оркестрирует и принимает; downstream routing — по capability/cost/risk среди реально доступных моделей.
+- [ ] `team-lead` (GPT-5.6 Sol / Extra High) оркестрирует и принимает; downstream — по `model-routing.md` + live catalog.
 - [ ] Поток фичи: product → ba → sa → (arch) → (designer) → be∥fe → qa → review → team-lead → docs-sync.
 - [ ] Волны ≤4 агентов, разведены по файлам, контракт первым коммитом, sync между волнами.
 - [ ] Каждый артефакт → персональный верификатор → `verified: true` при green + лог.
@@ -366,7 +366,7 @@ be-ver: перепроверяет → verified: true 2026-07-02 22:50
 
 # Приложение I. Контекст-бюджет и промптинг субагентов (для `team-lead`)
 
-`team-lead` (GPT-5.6 Sol Pro) держит фазу через `STATE.md`/handoff-сводки и выбирает downstream
+`team-lead` (GPT-5.6 Sol / Extra High) держит фазу через `STATE.md`/handoff-сводки и выбирает downstream
 runtime по capability/cost/risk. Субагенты **не видят** историю чата. Правила промптинга:
 
 1. **Самодостаточность.** В промпт субагента вложи: задачу, ссылки на нужные `docs/` (по разделам),
@@ -436,7 +436,7 @@ scope: auth|tracker|messenger|tms|calls|dashboard|notification|search|ws|fronten
 
 # Приложение K. FAQ командной работы
 
-**Кто принимает финальное решение по фазе?** Всегда `team-lead` на GPT-5.6 Sol Pro. Для высокорисковых
+**Кто принимает финальное решение по фазе?** Всегда `team-lead` на GPT-5.6 Sol / Extra High. Для высокорисковых
 частей он назначает отдельный сильный downstream-проход/verifier, но Accountable остаётся сам.
 
 **Можно ли пропустить верификатора для мелочи?** Нет для user-visible/prod-поведения. Для чистого
@@ -734,7 +734,7 @@ Scope волны остаётся чистым.
 # Приложение S. Сводная памятка (одна страница)
 
 ```
-РОЛИ:      team-lead(GPT-5.6 Sol Pro, оркестр+приёмка) | downstream(available model by capability/cost/risk)
+РОЛИ:      team-lead(GPT-5.6 Sol/Extra High, оркестр+приёмка) | downstream(role default + capability/cost/risk)
 ПОТОК:     product → ba → sa → (arch) → (designer) → be∥fe → qa → review → team-lead → docs-sync
 ВОЛНЫ:     ≤4 агента, разные файлы, контракт первым коммитом, sync между волнами
 ВЕРИФ:     каждый артефакт → персональный -ver → verified:true при green+лог

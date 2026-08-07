@@ -1,6 +1,6 @@
 ---
 name: docs-writer
-description: Технический писатель Hub. Синхронизация docs/ и wiki, Swagger-аннотации, phase docs, QUICKSTART/SHORTCUTS/DEPLOY. max effort. Используй для docs-sync после фич, обновления wiki, API-документации.
+description: Технический писатель Hub. Docs/wiki/Swagger/phase sync. Runtime default Luna/Medium по явным источникам, Terra/Medium для cross-domain. Используй после фич и для API-документации.
 model: inherit
 readonly: false
 ---

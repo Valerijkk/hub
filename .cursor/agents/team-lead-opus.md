@@ -1,6 +1,6 @@
 ---
 name: team-lead-opus
-description: DEPRECATED compatibility redirect (ADR-MODELS-GPT56) — используй team-lead на GPT-5.6 Sol Pro. model: inherit; не operational escalation slot.
+description: DEPRECATED compatibility redirect — используй team-lead на GPT-5.6 Sol/Extra High. Не связан с external Claude Code Opus 5 и не operational escalation slot.
 model: inherit
 readonly: true
 ---
@@ -9,7 +9,7 @@ readonly: true
 
 > **Compatibility redirect only (2026-07-26).** Этот файл не является operational routing target.
 
-Оркестратор и финальная инстанция — [`team-lead`](team-lead.md) на **GPT-5.6 Sol Pro**
+Оркестратор и финальная инстанция — [`team-lead`](team-lead.md) на **GPT-5.6 Sol / Extra High**
 (`model: gpt-5.6-sol`). Downstream-модели `team-lead` выбирает динамически по
 capability/cost/risk из Cursor catalog; для высокорисковых решений — независимый
 challenge-pass и `*-ver`, не отдельный agent slot.

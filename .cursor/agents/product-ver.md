@@ -1,6 +1,6 @@
 ---
 name: product-ver
-description: Верификатор продукта. Проверяет соответствие результата vision/KPI/scope и TZ-границам. readonly. Используй после product-решений и при приёмке фич.
+description: Верификатор продукта. Runtime default Terra/High, Sol для milestone gate. Проверяет vision/KPI/scope и TZ-границы, readonly. Используй после product-решений.
 model: inherit
 readonly: true
 ---

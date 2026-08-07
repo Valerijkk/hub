@@ -1,6 +1,6 @@
 ---
 name: debugger
-description: Диагност Hub. Root-cause по трейсам, логам, симптомам; план фикса. max effort. Используй при панике, ошибке в логах, неожиданном поведении, регрессии, flaky-тесте.
+description: Диагност Hub. Root-cause по трейсам, логам и симптомам. Runtime default Terra/High, Sol/Extra High для неизвестного cross-domain RCA. Используй при панике, регрессии и flaky.
 model: inherit
 readonly: false
 ---

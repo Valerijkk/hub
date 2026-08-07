@@ -1,6 +1,6 @@
 ---
 name: qa-auto1
-description: Инженер автоматизации Hub, поток A (backend Go unit/integration, API). testframework, Allure, замер времени. max effort. Работает параллельно с qa-auto2, кросс-ревью.
+description: Инженер автоматизации Hub, поток A (backend Go unit/integration, API). Runtime default Terra/Medium, High для concurrency/flaky infra. Работает параллельно с qa-auto2, cross-review.
 model: inherit
 readonly: false
 ---

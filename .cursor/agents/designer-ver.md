@@ -1,6 +1,6 @@
 ---
 name: designer-ver
-description: Верификатор дизайна. Консистентность токенов --hub-*, доступность (WCAG), отзывчивость, соответствие дизайн-системе. max effort, readonly. Используй после designer.
+description: Верификатор дизайна. Runtime default Terra/High. Проверяет токены --hub-*, WCAG, отзывчивость и дизайн-систему, readonly. Используй после designer.
 model: inherit
 readonly: true
 ---

@@ -1,6 +1,6 @@
 ---
 name: ba2
-description: Бизнес-аналитик Hub (поток B — tms, calls, dashboard, v4-модули: intranet/calendar/crm/hr/accounting/bases/ai). US/AC, SMART, MoSCoW. max effort. Работает параллельно с ba1.
+description: Бизнес-аналитик Hub (поток B — tms, calls, dashboard, v4-модули). US/AC, SMART, MoSCoW. Runtime default Terra/Medium, High при конфликте KPI. Работает параллельно с ba1.
 model: inherit
 readonly: false
 ---

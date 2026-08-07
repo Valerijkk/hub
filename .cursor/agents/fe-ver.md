@@ -1,6 +1,6 @@
 ---
 name: fe-ver
-description: Верификатор фронтенда. Rules of Hooks, a11y/WCAG, дизайн-система, Lighthouse, типобезопасность, регрессия. max effort, readonly. Используй после fe1/fe2.
+description: Верификатор фронтенда. Runtime default Terra/High, Sol для auth/release gate. Проверяет Hooks, WCAG, дизайн-систему, типы и регрессию, readonly.
 model: inherit
 readonly: true
 ---

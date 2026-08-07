@@ -1,6 +1,6 @@
 ---
 name: qa-manual-ver
-description: Верификатор ручного тестирования. Полнота TC, корректность техник тест-дизайна, трассируемость требование→TC→автотест. max effort, readonly. Используй после qa-manual.
+description: Верификатор ручного тестирования. Runtime default Terra/High, Sol для release-critical UAT. Проверяет полноту TC и трассируемость, readonly. Используй после qa-manual.
 model: inherit
 readonly: true
 ---

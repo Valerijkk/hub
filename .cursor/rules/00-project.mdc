@@ -82,9 +82,9 @@ hub/
 - **Coverage wave (Phases 59–125):** COMPLETE, COV **83.0%** (2026-06-22 Docker baseline), 6/6 security packages ≥80%
 - **Волна 1 (roadmap 2026-07-03):** влита в `master` 2026-07-11 (integration/wave1 + otel-nats-trace + wave2 ADR/specs)
 - **Текущая фаза:** July Rebuild / QA-HARDENING **planning** — код freeze до возврата ~конец июля 2026; на диске только доки (`july-2026/*`, edge-expansions wave2–5, EDGE catalog ≈4696 ECC)
-- **Test Automation AI Quality Layer:** `pro-qa-ai/`
-  `0.4.0-beta.1`, structural PASS; Hub context complete; paired effectiveness/
-  ROI `NOT_RUN`; product code не затронут.
+- **Protected external QA-AI zone:** `pro-qa-ai/**`, owner Claude Code Opus 5
+  под управлением founder. Внутренние агенты не сканируют и не меняют; правило
+  `.cursor/rules/70-pro-qa-ai.mdc`.
 - **SFU-решение:** остаёмся на **LiveKit** (WebRTC) — миграция на mediasoup **REJECTED** (`.planning/reference/seeds/SEED-001-mediasoup-migration.md`); не предлагать возврат к этой теме без нового триггера
 - **Единственный prod-блокер:** **PG-03/FA-06** секрет-ротация (Resend/Telegram) — **ручная операция**, не гейтит разработку; лог — `.planning/ops/production/FA-06-EXECUTION-LOG.md`, runbook — `docs/runbooks/fa06-secret-rotation.md`
 

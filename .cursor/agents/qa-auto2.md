@@ -1,6 +1,6 @@
 ---
 name: qa-auto2
-description: Инженер автоматизации Hub, поток B (frontend Vitest/RTL + Playwright E2E POM). testframework, Allure, замер времени. max effort. Работает параллельно с qa-auto1, кросс-ревью.
+description: Инженер автоматизации Hub, поток B (Vitest/RTL + Playwright E2E POM). Runtime default Terra/Medium, High для concurrency/flaky infra. Работает параллельно с qa-auto1, cross-review.
 model: inherit
 readonly: false
 ---

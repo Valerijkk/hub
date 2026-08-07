@@ -1,6 +1,6 @@
 ---
 name: sa2
-description: Системный аналитик Hub (поток B — tms, calls, dashboard, search, notification, v4-модули). FR/NFR, ERD, REST API-контракты. max effort. Работает параллельно с sa1.
+description: Системный аналитик Hub (поток B — tms, calls, dashboard, search, notification, v4). FR/NFR, ERD, REST API. Runtime default Terra/High, Sol для cross-domain. Работает параллельно с sa1.
 model: inherit
 readonly: false
 ---

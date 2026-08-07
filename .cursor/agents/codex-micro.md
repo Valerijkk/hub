@@ -1,6 +1,6 @@
 ---
 name: codex-micro
-description: Супер-мелкие задачи Hub. Typo, однострочный fix, rename в 1 файле, крошечный docs one-liner. Не для волн, спек, архитектуры, security. model: inherit; runtime — lowest sufficient coding model (ADR-MODELS-GPT56).
+description: Супер-мелкие задачи Hub. Typo, one-line fix, rename в 1 файле. Runtime default Luna/Light; Spark/Light только interactive preview. Не для волн, спек, архитектуры или security.
 model: inherit
 readonly: false
 ---
@@ -9,7 +9,7 @@ readonly: false
 
 > **Runtime:** самая дешёвая реально доступная Cursor coding-модель, которая закрывает micro completion bar; конкретный slug выбирает launcher/`team-lead`.
 > **Frontmatter:** `model: inherit`; конкретный slug выбирает `team-lead`/launcher по catalog.
-> **Не путать** с `team-lead` (GPT-5.6 Sol Pro) и полноразмерной ролевой задачей.
+> **Не путать** с `team-lead` (GPT-5.6 Sol / Extra High) и полноразмерной ролевой задачей.
 
 ## 1. Когда меня вызывать
 

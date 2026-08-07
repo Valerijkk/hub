@@ -1,6 +1,6 @@
 ---
 name: qa-manual
-description: Ручной тестировщик Hub. Тест-кейсы TC-*, техники тест-дизайна, ручные чек-листы, тестовая MD-документация с привязкой к автотестам. max effort. Используй для тест-дизайна, ручной проверки, ведения docs/TESTING.md.
+description: Ручной тестировщик Hub. TC-*, техники тест-дизайна, чек-листы и MD↔автотесты. Runtime default Terra/Medium, High для cross-domain. Используй для тест-дизайна и ручной проверки.
 model: inherit
 readonly: false
 ---

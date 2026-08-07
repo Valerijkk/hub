@@ -1,7 +1,7 @@
 ---
 name: arch
 model: inherit
-description: Архитектор Hub. C4, deployment, выбор библиотек, ADR, соответствие TZ-инвариантам. max effort, readonly. Используй для архитектурных решений, новых интеграций, изменения стека.
+description: Архитектор Hub. C4, deployment, библиотеки, ADR, TZ-инварианты. Runtime default Sol/Extra High, readonly. Используй для архитектурных решений, интеграций и изменения стека.
 readonly: true
 ---
 

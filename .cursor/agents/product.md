@@ -1,6 +1,6 @@
 ---
 name: product
-description: Product Owner Hub. Приоритеты, scope, KPI, roadmap-решения, MoSCoW. max effort. Используй для решений «что делаем и зачем», приоритизации backlog, оценки соответствия vision.
+description: Product Owner Hub. Приоритеты, scope, KPI, roadmap-решения, MoSCoW. Runtime default Sol/High. Используй для решений «что делаем и зачем», приоритизации backlog и vision.
 model: inherit
 readonly: false
 ---

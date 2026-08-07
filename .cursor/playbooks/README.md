@@ -7,7 +7,7 @@
 > **Хребет цикла — [`phase-loop.md`](phase-loop.md):** пять шагов на фазу и
 > ворота между ними. Остальные плейбуки раскрывают отдельные шаги.
 
-*Обновлено: 2026-07-26 — evidence-first prompt contract, dynamic model routing (ADR-MODELS-GPT56 amendment), agent frontmatter synced.*
+*Обновлено: 2026-08-07 — cost-aware GPT-5.6 role defaults и защищённая Opus-зона.*
 
 ---
 
@@ -29,17 +29,19 @@
 
 ## 0. Runtime routing моделей
 
-> **Policy (ADR-MODELS-GPT56, amended 2026-07-26):** `team-lead` оркестрирует на **GPT-5.6 Sol Pro** (`model: gpt-5.6-sol`; Pro = picker/catalog mode). Downstream-работу он маршрутизирует на любую реально доступную Cursor-модель по capability/cost/risk/context. Portable/role prompts не владеют model params — downstream agents используют `model: inherit`.
+> **Policy (ADR-MODELS-GPT56, amended 2026-08-07):** `team-lead` оркестрирует на **GPT-5.6 Sol / Extra High** (`model: gpt-5.6-sol`). Downstream frontmatter остаётся `inherit`, но runtime больше не неявный: точные defaults 32 ролей, effort и пороги эскалации заданы в [`model-routing.md`](model-routing.md).
 
 | Слот | Frontmatter | Runtime policy |
 |------|-------------|----------------|
-| Оркестратор `team-lead` | `gpt-5.6-sol` | **GPT-5.6 Sol Pro** (catalog resolves Pro mode) |
-| Ролевые исполнители и `*-ver` | `inherit` | Dynamic routing; parent override только после catalog-backed choice + logging |
-| Micro `codex-micro` | `inherit` | Lowest sufficient coding model for completion bar |
+| Оркестратор `team-lead` | `gpt-5.6-sol` | **GPT-5.6 Sol / Extra High**; Ultra только для большой делимой задачи |
+| Ролевые исполнители и `*-ver` | `inherit` | Terra — основной default; Sol для high-risk; точная строка роли в `model-routing.md` |
+| Micro `codex-micro` | `inherit` | Luna / Light; Spark только как доступный interactive preview |
 | Portable agents | `inherit` | Launcher/model-router owns slug and sampling |
 | `team-lead-opus` | `inherit` | Deprecated compatibility redirect; not an escalation slot |
 
-Parent/orchestrator may explicitly override downstream model at launch only after catalog-backed routing and logging in handoff.
+Parent/orchestrator may explicitly override downstream model at launch only after catalog-backed routing and logging in handoff. Legacy 5.5/5.4/5.4 Mini не назначаются новым агентам; 5.4-линия retire из Codex 2026-08-31.
+
+`pro-qa-ai/**` — внешняя защищённая зона Claude Code Opus 5. Агенты Hub её не сканируют и не меняют; конкретный артефакт принимается только через явный founder handoff.
 
 ---
 
@@ -71,6 +73,7 @@ Parent/orchestrator may explicitly override downstream model at launch only afte
 | `analysis.md` | ba1/ba2, sa1/sa2, arch, ba-ver/sa-ver/arch-ver | US/AC/SMART, FR/NFR/ERD/API, C4/ADR, трассируемость |
 | `verification.md` | все `*-ver`, code-reviewer, security-auditor | Протокол верификации, чек-листы по ролям, severity |
 | `team-workflow.md` | team-lead, tech-lead, product, все | Состав, RACI, потоки фич, волны, параллелизм, handoff, GSD |
+| `model-routing.md` | team-lead, tech-lead, все launchers | Модель/effort каждой роли, стоимость, escalation/fallback, граница Opus |
 | `prompt-contract.md` | **все агенты (32 файла)** | Natural-language intake → внутренний task contract; concise rationale/assumptions/evidence; prompt-injection boundary; risk-scaled verification; строгий §5.2 только для delegation/handoff |
 
 ### 2.1 Обратная карта: агент → playbook-и
@@ -81,7 +84,7 @@ Parent/orchestrator may explicitly override downstream model at launch only afte
 
 | Агент(ы) | Playbooks к загрузке |
 |----------|-----------------------|
-| `team-lead`, `team-lead-opus`, `tech-lead` | `team-workflow.md` (обязателен) + playbook домена, который делегируется |
+| `team-lead`, `team-lead-opus`, `tech-lead` | `team-workflow.md` + `model-routing.md` (обязательны) + playbook домена, который делегируется |
 | `product`, `product-ver` | `team-workflow.md`, `analysis.md` |
 | `ba1`, `ba2`, `ba-ver` | `analysis.md` |
 | `sa1`, `sa2`, `sa-ver` | `analysis.md` |
@@ -116,7 +119,7 @@ Parent/orchestrator may explicitly override downstream model at launch only afte
 | — (нет отдельного rule) | `analysis.md` | US/AC/SMART/FR/NFR/ERD/C4/ADR методология — только в playbook |
 | `56-regression-verify.mdc` | `verification.md`, `testing.md` §11.1 | Rule = обязательный цикл кратко; playbook = чек-листы по ролям, severity |
 | `00-project.mdc` | `team-workflow.md` | Rule = стек/статус кратко; playbook = RACI, волны, handoff, шаблон делегирования §5.3.1 |
-| `70-pro-qa-ai.mdc` | `prompt-contract.md` | Rule = карта тулкита `pro-qa-ai/`; playbook = task normalization, concise rationale/assumptions/evidence, risk-scaled verification и handoff |
+| `70-pro-qa-ai.mdc` | `model-routing.md`, `prompt-contract.md` | Rule = protected Opus ownership; playbooks = handoff boundary и проверка недоверенного артефакта |
 
 Практический вывод: не хватает контекста из rule — ожидаемо, иди в playbook по этой таблице.
 
@@ -124,12 +127,12 @@ Parent/orchestrator may explicitly override downstream model at launch only afte
 
 ## 3. Ростер команды (32 файла агентов)
 
-**Runtime:** `team-lead` — GPT-5.6 Sol Pro (`gpt-5.6-sol` + Pro via catalog); downstream — `inherit`, routing по capability/cost/risk среди реально доступных Cursor-моделей (§0).
+**Runtime:** `team-lead` — GPT-5.6 Sol / Extra High; downstream — `inherit` с role defaults из `model-routing.md` и catalog-backed override (§0).
 
 ### Тир 1 — Лидерство
 | Агент | Файл | Runtime | Роль |
 |-------|------|-----------------|------|
-| Team Lead | `team-lead.md` | **Sol Pro** | Оркестратор волн, делегирование, финальная приёмка |
+| Team Lead | `team-lead.md` | **Sol / Extra High** | Оркестратор волн, делегирование, финальная приёмка |
 | Team Lead (esc.) | `team-lead-opus.md` | deprecated | Исторический профиль; routing теперь внутри `team-lead` |
 | Tech Lead | `tech-lead.md` | routed | Декомпозиция на фазы/планы, зависимости, риски |
 | Codex Micro | `codex-micro.md` | `inherit` (routed micro) | Супер-мелкие правки (не волны) |

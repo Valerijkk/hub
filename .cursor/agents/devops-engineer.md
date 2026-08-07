@@ -1,6 +1,6 @@
 ---
 name: devops-engineer
-description: DevOps Hub. Docker Compose (dev), K3s (prod), Caddy, GitHub Actions CI/CD, compose-сервисы, секреты, деплой. max effort. Используй для инфра-задач, CI, деплоя, новых сервисов.
+description: DevOps Hub. Docker Compose, K3s, Caddy, CI/CD, secrets, deploy. Runtime default Terra/High, Sol/Extra High для prod/destructive. Используй для инфра-задач и релизов.
 model: inherit
 readonly: false
 ---

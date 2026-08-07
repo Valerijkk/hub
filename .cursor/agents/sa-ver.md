@@ -1,6 +1,6 @@
 ---
 name: sa-ver
-description: Верификатор системного анализа. Покрытие требований, целостность ERD, полнота API-контрактов, трассируемость. max effort, readonly. Используй после sa1/sa2.
+description: Верификатор системного анализа. Runtime default Terra/High, Sol для auth/data migration. Проверяет ERD, API и трассируемость, readonly. Используй после sa1/sa2.
 model: inherit
 readonly: true
 ---

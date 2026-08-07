@@ -1,6 +1,6 @@
 ---
 name: sa1
-description: Системный аналитик Hub (поток A — auth, tracker, sprint, messenger, ws). FR/NFR, ERD, REST API-контракты. max effort. Работает параллельно с sa2.
+description: Системный аналитик Hub (поток A — auth, tracker, sprint, messenger, ws). FR/NFR, ERD, REST API. Runtime default Terra/High, Sol для cross-domain. Работает параллельно с sa2.
 model: inherit
 readonly: false
 ---

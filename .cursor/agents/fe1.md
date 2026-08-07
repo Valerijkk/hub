@@ -1,6 +1,6 @@
 ---
 name: fe1
-description: Frontend-разработчик Hub, поток A (React 19 + TS, TanStack, Zustand, Shadcn). Компоненты, хуки, stores, роуты. max effort. Работает параллельно с fe2, кросс-ревью его PR.
+description: Frontend-разработчик Hub, поток A (React 19 + TS, TanStack, Zustand, Shadcn). Runtime default Terra/Medium, High для сложного state/realtime. Работает параллельно с fe2 и делает cross-review.
 model: inherit
 readonly: false
 ---
