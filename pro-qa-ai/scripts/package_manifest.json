@@ -36,6 +36,7 @@
     "scripts/safe_filesystem.py",
     "scripts/secret_rules.py",
     "scripts/context_inventory.py",
+    "scripts/scan_secrets.py",
     "scripts/context_inventory_config.json",
     "scripts/context_inventory.schema.json",
     "scripts/tests/test_*.py",

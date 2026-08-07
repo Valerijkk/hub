@@ -60,6 +60,8 @@ provenance: official primary sources and repository inspection on 2026-07-26
 - [Production recipes](workflows/recipes/README.md)
 - [Structural validator](scripts/validate_toolkit.py)
 - [Portable packager](scripts/package_portable.py) и [политика упаковки](scripts/package_manifest.json)
+- [Поиск конфиденциальных значений](scripts/scan_secrets.py) — рабочее
+  дерево и вся история; значения не печатает, историю не правит
 - [Mechanical context inventory](scripts/context_inventory.py), его
   [config](scripts/context_inventory_config.json) и
   [schema](scripts/context_inventory.schema.json)
