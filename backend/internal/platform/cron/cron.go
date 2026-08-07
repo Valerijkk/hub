@@ -66,15 +66,21 @@ func ScheduleWithTimeout(ctx context.Context, interval, tickTimeout time.Duratio
 		slog.Info("cron task started", "name", name, "interval", interval.String(), "tick_timeout", tickTimeout.String())
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
+	loop:
 		for {
 			select {
 			case <-ctx.Done():
-				slog.Info("cron task stopped", "name", name)
-				return
+				break loop
 			case <-ticker.C:
+				// Если ticker.C и ctx.Done() готовы одновременно, select выбирает
+				// случайно. Preflight не даёт queued tick запустить fn после отмены.
+				if ctx.Err() != nil {
+					break loop
+				}
 				runTick(ctx, tickTimeout, name, fn)
 			}
 		}
+		slog.Info("cron task stopped", "name", name)
 	}()
 }
 
