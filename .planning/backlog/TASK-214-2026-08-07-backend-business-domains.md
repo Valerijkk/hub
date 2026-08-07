@@ -4,7 +4,9 @@
 
 ## [OUTCOME]
 
-Classified Go-unit/component rows for calendar, intranet, accounting, crm, hr, bases and dashboard run from `backend/tests/**` with complete dual-run evidence.
+Только genuine Go units calendar, intranet, accounting, crm, hr, bases и
+dashboard работают из `backend/tests/**`; DB/API components получают Python
+parity TASK-229.
 
 ## [ROLE]
 
@@ -15,7 +17,8 @@ Classified Go-unit/component rows for calendar, intranet, accounting, crm, hr, b
 
 - Allowed: `backend/tests/{calendar,intranet,accounting,crm,hr,bases,dashboard}/**`, shared support и read-only hook ledger; hook-файлы не меняются.
 - Read-only: matching legacy/product. Do not touch: legacy deletion, CI, other domains, behavior.
-- Real PostgreSQL/transaction/whole-API rows remain legacy until Python parity; SQLite may not substitute engine-specific assertions.
+- Real PostgreSQL/transaction/whole-API rows remain legacy until TASK-229
+  parity; SQLite may not substitute engine-specific assertions.
 - Depends on: TASK-212, TASK-213.
 
 ## [REFERENCES]

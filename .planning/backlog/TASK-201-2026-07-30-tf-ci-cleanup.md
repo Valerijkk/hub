@@ -17,7 +17,8 @@ GitHub, GitLab, Make/package scripts и pipeline manifests вызывают ед
 - Do not touch: test behavior, product code, legacy or target file deletion, coverage threshold/redefinition.
 - GitHub remains initial executable authority; mirrors must call the same scripts/arguments. Backend `hubtest`, Go 1.25, Node 22, locked Python and required service matrix are explicit.
 - Dual-run jobs use distinct names/databases/artifacts; load is manual/scheduled only.
-- Depends on: TASK-193–200, TASK-202–217 (all foundations and replacement suites through phase 139) and their verifier evidence.
+- Depends on: TASK-193–200, TASK-202–217 and TASK-221–230 (all foundations,
+  remediation and replacement suites through phase 139) with verifier evidence.
 
 ## [REFERENCES]
 

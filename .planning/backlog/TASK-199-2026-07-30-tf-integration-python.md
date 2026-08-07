@@ -13,7 +13,7 @@ Python framework имеет reusable core и по одному реальном�
 
 ## [SCOPE AND CONSTRAINTS]
 
-- Allowed: `testframework/python/core/**`, `testframework/python/fixtures/**`, `testframework/python/api/**`, `testframework/python/integration/**`, reports/config in Python project.
+- Allowed: `testframework/{core,api,integration,contract,docker,reports}/**` и корневой config единого Python-проекта. Shared fixtures живут в `testframework/core/fixtures/**`; отдельный root `fixtures/` не создаётся.
 - Read-only: corresponding Go legacy tests/ledger and public API docs.
 - Do not touch: legacy Go tests, product code, CI, E2E.
 - Tests interact through public HTTP/service boundaries; no Go imports, direct production internals or silent skips. Infrastructure profile must fail closed for required services.
@@ -26,7 +26,7 @@ Python framework имеет reusable core и по одному реальном�
 
 ## [ACCEPTANCE]
 
-- Completion command: `cd testframework/python && python -m pytest -m 'api or integration' --strict-markers -q`; exit code 0 и заявленные counts обязательны.
+- Completion command: `cd testframework && python -m pytest -m 'api or integration' --strict-markers -q`; exit code 0 и заявленные counts обязательны.
 
 - `pytest -m api` and `pytest -m integration` each collect non-zero and pass on documented clean environment; mandatory DB/broker outage fails setup, not skip/time out.
 - Every pilot has legacy source row, TC/behavior mapping, unique data namespace, deterministic cleanup and sanitized artifact.

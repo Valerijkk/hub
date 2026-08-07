@@ -6,7 +6,8 @@
 
 ## Цель (goal)
 
-Неразрушительно создать standalone Python-проект в `testframework/**` и
+Неразрушительно создать единый Python-проект прямо в корне
+`testframework/` (без `testframework/python/`) и
 доказать один health+authenticated API flow, не меняя legacy runners.
 
 ## Depends on
@@ -15,7 +16,8 @@
 
 ## Success criteria
 
-- [ ] Python 3.13/`uv`/pytest/httpx stack зафиксирован lockfile и ставится clean.
+- [ ] Python 3.13/`uv`/pytest/httpx stack зафиксирован корневым
+  `testframework/pyproject.toml`, единым pytest config и lockfile; clean install PASS.
 - [ ] `pytest --strict-markers` собирает ненулевой API slice и выполняет health +
   auth against approved non-production profile.
 - [ ] Deliberate failing assertion делает новый runner red; secrets redacted.
@@ -25,8 +27,8 @@
 
 | Task ID | Outcome | Owner | Verifier | Files | Depends | Estimate |
 |---|---|---|---|---|---|---:|
-| TASK-193 | Non-destructive project scaffold, pinned dependencies, strict markers, typed env и artifact redaction | qa-auto1 | qa-auto-ver | `testframework/python/{pyproject.toml,uv.lock,conftest.py,README.md}`, `testframework/python/core/**` | Phase 128 | 0.75д |
-| TASK-205 | Health/auth vertical slice с isolated test user, cleanup и failing-sentinel evidence | qa-auto2 | qa-auto-ver | `testframework/python/api/platform/test_health.py`, `testframework/python/api/auth/test_auth.py`, `testframework/python/fixtures/auth.py`, `.planning/evidence/test-rebase/129/**` | TASK-193 | 0.75д |
+| TASK-193 | Non-destructive root project scaffold, pinned dependencies, strict markers, typed env и artifact redaction | qa-auto1 | qa-auto-ver | `testframework/{pyproject.toml,uv.lock,conftest.py,README.md}`, `testframework/core/**`, `testframework/reports/**` | Phase 128 | 0.75д |
+| TASK-205 | Health/auth vertical slice с isolated test user, cleanup и failing-sentinel evidence | qa-auto2 | qa-auto-ver | `testframework/api/{platform,auth}/**`, `testframework/core/fixtures/auth.py`, `testframework/reports/**`, `.planning/evidence/test-rebase/129/**` | TASK-193 | 0.75д |
 
 ## Волны
 

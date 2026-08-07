@@ -23,8 +23,13 @@ coverage/docs evidence.
 - [ ] Текущее решение по Go coverage явно принято; green profile получен тем же
   method и выполняет ≥82% либо заранее founder-approved новый contract.
 - [ ] Real CI green после переключения; rollback проверен до cleanup.
-- [ ] Корневой `testframework/` не удалён: удалены только manifest-allowlisted
-  legacy stages/guides/pipeline entries и old backend tree.
+- [ ] Корневой `testframework/` не удалён: это один Python-проект
+  с `testframework/pyproject.toml`, единым pytest config и каталогами
+  `{core,api,integration,contract,e2e,load,docker,reports}`.
+- [ ] Все manifest-allowlisted legacy Go/Vitest/TS E2E tests, helpers, configs и
+  entrypoints удалены; в `testframework/**` исполняемый test/load код только Python.
+- [ ] `backend/tests/**` содержит только Go unit, `frontend/tests/**` — только
+  Vitest/RTL unit; component/integration rows не замаскированы как unit.
 - [ ] Hook удаляется только при consumer=0; нужные `hubtest` seams сохраняются.
 - [ ] Финальная docs/state/coverage синхронизация ссылается на live evidence.
 
@@ -32,8 +37,8 @@ coverage/docs evidence.
 
 | Task ID | Outcome | Owner | Verifier | Files | Depends | Estimate |
 |---|---|---|---|---|---|---:|
-| TASK-219 | Cutover + manifest-authorized legacy/hook cleanup после preflight; rollback commit/commands проверены | devops-engineer | code-reviewer | `.github/workflows/ci.yml`, `.gitlab-ci.yml`, `Makefile`, `backend/testframework/**`, `testframework/stages/**`, `frontend/scripts/link-testframework-node-modules.mjs`, `.planning/audits/test-rebase/cutover.json` | Phase 140, cutover gates | 1–1.5д |
-| TASK-220 | Независимая final verification: full runners, coverage, inventory, docs/state/commands и post-test handoff | qa-auto-ver | team-lead | `.planning/evidence/test-rebase/141/**`, `.planning/COVERAGE.md`, `.planning/STATE.md`, `AGENTS.md`, `docs/{test_plan,TESTING,testframework_strategy,TROUBLESHOOTING}.md`, `testframework/python/README.md` | TASK-219 | 1д |
+| TASK-219 | Cutover + mandatory manifest-authorized legacy/hook cleanup после preflight; rollback commit/commands проверены | devops-engineer | code-reviewer | `.github/workflows/ci.yml`, `.gitlab-ci.yml`, `Makefile`, `backend/testframework/**`, `testframework/{stages,guides,pipeline}/**`, `frontend/playwright.config.ts`, `frontend/package*.json`, `frontend/scripts/link-testframework-node-modules.mjs`, `.planning/audits/test-rebase/cutover.json` | Phase 140, cutover gates | 1–1.5д |
+| TASK-220 | Независимая final verification: full runners, coverage, inventory, docs/state/commands и post-test handoff | qa-auto-ver | team-lead | `.planning/evidence/test-rebase/141/**`, `.planning/COVERAGE.md`, `.planning/STATE.md`, `AGENTS.md`, `docs/{test_plan,TESTING,testframework_strategy,TROUBLESHOOTING}.md`, `testframework/README.md` | TASK-219 | 1д |
 
 ## Волны
 
@@ -47,7 +52,9 @@ coverage/docs evidence.
 | Риск | Mitigation |
 |---|---|
 | Early destructive delete | Preflight gates + explicit allowlist/checksums; cleanup отдельным revertable commit |
-| Root framework удалён вместе с legacy | Delete entries, не `testframework/`; Python project и evidence защищены allowlist |
+| Root framework удалён вместе с legacy | Delete entries, не `testframework/`; корневой Python project и канонические каталоги защищены allowlist |
+| Legacy оставлен «на всякий случай» | Cutover FAIL, пока Go/Vitest/TS E2E tests/configs/entrypoints не удалены по allowlist |
+| Go component оказался в `backend/tests` | Ledger gate: только genuine unit; иначе Python replacement или refactor-before-move |
 | Go hook удалён механически | Search + ledger consumer=0 + domain regression + verifier |
 | Локальный green не повторяется в CI | Cutover требует real CI до и после cleanup; локальный run не заменяет его |
 | Rollback формален | Rehearsal восстанавливает old jobs/paths одним revert и подтверждает collection |

@@ -4,7 +4,9 @@
 
 ## [OUTCOME]
 
-All classified Go-unit/component rows for auth, rbac, audit, ws and calls run from `backend/tests/**` with dual-run parity, race safety and preserved coverage.
+Только доказанные service-free Go-unit rows auth, rbac, audit, ws и calls
+работают из `backend/tests/**`. Все component rows принадлежат TASK-227 и
+получают Python parity в этой же фазе.
 
 ## [ROLE]
 
@@ -16,7 +18,8 @@ All classified Go-unit/component rows for auth, rbac, audit, ws and calls run fr
 - Allowed: `backend/tests/{auth,rbac,audit,ws,calls}/**`, shared support и read-only hook ledger; hook-файлы не меняются.
 - Read-only: matching legacy tests/product.
 - Do not touch: legacy deletion, CI, other domains, product behavior.
-- Python-classified rows remain legacy until Python parity; do not relabel them Go unit for convenience.
+- DB/broker/network/process/HTTP component rows запрещено relabel как Go unit;
+  они остаются legacy до принятого TASK-227 Python replacement.
 - Depends on: TASK-209.
 
 ## [REFERENCES]
@@ -28,7 +31,8 @@ All classified Go-unit/component rows for auth, rbac, audit, ws and calls run fr
 
 - Completion command: `cd backend && go test -tags hubtest -race -count=1 ./tests/auth/... ./tests/rbac/... ./tests/audit/... ./tests/ws/... ./tests/calls/...`; exit code 0 и заявленные counts обязательны.
 
-- Every in-scope ledger row has target/parity state; old/new names, counts and assertions reconcile; missing/duplicate = 0.
+- Every in-scope unit row has target/parity state; component rows linked to
+  TASK-227; missing/duplicate/component-under-backend = 0.
 - Target and legacy domain commands pass `-tags hubtest -race -count=1`; affected coverage under frozen method has no unexplained regression.
 - Hooks processed symbol-by-symbol with zero-consumer evidence and `retain|candidate-for-TASK-219`; release build remains green, hooks retained.
 - Mutation proof: one security/lifecycle guard per domain REDs corresponding target test; restore all GREEN/diff-clean.

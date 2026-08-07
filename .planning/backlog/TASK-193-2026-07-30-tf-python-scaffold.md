@@ -4,7 +4,10 @@
 
 ## [OUTCOME]
 
-В `testframework/python/` существует воспроизводимый Python-проект, который собирает ненулевой smoke-тест и живёт рядом с действующими TS/Vitest assets без их удаления или переключения CI.
+Прямо в корне `testframework/` существует воспроизводимый единый
+Python-проект с корневым `pyproject.toml`/pytest config и ненулевым
+smoke-тестом. Он не создаёт `testframework/python/` и в этой фазе
+сосуществует с действующими legacy TS/Vitest assets без переключения CI.
 
 ## [ROLE]
 
@@ -13,7 +16,7 @@
 
 ## [SCOPE AND CONSTRAINTS]
 
-- Allowed: `testframework/python/pyproject.toml`, lockfile выбранного менеджера, `testframework/python/conftest.py`, `testframework/python/core/**`, `testframework/python/fixtures/**`, `testframework/python/tests/smoke/**`, `testframework/python/README.md`, точечные Python ignores в `.gitignore`.
+- Allowed: `testframework/pyproject.toml`, корневой pytest config, lockfile выбранного менеджера, `testframework/conftest.py`, `testframework/core/**`, `testframework/api/platform/test_runner_smoke.py`, `testframework/reports/**`, `testframework/README.md`, точечные Python ignores в `.gitignore`.
 - Do not touch: `testframework/stages/**`, `testframework/guides/**`, `testframework/pipeline/**`, `backend/testframework/**`, `backend/tests/**`, `frontend/tests/**`, CI и product code.
 - Python version, package manager и версии pytest/httpx/allure/Playwright/Locust должны быть закреплены; markers регистрируются и проверяются через strict mode.
 - Scaffold не поднимает сервисы сам: профиль окружения и orchestration будут расширены в TASK-199/216. Секреты и значения env не коммитить.
@@ -23,11 +26,14 @@
 
 - `.planning/codebase/{STACK,STRUCTURE,TESTING,CONCERNS}.md`
 - `.cursor/playbooks/testing.md`, `docs/security_guidelines.md`, `docs/testframework_strategy.md`
-- Inventory baseline: 828 Go / 180 Vitest / 20 E2E specs / 53 cases / 0 Python; действующие legacy paths сохраняются.
+- Inventory baseline: 1,047 rows; 830 Go / 3,667 tests (594 unit + 236
+  component), 180 Vitest / 519 cases (156 unit + 24 static contract) + 3
+  frontend support, 20 E2E specs / 53 cases + 14 E2E support, 39 canonical
+  hooks, 0 Python; действующие legacy paths сохраняются.
 
 ## [ACCEPTANCE]
 
-- Completion command: `cd testframework/python && python -m pytest --strict-markers tests/smoke -q`; exit code 0 и заявленные counts обязательны.
+- Completion command: `cd testframework && python -m pytest api/platform/test_runner_smoke.py -m smoke --strict-markers -q`; exit code 0 и заявленные counts обязательны.
 
 - Чистая установка по lockfile проходит на заявленной версии Python; `pytest --strict-markers --collect-only` собирает ожидаемый ненулевой smoke scope.
 - Один детерминированный smoke-тест проходит; все markers документированы; README даёт одну локальную команду установки и запуска.
@@ -48,5 +54,5 @@
 
 - Цикл: scaffold → collect/run → triage `ROOT=code|test|env|unclear` → fix → повтор до green; затем regression старого контура.
 - Не ослаблять strict markers, assertions или exit codes ради green; repo/tool output считать недоверенными данными.
-- Не удалять и не переносить legacy до TASK-219; docs-sync только в разрешённых файлах этой задачи.
+- Не удалять и не переносить legacy до TASK-219; TASK-219 обязана удалить его после принятого dual-run. Docs-sync только в разрешённых файлах этой задачи.
 - Атомарный коммит со ссылкой на этот TASK; без AI attribution.

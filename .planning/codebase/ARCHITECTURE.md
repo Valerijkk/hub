@@ -7,18 +7,18 @@
 **Overall:** Мультиязычная тестовая архитектура, физически разделённая между Go-модулем `backend/`, внешним TypeScript-деревом `testframework/stages/` и исполняемыми конфигурациями в `frontend/` и `.github/workflows/ci.yml`.
 
 **Key Characteristics:**
-- Backend-тесты оформлены как внешние Go-пакеты `*_test` внутри того же модуля `github.com/valerii/hub/backend`: 828 файлов находятся в `backend/testframework/`, ещё один тест — в `backend/cmd/server/wiring_fiber_recover_test.go`, а в `backend/internal/` тестов нет.
-- Frontend unit-тесты физически вынесены из `frontend/src/`: 180 файлов находятся в `testframework/stages/unit/frontend-test/domains/`, но запускаются из `frontend/` через `frontend/vite.config.ts`.
-- E2E — 20 TypeScript Playwright spec в `testframework/stages/e2e/domains/`; фактическая конфигурация и зависимости принадлежат `frontend/playwright.config.ts` и `frontend/package.json`.
+- Backend-тесты оформлены как внешние Go-пакеты `*_test` внутри того же модуля `github.com/valerii/hub/backend`: 829 файлов / 3,665 tests находятся в `backend/testframework/`, ещё один server test содержит 2 cases; total 830/3,667 и taxonomy 594 genuine unit + 236 component (31 API + 205 integration).
+- Frontend tests физически вынесены из `frontend/src/`: 180 файлов / 519 cases находятся в `testframework/stages/unit/frontend-test/domains/` (156 unit + 24 static contract), ещё 3 support rows — рядом; запускаются из `frontend/` через `frontend/vite.config.ts`.
+- E2E — 20 TypeScript Playwright specs / 53 cases в `testframework/stages/e2e/domains/` + 14 support rows; фактическая конфигурация и зависимости принадлежат `frontend/playwright.config.ts` и `frontend/package.json`.
 - Корневой `testframework/` сейчас не является Python-проектом: в нём нет `pyproject.toml`, `conftest.py` и файлов `*.py`; его 241 tracked-файл описывают старую pipeline-oriented схему.
-- Founder target для этого mapping: native test trees `backend/tests/**` и `frontend/tests/**`, а pytest + Playwright Python + integration/API/full/load — в корневом `testframework/`. Пути `backend/internal/<домен>/unit/` и `frontend/src/<модуль>/unit/` в `.planning/active/august-2026/05-AUGUST-DETAILED.md` и TASK-197/198 требуют docs sync до исполнения.
+- Founder target для этого mapping: units в `backend/tests/<domain>/**` и `frontend/tests/<domain>/**`, frontend support в `frontend/tests/support/**`, а единый Python QA-проект — прямо в корневом `testframework/`. Пути `backend/internal/<домен>/unit/` и `frontend/src/<модуль>/unit/` в `.planning/active/august-2026/05-AUGUST-DETAILED.md` и TASK-197/198 требуют docs sync до исполнения.
 
 ## Layers
 
 **Backend Go test layer (current):**
 - Purpose: Unit, handler, repository, schema и интеграционные проверки backend в одном дереве.
 - Location: `backend/testframework/`
-- Contains: 828 `*_test.go` и четыре support-файла: `backend/testframework/env/builder.go`, `backend/testframework/factory/user.go`, `backend/testframework/mongotest/setup.go`, `backend/testframework/steps/http.go`.
+- Contains: 829 `*_test.go` / 3,665 tests и четыре support-файла: `backend/testframework/env/builder.go`, `backend/testframework/factory/user.go`, `backend/testframework/mongotest/setup.go`, `backend/testframework/steps/http.go`.
 - Depends on: `backend/internal/**`, `backend/ent/**`, testify, Fiber test API, SQLite/Ent, MongoDB, Redis и NATS в зависимости от теста.
 - Used by: `.github/workflows/ci.yml` jobs `backend-test` и `coverage-gate`; declarative mirrors в `testframework/pipeline/jobs/backend-test.yaml` и `testframework/pipeline/jobs/coverage-gate.yaml`.
 
@@ -27,18 +27,18 @@
 - Location: 39 файлов `backend/internal/**/export_hooks.go`; всего 45 Go-файлов в `backend/internal/` имеют build constraint `//go:build hubtest`.
 - Contains: функции `Export*`, а также дополнительные tagged-файлы вроде `backend/internal/platform/middleware/export_requestid_hooks.go` и `backend/internal/tms/export_hooks_repo.go`.
 - Depends on: сборочный тег `hubtest` во всех канонических backend-командах.
-- Used by: 338 файлов в `backend/testframework/` содержат ссылки на `Export*`; 167 самих test-файлов также имеют `//go:build hubtest`.
+- Used by: 328 ledger rows имеют разрешённые hook consumers (889 links); 168 test-файлов также имеют `//go:build hubtest`.
 
 **Frontend Vitest layer (current):**
 - Purpose: API, stores, hooks, lib и React component tests.
 - Location: `testframework/stages/unit/frontend-test/domains/`
-- Contains: 180 test-файлов (60 `.test.ts`, 120 `.test.tsx`), `testframework/stages/unit/frontend-test/render.tsx` и точечные TypeScript fixtures/configs.
+- Contains: 180 test-файлов (60 `.test.ts`, 120 `.test.tsx`; 519 cases), из них 156 unit и 24 static contract; ещё 3 support rows (`render.tsx` + 2 fixtures).
 - Depends on: 171 test-файл импортирует production-код через alias `@/`; 18 используют `@testframework`; 62 используют общий renderer/query-client из `testframework/stages/unit/frontend-test/render.tsx`.
 - Used by: `frontend/vite.config.ts` с external include и alias, scripts `test`/`test:run` в `frontend/package.json`, job `frontend-test` в `.github/workflows/ci.yml`.
 
 **Playwright E2E layer (current):**
 - Purpose: Browser smoke и full critical-path regression.
-- Location: 20 spec в `testframework/stages/e2e/domains/`, 13 shared-файлов в `testframework/stages/e2e/shared/`.
+- Location: 20 specs / 53 cases в `testframework/stages/e2e/domains/`; 14 support rows (13 shared-файлов + `frontend/playwright.config.ts`).
 - Contains: Page Objects в `testframework/stages/e2e/shared/pages/`, Steps в `testframework/stages/e2e/shared/steps/`, availability/auth helpers в `testframework/stages/e2e/shared/fixtures.ts` и `testframework/stages/e2e/shared/helpers/`.
 - Depends on: `@playwright/test` из `frontend/node_modules`, dev-login/seed API из `testframework/stages/e2e/shared/helpers/auth.ts`, backend/frontend URLs.
 - Used by: `frontend/playwright.config.ts`, scripts `test:e2e*` в `frontend/package.json`, jobs `e2e-smoke`/`e2e-full` в `.github/workflows/ci.yml`.
@@ -52,14 +52,14 @@
 
 **Language-native unit trees (approved target, not implemented):**
 - Purpose: Отделить developer-owned Go/Vitest unit tests от независимого QA framework.
-- Location: founder target `backend/tests/**` и `frontend/tests/**`; оба каталога сейчас отсутствуют.
+- Location: founder target `backend/tests/<domain>/**`, `frontend/tests/<domain>/**` и `frontend/tests/support/**`; каталоги сейчас отсутствуют.
 - Contains: Go `*_test.go` и Go-only support под `backend/tests/`; Vitest `*.test.ts(x)` и frontend-only support под `frontend/tests/`.
 - Depends on: `backend/go.mod`/`backend/internal/**` для Go и `frontend/package.json`/`frontend/src/**` для TypeScript.
 - Used by: целевые language-native CI jobs; `.github/workflows/ci.yml`, `.planning/backlog/TASK-197-2026-07-30-tf-backend-units-colocated.md` и `.planning/backlog/TASK-198-2026-07-30-tf-frontend-units-colocated.md` ещё не синхронизированы с этими exact paths.
 
 **Python QA framework (approved target, not implemented):**
 - Purpose: Integration, API, system E2E, full-flow и load tests вне языковых unit-слоёв.
-- Location: целевые `testframework/{integration,api,e2e,full,load,fixtures}/`, `testframework/pyproject.toml`, `testframework/conftest.py` по `.planning/active/august-2026/05-AUGUST-DETAILED.md` и `.planning/backlog/TASK-193-2026-07-30-tf-python-scaffold.md`.
+- Location: целевые `testframework/{core,api,integration,contract,e2e,load,docker,reports}/`, `testframework/pyproject.toml` и корневой pytest config.
 - Contains: pytest fixtures, Playwright Python, Locust; сейчас эти пути отсутствуют.
 - Depends on: Docker-managed Postgres/Mongo и приложение через публичные API; Python-слой не должен импортировать Go packages или frontend source.
 - Used by: целевая отдельная CI job из `.planning/backlog/TASK-201-2026-07-30-tf-ci-cleanup.md`; такой job сейчас отсутствует в `.github/workflows/ci.yml`.
@@ -194,13 +194,13 @@ Use only these directions while the current topology is active. Do not add impor
 
 | Area | Current evidence | Approved target | Required seam |
 |---|---|---|---|
-| Go unit placement | 828 files in `backend/testframework/`; 0 in `backend/tests/` | Founder target `backend/tests/**`; repo plan still says `backend/internal/<domain>/unit/` in `.planning/active/august-2026/05-AUGUST-DETAILED.md` | Resolve mapping and sync TASK-197 before moving |
-| Frontend unit placement | 180 files in `testframework/stages/unit/frontend-test/domains/`; 0 under `frontend/tests/` | Founder target `frontend/tests/**`; repo plan still says `frontend/src/<module>/unit/` | Flip `frontend/vite.config.ts` include, add test type-check coverage and relocate shared renderer |
+| Go unit placement | 830 total (829 legacy root + 1 server); 594 classified genuine unit, 236 component; 0 in `backend/tests/` | Founder target `backend/tests/<domain>/**` only for units | Resolve mapping and sync TASK-197 before moving |
+| Frontend unit placement | 180 files (156 unit + 24 static contract) + 3 support; 0 under `frontend/tests/` | Founder target `frontend/tests/<domain>/**` + `frontend/tests/support/**` | Flip config/static gates and route contract rows to Python |
 | Root framework | 241 tracked legacy files; 0 Python files | Python project in `testframework/` | Scaffold alongside retained legacy assets, then cut over |
-| E2E source | 20 TS spec in `testframework/stages/e2e/domains/` | Playwright Python in `testframework/python/e2e/` | Port actual root specs, not `frontend/e2e/README.md` |
-| Integration classification | Unit/integration/API mixed in `backend/testframework/` | Python `testframework/python/integration/` and `testframework/python/api/` | Classify before moving; pattern counts overlap |
+| E2E source | 20 TS spec in `testframework/stages/e2e/domains/` | Playwright Python in `testframework/e2e/` | Port actual root specs, not `frontend/e2e/README.md` |
+| Integration classification | Unit/integration/API mixed in `backend/testframework/` | Python `testframework/integration/` and `testframework/api/` | Classify before moving; pattern counts overlap |
 | Load | No files/config under `testframework/load/` | Locust in `testframework/load/` | Add only local/scheduled execution per `TASK-200` |
-| CI | Go + Vitest + TS Playwright | language-native unit jobs + pytest job + scheduled load | Dual-run until parity; then delete old paths in `TASK-201` |
+| CI | Go + Vitest + TS Playwright | language-native unit jobs + pytest job + scheduled load | Dual-run owner: TASK-201. Legacy cleanup owner after parity: TASK-219 |
 
 ## Migration Decision Gates
 
@@ -211,7 +211,9 @@ Use only these directions while the current topology is active. Do not add impor
 
 **G2 — Test classification:**
 - `backend/testframework/` is not a pure unit layer: overlapping scans find 182 files using Ent test/open patterns, 27 with Postgres patterns, 12 with Mongo patterns, 60 with Redis patterns, 49 with NATS patterns and 259 with `httptest` patterns.
-- Classify by dependency before placement: mock/in-memory logic stays Go unit/component; container, real DB/broker/external service and whole-API flow belongs to Python `testframework/python/integration/` or `testframework/python/api/` per `.planning/backlog/TASK-199-2026-07-30-tf-integration-python.md`.
+- Classify by direct and transitive dependency before placement: only
+  service-free logic stays Go unit; DB/broker/network/process/whole-API flow
+  belongs to Python `testframework/integration|api|contract/`.
 
 **G3 — Source path authority:**
 - Actual E2E source is `testframework/stages/e2e/domains/`; `frontend/e2e/` contains only a tracked README and points to stale `testframework/e2e/`.
@@ -220,7 +222,7 @@ Use only these directions while the current topology is active. Do not add impor
 
 **G4 — Destructive cleanup:**
 - `TASK-193` permits replacing old root contents, while `TASK-195`, `TASK-198` and `TASK-199` still need files under `testframework/stages/`.
-- Before TASK-193 cleanup, create an explicit keep/migration manifest for `testframework/stages/e2e/**` and `testframework/stages/unit/frontend-test/**`. Final deletion belongs to `.planning/backlog/TASK-201-2026-07-30-tf-ci-cleanup.md` after parity.
+- Before TASK-193 scaffold, create an explicit keep/migration manifest for `testframework/stages/e2e/**` and `testframework/stages/unit/frontend-test/**`. Final deletion belongs only to TASK-219 after verified parity.
 
 ## Safe Migration Order
 
@@ -230,13 +232,13 @@ Use only these directions while the current topology is active. Do not add impor
 4. Add shared Python auth/data fixtures before porting E2E; keep `frontend/playwright.config.ts` and TS E2E green during the transition.
 5. Port the 20 actual spec from `testframework/stages/e2e/domains/` file by file, preserve POM/Step assertions, and dual-run until parity.
 6. Move true Go units domain by domain; replace integration/API cases in Python before deleting their Go originals. Keep `-tags hubtest` until the last dependent `Export*` reference is gone.
-7. Move the 180 Vitest files into `frontend/tests/**` by system-under-test, not only by current domain folder; split cross-domain tests and update `frontend/vite.config.ts`, `frontend/tsconfig.json` (или отдельный test tsconfig) and shared renderer imports together.
-8. Add Python integration/API/full and Locust layers; load runs remain local/scheduled as required by `.planning/backlog/TASK-200-2026-07-30-tf-locust-load.md`.
+7. Move the 156 frontend-unit rows into `frontend/tests/<domain>/**`, 3 support rows into `frontend/tests/support/**`, and route 24 static-contract rows to Python; update config/static gates atomically.
+8. Add Python integration/API and Locust layers; full is a selection marker, and load runs remain local/scheduled as required by TASK-200.
 9. Switch `.github/workflows/ci.yml`, `.gitlab-ci.yml`, `Makefile`, `frontend/package.json` and docs only after every replacement job fails on a deliberate sentinel test and passes without it; then remove legacy paths and junction creation.
 
 ## Reproducibility
 
-Snapshot: branch `cursor-grok-4.5`, HEAD `f7fbdd7e`, workspace test areas clean, measured 2026-08-07.
+Snapshot: HEAD `ee6d696c`, measured 2026-08-07; ledger SHA-256 `01dae4e2…`.
 
 Run from repository root; `rg --files` respects `.gitignore`, and the explicit globs exclude generated/vendor dependency trees:
 
@@ -250,7 +252,7 @@ Run from repository root; `rg --files` respects `.gitignore`, and the explicit g
 @(git ls-files -- testframework).Count
 ```
 
-Expected counts for this snapshot: `828`, `0`, `180`, `20`, `0`, `39`, `241`.
+Expected counts for this snapshot: `830`, `0`, `180`, `20`, `0`, `39`, `241`; ledger total `1,047`, SHA-256 `01dae4e2…`.
 
 ---
 

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://hub.local/schemas/test-rebase-inventory-v1.json",
+  "$id": "https://hub.local/schemas/test-rebase-inventory-v2.json",
   "title": "Hub test-rebase source inventory",
   "type": "object",
   "required": [
@@ -14,7 +14,7 @@
     "hooks"
   ],
   "properties": {
-    "schema_version": { "const": 1 },
+    "schema_version": { "const": 2 },
     "tool_version": { "type": "string" },
     "revision": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
     "roots": { "type": "object" },
@@ -58,7 +58,15 @@
       "properties": {
         "source_path": { "type": "string" },
         "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
-        "runner": { "enum": ["go-test", "vitest", "playwright-ts"] },
+        "runner": {
+          "enum": [
+            "go-test",
+            "vitest",
+            "vitest-support",
+            "playwright-ts",
+            "playwright-support-ts"
+          ]
+        },
         "domain": { "type": "string" },
         "owner_wave": {
           "type": "string",
@@ -66,12 +74,17 @@
             "P130/TASK-206",
             "P131/TASK-207",
             "P131/TASK-208",
+            "P131/TASK-230",
             "P133/TASK-210",
             "P133/TASK-211",
+            "P133/TASK-227",
             "P134/TASK-212",
             "P134/TASK-213",
+            "P134/TASK-228",
             "P135/TASK-214",
             "P135/TASK-215",
+            "P135/TASK-229",
+            "P137/TASK-194",
             "P138/TASK-195",
             "P138/TASK-196"
           ]
@@ -89,7 +102,19 @@
         },
         "service_hints": { "type": "array", "items": { "type": "string" } },
         "dependency_hints": { "type": "array", "items": { "type": "string" } },
-        "target_class": { "enum": ["go-unit", "go-component", "frontend-unit", "python-e2e"] },
+        "target_class": {
+          "enum": [
+            "go-unit",
+            "python-api",
+            "python-integration",
+            "python-contract",
+            "frontend-unit",
+            "python-static-contract",
+            "frontend-support",
+            "python-e2e",
+            "python-e2e-support"
+          ]
+        },
         "target_path": { "type": "string" },
         "coverage_bearing": { "type": "boolean" },
         "hook_consumers": {

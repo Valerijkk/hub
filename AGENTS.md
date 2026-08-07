@@ -10,7 +10,7 @@
 
 **Roadmap v4:** `.planning/milestones/v4-super-app/SUMMARY.md` · Vision: `.planning/decisions/specs/PLATFORM-VISION-v4.md`
 
-Монорепо: `backend/` (Go, **87 Ent schemas**) + `frontend/` (React) + `cli/` + `deployments/` + **`testframework/`** (legacy E2E + Vitest; Python target в миграции)
+Монорепо: `backend/` (Go, **87 Ent schemas**) + `frontend/` (React) + `cli/` + `deployments/` + **`testframework/`** (текущие legacy Vitest/TS E2E; цель — единый Python QA-проект в корне каталога)
 
 ### Расположение тестов (pipeline-aligned)
 
@@ -28,9 +28,12 @@
 
 **Test architecture rebase (IN PROGRESS, 2026-08-07):** текущие entrypoints
 выше остаются исполняемым каноном до dual-run/cutover. Цель фаз 128–141:
-`backend/tests/**` (Go), `frontend/tests/**` (Vitest/RTL),
-`testframework/python/**` (pytest/httpx/Playwright) и `testframework/load/**`
-(Locust). До Phase 141 legacy не удаляется. План:
+`backend/tests/**` (только Go unit), `frontend/tests/**` (только
+Vitest/RTL unit) и единый Python-проект прямо в `testframework/`:
+`{core,api,integration,contract,e2e,load,docker,reports}/**`,
+`testframework/pyproject.toml` и корневой pytest config. После
+верифицированного dual-run Phase 141 обязана удалить legacy
+Go/Vitest/TS E2E и их entrypoints; это не целевые слои. План:
 `.planning/active/august-2026/06-TEST-ARCHITECTURE-REBASE.md`.
 
 ---
@@ -143,22 +146,23 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 | Волна 1 (roadmap 2026-07-03) | ✅ merged to `master` by user 2026-07-11 |
 | July Rebuild / QA-HARDENING | 📋 planning · kickoff ~конец июля |
 | AI quality layer / GSD / portable kit | **Touchstone** Standard `0.4.0-beta.1` + Pro `0.3.0-beta.1` foundation-ready · structural PASS · paired eval NOT_RUN |
-| Test architecture rebase (Ph 128–141) | 🚧 Phase 128 IN PROGRESS · TASK-202 verifier loop · no tests moved |
+| Test architecture rebase (Ph 128–141) | 🚧 Phase 128 IN PROGRESS · TASK-202 ledger verified · TASK-203 E2E baseline pending · no tests moved |
 
 ### Метрики качества
 
 | Метрика | Значение |
 |---------|----------|
-| COV overall | **83.0%** (2026-06-22 Docker baseline) |
-| Security packages ≥80% | **6/6** ✅ (2026-06-22 Docker baseline) |
-| auth / ws / rbac / audit / calls | 82.4% / 87.7% / 84.7% / 80.5% / 80.2% (2026-06-22 Docker baseline) |
+| COV overall | **82.0373%** ✅ (2026-08-07 Docker Go 1.25 baseline) |
+| Security packages ≥80% | **6/6** ✅ (2026-08-07 Docker Go 1.25 baseline) |
+| auth / ws / rbac / audit / calls | 80.6110% / 92.0993% / 87.0801% / 85.6879% / 82.6698% (2026-08-07) |
 | tracker / messenger / notification / tms / project | 82.4% / 82.3% / 82.5% / 82.0% / 82.0% (2026-06-22 Docker baseline) |
 | Product score | **89/100** |
 | REST API | **286+** endpoints |
 | Ent schemas | **82** |
-| Backend tests (`testframework/`) | **828** files / **3,663** declared tests · 0 in target `backend/tests/` (measured 2026-08-07) |
-| Vitest | **180** files / **517** literal cases (`stages/unit/frontend-test/`; measured 2026-08-07) |
-| Playwright E2E | **20** specs / **53** declared cases |
+| Test-rebase ledger | **1,047** source rows · SHA-256 `01dae4e2…` (HEAD `ee6d696c`, measured 2026-08-07) |
+| Backend tests | **830** total / **3,667** declared: **829 / 3,665** в legacy `backend/testframework/` + **1 / 2** server test; taxonomy total = **594** genuine unit + **236** component (**31** API + **205** integration) |
+| Vitest | **180** files / **519** literal cases: **156** frontend unit + **24** static contract; **3** additional frontend support rows |
+| Playwright E2E | **20** specs / **53** declared cases + **14** E2E support rows |
 | qa-gate (FA-10) | build ✅ · hubtest ✅ · race ✅ · Biome ✅ · e2e-smoke **3/3** ✅ |
 
 ### Следующие шаги
@@ -170,7 +174,7 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 | Wave C final audit FA-01–FA-12 | ✅ COMPLETE (кроме FA-06 manual) |
 | FA-10 e2e-smoke | ✅ 3/3 PASS |
 | PG-03 Secret rotation (FA-06) | ⏳ manual ops — **единственный prod-блокер** |
-| Test-rebase Phase 128 | 🚧 TASK-202 inventory → verifier repair; TASK-203 service baseline blocked locally (Docker unavailable) |
+| Test-rebase Phase 128 | 🚧 TASK-202 inventory verified; TASK-203 backend/frontend baseline green, E2E isolated application/auth-seed baseline pending |
 | Merge Волна 1 → master | ✅ user merged 2026-07-11 |
 | July return / CAL-SYNC / QA-HARDENING / Redesign | 📋 planning → kickoff ~конец июля |
 | AI-layer paired pilot / physical empty-repo installation | ⏳ pre-release acceptance; package build/validation PASS |
@@ -211,7 +215,7 @@ docker compose -f docker-compose.local.yml up -d
 
 # Backend regression (local)
 # ВАЖНО: -tags hubtest обязателен — export_hooks.go (39 файлов) под этим тегом,
-# без него testframework не компилируется. До cutover все 828 Go test files
+# без него testframework не компилируется. До cutover все 829 legacy Go test files
 # остаются в backend/testframework/ (measured 2026-08-07).
 cd backend && go build -tags release ./... && go vet ./... \
   && go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...
@@ -234,4 +238,4 @@ cd frontend && node scripts/link-testframework-node-modules.mjs && npx tsc --noE
 
 ---
 
-*Обновлено: 2026-08-07 — team-lead onboarding, cost-aware model routing, protected Opus zone*
+*Обновлено: 2026-08-07 — root Python testframework contract, team-lead onboarding, cost-aware model routing, protected Opus zone*

@@ -77,4 +77,19 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 & $pythonExecutable @pythonPrefix $inventory --self-test
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+}
+
+$planningContracts = Join-Path $PSScriptRoot 'validate_planning_contracts.py'
+if (-not (Test-Path -LiteralPath $planningContracts -PathType Leaf)) {
+    throw "Planning-contract validator not found: $planningContracts"
+}
+
+& $pythonExecutable @pythonPrefix $planningContracts --self-test
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+}
+
+& $pythonExecutable @pythonPrefix $planningContracts
 exit $LASTEXITCODE

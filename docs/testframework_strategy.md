@@ -76,10 +76,12 @@ Go-тесты физически живут в `backend/testframework/` (не в
 
 | Метрика | Значение |
 |---------|----------|
-| Backend test files | **828** `_test.go` / **3,663** declared tests (0 в target `backend/tests/`) |
+| Ledger | **1,047** source rows; SHA-256 `01dae4e2…`; `unmapped = 0` |
+| Backend test files | **830** total / **3,667** declared: legacy `backend/testframework/` 829/3,665 + server 1/2; taxonomy 594 genuine unit + 236 component (31 API + 205 integration); 0 в target `backend/tests/` |
 | Backend `export_hooks.go` | **39** canonical + 4 fragments; deletion only TASK-219 |
-| Frontend Vitest | **180** files / **517** literal cases (`stages/unit/frontend-test/`) |
-| Playwright E2E | 20 specs / 53 declared cases (smoke: 3 specs) |
+| Frontend Vitest | **180** files / **519** literal cases: 156 frontend unit + 24 static contract |
+| Frontend support | **3** source rows → `frontend/tests/support/**` |
+| Playwright E2E | 20 specs / 53 declared cases (smoke: 3 specs) + 14 support rows |
 | Target Python tests | **0** до Phase 129 |
 | Statement coverage `internal/` | **UNKNOWN pending TASK-203**; gate ≥82% не ослаблен |
 | Security-пакеты (auth/ws/rbac/audit/calls + platform) | 6/6 ≥80% |
@@ -121,47 +123,46 @@ cd frontend && npm run test:e2e         # 20 spec, нужен backend
 
 | Слой | Язык/стек | Где живёт | Кто пишет |
 |------|-----------|-----------|-----------|
-| Unit/component backend | **Go** | `backend/tests/{domain}/` | be1/be2 |
-| Unit/component frontend | **TypeScript** (Vitest + RTL) | `frontend/tests/{module}/` | fe1/fe2 |
-| Integration / API / contract / smoke / regression / E2E | **Python**: pytest + allure-pytest + httpx (API) + playwright-python (E2E) + pytest-xdist (параллелизм) | `testframework/python/` — по доменам/сервисам | qa-auto1/qa-auto2 **по верифицированным TC** |
-| Нагрузочные | **Python: Locust** (те же фикстуры/фабрики, что pytest-слой) | `testframework/load/` | qa-auto1/qa-auto2 |
+| Unit backend | **Go** | `backend/tests/{domain}/` | be1/be2 |
+| Unit frontend | **TypeScript** (Vitest + RTL) | `frontend/tests/{domain}/`; support в `frontend/tests/support/` | fe1/fe2 |
+| Integration / API / contract / smoke / regression / E2E | **Python**: pytest + allure-pytest + httpx (API) + playwright-python (E2E) + pytest-xdist (параллелизм) | `testframework/{api,integration,contract,e2e}/` в едином корневом Python-проекте | qa-auto1/qa-auto2 **по верифицированным TC** |
+| Нагрузочные | **Python: Locust** (общий `core` с pytest-слоем) | `testframework/load/` в том же Python-проекте | qa-auto1/qa-auto2 |
+
+`backend/tests/**` принимает только genuine Go unit tests. Текущие
+**236** `go-component` rows (31 API + 205 integration) нельзя механически
+переносить туда: каждая строка
+либо переезжает в Python `api/integration/contract`, либо сначала
+рефакторится в настоящий isolated unit с verifier-approved evidence.
 
 Обоснование выбора Python: стандарт индустрии QA-автоматизации (нанимаемость ручников и автоматизаторов), allure-pytest — самая зрелая Allure-интеграция (стыкуется с Hub TMS напрямую), отделение QA-слоя от языков продакшена соответствует модели «юниты пишут разработчики, остальное — QA-конвейер».
 
 ### 3.2. Структура каталогов Python-фреймворка
 
-Раскладка по доменам/сервисам (после микросервисного split — по сервисам), детальная спека — план TF-PY-01:
+Это **один Python-проект прямо в корне `testframework/`**, без
+`testframework/python/` и без вложенных самостоятельных проектов.
+Раскладка по слоям и доменам:
 
 ```
 testframework/
-├── python/
-│   ├── pyproject.toml            # зависимости: pytest, allure-pytest, httpx,
-│   │                             # playwright, pytest-xdist, pydantic (схемы)
-│   ├── pytest.ini                # маркеры: smoke, regression, contract, e2e
-│   ├── conftest.py               # корень: env, base_url, auth-фикстуры (session-scope)
-│   ├── core/                     # общий слой (аналог env.Builder + factory)
-│   │   ├── client.py             # httpx-клиент с auth, request_id, ретраями
-│   │   ├── factories.py          # фабрики данных (user, project, issue, channel…)
-│   │   └── allure_helpers.py     # tms-link/AS_ID хелперы
-│   ├── api/                      # API/integration-тесты
-│   │   ├── conftest.py           # фикстуры уровня API (seed, cleanup)
-│   │   ├── auth/  tracker/  tms/  messenger/  calls/  notification/  ai/ ...
-│   ├── contract/                 # contract-тесты NATS-событий
-│   │   └── events/               # валидация против contracts/events/*.json
-│   ├── e2e/                      # playwright-python
-│   │   ├── conftest.py           # browser, storage_state (логин 1 раз)
-│   │   ├── pages/                # POM
-│   │   ├── steps/
-│   │   └── domains/{auth,admin,tracker,...}/
-│   └── smoke/                    # быстрый смоук поверх api/e2e-маркеров
-└── load/                         # Locust (вне pytest-прогона)
-    ├── locustfile.py
-    ├── scenarios/                # по доменам: ws_connect.py, auth_flow.py,
-    │                             # board_api.py, messenger_throughput.py, allure_import.py
-    └── shared/                   # переиспользует core/factories
+├── pyproject.toml              # единые dependencies/tooling и pytest config
+├── pytest.ini                  # опциональный config вместо [tool.pytest.ini_options]
+├── conftest.py                 # корневой env/base_url; один runner
+├── core/                       # client, settings, factories, shared fixtures, Allure helpers
+├── api/                        # HTTP/API tests по доменам
+├── integration/                # PostgreSQL/Mongo/Redis/NATS/storage/provider boundaries
+├── contract/                   # schemas/events и fixture contracts
+├── e2e/                        # playwright-python, POM/steps/domains
+├── load/                       # Locust scenarios; исполняемый тоже только Python
+├── docker/                     # изолированные test-service profiles/orchestration
+└── reports/                    # sanitized generated reports/artifact metadata
 ```
 
-Принципы conftest-иерархии: дорогие фикстуры (auth-токен, browser) — session-scope в корне; доменные (seed проекта, канала) — на уровне домена; изоляция данных — factory с uuid-суффиксами, никакого общего состояния между тестами. POM для playwright-python повторяет текущую структуру `pages/` + `steps/`.
+Корневой `conftest.py` содержит только общие fail-closed настройки;
+browser и доменные fixtures живут в своём слое. Общие
+фабрики/fixtures хранятся в `core/`, а не в отдельном корневом
+`fixtures/`. Smoke/full — pytest markers и CI selection, а не отдельные
+проекты или каталоги. После Phase 141 в `testframework/**` не остаётся
+исполняемого Go/Vitest/TypeScript E2E-кода.
 
 ### 3.3. Нагрузочные: Locust и SLO
 
@@ -279,7 +280,7 @@ Gate живёт в CI (`coverage-gate`); падение ниже порога б
 
 ### 6.3. Contract-тесты
 
-Все NATS-события версионируются JSON-схемами в `contracts/events/*.json` (реестр — план M0-02). Contract-слой (`testframework/python/contract/`) проверяет **обе стороны**: publisher сериализует по схеме, consumer принимает все версионные вариации. Ломающее изменение схемы без версии = красный CI. Это ворота микросервисного split: сервисы общаются только через проверенные контракты.
+Все NATS-события версионируются JSON-схемами в `contracts/events/*.json` (реестр — план M0-02). Contract-слой (`testframework/contract/`) проверяет **обе стороны**: publisher сериализует по схеме, consumer принимает все версионные вариации. Ломающее изменение схемы без версии = красный CI. Это ворота микросервисного split: сервисы общаются только через проверенные контракты.
 
 ### 6.4. Топология E2E
 
@@ -304,18 +305,22 @@ Gate живёт в CI (`coverage-gate`); падение ниже порога б
 
 ## 7. План миграции — фаза TF-PY
 
-**Предусловие (Depends on):** микросервисный split Track P **M2–M4 завершён** (пилот hub-notification → hub-ai → realtime-трио). Исключение — Locust-baseline, который заводится раньше (§3.3).
+**Предусловие (Depends on):** Phase 128 приняла baseline,
+inventory и coverage contract. Микросервисный split не является prerequisite.
 
 | План | Содержание | Ворота |
 |------|------------|--------|
 | TF-PY-01 | Спека структуры Python-фреймворка (sa + qa-auto): раскладка по доменам/сервисам, conftest-иерархия, фикстуры, фабрики, POM для playwright-python, Allure-аннотации с TC-ID | sa-ver + qa-auto-ver |
-| TF-PY-02 | Каркас: pyproject, pytest.ini, базовые фикстуры (auth/env/данные), allure-pytest конфиг, CI-job | Каркас гоняется в CI на пустом наборе |
+| TF-PY-02 | Каркас прямо в `testframework/`: корневой pyproject/pytest config, базовые fixtures в `core/`, allure-pytest config | Чистая установка + ненулевой smoke; CI добавляется в dual-run фазе |
 | TF-PY-03..NN | Миграция по доменам: API-тесты каждого сервиса/домена (notification, ai, ws/messenger/calls, core-домены) — **один атомарный план на домен** | Паритет сценариев с Go-integration слоем домена |
 | TF-PY-E2E | Перенос Playwright-спеков TS → playwright-python (POM/steps), сохранение smoke/full-разбиения | Паритет 20 spec; smoke стабилен на PR |
 | TF-PY-LOAD | Locust-сценарии в `testframework/load/` с целями SLO (§3.3); nightly/pre-release; **baseline — раньше фазы, до выноса realtime** | Baseline 500 WS зафиксирован в COVERAGE.md |
 | TF-PY-ALLURE | Сквозная привязка TC↔автотест (tms-link/AS_ID) + автозаливка в Hub TMS webhook'ом из CI | Результаты прогона видны в TMS, unmapped → 0 |
 
-**Ворота фазы целиком:** паритет покрытия сценариев со старым слоем **до** удаления TS-E2E/Go-integration дублей; тайминги прогонов зафиксированы; CI-бюджет соблюдён. До завершения TF-PY действует текущий стек (§2) — рабочие практики в `.cursor/playbooks/testing.md`.
+**Ворота фазы целиком:** паритет покрытия сценариев со старым слоем **до**
+удаления legacy Go/Vitest/TS E2E; тайминги зафиксированы; CI-бюджет
+соблюдён. После успешного dual-run Phase 141 обязана удалить эти
+исполняемые legacy слои и оставить `testframework/**` единым Python-проектом.
 
 ---
 
@@ -355,4 +360,5 @@ Gate живёт в CI (`coverage-gate`); падение ниже порога б
 | CI jobs / бюджет минут | devops-engineer | qa-auto-ver / security-auditor |
 | Эта стратегия и её drift | docs-writer | product-ver |
 
-*Обновлено: 2026-07-03 — первая версия (DOC-04 ⚡, эпик DOCS-EXCELLENCE).*
+*Обновлено: 2026-08-07 — единый root `testframework/` Python contract,
+Go/Vitest unit-only targets и mandatory legacy cutover cleanup.*

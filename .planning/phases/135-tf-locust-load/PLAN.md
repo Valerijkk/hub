@@ -6,9 +6,9 @@
 
 ## Цель (goal)
 
-Завершить domain-by-domain disposition backend inventory: business domains и
-оставшиеся AI/search/storage/integration packages получают Go-native target или
-явный Python parity dependency.
+Завершить domain-by-domain disposition backend inventory: genuine units
+получают `backend/tests/**`, а business/integration components — выполненный
+Python replacement в корневом framework.
 
 ## Depends on
 
@@ -18,8 +18,8 @@
 
 - [ ] Calendar/intranet/accounting/crm/hr/bases/dashboard scope принят.
 - [ ] AI/search/storage/backup/imex/github/gitlab/onec/marketplace/mail scope принят.
-- [ ] Backend inventory `unmapped = 0` и `PARITY_REQUIRED = 0` для Go-wave scope;
-  Python candidates блокируют deletion до 136.
+- [ ] Backend inventory `unmapped = 0`; component rows не находятся в
+  `backend/tests/**` и имеют Python parity этой фазы.
 - [ ] Legacy и native Go jobs green; общий Go coverage остаётся ≥82% по
   принятому TASK-203/204 contract; hooks ещё live.
 
@@ -29,21 +29,24 @@
 |---|---|---|---|---|---|---:|
 | TASK-214 | Business wave: calendar/intranet/accounting/crm/hr/bases/dashboard | be1 | be-ver | `backend/tests/{calendar,intranet,accounting,crm,hr,bases,dashboard}/**`, `.planning/audits/test-rebase/inventory.json`, `.planning/evidence/test-rebase/135/business/**` | Phase 134 | 1–1.5д |
 | TASK-215 | AI/search/storage/backup/imex/github/gitlab/onec/marketplace/mail wave | be2 | be-ver | `backend/tests/{ai,search,storage,backup,imex,github,gitlab,integrations/onec,marketplace,mail}/**`, `.planning/audits/test-rebase/hooks.json`, `.planning/evidence/test-rebase/135/integrations/**` | Phase 134 | 1–1.5д |
+| TASK-229 | Business/integrations API/integration/contract component parity в Python | qa-auto1 | qa-auto-ver | `testframework/{api,integration,contract}/{calendar,intranet,accounting,crm,hr,bases,dashboard,ai,search,storage,backup,imex,github,gitlab,onec,marketplace,mail}/**` | TASK-193/205/214/215 | 1–2д |
 
 ## Волны
 
-- Wave 1: TASK-214 и TASK-215 параллельно.
-- Wave 2: полный backend legacy/native inventory и coverage reconciliation.
+- Wave 1: TASK-214 и TASK-215 unit batches.
+- Wave 2: TASK-229 получает frozen classification/assertion handoff.
+- Wave 3: полный backend legacy/native/Python inventory и coverage reconciliation.
 
 ## Риски
 
 | Риск | Mitigation |
 |---|---|
 | Provider tests зависят от сети/secrets | Deterministic local doubles для unit; real boundary → Phase 136 |
-| Business DB semantics потеряны | PostgreSQL-sensitive rows → Python integration с same invariant |
+| Business DB semantics потеряны | PostgreSQL-sensitive rows → TASK-229 Python integration с same invariant |
 | Mechanical volume >3 days | Никакого false-complete: stop, evidence и replan до Phase 140 |
 
 ## Verification
 
 - `be-ver`: все затронутые Go packages, race, coverage, consumer ledger.
-- `qa-auto-ver`: полный backend `unmapped = 0`; каждый non-Go row связан с 136.
+- `qa-auto-ver`: полный backend `unmapped = 0`; каждый non-unit row имеет
+  выполненный Python replacement либо явный BLOCKED evidence.

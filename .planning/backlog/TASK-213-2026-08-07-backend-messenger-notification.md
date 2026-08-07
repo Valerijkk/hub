@@ -4,7 +4,9 @@
 
 ## [OUTCOME]
 
-Classified Go-unit/component rows for messenger and notification run from `backend/tests/**` with legacy parity, race safety, coverage preservation and explicit integration handoff.
+Только genuine Go units messenger и notification работают из
+`backend/tests/**`; Mongo/NATS/provider components получают Python parity
+TASK-228 в этой же фазе.
 
 ## [ROLE]
 
@@ -15,7 +17,8 @@ Classified Go-unit/component rows for messenger and notification run from `backe
 
 - Allowed: `backend/tests/{messenger,notification}/**`, shared support и read-only hook ledger; hook-файлы не меняются.
 - Read-only: matching legacy/product source. Do not touch: legacy deletion, CI, other domains, product behavior.
-- Mongo/NATS/provider/whole-API rows stay legacy until Python parity; no external live providers.
+- Mongo/NATS/provider/whole-API rows stay legacy until TASK-228 parity; no
+  external live providers и никакого component-under-backend.
 - Depends on: TASK-210, TASK-211.
 
 ## [REFERENCES]

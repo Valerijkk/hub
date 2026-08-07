@@ -18,7 +18,7 @@
 - Do not touch: code/tests/CI, phase PLANs, active plan, STATE, ROADMAP, protected external zone.
 - Contract фиксирует `backend/tests/**` external-package semantics, `frontend/tests/**` static gates, standalone Python root, dual-run, cleanup only TASK-219, hook removal consumer-by-consumer.
 - Coverage: Python black-box не входит в Go `coverpkg`; сохранить достаточный Go coverage либо вынести изменение метода/порога на explicit owner decision. Silent redefinition запрещён.
-- Depends on: TASK-202, TASK-203.
+- Depends on: TASK-202, TASK-203, TASK-226.
 
 ## [REFERENCES]
 
@@ -31,7 +31,10 @@
 - Completion command: `pwsh -NoProfile -File .planning/audits/test-rebase/validate-contract.ps1`; exit code 0 и заявленные counts обязательны.
 
 - ADR содержит taxonomy decision tree, path/package rules, job→paths/services/markers/timeouts/artifacts, parity states, skip policy, rollback and deletion gates.
-- Каждая из 828/180/20/53 categories имеет допустимый target route; ambiguous patterns (`ent`, `platform`, `onec`, support) разобраны явно.
+- Все 1,047 rows имеют допустимый target route: 830 Go (594 unit + 236
+  component: 31 API + 205 integration), 180 Vitest (156 unit + 24 static
+  contract), 3 frontend support, 20 E2E specs / 53 cases и 14 E2E support;
+  ambiguous patterns (`ent`, `platform`, `onec`, support) разобраны явно.
 - Coverage contract определяет неизменную before/after command, ≥82% rule, frontend dated baseline, Python behavioral metric и owner-approval boundary.
 - Contract review checklist/validator намеренно получает invalid route или silent-threshold change и отклоняет его; restore PASS. Production mutation N/A: architecture/planning-only.
 - Regression: N/A — docs/planning-only; code/test/CI diff отсутствует.

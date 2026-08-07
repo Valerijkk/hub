@@ -8,9 +8,9 @@
 
 | Boundary | Current owner | Current transport | Current gap |
 |----------|---------------|-------------------|-------------|
-| Go test execution | `backend/testframework/` | `go test` from `.github/workflows/ci.yml` | Unit and integration levels are mixed; PostgreSQL requirements exceed the `backend-test` service set |
-| Frontend unit execution | `testframework/stages/unit/frontend-test/` | Vitest borrowed from `frontend/node_modules` | Cross-root junction required by `frontend/scripts/link-testframework-node-modules.mjs` |
-| Browser E2E | `testframework/stages/e2e/` | Playwright borrowed from `frontend/package.json` | Root framework has no independent runtime/package contract |
+| Go test execution | legacy root + server | `go test` from `.github/workflows/ci.yml` | 830 files / 3,667 tests: root 829/3,665 + server 1/2; 594 unit + 236 component |
+| Frontend unit execution | `testframework/stages/unit/frontend-test/` | Vitest borrowed from `frontend/node_modules` | 180 files / 519 cases: 156 unit + 24 static contract; 3 support rows |
+| Browser E2E | `testframework/stages/e2e/` | Playwright borrowed from `frontend/package.json` | 20 specs / 53 cases + 14 support rows; no independent runtime contract |
 | System integration | Split across `backend/testframework/` and `testframework/stages/e2e/` | Go integration helpers plus TypeScript Playwright | No pytest orchestration layer in `testframework/` |
 | Test reporting | GitHub artifacts, Playwright HTML, console output | GitHub Actions artifact upload | No cross-runner JUnit/Allure merge or TMS publication |
 | CI metadata | `testframework/pipeline/jobs/*.yaml` | None | Metadata is not consumed by `.github/workflows/ci.yml` or `.gitlab-ci.yml` |
@@ -119,7 +119,7 @@
 - `lighthouse` - non-PR, non-blocking artifact job; source `.github/workflows/ci.yml`.
 
 **Pipeline contract drift:**
-- `.gitlab-ci.yml` backend job omits `-tags hubtest` and targets `./...`, so it does not intentionally execute the 828-test root at `backend/testframework/`.
+- `.gitlab-ci.yml` backend job omits `-tags hubtest` and targets `./...`, so it does not intentionally execute the 829-test legacy root at `backend/testframework/`.
 - `.gitlab-ci.yml` frontend job omits `frontend/scripts/link-testframework-node-modules.mjs`; its lint command is allowed to fail, unlike GitHub Actions.
 - `.gitlab-ci.yml` smoke job refers to stale `frontend/e2e/*.spec.ts` paths rather than `testframework/stages/e2e/domains/`.
 - `testframework/pipeline/stages.yaml` refers to `build` and `lighthouse`, but `testframework/pipeline/jobs/` contains only `backend-test.yaml`, `frontend-test.yaml`, `e2e-smoke.yaml`, `e2e-full.yaml`, and `coverage-gate.yaml`.
@@ -153,8 +153,10 @@
 
 **Native unit jobs:**
 - `backend/tests/` and `frontend/tests/` do not yet exist at the analyzed revision; all target job/path definitions are prospective.
-- `backend/tests/**` owns Go unit/component tests and remains inside the `backend` Go module so it can legally import `backend/internal/*`; its CI entry point should explicitly target `./tests/...` and define whether `hubtest` hooks remain.
-- `frontend/tests/**` owns Vitest/RTL tests inside the `frontend` npm package; `frontend/vite.config.ts`, `frontend/tsconfig.json`, and the Biome command must cover this tree directly without junctions.
+- `backend/tests/<domain>/**` owns only service-free Go unit tests and remains inside the
+  `backend` Go module so it can legally import `backend/internal/*`; component/
+  integration rows belong to root Python `testframework/**`.
+- `frontend/tests/<domain>/**` owns Vitest/RTL units and `frontend/tests/support/**` owns setup/render/fixtures; frontend static gates must cover both directly without junctions.
 
 **Independent Python system framework:**
 - `testframework/` owns pytest-based system/integration/load orchestration and Playwright integration, with its own `pyproject.toml`, dependency lock, test configuration, fixtures, service profiles, markers, artifacts, and CI entry point.
@@ -170,7 +172,9 @@
 1. **No runnable Python environment** - neither `python` nor the Windows `py` launcher is available in the current PATH, and `testframework/` has no Python project metadata.
 2. **Docker daemon unavailable locally** - Compose files can be parsed, but `docker info` cannot connect to the daemon; service-backed parity cannot be verified in this mapping session.
 3. **Backend job/service mismatch** - current `backend-test` in `.github/workflows/ci.yml` lacks PostgreSQL for hard-fail tests under `backend/testframework/`.
-4. **Different jobs execute different suites** - service-sensitive Go tests may hard-fail or skip depending on `POSTGRES_TEST_URL`/`MONGODB_TEST_URL`; define markers/build tags and explicit service tiers before moving them to `backend/tests/**` or Python `testframework/`.
+4. **Different jobs execute different suites** - service-sensitive Go tests may
+   hard-fail or skip depending on infrastructure; they cannot move to the
+   service-free `backend/tests/**` lane and require Python profiles.
 5. **Cross-root Node dependency ownership** - both Vitest and Playwright currently borrow `frontend/node_modules` through `frontend/scripts/link-testframework-node-modules.mjs`; the target Python system framework must not silently retain this coupling.
 6. **No unit-test static-analysis coverage** - `frontend/tsconfig.json` and `npm run lint` currently scope to `frontend/src`, while unit tests live under root `testframework/`; moving to `frontend/tests/**` must expand both gates.
 7. **E2E uses dev-only identity** - `testframework/stages/e2e/shared/fixtures.ts` and `testframework/stages/e2e/shared/helpers/backend.ts` depend on backend dev mode; production-auth/system profiles need separate markers and credentials policy.

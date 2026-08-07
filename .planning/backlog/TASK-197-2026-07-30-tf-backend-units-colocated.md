@@ -4,7 +4,9 @@
 
 ## [OUTCOME]
 
-`backend/tests/**` имеет рабочий Go test harness/shared support и утверждённый file-level migration ledger для всех 828 legacy файлов без их перемещения или удаления.
+`backend/tests/**` имеет service-free Go unit harness/shared support и
+утверждённый file-level migration ledger для всех 829 legacy файлов без их
+перемещения или удаления. Ни один component row не получает backend target.
 
 ## [ROLE]
 
@@ -17,7 +19,10 @@
 - Read-only: `backend/testframework/**`, `backend/internal/**/export_hooks*.go`, `backend/go.mod`.
 - Do not touch: product code, legacy files/hooks, CI, Python/FE trees.
 - Target остаётся external package tree внутри Go module: импорт `internal/**` разрешён, private symbols недоступны. `hubtest` hooks сохраняются consumer-by-consumer.
-- Классификация 828 rows: `go-unit|go-component|python-api|python-integration|delete-with-approved-reason`; current directory не является доказательством типа.
+- Классификация 829 rows учитывает прямые и транзитивные зависимости support:
+  `go-unit` → `backend/tests/**`; DB/broker/network/process/whole-API rows →
+  `testframework/api|integration|contract/**`; current directory не является
+  доказательством типа.
 - Depends on: TASK-202, TASK-203, TASK-204.
 
 ## [REFERENCES]
@@ -30,9 +35,9 @@
 
 - Completion command: `cd backend && go test -tags hubtest -race -count=1 ./tests/...`; exit code 0 и заявленные counts обязательны.
 
-- Completion command: `cd backend && go test -tags hubtest -race -count=1 ./tests/...`; exit code 0 и заявленные counts обязательны.
-
-- Ledger содержит все 828 уникальных legacy paths, target class/path, package, dependencies, test count, hook consumers и owner wave; missing/duplicate = 0.
+- Ledger содержит все 829 уникальных legacy paths, target class/path, package,
+  direct/transitive dependencies, test count, hook consumers и owner wave;
+  missing/duplicate/component-under-backend = 0.
 - `backend/tests/shared/**` обеспечивает минимальный representative unit test; target command с `-tags hubtest` собирает ненулевой пакет без запуска legacy второй раз.
 - Failing sentinel: временно добавить заведомо падающий target test — target command non-zero; restore GREEN.
 - Regression: canonical legacy domain/full discovery unchanged; hook files/count и consumers не удалены.

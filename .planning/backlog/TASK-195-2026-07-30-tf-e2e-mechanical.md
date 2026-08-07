@@ -13,7 +13,7 @@
 
 ## [SCOPE AND CONSTRAINTS]
 
-- Allowed: `testframework/python/e2e/**`, parity manifests/reports для 15 rows.
+- Allowed: `testframework/e2e/**`, `testframework/reports/**` parity manifests/reports для 15 rows.
 - Read-only: `testframework/stages/e2e/domains/**` и shared TS source.
 - Do not touch: legacy specs/shared, `frontend/**`, product code, CI.
 - Сохранять business outcome, selectors intent, traceability IDs, artifacts и skip semantics; refactor поведения запрещён. Row, требующий логической переработки, остаётся для TASK-196 с причиной.
@@ -27,7 +27,7 @@
 
 ## [ACCEPTANCE]
 
-- Completion command: `cd testframework/python && python -m pytest e2e -m 'e2e and not complex' --strict-markers -q`; exit code 0 и заявленные counts обязательны.
+- Completion command: `cd testframework && python -m pytest e2e -m 'e2e and not complex' --strict-markers -q`; exit code 0 и заявленные counts обязательны.
 
 - Ledger содержит ровно 15 rows со статусом Python parity proven; у каждой old/new path, legacy/new collected cases, assertions/TC mapping и run evidence.
 - Legacy и Python наборы запускаются раздельно на одном revision/environment; расхождения pass/fail/skip объяснены и unresolved = 0.

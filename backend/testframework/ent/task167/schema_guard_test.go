@@ -36,8 +36,9 @@ func TestSchema_TASK167_AIUserPreferenceDefaultProviderSetNull(t *testing.T) {
 func TestSchema_TASK167_ChannelMemberLWW_NoVersionMixin(t *testing.T) {
 	// Decision traceability:
 	// .planning/decisions/ADR-ENT-CHANNELMEMBER-LWW-2026.md
-	// The planning/docs gate validates ADR content because the canonical backend
-	// container intentionally mounts only backend/.
+	// Its required approval markers are enforced by
+	// .planning/audits/test-rebase/validate_planning_contracts.py in PR Guard,
+	// because the canonical backend container intentionally mounts only backend/.
 	src, err := os.ReadFile(filepath.Join(schemaDir(t), "channelmember.go"))
 	require.NoError(t, err)
 	body := string(src)

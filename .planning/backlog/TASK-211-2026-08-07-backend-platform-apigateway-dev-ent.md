@@ -4,7 +4,9 @@
 
 ## [OUTCOME]
 
-Classified Go-unit/component rows for platform, apigateway, dev and ent run from correct `backend/tests/**` targets with special-path and DB taxonomy preserved.
+Только genuine Go units platform, apigateway, dev, ent и status получают
+`backend/tests/**`. DB/source/schema/API components принадлежат TASK-227 Python
+contract/integration lane.
 
 ## [ROLE]
 
@@ -16,7 +18,8 @@ Classified Go-unit/component rows for platform, apigateway, dev and ent run from
 - Allowed: `backend/tests/{platform,apigateway,dev,ent}/**`, shared support и read-only hook ledger; hook-файлы не меняются.
 - Read-only: matching legacy/product source.
 - Do not touch: legacy deletion, CI, other domains, product behavior.
-- Preserve `platform/<subsystem>` nesting. Ent real-Postgres/schema integration rows stay legacy until Python integration parity; source guards use stable repo-root resolution.
+- Preserve `platform/<subsystem>` nesting для units. Любая DB fixture и
+  source/schema contract остаются legacy до TASK-227 Python parity.
 - Depends on: TASK-209.
 
 ## [REFERENCES]
@@ -28,7 +31,8 @@ Classified Go-unit/component rows for platform, apigateway, dev and ent run from
 
 - Completion command: `cd backend && go test -tags hubtest -race -count=1 ./tests/platform/... ./tests/apigateway/... ./tests/dev/... ./tests/ent/...`; exit code 0 и заявленные counts обязательны.
 
-- In-scope Go rows map and pass in target; Python-classified rows explicitly remain pending, never duplicated/misclassified.
+- In-scope genuine unit rows map and pass in target; component rows имеют
+  TASK-227 owner и никогда не дублируются/маскируются как unit.
 - Old/new target commands pass race; affected coverage and package counts reconcile with TASK-203 method.
 - Hook symbols have `retain|candidate-for-TASK-219` evidence; nested packages and path-sensitive source guards work from clean checkout.
 - Mutation proof: representative platform, apigateway and Ent constraint/source guard REDs target test; restore GREEN.

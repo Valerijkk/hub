@@ -165,7 +165,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 124: Floor ≥82% (tracker / tms / project)** - tracker: 81.3% → ≥82%; tms: 81.7% → ≥82%; project: 81.0% → ≥82%
 - [x] **Phase 125: COV ≥82%, Security ≥80%, Regression Gate** - COV overall: ≥82% → ✅ **82.6%**; auth: ≥80% → ✅ **82.4%**; ws: ≥80% → ✅ **87.7%**; rbac: ≥80% → ✅ **84.7%** (2026-06-21)
 
-### August 2026 — test architecture rebase (TASK-193…220)
+### August 2026 — test architecture rebase (TASK-193…230)
 
 Канон: [`06-TEST-ARCHITECTURE-REBASE.md`](active/august-2026/06-TEST-ARCHITECTURE-REBASE.md) ·
 карточки: [`backlog/README.md`](backlog/README.md). Старый недельный test-раздел
@@ -183,15 +183,15 @@ coverage contract.
 |------:|--------|------------|-----------------|
 | 126 | IMPLEMENTED 2026-07-28 | — | Intranet NewsPost trash · TASK-001 |
 | 127 | IMPLEMENTED 2026-07-28 | 126 | Calendar series trash · TASK-002 |
-| 128 | IN PROGRESS | — | inventory + canonical baseline + contract · TASK-202/203/204 |
-| 129 | PLANNED | 128 PASS | `testframework/python` scaffold + API slice · TASK-193/205 |
+| 128 | BLOCKED · remediation active | — | inventory + baseline recovery + root-Python contract · TASK-202/203/204/221–226 |
+| 129 | PLANNED | 128 PASS | root `testframework/` Python scaffold + API slice · TASK-193/205 |
 | 130 | PLANNED | 128 PASS | `frontend/tests` foundation · TASK-198/206 |
-| 131 | PLANNED | 130 | frontend domain migration · TASK-207/208 |
+| 131 | PLANNED | 129, 130 | frontend units + static-contract split · TASK-207/208/230 |
 | 132 | PLANNED | 128 PASS | `backend/tests` foundation + auth pilot · TASK-197/209 |
-| 133 | PLANNED | 132 | backend security/platform · TASK-210/211 |
-| 134 | PLANNED | 133 | backend work/realtime · TASK-212/213 |
-| 135 | PLANNED | 134 | backend business/integrations · TASK-214/215 |
-| 136 | PLANNED | 129, 135 | Python API/integration · TASK-199/216 |
+| 133 | PLANNED | 129, 132 | backend units + Python security/platform components · TASK-210/211/227 |
+| 134 | PLANNED | 133 | backend units + Python work/realtime components · TASK-212/213/228 |
+| 135 | PLANNED | 134 | backend units + Python business/integration components · TASK-214/215/229 |
+| 136 | PLANNED | 129, 135 | residual Python API/integration reconciliation · TASK-199/216 |
 | 137 | PLANNED | 129 | Python E2E foundation + 3-spec smoke parity · TASK-194/217 |
 | 138 | PLANNED | 137 | Python E2E 20-spec/53-case parity · TASK-195/196 |
 | 139 | PLANNED | 129, 136 | Locust baseline · TASK-200 |
@@ -210,8 +210,8 @@ coverage contract.
 - [ ] **Phase 128:** status/baseline recovery — TASK-202 verified PASS;
   TASK-203 service-backed Docker baseline выполняется
 - [ ] **Phases 129–139:** dual-run migration в целевые
-  `backend/tests/**`, `frontend/tests/**`, `testframework/python/**`,
-  `testframework/load/**`
+  `backend/tests/**`, `frontend/tests/**` и единый Python-проект
+  `testframework/**` (`api/`, `integration/`, `contract/`, `e2e/`, `load/`)
 - [ ] **Phase 140:** CI dual-run; ни один legacy required path ещё не удаляется
 - [ ] **Phase 141:** cleanup только по parity manifest и после real CI green
 

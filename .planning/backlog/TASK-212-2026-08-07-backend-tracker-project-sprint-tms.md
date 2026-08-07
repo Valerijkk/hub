@@ -4,7 +4,8 @@
 
 ## [OUTCOME]
 
-Classified Go-unit/component rows for tracker, project, sprint and tms run from `backend/tests/**` with dual-run parity, race and coverage preservation.
+Только genuine Go units tracker, project, sprint и tms работают из
+`backend/tests/**`; component/integration rows получают Python parity TASK-228.
 
 ## [ROLE]
 
@@ -16,7 +17,8 @@ Classified Go-unit/component rows for tracker, project, sprint and tms run from 
 - Allowed: `backend/tests/{tracker,project,sprint,tms}/**`, shared support и read-only hook ledger; hook-файлы не меняются.
 - Read-only: matching legacy/product source.
 - Do not touch: legacy deletion, CI, other domains or product behavior.
-- PostgreSQL/Mongo/NATS/whole-API rows follow TASK-204 taxonomy and remain legacy until TASK-199/216 parity.
+- PostgreSQL/Mongo/NATS/whole-API rows остаются legacy до принятого TASK-228
+  replacement и не попадают в backend unit lane.
 - Depends on: TASK-210, TASK-211.
 
 ## [REFERENCES]
@@ -28,7 +30,8 @@ Classified Go-unit/component rows for tracker, project, sprint and tms run from 
 
 - Completion command: `cd backend && go test -tags hubtest -race -count=1 ./tests/tracker/... ./tests/project/... ./tests/sprint/... ./tests/tms/...`; exit code 0 и заявленные counts обязательны.
 
-- All in-scope Go rows `PARITY_PROVEN`; pending Python rows explicitly linked; no missing/duplicate rows.
+- All in-scope genuine units `PARITY_PROVEN`; component rows имеют TASK-228
+  replacement state; no missing/duplicate/component-under-backend rows.
 - Target+legacy commands pass `hubtest`, race and frozen coverage comparison; package/test counts reconcile.
 - Hook decisions are symbol-level `retain|candidate-for-TASK-219` with zero-consumer/release-build proof; no removal in this wave.
 - Mutation proof: meaningful guard/transaction behavior in each domain REDs target test; restore GREEN.

@@ -6,8 +6,9 @@
 
 ## Цель (goal)
 
-Перенести Go-native security/platform tests в `backend/tests/**`, а API/
-integration candidates оставить исполняемыми в legacy до Python parity.
+Перенести только genuine Go units security/platform в `backend/tests/**` и в
+той же фазе дать API/integration/contract rows Python replacements в корневом
+`testframework/**`.
 
 ## Depends on
 
@@ -17,8 +18,10 @@ integration candidates оставить исполняемыми в legacy до 
 
 - [ ] Auth remainder, rbac, audit, ws, calls, platform, apigateway, dev, ent и
   status residual имеют accepted disposition.
-- [ ] Go-native replacements green с race и frozen coverage method.
-- [ ] Python candidates не удалены и связаны с Phase 136 inventory rows.
+- [ ] Только service-free Go units находятся в `backend/tests/**`; component
+  rows там отсутствуют.
+- [ ] Python candidates имеют выполненные replacements, а не только ссылки на
+  будущую Phase 136.
 - [ ] Hook removal отсутствует без `consumer = 0` + verifier evidence.
 
 ## Задачи (атомарные)
@@ -27,18 +30,20 @@ integration candidates оставить исполняемыми в legacy до 
 |---|---|---|---|---|---|---:|
 | TASK-210 | Auth remainder + rbac/audit/ws/calls Go-native migration и Python-candidate links | be1 | be-ver | `backend/tests/{auth,rbac,audit,ws,calls}/**`, `.planning/audits/test-rebase/inventory.json`, `.planning/evidence/test-rebase/133/security/**` | Phase 132 | 1–1.5д |
 | TASK-211 | Platform/apigateway/dev/ent/status migration с nested mapping и DB/source-guard classification | be2 | be-ver | `backend/tests/{platform,apigateway,dev,ent,status}/**`, `.planning/audits/test-rebase/hooks.json`, `.planning/evidence/test-rebase/133/platform/**` | Phase 132 | 1–1.5д |
+| TASK-227 | Security/platform API/integration/contract component parity в Python | qa-auto1 | qa-auto-ver + security-auditor | `testframework/{api,integration,contract}/{auth,rbac,audit,ws,calls,platform,apigateway,dev,ent,status}/**` | TASK-193/205/210/211 | 1–2д |
 
 ## Волны
 
-- Wave 1: TASK-210 и TASK-211 параллельно по непересекающимся доменам.
-- Wave 2: combined legacy/native regression и coverage reconciliation.
+- Wave 1: TASK-210 и TASK-211 параллельно по непересекающимся unit-доменам.
+- Wave 2: TASK-227 получает frozen classification/assertion handoff.
+- Wave 3: combined legacy/native/Python regression и coverage reconciliation.
 
 ## Риски
 
 | Риск | Mitigation |
 |---|---|
 | Security test пропущен из-за service skip | Security/release scope fail-closed; expected skip allowlist |
-| Ent/SQLite принят за real DB integration | Engine-sensitive rows → Phase 136, исходник остаётся live |
+| Ent/SQLite принят за unit | Любая DB fixture → TASK-227 Python integration; в backend unit lane не попадает |
 | Calls/WS timing flake | Event/polling evidence; не переносить bare sleeps как норму |
 
 ## Verification

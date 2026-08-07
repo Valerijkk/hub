@@ -16,7 +16,7 @@
 - Allowed: test count/skip/parity validators, test-only sentinels/fixtures, canonical scripts, minimal CI invocation changes coordinated with TASK-201.
 - Do not touch: product behavior, thresholds, legacy deletion, load on PR.
 - Expected counts derive from dated TASK-202 ledger and accepted transformations; skip allowlist has owner/reason/expiry.
-- Depends on: TASK-201 and verifier evidence for TASK-193–217.
+- Depends on: TASK-201 and verifier evidence for TASK-193–217, TASK-221–230.
 
 ## [REFERENCES]
 

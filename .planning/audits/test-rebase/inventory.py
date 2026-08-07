@@ -21,35 +21,62 @@ from pathlib import Path
 from typing import Any, Iterable
 
 
-TOOL_VERSION = "1.1.0"
+TOOL_VERSION = "2.2.0"
 REPO_ROOT = Path(__file__).resolve().parents[3]
 OUTPUT_PATH = Path(__file__).with_name("inventory.json")
 SCHEMA_PATH = Path(__file__).with_name("inventory.schema.json")
 
 SOURCE_ROOTS = {
     "go": Path("backend/testframework"),
+    "go_server": Path("backend/cmd/server"),
     "vitest": Path("testframework/stages/unit/frontend-test"),
     "playwright": Path("testframework/stages/e2e/domains"),
+    "playwright_support": Path("testframework/stages/e2e"),
     "hooks": Path("backend/internal"),
 }
 TARGET_ROOTS = {
     "go": "backend/tests/",
     "vitest": "frontend/tests/",
-    "playwright": "testframework/python/e2e/",
-    "python": "testframework/python/",
+    "api": "testframework/api/",
+    "integration": "testframework/integration/",
+    "contract": "testframework/contract/",
+    "frontend_contract": "testframework/contract/frontend/",
+    "playwright": "testframework/e2e/",
+    "playwright_support": "testframework/e2e/support/",
+    "python": "testframework/",
     "load": "testframework/load/",
+}
+PYTHON_COMPONENT_CLASSES = frozenset(
+    {"python-api", "python-integration", "python-contract"}
+)
+COMPONENT_CLASS_TARGET_KEYS = {
+    "python-api": "api",
+    "python-integration": "integration",
+    "python-contract": "contract",
 }
 PROTECTED_PREFIX = "pro-qa-ai/"
 
-# These are acceptance facts for revision f7fbdd7e.  A source-tree drift is a
-# deliberate RED result until the ledger and plan are reviewed together.
+# These are the acceptance facts captured in evidence.md.  Source-tree drift is
+# a deliberate RED result until the ledger and evidence are reviewed together.
 EXPECTED = {
-    "go_files": 828,
+    "go_files": 830,
+    "go_legacy_files": 829,
+    "go_server_files": 1,
+    "go_declared_tests": 3667,
+    "go_legacy_declared_tests": 3665,
+    "go_server_declared_tests": 2,
+    "go_unit_files": 594,
+    "go_component_files": 236,
     "vitest_files": 180,
+    "frontend_unit_files": 156,
+    "frontend_static_contract_files": 24,
+    "frontend_support_files": 3,
     "playwright_files": 20,
     "playwright_cases": 53,
+    "playwright_support_files": 14,
     "canonical_hook_files": 39,
     "target_python_tests": 0,
+    "unmapped_files": 0,
 }
 
 GO_TEST_RE = re.compile(r"(?m)^func\s+((?:Test|Benchmark|Example)[A-Za-z0-9_]*)\s*\(")
@@ -99,6 +126,15 @@ GO_COMPONENT_MARKERS = (
     "exec.Command",
     "nats-server",
 )
+GO_COMPONENT_SUPPORT_IMPORTS = (
+    "/backend/testframework/env",
+    "/backend/testframework/mongotest",
+)
+FRONTEND_STATIC_CONTRACT_MARKERS = (
+    "node:fs",
+    "node:path",
+    "node:child_process",
+)
 
 GO_OWNER_WAVES = {
     "auth": "P133/TASK-210",
@@ -136,6 +172,50 @@ GO_OWNER_WAVES = {
     "marketplace": "P135/TASK-215",
     "mail": "P135/TASK-215",
 }
+COMPONENT_OWNER_WAVES = {
+    **{
+        domain: "P133/TASK-227"
+        for domain in (
+            "auth",
+            "rbac",
+            "audit",
+            "ws",
+            "calls",
+            "platform",
+            "apigateway",
+            "dev",
+            "ent",
+            "env",
+            "status",
+        )
+    },
+    **{
+        domain: "P134/TASK-228"
+        for domain in ("tracker", "project", "sprint", "tms", "messenger", "notification")
+    },
+    **{
+        domain: "P135/TASK-229"
+        for domain in (
+            "accounting",
+            "calendar",
+            "intranet",
+            "crm",
+            "hr",
+            "bases",
+            "dashboard",
+            "ai",
+            "search",
+            "storage",
+            "backup",
+            "imex",
+            "github",
+            "gitlab",
+            "onec",
+            "marketplace",
+            "mail",
+        )
+    },
+}
 FRONTEND_OWNER_WAVES = {
     "auth": "P130/TASK-206",
     "platform": "P130/TASK-206",
@@ -150,6 +230,7 @@ FRONTEND_OWNER_WAVES = {
     "notifications": "P131/TASK-208",
     "search": "P131/TASK-208",
     "v4": "P131/TASK-208",
+    "support": "P130/TASK-206",
 }
 COMPLEX_E2E_SOURCES = {
     "testframework/stages/e2e/domains/ai/ai-hub.spec.ts",
@@ -159,8 +240,11 @@ COMPLEX_E2E_SOURCES = {
     "testframework/stages/e2e/domains/tracker/project-lifecycle.spec.ts",
 }
 OWNER_WAVES = set(GO_OWNER_WAVES.values()) | set(FRONTEND_OWNER_WAVES.values()) | {
+    *COMPONENT_OWNER_WAVES.values(),
+    "P131/TASK-230",
     "P138/TASK-195",
     "P138/TASK-196",
+    "P137/TASK-194",
 }
 
 
@@ -221,6 +305,19 @@ def revision() -> str:
     return value
 
 
+def revision_is_ancestor(value: str) -> bool:
+    if not re.fullmatch(r"[0-9a-f]{40}", value):
+        return False
+    result = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", value, "HEAD"],
+        cwd=REPO_ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    return result.returncode == 0
+
+
 def line_sites(text: str, pattern: re.Pattern[str]) -> list[str]:
     return [f"L{text.count(chr(10), 0, match.start()) + 1}:{match.group(1)}" for match in pattern.finditer(text)]
 
@@ -277,8 +374,10 @@ def service_hints(text: str) -> list[str]:
 
 def domain_for(relative: Path, runner: str) -> str:
     parts = relative.parts
-    if runner == "vitest" and parts and parts[0] == "domains":
-        return parts[1] if len(parts) > 1 else "unknown"
+    if runner in {"vitest", "vitest-support"}:
+        if parts and parts[0] == "domains":
+            return parts[1] if len(parts) > 1 else "unknown"
+        return "support"
     if runner == "playwright" and parts:
         return parts[1] if parts[0] == "domains" and len(parts) > 1 else parts[0]
     if runner == "go" and parts:
@@ -287,38 +386,129 @@ def domain_for(relative: Path, runner: str) -> str:
 
 
 def go_target(relative: Path) -> str:
-    return posix(Path("backend/tests") / relative)
+    return posix(Path(TARGET_ROOTS["go"]) / relative)
+
+
+def is_go_component(text: str, dependencies: list[str]) -> bool:
+    return any(marker in text for marker in GO_COMPONENT_MARKERS) or any(
+        marker in dependency
+        for dependency in dependencies
+        for marker in GO_COMPONENT_SUPPORT_IMPORTS
+    )
+
+
+def go_component_target_class(services: list[str], dependencies: list[str]) -> str:
+    if "http-server" in services:
+        return "python-api"
+    integration_services = {
+        "postgres",
+        "sqlite",
+        "mongodb",
+        "redis",
+        "nats",
+        "object-storage",
+        "external-process",
+    }
+    integration_dependencies = ("testcontainers", "dockertest") + GO_COMPONENT_SUPPORT_IMPORTS
+    if integration_services.intersection(services) or any(
+        marker in dependency
+        for dependency in dependencies
+        for marker in integration_dependencies
+    ):
+        return "python-integration"
+    # A component marker without a resolved runtime dependency still needs an
+    # explicit Python parity destination; it is not silently treated as Go unit.
+    return "python-contract"
+
+
+def go_component_target(relative: Path, target_class: str) -> str:
+    target_key = COMPONENT_CLASS_TARGET_KEYS.get(target_class)
+    if target_key is None:
+        raise ValueError(f"unsupported Go component target class: {target_class}")
+    parts = list(relative.parts)
+    filename = parts[-1]
+    stem = filename[: -len("_test.go")] if filename.endswith("_test.go") else Path(filename).stem
+    parts[-1] = f"test_{stem.replace('-', '_')}.py"
+    return posix(Path(TARGET_ROOTS[target_key]).joinpath(*parts))
 
 
 def vitest_target(relative: Path) -> str:
-    return posix(Path("frontend/tests") / relative)
+    parts = list(relative.parts)
+    if parts and parts[0] == "domains":
+        parts = parts[1:]
+    return posix(Path(TARGET_ROOTS["vitest"]).joinpath(*parts))
+
+
+def frontend_support_target(relative: Path) -> str:
+    parts = list(relative.parts)
+    if parts and parts[0] == "domains":
+        parts = parts[1:]
+    return posix(Path(TARGET_ROOTS["vitest"]).joinpath("support", *parts))
+
+
+def python_test_filename(filename: str) -> str:
+    suffixes = (".test.tsx", ".spec.tsx", ".test.ts", ".spec.ts", "_test.go")
+    stem = next(
+        (filename[: -len(suffix)] for suffix in suffixes if filename.endswith(suffix)),
+        Path(filename).stem,
+    )
+    normalized = re.sub(r"[^A-Za-z0-9_]+", "_", stem).strip("_")
+    return f"test_{normalized}.py"
+
+
+def frontend_static_contract_target(relative: Path) -> str:
+    parts = list(relative.parts)
+    if parts and parts[0] == "domains":
+        parts = parts[1:]
+    parts[-1] = python_test_filename(parts[-1])
+    return posix(Path(TARGET_ROOTS["frontend_contract"]).joinpath(*parts))
 
 
 def e2e_target(relative: Path) -> str:
     parts = list(relative.parts)
     if parts and parts[0] == "domains":
         parts = parts[1:]
+    parts[-1] = python_test_filename(parts[-1])
+    return posix(Path(TARGET_ROOTS["playwright"]).joinpath(*parts))
+
+
+def e2e_support_target(relative: Path) -> str:
+    parts = list(relative.parts)
     filename = parts[-1]
-    stem = filename[: -len(".spec.ts")] if filename.endswith(".spec.ts") else Path(filename).stem
-    parts[-1] = f"test_{stem.replace('-', '_')}.py"
-    return posix(Path("testframework/python/e2e").joinpath(*parts))
+    stem = filename[: -len(".tsx")] if filename.endswith(".tsx") else filename[: -len(".ts")]
+    parts[-1] = f"{re.sub(r'[^A-Za-z0-9_]+', '_', stem).strip('_')}.py"
+    return posix(Path(TARGET_ROOTS["playwright_support"]).joinpath(*parts))
 
 
 def replacement_status(target_path: str) -> str:
     return "candidate-present" if (REPO_ROOT / target_path).is_file() else "not-started"
 
 
-def canonical_owner_wave(source_path: str, runner: str, domain: str) -> str:
+def canonical_owner_wave(
+    source_path: str, runner: str, domain: str, target_class: str
+) -> str:
     if runner == "go-test":
-        wave = GO_OWNER_WAVES.get(domain)
-    elif runner == "vitest":
-        wave = FRONTEND_OWNER_WAVES.get(domain)
+        wave = (
+            COMPONENT_OWNER_WAVES.get(domain)
+            if target_class in PYTHON_COMPONENT_CLASSES
+            else GO_OWNER_WAVES.get(domain)
+        )
+    elif runner in {"vitest", "vitest-support"}:
+        wave = (
+            "P131/TASK-230"
+            if target_class == "python-static-contract"
+            else FRONTEND_OWNER_WAVES.get(domain)
+        )
     elif runner == "playwright-ts":
         wave = "P138/TASK-196" if source_path in COMPLEX_E2E_SOURCES else "P138/TASK-195"
+    elif runner == "playwright-support-ts":
+        wave = "P137/TASK-194"
     else:
         wave = None
     if wave is None:
-        raise ValueError(f"no owner wave for {runner}/{domain}: {source_path}")
+        raise ValueError(
+            f"no owner wave for {runner}/{domain}/{target_class}: {source_path}"
+        )
     return wave
 
 
@@ -341,7 +531,7 @@ def base_row(
         "sha256": source_hash,
         "runner": runner,
         "domain": domain,
-        "owner_wave": canonical_owner_wave(source_path, runner, domain),
+        "owner_wave": canonical_owner_wave(source_path, runner, domain, target_class),
         "test_ids": test_ids,
         "test_count": len(test_ids),
         "skips": {"count": len(skip_sites), "sites": skip_sites},
@@ -438,8 +628,33 @@ def target_python_test_count() -> int:
     )
 
 
+def discover_frontend_support_paths() -> list[Path]:
+    return sorted(
+        {
+            path
+            for pattern in ("render.tsx", "*.fixture.ts", "*.fixture.tsx")
+            for path in sorted_files(SOURCE_ROOTS["vitest"], pattern)
+        },
+        key=rel,
+    )
+
+
+def discover_e2e_support_paths() -> list[Path]:
+    e2e_domain_root = (REPO_ROOT / SOURCE_ROOTS["playwright"]).resolve()
+    return sorted(
+        {
+            path
+            for pattern in ("*.ts", "*.tsx")
+            for path in sorted_files(SOURCE_ROOTS["playwright_support"], pattern)
+            if not path.is_relative_to(e2e_domain_root)
+        },
+        key=rel,
+    )
+
+
 def build_inventory() -> dict[str, Any]:
     go_paths = sorted_files(SOURCE_ROOTS["go"], "*_test.go")
+    go_server_paths = sorted_files(SOURCE_ROOTS["go_server"], "*_test.go")
     vitest_paths = sorted(
         {
             path
@@ -448,32 +663,67 @@ def build_inventory() -> dict[str, Any]:
         },
         key=rel,
     )
+    frontend_support_paths = discover_frontend_support_paths()
     e2e_paths = sorted_files(SOURCE_ROOTS["playwright"], "*.spec.ts")
+    e2e_support_paths = discover_e2e_support_paths()
 
     go_sources = []
     for path in go_paths:
         _, text = read_allowed(path, SOURCE_ROOTS["go"])
-        go_sources.append((path, text))
-    hooks, consumers_by_test = hook_inventory(go_sources)
+        relative = path.relative_to((REPO_ROOT / SOURCE_ROOTS["go"]).resolve())
+        go_sources.append(
+            (path, text, SOURCE_ROOTS["go"], relative, domain_for(relative, "go"), relative)
+        )
+    for path in go_server_paths:
+        _, text = read_allowed(path, SOURCE_ROOTS["go_server"])
+        relative = path.relative_to((REPO_ROOT / SOURCE_ROOTS["go_server"]).resolve())
+        go_sources.append(
+            (
+                path,
+                text,
+                SOURCE_ROOTS["go_server"],
+                relative,
+                "platform",
+                Path("server") / relative,
+            )
+        )
+    go_sources.sort(key=lambda item: rel(item[0]))
+    hooks, consumers_by_test = hook_inventory(
+        [(path, text) for path, text, _, _, _, _ in go_sources]
+    )
 
     rows = []
-    for path, text in go_sources:
-        data, _ = read_allowed(path, SOURCE_ROOTS["go"])
-        relative = path.relative_to((REPO_ROOT / SOURCE_ROOTS["go"]).resolve())
-        component = any(marker in text for marker in GO_COMPONENT_MARKERS)
+    for path, text, source_root, relative, domain, target_relative in go_sources:
+        data, _ = read_allowed(path, source_root)
+        dependencies = external_go_imports(text)
+        component = is_go_component(text, dependencies)
+        services = service_hints(text)
+        if component:
+            target_class = go_component_target_class(services, dependencies)
+            target_path = go_component_target(target_relative, target_class)
+        else:
+            target_class = "go-unit"
+            target_path = go_target(target_relative)
         row = base_row(
             source_path=rel(path),
             source_hash=sha256_bytes(data),
             runner="go-test",
-            domain=domain_for(relative, "go"),
+            domain=domain,
             test_ids=GO_TEST_RE.findall(text),
             skip_sites=line_sites(text, GO_SKIP_RE),
-            dependencies=external_go_imports(text),
-            services=service_hints(text),
-            target_class="go-component" if component else "go-unit",
-            target_path=go_target(relative),
+            dependencies=dependencies,
+            services=services,
+            target_class=target_class,
+            target_path=target_path,
             coverage_bearing=True,
         )
+        if component:
+            mapping_hints = services or dependencies or ["component-marker-fallback"]
+            row["evidence"].append(
+                f"conversion-target:{target_class};hints:{','.join(mapping_hints)}"
+            )
+        else:
+            row["evidence"].append("target:go-unit")
         row["hook_consumers"] = consumers_by_test[row["source_path"]]
         row["trace_ids"] = sorted(set(TRACE_ID_RE.findall(text)))
         rows.append(row)
@@ -481,6 +731,13 @@ def build_inventory() -> dict[str, Any]:
     for path in vitest_paths:
         data, text = read_allowed(path, SOURCE_ROOTS["vitest"])
         relative = path.relative_to((REPO_ROOT / SOURCE_ROOTS["vitest"]).resolve())
+        static_contract = any(marker in text for marker in FRONTEND_STATIC_CONTRACT_MARKERS)
+        target_class = "python-static-contract" if static_contract else "frontend-unit"
+        target_path = (
+            frontend_static_contract_target(relative)
+            if static_contract
+            else vitest_target(relative)
+        )
         row = base_row(
             source_path=rel(path),
             source_hash=sha256_bytes(data),
@@ -490,10 +747,35 @@ def build_inventory() -> dict[str, Any]:
             skip_sites=line_sites(text, TS_SKIP_RE),
             dependencies=external_ts_imports(text),
             services=service_hints(text),
-            target_class="frontend-unit",
-            target_path=vitest_target(relative),
-            coverage_bearing=True,
+            target_class=target_class,
+            target_path=target_path,
+            coverage_bearing=not static_contract,
         )
+        row["evidence"].append(
+            "conversion-target:python-static-contract;hints:node-fs-path-process"
+            if static_contract
+            else "target:frontend-unit"
+        )
+        row["trace_ids"] = sorted(set(TRACE_ID_RE.findall(text)))
+        rows.append(row)
+
+    for path in frontend_support_paths:
+        data, text = read_allowed(path, SOURCE_ROOTS["vitest"])
+        relative = path.relative_to((REPO_ROOT / SOURCE_ROOTS["vitest"]).resolve())
+        row = base_row(
+            source_path=rel(path),
+            source_hash=sha256_bytes(data),
+            runner="vitest-support",
+            domain=domain_for(relative, "vitest-support"),
+            test_ids=[],
+            skip_sites=[],
+            dependencies=external_ts_imports(text),
+            services=service_hints(text),
+            target_class="frontend-support",
+            target_path=frontend_support_target(relative),
+            coverage_bearing=False,
+        )
+        row["evidence"].append("target:frontend-support")
         row["trace_ids"] = sorted(set(TRACE_ID_RE.findall(text)))
         rows.append(row)
 
@@ -516,17 +798,64 @@ def build_inventory() -> dict[str, Any]:
         row["trace_ids"] = sorted(set(TRACE_ID_RE.findall(text)))
         rows.append(row)
 
+    for path in e2e_support_paths:
+        data, text = read_allowed(path, SOURCE_ROOTS["playwright_support"])
+        relative = path.relative_to(
+            (REPO_ROOT / SOURCE_ROOTS["playwright_support"]).resolve()
+        )
+        row = base_row(
+            source_path=rel(path),
+            source_hash=sha256_bytes(data),
+            runner="playwright-support-ts",
+            domain="support",
+            test_ids=[],
+            skip_sites=[],
+            dependencies=external_ts_imports(text),
+            services=service_hints(text),
+            target_class="python-e2e-support",
+            target_path=e2e_support_target(relative),
+            coverage_bearing=False,
+        )
+        row["evidence"].append("conversion-target:python-e2e-support")
+        row["trace_ids"] = sorted(set(TRACE_ID_RE.findall(text)))
+        rows.append(row)
+
     rows.sort(key=lambda item: item["source_path"])
     counts = {
-        "go_files": len(go_paths),
+        "go_files": len(go_paths) + len(go_server_paths),
+        "go_legacy_files": len(go_paths),
+        "go_server_files": len(go_server_paths),
         "go_declared_tests": sum(row["test_count"] for row in rows if row["runner"] == "go-test"),
+        "go_legacy_declared_tests": sum(
+            row["test_count"]
+            for row in rows
+            if str(row["source_path"]).startswith("backend/testframework/")
+        ),
+        "go_server_declared_tests": sum(
+            row["test_count"]
+            for row in rows
+            if str(row["source_path"]).startswith("backend/cmd/server/")
+        ),
         "go_unit_files": sum(row["target_class"] == "go-unit" for row in rows),
-        "go_component_files": sum(row["target_class"] == "go-component" for row in rows),
+        "go_component_files": sum(row["target_class"] in PYTHON_COMPONENT_CLASSES for row in rows),
+        "go_component_api_files": sum(row["target_class"] == "python-api" for row in rows),
+        "go_component_integration_files": sum(
+            row["target_class"] == "python-integration" for row in rows
+        ),
+        "go_component_contract_files": sum(
+            row["target_class"] == "python-contract" for row in rows
+        ),
         "vitest_files": len(vitest_paths),
         "vitest_declared_tests": sum(row["test_count"] for row in rows if row["runner"] == "vitest"),
+        "frontend_unit_files": sum(row["target_class"] == "frontend-unit" for row in rows),
+        "frontend_static_contract_files": sum(
+            row["target_class"] == "python-static-contract" for row in rows
+        ),
+        "frontend_support_files": len(frontend_support_paths),
         "playwright_files": len(e2e_paths),
         "playwright_cases": sum(row["test_count"] for row in rows if row["runner"] == "playwright-ts"),
         "playwright_skip_sites": sum(row["skips"]["count"] for row in rows if row["runner"] == "playwright-ts"),
+        "playwright_support_files": len(e2e_support_paths),
         "canonical_hook_files": sum(item["canonical"] for item in hooks),
         "hook_fragment_files": sum(not item["canonical"] for item in hooks),
         "hook_files_total": len(hooks),
@@ -535,9 +864,10 @@ def build_inventory() -> dict[str, Any]:
             bool(symbol["consumer_test_files"]) for item in hooks for symbol in item["symbols"]
         ),
         "target_python_tests": target_python_test_count(),
+        "unmapped_files": sum(not row.get("target_path") for row in rows),
     }
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "tool_version": TOOL_VERSION,
         "revision": revision(),
         "roots": {
@@ -699,21 +1029,42 @@ def validate_inventory(
         errors.append(f"duplicate target paths: {duplicate_targets}")
 
     allowed = {
-        "go-test": ({"go-unit", "go-component"}, TARGET_ROOTS["go"]),
-        "vitest": ({"frontend-unit"}, TARGET_ROOTS["vitest"]),
-        "playwright-ts": ({"python-e2e"}, TARGET_ROOTS["playwright"]),
+        "go-test": {
+            "go-unit": TARGET_ROOTS["go"],
+            "python-api": TARGET_ROOTS["api"],
+            "python-integration": TARGET_ROOTS["integration"],
+            "python-contract": TARGET_ROOTS["contract"],
+        },
+        "vitest": {
+            "frontend-unit": TARGET_ROOTS["vitest"],
+            "python-static-contract": TARGET_ROOTS["frontend_contract"],
+        },
+        "vitest-support": {
+            "frontend-support": f"{TARGET_ROOTS['vitest']}support/",
+        },
+        "playwright-ts": {"python-e2e": TARGET_ROOTS["playwright"]},
+        "playwright-support-ts": {
+            "python-e2e-support": TARGET_ROOTS["playwright_support"],
+        },
     }
     for row in rows:
         runner = row.get("runner")
         if runner not in allowed:
             errors.append(f"bad runner for {row.get('source_path')}: {runner}")
             continue
-        classes, prefix = allowed[runner]
-        if row.get("target_class") not in classes:
+        classes = allowed[runner]
+        target_class = row.get("target_class")
+        if target_class not in classes:
             errors.append(f"bad target class for {row.get('source_path')}: {row.get('target_class')}")
+            prefix = ""
+        else:
+            prefix = classes[target_class]
         try:
             expected_owner = canonical_owner_wave(
-                str(row.get("source_path")), str(runner), str(row.get("domain"))
+                str(row.get("source_path")),
+                str(runner),
+                str(row.get("domain")),
+                str(target_class),
             )
         except ValueError as error:
             errors.append(str(error))
@@ -723,9 +1074,23 @@ def validate_inventory(
                     f"bad owner wave for {row.get('source_path')}: "
                     f"expected={expected_owner} actual={row.get('owner_wave')}"
                 )
-        if not str(row.get("target_path", "")).startswith(prefix):
+        if not prefix or not str(row.get("target_path", "")).startswith(prefix):
             errors.append(f"bad target root for {row.get('source_path')}: {row.get('target_path')}")
-        expected_coverage = runner in {"go-test", "vitest"}
+        target_path = str(row.get("target_path", ""))
+        python_classes = PYTHON_COMPONENT_CLASSES | {
+            "python-static-contract",
+            "python-e2e",
+            "python-e2e-support",
+        }
+        if target_class in python_classes and not target_path.endswith(".py"):
+            errors.append(f"non-Python target for {row.get('source_path')}: {row.get('target_path')}")
+        if target_class == "go-unit" and not target_path.endswith("_test.go"):
+            errors.append(f"non-Go unit target for {row.get('source_path')}: {row.get('target_path')}")
+        if target_class in {"frontend-unit", "frontend-support"} and not target_path.endswith(
+            (".ts", ".tsx")
+        ):
+            errors.append(f"non-TypeScript frontend target for {row.get('source_path')}: {target_path}")
+        expected_coverage = runner == "go-test" or target_class == "frontend-unit"
         if row.get("coverage_bearing") is not expected_coverage:
             errors.append(f"bad coverage-bearing flag for {row.get('source_path')}")
         if row.get("test_count") != len(row.get("test_ids", [])):
@@ -747,10 +1112,51 @@ def validate_inventory(
     counts = data.get("counts", {})
     calculated = {
         "go_files": sum(row.get("runner") == "go-test" for row in rows),
+        "go_legacy_files": sum(
+            str(row.get("source_path", "")).startswith("backend/testframework/")
+            for row in rows
+        ),
+        "go_server_files": sum(
+            str(row.get("source_path", "")).startswith("backend/cmd/server/")
+            for row in rows
+        ),
+        "go_declared_tests": sum(
+            row.get("test_count", 0) for row in rows if row.get("runner") == "go-test"
+        ),
+        "go_legacy_declared_tests": sum(
+            row.get("test_count", 0)
+            for row in rows
+            if str(row.get("source_path", "")).startswith("backend/testframework/")
+        ),
+        "go_server_declared_tests": sum(
+            row.get("test_count", 0)
+            for row in rows
+            if str(row.get("source_path", "")).startswith("backend/cmd/server/")
+        ),
+        "go_unit_files": sum(row.get("target_class") == "go-unit" for row in rows),
+        "go_component_files": sum(
+            row.get("target_class") in PYTHON_COMPONENT_CLASSES for row in rows
+        ),
+        "go_component_api_files": sum(row.get("target_class") == "python-api" for row in rows),
+        "go_component_integration_files": sum(
+            row.get("target_class") == "python-integration" for row in rows
+        ),
+        "go_component_contract_files": sum(
+            row.get("target_class") == "python-contract" for row in rows
+        ),
         "vitest_files": sum(row.get("runner") == "vitest" for row in rows),
+        "frontend_unit_files": sum(row.get("target_class") == "frontend-unit" for row in rows),
+        "frontend_static_contract_files": sum(
+            row.get("target_class") == "python-static-contract" for row in rows
+        ),
+        "frontend_support_files": sum(row.get("runner") == "vitest-support" for row in rows),
         "playwright_files": sum(row.get("runner") == "playwright-ts" for row in rows),
         "playwright_cases": sum(row.get("test_count", 0) for row in rows if row.get("runner") == "playwright-ts"),
+        "playwright_support_files": sum(
+            row.get("runner") == "playwright-support-ts" for row in rows
+        ),
         "canonical_hook_files": sum(hook.get("canonical") is True for hook in data.get("hooks", [])),
+        "unmapped_files": sum(not row.get("target_path") for row in rows),
     }
     for key, value in calculated.items():
         if counts.get(key) != value:
@@ -763,8 +1169,12 @@ def validate_inventory(
     if enforce_expected:
         if data.get("tool_version") != TOOL_VERSION:
             errors.append(f"tool version mismatch: ledger={data.get('tool_version')} current={TOOL_VERSION}")
-        if data.get("revision") != revision():
-            errors.append(f"revision mismatch: ledger={data.get('revision')} current={revision()}")
+        ledger_revision = str(data.get("revision", ""))
+        if not revision_is_ancestor(ledger_revision):
+            errors.append(
+                "ledger revision is not an ancestor of current HEAD: "
+                f"ledger={ledger_revision} current={revision()}"
+            )
         for key, value in EXPECTED.items():
             if counts.get(key) != value:
                 errors.append(f"expected baseline drift for {key}: expected={value} actual={counts.get(key)}")
@@ -813,9 +1223,12 @@ def render(data: dict[str, Any]) -> bytes:
 
 def live_test_paths() -> set[str]:
     paths = {rel(path) for path in sorted_files(SOURCE_ROOTS["go"], "*_test.go")}
+    paths.update(rel(path) for path in sorted_files(SOURCE_ROOTS["go_server"], "*_test.go"))
     for pattern in ("*.test.ts", "*.test.tsx", "*.spec.ts", "*.spec.tsx"):
         paths.update(rel(path) for path in sorted_files(SOURCE_ROOTS["vitest"], pattern))
+    paths.update(rel(path) for path in discover_frontend_support_paths())
     paths.update(rel(path) for path in sorted_files(SOURCE_ROOTS["playwright"], "*.spec.ts"))
+    paths.update(rel(path) for path in discover_e2e_support_paths())
     return paths
 
 
@@ -877,14 +1290,116 @@ def run_self_test() -> int:
     # TemporaryDirectory documents and enforces that the sentinel never writes
     # into the real audit directory or mutates inventory.json.
     with tempfile.TemporaryDirectory(prefix="hub-test-inventory-sentinel-") as temp_dir:
+        expected_e2e_target = "testframework/e2e/platform/test_critical_gate.py"
+        actual_e2e_target = e2e_target(Path("platform/critical-gate.spec.ts"))
+        if TARGET_ROOTS["python"] != "testframework/" or actual_e2e_target != expected_e2e_target:
+            print(
+                "RED: root Python/E2E target mapping drifted: "
+                f"python={TARGET_ROOTS['python']} e2e={actual_e2e_target}",
+                file=sys.stderr,
+            )
+            return 1
+        mapping_checks = (
+            (go_component_target_class(["http-server"], []), "python-api"),
+            (go_component_target_class(["postgres"], []), "python-integration"),
+            (
+                go_component_target_class([], ["github.com/ory/dockertest/v3"]),
+                "python-integration",
+            ),
+            (
+                is_go_component(
+                    "", ["github.com/valerii/hub/backend/testframework/env"]
+                ),
+                True,
+            ),
+            (
+                go_component_target_class(
+                    [], ["github.com/valerii/hub/backend/testframework/mongotest"]
+                ),
+                "python-integration",
+            ),
+            (go_component_target_class([], []), "python-contract"),
+            (
+                go_component_target(
+                    Path("audit/coverage_gate_task225_test.go"), "python-integration"
+                ),
+                "testframework/integration/audit/test_coverage_gate_task225.py",
+            ),
+            (
+                vitest_target(Path("domains/tracker/issue-card.test.tsx")),
+                "frontend/tests/tracker/issue-card.test.tsx",
+            ),
+            (
+                frontend_static_contract_target(
+                    Path("domains/platform/docs-drift-task123.test.ts")
+                ),
+                "testframework/contract/frontend/platform/test_docs_drift_task123.py",
+            ),
+            (
+                frontend_support_target(
+                    Path("domains/tracker/projects-sprint-version-required.fixture.ts")
+                ),
+                "frontend/tests/support/tracker/projects-sprint-version-required.fixture.ts",
+            ),
+            (
+                e2e_support_target(Path("shared/pages/base-page.ts")),
+                "testframework/e2e/support/shared/pages/base_page.py",
+            ),
+            (
+                go_target(Path("server/wiring_fiber_recover_test.go")),
+                "backend/tests/server/wiring_fiber_recover_test.go",
+            ),
+            (
+                canonical_owner_wave("sentinel", "go-test", "auth", "go-unit"),
+                "P133/TASK-210",
+            ),
+            (
+                canonical_owner_wave("sentinel", "go-test", "auth", "python-api"),
+                "P133/TASK-227",
+            ),
+            (
+                canonical_owner_wave(
+                    "sentinel", "go-test", "tracker", "python-integration"
+                ),
+                "P134/TASK-228",
+            ),
+            (
+                canonical_owner_wave("sentinel", "go-test", "ai", "python-contract"),
+                "P135/TASK-229",
+            ),
+            (
+                canonical_owner_wave(
+                    "sentinel", "vitest", "platform", "python-static-contract"
+                ),
+                "P131/TASK-230",
+            ),
+        )
+        if any(actual != expected for actual, expected in mapping_checks):
+            print(f"RED: target/owner mapping drifted: {mapping_checks}", file=sys.stderr)
+            return 1
         sentinel_path = "backend/testframework/sentinel/sentinel_test.go"
         clean = {
             "counts": {
                 "go_files": 1,
+                "go_legacy_files": 1,
+                "go_server_files": 0,
+                "go_declared_tests": 1,
+                "go_legacy_declared_tests": 1,
+                "go_server_declared_tests": 0,
+                "go_unit_files": 1,
+                "go_component_files": 0,
+                "go_component_api_files": 0,
+                "go_component_integration_files": 0,
+                "go_component_contract_files": 0,
                 "vitest_files": 0,
+                "frontend_unit_files": 0,
+                "frontend_static_contract_files": 0,
+                "frontend_support_files": 0,
                 "playwright_files": 0,
                 "playwright_cases": 0,
+                "playwright_support_files": 0,
                 "canonical_hook_files": 0,
+                "unmapped_files": 0,
             },
             "rows": [sentinel_row(sentinel_path)],
             "hooks": [],
@@ -897,6 +1412,11 @@ def run_self_test() -> int:
         removed = deepcopy(clean)
         removed["rows"] = []
         removed_errors = validate_inventory(removed, live_source_paths={sentinel_path}, enforce_expected=False)
+        misrouted = deepcopy(clean)
+        misrouted["rows"][0]["target_class"] = "python-integration"
+        misrouted_errors = validate_inventory(
+            misrouted, live_source_paths={sentinel_path}, enforce_expected=False
+        )
         if clean_errors:
             print(f"RED: clean sentinel unexpectedly failed: {clean_errors}", file=sys.stderr)
             return 1
@@ -905,6 +1425,9 @@ def run_self_test() -> int:
             return 1
         if not any("missing source rows" in error for error in removed_errors):
             print("RED: removal sentinel was not detected", file=sys.stderr)
+            return 1
+        if not any("bad target root" in error for error in misrouted_errors):
+            print("RED: component-to-backend misroute was not detected", file=sys.stderr)
             return 1
         schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
         row_schema = {"$ref": "#/$defs/testRow"}
@@ -923,8 +1446,9 @@ def run_self_test() -> int:
             print("RED: schema sentinel did not reject missing owner_wave", file=sys.stderr)
             return 1
     print(
-        "GREEN: clean inventory/schema sentinels passed; "
-        "duplicate, removal, and missing-owner sentinels produced RED"
+        "GREEN: root Python/frontend/E2E/component mappings and clean inventory/schema "
+        "sentinels passed; duplicate, removal, misroute, and missing-owner "
+        "sentinels produced RED"
     )
     return 0
 

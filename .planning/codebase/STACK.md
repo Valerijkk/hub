@@ -6,17 +6,19 @@
 
 ## Current-State Snapshot
 
-**Measured at `f7fbdd7e` on branch `cursor-grok-4.5`:**
+**Measured at HEAD `ee6d696c` (2026-08-07):**
 
 | Area | Current physical location | Measured inventory | Executed by |
 |------|---------------------------|--------------------|-------------|
-| Go tests | `backend/testframework/` | **828** `*_test.go` files; **0** in `backend/internal/` | `.github/workflows/ci.yml` job `backend-test` |
-| Frontend unit/component tests | `testframework/stages/unit/frontend-test/domains/` | **180** files: 60 `.test.ts` + 120 `.test.tsx`; **0** in `frontend/src/` | `frontend/vite.config.ts` + `.github/workflows/ci.yml` job `frontend-test` |
-| Browser E2E | `testframework/stages/e2e/domains/` | **20** `.spec.ts` files in 9 domains | `frontend/playwright.config.ts` + `.github/workflows/ci.yml` jobs `e2e-smoke` and `e2e-full` |
+| Go tests | legacy root + server | **830** total / **3,667** tests: root 829/3,665 + server 1/2; taxonomy 594 unit + 236 component | `.github/workflows/ci.yml` job `backend-test` |
+| Frontend tests | legacy Vitest root | **180** files / **519** cases: 156 unit + 24 static contract; 3 support rows | `frontend/vite.config.ts` + `frontend-test` |
+| Browser E2E | legacy Playwright root + config | **20** specs / **53** cases + 14 support rows | `frontend/playwright.config.ts` + E2E jobs |
 | Python system tests | `testframework/` | **0** `.py` files; no `pyproject.toml`, `pytest.ini`, requirements file, or Python lockfile | Not detected |
 | Test pipeline metadata | `testframework/pipeline/` | 5 job manifests plus `stages.yaml` | Declarative only; no non-document consumer was found |
 
-**Inventory drift:** `AGENTS.md`, `docs/test_plan.md`, and `.planning/STATE.md` report 812 Go tests and 179 Vitest files, while the filesystem contains 828 and 180. Treat measured filesystem counts as current inventory and dated documentation counts as historical snapshots.
+**Canonical inventory:** ledger HEAD `ee6d696c` / SHA-256 `01dae4e2…` содержит 1,047 rows: 830 Go,
+180 Vitest + 3 support, 20 E2E + 14 support и 0 Python. Старые
+812/824/828/829-total и 179 claims — dated snapshots.
 
 **Target roots not yet created:** neither `backend/tests/` nor `frontend/tests/` exists at the analyzed revision.
 
@@ -52,7 +54,7 @@
 ## Frameworks
 
 **Core:**
-- Go standard `testing` - runner for all 828 files under `backend/testframework/`.
+- Go standard `testing` - runner for 829 legacy files under `backend/testframework/`; отдельный server test доводит total до 830.
 - Testify **1.11.1** - assertions/mocks in 805 Go test files; dependency is declared in `backend/go.mod`.
 - Ent **0.14.1** + `enttest` - generated ORM and test clients; 182 Go test files reference `ent/enttest`, commonly with SQLite, under `backend/testframework/`.
 - Vitest **3.2.4 resolved** - unit/component runner configured inside `frontend/vite.config.ts`; declared as `^3.0.0` in `frontend/package.json`.
@@ -151,15 +153,17 @@
 ## Target State (Founder Direction)
 
 **Backend-native unit tree:**
-- Place Go unit/component tests in the dedicated native-module tree `backend/tests/**`, and run `./tests/...` rather than treating `backend/testframework/` as the permanent unit-test root.
+- Place only genuine service-free Go units in `backend/tests/**`; route DB,
+  broker, network, process and whole-API components to root Python
+  `testframework/{api,integration,contract}/**`.
 - Because `backend/tests/**` remains inside the `backend` Go module, it can legally import `backend/internal/*`. Keep black-box `package <domain>_test` where public contracts suffice; use same-package tests only when an explicitly colocated white-box exception is approved.
 
 **Frontend-native unit tree:**
-- Place TypeScript/React unit and component tests in `frontend/tests/**` and make `frontend/tsconfig.json`, `frontend/vite.config.ts`, and the Biome command include that tree directly.
-- Retain shared render/setup utilities inside the frontend package, for example `frontend/tests/render.tsx` plus `frontend/src/test/setup.ts`, rather than resolving `@testframework` outside the npm package.
+- Place TypeScript/React units in `frontend/tests/<domain>/**` and make `frontend/tsconfig.json`, `frontend/vite.config.ts`, and the Biome command include that tree directly.
+- Retain render/setup/fixtures in `frontend/tests/support/**`, for example `frontend/tests/support/render.tsx`, rather than resolving `@testframework` outside the npm package.
 
 **Independent root system framework:**
-- Reserve `testframework/` for system/E2E/integration/load concerns with its own Python project, pytest entry point, Playwright integration, dependency lock, environment profiles, reports, and CI job(s).
+- Reserve `testframework/{core,api,integration,contract,e2e,load,docker,reports}/` for the single Python QA project with root `pyproject.toml`/pytest config.
 - Exact Python version, environment manager, pytest plugin set, and load tool are **not specified by the current repository** and must be selected and pinned by the planner before implementation.
 - Preserve `backend/testframework/`, `testframework/stages/unit/frontend-test/`, and the current TypeScript E2E path until each replacement demonstrates scenario, outcome, skip, and report parity.
 
@@ -183,7 +187,9 @@
 
 - Freeze a dated file inventory and one Docker-based backend coverage command before moving the first test; record both in `.planning/STATE.md` and the migration plan.
 - Classify every current test as Go unit, Go component/integration, frontend unit/component, or root system/E2E/load before assigning a destination. Use imports and runtime dependencies, not the current directory name, as classification evidence.
-- Move Go tests in domain-sized batches into `backend/tests/**` while keeping the legacy `go test -tags hubtest ./testframework/...` job green; remove each `Export*` hook only after its final legacy and target consumer is gone.
+- Move classified Go units in domain-sized batches into `backend/tests/**`;
+  pair each wave with Python replacement of its component rows while keeping
+  legacy green.
 - Move frontend tests into `frontend/tests/**` and expand TypeScript/Biome scopes in the same batch; remove `@testframework` and the unit-test junction only after zero legacy consumers remain.
 - Create an independent Python project under `testframework/` before porting system tests. It must own its environment, lockfile, pytest/Playwright configuration, artifacts, and CI command rather than borrowing `frontend/node_modules`.
 - Dual-run legacy and target suites and compare collected/executed/passed/failed/skipped counts plus artifacts before deleting any legacy path.
@@ -196,7 +202,7 @@ Run from repository root; all are read-only except normal tool startup metadata:
 
 ```powershell
 # Current inventories
-(rg --files backend/testframework -g '*_test.go').Count                         # 828
+(rg --files backend/testframework -g '*_test.go').Count                         # 829 legacy; +1 server = 830 total
 (rg --files backend/internal -g '*_test.go').Count                              # 0
 (rg --files testframework/stages/unit/frontend-test -g '*.test.ts').Count       # 60
 (rg --files testframework/stages/unit/frontend-test -g '*.test.tsx').Count      # 120

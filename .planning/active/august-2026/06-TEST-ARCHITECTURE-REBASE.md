@@ -11,24 +11,29 @@
 
 Историческая **pipeline migration COMPLETE** (перенос старых Go/Vitest/E2E в
 pipeline-oriented каталоги) не открывается заново. Новая **Python/native test
-architecture migration NOT_STARTED** — отдельная программа. Её целевая схема:
+architecture migration IN_PROGRESS (Phase 128; tests ещё не перемещались)** —
+отдельная программа. Её целевая схема:
 
 **Status distinction:** prior pipeline migration = `COMPLETE`; Python migration
-= `NOT_STARTED`. **Live baseline:** 828 Go / 180 Vitest / 20 E2E specs / 53 E2E
-cases / 0 Python.
+= `IN_PROGRESS`, пока baseline-only. **Live inventory:** 1,047 rows на HEAD
+`ee6d696c`: 830 Go / 180 Vitest / 3 frontend support / 20 E2E specs / 14 E2E
+support / 0 Python.
 
 ```text
-backend/tests/**           Go unit/component tests, owner: backend
-frontend/tests/**          Vitest/RTL tests, owner: frontend
-testframework/python/**    pytest/httpx/Playwright: API/integration/E2E/full
-testframework/load/**      Locust load profiles, owner: QA automation
+backend/tests/**           только Go unit tests, owner: backend
+frontend/tests/**          только Vitest/RTL unit tests, owner: frontend
+testframework/             один Python-проект прямо в корне
+  pyproject.toml           dependencies + единый pytest config (либо pytest.ini)
+  {core,api,integration,contract,e2e,load,docker,reports}/**
 ```
 
 Миграция только через dual-run. `backend/testframework/**`,
 `testframework/stages/unit/frontend-test/**` и
 `testframework/stages/e2e/**` остаются исполняемыми до принятого parity каждой
-inventory-строки. Корневой `testframework/` не очищается при создании Python
-scaffold: новые Python-файлы сосуществуют со старым деревом до Phase 141.
+inventory-строки. Корневые `testframework/pyproject.toml`, pytest config и
+целевые каталоги сосуществуют с legacy только на верифицированном
+dual-run. Phase 141 обязана удалить legacy Go/Vitest/TS E2E и их
+entrypoints: они не являются целевыми слоями.
 
 ## 2. Текущая стадия и evidence
 
@@ -38,9 +43,10 @@ acceptance; ручной prod-blocker PG-03 также остаётся вне �
 
 | Поверхность | Live inventory 2026-08-07 | Runtime verdict |
 |---|---:|---|
-| Go `backend/testframework/**/*_test.go` | **828 файлов**, 3 663 `Test*` | current green/coverage **UNKNOWN** |
-| Vitest legacy | **180 файлов** (60 TS + 120 TSX) | baseline не завершён |
-| Playwright TS | **20 specs / 53 cases** | исторический suite; live parity не доказан |
+| Ledger | **1,047 source rows**, SHA-256 `01dae4e2…` | deterministic check green |
+| Go total | **830 файлов / 3,667 tests**: legacy root 829/3,665 + server 1/2; 594 genuine unit + 236 component (31 API + 205 integration) | current green/coverage **UNKNOWN** |
+| Vitest legacy | **180 файлов / 519 cases**: 156 unit + 24 static contract; ещё 3 support rows | baseline не завершён |
+| Playwright TS | **20 specs / 53 cases + 14 support rows** | исторический suite; live parity не доказан |
 | Python tests | **0** | Python отсутствует в PATH |
 | `export_hooks.go` / все `hubtest` production files | **39 / 45** | 338 Go tests используют `Export*` |
 | Docker | compose parse доступен | daemon недоступен; service run NOT_RUN |
@@ -60,14 +66,20 @@ unavailable Docker и skip обязательной зависимости — �
    `source_path`, checksum, runner, domain, stable IDs/test count, taxonomy,
    target path, coverage-bearing, hook consumers, baseline result, replacement
    result, parity status, disposition и evidence URI.
-3. Таксономия: `go-unit`, `go-component`, `python-api`, `python-integration`,
-   `python-contract`, `python-e2e`, `python-full`, `python-load`,
-   `frontend-unit`. Каталог-источник сам по себе тип теста не определяет.
+3. Таксономия/target classes: `go-unit`, `python-api`, `python-integration`,
+   `python-contract`, `python-static-contract`, `python-e2e`,
+   `python-e2e-support`, `python-load`, `frontend-unit`, `frontend-support`.
+   Каталог-источник сам по себе тип теста не определяет.
+   Smoke/full — selection markers, а не целевые каталоги.
 4. Перемещение считается принятым только на одном immutable build при равных
    assertions/negative paths, явном pass/fail/skip count, forced-failure или
    mutation evidence и решении независимого verifier `PARITY_ACCEPTED`.
-5. `backend/tests/**` остаётся внешним package tree внутри Go module. Оно может
-   импортировать `backend/internal/**`, но не получает private access. Hooks под
+5. `backend/tests/**` — внешнее package tree только для genuine Go unit tests.
+   Текущие **236** `go-component` rows (31 API + 205 integration) нельзя
+   механически переносить туда:
+   каждая должна либо перейти в Python `api/integration/contract`, либо быть
+   рефакторена в настоящий isolated unit с verifier-approved evidence. Genuine
+   units могут импортировать `backend/internal/**`, но не получают private access. Hooks под
    `hubtest` не удаляются механически; каждый hook требует consumer=0 и зелёного
    доменного доказательства.
    **Go hooks cannot be mechanically deleted.**
@@ -82,7 +94,7 @@ unavailable Docker и skip обязательной зависимости — �
 
 | Phase | Outcome | TASK |
 |---:|---|---|
-| [128](../../phases/128-tf-python-scaffold/PLAN.md) | Status/baseline recovery | TASK-202 inventory ledger; TASK-203 canonical baseline; TASK-204 taxonomy + coverage contract |
+| [128](../../phases/128-tf-python-scaffold/PLAN.md) | Status/baseline recovery | TASK-202 inventory; TASK-203 baseline; TASK-221–225 remediation; TASK-226 root-layout correction; TASK-204 final contract |
 | [129](../../phases/129-tf-e2e-shared/PLAN.md) | Python scaffold + API vertical slice | TASK-193; TASK-205 |
 | [130](../../phases/130-tf-e2e-mechanical/PLAN.md) | Frontend native foundation | TASK-198; TASK-206 |
 | [131](../../phases/131-tf-e2e-rewrite/PLAN.md) | Frontend domain migration | TASK-207; TASK-208 |
@@ -144,7 +156,13 @@ inventory доказывает больший объём, фаза остана�
 - rollback описан и проверен: предыдущие job/path можно восстановить одним
   revert до истечения retention window;
 - hooks удаляются только поштучно при consumer=0; root framework целиком не
-  удаляется, удаляются лишь allowlisted legacy entries.
+  удаляется;
+- все legacy Go/Vitest/TS E2E tests, helpers, configs и entrypoints удалены по
+  manifest allowlist; они не остаются как «резервный target»;
+- в `testframework/**` остался один Python-проект с корневым
+  `pyproject.toml`/pytest config и каталогами
+  `{core,api,integration,contract,e2e,load,docker,reports}`; исполняемый
+  test/load код там только Python.
 
 ## 8. Порядок после test rebase
 

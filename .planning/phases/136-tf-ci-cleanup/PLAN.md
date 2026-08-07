@@ -27,8 +27,13 @@ execution за Go coverage.
 
 | Task ID | Outcome | Owner | Verifier | Files | Depends | Estimate |
 |---|---|---|---|---|---|---:|
-| TASK-199 | Core/API pilot: typed client, factories, schema/assertion helpers, isolation и representative API parity | qa-auto1 | qa-auto-ver | `testframework/python/{core,fixtures,api}/**`, `.planning/evidence/test-rebase/136/api/**` | Phase 129, Phase 135 | 1–1.5д |
-| TASK-216 | Infra integration expansion для PostgreSQL/Mongo/Redis/NATS и всех ledger candidates | qa-auto2 | qa-auto-ver | `testframework/python/{integration,full}/**`, `.planning/audits/test-rebase/inventory.json`, `.planning/evidence/test-rebase/136/integration/**` | TASK-199 | 1–1.5д |
+| TASK-199 | Core/API pilot: typed client, factories, schema/assertion helpers, isolation и representative API parity | qa-auto1 | qa-auto-ver | `testframework/{core,api,contract,docker,reports}/**`, `.planning/evidence/test-rebase/136/api/**` | Phase 129, Phase 135 | 1–1.5д |
+| TASK-216 | Infra integration expansion для PostgreSQL/Mongo/Redis/NATS и всех ledger candidates | qa-auto2 | qa-auto-ver | `testframework/{integration,contract,docker,reports}/**`, `.planning/audits/test-rebase/inventory.json`, `.planning/evidence/test-rebase/136/integration/**` | TASK-199 | 1–1.5д |
+
+Эта фаза не переносит текущие **236** `go-component` rows (31 API + 205
+integration) в `backend/tests/**`. Каждая такая строка либо получает Python
+replacement в `api/integration/contract`,
+либо возвращается backend owner для рефакторинга в genuine unit.
 
 ## Волны
 

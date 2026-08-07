@@ -42,6 +42,9 @@ jobs:
             test -f "$f" || { echo "Missing $f"; exit 1; }
           done
 
+      - name: Verify planning decision contracts
+        run: python3 .planning/audits/test-rebase/validate_planning_contracts.py
+
   path-labels:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'

@@ -1,15 +1,15 @@
 # Бэклог задач
 
 > Единый вход для агентов и владельца. Одна таблица, один формат.
-> Обновлено: 2026-08-07 · test-rebase — 27 active + 1 verified по фазам 128–141
+> Обновлено: 2026-08-07 · test-rebase — 32 active + 6 verified по фазам 128–141
 
 ## Состояние
 
 | | |
 |---|---|
-| Активных задач | **27** — test-rebase, TASK-202 закрыта |
-| Закрыто | **193** |
-| Архив | `archive/legacy/` 80 · `archive/2026-07-28/` 43 · `archive/2026-07-29/` 69 · `archive/2026-08-07/` 1 |
+| Активных задач | **32** — test-rebase; TASK-202/221/222/223/225/226 закрыты |
+| Закрыто/verified | **198** = 193 archived + TASK-221/222/223/225/226 verified, ожидают archival move |
+| Архив | **193**: `archive/legacy/` 80 · `archive/2026-07-28/` 43 · `archive/2026-07-29/` 69 · `archive/2026-08-07/` 1 |
 
 Новая задача заводится **плоско в корне** `backlog/`, по закрытии переезжает
 в `archive/<дата заведения>/`. Подробности — в правиле 57.
@@ -32,14 +32,19 @@ Stage A2 (brief): [A2-DEDUP-2026-07-28.md](../audits/total-2026-07/A2-DEDUP-2026
 
 ## Открытые — test-rebase
 
-27 открытых из 28 атомарных задач по фазам 128–141. Канон: сначала inventory/baseline/contract,
+32 открытых из 38 атомарных задач по фазам 128–141. Канон: сначала inventory/baseline/contract,
 затем dual-run миграция по слоям и доменам, gates, и только после доказанного
-parity — cleanup. Текущий baseline: 828 Go / 180 Vitest / 20 E2E specs
-(53 cases) / 0 Python; coverage до TASK-203 считается неизвестным.
+parity — cleanup. Текущий ledger: 1,047 rows; 830 Go / 3,667 tests
+(legacy root 829/3,665 + server 1/2; 594 genuine unit + 236 component:
+31 API + 205 integration), 180 Vitest /
+519 cases (156 unit + 24 static contract) + 3 frontend support, 20 E2E specs /
+53 cases + 14 E2E support, 39 canonical hooks, 0 Python. Backend baseline
+TASK-203 = **82.0373% PASS**, frontend = **519/519 PASS**; E2E pending.
 
 | ID | Задача | Приоритет | Статус | Исполнитель | Источник |
 |----|--------|-----------|--------|-------------|----------|
-| [TASK-203](TASK-203-2026-08-07-test-rebase-canonical-baseline.md) | 📏 Canonical green baseline | P1 | Открыта | devops-engineer | Фаза 128 |
+| [TASK-203](TASK-203-2026-08-07-test-rebase-canonical-baseline.md) | 📏 Canonical green baseline | P1 | BLOCKED · E2E only | devops-engineer | Фаза 128 |
+| [TASK-224](TASK-224-2026-08-07-e2e-docker-baseline-prerequisites.md) | 🐳 E2E Docker prerequisites | P1 | В работе · isolated execution | devops-engineer | Фаза 128 |
 | [TASK-204](TASK-204-2026-08-07-test-taxonomy-coverage-contract.md) | 📐 Taxonomy/job/coverage contract | P1 | Открыта | arch | Фаза 128 |
 | [TASK-193](TASK-193-2026-07-30-tf-python-scaffold.md) | 🧪 Python scaffold без удаления legacy | P1 | Открыта | qa-auto1 | Фаза 129 |
 | [TASK-205](TASK-205-2026-08-07-python-api-health-auth-slice.md) | 🧪 API health/auth vertical slice | P1 | Открыта | qa-auto2 | Фаза 129 |
@@ -47,14 +52,18 @@ parity — cleanup. Текущий baseline: 828 Go / 180 Vitest / 20 E2E specs
 | [TASK-206](TASK-206-2026-08-07-frontend-platform-auth-wave.md) | 🧪 FE platform/auth wave | P1 | Открыта | fe2 | Фаза 130 |
 | [TASK-207](TASK-207-2026-08-07-frontend-tracker-messenger-tms-calls.md) | 🧪 FE tracker/messenger/tms/calls | P1 | Открыта | fe1 | Фаза 131 |
 | [TASK-208](TASK-208-2026-08-07-frontend-remaining-domains.md) | 🧪 FE remaining domains | P1 | Открыта | fe2 | Фаза 131 |
-| [TASK-197](TASK-197-2026-07-30-tf-backend-units-colocated.md) | 🧪 BE ledger/shared support | P1 | Открыта | be1 | Фаза 132 |
+| [TASK-230](TASK-230-2026-08-07-frontend-static-contract-python.md) | 🐍 Frontend static/source contracts → Python | P1 | Открыта | qa-auto2 | Фаза 131 |
+| [TASK-197](TASK-197-2026-07-30-tf-backend-units-colocated.md) | 🧪 BE ledger/support | P1 | Открыта | be1 | Фаза 132 |
 | [TASK-209](TASK-209-2026-08-07-backend-auth-pilot-hook-proof.md) | 🧪 BE auth pilot + hook proof | P1 | Открыта | be2 | Фаза 132 |
 | [TASK-210](TASK-210-2026-08-07-backend-auth-rbac-audit-ws-calls.md) | 🧪 BE auth/rbac/audit/ws/calls | P1 | Открыта | be1 | Фаза 133 |
 | [TASK-211](TASK-211-2026-08-07-backend-platform-apigateway-dev-ent.md) | 🧪 BE platform/apigateway/dev/ent | P1 | Открыта | be2 | Фаза 133 |
+| [TASK-227](TASK-227-2026-08-07-python-security-platform-components.md) | 🐍 Security/platform component parity | P1 | Открыта | qa-auto1 | Фаза 133 |
 | [TASK-212](TASK-212-2026-08-07-backend-tracker-project-sprint-tms.md) | 🧪 BE tracker/project/sprint/tms | P1 | Открыта | be1 | Фаза 134 |
 | [TASK-213](TASK-213-2026-08-07-backend-messenger-notification.md) | 🧪 BE messenger/notification | P1 | Открыта | be2 | Фаза 134 |
+| [TASK-228](TASK-228-2026-08-07-python-work-realtime-components.md) | 🐍 Work/realtime component parity | P1 | Открыта | qa-auto2 | Фаза 134 |
 | [TASK-214](TASK-214-2026-08-07-backend-business-domains.md) | 🧪 BE calendar/intranet/business domains | P1 | Открыта | be1 | Фаза 135 |
 | [TASK-215](TASK-215-2026-08-07-backend-integrations-ai-storage.md) | 🧪 BE AI/search/storage/integrations | P1 | Открыта | be2 | Фаза 135 |
+| [TASK-229](TASK-229-2026-08-07-python-business-integration-components.md) | 🐍 Business/integration component parity | P1 | Открыта | qa-auto1 | Фаза 135 |
 | [TASK-199](TASK-199-2026-07-30-tf-integration-python.md) | 🧪 Python core/API pilot | P1 | Открыта | qa-auto1 | Фаза 136 |
 | [TASK-216](TASK-216-2026-08-07-python-integration-expansion.md) | 🧪 Python infra integration expansion | P1 | Открыта | qa-auto2 | Фаза 136 |
 | [TASK-194](TASK-194-2026-07-30-tf-e2e-shared-fixtures.md) | 🧪 Shared E2E fixtures/POM | P1 | Открыта | qa-auto1 | Фаза 137 |
@@ -70,16 +79,20 @@ parity — cleanup. Текущий baseline: 828 Go / 180 Vitest / 20 E2E specs
 **Раскладка после миграции:**
 
 ```
-backend/tests/<домен>/            юниты/компонентные тесты Go
-frontend/tests/<модуль>/          юниты/компонентные тесты TypeScript
+backend/tests/<domain>/           только genuine unit-тесты Go
+frontend/tests/<domain>/          только Vitest/RTL unit-тесты
+frontend/tests/support/           frontend setup/render/fixtures
 
 testframework/
-    python/                      pytest/httpx/Playwright
-        integration/             бэкенд, БД, NATS, внешние
-        e2e/                     UI через Playwright
-        api/                     веб-API целиком
-        full/                    сквозные сценарии
+    pyproject.toml                единые Python dependencies + pytest config
+    core/                        clients/settings/factories
+    api/                         веб-API целиком
+    integration/                 БД, NATS, внешние сервисы
+    contract/                    схемы и static/source contracts
+    e2e/                         UI через playwright-python
     load/                        нагрузка через Locust
+    docker/                      test-service profiles
+    reports/                     sanitized artifacts
 ```
 
 Юниты живут рядом с кодом и на языке своего слоя — их пишут
@@ -96,7 +109,12 @@ green replacement jobs на реальном PR; hooks удаляются consum
 
 | ID | Задача | Приоритет | Статус | Исполнитель | Источник |
 |----|--------|-----------|--------|-------------|----------|
-| [TASK-202](archive/2026-08-07/TASK-202-2026-08-07-test-rebase-inventory-ledger.md) | 📋 Test-rebase inventory ledger | P1 | Закрыта · qa-auto-ver PASS · SHA `17019e9f…` | qa-auto1 | Фаза 128 |
+| [TASK-202](archive/2026-08-07/TASK-202-2026-08-07-test-rebase-inventory-ledger.md) | 📋 Test-rebase inventory ledger | P1 | Закрыта · qa-auto-ver PASS · 1,047 rows · SHA `01dae4e2…` | qa-auto1 | Фаза 128 |
+| [TASK-221](TASK-221-2026-08-07-backend-baseline-deterministic-fixes.md) | 🧪 Backend baseline deterministic fixes | P1 | VERIFIED | be1 | Фаза 128 |
+| [TASK-222](TASK-222-2026-08-07-frontend-baseline-regression-fixes.md) | 🧪 Frontend baseline regression fixes | P1 | VERIFIED | fe1 | Фаза 128 |
+| [TASK-223](TASK-223-2026-08-07-frontend-biome-baseline-recovery.md) | 🧹 Frontend Biome baseline recovery | P1 | VERIFIED | fe2 | Фаза 128 |
+| [TASK-225](TASK-225-2026-08-07-audit-coverage-floor-recovery.md) | 📈 Audit coverage floor recovery | P1 | VERIFIED · 82.0373% / security 6/6 | be2 | Фаза 128 |
+| [TASK-226](TASK-226-2026-08-07-root-python-testframework-contract.md) | 🐍 Root Python testframework contract + ledger rebase | P1 | VERIFIED · qa-auto-ver PASS | arch + qa-auto1 | Фаза 128 |
 | [TASK-008](archive/legacy/TASK-008-total-audit-program.md) | Тотальный пофайловый аудит | P1 | Закрыта (W20 FINAL вердикт A · hubtest PASS 50 ok · 2026-07-30) | Grok + субагенты | Owner 2026-07-28 |
 | [TASK-081](archive/2026-07-28/TASK-081-2026-07-28-tms-completerun-project-id-webhook.md) | ♻️🐛 TMS CompleteTestRun → webhook `project_id` | **P1** | Закрыта · MUTATION-2026-07-29-W3 | be1 | A2W4-5-001 REGRESS |
 | [TASK-082](archive/2026-07-28/TASK-082-2026-07-28-fe-sprint-backlog-without-sprint-filter.md) | 🐛 FE SprintBacklog без фильтра sprint | **P1** | Закрыта · MUTATION-2026-07-29-W3 | fe1 | A2W10-A3-001 |

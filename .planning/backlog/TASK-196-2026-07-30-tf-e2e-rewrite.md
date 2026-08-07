@@ -13,7 +13,7 @@
 
 ## [SCOPE AND CONSTRAINTS]
 
-- Allowed: `testframework/python/e2e/**`, `testframework/python/full/**`, parity manifests/reports.
+- Allowed: `testframework/e2e/**`, `testframework/reports/**` parity manifests/reports. Full — marker/run profile, а не отдельный каталог.
 - Read-only: legacy E2E/shared и `frontend/playwright.config.ts`.
 - Do not touch: legacy deletion, product code, CI. Headless media использует тестовые fake devices/permissions, не реальные устройства.
 - Legacy `20 specs / 53 cases` — знаменатель; consolidation допустима только с явным many-to-one ledger и сохранёнными assertions/TC IDs.
@@ -27,7 +27,7 @@
 
 ## [ACCEPTANCE]
 
-- Completion command: `cd testframework/python && python -m pytest e2e full -m e2e --strict-markers -q`; exit code 0 и заявленные counts обязательны.
+- Completion command: `cd testframework && python -m pytest e2e -m e2e --strict-markers -q`; exit code 0 и заявленные counts обязательны.
 
 - Пять complex rows и полный 20-spec/53-case ledger имеют `PARITY_PROVEN`; unmapped, duplicate и unexplained skip = 0.
 - Python full suite сохраняет WebSocket/event-driven waits, file/media permissions, trace-on-retry, screenshot-on-failure и sanitized artifacts.

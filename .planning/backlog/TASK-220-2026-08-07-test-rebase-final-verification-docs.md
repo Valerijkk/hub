@@ -16,7 +16,7 @@ Test-rebase имеет независимый финальный PASS: target to
 - Allowed: final verification report, `.planning/COVERAGE.md`, `.planning/STATE.md`, backlog statuses/index, `docs/{TESTING.md,test_plan.md,testframework_strategy.md,TROUBLESHOOTING.md}`, `testframework/{README.md,PIPELINE.md}` when evidence requires sync.
 - Read-only: code/tests/CI and all task evidence. Do not fix implementation; findings become reopen/new TASK.
 - Verify against TASK-202 ledger/hash and TASK-203 method, not stale AGENTS/docs counters.
-- Depends on: TASK-219 and verifier/review evidence TASK-193–218.
+- Depends on: TASK-219 and verifier/review evidence TASK-193–218, TASK-221–230.
 
 ## [REFERENCES]
 

@@ -13,7 +13,7 @@ Python Playwright reproduces the exact current three-spec smoke contract with fa
 
 ## [SCOPE AND CONSTRAINTS]
 
-- Allowed: `testframework/python/e2e/**`, smoke manifest/report.
+- Allowed: `testframework/e2e/**`, `testframework/reports/**` smoke manifest/report.
 - Read-only: three legacy smoke specs, active Playwright config/shared helpers.
 - Do not touch: legacy files/config, product code, CI, remaining 17 specs.
 - Smoke selection comes from current executable config, not stale docs; preserve frontend-only vs backend-required semantics explicitly.
@@ -26,7 +26,7 @@ Python Playwright reproduces the exact current three-spec smoke contract with fa
 
 ## [ACCEPTANCE]
 
-- Completion command: `cd testframework/python && python -m pytest e2e -m smoke --strict-markers -q`; exit code 0 и заявленные counts обязательны.
+- Completion command: `cd testframework && python -m pytest e2e -m smoke --strict-markers -q`; exit code 0 и заявленные counts обязательны.
 
 - Manifest maps exactly three legacy specs and all their cases/assertions to Python; old/new collected/executed/pass/fail/skip reconcile.
 - Missing frontend/backend/dev-mode prerequisite fails preflight where mandatory; unexpected skips = 0; trace/screenshot redacted.

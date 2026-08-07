@@ -4,7 +4,10 @@
 
 ## [OUTCOME]
 
-Один репрезентативный auth batch работает из `backend/tests/auth/**`, доказывает parity и формализует безопасное consumer-by-consumer обращение с `hubtest` export hooks.
+Один репрезентативный service-free auth unit batch работает из
+`backend/tests/auth/**`, доказывает parity и формализует безопасное
+consumer-by-consumer обращение с `hubtest` export hooks. DB/HTTP component rows
+в pilot запрещены и передаются Python-владельцу.
 
 ## [ROLE]
 

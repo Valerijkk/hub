@@ -13,7 +13,7 @@ Python framework проверяет health и полный auth vertical slice �
 
 ## [SCOPE AND CONSTRAINTS]
 
-- Allowed: `testframework/python/api/{health,auth}/**`, `testframework/python/core/**`, auth/API fixtures and reports.
+- Allowed: `testframework/api/{health,auth}/**`, `testframework/core/**`, auth/API fixtures в `testframework/core/fixtures/**` и `testframework/reports/**`.
 - Read-only: `docs/wiki/API.md`, current auth Go tests and E2E helpers.
 - Do not touch: product code, legacy tests, CI, E2E browser layer.
 - Cover health, invalid/missing auth, permitted test login/Magic Link flow, session use/revoke and error envelope/request_id; never use production mail/secrets.
@@ -26,7 +26,7 @@ Python framework проверяет health и полный auth vertical slice �
 
 ## [ACCEPTANCE]
 
-- Completion command: `cd testframework/python && python -m pytest api/health api/auth -m api --strict-markers -q`; exit code 0 и заявленные counts обязательны.
+- Completion command: `cd testframework && python -m pytest api/health api/auth -m api --strict-markers -q`; exit code 0 и заявленные counts обязательны.
 
 - `pytest -m api` collects non-zero health/auth tests and passes against documented isolated stack; unauthorized paths assert status and safe error contract.
 - Ledger maps each new test to legacy behavior/TC; all artifacts redact tokens, codes, cookies and PII.

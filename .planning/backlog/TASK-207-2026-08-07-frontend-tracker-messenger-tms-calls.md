@@ -4,7 +4,9 @@
 
 ## [OUTCOME]
 
-Frontend tests for tracker, messenger, tms and calls live in `frontend/tests/**` with complete ledger parity and unchanged 180-test legacy dual-run.
+Настоящие Vitest/RTL units tracker, messenger, tms и calls живут в
+`frontend/tests/<domain>/**`; source/docs/compile guards переданы TASK-230 и не
+маскируются под UI units.
 
 ## [ROLE]
 
@@ -28,10 +30,11 @@ Frontend tests for tracker, messenger, tms and calls live in `frontend/tests/**`
 
 - Completion command: `cd frontend && npx vitest run tests/tracker tests/messenger tests/tms tests/calls`; exit code 0 и заявленные counts обязательны.
 
-- All four-domain rows are `PARITY_PROVEN`; old/new cases/assertions/TC IDs reconcile, duplicates/unmapped = 0.
+- All genuine unit rows are `PARITY_PROVEN`; static-contract rows имеют
+  TASK-230 owner; duplicates/unmapped/static-under-frontend = 0.
 - Target tests pass test typecheck, Biome and Vitest; coverage per domain does not regress beyond approved contract.
 - Mutation proof: one meaningful product guard in each domain REDs its target test; all four restored GREEN/diff-clean.
-- Regression: full legacy 180 and prior target platform/auth wave green; no unexpected skips.
+- Regression: full legacy 180-file suite и prior target platform/auth wave green; no unexpected skips.
 - Evidence: commands/counts/timing/coverage, ledger status and four mutation logs.
 - Stop when: source guard/path or behavior cannot be preserved without production change; report row, do not weaken test.
 

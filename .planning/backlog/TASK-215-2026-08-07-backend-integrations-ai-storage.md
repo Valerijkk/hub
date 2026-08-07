@@ -4,7 +4,9 @@
 
 ## [OUTCOME]
 
-Classified Go-unit/component rows for ai, search, storage, backup, imex, github, gitlab, onec, marketplace and mail run from `backend/tests/**`, while real-integration rows remain explicitly mapped for Python.
+Только genuine Go units ai, search, storage, backup, imex, github, gitlab,
+onec, marketplace и mail работают из `backend/tests/**`; любые provider/DB/
+storage/API components получают Python parity TASK-229.
 
 ## [ROLE]
 
@@ -15,7 +17,8 @@ Classified Go-unit/component rows for ai, search, storage, backup, imex, github,
 
 - Allowed: corresponding `backend/tests/**` directories including `integrations/onec`, shared support и read-only hook ledger; hook-файлы не меняются.
 - Read-only: matching legacy/product. Do not touch: legacy deletion, CI, other domains, behavior.
-- No real external provider/network in unit lane; provider/DB/object-storage/full-API rows stay legacy for TASK-216.
+- No real external provider/network in unit lane; provider/DB/object-storage/
+  full-API rows stay legacy until TASK-229 parity.
 - Depends on: TASK-212, TASK-213.
 
 ## [REFERENCES]

@@ -5,11 +5,13 @@
 ## Test Framework
 
 **Runner:**
-- Go `testing` + `testify` 1.11.1 on Go 1.25.0 (`backend/go.mod`). Actual inventory: 828 `*_test.go` files and 3,663 `Test*` functions in `backend/testframework/`; 0 test files in `backend/internal/`.
-- Vitest 3.2.4 + React Testing Library + jest-dom on `happy-dom` (`frontend/package.json`, `frontend/package-lock.json`, `frontend/vite.config.ts`). Actual inventory: 180 files, 60 `.test.ts` + 120 `.test.tsx`, in `testframework/stages/unit/frontend-test/domains/`; 0 in `frontend/src/`.
-- Playwright TypeScript 1.52.x (`frontend/playwright.config.ts`). Actual inventory: 20 specs and 53 `test(...)` declarations in `testframework/stages/e2e/domains/`.
-- Target: native units in `backend/tests/unit/**` and `frontend/tests/unit/**`; pytest + httpx + allure-pytest + playwright-python + pytest-xdist in root `testframework/`; Locust in `testframework/load/`.
-- Python target is absent: no `testframework/pyproject.toml`, `pytest.ini`, `conftest.py`, `api/`, `integration/`, `full/`, or `load/` exists.
+- Go `testing` + `testify` 1.11.1 on Go 1.25.0: 830 total / 3,667 tests = legacy root 829/3,665 + server 1/2; taxonomy 594 unit + 236 component (31 API + 205 integration).
+- Vitest 3.2.4 + RTL + jest-dom: 180 files / 519 cases = 156 unit + 24 static contract, plus 3 support rows.
+- Playwright TypeScript 1.52.x: 20 specs / 53 cases plus 14 support rows.
+- Target: native units in `backend/tests/<domain>/**` and
+  `frontend/tests/<domain>/**`; pytest/httpx/Playwright Python/Locust directly
+  in root `testframework/**`.
+- Python target is absent: no root `testframework/pyproject.toml`/pytest config or `{core,api,integration,contract,e2e,load,docker,reports}/` layer exists.
 - Config: `backend/go.mod`, `frontend/vite.config.ts`, `frontend/playwright.config.ts`, `.github/workflows/ci.yml`; target config belongs in `testframework/pyproject.toml` with registered strict markers.
 
 **Assertion Library:**
@@ -39,7 +41,7 @@ go test -tags hubtest -coverprofile=/tmp/cov -coverpkg=./internal/... ./testfram
 go tool cover -func=/tmp/cov
 
 # Target after cutover
-cd backend && go test -race -count=1 -timeout=600s ./tests/unit/...
+cd backend && go test -race -count=1 -timeout=600s ./tests/...
 cd frontend && npm run test:run
 cd testframework && pytest --strict-markers
 cd testframework && locust --headless -f load/locustfile.py
@@ -51,7 +53,10 @@ cd testframework && locust --headless -f load/locustfile.py
 - Current backend unit/API/integration tests are mixed under `backend/testframework/<domain>/`. Shared sqlite setup is `backend/testframework/env/builder.go`; the shared factory layer is `backend/testframework/factory/user.go`.
 - Current frontend logic/component tests are under `testframework/stages/unit/frontend-test/domains/<domain>/`; shared render setup is `testframework/stages/unit/frontend-test/render.tsx`.
 - Current E2E is under `testframework/stages/e2e/domains/<domain>/` with `testframework/stages/e2e/shared/{fixtures,helpers,pages,steps}/`.
-- Target native unit locations are `backend/tests/unit/<domain>/` and `frontend/tests/unit/<domain>/`. Target non-unit locations are `testframework/{api,integration,e2e,full,load}/`.
+- Target native unit locations are `backend/tests/<domain>/` and
+  `frontend/tests/<domain>/`, with frontend helpers in `frontend/tests/support/`.
+  Target Python project uses
+  `testframework/{core,api,integration,contract,e2e,load,docker,reports}/`.
 - The target above supersedes `backend/internal/<domain>/unit/` and `frontend/src/<module>/unit/` in `.planning/active/august-2026/05-AUGUST-DETAILED.md` and TASK-197/TASK-198; those plans must be corrected before execution.
 
 **Naming:**
@@ -68,10 +73,10 @@ testframework/stages/unit/frontend-test/domains/<domain>/*.test.ts(x)
 testframework/stages/e2e/{shared,domains}/
 
 Target
-backend/tests/unit/<domain>/*_test.go
-frontend/tests/unit/<domain>/*.test.ts(x)
+backend/tests/<domain>/*_test.go
+frontend/tests/<domain>/*.test.ts(x)
 frontend/tests/support/
-testframework/{core,api,integration,e2e,full,load}/
+testframework/{core,api,integration,contract,e2e,load,docker,reports}/
 ```
 
 ## Test Structure
@@ -184,14 +189,16 @@ def project(project_factory):
 - Current frontend: `testframework/stages/unit/frontend-test/render.tsx`; global jest-dom setup is `frontend/src/test/setup.ts`.
 - Current E2E: `testframework/stages/e2e/shared/fixtures.ts` plus helpers/POM/Steps.
 - Target Go/TS support: `backend/tests/support/` and `frontend/tests/support/`.
-- Target Python: reusable clients/factories in `testframework/python/core/`; layer/domain fixtures in the nearest `conftest.py`. `testframework/python/conftest.py` owns environment and a single compose lifecycle, not domain state.
+- Target Python: reusable clients/factories in `testframework/core/`; layer/
+  domain fixtures in nearest `conftest.py`. Root `conftest.py` owns environment,
+  not domain state.
 - Fixture acceptance: two identical consecutive runs, zero leaked records, and parallel execution without collisions, per TASK-194/TASK-199.
 
 ## Coverage
 
 **Requirements:**
 - `.github/workflows/ci.yml` declares overall Go statement coverage of `backend/internal/...` at >=82%; `.planning/COVERAGE.md` records historical security package targets >=80%.
-- No valid migration baseline is currently fixed. `.planning/COVERAGE.md` reports 80.2% on 2026-07-29 from a contaminated run with 11 failed packages; `.planning/STATE.md` reports 81.9% on 2026-07-27; `docs/test_plan.md` presents 83.0% from 2026-06-22.
+- The current migration backend baseline is fixed at **82.0373%** on 2026-08-07 from a zero-failure Docker Go 1.25 race run; all 6/6 security package floors pass. Older 83.0/81.9/80.2/81.8 values are dated historical attempts.
 - Current `coverage-gate` omits `-race` and `-covermode=atomic`, while `.cursor/playbooks/testing.md` requires both together. Freeze one green Docker command before any deletion, then use exactly the same instrumentation after migration.
 - Frontend has no enforced coverage configuration/threshold, and `frontend/package.json` does not declare a Vitest coverage provider. TASK-198 must add a pinned provider, include production sources, define exclusions, and record a dated baseline.
 - Python black-box tests do not contribute to Go's native `go test -coverpkg` profile. Moving Go handler/repository/integration tests to Python can preserve behavioral coverage while lowering the Go statement metric. Therefore the migration must either retain/add enough Go units to preserve >=82%, or explicitly redefine the gate with an approved black-box coverage collection method and a new non-comparable baseline.
@@ -210,8 +217,8 @@ cd frontend && npx vitest run --coverage
 ## Test Types
 
 **Unit Tests:**
-- Go service logic with manual mocks and pure helpers; move true units to `backend/tests/unit/<domain>/`.
-- TypeScript API wrappers, stores, hooks, libraries, and components; examples are `testframework/stages/unit/frontend-test/domains/auth/auth-store.test.ts`, `testframework/stages/unit/frontend-test/domains/tracker/safe-url.test.ts`, and `testframework/stages/unit/frontend-test/domains/tracker/issue-card.test.tsx`. Move them to `frontend/tests/unit/<domain>/`.
+- Go service logic with manual mocks and pure helpers; move true units to `backend/tests/<domain>/`.
+- TypeScript API wrappers, stores, hooks, libraries, and components move to `frontend/tests/<domain>/`; setup/render/fixtures move to `frontend/tests/support/`.
 - Ownership remains developers (`be*`, `fe*`) with `be-ver`/`fe-ver`, per `.cursor/playbooks/testing.md`.
 
 **Integration Tests:**
@@ -258,7 +265,7 @@ assert response.json()["request_id"]
 
 | Gate | Current implementation | Migration acceptance |
 |------|------------------------|----------------------|
-| Go unit/race | `backend-test` runs `-tags hubtest -race ./testframework/...` | `./tests/unit/...` collects expected tests, race is green, deliberate failing sentinel fails job |
+| Go unit/race | `backend-test` runs `-tags hubtest -race ./testframework/...` | `./tests/...` collects expected tests, race is green, deliberate failing sentinel fails job |
 | Go coverage | `coverage-gate` runs only outside PR | Green baseline method frozen; same instrumentation after move, or explicitly approved gate redefinition for Python black-box coverage |
 | FE unit | tsc, Vitest, Biome | `frontend/tests/**` included by Vitest, tsc, and Biome; coverage recorded; linker removed |
 | Python | Not present | Pinned runtime/dependencies; `pytest --strict-markers` collects non-zero tests; marker jobs separated |
@@ -269,7 +276,7 @@ assert response.json()["request_id"]
 
 ## Migration Acceptance Gates
 
-1. Freeze an inventory at one revision: 828 Go files/3,663 functions, 180 Vitest files, 20 E2E specs/53 cases, 39 export hooks, and all skips. Map every source file to a target path and type.
+1. Freeze the 1,047-row inventory at HEAD `ee6d696c`: 830 Go / 3,667 tests (root 829/3,665 + server 1/2; 594 unit + 236 component), 180 Vitest / 519 cases + 3 support, 20 E2E / 53 cases + 14 support, 39 hooks and 0 Python.
 2. Establish a clean Docker coverage baseline with zero failed packages. Record command, revision, runtime versions, wall time, overall/security percentages, skips, and profile hash in `.planning/COVERAGE.md`.
 3. Dual-run legacy and replacement suites until parity. Each job asserts non-zero collection and reports passed/failed/skipped counts.
 4. Preserve behavior with the mutation/failing-sentinel checks required by TASK-193 through TASK-201.

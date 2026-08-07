@@ -27,8 +27,8 @@
 
 | Task ID | Outcome | Owner | Verifier | Files | Depends | Estimate |
 |---|---|---|---|---|---|---:|
-| TASK-194 | Shared fixtures, auth/data factories, POM, steps, a11y helper и artifact policy | qa-auto1 | qa-auto-ver | `testframework/python/e2e/{conftest.py,pages/**,steps/**}`, `testframework/python/fixtures/**` | Phase 129 | 1–1.5д |
-| TASK-217 | Login/a11y/critical-gate Python smoke с same-build TS parity и sentinel evidence | qa-auto2 | qa-auto-ver | `testframework/python/e2e/{auth,platform}/**`, `.planning/audits/test-rebase/inventory.json`, `.planning/evidence/test-rebase/137/**` | TASK-194 | 1д |
+| TASK-194 | Shared fixtures, auth/data factories, POM, steps, a11y helper и artifact policy | qa-auto1 | qa-auto-ver | `testframework/e2e/{conftest.py,pages/**,steps/**}`, `testframework/core/fixtures/**`, `testframework/contract/fixtures/**` | Phase 129 | 1–1.5д |
+| TASK-217 | Login/a11y/critical-gate Python smoke с same-build TS parity и sentinel evidence | qa-auto2 | qa-auto-ver | `testframework/e2e/{auth,platform}/**`, `testframework/reports/**`, `.planning/audits/test-rebase/inventory.json`, `.planning/evidence/test-rebase/137/**` | TASK-194 | 1д |
 
 ## Волны
 

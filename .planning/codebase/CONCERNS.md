@@ -11,21 +11,21 @@
 - Fix approach: До перемещения файлов получить один полностью зелёный Docker baseline, сохранить команды, commit SHA, pass/fail/skip и per-package coverage; затем унифицировать локальную, GitHub и документированную команды.
 
 **Смешанная таксономия backend-тестов:**
-- Issue: Все 828 Go-файлов находятся под общим `backend/testframework/`, хотя среди них есть unit-тесты, HTTP/Fiber black-box, SQLite/Ent integration, Redis/NATS и тесты, требующие PostgreSQL/MongoDB.
+- Issue: В legacy `backend/testframework/` находятся 829 Go-файлов / 3,665 tests; с server test total = 830/3,667, taxonomy = 594 genuine unit + 236 component (31 API + 205 integration).
 - Files: `backend/testframework/`, `backend/testframework/testutil/env.go`, `backend/testframework/testutil/factories.go`, `docs/testframework_strategy.md`
-- Impact: Механическое перемещение всей директории в `backend/tests/unit/` закрепит неверную классификацию и потребует повторной миграции black-box сценариев в Python.
-- Fix approach: До переноса построить machine-readable inventory каждого файла по категории `unit`, `integration`, `api`, `contract`, `e2e`; переносить в `backend/tests/unit/<domain>/` только настоящие unit-тесты, а black-box/API сценарии сразу проектировать в Python-слоях корневого `testframework/`.
+- Impact: Механическое перемещение всей директории в `backend/tests/<domain>/**` закрепит неверную классификацию и потребует повторной миграции black-box сценариев в Python.
+- Fix approach: Переносить в `backend/tests/<domain>/**` только 594 genuine unit rows; 236 component rows сразу проектировать в Python-слоях корневого `testframework/`.
 
 **Расхождение целевых путей и объёмов в планах:**
-- Issue: Принятые целевые пути — `backend/tests/**` и `frontend/tests/**`, но активные августовские планы и задачи всё ещё указывают `backend/internal/<domain>/unit`, `frontend/src/<module>/unit`, устаревший `frontend/e2e` и разные количества тестов (515, 812, 824 вместо фактических 828; 179 вместо 180).
+- Issue: Принятые целевые пути — `backend/tests/<domain>/**`, `frontend/tests/<domain>/**` и `frontend/tests/support/**`, но исторические планы всё ещё содержат старые colocated paths и counts (515/812/824/828; 179).
 - Files: `.planning/active/august-2026/00-AUGUST-PLAN.md`, `.planning/active/august-2026/05-AUGUST-DETAILED.md`, `.planning/backlog/TASK-193-2026-07-30-tf-python-scaffold.md`, `.planning/backlog/TASK-195-2026-07-30-tf-e2e-mechanical.md`, `.planning/backlog/TASK-196-2026-07-30-tf-e2e-rewrite.md`, `.planning/backlog/TASK-197-2026-07-30-tf-backend-units-colocated.md`, `.planning/backlog/TASK-198-2026-07-30-tf-frontend-units-colocated.md`, `AGENTS.md`
 - Impact: Исполнители могут создать третью схему размещения, потерять тесты при удалении старого дерева или считать parity по неверному знаменателю.
-- Fix approach: Перед реализацией синхронизировать план и задачи с одним контрактом: native unit в `backend/tests/**` и `frontend/tests/**`, Python-only framework в `testframework/**`; закрепить фактический inventory 828/180/20 и mapping старый путь → новый путь.
+- Fix approach: Использовать ledger HEAD `c71a213b`: 1,047 rows; 830 Go, 180 Vitest + 3 support, 20 E2E + 14 support, 0 Python; native unit только в direct domain targets.
 
 **Дублирующиеся и расходящиеся точки запуска:**
 - Issue: GitHub Actions, GitLab CI, два Makefile, pipeline YAML и документация задают разные команды; GitLab и Makefile не используют обязательный тег `hubtest`, GitLab разрешает frontend lint падать через `|| true` и ссылается на несуществующие E2E пути.
 - Files: `.github/workflows/ci.yml`, `.gitlab-ci.yml`, `Makefile`, `backend/Makefile`, `testframework/pipeline/jobs/backend-test.yaml`, `testframework/pipeline/jobs/frontend-test.yaml`, `testframework/pipeline/jobs/e2e-smoke.yaml`, `testframework/pipeline/jobs/e2e-full.yaml`, `docs/TROUBLESHOOTING.md`
-- Impact: Локально или в зеркальном CI можно получить ложный green, пропустить 828 backend-тестов либо вообще не запустить E2E контракт.
+- Impact: Локально или в зеркальном CI можно получить ложный green, пропустить 829 legacy-root тестов либо отдельный server test/E2E контракт.
 - Fix approach: Сделать один канонический скрипт/entry point для каждого job и вызывать его из GitHub, GitLab и Makefile; запретить fail-open lint и добавить smoke sentinel, который доказывает реальное выполнение ожидаемого набора.
 
 **Frontend-тесты вне typecheck и lint:**
@@ -141,7 +141,7 @@
 ## Scaling Limits
 
 **Единый backend regression lane:**
-- Current capacity: 828 test files и 3,663 `Test*` functions запускаются одним `go test -tags hubtest -race ... ./testframework/...` контуром.
+- Current capacity: legacy command запускает 829 files / 3,665 tests; отдельный server test доводит full tree до 830/3,667.
 - Limit: Рост suite увеличивает PR latency; повторный полный запуск после флейка дорог, а разбивка без package ownership может скрыть cross-domain regressions.
 - Scaling path: Сохранить обязательный full/nightly gate, добавить детерминированный affected-package PR matrix и публиковать объединённый coverage profile.
 
@@ -175,7 +175,7 @@
 ## Missing Critical Features
 
 **Python-only корневой framework:**
-- Problem: Целевой `testframework/` ещё не имеет Python package, `api/`, `integration/`, `load/`, `full/`, fixtures, markers или CI jobs.
+- Problem: Целевой `testframework/` ещё не имеет root Python package/config и каталогов `{core,api,integration,contract,e2e,load,docker,reports}`, markers или CI jobs.
 - Blocks: Перенос black-box сценариев из Go/TypeScript и доказательство новой архитектуры.
 
 **Стратегия сохранения Go coverage после переноса black-box в Python:**
@@ -183,7 +183,7 @@
 - Blocks: Нельзя одновременно обещать перенос black-box сценариев и неизменный ≥82% Go gate без сохранения достаточного Go unit слоя либо явного нового измерения.
 
 **Machine-readable migration inventory:**
-- Problem: Нет единого списка 828 Go, 180 frontend unit и 20 E2E файлов с категорией, владельцем, старым/новым путём, test count, TC IDs и статусом parity.
+- Current state: Ledger содержит 1,047 уникальных rows с категорией, владельцем, old→target path и checksum; незавершённым остаётся runtime/parity evidence.
 - Blocks: Безопасное удаление legacy paths, обнаружение потерь/дубликатов и воспроизводимый audit.
 
 **Exact execution sentinels:**
@@ -237,7 +237,7 @@
 
 ## Migration Acceptance Gates
 
-1. Зафиксирован один зелёный pre-migration baseline с inventory 828 Go files / 3,663 Go tests, 180 Vitest files, 20 E2E specs / 53 tests и отдельным списком skip.
+1. Зафиксирован один зелёный pre-migration baseline для ledger 1,047 rows: 830 Go / 3,667 tests, 180 Vitest / 519 cases + 3 support, 20 E2E / 53 cases + 14 support и отдельный список skip.
 2. Для каждого legacy-файла существует machine-readable old→new mapping, категория и checksum; число unmapped и accidentally duplicated файлов равно нулю.
 3. Native unit suites исполняются из `backend/tests/**` и `frontend/tests/**`; корневой `testframework/**` содержит только Python framework и его данные/конфигурацию.
 4. Старые и новые entry points работают в dual-run до совпадения collected tests, результатов и согласованных coverage deltas; deletion выполняется только после parity.

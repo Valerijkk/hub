@@ -6,10 +6,10 @@
 
 **Files:**
 - Текущие Go-тесты используют `snake_case_test.go` внутри доменных пакетов, например `backend/testframework/tracker/handler_flow_test.go` и `backend/testframework/auth/magiclink_test.go`. Идентификаторы задач иногда встроены в имя (`backend/testframework/tracker/link_target_scope_a3011_test.go`, `backend/testframework/tracker/automation_soft_delete_task191_test.go`); при механическом переносе сохраняйте имена для проверки parity.
-- Новые Go unit-файлы называйте по устойчивому поведению: `service_issue_test.go`, `handler_issue_test.go`. Идентификатор задачи или TC указывайте в имени теста/метаданных, но не используйте его как единственный смысл имени файла. Принятый target — `backend/tests/unit/<domain>/`; он заменяет формулировку `backend/internal/<domain>/unit/` из `.planning/active/august-2026/05-AUGUST-DETAILED.md` и `.planning/backlog/TASK-197-2026-07-30-tf-backend-units-colocated.md`.
-- Текущие frontend-тесты используют kebab-case `*.test.ts` / `*.test.tsx`, например `testframework/stages/unit/frontend-test/domains/tracker/safe-url.test.ts` и `testframework/stages/unit/frontend-test/domains/tracker/issue-card.test.tsx`. Сохраняйте это правило после переноса в `frontend/tests/unit/<domain>/`; этот target заменяет `frontend/src/<module>/unit/` из `.planning/active/august-2026/05-AUGUST-DETAILED.md` и `.planning/backlog/TASK-198-2026-07-30-tf-frontend-units-colocated.md`.
+- Новые Go unit-файлы называйте по устойчивому поведению: `service_issue_test.go`, `handler_issue_test.go`. Идентификатор задачи или TC указывайте в имени теста/метаданных, но не используйте его как единственный смысл имени файла. Принятый target — `backend/tests/<domain>/`.
+- Текущие frontend-тесты используют kebab-case `*.test.ts` / `*.test.tsx`, например `testframework/stages/unit/frontend-test/domains/tracker/safe-url.test.ts` и `testframework/stages/unit/frontend-test/domains/tracker/issue-card.test.tsx`. Сохраняйте это правило после переноса в `frontend/tests/<domain>/`; этот target заменяет `frontend/src/<module>/unit/` из `.planning/active/august-2026/05-AUGUST-DETAILED.md` и `.planning/backlog/TASK-198-2026-07-30-tf-frontend-units-colocated.md`.
 - Текущие browser specs используют kebab-case `*.spec.ts`, Page Object — `*.page.ts`, бизнес-шаги — `*.steps.ts`; примеры: `testframework/stages/e2e/domains/tracker/project-lifecycle.spec.ts`, `testframework/stages/e2e/shared/pages/login.page.ts`, `testframework/stages/e2e/shared/steps/auth.steps.ts`.
-- Целевые Python system tests именуйте по pytest discovery: `test_<feature>.py`, функции `test_<behavior>_<expected_result>`, fixtures — в `conftest.py` или `fixtures/<domain>.py`. Размещайте их по слоям в `testframework/python/{api,integration,e2e,full}/`; Locust-код — в `testframework/load/` согласно `.planning/active/august-2026/06-TEST-ARCHITECTURE-REBASE.md`.
+- Целевые Python system tests именуйте по pytest discovery: `test_<feature>.py`, функции `test_<behavior>_<expected_result>`, fixtures — в `conftest.py` или `fixtures/<domain>.py`. Размещайте их прямо в `testframework/{api,integration,contract,e2e}/`; Locust-код — в `testframework/load/`.
 
 **Functions:**
 - Go-тесты именуйте `Test<Subject>_<Scenario>`; образцы: `TestHandler_CreateAndGetIssue` в `backend/testframework/tracker/handler_flow_test.go` и `TestEntRepository_CreateIssue_IncrementsCounter` в `backend/testframework/tracker/repository_test.go`.
@@ -102,10 +102,13 @@
 ## Module Design
 
 **Exports:**
-- Текущие Go-тесты — внешние packages (`<domain>_test`); 338 файлов вызывают `Export*` hooks под `//go:build hubtest` в `backend/internal/**/export_hooks.go`. Целевой `backend/tests/unit/<domain>/` остаётся отдельным Go package path и не получает private access. Сохраняйте hooks, пока конкретный тест не переписан на public behavior; сам перенос hooks не устраняет.
+- Текущие Go-тесты — внешние packages (`<domain>_test`); целевой
+  `backend/tests/<domain>/` остаётся отдельным Go package path и не получает
+  private access. Сохраняйте hooks, пока конкретный unit не переписан на public behavior.
 - Экспортируйте только минимальный white-box seam для поведения. Не расширяйте production API ради тестов.
 - Общие frontend helpers `renderWithProviders` и `createTestQueryClient` сейчас находятся в `testframework/stages/unit/frontend-test/render.tsx`; после переноса держите одну каноническую реализацию в `frontend/tests/support/`.
-- Общие Python helpers размещайте в `testframework/python/core/` или layer-specific fixture modules. Domain setup не должен накапливаться в `testframework/python/conftest.py`.
+- Общие Python helpers размещайте в `testframework/core/` или layer-specific
+  fixture modules. Domain setup не должен накапливаться в root `conftest.py`.
 
 **Barrel Files:**
 - E2E Page Objects и Steps сейчас используют barrels `testframework/stages/e2e/shared/pages/index.ts` и `testframework/stages/e2e/shared/steps/index.ts`.

@@ -81,7 +81,7 @@
 # Полный backend regression
 cd backend && go generate ./ent && go build -tags release ./... \
   && go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...
-# (до cutover все 828 *_test.go в backend/testframework/, measured 2026-08-07;
+# (до cutover все 829 legacy *_test.go в backend/testframework/, measured 2026-08-07;
 #  покрытие internal меряется флагом -coverpkg=./internal/...)
 
 # Frontend regression
@@ -94,9 +94,14 @@ docker compose --env-file .env.local -f docker-compose.local.yml up --build
 Skill: `/qa-gate` — останавливается на первой FAIL.
 
 Test-rebase 128–141: текущие команды сохраняются до dual-run/cutover; целевые
-пути — `backend/tests/**`, `frontend/tests/**`, `testframework/python/**` и
-`testframework/load/**`. Канон:
+пути — `backend/tests/**` (только Go unit), `frontend/tests/**`
+(только Vitest/RTL unit) и единый Python-проект прямо в
+`testframework/`: `{core,api,integration,contract,e2e,load,docker,reports}/**`
+плюс корневой `pyproject.toml`/pytest config. Legacy Go/Vitest/TS E2E
+разрешены только на верифицированном dual-run и обязаны к
+удалению на Phase 141. Канон:
 [`.planning/active/august-2026/06-TEST-ARCHITECTURE-REBASE.md`](../.planning/active/august-2026/06-TEST-ARCHITECTURE-REBASE.md).
 
 ---
-*2026-07-19 — GLOSSARY, TROUBLESHOOTING, runbooks/, актуализация фактов и счётчиков · 2026-07-03 — реорганизация AI-команды, ADR-MICROSERVICES, ROADMAP-FINAL*
+*2026-08-07 — root Python testframework contract и current-vs-target split ·
+2026-07-19 — GLOSSARY, TROUBLESHOOTING, runbooks/, актуализация фактов и счётчиков*

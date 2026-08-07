@@ -4,16 +4,16 @@
 
 ## [OUTCOME]
 
-All ledger rows classified as Python API/integration/full have replacement coverage for PostgreSQL, Mongo, Redis, NATS, storage and provider-boundary behavior with clean isolation and no unexpected skips.
+All ledger rows classified as Python API/integration/contract have replacement coverage for PostgreSQL, Mongo, Redis, NATS, storage and provider-boundary behavior with clean isolation and no unexpected skips. Full остаётся run profile/marker, а не отдельный каталог.
 
 ## [ROLE]
 
-- Owner: `qa-auto2` — infrastructure/API/full expansion and legacy mapping.
+- Owner: `qa-auto2` — infrastructure/API/contract expansion and legacy mapping.
 - Verifier / handoff: `qa-auto-ver` — real-service, parallel, mutation and completeness verification.
 
 ## [SCOPE AND CONSTRAINTS]
 
-- Allowed: `testframework/python/{core,fixtures,api,integration,full}/**`, Python reports/config.
+- Allowed: `testframework/{core,api,integration,contract,docker,reports}/**`, корневой Python config; shared fixtures — в `core/fixtures/**`.
 - Read-only: TASK-197/209–215 ledgers and corresponding legacy tests/public APIs.
 - Do not touch: product code, legacy deletion, CI, E2E browser suite.
 - Required services fail closed; external providers use approved local deterministic adapters, never live credentials. Parallel workers get isolated namespaces/databases.
@@ -26,7 +26,7 @@ All ledger rows classified as Python API/integration/full have replacement cover
 
 ## [ACCEPTANCE]
 
-- Completion command: `cd testframework/python && python -m pytest api integration full --strict-markers -q`; exit code 0 и заявленные counts обязательны.
+- Completion command: `cd testframework && python -m pytest api integration contract --strict-markers -q`; exit code 0 и заявленные counts обязательны.
 
 - All Python-classified backend rows have new path/test/TC/parity evidence; unmapped/duplicate = 0.
 - Layer marker commands pass on clean stack and in documented parallel mode; required service outage is setup FAIL, not skip.

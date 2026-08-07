@@ -13,11 +13,12 @@ Python E2E имеет единый безопасный слой auth/data/brows
 
 ## [SCOPE AND CONSTRAINTS]
 
-- Allowed: `testframework/python/e2e/conftest.py`, `testframework/python/e2e/pages/**`, `testframework/python/e2e/steps/**`, `testframework/python/fixtures/**`, fixture contract tests и профиль test env.
+- Allowed: `testframework/e2e/conftest.py`, `testframework/e2e/pages/**`, `testframework/e2e/steps/**`, `testframework/core/fixtures/**`, `testframework/contract/fixtures/**`, fixture contract tests и `testframework/docker/**` test-env profile.
 - Read-only source: `testframework/stages/e2e/shared/**` и 20 specs из `testframework/stages/e2e/domains/**`.
 - Do not touch: legacy TS E2E, `frontend/playwright.config.ts`, product code, CI, production credentials.
 - Auth — через разрешённый test/dev interceptor Magic Link или существующий dev-session contract; реальные mailbox/secrets запрещены. Mutable data function-scoped, namespace/run-id worker-safe, cleanup deterministic.
-- Depends on: TASK-193, TASK-205, TASK-216.
+- Depends on: TASK-193, TASK-205. TASK-216 может расширить core позже, но не
+  блокирует E2E foundation и не должен создавать дублирующие fixtures.
 
 ## [REFERENCES]
 
@@ -27,7 +28,7 @@ Python E2E имеет единый безопасный слой auth/data/brows
 
 ## [ACCEPTANCE]
 
-- Completion command: `cd testframework/python && python -m pytest e2e -m smoke --strict-markers -q`; exit code 0 и заявленные counts обязательны.
+- Completion command: `cd testframework && python -m pytest e2e -m smoke --strict-markers -q`; exit code 0 и заявленные counts обязательны.
 
 - Реализованы browser context, auth, user/project/channel factories, API client, cleanup и redaction; один contract test использует fixture через публичный Hub contract.
 - Два последовательных прогона дают одинаковые pass/fail/skip counts и не оставляют конфликтующих записей; parallel smoke (`-n 2` либо документированный эквивалент) не сталкивается по данным.

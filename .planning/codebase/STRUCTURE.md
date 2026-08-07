@@ -13,7 +13,7 @@ hub/
 │   ├── cmd/server/
 │   │   └── wiring_fiber_recover_test.go # Only Go test outside backend/testframework
 │   ├── ent/                           # Generated Ent client + committed schema sources
-│   └── testframework/                 # 828 Go tests + 4 support .go files
+│   └── testframework/                 # 829 Go tests + 4 support .go files
 │       ├── {auth,tracker,tms,...}/     # External packages <domain>_test
 │       ├── platform/<subsystem>/       # Nested platform tests
 │       ├── ent/                        # Ent/schema tests
@@ -58,21 +58,23 @@ hub/
 │   ├── internal/                      # Production Go remains unchanged
 │   └── tests/                         # Developer-owned Go unit tree
 │       ├── <domain>/                  # package <domain>_test; imports internal/<domain>
-│       └── shared/                    # Go-only builders/factories used by units
+│       └── support/                   # Go-only builders/factories used by units
 ├── frontend/
 │   ├── src/                           # Production TS/React remains unchanged
 │   └── tests/                         # Developer-owned Vitest tree
-│       ├── <module>/                  # *.test.ts / *.test.tsx by system under test
-│       └── shared/                    # setup/render/factories
+│       ├── <domain>/                  # *.test.ts / *.test.tsx by system under test
+│       └── support/                   # setup/render/factories
 └── testframework/                     # QA-owned standalone Python project
     ├── pyproject.toml                 # pytest, Playwright Python, Locust
     ├── conftest.py                    # Root fixtures
-    ├── fixtures/                      # Data/auth/client factories
+    ├── core/                          # Settings/clients/factories/shared fixtures
     ├── integration/                   # DB, Mongo, NATS, external service flows
     ├── api/                           # Whole HTTP API scenarios/contracts
     ├── e2e/                           # Playwright Python + POM/steps
-    ├── full/                          # Cross-domain/system flows
+    ├── contract/                      # Schemas/events/static source contracts
     ├── load/                          # Locust profiles; local/scheduled only
+    ├── docker/                        # Test-service profiles/orchestration
+    ├── reports/                       # Sanitized artifact metadata
     └── README.md                      # One-command entry points
 ```
 
@@ -82,7 +84,7 @@ hub/
 
 **`backend/testframework/`:**
 - Purpose: Current executable backend test root.
-- Contains: 832 tracked Go files: 828 `*_test.go` and four reusable support files.
+- Contains: 833 tracked Go files: 829 `*_test.go` and four reusable support files.
 - Key files: `backend/testframework/env/builder.go`, `backend/testframework/factory/user.go`, `backend/testframework/mongotest/setup.go`, `backend/testframework/steps/http.go`.
 - Placement rule: During migration, classify each test before moving. Mock/in-memory unit tests target `backend/tests/**`; DB/broker/external/whole-API tests require Python parity under `testframework/{integration,api}/` before removal.
 
@@ -100,7 +102,7 @@ hub/
 
 **`testframework/stages/unit/frontend-test/`:**
 - Purpose: Current executable Vitest root outside `frontend/`.
-- Contains: 180 tests, shared renderer, two fixture `.ts` files, two task-specific tsconfig files and README.
+- Contains: 180 tests / 519 cases (156 unit + 24 static contract), plus 3 ledger support rows (renderer + two fixture files).
 - Key files: `testframework/stages/unit/frontend-test/render.tsx`, `testframework/stages/unit/frontend-test/domains/auth/client-api.test.ts`, `testframework/stages/unit/frontend-test/domains/v4/`.
 - Placement rule: Map by imported system under test into `frontend/tests/**`; split cross-domain aggregates instead of blindly preserving current folders.
 
@@ -108,11 +110,11 @@ hub/
 - Purpose: Current frontend test runtime setup.
 - Contains: `frontend/src/test/setup.ts` importing jest-dom matchers; no test cases.
 - Key files: `frontend/src/test/setup.ts`.
-- Placement rule: Move or re-export setup under `frontend/tests/shared/` only together with the `frontend/vite.config.ts` update.
+- Placement rule: Move or re-export setup under `frontend/tests/support/` only together with the `frontend/vite.config.ts` update.
 
 **`testframework/stages/e2e/`:**
 - Purpose: Current TypeScript Playwright suite.
-- Contains: 20 specs under `testframework/stages/e2e/domains/`, 13 shared files under `testframework/stages/e2e/shared/`, active generated node_modules junction and one obsolete config shim.
+- Contains: 20 specs / 53 cases, plus 14 ledger support rows (13 shared files + `frontend/playwright.config.ts`).
 - Key files: `testframework/stages/e2e/shared/fixtures.ts`, `testframework/stages/e2e/shared/helpers/auth.ts`, `testframework/stages/e2e/shared/pages/base.page.ts`, `testframework/stages/e2e/shared/steps/auth.steps.ts`.
 - Placement rule: Preserve until Playwright Python parity. Port from this path, not from `frontend/e2e/`.
 
@@ -159,12 +161,12 @@ hub/
 
 ## Current Inventory
 
-Snapshot: branch `cursor-grok-4.5`, HEAD `f7fbdd7e`, measured 2026-08-07. Test paths were clean at measurement time. Generated/vendor/node_modules paths are excluded.
+Snapshot: HEAD `ee6d696c`, measured 2026-08-07; generated/vendor/node_modules paths are excluded.
 
 | Test class | Path | Count |
 |---|---|---:|
-| Go tests total | `backend/**/*_test.go` | 829 |
-| Go legacy root | `backend/testframework/**/*_test.go` | 828 |
+| Go tests total | `backend/**/*_test.go` | 830 |
+| Go legacy root | `backend/testframework/**/*_test.go` | 829 |
 | Go production domain tree | `backend/internal/**/*_test.go` | 0 |
 | Go other | `backend/cmd/server/wiring_fiber_recover_test.go` | 1 |
 | Go support, non-test | `backend/testframework/{env,factory,mongotest,steps}/*.go` | 4 |
@@ -176,7 +178,7 @@ Snapshot: branch `cursor-grok-4.5`, HEAD `f7fbdd7e`, measured 2026-08-07. Test p
 | Frontend target tree | `frontend/tests/**/*.test.ts(x)` | 0 |
 | Frontend source tree tests | `frontend/src/**/*.test.ts(x)` | 0 |
 | Playwright TS specs | `testframework/stages/e2e/domains/**/*.spec.ts` | 20 |
-| E2E shared TS | `testframework/stages/e2e/shared/**/*` | 13 |
+| E2E support TS | shared tree + `frontend/playwright.config.ts` | 14 (13 + 1) |
 | Root Python | `testframework/**/*.py` | 0 |
 | Root tracked framework files | `testframework/**` via `git ls-files` | 241 |
 | Root tracked stage files | `testframework/stages/**` via `git ls-files` | 224 |
@@ -186,7 +188,7 @@ Snapshot: branch `cursor-grok-4.5`, HEAD `f7fbdd7e`, measured 2026-08-07. Test p
 | Path | Tests | Path | Tests |
 |---|---:|---|---:|
 | `backend/testframework/accounting/` | 13 | `backend/testframework/ai/` | 44 |
-| `backend/testframework/apigateway/` | 19 | `backend/testframework/audit/` | 37 |
+| `backend/testframework/apigateway/` | 19 | `backend/testframework/audit/` | 38 |
 | `backend/testframework/auth/` | 29 | `backend/testframework/backup/` | 15 |
 | `backend/testframework/bases/` | 17 | `backend/testframework/calendar/` | 6 |
 | `backend/testframework/calls/` | 35 | `backend/testframework/crm/` | 14 |
@@ -203,7 +205,7 @@ Snapshot: branch `cursor-grok-4.5`, HEAD `f7fbdd7e`, measured 2026-08-07. Test p
 | `backend/testframework/storage/` | 21 | `backend/testframework/tms/` | 77 |
 | `backend/testframework/tracker/` | 80 | `backend/testframework/ws/` | 17 |
 
-The table counts all 828 test files. `backend/testframework/factory/`, `backend/testframework/mongotest/` and `backend/testframework/steps/` contain support code but no `*_test.go`.
+The table counts all 829 legacy-root test files. `backend/testframework/factory/`, `backend/testframework/mongotest/` and `backend/testframework/steps/` contain support code but no `*_test.go`.
 
 ### Frontend unit domain counts
 
@@ -234,12 +236,12 @@ The table counts all 828 test files. `backend/testframework/factory/`, `backend/
 - Test-only Go bridges: `export_hooks.go` and `export_hooks_<area>.go` under `backend/internal/**`, guarded by `//go:build hubtest`.
 - Vitest: `*.test.ts` for non-React logic and `*.test.tsx` for React/UI under `testframework/stages/unit/frontend-test/domains/`.
 - Playwright TS: `*.spec.ts` under `testframework/stages/e2e/domains/`.
-- Shared frontend test utilities: descriptive filenames such as `render.tsx`; target these under `frontend/tests/shared/`.
-- Python target: use pytest discovery names `test_*.py` under `testframework/{integration,api,e2e,full}/`; keep Locust entry files under `testframework/load/` as defined when TASK-200 is implemented.
+- Shared frontend test utilities: descriptive filenames such as `render.tsx`; target these under `frontend/tests/support/`.
+- Python target: use pytest discovery names `test_*.py` under `testframework/{api,integration,contract,e2e}/`; keep Locust entry files under `testframework/load/` as defined when TASK-200 is implemented.
 
 **Directories:**
 - Current test directories group by product/CI domain: `backend/testframework/<domain>/`, `testframework/stages/**/domains/<domain>/`.
-- Founder target keeps language-native trees under `backend/tests/<domain>/` and `frontend/tests/<module>/`; QA-owned non-unit layers stay under root `testframework/<layer>/`.
+- Founder target keeps language-native trees under `backend/tests/<domain>/` and `frontend/tests/<domain>/`; QA-owned non-unit layers stay under root `testframework/<layer>/`.
 - Preserve nested production mapping where needed: current `backend/testframework/onec/` maps to production `backend/internal/integrations/onec/`, and current `backend/testframework/platform/<subsystem>/` maps to `backend/internal/platform/<subsystem>/`.
 
 ## Where to Add New Code
@@ -247,18 +249,20 @@ The table counts all 828 test files. `backend/testframework/factory/`, `backend/
 **New Go Unit During Migration:**
 - Primary code: `backend/tests/<domain>/` only after TASK-197 paths/CI are synced to the founder target.
 - Until that CI path exists, add or mirror the regression in the currently executed `backend/testframework/<domain>/`; never leave the only test in an unexecuted target path.
-- Shared helpers: `backend/tests/shared/` in target; migrate `backend/testframework/{env,factory}/` only after all consumers use the new import path.
+- Shared helpers: `backend/tests/support/` in target; migrate `backend/testframework/{env,factory}/` only after all consumers use the new import path.
 
 **New Frontend Unit During Migration:**
-- Primary code: `frontend/tests/<module>/` only together with a `frontend/vite.config.ts` include and `frontend/tsconfig.json`/test-tsconfig update.
+- Primary code: `frontend/tests/<domain>/` only together with a `frontend/vite.config.ts` include and `frontend/tsconfig.json`/test-tsconfig update.
 - Until the target path is executed, keep the gate-bearing test under `testframework/stages/unit/frontend-test/domains/<domain>/`.
-- Shared helpers: target `frontend/tests/shared/`; migrate `testframework/stages/unit/frontend-test/render.tsx` and `frontend/src/test/setup.ts` atomically with consumers.
+- Shared helpers: target `frontend/tests/support/`; migrate `testframework/stages/unit/frontend-test/render.tsx` and `frontend/src/test/setup.ts` atomically with consumers.
 
 **New Python Integration/API/E2E:**
-- Integration: `testframework/python/integration/<domain>/` after `testframework/python/pyproject.toml` and root fixtures exist.
-- API: `testframework/python/api/<domain>/`.
-- Browser E2E: `testframework/python/e2e/<domain>/`, with shared POM/steps/fixtures inside `testframework/python/e2e/` or `testframework/python/fixtures/`.
-- Cross-domain full flow: `testframework/python/full/`.
+- Integration: `testframework/integration/<domain>/` after root
+  `testframework/pyproject.toml` and fixtures exist.
+- API: `testframework/api/<domain>/`.
+- Browser E2E: `testframework/e2e/<domain>/`, with shared POM/steps/fixtures
+  inside `testframework/e2e/` and `testframework/core/`.
+- Cross-domain full flow: pytest `full` marker over root Python tests.
 - Load: `testframework/load/`; execute only against the approved local/scheduled target from `.planning/backlog/TASK-200-2026-07-30-tf-locust-load.md`.
 
 **New Component/Module:**
@@ -266,9 +270,9 @@ The table counts all 828 test files. `backend/testframework/factory/`, `backend/
 - Frontend module unit: mirror the production area under `frontend/tests/`, but place by system under test rather than preserving broad legacy buckets such as `testframework/stages/unit/frontend-test/domains/v4/`.
 
 **Utilities:**
-- Go unit helpers: target `backend/tests/shared/`; avoid importing Python framework code.
-- Frontend unit helpers: target `frontend/tests/shared/`; dependencies resolve naturally through ancestor `frontend/node_modules` without root junctions.
-- Python QA helpers: `testframework/fixtures/` and layer-local `conftest.py`; do not import TypeScript helper files from `testframework/stages/`.
+- Go unit helpers: target `backend/tests/support/`; avoid importing Python framework code.
+- Frontend unit helpers: target `frontend/tests/support/`; dependencies resolve naturally through ancestor `frontend/node_modules` without root junctions.
+- Python QA helpers: `testframework/core/` and layer-local `conftest.py`; do not import TypeScript helper files from `testframework/stages/`.
 
 ## Migration Mapping Rules
 
@@ -277,15 +281,15 @@ The table counts all 828 test files. `backend/testframework/factory/`, `backend/
 | `backend/testframework/<domain>/**/*_test.go` | `backend/tests/<domain>/` | Only true units; retain external package imports and required hooks |
 | `backend/testframework/platform/<subsystem>/` | `backend/tests/platform/<subsystem>/` | Preserve nested package mapping |
 | `backend/testframework/onec/` | `backend/tests/integrations/onec/` | Match production path `backend/internal/integrations/onec/` |
-| `backend/testframework/ent/` | classify between `backend/tests/ent/` and `testframework/python/integration/` | Schema/source checks may stay Go; real DB checks belong to Python integration |
-| `backend/testframework/env/`, `factory/` | `backend/tests/shared/` | Go unit support only |
-| `backend/testframework/mongotest/` | `testframework/python/integration/fixtures/` equivalent | Real Mongo dependency is integration, not unit support |
+| `backend/testframework/ent/` | classify between `backend/tests/ent/` and `testframework/{integration,contract}/` | Pure units may stay Go; schema/source/DB checks belong to Python |
+| `backend/testframework/env/`, `factory/` | `backend/tests/support/` | Go unit support only |
+| `backend/testframework/mongotest/` | `testframework/integration/support/` equivalent | Real Mongo dependency is integration, not unit support |
 | `backend/testframework/steps/` | classify | Fiber-in-memory unit helper may stay Go; whole-API steps belong to Python `api/` |
-| `testframework/stages/unit/frontend-test/domains/<domain>/` | `frontend/tests/<module>/` | Re-map by SUT import; split cross-domain files |
-| `testframework/stages/unit/frontend-test/render.tsx` | `frontend/tests/shared/render.tsx` | Move with alias/config consumers |
-| `testframework/stages/e2e/domains/<domain>/*.spec.ts` | `testframework/python/e2e/<domain>/test_*.py` | Preserve scenario/assertion parity before deleting TS source |
-| `testframework/stages/e2e/shared/` | `testframework/python/e2e/` + `testframework/python/fixtures/` | Recreate POM/Steps/auth/data fixtures in Python |
-| `testframework/{stages,guides,pipeline}/` | delete only after parity | Cleanup belongs to TASK-201, not scaffold |
+| `testframework/stages/unit/frontend-test/domains/<domain>/` | `frontend/tests/<domain>/` | Re-map by SUT import; split cross-domain files |
+| `testframework/stages/unit/frontend-test/render.tsx` | `frontend/tests/support/render.tsx` | Move with alias/config consumers |
+| `testframework/stages/e2e/domains/<domain>/*.spec.ts` | `testframework/e2e/<domain>/test_*.py` | Preserve scenario/assertion parity before deleting TS source |
+| `testframework/stages/e2e/shared/` | `testframework/e2e/` + `testframework/core/` | Recreate POM/Steps/auth/data fixtures in Python |
+| `testframework/{stages,guides,pipeline}/` | delete only after parity | Cleanup belongs to TASK-219, not scaffold |
 
 ## Special Directories
 
@@ -325,7 +329,7 @@ The table counts all 828 test files. `backend/testframework/factory/`, `backend/
 Run from repository root. These commands exclude dependency/generated trees and do not traverse `pro-qa-ai/**`:
 
 ```powershell
-# 828 current backend tests
+# 829 current legacy backend tests; full tree adds 1 server test
 @(rg --files backend/testframework -g '*_test.go' -g '!**/vendor/**' -g '!**/node_modules/**' -g '!**/generated/**').Count
 
 # 0 production-tree tests; 1 other backend test
@@ -346,7 +350,7 @@ Run from repository root. These commands exclude dependency/generated trees and 
 @(git ls-files -- testframework).Count
 ```
 
-Do not reuse the stale 812/824 backend or 179 frontend counts in `AGENTS.md`, `docs/test_plan.md`, `.planning/STATE.md` and `.planning/backlog/TASK-197-2026-07-30-tf-backend-units-colocated.md`; recount at the start of each migration wave.
+Do not reuse stale 812/824/828/829-total backend or 179 frontend counts; canonical full-tree total is 830 Go and 180 Vitest.
 
 ---
 

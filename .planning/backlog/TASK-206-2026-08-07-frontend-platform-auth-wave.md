@@ -4,7 +4,9 @@
 
 ## [OUTCOME]
 
-Все ledger rows frontend `platform` и `auth` имеют исполняемые эквиваленты в `frontend/tests/**` с unchanged behavior, static gates и dual-run parity.
+Все genuine Vitest/RTL unit rows frontend `platform` и `auth` имеют исполняемые
+эквиваленты в `frontend/tests/**`; source/docs/compile guards остаются legacy и
+передаются TASK-230.
 
 ## [ROLE]
 
@@ -13,10 +15,11 @@
 
 ## [SCOPE AND CONSTRAINTS]
 
-- Allowed: `frontend/tests/{platform,auth}/**`, `frontend/tests/shared/**`, only required test config/import updates.
+- Allowed: `frontend/tests/{platform,auth,support}/**`, only required test config/import updates.
 - Read-only: matching legacy tests and production SUT.
 - Do not touch: legacy deletion/linker, unrelated domains, product behavior, CI.
-- Preserve test names/assertions/TC IDs; path-sensitive source guards must resolve repository root safely.
+- Preserve unit test names/assertions/TC IDs; path-sensitive source guards не
+  переносятся сюда и получают TASK-230 disposition.
 - Depends on: TASK-198.
 
 ## [REFERENCES]
@@ -28,7 +31,8 @@
 
 - Completion command: `cd frontend && npx vitest run tests/platform tests/auth`; exit code 0 и заявленные counts обязательны.
 
-- Ledger rows for platform/auth all `PARITY_PROVEN`; old/new collection and pass/fail/skip reconcile with no duplicate execution.
+- Genuine unit rows for platform/auth `PARITY_PROVEN`; static rows имеют
+  TASK-230 owner; old/new collection reconciled with no duplicate execution.
 - Target tests pass TypeScript and Biome; dated coverage delta by module recorded against TASK-198 baseline without silent threshold decrease.
 - Mutation proof: one representative production-observable guard per domain is reversibly broken — target test RED; restore GREEN.
 - Regression: all 180 legacy tests remain discoverable and green; target harness/support tests green.

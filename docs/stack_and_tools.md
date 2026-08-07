@@ -12,7 +12,7 @@
 | Go | **1.25.0** | `backend/go.mod` | Backend, CLI, hub-mail |
 | TypeScript | **~5.7** | `frontend/package.json` | Frontend |
 | Node.js | **22** (CI), 20+ (local) | `.github/workflows/ci.yml` | Сборка, Vitest, Playwright |
-| Python | **3.12+ target** (локально bundled 3.12.13) | Phase 129 / `testframework/python/pyproject.toml` | pytest/httpx/Playwright black-box layer; scaffold ещё не создан |
+| Python | **3.12+ target** (локально bundled 3.12.13) | Phase 129 / `testframework/pyproject.toml` | Единый корневой pytest/httpx/Playwright/Locust QA-проект; scaffold ещё не создан |
 
 ---
 
@@ -83,6 +83,10 @@ go build -tags release -o bin/server ./cmd/server
 | `npx vitest run` / `npm run test:run` | Unit tests (`testframework/stages/unit/frontend-test/domains/`) |
 | `npm run test:e2e:smoke` | Playwright smoke job (`--project=chromium-smoke`) |
 | `npm run test:e2e` | Playwright full job (`--project=chromium-full`) |
+
+Эти Playwright TypeScript scripts — текущие legacy entrypoints на период
+верифицированного dual-run. Они не входят в целевой стек и подлежат
+удалению в Phase 141 после доказанного Python parity.
 
 ---
 
@@ -195,6 +199,8 @@ E2E config: `frontend/playwright.config.ts` · specs: `testframework/stages/e2e/
 
 ## Структура репозитория
 
+Текущая структура до cutover:
+
 ```
 hub/
 ├── backend/                 # Go API, Ent schemas, internal/* modules
@@ -212,6 +218,39 @@ hub/
 ├── docs/wiki/             # API, DEPLOY, QUICKSTART, SHORTCUTS
 └── .planning/             # GSD roadmap, COVERAGE, STATE, AUDIT-*
 ```
+
+Цель фаз 128–141:
+
+```text
+hub/
+├── backend/tests/<domain>/ # только Go unit tests
+├── frontend/tests/<domain>/ # только Vitest/RTL unit tests
+├── frontend/tests/support/ # frontend setup/render/fixtures
+└── testframework/          # один Python QA-проект, без python/ nesting
+    ├── pyproject.toml        # dependencies + единый pytest config (либо pytest.ini)
+    ├── core/
+    ├── api/
+    ├── integration/
+    ├── contract/
+    ├── e2e/
+    ├── load/
+    ├── docker/
+    └── reports/
+```
+
+Live ledger на HEAD `ee6d696c`: **1,047** rows; **830** Go / **3,667** tests
+(legacy root 829/3,665 + server 1/2; 594 genuine unit + 236 component:
+31 API + 205 integration), **180** Vitest /
+**519** cases (156 unit + 24 static contract) + 3 frontend support,
+**20** E2E specs / **53** cases + 14 E2E support, 39 canonical hooks и
+0 target Python tests. SHA-256: `01dae4e2…`.
+
+В `backend/tests/**` не переносятся component/integration tests: текущие
+**236** `go-component` rows (31 API + 205 integration) направляются в Python
+`api/integration/contract` или
+рефакторятся в genuine isolated Go units до переноса. После Phase 141
+в `testframework/**` допустим только Python для исполняемого test/load кода;
+legacy Go/Vitest/TS E2E и их entrypoints удаляются.
 
 ---
 
@@ -234,4 +273,4 @@ hub/
 См. `docs/tz_constraints.md`: Fiber, NATS, SeaweedFS SDK, TanStack Router, Shadcn, Caddy, Compose/K3s — без ADR.
 
 ---
-*Последнее обновление: 2026-06-22 — quality audit: CI backend-test только testframework/, pipeline repo structure*
+*Последнее обновление: 2026-08-07 — current-vs-target test stack и единый root Python contract.*

@@ -17,7 +17,7 @@
 - Do not touch: product behavior, unapproved rows, coverage threshold/method, protected zone.
 - Preconditions: TASK-218 PASS, real PR dual-run green, all rows parity-proven, unexpected skips/unmapped = 0, TASK-203 coverage contract satisfied, owner approval for destructive cleanup.
 - Hooks removed one symbol/file at a time only after zero consumers across legacy/target; release build verified.
-- Depends on: TASK-193–218 all verified.
+- Depends on: TASK-193–218 and TASK-221–230 all verified.
 
 ## [REFERENCES]
 

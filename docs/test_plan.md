@@ -4,10 +4,13 @@
 > Детали TC-*: `docs/TESTING.md` · Матрица: `.planning/COVERAGE.md` · Triage: `.cursor/skills/test-triage/SKILL.md`
 
 > **Migration status 2026-08-07:** текущая таблица и команды ниже описывают
-> исполняемый legacy-контур. Фазы 128–141 переводят unit/component тесты в
-> `backend/tests/**` и `frontend/tests/**`, Python black-box слой — в
-> `testframework/python/**`, Locust — в `testframework/load/**`. До принятого
-> parity и Phase 141 старые пути не удаляются. Канон:
+> исполняемый legacy-контур. Фазы 128–141 переводят только Go unit в
+> `backend/tests/**` и только Vitest/RTL unit в `frontend/tests/**`. Весь
+> non-unit и load слой становится одним Python-проектом прямо в
+> `testframework/`: `{core,api,integration,contract,e2e,load,docker,reports}/**`
+> плюс корневой `pyproject.toml`/pytest config. Legacy Go/Vitest/TS E2E
+> разрешены только во время верифицированного dual-run и обязаны к
+> удалению на Phase 141. Канон:
 > [test architecture rebase](../.planning/active/august-2026/06-TEST-ARCHITECTURE-REBASE.md).
 
 ---
@@ -35,11 +38,25 @@
 | Lint | Biome | `npm run lint` | **gate** (не continue-on-error) |
 | Security | grep + audit docs | `.planning/audits/code-review-final/` | 0 CRITICAL |
 
+Целевой слой после Phase 141:
+
+| Уровень | Инструмент | Расположение |
+|---------|------------|--------------|
+| Unit (BE) | Go testing + testify | `backend/tests/{domain}/` — только genuine units |
+| Unit (FE) | Vitest + RTL | `frontend/tests/{domain}/` — только units; support в `frontend/tests/support/` |
+| API / integration / contract | pytest + httpx | `testframework/{api,integration,contract}/` |
+| E2E smoke/full | pytest + playwright-python | `testframework/e2e/`; smoke/full — markers, не каталоги |
+| Load | Locust | `testframework/load/` |
+
+Текущие **236** `go-component` rows (31 API + 205 integration) не могут быть
+механически перенесены в `backend/tests/**`: они должны либо стать Python API/integration/contract,
+либо быть рефакторены в настоящие isolated Go units до переноса.
+
 ---
 
 ## Test Triage Protocol (REGULATION §10)
 
-При падении любого теста (Go / Vitest / Playwright):
+При падении любого теста (Go / Vitest / legacy Playwright / pytest / Locust):
 
 1. **Воспроизвести функционал** по `docs/system_specification.md`, не только assert
 2. **Классифицировать:** `ROOT=code` (баг в prod) | `ROOT=test` (устаревший тест)
@@ -52,17 +69,21 @@
 
 ## Текущая инвентаризация (2026-08-07)
 
-Источник: `.planning/COVERAGE.md` · `.planning/audits/2026-06/AUDIT-SCORECARD.md`
+Источник: `.planning/audits/test-rebase/{inventory.json,evidence.md}` · HEAD
+`ee6d696c`; ledger SHA-256 `01dae4e2…`.
 
 | Метрика | Значение |
 |---------|----------|
-| Backend `testframework/**/*_test.go` | **828** файлов / **3,663** declared tests |
+| Ledger | **1,047** source rows; `unmapped = 0` |
+| Backend Go total | **830** файлов / **3,667** declared: legacy `backend/testframework/` 829/3,665 + server 1/2; taxonomy 594 genuine unit + 236 component (31 API + 205 integration) |
 | Backend `internal/*_test.go` | **0** (TF-M08 ✅) |
 | Backend `export_hooks.go` (`//go:build hubtest`) | **39** canonical files + 4 fragments; удаление запрещено до TASK-219 |
-| Statement coverage `internal/` | **UNKNOWN pending TASK-203**; 83.0/81.9/80.2 — historical non-comparable runs |
+| Statement coverage `internal/` | **82.0373% PASS** (21,269 / 25,926; TASK-203 Docker Go 1.25); 83.0/81.9/80.2/81.8 — historical runs |
 | Security-critical packages ≥80% | **6/6** ✅ (auth, ws, rbac, audit, calls, platform/middleware) |
-| Frontend Vitest | **180** files / **517** literal cases в `stages/unit/frontend-test/` |
+| Frontend Vitest | **180** files / **519** literal cases: 156 unit + 24 static contract |
+| Frontend support | **3** source rows → `frontend/tests/support/**` |
 | Playwright specs | **20** files / **53** declared cases (+6 runtime skip sites) |
+| Playwright support | **14** config/shared source rows → `testframework/e2e/support/**` |
 | Target Python tests | **0** до Phase 129 |
 | Lighthouse CI | artifact job (master push, non-blocking) |
 | TypeScript | `tsc --noEmit` — 0 errors (CI) |
@@ -153,7 +174,7 @@ Infra: `scripts/ci-e2e-backend.sh` (postgres:17, redis:7.4, mongo:8, nats:2.11).
 
 ---
 
-## E2E — критические пути
+## E2E — текущие legacy критические пути
 
 | ID | Сценарий | Spec | Статус |
 |----|----------|------|--------|
@@ -221,4 +242,5 @@ File: path:line
 | `.cursor/skills/qa-gate/SKILL.md` | Полный gate |
 
 ---
-*Последнее обновление: 2026-07-29 — inventory **812** BE `*_test.go` / **39** export_hooks / Vitest **179** files; COV 83% остаётся baseline прогона 2026-06-22*
+*Последнее обновление: 2026-08-07 — target root Python project,
+Go/Vitest unit-only boundaries и mandatory Phase 141 legacy cleanup.*

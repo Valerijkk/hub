@@ -27,8 +27,8 @@
 
 | Task ID | Outcome | Owner | Verifier | Files | Depends | Estimate |
 |---|---|---|---|---|---|---:|
-| TASK-195 | Mechanical migration 15 specs с immutable names/IDs и row-level parity | qa-auto1 | qa-auto-ver | `testframework/python/e2e/{admin,ai,auth,messenger,navigation,platform,tms,v4}/**`, `.planning/evidence/test-rebase/138/mechanical/**` | Phase 137 | 1–1.5д |
-| TASK-196 | Complex five + full 20 specs/53 cases same-build parity | qa-auto2 | qa-auto-ver | `testframework/python/e2e/{auth,platform,ai,tracker}/**`, `.planning/audits/test-rebase/inventory.json`, `.planning/evidence/test-rebase/138/complex/**` | Phase 137, TASK-195 | 1–1.5д |
+| TASK-195 | Mechanical migration 15 specs с immutable names/IDs и row-level parity | qa-auto1 | qa-auto-ver | `testframework/e2e/{admin,ai,auth,messenger,navigation,platform,tms,v4}/**`, `testframework/reports/**`, `.planning/evidence/test-rebase/138/mechanical/**` | Phase 137 | 1–1.5д |
+| TASK-196 | Complex five + full 20 specs/53 cases same-build parity | qa-auto2 | qa-auto-ver | `testframework/e2e/{auth,platform,ai,tracker}/**`, `testframework/reports/**`, `.planning/audits/test-rebase/inventory.json`, `.planning/evidence/test-rebase/138/complex/**` | Phase 137, TASK-195 | 1–1.5д |
 
 ## Волны
 
