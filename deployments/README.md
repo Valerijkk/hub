@@ -8,7 +8,7 @@
 |----------------|------------|
 | `docker-compose.yml` | Инфраструктура для локальной разработки (БД, Redis, NATS, SeaweedFS, LiveKit, Caddy) |
 | `docker-compose.prod.yml` | Полный production-стек: инфра + backend + hub-mail + frontend + Caddy |
-| `docker-compose.test.yml` | Минимальный стек для интеграционных тестов (CI) |
+| `docker-compose.test.yml` | Минимальный стек для интеграционных тестов (CI/local); CPU/RAM ограничены, overrides — `HUB_TEST_*_CPUS` / `HUB_TEST_*_MEMORY` |
 | `docker-compose.monitoring.yml` | Overlay: Prometheus, Loki, Promtail, Alertmanager, Grafana |
 | `Caddyfile` | Reverse proxy для dev (localhost) |
 | `Caddyfile.prod` | Reverse proxy для production с TLS |

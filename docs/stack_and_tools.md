@@ -101,6 +101,10 @@ go build -tags release -o bin/server ./cmd/server
 | NATS JetStream | `nats:2.11` | 4222, 8222 | Pub/sub, outbox, notifications |
 
 Файлы compose: `docker-compose.local.yml` (корень), `deployments/docker-compose.prod.yml`, `deployments/docker-compose.test.yml`.
+Test Compose по умолчанию ограничивает CPU/RAM каждого сервиса; локальные
+override-переменные имеют вид `HUB_TEST_<SERVICE>_CPUS` и
+`HUB_TEST_<SERVICE>_MEMORY`. Канонический Go runner также запускается с
+`--cpus 2.0 --memory 4g`, чтобы race/coverage не монополизировал Docker Desktop.
 
 ---
 

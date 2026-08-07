@@ -707,7 +707,7 @@ cd backend && go build -tags release ./... && go vet ./... && go test -race -cou
 
 ```bash
 docker compose -f deployments/docker-compose.test.yml up -d
-docker run --rm --network deployments_default \
+docker run --rm --cpus 2.0 --memory 4g --network deployments_default \
   -v "${PWD}/backend:/app" -w /app \
   -e POSTGRES_TEST_URL="postgresql://hub:hub@postgres:5432/hub?sslmode=disable" \
   -e MONGODB_TEST_URL="mongodb://hub:hub@mongo:27017/?authSource=admin" \
