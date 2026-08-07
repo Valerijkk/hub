@@ -177,11 +177,7 @@ export function CaseTableRow({
 						</svg>
 					</span>
 				) : (
-					<span
-						title="Ручной"
-						aria-label="Ручной"
-						className="text-[var(--t4)]"
-					>
+					<span title="Ручной" aria-label="Ручной" className="text-[var(--t4)]">
 						<svg
 							aria-hidden="true"
 							className="h-4 w-4"

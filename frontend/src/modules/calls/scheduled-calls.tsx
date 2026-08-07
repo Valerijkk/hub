@@ -279,9 +279,7 @@ function CreateScheduledCallForm({
 
 			<button
 				type="submit"
-				disabled={
-					createMutation.isPending || !title.trim() || !scheduledAt
-				}
+				disabled={createMutation.isPending || !title.trim() || !scheduledAt}
 				className="rounded-md bg-primary px-4 py-1.5 text-sm text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
 			>
 				{createMutation.isPending ? "Создание..." : "Создать"}

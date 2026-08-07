@@ -93,23 +93,26 @@ export function AuditLogViewer() {
 		per_page: 25,
 	});
 
-	const fetchLogs = useCallback(async (signal?: { cancelled: boolean }) => {
-		setLoading(true);
-		setLoadError(false);
-		try {
-			const resp = await getAuditLogs({ ...filters, page });
-			if (signal?.cancelled) return;
-			setEntries(resp.items);
-			setTotal(resp.total);
-		} catch (err) {
-			if (!signal?.cancelled) {
-				setLoadError(true);
-				toastApiError(err, "Не удалось загрузить журнал аудита");
+	const fetchLogs = useCallback(
+		async (signal?: { cancelled: boolean }) => {
+			setLoading(true);
+			setLoadError(false);
+			try {
+				const resp = await getAuditLogs({ ...filters, page });
+				if (signal?.cancelled) return;
+				setEntries(resp.items);
+				setTotal(resp.total);
+			} catch (err) {
+				if (!signal?.cancelled) {
+					setLoadError(true);
+					toastApiError(err, "Не удалось загрузить журнал аудита");
+				}
+			} finally {
+				if (!signal?.cancelled) setLoading(false);
 			}
-		} finally {
-			if (!signal?.cancelled) setLoading(false);
-		}
-	}, [filters, page]);
+		},
+		[filters, page],
+	);
 
 	useEffect(() => {
 		const signal = { cancelled: false };
@@ -425,7 +428,8 @@ export function AuditLogViewer() {
 								Загрузка...
 							</td>
 						</tr>
-					) : loadError && entries.length === 0 ? null : entries.length === 0 ? (
+					) : loadError && entries.length === 0 ? null : entries.length ===
+						0 ? (
 						<tr>
 							<td
 								colSpan={7}

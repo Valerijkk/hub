@@ -246,27 +246,27 @@ export function LabelsSettingsPage() {
 			{/* Группы меток — только после успешной загрузки */}
 			{!groupsError &&
 				groups?.map((group) => (
-				<Card key={group.id}>
-					<CardHeader>
-						<CardTitle>{group.name}</CardTitle>
-					</CardHeader>
-					<CardContent>
-						{group.labels.length > 0 ? (
-							<div className="space-y-2">
-								{group.labels.map((label) => (
-									<LabelRow
-										key={label.id}
-										label={label}
-										onDelete={() => setDeleteLabelTarget(label.id)}
-									/>
-								))}
-							</div>
-						) : (
-							<p className="text-[13px] text-t2">Нет меток в группе</p>
-						)}
-					</CardContent>
-				</Card>
-			))}
+					<Card key={group.id}>
+						<CardHeader>
+							<CardTitle>{group.name}</CardTitle>
+						</CardHeader>
+						<CardContent>
+							{group.labels.length > 0 ? (
+								<div className="space-y-2">
+									{group.labels.map((label) => (
+										<LabelRow
+											key={label.id}
+											label={label}
+											onDelete={() => setDeleteLabelTarget(label.id)}
+										/>
+									))}
+								</div>
+							) : (
+								<p className="text-[13px] text-t2">Нет меток в группе</p>
+							)}
+						</CardContent>
+					</Card>
+				))}
 
 			{groupsError && !labelsError && (
 				<QueryErrorAlert

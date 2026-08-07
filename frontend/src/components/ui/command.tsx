@@ -35,7 +35,9 @@ function CommandDialog({
 		<Dialog {...props}>
 			{/* Keep DialogDescription association — do not set aria-describedby={undefined} (W9-A5-005). */}
 			<DialogContent className="top-[18%] max-w-xl translate-y-0 overflow-hidden p-0 [&>button]:hidden">
-				<DialogTitle className="sr-only">{t("search.globalSearch")}</DialogTitle>
+				<DialogTitle className="sr-only">
+					{t("search.globalSearch")}
+				</DialogTitle>
 				<DialogDescription className="sr-only">
 					{t("search.globalSearchDesc")}
 				</DialogDescription>

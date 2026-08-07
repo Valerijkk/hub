@@ -94,10 +94,7 @@ export function UserPicker({
 						/>
 						<CommandList>
 							{isError ? (
-								<div
-									role="alert"
-									className="px-3 py-6 text-center space-y-2"
-								>
+								<div role="alert" className="px-3 py-6 text-center space-y-2">
 									<p className="text-sm text-[var(--red)]">
 										{t("userPicker.loadError")}
 									</p>

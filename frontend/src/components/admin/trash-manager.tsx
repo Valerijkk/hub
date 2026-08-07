@@ -77,7 +77,11 @@ export function TrashManager() {
 			<h2 className="text-xl font-semibold">Корзина</h2>
 
 			{/* Вкладки */}
-			<div role="tablist" aria-label="Категории корзины" className="flex gap-1 border-b">
+			<div
+				role="tablist"
+				aria-label="Категории корзины"
+				className="flex gap-1 border-b"
+			>
 				{TRASH_TABS.map((tab) => (
 					<button
 						type="button"
@@ -109,7 +113,9 @@ export function TrashManager() {
 							<tr>
 								<th className="px-3 py-2 text-left font-medium">Название</th>
 								<th className="px-3 py-2 text-left font-medium">Удалено</th>
-								<th className="px-3 py-2 text-left font-medium">Осталось дней</th>
+								<th className="px-3 py-2 text-left font-medium">
+									Осталось дней
+								</th>
 								<th className="px-3 py-2 text-right font-medium">Действия</th>
 							</tr>
 						</thead>

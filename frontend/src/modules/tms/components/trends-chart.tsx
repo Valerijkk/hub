@@ -61,7 +61,12 @@ export function TrendsChart({
 	projectId: string;
 	limit?: number;
 }) {
-	const { data: trends, isLoading, isError, refetch } = useQuery({
+	const {
+		data: trends,
+		isLoading,
+		isError,
+		refetch,
+	} = useQuery({
 		queryKey: ["tms-trends", projectId, limit],
 		queryFn: () => getTestTrends(projectId, limit),
 	});

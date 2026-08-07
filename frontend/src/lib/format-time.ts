@@ -19,8 +19,7 @@ export function formatRelativeTime(
 	const nowMs = options?.now ?? Date.now();
 	const diffMs = nowMs - date.getTime();
 	const locale =
-		options?.locale ??
-		(i18n.language?.startsWith("en") ? "en" : "ru");
+		options?.locale ?? (i18n.language?.startsWith("en") ? "en" : "ru");
 
 	const rtf = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
 	const absMs = Math.abs(diffMs);

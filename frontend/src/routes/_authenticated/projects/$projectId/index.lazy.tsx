@@ -58,7 +58,12 @@ export function ProjectPage() {
 	const [editName, setEditName] = useState("");
 	const [editDescription, setEditDescription] = useState("");
 
-	const { data: project, isLoading, isError, refetch } = useQuery({
+	const {
+		data: project,
+		isLoading,
+		isError,
+		refetch,
+	} = useQuery({
 		queryKey: ["project", projectId],
 		queryFn: () => getProject(projectId),
 	});

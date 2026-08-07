@@ -23,10 +23,7 @@ interface Props {
  * TriggerCIPanel — компонент для запуска CI-пайплайна с выбранными тест-кейсами.
  * Позволяет выбрать интеграцию, ветку, отметить кейсы и запустить пайплайн.
  */
-export function TriggerCIPanel({
-	projectId,
-	canMutate: canMutateProp,
-}: Props) {
+export function TriggerCIPanel({ projectId, canMutate: canMutateProp }: Props) {
 	const [selectedCaseIds, setSelectedCaseIds] = useState<Set<string>>(
 		new Set(),
 	);

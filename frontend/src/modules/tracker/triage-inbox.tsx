@@ -78,7 +78,12 @@ export function TriageInbox({ projectId }: TriageInboxProps) {
 				toast.error("Не удалось создать фильтр Triage inbox");
 			},
 		});
-	}, [presetQuery.data, createPreset.isPending, createPreset.mutate, projectId]);
+	}, [
+		presetQuery.data,
+		createPreset.isPending,
+		createPreset.mutate,
+		projectId,
+	]);
 
 	const issuesQuery = useQuery({
 		queryKey: ["triage-inbox", projectId],

@@ -29,8 +29,7 @@ function getDeadlineStyle(days: number): {
 	if (days <= 0)
 		return {
 			variant: "destructive",
-			className:
-				"bg-[var(--gR)] text-[var(--red)] border-[var(--red)]/20",
+			className: "bg-[var(--gR)] text-[var(--red)] border-[var(--red)]/20",
 		};
 	if (days <= 1) return { variant: "destructive", className: "" };
 	if (days <= 3)

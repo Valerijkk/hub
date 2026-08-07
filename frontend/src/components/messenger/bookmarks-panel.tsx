@@ -72,7 +72,9 @@ export function BookmarksPanel() {
 					}
 					isEmpty={(data) => data.length === 0}
 					emptyFallback={
-						<p className="px-4 py-8 text-center text-sm text-t2">Нет закладок</p>
+						<p className="px-4 py-8 text-center text-sm text-t2">
+							Нет закладок
+						</p>
 					}
 				>
 					{(bookmarks) => (

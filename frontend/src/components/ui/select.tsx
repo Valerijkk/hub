@@ -41,7 +41,7 @@ const SelectScrollUpButton = React.forwardRef<
 			className,
 		)}
 		{...props}
-		>
+	>
 		<ChevronUp className="h-4 w-4" aria-hidden="true" />
 	</SelectPrimitive.ScrollUpButton>
 ));
@@ -58,7 +58,7 @@ const SelectScrollDownButton = React.forwardRef<
 			className,
 		)}
 		{...props}
-		>
+	>
 		<ChevronDown className="h-4 w-4" aria-hidden="true" />
 	</SelectPrimitive.ScrollDownButton>
 ));
