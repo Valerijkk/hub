@@ -53,6 +53,10 @@ X-API-Key: <api_key>
 > **ADR-AUTH-01:** единственный login — Magic Link. Telegram — **только** notify bind (`/notifications/telegram/*`), не login.  
 > Удалено v2.5: `POST /auth/telegram`, `POST /auth/telegram-code`.  
 > **ASN-002 / TASK-188:** `POST /notifications/telegram/confirm` — Redis fails-counter 5/5m на user (как HI-04 magic-link verify); lockout → **429**.
+> **Availability contract:** все пять JWT-маршрутов `/notifications/telegram/*`
+> регистрируются независимо от `TELEGRAM_BOT_TOKEN`. Без bot token
+> `GET /status` и `DELETE /telegram` остаются repository-backed, а
+> `POST /bind`, `/confirm` и `/test` отвечают **503** без сетевой попытки.
 
 | Метод | Путь | Auth | Описание |
 |---|---|---|---|

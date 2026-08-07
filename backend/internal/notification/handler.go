@@ -35,13 +35,13 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 	notifs.Post("/push/subscribe", h.PushSubscribe)
 	notifs.Delete("/push/unsubscribe", h.PushUnsubscribe)
 
-	if h.telegramBind != nil {
-		notifs.Post("/telegram/bind", h.TelegramBind)
-		notifs.Post("/telegram/confirm", h.TelegramConfirm)
-		notifs.Delete("/telegram", h.TelegramUnlink)
-		notifs.Post("/telegram/test", h.TelegramTest)
-		notifs.Get("/telegram/status", h.TelegramStatus)
-	}
+	// Telegram API остаётся стабильным независимо от конфигурации бота:
+	// status/unlink работают через repository, bot-dependent операции отвечают 503.
+	notifs.Post("/telegram/bind", h.TelegramBind)
+	notifs.Post("/telegram/confirm", h.TelegramConfirm)
+	notifs.Delete("/telegram", h.TelegramUnlink)
+	notifs.Post("/telegram/test", h.TelegramTest)
+	notifs.Get("/telegram/status", h.TelegramStatus)
 
 	// Статические сегменты — до /:id, иначе «telegram» и «read-all» матчятся как UUID.
 	notifs.Patch("/read-all", h.MarkAllRead)
