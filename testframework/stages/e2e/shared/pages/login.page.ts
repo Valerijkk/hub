@@ -11,7 +11,7 @@ export class LoginPage extends BasePage {
 	readonly hubTitle = this.page.getByText("Hub").first();
 	readonly tagline = this.page.getByText("Единая платформа для команд");
 	readonly magicHint = this.page.getByText(
-		"Введите email — мы отправим одноразовый код для входа.",
+		"Вход только по Magic Link (email)",
 	);
 	readonly devPanel = this.page.getByText("Демо-доступ");
 
