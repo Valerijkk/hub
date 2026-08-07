@@ -141,6 +141,27 @@ class ToolkitValidatorTests(unittest.TestCase):
 
         self.assertIn("FILE004", codes)
         self.assertIn("FILE005", codes)
+        self.assertIn("SAFEIO001", codes)
+
+    def test_symlink_and_post_snapshot_swap_fail_with_safeio_sentinel(self) -> None:
+        outside = self.root.parent / "outside-canary.md"
+        outside.write_text("outside marker\n", encoding="utf-8")
+        linked = self.root / "linked.md"
+        linked.symlink_to(outside)
+
+        issues = ToolkitValidator(self.root, self.config).run(["file_policy"])
+        self.assertIn("SAFEIO001", {issue.code for issue in issues})
+        self.assertTrue(all("outside marker" not in issue.message for issue in issues))
+
+        linked.unlink()
+        victim = self.write("victim.md", "original\n")
+        validator = ToolkitValidator(self.root, self.config)
+        victim.unlink()
+        victim.write_text("replacement\n", encoding="utf-8")
+
+        issues = validator.run(["file_policy"])
+        self.assertIn("SAFEIO001", {issue.code for issue in issues})
+        self.assertTrue(all("replacement" not in issue.message for issue in issues))
 
     def test_frontmatter_and_skill_name_are_validated(self) -> None:
         self.write(

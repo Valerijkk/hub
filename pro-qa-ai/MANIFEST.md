@@ -1,15 +1,15 @@
 ---
 manifest_version: 1
 product: pro-qa-ai
-toolkit_version: 0.4.0-beta.1
+toolkit_version: 0.4.0-beta.2
 status: foundation-ready
 owner: automation-quality
 layer: test-automation-ai-quality
 source_registry: sources/PRIMARY-SOURCES.md
 validation_config: scripts/validation_manifest.json
 validation_status: STRUCTURAL_PASS
-last_validation: 2026-08-04
-provenance: official primary sources and repository inspection on 2026-07-26
+last_validation: 2026-08-07
+provenance: official primary sources and repository inspection through 2026-08-07
 
 ---
 
@@ -24,21 +24,14 @@ provenance: official primary sources and repository inspection on 2026-07-26
 Это не scaffold тестового фреймворка. Он не выбирает runners, не создаёт
 архитектуру фреймворка и не владеет проектными командами и путями.
 
-Статус — **foundation-ready**. `STRUCTURAL_PASS` = дерево и валидатор прошли
-структурные проверки. Это **не** значит eval-validated или GA.
-
-Последнее структурное доказательство на 2026-08-04 (перезамер после
-схлопывания слоя ревью):
-
-- валидация исходного тулкита: 0 ошибок / 0 предупреждений, exit 0;
-- тесты скриптов: 41 passed / 1 skipped, 42 всего (создание symlink
-  недоступно; эквивалентные mocked-тесты Windows reparse проходят);
-- переносимый пакет: 187 файлов, SHA-256 инвентаря записан.
-  Сгенерированный `context/projects/hub/`, локальные прогоны и сырые
-  треды ревью в пакет не входят — проверено поломкой, а не чтением
-  конфига.
-
-Детали команд и проверка целостности состава — [VERSION.md](VERSION.md).
+Статус — **foundation-ready**. Это **не** значит eval-validated или GA.
+Манифест намеренно не хранит число тестов/файлов или старый
+artifact digest: после любого изменения такие значения становятся ложными.
+Фактические exit codes, counts и SHA-256 записываются для каждого candidate по
+[clean-room release protocol](docs/PORTABLE-RELEASE.md) и
+`PACKAGE-INVENTORY.json`. `STRUCTURAL_PASS` относится только к точному
+candidate, принятому указанной датой; paired effectiveness остаётся отдельным
+непройденным gate.
 
 Метрики эффективности остаются `NOT_RUN`: парный замер не прогонялся.
 
@@ -68,6 +61,7 @@ provenance: official primary sources and repository inspection on 2026-07-26
 - [Конфигурация валидации](scripts/validation_manifest.json)
 - [Unit-тесты валидатора](scripts/tests/test_validate_toolkit.py)
 - [Primary sources](sources/PRIMARY-SOURCES.md)
+- [Clean-room portable release](docs/PORTABLE-RELEASE.md)
 - Управленческие документы: [обзор](docs/EXECUTIVE-OVERVIEW-RU.md),
   [демо для руководителя](docs/LEADERSHIP-DEMO-RU.md),
   [техническое демо](docs/DEMO.md), [метрики ROI](docs/ROI-METRICS.md),
@@ -210,11 +204,12 @@ sensitivity, flaky risk, false positives, tokens, tool calls и latency, где
 
 ## Release gate
 
-Продвижение из pre-release требует:
+Продвижение из pre-release выполняется по
+[14-шаговому clean-room protocol](docs/PORTABLE-RELEASE.md) и требует:
 
 1. проходящих validator tests;
 2. validator exit `0` на точном дистрибутиве;
-3. approved source, security, framework и governance review;
+3. approved source, legal/provenance, security, framework и governance review;
 4. paired pilot evidence, удовлетворяющего predeclared gates;
 5. задокументированных limitations, exceptions и rollback;
 6. accountable release approval.

@@ -37,6 +37,8 @@
 | [security-tests.md](security-tests.md) | Класс тестов, которые нельзя ослаблять |
 | [coverage.md](coverage.md) | Как мерить покрытие и не обмануться |
 | [anti-ai.md](anti-ai.md) | Признаки сгенерированного текста, похожего на тест |
+| [evidence-and-enforcement.md](evidence-and-enforcement.md) | Evidence labels, hard/hybrid/review и C01–C44 candidate controls |
+| [negative-sentinels.md](negative-sentinels.md) | NEG-01–NEG-20: чем доказать, что detector действительно краснеет |
 
 ## Как читать пары
 

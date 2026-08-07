@@ -21,8 +21,14 @@ Packager переносит templates/core и автоматически иск�
 local smoke/run evidence и project-only pattern/review content. Raw
 `cp -r pro-qa-ai/` не использовать после появления project profiles.
 Dry-run: добавь `--dry-run`. Output должен быть новым путём или существующей
-пустой директорией. Непустой output всегда приводит к отказу: packager ничего
-не удаляет и не поддерживает режим замены.
+пустой директорией. Packager собирает sibling staging, полностью сверяет его с
+plan/inventory и только затем публикует atomic rename. Ошибка до publish очищает
+staging и не оставляет частичный output. Непустой output всегда приводит к
+отказу: packager ничего не удаляет и не поддерживает режим замены.
+
+Для выпуска distributable artifact выполни весь
+[14-шаговый clean-room protocol](docs/PORTABLE-RELEASE.md); успешный локальный
+запуск одной команды не заменяет release evidence и legal/provenance review.
 
 ## Шаг 2. Создать контекст тестового фреймворка
 
@@ -150,6 +156,7 @@ AGENTS.md) — добавь туда ссылку на тулкит и прав�
 ## Чек-лист готовности
 
 - [ ] Portable package собран через `package_portable.py` (не raw-copy)
+- [ ] Для release пройден clean-room protocol из `docs/PORTABLE-RELEASE.md`
 - [ ] Создан inventory + `context/projects/<profile>/CONTEXT-MANIFEST.yaml`
 - [ ] Каждый факт имеет источник или `UNKNOWN`
 - [ ] Валидатор структуры даёт экзит-код `0` на собранном пакете

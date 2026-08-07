@@ -13,7 +13,9 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import sys
+import tempfile
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -21,6 +23,7 @@ from typing import Any, List, Mapping, Optional, Sequence, Tuple
 
 from safe_filesystem import (
     FileSafetyError,
+    SafeTree,
     TextPolicy,
     enforce_containment,
     inspect_text_file,
@@ -52,6 +55,14 @@ class PackagePolicy:
     required_paths: Tuple[str, ...]
     inventory_path: Optional[str]
     file_policy: TextPolicy
+    provenance_gate: "ProvenanceGate"
+
+
+@dataclass(frozen=True)
+class ProvenanceGate:
+    gsd_exact_revision: str
+    contains_substantial_copied_gsd_material: bool
+    attribution_paths: Tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -171,6 +182,33 @@ def parse_policy(config: Mapping[str, Any]) -> PackagePolicy:
             inventory_value, "inventory_path", literal=True
         )
 
+    provenance_raw = config.get("provenance_gate")
+    if not isinstance(provenance_raw, Mapping):
+        raise PackageError("provenance_gate must be an object")
+    revision = provenance_raw.get("gsd_exact_revision")
+    if (
+        not isinstance(revision, str)
+        or not revision.strip()
+        or "\x00" in revision
+        or "\n" in revision
+        or "\r" in revision
+    ):
+        raise PackageError("provenance_gate.gsd_exact_revision must be a value")
+    copied = provenance_raw.get("contains_substantial_copied_gsd_material")
+    if type(copied) is not bool:
+        raise PackageError(
+            "provenance_gate.contains_substantial_copied_gsd_material "
+            "must be a boolean"
+        )
+    if copied and revision.strip().upper() == "UNKNOWN":
+        raise PackageError(
+            "substantial copied GSD material requires an exact upstream revision"
+        )
+    if copied and not re.fullmatch(r"[0-9a-fA-F]{40,64}", revision.strip()):
+        raise PackageError(
+            "substantial copied GSD material requires an immutable commit SHA"
+        )
+
     return PackagePolicy(
         include_globs=include_globs,
         exclude_globs=_string_list(config, "exclude_globs", literal=False),
@@ -184,6 +222,13 @@ def parse_policy(config: Mapping[str, Any]) -> PackagePolicy:
         required_paths=_string_list(config, "required_paths", literal=True),
         inventory_path=inventory_path,
         file_policy=parse_text_policy(config),
+        provenance_gate=ProvenanceGate(
+            gsd_exact_revision=revision.strip(),
+            contains_substantial_copied_gsd_material=copied,
+            attribution_paths=_string_list(
+                provenance_raw, "attribution_paths", literal=True
+            ),
+        ),
     )
 
 
@@ -359,6 +404,28 @@ def _validate_required_paths(
             )
 
 
+def _validate_provenance_gate(
+    entries: Sequence[PackageEntry], gate: ProvenanceGate
+) -> None:
+    """Require attribution and immutable provenance only when copying upstream."""
+
+    selected = {entry.relative_path for entry in entries}
+    missing = sorted(set(gate.attribution_paths) - selected)
+    if missing:
+        raise PackageError(
+            "provenance attribution path is not packaged: %s" % missing[0]
+        )
+    if gate.contains_substantial_copied_gsd_material:
+        if gate.gsd_exact_revision.upper() == "UNKNOWN":
+            raise PackageError(
+                "substantial copied GSD material requires an exact upstream revision"
+            )
+        if not re.fullmatch(r"[0-9a-fA-F]{40,64}", gate.gsd_exact_revision):
+            raise PackageError(
+                "substantial copied GSD material requires an immutable commit SHA"
+            )
+
+
 def build_package_plan(root: Path, policy: PackagePolicy) -> PackagePlan:
     """Select and hash package payload files without writing."""
 
@@ -418,6 +485,7 @@ def build_package_plan(root: Path, policy: PackagePolicy) -> PackagePlan:
 
     entries.sort(key=lambda entry: entry.relative_path)
     _validate_required_paths(resolved_root, entries, policy.required_paths)
+    _validate_provenance_gate(entries, policy.provenance_gate)
     if policy.inventory_path and any(
         entry.relative_path == policy.inventory_path for entry in entries
     ):
@@ -486,6 +554,107 @@ def _copy_verified(
         raise PackageError("source file changed during packaging: %s" % entry.relative_path)
 
 
+def _staging_prefix(output: Path) -> str:
+    return ".%s.staging-" % output.name
+
+
+def _create_staging(output: Path) -> Path:
+    """Create a task-owned sibling directory on the destination filesystem."""
+
+    try:
+        parent = resolve_directory_root(output.parent, "output parent")
+        created = Path(
+            tempfile.mkdtemp(prefix=_staging_prefix(output), dir=os.fspath(parent))
+        )
+        staging = resolve_directory_root(created, "package staging")
+    except (OSError, FileSafetyError) as exc:
+        raise PackageError(
+            "cannot create package staging safely (%s)" % type(exc).__name__
+        ) from exc
+    if staging.parent != parent:
+        raise PackageError("package staging is not a sibling of output")
+    return staging
+
+
+def _cleanup_staging(staging: Path, output: Path) -> None:
+    """Remove only the exact task-owned sibling staging directory."""
+
+    prefix = _staging_prefix(output)
+    try:
+        parent = resolve_directory_root(output.parent, "output parent")
+        if staging.parent != parent or not staging.name.startswith(prefix):
+            raise PackageError("refusing to clean an unexpected staging path")
+        if is_link_like(staging):
+            raise PackageError("refusing to clean link-like package staging")
+        shutil.rmtree(staging)
+    except (OSError, FileSafetyError) as exc:
+        raise PackageError(
+            "cannot clean package staging safely (%s)" % type(exc).__name__
+        ) from exc
+
+
+def _verify_staged_package(
+    staging: Path, plan: PackagePlan, policy: PackagePolicy
+) -> None:
+    """Verify the complete staged tree before it becomes externally visible."""
+
+    inventory = inventory_bytes(plan) if plan.inventory_path else b""
+    extra_count = 1 if plan.inventory_path else 0
+    verification_policy = TextPolicy(
+        allowed_text_extensions=policy.file_policy.allowed_text_extensions,
+        allowed_text_names=policy.file_policy.allowed_text_names,
+        max_file_bytes=max(policy.file_policy.max_file_bytes, len(inventory) or 1),
+        max_total_bytes=policy.file_policy.max_total_bytes + len(inventory),
+        max_file_count=policy.file_policy.max_file_count + extra_count,
+    )
+    try:
+        tree = SafeTree(staging, verification_policy)
+        expected = {entry.relative_path for entry in plan.entries}
+        if plan.inventory_path:
+            expected.add(plan.inventory_path)
+        actual = {tree.relative_path(path) for path in tree.files()}
+        if actual != expected:
+            raise PackageError("staged package file set does not match the plan")
+        expected_directories = {""}
+        for relative_path in expected:
+            parts = relative_path.split("/")[:-1]
+            for index in range(1, len(parts) + 1):
+                expected_directories.add("/".join(parts[:index]))
+        actual_directories = {
+            tree.relative_path(path) for path in tree.directories()
+        }
+        if actual_directories != expected_directories:
+            raise PackageError("staged package directory set does not match the plan")
+        for entry in plan.entries:
+            inspected = tree.inspect_text(entry.relative_path)
+            if inspected.size != entry.size or inspected.sha256 != entry.sha256:
+                raise PackageError(
+                    "staged package fingerprint mismatch: %s" % entry.relative_path
+                )
+        if plan.inventory_path:
+            inspected_inventory = tree.inspect_text(plan.inventory_path)
+            if inspected_inventory.data != inventory:
+                raise PackageError("staged package inventory mismatch")
+    except FileSafetyError as exc:
+        raise PackageError(
+            "cannot verify package staging safely (%s)" % type(exc).__name__
+        ) from exc
+
+
+def _publish_staging(source_root: Path, staging: Path, output: Path) -> None:
+    """Atomically rename a verified sibling staging tree into place."""
+
+    _, rechecked_output = validate_request(source_root, output)
+    if rechecked_output != output:
+        raise PackageError("output identity changed before publish")
+    try:
+        os.replace(staging, output)
+    except OSError as exc:
+        raise PackageError(
+            "cannot atomically publish package output (%s)" % type(exc).__name__
+        ) from exc
+
+
 def package_directory(
     root: Path,
     output: Path,
@@ -500,15 +669,10 @@ def package_directory(
     if dry_run:
         return plan
 
+    staging: Optional[Path] = None
     try:
-        if resolved_output.exists():
-            if _directory_nonempty(resolved_output):
-                raise PackageError(
-                    "output became non-empty; choose a new empty output path"
-                )
-        else:
-            resolved_output.mkdir()
-        output_root = resolve_directory_root(resolved_output, "output")
+        staging = _create_staging(resolved_output)
+        output_root = resolve_directory_root(staging, "package staging")
         for entry in plan.entries:
             destination = output_root.joinpath(*entry.relative_path.split("/"))
             _copy_verified(entry, destination, plan.root, output_root)
@@ -516,12 +680,25 @@ def package_directory(
             inventory = output_root.joinpath(*plan.inventory_path.split("/"))
             with safe_open_write(output_root, inventory) as target:
                 target.write(inventory_bytes(plan))
+        _verify_staged_package(output_root, plan, policy)
+        _publish_staging(plan.root, output_root, resolved_output)
+        staging = None
     except (OSError, FileSafetyError, PackageError) as exc:
+        cleanup_error: Optional[PackageError] = None
+        if staging is not None and os.path.lexists(staging):
+            try:
+                _cleanup_staging(staging, resolved_output)
+            except PackageError as cleanup_exc:
+                cleanup_error = cleanup_exc
+        if cleanup_error is not None:
+            raise PackageError(
+                "packaging failed and staging cleanup also failed (%s)"
+                % type(cleanup_error).__name__
+            ) from exc
         if isinstance(exc, PackageError):
             raise
         raise PackageError(
-            "cannot write package output safely (%s); partial output was not deleted"
-            % type(exc).__name__
+            "cannot write package output safely (%s)" % type(exc).__name__
         ) from exc
     return plan
 

@@ -1,5 +1,13 @@
 # Изоляция: независимость, состояние, очистка
 
+## Mutable singleton запрещён
+
+Глобальная session, current user, browser/page, mutable config, transaction,
+test data или cache делают порядок запуска частью результата. Такое состояние
+передаётся через fixture/constructor/function argument с явным scope и cleanup.
+Допустим только immutable-after-build registry; условия и примеры —
+[`../code/singleton.md`](../code/singleton.md).
+
 Тест обязан проходить в одиночку, в любом порядке и параллельно с
 другими. Зависимость от порядка — дефект теста, а не особенность набора.
 

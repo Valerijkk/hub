@@ -34,8 +34,10 @@ conformance.
 
 | ID | Official source | Actionable mapping |
 |---|---|---|
-| SRC-GSD-REPO-001 | [gsd-build/get-shit-done](https://github.com/gsd-build/get-shit-done) | Трактовать GSD как inspiration/upstream, а не как неявную часть Hub; pin revision до копирования любого substantial upstream material. |
-| SRC-GSD-LICENSE-001 | [GSD MIT License](https://github.com/gsd-build/get-shit-done/blob/main/LICENSE) | Сохранять MIT copyright/license для скопированных substantial portions. Текущая local inventory revision — `UNKNOWN`, поэтому external redistribution остаётся gated. |
+| SRC-GSD-REPO-001 | [legacy gsd-build/get-shit-done](https://github.com/gsd-build/get-shit-done) | Текущий README является move notice, а не current implementation authority; точный legacy revision нужен до заявления о copied provenance. |
+| SRC-GSD-REDUX-001 | [open-gsd/get-shit-done-redux](https://github.com/open-gsd/get-shit-done-redux) | Destination, на который указывает legacy move notice; наличие redirect не доказывает, что локальный toolkit скопирован из этой линии. |
+| SRC-GSD-CORE-REPO-001 | [open-gsd/gsd-core](https://github.com/open-gsd/gsd-core) | Отдельный current MIT repository, проверенный как related primary source; не объявлять его exact upstream локального текста без repository+revision evidence. |
+| SRC-GSD-LICENSE-001 | [legacy GSD MIT License](https://github.com/gsd-build/get-shit-done/blob/main/LICENSE) | Сохранять применимые copyright/license notices для скопированных substantial portions. Exact local repository/revision — `UNKNOWN`: это блокирует substantial copying, но не заново сформулированные ideas с attribution. |
 
 | SRC-GSD-CONTEXT-001 | [CONTEXT.md](https://github.com/gsd-build/get-shit-done/blob/main/CONTEXT.md) | Запрет проверять исходник грепом вместо вызова; обязательные граничные фикстуры для параметров-лимитов; тест паритета при намеренном дублировании; таймауты на внешние вызовы с деградацией вместо исключения. |
 | SRC-GSD-SUITES-001 | [docs/TESTING-SUITES.md](https://github.com/gsd-build/get-shit-done/blob/main/docs/TESTING-SUITES.md) | Разделение сьютов маркером в имени файла, а не каталогом; разный состав прогона на мержреквесте и на главной ветке; структурные утверждения вместо сравнения текста ошибки. |
@@ -43,9 +45,11 @@ conformance.
 
 | SRC-GSD-CORE-001 | [open-gsd/gsd-core — TESTING-STANDARDS.md](https://github.com/open-gsd/gsd-core/blob/main/TESTING-STANDARDS.md) | Шесть контрактов теста; политика удаления плохих тестов вместо отключения; свойства вместо примеров для парсинга и обратимых пар; часы как параметр вместо подмены системного времени; классы непереносимости между ОС. |
 
-Дата доступа к пяти записям GSD: **2026-08-04**. Репозиторий
-`gsd-build/get-shit-done` на эту дату архивирован, разработка продолжена в
-`open-gsd/gsd-core`. Изучены обе: архивная `main` первого и `main` второго.
+Статус репозиториев повторно проверен **2026-08-08**. README
+`gsd-build/get-shit-done` направляет в `open-gsd/get-shit-done-redux`;
+`open-gsd/gsd-core` существует как отдельный current MIT repository. Ни redirect,
+ни related repository сами по себе не устанавливают exact provenance локального
+toolkit: исходный repository+revision остаётся `UNKNOWN`.
 
 Вынесены **правила**, сформулированные заново под объект этого пакета.
 Существенные фрагменты текста не копировались, поэтому license gate по
@@ -142,6 +146,26 @@ privacy-aware observability.
 
 Controls fed: framework-specific profile cards, UI selector/isolation review,
 fixture/mock cleanup и version-aware generation.
+
+## Maintainable test code and UI architecture
+
+Дата доступа: **2026-08-07**. Это guidance, а не универсальные законы;
+конкретный framework/version подтверждает project profile.
+
+| ID | Official source | Actionable mapping |
+|---|---|---|
+| SRC-GOOGLE-GOOD-TEST-001 | [Google Testing Blog — What Makes a Good Test?](https://testing.googleblog.com/2014/03/testing-on-toilet-what-makes-good-test.html) | Тест служит читаемой документацией public API; clarity, completeness и conciseness важнее механической краткости. |
+| SRC-GOOGLE-DAMP-001 | [Google Testing Blog — Tests Too DRY? Make Them DAMP!](https://testing.googleblog.com/2019/12/testing-on-toilet-tests-too-dry-make.html) | Reusable mechanics остаётся DRY, но test intent должен быть локально очевиден; при конфликте предпочитать DAMP-читаемость. |
+| SRC-GOOGLE-DRY-001 | [Google Testing Blog — Don't DRY Your Code Prematurely](https://testing.googleblog.com/2024/05/dont-dry-your-code-prematurely.html) | Не объединять поверхностно похожие участки до доказанного общего контракта и совместной причины изменения. |
+| SRC-GOOGLE-GLOBAL-STATE-001 | [Google Testing Blog — So You Decided to Use a Singleton](https://testing.googleblog.com/2008/08/by-miko-hevery-so-you-decided-to.html) | Mutable global/singleton state скрывает зависимости и мешает изоляции; предпочитать explicit construction/injection и контролируемый lifetime. |
+| SRC-GOOGLE-TEST-SIZES-001 | [Google Testing Blog — Test Sizes](https://testing.googleblog.com/2010/12/test-sizes.html) | Классифицировать тесты по реально разрешённым ресурсам и времени; small не использует сеть/БД/FS и не зависит от порядка. |
+| SRC-MICROSOFT-UNIT-001 | [Microsoft Learn — unit testing best practices](https://learn.microsoft.com/dotnet/core/testing/unit-testing-best-practices) | AAA, один Act и один поведенческий фокус; имена показывают scenario и expected behavior. Число 25 строк из источника не выводится. |
+| SRC-PLAYWRIGHT-LOCATORS-001 | [Playwright locators](https://playwright.dev/docs/locators) | Предпочитать role/name/label/text и явные test contracts; CSS/XPath DOM chains хрупки, `first/nth` не заменяют уникальный locator. |
+| SRC-SELENIUM-POM-001 | [Selenium Page Object Models](https://www.selenium.dev/documentation/test_practices/encouraged/page_object_models/) | Композировать rooted Page Component Objects, держать assertions в тесте кроме проверки загрузки страницы, моделировать пользовательские services, а не DOM mechanics. |
+
+Controls fed: clean-changeability, DAMP/DRY boundary, safe singleton policy,
+25-line review-budget caveat, Page/Component Objects и resource-based test
+taxonomy.
 
 ## Registry maintenance
 

@@ -15,7 +15,6 @@ import json
 import ntpath
 import os
 import re
-import stat
 import sys
 from dataclasses import asdict, dataclass
 from datetime import datetime
@@ -24,17 +23,13 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 from urllib.parse import unquote, urlsplit
 
 from safe_filesystem import (
-    assert_no_link_components,
     FileSafetyError,
     InspectedText,
+    SafeTree,
     TextPolicy,
-    enforce_containment,
-    inspect_text_file,
-    is_link_like,
     lexical_absolute,
     parse_text_policy,
     resolve_directory_root,
-    safe_open_read,
 )
 from secret_rules import secret_rule_matches
 
@@ -387,6 +382,9 @@ def markdown_heading_anchors(text: str) -> Set[str]:
 
 class ToolkitValidator:
     def __init__(self, root: Path, config: Dict[str, Any]) -> None:
+        self.config = config
+        self.issues: List[Issue] = []
+        self._tree_error: Optional[FileSafetyError] = None
         try:
             self.root = resolve_directory_root(root, "validation root")
             self.text_policy = parse_text_policy(
@@ -394,8 +392,20 @@ class ToolkitValidator:
             )
         except FileSafetyError as exc:
             raise ValueError(str(exc)) from exc
-        self.config = config
-        self.issues: List[Issue] = []
+        global_excludes = self.config.get("scan", {}).get(
+            "global_exclude_globs", []
+        )
+        try:
+            self.tree: Optional[SafeTree] = SafeTree(
+                self.root,
+                self.text_policy,
+                exclude=lambda relative, _is_directory: _matches(
+                    relative, global_excludes
+                ),
+            )
+        except FileSafetyError as exc:
+            self.tree = None
+            self._tree_error = exc
         self._text_cache: Dict[Path, str] = {}
         self._inspection_cache: Dict[Path, InspectedText] = {}
         self._read_failures: Set[Path] = set()
@@ -423,21 +433,20 @@ class ToolkitValidator:
             return self._text_cache[path]
         if path in self._read_failures:
             return None
-        relative = path.relative_to(self.root).as_posix()
+        if self.tree is None:
+            return None
         try:
-            inspected = inspect_text_file(
-                self.root, path, relative, self.text_policy
-            )
+            inspected = self.tree.inspect_text(path)
         except FileSafetyError as exc:
             message = str(exc)
             if "unapproved text file type" in message:
                 code = "FILE001"
             elif "byte limit" in message:
                 code = "FILE003"
-            elif "binary/NUL" in message or "UTF-8" in message:
+            elif "binary/" in message or "control content" in message or "UTF-8" in message:
                 code = "FILE002"
             else:
-                code = "FS001"
+                code = "SAFEIO001"
             self.add(
                 "file_policy",
                 code,
@@ -454,92 +463,7 @@ class ToolkitValidator:
     def _all_paths(self) -> Tuple[Path, ...]:
         if self._paths_cache is not None:
             return self._paths_cache
-        paths: List[Path] = []
-        global_excludes = self.config.get("scan", {}).get(
-            "global_exclude_globs", []
-        )
-
-        def onerror(exc: OSError) -> None:
-            raise ValueError(
-                "cannot enumerate validation root (%s)" % type(exc).__name__
-            )
-
-        for directory, directory_names, file_names in os.walk(
-            str(self.root), topdown=True, onerror=onerror, followlinks=False
-        ):
-            directory_names.sort()
-            file_names.sort()
-            base = Path(directory)
-            try:
-                checked = enforce_containment(
-                    self.root, base, must_exist=True, allow_directory=True
-                )
-                if not checked.is_dir():
-                    raise FileSafetyError("scan component is not a directory")
-            except FileSafetyError as exc:
-                self.add("file_policy", "FS001", base, 1, str(exc))
-                directory_names[:] = []
-                continue
-
-            retained: List[str] = []
-            for name in directory_names:
-                candidate = base / name
-                relative = candidate.relative_to(self.root).as_posix()
-                try:
-                    linked = is_link_like(candidate)
-                except FileSafetyError as exc:
-                    self.add("file_policy", "FS001", candidate, 1, str(exc))
-                    continue
-                if linked:
-                    self.add(
-                        "file_policy",
-                        "FS001",
-                        candidate,
-                        1,
-                        "directory is a symbolic link or reparse point",
-                    )
-                    continue
-                if not _matches(relative, global_excludes):
-                    retained.append(name)
-            directory_names[:] = retained
-
-            for name in file_names:
-                candidate = base / name
-                relative = candidate.relative_to(self.root).as_posix()
-                if _matches(relative, global_excludes):
-                    continue
-                try:
-                    if is_link_like(candidate):
-                        self.add(
-                            "file_policy",
-                            "FS001",
-                            candidate,
-                            1,
-                            "file is a symbolic link or reparse point",
-                        )
-                        continue
-                    metadata = os.lstat(candidate)
-                    enforce_containment(self.root, candidate, must_exist=True)
-                except (OSError, FileSafetyError) as exc:
-                    self.add(
-                        "file_policy",
-                        "FS001",
-                        candidate,
-                        1,
-                        "cannot safely inspect file (%s)" % type(exc).__name__,
-                    )
-                    continue
-                if not stat.S_ISREG(metadata.st_mode):
-                    self.add(
-                        "file_policy",
-                        "FS001",
-                        candidate,
-                        1,
-                        "scan path is not a regular file",
-                    )
-                    continue
-                paths.append(candidate)
-        self._paths_cache = tuple(sorted(paths))
+        self._paths_cache = self.tree.files() if self.tree is not None else ()
         return self._paths_cache
 
     def files(
@@ -552,6 +476,36 @@ class ToolkitValidator:
                 continue
             if _matches(relative, includes):
                 yield path
+
+    def _snapshot_exists(self, path: Path) -> bool:
+        if self.tree is None:
+            return False
+        try:
+            return self.tree.exists(path)
+        except FileSafetyError:
+            return False
+
+    def _snapshot_is_file(self, path: Path) -> bool:
+        if self.tree is None:
+            return False
+        return self.tree.is_file(path)
+
+    def _snapshot_is_dir(self, path: Path) -> bool:
+        if self.tree is None:
+            return False
+        return self.tree.is_dir(path)
+
+    def _snapshot_files_in(
+        self, directory: Path, *, suffix: Optional[str] = None
+    ) -> Tuple[Path, ...]:
+        if self.tree is None:
+            return ()
+        return self.tree.files_in(directory, suffix=suffix)
+
+    def _snapshot_directories_in(self, directory: Path) -> Tuple[Path, ...]:
+        if self.tree is None:
+            return ()
+        return self.tree.directories_in(directory)
 
     def check_file_policy(self) -> None:
         paths = list(self._all_paths())
@@ -609,7 +563,7 @@ class ToolkitValidator:
                     candidates.append(self.root.parent / raw)
                 else:
                     candidates.append(self.root / raw)
-                if any(c.resolve().exists() for c in candidates):
+                if any(self._snapshot_exists(candidate) for candidate in candidates):
                     continue
                 if True:
                     self.add(
@@ -699,20 +653,7 @@ class ToolkitValidator:
                         "relative link target escapes the validation root",
                     )
                     continue
-                try:
-                    assert_no_link_components(
-                        destination_candidate, allow_missing_tail=True
-                    )
-                except FileSafetyError:
-                    self.add(
-                        "links",
-                        "LINK003",
-                        path,
-                        line,
-                        "relative link target contains a link-like path component",
-                    )
-                    continue
-                if not destination_candidate.exists():
+                if not self._snapshot_exists(destination_candidate):
                     digest = hashlib.sha256(
                         decoded_path.encode("utf-8")
                     ).hexdigest()[:10]
@@ -725,22 +666,7 @@ class ToolkitValidator:
                         % digest,
                     )
                     continue
-                try:
-                    destination = enforce_containment(
-                        self.root,
-                        destination_candidate,
-                        must_exist=True,
-                        allow_directory=True,
-                    )
-                except FileSafetyError:
-                    self.add(
-                        "links",
-                        "LINK003",
-                        path,
-                        line,
-                        "relative link target failed containment validation",
-                    )
-                    continue
+                destination = destination_candidate
                 if fragment and destination.suffix.lower() in {".md", ".markdown"}:
                     target_text = self.read_text(destination, "links")
                     if target_text is None:
@@ -975,7 +901,7 @@ class ToolkitValidator:
         must_exist = bool(generated_profiles) and settings.get(
             "required_when_profiles_generated", True
         )
-        if not manifest_path.exists():
+        if not self._snapshot_is_file(manifest_path):
             if must_exist:
                 self.add(
                     "placeholders",
@@ -1013,7 +939,7 @@ class ToolkitValidator:
     ) -> None:
         for relative in settings["template_directories"]:
             directory = self.root / relative
-            if not directory.is_dir():
+            if not self._snapshot_is_dir(directory):
                 self.add(
                     "placeholders",
                     "PLACE010",
@@ -1027,7 +953,7 @@ class ToolkitValidator:
             )
 
         projects_root = self.root / settings["projects_root"]
-        if not projects_root.is_dir():
+        if not self._snapshot_is_dir(projects_root):
             self.add(
                 "placeholders",
                 "PLACE011",
@@ -1037,8 +963,8 @@ class ToolkitValidator:
             )
             return
         excluded = set(settings.get("excluded_project_directories", []))
-        for directory in sorted(projects_root.iterdir()):
-            if not directory.is_dir() or directory.name in excluded:
+        for directory in self._snapshot_directories_in(projects_root):
+            if directory.name in excluded:
                 continue
             self._check_profile_directory(
                 directory, settings, placeholder, is_template=False
@@ -1052,7 +978,7 @@ class ToolkitValidator:
         is_template: bool,
     ) -> None:
         manifest_path = directory / settings["manifest_name"]
-        if not manifest_path.exists():
+        if not self._snapshot_is_file(manifest_path):
             self.add(
                 "placeholders",
                 "PLACE012",
@@ -1146,8 +1072,8 @@ class ToolkitValidator:
         ignored = set(settings.get("ignored_markdown_files", []))
         actual = {
             path.name
-            for path in directory.glob("*.md")
-            if path.is_file() and path.name not in ignored
+            for path in self._snapshot_files_in(directory, suffix=".md")
+            if path.name not in ignored
         }
         for filename in sorted(expected - actual):
             self.add(
@@ -1159,7 +1085,7 @@ class ToolkitValidator:
             )
         for filename in sorted(expected | actual):
             path = directory / filename
-            if not path.is_file():
+            if not self._snapshot_is_file(path):
                 continue
             text = self.read_text(path, "placeholders")
             if text is None:
@@ -1662,9 +1588,7 @@ class ToolkitValidator:
                 )
                 continue
             candidate = self.root / settings["core_directory"] / core_file
-            try:
-                enforce_containment(self.root, candidate, must_exist=True)
-            except FileSafetyError:
+            if not self._snapshot_is_file(candidate):
                 self.add(
                     "cursor_adapter",
                     "ADAPT009",
@@ -1696,7 +1620,7 @@ class ToolkitValidator:
     def check_provenance(self) -> None:
         settings = self.config["toolkit_manifest"]
         path = self.root / settings["path"]
-        if not path.exists():
+        if not self._snapshot_is_file(path):
             self.add(
                 "provenance",
                 "PROV001",
@@ -1730,7 +1654,7 @@ class ToolkitValidator:
         source_field = settings.get("source_registry_field")
         if source_field and frontmatter.fields.get(source_field):
             source = self.root / frontmatter.fields[source_field]
-            if not source.exists():
+            if not self._snapshot_exists(source):
                 self.add(
                     "provenance",
                     "PROV004",
@@ -1752,15 +1676,14 @@ class ToolkitValidator:
         if not required:
             return
         recipes_dir = self.root / "workflows" / "recipes"
-        if not recipes_dir.is_dir():
+        if not self._snapshot_is_dir(recipes_dir):
             return
-        for path in sorted(recipes_dir.glob("*.md")):
+        for path in self._snapshot_files_in(recipes_dir, suffix=".md"):
             name = path.name
             if name.startswith("_") or name == "README.md":
                 continue
-            try:
-                text = path.read_text(encoding="utf-8")
-            except OSError:
+            text = self.read_text(path, "recipes")
+            if text is None:
                 continue
             found = [
                 line[3:].strip()
@@ -1813,10 +1736,9 @@ class ToolkitValidator:
         overrides = settings.get("overrides") or {}
         reasons = settings.get("override_reasons") or {}
         for path in self.files(settings["include_globs"], settings.get("exclude_globs", [])):
-            try:
-                size_kb = path.stat().st_size / 1024
-            except OSError:
+            if self.tree is None:
                 continue
+            size_kb = self.tree.metadata(path).st_size / 1024
             rel = path.relative_to(self.root).as_posix()
             limit = int(overrides.get(rel, default_kb))
             if rel in overrides and not reasons.get(rel):
@@ -1846,9 +1768,8 @@ class ToolkitValidator:
 
     def _text_lines(self, path):
         """Строки вне кодовых блоков — с номерами, начиная с 1."""
-        try:
-            raw = path.read_text(encoding="utf-8")
-        except OSError:
+        raw = self.read_text(path, "text_lines")
+        if raw is None:
             return []
         out = []
         fenced = False
@@ -1917,9 +1838,13 @@ class ToolkitValidator:
         if not settings:
             return
         agents_dir = self.root / "agents"
-        if not agents_dir.is_dir():
+        if not self._snapshot_is_dir(agents_dir):
             return
-        known = {p.stem for p in agents_dir.glob("*.md") if p.name != "README.md"}
+        known = {
+            path.stem
+            for path in self._snapshot_files_in(agents_dir, suffix=".md")
+            if path.name != "README.md"
+        }
         pattern = re.compile(settings["detect"])
         for path in self.files(settings["include_globs"], settings.get("exclude_globs", [])):
             for number, line in self._text_lines(path):
@@ -1966,9 +1891,8 @@ class ToolkitValidator:
 
         blocks = []
         for path in self.files(settings["include_globs"], settings.get("exclude_globs", [])):
-            try:
-                text = path.read_text(encoding="utf-8")
-            except OSError:
+            text = self.read_text(path, "duplication")
+            if text is None:
                 continue
             rel = path.relative_to(self.root).as_posix()
             for chunk in re.split(_BLANK_LINE, fence.sub("", text)):
@@ -2019,19 +1943,18 @@ class ToolkitValidator:
         if not settings:
             return
         agents_dir = self.root / "agents"
-        if not agents_dir.is_dir():
+        if not self._snapshot_is_dir(agents_dir):
             return
         token = re.compile(settings.get("token", r"`(test-[a-z-]+)`"))
         inbound_title = settings["inbound_section"]
         outbound_title = settings["outbound_section"]
 
         roles = {}
-        for path in sorted(agents_dir.glob("*.md")):
+        for path in self._snapshot_files_in(agents_dir, suffix=".md"):
             if path.name.startswith("_") or path.name == "README.md":
                 continue
-            try:
-                text = path.read_text(encoding="utf-8")
-            except OSError:
+            text = self.read_text(path, "handoff")
+            if text is None:
                 continue
 
             def section(title):
@@ -2117,16 +2040,15 @@ class ToolkitValidator:
         if not required:
             return
         folder_path = self.root / folder
-        if not folder_path.is_dir():
+        if not self._snapshot_is_dir(folder_path):
             return
         checklist_section = config.get("checklist_section")
         missing_code, order_code, checklist_code = codes
-        for path in sorted(folder_path.glob("*.md")):
+        for path in self._snapshot_files_in(folder_path, suffix=".md"):
             if path.name.startswith("_") or path.name == "README.md":
                 continue
-            try:
-                text = path.read_text(encoding="utf-8")
-            except OSError:
+            text = self.read_text(path, check)
+            if text is None:
                 continue
             found = []
             fenced = False
@@ -2163,6 +2085,35 @@ class ToolkitValidator:
                             "agents", ("AGENT001", "AGENT002", "AGENT003"))
 
     def run(self, checks: Sequence[str]) -> List[Issue]:
+        if self._tree_error is not None:
+            message = str(self._tree_error)
+            self.add(
+                "file_policy",
+                "SAFEIO001",
+                self.root,
+                1,
+                message,
+            )
+            if "max file count" in message:
+                self.add(
+                    "file_policy",
+                    "FILE005",
+                    self.root,
+                    1,
+                    "validation tree exceeds max file count",
+                )
+            if "max total bytes" in message:
+                self.add(
+                    "file_policy",
+                    "FILE004",
+                    self.root,
+                    1,
+                    "validation tree exceeds max total bytes",
+                )
+            return sorted(
+                self.issues,
+                key=lambda item: (item.path, item.line, item.check, item.code),
+            )
         methods = {
             "file_policy": self.check_file_policy,
             "links": self.check_links,
@@ -2190,7 +2141,11 @@ class ToolkitValidator:
             "egress": self.check_egress,
         }
         for check in checks:
-            methods[check]()
+            try:
+                methods[check]()
+            except FileSafetyError as exc:
+                self.add("file_policy", "SAFEIO001", self.root, 1, str(exc))
+                break
         return sorted(
             self.issues,
             key=lambda item: (item.path, item.line, item.check, item.code),
@@ -2200,14 +2155,20 @@ class ToolkitValidator:
 def load_config(path: Path) -> Dict[str, Any]:
     try:
         config_root = resolve_directory_root(path.parent, "validation manifest parent")
-        with safe_open_read(config_root, path) as source:
-            data = source.read(2 * 1024 * 1024 + 1)
-        if len(data) > 2 * 1024 * 1024 or b"\x00" in data:
-            raise ValueError("validation manifest is not bounded text")
-        config = json.loads(data.decode("utf-8"))
+        config_tree = SafeTree(
+            config_root,
+            TextPolicy(
+                allowed_text_extensions=(".json",),
+                allowed_text_names=(),
+                max_file_bytes=2 * 1024 * 1024,
+                max_total_bytes=64 * 1024 * 1024,
+                max_file_count=5000,
+            ),
+            exclude=lambda relative, is_directory: is_directory
+            and Path(relative).name in {"__pycache__", ".pytest_cache"},
+        )
+        config = json.loads(config_tree.inspect_text(path).text)
     except (
-        OSError,
-        UnicodeDecodeError,
         json.JSONDecodeError,
         FileSafetyError,
     ) as exc:

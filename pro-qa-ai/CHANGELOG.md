@@ -2,6 +2,26 @@
 
 Формат: Keep a Changelog · версии SemVer.
 
+## [0.4.0-beta.2] — 2026-08-07
+
+### Added
+
+- Safe filesystem boundary и отдельный secret scanner с негативными тестами.
+- 14-шаговый clean-room portable release protocol.
+- Evidence/enforcement и negative-sentinel practices; хорошие и плохие
+  примеры для изменяемого кода, функций и singleton trade-offs.
+
+### Changed
+
+- Portable publish теперь transactional: sibling staging, exact file/directory
+  inventory, size/SHA-256 verification, atomic rename и fail-closed cleanup.
+- Provenance gate отделяет adapted ideas от substantial copied GSD material;
+  неизвестная exact revision блокирует только substantial material.
+- Generated project profiles удаляются generic rule без Hub-specific assumption.
+- SOLID/DRY/размер функций/mocks/POM — review guidance; correctness, security,
+  failure boundaries и воспроизводимость остаются hard controls.
+- Устаревающие file/test counts вынесены из canonical docs в release evidence.
+
 ## [0.4.0-beta.1] — 2026-08-04
 
 ### Changed (BREAKING)

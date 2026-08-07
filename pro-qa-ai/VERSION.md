@@ -1,23 +1,32 @@
 ---
 name: pro-qa-ai
 product: pro-qa-ai
-version: 0.4.0-beta.1
+version: 0.4.0-beta.2
 status: foundation-ready
 release_date: не выпущено — beta, GA после paired eval
 owner: automation-quality
 validation_status: STRUCTURAL_PASS
-last_validation: 2026-08-04
+last_validation: 2026-08-07
 release_eligibility: foundation-ready-eval-blocked
 provenance: MANIFEST.md
-supersedes: 0.3.0-beta.1
+supersedes: 0.4.0-beta.1
 ---
 
 # Версия — pro-qa-ai
 
-Текущая semantic version: **`0.4.0-beta.1`**.
+Текущая semantic version: **`0.4.0-beta.2`**.
 
 **foundation-ready** — AI-слой для тестового фреймворка. Корень поставки:
 эта папка. Продуктовая карта: [TOUCHSTONE.md](TOUCHSTONE.md).
+
+## Усиление portable release в `0.4.0-beta.2`
+
+Упаковка стала транзакционной: отдельный sibling staging, exact inventory с
+размерами и SHA-256, повторная проверка destination перед atomic publish и
+fail-closed cleanup. Добавлены safe-I/O, secret scan, provenance gate и
+14-шаговый clean-room protocol. Правила размера функций, SOLID, DRY, mocks и
+Page Objects явно классифицированы как review guidance, а не универсальные
+hard gates.
 
 ## Ломающее изменение в `0.4.0-beta.1`
 
@@ -83,23 +92,17 @@ Package: 174 → 148 файлов.
 
 ## Evidence (structural)
 
-Замер 2026-08-04, после схлопывания слоя ревью. Команды воспроизводимы из корня
-`pro-qa-ai/`.
+Актуальная приёмка выполняется целиком по
+[`docs/PORTABLE-RELEASE.md`](docs/PORTABLE-RELEASE.md) в resource-limited
+Docker: source validator/tests, dry-run, transactional package, exact artifact
+validator/tests и digest. Число файлов, тестов и digest являются свойствами
+конкретного candidate и сохраняются во внешнем release evidence, а не как
+вечные константы этого документа.
 
-| Проверка | Команда | Результат |
-|----------|---------|-----------|
-| Structural validation | `python scripts/validate_toolkit.py` | PASS · 0 errors / 0 warnings · exit 0 |
-| Script tests | `python -m pytest scripts/tests -q` | 41 passed / 1 skipped (42 total); SKIP — symlink недоступен |
-| Portable package | `python scripts/package_portable.py --root . --output <dst> --dry-run` | 187 files · exit 0 |
-
-Package исключает сгенерированный профиль Hub, локальные прогоны и сырые
-треды ревью. Целостность состава защищена `required_paths` в
-`scripts/package_manifest.json`: удаление любого обязательного файла
-роняет упаковщик с exit 2.
-
-Гарантии проверены не чтением конфига, а поломкой: подложенный файл в
-`threads/inbox/` в пакет не попал, удаление обязательного файла уронило
-упаковщик (2026-08-04).
+Package исключает generated project profiles, локальные прогоны и private
+review material. Целостность состава защищена `required_paths`, exact staged
+inventory и негативными sentinels для race, verification failure, unexpected
+file/directory и cleanup.
 
 ## Продвижение к GA `1.0.0`
 

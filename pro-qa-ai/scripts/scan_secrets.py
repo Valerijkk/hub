@@ -22,23 +22,58 @@
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import io
 import re
 import subprocess
 import sys
+import threading
 from pathlib import Path
 from typing import Iterable, List, Tuple
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from secret_rules import secret_rule_matches  # noqa: E402
+from safe_filesystem import (  # noqa: E402
+    FileSafetyError,
+    SafeTree,
+    TextPolicy,
+    lexical_absolute,
+)
 
 TEXT_SUFFIXES = {
     ".md", ".py", ".json", ".yaml", ".yml", ".txt", ".cfg", ".ini",
-    ".toml", ".sh", ".ps1", ".env", ".conf", ".xml", ".properties",
+    ".toml", ".sh", ".ps1", ".conf", ".xml", ".properties",
 }
 SKIP_DIRS = {".git", "__pycache__", "node_modules", ".venv", "dist", ".pytest_cache"}
+SENSITIVE_NAME_PATTERNS = (
+    ".env",
+    ".env.*",
+    "*.pem",
+    "*.key",
+    "*.crt",
+    "*.cer",
+    "*.der",
+    "*.p7b",
+    "*.p7c",
+    "*.p12",
+    "*.pfx",
+    "*.jks",
+    "*.keystore",
+    "*.pkcs12",
+    "id_rsa*",
+    "credentials*",
+    "secrets*",
+)
+SCAN_POLICY = TextPolicy(
+    allowed_text_extensions=tuple(sorted(TEXT_SUFFIXES)),
+    allowed_text_names=("LICENSE", "NOTICE"),
+    max_file_bytes=2 * 1024 * 1024,
+    max_total_bytes=64 * 1024 * 1024,
+    max_file_count=5000,
+)
 GIT_TIMEOUT = 120
+GIT_MAX_BYTES = 64 * 1024 * 1024
 _HEX = re.compile(r"[0-9a-f]{40}")
 
 
@@ -63,26 +98,58 @@ def _force_utf8_output() -> None:
 
 
 def _run_git(root: Path, *args: str) -> str:
-    """git с таймаутом; при отказе возвращает пустую строку.
+    """git с таймаутом и жёстким лимитом безопасного текстового вывода.
 
     Таймаут обязателен: без него зависший вызов останавливает проверку
     целиком и выглядит как «сканирование идёт».
     """
     try:
-        done = subprocess.run(
+        process = subprocess.Popen(
             ["git", "-C", str(root), *args],
-            capture_output=True,
-            timeout=GIT_TIMEOUT,
-            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
         )
-    except (OSError, subprocess.TimeoutExpired):
+    except OSError:
         return ""
-    if done.returncode != 0:
+    timed_out = [False]
+
+    def stop_process() -> None:
+        timed_out[0] = True
+        try:
+            process.kill()
+        except OSError:
+            pass
+
+    timer = threading.Timer(GIT_TIMEOUT, stop_process)
+    timer.daemon = True
+    timer.start()
+    try:
+        if process.stdout is None:
+            process.kill()
+            return ""
+        output = process.stdout.read(GIT_MAX_BYTES + 1)
+        if len(output) > GIT_MAX_BYTES:
+            process.kill()
+        return_code = process.wait()
+    finally:
+        timer.cancel()
+        if process.stdout is not None:
+            process.stdout.close()
+    if timed_out[0]:
+        raise FileSafetyError("git history scan exceeded timeout")
+    if len(output) > GIT_MAX_BYTES:
+        raise FileSafetyError("git history output exceeds byte limit")
+    if return_code != 0:
         return ""
-    # Байты, а не text=True: в истории попадаются файлы в чужой кодировке и
-    # двоичные. Декодирование с заменой не роняет проверку целиком — иначе
-    # один нечитаемый файл прячет все находки после него.
-    return done.stdout.decode("utf-8", errors="replace")
+    if any(
+        byte == 0 or byte < 9 or 13 < byte < 32 or byte == 127
+        for byte in output
+    ):
+        raise FileSafetyError("git history output is binary/control content")
+    try:
+        return output.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise FileSafetyError("git history output is not valid UTF-8 text") from exc
 
 
 def scan_text(text: str) -> List[Tuple[str, int]]:
@@ -99,19 +166,41 @@ def scan_text(text: str) -> List[Tuple[str, int]]:
     ]
 
 
-def scan_worktree(root: Path) -> List[str]:
+def _skip_tree_entry(relative_path: str, is_directory: bool) -> bool:
+    parts = Path(relative_path).parts
+    return is_directory and any(part in SKIP_DIRS for part in parts)
+
+
+def _sensitive_path(relative_path: str) -> bool:
+    name = Path(relative_path).name.lower()
+    return any(
+        fnmatch.fnmatchcase(name, pattern)
+        for pattern in SENSITIVE_NAME_PATTERNS
+    )
+
+
+def scan_worktree(
+    root: Path,
+    *,
+    tree: SafeTree | None = None,
+    approved_sensitive_paths: Iterable[str] = (),
+) -> List[str]:
+    """Scan one bounded SafeTree; sensitive filenames require exact approval."""
+
+    safe_tree = tree or SafeTree(root, SCAN_POLICY, exclude=_skip_tree_entry)
+    approved = {
+        safe_tree.relative_path(Path(relative))
+        for relative in approved_sensitive_paths
+    }
     findings: List[str] = []
-    for path in sorted(root.rglob("*")):
-        if not path.is_file() or path.suffix.lower() not in TEXT_SUFFIXES:
+    for path in safe_tree.files():
+        relative = safe_tree.relative_path(path)
+        if path.suffix.lower() not in TEXT_SUFFIXES:
             continue
-        if any(part in SKIP_DIRS for part in path.parts):
+        if _sensitive_path(relative) and relative not in approved:
             continue
-        try:
-            text = path.read_text(encoding="utf-8", errors="replace")
-        except OSError:
-            continue
+        text = safe_tree.inspect_text(path).text
         for rule_id, line in scan_text(text):
-            relative = path.relative_to(root).as_posix()
             findings.append("рабочее дерево  %s:%d  класс %s" % (relative, line, rule_id))
     return findings
 
@@ -130,6 +219,14 @@ def scan_history(root: Path, max_commits: int = 0) -> List[str]:
     args = ["log", "--all", "-p", "--unified=0", "--no-color", "--format=%H"]
     if max_commits:
         args.insert(1, "--max-count=%d" % max_commits)
+    args.extend(["--", "."])
+    for pattern in SENSITIVE_NAME_PATTERNS:
+        args.extend(
+            [
+                ":(exclude,icase,glob)%s" % pattern,
+                ":(exclude,icase,glob)**/%s" % pattern,
+            ]
+        )
     stream = _run_git(root, *args)
     if not stream:
         return ["история недоступна: не репозиторий git, нет коммитов либо превышен таймаут"]
@@ -146,6 +243,8 @@ def scan_history(root: Path, max_commits: int = 0) -> List[str]:
             current_file = line[6:]
             continue
         if not line.startswith("+") or line.startswith("+++"):
+            continue
+        if _sensitive_path(current_file):
             continue
         for rule_id, _ in scan_text(line[1:]):
             key = (revision, current_file, rule_id)
@@ -166,15 +265,18 @@ def main(argv: Iterable[str] | None = None) -> int:
     args = parser.parse_args(list(argv) if argv is not None else None)
     _force_utf8_output()
 
-    root = Path(args.root).resolve()
-    if not root.is_dir():
-        print("корень не найден: %s" % root, file=sys.stderr)
+    root = lexical_absolute(Path(args.root))
+    try:
+        tree = SafeTree(root, SCAN_POLICY, exclude=_skip_tree_entry)
+        findings = scan_worktree(root, tree=tree)
+        if args.history:
+            findings.extend(scan_history(tree.root, args.max_commits))
+    except FileSafetyError as exc:
+        print(
+            "SECRETSCAN001: безопасное сканирование остановлено (%s)" % exc,
+            file=sys.stderr,
+        )
         return 2
-
-    findings = scan_worktree(root)
-    if args.history:
-        findings.extend(scan_history(root, args.max_commits))
-
     if not findings:
         print("чисто: совпадений нет (%s)" % ("дерево и история" if args.history else "рабочее дерево"))
         return 0

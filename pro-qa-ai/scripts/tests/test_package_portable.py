@@ -8,11 +8,13 @@ import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
+from unittest.mock import patch
 
 
 SCRIPT_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SCRIPT_DIR))
 
+import package_portable  # noqa: E402
 from package_portable import (  # noqa: E402
     PackageError,
     build_package_plan,
@@ -35,6 +37,7 @@ class PortablePackagerTests(unittest.TestCase):
             (SCRIPT_DIR / "package_manifest.json").read_text(encoding="utf-8")
         )
         self.config["required_paths"] = []
+        self.config["provenance_gate"]["attribution_paths"] = []
         self.policy = parse_policy(self.config)
         self.config_path = self.base / "package_manifest.json"
         self.config_path.write_text(
@@ -57,11 +60,15 @@ class PortablePackagerTests(unittest.TestCase):
             for entry in build_package_plan(self.root, self.policy).entries
         }
 
+    def staging_paths(self) -> list[Path]:
+        return list(self.base.glob(".%s.staging-*" % self.output.name))
+
     def test_profiles_and_run_evidence_are_excluded_but_templates_ship(self) -> None:
         self.write("agents/core.md")
         self.write("context/templates/PROJECT.md")
         self.write("context/projects/README.md")
         self.write("context/projects/hub/PROJECT.md", "Hub-only facts\n")
+        self.write("context/projects/hub/stale.bin", "not portable\n")
         self.write("evals/run-record.template.json", "{}\n")
         self.write("standards/patterns/README.md")
         self.write("standards/patterns/approved/README.md")
@@ -87,6 +94,7 @@ class PortablePackagerTests(unittest.TestCase):
         self.assertIn("standards/team-review/threads/inbox/README.md", selected)
         self.assertIn("standards/team-review/threads/approved/README.md", selected)
         self.assertNotIn("context/projects/hub/PROJECT.md", selected)
+        self.assertNotIn("context/projects/hub/stale.bin", selected)
         self.assertNotIn("standards/patterns/approved/hub-card.md", selected)
         self.assertNotIn("standards/patterns/candidates/draft.md", selected)
         self.assertNotIn("standards/patterns/project-card.md", selected)
@@ -201,6 +209,106 @@ class PortablePackagerTests(unittest.TestCase):
         )
         self.assertTrue((self.output / "PACKAGE-INVENTORY.json").is_file())
 
+    def test_publish_uses_fully_verified_sibling_staging(self) -> None:
+        self.write("agents/core.md", "new payload\n")
+        real_replace = package_portable.os.replace
+        observed: dict[str, object] = {}
+
+        def publish(source: Path, destination: Path) -> None:
+            source_path = Path(source)
+            destination_path = Path(destination)
+            observed["siblings"] = source_path.parent == destination_path.parent
+            observed["payload"] = (
+                source_path / "agents" / "core.md"
+            ).read_text(encoding="utf-8")
+            observed["inventory"] = (
+                source_path / "PACKAGE-INVENTORY.json"
+            ).is_file()
+            real_replace(source, destination)
+
+        with patch("package_portable.os.replace", side_effect=publish):
+            package_directory(self.root, self.output, self.policy)
+
+        self.assertEqual(
+            {"siblings": True, "payload": "new payload\n", "inventory": True},
+            observed,
+        )
+        self.assertEqual([], self.staging_paths())
+
+    def test_verification_failure_preserves_empty_output_and_cleans_staging(self) -> None:
+        self.write("agents/core.md", "new payload\n")
+        self.output.mkdir()
+
+        with patch(
+            "package_portable._verify_staged_package",
+            side_effect=PackageError("verification sentinel"),
+        ):
+            with self.assertRaisesRegex(PackageError, "verification sentinel"):
+                package_directory(self.root, self.output, self.policy)
+
+        self.assertTrue(self.output.is_dir())
+        self.assertEqual([], list(self.output.iterdir()))
+        self.assertEqual([], self.staging_paths())
+
+    def test_unexpected_staged_file_blocks_publish_and_is_cleaned(self) -> None:
+        self.write("agents/core.md", "new payload\n")
+        real_copy = package_portable._copy_verified
+
+        def copy_with_extra(*args: object) -> None:
+            real_copy(*args)
+            output_root = Path(args[3])
+            (output_root / "unexpected.md").write_text(
+                "unexpected\n", encoding="utf-8"
+            )
+
+        with patch("package_portable._copy_verified", side_effect=copy_with_extra):
+            with self.assertRaisesRegex(PackageError, "file set"):
+                package_directory(self.root, self.output, self.policy)
+
+        self.assertFalse(self.output.exists())
+        self.assertEqual([], self.staging_paths())
+
+    def test_unexpected_empty_staged_directory_blocks_publish(self) -> None:
+        self.write("agents/core.md", "new payload\n")
+        real_copy = package_portable._copy_verified
+
+        def copy_with_extra_directory(*args: object) -> None:
+            real_copy(*args)
+            output_root = Path(args[3])
+            (output_root / "unexpected-empty").mkdir()
+
+        with patch(
+            "package_portable._copy_verified",
+            side_effect=copy_with_extra_directory,
+        ):
+            with self.assertRaisesRegex(PackageError, "directory set"):
+                package_directory(self.root, self.output, self.policy)
+
+        self.assertFalse(self.output.exists())
+        self.assertEqual([], self.staging_paths())
+
+    def test_destination_change_before_publish_is_preserved(self) -> None:
+        self.write("agents/core.md", "new payload\n")
+        real_verify = package_portable._verify_staged_package
+
+        def verify_then_claim(*args: object) -> None:
+            real_verify(*args)
+            self.output.mkdir()
+            (self.output / "owner.txt").write_text("preserve\n", encoding="utf-8")
+
+        with patch(
+            "package_portable._verify_staged_package",
+            side_effect=verify_then_claim,
+        ):
+            with self.assertRaisesRegex(PackageError, "non-empty"):
+                package_directory(self.root, self.output, self.policy)
+
+        self.assertEqual(
+            "preserve\n",
+            (self.output / "owner.txt").read_text(encoding="utf-8"),
+        )
+        self.assertEqual([], self.staging_paths())
+
     def test_inventory_and_hashes_are_deterministic(self) -> None:
         first_payload = "alpha\n"
         second_payload = "zeta\n"
@@ -262,6 +370,49 @@ class PortablePackagerTests(unittest.TestCase):
         count_limited["file_policy"]["max_file_count"] = 1
         with self.assertRaisesRegex(PackageError, "max file count"):
             build_package_plan(self.root, parse_policy(count_limited))
+
+    def test_unknown_revision_blocks_only_substantial_copied_gsd_material(self) -> None:
+        adapted = json.loads(json.dumps(self.config))
+        adapted["provenance_gate"]["gsd_exact_revision"] = "UNKNOWN"
+        adapted["provenance_gate"][
+            "contains_substantial_copied_gsd_material"
+        ] = False
+        self.write("agents/core.md", "adapted idea\n")
+
+        build_package_plan(self.root, parse_policy(adapted))
+
+        copied = json.loads(json.dumps(adapted))
+        copied["provenance_gate"][
+            "contains_substantial_copied_gsd_material"
+        ] = True
+        with self.assertRaisesRegex(PackageError, "exact upstream revision"):
+            parse_policy(copied)
+
+    def test_substantial_material_requires_sha_and_packaged_attribution(self) -> None:
+        copied = json.loads(json.dumps(self.config))
+        copied["provenance_gate"][
+            "contains_substantial_copied_gsd_material"
+        ] = True
+        copied["provenance_gate"]["gsd_exact_revision"] = "a" * 40
+        copied["provenance_gate"]["attribution_paths"] = [
+            "LICENSE",
+            "NOTICE.md",
+            "sources/PRIMARY-SOURCES.md",
+        ]
+        self.write("agents/core.md", "copied material fixture\n")
+
+        with self.assertRaisesRegex(PackageError, "attribution path"):
+            build_package_plan(self.root, parse_policy(copied))
+
+        self.write("LICENSE", "license notice\n")
+        self.write("NOTICE.md", "attribution notice\n")
+        self.write("sources/PRIMARY-SOURCES.md", "source registry\n")
+        build_package_plan(self.root, parse_policy(copied))
+
+        mutable = json.loads(json.dumps(copied))
+        mutable["provenance_gate"]["gsd_exact_revision"] = "v1.0"
+        with self.assertRaisesRegex(PackageError, "immutable commit SHA"):
+            parse_policy(mutable)
 
     def test_secret_in_script_test_or_config_blocks_exact_package(self) -> None:
         secret = "AK" + "IA1234567890ABCDEF"

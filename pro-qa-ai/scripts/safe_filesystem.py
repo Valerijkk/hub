@@ -14,7 +14,7 @@ import stat
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import BinaryIO, Iterator, Mapping, Optional, Sequence, Tuple
+from typing import BinaryIO, Callable, Dict, Iterator, Mapping, Optional, Sequence, Tuple
 
 
 BUFFER_SIZE = 64 * 1024
@@ -40,6 +40,17 @@ class InspectedText:
     size: int
     sha256: str
     modified_at_ns: int
+
+
+@dataclass(frozen=True)
+class TreeEntry:
+    """Immutable metadata captured while a :class:`SafeTree` is enumerated."""
+
+    relative_path: str
+    path: Path
+    metadata: os.stat_result
+    identity: Tuple[int, ...]
+    is_directory: bool
 
 
 def parse_text_policy(config: Mapping[str, object], field: str = "file_policy") -> TextPolicy:
@@ -125,6 +136,14 @@ def is_link_like(path: Path, *, windows: Optional[bool] = None) -> bool:
         raise FileSafetyError(
             "cannot inspect filesystem metadata (%s)" % type(exc).__name__
         ) from exc
+    return _metadata_is_link_like(metadata, windows=windows)
+
+
+def _metadata_is_link_like(
+    metadata: os.stat_result, *, windows: Optional[bool] = None
+) -> bool:
+    """Classify already-captured metadata without a second path lookup."""
+
     if stat.S_ISLNK(metadata.st_mode):
         return True
     if _windows_runtime(windows):
@@ -273,9 +292,20 @@ def enforce_containment(
 
 
 def _identity(metadata: os.stat_result, *, mutable_size: bool = False) -> Tuple[int, ...]:
-    values = [metadata.st_dev, metadata.st_ino]
+    values = [
+        metadata.st_dev,
+        metadata.st_ino,
+        metadata.st_mode,
+        getattr(metadata, "st_file_attributes", 0),
+    ]
     if not mutable_size:
-        values.extend([metadata.st_size, metadata.st_mtime_ns])
+        values.extend(
+            [
+                metadata.st_size,
+                metadata.st_mtime_ns,
+                getattr(metadata, "st_ctime_ns", 0),
+            ]
+        )
     return tuple(values)
 
 
@@ -430,3 +460,310 @@ def inspect_text_file(
         ) from exc
     enforce_containment(root, path, must_exist=True)
     return InspectedText(text, data, total, digest.hexdigest(), modified_at_ns)
+
+
+class SafeTree:
+    """Bounded, fail-closed snapshot and inspection cache for one directory tree.
+
+    Enumeration captures canonical root-relative paths and ``lstat`` identities.
+    Later reads must still match that snapshot before, during, and after the
+    descriptor-based read.  Callers never need to perform their own filesystem
+    probes, which prevents a check from accidentally bypassing the boundary.
+    """
+
+    def __init__(
+        self,
+        root: Path,
+        policy: TextPolicy,
+        *,
+        exclude: Optional[Callable[[str, bool], bool]] = None,
+    ) -> None:
+        self.root = resolve_directory_root(root, "inspection root")
+        self.policy = policy
+        self._exclude = exclude or (lambda _relative, _is_directory: False)
+        self._files: Dict[str, TreeEntry] = {}
+        self._directories: Dict[str, TreeEntry] = {}
+        self._inspection_cache: Dict[str, InspectedText] = {}
+        self._total_bytes = 0
+        self._snapshot()
+
+    @staticmethod
+    def _key(relative_path: str) -> str:
+        return os.path.normcase(relative_path.replace("/", os.sep))
+
+    @staticmethod
+    def _entry_identity(metadata: os.stat_result) -> Tuple[int, ...]:
+        return _identity(metadata)
+
+    def _capture(self, path: Path, relative_path: str) -> TreeEntry:
+        try:
+            metadata = os.lstat(path)
+        except OSError as exc:
+            raise FileSafetyError(
+                "cannot inspect tree entry %s (%s)"
+                % (relative_path or ".", type(exc).__name__)
+            ) from exc
+        if _metadata_is_link_like(metadata):
+            raise FileSafetyError(
+                "tree entry is a symbolic link or reparse point: %s"
+                % (relative_path or ".")
+            )
+        is_directory = stat.S_ISDIR(metadata.st_mode)
+        if not is_directory and not stat.S_ISREG(metadata.st_mode):
+            raise FileSafetyError(
+                "tree entry is not a regular file or directory: %s"
+                % (relative_path or ".")
+            )
+        return TreeEntry(
+            relative_path,
+            path,
+            metadata,
+            self._entry_identity(metadata),
+            is_directory,
+        )
+
+    def _verify_entry(self, entry: TreeEntry) -> os.stat_result:
+        try:
+            metadata = os.lstat(entry.path)
+        except OSError as exc:
+            raise FileSafetyError(
+                "snapshotted entry is unavailable: %s (%s)"
+                % (entry.relative_path or ".", type(exc).__name__)
+            ) from exc
+        if _metadata_is_link_like(metadata):
+            raise FileSafetyError(
+                "snapshotted entry became a symbolic link or reparse point: %s"
+                % (entry.relative_path or ".")
+            )
+        if self._entry_identity(metadata) != entry.identity:
+            raise FileSafetyError(
+                "snapshotted entry identity changed: %s"
+                % (entry.relative_path or ".")
+            )
+        enforce_containment(
+            self.root,
+            entry.path,
+            must_exist=True,
+            allow_directory=entry.is_directory,
+        )
+        return metadata
+
+    def _snapshot(self) -> None:
+        root_entry = self._capture(self.root, "")
+        if not root_entry.is_directory:
+            raise FileSafetyError("inspection root must be a directory")
+        self._directories[self._key("")] = root_entry
+        pending = [root_entry]
+        while pending:
+            directory = pending.pop()
+            self._verify_entry(directory)
+            try:
+                with os.scandir(directory.path) as iterator:
+                    names = sorted(entry.name for entry in iterator)
+            except OSError as exc:
+                raise FileSafetyError(
+                    "cannot enumerate directory %s (%s)"
+                    % (directory.relative_path or ".", type(exc).__name__)
+                ) from exc
+            self._verify_entry(directory)
+
+            children = []
+            for name in names:
+                if (
+                    not name
+                    or name in {".", ".."}
+                    or "\x00" in name
+                    or "/" in name
+                    or "\\" in name
+                ):
+                    raise FileSafetyError("directory contains an invalid entry name")
+                relative = (
+                    name
+                    if not directory.relative_path
+                    else directory.relative_path + "/" + name
+                )
+                candidate = directory.path / name
+                child = self._capture(candidate, relative)
+                if self._exclude(relative, child.is_directory):
+                    continue
+                key = self._key(relative)
+                if key in self._files or key in self._directories:
+                    raise FileSafetyError(
+                        "tree contains colliding canonical paths: %s" % relative
+                    )
+                if child.is_directory:
+                    self._directories[key] = child
+                    children.append(child)
+                    continue
+                if child.metadata.st_size < 0:
+                    raise FileSafetyError("tree entry reports an invalid size: %s" % relative)
+                count_exceeded = len(self._files) >= self.policy.max_file_count
+                total_exceeded = (
+                    self._total_bytes + child.metadata.st_size
+                    > self.policy.max_total_bytes
+                )
+                if count_exceeded or total_exceeded:
+                    reasons = []
+                    if count_exceeded:
+                        reasons.append("max file count")
+                    if total_exceeded:
+                        reasons.append("max total bytes")
+                    raise FileSafetyError("tree exceeds " + " and ".join(reasons))
+                self._files[key] = child
+                self._total_bytes += child.metadata.st_size
+            self._verify_entry(directory)
+            pending.extend(reversed(children))
+
+    def _relative_lookup(self, path: Path | str) -> Tuple[str, str]:
+        raw = Path(path)
+        candidate = lexical_absolute(raw if raw.is_absolute() else self.root / raw)
+        if not _is_relative_to(candidate, self.root):
+            raise FileSafetyError("path escapes its declared root")
+        relative_os = os.path.relpath(os.fspath(candidate), os.fspath(self.root))
+        relative = "" if relative_os == "." else Path(relative_os).as_posix()
+        parts = Path(relative).parts
+        if any(part in {"", ".", ".."} for part in parts):
+            raise FileSafetyError("path is not canonical below its declared root")
+        return relative, self._key(relative)
+
+    @property
+    def file_count(self) -> int:
+        return len(self._files)
+
+    @property
+    def total_bytes(self) -> int:
+        return self._total_bytes
+
+    @property
+    def inspection_cache(self) -> Mapping[str, InspectedText]:
+        return dict(self._inspection_cache)
+
+    def relative_path(self, path: Path | str) -> str:
+        relative, _ = self._relative_lookup(path)
+        return relative
+
+    def files(self) -> Tuple[Path, ...]:
+        return tuple(
+            entry.path
+            for entry in sorted(
+                self._files.values(), key=lambda item: self._key(item.relative_path)
+            )
+        )
+
+    def directories(self) -> Tuple[Path, ...]:
+        return tuple(
+            entry.path
+            for entry in sorted(
+                self._directories.values(), key=lambda item: self._key(item.relative_path)
+            )
+        )
+
+    def is_file(self, path: Path | str) -> bool:
+        _, key = self._relative_lookup(path)
+        return key in self._files
+
+    def is_dir(self, path: Path | str) -> bool:
+        _, key = self._relative_lookup(path)
+        return key in self._directories
+
+    def exists(self, path: Path | str) -> bool:
+        _, key = self._relative_lookup(path)
+        return key in self._files or key in self._directories
+
+    def files_in(
+        self,
+        directory: Path | str,
+        *,
+        suffix: Optional[str] = None,
+        recursive: bool = False,
+    ) -> Tuple[Path, ...]:
+        relative, key = self._relative_lookup(directory)
+        if key not in self._directories:
+            return ()
+        prefix = relative + "/" if relative else ""
+        output = []
+        for entry in self._files.values():
+            if not entry.relative_path.startswith(prefix):
+                continue
+            remainder = entry.relative_path[len(prefix) :]
+            if not recursive and "/" in remainder:
+                continue
+            if suffix is not None and not entry.path.name.lower().endswith(suffix.lower()):
+                continue
+            output.append(entry.path)
+        return tuple(sorted(output, key=lambda item: self._key(self.relative_path(item))))
+
+    def directories_in(
+        self, directory: Path | str, *, recursive: bool = False
+    ) -> Tuple[Path, ...]:
+        relative, key = self._relative_lookup(directory)
+        if key not in self._directories:
+            return ()
+        prefix = relative + "/" if relative else ""
+        output = []
+        for entry in self._directories.values():
+            if entry.relative_path == relative or not entry.relative_path.startswith(prefix):
+                continue
+            remainder = entry.relative_path[len(prefix) :]
+            if not recursive and "/" in remainder:
+                continue
+            output.append(entry.path)
+        return tuple(sorted(output, key=lambda item: self._key(self.relative_path(item))))
+
+    def metadata(self, path: Path | str) -> os.stat_result:
+        _, key = self._relative_lookup(path)
+        entry = self._files.get(key) or self._directories.get(key)
+        if entry is None:
+            raise FileSafetyError("path was not present in the safe snapshot")
+        return entry.metadata
+
+    def inspect_text(self, path: Path | str) -> InspectedText:
+        relative, key = self._relative_lookup(path)
+        cached = self._inspection_cache.get(key)
+        if cached is not None:
+            return cached
+        entry = self._files.get(key)
+        if entry is None:
+            raise FileSafetyError("file was not present in the safe snapshot: %s" % relative)
+        if not text_path_allowed(Path(relative), self.policy):
+            raise FileSafetyError("unapproved text file type: %s" % relative)
+        self._verify_entry(entry)
+
+        digest = hashlib.sha256()
+        chunks = []
+        total = 0
+        with safe_open_read(self.root, entry.path) as source:
+            while True:
+                remaining = self.policy.max_file_bytes + 1 - total
+                chunk = source.read(min(BUFFER_SIZE, remaining))
+                if not chunk:
+                    break
+                if any(
+                    byte == 0 or byte < 9 or 13 < byte < 32 or byte == 127
+                    for byte in chunk
+                ):
+                    raise FileSafetyError(
+                        "binary/control content is not permitted: %s" % relative
+                    )
+                chunks.append(chunk)
+                digest.update(chunk)
+                total += len(chunk)
+                if total > self.policy.max_file_bytes:
+                    raise FileSafetyError("file exceeds byte limit: %s" % relative)
+        self._verify_entry(entry)
+        data = b"".join(chunks)
+        try:
+            text = data.decode("utf-8-sig")
+        except UnicodeDecodeError as exc:
+            raise FileSafetyError(
+                "file is not valid UTF-8 text: %s" % relative
+            ) from exc
+        inspected = InspectedText(
+            text,
+            data,
+            total,
+            digest.hexdigest(),
+            entry.metadata.st_mtime_ns,
+        )
+        self._inspection_cache[key] = inspected
+        return inspected

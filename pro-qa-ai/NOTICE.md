@@ -8,19 +8,24 @@ Portable Test Automation AI Quality Layer распространяется по
 ## GSD inspiration
 
 Концепции lifecycle, atomic planning, wave execution, goal-backward verification
-и handoff адаптированы из идей, связанных с:
+и handoff сформулированы заново по мотивам идей из GSD lineage. Проверенные
+репозитории нельзя считать точным источником локального текста без revision
+evidence:
 
-- Get Shit Done / GSD
-- https://github.com/gsd-build/get-shit-done
-- Upstream license: MIT
-- Upstream copyright notice: Copyright (c) 2025 Lex Christopherson
-- Exact local installed revision used during the original inventory: `UNKNOWN`
+- legacy: https://github.com/gsd-build/get-shit-done — его текущий README
+  перенаправляет разработку в https://github.com/open-gsd/get-shit-done-redux;
+- related current source reviewed separately: https://github.com/open-gsd/gsd-core;
+- обе проверенные линии заявляют MIT, но точный repository/revision локального
+  original inventory остаётся `UNKNOWN`;
+- legacy notice, если его substantial portion копируется: Copyright (c) 2025
+  Lex Christopherson.
 
-Не заявляется, что текущий тулкит — official GSD distribution. Hub-specific и
-portable workflows переписаны для этого репозитория и не представлены как
-verbatim upstream files. Перед external redistribution перепроверь текущий
-upstream repository/license и сохрани все required MIT notices для любой
-скопированной substantial portion.
+Не заявляется, что текущий тулкит — official GSD distribution либо производная
+конкретного current repository. Portable workflows переписаны и не представлены
+как verbatim upstream files. Поэтому `UNKNOWN` не блокирует adapted ideas с этой
+attribution. Он **блокирует packaging**, если
+`contains_substantial_copied_gsd_material=true`: до external redistribution
+нужны точный immutable commit SHA, проверенная license и все required notices.
 
 ## Project-derived material
 
