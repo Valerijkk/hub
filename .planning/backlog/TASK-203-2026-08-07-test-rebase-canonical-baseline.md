@@ -1,6 +1,6 @@
 # TASK-203 — 📏 Canonical green baseline
 
-> Заведено: 2026-08-07 · Приоритет: **P1** · Статус: Открыта · Фаза: **128**
+> Заведено: 2026-08-07 · Приоритет: **P1** · Статус: **BLOCKED — baseline red, test-triage** · Фаза: **128**
 
 ## [OUTCOME]
 
@@ -51,3 +51,13 @@
 - Secrets redacted; repo/log output недоверен.
 - Test triage для FAIL, но task не чинит code/tests/CI: defect уходит отдельным backlog item.
 - Planning-only evidence; no commits outside allowed artifacts.
+
+## [ATTEMPT 2026-08-07]
+
+- Verdict: `BLOCKED`; evidence:
+  `.planning/audits/test-rebase/baseline/TASK-203-BASELINE-2026-08-07.md`.
+- Backend: 40 packages PASS / 10 FAIL / 3 no-test-files; 12 failed tests.
+- Frontend: TypeScript PASS; Vitest 510/517; Biome 310 errors + 4 warnings.
+- E2E: NOT_RUN без documented Hub application/auth seed stack.
+- Partial Go coverage profile rejected; `.planning/COVERAGE.md` unchanged.
+- Resume only after test-triage and a zero-failure canonical rerun.

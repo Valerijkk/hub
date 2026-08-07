@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v4
 milestone_name: Hub One Super-app
-status: test-rebase-phase-128-in-progress
-stopped_at: TASK-202 verified PASS · TASK-203 Docker/service baseline running
-last_updated: "2026-08-07T14:30:00.000Z"
-last_activity: 2026-08-07 · evidence-based replan 128–141 · TASK-202 inventory · no test moves
+status: test-rebase-phase-128-blocked-baseline-red
+stopped_at: TASK-203 BLOCKED · backend 12 FAIL · frontend Vitest 7 FAIL · triage running
+last_updated: "2026-08-07T16:10:00.000Z"
+last_activity: 2026-08-07 · canonical Docker baseline measured red · test triage started · no test moves
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -49,7 +49,7 @@ coverage:
     overall_internal_statements: 81.9
     measured: "2026-07-27"
     status: historical_not_accepted_as_current_baseline
-    canonical_baseline: unknown_pending_TASK-203
+    canonical_baseline: blocked_TASK-203_red_run
     baseline_2026_06_22: 83.0
     delta_pp: -1.1
     gate_floor_82: unverified
@@ -74,9 +74,9 @@ active_program:
     completed_tasks:
       - TASK-202
     in_review: []
-    in_progress:
+    in_progress: []
+    blocked:
       - TASK-203
-    blocked: []
     target_layout:
       - backend/tests/**
       - frontend/tests/**
@@ -108,9 +108,15 @@ spec_coverage:
   Первый qa-auto-ver verdict = FAIL по четырём schema/entrypoint gaps; после
   repair повторная независимая проверка = **PASS, verified true**. Ledger SHA:
   `17019e9fa0f6ff43b341c12c84b2677b476a4bafcac564e0ddd40f5def62668c`.
-- Docker Desktop 4.40 / Engine 28.0.4 доступен после approved daemon access;
-  TASK-203 service-backed baseline запущен. Coverage остаётся UNKNOWN до
-  zero-failure результата ≥82%; historical 83.0/81.9/80.2 не смешиваются.
+- Docker Desktop 4.40 / Engine 28.0.4 доступен после approved daemon access.
+  TASK-203 завершил измерение со статусом **BLOCKED**: backend 40 packages
+  PASS / 10 FAIL, 12 failing tests; frontend TypeScript PASS, Vitest 510/517,
+  Biome 310 errors + 4 warnings; E2E NOT_RUN без application/auth seed stack.
+  Частичный Go profile отклонён, coverage остаётся UNKNOWN до zero-failure
+  результата ≥82%; historical 83.0/81.9/80.2 не смешиваются.
+- Запущен обязательный test-triage: backend path guards, GitLab timeout, NATS
+  race assertion и четыре frontend-кластера. Phase 129 остаётся закрыта до
+  доказанного green baseline; текущие тесты и hooks не удаляются.
 - Legacy tests/hooks не перемещались и не удалялись. Cleanup разрешён только
   TASK-219 после parity, sentinels и real CI green.
 - По явному founder authorization выполнен read-only policy extraction из
@@ -960,9 +966,11 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 ## Session Continuity
 
 **Last session:** 2026-08-07 (test architecture rebase · Phase 128 IN_PROGRESS)
-**Stopped at:** TASK-202 verified PASS; TASK-203 canonical Docker baseline
-выполняется. Ни один legacy test/hook не перемещён и не удалён.
-**Resume:** принять TASK-203 только при zero-failure baseline и Go coverage
+**Stopped at:** TASK-202 verified PASS; TASK-203 BLOCKED: backend 12 FAIL,
+frontend Vitest 7 FAIL, lint 310 errors; E2E prerequisites отсутствуют. Ни один
+legacy test/hook не перемещён и не удалён.
+**Resume:** завершить evidence-backed test-triage, исправить корневые причины,
+повторить TASK-203 и принять его только при zero-failure baseline и Go coverage
 ≥82%; затем TASK-204 contract. После общего Phase 128 PASS: Phase 129 —
 `testframework/python` scaffold + health/auth slice.
 
