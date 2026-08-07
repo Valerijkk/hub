@@ -1,8 +1,8 @@
 # TASK-203 — canonical baseline attempt (2026-08-07)
 
-**Verdict:** `BLOCKED`  
+**Verdict:** `BLOCKED`
 **Phase gate:** Phase 128 does not pass; phases 129–141 remain blocked by the
-current contract.  
+current contract.
 **Reason:** neither backend nor frontend produced a zero-failure baseline.
 The Go coverage profile is therefore rejected and no coverage percentage from
 this run is published in `.planning/COVERAGE.md`.
