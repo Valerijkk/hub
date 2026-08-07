@@ -1,9 +1,11 @@
-﻿package gitlab_test
+package gitlab_test
+
 import (
-	"github.com/valerii/hub/backend/internal/gitlab"
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/valerii/hub/backend/internal/gitlab"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -12,20 +14,25 @@ import (
 	"github.com/alicebob/miniredis/v2"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/valerii/hub/backend/ent/enttest"
 	"github.com/valerii/hub/backend/internal/rbac"
 )
 
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
+}
+
 type gitlabRoutesEnv struct {
 	app       *fiber.App
 	ownerID   uuid.UUID
 	projectID uuid.UUID
-	gitlabURL string
 }
 
 func newGitLabRoutesEnv(t *testing.T) gitlabRoutesEnv {
@@ -61,18 +68,24 @@ func newGitLabRoutesEnv(t *testing.T) gitlabRoutesEnv {
 		Save(ctx)
 	require.NoError(t, err)
 
-	glSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet && strings.Contains(r.URL.Path, "/pipelines") {
-			w.Header().Set("Content-Type", "application/json")
-			_, _ = w.Write([]byte("[]"))
-			return
-		}
-		http.NotFound(w, r)
-	}))
-	t.Cleanup(glSrv.Close)
+	httpClient := &http.Client{Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		require.Equal(t, http.MethodGet, req.Method)
+		require.Equal(t, "https", req.URL.Scheme)
+		require.Equal(t, "gitlab.com", req.URL.Host)
+		require.True(t, strings.HasSuffix(req.URL.Path, "/pipelines"))
+		require.Equal(t, "glpat-routes", req.Header.Get("PRIVATE-TOKEN"))
+
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Status:     "200 OK",
+			Header:     http.Header{"Content-Type": []string{"application/json"}},
+			Body:       io.NopCloser(strings.NewReader("[]")),
+			Request:    req,
+		}, nil
+	})}
 
 	repo := gitlab.NewEntRepository(client, nil)
-	svc := gitlab.NewGitLabServiceWithHTTPClient(repo, nil, glSrv.Client())
+	svc := gitlab.NewGitLabServiceWithHTTPClient(repo, nil, httpClient)
 	h := gitlab.NewHandler(svc)
 
 	app := fiber.New()
@@ -83,7 +96,7 @@ func newGitLabRoutesEnv(t *testing.T) gitlabRoutesEnv {
 	}
 	h.RegisterRoutes(api, authMw, rbacSvc)
 
-	return gitlabRoutesEnv{app: app, ownerID: owner.ID, projectID: proj.ID, gitlabURL: glSrv.URL}
+	return gitlabRoutesEnv{app: app, ownerID: owner.ID, projectID: proj.ID}
 }
 
 func TestHandler_RegisterRoutes_WebhookAndIntegrations(t *testing.T) {
@@ -103,8 +116,6 @@ func TestHandler_RegisterRoutes_WebhookAndIntegrations(t *testing.T) {
 	var created gitlab.IntegrationResponse
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&created))
 	require.NotEmpty(t, created.ID)
-	_ = env.gitlabURL // test server остаётся для HTTP-клиента сервиса
-
 	req = httptest.NewRequest(http.MethodGet, base+"/integrations", nil)
 	resp, err = env.app.Test(req)
 	require.NoError(t, err)
