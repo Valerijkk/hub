@@ -29,10 +29,21 @@ func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 	return f(req)
 }
 
+type gitlabUpstreamRequest struct {
+	method      string
+	scheme      string
+	host        string
+	escapedPath string
+	rawQuery    string
+	token       string
+	url         string
+}
+
 type gitlabRoutesEnv struct {
 	app       *fiber.App
 	ownerID   uuid.UUID
 	projectID uuid.UUID
+	requests  <-chan gitlabUpstreamRequest
 }
 
 func newGitLabRoutesEnv(t *testing.T) gitlabRoutesEnv {
@@ -68,12 +79,17 @@ func newGitLabRoutesEnv(t *testing.T) gitlabRoutesEnv {
 		Save(ctx)
 	require.NoError(t, err)
 
+	requests := make(chan gitlabUpstreamRequest, 1)
 	httpClient := &http.Client{Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
-		require.Equal(t, http.MethodGet, req.Method)
-		require.Equal(t, "https", req.URL.Scheme)
-		require.Equal(t, "gitlab.com", req.URL.Host)
-		require.True(t, strings.HasSuffix(req.URL.Path, "/pipelines"))
-		require.Equal(t, "glpat-routes", req.Header.Get("PRIVATE-TOKEN"))
+		requests <- gitlabUpstreamRequest{
+			method:      req.Method,
+			scheme:      req.URL.Scheme,
+			host:        req.URL.Host,
+			escapedPath: req.URL.EscapedPath(),
+			rawQuery:    req.URL.RawQuery,
+			token:       req.Header.Get("PRIVATE-TOKEN"),
+			url:         req.URL.String(),
+		}
 
 		return &http.Response{
 			StatusCode: http.StatusOK,
@@ -96,7 +112,7 @@ func newGitLabRoutesEnv(t *testing.T) gitlabRoutesEnv {
 	}
 	h.RegisterRoutes(api, authMw, rbacSvc)
 
-	return gitlabRoutesEnv{app: app, ownerID: owner.ID, projectID: proj.ID}
+	return gitlabRoutesEnv{app: app, ownerID: owner.ID, projectID: proj.ID, requests: requests}
 }
 
 func TestHandler_RegisterRoutes_WebhookAndIntegrations(t *testing.T) {
@@ -131,6 +147,23 @@ func TestHandler_RegisterRoutes_WebhookAndIntegrations(t *testing.T) {
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var upstream gitlabUpstreamRequest
+	select {
+	case upstream = <-env.requests:
+	default:
+		require.FailNow(t, "GitLab pipelines request was not captured")
+	}
+	require.Equal(t, http.MethodGet, upstream.method)
+	require.Equal(t, "https", upstream.scheme)
+	require.Equal(t, "gitlab.com", upstream.host)
+	require.Equal(t, "/api/v4/projects/group%2Froutes/pipelines", upstream.escapedPath)
+	require.Equal(t, "per_page=20&order_by=id&sort=desc", upstream.rawQuery)
+	require.Equal(t, "glpat-routes", upstream.token)
+	require.Equal(t,
+		"https://gitlab.com/api/v4/projects/group%2Froutes/pipelines?per_page=20&order_by=id&sort=desc",
+		upstream.url,
+	)
 
 	req = httptest.NewRequest(http.MethodDelete, base+"/integrations/"+created.ID, nil)
 	resp, err = env.app.Test(req)
