@@ -1,6 +1,10 @@
 # E2E: Playwright и объекты страниц
 
 > Часть плейбука тестирования. Канон и оглавление — [`../testing.md`](../testing.md).
+> Playwright, browser, frontend и backend ниже запускаются только в
+> task-owned Docker containers внутри изолированной task network с limits.
+> TypeScript Playwright body ниже — historical reference only. Новые E2E пишутся
+> с нуля на `pytest + playwright-python` в `testframework/e2e/**`.
 
 Канон Hub для сквозных сценариев: POM, шаги, стабильность прогона.
 

@@ -1,6 +1,10 @@
 # Frontend: unit на Vitest и RTL
 
 > Часть плейбука тестирования. Канон и оглавление — [`../testing.md`](../testing.md).
+> Все Node/Vitest/tsc/Biome команды ниже выполняются только внутри task-owned
+> Docker container с CPU/RAM limits и read-only source mount.
+> Legacy `testframework/stages/unit/frontend-test/**` frozen. Новые Vitest/RTL
+> tests — только genuine units в `frontend/tests/<domain>/**`.
 
 Канон Hub для фронтовых юнит-тестов и рендер-хелперов.
 

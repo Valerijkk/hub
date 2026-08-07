@@ -3,6 +3,15 @@
 > **Статус:** эталонный документ QA-практик Hub. На него ссылаются агенты `qa-manual`, `qa-auto1`, `qa-auto2`, `qa-auto-ver`, `qa-manual-ver`, а также `be`/`fe`.
 > **Источники истины:** `docs/TESTING.md` (TC-матрица), `docs/test_plan.md` (стратегия), `testframework/PIPELINE.md` (карта CI), `.cursor/rules/40-testing.mdc`, `.cursor/rules/45-artifacts-cleanup.mdc`, `.cursor/rules/56-regression-verify.mdc`, `.cursor/skills/test-triage/SKILL.md`, `.cursor/skills/qa-gate/SKILL.md`, `.cursor/skills/coverage-audit/SKILL.md`.
 > **Правило:** проза — русская, код — английский (Go/TS как в репозитории). Комментарии в коде объясняют ПОЧЕМУ, без эмодзи.
+> **Founder Docker-only lock:** любые команды test/build/vet/lint/validator,
+> приведённые в этом playbook и дочерних справочниках без внешнего `docker run`,
+> являются командами **внутри** task-owned container, а не командами Windows
+> host. Runner обязан иметь CPU/RAM limits; source по умолчанию mount read-only.
+> **Founder greenfield cutover:** body этого playbook содержит legacy-примеры и
+> читается только как test-design reference. Новая запись разрешена лишь в
+> `backend/tests/**` (Go units), `frontend/tests/**` (Vitest/RTL units) и
+> root Python `testframework/**` (весь non-unit). Legacy tests frozen и будут
+> удалены по manifest; parity и исторический 82% coverage не являются gate.
 
 Этот playbook — не пересказ теории, а рабочая инструкция «как мы тестируем именно Hub». Все примеры используют реальные пакеты (`tracker`, `tms`, `auth`, `messenger`, `calls`), реальные паттерны (`mockRepo`, env `Builder`, `factory`, POM, Steps, `renderWithProviders`, MSW) и реальные команды CI. Каждый раздел содержит блоки good/bad и чек-листы, чтобы агент мог свериться перед сдачей работы верификатору.
 
@@ -49,8 +58,8 @@ Hub использует ролевую модель агентов (см. `AGEN
 | Агент | Основная зона | Пишет | Не делает |
 |-------|---------------|-------|-----------|
 | `qa-manual` | Ручные тест-кейсы, TC-матрица, исследовательское тестирование | TC-`<MODULE>`-NN в `docs/TESTING.md`, чек-листы, баг-репорты | Не пишет автотесты; не линкует Go-функции |
-| `qa-auto1` | Автоматизация backend (integration/API) + часть E2E — **по верифицированным TC** | Go `_test.go` в `backend/testframework/{domain}/`, часть Playwright | Не переписывает ручные TC; не пишет unit-тесты за разработчиков; не стартует до verified тестовой доки |
-| `qa-auto2` | Автоматизация frontend (компонентные) + часть E2E — **по верифицированным TC** | Vitest в `stages/unit/frontend-test/domains/{domain}/`, часть Playwright | Не трогает backend-домены `qa-auto1`; не пишет unit-тесты за разработчиков; не стартует до verified тестовой доки |
+| `qa-auto1` | Python API/integration и backend-oriented E2E по verified TC | `testframework/{api,integration,e2e}/**/*.py` | Не пишет Go units за BE; не портирует legacy один-в-один |
+| `qa-auto2` | Python contract/frontend-oriented E2E и a11y по verified TC | `testframework/{contract,e2e}/**/*.py` | Не пишет Vitest units за FE; не переносит TS Playwright |
 | `qa-auto-ver` | Верификатор автотестов | Прогон, проверка триажа, проверка привязки TC↔автотест | Не пишет тесты сам (только контр-примеры) |
 | `qa-manual-ver` | Верификатор ручной документации | Проверка полноты TC, соответствия спецификации, покрытия acceptance criteria | Не пишет TC сам |
 | `be` / `fe` | Разработчики | Unit-тесты рядом с фичей (обязательно по rule 56) | Не владеют TC-матрицей, но обязаны линковать новые автотесты |
@@ -78,8 +87,8 @@ qa-manual      ── анализирует бизнес-доку → пише�
 qa-manual-ver  ── ВЕРИФИЦИРУЕТ тестовую доку (полнота, техники, трассируемость)
       │            без verified:true автотесты НЕ стартуют
       ▼
-qa-auto1/2     ── автоматизирует ВЕРИФИЦИРОВАННЫЕ TC → Go integration/API,
-      │            Vitest-компонентные, Playwright E2E; обновляет колонку «Автотест»
+qa-auto1/2     ── автоматизирует ВЕРИФИЦИРОВАННЫЕ TC → greenfield Python
+      │            API/integration/contract/E2E; обновляет колонку «Автотест»
       ▼
 qa-auto-ver    ── верифицирует автотесты (детерминизм, привязка TC↔тест, green regression)
 
@@ -92,7 +101,10 @@ qa-auto-ver    ── верифицирует автотесты (детерм�
 2. **Юниты — зона разработчиков.** `qa-auto*` не пишут unit-тесты за `be`/`fe`; их слой — integration/API/компонентные/E2E поверх верифицированных TC.
 3. Ручной TC и автотест — одна пара: `qa-manual` владеет «что и зачем», `qa-auto` — «как». Колонка «Автотест» в `docs/TESTING.md` — точка встречи (раздел 7).
 
-> **Целевое состояние фреймворка (решение пользователя 2026-07-03, фаза TF-PY — после микросервисного дробления Track P M2–M4):** юниты остаются с кодом (Go — backend, TS/Vitest — frontend); **весь не-юнит слой (integration/API/contract/smoke/regression/E2E) переезжает на Python** (pytest + allure-pytest + httpx + playwright-python + pytest-xdist) в `testframework/` по доменам/сервисам; **нагрузочные — Locust** (`testframework/load/`, те же фикстуры), причём Locust-baseline заводится раньше остального (до выноса realtime). Отчётность — allure-pytest → Hub TMS (webhook), привязка TC через tms-link/ASID. До завершения TF-PY действует текущий стек этого playbook (Go/Vitest/Playwright-TS). План: `.planning/archive/july-2026/ROADMAP-FINAL-2026-07-03.md` фаза TF-PY.
+> **Текущее решение founder 2026-08-07:** greenfield Python cutover выполняется
+> сейчас, без ожидания микросервисного дробления и без dual-run parity. Юниты
+> остаются native; весь non-unit слой создаётся с нуля на pytest/httpx,
+> playwright-python и Locust. Legacy служит только discovery input до deletion.
 
 ### 1.4. Разделение доменов между `qa-auto1` и `qa-auto2` без конфликтов
 
@@ -102,9 +114,10 @@ qa-auto-ver    ── верифицирует автотесты (детерм�
 
 | Слой / стадия | Владелец | Путь |
 |---------------|----------|------|
-| Backend unit/integration (Go) | `qa-auto1` | `backend/testframework/{domain}/` |
-| Frontend unit (Vitest + RTL) | `qa-auto2` | `testframework/stages/unit/frontend-test/domains/{domain}/` |
-| E2E (Playwright) | делят по доменам (см. ниже) | `testframework/stages/e2e/domains/{domain}/` |
+| Backend unit (Go) | `be1` / `be2` | `backend/tests/{domain}/` |
+| Frontend unit (Vitest + RTL) | `fe1` / `fe2` | `frontend/tests/{domain}/` |
+| Python API/integration | `qa-auto1` | `testframework/{api,integration}/` |
+| Python contract/E2E | `qa-auto2` | `testframework/{contract,e2e}/` |
 
 **E2E делится по доменам, а не по файлам:**
 
@@ -116,16 +129,16 @@ qa-auto-ver    ── верифицирует автотесты (детерм�
 **Протокол бесконфликтной работы:**
 
 1. **Один файл — один владелец в рамках задачи.** Если нужно тронуть чужой файл, это хендофф: оставь заметку в `.planning/STATE.md` (session note) и договорись, кто мержит.
-2. **Новые файлы именуются по домену + волне:** `service_wave<NN>_test.go`, `handler_<feature>_flow_test.go` (см. реальные имена в `backend/testframework/tracker/`). Это исключает коллизии имён между `qa-auto1` и `qa-auto2`.
-3. **Общие фикстуры не форкать.** Env `Builder` (`backend/testframework/env/`), `factory` и E2E `shared/` — общий код. Изменения в них — через `be`/`fe` или согласованный хендофф, потому что они влияют на оба потока.
-4. **Seed изолирован по тесту.** Каждый Go-тест поднимает свой in-memory sqlite (уникальный DSN с `uuid.New()`), каждый Vitest — свой `QueryClient`. Никакого общего состояния между тестами (см. разделы 4-5).
-5. **При параллельном прогоне** (`t.Parallel`, Playwright workers) домены не должны шарить внешние ресурсы (один и тот же проект в БД, один и тот же канал). Используй уникальные суффиксы: `Date.now().toString(36)` в E2E, `uuid.New()` в Go.
+2. **Новые Python-файлы именуются по поведению:** `test_<requirement>_<behavior>.py`; module metadata содержит task/FR/NFR/TC links.
+3. **Общие фикстуры не форкать.** Python clients/factories живут в `testframework/core/`, browser support — в `testframework/e2e/support/`; один owner на shared-файл.
+4. **Seed изолирован по тесту.** Уникальные schema/database/project/channel IDs, deterministic factories и cleanup finalizer обязательны.
+5. **При параллельном прогоне** (`pytest-xdist`, Playwright workers) домены не шарят network, database/schema, tenant или artifact path; namespace включает task/run/worker ID.
 
 **Good — разделение по слою:**
 
 ```text
-qa-auto1: backend/testframework/tracker/service_wave126_test.go   (Go)
-qa-auto2: testframework/stages/unit/frontend-test/domains/tracker/issue-card.test.tsx  (Vitest)
+qa-auto1: testframework/api/tracker/test_fr_tracker_issue_create.py
+qa-auto2: testframework/e2e/tracker/test_tc_tracker_board_flow.py
 ```
 
 Оба покрывают домен tracker, но не пересекаются по файлам и слоям — merge без конфликтов.
@@ -133,9 +146,9 @@ qa-auto2: testframework/stages/unit/frontend-test/domains/tracker/issue-card.tes
 **Bad — оба правят один файл:**
 
 ```text
-qa-auto1 и qa-auto2 одновременно добавляют тесты в
-backend/testframework/tracker/service_test.go
-→ git conflict, дублирование mockRepo, гонка за newTestService()
+qa-auto1 и qa-auto2 одновременно правят
+testframework/core/factories/project.py
+→ git conflict, дублирование seed logic и cleanup race
 ```
 
 ### 1.5. Чек-лист «перед стартом тест-задачи»
@@ -541,7 +554,7 @@ Verifier обязан проверять: нет ли `t.Skip`/`test.skip` бе�
 
 | Область | Порог | Текущее |
 |---------|-------|---------|
-| Statement coverage `internal/` | ≥ 82% (gate) | 83.0% (2026-06-22 Docker baseline) |
+| Statement coverage `internal/` | historical only, не migration gate | 83.0% (2026-06-22 Docker baseline) |
 | Security-пакеты (auth, ws, rbac, audit, calls) | ≥ 80% | 6/6 ✅ |
 
 Gate живёт в CI job `coverage-gate` (push в master). Падение ниже порога блокирует.

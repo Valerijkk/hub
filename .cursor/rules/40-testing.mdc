@@ -6,6 +6,33 @@ alwaysApply: false
 
 # Hub — Testing Patterns
 
+## Docker-only execution
+
+Founder lock: не запускай на host `go test`, `go build`, `go vet`, `npm`,
+`npx`, Vitest, Playwright, Python validators, pytest, Locust, Vite или Hub
+services. Все исполнения идут только в task-owned Docker containers/Compose с
+CPU/RAM limits; host разрешён для file/Git operations. Host-run результат
+неканоничен и требует Docker rerun. Запрещено останавливать shared stack через
+`down -v`; cleanup — только точные task-owned names/labels.
+
+## Founder greenfield cutover (supersedes legacy sections below)
+
+- `backend/tests/**` — только genuine isolated Go units, владелец BE.
+- `frontend/tests/**` и `frontend/tests/support/**` — только genuine
+  Vitest/RTL units/support, владелец FE.
+- `testframework/**` — один Python-проект для contract/API/integration/E2E/load.
+- `backend/testframework/**`, `testframework/stages/**`, TS Playwright и legacy
+  configs frozen: не добавлять, не чинить, не переносить один-в-один; удалить
+  только по exact founder cutover manifest.
+- Старые counts и 82% Go statement coverage — исторические evidence, не
+  migration gate. Новый Python набор проектируется от task/FR/NFR/TC и рисков:
+  happy, negative, authn/authz, boundaries, edge/corner, timeout/retry,
+  partial failure/recovery, security/a11y/performance где применимо.
+- Любой тест без traceability, zero collection или неожиданный skip fail closed.
+
+Все оставшиеся ниже legacy paths/commands/examples — историческая справка до
+удаления, а не разрешение изменять или запускать legacy suite.
+
 ## Go Backend Tests
 
 ### Integration Tests (реальный канон Hub)
@@ -66,6 +93,8 @@ func TestVerifyMagicLink_ThreeEmojiCode_Rejected(t *testing.T) {
 ```
 
 ### Race Detector (always use)
+
+Следующие строки — inner commands canonical Docker runner, не host commands:
 
 ```bash
 go test -race -count=1 ./...
@@ -151,7 +180,10 @@ testframework/
 | `frontend-test` | unit | `testframework/stages/unit/frontend-test/domains/{domain}/` | `cd frontend && npx vitest run ../testframework/stages/unit/frontend-test/domains/auth` |
 | `e2e-smoke` | e2e | `stages/e2e/domains/` (auth, platform — 3 spec) | `cd frontend && npm run test:e2e:smoke` |
 | `e2e-full` | e2e | `stages/e2e/domains/` (все 9 доменов — 20 spec) | `cd frontend && npm run test:e2e` |
-| `coverage-gate` | quality | `backend/testframework/` | ≥82% gate |
+| `coverage-gate` | quality | `backend/testframework/` | historical ≥82% job, frozen for deletion |
+
+Команды в таблице — содержимое CI/task-owned containers. На host их не
+запускать; внешний Docker runner и лимиты обязательны по разделу выше.
 
 **Почему Go-тесты физически не в `stages/unit/backend-test/`:** Go запрещает импорт `backend/internal/*` из другого модуля; тесты с `//go:build hubtest` и `export_hooks.go` обязаны жить в `backend/testframework/` (модуль `github.com/valerii/hub/backend`). Логически это job `backend-test`, физически — отдельная директория.
 

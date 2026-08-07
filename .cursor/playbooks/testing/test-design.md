@@ -1,6 +1,11 @@
 # Тест-дизайн и трассируемость
 
 > Часть плейбука тестирования. Канон и оглавление — [`../testing.md`](../testing.md).
+> Founder greenfield cutover: legacy tests не задают обязательный набор или
+> counts. Каждый новый Python module проектируется заново от task + FR/NFR +
+> verified TC и risk matrix: happy, negative, authn/authz, boundaries,
+> edge/corner, timeout/retry, partial failure/recovery и applicable
+> security/privacy/a11y/performance scenarios.
 
 Техники проектирования кейсов и связь тест-кейса с автотестом.
 Читается при проектировании покрытия, а не при каждой правке теста.

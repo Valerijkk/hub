@@ -1,6 +1,10 @@
 # Справочник: cookbook, примеры, каталоги
 
 > Часть плейбука тестирования. Канон и оглавление — [`../testing.md`](../testing.md).
+> Bare команды в примерах — только inner commands task-owned Docker runner;
+> выполнять их напрямую на Windows host запрещено founder lock.
+> Legacy paths/commands в cookbook — historical discovery input. Для новой
+> реализации используй только greenfield roots из `docs/test_plan.md`.
 
 Приложения A–G: cookbook по доменам, сквозной пример, каталог
 security-тестов, команды и карта CI, FAQ, расширенные пары, рубрика ревью.

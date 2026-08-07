@@ -1,6 +1,12 @@
 # Инструментарий: Allure, время прогона, артефакты
 
 > Часть плейбука тестирования. Канон и оглавление — [`../testing.md`](../testing.md).
+> Все измерения, reporters, validators и test commands выполняются только
+> внутри task-owned Docker containers с resource limits. Host хранит лишь Git
+> metadata и явно выбранные артефакты через task-owned mount.
+> Historical Go coverage не является migration gate founder cutover; основной
+> quality evidence нового Python слоя — traceability, risk coverage, JUnit,
+> Allure, forced-failure sentinels и отсутствие unexpected skips.
 
 Оформление отчётов, замер производительности прогонов, логи и артефакты.
 Читается при настройке и разборе, не при написании теста.

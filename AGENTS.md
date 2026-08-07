@@ -10,30 +10,30 @@
 
 **Roadmap v4:** `.planning/milestones/v4-super-app/SUMMARY.md` · Vision: `.planning/decisions/specs/PLATFORM-VISION-v4.md`
 
-Монорепо: `backend/` (Go, **87 Ent schemas**) + `frontend/` (React) + `cli/` + `deployments/` + **`testframework/`** (текущие legacy Vitest/TS E2E; цель — единый Python QA-проект в корне каталога)
+Монорепо: `backend/` (Go, **87 Ent schemas**) + `frontend/` (React) + `cli/` + `deployments/` + **`testframework/`** (единый greenfield Python QA-проект в корне каталога)
 
-### Расположение тестов (pipeline-aligned)
+### Целевое расположение тестов (founder greenfield cutover)
 
 | CI Job | Стадия | Путь | Домены |
 |--------|--------|------|--------|
-| `backend-test` | unit | `backend/testframework/{domain}/` | auth, tracker, tms, … |
-| `frontend-test` | unit | `testframework/stages/unit/frontend-test/domains/{domain}/` | auth, admin, ai, v4, … |
-| `e2e-smoke` | e2e | `testframework/stages/e2e/domains/` | auth, platform (3 spec) |
-| `e2e-full` | e2e | `testframework/stages/e2e/domains/` | все 9 доменов, 20 spec |
-| `coverage-gate` | quality | `backend/testframework/` | ≥82% |
+| `backend-unit` | unit | `backend/tests/{domain}/` | только genuine isolated Go units |
+| `frontend-unit` | unit | `frontend/tests/{domain}/`, `frontend/tests/support/` | только genuine Vitest/RTL units |
+| `python-contract` | contract | `testframework/contract/` | API/schema/event/source contracts |
+| `python-api` | API | `testframework/api/` | публичное поведение backend/frontend BFF |
+| `python-integration` | integration | `testframework/integration/` | DB/broker/storage boundaries |
+| `python-e2e-smoke/full` | e2e | `testframework/e2e/` | markers `smoke`/`full` |
+| `python-load` | load | `testframework/load/` | Locust profiles |
 
-Манифесты: `testframework/pipeline/jobs/*.yaml` · Карта: `testframework/PIPELINE.md`
-
-Перед Vitest/E2E: `node frontend/scripts/link-testframework-node-modules.mjs`
-
-**Test architecture rebase (IN PROGRESS, 2026-08-07):** текущие entrypoints
-выше остаются исполняемым каноном до dual-run/cutover. Цель фаз 128–141:
-`backend/tests/**` (только Go unit), `frontend/tests/**` (только
-Vitest/RTL unit) и единый Python-проект прямо в `testframework/`:
+**Founder greenfield cutover (LOCKED, 2026-08-07):** переносим только
+доказанные genuine units в `backend/tests/**` и `frontend/tests/**`. Все legacy
+Go component/API/integration, static-contract Vitest, TypeScript Playwright,
+их support/config/entrypoints удаляются по exact manifest и **не портируются**.
+Non-unit QA создаётся с нуля как единый Python-проект прямо в `testframework/`:
 `{core,api,integration,contract,e2e,load,docker,reports}/**`,
-`testframework/pyproject.toml` и корневой pytest config. После
-верифицированного dual-run Phase 141 обязана удалить legacy
-Go/Vitest/TS E2E и их entrypoints; это не целевые слои. План:
+`testframework/pyproject.toml` и корневой pytest config. Row-level parity и
+сохранение исторического 82% Go coverage не являются migration gate. Новый
+набор принимается по traceability `task/requirement/TC`, risk-based design и
+явным happy/negative/authz/boundary/edge/corner/failure-recovery сценариям. План:
 `.planning/active/august-2026/06-TEST-ARCHITECTURE-REBASE.md`.
 
 ---
@@ -122,6 +122,13 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 | `.cursor/skills/test-triage/SKILL.md` | FAIL теста: функционал → код vs тест |
 
 **Test triage (обязательно):** при падении теста сначала проверить корректность функционала по `docs/`, только потом чинить код или тест. REGULATION §9 (детальные сценарии — §14, §18).
+
+**Docker-only execution (founder lock, 2026-08-07):** агентам запрещено
+запускать на Windows host любые tests, validators, linters, build/vet, Vite,
+Playwright, pytest/Locust или тестовые backend/frontend процессы. Все такие
+команды выполняются только в task-owned Docker containers/Compose с CPU/RAM
+limits. Host используется лишь для чтения/редактирования файлов и Git. Любое
+старое host-run evidence неканонично и должно быть повторено в Docker.
 
 **Docs sync (обязательно):** после любого изменения кода обновляй затронутую документацию в той же сессии. Правило: `.cursor/rules/55-docs-sync.mdc` · skill: `/handoff-sync`.
 
@@ -213,24 +220,24 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 # Dev
 docker compose -f docker-compose.local.yml up -d
 
-# Backend regression (local)
-# ВАЖНО: -tags hubtest обязателен — export_hooks.go (39 файлов) под этим тегом,
-# без него testframework не компилируется. До cutover все 829 legacy Go test files
-# остаются в backend/testframework/ (measured 2026-08-07).
-cd backend && go build -tags release ./... && go vet ./... \
-  && go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...
-
-# Backend regression (Docker, canonical)
-docker compose -f deployments/docker-compose.test.yml up -d
-docker run --rm --cpus 2.0 --memory 4g --network deployments_default \
+# Backend genuine units (target; no services)
+docker run --rm --name hub-backend-test-<task> \
+  --cpus 2.0 --memory 4g --memory-swap 4g \
   -v "${PWD}/backend:/app" -w /app \
-  -e POSTGRES_TEST_URL="postgresql://hub:hub@postgres:5432/hub?sslmode=disable" \
-  -e MONGODB_TEST_URL="mongodb://hub:hub@mongo:27017/?authSource=admin" \
   golang:1.25-bookworm \
-  sh -c "go test -tags hubtest -race -count=1 -timeout=600s ./testframework/..."
+  sh -lc "go build -tags release ./... && go vet ./... && go test -race -count=1 -timeout=600s ./tests/..."
 
-# Frontend regression
-cd frontend && node scripts/link-testframework-node-modules.mjs && npx tsc --noEmit && npm run lint && npm run test:run
+# Frontend genuine units (target)
+docker run --rm --name hub-frontend-test-<task> --cpus 2.0 --memory 4g --memory-swap 4g \
+  --mount type=bind,src="${PWD}/frontend",dst=/work/frontend,readonly \
+  --mount type=volume,src=hub-node-modules-<task>,dst=/work/frontend/node_modules \
+  -w /work/frontend mcr.microsoft.com/playwright:v1.61.0-noble \
+  sh -lc "npm ci && npx tsc --noEmit && npm run lint && npx vitest run tests && npm run build"
+
+# Python QA (target image from testframework/docker/)
+docker run --rm --name hub-python-test-<task> --cpus 2.0 --memory 4g --memory-swap 4g \
+  --mount type=bind,src="${PWD}/testframework",dst=/work/testframework,readonly \
+  -w /work/testframework hub-testframework:<sha> pytest
 
 # Full gate
 /qa-gate
@@ -238,4 +245,4 @@ cd frontend && node scripts/link-testframework-node-modules.mjs && npx tsc --noE
 
 ---
 
-*Обновлено: 2026-08-07 — root Python testframework contract, team-lead onboarding, cost-aware model routing, protected Opus zone*
+*Обновлено: 2026-08-07 — founder greenfield test cutover, Docker-only execution, root Python testframework contract*

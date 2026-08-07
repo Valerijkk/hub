@@ -1,6 +1,10 @@
 # Backend: unit и integration на Go
 
 > Часть плейбука тестирования. Канон и оглавление — [`../testing.md`](../testing.md).
+> Все команды Go ниже выполняются только внутри task-owned Docker container с
+> CPU/RAM limits. Bare `go ...` означает inner container command, не host-run.
+> Legacy `backend/testframework/**` examples ниже frozen. Новые Go tests —
+> только genuine service-free units в `backend/tests/<domain>/**`.
 
 Канон Hub для Go-тестов: hubtest, фикстуры, race, слои.
 
