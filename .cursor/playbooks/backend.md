@@ -672,9 +672,10 @@ refactor/<module>/<description>
 
 ### 15.4. Pre-commit (бэкенд)
 
-```bash
-cd backend && go build -tags release ./... && go test -race -count=1 ./...
-```
+Перед коммитом выполняется task-owned limited Docker job `backend-unit` из
+`AGENTS.md`: release build, vet и race-прогон `backend/tests/**`. Host-run
+запрещён; evidence фиксирует source SHA, image, inner command, CPU/RAM,
+collection, duration и cleanup.
 
 Скан diff'а на секреты — автоматизированный `gitleaks` (pre-commit + CI), а не только ручной `git diff --staged | grep`: grep даёт и пропуски, и шум. Секреты в git — подтверждённый риск Hub (PG-03, ротация). (2026)
 
@@ -697,34 +698,23 @@ PR другого разработчика ревьюится (кросс-рев
 
 ### 16.1. Минимальная регрессия после изменений
 
-После любого изменения бэкенда — до handoff/PR — прогоняется минимальная регрессия затронутого слоя:
-
-```bash
-cd backend && go build -tags release ./... && go vet ./... && go test -race -count=1 -timeout=600s ./...
-```
-
-Каноничный (Docker) прогон тестов фреймворка:
-
-```bash
-docker compose -f deployments/docker-compose.test.yml up -d
-docker run --rm --cpus 2.0 --memory 4g --network deployments_default \
-  -v "${PWD}/backend:/app" -w /app \
-  -e POSTGRES_TEST_URL="postgresql://hub:hub@postgres:5432/hub?sslmode=disable" \
-  -e MONGODB_TEST_URL="mongodb://hub:hub@mongo:27017/?authSource=admin" \
-  golang:1.25-bookworm \
-  sh -c "go test -tags hubtest -race -count=1 -timeout=600s ./testframework/..."
-```
+После любого изменения бэкенда — до handoff/PR — запускается каноничный
+task-owned limited Docker job `backend-unit` из `AGENTS.md`. Он проверяет
+release build, vet и genuine isolated Go units только в `backend/tests/**`.
+БД, broker/storage, HTTP/component/API и другие non-unit boundaries не
+подмешиваются в этот job: их greenfield Python suites принадлежат
+`testframework/{contract,api,integration,e2e,load}/**`.
 
 Три обязательных шага перед handoff:
 
-1. `go build -tags release ./...` — сборка проходит с prod-тегом (тестовый код под `hubtest` не должен ломать release).
-2. `go vet ./...` — статический анализ (подозрительные конструкции, форматные строки, копирование мьютексов).
-3. `go test -race ...` — тесты с детектором гонок.
+1. Release build внутри Docker — production graph собирается без тестовых зависимостей.
+2. Vet внутри Docker — статический анализ чист.
+3. Race-прогон `backend/tests/**` внутри Docker — non-zero collection и 0 data race.
 
 Supply-chain шаги — обязательные CI-инструменты (2026):
 
-4. `go mod verify` + `go mod tidy -diff` — целостность module cache и отсутствие подмешанных/устаревших записей `go.sum`; ранние шаги перед build, стоят секунды.
-5. `govulncheck ./...` — официальный сканер уязвимостей Go team; call-graph анализ репортит только реально достижимые CVE (почти нулевой шум). Дополнительно — scheduled-прогон по `master` (новые advisories появляются без изменения кода); закрывает окно «CVE опубликована → Dependabot ещё не поднял версию».
+4. Module integrity (`go mod verify` + tidy diff) выполняется внутри supply-chain Docker job.
+5. `govulncheck` выполняется внутри закреплённого Docker/CI toolchain; scheduled-прогон по `master` закрывает окно новых advisories.
 
 Полный gate — slash `/qa-gate` (останавливается на первой FAIL). `verified: true` — только при зелёной регрессии с приложенным логом.
 
@@ -752,10 +742,9 @@ Supply-chain шаги — обязательные CI-инструменты (20
 
 ### 16.5. Чек-лист регрессии
 
-- [ ] `go build -tags release ./...` — зелёный.
-- [ ] `go vet ./...` — без замечаний.
-- [ ] `go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...` — зелёный.
-- [ ] (2026) `go mod verify` + `govulncheck ./...` — без findings (в CI обязательны).
+- [ ] Docker job `backend-unit` из `AGENTS.md` — release build + vet + `backend/tests/**` race PASS.
+- [ ] Collection non-zero; source/image/resources/duration/cleanup приложены.
+- [ ] Supply-chain Docker/CI job — module integrity + vulnerability scan без blocking findings.
 - [ ] Новый endpoint отражён в `system_specification.md` + `wiki/API.md` + swag-аннотации.
 - [ ] `.planning/STATE.md` обновлён.
 - [ ] Артефакты покрытия удалены; `git status` чист от dumps.
@@ -778,9 +767,9 @@ Supply-chain шаги — обязательные CI-инструменты (20
 - [ ] **Конкурентность.** Нет утечек горутин; каналы закрываются корректно (SEC-05); `-race` зелёный.
 - [ ] **Производительность.** Лимиты пагинации; индексы; `observability.Timed` на значимых операциях.
 - [ ] **Логи.** `slog` context-aware; уровни; без секретов.
-- [ ] **Тесты.** В `testframework/{domain}/` под `hubtest`; покрыты happy/ошибки/404/409/authz; `-race`.
+- [ ] **Тесты.** Genuine isolated units в `backend/tests/{domain}/`; применимые happy/negative/authz/boundary cases; non-unit risks маршрутизированы в Python `testframework/**`.
 - [ ] **Комментарии.** WHY-not-WHAT; godoc на экспортируемом; без эмодзи.
-- [ ] **Регрессия.** `build -tags release` + `go vet` + `go test -race` — зелёные, лог приложен.
+- [ ] **Регрессия.** Docker job `backend-unit` — release build/vet/race PASS, exact evidence и cleanup приложены.
 - [ ] **Docs.** `system_specification.md` + `wiki/API.md` при новых эндпоинтах; `STATE.md` обновлён.
 - [ ] **Git.** Коммит `type(scope): ...`; diff без секретов; кросс-ревью.
 
@@ -793,7 +782,7 @@ Supply-chain шаги — обязательные CI-инструменты (20
 3. **Обработка ошибок.** Нет голого `return err` на границах; `ent.IsNotFound`→404; конфликт версии→409.
 4. **Context.** `ctx` первым; нет `context.Background()` в handler; нет ctx в структурах.
 5. **Ent-инварианты.** `version` + `AddVersion(1)` + проверка `affected==0`; транзакции с rollback; outbox в tx; soft delete фильтр.
-6. **Тесты и регрессия.** Тесты существуют и релевантны; лог `-race` зелёный и приложен; `go vet` чист.
+6. **Тесты и регрессия.** Genuine units существуют и релевантны; Docker job `backend-unit` дал race/build/vet PASS с exact evidence и cleanup.
 7. **Data race.** Прогон `-race` не показал гонок; конкурентный код следует SEC-05.
 8. **Регрессия/drift.** Изменение не сломало соседние модули; docs синхронизированы; нет забытых dumps в diff.
 
@@ -849,7 +838,7 @@ rg -n "gofiber/fiber" backend/internal/*/service*.go
 | Hard delete по умолчанию | Потеря данных, нет корзины | Soft delete (`deleted_at`), hard — только Admin/GDPR |
 | `DEV_MODE=true` в prod-путях | Обход origin-check/секретов | Только dev; запрещено в CI |
 | Комментарии-нарраторы, эмодзи в коде | Шум, нарушение стиля | WHY-комментарии, godoc |
-| Тест рядом в `internal/` | Ломает изоляцию prod-сборки | `testframework/{domain}/` под `hubtest` |
+| Тест рядом в `internal/` | Смешивает production и test ownership | genuine unit в `backend/tests/{domain}/`; non-unit — Python `testframework/**` |
 
 ---
 ## 19. Быстрый чек-лист перед передачей be-ver
@@ -901,10 +890,8 @@ rg -n "gofiber/fiber" backend/internal/*/service*.go
 
 ### Качество, тесты, регрессия
 
-- [ ] Тесты в `testframework/{domain}/` под `hubtest`; покрыты happy/валидация/404/409/authz.
-- [ ] `go build -tags release ./...` — зелёный.
-- [ ] `go vet ./...` — чист.
-- [ ] `go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...` — зелёный, лог приложен.
+- [ ] Genuine isolated units в `backend/tests/{domain}/`; non-unit scenarios не маскируются под Go unit.
+- [ ] Docker job `backend-unit` — release build/vet/race PASS; collection, duration и cleanup приложены.
 - [ ] `slog` context-aware; уровни; без секретов; `observability.Timed` на значимых операциях.
 - [ ] Комментарии WHY-not-WHAT; godoc; без эмодзи.
 

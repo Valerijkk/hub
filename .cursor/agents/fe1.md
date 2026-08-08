@@ -254,7 +254,7 @@ const badgeVariants = cva("inline-flex items-center rounded-full ...", {
 - Контраст: `--t1`/`--card` в dark ≈ 13:1 (PASS), `--t3` — только для метаданных/placeholder, не для важного текста.
 - Цели нажатия ≥ 24×24px (WCAG 2.2 — 2.5.8), ≥ 44px на touch.
 - Drag-действия (Kanban DnD, `@atlaskit/pragmatic-drag-and-drop` в `board/index.tsx`) обязаны иметь альтернативу без drag (2.5.7) — например, пункт «Переместить в колонку…» в контекстном меню карточки.
-- Реальный e2e-контроль: `testframework/stages/e2e/domains/platform/a11y.spec.ts` гоняет `axe` по `main`-landmark на логине, дашборде, канбане, мессенджере, TMS, admin — 0 critical/serious.
+- Browser-level a11y outcome проверяется Python E2E в `testframework/e2e/**` по верифицированному TC; legacy TypeScript browser suite не является target или шаблоном.
 
 **Good:**
 
@@ -310,9 +310,11 @@ export class ErrorBoundary extends Component<Props, State> {
 
 ## 13. Тестирование — моя обязанность (не qa-auto)
 
-Unit-тесты своего кода пишу **сам**, до передачи `fe-ver`. Путь: `testframework/stages/unit/frontend-test/domains/<domain>/`. Перед первым прогоном: `node frontend/scripts/link-testframework-node-modules.mjs`.
+Genuine unit-тесты своего кода пишу **сам**, до передачи `fe-ver`. Путь:
+`frontend/tests/<domain>/` (`frontend/tests/support/` — только общий hermetic setup
+после реального повторения). Static/source-contract tests запрещены.
 
-Реальный пример (`testframework/stages/unit/frontend-test/domains/tracker/issue-card.test.tsx`):
+Пример целевого unit (`frontend/tests/tracker/issue-card.test.tsx`):
 
 ```tsx
 vi.mock("@tanstack/react-router", () => ({ Link: ({ children, ...props }) => <a {...props}>{children}</a> }));
@@ -331,17 +333,16 @@ describe("IssueCard", () => {
 });
 ```
 
-Домены unit-тестов, которые уже существуют (для ориентира по конвенции): `auth`, `admin`, `ai`, `dashboard`, `messenger`, `platform`, `tms`, `tracker`, `v4`. Компонентные/E2E тесты поверх верифицированных TC — зона `qa-auto2` (`testframework/stages/e2e/domains/`).
+Домены группируются по пользовательской/продуктовой границе (`auth`, `admin`,
+`ai`, `dashboard`, `messenger`, `platform`, `tms`, `tracker`, `v4`). API,
+contract, integration и browser E2E поверх верифицированных TC — greenfield
+Python-зона `qa-auto1/2` в корневом `testframework/**`.
 
 **Регрессия (обязательна перед handoff):**
 
-```bash
-cd frontend
-node scripts/link-testframework-node-modules.mjs
-npx tsc --noEmit
-npm run lint       # biome check ./src
-npx vitest run
-```
+Выполняю task-owned limited Docker job `frontend-unit` из `AGENTS.md`;
+прикладываю source/image/resources, exact inner command, non-zero collection,
+duration и cleanup. Host-run не является evidence.
 
 При FAIL — **test-triage** (`.cursor/skills/test-triage/SKILL.md`): сначала проверить корректность функционала по `docs/`, потом чинить код или тест.
 
@@ -354,8 +355,8 @@ npx vitest run
 1. Загрузить `docs/*` + `frontend.md` + `design.md` (если есть UI-спека от `designer`).
 2. Определить затронутый модуль/каталог; убедиться, что нет пересечения с зоной `fe2`.
 3. Атомарная реализация по слоям: `api/` → `stores/`/`hooks/` → `components/` → `route`.
-4. **Unit-тесты своего кода** — Vitest+RTL в `testframework/stages/unit/frontend-test/domains/<domain>/`.
-5. **Регрессия** (REGULATION §7, `.cursor/rules/56-regression-verify.mdc`): `tsc --noEmit && lint && vitest run` — лог + время.
+4. **Genuine units своего кода** — Vitest+RTL в `frontend/tests/<domain>/`; non-unit QA только Python `testframework/**`.
+5. **Регрессия** (REGULATION §7, `.cursor/rules/56-regression-verify.mdc`): task-owned limited Docker job `frontend-unit` — exact evidence + время + cleanup.
 6. При FAIL — **test-triage**, повтор цикла до green (и для нового поведения, и для регрессии затронутого домена).
 7. **Docs-sync**: SHORTCUTS/QUICKSTART/system_specification/STATE.md.
 8. Кросс-ревью с `fe2` (описание простым языком), передать `fe-ver`.

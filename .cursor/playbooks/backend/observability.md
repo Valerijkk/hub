@@ -220,9 +220,9 @@ func (h *Hub) Register(client *Client) {
 
 Регрессия по конкурентному коду ВСЕГДА с `-race`:
 
-```bash
-go test -tags hubtest -race -count=1 -timeout=600s ./testframework/ws/...
-```
+Запускать task-owned Docker job `backend-unit` с focused scope
+`./tests/ws/...`, `-race -count=1 -timeout=600s`; boundary/recovery WS cases —
+Python `testframework/integration/ws/**` по verified TC.
 
 `-count=1` отключает кеш тестов; `-race` детектирует гонки данных; `-timeout` защищает от дедлоков.
 

@@ -29,22 +29,15 @@ Skill: `BE_VER_skill.md`. Артефакт: Go-код в `backend/internal/<modu
     subtle.ConstantTimeCompare для секретов; webhook signature обязателен; RBAC до сервиса;
     WS room authz по membership; search user-scope
 [ ] Нет panic() в production-путях
-[ ] go build -tags release ./... && go vet ./... — чисто
-[ ] go test -race -count=1 ./... — PASS (лог приложен)
+[ ] Docker job backend-unit: build/vet + genuine units backend/tests/** — PASS
 [ ] Unit-тесты: граничные случаи, классы эквивалентности, негативные сценарии
 [ ] Атомарность: ≤300 строк осмысленного кода за итерацию
-[ ] При FAIL теста: triage выполнен (ROOT=code|test, обоснование) — REGULATION §9
+[ ] При FAIL теста: triage выполнен (ROOT=code|test|infra|flaky|stop, обоснование) — REGULATION §9
 [ ] slog с контекстом (не fmt.Println/log.Printf)
 ```
 
-Команды воспроизведения:
-
-```bash
-cd backend && go build -tags release ./... && go vet ./...
-go test -race -count=1 -timeout=600s ./...
-go test -cover ./internal/<module>/...
-# канонично (Docker, -tags hubtest): см. REGULATION §7 / AGENTS.md
-```
+Воспроизведение: только task-owned limited Docker job `backend-unit` из
+`AGENTS.md`; non-unit boundary — соответствующий Python job `/qa-gate`.
 
 Как проверять layering (пример поиска нарушения):
 
@@ -57,7 +50,7 @@ Grep: "GetDB()" в новом коде → escape hatch, замечание HIGH
 
 ```
 GOOD
-- Запустил go test -race сам, приложил лог "ok ./internal/tms 12.4s"
+- Сам запустил Docker backend-unit, приложил exact source/image/resources/log/cleanup
 - Grep подтвердил отсутствие *ent.Client в service.go
 - Проверил 409 при устаревшем version через тест — присутствует
 - Замечание [CRITICAL]: webhook handler пропускает signature при отсутствии claim (SEC-02)
@@ -86,21 +79,16 @@ Skill: `FE_VER_skill.md`. Артефакт: React/TS в `frontend/src`.
 [ ] Адаптивность: mobile bottom nav / desktop sidebar; проверено на брейкпоинтах
 [ ] Безопасность: токен в памяти, НЕ в localStorage; нет dangerouslySetInnerHTML без sanitize (XSS)
 [ ] optional chaining/?? вместо non-null ! без guard
-[ ] tsc --noEmit — чисто; npm run lint (Biome) — чисто
-[ ] Vitest — PASS (лог); Playwright E2E критических путей — PASS
+[ ] Docker frontend-unit: typecheck/Biome/Vitest/build — PASS
+[ ] Применимый Python E2E критического пути — PASS или обоснованный NOT_RUN
 [ ] Lighthouse ≥ 90 (цель; если gate не blocking — зафиксировать факт)
 [ ] Соответствие TanStack Router (единственный роутер); TanStack Query + Zustand
 [ ] Описание от FE соответствует коду
 [ ] Атомарность изменения
 ```
 
-Команды:
-
-```bash
-cd frontend && node scripts/link-testframework-node-modules.mjs
-npx tsc --noEmit && npm run lint && npx vitest run
-npx playwright test
-```
+Воспроизведение: task-owned limited Docker `frontend-unit`; browser outcomes —
+Python `testframework/e2e/**` через `/qa-gate`.
 
 Как проверять Rules of Hooks (пример):
 
@@ -126,7 +114,8 @@ BAD
 
 ### 3.3 qa-auto-ver — верификатор автотестов
 
-Skill (базово): `QA_VER_skill.md`. Артефакт: `testframework/**`, Vitest, Playwright.
+Skill (базово): `QA_VER_skill.md`. Артефакт: native units в
+`backend/tests/**`/`frontend/tests/**` и Python non-unit `testframework/**`.
 
 Чек-лист:
 
@@ -135,24 +124,17 @@ Skill (базово): `QA_VER_skill.md`. Артефакт: `testframework/**`, V
 [ ] Отсутствие flaky: нет зависимости от времени/порядка/сети без мока
 [ ] НЕТ sleep/произвольных таймаутов; ожидание по условию (waitFor/poll), не по времени
 [ ] Привязка TC ↔ autotest: каждый autotest ссылается на TC/AC (трассируемость)
-[ ] Покрытие: новый код покрыт; overall ≥50% gate, security-critical ≥80%
+[ ] Requirement/risk coverage трассируется к чувствительному oracle; percentage только diagnostic
 [ ] Изоляция: тесты не делят состояние; setup/teardown чистые; параллельно-безопасны
 [ ] Ассерты содержательны (проверяют результат, не «не упало»)
 [ ] Негативные и граничные кейсы присутствуют (не только happy path)
 [ ] race-detector зелёный (backend); нет data race
-[ ] Тесты в правильном месте пайплайна (testframework/{domain}, stages/...)
-[ ] При FAIL: triage (ROOT=code|test) — не «озеленение» без проверки функционала (§10)
+[ ] Taxonomy: genuine units только native target paths; non-unit только root Python testframework/**
+[ ] При FAIL: triage (ROOT=code|test|infra|flaky|stop) — не «озеленение» (§10)
 ```
 
-Команды:
-
-```bash
-# backend детерминизм
-go test -race -count=3 ./internal/<module>/...
-# frontend
-npx vitest run
-npx playwright test --repeat-each=2
-```
+Повторяемость проверяется в соответствующем task-owned Docker job с bounded
+repeat/mutation/sentinel; host и legacy команды не являются evidence.
 
 #### Good / Bad: qa-auto-ver
 
@@ -402,7 +384,7 @@ BAD
 
 ### 3.10 code-reviewer — ревью diff перед мержем
 
-GSD: `gsd-code-review`, `gsd-code-review-fix`. Артефакт: diff PR.
+GSD: `gsd-code-review`; исправление findings — отдельный writer через `gsd-code-review --fix` только по явной задаче. Артефакт: exact `BASE..HEAD` diff.
 
 Чек-лист:
 

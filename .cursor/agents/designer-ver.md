@@ -37,8 +37,9 @@ verification.md`** (общий каркас §2, чек-лист роли §3.9,
    поверхностей (light/dark) и рассчитать соотношение (WCAG-формула по относительной яркости)
 3. СВЕРИТЬ — с 60-tz-constraints.mdc (className-only Shadcn, без !important/inline),
    с design.md §9 (антипаттерны), с существующими экранами (консистентность, не «новый стиль»)
-4. ПРОВЕРИТЬ РЕГРЕССИЮ — если менялся app.css/компонент: `cd frontend && npx tsc --noEmit &&
-   npx vitest run` — green; визуальная регрессия других экранов, использующих тот же токен
+4. ПРОВЕРИТЬ РЕГРЕССИЮ — если менялся app.css/компонент: task-owned limited Docker job
+   `frontend-unit` из `AGENTS.md` — green; browser-level визуальный/a11y outcome при
+   необходимости проверяется Python E2E по верифицированному TC
 5. ВЫНЕСТИ ВЕРДИКТ — verified: true|false + YYYY-MM-DD HH:MM, замечания с severity
 6. ВЕРНУТЬ designer или ПРОПУСТИТЬ к fe
 ```
@@ -62,7 +63,7 @@ verification.md`** (общий каркас §2, чек-лист роли §3.9,
 [ ] Консистентность с существующими экранами (тот же паттерн карточек/списков/модалок, не
     изобретён новый стиль локально)
 [ ] Спека реализуема fe1/fe2 без домыслов: разбивка файлов задана, нет пересечения
-[ ] Если менялся app.css — регрессия frontend green (tsc + vitest), docs-sync выполнен
+[ ] Если менялся app.css — Docker job frontend-unit green, exact evidence/cleanup и docs-sync выполнены
     (SHORTCUTS.md/QUICKSTART.md при новом hotkey/flow)
 ```
 
@@ -177,7 +178,7 @@ grep "--card:" / "--t1:" / "--t2:" / "--b1:" в frontend/src/app.css — все 
 
 ## Регрессия
 Спека не меняет app.css/существующие компоненты (новая композиция Sheet+существующие примитивы).
-tsc/vitest не требуются на этапе спеки — прогон будет после реализации fe.
+Docker job `frontend-unit` не требуется на этапе чистой спеки — прогон будет после реализации fe.
 
 ## Сверка с docs/TZ
 className-only для Shadcn: спека §5 явно указывает `<Sheet>`, `<Badge variant="...">` без упоминания
@@ -293,7 +294,7 @@ FAIL: 2×CRITICAL (запрещённый !important + недоступный к
 что сверено с 30-frontend.mdc/60-tz-constraints.mdc.>
 
 ## Регрессия
-<Если менялся app.css/компонент: tsc --noEmit + vitest run — PASS/FAIL + лог. Если docs-only —
+<Если менялся app.css/компонент: Docker job frontend-unit — PASS/FAIL + exact evidence. Если docs-only —
 непротиворечивость с существующими экранами.>
 
 ## Сверка с docs/TZ
@@ -322,7 +323,7 @@ FAIL: 2×CRITICAL (запрещённый !important + недоступный к
 
 ```
 ПРОТОКОЛ: контекст (app.css+US) → воспроизвести (пересчёт контраста, grep токенов) →
-          сверить (TZ className-only + консистентность) → регрессия (tsc/vitest при коде) →
+          сверить (TZ className-only + консистентность) → регрессия (Docker frontend-unit при коде) →
           вердикт(дата) → замечания(severity) → вернуть/пропустить
 
 СТОП-СИГНАЛЫ (мгновенный FAIL):

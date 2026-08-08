@@ -253,8 +253,8 @@ FR/API. Единый источник истины.
 | be2 | `backend/ent/schema/backlog_item.go`, `backlog/ent_repository.go` | 3 |
 | fe1 | `frontend/src/components/backlog/List.tsx` | 3 |
 | fe2 | `frontend/src/components/backlog/Filters.tsx` | 3 |
-| qa-auto1 | `backend/testframework/tracker/backlog_test.go` | 4 |
-| qa-auto2 | `testframework/stages/e2e/domains/tracker.spec` | 4 |
+| qa-auto1 | `testframework/api/tracker/test_backlog.py` | 4 |
+| qa-auto2 | `testframework/e2e/tracker/test_backlog.py` | 4 |
 | qa-manual | `docs/test_plan.md` | 4 |
 
 > Единственная общая точка — `types.ts` (frontend) и API-контракт: фиксируются **первым** коммитом
@@ -388,7 +388,7 @@ runtime по capability/cost/risk. Субагенты **не видят** ист
   НЕ трогай ent/schema (это be2), НЕ трогай cmd/server/main.go.
 Контракт: тип BacklogReorderRequest уже в types (первый коммит волны).
 Критерии: optimistic lock по version, 409 при конфликте, repository через интерфейс (не ent.Client).
-Регрессия: cd backend && go build -tags release ./... && go test -race ./internal/backlog/...
+Регрессия: task-owned Docker `backend-unit` по `backend/tests/backlog/**` + применимый Python boundary job.
 Верни: handoff по формату §9 + лог go test.
 ```
 
@@ -528,7 +528,7 @@ CRITICAL/HIGH + приложенный лог регрессии.
 - [ ] Автотесты соответствуют пирамиде (unit/integration/e2e на нужном уровне).
 - [ ] Тесты детерминированы (нет flaky), coverage не упал (COVERAGE.md).
 - [ ] Test-triage применён при фиксах (ROOT зафиксирован).
-- [ ] Тесты в правильном пути (`backend/testframework/`, `stages/e2e/domains/`).
+- [ ] Genuine units в `backend/tests/**`/`frontend/tests/**`; non-unit QA в root Python `testframework/**`.
 - [ ] Регрессия green (Docker `-tags hubtest`, лог).
 
 ---

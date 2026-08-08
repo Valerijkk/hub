@@ -39,7 +39,7 @@ backend/internal/<module>/
 ├── ent_repository.go / repo_<feature>.go  # реализация на Ent
 ├── dto.go                             # Request/Response структуры (json + validate)
 ├── events.go                          # доменные события (payload-структуры для NATS/outbox)
-└── (тесты — в backend/testframework/<module>/, НЕ здесь)
+└── (genuine isolated units — в backend/tests/<module>/, НЕ здесь)
 ```
 
 Крупные модули (`tracker`, `auth`) нарезаны по фичам: `service_issues.go`, `service_comments.go`, `repo_issues.go`, `handler_issues.go` и т.д. Это осознанный приём — уменьшает конфликты между `be1`/`be2` и облегчает навигацию.

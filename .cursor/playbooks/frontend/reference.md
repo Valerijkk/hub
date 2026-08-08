@@ -301,13 +301,10 @@ export const Route = createFileRoute("/_authenticated/projects/$projectId/settin
 
 ### A.7. Шаг 7 — Регрессия, тесты, docs-sync
 
-```bash
-cd frontend
-node scripts/link-testframework-node-modules.mjs
-npx tsc --noEmit && npm run lint && npx vitest run
-```
+Выполнить task-owned limited Docker job `frontend-unit` из `AGENTS.md` и
+приложить source/image/resources/collection/duration/cleanup evidence.
 
-- Тест в `testframework/stages/unit/frontend-test/domains/tracker/` — рендер формы, ввод имени, сабмит (MSW мокает POST), проверка тоста; список — рендер, удаление (MSW), проверка оптимистичного исчезновения и отката при 500.
+- Genuine unit в `frontend/tests/tracker/` — рендер формы, ввод имени, сабмит (MSW изолирует HTTP boundary), проверка тоста; список — рендер, удаление, проверка оптимистичного исчезновения и отката при 500.
 - Новый экран настроек -> при необходимости обновить `QUICKSTART.md`; `.planning/STATE.md` — session note.
 - Атомарные коммиты: `feat(tracker): add project labels api hooks`, затем `feat(tracker): add label form and list ui`, затем `feat(tracker): add project labels settings route`.
 

@@ -153,29 +153,29 @@ func (s *SessionService) RefreshToken(ctx context.Context, oldRefreshToken strin
 
 ### 13.1. Где живут тесты и почему
 
-Бэкенд-тесты живут в `backend/testframework/{domain}/` с build-тегом `//go:build hubtest`, а **не** рядом с кодом в `internal/`. Запуск:
+Genuine isolated Go units живут только в `backend/tests/{domain}/`, то есть в
+том же Go-модуле, но вне production packages. Unit не поднимает HTTP/component
+boundary, БД, broker/storage или service containers. API, contract,
+integration и E2E создаются с нуля на Python в корневом `testframework/**`;
+legacy Go suites не являются шаблоном и не портируются.
 
-```bash
-go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...
-```
-
-**Почему в том же модуле, а не отдельным модулем?** Go запрещает импорт `internal/`-пакетов из другого модуля (правило видимости `internal`). Тесты обращаются к `github.com/valerii/hub/backend/internal/tracker` и т.п. — значит, они обязаны находиться в том же Go-модуле (`backend/`). Поэтому `testframework/` — это подкаталог `backend/`, а не отдельный модуль. Build-тег `hubtest` изолирует тестовый код от prod-сборки (`-tags release` его не видит).
+Все проверки выполняются task-owned limited Docker runner `backend-unit` из
+`AGENTS.md`; host-run не является evidence.
 
 ### 13.2. Именование и структура
 
 - Пакет теста: `<domain>_test` (например `tracker_test`) — black-box тестирование публичного API.
 - Функция: `Test<Function>_<Scenario>` (например `TestUpdateIssue_VersionMismatch`).
-- Фикстуры/фабрики: `backend/testframework/env/`, `factory/`.
+- Локальные builders/fakes: рядом с unit-доменом в `backend/tests/{domain}/support/`
+  только при реальном повторении; shared mutable fixtures запрещены.
 - Инструмент: `testify` — `require` (останавливает тест при провале) и `assert` (продолжает).
 - Контекст в тесте: `t.Context()` (Go 1.24) вместо `context.Background()` — отменяется по завершении теста и корректно гасит горутины/подключения, созданные тестом. В существующих тестах `context.Background()` не рефакторим массово; в новых — `t.Context()`. (2026)
 
 <good-example>
 
-Реальная шапка (`backend/testframework/tracker/service_test.go`):
+Минимальная шапка (`backend/tests/tracker/service_test.go`):
 
 ```go
-//go:build hubtest
-
 // Package tracker содержит юнит-тесты для tracker.TrackerService.
 package tracker_test
 
@@ -193,13 +193,16 @@ import (
 ```
 </good-example>
 
-### 13.3. Мок репозитория
+### 13.3. Test doubles на границе
 
-Service тестируется с моком `Repository` (интерфейс существует именно для этого — принцип D из SOLID). Мок реализует все методы композитного интерфейса.
+Service-unit изолирует реальную dependency boundary узким fake/stub/mock только
+когда это нужно observable contract. Не создавать интерфейс или полный mock
+ради ритуального SOLID: предпочитать самый маленький double, который делает
+сценарий детерминированным и не проверяет private call order.
 
 <good-example>
 
-Реальный мок (`backend/testframework/tracker/service_test.go`):
+Пример локального fake (`backend/tests/tracker/service_test.go`):
 
 ```go
 // mockRepo реализует tracker.Repository для тестирования TrackerService.
@@ -260,9 +263,12 @@ func TestCreateIssue_AllTypes(t *testing.T) {
 ```
 </good-example>
 
-### 13.5. Интеграционные тесты
+### 13.5. Интеграционные проверки
 
-Для проверки реальных SQL/транзакций/optimistic-lock используются реальные БД (Docker/testcontainers) — canonical-прогон в Docker (`deployments/docker-compose.test.yml`, образ `golang:1.25-bookworm`, `-tags hubtest`). Схема применяется `client.Schema.Create(ctx)`.
+Реальные SQL/transaction/optimistic-lock, broker и storage semantics не входят
+в Go unit suite. Они проектируются от requirement/risk и выполняются Python
+integration cases в `testframework/integration/**` под владельцем `qa-auto1`
+в изолированном Docker service profile.
 
 ### 13.6. Что покрывать в первую очередь
 
@@ -282,12 +288,12 @@ func TestCreateIssue_AllTypes(t *testing.T) {
 
 ### 13.9. Чек-лист тестов
 
-- [ ] Тест в `backend/testframework/{domain}/` с `//go:build hubtest`.
+- [ ] Genuine isolated unit в `backend/tests/{domain}/`; без внешних сервисов и component/API boundary.
 - [ ] Пакет `<domain>_test`; имя `Test<Func>_<Scenario>`.
-- [ ] Service покрыт через мок `Repository`.
+- [ ] Test double добавлен только на реальной dependency boundary и не проверяет incidental call order.
 - [ ] Покрыты: happy path, валидация, not-found (404), conflict (409), авторизация.
 - [ ] Конкурентный код — с `-race`.
-- [ ] Прогон: `go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...`.
+- [ ] Task-owned limited Docker job `backend-unit` из `AGENTS.md`: non-zero collection, race PASS, duration и cleanup зафиксированы.
 - [ ] Артефакты покрытия удалены (`.cursor/rules/45-artifacts-cleanup.mdc`).
 
 ---

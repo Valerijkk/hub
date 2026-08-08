@@ -355,7 +355,7 @@ func (s *Service) CreateIssue(...)
 ```go
 //go:build hubtest
 
-// Package auth — test export hooks for backend/testframework/auth/ (not compiled in release builds).
+// Historical pre-cutover test export hook; do not copy into new genuine units.
 package auth
 ```
 
@@ -605,7 +605,7 @@ assert.Equal(t, 2, issue.Version)
 ```go
 //go:build hubtest
 
-// Package notification — тестовые export-хуки для backend/testframework/ (не компилируются в release-сборках).
+// Historical pre-cutover test export hook; новый код проектируется через обычные package seams без production-only-for-tests API.
 package notification
 
 func ExportHandleLogin(t *TelegramBotAuth, ctx context.Context, msg *telego.Message) {

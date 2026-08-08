@@ -10,7 +10,7 @@
 > - `docs/code_style_guide.md` — полный гайд по стилю (TS-часть)
 > - `docs/architecture.md` — архитектура, C4, frontend-раздел
 > - `.cursor/playbooks/design.md` — дизайн-система, токены `--hub-*`, визуальный язык
-> - `.cursor/playbooks/testing.md` — тестовая стратегия (Vitest, RTL, MSW, Playwright)
+> - `.cursor/playbooks/testing.md` — тестовая стратегия (native units + greenfield Python non-unit QA)
 > - `.cursor/playbooks/code-comments.md`, `.cursor/playbooks/observability.md`, `.cursor/playbooks/git-workflow.md`
 >
 > **Правило приоритета:** если этот playbook расходится с `.cursor/rules/*.mdc` или `.cursor/rules/60-tz-constraints.mdc` — **правила и ТЗ побеждают**. Playbook расширяет и объясняет, но не отменяет их.
@@ -238,7 +238,9 @@ import { Button } from "../../../components/ui/button";
 
 ### 15.1. Строгий TypeScript
 
-Проект на `strict: true`. Цель — «если компилируется, значит форма данных верна». Регрессия начинается с `npx tsc --noEmit` (раздел 18).
+Проект на `strict: true`. Цель — «если компилируется, значит форма данных верна».
+Регрессия начинается с typecheck-шага task-owned Docker job `frontend-unit`
+(раздел 18), не с host-команды.
 
 ### 15.2. Запрет `any` без причины
 
@@ -358,38 +360,35 @@ interface MyIssue { id: string; title: string } // дубль API-типа
 
 | Тип | Расположение | Инструмент |
 |-----|--------------|-----------|
-| Unit/компонентные | `testframework/stages/unit/frontend-test/domains/<domain>/` | Vitest + React Testing Library |
-| API-моки | там же | MSW (Mock Service Worker) |
-| E2E | `testframework/stages/e2e/domains/<domain>/` | Playwright (POM) |
-| E2E shared | `testframework/stages/e2e/shared/` | POM, steps, fixtures |
+| Genuine unit/component behavior | `frontend/tests/<domain>/` | Vitest + React Testing Library |
+| Unit support | `frontend/tests/support/` | Локальные builders/providers; MSW только для hermetic unit boundary |
+| API/contract/integration | `testframework/{api,contract,integration}/` | Python, владельцы `qa-auto1/2` |
+| Browser journeys | `testframework/e2e/` | Python Playwright, markers `smoke`/`full` |
 
-Тесты **не** живут в `frontend/src/`. Домены фронта: `auth`, `admin`, `ai`, `v4` и др.
+Тесты **не** живут в `frontend/src/`. Static/source-contract Vitest и
+TypeScript browser suites не портируются. POM/Steps — не обязательная форма:
+Component/Page Object появляется только после повторения meaningful UI-knowledge.
 
-### 16.2. Перед запуском — линк node_modules
+### 16.2. Перед запуском — изолированные зависимости
 
-Обязательный шаг перед Vitest/E2E (иначе не найдутся зависимости):
-
-```bash
-node frontend/scripts/link-testframework-node-modules.mjs
-```
+Зависимости устанавливаются в task-owned Docker volume канонического
+`frontend-unit` runner из `AGENTS.md`. Host `node_modules` и legacy link-script
+не используются как evidence.
 
 ### 16.3. Команды
 
-```bash
-# Регрессия фронта (из frontend/)
-cd frontend
-node scripts/link-testframework-node-modules.mjs
-npx tsc --noEmit
-npm run lint          # Biome
-npm run test:run      # Vitest прогон
-```
+Каноничная команда — task-owned limited Docker job `frontend-unit` из
+`AGENTS.md`: install dependencies в named volume, typecheck, lint, запуск
+`frontend/tests/**` и build. Evidence включает source SHA, image, inner command,
+CPU/RAM, collection, duration и cleanup.
 
 ### 16.4. Что и как тестировать (минимум)
 
 - **Компоненты**: RTL — рендер, взаимодействие (`userEvent`), проверка доступного текста/ролей (`getByRole`), а не деталей реализации.
 - **Хуки/Query**: оборачивай в `QueryClientProvider`; API мокай через MSW, не патчь `fetch` руками.
 - **Zustand**: сбрасывай стор между тестами; тестируй действия и селекторы.
-- **A11y-регресс**: ключевые экраны — через axe в E2E.
+- **A11y-регресс**: unit проверяет семантику компонента; browser outcome через
+  Python E2E в `testframework/e2e/**` после верифицированного TC.
 
 ```tsx
 // Набросок компонентного теста (RTL)
@@ -405,16 +404,18 @@ expect(await screen.findByText(/created/i)).toBeInTheDocument();
 
 ### 16.5. Линтер — Biome
 
-Линтинг и форматирование — Biome (`npm run lint`). Он ловит `key={index}`, non-null без причины, неиспользуемое, порядок импортов, правила хуков. `biome-ignore` — только с причиной.
+Линтинг и форматирование — Biome внутри Docker job `frontend-unit`. Он ловит
+`key={index}`, non-null без причины, неиспользуемое, порядок импортов и правила
+хуков. `biome-ignore` — только с причиной.
 
 ### 16.6. Чек-лист тестирования
 
-- [ ] Тесты созданы в `testframework/...`, не в `src/`.
-- [ ] Перед прогоном выполнен линк node_modules.
+- [ ] Genuine units созданы в `frontend/tests/<domain>/`, не в `src/`.
+- [ ] Запуск выполнен task-owned limited Docker job `frontend-unit`.
 - [ ] API мокается через MSW; Query обёрнут в провайдер.
 - [ ] Тестируем поведение/доступные роли, не детали реализации.
-- [ ] `npm run test:run` и `npm run lint` зелёные.
-- [ ] Новый flow покрыт E2E (POM) при необходимости.
+- [ ] Typecheck/lint/Vitest/build внутри Docker зелёные; exact evidence и cleanup приложены.
+- [ ] Non-unit browser/API risk передан `qa-auto*` как Python TC; POM не назначен ритуальным gate.
 
 ---
 ## 17. Комментарии, логирование, git
@@ -467,15 +468,10 @@ refactor(frontend): extract useDebouncedValue hook
 
 ### 18.1. Обязательная регрессия (перед handoff)
 
-После любого изменения фронта, **до передачи `fe-ver`/коммита**, прогнать:
-
-```bash
-cd frontend
-node scripts/link-testframework-node-modules.mjs
-npx tsc --noEmit
-npm run lint
-npx vitest run
-```
+После любого изменения фронта, **до передачи `fe-ver`/коммита**, выполнить
+task-owned limited Docker job `frontend-unit` из `AGENTS.md`. Host-run запрещён.
+Job обязан дать non-zero collection для `frontend/tests/**`, typecheck/lint/
+Vitest/build PASS и подтверждённый cleanup.
 
 Правило `56-regression-verify.mdc`: `verified: true` — только при зелёной регрессии с приложенным логом. Останавливаемся на первой FAIL и чиним (сначала проверяем корректность функционала по `docs/`, потом решаем — код или тест; см. `.cursor/skills/test-triage/SKILL.md`).
 
@@ -498,9 +494,8 @@ npx vitest run
 
 ### 18.4. Чек-лист регрессии и docs
 
-- [ ] `tsc --noEmit` зелёный.
-- [ ] `npm run lint` (Biome) зелёный.
-- [ ] `npx vitest run` зелёный (после линка node_modules).
+- [ ] Docker job `frontend-unit` — typecheck/lint/Vitest/build PASS.
+- [ ] Source/image/resources/collection/duration/cleanup приложены.
 - [ ] `.planning/STATE.md` обновлён.
 - [ ] Новый flow/hotkey отражён в `SHORTCUTS.md`/`QUICKSTART.md`.
 - [ ] Нет закоммиченных артефактов/секретов.
@@ -524,13 +519,13 @@ npx vitest run
 - [ ] Тяжёлое — lazy; списки виртуализированы; debounce где нужно.
 - [ ] Крупные модули обёрнуты в Error Boundary.
 - [ ] WS-интеграция иммутабельна, с дедупом и отпиской.
-- [ ] Тесты добавлены/обновлены в `testframework/`; регрессия зелёная.
+- [ ] Genuine units добавлены/обновлены в `frontend/tests/**`; non-unit risk маршрутизирован в Python `testframework/**`; Docker regression зелёная.
 - [ ] Docs-sync выполнен (STATE + SHORTCUTS/QUICKSTART при новом flow/hotkey).
 - [ ] Атомарные коммиты, Conventional Commits, без секретов/артефактов.
 
 ### 19.2. Что проверяет fe-ver
 
-`fe-ver` (skill `.cursor/project_skills/FE_VER_skill.md`) верифицирует **независимо**:
+`fe-ver` (`.cursor/agents/fe-ver.md`) верифицирует **независимо**:
 
 1. **Соответствие требованиям** — фича делает то, что в US/REQ.
 2. **Rules of Hooks / React-паттерны** — нет хуков после return, нет `key={index}`, нет `!` без guard.
@@ -571,7 +566,7 @@ npx vitest run
 | Рендер всего длинного списка | Фриз, огромный DOM | Виртуализация + infinite scroll |
 | Тяжёлая либа (LiveKit/charts) в основном бандле | Раздутый бандл | `lazy()` + Suspense + Error Boundary |
 | Правка `routeTree.gen.ts` вручную | Затирается генератором | Добавлять route-файлы, не трогать gen |
-| Тесты в `frontend/src/` | Нарушение pipeline-структуры | `testframework/stages/unit/frontend-test/...` |
+| Тесты в `frontend/src/` | Нарушение pipeline-структуры | `frontend/tests/<domain>/` |
 | WS-событие: мутация кэша на месте | Баг реконсиляции, дубли | `setQueryData` иммутабельно + дедуп по `id` |
 | Логирование токенов/секретов | Утечка | Не логировать; можно `request_id` |
 
@@ -617,10 +612,9 @@ npx vitest run
 - [ ] WS: иммутабельные апдейты, дедуп по `id`, отписка в cleanup, reconnect с backoff.
 
 **Качество и процесс**
-- [ ] `npx tsc --noEmit` — зелёный.
-- [ ] `npm run lint` (Biome) — зелёный.
-- [ ] `npx vitest run` — зелёный (после `link-testframework-node-modules.mjs`).
-- [ ] Тесты добавлены/обновлены в `testframework/`.
+- [ ] Docker job `frontend-unit` — typecheck/lint/Vitest/build PASS.
+- [ ] Genuine units добавлены/обновлены в `frontend/tests/<domain>/`; non-unit Python QA маршрутизирован отдельно.
+- [ ] Exact Docker evidence и cleanup приложены.
 - [ ] `.planning/STATE.md` + `SHORTCUTS.md`/`QUICKSTART.md` (при новом flow/hotkey) обновлены.
 - [ ] Атомарные Conventional Commits; без секретов/артефактов.
 

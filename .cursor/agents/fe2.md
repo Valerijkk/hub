@@ -188,7 +188,7 @@ variant: {
 - Composer сообщения: `Enter` отправляет, `Shift+Enter` — новая строка (документировано в `docs/wiki/SHORTCUTS.md`, раздел «Мессенджер»); реализация — не блокировать нативное поведение `textarea`, обрабатывать `onKeyDown` явно.
 - Typing-индикатор (`.typing-dot`) — не единственный сигнал: у него есть текстовая подпись «печатает…», не только анимация точек (иначе недоступно screen-reader).
 - TMS-таблица результатов прогона — семантическая `<table>` с `<th scope>` или ARIA grid; статус (`passed/failed/skipped`) — цвет **+** текст/иконка, не только цвет (WCAG 1.4.1).
-- Реальный e2e-контроль: `testframework/stages/e2e/domains/platform/a11y.spec.ts` — `messenger channel` (с исключением `[data-testid=messenger-channel-list]`, покрыт отдельными UI-тестами) и `TMS cases page` сканируются `axe` на `main`-landmark, 0 critical/serious.
+- Browser-level a11y для messenger/TMS проверяется Python E2E в `testframework/e2e/**` по верифицированному TC; legacy TypeScript browser suite не является target или шаблоном.
 
 **Good:** `<div role="status" aria-live="polite">{typingUsers.map(u => u.displayName).join(", ")} печатает…</div>`.
 
@@ -204,21 +204,23 @@ variant: {
 
 ## 13. Тестирование — моя обязанность (не qa-auto)
 
-Unit-тесты своего кода — Vitest+RTL, путь `testframework/stages/unit/frontend-test/domains/<domain>/` (для меня — `messenger/`, `tms/`). Перед прогоном: `node frontend/scripts/link-testframework-node-modules.mjs`.
+Genuine unit-тесты своего кода — Vitest+RTL в `frontend/tests/<domain>/`
+(для меня — `messenger/`, `tms/`). `frontend/tests/support/` используется
+только для повторяющегося hermetic setup; static/source-contract tests запрещены.
 
-Реальный пример (`testframework/stages/unit/frontend-test/domains/tms/case-table-row.test.tsx`) и `testframework/stages/unit/frontend-test/domains/messenger/channel-icon.test.tsx` — конвенция: `render()` + `screen.getByText/getByRole`, мок `@tanstack/react-router` через `vi.mock`, мок WS-стора при необходимости.
+Целевые примеры: `frontend/tests/tms/case-table-row.test.tsx` и
+`frontend/tests/messenger/channel-icon.test.tsx` — `render()` + semantic
+`screen.getByRole/getByText`; test double только на реальной Router/WS boundary.
 
 **Регрессия (обязательна перед handoff):**
 
-```bash
-cd frontend
-node scripts/link-testframework-node-modules.mjs
-npx tsc --noEmit
-npm run lint       # biome check ./src
-npx vitest run
-```
+Выполняю task-owned limited Docker job `frontend-unit` из `AGENTS.md`;
+прикладываю source/image/resources, exact inner command, non-zero collection,
+duration и cleanup. Host-run не является evidence.
 
-При FAIL — **test-triage**: сначала функционал по `docs/`, потом код/тест. Компонентные/E2E тесты поверх верифицированных TC — зона `qa-auto2`.
+При FAIL — **test-triage**: сначала функционал по `docs/`, потом код/тест.
+API/integration/contract/E2E поверх верифицированных TC — Python-зона
+`qa-auto1/2` в корневом `testframework/**`.
 
 ## 14. Docs-sync (обязательно, до handoff)
 
@@ -229,8 +231,8 @@ npx vitest run
 1. Загрузить `docs/*` + `frontend.md` + `design.md` (если есть UI-спека).
 2. Определить модуль/каталог; нет пересечения с зоной `fe1`.
 3. Атомарная реализация по слоям: `api/` → `stores/`/`hooks/` → `components/` → `route`.
-4. **Unit-тесты своего кода** — Vitest+RTL в своём домене `testframework/.../domains/`.
-5. **Регрессия**: `tsc --noEmit && lint && vitest run` — лог + время.
+4. **Genuine units своего кода** — Vitest+RTL в `frontend/tests/<domain>/`.
+5. **Регрессия**: task-owned limited Docker job `frontend-unit` — exact evidence + время + cleanup.
 6. При FAIL — **test-triage**, цикл до green (новое + регрессия затронутого домена).
 7. **Docs-sync**: SHORTCUTS/QUICKSTART/system_specification/STATE.md.
 8. Кросс-ревью с `fe1`, передать `fe-ver`.

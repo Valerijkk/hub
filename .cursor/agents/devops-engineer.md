@@ -56,15 +56,17 @@ Pinned-версии образов (не менять на `latest`):
 
 | Job | Триггер | Что делает |
 |-----|---------|------------|
-| `backend-test` | push/PR master | Go 1.25, BOM-guard, `go generate ./ent`, `go vet -tags hubtest`, `go test -tags hubtest -race -timeout=600s ./testframework/...`, build `-tags release` |
-| `coverage-gate` | **только push** (не PR — экономия минут) | Docker Compose test-стек, coverage ≥82.0% через `go tool cover` |
-| `frontend-test` | push/PR | `npm ci`, `tsc --noEmit`, `vitest run`, `biome check` (lint-gate) |
-| `build` | needs backend+frontend test | `go build -tags release`, `npm run build` |
-| `e2e-smoke` | needs frontend-test | Playwright без backend — login/a11y/critical-gate (быстрый PR-гейт) |
-| `e2e-full` | needs backend+frontend test | Docker infra + native backend (`DEV_MODE=true` **только в CI**) + 16+ Playwright specs |
+| `backend-unit` | backend change | Go 1.25 build/vet + genuine units `backend/tests/**`, race по применимому concurrency scope |
+| `frontend-unit` | frontend change | typecheck/Biome/build + genuine Vitest/RTL `frontend/tests/**` |
+| `python-contract` | contract/schema/event/source change | root `testframework/contract/**` |
+| `python-api` / `python-integration` | public behavior / DB-broker-storage boundary | root Python suites + task-isolated services |
+| `python-e2e-smoke/full` | PR critical journeys / wave-release | Python Playwright `testframework/e2e/**`, markers `smoke`/`full` |
+| `python-load` | change-specific/nightly/manual | approved Locust profile `testframework/load/**` |
 | `lighthouse` | push master, non-blocking | `continue-on-error: true` — артефакт, не гейт (NFR-17 частично) |
 
-Пример: как экономить минуты — `coverage-gate` условие `if: github.event_name != 'pull_request'` — гоняем полный coverage только на push в master, не на каждый PR.
+Все jobs task-owned, resource-limited и завершаются cleanup; отсутствие Phase
+129 target scaffold = `NOT_READY`, не legacy fallback. Historical 82% coverage
+остаётся diagnostic baseline, не migration gate.
 
 ### `deploy.yml` — билд образов + best-effort SSH-деплой
 

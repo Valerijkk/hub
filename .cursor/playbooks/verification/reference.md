@@ -42,32 +42,13 @@
 [ ] Обновил статус верификации у исполнителя и у себя
 ```
 
-### 9.2 Команды воспроизведения (сводка)
+### 9.2 Воспроизведение (сводка)
 
-```bash
-# Backend
-cd backend && go build -tags release ./... && go vet ./... && go test -race -count=1 -timeout=600s ./...
-go test -race -count=3 ./internal/<module>/...
-go test -cover ./internal/<module>/...
-
-# Backend Docker (канонично)
-docker compose -f deployments/docker-compose.test.yml up -d
-docker run --rm --cpus 2.0 --memory 4g --network deployments_default -v "${PWD}/backend:/app" -w /app \
-  -e POSTGRES_TEST_URL="postgresql://hub:hub@postgres:5432/hub?sslmode=disable" \
-  -e MONGODB_TEST_URL="mongodb://hub:hub@mongo:27017/?authSource=admin" \
-  golang:1.25-bookworm \
-  sh -c "go test -tags hubtest -race -count=1 -timeout=600s ./testframework/..."
-
-# Frontend
-cd frontend && node scripts/link-testframework-node-modules.mjs
-npx tsc --noEmit && npm run lint && npx vitest run
-npx playwright test --repeat-each=2
-
-# Gate / audit
-/qa-gate
-/coverage-audit
-/test-triage
-```
+Все executable checks — только target jobs из `AGENTS.md`/`/qa-gate`:
+`backend-unit`, `frontend-unit`, `python-contract`, `python-api`,
+`python-integration`, `python-e2e-smoke/full`, `python-load`. Каждый имеет exact
+revision/image/command/resources/result/duration/artifacts/cleanup. Для gap audit
+использовать `/coverage-audit`; при FAIL — `/test-triage`.
 
 ### 9.3 Матрица роль → артефакт → GSD → блокирующая severity
 
@@ -156,10 +137,10 @@ product-ver (фича vs vision):
 - Вердикт: verified: false
 
 ## Контекст и воспроизведение
-Проверял реализацию TMS-14 (пометка flaky + фильтр). Запустил go test -race ./internal/tms/...
+Проверял реализацию TMS-14 (пометка flaky + фильтр). Запустил применимые target Docker jobs.
 
 ## Регрессия
-- Команда: cd backend && go test -race -count=1 ./internal/tms/...
+- Job: backend-unit, focused `backend/tests/tms/**`; exact inner command в evidence
 - Результат: PASS
 - Лог:
 ```
@@ -326,11 +307,12 @@ ARIA:       кнопки-иконки имеют aria-label; роли соотв
 Формы:      label связан с input; ошибки объявляются программно
 Порядок:    логический порядок табуляции соответствует визуальному
 Семантика:  button type задан явно; ссылки vs кнопки не перепутаны
-Проверка:   npx playwright test (a11y spec) / axe; Lighthouse Accessibility
+Проверка:   Python E2E/axe в task-owned Docker; Lighthouse Docker/CI artifact
 ```
 
-Реальный ориентир проекта: login axe PASS, E2E a11y spec присутствует; Lighthouse — цель ≥90
-(gate non-blocking сейчас, фиксировать фактический статус, не выдавать желаемое за факт).
+Исторический ориентир: login axe был PASS. Current acceptance требует fresh
+Python E2E evidence на exact revision; Lighthouse остаётся non-blocking, если
+конкретная фаза не повысила gate явно.
 
 ### 9.12 Верификация в волновом исполнении (wave)
 

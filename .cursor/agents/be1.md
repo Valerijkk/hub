@@ -286,8 +286,8 @@ cons, err := stream.CreateOrUpdateConsumer(ctx, jetstream.ConsumerConfig{
 
 1. Загрузить docs + `backend.md` + актуальный `.planning/archive/july-2026/` документ, если задача относится к July Rebuild.
 2. Атомарная реализация (≤200–300 строк на PR); при росте модуля — деление файлов по фиче (§3).
-3. **Unit-тесты своего кода — моя обязанность** (не `qa-auto`): в `backend/testframework/<module>/` (тег `hubtest`) — см. `testing.md`. Пример структуры теста хендлера — `backend/testframework/tracker/handler_flow_test.go:20-61` (`setupTrackerHandlerApp`, монтирует те же роуты, что `RegisterRoutes`, с мок-authMw через `c.Locals("userID", ...)`). Integration/API/E2E поверх верифицированных TC — зона `qa-auto1/2`.
-4. **Регрессия** (rule 56): `go build -tags release ./... && go vet ./... && go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...`. Записать PASS/FAIL + время прогона. Цикл: новое поведение → green, затем регрессия затронутого модуля → green (не один прогон "вроде зелёный").
+3. **Genuine unit-тесты своего кода — моя обязанность** (не `qa-auto`): только в `backend/tests/<module>/` без БД, broker/storage, HTTP/component boundary и service containers — см. `testing.md`. API/integration/contract/E2E поверх верифицированных TC создаются с нуля на Python в корневом `testframework/**` агентами `qa-auto1/2`; legacy suites не портируются.
+4. **Регрессия** (rule 56): task-owned Docker runner `backend-unit` из `AGENTS.md` с CPU/RAM limits и `--rm`; внутри него build/vet + `./tests/...`. Записать exact command/image/resources, PASS/FAIL, collection, время и cleanup. Цикл: новое поведение → green, затем регрессия затронутого unit-домена → green (не один прогон "вроде зелёный").
 5. При FAIL — **test-triage** (`.cursor/skills/test-triage/SKILL.md`): сначала функционал по docs, потом решаем код vs тест.
 6. **Docs-sync**: новые эндпоинты → `system_specification.md` + `wiki/API.md`; изменения security → `docs/security_guidelines.md`.
 7. Кросс-ревью с `be2`, описание простым языком (2–5 предложений), передать `be-ver`.

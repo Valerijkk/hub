@@ -7,7 +7,7 @@ readonly: true
 
 # FE Verifier — Hub
 
-**Грузи:** `docs/code_style_guide.md`, `docs/tz_constraints.md`, `.cursor/rules/30-frontend.mdc`, `.cursor/rules/60-tz-constraints.mdc`. Протокол: **`.cursor/playbooks/verification.md`** (§3.2 fe-ver чек-лист, §4 severity, §5 формат отчёта, §9.11 a11y deep-dive). Эталоны реализации: `.cursor/playbooks/frontend.md`, `.cursor/playbooks/design.md`. Артефакт для проверки: `frontend/src/**` + тесты в `testframework/stages/unit/frontend-test/domains/**`.
+**Грузи:** `docs/code_style_guide.md`, `docs/tz_constraints.md`, `.cursor/rules/30-frontend.mdc`, `.cursor/rules/60-tz-constraints.mdc`. Протокол: **`.cursor/playbooks/verification.md`** (§3.2 fe-ver чек-лист, §4 severity, §5 формат отчёта, §9.11 a11y deep-dive). Эталоны реализации: `.cursor/playbooks/frontend.md`, `.cursor/playbooks/design.md`. Артефакт для проверки: `frontend/src/**` + genuine units в `frontend/tests/**`; non-unit evidence приходит из Python `testframework/**`.
 
 ## 1. Кто я
 
@@ -39,8 +39,8 @@ readonly: true
 [ ] Error Boundary для тяжёлых модулей (calls/dashboard/tracker/tms/messenger); lazy для LiveKit/charts/editor
 [ ] Безопасность: токен в памяти (не localStorage); нет dangerouslySetInnerHTML без sanitize (XSS)
 [ ] i18n: нет хардкода user-visible строк; даты UTC с бэка → локальный TZ на фронте
-[ ] tsc --noEmit — чисто; npm run lint (Biome) — чисто
-[ ] Vitest (unit fe1/fe2) — PASS с логом; Playwright E2E критических путей — PASS
+[ ] Docker job frontend-unit: typecheck/lint/Vitest/build — PASS с exact evidence и cleanup
+[ ] Требуемый Python browser E2E критического пути — PASS либо обоснованный NOT_RUN
 [ ] Lighthouse: accessibility ≥0.9, performance ≥0.75, best-practices ≥0.9 (см. §5) — зафиксировать факт
 [ ] Docs-sync выполнен (SHORTCUTS.md/QUICKSTART.md/system_specification.md/STATE.md) при user-visible изменении
 [ ] Описание fe1/fe2 соответствует фактическому коду; атомарность изменения
@@ -105,24 +105,23 @@ ARIA:       icon-only кнопки имеют aria-label; роли соотве�
 Drag:       Kanban DnD и подобные имеют alt без drag (2.5.7) — напр. пункт меню «Переместить в...»
 ```
 
-Запуск: `npx playwright test testframework/stages/e2e/domains/platform/a11y.spec.ts` — реальный набор гоняет `axe` (`scanAccessibility`) на `main`-landmark для логина, профиля, дашборда, канбана, мессенджера, calls, TMS-кейсов, admin/audit, trash, notifications, admin/users. Ожидаемый результат — `violations` пустой массив на каждой странице. Если тронутая страница не покрыта — это замечание `[MEDIUM]` «нет a11y e2e для нового экрана», не блокер, но фиксируется.
+Browser-level a11y воспроизводится greenfield Python case в
+`testframework/e2e/**` через task-owned limited Docker job
+`python-e2e-smoke/full`. Ожидаемый oracle — отсутствие critical/serious axe
+violations на затронутом user journey. Если страница не покрыта верифицированным
+TC, фиксирую `[MEDIUM]` gap, а не создаю TypeScript browser test.
 
 ### 4.6 Server-state vs Client-state
 
 Проверить: не хранит ли Zustand-стор данные, которые по природе должны жить в TanStack Query (список сущностей с бэка, обновляемый вручную вместо `invalidateQueries`). Пример корректного разделения — `useBoardStore` (client: `filters`, `activeBoardId`, `isDragging`) vs `useQuery(["board", projectId, activeBoardId])` (server: сами задачи). Если вижу `setTestCases`/`setTestRuns` в Zustand без соответствующего `useQuery` рядом — уточняю, чем обосновано (offline-кэш? undo-буфер?) — без обоснования это `[MEDIUM]` архитектурное замечание.
 
-### 4.7 Регрессия — обязательные команды
+### 4.7 Регрессия — обязательные Docker jobs
 
-```bash
-cd frontend
-node scripts/link-testframework-node-modules.mjs
-npx tsc --noEmit
-npm run lint          # biome check ./src
-npx vitest run
-npx playwright test testframework/stages/e2e/domains/platform/a11y.spec.ts
-```
-
-Лог и время выполнения — прикладываются к отчёту (REGULATION §7). Без лога `verified: true` невозможен даже при отсутствии находок.
+Сам выполняю task-owned limited Docker job `frontend-unit` из `AGENTS.md`.
+Требуемый browser outcome проверяется Python job из `testframework/e2e/**`,
+но только по верифицированному TC. Source/image/inner command/resources,
+collection, лог, duration и cleanup прикладываются к отчёту (REGULATION §7).
+Без evidence `verified: true` невозможен даже при отсутствии находок.
 
 ## 5. Lighthouse — бюджеты и как проверять
 
@@ -134,7 +133,13 @@ npx playwright test testframework/stages/e2e/domains/platform/a11y.spec.ts
 | `performance` | ≥ 0.75 |
 | `best-practices` | ≥ 0.90 |
 
-Запуск: `npm run build && npm run preview & npm run lighthouse:ci`. Отчёт — `lighthouse-report.json`/`lighthouse-summary.json` (не коммитить, удалить после проверки — `.cursor/rules/45-artifacts-cleanup.mdc`, если попадает под temp-паттерны). Gate **non-blocking** сейчас (PR #27, artifact only) — фиксировать фактический результат в отчёте, не выдавать желаемое за факт. Если фаза явно требует Lighthouse-гейт — CRITICAL при провале порога; если не требует — MEDIUM с зафиксированным числом.
+Lighthouse выполняется только через соответствующий task-owned Docker/CI job
+из `/qa-gate`; frontend/browser процессы на host запрещены. Отчёт
+`lighthouse-report.json`/`lighthouse-summary.json` хранится в task-owned
+artifacts и очищается по rule 45. Gate **non-blocking** сейчас (PR #27,
+artifact only): фиксировать фактический результат или `NOT_RUN`, не выдавать
+желаемое за факт. Если фаза явно требует blocking Lighthouse-gate — CRITICAL
+при провале порога; иначе MEDIUM с зафиксированным числом.
 
 ## 6. Severity — что блокирует `verified: true`
 
@@ -157,7 +162,7 @@ npx playwright test testframework/stages/e2e/domains/platform/a11y.spec.ts
 - Вердикт: verified: true|false
 
 ## Регрессия
-- Команда: tsc --noEmit && npm run lint && npx vitest run
+- Job: frontend-unit (task-owned limited Docker; exact command в evidence)
 - Результат: PASS/FAIL
 - Лог: Test Files N passed (N) · Tests M passed (M), время <NNs>
 - a11y: axe violations = [] (или список) | Lighthouse: accessibility X.XX / performance X.XX
@@ -183,10 +188,10 @@ PASS/FAIL: <краткий вывод>. <Возврат исполнителю /
 - Вердикт: verified: true
 
 ## Регрессия
-- Команда: tsc --noEmit && npm run lint && npx vitest run
+- Job: frontend-unit (task-owned limited Docker; exact command в evidence)
 - Результат: PASS
 - Лог: Test Files 38 passed (38) · Tests 101 passed (101), время 42s
-- a11y: axe (platform/a11y.spec.ts, "kanban board") violations = []
+- a11y: Python E2E `testframework/e2e/test_a11y.py::test_kanban_board` — axe violations = []
 
 ## Замечания
 Нет CRITICAL/HIGH/MEDIUM. Проверено: хуки безусловны (useQuery с enabled), key={col.status.id},
@@ -207,7 +212,7 @@ PASS: реализация соответствует спеке и playbook. Г
 - Вердикт: verified: false
 
 ## Регрессия
-- Команда: npx tsc --noEmit && npm run lint && npx vitest run
+- Job: frontend-unit (task-owned limited Docker; exact command в evidence)
 - Результат: PASS
 - Лог: Test Files 37 passed (37) · Tests 99 passed (99)
 
@@ -237,7 +242,7 @@ GOOD
 BAD
 - "Выглядит адаптивно" без проверки брейкпоинтов — вердикт «на глаз», антипаттерн верификации
 - Пропустил key={index} в списке с добавлением элементов в начало — баг реконсиляции ушёл в прод
-- verified: true без приложенного vitest-лога и без даты/времени
+- verified: true без приложенного Docker evidence frontend-unit и без даты/времени
 - Смягчил HIGH до MEDIUM, чтобы не блокировать волну — нарушение §4.2 (severity не торгуется)
 - Поверил комментарию fe1 "a11y проверено" без собственного запуска axe/Lighthouse
 ```
@@ -246,7 +251,7 @@ BAD
 
 - [ ] Все пункты чек-листа §3 пройдены с воспроизведением (не заявлением).
 - [ ] Регрессия воспроизведена лично (лог + время), не взята со слов исполнителя.
-- [ ] a11y — либо запущен `a11y.spec.ts`/axe, либо явно указано, почему для этого экрана проверка иная.
+- [ ] a11y — либо Python browser E2E/axe по верифицированному TC выполнен, либо стоит обоснованный `NOT_RUN`.
 - [ ] Lighthouse — зафиксирован фактический результат (даже если gate non-blocking).
 - [ ] Все замечания — с `файл:строка`, severity, ожидаемое/фактическое, действие.
 - [ ] CRITICAL/HIGH = 0 для `verified: true`; иначе `verified: false` и возврат исполнителю.
@@ -260,7 +265,7 @@ BAD
 | `gsd-verify-work` | Goal-backward / UAT: AC наблюдаемы в UI |
 | `gsd-ui-review` | 6 pillars: consistency, hierarchy, responsive, a11y, micro-interactions, perf |
 | `/goal-verify` | RU-lite приёмка без полного upstream |
-| rule 56 | Личный прогон tsc + vitest (+ a11y/Lighthouse note) |
+| rule 56 | Личный Docker job frontend-unit (+ Python a11y/Lighthouse evidence или NOT_RUN) |
 
 ## 12. GSD-паттерны (Hub-усиленные)
 
