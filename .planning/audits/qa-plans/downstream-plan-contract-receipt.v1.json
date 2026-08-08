@@ -1,7 +1,7 @@
 {
   "schema_version": "downstream-plan-contract-receipt.v1",
   "full_head": "30333f1bb5bd10a9e86e9a93a5f71fdcdcc13ddf",
-  "checker_blob_sha256": "a9a20561c424146cc5d57d418135ab1eed4f99eeac53edb1f64fc5ce6d498cd5",
+  "checker_blob_sha256": "bf825c6ea324a478edb6ce658b28ea8eecaea38ba80d1bdb946246ef0f4cb327",
   "master_blob_sha256": "68f1884b7e34085bc5ddd26e3d0923f4226b5bbbe44918d021990d842a709020",
   "ordered_plan_paths": [
     ".planning/phases/128-tf-python-scaffold/PLAN.md",
@@ -26,7 +26,7 @@
     ".planning/phases/140-tf-load-resilience/PLAN.md",
     ".planning/phases/141-tf-ci-final-verification/PLAN.md"
   ],
-  "plan_blob_sha256": "cd31f8a9f3904a0a1f63017773e88cb318934dde67721804d4fbbfe46d2c7717",
+  "plan_blob_sha256": "ae5ac32abcc8e1561b90090373825ae315d62c28c0663d655fc4da664e0a415e",
   "task_count": {"phase_129": 176, "later_130_141": 61},
   "batch_ids_sha256": "faebb25e84d4efb01fc02fb515118ed28d5224be50dc02ec45da3baea42bb9f5",
   "batch_count": 173,

@@ -98,6 +98,11 @@ def task_contract(block: str, path: str, strict_roles: bool) -> None:
     if not (has(block, "produces") or has(block, "action")): fail(f"{path}: missing produces/action")
     if not (has(block, "failing_sentinel") or re.search(r"\b(?:fail|forbidden|reject)\b", block, re.I)): fail(f"{path}: missing failing sentinel")
     if not (has(block, "atomic_allowlist") or re.search(r"atomic.{0,80}(?:allowlist|commit)", block, re.I | re.S)): fail(f"{path}: missing atomic allowlist")
+    verify = re.findall(r"<verify(?:\s[^>]*)?>(.*?)</verify>", block, re.S)
+    if len(verify) != 1 or not verify[0].strip(): fail(f"{path}: verify must be exactly one nonempty block")
+    files = re.search(r"<files>(.*?)</files>", block, re.S)
+    declared = [value.strip() for value in re.split(r"[;,]", files.group(1)) if value.strip()]
+    if not 1 <= len(declared) <= 14: fail(f"{path}: Files cardinality outside 1..14")
 
 def closure_hash(texts: dict[str, bytes]) -> str:
     material = b"".join(path.encode("utf-8") + b"\0" + texts[path] for path in PLAN_PATHS)
@@ -140,16 +145,39 @@ def main() -> int:
     later = PLAN_PATHS[9:]; later_blocks: list[str] = []
     for path, count in zip(later, LATER_COUNTS, strict=True):
         phase = PurePosixPath(path).parts[2][:3]; current = blocks(texts[path], path)
-        if len(current) != count or "NOT_READY" not in texts[path] or f"G-ACTIVATE-{phase}" not in texts[path]: fail(f"{path}: task/activation drift")
-        for block in current:
-            if "NOT_READY" not in block or f"G-ACTIVATE-{phase}" not in block: fail(f"{path}: task activation drift")
+        if len(current) != count or "NOT_READY" not in texts[path] or (phase != "130" and f"G-ACTIVATE-{phase}" not in texts[path]): fail(f"{path}: task/activation drift")
+        task_map = {re.search(r'id="([^\"]+)"', block).group(1): block for block in current}
+        docs_records = re.findall(r'<docs_mutation task_id="([^\"]+)" paths="([^\"]+)"/>', text)
+        activation_records = re.findall(r'<task_contract task_id="([^\"]+)" profile="([^\"]+)" docs="([^\"]+)" feature="([^\"]+)" risk_class="([^\"]+)" files_ref="([^\"]+)" rollback_stop="([^\"]+)" founder_id="([^\"]+)" predecessor="([^\"]+)"/>', text)
+        if phase == "130":
+            if len(docs_records) != len(current) or len({item[0] for item in docs_records}) != len(current): fail(f"{path}: docs contract coverage drift")
+            docs_by_task = dict(docs_records)
+        else:
+            if len(activation_records) != len(current) or len({item[0] for item in activation_records}) != len(current): fail(f"{path}: activation contract coverage drift")
+            docs_by_task = {item[0]: item[2] for item in activation_records}
+            for task_id, profile, docs, feature, risk, files_ref, rollback, founder, predecessor in activation_records:
+                if task_id not in task_map or not all((feature, risk, rollback)) or files_ref != f"task:{task_id}/files" or founder != f"G-ACTIVATE-{phase}" or predecessor != "G130-H": fail(f"{path}: malformed activation contract")
+                match = re.search(r'<verify profile="([^\"]+)">', task_map[task_id])
+                if not match or match.group(1) != profile: fail(f"{path}: activation profile mismatch")
+                if any(token in " ".join((feature, risk, rollback)) for token in ("*", "range", "universal", "bulk", "all phases")): fail(f"{path}: broad activation contract")
+        closure_count = 0
+        for task_id, block in task_map.items():
+            if "NOT_READY" not in block or (phase != "130" and f"G-ACTIVATE-{phase}" not in block): fail(f"{path}: task activation drift")
             files = re.search(r"<files>(.*?)</files>", block, re.S).group(1)
-            if "docs/" in files and not block.startswith(f'<task id="{phase}-') or ("docs/" in files and not re.search(rf'<task id="{phase}-(?:D|H|R|C|E)">', block)): fail(f"{path}: docs ownership outside closure task")
-            if "docs/" in files and ("**" in files or "*" in files): fail(f"{path}: broad docs ownership")
+            declared_docs = docs_by_task.get(task_id)
+            if declared_docs is None: fail(f"{path}: missing per-task docs declaration")
+            if declared_docs != "none":
+                closure_count += 1
+                for doc in declared_docs.split(","):
+                    if not doc or "*" in doc or doc not in files: fail(f"{path}: docs path outside literal Files")
+            if "testframework/docs/" in files and declared_docs == "none": fail(f"{path}: docs Files outside closure task")
+            if re.search(r"\b(?:write|update|create|modify)\b.{0,80}(?:docs|markdown)\b", block, re.I | re.S) and declared_docs == "none": fail(f"{path}: undeclared docs mutation")
+        if closure_count != 1: fail(f"{path}: requires exactly one dependent docs closure")
         later_blocks.extend(current)
     if len(later_blocks) != 61: fail("later count drift")
+    raw_profile_count = len(re.findall(r'<profile\b', texts[later[0]]))
     profile_rows = re.findall(r'<profile name="([^\"]+)" image_role="([^\"]+)" limit_class="([^\"]+)" target="([^\"]+)" deadline="([^\"]+)"/>', texts[later[0]])
-    if len(profile_rows) != 47 or len({row[0] for row in profile_rows}) != 47 or any(not all(row) for row in profile_rows): fail("profile registry drift")
+    if raw_profile_count != len(profile_rows) or len(profile_rows) != 47 or len({row[0] for row in profile_rows}) != 47 or any(not all(row) for row in profile_rows): fail("profile registry drift")
     profiles = {row[0] for row in profile_rows}; used = re.findall(r'<verify profile="([^\"]+)">', "\n".join(later_blocks))
     if not used or set(used) - profiles or len(set(used)) != 47: fail("profile use closure drift")
     if any("testframework/runner/profiles.py" in block for block in later_blocks): fail("later profile writer")
