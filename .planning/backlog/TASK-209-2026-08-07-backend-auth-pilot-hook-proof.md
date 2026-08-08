@@ -1,49 +1,29 @@
-# TASK-209 — 🧪 Backend auth pilot и hook proof
+# TASK-209 — 🛡️ Security abuse and isolation cases
 
-> Заведено: 2026-08-07 · Приоритет: **P1** · Статус: Открыта · Фаза: **132**
+> Revision: **2026-08-07** · Priority: **P1** · Status: Open · Phase: **132**
+
+> Runtime/traceability gate: `NOT_READY` until `testframework/docker/run-task.ps1` contract `hub.qa-runner/v1` and `testframework/docker/images.lock.json` are independently accepted. Executable evidence must resolve TASK/requirement/TC/risk; direct Docker/Compose, host test/validator, mutable-image and ad-hoc cleanup fallbacks are forbidden.
+> **Deprecated filename alias:** the pre-rebase backend pilot slug is kept only
+> for link stability. Current purpose is security abuse and isolation cases.
 
 ## [OUTCOME]
 
-Один репрезентативный service-free auth unit batch работает из
-`backend/tests/auth/**`, доказывает parity и формализует безопасное
-consumer-by-consumer обращение с `hubtest` export hooks. DB/HTTP component rows
-в pilot запрещены и передаются Python-владельцу.
+Risk-driven Python cases detect IDOR, privilege escalation, enumeration,
+replay, rate-limit bypass and secret/PII leakage.
 
 ## [ROLE]
 
-- Owner: `be2` — auth pilot, imports/hooks and before/after evidence.
-- Verifier / handoff: `be-ver` — package semantics, hook consumers, race/coverage/mutation verification.
+- Owner: `qa-auto2`; verifier: `security-auditor`.
+- Depends on: TASK-205, TASK-208.
 
-## [SCOPE AND CONSTRAINTS]
+## [OWNED TARGET PATHS]
 
-- Allowed: `backend/tests/auth/**`, target shared support и read-only auth hook ledger; hook-файлы не меняются в этой задаче.
-- Read-only: `backend/testframework/auth/**`, auth production code and TASK-197 ledger.
-- Do not touch: legacy tests, CI, other domains, product behavior.
-- Originals remain; target external package uses `-tags hubtest`. Hook retained unless exact symbol has zero legacy+target consumers and public-contract replacement is proven.
-- Depends on: TASK-197.
-
-## [REFERENCES]
-
-- `backend/testframework/auth/**`, `backend/internal/auth/export_hooks.go`
-- `.planning/codebase/{ARCHITECTURE,TESTING,CONVENTIONS}.md`, backend testing playbook
+`testframework/tests/api/security/**`, `testframework/tests/api/platform/**`. This card authorizes no path beyond its live PLAN/manifest and routes no legacy non-unit row to Python.
 
 ## [ACCEPTANCE]
 
-- Completion command: `cd backend && go test -tags hubtest -race -count=1 ./tests/auth/... ./testframework/auth/...`; exit code 0 и заявленные counts обязательны.
-
-- Pilot ledger rows map old→new tests/names/assertions; both target and legacy auth packages pass `-race -count=1` on same revision.
-- Hook table lists symbol, old/new consumers and decision `retain|candidate-for-TASK-219`; zero-consumer search является evidence, а не разрешением на удаление.
-- Mutation proof: break one auth production guard visible to pilot — target RED; restore GREEN. Hook-файлы и symbols остаются неизменными до TASK-219.
-- Regression: legacy auth and target pilot green; frozen coverage method shows no unexplained loss for affected packages.
-- Evidence: commands/counts/coverage, consumer searches, mutation RED→GREEN.
-- Stop when: hook consumer cannot migrate safely or pilot changes product contract; retain hook and escalate.
-
-## [OUTPUT SCHEMA]
-
-1. Verdict. 2. Pilot rows/hook decision table. 3. Race/coverage/mutation evidence. 4. Regression/risks. 5. Handoff `be-ver`; skill-log.
-
-## [OPERATING RULES]
-
-- Copy/port, do not delete originals; hook changes one symbol at a time.
-- Test triage then rerun target+legacy; coverage uses TASK-203 method.
-- Docs-sync ledger; atomic commit with TASK link, no AI attribution.
+- Abuse matrix covers valid-looking foreign IDs, stale/replayed credentials,
+  concurrency and boundary-rate behavior.
+- Security oracle checks observable denial and non-disclosure, not status alone.
+- Secret canary proves log/report/trace scanner sensitivity.
+- No real egress/secrets; Docker-only, unexpected skip=0, cleanup PASS.

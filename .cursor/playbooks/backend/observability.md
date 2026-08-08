@@ -222,7 +222,7 @@ func (h *Hub) Register(client *Client) {
 
 Запускать task-owned Docker job `backend-unit` с focused scope
 `./tests/ws/...`, `-race -count=1 -timeout=600s`; boundary/recovery WS cases —
-Python `testframework/integration/ws/**` по verified TC.
+Python `testframework/tests/integration/ws/**` по verified TC; reusable client only at an exact task-scoped `testframework/src/hub_testkit/integration/**` path.
 
 `-count=1` отключает кеш тестов; `-race` детектирует гонки данных; `-timeout` защищает от дедлоков.
 

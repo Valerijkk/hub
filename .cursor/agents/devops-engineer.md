@@ -58,9 +58,9 @@ Pinned-версии образов (не менять на `latest`):
 |-----|---------|------------|
 | `backend-unit` | backend change | Go 1.25 build/vet + genuine units `backend/tests/**`, race по применимому concurrency scope |
 | `frontend-unit` | frontend change | typecheck/Biome/build + genuine Vitest/RTL `frontend/tests/**` |
-| `python-contract` | contract/schema/event/source change | root `testframework/contract/**` |
+| `python-contract` | contract/schema/event/source change | `testframework/tests/contract/**` |
 | `python-api` / `python-integration` | public behavior / DB-broker-storage boundary | root Python suites + task-isolated services |
-| `python-e2e-smoke/full` | PR critical journeys / wave-release | Python Playwright `testframework/e2e/**`, markers `smoke`/`full` |
+| `python-e2e-smoke/full` | PR critical journeys / wave-release | Python Playwright `testframework/tests/e2e/**`; `smoke` marker, `full` launcher profile |
 | `python-load` | change-specific/nightly/manual | approved Locust profile `testframework/load/**` |
 | `lighthouse` | push master, non-blocking | `continue-on-error: true` — артефакт, не гейт (NFR-17 частично) |
 

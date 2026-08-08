@@ -5,11 +5,11 @@
 ## Naming Patterns
 
 **Files:**
-- Текущие Go-тесты используют `snake_case_test.go` внутри доменных пакетов, например `backend/testframework/tracker/handler_flow_test.go` и `backend/testframework/auth/magiclink_test.go`. Идентификаторы задач иногда встроены в имя (`backend/testframework/tracker/link_target_scope_a3011_test.go`, `backend/testframework/tracker/automation_soft_delete_task191_test.go`); при механическом переносе сохраняйте имена для проверки parity.
+- Текущие Go-тесты используют `snake_case_test.go` внутри доменных пакетов, например `backend/testframework/tracker/handler_flow_test.go` и `backend/testframework/auth/magiclink_test.go`. Идентификаторы задач иногда встроены в имя (`backend/testframework/tracker/link_target_scope_a3011_test.go`, `backend/testframework/tracker/automation_soft_delete_task191_test.go`); имя сохраняется только у genuine unit, который literal-операцией sealed manifest переносится без смыслового переписывания. Это identity check, не parity gate.
 - Новые Go unit-файлы называйте по устойчивому поведению: `service_issue_test.go`, `handler_issue_test.go`. Идентификатор задачи или TC указывайте в имени теста/метаданных, но не используйте его как единственный смысл имени файла. Принятый target — `backend/tests/<domain>/`.
 - Текущие frontend-тесты используют kebab-case `*.test.ts` / `*.test.tsx`, например `testframework/stages/unit/frontend-test/domains/tracker/safe-url.test.ts` и `testframework/stages/unit/frontend-test/domains/tracker/issue-card.test.tsx`. Сохраняйте это правило после переноса в `frontend/tests/<domain>/`; этот target заменяет `frontend/src/<module>/unit/` из `.planning/active/august-2026/05-AUGUST-DETAILED.md` и `.planning/backlog/TASK-198-2026-07-30-tf-frontend-units-colocated.md`.
 - Текущие browser specs используют kebab-case `*.spec.ts`, Page Object — `*.page.ts`, бизнес-шаги — `*.steps.ts`; примеры: `testframework/stages/e2e/domains/tracker/project-lifecycle.spec.ts`, `testframework/stages/e2e/shared/pages/login.page.ts`, `testframework/stages/e2e/shared/steps/auth.steps.ts`.
-- Целевые Python system tests именуйте по pytest discovery: `test_<feature>.py`, функции `test_<behavior>_<expected_result>`, fixtures — в `conftest.py` или `fixtures/<domain>.py`. Размещайте их прямо в `testframework/{api,integration,contract,e2e}/`; Locust-код — в `testframework/load/`.
+- Целевые Python system tests именуйте по pytest discovery: `test_<feature>.py`, функции `test_<behavior>_<expected_result>`, fixtures — в `testframework/tests/conftest.py` или domain fixture modules. Размещайте suites в `testframework/tests/{api,integration,contract,e2e}/`; Locust-код — в `testframework/load/`.
 
 **Functions:**
 - Go-тесты именуйте `Test<Subject>_<Scenario>`; образцы: `TestHandler_CreateAndGetIssue` в `backend/testframework/tracker/handler_flow_test.go` и `TestEntRepository_CreateIssue_IncrementsCounter` в `backend/testframework/tracker/repository_test.go`.
@@ -23,16 +23,16 @@
 - Python fixtures называйте по выдаваемому ресурсу (`api_client`, `project_factory`, `authenticated_page`) и не создавайте анонимное глобальное состояние.
 
 **Types:**
-- Локальные Go test structs используют lowerCamelCase (`trackerTestEnv`, `mockRepo`), общие helpers — экспортируемый PascalCase (`Env`, `Builder`, `UserFactory`) в `backend/testframework/env/builder.go` и `backend/testframework/factory/user.go`.
+- Локальные Go test structs используют lowerCamelCase (`trackerTestEnv`, `mockRepo`). Экспортируемые legacy helpers (`Env`, `Builder`, `UserFactory`) описывают только текущий source inventory и удаляются exact-manifest closure; target не получает общего migrated support package.
 - TypeScript types/interfaces используют PascalCase; образец опций тестового render — `TestRenderOptions` в `testframework/stages/unit/frontend-test/render.tsx`.
 - Python fixture/result models используют PascalCase-классы и snake_case-поля; API response schemas должны быть явными, не произвольными untyped dictionaries.
 
 ## Code Style
 
 **Formatting:**
-- Go-код должен проходить `gofmt`; imports группируются как standard library, third-party, project. В текущем CI нет отдельного formatting gate для test tree, поэтому TASK-197 должен добавить его для `backend/tests/**` рядом с `go vet` в `.github/workflows/ci.yml`.
+- Go-код должен проходить `gofmt`; imports группируются как standard library, third-party, project. Target `backend-unit` включает formatting/static checks через единственный принятый `hub.qa-runner/v1`; прямой provider-specific test command не добавляется.
 - TypeScript-тесты следуют Biome-настройкам из `frontend/biome.json`; текущий внешний test tree форматирован табами.
-- `frontend/biome.json` включает только `src/**`, поэтому 180 файлов в `testframework/stages/unit/frontend-test/domains/` и 20 specs в `testframework/stages/e2e/domains/` не lintятся. После TASK-198 включите `frontend/tests/**`. Python formatter/linter не обнаружен; выберите и зафиксируйте его в `testframework/pyproject.toml` до приёмки TASK-193.
+- `frontend/biome.json` включает только `src/**`, поэтому текущий legacy tree не lintится. Phase 129 включает `frontend/tests/**` в accepted `frontend-unit`; Python formatter/linter и версии фиксируются в greenfield `testframework/pyproject.toml`/lock до принятия Python jobs.
 - Комментарии и prose пишите по-русски, identifiers и test code — на идиоматичном английском, согласно `docs/code_style_guide.md` и `.cursor/playbooks/testing.md`.
 
 **Linting:**
@@ -61,7 +61,7 @@
 - Test doubles обязаны воспроизводить repository contracts: not-found, conflict, forbidden, infrastructure errors. Mock, всегда возвращающий `nil, nil`, недопустим; ориентиры — `backend/testframework/tracker/repository_test.go` и `.cursor/playbooks/testing/backend-go.md`.
 - В TypeScript async tests ожидайте user actions и observable state. Rejected promises должны проверяться, а не подавляться ради green suite.
 - Python fixtures при недоступной обязательной инфраструктуре должны завершать CI setup error, не молча `skip`. Optional local-only capabilities требуют зарегистрированного marker и allowlisted причины skip.
-- Каждый FAIL сначала triage по требованиям с фиксацией `ROOT=code|test|unclear|flaky`, как требуют `.cursor/REGULATION.md` и `.cursor/playbooks/testing.md`.
+- Каждый FAIL сначала triage по требованиям с фиксацией `ROOT=code|test|infra|flaky|stop`, как требуют `.cursor/REGULATION.md` и `.cursor/playbooks/testing.md`.
 
 ## Logging
 
@@ -70,7 +70,7 @@
 **Patterns:**
 - Логируйте только данные для воспроизведения: test ID, request ID, sanitized endpoint, fixture identity и timing.
 - Никогда не прикладывайте JWT, magic-link codes, passwords, API keys, webhook secrets или PII. Это относится к Playwright traces, pytest logs, Allure attachments и Locust output; правила — `.cursor/playbooks/testing/tooling.md` и `docs/security_guidelines.md`.
-- При переводе E2E на Python сохраните trace-on-first-retry и screenshot-on-failure из `frontend/playwright.config.ts`.
+- Greenfield Python E2E независимо задаёт trace/screenshot policy по risk и redaction contract; legacy TypeScript configuration служит discovery evidence, но не портируется.
 - Для значимых suite runs записывайте wall time и самые медленные тесты в `.planning/COVERAGE.md`; деградация более 20% требует заметки в `.planning/STATE.md`, согласно `docs/testframework_strategy.md`.
 
 ## Comments
@@ -107,20 +107,20 @@
   private access. Сохраняйте hooks, пока конкретный unit не переписан на public behavior.
 - Экспортируйте только минимальный white-box seam для поведения. Не расширяйте production API ради тестов.
 - Общие frontend helpers `renderWithProviders` и `createTestQueryClient` сейчас находятся в `testframework/stages/unit/frontend-test/render.tsx`; после переноса держите одну каноническую реализацию в `frontend/tests/support/`.
-- Общие Python helpers размещайте в `testframework/core/` или layer-specific
+- Общие Python helpers размещайте в exact task-named modules под `testframework/src/hub_testkit/` или layer-specific
   fixture modules. Domain setup не должен накапливаться в root `conftest.py`.
 
 **Barrel Files:**
 - E2E Page Objects и Steps сейчас используют barrels `testframework/stages/e2e/shared/pages/index.ts` и `testframework/stages/e2e/shared/steps/index.ts`.
 - В Python избегайте широких fixture barrels; основной механизм — scoped `conftest.py` discovery.
 
-## Migration-Preserving Rules
+## Founder Greenfield Cutover Rules
 
-- До перемещения создайте machine-readable inventory: каждый текущий путь сопоставляется с `go-unit`, `python-api`, `python-integration`, `python-contract`, `python-e2e` или `delete-with-reason`. Источники: `backend/testframework/`, `testframework/stages/unit/frontend-test/domains/`, `testframework/stages/e2e/domains/`.
-- На механическом этапе сохраняйте test names и assertions. Refactoring/translation разрешается после parity старого и нового запусков.
-- Не классифицируйте тест по текущей директории: в `backend/testframework/` 184 файла используют Ent/SQLite helpers, 260 — HTTP/Fiber testing, 58 — miniredis, 16 — NATS patterns; категории пересекаются.
-- Каждый новый CI job доказывает non-empty collection и failure sensitivity через намеренно падающий sentinel, как требует `.planning/backlog/TASK-201-2026-07-30-tf-ci-cleanup.md`.
-- Удаляйте старый путь только после parity всех inventory rows, green replacement job на реальном PR, проверки frozen coverage method и нулевого unexpected skip count.
+- Sealed machine-readable authority задаёт literal operation для каждого legacy source: только доказанные native units получают `move`; legacy Go component/API/integration, static-contract Vitest, TypeScript Playwright и support/config/entrypoints получают `delete`/`keep-blocked` с причиной.
+- Для unit `move` сохраняются source identity, test names и assertions в рамках атомарного batch. Это защита от несанкционированного изменения, не dual-run или row/case parity.
+- Не классифицируйте тест по текущей директории: imports, runtime boundaries и behavior определяют только `move` genuine unit либо `delete` legacy row. Новый Python test не является destination старого файла.
+- Каждый новый target job через `hub.qa-runner/v1` доказывает non-zero collection, expected-skip policy, traceability, failure/oracle sensitivity, isolated evidence и exact cleanup.
+- Destructive batch разрешён только после Phase 128 sealed manifest/independent acceptance и принятия launcher. Исторические coverage/counts сохраняются как discovery evidence, но не блокируют удаление и не требуют replacement parity.
 
 ---
 

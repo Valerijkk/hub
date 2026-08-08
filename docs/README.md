@@ -1,5 +1,7 @@
 # Hub — Единая база знаний
 
+> Active Python QA routing: executable suites use `testframework/tests/**`; each reusable module is assigned by exact task path under `testframework/src/hub_testkit/**`.
+
 > Все агенты AI-команды загружают эти файлы **перед любой задачей**.  
 > Регламент: `.cursor/REGULATION.md` · **Docs sync:** `.cursor/rules/55-docs-sync.mdc`
 

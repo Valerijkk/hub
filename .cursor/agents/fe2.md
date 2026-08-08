@@ -188,7 +188,7 @@ variant: {
 - Composer сообщения: `Enter` отправляет, `Shift+Enter` — новая строка (документировано в `docs/wiki/SHORTCUTS.md`, раздел «Мессенджер»); реализация — не блокировать нативное поведение `textarea`, обрабатывать `onKeyDown` явно.
 - Typing-индикатор (`.typing-dot`) — не единственный сигнал: у него есть текстовая подпись «печатает…», не только анимация точек (иначе недоступно screen-reader).
 - TMS-таблица результатов прогона — семантическая `<table>` с `<th scope>` или ARIA grid; статус (`passed/failed/skipped`) — цвет **+** текст/иконка, не только цвет (WCAG 1.4.1).
-- Browser-level a11y для messenger/TMS проверяется Python E2E в `testframework/e2e/**` по верифицированному TC; legacy TypeScript browser suite не является target или шаблоном.
+- Browser-level a11y для messenger/TMS проверяется Python E2E в `testframework/tests/e2e/**` по верифицированному TC; legacy TypeScript browser suite не является target или шаблоном.
 
 **Good:** `<div role="status" aria-live="polite">{typingUsers.map(u => u.displayName).join(", ")} печатает…</div>`.
 

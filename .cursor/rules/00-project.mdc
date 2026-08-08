@@ -119,7 +119,7 @@ Target test architecture:
 - `backend/tests/{domain}/**` — только genuine isolated Go units;
 - `frontend/tests/{domain}/**`, `frontend/tests/support/**` — только
   genuine Vitest/RTL units;
-- `testframework/{core,contract,api,integration,e2e,load,docker,reports}/**`
+- `testframework/{src/hub_testkit,tests/{contract,api,integration,e2e},selftests,cases,load,docker,reports}/**`
   — единый Python non-unit QA-проект.
 
 Legacy Go component/API/integration, static-contract Vitest и TypeScript

@@ -121,7 +121,7 @@ fresh RCA/architecture review до следующего фикса. Review remed
 
 Этот кейс описывает доказательство до founder greenfield cutover. Его legacy
 пути/команды нельзя копировать: новый канон — genuine units в
-`backend/tests/bases/**` и greenfield API/authz в `testframework/api/bases/**`.
+`backend/tests/bases/**` и greenfield API/authz в `testframework/tests/api/bases/**`.
 
 **Кейс 2 — `auth` magic-link rune fix (баг → тест → fix, тот же день):**
 

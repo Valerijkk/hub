@@ -291,7 +291,7 @@ Wave 4 (приёмка):
 |---|---|---|
 | `be1` / `be2` | Разные `internal/`-модули или разные слои | be1: `sprint/service.go`; be2: `sprint/ent_repository.go` + `ent/schema/sprint.go` |
 | `fe1` / `fe2` | Разные компоненты/роуты | fe1: `IssueList.tsx`; fe2: `FilterPanel.tsx` |
-| `qa-auto1` / `qa-auto2` | Разные уровни Python QA | auto1: `testframework/integration/tracker/`; auto2: `testframework/e2e/tracker/` |
+| `qa-auto1` / `qa-auto2` | Разные уровни Python QA | auto1: `testframework/tests/integration/tracker/`; auto2: `testframework/tests/e2e/tracker/`; reusable modules are separately named task paths under `src/hub_testkit` |
 
 **Контракт первым коммитом.** Если fe1 и fe2 зависят от общих типов — типы (`types.ts`) фиксируются
 первым атомарным коммитом, оба берут оттуда. То же для API-контракта между be и fe.

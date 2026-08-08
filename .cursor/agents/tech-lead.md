@@ -112,14 +112,14 @@ Phase 39..49 ──► Phase 50 (v4 gate: qa-gate + Vitest smoke) [Depends on в
 - [ ] `GetBase`/`Update`/`Delete` + операции таблиц/колонок/записей проверяют владение
       через единую `authorizeBase(ctx, baseID, userID)`
 - [ ] Чужая база → 403 `ErrForbidden`; несуществующая → 404
-- [ ] Genuine Go units `backend/tests/bases/**` и применимые Python API/authz-сценарии `testframework/api/bases/**` green в task-owned Docker
+- [ ] Genuine Go units `backend/tests/bases/**` и применимые Python API/authz-сценарии `testframework/tests/api/bases/**` green в task-owned Docker
 - [ ] docs-sync: `docs/wiki/API.md`
 
 ## Задачи (атомарные, ≤200-300 строк)
 | # | Задача | Исполнитель | Файлы | Depends | Оценка |
 |---|--------|-------------|-------|---------|--------|
 | 1 | `authorizeBase` + внедрение во все пути service/handler | be1 | `backend/internal/bases/service.go`, `handler.go` | — | 0.5д |
-| 2 | Изолированные service units + greenfield Python API denial-сценарии (list/get/put/delete/table/column/record) | be1 + qa-auto1, разные ownership boundaries | `backend/tests/bases/**`, `testframework/api/bases/**` | 1 | 0.5д |
+| 2 | Изолированные service units + greenfield Python API denial-сценарии (list/get/put/delete/table/column/record) | be1 + qa-auto1, разные ownership boundaries | `backend/tests/bases/**`, `testframework/tests/api/bases/**` | 1 | 0.5д |
 | 3 | Docs-sync API.md | be1 (или docs-writer) | `docs/wiki/API.md` | 1 | 0.1д |
 
 ## Волны
@@ -272,7 +272,7 @@ Phase 39..49 ──► Phase 50 (v4 gate: qa-gate + Vitest smoke) [Depends on в
 |---|---|---|
 | `be1` / `be2` | Разные слои ИЛИ разные модули: один — service/handler, другой — schema/repository | be1 → `service.go`; be2 → `ent/schema/*.go` + `ent_repository.go` |
 | `fe1` / `fe2` | Разные компоненты/роуты одного экрана | fe1 → `List.tsx`; fe2 → `Filters.tsx` |
-| `qa-auto1` / `qa-auto2` | Разные Python QA boundaries, не фиксированная «пирамида» | qa-auto1 → `testframework/{api,integration,load}/<domain>/**`; qa-auto2 → `testframework/{contract,e2e}/<domain>/**` |
+| `qa-auto1` / `qa-auto2` | Разные Python QA boundaries, не фиксированная «пирамида» | qa-auto1 → `testframework/tests/{api,integration}/<domain>/**` + named load paths; qa-auto2 → `testframework/tests/{contract,e2e}/<domain>/**` |
 | `sa1` / `sa2` | Разные модули ИЛИ разные секции одной спеки (без конфликта строк) | sa1 → Intranet v2 API; sa2 → Calendar v2 API (Волна 2, §7) |
 | `ba1` / `ba2` | Разные US/модули | ba1 → Intranet+Calendar US; ba2 → Wiki US (Волна 1, §7) |
 

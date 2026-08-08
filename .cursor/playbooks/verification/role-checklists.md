@@ -88,7 +88,7 @@ Skill: `FE_VER_skill.md`. Артефакт: React/TS в `frontend/src`.
 ```
 
 Воспроизведение: task-owned limited Docker `frontend-unit`; browser outcomes —
-Python `testframework/e2e/**` через `/qa-gate`.
+Python `testframework/tests/e2e/**` через `/qa-gate`.
 
 Как проверять Rules of Hooks (пример):
 

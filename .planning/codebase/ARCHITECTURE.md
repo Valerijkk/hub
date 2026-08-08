@@ -1,5 +1,10 @@
 # Architecture
 
+> **Superseded inventory note (2026-08-07):** counts ниже — pre-final snapshot.
+> Для любых move/delete действий использовать только current founder manifest
+> (revision `5708671f`, 1,049 rows, SHA `72de6a81…`); parity/dual-run не gate,
+> hook-dependent genuine units нельзя удалять.
+
 **Analysis Date:** 2026-08-07
 
 ## Pattern Overview
@@ -53,13 +58,13 @@
 **Language-native unit trees (approved target, not implemented):**
 - Purpose: Отделить developer-owned Go/Vitest unit tests от независимого QA framework.
 - Location: founder target `backend/tests/<domain>/**`, `frontend/tests/<domain>/**` и `frontend/tests/support/**`; каталоги сейчас отсутствуют.
-- Contains: Go `*_test.go` и Go-only support под `backend/tests/`; Vitest `*.test.ts(x)` и frontend-only support под `frontend/tests/`.
+- Contains: только доказанные genuine Go `*_test.go` под `backend/tests/<domain>/**`; четыре legacy support-файла не переносятся. Новые минимальные Go helpers допустимы только рядом с unit-доменом и только если их явно создаёт принятый план. Vitest `*.test.ts(x)` и frontend-only support живут под `frontend/tests/`.
 - Depends on: `backend/go.mod`/`backend/internal/**` для Go и `frontend/package.json`/`frontend/src/**` для TypeScript.
 - Used by: целевые language-native CI jobs; `.github/workflows/ci.yml`, `.planning/backlog/TASK-197-2026-07-30-tf-backend-units-colocated.md` и `.planning/backlog/TASK-198-2026-07-30-tf-frontend-units-colocated.md` ещё не синхронизированы с этими exact paths.
 
 **Python QA framework (approved target, not implemented):**
 - Purpose: Integration, API, system E2E, full-flow и load tests вне языковых unit-слоёв.
-- Location: целевые `testframework/{core,api,integration,contract,e2e,load,docker,reports}/`, `testframework/pyproject.toml` и корневой pytest config.
+- Location: целевые `testframework/{src/hub_testkit,tests/{api,integration,contract,e2e},selftests,cases,load,docker,reports}/`, `testframework/pyproject.toml` и `testframework/tests/conftest.py`.
 - Contains: pytest fixtures, Playwright Python, Locust; сейчас эти пути отсутствуют.
 - Depends on: Docker-managed Postgres/Mongo и приложение через публичные API; Python-слой не должен импортировать Go packages или frontend source.
 - Used by: целевая отдельная CI job из `.planning/backlog/TASK-201-2026-07-30-tf-ci-cleanup.md`; такой job сейчас отсутствует в `.github/workflows/ci.yml`.
@@ -187,20 +192,20 @@ Use only these directions while the current topology is active. Do not add impor
 
 **Logging:** Go test output идёт через `go test`; Playwright report создаётся под `frontend/playwright-report/` и загружается `.github/workflows/ci.yml` только при failure.
 **Validation:** Go — `go vet -tags hubtest`; frontend production source — `frontend/tsconfig.json` и Biome по `frontend/src`; root TypeScript tests валидируются Vitest, но не `tsc` include.
-**Authentication:** Текущий E2E использует DEV seed/login в `testframework/stages/e2e/shared/helpers/auth.ts`; target fixture из `.planning/backlog/TASK-194-2026-07-30-tf-e2e-shared-fixtures.md` требует Magic Link test interceptor и per-test data isolation.
-**Coverage:** Каноническая команда находится в `.github/workflows/ci.yml`; до миграции нужно выбрать один baseline из двух несравнимых значений, зафиксированных в `.planning/STATE.md`.
+**Authentication:** Текущий E2E использует DEV seed/login в `testframework/stages/e2e/shared/helpers/auth.ts`; этот helper удаляется. Greenfield auth fixture выводится из актуального auth/security contract и обеспечивает per-test data isolation.
+**Coverage:** Старый `.github/workflows/ci.yml` хранит только historical discovery evidence. Значение 82.0373% не является migration gate; после cutover target jobs публикуют новый baseline через accepted launcher.
 
 ## Current-to-Target Gaps
 
 | Area | Current evidence | Approved target | Required seam |
 |---|---|---|---|
-| Go unit placement | 830 total (829 legacy root + 1 server); 594 classified genuine unit, 236 component; 0 in `backend/tests/` | Founder target `backend/tests/<domain>/**` only for units | Resolve mapping and sync TASK-197 before moving |
-| Frontend unit placement | 180 files (156 unit + 24 static contract) + 3 support; 0 under `frontend/tests/` | Founder target `frontend/tests/<domain>/**` + `frontend/tests/support/**` | Flip config/static gates and route contract rows to Python |
-| Root framework | 241 tracked legacy files; 0 Python files | Python project in `testframework/` | Scaffold alongside retained legacy assets, then cut over |
-| E2E source | 20 TS spec in `testframework/stages/e2e/domains/` | Playwright Python in `testframework/e2e/` | Port actual root specs, not `frontend/e2e/README.md` |
-| Integration classification | Unit/integration/API mixed in `backend/testframework/` | Python `testframework/integration/` and `testframework/api/` | Classify before moving; pattern counts overlap |
+| Go unit placement | 832 total / 3,674 declared; 595 classified genuine unit, 237 component; 0 in `backend/tests/` | Founder target `backend/tests/<domain>/**` only for units | Sealed manifest moves 350 hook-free units and keeps 245 hook-dependent units blocked until TASK-234 |
+| Frontend unit placement | 180 files (156 unit + 24 static contract) + 3 support; 0 under `frontend/tests/` | Exactly 156 units move to `frontend/tests/<domain>/**` and one `render.tsx` moves to `frontend/tests/support/` | Delete 24 static contracts and the remaining two legacy support rows; new Python contracts are independent greenfield tests |
+| Root framework | 241 tracked legacy files; 0 Python files | Python project in `testframework/` | Phase 129 deletes the exact legacy closure and creates the root scaffold; no coexistence/parity gate |
+| E2E source | 20 TS specs in `testframework/stages/e2e/domains/` | New risk-derived Playwright Python in `testframework/tests/e2e/` | Delete TS rows by manifest; do not port files or preserve historical counts |
+| Integration classification | Unit/integration/API mixed in `backend/testframework/` | Legacy non-unit rows удаляются; новые Python suites создаются независимо в `testframework/tests/integration/` и `testframework/tests/api/` | Classification выбирает только literal `move` genuine unit или `delete`; Python не является destination старого row |
 | Load | No files/config under `testframework/load/` | Locust in `testframework/load/` | Add only local/scheduled execution per `TASK-200` |
-| CI | Go + Vitest + TS Playwright | language-native unit jobs + pytest job + scheduled load | Dual-run owner: TASK-201. Legacy cleanup owner after parity: TASK-219 |
+| CI | Go + Vitest + TS Playwright | language-native unit jobs + Python layer jobs + scheduled load | TASK-201 switches consumers per cutover batch; TASK-219 deletes legacy immediately by manifest, without dual-run |
 
 ## Migration Decision Gates
 
@@ -211,30 +216,42 @@ Use only these directions while the current topology is active. Do not add impor
 
 **G2 — Test classification:**
 - `backend/testframework/` is not a pure unit layer: overlapping scans find 182 files using Ent test/open patterns, 27 with Postgres patterns, 12 with Mongo patterns, 60 with Redis patterns, 49 with NATS patterns and 259 with `httptest` patterns.
-- Classify by direct and transitive dependency before placement: only
-  service-free logic stays Go unit; DB/broker/network/process/whole-API flow
-  belongs to Python `testframework/integration|api|contract/`.
+- Use direct and transitive dependency evidence only to select the sealed
+  operation: service-free genuine unit `move`, hook-dependent unit
+  `keep-blocked`, service-backed/whole-API legacy row `delete`. New Python
+  integration/API/contract suites are independent greenfield artifacts.
 
 **G3 — Source path authority:**
-- Actual E2E source is `testframework/stages/e2e/domains/`; `frontend/e2e/` contains only a tracked README and points to stale `testframework/e2e/`.
+- **Historical/forbidden pointer only:** actual legacy E2E source was `testframework/stages/e2e/domains/`; `frontend/e2e/` is a tracked README whose old direct-layer pointer is not execution or ownership authority.
 - `.planning/audits/planning-audit-2026-07/02-TEST-FRAMEWORK-MIGRATION.md` uses `/tests`, while the later active plan and TASK-193 use root `testframework/`. Use `testframework/` unless the founder explicitly changes the active plan.
-- `docs/testframework_strategy.md` still ties TF-PY to a microservice split and preserves old unit paths; `.planning/active/august-2026/05-AUGUST-DETAILED.md` explicitly defers microservices and is the current routing source.
+- `.planning/active/august-2026/06-TEST-ARCHITECTURE-REBASE.md` is the current routing source. Older microservice/test-path sections in `05-AUGUST-DETAILED.md` are explicitly non-executable provenance.
 
 **G4 — Destructive cleanup:**
-- `TASK-193` permits replacing old root contents, while `TASK-195`, `TASK-198` and `TASK-199` still need files under `testframework/stages/`.
-- Before TASK-193 scaffold, create an explicit keep/migration manifest for `testframework/stages/e2e/**` and `testframework/stages/unit/frontend-test/**`. Final deletion belongs only to TASK-219 after verified parity.
+- Phase 128 seals an exact current-SHA move/keep/delete authority; Phase 129 is
+  the only destructive cutover owner.
+- Legacy Go non-units, static-contract Vitest, TypeScript Playwright and their
+  support/config/entrypoints are delete-no-port rows. Only genuine native units
+  move; 245 hook-dependent Go units remain protected until TASK-234 proves a
+  public/injected seam and zero consumers.
 
 ## Safe Migration Order
 
-1. Freeze a single coverage command and record HEAD/counts from `.planning/STATE.md`, `.github/workflows/ci.yml`, `backend/testframework/` and `testframework/stages/`.
-2. Resolve G1 and write a per-file classification/mapping from `backend/testframework/{ent,env,factory,mongotest,steps,platform,onec}/` into `backend/tests/**`; эти пути не отображаются один-к-одному на production domains.
-3. Add the Python scaffold in `testframework/` without deleting the retained TS/Vitest sources required by later tasks; prove one real integration flow.
-4. Add shared Python auth/data fixtures before porting E2E; keep `frontend/playwright.config.ts` and TS E2E green during the transition.
-5. Port the 20 actual spec from `testframework/stages/e2e/domains/` file by file, preserve POM/Step assertions, and dual-run until parity.
-6. Move true Go units domain by domain; replace integration/API cases in Python before deleting their Go originals. Keep `-tags hubtest` until the last dependent `Export*` reference is gone.
-7. Move the 156 frontend-unit rows into `frontend/tests/<domain>/**`, 3 support rows into `frontend/tests/support/**`, and route 24 static-contract rows to Python; update config/static gates atomically.
-8. Add Python integration/API and Locust layers; full is a selection marker, and load runs remain local/scheduled as required by TASK-200.
-9. Switch `.github/workflows/ci.yml`, `.gitlab-ci.yml`, `Makefile`, `frontend/package.json` and docs only after every replacement job fails on a deliberate sentinel test and passes without it; then remove legacy paths and junction creation.
+1. Accept Phase 128 descriptor-safe authority, independent validator, negative
+   sentinels and sealed cutover manifest on the current SHA.
+2. Execute Phase 129 as ordered batches: move 350 hook-free Go units and 157
+   frontend unit/support rows, delete 325 legacy rows/closure files, and update
+   every affected consumer atomically.
+3. Refactor and move the remaining 245 genuine Go units only after TASK-234
+   zero-consumer evidence; delete 43 hook files only through their guarded
+   batches.
+4. In the same Phase 129 program create the single root Python scaffold and its
+   versioned outer launcher. Until independent launcher acceptance, runtime is
+   `NOT_READY`; legacy commands are not fallback.
+5. Build new contract/API/integration/E2E/load coverage from current
+   requirements, risks and verified TC. Historical TS/Go cases may inform test
+   design but are not port/parity authority.
+6. Phase 141 runs clean-room target jobs, publishes honest new baselines and
+   proves zero stale paths/entrypoints/resources.
 
 ## Reproducibility
 

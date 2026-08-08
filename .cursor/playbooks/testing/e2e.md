@@ -1,6 +1,6 @@
 # E2E — greenfield Python Playwright
 
-> Target: `testframework/e2e/**`, CI `python-e2e-smoke/full`. TypeScript
+> Target: `testframework/tests/e2e/**`, CI `python-e2e-smoke/full`; `full` is a launcher profile, not a pytest marker. TypeScript
 > Playwright, legacy specs/config/shared helpers — delete-not-port.
 
 ## Когда нужен E2E

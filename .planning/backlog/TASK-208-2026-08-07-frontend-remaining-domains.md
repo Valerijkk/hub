@@ -1,51 +1,29 @@
-# TASK-208 — 🧪 Frontend remaining-domain wave
+# TASK-208 — 🛡️ Admin/platform authorization matrix
 
-> Заведено: 2026-08-07 · Приоритет: **P1** · Статус: Открыта · Фаза: **131**
+> Revision: **2026-08-07** · Priority: **P1** · Status: Open · Phase: **132**
+
+> Runtime/traceability gate: `NOT_READY` until `testframework/docker/run-task.ps1` contract `hub.qa-runner/v1` and `testframework/docker/images.lock.json` are independently accepted. Executable evidence must resolve TASK/requirement/TC/risk; direct Docker/Compose, host test/validator, mutable-image and ad-hoc cleanup fallbacks are forbidden.
+> **Deprecated filename alias:** the pre-rebase frontend slug is kept only for
+> link stability. Current purpose is the admin/platform authorization matrix.
 
 ## [OUTCOME]
 
-Все оставшиеся genuine Vitest/RTL unit rows (admin, ai, dashboard, hr,
-notifications, search, v4 и residual) имеют target parity в
-`frontend/tests/<domain>/**`; support живёт в `frontend/tests/support/**`, а
-static/source guards переданы TASK-230.
+Python API suite covers admin/platform/membership role×resource×action behavior
+and tenant isolation from current requirements.
 
 ## [ROLE]
 
-- Owner: `fe2` — remaining domains, residual reconciliation and full target suite.
-- Verifier / handoff: `fe-ver` — unit/support completeness, coverage and mutation verification.
+- Owner: `qa-auto1`; verifier: `qa-auto-ver`.
+- Depends on: TASK-207.
 
-## [SCOPE AND CONSTRAINTS]
+## [OWNED TARGET PATHS]
 
-- Allowed: `frontend/tests/{admin,ai,dashboard,hr,notifications,search,v4,support}/**`.
-- Read-only: matching legacy tests/SUT.
-- Do not touch: legacy deletion/linker/CI, domains owned by TASK-206/207, product behavior.
-- `v4` rows remap by SUT; broad bucket is not preserved when module evidence points elsewhere.
-- Depends on: TASK-198, TASK-207.
-
-## [REFERENCES]
-
-- TASK-202 ledger; remaining legacy frontend directories
-- `.planning/codebase/{STRUCTURE,TESTING,CONCERNS}.md`
+`testframework/tests/api/security/**`, `testframework/tests/api/platform/**`. This card authorizes no path beyond its live PLAN/manifest and routes no legacy non-unit row to Python.
 
 ## [ACCEPTANCE]
 
-- Completion command: `cd frontend && npx vitest run tests`; exit code 0 и заявленные counts обязательны.
-
-- Все 180 legacy test rows и 3 support rows имеют disposition; native unit
-  total соответствует ledger, 24 static-contract rows принадлежат TASK-230;
-  missing/duplicate/static-under-frontend = 0.
-- Full target suite passes test typecheck/Biome/Vitest and reports dated coverage comparable to TASK-198 method.
-- Mutation proof: representative guards in at least admin/ai/v4 and one data-state domain cause target RED; restore GREEN.
-- Regression: legacy 180 and TASK-206/207 targets green, counts/skips reconciled.
-- Evidence: full row validator, commands/counts/timing/coverage and mutation logs.
-- Stop when: any legacy row/TC/assertion is unmapped or coverage method differs; do not claim full parity.
-
-## [OUTPUT SCHEMA]
-
-1. Verdict. 2. Unit/support/static split by domain. 3. Test/coverage/mutation evidence. 4. Regression/gaps. 5. Handoff `fe-ver`; skill-log.
-
-## [OPERATING RULES]
-
-- Batch by target SUT, preserve originals; triage/re-run until new and old green.
-- No legacy cleanup, silent consolidation, weakened assertion or skip.
-- Docs-sync ledger; atomic commits with TASK link, no AI attribution.
+- Allowed/denied matrix includes owner/admin/member/guest, last-owner/member,
+  deactivated/banned actor, guessed/deleted/cross-tenant resource.
+- State/version/duplicate/concurrency boundaries and audit event invariant covered.
+- No existence/PII leakage in denied responses/artifacts.
+- Docker-only repeated run, sentinel and cleanup PASS.

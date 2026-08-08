@@ -180,8 +180,8 @@ func TestNormalizeIssueTitle_TrimsUnicodeWhitespace(t *testing.T) {
 ```
 
 Backend units пишутся в `backend/tests/{domain}/**`. DB/broker/storage
-boundaries пишутся с нуля в `testframework/integration/**`, а
-публичное HTTP behavior — в `testframework/api/**`. Любой test/build/vet
+boundaries пишутся с нуля в `testframework/tests/integration/**`, а
+публичное HTTP behavior — в `testframework/tests/api/**`. Reusable DB/broker clients receive an exact task-scoped path under `testframework/src/hub_testkit/integration/**`. Любой test/build/vet
 запуск — только task-owned Docker с лимитами и cleanup; exact
 runner см. в `AGENTS.md` и `.cursor/skills/qa-gate/SKILL.md`.
 
@@ -198,10 +198,10 @@ runner см. в `AGENTS.md` и `.cursor/skills/qa-gate/SKILL.md`.
 - Rune-safe строковая валидация (не байты):
   `backend/internal/auth/handler.go`; behavioral regression в target должен
   быть genuine unit в `backend/tests/auth/**` или Python API case в
-  `testframework/api/**` — по observable boundary.
+`testframework/tests/api/**` — по observable boundary.
 - RBAC-scoping по владельцу ресурса (403 для чужих):
   `backend/internal/bases/service.go`; public authorization behavior проверяет
-  greenfield case в `testframework/api/**`.
+greenfield case в `testframework/tests/api/**`.
 - Ent-схема с optimistic lock и UUID PK: `backend/ent/schema/issue.go`, `backend/ent/schema/project.go`, `backend/ent/schema/hubbase.go`.
 - Presigned upload через `aws-sdk-go-v2` (не minio-go): `backend/internal/storage/{handler,service}.go`.
 - WS membership-проверка перед подпиской на комнату (NF-02): `backend/internal/ws/handler.go`.

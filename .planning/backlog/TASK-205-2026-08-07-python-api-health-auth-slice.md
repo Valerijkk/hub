@@ -1,46 +1,35 @@
-# TASK-205 — 🧪 Python API health/auth vertical slice
+# TASK-205 — 🐍 Python core, health and readiness foundation
 
-> Заведено: 2026-08-07 · Приоритет: **P1** · Статус: Открыта · Фаза: **129**
+> Revision: **2026-08-07** · Priority: **P1** · Status: Open · Phase: **131**
+
+> Runtime/traceability gate: `NOT_READY` until `testframework/docker/run-task.ps1` contract `hub.qa-runner/v1` and `testframework/docker/images.lock.json` are independently accepted. Executable evidence must resolve TASK/requirement/TC/risk; direct Docker/Compose, host test/validator, mutable-image and ad-hoc cleanup fallbacks are forbidden.
+> **Deprecated filename alias:** the pre-rebase `health-auth-slice` slug is kept
+> for link stability. Current purpose is Python core plus health/readiness;
+> auth/session cases belong to TASK-207.
 
 ## [OUTCOME]
 
-Python framework проверяет health и полный auth vertical slice через публичный HTTP contract, выдаёт structured report и не зависит от Go/TS internals.
+Typed settings/client, isolation, redaction, data factories and health/readiness
+cases establish the greenfield Python API foundation.
 
 ## [ROLE]
 
-- Owner: `qa-auto2` — API client, health/auth tests и traceability.
-- Verifier / handoff: `qa-auto-ver` — clean-env, negative/mutation и legacy-parity verification.
+- Owner: `qa-auto1`; verifier: `qa-auto-ver`.
+- Depends on: TASK-193, TASK-206, TASK-218.
 
-## [SCOPE AND CONSTRAINTS]
+## [OWNED TARGET PATHS]
 
-- Allowed: `testframework/api/{health,auth}/**`, `testframework/core/**`, auth/API fixtures в `testframework/core/fixtures/**` и `testframework/reports/**`.
-- Read-only: `docs/wiki/API.md`, current auth Go tests and E2E helpers.
-- Do not touch: product code, legacy tests, CI, E2E browser layer.
-- Cover health, invalid/missing auth, permitted test login/Magic Link flow, session use/revoke and error envelope/request_id; never use production mail/secrets.
-- Depends on: TASK-193, TASK-203, TASK-204.
-
-## [REFERENCES]
-
-- `backend/testframework/auth/**`, `testframework/stages/e2e/shared/helpers/auth.ts`
-- `docs/wiki/API.md`, `docs/security_guidelines.md`, `.planning/codebase/TESTING.md`
+`testframework/src/hub_testkit/domains/health/api.py`, `testframework/tests/api/health/**`,
+`testframework/docker/task-205-core-health.compose.yml`. This card authorizes
+no path beyond its live PLAN/manifest and routes no legacy non-unit row to
+Python. TASK-205 may not mutate `testframework/docker/run-task.ps1` or
+`testframework/docker/images.lock.json`; either requires a separate exact
+devops-owned contract change and independent review.
 
 ## [ACCEPTANCE]
 
-- Completion command: `cd testframework && python -m pytest api/health api/auth -m api --strict-markers -q`; exit code 0 и заявленные counts обязательны.
-
-- `pytest -m api` collects non-zero health/auth tests and passes against documented isolated stack; unauthorized paths assert status and safe error contract.
-- Ledger maps each new test to legacy behavior/TC; all artifacts redact tokens, codes, cookies and PII.
-- Mutation proof: temporarily bypass one auth denial or alter expected revoke behavior in a reversible local production patch — relevant Python test RED; restore GREEN/diff-clean.
-- Regression: Python scaffold smoke and legacy auth domain tests green; counts/skips recorded, unexpected skips = 0.
-- Evidence: environment, commands, counts, timings, reports and mutation RED→GREEN.
-- Stop when: only production credential/mailbox can complete auth or contract contradicts docs; classify and escalate.
-
-## [OUTPUT SCHEMA]
-
-1. Verdict/summary. 2. Endpoint→scenario→TC mapping. 3. Commands/counts/timing/mutation. 4. Regression/redaction/risks. 5. Handoff `qa-auto-ver`; skill-log.
-
-## [OPERATING RULES]
-
-- Implement→run→triage/fix until green, then legacy regression; no mocks of Hub API.
-- Required service absence fails setup; no unexpected skips or secret-bearing artifacts.
-- Preserve all legacy; docs-sync Python API guidance; atomic commit with TASK link, no AI attribution.
+- Fail-closed Docker readiness and per-run user/data namespace with idempotent cleanup.
+- Status+schema+business-oracle helpers; tokens/cookies/PII redacted.
+- Liveness and dependency readiness/failure/recovery are distinguished.
+- All cases have TC/requirement/task/risk metadata and scenario checklist.
+- Two clean Docker runs, sentinel RED→GREEN, unexpected skip=0 and resources cleaned.

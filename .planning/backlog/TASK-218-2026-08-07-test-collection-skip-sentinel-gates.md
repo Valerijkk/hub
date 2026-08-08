@@ -1,45 +1,27 @@
-# TASK-218 — 🧪 Collection, skip и sentinel gates
+# TASK-218 — 🚦 Python quality/traceability gates
 
-> Заведено: 2026-08-07 · Приоритет: **P1** · Статус: Открыта · Фаза: **140**
+> Revision: **2026-08-07** · Priority: **P1** · Status: Open · Phase: **130**
+
+> Runtime/traceability gate: `NOT_READY` until `testframework/docker/run-task.ps1` contract `hub.qa-runner/v1` and `testframework/docker/images.lock.json` are independently accepted. Executable evidence must resolve TASK/requirement/TC/risk; direct Docker/Compose, host test/validator, mutable-image and ad-hoc cleanup fallbacks are forbidden.
 
 ## [OUTCOME]
 
-Каждый legacy и replacement CI lane fail-closed проверяет non-empty/expected collection, pass/fail/skip budget, ledger completeness и deliberate failing sentinel.
+Framework fails closed on zero collection, unexpected skip, invalid TC metadata,
+orphan requirement/task/risk link, missing artifact and insensitive sentinel.
 
 ## [ROLE]
 
-- Owner: `qa-auto2` — validators/gates and cross-runtime sentinel evidence.
-- Verifier / handoff: `qa-auto-ver` — independent negative runs and real-PR gate review.
+- Owner: `qa-auto2`; verifier: `qa-auto-ver`.
+- Depends on: TASK-193, TASK-206.
 
-## [SCOPE AND CONSTRAINTS]
+## [OWNED TARGET PATHS]
 
-- Allowed: test count/skip/parity validators, test-only sentinels/fixtures, canonical scripts, minimal CI invocation changes coordinated with TASK-201.
-- Do not touch: product behavior, thresholds, legacy deletion, load on PR.
-- Expected counts derive from dated TASK-202 ledger and accepted transformations; skip allowlist has owner/reason/expiry.
-- Depends on: TASK-201 and verifier evidence for TASK-193–217, TASK-221–230.
-
-## [REFERENCES]
-
-- TASK-202 ledger, TASK-204 contract, TASK-201 entrypoints
-- `.planning/codebase/{TESTING,CONCERNS}.md`, `.cursor/playbooks/testing.md`
+`testframework/tests/conftest.py`, `testframework/pyproject.toml`, `testframework/selftests/**`, plus exact task-owned plugin modules under `testframework/src/hub_testkit/pytest_plugin/**`.
 
 ## [ACCEPTANCE]
 
-- Completion command: `pwsh -NoProfile -File scripts/validate-test-gates.ps1`; exit code 0 и заявленные counts обязательны.
-
-- Go legacy/target, FE legacy/target, Python API/integration/smoke/full lanes reject zero/short collection, failures and unexpected skips; ledger missing/duplicate/unmapped = 0.
-- One deliberately failing sentinel per runtime/lane is added temporarily: expected job RED; remove/disable sentinel only via explicit test fixture and job returns GREEN; evidence from real PR when available.
-- Tampered expected count and unexpected skip each make validator RED; restore GREEN.
-- Regression: complete dual-run pipeline green without sentinels; load remains manual/scheduled; artifacts publish counts and ledger hash.
-- Evidence: gate matrix, PR/job links or local equivalents, all RED→GREEN logs, counts/skips/artifacts.
-- Stop when: any lane lacks trustworthy count/report or real PR approval; block cleanup TASK-219.
-
-## [OUTPUT SCHEMA]
-
-1. Verdict. 2. Lane→expected count/skip/sentinel table. 3. Negative/positive evidence. 4. Regression/remaining approvals. 5. Handoff `qa-auto-ver`; risks/skill-log.
-
-## [OPERATING RULES]
-
-- Prove failure sensitivity, then restore and prove diff-clean green.
-- Do not hardcode stale counts without ledger hash/revision; no fail-open conditions.
-- CI edits owner-reviewed; docs-sync gate contract; TASK-linked commits, no AI attribution.
+- Strict markers and catalog validation run before execution.
+- Required/optional profiles and exact skip reasons are explicit.
+- Negative fixtures prove every gate fails then restores green.
+- Reports publish TC/requirement/risk coverage, counts/duration/provenance/cleanup.
+- Docker-only with resource limits; no leaked task resource.

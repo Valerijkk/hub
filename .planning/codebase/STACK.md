@@ -1,5 +1,9 @@
 # Technology Stack
 
+> **Superseded inventory note (2026-08-07):** старые counts ниже — historical
+> map. Текущий cutover authority: founder manifest, 1,049 rows / 4,246 declared,
+> revision `5708671f`, SHA `72de6a81…`; без parity/dual-run/82% migration gate.
+
 **Analysis Date:** 2026-08-07
 
 **Scope:** Test stack only: `backend/`, `frontend/`, root `testframework/`, CI configuration, coverage, and the migration boundary requested by the founder.
@@ -128,7 +132,7 @@
 - Use Go 1.25 to match `backend/go.mod` and `.github/workflows/ci.yml`; the observed local Go 1.24.0 is not sufficient for canonical verification.
 - Use Node 22 and install exactly from `frontend/package-lock.json` with `npm ci`.
 - Run `frontend/scripts/link-testframework-node-modules.mjs` before current root Vitest/E2E execution.
-- Use Docker Compose for PostgreSQL/MongoDB/Redis/NATS integration paths; Chromium is required for Playwright.
+- PostgreSQL/MongoDB/Redis/NATS and Chromium profiles may execute only through the independently accepted `hub.qa-runner/v1` outer launcher with immutable image lock, limits, isolated reports and exact cleanup; until then they are `NOT_READY`.
 - No Python runtime/version/package-manager contract exists yet for the target root framework; neither `python` nor the Windows `py` launcher is currently available in PATH.
 - Compose definitions parse successfully, but the local Docker daemon is not running; this mapping does not claim service-backed execution.
 
@@ -153,19 +157,22 @@
 ## Target State (Founder Direction)
 
 **Backend-native unit tree:**
-- Place only genuine service-free Go units in `backend/tests/**`; route DB,
-  broker, network, process and whole-API components to root Python
-  `testframework/{api,integration,contract}/**`.
+- Place only genuine service-free Go units in `backend/tests/**`; delete legacy
+  DB/broker/network/process/whole-API component rows by literal manifest.
+New `testframework/tests/{api,integration,contract}/**` suites are derived
+  independently from requirements, risks and verified TC.
 - Because `backend/tests/**` remains inside the `backend` Go module, it can legally import `backend/internal/*`. Keep black-box `package <domain>_test` where public contracts suffice; use same-package tests only when an explicitly colocated white-box exception is approved.
 
 **Frontend-native unit tree:**
-- Place TypeScript/React units in `frontend/tests/<domain>/**` and make `frontend/tsconfig.json`, `frontend/vite.config.ts`, and the Biome command include that tree directly.
-- Retain render/setup/fixtures in `frontend/tests/support/**`, for example `frontend/tests/support/render.tsx`, rather than resolving `@testframework` outside the npm package.
+- Move exactly 156 TypeScript/React units into `frontend/tests/<domain>/**` and make `frontend/tsconfig.json`, `frontend/vite.config.ts`, and the Biome command include that tree directly.
+- Move only legacy `render.tsx` into `frontend/tests/support/render.tsx`; delete the other two legacy support rows. Any new setup/fixtures are designed explicitly rather than copied from the old tree.
 
 **Independent root system framework:**
-- Reserve `testframework/{core,api,integration,contract,e2e,load,docker,reports}/` for the single Python QA project with root `pyproject.toml`/pytest config.
+- Reserve `testframework/{src/hub_testkit,tests/{api,integration,contract,e2e},selftests,cases,load,docker,reports}/` for the single Python QA project with root `pyproject.toml` and composition in `tests/conftest.py`.
 - Exact Python version, environment manager, pytest plugin set, and load tool are **not specified by the current repository** and must be selected and pinned by the planner before implementation.
-- Preserve `backend/testframework/`, `testframework/stages/unit/frontend-test/`, and the current TypeScript E2E path until each replacement demonstrates scenario, outcome, skip, and report parity.
+- Phase 129 deletes legacy non-units/static-contract/TypeScript-E2E paths by
+  exact manifest and creates the Python project greenfield. Only genuine native
+  units move; no scenario-count or report parity is required.
 
 ## Migration Blockers
 
@@ -181,24 +188,35 @@
 10. **Service orchestration is inconsistent** - backend test, coverage, and E2E jobs start different service sets; `scripts/ci-e2e-backend.sh` waits only for PostgreSQL even though it starts multiple dependencies.
 11. **Report continuity is absent** - no JUnit/Allure result adapter or cross-runtime report merge exists in `.github/workflows/ci.yml`; migration to pytest would otherwise fragment evidence across Go, Vitest, and Python.
 12. **Local toolchain mismatch** - local Go 1.24.0 differs from `backend/go.mod`/CI Go 1.25 and can create false migration failures.
-13. **Parity requires dual ownership** - legacy and target roots must coexist until parity, increasing CI duration and requiring isolated job names, databases, caches, and artifacts.
+13. **Outer launcher missing** - until `testframework/docker/run-task.ps1`
+    (`hub.qa-runner/v1`) and immutable image lock are independently accepted,
+    target runtime status is `NOT_READY`; inline Docker/legacy runners are not
+    fallback.
 
 ## Prescriptive Migration Contract
 
-- Freeze a dated file inventory and one Docker-based backend coverage command before moving the first test; record both in `.planning/STATE.md` and the migration plan.
-- Classify every current test as Go unit, Go component/integration, frontend unit/component, or root system/E2E/load before assigning a destination. Use imports and runtime dependencies, not the current directory name, as classification evidence.
-- Move classified Go units in domain-sized batches into `backend/tests/**`;
-  pair each wave with Python replacement of its component rows while keeping
-  legacy green.
-- Move frontend tests into `frontend/tests/**` and expand TypeScript/Biome scopes in the same batch; remove `@testframework` and the unit-test junction only after zero legacy consumers remain.
-- Create an independent Python project under `testframework/` before porting system tests. It must own its environment, lockfile, pytest/Playwright configuration, artifacts, and CI command rather than borrowing `frontend/node_modules`.
-- Dual-run legacy and target suites and compare collected/executed/passed/failed/skipped counts plus artifacts before deleting any legacy path.
-- Make GitHub Actions, GitLab CI, and `testframework/pipeline/` converge on the same job contract or generate mirrors from one machine-readable definition.
-- Keep the 82% backend gate semantically identical during relocation; do not compare historical 83.0/81.9/80.2 values unless produced by the same command, Go version, service set, and source revision.
+- Seal the Phase 128 source ledger, operation partitions and exact cutover manifest before moving the first test; historical Docker coverage remains discovery evidence only and no direct coverage command is a cutover gate.
+- Use the sealed classification only to select a literal operation: genuine native unit `move`, protected unit `keep-blocked`, otherwise legacy `delete`. Python is never the destination of an old source row.
+- Move classified Go units in exact domain batches into `backend/tests/**`;
+  delete component/API/integration rows in their manifest batches without
+  one-to-one Python replacement.
+- Move exactly 156 frontend units plus `render.tsx`; delete 24 static-contract files and the remaining support/config closure. Expand TypeScript/Biome scopes and remove `@testframework`/the linker in their exact atomic consumer-switch batches.
+- Create an independent Python project under `testframework/` from current
+  requirements/risks/verified TC. It owns environment, lockfile,
+  pytest/Playwright configuration, artifacts and the single safe launcher.
+- Do not dual-run or preserve historical row/case counts. Each new required job
+  must instead prove non-zero collection, expected-skip policy, traceability,
+  oracle sensitivity and cleanup.
+- Make GitHub Actions and every retained CI mirror call the same versioned outer launcher; no provider-specific test command or fallback may become a second execution authority.
+- Preserve the 82.0373% result only as dated discovery evidence. Publish a new
+  native-unit baseline after cutover; historical coverage is not a migration
+  gate and its denominator is not preserved.
 
-## Evidence Commands
+## Historical mapping evidence — NON-EXECUTABLE
 
-Run from repository root; all are read-only except normal tool startup metadata:
+The commands below document the old mapper snapshot only. Do not execute them
+as current test/build/validator guidance; target runtime requires the accepted
+outer launcher and is `NOT_READY` until that artifact exists.
 
 ```powershell
 # Current inventories

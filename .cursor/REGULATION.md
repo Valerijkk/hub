@@ -325,7 +325,7 @@ spec/phase только после triage. Другие seed-команды не
 | Новая ERD-сущность | `bases_view`, `calendar_event` | `docs/system_specification.md` §ERD, соответствующий ADR если архитектурное решение |
 | Изменение auth-потока | Magic Link rate-limit, refresh rotation | `docs/security_guidelines.md`, `docs/tz_constraints.md` (если меняет mandatory), `.planning/STATE.md` |
 | Новый UI flow / хоткей | Ctrl+K палитра, bases inline-edit | `docs/wiki/SHORTCUTS.md`, `docs/wiki/QUICKSTART.md`, `docs/vision_and_scope.md` (если новый US) |
-| Новые тесты / coverage | `backend/tests/tracker/service_test.go` или `testframework/api/tracker/` | `.planning/COVERAGE.md`, `docs/test_plan.md`, `docs/TESTING.md` |
+| Новые тесты / coverage | `backend/tests/tracker/service_test.go` или `testframework/tests/api/tracker/` | `.planning/COVERAGE.md`, `docs/test_plan.md`, `docs/TESTING.md` |
 | CI/CD, Docker, K3s | `docker-compose.test.yml`, `.github/workflows/ci.yml` | `docs/stack_and_tools.md`, `deployments/.env.example`, `docs/wiki/DEPLOY.md` |
 | Security fix | webhook signature, SSRF guard | `docs/security_guidelines.md` + запись в `.planning/audits/2026-06/AUDIT-SCORECARD.md` если закрывает finding |
 | Закрытие gap/wave | Волна интеграции | `.planning/archive/tasks/TASKS-CLOSE-GAPS.md`, `.planning/STATE.md` |
@@ -406,7 +406,7 @@ artifact path и cleanup. Self-report и historical acceptance не evidence.
 3. FAIL по new behavior → `ROOT=code|test|infra|flaky|stop` → минимальный
    fix → повтор упавшего и adjacent risk jobs.
 4. Public API/integration/browser risk покрывается greenfield Python
-   suite в `testframework/{api,integration,e2e}/**`, когда применимо.
+suite в `testframework/tests/{api,integration,e2e}/**`, когда применимо.
 5. На интеграции волны выполняется полный selected `/qa-gate`;
    missing target scaffold даёт `NOT_READY`.
 6. Evidence и owner marker лежат в

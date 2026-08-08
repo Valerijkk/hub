@@ -1,23 +1,25 @@
-# TASK-230 — 🐍 Frontend static/source contracts → Python
+# TASK-230 — 🖥️ Frontend/static compatibility contracts in Python
 
-> Заведено: 2026-08-07 · Приоритет: **P1** · Статус: Открыта · Фаза: **131**
+> Revision: **2026-08-07** · Priority: **P1** · Status: Open · Phase: **136**
+
+> Runtime/traceability gate: `NOT_READY` until `testframework/docker/run-task.ps1` contract `hub.qa-runner/v1` and `testframework/docker/images.lock.json` are independently accepted. Executable evidence must resolve TASK/requirement/TC/risk; direct Docker/Compose, host test/validator, mutable-image and ad-hoc cleanup fallbacks are forbidden.
 
 ## [OUTCOME]
 
-Legacy Vitest source/docs/compile guards не переезжают как фиктивные UI units:
-они получают path-independent replacement в
-`testframework/contract/frontend/**` или verifier-approved static CI gate.
+New Python contracts protect frontend routes, bundle/link integrity, i18n,
+docs links and static a11y prerequisites from current specs. Legacy guards are not copied.
 
 ## [ROLE]
 
-- Owner: `qa-auto2`; verifier: `qa-auto-ver` + `fe-ver`.
-- Handoff: `fe1`/`fe2` TASK-207/208 classification.
-- Depends on: TASK-193, TASK-205, TASK-207, TASK-208.
+- Owner: `qa-auto2`; verifiers: `fe-ver`, `qa-auto-ver`.
+- Depends on: TASK-206 and current frontend build artifact.
+
+## [OWNED TARGET PATHS]
+
+`testframework/tests/contract/frontend/**`, `testframework/reports/<task-run>/**`. Reusable validators receive exact task paths under `testframework/src/hub_testkit/contract/**`.
 
 ## [ACCEPTANCE]
 
-- Все fs/subprocess/hard-coded-root Vitest rows классифицированы; unmapped=0.
-- `frontend/tests/**` содержит только Vitest/RTL behavior units.
-- Replacement fail-closed, path-independent, с deliberate violation RED→GREEN.
-- Legacy guard удаляется только Phase 141 после parity; no nested `domains/` in
-  frontend target; `pro-qa-ai/**` вне scope; no push.
+- Observable artifact contracts preferred over brittle copied source strings.
+- Deliberate route/locale/link/a11y fixture break fails the lane.
+- TC trace and source/image SHA present; Docker-only and cleanup PASS.

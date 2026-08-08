@@ -17,10 +17,10 @@ alwaysApply: false
 |---|---|---|
 | `backend-unit` | genuine isolated Go units | `backend/tests/{domain}/**` |
 | `frontend-unit` | genuine Vitest/RTL units | `frontend/tests/{domain}/**`, `frontend/tests/support/**` |
-| `python-contract` | API/schema/event/source contracts | `testframework/contract/**` |
-| `python-api` | public backend/frontend-BFF behavior | `testframework/api/**` |
-| `python-integration` | DB/broker/storage boundaries | `testframework/integration/**` |
-| `python-e2e-smoke/full` | browser user journeys | `testframework/e2e/**` |
+| `python-contract` | API/schema/event/source contracts | `testframework/tests/contract/**` |
+| `python-api` | public backend/frontend-BFF behavior | `testframework/tests/api/**` |
+| `python-integration` | DB/broker/storage boundaries | `testframework/tests/integration/**` |
+| `python-e2e-smoke/full` | browser user journeys | `testframework/tests/e2e/**`; `full` is a launcher profile |
 | `python-load` | load/resilience profiles | `testframework/load/**` |
 
 Root `testframework/` — один greenfield Python-проект:

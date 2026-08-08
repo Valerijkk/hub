@@ -16,10 +16,10 @@
 |---|---|---|---|
 | `backend-unit` | genuine isolated Go units | `backend/tests/{domain}/**` | `be1`/`be2` |
 | `frontend-unit` | genuine Vitest/RTL units | `frontend/tests/{domain}/**`, `frontend/tests/support/**` | `fe1`/`fe2` |
-| `python-contract` | API/schema/event/source contracts | `testframework/contract/**` | `qa-auto2` |
-| `python-api` | публичное поведение backend/BFF | `testframework/api/**` | `qa-auto1` |
-| `python-integration` | DB/broker/storage boundaries | `testframework/integration/**` | `qa-auto1` |
-| `python-e2e-smoke/full` | браузерные user journeys | `testframework/e2e/**`; markers `smoke`/`full` | `qa-auto2` |
+| `python-contract` | API/schema/event/source contracts | `testframework/tests/contract/**` | `qa-auto2` |
+| `python-api` | публичное поведение backend/BFF | `testframework/tests/api/**` | `qa-auto1` |
+| `python-integration` | DB/broker/storage boundaries | `testframework/tests/integration/**` | `qa-auto1` |
+| `python-e2e-smoke/full` | браузерные user journeys | `testframework/tests/e2e/**`; `smoke` marker, `full` launcher profile | `qa-auto2` |
 | `python-load` | load/resilience profiles | `testframework/load/**` | `qa-auto1` + DevOps |
 
 Root `testframework/` — один greenfield Python-проект:

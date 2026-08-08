@@ -133,7 +133,7 @@ disable-model-invocation: true
 | # | Задача | Исп. | Файлы | Depends | Verifier |
 |---|--------|------|-------|---------|----------|
 | 1 | authorizeBase + ListBases filter + genuine isolated units | be1 | internal/bases/*, backend/tests/bases/** | — | be-ver |
-| 2 | Python API denial cases по verified TC | qa-auto1 | testframework/api/bases/** | #1 | qa-auto-ver |
+| 2 | Python API denial cases по verified TC | qa-auto1 | testframework/tests/api/bases/** | #1 | qa-auto-ver |
 | 3 | Docs API.md | docs-writer или be1 | docs/wiki/API.md, STATE.md | #1 | — |
 
 ## Волны
@@ -181,6 +181,9 @@ disable-model-invocation: true
 ## Связь
 
 - Upstream: `gsd-plan-phase`, `gsd-graphify`
+<!-- hub.qa-routing-declaration/v1
+{"schema_version":"hub.qa-routing-declaration/v1","scenario_id":"contract-openapi","assigned_skill":".cursor/skills/gsd-ru/phase-plan/SKILL.md","declared_routes":["testframework/src/hub_testkit/contract/openapi.py","testframework/tests/contract/api/test_openapi.py"],"expected_routes":["testframework/src/hub_testkit/contract/openapi.py","testframework/tests/contract/api/test_openapi.py"],"prohibited_legacy_tokens":["testframework/contract/**","testframework/core/**"]}
+-->
 - Hub: `tech-lead.md`, `team-workflow.md` §6, `team-lead.md` §5.2
 - Следующий skill: [wave-run](../wave-run/SKILL.md)
 - Индекс: [gsd-ru/README.md](../README.md)

@@ -106,7 +106,7 @@ Drag:       Kanban DnD и подобные имеют alt без drag (2.5.7) �
 ```
 
 Browser-level a11y воспроизводится greenfield Python case в
-`testframework/e2e/**` через task-owned limited Docker job
+`testframework/tests/e2e/**` через task-owned limited Docker job
 `python-e2e-smoke/full`. Ожидаемый oracle — отсутствие critical/serious axe
 violations на затронутом user journey. Если страница не покрыта верифицированным
 TC, фиксирую `[MEDIUM]` gap, а не создаю TypeScript browser test.
@@ -118,7 +118,7 @@ TC, фиксирую `[MEDIUM]` gap, а не создаю TypeScript browser tes
 ### 4.7 Регрессия — обязательные Docker jobs
 
 Сам выполняю task-owned limited Docker job `frontend-unit` из `AGENTS.md`.
-Требуемый browser outcome проверяется Python job из `testframework/e2e/**`,
+Требуемый browser outcome проверяется Python job из `testframework/tests/e2e/**`,
 но только по верифицированному TC. Source/image/inner command/resources,
 collection, лог, duration и cleanup прикладываются к отчёту (REGULATION §7).
 Без evidence `verified: true` невозможен даже при отсутствии находок.
@@ -191,7 +191,7 @@ PASS/FAIL: <краткий вывод>. <Возврат исполнителю /
 - Job: frontend-unit (task-owned limited Docker; exact command в evidence)
 - Результат: PASS
 - Лог: Test Files 38 passed (38) · Tests 101 passed (101), время 42s
-- a11y: Python E2E `testframework/e2e/test_a11y.py::test_kanban_board` — axe violations = []
+- a11y: Python E2E `testframework/tests/e2e/tracker/test_a11y.py::test_kanban_board` — axe violations = []
 
 ## Замечания
 Нет CRITICAL/HIGH/MEDIUM. Проверено: хуки безусловны (useQuery с enabled), key={col.status.id},

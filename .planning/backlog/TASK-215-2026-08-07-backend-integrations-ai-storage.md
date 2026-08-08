@@ -1,47 +1,29 @@
-# TASK-215 — 🧪 Backend AI/search/storage/integrations wave
+# TASK-215 — 🔌 External adapter and data-transfer cases
 
-> Заведено: 2026-08-07 · Приоритет: **P1** · Статус: Открыта · Фаза: **135**
+> Revision: **2026-08-07** · Priority: **P1** · Status: Open · Phase: **135**
+
+> Runtime/traceability gate: `NOT_READY` until `testframework/docker/run-task.ps1` contract `hub.qa-runner/v1` and `testframework/docker/images.lock.json` are independently accepted. Executable evidence must resolve TASK/requirement/TC/risk; direct Docker/Compose, host test/validator, mutable-image and ad-hoc cleanup fallbacks are forbidden.
+> **Deprecated filename alias:** the pre-rebase backend slug is retained for
+> link stability; current purpose is external-adapter/data-transfer behavior.
 
 ## [OUTCOME]
 
-Только genuine Go units ai, search, storage, backup, imex, github, gitlab,
-onec, marketplace и mail работают из `backend/tests/**`; любые provider/DB/
-storage/API components получают Python parity TASK-229.
+Python tests cover GitHub/GitLab/1C/mail/marketplace/import/export/backup
+contracts and failure/recovery without real egress/secrets.
 
 ## [ROLE]
 
-- Owner: `be2` — ten-area migration, special path mapping and hooks.
-- Verifier / handoff: `be-ver` — taxonomy, provider isolation, race/coverage/mutation verification.
+- Owner: `qa-auto2`; verifiers: `qa-auto-ver`, `security-auditor`.
+- Depends on: TASK-205 and applicable Phase 133 fixtures.
 
-## [SCOPE AND CONSTRAINTS]
+## [OWNED TARGET PATHS]
 
-- Allowed: corresponding `backend/tests/**` directories including `integrations/onec`, shared support и read-only hook ledger; hook-файлы не меняются.
-- Read-only: matching legacy/product. Do not touch: legacy deletion, CI, other domains, behavior.
-- No real external provider/network in unit lane; provider/DB/object-storage/
-  full-API rows stay legacy until TASK-229 parity.
-- Depends on: TASK-212, TASK-213.
-
-## [REFERENCES]
-
-- TASK-197/203/204; matching directories; `.planning/codebase/{STRUCTURE,TESTING,INTEGRATIONS}.md`
+`testframework/tests/integration/adapters/**`, `testframework/reports/<task-run>/**`. This card authorizes no path beyond its live PLAN/manifest and routes no legacy non-unit row to Python.
 
 ## [ACCEPTANCE]
 
-- Completion command: `cd backend && go test -tags hubtest -race -count=1 ./tests/ai/... ./tests/search/... ./tests/storage/... ./tests/backup/... ./tests/imex/... ./tests/github/... ./tests/gitlab/... ./tests/integrations/onec/... ./tests/marketplace/... ./tests/mail/...`; exit code 0 и заявленные counts обязательны.
-
-- All in-scope Go rows `PARITY_PROVEN`, integration rows linked to Python destination; no missing/duplicate.
-- Target+legacy race and coverage evidence green; path-sensitive guards work from clean checkout; hooks have symbol-level `retain|candidate-for-TASK-219` proof.
-- Mutation proof: representative AI policy, search scope, storage/backup integrity and provider adapter guard RED target tests; restore GREEN.
-- Regression: previous waves plus all in-scope legacy packages green; no live network/secrets or unexpected skips.
-- Evidence: mapping/taxonomy totals, commands/counts/timing/coverage, hook/mutation logs.
-- Stop when: deterministic unit isolation is impossible; preserve row for TASK-216, do not add live dependency.
-
-## [OUTPUT SCHEMA]
-
-1. Verdict. 2. Area/taxonomy/hook table. 3. Race/coverage/mutations. 4. Regression/Python handoff. 5. Handoff `be-ver`; risks/skill-log.
-
-## [OPERATING RULES]
-
-- Evidence-based batch migration, originals retained, test triage/re-run.
-- No live providers, secret leakage, broad hook removal or coverage weakening.
-- Docs-sync ledger; TASK-linked atomic commits, no AI attribution.
+- Local deterministic doubles cover timeout, 4xx/5xx, rate-limit, malformed,
+  partial, replay, retry and recovery.
+- Import/export/backup cover oversized/duplicate/corrupt data and rollback integrity.
+- Outbound requests, redaction and tenant ownership asserted.
+- Docker egress denied where possible; sentinel and cleanup PASS.

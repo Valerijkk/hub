@@ -9,7 +9,7 @@
 > Vitest, TypeScript Playwright и их support/config/entrypoints удаляются по
 > exact allowlist и не портируются. Весь non-unit и load слой создаётся с нуля
 > как один Python-проект прямо в
-> `testframework/`: `{core,api,integration,contract,e2e,load,docker,reports}/**`
+> `testframework/`: `{src/hub_testkit,tests/{api,integration,contract,e2e},selftests,cases,load,docker,reports}/**`
 > плюс корневой `pyproject.toml`/pytest config. Исторический 82% Go coverage и
 > row-level parity не блокируют cutover; новый набор принимается по рискам,
 > требованиям и трассируемости. Канон:
@@ -33,8 +33,8 @@
 |---------|------------|--------------|------|
 | Unit (BE) | Go testing + testify | `backend/tests/{domain}/` | CI `backend-unit` |
 | Unit (FE) | Vitest + RTL | `frontend/tests/{domain}/`, support | CI `frontend-unit` |
-| API / Integration / Contract | pytest + httpx | `testframework/{api,integration,contract}/` | Python gates |
-| E2E | pytest + playwright-python | `testframework/e2e/` | markers `smoke`/`full` |
+| API / Integration / Contract | pytest + httpx | `testframework/tests/{api,integration,contract}/` | Python gates |
+| E2E | pytest + playwright-python | `testframework/tests/e2e/` | `smoke` marker; `full` launcher profile |
 | Load | Locust | `testframework/load/` | nightly/manual |
 | Build | `tsc`, `vite build`, `-tags release` | CI `build` job | 0 errors |
 | Lint | Biome | `npm run lint` | **gate** (не continue-on-error) |
@@ -46,8 +46,8 @@
 |---------|------------|--------------|
 | Unit (BE) | Go testing + testify | `backend/tests/{domain}/` — только genuine units |
 | Unit (FE) | Vitest + RTL | `frontend/tests/{domain}/` — только units; support в `frontend/tests/support/` |
-| API / integration / contract | pytest + httpx | `testframework/{api,integration,contract}/` |
-| E2E smoke/full | pytest + playwright-python | `testframework/e2e/`; smoke/full — markers, не каталоги |
+| API / integration / contract | pytest + httpx | `testframework/tests/{api,integration,contract}/` |
+| E2E smoke/full | pytest + playwright-python | `testframework/tests/e2e/`; `smoke` is a marker and `full` is a launcher profile |
 | Load | Locust | `testframework/load/` |
 
 Текущие **237** `go-component` rows (31 API + 206 integration) не переносятся в
@@ -143,7 +143,7 @@ runners остаются только источником inventory до exact 
 
 **Deploy** (`.github/workflows/deploy.yml`): только после успешного CI на push `master`; образы GHCR по SHA; **без** `DEV_MODE=true`.
 
-E2E конфиг: `frontend/playwright.config.ts` (спеки: `testframework/stages/e2e/domains/{domain}/`)  
+**Historical/forbidden legacy inventory:** `frontend/playwright.config.ts` once selected TypeScript specs under `testframework/stages/e2e/domains/{domain}/`; this is not target execution authority.
 Module resolution: `frontend/scripts/link-testframework-node-modules.mjs`  
 Pipeline manifests: `testframework/pipeline/jobs/*.yaml`  
 Infra: `scripts/ci-e2e-backend.sh` (postgres:17, redis:7.4, mongo:8, nats:2.11).
@@ -203,7 +203,7 @@ job-ами `backend-unit`, `frontend-unit`, `python-contract`, `python-api`,
 | E2E-06 | Ctrl+K search | `command-palette.spec.ts` | ✅ |
 | E2E-07 | a11y axe | `a11y.spec.ts` | ✅ |
 
-POM/steps: `testframework/stages/e2e/shared/pages/`, `testframework/stages/e2e/shared/steps/`.
+Greenfield Python browser lifecycle/artifacts: task-named modules in `testframework/src/hub_testkit/browser/**`; domain UI pages/components: `testframework/src/hub_testkit/domains/<domain>/ui/{pages,components}/**`.
 
 ---
 

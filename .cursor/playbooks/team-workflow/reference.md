@@ -253,8 +253,8 @@ FR/API. Единый источник истины.
 | be2 | `backend/ent/schema/backlog_item.go`, `backlog/ent_repository.go` | 3 |
 | fe1 | `frontend/src/components/backlog/List.tsx` | 3 |
 | fe2 | `frontend/src/components/backlog/Filters.tsx` | 3 |
-| qa-auto1 | `testframework/api/tracker/test_backlog.py` | 4 |
-| qa-auto2 | `testframework/e2e/tracker/test_backlog.py` | 4 |
+| qa-auto1 | `testframework/tests/api/tracker/test_backlog.py` | 4 |
+| qa-auto2 | `testframework/tests/e2e/tracker/test_backlog.py` | 4 |
 | qa-manual | `docs/test_plan.md` | 4 |
 
 > Единственная общая точка — `types.ts` (frontend) и API-контракт: фиксируются **первым** коммитом

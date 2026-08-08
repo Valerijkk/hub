@@ -1,53 +1,31 @@
-# TASK-194 — 🧪 Shared Python E2E fixtures и POM
+# TASK-194 — 🎭 Python Playwright foundation
 
-> Заведено: 2026-07-30 · Revision: **2026-08-07** · Приоритет: **P1** · Статус: Открыта · Фаза: **137**
+> Revision: **2026-08-07** · Priority: **P1** · Status: Open · Phase: **137**
+
+> Runtime/traceability gate: `NOT_READY` until `testframework/docker/run-task.ps1` contract `hub.qa-runner/v1` and `testframework/docker/images.lock.json` are independently accepted. Executable evidence must resolve TASK/requirement/TC/risk; direct Docker/Compose, host test/validator, mutable-image and ad-hoc cleanup fallbacks are forbidden.
 
 ## [OUTCOME]
 
-Python E2E имеет единый безопасный слой auth/data/browser fixtures и Page Objects, пригодный для портирования всех 20 legacy specs без копирования setup и shared state.
+Root Python framework has reusable browser/auth/data/POM/a11y/artifact fixtures
+for new requirement-driven E2E tests.
 
 ## [ROLE]
 
-- Owner: `qa-auto1` — fixture/POM contracts, isolation, cleanup и redaction.
-- Verifier / handoff: `qa-auto-ver` — два последовательных прогона, parallel proof и negative checks.
+- Owner: `qa-auto1`; verifier: `qa-auto-ver`.
+- Depends on: TASK-193, TASK-205, TASK-206.
 
-## [SCOPE AND CONSTRAINTS]
+## [OWNED TARGET PATHS]
 
-- Allowed: `testframework/e2e/conftest.py`, `testframework/e2e/pages/**`, `testframework/e2e/steps/**`, `testframework/core/fixtures/**`, `testframework/contract/fixtures/**`, fixture contract tests и `testframework/docker/**` test-env profile.
-- Read-only source: `testframework/stages/e2e/shared/**` и 20 specs из `testframework/stages/e2e/domains/**`.
-- Do not touch: legacy TS E2E, `frontend/playwright.config.ts`, product code, CI, production credentials.
-- Auth — через разрешённый test/dev interceptor Magic Link или существующий dev-session contract; реальные mailbox/secrets запрещены. Mutable data function-scoped, namespace/run-id worker-safe, cleanup deterministic.
-- Depends on: TASK-193, TASK-205. TASK-216 может расширить core позже, но не
-  блокирует E2E foundation и не должен создавать дублирующие fixtures.
-
-## [REFERENCES]
-
-- `testframework/stages/e2e/shared/{fixtures.ts,helpers,pages,steps}/`
-- `.planning/codebase/{ARCHITECTURE,STRUCTURE,TESTING,INTEGRATIONS}.md`
-- `docs/security_guidelines.md`, `.cursor/playbooks/testing.md`
+`testframework/src/hub_testkit/browser/**`, `testframework/src/hub_testkit/domains/<domain>/ui/pages/**`,
+`testframework/docker/task-194-e2e-foundation.compose.yml`. This card
+authorizes no path beyond its live PLAN/manifest and routes no legacy non-unit
+row to Python. TASK-194 may not mutate `testframework/docker/run-task.ps1` or
+`testframework/docker/images.lock.json`; either requires a separate exact
+devops-owned contract change and independent review.
 
 ## [ACCEPTANCE]
 
-- Completion command: `cd testframework && python -m pytest e2e -m smoke --strict-markers -q`; exit code 0 и заявленные counts обязательны.
-
-- Реализованы browser context, auth, user/project/channel factories, API client, cleanup и redaction; один contract test использует fixture через публичный Hub contract.
-- Два последовательных прогона дают одинаковые pass/fail/skip counts и не оставляют конфликтующих записей; parallel smoke (`-n 2` либо документированный эквивалент) не сталкивается по данным.
-- Mutation proof: временно отключить уникальный namespace или cleanup — isolation contract краснеет; восстановить — green. Не мутировать production code для доказательства fixture-инварианта.
-- Regression: Python API/integration pilot green; legacy 3-spec smoke запускается прежней командой и не меняется.
-- Evidence: команды, counts, wall time, sanitized artifacts, mutation RED→GREEN, список fixture scopes.
-- Stop when: auth требует production secret/mailbox либо cleanup нельзя доказать без destructive broad delete; эскалировать точный blocker.
-
-## [OUTPUT SCHEMA]
-
-1. PASS/BLOCKED и резюме.
-2. Таблица fixture → scope → creates → cleanup → parallel policy.
-3. Команды/counts/timing и mutation evidence.
-4. Regression legacy/Python, security/redaction checks.
-5. Риски и handoff `qa-auto-ver`; skill-log PASS/FAIL.
-
-## [OPERATING RULES]
-
-- Implement → два run → parallel run → triage/fix до green; затем legacy regression.
-- Не копировать secrets/PII в logs, traces, screenshots или Allure; skips только зарегистрированные и allowlisted.
-- Не менять/удалять legacy до TASK-219; неожиданный skip считается FAIL.
-- Docs-sync в testframework docs; атомарный коммит со ссылкой на TASK, без AI attribution.
+- Pinned Python Playwright/browser image, per-run state and idempotent cleanup.
+- Semantic locators/web-first assertions; no bare sleeps/shared developer state.
+- Trace/screenshot/video/log redaction and retention policy with secret canary.
+- Failing locator sentinel, repeated Docker run, unexpected skip=0 and cleanup PASS.

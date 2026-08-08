@@ -254,7 +254,7 @@ const badgeVariants = cva("inline-flex items-center rounded-full ...", {
 - Контраст: `--t1`/`--card` в dark ≈ 13:1 (PASS), `--t3` — только для метаданных/placeholder, не для важного текста.
 - Цели нажатия ≥ 24×24px (WCAG 2.2 — 2.5.8), ≥ 44px на touch.
 - Drag-действия (Kanban DnD, `@atlaskit/pragmatic-drag-and-drop` в `board/index.tsx`) обязаны иметь альтернативу без drag (2.5.7) — например, пункт «Переместить в колонку…» в контекстном меню карточки.
-- Browser-level a11y outcome проверяется Python E2E в `testframework/e2e/**` по верифицированному TC; legacy TypeScript browser suite не является target или шаблоном.
+- Browser-level a11y outcome проверяется Python E2E в `testframework/tests/e2e/**` по верифицированному TC; legacy TypeScript browser suite не является target или шаблоном.
 
 **Good:**
 

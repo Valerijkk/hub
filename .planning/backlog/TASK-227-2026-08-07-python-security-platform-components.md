@@ -1,25 +1,26 @@
-# TASK-227 — 🐍 Security/platform component parity
+# TASK-227 — 🛡️ Security/platform risk closure
 
-> Заведено: 2026-08-07 · Приоритет: **P1** · Статус: Открыта · Фаза: **133**
+> Revision: **2026-08-07** · Priority: **P1** · Status: Open · Phase: **132**
+
+> Runtime/traceability gate: `NOT_READY` until `testframework/docker/run-task.ps1` contract `hub.qa-runner/v1` and `testframework/docker/images.lock.json` are independently accepted. Executable evidence must resolve TASK/requirement/TC/risk; direct Docker/Compose, host test/validator, mutable-image and ad-hoc cleanup fallbacks are forbidden.
 
 ## [OUTCOME]
 
-Все API/DB/broker/source-contract rows auth, rbac, audit, ws, calls, platform,
-apigateway, dev, ent и status имеют Python replacements в корневом
-`testframework/{api,integration,contract}/**`; ни один не попал в
-`backend/tests/**`.
+Greenfield Python security/platform suite closes current P0/P1 authz, tenant,
+audit and abuse risks. It does not replace legacy rows one-for-one.
 
 ## [ROLE]
 
-- Owner: `qa-auto1`.
-- Verifier: `qa-auto-ver` + `security-auditor` для negative paths.
-- Handoff: `be1`/`be2` дают ledger/assertion contract TASK-210/211.
-- Depends on: TASK-193, TASK-205, TASK-210, TASK-211.
+- Owners: `qa-auto1`, `qa-auto2`; verifiers: `qa-auto-ver`, `security-auditor`.
+- Depends on: TASK-208, TASK-209.
+
+## [OWNED TARGET PATHS]
+
+`testframework/tests/api/security/**`, `testframework/reports/<task-run>/**`. This card authorizes no path beyond its live PLAN/manifest and routes no legacy non-unit row to Python.
 
 ## [ACCEPTANCE]
 
-- Ledger scope: unmapped=0, component-under-backend=0, parity-required=0.
-- Required services fail closed; no live providers/secrets; data namespaced.
-- Exact behavior/negative-path/skip parity и deliberate sentinel RED→GREEN.
-- Legacy остаётся до Phase 141; Go coverage ≥82% измеряется отдельно.
-- Atomic Python-domain commits; `pro-qa-ai/**` вне scope; no push.
+- P0/P1 risk→TC coverage complete or explicit owner/date backlog.
+- Happy/negative/authz/boundary/edge/failure-recovery/security/privacy applied.
+- No real egress/secrets; canary/sentinel and repeated Docker run PASS.
+- Unexpected skip=0 and resources cleaned.

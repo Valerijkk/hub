@@ -425,10 +425,10 @@ fe2: refactor(routes): apply QueryStateView to projects/board/issues (UX-2)
 
 ### 5.4. Аналогичный паттерн для qa-auto1/qa-auto2
 
-`qa-auto1` владеет Python `testframework/{api,integration,load}/<domain>/**`,
-`qa-auto2` — `testframework/{contract,e2e}/<domain>/**`. Genuine units принадлежат
+`qa-auto1` владеет Python `testframework/tests/{api,integration}/<domain>/**` и named load paths,
+`qa-auto2` — `testframework/tests/{contract,e2e}/<domain>/**`. Genuine units принадлежат
 разработчикам и живут только в `backend/tests/**` / `frontend/tests/**`.
-Границы назначаются по exact paths на задачу; общий `testframework/core/**`
+Границы назначаются по exact paths на задачу; единого generic helper warehouse
 имеет одного writer-а и не редактируется параллельно.
 
 ### 5.5. Чек-лист координации (be1/be2, аналогично fe/qa-auto)

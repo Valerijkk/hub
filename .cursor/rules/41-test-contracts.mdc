@@ -81,7 +81,7 @@ assert.Equal(t, "Иванов", user.Name)
 без authz-denial evidence считается непокрытой.
 
 Target для public authz-denial behavior — greenfield Python API cases в
-`testframework/api/**`; pure authorization functions могут иметь genuine
+`testframework/tests/api/**`; pure authorization functions могут иметь genuine
 Go units в `backend/tests/{domain}/**`.
 
 ## Запрещённые приёмы

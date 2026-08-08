@@ -30,11 +30,11 @@ disable-model-invocation: true
 |---:|---|---|---|
 | 1 | `backend-unit` | `backend/tests/{domain}/**` | PR при backend change |
 | 2 | `frontend-unit` | `frontend/tests/{domain}/**`, support | PR при frontend change |
-| 3 | `python-contract` | `testframework/contract/**` | PR по contract/schema/event/source change |
-| 4 | `python-api` | `testframework/api/**` | PR по public backend/BFF behavior |
-| 5 | `python-integration` | `testframework/integration/**` | PR по DB/broker/storage boundary |
-| 6 | `python-e2e-smoke` | `testframework/e2e/**`, marker `smoke` | PR/release gate по критическим journeys |
-| 7 | `python-e2e-full` | `testframework/e2e/**`, marker `full` | merge wave/release |
+| 3 | `python-contract` | `testframework/tests/contract/**` | PR по contract/schema/event/source change |
+| 4 | `python-api` | `testframework/tests/api/**` | PR по public backend/BFF behavior |
+| 5 | `python-integration` | `testframework/tests/integration/**` | PR по DB/broker/storage boundary |
+| 6 | `python-e2e-smoke` | `testframework/tests/e2e/**`, marker `smoke` | PR/release gate по критическим journeys |
+| 7 | `python-e2e-full` | `testframework/tests/e2e/**`; `full` is a launcher profile, not a pytest marker | merge wave/release |
 | 8 | `python-load` | `testframework/load/**` | change-specific/nightly/manual baseline |
 
 Выбор запускаемых jobs следует changed risk и observable boundary; он не
@@ -124,3 +124,16 @@ Cleanup: containers/volumes/networks
 NOT_RUN/NOT_APPLICABLE: job + rationale
 Next: triage/remediation owner
 ```
+
+<!-- hub.qa-routing-declaration/v1
+{"schema_version":"hub.qa-routing-declaration/v1","scenario_id":"api-health","assigned_skill":".cursor/skills/qa-gate/SKILL.md","declared_routes":["testframework/src/hub_testkit/domains/health/api.py","testframework/tests/api/health/test_health.py"],"expected_routes":["testframework/src/hub_testkit/domains/health/api.py","testframework/tests/api/health/test_health.py"],"prohibited_legacy_tokens":["testframework/api/**","testframework/core/**"]}
+-->
+<!-- hub.qa-routing-declaration/v1
+{"schema_version":"hub.qa-routing-declaration/v1","scenario_id":"integration-postgres","assigned_skill":".cursor/skills/qa-gate/SKILL.md","declared_routes":["testframework/src/hub_testkit/integration/postgres.py","testframework/tests/integration/postgres/test_transactions.py"],"expected_routes":["testframework/src/hub_testkit/integration/postgres.py","testframework/tests/integration/postgres/test_transactions.py"],"prohibited_legacy_tokens":["testframework/core/**","testframework/integration/**"]}
+-->
+<!-- hub.qa-routing-declaration/v1
+{"schema_version":"hub.qa-routing-declaration/v1","scenario_id":"e2e-login","assigned_skill":".cursor/skills/qa-gate/SKILL.md","declared_routes":["testframework/src/hub_testkit/browser/lifecycle.py","testframework/src/hub_testkit/domains/identity/ui/components/session_form.py","testframework/src/hub_testkit/domains/identity/ui/pages/login.py","testframework/tests/e2e/identity/test_login_smoke.py"],"expected_routes":["testframework/src/hub_testkit/browser/lifecycle.py","testframework/src/hub_testkit/domains/identity/ui/components/session_form.py","testframework/src/hub_testkit/domains/identity/ui/pages/login.py","testframework/tests/e2e/identity/test_login_smoke.py"],"prohibited_legacy_tokens":["testframework/core/**","testframework/e2e/**","testframework/e2e/pages/**","testframework/e2e/support/**"]}
+-->
+<!-- hub.qa-routing-declaration/v1
+{"schema_version":"hub.qa-routing-declaration/v1","scenario_id":"load-tracker","assigned_skill":".cursor/skills/qa-gate/SKILL.md","declared_routes":["testframework/load/profiles/steady.toml","testframework/load/users/tracker.py"],"expected_routes":["testframework/load/profiles/steady.toml","testframework/load/users/tracker.py"],"prohibited_legacy_tokens":["testframework/core/**"]}
+-->

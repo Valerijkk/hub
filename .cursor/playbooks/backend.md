@@ -703,7 +703,7 @@ task-owned limited Docker job `backend-unit` из `AGENTS.md`. Он провер
 release build, vet и genuine isolated Go units только в `backend/tests/**`.
 БД, broker/storage, HTTP/component/API и другие non-unit boundaries не
 подмешиваются в этот job: их greenfield Python suites принадлежат
-`testframework/{contract,api,integration,e2e,load}/**`.
+`testframework/tests/{contract,api,integration,e2e}/**` and `testframework/load/**`.
 
 Три обязательных шага перед handoff:
 

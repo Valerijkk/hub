@@ -267,7 +267,7 @@ func TestCreateIssue_AllTypes(t *testing.T) {
 
 Реальные SQL/transaction/optimistic-lock, broker и storage semantics не входят
 в Go unit suite. Они проектируются от requirement/risk и выполняются Python
-integration cases в `testframework/integration/**` под владельцем `qa-auto1`
+integration cases в `testframework/tests/integration/**` под владельцем `qa-auto1`; reusable integration modules get named task-owned paths in `testframework/src/hub_testkit/integration/**`
 в изолированном Docker service profile.
 
 ### 13.6. Что покрывать в первую очередь

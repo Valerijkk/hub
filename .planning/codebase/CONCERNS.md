@@ -1,5 +1,10 @@
 # Codebase Concerns
 
+> **Superseded inventory note (2026-08-07):** старый migration analysis ниже
+> остаётся historical context. Current contract: 1,049-row founder manifest,
+> legacy non-units delete-not-port, 350 hook-free Go units move immediately,
+> 245 hook-dependent genuine units are protected/refactored by TASK-234.
+
 **Analysis Date:** 2026-08-07
 
 ## Tech Debt
@@ -44,7 +49,7 @@
 - Issue: YAML-файлы в `testframework/pipeline/jobs/` дублируют workflow и содержат списки/пути, которые не проверяются автоматически на соответствие реальным тестам.
 - Files: `testframework/pipeline/jobs/`, `testframework/PIPELINE.md`, `.github/workflows/ci.yml`
 - Impact: Документированный pipeline незаметно расходится с реально исполняемым, а оценки покрытия и состава jobs становятся недостоверными.
-- Fix approach: Генерировать manifest из исполняемых конфигураций либо добавить schema/parity check, который сравнивает пути, команды и ожидаемые счётчики.
+- Fix approach: Один versioned launcher + machine-readable contract валидируют target paths, immutable images, budgets, reports и cleanup. Legacy row/count/command parity не используется.
 
 ## Known Bugs
 
@@ -52,13 +57,17 @@
 - Symptoms: Цель запускает `go test ./...` без `-tags hubtest`; экспортные hooks под build tag недоступны, и внешний `backend/testframework/` набор не компилируется или не исполняется как ожидается.
 - Files: `Makefile`, `backend/Makefile`, `backend/internal/*/export_hooks.go`, `backend/testframework/`, `docs/TROUBLESHOOTING.md`
 - Trigger: Выполнить `make test` или `make -C backend test` вместо документированной команды с `-tags hubtest`.
-- Workaround: Использовать каноническую Docker-команду из `AGENTS.md` до исправления общей точки запуска.
+- Workaround: Не запускать legacy/manual substitute. До реализации и
+  независимой проверки `hub.qa-runner/v1` фиксировать `NOT_READY`; затем
+  использовать только `/qa-gate`.
 
 **GitLab pipeline не эквивалентен GitHub pipeline:**
 - Symptoms: Backend запускается без `hubtest`, frontend не выполняет linker, lint не блокирует job, E2E job ссылается на устаревшие файлы.
 - Files: `.gitlab-ci.yml`, `.github/workflows/ci.yml`, `frontend/scripts/link-testframework-node-modules.mjs`, `testframework/stages/e2e/domains/`
 - Trigger: Запуск pipeline в GitLab.
-- Workaround: Считать GitHub workflow и ручную каноническую команду временным источником результата; не использовать GitLab green как доказательство parity.
+- Workaround: GitHub/GitLab/manual legacy results — только historical discovery.
+  До единого принятого outer launcher verdict `NOT_READY`; никакой из старых
+  entrypoints не является acceptance authority.
 
 **Coverage status может публиковаться после неуспешного прогона:**
 - Symptoms: В `.planning/COVERAGE.md` сохранено 80.2% одновременно с 11 failed packages; другие документы продолжают показывать 81.9% или исторические 83.0%.
@@ -106,11 +115,14 @@
 - Cause: Асинхронные события, websocket/NATS и UI transitions проверяются по времени, а не по наблюдаемому условию.
 - Improvement path: Использовать bounded polling/event acknowledgements в Go и locator/response/state expectations в Playwright/Python.
 
-**Dual-run временно удваивает стоимость suite:**
-- Problem: Требуемая parity-фаза запускает старое и новое расположение, а Python black-box добавляет отдельный runtime и инфраструктуру.
-- Files: `.github/workflows/ci.yml`, `backend/testframework/`, `testframework/stages/unit/frontend-test/`, `testframework/`
-- Cause: Безопасная миграция требует доказать одинаковый test inventory и outcome до удаления старых entry points.
-- Improvement path: Разделить быстрый PR subset и nightly/full parity, кэшировать Go/Node/Python зависимости и завершать dual-run только после зафиксированных acceptance gates.
+**Legacy runtime не является fallback:**
+- Problem: Старые Go/Vitest/TS Playwright jobs смешивают уровни и создают ложную
+  уверенность, если запускать их рядом с новым framework как parity authority.
+- Files: `.github/workflows/ci.yml`, `backend/testframework/`, `testframework/stages/`
+- Cause: Founder cutover отменил port/parity/dual-run и исторический coverage gate.
+- Improvement path: Phase 129 атомарно переключает exact consumers и удаляет
+  legacy closure; новый runtime оптимизируется отдельно после traceability,
+  oracle-sensitivity и cleanup acceptance.
 
 ## Fragile Areas
 
@@ -129,7 +141,9 @@
 **Удаление корневого legacy tree до извлечения сценариев:**
 - Files: `.planning/backlog/TASK-193-2026-07-30-tf-python-scaffold.md`, `.planning/backlog/TASK-195-2026-07-30-tf-e2e-mechanical.md`, `.planning/backlog/TASK-196-2026-07-30-tf-e2e-rewrite.md`, `.planning/backlog/TASK-197-2026-07-30-tf-backend-units-colocated.md`, `.planning/backlog/TASK-198-2026-07-30-tf-frontend-units-colocated.md`, `testframework/`
 - Why fragile: TASK-193 планирует очистку дерева, данные из которого нужны последующим задачам; handoff описан текстом, но полный file-level manifest не закреплён.
-- Safe modification: Сначала сохранить inventory с хэшами, классификацией и целевым путём каждого файла; физическое удаление разрешать только после dual-run parity и восстановления из manifest.
+- Safe modification: Сначала seal exact inventory/manifest с hashes и
+  descriptor-safe executor; затем удалять только literal batch с atomic owner
+  commit, independent verifier и доказуемым `git revert`. Parity не требуется.
 - Test coverage: Нет automated sentinel на потерянные/дублированные test cases.
 
 **Параллельные Python integration tests с общей БД:**
@@ -164,8 +178,10 @@
 
 **Frontend coverage provider отсутствует:**
 - Risk: В `frontend/package.json` нет Vitest coverage provider и нет threshold configuration в `frontend/vite.config.ts`.
-- Impact: Перенос 180 тестов может сохранить pass count, но незаметно потерять покрываемые модули.
-- Migration plan: Выбрать поддерживаемый Vitest provider, получить baseline до переноса, зафиксировать thresholds и сравнивать file/module coverage в dual-run.
+- Impact: После переноса genuine units не будет нового честного line/branch/function baseline.
+- Migration plan: Выбрать поддерживаемый provider, включить только target
+  `frontend/tests/**`, получить post-cutover baseline и использовать его как
+  диагностику вместе с behavior/risk gates; historical parity не требуется.
 
 **Allure Playwright/pytest integration не установлена:**
 - Risk: Документация требует Allure/TMS traceability, но `frontend/package.json` и `frontend/playwright.config.ts` не содержат Allure reporter; Python package ещё отсутствует.
@@ -178,12 +194,16 @@
 - Problem: Целевой `testframework/` ещё не имеет root Python package/config и каталогов `{core,api,integration,contract,e2e,load,docker,reports}`, markers или CI jobs.
 - Blocks: Перенос black-box сценариев из Go/TypeScript и доказательство новой архитектуры.
 
-**Стратегия сохранения Go coverage после переноса black-box в Python:**
+**Новый честный Go unit baseline после cutover:**
 - Problem: `go test -coverpkg=./internal/...` учитывает покрытие только от Go test binary; Python API/integration tests не попадут в Go coverage profile.
-- Blocks: Нельзя одновременно обещать перенос black-box сценариев и неизменный ≥82% Go gate без сохранения достаточного Go unit слоя либо явного нового измерения.
+- Blocks: Нельзя сравнивать post-cutover genuine-unit denominator с legacy
+  82.0373%. Старое значение хранится только как discovery evidence; Phase 141
+  обязана опубликовать новый baseline без preservation gate.
 
-**Machine-readable migration inventory:**
-- Current state: Ledger содержит 1,047 уникальных rows с категорией, владельцем, old→target path и checksum; незавершённым остаётся runtime/parity evidence.
+**Machine-readable cutover inventory:**
+- Current state: Ledger содержит 1,049 уникальных rows и exact partitions;
+  незавершёнными остаются независимая Phase 128 acceptance и sealed cutover
+  manifest, а не runtime/parity evidence.
 - Blocks: Безопасное удаление legacy paths, обнаружение потерь/дубликатов и воспроизводимый audit.
 
 **Exact execution sentinels:**
@@ -226,25 +246,33 @@
 
 | Risk | Probability | Impact | Required control | Evidence |
 |---|---|---|---|---|
-| Потеря Go coverage при переносе black-box тестов в Python | High | Critical | Сохранить достаточный Go unit слой либо утвердить отдельную black-box метрику и новый baseline; не снижать порог молча | `.github/workflows/ci.yml`, `backend/testframework/`, `testframework/` |
-| Потеря/дублирование файлов из-за удаления legacy tree | Medium | Critical | Inventory с хэшами и old→new mapping, dual-run, deletion только после parity | `.planning/backlog/TASK-193-2026-07-30-tf-python-scaffold.md`, `.planning/active/august-2026/06-TEST-ARCHITECTURE-REBASE.md` |
+| Несопоставимые Go coverage denominators после удаления black-box Go rows | High | High | Сохранить 82.0373% как historical evidence; опубликовать новый native-unit baseline без migration threshold | `.planning/COVERAGE.md`, `backend/tests/` |
+| Потеря/дублирование файлов при destructive cutover | Medium | Critical | Sealed exact manifest, descriptor-relative no-follow executor, per-batch identity check, atomic owner commit и independent verifier; никаких parity/dual-run gates | `.planning/audits/test-rebase/`, `.planning/phases/129-tf-e2e-shared/` |
 | Неверная классификация всех Go tests как unit | High | High | File-level taxonomy до переноса | `backend/testframework/`, `docs/testframework_strategy.md` |
 | Сохранение зависимости `backend/tests/**` от test-only hooks | High | High | Канонический `hubtest`; удаление hooks только consumer-by-consumer | `backend/internal/*/export_hooks.go`, `backend/testframework/` |
-| Ложный green из-за разных CI entry points | High | High | Общие executable scripts и parity checks GitHub/GitLab/Makefile | `.github/workflows/ci.yml`, `.gitlab-ci.yml`, `Makefile` |
+| Ложный green из-за разных CI entry points | High | High | Один versioned outer launcher; GitHub и retained mirrors только вызывают его, старые entrypoints удаляются fail-closed без parity fallback | `.github/workflows/ci.yml`, `.gitlab-ci.yml`, `Makefile` |
 | Frontend tests проходят без typecheck/lint/coverage | High | High | Включить `frontend/tests/**` во все три gate до cutover | `frontend/tsconfig.json`, `frontend/biome.json`, `frontend/vite.config.ts` |
 | E2E green с пропущенными обязательными сценариями | Medium | High | Fail-closed preflight и exact pass/skip sentinel | `testframework/stages/e2e/domains/`, `frontend/playwright.config.ts` |
 | Невоспроизводимый Python framework | Medium | High | Зафиксированный runtime, lockfile и clean-run validation | `testframework/` |
 
 ## Migration Acceptance Gates
 
-1. Зафиксирован один зелёный pre-migration baseline для ledger 1,047 rows: 830 Go / 3,667 tests, 180 Vitest / 519 cases + 3 support, 20 E2E / 53 cases + 14 support и отдельный список skip.
-2. Для каждого legacy-файла существует machine-readable old→new mapping, категория и checksum; число unmapped и accidentally duplicated файлов равно нулю.
+1. Phase 128 sealed authority содержит 1,049 rows / 4,246 declared cases,
+   disjoint exact partitions и независимый descriptor-safe acceptance.
+2. Для каждого legacy-файла существует literal move/keep/delete authority,
+   checksum и consumer closure; protected hook-dependent rows не мутируют до
+   TASK-234.
 3. Native unit suites исполняются из `backend/tests/**` и `frontend/tests/**`; корневой `testframework/**` содержит только Python framework и его данные/конфигурацию.
-4. Старые и новые entry points работают в dual-run до совпадения collected tests, результатов и согласованных coverage deltas; deletion выполняется только после parity.
-5. Go coverage ≥82% подтверждён чистым green run. Если Python заменяет Go black-box тесты, отдельно одобрена и документирована метрика их покрытия; Python execution не считается частью Go profile.
+4. Каждый Phase 129 batch одновременно меняет filesystem и exact consumers,
+   затем получает независимую проверку; старый и новый entrypoint не становятся
+   параллельными authorities.
+5. 82.0373% хранится только как historical discovery. После cutover публикуется
+   новый native-unit baseline и отдельная requirement/risk/TC coverage.
 6. `frontend/tests/**` входит в TypeScript, Biome, Vitest и coverage; junction script больше не нужен и удаляется только после clean-run validation.
 7. GitHub, GitLab, Makefile, pipeline manifests, `AGENTS.md`, `docs/test_plan.md`, `docs/TESTING.md` и `.planning/STATE.md` используют одни пути, команды и актуальные счётчики.
-8. E2E сохраняет 20 specs / 53 tests и трёх-spec smoke contract; неожиданные skips равны нулю, а обязательные dependencies fail closed.
+8. Python E2E имеет новый risk-based smoke/full contract; historical 20/53/3
+   counts не сохраняются, неожиданные skips равны нулю, required dependencies
+   fail closed.
 9. TC/AS_ID ↔ code mapping имеет полный путь, уникальный ID и reverse index; CI показывает `unmapped = 0` в обязательном scope.
 10. Python framework проходит clean install, unit/API/integration pilot, artifact redaction, deterministic cleanup и xdist/serial policy; load runner блокирует production targets.
 

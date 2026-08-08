@@ -1,5 +1,12 @@
 # Testing Patterns
 
+> **Superseded inventory note (2026-08-07):** числовой snapshot ниже был
+> построен до двух последних unit-файлов. Текущий action authority —
+> `.planning/audits/test-rebase/founder-greenfield-cutover-manifest.json`
+> (1,049 rows / 4,246 declared, revision `5708671f`, SHA `72de6a81…`).
+> Parity/dual-run отменены; 237 legacy component rows delete-not-port, а 245
+> hook-dependent genuine units защищены TASK-234.
+
 **Analysis Date:** 2026-08-07
 
 ## Test Framework
@@ -20,32 +27,18 @@
 - Browser: Playwright web-first `expect`.
 - Target Python: pytest assertions and Playwright `expect`; Allure provides metadata/reporting, not pass/fail truth.
 
-**Run Commands:**
-```bash
-# Current backend canonical
-cd backend
-go generate ./ent
-go vet -tags hubtest ./...
-go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...
+**Execution contract:**
 
-# Current frontend
-cd frontend
-npm test                 # watch
-npm run test:run         # one pass
-npm run test:e2e:smoke
-npm run test:e2e
-
-# Current GitHub coverage shape
-cd backend
-go test -tags hubtest -coverprofile=/tmp/cov -coverpkg=./internal/... ./testframework/...
-go tool cover -func=/tmp/cov
-
-# Target after cutover
-cd backend && go test -race -count=1 -timeout=600s ./tests/...
-cd frontend && npm run test:run
-cd testframework && pytest --strict-markers
-cd testframework && locust --headless -f load/locustfile.py
-```
+- Legacy Go/Vitest/TypeScript Playwright commands are inventory only and must
+  not be run as migration evidence or fallback.
+- Target jobs run only through `/qa-gate` and the versioned
+  `testframework/docker/run-task.ps1` contract (`hub.qa-runner/v1`).
+- Until that launcher and `images.lock.json` exist and receive independent
+  acceptance, runtime status is `NOT_READY`; host or inline Docker execution is
+  forbidden.
+- Every accepted invocation records immutable image provenance, outer timeout,
+  CPU/RAM/swap/PID/network policy, first exit code, task-run owner marker and
+  exact `finally` cleanup proof.
 
 ## Test File Organization
 
@@ -56,7 +49,7 @@ cd testframework && locust --headless -f load/locustfile.py
 - Target native unit locations are `backend/tests/<domain>/` and
   `frontend/tests/<domain>/`, with frontend helpers in `frontend/tests/support/`.
   Target Python project uses
-  `testframework/{core,api,integration,contract,e2e,load,docker,reports}/`.
+`testframework/{src/hub_testkit,tests/{api,integration,contract,e2e},selftests,cases,load,docker,reports}/`.
 - The target above supersedes `backend/internal/<domain>/unit/` and `frontend/src/<module>/unit/` in `.planning/active/august-2026/05-AUGUST-DETAILED.md` and TASK-197/TASK-198; those plans must be corrected before execution.
 
 **Naming:**
@@ -76,7 +69,7 @@ Target
 backend/tests/<domain>/*_test.go
 frontend/tests/<domain>/*.test.ts(x)
 frontend/tests/support/
-testframework/{core,api,integration,contract,e2e,load,docker,reports}/
+testframework/{src/hub_testkit,tests/{api,integration,contract,e2e},selftests,cases,load,docker,reports}/
 ```
 
 ## Test Structure
@@ -161,7 +154,7 @@ const logoutSpy = vi.spyOn(authApi, "logout").mockResolvedValue(undefined);
 - The tested function/component.
 - Ent/sqlite when verifying constraints, filters, cascades, or optimistic locking.
 - Browser-visible behavior in E2E.
-- Real network in unit tests. `backend/testframework/github/preview_wave103_test.go` has environment-dependent network skips and should be reclassified or use a deterministic local server.
+- Real network in unit tests. `backend/testframework/github/preview_wave103_test.go` is frozen legacy discovery and follows its sealed operation; do not remediate it. New target tests use deterministic doubles/local boundaries where the requirement permits.
 
 ## Fixtures and Factories
 
@@ -188,8 +181,8 @@ def project(project_factory):
 - Current Go: `backend/testframework/env/builder.go`, `backend/testframework/factory/user.go`, and domain-local helpers.
 - Current frontend: `testframework/stages/unit/frontend-test/render.tsx`; global jest-dom setup is `frontend/src/test/setup.ts`.
 - Current E2E: `testframework/stages/e2e/shared/fixtures.ts` plus helpers/POM/Steps.
-- Target Go/TS support: `backend/tests/support/` and `frontend/tests/support/`.
-- Target Python: reusable clients/factories in `testframework/core/`; layer/
+- Target support: frontend-only helpers живут в `frontend/tests/support/`. Четыре legacy Go support-файла удаляются; новые Go unit helpers допускаются только domain-local и не мигрируют из старого support tree.
+- Target Python: reusable clients/factories in exact task-named modules below `testframework/src/hub_testkit/`; layer/
   domain fixtures in nearest `conftest.py`. Root `conftest.py` owns environment,
   not domain state.
 - Fixture acceptance: two identical consecutive runs, zero leaked records, and parallel execution without collisions, per TASK-194/TASK-199.
@@ -197,40 +190,39 @@ def project(project_factory):
 ## Coverage
 
 **Requirements:**
-- `.github/workflows/ci.yml` declares overall Go statement coverage of `backend/internal/...` at >=82%; `.planning/COVERAGE.md` records historical security package targets >=80%.
-- The current migration backend baseline is fixed at **82.0373%** on 2026-08-07 from a zero-failure Docker Go 1.25 race run; all 6/6 security package floors pass. Older 83.0/81.9/80.2/81.8 values are dated historical attempts.
-- Current `coverage-gate` omits `-race` and `-covermode=atomic`, while `.cursor/playbooks/testing.md` requires both together. Freeze one green Docker command before any deletion, then use exactly the same instrumentation after migration.
+- `.github/workflows/ci.yml` currently contains a legacy >=82% job. Its
+  **82.0373%** result from 2026-08-07 is dated discovery evidence, not a
+  migration/acceptance gate.
+- After cutover publish a new honest native-unit baseline. Do not preserve the
+  historical denominator or infer Python behavior from Go statement coverage.
 - Frontend has no enforced coverage configuration/threshold, and `frontend/package.json` does not declare a Vitest coverage provider. TASK-198 must add a pinned provider, include production sources, define exclusions, and record a dated baseline.
-- Python black-box tests do not contribute to Go's native `go test -coverpkg` profile. Moving Go handler/repository/integration tests to Python can preserve behavioral coverage while lowering the Go statement metric. Therefore the migration must either retain/add enough Go units to preserve >=82%, or explicitly redefine the gate with an approved black-box coverage collection method and a new non-comparable baseline.
+- Python black-box tests do not contribute to Go's native profile. Their gate is
+  task/requirement/risk/TC coverage plus behavior/oracle evidence, not a promise
+  to preserve the legacy Go percentage.
 
-**View Coverage:**
-```bash
-# Candidate frozen Go method; profile stays outside the repository.
-go test -tags hubtest -race -count=1 -covermode=atomic \
-  -coverpkg=./internal/... -coverprofile=/tmp/hub-cov.out ./testframework/...
-go tool cover -func=/tmp/hub-cov.out
-
-# Target frontend, after provider/config is installed.
-cd frontend && npx vitest run --coverage
-```
+**Execution status:** target coverage jobs run only through the accepted
+`hub.qa-runner/v1` outer launcher. Until it exists, verdict is `NOT_READY`; no
+host command or inline Docker substitute is canonical evidence.
 
 ## Test Types
 
 **Unit Tests:**
 - Go service logic with manual mocks and pure helpers; move true units to `backend/tests/<domain>/`.
-- TypeScript API wrappers, stores, hooks, libraries, and components move to `frontend/tests/<domain>/`; setup/render/fixtures move to `frontend/tests/support/`.
+- Exactly 156 sealed TypeScript/React unit rows move to `frontend/tests/<domain>/` and only `render.tsx` moves to `frontend/tests/support/`. The 24 static contracts, two other support rows and legacy config closure delete; later helpers are greenfield.
 - Ownership remains developers (`be*`, `fe*`) with `be-ver`/`fe-ver`, per `.cursor/playbooks/testing.md`.
 
 **Integration Tests:**
 - Current backend tree mixes categories: 184 files use Ent/sqlite helpers, 260 use HTTP/Fiber testing, 58 use miniredis, 16 reference NATS patterns, 8 reference Postgres test env, and 2 reference Mongo test env; categories overlap.
-- Before moving, classify every file as Go unit or Python API/integration/contract. Directory alone is not evidence of type.
-- GitHub `backend-test` provides Mongo but not Postgres, so PostgreSQL tests can skip on PR; `coverage-gate` starts both only outside pull requests. A required real-Postgres migration job is needed before deletion.
+- Before cutover, classify every file only to select its sealed operation: genuine Go unit `move`, otherwise legacy `delete`. Directory alone is not evidence; no legacy row is ported into Python.
+- GitHub `backend-test` historically provided Mongo but not Postgres, while `coverage-gate` started both only outside pull requests. Это discovery evidence, не условие удаления: новый real-Postgres profile создаётся greenfield в Phase 133 после принятия launcher/scaffold.
 
 **E2E Tests:**
 - Current Playwright TS has 20 specs/53 cases with POM/Steps under `testframework/stages/e2e/`.
-- Target Playwright Python must preserve all 20 scenario files' behavior and all 53 collected cases unless an inventory row records an approved consolidation/deletion.
-- All 20 current spec files contain conditional/direct skip logic. CI must expose collected/passed/failed/skipped counts and fail on unexpected skips.
-- Preserve login/a11y/critical smoke semantics, traces, screenshots, and failure reports from `frontend/playwright.config.ts` and `.github/workflows/ci.yml`.
+- Target Playwright Python is designed from current requirements, risks and
+  verified TC; the 20/53 historical counts are not preservation authority.
+- All 20 current spec files contain conditional/direct skip logic; this is historical discovery, not a remediation queue. New Python E2E jobs independently expose collected/passed/failed/skipped counts and fail on unexpected skips.
+- Reuse useful ideas only as new test design; do not port the TypeScript files or
+  treat their artifacts/counts as acceptance.
 
 ## Common Patterns
 
@@ -263,27 +255,39 @@ assert response.json()["request_id"]
 
 ## CI Gates
 
+The `Current implementation` column below is non-executable legacy inventory.
+Every target gate is a named profile of the sole accepted `hub.qa-runner/v1`;
+the table does not authorize raw commands, provider-specific runners or host
+execution.
+
 | Gate | Current implementation | Migration acceptance |
 |------|------------------------|----------------------|
-| Go unit/race | `backend-test` runs `-tags hubtest -race ./testframework/...` | `./tests/...` collects expected tests, race is green, deliberate failing sentinel fails job |
-| Go coverage | `coverage-gate` runs only outside PR | Green baseline method frozen; same instrumentation after move, or explicitly approved gate redefinition for Python black-box coverage |
+| Go unit/race | Historical `backend-test` | `backend-unit` launcher profile collects expected tests, race is green, deliberate failing sentinel fails job |
+| Go coverage | legacy `coverage-gate` outside PR | Historical evidence only; publish a new native-unit baseline without a preservation threshold |
 | FE unit | tsc, Vitest, Biome | `frontend/tests/**` included by Vitest, tsc, and Biome; coverage recorded; linker removed |
-| Python | Not present | Pinned runtime/dependencies; `pytest --strict-markers` collects non-zero tests; marker jobs separated |
-| E2E | TS smoke/full | Python parity inventory complete; exact smoke contract; zero unexpected skips; artifacts uploaded |
+| Python | Not present | Launcher-owned Python profiles use pinned runtime/dependencies, strict registered markers and non-zero collection |
+| E2E | TS smoke/full legacy inventory | New risk-derived Python smoke/full; zero unexpected skips; traceable TC and sanitized artifacts |
 | Load | Not present | Locust scheduled/manual only; production target rejected; p50/p95/error rate/degradation point recorded |
 | Traceability | Mostly one-way names in `docs/TESTING.md` | Code metadata + exact path/name; Allure upload into Hub TMS; unmapped count zero |
-| Entry points | GitHub/GitLab/Makefiles/manifests disagree | All commands agree, or non-canonical mirrors are explicitly retired |
+| Entry points | GitHub/GitLab/Makefiles/manifests disagree | All retained consumers call `hub.qa-runner/v1`; non-canonical entrypoints are retired |
 
 ## Migration Acceptance Gates
 
-1. Freeze the 1,047-row inventory at HEAD `ee6d696c`: 830 Go / 3,667 tests (root 829/3,665 + server 1/2; 594 unit + 236 component), 180 Vitest / 519 cases + 3 support, 20 E2E / 53 cases + 14 support, 39 hooks and 0 Python.
-2. Establish a clean Docker coverage baseline with zero failed packages. Record command, revision, runtime versions, wall time, overall/security percentages, skips, and profile hash in `.planning/COVERAGE.md`.
-3. Dual-run legacy and replacement suites until parity. Each job asserts non-zero collection and reports passed/failed/skipped counts.
-4. Preserve behavior with the mutation/failing-sentinel checks required by TASK-193 through TASK-201.
-5. Do not delete `backend/testframework/` or root TS stages until every inventory row is accounted for, old/new jobs are green on a real PR, and rollback remains possible.
-6. Treat Go coverage separately from Python behavioral coverage. Retain enough Go unit coverage for the current >=82% gate, or obtain explicit approval for a new black-box method/baseline before cutover.
-7. Re-run Go race/unit/coverage, frontend type/lint/unit/coverage, pytest layers, Python E2E smoke/full, and non-production Locust. Unexpected skips, unmapped TC results, and coverage regression block cutover.
-8. Synchronize `docs/TESTING.md`, `docs/test_plan.md`, `docs/testframework_strategy.md`, `.planning/COVERAGE.md`, `.planning/STATE.md`, `testframework/PIPELINE.md`, all CI files, Makefiles, and package scripts in the same cutover.
+1. Seal the current 1,049-row ledger and exact move/keep/delete manifest with an
+   independent descriptor-safe validator; no file operation before PASS.
+2. Execute Phase 129 literal batches: move only genuine native units, delete
+   legacy non-units/static-contract/TS-E2E closure, protect hook-dependent units
+   until TASK-234, and switch exact consumers atomically.
+3. Create the root Python project and `hub.qa-runner/v1`; until independent
+   launcher acceptance every runtime verdict is `NOT_READY`.
+4. Design new Python cases from current tasks/requirements/risks/verified TC;
+   require happy/negative/authz/boundary/edge/failure-recovery analysis and a
+   sensitive oracle.
+5. Run target jobs twice where relevant, fail on zero collection/unexpected
+   skip/orphan metadata/leaked secret or resource, and isolate artifacts in
+   `reports/<task-run>/` with an owner marker.
+6. Phase 141 performs clean-room verification, publishes new native-unit and
+   requirement/risk baselines, and synchronizes all live docs/CI entrypoints.
 
 ---
 

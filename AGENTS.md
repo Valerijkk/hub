@@ -18,10 +18,10 @@
 |--------|--------|------|--------|
 | `backend-unit` | unit | `backend/tests/{domain}/` | только genuine isolated Go units |
 | `frontend-unit` | unit | `frontend/tests/{domain}/`, `frontend/tests/support/` | только genuine Vitest/RTL units |
-| `python-contract` | contract | `testframework/contract/` | API/schema/event/source contracts |
-| `python-api` | API | `testframework/api/` | публичное поведение backend/frontend BFF |
-| `python-integration` | integration | `testframework/integration/` | DB/broker/storage boundaries |
-| `python-e2e-smoke/full` | e2e | `testframework/e2e/` | markers `smoke`/`full` |
+| `python-contract` | contract | `testframework/tests/contract/` | API/schema/event/source contracts |
+| `python-api` | API | `testframework/tests/api/` | публичное поведение backend/frontend BFF |
+| `python-integration` | integration | `testframework/tests/integration/` | DB/broker/storage boundaries |
+| `python-e2e-smoke/full` | e2e | `testframework/tests/e2e/` | `smoke` is a pytest marker; `full` is a launcher profile |
 | `python-load` | load | `testframework/load/` | Locust profiles |
 
 **Founder greenfield cutover (LOCKED, 2026-08-07):** переносим только

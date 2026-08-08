@@ -92,20 +92,35 @@ cleanup result. Неожиданный skip, zero collection или leaked conta
 |---:|---|---|---|
 | [128](../../phases/128-tf-python-scaffold/PLAN.md) | Founder contract + exact retain/delete manifests; TASK-202 archived/verified; ordered `cutover-manifest.json` | 202, 203, 204 | arch + qa-auto1 → arch-ver + qa-auto-ver |
 | [129](../../phases/129-tf-e2e-shared/PLAN.md) | Seven ordered atomic plans: operation + affected CI/docs switch + manifest evidence per batch; 350 hook-free units move, 245 protected through TASK-234, legacy non-units deleted, Python root scaffold | 193, 197, 198, 201, 219, 234 | be/fe/qa/devops → independent verifiers |
-| [130](../../phases/130-tf-e2e-mechanical/PLAN.md) | Traceability, test-case catalog, quality gates | 206, 218 | qa-auto1 + ba1 → qa-auto-ver + ba-ver |
-| [131](../../phases/131-tf-e2e-rewrite/PLAN.md) | Python core + health/auth/account API foundation | 205, 207 | qa-auto1/2 → qa-auto-ver + security-auditor |
-| [132](../../phases/132-tf-backend-units-colocated/PLAN.md) | AuthZ, tenant isolation, admin/platform and abuse cases | 208, 209, 227 | qa-auto1/2 → security-auditor + qa-auto-ver |
-| [133](../../phases/133-tf-frontend-units-colocated/PLAN.md) | Infra/data integration: PostgreSQL, Mongo, Redis, NATS, jobs | 210, 211 | qa-auto1/2 → qa-auto-ver + be-ver |
-| [134](../../phases/134-tf-integration-python/PLAN.md) | Work + realtime domains from requirements | 212, 213, 228 | qa-auto1/2 → qa-auto-ver + product-ver |
-| [135](../../phases/135-tf-locust-load/PLAN.md) | Business + integrations from requirements | 214, 215, 229 | qa-auto1/2 → qa-auto-ver + product-ver |
-| [136](../../phases/136-tf-ci-cleanup/PLAN.md) | Contract/static/schema compatibility suite | 216, 230 | qa-auto1/2 → arch-ver + qa-auto-ver |
+| [130](../../phases/130-tf-traceability-gates/PLAN.md) | Traceability, test-case catalog, quality gates | 206, 218 | qa-auto1 + ba1 → qa-auto-ver + ba-ver |
+| [131](../../phases/131-tf-python-core-auth/PLAN.md) | Python core + health/auth/account API foundation | 205, 207 | qa-auto1/2 → qa-auto-ver + security-auditor |
+| [132](../../phases/132-tf-security-platform/PLAN.md) | AuthZ, tenant isolation, admin/platform and abuse cases | 208, 209, 227 | qa-auto1/2 → security-auditor + qa-auto-ver |
+| [133](../../phases/133-tf-infrastructure-integration/PLAN.md) | Infra/data integration: PostgreSQL, Mongo, Redis, NATS, jobs | 210, 211 | qa-auto1/2 → qa-auto-ver + be-ver |
+| [134](../../phases/134-tf-work-realtime/PLAN.md) | Work + realtime domains from requirements | 212, 213, 228 | qa-auto1/2 → qa-auto-ver + product-ver |
+| [135](../../phases/135-tf-business-integrations/PLAN.md) | Business + integrations from requirements | 214, 215, 229 | qa-auto1/2 → qa-auto-ver + product-ver |
+| [136](../../phases/136-tf-python-contracts/PLAN.md) | Contract/static/schema compatibility suite | 216, 230 | qa-auto1/2 → arch-ver + qa-auto-ver |
 | [137](../../phases/137-tf-python-e2e-foundation/PLAN.md) | Python Playwright foundation + critical smoke journeys | 194, 217 | qa-auto1/2 → qa-auto-ver + security-auditor |
-| [138](../../phases/138-tf-python-e2e-migration/PLAN.md) | End-to-end domain journeys and recovery | 195, 196 | qa-auto1/2 → qa-auto-ver + qa-manual-ver |
-| [139](../../phases/139-tf-load/PLAN.md) | Accessibility + cross-cutting security/privacy | 231, 232 | qa-auto1 + security-auditor → qa-auto-ver |
-| [140](../../phases/140-tf-ci-dual-run/PLAN.md) | Load/performance/resilience baselines | 200 | qa-auto2 + devops-engineer → qa-auto-ver |
-| [141](../../phases/141-tf-cutover-cleanup/PLAN.md) | CI quality gates, final audit/docs and post-rebase handoff | 220, 233 | devops-engineer + qa-auto-ver → team-lead |
+| [138](../../phases/138-tf-python-e2e-journeys/PLAN.md) | End-to-end domain journeys and recovery | 195, 196 | qa-auto1/2 → qa-auto-ver + qa-manual-ver |
+| [139](../../phases/139-tf-accessibility-security/PLAN.md) | Accessibility + cross-cutting security/privacy | 231, 232 | qa-auto1 + security-auditor → qa-auto-ver |
+| [140](../../phases/140-tf-load-resilience/PLAN.md) | Load/performance/resilience baselines | 200 | qa-auto2 + devops-engineer → qa-auto-ver |
+| [141](../../phases/141-tf-ci-final-verification/PLAN.md) | CI quality gates, final audit/docs and post-rebase handoff | 220, 233 | devops-engineer + qa-auto-ver → team-lead |
 
-Исторические slugs каталогов 128–141 не переименовываются; смысл задаёт PLAN.
+Live slugs 130-141 follow phase outcomes. Historical snapshots using an old slug are **non-executable** and must resolve through this mapping before routing; old directories are not a fallback:
+
+| Old snapshot slug | Live execution slug |
+|---|---|
+| `130-tf-e2e-mechanical` | `130-tf-traceability-gates` |
+| `131-tf-e2e-rewrite` | `131-tf-python-core-auth` |
+| `132-tf-backend-units-colocated` | `132-tf-security-platform` |
+| `133-tf-frontend-units-colocated` | `133-tf-infrastructure-integration` |
+| `134-tf-integration-python` | `134-tf-work-realtime` |
+| `135-tf-locust-load` | `135-tf-business-integrations` |
+| `136-tf-ci-cleanup` | `136-tf-python-contracts` |
+| `137-tf-python-e2e-foundation` | unchanged |
+| `138-tf-python-e2e-migration` | `138-tf-python-e2e-journeys` |
+| `139-tf-load` | `139-tf-accessibility-security` |
+| `140-tf-ci-dual-run` | `140-tf-load-resilience` |
+| `141-tf-cutover-cleanup` | `141-tf-ci-final-verification` |
 
 ## 6. Dependency graph
 
@@ -118,8 +133,7 @@ cleanup result. Неожиданный skip, zero collection или leaked conta
               -> 133 infra integration -> 134 work/realtime
                                        -> 135 business/integrations
               -> 136 contract/static
-              -> 137 E2E foundation -> 138 E2E journeys
-              -> 139 security/a11y cross-cutting
+              -> 137 E2E foundation -> 138 E2E journeys -> 139 security/a11y cross-cutting
               -> 140 load/resilience
 {132..140} -> 141 CI/final verification
 ```
@@ -127,6 +141,7 @@ cleanup result. Неожиданный skip, zero collection или leaked conta
 После Phase 131 фазы 132, 133, 136 и 137 могут идти параллельно только при
 непересекающихся owned paths/data. **Phases 134 и 135 формально зависят от
 Phase 133.** Phase 138 зависит от 137 и green соответствующих 134/135 domains.
+**Phase 139 formally depends on Phase 138** and therefore transitively on Phases 134/135.
 Phase 140 зависит от стабильных API/auth fixtures и hot paths из 134–135.
 
 ## 7. Phase 128/129 destructive gate

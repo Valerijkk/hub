@@ -1,23 +1,25 @@
-# TASK-229 — 🐍 Business/integration component parity
+# TASK-229 — 🏢 Business/integration integrity closure
 
-> Заведено: 2026-08-07 · Приоритет: **P1** · Статус: Открыта · Фаза: **135**
+> Revision: **2026-08-07** · Priority: **P1** · Status: Open · Phase: **135**
+
+> Runtime/traceability gate: `NOT_READY` until `testframework/docker/run-task.ps1` contract `hub.qa-runner/v1` and `testframework/docker/images.lock.json` are independently accepted. Executable evidence must resolve TASK/requirement/TC/risk; direct Docker/Compose, host test/validator, mutable-image and ad-hoc cleanup fallbacks are forbidden.
 
 ## [OUTCOME]
 
-DB/API/provider/storage component rows business-доменов и integrations имеют
-Python replacements; в `backend/tests/**` остаются только genuine units.
+Cross-domain review closes current P0/P1 boundaries, data-integrity and
+provider failure/recovery gaps in business/integration Python suites.
 
 ## [ROLE]
 
-- Owner: `qa-auto1`; verifier: `qa-auto-ver`.
-- Handoff: `be1`/`be2` TASK-214/215.
-- Depends on: TASK-193, TASK-205, TASK-214, TASK-215.
+- Owners: `qa-auto1`, `qa-auto2`; verifiers: `qa-auto-ver`, `product-ver`.
+- Depends on: TASK-214, TASK-215.
+
+## [OWNED TARGET PATHS]
+
+`testframework/tests/integration/adapters/**`, `testframework/reports/<task-run>/**`. This card authorizes no path beyond its live PLAN/manifest and routes no legacy non-unit row to Python.
 
 ## [ACCEPTANCE]
 
-- Calendar/intranet/accounting/crm/hr/bases/dashboard/ai/search/storage/backup/
-  imex/github/gitlab/onec/marketplace/mail scope полностью reconciled.
-- Engine/provider invariants сохранены локальными doubles или task-owned infra;
-  live external providers и secrets запрещены.
-- Ledger unmapped=0, component-under-backend=0, parity-required=0; sentinel green.
-- Legacy retained до Phase 141; Go coverage separate; atomic commits; no push.
+- Scenario checklist, integrity/rollback and provider matrices have no silent P0/P1 gap.
+- No live provider/secret; egress control and canary scan proven.
+- Sentinel, combined repeated Docker run, unexpected skip=0 and cleanup PASS.

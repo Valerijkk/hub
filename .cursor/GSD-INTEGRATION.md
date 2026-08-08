@@ -456,7 +456,7 @@ Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `micro
 ```
 1. Hub `/coverage-audit` → `.planning/COVERAGE.md` обновлён, виден risk/requirements gap TMS
 2. qa-auto1/qa-auto2 назначаются на gap
-3. gsd-add-tests                        → genuine Go unit в `backend/tests/tms/**` либо greenfield Python non-unit в `testframework/{api,integration,contract,e2e}/**` по taxonomy
+3. gsd-add-tests                        → genuine Go unit в `backend/tests/tms/**` либо greenfield Python non-unit в `testframework/tests/{api,integration,contract,e2e}/**` по taxonomy
 4. Цикл: новое поведение → регрессия домена TMS → Docker-only точечный job соответствующего целевого пути
 5. qa-auto-ver                           → verified: true
 6. docs-writer: .planning/COVERAGE.md, docs/test_plan.md
@@ -485,7 +485,7 @@ Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `micro
 5. fe1/fe2 implement по UI-SPEC.md
 6. gsd-ui-review                  → fe-ver / designer-ver: 6-pillar аудит после реализации
 7. Genuine Vitest/RTL unit: `frontend/tests/bases/**`
-8. Greenfield Python E2E: `testframework/e2e/bases/**`
+8. Greenfield Python E2E: `testframework/tests/e2e/bases/**`
 9. docs-writer: wiki/SHORTCUTS.md если новый хоткей
 ```
 
@@ -496,7 +496,7 @@ Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `micro
 2. .cursor/skills/test-triage/SKILL.md — воспроизвести НЕ через "почему тест не падает", а через docs (Fiber WS — не менять на net/http, канон)
 3. gsd-debug                       → debugger: систематический root-cause (race, nil pointer, closed channel)
 4. Фикс минимальный (rule 10-style.mdc: no panic() in production paths)
-5. Regression: genuine Go units в `backend/tests/ws/**` и Python boundary scenarios в `testframework/integration/ws/**`; все команды Docker-only, race только для Go concurrency-sensitive units
+5. Regression: genuine Go units в `backend/tests/ws/**` и Python boundary scenarios в `testframework/tests/integration/ws/**`; reusable broker/DB clients are task-scoped modules under `testframework/src/hub_testkit/integration/**`; все команды Docker-only, race только для Go concurrency-sensitive units
 6. be-ver + security-auditor (если паника эксплуатируема — DoS)
 7. docs-writer: STATE.md + при необходимости observability.md (алерты/метрики на этот паттерн)
 ```

@@ -61,7 +61,7 @@ Target taxonomy:
 
 - genuine units → `backend/tests/**`/`frontend/tests/**` владельцам be/fe;
 - contract/API/integration/E2E/load → greenfield Python
-  `testframework/{contract,api,integration,e2e,load}/**`;
+`testframework/tests/{contract,api,integration,e2e}/**` plus `testframework/load/**`;
 - legacy Go component/static Vitest/TS Playwright не портируется.
 
 ## Gate 5 — manual evidence

@@ -362,8 +362,8 @@ interface MyIssue { id: string; title: string } // дубль API-типа
 |-----|--------------|-----------|
 | Genuine unit/component behavior | `frontend/tests/<domain>/` | Vitest + React Testing Library |
 | Unit support | `frontend/tests/support/` | Локальные builders/providers; MSW только для hermetic unit boundary |
-| API/contract/integration | `testframework/{api,contract,integration}/` | Python, владельцы `qa-auto1/2` |
-| Browser journeys | `testframework/e2e/` | Python Playwright, markers `smoke`/`full` |
+| API/contract/integration | `testframework/tests/{api,contract,integration}/` | Python, владельцы `qa-auto1/2` |
+| Browser journeys | `testframework/tests/e2e/` | Python Playwright; `smoke` marker, `full` launcher profile |
 
 Тесты **не** живут в `frontend/src/`. Static/source-contract Vitest и
 TypeScript browser suites не портируются. POM/Steps — не обязательная форма:
@@ -388,7 +388,7 @@ CPU/RAM, collection, duration и cleanup.
 - **Хуки/Query**: оборачивай в `QueryClientProvider`; API мокай через MSW, не патчь `fetch` руками.
 - **Zustand**: сбрасывай стор между тестами; тестируй действия и селекторы.
 - **A11y-регресс**: unit проверяет семантику компонента; browser outcome через
-  Python E2E в `testframework/e2e/**` после верифицированного TC.
+Python E2E в `testframework/tests/e2e/**` после верифицированного TC; browser lifecycle/artifacts use exact task paths in `testframework/src/hub_testkit/browser/**`, and UI helpers in `testframework/src/hub_testkit/domains/<domain>/ui/{pages,components}/**`.
 
 ```tsx
 // Набросок компонентного теста (RTL)

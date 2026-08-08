@@ -21,10 +21,10 @@ Source precedence: founder locks → Hub safety/authority → GSD lifecycle →
 
 Мои target paths:
 
-- `testframework/contract/**` — API/schema/event/source compatibility;
-- `testframework/e2e/**` — pytest + playwright-python user journeys,
+- `testframework/tests/contract/**` — API/schema/event/source compatibility;
+- `testframework/tests/e2e/**` — pytest + playwright-python user journeys,
   accessibility и cross-cutting browser security;
-- согласованный slice `testframework/core/**`, `docker/**`, `reports/**` только
+- only the exact task-named reusable module under `testframework/src/hub_testkit/**`, plus agreed `docker/**` and task-owned `reports/**`
   при явном disjoint ownership.
 
 `qa-auto1` владеет `api/**`, `integration/**`, `load/**`. Vitest/RTL units в

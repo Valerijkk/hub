@@ -114,7 +114,7 @@ PASS | FAIL | NOT_RUN
 | authorizeBase на путях | current code inspection на exact revision | NOT_RUN — exact revision не приложена |
 | ListBases по владельцу | current code + target tests | NOT_RUN — current target evidence отсутствует |
 | Denial suite 403/404 | archived pre-cutover evidence at commit `8ff10d7`; не target-path proof | HISTORICAL_CONTEXT — не acceptance evidence |
-| Current target regression | Docker-only `backend/tests/bases/**` + applicable `testframework/api/bases/**` | NOT_RUN until greenfield cutover |
+| Current target regression | Docker-only `backend/tests/bases/**` + applicable `testframework/tests/api/bases/**` | NOT_RUN until greenfield cutover |
 | Docs | `docs/wiki/API.md` owner-scoped; STATE session note | NOT_RUN — exact revision не приложена |
 
 **Current overall verdict:** `NOT_RUN`. Ни один исторический лог или merge-факт не
@@ -168,6 +168,9 @@ PASS | FAIL | NOT_RUN
 ## Связь
 
 - Upstream: `gsd-verify-work`, `gsd-audit-uat`
+<!-- hub.qa-routing-declaration/v1
+{"schema_version":"hub.qa-routing-declaration/v1","scenario_id":"selftest-markers","assigned_skill":".cursor/skills/gsd-ru/goal-verify/SKILL.md","declared_routes":["testframework/selftests/pytest_plugin/test_markers.py","testframework/src/hub_testkit/pytest_plugin/markers.py"],"expected_routes":["testframework/selftests/pytest_plugin/test_markers.py","testframework/src/hub_testkit/pytest_plugin/markers.py"],"prohibited_legacy_tokens":["testframework/conftest.py","testframework/core/**"]}
+-->
 - Hub: `playbooks/verification.md`, prompt-contract §6, rule 56, rule 55
 - Предыдущий: [wave-run](../wave-run/SKILL.md) · Следующий: [handoff](../handoff/SKILL.md)
 - Индекс: [gsd-ru/README.md](../README.md)

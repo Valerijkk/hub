@@ -1,47 +1,29 @@
-# TASK-214 — 🧪 Backend business-domain wave
+# TASK-214 — 🏢 Business-domain greenfield cases
 
-> Заведено: 2026-08-07 · Приоритет: **P1** · Статус: Открыта · Фаза: **135**
+> Revision: **2026-08-07** · Priority: **P1** · Status: Open · Phase: **135**
+
+> Runtime/traceability gate: `NOT_READY` until `testframework/docker/run-task.ps1` contract `hub.qa-runner/v1` and `testframework/docker/images.lock.json` are independently accepted. Executable evidence must resolve TASK/requirement/TC/risk; direct Docker/Compose, host test/validator, mutable-image and ad-hoc cleanup fallbacks are forbidden.
+> **Deprecated filename alias:** the pre-rebase backend slug is retained for
+> link stability; current purpose is greenfield business-domain behavior.
 
 ## [OUTCOME]
 
-Только genuine Go units calendar, intranet, accounting, crm, hr, bases и
-dashboard работают из `backend/tests/**`; DB/API components получают Python
-parity TASK-229.
+Python API/integration cases cover calendar, intranet, accounting, CRM, HR,
+bases, dashboard, AI, search and storage from current requirements/risks.
 
 ## [ROLE]
 
-- Owner: `be1` — seven-domain migration and hooks.
-- Verifier / handoff: `be-ver` — taxonomy/parity/race/coverage/mutation review.
+- Owner: `qa-auto1`; verifiers: `qa-auto-ver`, `product-ver`.
+- Depends on: TASK-205 and applicable Phase 133 fixtures.
 
-## [SCOPE AND CONSTRAINTS]
+## [OWNED TARGET PATHS]
 
-- Allowed: `backend/tests/{calendar,intranet,accounting,crm,hr,bases,dashboard}/**`, shared support и read-only hook ledger; hook-файлы не меняются.
-- Read-only: matching legacy/product. Do not touch: legacy deletion, CI, other domains, behavior.
-- Real PostgreSQL/transaction/whole-API rows remain legacy until TASK-229
-  parity; SQLite may not substitute engine-specific assertions.
-- Depends on: TASK-212, TASK-213.
-
-## [REFERENCES]
-
-- TASK-197/203/204; matching directories; `.planning/codebase/{STRUCTURE,TESTING,CONCERNS}.md`
+`testframework/tests/api/business/**`, `testframework/reports/<task-run>/**`. This card authorizes no path beyond its live PLAN/manifest and routes no legacy non-unit row to Python.
 
 ## [ACCEPTANCE]
 
-- Completion command: `cd backend && go test -tags hubtest -race -count=1 ./tests/calendar/... ./tests/intranet/... ./tests/accounting/... ./tests/crm/... ./tests/hr/... ./tests/bases/... ./tests/dashboard/...`; exit code 0 и заявленные counts обязательны.
-
-- All seven-domain Go rows `PARITY_PROVEN`; Python rows explicitly pending; missing/duplicate = 0.
-- Target+legacy race runs and frozen coverage comparison green; hook decisions are `retain|candidate-for-TASK-219` with consumer proof.
-- Mutation proof: one meaningful guard/constraint across each of the seven domains REDs target test; restore GREEN.
-- Regression: all earlier backend target/legacy waves green; skip policy satisfied.
-- Evidence: ledger totals, commands/counts/timing/coverage, hook/mutation logs.
-- Stop when: engine-specific or cross-domain behavior would be weakened; retain row for Python.
-
-## [OUTPUT SCHEMA]
-
-1. Verdict. 2. Seven-domain parity/hook table. 3. Race/coverage/mutations. 4. Regression/pending/risks. 5. Handoff `be-ver`; skill-log.
-
-## [OPERATING RULES]
-
-- Atomic domain batches; originals retained; triage/re-run old+new.
-- No test semantic, TC, hook or coverage loss.
-- Docs-sync ledger; TASK-linked commits, no AI attribution.
+- Domain lifecycle/authz plus invalid/boundary/edge/timezone/currency/precision/
+  duplicate/concurrent/failure-recovery scenarios.
+- AI/search/storage have deterministic oracle and privacy/redaction checks.
+- P0/P1 trace gaps get owner/date; legacy counts are not acceptance criteria.
+- Docker-only, sentinel, unexpected skip=0 and cleanup PASS.

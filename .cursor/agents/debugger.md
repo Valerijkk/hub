@@ -137,7 +137,7 @@ signal требует отдельной operational authority.
 ### Frontend (React/TS)
 
 Typecheck/lint/Vitest выполняются Docker job `frontend-unit`; browser repro —
-Python E2E job в root `testframework/e2e/**`. Интерактивный браузер/React
+Python E2E job в `testframework/tests/e2e/**`. Browser lifecycle/artifacts belong only to named task modules under `testframework/src/hub_testkit/browser/**`; интерактивный браузер/React
 Profiler используется только в разрешённом task-owned debug environment, а не
 как замена воспроизводимому oracle.
 

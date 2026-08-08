@@ -22,10 +22,10 @@ Source precedence: founder locks → Hub safety/authority → GSD lifecycle →
 
 Мои target paths:
 
-- `testframework/api/**` — public backend/frontend-BFF behavior;
-- `testframework/integration/**` — PostgreSQL/Mongo/Redis/NATS/storage/jobs;
+- `testframework/tests/api/**` — public backend/frontend-BFF behavior;
+- `testframework/tests/integration/**` — PostgreSQL/Mongo/Redis/NATS/storage/jobs;
 - `testframework/load/**` — Locust performance/resilience profiles;
-- согласованный slice `testframework/core/**`, `docker/**`, `reports/**` только
+- only the exact task-named reusable module under `testframework/src/hub_testkit/**`, plus agreed `docker/**` and task-owned `reports/**`
   при явном disjoint ownership.
 
 `qa-auto2` владеет `contract/**` и `e2e/**`. `be1/2` и `fe1/2` владеют

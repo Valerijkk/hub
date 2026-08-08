@@ -27,7 +27,7 @@ evidence из
   `backend/tests/{domain}/**`;
 - `frontend-unit` → только genuine Vitest/RTL units/support в
   `frontend/tests/{domain}/**`, `frontend/tests/support/**`;
-- Python jobs → `testframework/{contract,api,integration,e2e,load}/**`;
+- Python jobs → `testframework/tests/{contract,api,integration,e2e}/**` plus `testframework/load/**`;
 - `core/docker/reports` имеют явного owner;
 - нет портированных Go component/API/integration, static-contract Vitest,
   TypeScript Playwright, их configs/helpers/runners;
