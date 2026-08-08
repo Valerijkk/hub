@@ -1,765 +1,213 @@
-# Hub — Эталонный Playbook по тестированию и Allure
+# Hub — QA и тестовая автоматизация
 
-> **Статус:** эталонный документ QA-практик Hub. На него ссылаются агенты `qa-manual`, `qa-auto1`, `qa-auto2`, `qa-auto-ver`, `qa-manual-ver`, а также `be`/`fe`.
-> **Источники истины:** `docs/TESTING.md` (TC-матрица), `docs/test_plan.md` (стратегия), `testframework/PIPELINE.md` (карта CI), `.cursor/rules/40-testing.mdc`, `.cursor/rules/45-artifacts-cleanup.mdc`, `.cursor/rules/56-regression-verify.mdc`, `.cursor/skills/test-triage/SKILL.md`, `.cursor/skills/qa-gate/SKILL.md`, `.cursor/skills/coverage-audit/SKILL.md`.
-> **Правило:** проза — русская, код — английский (Go/TS как в репозитории). Комментарии в коде объясняют ПОЧЕМУ, без эмодзи.
-> **Founder Docker-only lock:** любые команды test/build/vet/lint/validator,
-> приведённые в этом playbook и дочерних справочниках без внешнего `docker run`,
-> являются командами **внутри** task-owned container, а не командами Windows
-> host. Runner обязан иметь CPU/RAM limits; source по умолчанию mount read-only.
-> **Founder greenfield cutover:** body этого playbook содержит legacy-примеры и
-> читается только как test-design reference. Новая запись разрешена лишь в
-> `backend/tests/**` (Go units), `frontend/tests/**` (Vitest/RTL units) и
-> root Python `testframework/**` (весь non-unit). Legacy tests frozen и будут
-> удалены по manifest; parity и исторический 82% coverage не являются gate.
+> Founder greenfield cutover (LOCKED, 2026-08-07). Канон стратегии:
+> [`docs/test_plan.md`](../../docs/test_plan.md) и
+> [`06-TEST-ARCHITECTURE-REBASE.md`](../../.planning/active/august-2026/06-TEST-ARCHITECTURE-REBASE.md).
+> Evidence-backed правила: [`15-test-automation.md`](../knowledge/code-practices/15-test-automation.md),
+> [`01-evidence-model.md`](../knowledge/code-practices/01-evidence-model.md).
 
-Этот playbook — не пересказ теории, а рабочая инструкция «как мы тестируем именно Hub». Все примеры используют реальные пакеты (`tracker`, `tms`, `auth`, `messenger`, `calls`), реальные паттерны (`mockRepo`, env `Builder`, `factory`, POM, Steps, `renderWithProviders`, MSW) и реальные команды CI. Каждый раздел содержит блоки good/bad и чек-листы, чтобы агент мог свериться перед сдачей работы верификатору.
+Этот playbook определяет активный QA-контур Hub. Старые пути могут встречаться
+в истории и inventory, но не являются target, шаблоном или источником кода для
+новых тестов.
 
----
+## 1. Неподвижная архитектура
 
-## Оглавление
+| CI job | Scope | Target | Владелец |
+|---|---|---|---|
+| `backend-unit` | genuine isolated Go units | `backend/tests/{domain}/**` | `be1`/`be2` |
+| `frontend-unit` | genuine Vitest/RTL units | `frontend/tests/{domain}/**`, `frontend/tests/support/**` | `fe1`/`fe2` |
+| `python-contract` | API/schema/event/source contracts | `testframework/contract/**` | `qa-auto2` |
+| `python-api` | публичное поведение backend/BFF | `testframework/api/**` | `qa-auto1` |
+| `python-integration` | DB/broker/storage boundaries | `testframework/integration/**` | `qa-auto1` |
+| `python-e2e-smoke/full` | браузерные user journeys | `testframework/e2e/**`; markers `smoke`/`full` | `qa-auto2` |
+| `python-load` | load/resilience profiles | `testframework/load/**` | `qa-auto1` + DevOps |
 
-Канон здесь. Стек-специфика и справочники — отдельными файлами: они
-нужны не на каждой задаче и не должны грузиться вместе с каноном.
-
-**В этом файле**
-
-1. [Кто и когда использует playbook](#1-кто-и-когда-использует-playbook)
-2. [Философия тестирования](#2-философия-тестирования)
-3. [Регрессия и qa-gate](#11-регрессия-и-qa-gate)
-4. [Test triage](#12-test-triage)
-5. [Стабильность и флейки](#13-стабильность-и-флейки)
-6. [Coverage](#14-coverage)
-7. [Definition of Done](#15-definition-of-done)
-8. [Антипаттерны тестов](#16-антипаттерны-тестов)
-9. [Чек-лист перед передачей верификатору](#17-чек-лист-перед-передачей-верификатору)
-
-**Отдельными файлами**
-
-| Файл | Когда открывать |
-|------|-----------------|
-| [`testing/test-design.md`](testing/test-design.md) | Проектируешь покрытие: техники, трассируемость кейс ↔ автотест |
-| [`testing/backend-go.md`](testing/backend-go.md) | Пишешь Go-тесты: hubtest, фикстуры, race, слои |
-| [`testing/frontend.md`](testing/frontend.md) | Пишешь фронтовые юниты: Vitest, RTL, рендер-хелперы |
-| [`testing/e2e.md`](testing/e2e.md) | Пишешь сквозные сценарии: Playwright, POM, шаги |
-| [`testing/tooling.md`](testing/tooling.md) | Настраиваешь Allure, меряешь время прогона, разбираешь артефакты |
-| [`testing/reference.md`](testing/reference.md) | Нужен конкретный ответ: cookbook, сквозной пример, каталог security, команды и CI, FAQ |
-
-Нумерация разделов сохранена от прежней единой версии — ссылки вида
-«§12» из ролей и отчётов остаются рабочими.
-
----
-## 1. Кто и когда использует playbook
-
-### 1.1. Карта ролей QA-команды Hub
-
-Hub использует ролевую модель агентов (см. `AGENTS.md`). В тестировании участвуют пять специализированных агентов плюс исполнители `be`/`fe`, которые пишут тесты рядом с кодом.
-
-| Агент | Основная зона | Пишет | Не делает |
-|-------|---------------|-------|-----------|
-| `qa-manual` | Ручные тест-кейсы, TC-матрица, исследовательское тестирование | TC-`<MODULE>`-NN в `docs/TESTING.md`, чек-листы, баг-репорты | Не пишет автотесты; не линкует Go-функции |
-| `qa-auto1` | Python API/integration и backend-oriented E2E по verified TC | `testframework/{api,integration,e2e}/**/*.py` | Не пишет Go units за BE; не портирует legacy один-в-один |
-| `qa-auto2` | Python contract/frontend-oriented E2E и a11y по verified TC | `testframework/{contract,e2e}/**/*.py` | Не пишет Vitest units за FE; не переносит TS Playwright |
-| `qa-auto-ver` | Верификатор автотестов | Прогон, проверка триажа, проверка привязки TC↔автотест | Не пишет тесты сам (только контр-примеры) |
-| `qa-manual-ver` | Верификатор ручной документации | Проверка полноты TC, соответствия спецификации, покрытия acceptance criteria | Не пишет TC сам |
-| `be` / `fe` | Разработчики | Unit-тесты рядом с фичей (обязательно по rule 56) | Не владеют TC-матрицей, но обязаны линковать новые автотесты |
-
-### 1.2. Когда открывать этот playbook
-
-- **Перед началом любой тест-задачи** — свериться со стандартом (структура теста, паттерны, DoD).
-- **При падении теста** — раздел [12. Test triage](#12-test-triage) обязателен до любых правок.
-- **Перед хендоффом верификатору** — раздел [17](#17-чек-лист-перед-передачей-верификатору).
-- **При добавлении нового TC или автотеста** — раздел [7](#7-тестовая-документация-с-привязкой-к-автотестам).
-- **При работе с Allure/TMS-импортом** — раздел [8](#8-allure-в-деталях).
-- **При жалобе на медленный CI** — раздел [9](#9-замер-времени-прогонов-и-производительность).
-
-### 1.3. Канонический QA-конвейер (порядок обязателен — решение пользователя 2026-07-03)
-
-Поток «бизнес-дока → тест-кейс → верификация доки → автотест → верификация автотестов» строго последователен. **Юнит-тесты в этот конвейер не входят — их пишут разработчики (`be*`/`fe*`) вместе с кодом.**
-
-```
-BA/SA (бизнес-дока: vision_and_scope, system_specification — US/AC/FR)
-      │
-      ▼
-qa-manual      ── анализирует бизнес-доку → пишет TC-<MODULE>-NN в docs/TESTING.md
-      │            (шаги, ожидаемый результат; колонка «Автотест» = TODO/«ручной»)
-      ▼
-qa-manual-ver  ── ВЕРИФИЦИРУЕТ тестовую доку (полнота, техники, трассируемость)
-      │            без verified:true автотесты НЕ стартуют
-      ▼
-qa-auto1/2     ── автоматизирует ВЕРИФИЦИРОВАННЫЕ TC → greenfield Python
-      │            API/integration/contract/E2E; обновляет колонку «Автотест»
-      ▼
-qa-auto-ver    ── верифицирует автотесты (детерминизм, привязка TC↔тест, green regression)
-
-Параллельно (вне конвейера): be1/be2, fe1/fe2 пишут UNIT-тесты своего кода
-вместе с фичей (rule 56) — это обязанность разработчика, не qa-auto.
-```
-
-**Ключевые правила:**
-1. **Порядок жёсткий:** автотесты пишутся только по TC, прошедшим `qa-manual-ver`. Автоматизация неверифицированной доки = переделка.
-2. **Юниты — зона разработчиков.** `qa-auto*` не пишут unit-тесты за `be`/`fe`; их слой — integration/API/компонентные/E2E поверх верифицированных TC.
-3. Ручной TC и автотест — одна пара: `qa-manual` владеет «что и зачем», `qa-auto` — «как». Колонка «Автотест» в `docs/TESTING.md` — точка встречи (раздел 7).
-
-> **Текущее решение founder 2026-08-07:** greenfield Python cutover выполняется
-> сейчас, без ожидания микросервисного дробления и без dual-run parity. Юниты
-> остаются native; весь non-unit слой создаётся с нуля на pytest/httpx,
-> playwright-python и Locust. Legacy служит только discovery input до deletion.
-
-### 1.4. Разделение доменов между `qa-auto1` и `qa-auto2` без конфликтов
-
-Конфликты в тестах возникают из-за: (а) правки одного файла двумя агентами; (б) дублирующихся `_test.go`; (в) гонок за общий fixture/seed. Hub разделяет ответственность **по слою пирамиды и домену**, а не по фиче.
-
-**Правило разделения (по умолчанию):**
-
-| Слой / стадия | Владелец | Путь |
-|---------------|----------|------|
-| Backend unit (Go) | `be1` / `be2` | `backend/tests/{domain}/` |
-| Frontend unit (Vitest + RTL) | `fe1` / `fe2` | `frontend/tests/{domain}/` |
-| Python API/integration | `qa-auto1` | `testframework/{api,integration}/` |
-| Python contract/E2E | `qa-auto2` | `testframework/{contract,e2e}/` |
-
-**E2E делится по доменам, а не по файлам:**
-
-| Домен E2E | Владелец |
-|-----------|----------|
-| auth, navigation, tracker, tms, messenger | `qa-auto1` |
-| admin, ai, platform, v4 | `qa-auto2` |
-
-**Протокол бесконфликтной работы:**
-
-1. **Один файл — один владелец в рамках задачи.** Если нужно тронуть чужой файл, это хендофф: оставь заметку в `.planning/STATE.md` (session note) и договорись, кто мержит.
-2. **Новые Python-файлы именуются по поведению:** `test_<requirement>_<behavior>.py`; module metadata содержит task/FR/NFR/TC links.
-3. **Общие фикстуры не форкать.** Python clients/factories живут в `testframework/core/`, browser support — в `testframework/e2e/support/`; один owner на shared-файл.
-4. **Seed изолирован по тесту.** Уникальные schema/database/project/channel IDs, deterministic factories и cleanup finalizer обязательны.
-5. **При параллельном прогоне** (`pytest-xdist`, Playwright workers) домены не шарят network, database/schema, tenant или artifact path; namespace включает task/run/worker ID.
-
-**Good — разделение по слою:**
+Root `testframework/` — один greenfield Python-проект:
 
 ```text
-qa-auto1: testframework/api/tracker/test_fr_tracker_issue_create.py
-qa-auto2: testframework/e2e/tracker/test_tc_tracker_board_flow.py
+testframework/
+  pyproject.toml
+  core/
+  contract/
+  api/
+  integration/
+  e2e/
+  load/
+  docker/
+  reports/
 ```
 
-Оба покрывают домен tracker, но не пересекаются по файлам и слоям — merge без конфликтов.
+Обязательные запреты:
 
-**Bad — оба правят один файл:**
+- `backend/tests/**` не принимает HTTP/component/integration tests, БД,
+  broker, storage или service containers;
+- `frontend/tests/**` не принимает static/source-contract tests и проверки,
+  которые просто grep/парсят production source;
+- legacy Go component/API/integration, static-contract Vitest, TypeScript
+  Playwright и их support/config/entrypoints удаляются по exact manifest и
+  **не портируются**;
+- нет row parity, dual-run и «перевода» legacy case-by-case;
+- исторические 82% Go statement coverage и 80% package floors — baseline для
+  контекста, не migration gate и не замена requirement/risk coverage;
+- `pro-qa-ai/**` не читается и не меняется без явного founder handoff.
+
+## 2. Как выбрать suite
+
+Сначала назвать failure mode и наблюдаемый boundary, затем выбрать самый
+быстрый hermetic scope, который способен обнаружить риск. `size` (ресурсы и
+изоляция) и `scope` (объём системы) — разные оси.
+
+| Риск/граница | Предпочтительный evidence |
+|---|---|
+| pure calculation, validation, reducer, component behavior | native unit |
+| публичный HTTP/BFF contract | Python API |
+| schema/event/source compatibility | Python contract |
+| PostgreSQL/Mongo/Redis/NATS/storage semantics | Python integration |
+| пользовательский результат через браузер | Python E2E |
+| throughput, saturation, recovery under load | Python load |
+
+Пирамида, Testing Trophy и Honeycomb допустимы как модели для обсуждения, но
+не задают обязательные пропорции. Количество тестов по слоям не является gate.
+
+## 3. Контракт test case
+
+Каждый новый Python case имеет стабильный `TC-*` и metadata:
+
+- `task`, `requirement` (`FR-*`, `NFR-*`, `GZ-*`, ADR/API/spec section);
+- `risk`, `layer`, `domain`, `priority`, `owner`;
+- предусловия и данные;
+- observable oracle и запрещённые side effects;
+- cleanup и ссылка на human-readable case/catalog.
+
+Каждый применимый requirement/risk рассматривается через failure model:
+
+- happy и invalid;
+- authn, authz и tenant isolation;
+- boundary; empty/one/many; null/Unicode/time/timezone;
+- duplicate/reorder и version compatibility;
+- timeout/unavailable/partial completion/retry/recovery;
+- cancellation/concurrency/replay/idempotency;
+- resource exhaustion;
+- security/privacy/redaction, accessibility и performance — когда применимо.
+
+Это пространство выбора, не квота. `N/A` допустимо с кратким rationale.
+Техники equivalence classes, boundary values, decision tables, state machines
+и pairwise применяются только там, где они уменьшают реальный риск.
+
+## 4. Качество тестового кода
+
+- Один test выражает один behavioral concept, а не ритуально один assert.
+  Несколько assertions допустимы, если вместе доказывают один outcome.
+- DAMP для scenario, DRY для механического setup. Не выносить важные значения
+  и ожидания в DSL, который скрывает рассказ теста.
+- Stub/fake/spy/mock выбирается по contract. Interaction assert допустим,
+  только если collaboration наблюдаема клиентом или является явным contract.
+- Не привязывать тест к private call order или incidental implementation.
+- UI сначала использует accessible semantic locator. Tiny action helper,
+  Component Object или Page Object появляются после повторения meaningful
+  UI-knowledge. POM/Steps не обязательны и сами по себе не являются quality.
+- Fixed sleep не синхронизирует test. Использовать controlled time,
+  deterministic condition, bounded eventual assertion и explicit cleanup.
+- Shared mutable accounts, records, schema, artifact paths и ports запрещены;
+  namespace включает task/run/worker ID.
+
+Подробнее: [backend Go](testing/backend-go.md), [frontend](testing/frontend.md),
+[Python E2E](testing/e2e.md), [test design](testing/test-design.md),
+[tooling/evidence](testing/tooling.md), [Hub risks](testing/reference.md).
+
+## 5. Workflow
 
 ```text
-qa-auto1 и qa-auto2 одновременно правят
-testframework/core/factories/project.py
-→ git conflict, дублирование seed logic и cleanup race
+requirement + task + threat/failure model
+  -> qa-manual: TC и observable oracle
+  -> qa-manual-ver: independent requirement/TC review
+  -> owner выбирает suite по boundary
+  -> be/fe пишут genuine units; qa-auto1/2 пишут greenfield Python non-unit
+  -> Docker-only execution + exact evidence + negative sentinel
+  -> qa-auto-ver: independent verdict
+  -> target CI jobs
 ```
 
-### 1.5. Чек-лист «перед стартом тест-задачи»
+Автоматизация может начаться только с однозначного requirement/oracle. Это не
+означает quota «один TC на каждую строку»: один case может закрывать несколько
+связанных требований, а один риск — требовать несколько cases.
 
-- [ ] Прочитал требование/US в `docs/vision_and_scope.md` или `docs/system_specification.md`.
-- [ ] Понял, к какому TC-модулю относится задача (`docs/TESTING.md`).
-- [ ] Определил свой слой и домен (раздел 1.4) — нет ли пересечения с другим `qa-auto`.
-- [ ] Проверил, существует ли уже автотест/TC для сценария (не дублировать).
-- [ ] Знаю команду прогона своего слоя (раздел 11).
+При FAIL обязателен [`/test-triage`](../skills/test-triage/SKILL.md): сначала
+проверить поведение и docs, затем классифицировать `code`, `test`, `infra`,
+`flaky` или `stop`. Assertion не меняют ради green.
 
----
-## 2. Философия тестирования
+## 6. Docker-only execution
 
-### 2.1. Пирамида тестирования Hub
+На Windows host разрешены чтение/редактирование файлов, Git и Docker CLI.
+Tests, validators, linters, build/vet, Vite, backend/frontend processes,
+pytest/Playwright и Locust исполняются только в task-owned containers/Compose:
 
-Hub придерживается классической пирамиды: много быстрых unit-тестов, меньше интеграционных, ещё меньше медленных E2E. Форма закреплена в `docs/test_plan.md`.
+- уникальное имя/project: `hub-<job>-<task>`;
+- явные CPU/RAM и bounded timeout;
+- source mount read-only, если runner не обязан писать;
+- isolated data/ports/network/artifacts;
+- `--rm` либо guaranteed `down -v --remove-orphans`;
+- zero collection, unexpected skip или leaked resource = FAIL.
 
-```
-        ┌─────────────┐
-        │     E2E     │  Playwright + POM — критические user paths
-        │  20 spec    │  jobs e2e-smoke (3) / e2e-full (20)
-        ├─────────────┤
-        │ Integration │  httptest handlers, enttest/sqlite, Mongo в CI
-        │             │  (в составе job backend-test)
-        ├─────────────┤
-        │    Unit     │  Go testify (-tags hubtest) + Vitest/RTL
-        │ 499 BE + 99 │  jobs backend-test / frontend-test
-        └─────────────┘
-```
+Пример genuine backend units:
 
-| Уровень | Инструмент | Расположение | CI job | Скорость | Цель |
-|---------|------------|--------------|--------|----------|------|
-| Unit (BE) | Go testing + testify | `backend/testframework/{domain}/` | `backend-test` | мс | логика сервисов, конвертеры, валидация |
-| Unit (FE) | Vitest + RTL | `testframework/stages/unit/frontend-test/domains/{domain}/` | `frontend-test` | мс | компоненты, хуки, сторы, api-клиенты |
-| Integration | httptest, enttest, miniredis | `backend/testframework/` | в составе `backend-test` | десятки мс | handler↔service↔repo, реальная схема Ent |
-| E2E | Playwright + POM + Steps | `testframework/stages/e2e/domains/{domain}/` | `e2e-smoke`, `e2e-full` | секунды | критические сквозные пути |
-
-### 2.2. Что тестировать на каждом уровне
-
-**Unit (Go) — большинство тестов.** Быстрые, детерминированные, с мок-репозиторием:
-- бизнес-логика сервисов (создание задачи, оптимистичная блокировка, workflow-переходы);
-- валидация входных данных (невалидные UUID, пустые поля, границы);
-- конвертеры `ent.*` → DTO (`toIssueResponse`, `toCommentResponse` — через `export_hooks.go`);
-- error paths (что возвращается при not found, conflict, forbidden).
-
-**Unit (Frontend) — компоненты и хуки:**
-- рендер компонента с разными пропсами (`IssueCard` со story points / без);
-- поведение хуков (`useAuth.logout` вызывает API до очистки стора);
-- сторы Zustand (переходы состояния);
-- api-клиенты (правильный URL и payload через `vi.spyOn(api, 'post')`).
-
-**Integration (Go) — стыки слоёв на реальной схеме:**
-- handler → service → repository с in-memory sqlite (env `Builder`);
-- RBAC-проверки на реальных ролях;
-- пагинация, фильтры, каскады Ent.
-
-**E2E — только критические пути:**
-- вход (dev-login), создание проекта, отправка сообщения, TMS-флоу, Ctrl+K, logout, a11y;
-- не дублировать unit-проверки; E2E дорог и медленен.
-
-### 2.3. Правило распределения усилий
-
-**Good — правильная пирамида:**
-
-```text
-Новая фича «WIP-лимиты на колонке Kanban»:
-- 6 Go unit-тестов (лимит достигнут, превышен, снят, дефолт) — mockRepo
-- 2 integration-теста (реальный board через env.Builder)
-- 1 Vitest (компонент колонки показывает счётчик N/limit)
-- 0 новых E2E (покрыто существующим project-lifecycle, если критично)
+```powershell
+docker run --rm --name hub-backend-unit-<task> `
+  --cpus 2.0 --memory 4g --memory-swap 4g `
+  --mount type=bind,src="${PWD}/backend",dst=/work/backend,readonly `
+  -w /work/backend golang:1.25-bookworm `
+  sh -lc "go build -tags release ./... && go vet ./... && go test -race -count=1 -timeout=600s ./tests/..."
 ```
 
-**Bad — перевёрнутая пирамида (ice-cream cone):**
+`--rm` — обязательный cleanup контейнера. Если task создаёт named volumes,
+networks или Compose stack, handoff содержит отдельный подтверждённый cleanup.
+Target команды по всем job: [`/qa-gate`](../skills/qa-gate/SKILL.md).
 
-```text
-Та же фича:
-- 1 Go unit-тест «на всякий»
-- 5 E2E-тестов, каждый логинится, создаёт проект, задачу, тащит на доску,
-  проверяет лимит через UI
-→ CI +90 секунд, флейки на auto-wait, лимит GitHub Actions горит,
-  а логика лимита по-прежнему почти не покрыта unit-тестами
+## 7. Evidence и false confidence
+
+Минимальная запись runnable evidence:
+
+```yaml
+job: python-api
+source_sha: <sha>
+image: <immutable tag or digest>
+command: <exact inner command>
+resources: {cpus: 2.0, memory: 4g}
+service_profile: <none or compose profile>
+result: {collected: N, passed: N, failed: 0, skipped: 0}
+duration: <seconds>
+artifacts: <task-owned URI>
+cleanup: PASS
 ```
 
-### 2.4. Антипаттерны на уровне стратегии
-
-| Антипаттерн | Симптом | Чем плохо | Как правильно |
-|-------------|---------|-----------|---------------|
-| Ice-cream cone | Много E2E, мало unit | Медленный CI, флейки, дорогая отладка | Логику — в unit, E2E — только критический путь |
-| Flaky-терпимость | «Перезапусти, обычно проходит» | Теряется доверие к CI, маскирует реальные баги | Раздел 13: детект, quarantine, фикс причины |
-| Тест ради покрытия | Тест без ассертов / проверяет мок | Coverage растёт, баги не ловятся | Проверять поведение и контракт, а не строки |
-| Зелёные вслепую | Assert подгоняется под текущий вывод | Тест фиксирует баг как «правильное» поведение | Раздел 12: сначала функционал по спеке |
-| Общий мутабельный fixture | Тесты зависят от порядка | Гонки, падения при `-race`/parallel | Изоляция: свой sqlite/QueryClient на тест |
-| Тестирование деталей реализации | Assert на приватные поля/порядок вызовов | Ломается при рефакторинге без изменения поведения | Assert на публичный контракт |
-
-### 2.5. Принципы Hub (закреплены в rules)
-
-1. **Backend CI-инвариант:** `go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...`. `-race` всегда, `-count=1` отключает кэш.
-2. **Coverage floor:** statement coverage `internal/` ≥ 82% (сейчас 83.0%, 2026-06-22 Docker baseline); security-пакеты ≥ 80%.
-3. **Тесты в модуле backend:** Go запрещает импорт `internal/*` из другого модуля, поэтому тесты живут в `backend/testframework/` и используют `export_hooks.go` для white-box доступа.
-4. **Triage перед фиксом:** падающий тест ≠ баг в коде. Сначала спека (раздел 12).
-5. **Docs sync:** новый автотест → обновить колонку «Автотест» в `docs/TESTING.md` в той же сессии (rule 55).
-6. **Cleanup:** coverage-профили не коммитить, писать в TMP (rule 45).
-
----
-## 11. Регрессия и qa-gate
-
-### 11.1. Обязательный цикл (rule 56) — качество всегда циклично
-
-Проверка **новой фичи** и **старого функционала** — не one-shot, а циклы до green:
-
-```
-Новое поведение:
-  implement → unit/TC/сценарий → FAIL? → triage → fix → повтор до green
-
-Старый функционал (регрессия):
-  домен / смежное → FAIL? → triage → fix → повтор до green
-  интеграция волны → /qa-gate (цикл при FAIL)
-```
-
-```
-1. Изменил код
-2. Цикл качества НОВОГО поведения — до green
-3. Цикл регрессии СТАРОГО (затронутый модуль) — до green
-4. Полный /qa-gate перед handoff (волна: team-lead; одиночная работа: исполнитель)
-5. Docs sync (rule 55) — включая колонку «Автотест»
-6. *-ver / verifier для критичных изменений
-7. Обновить .planning/STATE.md
-```
-
-`verified: true` ставится **только** при green обоих циклов + приложенный лог.
-`team-lead` обязан включать оба контура в шаблон делегирования (`team-workflow.md` §5.3.1).
-
-### 11.2. Минимальная регрессия по слою
-
-Быстрая проверка затронутого слоя — до полного gate:
-
-| Слой | Команда |
-|------|---------|
-| Backend | `cd backend && go build -tags release ./... && go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...` |
-| Один домен BE | `cd backend && go test -tags hubtest -race ./testframework/<domain>/...` |
-| Frontend | `cd frontend && npx tsc --noEmit && npx vitest run` |
-| Один домен FE | `npx vitest run ../testframework/stages/unit/frontend-test/domains/<domain>` |
-| E2E smoke | `cd frontend && npm run test:e2e:smoke` |
-| Infra | проверить diff в `ci.yml`, `deploy.yml`, `docker-compose.prod.yml` |
-
-### 11.3. Полный qa-gate (порядок, стоп на первой FAIL)
-
-`/qa-gate` (skill) выполняет проверки последовательно и **останавливается на первой FAIL**:
-
-```bash
-# Step 1: Go build + vet
-cd backend && go build -tags release ./... && go vet -tags hubtest ./...
-
-# Step 2: Go tests (race)
-go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...
-
-# Step 3: TypeScript
-cd frontend && npx tsc --noEmit
-
-# Step 4: Frontend lint (Biome gate)
-npm run lint
-
-# Step 5: Frontend tests
-npx vitest run
-
-# Step 6: Security scan (секреты в staged)
-git diff --staged | rg -E "DEV_MODE=true|devkey: secret|livekit_api_secret|password|api_key"
-
-# Step 7: API smoke (если сервер поднят)
-curl -sf http://localhost:3000/api/health | jq .status   # ожидаем "ok"
-```
-
-**Важно:** при FAIL на шаге тестов — **не чинить сразу**. Сначала triage (раздел 12): воспроизвести функционал по спеке, классифицировать ROOT=code|test.
-
-### 11.4. Порядок при большом изменении
-
-1. Затронутый домен (минимальная регрессия) — быстрый цикл правок.
-2. Смежные домены (если менялся общий код: env.Builder, shared/, платформенные пакеты).
-3. Полный `/qa-gate`.
-4. E2E full — если менялся критический user-path.
-5. Coverage-gate — при push в master / coverage-задачах.
-
-### 11.5. Результат gate
-
-```
-GATE PASSED — ready to commit
-GATE FAILED at step N: <причина>
-```
-
-Лог прикладывается к хендоффу верификатору (rule 56: `verified: true` требует лог).
-
-### 11.6. Чек-лист регрессии
-
-- [ ] Цикл качества **нового** поведения зелёный (не one-shot).
-- [ ] Цикл регрессии **старого** (затронутый слой) зелёный.
-- [ ] Полный `/qa-gate` пройден, лог сохранён.
-- [ ] При FAIL применён triage (раздел 12), а не слепой фикс; после фикса — повтор цикла.
-- [ ] Docs sync выполнен (STATE + domain doc + колонка «Автотест»).
-- [ ] Для security/auth/deploy вызван `security-auditor`.
-- [ ] `.planning/STATE.md` обновлён.
-
----
-## 12. Test triage
-
-**Обязательный протокол** (REGULATION §10, skill `test-triage`). Принцип Hub: **тест — это гипотеза о поведении. Падающий тест не означает автоматически баг в продакшн-коде.**
-
-### 12.1. Когда применять
-
-- `go test` / `vitest` / Playwright FAIL;
-- регрессия после рефакторинга;
-- агент собирается «починить» тест, чтобы стал зелёным;
-- пользователь сообщает о баге, а тесты зелёные.
-
-### 12.2. Порядок (строго)
-
-**Шаг 1 — зафиксировать симптом:**
-
-```
-Тест:   TestBanUser_EmptyReason
-Пакет:  testframework/audit
-Ошибка: expected error, got nil
-```
-
-**Шаг 2 — воспроизвести ФУНКЦИОНАЛ (не тест):**
-- прочитать требование в `docs/system_specification.md` / US / PLAN.md;
-- трассировать production path: handler → service → repository;
-- ответить на вопрос: **«Как ДОЛЖНО работать по спецификации?»**
-
-**Шаг 3 — классификация:**
-
-| Ситуация | Действие |
-|----------|----------|
-| Код нарушает спецификацию | **Fix code** → обновить тесты, если контракт уточнился |
-| Код соответствует спеке, тест устарел/неверен | **Fix test** (mock, assertion, fixture, timing) |
-| Спецификация неясна | **Stop** → уточнить у SA/BA, обновить docs, потом код/тест |
-| Flaky (race, timing, network) | стабилизировать тест (детерминированный мок, `-race`, fake clock) |
-
-**Шаг 4 — запрещено:**
-- менять assertion, чтобы «прошло», не выполнив шаг 2;
-- удалять тест без обоснования в skill-логе;
-- `t.Skip()` без ticket/плана;
-- чинить прод-код только потому, что «тест так ожидает», если тест противоречит docs.
-
-**Шаг 5 — после фикса:**
-
-```bash
-go test -tags hubtest -race -count=1 ./testframework/<pkg>/...
-# перед handoff:
-/qa-gate
-```
-
-### 12.3. Запись результата (обязательно)
-
-В skill-лог записывается корень проблемы:
-
-```
-TRIAGE: TestBanUser_EmptyReason — ROOT=code (BanUser не проверял reason)
-FIX: internal/audit/service.go:142 (добавлена валидация reason)
-VERIFIED: manual repro + go test green
-```
-
-`ROOT=code` — баг в продакшене; `ROOT=test` — устаревший/неверный тест. Без явного ROOT triage не считается выполненным.
-
-### 12.4. Примеры Hub
-
-**Пример A — чинить ТЕСТ.** `TestRefreshRedisKey_UsesHashNotPlaintext` падает: тест ожидал plaintext-ключ в Redis, но код правильно хеширует → `ROOT=test`, обновить ожидание.
-
-**Пример B — чинить КОД.** `TestBanUser_EmptyReason` падает с `got nil`: спецификация требует reason → `ROOT=code`, добавить validation, тест оставить.
-
-**Пример C — чинить ОБА.** GDPR delete: тест ожидал 200 при partial failure, спека требует error → `ROOT=code` (`errors.Join`) + обновить тест на `want err`.
-
-### 12.5. Запрет «зелёных вслепую»
-
-**Bad — подгонка под текущий вывод:**
-
-```go
-// Было: assert.Equal(t, 200, code)  — падает, вернулось 409
-assert.Equal(t, 409, code) // «починил», не проверив, что 409 корректен по спеке
-```
-
-Если спека говорит, что должно быть 200 (например, идемпотентный retry) — это баг в коде, а не в тесте. Менять assertion без шага 2 — фиксация бага как «правильного» поведения.
-
-**Good — сначала спека:**
-
-```
-1. Спека (system_specification.md): повторный retry идемпотентен → 200
-2. Код вернул 409 → ROOT=code
-3. Fix: сервис должен возвращать существующую сущность при дубле
-4. Тест остаётся assert.Equal(t, 200, code)
-```
-
-### 12.6. Связь с GSD
-
-- Сложный баг → `gsd-debug` (научный метод, `.planning/debug/`).
-- Массовые падения после аудита → `gsd-audit-fix --dry-run` сначала.
-- Новые тесты после фазы → `gsd-add-tests`.
-
-### 12.7. Чек-лист triage
-
-- [ ] Зафиксирован симптом (тест, пакет, ошибка).
-- [ ] Воспроизведён функционал по спеке (не только assert).
-- [ ] Классифицирован ROOT=code | test | unclear | flaky.
-- [ ] Починен минимальный слой (код ИЛИ тест, не оба «наугад»).
-- [ ] Записан ROOT + FIX + VERIFIED в skill-лог.
-- [ ] Нет `t.Skip`/удаления теста без обоснования.
-- [ ] Регрессия затронутого пакета зелёная.
-
----
-## 13. Стабильность и флейки
-
-Флейк — тест, который то проходит, то падает без изменений кода. Флейки разрушают доверие к CI: команда начинает игнорировать красное, пропуская реальные баги. Hub держит флейки на нуле.
-
-### 13.1. Причины флейков и лечение
-
-| Причина | Проявление | Лечение |
-|---------|------------|---------|
-| Гонки (data race) | падение только под нагрузкой/иногда | `-race` всегда; исправить синхронизацию (mutex, channel) |
-| Время / таймауты | `waitForTimeout`, `time.Sleep`, зависимость от «сейчас» | web-first assertions; fake clock; инъекция времени |
-| Порядок тестов | падение при перемешивании | изоляция состояния (свой sqlite/QueryClient, сброс стора) |
-| Общий внешний ресурс | конфликт за один проект/канал в БД | уникальные данные (uuid/суффикс времени) |
-| Сеть / внешние сервисы | зависимость от реального API | мок (MSW/`vi.spyOn`), `onUnhandledRequest: "error"` |
-| Недетерминированный вывод | map iteration order, случайные ID | сортировать перед сравнением; фиксировать seed |
-| Auto-wait не дождался | элемент появляется асинхронно | увеличить таргетный timeout у конкретного `expect`, не глобальный sleep |
-
-### 13.2. Детект флейков
-
-**Go — повторный прогон подозрительного теста:**
-
-```bash
-# Прогнать 20 раз; -count отключает кэш, каждый прогон реальный.
-go test -tags hubtest -race -run TestSuspect -count=20 ./testframework/<pkg>/...
-# Перемешать порядок (Go 1.17+):
-go test -tags hubtest -shuffle=on ./testframework/<pkg>/...
-```
-
-**Playwright — прогон N раз:**
-
-```bash
-npx playwright test path/to.spec.ts --repeat-each=10
-```
-
-Если тест падает хоть раз из N — он флейки, чинить причину (не ретраить).
-
-### 13.3. Ретраи — осторожно
-
-Playwright поддерживает `retries`. В Hub ретраи допустимы для смягчения инфраструктурной нестабильности в E2E, **но не как замена фиксу**:
-- ретрай маскирует флейк, а не устраняет причину;
-- трейс собирается `on-first-retry` — используем его для диагностики;
-- unit-тесты (Go/Vitest) **не ретраим** — они должны быть детерминированы.
-
-**Bad — ретрай вместо фикса:**
-
-```typescript
-// Тест флейки из-за sleep-синхронизации; накрутили retries=5 и забыли
-test.describe.configure({ retries: 5 });
-```
-
-**Good — устранить причину, минимальный ретрай на инфру:**
-
-```typescript
-// web-first assertion вместо sleep + 1 ретрай на сетевую нестабильность CI
-await expect(page).toHaveURL(/\/projects/, { timeout: 15_000 });
-```
-
-### 13.4. Quarantine (карантин)
-
-Если флейк нельзя починить немедленно, а он блокирует CI:
-1. Пометить тест с явной причиной и ticket-ссылкой (не голый `t.Skip`).
-2. Занести в `.planning/STATE.md` как долг с owner и сроком.
-3. Не оставлять в карантине «навсегда» — карантин это ticket, а не решение.
-
-```go
-func TestFlakyThing(t *testing.T) {
-	t.Skip("QUARANTINE: флейк из-за гонки в ws pump, тикет HUB-1234, owner qa-auto1")
-	// ...
-}
-```
-
-Verifier обязан проверять: нет ли `t.Skip`/`test.skip` без причины и тикета.
-
-### 13.5. Борьба с флейками — детерминизм по умолчанию
-
-Принципы, делающие тесты детерминированными:
-- **никакого реального времени** — инъекция clock или проверка через web-first assertions;
-- **никакой реальной сети** в unit — только моки;
-- **изоляция состояния** — свой ресурс на тест, сброс синглтонов;
-- **уникальные данные** — uuid / суффикс времени;
-- **`-race` и `-shuffle=on`** в арсенале при подозрении.
-
-### 13.6. Чек-лист стабильности
-
-- [ ] Нет `time.Sleep`/`waitForTimeout` для синхронизации.
-- [ ] `-race` зелёный; подозрительный тест прогнан `-count=20`/`--repeat-each`.
-- [ ] Состояние изолировано, синглтоны сброшены.
-- [ ] Уникальные данные на прогон.
-- [ ] Ретраи не маскируют неисправленный флейк.
-- [ ] Карантин — только с причиной, тикетом и owner в STATE.md.
-
----
-## 14. Coverage
-
-### 14.1. Порог покрытия Hub
-
-| Область | Порог | Текущее |
-|---------|-------|---------|
-| Statement coverage `internal/` | historical only, не migration gate | 83.0% (2026-06-22 Docker baseline) |
-| Security-пакеты (auth, ws, rbac, audit, calls) | ≥ 80% | 6/6 ✅ |
-
-Gate живёт в CI job `coverage-gate` (push в master). Падение ниже порога блокирует.
-
-### 14.2. Как считать покрытие
-
-```bash
-# Профиль в TMP (rule 45)
-cd backend
-go test -tags hubtest -race -coverprofile="${TMPDIR:-/tmp}/hub-cov.out" -covermode=atomic ./testframework/...
-# Общий процент:
-go tool cover -func="${TMPDIR:-/tmp}/hub-cov.out" | tail -1
-# Пакеты с нулевым покрытием:
-go tool cover -func="${TMPDIR:-/tmp}/hub-cov.out" | rg " 0.0%"
-# HTML-отчёт (для локального анализа, не коммитить):
-go tool cover -html="${TMPDIR:-/tmp}/hub-cov.out" -o "${TMPDIR:-/tmp}/cov.html"
-```
-
-`-covermode=atomic` обязателен вместе с `-race` (иначе счётчики покрытия сами дают гонку).
-
-**Frontend:**
-
-```bash
-cd frontend
-npx vitest run --coverage
-```
-
-### 14.3. Что покрывать в приоритете
-
-| Пакет | Приоритет | Причина |
-|-------|-----------|---------|
-| auth, ws, rbac | Critical | безопасность, panic-risk, authz |
-| audit, calls | Critical (≥80%) | security-инварианты |
-| tracker, messenger, tms | High | ядро продукта |
-| платформенные (errors, http, middleware) | High | используются везде |
-
-Покрывать в первую очередь: error paths, граничные значения, security-инварианты (SEC-01..07, NF-02/03/07).
-
-### 14.4. Что можно НЕ покрывать
-
-- инфраструктурные пакеты подключений: `platform/config`, `platform/database`, `platform/redis` (тонкие обёртки, проверяются интеграционно/e2e);
-- сгенерированный код (`ent/`), кроме кастомных хуков;
-- тривиальные геттеры без логики.
-
-**Но:** «не покрывать» ≠ «нет тестов на фичу». Если пакет содержит логику — она покрывается.
-
-### 14.5. Coverage — не самоцель
-
-**Bad — тест ради процента:**
-
-```go
-func TestGetterCoverage(t *testing.T) {
-	i := &ent.Issue{Title: "x"}
-	_ = i.Title // «покрыли» геттер, ничего не проверив
-}
-```
-
-**Good — тест проверяет поведение:**
-
-```go
-func TestUpdateIssueOptimisticLocking(t *testing.T) {
-	// проверяет реальный контракт: конфликт версий → 409
-}
-```
-
-Высокий процент при слабых ассертах — ложное чувство безопасности. Coverage измеряет исполненные строки, не проверенное поведение.
-
-### 14.6. Ведение `.planning/COVERAGE.md`
-
-`/coverage-audit` создаёт/обновляет матрицу: требование → код → тест → статус. После coverage-задачи:
-1. зафиксировать проценты и wall-time в `.planning/COVERAGE.md`;
-2. обновить статусы (✅ / ⚠️ / 🔴);
-3. удалить профили (rule 45);
-4. `git status` — без coverage-мусора.
-
-### 14.7. Чек-лист coverage
-
-- [ ] Профиль считается с `-covermode=atomic` (+`-race`), пишется в TMP.
-- [ ] Общий `internal/` ≥ 82%, security-пакеты ≥ 80%.
-- [ ] Новый код покрыт: error paths + границы + инварианты.
-- [ ] Нет тестов «ради процента» без ассертов поведения.
-- [ ] `.planning/COVERAGE.md` обновлён, проценты зафиксированы.
-- [ ] Профили удалены, git чист.
-
----
-## 15. Definition of Done
-
-DoD разделён для ручных и авто-задач. Верификаторы (`qa-manual-ver`, `qa-auto-ver`) проверяют соответствующий список.
-
-### 15.1. DoD — ручная тест-задача (`qa-manual`)
-
-- [ ] Требование/US прочитано, границы понятны.
-- [ ] Для каждого сценария создана строка TC-`<MODULE>`-NN в `docs/TESTING.md`.
-- [ ] Заполнены все колонки: ID, название, предусловие, шаги, ожидаемый результат.
-- [ ] Применены техники тест-дизайна (классы, границы, таблицы решений) — покрыты позитив и негатив.
-- [ ] Покрыты error paths (400/401/403/404/409/429 где применимо).
-- [ ] Колонка «Автотест» = «— (ручной)» или TODO (если ещё не автоматизировано).
-- [ ] Сводка автоматизации модуля обновлена.
-- [ ] Баг-репорты (если найдены) в формате `BUG-<module>-NN` с severity.
-- [ ] `.planning/STATE.md` обновлён.
-
-### 15.2. DoD — авто-задача (`qa-auto1`/`qa-auto2`)
-
-- [ ] Тест написан по паттернам Hub (mockRepo/env.Builder/POM/renderWithProviders/MSW).
-- [ ] Тег/каркас корректны (`_test` пакет; `//go:build hubtest` для export hooks).
-- [ ] Прогон зелёный: BE `-tags hubtest -race -count=1`; FE `tsc` + `vitest`; E2E стабилен.
-- [ ] Покрыты позитив, негатив, границы; ассерты проверяют поведение, не мок.
-- [ ] Тест детерминирован (нет sleep/сети/общего состояния); прогнан на флейк.
-- [ ] Двусторонняя привязка: комментарий/аннотация с TC-ID в коде + имя в колонке «Автотест».
-- [ ] Allure-метаданные (если заливается в TMS): AS_ID/tms-link, epic/feature/severity, без секретов.
-- [ ] Coverage не упал ниже порога; для нового кода добавлены тесты.
-- [ ] Артефакты удалены (rule 45), git чист.
-- [ ] Docs sync: `docs/TESTING.md` + `.planning/STATE.md` (+ COVERAGE.md при coverage-задаче).
-- [ ] `/qa-gate` пройден, лог приложен.
-
-### 15.3. Что проверяет `qa-manual-ver`
-
-- Полнота TC: все сценарии требования покрыты (нет дыр в позитиве/негативе/границах).
-- Корректность техник тест-дизайна (классы/границы/таблицы применены осмысленно).
-- Трассируемость: requirement → TC (каждое требование имеет TC).
-- Тестируемость шагов: шаги конкретны и воспроизводимы, ожидаемый результат наблюдаем.
-- Ручные TC явно помечены, не выданы за автоматизированные.
-
-### 15.4. Что проверяет `qa-auto-ver`
-
-- **Детерминизм:** нет sleep/flaky; прогон повторно зелёный (`-count`/`--repeat-each`).
-- **Привязка TC↔автотест:** имя из колонки существует в коде; тест реально проверяет описанный сценарий.
-- **Покрытие:** новый код покрыт, порог держится; ассерты проверяют поведение.
-- **Замер времени:** прогон не деградировал; медленные тесты оправданы.
-- **Регрессия:** приложен зелёный лог `/qa-gate`.
-- **Triage при фиксах:** записан ROOT=code|test, нет «зелёных вслепую».
-- **Data race:** `-race` зелёный.
-- **Артефакты:** git чист, профили в TMP.
-
----
-## 16. Антипаттерны тестов
-
-Сводная таблица «нельзя → почему → как правильно». Верификаторы используют её как чек-лист отклонения.
-
-| Нельзя | Почему плохо | Как правильно |
-|--------|--------------|---------------|
-| `time.Sleep`/`waitForTimeout` для синхронизации | флейк + трата времени CI | web-first assertions, fake clock |
-| `assert` перед разыменованием результата | nil-паника, невнятная ошибка | `require.NoError`/`require.NotNil` сначала |
-| Мок возвращает `nil, nil` на всё | тест зелёный, ничего не проверяет | эмулировать контракт (ошибки, not found) |
-| Общий мутабельный fixture | гонки, зависимость от порядка | свой sqlite/QueryClient/сброс стора на тест |
-| `key={index}` в тест-данных React | несоответствие реальному коду | стабильные ID (как в проде) |
-| Подгонка assertion под вывод | фиксирует баг как «правильное» | triage: сначала спека (раздел 12) |
-| `t.Skip`/`test.skip` без причины | молча теряется покрытие | причина + тикет + owner (карантин) |
-| Тест на приватные детали реализации | ломается при рефакторинге | assert на публичный контракт |
-| Snapshot всего дерева компонента | шум, бездумные `--update` | точечные `getByRole`/`getByText` |
-| CSS-селекторы `div > .cls:nth-child` | хрупко к вёрстке | `getByRole`/`getByLabel` |
-| E2E ради unit-логики (ice-cream cone) | медленно, флейки, жжёт CI-минуты | логику в unit, E2E — критический путь |
-| Реальная сеть в unit | недетерминизм, зависимость от бэкенда | MSW/`vi.spyOn`, `onUnhandledRequest:"error"` |
-| testcontainers в каждом unit | секунды на тест, лимит CI | мок или sqlite `env.Builder` |
-| coverage-профиль в `backend/` | мусор в git (rule 45) | профиль в TMP, cleanup |
-| Секреты в Allure attachment/логах | утечка JWT/PII в отчёты | не прикреплять секреты |
-| Автотест без TC-ID и без строки в TESTING.md | нет traceability | комментарий TC-ID + колонка «Автотест» |
-| Матчинг Allure только по fullName/className | рвётся при переименовании | AS_ID label / tms-link с `HUB-TC-*` |
-| `fmt.Println`/`console.log` в тестах | шум CI, Biome-fail | сообщения ассертов, временный `t.Logf` |
-| Webhook-тест без проверки API Key | пропуск SEC-01/SEC-02 | проверять отказ без ключа |
-| `panic`/`log.Fatal` в тест-хелперах | обрывает прогон без диагностики | `t.Fatal`/`require` |
-
----
-## 17. Чек-лист перед передачей верификатору
-
-Финальная проверка перед хендоффом `qa-auto-ver` / `qa-manual-ver`. Пройди сверху вниз; любой не-отмеченный пункт = работа не готова.
-
-### 17.1. Общее
-
-- [ ] Задача соответствует требованию/US; границы понятны.
-- [ ] Слой и домен не пересекаются с другим `qa-auto` (раздел 1.4).
-- [ ] Не дублирует существующий TC/автотест.
-
-### 17.2. Тесты
-
-- [ ] Написаны по паттернам Hub (mockRepo / env.Builder / factory / POM / Steps / renderWithProviders / MSW).
-- [ ] Позитив + негатив + границы + error paths.
-- [ ] Ассерты проверяют поведение и контракт, не мок и не детали реализации.
-- [ ] Детерминированы: нет sleep/реальной сети/общего состояния; прогнаны на флейк.
-- [ ] BE: зелёно на `go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...`.
-- [ ] FE: `npx tsc --noEmit` + `npx vitest run` зелёные, Biome чист.
-- [ ] E2E: стабильны, backend-зависимые с `skipUnless*`, уникальные данные.
-
-### 17.3. Traceability и Allure
-
-- [ ] Строка TC-`<MODULE>`-NN есть в `docs/TESTING.md`.
-- [ ] Код → MD: комментарий/аннотация с TC-ID в тесте.
-- [ ] MD → код: точное имя функции/spec в колонке «Автотест».
-- [ ] Сводка «% автоматизации» обновлена.
-- [ ] Allure (если TMS): AS_ID/tms-link `HUB-TC-*`, epic/feature/severity, без секретов.
-
-### 17.4. Качество и процесс
-
-- [ ] Coverage держит порог (≥82% / security ≥80%); новый код покрыт.
-- [ ] Wall-time прогона известен, деградации нет; медленные тесты оправданы.
-- [ ] При падениях применён triage с записью ROOT=code|test (нет «зелёных вслепую»).
-- [ ] `/qa-gate` пройден, лог приложен.
-- [ ] Docs sync: `docs/TESTING.md` + `.planning/STATE.md` (+ `.planning/COVERAGE.md` при coverage).
-- [ ] Артефакты удалены (rule 45): `git status` без `*.out`, `cover*`, `cov_*`, `tmp_*`, `test-results/`, `allure-results/`.
-
-### 17.5. Финальное
-
-- [ ] `verified: true` ставится только после green regression + приложенного лога.
-- [ ] Хендофф-заметка в `.planning/STATE.md`: что сделано, что осталось, ссылки на TC/тесты.
-
----
-
----
+Gate — точная traceability `task/requirement/TC`, чувствительный observable
+oracle, non-zero collection, expected failure от временного sentinel/mutation
+для high-risk behavior и воспроизводимый Docker provenance. Нельзя выдавать
+наличие файла, raw grep, зелёный mock-only assert, coverage percentage или
+старый host-run за доказательство поведения.
+
+## 8. Definition of Done
+
+- путь и job соответствуют таблице §1;
+- suite выбран по risk/boundary/feedback, а не по геометрии или quota;
+- TC и metadata разрешаются в существующие task/requirement;
+- oracle проверяет observable outcome и forbidden side effects;
+- применимые scenario families рассмотрены, `N/A` объяснены;
+- Docker evidence содержит exact command/result/duration/artifact/cleanup;
+- zero collection/unexpected skips/leaks отсутствуют;
+- high-risk sentinel действительно красный без защищаемого behavior;
+- docs/traceability синхронизированы;
+- independent verifier дал verdict по evidence, а не по self-report.
+
+## 9. Source precedence
+
+Founder locks → Hub safety/authority → GSD lifecycle → совместимые
+Superpowers practices → локальные heuristics. Исследовательский control catalog
+не означает, что control уже blocking: сверять
+[`adoption-status.md`](../knowledge/code-practices/controls/adoption-status.md).
+
+Связанные документы: [`docs/TESTING.md`](../../docs/TESTING.md),
+[`docs/test_plan.md`](../../docs/test_plan.md),
+[`test-triage`](../skills/test-triage/SKILL.md),
+[`qa-gate`](../skills/qa-gate/SKILL.md),
+[`verification.md`](verification.md).

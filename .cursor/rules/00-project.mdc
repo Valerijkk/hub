@@ -21,7 +21,10 @@ hub/
 │                     # backup, audit, apigateway, ws, ai, crm, intranet,
 │                     # bases, accounting, marketplace, calendar, hr, platform
 ├── frontend/         # React 19 + TypeScript 5.7 + Vite
-│   └── src/          # api/, components/, hooks/, modules/, routes/, stores/
+│   ├── src/          # api/, components/, hooks/, modules/, routes/, stores/
+│   └── tests/        # genuine Vitest/RTL units only
+├── testframework/    # greenfield Python: contract/API/integration/E2E/load
+├── backend/tests/   # genuine isolated Go units only
 ├── cli/              # hub-cli (CI/CD utility)
 ├── deployments/      # Docker Compose + K3s manifests
 └── docs/wiki/        # API.md, architecture, deploy docs
@@ -102,21 +105,31 @@ hub/
 | Merge Волна 1 → master | ✅ 2026-07-11 |
 | July Rebuild / QA-HARDENING | 📋 planning, код freeze |
 
-## Быстрые команды (см. полный список в `AGENTS.md`)
+## Запуски (канон в `AGENTS.md` и `/qa-gate`)
+
+Founder lock 2026-08-07: tests, validators, linters, build/vet, Vite,
+Playwright, pytest/Locust и тестовые app-processes запускаются
+только в task-owned Docker с CPU/RAM/timeout и cleanup. Host используется
+для чтения/редактирования, Git и Docker CLI. Exact target runners не
+дублируются в этом rule: см. `AGENTS.md` и
+`.cursor/skills/qa-gate/SKILL.md`.
+
+Target test architecture:
+
+- `backend/tests/{domain}/**` — только genuine isolated Go units;
+- `frontend/tests/{domain}/**`, `frontend/tests/support/**` — только
+  genuine Vitest/RTL units;
+- `testframework/{core,contract,api,integration,e2e,load,docker,reports}/**`
+  — единый Python non-unit QA-проект.
+
+Legacy Go component/API/integration, static-contract Vitest и TypeScript
+Playwright frozen до exact-manifest deletion и не являются target,
+fallback или источником портирования. Historical coverage/row parity — не
+migration gate.
 
 ```bash
 # Dev-стек
 docker compose -f docker-compose.local.yml up -d
-
-# Backend regression (Docker, канон)
-docker compose -f deployments/docker-compose.test.yml up -d
-go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...
-
-# Frontend regression
-cd frontend && node scripts/link-testframework-node-modules.mjs && npx tsc --noEmit && npm run lint && npm run test:run
-
-# Полный gate
-/qa-gate
 ```
 
 ## Примеры из Hub
@@ -126,7 +139,9 @@ cd frontend && node scripts/link-testframework-node-modules.mjs && npx tsc --noE
 - 82 Ent-схемы: `backend/ent/schema/*.go`; список модулей backend: `backend/internal/{auth,tracker,sprint,messenger,tms,calls,dashboard,notification,search,rbac,storage,ws,ai,crm,intranet,bases,accounting,marketplace,calendar,hr,platform,...}`.
 - Frontend feature-модули: `frontend/src/modules/{tracker,messenger,tms,calls,bases,crm,hr,accounting,calendar,intranet,marketplace,admin,settings,status}/`.
 - ADR по архитектуре/безопасности: `.planning/decisions/ADR-AUTH-SSO-2026.md`, `ADR-ARCH-MICROSERVICES-2026.md`, `ADR-AI-AGENTS-MCP-2026.md`.
-- Тест-фреймворк (канонический вход): `testframework/PIPELINE.md` — стадии CI → job → домен.
+- Тест-архитектура: `AGENTS.md`, `docs/test_plan.md`,
+  `.planning/active/august-2026/06-TEST-ARCHITECTURE-REBASE.md` и
+  `.cursor/playbooks/testing.md`.
 - Не путать `.planning/ROADMAP.md`-исторический с актуальным: актуальный roadmap — `.planning/archive/july-2026/ROADMAP-FINAL-2026-07-03.md` / `ROADMAP-DETAILED-JULY-RETURN.md`.
 - Ростер и модели AI-команды (32 агента) — не дублировать здесь, читать `.cursor/playbooks/README.md` §0/§3 (модели, тиры, обратная карта агент→playbook).
 - main.go (34 строки, инициализация разнесена по 13 `wiring_*.go`) не расширять новой логикой: новая инициализация модуля идёт в `backend/cmd/server/wiring_*.go` (см. `20-backend.mdc`).

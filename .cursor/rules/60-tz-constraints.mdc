@@ -90,8 +90,11 @@ alwaysApply: true
 ## Примеры из Hub
 
 - Magic Link only, JWT 15 мин / refresh 30 дней в Redis: `backend/internal/auth/{magiclink.go,service_session.go}`; rune-safe валидация кода — `backend/internal/auth/handler.go` (см. `56-regression-verify.mdc`, кейс 2).
-- Telegram — только notification, не login (ADR-AUTH-01): `backend/internal/auth/{telegram_bot_coverage_test.go,telegram_widget_test.go,resend_telegram_test.go}` — искать попытки login через Telegram в тестах, их не должно быть.
-- Organization/invite/founder: `backend/ent/schema/organization.go`, `backend/ent/schema/invite.go`; тест — `backend/testframework/auth/{handler_organization_test.go,repository_organization_test.go,handler_invite_test.go}`.
+- Telegram — только notification, не login (ADR-AUTH-01): в target
+  tests не должно быть попыток входа через Telegram.
+- Organization/invite/founder: `backend/ent/schema/organization.go`,
+  `backend/ent/schema/invite.go`; public behavior проверяется greenfield
+  Python API/integration suite в `testframework/**`.
 - UUID v4 + `version` optimistic lock во всех 82 схемах: `backend/ent/schema/{issue,project,hubbase,scheduledcall,...}.go` — новый паттерн копировать оттуда, не изобретать.
 - Единый формат ошибки `{"error","request_id"}`: искать в любом `handler.go` любого модуля — паттерн сквозной, не модуль-специфичный.
 - WS через Fiber, не gorilla: `backend/internal/ws/` — весь модуль на встроенном Fiber WebSocket.
@@ -129,7 +132,11 @@ alwaysApply: true
 
 ## Примеры нарушений, которые уже находили и фиксили
 
-- **NF-03-аналог (bases):** `backend/internal/bases/service.go` до фикса `98fb3df` не фильтровал базы по владельцу — любой юзер видел/менял чужие. Закрыто `authorizeBase()`; regression в `backend/testframework/bases/rbac_test.go`.
+- **NF-03-аналог (bases, historical defect):**
+  `backend/internal/bases/service.go` до фикса `98fb3df` не фильтровал
+  базы по владельцу — любой юзер видел/менял чужие. Закрыто
+  `authorizeBase()`; target regression — Python API authz case в
+  `testframework/api/**`, не порт legacy файла.
 - **Rune vs byte length (auth):** `backend/internal/auth/handler.go` до `576dfbb` считал длину magic-link кода в байтах — ломало non-ASCII. См. `.cursor/rules/56-regression-verify.mdc` для полного цикла обоих кейсов.
 - **Fiber v3 RBAC middleware order:** не TZ-constraint напрямую, но смежный class of bugs — см. `.planning/audits/2026-06/FA-RBAC-FIBER3-AUDIT.md` и `.cursor/rules/20-backend.mdc`.
 - **SFU-решение зафиксировано:** mediasoup миграция была предложена и **отклонена** — `.planning/reference/seeds/SEED-001-mediasoup-migration.md`; LiveKit остаётся каноном, не предлагать замену без нового ADR-триггера.

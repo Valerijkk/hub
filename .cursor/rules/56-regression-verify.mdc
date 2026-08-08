@@ -43,11 +43,15 @@ alwaysApply: false
 
 ## Минимальная регрессия по слою
 
-| Слой | Команда |
-|------|---------|
-| Backend | `cd backend && go build -tags release ./... && go test -race -count=1 -timeout=600s ./...` |
-| Frontend | `cd frontend && npx tsc --noEmit && npx vitest run` |
-| Infra | Проверить diff в `ci.yml`, `deploy.yml`, `docker-compose.prod.yml` |
+| Слой | Канонический target |
+|------|--------------------|
+| Backend genuine unit | task-owned limited Docker → `backend/tests/**` |
+| Frontend genuine unit | task-owned limited Docker → `frontend/tests/**` |
+| Contract/API/integration/E2E/load | task-owned limited Docker → root `testframework/**` Python job по taxonomy |
+| Infra | Review exact diff + Docker-only applicable validator/gate |
+
+Точные команды/limits/cleanup живут в `AGENTS.md` и `/qa-gate`. Host-run любого
+test/build/lint/validator неканоничен и запрещён founder lock.
 
 Slash: **`/qa-gate`** — останавливается на первой FAIL; после фикса — повтор с начала упавшего шага (цикл).
 
@@ -64,6 +68,16 @@ Slash: **`/qa-gate`** — останавливается на первой FAIL;
 | Pre-merge diff | `code-reviewer` |
 
 **Правило:** `verified: true` только при green циклов (новое + регрессия) + приложенный лог.
+
+### Convergence breaker
+
+Цикл качества обязателен, но не бесконечен. TaskContract задаёт finite retries,
+review rounds и wall-clock. После трёх одинаково неудачных fix attempts нужен
+fresh RCA/architecture review до следующего фикса. Review remediation не более
+пяти rounds: 1–3 исходный implementer, 4–5 новый/усиленный по решению team-lead;
+каждый round получает scoped delta re-review. После cap реальный CRITICAL/HIGH
+или load-bearing defect = `BLOCKED`, не downgrade/parking. Это ограничивает
+координацию, но не разрешает объявить красный required gate зелёным.
 
 ## Аудит-цикл (до «production-ready UX»)
 
@@ -91,15 +105,19 @@ Slash: **`/qa-gate`** — останавливается на первой FAIL;
 2. Новое поведение: authorizeBase() в backend/internal/bases/service.go —
    foreign base → 403 ErrForbidden, missing → 404.
    Коммит: fix(bases): scope all base operations to owner (98fb3df).
-   Тест нового: backend/testframework/bases/service_test.go, service_wave115_test.go — green.
-3. Регрессия старого домена: полный прогон backend/testframework/bases/... —
+   Исторический legacy test evidence — green на указанной revision; это не target-path proof.
+3. Историческая регрессия старого домена —
    позитивный путь владельца не сломан.
 4. Расширенный denial-suite отдельным коммитом (цикл продолжился, не one-shot):
    test(bases): RBAC denial suite for foreign-base access (8ff10d7) —
-   backend/testframework/bases/rbac_test.go (список/GET/PUT/DELETE/мутации таблиц — все 403/404).
+   archived denial suite (список/GET/PUT/DELETE/мутации таблиц — все 403/404).
 5. Docs sync в том же коммите: docs/wiki/API.md.
 6. STATE.md session note зафиксирован в тот же день.
 ```
+
+Этот кейс описывает доказательство до founder greenfield cutover. Его legacy
+пути/команды нельзя копировать: новый канон — genuine units в
+`backend/tests/bases/**` и greenfield API/authz в `testframework/api/bases/**`.
 
 **Кейс 2 — `auth` magic-link rune fix (баг → тест → fix, тот же день):**
 
@@ -110,8 +128,12 @@ Slash: **`/qa-gate`** — останавливается на первой FAIL;
    fix(auth): count magic-link code length in runes, not bytes (576dfbb).
    backend/internal/auth/handler.go (utf8.RuneCountInString) +
    backend/internal/auth/handler_magiclink_runes_test.go (новый тест).
-3. Регрессия домена auth: go test -tags hubtest -race ./testframework/auth/... — green.
+3. Историческая legacy-регрессия домена auth была green на этой revision; это не
+   текущая target-команда. После cutover воспроизводить genuine units через
+   Docker `backend-unit` в `backend/tests/auth/**`.
 4. Не потребовало отдельного doc — чистый bugfix без изменения контракта API (см. исключения rule 55).
 ```
 
-Оба кейса — образец: **implement → тест нового → регрессия домена → (при необходимости) docs → STATE.md**, без пропуска шагов.
+Оба кейса — исторический образец последовательности **implement → тест нового →
+регрессия домена → (при необходимости) docs → STATE.md**. Legacy paths/commands
+из старых артефактов не копируются в target architecture.

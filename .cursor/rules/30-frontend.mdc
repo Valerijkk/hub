@@ -124,7 +124,10 @@ export const issueApi = {
 - Zustand-хранилища (**13** stores, measured 2026-07-27; was claimed 11) — образец структуры: `frontend/src/stores/`.
 - i18n-слой (если меняешь user-facing текст): `frontend/src/i18n/`.
 - Lazy-load тяжёлых зависимостей (LiveKit, графики): искать паттерн `lazy(() => import(...))` в модулях `calls/`, `dashboard/`.
-- Тестовые обёртки/утилиты для Vitest+RTL: `frontend/src/test/`.
+- Тесты Vitest+RTL: `frontend/tests/{domain}/**`; общие
+  обёртки/фабрики: `frontend/tests/support/**`. Этот tree принимает
+  только genuine behavioral units; static/source contracts и TypeScript
+  Playwright не являются target.
 - Дизайн-система `--hub-*` — источник токенов и Tailwind-конфиг: `docs/wiki` + Tailwind config в корне `frontend/`; проверять на drift через `designer-ver`.
 - API-клиенты по модулям: `frontend/src/api/` — один файл на backend-модуль, зеркалит `backend/internal/<module>/dto.go`.
 

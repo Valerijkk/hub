@@ -1,82 +1,57 @@
 ---
-description: Delete coverage dumps and temp artifacts after qa-gate, test runs, or before handoff. Apply when running go test -coverprofile, race tests, or coverage refresh.
-globs: backend/**/*,testframework/**/*,.github/workflows/**/*
+description: Clean only task-owned Docker resources and generated artifacts after checks or before handoff; never delete by broad pattern in a shared workspace.
+globs: backend/**/*,frontend/**/*,testframework/**/*,.github/workflows/**/*
 alwaysApply: false
 ---
 
-# Hub — Artifacts Cleanup
+# Hub — безопасный cleanup test artifacts
 
-## Когда чистить
+## Инварианты
 
-**Обязательно** в конце сессии, после qa-gate, coverage refresh или handoff — если создавались локальные dumps.
+- Tests/builds/validators создают артефакты только в task-owned Docker volumes,
+  container paths или явном `testframework/reports/<task-run>/`.
+- На Windows host не создаются coverage/test/browser dumps; host используется
+  только для чтения, редактирования, Git и Docker CLI.
+- `--rm` либо `finally/trap` cleanup обязателен. Compose всегда завершается
+  `down -v --remove-orphans` для точного task project name.
+- Нельзя удалять по glob/prefix в shared dirty worktree. Сначала доказать
+  canonical path, task ownership, тип ресурса и отсутствие чужих данных.
+- Не трогать user dirty files, `.planning/**`, source tests, configs или отчёты
+  другой задачи. Gitignore не является разрешением на удаление.
 
-Не оставлять артефакты «на потом» и не просить пользователя подтверждать удаление стандартного coverage-мусора.
+## Что может быть очищено без дополнительного решения
 
-## Что удалять
+Только ресурс, созданный текущей задачей и записанный в её execution record:
 
-| Категория | Паттерны | Примеры |
-|-----------|----------|---------|
-| Go cover profiles | `*.out` в `backend/` | `coverage.out`, `calls_cov.out` |
-| Text cover dumps | `backend/cover*`, `backend/cov_*` | `cover_auth`, `cov_calls`, `coverprofile` |
-| Per-package reports | `backend/*_cov*` | `auth_cov.txt`, `gitlab_cov` |
-| Temp benchmark runs | `backend/tmp*`, `backend/tmp-*` | `tmpwscov`, `tmp-rbac` |
-| Scratch scripts | `tmp_*.py` в корне | `tmp_route_diff.py` |
+| Resource | Требуемое доказательство |
+|---|---|
+| Docker container | exact unique name `hub-<job>-<task>` |
+| Compose stack/network/volumes | exact `-p hub-<job>-<task>` project |
+| Named volume | exact name из TaskContract/launcher |
+| Report directory | exact `testframework/reports/<task-run>/` + owner marker |
+| Temp artifact inside container | container/task ID и bounded path |
 
-**Не удалять:** `*_test.go`, `*_coverage_test.go`, `.planning/COVERAGE.md`, CI configs.
+Любой pre-existing, ambiguous или не перечисленный ресурс остаётся нетронутым
+и попадает в handoff как finding.
 
-## Куда писать профили
+## Процедура
 
-```bash
-# ✅ Вне repo или системный temp
-go test -coverprofile="${TMPDIR:-/tmp}/hub-cov.out" ./internal/...
+1. До запуска записать expected containers/volumes/networks/report paths.
+2. Выполнить target job только по `AGENTS.md`/`/qa-gate`.
+3. В `finally/trap` остановить exact container/Compose project и удалить только
+   перечисленные task-owned volumes/artifacts.
+4. Read-only проверить отсутствие exact ресурсов и unexpected repo status.
+5. Зафиксировать `cleanup: PASS|FAIL`, exact targets и остаток. Cleanup FAIL
+   блокирует `verified: true` и передаётся владельцу; он не маскируется.
 
-# ❌ В backend/ или корень repo
-go test -coverprofile=coverage.out ./...
-```
+## Запрещено
 
-## Процедура агента (после верификации)
+- host `Remove-Item`/`rm` по wildcard, recursive search result или общему
+  `backend/tmp*`, `cover*`, `*.out`, `test-results`;
+- удаление контейнеров/volumes/networks, не созданных текущим task ID;
+- хранение generated report/coverage в production source tree;
+- объявлять cleanup PASS только потому, что использован `--rm` — проверить
+  дополнительные volumes/networks/report paths всё равно нужно.
 
-1. Зафиксировать проценты в `.planning/COVERAGE.md` (если задача про coverage).
-2. Удалить все matching арtefacts из таблицы выше.
-3. `git status` — в diff не должно быть `cover*`, `cov_*`, `*.out`, `tmp_*`.
-
-## Git
-
-Все перечисленные паттерны — в `.gitignore`. **Никогда не коммить** coverage dumps, даже «для истории».
-
-## Расширенный список артефактов (см. `.gitignore`, актуально 2026-07)
-
-Помимо таблицы выше, `.gitignore` фиксирует ещё несколько категорий одноразового мусора — не плодить новые паттерны, использовать существующие:
-
-| Категория | Паттерн | Куда обычно попадает |
-|-----------|---------|-----------------------|
-| CI/agent session logs | `.ci-backend.log`, `SESSION_SUMMARY*.txt` | корень репо после ручных прогонов |
-| Frontend lint/test dumps | `frontend/lint-*.txt`, `frontend/biome-report.json` | после `npm run lint` с редиректом в файл |
-| Playwright артефакты | `frontend/playwright-report/`, `frontend/test-results/` | после локального E2E-прогона |
-| Planning tool output | `.planning/biome-output.txt`, `.planning/tsc-output.txt`, `.planning/*-output.txt` | редирект вывода линтера/tsc в planning-папку |
-| Local-only notes | `*.local.md` | черновики, не предназначенные для commit |
-| `.gotmp/` | временные Go-файлы агентов | не путать с `backend/tmp*` (тот — про coverage) |
-
-## Примеры из Hub
-
-- Каноничный список исключений — читать целиком `.gitignore` (секции «Coverage / benchmark dumps», «Local dev / CI / agent session artifacts») перед тем как решать «удалять или коммитить».
-- Backend regression, генерирующий `*.out`/`cov_*`: команда из `AGENTS.md` → `go build -tags release ./... && go test -race -count=1 ./...` — если добавляешь `-coverprofile`, писать **вне** `backend/` (см. пример ниже).
-- Docker canonical regression (не оставляет локальных dumps, профиль остаётся в контейнере): `docker compose -f deployments/docker-compose.test.yml up -d` + `go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...` — команда из `AGENTS.md`.
-- `.planning/COVERAGE.md` — единственное место, где процентные метрики фиксируются **навсегда**; сырые `.out`-профили после фиксации метрик удаляются.
-- PowerShell cleanup one-liner (Windows-хост, см. секцию выше) — предпочтительнее ручного поиска файлов через `Get-ChildItem` без фильтра.
-- Не удалять по ошибке: `.planning/**/VERIFICATION.md`, `.planning/**/REVIEW.md` — они **тоже** в `.gitignore`, но это НЕ coverage-мусор, а рабочие артефакты фазы (не коммитятся, но и не подлежат ручному удалению агентом без причины).
-
-## Примеры из Hub
-
-- Правильное расположение: пиши профиль в `${TMPDIR:-/tmp}/hub-cov.out` или Windows `$env:TEMP\hub-cov.out` — не в `backend/`.
-- После прогона `go test -tags hubtest -race -coverprofile=...` для конкретного домена (например `bases`, `auth`) — зафиксируй итоговый % в `.planning/COVERAGE.md`, затем удали файл.
-- Реальные примеры «мусора», который встречался в репо и подлежит удалению: `backend/coverage.out`, `backend/calls_cov.out`, `backend/cover_auth`, `backend/tmp-rbac`, `tmp_route_diff.py` (корень репо).
-- PowerShell-версия cleanup one-liner (используй вместо bash на Windows-агентах):
-  ```powershell
-  Get-ChildItem backend -File | Where-Object {
-    $_.Name -match '^(cover|coverage|cov_|tmp|.*_cov)' -or $_.Extension -eq '.out'
-  } | Remove-Item -Force
-  Remove-Item -Force tmp_*.py -ErrorAction SilentlyContinue
-  ```
-- Проверка перед handoff: `git status` не должен показывать `?? backend/*cov*`, `?? *.out`, `?? tmp_*` — если показывает, cleanup не выполнен.
-- Не путать с легитимными артефактами планирования: `.planning/COVERAGE.md`, `.planning/audits/2026-06/*` — это документы, не dumps, их не трогать этим правилом.
+Канон execution/evidence: `.cursor/playbooks/testing.md`,
+`.cursor/skills/qa-gate/SKILL.md`, `.cursor/rules/07-agent-safety.mdc`.

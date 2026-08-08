@@ -14,9 +14,14 @@ backend/internal/<module>/
 ├── service.go         # Business logic, depends on Repository interface
 ├── repository.go      # Repository interface definition
 ├── ent_repository.go  # Ent implementation of Repository
-├── dto.go             # Request/Response structs (json tags, validate tags)
-└── <module>_test.go   # Integration tests with testcontainers
+└── dto.go             # Request/Response structs (json tags, validate tags)
+
+backend/tests/<module>/
+└── *_test.go          # genuine isolated Go units only
 ```
+
+HTTP/component/integration checks не живут в backend unit tree:
+их target — greenfield Python suites в root `testframework/**`.
 
 ## Layering Rules
 
@@ -167,20 +172,18 @@ if !ok || expectedHash == "" {
 ## Testing
 
 ```go
-// Реальный паттерн Hub: НЕ testcontainers-go, а подключение к контейнерам
-// deployments/docker-compose.test.yml по env-переменной (см. AGENTS.md «Backend regression»)
-func TestIssueService_Create(t *testing.T) {
-    uri := os.Getenv("POSTGRES_TEST_URL")
-    if uri == "" {
-        uri = "postgresql://hub:hub@postgres:5432/hub?sslmode=disable"
-    }
-    db, err := sql.Open("postgres", uri)
-    require.NoError(t, err)
-    // setup ent client через drv, service, запуск сборки: -tags hubtest
+// Genuine unit: no DB, broker, storage, HTTP server or service container.
+func TestNormalizeIssueTitle_TrimsUnicodeWhitespace(t *testing.T) {
+    got := NormalizeIssueTitle("\u00a0 Задача \u00a0")
+    require.Equal(t, "Задача", got)
 }
 ```
 
-Полный canonical запуск — `docker compose -f deployments/docker-compose.test.yml up -d`, затем `go test -tags hubtest -race -count=1 ./testframework/...` (см. `AGENTS.md`).
+Backend units пишутся в `backend/tests/{domain}/**`. DB/broker/storage
+boundaries пишутся с нуля в `testframework/integration/**`, а
+публичное HTTP behavior — в `testframework/api/**`. Любой test/build/vet
+запуск — только task-owned Docker с лимитами и cleanup; exact
+runner см. в `AGENTS.md` и `.cursor/skills/qa-gate/SKILL.md`.
 
 ## Примеры из Hub
 
@@ -192,12 +195,20 @@ func TestIssueService_Create(t *testing.T) {
 - Webhook signature check без skip: `backend/internal/apigateway/webhook.go` (HMAC + `subtle.ConstantTimeCompare`).
 - WebPush + `ValidateOutboundURL`: `backend/internal/notification/push.go`.
 - User-scope фильтр в поиске (NF-03): `backend/internal/search/{service,repository}.go`.
-- Rune-safe строковая валидация (не байты): `backend/internal/auth/handler.go` + regression-тест `backend/testframework/auth/handler_magiclink_runes_test.go`.
-- RBAC-scoping по владельцу ресурса (403 для чужих): `backend/internal/bases/service.go`, тест `backend/testframework/bases/rbac_test.go`.
+- Rune-safe строковая валидация (не байты):
+  `backend/internal/auth/handler.go`; behavioral regression в target должен
+  быть genuine unit в `backend/tests/auth/**` или Python API case в
+  `testframework/api/**` — по observable boundary.
+- RBAC-scoping по владельцу ресурса (403 для чужих):
+  `backend/internal/bases/service.go`; public authorization behavior проверяет
+  greenfield case в `testframework/api/**`.
 - Ent-схема с optimistic lock и UUID PK: `backend/ent/schema/issue.go`, `backend/ent/schema/project.go`, `backend/ent/schema/hubbase.go`.
 - Presigned upload через `aws-sdk-go-v2` (не minio-go): `backend/internal/storage/{handler,service}.go`.
 - WS membership-проверка перед подпиской на комнату (NF-02): `backend/internal/ws/handler.go`.
 - Rate limit по типу эндпоинта: `middleware.APIRateLimit` / `FileUploadRateLimit` / `MessageSendRateLimit` в `backend/cmd/server/wiring_fiber.go` (100/сек, 10/мин, 60/мин).
 - Webhook-подпись HMAC с заголовком `X-Hub-Signature-256`: `backend/internal/apigateway/webhook.go`.
 
-> **Проверено по коду (2026-07-18):** в Hub **нет** `mockery`-кодогенерации и `//go:generate mockery` — контракты `Repository` мокаются вручную или тестируются напрямую против реального Postgres/Mongo из `docker-compose.test.yml`. Не добавлять `mockery` без отдельного ADR по тест-стратегии.
+> **Проверено по коду (2026-07-18, historical inventory):** в Hub
+> **нет** `mockery`-кодогенерации и `//go:generate mockery`. Для
+> genuine units ручной fake/stub допустим на явном contract; доменную
+> логику не подменять моком. Не добавлять `mockery` без отдельного ADR.
