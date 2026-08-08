@@ -23,7 +23,7 @@ readonly: false
 **Нет (передай `team-lead` для capability-based routing):**
 - любой новый endpoint, схема Ent, миграция;
 - UI-flow, роут, store, хук с логикой;
-- тесты домена, E2E, coverage gate;
+- тесты домена, E2E, test architecture или `/qa-gate`;
 - security/auth/RBAC/webhook;
 - декомпозиция волны, ADR, US/AC;
 - «почини баг» без явного однострочного фикса;
@@ -36,6 +36,9 @@ readonly: false
 3. Не трогать `.env`, секреты, CI prod, `DEV_MODE`.
 4. Docs-sync **только если** поменял user-visible поведение (для typo в коде — не нужен).
 5. Коммит — только если пользователь явно просит.
+6. Не запусать direct Docker/test snippet. Если даже для micro нужен
+   runnable quality gate, эскалировать в role owner и canonical
+   `/qa-gate`; missing runner фиксирует `NOT_READY`.
 
 ## 3. DoD
 

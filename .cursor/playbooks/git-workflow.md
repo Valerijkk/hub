@@ -502,7 +502,9 @@ diff/checksums и возвращает файл merge-owner-у; destructive уд
 ## 7. PR-процесс
 
 1. PR-описание ссылается на задачу/план (`PLAN.md`/тикет) и коротко объясняет *что и почему*.
-2. Все CI-чеки зелёные: **lint + test + build** (backend: `go build -tags release` + `go test -tags hubtest -race`; frontend: `tsc --noEmit` + Biome + Vitest; e2e где применимо).
+2. Required current target jobs по changed risk дали `PASS` через
+   canonical `/qa-gate` outer launcher. `NOT_READY`/`NOT_RUN` не считаются
+   green; legacy hubtest/static-contract/TS Playwright не substitute.
 3. В диффе **нет** `DEV_MODE=true`, секретов, build/coverage-артефактов.
 4. Пройдено кросс-ревью (парный агент) и **персональный `*-ver`** (`verified: true` + лог регрессии).
 5. `code-reviewer` — approve перед мержем.
@@ -587,9 +589,15 @@ task-owned Docker с limits/cleanup. Канонические target jobs и к�
 `AGENTS.md` и `/qa-gate`: Go genuine units `backend/tests/**`, frontend genuine
 units `frontend/tests/**`, весь non-unit QA — root `testframework/**` Python.
 Host `go/npm/pytest/Playwright/build/lint` запрещены.
+Прямой Docker snippet из отчёта/playbook не заменяет canonical outer
+launcher. Если target runner/profile не готов, фиксируется
+`NOT_READY`, а не legacy fallback.
 
-Результат (`PASS|FAIL|NOT_RUN`, exact revision, время, container/image) фиксируется
-в evidence. Без required green нет handoff/PR. Цикл: новое поведение →
+Результат (`PASS|FAIL|NOT_READY|NOT_RUN|NOT_APPLICABLE`, exact revision,
+время, outer/inner provenance, container/image/resources) фиксируется
+в `testframework/reports/<task-run>/`. У каталога обязателен owner
+marker с `task`, `run`, `owner`, `source_sha`, `created_at` и cleanup policy.
+Без required green нет handoff/PR. Цикл: новое поведение →
 регрессия затронутого домена → на интеграции волны полный `/qa-gate`; детали —
 `.cursor/rules/56-regression-verify.mdc` и `.cursor/playbooks/testing.md`.
 

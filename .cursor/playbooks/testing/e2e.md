@@ -60,18 +60,20 @@ observable oracle и cleanup через принятую metadata schema.
 
 ## Docker evidence
 
-```powershell
-docker run --rm --name hub-python-e2e-<task> `
-  --cpus 2.0 --memory 4g --memory-swap 4g `
-  --mount type=bind,src="${PWD}/testframework",dst=/work/testframework,readonly `
-  --mount type=bind,src="${PWD}/testframework/reports",dst=/reports `
-  -e PYTHONDONTWRITEBYTECODE=1 -w /work/testframework hub-testframework:<sha> `
-  pytest -p no:cacheprovider -m "e2e and smoke" --junitxml=/reports/<task>-e2e-smoke.xml
-```
+E2E запускается только через canonical `/qa-gate` outer launcher
+и target Compose profile из `testframework/docker/**`. Этот playbook не
+дублирует `docker run`/`docker compose` snippets: прямой inner command
+не доказывает наличие required services, limits, isolation и cleanup.
 
-Required backend/services поднимаются task-owned Compose project с CPU/RAM
-limits; завершение всегда выполняет `docker compose -p hub-e2e-<task> down -v
---remove-orphans`. Host Playwright/pytest/backend/frontend processes запрещены.
+Если target E2E image/profile/runner ещё не существует, verdict —
+`NOT_READY`, а не legacy TypeScript Playwright fallback. Host
+Playwright/pytest/backend/frontend processes запрещены.
+
+Все E2E reports, traces, screenshots и videos пишутся только в
+`testframework/reports/<task-run>/`. Перед запуском каталог
+получает owner marker с `task`, `run`, `owner`, `source_sha`, `created_at`
+и cleanup policy. Shared report root без task-run namespace нельзя
+использовать как output.
 
 ## Review
 

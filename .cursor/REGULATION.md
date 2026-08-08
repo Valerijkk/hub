@@ -19,7 +19,7 @@
 | `docs/vision_and_scope.md` | SMART-цели, KPI, персоны, User Stories, MoSCoW | BA |
 | `docs/system_specification.md` | FR/NFR, ERD, API, DFD | SA |
 | `docs/architecture.md` | C4, deployment, patterns, security architecture | ARCH |
-| `docs/test_plan.md` | Пирамида, критерии, матрица, регрессия | QA |
+| `docs/test_plan.md` | Risk-based стратегия, критерии, матрица, регрессия | QA |
 | `docs/stack_and_tools.md` | Стек с версиями, CI/CD, линтеры | ARCH |
 | `docs/code_style_guide.md` | Именование, форматирование, запреты | ARCH |
 | `docs/security_guidelines.md` | OWASP, секреты, auth, чек-лист | ARCH/BE |
@@ -216,7 +216,8 @@ contracts, bounded/read-only review, task/diff evidence и scoped state; про�
 1. Воспроизвести **функционал** по `docs/` (не только assert)
 2. Определить: код неверен **или** тест устарел
 3. Чинить **минимальный** слой
-4. Записать triage: `ROOT=code|test`, файл, обоснование
+4. Записать triage: `ROOT=code|test|infra|flaky|stop`, файл,
+   обоснование и next owner/action
 
 Skill: `.cursor/skills/test-triage/SKILL.md`
 
@@ -288,7 +289,11 @@ routing по `description`, когда задача требует docs-sync в�
 | `.planning/decisions/specs/` | Технические спеки | `AI-PROVIDER-HUB-SPEC.md`, `NOTIF-TG-EMAIL-SPEC.md`, `PLATFORM-VISION-v4.md` |
 | `.planning/archive/tasks/` | Закрытие gaps / финальный аудит фаз | `TASKS-CLOSE-GAPS.md`, `PLAN-CLOSE-GAPS.md`, `TASKS-RU-COMMENTS-DOCS.md`, `TASKS-PHASES-121-FINAL-AUDIT.md` |
 | `.planning/decisions/` | ADR | `ADR-AUTH-01-magic-link-only.md`, `ADR-AUTH-SSO-2026.md`, `ADR-TZ-REWRITE-2026.md`, `ADR-ARCH-MICROSERVICES-2026.md`, `ADR-AI-AGENTS-MCP-2026.md`, `ADR-NOTIF-01-transactional-email.md` |
-| `.planning/reference/seeds/` | Forward-looking идеи (GSD `gsd-plant-seed`) | `SEED-001-mediasoup-migration.md` (rejected), `SEED-002-calendar-calls-email-sync.md` (active) |
+| `.planning/reference/seeds/` | Historical seed archive; новые идеи сначала capture | `SEED-001-mediasoup-migration.md` (rejected), `SEED-002-calendar-calls-email-sync.md` (active) |
+
+Новую forward-looking идею принимать через `gsd-capture`: сначала
+зафиксировать trigger в `.planning/ideas/`, затем продвигать её в
+spec/phase только после triage. Другие seed-команды не изобретать.
 | `.planning/reference/edge-expansions/` | Edge/corner каталог по волнам | `00-CORNER-PARENT.md`, `wave2..5/edge/E0{1-5}-*.md`, `wave2..5/corners/C0{2-5}-*.md` |
 | `.planning/milestones/` | Архив milestone-фаз (v1.0–v4) | `v4-super-app/SUMMARY.md`, `v2.0-phases/*`, `v1.0-phases/*` |
 | `.planning/phases/` | Актуальные phase-планы (GSD) | `16-v26-automate/PLAN.md`, `63-production-gate/PLAN.md`, `67-production-gate/PLAN.md` |
@@ -344,7 +349,7 @@ routing по `description`, когда задача требует docs-sync в�
 | A1 | `TestMagicLink_RateLimit_Exceeded` FAIL: получил 6-ю попытку без 429 | `docs/tz_constraints.md`: Rate limiting auth 3 попытки/10 мин (mandatory) | **ROOT=code** | Добавить счётчик в `service_login.go`, тест не трогать |
 | A2 | `TestRefreshToken_TTL` FAIL: ожидает TTL=7 дней | `tz_constraints.md`: Refresh token Redis, 30 дней TTL | **ROOT=test** | Тест устарел (старое требование) — исправить ожидание на 30д |
 | A3 | `TestTelegramBind_AsLogin` PASS, но по ADR-AUTH-01 Telegram — только notification bind, не login | Спецификация: `ADR-AUTH-01-magic-link-only.md` | **ROOT=code** (баг скрыт зелёным тестом!) | Тест недостаточно строгий — добавить negative-кейс + фикс `telegram.go` |
-| A4 | `TestSessionMiddleware_ExpiredJWT` flaky (иногда PASS/FAIL) | JWT TTL 15 мин, зависит от `time.Now()` | **Flaky** | Заменить на fake clock в `middleware.go` тесте, не увеличивать TTL в проде |
+| A4 | `TestSessionMiddleware_ExpiredJWT` flaky (иногда PASS/FAIL) | JWT TTL 15 мин, зависит от `time.Now()` | **ROOT=flaky** | Заменить на fake clock в `middleware.go` тесте, не увеличивать TTL в проде |
 
 ### Домен `tracker` (`backend/internal/tracker/`: `handler_issues.go`, `automation_engine.go`, `repo_time.go`, `service_workflow.go`)
 
@@ -352,7 +357,7 @@ routing по `description`, когда задача требует docs-sync в�
 |---|---------|---------------------|---------|----------|
 | T1 | `TestAutomationEngine_TriggerOnStatusChange` FAIL: правило не срабатывает | `docs/system_specification.md` FR-TRACKER JQL automation | **ROOT=code** | `automation_engine.go` не подписан на событие `hub.tracker.issue.updated` — добавить consumer |
 | T2 | `TestIssueHandler_Pagination` FAIL: ожидает cursor-пагинацию | `tz_constraints.md`: задачи — **offset/limit**, чат — cursor | **ROOT=test** | Тест написан по неверному паттерну — исправить на offset/limit assertions |
-| T3 | `TestRepoTime_Overlap` FAIL: два time-log перекрываются без ошибки | Спецификация не запрещает overlap явно — уточнить у `sa` | **Stop → clarify** | Не чинить ни код ни тест, эскалировать в `sa1`/`sa2`, зафиксировать в `.planning/STATE.md` |
+| T3 | `TestRepoTime_Overlap` FAIL: два time-log перекрываются без ошибки | Спецификация не запрещает overlap явно — уточнить у `sa` | **ROOT=stop** | Не чинить ни код ни тест, эскалировать в `sa1`/`sa2`, зафиксировать в `.planning/STATE.md` |
 | T4 | `TestWorkflowTransition_SkipGuard` FAIL после рефакторинга `service_workflow.go` | Guard-функция переименована, тест дёргает старое имя мока | **ROOT=test** | Обновить mock/stub на новый интерфейс, поведение не менялось |
 
 ### Домен `bases` (no-code БД, `backend/internal/bases/`: `service.go`, `repository.go`)
@@ -362,129 +367,55 @@ routing по `description`, когда задача требует docs-sync в�
 | B1 | `TestBasesRBAC_ViewerCannotEdit` FAIL: viewer смог изменить row | `docs/security_guidelines.md` + RBAC-инвариант GZ-SEC | **ROOT=code** | `service.go` не проверяет role перед `UpdateRow` — добавить guard |
 | B2 | `TestBasesService_SoftDelete` FAIL: запись удалена hard | `tz_constraints.md`: Soft delete через корзину 30 дней, hard delete — только явный Admin/GDPR запрос | **ROOT=code** | `repository.go` использует `Delete()` вместо `SetDeletedAt()` — критичный фикс |
 | B3 | `TestBasesService_OptimisticLock` FAIL: два конкурентных PATCH — второй не увидел конфликт | `tz_constraints.md`: Optimistic locking через `version` | **ROOT=code** | Добавить проверку `version` в `service.go` перед update, тест уже корректен |
-| B4 | `TestBasesService_ColumnTypeCast` FAIL: assertion ждёт `error`, а код возвращает `nil, nil` при невалидном типе | Спецификация неочевидна: что должно быть при попытке привести `text` в `number` | **Stop → clarify** | Эскалация `sa`, обновить `docs/system_specification.md` перед фиксом |
+| B4 | `TestBasesService_ColumnTypeCast` FAIL: assertion ждёт `error`, а код возвращает `nil, nil` при невалидном типе | Спецификация неочевидна: что должно быть при попытке привести `text` в `number` | **ROOT=stop** | Эскалация `sa`, обновить `docs/system_specification.md` перед фиксом |
 
 **Вывод:** ни один из этих кейсов не решается «поменять assert, чтобы стало зелёным» — сначала матчинг с `docs/`, `tz_constraints.md` или ADR, потом классификация code/test/stop.
 
 ---
 
-## 15. `/qa-gate` — детальный прогон с реальными командами
+## 15. `/qa-gate` — единый executable authority
 
-> **FROZEN LEGACY APPENDIX:** команды и пути ниже сохранены только как
-> историческая справка до manifest deletion. Агентам запрещено запускать или
-> чинить этот legacy gate без отдельного founder request. Текущий канон —
-> target Docker commands из `AGENTS.md`/`docs/test_plan.md`; zero collection
-> fail closed.
+Этот регламент не дублирует inner Docker commands. Канонический
+outer launcher, target jobs, limits, Compose profiles, fail protocol и cleanup
+определены только в `.cursor/skills/qa-gate/SKILL.md`; target layout — в
+`AGENTS.md`. Прямой `docker run`/`docker compose` snippet из playbook,
+отчёта или historical appendix не заменяет launcher.
 
-> Canonical backend regression — **Docker `-tags hubtest`** (не голый `go test ./...` — там 0 internal тестов, всё в `backend/testframework/`).
+Если target path, image, profile или runner ещё не реализован,
+результат — `NOT_READY`, а не legacy substitute и не доказанный
+`PASS`. Zero collection, unexpected skip и cleanup leak fail closed.
 
-### Backend: canonical Docker build + vet + hubtest (обязателен перед handoff/PR)
+Любой report/artifact пишется только в
+`testframework/reports/<task-run>/`. Каталог содержит owner marker с
+`task`, `run`, `owner`, `source_sha`, `created_at` и cleanup policy. Нельзя
+писать прямо в parent reports directory, repo root или чужой run.
 
-```bash
-docker compose -f deployments/docker-compose.test.yml up -d
-docker run --rm --name hub-backend-test-<task> \
-  --cpus 2.0 --memory 4g --memory-swap 4g --network deployments_default \
-  -v "${PWD}/backend:/app" -w /app \
-  -e POSTGRES_TEST_URL="postgresql://hub:hub@postgres:5432/hub?sslmode=disable" \
-  -e MONGODB_TEST_URL="mongodb://hub:hub@mongo:27017/?authSource=admin" \
-  golang:1.25-bookworm \
-  sh -lc "go build -tags release ./... && go vet -tags hubtest ./... && go test -tags hubtest -race -count=1 -timeout=600s ./testframework/..."
-```
-
-Точечный прогон одного домена выполняется заменой последней `go test` внутри
-того же Docker runner (не на host):
-
-```bash
-# только tracker
-go test -tags hubtest -race -count=1 ./testframework/tracker/...
-
-# только auth
-go test -tags hubtest -race -count=1 ./testframework/auth/...
-
-# только bases
-go test -tags hubtest -race -count=1 ./testframework/bases/...
-```
-
-### Frontend: Docker-only tsc + lint + vitest
-
-```bash
-docker run --rm --name hub-frontend-test-<task> --cpus 2.0 --memory 4g --memory-swap 4g \
-  --mount type=bind,src="${PWD}/frontend",dst=/work/frontend,readonly \
-  --mount type=bind,src="${PWD}/testframework",dst=/source/testframework,readonly \
-  --mount type=volume,src=hub-node-modules-<task>,dst=/work/frontend/node_modules \
-  -w /work/frontend mcr.microsoft.com/playwright:v1.61.0-noble \
-  sh -lc "mkdir -p /work/testframework && cp -a /source/testframework/. /work/testframework/ && npm ci && node scripts/link-testframework-node-modules.mjs && npx tsc --noEmit && npm run lint && npm run test:run"
-```
-
-Точечный домен выполняется заменой `npm run test:run` на одну из следующих
-команд внутри того же контейнера:
-
-```bash
-# auth-компоненты
-npx vitest run testframework/stages/unit/frontend-test/domains/auth/
-
-# tracker-компоненты
-npx vitest run testframework/stages/unit/frontend-test/domains/tracker/
-
-# v4-модули (bases, crm, hr, accounting)
-npx vitest run testframework/stages/unit/frontend-test/domains/v4/
-```
-
-### E2E: smoke vs full — только task-owned Playwright container
-
-Используй тот же image `mcr.microsoft.com/playwright:v1.61.0-noble`, лимиты,
-read-only source mounts и task-owned artifacts volume. Browser, frontend и
-backend обязаны быть контейнерами в изолированной task network; внутренние
-команды: smoke — `npm run test:e2e:smoke`, full — `npm run test:e2e`.
-
-Реальные домены e2e: `auth` (login, logout, onboarding-profile), `tracker` (project-lifecycle), `tms` (tms), `messenger` (messenger), `ai` (ai-hub, automation), `admin` (admin-ai, admin-audit, admin-metrics), `navigation` (command-palette, shortcuts, navigation), `platform` (health, metrics, notifications, a11y, critical-gate), `v4` (v4-superapp).
-
-### Security scan (git diff перед коммитом)
-
-```bash
-git diff --staged --name-only | xargs grep -l -E "(secret|password|devkey|api_key|token)" 2>/dev/null
-git diff --staged | grep -E "DEV_MODE=true|devkey: secret|livekit_api_secret"
-```
-
-### Результат gate
-
-```
-✅ Backend build+vet+hubtest race — PASS
-✅ Frontend tsc+lint+vitest — PASS
-✅ e2e-smoke (3/3) — PASS
-✅ Security scan — clean
-❌ GATE FAILED at step N: <причина> → test-triage → fix → повтор с начала упавшего шага
-```
-
-Slash: `.cursor/skills/qa-gate/SKILL.md`.
+Gate result: `PASS|FAIL|NOT_READY|NOT_RUN|NOT_APPLICABLE` с exact revision,
+outer/inner command provenance, image, resources, result counts, duration,
+artifact path и cleanup. Self-report и historical acceptance не evidence.
 
 ---
 
 ## 16. Цикличное качество — сквозной пример (rule 56)
 
-Пример полного цикла для фичи «WIP-лимиты в Kanban-колонках» (`tracker`):
+Для нового WIP-limit behavior в `tracker`:
 
-```
-1. BE: implement WipLimit в repo_boards.go + service_boards.go
-2. Новое поведение:
-   go test -tags hubtest -race -count=1 ./testframework/tracker/... -run TestBoards_WipLimit
-   → FAIL: limit не применяется при drag-n-drop через API
-   → test-triage: ROOT=code (guard не вызван в handler_boards.go)
-   → fix → повтор → PASS
-3. Регрессия домена tracker:
-   go test -tags hubtest -race -count=1 ./testframework/tracker/...
-   → FAIL: TestAutomationEngine_TriggerOnStatusChange (WIP limit блокирует переход, автоматизация ожидала успех)
-   → test-triage: ROOT=test (сценарий теста не учитывал новый лимит — устарел)
-   → fix теста → повтор → PASS
-4. Смежный домен (dashboard читает board stats):
-   go test -tags hubtest -race -count=1 ./testframework/dashboard/...
-   → PASS (нет regression)
-5. На интеграции волны: /qa-gate (полный, включая e2e-smoke)
-6. Docs sync: system_specification.md (FR-TRACKER WIP), COVERAGE.md, STATE.md
-7. be-ver: verified: true + лог обоих циклов (шаги 2–3)
-```
+1. BE вносит минимальный production diff и genuine Go units в
+   `backend/tests/tracker/**`.
+2. Канонический `/qa-gate` launcher запускает changed-risk jobs.
+3. FAIL по new behavior → `ROOT=code|test|infra|flaky|stop` → минимальный
+   fix → повтор упавшего и adjacent risk jobs.
+4. Public API/integration/browser risk покрывается greenfield Python
+   suite в `testframework/{api,integration,e2e}/**`, когда применимо.
+5. На интеграции волны выполняется полный selected `/qa-gate`;
+   missing target scaffold даёт `NOT_READY`.
+6. Evidence и owner marker лежат в
+   `testframework/reports/<task-run>/`; docs/traceability синхронизированы.
+7. Verifier проверяет raw evidence на exact revision и не превращает
+   `NOT_READY`/`NOT_RUN` в `PASS`.
 
-**Анти-паттерн (запрещён):** «прогнал `go test ./testframework/tracker/... -run TestBoards_WipLimit`, зелёный → handoff» — это только контур 1 (новое), контур 2 (регрессия домена) пропущен.
+**Антипаттерн:** прямой inner command, один зелёный test или
+legacy suite без canonical outer launcher не закрывают quality cycle.
 
 ---
 
@@ -635,7 +566,7 @@ Hub-сторона тулкита: [`.cursor/playbooks/prompt-contract.md`](play
 | §3 Формат ответа | Outcome-first; краткое обоснование, assumptions и evidence только по необходимости; приоритет у формата роли |
 | §4 Паттерны | Outcome-first / few-shot / step-back / evidence loop / independent challenge; скрытый внутренний ход рассуждений не запрашивается |
 | §5 Runtime | requested vs observed actual (`UNKNOWN` без telemetry) + provider/reasoning/workflow/skill/plugin/MCP provenance |
-| §6 Проверка | Oracle hierarchy; conclusion-blind/spec-aware read-only verifier; `PASS|FAIL|NOT_RUN` на exact revision |
+| §6 Проверка | Oracle hierarchy; conclusion-blind/spec-aware read-only verifier; `PASS|FAIL|NOT_READY|NOT_RUN|NOT_APPLICABLE` на exact revision |
 | §8 Матрица ролей | Для каждой роли: контекст, outcome, рабочий паттерн, evidence/risk focus, handoff |
 | §11 Примеры | Заполненные промпты по 7 архетипам (исполнитель/верификатор/аналитик/QA/расследователь/оркестратор/документатор) |
 | §12–§15 | Контекст-бюджет получателя, встраивание GSD/slash-скилов, антипаттерны промптинга, калибровка |
@@ -646,7 +577,10 @@ Hub-сторона тулкита: [`.cursor/playbooks/prompt-contract.md`](play
 
 - Executable русский GSD-lite: [`.cursor/skills/gsd-ru/`](skills/gsd-ru/README.md)
 - Планы (порт GSD, PE, portable kit): [`.planning/archive/july-2026/ai-expansion/`](../.planning/archive/july-2026/ai-expansion/README.md)
-- Приёмка Must: [`07-ACCEPTANCE.md`](../.planning/archive/july-2026/ai-expansion/07-ACCEPTANCE.md)
+- Historical/non-executable acceptance snapshot:
+  [`07-ACCEPTANCE.md`](../.planning/archive/july-2026/ai-expansion/07-ACCEPTANCE.md).
+  Он не заменяет current TaskContract, `/qa-gate` evidence и independent
+  verifier на exact revision.
 - Граница двух слоёв по объекту работы — §20 выше
 
 ---
