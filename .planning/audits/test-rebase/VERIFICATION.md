@@ -128,6 +128,18 @@ This receipt does not authorize execution: only G128-D may make one attempt
 after an accepted G128-S; that one-shot window closes after the attempt and the
 historical wrapper is forbidden after G129-L.
 
+## G128-D prelaunch incident - NOT_READY (2026-08-09; post-G128-S)
+
+**Attempted host command:** `pwsh -NoProfile -File .planning/audits/test-rebase/validate-contract.ps1`.
+
+**Observed boundary:** host-shell resolution raised `CommandNotFoundException` because `pwsh` was not recognized. The failure occurred before PowerShell could load the wrapper or process its arguments.
+
+**Absent task effects:** the wrapper-created task reports directory was absent and `.planning/audits/test-rebase/cutover-manifest.json` was absent. No wrapper, Docker process/container/network/mount, validator, report, or runtime check started. Accordingly no raw G128-D receipt exists.
+
+**Status:** G128-D remains `NOT_READY`; runtime is `NOT_RUN`, not `FAIL`. This incident does not alter frontmatter `verified: false` or the G128-S `STATIC_REVIEW_PASS` below.
+
+**One-shot boundary:** this was not the named Docker-owned G128-D attempt, so the one-shot attempt remains unconsumed. There will be no retry or interpreter fallback under this incident record. A separately planned and reviewed trusted PowerShell 7 TCB seal (absolute host path plus provenance/binding) is required before the one permitted Docker-owned attempt; installing PowerShell or substituting `powershell.exe` is not authorized by this receipt.
+
 ## G128-S superseding static receipt - STATIC_REVIEW_PASS (2026-08-09)
 
 **Provenance clarification (fix round 1):** G128-S does not claim to have rerun any Git check or independently proved a commit-tree relation. Its use of `committed` for the G128-E envelope is a consumption of the accepted G128-E provenance receipt: atomic commit `4fc2d21459991bf0e66eebe79902d77bc5fa6082`; cached pre-commit audit scope of exactly five writable paths; commit output of five files; empty targeted post-commit status for those five paths; and `git ls-tree` listing all five. The independent G128-E architecture PASS further established the same-HEAD relation for six read-only dependencies and all eleven envelope hashes, while G128-E security PASS established the wrapper/tool boundary. This G128-S review independently matches only the present bytes of the eleven named files to the SHA-256 values below; that byte comparison alone is not represented as new Git provenance.
