@@ -156,7 +156,7 @@ verified: false → sa-ver
 
 ## 8. GSD
 
-Hub `/coverage-audit`, `gsd-intel`, `gsd-audit-uat`, `gsd-map-codebase`.
+Hub `/coverage-audit`, `gsd-graphify`, `gsd-audit-uat`, `gsd-map-codebase`.
 
 ## 9. Частые вопросы
 

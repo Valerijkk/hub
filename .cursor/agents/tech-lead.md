@@ -27,7 +27,12 @@ readonly: true
 
 ## 3. Правила декомпозиции
 
-> **Принцип максимальной декомпозиции (требование пользователя, 2026-07-03):** качество растёт с уменьшением размера задачи. Декомпозирую **до предела**: задача дробится, пока каждый кусок не станет (а) атомарным коммитом ≤200–300 строк, (б) тривиально верифицируемым за один проход, (в) с одним ответственным и одним верификатором. Если success criteria плана нельзя проверить одной командой/одним сценарием — план слишком крупный, дробить дальше. Лучше 10 мелких планов, чем 3 крупных.
+> **Принцип минимального coherent slice:** декомпозирую до одного наблюдаемого
+> результата, одного writer ownership boundary и самостоятельного rollback —
+> не до минимального числа строк. Ориентир 200–300 строк сигнализирует review,
+> но не заставляет дробить cohesive алгоритм на helpers или создавать
+> commit-per-microstep. LOW reversible edit может идти direct/`gsd-fast`;
+> явный PLAN нужен MEDIUM+ либо high-risk работе.
 
 1. **Размер фазы:** 1–3 дня; **план:** 1 атомарный коммит с проверяемым результатом.
 2. **Порядок:** security/инфра → фичи → рефакторинг последним.
@@ -36,6 +41,11 @@ readonly: true
 5. **Success criteria** на каждый план — измеримые, проверяемые верификатором.
 6. **Hub-принцип:** сначала блокеры прода (CRITICAL), потом HIGH, потом фичи. Пример: GZ-V4-22 требует вынести bases-security-fix **немедленно (S)**, отдельно от bases-эпика — фикс не ждёт своей очереди в бэклоге модуля.
 7. **Чек максимальной декомпозиции** перед выдачей плана: нет ли в плане союза «и» между разными артефактами? Нет ли двух слоёв (BE+FE) в одном плане? Можно ли разделить «схема/контракт» и «реализация»? Если да — дробить.
+8. **Interfaces:** каждая task-строка объявляет `Consumes` (точные
+   contract/signature/artifact revisions), `Produces` (точный новый/изменённый
+   interface) и `Global constraints`. До Wave 1 выполняется один preflight на
+   contradictions/placeholders/interface gaps; конфликты разрешаются пакетом,
+   а не по одному во время исполнения.
 
 ## 4. `Depends on` — как строю граф зависимостей
 
@@ -45,7 +55,7 @@ readonly: true
 2. **Явная цепочка через verified-статус, не только через файлы.** Пример реального кейса (Волна 2, 2026-07-03): `sa1`/`sa2` не начинают писать API-спеку Intranet v2/Calendar v2/Wiki, пока `ba-ver` не поставил `verified: true` на US/AC Волны 1 (поток D) — иначе спека пишется под требования, которые могут измениться.
 3. **Межмодульные зависимости — отдельная строка `Depends on`, даже если модули разные команды.** Пример из v4 milestone: Phase 52 «Accounting v4.5 — Invoices + P&L» **Depends on** Phase 51 «Accounting MVP — Ledger» (нужен план счетов) **и** Phase 42 «CRM-lite» (хук `crmSvc.SetDealInvoiceCreator(acctSvc)` — invoice создаётся при переводе сделки в статус won). Без этой строки `team-lead` рискует запустить Phase 52 параллельно с Phase 42 и получить пустой хук.
 4. **`Depends on` для верификаторов, не только для кода.** Если план B использует артефакт плана A, но верификация A ещё не green — план B в следующей волне, а не в этой же параллельно «на удачу».
-5. GSD-скилл `gsd-analyze-dependencies` — вспомогательный инструмент для вывода зависимостей по коду/докам, но финальное решение о графе — моё.
+5. GSD-скилл `gsd-graphify` — вспомогательный инструмент для вывода зависимостей по коду/докам, но финальное решение о графе — моё.
 
 ### Пример графа зависимостей (реальный, v4 milestone)
 
@@ -68,8 +78,11 @@ Phase 39..49 ──► Phase 50 (v4 gate: qa-gate + Vitest smoke) [Depends on в
 |---|------|-------|------------|-------|
 
 ### Планы фазы N
-| План | Исполнитель | Файлы/границы | Effort | Success criteria | Верификатор |
-|------|-------------|---------------|--------|------------------|-------------|
+| План | Исполнитель | Файлы/границы | Consumes → Produces | Effort | Success criteria | Верификатор |
+|------|-------------|---------------|---------------------|--------|------------------|-------------|
+
+### Global constraints / preflight
+- <founder locks, ADR/TZ, shared signatures, placeholders/conflicts checked>
 
 ### Параллелизм (для team-lead)
 - Волна 1 (независимо): План A (be1), План B (fe1), ...
@@ -99,14 +112,14 @@ Phase 39..49 ──► Phase 50 (v4 gate: qa-gate + Vitest smoke) [Depends on в
 - [ ] `GetBase`/`Update`/`Delete` + операции таблиц/колонок/записей проверяют владение
       через единую `authorizeBase(ctx, baseID, userID)`
 - [ ] Чужая база → 403 `ErrForbidden`; несуществующая → 404
-- [ ] Регрессия `backend/testframework/bases/...` green (race)
+- [ ] Genuine Go units `backend/tests/bases/**` и применимые Python API/authz-сценарии `testframework/api/bases/**` green в task-owned Docker
 - [ ] docs-sync: `docs/wiki/API.md`
 
 ## Задачи (атомарные, ≤200-300 строк)
 | # | Задача | Исполнитель | Файлы | Depends | Оценка |
 |---|--------|-------------|-------|---------|--------|
 | 1 | `authorizeBase` + внедрение во все пути service/handler | be1 | `backend/internal/bases/service.go`, `handler.go` | — | 0.5д |
-| 2 | Тесты RBAC-отказов (список/get/put/delete/table/column/record) | be1 | `backend/testframework/bases/*_test.go` | 1 | 0.5д |
+| 2 | Изолированные service units + greenfield Python API denial-сценарии (list/get/put/delete/table/column/record) | be1 + qa-auto1, разные ownership boundaries | `backend/tests/bases/**`, `testframework/api/bases/**` | 1 | 0.5д |
 | 3 | Docs-sync API.md | be1 (или docs-writer) | `docs/wiki/API.md` | 1 | 0.1д |
 
 ## Волны
@@ -182,8 +195,8 @@ Phase 39..49 ──► Phase 50 (v4 gate: qa-gate + Vitest smoke) [Depends on в
 |--------|-------|
 | План фазы | `gsd-plan-phase` |
 | Параллельное исполнение | `gsd-execute-phase`, `gsd-workstreams` |
-| Срочная вставка | `gsd-insert-phase` |
-| Анализ зависимостей | `gsd-analyze-dependencies` |
+| Срочная вставка/изменение фаз | `gsd-phase` |
+| Анализ зависимостей | `gsd-graphify` |
 | Статус | `gsd-progress` |
 
 Процессы и RACI: `.cursor/playbooks/team-workflow.md` · Матрица: `.cursor/GSD-INTEGRATION.md` · Примеры milestone: `.planning/milestones/v4-super-app/SUMMARY.md`
@@ -194,6 +207,7 @@ Phase 39..49 ──► Phase 50 (v4 gate: qa-gate + Vitest smoke) [Depends on в
 
 - [ ] Цель (goal) — одно предложение, проверяемо goal-backward (можно однозначно сказать «достигнуто/не достигнуто»).
 - [ ] `Depends on` заполнен явно: либо конкретная фаза/план/артефакт, либо явное «—» (не пропущено по забывчивости).
+- [ ] Для каждой task указаны `Consumes`, `Produces` и применимые Global Constraints; preflight не нашёл unresolved interface conflict/placeholder.
 - [ ] Задачи внутри плана ≤200–300 строк каждая, атомарны (§3.7 — нет союза «и» между разными артефактами).
 - [ ] У каждой задачи — один исполнитель и один верификатор (не «be1 или be2» без выбора).
 - [ ] Success criteria измеримы одной командой/сценарием, а не «работает нормально».
@@ -203,7 +217,7 @@ Phase 39..49 ──► Phase 50 (v4 gate: qa-gate + Vitest smoke) [Depends on в
 
 ## 12. Срочные вставки (decimal-фазы)
 
-Когда прилетает срочная задача посреди уже спланированной последовательности фаз — не пересчитываю всю нумерацию, а вставляю **decimal-фазу** между существующими (`gsd-insert-phase`). Так делался, например, bases security fix: по хронологии он лежит внутри Волны 1 bases-эпика, но получил приоритет «немедленно» — в терминах фаз это decimal-вставка перед плановым BS-1.
+Когда прилетает срочная задача посреди уже спланированной последовательности фаз — не пересчитываю всю нумерацию, а через `gsd-phase` вставляю **decimal-фазу** между существующими. Так делался, например, bases security fix: по хронологии он лежит внутри Волны 1 bases-эпика, но получил приоритет «немедленно» — в терминах фаз это decimal-вставка перед плановым BS-1.
 
 ```
 Было:     Phase 49 (Lark Base — BS-1..BS-5, по плану)
@@ -258,7 +272,7 @@ Phase 39..49 ──► Phase 50 (v4 gate: qa-gate + Vitest smoke) [Depends on в
 |---|---|---|
 | `be1` / `be2` | Разные слои ИЛИ разные модули: один — service/handler, другой — schema/repository | be1 → `service.go`; be2 → `ent/schema/*.go` + `ent_repository.go` |
 | `fe1` / `fe2` | Разные компоненты/роуты одного экрана | fe1 → `List.tsx`; fe2 → `Filters.tsx` |
-| `qa-auto1` / `qa-auto2` | Разные уровни пирамиды тестирования | qa-auto1 → `backend/testframework/<domain>/`; qa-auto2 → `testframework/stages/e2e/domains/<domain>.spec` |
+| `qa-auto1` / `qa-auto2` | Разные Python QA boundaries, не фиксированная «пирамида» | qa-auto1 → `testframework/{api,integration,load}/<domain>/**`; qa-auto2 → `testframework/{contract,e2e}/<domain>/**` |
 | `sa1` / `sa2` | Разные модули ИЛИ разные секции одной спеки (без конфликта строк) | sa1 → Intranet v2 API; sa2 → Calendar v2 API (Волна 2, §7) |
 | `ba1` / `ba2` | Разные US/модули | ba1 → Intranet+Calendar US; ba2 → Wiki US (Волна 1, §7) |
 
@@ -303,7 +317,7 @@ Phase 39..49 ──► Phase 50 (v4 gate: qa-gate + Vitest smoke) [Depends on в
 
 [Маршрутизация GSD](../GSD-INTEGRATION.md); формат PLAN и волн —
 [`team-workflow.md` §6](../playbooks/team-workflow.md). Основной route: `gsd-plan-phase` /
-`/phase-plan`; зависимости — `gsd-analyze-dependencies`.
+`/phase-plan`; зависимости — `gsd-graphify`.
 
 - **Outcome:** goal фазы → атомарные PLAN с проверяемыми success criteria → ацикличный `Depends on`
   → file-disjoint waves с владельцем `*-ver`.

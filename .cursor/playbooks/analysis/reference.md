@@ -65,9 +65,9 @@
 
 | Роль | Primary GSD | Secondary GSD |
 |------|-------------|---------------|
-| ba1/ba2 | `gsd-discuss-phase`, `gsd-spec-phase` | `gsd-new-milestone`, `gsd-review-backlog`, `gsd-add-backlog` |
-| sa1/sa2 | Hub `/coverage-audit`, `gsd-intel` | `gsd-audit-uat`, `gsd-map-codebase` |
-| arch | `gsd-ai-integration-phase`, `gsd-ui-phase` | `gsd-research-phase`, `gsd-secure-phase` |
+| ba1/ba2 | `gsd-discuss-phase`, `gsd-spec-phase` | `gsd-new-milestone`, `gsd-review-backlog`, `gsd-capture` |
+| sa1/sa2 | Hub `/coverage-audit`, `gsd-graphify` | `gsd-audit-uat`, `gsd-map-codebase` |
+| arch | `gsd-ai-integration-phase`, `gsd-ui-phase` | `gsd-plan-phase`, `gsd-secure-phase` |
 | ba-ver/sa-ver/arch-ver | `gsd-verify-work` | `gsd-audit-uat` / `gsd-secure-phase` |
 
 ### 10.4 Мини-шаблоны для быстрого копирования

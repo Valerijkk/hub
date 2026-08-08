@@ -1,0 +1,4 @@
+interface:
+  display_name: "Evidence Verifier"
+  short_description: "Проверяет результат по oracle и evidence"
+  default_prompt: "Используй $evidence-verifier, чтобы независимо и без правок проверить этот Hub-результат."

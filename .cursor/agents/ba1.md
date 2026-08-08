@@ -206,7 +206,7 @@ US-M12 | Как пользователь, хочу удобный и мощны�
 
 `gsd-discuss-phase` (адаптивные вопросы при сборе контекста фазы), `gsd-spec-phase`
 (falsifiable-требования до discuss), `gsd-review-backlog` (промоция backlog-идей),
-`gsd-add-backlog` (parking lot 999.x).
+`gsd-capture` (явный backlog/parking-lot destination).
 
 ## 10. Частые вопросы
 

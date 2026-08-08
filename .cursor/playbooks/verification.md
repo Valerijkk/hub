@@ -67,7 +67,7 @@
 Почему так: если верификатор сам исправит, теряется независимость (он становится соавтором и
 перестаёт быть проверяющим), и исполнитель не учится. Исключение — тривиальная опечатка в
 собственном отчёте верификатора. Массовые фиксы выполняет исполнитель или специализированный
-агент (`gsd-code-review-fix`, `refactor-specialist`), но повторную верификацию проводит
+агент (`gsd-code-review --fix` по явной задаче или профильный implementer), но повторную верификацию проводит
 верификатор.
 
 ### 1.4 Вердикт — датированный и обоснованный
@@ -138,10 +138,10 @@ severity и верил на слово — ровно то, что запрещ�
 
 ```
 1. ЗАГРУЗИТЬ КОНТЕКСТ
-   - все docs/ + tz_constraints
-   - требование/артефакт под проверкой + описание исполнителя простым языком
-   - связанные STATE.md, COVERAGE.md, ROADMAP.md
-   - для кода: сам diff/файлы, а не только описание
+   - только релевантные sections из docs/ по роутингу AGENTS.md + применимые TZ/ADR
+   - TaskContract/требование и артефакт под проверкой
+   - exact BASE..HEAD diff/current code + raw checks; не generator confidence
+   - STATE/COVERAGE/ROADMAP только если они влияют на acceptance
 
 2. ВОСПРОИЗВЕСТИ
    - пройти сценарий из требований самостоятельно
@@ -180,9 +180,9 @@ severity и верил на слово — ровно то, что запрещ�
 
 | Что | Вход (получает) | Выход (производит) |
 |-----|------------------|--------------------|
-| Артефакт | docs/код под проверкой + описание | вердикт + замечания |
-| Контекст | все docs/, TZ, STATE, COVERAGE | — |
-| Доказательства | возможность запустить/пересчитать | лог прогона, пересчёты |
+| Артефакт | TaskContract/SPEC + exact BASE..HEAD diff/current code | вердикт + замечания |
+| Контекст | scoped docs/TZ/ADR по risk; без generator conclusions | выбранные источники и exclusions |
+| Доказательства | raw checks на exact revision/digest | `PASS|FAIL|NOT_RUN`, лог/пересчёты |
 | Решение | severity-классификация | verified: true/false + дата |
 
 ### 2.4 Независимость на практике
@@ -190,6 +190,9 @@ severity и верил на слово — ровно то, что запрещ�
 - Верификатор читает **первоисточник** (код, docs), а не только summary исполнителя.
 - Верификатор запускает команды **сам**, а не копирует чужой вывод.
 - Верификатор пересчитывает числа **сам** (endpoints, coverage, US count).
+- Верификатор conclusion-blind, но spec-aware: знает acceptance/constraints,
+  не получает готовый verdict, self-confidence или убеждающее rationale автора
+  до собственного первичного вывода.
 - Если верификатор и исполнитель — одна модель, независимость обеспечивается чистым контекстом
   и запретом на доступ к внутренним рассуждениям исполнителя (только артефакт + описание).
 
@@ -298,8 +301,11 @@ Severity верификации согласована с аудит-цикло�
 # Verification Report — <роль верификатора>
 
 - Артефакт: <файл/модуль/PR>
+- Range/revision: <BASE full SHA>..<HEAD full SHA> | <artifact digest>
+- Task/spec: <path + section>
 - Исполнитель: <ba1|sa2|be|fe|qa|...>
 - Верификатор: <ba-ver|sa-ver|...>
+- Requested / actual runtime: <requested> / <observed + evidence | UNKNOWN>
 - Дата/время: YYYY-MM-DD HH:MM
 - Вердикт: verified: true | false
 
@@ -371,13 +377,15 @@ docs + (для sa-ver) актуальность COVERAGE, но при измен
 
 ### 6.2 Профильные прогоны по слою
 
-| Слой | Команда регрессии |
+| Слой | Канонический target (только task-owned Docker с limits/cleanup) |
 |------|-------------------|
-| Backend (local) | `cd backend && go build -tags release ./... && go vet ./... && go test -race -count=1 -timeout=600s ./...` |
-| Backend (Docker, канонично) | `go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...` в `deployments/docker-compose.test.yml` |
-| Frontend | `cd frontend && npx tsc --noEmit && npm run lint && npx vitest run` (+ `npx playwright test` для E2E) |
+| Backend genuine units | `backend/tests/**`; exact runner из `AGENTS.md` |
+| Frontend genuine units | `frontend/tests/**`; exact runner из `AGENTS.md` |
+| Contract/API/integration/E2E/load | root Python `testframework/**`; job по taxonomy и marker |
 | Полный gate | `/qa-gate` — build + test + lint + security scan, останавливается на первой FAIL |
 | Матрица | `/coverage-audit` — требования × код × тесты |
+
+Host-запуск test/build/lint/validator неканоничен и запрещён founder lock.
 
 ### 6.3 Что значит «green + лог»
 
@@ -414,7 +422,7 @@ Skill: `.cursor/skills/test-triage/SKILL.md`. **Запрещено** делат�
 |------------|-----------|-----------|
 | `gsd-verify-work` | Валидация фичи через диалоговый UAT против требований | все верификаторы — базовый |
 | `gsd-code-review` | Ревью изменённых файлов на баги/security/качество | be-ver, code-reviewer |
-| `gsd-code-review-fix` | Авто-фикс findings из REVIEW.md (атомарные коммиты) | после code-review (исполнитель) |
+| `gsd-code-review --fix` | Исправление findings отдельным writer-ом по явной задаче | после code-review; verifier остаётся read-only |
 | `gsd-validate-phase` | Заполнить Nyquist-пробелы валидации фазы (тесты/покрытие) | qa-ver / qa-auto-ver |
 | `gsd-secure-phase` | Проверить митигации угроз из threat model в коде | arch-ver, security-auditor |
 | `gsd-audit-uat` | Кросс-фазовый аудит невыполненных UAT/verification | sa-ver, qa |

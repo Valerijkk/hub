@@ -153,7 +153,7 @@ verified: false → sa-ver
 
 ## 7. GSD
 
-Hub `/coverage-audit`, `gsd-intel`, `gsd-audit-uat`.
+Hub `/coverage-audit`, `gsd-graphify`, `gsd-audit-uat`.
 
 ## 8. Частые вопросы
 

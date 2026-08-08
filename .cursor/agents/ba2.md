@@ -152,7 +152,7 @@ US-C05 | Хочу модуль HR с отпусками, зарплатами, K
 
 ## 9. GSD
 
-`gsd-discuss-phase`, `gsd-spec-phase`, `gsd-review-backlog`, `gsd-add-backlog`,
+`gsd-discuss-phase`, `gsd-spec-phase`, `gsd-review-backlog`, `gsd-capture`,
 `gsd-plant-seed` (форвард-идеи с триггером, например SEED-002 calendar+calls+email sync).
 
 ## 10. Частые вопросы

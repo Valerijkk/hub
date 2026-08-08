@@ -76,7 +76,7 @@ enforces it. Promotion requires the admission and rollout process below.
 
 ## Admission and rollout
 
-1. Mark a control `candidate`, `shadow`, `blocking` or `retired` in its owning implementation policy.
+1. Record the observed state in [adoption status](adoption-status.md); a catalog row alone remains `catalogued`.
 2. Start uncertain detectors in shadow/warning mode and measure false positives.
 3. Blocking activation requires a fix path and [exception contract](exceptions-and-rationale.md).
 4. Never cite this catalog as proof that the repository currently complies.

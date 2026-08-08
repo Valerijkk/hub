@@ -1,0 +1,4 @@
+interface:
+  display_name: "Context Selector"
+  short_description: "Отбирает минимальный достаточный контекст"
+  default_prompt: "Используй $context-selector, чтобы выбрать минимальный достаточный контекст для этой Hub-задачи."

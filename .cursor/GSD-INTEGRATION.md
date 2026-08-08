@@ -3,7 +3,7 @@
 > GSD skills: `~/.agents/skills/gsd-*/SKILL.md` · typed agents: `~/.codex/agents/gsd-*.toml` · Hub slash-skills: `.cursor/skills/*/SKILL.md`.
 > Ростер команды: `.cursor/playbooks/README.md` · Регламент: `.cursor/REGULATION.md`.
 >
-> **Этот файл отвечает «какая ситуация → какой скил» (маршрутизация).** Вопрос «где в промпте объявить скил и что агент с ним делает» — [`playbooks/prompt-contract.md`](playbooks/prompt-contract.md) §13 (в т.ч. обязательные скилы-ворота: `/test-triage`, `/qa-gate`, `/handoff-sync`, `/style-check`, `/coverage-audit`).
+> **Этот файл отвечает «какая ситуация → какой скил» (маршрутизация).** Вопрос «где в промпте объявить скил и что агент с ним делает» — [`playbooks/prompt-contract.md`](playbooks/prompt-contract.md) §13 (в т.ч. `/task-packet`, `/context-selector`, `/evidence-verifier`, `/workflow-eval` и обязательные скилы-ворота `/test-triage`, `/qa-gate`, `/handoff-sync`, `/style-check`, `/coverage-audit`).
 
 *Обновлено: 2026-08-08 — live install: 71 GSD skills + 34 typed agents; Superpowers installed as a workflow source, not a role/authority · historical port inventory remains dated 2026-07-22.*
 
@@ -15,7 +15,7 @@
 |------|-----------|-----------|---------|
 | **Installed GSD skills** | `~/.agents/skills/gsd-<name>/` | = имя папки | `gsd-plan-phase`, `gsd-execute-phase`, `gsd-ai-integration-phase` (**71 live skills**) |
 | **Typed GSD agents** | `~/.codex/agents/gsd-<role>.toml` | = `agent_type` | `gsd-planner`, `gsd-plan-checker`, `gsd-executor`, `gsd-security-auditor` (**34 live profiles**) |
-| **Hub slash** | `.cursor/skills/<name>/SKILL.md` | = имя папки | `qa-gate`, `handoff-sync`, `coverage-audit`, `test-triage` |
+| **Hub slash** | `.cursor/skills/<name>/SKILL.md` | = имя папки | `task-packet`, `context-selector`, `evidence-verifier`, `workflow-eval`, `qa-gate`, `handoff-sync`, `coverage-audit`, `test-triage` |
 | **GSD-RU lite** | `.cursor/skills/gsd-ru/<name>/SKILL.md` | = имя папки | `phase-plan`, `wave-run`, `goal-verify`, `handoff` |
 | **Superpowers** | Codex plugin runtime | plugin-contributed workflow practices | Дополняет discovery/spec/planning/review; не заменяет GSD и не создаёт agent slot |
 
@@ -48,6 +48,37 @@ Live-инвентарь 2026-08-08: **71 skills + 34 typed agents**. Файл
 Слой разработки продукта живёт в `.cursor/` + `.planning/`; отдельного пакета под него нет — он и есть эти папки.
 
 Инвентарь upstream skills: `ai-expansion/03-GSD-PORT-INVENTORY.md`.
+
+---
+
+## Единый контур Hub + GSD + Superpowers
+
+Эти слои не конкурируют за authority:
+
+1. **Hub policy/controls** задают разрешения, founder locks, ownership и
+   обязательные project gates.
+2. **GSD** ведёт жизненный цикл substantial work и persistent artifacts:
+   discuss/spec → plan → execute → verify → ship.
+3. **Superpowers 6.2.0** используется как versioned pattern source и отдельная
+   eval-arm: task/diff-oriented review, bounded remediation, read-only reviewer,
+   scoped state и context isolation. Его текст не выдаёт permissions и не
+   доказывает superiority.
+4. **Hub prompt skills** нормализуют конкретную границу работы:
+   `/task-packet` → `/context-selector` → GSD/direct execution →
+   `/evidence-verifier`; `/workflow-eval` измеряет, полезна ли добавленная
+   ceremony на реальных Hub-задачах.
+
+Приоритет конфликтов: founder locks → Hub safety/authority → GSD lifecycle →
+совместимые Superpowers practices → локальные эвристики. Trivial reversible
+правка не обязана проходить полный phase lifecycle: используется smallest
+workflow, который способен дать требуемое evidence.
+
+| Risk/shape | Маршрут |
+|---|---|
+| LOW: локально, обратимо, oracle очевиден | direct / `gsd-fast`; короткий task packet при делегировании |
+| MEDIUM: несколько зависимых изменений | `/task-packet` → `gsd-quick` или короткий plan → focused verification |
+| HIGH: cross-module/неясный design | `/task-packet` → `gsd-discuss-phase`/`gsd-plan-phase` → bounded waves → `/evidence-verifier` |
+| CRITICAL: security/migration/prod/необратимость | design approval + explicit plan/threat model + executable oracle + independent verifier |
 
 ---
 
@@ -129,6 +160,10 @@ Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `micro
 | Синхронизация STATE | `/handoff` | `/handoff-sync` |
 | Полный quality gate | — | `/qa-gate` |
 | Матрица покрытия | — | `/coverage-audit` (Hub) |
+| Нормализовать задачу и authority boundary | lifecycle выбирается после risk | `/task-packet` |
+| Выбрать минимальный релевантный контекст | route к domain docs/plan | `/context-selector` |
+| Независимо проверить claim/evidence | `gsd-verify-work` для phase/UAT | `/evidence-verifier` для artifact/diff claim |
+| Сравнить plain/GSD/Superpowers workflow | — | `/workflow-eval` |
 
 ---
 
@@ -367,6 +402,10 @@ Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `micro
 | Anti-AI паттерны + стиль | `.cursor/skills/style-check/SKILL.md` + `references/anti-ai.md` | `gsd-code-review` (более общий peer review, не построчный grep) |
 | Новая крупная фаза с research+planning | `gsd-discuss-phase` → `gsd-plan-phase` | Hub-skills (их нет для планирования — это зона GSD) |
 | Retroactive verify реализованной фазы | `gsd-verify-work`, `gsd-validate-phase` | Hub-skills (Hub-гейты — pre-merge, GSD verify — post-hoc) |
+| Сформировать bounded task contract перед делегированием | `.cursor/skills/task-packet/SKILL.md` | GSD plan как замену authority/acceptance |
+| Выбрать smallest sufficient context | `.cursor/skills/context-selector/SKILL.md` | загрузку всех `docs/`/истории фаз |
+| Проверить конкретный diff/артефакт без generator anchoring | `.cursor/skills/evidence-verifier/SKILL.md` | self-review или второй идентичный prompt |
+| Доказать пользу нового workflow/plugin | `.cursor/skills/workflow-eval/SKILL.md` | одну demo-задачу или upstream benchmark |
 
 ## Частые ошибки маршрутизации (наблюдались в практике)
 
@@ -414,10 +453,10 @@ Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `micro
 ### Сценарий: coverage gap найден для домена `tms`
 
 ```
-1. Hub `/coverage-audit` → `.planning/COVERAGE.md` обновлён, виден gap tms 78%<82%
+1. Hub `/coverage-audit` → `.planning/COVERAGE.md` обновлён, виден risk/requirements gap TMS
 2. qa-auto1/qa-auto2 назначаются на gap
-3. gsd-add-tests                        → новые testframework/tms/service_waveNNN_test.go
-4. Цикл: новое поведение → регрессия домена tms → /qa-gate точечный (testframework/tms/...)
+3. gsd-add-tests                        → genuine Go unit в `backend/tests/tms/**` либо greenfield Python non-unit в `testframework/{api,integration,contract,e2e}/**` по taxonomy
+4. Цикл: новое поведение → регрессия домена TMS → Docker-only точечный job соответствующего целевого пути
 5. qa-auto-ver                           → verified: true
 6. docs-writer: .planning/COVERAGE.md, docs/test_plan.md
 ```
@@ -429,9 +468,9 @@ Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `micro
   ИЛИ архитектурное решение без готового ADR,
   ИЛИ финальная приёмка milestone (не фазы).
 
-1. team-lead формулирует самодостаточный §5.2 с полным контекстом (ADR, gray-zones, PLAN)
+1. team-lead запускает `/task-packet`; `/context-selector` выбирает только релевантные ADR/PLAN/docs sections
 2. Выбирает downstream runtime по capability/cost/risk; при высокой цене ошибки —
-   независимый challenge-pass (`*-ver`, `code-reviewer`, `gsd-audit-milestone`)
+   conclusion-blind `/evidence-verifier` или профильный `*-ver`/`gsd-audit-milestone`
 3. Результат фиксируется в ADR/PLAN/SUMMARY; дальнейшие волны — штатная оркестрация team-lead
 ```
 
@@ -444,8 +483,8 @@ Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `micro
 4. designer-ver                   → BLOCK/FLAG/PASS для UI-SPEC до реализации
 5. fe1/fe2 implement по UI-SPEC.md
 6. gsd-ui-review                  → fe-ver / designer-ver: 6-pillar аудит после реализации
-7. Vitest: testframework/stages/unit/frontend-test/domains/v4/bases-page.test.tsx
-8. e2e: testframework/stages/e2e/domains/v4/v4-superapp.spec.ts
+7. Genuine Vitest/RTL unit: `frontend/tests/bases/**`
+8. Greenfield Python E2E: `testframework/e2e/bases/**`
 9. docs-writer: wiki/SHORTCUTS.md если новый хоткей
 ```
 
@@ -456,7 +495,7 @@ Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `micro
 2. .cursor/skills/test-triage/SKILL.md — воспроизвести НЕ через "почему тест не падает", а через docs (Fiber WS — не менять на net/http, канон)
 3. gsd-debug                       → debugger: систематический root-cause (race, nil pointer, closed channel)
 4. Фикс минимальный (rule 10-style.mdc: no panic() in production paths)
-5. Regression: testframework/ws/... (hub_test.go, hub_shutdown_test.go, bridge_lifecycle_test.go) — race detector обязателен
+5. Regression: genuine Go units в `backend/tests/ws/**` и Python boundary scenarios в `testframework/integration/ws/**`; все команды Docker-only, race только для Go concurrency-sensitive units
 6. be-ver + security-auditor (если паника эксплуатируема — DoS)
 7. docs-writer: STATE.md + при необходимости observability.md (алерты/метрики на этот паттерн)
 ```
@@ -479,4 +518,4 @@ Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `micro
 
 ---
 
-*Updated: 2026-07-23 — docs-writer: § P0/P1 port status mid-Aug (inventory 03) · 2026-07-19 — расширение матриц (Когда какая GSD-команда, use-case таблица агентов, актуальные пути `.planning/`, сквозные примеры маршрута, каталог skills, частые ошибки маршрутизации, 5 многошаговых сценариев, глоссарий)*
+*Updated: 2026-08-08 — live GSD/agent roster, bounded Hub prompt skills, Superpowers-as-pattern-source и founder greenfield test paths; historical P0/P1 inventory remains a dated 2026-07-22 snapshot.*

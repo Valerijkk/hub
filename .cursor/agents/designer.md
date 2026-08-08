@@ -274,7 +274,7 @@ product/ba/sa → designer (спека/токены) → designer-ver → fe1/fe
 После изменений дизайн-системы (`app.css`) — **docs-sync немедленно**: `docs/wiki/SHORTCUTS.md`
 (новый hotkey), `docs/wiki/QUICKSTART.md` (новый flow), `.planning/STATE.md`. GSD: `gsd-sketch`
 (быстрый мокап-эксперимент до фиксации спеки), `gsd-ui-phase` (UI-SPEC.md для фазы), `gsd-ui-review`
-(ретроспективный аудит), `gsd-sketch-wrap-up`.
+(ретроспективный аудит), `gsd-sketch` + `gsd-capture` для сохранения выбранного результата.
 
 **DoD (полный список — `design.md` §8):**
 
@@ -323,7 +323,7 @@ Shadcn, каталог анимаций, a11y-рецепты, responsive-мат�
 ## 13. GSD-паттерны (Hub-усиленные)
 
 [Маршрутизация GSD](../GSD-INTEGRATION.md): `gsd-sketch` для вариантов,
-`gsd-ui-phase` для контракта, `gsd-sketch-wrap-up` после выбора; канон — [`design.md`](../playbooks/design.md).
+`gsd-ui-phase` для контракта, `gsd-sketch` + `gsd-capture` после выбора; канон — [`design.md`](../playbooks/design.md).
 
 - **Outcome:** DESIGN-SPEC, которая закрывает US/AC, responsive и loading/empty/error/success/permission states.
 - Token-first: цвета, spacing и типографика идут из реальных `--hub-*`; отсутствующий token проектируется явно.

@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # goal-verify
 
-Goal-backward приёмка: проверяем **достижение цели**, а не закрытие чекбоксов задач.
+Goal-backward приёмка: проверяй **достижение цели**, а не закрытие чекбоксов задач.
 Исполнитель: **`team-lead`** (финальная), профильные **`*-ver`**, при продуктовом исходе — **`product-ver`**.
 
 ## Когда
@@ -23,21 +23,41 @@ Goal-backward приёмка: проверяем **достижение цели
 Goal (outcome)
   → Success criteria (проверяемые)
     → Evidence (путь / команда / лог / скрин)
-      → Verdict PASS | FAIL + gaps
+      → Verdict PASS | FAIL | NOT_RUN + gaps
 ```
 
-Закрытые таски без evidence по критериям = **FAIL**, даже если «всё зелёное локально один раз».
+Закрытые таски без выполненного evidence по критериям = **NOT_RUN**; criterion,
+опровергнутый oracle, = **FAIL**. Ни одно из них не допускает PASS.
+
+## Иерархия oracle
+
+Выбирай сверху вниз сильнейший применимый источник:
+
+1. trusted invariant/contract с точным expected result;
+2. focused executable test, type/static/security check или browser assertion;
+3. integration/recovery exercise на затронутой границе;
+4. независимая экспертная read-only проверка для неисполняемой семантики;
+5. self-critique только как источник гипотез, никогда как completion proof.
+
+Количество reviewers не компенсирует отсутствующий oracle. Для независимой
+проверки используй [`$evidence-verifier`](../../evidence-verifier/SKILL.md).
 
 ## Шаги
 
-1. Прочитать **goal** из PLAN / ROADMAP (не список задач).
+1. Прочитать exact task contract (`$task-packet`/PLAN) и **goal** (не список задач).
 2. Выписать success criteria; для каждого — требуемый тип evidence.
-3. Собрать evidence: путь к коду, команда + exit code, фрагмент лога, ссылка на doc.
-4. **Rule 56:** новое green (цикл) + регрессия домена; на интеграции волны — статус `/qa-gate`. Docs-only → N/A с обоснованием.
-5. **Rule 55:** STATE session note + domain docs по матрице.
-6. Security/HIGH из ревью: открытый CRITICAL/HIGH без mitigation → блок PASS.
-7. Вердикт PASS/FAIL + gaps. `verified: true` **только** при PASS + приложенный лог.
-8. FAIL → triage → точечный `wave-run` / fix → повтор goal-verify (цикл).
+3. Зафиксировать full source revision, worktree, `BASE..HEAD` diff и runtime
+   provenance: requested model/effort, actual telemetry или `UNKNOWN`, env/image digest.
+4. Собрать evidence: путь к текущему коду, команда + exit code, лог, ссылка на doc.
+5. **Rule 56:** новое green + регрессия домена; на интеграции — `/qa-gate`.
+   Невыполненная обязательная проверка = `NOT_RUN`, не PASS.
+6. **Rule 55:** STATE session note + domain docs по матрице.
+7. Открытый CRITICAL/HIGH = `FAIL`; его нельзя park или понизить ради PASS.
+8. Вердикт PASS/FAIL/NOT_RUN. `verified: true` только независимым verifier при PASS.
+9. Remediation ограничить finding scope и bounds PLAN; затем повторить проверку.
+
+Итог: любой required `FAIL` → `FAIL`; без FAIL, но с required `NOT_RUN` →
+`NOT_RUN`; только все required `PASS` → `PASS`.
 
 ## Полный шаблон отчёта
 
@@ -45,6 +65,8 @@ Goal (outcome)
 ## Goal-verify: <фаза / волна>
 Дата: YYYY-MM-DD
 Проверяющий: team-lead | be-ver | …
+Revision: <full SHA>; diff: <BASE>..<HEAD>; worktree: <state>
+Runtime: requested=<model/effort>; actual=<telemetry|UNKNOWN>; env=<image digest|UNKNOWN>
 
 ### Goal
 <дословно из PLAN>
@@ -52,25 +74,25 @@ Goal (outcome)
 ### Criteria
 | ID | Criterion | Evidence | Status |
 |----|-----------|----------|--------|
-| C1 | … | `path:line` / `cmd` → exit 0 / лог | PASS/FAIL |
-| C2 | … | … | PASS/FAIL |
+| C1 | … | `path:line` / `cmd` → exit 0 / лог | PASS/FAIL/NOT_RUN |
+| C2 | … | … | PASS/FAIL/NOT_RUN |
 
 ### Rule 56 — качество
-- Новый контур: PASS | FAIL — evidence: …
-- Регрессия домена: PASS | FAIL | N/A — evidence: …
-- /qa-gate (интеграция волны): PASS | FAIL | N/A — evidence: …
+- Новый контур: PASS | FAIL | NOT_RUN — evidence: …
+- Регрессия домена: PASS | FAIL | NOT_RUN — evidence: …
+- /qa-gate (интеграция волны): PASS | FAIL | NOT_RUN — evidence: …
 
 ### Rule 55 — docs-sync
-- STATE.md: PASS | FAIL — секция/дата
-- Domain docs: PASS | FAIL — список путей
-- Drift check (wiki ≰ код): PASS | FAIL
+- STATE.md: PASS | FAIL | NOT_RUN — секция/дата
+- Domain docs: PASS | FAIL | NOT_RUN — список путей
+- Drift check (wiki ≰ код): PASS | FAIL | NOT_RUN
 
 ### Security / review
 - CRITICAL open: 0 | список
-- HIGH open: 0 | список + mitigation?
+- HIGH open: 0 | список
 
 ### Verdict
-PASS | FAIL
+PASS | FAIL | NOT_RUN
 
 ### Gaps (если FAIL)
 | Gap | Severity | Owner | Next |
@@ -80,6 +102,7 @@ PASS | FAIL
 ### Verification (self)
 - [ ] Evidence проверен по факту (файл открыт / команда в логе)
 - [ ] Не ставил PASS по «выглядит ок»
+- [ ] Revision/oracle/runtime provenance указаны; actual model не угадан
 ```
 
 ## Worked example (Hub): bases security
@@ -90,8 +113,8 @@ PASS | FAIL
 |-----------|----------|--------|
 | authorizeBase на путях | `backend/internal/bases/service.go` — `authorizeBase()` | PASS |
 | ListBases по владельцу | тот же service + тесты list | PASS |
-| Denial suite 403/404 | `backend/testframework/bases/rbac_test.go` (`8ff10d7`) | PASS |
-| Регрессия bases | `go test -tags hubtest -race ./testframework/bases/...` PASS | PASS |
+| Denial suite 403/404 | archived pre-cutover evidence at commit `8ff10d7`; не target-path proof | PASS (historical only) |
+| Current target regression | Docker-only `backend/tests/bases/**` + applicable `testframework/api/bases/**` | NOT_RUN until greenfield cutover |
 | Docs | `docs/wiki/API.md` owner-scoped; STATE session note | PASS |
 
 **Исторический verdict:** PASS → merge-ready ветка
@@ -121,10 +144,11 @@ PASS | FAIL
 
 - [ ] Goal процитирован, не подменён списком задач
 - [ ] Каждый criterion имеет evidence (не мнение)
-- [ ] Rule 56 закрыт или явно N/A
+- [ ] Exact revision, `BASE..HEAD` diff и oracle указаны
+- [ ] Requested/actual runtime записаны; missing telemetry = UNKNOWN
+- [ ] Rule 56 закрыт; непроведённое явно `NOT_RUN`
 - [ ] Rule 55 закрыт
-- [ ] CRITICAL gaps = 0 для PASS
-- [ ] HIGH: 0 или явный accepted risk с владельцем
+- [ ] CRITICAL/HIGH gaps = 0 для PASS; park запрещён
 - [ ] `verified: true` только при PASS + лог
 
 ## Anti-patterns
@@ -132,11 +156,11 @@ PASS | FAIL
 | Антипаттерн | Почему | Что вместо |
 |-------------|--------|------------|
 | «Выглядит ок» | нет evidence | команда/путь/лог |
-| PASS при открытом HIGH security | прод-риск | FAIL или accepted risk в ADR |
+| PASS при открытом HIGH security | прод-риск | FAIL до закрытия finding |
 | Считать таски = цель | goal drift | goal-backward |
 | One-shot зелёный → verified | rule 56 запрещает | цикл + регрессия |
 | Wiki обещает несуществующее | drift | сверка с кодом |
-| N/A регрессии «потому что лень» | скрытый регресс | либо прогон, либо обоснованный N/A |
+| Скрыть непрогнанную регрессию | ложный PASS | `NOT_RUN` с причиной и владельцем |
 
 ## Связь
 

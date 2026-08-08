@@ -41,6 +41,26 @@
 2. **Чёткие границы файлов** — параллельные агенты не редактируют одно и то же одновременно.
 3. **Частый rebase на `master`** — конфликты ловятся рано и мелкими, а не одним гигантским конфликтом перед мержем.
 
+### 1.1 Read-only preflight состояния checkout
+
+Перед branch/worktree/review/cleanup записать факты, не угадывать по prompt:
+
+```text
+git rev-parse --show-toplevel
+git rev-parse --git-dir
+git rev-parse --git-common-dir
+git rev-parse --show-superproject-working-tree
+git branch --show-current
+git rev-parse --verify HEAD
+git status --short
+```
+
+Пустая branch строка означает detached HEAD; непустой superproject path —
+submodule; различие git-dir/common-dir — linked worktree. Это read-only
+диагностика, не разрешение cleanup. Удалять/перемещать worktree/submodule можно
+только при доказанном task ownership точного canonical path и отдельной
+authority; чужой или ambiguous checkout остаётся нетронутым.
+
 Реальная история репозитория Hub подтверждает эти принципы на практике: волновая разработка идёт через feature-ветки (`feat/platform/otel-nats-trace`, `fix/platform/wave1-quickfixes`) и docs-ветки (`docs/wave2-specs`, `docs/wave2-adr-package`), которые сливаются в интеграционную ветку волны (`integration/wave1`) до финального мержа в `master` — подробнее в §8.
 
 ---
@@ -405,7 +425,11 @@ fe2: refactor(routes): apply QueryStateView to projects/board/issues (UX-2)
 
 ### 5.4. Аналогичный паттерн для qa-auto1/qa-auto2
 
-`qa-auto1` — backend-домены (`backend/testframework/<module>/`), `qa-auto2` — frontend/e2e (`testframework/stages/unit/frontend-test/domains/<domain>/`, `testframework/stages/e2e/domains/`). Они физически не пересекаются по файловой структуре пайплайна (см. `testframework/PIPELINE.md`), что и есть разделение границ по умолчанию.
+`qa-auto1` владеет Python `testframework/{api,integration,load}/<domain>/**`,
+`qa-auto2` — `testframework/{contract,e2e}/<domain>/**`. Genuine units принадлежат
+разработчикам и живут только в `backend/tests/**` / `frontend/tests/**`.
+Границы назначаются по exact paths на задачу; общий `testframework/core/**`
+имеет одного writer-а и не редактируется параллельно.
 
 ### 5.5. Чек-лист координации (be1/be2, аналогично fe/qa-auto)
 
@@ -466,15 +490,12 @@ git push --force-with-lease origin <своя-ветка>
 
 ### 6.5. Конфликты в lock-файлах (`go.sum`, `package-lock.json`)
 
-Не редактировать вручную построчно — велик риск испортить хеши. Вместо этого:
-```bash
-# Go
-go mod tidy
-
-# Frontend (npm)
-rm frontend/package-lock.json && cd frontend && npm install
-```
-Затем `git add` пересозданный lock-файл и продолжить rebase.
+Не редактировать вручную построчно и не удалять lock-файл в общей dirty-копии.
+Сначала определить владельца и выяснить, какой dependency change должен
+победить. Если регенерация действительно нужна, отдельный writer выполняет
+package-manager command только в task-owned ограниченном Docker, сверяет exact
+diff/checksums и возвращает файл merge-owner-у; destructive удаление требует
+отдельной authority на точный path.
 
 ---
 
@@ -561,28 +582,16 @@ b3bca09 Merge remote-tracking branch 'origin/fix/platform/wave1-quickfixes' into
 
 ## 9. Обязательная регрессия перед коммитом/PR (REGULATION §7, rule 56)
 
-Любое изменение, влияющее на поведение → прогон **до** коммита:
+Любое изменение, влияющее на поведение, проверяется **до** коммита только в
+task-owned Docker с limits/cleanup. Канонические target jobs и команды —
+`AGENTS.md` и `/qa-gate`: Go genuine units `backend/tests/**`, frontend genuine
+units `frontend/tests/**`, весь non-unit QA — root `testframework/**` Python.
+Host `go/npm/pytest/Playwright/build/lint` запрещены.
 
-```bash
-# Backend
-cd backend && go build -tags release ./... && go vet ./... && go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...
-
-# Frontend
-cd frontend && npx tsc --noEmit && npm run lint && npx vitest run
-```
-
-Каноническая Docker-регрессия backend (см. `AGENTS.md`):
-```bash
-docker compose -f deployments/docker-compose.test.yml up -d
-docker run --rm --cpus 2.0 --memory 4g --network deployments_default \
-  -v "${PWD}/backend:/app" -w /app \
-  -e POSTGRES_TEST_URL="postgresql://hub:hub@postgres:5432/hub?sslmode=disable" \
-  -e MONGODB_TEST_URL="mongodb://hub:hub@mongo:27017/?authSource=admin" \
-  golang:1.25-bookworm \
-  sh -c "go test -tags hubtest -race -count=1 -timeout=600s ./testframework/..."
-```
-
-Или `/qa-gate` (останавливается на первой FAIL). Результат (PASS/FAIL + время) фиксируется в skill-логе. Без green — нет handoff/PR. Цикл: новое поведение → регрессия старого затронутого модуля → (на интеграции волны) полный `/qa-gate` — см. `.cursor/rules/56-regression-verify.mdc`. Детали прогонов — `.cursor/playbooks/testing.md`.
+Результат (`PASS|FAIL|NOT_RUN`, exact revision, время, container/image) фиксируется
+в evidence. Без required green нет handoff/PR. Цикл: новое поведение →
+регрессия затронутого домена → на интеграции волны полный `/qa-gate`; детали —
+`.cursor/rules/56-regression-verify.mdc` и `.cursor/playbooks/testing.md`.
 
 **Важно:** «вроде зелёный» одним прогоном не считается закрытием цикла — при FAIL применяется `test-triage`, фикс, повтор до реального green (не переинтерпретация «наверное, флейк»).
 
@@ -692,8 +701,8 @@ git commit --amend --no-edit
 | Действие | Кто может |
 |---|---|
 | Коммитить в фича-ветку | Любой агент, свободно, атомарно, после ворот регрессии (§9) |
-| Пушить фича-ветку на remote | Любой агент, без отдельного запроса пользователя |
-| Открывать PR из фича-ветки | Любой агент (`gh pr create`) |
+| Пушить фича-ветку на remote | Только по явному поручению пользователя |
+| Открывать PR из фича-ветки | Только по явному поручению пользователя |
 | Мержить `integration/*` → доводить до merge-ready | `team-lead` |
 | **Push/merge в `master`** | **ТОЛЬКО пользователь лично** |
 | Создавать git-теги релиза | Только пользователь (после release gate, §11.1) |

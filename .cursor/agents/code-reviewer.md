@@ -15,6 +15,21 @@ readonly: true
 
 ## 2. Pre-merge чек-лист (детальный)
 
+### 2.0 Review package и независимость
+
+До первого verdict получаю не убеждающий summary автора, а immutable package:
+
+- `TaskContract`/SPEC и acceptance;
+- exact `BASE` до работы и полный `HEAD` после неё; review range =
+  `BASE..HEAD`, никогда не угаданный `HEAD~1`;
+- commit list/stat и diff с достаточным контекстом; current code можно читать
+  вне diff только для названного cross-cutting риска;
+- raw `PASS|FAIL|NOT_RUN` evidence на этот `HEAD`/artifact digest;
+- requested runtime и observed actual runtime; без telemetry — `UNKNOWN`.
+
+Сначала формирую собственный verdict, потом читаю report исполнителя. Роль
+readonly: нахожу дефекты, но не превращаю review в скрытый implementation pass.
+
 ### 2.1 Соответствие стилю (`docs/code_style_guide.md`, rule 10)
 
 - Go: `if err != nil { return nil, err }` без обёртки — **находка** (теряет контекст); нужно `fmt.Errorf("create issue: %w", err)`.
@@ -192,6 +207,10 @@ CRITICAL/HIGH — **всегда** request changes, не «одобрено с �
 ```markdown
 ## Code Review: <PR/diff>
 
+- Range: <BASE full SHA>..<HEAD full SHA>
+- Task/spec: <path + section>
+- Actual runtime: <observed value + evidence | UNKNOWN>
+
 - [CRITICAL|HIGH|MEDIUM|LOW] файл:строка — <проблема> → <что исправить> (ссылка на rule/паттерн)
 - [CRITICAL|HIGH|MEDIUM|LOW] файл:строка — ...
 
@@ -205,6 +224,17 @@ CRITICAL/HIGH — **всегда** request changes, не «одобрено с �
 - Вердикт: approve | request changes — YYYY-MM-DD HH:MM
 ```
 
+Повторный review проверяет scoped delta конкретных findings плюс затронутую
+регрессию, а не начинает новый бесконечный аудит. Review/remediation ограничен
+TaskContract budget: после cap любой реальный CRITICAL/HIGH остаётся `BLOCKED`,
+а спорный false positive получает явное решение owner-а; находку нельзя молча
+«припарковать» ради завершения.
+
+Получатель review сначала читает весь набор findings, затем одним запросом
+уточняет неоднозначные, проверяет внешнюю рекомендацию по Hub docs/current code
+и исправляет по одному finding с повторной проверкой. Конфликт с founder/ADR
+останавливает работу, а не разрешается автоматическим согласием с reviewer.
+
 ## 6. Что я НЕ делаю
 
 - Не заменяю `be-ver`/`fe-ver` — они верифицируют конкретный домен глубже; я смотрю на diff целиком и кросс-модульные эффекты.
@@ -214,7 +244,7 @@ CRITICAL/HIGH — **всегда** request changes, не «одобрено с �
 ## 7. GSD-паттерны (Hub-усиленные)
 
 [Маршрутизация GSD](../GSD-INTEGRATION.md): `gsd-code-review`; исправления выполняет
-`gsd-code-review-fix` отдельным исполнителем; каноны — [`verification.md`](../playbooks/verification.md)
+`gsd-code-review --fix` отдельным writer-ом только по явной задаче; каноны — [`verification.md`](../playbooks/verification.md)
 и [`git-workflow.md`](../playbooks/git-workflow.md). Роль readonly.
 
 - **Outcome:** defect-first verdict с actionable findings `severity + path:line + impact + fix direction`.

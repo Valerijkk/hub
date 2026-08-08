@@ -5,6 +5,8 @@
 > plan→wave→verify→handoff и portable kit.
 > Язык skills: **RU**. Основной `SKILL.md` остаётся сфокусированным, детали
 > загружаются по ссылкам (progressive disclosure); line-count не является KPI.
+> Skills не создают authority: founder locks → Hub safety/authority → GSD
+> lifecycle → совместимые Superpowers-паттерны → локальные эвристики.
 
 ## Skills
 
@@ -16,6 +18,19 @@
 | handoff | [handoff/SKILL.md](handoff/SKILL.md) | Role/wave outcome + evidence + передача | любой агент → следующий |
 | portable-kit | [portable-kit/SKILL.md](portable-kit/SKILL.md) | Упаковка/перенос AI kit | `docs-writer` / `team-lead` / devops |
 | microservices-strangler | [microservices-strangler/SKILL.md](microservices-strangler/SKILL.md) | Чек-лист выноса сервиса (planning) | `arch` + `tech-lead` |
+
+## Смежный prompt/context слой
+
+| Skill | Механизм |
+|-------|----------|
+| [`task-packet`](../task-packet/SKILL.md) | Нормализует outcome/acceptance/ownership/evidence/approval/stop; LOW не обременяет церемонией |
+| [`context-selector`](../context-selector/SKILL.md) | Read-only минимальный достаточный контекст |
+| [`evidence-verifier`](../evidence-verifier/SKILL.md) | Conclusion-blind spec-aware verdict по oracle и raw evidence |
+| [`workflow-eval`](../workflow-eval/SKILL.md) | Замороженный paired A/B до принятия framework-практики |
+
+Superpowers даёт совместимые паттерны bounded review, task/diff evidence,
+read-only reviewer и context isolation. Это pattern source, не permission и не
+доказательство превосходства; adoption решает только Hub-local workflow eval.
 
 ## Отличие от upstream GSD
 
@@ -31,8 +46,11 @@
 ## Типовой день
 
 ```
-phase-plan → wave-run (×N) → goal-verify → handoff
+$task-packet (MEDIUM+) → phase-plan → wave-run (×N) → goal-verify → handoff
 ```
+
+LOW-задача выполняется напрямую с focused evidence; отдельные packet/PLAN/wave
+не обязательны, если нет material ambiguity, риска или handoff.
 
 Параллельно (по запросу):
 
@@ -58,8 +76,8 @@ phase-plan → wave-run (×N) → goal-verify → handoff
 2026-07-11), эталон rule 56 кейс 1 + `team-lead.md` §5.3.
 
 1. **phase-plan** — цель: «чужая база недоступна (403/404), владелец без регрессии»; задачи be1 → be-ver → docs; ветка отдельно от эпика.
-2. **wave-run** — промпт be1 строго по §5.2: границы `backend/internal/bases/*` + `testframework/bases/*`, не трогать `ent/schema`, оба контура rule 56.
-3. **goal-verify** — evidence: `authorizeBase`, `rbac_test.go`, лог `go test -tags hubtest ./testframework/bases/...`, `docs/wiki/API.md`.
+2. **wave-run** — промпт be1 строго по §5.2: границы production + genuine units `backend/tests/bases/**`; Python API authz имеет отдельного writer-а; не трогать `ent/schema`.
+3. **goal-verify** — evidence: `authorizeBase`, Docker `backend-unit`, применимый Python API denial job и `docs/wiki/API.md`; legacy logs только historical context.
 4. **handoff** — outcome/evidence → be-ver по §5.2; `/handoff-sync` закрыл
    STATE/docs, после чего пользователь смержил подготовленные ветки 2026-07-11.
 
@@ -79,7 +97,7 @@ example и таблица anti-patterns не копируются в кажды�
 | Нужно | Куда |
 |-------|------|
 | Полная матрица агент→GSD | `.cursor/GSD-INTEGRATION.md` |
-| Выбор команды | `.cursor/GSD-INTEGRATION.md` (канон), `gsd-help` / `gsd-do` |
+| Выбор команды | `.cursor/GSD-INTEGRATION.md` (канон), `gsd-help` / `gsd-progress` |
 | FAIL теста | `.cursor/skills/test-triage/SKILL.md` |
 | Планы mid-Aug | `.planning/archive/july-2026/ai-expansion/README.md` |
 | Приёмка Must AI-expansion | `ai-expansion/07-ACCEPTANCE.md` |
@@ -91,6 +109,7 @@ example и таблица anti-patterns не копируются в кажды�
 - [ ] Основной workflow краток; детали подключаются progressive disclosure
 - [ ] Ссылки на §5.2 / rule 56 / ADR не битые
 - [ ] README отражает все 6 nested skills
+- [ ] Смежные prompt/context skills не дублируют GSD lifecycle и не выдают authority
 
 ## Anti-patterns пакета
 
@@ -101,9 +120,11 @@ example и таблица anti-patterns не копируются в кажды�
 | Обещать UI/API без проверки кода | evidence в goal-verify |
 | wave-run без phase-plan при >2 агентах | сначала PLAN |
 | Свободный «сделай X» | шаблон §5.2 |
+| Ceremony для trivial task | direct execution + focused evidence |
+| Superpowers/framework как authority | только совместимый pattern; efficacy через `workflow-eval` |
 | Копировать product-код в portable-kit | слои L1–L3 AI Ops |
 
 ## Версия
 
-- Пакет GSD-RU: **2026-07-26** (progressive disclosure, canonical routing)
+- Пакет GSD-RU: **2026-08-08** (task packet, bounded waves, oracle/runtime provenance)
 - Согласован с: prompt-contract 2026-07-19, ADR microservices accepted 2026-07-02, AI-expansion Must PASS

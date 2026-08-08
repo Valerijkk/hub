@@ -107,7 +107,7 @@
 | Скилл | Когда | Что даёт |
 |---|---|---|
 | `gsd-sketch` | Быстрый набросок нового экрана | Одноразовый HTML-мокап, мульти-вариант, до фиксации спеки |
-| `gsd-sketch-wrap-up` | После sketch | Упаковывает находки в persistent skill |
+| `gsd-sketch` + `gsd-capture` | После sketch | Фиксирует выбранные находки в persistent project artifact |
 | `gsd-ui-phase` | Фаза с фронтендом | Генерирует UI-SPEC.md (дизайн-контракт фазы) — база для DESIGN-SPEC |
 | `gsd-ui-review` | После реализации | Ретроспективный 6-pillar visual-аудит реализованного UI |
 

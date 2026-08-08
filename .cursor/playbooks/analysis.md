@@ -425,7 +425,7 @@ Spike — короткое исследование для снятия техн
 - неясна форма API внешней интеграции.
 
 GSD-инструменты: `gsd-spike` (техническая проверка), `gsd-sketch` (UI-эксперимент),
-`gsd-spike-wrap-up` / `gsd-sketch-wrap-up` (упаковка находок в знание).
+`gsd-spike` / `gsd-sketch`, затем `gsd-capture` (упаковка выбранных находок в persistent artifact).
 
 Шаблон результата spike:
 
@@ -444,10 +444,10 @@ SPIKE S-01: производительность фильтра flaky на 100k 
 |----------|-----------|-----|
 | Нужно прояснить WHAT фазы, falsifiable-требования | `gsd-spec-phase` | BA |
 | Собрать контекст фазы адаптивными вопросами | `gsd-discuss-phase` | BA |
-| Исследовать реализацию перед планированием | `gsd-research-phase` | ARCH/SA |
+| Исследовать реализацию перед планированием | `gsd-plan-phase` (research stage) или `gsd-map-codebase` | ARCH/SA |
 | Проверить реализуемость экспериментом | `gsd-spike` / `gsd-sketch` | ARCH/FE |
 | Аудит покрытия требований | Hub `/coverage-audit` | SA |
-| Не знаю, какая команда | `gsd-do` | любой |
+| Не знаю, какая команда | `gsd-progress` | любой |
 
 `gsd-spec-phase` даёт SPEC.md с falsifiable-требованиями до обсуждения реализации;
 `gsd-discuss-phase` — контекст через вопросы (режимы `--all`, `--auto`, `--chain`, `--power`).

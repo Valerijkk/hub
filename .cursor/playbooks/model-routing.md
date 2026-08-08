@@ -100,19 +100,37 @@ Snapshot flexible-pricing на 2026-08-07, credits за 1M токенов:
 Для critical/security сильная модель **не заменяет** отдельный контекст
 верификатора, mutation/negative evidence и project gates.
 
-## 5. Что фиксировать в делегировании и handoff
+## 5. Runtime/workflow provenance в delegation и handoff
 
-Каждый запуск downstream-агента содержит:
+Каждый downstream запуск содержит запрошенную конфигурацию; handoff дополняет её
+наблюдаемой фактической конфигурацией:
 
 ```text
-Runtime: gpt-5.6-terra / high
-Reason: обычная production-задача, 1 домен, rollback простой
-Fallback: gpt-5.6-sol / high при конфликте контракта; Luna запрещена
-Catalog status: available | unavailable | not_checked
+requested_model: openai/gpt-5.6-terra
+actual_model: <observed provider/model | UNKNOWN>
+actual_model_evidence: <launcher telemetry/run id/log ref | none>
+provider: <observed | UNKNOWN>
+reasoning_effort: <observed level | UNKNOWN>
+reason: обычная production-задача, 1 домен, rollback простой
+fallback: openai/gpt-5.6-sol / high при конфликте контракта; Luna запрещена
+catalog_status: available | unavailable | not_checked
+workflow: <name@revision | UNKNOWN>
+skills: <name@revision | none | UNKNOWN>
+plugins: <name@revision | none | UNKNOWN>
+MCP: <server@revision + capability scope | none | UNKNOWN>
+revision: <branch + full HEAD или artifact digest>
 ```
 
-`not_checked` допустим в плане, но не в утверждении, что агент фактически
-запущен. В финальном handoff указывается реально использованный runtime.
+`requested_model` — намерение, не telemetry. Никогда не выводить `actual_model`
+из requested value, frontmatter, имени роли, цены или ожидаемого fallback. Если
+launcher не даёт надёжного evidence, писать `UNKNOWN`.
+
+Для CRITICAL observed mismatch `requested_model != actual_model` блокирует
+исполнение/приёмку до повторного routing и approval. `UNKNOWN` — provenance gap,
+а не автоматически mismatch; если known runtime был частью approval/completion
+bar, gap становится missing evidence и требует STOP. Изменение provider/model,
+workflow, skill/plugin/MCP revision или capability policy инвалидирует сравнение
+с прошлым eval и требует новой точной записи.
 
 ## 6. Внешняя зона Claude Code Opus 5
 

@@ -16,6 +16,13 @@ alwaysApply: true
 - **PR = фича/фаза** с атомарными коммитами планов внутри. **Метод мержа: rebase-merge** (линейная история, атомарные коммиты сохранены для точечного revert). Squash не используется для фича-PR.
 - Личное ревью пользователя обязательно для: security/auth, миграций БД, деплой/CI, ADR-изменений. Остальное — цепочка агентов (кросс-ревью + `*-ver` + code-reviewer).
 
+Перед операцией с branch/worktree/submodule агент read-only фиксирует repo root,
+git-dir, git-common-dir, superproject path, branch/detached HEAD и dirty status.
+Различие git-dir/common-dir, detached HEAD или superproject — отдельное состояние,
+а не повод для cleanup. Удалять/перемещать workspace можно только при доказанном
+task ownership точного canonical path и явной authority; ambiguous/foreign path
+не трогать.
+
 ## Branch Naming
 
 ```
@@ -133,19 +140,13 @@ tmp_*.py
 ## Pre-commit Checklist
 
 Before every commit:
-```bash
-# Backend
-cd backend && go build ./... && go test -race -count=1 ./...
 
-# Frontend
-cd frontend && npx tsc --noEmit && npm run lint
-
-# Security scan
-git diff --staged | grep -E "(secret|password|token|key)" --color
-
-# AI co-author ban (must be empty)
-git log -1 --format=%B | grep -Ei '^(Co-authored-by|Generated-by):' && echo FAIL || true
-```
+1. Выполнить применимые target jobs только в task-owned limited Docker по
+   `AGENTS.md`/`/qa-gate`; host build/test/lint/validator запрещён.
+2. Просмотреть exact staged diff и secret scan; raw keyword hit требует triage,
+   а не автоматического удаления легитимного текста.
+3. Убедиться, что commit message не содержит AI attribution/co-author trailers.
+4. Зафиксировать `PASS|FAIL|NOT_RUN`, exact revision, image/resources/duration и cleanup.
 
 One-time (human, not agent): `git config core.hooksPath .githooks` — включает `.githooks/commit-msg` отказ с AI trailers.
 

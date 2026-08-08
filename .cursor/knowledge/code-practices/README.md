@@ -34,6 +34,7 @@
 ### Controls
 
 - [Hard и hybrid controls C01–C53](controls/hard-controls.md)
+- [Фактический adoption status controls](controls/adoption-status.md)
 - [Review guidelines](controls/review-guidelines.md)
 - [Warning signals](controls/warning-signals.md)
 - [Negative sentinels NEG-01–NEG-27](controls/negative-sentinels.md)

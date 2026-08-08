@@ -1,0 +1,4 @@
+interface:
+  display_name: "Workflow Eval"
+  short_description: "Сравнивает workflow в замороженном A/B"
+  default_prompt: "Используй $workflow-eval, чтобы спроектировать контролируемое A/B-сравнение этого Hub-workflow."
