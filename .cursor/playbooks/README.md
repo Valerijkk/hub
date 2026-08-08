@@ -7,7 +7,7 @@
 > **Хребет цикла — [`phase-loop.md`](phase-loop.md):** пять шагов на фазу и
 > ворота между ними. Остальные плейбуки раскрывают отдельные шаги.
 
-*Обновлено: 2026-08-07 — cost-aware GPT-5.6 role defaults и защищённая Opus-зона.*
+*Обновлено: 2026-08-08 — live roster: 31 operational Hub profiles + 1 deprecated redirect, 34 typed GSD agents, 71 installed GSD skills и Superpowers workflow plugin.*
 
 ---
 
@@ -43,6 +43,20 @@
 Parent/orchestrator may explicitly override downstream model at launch only after catalog-backed routing and logging in handoff. Legacy 5.5/5.4/5.4 Mini не назначаются новым агентам; 5.4-линия retire из Codex 2026-08-31.
 
 `pro-qa-ai/**` — внешняя защищённая зона Claude Code Opus 5. Агенты Hub её не сканируют и не меняют; конкретный артефакт принимается только через явный founder handoff.
+
+### 0.1 Фактический исполняемый ростер
+
+| Слой | Live-инвентарь | Как используется |
+|---|---:|---|
+| Hub role profiles | **32 файла** в `.cursor/agents/`: **31 operational** + `team-lead-opus` deprecated redirect | `team-lead` выбирает только нужные роли; все 31 одновременно не запускаются |
+| Typed GSD specialists | **34** профиля в `~/.codex/agents/gsd-*.toml` | Planner/checker/executor/verifier/research/audit роли запускаются по конкретному GSD workflow, а не считаются дублями Hub-ролей |
+| Installed GSD skills | **71** каталог в `~/.agents/skills/gsd-*` | Lifecycle и quality gates; точная маршрутизация — `.cursor/GSD-INTEGRATION.md` |
+| Superpowers | установленный Codex workflow plugin | Источник совместимых практик discovery/spec/planning/review; не агент, не authority и не второй lifecycle-канон |
+| External Claude Code Opus 5 | отдельный founder-operated worker | Только `pro-qa-ai/**`; не downstream-слот `team-lead` и не входит в число Hub/GSD агентов |
+
+Приоритет конфликтов: founder locks → Hub safety/authority rules → GSD lifecycle →
+совместимые Superpowers practices → локальные эвристики. Live-статус конкретной
+волны хранится в `.planning/STATE.md`, а не в этом постоянном ростере.
 
 ---
 

@@ -1,11 +1,11 @@
 # Hub ↔ GSD Skills Integration
 
-> GSD skills: `~/.claude/skills/gsd-*/SKILL.md` · Hub slash-skills: `.cursor/skills/*/SKILL.md`.
+> GSD skills: `~/.agents/skills/gsd-*/SKILL.md` · typed agents: `~/.codex/agents/gsd-*.toml` · Hub slash-skills: `.cursor/skills/*/SKILL.md`.
 > Ростер команды: `.cursor/playbooks/README.md` · Регламент: `.cursor/REGULATION.md`.
 >
 > **Этот файл отвечает «какая ситуация → какой скил» (маршрутизация).** Вопрос «где в промпте объявить скил и что агент с ним делает» — [`playbooks/prompt-contract.md`](playbooks/prompt-contract.md) §13 (в т.ч. обязательные скилы-ворота: `/test-triage`, `/qa-gate`, `/handoff-sync`, `/style-check`, `/coverage-audit`).
 
-*Обновлено: 2026-07-26 — P0: name/routing fix (installed vs Hub-native) · 2026-07-23 — P0/P1 port status mid-Aug / 2026-07-22 — GSD-RU lite + ai-expansion mid-Aug / 2026-07-19 — ссылка на контракт промпта (§13 prompt-contract) / 2026-07-18 — ростер 32 агента + playbooks.*
+*Обновлено: 2026-08-08 — live install: 71 GSD skills + 34 typed agents; Superpowers installed as a workflow source, not a role/authority · historical port inventory remains dated 2026-07-22.*
 
 ---
 
@@ -13,17 +13,21 @@
 
 | Слой | Где лежит | Имя skill | Примеры |
 |------|-----------|-----------|---------|
-| **Installed GSD** | `~/.claude/skills/gsd-<name>/` | = имя папки | `gsd-plan-phase`, `gsd-execute-phase`, `gsd-ai-integration-phase` (79 skills) |
+| **Installed GSD skills** | `~/.agents/skills/gsd-<name>/` | = имя папки | `gsd-plan-phase`, `gsd-execute-phase`, `gsd-ai-integration-phase` (**71 live skills**) |
+| **Typed GSD agents** | `~/.codex/agents/gsd-<role>.toml` | = `agent_type` | `gsd-planner`, `gsd-plan-checker`, `gsd-executor`, `gsd-security-auditor` (**34 live profiles**) |
 | **Hub slash** | `.cursor/skills/<name>/SKILL.md` | = имя папки | `qa-gate`, `handoff-sync`, `coverage-audit`, `test-triage` |
 | **GSD-RU lite** | `.cursor/skills/gsd-ru/<name>/SKILL.md` | = имя папки | `phase-plan`, `wave-run`, `goal-verify`, `handoff` |
+| **Superpowers** | Codex plugin runtime | plugin-contributed workflow practices | Дополняет discovery/spec/planning/review; не заменяет GSD и не создаёт agent slot |
 
 Этот файл — каноническая Hub-матрица маршрутизации. Полный каталог installed
-skills показывает `gsd-help`, а неясный intent принимает `gsd-do`.
+skills показывает `gsd-help`, а неясный intent принимает `gsd-next` или `gsd-progress`.
 Маршрутизируй только существующий installed skill или Hub-путь из таблицы выше.
 Coverage — Hub `/coverage-audit`; handoff — `/handoff` +
 `/handoff-sync`; framework selection входит в `gsd-ai-integration-phase`.
 
-Инвентарь installed: `ai-expansion/03-GSD-PORT-INVENTORY.md` (79 skills · 2026-07-22).
+Live-инвентарь 2026-08-08: **71 skills + 34 typed agents**. Файл
+`ai-expansion/03-GSD-PORT-INVENTORY.md` фиксирует исторический срез **79 skills**
+от 2026-07-22 и не является текущим install count.
 
 ---
 
@@ -64,13 +68,13 @@ Coverage — Hub `/coverage-audit`; handoff — `/handoff` +
 
 ### P0 = 21 — полный список
 
-`gsd-add-tests`, `gsd-analyze-dependencies`, `gsd-audit-uat`, `gsd-code-review`, `gsd-code-review-fix`, `gsd-debug`, `gsd-discuss-phase`, `gsd-docs-update`, `gsd-execute-phase`, `gsd-fast`, `gsd-plan-phase`, `gsd-plant-seed`, `gsd-progress`, `gsd-quick`, `gsd-resume-work`, `gsd-secure-phase`, `gsd-ship`, `gsd-spec-phase`, `gsd-validate-phase`, `gsd-verify-work`, `gsd-workstreams`.
+`gsd-add-tests`, `gsd-audit-uat`, `gsd-capture`, `gsd-code-review`, `gsd-debug`, `gsd-discuss-phase`, `gsd-docs-update`, `gsd-execute-phase`, `gsd-fast`, `gsd-graphify`, `gsd-phase`, `gsd-plan-phase`, `gsd-progress`, `gsd-quick`, `gsd-resume-work`, `gsd-secure-phase`, `gsd-ship`, `gsd-spec-phase`, `gsd-validate-phase`, `gsd-verify-work`, `gsd-workstreams`.
 
 ### Уже в gsd-ru (done) — 6 upstream P0 → 4 skills
 
 | Upstream P0 | GSD-RU invocation |
 |-------------|-------------------|
-| `gsd-plan-phase`, `gsd-analyze-dependencies` | `/phase-plan` |
+| `gsd-plan-phase`, `gsd-graphify` | `/phase-plan` |
 | `gsd-execute-phase` | `/wave-run` |
 | `gsd-verify-work` | `/goal-verify` |
 | `gsd-progress`, `gsd-resume-work` (+ pause как паттерн) | `/handoff` |
@@ -82,12 +86,12 @@ Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `micro
 | Upstream P0 | Статус mid-Aug | Куда добить до 15.08 |
 |-------------|----------------|----------------------|
 | `gsd-discuss-phase`, `gsd-spec-phase` | practice · agents `ba1`/`ba2` | секции GSD + PE |
-| `gsd-plant-seed` | practice · `.planning/reference/seeds/` | agents `ba2`/`product` |
+| `gsd-capture` | installed · routes seeds/tasks/notes to the right destination | agents `ba2`/`product` |
 | `gsd-workstreams` | practice · team-workflow | PE `wave-execution` + `team-lead` |
 | `gsd-quick`, `gsd-fast` | partial · route | agents `be*`/`fe*` / `codex-micro` |
 | `gsd-add-tests`, `gsd-validate-phase` | partial · route | agents `qa-auto*` |
 | `gsd-audit-uat` | partial · route | agents `qa-manual` |
-| `gsd-code-review`, `gsd-code-review-fix` | practice · `code-reviewer` | agents `code-reviewer` |
+| `gsd-code-review`, `gsd-code-review --fix` | installed review + fix mode | agents `code-reviewer` |
 | `gsd-secure-phase` | practice · `security-auditor` | agents + при ADR — strangler |
 | `gsd-debug` | practice · `debugger` + `/test-triage` | agents `debugger` |
 | `gsd-docs-update` | practice · `docs-writer` + rule 55 | agents `docs-writer` |
@@ -117,7 +121,7 @@ Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `micro
 
 | Intent | GSD Skill | Hub Slash |
 |--------|-----------|-----------|
-| Не знаю какую команду | `gsd-do` | — |
+| Не знаю какую команду | `gsd-progress` | `gsd-next` для выбора следующего lifecycle-шага |
 | Статус проекта | `gsd-progress` | — |
 | Следующий шаг | `gsd-next` | — |
 | Волны/исполнение | `gsd-execute-phase`, `gsd-workstreams` | — |
@@ -132,17 +136,17 @@ Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `micro
 
 | Agent | Primary GSD | Secondary GSD | Playbook |
 |-------|-------------|---------------|----------|
-| `team-lead` | `gsd-do`, `gsd-execute-phase`, `gsd-autonomous` | `gsd-workstreams`, `gsd-progress` | `team-workflow.md` |
-| `tech-lead` | `gsd-plan-phase`, `gsd-analyze-dependencies` | `gsd-insert-phase`, `gsd-execute-phase` | `team-workflow.md` |
-| `product` | `gsd-new-milestone`, `gsd-review-backlog` | `gsd-explore`, `gsd-plant-seed` | `analysis.md`, `team-workflow.md` |
+| `team-lead` | `gsd-progress`, `gsd-execute-phase`, `gsd-autonomous` | `gsd-workstreams`, `gsd-next` | `team-workflow.md` |
+| `tech-lead` | `gsd-plan-phase`, `gsd-graphify` | `gsd-phase`, `gsd-execute-phase` | `team-workflow.md` |
+| `product` | `gsd-new-milestone`, `gsd-review-backlog` | `gsd-explore`, `gsd-capture` | `analysis.md`, `team-workflow.md` |
 | `product-ver` | `gsd-verify-work` | `gsd-audit-milestone` | `verification.md` |
 | `ba1`, `ba2` | `gsd-discuss-phase`, `gsd-spec-phase` | `gsd-review-backlog` | `analysis.md` |
 | `ba-ver` | `gsd-verify-work` | — | `verification.md` |
-| `sa1`, `sa2` | Hub `coverage-audit`, `gsd-intel` | `gsd-audit-uat`, `gsd-map-codebase` | `analysis.md` |
+| `sa1`, `sa2` | Hub `coverage-audit`, `gsd-ns-context` | `gsd-audit-uat`, `gsd-map-codebase` | `analysis.md` |
 | `sa-ver` | `gsd-verify-work` | `gsd-audit-uat` | `verification.md` |
-| `arch` | `gsd-ai-integration-phase`, `gsd-ui-phase` | `gsd-research-phase`, `gsd-eval-review` | `analysis.md`, `backend.md`, `frontend.md` |
+| `arch` | `gsd-ai-integration-phase`, `gsd-ui-phase` | `gsd-plan-phase --research-phase`, `gsd-eval-review` | `analysis.md`, `backend.md`, `frontend.md` |
 | `arch-ver` | `gsd-verify-work` | `gsd-secure-phase` | `verification.md` |
-| `designer` | `gsd-sketch`, `gsd-ui-phase` | `gsd-ui-review`, `gsd-sketch-wrap-up` | `design.md` |
+| `designer` | `gsd-sketch`, `gsd-ui-phase` | `gsd-ui-review` | `design.md` |
 | `designer-ver` | `gsd-ui-review` | `gsd-verify-work` | `verification.md`, `design.md` |
 | `be1`, `be2` | `gsd-quick`, `gsd-debug` | `gsd-fast`, `gsd-add-tests` | `backend.md`, `observability.md` |
 | `be-ver` | `gsd-verify-work`, `gsd-code-review` | `gsd-secure-phase` | `verification.md`, `backend.md` |
@@ -155,7 +159,7 @@ Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `micro
 | `devops-engineer` | `gsd-ship` | — | `observability.md`, `git-workflow.md` |
 | `security-auditor` | `gsd-secure-phase`, `gsd-audit-fix` | — | `verification.md`, `backend.md` |
 | `debugger` | `gsd-debug` | — | `observability.md`, `testing.md` |
-| `code-reviewer` | `gsd-code-review`, `gsd-code-review-fix` | — | `verification.md`, `code-comments.md`, `git-workflow.md` |
+| `code-reviewer` | `gsd-code-review`, `gsd-code-review --fix` | — | `verification.md`, `code-comments.md`, `git-workflow.md` |
 | `docs-writer` | `gsd-docs-update`, `gsd-milestone-summary` | — | `code-comments.md` |
 
 ---
@@ -204,10 +208,10 @@ Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `micro
 
 | Ситуация | Команда | Комментарий |
 |----------|---------|-------------|
-| Новая сессия, не знаю с чего начать | `gsd-do` | Роутит freeform-текст в нужную команду |
+| Новая сессия, не знаю с чего начать | `gsd-progress` | Роутит freeform-текст в нужную команду |
 | «Где мы сейчас в проекте?» | `gsd-progress` | Сверяет `.planning/STATE.md` + `ROADMAP.md`, есть флаг `--forensic` для integrity-аудита |
 | «Что делать дальше?» | `gsd-next` | Логический шаг после завершения фазы/плана |
-| Хочу список todo | `gsd-check-todos` | Перед стартом новой волны |
+| Хочу понять открытые задачи | `gsd-progress` | Перед стартом новой волны; новые идеи/notes фиксирует `gsd-capture` |
 | Резюме предыдущей сессии | `gsd-resume-work` | После `gsd-pause-work` в прошлой сессии |
 
 ### 2. Планирование фичи/фазы
@@ -215,10 +219,10 @@ Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `micro
 | Ситуация | Команда | Пример Hub |
 |----------|---------|------------|
 | Крупная новая фича, нужна декомпозиция | `gsd-discuss-phase` → `gsd-plan-phase` | CAL-SYNC (email+calendar+calls sync) |
-| Нужно понять зависимости фаз | `gsd-analyze-dependencies` | Перед вставкой новой фазы в roadmap |
-| Срочная задача между фазами | `gsd-insert-phase` (напр. `72.1`) | Хотфикс безопасности вне очереди |
-| Фича на конец roadmap | `gsd-add-phase` | Добавление v4 AI hub фазы |
-| Нужен research перед планом | `gsd-research-phase` | Выбор AI framework для gateway BYOK |
+| Нужно понять зависимости фаз | `gsd-graphify` | Перед вставкой новой фазы в roadmap |
+| Срочная задача между фазами | `gsd-phase` insert (напр. `72.1`) | Хотфикс безопасности вне очереди |
+| Фича на конец roadmap | `gsd-phase` add | Добавление v4 AI hub фазы |
+| Нужен research перед планом | `gsd-plan-phase --research-phase N` | Выбор AI framework для gateway BYOK |
 | AI-система (провайдер/агент/RAG) | `gsd-ai-integration-phase` | AI Provider Hub Spec (`.planning/decisions/specs/AI-PROVIDER-HUB-SPEC.md`) |
 | UI-контракт перед реализацией | `gsd-ui-phase` → `gsd-ui-review` | Bases inline-edit экран |
 | Независимое peer review плана | `gsd-review` | team-lead перед запуском рискованной волны |
@@ -253,10 +257,10 @@ Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `micro
 |----------|---------|------------|
 | Bulk-обновление docs с верификацией по коду | `gsd-docs-update` | После `.planning/` reorg — проверка ссылок в `docs/README.md` |
 | Матрица требование×код×тест | Hub `coverage-audit` | Обновление `.planning/COVERAGE.md` |
-| Codebase intelligence refresh | `gsd-intel` | После крупного рефакторинга tracker automation |
+| Codebase intelligence refresh | `gsd-ns-context` или `gsd-map-codebase` | После крупного рефакторинга tracker automation |
 | Глубокий анализ кодовой базы | `gsd-map-codebase` | Перед v4 super-app декомпозицией |
 | Milestone-резюме для онбординга | `gsd-milestone-summary` | `.planning/milestones/v4-super-app/SUMMARY.md` |
-| Peer review плана/кода | `gsd-code-review` → `gsd-code-review-fix` | Pre-merge diff review |
+| Peer review плана/кода | `gsd-code-review` → `gsd-code-review --fix` | Pre-merge diff review |
 | Threat-mitigation verification | `gsd-secure-phase` | После изменений auth/RBAC |
 | Аудит eval-покрытия AI-фазы | `gsd-eval-review` | AI gateway BYOK evaluation strategy |
 
@@ -308,10 +312,10 @@ Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `micro
 | `.planning/archive/july-2026/EXPANSION-ANALYSIS-2026-07-02.md` | backlog для `gsd-plan-phase` | `july-2026/` |
 | `.planning/archive/quick/` | `gsd-quick` tasks | корень (если создаётся) |
 | `.planning/debug/` | `gsd-debug` sessions | корень |
-| `.planning/decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` | Зафиксированные gray-area решения (аналог `gsd-list-phase-assumptions` output) | `gray-zones/` |
+| `.planning/decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` | Зафиксированные gray-area решения (аналог assumptions-mode `gsd-discuss-phase`) | `gray-zones/` |
 | `.planning/audits/2026-06/AUDIT-SCORECARD.md` | `gsd-audit-uat` / `gsd-validate-phase` output | `audits/2026-06/` |
 | `.planning/decisions/ADR-*.md` | ADR (аналог decisions log GSD) | `decisions/` |
-| `.planning/reference/seeds/SEED-*.md` | `gsd-plant-seed` output | `seeds/` |
+| `.planning/reference/seeds/SEED-*.md` | `gsd-capture` seed output | `seeds/` |
 | `.planning/milestones/v4-super-app/SUMMARY.md` | `gsd-milestone-summary` output | `milestones/` |
 | `.planning/ops/production/PRODUCTION-HANDOFF.md` | `gsd-ship` / prod handoff | `production/` |
 
@@ -321,7 +325,7 @@ Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `micro
 
 ```
 1. gsd-discuss-phase --power   → ba1/ba2 собирают серые зоны email L0-L3, calendar RSVP
-2. gsd-research-phase          → arch исследует iCal RFC 5545 constraints
+2. gsd-plan-phase --research-phase N → arch исследует iCal RFC 5545 constraints
 3. gsd-plan-phase               → tech-lead: PLAN.md с task breakdown + Depends on
 4. gsd-review                    → независимое peer review плана до исполнения
 5. gsd-execute-phase             → be1 (calendar_event ERD) + be2 (ical sync) + fe1 (UI) параллельно
@@ -339,7 +343,7 @@ Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `micro
 ## Пример: полный GSD-маршрут для мелкого бага (auth rate-limit)
 
 ```
-1. gsd-do "падает тест rate limit в auth"  → роутит в gsd-debug
+1. gsd-progress "падает тест rate limit в auth" → роутит в gsd-debug
 2. gsd-debug                                → воспроизвести, найти root cause в service_login.go
 3. .cursor/skills/test-triage/SKILL.md      → классификация ROOT=code (см. REGULATION.md §14, A1)
 4. gsd-fast (или gsd-quick, если >1 файл)   → минимальный фикс
@@ -374,21 +378,21 @@ Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `micro
 
 ## Каталог GSD skills, релевантных Hub (полный, по категориям)
 
-> `~/.claude/skills/gsd-*/SKILL.md` — 79 installed skills; ниже — те, что реально применимы в контексте Hub (монорепо Go+React с 32-агентной командой). Остальные (напр. `gsd-new-project`, `gsd-new-workspace`) — не актуальны, т.к. проект уже существует и не мультиворкспейс.
+> `~/.agents/skills/gsd-*/SKILL.md` — **71 live installed skill**; ниже — те, что реально применимы в контексте Hub (монорепо Go+React с 32 файлами Hub-ролей). Typed GSD agents считаются отдельно: **34** профиля в `~/.codex/agents/`. Остальные skills (например, `gsd-new-project`) не нужны для уже существующего проекта без явного lifecycle-запроса.
 
 | Категория | Skills |
 |-----------|--------|
-| Оркестрация сессии | `gsd-do`, `gsd-progress`, `gsd-next`, `gsd-help`, `gsd-check-todos`, `gsd-resume-work`, `gsd-pause-work` |
-| Планирование | `gsd-discuss-phase`, `gsd-spec-phase`, `gsd-plan-phase`, `gsd-review`, `gsd-analyze-dependencies`, `gsd-insert-phase`, `gsd-add-phase`, `gsd-list-phase-assumptions`, `gsd-research-phase` |
-| AI-фичи | `gsd-ai-integration-phase` (вкл. framework selection), `gsd-eval-review`, `gsd-research-phase` |
-| UI/дизайн | `gsd-ui-phase`, `gsd-ui-review`, `gsd-sketch`, `gsd-sketch-wrap-up` |
+| Оркестрация сессии | `gsd-manager`, `gsd-progress`, `gsd-next`, `gsd-help`, `gsd-thread`, `gsd-resume-work`, `gsd-pause-work` |
+| Планирование | `gsd-discuss-phase`, `gsd-spec-phase`, `gsd-plan-phase`, `gsd-review`, `gsd-plan-review-convergence`, `gsd-phase`, `gsd-graphify` |
+| AI-фичи | `gsd-ai-integration-phase` (вкл. framework selection), `gsd-eval-review`, `gsd-plan-phase --research-phase N` |
+| UI/дизайн | `gsd-ui-phase`, `gsd-ui-review`, `gsd-sketch` |
 | Исполнение | `gsd-execute-phase`, `gsd-workstreams`, `gsd-quick`, `gsd-fast`, `gsd-autonomous` |
 | Качество/тесты | `gsd-add-tests`, `gsd-validate-phase`, `gsd-verify-work`, `gsd-audit-fix`, `gsd-audit-uat`, `gsd-debug`, `gsd-forensics` |
-| Документация/анализ | `gsd-docs-update`, Hub `coverage-audit`, `gsd-intel`, `gsd-map-codebase`, `gsd-code-review`, `gsd-code-review-fix`, `gsd-milestone-summary`, `gsd-extract_learnings` |
+| Документация/анализ | `gsd-docs-update`, Hub `coverage-audit`, `gsd-ns-context`, `gsd-map-codebase`, `gsd-code-review`, `gsd-code-review --fix`, `gsd-milestone-summary`, `gsd-extract-learnings` |
 | Безопасность | `gsd-secure-phase` |
 | Завершение | `gsd-complete-milestone`, `gsd-audit-milestone`, `gsd-ship`, `gsd-pr-branch`, `gsd-undo` |
-| Идеи/backlog | `gsd-explore`, `gsd-plant-seed`, `gsd-add-backlog`, `gsd-review-backlog`, `gsd-note`, `gsd-add-todo` |
-| Служебное | `gsd-health`, `gsd-settings`, `gsd-set-profile`, `gsd-stats`, `gsd-graphify` |
+| Идеи/backlog | `gsd-explore`, `gsd-capture`, `gsd-review-backlog`, `gsd-inbox` |
+| Служебное | `gsd-health`, `gsd-config`, `gsd-settings`, `gsd-surface`, `gsd-stats`, `gsd-graphify` |
 
 ---
 
