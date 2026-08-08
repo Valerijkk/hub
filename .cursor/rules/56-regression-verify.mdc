@@ -13,7 +13,7 @@ alwaysApply: false
 ```
 Новая фича / новое поведение:
   implement → тест нового (unit / TC / сценарий)
-           → FAIL? → test-triage (ROOT=code|test) → fix → повтор до green
+           → FAIL? → test-triage (ROOT=code|test|infra|flaky|stop) → действие по root
 
 Старый функционал (регрессия):
   после green по новому → затронутый домен (+ смежное при shared)
@@ -23,6 +23,10 @@ alwaysApply: false
 
 **Запрещено:** один прогон «вроде зелёный» → сразу handoff/`verified: true`.
 **Обязательно:** оба контура (новое + старое) закрыты циклами до green + лог.
+
+`infra`, `flaky` и `stop` запрещают произвольную правку production-кода или
+assertion ради green: сначала восстановить окружение, доказать flake либо
+остановиться по authority/safety breaker.
 
 `team-lead` при делегировании **всегда** включает оба контура в шаблон задачи
 (`.cursor/agents/team-lead.md` §5 · `team-workflow.md` §5.3.1).

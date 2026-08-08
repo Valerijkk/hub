@@ -41,50 +41,36 @@ disable-model-invocation: true
 создаёт обязательную Pyramid/Trophy/Honeycomb ratio. Skipped job записывается
 как `NOT_APPLICABLE` с rationale, не как PASS.
 
-## 1. `backend-unit`
+## Единый outer runner — обязательный gate
 
-```powershell
-docker run --rm --name hub-backend-unit-<task> `
-  --cpus 2.0 --memory 4g --memory-swap 4g `
-  --mount type=bind,src="${PWD}/backend",dst=/work/backend,readonly `
-  -w /work/backend golang:1.25-bookworm `
-  sh -lc "go build -tags release ./... && go vet ./... && go test -race -count=1 -timeout=600s ./tests/..."
-```
+Все восемь jobs запускаются только через один versioned PowerShell-safe Docker
+launcher из target scaffold. До появления и отдельной проверки этого launcher
+любой runtime verdict `/qa-gate` — `NOT_READY`; прямые `docker run`/`compose up`
+из документации не являются допустимой заменой.
 
-Только service-free genuine units. `--rm` очищает container.
+Launcher принимает `job`, `task_run`, immutable image digest и wall-clock timeout
+и обязан:
 
-## 2. `frontend-unit`
+1. проверить безопасный формат `task_run` и вычислить exact container/Compose/volume names;
+2. создать только `testframework/reports/<task-run>/` и owner marker с task/revision;
+3. задать CPU, RAM/swap, PID, network и read-only-source ограничения;
+4. enforce outer wall-clock deadline независимо от inner test timeout;
+5. сохранить исходный exit code и raw stdout/stderr;
+6. в безусловном `finally` остановить exact container/Compose project и удалить
+   только task-owned volumes/networks;
+7. после cleanup доказать отсутствие exact resources; cleanup failure делает job FAIL.
 
-```powershell
-docker run --rm --name hub-frontend-unit-<task> `
-  --cpus 2.0 --memory 4g --memory-swap 4g `
-  --mount type=bind,src="${PWD}/frontend",dst=/work/frontend,readonly `
-  --mount type=volume,src=hub-node-modules-<task>,dst=/work/frontend/node_modules `
-  --mount type=volume,src=hub-frontend-dist-<task>,dst=/work/frontend/dist `
-  -w /work/frontend mcr.microsoft.com/playwright:v1.61.0-noble `
-  sh -lc "npm ci && npx tsc --noEmit && npm run lint && npx vitest run tests && npm run build"
+Никакой job не пишет в общий `testframework/reports/` root. JUnit/Allure/traces
+пишутся только внутрь `/reports/<task-run>/`, смонтированного из одноимённого
+task-owned host directory.
 
-docker volume rm hub-node-modules-<task> hub-frontend-dist-<task>
-```
+## Inner job contracts
 
-Только genuine Vitest/RTL units. Static/source contracts запрещены.
-
-## 3. Python contract job
-
-```powershell
-docker run --rm --name hub-python-contract-<task> `
-  --cpus 2.0 --memory 4g --memory-swap 4g `
-  --mount type=bind,src="${PWD}/testframework",dst=/work/testframework,readonly `
-  --mount type=bind,src="${PWD}/testframework/reports",dst=/reports `
-  -e PYTHONDONTWRITEBYTECODE=1 -w /work/testframework hub-testframework:<sha> `
-  pytest -p no:cacheprovider -m contract --junitxml=/reports/<task>-contract.xml
-```
-
-## 4. Python jobs с services
-
-API/integration/E2E используют target Compose authority из
-`testframework/docker/**`. Compose YAML обязан задавать CPU/RAM/healthcheck и
-task-isolated data. Примеры markers/entrypoints внутри test container:
+`backend-unit` выполняет build/vet и service-free genuine Go units из
+`backend/tests/**`. `frontend-unit` выполняет tsc/lint/genuine Vitest/RTL units
+из `frontend/tests/**` и build; static/source contracts запрещены. Python jobs
+используют immutable target image из `testframework/docker/**` и следующие
+entrypoints внутри test container:
 
 ```text
 python-api:          pytest -p no:cacheprovider -m api
@@ -94,18 +80,9 @@ python-e2e-full:     pytest -p no:cacheprovider -m "e2e and full"
 python-load:         python -m locust -f load/locustfile.py --headless <approved profile>
 ```
 
-Outer execution contract:
-
-```powershell
-docker compose -p hub-<job>-<task> -f testframework/docker/compose.yaml `
-  --profile <job> up --abort-on-container-exit --exit-code-from tests
-
-docker compose -p hub-<job>-<task> -f testframework/docker/compose.yaml `
-  down -v --remove-orphans
-```
-
-Если `tests`/profile/Locust entrypoint ещё не реализован target scaffold,
-зафиксировать FAIL/NOT_READY. Не изобретать legacy substitute.
+Если launcher, `tests` service, profile или Locust entrypoint ещё не реализован
+target scaffold, зафиксировать `NOT_READY`. Не изобретать legacy substitute и
+не копировать внутренний command в небезопасный host-side запуск.
 
 ## FAIL protocol
 
@@ -126,7 +103,8 @@ resources: {cpus: 2.0, memory: 4g, timeout: <value>}
 services: <profile or none>
 result: {collected: N, passed: N, failed: N, skipped: N}
 duration: <seconds>
-artifacts: <task-owned URI>
+artifacts: testframework/reports/<task-run>/
+owner_marker: <task/revision marker URI + verified value>
 cleanup: PASS|FAIL
 triage: <root/fix or none>
 ```

@@ -17,33 +17,27 @@ Python projects по stage/domain и не переносить legacy runners.
 | `docker/` | pinned images/Compose/entrypoints |
 | `reports/` | task-owned generated results, не source authority |
 
-## Target commands
+## Target runner contract
 
 Один образ `hub-testframework:<sha>` должен быть собран из
 `testframework/docker/**` и иметь immutable provenance. Каждый job использует
-task-owned name, CPU/RAM limits, read-only source и `--rm`:
+единый versioned outer launcher, task-owned name, CPU/RAM/PID/network limits,
+read-only source, outer wall-clock timeout и unconditional `finally` cleanup.
+Прямые copy/paste `docker run` и `compose up` не являются каноническим gate.
 
-```powershell
-docker run --rm --name hub-python-<job>-<task> `
-  --cpus 2.0 --memory 4g --memory-swap 4g `
-  --mount type=bind,src="${PWD}/testframework",dst=/work/testframework,readonly `
-  --mount type=bind,src="${PWD}/testframework/reports",dst=/reports `
-  -e PYTHONDONTWRITEBYTECODE=1 -w /work/testframework hub-testframework:<sha> `
-  pytest -p no:cacheprovider -m "<contract|api|integration|e2e>" `
-  --junitxml=/reports/<task>-<job>.xml
-```
+Каждый запуск заранее создаёт `testframework/reports/<task-run>/`, проверяет
+owner marker с task/revision и монтирует только этот каталог как
+`/reports/<task-run>`. JUnit, Allure, trace и screenshot не могут писать в
+shared reports root.
 
 Load исполняется в том же container contract, но inner command — принятый
 Locust profile из `testframework/load/**`; host Locust запрещён. API,
 integration, E2E и load services принадлежат Compose project
-`hub-<job>-<task>`, имеют per-service CPU/RAM limits и завершаются:
+`hub-<job>-<task-run>`, имеют per-service CPU/RAM limits и удаляются outer
+launcher только по exact task-owned names в `finally`, с post-cleanup proof.
 
-```powershell
-docker compose -p hub-<job>-<task> -f testframework/docker/compose.yaml down -v --remove-orphans
-```
-
-До появления реального scaffold эти команды — target contract, не claim о
-готовом runner. Zero collection запрещено принимать как PASS.
+До появления и независимой проверки реального launcher/scaffold runtime status
+равен `NOT_READY`. Zero collection запрещено принимать как PASS.
 
 ## Evidence record
 

@@ -525,18 +525,20 @@ CRITICAL/HIGH + приложенный лог регрессии.
 - [ ] docs-sync: test_plan обновлён.
 ## L.9 `qa-auto-ver`
 
-- [ ] Автотесты соответствуют пирамиде (unit/integration/e2e на нужном уровне).
-- [ ] Тесты детерминированы (нет flaky), coverage не упал (COVERAGE.md).
+- [ ] Выбор unit/contract/API/integration/E2E/load следует changed risk и observable boundary; форма пирамиды не quota.
+- [ ] Тесты детерминированы; historical coverage/parity не migration gate.
 - [ ] Test-triage применён при фиксах (ROOT зафиксирован).
 - [ ] Genuine units в `backend/tests/**`/`frontend/tests/**`; non-unit QA в root Python `testframework/**`.
-- [ ] Регрессия green (Docker `-tags hubtest`, лог).
+- [ ] Применимые target jobs `/qa-gate` воспроизведены Docker-only на exact revision;
+      отсутствующий launcher/scaffold = `NOT_READY`, не legacy fallback.
 
 ---
 
-# Приложение M. Метрики качества и текущий статус (справка)
+# Приложение M. Исторические метрики качества (не текущие ворота)
 
-Справочные значения из `AGENTS.md`/`REGULATION.md` §11 (на 2026-06-22..24). Агенты сверяются, но
-источник истины — `.planning/STATE.md` и `.planning/COVERAGE.md`.
+Снимок 2026-06-22..24 сохранён только для истории. Он не определяет current
+acceptance и не разрешает legacy suite, parity или coverage migration gate.
+Источник текущего статуса — `.planning/STATE.md`; current gate — `/qa-gate`.
 
 | Метрика | Значение |
 |---|---|
@@ -552,8 +554,9 @@ CRITICAL/HIGH + приложенный лог регрессии.
 | Branch | master |
 | Prod-блокер | PG-03 secret rotation (manual ops, FA-06) |
 
-**Пороги ворот:** coverage gate ≥50% (wave-цель ≥82%); security 6×≥80%; `/qa-gate` green (build/test-race/
-lint-Biome/e2e-smoke 3/3). Product score цель ≥75.
+**Current acceptance:** только применимые founder-greenfield target jobs с
+traceability/risk oracle, exact Docker provenance и cleanup PASS. Пока target
+launcher/scaffold отсутствует, verdict `NOT_READY`. Числа выше не являются воротами.
 
 ---
 
