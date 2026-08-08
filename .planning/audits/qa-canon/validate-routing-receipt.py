@@ -18,29 +18,74 @@ CANDIDATE_HEAD = "0769bc1c13536124808e651903e3c8a2cb4bdd1d"
 SCRIPT = Path(os.path.abspath(os.fspath(Path(__file__))))
 
 
-def reject_symlink_components(path: Path) -> None:
-    """Lstat every existing component without resolving through symlinks."""
+def require_secure_primitives() -> None:
+    """Canonical execution is Linux-only; never degrade to pathname reads."""
+    required = ("O_NOFOLLOW", "O_DIRECTORY")
+    if os.name != "posix" or any(not hasattr(os, name) for name in required):
+        raise RuntimeError("secure dir_fd traversal primitives unavailable")
+    if not hasattr(os, "supports_dir_fd") or os.open not in os.supports_dir_fd:
+        raise RuntimeError("os.open dir_fd support unavailable")
+    if not os.path.isdir("/proc/self/fd"):
+        raise RuntimeError("pinned descriptor cwd unavailable")
+
+
+require_secure_primitives()
+DIR_FLAGS = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | getattr(os, "O_CLOEXEC", 0)
+FILE_FLAGS = os.O_RDONLY | os.O_NOFOLLOW | getattr(os, "O_CLOEXEC", 0)
+
+
+def safe_parts(relative: Path) -> tuple[str, ...]:
+    if relative.is_absolute() or not relative.parts:
+        raise ValueError(f"invalid relative path: {relative}")
+    if any(part in ("", ".", "..") for part in relative.parts):
+        raise ValueError(f"unsafe relative component: {relative}")
+    return relative.parts
+
+
+def open_absolute_directory(path: Path) -> int:
+    """Open an absolute directory by descriptor-relative no-follow traversal."""
     absolute = Path(os.path.abspath(os.fspath(path)))
-    current = Path(absolute.anchor)
-    for part in absolute.parts[1:]:
-        current /= part
-        if stat.S_ISLNK(current.lstat().st_mode):
-            raise ValueError(f"symlink component forbidden: {current}")
+    if not absolute.is_absolute() or absolute.anchor != "/":
+        raise RuntimeError("canonical evaluator requires an absolute POSIX path")
+    descriptor = os.open("/", DIR_FLAGS)
+    try:
+        for part in absolute.parts[1:]:
+            child = os.open(part, DIR_FLAGS, dir_fd=descriptor)
+            if not stat.S_ISDIR(os.fstat(child).st_mode):
+                os.close(child)
+                raise ValueError(f"directory component required: {part}")
+            os.close(descriptor)
+            descriptor = child
+        return descriptor
+    except BaseException:
+        os.close(descriptor)
+        raise
 
 
-def trusted_repo_root() -> Path:
-    cwd = Path(os.path.abspath(os.fspath(Path.cwd())))
-    reject_symlink_components(cwd)
-    run = subprocess.run(
-        ["git", "rev-parse", "--show-toplevel"], cwd=cwd, check=True,
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5,
+def git_at(directory_fd: int, *args: str) -> subprocess.CompletedProcess[bytes]:
+    return subprocess.run(
+        ["git", *args], cwd=f"/proc/self/fd/{directory_fd}", pass_fds=(directory_fd,),
+        check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5,
     )
-    root = Path(os.path.abspath(run.stdout.decode("utf-8").strip()))
-    reject_symlink_components(root)
-    return root
 
 
-ROOT = trusted_repo_root()
+def trusted_repo_root() -> tuple[Path, int]:
+    cwd = Path(os.path.abspath(os.fspath(Path.cwd())))
+    cwd_fd = open_absolute_directory(cwd)
+    try:
+        run = git_at(cwd_fd, "rev-parse", "--show-toplevel")
+        root = Path(os.path.abspath(run.stdout.decode("utf-8").strip()))
+        if root != cwd:
+            raise ValueError("evaluator must start at the repository root")
+        if not stat.S_ISDIR(os.fstat(cwd_fd).st_mode):
+            raise ValueError("trusted repository root is not a directory")
+        return root, cwd_fd
+    except BaseException:
+        os.close(cwd_fd)
+        raise
+
+
+ROOT, ROOT_FD = trusted_repo_root()
 HERE = ROOT / ".planning" / "audits" / "qa-canon"
 if SCRIPT != HERE / "validate-routing-receipt.py":
     raise ValueError("evaluator path is not the exact repository artifact path")
@@ -81,17 +126,21 @@ def sha(data: bytes) -> str:
 def bounded_utf8(path: Path) -> tuple[bytes, str]:
     lexical = Path(os.path.abspath(os.fspath(path)))
     try:
-        lexical.relative_to(ROOT)
+        relative = lexical.relative_to(ROOT)
     except ValueError as exc:
         raise ValueError(f"path escape: {path}") from exc
-    reject_symlink_components(lexical)
-    root = ROOT.resolve(strict=True)
-    resolved = lexical.resolve(strict=True)
-    if resolved != root and root not in resolved.parents:
-        raise ValueError(f"path escape: {path}")
-    flags = os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
-    descriptor = os.open(lexical, flags)
+    parts = safe_parts(relative)
+    parent = os.dup(ROOT_FD)
+    descriptor: int | None = None
     try:
+        for part in parts[:-1]:
+            child = os.open(part, DIR_FLAGS, dir_fd=parent)
+            if not stat.S_ISDIR(os.fstat(child).st_mode):
+                os.close(child)
+                raise ValueError(f"directory component required: {part}")
+            os.close(parent)
+            parent = child
+        descriptor = os.open(parts[-1], FILE_FLAGS, dir_fd=parent)
         info = os.fstat(descriptor)
         if not stat.S_ISREG(info.st_mode):
             raise ValueError(f"regular file required: {path}")
@@ -109,7 +158,9 @@ def bounded_utf8(path: Path) -> tuple[bytes, str]:
         if remaining or os.read(descriptor, 1) or len(data) != info.st_size:
             raise ValueError(f"bounded read mismatch: {path}")
     finally:
-        os.close(descriptor)
+        if descriptor is not None:
+            os.close(descriptor)
+        os.close(parent)
     return data, data.decode("utf-8")
 
 
@@ -117,17 +168,11 @@ def git_blob(rel: str) -> tuple[bytes, str]:
     if rel not in SKILLS:
         raise ValueError(f"non-exact BASE skill path: {rel}")
     ref = f"{BASE}:{rel}"
-    size_run = subprocess.run(
-        ["git", "cat-file", "-s", ref], cwd=ROOT, check=True,
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5,
-    )
+    size_run = git_at(ROOT_FD, "cat-file", "-s", ref)
     size = int(size_run.stdout.decode("ascii").strip())
     if size > MAX_BYTES:
         raise ValueError(f"BASE blob size budget exceeded: {rel}")
-    blob_run = subprocess.run(
-        ["git", "show", ref], cwd=ROOT, check=True,
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5,
-    )
+    blob_run = git_at(ROOT_FD, "show", ref)
     data = blob_run.stdout
     if len(data) != size:
         raise ValueError(f"BASE blob size mismatch: {rel}")
