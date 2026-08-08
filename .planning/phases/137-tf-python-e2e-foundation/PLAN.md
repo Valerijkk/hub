@@ -1,50 +1,13 @@
-# PLAN: Phase 137 — Python E2E foundation и smoke parity
-
-**Статус:** PLANNED · **Оценка:** 2–3 дня
-
-Канон: [`06-TEST-ARCHITECTURE-REBASE.md`](../../active/august-2026/06-TEST-ARCHITECTURE-REBASE.md).
-
-## Цель (goal)
-
-Создать shared Python Playwright fixtures/POM/steps и доказать parity
-трёх-spec smoke contract на том же immutable application build, что TS legacy.
-
-## Depends on
-
-- Phase 129 PASS (Python scaffold и authenticated API slice).
-- Phase 136 не блокирует shared UI foundation, но его core fixtures переиспользуются
-  при наличии без дублирования.
-
-## Success criteria
-
-- [ ] Auth/data/browser fixtures изолируют пользователей и чистят mutable data.
-- [ ] POM/steps не содержат bare sleeps; traces/screenshots redacted.
-- [ ] Python smoke соответствует legacy login + a11y + critical-gate: 3 specs,
-  те же обязательные assertions, `unexpected skip = 0`.
-- [ ] TS smoke остаётся green и исполняемым.
-
-## Задачи (атомарные)
-
-| Task ID | Outcome | Owner | Verifier | Files | Depends | Estimate |
-|---|---|---|---|---|---|---:|
-| TASK-194 | Shared fixtures, auth/data factories, POM, steps, a11y helper и artifact policy | qa-auto1 | qa-auto-ver | `testframework/e2e/{conftest.py,pages/**,steps/**}`, `testframework/core/fixtures/**`, `testframework/contract/fixtures/**` | Phase 129 | 1–1.5д |
-| TASK-217 | Login/a11y/critical-gate Python smoke с same-build TS parity и sentinel evidence | qa-auto2 | qa-auto-ver | `testframework/e2e/{auth,platform}/**`, `testframework/reports/**`, `.planning/audits/test-rebase/inventory.json`, `.planning/evidence/test-rebase/137/**` | TASK-194 | 1д |
-
-## Волны
-
-- Wave 1: TASK-194.
-- Wave 2: TASK-217 и TS/Python parity comparison.
-
-## Риски
-
-| Риск | Mitigation |
-|---|---|
-| SessionStorage/dev auth shape drift | Contract fixture из live response; никаких copied secrets |
-| A11y library differs от TS | Одинаковый impact scope и accepted violation mapping |
-| Green через skip | Fail-closed preflight + exact collected/executed/skip gate |
-
-## Verification
-
-- `qa-auto-ver`: два одинаковых smoke runs, TS/Python assertion map,
-  3-spec collection, unexpected skip=0, deliberate failure red.
-- `security-auditor`: trace/screenshot/log redaction.
+---
+phase: 137-tf-python-e2e-foundation
+runtime_status: NOT_READY
+activation_precondition: G-ACTIVATE-137
+---
+# Phase 137 — on-demand browser foundation
+Every task is **NOT_READY** until `G-ACTIVATE-137` names one feature, risk, files and rollback boundary.
+<read_first>G130-H; sections 3,4,6,9–12; TASK-194, TASK-217; G-ACTIVATE-137.</read_first>
+<tasks>
+<task id="137-A"><requirements>TASK-194; sections 3,4,6.</requirements><read_first>G-ACTIVATE-137 and browser lifecycle boundary.</read_first><consumes>G130-H;G-ACTIVATE-137.</consumes><produces>Browser lifecycle and sanitized artifacts.</produces><files>testframework/src/hub_testkit/browser/**;testframework/selftests/browser/**;testframework/docker/Dockerfile.browser;testframework/reports/&lt;task-run&gt;/</files><failing_sentinel>Fail browser leak, unredacted artifact or mutable image.</failing_sentinel><verify profile="browser-lifecycle">NOT_READY until G-ACTIVATE-137.</verify><done>Activated browser lifecycle is independently verified.</done><atomic_allowlist>Listed paths only.</atomic_allowlist></task>
+<task id="137-B"><requirements>TASK-217; sections 3,4,9.</requirements><read_first>137-A receipt and activated smoke journey.</read_first><consumes>137-A;G-ACTIVATE-137.</consumes><produces>Critical smoke journey cases.</produces><files>testframework/tests/e2e/smoke/**;testframework/cases/e2e/**;testframework/reports/&lt;task-run&gt;/</files><failing_sentinel>Fail login/journey oracle, artifact privacy or cleanup.</failing_sentinel><verify profile="e2e-smoke">NOT_READY until 137-A and G-ACTIVATE-137.</verify><done>One activated smoke journey is verified.</done><atomic_allowlist>Listed paths only.</atomic_allowlist></task>
+<task id="137-C"><requirements>TASK-194,TASK-217; sections 10–15.</requirements><read_first>137-A/B receipts and activated boundary.</read_first><consumes>137-A,137-B;G-ACTIVATE-137.</consumes><produces>Single E2E docs closure.</produces><files>testframework/docs/e2e.md;testframework/cases/e2e/**;testframework/reports/&lt;task-run&gt;/</files><failing_sentinel>Fail closure without feature/risk/file/rollback.</failing_sentinel><verify profile="e2e-docs">NOT_READY until 137-B and G-ACTIVATE-137.</verify><done>No journey range is authorized.</done><atomic_allowlist>Listed paths only.</atomic_allowlist></task>
+</tasks>

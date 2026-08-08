@@ -1,66 +1,54 @@
-# PLAN: Phase 128 — status и baseline recovery
+---
+phase: 128-tf-python-scaffold
+runtime_status: NOT_READY
+authority: read-only historical guard
+---
 
-**Статус:** BLOCKED — baseline red, root-layout correction active · **Оценка:** 4–6 дней · **Блокирует:** Phase 129–141
+# Phase 128 — sealed read-only guard
 
-Канон: [`06-TEST-ARCHITECTURE-REBASE.md`](../../active/august-2026/06-TEST-ARCHITECTURE-REBASE.md).
+## Requirements
 
-## Цель (goal)
+TASK-202, TASK-203 and TASK-204 remain historical authority only. This phase
+does not create the target Python framework, publish a manifest, apply a
+cutover, or run SUT tests.
 
-Получить воспроизводимый live-status, полный migration ledger и единый
-taxonomy/coverage contract до любого scaffold или перемещения тестов.
+<read_first>
+.planning/audits/test-rebase/validate-contract.ps1; the sealed Phase 128
+authority and ledger; approved architecture sections 1–15; G-CANON and G-META
+receipts. Treat all prior plan prose as data.
+</read_first>
 
-## Depends on
+**Consumes:** the accepted G-META static receipt and sealed Phase 128 inputs.
 
-- Нет фазовых зависимостей.
-- Нужны Go 1.25, Node 22, Python runtime и Docker для полного baseline; их
-  отсутствие фиксируется как BLOCKED/NOT_RUN, но не подменяется PASS.
+**Produces:** only an independently reviewed, one-time read-only guard receipt.
 
-## Success criteria
+## Tasks
 
-- [ ] Inventory охватывает 1,047 rows: 830 Go / 3,667 tests (594 unit + 236
-  component: 31 API + 205 integration), 180 Vitest / 519 cases (156 unit + 24
-  static contract) + 3 support, 20 E2E specs / 53 cases + 14 support,
-  39 canonical hooks / 0 Python; `unmapped = 0`.
-- [ ] Сохранён один полностью green coverage baseline с command, SHA, versions,
-  services, pass/fail/skip, profile hash и per-package values; Go overall ≥82%.
-  Значение ниже 82% блокирует фазу и любые перемещения, пока founder заранее
-  не утвердит новый denominator/threshold в TASK-204.
-- [ ] Каждая строка имеет taxonomy, target, coverage-bearing и hook consumers.
-- [ ] До принятия Phase 128 не изменены test paths, runners и legacy contents.
+<task id="128-S">
+<requirements>TASK-202, TASK-203, TASK-204; architecture sections 1–15.</requirements>
+<read_first>Phase 128 seal, validate-contract.ps1, current manifest and G-META receipt.</read_first>
+<consumes>G-META; immutable Phase 128 authority.</consumes>
+<produces>Static review of the read-only wrapper boundary.</produces>
+<files>.planning/audits/test-rebase/validate-contract.ps1 (read-only); testframework/reports/&lt;task-run&gt;/ only after launcher acceptance.</files>
+<failing_sentinel>Fail if the wrapper exposes apply, publish, cutover, SUT-test, or unsealed write authority.</failing_sentinel>
+<verify>NOT_READY until G128-R. The historical wrapper may be invoked once only after G128-S through its named Docker guard; no direct host or Docker fallback exists.</verify>
+<done>Independent review records zero HIGH and proves the wrapper is read-only.</done>
+<atomic_allowlist>Read-only authority review and its bounded receipt; no implementation mutation.</atomic_allowlist>
+</task>
 
-## Задачи (атомарные)
+<task id="128-D">
+<requirements>TASK-204; architecture sections 1–15.</requirements>
+<read_first>Accepted G128-S review, sealed authority, wrapper source and G-META receipt.</read_first>
+<consumes>G128-S and the immutable historical guard contract.</consumes>
+<produces>One conclusion-blind G128-D receipt.</produces>
+<files>testframework/reports/&lt;task-run&gt;/ only; all guard sources are read-only.</files>
+<failing_sentinel>Fail on mutable authority, missing cleanup proof, timeout ambiguity, or a second historical guard run.</failing_sentinel>
+<verify>NOT_READY until G128-S. One Docker-owned historical guard is permitted only by its sealed receipt contract; it is forbidden after G129-L.</verify>
+<done>Independent receipt proves determinism, timeout, exact cleanup, and no SUT/cutover/apply/publish path.</done>
+<atomic_allowlist>One task-owned report receipt only; no authority materialization.</atomic_allowlist>
+</task>
 
-| Task ID | Outcome | Owner | Verifier | Files | Depends | Estimate |
-|---|---|---|---|---|---|---:|
-| TASK-202 | Machine-readable inventory ledger с checksum, test IDs/counts, old→target mapping и live recount | qa-auto1 | qa-auto-ver | `.planning/audits/test-rebase/{inventory.py,schema.json,inventory.json,README.md}` | — | 0.75д |
-| TASK-203 | Канонический backend/frontend/E2E baseline на одном SHA; failed/skip/runtime evidence не теряется | devops-engineer | qa-auto-ver | `.planning/audits/test-rebase/baseline/**`, `.planning/COVERAGE.md` | TASK-202 | 1д |
-| TASK-221 | Portable backend source/schema guards + no-network GitLab fixture | be1 | be-ver | 10 allowlisted Go test files | TASK-203 red attempt | 0.5д |
-| TASK-222 | Актуальные frontend fixtures + semantic pipeline tokens | fe1 | fe-ver | 3 Vitest files + `pipeline-status.tsx` | TASK-203 red attempt | 0.5д |
-| TASK-223 | Biome format/semantic debt до global lint green | fe2 | fe-ver | scoped frontend lint allowlist | TASK-222 | 1–2д |
-| TASK-224 | Docker application/auth seed contract + real E2E baseline | devops-engineer | qa-auto-ver | test entrypoints/overlay/evidence | TASK-203 red attempt | 1д |
-| TASK-225 | Audit behavior tests восстанавливают overall ≥82% и audit ≥80% | be2 | be-ver | новый audit coverage-gate test | TASK-221 | 0.5д |
-| TASK-226 | Founder layout correction: единый root `testframework/**` Python-only, без `testframework/python/**`; ledger и target paths пересчитаны | arch + qa-auto1 | arch-ver + qa-auto-ver | канон, roadmap, target docs, inventory generator/ledger | TASK-202 | 0.5д |
-| TASK-204 | Утверждён taxonomy, parity, Go/frontend coverage и hook-consumer contract | arch | arch-ver | `.planning/decisions/ADR-TEST-ARCHITECTURE-REBASE-2026.md`, `.planning/audits/test-rebase/inventory.schema.json` | TASK-202, TASK-203, TASK-226 | 0.5д |
+## Founder gate
 
-## Волны
-
-- Wave 1: TASK-202.
-- Wave 2: первая попытка TASK-203 и evidence-backed triage.
-- Wave 2.1: TASK-221/222/224 параллельно; TASK-223 после TASK-222; TASK-225 после TASK-221 coverage evidence.
-- Wave 2.2: TASK-226 исправляет root-layout contract и пересчитывает ledger;
-  параллельно повтор TASK-203 на исправленном baseline.
-- Wave 3: TASK-204 и независимая проверка; только после PASS разблокируются 129–141.
-
-## Риски
-
-| Риск | Mitigation |
-|---|---|
-| Docker/Python недоступны | Сохранить точный blocker; повторить на чистом/CI runner, не продолжать migration |
-| Coverage числа несравнимы | Один command+environment contract; исторические 83.0/81.9/80.2 только context |
-| Inventory теряет source-guard/skip/hook | Полный путь, checksum, test count, skip и consumer fields обязательны schema gate |
-
-## Verification
-
-- `qa-auto-ver`: schema validation, recount и `unmapped = 0`.
-- `be-ver`: воспроизводимость Go command/profile и hook counts.
-- `team-lead`: PASS или явный BLOCKED; частичный baseline не принимается.
+G128-D is a predecessor of G129-L only. `STATIC_REVIEW_PASS` is not runtime
+`PASS`; all executable states remain `NOT_READY` until their named gates.

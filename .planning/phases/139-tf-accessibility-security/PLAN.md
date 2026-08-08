@@ -1,0 +1,13 @@
+---
+phase: 139-tf-accessibility-security
+runtime_status: NOT_READY
+activation_precondition: G-ACTIVATE-139
+---
+# Phase 139 — on-demand accessibility and privacy
+Every task is **NOT_READY** until `G-ACTIVATE-139` names one feature, risk, files and rollback boundary.
+<read_first>G130-H; sections 6,9–12; TASK-231, TASK-232; G-ACTIVATE-139.</read_first>
+<tasks>
+<task id="139-A"><requirements>TASK-231; sections 3,6,9.</requirements><read_first>G-ACTIVATE-139 and activated page journey.</read_first><consumes>138-E;G-ACTIVATE-139.</consumes><produces>Accessibility cases.</produces><files>testframework/tests/e2e/accessibility/**;testframework/cases/accessibility/**;testframework/reports/&lt;task-run&gt;/</files><failing_sentinel>Fail critical a11y regression or artifact privacy.</failing_sentinel><verify profile="accessibility">NOT_READY until 138-E and G-ACTIVATE-139.</verify><done>Activated a11y boundary verified.</done><atomic_allowlist>Listed paths only.</atomic_allowlist></task>
+<task id="139-B"><requirements>TASK-232; sections 6,9,12.</requirements><read_first>G-ACTIVATE-139 and privacy boundary.</read_first><consumes>138-E;G-ACTIVATE-139.</consumes><produces>Cross-cutting privacy/security cases.</produces><files>testframework/tests/contract/privacy/**;testframework/cases/privacy/**;testframework/reports/&lt;task-run&gt;/</files><failing_sentinel>Fail PII/secret exposure or authorization isolation.</failing_sentinel><verify profile="privacy-security">NOT_READY until 138-E and G-ACTIVATE-139.</verify><done>Activated privacy boundary verified.</done><atomic_allowlist>Listed paths only.</atomic_allowlist></task>
+<task id="139-C"><requirements>TASK-231,TASK-232; sections 10–15.</requirements><read_first>139-A/B receipts and activated boundary.</read_first><consumes>139-A,139-B;G-ACTIVATE-139.</consumes><produces>Single security/a11y docs closure.</produces><files>testframework/docs/accessibility-security.md;testframework/cases/privacy/**;testframework/reports/&lt;task-run&gt;/</files><failing_sentinel>Fail closure without feature/risk/file/rollback.</failing_sentinel><verify profile="privacy-security">NOT_READY until 139-A/B and G-ACTIVATE-139.</verify><done>No automatic final handoff.</done><atomic_allowlist>Listed paths only.</atomic_allowlist></task>
+</tasks>
