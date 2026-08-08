@@ -28,13 +28,15 @@
 - [15 — Test automation](15-test-automation.md)
 - [18 — Security](18-security.md)
 - [21 — AI-agent engineering](21-ai-agent-engineering.md)
+- [22 — AI workflow decisioning](22-ai-workflow-decisioning.md)
+- [23 — AI workflow evals](23-ai-workflow-evals.md)
 
 ### Controls
 
-- [Hard и hybrid controls C01–C44](controls/hard-controls.md)
+- [Hard и hybrid controls C01–C53](controls/hard-controls.md)
 - [Review guidelines](controls/review-guidelines.md)
 - [Warning signals](controls/warning-signals.md)
-- [Negative sentinels NEG-01–NEG-20](controls/negative-sentinels.md)
+- [Negative sentinels NEG-01–NEG-27](controls/negative-sentinels.md)
 - [Exceptions and rationale](controls/exceptions-and-rationale.md)
 
 ### Examples
@@ -54,6 +56,7 @@
 
 - [Frozen source registry](sources/registry.md)
 - [Evidence and integrity status](sources/evidence-status.md)
+- [Prompt/agent workflow snapshot — 2026-08-08](sources/prompt-agent-workflows-2026-08-08.md)
 
 ## Не превращать в gate
 

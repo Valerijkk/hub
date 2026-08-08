@@ -56,6 +56,24 @@
 | C43 | H | Critical consumers tolerate replay per documented semantics | replay/idempotency tests | [S50, S52](../sources/registry.md) |
 | C44 | H | Production migration has rollback or forward-recovery | release review + rehearsed evidence | [S55, S65](../sources/registry.md) |
 
+## Workflow candidates C45–C53
+
+Every row below is `candidate / NOT_IMPLEMENTED`. It is a proposed machine or
+hybrid control, not evidence that a Hub launcher, hook, sandbox or CI job
+enforces it. Promotion requires the admission and rollout process below.
+
+| ID | Mode | Status | Control | Minimum enforcement/evidence | Sources |
+|---|---|---|---|---|---|
+| C45 | M | `candidate / NOT_IMPLEMENTED` | Canonicalize every filesystem target and reject symlink/junction escape from task-owned roots | launcher resolves the final path, including every existing parent; adversarial tests cover links, junctions and TOCTOU-sensitive replacement | [PAW candidate admission](../sources/prompt-agent-workflows-2026-08-08.md#candidate-control-admission) |
+| C46 | M | `candidate / NOT_IMPLEMENTED` | Read/Plan mode machine-denies mutation and installation | capability policy blocks filesystem writes, package/plugin install, destructive Git and external writes; negative tests invoke each denied capability | [PAW candidate admission](../sources/prompt-agent-workflows-2026-08-08.md#candidate-control-admission) |
+| C47 | M | `candidate / NOT_IMPLEMENTED` | Network-read and network-write are separate, destination-scoped capabilities | allow-list names scheme/host/service and action; redirect targets are revalidated; egress log proves the effective destination | [PAW-05, PAW-06](../sources/prompt-agent-workflows-2026-08-08.md#official-platform-and-protocol-claims) |
+| C48 | M | `candidate / NOT_IMPLEMENTED` | Executable plugins, skills and MCP servers have reviewed provenance and least-privilege capability inventory | immutable revision/hash, source, license, exposed tools, destinations, secret scopes and side effects are recorded before enablement | [PAW-02–PAW-07](../sources/prompt-agent-workflows-2026-08-08.md#official-platform-and-protocol-claims) |
+| C49 | M | `candidate / NOT_IMPLEMENTED` | Agent runs have finite delegation, fan-out, retry, remediation, wall-clock and cost budgets | controller rejects/terminates work outside configured bounds and records the terminating budget | [PAW-03](../sources/prompt-agent-workflows-2026-08-08.md#official-platform-and-protocol-claims), [PAW-14–PAW-15](../sources/prompt-agent-workflows-2026-08-08.md#primary-research-claims) |
+| C50 | M | `candidate / NOT_IMPLEMENTED` | Handoff distinguishes requested runtime from observed actual runtime | provenance record stores requested model/effort, actual model/effort, provider/launcher/version and fallback reason; unavailable telemetry is `UNKNOWN`, never copied from the request | [PAW-31](../sources/prompt-agent-workflows-2026-08-08.md#quarantined-or-conflicting-report-claims) |
+| C51 | H | `candidate / NOT_IMPLEMENTED` | Completion requires the configured evidence record | workflow schema rejects `complete/verified` without the required test/static/browser/invariant evidence and explicit unverified scope | [PAW-09–PAW-10, PAW-16–PAW-18](../sources/prompt-agent-workflows-2026-08-08.md#primary-research-claims) |
+| C52 | H | `candidate / NOT_IMPLEMENTED` | Risky mutation has a recoverable checkpoint or explicit forward-recovery path | controller captures recoverable state before the action; review confirms scope, retention and recovery drill | [PAW candidate admission](../sources/prompt-agent-workflows-2026-08-08.md#candidate-control-admission) |
+| C53 | H | `candidate / NOT_IMPLEMENTED` | One active writer owns each overlapping path/resource boundary | scheduler rejects overlapping write leases or requires an explicit merge owner; read-only parallelism remains allowed | [PAW-03](../sources/prompt-agent-workflows-2026-08-08.md#official-platform-and-protocol-claims) |
+
 ## Admission and rollout
 
 1. Mark a control `candidate`, `shadow`, `blocking` or `retired` in its owning implementation policy.

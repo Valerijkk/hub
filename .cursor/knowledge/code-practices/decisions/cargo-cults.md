@@ -23,6 +23,13 @@
 | All Singleton evil | reject hidden mutable global reachability | `REVIEW/HYBRID` |
 | Fixed Cognitive Complexity number | calibrate locally before any threshold | `WARNING` |
 | Exact agent context-file length | optimize scope/clarity; measure tool-specific behavior | `REVIEW` |
+| Detailed plan for every task | plan when uncertainty, dependencies or recovery risk justify it | `REVIEW` |
+| Fresh chat after every phase | reset context only when isolation benefit exceeds lost state | `REVIEW/EXPERIMENT` |
+| Multi-agent execution by default | delegate independent work with bounded ownership and measured coordination cost | `REVIEW/EXPERIMENT` |
+| Identical second reviewer as proof | prefer executable oracle; diversify verifier only where residual risk justifies it | `REVIEW` |
+| High/xhigh reasoning everywhere | route effort by task risk and validate cost/quality locally | `REVIEW/EXPERIMENT` |
+| Self-critique as completion evidence | require new external evidence: test, analyzer, invariant or qualified review | `NEGATIVE_SENTINEL` |
+| Install a whole named framework to gain one pattern | adopt the smallest proven primitive behind a versioned interface | `REVIEW/EXPERIMENT` |
 | “CAP means pick two” | state exact model/guarantees during partition | `NEGATIVE_SENTINEL` |
 | “Exactly once” without scope | define operation, boundaries, failure/restart and effects | `NEGATIVE_SENTINEL` |
 
