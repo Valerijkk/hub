@@ -205,7 +205,7 @@ readonly: false
 ## 10. GSD-паттерны (Hub-усиленные)
 
 [Маршрутизация GSD](../GSD-INTEGRATION.md): `gsd-docs-update`, `gsd-milestone-summary`,
-`/handoff`, `/portable-kit`; docs matrix — `../rules/55-docs-sync.mdc`.
+GSD-RU `handoff`, `/portable-kit`; docs matrix — `../rules/55-docs-sync.mdc`.
 
 - **Outcome:** связанный docs-sync пакет, в котором читатель может выполнить реальный API/UI/deploy flow.
 - Каждый факт, path, version, metric и status сверяется с кодом/артефактом; непроверенное маркируется.

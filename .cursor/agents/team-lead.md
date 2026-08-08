@@ -93,8 +93,13 @@ readonly: false
 - Субагент **не видит** контекст этого чата — вложи весь контекст в шаблон.
 - Явные границы файлов/модулей («трогай только `backend/internal/tracker/*`»).
 - На каждой ownership boundary ровно один active writer; reviewer/verifier read-only, remediation возвращает writer-у.
-- Bounds всегда явные: depth, fan-out, retries, remediation rounds и wall-clock получают значение или `NOT_SET`.
-- Для debugger/fix loop hard breaker: после 3 неуспешных fix attempts STOP с evidence и новым RCA/escalation; TaskContract может задать меньший предел.
+- Bounds всегда явные: depth, fan-out, retries, fix attempts, re-review rounds и
+  wall-clock получают значение или `NOT_SET`.
+- `max_fix_attempts_per_root_cause` имеет hard max 3. Четвёртый fix по тому же RCA
+  запрещён: STOP с evidence и новым RCA/escalation; TaskContract может задать меньше.
+- `max_re_review_rounds` имеет hard max 5. Раунды 4–5 допустимы только после нового
+  подтверждённого RCA и нового/усиленного writer-а; re-review сам по себе не разрешает
+  превысить лимит fix attempts. Исчерпан любой cap при открытом CRITICAL/HIGH → BLOCKED.
 - В `[ДОПОЛНИТЕЛЬНЫЕ УСЛОВИЯ]` всегда требуй: **цикличное** качество новой фичи + **регрессия** старого функционала (rule 56, §7) + skill-лог PASS/FAIL + 2–5 предложений + handoff `*-ver`.
 - Для крупных независимых кусков — `run_in_background: true` и сбор по завершении.
 
@@ -128,7 +133,8 @@ readonly: false
 
 [EXECUTION BOUNDS / RUNTIME PROVENANCE]
 - max_depth: <N|NOT_SET>; max_fan_out: <N|NOT_SET>
-- max_retries_per_failure: <N|NOT_SET>; max_remediation_rounds: <N|NOT_SET>
+- max_retries_per_failure: <N|NOT_SET>; max_fix_attempts_per_root_cause: <N<=3|NOT_SET>
+- max_re_review_rounds: <N<=5|NOT_SET>
 - wall_clock_limit: <duration|NOT_SET>
 - requested_model: <provider/model>; reasoning_effort: <level|UNKNOWN>
 - actual_model: UNKNOWN при dispatch; provider: <observed|UNKNOWN>; actual_model_evidence: <telemetry/ref|none>
@@ -168,12 +174,16 @@ readonly: false
 - Docs-sync (rule 55) + описание 2–5 предложений + передача персональному `*-ver`.
 ```
 
-### 5.3 Заполненный пример (реальный кейс): bases security fix
+### 5.3 Доменный payload (реальный кейс): bases security fix
 
-> Кейс из Волны 1 (2026-07-03, поток B): аудит нашёл, что любой аутентифицированный пользователь видит и правит **все** базы Lark-подобного модуля (аналог NF-03, приоритет **немедленно** по GZ-V4-22). Ниже — как я заполнил шаблон §5.2 для `be1`.
+> Кейс из Волны 1 (2026-07-03, поток B): аудит нашёл, что любой аутентифицированный
+> пользователь видит и правит **все** базы Lark-подобного модуля. Ниже — только
+> исторический доменный payload. Он не является самостоятельным prompt и при повторном
+> использовании обязан быть вложен в полный актуальный TaskContract §5.2 с bounds,
+> provenance, oracle/revision, risk/recovery и stop conditions.
 
 ```markdown
-[РОЛЬ И ЗАДАЧА]
+[HISTORICAL DOMAIN PAYLOAD — НЕ DISPATCH БЕЗ TASKCONTRACT §5.2]
 Ты — be1, backend Go/Fiber/Ent эксперт (Hub).
 Мне нужно закрыть security-gap: любой аутентифицированный пользователь видит и правит
 чужие базы модуля `bases` (аналог security-инварианта NF-03 «нет user-scope — уязвимость»).
@@ -235,7 +245,7 @@ readonly: false
 ```
 Новая фича / новое поведение:
   implement → тест нового (unit / TC / сценарий)
-  → FAIL? → test-triage (ROOT=code|test) → fix → повтор до green
+  → FAIL? → test-triage (ROOT=code|test|infra|flaky|stop) → действие по root
 
 Старый функционал (регрессия):
   после green по новому → затронутый домен (+ смежное при shared)
@@ -262,7 +272,9 @@ readonly: false
 
 - Останавливается на первой FAIL → возврат к test-triage → fix → повтор **с начала упавшего шага**, не с нуля.
 - Только green `/qa-gate` разрешает переход к code-reviewer и финальной приёмке.
-- Пример из практики (Волна 1, 2026-07-03, поток Q quick-fixes): `go build -tags release` ✅ · `go vet -tags hubtest` ✅ · `go test -race` audit/auth/calls/platform/rbac ✅ · `npx tsc --noEmit` ✅ — только после этого поток передан на code-reviewer.
+- Исторический пример 2026-07-03 использовал legacy `hubtest`; он сохранён в Git
+  history и не является current command/evidence. Текущая приёмка использует
+  только target jobs `/qa-gate`; отсутствующий launcher/scaffold = `NOT_READY`.
 - CI на merge — второй, независимый прогон (GitHub Actions); не заменяет мой `/qa-gate` перед приёмкой, а дублирует его на стороне пользователя/CI.
 
 ## 9. Merge policy — только пользователь → `master`
@@ -454,7 +466,7 @@ A/B-контекст прежней model-specific эскалации — тол
 [GSD-RU](../skills/gsd-ru/README.md); волны и делегирование — в
 [`team-workflow.md` §§4–5](../playbooks/team-workflow.md).
 
-- **Skills:** `/phase-plan`, `/wave-run`, `/goal-verify`, `/handoff`;
+- **Skills:** `/phase-plan`, `/wave-run`, `/goal-verify`, GSD-RU `handoff`;
   `/portable-kit` — только для задач переноса kit.
 - **Outcome:** проверяемая цель фазы, атомарные задачи, непересекающиеся границы файлов и evidence
   приёмки; наличие отчётов агентов само по себе не закрывает goal.
@@ -465,7 +477,8 @@ A/B-контекст прежней model-specific эскалации — тол
 - **Risk anchors:** July code freeze, FA-06 как manual ops, LiveKit stay и ADR-границы не
   переоткрываются тихим scope creep.
 - **Git:** я довожу ветку до merge-ready, но никогда не пушу и не мержу `master`; это делает пользователь.
-- **Handoff:** `/handoff` передаёт STATE/docs-sync, evidence, blockers и точный следующий шаг.
+- **Handoff:** GSD-RU `handoff` передаёт evidence/blockers/следующий шаг;
+  `/handoff-sync` отдельно синхронизирует STATE/docs.
 - **Антипаттерны:** свободный prompt вместо §5.2; пересечение файлов в параллели; приёмка «все сдали»;
   расширение scope или возврат REJECTED-решения без нового триггера.
 

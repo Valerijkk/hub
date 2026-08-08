@@ -22,8 +22,9 @@
 Этот файл — каноническая Hub-матрица маршрутизации. Полный каталог installed
 skills показывает `gsd-help`, а неясный intent принимает `gsd-next` или `gsd-progress`.
 Маршрутизируй только существующий installed skill или Hub-путь из таблицы выше.
-Coverage — Hub `/coverage-audit`; handoff — `/handoff` +
-`/handoff-sync`; framework selection входит в `gsd-ai-integration-phase`.
+Coverage — Hub `/coverage-audit`; role/wave handoff — GSD-RU skill
+`.cursor/skills/gsd-ru/handoff/SKILL.md`; state/docs sync — `/handoff-sync`;
+framework selection входит в `gsd-ai-integration-phase`.
 
 Live-инвентарь 2026-08-08: **71 skills + 34 typed agents**. Файл
 `ai-expansion/03-GSD-PORT-INVENTORY.md` фиксирует исторический срез **79 skills**
@@ -40,7 +41,7 @@ Live-инвентарь 2026-08-08: **71 skills + 34 typed agents**. Файл
 | План фазы | `/phase-plan` |
 | Волна агентов | `/wave-run` |
 | Goal-backward | `/goal-verify` |
-| STATE / handoff | `/handoff` |
+| Role/wave handoff | GSD-RU `handoff` (`.cursor/skills/gsd-ru/handoff/SKILL.md`) |
 | Перенос AI kit | `/portable-kit` |
 | Strangler checklist | `/microservices-strangler` |
 
@@ -108,7 +109,7 @@ workflow, который способен дать требуемое evidence.
 | `gsd-plan-phase`, `gsd-graphify` | `/phase-plan` |
 | `gsd-execute-phase` | `/wave-run` |
 | `gsd-verify-work` | `/goal-verify` |
-| `gsd-progress`, `gsd-resume-work` (+ pause как паттерн) | `/handoff` |
+| `gsd-progress`, `gsd-resume-work` (+ pause как паттерн) | GSD-RU `handoff` |
 
 Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `microservices-strangler`.
 
@@ -157,7 +158,7 @@ Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `micro
 | Следующий шаг | `gsd-next` | — |
 | Волны/исполнение | `gsd-execute-phase`, `gsd-workstreams` | — |
 | Мелкая задача | `gsd-quick`, `gsd-fast` | — |
-| Синхронизация STATE | `/handoff` | `/handoff-sync` |
+| Role/wave handoff; синхронизация STATE | GSD-RU `handoff` | `/handoff-sync` |
 | Полный quality gate | — | `/qa-gate` |
 | Матрица покрытия | — | `/coverage-audit` (Hub) |
 | Нормализовать задачу и authority boundary | lifecycle выбирается после risk | `/task-packet` |

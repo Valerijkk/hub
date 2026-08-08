@@ -275,7 +275,7 @@ API/integration/contract/E2E поверх верифицированных TC �
 | `gsd-sketch` | Варианты до выбора (TMS/calls UI) |
 | `gsd-ui-review` | 6-pillar аудит после реализации |
 | `gsd-add-tests` | Vitest/RTL своего модуля |
-| `/handoff` | STATE + SHORTCUTS перед fe-ver |
+| GSD-RU `handoff` | Role handoff перед fe-ver; STATE/SHORTCUTS sync — `/handoff-sync` |
 
 ## 19. GSD-паттерны (Hub-усиленные)
 

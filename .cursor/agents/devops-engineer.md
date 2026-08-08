@@ -333,7 +333,7 @@ kubectl apply -f deployments/k3s/monitoring/networkpolicy-metrics.yaml
 
 ## 11. GSD-паттерны (Hub-усиленные)
 
-[Маршрутизация GSD](../GSD-INTEGRATION.md): `gsd-ship`, `/handoff`;
+[Маршрутизация GSD](../GSD-INTEGRATION.md): `gsd-ship`, GSD-RU `handoff`;
 service split planning — `/microservices-strangler`; практики —
 [`observability.md`](../playbooks/observability.md) и [`git-workflow.md`](../playbooks/git-workflow.md).
 

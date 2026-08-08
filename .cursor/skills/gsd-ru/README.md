@@ -1,7 +1,7 @@
 # GSD-RU — русский GSD-lite для Hub
 
 > Hub-адаптация GSD с воротами rule 56, prompt-contract и team-lead §5.2.
-> Не заменяет `~/.claude/skills/gsd-*`: закрывает ежедневный цикл
+> Не заменяет `~/.agents/skills/gsd-*`: закрывает ежедневный цикл
 > plan→wave→verify→handoff и portable kit.
 > Язык skills: **RU**. Основной `SKILL.md` остаётся сфокусированным, детали
 > загружаются по ссылкам (progressive disclosure); line-count не является KPI.

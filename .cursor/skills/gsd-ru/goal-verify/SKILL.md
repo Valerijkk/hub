@@ -105,21 +105,24 @@ PASS | FAIL | NOT_RUN
 - [ ] Revision/oracle/runtime provenance указаны; actual model не угадан
 ```
 
-## Worked example (Hub): bases security
+## Worked example (Hub): bases security — current acceptance
 
 **Goal:** чужая Hub Base недоступна; владелец без регрессии.
 
 | Criterion | Evidence | Status |
 |-----------|----------|--------|
-| authorizeBase на путях | `backend/internal/bases/service.go` — `authorizeBase()` | PASS |
-| ListBases по владельцу | тот же service + тесты list | PASS |
-| Denial suite 403/404 | archived pre-cutover evidence at commit `8ff10d7`; не target-path proof | PASS (historical only) |
+| authorizeBase на путях | current code inspection на exact revision | NOT_RUN — exact revision не приложена |
+| ListBases по владельцу | current code + target tests | NOT_RUN — current target evidence отсутствует |
+| Denial suite 403/404 | archived pre-cutover evidence at commit `8ff10d7`; не target-path proof | HISTORICAL_CONTEXT — не acceptance evidence |
 | Current target regression | Docker-only `backend/tests/bases/**` + applicable `testframework/api/bases/**` | NOT_RUN until greenfield cutover |
-| Docs | `docs/wiki/API.md` owner-scoped; STATE session note | PASS |
+| Docs | `docs/wiki/API.md` owner-scoped; STATE session note | NOT_RUN — exact revision не приложена |
 
-**Исторический verdict:** PASS → merge-ready ветка
-`feat/bases/security-membership-fix`; merged пользователем 2026-07-11.
-Эталон цикла: `.cursor/rules/56-regression-verify.mdc` кейс 1; промпт — `team-lead.md` §5.3.
+**Current overall verdict:** `NOT_RUN`. Ни один исторический лог или merge-факт не
+может сделать текущую ревизию PASS.
+
+**Исторический контекст, не текущая приёмка:** ветка
+`feat/bases/security-membership-fix` была признана merge-ready и смержена
+пользователем 2026-07-11; denial evidence хранится на commit `8ff10d7`.
 
 ## Worked example (отрицательный)
 
@@ -133,8 +136,8 @@ PASS | FAIL | NOT_RUN
 
 | Тип критерия | Минимальный evidence |
 |--------------|----------------------|
-| Backend поведение | тест + команда hubtest + путь кода |
-| Frontend UX | vitest/RTL или TC + путь компонента |
+| Backend поведение | applicable `backend-unit`/Python target job + путь кода + exact Docker evidence |
+| Frontend UX | `frontend-unit` или Python E2E target job + путь компонента + exact Docker evidence |
 | API контракт | wiki/API.md + handler route + (желательно) swagger |
 | Security invariant | denial-тест + ссылка на guideline/TZ |
 | Docs-only | link-check + acceptance checklist |

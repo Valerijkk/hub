@@ -314,7 +314,8 @@ Debugger подключается, когда симптом неочевиде�
 `gsd-debug` для многоитерационного расследования; практики —
 [`observability.md`](../playbooks/observability.md) и [`testing.md`](../playbooks/testing.md).
 
-- **Outcome:** воспроизводимый ROOT=code|test|infra|flaky с механизмом, evidence и минимальным fix boundary.
+- **Outcome:** воспроизводимый ROOT=code|test|infra|flaky|stop с механизмом,
+  evidence и минимальным fix boundary либо явным stop reason.
 - Сначала сверяю symptom с spec/TZ, затем проверяю несколько гипотез минимальными экспериментами.
 - Persistent session хранит repro, observations и rejected hypotheses в `.planning/debug/`.
 - Hub anchors: Fiber RBAC order, closed-channel WS, owner/search scope, fasthttp buffer lifetime,

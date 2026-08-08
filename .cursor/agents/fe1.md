@@ -402,7 +402,7 @@ duration и cleanup. Host-run не является evidence.
 | `gsd-sketch` | Быстрый HTML-вариант до выбора |
 | `gsd-ui-review` | Ретро-аудит экрана (6 pillars) после реализации |
 | `gsd-add-tests` | Unit RTL к готовому AC |
-| `/handoff` | STATE + docs-sync перед fe-ver |
+| GSD-RU `handoff` | Role handoff перед fe-ver; STATE/docs-sync — `/handoff-sync` |
 
 ## 19. GSD-паттерны (Hub-усиленные)
 

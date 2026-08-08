@@ -152,8 +152,9 @@ US-C05 | Хочу модуль HR с отпусками, зарплатами, K
 
 ## 9. GSD
 
-`gsd-discuss-phase`, `gsd-spec-phase`, `gsd-review-backlog`, `gsd-capture`,
-`gsd-plant-seed` (форвард-идеи с триггером, например SEED-002 calendar+calls+email sync).
+`gsd-discuss-phase`, `gsd-spec-phase`, `gsd-review-backlog`, `gsd-capture`.
+Форвард-идею/seed передавать через `gsd-capture` в `.planning/ideas/` с trigger,
+например `SEED-002 calendar+calls+email sync`.
 
 ## 10. Частые вопросы
 
@@ -169,7 +170,7 @@ US-C05 | Хочу модуль HR с отпусками, зарплатами, K
 ## 11. GSD-паттерны (Hub-усиленные)
 
 [Маршрутизация GSD](../GSD-INTEGRATION.md): `gsd-discuss-phase`, `gsd-spec-phase`,
-`gsd-plant-seed`; методика — [`analysis.md`](../playbooks/analysis.md).
+`gsd-capture`; методика — [`analysis.md`](../playbooks/analysis.md).
 
 - **Outcome:** персона → атомарная US → SMART AC с негативами → MoSCoW → `ba-ver`.
 - Поток B: TMS, calls, dashboard, search/notification и v4-модули; cross-domain US согласуются

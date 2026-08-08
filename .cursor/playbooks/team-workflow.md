@@ -398,7 +398,8 @@ Wave 4 (приёмка):
 
 [EXECUTION BOUNDS / RUNTIME PROVENANCE]
 - max_depth: <N|NOT_SET>; max_fan_out: <N|NOT_SET>
-- max_retries_per_failure: <N|NOT_SET>; max_remediation_rounds: <N|NOT_SET>
+- max_retries_per_failure: <N|NOT_SET>; max_fix_attempts_per_root_cause: <N<=3|NOT_SET>
+- max_re_review_rounds: <N<=5|NOT_SET>
 - wall_clock_limit: <duration|NOT_SET>
 - requested_model: <provider/model>; reasoning_effort: <level|UNKNOWN>
 - actual_model: UNKNOWN при dispatch; provider: <observed|UNKNOWN>; actual_model_evidence: <telemetry/ref|none>
@@ -568,8 +569,11 @@ Few-shot — только когда нужен точный эталон.
 3. **Findings классифицируются** (CRITICAL/HIGH/MINOR). CRITICAL/HIGH → возврат исполнителю.
 4. **Oracle hierarchy.** Trusted invariant/contract → focused executable checks → integration/recovery
    exercise → independent semantic review → self-critique только как гипотеза.
-5. **Bounded re-review.** Исправил → тот же scoped package на re-review; upstream breaker не выше
-   5 раундов, но Hub TaskContract может задать меньше. CRITICAL/HIGH не паркуются: fix либо STOP/escalation.
+5. **Два независимых bound.** `max_fix_attempts_per_root_cause` имеет hard max 3:
+   четвёртый fix по тому же RCA запрещён. `max_re_review_rounds` имеет hard max 5;
+   раунды 4–5 допустимы только после нового подтверждённого RCA и нового/усиленного
+   writer-а. Re-review не обнуляет fix-attempt counter. TaskContract может задать
+   меньшие, но не большие пределы. Исчерпан любой cap при открытом CRITICAL/HIGH → BLOCKED.
 6. **Receiving review.** Writer сначала воспроизводит/проверяет finding против spec/code, затем применяет
    минимальный fix; спорный finding не принимается автоматически и не отклоняется без evidence.
 ## 7.3 Что проверяет каждый верификатор
@@ -673,7 +677,8 @@ docker run --rm --name hub-python-test-<task> --cpus 2.0 --memory 4g --memory-sw
 1. Воспроизвести **функционал** по `docs/` (не только assert).
 2. Определить: код неверен **или** тест устарел.
 3. Чинить **минимальный** слой.
-4. Записать triage: `ROOT=code|test`, файл, обоснование.
+4. Записать triage: `ROOT=code|test|infra|flaky|stop`, файл, обоснование.
+   `infra|flaky|stop` не разрешают произвольный code/assertion fix.
 
 **Запрещено:** делать тесты зелёными без проверки спецификации. Skill: `.cursor/skills/test-triage/SKILL.md`.
 ## 8.4 `/qa-gate` перед handoff
@@ -827,7 +832,7 @@ Hub использует GSD skills (`~/.agents/skills/gsd-*`) + typed agents (`
 | Статус проекта | `gsd-progress` | — |
 | Следующий шаг | `gsd-next` | — |
 | Мелкая задача | `gsd-quick`/`gsd-fast` | — |
-| Синхронизация STATE | `/handoff` | `/handoff-sync` |
+| Role/wave handoff; синхронизация STATE | GSD-RU `handoff` | `/handoff-sync` |
 | Полный quality gate | — | `/qa-gate` |
 | Матрица покрытия | Hub-native | `/coverage-audit` |
 | Падает тест/баг | `gsd-debug` | `/test-triage` |

@@ -41,7 +41,8 @@ disable-model-invocation: true
 6. **Таблица задач:** # | задача | writer | файлы (only/не трогать) | Depends | оценка | `*-ver`.
 7. **Волны:** параллелить только независимое; карта файлов внутри волны без пересечений.
 8. Явно ограничить `fan_out`, `delegation_depth`, `retry_limit`,
-   `remediation_cycles` и `task_timebox`; исчерпание лимита = stop/replan.
+   `max_fix_attempts_per_root_cause` (≤3), `max_re_review_rounds` (≤5) и
+   `task_timebox`; исчерпание лимита = stop/replan.
 9. **Риски** + mitigation; CRITICAL требует action-point approval, recovery и executable verification.
 10. **Self-check** prompt-contract / rules/40 этапы 1–4 на полноту плана.
 11. Записать PLAN в `.planning/phases/<id>/PLAN.md` или эквивалент волны.
@@ -84,7 +85,8 @@ disable-model-invocation: true
 - fan_out: <N>
 - delegation_depth: <N>
 - retry_limit: <N на task>
-- remediation_cycles: <N на finding scope>
+- max_fix_attempts_per_root_cause: <N, hard max 3>
+- max_re_review_rounds: <N, hard max 5; rounds 4–5 only after new RCA + stronger/new writer>
 - task_timebox: <duration>; on limit: STOP / REPLAN / ESCALATE
 
 ## Quality gates (rule 56)

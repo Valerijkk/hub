@@ -329,7 +329,8 @@ cons, err := stream.CreateOrUpdateConsumer(ctx, jetstream.ConsumerConfig{
   Fiber v3 RBAC order и JetStream вместо Redis pub/sub.
 - Magic Link остаётся rune-safe; owner-scope требует denial cases для foreign resources.
 - Ошибки wrap через `%w`; shared `platform/*`, Ent schema и wiring меняются только по согласованной границе.
-- FAIL проходит `/test-triage`; удаление assert или правка теста без ROOT=code|test запрещены.
+- FAIL проходит `/test-triage`; verdict — ровно `ROOT=code|test|infra|flaky|stop`.
+  Удаление assertion или правка production-кода без подтверждённого подходящего root запрещены.
 - **Handoff:** кросс-ревью `be2` → `be-ver` с diff, тестом, командой/результатом и docs impact.
 - **Антипаттерны:** соседний cleanup; `return err` без контекста; flaky sleep; self-`verified`;
   изменение файлов параллельного потока.
