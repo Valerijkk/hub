@@ -36,7 +36,9 @@ REPO_ROOT = (
 if not REPO_ROOT.is_absolute():
     raise RuntimeError("HUB_PHASE128_REPO_ROOT must be absolute")
 OUTPUT_PATH = ".planning/audits/test-rebase/cutover-manifest.json"
-MAX_BATCH_OPERATIONS = 64
+MAX_BATCH_OPERATIONS = 56
+EXPECTED_BATCH_COUNT = 173
+EXPECTED_OPERATION_COUNT = 1120
 MAX_FILE_BYTES = 64 * 1024 * 1024
 MAX_PATH_COMPONENTS = 64
 MAX_COMPONENT_UTF8_BYTES = 255
@@ -53,6 +55,8 @@ WINDOWS_RESERVED_NAMES = {
     "NUL",
     *(f"COM{number}" for number in range(1, 10)),
     *(f"LPT{number}" for number in range(1, 10)),
+    *(f"COM{number}" for number in ("¹", "²", "³")),
+    *(f"LPT{number}" for number in ("¹", "²", "³")),
 }
 
 AUTHORITY_FILES = {
@@ -726,9 +730,20 @@ class SafeRepo:
             self.assert_absent(relative)
 
 
+def reject_duplicate_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ManifestError(f"duplicate JSON key rejected: {key!r}")
+        result[key] = value
+    return result
+
+
 def json_load(payload: bytes, label: str) -> dict[str, Any]:
     try:
-        value = json.loads(payload.decode("utf-8"))
+        value = json.loads(
+            payload.decode("utf-8"), object_pairs_hook=reject_duplicate_json_object
+        )
     except (UnicodeDecodeError, json.JSONDecodeError) as error:
         raise ManifestError(f"invalid UTF-8 JSON authority: {label}") from error
     if not isinstance(value, dict):
@@ -1293,6 +1308,18 @@ def derive_planned_manifest(
     expected_counts = {"move": 507, "delete": 325, "keep-blocked": 288}
     if action_counts != expected_counts:
         raise ManifestError(f"operation totals changed: {action_counts!r}")
+    operation_count = sum(len(batch["operations"]) for batch in batches)
+    maximum_batch = max(len(batch["operations"]) for batch in batches)
+    if (len(batches), operation_count, maximum_batch) != (
+        EXPECTED_BATCH_COUNT,
+        EXPECTED_OPERATION_COUNT,
+        MAX_BATCH_OPERATIONS,
+    ):
+        raise ManifestError(
+            "sealed batch arithmetic changed: expected 173 batches / 1,120 "
+            f"operations / max 56, got {len(batches)} / {operation_count} / "
+            f"{maximum_batch}"
+        )
 
     return {
         "schema_version": 1,
@@ -1430,6 +1457,25 @@ def run_write_self_test() -> list[str]:
     deep_errors = canonical_path_errors("/".join(["a"] * (MAX_PATH_COMPONENTS + 1)), "sentinel")
     if not any("component budget" in item for item in deep_errors):
         failures.append("builder component-depth sentinel was not rejected")
+    chunks = chunked([{"index": index} for index in range(MAX_BATCH_OPERATIONS + 1)])
+    if [len(chunk) for chunk in chunks] != [MAX_BATCH_OPERATIONS, 1]:
+        failures.append("builder 56-operation chunk boundary sentinel failed")
+    try:
+        json_load(b'{"outer":{"value":1,"value":2}}', "duplicate-key sentinel")
+    except ManifestError as problem:
+        if "duplicate JSON key" not in str(problem):
+            failures.append("builder nested duplicate-key sentinel returned wrong failure")
+    else:
+        failures.append("builder nested duplicate JSON key was accepted")
+    for reserved in (
+        "COM1.txt", "NUL.json", "COM¹", "COM².txt", "COM³.log",
+        "LPT¹", "LPT².txt", "LPT³.log",
+    ):
+        if not any(
+            "reserved Windows name" in item
+            for item in canonical_path_errors(f"legacy/{reserved}", "sentinel")
+        ):
+            failures.append(f"builder Windows device-name sentinel was accepted: {reserved}")
     with tempfile.TemporaryDirectory(prefix="hub-builder-race-") as temporary:
         root = Path(temporary)
         (root / ".planning" / "audits" / "test-rebase").mkdir(parents=True)

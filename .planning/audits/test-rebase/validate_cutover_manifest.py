@@ -31,7 +31,9 @@ REPO_ROOT = (
 )
 if not REPO_ROOT.is_absolute():
     raise RuntimeError("HUB_PHASE128_REPO_ROOT must be absolute")
-MAX_BATCH_OPERATIONS = 64
+MAX_BATCH_OPERATIONS = 56
+EXPECTED_BATCH_COUNT = 173
+EXPECTED_OPERATION_COUNT = 1120
 MAX_FILE_BYTES = 64 * 1024 * 1024
 MAX_STDIN_BYTES = 32 * 1024 * 1024
 MAX_PATH_COMPONENTS = 64
@@ -41,6 +43,16 @@ PROTECTED_PREFIX = "pro-qa-ai/"
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 ASCII_SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 FILE_ATTRIBUTE_REPARSE_POINT = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+WINDOWS_RESERVED_NAMES = {
+    "CON",
+    "PRN",
+    "AUX",
+    "NUL",
+    *(f"COM{number}" for number in range(1, 10)),
+    *(f"LPT{number}" for number in range(1, 10)),
+    *(f"COM{number}" for number in ("¹", "²", "³")),
+    *(f"LPT{number}" for number in ("¹", "²", "³")),
+}
 HEX_SHA_RE = re.compile(r"^[0-9a-f]{40}(?:[0-9a-f]{24})?$")
 TIMESTAMP_RE = re.compile(r"^20[0-9]{2}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")
 DYNAMIC_BATCH_KEYS = {
@@ -200,6 +212,8 @@ def canonical_path_errors(value: Any, label: str) -> list[str]:
     parts = value.split("/")
     if any(part in {"", ".", ".."} or part.rstrip(" .") != part or ":" in part for part in parts):
         return [f"{label} contains traversal/alias segment"]
+    if any(part.split(".", 1)[0].upper() in WINDOWS_RESERVED_NAMES for part in parts):
+        return [f"{label} contains reserved Windows name"]
     if len(parts) > MAX_PATH_COMPONENTS:
         return [f"{label} exceeds {MAX_PATH_COMPONENTS} component budget"]
     if len(value.encode("utf-8")) > MAX_PATH_UTF8_BYTES:
@@ -377,8 +391,19 @@ class IndependentRepo:
             self.assert_absent(relative, record=False)
 
 
+def reject_duplicate_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ManifestError(f"duplicate JSON key rejected: {key!r}")
+        result[key] = value
+    return result
+
+
 def json_load(payload: bytes, label: str) -> dict[str, Any]:
-    value = json.loads(payload.decode("utf-8"))
+    value = json.loads(
+        payload.decode("utf-8"), object_pairs_hook=reject_duplicate_json_object
+    )
     if not isinstance(value, dict):
         raise ManifestError(f"{label} must be a JSON object")
     return value
@@ -859,7 +884,7 @@ def validate_static_structure(
             errors.append(f"batch operations missing: {batch_id}")
             continue
         if len(operations) > MAX_BATCH_OPERATIONS:
-            errors.append(f"batch exceeds 64 operations: {batch_id}")
+            errors.append(f"batch exceeds 56 operations: {batch_id}")
         sources_here: list[str] = []
         for op_index, operation in enumerate(operations):
             if not isinstance(operation, dict):
@@ -1941,7 +1966,22 @@ def validate_independent_authority(
             })
     actual_batches = actual.get("batches") if isinstance(actual.get("batches"), list) else []
     if len(actual_batches) != len(expected_batches):
-        errors.append("independent batch count differs from literal 64-operation partition")
+        errors.append("independent batch count differs from literal 56-operation partition")
+    expected_operation_count = sum(
+        len(batch["operations"]) for batch in expected_batches
+    )
+    expected_maximum_batch = max(
+        len(batch["operations"]) for batch in expected_batches
+    )
+    if (
+        len(expected_batches),
+        expected_operation_count,
+        expected_maximum_batch,
+    ) != (EXPECTED_BATCH_COUNT, EXPECTED_OPERATION_COUNT, MAX_BATCH_OPERATIONS):
+        errors.append(
+            "independent sealed arithmetic differs from 173 batches / 1,120 "
+            "operations / max 56"
+        )
     for order, (batch, wanted) in enumerate(zip(actual_batches, expected_batches), 1):
         if not isinstance(batch, dict):
             continue
@@ -2055,7 +2095,7 @@ def validate_independent_authority(
     if not isinstance(source, dict) or source.get("ledger_revision") != LEDGER_REVISION or source.get("authority_files") != expected_authority_files:
         errors.append("independent top-level source authority changed")
     if actual.get("invariants") != {
-        "max_batch_operations": 64,
+        "max_batch_operations": 56,
         "ledger_rows_exact_once": 1049,
         "ledger_moves": 507,
         "ledger_keep_blocked": 245,
@@ -2216,7 +2256,7 @@ def two_batch_projection_sentinel() -> str | None:
         "manifest_id": "projection-sentinel",
         "status": "in-progress",
         "source": {"repository_head": "1" * 40},
-        "invariants": {"max_batch_operations": 64},
+        "invariants": {"max_batch_operations": 56},
         "gate_registry": [],
         "consumer_registry": [],
         "totals": {"batches": 2},
@@ -2306,6 +2346,24 @@ def two_batch_projection_sentinel() -> str | None:
 
 def run_self_test(repo_root: Path, clean: dict[str, Any]) -> list[str]:
     failures: list[str] = []
+    try:
+        json_load(b'{"outer":{"value":1,"value":2}}', "duplicate-key sentinel")
+    except ManifestError as problem:
+        if "duplicate JSON key" not in str(problem):
+            failures.append("independent nested duplicate-key sentinel returned wrong failure")
+    else:
+        failures.append("independent nested duplicate JSON key was accepted")
+    for reserved in (
+        "COM1.txt", "NUL.json", "COM¹", "COM².txt", "COM³.log",
+        "LPT¹", "LPT².txt", "LPT³.log",
+    ):
+        if not any(
+            "reserved Windows name" in item
+            for item in canonical_path_errors(f"legacy/{reserved}", "sentinel")
+        ):
+            failures.append(
+                f"independent Windows device-name sentinel was accepted: {reserved}"
+            )
     projection_failure = two_batch_projection_sentinel()
     if projection_failure:
         failures.append(projection_failure)
@@ -2337,7 +2395,7 @@ def run_self_test(repo_root: Path, clean: dict[str, Any]) -> list[str]:
     source_batch = max(oversized["batches"], key=lambda item: len(item["operations"]))
     while len(source_batch["operations"]) <= MAX_BATCH_OPERATIONS:
         source_batch["operations"].append(copy.deepcopy(source_batch["operations"][0]))
-    sentinels.append(("over-64", oversized, "batch exceeds 64"))
+    sentinels.append(("over-56", oversized, "batch exceeds 56"))
 
     digest = copy.deepcopy(clean)
     digest["batches"][0]["preconditions"]["operations_sha256"] = "0" * 64

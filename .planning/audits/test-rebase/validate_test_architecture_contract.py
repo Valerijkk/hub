@@ -576,11 +576,24 @@ def read_bounded_bytes(path: Path, max_bytes: int) -> bytes:
     return value
 
 
-def read_json(path: Path, label: str) -> dict[str, Any]:
-    value = json.loads(read_repo_authority(path, MAX_JSON_BYTES, label))
+def reject_duplicate_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate JSON key rejected: {key!r}")
+        result[key] = value
+    return result
+
+
+def decode_json_object(payload: bytes, label: str) -> dict[str, Any]:
+    value = json.loads(payload, object_pairs_hook=reject_duplicate_json_object)
     if not isinstance(value, dict):
-        raise ValueError(f"{path} must contain a JSON object")
+        raise ValueError(f"{label} must contain a JSON object")
     return value
+
+
+def read_json(path: Path, label: str) -> dict[str, Any]:
+    return decode_json_object(read_repo_authority(path, MAX_JSON_BYTES, label), label)
 
 
 def canonical_path_errors(value: Any, label: str) -> list[str]:
@@ -1058,6 +1071,11 @@ def validate_contract(contract: dict[str, Any], adr_text: str) -> list[str]:
         ("cutover_deletion_rollback", REQUIRED_CUTOVER),
         ("required_adr_markers", REQUIRED_MARKERS),
     )
+    expected_top_level_keys = {"schema_version"} | {
+        key for key, _ in exact_sections
+    }
+    if set(contract) != expected_top_level_keys:
+        errors.append("contract top-level keys differ from the exact allowed set")
     if contract.get("schema_version") != 4:
         errors.append("contract schema_version must be 4")
     for key, expected in exact_sections:
@@ -1502,6 +1520,16 @@ def run_self_test(
     # physical scan or misrepresent sentinel success as a positive baseline.
     failures: list[str] = []
 
+    try:
+        decode_json_object(
+            b'{"outer":{"value":1,"value":2}}', "duplicate-key sentinel"
+        )
+    except ValueError as problem:
+        if "duplicate JSON key" not in str(problem):
+            failures.append("RED: nested duplicate-key sentinel returned wrong failure")
+    else:
+        failures.append("RED: nested duplicate JSON key was accepted")
+
     for name, candidate, fragment in (
         ("protected authority", REPO_ROOT / "pro-qa-ai" / "forbidden.json", "protected pro-qa-ai"),
         ("external authority", REPO_ROOT.parent / "outside.json", "inside repository root"),
@@ -1520,6 +1548,16 @@ def run_self_test(
         validate_contract(proposed, adr_text),
         "exact contract section changed: decision",
         "status downgrade",
+    )
+    if failure:
+        failures.append(failure)
+
+    extra_top_level = deepcopy(contract)
+    extra_top_level["unexpected_authority"] = True
+    failure = require_sentinel(
+        validate_contract(extra_top_level, adr_text),
+        "top-level keys differ from the exact allowed set",
+        "unexpected top-level contract authority",
     )
     if failure:
         failures.append(failure)
@@ -1731,6 +1769,15 @@ def run_self_test(
         if failure:
             failures.append(failure)
 
+    for reserved in ("COM1.txt", "NUL.json"):
+        failure = require_sentinel(
+            canonical_path_errors(f"backend/tests/{reserved}", "reserved-name sentinel"),
+            "reserved Windows name",
+            f"Windows device extension name {reserved}",
+        )
+        if failure:
+            failures.append(failure)
+
     component_budget_path = "/".join("segment" for _ in range(MAX_PATH_COMPONENTS + 1))
     failure = require_sentinel(
         canonical_path_errors(component_budget_path, "component-budget sentinel"),
@@ -1914,9 +1961,7 @@ def main() -> int:
         contract = read_json(args.contract, "architecture contract")
         manifest = read_json(args.manifest, "founder manifest")
         inventory_raw = read_repo_authority(args.inventory, MAX_JSON_BYTES, "inventory authority")
-        inventory = json.loads(inventory_raw)
-        if not isinstance(inventory, dict):
-            raise ValueError(f"{args.inventory} must contain a JSON object")
+        inventory = decode_json_object(inventory_raw, "inventory authority")
         inventory_sha256 = hashlib.sha256(inventory_raw).hexdigest()
         adr_text = read_repo_authority(args.adr, MAX_ADR_BYTES, "ADR authority").decode("utf-8")
     except (OSError, UnicodeError, ValueError, json.JSONDecodeError) as error:
