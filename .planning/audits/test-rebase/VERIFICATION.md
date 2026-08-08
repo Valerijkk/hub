@@ -1,117 +1,129 @@
 ---
-task: TASK-202
-verdict: PASS
-verified: true
-verifier: qa-auto-ver
-revision: ee6d696c2b48a6bcfbf77fe948174e819d282cce
-verified_at: 2026-08-07
+task: PHASE-128-TASK-204
+verdict: NOT_RUN
+verified: false
+verifier: pending-independent-docker-rerun
+revision: null
+verified_at: null
 ---
 
-# TASK-202 — независимая повторная верификация
+# Phase 128 test-rebase guard verification
 
-## Verdict
+## Current verdict
 
-**PASS — все acceptance gates TASK-202 выполнены после fixer-loop.**
+**NOT_RUN.** The current guard implementation has not received a fresh run of
+the canonical Docker wrapper and has not been signed off by independent
+`arch-ver` and `qa-auto-ver`. No PASS, verified-state transition, cutover
+manifest, batch application, rollback execution, or Phase 128 completion is
+claimed by this document.
 
-Ledger воспроизводим на текущем HEAD и содержит 1,047 уникальных source rows.
-Подтверждены 830 Go / 3,667 declared tests (legacy root 829/3,665 + server
-1/2; 594 genuine unit + 236 component:
-31 API + 205 integration), 180 Vitest / 519 cases (156 frontend unit + 24
-static contract), 3 frontend support, 20 Playwright specs / 53 cases, 14 E2E
-support, 39 canonical hooks и 0 target Python tests. Все legacy rows остаются
-`retain-until-parity`; тесты, hooks и product code не перемещались и не удалялись.
+The older TASK-202/TASK-203 observations are historical inputs only. They do
+not authorize migration and are preserved separately in the sealed ledger and
+baseline artifacts.
 
-## Goal-backward gates
+## Required acceptance evidence
 
-| Gate | Verdict | Evidence |
-|---|---|---|
-| Штатный deterministic check | **PASS** | `inventory.py --check` → exit 0; 1,047 rows; ledger SHA-256 `01dae4e2074f883bbebb7c075f299eba1b12d196380e151a81242c952489b95d` |
-| Duplicate/removal/schema sentinels | **PASS** | `--self-test` → exit 0; clean GREEN; duplicate, removal и missing-owner sentinels дали RED |
-| Completion entrypoint | **PASS** | `validate-ledger.ps1` → exit 0 и последовательно выполнил `--check` + `--self-test` |
-| Независимый baseline recount | **PASS** | 830 Go / 3,667 tests (root 829/3,665 + server 1/2), 180 Vitest / 519 cases, 3 frontend support, 20 Playwright specs / 53 cases, 14 E2E support, 39 canonical hooks, 0 target Python tests |
-| Unique/live source ledger | **PASS** | 1,047 rows = 1,047 unique source paths = 1,047 unique target paths; runner split 830/180/3/20/14 |
-| Owner-wave contract | **PASS** | `owner_wave` присутствует и непустой в 1,047/1,047 rows; все значения входят в schema enum из 16 разрешённых waves |
-| Go target-class contract | **PASS** | 594 `go-unit`; 236 component conversions = 31 `python-api` + 205 `python-integration`; component under `backend/tests/**` = 0 |
-| Frontend target-class contract | **PASS** | 180 Vitest rows = 156 `frontend-unit` + 24 `python-static-contract`; ещё 3 `frontend-support` rows направлены в `frontend/tests/support/**` |
-| E2E support contract | **PASS** | 20 `python-e2e` specs + 14 `python-e2e-support` rows; 53 declared cases и 6 runtime skip sites согласованы |
-| Real schema-subset validation | **PASS** | Полный `inventory.json` против `inventory.schema.json` дал 0 errors; `--check` загружает schema до inventory reconciliation |
-| Unsupported schema assertion rejection | **PASS** | Прямая probe с `maxLength` вернула `unsupported schema keywords ['maxLength']` и exit 0 только при обнаруженном отказе |
-| Source and hook integrity | **PASS** | SHA-256 совпал для всех 1,047 source files и 43 hook files; 39 canonical + 4 fragments |
-| Hook forward/reverse links | **PASS** | 889 forward links = 889 reverse links; missing/orphan = 0 |
-| Target roots and safe retention | **PASS** | bad source/target roots = 0; unsafe dispositions = 0; все rows `retain-until-parity` |
-| Protected exclusion | **PASS** | защищённые пути не попали в source/target/hook/consumer; allow-listed scanner не обходит repository root |
-| Runtime baseline | **N/A** | Backend/frontend/browser/Docker/load suites принадлежат TASK-203 и не входят в scope TASK-202 |
-
-## Commands and exact results
+The only supported runtime entrypoint is:
 
 ```powershell
-& 'C:\Users\Valerii\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' `
-  .planning/audits/test-rebase/inventory.py --check
-# GREEN: ledger matches allow-listed inputs; sha256=01dae4e2... rows=1047
-# exit 0
-
-& 'C:\Users\Valerii\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' `
-  .planning/audits/test-rebase/inventory.py --self-test
-# GREEN: clean inventory/schema sentinels passed;
-# duplicate, removal, and missing-owner sentinels produced RED
-# exit 0
-
-& .\.planning\audits\test-rebase\validate-ledger.ps1 `
-  -Python 'C:\Users\Valerii\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe'
-# check GREEN + self-test GREEN
-# exit 0
+pwsh -NoProfile -File .planning/audits/test-rebase/validate-contract.ps1
 ```
 
-`pwsh` отсутствует в локальном PATH, поэтому wrapper дополнительно запущен напрямую текущим Windows PowerShell и отдельным `powershell.exe -NoProfile -File`; оба запуска завершились exit 0. Это ограничение окружения, не artifact failure.
+A future PASS requires all of the following from one exact task run:
 
-Независимая schema probe без изменения файлов:
+- immutable inspected image ID and image-lock digest;
+- exact live Git source revision;
+- CPU, RAM, swap, PID, network-none and read-only limits;
+- inner timeout plus an independent bounded host-side watchdog whose sentinel
+  exercises the outer kill path;
+- held-handle-relative, atomically claimed, identity-pinned, owner-marked
+  `testframework/reports/<task-run>/` evidence boundary with exclusive
+  no-reparse/single-link artifacts and bounded pipe-captured process output;
+- raw stdout/stderr hashes, duration and exact first exit code;
+- exact run-script and host execution-argument contract digests;
+- exact committed Git blob plus SHA-256 for every task-owned, read-only pinned
+  executable snapshot; held-handle proof through consumption and a task-only
+  ABA rename/replace sentinel;
+- forced-timeout sentinel and daemon-backed proof by exact names and task-run
+  label enumeration that every task-owned container is absent after cleanup;
+  cleanup must capture/recheck immutable container IDs and ownership labels,
+  remove only by ID, then scan both exact names and labels;
+- deterministic builder dry-run equality and continued absence of the final
+  repository `cutover-manifest.json`;
+- independent validator plus atomic apply/rollback/builder race,
+  crash-window, final-name-safe pending-journal publication,
+  staged-directory/mkdir/cleanup receipt recovery,
+  retry-convergence, source-collision and cleanup self-tests;
+- temp-only inventory publication idempotence, appearing-target and
+  post-fsync/pre-publish crash sentinels without live ledger generation, plus
+  pinned-Git-tree/worktree cross-file mutation and HEAD-drift sentinels;
+- independent verifier identities recorded only after inspecting the artifacts.
 
-```text
-actual_schema_errors=0
-unsupported_result=["$: unsupported schema keywords ['maxLength']"]
-schema_probe_exit=0
-```
+## Verified-state rule
 
-Независимая сверка ledger с live files через `ConvertFrom-Json`, явные source roots и `Get-FileHash -Algorithm SHA256`:
+Manifest JSON cannot self-declare a verified state. Every verified batch must
+reference an external canonical receipt whose SHA-256 is checked from the
+repository. That receipt binds the exact evidence object, operations digest,
+applied/verifier commits, verifier identity/timestamp, and transition-chain
+digest. Gate evidence also binds the inspected immutable image, exact command
+contract, owner marker, raw output artifacts, reconciled counts, duration and
+parsed cleanup proof. Aggregate evidence and cleanup artifacts are parsed and
+matched to task-run, image, source, exit code and declared digests. Transition
+digests must be continuous, and descriptor-safe Git object reads must prove
+live source/applied/verifier commit existence and ancestry. Packed-only commit
+objects currently fail closed instead of using an unsafe fallback.
+The receipt graph is one-way: the batch-local verified projection excludes all
+sibling batch state plus its own downstream receipt/self-consumer references,
+the receipt binds that projection, and a two-batch constructibility sentinel
+must prove later sibling transitions cannot stale an earlier receipt. Each
+batch first transition must authenticate the exact immediate global predecessor
+from the sole parent commit of its applied commit. The first bootstrap artifact
+comes from the declared source commit and names a strict ancestor; later
+artifacts must contain the completed verified prefix, current planned batch and
+untouched planned suffix, with the prior verifier commit in their ancestry.
+Global states must be monotone, and the two-batch sentinel must reject reuse of
+the stale original all-planned snapshot. Adjacent within-batch transitions must
+preserve exact after/before continuity.
+Receipt, raw streams, image/owner locks and cleanup/evidence artifacts must
+byte-match the authenticated verifier-commit tree as well as their live
+descriptor reads and declared SHA-256 values.
 
-```text
-live_go=830 go_declared=3667 go_legacy=829/3665 go_server=1/2 go_unit=594 go_component=236 go_api=31 go_integration=205
-live_vitest=180 vitest_cases=519 frontend_unit=156 frontend_static_contract=24 frontend_support=3
-live_e2e=20 e2e_cases=53 e2e_support=14 live_canonical_hooks=39 live_python=0
-rows=1047 unique_sources=1047 unique_targets=1047 owner_wave=1047 allowed_owner_waves=16
-hooks=43 canonical_hooks=39 source_hash_mismatch=0 hook_hash_mismatch=0
-forward_links=889 reverse_links=889 missing_reverse=0 orphan_reverse=0
-ledger_sha256=01dae4e2074f883bbebb7c075f299eba1b12d196380e151a81242c952489b95d
-independent_errors=0
-independent_declared_cases=53
-```
+Until those checks run successfully, this frontmatter must remain
+`verdict: NOT_RUN`, `verified: false`, and `verified_at: null`.
 
-Owner-wave reconciliation:
+## G128-S static guard acceptance - NOT_READY (2026-08-09)
 
-| Wave | Rows |
-|---|---:|
-| P130/TASK-206 | 35 |
-| P131/TASK-207 | 85 |
-| P131/TASK-208 | 39 |
-| P131/TASK-230 | 24 |
-| P133/TASK-210 | 99 |
-| P133/TASK-211 | 61 |
-| P133/TASK-227 | 63 |
-| P134/TASK-212 | 179 |
-| P134/TASK-213 | 82 |
-| P134/TASK-228 | 59 |
-| P135/TASK-214 | 41 |
-| P135/TASK-215 | 132 |
-| P135/TASK-229 | 114 |
-| P137/TASK-194 | 14 |
-| P138/TASK-195 | 15 |
-| P138/TASK-196 | 5 |
-| **Total** | **1047** |
+**Classification:** static source-and-worktree review only. This is neither
+`STATIC_REVIEW_PASS` nor runtime `PASS`; no wrapper, Python tool, validator,
+Docker command, test, or batch apply was invoked.
 
-## Safety and residual risk
+The required receipt cannot truthfully bind a committed full
+HEAD/tool/image/authority envelope in the inspected worktree. The wrapper has
+a declared immutable image digest and strong committed-blob checks for its
+six execution sources, but those facts do not make the current dirty and
+untracked input set a committed authority envelope.
 
-`inventory.py` читает только явные roots, проверяет resolved path, не следует directory symlink и не обходит корень репозитория. `--check` read-only; sentinels используют in-memory copies и системный temporary directory. Единственная repository write-точка — жёстко заданный соседний `inventory.json` в режиме `--generate`.
+### Literal failed assertions
 
-Schema validator честно реализует ограниченный subset, а не полный Draft 2020-12. Это не блокер: используемые assertion keywords покрыты, неизвестные assertions fail closed. При расширении schema новый keyword должен сначала получить реализацию и sentinel.
+| Assertion | Result | Static evidence |
+|---|---|---|
+| `G128-S/committed-execution-sources` | **FAIL** | Targeted `git status --porcelain=v1 -uall` reports ` M .planning/audits/test-rebase/inventory.py`, `?? .planning/audits/test-rebase/apply_cutover_batch.py`, and `?? .planning/audits/test-rebase/validate-contract.ps1`. `Add-PinnedExecutionSnapshot` compares each source worktree blob with `HEAD:<path>` and throws `Pinned execution source is not the exact committed Git blob` on mismatch, so a receipt cannot be produced from these current bytes ([validate-contract.ps1](validate-contract.ps1):365-410, 618-623). |
+| `G128-S/committed-authority-inputs` | **FAIL** | The same targeted status reports ` M .planning/audits/test-rebase/inventory.json` and `?? .planning/audits/test-rebase/founder-greenfield-cutover-manifest.json`. The wrapper snapshots only the six execution sources above; it passes the founder manifest as a live `/workspace` input to the validator and does not compare either authority JSON input with `$SourceRevision:<path>` ([validate-contract.ps1](validate-contract.ps1):365-410, 673-676). |
+| `G128-S/full-HEAD-receipt-binding` | **FAIL** | `$SourceRevision` is only `git rev-parse --verify HEAD`; the inner guard repeats that commit-id comparison. Neither assertion establishes a clean worktree or rejects untracked authority inputs, and the execution-source blob guard does not cover the live JSON authority inputs ([validate-contract.ps1](validate-contract.ps1):614-623, 670-676). |
+| `G128-S/runtime-image-and-receipt` | **NOT_RUN** | The source declares an expected immutable image digest and would compare Docker inspection output at runtime, but no such inspection, evidence artifact, or receipt exists in this review ([validate-contract.ps1](validate-contract.ps1):29, 645-656, 745-750). |
 
-TASK-202 может быть закрыт и передан в TASK-203. Heavy runtime suites в этой верификации намеренно не запускались; реализация inventory не изменялась.
+### Remediation boundary
+
+No second launcher, tool edit, authority-JSON edit, batch apply, or runtime
+guard is authorised by G128-S. Before the single named Docker guard may be
+considered, a separately authorised change and review must make every
+authority input consumed by the guard provably equal to a blob in the exact
+`$SourceRevision` tree (and fail closed on modified, missing, or untracked
+paths), then establish a fully committed reviewed envelope. Only a subsequent
+one-shot execution through `validate-contract.ps1`, under the sealed plan
+gate, may create runtime evidence; direct host/Docker fallback remains
+forbidden. Until then, retain `NOT_READY`/`NOT_RUN` and do not represent this
+static review as a runtime acceptance.
+This receipt does not authorize execution: only G128-D may make one attempt
+after an accepted G128-S; that one-shot window closes after the attempt and the
+historical wrapper is forbidden after G129-L.
