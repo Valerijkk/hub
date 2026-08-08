@@ -6,15 +6,15 @@
     "frontend_unit_files": 156,
     "go_component_api_files": 31,
     "go_component_contract_files": 0,
-    "go_component_files": 236,
-    "go_component_integration_files": 205,
-    "go_declared_tests": 3667,
-    "go_files": 830,
-    "go_legacy_declared_tests": 3665,
-    "go_legacy_files": 829,
+    "go_component_files": 237,
+    "go_component_integration_files": 206,
+    "go_declared_tests": 3674,
+    "go_files": 832,
+    "go_legacy_declared_tests": 3672,
+    "go_legacy_files": 831,
     "go_server_declared_tests": 2,
     "go_server_files": 1,
-    "go_unit_files": 594,
+    "go_unit_files": 595,
     "hook_files_total": 43,
     "hook_fragment_files": 4,
     "hook_symbols": 582,
@@ -33,14 +33,14 @@
     "frontend_static_contract_files": 24,
     "frontend_support_files": 3,
     "frontend_unit_files": 156,
-    "go_component_files": 236,
-    "go_declared_tests": 3667,
-    "go_files": 830,
-    "go_legacy_declared_tests": 3665,
-    "go_legacy_files": 829,
+    "go_component_files": 237,
+    "go_declared_tests": 3674,
+    "go_files": 832,
+    "go_legacy_declared_tests": 3672,
+    "go_legacy_files": 831,
     "go_server_declared_tests": 2,
     "go_server_files": 1,
-    "go_unit_files": 594,
+    "go_unit_files": 595,
     "playwright_cases": 53,
     "playwright_files": 20,
     "playwright_support_files": 14,
@@ -690,6 +690,7 @@
         },
         {
           "consumer_test_files": [
+            "backend/testframework/audit/admin_users_test.go",
             "backend/testframework/audit/ctc_upsert_task066_test.go",
             "backend/testframework/audit/service_limits_test.go"
           ],
@@ -2617,6 +2618,7 @@
         },
         {
           "consumer_test_files": [
+            "backend/testframework/notification/telegram_availability_test.go",
             "backend/testframework/notification/telegram_bind_wave102_test.go",
             "backend/testframework/notification/telegram_bind_wave95_test.go"
           ],
@@ -2624,6 +2626,7 @@
         },
         {
           "consumer_test_files": [
+            "backend/testframework/notification/telegram_availability_test.go",
             "backend/testframework/notification/telegram_bind_wave95_test.go"
           ],
           "name": "ExportTelegramBindSender"
@@ -4247,7 +4250,7 @@
       ]
     }
   ],
-  "revision": "ee6d696c2b48a6bcfbf77fe948174e819d282cce",
+  "revision": "5708671f00411c7c9e9dbee88b725de2092cbacd",
   "roots": {
     "protected_exclusion": "pro-qa-ai/",
     "sources": {
@@ -8103,6 +8106,54 @@
       "baseline_status": "not-executed-in-task-202",
       "coverage_bearing": true,
       "dependency_hints": [
+        "github.com/gofiber/fiber/v3",
+        "github.com/google/uuid",
+        "github.com/stretchr/testify/assert",
+        "github.com/stretchr/testify/require",
+        "github.com/valerii/hub/backend/ent",
+        "github.com/valerii/hub/backend/ent/user",
+        "github.com/valerii/hub/backend/internal/audit"
+      ],
+      "disposition": "retain-until-parity",
+      "domain": "audit",
+      "evidence": [
+        "sha256:a8bb097588cb7ddb66da880e2a5fb9cbb850ebb204977fa806d4740af48758db",
+        "declared-tests:5",
+        "target:go-unit"
+      ],
+      "hook_consumers": [
+        {
+          "hook_source": "backend/internal/audit/export_hooks.go",
+          "symbol": "ExportRepositoryEntClient"
+        }
+      ],
+      "owner_wave": "P133/TASK-210",
+      "parity_status": "not-assessed",
+      "replacement_status": "not-started",
+      "runner": "go-test",
+      "service_hints": [],
+      "sha256": "a8bb097588cb7ddb66da880e2a5fb9cbb850ebb204977fa806d4740af48758db",
+      "skips": {
+        "count": 0,
+        "sites": []
+      },
+      "source_path": "backend/testframework/audit/admin_users_test.go",
+      "target_class": "go-unit",
+      "target_path": "backend/tests/audit/admin_users_test.go",
+      "test_count": 5,
+      "test_ids": [
+        "TestAuditService_ListAdminUsers_SafeDTO",
+        "TestAuditService_ListAdminUsers_RepositoryError",
+        "TestHandler_ListAdminUsers_AdminOK_NoSecretFields",
+        "TestHandler_ListAdminUsers_AdminGuard",
+        "TestRepository_ListAdminUsers_SelectsFrontendFields"
+      ],
+      "trace_ids": []
+    },
+    {
+      "baseline_status": "not-executed-in-task-202",
+      "coverage_bearing": true,
+      "dependency_hints": [
         "github.com/google/uuid",
         "github.com/nats-io/nats.go",
         "github.com/nats-io/nats.go/jetstream",
@@ -9564,7 +9615,7 @@
       "disposition": "retain-until-parity",
       "domain": "audit",
       "evidence": [
-        "sha256:4fc6c0ed7100c7827157b761ed6d0f9f30441ebedd0c833d9b032ec9140976bf",
+        "sha256:7c5b35b96dfeafc7e2f6d244c1aec29a81da525033d9160779e692fdc1b553d5",
         "declared-tests:7",
         "target:go-unit"
       ],
@@ -9579,7 +9630,7 @@
       "replacement_status": "not-started",
       "runner": "go-test",
       "service_hints": [],
-      "sha256": "4fc6c0ed7100c7827157b761ed6d0f9f30441ebedd0c833d9b032ec9140976bf",
+      "sha256": "7c5b35b96dfeafc7e2f6d244c1aec29a81da525033d9160779e692fdc1b553d5",
       "skips": {
         "count": 0,
         "sites": []
@@ -9611,7 +9662,7 @@
       "disposition": "retain-until-parity",
       "domain": "audit",
       "evidence": [
-        "sha256:465565366498f07dcb2a73a14c534cfa14b7199944cf0bd092cda4bb5761ae7b",
+        "sha256:c54f644844f4e1512f8e7fed8c33d1286d66189d928528e24d8fca3e7757a7d7",
         "declared-tests:8",
         "target:go-unit"
       ],
@@ -9646,7 +9697,7 @@
       "replacement_status": "not-started",
       "runner": "go-test",
       "service_hints": [],
-      "sha256": "465565366498f07dcb2a73a14c534cfa14b7199944cf0bd092cda4bb5761ae7b",
+      "sha256": "c54f644844f4e1512f8e7fed8c33d1286d66189d928528e24d8fca3e7757a7d7",
       "skips": {
         "count": 0,
         "sites": []
@@ -26053,6 +26104,57 @@
       "baseline_status": "not-executed-in-task-202",
       "coverage_bearing": true,
       "dependency_hints": [
+        "github.com/gofiber/fiber/v3",
+        "github.com/google/uuid",
+        "github.com/mattn/go-sqlite3",
+        "github.com/stretchr/testify/assert",
+        "github.com/stretchr/testify/require",
+        "github.com/valerii/hub/backend/ent/enttest",
+        "github.com/valerii/hub/backend/internal/notification"
+      ],
+      "disposition": "retain-until-parity",
+      "domain": "notification",
+      "evidence": [
+        "sha256:3fa277621bdee12ef56a42080f1897829e5ee435bd6d7695719f49fc64d9302e",
+        "declared-tests:2",
+        "conversion-target:python-integration;hints:sqlite"
+      ],
+      "hook_consumers": [
+        {
+          "hook_source": "backend/internal/notification/export_hooks.go",
+          "symbol": "ExportTelegramBindRepository"
+        },
+        {
+          "hook_source": "backend/internal/notification/export_hooks.go",
+          "symbol": "ExportTelegramBindSender"
+        }
+      ],
+      "owner_wave": "P134/TASK-228",
+      "parity_status": "not-assessed",
+      "replacement_status": "not-started",
+      "runner": "go-test",
+      "service_hints": [
+        "sqlite"
+      ],
+      "sha256": "3fa277621bdee12ef56a42080f1897829e5ee435bd6d7695719f49fc64d9302e",
+      "skips": {
+        "count": 0,
+        "sites": []
+      },
+      "source_path": "backend/testframework/notification/telegram_availability_test.go",
+      "target_class": "python-integration",
+      "target_path": "testframework/integration/notification/test_telegram_availability.py",
+      "test_count": 2,
+      "test_ids": [
+        "TestHandler_TelegramRoutesPresentAndAuthenticatedWithoutBotToken",
+        "TestHandler_TelegramAvailabilityWithoutBotToken"
+      ],
+      "trace_ids": []
+    },
+    {
+      "baseline_status": "not-executed-in-task-202",
+      "coverage_bearing": true,
+      "dependency_hints": [
         "github.com/alicebob/miniredis/v2",
         "github.com/google/uuid",
         "github.com/mattn/go-sqlite3",
@@ -26119,7 +26221,7 @@
       "disposition": "retain-until-parity",
       "domain": "notification",
       "evidence": [
-        "sha256:2ef0466520242f0baec69410458520666715063a40f8d24feeadf777f6eb474a",
+        "sha256:08fc844352346732d8aad5ae78694571fb826cb4faa9f55b2d04787abeaa0aaa",
         "declared-tests:5",
         "conversion-target:python-integration;hints:sqlite"
       ],
@@ -26156,7 +26258,7 @@
       "service_hints": [
         "sqlite"
       ],
-      "sha256": "2ef0466520242f0baec69410458520666715063a40f8d24feeadf777f6eb474a",
+      "sha256": "08fc844352346732d8aad5ae78694571fb826cb4faa9f55b2d04787abeaa0aaa",
       "skips": {
         "count": 0,
         "sites": []
@@ -26166,7 +26268,7 @@
       "target_path": "testframework/integration/notification/test_telegram_bind_wave102.py",
       "test_count": 5,
       "test_ids": [
-        "TestNewTelegramBindService_NilWhenMisconfigured",
+        "TestNewTelegramBindService_RepoServiceWhenBotUnavailable",
         "TestTelegramBindService_handleUnlinkCommand_NotLinked",
         "TestTelegramBindService_handleStartBind_TelegramIDTaken",
         "TestTelegramBindService_CreateBindToken_NilService",
@@ -43071,7 +43173,7 @@
       "disposition": "retain-until-parity",
       "domain": "admin",
       "evidence": [
-        "sha256:16754129a99c764b2677d0033b660efbd83ba83e07d83833acc7fc361be07290",
+        "sha256:3066b1751483ad00830a5a2a6eaac6defb3ad9c591af88ae74e40744a12b6891",
         "declared-tests:2"
       ],
       "hook_consumers": [],
@@ -43080,7 +43182,7 @@
       "replacement_status": "not-started",
       "runner": "playwright-ts",
       "service_hints": [],
-      "sha256": "16754129a99c764b2677d0033b660efbd83ba83e07d83833acc7fc361be07290",
+      "sha256": "3066b1751483ad00830a5a2a6eaac6defb3ad9c591af88ae74e40744a12b6891",
       "skips": {
         "count": 0,
         "sites": []
@@ -43134,7 +43236,7 @@
       "disposition": "retain-until-parity",
       "domain": "admin",
       "evidence": [
-        "sha256:07977b46f7eba79d71c01bc6c573ea52002472ad1a0199db30f69222d260cc40",
+        "sha256:b281cde82a5b84e354706d3b9f8ff7096343a12739cfc698f672daf90ff813db",
         "declared-tests:1"
       ],
       "hook_consumers": [],
@@ -43143,7 +43245,7 @@
       "replacement_status": "not-started",
       "runner": "playwright-ts",
       "service_hints": [],
-      "sha256": "07977b46f7eba79d71c01bc6c573ea52002472ad1a0199db30f69222d260cc40",
+      "sha256": "b281cde82a5b84e354706d3b9f8ff7096343a12739cfc698f672daf90ff813db",
       "skips": {
         "count": 0,
         "sites": []
@@ -43652,7 +43754,7 @@
       "disposition": "retain-until-parity",
       "domain": "tracker",
       "evidence": [
-        "sha256:71b6a51c4508864d38de7aa62f95b82e827bafc6df59dad781df0946e48d01f8",
+        "sha256:06249343283283244935e5234a3c655b9e62fef56bff61f937678ea843882d1d",
         "declared-tests:1"
       ],
       "hook_consumers": [],
@@ -43661,7 +43763,7 @@
       "replacement_status": "not-started",
       "runner": "playwright-ts",
       "service_hints": [],
-      "sha256": "71b6a51c4508864d38de7aa62f95b82e827bafc6df59dad781df0946e48d01f8",
+      "sha256": "06249343283283244935e5234a3c655b9e62fef56bff61f937678ea843882d1d",
       "skips": {
         "count": 0,
         "sites": []
@@ -44028,7 +44130,7 @@
       "disposition": "retain-until-parity",
       "domain": "support",
       "evidence": [
-        "sha256:27f3d99d841f56418e9441c8c30b18c007d92a8a5160772d6547ddbf33140bce",
+        "sha256:bf13d302a0b0d15a94554eab1ca38f368906ab782a76029d1d34c3b12cca2db3",
         "declared-tests:0",
         "conversion-target:python-e2e-support"
       ],
@@ -44040,7 +44142,7 @@
       "service_hints": [
         "browser"
       ],
-      "sha256": "27f3d99d841f56418e9441c8c30b18c007d92a8a5160772d6547ddbf33140bce",
+      "sha256": "bf13d302a0b0d15a94554eab1ca38f368906ab782a76029d1d34c3b12cca2db3",
       "skips": {
         "count": 0,
         "sites": []
@@ -44061,7 +44163,7 @@
       "disposition": "retain-until-parity",
       "domain": "support",
       "evidence": [
-        "sha256:fff0293e50fa305d8804e9d37ab6f44e45cf683ca27794a8b38021870075e80f",
+        "sha256:0dc1752b04d0533e4471acc905f5de986f99c87fa2c6f98b97992ae5579f5508",
         "declared-tests:0",
         "conversion-target:python-e2e-support"
       ],
@@ -44073,7 +44175,7 @@
       "service_hints": [
         "browser"
       ],
-      "sha256": "fff0293e50fa305d8804e9d37ab6f44e45cf683ca27794a8b38021870075e80f",
+      "sha256": "0dc1752b04d0533e4471acc905f5de986f99c87fa2c6f98b97992ae5579f5508",
       "skips": {
         "count": 0,
         "sites": []
@@ -51005,5 +51107,5 @@
     }
   ],
   "schema_version": 2,
-  "tool_version": "2.2.0"
+  "tool_version": "2.2.1"
 }

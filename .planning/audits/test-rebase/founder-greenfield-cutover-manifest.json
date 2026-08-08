@@ -1,0 +1,422 @@
+{
+  "schema_version": 1,
+  "manifest_id": "FOUNDER-GREENFIELD-CUTOVER-2026-08-07",
+  "status": "verified-hook-blocked",
+  "decision": "Keep and relocate only genuine isolated native units. Delete every legacy non-unit suite and its runner/support closure; do not port those tests. Build all new API, integration, contract, E2E, load, resilience, security and accessibility coverage from first principles in the root Python project.",
+  "scope": {
+    "allowed_write_roots_after_cutover": [
+      "backend/tests/<domain>/**",
+      "frontend/tests/<domain>/**",
+      "frontend/tests/support/**",
+      "testframework/**"
+    ],
+    "root_python_runtime_only": true,
+    "legacy_non_unit_port_forbidden": true,
+    "protected_path": "pro-qa-ai/**",
+    "protected_path_access": "forbidden"
+  },
+  "decision_contract": {
+    "adr_status": "accepted",
+    "migration_mode": "greenfield-rebuild",
+    "row_parity_required": false,
+    "dual_run_required": false,
+    "go_coverage_migration_blocker": false,
+    "active_plan_rebased": true
+  },
+  "source_ledger": {
+    "path": ".planning/audits/test-rebase/inventory.json",
+    "sha256": "72de6a81b2bd5da8873a98e784a5069a661e9caea083f10722aa85e9f91b4511",
+    "source_revision": "5708671f00411c7c9e9dbee88b725de2092cbacd",
+    "observed_head": "5708671f00411c7c9e9dbee88b725de2092cbacd",
+    "rows": 1049,
+    "declared_tests": 4246,
+    "live_drift": {
+      "status": "green-docker-check-self-test",
+      "mismatched_source_count": 0,
+      "mismatched_source_paths": []
+    }
+  },
+  "selector_contract": {
+    "authority": "source_ledger.rows",
+    "match_semantics": "exact conjunction over named ledger fields; hook_consumers_count means JSON array length",
+    "destination_semantics": "use the ledger row target_path exactly; never infer or normalize a path",
+    "partition_requirement": "every one of the 1049 pinned rows must match exactly one row_partition",
+    "unknown_or_changed_row": "block",
+    "path_collision": "block",
+    "missing_source": "block"
+  },
+  "row_partitions": [
+    {
+      "id": "MOVE-GO-UNIT-HOOK-FREE",
+      "action": "move",
+      "selector": {
+        "runner": "go-test",
+        "target_class": "go-unit",
+        "hook_consumers_count": 0
+      },
+      "source_rows": 350,
+      "declared_tests": 1264,
+      "destination": "inventory.rows[].target_path under backend/tests/<domain>/**",
+      "preconditions": [
+        "no import from backend/testframework/{env,factory,mongotest,steps}",
+        "no real service, listener, process, filesystem/provider or Docker lifecycle",
+        "Docker-only focused unit run is green before and after the move",
+        "source removal and destination addition are staged in the same atomic domain commit"
+      ]
+    },
+    {
+      "id": "KEEP-GO-UNIT-HOOK-DEPENDENT",
+      "action": "keep",
+      "blocking": true,
+      "selector": {
+        "runner": "go-test",
+        "target_class": "go-unit",
+        "hook_consumers_count": ">0"
+      },
+      "source_rows": 245,
+      "declared_tests": 1428,
+      "hook_consumer_links": 653,
+      "distinct_hook_files": 42,
+      "distinct_hook_symbols": 434,
+      "reason": "A test that still depends on a private production export hook is not an isolated cutover-ready unit.",
+      "release_condition": "refactor to a public/injected seam, regenerate the ledger, prove hook_consumers_count=0, then reclassify into MOVE-GO-UNIT-HOOK-FREE; otherwise founder must explicitly reclassify it as delete"
+    },
+    {
+      "id": "MOVE-FRONTEND-UNIT",
+      "action": "move",
+      "selector": {
+        "runner": "vitest",
+        "target_class": "frontend-unit"
+      },
+      "source_rows": 156,
+      "declared_tests": 409,
+      "destination": "inventory.rows[].target_path under frontend/tests/<domain>/**",
+      "preconditions": [
+        "no source/doc/token-only assertion",
+        "no real browser or service dependency",
+        "Docker-only Vitest collection and focused unit run are green before and after the move",
+        "imports are rewritten to frontend/tests/support/render.tsx where applicable"
+      ]
+    },
+    {
+      "id": "MOVE-FRONTEND-RENDER-SUPPORT",
+      "action": "move",
+      "selector": {
+        "source_path": "testframework/stages/unit/frontend-test/render.tsx",
+        "runner": "vitest-support",
+        "target_class": "frontend-support"
+      },
+      "source_rows": 1,
+      "declared_tests": 0,
+      "destination": "frontend/tests/support/render.tsx",
+      "observed_consumers": {
+        "all": 62,
+        "moving_frontend_units": 58,
+        "deleting_static_contracts": 4
+      },
+      "postcondition": "at least one moved unit consumer remains and no import points to the old path"
+    },
+    {
+      "id": "DELETE-GO-COMPONENT",
+      "action": "delete",
+      "port": "forbidden",
+      "selector": {
+        "runner": "go-test",
+        "target_class_in": [
+          "python-api",
+          "python-integration"
+        ]
+      },
+      "source_rows": 237,
+      "declared_tests": 982,
+      "class_breakdown": {
+        "python-api": {
+          "rows": 31,
+          "declared_tests": 125
+        },
+        "python-integration": {
+          "rows": 206,
+          "declared_tests": 857
+        }
+      },
+      "hook_consumer_links_removed": 239,
+      "new_python_policy": "new tests are designed from product requirements and risk analysis; legacy test bodies are not translated"
+    },
+    {
+      "id": "DELETE-FRONTEND-STATIC-CONTRACT",
+      "action": "delete",
+      "port": "forbidden",
+      "selector": {
+        "runner": "vitest",
+        "target_class": "python-static-contract"
+      },
+      "source_rows": 24,
+      "declared_tests": 110,
+      "new_python_policy": "future contract coverage is independently specified from live requirements, task links and current generated artifacts"
+    },
+    {
+      "id": "DELETE-FRONTEND-COMPILE-FIXTURES",
+      "action": "delete",
+      "port": "forbidden",
+      "selector": {
+        "source_path_in": [
+          "testframework/stages/unit/frontend-test/domains/platform/updateBase-version-required.fixture.ts",
+          "testframework/stages/unit/frontend-test/domains/tracker/projects-sprint-version-required.fixture.ts"
+        ],
+        "runner": "vitest-support"
+      },
+      "source_rows": 2,
+      "declared_tests": 0,
+      "reason": "Both files are consumed only by the two deleted task-specific tsconfig compile guards and have no runtime unit consumer."
+    },
+    {
+      "id": "DELETE-PLAYWRIGHT-TS-SPECS",
+      "action": "delete",
+      "port": "forbidden",
+      "selector": {
+        "runner": "playwright-ts",
+        "target_class": "python-e2e"
+      },
+      "source_rows": 20,
+      "declared_tests": 53,
+      "new_python_policy": "new browser journeys use Playwright Python and are specified from user stories, risks and current UI contracts, not translated from TypeScript"
+    },
+    {
+      "id": "DELETE-PLAYWRIGHT-TS-SUPPORT",
+      "action": "delete",
+      "port": "forbidden",
+      "selector": {
+        "runner": "playwright-support-ts",
+        "target_class": "python-e2e-support"
+      },
+      "source_rows": 14,
+      "declared_tests": 0,
+      "postcondition": "no retained file imports or references testframework/stages/e2e"
+    }
+  ],
+  "row_reconciliation": {
+    "move": {
+      "rows": 507,
+      "declared_tests": 1673
+    },
+    "keep_blocked": {
+      "rows": 245,
+      "declared_tests": 1428
+    },
+    "delete": {
+      "rows": 297,
+      "declared_tests": 1145
+    },
+    "total": {
+      "rows": 1049,
+      "declared_tests": 4246
+    }
+  },
+  "non_ledger_delete_paths": [
+    "backend/testframework/env/builder.go",
+    "backend/testframework/factory/user.go",
+    "backend/testframework/mongotest/setup.go",
+    "backend/testframework/steps/http.go",
+    "frontend/playwright.config.ts",
+    "frontend/scripts/link-e2e-node-modules.mjs",
+    "frontend/scripts/link-testframework-node-modules.mjs",
+    "scripts/ci-e2e-backend.sh",
+    "scripts/fix-search-testframework-exports.ps1",
+    "scripts/fix-testframework-prefix.ps1",
+    "scripts/migrate-go-tests.ps1",
+    "scripts/migrate-nested-go-tests.ps1",
+    "scripts/reorganize-testframework-pipeline.ps1",
+    "scripts/unify-testframework.ps1",
+    "testframework/MIGRATION.md",
+    "testframework/pipeline/stages.yaml",
+    "testframework/pipeline/jobs/backend-test.yaml",
+    "testframework/pipeline/jobs/coverage-gate.yaml",
+    "testframework/pipeline/jobs/frontend-test.yaml",
+    "testframework/pipeline/jobs/e2e-smoke.yaml",
+    "testframework/pipeline/jobs/e2e-full.yaml",
+    "testframework/stages/build/README.md",
+    "testframework/stages/e2e/README.md",
+    "testframework/stages/quality/coverage-gate/README.md",
+    "testframework/stages/unit/backend-test/README.md",
+    "testframework/stages/unit/frontend-test/README.md",
+    "testframework/stages/unit/frontend-test/domains/platform/tsconfig.task052.json",
+    "testframework/stages/unit/frontend-test/domains/tracker/tsconfig.task130.json"
+  ],
+  "non_ledger_support_evidence": {
+    "backend/testframework/env/builder.go": {
+      "legacy_consumer_rows": 2,
+      "moving_unit_consumers": 0
+    },
+    "backend/testframework/factory/user.go": {
+      "legacy_consumer_rows": 1,
+      "moving_unit_consumers": 0
+    },
+    "backend/testframework/mongotest/setup.go": {
+      "legacy_consumer_rows": 11,
+      "moving_unit_consumers": 0
+    },
+    "backend/testframework/steps/http.go": {
+      "legacy_consumer_rows": 0,
+      "moving_unit_consumers": 0
+    }
+  },
+  "edit_in_place_paths": {
+    "runtime_and_ci": [
+      "frontend/package.json",
+      "frontend/package-lock.json",
+      "frontend/vite.config.ts",
+      ".github/workflows/ci.yml",
+      ".gitlab-ci.yml"
+    ],
+    "root_testframework_docs_rewrite": [
+      "testframework/README.md",
+      "testframework/PIPELINE.md",
+      "testframework/TESTING_GUIDE.md",
+      "testframework/guides/01-principles.md",
+      "testframework/guides/02-page-object.md",
+      "testframework/guides/03-backend-go.md",
+      "testframework/guides/04-frontend-vitest.md",
+      "testframework/guides/05-e2e-playwright.md",
+      "testframework/guides/06-edge-corner-coverage.md"
+    ],
+    "current_project_docs_sync": [
+      "AGENTS.md",
+      "docs/README.md",
+      "docs/TESTING.md",
+      "docs/TECHNICAL.md",
+      "docs/GLOSSARY.md",
+      "docs/code_style_guide.md",
+      "docs/stack_and_tools.md",
+      "docs/system_specification.md",
+      "docs/test_plan.md",
+      "docs/testframework_strategy.md",
+      "docs/TROUBLESHOOTING.md",
+      "docs/user_needs_analysis_2026.md",
+      "docs/vision_and_scope.md",
+      "docs/onboarding/backend-developer.md",
+      "docs/onboarding/frontend-developer.md",
+      "docs/onboarding/qa-automation.md",
+      "docs/wiki/DEPLOY.md",
+      "docs/wiki/SHORTCUTS.md",
+      ".planning/STATE.md",
+      ".planning/COVERAGE.md",
+      ".planning/active/august-2026/06-TEST-ARCHITECTURE-REBASE.md",
+      ".planning/decisions/ADR-TEST-ARCHITECTURE-REBASE-2026.md",
+      ".planning/audits/test-rebase/test-architecture-contract.json"
+    ]
+  },
+  "hook_plan": {
+    "inventory_hook_files": 43,
+    "inventory_hook_symbols": 582,
+    "symbols_with_consumers": 550,
+    "consumer_links": 892,
+    "after_component_delete_expected_links": 653,
+    "component_only_hook_file": "backend/internal/tms/export_hooks_mongo.go",
+    "component_only_hook_file_action": "delete only after regenerated reverse-link inventory proves zero consumers",
+    "remaining_hook_files": 42,
+    "remaining_hook_action": "keep until all 245 hook-dependent unit rows have been refactored or explicitly deleted and reverse links are exactly zero",
+    "production_hook_bulk_delete": "forbidden"
+  },
+  "new_python_test_contract": {
+    "source": "current product requirements, current code/API contracts, production risks and new test design; never legacy test bodies",
+    "mandatory_traceability": [
+      "stable TC-* id",
+      "TASK-* or approved backlog link",
+      "FR/NFR/user-story or API/event/schema reference",
+      "owner domain",
+      "risk and priority",
+      "scenario category",
+      "expected evidence artifact"
+    ],
+    "mandatory_scenario_categories": [
+      "happy_path",
+      "negative",
+      "edge",
+      "corner",
+      "authorization",
+      "validation",
+      "idempotency",
+      "concurrency",
+      "timeout_retry",
+      "dependency_failure",
+      "security",
+      "accessibility",
+      "observability"
+    ],
+    "missing_category": "documented risk-based not-applicable reason or block",
+    "skip_without_issue_owner_reason_expiry": "forbidden",
+    "live_external_egress": "forbidden",
+    "execution": "Docker-only task-owned containers with CPU/RAM limits and cleanup"
+  },
+  "cutover_checks": [
+    "regenerated source ledger is green on the exact cutover revision and manifest checksum is updated",
+    "1049 source rows reconcile exactly into move + keep + delete with no overlap or omission",
+    "all move source hashes match and all target paths are collision-free",
+    "Docker-only Go unit suites are green for every moved domain",
+    "Docker-only frontend typecheck, lint and Vitest are green against frontend/tests/**",
+    "no moved Go unit imports backend/testframework support or consumes export hooks",
+    "no retained import/reference points to testframework/stages/** or frontend Playwright/link runners",
+    "all non-ledger delete paths exist exactly or are explicitly reconciled before deletion",
+    "root testframework contains no executable Go/TypeScript/JavaScript after cutover",
+    "task-owned containers, networks, volumes and temporary images are removed when no longer needed",
+    "docs and CI entrypoints change in the same atomic cutover commits",
+    "pro-qa-ai/** is absent from every diff and manifest input"
+  ],
+  "atomic_commit_plan": [
+    {
+      "order": 1,
+      "id": "decision-rebase",
+      "contents": "amend ADR, machine contract, active plan and current docs to the founder greenfield rule; no test deletion"
+    },
+    {
+      "order": 2,
+      "id": "backend-unit-domain-waves",
+      "contents": "one allow-listed commit per domain: move only hook-free Go units, update imports, remove matching legacy sources, record Docker evidence"
+    },
+    {
+      "order": 3,
+      "id": "frontend-unit-domain-waves",
+      "contents": "one allow-listed commit per domain: move genuine Vitest/RTL units; move render support once; update imports; record Docker evidence"
+    },
+    {
+      "order": 4,
+      "id": "delete-backend-nonunits",
+      "contents": "delete the exact 237 Go component rows and four closed support files; do not delete hook-dependent units or hooks"
+    },
+    {
+      "order": 5,
+      "id": "delete-frontend-static-and-ts-e2e",
+      "contents": "delete the exact 24 static rows, two compile fixtures, 20 TS E2E specs, 14 TS E2E support rows and their runner/config closure; update package, Vite, CI and docs atomically"
+    },
+    {
+      "order": 6,
+      "id": "root-python-greenfield",
+      "contents": "build the root Python QA project and new traceable risk-based suites from scratch in independently reviewable slices"
+    },
+    {
+      "order": 7,
+      "id": "hook-dependent-unit-refactor",
+      "contents": "replace private hook access with public/injected seams, then move each now-isolated unit; delete hooks only from a regenerated zero-consumer manifest"
+    }
+  ],
+  "rollback": {
+    "method": "git revert only",
+    "order": "reverse atomic_commit_plan order",
+    "forbidden": [
+      "ad-hoc file copy",
+      "git reset --hard",
+      "checkout over user changes",
+      "broad recursive delete",
+      "shared Docker state cleanup"
+    ],
+    "unit_of_rollback": "the exact atomic commit that moved/deleted sources and changed its entrypoints",
+    "docker_cleanup": "remove only resources with the task's unique name/labels after exact ownership inspection"
+  },
+  "blockers": [
+    {
+      "id": "B3-HOOK-DEPENDENT-UNITS",
+      "severity": "hard-for-these-rows",
+      "detail": "245 of 595 Go unit-class rows still consume 434 private symbols through 653 links across 42 hook files. They remain in place until refactored or explicitly reclassified."
+    }
+  ]
+}
