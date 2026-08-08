@@ -19,7 +19,7 @@
 - `pro-qa-ai/**`, unrelated dirty `frontend/src/**`, `.planning/debug/test-baseline-failures.md` и чужие reports/resources не читаются и не изменяются.
 - Windows host разрешён только для чтения/редактирования, Git и exact task-contract Docker CLI entrypoint call; каждая receipt получает отдельный unique invocation, а повтор без нового task authorization запрещён. Python, pytest, Ruff, mypy, Import Linter, Playwright, Locust, Go/Vitest tests, validators и builds на host запрещены.
 - До independent acceptance `testframework/docker/run-task.ps1` любой target runtime verdict — `NOT_READY`; прямые `docker run`, `docker compose`, legacy `hubtest`, Vitest/TS Playwright runner или host fallback не разрешены.
-- Единственное bootstrap-исключение до acceptance launcher — один исторически обязательный read-only guard run через `.planning/audits/test-rebase/validate-contract.ps1` после G128-S. Он не является `hub.qa-runner/v1`, не запускает SUT tests, не применяет cutover, не публикует authority и запрещён после G129-L.
+- Единственное bootstrap-исключение до acceptance launcher — один исторически обязательный read-only guard run через `.planning/audits/test-rebase/validate-contract.ps1` только после G128-H и повторно принятых G128-E/G128-S. G128-H требует отдельного разрешения на host mutation, official stable `Microsoft.PowerShell` через Microsoft-supported WinGet и committed host-interpreter lock. G128-D запускается только literal absolute `pwsh.exe` path из этого lock; PATH `pwsh`, `powershell.exe` и любой fallback запрещены. Guard не является `hub.qa-runner/v1`, не запускает SUT tests, не применяет cutover, не публикует authority и запрещён после G129-L.
 - `hub.qa-runner/v1` обязан enforce immutable image/platform digest, locked dependencies, no runtime downloads, non-root/read-only root, bounded tmpfs/shm/CPU/RAM/swap/PID/nofile, inner+outer deadlines, first-causal-exit preservation, task-owned reports/resources и exact cleanup proof.
 - Phase 129 immutable arithmetic: ровно `176` explicit tasks, из них `173` unique batch IDs; ровно `1,120` operations; максимальный literal batch — `56`. Идентификаторы, cohorts, order и operation identity не реконструируются и не переименовываются.
 - Cutover сохраняет только доказанные genuine native units: `backend/tests/<domain>/**` и `frontend/tests/<domain>/**`; legacy Go component/API/integration, static-contract Vitest, TypeScript Playwright и closure удаляются по sealed manifest и не портируются.
@@ -441,7 +441,7 @@ Accepted G-CANON receipts and exact 74-path diff; this master plan; approved arc
 
 **Produces:** Acyclic executable GSD plans in which Phase 128 guard is read-only, Phase 129 first accepts the sole target launcher then materializes authority, every framework output has a fully qualified `testframework/**` path, and each Phase 130–141 task contains explicit `Requirements`, `<read_first>`, Consumes/Produces, failing sentinel, canonical `NOT_READY`/launcher verification, docs sync, `Done` and atomic allowlist; plus a stdlib-only exact-plan checker and bounded versioned receipt.
 
-- [ ] Rewrite `128-tf-python-scaffold/PLAN.md` to encode only `G128-E committed source envelope → G128-S static review → one-time G128-D guard → independent receipt review`; do not add a publish/apply/SUT-test mode to `.planning/audits/test-rebase/validate-contract.ps1`.
+- [ ] Rewrite `128-tf-python-scaffold/PLAN.md` to encode `initial G128-E committed source envelope → initial G128-S static review → G128-H host-interpreter TCB lock → renewed G128-E wrapper-envelope commit/reviews → renewed G128-S receipt → one-time G128-D guard → independent receipt review`; do not add a publish/apply/SUT-test mode to `.planning/audits/test-rebase/validate-contract.ps1`.
 - [ ] Rewrite `129-01-PLAN.md` to remove `requirements.lock`, `pytest.ini`, `testframework/core/**`, root layer packages, `testframework/docker/Dockerfile`, `testframework/docker/compose.yaml` and `.gitkeep`; replace them with the progressive §3/§5 target. Rewrite cross-links in `129-02-PLAN.md` … `129-07-PLAN.md` to that target without changing their task IDs, batch IDs, order or operations.
 - [ ] Preserve exactly seven numbered Phase 129 files: `129-01` remains exactly three non-batch tasks and `129-02` … `129-07` retain the same `173` unique ordered batch tasks, for `176` task tags, `1,120` literal operations and maximum batch `56`. Record a deterministic source assertion against the sealed authority; do not copy/reconstruct operations or create a parallel batch index.
 - [ ] Rewrite each existing Phase 130–141 live `PLAN.md` before its phase can execute. Carry the Task IDs and approved spec sections from the matching master task, convert obsolete root layer paths to `testframework/src/hub_testkit/**`, `testframework/tests/**`, `testframework/cases/**`, `testframework/selftests/**`, `testframework/docker/**`, `testframework/load/**` or `testframework/policies/**`, and preserve `PLAN.md` naming. Preserve the exact 61-task distribution `4/4/4/3/8/18/3/3/5/3/3/3`; the added tasks are the central Phase 130 profile registry, the split Phase 131 HTTP/runtime boundaries, the split Phase 134 messenger/notification/closure boundaries and one bounded docs/traceability closure in every Phase 130–140.
@@ -467,9 +467,10 @@ Accepted G-CANON receipts and exact 74-path diff; this master plan; approved arc
 | G-CANON — active canon sync | `NOT_READY` | exact 74-path active/evaluation surface expresses approved ownership; script retired; twelve-record deterministic BASE-vs-candidate declaration receipt, old-active-reference scan and independent reviews zero HIGH | downstream plan correctness, sealed authority, target-runtime behavior or uncontrolled future-LLM behavior |
 | G-META — downstream plan sync | `NOT_READY` до G-CANON | exact 23-path plan/checker closure accepted statically with 21 plans and sealed arithmetic unchanged | sealed authority or target-runtime behavior |
 | G128-R — Phase 128 authority reseal | `NOT_READY` до G-META | exact authority/runtime closure rebased to approved physical tree; seals updated; immutable ledger/cohort/planned arithmetic independently reconciled; final security static review zero HIGH | Docker behavior, manifest publication or launcher acceptance |
-| G128-E — committed historical-guard envelope | `NOT_READY` до G128-R | wrapper, applier, founder manifest, inventory generator/ledger and six read-only authority dependencies exist in one independently reviewed committed HEAD; the five writable envelope paths are clean after commit | Docker behavior, wrapper runtime, manifest publication, batch apply or launcher acceptance |
-| G128-S — Phase 128 static review | `NOT_READY` до G128-E | exact committed envelope/tool/interface review proves the historical wrapper can run read-only with no SUT/cutover/apply/publish path | Docker behavior, manifest publication, launcher acceptance |
-| G128-D — one-time Phase 128 guard acceptance | `NOT_READY` до G128-S | one exact historical `validate-contract.ps1` Docker wrapper run plus conclusion-blind raw-receipt review proves guard/determinism/timeout/cleanup | `hub.qa-runner/v1`, manifest publication or SUT behavior |
+| G128-E — committed historical-guard envelope | `NOT_READY` до G128-R initially; renewal `NOT_READY` до G128-H | initial committed envelope is accepted; after G128-H, a renewed commit/review binds the hardened wrapper and committed host lock to the envelope | Docker behavior, wrapper runtime, manifest publication, batch apply or launcher acceptance |
+| G128-S — Phase 128 static review | `NOT_READY` до applicable G128-E | initial review authorizes G128-H only; renewed review after wrapper hardening seals the literal absolute interpreter path and exact G128-D invocation | Docker behavior, manifest publication, launcher acceptance |
+| G128-H — host-interpreter TCB lock | `NOT_READY` до initial G128-S and explicit host-mutation approval | official stable PowerShell 7 is provisioned only as exact WinGet package `Microsoft.PowerShell`; committed lock binds absolute path, SHA256, file/product version, Authenticode signer/status/thumbprint and package provenance; security/architecture reviews zero HIGH | wrapper acceptance, Docker behavior, G128-D execution or launcher acceptance |
+| G128-D — one-time Phase 128 guard acceptance | `NOT_READY` до G128-H + renewed G128-E/G128-S | the literal independently sealed absolute `pwsh.exe` path invokes the exact historical wrapper once; conclusion-blind raw-receipt review proves guard/determinism/timeout/cleanup | `hub.qa-runner/v1`, manifest publication or SUT behavior |
 | G129-L — launcher acceptance | `NOT_READY` до G128-D receipt | sole target launcher/static contracts exist; bootstrap acceptance proves limits, first exit, reports boundary and exact cleanup | health/API behavior or cutover completion |
 | G-CANON-X — executable canon receipt | `NOT_READY` до G129-L | accepted launcher runs `canon-routing-contract`; report semantically equals versioned 12-record receipt | downstream plan or authority correctness |
 | G-META-X — executable downstream-plan receipt | `NOT_READY` до G129-L | accepted launcher runs exact 21-plan checker; report semantically equals versioned receipt and `176/173/1120/56` | authority publication or batch mutation |
@@ -480,7 +481,7 @@ Accepted G-CANON receipts and exact 74-path diff; this master plan; approved arc
 | G-ACTIVATE-131..141 — on-demand backlog activation | `NOT_READY` after G130-H by default | founder accepts exactly one phase/feature slice with current requirements, risks, target files, packages/images and rollback; downstream plan is rechecked on the activation HEAD | authorization for another phase, universal coverage sprint or pre-registered future profile execution |
 | G141 — clean-room handoff | `NOT_READY` until founder activation receipts and 132–140 evidence | clean checkout/image build, all activated profiles, supply-chain/retention/onboarding/recovery, independent verifier | production deploy/sign-off |
 
-`STATIC_REVIEW_PASS` — допустимая метка документационного review, но она никогда не преобразуется в runtime `PASS`. `NOT_READY`, `NOT_RUN`, `PASS` и `FAIL` хранятся как разные enum values; агрегатор не повышает статус. До G-CANON + G-META + G128-R запрещены wrapper run, guard-envelope authority commit и launcher work; до G128-E запрещён G128-S. Historical wrapper разрешён ровно один раз между G128-S и G128-D, никогда не объявляет contract `hub.qa-runner/v1` и после G129-L считается forbidden entrypoint. Acceptance G130-H завершает текущий run и не повышает ни один backlog profile/phase из `NOT_READY`.
+`STATIC_REVIEW_PASS` — допустимая метка документационного review, но она никогда не преобразуется в runtime `PASS`. `NOT_READY`, `NOT_RUN`, `PASS` и `FAIL` хранятся как разные enum values; агрегатор не повышает статус. До G-CANON + G-META + G128-R запрещены wrapper run, guard-envelope authority commit и launcher work; до initial G128-E запрещён initial G128-S. Initial G128-S authorizes only G128-H. G128-H remains `NOT_READY` until explicit host-mutation approval; after it commits the host lock, wrapper hardening requires renewed G128-E and renewed G128-S. Historical wrapper is permitted exactly once only after that renewal, never declares contract `hub.qa-runner/v1` and is forbidden after G129-L. The current prelaunch attempt is non-consumed, runtime remains `NOT_RUN`, and the one G128-D invocation remains unused. Acceptance G130-H завершает текущий run и не повышает ни один backlog profile/phase из `NOT_READY`.
 
 ## 6. Dependency graph and waves
 
@@ -489,32 +490,34 @@ Wave 0: G-CANON rewrite exact 74-path active/evaluation surface -> independent s
     -> Wave 1: META-PLAN rewrite exact 23-path plan/checker surface -> independent static G-META
         -> Wave 2: G128-R reseal exact Phase 128 authority/runtime closure -> independent authority/security review
             -> Wave 3: 128-E seal the complete historical-guard source envelope -> independent architecture/security review
-                -> Wave 4: 128-S static guard acceptance against the committed envelope
-                    -> Wave 5: 128-D one-time historical read-only guard -> independent receipt review
-                        -> Wave 6: 129-01-A create/accept sole hub.qa-runner/v1
-                            -> Wave 7: G-CANON-X + G-META-X executable receipt rechecks -> G129-P authority materialization
-                                -> Wave 8: 129-01-B/C progressive framework + health slice + independent preflight
-                                    -> Waves 9..14: 129-02 -> 129-03 -> 129-04 -> 129-05 -> 129-06 -> 129-07
-                                        -> Wave 15: 130-A central 47-row later-profile registry -> 130-B plugin -> 130-C architecture -> 130-D docs closure
-                                        -> G130-H: independent health/framework handoff -> STOP current implementation run
-                                        -- only after separate G-ACTIVATE-<phase> receipt --> Wave 16: 131-A HTTP -> 131-B runtime/observability -> 131-C identity -> 131-D docs closure
-                                            -> Wave 17A: 132-A/B parallel -> 132-C risk closure -> 132-D docs closure
-                                            -> Wave 17B: 133-A -> 133-B (shared Compose) -> 133-C docs closure
-                                            -> Wave 17C: 136-A/B parallel -> 136-C docs closure
-                                            -> Wave 17D: 137-A browser -> 137-B smoke -> 137-C docs closure
-                                            -> Wave 18A: 134-A/B/C/D/E in parallel after 131; 134-F after 133; 134-G after A-F -> 134-H docs closure
-                                            -> Wave 18B: 135-A..G/M..P after 131 and H..L after 133; 135-Q after A-P -> 135-R docs closure
-                                            -> Wave 19A: 138-A/B/C in parallel after 137/134/135 -> 138-D recovery -> 138-E docs closure
-                                            -> Wave 19B: 140-A -> 140-B -> 140-C docs closure (after 131,134,135)
-                                            -> Wave 20: 139-A/B parallel after 132/138 -> 139-C docs closure
-                                                -> Wave 21: 141-A CI -> 141-B clean-room -> 141-C final docs/handoff (after all Phase 130-140 docs receipts)
+                -> Wave 4: initial 128-S static guard acceptance against the committed envelope
+                    -> Wave 5: 128-H explicit-approval host PowerShell TCB provision + committed lock
+                        -> Wave 6: renewed 128-E wrapper envelope commit/reviews -> renewed 128-S receipt
+                            -> Wave 7: 128-D one-time historical read-only guard -> independent receipt review
+                                -> Wave 8: 129-01-A create/accept sole hub.qa-runner/v1
+                                    -> Wave 9: G-CANON-X + G-META-X executable receipt rechecks -> G129-P authority materialization
+                                        -> Wave 10: 129-01-B/C progressive framework + health slice + independent preflight
+                                            -> Waves 11..16: 129-02 -> 129-03 -> 129-04 -> 129-05 -> 129-06 -> 129-07
+                                                -> Wave 17: 130-A central 47-row later-profile registry -> 130-B plugin -> 130-C architecture -> 130-D docs closure
+                                                -> G130-H: independent health/framework handoff -> STOP current implementation run
+                                                -- only after separate G-ACTIVATE-<phase> receipt --> Wave 18: 131-A HTTP -> 131-B runtime/observability -> 131-C identity -> 131-D docs closure
+                                                    -> Wave 19A: 132-A/B parallel -> 132-C risk closure -> 132-D docs closure
+                                                    -> Wave 19B: 133-A -> 133-B (shared Compose) -> 133-C docs closure
+                                                    -> Wave 19C: 136-A/B parallel -> 136-C docs closure
+                                                    -> Wave 19D: 137-A browser -> 137-B smoke -> 137-C docs closure
+                                                    -> Wave 20A: 134-A/B/C/D/E in parallel after 131; 134-F after 133; 134-G after A-F -> 134-H docs closure
+                                                    -> Wave 20B: 135-A..G/M..P after 131 and H..L after 133; 135-Q after A-P -> 135-R docs closure
+                                                    -> Wave 21A: 138-A/B/C in parallel after 137/134/135 -> 138-D recovery -> 138-E docs closure
+                                                    -> Wave 21B: 140-A -> 140-B -> 140-C docs closure (after 131,134,135)
+                                                    -> Wave 22: 139-A/B parallel after 132/138 -> 139-C docs closure
+                                                        -> Wave 23: 141-A CI -> 141-B clean-room -> 141-C final docs/handoff (after all Phase 130-140 docs receipts)
 ```
 
 | Phase | ROADMAP requirements | Plans/tasks | Parallel rule |
 |---:|---|---|---|
 | CANON | all 128–141 IDs | exact 74-path active/evaluation closure; retire unsafe script; versioned BASE-vs-candidate declaration receipt | first hard predecessor; executable replay after G129-L |
 | META | all 128–141 IDs | exact 23-path closure: 21 plans + checker + receipt | static predecessor; executable replay after G129-L |
-| 128 | TASK-202, TASK-203, TASK-204 | authority reseal; committed guard-envelope seal; static review; one-time read-only Docker guard | reseal and envelope commit before static/run; historical wrapper forbidden after launcher acceptance |
+| 128 | TASK-202, TASK-203, TASK-204 | authority reseal; initial guard envelope/static review; G128-H host-interpreter TCB lock; renewed envelope/static review; one-time read-only Docker guard | explicit host-mutation approval; sealed absolute interpreter only; wrapper forbidden after launcher acceptance |
 | 129 | TASK-193, 197, 198, 201, 204, 219, 234 | immutable 176 tasks in seven plans | intentionally linear: shared manifest/consumer registry |
 | 130 | TASK-206, 218 | 4 tasks: central profiles; plugin; architecture; docs closure | single registry writer; docs closure last |
 | 131 | TASK-205, 207 | 4 tasks: HTTP; runtime/observability; identity; docs closure | each task ≤14 expanded paths; docs closure last |
@@ -589,7 +592,7 @@ Accepted G-CANON and G-META receipts/diffs; approved architecture spec §§1–6
 
 ### Task G128-E: Seal the complete historical-guard source envelope
 
-**Files:** Create/first-track exactly `.planning/audits/test-rebase/validate-contract.ps1`, `.planning/audits/test-rebase/apply_cutover_batch.py`, `.planning/audits/test-rebase/founder-greenfield-cutover-manifest.json`; Modify exactly `.planning/audits/test-rebase/inventory.py`, `.planning/audits/test-rebase/inventory.json`; Review only `.planning/audits/test-rebase/inventory.schema.json`, `.planning/audits/test-rebase/test-architecture-contract.json`, `.planning/audits/test-rebase/validate_test_architecture_contract.py`, `.planning/audits/test-rebase/build_cutover_manifest.py`, `.planning/audits/test-rebase/validate_cutover_manifest.py`, `.planning/decisions/ADR-TEST-ARCHITECTURE-REBASE-2026.md`.
+**Files:** Initial pass: Create/first-track exactly `.planning/audits/test-rebase/validate-contract.ps1`, `.planning/audits/test-rebase/apply_cutover_batch.py`, `.planning/audits/test-rebase/founder-greenfield-cutover-manifest.json`; Modify exactly `.planning/audits/test-rebase/inventory.py`, `.planning/audits/test-rebase/inventory.json`; Review only `.planning/audits/test-rebase/inventory.schema.json`, `.planning/audits/test-rebase/test-architecture-contract.json`, `.planning/audits/test-rebase/validate_test_architecture_contract.py`, `.planning/audits/test-rebase/build_cutover_manifest.py`, `.planning/audits/test-rebase/validate_cutover_manifest.py`, `.planning/decisions/ADR-TEST-ARCHITECTURE-REBASE-2026.md`. Mandatory renewal after G128-H: Modify only `.planning/audits/test-rebase/validate-contract.ps1`; Review only the same ten dependencies plus committed `.planning/audits/test-rebase/powershell-host-lock.json`.
 
 **Requirements:** `TASK-202`, `TASK-203`, `TASK-204`; approved spec §§1,2,5,6,12,14.
 
@@ -597,27 +600,28 @@ Accepted G-CANON and G-META receipts/diffs; approved architecture spec §§1–6
 Accepted G128-R architecture/security receipts; current Git tracking state for the eleven exact envelope paths; revised Phase 128 PLAN; wrapper source and all files it pins, executes or consumes; `.cursor/rules/07-agent-safety.mdc`.
 </read_first>
 
-**Consumes:** G128-R commit `fd3a5671` and its immutable architecture/ledger/founder identities; current hardened but partly untracked historical guard implementation.
+**Consumes:** Initially G128-R commit `fd3a5671` and its immutable architecture/ledger/founder identities; on the mandatory renewal, accepted G128-H with its committed host lock.
 
-**Produces:** One committed full-HEAD source envelope in which the wrapper and every executable/read authority it consumes have immutable Git tree identities. It does not produce a runtime receipt, manifest, batch transition or target launcher.
+**Produces:** Initially one committed full-HEAD source envelope. After G128-H, a renewed envelope commit/review in which `validate-contract.ps1` reads the committed host lock, records the current interpreter absolute path/hash/version in its evidence, and fails closed unless path, SHA256, file/product version and Authenticode identity exactly match. Neither pass produces a runtime receipt, manifest, batch transition or target launcher.
 
 - [ ] Begin with the failing tracking sentinel: `validate-contract.ps1`, `apply_cutover_batch.py` and `founder-greenfield-cutover-manifest.json` are currently untracked, while `inventory.py` and `inventory.json` differ from `HEAD`; therefore G128-S must remain `NOT_READY` before this task.
 - [ ] Review the current five writable-path bytes as one closed source envelope. Reject any hidden parameter/environment override, repository write outside the already declared inventory-generation path, SUT profile, manifest publication, batch application, protected-zone access, mutable executable path or dependency on a file outside the eleven literal paths.
 - [ ] Reconcile immutable identities without execution: inventory remains exactly `1,049` rows with SHA-256 `72de6a81b2bd5da8873a98e784a5069a661e9caea083f10722aa85e9f91b4511`; founder manifest remains `df503a7f…`; architecture contract remains `62eb27ecd93164cf404639e6c8b85d14843613da2d34ea4da08101a673bf1335`; cohorts/operations remain `507/245/297+28` and `173/1,120/max56`.
 - [ ] `arch-ver` reviews the exact five-path create/modify diff plus the six read-only same-HEAD dependencies for architecture/identity preservation. `security-auditor` independently reviews wrapper hash closure, no-follow/protected-zone/command boundaries and confirms no runtime/publish/apply path was exercised.
 - [ ] Commit exactly the five writable envelope paths. After commit, all eleven envelope paths must resolve to the same committed `HEAD` tree and the five writable paths must have clean worktree/index status. Any drift, missing tracked blob or extra staged path keeps G128-E `NOT_READY`.
+- [ ] After accepted G128-H, renew this gate: modify only `validate-contract.ps1` to bind `[Environment]::ProcessPath` (or an equivalently direct current-process executable identity, never PATH discovery) to the committed host lock and fail before Docker/guard work on any mismatch. Commit only the wrapper; independently re-review the new twelve-path envelope. This renewal invalidates the initial G128-S receipt.
 
 <verify>
-<automated>Static read-only source/Git-tree review only; no Python, validator, builder, Docker, test, SUT, manifest publication, apply, rollback or report creation. Expected: exact eleven-path committed envelope, five-path clean writable subset, immutable `1049 / 507-245-297+28 / 173-1120-max56` identities and independent architecture/security PASS.</automated>
+<automated>Static read-only source/Git-tree review only; no Python, validator, builder, Docker, test, SUT, manifest publication, apply, rollback or report creation. Initial expected result: exact eleven-path committed envelope and five-path clean writable subset. Renewal expected result: separately committed host lock plus wrapper-only commit, exact twelve-path envelope, fail-closed current-process identity binding, immutable `1049 / 507-245-297+28 / 173-1120-max56` identities and independent architecture/security PASS.</automated>
 </verify>
 
-**Done:** G128-E records one reviewed committed source envelope and no runtime claim; only then may G128-S write its static receipt against that exact `HEAD`.
+**Done:** Initial G128-E records one reviewed committed source envelope. After G128-H, renewed G128-E records the hardened wrapper commit and renewed envelope reviews. Neither makes a runtime claim; G128-S must be produced again against the renewed exact `HEAD`.
 
-**Atomic commit:** `chore(testframework): seal historical guard source`; stage exactly the five create/modify paths above. Exclude `VERIFICATION.md`, baseline/debug evidence, `STATE`/ROADMAP/COVERAGE/backlog churn, frontend dirt, reports, generated `cutover-manifest.json`, handoff artifacts and `pro-qa-ai/**`.
+**Atomic commit:** Initial: `chore(testframework): seal historical guard source`, stage exactly the five create/modify paths above. Renewal: `fix(testframework): bind historical guard host interpreter`, stage only `.planning/audits/test-rebase/validate-contract.ps1`. Exclude `VERIFICATION.md`, host-lock file already committed by G128-H, baseline/debug evidence, `STATE`/ROADMAP/COVERAGE/backlog churn, frontend dirt, reports, generated `cutover-manifest.json`, handoff artifacts and `pro-qa-ai/**`.
 
 ### Task 128-A: Statically accept the historical guard bootstrap
 
-**Files:** Review only `.planning/audits/test-rebase/validate-contract.ps1`, `.planning/audits/test-rebase/validate_test_architecture_contract.py`, `.planning/audits/test-rebase/build_cutover_manifest.py`, `.planning/audits/test-rebase/validate_cutover_manifest.py`, `.planning/audits/test-rebase/apply_cutover_batch.py`, the three sealed authority JSON files and the G-META-revised `.planning/phases/128-tf-python-scaffold/PLAN.md`; Modify only `.planning/audits/test-rebase/VERIFICATION.md` for the static receipt.
+**Files:** Review only `.planning/audits/test-rebase/validate-contract.ps1`, `.planning/audits/test-rebase/validate_test_architecture_contract.py`, `.planning/audits/test-rebase/build_cutover_manifest.py`, `.planning/audits/test-rebase/validate_cutover_manifest.py`, `.planning/audits/test-rebase/apply_cutover_batch.py`, the three sealed authority JSON files, the G-META-revised `.planning/phases/128-tf-python-scaffold/PLAN.md` and, for renewal, `.planning/audits/test-rebase/powershell-host-lock.json`; Modify only `.planning/audits/test-rebase/VERIFICATION.md` for the static receipt.
 
 **Requirements:** `TASK-202`, `TASK-203`, `TASK-204`; approved spec §§1,2,5,6,12,14.
 
@@ -625,47 +629,76 @@ Accepted G128-R architecture/security receipts; current Git tracking state for t
 AGENTS.md; `.cursor/REGULATION.md` §§4,8,15; `.cursor/rules/07-agent-safety.mdc`; accepted G-CANON/G-META/G128-R receipts; exact files above; approved architecture spec §§1,5,6,12.
 </read_first>
 
-**Consumes:** G128-E committed full-HEAD guard envelope, G128-R-resealed authority, sealed ledger `1049 / sha256 72de6a81...`, current no-argument wrapper, builder stdout contract, independent validator and immutable Phase 129 arithmetic.
+**Consumes:** The applicable G128-E committed full-HEAD guard envelope, G128-R-resealed authority, sealed ledger `1049 / sha256 72de6a81...`, current no-argument wrapper, builder stdout contract, independent validator and immutable Phase 129 arithmetic. Renewal additionally consumes accepted G128-H and the renewed G128-E wrapper commit.
 
-**Produces:** G128-S static receipt proving the existing wrapper is a one-time guard-only exception: no accepted parameter surface, no writable repo mount, no SUT profile, no `--write`, no batch application, no authority publication, no `hub.qa-runner/v1` claim.
+**Produces:** Initial G128-S static receipt authorizing only G128-H. After wrapper hardening, a renewed G128-S receipt proves the one-time guard-only exception, seals the literal absolute `pwsh.exe` path and full invocation, and retains: no accepted parameter surface, no writable repo mount, no SUT profile, no `--write`, no batch application, no authority publication, no `hub.qa-runner/v1` claim.
 
 - [ ] Review the exact committed wrapper/tool hashes and all writable/mount/process paths. A dirty/untracked envelope path, mutable image, hidden CLI/environment override, writable source/authority mount, missing limits, broad cleanup or wrapper path drift keeps G128-S `NOT_READY`.
 - [ ] Prove from source that `.planning/audits/test-rebase/cutover-manifest.json` must remain absent before and after the wrapper and that builder/validator/applier negative sentinels do not mutate the repository.
-- [ ] Record the one-shot window: the wrapper may execute only after this receipt and before G129-L; the receipt expires on full HEAD, tool hash, image digest or sealed-authority drift.
+- [ ] Initial pass records that G128-D remains forbidden and only G128-H may proceed. After G128-H and renewed G128-E, repeat the full review; record the one-shot window and a literal command whose executable token is the normalized absolute path copied verbatim from the accepted host lock. The receipt expires on full HEAD, wrapper/lock/tool hash, interpreter version/signature, image digest or sealed-authority drift.
+- [ ] Reject unqualified `pwsh`, PATH/PATHEXT lookup, `Get-Command` discovery, `powershell.exe`, aliases, shims, environment-variable substitution, alternate package IDs and every fallback. The renewed wrapper must record its actual current-process path/hash/file version/product version and fail closed before Docker work if any locked value differs.
 - [ ] If current source cannot support all assertions safely, record the exact failed assertion and retain `NOT_READY`; do not add a second launcher or expand the wrapper.
 
 <verify>
-<automated>Read-only static source review on host; no validator, builder, Docker, test or Git command. Expected: one G128-S receipt with exact hashes and zero HIGH, or an explicit `NOT_READY` failed assertion.</automated>
+<automated>Read-only static source review on host; no validator, builder, Docker or test command. Initial expected result is a G128-S receipt that can authorize only G128-H. Renewal expected result is a new receipt with exact wrapper/host-lock hashes, literal absolute invocation and zero HIGH, or an explicit `NOT_READY` failed assertion.</automated>
 </verify>
 
-**Done:** G128-S names the exact one-time command, revision/hash envelope and prohibition set; it neither claims runtime PASS nor creates authority.
+**Done:** Initial G128-S cannot authorize G128-D. Only renewed G128-S names the exact literal-absolute one-time command, revision/hash/interpreter envelope and prohibition set; neither receipt claims runtime PASS or creates authority.
 
 **Atomic commit:** `docs(testframework): зафиксировать static guard review`; stage only `.planning/audits/test-rebase/VERIFICATION.md`; body references TASK-204.
 
+### Task G128-H: Provision and seal the host PowerShell interpreter TCB
+
+**Files:** Create and commit exactly `.planning/audits/test-rebase/powershell-host-lock.json`; Review only `.planning/audits/test-rebase/validate-contract.ps1` and Microsoft-supported WinGet metadata for exact package `Microsoft.PowerShell`. Wrapper modification belongs only to the later renewed G128-E task.
+
+**Requirements:** `TASK-204`; approved spec §§1,5,6,12,14; host-interpreter prelaunch incident repair.
+
+<read_first>
+Accepted initial G128-S receipt; explicit host-mutation approval record; `.cursor/rules/07-agent-safety.mdc`; exact Microsoft WinGet package metadata for `Microsoft.PowerShell`; current wrapper source.
+</read_first>
+
+**Consumes:** Accepted initial G128-S as static evidence only. A failed or premature prelaunch attempt is non-consumed and does not spend the single G128-D invocation.
+
+**Produces:** One committed `powershell-host-lock.json` sealing the only permitted host interpreter TCB. It contains exactly the normalized absolute executable path, SHA256, file version, product version, Authenticode signer/status/thumbprint, package id/version/source URL and install method needed by the renewed wrapper envelope.
+
+- [ ] Keep G128-H `NOT_READY` until the founder/operator gives explicit approval for Windows host mutation. Absence, ambiguity or scope expansion in approval is a hard stop; planning/static review alone never grants installation authority.
+- [ ] After approval only, provision official stable PowerShell 7 using Microsoft-supported WinGet with exact package id `Microsoft.PowerShell`, exact match and the `winget` source. Do not use a preview package, Microsoft Store alias, MSI/ZIP/manual download, package-manager alternative, `powershell.exe` or existing PATH-resolved `pwsh` as fallback.
+- [ ] Resolve the installed real `pwsh.exe` without PATH/PATHEXT lookup and reject a relative path, alias, shim, symlink/reparse ambiguity or non-file target. Independently compute SHA256; capture file/product version; require Authenticode status `Valid` and capture signer identity plus certificate thumbprint; capture the resolved package version, provenance/source URL and the exact WinGet install method.
+- [ ] Create `powershell-host-lock.json` with exact required keys `absolute_path`, `sha256`, `file_version`, `product_version`, `authenticode_status`, `authenticode_signer`, `authenticode_thumbprint`, `package_id`, `package_version`, `package_source_url`, `install_method`; require `package_id == Microsoft.PowerShell`, a stable version, absolute `.exe` path, lowercase 64-hex SHA256, nonempty provenance fields and no extra keys. Commit only this file and obtain independent `security-auditor` + `arch-ver` acceptance.
+- [ ] Do not invoke `validate-contract.ps1`. The next task is renewed G128-E, which alone may modify and commit the wrapper to verify/record the current process executable identity and fail closed; renewed G128-S is mandatory afterward because wrapper bytes change.
+
+<verify>
+<automated>Execution is `NOT_READY` in this planning revision. After explicit approval, verification is bounded host/package/file identity inspection only: exact `Microsoft.PowerShell` stable WinGet provenance, exact lock fields, independent security/architecture review, no wrapper/validator/builder/Docker/SUT/G128-D execution. Runtime remains `NOT_RUN`.</automated>
+</verify>
+
+**Done:** Host lock is committed and independently accepted; no G128-D attempt is consumed. Renewed G128-E and renewed G128-S remain hard predecessors.
+
+**Atomic commit:** `chore(testframework): seal PowerShell host interpreter`; stage only `.planning/audits/test-rebase/powershell-host-lock.json`; no installer/download artifact, wrapper, report, manifest or unrelated file.
+
 ### Task 128-B: Run the one-time guard and review its raw receipt
 
-**Files:** Create task-owned ignored `testframework/reports/<task-run>/**` evidence; Modify only `.planning/audits/test-rebase/VERIFICATION.md` after independent review. `.planning/audits/test-rebase/cutover-manifest.json` remains absent.
+**Files:** Create task-owned ignored `testframework/reports/<task-run>/**` evidence; Modify only `.planning/audits/test-rebase/VERIFICATION.md` after independent review; Read only `.planning/audits/test-rebase/powershell-host-lock.json` and the renewed `.planning/audits/test-rebase/validate-contract.ps1`. `.planning/audits/test-rebase/cutover-manifest.json` remains absent.
 
 **Requirements:** `TASK-202`, `TASK-203`, `TASK-204`; approved spec §§5,6,12,14.
 
 <read_first>
-Accepted G128-S receipt; exact `.planning/audits/test-rebase/validate-contract.ps1`; all sealed authority files; revised Phase 128 PLAN; `.cursor/playbooks/verification.md`.
+Accepted G128-H host lock, renewed G128-E envelope and renewed G128-S receipt; exact `.planning/audits/test-rebase/validate-contract.ps1`; all sealed authority files; revised Phase 128 PLAN; `.cursor/playbooks/verification.md`.
 </read_first>
 
-**Consumes:** Exact G128-S full HEAD/tool/image/authority hashes and the historical guard command with no parameters.
+**Consumes:** Exact G128-H plus renewed G128-E/G128-S full HEAD, wrapper/host-lock/interpreter/tool/image/authority identities and the renewed receipt's literal absolute historical guard command with no wrapper parameters.
 
 **Produces:** One G128-D raw evidence set and a conclusion-blind `arch-ver` + `qa-auto-ver` receipt covering inventory, guard sensitivity, deterministic builder bytes, independent validator/applier sentinels, inner/outer timeout, first exit and exact cleanup.
 
-- [ ] Execute exactly once: `pwsh -NoProfile -File .planning/audits/test-rebase/validate-contract.ps1`. It is the sole pre-launcher Docker exception and is not represented as a target test profile.
+- [ ] G128-D has no executable command while the host lock or renewed G128-S is absent. After acceptance, execute exactly once using the literal normalized absolute `pwsh.exe` path copied verbatim from `powershell-host-lock.json` into renewed G128-S, followed only by `-NoProfile -NonInteractive -File .planning/audits/test-rebase/validate-contract.ps1`. No PATH lookup, variable/alias/shim, `powershell.exe`, extra wrapper flag or fallback is permitted. This is the sole pre-launcher Docker exception and is not represented as a target test profile.
 - [ ] Assert before and after that no SUT test ran, no cutover batch/state changed, no manifest was published, protected/dirty paths were untouched and only task-owned resources/reports were created.
 - [ ] Independent reviewers inspect raw output without author conclusions. Missing raw artifact, arithmetic drift, cleanup residue, wrapper retry or any HIGH leaves G128-D non-passing.
 - [ ] Seal the receipt and retire the exception. After G129-L, any invocation of this wrapper is a policy violation; all target work uses only `testframework/docker/run-task.ps1`.
 
 <verify>
-<automated>The exact no-argument wrapper call above is permitted only by accepted G128-S. Expected outcome is a reviewed G128-D receipt, not `hub.qa-runner/v1` PASS. Any extra flag, second invocation, SUT/cutover/apply/publish action or missing independent review is non-acceptance.</automated>
+<automated>The literal-absolute no-argument wrapper call sealed by renewed G128-S is permitted only after G128-H and renewed G128-E/G128-S. Expected outcome is a reviewed G128-D receipt, not `hub.qa-runner/v1` PASS. Any PATH/unqualified/legacy/fallback interpreter, identity drift, extra flag, second consumed invocation, SUT/cutover/apply/publish action or missing independent review is non-acceptance.</automated>
 </verify>
 
-**Done:** one and only one G128-D run is independently accepted on the sealed revision, authority is still absent, and G129-L is unblocked without claiming target-runner readiness.
+**Done:** one and only one G128-D run through the independently sealed absolute interpreter is accepted on the renewed revision, authority is still absent, and G129-L is unblocked without claiming target-runner readiness. The current prelaunch incident attempt is recorded as non-consumed; present status remains `NOT_READY` / runtime `NOT_RUN`.
 
 **Atomic commit:** `docs(testframework): принять one-time Phase 128 guard`; stage only `.planning/audits/test-rebase/VERIFICATION.md`; body references TASK-204. Stop before staging on Git lock/process or dirty overlap.
 
@@ -1893,9 +1926,9 @@ No deferred product storage/authz migration entered implementation scope; report
 | First-slice signatures | `HubSettings`, `RuntimeIds`, `OwnershipLedger`, `Redactor`, `TestCaseRecord`, `HealthApi.fetch`, `RunEnvelope/execute/main` used consistently |
 | Marker/status consistency | `full` remains profile, `load` remains separate runtime; `NOT_READY`, `NOT_RUN`, `PASS`, `FAIL` are distinct |
 | Incomplete-marker scan | No standard unfinished-work token, vague catch-all action, deferred wiring or empty future-directory instruction remains in task bodies |
-| Forbidden architecture scan | No BaseTest/god helper/singleton/global rerun/fixed sleep/runtime install/broad cleanup is planned |
+| Forbidden architecture scan | No BaseTest/god helper/singleton/global rerun/fixed sleep/runtime dependency install/broad cleanup is planned; the sole host mutation is the explicit-approval G128-H TCB provision from exact `Microsoft.PowerShell` WinGet provenance |
 | Protected/non-overlap | `backend/tests/**` and `frontend/tests/**` are native-unit-only; `testframework/**` is Python non-unit/framework; `pro-qa-ai/**` excluded |
-| Execution during planning | No Docker/test/validator/Git command was executed; this document is the only mutation |
+| Execution during this repair | No installation, Docker, test, validator, Python or Git command was executed; mutations are limited to the master plan, Phase 128 plan and G-META receipt hash fields |
 
 ### Independent checker resolution matrix
 
@@ -1905,6 +1938,7 @@ No deferred product storage/authz migration entered implementation scope; report
 | Phase 128 architecture contract/seals still encode direct layers/core | CONFIRMED | Added G128-R after G-META and before G128-S. Exact five-file authority reseal updates approved physical semantics and derived contract-digest bindings while proving ledger/cohort/batch identities unchanged. No new digest is invented in the plan. | `.planning/audits/test-rebase/test-architecture-contract.json` currently lists `core/api/integration/contract/e2e`; both cutover builder and independent validator bind its current digest. |
 | Historical wrapper used as pre-launcher publication path | CONFIRMED | Removed. G128-S statically accepts only the existing no-argument read-only guard; G128-D permits one guard run and conclusion-blind review; G129-L accepts the sole target launcher; only then G129-P materializes authority through that same launcher. Wrapper never claims `hub.qa-runner/v1` and is forbidden after G129-L. | `.planning/audits/test-rebase/validate-contract.ps1` has `param()` and explicit manifest-absence assertions; approved spec §§5–6 names `testframework/docker/run-task.ps1` as sole target entrypoint. |
 | G128-S source envelope was partly untracked/dirty | CONFIRMED | Added G128-E between G128-R and G128-S. It first-tracks the wrapper/applier/founder manifest, commits the accepted inventory generator/ledger bytes, binds the six existing read-only authorities to the same full HEAD and requires independent architecture/security review before any static or runtime acceptance. | Current Git state after G128-R: three untracked and two modified writable envelope paths; wrapper pins executable blobs from HEAD and consumes the founder manifest. |
+| G128-D prelaunch used an unsealed host interpreter lookup | CONFIRMED; attempt NON-CONSUMED | Added G128-H after initial G128-S and before G128-D. Only explicit host-mutation approval may provision official stable WinGet `Microsoft.PowerShell`; an exact committed host lock seals absolute path, SHA256, file/product version, Authenticode signer/status/thumbprint and package provenance. The later renewed G128-E hardens/commits the wrapper against current-process identity, renewed G128-S seals the literal command, and only then can G128-D run. PATH `pwsh`, `powershell.exe` and fallback are forbidden. | Current plan invoked unqualified `pwsh`; no trusted interpreter identity or accepted G128-D receipt exists. Current status is `NOT_READY`, runtime `NOT_RUN`, and the failed/premature attempt does not spend the one-shot allowance. |
 | `129-01-PLAN.md` still targets old scaffold | CONFIRMED | META-PLAN rewrites `129-01-PLAN.md` and cross-links in `129-02-PLAN.md` … `129-07-PLAN.md` before execution; stale token absence and progressive-target presence are hard G-META assertions. | Current `.planning/phases/129-tf-e2e-shared/129-01-PLAN.md` contains `requirements.lock`, `pytest.ini`, root layer packages, `Dockerfile`, `compose.yaml` and `.gitkeep`; approved spec §§3,5. |
 | No Phase 130–141 plan files exist | REJECTED | All twelve current execution authorities exist as live `PLAN.md`; META-PLAN lists each exact path and treats it as stale revision input. No `*-PLAN.md` rename is introduced. | Exact existing paths `.planning/phases/130-tf-traceability-gates/PLAN.md` through `.planning/phases/141-tf-ci-final-verification/PLAN.md`; 130–136 historical `VERIFICATION-SKIPPED.md` are non-authoritative. |
 | Phase 130–141 tasks lack explicit Requirements/Done in master | CONFIRMED | All 61 master tasks now carry exact `Files`, Task IDs/spec sections, `<read_first>`, `Consumes/Produces`, verify profile, measurable `Done` and atomic allowlist; META-PLAN requires the same schema in each live downstream plan. | Master §§10–16 and approved spec §12 phase intent / §14 DoD. |
@@ -1926,6 +1960,7 @@ No deferred product storage/authz migration entered implementation scope; report
 - Active-canon assertion: the G-CANON list contains exactly `9+10+10+3+11+25+2+4=74` literal unique paths: 70 pre-existing active files plus four planned versioned evaluation artifacts. The 70-path scoped scan has zero old active routing reference after only the named historical/negative exclusions; the four new artifacts have exact declaration/schema/receipt ownership and are not scan exclusions. The evaluator proves only exact declared routing-contract conformance between the fixed BASE blobs and candidate bytes, never future-LLM behavior.
 - Existing live plan assertion: only after G-CANON, the G-META list contains exactly 23 literal unique paths: 21 pre-existing live plans plus the planned checker and bounded receipt. Phase 130–141 use `PLAN.md`, not an invented suffix; the checker rejects any missing/extra/duplicate plan and any `176/173/1120/56` drift.
 - Authority-reseal assertion: only after G-META, the exact five G128-R files contain approved physical semantics and mutually matching derived contract-digest bindings; inventory/manifest/tool inputs remain read-only and reconcile to `1049 / 507-245-297+28 / 176-173-1120-max56`.
+- Host-interpreter assertion: initial G128-S authorizes only G128-H; explicit host-mutation approval precedes exact stable WinGet `Microsoft.PowerShell` provisioning and the committed host lock. Renewed G128-E/G128-S must bind the hardened wrapper and literal absolute interpreter before G128-D. PATH `pwsh`, `powershell.exe` and every fallback fail closed; the current prelaunch attempt is non-consumed and runtime remains `NOT_RUN`.
 - Phase 129 planning assertion: stale scaffold tokens must disappear from executable task paths/actions while exact ordered identities remain `176 tasks / 173 batch IDs / 1,120 operations / max 56`.
 - Task-schema assertion: exactly 61 headings exist, distributed `4/4/4/3/8/18/3/3/5/3/3/3`; every block has one non-empty `Files`, `Requirements`, `<read_first>`, `Consumes/Produces`, registered profile, measurable `Done` and atomic commit boundary.
 - Profile assertion: the central table contains 47 unique later IDs; all 61 verify blocks resolve to exactly those 47 IDs, each row has image key, one of six exact non-zero limit classes, inner/outer deadline and literal target; no writer after Task 130-A and no implicit/default profile remains.
@@ -1938,8 +1973,8 @@ No deferred product storage/authz migration entered implementation scope; report
 
 ## 22. Execution handoff
 
-Before implementation, a new independent gsd-plan-checker re-reviews this master plan; every earlier acceptance remains revoked. Execution order is exact: one writer completes the 74-path G-CANON closure (70 active files plus four versioned evaluation artifacts); its BASE-vs-candidate evaluator proves only the exact declared routes in three skill docs, not future-LLM behavior. One planning writer then completes the 23-path G-META closure (21 live plans plus checker and bounded receipt); one authority writer completes the five-file G128-R reseal; one envelope writer then commits and independently reviews the exact five writable plus six read-only G128-E source paths; only then may G128-S begin. The checker inspects exact `74 + 23 + 5` predecessor allowlists plus the explicit G128-E committed-envelope task, authority hash closure, scoped zero-old-active-reference sentinel, 61-task backlog distribution, 47-row later-profile registry, maximum-14 path bound, Phase 134 split, literal docs-closure ownership and the G130-H execution stop. The current run ends after G130-H; later execution requires a separately accepted founder activation receipt. Executors use `superpowers:subagent-driven-development` for isolated task ownership or `superpowers:executing-plans` for sequential sealed batches; every task halts with `NOT_READY` until its named gate is independently accepted.
+Before implementation, a new independent gsd-plan-checker re-reviews this master plan; every earlier acceptance remains revoked. Execution order is exact: one writer completes the 74-path G-CANON closure (70 active files plus four versioned evaluation artifacts); its BASE-vs-candidate evaluator proves only the exact declared routes in three skill docs, not future-LLM behavior. One planning writer then completes the 23-path G-META closure (21 live plans plus checker and bounded receipt); one authority writer completes the five-file G128-R reseal; one envelope writer commits and reviews the initial G128-E source envelope; initial G128-S may then authorize only G128-H. G128-H remains blocked on explicit host-mutation approval, provisions only official stable WinGet `Microsoft.PowerShell`, and commits the exact host lock without running the guard. A renewed G128-E then modifies/commits only the wrapper to bind current-process identity, and renewed G128-S independently seals the new bytes plus literal absolute invocation; only this renewed receipt permits the single G128-D run. The checker inspects exact `74 + 23 + 5` predecessor allowlists, the host TCB chain, authority hash closure, scoped zero-old-active-reference sentinel, 61-task backlog distribution, 47-row later-profile registry, maximum-14 path bound, Phase 134 split, literal docs-closure ownership and the G130-H execution stop. The current run ends after G130-H; later execution requires a separately accepted founder activation receipt. Executors use `superpowers:subagent-driven-development` for isolated task ownership or `superpowers:executing-plans` for sequential sealed batches; every task halts with `NOT_READY` until its named gate is independently accepted.
 
 ## PLANNING COMPLETE
 
-Master meta-plan is ready for a new independent plan-checker re-review; no acceptance is claimed and every prior acceptance remains revoked. It preserves exact `74 + 23 + 5` predecessor closures and Phase 129 arithmetic, centralizes all 47 later profiles before use, bounds every one of 61 mapped Phase 130–141 tasks to at most 14 expanded paths, splits Phase 134 realtime ownership, and makes exact docs closure a hard phase gate. Current execution stops at G130-H after skeleton/profile/health acceptance; Phases 131–141 remain `NOT_READY` on-demand backlog. Runtime status for this planning revision is `NOT_RUN`.
+Master meta-plan is ready for a new independent plan-checker re-review; no acceptance is claimed and every prior acceptance remains revoked. It adds the G128-H host-interpreter TCB chain without changing exact `74 + 23 + 5` predecessor closures, Phase 129 `176/173/1120/max56`, the 47 later profiles or the 61-task Phase 130–141 distribution. Current G128-D status is `NOT_READY`, runtime is `NOT_RUN`, and the prelaunch incident attempt is non-consumed. Current execution still stops at G130-H; Phases 131–141 remain `NOT_READY` on-demand backlog.
