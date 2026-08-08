@@ -73,10 +73,11 @@ task-owned host directory.
 entrypoints внутри test container:
 
 ```text
+python-contract:     pytest -p no:cacheprovider testframework/tests/contract
 python-api:          pytest -p no:cacheprovider -m api
 python-integration:  pytest -p no:cacheprovider -m integration
 python-e2e-smoke:    pytest -p no:cacheprovider -m "e2e and smoke"
-python-e2e-full:     pytest -p no:cacheprovider -m "e2e and full"
+python-e2e-full:     launcher profile `full` -> pytest -p no:cacheprovider -m e2e testframework/tests/e2e
 python-load:         python -m locust -f load/locustfile.py --headless <approved profile>
 ```
 

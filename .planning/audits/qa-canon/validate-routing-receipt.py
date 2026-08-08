@@ -5,7 +5,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
+import stat
 import subprocess
 import sys
 from pathlib import Path
@@ -13,8 +15,35 @@ from pathlib import Path
 VERSION = "hub.qa-routing-evaluator/v1"
 BASE = "31dfc7e0aeed4c2667de9d43e62637fd68d3b6f2"
 CANDIDATE_HEAD = "0769bc1c13536124808e651903e3c8a2cb4bdd1d"
-ROOT = Path(__file__).resolve().parents[3]
-HERE = Path(__file__).resolve().parent
+SCRIPT = Path(os.path.abspath(os.fspath(Path(__file__))))
+
+
+def reject_symlink_components(path: Path) -> None:
+    """Lstat every existing component without resolving through symlinks."""
+    absolute = Path(os.path.abspath(os.fspath(path)))
+    current = Path(absolute.anchor)
+    for part in absolute.parts[1:]:
+        current /= part
+        if stat.S_ISLNK(current.lstat().st_mode):
+            raise ValueError(f"symlink component forbidden: {current}")
+
+
+def trusted_repo_root() -> Path:
+    cwd = Path(os.path.abspath(os.fspath(Path.cwd())))
+    reject_symlink_components(cwd)
+    run = subprocess.run(
+        ["git", "rev-parse", "--show-toplevel"], cwd=cwd, check=True,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5,
+    )
+    root = Path(os.path.abspath(run.stdout.decode("utf-8").strip()))
+    reject_symlink_components(root)
+    return root
+
+
+ROOT = trusted_repo_root()
+HERE = ROOT / ".planning" / "audits" / "qa-canon"
+if SCRIPT != HERE / "validate-routing-receipt.py":
+    raise ValueError("evaluator path is not the exact repository artifact path")
 SCENARIOS = HERE / "routing-scenarios.v1.json"
 SCHEMA = HERE / "routing-receipt.schema.v1.json"
 RECEIPT = HERE / "routing-receipt.v1.json"
@@ -50,16 +79,37 @@ def sha(data: bytes) -> str:
 
 
 def bounded_utf8(path: Path) -> tuple[bytes, str]:
+    lexical = Path(os.path.abspath(os.fspath(path)))
+    try:
+        lexical.relative_to(ROOT)
+    except ValueError as exc:
+        raise ValueError(f"path escape: {path}") from exc
+    reject_symlink_components(lexical)
     root = ROOT.resolve(strict=True)
-    if path.is_symlink():
-        raise ValueError(f"symlink forbidden: {path}")
-    resolved = path.resolve(strict=True)
+    resolved = lexical.resolve(strict=True)
     if resolved != root and root not in resolved.parents:
         raise ValueError(f"path escape: {path}")
-    size = resolved.stat().st_size
-    if size > MAX_BYTES:
-        raise ValueError(f"size budget exceeded: {path}")
-    data = resolved.read_bytes()
+    flags = os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
+    descriptor = os.open(lexical, flags)
+    try:
+        info = os.fstat(descriptor)
+        if not stat.S_ISREG(info.st_mode):
+            raise ValueError(f"regular file required: {path}")
+        if info.st_size > MAX_BYTES:
+            raise ValueError(f"size budget exceeded: {path}")
+        chunks: list[bytes] = []
+        remaining = info.st_size
+        while remaining:
+            chunk = os.read(descriptor, min(65_536, remaining))
+            if not chunk:
+                break
+            chunks.append(chunk)
+            remaining -= len(chunk)
+        data = b"".join(chunks)
+        if remaining or os.read(descriptor, 1) or len(data) != info.st_size:
+            raise ValueError(f"bounded read mismatch: {path}")
+    finally:
+        os.close(descriptor)
     return data, data.decode("utf-8")
 
 

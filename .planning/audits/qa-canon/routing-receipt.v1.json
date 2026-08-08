@@ -3,7 +3,7 @@
         "schema_version":  "hub.qa-routing-receipt/v1",
         "base_commit":  "31dfc7e0aeed4c2667de9d43e62637fd68d3b6f2",
         "candidate_head":  "0769bc1c13536124808e651903e3c8a2cb4bdd1d",
-        "candidate_content_sha256":  "6ff31f3f7f091d03a66ab6d81b91c0f22d024d1c97f9316713d78cd8abf17790",
+        "candidate_content_sha256":  "c748cb3a001084bf36b1c2a9a585dbd66b5c647c442f0a79830457c0846cc3a5",
         "scenario_sha256":  "526f9cb9b8dc15ed3096486a2e920cf9973f04d6682289889051510e186df99a",
         "skill_blobs":  {
                             ".cursor/skills/gsd-ru/goal-verify/SKILL.md":  "92c0bd067ce49d9ec70b1a49b6306ac29aef0321c9790110039fd66c72295e2f",
@@ -27,13 +27,13 @@
         "reviewer":  "qa-auto-ver+arch-ver+security-auditor",
         "reviewed_at":  "2026-08-08T00:00:00Z",
         "evaluator_version":  "hub.qa-routing-evaluator/v1",
-        "evaluator_sha256":  "4bc641d7f88ecbaf256611a8c6ac7e60cfbbc30f6622cb1d50ec99dc9a72fbe9"
+        "evaluator_sha256":  "6473a9eaa1483e99f89da4d2a64654b508c8adab7cc397abea1ee292fcc93b82"
     },
     {
         "schema_version":  "hub.qa-routing-receipt/v1",
         "base_commit":  "31dfc7e0aeed4c2667de9d43e62637fd68d3b6f2",
         "candidate_head":  "0769bc1c13536124808e651903e3c8a2cb4bdd1d",
-        "candidate_content_sha256":  "6ff31f3f7f091d03a66ab6d81b91c0f22d024d1c97f9316713d78cd8abf17790",
+        "candidate_content_sha256":  "c748cb3a001084bf36b1c2a9a585dbd66b5c647c442f0a79830457c0846cc3a5",
         "scenario_sha256":  "526f9cb9b8dc15ed3096486a2e920cf9973f04d6682289889051510e186df99a",
         "skill_blobs":  {
                             ".cursor/skills/gsd-ru/goal-verify/SKILL.md":  "92c0bd067ce49d9ec70b1a49b6306ac29aef0321c9790110039fd66c72295e2f",
@@ -58,13 +58,13 @@
         "reviewer":  "qa-auto-ver+arch-ver+security-auditor",
         "reviewed_at":  "2026-08-08T00:00:00Z",
         "evaluator_version":  "hub.qa-routing-evaluator/v1",
-        "evaluator_sha256":  "4bc641d7f88ecbaf256611a8c6ac7e60cfbbc30f6622cb1d50ec99dc9a72fbe9"
+        "evaluator_sha256":  "6473a9eaa1483e99f89da4d2a64654b508c8adab7cc397abea1ee292fcc93b82"
     },
     {
         "schema_version":  "hub.qa-routing-receipt/v1",
         "base_commit":  "31dfc7e0aeed4c2667de9d43e62637fd68d3b6f2",
         "candidate_head":  "0769bc1c13536124808e651903e3c8a2cb4bdd1d",
-        "candidate_content_sha256":  "6ff31f3f7f091d03a66ab6d81b91c0f22d024d1c97f9316713d78cd8abf17790",
+        "candidate_content_sha256":  "c748cb3a001084bf36b1c2a9a585dbd66b5c647c442f0a79830457c0846cc3a5",
         "scenario_sha256":  "526f9cb9b8dc15ed3096486a2e920cf9973f04d6682289889051510e186df99a",
         "skill_blobs":  {
                             ".cursor/skills/gsd-ru/goal-verify/SKILL.md":  "92c0bd067ce49d9ec70b1a49b6306ac29aef0321c9790110039fd66c72295e2f",
@@ -90,13 +90,13 @@
         "reviewer":  "qa-auto-ver+arch-ver+security-auditor",
         "reviewed_at":  "2026-08-08T00:00:00Z",
         "evaluator_version":  "hub.qa-routing-evaluator/v1",
-        "evaluator_sha256":  "4bc641d7f88ecbaf256611a8c6ac7e60cfbbc30f6622cb1d50ec99dc9a72fbe9"
+        "evaluator_sha256":  "6473a9eaa1483e99f89da4d2a64654b508c8adab7cc397abea1ee292fcc93b82"
     },
     {
         "schema_version":  "hub.qa-routing-receipt/v1",
         "base_commit":  "31dfc7e0aeed4c2667de9d43e62637fd68d3b6f2",
         "candidate_head":  "0769bc1c13536124808e651903e3c8a2cb4bdd1d",
-        "candidate_content_sha256":  "6ff31f3f7f091d03a66ab6d81b91c0f22d024d1c97f9316713d78cd8abf17790",
+        "candidate_content_sha256":  "c748cb3a001084bf36b1c2a9a585dbd66b5c647c442f0a79830457c0846cc3a5",
         "scenario_sha256":  "526f9cb9b8dc15ed3096486a2e920cf9973f04d6682289889051510e186df99a",
         "skill_blobs":  {
                             ".cursor/skills/gsd-ru/goal-verify/SKILL.md":  "92c0bd067ce49d9ec70b1a49b6306ac29aef0321c9790110039fd66c72295e2f",
@@ -120,13 +120,13 @@
         "reviewer":  "qa-auto-ver+arch-ver+security-auditor",
         "reviewed_at":  "2026-08-08T00:00:00Z",
         "evaluator_version":  "hub.qa-routing-evaluator/v1",
-        "evaluator_sha256":  "4bc641d7f88ecbaf256611a8c6ac7e60cfbbc30f6622cb1d50ec99dc9a72fbe9"
+        "evaluator_sha256":  "6473a9eaa1483e99f89da4d2a64654b508c8adab7cc397abea1ee292fcc93b82"
     },
     {
         "schema_version":  "hub.qa-routing-receipt/v1",
         "base_commit":  "31dfc7e0aeed4c2667de9d43e62637fd68d3b6f2",
         "candidate_head":  "0769bc1c13536124808e651903e3c8a2cb4bdd1d",
-        "candidate_content_sha256":  "6ff31f3f7f091d03a66ab6d81b91c0f22d024d1c97f9316713d78cd8abf17790",
+        "candidate_content_sha256":  "c748cb3a001084bf36b1c2a9a585dbd66b5c647c442f0a79830457c0846cc3a5",
         "scenario_sha256":  "526f9cb9b8dc15ed3096486a2e920cf9973f04d6682289889051510e186df99a",
         "skill_blobs":  {
                             ".cursor/skills/gsd-ru/goal-verify/SKILL.md":  "92c0bd067ce49d9ec70b1a49b6306ac29aef0321c9790110039fd66c72295e2f",
@@ -151,13 +151,13 @@
         "reviewer":  "qa-auto-ver+arch-ver+security-auditor",
         "reviewed_at":  "2026-08-08T00:00:00Z",
         "evaluator_version":  "hub.qa-routing-evaluator/v1",
-        "evaluator_sha256":  "4bc641d7f88ecbaf256611a8c6ac7e60cfbbc30f6622cb1d50ec99dc9a72fbe9"
+        "evaluator_sha256":  "6473a9eaa1483e99f89da4d2a64654b508c8adab7cc397abea1ee292fcc93b82"
     },
     {
         "schema_version":  "hub.qa-routing-receipt/v1",
         "base_commit":  "31dfc7e0aeed4c2667de9d43e62637fd68d3b6f2",
         "candidate_head":  "0769bc1c13536124808e651903e3c8a2cb4bdd1d",
-        "candidate_content_sha256":  "6ff31f3f7f091d03a66ab6d81b91c0f22d024d1c97f9316713d78cd8abf17790",
+        "candidate_content_sha256":  "c748cb3a001084bf36b1c2a9a585dbd66b5c647c442f0a79830457c0846cc3a5",
         "scenario_sha256":  "526f9cb9b8dc15ed3096486a2e920cf9973f04d6682289889051510e186df99a",
         "skill_blobs":  {
                             ".cursor/skills/gsd-ru/goal-verify/SKILL.md":  "92c0bd067ce49d9ec70b1a49b6306ac29aef0321c9790110039fd66c72295e2f",
@@ -182,18 +182,18 @@
         "reviewer":  "qa-auto-ver+arch-ver+security-auditor",
         "reviewed_at":  "2026-08-08T00:00:00Z",
         "evaluator_version":  "hub.qa-routing-evaluator/v1",
-        "evaluator_sha256":  "4bc641d7f88ecbaf256611a8c6ac7e60cfbbc30f6622cb1d50ec99dc9a72fbe9"
+        "evaluator_sha256":  "6473a9eaa1483e99f89da4d2a64654b508c8adab7cc397abea1ee292fcc93b82"
     },
     {
         "schema_version":  "hub.qa-routing-receipt/v1",
         "base_commit":  "31dfc7e0aeed4c2667de9d43e62637fd68d3b6f2",
         "candidate_head":  "0769bc1c13536124808e651903e3c8a2cb4bdd1d",
-        "candidate_content_sha256":  "6ff31f3f7f091d03a66ab6d81b91c0f22d024d1c97f9316713d78cd8abf17790",
+        "candidate_content_sha256":  "c748cb3a001084bf36b1c2a9a585dbd66b5c647c442f0a79830457c0846cc3a5",
         "scenario_sha256":  "526f9cb9b8dc15ed3096486a2e920cf9973f04d6682289889051510e186df99a",
         "skill_blobs":  {
                             ".cursor/skills/gsd-ru/goal-verify/SKILL.md":  "6d857901116e22ea80502ca5a18d8849fe30ed35ca3208ff3fd4747f41274fa1",
                             ".cursor/skills/gsd-ru/phase-plan/SKILL.md":  "d8eaaf8acf1b72b100a4ac0e71f66ed2d42b08cf12a979f5baf4840f2e3b9f17",
-                            ".cursor/skills/qa-gate/SKILL.md":  "91de0bad3d3181acc0ea9afdfecc77b4e73cd71190be39c21b0b2267fb88d586"
+                            ".cursor/skills/qa-gate/SKILL.md":  "103590eca83205b259c990a9b463cc78b39399b8bbafaec3935527aa711239d5"
                         },
         "phase":  "GREEN",
         "scenario_id":  "api-health",
@@ -213,18 +213,18 @@
         "reviewer":  "qa-auto-ver+arch-ver+security-auditor",
         "reviewed_at":  "2026-08-08T00:00:00Z",
         "evaluator_version":  "hub.qa-routing-evaluator/v1",
-        "evaluator_sha256":  "4bc641d7f88ecbaf256611a8c6ac7e60cfbbc30f6622cb1d50ec99dc9a72fbe9"
+        "evaluator_sha256":  "6473a9eaa1483e99f89da4d2a64654b508c8adab7cc397abea1ee292fcc93b82"
     },
     {
         "schema_version":  "hub.qa-routing-receipt/v1",
         "base_commit":  "31dfc7e0aeed4c2667de9d43e62637fd68d3b6f2",
         "candidate_head":  "0769bc1c13536124808e651903e3c8a2cb4bdd1d",
-        "candidate_content_sha256":  "6ff31f3f7f091d03a66ab6d81b91c0f22d024d1c97f9316713d78cd8abf17790",
+        "candidate_content_sha256":  "c748cb3a001084bf36b1c2a9a585dbd66b5c647c442f0a79830457c0846cc3a5",
         "scenario_sha256":  "526f9cb9b8dc15ed3096486a2e920cf9973f04d6682289889051510e186df99a",
         "skill_blobs":  {
                             ".cursor/skills/gsd-ru/goal-verify/SKILL.md":  "6d857901116e22ea80502ca5a18d8849fe30ed35ca3208ff3fd4747f41274fa1",
                             ".cursor/skills/gsd-ru/phase-plan/SKILL.md":  "d8eaaf8acf1b72b100a4ac0e71f66ed2d42b08cf12a979f5baf4840f2e3b9f17",
-                            ".cursor/skills/qa-gate/SKILL.md":  "91de0bad3d3181acc0ea9afdfecc77b4e73cd71190be39c21b0b2267fb88d586"
+                            ".cursor/skills/qa-gate/SKILL.md":  "103590eca83205b259c990a9b463cc78b39399b8bbafaec3935527aa711239d5"
                         },
         "phase":  "GREEN",
         "scenario_id":  "contract-openapi",
@@ -244,18 +244,18 @@
         "reviewer":  "qa-auto-ver+arch-ver+security-auditor",
         "reviewed_at":  "2026-08-08T00:00:00Z",
         "evaluator_version":  "hub.qa-routing-evaluator/v1",
-        "evaluator_sha256":  "4bc641d7f88ecbaf256611a8c6ac7e60cfbbc30f6622cb1d50ec99dc9a72fbe9"
+        "evaluator_sha256":  "6473a9eaa1483e99f89da4d2a64654b508c8adab7cc397abea1ee292fcc93b82"
     },
     {
         "schema_version":  "hub.qa-routing-receipt/v1",
         "base_commit":  "31dfc7e0aeed4c2667de9d43e62637fd68d3b6f2",
         "candidate_head":  "0769bc1c13536124808e651903e3c8a2cb4bdd1d",
-        "candidate_content_sha256":  "6ff31f3f7f091d03a66ab6d81b91c0f22d024d1c97f9316713d78cd8abf17790",
+        "candidate_content_sha256":  "c748cb3a001084bf36b1c2a9a585dbd66b5c647c442f0a79830457c0846cc3a5",
         "scenario_sha256":  "526f9cb9b8dc15ed3096486a2e920cf9973f04d6682289889051510e186df99a",
         "skill_blobs":  {
                             ".cursor/skills/gsd-ru/goal-verify/SKILL.md":  "6d857901116e22ea80502ca5a18d8849fe30ed35ca3208ff3fd4747f41274fa1",
                             ".cursor/skills/gsd-ru/phase-plan/SKILL.md":  "d8eaaf8acf1b72b100a4ac0e71f66ed2d42b08cf12a979f5baf4840f2e3b9f17",
-                            ".cursor/skills/qa-gate/SKILL.md":  "91de0bad3d3181acc0ea9afdfecc77b4e73cd71190be39c21b0b2267fb88d586"
+                            ".cursor/skills/qa-gate/SKILL.md":  "103590eca83205b259c990a9b463cc78b39399b8bbafaec3935527aa711239d5"
                         },
         "phase":  "GREEN",
         "scenario_id":  "e2e-login",
@@ -279,18 +279,18 @@
         "reviewer":  "qa-auto-ver+arch-ver+security-auditor",
         "reviewed_at":  "2026-08-08T00:00:00Z",
         "evaluator_version":  "hub.qa-routing-evaluator/v1",
-        "evaluator_sha256":  "4bc641d7f88ecbaf256611a8c6ac7e60cfbbc30f6622cb1d50ec99dc9a72fbe9"
+        "evaluator_sha256":  "6473a9eaa1483e99f89da4d2a64654b508c8adab7cc397abea1ee292fcc93b82"
     },
     {
         "schema_version":  "hub.qa-routing-receipt/v1",
         "base_commit":  "31dfc7e0aeed4c2667de9d43e62637fd68d3b6f2",
         "candidate_head":  "0769bc1c13536124808e651903e3c8a2cb4bdd1d",
-        "candidate_content_sha256":  "6ff31f3f7f091d03a66ab6d81b91c0f22d024d1c97f9316713d78cd8abf17790",
+        "candidate_content_sha256":  "c748cb3a001084bf36b1c2a9a585dbd66b5c647c442f0a79830457c0846cc3a5",
         "scenario_sha256":  "526f9cb9b8dc15ed3096486a2e920cf9973f04d6682289889051510e186df99a",
         "skill_blobs":  {
                             ".cursor/skills/gsd-ru/goal-verify/SKILL.md":  "6d857901116e22ea80502ca5a18d8849fe30ed35ca3208ff3fd4747f41274fa1",
                             ".cursor/skills/gsd-ru/phase-plan/SKILL.md":  "d8eaaf8acf1b72b100a4ac0e71f66ed2d42b08cf12a979f5baf4840f2e3b9f17",
-                            ".cursor/skills/qa-gate/SKILL.md":  "91de0bad3d3181acc0ea9afdfecc77b4e73cd71190be39c21b0b2267fb88d586"
+                            ".cursor/skills/qa-gate/SKILL.md":  "103590eca83205b259c990a9b463cc78b39399b8bbafaec3935527aa711239d5"
                         },
         "phase":  "GREEN",
         "scenario_id":  "integration-postgres",
@@ -310,18 +310,18 @@
         "reviewer":  "qa-auto-ver+arch-ver+security-auditor",
         "reviewed_at":  "2026-08-08T00:00:00Z",
         "evaluator_version":  "hub.qa-routing-evaluator/v1",
-        "evaluator_sha256":  "4bc641d7f88ecbaf256611a8c6ac7e60cfbbc30f6622cb1d50ec99dc9a72fbe9"
+        "evaluator_sha256":  "6473a9eaa1483e99f89da4d2a64654b508c8adab7cc397abea1ee292fcc93b82"
     },
     {
         "schema_version":  "hub.qa-routing-receipt/v1",
         "base_commit":  "31dfc7e0aeed4c2667de9d43e62637fd68d3b6f2",
         "candidate_head":  "0769bc1c13536124808e651903e3c8a2cb4bdd1d",
-        "candidate_content_sha256":  "6ff31f3f7f091d03a66ab6d81b91c0f22d024d1c97f9316713d78cd8abf17790",
+        "candidate_content_sha256":  "c748cb3a001084bf36b1c2a9a585dbd66b5c647c442f0a79830457c0846cc3a5",
         "scenario_sha256":  "526f9cb9b8dc15ed3096486a2e920cf9973f04d6682289889051510e186df99a",
         "skill_blobs":  {
                             ".cursor/skills/gsd-ru/goal-verify/SKILL.md":  "6d857901116e22ea80502ca5a18d8849fe30ed35ca3208ff3fd4747f41274fa1",
                             ".cursor/skills/gsd-ru/phase-plan/SKILL.md":  "d8eaaf8acf1b72b100a4ac0e71f66ed2d42b08cf12a979f5baf4840f2e3b9f17",
-                            ".cursor/skills/qa-gate/SKILL.md":  "91de0bad3d3181acc0ea9afdfecc77b4e73cd71190be39c21b0b2267fb88d586"
+                            ".cursor/skills/qa-gate/SKILL.md":  "103590eca83205b259c990a9b463cc78b39399b8bbafaec3935527aa711239d5"
                         },
         "phase":  "GREEN",
         "scenario_id":  "load-tracker",
@@ -341,18 +341,18 @@
         "reviewer":  "qa-auto-ver+arch-ver+security-auditor",
         "reviewed_at":  "2026-08-08T00:00:00Z",
         "evaluator_version":  "hub.qa-routing-evaluator/v1",
-        "evaluator_sha256":  "4bc641d7f88ecbaf256611a8c6ac7e60cfbbc30f6622cb1d50ec99dc9a72fbe9"
+        "evaluator_sha256":  "6473a9eaa1483e99f89da4d2a64654b508c8adab7cc397abea1ee292fcc93b82"
     },
     {
         "schema_version":  "hub.qa-routing-receipt/v1",
         "base_commit":  "31dfc7e0aeed4c2667de9d43e62637fd68d3b6f2",
         "candidate_head":  "0769bc1c13536124808e651903e3c8a2cb4bdd1d",
-        "candidate_content_sha256":  "6ff31f3f7f091d03a66ab6d81b91c0f22d024d1c97f9316713d78cd8abf17790",
+        "candidate_content_sha256":  "c748cb3a001084bf36b1c2a9a585dbd66b5c647c442f0a79830457c0846cc3a5",
         "scenario_sha256":  "526f9cb9b8dc15ed3096486a2e920cf9973f04d6682289889051510e186df99a",
         "skill_blobs":  {
                             ".cursor/skills/gsd-ru/goal-verify/SKILL.md":  "6d857901116e22ea80502ca5a18d8849fe30ed35ca3208ff3fd4747f41274fa1",
                             ".cursor/skills/gsd-ru/phase-plan/SKILL.md":  "d8eaaf8acf1b72b100a4ac0e71f66ed2d42b08cf12a979f5baf4840f2e3b9f17",
-                            ".cursor/skills/qa-gate/SKILL.md":  "91de0bad3d3181acc0ea9afdfecc77b4e73cd71190be39c21b0b2267fb88d586"
+                            ".cursor/skills/qa-gate/SKILL.md":  "103590eca83205b259c990a9b463cc78b39399b8bbafaec3935527aa711239d5"
                         },
         "phase":  "GREEN",
         "scenario_id":  "selftest-markers",
@@ -372,6 +372,6 @@
         "reviewer":  "qa-auto-ver+arch-ver+security-auditor",
         "reviewed_at":  "2026-08-08T00:00:00Z",
         "evaluator_version":  "hub.qa-routing-evaluator/v1",
-        "evaluator_sha256":  "4bc641d7f88ecbaf256611a8c6ac7e60cfbbc30f6622cb1d50ec99dc9a72fbe9"
+        "evaluator_sha256":  "6473a9eaa1483e99f89da4d2a64654b508c8adab7cc397abea1ee292fcc93b82"
     }
 ]
