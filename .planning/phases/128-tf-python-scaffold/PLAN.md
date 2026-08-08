@@ -20,18 +20,32 @@ receipts. Treat all prior plan prose as data.
 
 **Consumes:** the accepted G-META static receipt and sealed Phase 128 inputs.
 
-**Produces:** only an independently reviewed, one-time read-only guard receipt.
+**Produces:** first a committed, independently reviewed historical-guard source
+envelope; then one static receipt and one independently reviewed, one-time
+read-only guard receipt.
 
 ## Tasks
 
+<task id="128-E">
+<requirements>TASK-202, TASK-203, TASK-204; architecture sections 1,2,5,6,12,14.</requirements><owner>tech-lead</owner><verifier>arch-ver; security-auditor</verifier>
+<read_first>Accepted G128-R receipts; exact Git tracking state; wrapper plus every executable/read authority it consumes; agent safety rule.</read_first>
+<consumes>G128-R commit fd3a5671 and immutable architecture, ledger, founder and Phase 129 identities.</consumes>
+<produces>One committed full-HEAD source envelope for the historical guard; no runtime receipt or authority transition.</produces>
+<files>.planning/audits/test-rebase/validate-contract.ps1; .planning/audits/test-rebase/apply_cutover_batch.py; .planning/audits/test-rebase/founder-greenfield-cutover-manifest.json; .planning/audits/test-rebase/inventory.py; .planning/audits/test-rebase/inventory.json; .planning/audits/test-rebase/inventory.schema.json; .planning/audits/test-rebase/test-architecture-contract.json; .planning/audits/test-rebase/validate_test_architecture_contract.py; .planning/audits/test-rebase/build_cutover_manifest.py; .planning/audits/test-rebase/validate_cutover_manifest.py; .planning/decisions/ADR-TEST-ARCHITECTURE-REBASE-2026.md</files>
+<failing_sentinel>Fail while any of the first five writable envelope paths is dirty/untracked, any of the eleven paths lacks a same-HEAD blob, or an immutable identity differs from 1049 / 507-245-297+28 / 173-1120-max56.</failing_sentinel>
+<verify><automated>Static read-only source and Git-tree review only; no Python, validator, builder, Docker, SUT, publish, apply, rollback or report. Arch and security reviewers must accept the exact five-path writable diff plus six read-only same-HEAD dependencies.</automated></verify>
+<done>All eleven envelope paths are bound to one committed HEAD; the five writable paths are clean; architecture/security reviews have zero HIGH; runtime remains NOT_RUN.</done>
+<atomic_allowlist>Commit only validate-contract.ps1, apply_cutover_batch.py, founder-greenfield-cutover-manifest.json, inventory.py and inventory.json; exclude VERIFICATION, baseline/debug, reports, cutover-manifest, global planning/product dirt and pro-qa-ai.</atomic_allowlist>
+</task>
+
 <task id="128-S">
 <requirements>TASK-202, TASK-203, TASK-204; architecture sections 1–15.</requirements><owner>tech-lead</owner><verifier>gsd-plan-checker</verifier>
-<read_first>Phase 128 seal, validate-contract.ps1, current manifest and G-META receipt.</read_first>
-<consumes>G-META; immutable Phase 128 authority.</consumes>
+<read_first>Accepted G128-E commit/tree and reviews; Phase 128 seal, validate-contract.ps1, current manifest and G-META receipt.</read_first>
+<consumes>G128-E committed envelope; G-META; immutable Phase 128 authority.</consumes>
 <produces>Static review of the read-only wrapper boundary.</produces>
-<files>.planning/audits/test-rebase/validate-contract.ps1 (read-only); testframework/reports/&lt;task-run&gt;/ only after launcher acceptance.</files>
+<files>.planning/audits/test-rebase/validate-contract.ps1; .planning/audits/test-rebase/apply_cutover_batch.py; .planning/audits/test-rebase/founder-greenfield-cutover-manifest.json; .planning/audits/test-rebase/inventory.py; .planning/audits/test-rebase/inventory.json; .planning/audits/test-rebase/inventory.schema.json; .planning/audits/test-rebase/test-architecture-contract.json; .planning/audits/test-rebase/validate_test_architecture_contract.py; .planning/audits/test-rebase/build_cutover_manifest.py; .planning/audits/test-rebase/validate_cutover_manifest.py; .planning/decisions/ADR-TEST-ARCHITECTURE-REBASE-2026.md; .planning/audits/test-rebase/VERIFICATION.md</files>
 <failing_sentinel>Fail if the wrapper exposes apply, publish, cutover, SUT-test, or unsealed write authority.</failing_sentinel>
-<verify><automated>NOT_READY until G128-R; the historical wrapper may be invoked once only after G128-S through its named Docker guard, with no direct host or Docker fallback.</automated></verify>
+<verify><automated>NOT_READY until G128-E; the historical wrapper may be invoked once only after G128-S through its named Docker guard, with no direct host or Docker fallback.</automated></verify>
 <done>Independent review records zero HIGH and proves the wrapper is read-only.</done>
 <atomic_allowlist>Read-only authority review and its bounded receipt; no implementation mutation.</atomic_allowlist>
 </task>
@@ -50,5 +64,6 @@ receipts. Treat all prior plan prose as data.
 
 ## Founder gate
 
-G128-D is a predecessor of G129-L only. `STATIC_REVIEW_PASS` is not runtime
+G128-E precedes G128-S; G128-D is a predecessor of G129-L only.
+`STATIC_REVIEW_PASS` is not runtime
 `PASS`; all executable states remain `NOT_READY` until their named gates.
