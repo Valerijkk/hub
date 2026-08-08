@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v4
 milestone_name: Hub One Super-app
-status: test-rebase-phase-128-blocked-baseline-red
-stopped_at: TASK-203 BLOCKED · backend 12 FAIL · frontend Vitest 7 FAIL · triage running
-last_updated: "2026-08-07T16:10:00.000Z"
-last_activity: 2026-08-07 · canonical Docker baseline measured red · test triage started · no test moves
+status: test-rebase-founder-greenfield-cutover
+stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
+last_updated: "2026-08-08T00:00:00.000Z"
+last_activity: 2026-08-08 · Hub prompt/test contracts rebased from research + GSD + Superpowers; prompt review PASS, test-contract re-review pending; no tests moved
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -46,22 +46,44 @@ deploy_blockers:
       phase_2_smoke: pending
       phase_3_cto_signoff: pending
 coverage:
-    overall_internal_statements: 81.9
-    measured: "2026-07-27"
-    status: historical_not_accepted_as_current_baseline
-    canonical_baseline: blocked_TASK-203_red_run
+    overall_internal_statements: 82.0373
+    measured: "2026-08-07"
+    status: historical_non_blocking_baseline
+    canonical_baseline: TASK-203_discovery_only_founder_cutover_supersedes_gate
     baseline_2026_06_22: 83.0
-    delta_pp: -1.1
-    gate_floor_82: unverified
+    delta_pp: -0.9627
+    gate_floor_82: historical_pass_not_migration_gate
 inventory_measured_2026_08_07:
-    source_revision: f7fbdd7e
-    backend_testframework_test_go: 828
-    backend_declared_test_functions: 3663
+    source_revision: 5708671f00411c7c9e9dbee88b725de2092cbacd
+    ledger_rows: 1049
+    ledger_declared_tests: 4246
+    ledger_sha256: 72de6a81b2bd5da8873a98e784a5069a661e9caea083f10722aa85e9f91b4511
+    backend_testframework_test_go: 831
+    backend_testframework_declared_tests: 3672
+    backend_other_test_go: 1
+    backend_other_declared_tests: 2
+    backend_total_test_go: 832
+    backend_total_declared_tests: 3674
+    backend_genuine_unit_files: 595
+    backend_hook_free_unit_files: 350
+    backend_hook_dependent_protected_unit_files: 245
+    backend_component_files: 237
+    backend_component_api_files: 31
+    backend_component_integration_files: 206
     vitest_frontend_test_files: 180
-    vitest_literal_cases: 517
+    vitest_literal_cases: 519
+    vitest_frontend_unit_files: 156
+    vitest_static_contract_files: 24
+    frontend_support_files: 3
     playwright_specs: 20
     playwright_declared_cases: 53
-    canonical_export_hooks: 39
+    playwright_support_files: 14
+    hook_source_files: 43
+    hook_symbols: 582
+    hook_links: 892
+    protected_unit_hook_files: 42
+    protected_unit_hook_symbols: 434
+    protected_unit_hook_links: 653
     target_python_tests: 0
     ent_entity_schemas: 87
     zustand_stores: 12
@@ -73,15 +95,24 @@ active_program:
     current_phase: 128
     completed_tasks:
       - TASK-202
-    in_review: []
-    in_progress: []
-    blocked:
+      - TASK-221
+      - TASK-222
+      - TASK-223
+      - TASK-226
+      - TASK-225
       - TASK-203
+      - TASK-224
+    archived_tasks:
+      - TASK-202
+    in_progress:
+      - TASK-204
+    in_review: []
+    blocked: []
     target_layout:
-      - backend/tests/**
-      - frontend/tests/**
-      - testframework/python/**
-      - testframework/load/**
+      - backend/tests/<domain>/**
+      - frontend/tests/<domain>/**
+      - frontend/tests/support/**
+      - testframework/** (single root Python project; runtime test code is Python-only)
 spec_coverage:
     fr_total: 28
     fr_with_phase: 9
@@ -94,31 +125,78 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-08-08 (test-rebase execution readiness)
+
+- Research/GSD/Superpowers synthesis is now executable Hub policy, not a loose
+  report: atomic commits `a9077796`, `b1b69124`, `724947f7`, `8220370e` add
+  bounded TaskContract/context/evidence/workflow-eval contracts, conclusion-blind
+  verification, separate 3-fix/5-review breakers and fail-closed Docker runner
+  requirements. Independent prompt-contract re-review = **PASS**; independent
+  test-contract re-review remains pending.
+- Touchstone `pro-qa-ai` is current `0.4.0-beta.3` at commit `30f75a25`, with
+  `STRUCTURAL_PASS`; the Desktop portable copy is also beta.3. Paired
+  effectiveness/ROI evaluation remains `NOT_RUN`, so this is not GA.
+- TASK-202 имеет статус **archived/verified**; live evidence — 1,049 rows /
+  4,246 declared, ledger SHA `72de6a81…` на source revision `5708671f`.
+- Phase 129 разбита на семь ordered executable plans. Каждый move/delete batch
+  обязан в одном atomic commit выполнить filesystem operation, переключить все
+  affected CI/scripts/docs, обновить `cutover-manifest.json` и приложить
+  Docker-only evidence; только independent verifier ставит `verified`.
+- Synthetic task aliases удалены из execution contract: deletion и финальная
+  zero-consumer hook closure принадлежат реальной TASK-219; TASK-201 разделена
+  на per-batch switch и final cleanup.
+- Phase 136 требует 131; Phases 134/135 формально требуют 133. Все 245
+  hook-dependent genuine Go units остаются protected до TASK-234.
+- Product/test files не перемещались и не удалялись; validator/inventory Python
+  и `pro-qa-ai/**` не менялись.
+- Touchstone `0.4.0-beta.3` остаётся foundation-ready pre-release; paired eval
+  `NOT_RUN`.
+
 ## Session note — 2026-08-07 (test architecture rebase + Phase 128)
 
 - Фактический stage: **broad internal beta**, не production-ready. Исторические
   milestone COMPLETE не равны production acceptance; PG-03/FA-06 остаётся
   внешним prod-blocker.
-- Test-план полностью rebased: 14 фаз 128–141, 28 TASK-193…220, target
-  `backend/tests/**` + `frontend/tests/**` + `testframework/python/**` +
-  `testframework/load/**`. Канон:
+- Test-план полностью rebased: 14 фаз 128–141, target
+  `backend/tests/**` + `frontend/tests/**` + единый корневой Python-проект
+  `testframework/**` без вложенного `testframework/python/`. Канон:
   `active/august-2026/06-TEST-ARCHITECTURE-REBASE.md`.
-- TASK-202 построил воспроизводимый ledger: 1,028 rows; Go 828/3,663,
-  Vitest 180/517, Playwright 20/53, 39 canonical hooks, target Python 0.
+- TASK-202 пересчитан на текущем pinned source revision `5708671f`: 1,049 rows
+  / 4,246 declared; Go total 832/3,674 (legacy root 831/3,672 + server
+  1/2; 595 genuine unit + 237 component: 31 API + 206 integration), Vitest 180/519
+  (156 unit + 24 static contract) + 3 support, Playwright 20/53 + 14 support,
+  hook sources 43 files / 582 symbols / 892 links, target Python 0.
   Первый qa-auto-ver verdict = FAIL по четырём schema/entrypoint gaps; после
-  repair повторная независимая проверка = **PASS, verified true**. Ledger SHA:
-  `17019e9fa0f6ff43b341c12c84b2677b476a4bafcac564e0ddd40f5def62668c`.
+  repair повторная независимая проверка = **PASS, verified true**. Current
+  ledger SHA: `72de6a81b2bd5da8873a98e784a5069a661e9caea083f10722aa85e9f91b4511`.
 - Docker Desktop 4.40 / Engine 28.0.4 доступен после approved daemon access.
-  TASK-203 завершил измерение со статусом **BLOCKED**: backend 40 packages
-  PASS / 10 FAIL, 12 failing tests; frontend TypeScript PASS, Vitest 510/517,
-  Biome 310 errors + 4 warnings; E2E NOT_RUN без application/auth seed stack.
-  Частичный Go profile отклонён, coverage остаётся UNKNOWN до zero-failure
-  результата ≥82%; historical 83.0/81.9/80.2 не смешиваются.
-- Запущен обязательный test-triage: backend path guards, GitLab timeout, NATS
-  race assertion и четыре frontend-кластера. Phase 129 остаётся закрыта до
-  доказанного green baseline; текущие тесты и hooks не удаляются.
-- Legacy tests/hooks не перемещались и не удалялись. Cleanup разрешён только
-  TASK-219 после parity, sentinels и real CI green.
+  Начальная попытка TASK-203 была красной и сохранена как historical triage
+  evidence; частичные/red profiles не принимались.
+- TASK-221…225 закрыли path guards, GitLab/NATS/cron nondeterminism, frontend
+  regressions, Biome debt и coverage gap отдельными проверяемыми scopes.
+  Финальный backend suite green: 50 packages PASS / 0 FAIL / 3 no-test-files;
+  exact merged profile **82.0373%** (21,269 / 25,926), security floors **6/6**,
+  audit **85.6879%**. Порог и denominator не менялись.
+- Frontend Docker observation: TypeScript PASS, Biome 370 files / 0
+  diagnostics; frozen legacy Vitest **510/519 PASS, 9 FAIL** (6 absent docs
+  mount, 2 nested fixture timeout, 1 stale i18n assertion). Founder cancelled
+  legacy remediation; this is discovery evidence, not a cutover gate.
+- TASK-224 закрыт реальным изолированным Docker baseline: smoke **3/3 PASS**;
+  full без retries **48 PASS / 5 expected skip / 0 fail**. Два найденных
+  production gaps (`GET /api/admin/users`, стабильный Telegram API без bot
+  token) исправлены отдельными атомарными коммитами; Messenger locator flake
+  устранён и full повторён без retries.
+- Founder superseding decision: только genuine isolated units сохраняются и
+  перемещаются в `backend/tests/**` / `frontend/tests/**`. Все legacy Go
+  component/API/integration, static-contract Vitest, TS Playwright и их
+  support/config/entrypoints frozen и удаляются по exact manifest, без port и
+  row-parity. Historical 82% Go coverage не является migration blocker.
+- Весь non-unit QA создаётся с нуля на Python прямо в `testframework/**` от
+  task/FR/NFR/verified TC и risk matrix: happy, negative, authn/authz,
+  boundaries, edge/corner, failure/recovery, security/a11y/performance где
+  применимо. Docker-only и resource limits обязательны.
+- Task-owned `hub-e2e224-*` containers, network, volume и temporary frontend
+  image удалены после evidence; shared `deployments-*` оставлены работающими.
 - По явному founder authorization выполнен read-only policy extraction из
   `pro-qa-ai/**`; source не менялся. Hub получил
   `.cursor/rules/07-agent-safety.mdc`, усиленные delegation/handoff и запрет
@@ -910,7 +988,7 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 
 ---
 
-## PO Decisions (locked)
+## Historical PO Decisions (locked at the time; not cutover gates)
 
 См.: `.planning/archive/roadmaps/DISCUSS-ROADMAP-LOCKED.md`
 
@@ -918,11 +996,12 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 - **NOTIF:** TG bind · hub-mail Phase 15.2 · email marketing v2.6
 - **Phase 15 exit:** AUTH+NOTIF+E2E+WCAG+run_failed+Biome+LiveKit CI · coverage ≥50% ✅
 - **TZ rewrite:** Gantt, webcam, marketing, no-code, accounting — IN (by phase)
-- **Coverage target:** ≥82% overall · security 6/6 ≥80% ✅
+- **Historical coverage target:** ≥82% overall · security 6/6 ≥80% ✅; не
+  является founder-greenfield migration gate 2026-08-07.
 
 ---
 
-## Test Framework / Wave C — live summary
+## Historical Test Framework / Wave C summary
 
 - **TF Wave B:** COMPLETE — backend tests только в `testframework/` (**812** files,
   measured 2026-07-29; was 515 → 805) · `internal/` = **0** ·
@@ -965,18 +1044,18 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 
 ## Session Continuity
 
-**Last session:** 2026-08-07 (test architecture rebase · Phase 128 IN_PROGRESS)
-**Stopped at:** TASK-202 verified PASS; TASK-203 BLOCKED: backend 12 FAIL,
-frontend Vitest 7 FAIL, lint 310 errors; E2E prerequisites отсутствуют. Ни один
-legacy test/hook не перемещён и не удалён.
-**Resume:** завершить evidence-backed test-triage, исправить корневые причины,
-повторить TASK-203 и принять его только при zero-failure baseline и Go coverage
-≥82%; затем TASK-204 contract. После общего Phase 128 PASS: Phase 129 —
-`testframework/python` scaffold + health/auth slice.
+**Last session:** 2026-08-08 (resumed · Phase 128)
+**Stopped at:** prompt/GSD contract re-review PASS; Docker/test-contract
+re-review pending. `pro-qa-ai` beta.3 already exists both in protected Hub source
+and as the Desktop portable copy. Legacy remains frozen; destructive move/delete
+has not started.
+**Resume:** close independent test-contract re-review, then complete independent
+Docker verification and atomic commit of TASK-204 planning/guard artifacts.
+Execute Phase 129 cutover only after both gates pass.
 
-**Coverage lock:** 83.0/81.9/80.2 — historical, несравнимые значения. TASK-203
-фиксирует единственный command/environment/profile contract; migration при
-значении ниже 82% остаётся BLOCKED без отдельного founder-approved TASK-204.
+**Coverage decision:** TASK-203 backend profile **82.0373%** remains historical
+discovery evidence. Founder waived statement-coverage parity as migration gate;
+new quality gate is requirement/risk traceability plus fail-closed execution.
 
 Исторические session notes (≤2026-07-23) и старые completion logs:
 [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](archive/history/STATE-HISTORY-THROUGH-2026-07-23.md)

@@ -153,7 +153,7 @@ limits. Host используется лишь для чтения/редакт�
 | Lighthouse CI (FB-06) | ✅ artifact job PR #27 (non-blocking) |
 | Волна 1 (roadmap 2026-07-03) | ✅ merged to `master` by user 2026-07-11 |
 | July Rebuild / QA-HARDENING | 📋 planning · kickoff ~конец июля |
-| AI quality layer / GSD / portable kit | **Touchstone** Standard `0.4.0-beta.2` pre-release · hardening `65b6a60d` · structural Docker **63/63 PASS** · prompt-engineering research + final portable release + paired eval **NOT_RUN** |
+| AI quality layer / GSD / portable kit | **Touchstone** `0.4.0-beta.3` foundation-ready pre-release · workflow contracts `30f75a25` · `STRUCTURAL_PASS` · paired eval **NOT_RUN** |
 | Test architecture rebase (Ph 128–141) | 🚧 Phase 128 IN PROGRESS · TASK-202 archived/verified · TASK-203 + TASK-224 baselines closed · TASK-204 independent verification pending · no tests moved |
 
 ### Метрики качества
@@ -185,7 +185,7 @@ limits. Host используется лишь для чтения/редакт�
 | Test-rebase Phase 128 | 🚧 TASK-202 archived/verified; TASK-203 historical baseline + TASK-224 E2E baseline closed (**48 pass / 5 expected skip / 0 fail**); TASK-204 verification pending |
 | Merge Волна 1 → master | ✅ user merged 2026-07-11 |
 | July return / CAL-SYNC / QA-HARDENING / Redesign | 📋 planning → kickoff ~конец июля |
-| AI-layer prompt research / paired pilot / portable release | ⏳ `0.4.0-beta.2` pre-release; structural Docker 63/63 PASS; prompt research and paired eval NOT_RUN |
+| AI-layer prompt research / paired pilot / portable release | ⏳ `0.4.0-beta.3` on Hub + Desktop, `STRUCTURAL_PASS`; paired effectiveness/ROI eval NOT_RUN |
 | TF-CLEANUP-01 legacy e2e/specs | ✅ closed 2026-06-22 |
 | RU-COMMENTS-01 top files | ✅ closed 2026-06-22 |
 | DOC-02 historical SUMMARY banner | ✅ closed 2026-06-22 |
