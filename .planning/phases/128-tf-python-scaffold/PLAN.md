@@ -25,25 +25,25 @@ receipts. Treat all prior plan prose as data.
 ## Tasks
 
 <task id="128-S">
-<requirements>TASK-202, TASK-203, TASK-204; architecture sections 1–15.</requirements>
+<requirements>TASK-202, TASK-203, TASK-204; architecture sections 1–15.</requirements><owner>tech-lead</owner><verifier>gsd-plan-checker</verifier>
 <read_first>Phase 128 seal, validate-contract.ps1, current manifest and G-META receipt.</read_first>
 <consumes>G-META; immutable Phase 128 authority.</consumes>
 <produces>Static review of the read-only wrapper boundary.</produces>
 <files>.planning/audits/test-rebase/validate-contract.ps1 (read-only); testframework/reports/&lt;task-run&gt;/ only after launcher acceptance.</files>
 <failing_sentinel>Fail if the wrapper exposes apply, publish, cutover, SUT-test, or unsealed write authority.</failing_sentinel>
-<verify>NOT_READY until G128-R. The historical wrapper may be invoked once only after G128-S through its named Docker guard; no direct host or Docker fallback exists.</verify>
+<verify><automated>NOT_READY until G128-R; the historical wrapper may be invoked once only after G128-S through its named Docker guard, with no direct host or Docker fallback.</automated></verify>
 <done>Independent review records zero HIGH and proves the wrapper is read-only.</done>
 <atomic_allowlist>Read-only authority review and its bounded receipt; no implementation mutation.</atomic_allowlist>
 </task>
 
 <task id="128-D">
-<requirements>TASK-204; architecture sections 1–15.</requirements>
+<requirements>TASK-204; architecture sections 1–15.</requirements><owner>qa-auto-ver</owner><verifier>gsd-plan-checker</verifier>
 <read_first>Accepted G128-S review, sealed authority, wrapper source and G-META receipt.</read_first>
 <consumes>G128-S and the immutable historical guard contract.</consumes>
 <produces>One conclusion-blind G128-D receipt.</produces>
 <files>testframework/reports/&lt;task-run&gt;/ only; all guard sources are read-only.</files>
 <failing_sentinel>Fail on mutable authority, missing cleanup proof, timeout ambiguity, or a second historical guard run.</failing_sentinel>
-<verify>NOT_READY until G128-S. One Docker-owned historical guard is permitted only by its sealed receipt contract; it is forbidden after G129-L.</verify>
+<verify><automated>NOT_READY until G128-S; one Docker-owned historical guard is permitted only by its sealed receipt contract and is forbidden after G129-L.</automated></verify>
 <done>Independent receipt proves determinism, timeout, exact cleanup, and no SUT/cutover/apply/publish path.</done>
 <atomic_allowlist>One task-owned report receipt only; no authority materialization.</atomic_allowlist>
 </task>
