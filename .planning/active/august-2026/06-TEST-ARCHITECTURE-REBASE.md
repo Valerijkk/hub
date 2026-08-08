@@ -1,192 +1,186 @@
-# Test Architecture Rebase — август 2026
+# Test Architecture Rebase — greenfield Python QA
 
-> **Статус:** CANONICAL · **Дата:** 2026-08-07 · **Scope:** фазы 128–141
->
-> Этот документ отменяет только раздел «Приоритет 1 — тестовый фреймворк»,
-> его недельную раскладку, пути и destructive-cutover предположения в
-> [`05-AUGUST-DETAILED.md`](05-AUGUST-DETAILED.md). Остальные приоритеты того
-> документа сохраняются с уточнённым post-test порядком из §8 ниже.
+**Founder decision:** 2026-08-07 · **Status:** Phase 128 REPLAN · **Priority:** P1
 
-## 1. Решение и граница программы
+Это единственный канон фаз 128–141. Старый parity/dual-run план отменён:
+переписывать component/E2E/static tests один-к-одному дольше и хуже, чем
+спроектировать проверки заново по требованиям и рискам.
 
-Историческая **pipeline migration COMPLETE** (перенос старых Go/Vitest/E2E в
-pipeline-oriented каталоги) не открывается заново. Новая **Python/native test
-architecture migration IN_PROGRESS (Phase 128; tests ещё не перемещались)** —
-отдельная программа. Её целевая схема:
-
-**Status distinction:** prior pipeline migration = `COMPLETE`; Python migration
-= `IN_PROGRESS`, пока baseline-only. **Live inventory:** 1,047 rows на HEAD
-`ee6d696c`: 830 Go / 180 Vitest / 3 frontend support / 20 E2E specs / 14 E2E
-support / 0 Python.
+## 1. Неподвижный target layout
 
 ```text
-backend/tests/**           только Go unit tests, owner: backend
-frontend/tests/**          только Vitest/RTL unit tests, owner: frontend
-testframework/             один Python-проект прямо в корне
-  pyproject.toml           dependencies + единый pytest config (либо pytest.ini)
+backend/tests/<domain>/**       только service-free Go unit tests
+frontend/tests/<domain>/**      только Vitest/RTL unit tests
+frontend/tests/support/**       только support для frontend unit tests
+testframework/                  один Python QA-проект в корне
+  pyproject.toml
   {core,api,integration,contract,e2e,load,docker,reports}/**
 ```
 
-Миграция только через dual-run. `backend/testframework/**`,
-`testframework/stages/unit/frontend-test/**` и
-`testframework/stages/e2e/**` остаются исполняемыми до принятого parity каждой
-inventory-строки. Корневые `testframework/pyproject.toml`, pytest config и
-целевые каталоги сосуществуют с legacy только на верифицированном
-dual-run. Phase 141 обязана удалить legacy Go/Vitest/TS E2E и их
-entrypoints: они не являются целевыми слоями.
+- Из legacy сохраняются и перемещаются только доказанные genuine units.
+- Все legacy non-unit Go tests, static/source guards, TS E2E, их helpers,
+  configs, linkers и obsolete runners удаляются по exact allowlist.
+- Новые API/integration/contract/E2E/load tests пишутся с нуля на Python.
+- В `testframework/**` исполняемый test/load code только Python. YAML/TOML,
+  Docker assets, docs, locks и отчёты разрешены.
+- `pro-qa-ai/**` не читается, не меняется и не попадает в discovery/evidence.
 
-## 2. Текущая стадия и evidence
+## 2. Founder overrides
 
-Hub — **широкая внутренняя beta**, не production-ready. Программные milestone
-могут быть исторически отмечены COMPLETE, но это не является production
-acceptance; ручной prod-blocker PG-03 также остаётся вне этой программы.
+1. **Parity migration отменена.** Legacy case/file counts и assertion parity не
+   являются acceptance gate. Ledger нужен только для exact retain/delete
+   allowlists, provenance и доказательства отсутствия мусора.
+2. **Go coverage ≥82% не блокирует rebase.** После сохранения genuine units
+   публикуется новый честный baseline без искусственного удержания component
+   tests. Coverage не подменяет requirement/risk coverage.
+3. **Cutover ранний, не финальный.** После Phase 128 exact-manifest review
+   Phase 129 физически переносит units, удаляет legacy non-units/runners,
+   создаёт root Python scaffold и переключает entrypoints.
+4. **Новые проверки не являются переводом старых.** Test design выводится из
+   актуальных requirements, API/specs, задач, threat model, accessibility и
+   observable runtime behavior.
+5. **Один безопасный outer runner.** Все target jobs идут через versioned
+   launcher с outer wall-clock timeout, exit-code preservation, task-owned
+   resource names и unconditional exact cleanup в `finally`. До его отдельной
+   проверки runtime gate `NOT_READY`; прямые snippets не fallback.
+6. **Task-run reports isolated.** Каждый запуск пишет только в
+   `testframework/reports/<task-run>/` после проверки owner marker с task и
+   exact revision. Shared reports root и чужие artifacts read/write запрещены.
 
-| Поверхность | Live inventory 2026-08-07 | Runtime verdict |
-|---|---:|---|
-| Ledger | **1,047 source rows**, SHA-256 `01dae4e2…` | deterministic check green |
-| Go total | **830 файлов / 3,667 tests**: legacy root 829/3,665 + server 1/2; 594 genuine unit + 236 component (31 API + 205 integration) | current green/coverage **UNKNOWN** |
-| Vitest legacy | **180 файлов / 519 cases**: 156 unit + 24 static contract; ещё 3 support rows | baseline не завершён |
-| Playwright TS | **20 specs / 53 cases + 14 support rows** | исторический suite; live parity не доказан |
-| Python tests | **0** | Python отсутствует в PATH |
-| `export_hooks.go` / все `hubtest` production files | **39 / 45** | 338 Go tests используют `Export*` |
-| Docker | compose parse доступен | daemon недоступен; service run NOT_RUN |
+## 3. Обязательный контракт каждого нового Python test case
 
-Значения Go coverage 83.0%, 81.9% и 80.2% получены разными или загрязнёнными
-прогонами и не являются взаимозаменяемым baseline. До первого перемещения Phase
-128 обязан получить один воспроизводимый green baseline с Go coverage **≥82%**
-либо заранее получить явное founder-решение о новом denominator/threshold в
-TASK-204. Иначе Phase 128 остаётся BLOCKED. Timeout, missing runtime,
-unavailable Docker и skip обязательной зависимости — не PASS.
+Каждый test case имеет стабильный `TC-*` ID и metadata/marker:
 
-## 3. Неподвижные контракты
+- `requirement`: `FR-*`, `NFR-*`, `GZ-*`, ADR/API section или approved spec;
+- `task`: backlog/phase TASK, который ввёл или менял поведение;
+- `risk`: защищаемый failure mode;
+- `layer`, `domain`, `priority`, `owner`;
+- предусловия, test data, observable oracle и cleanup;
+- ссылка на human-readable case или generated catalog entry.
 
-1. **Phase 128 блокирует все перемещения и scaffold.** До него разрешены только
-   read-only inventory и planning.
-2. Для каждого legacy test-файла создаётся machine-readable строка:
-   `source_path`, checksum, runner, domain, stable IDs/test count, taxonomy,
-   target path, coverage-bearing, hook consumers, baseline result, replacement
-   result, parity status, disposition и evidence URI.
-3. Таксономия/target classes: `go-unit`, `python-api`, `python-integration`,
-   `python-contract`, `python-static-contract`, `python-e2e`,
-   `python-e2e-support`, `python-load`, `frontend-unit`, `frontend-support`.
-   Каталог-источник сам по себе тип теста не определяет.
-   Smoke/full — selection markers, а не целевые каталоги.
-4. Перемещение считается принятым только на одном immutable build при равных
-   assertions/negative paths, явном pass/fail/skip count, forced-failure или
-   mutation evidence и решении независимого verifier `PARITY_ACCEPTED`.
-5. `backend/tests/**` — внешнее package tree только для genuine Go unit tests.
-   Текущие **236** `go-component` rows (31 API + 205 integration) нельзя
-   механически переносить туда:
-   каждая должна либо перейти в Python `api/integration/contract`, либо быть
-   рефакторена в настоящий isolated unit с verifier-approved evidence. Genuine
-   units могут импортировать `backend/internal/**`, но не получают private access. Hooks под
-   `hubtest` не удаляются механически; каждый hook требует consumer=0 и зелёного
-   доменного доказательства.
-   **Go hooks cannot be mechanically deleted.**
-6. Python black-box execution не попадает в `go test -coverpkg` и не может
-   автоматически компенсировать Go statement coverage. Порог ≥82% сохраняется,
-   пока founder до перемещения явно не утвердит новый denominator/threshold.
-7. Legacy и new jobs используют раздельные имена, данные и artifacts. Неожиданный
-   skip, нулевая collection или неработающий failing sentinel блокируют cutover.
-8. Protected external QA zone исключена из discovery, зависимостей и evidence.
+Для каждого применимого requirement/risk test-design checklist рассматривает:
 
-## 4. Каноническая фазовая матрица
+1. happy path;
+2. negative/invalid input;
+3. authentication и authorization/tenant isolation;
+4. boundaries и equivalence classes;
+5. edge/corner cases, empty/null/duplicates/order/time/timezone/concurrency;
+6. dependency failure, timeout, partial failure, retry/recovery/idempotency;
+7. security/privacy/secret redaction;
+8. accessibility для UI;
+9. performance/resource behavior для hot paths.
 
-| Phase | Outcome | TASK |
-|---:|---|---|
-| [128](../../phases/128-tf-python-scaffold/PLAN.md) | Status/baseline recovery | TASK-202 inventory; TASK-203 baseline; TASK-221–225 remediation; TASK-226 root-layout correction; TASK-204 final contract |
-| [129](../../phases/129-tf-e2e-shared/PLAN.md) | Python scaffold + API vertical slice | TASK-193; TASK-205 |
-| [130](../../phases/130-tf-e2e-mechanical/PLAN.md) | Frontend native foundation | TASK-198; TASK-206 |
-| [131](../../phases/131-tf-e2e-rewrite/PLAN.md) | Frontend domain migration | TASK-207; TASK-208 |
-| [132](../../phases/132-tf-backend-units-colocated/PLAN.md) | Backend native foundation | TASK-197; TASK-209 |
-| [133](../../phases/133-tf-frontend-units-colocated/PLAN.md) | Backend security/platform | TASK-210; TASK-211 |
-| [134](../../phases/134-tf-integration-python/PLAN.md) | Backend work/realtime | TASK-212; TASK-213 |
-| [135](../../phases/135-tf-locust-load/PLAN.md) | Backend business/integrations | TASK-214; TASK-215 |
-| [136](../../phases/136-tf-ci-cleanup/PLAN.md) | Python API/integration | TASK-199; TASK-216 |
-| [137](../../phases/137-tf-python-e2e-foundation/PLAN.md) | Python E2E foundation + smoke parity | TASK-194; TASK-217 |
-| [138](../../phases/138-tf-python-e2e-migration/PLAN.md) | Python E2E full migration | TASK-195; TASK-196 |
-| [139](../../phases/139-tf-load/PLAN.md) | Locust local harness/baseline | TASK-200 |
-| [140](../../phases/140-tf-ci-dual-run/PLAN.md) | CI dual-run + execution sentinels | TASK-201; TASK-218 |
-| [141](../../phases/141-tf-cutover-cleanup/PLAN.md) | Safe cutover, cleanup, final verification | TASK-219; TASK-220 |
+`N/A` допустим только с кратким rationale. Количество тестов само по себе не
+является качеством; gate — закрытые requirements/risks и чувствительность
+oracle, подтверждённая temporary failing sentinel или mutation.
 
-Каталоги 128–136 сохраняют исторические slugs; номер и содержимое PLAN являются
-источником смысла. Это избегает отдельной разрушительной операции переименования.
+## 4. Docker-only execution
 
-## 5. Dependency graph и волны
+Все tests, validators, linters, build/vet, Vite, backend/frontend processes,
+pytest, Playwright и Locust запускаются только в task-owned Docker
+containers/Compose с CPU/RAM limits. Host — только чтение/редактирование,
+Git и Docker CLI. Контейнер/volume/network/image удаляется сразу после задачи,
+если явно не передан следующей фазе через owner+TTL handoff.
+
+Минимум для каждого evidence: image digest, command, source SHA, service
+profile, CPU/RAM limits, collect/pass/fail/skip, duration, artifact URI и
+cleanup result. Неожиданный skip, zero collection или leaked container = FAIL.
+
+## 5. Фазовая матрица
+
+| Phase | Outcome | Main TASKs | Primary owner → verifier |
+|---:|---|---|---|
+| [128](../../phases/128-tf-python-scaffold/PLAN.md) | Founder contract + exact retain/delete manifests; TASK-202 archived/verified; ordered `cutover-manifest.json` | 202, 203, 204 | arch + qa-auto1 → arch-ver + qa-auto-ver |
+| [129](../../phases/129-tf-e2e-shared/PLAN.md) | Seven ordered atomic plans: operation + affected CI/docs switch + manifest evidence per batch; 350 hook-free units move, 245 protected through TASK-234, legacy non-units deleted, Python root scaffold | 193, 197, 198, 201, 219, 234 | be/fe/qa/devops → independent verifiers |
+| [130](../../phases/130-tf-e2e-mechanical/PLAN.md) | Traceability, test-case catalog, quality gates | 206, 218 | qa-auto1 + ba1 → qa-auto-ver + ba-ver |
+| [131](../../phases/131-tf-e2e-rewrite/PLAN.md) | Python core + health/auth/account API foundation | 205, 207 | qa-auto1/2 → qa-auto-ver + security-auditor |
+| [132](../../phases/132-tf-backend-units-colocated/PLAN.md) | AuthZ, tenant isolation, admin/platform and abuse cases | 208, 209, 227 | qa-auto1/2 → security-auditor + qa-auto-ver |
+| [133](../../phases/133-tf-frontend-units-colocated/PLAN.md) | Infra/data integration: PostgreSQL, Mongo, Redis, NATS, jobs | 210, 211 | qa-auto1/2 → qa-auto-ver + be-ver |
+| [134](../../phases/134-tf-integration-python/PLAN.md) | Work + realtime domains from requirements | 212, 213, 228 | qa-auto1/2 → qa-auto-ver + product-ver |
+| [135](../../phases/135-tf-locust-load/PLAN.md) | Business + integrations from requirements | 214, 215, 229 | qa-auto1/2 → qa-auto-ver + product-ver |
+| [136](../../phases/136-tf-ci-cleanup/PLAN.md) | Contract/static/schema compatibility suite | 216, 230 | qa-auto1/2 → arch-ver + qa-auto-ver |
+| [137](../../phases/137-tf-python-e2e-foundation/PLAN.md) | Python Playwright foundation + critical smoke journeys | 194, 217 | qa-auto1/2 → qa-auto-ver + security-auditor |
+| [138](../../phases/138-tf-python-e2e-migration/PLAN.md) | End-to-end domain journeys and recovery | 195, 196 | qa-auto1/2 → qa-auto-ver + qa-manual-ver |
+| [139](../../phases/139-tf-load/PLAN.md) | Accessibility + cross-cutting security/privacy | 231, 232 | qa-auto1 + security-auditor → qa-auto-ver |
+| [140](../../phases/140-tf-ci-dual-run/PLAN.md) | Load/performance/resilience baselines | 200 | qa-auto2 + devops-engineer → qa-auto-ver |
+| [141](../../phases/141-tf-cutover-cleanup/PLAN.md) | CI quality gates, final audit/docs and post-rebase handoff | 220, 233 | devops-engineer + qa-auto-ver → team-lead |
+
+Исторические slugs каталогов 128–141 не переименовываются; смысл задаёт PLAN.
+
+## 6. Dependency graph
 
 ```text
-128 baseline/status
- ├─129 Python scaffold/API ───────────────┬─136 Python API/integration
- │                                       ├─137 E2E foundation ─138 E2E full
- │                                       └─139 load
- ├─130 FE foundation ─131 FE domains
- └─132 BE foundation ─133 BE sec/platform ─134 BE work/realtime ─135 BE rest
-
-{131,135,136,138,139} → 140 CI dual-run → 141 cutover/cleanup/verification
+128 contract/manifests
+  -> 129 immediate cutover/scaffold
+      -> 130 traceability gates
+          -> 131 core/auth API
+              -> 132 security/platform
+              -> 133 infra integration -> 134 work/realtime
+                                       -> 135 business/integrations
+              -> 136 contract/static
+              -> 137 E2E foundation -> 138 E2E journeys
+              -> 139 security/a11y cross-cutting
+              -> 140 load/resilience
+{132..140} -> 141 CI/final verification
 ```
 
-Domain waves могут выполняться параллельно только после Phase 128 и только при
-непересекающихся target/evidence files. Каждая фаза имеет бюджет 1–3 дня. Если
-inventory доказывает больший объём, фаза останавливается и перепланируется; её
-нельзя закрывать частичным переносом или скрытым defer.
+После Phase 131 фазы 132, 133, 136 и 137 могут идти параллельно только при
+непересекающихся owned paths/data. **Phases 134 и 135 формально зависят от
+Phase 133.** Phase 138 зависит от 137 и green соответствующих 134/135 domains.
+Phase 140 зависит от стабильных API/auth fixtures и hot paths из 134–135.
 
-## 6. Coverage и CI contract
+## 7. Phase 128/129 destructive gate
 
-- Phase 128 фиксирует command, toolchain, services, source revision, profile
-  hash, overall/per-package coverage и expected skip budget.
-- Старый и новый Go suites меряются одной instrumentation. Python coverage
-  публикуется отдельно как behavioral/API evidence.
-- Frontend до перемещения получает native typecheck, Biome, Vitest discovery и
-  coverage baseline для `frontend/tests/**`.
-- GitHub Actions — текущий executable authority; GitLab, Makefile и
-  `testframework/pipeline/jobs/*.yaml` считаются drift до Phase 140.
-- Phase 140 только добавляет dual-run и gates. Required checks переключаются и
-  legacy удаляется лишь в Phase 141 после реального CI green.
+Founder уже разрешил стратегию удаления; исполнитель всё равно обязан:
 
-## 7. Cutover gate Phase 141
+- пересчитать ledger на текущем SHA и получить exact POSIX row partitions:
+  hook-free move, hook-dependent protected keep, frontend move и delete-no-port;
+- reject absolute paths, traversal, symlinks/reparse points и protected zone;
+- перед удалением доказать, что move/keep/delete sets disjoint и покрывают весь
+  pinned scope; manual spot-check по каждому domain и ambiguous class;
+- переносить genuine units без semantic rewrite, затем Docker-run их нового
+  entrypoint; failure triage не восстанавливает component tests ради coverage;
+- выполнять безопасную partition: 350 hook-free Go units переносятся сразу,
+  245 hook-dependent Go units блокируются от deletion и проходят отдельный
+  domain refactor/move (TASK-234); это не блокирует независимое удаление
+  manifest-proven legacy non-units;
+- удалять малыми атомарными commits по manifest batch; после каждого batch
+  выполнять Docker-only static/collection gates;
+- до Phase 129 создать `.planning/audits/test-rebase/cutover-manifest.json`;
+  каждый move/delete batch обновляет его и переключает все затронутые
+  CI/scripts/docs в **том же atomic commit**, поэтому committed state никогда
+  не указывает на удалённый path; owner ставит `applied`, independent verifier
+  — `verified`;
+- удалить task-owned Docker resources после evidence capture;
+- не push/merge/deploy без отдельного поручения founder.
 
-Удаление разрешено, только если одновременно:
+Rollback — обычный revert конкретного атомарного commit; копии legacy tests в
+дереве запрещены. Git history является recovery mechanism.
 
-- inventory `unmapped = 0`, `PARITY_REQUIRED = 0`, accidental duplicates = 0;
-- legacy/new behavior, counts, expected skips и artifacts приняты verifiers;
-- принято явное решение по текущему Go coverage contract и green профиль
-  получен тем же способом;
-- real GitHub CI dual-run green (не локальная симуляция), зеркала согласованы;
-- failing sentinels доказали чувствительность всех новых jobs;
-- rollback описан и проверен: предыдущие job/path можно восстановить одним
-  revert до истечения retention window;
-- hooks удаляются только поштучно при consumer=0; root framework целиком не
-  удаляется;
-- все legacy Go/Vitest/TS E2E tests, helpers, configs и entrypoints удалены по
-  manifest allowlist; они не остаются как «резервный target»;
-- в `testframework/**` остался один Python-проект с корневым
-  `pyproject.toml`/pytest config и каталогами
-  `{core,api,integration,contract,e2e,load,docker,reports}`; исполняемый
-  test/load код там только Python.
+## 8. Definition of Done программы
 
-## 8. Порядок после test rebase
+- `backend/tests/**` содержит только доказанные service-free Go units.
+- `frontend/tests/**` содержит только Vitest/RTL units/support.
+- `testframework/**` — один root Python project без legacy executable code.
+- Все Python cases проходят schema/traceability gate; orphan TC/requirement/task
+  links отсутствуют или находятся в явно approved backlog.
+- Required suites имеют non-zero collection, unexpected skip=0, sentinel
+  sensitivity и Docker provenance; launcher enforced outer timeout, а все
+  task-owned resources cleaned в `finally` с post-cleanup proof.
+- Каждый report artifact находится только в `reports/<task-run>/` с валидным
+  owner marker; shared-root output и cross-run overwrite отсутствуют.
+- API/integration/contract/E2E/load coverage спроектирована заново по current
+  requirements/risks с обязательным scenario checklist.
+- GitHub is executable authority; зеркала либо используют те же scripts, либо
+  явно retired. Final green получен после clean checkout/container build.
+- STATE/COVERAGE/test docs синхронизированы с новым baseline без ложного claim
+  о сохранении legacy coverage/parity.
 
-1. Свежий evidence-based re-audit B1–B6.
-2. Productization по результатам аудита: **calendar → intranet → accounting →
-   CRM → HR → bases**.
-3. Hardening modular-monolith boundaries и schema ownership.
-4. Production acceptance, включая ops/security/manual gates.
-5. Затем **Wiki → OIDC SSO → AI MCP**.
-
-До re-audit запрещены подробные «готовые» feature-планы, основанные на старых
-оценках: аудит сначала доказывает фактические gaps, затем создаются фазы.
-
-## 9. Главные риски и владельцы решений
-
-| Риск | Gate / mitigation |
-|---|---|
-| Ложный green из-за skips/zero collection | exact count + unexpected-skip + failing-sentinel gates |
-| Потеря Go coverage при Python replacement | separate metrics; retain/add Go units or founder-approved contract |
-| Раннее удаление legacy/root | manifest allowlist; deletion only Phase 141; rollback |
-| Сломанные hooks/private access | hook consumer ledger; no mechanical deletion |
-| CI drift | one job contract across GitHub/GitLab/Makefile/manifests in Phase 140 |
-| Нет Python/Docker локально | NOT_RUN/BLOCKED evidence; real CI proof required before cutover |
+После Phase 141: evidence-based re-audit B1–B6, затем productization
+calendar → intranet → accounting → CRM → HR → bases, boundaries/schema
+ownership и production acceptance.
 
 ---
 
-*Канон фаз 128–141. Исторические completion claims не заменяют live evidence.*
+*Канон обновлён по прямому founder decision: retain units, delete legacy
+non-units, greenfield Python QA; parity и 82% migration gate отменены.*

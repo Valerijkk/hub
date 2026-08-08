@@ -22,6 +22,11 @@
 | [user_needs_analysis_2026.md](user_needs_analysis_2026.md) | Персоны, JTBD | RU |
 | [GLOSSARY.md](GLOSSARY.md) | Термины, ID-конвенции (TC-/FR-/GZ-/ECC-…), модули backend | RU |
 
+Решения о качестве кода и тестов: [`.cursor/knowledge/code-practices/README.md`](../.cursor/knowledge/code-practices/README.md)
+— evidence-aware каталог hard controls, review heuristics, good/bad examples и
+negative sentinels. Он дополняет, но не заменяет `code_style_guide.md`,
+`security_guidelines.md` и доменные спецификации.
+
 ---
 
 ## Справочная документация
@@ -49,7 +54,7 @@
 | Путь | Назначение |
 |------|------------|
 | `.planning/PROJECT.md` | Полный список требований |
-| `.planning/ROADMAP.md` | Фазы и milestones (исторический) |
+| `.planning/ROADMAP.md` | Фазы и milestones; live test-rebase 128–141 + исторические фазы |
 | **`.planning/archive/july-2026/ROADMAP-FINAL-2026-07-03.md`** | **Актуальный roadmap: волны Track F/P, TF-PY, DOCS-EXCELLENCE** |
 | `.planning/decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` | **Реестр решений по ~90 серым зонам** |
 | `.planning/STATE.md` | **Текущий статус сессии** |
@@ -75,33 +80,32 @@
 
 ---
 
-## Быстрые команды
+## Быстрый вход в проверки — только Docker
 
-```bash
-# Полный backend regression
-cd backend && go generate ./ent && go build -tags release ./... \
-  && go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...
-# (до cutover все 829 legacy *_test.go в backend/testframework/, measured 2026-08-07;
-#  покрытие internal меряется флагом -coverpkg=./internal/...)
+> Founder lock 2026-08-07: на Windows host запрещены tests, validators,
+> linters, build/vet, Vite, Playwright, pytest/Locust и тестовые app-процессы.
+> Host используется только для чтения/редактирования, Git и Docker CLI.
 
-# Frontend regression
-cd frontend && npx tsc --noEmit && npm run lint && npx vitest run
+Единственная точка входа — skill `/qa-gate`. Он выбирает применимые target jobs
+и обязан использовать один versioned outer launcher с task-owned names,
+CPU/RAM/PID limits, wall-clock timeout, `reports/<task-run>` + owner marker и
+cleanup в `finally`. До появления и независимой проверки launcher/scaffold
+вердикт — `NOT_READY`; прямые Docker snippets и legacy runners не fallback.
 
-# Локальный стек
-docker compose --env-file .env.local -f docker-compose.local.yml up --build
-```
-
-Skill: `/qa-gate` — останавливается на первой FAIL.
-
-Test-rebase 128–141: текущие команды сохраняются до dual-run/cutover; целевые
+Test-rebase 128–141: legacy suites frozen и не являются gate; целевые
 пути — `backend/tests/**` (только Go unit), `frontend/tests/**`
 (только Vitest/RTL unit) и единый Python-проект прямо в
 `testframework/`: `{core,api,integration,contract,e2e,load,docker,reports}/**`
-плюс корневой `pyproject.toml`/pytest config. Legacy Go/Vitest/TS E2E
-разрешены только на верифицированном dual-run и обязаны к
-удалению на Phase 141. Канон:
+плюс корневой `pyproject.toml`/pytest config. Legacy Go component/API/
+integration, static-contract Vitest и TS Playwright удаляются в атомарной
+Phase 129 по exact `cutover-manifest.json`, без port/parity/dual-run; каждый
+delete batch переключает затронутые CI/scripts/docs в том же commit. Все 245
+hook-dependent genuine Go units защищены до TASK-234. TASK-202 archived/verified;
+current ledger = **1,049 rows / 4,246 declared**, backend **832 / 3,674**,
+E2E baseline **48 pass / 5 expected skip / 0 fail**. Канон:
 [`.planning/active/august-2026/06-TEST-ARCHITECTURE-REBASE.md`](../.planning/active/august-2026/06-TEST-ARCHITECTURE-REBASE.md).
 
 ---
-*2026-08-07 — root Python testframework contract и current-vs-target split ·
+*2026-08-08 — Docker-only safe runner contract, executable Phase 129 cutover/status ·
+2026-08-07 — root Python testframework contract и current-vs-target split ·
 2026-07-19 — GLOSSARY, TROUBLESHOOTING, runbooks/, актуализация фактов и счётчиков*

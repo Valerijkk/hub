@@ -80,6 +80,7 @@ GSD + агенты: `.cursor/GSD-INTEGRATION.md`, `.cursor/REGULATION.md` §8 (G
 
 > Реорганизована 2026-07-02 под параллельную разработку. Ростер: **`.cursor/playbooks/README.md`** · RACI: `.cursor/playbooks/team-workflow.md` · модели: **`.planning/decisions/ADR-MODELS-GPT56-2026.md`**.
 > **Модели (ADR-MODELS-GPT56, amended 2026-08-07):** `team-lead` — **GPT-5.6 Sol / Extra High** (`model: gpt-5.6-sol`; Ultra только для большой делимой задачи). Downstream frontmatter = `inherit`, но defaults явные: Terra — основная работа, Luna — механика, Sol — high-risk. Полная матрица 32 ролей, effort, цены и fallback: **`.cursor/playbooks/model-routing.md`**. `team-lead-opus` — deprecated redirect.
+> **Live runtime inventory (2026-08-08):** `.cursor/agents/` = **32 файла: 31 operational + 1 deprecated redirect**; GSD runtime = **34 typed agents** (`~/.codex/agents/gsd-*.toml`) + **71 skills** (`~/.agents/skills/gsd-*`). Superpowers установлен как workflow plugin, но не является агентом/authority. Claude Code Opus 5 остаётся отдельным founder-operated worker только для `pro-qa-ai/**`.
 
 ### Лидерство / продукт
 `team-lead` (оркестратор, Sol / Extra High), `tech-lead` (декомпозиция), `product` + `product-ver`, `codex-micro` (мелочь)
@@ -114,7 +115,7 @@ GSD + агенты: `.cursor/GSD-INTEGRATION.md`, `.cursor/REGULATION.md` §8 (G
 
 ## GSD Integration
 
-Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-skills (`.cursor/skills/`).
+Hub использует **GSD skills** (`~/.agents/skills/gsd-*`) + typed GSD agents (`~/.codex/agents/gsd-*.toml`) + Hub slash-skills (`.cursor/skills/`).
 
 | Документ | Назначение |
 |----------|------------|
@@ -134,7 +135,7 @@ limits. Host используется лишь для чтения/редакт�
 
 ---
 
-## Текущий статус (2026-08-07)
+## Текущий статус (2026-08-08)
 
 > July Rebuild planning · LiveKit канон · метрики ниже = baseline master (без регрессии).
 
@@ -152,8 +153,8 @@ limits. Host используется лишь для чтения/редакт�
 | Lighthouse CI (FB-06) | ✅ artifact job PR #27 (non-blocking) |
 | Волна 1 (roadmap 2026-07-03) | ✅ merged to `master` by user 2026-07-11 |
 | July Rebuild / QA-HARDENING | 📋 planning · kickoff ~конец июля |
-| AI quality layer / GSD / portable kit | **Touchstone** Standard `0.4.0-beta.1` + Pro `0.3.0-beta.1` foundation-ready · structural PASS · paired eval NOT_RUN |
-| Test architecture rebase (Ph 128–141) | 🚧 Phase 128 IN PROGRESS · TASK-202 ledger verified · TASK-203 E2E baseline pending · no tests moved |
+| AI quality layer / GSD / portable kit | **Touchstone** Standard `0.4.0-beta.2` pre-release · hardening `65b6a60d` · structural Docker **63/63 PASS** · prompt-engineering research + final portable release + paired eval **NOT_RUN** |
+| Test architecture rebase (Ph 128–141) | 🚧 Phase 128 IN PROGRESS · TASK-202 archived/verified · TASK-203 + TASK-224 baselines closed · TASK-204 independent verification pending · no tests moved |
 
 ### Метрики качества
 
@@ -166,8 +167,8 @@ limits. Host используется лишь для чтения/редакт�
 | Product score | **89/100** |
 | REST API | **286+** endpoints |
 | Ent schemas | **82** |
-| Test-rebase ledger | **1,047** source rows · SHA-256 `01dae4e2…` (HEAD `ee6d696c`, measured 2026-08-07) |
-| Backend tests | **830** total / **3,667** declared: **829 / 3,665** в legacy `backend/testframework/` + **1 / 2** server test; taxonomy total = **594** genuine unit + **236** component (**31** API + **205** integration) |
+| Test-rebase ledger | **1,049** source rows · SHA-256 `72de6a81…` (source revision `5708671f`, measured 2026-08-07) |
+| Backend tests | **832** total / **3,674** declared: **831 / 3,672** в legacy `backend/testframework/` + **1 / 2** server test; taxonomy total = **595** genuine unit + **237** component (**31** API + **206** integration) |
 | Vitest | **180** files / **519** literal cases: **156** frontend unit + **24** static contract; **3** additional frontend support rows |
 | Playwright E2E | **20** specs / **53** declared cases + **14** E2E support rows |
 | qa-gate (FA-10) | build ✅ · hubtest ✅ · race ✅ · Biome ✅ · e2e-smoke **3/3** ✅ |
@@ -181,10 +182,10 @@ limits. Host используется лишь для чтения/редакт�
 | Wave C final audit FA-01–FA-12 | ✅ COMPLETE (кроме FA-06 manual) |
 | FA-10 e2e-smoke | ✅ 3/3 PASS |
 | PG-03 Secret rotation (FA-06) | ⏳ manual ops — **единственный prod-блокер** |
-| Test-rebase Phase 128 | 🚧 TASK-202 inventory verified; TASK-203 backend/frontend baseline green, E2E isolated application/auth-seed baseline pending |
+| Test-rebase Phase 128 | 🚧 TASK-202 archived/verified; TASK-203 historical baseline + TASK-224 E2E baseline closed (**48 pass / 5 expected skip / 0 fail**); TASK-204 verification pending |
 | Merge Волна 1 → master | ✅ user merged 2026-07-11 |
 | July return / CAL-SYNC / QA-HARDENING / Redesign | 📋 planning → kickoff ~конец июля |
-| AI-layer paired pilot / physical empty-repo installation | ⏳ pre-release acceptance; package build/validation PASS |
+| AI-layer prompt research / paired pilot / portable release | ⏳ `0.4.0-beta.2` pre-release; structural Docker 63/63 PASS; prompt research and paired eval NOT_RUN |
 | TF-CLEANUP-01 legacy e2e/specs | ✅ closed 2026-06-22 |
 | RU-COMMENTS-01 top files | ✅ closed 2026-06-22 |
 | DOC-02 historical SUMMARY banner | ✅ closed 2026-06-22 |
@@ -205,7 +206,7 @@ limits. Host используется лишь для чтения/редакт�
 4. Цикл качества нового + регрессия старого (rule 56) — до green
 5. Docs sync (STATE + domain docs)
 6. *-ver → верификация (verified: true в skill)
-7. qa → регрессия (Docker: -tags hubtest)
+7. qa → применимые target jobs `/qa-gate` (Docker-only)
 8. /qa-gate → финальный чек
 ```
 
@@ -216,33 +217,15 @@ limits. Host используется лишь для чтения/редакт�
 
 ## Команды
 
-```bash
-# Dev
-docker compose -f docker-compose.local.yml up -d
-
-# Backend genuine units (target; no services)
-docker run --rm --name hub-backend-test-<task> \
-  --cpus 2.0 --memory 4g --memory-swap 4g \
-  -v "${PWD}/backend:/app" -w /app \
-  golang:1.25-bookworm \
-  sh -lc "go build -tags release ./... && go vet ./... && go test -race -count=1 -timeout=600s ./tests/..."
-
-# Frontend genuine units (target)
-docker run --rm --name hub-frontend-test-<task> --cpus 2.0 --memory 4g --memory-swap 4g \
-  --mount type=bind,src="${PWD}/frontend",dst=/work/frontend,readonly \
-  --mount type=volume,src=hub-node-modules-<task>,dst=/work/frontend/node_modules \
-  -w /work/frontend mcr.microsoft.com/playwright:v1.61.0-noble \
-  sh -lc "npm ci && npx tsc --noEmit && npm run lint && npx vitest run tests && npm run build"
-
-# Python QA (target image from testframework/docker/)
-docker run --rm --name hub-python-test-<task> --cpus 2.0 --memory 4g --memory-swap 4g \
-  --mount type=bind,src="${PWD}/testframework",dst=/work/testframework,readonly \
-  -w /work/testframework hub-testframework:<sha> pytest
-
-# Full gate
-/qa-gate
-```
+- Dev stack: `docker compose -f docker-compose.local.yml up -d`.
+- Все test/build/lint/validator jobs запускаются только через `/qa-gate` и его
+  единый versioned outer launcher: task-owned names, CPU/RAM/PID limits,
+  wall-clock timeout, isolated `testframework/reports/<task-run>/` с owner marker
+  и unconditional exact-resource cleanup в `finally`.
+- Пока target launcher/scaffold не реализован и независимо не проверен, runtime
+  status равен `NOT_READY`. Прямые `docker run`/`compose up` snippets и legacy
+  `hubtest`/Vitest/TS Playwright runners не являются допустимым fallback.
 
 ---
 
-*Обновлено: 2026-08-07 — founder greenfield test cutover, Docker-only execution, root Python testframework contract*
+*Обновлено: 2026-08-08 — executable cutover waves, current TASK-202 archive/counts, Touchstone beta.2 pre-release*

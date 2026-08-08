@@ -50,7 +50,7 @@
 | E2E smoke/full | pytest + playwright-python | `testframework/e2e/`; smoke/full — markers, не каталоги |
 | Load | Locust | `testframework/load/` |
 
-Текущие **236** `go-component` rows (31 API + 205 integration) не переносятся в
+Текущие **237** `go-component` rows (31 API + 206 integration) не переносятся в
 `backend/tests/**` и не переписываются один-в-один: source удаляется по manifest,
 а новый Python coverage проектируется заново от требований и рисков.
 
@@ -73,12 +73,13 @@ Zero collection, неожиданные skips и тест без traceability fa
 
 ## Test Triage Protocol (REGULATION §10)
 
-При падении любого теста (Go / Vitest / legacy Playwright / pytest / Locust):
+При падении любого target test/job:
 
 1. **Воспроизвести функционал** по `docs/system_specification.md`, не только assert
-2. **Классифицировать:** `ROOT=code` (баг в prod) | `ROOT=test` (устаревший тест)
-3. **Чинить минимальный слой** — код или тест, не оба «наугад»
-4. **Записать** обоснование в QA log / STATE.md
+2. **Классифицировать ровно один root:** `code | test | infra | flaky | stop`
+3. **Действовать по root:** минимальный code/test fix; восстановление infra;
+   доказательство flake; либо STOP без произвольной правки
+4. **Записать** root, evidence и решение в QA log / STATE.md
 
 **Запрещено:** зелёные тесты без проверки соответствия спецификации.
 
@@ -91,61 +92,44 @@ task-owned Docker containers с CPU/RAM limits. Host-run не является b
 
 ## Текущая инвентаризация (2026-08-07)
 
-Источник: `.planning/audits/test-rebase/{inventory.json,evidence.md}` · HEAD
-`ee6d696c`; ledger SHA-256 `01dae4e2…`.
+Источник: `.planning/audits/test-rebase/{inventory.json,founder-greenfield-cutover-manifest.json}` · HEAD
+`5708671f`; ledger SHA-256 `72de6a81…`.
 
 | Метрика | Значение |
 |---------|----------|
-| Ledger | **1,047** source rows; `unmapped = 0` |
-| Backend Go total | **830** файлов / **3,667** declared: legacy `backend/testframework/` 829/3,665 + server 1/2; taxonomy 594 genuine unit + 236 component (31 API + 205 integration) |
+| Ledger | **1,049** source rows / **4,246** declared; drift/unmapped = 0 |
+| Backend Go total | **832** файлов / **3,674** declared: legacy `backend/testframework/` 831/3,672 + server 1/2; taxonomy 595 genuine unit + 237 component (31 API + 206 integration) |
 | Backend `internal/*_test.go` | **0** (TF-M08 ✅) |
-| Backend `export_hooks.go` (`//go:build hubtest`) | **39** canonical files + 4 fragments; удаление запрещено до TASK-219 |
+| Backend hook sources | **43** files / 582 symbols / 892 links; 245 genuine units protected until TASK-234, prune only TASK-219B |
+| Hook-dependent protected subset | **42** distinct hook files / **434** distinct referenced hook symbols / **653** consumer links across the 245 protected units; subset-only, so it does not conflict with the global hook inventory above |
 | Statement coverage `internal/` | **82.0373%** — historical Docker baseline for context, не migration gate |
 | Security-critical packages ≥80% | Historical baseline 6/6; не заменяет risk/requirement coverage нового набора |
 | Frontend Vitest | **180** files / **519** literal cases: 156 unit + 24 static contract |
 | Frontend support | **3** source rows → `frontend/tests/support/**` |
 | Playwright specs | Legacy **20** files / **53** declared; Docker full: **48 pass / 5 expected skip / 0 fail**, затем delete-not-port |
-| Playwright support | **14** config/shared source rows → `testframework/e2e/support/**` |
+| Playwright support | Legacy **14** config/shared rows → delete-not-port; новый Python support проектируется greenfield |
 | Target Python tests | **0** до Phase 129 |
 | Lighthouse CI | artifact job (master push, non-blocking) |
 | TypeScript | Docker `tsc --noEmit` + Biome PASS; legacy Vitest 510 pass / 9 fail, remediation отменена founder cutover |
 | Data races | 0 (CI `-race`) |
 
-### Целевые команды после greenfield scaffold
+### Целевой runner после greenfield scaffold
 
-Host запускает только Docker CLI. Ни одна из внутренних команд ниже не
-исполняется на Windows напрямую; runner получает CPU/RAM limits, task-owned
-имя/volumes и read-only source mounts.
+Host запускает только Docker CLI через единый versioned outer launcher из
+target scaffold. Launcher обязан enforce wall-clock timeout, сохранить exit
+code, задать CPU/RAM/PID limits и в `finally` удалить exact task-owned
+containers/Compose project/volumes/networks. Каждый job пишет только в
+`testframework/reports/<task-run>/` после проверки owner marker; общий reports
+root не является output directory.
 
-```bash
-# Backend genuine units: services forbidden
-docker run --rm --name hub-backend-test-<task> \
-  --cpus 2.0 --memory 4g --memory-swap 4g \
-  -v "${PWD}/backend:/app" -w /app \
-  golang:1.25-bookworm \
-  sh -lc "go build -tags release ./... && go vet ./... && go test -race -count=1 -timeout=600s ./tests/..."
-
-# Frontend genuine units
-docker run --rm --name hub-frontend-test-<task> --cpus 2.0 --memory 4g --memory-swap 4g \
-  --mount type=bind,src="${PWD}/frontend",dst=/work/frontend,readonly \
-  --mount type=volume,src=hub-node-modules-<task>,dst=/work/frontend/node_modules \
-  -w /work/frontend mcr.microsoft.com/playwright:v1.61.0-noble \
-  sh -lc "npm ci && npx tsc --noEmit && npm run lint && npx vitest run tests && npm run build"
-
-# Python non-unit QA: image собирается из testframework/docker/
-docker run --rm --name hub-python-test-<task> --cpus 2.0 --memory 4g --memory-swap 4g \
-  --mount type=bind,src="${PWD}/testframework",dst=/work/testframework,readonly \
-  -w /work/testframework hub-testframework:<sha> \
-  pytest -m "contract or api or integration or e2e" --junitxml=/reports/junit.xml
-```
-
-До появления target paths эти команды обязаны fail on zero collection, а не
-считаться PASS. Legacy runners остаются только источником inventory до exact
-deletion commit; чинить или расширять их запрещено.
+До появления и независимой проверки launcher/scaffold verdict — `NOT_READY`,
+не PASS. Zero collection, cleanup failure и missing owner marker — FAIL. Legacy
+runners остаются только источником inventory до exact deletion commit; чинить,
+расширять или использовать их как fallback запрещено.
 
 ---
 
-## Текущий legacy CI (`.github/workflows/ci.yml`, под удаление/замену)
+## Исторический legacy CI (`.github/workflows/ci.yml`, frozen; под удаление/замену)
 
 | Job | Зависимости | Содержание |
 |-----|-------------|------------|
@@ -164,7 +148,8 @@ Module resolution: `frontend/scripts/link-testframework-node-modules.mjs`
 Pipeline manifests: `testframework/pipeline/jobs/*.yaml`  
 Infra: `scripts/ci-e2e-backend.sh` (postgres:17, redis:7.4, mongo:8, nats:2.11).
 
-Эти entrypoints не переносятся в новый Python framework. Cutover заменяет их
+Эта таблица — inventory, не исполняемый gate. Entry-points не переносятся в
+новый Python framework. Cutover заменяет их
 job-ами `backend-unit`, `frontend-unit`, `python-contract`, `python-api`,
 `python-integration`, `python-e2e-smoke/full`, `python-load`.
 
@@ -274,5 +259,6 @@ File: path:line
 | `.cursor/skills/qa-gate/SKILL.md` | Полный gate |
 
 ---
-*Последнее обновление: 2026-08-07 — target root Python project,
-Go/Vitest unit-only boundaries и mandatory Phase 141 legacy cleanup.*
+*Последнее обновление: 2026-08-07 — founder greenfield cutover: genuine
+Go/Vitest units only, exact-manifest legacy cleanup в Phase 129 и новый root
+Python QA project без parity/dual-run gate.*
