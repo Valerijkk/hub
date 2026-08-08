@@ -127,3 +127,55 @@ static review as a runtime acceptance.
 This receipt does not authorize execution: only G128-D may make one attempt
 after an accepted G128-S; that one-shot window closes after the attempt and the
 historical wrapper is forbidden after G129-L.
+
+## G128-S superseding static receipt - STATIC_REVIEW_PASS (2026-08-09)
+
+**Provenance clarification (fix round 1):** G128-S does not claim to have rerun any Git check or independently proved a commit-tree relation. Its use of `committed` for the G128-E envelope is a consumption of the accepted G128-E provenance receipt: atomic commit `4fc2d21459991bf0e66eebe79902d77bc5fa6082`; cached pre-commit audit scope of exactly five writable paths; commit output of five files; empty targeted post-commit status for those five paths; and `git ls-tree` listing all five. The independent G128-E architecture PASS further established the same-HEAD relation for six read-only dependencies and all eleven envelope hashes, while G128-E security PASS established the wrapper/tool boundary. This G128-S review independently matches only the present bytes of the eleven named files to the SHA-256 values below; that byte comparison alone is not represented as new Git provenance.
+
+**Scope:** static review of the committed G128-E source envelope only.
+**Source revision:** `4fc2d21459991bf0e66eebe79902d77bc5fa6082`.
+**Runtime:** still `NOT_RUN`; this receipt does not change the frontmatter
+`verdict: NOT_RUN`, `verified: false`, or `verified_at: null`.
+
+This supersedes the preceding G128-S `NOT_READY` result only for the historical
+pre-G128-E dirty/untracked envelope described there. That evidence is retained
+unchanged. The current source bytes match the supplied committed G128-E seals;
+this read-only review deliberately did not invoke Git to re-resolve the commit
+tree.
+
+### Sealed current envelope
+
+| Path | SHA-256 |
+|---|---|
+| `.planning/audits/test-rebase/validate-contract.ps1` | `f1e5aaea97b38d0b32442b2d5256fea3e5e28b213df53002c67de1d5718a0ea4` |
+| `.planning/audits/test-rebase/apply_cutover_batch.py` | `44004ec557af849974b551b4eeb185ddbc399d7440e26b6387b0183e6e793156` |
+| `.planning/audits/test-rebase/founder-greenfield-cutover-manifest.json` | `df503a7f136aed70f0a9aaed2a576350f692574b0fd9f5506bd4b7f5fed0376a` |
+| `.planning/audits/test-rebase/inventory.py` | `4b8a21b76acdf541c2c576f817b3df16d6c98b0b66caf6be1cca605fe5142361` |
+| `.planning/audits/test-rebase/inventory.json` | `72de6a81b2bd5da8873a98e784a5069a661e9caea083f10722aa85e9f91b4511` |
+| `.planning/audits/test-rebase/inventory.schema.json` | `4ea14f9ad23cf3a0c98a21158802409a73224f86e1355c7647d392fdff65f4ce` |
+| `.planning/audits/test-rebase/test-architecture-contract.json` | `62eb27ecd93164cf404639e6c8b85d14843613da2d34ea4da08101a673bf1335` |
+| `.planning/audits/test-rebase/validate_test_architecture_contract.py` | `05f5515720074bb2aaf2d429d2658911263fc4f0fbf598cf0b54f0f09cc2035d` |
+| `.planning/audits/test-rebase/build_cutover_manifest.py` | `84f00f095899b683784887fd8d1668a8b7edbb44d22b8fc21e406acd79da61f9` |
+| `.planning/audits/test-rebase/validate_cutover_manifest.py` | `677331b75b8b2f032a8f77dfea854c0384796401602816c07e7c35da7a402610` |
+| `.planning/decisions/ADR-TEST-ARCHITECTURE-REBASE-2026.md` | `6c0198ead0fc1afa5e696d552106bfa6e5d99e497a6987a7ece5d1219666659a` |
+
+### Static boundary assertions
+
+| Assertion | Result | Evidence |
+|---|---|---|
+| Fixed invocation and external-tool provenance | **PASS** | The wrapper has empty `param()` and no override path. It rejects relative executables, clears inherited child environments, pins no-reparse single-link absolute Git/Docker executables, verifies their SHA-256 values, and records their identities. Current read-only hashes match sealed Git `544548de8c9bed98eb90531729a2955f554e7009338788b68777258ea61867e4` and Docker `f6e3fb4ce2342f45c680656e9ae02a47c641efc10ba52eeb4e89f379f6befc6c` ([validate-contract.ps1](validate-contract.ps1):301-440, 727-756). |
+| Committed 11-path source and authority closure | **PASS** | Every fixed allowlisted path is opened by a held no-reparse, single-link handle; its bytes are compared with `SourceRevision:<path>`, copied to a held snapshot, and rechecked through final cleanup. The wrapper snapshots six executable sources and five authority inputs, then rejects HEAD drift after pinning ([validate-contract.ps1](validate-contract.ps1):470-532, 766-786, 1103-1114). |
+| Replacement and environment defense | **PASS** | Outer Git uses only the minimal environment with `GIT_NO_REPLACE_OBJECTS=1`; the inner script exports it, asserts both declarations, and runs a tmpfs-only replacement-ref sentinel before the live HEAD check or validators ([validate-contract.ps1](validate-contract.ps1):443-450, 727-741, 822-869). |
+| Canonical read-only authority use | **PASS** | Each authority snapshot is overlay-mounted at exactly `/workspace/<canonical path>`, read-only, and compared to the pinned copy before validation. The repository bind is read-only; `/tmp` is the only writable main-container filesystem ([validate-contract.ps1](validate-contract.ps1):822-861, 899-915). |
+| No cutover, publish, SUT, or unsealed write | **PASS** | The inner command vector is limited to inventory `--check`/`--self-test`, architecture validation, builder `--dry-run`/`--self-test`, independent validation, and applier `--self-test`. It asserts absence of the final `cutover-manifest.json` before and after the builder/applier checks; no `--apply`, `--generate`, publish, SUT, or direct host fallback is exposed ([validate-contract.ps1](validate-contract.ps1):847-861). |
+| Limits, timeout, and exact cleanup | **PASS** | All guard containers have fixed image digest, no network, read-only root, dropped capabilities, CPU/RAM/PID limits, timeout sentinel, bounded host process handling, and ownership-checked exact-ID/label cleanup with final absence scans ([validate-contract.ps1](validate-contract.ps1):301-325, 589-701, 873-924, 958-1012). |
+
+### One-shot authorisation and expiry
+
+`STATIC_REVIEW_PASS` is not a runtime pass and does not reserve or consume an
+attempt. Under Phase 128 plan tasks 128-S and 128-D, only one named,
+Docker-owned G128-D historical-guard attempt may occur after this receipt. That
+window closes after the attempt and the wrapper is forbidden after G129-L;
+direct host/Docker fallback remains prohibited. The wrapper is an execution
+boundary, not a scheduler, so any claim that the one attempt occurred remains
+invalid until the separate G128-D receipt exists.
