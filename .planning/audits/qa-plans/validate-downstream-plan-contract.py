@@ -104,6 +104,24 @@ def task_contract(block: str, path: str, strict_roles: bool) -> None:
     declared = [value.strip() for value in re.split(r"[;,]", files.group(1)) if value.strip()]
     if not 1 <= len(declared) <= 14: fail(f"{path}: Files cardinality outside 1..14")
 
+def literal_file_tokens(files: str, path: str) -> set[str]:
+    tokens: set[str] = set()
+    for item in re.split(r"[;,]", files):
+        value = item.strip().replace("&lt;", "<").replace("&gt;", ">")
+        if not value.startswith("testframework/"):
+            continue
+        value = value.removesuffix(" only").rstrip("/")
+        if not value or ".." in PurePosixPath(value).parts:
+            fail(f"{path}: traversal Files token")
+        if "*" in value:
+            if value.startswith("testframework/docs/"):
+                fail(f"{path}: broad docs Files token")
+            continue
+        if value in tokens:
+            fail(f"{path}: duplicate literal Files token")
+        tokens.add(value)
+    return tokens
+
 def closure_hash(texts: dict[str, bytes]) -> str:
     material = b"".join(path.encode("utf-8") + b"\0" + texts[path] for path in PLAN_PATHS)
     return sha(material)
@@ -144,11 +162,11 @@ def main() -> int:
     if receipt["task_count"] != {"phase_129":176,"later_130_141":61} or receipt["batch_count"] != 173 or receipt["operation_count"] != 1120 or receipt["maximum_batch"] != 56 or receipt["batch_ids_sha256"] != sha("\n".join(ids).encode()): fail("receipt arithmetic drift")
     later = PLAN_PATHS[9:]; later_blocks: list[str] = []
     for path, count in zip(later, LATER_COUNTS, strict=True):
-        phase = PurePosixPath(path).parts[2][:3]; current = blocks(texts[path], path)
-        if len(current) != count or "NOT_READY" not in texts[path] or (phase != "130" and f"G-ACTIVATE-{phase}" not in texts[path]): fail(f"{path}: task/activation drift")
+        phase = PurePosixPath(path).parts[2][:3]; phase_text = texts[path]; current = blocks(phase_text, path)
+        if len(current) != count or "NOT_READY" not in phase_text or (phase != "130" and f"G-ACTIVATE-{phase}" not in phase_text): fail(f"{path}: task/activation drift")
         task_map = {re.search(r'id="([^\"]+)"', block).group(1): block for block in current}
-        docs_records = re.findall(r'<docs_mutation task_id="([^\"]+)" paths="([^\"]+)"/>', text)
-        activation_records = re.findall(r'<task_contract task_id="([^\"]+)" profile="([^\"]+)" docs="([^\"]+)" feature="([^\"]+)" risk_class="([^\"]+)" files_ref="([^\"]+)" rollback_stop="([^\"]+)" founder_id="([^\"]+)" predecessor="([^\"]+)"/>', text)
+        docs_records = re.findall(r'<docs_mutation task_id="([^\"]+)" paths="([^\"]+)"/>', phase_text)
+        activation_records = re.findall(r'<task_contract task_id="([^\"]+)" profile="([^\"]+)" docs="([^\"]+)" feature="([^\"]+)" risk_class="([^\"]+)" files_ref="([^\"]+)" rollback_stop="([^\"]+)" founder_id="([^\"]+)" predecessor="([^\"]+)"/>', phase_text)
         if phase == "130":
             if len(docs_records) != len(current) or len({item[0] for item in docs_records}) != len(current): fail(f"{path}: docs contract coverage drift")
             docs_by_task = dict(docs_records)
@@ -164,13 +182,17 @@ def main() -> int:
         for task_id, block in task_map.items():
             if "NOT_READY" not in block or (phase != "130" and f"G-ACTIVATE-{phase}" not in block): fail(f"{path}: task activation drift")
             files = re.search(r"<files>(.*?)</files>", block, re.S).group(1)
+            file_tokens = literal_file_tokens(files, path)
             declared_docs = docs_by_task.get(task_id)
             if declared_docs is None: fail(f"{path}: missing per-task docs declaration")
             if declared_docs != "none":
                 closure_count += 1
+                declared_set = set()
                 for doc in declared_docs.split(","):
-                    if not doc or "*" in doc or doc not in files: fail(f"{path}: docs path outside literal Files")
-            if "testframework/docs/" in files and declared_docs == "none": fail(f"{path}: docs Files outside closure task")
+                    doc = doc.strip()
+                    if not doc or doc in declared_set or "*" in doc or ".." in PurePosixPath(doc).parts or not doc.startswith("testframework/docs/") or doc.endswith(".bak") or ".bak/" in doc or doc not in file_tokens: fail(f"{path}: docs path outside exact literal Files")
+                    declared_set.add(doc)
+            if any(token.startswith("testframework/docs/") for token in file_tokens) and declared_docs == "none": fail(f"{path}: docs Files outside closure task")
             if re.search(r"\b(?:write|update|create|modify)\b.{0,80}(?:docs|markdown)\b", block, re.I | re.S) and declared_docs == "none": fail(f"{path}: undeclared docs mutation")
         if closure_count != 1: fail(f"{path}: requires exactly one dependent docs closure")
         later_blocks.extend(current)
