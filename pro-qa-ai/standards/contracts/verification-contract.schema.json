@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pro-qa-ai:contracts:verification-contract:1.0",
+  "title": "VerificationContract",
+  "description": "Запись проверок и evidence; PASS без evidence невалиден.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "verification_id",
+    "task_id",
+    "status",
+    "completion_claim",
+    "mode",
+    "author",
+    "verifier",
+    "claims_checked",
+    "required_checks",
+    "evidence",
+    "not_run",
+    "risks_and_assumptions",
+    "requested_model",
+    "actual_model",
+    "actual_model_evidence"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "record_type": {"const": "VerificationContract"},
+    "verification_id": {"type": "string", "minLength": 1},
+    "task_id": {"type": "string", "minLength": 1},
+    "status": {"enum": ["PASS", "FAIL", "PARTIAL", "BLOCKED", "NOT_RUN"]},
+    "completion_claim": {"type": "boolean"},
+    "mode": {"enum": ["SELF_CHECK", "INDEPENDENT"]},
+    "author": {"type": "string", "minLength": 1},
+    "verifier": {"type": "string", "minLength": 1},
+    "claims_checked": {"$ref": "#/$defs/nonEmptyStrings"},
+    "required_checks": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "status", "evidence_refs"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1},
+          "status": {"enum": ["PASS", "FAIL", "N/A", "NOT_RUN"]},
+          "evidence_refs": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {"type": "string", "minLength": 1}
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "maxItems": 500,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "locator", "result", "observed_at"],
+        "properties": {
+          "kind": {"enum": ["COMMAND", "PATH", "ARTIFACT", "SOURCE", "OBSERVATION"]},
+          "locator": {"type": "string", "minLength": 1},
+          "result": {"type": "string", "minLength": 1},
+          "observed_at": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "not_run": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "risks_and_assumptions": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "requested_model": {"type": "string", "minLength": 1},
+    "actual_model": {"type": "string", "minLength": 1},
+    "actual_model_evidence": {"type": ["string", "null"]}
+  },
+  "$defs": {
+    "nonEmptyStrings": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 200,
+      "items": {"type": "string", "minLength": 1}
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "PASS"}}, "required": ["status"]},
+      "then": {"properties": {"evidence": {"minItems": 1}}}
+    },
+    {
+      "if": {"properties": {"completion_claim": {"const": true}}, "required": ["completion_claim"]},
+      "then": {
+        "properties": {
+          "status": {"const": "PASS"},
+          "evidence": {"minItems": 1}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"actual_model": {"const": "UNKNOWN"}}, "required": ["actual_model"]},
+      "then": {"properties": {"actual_model_evidence": {"const": null}}},
+      "else": {"properties": {"actual_model_evidence": {"type": "string", "minLength": 1}}}
+    }
+  ],
+  "examples": [
+    {
+      "schema_version": "1.0",
+      "record_type": "VerificationContract",
+      "verification_id": "VERIFY-TASK-001",
+      "task_id": "TASK-001",
+      "status": "PASS",
+      "completion_claim": true,
+      "mode": "SELF_CHECK",
+      "author": "implementer",
+      "verifier": "implementer",
+      "claims_checked": ["Schema files parse and satisfy the configured contract."],
+      "required_checks": [
+        {"name": "contract schemas", "status": "PASS", "evidence_refs": ["evidence:1"]}
+      ],
+      "evidence": [
+        {"kind": "COMMAND", "locator": "validator --checks contracts", "result": "exit 0", "observed_at": "2026-08-08"}
+      ],
+      "not_run": [],
+      "risks_and_assumptions": ["Self-check не заменяет independent verification."],
+      "requested_model": "UNKNOWN",
+      "actual_model": "UNKNOWN",
+      "actual_model_evidence": null
+    }
+  ]
+}

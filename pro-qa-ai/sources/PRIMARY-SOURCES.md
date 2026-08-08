@@ -1,6 +1,7 @@
 # Реестр первичных источников
 
-Дата доступа для каждого источника ниже: **2026-07-26**.
+Дата доступа по умолчанию: **2026-07-26**. Новые и явно помеченные записи
+проверены **2026-08-08**.
 
 Этот реестр содержит официальные спецификации и документацию vendor/project.
 Тулкит фиксирует actionable control, выведенный из каждого источника; он не
@@ -19,11 +20,23 @@
 Controls fed: frontmatter checks, Agent Skills checks, scope-control fixture,
 tool-call accounting, approval boundaries и hook rollout guidance.
 
+## JSON Schema
+
+Дата доступа: **2026-08-08**.
+
+| ID | Official source | Actionable mapping |
+|---|---|---|
+| SRC-JSON-SCHEMA-2020-12-001 | [JSON Schema Draft 2020-12](https://json-schema.org/draft/2020-12/) | Объявлять dialect через `$schema`, давать стабильный `$id`, запрещать неожиданные поля в governance records и отделять schema validation от policy enforcement. |
+| SRC-JSON-SCHEMA-VALIDATION-001 | [JSON Schema Validation vocabulary](https://json-schema.org/draft/2020-12/json-schema-validation) | Выражать required/type/enum/bounds/conditional evidence как validation assertions; не выдавать ограниченный stdlib subset за полную conformance. |
+
+Controls fed: `standards/contracts/*.schema.json`, check `contracts` и
+stdlib negative fixtures.
+
 ## Agent Skills open specification
 
 | ID | Official source | Actionable mapping |
 |---|---|---|
-| SRC-AGENTSKILLS-SPEC-001 | [Agent Skills specification](https://agentskills.io/specification) | Требовать `SKILL.md` frontmatter, обязательные `name` и `description`, lowercase hyphenated names и `name`, равный parent directory. Scripts и references оставлять optional bundled resources. |
+| SRC-AGENTSKILLS-SPEC-001 | [Agent Skills specification](https://agentskills.io/specification) | Требовать `SKILL.md` frontmatter, обязательные `name` и `description`, lowercase hyphenated names и `name`, равный parent directory. Scripts и references оставлять optional bundled resources; experimental `allowed-tools` не считать переносимым enforcement без подтверждения host/controller. |
 | SRC-AGENTSKILLS-REPO-001 | [Agent Skills specification repository](https://github.com/agentskills/agentskills) | Отслеживать изменения спецификации и сравнивать этот stdlib validator с reference implementation до заявления о полной conformance. |
 
 Controls fed: `SKILL001`–`SKILL005`. Локальный validator проверяет portable
@@ -88,6 +101,8 @@ external-action approvals, CI policy review и repository-instruction provenance
 | ID | Official source | Actionable mapping |
 |---|---|---|
 | SRC-OWASP-LLM10-2025-001 | [OWASP Top 10 for LLM Applications 2025](https://owasp.org/www-project-top-10-for-large-language-model-applications/assets/PDF/OWASP-Top-10-for-LLMs-v2025.pdf) | Тестировать prompt injection, sensitive information disclosure, unsafe output use, excessive agency, supply-chain assumptions и unbounded resource use в pilot threat set. |
+| SRC-OWASP-PROMPT-INJECTION-001 | [OWASP LLM01:2025 Prompt Injection](https://genai.owasp.org/llmrisk/llm01-prompt-injection/) | Трактовать direct/indirect instructions из files/web/tool output как untrusted data и связывать impact с реально доступной agency; не заявлять ranking beyond source identifier. |
+| SRC-OWASP-EXCESSIVE-AGENCY-001 | [OWASP LLM06:2025 Excessive Agency](https://genai.owasp.org/llmrisk/llm062025-excessive-agency/) | Разделять excessive functionality, permissions и autonomy; ограничивать tools/scopes и требовать human/controller approval для high-impact actions. |
 | SRC-OWASP-LLMSVS-001 | [OWASP LLMSVS v2.0](https://owasp.org/www-project-llm-verification-standard/LLMSVS-v2.0-en.html) | Определять verification scope и exclusions, сохранять reproducible evidence и сочетать automated checks с human review для context-sensitive controls. |
 | SRC-OWASP-CODE-REVIEW-001 | [OWASP Secure Code Review Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Secure_Code_Review_Cheat_Sheet.html) | Использовать risk-based, data-flow-aware manual review для authentication, authorization, input handling, secrets и business logic; не считать scanner output финальным вердиктом. |
 
@@ -99,7 +114,7 @@ boundaries.
 
 | ID | Official source | Actionable mapping |
 |---|---|---|
-| SRC-MCP-AUTH-001 | [MCP authorization specification](https://modelcontextprotocol.io/specification/latest/basic/authorization) | Привязывать tokens к intended resource, использовать least-privilege scopes, валидировать authorization metadata и никогда не передавать upstream tokens как замену server authorization. |
+| SRC-MCP-AUTH-001 | [MCP authorization specification 2025-11-25](https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization) | Привязывать tokens к intended resource, использовать least-privilege scopes, валидировать authorization metadata и никогда не передавать upstream tokens как замену server authorization. |
 | SRC-MCP-SECURITY-001 | [MCP security best practices](https://modelcontextprotocol.io/docs/tutorials/security/security_best_practices) | Валидировать redirect и authorization URLs, защищать consent и state, предотвращать confused-deputy flows, минимизировать scopes и логировать metadata только после credential redaction. |
 
 Controls fed: MCP tool approval boundaries, network policy fields, tool-call

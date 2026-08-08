@@ -1,15 +1,15 @@
 ---
 manifest_version: 1
 product: pro-qa-ai
-toolkit_version: 0.4.0-beta.2
+toolkit_version: 0.4.0-beta.3
 status: foundation-ready
 owner: automation-quality
 layer: test-automation-ai-quality
 source_registry: sources/PRIMARY-SOURCES.md
 validation_config: scripts/validation_manifest.json
 validation_status: STRUCTURAL_PASS
-last_validation: 2026-08-07
-provenance: official primary sources and repository inspection through 2026-08-07
+last_validation: 2026-08-08
+provenance: official primary sources and repository inspection through 2026-08-08
 
 ---
 
@@ -53,6 +53,9 @@ candidate, принятому указанной датой; paired effectivenes
 - [Production recipes](workflows/recipes/README.md)
 - [Structural validator](scripts/validate_toolkit.py)
 - [Portable packager](scripts/package_portable.py) и [политика упаковки](scripts/package_manifest.json)
+- [Контракты записей](standards/contracts/README.md): task, handoff,
+  verification, scoped capabilities, provenance и workflow evaluation; схемы
+  декларативны и не заменяют controller enforcement
 - [Поиск конфиденциальных значений](scripts/scan_secrets.py) — рабочее
   дерево и вся история; значения не печатает, историю не правит
 - [Mechanical context inventory](scripts/context_inventory.py), его
@@ -98,6 +101,8 @@ Stdlib-валидатор проверяет:
 - повтор текста между файлами при пересечении от половины;
 - переход между ролями, описанный только с одной стороны;
 - упоминание выхода наружу без рядом стоящего разрешения или запрета.
+- registry и встроенные examples шести JSON Schemas контрактных records через
+  ограниченный Python-stdlib subset (`contracts`).
 
 Последние семь закрывают класс, который структурные проверки не видят:
 файл валиден и связен, но обещает то, чего в пакете нет, либо пересказывает

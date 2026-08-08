@@ -2,6 +2,27 @@
 
 Формат: Keep a Changelog · версии SemVer.
 
+## [0.4.0-beta.3] — 2026-08-08
+
+### Added
+
+- Шесть Draft 2020-12 schemas: `TaskContract`, `HandoffContract`,
+  `VerificationContract`, `CapabilityProfile`, `ProvenanceRecord` и
+  `WorkflowEvaluationRecord`.
+- Stdlib contract check и negative sentinels для model provenance, ложного
+  permission, unbounded loops, mutable executable pins и completion без evidence.
+
+### Changed
+
+- Master delegation, global/verification/agency rules теперь фиксируют scoped
+  capabilities, конечные retry/delegation/review/time/cost budgets и отдельные
+  `requested_model` / `actual_model`.
+- Удалено неподтверждённое числовое утверждение о позиции excessive agency в
+  OWASP; policy ссылается на официальные LLM01:2025 и LLM06:2025 без выдуманного
+  рейтинга.
+- Контрактные records явно объявлены декларативными: authority и enforcement
+  остаются у controller/policy layer. Paired evaluation по-прежнему `NOT_RUN`.
+
 ## [0.4.0-beta.2] — 2026-08-07
 
 ### Added

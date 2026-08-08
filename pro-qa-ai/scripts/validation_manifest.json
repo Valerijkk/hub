@@ -1,5 +1,16 @@
 {
   "schema_version": 1,
+  "contract_schemas": {
+    "dialect": "https://json-schema.org/draft/2020-12/schema",
+    "schemas": {
+      "TaskContract": "standards/contracts/task-contract.schema.json",
+      "HandoffContract": "standards/contracts/handoff-contract.schema.json",
+      "VerificationContract": "standards/contracts/verification-contract.schema.json",
+      "CapabilityProfile": "standards/contracts/capability-profile.schema.json",
+      "ProvenanceRecord": "standards/contracts/provenance-record.schema.json",
+      "WorkflowEvaluationRecord": "standards/contracts/workflow-evaluation-record.schema.json"
+    }
+  },
   "scan": {
     "global_exclude_globs": [
       "**/__pycache__",

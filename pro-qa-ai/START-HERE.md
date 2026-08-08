@@ -1,6 +1,6 @@
 # START HERE — pro-qa-ai
 
-**Версия:** `0.4.0-beta.2`
+**Версия:** `0.4.0-beta.3`
 
 AI-слой для инженера автоматизации тестирования. Ставится в репозиторий
 **существующего** тестового фреймворка, изучает его и дальше работает
@@ -97,3 +97,4 @@ tf-init
 | Устройство пакета и три принципа под ним | [README.md](README.md) |
 | Что входит, что не входит, статус ворот | [TOUCHSTONE.md](TOUCHSTONE.md) |
 | Что агент вправе сделать сам, а что нет | [`rules/60`](standards/rules/60-agency-and-egress.md) |
+| Машинные task/handoff/capability/provenance records | [`standards/contracts/`](standards/contracts/README.md) |

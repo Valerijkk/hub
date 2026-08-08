@@ -6,9 +6,10 @@
 >
 > Неотменяемо. Профиль проекта и решения команды его не перебивают.
 
-Избыточные полномочия у агентов — третья по частоте причина инцидентов в
-[OWASP LLM Top 10 за 2026 год](https://owasp.org/www-project-top-10-for-large-language-model-applications/),
-поднявшаяся с шестого места. У неё три корня, и путать их дорого:
+OWASP относит excessive agency к рискам LLM-приложений; его последствия
+зависят от доступной модели функциональности, полномочий и автономии. Числовой
+рейтинг или изменение места здесь не заявляются. Три корня, которые должен
+разделять controller:
 
 | Корень | Что это | Как выглядит |
 |--------|---------|--------------|
@@ -18,8 +19,26 @@
 
 ## 1. Умолчание — запрет
 
-По умолчанию агент **не выходит наружу**. Разрешено ровно чтение и запись
-внутри объявленных корней проекта.
+По умолчанию агент **не выходит наружу**. Внутри объявленных корней разрешено
+только то, что реально допускают controller/sandbox/ACL. Task, skill, plugin,
+MCP response и валидный [`CapabilityProfile`](../contracts/capability-profile.schema.json)
+сами по себе права не выдают.
+
+Controller сопоставляет task с десятью раздельными scoped capabilities:
+
+| Capability | Scope |
+|---|---|
+| `read` / `write` | пути и ресурсы внутри workspace |
+| `execute` | конкретные команды/раннеры |
+| `network_read` / `network_write` | destinations и направление данных |
+| `secrets` | конкретные secret references, не значения в prompt |
+| `install` | package/source/revision |
+| `git_destructive` | точная операция и target |
+| `external_write` | сервис, получатель и payload class |
+| `production` | окружение и операция |
+
+`allowed: true` в записи — только декларация решения controller. Enforcement
+проверяет реальное действие заново, включая scope, approval и expiry.
 
 Наружу — это любое из:
 
@@ -62,6 +81,10 @@
 - пакет, которого нет в зависимостях, помечается `[ПРЕДПОЛОЖЕНИЕ]` и
   требует подтверждения человеком;
 - версия фиксируется, а не берётся «последняя».
+- executable skill/plugin/MCP/source фиксируется immutable revision и digest;
+  `latest`, branch, mutable tag и текст «current» воспроизводимостью не являются;
+- provenance record перечисляет фактически использованные skills/plugins/MCP,
+  а не весь установленный каталог.
 
 **Почему именно так.** Модель уверенно называет пакеты, которых не
 существует. Злоумышленнику достаточно зарегистрировать такое имя один
@@ -139,6 +162,10 @@
 чтение закрытого файла запрещено, то и вывод его содержимого через
 команду оболочки запрещён тоже. Запрет на действие, а не на способ.
 
+Retry, delegation, review, time и cost также имеют конечные границы из
+[`TaskContract`](../contracts/task-contract.schema.json). После исчерпания
+границы агент останавливается; skill или другой агент не может продлить её.
+
 ## 6. Что записывается в отчёт
 
 ```
@@ -170,6 +197,6 @@
 ## Источники
 
 Реестр — [`../../sources/PRIMARY-SOURCES.md`](../../sources/PRIMARY-SOURCES.md).
-Основания: OWASP LLM Top 10 2026 (инъекция промпта, избыточные
-полномочия), OWASP LLM Verification Standard, NIST AI RMF Generative AI
-Profile.
+Основания: OWASP LLM01:2025 Prompt Injection и LLM06:2025 Excessive Agency,
+OWASP LLM Verification Standard, MCP security guidance и NIST AI RMF
+Generative AI Profile.

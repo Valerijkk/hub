@@ -1,23 +1,32 @@
 ---
 name: pro-qa-ai
 product: pro-qa-ai
-version: 0.4.0-beta.2
+version: 0.4.0-beta.3
 status: foundation-ready
 release_date: не выпущено — beta, GA после paired eval
 owner: automation-quality
 validation_status: STRUCTURAL_PASS
-last_validation: 2026-08-07
+last_validation: 2026-08-08
 release_eligibility: foundation-ready-eval-blocked
 provenance: MANIFEST.md
-supersedes: 0.4.0-beta.1
+supersedes: 0.4.0-beta.2
 ---
 
 # Версия — pro-qa-ai
 
-Текущая semantic version: **`0.4.0-beta.2`**.
+Текущая semantic version: **`0.4.0-beta.3`**.
 
 **foundation-ready** — AI-слой для тестового фреймворка. Корень поставки:
 эта папка. Продуктовая карта: [TOUCHSTONE.md](TOUCHSTONE.md).
+
+## Контракты records в `0.4.0-beta.3`
+
+Добавлены шесть vendor-neutral JSON Schemas для task, handoff, verification,
+scoped capabilities, runtime/source provenance и workflow evaluation. Они
+фиксируют конечные retry/delegation/review/time/cost budgets, разделяют
+`requested_model` и evidence-backed `actual_model`, запрещают mutable pins у
+executable sources и PASS без evidence. Схемы декларативны: реальные права
+по-прежнему enforce controller/sandbox/ACL. Paired eval остаётся `NOT_RUN`.
 
 ## Усиление portable release в `0.4.0-beta.2`
 

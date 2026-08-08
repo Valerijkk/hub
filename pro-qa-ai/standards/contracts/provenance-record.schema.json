@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pro-qa-ai:contracts:provenance-record:1.0",
+  "title": "ProvenanceRecord",
+  "description": "Факты runtime и revisions; actual model без telemetry остаётся UNKNOWN.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "provenance_id",
+    "task_id",
+    "status",
+    "requested_model",
+    "actual_model",
+    "actual_model_evidence",
+    "workflow_revision",
+    "plugins",
+    "skills",
+    "mcp_servers",
+    "sources",
+    "approvals"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "record_type": {"const": "ProvenanceRecord"},
+    "provenance_id": {"type": "string", "minLength": 1},
+    "task_id": {"type": "string", "minLength": 1},
+    "status": {"enum": ["COMPLETE", "INCOMPLETE"]},
+    "requested_model": {"type": "string", "minLength": 1},
+    "actual_model": {"type": "string", "minLength": 1},
+    "actual_model_evidence": {"type": ["string", "null"]},
+    "workflow_revision": {
+      "type": "string",
+      "pattern": "^(UNKNOWN|[0-9a-fA-F]{40,64})$"
+    },
+    "plugins": {"$ref": "#/$defs/executableSources"},
+    "skills": {"$ref": "#/$defs/executableSources"},
+    "mcp_servers": {"$ref": "#/$defs/executableSources"},
+    "sources": {
+      "type": "array",
+      "maxItems": 500,
+      "items": {"$ref": "#/$defs/source"}
+    },
+    "approvals": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {"type": "string", "minLength": 1}
+    }
+  },
+  "$defs": {
+    "executableSources": {
+      "type": "array",
+      "maxItems": 200,
+      "items": {"$ref": "#/$defs/executableSource"}
+    },
+    "executableSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "source_uri", "revision", "digest"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "source_uri": {"type": "string", "minLength": 1},
+        "revision": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{40,64}$"
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_id", "source_uri", "revision", "accessed_at"],
+      "properties": {
+        "source_id": {"type": "string", "minLength": 1},
+        "source_uri": {"type": "string", "minLength": 1},
+        "revision": {
+          "type": "string",
+          "pattern": "^(UNKNOWN|(?!latest$|main$|master$|HEAD$|stable$).+)$"
+        },
+        "accessed_at": {"type": "string", "minLength": 1}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"actual_model": {"const": "UNKNOWN"}},
+        "required": ["actual_model"]
+      },
+      "then": {"properties": {"actual_model_evidence": {"const": null}}},
+      "else": {
+        "properties": {"actual_model_evidence": {"type": "string", "minLength": 1}}
+      }
+    }
+  ],
+  "examples": [
+    {
+      "schema_version": "1.0",
+      "record_type": "ProvenanceRecord",
+      "provenance_id": "PROV-TASK-001",
+      "task_id": "TASK-001",
+      "status": "INCOMPLETE",
+      "requested_model": "model-requested-by-controller",
+      "actual_model": "UNKNOWN",
+      "actual_model_evidence": null,
+      "workflow_revision": "UNKNOWN",
+      "plugins": [],
+      "skills": [],
+      "mcp_servers": [],
+      "sources": [],
+      "approvals": []
+    }
+  ]
+}

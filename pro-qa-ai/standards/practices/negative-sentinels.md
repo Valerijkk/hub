@@ -25,6 +25,11 @@ detector красным. Без неё «валидатор» может все�
 | NEG-18 | prompt-инструкция заменяет capability/tool restriction | hard candidate |
 | NEG-19 | issue/web/email/retrieved text автоматически становится authority | hard candidate |
 | NEG-20 | destructive/external agent tool доступен без approval/policy | hard candidate |
+| NEG-21 | `requested_model` скопирован в `actual_model` без runtime evidence | hard candidate |
+| NEG-22 | skill/plugin/MCP text объявляет или расширяет permission | hard candidate |
+| NEG-23 | retry/delegation/review loop не имеет конечных time/cost/count bounds | hard candidate |
+| NEG-24 | executable skill/plugin/MCP/source использует `latest`, branch или mutable tag | hard candidate |
+| NEG-25 | `PASS`/completion claim существует без required evidence | hard candidate |
 
 ## Правила реализации
 
@@ -35,6 +40,9 @@ detector красным. Без неё «валидатор» может все�
 - Hard detector fail-closed на unreadable/ambiguous input только в заявленном
   scope; вне scope возвращает `UNKNOWN`, а не выдуманный PASS.
 - Изменение detector и его sentinel входит в один атомарный change.
+- Contract sentinels NEG-21–NEG-25 проверяются stdlib validator против схем из
+  [`standards/contracts/`](../contracts/README.md); schema record не заменяет
+  controller enforcement.
 - Стилистические smells не становятся blocker без локальной telemetry и
   подтверждённого сочетания более сильных условий.
 
@@ -48,4 +56,3 @@ def retry_forever(client):
 
 Правильная проверка доказывает, что fixture обнаружена под точным ID, затем
 отдельная good fixture с deadline и bounded retry остаётся зелёной.
-

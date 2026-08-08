@@ -49,6 +49,7 @@ CHECK_ORDER = (
     "secrets",
     "portable_leakage",
     "trailing_whitespace",
+    "contracts",
     "provenance",
     "recipes",
     "agent_contract",
@@ -378,6 +379,182 @@ def markdown_heading_anchors(text: str) -> Set[str]:
         anchors.add(base if count == 0 else "%s-%d" % (base, count))
         counts[base] = count + 1
     return anchors
+
+
+def _json_type_matches(value: Any, expected: str) -> bool:
+    """Return JSON type compatibility without treating bool as a number."""
+
+    if expected == "object":
+        return isinstance(value, dict)
+    if expected == "array":
+        return isinstance(value, list)
+    if expected == "string":
+        return isinstance(value, str)
+    if expected == "integer":
+        return isinstance(value, int) and not isinstance(value, bool)
+    if expected == "number":
+        return isinstance(value, (int, float)) and not isinstance(value, bool)
+    if expected == "boolean":
+        return isinstance(value, bool)
+    if expected == "null":
+        return value is None
+    return False
+
+
+def _resolve_local_json_ref(root_schema: Dict[str, Any], reference: str) -> Any:
+    if not reference.startswith("#/"):
+        raise ValueError("only local JSON Schema references are supported")
+    current: Any = root_schema
+    for raw_token in reference[2:].split("/"):
+        token = raw_token.replace("~1", "/").replace("~0", "~")
+        if not isinstance(current, dict) or token not in current:
+            raise ValueError("unresolved local JSON Schema reference")
+        current = current[token]
+    return current
+
+
+def validate_json_instance(
+    instance: Any,
+    schema: Dict[str, Any],
+    *,
+    root_schema: Optional[Dict[str, Any]] = None,
+    path: str = "$",
+    ref_stack: Tuple[str, ...] = (),
+) -> List[str]:
+    """Validate the Draft 2020-12 subset used by bundled contracts.
+
+    This is not a general JSON Schema implementation. It keeps bundled examples
+    and sentinels executable with stdlib only; a controller must use a maintained
+    full validator when schema validation is part of policy enforcement.
+    """
+
+    root = root_schema or schema
+    errors: List[str] = []
+    reference = schema.get("$ref")
+    if reference is not None:
+        if not isinstance(reference, str):
+            return ["%s: $ref must be a string" % path]
+        if reference in ref_stack:
+            return ["%s: recursive $ref is unsupported" % path]
+        try:
+            target = _resolve_local_json_ref(root, reference)
+        except ValueError as exc:
+            return ["%s: %s" % (path, exc)]
+        if not isinstance(target, dict):
+            return ["%s: $ref target must be an object" % path]
+        errors.extend(
+            validate_json_instance(
+                instance,
+                target,
+                root_schema=root,
+                path=path,
+                ref_stack=ref_stack + (reference,),
+            )
+        )
+
+    expected_types = schema.get("type")
+    if expected_types is not None:
+        choices = expected_types if isinstance(expected_types, list) else [expected_types]
+        if not choices or not all(isinstance(item, str) for item in choices):
+            errors.append("%s: schema type must be a string or non-empty string list" % path)
+            return errors
+        if not any(_json_type_matches(instance, item) for item in choices):
+            errors.append("%s: expected type %s" % (path, "|".join(choices)))
+            return errors
+
+    if "const" in schema and instance != schema["const"]:
+        errors.append("%s: value does not match const" % path)
+    if "enum" in schema and instance not in schema["enum"]:
+        errors.append("%s: value is outside enum" % path)
+
+    for subschema in schema.get("allOf", []):
+        errors.extend(validate_json_instance(instance, subschema, root_schema=root, path=path))
+    if "anyOf" in schema:
+        branches = [
+            validate_json_instance(instance, item, root_schema=root, path=path)
+            for item in schema["anyOf"]
+        ]
+        if not any(not result for result in branches):
+            errors.append("%s: no anyOf branch matched" % path)
+    if "oneOf" in schema:
+        matches = sum(
+            not validate_json_instance(instance, item, root_schema=root, path=path)
+            for item in schema["oneOf"]
+        )
+        if matches != 1:
+            errors.append("%s: expected exactly one oneOf branch" % path)
+    if "not" in schema and not validate_json_instance(
+        instance, schema["not"], root_schema=root, path=path
+    ):
+        errors.append("%s: value matches forbidden schema" % path)
+    if "if" in schema:
+        condition_matches = not validate_json_instance(
+            instance, schema["if"], root_schema=root, path=path
+        )
+        branch = schema.get("then" if condition_matches else "else")
+        if branch is not None:
+            errors.extend(validate_json_instance(instance, branch, root_schema=root, path=path))
+
+    if isinstance(instance, dict):
+        for name in schema.get("required", []):
+            if name not in instance:
+                errors.append("%s: missing required property %s" % (path, name))
+        properties = schema.get("properties", {})
+        for name, value in instance.items():
+            child_path = "%s.%s" % (path, name)
+            if name in properties:
+                errors.extend(
+                    validate_json_instance(
+                        value, properties[name], root_schema=root, path=child_path
+                    )
+                )
+            elif schema.get("additionalProperties") is False:
+                errors.append("%s: additional property is forbidden" % child_path)
+            elif isinstance(schema.get("additionalProperties"), dict):
+                errors.extend(
+                    validate_json_instance(
+                        value,
+                        schema["additionalProperties"],
+                        root_schema=root,
+                        path=child_path,
+                    )
+                )
+
+    if isinstance(instance, list):
+        if "minItems" in schema and len(instance) < schema["minItems"]:
+            errors.append("%s: fewer than minItems" % path)
+        if "maxItems" in schema and len(instance) > schema["maxItems"]:
+            errors.append("%s: more than maxItems" % path)
+        if schema.get("uniqueItems"):
+            serialized = [json.dumps(item, sort_keys=True, ensure_ascii=False) for item in instance]
+            if len(serialized) != len(set(serialized)):
+                errors.append("%s: array items are not unique" % path)
+        item_schema = schema.get("items")
+        if isinstance(item_schema, dict):
+            for index, value in enumerate(instance):
+                errors.extend(
+                    validate_json_instance(
+                        value,
+                        item_schema,
+                        root_schema=root,
+                        path="%s[%d]" % (path, index),
+                    )
+                )
+
+    if isinstance(instance, str):
+        if "minLength" in schema and len(instance) < schema["minLength"]:
+            errors.append("%s: shorter than minLength" % path)
+        if "maxLength" in schema and len(instance) > schema["maxLength"]:
+            errors.append("%s: longer than maxLength" % path)
+        if "pattern" in schema and re.search(schema["pattern"], instance) is None:
+            errors.append("%s: string does not match pattern" % path)
+
+    if isinstance(instance, (int, float)) and not isinstance(instance, bool):
+        if "minimum" in schema and instance < schema["minimum"]:
+            errors.append("%s: below minimum" % path)
+        if "maximum" in schema and instance > schema["maximum"]:
+            errors.append("%s: above maximum" % path)
+    return errors
 
 
 class ToolkitValidator:
@@ -1617,6 +1794,96 @@ class ToolkitValidator:
                     "offline wrapper must not claim runtime catalog/data-policy verification",
                 )
 
+    def check_contracts(self) -> None:
+        """Validate the bundled record-schema registry and its examples."""
+
+        settings = self.config.get("contract_schemas") or {}
+        dialect = settings.get("dialect")
+        configured = settings.get("schemas") or {}
+        seen_ids: Dict[str, Path] = {}
+        for title, relative in configured.items():
+            path = self.root / relative
+            if not self._snapshot_is_file(path):
+                self.add("contracts", "CONTRACT001", path, 1, "required contract schema is missing")
+                continue
+            text = self.read_text(path, "contracts")
+            if text is None:
+                continue
+            try:
+                schema = json.loads(text)
+            except json.JSONDecodeError as exc:
+                self.add("contracts", "CONTRACT002", path, exc.lineno, "contract schema is not valid JSON")
+                continue
+            if not isinstance(schema, dict):
+                self.add("contracts", "CONTRACT003", path, 1, "contract schema root must be an object")
+                continue
+            properties = schema.get("properties")
+            required = schema.get("required")
+            identity_valid = (
+                schema.get("$schema") == dialect
+                and schema.get("title") == title
+                and schema.get("type") == "object"
+                and schema.get("additionalProperties") is False
+                and isinstance(schema.get("$id"), str)
+                and bool(schema.get("$id"))
+                and isinstance(properties, dict)
+                and isinstance(required, list)
+                and properties.get("schema_version", {}).get("const") == "1.0"
+                and properties.get("record_type", {}).get("const") == title
+                and {"schema_version", "record_type"}.issubset(set(required))
+            )
+            if not identity_valid:
+                self.add(
+                    "contracts",
+                    "CONTRACT003",
+                    path,
+                    1,
+                    "contract schema has an invalid dialect/root/record identity",
+                )
+            schema_id = schema.get("$id")
+            if isinstance(schema_id, str) and schema_id:
+                if schema_id in seen_ids:
+                    self.add("contracts", "CONTRACT004", path, 1, "contract schema $id is duplicated")
+                else:
+                    seen_ids[schema_id] = path
+
+            pending: List[Any] = [schema]
+            while pending:
+                node = pending.pop()
+                if isinstance(node, dict):
+                    reference = node.get("$ref")
+                    if reference is not None:
+                        try:
+                            if not isinstance(reference, str):
+                                raise ValueError("$ref must be a string")
+                            _resolve_local_json_ref(schema, reference)
+                        except ValueError:
+                            self.add(
+                                "contracts",
+                                "CONTRACT005",
+                                path,
+                                1,
+                                "contract schema contains unsupported or unresolved $ref",
+                            )
+                    pending.extend(node.values())
+                elif isinstance(node, list):
+                    pending.extend(node)
+
+            examples = schema.get("examples", [])
+            if not isinstance(examples, list) or not examples:
+                self.add("contracts", "CONTRACT006", path, 1, "contract schema needs a valid example")
+                continue
+            for index, example in enumerate(examples):
+                errors = validate_json_instance(example, schema)
+                if errors:
+                    self.add(
+                        "contracts",
+                        "CONTRACT006",
+                        path,
+                        1,
+                        "contract example %d is invalid: %s" % (index, errors[0]),
+                    )
+
     def check_provenance(self) -> None:
         settings = self.config["toolkit_manifest"]
         path = self.root / settings["path"]
@@ -2127,6 +2394,7 @@ class ToolkitValidator:
             "secrets": self.check_secrets,
             "portable_leakage": self.check_portable_leakage,
             "trailing_whitespace": self.check_trailing_whitespace,
+            "contracts": self.check_contracts,
             "provenance": self.check_provenance,
             "recipes": self.check_recipes,
             "agent_contract": self.check_agent_contract,
