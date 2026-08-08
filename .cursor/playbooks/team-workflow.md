@@ -632,28 +632,12 @@ verified: false            # true только при 0 CRITICAL/HIGH + green re
 Одноразовой проверки недостаточно. `verified: true` и handoff — только после обоих циклов green + лог.
 
 Сразу после изменения кода/конфигурации, затрагивающего поведение, используй
-только target entrypoints из [`AGENTS.md`](../../AGENTS.md) / `docs/test_plan.md`.
-На Windows host запрещены tests/validators/linters/build/vet/Vite/Playwright/pytest/Locust:
-
-```bash
-# Backend genuine units only
-docker run --rm --name hub-backend-test-<task> --cpus 2.0 --memory 4g --memory-swap 4g \
-  -v "${PWD}/backend:/app" -w /app \
-  golang:1.25-bookworm \
-  sh -lc "go build -tags release ./... && go vet ./... && go test -race -count=1 -timeout=600s ./tests/..."
-
-# Frontend genuine units only
-docker run --rm --name hub-frontend-test-<task> --cpus 2.0 --memory 4g --memory-swap 4g \
-  --mount type=bind,src="${PWD}/frontend",dst=/work/frontend,readonly \
-  --mount type=volume,src=hub-node-modules-<task>,dst=/work/frontend/node_modules \
-  -w /work/frontend mcr.microsoft.com/playwright:v1.61.0-noble \
-  sh -lc "npm ci && npx tsc --noEmit && npm run lint && npx vitest run tests && npm run build"
-
-# Greenfield non-unit QA: единый Python-проект в корневом testframework/
-docker run --rm --name hub-python-test-<task> --cpus 2.0 --memory 4g --memory-swap 4g \
-  --mount type=bind,src="${PWD}/testframework",dst=/work/testframework,readonly \
-  -w /work/testframework hub-testframework:<sha> pytest
-```
+только versioned outer launcher из [`/qa-gate`](../skills/qa-gate/SKILL.md).
+На Windows host запрещены tests/validators/linters/build/vet/Vite/Playwright/
+pytest/Locust. Прямой `docker run`/`compose up` не substitute: launcher обязан
+enforce wall-clock timeout, сохранить exit code, изолировать reports по
+`<task-run>` и выполнить exact-resource cleanup в `finally`. До его реализации
+и независимой проверки runtime verdict — `NOT_READY`.
 
 **Правило:** сделал изменение → регрессия → skill-лог PASS/FAIL → только после green — передача `*-ver`.
 ## 8.2 Docs-sync (REGULATION §10 / rule 55)

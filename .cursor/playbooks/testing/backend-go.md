@@ -50,18 +50,15 @@ version. Timeout/retry/dependency failure чаще требует Python boundar
 
 ## Docker evidence
 
-```powershell
-docker run --rm --name hub-backend-unit-<task> `
-  --cpus 2.0 --memory 4g --memory-swap 4g `
-  --mount type=bind,src="${PWD}/backend",dst=/work/backend,readonly `
-  -w /work/backend golang:1.25-bookworm `
-  sh -lc "go build -tags release ./... && go vet ./... && go test -race -count=1 -timeout=600s ./tests/..."
-```
+Backend unit job запускается только versioned outer launcher из `/qa-gate`:
+outer wall-clock timeout, exit-code preservation, task-owned resources и
+unconditional cleanup в `finally`. Host-run и прямой `docker run` запрещены и
+не являются evidence. Пока launcher не реализован и независимо не проверен,
+verdict — `NOT_READY`.
 
-Host-run запрещён и не является evidence. `--rm` очищает task-owned container.
-Записать image, source SHA, exact command, collect/pass/fail/skip, duration и
-cleanup. Исторический 82% coverage не блокирует cutover; coverage не заменяет
-TC/risk/oracle и failing sentinel.
+Записать image, source SHA, exact launcher + inner command,
+collect/pass/fail/skip, duration и cleanup. Исторический 82% coverage не
+блокирует cutover; coverage не заменяет TC/risk/oracle и failing sentinel.
 
 ## Review
 

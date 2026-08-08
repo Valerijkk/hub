@@ -41,19 +41,11 @@ partial/retry/recovery/cancel, stale/version и accessibility. Это не quota
 
 ## Docker evidence
 
-```powershell
-docker run --rm --name hub-frontend-unit-<task> `
-  --cpus 2.0 --memory 4g --memory-swap 4g `
-  --mount type=bind,src="${PWD}/frontend",dst=/work/frontend,readonly `
-  --mount type=volume,src=hub-node-modules-<task>,dst=/work/frontend/node_modules `
-  -w /work/frontend mcr.microsoft.com/playwright:v1.61.0-noble `
-  sh -lc "npm ci && npx tsc --noEmit && npm run lint && npx vitest run tests && npm run build"
-
-docker volume rm hub-node-modules-<task>
-```
-
-Host Node/Vitest/tsc/Biome/Vite запрещены. Container `--rm` и явное удаление
-task-owned volume обязательны; cleanup result входит в handoff.
+Frontend unit job запускается только versioned outer launcher из `/qa-gate`:
+outer wall-clock timeout, exit-code preservation, task-owned container/volumes
+и unconditional cleanup в `finally`. Host Node/Vitest/tsc/Biome/Vite и прямой
+`docker run` запрещены. Пока launcher не реализован и независимо не проверен,
+verdict — `NOT_READY`; cleanup result входит в handoff.
 
 ## Review
 

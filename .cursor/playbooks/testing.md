@@ -149,19 +149,12 @@ pytest/Playwright и Locust исполняются только в task-owned co
 - `--rm` либо guaranteed `down -v --remove-orphans`;
 - zero collection, unexpected skip или leaked resource = FAIL.
 
-Пример genuine backend units:
-
-```powershell
-docker run --rm --name hub-backend-unit-<task> `
-  --cpus 2.0 --memory 4g --memory-swap 4g `
-  --mount type=bind,src="${PWD}/backend",dst=/work/backend,readonly `
-  -w /work/backend golang:1.25-bookworm `
-  sh -lc "go build -tags release ./... && go vet ./... && go test -race -count=1 -timeout=600s ./tests/..."
-```
-
-`--rm` — обязательный cleanup контейнера. Если task создаёт named volumes,
-networks или Compose stack, handoff содержит отдельный подтверждённый cleanup.
-Target команды по всем job: [`/qa-gate`](../skills/qa-gate/SKILL.md).
+Единственная точка исполнения — versioned outer launcher из
+[`/qa-gate`](../skills/qa-gate/SKILL.md). Он enforce wall-clock timeout,
+сохраняет exit code и выполняет exact-resource cleanup в `finally`; artifacts
+изолированы в `testframework/reports/<task-run>/` с owner marker. Пока launcher
+не реализован и независимо не проверен, любой runtime verdict — `NOT_READY`.
+Прямой `docker run`/`compose up` не является допустимым substitute.
 
 ## 7. Evidence и false confidence
 
@@ -171,7 +164,7 @@ Target команды по всем job: [`/qa-gate`](../skills/qa-gate/SKILL.md
 job: python-api
 source_sha: <sha>
 image: <immutable tag or digest>
-command: <exact inner command>
+command: <exact versioned launcher invocation + recorded inner command>
 resources: {cpus: 2.0, memory: 4g}
 service_profile: <none or compose profile>
 result: {collected: N, passed: N, failed: 0, skipped: 0}
