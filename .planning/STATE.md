@@ -5,7 +5,7 @@ milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
 last_updated: "2026-08-08T00:00:00.000Z"
-last_activity: 2026-08-08 · Hub prompt/test contracts rebased from research + GSD + Superpowers; prompt review PASS, test-contract re-review pending; no tests moved
+last_activity: 2026-08-08 · Hub prompt/test contracts rebased from research + GSD + Superpowers; independent prompt and test-contract reviews PASS; no tests moved
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -132,7 +132,8 @@ spec_coverage:
   bounded TaskContract/context/evidence/workflow-eval contracts, conclusion-blind
   verification, separate 3-fix/5-review breakers and fail-closed Docker runner
   requirements. Independent prompt-contract re-review = **PASS**; independent
-  test-contract re-review remains pending.
+  test-contract re-review = **PASS** after `77f94e89` removed the last four
+  direct Docker launcher bypasses.
 - Touchstone `pro-qa-ai` is current `0.4.0-beta.3` at commit `30f75a25`, with
   `STRUCTURAL_PASS`; the Desktop portable copy is also beta.3. Paired
   effectiveness/ROI evaluation remains `NOT_RUN`, so this is not GA.
@@ -1045,12 +1046,12 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 ## Session Continuity
 
 **Last session:** 2026-08-08 (resumed · Phase 128)
-**Stopped at:** prompt/GSD contract re-review PASS; Docker/test-contract
-re-review pending. `pro-qa-ai` beta.3 already exists both in protected Hub source
+**Stopped at:** prompt/GSD and Docker/test-contract re-reviews PASS.
+`pro-qa-ai` beta.3 already exists both in protected Hub source
 and as the Desktop portable copy. Legacy remains frozen; destructive move/delete
 has not started.
-**Resume:** close independent test-contract re-review, then complete independent
-Docker verification and atomic commit of TASK-204 planning/guard artifacts.
+**Resume:** complete independent Docker verification and atomic commit of
+TASK-204 planning/guard artifacts.
 Execute Phase 129 cutover only after both gates pass.
 
 **Coverage decision:** TASK-203 backend profile **82.0373%** remains historical
