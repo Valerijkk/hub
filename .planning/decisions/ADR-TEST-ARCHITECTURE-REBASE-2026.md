@@ -314,7 +314,7 @@ From the repository root, the wrapper itself launches a limited read-only
 Docker validator; it never executes Python on the Windows host:
 
 ```powershell
-pwsh -NoProfile -File .planning/audits/test-rebase/validate-contract.ps1
+C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -NonInteractive -File .planning/audits/test-rebase/validate-contract.ps1
 ```
 
 The wrapper runs four fail-closed checks in the same container: TASK-202

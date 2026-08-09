@@ -26,7 +26,7 @@ baseline artifacts.
 The only supported runtime entrypoint is:
 
 ```powershell
-pwsh -NoProfile -File .planning/audits/test-rebase/validate-contract.ps1
+C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -NonInteractive -File .planning/audits/test-rebase/validate-contract.ps1
 ```
 
 A future PASS requires all of the following from one exact task run:
@@ -138,7 +138,7 @@ historical wrapper is forbidden after G129-L.
 
 **Status:** G128-D remains `NOT_READY`; runtime is `NOT_RUN`, not `FAIL`. This incident does not alter frontmatter `verified: false` or the G128-S `STATIC_REVIEW_PASS` below.
 
-**One-shot boundary:** this was not the named Docker-owned G128-D attempt, so the one-shot attempt remains unconsumed. There will be no retry or interpreter fallback under this incident record. A separately planned and reviewed trusted PowerShell 7 TCB seal (absolute host path plus provenance/binding) is required before the one permitted Docker-owned attempt; installing PowerShell or substituting `powershell.exe` is not authorized by this receipt.
+**One-shot boundary:** this was not the named Docker-owned G128-D attempt, so the one-shot attempt remains unconsumed. There will be no retry or interpreter fallback under this incident record. The former PowerShell 7 prescription is superseded by accepted G128-WPS51: install nothing, bind the preinstalled signed Windows PowerShell 5.1 inbox component by its exact absolute path and host lock, then require renewed G128-E/G128-S acceptance before the one permitted Docker-owned attempt. Unqualified `powershell.exe`, `pwsh`, PATH/PATHEXT discovery and every fallback remain forbidden.
 
 ## G128-S superseding static receipt - STATIC_REVIEW_PASS (2026-08-09)
 
