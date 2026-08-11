@@ -79,8 +79,7 @@
 - Backend full Docker/race suite: **50 PASS / 0 FAIL / 3 no-test-files**.
 - Exact merged coverage: **82.0373%** (21,269 / 25,926), overall floor PASS.
 - Security floors: **6/6 PASS**; `audit` = **85.6879%**.
-- Frontend: TypeScript PASS, Biome 370 files / 0 diagnostics, Vitest
-  **180 files / 519 tests PASS**.
+- Frontend: TypeScript PASS, Biome 370 files / 0 diagnostics; Vitest inventory: **180 files / 519 literal cases**.
 - Docker E2E smoke: **3/3 PASS**. Full with retries disabled: **48 PASS / 5
   expected skip / 0 fail**.
 - Final resource-limited Docker legacy Vitest diagnostic: **510/519 PASS, 9
