@@ -220,8 +220,9 @@ Hub создаётся как внутренний инструмент для �
 - **CI/CD**: GitHub Actions — студенческий пакет ~3000 мин, self-hosted runner как fallback
 - **Оркестрация**: Docker Compose (dev) + K3s (prod) — лёгкий Kubernetes, 500MB RAM
 - **Мониторинг**: Slog + Loki + Prometheus + Grafana — логи + метрики в одном UI
-- **Тестирование бэкенда**: testing + testify + testcontainers + mockery
-- **Тестирование фронтенда**: Vitest + RTL + Playwright + MSW
+- **Тестирование бэкенда**: Go `testing` + testify/manual doubles только для genuine units в `backend/tests/**`
+- **Тестирование фронтенда**: Vitest + RTL + MSW только для genuine units в `frontend/tests/**`; TypeScript Playwright удаляется
+- **Greenfield non-unit QA**: pytest + httpx + Playwright Python + Locust прямо в корневом `testframework/**`; точные зависимости/версии фиксируются scaffold lockfile
 - **Бюджет**: Минимальный — все self-hosted, бесплатные инструменты
 
 ## Ключевые решения
@@ -255,23 +256,35 @@ Hub создаётся как внутренний инструмент для �
 | Параллельный поиск PG + MongoDB | PG tsvector + MongoDB text index, без отдельного поискового движка для 50 юзеров | Ожидает проверки |
 | Retention policy настраиваемый Admin | Дефолты: чат 2 года, Allure 1 год, записи 6 мес, Admin меняет | Ожидает проверки |
 
-## Current Milestone: v2.0 Hub Redesign
+## Current Milestone: v4 Hub One Super-app — test architecture rebase
 
-**Goal:** Pixel-perfect редизайн всего фронтенда Hub на основе 11 HTML-макетов из папки `редизайн/` — без ломания существующего функционала, без новых фич.
+Исторический v2.0 Hub Redesign завершён 2026-05-15; его цели больше не являются
+текущим routing contract.
 
-**Target features:**
-- Новая дизайн-система (Inter + JetBrains Mono, CSS variables, тёмная палитра #08090B→#1E2028, радиусы 6/8/12/16px, 4 уровня теней, spring/bounce анимации)
-- Light + Dark mode (макеты dark-only → light адаптируется под ту же систему)
-- Редизайн 11 страниц по макетам: Login, Dashboard, Messenger, Kanban, Issue Detail, Calls, TMS, Settings, Admin, Onboarding, Trash
-- Страницы без макетов (Projects list, Sprint management, JQL search, Project settings, Project dashboard) — привести к общему стилю
-- User-chosen accent color (сохранить текущее поведение)
-- Компоненты переписываются поштучно для максимального качества
-- `/gsd:ui-review` после каждой фазы для контроля качества
+**Current goal:** привести тестовую архитектуру к founder-locked greenfield
+модели и только после доказанной Phase 128 authority выполнить Phase 129–141:
 
-**Constraints:**
-- Функционал НЕ трогаем — только визуал
-- Качество > скорость
-- Эталон — HTML-макеты из `редизайн/`
+- `backend/tests/<domain>/**` — только genuine isolated Go units;
+- `frontend/tests/<domain>/**` и `frontend/tests/support/**` — только genuine
+  Vitest/RTL units и их support;
+- один Python QA-проект непосредственно в
+  `testframework/{src/hub_testkit,tests/{contract,api,integration,e2e},selftests,cases,schemas,policies,load,docker,runner,reports/<task-run>}/**`;
+- legacy Go component/API/integration, static-contract Vitest, TypeScript
+  Playwright и их closure удаляются по exact manifest без port/parity/dual-run;
+- 245 hook-dependent Go units защищены до TASK-234; historical 82.0373% —
+  discovery evidence, не migration gate;
+- package/bootstrap, target suites и future versioned launcher API остаются
+  `NOT_READY`, runtime — `NOT_RUN`: будущий API принадлежит только
+  `testframework/runner/**`, а `testframework/docker/**` содержит только immutable execution assets;
+  поддерживаемой команды или fallback нет до separate implementation и independent acceptance.
+
+**Current phase:** 128 / TASK-204 — descriptor-safe authority, независимые
+validator/executor/negative sentinels и sealed cutover manifest. Ни один тест
+ещё не перемещён и не удалён.
+
+**Constraints:** Docker-only execution с CPU/RAM/swap/PID limits, outer timeout,
+task-owned resources, `reports/<task-run>/` owner marker и unconditional exact
+cleanup; `pro-qa-ai/**` остаётся protected external zone.
 
 ## Evolution
 

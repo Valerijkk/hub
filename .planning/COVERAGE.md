@@ -2,8 +2,21 @@
 
 > Phase 0 reconciliation: требование → код → тест.  
 > **Источники:** `.planning/PROJECT.md`, `docs/vision_and_scope.md`, `.planning/audits/code-review-final/SUMMARY.md`  
-> **Актуальный coverage gate:** **2026-07-29** (local host `-tags hubtest`, overall **80.2%**)  
-> Previous gate: 2026-07-27 Docker **81.9%** (see ## Historical baselines)  
+> **Founder cutover decision (2026-08-07):** statement coverage below is
+> historical discovery evidence only. It is **not** a migration gate, parity
+> target, or KPI for the greenfield Python test architecture. New acceptance is
+> fail-closed execution plus task/FR/NFR/verified-TC and risk traceability.
+> **Last legacy coverage observation:** **2026-08-07** (Docker Go 1.25.11,
+> zero-failure, overall **82.0373%**)
+> Previous valid gate: 2026-07-27 Docker **81.9%** (see ## Historical baselines)
+> Contaminated 2026-07-29 local attempt **80.2%** is historical, not baseline.
+> **Current launcher status: `NOT_READY`; runtime: `NOT_RUN`.** No command
+> below is current authority. The future versioned launcher API belongs only to
+> `testframework/runner/**`; `testframework/docker/**` contains only immutable
+> execution assets, including the future image lock. Runtime evidence must wait
+> for separate implementation and independent acceptance, and must resolve
+> TASK/requirement/TC/risk. Direct Docker/Compose, host test/validator,
+> mutable-image and ad-hoc cleanup fallbacks are forbidden.
 > Historical package table: 2026-06-22 (see ## Historical baselines)  
 > **Источники:** `.planning/PROJECT.md`, `docs/vision_and_scope.md`, `.planning/audits/code-review-final/SUMMARY.md`
 
@@ -32,23 +45,53 @@
 
 ---
 
-## Current coverage gate (measured **2026-07-29**, local host)
+## Last legacy coverage observation (measured **2026-08-07**, Docker)
+
+This section records what existed before the founder-approved cutover. It does
+not block retaining genuine native units, deleting legacy non-unit suites, or
+building new Python suites from requirements and risks.
 
 | Metric | Value | Measured |
 |--------|------:|----------|
-| Overall `internal/` statements | **80.2%** | **2026-07-29** |
-| Gate floor (>=82%) | **MISS (-1.8 pp under floor)** | 2026-07-29 |
-| vs previous gate (2026-07-27) | **-1.7 pp** (was 81.9%) | - |
-| vs 2026-06-22 Docker baseline | **-2.8 pp** (was 83.0%) | - |
-| Backend `testframework/**/*_test.go` | inventory not re-counted this run | 2026-07-29 |
-| Backend `internal/*_test.go` | **0** | 2026-07-29 |
+| Overall `internal/` statements | **82.0373%** (21,269 / 25,926) | **2026-08-07** |
+| Historical retired-job floor (>=82%) | **PASS (+0.0373 pp over floor)** | 2026-08-07 |
+| vs previous valid gate (2026-07-27) | **+0.1373 pp** (was 81.9%) | - |
+| vs 2026-06-22 Docker baseline | **-0.9627 pp** (was 83.0%) | - |
+| Backend package results | **50 PASS / 0 FAIL / 3 no-test-files** | 2026-08-07 |
+| Backend Go tests in this exact coverage-profile source snapshot | **830** files / **3,667** declared tests: legacy root **829 / 3,665** + server **1 / 2** | historical profile input |
+| Backend `internal/*_test.go` | **0** | 2026-08-07 |
 
-**Method:** local Windows host, `deployments_*` postgres/mongo/redis/nats,  
-`go test -tags=hubtest -count=1 -timeout=1200s -covermode=atomic -coverpkg=github.com/valerii/hub/backend/internal/... ./testframework/...`,  
-`go tool cover -func` -> overall statements.  
-**Caveat:** 11 FAIL packages (`ai` build failed -> `internal/ai` absent from profile). Contaminated sample - re-measure when green.
+**Method:** TASK-225 source at HEAD `c71a213b` plus the cron repair later
+committed as `ee6d696c`,
+`golang:1.25-bookworm` (Go 1.25.11), Postgres/Mongo/Redis/NATS from
+`deployments/docker-compose.test.yml`;
+`go test -tags hubtest -race -count=1 -timeout=600s -covermode=atomic -coverpkg=./internal/... -coverprofile=<temp> ./testframework/...`;
+exact source-range merge of the atomic profile. Exit `0`, wall time 119 s,
+profile SHA-256
+`7C20BF7452AD9387D96F548368830282FD2A50361A0D0106E7B8069FC4C99856`.
 
-**Evidence:** `.planning/audits/total-2026-07/COV-2026-07-29.md`, `COV-2026-07-29-func.txt`, `COV-2026-07-29-total.txt`.
+Current cutover inventory is newer and deliberately does not rewrite this
+historical profile: pinned revision `5708671f`, ledger **1,049 / 4,246**, Go
+**832 / 3,674**, SHA-256 `72de6a81…`. It is the path/action authority; the
+82.0373% profile remains discovery evidence only.
+
+### Security packages — same valid full profile
+
+Repeated blocks emitted by multi-package `-coverpkg` are merged by source
+range; a statement is covered when any matching counter is non-zero.
+
+| Package | Covered / total | Coverage | Historical floor >=80% |
+|---|---:|---:|:---:|
+| auth | 686 / 851 | **80.6110%** | ✅ |
+| ws | 408 / 443 | **92.0993%** | ✅ |
+| rbac | 337 / 387 | **87.0801%** | ✅ |
+| audit | 928 / 1,083 | **85.6879%** | ✅ |
+| calls | 1,059 / 1,281 | **82.6698%** | ✅ |
+| platform/middleware | 207 / 245 | **84.4898%** | ✅ |
+
+Current full-profile observation: **6/6** security packages >=80%.
+
+**Evidence:** `.planning/audits/test-rebase/baseline/TASK-203-BASELINE-2026-08-07.md`.
 
 ### Покрытие по пакетам — два метода измерения
 
@@ -59,23 +102,27 @@
 | Метод | Что считает | Когда применим |
 |-------|-------------|----------------|
 | **Сквозной** (`-coverpkg=./internal/...` на всём наборе) | Долю строк пакета, задетых **любыми** тестами репозитория | Общая цифра по проекту |
-| **Пакетный** (`-coverpkg=./internal/<pkg>/...` + только его тесты) | Долю строк, покрытых **своими** тестами пакета | Гейт ≥82% по пакету |
+| **Пакетный** (`-coverpkg=./internal/<pkg>/...` + только его тесты) | Долю строк, покрытых **своими** тестами пакета | Метод старого, выведенного из эксплуатации job |
 
-Сквозной метод занижает: строки, покрытые только тестами своего пакета,
-размываются в общем прогоне. Гейт проверяется **пакетным** методом.
+Сквозной метод занижал историческое значение: строки, покрытые только тестами
+своего пакета, размывались в общем прогоне. Это описание старого job, не
+текущий gate и не инструкция к запуску.
 
-#### Пакетный замер — гейт ≥82% (2026-07-30)
+#### Пакетный замер старого job (2026-07-30; historical/non-gating)
 
-| Пакет | Пакетный | Сквозной | Гейт |
+| Пакет | Пакетный | Сквозной | Исторический результат |
 |-------|---------:|---------:|:----:|
 | rbac | **86.8%** | 77.9% | ✅ |
 | storage | **83.9%** | 80.3% | ✅ |
 | messenger | **82.8%** | 69.7% | ✅ |
 
-Расхождение до 13 пунктов между методами — норма, а не регрессия.
-Гейт по всем трём взят.
+Расхождение до 13 пунктов между методами было нормой для прежней методики.
+Исторический threshold по всем трём был достигнут; для cutover это не gate.
 
-**Как воспроизвести:**
+**Historical inner command (не запускать напрямую и не на host):**
+
+Ниже только provenance старого evidence. До готовности versioned outer
+launcher runtime остаётся `NOT_READY`; прямой вызов не является fallback.
 
 ```bash
 go test -tags hubtest ./testframework/<pkg>/... -count=1 \
@@ -98,16 +145,30 @@ go test -tags hubtest ./testframework/<pkg>/... -count=1 \
 `.planning/audits/total-2026-07/COV-2026-07-30-messenger-rbac.md`.
 Доказательство лифта storage: коммит `bdabd58c`.
 
-Overall `internal/` gate from 2026-07-29 (**80.2%**) not re-run this slice.
+The 2026-07-29 overall value (**80.2%**) is a contaminated historical attempt;
+the current zero-failure result is **82.0373%** from 2026-08-07.
 
 ### Historical baselines
 
-#### Coverage gate **2026-07-27** (Docker) - superseded 2026-07-29
+#### Contaminated local attempt **2026-07-29** — not a baseline
+
+| Metric | Value |
+|---|---:|
+| Overall `internal/` statements | **80.2%** |
+| Package failures | **11** |
+| Valid for current gate | **No** |
+
+Method: local Windows host with `-tags hubtest`, `-covermode=atomic` and
+`-coverpkg=./internal/...`. The `ai` build failure excluded `internal/ai` from
+the profile, so the sample is contaminated. Evidence:
+`.planning/audits/total-2026-07/COV-2026-07-29.md`.
+
+#### Coverage gate **2026-07-27** (Docker) — superseded 2026-08-07
 
 | Metric | Value | Measured |
 |--------|------:|----------|
 | Overall `internal/` statements | **81.9%** | **2026-07-27** |
-| Gate floor (>=82%) | **MISS (-0.1 pp under floor)** | 2026-07-27 |
+| Historical retired-job floor (>=82%) | **MISS (-0.1 pp under floor)** | 2026-07-27 |
 | vs previous baseline | **-1.1 pp** (was 83.0% on 2026-06-22) | - |
 
 **Method:** `golang:1.25-bookworm` on `hub_default`,  
@@ -207,7 +268,7 @@ Moved prior “current” package table here. Do not present as live without re-
 | **SEC-PROD** | 0 CRITICAL blockers | G-04 | ✅ | ✅ | 12/12 fixed |
 | **NFR-13** | Error JSON `{error, request_id}` | NFR-13 | ✅ | ✅ | — |
 | **NFR-16** | WCAG 2.1 AA | NFR-16 | ⚠️ | ✅ login axe | full audit pending |
-| **COV-01** | Coverage ≥82% / security ≥80% | G-04 | ⚠️ | ⚠️ | **81.9%** overall (**2026-07-27**); below 82% floor; security 6-pack stmt re-check pending coverprofile |
+| **COV-01 (historical)** | Retired legacy coverage floor | G-04 | historical | historical | **82.0373%** overall (**2026-08-07**); discovery evidence only, not a cutover gate or KPI |
 
 ---
 
@@ -246,11 +307,18 @@ Moved prior “current” package table here. Do not present as live without re-
 | INF-04 | BackupService nil s3 | 🔧 Fixed main.go | ⚠️ unit only |
 | FE-01 | Rules of Hooks | 🔧 Fixed | ❌ |
 
-**Verdict:** COV-01 gate **PASS** (83.0% ≥82%, 2026-06-22 Docker baseline; security 6/6 ≥80%). Wave C FA-02 re-audit **DONE** — 0 CRITICAL regression (`.planning/audits/2026-06/FA-02-SECURITY-REAUDIT.md`).
+**Historical verdict:** legacy COV-01 gate **PASS** (82.0373% >=82%,
+zero-failure Docker baseline 2026-08-07); current full-profile security observation is **6/6**
+with `audit` at 85.6879%. Historical 2026-06-22 verdict was PASS at 83.0% and
+6/6 security packages; Wave C FA-02 re-audit remains historical DONE — 0
+CRITICAL regression (`.planning/audits/2026-06/FA-02-SECURITY-REAUDIT.md`).
 
 ---
 
-## Module Coverage Summary
+## Historical module coverage summary (2026-06-22; non-gating)
+
+This table predates the founder cutover. Its “tests” and E2E cells are legacy
+observations, not native-unit taxonomy or acceptance of the future runner.
 
 | Module | Routes | Unit Tests | E2E | Notes |
 |--------|--------|------------|-----|-------|
@@ -277,8 +345,8 @@ Moved prior “current” package table here. Do not present as live without re-
 
 | # | Item | Status |
 |---|------|--------|
-| 1 | TF test framework migration (current inventory 515 / 0 internal, measured 2026-07-27) | ✅ COMPLETE |
-| 2 | FA-11 tms/project → 82% | ✅ closed |
+| 1 | Greenfield test architecture cutover (Phases 128–141) | 🚧 Phase 128; launcher `NOT_READY`, runtime `NOT_RUN` until independent future `testframework/runner/**` acceptance; `testframework/docker/**` remains immutable-assets-only |
+| 2 | Historical FA-11 tms/project legacy floor | archived/non-gating |
 | 3 | NFR-16 full WCAG AA sign-off | ⚠️ partial |
 | 4 | NFR-17 Lighthouse ≥90 in CI | ⚠️ artifact job (non-blocking) |
 | 5 | FA-06 / PG-03 secret rotation execute | ⏳ manual ops |
@@ -286,7 +354,7 @@ Moved prior “current” package table here. Do not present as live without re-
 | 7 | FA-05 hub-mail prod compose | ✅ 2026-06-22 |
 | 8 | FA-02-02 TMS webhook RBAC (MEDIUM) | ✅ FA-RBAC-FIBER3 123 routes |
 | 9 | Squash PR v2.5-trust → master | ✅ PR #1 merged 2026-06-22 + hotfixes |
-| 10 | FA-10 full qa-gate Docker | ✅ local PASS · CI e2e-full 20 specs |
+| 10 | FA-10 full qa-gate Docker | historical legacy PASS only; not acceptance of the future runner |
 
 ---
 
