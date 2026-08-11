@@ -1,15 +1,15 @@
 # Бэклог задач
 
 > Единый вход для агентов и владельца. Одна таблица, один формат.
-> Обновлено: 2026-08-08 · test-rebase — 37 active/under review + 5 closed/superseded по фазам 128–141
+> Обновлено: 2026-08-12 · test-rebase — 36 active/under review + 6 closed/superseded по фазам 128–141
 
 ## Состояние
 
 | | |
 |---|---|
-| Активных/на проверке задач | **37** — test-rebase; единственный канонический итог для карточек фаз 128–141 |
-| Закрыто/superseded | **198** = 193 archived + TASK-199/202/203/224/225 |
-| Архив | **193**: `archive/legacy/` 80 · `archive/2026-07-28/` 43 · `archive/2026-07-29/` 69 · `archive/2026-08-07/` 1 |
+| Активных/на проверке задач | **36** — test-rebase; единственный канонический итог для карточек фаз 128–141 |
+| Закрыто/superseded | **198** = 192 archived + TASK-199/202/203/224/225/226 |
+| Архив | **192**: `archive/legacy/` 80 · `archive/2026-07-28/` 43 · `archive/2026-07-29/` 69 |
 
 Новая задача заводится **плоско в корне** `backlog/`, по закрытии переезжает
 в `archive/<дата заведения>/`. Подробности — в правиле 57.
@@ -32,7 +32,7 @@ Stage A2 (brief): [A2-DEDUP-2026-07-28.md](../audits/total-2026-07/A2-DEDUP-2026
 
 ## Открытые/на проверке — test-rebase
 
-37 атомарных задач по фазам 128–141. Канон: current-SHA contract/manifest →
+36 атомарных задач по фазам 128–141. Канон: current-SHA contract/manifest →
 сохранение только доказанных native units + exact-manifest удаление legacy
 non-unit → новый risk-based Python QA-проект. Текущий исторический ledger:
 1,049 rows / 4,246 declared; 832 Go / 3,674 tests (595 genuine unit + 237
@@ -59,7 +59,6 @@ TASK-ID → актуальное requirement → стабильный TC-ID → 
 | [TASK-221](TASK-221-2026-08-07-backend-baseline-deterministic-fixes.md) | 🧪 Backend baseline deterministic fixes | P1 | На проверке | be1 | Фаза 128 |
 | [TASK-222](TASK-222-2026-08-07-frontend-baseline-regression-fixes.md) | 🧪 Frontend baseline regression fixes | P1 | На проверке | fe1 | Фаза 128 |
 | [TASK-223](TASK-223-2026-08-07-frontend-biome-baseline-recovery.md) | 🧹 Frontend Biome baseline recovery | P1 | На проверке | fe2 | Фаза 128 |
-| [TASK-226](TASK-226-2026-08-07-root-python-testframework-contract.md) | 🐍 Root Python testframework contract | P1 | OPEN — remediation verification pending | arch + qa-auto1 | Фаза 128 |
 | [TASK-193](TASK-193-2026-07-30-tf-python-scaffold.md) | 🧪 Root Python scaffold at cutover | P1 | Открыта | qa-auto1 | Фаза 129 |
 | [TASK-197](TASK-197-2026-07-30-tf-backend-units-colocated.md) | 🧪 Retain genuine backend units | P1 | Открыта | be1 + be2 | Фаза 129 |
 | [TASK-198](TASK-198-2026-07-30-tf-frontend-units-colocated.md) | 🧪 Retain genuine frontend units | P1 | Открыта | fe1 + fe2 | Фаза 129 |
@@ -141,6 +140,7 @@ broad glob deletion запрещён.
 | [TASK-203](TASK-203-2026-08-07-test-rebase-canonical-baseline.md) | 📏 Canonical historical discovery baseline | P1 | CLOSED · historical evidence only | devops-engineer | Фаза 128 |
 | [TASK-224](TASK-224-2026-08-07-e2e-docker-baseline-prerequisites.md) | 🐳 E2E Docker baseline | P1 | Closed · 48 pass / 5 expected skip / 0 fail | devops-engineer | Фаза 128 |
 | [TASK-225](TASK-225-2026-08-07-audit-coverage-floor-recovery.md) | 📈 Historical audit coverage floor recovery | P1 | VERIFIED · historical evidence only | be2 | Фаза 128 |
+| [TASK-226](TASK-226-2026-08-07-root-python-testframework-contract.md) | 🐍 Root Python testframework contract | P1 | CLOSED · docs-only package-contract boundary; ADR `ff069dee371f40409c30e62e79e2f5b065005894`; independent conclusion-blind `APPROVED`; implementation remains `NOT_READY`, runtime `NOT_RUN` | arch + qa-auto1 | Фаза 128 |
 | [TASK-008](archive/legacy/TASK-008-total-audit-program.md) | Тотальный пофайловый аудит | P1 | Закрыта (W20 FINAL вердикт A · hubtest PASS 50 ok · 2026-07-30) | Grok + субагенты | Owner 2026-07-28 |
 | [TASK-081](archive/2026-07-28/TASK-081-2026-07-28-tms-completerun-project-id-webhook.md) | ♻️🐛 TMS CompleteTestRun → webhook `project_id` | **P1** | Закрыта · MUTATION-2026-07-29-W3 | be1 | A2W4-5-001 REGRESS |
 | [TASK-082](archive/2026-07-28/TASK-082-2026-07-28-fe-sprint-backlog-without-sprint-filter.md) | 🐛 FE SprintBacklog без фильтра sprint | **P1** | Закрыта · MUTATION-2026-07-29-W3 | fe1 | A2W10-A3-001 |

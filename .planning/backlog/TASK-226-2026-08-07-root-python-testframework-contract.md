@@ -1,8 +1,16 @@
 # TASK-226 — Root Python testframework contract
 
-**Фаза:** 128 · **Приоритет:** P1 · **Статус:** OPEN — remediation verification pending
+**Фаза:** 128 · **Приоритет:** P1 · **Статус:** CLOSED — documentation/package-contract boundary only
 **Исполнитель:** `arch` + `qa-auto1` · **Проверка:** `arch-ver` + `qa-auto-ver`
 **Depends on:** `TASK-202`
+
+**Closeout evidence:** accepted founder ADR pinned to
+`ff069dee371f40409c30e62e79e2f5b065005894` and an independent
+conclusion-blind `APPROVED` review.
+
+**Closeout boundary:** this closes only TASK-226 documentation/package-contract
+metadata. It does not close or implement package bootstrap, framework selftests,
+SUT suites, the launcher, or runtime.
 
 ## Outcome
 
