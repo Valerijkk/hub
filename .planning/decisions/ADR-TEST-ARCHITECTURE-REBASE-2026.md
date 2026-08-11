@@ -102,8 +102,8 @@ testframework/
 ├── cases/<domain>/TC-*.md      repository-owned business intent
 ├── schemas/                    test-case and run-contract schemas
 ├── policies/                   environment/marker/redaction/profile policies
-├── docker/                     pinned images/topologies and sole outer launcher
-├── runner/                     validated in-container entrypoint/profile loading
+├── docker/                     immutable images/topologies/container contracts only
+├── runner/                     future reviewed versioned outer launcher API, fixed execution entrypoint contracts and profile loading
 └── reports/<task-run>/         ignored owner-marked per-run evidence only
 ```
 
