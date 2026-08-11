@@ -1,0 +1,11 @@
+{
+  "schema_version": "hub.qa-routing-scenarios/v1",
+  "scenarios": [
+    {"id":"api-health","prompt":"Add a black-box health API test and its reusable client.","expected_routes":["testframework/src/hub_testkit/domains/health/api.py","testframework/tests/api/health/test_health.py"]},
+    {"id":"contract-openapi","prompt":"Add OpenAPI contract validation and its reusable validator.","expected_routes":["testframework/src/hub_testkit/contract/openapi.py","testframework/tests/contract/api/test_openapi.py"]},
+    {"id":"integration-postgres","prompt":"Add a PostgreSQL transaction boundary test and reusable boundary client.","expected_routes":["testframework/src/hub_testkit/integration/postgres.py","testframework/tests/integration/postgres/test_transactions.py"]},
+    {"id":"e2e-login","prompt":"Add the login browser smoke, browser lifecycle, page, and form component.","expected_routes":["testframework/src/hub_testkit/browser/lifecycle.py","testframework/src/hub_testkit/domains/identity/ui/components/session_form.py","testframework/src/hub_testkit/domains/identity/ui/pages/login.py","testframework/tests/e2e/identity/test_login_smoke.py"]},
+    {"id":"selftest-markers","prompt":"Add a pytest marker framework contract.","expected_routes":["testframework/selftests/pytest_plugin/test_markers.py","testframework/src/hub_testkit/pytest_plugin/markers.py"]},
+    {"id":"load-tracker","prompt":"Add a measured tracker Locust profile.","expected_routes":["testframework/load/profiles/steady.toml","testframework/load/users/tracker.py"]}
+  ]
+}
