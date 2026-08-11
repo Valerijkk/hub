@@ -23,13 +23,13 @@
 |------:|-----|---|----------:|--------------|-----------------|
 | **128** | [`128-tf-python-scaffold`](../../phases/128-tf-python-scaffold/PLAN.md) | Э1 | 2–3 d | **A3** | `/tests` pyproject + conftest; 1 integration green |
 | **129** | [`129-tf-e2e-shared`](../../phases/129-tf-e2e-shared/PLAN.md) | Э2 shared | 3–4 d | 128 | Auth/fixtures/POM/a11y Python |
-| **130** | [`130-tf-e2e-mechanical`](../../phases/130-tf-e2e-mechanical/PLAN.md) | Э2 mech | 4–5 d | 129 | 15 mechanical specs |
-| **131** | [`131-tf-e2e-rewrite`](../../phases/131-tf-e2e-rewrite/PLAN.md) | Э2 rewrite | 4–5 d | 129, soft:130 | 5 rewrite specs; e2e 20/20 |
-| **132** | [`132-tf-backend-units-colocated`](../../phases/132-tf-backend-units-colocated/PLAN.md) | Э3 | 10–15 d | A3; soft:128 | Go tests → `internal/` |
-| **133** | [`133-tf-frontend-units-colocated`](../../phases/133-tf-frontend-units-colocated/PLAN.md) | Э4 | 5–8 d | parallel OK after 128 | Vitest → `frontend/src` |
-| **134** | [`134-tf-integration-python`](../../phases/134-tf-integration-python/PLAN.md) | Э5 | 5–7 d | 128; soft:132 | `tests/integration` domains |
-| **135** | [`135-tf-locust-load`](../../phases/135-tf-locust-load/PLAN.md) | Э6 | 3–4 d | 128; soft:134 | Locust hot paths + A13 |
-| **136** | [`136-tf-ci-cleanup`](../../phases/136-tf-ci-cleanup/PLAN.md) | Э7 | 3–4 d | 130+131+132+133 | CI cutover; delete legacy |
+| **130** | [`130-tf-e2e-mechanical`](../../phases/130-tf-traceability-gates/PLAN.md) | Э2 mech | 4–5 d | 129 | 15 mechanical specs |
+| **131** | [`131-tf-e2e-rewrite`](../../phases/131-tf-python-core-auth/PLAN.md) | Э2 rewrite | 4–5 d | 129, soft:130 | 5 rewrite specs; e2e 20/20 |
+| **132** | [`132-tf-backend-units-colocated`](../../phases/132-tf-security-platform/PLAN.md) | Э3 | 10–15 d | A3; soft:128 | Go tests → `internal/` |
+| **133** | [`133-tf-frontend-units-colocated`](../../phases/133-tf-infrastructure-integration/PLAN.md) | Э4 | 5–8 d | parallel OK after 128 | Vitest → `frontend/src` |
+| **134** | [`134-tf-integration-python`](../../phases/134-tf-work-realtime/PLAN.md) | Э5 | 5–7 d | 128; soft:132 | `tests/integration` domains |
+| **135** | [`135-tf-locust-load`](../../phases/135-tf-business-integrations/PLAN.md) | Э6 | 3–4 d | 128; soft:134 | Locust hot paths + A13 |
+| **136** | [`136-tf-ci-cleanup`](../../phases/136-tf-python-contracts/PLAN.md) | Э7 | 3–4 d | 130+131+132+133 | CI cutover; delete legacy |
 
 **Total (calendar parallelizable):** ~40–55 person-days; wall-clock shorter if 132∥133∥134 after 128–131.
 

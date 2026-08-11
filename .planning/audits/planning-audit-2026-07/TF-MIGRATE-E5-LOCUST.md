@@ -154,5 +154,5 @@ tests/load/
 
 ## Mapping → GSD
 
-Реализация: **Phase 135** — [`../phases/135-tf-locust-load/PLAN.md`](../../phases/135-tf-locust-load/PLAN.md).  
+Реализация: **Phase 135** — [`../phases/135-tf-locust-load/PLAN.md`](../../phases/135-tf-business-integrations/PLAN.md).  
 Зависит от **128** scaffold (+ желательно **134** integration auth clients для переиспользования httpx helpers).
