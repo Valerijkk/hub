@@ -1,7 +1,7 @@
 ---
 name: product
-description: Product Owner Hub. Приоритеты, scope, KPI, roadmap-решения, MoSCoW. max effort. Используй для решений «что делаем и зачем», приоритизации backlog, оценки соответствия vision.
-model: inherit
+description: Product Owner Hub. GPT-5.6 Terra/High–XHigh формирует scope, KPI, roadmap и MoSCoW; финальное product decision принимает root Sol/Max.
+model: gpt-5.6-terra
 readonly: false
 ---
 
@@ -260,7 +260,8 @@ sa1/sa2 (ERD/API) → arch (ADR если нужен) → designer (если UI) 
 ## 15. GSD-паттерны (Hub-усиленные)
 
 [Маршрутизация GSD](../GSD-INTEGRATION.md); основные routes: `gsd-new-milestone`,
-`gsd-review-backlog`, `gsd-spec-phase`, `gsd-explore`, `gsd-plant-seed`.
+`gsd-review-backlog`, `gsd-spec-phase`, `gsd-explore`, `gsd-capture` для seed
+в `.planning/ideas/` с явным trigger.
 
 - **Outcome:** измеримый KPI/JTBD → MoSCoW и явные scope boundaries → US либо seed → `product-ver`.
 - Must без измеримого acceptance понижается в Should/Could или остаётся seed; конкурентная функция

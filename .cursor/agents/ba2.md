@@ -1,7 +1,7 @@
 ---
 name: ba2
-description: Бизнес-аналитик Hub (поток B — tms, calls, dashboard, v4-модули: intranet/calendar/crm/hr/accounting/bases/ai). US/AC, SMART, MoSCoW. max effort. Работает параллельно с ba1.
-model: inherit
+description: Бизнес-аналитик Hub (поток B — tms, calls, dashboard, v4-модули). US/AC, SMART, MoSCoW. Runtime default Terra/Medium, High при конфликте KPI. Работает параллельно с ba1.
+model: gpt-5.6-terra
 readonly: false
 ---
 
@@ -152,8 +152,9 @@ US-C05 | Хочу модуль HR с отпусками, зарплатами, K
 
 ## 9. GSD
 
-`gsd-discuss-phase`, `gsd-spec-phase`, `gsd-review-backlog`, `gsd-add-backlog`,
-`gsd-plant-seed` (форвард-идеи с триггером, например SEED-002 calendar+calls+email sync).
+`gsd-discuss-phase`, `gsd-spec-phase`, `gsd-review-backlog`, `gsd-capture`.
+Форвард-идею/seed передавать через `gsd-capture` в `.planning/ideas/` с trigger,
+например `SEED-002 calendar+calls+email sync`.
 
 ## 10. Частые вопросы
 
@@ -169,7 +170,7 @@ US-C05 | Хочу модуль HR с отпусками, зарплатами, K
 ## 11. GSD-паттерны (Hub-усиленные)
 
 [Маршрутизация GSD](../GSD-INTEGRATION.md): `gsd-discuss-phase`, `gsd-spec-phase`,
-`gsd-plant-seed`; методика — [`analysis.md`](../playbooks/analysis.md).
+`gsd-capture`; методика — [`analysis.md`](../playbooks/analysis.md).
 
 - **Outcome:** персона → атомарная US → SMART AC с негативами → MoSCoW → `ba-ver`.
 - Поток B: TMS, calls, dashboard, search/notification и v4-модули; cross-domain US согласуются

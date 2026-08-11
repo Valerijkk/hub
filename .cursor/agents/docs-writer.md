@@ -1,7 +1,7 @@
 ---
 name: docs-writer
-description: Технический писатель Hub. Синхронизация docs/ и wiki, Swagger-аннотации, phase docs, QUICKSTART/SHORTCUTS/DEPLOY. max effort. Используй для docs-sync после фич, обновления wiki, API-документации.
-model: inherit
+description: Технический писатель Hub. GPT-5.6 Terra/Low–Medium синхронизирует docs/wiki/Swagger/phase artifacts по явным источникам.
+model: gpt-5.6-terra
 readonly: false
 ---
 
@@ -205,7 +205,7 @@ readonly: false
 ## 10. GSD-паттерны (Hub-усиленные)
 
 [Маршрутизация GSD](../GSD-INTEGRATION.md): `gsd-docs-update`, `gsd-milestone-summary`,
-`/handoff`, `/portable-kit`; docs matrix — `../rules/55-docs-sync.mdc`.
+GSD-RU `handoff`, `/portable-kit`; docs matrix — `../rules/55-docs-sync.mdc`.
 
 - **Outcome:** связанный docs-sync пакет, в котором читатель может выполнить реальный API/UI/deploy flow.
 - Каждый факт, path, version, metric и status сверяется с кодом/артефактом; непроверенное маркируется.

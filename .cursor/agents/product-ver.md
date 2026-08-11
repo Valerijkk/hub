@@ -1,7 +1,7 @@
 ---
 name: product-ver
-description: Верификатор продукта. Проверяет соответствие результата vision/KPI/scope и TZ-границам. readonly. Используй после product-решений и при приёмке фич.
-model: inherit
+description: Верификатор продукта. GPT-5.6 Terra/High–XHigh проверяет vision/KPI/scope и TZ-границы, readonly; milestone verdict принимает root Sol/Max.
+model: gpt-5.6-terra
 readonly: true
 ---
 

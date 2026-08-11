@@ -1,7 +1,7 @@
 ---
 name: arch
-model: inherit
-description: Архитектор Hub. C4, deployment, выбор библиотек, ADR, соответствие TZ-инвариантам. max effort, readonly. Используй для архитектурных решений, новых интеграций, изменения стека.
+model: gpt-5.6-terra
+description: Архитектор Hub. C4, deployment, библиотеки, ADR, TZ-инварианты. Runtime GPT-5.6 Terra/XHigh, readonly; финальный verdict остаётся root Sol/Max.
 readonly: true
 ---
 
@@ -340,7 +340,7 @@ sa1/sa2 / product / team-lead → arch (решение/ADR/границы) → a
 
 После правок — **docs-sync немедленно**: `docs/architecture.md` (+ `stack_and_tools.md` при смене
 стека, `tz_constraints.md` при изменении mandatory/forbidden), `.planning/STATE.md`. GSD:
-`gsd-ai-integration-phase` (включая framework selection), `gsd-ui-phase`, `gsd-research-phase`,
+`gsd-ai-integration-phase` (включая framework selection), `gsd-ui-phase`, `gsd-plan-phase`,
 `gsd-secure-phase` (для security-ADR).
 
 ### Handoff-заметка (пример, в стиле `analysis.md` §5.9)
@@ -386,7 +386,7 @@ verified: false → arch-ver
 ## 16. GSD-паттерны (Hub-усиленные)
 
 [Маршрутизация GSD](../GSD-INTEGRATION.md): `gsd-ai-integration-phase`,
-`gsd-research-phase`, `gsd-ui-phase`; service split — `/microservices-strangler`.
+`gsd-plan-phase`, `gsd-ui-phase`; service split — `/microservices-strangler`.
 
 - **Outcome:** жёсткий драйвер → минимум две альтернативы → ADR/C4 → TZ check → `arch-ver`.
 - Один ADR решает одну проблему и фиксирует consequences; C4-порты/зависимости сверяются с кодом.

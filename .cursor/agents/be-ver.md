@@ -1,7 +1,7 @@
 ---
 name: be-ver
-description: Верификатор бэкенда. Layering, security-инварианты, обработка ошибок, context, тесты, data race, регрессия. max effort, readonly. Используй после be1/be2.
-model: inherit
+description: Верификатор бэкенда. Runtime GPT-5.6 Terra/High–XHigh. Проверяет layering, errors, context, race и регрессию, readonly.
+model: gpt-5.6-terra
 readonly: true
 ---
 
@@ -127,19 +127,18 @@ return false, nil, как в каноне internal/ws/authorizer.go:77-80.
 - [ ] Канал `send` закрывается только через `sync.Once` + сигнал `done`, никогда напрямую `close(c.send)` из другой горутины (SEC-05) — ищу явный `close(` рядом с полем `send`.
 - [ ] Регистрация/подписка/отписка идут через единственную горутину `Run` (сериализация переходов состояния), не через прямую мутацию `sync.Map` из нескольких мест без единой точки координации.
 - [ ] NATS-консьюмеры — идемпотентны (повторная доставка не дублирует эффект), `Durable`-имя задано, `MaxDeliver`/`AckWait` заданы разумно (не `MaxDeliver: -1`/бесконечный retry без анализа причины отказа).
-- [ ] Тесты на конкурентность запускаются под `-race`, а не просто существуют — проверяю сам вывод `go test -race`, не верю "тест есть, значит покрыто".
+- [ ] Конкурентные units реально проходят race-режим Docker job `backend-unit`; проверяю raw output, не верю "тест есть, значит покрыто".
 
 ## 7. Чек-лист тестов и регрессии
 
 - [ ] Тесты покрывают позитив, негатив (forbidden/not-found/version-conflict) и границы (пустой input, максимальная длина) — не только happy path.
 - [ ] Для WS/RBAC — присутствует явный тест на fail-closed (нет checker'а/permission → отказ), не только тест на "есть право → пропущено".
 - [ ] Привязка к TC (`docs/test_plan.md`/`.planning/COVERAGE.md`), если задача была тест-кейс-driven.
-- [ ] Структура теста хендлера соответствует канону — монтирует те же роуты, что `RegisterRoutes`, через мок auth middleware (`c.Locals("userID", ...)`), см. `backend/testframework/tracker/handler_flow_test.go:20-61`.
+- [ ] В `backend/tests/<domain>/` находятся только genuine isolated Go units; handler/API/component/DB/broker/storage проверки не маскируются под unit и маршрутизированы в соответствующий Python suite корневого `testframework/**`.
 - [ ] **Регрессия green** — запускаю сам, не доверяю описанию PR:
 
-```bash
-cd backend && go build -tags release ./... && go vet ./... && go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...
-```
+  Использую task-owned limited Docker runner `backend-unit` из `AGENTS.md`; source revision,
+  image, inner command, CPU/RAM, collection, duration и cleanup фиксирую в evidence.
 
   Записываю точное время прогона и точный вывод (PASS/FAIL по пакетам), а не "похоже, прошло".
 - [ ] При `-race` — 0 предупреждений о гонках, не "гонка есть, но не влияет на прод" (это всё равно минимум HIGH).
@@ -223,8 +222,8 @@ grep -rn "default:" backend/internal/<module>/*.go -A2
   фильтрует по HasOwnerWith(user.IDEQ(ownerID)) (repository.go:59-63);
   normalizeCells (service.go:287-302) — allowlist по колонкам, произвольные
   ключи из запроса отбрасываются.
-- Регрессия: go test -tags hubtest -race -count=1 ./testframework/bases/...
-  PASS, время 4.2s, лог приложен.
+- Регрессия: Docker job `backend-unit`, scope `./tests/bases/...` — PASS,
+  source/image/resources/collection/время/cleanup приложены.
 - Замечания: нет.
 - Вердикт: verified: true — 2026-07-18 02:10
 ```

@@ -75,14 +75,14 @@ FR/API. Единый источник истины.
 | 12 | Секреты/DEV_MODE в коммите | Security-инцидент, prod-риск | git-scan diff; запреты `60-tz-constraints.mdc`, `50-git.mdc` |
 | 13 | Параллельная правка точки композиции (`main.go`) | Гарантированный конфликт | Wiring отдаётся одному агенту (§4) |
 | 14 | Handoff без «что проверить» | Верификатор буксует, догадки | Полный формат handoff (§9) |
-| 15 | Запуск >4 агентов на волну | Хаос контекста, конфликты | ≤4 параллельных, остальное — следующая волна (§4) |
+| 15 | Запуск >3 субагентов одновременно | Превышен runtime cap, хаос контекста | root + ≤3 субагента, остальное — следующая волна (§4) |
 
 ### Финальный чек-лист team-workflow.md
 
 - [ ] `team-lead` делегирует **только** по шаблону §5.3.1; в условиях — цикл качества + регрессия.
-- [ ] `team-lead` (GPT-5.6 Sol Pro) оркестрирует и принимает; downstream routing — по capability/cost/risk среди реально доступных моделей.
+- [ ] `team-lead` (GPT-5.6 Sol / Max) оркестрирует и принимает; downstream — explicit Terra/Spark по `model-routing.md`.
 - [ ] Поток фичи: product → ba → sa → (arch) → (designer) → be∥fe → qa → review → team-lead → docs-sync.
-- [ ] Волны ≤4 агентов, разведены по файлам, контракт первым коммитом, sync между волнами.
+- [ ] Волны root + ≤3 субагента, разведены по файлам, sync между волнами.
 - [ ] Каждый артефакт → персональный верификатор → `verified: true` при green + лог.
 - [ ] Ворота: цикл качества новой фичи, регрессия старого, docs-sync, test-triage, `/qa-gate`.
 - [ ] Handoff полный; `STATE.md` обновлён; знания не дублируются.
@@ -121,7 +121,7 @@ FR/API. Единый источник истины.
 
 | Термин | Значение |
 |---|---|
-| Волна (Wave) | Набор задач, исполняемых параллельно (≤4 агента) |
+| Волна (Wave) | Root + до 3 параллельных субагентов (≤4 active slots total) |
 | Атомарный коммит | Изменение ≤200–300 строк, целиком проходящее регрессию |
 | Верификатор | Независимый агент, проверяющий артефакт исполнителя |
 | Ворота (gate) | Обязательный чек перед handoff (регрессия/docs/qa-gate) |
@@ -207,7 +207,7 @@ FR/API. Единый источник истины.
 
 ```
 День 1
-  Wave 1 (аналитика/дизайн, параллельно, ≤4):
+  Wave 1 (аналитика/дизайн, параллельно, root + ≤3 субагента):
     ├─ ba1: US-M11.1 + AC ──────────────► ba-ver ✅
     ├─ sa1: API /backlog ───────────────► (ждёт ba-ver)
     └─ product: уточняет приоритет
@@ -253,8 +253,8 @@ FR/API. Единый источник истины.
 | be2 | `backend/ent/schema/backlog_item.go`, `backlog/ent_repository.go` | 3 |
 | fe1 | `frontend/src/components/backlog/List.tsx` | 3 |
 | fe2 | `frontend/src/components/backlog/Filters.tsx` | 3 |
-| qa-auto1 | `backend/testframework/tracker/backlog_test.go` | 4 |
-| qa-auto2 | `testframework/stages/e2e/domains/tracker.spec` | 4 |
+| qa-auto1 | `testframework/tests/api/tracker/test_backlog.py` | 4 |
+| qa-auto2 | `testframework/tests/e2e/tracker/test_backlog.py` | 4 |
 | qa-manual | `docs/test_plan.md` | 4 |
 
 > Единственная общая точка — `types.ts` (frontend) и API-контракт: фиксируются **первым** коммитом
@@ -366,7 +366,7 @@ be-ver: перепроверяет → verified: true 2026-07-02 22:50
 
 # Приложение I. Контекст-бюджет и промптинг субагентов (для `team-lead`)
 
-`team-lead` (GPT-5.6 Sol Pro) держит фазу через `STATE.md`/handoff-сводки и выбирает downstream
+`team-lead` (GPT-5.6 Sol / Max) держит фазу через `STATE.md`/handoff-сводки и выбирает downstream
 runtime по capability/cost/risk. Субагенты **не видят** историю чата. Правила промптинга:
 
 1. **Самодостаточность.** В промпт субагента вложи: задачу, ссылки на нужные `docs/` (по разделам),
@@ -376,7 +376,7 @@ runtime по capability/cost/risk. Субагенты **не видят** ист
 3. **Ожидаемый вывод.** Проси вернуть handoff по формату §9 + лог регрессии.
 4. **Не перегружай.** Не вкладывай весь `docs/` целиком в каждый промпт — ссылайся на разделы. Экономь
    контекст субагента для работы, а не для чтения лишнего.
-5. **Параллельность.** Запускай независимые субагенты одним батчем (до 4). Зависимые — следующей волной.
+5. **Параллельность.** Запускай независимые субагенты одним батчем (до 3 вместе с root = 4 active slots). Зависимые — следующей волной.
 
 ### Пример промпта субагенту (be1)
 
@@ -388,7 +388,7 @@ runtime по capability/cost/risk. Субагенты **не видят** ист
   НЕ трогай ent/schema (это be2), НЕ трогай cmd/server/main.go.
 Контракт: тип BacklogReorderRequest уже в types (первый коммит волны).
 Критерии: optimistic lock по version, 409 при конфликте, repository через интерфейс (не ent.Client).
-Регрессия: cd backend && go build -tags release ./... && go test -race ./internal/backlog/...
+Регрессия: task-owned Docker `backend-unit` по `backend/tests/backlog/**` + применимый Python boundary job.
 Верни: handoff по формату §9 + лог go test.
 ```
 
@@ -436,7 +436,7 @@ scope: auth|tracker|messenger|tms|calls|dashboard|notification|search|ws|fronten
 
 # Приложение K. FAQ командной работы
 
-**Кто принимает финальное решение по фазе?** Всегда `team-lead` на GPT-5.6 Sol Pro. Для высокорисковых
+**Кто принимает финальное решение по фазе?** Всегда `team-lead` на GPT-5.6 Sol / Max. Для высокорисковых
 частей он назначает отдельный сильный downstream-проход/verifier, но Accountable остаётся сам.
 
 **Можно ли пропустить верификатора для мелочи?** Нет для user-visible/prod-поведения. Для чистого
@@ -447,7 +447,7 @@ scope: auth|tracker|messenger|tms|calls|dashboard|notification|search|ws|fronten
 
 **Что если два верификатора расходятся?** Эскалация `team-lead` — он финальная инстанция.
 
-**Сколько агентов запускать?** ≤4 на волну. Больше — хаос контекста и конфликты (§4).
+**Сколько агентов запускать?** До 3 субагентов одновременно плюс root. Остальные — следующей волной (§4).
 
 **Где смотреть «что дальше»?** `.planning/STATE.md` (текущий статус) + `gsd-next`/`gsd-progress`.
 
@@ -525,18 +525,20 @@ CRITICAL/HIGH + приложенный лог регрессии.
 - [ ] docs-sync: test_plan обновлён.
 ## L.9 `qa-auto-ver`
 
-- [ ] Автотесты соответствуют пирамиде (unit/integration/e2e на нужном уровне).
-- [ ] Тесты детерминированы (нет flaky), coverage не упал (COVERAGE.md).
+- [ ] Выбор unit/contract/API/integration/E2E/load следует changed risk и observable boundary; форма пирамиды не quota.
+- [ ] Тесты детерминированы; historical coverage/parity не migration gate.
 - [ ] Test-triage применён при фиксах (ROOT зафиксирован).
-- [ ] Тесты в правильном пути (`backend/testframework/`, `stages/e2e/domains/`).
-- [ ] Регрессия green (Docker `-tags hubtest`, лог).
+- [ ] Genuine units в `backend/tests/**`/`frontend/tests/**`; non-unit QA в root Python `testframework/**`.
+- [ ] Применимые target jobs `/qa-gate` воспроизведены Docker-only на exact revision;
+      отсутствующий launcher/scaffold = `NOT_READY`, не legacy fallback.
 
 ---
 
-# Приложение M. Метрики качества и текущий статус (справка)
+# Приложение M. Исторические метрики качества (не текущие ворота)
 
-Справочные значения из `AGENTS.md`/`REGULATION.md` §11 (на 2026-06-22..24). Агенты сверяются, но
-источник истины — `.planning/STATE.md` и `.planning/COVERAGE.md`.
+Снимок 2026-06-22..24 сохранён только для истории. Он не определяет current
+acceptance и не разрешает legacy suite, parity или coverage migration gate.
+Источник текущего статуса — `.planning/STATE.md`; current gate — `/qa-gate`.
 
 | Метрика | Значение |
 |---|---|
@@ -552,8 +554,9 @@ CRITICAL/HIGH + приложенный лог регрессии.
 | Branch | master |
 | Prod-блокер | PG-03 secret rotation (manual ops, FA-06) |
 
-**Пороги ворот:** coverage gate ≥50% (wave-цель ≥82%); security 6×≥80%; `/qa-gate` green (build/test-race/
-lint-Biome/e2e-smoke 3/3). Product score цель ≥75.
+**Current acceptance:** только применимые founder-greenfield target jobs с
+traceability/risk oracle, exact Docker provenance и cleanup PASS. Пока target
+launcher/scaffold отсутствует, verdict `NOT_READY`. Числа выше не являются воротами.
 
 ---
 
@@ -734,16 +737,16 @@ Scope волны остаётся чистым.
 # Приложение S. Сводная памятка (одна страница)
 
 ```
-РОЛИ:      team-lead(GPT-5.6 Sol Pro, оркестр+приёмка) | downstream(available model by capability/cost/risk)
+РОЛИ:      team-lead(GPT-5.6 Sol/Max) | Terra(analysis/decomposition/review) | 5.3 Codex Spark/XHigh(atomic code)
 ПОТОК:     product → ba → sa → (arch) → (designer) → be∥fe → qa → review → team-lead → docs-sync
-ВОЛНЫ:     ≤4 агента, разные файлы, контракт первым коммитом, sync между волнами
+ВОЛНЫ:     root + ≤3 субагента (4 slots total), разные файлы, sync между волнами
 ВЕРИФ:     каждый артефакт → персональный -ver → verified:true при green+лог
 ВОРОТА:    регрессия → docs-sync → test-triage → /qa-gate (перед handoff)
 HANDOFF:   что сделано / что проверить / артефакты / след.шаг / статус ворот
 ДЕКОМП:    фаза ≤1-3д, план ≤200-300 строк = атомарный коммит, Depends on + success criteria
 ЗНАНИЯ:    грузить docs/* перед задачей; ссылки по ID, не копии
 ЭСКАЛАЦИЯ: scope/destructive/конфликт/prod-блокер → team-lead → пользователь
-ЗАПРЕТЫ:   коммит без регрессии/docs; verified на слово; >300 строк; секреты; >4 агента/волна
+ЗАПРЕТЫ:   коммит без регрессии/docs; verified на слово; >300 строк; секреты; >3 субагента одновременно
 ```
 
 ---

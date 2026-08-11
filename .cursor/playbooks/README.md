@@ -7,7 +7,7 @@
 > **Хребет цикла — [`phase-loop.md`](phase-loop.md):** пять шагов на фазу и
 > ворота между ними. Остальные плейбуки раскрывают отдельные шаги.
 
-*Обновлено: 2026-07-26 — evidence-first prompt contract, dynamic model routing (ADR-MODELS-GPT56 amendment), agent frontmatter synced.*
+*Обновлено: 2026-08-08 — live roster: 31 operational Hub profiles + 1 deprecated redirect, 34 typed GSD agents, 71 installed GSD skills и Superpowers workflow plugin.*
 
 ---
 
@@ -19,6 +19,7 @@
 2. **`.planning/README.md`** — если нужен конкретный planning-артефакт (аудит, ADR, roadmap, prod-runbook) — навигация по папкам, не гадать путь руками.
 3. **`docs/README.md`** → нужные файлы «Единой базы знаний» (`vision_and_scope.md`, `system_specification.md`, `architecture.md`, `tz_constraints.md`, ...) — факты о продукте.
 4. **Этот файл** → §2/§2.1 «Карта playbook-ов» / обратная карта агент→playbook — найди свой playbook по роли; §0 — актуальная runtime-routing policy.
+   Для спорного code/test решения открой [`.cursor/knowledge/code-practices/README.md`](../knowledge/code-practices/README.md) и выбери только применимые controls/heuristics.
 5. **Свой файл агента** (`.cursor/agents/<role>.md`) — конкретные обязанности, DoD, с кем взаимодействуешь; ссылается на playbooks, не дублирует их.
 6. **Rules** (`.cursor/rules/*.mdc`). Always-applied: `00`, `50`, `60`.
    Glob/intelligent: `10`, `20`, `30`, `40`, `45`, `55`, `56`, `70`.
@@ -29,17 +30,32 @@
 
 ## 0. Runtime routing моделей
 
-> **Policy (ADR-MODELS-GPT56, amended 2026-07-26):** `team-lead` оркестрирует на **GPT-5.6 Sol Pro** (`model: gpt-5.6-sol`; Pro = picker/catalog mode). Downstream-работу он маршрутизирует на любую реально доступную Cursor-модель по capability/cost/risk/context. Portable/role prompts не владеют model params — downstream agents используют `model: inherit`.
+> **Policy (ADR-MODELS-GPT56, amended 2026-08-11):** root `team-lead` — единственный **GPT-5.6 Sol / Max**. Terra явно выполняет analysis/decomposition/review; 5.3 Codex Spark (`gpt-5.3-codex`) / XHigh — atomic code. Все model frontmatter и каждый dispatch explicit; `inherit` и silent fallback запрещены. Канон: [`model-routing.md`](model-routing.md).
 
 | Слот | Frontmatter | Runtime policy |
 |------|-------------|----------------|
-| Оркестратор `team-lead` | `gpt-5.6-sol` | **GPT-5.6 Sol Pro** (catalog resolves Pro mode) |
-| Ролевые исполнители и `*-ver` | `inherit` | Dynamic routing; parent override только после catalog-backed choice + logging |
-| Micro `codex-micro` | `inherit` | Lowest sufficient coding model for completion bar |
-| Portable agents | `inherit` | Launcher/model-router owns slug and sampling |
-| `team-lead-opus` | `inherit` | Deprecated compatibility redirect; not an escalation slot |
+| Оркестратор `team-lead` | `gpt-5.6-sol` | **GPT-5.6 Sol / Max**; единственный Sol runtime |
+| Ролевые исполнители и `*-ver` | `gpt-5.6-terra` | Analysis/decomposition/review; explicit Low–XHigh |
+| Atomic code `codex-micro` | `gpt-5.3-codex` | **5.3 Codex Spark / XHigh**, context до 400k |
+| `team-lead-opus` | `gpt-5.6-terra` | Deprecated compatibility redirect; not an escalation slot |
 
-Parent/orchestrator may explicitly override downstream model at launch only after catalog-backed routing and logging in handoff.
+Runtime mismatch не лечится automatic override: root создаёт новый explicit route либо останавливает задачу `UNKNOWN/BLOCKED`.
+
+`pro-qa-ai/**` — внешняя защищённая зона Claude Code Opus 5. Агенты Hub её не сканируют и не меняют; конкретный артефакт принимается только через явный founder handoff.
+
+### 0.1 Фактический исполняемый ростер
+
+| Слой | Live-инвентарь | Как используется |
+|---|---:|---|
+| Hub role profiles | **32 файла** в `.cursor/agents/`: **31 operational** + `team-lead-opus` deprecated redirect | `team-lead` выбирает только нужные роли; все 31 одновременно не запускаются |
+| Typed GSD specialists | **34** профиля в `~/.codex/agents/gsd-*.toml` | Planner/checker/executor/verifier/research/audit роли запускаются по конкретному GSD workflow, а не считаются дублями Hub-ролей |
+| Installed GSD skills | **71** каталог в `~/.agents/skills/gsd-*` | Lifecycle и quality gates; точная маршрутизация — `.cursor/GSD-INTEGRATION.md` |
+| Superpowers | установленный Codex workflow plugin | Источник совместимых практик discovery/spec/planning/review; не агент, не authority и не второй lifecycle-канон |
+| External Claude Code Opus 5 | отдельный founder-operated worker | Только `pro-qa-ai/**`; не downstream-слот `team-lead` и не входит в число Hub/GSD агентов |
+
+Приоритет конфликтов: founder locks → Hub safety/authority rules → GSD lifecycle →
+совместимые Superpowers practices → локальные эвристики. Live-статус конкретной
+волны хранится в `.planning/STATE.md`, а не в этом постоянном ростере.
 
 ---
 
@@ -71,7 +87,13 @@ Parent/orchestrator may explicitly override downstream model at launch only afte
 | `analysis.md` | ba1/ba2, sa1/sa2, arch, ba-ver/sa-ver/arch-ver | US/AC/SMART, FR/NFR/ERD/API, C4/ADR, трассируемость |
 | `verification.md` | все `*-ver`, code-reviewer, security-auditor | Протокол верификации, чек-листы по ролям, severity |
 | `team-workflow.md` | team-lead, tech-lead, product, все | Состав, RACI, потоки фич, волны, параллелизм, handoff, GSD |
+| `model-routing.md` | team-lead, tech-lead, все launchers | Модель/effort каждой роли, стоимость, escalation/fallback, граница Opus |
 | `prompt-contract.md` | **все агенты (32 файла)** | Natural-language intake → внутренний task contract; concise rationale/assumptions/evidence; prompt-injection boundary; risk-scaled verification; строгий §5.2 только для delegation/handoff |
+
+Evidence-aware примеры, hard controls, review warnings, negative sentinels и
+реестр источников находятся в [`../knowledge/code-practices/`](../knowledge/code-practices/README.md).
+Каталог не превращает эвристики (`≤25` строк, SOLID scorecards, POM everywhere)
+в автоматические блокирующие правила.
 
 ### 2.1 Обратная карта: агент → playbook-и
 
@@ -81,7 +103,7 @@ Parent/orchestrator may explicitly override downstream model at launch only afte
 
 | Агент(ы) | Playbooks к загрузке |
 |----------|-----------------------|
-| `team-lead`, `team-lead-opus`, `tech-lead` | `team-workflow.md` (обязателен) + playbook домена, который делегируется |
+| `team-lead`, `team-lead-opus`, `tech-lead` | `team-workflow.md` + `model-routing.md` (обязательны) + playbook домена, который делегируется |
 | `product`, `product-ver` | `team-workflow.md`, `analysis.md` |
 | `ba1`, `ba2`, `ba-ver` | `analysis.md` |
 | `sa1`, `sa2`, `sa-ver` | `analysis.md` |
@@ -116,7 +138,7 @@ Parent/orchestrator may explicitly override downstream model at launch only afte
 | — (нет отдельного rule) | `analysis.md` | US/AC/SMART/FR/NFR/ERD/C4/ADR методология — только в playbook |
 | `56-regression-verify.mdc` | `verification.md`, `testing.md` §11.1 | Rule = обязательный цикл кратко; playbook = чек-листы по ролям, severity |
 | `00-project.mdc` | `team-workflow.md` | Rule = стек/статус кратко; playbook = RACI, волны, handoff, шаблон делегирования §5.3.1 |
-| `70-pro-qa-ai.mdc` | `prompt-contract.md` | Rule = карта тулкита `pro-qa-ai/`; playbook = task normalization, concise rationale/assumptions/evidence, risk-scaled verification и handoff |
+| `70-pro-qa-ai.mdc` | `model-routing.md`, `prompt-contract.md` | Rule = protected Opus ownership; playbooks = handoff boundary и проверка недоверенного артефакта |
 
 Практический вывод: не хватает контекста из rule — ожидаемо, иди в playbook по этой таблице.
 
@@ -124,15 +146,15 @@ Parent/orchestrator may explicitly override downstream model at launch only afte
 
 ## 3. Ростер команды (32 файла агентов)
 
-**Runtime:** `team-lead` — GPT-5.6 Sol Pro (`gpt-5.6-sol` + Pro via catalog); downstream — `inherit`, routing по capability/cost/risk среди реально доступных Cursor-моделей (§0).
+**Runtime:** `team-lead` — GPT-5.6 Sol / Max; downstream explicit Terra, atomic code explicit 5.3 Codex Spark / XHigh (§0).
 
 ### Тир 1 — Лидерство
 | Агент | Файл | Runtime | Роль |
 |-------|------|-----------------|------|
-| Team Lead | `team-lead.md` | **Sol Pro** | Оркестратор волн, делегирование, финальная приёмка |
+| Team Lead | `team-lead.md` | **Sol / Max** | Оркестратор волн, делегирование, финальная приёмка |
 | Team Lead (esc.) | `team-lead-opus.md` | deprecated | Исторический профиль; routing теперь внутри `team-lead` |
 | Tech Lead | `tech-lead.md` | routed | Декомпозиция на фазы/планы, зависимости, риски |
-| Codex Micro | `codex-micro.md` | `inherit` (routed micro) | Супер-мелкие правки (не волны) |
+| Codex Micro | `codex-micro.md` | **5.3 Codex Spark / XHigh** | Атомарный код по frozen contract (не волны) |
 
 ### Тир 2 — Продукт
 | Агент | Файл | Роль |
