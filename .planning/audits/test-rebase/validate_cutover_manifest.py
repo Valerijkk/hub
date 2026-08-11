@@ -71,6 +71,42 @@ AUTHORITY_FILES = {
     "architecture_contract": (".planning/audits/test-rebase/test-architecture-contract.json", "62eb27ecd93164cf404639e6c8b85d14843613da2d34ea4da08101a673bf1335"),
 }
 LEDGER_REVISION = "5708671f00411c7c9e9dbee88b725de2092cbacd"
+PHASE129_BATCH_ORDER_SHA256 = "faebb25e84d4efb01fc02fb515118ed28d5224be50dc02ec45da3baea42bb9f5"
+PHASE129_PLAN_ORDER = ("129-02", "129-03", "129-04", "129-05", "129-06", "129-07")
+PHASE129_PLAN_KINDS = {
+    "129-02": "go-hook-free",
+    "129-03": "frontend-unit",
+    "129-04": "go-component-delete",
+    "129-06": "go-hook-blocked",
+    "129-07": "zero-consumer",
+}
+PHASE129_TAIL_DOMAINS = {
+    ("129-03", "frontend-unit"): ("support",),
+    ("129-04", "go-component-delete"): ("backend-support",),
+}
+PHASE129_05_FINAL_SUPPORT_DOMAINS = (
+    "support",
+    "frontend",
+    "root-scripts",
+    "pipeline",
+    "legacy-stages",
+    "legacy-docs",
+)
+PHASE129_PLAN_TASKS = {
+    "129-02": ("TASK-197",),
+    "129-03": ("TASK-198",),
+    "129-04": ("TASK-219",),
+    "129-05": ("TASK-219",),
+    "129-06": ("TASK-234",),
+    "129-07": ("TASK-219", "TASK-234"),
+}
+PHASE129_BATCH_TASK_OVERRIDES = {
+    "129-05-support-root-scripts": ("TASK-219", "TASK-201"),
+    "129-05-support-pipeline": ("TASK-219", "TASK-201"),
+    "129-05-support-legacy-stages": ("TASK-219", "TASK-201"),
+    "129-05-support-legacy-docs": ("TASK-219", "TASK-201"),
+    "129-07-zero-consumer-ws": ("TASK-219", "TASK-234", "TASK-201"),
+}
 PYTHON_SCAFFOLD_REQUIRED_FILES = [
     "testframework/pyproject.toml", "testframework/uv.lock",
     "testframework/.python-version", "testframework/README.md",
@@ -106,7 +142,7 @@ PYTHON_SCAFFOLD_REQUIRED_FILES = [
     "testframework/policies/environments.toml",
     "testframework/policies/redaction.toml",
     "testframework/docker/Dockerfile.core",
-    "testframework/docker/run-task.ps1",
+
     "testframework/docker/images.lock.json",
     "testframework/runner/entrypoint.py",
     "testframework/reports/.gitignore",
@@ -1766,6 +1802,39 @@ def _nonledger_domain(path: str) -> str:
     raise ManifestError(f"independent non-ledger domain missing: {path}")
 
 
+def _phase129_group_order(key: tuple[str, str, str]) -> tuple[int, int, str | int]:
+    """Independently preserve the accepted numbered-plan cohort/domain order."""
+
+    plan, kind, domain = key
+    if plan not in PHASE129_PLAN_ORDER:
+        raise ManifestError(f"independent unexpected Phase 129 plan: {plan}")
+    plan_order = PHASE129_PLAN_ORDER.index(plan)
+    if plan == "129-05":
+        if kind == "static":
+            return plan_order, 0, domain
+        if kind == "support" and domain in {"platform", "tracker"}:
+            return plan_order, 1, domain
+        if kind == "e2e":
+            return plan_order, 2, domain
+        if kind == "support" and domain in PHASE129_05_FINAL_SUPPORT_DOMAINS:
+            return plan_order, 3, PHASE129_05_FINAL_SUPPORT_DOMAINS.index(domain)
+        raise ManifestError(f"independent unexpected Phase 129-05 cohort: {kind}/{domain}")
+    if PHASE129_PLAN_KINDS.get(plan) != kind:
+        raise ManifestError(f"independent unexpected Phase 129 batch kind: {plan}/{kind}")
+    tail = PHASE129_TAIL_DOMAINS.get((plan, kind), ())
+    if domain in tail:
+        return plan_order, 1, tail.index(domain)
+    return plan_order, 0, domain
+
+
+def _phase129_batch_tasks(plan: str, batch_id: str) -> list[str]:
+    try:
+        tasks = PHASE129_BATCH_TASK_OVERRIDES.get(batch_id, PHASE129_PLAN_TASKS[plan])
+    except KeyError as error:
+        raise ManifestError(f"independent unexpected Phase 129 task plan: {plan}") from error
+    return list(tasks)
+
+
 def validate_independent_authority(
     actual: dict[str, Any],
     repo_root: Path,
@@ -1804,15 +1873,15 @@ def validate_independent_authority(
     expected: dict[str, dict[str, Any]] = {}
     placement: dict[str, tuple[str, str, str, dict[str, Any]]] = {}
     group_meta: dict[str, tuple[str, str, int, list[str], str, list[str], list[str]]] = {
-        "MOVE-GO-UNIT-HOOK-FREE": ("129-02", "go-hook-free", 2, ["TASK-197", "TASK-201"], "be1", ["be-ver"], ["architecture-contract", "backend-unit"]),
-        "MOVE-FRONTEND-UNIT": ("129-03", "frontend-unit", 3, ["TASK-198", "TASK-201"], "fe1", ["fe-ver"], ["architecture-contract", "frontend-unit"]),
-        "MOVE-FRONTEND-RENDER-SUPPORT": ("129-03", "frontend-unit", 3, ["TASK-198", "TASK-201"], "fe1", ["fe-ver"], ["architecture-contract", "frontend-unit"]),
-        "DELETE-GO-COMPONENT": ("129-04", "go-component-delete", 4, ["TASK-219", "TASK-201"], "be1", ["code-reviewer", "qa-auto-ver"], ["architecture-contract", "backend-unit"]),
-        "DELETE-FRONTEND-STATIC-CONTRACT": ("129-05", "static", 5, ["TASK-219", "TASK-201"], "fe1", ["qa-auto-ver"], ["architecture-contract", "frontend-unit", "python-scaffold"]),
-        "DELETE-FRONTEND-COMPILE-FIXTURES": ("129-05", "support", 5, ["TASK-219", "TASK-201"], "fe1", ["qa-auto-ver"], ["architecture-contract", "frontend-unit", "python-scaffold"]),
-        "DELETE-PLAYWRIGHT-TS-SPECS": ("129-05", "e2e", 5, ["TASK-219", "TASK-201"], "fe1", ["qa-auto-ver"], ["architecture-contract", "frontend-unit", "python-scaffold"]),
-        "DELETE-PLAYWRIGHT-TS-SUPPORT": ("129-05", "support", 5, ["TASK-219", "TASK-201"], "fe1", ["qa-auto-ver"], ["architecture-contract", "frontend-unit", "python-scaffold"]),
-        "KEEP-GO-UNIT-HOOK-DEPENDENT": ("129-06", "go-hook-blocked", 6, ["TASK-234", "TASK-201"], "be2", ["be-ver", "arch-ver"], ["architecture-contract", "backend-unit"]),
+        "MOVE-GO-UNIT-HOOK-FREE": ("129-02", "go-hook-free", 2, ["TASK-197"], "be1", ["be-ver"], ["architecture-contract", "backend-unit"]),
+        "MOVE-FRONTEND-UNIT": ("129-03", "frontend-unit", 3, ["TASK-198"], "fe1", ["fe-ver"], ["architecture-contract", "frontend-unit"]),
+        "MOVE-FRONTEND-RENDER-SUPPORT": ("129-03", "frontend-unit", 3, ["TASK-198"], "fe1", ["fe-ver"], ["architecture-contract", "frontend-unit"]),
+        "DELETE-GO-COMPONENT": ("129-04", "go-component-delete", 4, ["TASK-219"], "devops-engineer", ["code-reviewer", "qa-auto-ver"], ["architecture-contract", "backend-unit"]),
+        "DELETE-FRONTEND-STATIC-CONTRACT": ("129-05", "static", 5, ["TASK-219"], "devops-engineer", ["code-reviewer", "qa-auto-ver"], ["architecture-contract", "frontend-unit", "python-scaffold"]),
+        "DELETE-FRONTEND-COMPILE-FIXTURES": ("129-05", "support", 5, ["TASK-219"], "devops-engineer", ["code-reviewer", "qa-auto-ver"], ["architecture-contract", "frontend-unit", "python-scaffold"]),
+        "DELETE-PLAYWRIGHT-TS-SPECS": ("129-05", "e2e", 5, ["TASK-219"], "devops-engineer", ["code-reviewer", "qa-auto-ver"], ["architecture-contract", "frontend-unit", "python-scaffold"]),
+        "DELETE-PLAYWRIGHT-TS-SUPPORT": ("129-05", "support", 5, ["TASK-219"], "devops-engineer", ["code-reviewer", "qa-auto-ver"], ["architecture-contract", "frontend-unit", "python-scaffold"]),
+        "KEEP-GO-UNIT-HOOK-DEPENDENT": ("129-06", "go-hook-blocked", 6, ["TASK-234"], "be1", ["be-ver"], ["architecture-contract", "backend-unit"]),
     }
     for index, row in enumerate(rows):
         if not isinstance(row, dict):
@@ -1877,12 +1946,13 @@ def validate_independent_authority(
         if source.startswith("backend/testframework/"):
             placement[source] = (
                 "129-04", "go-component-delete", _nonledger_domain(source),
-                {"wave": 4, "tasks": ["TASK-219", "TASK-201"], "owner": "be1", "verifiers": ["code-reviewer", "qa-auto-ver"], "gates": ["architecture-contract", "backend-unit"]},
+                {"wave": 4, "tasks": ["TASK-219"], "owner": "devops-engineer", "verifiers": ["code-reviewer", "qa-auto-ver"], "gates": ["architecture-contract", "backend-unit"]},
             )
         else:
+            nonledger_domain = _nonledger_domain(source)
             placement[source] = (
-                "129-05", "support", _nonledger_domain(source),
-                {"wave": 5, "tasks": ["TASK-219", "TASK-201"], "owner": "fe1", "verifiers": ["qa-auto-ver"], "gates": ["architecture-contract", "frontend-unit", "python-scaffold"]},
+                "129-05", "support", nonledger_domain,
+                {"wave": 5, "tasks": ["TASK-219", "TASK-201"] if nonledger_domain in {"root-scripts", "pipeline", "legacy-stages", "legacy-docs"} else ["TASK-219"], "owner": "devops-engineer", "verifiers": ["code-reviewer", "qa-auto-ver"], "gates": ["architecture-contract", "frontend-unit", "python-scaffold"]},
             )
     hooks = inventory.get("hooks")
     if not isinstance(hooks, list) or len(hooks) != 43:
@@ -1907,9 +1977,10 @@ def validate_independent_authority(
             "consumer_links": sorted(links, key=lambda item: (str(item["consumer_source"]), str(item["symbol"]))),
             "release_condition": "regenerated-exact-zero-consumer-authority",
         }
+        hook_domain = _independent_slug(str(hook.get("module", "")))
         placement[source] = (
-            "129-07", "zero-consumer", _independent_slug(str(hook.get("module", ""))),
-            {"wave": 7, "tasks": ["TASK-219", "TASK-201"], "owner": "be2", "verifiers": ["be-ver", "arch-ver", "qa-auto-ver"], "gates": ["architecture-contract", "backend-unit"]},
+            "129-07", "zero-consumer", hook_domain,
+            {"wave": 7, "tasks": ["TASK-219", "TASK-234"] + (["TASK-201"] if hook_domain == "ws" else []), "owner": "devops-engineer", "verifiers": ["code-reviewer", "qa-auto-ver"], "gates": ["architecture-contract", "backend-unit"]},
         )
 
     observed: dict[str, dict[str, Any]] = {}
@@ -1944,19 +2015,22 @@ def validate_independent_authority(
         key = (plan, kind, domain)
         grouped.setdefault(key, []).append(operation)
         metadata[key] = meta
-    plan_order = {"129-02": 2, "129-03": 3, "129-04": 4, "129-05": 5, "129-06": 6, "129-07": 7}
     expected_batches: list[dict[str, Any]] = []
-    for key in sorted(grouped, key=lambda item: (plan_order[item[0]], item[1], item[2])):
+    for key in sorted(grouped, key=_phase129_group_order):
         plan, kind, domain = key
         operations = sorted(grouped[key], key=lambda item: str(item["source"]))
         chunks = [operations[index:index + MAX_BATCH_OPERATIONS] for index in range(0, len(operations), MAX_BATCH_OPERATIONS)]
         for chunk_index, chunk in enumerate(chunks, 1):
             base = f"{plan}-{kind}-{domain}"
+            batch_id = f"{base}-{chunk_index:02d}" if len(chunks) > 1 else base
+            tasks = _phase129_batch_tasks(plan, batch_id)
+            if tasks != list(metadata[key]["tasks"]):
+                errors.append(f"independent numbered-plan TASK authority drift: {batch_id}")
             expected_batches.append({
-                "id": f"{base}-{chunk_index:02d}" if len(chunks) > 1 else base,
+                "id": batch_id,
                 "plan": plan,
                 "wave": metadata[key]["wave"],
-                "tasks": metadata[key]["tasks"],
+                "tasks": tasks,
                 "owner": metadata[key]["owner"],
                 "verifiers": metadata[key]["verifiers"],
                 "domain": domain,
@@ -1964,6 +2038,11 @@ def validate_independent_authority(
                 "operations": chunk,
                 "docker_gate_ids": metadata[key]["gates"],
             })
+    ordered_batch_sha256 = hashlib.sha256(
+        "\n".join(str(batch["id"]) for batch in expected_batches).encode("utf-8")
+    ).hexdigest()
+    if ordered_batch_sha256 != PHASE129_BATCH_ORDER_SHA256:
+        errors.append("independent numbered-plan batch order digest changed")
     actual_batches = actual.get("batches") if isinstance(actual.get("batches"), list) else []
     if len(actual_batches) != len(expected_batches):
         errors.append("independent batch count differs from literal 56-operation partition")

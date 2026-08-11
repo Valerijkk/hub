@@ -32,8 +32,11 @@ and no path beyond its live PLAN/manifest.
 
 - [ ] Канон, roadmap, phase plans и onboarding docs используют один root
   `testframework/**`, без target-ссылок на `testframework/python/**`.
-- [ ] Python layout: root package/config + `core/`, `api/`, `integration/`,
-  `contract/`, `e2e/`, `load/`, `docker/`, `reports/`.
+- [ ] Python layout: `src/hub_testkit/**`, planned
+  `tests/{contract,api,integration,e2e}/**`, `selftests/**`, `cases/**`,
+  `schemas/**`, `policies/**`, `load/**`, `docker/**`, future `runner/**`, and
+  `reports/<task-run>/**`. Direct root `core/`, `api/`, `integration/`,
+  `contract/`, and `e2e/` trees are not target architecture.
 - [ ] `go-component` rows не попадают в `backend/tests/**` и удаляются без replacement:
   они входят в exact delete manifest. Новые Python API/integration/contract
   suites проектируются с нуля по актуальным требованиям, рискам и TC IDs.
@@ -54,17 +57,28 @@ exact manifest без порта. Любой будущий `testframework/tests
   задачей.
 - [ ] `pro-qa-ai/**` не читался и не изменялся.
 
-## Runtime readiness
+## Readiness
 
-Документный contract можно исправлять и рецензировать сейчас. Любая повторная
-validator/runtime acceptance остаётся `NOT_READY`, пока
-`testframework/docker/run-task.ps1` contract `hub.qa-runner/v1` и
-`testframework/docker/images.lock.json` не будут независимо приняты
-`qa-auto-ver`. Прямой Docker/Compose, host test/validator, mutable-image и
-ad-hoc cleanup не являются fallback. Launcher обязан задавать уникальные
-task-owned имена, CPU/RAM/PID limits, wall-clock timeout, isolated
-`testframework/reports/<task-run>/` с owner marker и unconditional
-exact-resource cleanup в `finally`.
+The documentation contract can be corrected and reviewed now. The
+structure-only scaffold does not authorize package bootstrap, framework
+selftests, SUT suites, launcher, or runtime; their statuses are independent:
+
+- package bootstrap: `NOT_READY`;
+- framework selftests: `NOT_READY`;
+- SUT suite layers: `NOT_READY`;
+- versioned launcher API: `NOT_READY`;
+- runtime: `NOT_RUN`.
+
+A future versioned launcher API may be separately implemented and independently
+accepted only under `testframework/runner/**`. `testframework/docker/**` contains
+only immutable execution assets and container contracts, including the future
+image lock; it contains no launcher or alternate entrypoint. No supported
+command, Docker-directory entrypoint, or direct Docker/Compose, host
+test/validator, mutable-image, or ad-hoc-cleanup fallback exists. After
+separate independent acceptance, the launcher must provide unique task-owned
+names, CPU/RAM/PID limits, wall-clock timeout, isolated
+`testframework/reports/<task-run>/` with an owner marker, and unconditional
+exact-resource cleanup in `finally`.
 
 ## Atomic scope
 

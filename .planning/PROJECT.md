@@ -268,14 +268,15 @@ Hub создаётся как внутренний инструмент для �
 - `frontend/tests/<domain>/**` и `frontend/tests/support/**` — только genuine
   Vitest/RTL units и их support;
 - один Python QA-проект непосредственно в
-`testframework/{src/hub_testkit,tests/{api,integration,contract,e2e},selftests,cases,load,docker,reports}/**`;
+  `testframework/{src/hub_testkit,tests/{contract,api,integration,e2e},selftests,cases,schemas,policies,load,docker,runner,reports/<task-run>}/**`;
 - legacy Go component/API/integration, static-contract Vitest, TypeScript
   Playwright и их closure удаляются по exact manifest без port/parity/dual-run;
 - 245 hook-dependent Go units защищены до TASK-234; historical 82.0373% —
   discovery evidence, не migration gate;
-- любой runtime остаётся `NOT_READY`, пока versioned outer launcher
-  `hub.qa-runner/v1` и immutable image lock не реализованы и независимо не
-  приняты.
+- package/bootstrap, target suites и future versioned launcher API остаются
+  `NOT_READY`, runtime — `NOT_RUN`: будущий API принадлежит только
+  `testframework/runner/**`, а `testframework/docker/**` содержит только immutable execution assets;
+  поддерживаемой команды или fallback нет до separate implementation и independent acceptance.
 
 **Current phase:** 128 / TASK-204 — descriptor-safe authority, независимые
 validator/executor/negative sentinels и sealed cutover manifest. Ни один тест

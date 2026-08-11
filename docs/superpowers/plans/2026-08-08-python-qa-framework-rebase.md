@@ -6,28 +6,30 @@
 
 > **Founder execution stop:** текущий implementation run заканчивается gate `G130-H` после safe rebase/cutover, accepted launcher/profile contracts, framework selftests и одного health vertical slice. Phases 131–141 ниже — полная future backlog map, а не bulk execution authorization: каждая остаётся `NOT_READY` до отдельного founder activation receipt с принятой новой feature/risk/requirement scope.
 
+> **Runner-authority rebase:** the future versioned launcher API belongs only to absent `testframework/runner/**`; `testframework/docker/**` owns immutable execution assets only. Launcher and runtime remain `NOT_READY` / `NOT_RUN`. This rebase intentionally leaves the downstream receipt hashes stale, so `G-META`, `G-META-X`, and `G129-P` remain non-passing until a separate implementation, independent acceptance, and atomic receipt reseal.
+
 **Goal:** Безопасно выполнить founder-approved greenfield cutover и построить переносимый корневой Python QA-проект Hub с единым Docker-only execution contract, repository-owned traceability и risk-based evidence без legacy port/parity.
 
-**Architecture:** Корень репозитория содержит `testframework/`, а единственный installable Python package живёт в `testframework/src/hub_testkit/`; перенос каталога `testframework/` в отдельный repository не требует изменения Python imports или внутренних путей. Executable suites организованы по слою в `testframework/tests/**` и `testframework/load/**`, reusable code — по ответственности и домену в `testframework/src/hub_testkit/**`, business intent — в `testframework/cases/**`. Физическое дерево растёт только с первым реальным consumer; первая production-quality tracer slice заканчивается работающим health API case через accepted `hub.qa-runner/v1`.
+**Architecture:** Корень репозитория содержит `testframework/`, а единственный installable Python package живёт в `testframework/src/hub_testkit/`; перенос каталога `testframework/` в отдельный repository не требует изменения Python imports или внутренних путей. Executable suites организованы по слою в `testframework/tests/**` и `testframework/load/**`, reusable code — по ответственности и домену в `testframework/src/hub_testkit/**`, business intent — в `testframework/cases/**`. Физическое дерево растёт только с первым реальным consumer; первая production-quality tracer slice заканчивается работающим health API case через accepted `future testframework/runner/** API`.
 
-**Tech Stack:** CPython `3.14.*` candidate с time-boxed `3.13.*` fallback только после Docker matrix; pinned `uv` + committed `testframework/uv.lock`; pytest strict mode; Pydantic strict/frozen boundaries; HTTPX; JSON Schema Draft 2020-12; Ruff, mypy, Import Linter; PowerShell outer launcher; non-root digest-pinned Docker images; JUnit + sealed JSON evidence. Playwright Python, Locust, xdist, Allure и optional generators подключаются только в назначенной фазе после bounded acceptance.
+**Tech Stack:** CPython `3.14.*` candidate с time-boxed `3.13.*` fallback только после Docker matrix; pinned `uv` + committed `testframework/uv.lock`; pytest strict mode; Pydantic strict/frozen boundaries; HTTPX; JSON Schema Draft 2020-12; Ruff, mypy, Import Linter; future runner-owned outer API (`NOT_READY`); non-root digest-pinned Docker images; JUnit + sealed JSON evidence. Playwright Python, Locust, xdist, Allure и optional generators подключаются только в назначенной фазе после bounded acceptance.
 
 ## Global Constraints
 
 - Source precedence: прямые founder decisions → `.planning/decisions/specs/PYTHON-QA-FRAMEWORK-ARCHITECTURE-2026.md` → `AGENTS.md`/`REGULATION.md`/safety rules → sealed Phase 128/129 authority → research report → historical docs.
 - Allowed implementation roots: `testframework/**`, manifest-authorized `backend/tests/**`, `frontend/tests/**`, exact Phase 129 consumer paths, и docs из task-specific allowlist. Этот planning run меняет только данный файл.
 - `pro-qa-ai/**`, unrelated dirty `frontend/src/**`, `.planning/debug/test-baseline-failures.md` и чужие reports/resources не читаются и не изменяются.
-- Windows host разрешён только для чтения/редактирования, Git и exact task-contract Docker CLI entrypoint call; каждая receipt получает отдельный unique invocation, а повтор без нового task authorization запрещён. Python, pytest, Ruff, mypy, Import Linter, Playwright, Locust, Go/Vitest tests, validators и builds на host запрещены.
-- До independent acceptance `testframework/docker/run-task.ps1` любой target runtime verdict — `NOT_READY`; прямые `docker run`, `docker compose`, legacy `hubtest`, Vitest/TS Playwright runner или host fallback не разрешены.
-- Единственное bootstrap-исключение до acceptance launcher — один исторически обязательный read-only guard run через `.planning/audits/test-rebase/validate-contract.ps1` только после G128-WPS51 и повторно принятых G128-E/G128-S. G128-WPS51 ничего не устанавливает: он фиксирует уже встроенный Windows PowerShell 5.1 по literal `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`, SHA256, held-handle file identity, версиям и exact Microsoft publisher/production-chain/code-signing identity, затем принимает точный PS5.1 compatibility-remediation contract. G128-D запускается только этим абсолютным путём; unqualified `powershell.exe`, любой `pwsh`, PATH/PATHEXT discovery и fallback запрещены. Guard не является `hub.qa-runner/v1`, не запускает SUT tests, не применяет cutover, не публикует authority и запрещён после G129-L.
-- `hub.qa-runner/v1` обязан enforce immutable image/platform digest, locked dependencies, no runtime downloads, non-root/read-only root, bounded tmpfs/shm/CPU/RAM/swap/PID/nofile, inner+outer deadlines, first-causal-exit preservation, task-owned reports/resources и exact cleanup proof.
+- In this revision the Windows host is limited to reading/editing and already-authorized Git inspection. No target runner, Docker/Compose, test, validator, build, or profile invocation exists; a later outer API may act only after it is specified, implemented, independently accepted, and atomically resealed under `testframework/runner/**`.
+- До independent acceptance `future testframework/runner/** API` любой target runtime verdict — `NOT_READY`; прямые `docker run`, `docker compose`, legacy `hubtest`, Vitest/TS Playwright runner или host fallback не разрешены.
+- Former G128-D guard material is retained only as superseded historical provenance: it installed nothing, granted no SUT/cutover/publication authority, produced no accepted runtime receipt, and remains `NOT_RUN`. Its concrete interpreter path and invocation are removed from active authority.
+- `future testframework/runner/** API` обязан enforce immutable image/platform digest, locked dependencies, no runtime downloads, non-root/read-only root, bounded tmpfs/shm/CPU/RAM/swap/PID/nofile, inner+outer deadlines, first-causal-exit preservation, task-owned reports/resources и exact cleanup proof.
 - Phase 129 immutable arithmetic: ровно `176` explicit tasks, из них `173` unique batch IDs; ровно `1,120` operations; максимальный literal batch — `56`. Идентификаторы, cohorts, order и operation identity не реконструируются и не переименовываются.
 - Cutover сохраняет только доказанные genuine native units: `backend/tests/<domain>/**` и `frontend/tests/<domain>/**`; legacy Go component/API/integration, static-contract Vitest, TypeScript Playwright и closure удаляются по sealed manifest и не портируются.
 - Historical `82.0373%` Go coverage, file/case/assertion counts, dual-run и row parity не являются migration gate.
 - Changed-code unit floors: security-critical `95% line / 90% branch`; business/domain `90% / 85%`; pure UI `85% / 80%`. Non-unit acceptance — requirement/risk/scenario/oracle evidence, а не общий line percentage.
-- Current execution scope is only exact cutover/scaffold, launcher/central-profile/framework contracts and one health vertical slice through `G130-H`. No Phase 131–141 bulk expansion, universal coverage sprint or profile-table existence may be interpreted as authorization; later work activates one accepted feature/risk slice at a time.
+- The current authority rebase declares cutover/scaffold, future runner/profile/framework requirements, and one future health slice through `G130-H`; it executes none of them. No Phase 129 mutation, Phase 130 handoff, Phase 131–141 bulk expansion, universal coverage sprint, or profile-table existence may be interpreted as present authorization.
 - Не создавать пустые future directories, generic `core/`, `utils.py`, `BaseTest`, service locator, singleton, global reruns, fixed sleeps, hidden assertions, broad snapshots или shared mutable test data.
-- Каждый code-producing task начинает с чувствительного failing sentinel, затем реализует минимальный production-quality contract, выполняет targeted и adjacent regression через accepted launcher, синхронизирует docs и заканчивается одним allowlisted atomic commit.
+- Every later code-producing task must begin with a sensitive failing sentinel and may use only a separately accepted outer API under `testframework/runner/**`; this revision performs no such task, test, validator, build, profile, staging, or commit.
 - Любой FAIL сначала проходит test triage `ROOT=code|test|infra|flaky|stop`; assertion/code не меняются ради зелёного цвета без сверки с authoritative behavior.
 - Commit subject: Conventional Commit с English `type(scope)` и русским описанием; body содержит TASK path/requirement; AI attribution trailers запрещены. Push/PR/merge/deploy не входят в этот план.
 - Requested runtime: `gpt-5.6-sol`, reasoning `xhigh`; observed `actual_model: UNKNOWN`, потому что runtime telemetry не предоставлена. Workflow provenance: `superpowers:receiving-code-review@6.2.0` → GSD plan revision → `superpowers:writing-plans@6.2.0`; plugins/MCP: none.
@@ -64,7 +66,7 @@
 | `testframework/` без Python package | `testframework/src/hub_testkit/**` installable package + `testframework/{selftests,tests,cases,schemas,policies,docker,runner,reports}/**` | Phase 129 tracer; no empty future dirs |
 | Current Phase 129 scaffold paths `testframework/core/**`, root `testframework/{api,integration,contract,e2e,load}/**`, `testframework/requirements.lock`, `testframework/pytest.ini`, scaffold `.gitkeep` | заменяются на approved `testframework/src/hub_testkit/**`, `testframework/uv.lock`, `testframework/pyproject.toml` pytest config, `testframework/reports/.gitignore` и progressive slice | Меняются только scaffold target/file lists; 173 batch IDs/operations не меняются |
 | `.planning/audits/test-rebase/{inventory.json,founder-greenfield-cutover-manifest.json,test-architecture-contract.json}` | read-only sealed authorities | Phase 128 owner; never inferred from live paths during a batch |
-| `.planning/audits/test-rebase/cutover-manifest.json` (currently absent) | atomically published exact planned authority первым принятым launcher-operation после G129-L и до Phase 129 batch execution | accepted `hub.qa-runner/v1` materializes builder-identical Phase 128 bytes; no operation reconstruction |
+| `.planning/audits/test-rebase/cutover-manifest.json` (currently absent) | atomically published exact planned authority первым принятым launcher-operation после G129-L и до Phase 129 batch execution | accepted `future testframework/runner/** API` materializes builder-identical Phase 128 bytes; no operation reconstruction |
 | `pro-qa-ai/**` | unchanged and unread | founder-only handoff boundary |
 
 ### Sealed Phase 129 arithmetic
@@ -109,7 +111,7 @@ testframework/
 ├── cases/health/TC-HEALTH-0001.md
 ├── schemas/{test-case.schema.json,run.schema.json}
 ├── policies/{markers.toml,environments.toml,redaction.toml}
-├── docker/{Dockerfile.core,run-task.ps1,images.lock.json}
+├── docker/{Dockerfile.core,images.lock.json}
 ├── runner/entrypoint.py
 └── reports/.gitignore
 ```
@@ -138,8 +140,8 @@ testframework/
 | `testframework/cases/<domain>/TC-*.md` | repository-owned business intent and oracle | first case consumer |
 | `testframework/schemas/**` | case/run contracts | 129/130 |
 | `testframework/policies/**` | environments, markers, redaction, profiles/licenses when adopted | 129/130/141 |
-| `testframework/docker/**` | pinned images/topologies and sole outer launcher | 129 onward |
-| `testframework/runner/**` | in-container validated profile execution | 129/130 |
+| `testframework/docker/**` | immutable images, topologies, locks, and resource contracts only | 129 onward |
+| `testframework/runner/**` | sole future owner of versioned API, profile resolution, orchestration, exit preservation, report ownership, and exact cleanup | 129/130 |
 | `testframework/reports/<task-run>/**` | ignored owner-marked per-run evidence only | 129 onward |
 
 ### Research candidate lock (not executable authority until Task 129-01-A)
@@ -147,7 +149,7 @@ testframework/
 | Capability | Candidate from 2026-08-08 report | Adoption gate |
 |---|---|---|
 | Python | CPython `3.14.7`; fallback `3.13.15` | Docker plugin/wheel matrix; choose one |
-| Resolver | `uv 0.12.3` | pin uv, `uv lock --check`, locked sync during image build |
+| Resolver | `uv 0.12.3` | pin uv; require pinned-lock integrity and locked sync during image build |
 | Test/runtime | `pytest 9.1.1`, `pytest-timeout 2.4.0`, `pytest-randomly 4.1.0` | package legitimacy + framework selftests |
 | Parallel | `pytest-xdist 3.8.0` | Trial: deterministic replay, no collision, measured speed/RAM |
 | HTTP/models/schema/data | `httpx 0.28.1`, `pydantic 2.13.4`, `jsonschema 4.26.0`, `Faker 40.36.0` | core image compatibility + strict boundary sentinels |
@@ -252,23 +254,7 @@ def assert_health_ready(snapshot: HealthSnapshot) -> None: ...
 
 `HealthApi` — узкий first consumer HTTPX без generic transport abstraction; Phase 131 извлекает принятый `http/**` boundary и сохраняет public `HealthApi.fetch()`.
 
-```python
-# runner.entrypoint
-class RunEnvelope(BaseModel):
-    schema: Literal["hub.qa-runner/v1"]
-    run: RunIdentity
-    source: SourceIdentity
-    image: ImageIdentity
-    target: TargetIdentity
-    limits: ResourceLimits
-    execution: ExecutionRequest
-    reports: ReportBoundary
-
-def execute(envelope: RunEnvelope) -> int: ...
-def main(argv: Sequence[str] | None = None) -> int: ...
-```
-
-Outer `run-task.ps1` поддерживает параметры `-ContractVersion`, `-PlanId`, `-TaskRunId`, `-TaskId`, `-OwnerRole`, `-VerifierRoles`, `-Mode`, `-Profile`, `-ImageLock`, `-InnerTimeoutSeconds`, `-TimeoutSeconds` и cutover-only `-Manifest`, `-BatchId`, `-ExpectedOperations`. Он строит schema-valid envelope, а не передаёт command strings из repo JSON.
+The former concrete outer-launcher request model and parameter surface are superseded. A future versioned request/API contract may be specified only under `testframework/runner/**`; no schema, command syntax, entrypoint, or executable fallback is accepted by this plan, and runtime remains `NOT_RUN`.
 
 ## 5. Bootstrap active-canon/planning sync and readiness state machine
 
@@ -396,7 +382,7 @@ Approved architecture spec §§1–6,9–12; exact 74 paths above; current activ
 - [ ] Independent docs/architecture/security reviewers compare the exact diff with approved spec and confirm counts `9+10+10+3+11+25+2+4=74`, zero out-of-allowlist mutation, schema-valid deterministic BASE-vs-candidate receipt and zero HIGH. This proves declared routing-contract conformance only; it neither samples nor predicts uncontrolled future-LLM behavior and grants no target-runtime readiness. The deterministic evaluator is statically reviewed now; its Docker-only canonical replay is `NOT_READY` until G129-L, replays only this evaluator, and becomes a predecessor of G129-P.
 
 <verify>
-<automated>Static pre-launcher review of the exact 74-path diff, the twelve-record deterministic BASE-vs-candidate declaration receipt and old-active-reference scan. Expected: 74 paths accounted for, reorganize script deleted, literal scenario/declaration hashes and sorted routes valid, at least one BASE legacy mismatch, every candidate declaration exact with zero extras, only enumerated historical/negative references remain, and independent reviewers record zero HIGH. The canonical replay is `NOT_READY` until G129-L; once G129-L is independently accepted, run exactly `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -NonInteractive -File testframework/docker/run-task.ps1 -ContractVersion hub.qa-runner/v1 -PlanId canon-sync -TaskRunId $HubTaskRunId -TaskId TASK-226 -OwnerRole tech-lead -VerifierRoles qa-auto-ver,arch-ver -Mode verify -Profile canon-routing-contract -ImageLock testframework/docker/images.lock.json -InnerTimeoutSeconds 300 -TimeoutSeconds 420`. The accepted profile replays only the pinned stdlib evaluator and writes the bounded `testframework/reports/<task-run>/routing-receipt-check.json`; before G129-L this command is not a G-CANON prerequisite or fallback.</automated>
+<automated>NOT_READY — no supported invocation exists; execution remains NOT_RUN until a separately specified, implemented, independently accepted, and atomically resealed API under testframework/runner/** exists.</automated>
 </verify>
 
 **Done:** active authority/rules/playbooks/agents/skills/docs/backlog/label routing consistently express the approved physical tree, while inventory/guard evidence and protected/archive surfaces remain untouched; no runtime claim is made.
@@ -449,16 +435,18 @@ Accepted G-CANON receipts and exact 74-path diff; this master plan; approved arc
 - [ ] Implement `validate-downstream-plan-contract.py` with an embedded literal ordered 21-plan allowlist and bounded descriptor-safe UTF-8 reads. It rejects an extra/missing/duplicate input plan; missing Task IDs/spec sections/`Files`/`read_first`/Consumes/Produces/failing sentinel/verify/Done/atomic allowlist; any docs mutation or staged docs path absent from that task's literal `Files`; any shared phase docs path owned outside the one dependent docs/traceability closure; any task above 14 expanded paths; any active forbidden token; unqualified framework output; non-`PLAN.md` authority for 130–141; Phase 130–141 task-count drift from exact `61` and distribution `4/4/4/3/8/18/3/3/5/3/3/3`; or Phase 129 mismatch from exactly `3 + 173 = 176` tasks, `173` unique ordered batch IDs, `1,120` literal operations and maximum `56`. It never imports/executes plan content or reconstructs operations.
 - [ ] Add a profile-closure assertion to the same checker: extract every Phase 130–141 verify-profile literal and require exact membership in the 47-entry later-profile registry declared by Task 130-A; reject duplicates, missing image role/limit class/target/deadline, any unknown profile, and every `testframework/runner/profiles.py` write after Task 130-A. Early Phase 129 bootstrap entries remain separately sealed by G129-L.
 - [ ] Add the founder stop assertion: Phase 130 ends at G130-H, every Phase 131–141 live plan/task declares `NOT_READY` plus exact `G-ACTIVATE-<phase>` precondition, and no dependency edge automatically advances past G130-H. Reject a bulk phase range, universal coverage sprint, activation inferred from profile registration or a receipt that omits one feature/risk/file/rollback boundary.
-- [ ] Define `downstream-plan-contract-receipt.v1.json` with exact keys `schema_version`, `full_head`, `checker_blob_sha256`, `master_blob_sha256`, `ordered_plan_paths`, `plan_blob_sha256`, `task_count`, `batch_ids_sha256`, `batch_count`, `operation_count`, `maximum_batch`, `forbidden_match_count`, `field_coverage`, `verdict`, `reviewer`, `reviewed_at`; prohibit extras and bound the file to 256 KiB. The pre-launcher receipt is completed conclusion-blind by independent `gsd-plan-checker` from static source review and is invalid on any plan/checker/master hash drift.
+- [ ] Define `downstream-plan-contract-receipt.v1.json` with exact keys `schema_version`, `full_head`, `checker_blob_sha256`, `master_blob_sha256`, `ordered_plan_paths`, `plan_blob_sha256`, `task_count`, `batch_ids_sha256`, `batch_count`, `operation_count`, `maximum_batch`, `forbidden_match_count`, `field_coverage`, `verdict`, `reviewer`, `reviewed_at`; prohibit extras and duplicate JSON keys, and bound the file to 256 KiB. Exactly two receipt states are legal. `PRE_REVIEW_PENDING` requires schema `downstream-plan-contract-receipt.v1`, exact integer `forbidden_match_count: 0`, `field_coverage: NOT_RUN`, `verdict: NOT_READY`, reviewer `PENDING_INDEPENDENT_GSD_PLAN_CHECKER`, null `reviewed_at`, and all three content hashes stale; it is honest preflight state only and must not print acceptance. `POST_REVIEW_ACCEPTED` requires the same schema and zero forbidden count, the exact 11-key zero-error field-coverage object, `verdict: STATIC_REVIEW_PASS`, reviewer `gsd-plan-checker`, a valid canonical non-null UTC `reviewed_at`, and all three content hashes current on one exact revision. Any partial hash refresh or mixture of pending/accepted values fails closed. Static acceptance never upgrades runtime from `NOT_RUN`.
 - [ ] Independent `gsd-plan-checker` reviews all 23 paths, checker negative fixtures expressed as in-memory data, path/interface/signature consistency, task-local fields, no command before its named gate and zero HIGH. After G129-L, qa-auto-ver executes the same checker through the accepted launcher to produce `testframework/reports/<task-run>/downstream-plan-contract-check.json`; exact semantic equality with the versioned receipt is G-META-X and a predecessor of G129-P.
 
 <verify>
-<automated>NOT_READY until G-CANON. Pre-launcher G-META static review covers all 23 paths and the bounded versioned receipt: exact 21 plans, forbidden matches zero, every 130–141 task field present, Phase 129 `176 / 173 / 1120 / 56` with original ordered identities. The executable checker is `NOT_READY` until G129-L; once G129-L is independently accepted, run exactly `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -NonInteractive -File testframework/docker/run-task.ps1 -ContractVersion hub.qa-runner/v1 -PlanId meta-plan -TaskRunId $HubTaskRunId -TaskId TASK-226 -OwnerRole tech-lead -VerifierRoles gsd-plan-checker,qa-auto-ver -Mode verify -Profile downstream-plan-contract -ImageLock testframework/docker/images.lock.json -InnerTimeoutSeconds 300 -TimeoutSeconds 420`. The accepted profile invokes `.planning/audits/qa-plans/validate-downstream-plan-contract.py` only against its embedded 21-plan allowlist and writes the bounded `testframework/reports/<task-run>/downstream-plan-contract-check.json`; mismatch keeps G-META-X non-passing and blocks G129-P.</automated>
+<automated>NOT_READY — no supported invocation exists; execution remains NOT_RUN until a separately specified, implemented, independently accepted, and atomically resealed API under testframework/runner/** exists.</automated>
 </verify>
 
-**Done:** `G-META` has an independent zero-HIGH static receipt for the exact 23-path closure and unchanged sealed identities; after G129-L, G-META-X reproduces it through the accepted launcher before authority materialization.
+**Done (currently unmet):** `G-META` still needs an independent zero-HIGH static receipt for the exact 23-path closure and unchanged sealed identities. The unchanged receipt is intentionally hash-stale; `G-META-X` remains `NOT_READY` / `NOT_RUN` until a separate runner implementation and atomic reseal.
 
 **Atomic commit:** `docs(testframework): синхронизировать планы Python QA rebase`; stage exactly the 23 allowlisted paths above: 21 live plans, checker and versioned receipt. If dirty overlap, `.git/index.lock` or an active Git process exists, stop before staging.
+
+**Phase 129 source/state closure:** `G-META-X` uses only the checker’s explicit pre-`G129-P` manifest state. That state requires the future cutover manifest to remain absent and validates the exact 21-plan projection, the versioned receipt, the master, and checker-hash-pinned builder plus independent-validator sources: both tools must declare the numbered-plan order digest and the same exact plan/default plus per-batch TASK projection. The current exact `PRE_REVIEW_PENDING` receipt is permitted only as a non-accepting preflight result with output `NOT_READY`; G-META-X requires the later exact `POST_REVIEW_ACCEPTED` receipt before it can accept this manifest-absent state. It neither consumes nor requires `G129-P` output. The separate post-`G129-P` manifest state is not a `G-META-X` predecessor and may be selected only inside a later separately authorized `G129-P` verification after no-replace materialization; it requires both the exact `POST_REVIEW_ACCEPTED` receipt and the manifest’s exact ordered equality to the already accepted numbered plans. Mixed/stale receipt values fail in either state. Neither state publishes a supported invocation, and runtime remains `NOT_RUN` now.
 
 ### Readiness gates
 
@@ -469,19 +457,19 @@ Accepted G-CANON receipts and exact 74-path diff; this master plan; approved arc
 | G128-R — Phase 128 authority reseal | `NOT_READY` до G-META | exact authority/runtime closure rebased to approved physical tree; seals updated; immutable ledger/cohort/planned arithmetic independently reconciled; final security static review zero HIGH | Docker behavior, manifest publication or launcher acceptance |
 | G128-E — committed historical-guard envelope | `NOT_READY` до G128-R initially; renewal `NOT_READY` до G128-WPS51 | initial committed envelope is accepted; after G128-WPS51, a renewed commit/review binds the PS5.1-compatible hardened wrapper and committed host lock to the envelope | Docker behavior, wrapper runtime, manifest publication, batch apply or launcher acceptance |
 | G128-S — Phase 128 static review | `NOT_READY` до applicable G128-E | initial review authorizes G128-WPS51 only; renewed review after wrapper hardening seals the literal absolute inbox interpreter path and exact G128-D invocation | Docker behavior, manifest publication, launcher acceptance |
-| G128-WPS51 — no-install host-interpreter TCB lock | `NOT_READY` до initial G128-S | the preinstalled Windows PowerShell 5.1 inbox component is sealed at exact `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe` from one held no-follow handle with volume serial/file index/reparse=false/SHA/version/CLR/build, exact two-hardlink identity and pinned Microsoft publisher/production chain/code-signing EKU; compatibility audit defines RNG/hex/argv/race-free job-object/MainModule remediation; security/architecture reviews zero HIGH; no install or wrapper run | wrapper acceptance, Docker behavior, G128-D execution or launcher acceptance |
-| G128-D — one-time Phase 128 guard acceptance | `NOT_READY` до G128-WPS51 + renewed G128-E/G128-S | the literal independently sealed absolute Windows PowerShell path invokes the exact historical wrapper once; conclusion-blind raw-receipt review proves guard/determinism/timeout/cleanup | `hub.qa-runner/v1`, manifest publication or SUT behavior |
-| G129-L — launcher acceptance | `NOT_READY` до G128-D receipt | sole target launcher/static contracts exist; bootstrap acceptance proves limits, first exit, reports boundary and exact cleanup | health/API behavior or cutover completion |
-| G-CANON-X — executable canon receipt | `NOT_READY` до G129-L | accepted launcher runs `canon-routing-contract`; report semantically equals versioned 12-record receipt | downstream plan or authority correctness |
-| G-META-X — executable downstream-plan receipt | `NOT_READY` до G129-L | accepted launcher runs exact 21-plan checker; report semantically equals versioned receipt and `176/173/1120/56` | authority publication or batch mutation |
-| G129-P — authority materialization | `NOT_READY` до G-CANON-X + G-META-X | accepted `hub.qa-runner/v1` atomically writes builder-identical planned manifest and independently validates `173/1,120/max56` | any batch mutation |
-| G129-C — Phase 129 cutover/scaffold | `NOT_READY` до G129-P | all 176 tasks complete in sealed order; units at target roots; legacy closure/hook files zero; health slice accepted | expanded framework/domain coverage |
-| GF — framework selftests | `NOT_READY` until Phase 130 gates | serial selftests, architecture/traceability/marker/profile negative sentinels, deterministic replay, zero leaks | full product QA |
-| G130-H — current-scope health/framework handoff | `NOT_READY` until G129-C + Tasks 130-A–D | independent receipt proves cutover/scaffold, sole launcher, 52-ID registry contract, framework selftests, one health TC and exact docs closure; current implementation run stops | any Phase 131–141 activation or bulk coverage expansion |
+| G128-WPS51 — no-install host-interpreter TCB lock | `NOT_READY` до initial G128-S | the preinstalled Windows PowerShell 5.1 inbox component is sealed at exact `the formerly sealed absolute inbox interpreter identity` from one held no-follow handle with volume serial/file index/reparse=false/SHA/version/CLR/build, exact two-hardlink identity and pinned Microsoft publisher/production chain/code-signing EKU; compatibility audit defines RNG/hex/argv/race-free job-object/MainModule remediation; security/architecture reviews zero HIGH; no install or wrapper run | wrapper acceptance, Docker behavior, G128-D execution or launcher acceptance |
+| G128-D — one-time Phase 128 guard acceptance | `NOT_READY` до G128-WPS51 + renewed G128-E/G128-S | the literal independently sealed absolute Windows PowerShell path invokes the exact historical wrapper once; conclusion-blind raw-receipt review proves guard/determinism/timeout/cleanup | `future testframework/runner/** API`, manifest publication or SUT behavior |
+| G129-L — future runner acceptance | `NOT_READY`; no supported API or invocation exists | a separately specified and implemented versioned outer API under `testframework/runner/**`, immutable assets, negative sentinels, and independent acceptance are atomically resealed | health/API behavior, authority publication, or cutover completion |
+| G-CANON-X — future executable canon receipt | `NOT_READY` until G129-L | only a later accepted runner may reproduce `canon-routing-contract`; current result is `NOT_RUN` | downstream plan or authority correctness |
+| G-META-X — future executable downstream-plan receipt | `NOT_READY` until G129-L | only a later accepted runner may evaluate the exact 21-plan checker and compare the versioned receipt; current result is `NOT_RUN` | authority publication or batch mutation |
+| G129-P — future authority materialization | `NOT_READY` until G-CANON-X + G-META-X and an atomic receipt reseal | a later accepted API under `testframework/runner/**` must materialize builder-identical planned bytes and independently validate `173/1,120/max56`; current gate is non-passing | any batch mutation |
+| G129-C — future Phase 129 cutover/scaffold | `NOT_READY` until G129-P | all 176 declarative tasks must later execute in sealed order; current execution count is zero and runtime is `NOT_RUN` | expanded framework/domain coverage |
+| GF — future framework selftests | `NOT_READY` until the runner and Phase 130 gates exist | a later accepted runner must prove serial selftests, negative sentinels, deterministic replay, and zero leaks; current result is `NOT_RUN` | full product QA |
+| G130-H — future health/framework handoff | `NOT_READY` until G129-C + Tasks 130-A–D | a later independent receipt must prove cutover/scaffold, accepted runner, registry contract, framework selftests, one health TC, and exact docs closure; none exists in this revision | any Phase 131–141 activation or bulk coverage expansion |
 | G-ACTIVATE-131..141 — on-demand backlog activation | `NOT_READY` after G130-H by default | founder accepts exactly one phase/feature slice with current requirements, risks, target files, packages/images and rollback; downstream plan is rechecked on the activation HEAD | authorization for another phase, universal coverage sprint or pre-registered future profile execution |
 | G141 — clean-room handoff | `NOT_READY` until founder activation receipts and 132–140 evidence | clean checkout/image build, all activated profiles, supply-chain/retention/onboarding/recovery, independent verifier | production deploy/sign-off |
 
-`STATIC_REVIEW_PASS` — допустимая метка документационного review, но она никогда не преобразуется в runtime `PASS`. `NOT_READY`, `NOT_RUN`, `PASS` и `FAIL` хранятся как разные enum values; агрегатор не повышает статус. До G-CANON + G-META + G128-R запрещены wrapper run, guard-envelope authority commit и launcher work; до initial G128-E запрещён initial G128-S. Initial G128-S authorizes only G128-WPS51. G128-WPS51 installs nothing and remains `NOT_READY` until exact inbox identity, scoped two-hardlink exception and PS5.1 remediation contract are independently accepted; after it commits the host lock, wrapper hardening requires renewed G128-E and renewed G128-S. Historical wrapper is permitted exactly once only after that renewal, never declares contract `hub.qa-runner/v1` and is forbidden after G129-L. The current prelaunch attempt is non-consumed, runtime remains `NOT_RUN`, and the one G128-D invocation remains unused. Acceptance G130-H завершает текущий run и не повышает ни один backlog profile/phase из `NOT_READY`.
+`STATIC_REVIEW_PASS` — допустимая метка документационного review, но она никогда не преобразуется в runtime `PASS`. `NOT_READY`, `NOT_RUN`, `PASS` и `FAIL` хранятся как разные enum values; агрегатор не повышает статус. До G-CANON + G-META + G128-R запрещены wrapper run, guard-envelope authority commit и launcher work; до initial G128-E запрещён initial G128-S. Initial G128-S authorizes only G128-WPS51. G128-WPS51 installs nothing and remains `NOT_READY` until exact inbox identity, scoped two-hardlink exception and PS5.1 remediation contract are independently accepted; after it commits the host lock, wrapper hardening requires renewed G128-E and renewed G128-S. The former one-time wrapper proposal is retained only as superseded provenance and supplies no current invocation, never declares contract `future testframework/runner/** API` and is forbidden after G129-L. The current prelaunch attempt is non-consumed, runtime remains `NOT_RUN`, and G128-D runtime remains `NOT_RUN`. Acceptance G130-H завершает текущий run и не повышает ни один backlog profile/phase из `NOT_READY`.
 
 ## 6. Dependency graph and waves
 
@@ -494,12 +482,12 @@ Wave 0: G-CANON rewrite exact 74-path active/evaluation surface -> independent s
                     -> Wave 5: 128-WPS51 no-install inbox PowerShell TCB seal + compatibility contract
                         -> Wave 6: renewed 128-E wrapper envelope commit/reviews -> renewed 128-S receipt
                             -> Wave 7: 128-D one-time historical read-only guard -> independent receipt review
-                                -> Wave 8: 129-01-A create/accept sole hub.qa-runner/v1
-                                    -> Wave 9: G-CANON-X + G-META-X executable receipt rechecks -> G129-P authority materialization
-                                        -> Wave 10: 129-01-B/C progressive framework + health slice + independent preflight
-                                            -> Waves 11..16: 129-02 -> 129-03 -> 129-04 -> 129-05 -> 129-06 -> 129-07
-                                                -> Wave 17: 130-A central 47-row later-profile registry -> 130-B plugin -> 130-C architecture -> 130-D docs closure
-                                                -> G130-H: independent health/framework handoff -> STOP current implementation run
+                                -> Wave 8: 129-01-A records declarative future-runner requirements; API, acceptance and runtime remain absent
+                                    -> Future Wave 9 (blocked): after separate runner acceptance, G-CANON-X + G-META-X receipt rechecks may precede G129-P
+                                        -> Future Wave 10 (blocked): 129-01-B/C framework + health slice + independent preflight
+                                            -> Future Waves 11..16 (blocked): 129-02 -> 129-03 -> 129-04 -> 129-05 -> 129-06 -> 129-07
+                                                -> Future Wave 17 (blocked): 130-A registry -> 130-B plugin -> 130-C architecture -> 130-D docs closure
+                                                -> Future G130-H (blocked): independent health/framework handoff; no current runtime authorization
                                                 -- only after separate G-ACTIVATE-<phase> receipt --> Wave 18: 131-A HTTP -> 131-B runtime/observability -> 131-C identity -> 131-D docs closure
                                                     -> Wave 19A: 132-A/B parallel -> 132-C risk closure -> 132-D docs closure
                                                     -> Wave 19B: 133-A -> 133-B (shared Compose) -> 133-C docs closure
@@ -538,25 +526,11 @@ Rows 131–141 describe independent on-demand backlog contracts. Their wave/para
 
 Каждый task ниже является review boundary: соседний task можно принять или отклонить независимо. В task body слова «реализовать» всегда сопровождаются exact files, public interface, negative sentinel и observable expected outcome.
 
-После G129-L canonical verification имеет форму:
+The former command surface is gone. The following fields are declarative requirements for a future independently accepted API under `testframework/runner/**`, not a supported verification form:
 
-```powershell
-$HubTaskRunId = '<phase>-<task>-' + [guid]::NewGuid().ToString('N')
-C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -NonInteractive -File testframework/docker/run-task.ps1 `
-  -ContractVersion hub.qa-runner/v1 `
-  -PlanId <phase-plan> `
-  -TaskRunId $HubTaskRunId `
-  -TaskId <TASK-ID> `
-  -OwnerRole <owner> `
-  -VerifierRoles <verifier-list> `
-  -Mode verify `
-  -Profile <accepted-profile> `
-  -ImageLock testframework/docker/images.lock.json `
-  -InnerTimeoutSeconds <accepted-inner> `
-  -TimeoutSeconds <accepted-outer>
-```
+The former concrete launcher invocation is removed from active authority. Phase/task/owner/verifier/manifest/image-lock/mode/deadline requirements remain declarative and non-executable until a separately specified and independently accepted API under `testframework/runner/**` exists.
 
-Angle-bracket fields здесь обозначают schema-bound per-task values, перечисленные в каждом `<verify>` ниже; executor подставляет их из task contract, не из environment/repo data. Для всех runs `outer > inner`; calibrated CPU/RAM/PID/shm/workers берутся из accepted profile in `images.lock.json` и повторяются в sealed run manifest. До G129-L exact `<verify>` содержит `NOT_READY` и условие разблокировки, а не альтернативную команду.
+Angle-bracket fields represent schema-bound per-task requirements. A future independently accepted runner may consume them only after implementation and atomic reseal; current Phase 129 numbered tasks instead carry the exact adjacent command-free `NOT_READY` / `NOT_RUN` body, with no fallback invocation.
 
 ## 8. Phase 128 — static authority review and one-time read-only guard
 
@@ -631,7 +605,7 @@ AGENTS.md; `.cursor/REGULATION.md` §§4,8,15; `.cursor/rules/07-agent-safety.md
 
 **Consumes:** The applicable G128-E committed full-HEAD guard envelope, G128-R-resealed authority, sealed ledger `1049 / sha256 72de6a81...`, current no-argument wrapper, builder stdout contract, independent validator and immutable Phase 129 arithmetic. Renewal additionally consumes accepted G128-WPS51 and the renewed G128-E wrapper commit.
 
-**Produces:** Initial G128-S static receipt authorizing only G128-WPS51. After wrapper hardening, a renewed G128-S receipt proves the one-time guard-only exception, seals literal `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe` and the full invocation, held-handle interpreter identity, Microsoft publisher/production chain/code-signing EKU and race-free job lifecycle; it retains no accepted parameter surface, writable repo mount, SUT profile, `--write`, batch application, authority publication or `hub.qa-runner/v1` claim.
+**Produces:** Historical G128-S provenance showing the former one-time guard proposal was bounded, independently reviewed, and non-authoritative for SUT, cutover, publication, or target-runner behavior. No current interpreter path, parameter surface, or invocation is authorized.
 
 - [ ] Review the exact committed wrapper/tool hashes and all writable/mount/process paths. A dirty/untracked envelope path, mutable image, hidden CLI/environment override, writable source/authority mount, missing limits, broad cleanup or wrapper path drift keeps G128-S `NOT_READY`.
 - [ ] Prove from source that `.planning/audits/test-rebase/cutover-manifest.json` must remain absent before and after the wrapper and that builder/validator/applier negative sentinels do not mutate the repository.
@@ -649,7 +623,7 @@ AGENTS.md; `.cursor/REGULATION.md` §§4,8,15; `.cursor/rules/07-agent-safety.md
 
 ### Task G128-WPS51: Seal the built-in Windows PowerShell 5.1 TCB without installation
 
-**Files:** Create and commit exactly `.planning/audits/test-rebase/powershell-host-lock.json`; Review only `.planning/audits/test-rebase/validate-contract.ps1` and exact built-in `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe` identity. Wrapper modification belongs only to the later renewed G128-E task.
+**Files:** Preserve the historical host-lock and wrapper review scope as provenance only; no current interpreter path or wrapper invocation is introduced or accepted by this plan.
 
 **Requirements:** `TASK-204`; approved spec §§1,5,6,12,14; host-interpreter prelaunch incident repair.
 
@@ -661,7 +635,7 @@ Accepted initial G128-S receipt; founder no-install decision; `.cursor/rules/07-
 
 **Produces:** One committed `powershell-host-lock.json` sealing the only permitted host interpreter TCB and its scoped signed-inbox two-hardlink identity, plus an independently accepted exact PS5.1 remediation contract needed by the renewed wrapper envelope.
 
-- [ ] Install or download nothing. Accept only exact canonical `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`; reject unqualified `powershell.exe`, every `pwsh`, PATH/PATHEXT or `Get-Command` discovery, aliases, shims, ExecutionPolicy bypass and fallback.
+- [ ] Preserve the no-install, fail-closed historical host-identity audit meaning without publishing a concrete interpreter path, flags, alias, shim, fallback, or runnable wrapper authority.
 - [ ] Open that canonical file once no-follow/no-reparse and keep the handle held. Capture and later recheck `volume_serial`, `file_index`, `reparse_point=false` and link count with GetFileInformationByHandle while enumerating hardlinks; reopen every link no-follow and require the same held identity. Accept exactly two System32/WinSxS links only for this sealed signed Windows inbox component. Compute SHA256/version/build from the same held identity. Require Authenticode Valid plus exact Microsoft Windows Publisher leaf, pinned Microsoft Windows production intermediate/root chain and code-signing EKU OID `1.3.6.1.5.5.7.3.3`; arbitrary Valid is rejected.
 - [ ] Create `powershell-host-lock.json` with exact required keys `schema_version`, `absolute_path`, `volume_serial`, `file_index`, `reparse_point`, `sha256`, `file_version`, `product_version`, `powershell_version`, `ps_edition`, `clr_version`, `authenticode_status`, `authenticode_publisher`, `authenticode_signer`, `authenticode_issuer`, `authenticode_thumbprint`, `authenticode_chain`, `authenticode_eku_oids`, `provenance_type`, `windows_build`, `component_target`, `hardlink_count`, `accepted_hardlink_paths`, `inspected_at`; require exact inbox provenance, false reparse, hardlink_count two, absolute paths, lowercase 64-hex SHA256, complete pinned publisher/chain/EKU and no extra keys. Commit only this file and obtain independent `security-auditor` + `arch-ver` acceptance.
 - [ ] The renewed G128-E remediation is exact: RNG.Create/GetBytes/Dispose plus BitConverter hex; EnvironmentVariables; null/NUL-rejecting Windows argv encoder with quote/backslash/empty/non-ASCII selftests; CreateProcessW CREATE_SUSPENDED, AssignProcessToJobObject before ResumeThread, JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE, no breakaway/cmd, bounded terminate/wait/drain/finally handles and ActiveProcesses=0 or NOT_READY; `Diagnostics.Process.GetCurrentProcess().MainModule.FileName` replaces unavailable `Environment.ProcessPath`.
@@ -689,24 +663,24 @@ Accepted G128-WPS51 host lock, renewed G128-E envelope and renewed G128-S receip
 
 **Produces:** One G128-D raw evidence set and a conclusion-blind `arch-ver` + `qa-auto-ver` receipt covering inventory, guard sensitivity, deterministic builder bytes, independent validator/applier sentinels, inner/outer timeout, first exit and exact cleanup.
 
-- [ ] G128-D has no executable command while the host lock or renewed G128-S is absent. After acceptance, execute exactly once as `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -NonInteractive -File .planning/audits/test-rebase/validate-contract.ps1`, copied verbatim into renewed G128-S. No PATH lookup, variable/alias/shim, unqualified `powershell.exe`, any `pwsh`, ExecutionPolicy bypass, extra wrapper flag or fallback is permitted. This is the sole pre-launcher Docker exception and is not represented as a target test profile.
+- [ ] G128-D retains only superseded historical guard provenance. No concrete interpreter path, flags, wrapper invocation, or executable exception is authorized by this plan; runtime remains `NOT_RUN`, and any future execution requires a separate accepted authority.
 - [ ] Assert before and after that no SUT test ran, no cutover batch/state changed, no manifest was published, protected/dirty paths were untouched and only task-owned resources/reports were created.
 - [ ] Independent reviewers inspect raw output without author conclusions. Missing raw artifact, arithmetic drift, cleanup residue, wrapper retry or any HIGH leaves G128-D non-passing.
-- [ ] Seal the receipt and retire the exception. After G129-L, any invocation of this wrapper is a policy violation; all target work uses only `testframework/docker/run-task.ps1`.
+- [ ] Seal the receipt and retire the exception. After G129-L, any invocation of this wrapper is a policy violation; all target work uses only `future testframework/runner/** API`.
 
 <verify>
-<automated>The literal-absolute no-argument wrapper call sealed by renewed G128-S is permitted only after G128-WPS51 and renewed G128-E/G128-S. Expected outcome is a reviewed G128-D receipt, not `hub.qa-runner/v1` PASS. Any PATH/unqualified/legacy/fallback interpreter, identity or sealed hardlink drift, extra flag, second consumed invocation, SUT/cutover/apply/publish action or missing independent review is non-acceptance.</automated>
+<automated>The literal-absolute no-argument wrapper call sealed by renewed G128-S is permitted only after G128-WPS51 and renewed G128-E/G128-S. Expected outcome is a reviewed G128-D receipt, not `future testframework/runner/** API` PASS. Any PATH/unqualified/legacy/fallback interpreter, identity or sealed hardlink drift, extra flag, second consumed invocation, SUT/cutover/apply/publish action or missing independent review is non-acceptance.</automated>
 </verify>
 
 **Done:** one and only one G128-D run through the independently sealed absolute interpreter is accepted on the renewed revision, authority is still absent, and G129-L is unblocked without claiming target-runner readiness. The current prelaunch incident attempt is recorded as non-consumed; present status remains `NOT_READY` / runtime `NOT_RUN`.
 
 **Atomic commit:** `docs(testframework): принять one-time Phase 128 guard`; stage only `.planning/audits/test-rebase/VERIFICATION.md`; body references TASK-204. Stop before staging on Git lock/process or dirty overlap.
 
-## 9. Phase 129 — launcher, minimal slice and immutable cutover
+## 9. Phase 129 — declarative future-runner boundary, minimal slice requirements and immutable cutover identity
 
-### Task 129-01-A: Bootstrap and independently accept `hub.qa-runner/v1`
+### Task 129-01-A: Declare requirements for a future API under `testframework/runner/**`
 
-**Files:** Create `.planning/audits/test-rebase/python-package-legitimacy.md`, `testframework/{pyproject.toml,uv.lock,.python-version,README.md}`, `testframework/docker/{Dockerfile.core,run-task.ps1,images.lock.json}`, `testframework/schemas/run.schema.json`, `testframework/runner/{entrypoint.py,profiles.py}`, `testframework/policies/profiles.toml`, `testframework/selftests/runner/{test_launcher_contract.py,test_launcher_cleanup.py}`, `testframework/reports/.gitignore`, `.planning/audits/test-rebase/cutover-manifest.json`; Modify `.planning/audits/test-rebase/VERIFICATION.md` only for the G129-P receipt.
+**Future files (not authorized by this rebase):** a separately approved runner slice may create `.planning/audits/test-rebase/python-package-legitimacy.md`, `testframework/{pyproject.toml,uv.lock,.python-version,README.md}`, `testframework/docker/{Dockerfile.core,images.lock.json}`, `testframework/schemas/run.schema.json`, `testframework/runner/{entrypoint.py,profiles.py}`, `testframework/policies/profiles.toml`, `testframework/selftests/runner/{test_launcher_contract.py,test_launcher_cleanup.py}`, `testframework/reports/.gitignore`, and later `.planning/audits/test-rebase/cutover-manifest.json`; this authority rebase creates none of them.
 
 **Requirements:** `TASK-193`, `TASK-201`, `TASK-204`; approved spec §§3–6,11,12,14,15.
 
@@ -714,72 +688,74 @@ Accepted G128-WPS51 host lock, renewed G128-E envelope and renewed G128-S receip
 Approved architecture spec §§3–6,11,15; research report §§6,10,13,15.14–15.20; G-META-revised Phase 129 PLAN/129-01; `.cursor/rules/07-agent-safety.mdc`; `.cursor/playbooks/testing.md`; G128-D receipt.
 </read_first>
 
-**Consumes/Produces:** Exact package candidates as unqualified research inputs, G128-D builder/validator receipt and current Phase 129 CLI fields → `RunEnvelope`, `execute()`, `main()`, accepted outer CLI, immutable image/lock/profile registry and per-run evidence boundary; after G129-L plus G-CANON-X/G-META-X, the same launcher materializes the builder-identical planned authority and produces G129-P.
+**Consumes/Produces:** Exact package candidates and current sealed planning inputs → declarative future runner requirements only. No outer CLI, request schema, runner entrypoint, authority materialization, or runtime evidence is implemented; G129-L and G129-P remain non-passing.
 
-- [ ] Before any lock/install, create a package legitimacy table from official registries/upstream releases with name, version, owner, license, release/provenance URL, wheel availability for 3.14/3.13, transitive risk and `ACCEPTED|ASSUMED|SUS|REJECTED`. `[ASSUMED]`/`[SUS]` requires blocking human verification; `[SLOP]` is forbidden.
-- [ ] Write launcher contract/cleanup tests first. Sentinels must fail for mutable tag, wrong platform digest, runtime download, missing/zero limits, `outer <= inner`, non-unique nonce, owner/verifier role reuse, report traversal/reparse/hardlink, production target, conclusion leakage, zero collection, unexpected skip, timeout, OOM/137, interrupted run and cleanup residue.
-- [ ] Add `testframework/pyproject.toml` candidate pins and exact `testframework/uv.lock` only after package legitimacy and Python compatibility matrix are accepted in Docker. Select 3.14 or documented 3.13 fallback as one exact `testframework/.python-version`; do not maintain a second requirements authority.
-- [ ] Implement launcher/runner state machine `VALIDATING → CREATED → PREFLIGHT → RUNNING → INSPECTING → CLEANING → FINISHED`, atomic first terminal event, bounded stream capture, central redaction, exact resource ID+name+nonce+labels cleanup, and raw+sealed receipts.
-- [ ] Seal exactly seven bootstrap registry entries in `profiles.toml`: `launcher-bootstrap` (`core`, inner/outer `1500/1800`), `canon-routing-contract` (`core`, `300/420`), `downstream-plan-contract` (`core`, `300/420`), `cutover-authority` (`core`, `720/900`), `framework` (`core`, `600/720`), `api-health` (`core`, `600/720`) and `cutover-preflight` (`core`, `720/900`). Every entry binds a literal target, non-zero CPU/RAM/PID/shm/nofile/workers and the digest-bearing `core` image key; `profiles.py` rejects unknown/duplicate IDs and missing image/limit/target/deadline fields. Phase 130-A is the sole later registry expansion.
-- [ ] Bootstrap acceptance uses no cutover mutation and no missing manifest fallback. It proves success/failure/timeout/interruption cleanup and that source/lock mounts are read-only while only owner-marked reports are writable.
-- [ ] After independent G129-L, first run the exact G-CANON-X and G-META-X profiles and require semantic equality with their versioned receipts. Only after both rechecks, invoke `authority-materialize` on the same sealed revision. It runs the Phase 128 builder twice in-container, requires byte identity and sealed source/tool hashes, writes `.planning/audits/test-rebase/cutover-manifest.json` atomically with no-replace/no-follow semantics, then runs the independent validator. Existing different bytes, partial stage, reparse/hardlink, drift, validation error or `173/1,120/max56` mismatch leaves no authority change.
-- [ ] Review G129-P as an authority transition only: all `173` batches remain `planned`, no operation/consumer state advances, and the legacy Phase 128 wrapper is not invoked.
+- [ ] A future separately authorized runner slice must first create a package-legitimacy table from official registries/upstream releases with name, version, owner, license, provenance, wheel availability, transitive risk and `ACCEPTED|ASSUMED|SUS|REJECTED`; unresolved `[ASSUMED]`/`[SUS]` remains blocking and `[SLOP]` remains forbidden.
+- [ ] That future slice must define failing launcher-contract and cleanup sentinels for mutable images, wrong digests, runtime downloads, missing limits, invalid deadlines/nonces/roles, report traversal or link abuse, production targets, conclusion leakage, zero collection, unexpected skip, timeout/OOM/interruption, and cleanup residue before implementation.
+- [ ] Package pins, lock bytes and a single Python version remain future outputs only after legitimacy and compatibility evidence are independently accepted; this rebase grants no dependency resolution, installation, Docker, or file-creation authority.
+- [ ] The future API must specify a fail-closed lifecycle, atomic first terminal event, bounded stream capture, central redaction, exact owned-resource cleanup, and raw plus sealed receipts; no state machine is implemented here.
+- [ ] Future bootstrap profiles must bind literal targets, non-zero limits, immutable image keys and ordered deadlines under runner ownership; current profile/API schema and registry are absent and `NOT_READY`.
+- [ ] Future bootstrap acceptance must prohibit cutover mutation and missing-manifest fallback, and independently prove success/failure/timeout/interruption cleanup plus read-only source/lock boundaries.
+- [ ] Only after separate G129-L acceptance may future G-CANON-X and G-META-X runs be compared with versioned receipts; only after both pass may a separately authorized materialization transaction write builder-identical planned authority with no-replace/no-follow and independent validation.
+- [ ] Any later G129-P review must prove all `173` batches remain `planned`, no operation/consumer state advances, and no superseded Phase 128 wrapper or command is reused.
 
 <verify>
-<automated>Launcher acceptance, after G128-D: `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -NonInteractive -File testframework/docker/run-task.ps1 -ContractVersion hub.qa-runner/v1 -PlanId 129-01 -TaskRunId $HubTaskRunId -TaskId TASK-201 -OwnerRole devops-engineer -VerifierRoles qa-auto-ver -Mode bootstrap-acceptance -Profile launcher-bootstrap -ImageLock testframework/docker/images.lock.json -InnerTimeoutSeconds 1500 -TimeoutSeconds 1800`. Before its static prerequisites this is `NOT_READY`; there is no fallback. Authority materialization uses a fresh TaskRunId, `TaskId=TASK-204`, `Mode=authority-materialize`, `Profile=cutover-authority`, `-Manifest .planning/audits/test-rebase/cutover-manifest.json`, inner/outer `720/900`, through the same accepted launcher and remains `NOT_READY` until G129-L, G-CANON-X and G-META-X.</automated>
+<automated>NOT_READY — no supported invocation exists; execution remains NOT_RUN until a separately specified, implemented, independently accepted, and atomically resealed API under testframework/runner/** exists.</automated>
 </verify>
 
-**Done:** G129-L records accepted immutable provenance and zero owned leftovers; G-CANON-X/G-META-X reproduce both versioned static receipts; then G129-P independently confirms one builder-identical planned manifest with `173/1,120/max56`, zero batch mutations and no historical-wrapper reuse.
+**Done (currently unmet):** no G129-L, G-CANON-X, G-META-X, or G129-P runtime receipt exists. A later accepted slice must prove immutable provenance, exact cleanup, semantic receipt equality, builder-identical `173/1,120/max56` authority, zero batch mutations, and no historical-wrapper reuse.
 
-**Atomic commits:** (1) `feat(testframework): добавить безопасный Docker launcher`, stage launcher/package/schema/selftest/report-boundary files plus `python-package-legitimacy.md`, body TASK-193/TASK-201; (2) only after G129-P, `docs(testframework): материализовать cutover authority`, stage only `.planning/audits/test-rebase/cutover-manifest.json` and `.planning/audits/test-rebase/VERIFICATION.md`, body TASK-204.
+**Commit boundary:** this declarative rebase authorizes no runner, package, manifest, evidence, staging, or commit action. Any later implementation/materialization commits require separate ownership, accepted bytes, and exact allowlists.
 
-### Task 129-01-B: Build config/runtime/traceability contracts
+**G129-P state closure:** the pre-materialization downstream-plan check must finish while `.planning/audits/test-rebase/cutover-manifest.json` is absent. Only the later authorized materialization transaction may create those bytes, after which its independent verification may select the checker’s distinct post-`G129-P` state. Post-materialization equality can verify `G129-P`; it cannot retroactively satisfy or bypass `G-META-X`.
+
+### Task 129-01-B: Future config/runtime/traceability contracts after runner acceptance
 
 **Files:** Create `testframework/src/hub_testkit/__init__.py`, `testframework/src/hub_testkit/config/{__init__.py,models.py,load.py}`, `testframework/src/hub_testkit/runtime/{__init__.py,ids.py,ownership.py,redaction.py}`, `testframework/src/hub_testkit/traceability/{__init__.py,model.py,loader.py,index.py}`, `testframework/selftests/runtime/{test_ids.py,test_ownership.py,test_redaction.py}`, `testframework/selftests/traceability/{test_loader.py,test_index.py}`, `testframework/schemas/test-case.schema.json`, `testframework/policies/{markers.toml,environments.toml,redaction.toml}`.
 
 <read_first>
-First-slice signatures in this plan §4; approved spec §§4,5,6,9,10,14; accepted launcher evidence; authoritative requirements/ID conventions in `docs/GLOSSARY.md`.
+Future first-slice signatures in this plan §4; approved spec §§4,5,6,9,10,14; separately accepted runner evidence; authoritative requirements/ID conventions in `docs/GLOSSARY.md`.
 </read_first>
 
-**Consumes/Produces:** Accepted Python/lock and `RunEnvelope` IDs → exact signatures in §4, schema-valid TC loader/index, positive environment allowlist, production deny and central redaction policy.
+**Consumes/Produces (future only):** accepted Python/lock and runner request-model IDs would produce exact §4 signatures, schema-valid TC loading/indexing, a positive environment allowlist, production deny and central redaction policy; no implementation exists now.
 
-- [ ] Write failing selftests for invalid/colliding IDs, Unicode/case aliases, unknown config keys, negative/non-unique nonce, foreign ownership cleanup, duplicate/missing/orphan TC, unknown case fields, wrong path/layer, expired exception and secret/PII canaries.
-- [ ] Implement immutable models and pure functions. Config does no network I/O; ownership deletes nothing; it only authorizes exact scope and records durable data. Loader accepts UTF-8 Markdown front matter within size/path budgets and never executes YAML tags.
-- [ ] Make `markers.toml` the sole marker registry data; Phase 129 registers only `case_id` and `api` required by health. Phase 130 adds public-hook enforcement without moving the source of truth.
-- [ ] Run framework profile twice with same seed/config and compare semantic outputs; inject the temporary redaction/ownership/duplicate-TC sentinels and require expected failure before reverting each sentinel.
+- [ ] A later authorized slice must begin with failing selftests for invalid/colliding IDs, Unicode/case aliases, unknown keys, invalid nonces, foreign ownership, duplicate/missing/orphan TC, wrong path/layer, expired exceptions, and secret/PII canaries.
+- [ ] Future immutable models and pure functions must keep config network-free, ownership non-destructive, and Markdown loading bounded and non-executable; this revision creates no package code.
+- [ ] A future `markers.toml` may become the sole marker registry only after runner acceptance; Phase 129 requirements reserve `case_id` and `api`, while later expansion remains separately owned.
+- [ ] Future acceptance must prove deterministic repeated framework results and sensitivity to redaction, ownership, and duplicate-TC sentinels; current execution is `NOT_RUN`.
 
 <verify>
-<automated>`PlanId=129-01`, `TaskId=TASK-193`, `OwnerRole=qa-auto1`, `VerifierRoles=qa-auto-ver`, `Mode=verify`, `Profile=framework`, `InnerTimeoutSeconds=600`, `TimeoutSeconds=720` through the canonical command in §7. NOT_READY until G129-L.</automated>
+<automated>NOT_READY — no supported invocation exists; execution remains NOT_RUN until a separately specified, implemented, independently accepted, and atomically resealed API under testframework/runner/** exists.</automated>
 </verify>
 
-**Done:** config/runtime/traceability selftests collect non-zero, produce deterministic results and reject every named invalid boundary without secret leakage.
+**Done (currently unmet):** config/runtime/traceability code and selftests do not exist or run; no collection, deterministic result, boundary rejection, or leakage verdict is claimed.
 
-**Atomic commit:** `feat(testframework): зафиксировать runtime и traceability contracts`; exact allowlist is the files above; body references TASK-193.
+**Commit boundary:** no config/runtime/traceability implementation, staging, or commit is authorized by this declarative rebase.
 
-### Task 129-01-C: Deliver the health API tracer and final preflight
+### Task 129-01-C: Future health API tracer and final preflight after runner acceptance
 
 **Files:** Create `testframework/src/hub_testkit/domains/health/{__init__.py,api.py,models.py,oracles.py}`, `testframework/tests/conftest.py`, `testframework/tests/api/health/test_health.py`, `testframework/cases/health/TC-HEALTH-0001.md`; Modify `testframework/README.md`.
 
 <read_first>
-Approved spec §§5,7–10,14; exact health endpoint contract in current Hub docs/OpenAPI; accepted G129-L/G129-P evidence; Phase 129 Task 2/3 preflight requirements.
+Approved spec §§5,7–10,14; exact health endpoint contract in current Hub docs/OpenAPI; future accepted G129-L/G129-P evidence; Phase 129 declarative preflight requirements.
 </read_first>
 
-**Consumes/Produces:** `HubSettings`, `RuntimeIds`, `Redactor`, `HealthApi` signatures and `TC-HEALTH-0001` → one real `@pytest.mark.api` + `@pytest.mark.case_id("TC-HEALTH-0001")` path through launcher → runner → config → HTTPX → strict wire model → pure oracle → JUnit/traceability evidence.
+**Consumes/Produces (future only):** accepted settings/runtime/redaction/health contracts and `TC-HEALTH-0001` would produce one real health evidence path through a separately accepted runner; no health execution or evidence exists now.
 
-- [ ] First write health case, schema-valid metadata and failing API test. Sentinels: wrong status, malformed/extra-field body, production target, secret canary in response/log and unreachable endpoint must fail with safe operation/context/next-action diagnostics.
-- [ ] Implement only health domain files; `testframework/tests/conftest.py` composes `httpx.Client` and `HealthApi` without global autouse setup or scenario logic. Preserve `HealthApi.fetch()` as Phase 131 public contract.
-- [ ] Execute health tracer; then independently run authority `preflight-readonly` and `preflight-verify` modes. Both mount cutover authority read-only, reproduce `173/1,120/max56`, run executor sentinels and write no manifest/source changes.
-- [ ] Update README with one canonical launcher example, architecture map, case flow, triage and `NOT_READY` semantics; no direct inner commands.
+- [ ] A future authorized slice must first define the health case, schema-valid metadata and failing API test, including wrong status/body, production-target, secret-canary, and unreachable-endpoint sentinels.
+- [ ] Future implementation must remain limited to the declared health-domain/test/case files and compose the HTTP client without global autouse setup or hidden scenario logic; this revision creates none of those files.
+- [ ] Only after runner acceptance may a future health tracer and independent `preflight-readonly` / `preflight-verify` transactions reproduce `173/1,120/max56` without authority or source writes.
+- [ ] Future README execution examples may be added only with the separately accepted runner API; this rebase authorizes no launcher example, direct inner command, or runtime claim.
 
 <verify>
-<automated>Health: `PlanId=129-01`, `TaskId=TASK-193`, `OwnerRole=qa-auto1`, `VerifierRoles=qa-auto-ver`, `Profile=api-health`, inner/outer `600/720`. Preflight: exact Phase 129 modes with `TaskId=TASK-204`, `OwnerRole=arch`, `VerifierRoles=arch-ver,qa-auto-ver`, `-Manifest .planning/audits/test-rebase/cutover-manifest.json`, profile `cutover-preflight`, inner/outer `720/900`. All calls go through accepted `run-task.ps1`.</automated>
+<automated>NOT_READY — no supported invocation exists; execution remains NOT_RUN until a separately specified, implemented, independently accepted, and atomically resealed API under testframework/runner/** exists.</automated>
 </verify>
 
-**Done:** a real user-visible health behavior works end-to-end; both conclusion-blind preflight receipts have zero HIGH and exact cleanup; batches remain unexecuted.
+**Done (currently unmet):** no health behavior, preflight receipt, cleanup proof, or batch-execution evidence exists; all remain `NOT_READY` / `NOT_RUN`.
 
-**Atomic commit:** `test(testframework): добавить health API tracer`; allowlist is exactly the health/test/case/README files; body references TASK-193/TASK-204.
+**Commit boundary:** no health/test/case/README implementation, staging, or commit is authorized by this declarative rebase.
 
-### Tasks 129-02 through 129-07: Execute the sealed 173 batch tasks
+### Tasks 129-02 through 129-07: Preserve declarative identity for the sealed 173 future batch tasks
 
 **Files:** Exact `operations[].source/target`, `affected_consumers[].path` and per-batch manifest/evidence fields from the G129-P manifest; no inferred glob is writable.
 
@@ -789,23 +765,23 @@ Approved spec §§5,7–10,14; exact health endpoint contract in current Hub doc
 The one corresponding task in `.planning/phases/129-tf-e2e-shared/129-02-PLAN.md` … `.planning/phases/129-tf-e2e-shared/129-07-PLAN.md`; G129-P manifest; both Phase 129 preflight receipts; current dirty status/owner map; affected consumer docs/CI file.
 </read_first>
 
-**Consumes/Produces:** One unique sealed batch ID, literal operation count, owned-path hash and previous verified transition → one owner mutation commit, rollback handle, fresh conclusion-blind verifier receipt and next continuous manifest transition.
+**Consumes/Produces (future only):** each preserved batch declaration binds one sealed ID, operation count, owned-path hash and transition prerequisites; no owner mutation, commit, rollback handle, verifier receipt, or manifest transition exists now.
 
 Для **каждого** из 173 tasks независимо:
 
-- [ ] Assert current HEAD ancestry, clean allowlist overlap, exact batch state/count/path hash, source identity/no-follow/link-count one, target absence, protected prefix exclusion and previous receipt continuity.
-- [ ] Use that task's existing exact `-BatchId` and `-ExpectedOperations` from Phase 129 numbered plans. Do not loop over IDs, regroup operations, change order or recalculate paths.
-- [ ] Launcher internally starts one authorized Linux writer, applies one batch, stages only its allowlist, creates one atomic owner commit/rollback handle, then starts a fresh read-only verifier with no writer conclusion.
-- [ ] Verifier runs independent root manifest check plus focused native unit/consumer/zero-hook gate. Any code/test/infra failure is triaged; deleted component tests are never restored to recover coverage.
-- [ ] Cleanup exact resources and transaction before advancing. Failure/timeout/cleanup ambiguity stops the chain; recovery is the recorded single-commit `git revert` followed by a new nonce-bearing rollback verification run.
+- [ ] A future accepted runner must assert HEAD ancestry, clean allowlist overlap, exact batch state/count/path hash, source identity/no-follow/link count, target absence, protected-prefix exclusion, and prior receipt continuity before mutation.
+- [ ] It must consume the task's exact declarative `batch_id` and `expected_operations` fields without flags, loops, regrouping, reordered operations, or reconstructed paths.
+- [ ] It must isolate one authorized Linux writer and one fresh conclusion-blind read-only verifier, limit mutation to the sealed allowlist, preserve one atomic owner transition and rollback handle, and emit separate evidence.
+- [ ] The future verifier must apply independent root-manifest and focused native/consumer/zero-hook gates; deleted component tests may never be restored to manufacture coverage.
+- [ ] Future cleanup must prove exact-resource removal before advancement; any failure, timeout, cleanup ambiguity, or rollback ambiguity halts with a new separately authorized recovery attempt.
 
 <verify>
-<automated>Use the exact canonical `apply-and-verify` command already embedded in the matching 129 task with accepted `hub.qa-runner/v1`; no second owner invocation. Expected after the final task: 173 unique verified transitions, operation total 1,120, max 56, moved native units green, legacy consumers zero, 43 hook files deleted only after zero-consumer proof, cleanup PASS.</automated>
+<automated>NOT_READY — no supported invocation exists; execution remains NOT_RUN until a separately specified, implemented, independently accepted, and atomically resealed API under testframework/runner/** exists.</automated>
 </verify>
 
-**Done:** G129-C passes; current repository contains no legacy executable non-unit/support closure and the minimal Python slice remains green.
+**Done (currently unmet):** G129-C is non-passing; no batch task has executed, no cutover/scaffold outcome is claimed, and runtime remains `NOT_RUN`.
 
-**Atomic commits:** exactly one mutation commit per sealed batch using its existing Russian Conventional Commit subject/body TASK mapping; verifier evidence commit is narrow and never a second mutation commit.
+**Future commit boundary:** one allowlisted owner mutation commit and a separate narrow verifier-evidence transition are acceptance requirements only; this rebase authorizes neither.
 
 ## 10. Phase 130 — central profile registry, traceability and architecture gates
 
@@ -815,7 +791,7 @@ The one corresponding task in `.planning/phases/129-tf-e2e-shared/129-02-PLAN.md
 
 **Requirements:** `TASK-206`, `TASK-218`; approved spec §§4–6,9–12,14,15.
 
-<read_first>Accepted G129-L seven-entry bootstrap registry; every Phase 130–141 verify contract below; approved image/runner contracts; immutable `hub.qa-runner/v1` schema.</read_first>
+<read_first>Future independently accepted runner/profile authority; every Phase 130–141 verify contract below; immutable Docker asset requirements. Current launcher/runtime status is NOT_READY / NOT_RUN.</read_first>
 
 **Consumes/Produces:** Seven G129-L bootstrap entries and digest-bearing image authority → one typed central registry with 47 exact later-profile rows, six exact limit classes, deterministic target resolution and `UnknownProfileError(profile_id: str)`; `resolve_profile(profile_id: str, image_lock: ImageLock) -> ResolvedProfile` returns `NOT_READY` on missing future image/target and fails closed on an unknown/duplicate/drifted entry. The 47 rows include reused `framework` and `api-health`; union with the bootstrap-only entries is 52 unique IDs.
 
@@ -1786,7 +1762,7 @@ Each Phase 131–141 task below inherits precondition `G-ACTIVATE-<phase>` on th
 
 <read_first>Accepted evidence/cost from Phases 129–140, current GitHub/GitLab CI authorities, TASK-233, supply-chain policy.</read_first>
 
-**Consumes/Produces:** Accepted launcher profiles and native unit ownership → jobs `python-contract`, `python-api`, `python-integration`, `python-e2e-smoke`, `python-e2e-full`, `python-load` that all call `run-task.ps1`; native `backend-unit`/`frontend-unit` retain only their target roots. Mirror either calls the same launcher or is explicitly retired.
+**Consumes/Produces:** Accepted launcher profiles and native unit ownership → jobs `python-contract`, `python-api`, `python-integration`, `python-e2e-smoke`, `python-e2e-full`, `python-load` that all call `future runner-owned API`; native `backend-unit`/`frontend-unit` retain only their target roots. Mirror either calls the same launcher or is explicitly retired.
 
 **Action/sentinel:** CI contract test fails on direct inner command, mutable image, missing limits/timeout/owner marker, zero collection, unexpected skip, missing sentinel/artifact, or cleanup leak. Seal SBOM/provenance and scanner digest; no runtime dependency downloads.
 
@@ -1923,7 +1899,7 @@ No deferred product storage/authz migration entered implementation scope; report
 | Read-only revision scan | `CANON=74/74 existing=70 planned=4`; `META=23/23 existing=21 planned=2`; `G128R=5`; `TASKS=61 schema_bad=0`; `MAX_EXPANDED_PATHS=14 over14=0`; `REGISTRY=47/47 used=47 unknown=0`; `DOC_CLOSURES=12 owner_bad=0`; founder stop heading `1`; forbidden incomplete/path phrases `0`; completion marker `1` |
 | Phase 129 signatures/arithmetic | 176 tasks, 173 unique batches, 1,120 operations, max 56 repeated consistently; no ID/path reconstruction instructed |
 | Namespace/path consistency | Installable imports are `hub_testkit.*`; physical outputs live under `testframework/src/hub_testkit/**`, `testframework/tests/**`, `testframework/cases/**`, `testframework/selftests/**`, `testframework/docker/**`, `testframework/load/**` and `testframework/policies/**`; no target `testframework/core/**` or repo-root framework output is declared |
-| First-slice signatures | `HubSettings`, `RuntimeIds`, `OwnershipLedger`, `Redactor`, `TestCaseRecord`, `HealthApi.fetch`, `RunEnvelope/execute/main` used consistently |
+| First-slice signatures | `HubSettings`, `RuntimeIds`, `OwnershipLedger`, `Redactor`, `TestCaseRecord`, `HealthApi.fetch`, `future runner request model/execute/main` used consistently |
 | Marker/status consistency | `full` remains profile, `load` remains separate runtime; `NOT_READY`, `NOT_RUN`, `PASS`, `FAIL` are distinct |
 | Incomplete-marker scan | No standard unfinished-work token, vague catch-all action, deferred wiring or empty future-directory instruction remains in task bodies |
 | Forbidden architecture scan | No BaseTest/god helper/singleton/global rerun/fixed sleep/runtime dependency install/host package mutation/broad cleanup is planned; G128-WPS51 only seals the existing signed Windows inbox PowerShell 5.1 component and exact compatibility remediation |
@@ -1936,7 +1912,7 @@ No deferred product storage/authz migration entered implementation scope; report
 |---|---|---|---|
 | Prior checker acceptance missed root active-canon drift | CONFIRMED; prior acceptance REVOKED | Added G-CANON as the first hard predecessor. Its exact 74-path closure rewrites 70 audited active routing/ownership paths, deletes the unsafe reorganize script, and adds four versioned scenario/schema/checker/receipt artifacts. Only enumerated historical/negative references survive; docs/architecture/security reviewers independently review deterministic BASE-vs-candidate declaration conformance. | Active audit found 70 edit-required files across `AGENTS.md`, `.cursor/**`, current docs/planning/backlog, `.github/labeler.yml` and the obsolete script; approved spec §§3–5. |
 | Phase 128 architecture contract/seals still encode direct layers/core | CONFIRMED | Added G128-R after G-META and before G128-S. Exact five-file authority reseal updates approved physical semantics and derived contract-digest bindings while proving ledger/cohort/batch identities unchanged. No new digest is invented in the plan. | `.planning/audits/test-rebase/test-architecture-contract.json` currently lists `core/api/integration/contract/e2e`; both cutover builder and independent validator bind its current digest. |
-| Historical wrapper used as pre-launcher publication path | CONFIRMED | Removed. G128-S statically accepts only the existing no-argument read-only guard; G128-D permits one guard run and conclusion-blind review; G129-L accepts the sole target launcher; only then G129-P materializes authority through that same launcher. Wrapper never claims `hub.qa-runner/v1` and is forbidden after G129-L. | `.planning/audits/test-rebase/validate-contract.ps1` has `param()` and explicit manifest-absence assertions; approved spec §§5–6 names `testframework/docker/run-task.ps1` as sole target entrypoint. |
+| Historical wrapper used as pre-launcher publication path | CONFIRMED; former proposal superseded | Historical guard evidence remains provenance only and grants no current invocation, publication path, target-runner acceptance, or runtime PASS. Future launcher authority belongs solely to a separately specified and accepted API under `testframework/runner/**`; immutable Docker assets grant no execution authority. | The historical wrapper remains audit evidence; current launcher/runtime status is `NOT_READY` / `NOT_RUN`. |
 | G128-S source envelope was partly untracked/dirty | CONFIRMED | Added G128-E between G128-R and G128-S. It first-tracks the wrapper/applier/founder manifest, commits the accepted inventory generator/ledger bytes, binds the six existing read-only authorities to the same full HEAD and requires independent architecture/security review before any static or runtime acceptance. | Current Git state after G128-R: three untracked and two modified writable envelope paths; wrapper pins executable blobs from HEAD and consumes the founder manifest. |
 | G128-D prelaunch used an unsealed host interpreter lookup | CONFIRMED; attempt NON-CONSUMED | Added G128-WPS51 after initial G128-S and before G128-D. It installs nothing: an exact committed host lock seals the existing signed inbox PowerShell 5.1 absolute path, SHA256, file/product/PowerShell/CLR version, Authenticode and scoped two-hardlink System32/WinSxS identity. Renewed G128-E applies the independently enumerated PS5.1 remediation and current-process identity binding; renewed G128-S seals the literal command; only then can G128-D run. | The historical unqualified `pwsh` attempt is documentary, non-executable and non-consumed; no trusted interpreter identity or accepted G128-D receipt existed. Current status is `NOT_READY`, runtime `NOT_RUN`, and the premature command-resolution failure does not spend the one-shot allowance. |
 | `129-01-PLAN.md` still targets old scaffold | CONFIRMED | META-PLAN rewrites `129-01-PLAN.md` and cross-links in `129-02-PLAN.md` … `129-07-PLAN.md` before execution; stale token absence and progressive-target presence are hard G-META assertions. | Current `.planning/phases/129-tf-e2e-shared/129-01-PLAN.md` contains `requirements.lock`, `pytest.ini`, root layer packages, `Dockerfile`, `compose.yaml` and `.gitkeep`; approved spec §§3,5. |
@@ -1946,7 +1922,7 @@ No deferred product storage/authz migration entered implementation scope; report
 | Phase 129 should be regrouped into smaller plan files | REJECTED as blocker | The 173 sealed batch IDs are already the atomic review/mutation units. Retaining seven numbered files avoids identity/order drift; regrouping creates no additional runtime isolation because launcher executes exactly one batch per task. No duplicate batch table or reconstructed operation list is added. | Sealed Phase 129 authority: 176 tasks, 173 unique ordered batch IDs, 1,120 operations, max 56; approved spec §12 preserves existing IDs/batches. |
 | Master assumed downstream sync instead of producing it | CONFIRMED | G-CANON is Wave 0, META-PLAN is Wave 1, and G128-R is Wave 2; every guard/code/cutover/runtime task is `NOT_READY` until exact `74 + 23 + 5` closures have their named independent receipts. | Header, G-CANON, META-PLAN, G128-R and dependency graph. |
 | Runtime PASS could be inferred from static/readiness review | CONFIRMED risk | `STATIC_REVIEW_PASS`, `NOT_READY`, `NOT_RUN`, `PASS` and `FAIL` remain distinct; G128-D is a guard receipt, not target-runner PASS; all target jobs wait for G129-L. | Readiness state machine and §7 canonical invocation contract. |
-| B1: G-CANON could not version deterministic route evidence | CONFIRMED | Replaced infeasible sampling with exact scenario declarations in the three owned skill docs, a strict receipt schema, a stdlib evaluator and versioned receipt paths. Six literal BASE-versus-candidate route declarations yield twelve deterministic records; static conclusion-blind review is the bootstrap gate. Exact `canon-routing-contract` replay through accepted `hub.qa-runner/v1` is G-CANON-X and blocks G129-P. | Task G-CANON declaration/receipt/evaluator contract and G-CANON-X readiness row. |
+| B1: G-CANON could not version deterministic route evidence | CONFIRMED | Deterministic declarations and static review remain; executable replay is removed from current authority and `G-CANON-X` stays non-passing until a separate runner implementation and independent acceptance exist. | Task G-CANON declaration/receipt/evaluator contract and current `NOT_READY` status. |
 | B2: G-META lacked an executable plan checker and bounded receipt | CONFIRMED | Expanded the closure to 23 paths with a literal-21-plan stdlib checker and 256-KiB receipt. The checker fails closed on input-set, required-field, forbidden-token/path and `176/173/1120/56` drift; exact `downstream-plan-contract` launcher replay is G-META-X. | META-PLAN `Files`, checker/receipt contracts and G-META-X readiness row. |
 | B3: Tasks 134-A, 135-A and 135-B exceeded useful domain review boundaries | CONFIRMED | Domain/adapter aggregates remain split; current Phase 134 has eight tasks and Phase 135 has eighteen. Every implementation boundary has at most 14 expanded paths, literal ownership, original TASK IDs/spec sections, one risk sentinel, registered profile, bounded receipt and atomic allowlist; shared docs moved to Tasks 134-H/135-R. | Tasks 134-A–H and 135-A–R; dependency graph; expanded-path scan. |
 | B4: Task 138-A used an open recursive UI wildcard and an implicit journey set | CONFIRMED | Three literal journeys and one recovery matrix remain independent; Task 138-E now owns the exact four-path docs closure. Every UI page/component is named physically, with its own TC, registered profile, receipt, sentinel and atomic commit. | Tasks 138-A–E and Phase 138 dependency graph. |
@@ -1960,7 +1936,7 @@ No deferred product storage/authz migration entered implementation scope; report
 - Active-canon assertion: the G-CANON list contains exactly `9+10+10+3+11+25+2+4=74` literal unique paths: 70 pre-existing active files plus four planned versioned evaluation artifacts. The 70-path scoped scan has zero old active routing reference after only the named historical/negative exclusions; the four new artifacts have exact declaration/schema/receipt ownership and are not scan exclusions. The evaluator proves only exact declared routing-contract conformance between the fixed BASE blobs and candidate bytes, never future-LLM behavior.
 - Existing live plan assertion: only after G-CANON, the G-META list contains exactly 23 literal unique paths: 21 pre-existing live plans plus the planned checker and bounded receipt. Phase 130–141 use `PLAN.md`, not an invented suffix; the checker rejects any missing/extra/duplicate plan and any `176/173/1120/56` drift.
 - Authority-reseal assertion: only after G-META, the exact five G128-R files contain approved physical semantics and mutually matching derived contract-digest bindings; inventory/manifest/tool inputs remain read-only and reconcile to `1049 / 507-245-297+28 / 176-173-1120-max56`.
-- Host-interpreter assertion: initial G128-S authorizes only G128-WPS51; no installation or package mutation is permitted. The committed lock seals exact `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`, held-handle volume serial/file index/reparse=false, signed inbox provenance, scoped two-hardlink identity and pinned Microsoft publisher/production-chain/code-signing EKU. Renewed G128-E/G128-S must bind the PS5.1-compatible hardened wrapper and race-free suspended-before-job child lifecycle before G128-D. Unqualified `powershell.exe`, every `pwsh`, PATH/PATHEXT discovery and fallback fail closed; the historical command-resolution attempt is documentary, non-executable, non-consumed and runtime remains `NOT_RUN`.
+- Host-interpreter assertion: the former no-install, held-handle, signed-inbox identity review remains historical provenance only. No concrete path or invocation is active; the prior resolution attempt is documentary, non-consumed, and runtime remains `NOT_RUN`.
 - Phase 129 planning assertion: stale scaffold tokens must disappear from executable task paths/actions while exact ordered identities remain `176 tasks / 173 batch IDs / 1,120 operations / max 56`.
 - Task-schema assertion: exactly 61 headings exist, distributed `4/4/4/3/8/18/3/3/5/3/3/3`; every block has one non-empty `Files`, `Requirements`, `<read_first>`, `Consumes/Produces`, registered profile, measurable `Done` and atomic commit boundary.
 - Profile assertion: the central table contains 47 unique later IDs; all 61 verify blocks resolve to exactly those 47 IDs, each row has image key, one of six exact non-zero limit classes, inner/outer deadline and literal target; no writer after Task 130-A and no implicit/default profile remains.

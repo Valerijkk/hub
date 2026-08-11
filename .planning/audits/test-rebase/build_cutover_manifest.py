@@ -75,6 +75,42 @@ AUTHORITY_FILES = {
 }
 LEDGER_REVISION = "5708671f00411c7c9e9dbee88b725de2092cbacd"
 NON_LEDGER_PATHS_SHA256 = "9b06611c2e5f9342ae081b6917e4033808c642e0b65216d7e60a0b2f89a62d49"
+PHASE129_BATCH_ORDER_SHA256 = "faebb25e84d4efb01fc02fb515118ed28d5224be50dc02ec45da3baea42bb9f5"
+PHASE129_PLAN_ORDER = ("129-02", "129-03", "129-04", "129-05", "129-06", "129-07")
+PHASE129_PLAN_KINDS = {
+    "129-02": "go-hook-free",
+    "129-03": "frontend-unit",
+    "129-04": "go-component-delete",
+    "129-06": "go-hook-blocked",
+    "129-07": "zero-consumer",
+}
+PHASE129_TAIL_DOMAINS = {
+    ("129-03", "frontend-unit"): ("support",),
+    ("129-04", "go-component-delete"): ("backend-support",),
+}
+PHASE129_05_FINAL_SUPPORT_DOMAINS = (
+    "support",
+    "frontend",
+    "root-scripts",
+    "pipeline",
+    "legacy-stages",
+    "legacy-docs",
+)
+PHASE129_PLAN_TASKS = {
+    "129-02": ("TASK-197",),
+    "129-03": ("TASK-198",),
+    "129-04": ("TASK-219",),
+    "129-05": ("TASK-219",),
+    "129-06": ("TASK-234",),
+    "129-07": ("TASK-219", "TASK-234"),
+}
+PHASE129_BATCH_TASK_OVERRIDES = {
+    "129-05-support-root-scripts": ("TASK-219", "TASK-201"),
+    "129-05-support-pipeline": ("TASK-219", "TASK-201"),
+    "129-05-support-legacy-stages": ("TASK-219", "TASK-201"),
+    "129-05-support-legacy-docs": ("TASK-219", "TASK-201"),
+    "129-07-zero-consumer-ws": ("TASK-219", "TASK-234", "TASK-201"),
+}
 
 GROUP_SPECS = [
     {
@@ -87,7 +123,7 @@ GROUP_SPECS = [
         "paths_sha256": "af256cc0c5ad59fe6671641cea5ac138b2e6a4796c23b64aa038ec216ca40ff7",
         "plan": "129-02",
         "wave": 2,
-        "task": ["TASK-197", "TASK-201"],
+        "task": ["TASK-197"],
         "id_kind": "go-hook-free",
         "owner": "be1",
         "verifiers": ["be-ver"],
@@ -103,7 +139,7 @@ GROUP_SPECS = [
         "paths_sha256": "96fd1cacc09c39a06e894600de9168c5d9a3cf1971ec63f5bfe9c01d978b2b24",
         "plan": "129-03",
         "wave": 3,
-        "task": ["TASK-198", "TASK-201"],
+        "task": ["TASK-198"],
         "id_kind": "frontend-unit",
         "owner": "fe1",
         "verifiers": ["fe-ver"],
@@ -123,7 +159,7 @@ GROUP_SPECS = [
         "paths_sha256": "a49f50bbf0b6667a10b0392169fb760311defe06288f9a3775f9d23ebdfe5a23",
         "plan": "129-03",
         "wave": 3,
-        "task": ["TASK-198", "TASK-201"],
+        "task": ["TASK-198"],
         "id_kind": "frontend-unit",
         "owner": "fe1",
         "verifiers": ["fe-ver"],
@@ -139,9 +175,9 @@ GROUP_SPECS = [
         "paths_sha256": "45bc86bd5be985e48d9b599200aa29641e02eb4947c97cb5ff0eb3f49d941e18",
         "plan": "129-04",
         "wave": 4,
-        "task": ["TASK-219", "TASK-201"],
+        "task": ["TASK-219"],
         "id_kind": "go-component-delete",
-        "owner": "be1",
+        "owner": "devops-engineer",
         "verifiers": ["code-reviewer", "qa-auto-ver"],
         "gates": ["architecture-contract", "backend-unit"],
     },
@@ -155,10 +191,10 @@ GROUP_SPECS = [
         "paths_sha256": "4952f7970784c22570a263c31836a2e08a31a12592cccbb78e2b696409ae92b9",
         "plan": "129-05",
         "wave": 5,
-        "task": ["TASK-219", "TASK-201"],
+        "task": ["TASK-219"],
         "id_kind": "static",
-        "owner": "fe1",
-        "verifiers": ["qa-auto-ver"],
+        "owner": "devops-engineer",
+        "verifiers": ["code-reviewer", "qa-auto-ver"],
         "gates": ["architecture-contract", "frontend-unit", "python-scaffold"],
     },
     {
@@ -177,10 +213,10 @@ GROUP_SPECS = [
         "paths_sha256": "dd0084eb74d5e65fc574849c051c30bedb717379cb215b6ec8c10674f28ea956",
         "plan": "129-05",
         "wave": 5,
-        "task": ["TASK-219", "TASK-201"],
+        "task": ["TASK-219"],
         "id_kind": "support",
-        "owner": "fe1",
-        "verifiers": ["qa-auto-ver"],
+        "owner": "devops-engineer",
+        "verifiers": ["code-reviewer", "qa-auto-ver"],
         "gates": ["architecture-contract", "frontend-unit", "python-scaffold"],
     },
     {
@@ -193,10 +229,10 @@ GROUP_SPECS = [
         "paths_sha256": "aa521c92eca8744fe41e22d2b278d12d0f9562e08936938a34a6f54c70c0a2fb",
         "plan": "129-05",
         "wave": 5,
-        "task": ["TASK-219", "TASK-201"],
+        "task": ["TASK-219"],
         "id_kind": "e2e",
-        "owner": "fe1",
-        "verifiers": ["qa-auto-ver"],
+        "owner": "devops-engineer",
+        "verifiers": ["code-reviewer", "qa-auto-ver"],
         "gates": ["architecture-contract", "frontend-unit", "python-scaffold"],
     },
     {
@@ -209,10 +245,10 @@ GROUP_SPECS = [
         "paths_sha256": "ec40b12fce301f951d299a1e32a651eab73cd4b3cac621d2a1c65aaa6b4e4eef",
         "plan": "129-05",
         "wave": 5,
-        "task": ["TASK-219", "TASK-201"],
+        "task": ["TASK-219"],
         "id_kind": "support",
-        "owner": "fe1",
-        "verifiers": ["qa-auto-ver"],
+        "owner": "devops-engineer",
+        "verifiers": ["code-reviewer", "qa-auto-ver"],
         "gates": ["architecture-contract", "frontend-unit", "python-scaffold"],
     },
     {
@@ -225,10 +261,10 @@ GROUP_SPECS = [
         "paths_sha256": "86e55748e6c5986ec4eef370b51fb3f02c7fca7ec24fa8eb1e85d1913ad33924",
         "plan": "129-06",
         "wave": 6,
-        "task": ["TASK-234", "TASK-201"],
+        "task": ["TASK-234"],
         "id_kind": "go-hook-blocked",
-        "owner": "be2",
-        "verifiers": ["be-ver", "arch-ver"],
+        "owner": "be1",
+        "verifiers": ["be-ver"],
         "gates": ["architecture-contract", "backend-unit"],
     },
 ]
@@ -268,7 +304,7 @@ PYTHON_SCAFFOLD_REQUIRED_FILES = [
     "testframework/policies/environments.toml",
     "testframework/policies/redaction.toml",
     "testframework/docker/Dockerfile.core",
-    "testframework/docker/run-task.ps1",
+
     "testframework/docker/images.lock.json",
     "testframework/runner/entrypoint.py",
     "testframework/reports/.gitignore",
@@ -1124,6 +1160,39 @@ def chunked(values: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
     return [values[index : index + MAX_BATCH_OPERATIONS] for index in range(0, len(values), MAX_BATCH_OPERATIONS)]
 
 
+def phase129_group_order(key: tuple[str, str, str]) -> tuple[int, int, str | int]:
+    """Preserve the accepted numbered-plan cohort/domain order without a batch index."""
+
+    plan, kind, domain = key
+    if plan not in PHASE129_PLAN_ORDER:
+        raise ManifestError(f"unexpected Phase 129 plan in batch grouping: {plan}")
+    plan_order = PHASE129_PLAN_ORDER.index(plan)
+    if plan == "129-05":
+        if kind == "static":
+            return plan_order, 0, domain
+        if kind == "support" and domain in {"platform", "tracker"}:
+            return plan_order, 1, domain
+        if kind == "e2e":
+            return plan_order, 2, domain
+        if kind == "support" and domain in PHASE129_05_FINAL_SUPPORT_DOMAINS:
+            return plan_order, 3, PHASE129_05_FINAL_SUPPORT_DOMAINS.index(domain)
+        raise ManifestError(f"unexpected Phase 129-05 batch cohort: {kind}/{domain}")
+    if PHASE129_PLAN_KINDS.get(plan) != kind:
+        raise ManifestError(f"unexpected Phase 129 batch kind: {plan}/{kind}")
+    tail = PHASE129_TAIL_DOMAINS.get((plan, kind), ())
+    if domain in tail:
+        return plan_order, 1, tail.index(domain)
+    return plan_order, 0, domain
+
+
+def phase129_batch_tasks(plan: str, batch_id: str) -> list[str]:
+    try:
+        tasks = PHASE129_BATCH_TASK_OVERRIDES.get(batch_id, PHASE129_PLAN_TASKS[plan])
+    except KeyError as error:
+        raise ManifestError(f"unexpected Phase 129 task plan: {plan}") from error
+    return list(tasks)
+
+
 def make_batch_id(plan: str, kind: str, domain: str, index: int, total: int) -> str:
     base = f"{plan}-{kind}-{slug(domain)}"
     return f"{base}-{index:02d}" if total > 1 else base
@@ -1225,24 +1294,27 @@ def derive_planned_manifest(
             "source": source,
             "source_sha256": source_sha,
         }
+        domain = nonledger_domain(source)
         if source.startswith("backend/testframework/"):
-            key = ("129-04", "go-component-delete", nonledger_domain(source))
+            key = ("129-04", "go-component-delete", domain)
             meta = {
                 "plan": "129-04",
                 "wave": 4,
-                "task": ["TASK-219", "TASK-201"],
-                "owner": "be1",
+                "task": ["TASK-219"],
+                "owner": "devops-engineer",
                 "verifiers": ["code-reviewer", "qa-auto-ver"],
                 "gates": ["architecture-contract", "backend-unit"],
             }
         else:
-            key = ("129-05", "support", nonledger_domain(source))
+            key = ("129-05", "support", domain)
             meta = {
                 "plan": "129-05",
                 "wave": 5,
-                "task": ["TASK-219", "TASK-201"],
-                "owner": "fe1",
-                "verifiers": ["qa-auto-ver"],
+                "task": ["TASK-219", "TASK-201"] if domain in {
+                    "root-scripts", "pipeline", "legacy-stages", "legacy-docs"
+                } else ["TASK-219"],
+                "owner": "devops-engineer",
+                "verifiers": ["code-reviewer", "qa-auto-ver"],
                 "gates": ["architecture-contract", "frontend-unit", "python-scaffold"],
             }
         grouped.setdefault(key, []).append(operation)
@@ -1255,9 +1327,9 @@ def derive_planned_manifest(
         group_meta[key] = {
             "plan": "129-07",
             "wave": 7,
-            "task": ["TASK-219", "TASK-201"],
-            "owner": "be2",
-            "verifiers": ["be-ver", "arch-ver", "qa-auto-ver"],
+            "task": ["TASK-219", "TASK-234"] + (["TASK-201"] if domain == "ws" else []),
+            "owner": "devops-engineer",
+            "verifiers": ["code-reviewer", "qa-auto-ver"],
             "gates": ["architecture-contract", "backend-unit"],
         }
 
@@ -1268,23 +1340,26 @@ def derive_planned_manifest(
     if len(move_targets) != 507 or len(set(move_targets)) != 507:
         raise ManifestError("move target set is not exact/unique")
 
-    plan_order = {"129-02": 2, "129-03": 3, "129-04": 4, "129-05": 5, "129-06": 6, "129-07": 7}
     batches: list[dict[str, Any]] = []
     order = 0
-    for key in sorted(grouped, key=lambda item: (plan_order[item[0]], item[1], item[2])):
+    for key in sorted(grouped, key=phase129_group_order):
         plan, kind, domain = key
         operations = sorted(grouped[key], key=lambda item: item["source"])
         chunks = chunked(operations)
         meta = group_meta[key]
         for chunk_index, chunk in enumerate(chunks, 1):
+            batch_id = make_batch_id(plan, kind, domain, chunk_index, len(chunks))
+            tasks = phase129_batch_tasks(plan, batch_id)
+            if tasks != list(meta["task"]):
+                raise ManifestError(f"numbered-plan TASK authority drift: {batch_id}")
             order += 1
             batches.append(
                 build_batch(
-                    batch_id=make_batch_id(plan, kind, domain, chunk_index, len(chunks)),
+                    batch_id=batch_id,
                     order=order,
                     plan=plan,
                     wave=int(meta["wave"]),
-                    tasks=list(meta["task"]),
+                    tasks=tasks,
                     owner=str(meta["owner"]),
                     verifiers=list(meta["verifiers"]),
                     domain=domain,
@@ -1296,6 +1371,12 @@ def derive_planned_manifest(
                     source_head=source_head,
                 )
             )
+
+    ordered_batch_sha256 = hashlib.sha256(
+        "\n".join(str(batch["id"]) for batch in batches).encode("utf-8")
+    ).hexdigest()
+    if ordered_batch_sha256 != PHASE129_BATCH_ORDER_SHA256:
+        raise ManifestError("numbered-plan batch order digest changed")
 
     if verify_filesystem:
         safe.finalize()

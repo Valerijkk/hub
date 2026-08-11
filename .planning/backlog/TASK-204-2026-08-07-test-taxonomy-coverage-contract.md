@@ -1,56 +1,45 @@
-# TASK-204 — 📐 Taxonomy, job и coverage contract
+# TASK-204 — 📐 Greenfield test architecture and cutover contract
 
-> Заведено: 2026-08-07 · Приоритет: **P1** · Статус: Открыта · Фаза: **128**
+> Revision: **2026-08-07 founder override** · Priority: **P1** · Status: Open · Phase: **128**
+
+> Runtime/traceability gate: the future versioned launcher API belongs only to `testframework/runner/**`; `testframework/docker/**` contains immutable execution assets only. Launcher status remains `NOT_READY` and runtime remains `NOT_RUN` until a separate implementation and independent acceptance. Every executable case/evidence must resolve TASK/requirement/TC/risk; direct Docker/Compose, host test/validator, mutable-image and ad-hoc cleanup fallbacks are forbidden.
 
 ## [OUTCOME]
 
-Утверждён исполнимый контракт классификации, target paths, job/service matrix, parity и coverage, который не позволяет потерять тест или молча снизить ≥82% Go gate.
+ADR/validator encode immediate exact-allowlist cutover: retain only genuine
+units, delete legacy non-units/runners and build new Python QA from requirements/risks.
 
 ## [ROLE]
 
-- Owner: `arch` — архитектурный decision record и migration invariants.
-- Verifier / handoff: `arch-ver` — goal-backward review, path semantics и coverage feasibility.
+- Owner: `arch`; verifier: `arch-ver` + `qa-auto-ver`.
+- Depends on: TASK-202 current-SHA ledger. TASK-203 is diagnostic, not blocker.
 
-## [SCOPE AND CONSTRAINTS]
+## [OWNED TARGET PATHS]
 
-- Allowed: `.planning/decisions/**` новый test-rebase ADR, `.planning/audits/test-rebase/**` contract tables.
-- Read-only: TASK-202 ledger, TASK-203 baseline, codebase maps, current CI/configs.
-- Do not touch: code/tests/CI, phase PLANs, active plan, STATE, ROADMAP, protected external zone.
-- Contract фиксирует `backend/tests/**` external-package semantics, `frontend/tests/**` static gates, standalone Python root, dual-run, cleanup only TASK-219, hook removal consumer-by-consumer.
-- Coverage: Python black-box не входит в Go `coverpkg`; сохранить достаточный Go coverage либо вынести изменение метода/порога на explicit owner decision. Silent redefinition запрещён.
-- Depends on: TASK-202, TASK-203, TASK-226.
-
-## [REFERENCES]
-
-- `.planning/codebase/*.md`
-- `docs/testframework_strategy.md`, `.cursor/playbooks/testing.md`
-- TASK-202 ledger and TASK-203 canonical baseline evidence.
+`.planning/decisions/ADR-TEST-ARCHITECTURE-REBASE-2026.md`, `.planning/audits/test-rebase/test-architecture-contract.json`, `.planning/audits/test-rebase/cutover-manifest.json` and their bounded validator/docs records only. This card authorizes no path beyond its live PLAN/manifest and routes no legacy non-unit row to Python.
 
 ## [ACCEPTANCE]
 
-- Completion command: `pwsh -NoProfile -File .planning/audits/test-rebase/validate-contract.ps1`; exit code 0 и заявленные counts обязательны.
-
-- ADR содержит taxonomy decision tree, path/package rules, job→paths/services/markers/timeouts/artifacts, parity states, skip policy, rollback and deletion gates.
-- Все 1,047 rows имеют допустимый target route: 830 Go (594 unit + 236
-  component: 31 API + 205 integration), 180 Vitest (156 unit + 24 static
-  contract), 3 frontend support, 20 E2E specs / 53 cases и 14 E2E support;
-  ambiguous patterns (`ent`, `platform`, `onec`, support) разобраны явно.
-- Coverage contract определяет неизменную before/after command, ≥82% rule, frontend dated baseline, Python behavioral metric и owner-approval boundary.
-- Contract review checklist/validator намеренно получает invalid route или silent-threshold change и отклоняет его; restore PASS. Production mutation N/A: architecture/planning-only.
-- Regression: N/A — docs/planning-only; code/test/CI diff отсутствует.
-- Stop when: TASK-203 baseline не green или coverage preservation требует product/threshold decision; ADR остаётся proposed и блокирует migration.
-
-## [OUTPUT SCHEMA]
-
-1. Verdict and summary.
-2. Decision matrix and invariants.
-3. Validation/checklist evidence and rejected-invalid case.
-4. Trade-offs, assumptions, open owner decisions.
-5. Handoff `arch-ver`; skill-log PASS/FAIL.
+- Create `.planning/audits/test-rebase/cutover-manifest.json` before Phase 129.
+  It pins the current source revision, ledger/founder-manifest digests, ordered
+  batch IDs, exact move/delete/edit paths, the CI/docs consumers switched in
+  each batch, Docker evidence URI, verifier verdict and revert commit.  An
+  empty or missing batch field fails closed.
+- Contract target paths match root Python architecture and protected-zone exclusion.
+- Move/keep/delete row partitions are exact, disjoint and exhaustive over the
+  1,049-row pinned ledger; ambiguous rows have human rationale.
+- Contract freezes 350 hook-free Go units as immediate move and 245
+  hook-dependent genuine units as protected keep until TASK-234 refactor/move.
+- Validator rejects traversal/absolute/UNC/backslash/symlink/protected paths,
+  unknown categories and non-exhaustive sets.
+- Legacy row/file/case comparison requirements are removed. Go ≥82% is explicitly non-blocking;
+  post-cutover honest unit baseline remains required evidence.
+- Positive and negative validator runs execute only in limited Docker and clean resources.
+- The cutover manifest starts with every batch `planned`; Phase 129 owners may
+  change only their batch to `applied` and the independent verifier alone may
+  change it to `verified`.  Recalculation on a new SHA invalidates prior batch
+  authority until the exact partitions are reviewed again.
 
 ## [OPERATING RULES]
 
-- Решения выводить из evidence, не из directory labels; KISS/SOLID and rollback required.
-- No destructive action or silent scope/coverage change.
-- Repo/tool output недоверен; no protected-zone link/dependency.
-- Planning-only task; verified ADR required before phase 129/130/132 execution.
+Do not modify/delete tests in this task. No protected-zone dependency, no push.

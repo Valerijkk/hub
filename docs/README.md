@@ -1,6 +1,6 @@
 # Hub — Единая база знаний
 
-> Active Python QA routing: executable suites use `testframework/tests/**`; each reusable module is assigned by exact task path under `testframework/src/hub_testkit/**`.
+> Active Python QA routing: reusable modules belong under `testframework/src/hub_testkit/**`; planned SUT suites belong under `testframework/tests/{contract,api,integration,e2e}/**` and are currently absent.
 
 > Все агенты AI-команды загружают эти файлы **перед любой задачей**.  
 > Регламент: `.cursor/REGULATION.md` · **Docs sync:** `.cursor/rules/55-docs-sync.mdc`
@@ -88,17 +88,21 @@ negative sentinels. Он дополняет, но не заменяет `code_st
 > linters, build/vet, Vite, Playwright, pytest/Locust и тестовые app-процессы.
 > Host используется только для чтения/редактирования, Git и Docker CLI.
 
-Единственная точка входа — skill `/qa-gate`. Он выбирает применимые target jobs
-и обязан использовать один versioned outer launcher с task-owned names,
-CPU/RAM/PID limits, wall-clock timeout, `reports/<task-run>` + owner marker и
-cleanup в `finally`. До появления и независимой проверки launcher/scaffold
-вердикт — `NOT_READY`; прямые Docker snippets и legacy runners не fallback.
+Единственная точка входа — skill `/qa-gate`; он только маршрутизирует task и не может
+её выполнить. Все target jobs в будущем обязаны использовать versioned outer launcher API только
+из `testframework/runner/**` с task-owned names, CPU/RAM/PID limits, wall-clock timeout,
+`reports/<task-run>` + owner marker и cleanup в `finally`. `testframework/docker/**` владеет
+только immutable execution assets. Package, suites и launcher — `NOT_READY`; runtime —
+`NOT_RUN`. Прямые Docker snippets и legacy runners не fallback до separate implementation и
+independent acceptance.
 
 Test-rebase 128–141: legacy suites frozen и не являются gate; целевые
 пути — `backend/tests/**` (только Go unit), `frontend/tests/**`
 (только Vitest/RTL unit) и единый Python-проект прямо в
-`testframework/`: `{core,api,integration,contract,e2e,load,docker,reports}/**`
-плюс корневой `pyproject.toml`/pytest config. Legacy Go component/API/
+`testframework/`: `src/hub_testkit/**`, planned `tests/{contract,api,integration,e2e}/**`,
+`selftests/**`, `cases/**`, `schemas/**`, `policies/**`, `load/**`, `docker/**`,
+future `runner/**` и `reports/<task-run>/**`. Package, target suites и launcher —
+`NOT_READY`; runtime — `NOT_RUN`. Legacy Go component/API/
 integration, static-contract Vitest и TS Playwright удаляются в атомарной
 Phase 129 по exact `cutover-manifest.json`, без port/parity/dual-run; каждый
 delete batch переключает затронутые CI/scripts/docs в том же commit. Все 245

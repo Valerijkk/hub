@@ -46,8 +46,13 @@
 Go component/API/integration, static-contract Vitest, TypeScript Playwright,
 их support/config/entrypoints удаляются по exact manifest и **не портируются**.
 Non-unit QA создаётся с нуля как единый Python-проект прямо в `testframework/`:
-`{core,api,integration,contract,e2e,load,docker,reports}/**`,
-`testframework/pyproject.toml` и корневой pytest config. Row-level parity и
+reusable package code принадлежит `testframework/src/hub_testkit/**`, а
+исполняемые pytest suites — `testframework/tests/{contract,api,integration,e2e}/**`.
+Отдельные roots `selftests/`, `cases/`, `schemas/`, `policies/`, `load/` и
+`reports/` не смешиваются ни с package, ни с SUT suites. Будущие
+`testframework/pyproject.toml`, `uv.lock` и `src/hub_testkit/py.typed` описаны
+документационным `testframework/PACKAGE-CONTRACT.md`, но ещё не реализованы.
+Row-level parity и
 сохранение исторического 82% Go coverage не являются migration gate. Новый
 набор принимается по traceability `task/requirement/TC`, risk-based design и
 явным happy/negative/authz/boundary/edge/corner/failure-recovery сценариям. План:
@@ -236,11 +241,15 @@ limits. Host используется лишь для чтения/редакт�
 
 - Dev stack: `docker compose -f docker-compose.local.yml up -d`.
 - Все test/build/lint/validator jobs запускаются только через `/qa-gate` и его
-  единый versioned outer launcher: task-owned names, CPU/RAM/PID limits,
+  будущий единый versioned outer launcher API, принадлежащий только
+  `testframework/runner/**`: task-owned names, CPU/RAM/PID limits,
   wall-clock timeout, isolated `testframework/reports/<task-run>/` с owner marker
-  и unconditional exact-resource cleanup в `finally`.
-- Пока target launcher/scaffold не реализован и независимо не проверен, runtime
-  status равен `NOT_READY`. Прямые `docker run`/`compose up` snippets и legacy
+  и unconditional exact-resource cleanup в `finally`. `testframework/docker/**`
+  хранит только immutable execution assets и не владеет launcher code.
+- Structure-only scaffold зафиксирован commit `22035c45`; package bootstrap,
+  target suites и launcher ещё не реализованы и независимо не проверены.
+  Поэтому package/launcher status равен `NOT_READY`, runtime — `NOT_RUN`.
+  Прямые `docker run`/`compose up` snippets и legacy
   `hubtest`/Vitest/TS Playwright runners не являются допустимым fallback.
 
 ---

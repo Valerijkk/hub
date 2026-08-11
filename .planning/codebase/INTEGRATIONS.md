@@ -1,8 +1,15 @@
 # External Integrations
 
+> **Superseded inventory note (2026-08-07):** legacy counts и parity wording
+> ниже не управляют cutover. Текущий authority — founder manifest на revision
+> `5708671f`: legacy non-units delete-not-port, новые non-unit suites greenfield
+> Python, 245 genuine hook-dependent units сохраняются через TASK-234.
+
 **Analysis Date:** 2026-08-07
 
-**Scope:** Current test execution and reporting integrations in `backend/`, `frontend/`, root `testframework/`, `.github/workflows/ci.yml`, `.gitlab-ci.yml`, and Docker test orchestration. Target notes follow the founder boundary: Go tests in `backend/tests/**`, frontend tests in `frontend/tests/**`, and an independent Python system framework in `testframework/`; legacy paths remain until parity is demonstrated.
+**Scope:** Historical execution/reporting map. Target boundary: Go units in
+`backend/tests/**`, frontend units in `frontend/tests/**`, and greenfield Python
+system framework in `testframework/`; no parity acceptance requirement.
 
 ## Current Integration Map
 
@@ -154,23 +161,36 @@
 **Native unit jobs:**
 - `backend/tests/` and `frontend/tests/` do not yet exist at the analyzed revision; all target job/path definitions are prospective.
 - `backend/tests/<domain>/**` owns only service-free Go unit tests and remains inside the
-  `backend` Go module so it can legally import `backend/internal/*`; component/
-  integration rows belong to root Python `testframework/**`.
-- `frontend/tests/<domain>/**` owns Vitest/RTL units and `frontend/tests/support/**` owns setup/render/fixtures; frontend static gates must cover both directly without junctions.
+  `backend` Go module so it can legally import `backend/internal/*`; legacy
+  component/integration rows are literal manifest deletes. New Python coverage
+  is designed independently from requirements, risks and verified TC.
+- Exactly 156 legacy Vitest/RTL units move to `frontend/tests/<domain>/**` and
+  one `render.tsx` moves to `frontend/tests/support/**`. The 24 static contracts
+  and remaining two support rows are deleted; any later helpers are greenfield.
 
 **Independent Python system framework:**
 - `testframework/` owns pytest-based system/integration/load orchestration and Playwright integration, with its own `pyproject.toml`, dependency lock, test configuration, fixtures, service profiles, markers, artifacts, and CI entry point.
 - Exact Python version, package manager, pytest plugins, Playwright binding, and load tool are not present in the current repository and require explicit architecture decisions before scaffolding.
-- Keep current TypeScript Playwright at `testframework/stages/e2e/` operational while the Python replacement proves scenario and artifact parity.
+- Delete current TypeScript Playwright and its support/config entrypoints in
+  Phase 129 by exact manifest. Design the Python E2E layer independently from
+  current requirements, risks and verified TC; historical rows are not parity
+  authority.
 
-**Parity-before-removal rule:**
-- Preserve `backend/testframework/`, `testframework/stages/unit/frontend-test/`, `testframework/stages/e2e/`, and their existing CI commands until the corresponding new path passes an agreed dual-run/parity gate.
-- Do not delete `frontend/scripts/link-testframework-node-modules.mjs`, the `hubtest` export hooks under `backend/internal/`, or legacy job definitions while any retained legacy test imports them.
+**Exact-manifest removal rule:**
+- Phase 129 moves only proven genuine native units and deletes the complete
+  non-unit/static/TypeScript-E2E closure without port or dual-run.
+- A consumer/config/hook file is deleted only by its literal manifest batch
+  after zero-consumer and identity checks. The 245 hook-dependent units and 43
+  hook files remain protected until TASK-234 evidence releases them.
 
 ## Migration Blockers and Integration Risks
 
 1. **No runnable Python environment** - neither `python` nor the Windows `py` launcher is available in the current PATH, and `testframework/` has no Python project metadata.
-2. **Docker daemon unavailable locally** - Compose files can be parsed, but `docker info` cannot connect to the daemon; service-backed parity cannot be verified in this mapping session.
+2. **Historical daemon observation only** - the mapping snapshot could not reach
+   Docker. The future versioned launcher API belongs only to
+   `testframework/runner/**`; `testframework/docker/**` contains only immutable
+   execution assets. Launcher status is `NOT_READY` and runtime is `NOT_RUN`
+   until separate implementation and independent acceptance.
 3. **Backend job/service mismatch** - current `backend-test` in `.github/workflows/ci.yml` lacks PostgreSQL for hard-fail tests under `backend/testframework/`.
 4. **Different jobs execute different suites** - service-sensitive Go tests may
    hard-fail or skip depending on infrastructure; they cannot move to the
@@ -178,22 +198,39 @@
 5. **Cross-root Node dependency ownership** - both Vitest and Playwright currently borrow `frontend/node_modules` through `frontend/scripts/link-testframework-node-modules.mjs`; the target Python system framework must not silently retain this coupling.
 6. **No unit-test static-analysis coverage** - `frontend/tsconfig.json` and `npm run lint` currently scope to `frontend/src`, while unit tests live under root `testframework/`; moving to `frontend/tests/**` must expand both gates.
 7. **E2E uses dev-only identity** - `testframework/stages/e2e/shared/fixtures.ts` and `testframework/stages/e2e/shared/helpers/backend.ts` depend on backend dev mode; production-auth/system profiles need separate markers and credentials policy.
-8. **Weak skip semantics** - service/provider availability can turn scenarios into skips in `backend/testframework/mongotest/setup.go` and several Playwright specs; parity must compare pass/fail/skip counts, not only exit code.
+8. **Weak skip semantics in legacy inventory** - service/provider availability
+   can turn scenarios into skips. New required jobs fail on unexpected skip and
+   zero collection; legacy pass/fail/skip counts are not a migration gate.
 9. **Incomplete environment fidelity** - `scripts/ci-e2e-backend.sh` starts LiveKit but not SeaweedFS, and waits only for PostgreSQL; system coverage of storage/media is not guaranteed by the current full-E2E label.
 10. **No common report contract** - Go, Vitest, Playwright, and future pytest results cannot currently be merged or uploaded to TMS despite `cli/cmd/push_results.go`.
 11. **Three-way CI drift** - `.github/workflows/ci.yml`, `.gitlab-ci.yml`, and `testframework/pipeline/jobs/*.yaml` cannot be treated as equivalent migration gates.
-12. **Legacy must remain live** - dual-running legacy and new trees increases CI time and risks duplicate test names/data collisions; use separate job names, isolated databases, and explicit parity artifacts until cutover.
+12. **Cutover atomicity** - legacy and target trees must not become competing
+   authorities. Each Phase 129 batch switches exact consumers with its
+   filesystem operation and remains independently revertible.
 
 ## Prescriptive Handoff for Planning
 
-- First define a job contract table for `backend-unit`, `frontend-unit`, `system-smoke`, `system-full`, `integration`, `load`, and `coverage`; map each to paths, services, markers/tags, timeout, artifacts, and required status.
+- Define the target job contract table for `backend-unit`, `frontend-unit`, `python-contract`, `python-api`, `python-integration`, `python-e2e-smoke`, `python-e2e-full`, and `python-load`; map each to paths, services, markers/tags, timeout, artifacts, and required status.
 - Provision Python and Docker in the implementation environment before accepting a `testframework/` scaffold as runnable.
-- Make PostgreSQL availability explicit in the current legacy backend job before using it as parity baseline.
-- Add structured reports for all runtimes, then compare exact collected/executed/passed/failed/skipped counts during dual-run.
-- Keep GitHub Actions authoritative initially; update `.gitlab-ci.yml` and `testframework/pipeline/jobs/*.yaml` from the same accepted contract in the same migration phase.
+- Treat legacy service observations as discovery only; create fail-closed target
+  profiles for required PostgreSQL/Mongo/Redis/NATS boundaries.
+- Add structured per-task-run reports and fail on zero collection, unexpected
+  skip, missing owner marker, insensitive sentinel or leaked resource.
+- Reserve the future versioned launcher API solely for `testframework/runner/**`:
+  it will own profile resolution, orchestration, first-exit preservation,
+  task-run report ownership, and exact cleanup. `testframework/docker/**` stays
+  immutable-assets-only. `/qa-gate` remains user-facing routing only and cannot
+  execute a job while launcher status is `NOT_READY` and runtime is `NOT_RUN`;
+  no direct command or alternative fallback is supported before separate
+  implementation and independent acceptance.
 - Wire TMS publication only after report format and redaction rules are stable; `cli/cmd/push_results.go` is an available integration point, not current evidence.
 
-## Evidence Commands and Outcomes
+## Historical mapping evidence — NON-EXECUTABLE
+
+Команды ниже сохранены только как снимок старой mapping-сессии. Они не являются
+текущей инструкцией: validators/tests/builds/linters запускаются только через
+будущий API под `testframework/runner/**`; `testframework/docker/**` immutable-assets-only,
+launcher `NOT_READY`, runtime `NOT_RUN`.
 
 ```powershell
 # Service definitions can be parsed without starting containers
@@ -211,7 +248,7 @@ py --version
 docker info --format '{{.ServerVersion}}'
 # Outcome: Docker daemon connection unavailable
 
-# CI parity and report integrations
+# Historical CI and report integration inventory
 rg -n 'go test|vitest|playwright|coverage|upload-artifact' .github/workflows/ci.yml .gitlab-ci.yml
 rg -n 'push-results|allure-results' cli .github/workflows/ci.yml testframework/pipeline
 # Outcome: TMS upload exists in CLI, not in CI

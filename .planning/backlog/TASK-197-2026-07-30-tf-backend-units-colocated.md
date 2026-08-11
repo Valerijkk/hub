@@ -1,60 +1,36 @@
-# TASK-197 — 🧪 Backend target ledger и shared support
+# TASK-197 — 🧪 Retain genuine backend units
 
-> Заведено: 2026-07-30 · Revision: **2026-08-07** · Приоритет: **P1** · Статус: Открыта · Фаза: **132**
+> Revision: **2026-08-07** · Priority: **P1** · Status: Open · Phase: **129**
+
+> Runtime/traceability gate: the future versioned launcher API belongs only to `testframework/runner/**`; `testframework/docker/**` contains immutable execution assets only. Launcher status remains `NOT_READY` and runtime remains `NOT_RUN` until a separate implementation and independent acceptance. Executable evidence must resolve TASK/requirement/TC/risk; direct Docker/Compose, host test/validator, mutable-image and ad-hoc cleanup fallbacks are forbidden.
 
 ## [OUTCOME]
 
-`backend/tests/**` имеет service-free Go unit harness/shared support и
-утверждённый file-level migration ledger для всех 829 legacy файлов без их
-перемещения или удаления. Ни один component row не получает backend target.
+The exact 350-row hook-free cohort of proven service-free Go units is moved to
+`backend/tests/<domain>/**`. The separate 245-row hook-dependent cohort is
+protected for TASK-234; component/API/integration/source guards are not retained.
 
 ## [ROLE]
 
-- Owner: `be1` — Go target harness, shared support и destination ledger.
-- Verifier / handoff: `be-ver` — package semantics, compile/discovery, hook rules и ledger completeness.
+- Owners: `be1`, `be2` by non-overlapping domains; verifier: `be-ver`.
+- Depends on: Phase 128 founder manifest partition
+  `MOVE-GO-UNIT-HOOK-FREE`.
 
-## [SCOPE AND CONSTRAINTS]
+## [OWNED TARGET PATHS]
 
-- Allowed: `backend/tests/**`, backend migration ledger/report, минимальный test-only config внутри `backend/`.
-- Read-only: `backend/testframework/**`, `backend/internal/**/export_hooks*.go`, `backend/go.mod`.
-- Do not touch: product code, legacy files/hooks, CI, Python/FE trees.
-- Target остаётся external package tree внутри Go module: импорт `internal/**` разрешён, private symbols недоступны. `hubtest` hooks сохраняются consumer-by-consumer.
-- Классификация 829 rows учитывает прямые и транзитивные зависимости support:
-  `go-unit` → `backend/tests/**`; DB/broker/network/process/whole-API rows →
-  `testframework/api|integration|contract/**`; current directory не является
-  доказательством типа.
-- Depends on: TASK-202, TASK-203, TASK-204.
-
-## [REFERENCES]
-
-- `.planning/codebase/{ARCHITECTURE,STRUCTURE,TESTING,CONVENTIONS}.md`
-- `backend/testframework/{env,factory,mongotest,steps}/`, `backend/internal/**/export_hooks*.go`
-- `.cursor/playbooks/testing/backend-go.md`, `.cursor/rules/56-regression-verify.mdc`
+sealed `backend/tests/<domain>/**` targets plus only the exact source/consumer/manifest paths listed by the Phase 129 batches. This card authorizes no path beyond its live PLAN/manifest and routes no legacy non-unit row to Python.
 
 ## [ACCEPTANCE]
 
-- Completion command: `cd backend && go test -tags hubtest -race -count=1 ./tests/...`; exit code 0 и заявленные counts обязательны.
-
-- Ledger содержит все 829 уникальных legacy paths, target class/path, package,
-  direct/transitive dependencies, test count, hook consumers и owner wave;
-  missing/duplicate/component-under-backend = 0.
-- `backend/tests/shared/**` обеспечивает минимальный representative unit test; target command с `-tags hubtest` собирает ненулевой пакет без запуска legacy второй раз.
-- Failing sentinel: временно добавить заведомо падающий target test — target command non-zero; restore GREEN.
-- Regression: canonical legacy domain/full discovery unchanged; hook files/count и consumers не удалены.
-- Evidence: ledger validator output, target/legacy commands and counts, sentinel RED→GREEN, `go vet -tags hubtest` для затронутого scope.
-- Stop when: row нельзя классифицировать по evidence или support требует production API expansion; пометить `NEEDS_DECISION`, не угадывать.
-
-## [OUTPUT SCHEMA]
-
-1. PASS/BLOCKED и резюме.
-2. Ledger totals по taxonomy/domain/destination и exceptions.
-3. Harness/support changes, commands/counts, sentinel evidence.
-4. Hook consumer baseline и regression.
-5. Handoff `be-ver`, risks, skill-log.
+- Move set exactly equals 350 rows / 1264 declared cases in the pinned manifest;
+  no DB/broker/network/container dependency.
+- External-package semantics use only justified production API; no new test-only hook.
+- Docker collection/run is non-zero and green; race/build where applicable.
+- Post-move coverage is reported as new honest unit baseline; ≥82% is not a blocker.
+- Old copies are absent and resource cleanup is recorded.
 
 ## [OPERATING RULES]
 
-- Сначала ledger, затем минимальный harness; legacy не переносить и не удалять.
-- Test triage для каждого FAIL; same instrumentation с TASK-203.
-- Hook не удаляется в backend waves: zero-consumer proof только помечает candidate; физическое удаление разрешено исключительно TASK-219 после CI/parity gates.
-- Docs-sync ledger/readme; atomic commit со ссылкой на TASK, без AI attribution.
+No semantic mass rewrite during this hook-free move. Triage failures by spec,
+do not restore component tests for coverage. Do not touch/delete TASK-234 rows.
+Domain-sized atomic commits; Docker-only, no push.

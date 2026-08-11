@@ -132,7 +132,11 @@
 - Use Go 1.25 to match `backend/go.mod` and `.github/workflows/ci.yml`; the observed local Go 1.24.0 is not sufficient for canonical verification.
 - Use Node 22 and install exactly from `frontend/package-lock.json` with `npm ci`.
 - Run `frontend/scripts/link-testframework-node-modules.mjs` before current root Vitest/E2E execution.
-- PostgreSQL/MongoDB/Redis/NATS and Chromium profiles may execute only through the independently accepted `hub.qa-runner/v1` outer launcher with immutable image lock, limits, isolated reports and exact cleanup; until then they are `NOT_READY`.
+- PostgreSQL/MongoDB/Redis/NATS and Chromium profiles require the future
+  versioned launcher API solely under `testframework/runner/**`, with immutable
+  assets from `testframework/docker/**`, limits, isolated reports, and exact
+  cleanup. Until separate implementation and independent acceptance, launcher
+  status is `NOT_READY` and runtime is `NOT_RUN`.
 - No Python runtime/version/package-manager contract exists yet for the target root framework; neither `python` nor the Windows `py` launcher is currently available in PATH.
 - Compose definitions parse successfully, but the local Docker daemon is not running; this mapping does not claim service-backed execution.
 
@@ -159,7 +163,7 @@
 **Backend-native unit tree:**
 - Place only genuine service-free Go units in `backend/tests/**`; delete legacy
   DB/broker/network/process/whole-API component rows by literal manifest.
-New `testframework/tests/{api,integration,contract}/**` suites are derived
+- New `testframework/tests/{contract,api,integration,e2e}/**` suites are derived
   independently from requirements, risks and verified TC.
 - Because `backend/tests/**` remains inside the `backend` Go module, it can legally import `backend/internal/*`. Keep black-box `package <domain>_test` where public contracts suffice; use same-package tests only when an explicitly colocated white-box exception is approved.
 
@@ -168,11 +172,21 @@ New `testframework/tests/{api,integration,contract}/**` suites are derived
 - Move only legacy `render.tsx` into `frontend/tests/support/render.tsx`; delete the other two legacy support rows. Any new setup/fixtures are designed explicitly rather than copied from the old tree.
 
 **Independent root system framework:**
-- Reserve `testframework/{src/hub_testkit,tests/{api,integration,contract,e2e},selftests,cases,load,docker,reports}/` for the single Python QA project with root `pyproject.toml` and composition in `tests/conftest.py`.
+- Reserve `testframework/src/hub_testkit/**` for reusable installed modules;
+  planned `testframework/tests/{contract,api,integration,e2e}/**` for SUT
+  suites; separate `testframework/{selftests,cases,schemas,policies,load}/**`
+  roots for their accepted responsibilities; `testframework/docker/**` for
+  immutable execution assets only; future `testframework/runner/**` for sole
+  versioned launcher authority; and `testframework/reports/<task-run>/**` for
+  owner-marked evidence. If required, `testframework/tests/conftest.py` is
+  composition-only. Package, target suites, and launcher are `NOT_READY`;
+  runtime is `NOT_RUN`.
 - Exact Python version, environment manager, pytest plugin set, and load tool are **not specified by the current repository** and must be selected and pinned by the planner before implementation.
 - Phase 129 deletes legacy non-units/static-contract/TypeScript-E2E paths by
-  exact manifest and creates the Python project greenfield. Only genuine native
-  units move; no scenario-count or report parity is required.
+  exact manifest and advances the structure-only scaffold toward a separately
+  accepted package bootstrap. Only genuine native units move; no scenario-count
+  or report parity is required, and launcher implementation remains a separate
+  future slice under `testframework/runner/**`.
 
 ## Migration Blockers
 
@@ -188,10 +202,11 @@ New `testframework/tests/{api,integration,contract}/**` suites are derived
 10. **Service orchestration is inconsistent** - backend test, coverage, and E2E jobs start different service sets; `scripts/ci-e2e-backend.sh` waits only for PostgreSQL even though it starts multiple dependencies.
 11. **Report continuity is absent** - no JUnit/Allure result adapter or cross-runtime report merge exists in `.github/workflows/ci.yml`; migration to pytest would otherwise fragment evidence across Go, Vitest, and Python.
 12. **Local toolchain mismatch** - local Go 1.24.0 differs from `backend/go.mod`/CI Go 1.25 and can create false migration failures.
-13. **Outer launcher missing** - until `testframework/docker/run-task.ps1`
-    (`hub.qa-runner/v1`) and immutable image lock are independently accepted,
-    target runtime status is `NOT_READY`; inline Docker/legacy runners are not
-    fallback.
+13. **Outer launcher missing** - the future versioned launcher API is owned
+    only by `testframework/runner/**`; `testframework/docker/**` is
+    immutable-assets-only. Until separate implementation and independent
+    acceptance, launcher is `NOT_READY`, runtime is `NOT_RUN`, and inline
+    Docker/legacy runners are not fallback.
 
 ## Prescriptive Migration Contract
 
@@ -202,12 +217,22 @@ New `testframework/tests/{api,integration,contract}/**` suites are derived
   one-to-one Python replacement.
 - Move exactly 156 frontend units plus `render.tsx`; delete 24 static-contract files and the remaining support/config closure. Expand TypeScript/Biome scopes and remove `@testframework`/the linker in their exact atomic consumer-switch batches.
 - Create an independent Python project under `testframework/` from current
-  requirements/risks/verified TC. It owns environment, lockfile,
-  pytest/Playwright configuration, artifacts and the single safe launcher.
+  requirements/risks/verified TC. Future package authority owns environment,
+  lockfile, and pytest/Playwright configuration; only future
+  `testframework/runner/**` owns the versioned launcher API, artifacts,
+  orchestration, first-exit preservation, and exact cleanup, while
+  `testframework/docker/**` owns immutable execution assets only. Launcher is
+  `NOT_READY` and runtime is `NOT_RUN` until separate implementation and
+  independent acceptance.
 - Do not dual-run or preserve historical row/case counts. Each new required job
   must instead prove non-zero collection, expected-skip policy, traceability,
   oracle sensitivity and cleanup.
-- Make GitHub Actions and every retained CI mirror call the same versioned outer launcher; no provider-specific test command or fallback may become a second execution authority.
+- After separate implementation and independent acceptance, GitHub Actions and
+  every retained CI mirror must route to the same future API under
+  `testframework/runner/**`; `testframework/docker/**` remains
+  immutable-assets-only. No provider-specific test command or fallback may
+  become a second execution authority; current launcher is `NOT_READY` and
+  runtime is `NOT_RUN`.
 - Preserve the 82.0373% result only as dated discovery evidence. Publish a new
   native-unit baseline after cutover; historical coverage is not a migration
   gate and its denominator is not preserved.
@@ -216,7 +241,8 @@ New `testframework/tests/{api,integration,contract}/**` suites are derived
 
 The commands below document the old mapper snapshot only. Do not execute them
 as current test/build/validator guidance; target runtime requires the accepted
-outer launcher and is `NOT_READY` until that artifact exists.
+future API under `testframework/runner/**`; `testframework/docker/**` remains
+immutable-assets-only, launcher is `NOT_READY`, and runtime is `NOT_RUN`.
 
 ```powershell
 # Current inventories

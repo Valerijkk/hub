@@ -31,7 +31,7 @@
 - Issue: GitHub Actions, GitLab CI, два Makefile, pipeline YAML и документация задают разные команды; GitLab и Makefile не используют обязательный тег `hubtest`, GitLab разрешает frontend lint падать через `|| true` и ссылается на несуществующие E2E пути.
 - Files: `.github/workflows/ci.yml`, `.gitlab-ci.yml`, `Makefile`, `backend/Makefile`, `testframework/pipeline/jobs/backend-test.yaml`, `testframework/pipeline/jobs/frontend-test.yaml`, `testframework/pipeline/jobs/e2e-smoke.yaml`, `testframework/pipeline/jobs/e2e-full.yaml`, `docs/TROUBLESHOOTING.md`
 - Impact: Локально или в зеркальном CI можно получить ложный green, пропустить 829 legacy-root тестов либо отдельный server test/E2E контракт.
-- Fix approach: Сделать один канонический скрипт/entry point для каждого job и вызывать его из GitHub, GitLab и Makefile; запретить fail-open lint и добавить smoke sentinel, который доказывает реальное выполнение ожидаемого набора.
+- Fix approach: После separate implementation и independent acceptance маршрутизировать GitHub, GitLab и Makefile только в future versioned API под `testframework/runner/**`; `testframework/docker/**` остаётся immutable-assets-only. До того launcher `NOT_READY`, runtime `NOT_RUN`; отдельные job scripts/entrypoints и fail-open lint не становятся fallback.
 
 **Frontend-тесты вне typecheck и lint:**
 - Issue: 180 Vitest-файлов находятся в `testframework/stages/unit/frontend-test/domains/`, но `frontend/tsconfig.json` включает только `src`, а `frontend/biome.json` проверяет только `src/**`; запуск зависит от ручного junction `node_modules`.
@@ -49,7 +49,7 @@
 - Issue: YAML-файлы в `testframework/pipeline/jobs/` дублируют workflow и содержат списки/пути, которые не проверяются автоматически на соответствие реальным тестам.
 - Files: `testframework/pipeline/jobs/`, `testframework/PIPELINE.md`, `.github/workflows/ci.yml`
 - Impact: Документированный pipeline незаметно расходится с реально исполняемым, а оценки покрытия и состава jobs становятся недостоверными.
-- Fix approach: Один versioned launcher + machine-readable contract валидируют target paths, immutable images, budgets, reports и cleanup. Legacy row/count/command parity не используется.
+- Fix approach: Future versioned API только под `testframework/runner/**` после separate implementation и independent acceptance валидирует target paths, immutable assets из `testframework/docker/**`, budgets, reports и cleanup. До того launcher `NOT_READY`, runtime `NOT_RUN`; legacy row/count/command parity не используется.
 
 ## Known Bugs
 
@@ -57,16 +57,18 @@
 - Symptoms: Цель запускает `go test ./...` без `-tags hubtest`; экспортные hooks под build tag недоступны, и внешний `backend/testframework/` набор не компилируется или не исполняется как ожидается.
 - Files: `Makefile`, `backend/Makefile`, `backend/internal/*/export_hooks.go`, `backend/testframework/`, `docs/TROUBLESHOOTING.md`
 - Trigger: Выполнить `make test` или `make -C backend test` вместо документированной команды с `-tags hubtest`.
-- Workaround: Не запускать legacy/manual substitute. До реализации и
-  независимой проверки `hub.qa-runner/v1` фиксировать `NOT_READY`; затем
-  использовать только `/qa-gate`.
+- Workaround: Не запускать legacy/manual substitute. До separate implementation и
+  independent acceptance future API под `testframework/runner/**` фиксировать launcher
+  `NOT_READY` и runtime `NOT_RUN`; `testframework/docker/**` — immutable-assets-only.
+  `/qa-gate` только маршрутизирует задачу и не выполняет её.
 
 **GitLab pipeline не эквивалентен GitHub pipeline:**
 - Symptoms: Backend запускается без `hubtest`, frontend не выполняет linker, lint не блокирует job, E2E job ссылается на устаревшие файлы.
 - Files: `.gitlab-ci.yml`, `.github/workflows/ci.yml`, `frontend/scripts/link-testframework-node-modules.mjs`, `testframework/stages/e2e/domains/`
 - Trigger: Запуск pipeline в GitLab.
 - Workaround: GitHub/GitLab/manual legacy results — только historical discovery.
-  До единого принятого outer launcher verdict `NOT_READY`; никакой из старых
+  До future API под `testframework/runner/**` launcher `NOT_READY`, runtime
+  `NOT_RUN`; `testframework/docker/**` содержит только immutable assets. Никакой из старых
   entrypoints не является acceptance authority.
 
 **Coverage status может публиковаться после неуспешного прогона:**
@@ -191,8 +193,8 @@
 ## Missing Critical Features
 
 **Python-only корневой framework:**
-- Problem: Целевой `testframework/` ещё не имеет root Python package/config и каталогов `{core,api,integration,contract,e2e,load,docker,reports}`, markers или CI jobs.
-- Blocks: Перенос black-box сценариев из Go/TypeScript и доказательство новой архитектуры.
+- Problem: structure-only scaffold резервирует `testframework/src/hub_testkit/**`, planned `testframework/tests/{contract,api,integration,e2e}/**`, separate `testframework/{selftests,cases,schemas,policies,load}/**`, immutable-assets-only `testframework/docker/**`, future launcher authority `testframework/runner/**` и `testframework/reports/<task-run>/**`, но package, target suites и launcher ещё `NOT_READY`, runtime `NOT_RUN`.
+- Blocks: Приёмку новых risk-derived black-box сценариев и доказательство новой архитектуры до separate implementation и independent acceptance.
 
 **Новый честный Go unit baseline после cutover:**
 - Problem: `go test -coverpkg=./internal/...` учитывает покрытие только от Go test binary; Python API/integration tests не попадут в Go coverage profile.
@@ -250,7 +252,7 @@
 | Потеря/дублирование файлов при destructive cutover | Medium | Critical | Sealed exact manifest, descriptor-relative no-follow executor, per-batch identity check, atomic owner commit и independent verifier; никаких parity/dual-run gates | `.planning/audits/test-rebase/`, `.planning/phases/129-tf-e2e-shared/` |
 | Неверная классификация всех Go tests как unit | High | High | File-level taxonomy до переноса | `backend/testframework/`, `docs/testframework_strategy.md` |
 | Сохранение зависимости `backend/tests/**` от test-only hooks | High | High | Канонический `hubtest`; удаление hooks только consumer-by-consumer | `backend/internal/*/export_hooks.go`, `backend/testframework/` |
-| Ложный green из-за разных CI entry points | High | High | Один versioned outer launcher; GitHub и retained mirrors только вызывают его, старые entrypoints удаляются fail-closed без parity fallback | `.github/workflows/ci.yml`, `.gitlab-ci.yml`, `Makefile` |
+| Ложный green из-за разных CI entry points | High | High | После separate implementation и independent acceptance GitHub и retained mirrors маршрутизируются только в future API под `testframework/runner/**`; `testframework/docker/**` immutable-assets-only, launcher пока `NOT_READY`, runtime `NOT_RUN`, старые entrypoints удаляются fail-closed без parity fallback | `.github/workflows/ci.yml`, `.gitlab-ci.yml`, `Makefile` |
 | Frontend tests проходят без typecheck/lint/coverage | High | High | Включить `frontend/tests/**` во все три gate до cutover | `frontend/tsconfig.json`, `frontend/biome.json`, `frontend/vite.config.ts` |
 | E2E green с пропущенными обязательными сценариями | Medium | High | Fail-closed preflight и exact pass/skip sentinel | `testframework/stages/e2e/domains/`, `frontend/playwright.config.ts` |
 | Невоспроизводимый Python framework | Medium | High | Зафиксированный runtime, lockfile и clean-run validation | `testframework/` |

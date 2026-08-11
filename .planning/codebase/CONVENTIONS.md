@@ -9,7 +9,7 @@
 - Новые Go unit-файлы называйте по устойчивому поведению: `service_issue_test.go`, `handler_issue_test.go`. Идентификатор задачи или TC указывайте в имени теста/метаданных, но не используйте его как единственный смысл имени файла. Принятый target — `backend/tests/<domain>/`.
 - Текущие frontend-тесты используют kebab-case `*.test.ts` / `*.test.tsx`, например `testframework/stages/unit/frontend-test/domains/tracker/safe-url.test.ts` и `testframework/stages/unit/frontend-test/domains/tracker/issue-card.test.tsx`. Сохраняйте это правило после переноса в `frontend/tests/<domain>/`; этот target заменяет `frontend/src/<module>/unit/` из `.planning/active/august-2026/05-AUGUST-DETAILED.md` и `.planning/backlog/TASK-198-2026-07-30-tf-frontend-units-colocated.md`.
 - Текущие browser specs используют kebab-case `*.spec.ts`, Page Object — `*.page.ts`, бизнес-шаги — `*.steps.ts`; примеры: `testframework/stages/e2e/domains/tracker/project-lifecycle.spec.ts`, `testframework/stages/e2e/shared/pages/login.page.ts`, `testframework/stages/e2e/shared/steps/auth.steps.ts`.
-- Целевые Python system tests именуйте по pytest discovery: `test_<feature>.py`, функции `test_<behavior>_<expected_result>`, fixtures — в `testframework/tests/conftest.py` или domain fixture modules. Размещайте suites в `testframework/tests/{api,integration,contract,e2e}/`; Locust-код — в `testframework/load/`.
+- Целевые Python system tests именуйте по pytest discovery: `test_<feature>.py`, функции `test_<behavior>_<expected_result>`. Reusable code принадлежит только `testframework/src/hub_testkit/**`, planned suites — `testframework/tests/{contract,api,integration,e2e}/**`; optional `testframework/tests/conftest.py` только композирует fixtures. `selftests/**`, `cases/**`, `schemas/**`, `policies/**`, `load/**` и `reports/<task-run>/**` остаются отдельными roots; `testframework/docker/**` — immutable-assets-only, `testframework/runner/**` — future launcher authority. Launcher `NOT_READY`, runtime `NOT_RUN`.
 
 **Functions:**
 - Go-тесты именуйте `Test<Subject>_<Scenario>`; образцы: `TestHandler_CreateAndGetIssue` в `backend/testframework/tracker/handler_flow_test.go` и `TestEntRepository_CreateIssue_IncrementsCounter` в `backend/testframework/tracker/repository_test.go`.
@@ -30,7 +30,7 @@
 ## Code Style
 
 **Formatting:**
-- Go-код должен проходить `gofmt`; imports группируются как standard library, third-party, project. Target `backend-unit` включает formatting/static checks через единственный принятый `hub.qa-runner/v1`; прямой provider-specific test command не добавляется.
+- Go-код должен проходить `gofmt`; imports группируются как standard library, third-party, project. Target `backend-unit` получит formatting/static checks только через future API под `testframework/runner/**`; `testframework/docker/**` — immutable-assets-only, launcher `NOT_READY`, runtime `NOT_RUN`, прямой provider-specific command не добавляется.
 - TypeScript-тесты следуют Biome-настройкам из `frontend/biome.json`; текущий внешний test tree форматирован табами.
 - `frontend/biome.json` включает только `src/**`, поэтому текущий legacy tree не lintится. Phase 129 включает `frontend/tests/**` в accepted `frontend-unit`; Python formatter/linter и версии фиксируются в greenfield `testframework/pyproject.toml`/lock до принятия Python jobs.
 - Комментарии и prose пишите по-русски, identifiers и test code — на идиоматичном английском, согласно `docs/code_style_guide.md` и `.cursor/playbooks/testing.md`.
@@ -119,8 +119,8 @@
 - Sealed machine-readable authority задаёт literal operation для каждого legacy source: только доказанные native units получают `move`; legacy Go component/API/integration, static-contract Vitest, TypeScript Playwright и support/config/entrypoints получают `delete`/`keep-blocked` с причиной.
 - Для unit `move` сохраняются source identity, test names и assertions в рамках атомарного batch. Это защита от несанкционированного изменения, не dual-run или row/case parity.
 - Не классифицируйте тест по текущей директории: imports, runtime boundaries и behavior определяют только `move` genuine unit либо `delete` legacy row. Новый Python test не является destination старого файла.
-- Каждый новый target job через `hub.qa-runner/v1` доказывает non-zero collection, expected-skip policy, traceability, failure/oracle sensitivity, isolated evidence и exact cleanup.
-- Destructive batch разрешён только после Phase 128 sealed manifest/independent acceptance и принятия launcher. Исторические coverage/counts сохраняются как discovery evidence, но не блокируют удаление и не требуют replacement parity.
+- Каждый новый target job после separate implementation и independent acceptance future API под `testframework/runner/**` докажет non-zero collection, expected-skip policy, traceability, failure/oracle sensitivity, isolated evidence и exact cleanup. До того launcher `NOT_READY`, runtime `NOT_RUN`; `testframework/docker/**` immutable-assets-only.
+- Destructive batch разрешён только после Phase 128 sealed manifest/independent acceptance. Исторические coverage/counts сохраняются как discovery evidence, но не блокируют удаление и не требуют replacement parity.
 
 ---
 

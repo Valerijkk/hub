@@ -2,7 +2,7 @@
 
 > Revision: **2026-08-07** · Priority: **P1** · Status: Open · Phase: **138**
 
-> Runtime/traceability gate: `NOT_READY` until `testframework/docker/run-task.ps1` contract `hub.qa-runner/v1` and `testframework/docker/images.lock.json` are independently accepted. Executable evidence must resolve TASK/requirement/TC/risk; direct Docker/Compose, host test/validator, mutable-image and ad-hoc cleanup fallbacks are forbidden.
+> Runtime/traceability gate: the future versioned launcher API belongs only to `testframework/runner/**`; `testframework/docker/**` contains immutable execution assets only. Launcher status remains `NOT_READY` and runtime remains `NOT_RUN` until a separate implementation and independent acceptance. Executable evidence must resolve TASK/requirement/TC/risk; direct Docker/Compose, host test/validator, mutable-image and ad-hoc cleanup fallbacks are forbidden.
 > **Deprecated filename alias:** the pre-rebase `e2e-mechanical` slug is kept
 > only for link stability. Current purpose is risk-based work/realtime/admin
 > journeys; route by TASK-195, title and Phase 138, not by the filename.

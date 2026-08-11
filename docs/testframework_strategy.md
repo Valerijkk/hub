@@ -67,7 +67,7 @@ US/AC (vision_and_scope) / FR (system_specification)
 | Unit backend | Go + testify, `//go:build hubtest` | `backend/testframework/{domain}/` | `backend-test` |
 | Unit frontend | Vitest + RTL + MSW | `testframework/stages/unit/frontend-test/domains/{domain}/` | `frontend-test` |
 | API / handler | Go httptest (в составе unit-слоя) | `backend/testframework/` | `backend-test` |
-| Python E2E target | pytest + playwright-python | `testframework/tests/e2e/` | `python-e2e-smoke` marker / `python-e2e-full` launcher profile |
+| Python E2E target | pytest + playwright-python | planned `testframework/tests/e2e/**` | `smoke` pytest marker / `full` future launcher profile |
 | Coverage gate | `go tool cover` | `backend/testframework/` | `coverage-gate` |
 
 Go-тесты физически живут в `backend/testframework/` (не в `testframework/stages/`), потому что Go запрещает импорт `backend/internal/*` из другого модуля; логически это job `backend-test`.
@@ -93,24 +93,30 @@ inventory и не являются исполняемыми инструкция
 tests, validators, linters и builds; прямой `docker run`/`compose up` также не
 является каноническим обходом.
 
-Целевой runtime status сейчас — **`NOT_READY`**: до Phase 129 отсутствуют и не
-приняты независимым verifier единый launcher `testframework/docker/run-task.ps1`
-(`hub.qa-runner/v1`) и immutable image lock
-`testframework/docker/images.lock.json`. После их приёмки все jobs запускаются
-только через `/qa-gate`; launcher задаёт wall-clock timeout, CPU/RAM/swap/PID и
-network policy, сохраняет первый exit code, пишет только в
-`testframework/reports/<task-run>/` после owner-marker check и всегда удаляет
-exact task-owned containers/volumes/networks в `finally`.
+Пакет/bootstrap, target suites и будущий versioned launcher API сейчас **`NOT_READY`**;
+runtime — **`NOT_RUN`**. Будущий API принадлежит только `testframework/runner/**`, а
+`testframework/docker/**` содержит только immutable images, topologies, locks и
+resource/container contracts. `/qa-gate` — только user-facing routing и не может
+выполнять jobs до separate implementation и independent acceptance. После неё future
+runner должен обеспечивать wall-clock timeout, CPU/RAM/swap/PID и network policy,
+сохранять first exit code, писать только в `testframework/reports/<task-run>/`
+после owner-marker check и удалять exact task-owned resources в `finally`.
 
-### 2.4. Паттерны текущего фреймворка
+### 2.4. Текущие legacy-паттерны и будущие task-named targets
 
-| Паттерн | Где |
-|---------|-----|
-| Browser lifecycle/artifacts | task-named `testframework/src/hub_testkit/browser/**` |
-| UI page/component helpers | task-named `testframework/src/hub_testkit/domains/<domain>/ui/{pages,components}/**` |
-| Env Builder | `backend/testframework/env/` |
-| Factory | `backend/testframework/factory/` |
-| TestRenderer | `testframework/stages/unit/frontend-test/render.tsx` |
+Текущий committed scaffold содержит `hub_testkit/__init__.py`, boundary
+README под `config/`, `runtime/`, `traceability/` и `domains/README.md`.
+Эти артефакты фиксируют ownership, но не реализуют installable package,
+browser/UI helpers или executable suites. Package и target suites — `NOT_READY`,
+runtime — `NOT_RUN`.
+
+| Паттерн | Где | Статус |
+|---------|-----|--------|
+| Env Builder | `backend/testframework/env/` | current legacy inventory; delete/retain only by exact manifest |
+| Factory | `backend/testframework/factory/` | current legacy inventory; delete/retain only by exact manifest |
+| TestRenderer | `testframework/stages/unit/frontend-test/render.tsx` | current legacy inventory; exact move target is `frontend/tests/support/` |
+| Browser lifecycle/artifacts | future task-named target pattern `testframework/src/hub_testkit/browser/**` | absent; requires separate implementation and independent acceptance |
+| UI page/component helpers | future task-named target pattern `testframework/src/hub_testkit/domains/<domain>/ui/{pages,components}/**` | absent; created only by the first accepted domain consumer |
 
 ---
 
@@ -124,8 +130,8 @@ exact task-owned containers/volumes/networks в `finally`.
 |------|-----------|-----------|-----------|
 | Unit backend | **Go** | `backend/tests/{domain}/` | be1/be2 |
 | Unit frontend | **TypeScript** (Vitest + RTL) | `frontend/tests/{domain}/`; support в `frontend/tests/support/` | fe1/fe2 |
-| Integration / API / contract / smoke / regression / E2E | **Python**: pytest + allure-pytest + httpx (API) + playwright-python (E2E) + pytest-xdist (параллелизм) | `testframework/tests/{api,integration,contract,e2e}/` в едином корневом Python-проекте | qa-auto1/qa-auto2 **по верифицированным TC** |
-| Нагрузочные | **Python: Locust** (общий `core` с pytest-слоем) | `testframework/load/` в том же Python-проекте | qa-auto1/qa-auto2 |
+| Integration / API / contract / smoke / regression / E2E | **Python**: pytest + allure-pytest + httpx (API) + playwright-python (E2E) + pytest-xdist (параллелизм) | planned `testframework/tests/{contract,api,integration,e2e}/**` в едином корневом Python-проекте | qa-auto1/qa-auto2 **по верифицированным TC** |
+| Нагрузочные | **Python: Locust**; повторно использует только installed `hub_testkit` client через узкую границу | `testframework/load/**` в том же Python-проекте | qa-auto1/qa-auto2 |
 
 `backend/tests/**` принимает только genuine Go unit tests. Текущие
 **237** `go-component` rows (31 API + 206 integration) нельзя механически
@@ -142,31 +148,41 @@ requirements, risks и verified TC. Переиспользование идеи 
 `testframework/python/` и без вложенных самостоятельных проектов.
 Раскладка по слоям и доменам:
 
-```
+```text
 testframework/
-├── pyproject.toml              # единые dependencies/tooling и pytest config
-├── pytest.ini                  # опциональный config вместо [tool.pytest.ini_options]
-├── conftest.py                 # корневой env/base_url; один runner
-├── core/                       # client, settings, factories, shared fixtures, Allure helpers
-├── api/                        # HTTP/API tests по доменам
-├── integration/                # PostgreSQL/Mongo/Redis/NATS/storage/provider boundaries
-├── contract/                   # schemas/events и fixture contracts
-├── e2e/                        # playwright-python, POM/steps/domains
-├── load/                       # Locust scenarios; исполняемый тоже только Python
-├── docker/                     # изолированные test-service profiles/orchestration
-└── reports/                    # sanitized generated reports/artifact metadata
+├── PACKAGE-CONTRACT.md
+├── src/hub_testkit/**
+├── tests/{contract,api,integration,e2e}/**       # planned SUT suites
+├── selftests/**                                # framework/package contracts only
+├── cases/**                                    # TC intent and risk linkage
+├── schemas/**                                  # closed machine-readable contracts
+├── policies/**                                 # markers, environments, redaction, profiles
+├── load/**                                     # separate bounded Locust lifecycle
+├── docker/**                                   # immutable execution assets only
+├── runner/**                                   # future reviewed versioned launcher API only
+└── reports/<task-run>/**                       # owner-marked generated evidence
 ```
 
-Корневой `conftest.py` содержит только общие fail-closed настройки;
-browser и доменные fixtures живут в своём слое. Общие
-фабрики/fixtures хранятся в `core/`, а не в отдельном корневом
-`fixtures/`. Smoke/full — pytest markers и CI selection, а не отдельные
-проекты или каталоги. После Phase 141 в `testframework/**` не остаётся
-исполняемого Go/Vitest/TypeScript E2E-кода.
+Future reusable clients, factories, fixtures, oracles, pages и components создаются
+только после separately accepted task-named consumer в exact owning modules под
+`src/hub_testkit/**`; reusable direct-root `core/` и root
+`conftest.py` не являются target architecture. Если первому accepted suite
+потребуется `tests/conftest.py`, он только композирует узкие package fixtures и
+не становится second framework. Только `smoke` — pytest marker; `full` — future
+launcher profile. Package, target suites и launcher `NOT_READY`, runtime `NOT_RUN`.
+`testframework/runner/**` — единственный будущий владелец versioned API, profile resolution,
+orchestration, first-exit preservation, report ownership и exact cleanup;
+`testframework/docker/**` содержит только immutable execution assets. После Phase 141 в
+`testframework/**` не остаётся исполняемого Go/Vitest/TypeScript E2E-кода.
 
 ### 3.3. Нагрузочные: Locust и SLO
 
-Locust-сценарии живут в `testframework/load/`, переиспользуют фикстуры/фабрики pytest-слоя. Целевые SLO (бюджеты продукта):
+Сейчас `testframework/load/**` содержит только boundary README;
+Locust-сценарии отсутствуют. Future task-named scenarios создаются после
+separate implementation and acceptance под `testframework/load/**` и могут
+переиспользовать только installed client из `hub_testkit` через узкую границу;
+pytest fixtures и suite-local framework не являются shared authority. Целевые SLO
+(бюджеты продукта):
 
 | Метрика | Цель |
 |---------|------|
@@ -178,9 +194,13 @@ Locust-сценарии живут в `testframework/load/`, переиспол�
 | Глобальный поиск | < 500 ms |
 | Allure import (1000 результатов) | < 5 s |
 
-Сценарии: WS connect + сообщения, auth-flow (magic link/refresh), board API, messenger throughput, Allure-import 1000 результатов. Режим прогонов: nightly / pre-release, **не в основном CI** (дорого); результаты и тайминги — в `.planning/COVERAGE.md`.
+Future acceptance scenario set: WS connect + сообщения, auth-flow (magic
+link/refresh), board API, messenger throughput, Allure-import 1000 результатов.
+После acceptance планируемый режим — nightly / pre-release, **не в основном
+CI** (дорого); будущие результаты и тайминги публикуются в
+`.planning/COVERAGE.md`.
 
-**Важно:** Locust-профили начинаются только в Phase 140 после принятия Phase 129 launcher/core и необходимых domain suites. До этого runtime-статус `NOT_READY`; исторический realtime baseline не заменяет greenfield risk/SLO design и не является migration gate.
+**Важно:** Locust-профили начинаются только в Phase 140 после separate implementation и independent acceptance нужных package/suite/runner slices. До этого launcher `NOT_READY`, runtime `NOT_RUN`; исторический realtime baseline не заменяет greenfield risk/SLO design и не является migration gate.
 
 ---
 
@@ -279,21 +299,35 @@ evidence; line coverage остаётся диагностикой, а не за�
 ### 6.2. Флейки
 
 - **Unit (Go/Vitest): ретраев нет.** Флейк = дефект, чинится причина.
-- **E2E:** retry policy задаётся одним versioned launcher profile, bounded и только для доказанной инфраструктурной нестабильности; trace/screenshot policy остаётся обязательной для диагностики.
-- Детект флейков выполняет отдельный launcher profile с повторением и random order; raw host flags не являются инструкцией.
+- **E2E:** после separate runner implementation and independent acceptance future
+  versioned profile должен задавать bounded retry policy только для
+  доказанной инфраструктурной нестабильности; trace/screenshot policy — future
+  acceptance requirement. Launcher пока `NOT_READY`, runtime `NOT_RUN`.
+- Future flake-detection profile после той же acceptance должен задавать
+  bounded repetitions и random order; raw host flags не являются инструкцией.
 - **Quarantine:** флейк, который нельзя починить немедленно, помечается skip с причиной + тикетом + owner и заносится в `.planning/STATE.md`. **SLA карантина — 1 волна:** к воротам следующей волны тест либо починен, либо удалён с обоснованием. Верификатор проверяет отсутствие «голых» skip.
 
 ### 6.3. Contract-тесты
 
-Все NATS-события версионируются JSON-схемами в `contracts/events/*.json` (реестр — план M0-02). Executable contract suite в `testframework/tests/contract/**` проверяет **обе стороны**, а reusable validators получают exact task paths в `testframework/src/hub_testkit/contract/**`. Ломающее изменение схемы без версии = красный CI.
+Реестр `contracts/events/**`, planned suite
+`testframework/tests/contract/**` и validators под
+`testframework/src/hub_testkit/contract/**` сейчас отсутствуют. Future task-named
+contract slice только после separately accepted M0-02 registry должен проверять
+обе стороны и отклонять breaking schema change без новой версии. Package и
+suite остаются `NOT_READY`, runtime `NOT_RUN` до separate implementation и
+independent acceptance; это не current CI claim.
 
-### 6.4. Топология E2E
+### 6.4. Будущая топология E2E
+
+Таблица ниже — target mapping после separate suite/runner implementation и
+independent acceptance, а не текущий runnable pipeline. Сейчас target suites и
+launcher `NOT_READY`, runtime `NOT_RUN`.
 
 | Триггер | Что гоняем |
 |---------|-----------|
-| PR | `python-e2e-smoke`: новый минимальный risk-based critical-path набор + затронутые домены по path-filter |
-| Push/merge в master | `python-e2e-full`: все принятые greenfield journeys без сохранения исторического числа specs |
-| Nightly / pre-release | full + Locust-профиль |
+| PR | future `python-e2e-smoke` target: task-named risk-based critical path + affected domains |
+| Push/merge в master | future `python-e2e-full` target: accepted greenfield journeys without historical spec-count preservation |
+| Nightly / pre-release | future `full` launcher profile + separately accepted Locust profile |
 
 ### 6.5. CI-бюджет
 
@@ -314,22 +348,23 @@ evidence; line coverage остаётся диагностикой, а не за�
 Phase 128 принимает founder contract и exact current manifest; Phase 129 сразу
 переносит 350 hook-free Go units и frontend units, защищает и по доменам
 рефакторит/переносит остальные 245 genuine Go units, удаляет legacy
-non-units/runners и создаёт единый Python-проект прямо в `testframework/**`.
+non-units/runners и развивает structure-only scaffold к отдельно принятому
+package bootstrap прямо в `testframework/**`; launcher в этот slice не входит.
 Исторические file/case counts, dual-run и Go statement coverage не являются
 migration gates.
 
-**Runtime gate:** до появления и независимой проверки
-`testframework/docker/run-task.ps1` + `images.lock.json` все execution phases
-имеют status `NOT_READY`. Ни legacy runner, ни inline Docker command не могут
-дать PASS вместо отсутствующего launcher.
+**Runtime gate:** до separate implementation и independent acceptance future API под
+`testframework/runner/**` имеет status `NOT_READY`, runtime — `NOT_RUN`;
+`testframework/docker/**` остаётся immutable-assets-only. Ни legacy runner, ни inline Docker command не могут
+заменить отсутствующий launcher.
 
 | План | Содержание | Ворота |
 |------|------------|--------|
-| TF-PY-01 | Спека структуры Python-фреймворка (sa + qa-auto): раскладка по доменам/сервисам, conftest-иерархия, фикстуры, фабрики, POM для playwright-python, Allure-аннотации с TC-ID | sa-ver + qa-auto-ver |
-| TF-PY-02 | Каркас прямо в `testframework/`: корневой pyproject/pytest config, базовые fixtures в `core/`, allure-pytest config | Clean-room install + ненулевая collection + failing sentinel |
+| TF-PY-01 | Спека approved ownership model (sa + qa-auto): `src/hub_testkit/**`, planned `tests/{contract,api,integration,e2e}/**`, separate selftests/cases/schemas/policies/load/reports, composition-only `tests/conftest.py`, POM под owning domain и Allure-аннотации с TC-ID | sa-ver + qa-auto-ver |
+| TF-PY-02 | Отдельно принятый package bootstrap прямо в `testframework/`: root pyproject/pytest authority и reusable modules только под `src/hub_testkit/**`; launcher не входит в этот slice | Package `NOT_READY`; clean-room install + ненулевая collection + failing sentinel после implementation |
 | TF-PY-03..NN | Новые API/integration/contract suites по доменам из requirements/tasks/risks — **один атомарный план на домен** | Traceability complete; happy/negative/authz/boundary/edge/failure-recovery рассмотрены |
 | TF-PY-E2E | Новый playwright-python слой: POM/component objects/steps и risk-based journeys | Critical smoke стабилен; unexpected skip = 0; старые TS counts не авторитет |
-| TF-PY-LOAD | Phase 140: bounded Locust-сценарии в `testframework/load/` после принятия core/work/business suites; nightly/pre-release, только non-production | SLO/risk-профили воспроизводимы через launcher, evidence изолирован по task-run |
+| TF-PY-LOAD | Phase 140: bounded Locust-сценарии в `testframework/load/**` после принятия нужных work/business suites; nightly/pre-release, только non-production | Future `testframework/runner/**` profile доказывает SLO/risk и task-run evidence после separate implementation и independent acceptance; до того launcher `NOT_READY`, runtime `NOT_RUN` |
 | TF-PY-ALLURE | Сквозная привязка TC↔автотест (tms-link/AS_ID) + автозаливка в Hub TMS webhook'ом из CI | Результаты прогона видны в TMS, unmapped → 0 |
 
 **Ворота программы:** каждый Python case связан с task/requirement/verified TC
@@ -345,7 +380,10 @@ clean-room CI verification и handoff, а не отложенный cleanup.
 ### 8.1. Что и куда фиксируем
 
 - **Wall-time** каждого значимого прогона (полная регрессия, coverage-прогон, e2e-full, Locust) — в `.planning/COVERAGE.md` рядом с процентами.
-- **Топ медленных тестов** — launcher adapters публикуют единый sanitized timing report для Go/Vitest/pytest/Playwright; медленные тесты ревьюятся и либо оправданы, либо чинятся (мок вместо БД, web-first вместо sleep).
+- **Топ медленных тестов** — future runner adapters после separate
+  implementation и independent acceptance должны публиковать единый
+  sanitized timing report для Go/Vitest/pytest/Playwright; до того launcher
+  `NOT_READY`, runtime `NOT_RUN`.
 - **Деградация >20%** — заметка в `.planning/STATE.md` + задача на оптимизацию.
 
 ### 8.2. Ориентировочные бюджеты прогонов

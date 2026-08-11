@@ -2,7 +2,13 @@
 
 > Created: **2026-08-07** · Priority: **P1** · Status: Open · Phase: **139**
 
-> Runtime/traceability gate: `NOT_READY` until `testframework/docker/run-task.ps1` contract `hub.qa-runner/v1` and `testframework/docker/images.lock.json` are independently accepted. Executable evidence must resolve TASK/requirement/TC/risk; direct Docker/Compose, host test/validator, mutable-image and ad-hoc cleanup fallbacks are forbidden.
+> Runtime/traceability gate: launcher and runtime are `NOT_READY` / `NOT_RUN`.
+> A future versioned launcher API may be separately implemented only under
+> `testframework/runner/**` and used only after independent acceptance;
+> `testframework/docker/**` supplies immutable execution assets only. No
+> supported command, Docker-directory entrypoint, or direct Docker/Compose,
+> host test/validator, mutable-image, or ad-hoc-cleanup fallback exists.
+> Executable evidence must resolve TASK/requirement/TC/risk after acceptance.
 
 ## [OUTCOME]
 
@@ -23,4 +29,4 @@ API, integration and E2E layers.
 - Applicable injection, unsafe URL/content/upload, CSRF/CORS/cookies/headers,
   authz and resource-abuse risks have TC/evidence or owner/date.
 - Secret/PII canary proves log/trace/report scan sensitivity.
-- No real egress/secrets; Docker-only, unexpected skip=0 and cleanup PASS.
+- No real egress/secrets; accepted-runner Docker-only execution, unexpected skip=0 and cleanup PASS.

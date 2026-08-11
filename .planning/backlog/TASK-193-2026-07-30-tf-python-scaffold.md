@@ -2,7 +2,7 @@
 
 > Revision: **2026-08-07 founder greenfield rebase** · Priority: **P1** · Status: Open · Phase: **129**
 
-> Runtime/traceability gate: `NOT_READY` until `testframework/docker/run-task.ps1` contract `hub.qa-runner/v1` and `testframework/docker/images.lock.json` are independently accepted. Executable evidence must resolve TASK/requirement/TC/risk; direct Docker/Compose, host test/validator, mutable-image and ad-hoc cleanup fallbacks are forbidden.
+> Runtime/traceability gate: the future versioned launcher API belongs only to `testframework/runner/**`; `testframework/docker/**` contains immutable execution assets only. Launcher status remains `NOT_READY` and runtime remains `NOT_RUN` until a separate implementation and independent acceptance. Executable evidence must resolve TASK/requirement/TC/risk; direct Docker/Compose, host test/validator, mutable-image and ad-hoc cleanup fallbacks are forbidden.
 
 ## [OUTCOME]
 
@@ -17,8 +17,8 @@ no nested Python project and no legacy executable test code coexist after Phase 
 ## [SCOPE]
 
 Root `pyproject.toml`, lock, pytest config, `conftest.py`,
-`{core,api,integration,contract,e2e,load,docker,reports}/**`, README and pinned
-Docker image/profile. Do not read/change `pro-qa-ai/**`.
+`{src/hub_testkit,tests/{api,integration,contract,e2e},selftests,cases,schemas,policies,load,docker,reports}/**`,
+README and pinned Docker image/profile. Do not read/change `pro-qa-ai/**`.
 
 ## [OWNED TARGET PATHS]
 

@@ -85,16 +85,20 @@ testframework/
 ├── cases/<domain>/TC-*.md
 ├── schemas/                    # test-case and run-contract schemas
 ├── policies/                   # environments, markers, redaction, profiles, licenses
-├── docker/                     # images, Compose topology, lock and outer launcher
-├── runner/                     # in-container validated entrypoint/profile loading
+├── docker/                     # immutable images, topologies, locks and resource contracts only
+├── runner/                     # future reviewed versioned outer launcher API and entrypoints
 ├── reports/                    # ignored task-owned run directories only
 └── docs/                       # onboarding, authoring, environments and triage
 ```
 
-This is the final namespace map, not the Phase 129 creation list. Empty
-directories are not committed. The first runnable slice creates only the
-packages needed by launcher validation, ownership, redaction, traceability and
-one health-domain API test.
+This is the final ownership map, not a Phase 129 creation list. Empty
+directories are not committed. Package bootstrap, target suites, and the
+future launcher are `NOT_READY`; runtime is `NOT_RUN`. A separately approved
+implementation under `testframework/runner/**` must be independently accepted
+before it becomes executable. That future directory alone owns API/profile
+resolution, outer orchestration, first-exit preservation, task-run report
+ownership, and exact cleanup; `testframework/docker/**` remains immutable
+execution assets only.
 
 There is no generic `core/` directory. “Core” is a conceptual layer represented
 by narrowly named packages such as `config`, `runtime`, `http` and
@@ -123,39 +127,38 @@ by narrowly named packages such as `config`, `runtime`, `http` and
 
 ## 5. Progressive physical skeleton
 
-Phase 129 creates the smallest runnable vertical slice:
+The future progressive skeleton reserves ownership for the first accepted
+vertical slice; it does not create a runnable slice in this documentation:
 
 ```text
 testframework/
-├── pyproject.toml
-├── uv.lock
-├── .python-version
-├── README.md
-├── src/hub_testkit/
-│   ├── config/
-│   ├── runtime/{ids.py,ownership.py,redaction.py}
-│   ├── traceability/{model.py,loader.py,index.py}
-│   └── domains/health/{api.py,models.py,oracles.py}
-├── selftests/{runner,traceability}/
-├── tests/{conftest.py,api/health/test_health.py}
-├── cases/health/TC-HEALTH-0001.md
-├── schemas/{test-case.schema.json,run.schema.json}
-├── policies/{markers.toml,environments.toml,redaction.toml}
-├── docker/{Dockerfile.core,run-task.ps1,images.lock.json}
-├── runner/entrypoint.py
-└── reports/.gitignore
+├── PACKAGE-CONTRACT.md
+├── src/hub_testkit/**
+├── tests/{contract,api,integration,e2e}/**       (planned suites)
+├── selftests/**
+├── cases/**
+├── schemas/**
+├── policies/**
+├── load/**
+├── docker/**                                     (immutable execution assets only)
+├── runner/**                                     (future versioned launcher API only)
+└── reports/<task-run>/**
 ```
 
-`testframework/docker/run-task.ps1` remains the only host entrypoint because Hub
-forbids host Python execution. It performs Docker CLI orchestration only. The
-Python runner executes inside the pinned container. Browser, integration, load,
-Allure, xdist, generated clients and additional domains are not included until
-their first accepted consumer/spike.
+`testframework/runner/**` is the sole future owner of the reviewed versioned
+outer launcher API, profile resolution, orchestration, exit preservation,
+task-run report ownership, and exact cleanup. `testframework/docker/**` owns
+only immutable images, topologies, locks, and resource/container contracts
+consumed by that future API. Package/bootstrap, target suites, and launcher are
+`NOT_READY`; runtime is `NOT_RUN`. No supported command, entrypoint, schema,
+version, or fallback exists before a separate implementation and independent
+acceptance.
 
 ## 6. Execution and security contract
 
-The versioned outer contract remains `hub.qa-runner/v1` until a deliberate
-schema migration. Every run performs:
+The future versioned outer launcher API belongs only to
+`testframework/runner/**`. When separately implemented and independently
+accepted, it must perform:
 
 ```text
 validate signed/run spec
@@ -169,7 +172,7 @@ validate signed/run spec
 → prove zero owned leftovers
 ```
 
-Required controls:
+Future acceptance controls:
 
 - non-root runtime, read-only source/root filesystem and bounded tmpfs;
 - explicit CPU, RAM, PID, file-descriptor, shm and wall-clock limits;
@@ -313,8 +316,11 @@ forbidden.
 ## 12. Revised phase intent
 
 - **128:** accept only the descriptor-safe cutover authority and guard.
-- **129:** execute exact native-unit/legacy cutover and create the minimal
-  launcher + health vertical slice above.
+- **129:** execute the exact native-unit/legacy cutover and advance the
+  structure-only scaffold toward a separately accepted package bootstrap; it
+  does not create or accept a launcher. Launcher status remains `NOT_READY` and
+  runtime remains `NOT_RUN` pending a separate implementation under
+  `testframework/runner/**` and independent acceptance.
 - **130:** establish case schemas, traceability, marker/profile and architecture
   gates.
 - **131:** typed runtime/HTTP boundaries and health/auth/account API pilot.

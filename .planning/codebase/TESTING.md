@@ -16,9 +16,15 @@
 - Vitest 3.2.4 + RTL + jest-dom: 180 files / 519 cases = 156 unit + 24 static contract, plus 3 support rows.
 - Playwright TypeScript 1.52.x: 20 specs / 53 cases plus 14 support rows.
 - Target: native units in `backend/tests/<domain>/**` and
-  `frontend/tests/<domain>/**`; pytest/httpx/Playwright Python/Locust directly
-  in root `testframework/**`.
-- Python target is absent: no root `testframework/pyproject.toml`/pytest config or `{core,api,integration,contract,e2e,load,docker,reports}/` layer exists.
+  `frontend/tests/<domain>/**`; reusable Python code belongs only under
+  `testframework/src/hub_testkit/**`, planned SUT suites under
+  `testframework/tests/{contract,api,integration,e2e}/**`, and framework
+  selftests under `testframework/selftests/**`.
+- Separate roots are `testframework/cases/**`, `testframework/schemas/**`,
+  `testframework/policies/**`, `testframework/load/**`, immutable-assets-only
+  `testframework/docker/**`, future launcher authority
+  `testframework/runner/**`, and `testframework/reports/<task-run>/**`.
+  Package, target suites, and launcher are `NOT_READY`; runtime is `NOT_RUN`.
 - Config: `backend/go.mod`, `frontend/vite.config.ts`, `frontend/playwright.config.ts`, `.github/workflows/ci.yml`; target config belongs in `testframework/pyproject.toml` with registered strict markers.
 
 **Assertion Library:**
@@ -31,14 +37,15 @@
 
 - Legacy Go/Vitest/TypeScript Playwright commands are inventory only and must
   not be run as migration evidence or fallback.
-- Target jobs run only through `/qa-gate` and the versioned
-  `testframework/docker/run-task.ps1` contract (`hub.qa-runner/v1`).
-- Until that launcher and `images.lock.json` exist and receive independent
-  acceptance, runtime status is `NOT_READY`; host or inline Docker execution is
-  forbidden.
-- Every accepted invocation records immutable image provenance, outer timeout,
-  CPU/RAM/swap/PID/network policy, first exit code, task-run owner marker and
-  exact `finally` cleanup proof.
+- `/qa-gate` is user-facing routing only. The future versioned launcher API
+  belongs only to `testframework/runner/**`; `testframework/docker/**` contains
+  only immutable execution assets and container contracts.
+- Until separate implementation and independent acceptance, launcher status is
+  `NOT_READY` and runtime is `NOT_RUN`; host or inline Docker execution is
+  forbidden and no command or fallback is supported.
+- The future accepted invocation must record immutable image provenance, outer
+  timeout, CPU/RAM/swap/PID/network policy, first exit code, task-run owner
+  marker, and exact `finally` cleanup proof.
 
 ## Test File Organization
 
@@ -48,8 +55,11 @@
 - Current E2E is under `testframework/stages/e2e/domains/<domain>/` with `testframework/stages/e2e/shared/{fixtures,helpers,pages,steps}/`.
 - Target native unit locations are `backend/tests/<domain>/` and
   `frontend/tests/<domain>/`, with frontend helpers in `frontend/tests/support/`.
-  Target Python project uses
-`testframework/{src/hub_testkit,tests/{api,integration,contract,e2e},selftests,cases,load,docker,reports}/`.
+  Target Python project uses `testframework/src/hub_testkit/**`, planned
+  `testframework/tests/{contract,api,integration,e2e}/**`, separate
+  `testframework/{selftests,cases,schemas,policies,load}/**`, immutable-assets-only
+  `testframework/docker/**`, future launcher authority `testframework/runner/**`,
+  and `testframework/reports/<task-run>/**`.
 - The target above supersedes `backend/internal/<domain>/unit/` and `frontend/src/<module>/unit/` in `.planning/active/august-2026/05-AUGUST-DETAILED.md` and TASK-197/TASK-198; those plans must be corrected before execution.
 
 **Naming:**
@@ -69,7 +79,12 @@ Target
 backend/tests/<domain>/*_test.go
 frontend/tests/<domain>/*.test.ts(x)
 frontend/tests/support/
-testframework/{src/hub_testkit,tests/{api,integration,contract,e2e},selftests,cases,load,docker,reports}/
+testframework/src/hub_testkit/**
+testframework/tests/{contract,api,integration,e2e}/**      # planned
+testframework/{selftests,cases,schemas,policies,load}/**
+testframework/docker/**                                   # immutable assets only
+testframework/runner/**                                   # future launcher authority
+testframework/reports/<task-run>/**
 ```
 
 ## Test Structure
@@ -182,9 +197,11 @@ def project(project_factory):
 - Current frontend: `testframework/stages/unit/frontend-test/render.tsx`; global jest-dom setup is `frontend/src/test/setup.ts`.
 - Current E2E: `testframework/stages/e2e/shared/fixtures.ts` plus helpers/POM/Steps.
 - Target support: frontend-only helpers живут в `frontend/tests/support/`. Четыре legacy Go support-файла удаляются; новые Go unit helpers допускаются только domain-local и не мигрируют из старого support tree.
-- Target Python: reusable clients/factories in exact task-named modules below `testframework/src/hub_testkit/`; layer/
-  domain fixtures in nearest `conftest.py`. Root `conftest.py` owns environment,
-  not domain state.
+- Target Python: reusable clients/factories in exact task-named modules below
+  `testframework/src/hub_testkit/**`; layer/domain composition may live in the
+  nearest suite `conftest.py`. If required by the first accepted suite,
+  `testframework/tests/conftest.py` is composition-only and never owns a second
+  framework or reusable environment implementation.
 - Fixture acceptance: two identical consecutive runs, zero leaked records, and parallel execution without collisions, per TASK-194/TASK-199.
 
 ## Coverage
@@ -200,9 +217,11 @@ def project(project_factory):
   task/requirement/risk/TC coverage plus behavior/oracle evidence, not a promise
   to preserve the legacy Go percentage.
 
-**Execution status:** target coverage jobs run only through the accepted
-`hub.qa-runner/v1` outer launcher. Until it exists, verdict is `NOT_READY`; no
-host command or inline Docker substitute is canonical evidence.
+**Execution status:** the future versioned outer launcher API belongs only to
+`testframework/runner/**`; `testframework/docker/**` is immutable-assets-only.
+Until separate implementation and independent acceptance, launcher is
+`NOT_READY` and runtime is `NOT_RUN`; no host command or inline Docker
+substitute is canonical evidence.
 
 ## Test Types
 
@@ -256,20 +275,22 @@ assert response.json()["request_id"]
 ## CI Gates
 
 The `Current implementation` column below is non-executable legacy inventory.
-Every target gate is a named profile of the sole accepted `hub.qa-runner/v1`;
-the table does not authorize raw commands, provider-specific runners or host
-execution.
+The future versioned launcher API belongs only to `testframework/runner/**`;
+`testframework/docker/**` is immutable-assets-only. `/qa-gate` does not execute
+until a separate implementation and independent acceptance: launcher is
+`NOT_READY`, runtime is `NOT_RUN`, and the table authorizes no raw commands,
+provider-specific runners, host execution, or fallback.
 
 | Gate | Current implementation | Migration acceptance |
 |------|------------------------|----------------------|
-| Go unit/race | Historical `backend-test` | `backend-unit` launcher profile collects expected tests, race is green, deliberate failing sentinel fails job |
+| Go unit/race | Historical `backend-test` | Future `backend-unit` runner-owned profile must collect expected tests, keep race green, and fail a deliberate sentinel |
 | Go coverage | legacy `coverage-gate` outside PR | Historical evidence only; publish a new native-unit baseline without a preservation threshold |
 | FE unit | tsc, Vitest, Biome | `frontend/tests/**` included by Vitest, tsc, and Biome; coverage recorded; linker removed |
-| Python | Not present | Launcher-owned Python profiles use pinned runtime/dependencies, strict registered markers and non-zero collection |
+| Python | Not present | Future runner-owned Python profiles must use pinned runtime/dependencies, strict registered markers, and non-zero collection |
 | E2E | TS smoke/full legacy inventory | New risk-derived Python smoke/full; zero unexpected skips; traceable TC and sanitized artifacts |
 | Load | Not present | Locust scheduled/manual only; production target rejected; p50/p95/error rate/degradation point recorded |
 | Traceability | Mostly one-way names in `docs/TESTING.md` | Code metadata + exact path/name; Allure upload into Hub TMS; unmapped count zero |
-| Entry points | GitHub/GitLab/Makefiles/manifests disagree | All retained consumers call `hub.qa-runner/v1`; non-canonical entrypoints are retired |
+| Entry points | GitHub/GitLab/Makefiles/manifests disagree | Future retained consumers route only to `testframework/runner/**`; non-canonical entrypoints are retired |
 
 ## Migration Acceptance Gates
 
@@ -278,8 +299,10 @@ execution.
 2. Execute Phase 129 literal batches: move only genuine native units, delete
    legacy non-units/static-contract/TS-E2E closure, protect hook-dependent units
    until TASK-234, and switch exact consumers atomically.
-3. Create the root Python project and `hub.qa-runner/v1`; until independent
-   launcher acceptance every runtime verdict is `NOT_READY`.
+3. Create the root Python project; reserve the future versioned launcher API
+   only for `testframework/runner/**`, while `testframework/docker/**` remains
+   immutable-assets-only. Until separate implementation and independent
+   acceptance, launcher is `NOT_READY` and runtime is `NOT_RUN`.
 4. Design new Python cases from current tasks/requirements/risks/verified TC;
    require happy/negative/authz/boundary/edge/failure-recovery analysis and a
    sensitive oracle.
