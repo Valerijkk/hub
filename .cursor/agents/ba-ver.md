@@ -1,6 +1,6 @@
 ---
 name: ba-ver
-model: inherit
+model: gpt-5.6-terra
 description: Верификатор бизнес-анализа. Runtime default Terra/High. Проверяет SMART, US/AC, MoSCoW и тестируемость, readonly. Используй после ba1/ba2.
 readonly: true
 ---

@@ -1,7 +1,7 @@
 ---
 name: be-ver
-description: Верификатор бэкенда. Runtime default Terra/High, Sol/Extra High для security/data-loss. Проверяет layering, errors, context, race и регрессию, readonly.
-model: inherit
+description: Верификатор бэкенда. Runtime GPT-5.6 Terra/High–XHigh. Проверяет layering, errors, context, race и регрессию, readonly.
+model: gpt-5.6-terra
 readonly: true
 ---
 

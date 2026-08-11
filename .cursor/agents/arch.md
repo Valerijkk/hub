@@ -1,7 +1,7 @@
 ---
 name: arch
-model: inherit
-description: Архитектор Hub. C4, deployment, библиотеки, ADR, TZ-инварианты. Runtime default Sol/Extra High, readonly. Используй для архитектурных решений, интеграций и изменения стека.
+model: gpt-5.6-terra
+description: Архитектор Hub. C4, deployment, библиотеки, ADR, TZ-инварианты. Runtime GPT-5.6 Terra/XHigh, readonly; финальный verdict остаётся root Sol/Max.
 readonly: true
 ---
 

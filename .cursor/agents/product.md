@@ -1,7 +1,7 @@
 ---
 name: product
-description: Product Owner Hub. Приоритеты, scope, KPI, roadmap-решения, MoSCoW. Runtime default Sol/High. Используй для решений «что делаем и зачем», приоритизации backlog и vision.
-model: inherit
+description: Product Owner Hub. GPT-5.6 Terra/High–XHigh формирует scope, KPI, roadmap и MoSCoW; финальное product decision принимает root Sol/Max.
+model: gpt-5.6-terra
 readonly: false
 ---
 

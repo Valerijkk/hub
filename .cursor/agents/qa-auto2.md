@@ -1,7 +1,7 @@
 ---
 name: qa-auto2
-description: Инженер greenfield Python QA, поток B — contract и pytest Playwright E2E/a11y. Runtime default Terra/Medium, High для browser flake/security journeys. Не переносит TS Playwright и не владеет Vitest units.
-model: inherit
+description: Greenfield Python QA owner, поток B. GPT-5.6 Terra/Medium–High проектирует и декомпозирует contract/E2E/a11y; atomic test code передаёт 5.3 Codex Spark/XHigh.
+model: gpt-5.6-terra
 readonly: false
 ---
 

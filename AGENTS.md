@@ -1,5 +1,22 @@
 # Hub — AI Agent Workspace
 
+> **FOUNDER MODEL ROUTING LOCK (2026-08-11; highest precedence):** only the
+> root `team-lead`/orchestrator may use `gpt-5.6-sol`, always with `max`
+> reasoning. Every subagent dispatch MUST set both `model` and
+> `reasoning_effort` explicitly; omitted values and `inherit` are invalid.
+> Analysis, decomposition, coordination and review use `gpt-5.6-terra` with
+> task-routed effort: `low` for deterministic mechanics/hash/provenance,
+> `medium` for ordinary analysis/authoring, `high` for independent review, and
+> `xhigh` for unusually complex downstream audits. Atomic code implementation
+> uses `gpt-5.3-codex` (Codex UI label: **5.3 Codex Spark**) with `xhigh` only
+> after root/Terra freezes the contract. Spark may use its full official
+> 400,000-token context window when relevant, while still owning one function,
+> small module, or single behaviour with exact files, tests and acceptance
+> criteria; architecture/security/product choices
+> remain with root/Terra. If the task does not fit, it returns `BLOCKED` for
+> further decomposition. Sol is forbidden for subagents. Unavailable runtime
+> means `UNKNOWN/BLOCKED`; silent model or effort fallback is forbidden.
+
 > **Читай первым.** Регламент: `.cursor/REGULATION.md` | База знаний: `docs/README.md`
 
 ---
@@ -79,11 +96,11 @@ GSD + агенты: `.cursor/GSD-INTEGRATION.md`, `.cursor/REGULATION.md` §8 (G
 ## AI-команда (32 файла агентов)
 
 > Реорганизована 2026-07-02 под параллельную разработку. Ростер: **`.cursor/playbooks/README.md`** · RACI: `.cursor/playbooks/team-workflow.md` · модели: **`.planning/decisions/ADR-MODELS-GPT56-2026.md`**.
-> **Модели (ADR-MODELS-GPT56, amended 2026-08-07):** `team-lead` — **GPT-5.6 Sol / Extra High** (`model: gpt-5.6-sol`; Ultra только для большой делимой задачи). Downstream frontmatter = `inherit`, но defaults явные: Terra — основная работа, Luna — механика, Sol — high-risk. Полная матрица 32 ролей, effort, цены и fallback: **`.cursor/playbooks/model-routing.md`**. `team-lead-opus` — deprecated redirect.
+> **Модели (founder lock, amended 2026-08-11):** `team-lead` — единственный **GPT-5.6 Sol / Max** слот (`model: gpt-5.6-sol`). Terra (`gpt-5.6-terra`, `low|medium|high|xhigh`) анализирует, декомпозирует и проверяет; **5.3 Codex Spark** (`gpt-5.3-codex`, всегда `xhigh`) пишет атомарный код по замороженному контракту и при необходимости использует полное официальное окно 400k. Каждый downstream dispatch обязан явно задать model+effort; `inherit`, пропуск параметра, Sol-субагенты и silent fallback запрещены. Полная матрица и dispatch guard: **`.cursor/playbooks/model-routing.md`**. `team-lead-opus` — deprecated redirect.
 > **Live runtime inventory (2026-08-08):** `.cursor/agents/` = **32 файла: 31 operational + 1 deprecated redirect**; GSD runtime = **34 typed agents** (`~/.codex/agents/gsd-*.toml`) + **71 skills** (`~/.agents/skills/gsd-*`). Superpowers установлен как workflow plugin, но не является агентом/authority. Claude Code Opus 5 остаётся отдельным founder-operated worker только для `pro-qa-ai/**`.
 
 ### Лидерство / продукт
-`team-lead` (оркестратор, Sol / Extra High), `tech-lead` (декомпозиция), `product` + `product-ver`, `codex-micro` (мелочь)
+`team-lead` (оркестратор, Sol / Max), `tech-lead` (Terra / High–XHigh), `product` + `product-ver`, `codex-micro` (5.3 Codex Spark / XHigh, атомарный код)
 
 ### Аналитика / архитектура / дизайн (потоки + верификаторы)
 

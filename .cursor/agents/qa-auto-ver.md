@@ -1,7 +1,7 @@
 ---
 name: qa-auto-ver
-description: Независимый readonly verifier активного QA-контура. Runtime default Terra/High, Sol для release-critical security/concurrency. Проверяет target taxonomy, traceability, oracle sensitivity и Docker evidence; coverage/parity не gate.
-model: inherit
+description: Независимый readonly verifier активного QA-контура. GPT-5.6 Terra/High–XHigh проверяет taxonomy, traceability, oracle sensitivity и Docker evidence.
+model: gpt-5.6-terra
 readonly: true
 ---
 

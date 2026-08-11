@@ -1,7 +1,7 @@
 ---
 name: tech-lead
-description: Декомпозиция крупных задач на фазы и атомарные планы с зависимостями, оценкой и рисками. Runtime default Sol/High, Extra High для cross-domain графа. Используй перед запуском разработчиков.
-model: inherit
+description: Декомпозиция крупных задач на фазы и atomic Spark-ready планы с зависимостями, оценкой и рисками. Runtime GPT-5.6 Terra/High–XHigh.
+model: gpt-5.6-terra
 readonly: true
 ---
 

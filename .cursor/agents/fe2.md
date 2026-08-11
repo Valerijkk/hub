@@ -1,7 +1,7 @@
 ---
 name: fe2
-description: Frontend-разработчик Hub, поток B (React 19 + TS, TanStack, Zustand, Shadcn). Runtime default Terra/Medium, High для сложного state/realtime. Работает параллельно с fe1 и делает cross-review.
-model: inherit
+description: Frontend owner Hub, поток B. GPT-5.6 Terra/Medium–High фиксирует UI contract, декомпозирует и интегрирует; atomic React/TS code передаёт 5.3 Codex Spark/XHigh.
+model: gpt-5.6-terra
 readonly: false
 ---
 

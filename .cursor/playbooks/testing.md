@@ -26,16 +26,27 @@ Root `testframework/` — один greenfield Python-проект:
 
 ```text
 testframework/
-  pyproject.toml
-  core/
-  contract/
-  api/
-  integration/
-  e2e/
-  load/
-  docker/
-  reports/
+  PACKAGE-CONTRACT.md
+  src/hub_testkit/                  reusable installable framework modules
+  tests/{contract,api,integration,e2e}/
+                                    executable pytest suites
+  selftests/                        framework contracts, never SUT behavior
+  cases/                            TC intent and risk linkage
+  schemas/                          closed case/run schemas
+  policies/                         marker/environment/redaction/profile policy
+  load/                             separate Locust lifecycle
+  docker/                           immutable execution assets only
+  runner/                           future versioned launcher API
+  reports/<task-run>/               owner-marked generated evidence
+  pyproject.toml                    future; NOT_READY
+  uv.lock                           future; NOT_READY
+  src/hub_testkit/py.typed          future; NOT_READY
 ```
+
+Commit `22035c45` фиксирует только structure/boundary scaffold. Он не создаёт
+package bootstrap, executable suites или runtime authority. Reusable code
+импортируется только как installed `hub_testkit.*`; suite roots не являются
+import warehouse и не получают собственный reusable framework.
 
 Обязательные запреты:
 
@@ -149,11 +160,14 @@ pytest/Playwright и Locust исполняются только в task-owned co
 - `--rm` либо guaranteed `down -v --remove-orphans`;
 - zero collection, unexpected skip или leaked resource = FAIL.
 
-Единственная точка исполнения — versioned outer launcher из
+Единственная будущая точка исполнения — versioned outer launcher API из
+`testframework/runner/**`, вызываемый
 [`/qa-gate`](../skills/qa-gate/SKILL.md). Он enforce wall-clock timeout,
 сохраняет exit code и выполняет exact-resource cleanup в `finally`; artifacts
 изолированы в `testframework/reports/<task-run>/` с owner marker. Пока launcher
-не реализован и независимо не проверен, любой runtime verdict — `NOT_READY`.
+не реализован и независимо не проверен, launcher — `NOT_READY`, runtime —
+`NOT_RUN`. `testframework/docker/**` содержит только immutable execution
+assets/contracts, не launcher code или alternate entrypoint.
 Прямой `docker run`/`compose up` не является допустимым substitute.
 
 ## 7. Evidence и false confidence

@@ -1,7 +1,7 @@
 ---
 name: designer
 description: Дизайнер Hub. Дизайн-система (--hub-*), UX-спеки, макеты, состояния, доступность. Runtime default Terra/High. Используй перед реализацией новых экранов/компонентов.
-model: inherit
+model: gpt-5.6-terra
 readonly: false
 ---
 

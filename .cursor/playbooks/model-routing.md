@@ -1,29 +1,63 @@
 # Hub — Model Routing: качество, стоимость и усилие
 
-> Канон runtime-выбора для AI-команды Hub. Ролевые файлы остаются
-> переносимыми (`model: inherit`), а конкретные модель и effort выбирает
-> `team-lead` при запуске и фиксирует в handoff.
+> **FOUNDER LOCK — 2026-08-11 (supersedes every conflicting row below):**
+> `team-lead`/root is the sole `gpt-5.6-sol` runtime and always uses `max`
+> reasoning. Every subagent request contains an explicit model slug and effort;
+> `inherit`, omission and silent fallback are forbidden. Terra
+> (`gpt-5.6-terra`) owns analysis, decomposition, coordination and review with
+> task-routed `low|medium|high|xhigh`. Atomic code implementation uses
+> `gpt-5.3-codex` (Codex UI: **5.3 Codex Spark**) with `xhigh`, after root/Terra
+> freezes the contract. Spark may use its full official 400,000-token context
+> window when the context is relevant, but owns only one function, small module
+> or single behaviour per task. Architecture, security and product decisions
+> stay with root/Terra. No subagent may use Sol.
+
+### Mandatory dispatch guard
+
+Before every subagent spawn, the orchestrator validates all seven facts:
+
+1. `model` is present and equals `gpt-5.6-terra` for analysis/decomposition/
+   coordination/review, or `gpt-5.3-codex` for atomic code.
+2. `reasoning_effort` is explicit and justified; Spark is always `xhigh`.
+3. Spark receives a frozen contract, exact file/function ownership, tests or
+   static acceptance evidence, and no unresolved architecture/security choice.
+4. Spark context is relevant and may use the full 400k window; context volume
+   never substitutes for bounded ownership or completion criteria.
+5. The request uses a bounded/no-history fork; it never inherits the root model.
+6. The handoff records requested and observed runtime (`UNKNOWN` without telemetry).
+7. Exact runtime unavailability returns `UNKNOWN/BLOCKED`; only root may approve
+   a new explicit route. There is no automatic Terra/Spark/Sol substitution.
+
+Failure of any guard means **do not dispatch**. Legacy Sol/Luna/Spark routing
+text is historical only and never reinterpreted as an automatic substitute; a
+new exact Terra or Spark dispatch must satisfy all guards. No subagent uses Sol.
+
+> Канон runtime-выбора для AI-команды Hub. Ролевой текст может оставаться
+> переносимым, но каждый фактический dispatch обязан явно передать конкретные
+> `model` и `reasoning_effort`; `inherit` не является допустимым runtime-запросом.
 >
-> Источники на 2026-08-07:
-> [Codex models](https://learn.chatgpt.com/docs/models) ·
-> [Codex pricing](https://learn.chatgpt.com/docs/pricing) ·
+> Источники на 2026-08-11:
+> [GPT-5.3-Codex model](https://developers.openai.com/api/docs/models/gpt-5.3-codex) ·
+> [GPT-5.6 model guidance](https://developers.openai.com/api/docs/guides/latest-model) ·
 > ADR: [`.planning/decisions/ADR-MODELS-GPT56-2026.md`](../../.planning/decisions/ADR-MODELS-GPT56-2026.md)
 
 ---
 
 ## 1. Базовый принцип
 
-Использовать **самую дешёвую модель и минимальное effort, которые надёжно
-закрывают completion bar**. Цена ошибки важнее цены запуска:
+Приоритет — **качество и производительность при полном использовании двух
+раздельных пулов**, без лишнего расхода Sol:
 
-- неоднозначность, архитектура, security, prod и финальная приёмка → **Sol**;
-- обычная разработка, анализ, тестирование и ревью → **Terra**;
-- чёткая механическая работа с эталоном результата → **Luna**;
-- near-instant итерация в одном файле → предпочтительно **Codex Spark**, если он
-  доступен; это preview, не verifier и не модель для критичных решений.
+- неоднозначность, архитектура, security, prod и финальная приёмка → только
+  root **Sol / Max**;
+- анализ, research, декомпозиция, координация и независимый review → **Terra**;
+- написание функции, небольшого модуля, точечного теста или одного поведения по
+  готовому контракту → **5.3 Codex Spark / XHigh**;
+- механический hash/provenance/identity check → **Terra / Low**.
 
-`Ultra` — режим оркестратора для большой задачи, которую действительно можно
-разделить на независимые части. Это не обычный effort субагента и не дефолт.
+Root держит до трёх полезных субагентов параллельно, когда workstreams реально
+независимы. Пустой slot-filling запрещён: параллельность должна сокращать
+wall-clock, а не дублировать чтение и расходовать лимит.
 
 ## 2. Экономика моделей
 
@@ -33,15 +67,17 @@ Snapshot flexible-pricing на 2026-08-07, credits за 1M токенов:
 |---|---:|---:|---:|---:|---|
 | GPT-5.6 Sol | 125 | 12.5 | 750 | 1.00× | Самые сложные и дорогие по цене ошибки задачи |
 | GPT-5.6 Terra | 50 | 5 | 300 | 0.40× | Основная рабочая модель команды |
-| GPT-5.6 Luna | 5 | 0.5 | 30 | 0.04× | Массовые и хорошо формализованные задачи |
+| GPT-5.6 Luna | 5 | 0.5 | 30 | 0.04× | Не маршрутизируется под founder lock; historical cost reference only |
 | GPT-5.5 | 125 | 12.5 | 750 | 1.00× | Не назначать новым агентам: прошлое поколение по цене Sol |
 | GPT-5.4 | 62.5 | 6.25 | 375 | 0.50× | Не назначать: retirement в Codex 2026-08-31 |
 | GPT-5.4 Mini | 18.75 | 1.875 | 113 | ~0.15× | Не назначать: retirement в Codex 2026-08-31 |
-| GPT-5.3 Codex Spark | preview | preview | preview | не опубликовано | Только интерактивная micro-итерация, fallback Luna |
+| GPT-5.3 Codex | $1.75 | $0.175 | $14 | отдельная API-шкала | Atomic code; в Codex UI — 5.3 Codex Spark |
 
-Практический вывод: Terra стоит 40% Sol, Luna — 4% Sol и 10% Terra при той
-же структуре ставок input/output. Поэтому Sol не используется для рутинной
-реализации, а legacy 5.5/5.4/5.4 Mini не дают выгодного нового default.
+Практический вывод: Sol не используется downstream. Terra расходуется на
+суждение и декомпозицию; отдельный Codex/Spark-пул — на максимальный объём
+атомарного кода. API-цены и персональные недельные квоты Codex UI — разные
+системы учёта; остаток персональной квоты подтверждается только live UI, а не
+выводится из этой таблицы.
 
 Перед крупной волной `team-lead` повторно сверяет live catalog и pricing:
 доступность и тарифы — внешнее изменяемое состояние, этот snapshot не заменяет
@@ -51,41 +87,41 @@ Snapshot flexible-pricing на 2026-08-07, credits за 1M токенов:
 
 | Роли | Default runtime | Повысить до | Почему |
 |---|---|---|---|
-| `team-lead` | **Sol / Extra High** | Sol / Ultra для делимой большой волны | Цель, конфликты, стоимость ошибок оркестрации |
-| `tech-lead` | **Sol / High** | Sol / Extra High для cross-domain графа | Зависимости и атомарная декомпозиция |
-| `product` | **Sol / High** | Sol / Extra High для необратимого scope-решения | Высокая бизнес-цена ошибки |
-| `product-ver` | **Terra / High** | Sol / High для milestone gate | Независимая проверка дешевле автора |
+| `team-lead` | **Sol / Max** | — | Единственный Sol-слот: цель, конфликты и финальная приёмка |
+| `tech-lead` | **Terra / High** | Terra / XHigh для cross-domain графа | Зависимости и атомарная декомпозиция без Sol-субагента |
+| `product` | **Terra / High** | Terra / XHigh для необратимого scope-решения | Высокая бизнес-цена ошибки, независимая приёмка root |
+| `product-ver` | **Terra / High** | Terra / XHigh для milestone gate | Независимая проверка дешевле автора |
 | `ba1`, `ba2` | **Terra / Medium** | Terra / High при конфликте персон/KPI | Повседневный анализ с понятным форматом |
-| `ba-ver` | **Terra / High** | Sol / High для спорного продуктового решения | Challenge-pass и трассируемость |
-| `sa1`, `sa2` | **Terra / High** | Sol / High для cross-domain API/ERD | Контракты требуют сильного reasoning |
-| `sa-ver` | **Terra / High** | Sol / High для auth/data migration | Независимая проверка контрактов |
-| `arch` | **Sol / Extra High** | — | Архитектура, ADR, стек, долгий горизонт решения |
-| `arch-ver` | **Terra / Extra High** | Sol / Extra High для prod/security ADR | Независимый challenge; Sol только по риску |
-| `designer` | **Terra / High** | Sol / High для новой дизайн-системы | Сильный everyday synthesis и tool use |
-| `designer-ver` | **Terra / High** | Sol / High для критичного user flow | WCAG, состояния, консистентность |
-| `be1`, `be2` | **Terra / Medium** | Terra / High; Sol / High для auth/crypto/migration | Основной production coding без переплаты Sol |
-| `be-ver` | **Terra / High** | Sol / Extra High для security/data-loss | Независимое воспроизведение и race/security |
-| `fe1`, `fe2` | **Terra / Medium** | Terra / High для сложного state/realtime | Основной React/TS coding |
-| `fe-ver` | **Terra / High** | Sol / High для auth/a11y release gate | Hooks, a11y, типы, регрессия |
+| `ba-ver` | **Terra / High** | Terra / XHigh для спорного продуктового решения | Challenge-pass и трассируемость |
+| `sa1`, `sa2` | **Terra / High** | Terra / XHigh для cross-domain API/ERD | Контракты требуют сильного reasoning |
+| `sa-ver` | **Terra / High** | Terra / XHigh для auth/data migration | Независимая проверка контрактов |
+| `arch` | **Terra / XHigh** | — | Архитектура и ADR; финальная приёмка остаётся root Sol |
+| `arch-ver` | **Terra / XHigh** | — | Независимый challenge без Sol-субагента |
+| `designer` | **Terra / High** | Terra / XHigh для новой дизайн-системы | Сильный everyday synthesis и tool use |
+| `designer-ver` | **Terra / High** | Terra / XHigh для критичного user flow | WCAG, состояния, консистентность |
+| `be1`, `be2` | **Terra / Medium** | Terra / High или XHigh для auth/crypto/migration | Владелец контракта/декомпозиции/интеграции; atomic code → Spark |
+| `be-ver` | **Terra / High** | Terra / XHigh для security/data-loss | Независимое воспроизведение и race/security |
+| `fe1`, `fe2` | **Terra / Medium** | Terra / High для сложного state/realtime | Владелец контракта/декомпозиции/интеграции; atomic code → Spark |
+| `fe-ver` | **Terra / High** | Terra / XHigh для auth/a11y release gate | Hooks, a11y, типы, регрессия |
 | `qa-manual` | **Terra / Medium** | Terra / High для cross-domain test design | Нужны judgment и трассируемость, не Sol по умолчанию |
-| `qa-manual-ver` | **Terra / High** | Sol / High для release-critical UAT | Проверка полноты и denial-сценариев |
-| `qa-auto1`, `qa-auto2` | **Terra / Medium** | Terra / High для flaky/concurrency/E2E infra | Тестовый код — production-grade работа |
-| `qa-auto-ver` | **Terra / High** | Sol / High для mutation/coverage gate | Детерминизм и доказательная сила теста |
-| `devops-engineer` | **Terra / High** | Sol / Extra High для prod/deploy/destructive | Инфра требует точности и rollback |
-| `security-auditor` | **Sol / Extra High** | — | Самая высокая цена пропущенной уязвимости |
-| `debugger` | **Terra / High** | Sol / Extra High для неизвестного cross-domain RCA | Terra для обычного RCA, Sol для тяжёлой неопределённости |
-| `code-reviewer` | **Terra / High** | Sol / Extra High для auth/security/migration | Независимый pre-merge challenge |
-| `docs-writer` | **Luna / Medium** | Terra / Medium для cross-domain docs | Дешёвый точный sync по заданным источникам |
-| `codex-micro` | **Spark / Light**, если доступен | Luna / Light; Terra при сомнении | Typo, rename, one-liner; строгий узкий scope |
+| `qa-manual-ver` | **Terra / High** | Terra / XHigh для release-critical UAT | Проверка полноты и denial-сценариев |
+| `qa-auto1`, `qa-auto2` | **Terra / Medium** | Terra / High для flaky/concurrency/E2E infra | Test design/decomposition; atomic test code → Spark |
+| `qa-auto-ver` | **Terra / High** | Terra / XHigh для mutation/coverage gate | Детерминизм и доказательная сила теста |
+| `devops-engineer` | **Terra / High** | Terra / XHigh для prod/deploy/destructive | Инфра требует точности и rollback |
+| `security-auditor` | **Terra / XHigh** | — | Высокая цена ошибки; финальный verdict принимает root Sol |
+| `debugger` | **Terra / High** | Terra / XHigh для неизвестного cross-domain RCA | Terra для обычного и сложного RCA |
+| `code-reviewer` | **Terra / High** | Terra / XHigh для auth/security/migration | Независимый pre-merge challenge |
+| `docs-writer` | **Terra / Low** | Terra / Medium для cross-domain docs | Точный sync по заданным источникам |
+| `codex-micro` | **5.3 Codex Spark / XHigh** | STOP → Terra/root decomposition | Функция, малый модуль, точечный тест или одно поведение по frozen contract |
 | `team-lead-opus` | deprecated | — | Не operational slot |
 
-`Extra High` в таблице соответствует «Очень высокий» в приложении. Если
-конкретный launcher не поддерживает указанный уровень, используется ближайший
-ниже и усиливается независимая проверка; выдумывать параметр нельзя.
+`XHigh` соответствует «Очень высокий» в приложении. Для Spark другой effort не
+используется. Если launcher не поддерживает exact model/effort, запуск
+блокируется; ближайший уровень или другая модель не подставляются автоматически.
 
 ## 4. Порог эскалации
 
-Повысить модель или effort на один уровень, если верен хотя бы один пункт:
+Повысить Terra effort на один уровень, если верен хотя бы один пункт:
 
 1. требования конфликтуют или completion bar нельзя доказать одним сценарием;
 2. затрагиваются auth/RBAC/secrets, деньги, персональные данные или prod;
@@ -93,9 +129,10 @@ Snapshot flexible-pricing на 2026-08-07, credits за 1M токенов:
 4. задача меняет контракты трёх и более доменов;
 5. первый запуск дважды вернулся с одинаковой содержательной ошибкой.
 
-Понизить до Luna разрешено только когда scope однозначен, есть эталон/схема
-выхода, rollback прост и результат проверяется механически. Verifier не должен
-быть слабее Terra для user-visible кода.
+Spark не «повышается» до Sol и не расширяет ownership. При нехватке контракта,
+неопределённости или слишком широком diff он возвращает `BLOCKED`; Terra/root
+дробит задачу или принимает отдельное решение. Verifier остаётся Terra и не
+наследует контекст/вывод автора как доказательство.
 
 Для critical/security сильная модель **не заменяет** отдельный контекст
 верификатора, mutation/negative evidence и project gates.
@@ -106,13 +143,15 @@ Snapshot flexible-pricing на 2026-08-07, credits за 1M токенов:
 наблюдаемой фактической конфигурацией:
 
 ```text
-requested_model: openai/gpt-5.6-terra
+requested_model: <gpt-5.6-terra|gpt-5.3-codex>  # REQUIRED; never inherit/omit
 actual_model: <observed provider/model | UNKNOWN>
 actual_model_evidence: <launcher telemetry/run id/log ref | none>
 provider: <observed | UNKNOWN>
-reasoning_effort: <observed level | UNKNOWN>
-reason: обычная production-задача, 1 домен, rollback простой
-fallback: openai/gpt-5.6-sol / high при конфликте контракта; Luna запрещена
+reasoning_effort: <low|medium|high|xhigh>  # REQUIRED; Spark=xhigh
+context_budget: <relevant tokens; Spark may use up to 400000>
+reason: <task class + why this exact model/effort>
+fallback: none; unavailable runtime => UNKNOWN/BLOCKED; Sol subagent forbidden
+quota_bucket: <sol|terra|codex-spark|UNKNOWN>
 catalog_status: available | unavailable | not_checked
 workflow: <name@revision | UNKNOWN>
 skills: <name@revision | none | UNKNOWN>
@@ -153,13 +192,13 @@ Opus не является скрытым downstream-слотом `team-lead` и
 ## 7. Быстрый выбор
 
 ```text
-Неясно / дорого ошибиться?        Sol
-Обычная инженерная работа?        Terra
-Чёткая повторяемая операция?      Luna
-Мгновенная micro-итерация?        Spark, если доступен; иначе Luna
-Большая делимая задача целиком?   team-lead Sol / Ultra
+Оркестрация/архитектура/финал?     root Sol / Max
+Анализ/декомпозиция/координация?   Terra / Medium–XHigh
+Механика/provenance?               Terra / Low
+Атомарный код по frozen contract?  5.3 Codex Spark / XHigh, context ≤400k
+Большая делимая задача?            root + до 3 explicit Terra/Spark subagents
 ```
 
 ---
 
-*Зафиксировано 2026-08-07 · пересматривать при изменении Codex catalog/pricing*
+*Зафиксировано 2026-08-11 · пересматривать при изменении Codex catalog/pricing*

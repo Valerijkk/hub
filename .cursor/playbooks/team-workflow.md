@@ -26,16 +26,26 @@
 
 ## 1.1 Модельная политика
 
-> **Model policy (ADR-MODELS-GPT56, amended 2026-08-07):** `team-lead` frontmatter = `gpt-5.6-sol`; все downstream agents = `model: inherit`. Конкретный runtime и effort выбираются по обязательной ролевой матрице [`model-routing.md`](model-routing.md), затем уточняются по capability/cost/risk/context.
+> **FOUNDER MODEL ROUTING LOCK (2026-08-11; overrides legacy routing below):**
+> only `team-lead` uses `gpt-5.6-sol`, with `max` effort. Every subagent
+> dispatch hard-codes both fields and never inherits. Terra
+> (`gpt-5.6-terra`) performs analysis, decomposition, coordination and review
+> with task-routed `low|medium|high|xhigh`. Atomic code writers use
+> `gpt-5.3-codex` (5.3 Codex Spark) with `xhigh`, one bounded code outcome and
+> the full official 400k context window when useful after Terra/root freezes the contract. Missing
+> model/effort, `inherit`, full-history inheritance, silent fallback, or a Sol
+> subagent makes the dispatch invalid.
+
+> **Model policy (founder lock, amended 2026-08-11):** `team-lead` = `gpt-5.6-sol` / `max`; Terra = analysis/decomposition/review; `gpt-5.3-codex` / `xhigh` = atomic code. Каждый downstream dispatch явно задаёт точные model+effort. `inherit`, пропуск полей и Sol-субагенты запрещены. Канон: [`model-routing.md`](model-routing.md).
 >
 > Workflow evidence/limits: [`22-ai-workflow-decisioning.md`](../knowledge/code-practices/22-ai-workflow-decisioning.md). Приоритет: founder locks → Hub safety/authority → GSD lifecycle → совместимые Superpowers 6.2.0 patterns → local heuristics. Нижний уровень не расширяет permissions.
 
 | Слот | Frontmatter | Runtime | Политика |
 |---|---|---|---|
-| Оркестратор | `gpt-5.6-sol` | **GPT-5.6 Sol / Extra High** | `team-lead` держит цель, волны, риски и финальную приёмку; Ultra только для делимой большой задачи |
-| Downstream-работа | `inherit` | **Terra / Medium–High** по умолчанию | Sol для high-risk, Luna для механики; точный default зависит от роли |
-| Micro | `inherit` | **Spark / Light**, если доступен; иначе Luna | typo, one-file rename, однострочная правка; не для security/architecture |
-| Portable agents | `inherit` | Launcher resolves | Role prompts не хардкодят model slug |
+| Оркестратор | `gpt-5.6-sol` | **GPT-5.6 Sol / Max** | Единственный Sol-слот; цель, волны, риски и финальная приёмка |
+| Анализ/декомпозиция/ревью | explicit | **GPT-5.6 Terra / Low–XHigh** | Model и effort обязательны; Terra замораживает контракт до передачи кода |
+| Atomic code | `gpt-5.3-codex` | **5.3 Codex Spark / XHigh** | Одна функция/малый модуль/одно поведение; до полного окна 400k релевантного контекста; не принимает architecture/security/product решения |
+| Portable agents | explicit | Launcher validates | Role prompt содержит literal model slug и effort; `inherit` запрещён |
 
 **Политика выбора:**
 
@@ -44,7 +54,7 @@
 - Задача субагенту описывает outcome, constraints, completion bar и evidence. Sampling-параметры не пишутся в prompt, если launcher ими не управляет.
 - Requested runtime не считается фактическим: handoff фиксирует `actual_model` по telemetry/evidence либо `UNKNOWN`, не выводит его из frontmatter.
 - `team-lead-opus` — исторический deprecated-профиль; обязательного отдельного escalation slot больше нет.
-- Только `team-lead` запускает волну и принимает фазу целиком. Micro-задачи не превращаются в волну.
+- Только `team-lead` запускает волну и принимает фазу целиком. Terra дробит code backlog до атомарных Spark-задач; Spark не превращает микрозадачу в волну и возвращает `BLOCKED`, если контракт не помещается в границы.
 - `pro-qa-ai/**` не входит в scope внутренних волн: это эксклюзивная зона Claude Code Opus 5; только явный founder handoff конкретного артефакта.
 ## 1.2 Полный ростер (32 роли)
 
@@ -54,11 +64,11 @@
 
 | Агент | Маршрутизация | Роль | Верификатор |
 |---|---|---|---|
-| `team-lead` | **GPT-5.6 Sol / Extra High** | Оркестратор волн, финальная приёмка | — (сам финальная инстанция) |
+| `team-lead` | **GPT-5.6 Sol / Max** | Оркестратор волн, финальная приёмка | — (сам финальная инстанция) |
 | `team-lead-opus` | deprecated | Исторический профиль эскалации | — |
-| `tech-lead` | Sol / High | Декомпозиция на фазы/планы | (ревью `team-lead`) |
-| `product` | Sol / High | Приоритеты, scope, MoSCoW | `product-ver` (Terra / High) |
-| `codex-micro` | Spark / Light при доступности; иначе Luna / Light | Супер-мелкие правки | — |
+| `tech-lead` | Terra / High–XHigh | Декомпозиция на фазы/планы | (ревью `team-lead`) |
+| `product` | Terra / High–XHigh | Приоритеты, scope, MoSCoW | `product-ver` (Terra / High) |
+| `codex-micro` | 5.3 Codex Spark / XHigh | Атомарная реализация функции/малого модуля/одного поведения по замороженному контракту | Ролевой Terra verifier |
 
 ### Аналитика и архитектура
 
@@ -66,7 +76,7 @@
 |---|---|---|---|
 | `ba1`, `ba2` | Terra / Medium | User Stories, AC, `vision_and_scope.md` | `ba-ver` (Terra / High) |
 | `sa1`, `sa2` | Terra / High | FR/NFR, ERD, API-контракты, `system_specification.md` | `sa-ver` (Terra / High) |
-| `arch` | Sol / Extra High | C4, deployment, стек, паттерны, `architecture.md` | `arch-ver` (Terra / Extra High) |
+| `arch` | Terra / XHigh | C4, deployment, стек, паттерны, `architecture.md` | `arch-ver` (Terra / XHigh) |
 | `designer` | Terra / High | Дизайн-система, DESIGN-SPEC, токены | `designer-ver` (Terra / High) |
 
 ### Реализация
@@ -87,11 +97,11 @@
 
 | Агент | Маршрутизация | Назначение |
 |---|---|---|
-| `devops-engineer` | Terra / High; Sol для prod | Docker, CI/CD, K3s, Caddy, compose, деплой |
-| `security-auditor` | Sol / Extra High | OWASP, ASVS L2, security-review, secrets |
+| `devops-engineer` | Terra / High–XHigh | Docker, CI/CD, K3s, Caddy, compose, деплой |
+| `security-auditor` | Terra / XHigh | OWASP, ASVS L2, security-review, secrets |
 | `debugger` | Terra / High | Root cause analysis по traceback/логам |
-| `code-reviewer` | Terra / High; Sol для critical | Pre-merge review diff |
-| `docs-writer` | Luna / Medium; Terra для cross-domain | README, wiki, Swagger, phase docs |
+| `code-reviewer` | Terra / High–XHigh | Pre-merge review diff |
+| `docs-writer` | Terra / Low–Medium | README, wiki, Swagger, phase docs |
 ## 1.3 Принцип «исполнитель + верификатор»
 
 Каждая производящая роль имеет **независимого** верификатора: отдельный запуск/контекст, который не
@@ -104,9 +114,9 @@
 
 ### Чек-лист состава (§1)
 
-- [ ] `team-lead` = GPT-5.6 Sol / Extra High, оркестратор и финальная приёмка.
+- [ ] `team-lead` = GPT-5.6 Sol / Max, единственный Sol-слот, оркестратор и финальная приёмка.
 - [ ] Downstream-модели выбраны по capability/cost/risk из реально доступных Cursor runtimes.
-- [ ] Portable agent использует `inherit`, если это поддерживается launcher-ом.
+- [ ] Каждый downstream launch содержит explicit model+effort: Terra для analysis/decomposition/review или `gpt-5.3-codex` / `xhigh` для atomic code; `inherit` запрещён.
 - [ ] У каждой производящей роли есть персональный верификатор.
 - [ ] Параллельные исполнители разведены по файлам/модулям.
 
@@ -248,10 +258,10 @@ debugger (root cause) → be/fe (fix атомарно) → be-ver/fe-ver → qa 
 ## 4.1 Модель волн
 
 `team-lead` исполняет фазу волнами. Волна — набор задач, которые можно делать **одновременно** без
-конфликтов. Правило: **≤ 4 параллельных агента на волну** (из `GSD-INTEGRATION.md`).
+конфликтов. Правило: **root + ≤3 параллельных субагента** (4 active slots total).
 
 ```
-Wave N: spawn до 4 параллельных агентов
+Wave N: root + до 3 параллельных субагентов (4 active slots total)
    каждый: делает атомарную задачу
          → test-triage при падении теста
          → /qa-gate по затронутым пакетам
@@ -316,7 +326,7 @@ Wave 4 (приёмка):
 
 ### Чек-лист волн (§4)
 
-- [ ] ≤ 4 параллельных агента на волну.
+- [ ] Root + ≤3 параллельных субагента; каждый slot занят независимой полезной задачей.
 - [ ] Задачи разведены по модулям/файлам; общий контракт зафиксирован первым коммитом.
 - [ ] Между волнами — sync point: `/qa-gate` + `/handoff-sync`.
 - [ ] Порядок мержа: фундамент → зависимые слои; merge-ready → пользовательский rebase-merge.
@@ -326,7 +336,7 @@ Wave 4 (приёмка):
 # 5. Оркестрация `team-lead`
 ## 5.1 Обязанности
 
-`team-lead` (GPT-5.6 Sol / Extra High) — дирижёр. Он:
+`team-lead` (GPT-5.6 Sol / Max) — дирижёр. Он:
 
 1. Принимает задачу/фазу, загружает контекст (`docs/`, `STATE.md`, `ROADMAP.md`, план `tech-lead`).
 2. Разбивает на волны и делегирует субагентам (см. §4).
@@ -401,7 +411,7 @@ Wave 4 (приёмка):
 - max_retries_per_failure: <N|NOT_SET>; max_fix_attempts_per_root_cause: <N<=3|NOT_SET>
 - max_re_review_rounds: <N<=5|NOT_SET>
 - wall_clock_limit: <duration|NOT_SET>
-- requested_model: <provider/model>; reasoning_effort: <level|UNKNOWN>
+- requested_model: <gpt-5.6-terra|gpt-5.3-codex, REQUIRED and explicit>; reasoning_effort: <low|medium|high|xhigh, REQUIRED; Spark=xhigh>
 - actual_model: UNKNOWN при dispatch; provider: <observed|UNKNOWN>; actual_model_evidence: <telemetry/ref|none>
 - workflow: <name@revision|UNKNOWN>; skills: <name@revision|none|UNKNOWN>
 - plugins: <name@revision|none|UNKNOWN>; MCP: <server@revision + capability scope|none|UNKNOWN>

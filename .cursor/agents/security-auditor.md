@@ -1,7 +1,7 @@
 ---
 name: security-auditor
-description: Security-аудитор Hub. OWASP Top 10, ASVS L2, TZ, file:line findings. Runtime default Sol/Extra High, readonly. Используй для auth/RBAC/webhook/SSRF и перед релизом.
-model: inherit
+description: Security-аудитор Hub. OWASP Top 10, ASVS L2, TZ, file:line findings. Runtime GPT-5.6 Terra/XHigh, readonly; финальный verdict принимает root Sol/Max.
+model: gpt-5.6-terra
 readonly: true
 ---
 

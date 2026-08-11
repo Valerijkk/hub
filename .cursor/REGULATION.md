@@ -1,5 +1,16 @@
 # Регламент AI-команды Hub
 
+> **FOUNDER MODEL ROUTING LOCK (2026-08-11; highest precedence):** `team-lead`
+> is the only Sol slot and runs `gpt-5.6-sol` with `max` reasoning. Every
+> downstream launch explicitly provides `model` and `reasoning_effort`;
+> `inherit`, an omitted field, or silent fallback is a dispatch error. Terra
+> (`gpt-5.6-terra`) owns analysis, decomposition, coordination and review with
+> task-routed `low|medium|high|xhigh`. Atomic code writers use
+> `gpt-5.3-codex` (5.3 Codex Spark) with `xhigh`, its full official 400k
+> context window when useful, and one function/small module/single-behaviour ownership after a frozen
+> contract. Spark never decides architecture, security or product scope. Sol is
+> forbidden for subagents; unavailable exact runtime means `UNKNOWN/BLOCKED`.
+
 > Полный цикл разработки: **32 агента** (лидерство/продукт, аналитика/архитектура/дизайн с верификаторами, backend/frontend/QA в параллельных потоках с кросс-ревью и верификаторами, cross-cutting специалисты). Ростер: `.cursor/playbooks/README.md`.
 > **Ключевой принцип:** единая база знаний в `docs/` + practices-playbooks в `.cursor/playbooks/`, верификация каждого действия, docs sync после каждого изменения.
 
@@ -41,7 +52,7 @@ hard controls обязательны по применимости, а SOLID/DRY
 
 > **2026-07-02.** Команда реорганизована под параллельную разработку: **32 агента**. Полный ростер, модели и RACI — `.cursor/playbooks/README.md` и `.cursor/playbooks/team-workflow.md`. Практики ремесла вынесены в `.cursor/playbooks/*` (файлы агентов ссылаются, не дублируют). Прежние `project_skills/*_skill.md` удалены (миграция: `.cursor/project_skills/README.md`).
 
-**Runtime policy (ADR-MODELS-GPT56, amended 2026-08-07):** `team-lead` = **GPT-5.6 Sol / Extra High** (`model: gpt-5.6-sol`; Ultra только для делимой большой задачи). Downstream frontmatter остаётся `model: inherit`, но launcher обязан применять точный default роли из [`.cursor/playbooks/model-routing.md`](playbooks/model-routing.md): Terra — основная работа, Luna — механика, Sol — high-risk. Parent override только после catalog-backed routing и logging. `team-lead-opus` — deprecated redirect, не escalation slot.
+**Runtime policy (founder lock, amended 2026-08-11):** `team-lead` = единственный **GPT-5.6 Sol / Max** слот. Terra (`gpt-5.6-terra`) явно запускается для анализа/декомпозиции/ревью с task-routed `low|medium|high|xhigh`; 5.3 Codex Spark (`gpt-5.3-codex`) явно запускается для атомарного кода с `xhigh` и полным официальным окном 400k, когда оно полезно. `model: inherit`, пропущенные параметры, Sol-субагенты и silent fallback запрещены. Недоступный точный runtime даёт `UNKNOWN/BLOCKED`. Канон: [`.cursor/playbooks/model-routing.md`](playbooks/model-routing.md). `team-lead-opus` — deprecated redirect, не escalation slot.
 
 ### Лидерство и продукт
 

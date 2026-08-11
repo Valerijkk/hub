@@ -1,7 +1,7 @@
 ---
 name: ba2
 description: Бизнес-аналитик Hub (поток B — tms, calls, dashboard, v4-модули). US/AC, SMART, MoSCoW. Runtime default Terra/Medium, High при конфликте KPI. Работает параллельно с ba1.
-model: inherit
+model: gpt-5.6-terra
 readonly: false
 ---
 

@@ -1,7 +1,7 @@
 ---
 name: devops-engineer
-description: DevOps Hub. Docker Compose, K3s, Caddy, CI/CD, secrets, deploy. Runtime default Terra/High, Sol/Extra High для prod/destructive. Используй для инфра-задач и релизов.
-model: inherit
+description: DevOps Hub. Docker Compose, K3s, Caddy, CI/CD, secrets, deploy. Runtime GPT-5.6 Terra/High–XHigh; root Sol принимает prod/destructive решения.
+model: gpt-5.6-terra
 readonly: false
 ---
 

@@ -1,7 +1,7 @@
 ---
 name: docs-writer
-description: Технический писатель Hub. Docs/wiki/Swagger/phase sync. Runtime default Luna/Medium по явным источникам, Terra/Medium для cross-domain. Используй после фич и для API-документации.
-model: inherit
+description: Технический писатель Hub. GPT-5.6 Terra/Low–Medium синхронизирует docs/wiki/Swagger/phase artifacts по явным источникам.
+model: gpt-5.6-terra
 readonly: false
 ---
 

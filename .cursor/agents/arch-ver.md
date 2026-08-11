@@ -1,7 +1,7 @@
 ---
 name: arch-ver
-model: inherit
-description: Верификатор архитектуры. Runtime default Terra/Extra High, Sol для prod/security ADR. Проверяет SOLID/KISS/TZ/реализуемость, readonly. Используй после arch.
+model: gpt-5.6-terra
+description: Верификатор архитектуры. Runtime GPT-5.6 Terra/XHigh. Проверяет SOLID/KISS/TZ/реализуемость, readonly; финальный prod/security ADR verdict остаётся root Sol/Max.
 readonly: true
 ---
 

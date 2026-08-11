@@ -1,7 +1,7 @@
 ---
 name: qa-auto1
-description: Инженер greenfield Python QA, поток A — public API, integration и load/resilience. Runtime default Terra/Medium, High для concurrency/failure recovery. Не переносит legacy и не владеет native units.
-model: inherit
+description: Greenfield Python QA owner, поток A. GPT-5.6 Terra/Medium–High проектирует и декомпозирует API/integration/load; atomic test code передаёт 5.3 Codex Spark/XHigh.
+model: gpt-5.6-terra
 readonly: false
 ---
 

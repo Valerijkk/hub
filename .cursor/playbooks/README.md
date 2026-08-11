@@ -30,17 +30,16 @@
 
 ## 0. Runtime routing моделей
 
-> **Policy (ADR-MODELS-GPT56, amended 2026-08-07):** `team-lead` оркестрирует на **GPT-5.6 Sol / Extra High** (`model: gpt-5.6-sol`). Downstream frontmatter остаётся `inherit`, но runtime больше не неявный: точные defaults 32 ролей, effort и пороги эскалации заданы в [`model-routing.md`](model-routing.md).
+> **Policy (ADR-MODELS-GPT56, amended 2026-08-11):** root `team-lead` — единственный **GPT-5.6 Sol / Max**. Terra явно выполняет analysis/decomposition/review; 5.3 Codex Spark (`gpt-5.3-codex`) / XHigh — atomic code. Все model frontmatter и каждый dispatch explicit; `inherit` и silent fallback запрещены. Канон: [`model-routing.md`](model-routing.md).
 
 | Слот | Frontmatter | Runtime policy |
 |------|-------------|----------------|
-| Оркестратор `team-lead` | `gpt-5.6-sol` | **GPT-5.6 Sol / Extra High**; Ultra только для большой делимой задачи |
-| Ролевые исполнители и `*-ver` | `inherit` | Terra — основной default; Sol для high-risk; точная строка роли в `model-routing.md` |
-| Micro `codex-micro` | `inherit` | Spark / Light preferred при доступном preview; Luna / Light fallback |
-| Portable agents | `inherit` | Launcher/model-router owns slug and sampling |
-| `team-lead-opus` | `inherit` | Deprecated compatibility redirect; not an escalation slot |
+| Оркестратор `team-lead` | `gpt-5.6-sol` | **GPT-5.6 Sol / Max**; единственный Sol runtime |
+| Ролевые исполнители и `*-ver` | `gpt-5.6-terra` | Analysis/decomposition/review; explicit Low–XHigh |
+| Atomic code `codex-micro` | `gpt-5.3-codex` | **5.3 Codex Spark / XHigh**, context до 400k |
+| `team-lead-opus` | `gpt-5.6-terra` | Deprecated compatibility redirect; not an escalation slot |
 
-Parent/orchestrator may explicitly override downstream model at launch only after catalog-backed routing and logging in handoff. Legacy 5.5/5.4/5.4 Mini не назначаются новым агентам; 5.4-линия retire из Codex 2026-08-31.
+Runtime mismatch не лечится automatic override: root создаёт новый explicit route либо останавливает задачу `UNKNOWN/BLOCKED`.
 
 `pro-qa-ai/**` — внешняя защищённая зона Claude Code Opus 5. Агенты Hub её не сканируют и не меняют; конкретный артефакт принимается только через явный founder handoff.
 
@@ -147,15 +146,15 @@ Evidence-aware примеры, hard controls, review warnings, negative sentinel
 
 ## 3. Ростер команды (32 файла агентов)
 
-**Runtime:** `team-lead` — GPT-5.6 Sol / Extra High; downstream — `inherit` с role defaults из `model-routing.md` и catalog-backed override (§0).
+**Runtime:** `team-lead` — GPT-5.6 Sol / Max; downstream explicit Terra, atomic code explicit 5.3 Codex Spark / XHigh (§0).
 
 ### Тир 1 — Лидерство
 | Агент | Файл | Runtime | Роль |
 |-------|------|-----------------|------|
-| Team Lead | `team-lead.md` | **Sol / Extra High** | Оркестратор волн, делегирование, финальная приёмка |
+| Team Lead | `team-lead.md` | **Sol / Max** | Оркестратор волн, делегирование, финальная приёмка |
 | Team Lead (esc.) | `team-lead-opus.md` | deprecated | Исторический профиль; routing теперь внутри `team-lead` |
 | Tech Lead | `tech-lead.md` | routed | Декомпозиция на фазы/планы, зависимости, риски |
-| Codex Micro | `codex-micro.md` | `inherit` (routed micro) | Супер-мелкие правки (не волны) |
+| Codex Micro | `codex-micro.md` | **5.3 Codex Spark / XHigh** | Атомарный код по frozen contract (не волны) |
 
 ### Тир 2 — Продукт
 | Агент | Файл | Роль |

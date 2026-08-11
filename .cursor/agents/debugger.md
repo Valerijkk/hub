@@ -1,7 +1,7 @@
 ---
 name: debugger
-description: Диагност Hub. Root-cause по трейсам, логам и симптомам. Runtime default Terra/High, Sol/Extra High для неизвестного cross-domain RCA. Используй при панике, регрессии и flaky.
-model: inherit
+description: Диагност Hub. Root-cause по трейсам, логам и симптомам. Runtime GPT-5.6 Terra/High–XHigh. Используй при панике, регрессии и flaky.
+model: gpt-5.6-terra
 readonly: false
 ---
 

@@ -1,7 +1,7 @@
 ---
 name: sa1
-description: Системный аналитик Hub (поток A — auth, tracker, sprint, messenger, ws). FR/NFR, ERD, REST API. Runtime default Terra/High, Sol для cross-domain. Работает параллельно с sa2.
-model: inherit
+description: Системный аналитик Hub, поток A. GPT-5.6 Terra/High–XHigh: FR/NFR, ERD, REST API и Spark-ready atomic contracts.
+model: gpt-5.6-terra
 readonly: false
 ---
 

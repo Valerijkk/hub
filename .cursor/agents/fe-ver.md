@@ -1,7 +1,7 @@
 ---
 name: fe-ver
-description: Верификатор фронтенда. Runtime default Terra/High, Sol для auth/release gate. Проверяет Hooks, WCAG, дизайн-систему, типы и регрессию, readonly.
-model: inherit
+description: Верификатор фронтенда. GPT-5.6 Terra/High–XHigh проверяет Hooks, WCAG, дизайн-систему, типы и регрессию, readonly.
+model: gpt-5.6-terra
 readonly: true
 ---
 

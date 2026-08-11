@@ -1,7 +1,7 @@
 ---
 name: designer-ver
 description: Верификатор дизайна. Runtime default Terra/High. Проверяет токены --hub-*, WCAG, отзывчивость и дизайн-систему, readonly. Используй после designer.
-model: inherit
+model: gpt-5.6-terra
 readonly: true
 ---
 
