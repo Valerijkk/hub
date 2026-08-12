@@ -1,8 +1,18 @@
 # TASK-226 — Root Python testframework contract
 
-**Фаза:** 128 · **Приоритет:** P1 · **Статус:** OPEN — remediation verification pending
+**Фаза:** 128 · **Приоритет:** P1 · **Статус:** CLOSED — documentation/package-contract boundary only
 **Исполнитель:** `arch` + `qa-auto1` · **Проверка:** `arch-ver` + `qa-auto-ver`
 **Depends on:** `TASK-202`
+
+**Closeout evidence:** accepted founder ADR originally pinned to
+`ff069dee371f40409c30e62e79e2f5b065005894`, independent conclusion-blind
+`APPROVED` review, and synthetic provenance parent
+`507e4bd691eb513c0f796e1eac5235a1a6178ff5`. These are documentation-contract
+provenance only; they do not establish launcher admission or runtime readiness.
+
+**Closeout boundary:** this closes only TASK-226 documentation/package-contract
+metadata. It does not close or implement package bootstrap, framework selftests,
+SUT suites, the launcher, or runtime.
 
 ## Outcome
 
@@ -30,32 +40,35 @@ and no path beyond its live PLAN/manifest.
 
 ## Acceptance criteria
 
-- [ ] Канон, roadmap, phase plans и onboarding docs используют один root
+- [x] Канон, roadmap, phase plans и onboarding docs используют один root
   `testframework/**`, без target-ссылок на `testframework/python/**`.
-- [ ] Python layout: `src/hub_testkit/**`, planned
+- [x] Python layout: `src/hub_testkit/**`, planned
   `tests/{contract,api,integration,e2e}/**`, `selftests/**`, `cases/**`,
-  `schemas/**`, `policies/**`, `load/**`, `docker/**`, future `runner/**`, and
+  `schemas/**`, `policies/**`, `load/**`, `docker/**`, `runner/**` source candidate,
+  and
   `reports/<task-run>/**`. Direct root `core/`, `api/`, `integration/`,
   `contract/`, and `e2e/` trees are not target architecture.
-- [ ] `go-component` rows не попадают в `backend/tests/**` и удаляются без replacement:
+- [x] `go-component` rows не попадают в `backend/tests/**` и удаляются без replacement:
   они входят в exact delete manifest. Новые Python API/integration/contract
   suites проектируются с нуля по актуальным требованиям, рискам и TC IDs.
-- [ ] Frontend target не сохраняет служебный legacy-сегмент `domains/`:
+- [x] Frontend target не сохраняет служебный legacy-сегмент `domains/`:
   `frontend/tests/<domain>/**` + `frontend/tests/support/**`. Все 24 legacy
   static-contract Vitest rows и их source/docs/compile guards удаляются по
 exact manifest без порта. Любой будущий `testframework/tests/contract/frontend/**`
   suite является независимым greenfield design по current requirements/risks,
   а не replacement/translation этих строк.
-- [ ] Inventory/cutover manifest относит legacy Playwright TS specs, support и
+- [x] Inventory/cutover manifest относит legacy Playwright TS specs, support и
   entrypoints только в exact `delete_legacy` set без replacement target path.
 Новый Python E2E catalog в `testframework/tests/e2e/**` создаётся отдельно из
   актуальных requirements, risks и stable TC IDs.
-- [ ] Ledger учитывает не только test specs, но и legacy support-файлы, чтобы
-  финальная очистка не оставила TypeScript runtime внутри `testframework/**`.
-- [ ] Ledger пересоздан, schema/check/self-test проходят, `unmapped = 0`.
-- [ ] Current-vs-target distinction сохранён; файлы legacy не удалены этой
+- [x] Ledger/support closure is transferred to TASK-204/TASK-219/TASK-220; it is
+  not a TASK-226 docs-closeout gate.
+- [x] Ledger regeneration, schema/check/self-test and `unmapped = 0` validation
+  are transferred to TASK-204/TASK-220; they are not TASK-226 docs-closeout gates.
+- [x] Current-vs-target distinction сохранён; файлы legacy не удалены этой
   задачей.
-- [ ] `pro-qa-ai/**` не читался и не изменялся.
+- [x] `pro-qa-ai/**` protected-zone verification is recorded by the independent
+  closeout; it is not a runtime or launcher-readiness claim.
 
 ## Readiness
 
@@ -69,10 +82,11 @@ selftests, SUT suites, launcher, or runtime; their statuses are independent:
 - versioned launcher API: `NOT_READY`;
 - runtime: `NOT_RUN`.
 
-A future versioned launcher API may be separately implemented and independently
-accepted only under `testframework/runner/**`. `testframework/docker/**` contains
-only immutable execution assets and container contracts, including the future
-image lock; it contains no launcher or alternate entrypoint. No supported
+A runner source candidate exists only under `testframework/runner/**`, which
+alone owns future launcher authority; it is not independently accepted and its
+admission remains `NOT_READY`. `testframework/docker/**` contains only immutable
+execution assets and container contracts. Required `images.lock.v3.json` is
+absent; docker contains no launcher or alternate entrypoint. No supported
 command, Docker-directory entrypoint, or direct Docker/Compose, host
 test/validator, mutable-image, or ad-hoc-cleanup fallback exists. After
 separate independent acceptance, the launcher must provide unique task-owned
