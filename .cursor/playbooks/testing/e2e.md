@@ -1,20 +1,28 @@
-# E2E: Playwright и объекты страниц
+# E2E: целевой Python-suite и исторический Playwright-контекст
 
 > Часть плейбука тестирования. Канон и оглавление — [`../testing.md`](../testing.md).
 
-Канон Hub для сквозных сценариев: POM, шаги, стабильность прогона.
+Целевой E2E-контракт Hub — единый Python-suite в
+`testframework/tests/e2e/**`. `smoke` — pytest marker для выбора быстрых
+сценариев из этого единственного suite. `full` — не pytest marker: это профиль
+будущего outer launcher, выбирающий полный тот же `testframework/tests/e2e/**`
+suite. Отдельных каталогов smoke/full не создаём.
+
+Пакет, outer launcher и целевые suites пока `NOT_READY`; для этой
+документационной волны runtime — `NOT_RUN`. До принятой реализации никакая
+прямая host/Docker/legacy команда не является fallback, gate или runtime
+evidence. Далее сохранены исторические Playwright-практики POM, шагов и
+стабильности как контекст миграции, а не как инструкция для целевого запуска.
 
 ---
 
-## 6. E2E (Playwright + POM)
+## 6. E2E (исторический Playwright + POM)
 
-E2E-тесты (20 spec) проверяют критические сквозные пути в реальном браузере. Живут в `testframework/stages/e2e/domains/{domain}/`, общий код — в `shared/`. Два job: `e2e-smoke` (3 spec без backend) и `e2e-full` (20 spec с backend).
-
-```bash
-cd frontend
-npm run test:e2e:smoke   # job e2e-smoke (--project=chromium-smoke)
-npm run test:e2e         # job e2e-full (--project=chromium-full)
-```
+Исторические E2E-тесты (20 Playwright spec) проверяли критические сквозные
+пути в реальном браузере и находились в
+`testframework/stages/e2e/domains/{domain}/`; общий код был в `shared/`.
+Эта топология и её прежние job не определяют целевой Python E2E-contract и не
+могут использоваться как fallback или доказательство runtime.
 
 ### 6.1. Архитектура: BasePage → Page Object → Steps → Spec
 
@@ -234,36 +242,34 @@ const projectKey = `E${suffix}`.slice(0, 10);
 - **Каждый тест логинится сам** (в `beforeEach` или в начале теста) — не полагаться на состояние предыдущего.
 - **Не шарить созданные сущности** между тестами; чистка — через восстановление/удаление внутри сценария (как в `project-lifecycle`: создать → удалить → восстановить).
 
-### 6.7. Smoke vs full
+### 6.7. Smoke marker и full launcher profile
 
-| Job | Что | Backend | Когда |
-|-----|-----|---------|-------|
-| `e2e-smoke` | 3 spec: login, a11y, critical-gate | нет | на каждом PR (быстро, дёшево) |
-| `e2e-full` | 20 spec: все домены | да (`scripts/ci-e2e-backend.sh`) | полный прогон |
+| Термин | Значение | Область выбора |
+|--------|----------|----------------|
+| `smoke` | pytest marker для быстрых риск-ориентированных E2E-сценариев | `testframework/tests/e2e/**` |
+| `full` | профиль будущего outer launcher, выбирающий полный E2E-suite | тот же `testframework/tests/e2e/**` |
 
-Список e2e-full: `login, critical-gate, navigation, logout, health, admin-audit, admin-ai, admin-metrics, ai-hub, automation, metrics, command-palette, shortcuts, onboarding-profile, notifications, project-lifecycle, messenger, tms, a11y, v4-superapp`.
+`full` не выражает marker-семантику и не создаёт отдельный путь, каталог или
+pytest-выборку. Новый критический user-path проектируется риск-ориентированно в
+едином E2E-suite; попадание в smoke определяется только marker-стратегией, а
+полный охват — launcher profile после его отдельной реализации и приёмки.
 
-**Правило:** новый критический user-path → добавить в подходящий домен `e2e-full`; в smoke — только login/a11y/critical-gate (не раздувать, smoke должен быть быстрым).
+Пока launcher и package `NOT_READY`, а runtime `NOT_RUN`, нельзя заменять этот
+контракт историческими Playwright jobs, legacy runners, прямыми host/Docker
+командами или заявлением об успешном прогоне.
 
-### 6.8. Шардинг и merge-reports в CI (2026)
+### 6.8. Исторический контекст: шардинг и merge-reports
 
-Для e2e-full (20 spec, 30 min timeout) канон CI-механики — шардинг по машинам + объединённый отчёт (сейчас `workers: 1` — wall-time можно сократить до ~10–12 мин):
+> Неисполняемое историческое описание. Оно не является текущей CI-механикой,
+> gate, fallback или runtime evidence и не даёт команды для запуска.
 
-```yaml
-# ci.yml: матрица шардов, каждый job гонит свою долю
-strategy:
-  matrix: { shard: [1/2, 2/2] }
-steps:
-  - run: npx playwright test --project=chromium-full --shard=${{ matrix.shard }} --reporter=blob
-  - uses: actions/upload-artifact@v4
-    with: { name: blob-report-${{ strategy.job-index }}, path: blob-report }
+В прежнем Playwright-контуре полный набор из 20 spec предполагал шардинг между
+машинами с blob-отчётами и последующим объединением в HTML-отчёт. Этот подход
+мог сокращать wall-time, но не заменяет будущий outer launcher и не переносит
+его authority на legacy Playwright tooling.
 
-# отдельный job после шардов: единый HTML-отчёт
-- run: npx playwright merge-reports --reporter=html ./all-blob-reports
-```
-
-- Параллелизм внутри одного файла — `test.describe.configure({ mode: "parallel" })` (только для независимых тестов; изоляция данных — раздел 6.6 обязательна).
-- **Бюджет CI:** студенческий лимит ~3000 мин/мес — шардинг умножает job-минуты незначительно, но сокращает wall-time; включать по образцу coverage-gate (только master push + label), не на каждый PR.
+- Параллелизм внутри одного исторического файла допускался только для независимых тестов; изоляция данных из раздела 6.6 оставалась обязательной.
+- Исторический CI-бюджет ограничивал применение шардирования. Для целевого Python-suite будущая стратегия параллелизма, артефактов и resource limits принадлежит только outer launcher после отдельной реализации и приёмки.
 
 ### 6.9. Чек-лист E2E-теста
 
@@ -274,7 +280,7 @@ steps:
 - [ ] Аутентификация через `AuthSteps`/dev-login (цель 2026 — setup-project + `storageState`), не ручной magic-link.
 - [ ] (2026) Бизнес-шаги обёрнуты в `test.step()` — видны в HTML/trace и конвертируются в Allure.
 - [ ] Уникальные данные на прогон (суффикс времени), тест самодостаточен.
-- [ ] Новый критический путь добавлен в e2e-full, smoke не раздут.
+- [ ] Новый критический путь расположен в едином `testframework/tests/e2e/**`; smoke отмечен pytest marker только при соответствии его риск-стратегии, а full остаётся launcher profile.
 - [ ] Прогон стабилен (нет флейков при повторе) — раздел 13.
 
 ---
