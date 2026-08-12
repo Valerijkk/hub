@@ -25,23 +25,28 @@ fixture-кода между suites.
 | `testframework/schemas/` | схемы контрактов |
 | `testframework/policies/` | политики и правила исполнения |
 | `testframework/load/` | профили Locust |
+| `testframework/docker/` | только immutable execution assets |
+| `testframework/runner/` | единственный будущий versioned outer-launcher API |
 | `testframework/reports/` | task-owned результаты запусков |
 
 `smoke` — pytest marker, а `full` — профиль будущего launcher; это не
-взаимозаменяемые названия каталогов или старых раннеров.
+взаимозаменяемые названия каталогов или старых раннеров. Результаты принадлежат
+строго `testframework/reports/<task-run>/`.
 
 ## 2. Статус исполнения
 
 Метаданные пакета (`testframework/pyproject.toml`, `uv.lock` и
 `src/hub_testkit/py.typed`) и versioned outer launcher ещё не реализованы.
 До отдельной реализации и независимой проверки launcher имеет статус
-`NOT_READY`, а runtime — `NOT_RUN`.
+`NOT_READY`, а runtime — `NOT_RUN`. G0-B остаётся `NOT_VERIFIED`: статический
+обзор документа не создаёт runtime-доказательства.
 
 Единственным будущим владельцем outer-launcher API является
 `testframework/runner/**`. Он будет отвечать за task-owned имена, лимиты
 CPU/RAM/PID, wall-clock timeout, изолированные артефакты
 `testframework/reports/<task-run>/` с owner marker, сохранение exit code и
-безусловный cleanup exact resources в `finally`.
+безусловный cleanup в `finally` только заранее записанных точных task-owned
+resources, а затем read-only postcheck этих ресурсов.
 
 `testframework/docker/**` содержит только immutable execution assets и их
 контракты. В нём не появляется launcher-код, альтернативная точка входа или
@@ -91,7 +96,8 @@ ID, sanitised endpoint, identity fixture и timing. Политика redaction �
 
 Coverage-профили, временные файлы и диагностические результаты не коммитятся.
 Cleanup артефактов — часть будущего launcher-контракта, а не ручной постскриптум
-после запуска.
+после запуска: finalizer очищает только заранее записанные точные task-owned
+resources и фиксирует read-only postcheck.
 
 ## 5. Время и производительность
 
@@ -107,26 +113,28 @@ skipped, выделенные ресурсы, сервисный профиль,
 данных, конкуренцией и состоянием зависимостей.
 
 Нагрузочные профили принадлежат `testframework/load/` и отделены от pytest
-suites. Они получают собственную traceability, изоляцию, лимиты ресурсов и
-отчётные артефакты.
+suites. Их lifecycle ограничен отдельно; они получают собственную traceability,
+изоляцию, лимиты ресурсов и task-owned отчётные артефакты.
 
 ## 6. Минимальное runnable evidence
 
-После появления и независимой проверки launcher доказательство каждого
-значимого запуска должно быть воспроизводимым и включать не менее следующего:
+Evidence существует только после вызова будущего `/qa-gate` через принятый
+versioned outer-launcher из `testframework/runner/**`. После появления и
+независимой проверки launcher доказательство каждого значимого запуска должно
+быть воспроизводимым и включать не менее следующего:
 
 ```yaml
 job: <target job>
 source_sha: <source revision>
-image: <immutable tag or digest>
+image: <immutable image digest>
 launcher: <versioned outer-launcher API>
 inner_command: <recorded command>
 resources: { cpus: <limit>, memory: <limit>, pids: <limit> }
 service_profile: <none or profile>
-result: { collected: <N>, passed: <N>, failed: <N>, skipped: <N> }
+result: { collected: <non-zero N>, passed: <N>, failed: <N>, skipped: <N> }
 duration: <seconds>
-artifacts: testframework/reports/<task-run>/
-cleanup: <recorded result>
+artifacts: <one task-owned report URI under testframework/reports/<task-run>/>
+cleanup: <exact-resource finalizer result and read-only postcheck>
 ```
 
 Такое evidence не заменяется наличием файлов, raw grep, покрытием, зелёным
@@ -143,9 +151,12 @@ mock-only assert, историческим результатом или self-re
 - [ ] TC, requirement и observable oracle однозначно связаны с проверкой.
 - [ ] Диагностика не содержит секретов или PII и имеет task/run/worker namespace.
 - [ ] Для runtime нет заявлений до состояния launcher `NOT_READY` → отдельной
-  реализации → независимого evidence; текущий runtime остаётся `NOT_RUN`.
+  реализации → независимого evidence; текущие статусы остаются `NOT_READY`,
+  `NOT_RUN` и `G0-B NOT_VERIFIED`.
 - [ ] Артефакты, ресурсы и cleanup фиксируются только через будущий
-  `testframework/runner/**`; альтернативный раннер не вводится.
+  `testframework/runner/**` и `/qa-gate`; альтернативный раннер не вводится.
+- [ ] Никакая статическая проверка, наличие файла или self-report не объявляются
+  runtime `PASS`, green runtime или verified runtime.
 
 Связанные документы: [`../testing.md`](../testing.md),
 [`../../skills/qa-gate/SKILL.md`](../../skills/qa-gate/SKILL.md),
