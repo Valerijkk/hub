@@ -1,82 +1,71 @@
 ---
-description: Delete coverage dumps and temp artifacts after qa-gate, test runs, or before handoff. Apply when running go test -coverprofile, race tests, or coverage refresh.
-globs: backend/**/*,testframework/**/*,.github/workflows/**/*
+description: Exact task-owned cleanup authority for future QA launcher runs and their generated evidence.
 alwaysApply: false
 ---
 
-# Hub — Artifacts Cleanup
+# Hub — Exact Task-Owned Artifact Cleanup
 
-## Когда чистить
+## Статус и границы
 
-**Обязательно** в конце сессии, после qa-gate, coverage refresh или handoff — если создавались локальные dumps.
+Это правило фиксирует только статический контракт. Оно не является разрешением
+на запуск тестов, Docker/Compose, CI или cleanup-команд. До реализации и
+независимой проверки versioned outer launcher из `testframework/runner/**`
+статусы: launcher — `NOT_READY`, runtime — `NOT_RUN`, G0-B — `NOT_VERIFIED`.
+Любая оценка этого текста может быть только `STATIC_CANDIDATE`.
 
-Не оставлять артефакты «на потом» и не просить пользователя подтверждать удаление стандартного coverage-мусора.
+Единственный будущий исполнитель cleanup — launcher в своём безусловном
+`finally`. Он вправе работать только с ресурсами, которые принадлежат текущему
+task run и были записаны до запуска. Ни человек, ни агент не получают из этого
+правила самостоятельного права на удаление по имени, маске, префиксу,
+рекурсивному поиску или широкому Compose-проекту.
 
-## Что удалять
+## Предусловие: точная запись ownership
 
-| Категория | Паттерны | Примеры |
-|-----------|----------|---------|
-| Go cover profiles | `*.out` в `backend/` | `coverage.out`, `calls_cov.out` |
-| Text cover dumps | `backend/cover*`, `backend/cov_*` | `cover_auth`, `cov_calls`, `coverprofile` |
-| Per-package reports | `backend/*_cov*` | `auth_cov.txt`, `gitlab_cov` |
-| Temp benchmark runs | `backend/tmp*`, `backend/tmp-*` | `tmpwscov`, `tmp-rbac` |
-| Scratch scripts | `tmp_*.py` в корне | `tmp_route_diff.py` |
+До начала будущего запуска launcher обязан записать полный неизменяемый набор
+точных идентификаторов текущего task run:
 
-**Не удалять:** `*_test.go`, `*_coverage_test.go`, `.planning/COVERAGE.md`, CI configs.
+- container IDs или точные container names;
+- точное имя Compose project, если оно используется;
+- точные volume IDs/names и network IDs/names;
+- единственный owner-marked report directory
+  `testframework/reports/<task-run>/`.
 
-## Куда писать профили
+Запись связывает каждый идентификатор с task/run ID и owner marker. Отсутствие,
+двусмысленность или несовпадение хотя бы одного идентификатора — stop: cleanup
+для такого ресурса не выполняется, а finding передаётся владельцу.
 
-```bash
-# ✅ Вне repo или системный temp
-go test -coverprofile="${TMPDIR:-/tmp}/hub-cov.out" ./internal/...
+## Единственная допустимая будущая процедура
 
-# ❌ В backend/ или корень repo
-go test -coverprofile=coverage.out ./...
-```
+В `finally`, независимо от результата job, launcher удаляет только заранее
+записанные точные task-owned resources и только свой exact report directory.
+После этого он выполняет read-only postcheck по тому же конечному списку exact
+IDs и фиксирует остаток. Результат cleanup записывается как `PASS` или `FAIL`
+вместе с task/run ID, exact targets и обнаруженными остатками. `FAIL` блокирует
+`verified: true` и передаётся владельцу; его нельзя скрыть успешным test result
+или отсутствием контейнера.
 
-## Процедура агента (после верификации)
+## Неприкосновенные ресурсы
 
-1. Зафиксировать проценты в `.planning/COVERAGE.md` (если задача про coverage).
-2. Удалить все matching арtefacts из таблицы выше.
-3. `git status` — в diff не должно быть `cover*`, `cov_*`, `*.out`, `tmp_*`.
+Не трогать и передавать как finding:
 
-## Git
+- pre-existing, shared, foreign или ambiguous containers, volumes, networks и
+  report directories;
+- любой ресурс, выбранный через glob, pattern, prefix, recursive search либо
+  не записанный до запуска;
+- артефакты в production source tree, dirty-worktree changes и чужие
+  неотслеживаемые файлы;
+- `.planning/**`, включая coverage, audit, verification и review artifacts;
+- защищённые исходники, тесты, CI-конфигурацию, allowlist и protected scope.
 
-Все перечисленные паттерны — в `.gitignore`. **Никогда не коммить** coverage dumps, даже «для истории».
+`.gitignore` не является доказательством ownership и не создаёт права на
+удаление. Foreign artifact или dirty worktree не очищается «для порядка»:
+состояние фиксируется и передаётся владельцу без изменения файлов.
 
-## Расширенный список артефактов (см. `.gitignore`, актуально 2026-07)
+## Запрещённые расширения authority
 
-Помимо таблицы выше, `.gitignore` фиксирует ещё несколько категорий одноразового мусора — не плодить новые паттерны, использовать существующие:
-
-| Категория | Паттерн | Куда обычно попадает |
-|-----------|---------|-----------------------|
-| CI/agent session logs | `.ci-backend.log`, `SESSION_SUMMARY*.txt` | корень репо после ручных прогонов |
-| Frontend lint/test dumps | `frontend/lint-*.txt`, `frontend/biome-report.json` | после `npm run lint` с редиректом в файл |
-| Playwright артефакты | `frontend/playwright-report/`, `frontend/test-results/` | после локального E2E-прогона |
-| Planning tool output | `.planning/biome-output.txt`, `.planning/tsc-output.txt`, `.planning/*-output.txt` | редирект вывода линтера/tsc в planning-папку |
-| Local-only notes | `*.local.md` | черновики, не предназначенные для commit |
-| `.gotmp/` | временные Go-файлы агентов | не путать с `backend/tmp*` (тот — про coverage) |
-
-## Примеры из Hub
-
-- Каноничный список исключений — читать целиком `.gitignore` (секции «Coverage / benchmark dumps», «Local dev / CI / agent session artifacts») перед тем как решать «удалять или коммитить».
-- Backend regression, генерирующий `*.out`/`cov_*`: команда из `AGENTS.md` → `go build -tags release ./... && go test -race -count=1 ./...` — если добавляешь `-coverprofile`, писать **вне** `backend/` (см. пример ниже).
-- Docker canonical regression (не оставляет локальных dumps, профиль остаётся в контейнере): `docker compose -f deployments/docker-compose.test.yml up -d` + `go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...` — команда из `AGENTS.md`.
-- `.planning/COVERAGE.md` — единственное место, где процентные метрики фиксируются **навсегда**; сырые `.out`-профили после фиксации метрик удаляются.
-- PowerShell cleanup one-liner (Windows-хост, см. секцию выше) — предпочтительнее ручного поиска файлов через `Get-ChildItem` без фильтра.
-- Не удалять по ошибке: `.planning/**/VERIFICATION.md`, `.planning/**/REVIEW.md` — они **тоже** в `.gitignore`, но это НЕ coverage-мусор, а рабочие артефакты фазы (не коммитятся, но и не подлежат ручному удалению агентом без причины).
-
-## Примеры из Hub
-
-- Правильное расположение: пиши профиль в `${TMPDIR:-/tmp}/hub-cov.out` или Windows `$env:TEMP\hub-cov.out` — не в `backend/`.
-- После прогона `go test -tags hubtest -race -coverprofile=...` для конкретного домена (например `bases`, `auth`) — зафиксируй итоговый % в `.planning/COVERAGE.md`, затем удали файл.
-- Реальные примеры «мусора», который встречался в репо и подлежит удалению: `backend/coverage.out`, `backend/calls_cov.out`, `backend/cover_auth`, `backend/tmp-rbac`, `tmp_route_diff.py` (корень репо).
-- PowerShell-версия cleanup one-liner (используй вместо bash на Windows-агентах):
-  ```powershell
-  Get-ChildItem backend -File | Where-Object {
-    $_.Name -match '^(cover|coverage|cov_|tmp|.*_cov)' -or $_.Extension -eq '.out'
-  } | Remove-Item -Force
-  Remove-Item -Force tmp_*.py -ErrorAction SilentlyContinue
-  ```
-- Проверка перед handoff: `git status` не должен показывать `?? backend/*cov*`, `?? *.out`, `?? tmp_*` — если показывает, cleanup не выполнен.
-- Не путать с легитимными артефактами планирования: `.planning/COVERAGE.md`, `.planning/audits/2026-06/*` — это документы, не dumps, их не трогать этим правилом.
+Нельзя использовать или документировать как fallback broad Compose teardown,
+удаление orphan resources, volume-wide cleanup, host-side wildcard deletion,
+удаление результатов поиска или любые pattern/glob
+правила. В этом документе нет runnable cleanup alternatives: точная реализация
+может появиться только в будущей versioned launcher API после отдельного
+контракта и независимой верификации.

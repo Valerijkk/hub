@@ -109,6 +109,34 @@ wave3                   (для интеграционной ветки нуже
 **Типы:** `feat | fix | refactor | test | docs | chore | perf | ci`
 **Scope:** `auth | tracker | sprint | messenger | tms | calls | dashboard | notification | search | ws | rbac | platform | frontend | infra | ent | ai | crm | intranet | calendar | hr | accounting | bases | marketplace`
 
+### 3.0. FORBIDDEN — AI co-author (жёстко, все модели/агенты)
+
+**Никогда** не добавлять в коммит:
+
+- `Co-authored-by:` / `Co-Authored-By:` (Cursor, Claude, Codex, Cloud Agent, Copilot, Anthropic, OpenAI, `cursoragent@…`, любой AI)
+- `Generated-by:` / «Made with Cursor|Claude|Codex»
+
+Автор = только git user владельца репо. После каждого коммита агент проверяет `git log -1 --format=%B` и сдирает trailer, если среда его дописала. Правило: `.cursor/rules/51-no-ai-coauthor.mdc` · хук: `.githooks/commit-msg` (`git config core.hooksPath .githooks`).
+
+#### Выключить attribution в Cursor навсегда (владелец, один раз)
+
+1. **Cursor Settings** (не VS Code Settings): `Ctrl+Shift+J` / Command Palette → «Cursor Settings»
+2. Раздел **Agents → Attribution** — выключить:
+   - **Commit Attribution**
+   - **PR Attribution**
+3. Перезапустить Cursor.
+4. CLI (файл вне репо): `%USERPROFILE%\.cursor\cli-config.json`:
+
+```json
+"attribution": {
+  "attributeCommitsToAgent": false,
+  "attributePRsToAgent": false
+}
+```
+
+Cloud Agents могут форсить trailer серверным хуком — на IDE-тоггл не опираться;
+для Hub cloud-коммиты без личного review владельца запрещены.
+
 ### 3.1. Реальные примеры по каждому типу (из `git log` Hub)
 
 **`feat` — новая функциональность:**
@@ -529,6 +557,16 @@ b3bca09 Merge remote-tracking branch 'origin/fix/platform/wave1-quickfixes' into
 - Перед финальным мержем `integration/*` → `master` — полный `/qa-gate` на интеграции (rule 56), не по отдельности на каждый поток.
 - `integration/*` тоже никогда не мержится в `master` агентом — только пользователем, как и любой другой путь в `master` (§14).
 
+### 8.4. Founder consolidation lifecycle
+
+- Каноническая интеграционная ветка текущей founder-консолидации — `cursor-grok-4.5`.
+- Фича допускается в неё только после независимого ревью точного tip, применимого green evidence Docker-only `/qa-gate`, правдивого docs-sync, чистого index и отсутствия unmerged-состояния, а также без обязательного для этой фичи gate со статусом `NOT_READY`/`NOT_RUN`. Static-only кандидаты можно push'ить и сохранять, но нельзя интегрировать.
+- После merge фичи в `cursor-grok-4.5` применимые интеграционные проверки повторяются на точном SHA интеграции; пользователю на merge в `master` передаётся только green-интеграция.
+- В `master` мержит и push'ит только пользователь. После его merge проверяются точный SHA `master` и применимые post-merge проверки.
+- До удаления любого локального/remote feature ref или task-owned worktree фиксируется точный tip и доказывается `git merge-base --is-ancestor <tip> master` (либо эквивалентное точное доказательство ancestry). Dirty, ambiguous, unmerged или `NOT_READY` work сохраняется; массовое удаление запрещено.
+- Когда вся накопленная работа проверена в `master`, выполняется финальная read-only инвентаризация refs/worktrees и ancestry-proof каждого кандидата. Только затем, по явной authority пользователя, удаляются `cursor-grok-4.5` и все прочие доказанно влитые локальные/remote ветки и owned worktrees, оставляя только `master`; `master` не удаляется никогда.
+- Удаление remote и удаление worktree требуют явной authority пользователя и точных targets; host-owned и foreign worktrees сохраняются.
+
 ---
 
 ## 9. Обязательная регрессия перед коммитом/PR (REGULATION §7, rule 56)
@@ -608,6 +646,7 @@ v2.0.0   новый milestone
 | `push --force` в `master` | Уничтожает чужую историю |
 | Пропускать хуки (`--no-verify`) | Обходит проверки безопасности/качества |
 | `commit --amend` по запушенному коммиту | Требует force-push, ломает чужие клоны |
+| **`Co-authored-by` / AI attribution в коммите** | Запрет пользователя: Cursor/Claude/Codex/Cloud — не соавторы (§3.0, `51-no-ai-coauthor.mdc`) |
 | Коммитить секреты «временно» | Утечка навсегда в истории (нужен git-purge) |
 | Гигантский PR «всё сразу» | Не ревьюится, не откатывается |
 | `git rebase -i` в общих скриптах агента | Требует интерактивного ввода — агент зависнет |
