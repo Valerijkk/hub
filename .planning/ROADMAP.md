@@ -2349,23 +2349,3 @@ Sources: [`PHASE-STATUS-MATRIX.md`](audits/planning-audit-2026-07/PHASE-STATUS-M
 ## Backlog
 
 > Unsequenced ideas (999.x). Promote via `/gsd-review-backlog` when ready.
-
-### Phase 999.1: Unified test framework + test tree refactor (BACKLOG)
-
-> **SUPERSEDED 2026-08-07:** идея промотирована и перепланирована как
-> [Phases 128–141](active/august-2026/06-TEST-ARCHITECTURE-REBASE.md). Этот
-> раздел остаётся только историческим указателем и не является вторым планом.
-
-**Historical goal:** Вынести интеграционные/E2E/Vitest тесты в отдельную
-архитектуру; актуальные target paths и gates определены в rebase-каноне.
-
-**Spec:** `.planning/phases/999-test-framework/SPEC.md`
-
-**Requirements:** TBD (promote → arch + qa plan)
-
-**Plans:** superseded by 14 executable plans
-
-Plans:
-- [x] Promoted to Phases 128–141; дальнейшее исполнение только по live канону
-
-**Suggested timing:** historical; не использовать для sequencing.
