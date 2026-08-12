@@ -125,6 +125,13 @@ to the reviewed control value and rechecked before staging, execution, and
 publication; YAML substring parsing or transformed bytes cannot replace that
 identity check.
 
+The private candidate reserves report staging with one nonce-bound create-new
+record. Before atomic publication, staging is exactly `.owner.json` plus the
+raw-byte-pinned `compose.unit.yaml`; `raw/` is initialized only after verified
+publication and reservation release, before any dependency construction.
+Observed collision or ambiguity fails leave-only: no object is adopted or
+deleted, no dependency starts, and no fallback route is permitted.
+
 ## Fixed deadline, dependency, and cleanup contract
 
 `/qa-gate` owns only routing and task/run identity. It never schedules,

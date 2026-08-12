@@ -117,6 +117,15 @@ rechecked against `control.compose_sha256` before staging, execution, or
 publication; no YAML substring parse or transformed representation substitutes
 for that byte identity.
 
+After all request, path, v3-lock, and raw Compose byte checks, the candidate
+creates one nonce-bound reservation with create-new semantics. Its staging
+directory may contain only `.owner.json` and `compose.unit.yaml`; both are
+re-snapshotted before one atomic final-directory publication. The owned `raw/`
+directory is created only after publication and verified reservation release,
+before dependency construction. A collision or ambiguity retains every
+reservation, staging, or final-report object and starts no dependency; there is
+no adoption, recursive deletion, wildcard cleanup, or automatic janitor.
+
 G0-B remains an inert, no-source-bind template and is `NOT_VERIFIED`; it
 neither consumes the absent lock nor selects or runs an image. Once separately
 accepted, the local Compose contract may use `pull_policy: never`, may bind

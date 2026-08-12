@@ -1954,11 +1954,17 @@ function Invoke-HubQaSupervisor {
         return 64
     }
 
+    $reservationPath = $null
+    $reservationBytes = $null
+    $reservationSha256 = $null
     $stagingPath = $null
     $stagingOwnerPath = $null
     $ownerBytes = $null
     try {
         $ownerNonce = [System.Guid]::NewGuid().ToString('N')
+        $finalRelativePath = $Request.Task + '-' + $Request.Run
+        $stagingRelativePath = '.staging-' + $Request.Task + '-' + $Request.Run + '-' + $ownerNonce
+        $reservationRelativePath = '.reservation-' + $Request.Task + '-' + $Request.Run + '-' + $ownerNonce + '.json'
         $ownerRecord = [ordered]@{
             schema = 'hub.qa-owner/v1'
             contract = $contractLiteral
@@ -1981,9 +1987,54 @@ function Invoke-HubQaSupervisor {
             created_at = [DateTime]::UtcNow.ToString('o')
         }
         $ownerBytes = [System.Text.UTF8Encoding]::new($false).GetBytes(($ownerRecord | ConvertTo-Json -Compress) + [Environment]::NewLine)
-        $stagingPath = & $ResolveCanonicalContainedPath $reportsRoot ('.staging-' + $Request.Task + '-' + $Request.Run + '-' + $ownerNonce) $false $false
-        if ([System.IO.Directory]::Exists($stagingPath) -or [System.IO.File]::Exists($stagingPath)) {
+        $ownerHasher = [System.Security.Cryptography.SHA256]::Create()
+        try {
+            $ownerMarkerSha256 = [System.BitConverter]::ToString($ownerHasher.ComputeHash($ownerBytes)).Replace('-', '').ToLowerInvariant()
+        }
+        finally {
+            $ownerHasher.Dispose()
+        }
+        $reservationRecord = [ordered]@{
+            schema = 'hub.qa-report-reservation/v1'
+            contract = $contractLiteral
+            task = $Request.Task
+            run = $Request.Run
+            target = $Request.Target
+            project = $project
+            nonce = $ownerNonce
+            staging_relative_path = $stagingRelativePath
+            final_relative_path = $finalRelativePath
+            owner_marker_sha256 = $ownerMarkerSha256
+            compose_sha256 = $composeSha256
+        }
+        $reservationBytes = [System.Text.UTF8Encoding]::new($false).GetBytes(($reservationRecord | ConvertTo-Json -Compress) + [Environment]::NewLine)
+        $reservationHasher = [System.Security.Cryptography.SHA256]::Create()
+        try {
+            $reservationSha256 = [System.BitConverter]::ToString($reservationHasher.ComputeHash($reservationBytes)).Replace('-', '').ToLowerInvariant()
+        }
+        finally {
+            $reservationHasher.Dispose()
+        }
+        if ([System.IO.Directory]::Exists($reportPath) -or [System.IO.File]::Exists($reportPath)) {
             return 64
+        }
+        $reservationPath = & $ResolveCanonicalContainedPath $reportsRoot $reservationRelativePath $false $false
+        $stagingPath = & $ResolveCanonicalContainedPath $reportsRoot $stagingRelativePath $false $false
+        $reservationStream = [System.IO.FileStream]::new(
+            $reservationPath,
+            [System.IO.FileMode]::CreateNew,
+            [System.IO.FileAccess]::Write,
+            [System.IO.FileShare]::None
+        )
+        try {
+            $reservationStream.Write($reservationBytes, 0, $reservationBytes.Length)
+            $reservationStream.Flush($true)
+        }
+        finally {
+            $reservationStream.Dispose()
+        }
+        if ([System.IO.Directory]::Exists($stagingPath) -or [System.IO.File]::Exists($stagingPath)) {
+            throw 'The report staging path already exists.'
         }
 
         # The reports root is a cooperative trusted-parent namespace. This fail-leave
@@ -2016,37 +2067,98 @@ function Invoke-HubQaSupervisor {
             throw 'The fresh staging reservation has an unexpected initial state.'
         }
         $stagingComposePath = & $ResolveCanonicalContainedPath $stagingPath 'compose.unit.yaml' $false $false
-        & $WriteAtomicBytes $stagingComposePath ([byte[]]$composeSnapshot.Bytes)
+        $composeStream = [System.IO.FileStream]::new(
+            $stagingComposePath,
+            [System.IO.FileMode]::CreateNew,
+            [System.IO.FileAccess]::Write,
+            [System.IO.FileShare]::None
+        )
+        try {
+            $composeStream.Write([byte[]]$composeSnapshot.Bytes, 0, ([byte[]]$composeSnapshot.Bytes).Length)
+            $composeStream.Flush($true)
+        }
+        finally {
+            $composeStream.Dispose()
+        }
+        $stagingOwnerSnapshot = & $ReadStableContainedFileBytes $stagingPath '.owner.json' 65536 $false
         $stagingComposeSnapshot = & $ReadStableContainedFileBytes $stagingPath 'compose.unit.yaml' 131072 $false
+        if ($stagingOwnerSnapshot.Sha256 -cne $ownerMarkerSha256) {
+            throw 'The owned marker bytes do not match the reservation.'
+        }
         if ($stagingComposeSnapshot.Sha256 -cne $composeSha256) {
-            throw 'The owned Compose snapshot bytes do not match the validated source snapshot.'
+            throw 'The owned Compose snapshot bytes do not match the reservation.'
         }
         if (('sha256:' + [string]$stagingComposeSnapshot.Sha256) -cne [string]$images.Control['compose_sha256']) {
             throw 'The owned Compose snapshot bytes do not match the closed control raw-byte pin.'
         }
-        $stagingRawArtifactRoot = & $ResolveCanonicalContainedPath $stagingPath 'raw' $false $false
-        if ([System.IO.Directory]::Exists($stagingRawArtifactRoot) -or [System.IO.File]::Exists($stagingRawArtifactRoot)) {
-            throw 'The restricted raw-artifact root already exists.'
+        $stagingEntries = @([System.IO.Directory]::GetFileSystemEntries($stagingPath))
+        if ($stagingEntries.Count -ne 2) {
+            throw 'The staging directory does not contain exactly two owned files.'
         }
-        [System.IO.Directory]::CreateDirectory($stagingRawArtifactRoot) | Out-Null
-        $stagingRawArtifactRoot = & $ResolveCanonicalContainedPath $stagingPath 'raw' $true $false
-        $stagingRawAttributes = [System.IO.File]::GetAttributes($stagingRawArtifactRoot)
-        if (
-            -not [System.IO.Directory]::Exists($stagingRawArtifactRoot) -or
-            ($stagingRawAttributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0 -or
-            @([System.IO.Directory]::GetFileSystemEntries($stagingRawArtifactRoot)).Count -ne 0
-        ) {
-            throw 'The restricted raw-artifact root is not an empty canonical directory.'
+        $expectedStagingNames = @('.owner.json', 'compose.unit.yaml')
+        foreach ($stagingEntry in $stagingEntries) {
+            $stagingName = [System.IO.Path]::GetFileName($stagingEntry)
+            if (
+                $expectedStagingNames -cnotcontains $stagingName -or
+                -not [System.IO.File]::Exists($stagingEntry) -or
+                [System.IO.Directory]::Exists($stagingEntry) -or
+                (([System.IO.File]::GetAttributes($stagingEntry) -band [System.IO.FileAttributes]::ReparsePoint) -ne 0)
+            ) {
+                throw 'The staging directory contains an unowned or unsafe child.'
+            }
+        }
+        if ([System.IO.Directory]::Exists($reportPath) -or [System.IO.File]::Exists($reportPath)) {
+            throw 'The report path appeared before staging publication.'
         }
         [System.IO.Directory]::Move($stagingPath, $reportPath)
         $reportOwned = $true
         $stagingPath = $null
+        $reservationSnapshot = & $ReadStableContainedFileBytes $reportsRoot $reservationRelativePath 65536 $false
+        if (
+            $reservationSnapshot.Sha256 -cne $reservationSha256 -or
+            [System.Convert]::ToBase64String([byte[]]$reservationSnapshot.Bytes) -cne [System.Convert]::ToBase64String([byte[]]$reservationBytes)
+        ) {
+            throw 'The report reservation bytes changed before release.'
+        }
+        [System.IO.File]::Delete($reservationPath)
+        if ([System.IO.File]::Exists($reservationPath) -or [System.IO.Directory]::Exists($reservationPath)) {
+            throw 'The verified report reservation was not removed.'
+        }
+        $publishedEntries = @([System.IO.Directory]::GetFileSystemEntries($reportPath))
+        if ($publishedEntries.Count -ne 2) {
+            throw 'The published report changed before raw-artifact initialization.'
+        }
+        $expectedPublishedNames = @('.owner.json', 'compose.unit.yaml')
+        foreach ($publishedEntry in $publishedEntries) {
+            $publishedName = [System.IO.Path]::GetFileName($publishedEntry)
+            if (
+                $expectedPublishedNames -cnotcontains $publishedName -or
+                -not [System.IO.File]::Exists($publishedEntry) -or
+                [System.IO.Directory]::Exists($publishedEntry) -or
+                (([System.IO.File]::GetAttributes($publishedEntry) -band [System.IO.FileAttributes]::ReparsePoint) -ne 0)
+            ) {
+                throw 'The published report contains an unowned or unsafe child.'
+            }
+        }
         $composePath = & $ResolveCanonicalContainedPath $reportPath 'compose.unit.yaml' $true $false
         $publishedComposeSnapshot = & $ReadStableContainedFileBytes $reportPath 'compose.unit.yaml' 131072 $false
         if (('sha256:' + [string]$publishedComposeSnapshot.Sha256) -cne [string]$images.Control['compose_sha256']) {
             throw 'The published Compose snapshot bytes do not match the closed control raw-byte pin.'
         }
-        [void](& $ResolveCanonicalContainedPath $reportPath 'raw' $true $false)
+        $rawArtifactRoot = & $ResolveCanonicalContainedPath $reportPath 'raw' $false $false
+        if ([System.IO.Directory]::Exists($rawArtifactRoot) -or [System.IO.File]::Exists($rawArtifactRoot)) {
+            throw 'The published raw-artifact root already exists.'
+        }
+        [System.IO.Directory]::CreateDirectory($rawArtifactRoot) | Out-Null
+        $rawArtifactRoot = & $ResolveCanonicalContainedPath $reportPath 'raw' $true $false
+        $rawAttributes = [System.IO.File]::GetAttributes($rawArtifactRoot)
+        if (
+            -not [System.IO.Directory]::Exists($rawArtifactRoot) -or
+            ($rawAttributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0 -or
+            @([System.IO.Directory]::GetFileSystemEntries($rawArtifactRoot)).Count -ne 0
+        ) {
+            throw 'The published raw-artifact root is not an empty canonical directory.'
+        }
         $dependencyContext.ComposePath = $composePath
         [void]$persistedArtifacts.Add('.owner.json')
         [void]$persistedArtifacts.Add('compose.unit.yaml')
