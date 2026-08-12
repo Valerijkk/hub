@@ -27,7 +27,7 @@
 [ ] Прошёл пофактовый чек-лист своей роли (раздел 3)
 
 РЕГРЕССИЯ
-[ ] Green профильный прогон / /qa-gate
+[ ] `/qa-gate` profile/subset — только routing до появления versioned outer launcher; runtime evidence допустимо лишь с полным §9.2 canonical record, иначе `NOT_READY`/`NOT_RUN`
 [ ] Лог приложен в отчёт
 [ ] При FAIL — test-triage выполнен
 
@@ -44,30 +44,28 @@
 
 ### 9.2 Команды воспроизведения (сводка)
 
-```bash
-# Backend
-cd backend && go build -tags release ./... && go vet ./... && go test -race -count=1 -timeout=600s ./...
-go test -race -count=3 ./internal/<module>/...
-go test -cover ./internal/<module>/...
+Прямые host-команды Go/Node, а также прямые Docker/Compose команды, не являются
+authority для верификации и не должны воспроизводиться из этого playbook.
+Единственный исполняемый путь — versioned outer launcher из `testframework/runner/**`;
+пока launcher `NOT_READY`, runtime-вердикт остаётся `NOT_READY`/`NOT_RUN`.
+Статический review сам по себе не является runtime-доказательством.
 
-# Backend Docker (канонично)
-docker compose -f deployments/docker-compose.test.yml up -d
-docker run --rm --network deployments_default -v "${PWD}/backend:/app" -w /app \
-  -e POSTGRES_TEST_URL="postgresql://hub:hub@postgres:5432/hub?sslmode=disable" \
-  -e MONGODB_TEST_URL="mongodb://hub:hub@mongo:27017/?authSource=admin" \
-  golang:1.25-bookworm \
-  sh -c "go test -tags hubtest -race -count=1 -timeout=600s ./testframework/..."
+Для каждого выбранного launcher job отчёт обязан содержать неизменяемый набор:
 
-# Frontend
-cd frontend && node scripts/link-testframework-node-modules.mjs
-npx tsc --noEmit && npm run lint && npx vitest run
-npx playwright test --repeat-each=2
+| Поле evidence | Обязательное значение |
+|---|---|
+| Source | exact source SHA проверяемой ревизии |
+| Launcher | outer-launcher ID и selected job/profile |
+| Environment | immutable image digest, task-owned container/network/volume names |
+| Bounds | CPU/RAM/PID limits и wall-clock timeout |
+| Result | PASS/FAIL/NOT_READY/NOT_RUN, counts (passed/failed/skipped), duration |
+| Artifacts | task-owned путь к logs/reports с owner marker |
+| Cleanup | exact names ресурсов и подтверждение unconditional cleanup в `finally` |
 
-# Gate / audit
-/qa-gate
-/coverage-audit
-/test-triage
-```
+Отсутствие любого обязательного runtime evidence запрещает PASS и требует
+`NOT_READY` (launcher/job недоступен) либо `NOT_RUN` (запуск не выполнен).
+`/test-triage` применяется к фактическому FAIL в выбранном job; он не заменяет
+launcher и не создаёт runtime evidence.
 
 ### 9.3 Матрица роль → артефакт → GSD → блокирующая severity
 
@@ -102,6 +100,10 @@ npx playwright test --repeat-each=2
 
 ### 9.5 Сквозной пример: верификация фичи «flaky-аналитика»
 
+Этот пример исторический и иллюстративный, неисполняемый и non-authoritative:
+его даты, команды и PASS/FAIL не являются текущей acceptance evidence. Без
+полного launcher record по §9.2 runtime-статус должен быть `NOT_READY` или `NOT_RUN`.
+
 Показывает, как разные верификаторы проверяют один и тот же сквозной результат (см. worked-пример
 в `analysis.md` §10.6).
 
@@ -122,13 +124,13 @@ arch-ver (ADR-042, C4):
   - Вердикт: verified: true 2026-07-02 13:40.
 
 be-ver (tms/service.go, handler_cases.go):
-  - Воспроизвёл: go test -race -count=1 ./internal/tms/... → ok (лог приложен).
+  - Runtime evidence: отсутствует → NOT_RUN; статический review не повышается до PASS.
   - Сверка: layering ок; 409 при version-конфликте есть; ошибки {"error","request_id"}.
   - Замечания: нет CRITICAL/HIGH.
   - Вердикт: verified: true 2026-07-02 15:20 (лог регрессии в отчёте).
 
 qa-auto-ver (testframework/tms/flaky_test.go):
-  - Воспроизвёл: go test -race -count=3 → зелёно; grep sleep → [MEDIUM] time.Sleep(2s).
+  - Runtime evidence: отсутствует → NOT_RUN; static inspection `time.Sleep(2s)` — [MEDIUM], не runtime verdict.
   - Трассировка: тест ссылается на TC-TMS-14 — ок.
   - Вердикт: verified: true с MEDIUM (заменить sleep на poll) — не блокирует.
 
@@ -143,6 +145,11 @@ product-ver (фича vs vision):
 
 ### 9.8 Эталонные отчёты FAIL по ролям
 
+All reports in this section are historical illustrative examples, non-executable
+and non-authoritative. Their static findings, severity and independent-review
+semantics remain applicable, but no reported runtime PASS/FAIL is current
+evidence without the complete §9.2 canonical launcher record.
+
 Ниже — заполненные отчёты по шаблону раздела 5, показывающие ожидаемый уровень конкретики.
 
 #### be-ver FAIL
@@ -156,15 +163,10 @@ product-ver (фича vs vision):
 - Вердикт: verified: false
 
 ## Контекст и воспроизведение
-Проверял реализацию TMS-14 (пометка flaky + фильтр). Запустил go test -race ./internal/tms/...
+Historical illustrative report; non-executable and non-authoritative. Required launcher evidence is absent: `NOT_RUN`; static review is not runtime verification.
 
 ## Регрессия
-- Команда: cd backend && go test -race -count=1 ./internal/tms/...
-- Результат: PASS
-- Лог:
-```
-ok  hub/internal/tms  9.812s
-```
+- Runtime result: `NOT_RUN`; no source SHA, outer-launcher ID, selected job, immutable image, bounded resources, counts, duration, task-owned artifacts, or exact cleanup evidence.
 
 ## Сверка с docs/TZ
 Контракт GET /tms/cases?flaky сверен с wiki/API.md; NFR-13/14/24 из spec.
@@ -213,9 +215,7 @@ FAIL: CRITICAL (version). Возврат SA, приложить пересчёт
 - Вердикт: verified: false
 
 ## Регрессия
-- Команда: npx tsc --noEmit && npm run lint && npx vitest run
-- Результат: PASS
-- Лог: Test Files 37 passed (37) · Tests 99 passed (99)
+- Historical illustrative report; non-executable and non-authoritative. Missing canonical launcher evidence: `NOT_RUN`; static review is not runtime verification.
 
 ## Замечания
 | # | Severity | Файл:строка | Ожидалось | Фактически | Действие |
@@ -238,7 +238,7 @@ FAIL: Rules of Hooks + key=index. Возврат fe. Регрессия зелё
 - Вердикт: verified: false
 
 ## Воспроизведение
-go test -race -count=3 ./internal/tms/... → 2/3 PASS, 1 FAIL (нестабильно).
+Historical illustrative scenario; non-executable and non-authoritative. Without canonical launcher evidence, runtime status is `NOT_RUN`; the described flaky signal is not current proof.
 
 ## Замечания
 | # | Severity | Файл:строка | Ожидалось | Фактически | Действие |
@@ -326,11 +326,12 @@ ARIA:       кнопки-иконки имеют aria-label; роли соотв
 Формы:      label связан с input; ошибки объявляются программно
 Порядок:    логический порядок табуляции соответствует визуальному
 Семантика:  button type задан явно; ссылки vs кнопки не перепутаны
-Проверка:   npx playwright test (a11y spec) / axe; Lighthouse Accessibility
+Проверка:   only a selected outer-launcher a11y job with canonical evidence; direct Playwright/axe/Lighthouse execution is not authority
 ```
 
-Реальный ориентир проекта: login axe PASS, E2E a11y spec присутствует; Lighthouse — цель ≥90
-(gate non-blocking сейчас, фиксировать фактический статус, не выдавать желаемое за факт).
+Historical a11y statements are illustrative, non-executable and non-authoritative.
+Without the full §9.2 record, report `NOT_READY`/`NOT_RUN`, never PASS; static
+a11y review does not substitute for runtime evidence.
 
 ### 9.12 Верификация в волновом исполнении (wave)
 
@@ -340,7 +341,7 @@ ARIA:       кнопки-иконки имеют aria-label; роли соотв
 ```
 Wave N: параллельные be/fe/qa агенты
   → каждый прогоняет test-triage при FAIL
-  → каждый запускает /qa-gate subset на затронутых пакетах
+  → `/qa-gate` profile/subset — только routing до future versioned outer launcher; runtime evidence допустимо лишь с полным §9.2 canonical record, иначе `NOT_READY`/`NOT_RUN`
   → соответствующий *-ver верифицирует свой артефакт (независимо)
   → оркестратор мержит только verified: true артефакты
   → `/handoff` + `/handoff-sync` (STATE + COVERAGE)
@@ -377,8 +378,9 @@ Wave N+1: зависит от verified-артефактов Wave N
 #### Регрессия и лог
 
 ```
-GOOD: секция «Регрессия» с реальным выводом "ok hub/internal/tms 9.8s" и командой
-BAD:  "тесты прошли" без команды и вывода → лог отсутствует → verified: true запрещён
+GOOD: section «Регрессия» with the complete §9.2 canonical record, including
+      source SHA, launcher/job/image/bounds, counts/duration, artifacts and cleanup
+BAD:  "тесты прошли" without that record → `NOT_READY`/`NOT_RUN`; verified: true запрещён
 ```
 
 #### Классификация severity
@@ -398,8 +400,8 @@ BAD:  "пагинация какая-то не такая" → без file:line,
 #### Воспроизведение
 
 ```
-GOOD: "запустил go test -race -count=3, 1/3 упал → flaky подтверждён логом"
-BAD:  "исполнитель сказал стабильно, поверил" → нет воспроизведения
+GOOD: "launcher job records source SHA, job/image/bounds, counts/duration, task-owned artifacts, and exact cleanup"
+BAD:  "исполнитель сказал стабильно" or a host command without canonical evidence → no reproduction
 ```
 
 #### Возврат vs переписывание
@@ -502,6 +504,10 @@ product score ≥ 75.
 
 ### 9.6 Итоговая памятка верификатора (одна страница)
 
+Для runtime-части этой памятки «green+лог» означает только полный canonical
+launcher evidence из §9.2. Если он отсутствует, статус `NOT_READY`/`NOT_RUN`;
+статический review не является runtime verification.
+
 ```
 ПРОТОКОЛ: загрузить контекст → воспроизвести → сверить (docs+TZ) → регрессия(green+лог)
           → вердикт(verified±дата) → замечания(severity) → вернуть/пропустить
@@ -519,6 +525,11 @@ product score ≥ 75.
 ```
 
 ### 9.18 Мета-проверка отчёта верификации (само-контроль перед публикацией)
+
+Для runtime verification мета-проверка дополнительно подтверждает наличие всех
+полей §9.2: source SHA, outer-launcher ID, selected job, immutable image,
+bounded resources, counts, duration, task-owned artifacts и exact cleanup.
+Без них отчёт не получает PASS и фиксирует `NOT_READY`/`NOT_RUN`.
 
 Прежде чем опубликовать вердикт, верификатор проверяет собственный отчёт:
 
