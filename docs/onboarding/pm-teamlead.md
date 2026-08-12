@@ -11,7 +11,7 @@
 - Оркеструешь AI-команду (32 агента) вместе с владельцем: декомпозиция → волна → интеграция → приёмка.
 - Держишь ворота качества: регрессия у исполнителей, верификация `*-ver`, полный `/qa-gate` на интеграции волны, docs-sync.
 - Следишь за границами scope (`docs/tz_constraints.md` — mandatory/forbidden) и бюджетом CI-минут (~3000/мес).
-- **Не мержишь в master** — это делает только владелец проекта; твоя зона — довести волну до merge-ready и передать.
+- Ведёшь protected-master lifecycle: новая Codex-задача стартует в `codex/<task>` от refreshed `master`; после Docker-only evidence, независимого review и docs-sync интегрируешь routine accepted result в `master`, push-ишь его и удаляешь merged branch. `master` не является заявлением production-ready. Security/auth, DB migrations, deploy/CI и ADR требуют founder review до integration.
 
 ## День 1
 
@@ -45,7 +45,7 @@
 
 ```bash
 # Статус волны глазами git
-git log --oneline master..feat/<branch>
+git log --oneline master..codex/<task>
 gh pr list && gh pr checks <n>
 
 # Полный гейт на интеграции волны (через агента или локально)
@@ -59,7 +59,7 @@ gh pr list && gh pr checks <n>
 3. QA-конвейер: TC → qa-manual-ver → автотесты → qa-auto-ver; юниты пишут be/fe.
 4. Coverage нового кода ≥82% (security-critical ≥80%).
 5. Docs-sync в той же волне.
-6. Мерж в master — только по команде владельца (личное ревью: security/миграции/CI/ADR).
+6. `team-lead` интегрирует routine accepted branch после Docker-only gate и independent review; security/миграции/CI/ADR требуют founder review до integration.
 
 ## Как работает AI-команда и как с ней взаимодействовать
 
@@ -82,7 +82,7 @@ gh pr list && gh pr checks <n>
 | Pre-merge ревью | `code-reviewer` |
 | Docs-sync/wiki | `docs-writer` |
 
-Принципы: каждый артефакт проходит своего верификатора (`verified: true` только при green regression + лог); дубли ролей работают параллельно без пересечения файлов; кросс-ревью внутри пары до верификатора. Git-политика: агенты и люди коммитят в фича-ветки свободно, **push/мерж в master — только владелец лично**.
+Принципы: каждый артефакт проходит своего верификатора (`verified: true` только при green regression + лог); дубли ролей работают параллельно без пересечения файлов; кросс-ревью внутри пары до верификатора. Git-политика: `codex/<task>` от refreshed master → Docker-only evidence + independent review → routine merge/push/cleanup от `team-lead`; security/auth, DB migrations, deploy/CI и ADR требуют founder review.
 
 ---
 
@@ -130,4 +130,4 @@ gh pr list && gh pr checks <n>
 - [ ] Знаю ростер агентов и кому что поручать; понимаю цепочку верификации.
 - [ ] Понимаю QA-конвейер и почему юниты — зона разработчиков.
 - [ ] Провёл планирование первой волны (декомпозиция, границы файлов, ворота).
-- [ ] Знаю git-политику: волна доводится до merge-ready, мерж в master — только владелец.
+- [ ] Знаю git-политику: Codex task-ветка от refreshed master, Docker-only verification + independent review, routine integration/cleanup team-lead; security/auth, DB migrations, deploy/CI и ADR требуют founder review.
