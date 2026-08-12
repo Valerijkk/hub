@@ -155,9 +155,10 @@ spec_coverage:
 
 ## Session note — 2026-08-07 (test architecture rebase + Phase 128)
 
-- Фактический stage: **broad internal beta**, не production-ready. Исторические
-  milestone COMPLETE не равны production acceptance; PG-03/FA-06 остаётся
-  внешним prod-blocker.
+- Текущая product-truth (founder, 2026-08-12): Hub остаётся незавершённым MVP;
+  ни один продуктовый модуль не принят как complete или stable. Исторические
+  milestone COMPLETE не равны production acceptance; PG-03/FA-06 —
+  зафиксированный ops-блокер production cutover, не индикатор готовности MVP.
 - Test-план полностью rebased: 14 фаз 128–141, target
   `backend/tests/**` + `frontend/tests/**` + единый корневой Python-проект
   `testframework/**` без вложенного `testframework/python/`. Канон:
@@ -973,6 +974,8 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 
 ## Milestones — статус
 
+> Текущая product-truth (founder, 2026-08-12): Hub остаётся незавершённым MVP. Ни один продуктовый модуль не принят как complete или stable. Метки SHIPPED/COMPLETE ниже фиксируют только историческое выполнение конкретных milestone, audit или technical work и не являются заявлением о готовности продукта, модулей либо production.
+
 | Milestone | Phases | Статус | Дата |
 |-----------|--------|--------|------|
 | v1.0 MVP | 1–7 | ✅ SHIPPED | 2026-03-21 |
@@ -1018,7 +1021,7 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 
 - **AI quality layer:** empty-repo install dry-run → paired eval pilot; ROI остаётся `NOT_RUN` до замера
 - **PE language:** инструкции `pro-qa-ai/` только RU (машинные id/enum без перевода)
-- **FA-06 / PG-03:** Phase 0 ✅ · scripts ready · **Phase 1–3 manual** (единственный prod-блокер ops) · runbook `docs/runbooks/fa06-secret-rotation.md`
+- **FA-06 / PG-03:** Phase 0 ✅ · scripts ready · **Phase 1–3 manual** (зафиксированный ops-блокер production cutover; не индикатор готовности MVP) · runbook `docs/runbooks/fa06-secret-rotation.md`
 - **Wave 1:** merged пользователем 2026-07-11; policy остаётся — агенты не пушат/не мержат master
 - **July return kickoff (~конец июля):** align по brief → перестройка планов · старт EPIC-CAL-SYNC / QA-HARDENING execution / Redesign по приоритету
 - **CAL-SYNC:** SEED-002 active — unified calendar + RSVP + mail levels L0–L3 (ADR при L3/OAuth)

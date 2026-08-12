@@ -160,6 +160,8 @@ limits. Host используется лишь для чтения/редакт�
 ## Текущий статус (2026-08-08)
 
 > July Rebuild planning · LiveKit канон · метрики ниже = baseline master (без регрессии).
+>
+> Текущая product-truth (founder, 2026-08-12): Hub остаётся незавершённым MVP. Ни один продуктовый модуль не принят как complete или stable. Метки SHIPPED/COMPLETE ниже фиксируют только историческое выполнение конкретных milestone, audit или technical work и не являются заявлением о готовности продукта, модулей либо production.
 
 | Milestone | Статус |
 |-----------|--------|
@@ -203,7 +205,7 @@ limits. Host используется лишь для чтения/редакт�
 | Test framework migration TF-M04–M08 | ✅ Wave B COMPLETE |
 | Wave C final audit FA-01–FA-12 | ✅ COMPLETE (кроме FA-06 manual) |
 | FA-10 e2e-smoke | ✅ 3/3 PASS |
-| PG-03 Secret rotation (FA-06) | ⏳ manual ops — **единственный prod-блокер** |
+| PG-03 Secret rotation (FA-06) | ⏳ manual ops — **отдельный ops-блокер production cutover; не индикатор готовности MVP** |
 | Test-rebase Phase 128 | 🚧 TASK-202 archived/verified; TASK-203 historical baseline + TASK-224 E2E baseline closed (**48 pass / 5 expected skip / 0 fail**); TASK-204 verification pending |
 | Merge Волна 1 → master | ✅ user merged 2026-07-11 |
 | July return / CAL-SYNC / QA-HARDENING / Redesign | 📋 planning → kickoff ~конец июля |
