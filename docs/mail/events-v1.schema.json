@@ -1,0 +1,319 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hub.example.test/schemas/mail/events-v1.schema.json",
+  "title": "Hub mail and calendar event envelope v1",
+  "oneOf": [
+    { "$ref": "#/$defs/mailReceived" },
+    { "$ref": "#/$defs/mailSent" },
+    { "$ref": "#/$defs/mailMessageChanged" },
+    { "$ref": "#/$defs/calendarInviteCreated" },
+    { "$ref": "#/$defs/calendarInviteUpdated" },
+    { "$ref": "#/$defs/calendarInviteCancelled" },
+    { "$ref": "#/$defs/calendarRsvpChanged" }
+  ],
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "dateTime": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "maxLength": 320
+    },
+    "address": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["email"],
+      "properties": {
+        "email": { "$ref": "#/$defs/email" },
+        "name": { "type": ["string", "null"], "maxLength": 160 }
+      }
+    },
+    "base": {
+      "type": "object",
+      "required": [
+        "subject",
+        "schema_version",
+        "event_id",
+        "occurred_at",
+        "organization_id",
+        "actor_id",
+        "correlation_id",
+        "payload"
+      ],
+      "properties": {
+        "subject": { "type": "string" },
+        "schema_version": { "const": 1 },
+        "event_id": { "$ref": "#/$defs/uuid" },
+        "occurred_at": { "$ref": "#/$defs/dateTime" },
+        "organization_id": { "$ref": "#/$defs/uuid" },
+        "actor_id": {
+          "oneOf": [
+            { "$ref": "#/$defs/uuid" },
+            { "type": "null" }
+          ]
+        },
+        "correlation_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "payload": { "type": "object" }
+      }
+    },
+    "mailReceived": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "properties": {
+            "subject": { "const": "mail.received.v1" },
+            "payload": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "mailbox_id",
+                "message_id",
+                "engine_message_id",
+                "thread_id",
+                "from",
+                "to",
+                "received_at",
+                "folder_ids",
+                "has_attachments"
+              ],
+              "properties": {
+                "mailbox_id": { "$ref": "#/$defs/uuid" },
+                "message_id": { "$ref": "#/$defs/uuid" },
+                "engine_message_id": { "type": "string", "minLength": 1, "maxLength": 512 },
+                "thread_id": { "$ref": "#/$defs/uuid" },
+                "from": { "$ref": "#/$defs/address" },
+                "to": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 500,
+                  "items": { "$ref": "#/$defs/address" }
+                },
+                "received_at": { "$ref": "#/$defs/dateTime" },
+                "folder_ids": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 50,
+                  "uniqueItems": true,
+                  "items": { "$ref": "#/$defs/uuid" }
+                },
+                "has_attachments": { "type": "boolean" },
+                "calendar_method": {
+                  "type": ["string", "null"],
+                  "enum": ["request", "cancel", "reply", null]
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "mailSent": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "properties": {
+            "subject": { "const": "mail.sent.v1" },
+            "payload": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "mailbox_id",
+                "submission_id",
+                "message_id",
+                "thread_id",
+                "from",
+                "to",
+                "sent_at",
+                "delivery_class"
+              ],
+              "properties": {
+                "mailbox_id": { "$ref": "#/$defs/uuid" },
+                "submission_id": { "$ref": "#/$defs/uuid" },
+                "message_id": { "$ref": "#/$defs/uuid" },
+                "thread_id": { "$ref": "#/$defs/uuid" },
+                "from": { "$ref": "#/$defs/address" },
+                "to": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 500,
+                  "items": { "$ref": "#/$defs/address" }
+                },
+                "sent_at": { "$ref": "#/$defs/dateTime" },
+                "delivery_class": {
+                  "type": "string",
+                  "enum": ["internal", "instance_domain", "external"]
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "mailMessageChanged": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "properties": {
+            "subject": { "const": "mail.message.changed.v1" },
+            "payload": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["mailbox_id", "message_id", "changed_fields", "folder_ids", "flags", "label_ids"],
+              "properties": {
+                "mailbox_id": { "$ref": "#/$defs/uuid" },
+                "message_id": { "$ref": "#/$defs/uuid" },
+                "changed_fields": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 30,
+                  "uniqueItems": true,
+                  "items": { "type": "string", "maxLength": 64 }
+                },
+                "folder_ids": {
+                  "type": "array",
+                  "maxItems": 50,
+                  "uniqueItems": true,
+                  "items": { "$ref": "#/$defs/uuid" }
+                },
+                "flags": {
+                  "type": "array",
+                  "maxItems": 30,
+                  "uniqueItems": true,
+                  "items": { "type": "string", "maxLength": 64 }
+                },
+                "label_ids": {
+                  "type": "array",
+                  "maxItems": 50,
+                  "uniqueItems": true,
+                  "items": { "$ref": "#/$defs/uuid" }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "calendarInviteBasePayload": {
+      "type": "object",
+      "required": ["event_id", "uid", "sequence", "attendee_ids"],
+      "properties": {
+        "event_id": { "$ref": "#/$defs/uuid" },
+        "uid": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "sequence": { "type": "integer", "minimum": 0 },
+        "recurrence_id": { "type": ["string", "null"], "maxLength": 255 },
+        "attendee_ids": {
+          "type": "array",
+          "maxItems": 500,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/uuid" }
+        }
+      }
+    },
+    "calendarInviteCreated": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "properties": {
+            "subject": { "const": "calendar.invite.created.v1" },
+            "payload": { "$ref": "#/$defs/calendarInviteBasePayload" }
+          }
+        }
+      ]
+    },
+    "calendarInviteUpdated": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "properties": {
+            "subject": { "const": "calendar.invite.updated.v1" },
+            "payload": {
+              "allOf": [
+                { "$ref": "#/$defs/calendarInviteBasePayload" },
+                {
+                  "type": "object",
+                  "required": ["reset_rsvp", "changed_fields"],
+                  "properties": {
+                    "reset_rsvp": { "type": "boolean" },
+                    "changed_fields": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 30,
+                      "uniqueItems": true,
+                      "items": { "type": "string", "maxLength": 64 }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "calendarInviteCancelled": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "properties": {
+            "subject": { "const": "calendar.invite.cancelled.v1" },
+            "payload": { "$ref": "#/$defs/calendarInviteBasePayload" }
+          }
+        }
+      ]
+    },
+    "calendarRsvpChanged": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "properties": {
+            "subject": { "const": "calendar.rsvp.changed.v1" },
+            "payload": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "event_id",
+                "attendee_id",
+                "attendee_email",
+                "previous_status",
+                "new_status",
+                "version",
+                "reply_delivery_status"
+              ],
+              "properties": {
+                "event_id": { "$ref": "#/$defs/uuid" },
+                "attendee_id": { "$ref": "#/$defs/uuid" },
+                "attendee_email": { "$ref": "#/$defs/email" },
+                "previous_status": {
+                  "type": "string",
+                  "enum": ["needs_action", "accepted", "declined", "tentative"]
+                },
+                "new_status": {
+                  "type": "string",
+                  "enum": ["needs_action", "accepted", "declined", "tentative"]
+                },
+                "version": { "type": "integer", "minimum": 2 },
+                "recurrence_id": { "type": ["string", "null"], "maxLength": 255 },
+                "reply_delivery_status": {
+                  "type": "string",
+                  "enum": ["not_required", "pending", "sent", "failed"]
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

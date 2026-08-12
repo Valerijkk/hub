@@ -113,6 +113,43 @@ active_program:
       - frontend/tests/<domain>/**
       - frontend/tests/support/**
       - testframework/** (single root Python project; runtime test code is Python-only)
+mail_feature_workstream:
+    name: hub-mail-calendar-sync
+    branch: codex/mail-module-20260813
+    phases: "142-148"
+    current_phase: 143
+    status: phase_142_contract_complete_phase_143_ready
+    product_truth: unfinished_mvp_feature_not_accepted
+    contract_version: "0.1.0"
+    tasks:
+      - TASK-235
+      - TASK-236
+      - TASK-237
+      - TASK-238
+      - TASK-239
+      - TASK-240
+      - TASK-241
+    protected_parallel_program: "Claude test rebase phases 128-141; untouched"
+    runtime:
+      mail_engine: NOT_RUN
+      docker_profile: NOT_IMPLEMENTED
+      launcher: NOT_READY
+      resource_budget: NOT_MEASURED
+      external_delivery: NOT_CONFIGURED
+    decisions:
+      engine_candidate: Stalwart
+      engine_acceptance: conditional_on_license_provenance_and_runtime_gates
+      internal_delivery: through_engine
+      message_authority: mail_engine
+      calendar_authority: hub_postgresql
+      oauth_l3: out_of_scope
+    artifacts:
+      adr: .planning/decisions/ADR-MAIL-01-mail-engine-calendar-sync.md
+      spec: .planning/decisions/specs/MAIL-SPEC.md
+      openapi: docs/mail/openapi.yaml
+      events: docs/mail/events-v1.schema.json
+      qa_handoff: docs/mail/QA-HANDOFF.md
+      founder_questions: docs/mail/FOUNDER-QUESTIONS.md
 spec_coverage:
     fr_total: 28
     fr_with_phase: 9
@@ -124,6 +161,20 @@ spec_coverage:
 ---
 
 # Состояние проекта Hub
+
+## Product workstream — Hub Mail + Calendar Sync (2026-08-13)
+
+- Изолированная ветка: `codex/mail-module-20260813`; базовый master при создании:
+  `d44175f8`. Основная рабочая копия и защищённые зоны test-rebase не меняются.
+- Phase 142 фиксирует contracts-first пакет: ADR-MAIL-01, ERD/API/NATS/security,
+  Outlook UI design, traceability и QA handoff. Наличие контрактов не означает
+  реализации или готовности модуля.
+- Preferred engine: Stalwart за adapter boundary, условно. License verdict, image digest,
+  API/persistence/resource spike и внешний DNS остаются gates; runtime `NOT_RUN`.
+- Кодовые фазы 143–148 идут после заморозки контракта. Phase 145 может оставаться
+  blocked, пока выполняются engine-independent calendar/mailbox/UI slices.
+- Вопросы, не останавливающие локальную работу, собраны в
+  `docs/mail/FOUNDER-QUESTIONS.md`. Push/PR/merge/deploy не авторизованы.
 
 ## Session note — 2026-08-08 (test-rebase execution readiness)
 

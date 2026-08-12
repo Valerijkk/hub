@@ -234,6 +234,40 @@ contract отменяет его как migration gate; destructive batches ра
   tasks, verified TC и risks; никакого port/parity/dual-run.
 - [ ] **Phase 141:** CI quality gates, clean-room verification и docs/handoff.
 
+### August 2026 — Hub Mail + Calendar Sync (TASK-235…241)
+
+Канон: [`ADR-MAIL-01`](decisions/ADR-MAIL-01-mail-engine-calendar-sync.md) ·
+контракт: [`MAIL-SPEC.md`](decisions/specs/MAIL-SPEC.md) · QA handoff:
+[`docs/mail/QA-HANDOFF.md`](../docs/mail/QA-HANDOFF.md).
+
+Эти фазы принадлежат продуктовой mail-ветке и не меняют защищённую тестовую программу
+128–141. Разработка идёт параллельно; финальный rebase выполняется только после того,
+как владелец сообщит о merge тестовой ветки. Runtime mail stack остаётся `NOT_RUN`, пока
+не принят единый Docker-only launcher и не закрыты license/provenance gates.
+
+| Phase | Status | Depends on | Outcome / task |
+|------:|--------|------------|----------------|
+| 142 | CONTRACT COMPLETE · static PASS · runtime NOT_RUN | — | ADR, ERD, OpenAPI, NATS, UI/security/QA contracts · TASK-235 |
+| 143 | PLANNED | 142 | CalendarEvent/Attendee/Exception, deterministic iTIP and optimistic RSVP · TASK-236 |
+| 144 | PLANNED | 142 | Mailbox domain, engine port/fake, folders/threads/drafts/submission · TASK-237 |
+| 145 | BLOCKED BY EXTERNAL GATES | 144 + license + launcher | Stalwart adapter, instance-domain mail, bounded Docker profile · TASK-238 |
+| 146 | PLANNED | 143, 144 | Outlook three-pane UI, composer, attachments, search/realtime · TASK-239 |
+| 147 | PLANNED | 143–146 | recurrence/import recovery, busy/free, reminders, L1/CRM seam · TASK-240 |
+| 148 | PLANNED | 143–147 + test-rebase merge notice | security/reconciliation/docs/verification/rebase gate · TASK-241 |
+
+```text
+142 contracts -> 143 calendar core ----+-> 146 UI -> 147 reliability -> 148 gate
+              -> 144 mailbox domain -> 145 engine/runtime -----------+
+```
+
+- [x] **Phase 142:** freeze product, architecture, API, event, security and QA contracts.
+- [ ] **Phase 143:** implement canonical calendar RSVP/iTIP core.
+- [ ] **Phase 144:** implement engine-neutral mailbox domain and fake adapter.
+- [ ] **Phase 145:** pass external gates and implement/measure the mail runtime.
+- [ ] **Phase 146:** implement the responsive Outlook-class Hub mail workspace.
+- [ ] **Phase 147:** close recurrence/import/busy-free/reminder and L1/CRM behavior.
+- [ ] **Phase 148:** close security and verification, then rebase after founder signal.
+
 ## Phase Details
 
 <details>
@@ -2193,6 +2227,90 @@ Plans:
 
 Plans:
 - [x] `.planning/phases/125-regression-gate/PLAN.md` (single plan)
+
+### Phase 142: Mail Contract Foundation
+**Goal**: Заморозить source-of-truth, ERD, OpenAPI, NATS, security, UI и QA-контракты
+до реализации почтового модуля.
+**Depends on**: founder mail brief; does not depend on Phases 128–141 execution
+**Requirements**: TASK-235, FR-MAIL-001…016, FR-CALSYNC-001…013 (contract only)
+**Success Criteria** (what must be TRUE):
+  1. ADR-MAIL-01 records candidate comparison and explicit operational gates.
+  2. MAIL-SPEC freezes entities, invariants, state machines and traceability.
+  3. OpenAPI and NATS JSON Schema cover all promised public/admin surfaces.
+  4. QA handoff and founder question queue are complete without runtime overclaims.
+**Plans**: source `.planning/phases/142-mail-contract-foundation/PLAN.md`
+
+### Phase 143: Calendar RSVP Core
+**Goal**: First-class events and attendees provide deterministic RFC 5545/5546
+invite/update/cancel/reply behavior with optimistic RSVP.
+**Depends on**: Phase 142
+**Requirements**: TASK-236, FR-CALSYNC-001…010
+**Success Criteria** (what must be TRUE):
+  1. Ent model and call backfill policy match the frozen ERD.
+  2. REQUEST/CANCEL/REPLY and recurrence instance behavior have genuine units.
+  3. RSVP writes are owner/sender-bound, versioned, idempotent and outbox-backed.
+  4. Calendar API/aggregator exposes canonical events without regressing calls.
+**Plans**: source `.planning/phases/143-calendar-rsvp-core/PLAN.md`
+
+### Phase 144: Mailbox Domain
+**Goal**: Engine-neutral Hub mailbox domain supports owned folders/messages/threads,
+drafts, submissions, labels, attachments, rules, contacts and projections.
+**Depends on**: Phase 142
+**Requirements**: TASK-237, FR-MAIL-001…016
+**Success Criteria** (what must be TRUE):
+  1. MailEngine port and deterministic fake freeze engine isolation.
+  2. Domain/services/handlers match OpenAPI and store no raw body in PostgreSQL.
+  3. Submission and event consumers are idempotent; search/realtime projections repair.
+  4. Genuine mail units cover pure policies and fake-adapter service behavior.
+**Plans**: source `.planning/phases/144-mailbox-domain/PLAN.md`
+
+### Phase 145: Stalwart Gateway and Docker Mail Profile
+**Goal**: After explicit gates, connect the preferred engine and prove bounded persistent
+instance-domain mail runtime.
+**Depends on**: Phase 144; founder/legal license verdict; accepted Docker launcher
+**Requirements**: TASK-238, FR-MAIL-001, FR-MAIL-009, FR-MAIL-015
+**Success Criteria** (what must be TRUE):
+  1. Immutable image provenance and license choice are recorded.
+  2. JMAP adapter and provisioning pass accepted integration evidence.
+  3. Optional `mail` profile is healthy, persistent and ≤4 CPU/≤4 GiB by measured run.
+  4. External-domain claims remain blocked until DNS/PTR/network acceptance exists.
+**Plans**: source `.planning/phases/145-stalwart-gateway/PLAN.md`
+
+### Phase 146: Outlook-class Mail UI
+**Goal**: Hub users can triage, read, compose, search and RSVP through an accessible,
+responsive three-pane mail workspace.
+**Depends on**: Phases 143, 144
+**Requirements**: TASK-239, applicable FR-MAIL and FR-CALSYNC-006
+**Success Criteria** (what must be TRUE):
+  1. Desktop/tablet/mobile information architecture matches the approved design.
+  2. Draft autosave/conflict/send ambiguity and attachment scan states are honest.
+  3. Invitation card handles success, conflict, cancellation, stale and untrusted states.
+  4. Feature units live only in `frontend/tests/mail/**` and pass in Docker.
+**Plans**: source `.planning/phases/146-mail-outlook-ui/PLAN.md`
+
+### Phase 147: Mail/Calendar Reliability and Integrations
+**Goal**: Close recurrence/import/recovery, busy/free with leave, reminders, L1 feeds and
+the CRM send/manual-log seam.
+**Depends on**: Phases 143–146
+**Requirements**: TASK-240, FR-CALSYNC-009…013, CRM GZ-V4-08…10
+**Success Criteria** (what must be TRUE):
+  1. Out-of-order/redelivered recurrence and iTIP flows converge.
+  2. Availability combines events, calls and approved leave without detail leakage.
+  3. Reminder and CRM paths reuse existing policy boundaries.
+  4. L1 feeds are owner-controlled and SSRF/bounds protected or remain explicitly deferred.
+**Plans**: source `.planning/phases/147-mail-calendar-reliability/PLAN.md`
+
+### Phase 148: Mail Merge-readiness Gate
+**Goal**: Resolve independent review findings, prove security/recovery/docs, hand off QA,
+and rebase after the test-program merge signal.
+**Depends on**: Phases 143–147 and founder notice that Claude's branch is in master
+**Requirements**: TASK-241, all implemented P0/P1 mail requirements
+**Success Criteria** (what must be TRUE):
+  1. Applicable Docker-only unit/integration/security evidence is current-SHA green.
+  2. QA handoff and code/docs/contracts are synchronized.
+  3. Branch is rebased after the protected test migration and conflicts are resolved.
+  4. No push/PR/merge/deploy or readiness overclaim occurs without founder authority.
+**Plans**: source `.planning/phases/148-mail-release-gate/PLAN.md`
 
 ## Progress
 
