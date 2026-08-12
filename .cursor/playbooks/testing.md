@@ -157,18 +157,29 @@ pytest/Playwright и Locust исполняются только в task-owned co
 - явные CPU/RAM и bounded timeout;
 - source mount read-only, если runner не обязан писать;
 - isolated data/ports/network/artifacts;
-- `--rm` либо guaranteed `down -v --remove-orphans`;
+- до запуска записан конечный exact inventory: container IDs/names, Compose
+  project (если используется), volume IDs/names, network IDs/names и
+  owner-marked `testframework/reports/<task-run>/`;
 - zero collection, unexpected skip или leaked resource = FAIL.
 
 Единственная будущая точка исполнения — versioned outer launcher API из
 `testframework/runner/**`, вызываемый
 [`/qa-gate`](../skills/qa-gate/SKILL.md). Он enforce wall-clock timeout,
-сохраняет exit code и выполняет exact-resource cleanup в `finally`; artifacts
-изолированы в `testframework/reports/<task-run>/` с owner marker. Пока launcher
-не реализован и независимо не проверен, launcher — `NOT_READY`, runtime —
-`NOT_RUN`. `testframework/docker/**` содержит только immutable execution
-assets/contracts, не launcher code или alternate entrypoint.
-Прямой `docker run`/`compose up` не является допустимым substitute.
+сохраняет exit code и в безусловном `finally` очищает только заранее записанные
+exact task-owned resources. Затем launcher делает read-only postcheck по тому же
+конечному списку IDs и фиксирует остатки; pre-existing, shared, foreign,
+ambiguous, prefix/glob-selected или незаписанные ресурсы не трогает, а передаёт
+как finding владельцу. Артефакты изолированы в
+`testframework/reports/<task-run>/` с owner marker. Никакие broad teardown,
+orphan cleanup, volume-wide cleanup, pattern/glob cleanup или host-side cleanup
+не являются fallback или authority.
+
+Пока launcher не реализован и независимо не проверен, launcher — `NOT_READY`,
+runtime — `NOT_RUN`, G0-B — `NOT_VERIFIED`; этот playbook имеет максимум статус
+`STATIC_CANDIDATE` и не подтверждает выполненный cleanup. `testframework/docker/**`
+содержит только immutable execution assets/contracts, не launcher code или
+alternate entrypoint. Прямой `docker run`/`compose up` не является допустимым
+substitute.
 
 ## 7. Evidence и false confidence
 
@@ -184,14 +195,17 @@ service_profile: <none or compose profile>
 result: {collected: N, passed: N, failed: 0, skipped: 0}
 duration: <seconds>
 artifacts: <task-owned URI>
-cleanup: PASS
+cleanup: <PASS|FAIL; exact targets and postcheck residue>
 ```
 
 Gate — точная traceability `task/requirement/TC`, чувствительный observable
 oracle, non-zero collection, expected failure от временного sentinel/mutation
 для high-risk behavior и воспроизводимый Docker provenance. Нельзя выдавать
 наличие файла, raw grep, зелёный mock-only assert, coverage percentage или
-старый host-run за доказательство поведения.
+старый host-run за доказательство поведения. `cleanup: PASS` допустим только
+после future launcher finalizer и read-only postcheck exact pre-recorded IDs;
+cleanup finding или foreign/ambiguous artifact блокирует `verified: true` и
+передаётся владельцу без удаления.
 
 ## 8. Definition of Done
 
