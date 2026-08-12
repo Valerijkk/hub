@@ -648,7 +648,7 @@ def sorted_files(
                 raise ValueError(f"descriptor-relative source enumeration failed: {relative}: {error}") from error
             visited_files += len(names)
             if visited_files > max_files:
-                raise ValueError(f"source traversal exceeded {max_files} entry budget: {root}")
+                raise ValueError(f"source traversal exceeded {max_files} file budget: {root}")
             for name in names:
                 if (
                     name in {"", ".", ".."}
