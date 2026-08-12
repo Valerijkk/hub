@@ -83,9 +83,9 @@ function Invoke-HubQaSupervisor {
     $contractLiteral = 'hub.qa-runner/v1'
     $fixedTargets = @('backend-unit', 'frontend-unit', 'backend-openapi')
     $idPattern = '^[a-z0-9][a-z0-9-]{0,23}$'
-    $digestReferencePattern = '^[a-z0-9][a-z0-9.-]*(?::[0-9]+)?/[a-z0-9][a-z0-9._/-]*@sha256:[a-f0-9]{64}$'
-    $lockMemberPattern = '"(?<key>[^"\\]+)"\s*:\s*"(?<value>[^"\\]+)"'
-    $lockDocumentPattern = '^\s*\{\s*"[^"\\]+"\s*:\s*"[^"\\]+"\s*(?:,\s*"[^"\\]+"\s*:\s*"[^"\\]+"\s*){2}\}\s*$'
+    $sha256Pattern = '^sha256:[a-f0-9]{64}$'
+    $commitPattern = '^[a-f0-9]{40}$'
+    $baseRepoDigestPattern = '^[^@ \t\r\n]+@sha256:[a-f0-9]{64}$'
     $inspectTimeoutMilliseconds = 30000
     $outerTimeoutMilliseconds = 810000
     $cleanupTimeoutMilliseconds = 30000
@@ -109,7 +109,6 @@ function Invoke-HubQaSupervisor {
     $deadlineLayer = $null
     $reportOwned = $false
     $reportPath = $null
-    $sourceSha = $null
     $images = $null
     $imagesLockSha256 = $null
     $composeSnapshot = $null
@@ -121,8 +120,11 @@ function Invoke-HubQaSupervisor {
     $composeResult = $null
     $targetResult = $null
     $commandReceipts = @()
+    $rawProcessArtifactPaths = [ordered]@{
+        compose_stdout = 'raw/compose.stdout.log'
+        compose_stderr = 'raw/compose.stderr.log'
+    }
     $persistedArtifacts = New-Object 'System.Collections.Generic.List[string]'
-    $openApiChangedFiles = New-Object 'System.Collections.Generic.List[string]'
     $startedAt = [DateTime]::UtcNow
     $runStopwatch = [System.Diagnostics.Stopwatch]::StartNew()
     $cleanupRecord = [ordered]@{
@@ -137,10 +139,8 @@ function Invoke-HubQaSupervisor {
         Images = $null
         Project = $null
         Container = $null
-        RepositoryRoot = $null
         ComposePath = $null
         ReportPath = $null
-        SourceSha = $null
         ComposeEnvironment = $null
     }
 
@@ -203,6 +203,8 @@ function Invoke-HubQaSupervisor {
     $ReadValidatedImagesLock = {
         param([object]$Snapshot)
 
+        # The v3 lock parser is deliberately local and duplicate-aware. ConvertFrom-Json
+        # cannot be the authority because Windows PowerShell 5.1 silently coalesces keys.
         if (
             $null -eq $Snapshot -or
             $null -eq $Snapshot.PSObject.Properties['Bytes'] -or
@@ -210,60 +212,508 @@ function Invoke-HubQaSupervisor {
         ) {
             throw 'The closed image lock snapshot is absent.'
         }
+        [byte[]]$lockBytes = $Snapshot.Bytes
+        if ($lockBytes.Length -eq 0 -or ($lockBytes.Length -ge 3 -and $lockBytes[0] -eq 0xef -and $lockBytes[1] -eq 0xbb -and $lockBytes[2] -eq 0xbf)) {
+            throw 'The closed image lock must be nonempty no-BOM UTF-8.'
+        }
         $strictUtf8 = [System.Text.UTF8Encoding]::new($false, $true)
         try {
-            $lockText = $strictUtf8.GetString([byte[]]$Snapshot.Bytes)
+            $lockText = $strictUtf8.GetString($lockBytes)
         }
         catch {
             throw 'The closed image lock is not strict UTF-8.'
         }
-        if ($lockText -cnotmatch $lockDocumentPattern) {
-            throw 'The closed image lock has an invalid document shape.'
-        }
-        try {
-            $parsedDocument = $lockText | ConvertFrom-Json -ErrorAction Stop
-        }
-        catch {
-            throw 'The closed image lock is not valid JSON.'
-        }
-        $memberMatches = [System.Text.RegularExpressions.Regex]::Matches($lockText, $lockMemberPattern)
-        if ($memberMatches.Count -ne 3) {
-            throw 'The closed image lock does not have exactly three members.'
-        }
-        $validatedImages = @{}
-        foreach ($memberMatch in $memberMatches) {
-            $key = $memberMatch.Groups['key'].Value
-            $value = $memberMatch.Groups['value'].Value
-            if ($fixedTargets -cnotcontains $key -or $validatedImages.ContainsKey($key)) {
-                throw 'The closed image lock has an unexpected or duplicate key.'
+
+        $cursor = 0
+        $length = $lockText.Length
+        $skipWhitespace = {
+            # RFC 8259 permits precisely SP, HTAB, LF, and CR between tokens.
+            while ($cursor -lt $length) {
+                $code = [int][char]$lockText[$cursor]
+                if ($code -ne 0x20 -and $code -ne 0x09 -and $code -ne 0x0a -and $code -ne 0x0d) {
+                    break
+                }
+                $cursor++
             }
-            if ($value -cnotmatch $digestReferencePattern) {
-                throw 'The closed image lock has a non-digest reference.'
+        }
+        $parseString = $null
+        $parseValue = $null
+        $parseArray = $null
+        $parseObject = $null
+        $parseString = {
+            if ($cursor -ge $length -or $lockText[$cursor] -ne '"') {
+                throw 'The closed image lock has an invalid JSON string.'
             }
-            $validatedImages[$key] = $value
+            $cursor++
+            $builder = New-Object System.Text.StringBuilder
+            while ($cursor -lt $length) {
+                $character = [int][char]$lockText[$cursor]
+                $cursor++
+                if ($character -eq 0x22) {
+                    return $builder.ToString()
+                }
+                if ($character -lt 0x20) {
+                    throw 'The closed image lock string contains a control character.'
+                }
+                if ($character -eq 0x5c) {
+                    if ($cursor -ge $length) {
+                        throw 'The closed image lock string has a trailing escape.'
+                    }
+                    $escape = $lockText[$cursor]
+                    $cursor++
+                    switch ($escape) {
+                        '"' { [void]$builder.Append('"'); continue }
+                        '\' { [void]$builder.Append('\'); continue }
+                        '/' { [void]$builder.Append('/'); continue }
+                        'b' { [void]$builder.Append([char]0x08); continue }
+                        'f' { [void]$builder.Append([char]0x0c); continue }
+                        'n' { [void]$builder.Append([char]0x0a); continue }
+                        'r' { [void]$builder.Append([char]0x0d); continue }
+                        't' { [void]$builder.Append([char]0x09); continue }
+                        'u' {
+                            if (($cursor + 4) -gt $length) {
+                                throw 'The closed image lock string has a truncated unicode escape.'
+                            }
+                            $hex = $lockText.Substring($cursor, 4)
+                            if ($hex -cnotmatch '^[0-9a-fA-F]{4}$') {
+                                throw 'The closed image lock string has an invalid unicode escape.'
+                            }
+                            $codeUnit = [Convert]::ToInt32($hex, 16)
+                            $cursor += 4
+                            if ($codeUnit -ge 0xd800 -and $codeUnit -le 0xdbff) {
+                                if (($cursor + 6) -gt $length -or $lockText[$cursor] -ne '\' -or $lockText[$cursor + 1] -ne 'u') {
+                                    throw 'The closed image lock string has an unpaired high surrogate.'
+                                }
+                                $lowHex = $lockText.Substring($cursor + 2, 4)
+                                if ($lowHex -cnotmatch '^[0-9a-fA-F]{4}$') {
+                                    throw 'The closed image lock string has an invalid low surrogate escape.'
+                                }
+                                $lowUnit = [Convert]::ToInt32($lowHex, 16)
+                                if ($lowUnit -lt 0xdc00 -or $lowUnit -gt 0xdfff) {
+                                    throw 'The closed image lock string has an unpaired high surrogate.'
+                                }
+                                [void]$builder.Append([char]$codeUnit)
+                                [void]$builder.Append([char]$lowUnit)
+                                $cursor += 6
+                                continue
+                            }
+                            if ($codeUnit -ge 0xdc00 -and $codeUnit -le 0xdfff) {
+                                throw 'The closed image lock string has an unpaired low surrogate.'
+                            }
+                            [void]$builder.Append([char]$codeUnit)
+                            continue
+                        }
+                        default { throw 'The closed image lock string has an invalid escape.' }
+                    }
+                }
+                if ($character -ge 0xd800 -and $character -le 0xdbff) {
+                    if ($cursor -ge $length) {
+                        throw 'The closed image lock string has an unpaired high surrogate.'
+                    }
+                    $lowCharacter = [int][char]$lockText[$cursor]
+                    if ($lowCharacter -lt 0xdc00 -or $lowCharacter -gt 0xdfff) {
+                        throw 'The closed image lock string has an unpaired high surrogate.'
+                    }
+                    [void]$builder.Append([char]$character)
+                    [void]$builder.Append([char]$lowCharacter)
+                    $cursor++
+                    continue
+                }
+                if ($character -ge 0xdc00 -and $character -le 0xdfff) {
+                    throw 'The closed image lock string has an unpaired low surrogate.'
+                }
+                [void]$builder.Append([char]$character)
+            }
+            throw 'The closed image lock string is unterminated.'
         }
-        $parsedProperties = @($parsedDocument.PSObject.Properties)
-        if ($parsedProperties.Count -ne 3) {
-            throw 'The closed image lock parser view is not exact.'
+        $parseArray = {
+            if ($cursor -ge $length -or $lockText[$cursor] -ne '[') {
+                throw 'The closed image lock has an invalid JSON array.'
+            }
+            $cursor++
+            . $skipWhitespace
+            $items = New-Object 'System.Collections.Generic.List[object]'
+            if ($cursor -lt $length -and $lockText[$cursor] -eq ']') {
+                $cursor++
+                return [pscustomobject][ordered]@{ Type = 'array'; Value = [object[]]$items.ToArray() }
+            }
+            while ($true) {
+                [void]$items.Add((. $parseValue))
+                . $skipWhitespace
+                if ($cursor -ge $length) {
+                    throw 'The closed image lock array is unterminated.'
+                }
+                if ($lockText[$cursor] -eq ']') {
+                    $cursor++
+                    break
+                }
+                if ($lockText[$cursor] -ne ',') {
+                    throw 'The closed image lock array has an invalid separator.'
+                }
+                $cursor++
+                . $skipWhitespace
+            }
+            return [pscustomobject][ordered]@{ Type = 'array'; Value = [object[]]$items.ToArray() }
         }
-        foreach ($fixedTarget in $fixedTargets) {
+        $parseObject = {
+            if ($cursor -ge $length -or $lockText[$cursor] -ne '{') {
+                throw 'The closed image lock has an invalid JSON object.'
+            }
+            $cursor++
+            . $skipWhitespace
+            $members = [ordered]@{}
+            if ($cursor -lt $length -and $lockText[$cursor] -eq '}') {
+                $cursor++
+                return [pscustomobject][ordered]@{ Type = 'object'; Value = $members }
+            }
+            while ($true) {
+                $name = . $parseString
+                if ($members.Contains($name)) {
+                    throw 'The closed image lock contains a duplicate object member.'
+                }
+                . $skipWhitespace
+                if ($cursor -ge $length -or $lockText[$cursor] -ne ':') {
+                    throw 'The closed image lock object has no member separator.'
+                }
+                $cursor++
+                . $skipWhitespace
+                $members[$name] = . $parseValue
+                . $skipWhitespace
+                if ($cursor -ge $length) {
+                    throw 'The closed image lock object is unterminated.'
+                }
+                if ($lockText[$cursor] -eq '}') {
+                    $cursor++
+                    break
+                }
+                if ($lockText[$cursor] -ne ',') {
+                    throw 'The closed image lock object has an invalid separator.'
+                }
+                $cursor++
+                . $skipWhitespace
+                if ($cursor -ge $length -or $lockText[$cursor] -ne '"') {
+                    throw 'The closed image lock object has an invalid member name.'
+                }
+            }
+            return [pscustomobject][ordered]@{ Type = 'object'; Value = $members }
+        }
+        $parseValue = {
+            . $skipWhitespace
+            if ($cursor -ge $length) {
+                throw 'The closed image lock has an incomplete JSON value.'
+            }
+            switch ($lockText[$cursor]) {
+                '{' { return (. $parseObject) }
+                '[' { return (. $parseArray) }
+                '"' { return [pscustomobject][ordered]@{ Type = 'string'; Value = (. $parseString) } }
+                'n' {
+                    if (($cursor + 4) -le $length -and $lockText.Substring($cursor, 4) -ceq 'null') {
+                        $cursor += 4
+                        return [pscustomobject][ordered]@{ Type = 'null'; Value = $null }
+                    }
+                    throw 'The closed image lock has an invalid literal.'
+                }
+                default { throw 'The closed image lock permits no JSON numbers or booleans.' }
+            }
+        }
+
+        $root = . $parseValue
+        . $skipWhitespace
+        if ($cursor -ne $length -or [string]$root.Type -cne 'object') {
+            throw 'The closed image lock has trailing data or no top-level object.'
+        }
+
+        $assertExactObject = {
+            param([object]$Node, [string[]]$Expected, [string]$Identity, [bool]$RequireOrderedMembers)
+
+            if ($null -eq $Node -or [string]$Node.Type -cne 'object') {
+                throw ('The closed image lock ' + $Identity + ' is not an object.')
+            }
+            $actual = [System.Collections.IDictionary]$Node.Value
+            if ($actual.Count -ne $Expected.Count) {
+                throw ('The closed image lock ' + $Identity + ' has an invalid member count.')
+            }
+            foreach ($name in $Expected) {
+                if (-not $actual.Contains($name)) {
+                    throw ('The closed image lock ' + $Identity + ' is missing a required member.')
+                }
+            }
+            if ($RequireOrderedMembers) {
+                $actualNames = @($actual.Keys)
+                for ($index = 0; $index -lt $Expected.Count; $index++) {
+                    if ([string]$actualNames[$index] -cne [string]$Expected[$index]) {
+                        throw ('The closed image lock ' + $Identity + ' has an invalid member order.')
+                    }
+                }
+            }
+            return $actual
+        }.GetNewClosure()
+        $requireString = {
+            param([object]$Node, [string]$Identity, [string]$Pattern)
+
+            if ($null -eq $Node -or [string]$Node.Type -cne 'string' -or [string]$Node.Value -cnotmatch $Pattern) {
+                throw ('The closed image lock ' + $Identity + ' has an invalid string scalar.')
+            }
+            return [string]$Node.Value
+        }.GetNewClosure()
+        $jcsString = {
+            param([string]$Value)
+
+            if ($null -eq $Value) {
+                throw 'A JCS string cannot be null.'
+            }
+            $builder = New-Object System.Text.StringBuilder
+            [void]$builder.Append('"')
+            for ($index = 0; $index -lt $Value.Length; $index++) {
+                $code = [int][char]$Value[$index]
+                if ($code -eq 0x22) { [void]$builder.Append('\"'); continue }
+                if ($code -eq 0x5c) { [void]$builder.Append('\\'); continue }
+                if ($code -eq 0x08) { [void]$builder.Append('\b'); continue }
+                if ($code -eq 0x09) { [void]$builder.Append('\t'); continue }
+                if ($code -eq 0x0a) { [void]$builder.Append('\n'); continue }
+                if ($code -eq 0x0c) { [void]$builder.Append('\f'); continue }
+                if ($code -eq 0x0d) { [void]$builder.Append('\r'); continue }
+                if ($code -lt 0x20) { [void]$builder.Append(('\u{0:x4}' -f $code)); continue }
+                if ($code -ge 0xd800 -and $code -le 0xdbff) {
+                    if (($index + 1) -ge $Value.Length) { throw 'A JCS string has an unpaired high surrogate.' }
+                    $low = [int][char]$Value[$index + 1]
+                    if ($low -lt 0xdc00 -or $low -gt 0xdfff) { throw 'A JCS string has an unpaired high surrogate.' }
+                    [void]$builder.Append([char]$code)
+                    [void]$builder.Append([char]$low)
+                    $index++
+                    continue
+                }
+                if ($code -ge 0xdc00 -and $code -le 0xdfff) { throw 'A JCS string has an unpaired low surrogate.' }
+                [void]$builder.Append([char]$code)
+            }
+            [void]$builder.Append('"')
+            return $builder.ToString()
+        }.GetNewClosure()
+        $getJcsSha256 = {
+            param([string]$CanonicalJson)
+
+            $algorithm = [System.Security.Cryptography.SHA256]::Create()
+            try {
+                return 'sha256:' + [System.BitConverter]::ToString($algorithm.ComputeHash([System.Text.UTF8Encoding]::new($false).GetBytes($CanonicalJson))).Replace('-', '').ToLowerInvariant()
+            }
+            finally {
+                $algorithm.Dispose()
+            }
+        }.GetNewClosure()
+        $readStringArray = {
+            param([object]$Node, [string]$Identity, [bool]$RequireNonempty)
+
+            if ($null -eq $Node -or [string]$Node.Type -cne 'array') {
+                throw ('The closed image lock ' + $Identity + ' is not an array.')
+            }
+            [object[]]$items = $Node.Value
+            if ($RequireNonempty -and $items.Count -eq 0) {
+                throw ('The closed image lock ' + $Identity + ' is empty.')
+            }
+            $result = New-Object 'System.Collections.Generic.List[string]'
+            foreach ($item in $items) {
+                if ($null -eq $item -or [string]$item.Type -cne 'string') {
+                    throw ('The closed image lock ' + $Identity + ' contains a non-string member.')
+                }
+                [void]$result.Add([string]$item.Value)
+            }
+            return [string[]]$result.ToArray()
+        }.GetNewClosure()
+        $readLabels = {
+            param([object]$Node, [string]$Identity)
+
+            if ($null -eq $Node -or [string]$Node.Type -cne 'object') {
+                throw ('The closed image lock ' + $Identity + ' is not an object.')
+            }
+            if (@($Node.Value.Keys).Count -eq 0) {
+                throw ('The closed image lock ' + $Identity + ' is empty.')
+            }
+            $labels = [ordered]@{}
+            foreach ($name in @($Node.Value.Keys)) {
+                $value = $Node.Value[$name]
+                if ([string]::IsNullOrEmpty([string]$name) -or $null -eq $value -or [string]$value.Type -cne 'string') {
+                    throw ('The closed image lock ' + $Identity + ' is not a string-to-string map.')
+                }
+                $labels[[string]$name] = [string]$value.Value
+            }
+            return $labels
+        }.GetNewClosure()
+        $jcsArray = {
+            param([string[]]$Values)
+
+            $encoded = New-Object 'System.Collections.Generic.List[string]'
+            foreach ($value in $Values) {
+                [void]$encoded.Add((& $jcsString $value))
+            }
+            return '[' + ($encoded -join ',') + ']'
+        }.GetNewClosure()
+        $jcsObject = {
+            param([System.Collections.IDictionary]$Values)
+
+            $names = [string[]]@($Values.Keys)
+            [System.Array]::Sort($names, [System.StringComparer]::Ordinal)
+            $encoded = New-Object 'System.Collections.Generic.List[string]'
+            foreach ($name in $names) {
+                [void]$encoded.Add(((& $jcsString $name) + ':' + (& $jcsString ([string]$Values[$name]))))
+            }
+            return '{' + ($encoded -join ',') + '}'
+        }.GetNewClosure()
+        $readPlatform = {
+            param([object]$Node, [string]$Identity)
+
+            $platform = & $assertExactObject $Node @('os', 'architecture', 'variant') $Identity $false
             if (
-                -not $validatedImages.ContainsKey($fixedTarget) -or
-                $null -eq $parsedDocument.PSObject.Properties[$fixedTarget] -or
-                $parsedDocument.PSObject.Properties[$fixedTarget].Value -isnot [string] -or
-                [string]$parsedDocument.PSObject.Properties[$fixedTarget].Value -cne [string]$validatedImages[$fixedTarget]
+                [string]$platform['os'].Type -cne 'string' -or [string]$platform['os'].Value -cne 'linux' -or
+                [string]$platform['architecture'].Type -cne 'string' -or [string]$platform['architecture'].Value -cne 'amd64' -or
+                [string]$platform['variant'].Type -cne 'null'
             ) {
-                throw 'The closed image lock is missing a fixed target.'
+                throw ('The closed image lock ' + $Identity + ' is not linux/amd64/null.')
             }
+            return [ordered]@{ os = 'linux'; architecture = 'amd64'; variant = $null }
+        }.GetNewClosure()
+        $readRecord = {
+            param([object]$Node, [string]$Identity, [bool]$IsTarget)
+
+            $expected = if ($IsTarget) {
+                @('base_key', 'image_id', 'platform', 'rootfs_layers', 'entrypoint', 'entrypoint_sha256', 'cmd', 'cmd_sha256', 'control_commit', 'control_bundle_sha256', 'source_commit', 'source_policy_sha256', 'source_tree_manifest_sha256', 'build_manifest_sha256', 'labels_projection', 'labels_projection_sha256')
+            }
+            else {
+                @('repo_digest', 'image_id', 'platform', 'rootfs_layers', 'entrypoint', 'entrypoint_sha256', 'cmd', 'cmd_sha256', 'labels_projection', 'labels_projection_sha256')
+            }
+            $record = & $assertExactObject $Node $expected $Identity $IsTarget
+            $entrypoint = & $readStringArray $record['entrypoint'] ($Identity + '.entrypoint') $IsTarget
+            $cmd = & $readStringArray $record['cmd'] ($Identity + '.cmd') $false
+            $labels = & $readLabels $record['labels_projection'] ($Identity + '.labels_projection')
+            $entrypointSha = & $requireString $record['entrypoint_sha256'] ($Identity + '.entrypoint_sha256') $sha256Pattern
+            $cmdSha = & $requireString $record['cmd_sha256'] ($Identity + '.cmd_sha256') $sha256Pattern
+            $labelsSha = & $requireString $record['labels_projection_sha256'] ($Identity + '.labels_projection_sha256') $sha256Pattern
+            if (
+                $entrypointSha -cne (& $getJcsSha256 (& $jcsArray $entrypoint)) -or
+                $cmdSha -cne (& $getJcsSha256 (& $jcsArray $cmd)) -or
+                $labelsSha -cne (& $getJcsSha256 (& $jcsObject $labels))
+            ) {
+                throw ('The closed image lock ' + $Identity + ' JCS hash does not bind its complete projection.')
+            }
+            $validated = [ordered]@{
+                image_id = (& $requireString $record['image_id'] ($Identity + '.image_id') $sha256Pattern)
+                platform = (& $readPlatform $record['platform'] ($Identity + '.platform'))
+                rootfs_layers = (& $readStringArray $record['rootfs_layers'] ($Identity + '.rootfs_layers') $true)
+                entrypoint = $entrypoint
+                entrypoint_sha256 = $entrypointSha
+                cmd = $cmd
+                cmd_sha256 = $cmdSha
+                labels_projection = $labels
+                labels_projection_sha256 = $labelsSha
+            }
+            foreach ($layer in @($validated['rootfs_layers'])) {
+                if ($layer -cnotmatch $sha256Pattern) {
+                    throw ('The closed image lock ' + $Identity + ' has an invalid RootFS layer.')
+                }
+            }
+            if ($IsTarget) {
+                $validated['base_key'] = & $requireString $record['base_key'] ($Identity + '.base_key') '^(golang|playwright|python)$'
+                $validated['control_commit'] = & $requireString $record['control_commit'] ($Identity + '.control_commit') $commitPattern
+                $validated['control_bundle_sha256'] = & $requireString $record['control_bundle_sha256'] ($Identity + '.control_bundle_sha256') $sha256Pattern
+                $validated['source_commit'] = & $requireString $record['source_commit'] ($Identity + '.source_commit') $commitPattern
+                $validated['source_policy_sha256'] = & $requireString $record['source_policy_sha256'] ($Identity + '.source_policy_sha256') $sha256Pattern
+                $validated['source_tree_manifest_sha256'] = & $requireString $record['source_tree_manifest_sha256'] ($Identity + '.source_tree_manifest_sha256') $sha256Pattern
+                $validated['build_manifest_sha256'] = & $requireString $record['build_manifest_sha256'] ($Identity + '.build_manifest_sha256') $sha256Pattern
+            }
+            else {
+                $validated['repo_digest'] = & $requireString $record['repo_digest'] ($Identity + '.repo_digest') $baseRepoDigestPattern
+            }
+            return $validated
+        }.GetNewClosure()
+
+        $top = & $assertExactObject $root @('schema', 'control', 'source', 'build', 'bases', 'targets') 'top-level' $true
+        $schemaLiteral = & $requireString $top['schema'] 'schema' '^hub\.qa\.local-images-lock/v3$'
+        if ($schemaLiteral -cne 'hub.qa.local-images-lock/v3') {
+            throw 'The closed image lock schema is invalid.'
         }
-        foreach ($parsedProperty in $parsedProperties) {
-            if ($fixedTargets -cnotcontains [string]$parsedProperty.Name) {
-                throw 'The closed image lock parser view has an unexpected key.'
+        $control = & $assertExactObject $top['control'] @('commit', 'bundle_sha256', 'compose_sha256') 'control' $false
+        $source = & $assertExactObject $top['source'] @('commit', 'policy_sha256', 'tree_manifest_sha256') 'source' $false
+        $build = & $assertExactObject $top['build'] @('manifest_sha256') 'build' $false
+        $validatedControl = [ordered]@{
+            commit = (& $requireString $control['commit'] 'control.commit' $commitPattern)
+            bundle_sha256 = (& $requireString $control['bundle_sha256'] 'control.bundle_sha256' $sha256Pattern)
+            compose_sha256 = (& $requireString $control['compose_sha256'] 'control.compose_sha256' $sha256Pattern)
+        }
+        $validatedSource = [ordered]@{
+            commit = (& $requireString $source['commit'] 'source.commit' $commitPattern)
+            policy_sha256 = (& $requireString $source['policy_sha256'] 'source.policy_sha256' $sha256Pattern)
+            tree_manifest_sha256 = (& $requireString $source['tree_manifest_sha256'] 'source.tree_manifest_sha256' $sha256Pattern)
+        }
+        $validatedBuild = [ordered]@{ manifest_sha256 = (& $requireString $build['manifest_sha256'] 'build.manifest_sha256' $sha256Pattern) }
+        $baseObject = & $assertExactObject $top['bases'] @('golang', 'playwright', 'python') 'bases' $false
+        $targetObject = & $assertExactObject $top['targets'] $fixedTargets 'targets' $false
+        $targetBaseMap = [ordered]@{
+            'backend-unit' = 'golang'
+            'frontend-unit' = 'playwright'
+            'backend-openapi' = 'python'
+        }
+        $validatedBases = [ordered]@{}
+        foreach ($baseKey in @('golang', 'playwright', 'python')) {
+            $validatedBases[$baseKey] = & $readRecord $baseObject[$baseKey] ('bases.' + $baseKey) $false
+        }
+        $validatedTargets = [ordered]@{}
+        foreach ($targetKey in $fixedTargets) {
+            $targetRecord = & $readRecord $targetObject[$targetKey] ('targets.' + $targetKey) $true
+            if (
+                [string]$targetRecord['base_key'] -cne [string]$targetBaseMap[$targetKey] -or
+                [string]$targetRecord['control_commit'] -cne [string]$validatedControl['commit'] -or
+                [string]$targetRecord['control_bundle_sha256'] -cne [string]$validatedControl['bundle_sha256'] -or
+                [string]$targetRecord['source_commit'] -cne [string]$validatedSource['commit'] -or
+                [string]$targetRecord['source_policy_sha256'] -cne [string]$validatedSource['policy_sha256'] -or
+                [string]$targetRecord['source_tree_manifest_sha256'] -cne [string]$validatedSource['tree_manifest_sha256'] -or
+                [string]$targetRecord['build_manifest_sha256'] -cne [string]$validatedBuild['manifest_sha256']
+            ) {
+                throw 'The closed image lock target does not bind top-level provenance and its fixed base.'
             }
+            $requiredLabels = [ordered]@{
+                'hub.qa.target' = $targetKey
+                'hub.qa.base-image-id' = [string]$validatedBases[[string]$targetBaseMap[$targetKey]]['image_id']
+                'hub.qa.control-commit' = [string]$validatedControl['commit']
+                'hub.qa.control-bundle-sha256' = [string]$validatedControl['bundle_sha256']
+                'hub.qa.source-commit' = [string]$validatedSource['commit']
+                'hub.qa.source-policy-sha256' = [string]$validatedSource['policy_sha256']
+                'hub.qa.source-tree-manifest-sha256' = [string]$validatedSource['tree_manifest_sha256']
+                'hub.qa.build-manifest-sha256' = [string]$validatedBuild['manifest_sha256']
+                'hub.qa.runtime-status' = 'NOT_READY'
+            }
+            foreach ($labelName in @($requiredLabels.Keys)) {
+                if (-not $targetRecord['labels_projection'].Contains($labelName) -or [string]$targetRecord['labels_projection'][$labelName] -cne [string]$requiredLabels[$labelName]) {
+                    throw 'The closed image lock target has an invalid mandatory provenance label.'
+                }
+            }
+            $validatedTargets[$targetKey] = $targetRecord
         }
         return [pscustomobject][ordered]@{
-            References = $validatedImages
+            Control = $validatedControl
+            Source = $validatedSource
+            Build = $validatedBuild
+            Bases = $validatedBases
+            Targets = $validatedTargets
             Sha256 = [string]$Snapshot.Sha256
+        }
+    }.GetNewClosure()
+
+    $AssertPrivateComposeSnapshot = {
+        param([object]$Snapshot, [string]$ExpectedControlComposeSha256)
+
+        if (
+            $null -eq $Snapshot -or
+            $null -eq $Snapshot.PSObject.Properties['Bytes'] -or
+            $null -eq $Snapshot.PSObject.Properties['Sha256']
+        ) {
+            throw 'The immutable Compose snapshot is absent.'
+        }
+        [byte[]]$composeBytes = $Snapshot.Bytes
+        if (
+            $composeBytes.Length -eq 0 -or
+            $ExpectedControlComposeSha256 -cnotmatch $sha256Pattern -or
+            ('sha256:' + [string]$Snapshot.Sha256) -cne $ExpectedControlComposeSha256
+        ) {
+            throw 'The immutable Compose snapshot does not equal the closed control raw-byte pin.'
         }
     }.GetNewClosure()
 
@@ -392,171 +842,6 @@ function Invoke-HubQaSupervisor {
         }
     }.GetNewClosure()
 
-    $GetCanonicalSourceSha = {
-        param([string]$RepositoryRoot)
-
-        $canonicalRepositoryRoot = & $ResolveCanonicalContainedPath $RepositoryRoot '.' $true $true
-        $gitMarker = & $ResolveCanonicalContainedPath $canonicalRepositoryRoot '.git' $true $false
-        $referenceRoot = $null
-        $headRelativePath = $null
-        if ([System.IO.Directory]::Exists($gitMarker)) {
-            $primaryAttributes = [System.IO.File]::GetAttributes($gitMarker)
-            if (($primaryAttributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
-                throw 'The primary git directory is unsafe.'
-            }
-            $referenceRoot = $gitMarker
-            $headRelativePath = 'HEAD'
-        }
-        elseif ([System.IO.File]::Exists($gitMarker)) {
-            $markerAttributes = [System.IO.File]::GetAttributes($gitMarker)
-            if (($markerAttributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
-                throw 'The linked-worktree git marker is unsafe.'
-            }
-            $markerText = [System.IO.File]::ReadAllText($gitMarker)
-            $markerMatch = [System.Text.RegularExpressions.Regex]::Match($markerText, '^gitdir: (?<path>[^\r\n\0]+)\r?\n?$')
-            if (-not $markerMatch.Success) {
-                throw 'The linked-worktree git marker is malformed.'
-            }
-            $markerDirectoryText = $markerMatch.Groups['path'].Value
-            $linkedGitDirectory = if ([System.IO.Path]::IsPathRooted($markerDirectoryText)) {
-                [System.IO.Path]::GetFullPath($markerDirectoryText)
-            }
-            else {
-                [System.IO.Path]::GetFullPath((Join-Path $canonicalRepositoryRoot $markerDirectoryText))
-            }
-            if (-not [System.IO.Directory]::Exists($linkedGitDirectory)) {
-                throw 'The linked-worktree administrative directory is absent.'
-            }
-            $linkedAttributes = [System.IO.File]::GetAttributes($linkedGitDirectory)
-            if (($linkedAttributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
-                throw 'The linked-worktree administrative directory is unsafe.'
-            }
-
-            $backlinkPath = & $ResolveCanonicalContainedPath $linkedGitDirectory 'gitdir' $true $false
-            $backlinkAttributes = [System.IO.File]::GetAttributes($backlinkPath)
-            if (($backlinkAttributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
-                throw 'The linked-worktree gitdir backlink is unsafe.'
-            }
-            $backlinkText = [System.IO.File]::ReadAllText($backlinkPath)
-            $backlinkMatch = [System.Text.RegularExpressions.Regex]::Match($backlinkText, '^(?<path>[^\r\n\0]+)\r?\n?$')
-            if (-not $backlinkMatch.Success) {
-                throw 'The linked-worktree gitdir backlink is malformed.'
-            }
-            $backlinkTarget = $backlinkMatch.Groups['path'].Value
-            $backlinkCanonical = if ([System.IO.Path]::IsPathRooted($backlinkTarget)) {
-                [System.IO.Path]::GetFullPath($backlinkTarget)
-            }
-            else {
-                [System.IO.Path]::GetFullPath((Join-Path $linkedGitDirectory $backlinkTarget))
-            }
-            if (-not $backlinkCanonical.Equals($gitMarker, [System.StringComparison]::OrdinalIgnoreCase)) {
-                throw 'The linked-worktree gitdir backlink does not bind this repository marker.'
-            }
-
-            $commonMarkerPath = & $ResolveCanonicalContainedPath $linkedGitDirectory 'commondir' $true $false
-            $commonMarkerAttributes = [System.IO.File]::GetAttributes($commonMarkerPath)
-            if (($commonMarkerAttributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
-                throw 'The linked-worktree common-directory marker is unsafe.'
-            }
-            $commonMarkerText = [System.IO.File]::ReadAllText($commonMarkerPath)
-            $commonMarkerMatch = [System.Text.RegularExpressions.Regex]::Match($commonMarkerText, '^(?<path>[^\r\n\0]+)\r?\n?$')
-            if (-not $commonMarkerMatch.Success) {
-                throw 'The linked-worktree common-directory marker is malformed.'
-            }
-            $commonDirectoryText = $commonMarkerMatch.Groups['path'].Value
-            if ([System.IO.Path]::IsPathRooted($commonDirectoryText)) {
-                throw 'The linked-worktree common-directory marker must be relative.'
-            }
-            $referenceRoot = [System.IO.Path]::GetFullPath((Join-Path $linkedGitDirectory $commonDirectoryText))
-            if (-not [System.IO.Directory]::Exists($referenceRoot)) {
-                throw 'The linked-worktree common directory is absent.'
-            }
-            $commonAttributes = [System.IO.File]::GetAttributes($referenceRoot)
-            if (($commonAttributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
-                throw 'The linked-worktree common directory is unsafe.'
-            }
-            $worktreesRoot = [System.IO.Path]::GetFullPath((Join-Path $referenceRoot 'worktrees'))
-            if (-not [System.IO.Directory]::Exists($worktreesRoot)) {
-                throw 'The linked-worktree administrative root is absent.'
-            }
-            $worktreesAttributes = [System.IO.File]::GetAttributes($worktreesRoot)
-            if (($worktreesAttributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
-                throw 'The linked-worktree administrative root is unsafe.'
-            }
-            if (-not $linkedGitDirectory.StartsWith(($worktreesRoot.TrimEnd('\') + '\'), [System.StringComparison]::OrdinalIgnoreCase)) {
-                throw 'The linked-worktree administrative directory escapes the trusted worktrees root.'
-            }
-            $walkDirectory = $linkedGitDirectory
-            while (-not $walkDirectory.Equals($worktreesRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
-                $walkAttributes = [System.IO.File]::GetAttributes($walkDirectory)
-                if (($walkAttributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
-                    throw 'The linked-worktree administrative chain contains a reparse point.'
-                }
-                $walkParent = [System.IO.Directory]::GetParent($walkDirectory)
-                if ($null -eq $walkParent) {
-                    throw 'The linked-worktree administrative chain has no trusted parent.'
-                }
-                $walkDirectory = $walkParent.FullName.TrimEnd('\')
-            }
-            $headRelativePath = ($linkedGitDirectory.Substring($referenceRoot.Length).TrimStart('\') + '\HEAD')
-        }
-        else {
-            throw 'The canonical git metadata is absent.'
-        }
-
-        $headPath = & $ResolveCanonicalContainedPath $referenceRoot $headRelativePath $true $false
-        $head = [System.IO.File]::ReadAllText($headPath).Trim()
-        if ($head -match '^[a-f0-9]{40}$') {
-            return $head
-        }
-        if (-not $head.StartsWith('ref: ', [System.StringComparison]::Ordinal)) {
-            throw 'The canonical git HEAD is malformed.'
-        }
-
-        $slashReference = $head.Substring(5).Trim()
-        if (
-            [string]::IsNullOrWhiteSpace($slashReference) -or
-            $slashReference.StartsWith('/') -or
-            $slashReference.StartsWith('\') -or
-            [System.IO.Path]::IsPathRooted($slashReference)
-        ) {
-            throw 'The canonical git reference is unsafe.'
-        }
-        $referenceSegments = @($slashReference.Split('/'))
-        if ($referenceSegments.Count -lt 2 -or $referenceSegments[0] -cne 'refs') {
-            throw 'The canonical git reference is not a closed refs path.'
-        }
-        foreach ($segment in $referenceSegments) {
-            if (
-                [string]::IsNullOrWhiteSpace($segment) -or
-                $segment -ceq '.' -or
-                $segment -ceq '..' -or
-                $segment -cnotmatch '^[A-Za-z0-9][A-Za-z0-9._-]*$'
-            ) {
-                throw 'The canonical git reference has an unsafe segment.'
-            }
-        }
-
-        $platformReference = $referenceSegments -join '\'
-        $referencePath = & $ResolveCanonicalContainedPath $referenceRoot $platformReference $false $false
-        if ([System.IO.File]::Exists($referencePath)) {
-            $referenceSha = [System.IO.File]::ReadAllText($referencePath).Trim()
-            if ($referenceSha -match '^[a-f0-9]{40}$') {
-                return $referenceSha
-            }
-        }
-
-        $packedRefsPath = & $ResolveCanonicalContainedPath $referenceRoot 'packed-refs' $false $false
-        if ([System.IO.File]::Exists($packedRefsPath)) {
-            foreach ($line in [System.IO.File]::ReadAllLines($packedRefsPath)) {
-                if ($line -match '^([a-f0-9]{40})\s+([^\s]+)$' -and $Matches[2] -ceq $slashReference) {
-                    return $Matches[1]
-                }
-            }
-        }
-        throw 'The canonical git reference cannot be resolved.'
-    }.GetNewClosure()
-
     $QuoteWindowsArgument = {
         param([string]$Argument)
 
@@ -602,10 +887,10 @@ function Invoke-HubQaSupervisor {
             [string]$ResourceKind,
 
             [string]$ExactId,
-            [string]$ImageReference,
+            [string]$ExactImageId,
             [string]$ClosedComposePath,
             [string]$ClosedProject,
-            [string]$ClosedRepositoryRoot,
+            [string]$ClosedReportRoot,
             [System.Collections.IDictionary]$ClosedComposeEnvironment
         )
 
@@ -618,7 +903,7 @@ function Invoke-HubQaSupervisor {
         $environment = [ordered]@{}
         switch ($Operation) {
             'inspect' {
-                $arguments = @('image', 'inspect', $ImageReference)
+                $arguments = @('image', 'inspect', $ExactImageId)
             }
             'run' {
                 if ($null -eq $ClosedComposeEnvironment) {
@@ -627,7 +912,7 @@ function Invoke-HubQaSupervisor {
                 $arguments = @(
                     'compose', '--ansi', 'never',
                     '-f', $ClosedComposePath,
-                    '--project-directory', $ClosedRepositoryRoot,
+                    '--project-directory', $ClosedReportRoot,
                     '-p', $ClosedProject,
                     'up', '--no-build', '--pull', 'never',
                     '--abort-on-container-exit', '--exit-code-from', $Request.Target,
@@ -671,7 +956,7 @@ function Invoke-HubQaSupervisor {
 
         $startInfo = New-Object System.Diagnostics.ProcessStartInfo
         $startInfo.FileName = $dockerExecutable
-        $startInfo.WorkingDirectory = $ClosedRepositoryRoot
+        $startInfo.WorkingDirectory = $ClosedReportRoot
         $startInfo.UseShellExecute = $false
         $startInfo.CreateNoWindow = $true
         $startInfo.RedirectStandardOutput = $true
@@ -1253,10 +1538,11 @@ function Invoke-HubQaSupervisor {
     }.GetNewClosure()
 
     $InspectLockedImage = {
-        $frozenImageReference = [string]$dependencyContext.Images.References[$Request.Target]
-        $frozenRepositoryRoot = [string]$dependencyContext.RepositoryRoot
+        $lockedTarget = [System.Collections.IDictionary]$dependencyContext.Images.Targets[$Request.Target]
+        $frozenImageId = [string]$lockedTarget['image_id']
+        $frozenReportRoot = [string]$dependencyContext.ReportPath
         $deadlineTick = [System.Diagnostics.Stopwatch]::GetTimestamp() + [int64]($inspectTimeoutMilliseconds * [System.Diagnostics.Stopwatch]::Frequency / 1000)
-        $handle = & $StartFixedDockerProcess 'inspect' '' '' $frozenImageReference '' '' $frozenRepositoryRoot $null
+        $handle = & $StartFixedDockerProcess 'inspect' '' '' $frozenImageId '' '' $frozenReportRoot $null
         $completed = & $CompleteFixedDockerProcess $handle $deadlineTick 'inspect' 'inspect'
         foreach ($requiredInspectProcessField in @('ExitCode', 'TimedOut', 'DeadlineLayer', 'StreamCompleted', 'Stdout', 'Stderr', 'StdoutBytes', 'StderrBytes')) {
             & $AssertRequiredProperty $completed $requiredInspectProcessField
@@ -1310,38 +1596,163 @@ function Invoke-HubQaSupervisor {
                 throw 'The image inspection document count is invalid.'
             }
             $document = $documents[0]
-            & $AssertRequiredProperty $document 'RepoDigests'
+            & $AssertRequiredProperty $document 'Id'
+            & $AssertRequiredProperty $document 'Os'
+            & $AssertRequiredProperty $document 'Architecture'
+            & $AssertRequiredProperty $document 'Variant'
+            & $AssertRequiredProperty $document 'RootFS'
+            & $AssertRequiredProperty $document.RootFS 'Layers'
             & $AssertRequiredProperty $document 'Config'
             & $AssertRequiredProperty $document.Config 'Entrypoint'
+            & $AssertRequiredProperty $document.Config 'Cmd'
             & $AssertRequiredProperty $document.Config 'Labels'
-            $expectedEntrypoint = ('/opt/hub/bin/' + $Request.Target)
-            $repoDigests = @($document.RepoDigests)
-            $entrypoint = @($document.Config.Entrypoint)
-            $labels = $document.Config.Labels
-            $entrypointSha = [string]$labels.'com.hub.qa.entrypoint.sha256'
-            $configSha = [string]$labels.'com.hub.qa.config.sha256'
-            $toolAttestationSha256 = [string]$labels.'com.hub.qa.tools.sha256'
-            $verified = (
-                $repoDigests -ccontains $frozenImageReference -and
-                $entrypoint.Count -eq 1 -and
-                $entrypoint[0] -ceq $expectedEntrypoint -and
-                $entrypointSha -match '^[a-f0-9]{64}$' -and
-                $toolAttestationSha256 -match '^[a-f0-9]{64}$'
-            )
-            if ($Request.Target -ceq 'frontend-unit') {
-                $verified = $verified -and ($configSha -match '^[a-f0-9]{64}$')
+            if (
+                [string]$document.Id -cne $frozenImageId -or
+                [string]$document.Os -cne 'linux' -or
+                [string]$document.Architecture -cne 'amd64' -or
+                $null -ne $document.Variant -or
+                $null -eq $document.RootFS.Layers -or
+                $document.RootFS.Layers -is [string] -or
+                $null -eq $document.Config.Entrypoint -or
+                $document.Config.Entrypoint -is [string] -or
+                $null -eq $document.Config.Cmd -or
+                $document.Config.Cmd -is [string] -or
+                $null -eq $document.Config.Labels
+            ) {
+                throw 'The selected local image inspection has an invalid closed shape.'
             }
+            [object[]]$rawLayers = @($document.RootFS.Layers)
+            [object[]]$rawEntrypoint = @($document.Config.Entrypoint)
+            [object[]]$rawCmd = @($document.Config.Cmd)
+            if ($rawLayers.Count -eq 0 -or $rawEntrypoint.Count -eq 0) {
+                throw 'The selected local image has an empty required array.'
+            }
+            foreach ($value in @($rawLayers + $rawEntrypoint + $rawCmd)) {
+                if ($null -eq $value -or $value -isnot [string]) {
+                    throw 'The selected local image has a non-string array member.'
+                }
+            }
+            [string[]]$actualLayers = $rawLayers
+            [string[]]$actualEntrypoint = $rawEntrypoint
+            [string[]]$actualCmd = $rawCmd
+            $actualLabels = [ordered]@{}
+            foreach ($property in @($document.Config.Labels.PSObject.Properties)) {
+                if ([string]::IsNullOrEmpty([string]$property.Name) -or $null -eq $property.Value -or $property.Value -isnot [string]) {
+                    throw 'The selected local image has a non-string label projection.'
+                }
+                $actualLabels[[string]$property.Name] = [string]$property.Value
+            }
+            $lockedLabels = [System.Collections.IDictionary]$lockedTarget['labels_projection']
+            if ($actualLabels.Count -ne $lockedLabels.Count) {
+                throw 'The selected local image labels do not equal the complete locked projection.'
+            }
+            foreach ($labelName in @($lockedLabels.Keys)) {
+                if (-not $actualLabels.Contains($labelName) -or [string]$actualLabels[$labelName] -cne [string]$lockedLabels[$labelName]) {
+                    throw 'The selected local image labels do not equal the complete locked projection.'
+                }
+            }
+            $arraysEqual = {
+                param([string[]]$Left, [string[]]$Right)
+
+                if ($Left.Count -ne $Right.Count) { return $false }
+                for ($arrayIndex = 0; $arrayIndex -lt $Left.Count; $arrayIndex++) {
+                    if ([string]$Left[$arrayIndex] -cne [string]$Right[$arrayIndex]) { return $false }
+                }
+                return $true
+            }.GetNewClosure()
+            $jcsString = {
+                param([string]$Value)
+
+                if ($null -eq $Value) { throw 'A selected image JCS string cannot be null.' }
+                $builder = New-Object System.Text.StringBuilder
+                [void]$builder.Append('"')
+                for ($index = 0; $index -lt $Value.Length; $index++) {
+                    $code = [int][char]$Value[$index]
+                    if ($code -eq 0x22) { [void]$builder.Append('\"'); continue }
+                    if ($code -eq 0x5c) { [void]$builder.Append('\\'); continue }
+                    if ($code -eq 0x08) { [void]$builder.Append('\b'); continue }
+                    if ($code -eq 0x09) { [void]$builder.Append('\t'); continue }
+                    if ($code -eq 0x0a) { [void]$builder.Append('\n'); continue }
+                    if ($code -eq 0x0c) { [void]$builder.Append('\f'); continue }
+                    if ($code -eq 0x0d) { [void]$builder.Append('\r'); continue }
+                    if ($code -lt 0x20) { [void]$builder.Append(('\u{0:x4}' -f $code)); continue }
+                    if ($code -ge 0xd800 -and $code -le 0xdbff) {
+                        if (($index + 1) -ge $Value.Length) { throw 'A selected image JCS string has an unpaired high surrogate.' }
+                        $low = [int][char]$Value[$index + 1]
+                        if ($low -lt 0xdc00 -or $low -gt 0xdfff) { throw 'A selected image JCS string has an unpaired high surrogate.' }
+                        [void]$builder.Append([char]$code)
+                        [void]$builder.Append([char]$low)
+                        $index++
+                        continue
+                    }
+                    if ($code -ge 0xdc00 -and $code -le 0xdfff) { throw 'A selected image JCS string has an unpaired low surrogate.' }
+                    [void]$builder.Append([char]$code)
+                }
+                [void]$builder.Append('"')
+                return $builder.ToString()
+            }.GetNewClosure()
+            $hashCanonical = {
+                param([string]$CanonicalJson)
+
+                $algorithm = [System.Security.Cryptography.SHA256]::Create()
+                try {
+                    return 'sha256:' + [System.BitConverter]::ToString($algorithm.ComputeHash([System.Text.UTF8Encoding]::new($false).GetBytes($CanonicalJson))).Replace('-', '').ToLowerInvariant()
+                }
+                finally {
+                    $algorithm.Dispose()
+                }
+            }.GetNewClosure()
+            $canonicalArray = {
+                param([string[]]$Values)
+
+                $encoded = New-Object 'System.Collections.Generic.List[string]'
+                foreach ($value in $Values) { [void]$encoded.Add((& $jcsString $value)) }
+                return '[' + ($encoded -join ',') + ']'
+            }.GetNewClosure()
+            $canonicalLabels = {
+                param([System.Collections.IDictionary]$Values)
+
+                $names = [string[]]@($Values.Keys)
+                [System.Array]::Sort($names, [System.StringComparer]::Ordinal)
+                $encoded = New-Object 'System.Collections.Generic.List[string]'
+                foreach ($name in $names) { [void]$encoded.Add(((& $jcsString $name) + ':' + (& $jcsString ([string]$Values[$name])))) }
+                return '{' + ($encoded -join ',') + '}'
+            }.GetNewClosure()
+            $lockedBase = [System.Collections.IDictionary]$dependencyContext.Images.Bases[[string]$lockedTarget['base_key']]
+            $requiredLabels = [ordered]@{
+                'hub.qa.target' = $Request.Target
+                'hub.qa.base-image-id' = [string]$lockedBase['image_id']
+                'hub.qa.control-commit' = [string]$dependencyContext.Images.Control['commit']
+                'hub.qa.control-bundle-sha256' = [string]$dependencyContext.Images.Control['bundle_sha256']
+                'hub.qa.source-commit' = [string]$dependencyContext.Images.Source['commit']
+                'hub.qa.source-policy-sha256' = [string]$dependencyContext.Images.Source['policy_sha256']
+                'hub.qa.source-tree-manifest-sha256' = [string]$dependencyContext.Images.Source['tree_manifest_sha256']
+                'hub.qa.build-manifest-sha256' = [string]$dependencyContext.Images.Build['manifest_sha256']
+                'hub.qa.runtime-status' = 'NOT_READY'
+            }
+            foreach ($requiredLabelName in @($requiredLabels.Keys)) {
+                if (-not $actualLabels.Contains($requiredLabelName) -or [string]$actualLabels[$requiredLabelName] -cne [string]$requiredLabels[$requiredLabelName]) {
+                    throw 'The selected local image does not bind the required baked provenance label.'
+                }
+            }
+            $verified = (
+                (& $arraysEqual $actualLayers ([string[]]$lockedTarget['rootfs_layers'])) -and
+                (& $arraysEqual $actualEntrypoint ([string[]]$lockedTarget['entrypoint'])) -and
+                (& $arraysEqual $actualCmd ([string[]]$lockedTarget['cmd'])) -and
+                ([string]$lockedTarget['entrypoint_sha256'] -ceq (& $hashCanonical (& $canonicalArray $actualEntrypoint))) -and
+                ([string]$lockedTarget['cmd_sha256'] -ceq (& $hashCanonical (& $canonicalArray $actualCmd))) -and
+                ([string]$lockedTarget['labels_projection_sha256'] -ceq (& $hashCanonical (& $canonicalLabels $actualLabels)))
+            )
             return [pscustomobject][ordered]@{
                 Verified = [bool]$verified
                 ExitCode = 0
                 DeadlineLayer = $null
-                ImageReference = $frozenImageReference
-                Digest = $frozenImageReference.Substring($frozenImageReference.IndexOf('@sha256:') + 1)
-                Entrypoint = $expectedEntrypoint
-                EntrypointSha256 = $entrypointSha
-                ConfigSha256 = if ($Request.Target -ceq 'frontend-unit') { $configSha } else { $null }
-                ToolAttestationSha256 = $toolAttestationSha256
-                ToolAttestationVerified = [bool]$verified
+                ImageId = $frozenImageId
+                Entrypoint = $actualEntrypoint
+                EntrypointSha256 = [string]$lockedTarget['entrypoint_sha256']
+                Cmd = $actualCmd
+                CmdSha256 = [string]$lockedTarget['cmd_sha256']
+                LabelsProjectionSha256 = [string]$lockedTarget['labels_projection_sha256']
             }
         }
         catch {
@@ -1356,10 +1767,10 @@ function Invoke-HubQaSupervisor {
     $RunFixedTarget = {
         $frozenComposePath = [string]$dependencyContext.ComposePath
         $frozenProject = [string]$dependencyContext.Project
-        $frozenRepositoryRoot = [string]$dependencyContext.RepositoryRoot
+        $frozenReportRoot = [string]$dependencyContext.ReportPath
         $frozenComposeEnvironment = [System.Collections.IDictionary]$dependencyContext.ComposeEnvironment
         $deadlineTick = [System.Diagnostics.Stopwatch]::GetTimestamp() + [int64]($outerTimeoutMilliseconds * [System.Diagnostics.Stopwatch]::Frequency / 1000)
-        $handle = & $StartFixedDockerProcess 'run' '' '' '' $frozenComposePath $frozenProject $frozenRepositoryRoot $frozenComposeEnvironment
+        $handle = & $StartFixedDockerProcess 'run' '' '' '' $frozenComposePath $frozenProject $frozenReportRoot $frozenComposeEnvironment
         return (& $CompleteFixedDockerProcess $handle $deadlineTick 'outer' 'run')
     }.GetNewClosure()
 
@@ -1367,10 +1778,10 @@ function Invoke-HubQaSupervisor {
         param([int64]$DeadlineTick)
 
         $frozenProject = [string]$dependencyContext.Project
-        $frozenRepositoryRoot = [string]$dependencyContext.RepositoryRoot
+        $frozenReportRoot = [string]$dependencyContext.ReportPath
         $rows = New-Object 'System.Collections.Generic.List[object]'
         foreach ($resourceKind in @('container', 'network', 'volume')) {
-            $handle = & $StartFixedDockerProcess 'list' $resourceKind '' '' '' $frozenProject $frozenRepositoryRoot $null
+            $handle = & $StartFixedDockerProcess 'list' $resourceKind '' '' '' $frozenProject $frozenReportRoot $null
             $completed = & $CompleteFixedDockerProcess $handle $DeadlineTick 'cleanup' 'list'
             if ($completed.TimedOut -or $completed.ExitCode -ne 0 -or -not [bool]$completed.StreamCompleted) {
                 throw 'The bounded resource inventory failed.'
@@ -1425,7 +1836,7 @@ function Invoke-HubQaSupervisor {
 
         $frozenProject = [string]$dependencyContext.Project
         $frozenContainer = [string]$dependencyContext.Container
-        $frozenRepositoryRoot = [string]$dependencyContext.RepositoryRoot
+        $frozenReportRoot = [string]$dependencyContext.ReportPath
         $expectedNetwork = ($frozenProject + '_default')
         $seenTuples = @{}
         if ($OwnedResources.Count -gt 2) {
@@ -1475,7 +1886,7 @@ function Invoke-HubQaSupervisor {
                 throw 'The selected owned set has duplicate resource kinds.'
             }
             if ($matching.Count -eq 1) {
-                $handle = & $StartFixedDockerProcess 'cleanup' $resourceKind ([string]$matching[0].Id) '' '' $frozenProject $frozenRepositoryRoot $null
+                $handle = & $StartFixedDockerProcess 'cleanup' $resourceKind ([string]$matching[0].Id) '' '' $frozenProject $frozenReportRoot $null
                 $completed = & $CompleteFixedDockerProcess $handle $DeadlineTick 'cleanup' 'cleanup'
                 if ($completed.TimedOut -or $completed.ExitCode -ne 0 -or -not [bool]$completed.StreamCompleted) {
                     return [pscustomobject][ordered]@{
@@ -1519,33 +1930,25 @@ function Invoke-HubQaSupervisor {
         $dependencyContext.Container = $container
         $runnerRoot = [System.IO.Path]::GetFullPath($PSScriptRoot)
         $testframeworkRoot = [System.IO.Path]::GetFullPath([System.IO.Directory]::GetParent($runnerRoot).FullName)
-        $repositoryRoot = [System.IO.Path]::GetFullPath([System.IO.Directory]::GetParent($testframeworkRoot).FullName)
-        $repositoryRoot = & $ResolveCanonicalContainedPath $repositoryRoot '.' $true $true
-        $dependencyContext.RepositoryRoot = $repositoryRoot
-        $testframeworkRoot = & $ResolveCanonicalContainedPath $repositoryRoot 'testframework' $true $false
+        $testframeworkRoot = & $ResolveCanonicalContainedPath $testframeworkRoot '.' $true $true
         $runnerRoot = & $ResolveCanonicalContainedPath $testframeworkRoot 'runner' $true $false
         $dockerRoot = & $ResolveCanonicalContainedPath $testframeworkRoot 'docker' $true $false
-        $lockPath = & $ResolveCanonicalContainedPath $dockerRoot 'images.lock.json' $true $false
+        $lockPath = & $ResolveCanonicalContainedPath $dockerRoot 'images.lock.v3.json' $true $false
         $composePath = & $ResolveCanonicalContainedPath $dockerRoot 'compose.unit.yaml' $true $false
         $reportsRoot = & $ResolveCanonicalContainedPath $testframeworkRoot 'reports' $true $false
-        $backendDocsRoot = & $ResolveCanonicalContainedPath $repositoryRoot 'backend\docs' $true $false
-        foreach ($allowedOpenApiPath in $allowedOpenApiPaths) {
-            [void](& $ResolveCanonicalContainedPath $repositoryRoot $allowedOpenApiPath.Replace('/', '\') $false $false)
-        }
         $reportPath = & $ResolveCanonicalContainedPath $reportsRoot ($Request.Task + '-' + $Request.Run) $false $false
         $dependencyContext.ReportPath = $reportPath
         if ([System.IO.Directory]::Exists($reportPath) -or [System.IO.File]::Exists($reportPath)) {
             return 64
         }
 
-        $lockSnapshot = & $ReadStableContainedFileBytes $dockerRoot 'images.lock.json' 8192 $false
+        $lockSnapshot = & $ReadStableContainedFileBytes $dockerRoot 'images.lock.v3.json' 131072 $false
         $images = & $ReadValidatedImagesLock $lockSnapshot
         $dependencyContext.Images = $images
         $imagesLockSha256 = [string]$images.Sha256
-        $sourceSha = & $GetCanonicalSourceSha $repositoryRoot
-        $dependencyContext.SourceSha = $sourceSha
         $composeSnapshot = & $ReadStableContainedFileBytes $dockerRoot 'compose.unit.yaml' 131072 $false
         $composeSha256 = [string]$composeSnapshot.Sha256
+        & $AssertPrivateComposeSnapshot $composeSnapshot ([string]$images.Control['compose_sha256'])
     }
     catch {
         return 64
@@ -1553,14 +1956,9 @@ function Invoke-HubQaSupervisor {
 
     $stagingPath = $null
     $stagingOwnerPath = $null
-    $stagingOwnerJson = $null
-    $stagingOwned = $false
+    $ownerBytes = $null
     try {
         $ownerNonce = [System.Guid]::NewGuid().ToString('N')
-        $stagingPath = & $ResolveCanonicalContainedPath $reportsRoot ('.staging-' + $Request.Task + '-' + $Request.Run + '-' + $ownerNonce) $false $false
-        [System.IO.Directory]::CreateDirectory($stagingPath) | Out-Null
-        $stagingPath = & $ResolveCanonicalContainedPath $reportsRoot ([System.IO.Path]::GetFileName($stagingPath)) $true $false
-        $stagingOwnerPath = & $ResolveCanonicalContainedPath $stagingPath '.owner.json' $false $false
         $ownerRecord = [ordered]@{
             schema = 'hub.qa-owner/v1'
             contract = $contractLiteral
@@ -1570,13 +1968,37 @@ function Invoke-HubQaSupervisor {
             target = $Request.Target
             nonce = $ownerNonce
             report_relative_path = ($Request.Task + '-' + $Request.Run)
-            source_sha = $sourceSha
+            control_commit = [string]$images.Control['commit']
+            control_bundle_sha256 = [string]$images.Control['bundle_sha256']
+            control_compose_sha256 = [string]$images.Control['compose_sha256']
+            source_commit = [string]$images.Source['commit']
+            source_policy_sha256 = [string]$images.Source['policy_sha256']
+            source_tree_manifest_sha256 = [string]$images.Source['tree_manifest_sha256']
+            build_manifest_sha256 = [string]$images.Build['manifest_sha256']
+            target_image_id = [string]$images.Targets[$Request.Target]['image_id']
             images_lock_sha256 = $imagesLockSha256
             compose_sha256 = $composeSha256
             created_at = [DateTime]::UtcNow.ToString('o')
         }
-        $stagingOwnerJson = ($ownerRecord | ConvertTo-Json -Compress)
-        $ownerBytes = [System.Text.UTF8Encoding]::new($false).GetBytes($stagingOwnerJson + [Environment]::NewLine)
+        $ownerBytes = [System.Text.UTF8Encoding]::new($false).GetBytes(($ownerRecord | ConvertTo-Json -Compress) + [Environment]::NewLine)
+        $stagingPath = & $ResolveCanonicalContainedPath $reportsRoot ('.staging-' + $Request.Task + '-' + $Request.Run + '-' + $ownerNonce) $false $false
+        if ([System.IO.Directory]::Exists($stagingPath) -or [System.IO.File]::Exists($stagingPath)) {
+            return 64
+        }
+
+        # The reports root is a cooperative trusted-parent namespace. This fail-leave
+        # protocol rejects every observed collision or ambiguity; it is not a claim
+        # to prove ownership against a hostile filesystem-race adversary.
+        [System.IO.Directory]::CreateDirectory($stagingPath) | Out-Null
+        if (-not [System.IO.Directory]::Exists($stagingPath)) {
+            throw 'The fresh staging reservation is not a directory.'
+        }
+        $stagingPath = & $ResolveCanonicalContainedPath $reportsRoot ([System.IO.Path]::GetFileName($stagingPath)) $true $false
+        $stagingAttributes = [System.IO.File]::GetAttributes($stagingPath)
+        if (($stagingAttributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0 -or @([System.IO.Directory]::GetFileSystemEntries($stagingPath)).Count -ne 0) {
+            throw 'The fresh staging reservation is not an empty canonical directory.'
+        }
+        $stagingOwnerPath = & $ResolveCanonicalContainedPath $stagingPath '.owner.json' $false $false
         $ownerStream = [System.IO.FileStream]::new(
             $stagingOwnerPath,
             [System.IO.FileMode]::CreateNew,
@@ -1590,45 +2012,48 @@ function Invoke-HubQaSupervisor {
         finally {
             $ownerStream.Dispose()
         }
-        $stagingOwned = $true
+        if (@([System.IO.Directory]::GetFileSystemEntries($stagingPath)).Count -ne 1) {
+            throw 'The fresh staging reservation has an unexpected initial state.'
+        }
         $stagingComposePath = & $ResolveCanonicalContainedPath $stagingPath 'compose.unit.yaml' $false $false
         & $WriteAtomicBytes $stagingComposePath ([byte[]]$composeSnapshot.Bytes)
         $stagingComposeSnapshot = & $ReadStableContainedFileBytes $stagingPath 'compose.unit.yaml' 131072 $false
         if ($stagingComposeSnapshot.Sha256 -cne $composeSha256) {
             throw 'The owned Compose snapshot bytes do not match the validated source snapshot.'
         }
+        if (('sha256:' + [string]$stagingComposeSnapshot.Sha256) -cne [string]$images.Control['compose_sha256']) {
+            throw 'The owned Compose snapshot bytes do not match the closed control raw-byte pin.'
+        }
+        $stagingRawArtifactRoot = & $ResolveCanonicalContainedPath $stagingPath 'raw' $false $false
+        if ([System.IO.Directory]::Exists($stagingRawArtifactRoot) -or [System.IO.File]::Exists($stagingRawArtifactRoot)) {
+            throw 'The restricted raw-artifact root already exists.'
+        }
+        [System.IO.Directory]::CreateDirectory($stagingRawArtifactRoot) | Out-Null
+        $stagingRawArtifactRoot = & $ResolveCanonicalContainedPath $stagingPath 'raw' $true $false
+        $stagingRawAttributes = [System.IO.File]::GetAttributes($stagingRawArtifactRoot)
+        if (
+            -not [System.IO.Directory]::Exists($stagingRawArtifactRoot) -or
+            ($stagingRawAttributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0 -or
+            @([System.IO.Directory]::GetFileSystemEntries($stagingRawArtifactRoot)).Count -ne 0
+        ) {
+            throw 'The restricted raw-artifact root is not an empty canonical directory.'
+        }
         [System.IO.Directory]::Move($stagingPath, $reportPath)
         $reportOwned = $true
         $stagingPath = $null
         $composePath = & $ResolveCanonicalContainedPath $reportPath 'compose.unit.yaml' $true $false
+        $publishedComposeSnapshot = & $ReadStableContainedFileBytes $reportPath 'compose.unit.yaml' 131072 $false
+        if (('sha256:' + [string]$publishedComposeSnapshot.Sha256) -cne [string]$images.Control['compose_sha256']) {
+            throw 'The published Compose snapshot bytes do not match the closed control raw-byte pin.'
+        }
+        [void](& $ResolveCanonicalContainedPath $reportPath 'raw' $true $false)
         $dependencyContext.ComposePath = $composePath
         [void]$persistedArtifacts.Add('.owner.json')
         [void]$persistedArtifacts.Add('compose.unit.yaml')
     }
     catch {
-        if (
-            $stagingOwned -and
-            $null -ne $stagingPath -and
-            [System.IO.Directory]::Exists($stagingPath) -and
-            -not (([System.IO.File]::GetAttributes($stagingPath) -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) -and
-            [System.IO.File]::Exists($stagingOwnerPath)
-        ) {
-            try {
-                $verifiedStagingPath = & $ResolveCanonicalContainedPath $reportsRoot ([System.IO.Path]::GetFileName($stagingPath)) $true $false
-                $verifiedOwnerPath = & $ResolveCanonicalContainedPath $verifiedStagingPath '.owner.json' $true $false
-                $verifiedOwnerSnapshot = & $ReadStableContainedFileBytes $verifiedStagingPath '.owner.json' 8192 $false
-                if (
-                    $verifiedStagingPath -ceq $stagingPath -and
-                    $verifiedOwnerPath -ceq $stagingOwnerPath -and
-                    $verifiedOwnerSnapshot.Bytes.Length -eq $ownerBytes.Length -and
-                    [System.Linq.Enumerable]::SequenceEqual([byte[]]$verifiedOwnerSnapshot.Bytes, [byte[]]$ownerBytes)
-                ) {
-                    [System.IO.Directory]::Delete($verifiedStagingPath, $true)
-                }
-            }
-            catch {
-            }
-        }
+        # K01 fail-leave: no recursive delete, adoption, or cleanup of a reservation,
+        # owner marker, snapshot, restricted raw artifact, or failed publication.
         return 64
     }
 
@@ -1673,22 +2098,21 @@ function Invoke-HubQaSupervisor {
             throw 'The locked image does not satisfy the private attestation contract.'
         }
 
-        foreach ($requiredVerifiedAttestationField in @('ImageReference', 'Digest', 'Entrypoint', 'EntrypointSha256', 'ConfigSha256', 'ToolAttestationSha256', 'ToolAttestationVerified')) {
+        foreach ($requiredVerifiedAttestationField in @('ImageId', 'Entrypoint', 'EntrypointSha256', 'Cmd', 'CmdSha256', 'LabelsProjectionSha256')) {
             & $AssertRequiredProperty $imageAttestation $requiredVerifiedAttestationField
         }
-        if ($imageAttestation.ToolAttestationVerified -isnot [bool] -or -not [bool]$imageAttestation.ToolAttestationVerified) {
+        if ([string]$imageAttestation.ImageId -cne [string]$images.Targets[$Request.Target]['image_id']) {
             $contractFailure = $true
-            throw 'The verified image attestation result is incomplete.'
+            throw 'The verified image attestation result does not retain the selected locked ImageId.'
         }
         $composeEnvironment = [ordered]@{
-            HUB_QA_BACKEND_UNIT_IMAGE = [string]$images.References['backend-unit']
-            HUB_QA_FRONTEND_UNIT_IMAGE = [string]$images.References['frontend-unit']
-            HUB_QA_BACKEND_OPENAPI_IMAGE = [string]$images.References['backend-openapi']
-            HUB_QA_PROJECT = $project
-            HUB_QA_CONTAINER = $container
-            HUB_QA_REPORT_PATH = $reportPath
-            HUB_QA_REPOSITORY_PATH = $repositoryRoot
-            HUB_QA_SOURCE_SHA = $sourceSha
+            BACKEND_UNIT_IMAGE_ID = [string]$images.Targets['backend-unit']['image_id']
+            FRONTEND_UNIT_IMAGE_ID = [string]$images.Targets['frontend-unit']['image_id']
+            BACKEND_OPENAPI_IMAGE_ID = [string]$images.Targets['backend-openapi']['image_id']
+            HUB_QA_BACKEND_UNIT_CONTAINER_NAME = ($project + '-backend-unit')
+            HUB_QA_FRONTEND_UNIT_CONTAINER_NAME = ($project + '-frontend-unit')
+            HUB_QA_BACKEND_OPENAPI_CONTAINER_NAME = ($project + '-backend-openapi')
+            HUB_QA_REPORT_DIR = $reportPath
             COMPOSE_DISABLE_ENV_FILE = '1'
         }
         $dependencyContext.ComposeEnvironment = $composeEnvironment
@@ -1715,10 +2139,16 @@ function Invoke-HubQaSupervisor {
         }
 
         try {
-            & $WriteAtomicBytes (Join-Path $reportPath 'compose.stdout.log') ([byte[]]$composeResult.StdoutBytes)
-            [void]$persistedArtifacts.Add('compose.stdout.log')
-            & $WriteAtomicBytes (Join-Path $reportPath 'compose.stderr.log') ([byte[]]$composeResult.StderrBytes)
-            [void]$persistedArtifacts.Add('compose.stderr.log')
+            # Closed raw-stream boundary: unredacted process bytes are retained only in
+            # these two owned raw artifacts. Structured run, cleanup, and command
+            # receipts retain exact artifact paths and metadata only; launcher logs do
+            # not receive the raw bytes or decoded strings.
+            $composeStdoutArtifactPath = & $ResolveCanonicalContainedPath $reportPath ([string]$rawProcessArtifactPaths['compose_stdout']) $false $false
+            $composeStderrArtifactPath = & $ResolveCanonicalContainedPath $reportPath ([string]$rawProcessArtifactPaths['compose_stderr']) $false $false
+            & $WriteAtomicBytes $composeStdoutArtifactPath ([byte[]]$composeResult.StdoutBytes)
+            [void]$persistedArtifacts.Add([string]$rawProcessArtifactPaths['compose_stdout'])
+            & $WriteAtomicBytes $composeStderrArtifactPath ([byte[]]$composeResult.StderrBytes)
+            [void]$persistedArtifacts.Add([string]$rawProcessArtifactPaths['compose_stderr'])
         }
         catch {
             $reportFailure = $true
@@ -1885,12 +2315,17 @@ function Invoke-HubQaSupervisor {
                         throw 'The OpenAPI target must record native result fields as N/A.'
                     }
                 }
-                foreach ($requiredOpenApiField in @('source_sha', 'generated_count', 'generated_files', 'generation_manifests', 'artifact_revision')) {
+                foreach ($requiredOpenApiField in @('source_commit', 'source_policy_sha256', 'source_tree_manifest_sha256', 'build_manifest_sha256', 'generated_count', 'generated_files', 'generation_manifests', 'artifact_revision')) {
                     & $AssertRequiredProperty $targetResult $requiredOpenApiField
                 }
-                if ([string]$targetResult.source_sha -cne $sourceSha) {
+                if (
+                    [string]$targetResult.source_commit -cne [string]$images.Source['commit'] -or
+                    [string]$targetResult.source_policy_sha256 -cne [string]$images.Source['policy_sha256'] -or
+                    [string]$targetResult.source_tree_manifest_sha256 -cne [string]$images.Source['tree_manifest_sha256'] -or
+                    [string]$targetResult.build_manifest_sha256 -cne [string]$images.Build['manifest_sha256']
+                ) {
                     $contractFailure = $true
-                    throw 'The OpenAPI receipt source revision does not equal the canonical source revision.'
+                    throw 'The OpenAPI receipt does not equal the selected image baked provenance.'
                 }
                 $generatedFiles = @($targetResult.generated_files)
                 if ([int]$targetResult.generated_count -ne 3 -or $generatedFiles.Count -ne 3) {
@@ -1910,13 +2345,10 @@ function Invoke-HubQaSupervisor {
                 }
 
                 $revisionRows = New-Object 'System.Collections.Generic.List[string]'
-                $revisionRows.Add(('source_sha' + [char]9 + $sourceSha))
-                $generationOneRoot = $null
+                $revisionRows.Add(('source_commit' + [char]9 + [string]$images.Source['commit']))
+                $revisionRows.Add(('source_tree_manifest_sha256' + [char]9 + [string]$images.Source['tree_manifest_sha256']))
                 for ($generation = 1; $generation -le 2; $generation++) {
                     $generationRoot = & $ResolveCanonicalContainedPath $reportPath ('openapi\generation-' + $generation) $true $false
-                    if ($generation -eq 1) {
-                        $generationOneRoot = $generationRoot
-                    }
                     $pendingDirectories = New-Object 'System.Collections.Generic.Stack[string]'
                     $pendingDirectories.Push($generationRoot)
                     $actualRelativeFiles = New-Object 'System.Collections.Generic.List[string]'
@@ -2007,32 +2439,7 @@ function Invoke-HubQaSupervisor {
                 }
                 if ([string]$targetResult.artifact_revision -cne $artifactRevision) {
                     $contractFailure = $true
-                    throw 'The OpenAPI artifact revision does not bind the source revision and both manifests.'
-                }
-                if ($firstExitCode -eq 0 -and -not $contractFailure) {
-                    for ($pathIndex = 0; $pathIndex -lt $allowedOpenApiPaths.Count; $pathIndex++) {
-                        $relativeOpenApiPath = $allowedOpenApiPaths[$pathIndex].Replace('/', '\')
-                        $publicationSource = & $ReadStableContainedFileBytes $generationOneRoot $relativeOpenApiPath 8388608 $false
-                        if ($publicationSource.Sha256 -cne [string]$generationManifests[0][$pathIndex].sha256) {
-                            $contractFailure = $true
-                            throw 'The OpenAPI publication source changed after manifest validation.'
-                        }
-                        $publicationDestination = & $ReadStableContainedFileBytes $repositoryRoot $relativeOpenApiPath 8388608 $false
-                        $bytesEqual = ($publicationSource.Bytes.Length -eq $publicationDestination.Bytes.Length)
-                        if ($bytesEqual) {
-                            for ($byteIndex = 0; $byteIndex -lt $publicationSource.Bytes.Length; $byteIndex++) {
-                                if ($publicationSource.Bytes[$byteIndex] -ne $publicationDestination.Bytes[$byteIndex]) {
-                                    $bytesEqual = $false
-                                    break
-                                }
-                            }
-                        }
-                        if (-not $bytesEqual) {
-                            $destinationPath = & $ResolveCanonicalContainedPath $repositoryRoot $relativeOpenApiPath $true $false
-                            & $WriteAtomicBytes $destinationPath ([byte[]]$publicationSource.Bytes)
-                            [void]$openApiChangedFiles.Add($allowedOpenApiPaths[$pathIndex])
-                        }
-                    }
+                    throw 'The OpenAPI artifact revision does not bind baked source provenance and both ordered manifests.'
                 }
             }
         }
@@ -2221,7 +2628,13 @@ function Invoke-HubQaSupervisor {
         $runRecord = [ordered]@{
             schema = 'hub.qa-run/v1'
             contract = $contractLiteral
-            source_sha = $sourceSha
+            control_commit = [string]$images.Control['commit']
+            control_bundle_sha256 = [string]$images.Control['bundle_sha256']
+            control_compose_sha256 = [string]$images.Control['compose_sha256']
+            source_commit = [string]$images.Source['commit']
+            source_policy_sha256 = [string]$images.Source['policy_sha256']
+            source_tree_manifest_sha256 = [string]$images.Source['tree_manifest_sha256']
+            build_manifest_sha256 = [string]$images.Build['manifest_sha256']
             images_lock_sha256 = $imagesLockSha256
             compose_sha256 = $composeSha256
             target = $Request.Target
@@ -2229,13 +2642,12 @@ function Invoke-HubQaSupervisor {
             run = $Request.Run
             project = $project
             container = $container
-            image = if ($null -ne $imageAttestation -and $null -ne $imageAttestation.PSObject.Properties['ImageReference']) { [string]$imageAttestation.ImageReference } else { [string]$images.References[$Request.Target] }
-            image_digest = if ($null -ne $imageAttestation -and $null -ne $imageAttestation.PSObject.Properties['Digest']) { [string]$imageAttestation.Digest } else { $null }
-            entrypoint = if ($null -ne $imageAttestation -and $null -ne $imageAttestation.PSObject.Properties['Entrypoint']) { [string]$imageAttestation.Entrypoint } else { $null }
+            target_image_id = if ($null -ne $imageAttestation -and $null -ne $imageAttestation.PSObject.Properties['ImageId']) { [string]$imageAttestation.ImageId } else { [string]$images.Targets[$Request.Target]['image_id'] }
+            entrypoint = if ($null -ne $imageAttestation -and $null -ne $imageAttestation.PSObject.Properties['Entrypoint']) { @($imageAttestation.Entrypoint) } else { @($images.Targets[$Request.Target]['entrypoint']) }
             entrypoint_sha256 = if ($null -ne $imageAttestation -and $null -ne $imageAttestation.PSObject.Properties['EntrypointSha256']) { [string]$imageAttestation.EntrypointSha256 } else { $null }
-            config_sha256 = if ($null -ne $imageAttestation -and $null -ne $imageAttestation.PSObject.Properties['ConfigSha256']) { [string]$imageAttestation.ConfigSha256 } else { $null }
-            tool_attestation_sha256 = if ($null -ne $imageAttestation -and $null -ne $imageAttestation.PSObject.Properties['ToolAttestationSha256']) { [string]$imageAttestation.ToolAttestationSha256 } else { $null }
-            tool_attestation_verified = if ($null -ne $imageAttestation -and $null -ne $imageAttestation.PSObject.Properties['ToolAttestationVerified']) { [bool]$imageAttestation.ToolAttestationVerified } else { $false }
+            cmd = if ($null -ne $imageAttestation -and $null -ne $imageAttestation.PSObject.Properties['Cmd']) { @($imageAttestation.Cmd) } else { @($images.Targets[$Request.Target]['cmd']) }
+            cmd_sha256 = if ($null -ne $imageAttestation -and $null -ne $imageAttestation.PSObject.Properties['CmdSha256']) { [string]$imageAttestation.CmdSha256 } else { $null }
+            labels_projection_sha256 = if ($null -ne $imageAttestation -and $null -ne $imageAttestation.PSObject.Properties['LabelsProjectionSha256']) { [string]$imageAttestation.LabelsProjectionSha256 } else { $null }
             deadlines_seconds = [ordered]@{
                 inspect = [int]($inspectTimeoutMilliseconds / 1000)
                 command = $commandDeadlineSeconds
@@ -2261,8 +2673,8 @@ function Invoke-HubQaSupervisor {
             discovered_files = if ($Request.Target -ceq 'backend-openapi') { 'N/A' } elseif ($null -ne $targetResult -and $null -ne $targetResult.PSObject.Properties['discovered_files']) { @($targetResult.discovered_files) } else { @() }
             generated_count = if ($Request.Target -ceq 'backend-openapi') { 3 } else { 'N/A' }
             generated_files = if ($Request.Target -ceq 'backend-openapi') { @($allowedOpenApiPaths) } else { 'N/A' }
-            changed_files = if ($Request.Target -ceq 'backend-openapi') { @($openApiChangedFiles.ToArray()) } else { 'N/A' }
-            changed_count = if ($Request.Target -ceq 'backend-openapi') { $openApiChangedFiles.Count } else { 'N/A' }
+            changed_files = if ($Request.Target -ceq 'backend-openapi') { @() } else { 'N/A' }
+            changed_count = if ($Request.Target -ceq 'backend-openapi') { 0 } else { 'N/A' }
             artifact_revision = if ($null -ne $targetResult -and $null -ne $targetResult.PSObject.Properties['artifact_revision']) { [string]$targetResult.artifact_revision } else { $null }
             status = if ($provisionalExitCode -eq 0) { 'completed-zero' } else { 'completed-nonzero' }
             artifacts = @($runArtifacts.ToArray())
