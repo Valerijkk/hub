@@ -557,6 +557,16 @@ b3bca09 Merge remote-tracking branch 'origin/fix/platform/wave1-quickfixes' into
 - Перед финальным мержем `integration/*` → `master` — полный `/qa-gate` на интеграции (rule 56), не по отдельности на каждый поток.
 - `integration/*` тоже никогда не мержится в `master` агентом — только пользователем, как и любой другой путь в `master` (§14).
 
+### 8.4. Founder consolidation lifecycle
+
+- Каноническая интеграционная ветка текущей founder-консолидации — `cursor-grok-4.5`.
+- Фича допускается в неё только после независимого ревью точного tip, применимого green evidence Docker-only `/qa-gate`, правдивого docs-sync, чистого index и отсутствия unmerged-состояния, а также без обязательного для этой фичи gate со статусом `NOT_READY`/`NOT_RUN`. Static-only кандидаты можно push'ить и сохранять, но нельзя интегрировать.
+- После merge фичи в `cursor-grok-4.5` применимые интеграционные проверки повторяются на точном SHA интеграции; пользователю на merge в `master` передаётся только green-интеграция.
+- В `master` мержит и push'ит только пользователь. После его merge проверяются точный SHA `master` и применимые post-merge проверки.
+- До удаления любого локального/remote feature ref или task-owned worktree фиксируется точный tip и доказывается `git merge-base --is-ancestor <tip> master` (либо эквивалентное точное доказательство ancestry). Dirty, ambiguous, unmerged или `NOT_READY` work сохраняется; массовое удаление запрещено.
+- Когда вся накопленная работа проверена в `master`, выполняется финальная read-only инвентаризация refs/worktrees и ancestry-proof каждого кандидата. Только затем, по явной authority пользователя, удаляются `cursor-grok-4.5` и все прочие доказанно влитые локальные/remote ветки и owned worktrees, оставляя только `master`; `master` не удаляется никогда.
+- Удаление remote и удаление worktree требуют явной authority пользователя и точных targets; host-owned и foreign worktrees сохраняются.
+
 ---
 
 ## 9. Обязательная регрессия перед коммитом/PR (REGULATION §7, rule 56)
