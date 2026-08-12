@@ -2259,6 +2259,9 @@ def write_inventory_atomically(
                 raise OSError("short write while staging inventory")
             written += count
         os.fsync(descriptor)
+        # The identity snapshot must be taken after the payload lands: the
+        # post-close comparison includes size/mtime/ctime, which change on write.
+        staging_meta = os.fstat(descriptor)
         os.close(descriptor)
         descriptor = -1
 
