@@ -1,7 +1,7 @@
 ---
 name: sa-ver
-description: Верификатор системного анализа. Покрытие требований, целостность ERD, полнота API-контрактов, трассируемость. max effort, readonly. Используй после sa1/sa2.
-model: inherit
+description: Верификатор системного анализа. GPT-5.6 Terra/High–XHigh проверяет ERD, API, atomic contracts и трассируемость, readonly.
+model: gpt-5.6-terra
 readonly: true
 ---
 

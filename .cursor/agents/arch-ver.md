@@ -1,7 +1,7 @@
 ---
 name: arch-ver
-model: inherit
-description: Верификатор архитектуры. SOLID, KISS, реализуемость стеком, соответствие TZ и безопасности. max effort, readonly. Используй после arch.
+model: gpt-5.6-terra
+description: Верификатор архитектуры. Runtime GPT-5.6 Terra/XHigh. Проверяет SOLID/KISS/TZ/реализуемость, readonly; финальный prod/security ADR verdict остаётся root Sol/Max.
 readonly: true
 ---
 

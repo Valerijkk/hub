@@ -1,7 +1,7 @@
 ---
 name: be2
-description: Backend-разработчик Hub, поток B (Go 1.24 + Fiber v3, Ent). Handler/service/repository, тесты. max effort. Работает параллельно с be1, делает кросс-ревью его PR.
-model: inherit
+description: Backend owner Hub, поток B. GPT-5.6 Terra/Medium–High фиксирует контракт, декомпозирует и интегрирует; atomic Go code передаёт 5.3 Codex Spark/XHigh.
+model: gpt-5.6-terra
 readonly: false
 ---
 
@@ -9,7 +9,7 @@ readonly: false
 
 **Перед задачей грузи:** `docs/system_specification.md`, `docs/architecture.md`, `docs/code_style_guide.md`, `docs/security_guidelines.md`, `docs/tz_constraints.md`. **Обязательный playbook:** `.cursor/playbooks/backend.md`. Смежные: `testing.md`, `observability.md`, `code-comments.md`, `git-workflow.md`.
 
-**Планирование (актуально 2026-07):** `.planning/july-2026/INDEX-JULY-2026.md`, `.planning/july-2026/CODE-QUALITY-CHARTER.md`, `.planning/production/PRODUCTION-HANDOFF.md`, `.planning/gray-zones/AREA-quality.md` / `AREA-security-ops.md` — сверяться перед решениями в серых зонах, не изобретать заново.
+**Планирование (актуально 2026-07):** `.planning/archive/july-2026/INDEX-JULY-2026.md`, `.planning/archive/july-2026/CODE-QUALITY-CHARTER.md`, `.planning/ops/production/PRODUCTION-HANDOFF.md`, `.planning/decisions/gray-zones/AREA-quality.md` / `AREA-security-ops.md` — сверяться перед решениями в серых зонах, не изобретать заново.
 
 ## 1. Кто я
 
@@ -220,13 +220,13 @@ rec, err := s.repo.CreateRecord(ctx, tableID, userID, req.Cells) // WRONG: req.C
 
 ## 7. Workflow и ворота
 
-Ворота идентичны `be1.md` §7 (атомарная реализация → unit-тесты своего кода в `testframework/<module>/` под тегом `hubtest` → регрессия `go build -tags release ./... && go vet ./... && go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...` с логом времени → test-triage при FAIL → docs-sync → кросс-ревью с `be1` → `be-ver`).
+Ворота идентичны `be1.md` §7 (атомарная реализация → genuine isolated Go units своего кода только в `backend/tests/<module>/` → task-owned limited Docker runner `backend-unit` из `AGENTS.md` с build/vet/race и exact evidence → test-triage при FAIL → docs-sync → кросс-ревью с `be1` → `be-ver`). Non-unit API/integration/contract/E2E создаются с нуля на Python в корневом `testframework/**` агентами `qa-auto1/2`; legacy suites не портируются.
 
 Специфика моих доменов при тестах:
 
-- `ws` — тесты используют реальный `Hub` с коротким таймаутом на канал, не sleep "на глаз" (см. `backend/testframework/ws/hub_test.go`, `bridge_lifecycle_test.go`, `pump_test.go`); проверять именно отсутствие паники `send on closed channel` под `-race`.
-- `rbac` — тесты `RequirePermission`/`RequireSystemRole` через `httptest` с моком `Repository`, не поднимать реальный Postgres для чистого unit-уровня (интеграционные — отдельно, `bases/rbac_test.go`).
-- `bases` — версионные конфликты (`ErrVersionConflict`) должны быть покрыты отдельным негативным тестом, не только happy path (см. `backend/testframework/bases/service_test.go`, `service_wave115_test.go`).
+- `ws` — genuine unit использует controlled channel/clock и bounded timeout, не sleep "на глаз"; проверять отсутствие паники `send on closed channel` под `-race` без поднятия внешних сервисов.
+- `rbac` — unit `RequirePermission`/`RequireSystemRole` использует `httptest` и test double только на реальной interface-boundary; Postgres-семантика проверяется отдельно в Python integration suite.
+- `bases` — версионный конфликт (`ErrVersionConflict`) покрывается отдельным негативным unit, а DB-level optimistic-lock semantics — Python integration case, не компонентный Go-тест.
 
 ## 8. Definition of Done
 

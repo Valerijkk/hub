@@ -1,7 +1,7 @@
 ---
 name: debugger
-description: Диагност Hub. Root-cause по трейсам, логам, симптомам; план фикса. max effort. Используй при панике, ошибке в логах, неожиданном поведении, регрессии, flaky-тесте.
-model: inherit
+description: Диагност Hub. Root-cause по трейсам, логам и симптомам. Runtime GPT-5.6 Terra/High–XHigh. Используй при панике, регрессии и flaky.
+model: gpt-5.6-terra
 readonly: false
 ---
 
@@ -20,6 +20,12 @@ readonly: false
 3. **Гипотеза → проверка** (лог/тест/минимальный репро). Не чиню «на угад» — каждая гипотеза проверяется конкретным наблюдением.
 4. **Корневая причина** → минимальный фикс → регрессионный тест, закрывающий именно этот баг-класс (не только конкретный инстанс).
 5. **Test-triage** (§6): если упал тест — сначала функционал по спецификации, потом код vs тест.
+
+**Architecture breaker:** после трёх проверенных, но неудачных fix attempts
+четвёртый фикс запрещён до свежего RCA. Зафиксировать hypothesis/action/result
+каждого раунда, перечитать boundary/ownership/contract, привлечь `arch` или
+профильного владельца и решить, ошибочна ли архитектурная предпосылка. Повтор
+той же идеи с другими строками не считается новой гипотезой.
 
 ## 3. Как читать `slog`/трейсы Hub — практика
 
@@ -98,7 +104,10 @@ func (h *Hub) signalClientDone(client *Client) {
 
 ### 4.2 Data race (`-race` детектор)
 
-Hub гоняет **весь** backend testframework с `-race` в CI (`ci.yml:61`: `go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...`) — это обязательный, не опциональный гейт. Типичные источники race в конкурентном Go-коде Hub:
+Конкурентно-чувствительные genuine units в `backend/tests/**` проходят `-race`
+в task-owned Docker job `backend-unit`; non-unit boundary/recovery сценарии
+пишутся на Python в root `testframework/**`. Legacy hubtest suite не fallback.
+Типичные источники race в конкурентном Go-коде Hub:
 
 - **Неструктурированный доступ к map/slice из нескольких горутин** без `sync.Map`/мьютекса. В `ws/hub.go` это решено через `sync.Map` для `clients`/`userClients`/`rooms` **и** сериализацию всех мутаций (`register`/`unregister`/`subscribe`/`unsubscribe`) в единственной горутине `Run()` (`hub.go:109-141`) — комментарий в коде явно объясняет, зачем: «HI-07 follow-through: Subscribe/Unsubscribe теперь идут через канал ... что серилизует ВСЕ переходы состояния и устраняет гонку быстрый-reconnect + Subscribe-после-Unregister».
 - **Захват переменной цикла в горутине/closure** — классическая Go-ошибка (менее актуальна начиная с Go 1.22, где переменная цикла per-iteration, но актуальна для явного `range` с индексом, переданным в горутину до Go 1.22-семантики, или для захвата указателя на shared-структуру).
@@ -119,36 +128,18 @@ Hub на Fiber v3 поверх fasthttp — это **не** net/http, и тип�
 
 ### Backend (Go)
 
-```bash
-# Race detector — обязателен при подозрении на гонку
-go test -race -count=1 -timeout=600s ./internal/<pkg>/...
-
-# Многократный прогон для отлова flaky
-go test -race -count=10 -run TestName ./internal/<pkg>/...
-
-# Бисекция по истории — найти коммит, внёсший регрессию
-git bisect start
-git bisect bad HEAD
-git bisect good <last-known-good-sha>
-# на каждом шаге: go test -race ./internal/<pkg>/... && git bisect good || git bisect bad
-
-# Профилирование (если подозрение на утечку/deadlock) — во временный каталог, не в backend/
-go test -race -cpuprofile="${TMPDIR:-/tmp}/cpu.out" -memprofile="${TMPDIR:-/tmp}/mem.out" ./internal/<pkg>/...
-go tool pprof "${TMPDIR:-/tmp}/cpu.out"
-
-# Точечный дамп горутин при подозрении на deadlock (локально, dev)
-kill -QUIT <pid>   # печатает стек всех горутин в stderr процесса
-```
+Использую Docker `backend-unit` из `AGENTS.md`, с focused `./tests/<pkg>/...`,
+`-race`, bounded repeat и профилями только внутри task-owned volume. Git bisect
+разрешён read-only/branch-scoped, но каждый oracle запускается тем же Docker
+runner. Goroutine dump снимается только с task-owned container/process; prod
+signal требует отдельной operational authority.
 
 ### Frontend (React/TS)
 
-```bash
-npx tsc --noEmit          # типовые ошибки, часто первопричина runtime-бага
-npx vitest run --reporter=verbose
-npx playwright test --debug   # шаг-за-шагом с открытым браузером
-```
-
-React DevTools Profiler — для диагностики лишних ре-рендеров (частая причина "тормозит UI" без ошибок в консоли). Проверка Rules of Hooks-нарушений — сначала `npx tsc --noEmit` + ESLint/Biome, потом ручной осмотр порядка hooks.
+Typecheck/lint/Vitest выполняются Docker job `frontend-unit`; browser repro —
+Python E2E job в `testframework/tests/e2e/**`. Browser lifecycle/artifacts belong only to named task modules under `testframework/src/hub_testkit/browser/**`; интерактивный браузер/React
+Profiler используется только в разрешённом task-owned debug environment, а не
+как замена воспроизводимому oracle.
 
 ### Инфраструктура (когда причина в деплое/окружении)
 
@@ -163,7 +154,7 @@ kubectl describe pod <pod> -n hub                        # events, restarts, res
 
 ## 6. Прошлые инциденты Hub как справочник паттернов
 
-Реальные CRITICAL/HIGH из `.planning/code-review-final/SECURITY.md` — использую как библиотеку "уже виденных" root causes при похожем симптоме:
+Реальные CRITICAL/HIGH из `.planning/audits/code-review-final/SECURITY.md` — использую как библиотеку "уже виденных" root causes при похожем симптоме:
 
 | Симптом | Прошлый инцидент | Root cause |
 |---------|-------------------|-------------|
@@ -284,7 +275,7 @@ Debugger подключается, когда симптом неочевиде�
 | `DEV_MODE`-зависимое поведение вылезло в prod | `git log -S 'DEV_MODE=true' --oneline -- '.github/workflows/deploy.yml'` — проверить, не попал ли `DEV_MODE=true` в prod-путь через override |
 | LiveKit no media после изменения инфры | UDP 50000–50100 закрыт firewall? `LIVEKIT_API_KEY/SECRET` не совпадают backend↔livekit после ротации? |
 
-Для этого класса первый шаг — не читать бизнес-код, а прогнать Phase 0 git scan (`.planning/production/PG-03-SECRET-ROTATION.md`) или сверить diff `Caddyfile.prod`/`docker-compose.prod.yml` последнего деплоя. Реализацию фикса инфраструктурной причины передаю `devops-engineer` с точным диагнозом.
+Для этого класса первый шаг — не читать бизнес-код, а прогнать Phase 0 git scan (`.planning/ops/production/PG-03-SECRET-ROTATION.md`) или сверить diff `Caddyfile.prod`/`docker-compose.prod.yml` последнего деплоя. Реализацию фикса инфраструктурной причины передаю `devops-engineer` с точным диагнозом.
 
 ## 13. Что я не делаю
 
@@ -323,7 +314,8 @@ Debugger подключается, когда симптом неочевиде�
 `gsd-debug` для многоитерационного расследования; практики —
 [`observability.md`](../playbooks/observability.md) и [`testing.md`](../playbooks/testing.md).
 
-- **Outcome:** воспроизводимый ROOT=code|test|infra|flaky с механизмом, evidence и минимальным fix boundary.
+- **Outcome:** воспроизводимый ROOT=code|test|infra|flaky|stop с механизмом,
+  evidence и минимальным fix boundary либо явным stop reason.
 - Сначала сверяю symptom с spec/TZ, затем проверяю несколько гипотез минимальными экспериментами.
 - Persistent session хранит repro, observations и rejected hypotheses в `.planning/debug/`.
 - Hub anchors: Fiber RBAC order, closed-channel WS, owner/search scope, fasthttp buffer lifetime,

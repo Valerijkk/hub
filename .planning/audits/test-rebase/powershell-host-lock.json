@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "absolute_path": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+  "volume_serial": "0xBAE2E8E5",
+  "file_index": "0x000500000005221E",
+  "reparse_point": false,
+  "sha256": "7600ffe12da441fe89d035b13801e8e91d064bc544a27b19a5cf49f6ab8b18f5",
+  "file_version": "10.0.26100.8875",
+  "product_version": "10.0.26100.8875",
+  "powershell_version": "5.1.26100.8875",
+  "ps_edition": "Desktop",
+  "clr_version": "4.0.30319.42000",
+  "authenticode_status": "Valid",
+  "authenticode_publisher": "Microsoft Windows Publisher",
+  "authenticode_signer": "CN=Microsoft Windows, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+  "authenticode_issuer": "CN=Microsoft Windows Production PCA 2011, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+  "authenticode_thumbprint": "DC91E564D5BC1E3A8E02D6A8508682ABEA8A2443",
+  "authenticode_chain": [
+    {
+      "role": "leaf",
+      "subject": "CN=Microsoft Windows, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+      "issuer": "CN=Microsoft Windows Production PCA 2011, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+      "thumbprint": "DC91E564D5BC1E3A8E02D6A8508682ABEA8A2443"
+    },
+    {
+      "role": "intermediate",
+      "subject": "CN=Microsoft Windows Production PCA 2011, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+      "issuer": "CN=Microsoft Root Certificate Authority 2010, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+      "thumbprint": "580A6F4CC4E4B669B9EBDC1B2B3E087B80D0678D"
+    },
+    {
+      "role": "root",
+      "subject": "CN=Microsoft Root Certificate Authority 2010, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+      "issuer": "CN=Microsoft Root Certificate Authority 2010, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+      "thumbprint": "3B1EFD3A66EA28B16697394703A72CA340A05BD5"
+    }
+  ],
+  "authenticode_eku_oids": [
+    "1.3.6.1.4.1.311.10.3.6",
+    "1.3.6.1.5.5.7.3.3"
+  ],
+  "provenance_type": "windows_inbox_catalog",
+  "windows_build": "10.0.26200.8875",
+  "component_target": "amd64_microsoft-windows-powershell-exe_31bf3856ad364e35_10.0.26100.8875_none_04b33bacb253ee82",
+  "hardlink_count": 2,
+  "accepted_hardlink_paths": [
+    "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    "C:\\Windows\\WinSxS\\amd64_microsoft-windows-powershell-exe_31bf3856ad364e35_10.0.26100.8875_none_04b33bacb253ee82\\powershell.exe"
+  ],
+  "inspected_at": "2026-08-09T04:45:24Z"
+}

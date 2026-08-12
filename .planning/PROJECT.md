@@ -16,154 +16,159 @@ Hub — единая платформа для команд разработки
 
 ### Активные
 
+> **C6 reconcile 2026-07-27:** чекбоксы сверены с кодом (`file:line` / путь модуля). История формулировок сохранена; где scope сменился — пометка в скобках. Источник FR-матрицы: `.planning/audits/planning-audit-2026-07/SPEC-COVERAGE.md`.
+
 **Авторизация и пользователи:**
-- [ ] Magic Link (email) + Telegram авторизация (без паролей)
-- [ ] Два режима регистрации: открытая ИЛИ только по инвайтам (настройка Admin)
-- [ ] Профиль: имя, аватар, email, Telegram, должность, отдел, телефон, часовой пояс, язык, дата рождения + кастомные поля
-- [ ] Роли системные: Admin, Member
-- [ ] Множественные сессии (десктоп + мобилка), список сессий, завершение сессий, уведомление о новом входе
-- [ ] Онбординг: заполнение профиля → обзорный тур → выбор темы/языка → создание/присоединение к проекту
+- [x] Magic Link (email) без паролей — `backend/internal/auth/handler.go:35-36,72,116`. ~~Telegram login~~ → Telegram только notify bind (ADR-AUTH-01), не вход
+- [x] Два режима регистрации (open / invite-only) — `backend/internal/auth/dto.go` (reg mode) + invite schema `backend/ent/schema/invite.go`
+- [x] Профиль (имя, аватар, email, Telegram bind, должность, отдел, телефон, TZ, язык, …) — `backend/internal/auth/service_profile.go`, `backend/ent/schema/user.go`
+- [x] Роли системные: founder / admin / member — `backend/ent/schema/user.go:48-49` (исторически «Admin, Member» — founder добавлен v2.5+)
+- [x] Множественные сессии: список + revoke — `backend/internal/auth/handler.go:45-46,291,331`; `service_session.go:278-284`
+- [x] Онбординг профиля (complete) — `backend/internal/auth/service_profile.go:34-39`. Intranet onboarding-templates (FR-INTR-04..) — ещё нет (см. SPEC-COVERAGE)
 
 **Проекты:**
-- [ ] Создание проектов: Admin и Member, автоматически создаётся трекер + TMS + чат + канал + дашборд
-- [ ] Project Owner (создатель) управляет: ролями участников, workflow/статусами, командами, доступами
-- [ ] Роли внутри проекта: фиксированные (Owner, Developer, Tester, Viewer) + кастомные (RBAC) с полным набором прав
-- [ ] Приглашение по ссылке + команды (группа людей добавляется целиком)
-- [ ] Шаблоны проектов: пустой, Software Dev, QA, Kanban Simple + кастомные + сохранение проекта как шаблон
-- [ ] Архивирование проекта (read-only альтернатива удалению)
-- [ ] Корзина 30 дней + экспорт бэкапа перед удалением
+- [x] Создание проектов + автоканал/связанные модули — `backend/internal/project/handler.go`; auto-channel `backend/internal/messenger/auto_channels.go`
+- [x] Project Owner / RBAC участников, workflow, команды — `backend/internal/project/`, `backend/internal/rbac/`
+- [x] Роли проекта + кастомные permissions — `backend/internal/rbac/`
+- [x] Приглашения + teams — `backend/ent/schema/invite.go`, team membership edges on User
+- [x] Шаблоны проектов — `backend/ent/schema/projecttemplate.go`; hooks `backend/internal/project/export_hooks.go`
+- [x] Архивирование проекта — `backend/internal/project/handler.go` (Archive*)
+- [x] Корзина 30д (project among trash types) — `backend/internal/audit/service.go:203-204,234-235`. Полный project ZIP backup — через backup/imex модули
 
 **Трекер задач:**
-- [ ] 9 шаблонов: Bug, Task, Story, Epic, Sub-task, Improvement, Tech Debt, Spike, Release
-- [ ] Фиксированные + кастомные поля в задачах
-- [ ] Свободная вложенность задач (любая глубина parent/child)
-- [ ] Связи: parent/child, blocks, relates to, duplicates, clones, causes + кастомные типы
-- [ ] Нумерация: префикс проекта + счётчик (HUB-1, MOBILE-1), ключ задаётся при создании проекта
-- [ ] Настраиваемый workflow: Project Owner создаёт статусы и переходы
-- [ ] Комментарии: @упоминания, внутренние комментарии (по ролям), цитирование, реакции
-- [ ] Лог изменений (кто когда что поменял)
-- [ ] Таймтрекинг: оценка + факт + таймер (Start/Stop)
-- [ ] Метки: на уровне проекта, с цветами, группы меток, единая система (задачи + кейсы + сообщения)
+- [x] 9 типов issue — `backend/ent/schema/issue.go:38-39`
+- [x] Кастомные поля — `backend/ent/schema/customfielddefinition.go`
+- [x] Parent/child вложенность — issue edges / tracker service
+- [x] Связи issue (blocks, relates, …) — `backend/internal/tracker/dto.go` + `backend/ent/schema/issuelink.go`
+- [x] Нумерация PREFIX-N — project key + issue counter (tracker/project)
+- [x] Настраиваемый workflow / статусы — `backend/ent/schema/workflowstatus.go` (`wip_limit` at :34)
+- [x] Комментарии / mentions / реакции — tracker comments module
+- [x] Лог изменений — `backend/ent/schema/activitylog.go`
+- [x] Таймтрекинг (estimate/spent/timer) — `backend/ent/schema/issue.go:53-57`; timer store/API
+- [x] Метки + группы — `backend/ent/schema/label.go`, `labelgroup.go` (задачи + test cases)
 
 **Kanban:**
-- [ ] Колонки = статусы workflow
-- [ ] WIP лимиты
-- [ ] Swimlanes (по исполнителю, приоритету, типу)
-- [ ] Несколько досок в одном проекте
-- [ ] Фильтры на доске (мои задачи, только баги, приоритет)
+- [x] Колонки = workflow statuses — board + workflowstatus
+- [x] WIP лимиты — `backend/ent/schema/workflowstatus.go:34`
+- [x] Swimlanes assignee/priority/type — `backend/ent/schema/board.go:29-31`
+- [x] Несколько досок на проект — `backend/ent/schema/board.go` edge from Project
+- [x] Фильтры на доске — `board.go:24-26` (`filters` JSON)
 
 **Scrum:**
-- [ ] Спринты: создать, задать даты, перетащить из бэклога, запустить
-- [ ] Burndown chart + Velocity chart
-- [ ] Sprint retrospective (заметки привязаны к спринту)
-- [ ] Автоперенос незавершённых задач в следующий спринт
-- [ ] Planning Poker: Фибоначчи, голоса скрыты до раскрытия
+- [x] Спринты CRUD / backlog / start — `backend/internal/sprint/handler.go`
+- [x] Burndown + Velocity — `backend/internal/sprint/service.go:176,240`; repository GetBurndown/GetVelocity
+- [x] Sprint retrospective notes — `backend/internal/sprint/handler.go:34,249`; `UpdateRetroNotes`
+- [x] Автоперенос незавершённых при complete — `backend/internal/sprint/service.go:120-138`
+- [x] Planning Poker (скрытые голоса до reveal) — `backend/internal/sprint` PokerService; FE `frontend/src/modules/tracker/planning-poker.tsx`
 
 **Фильтры и поиск:**
-- [ ] Фильтры: статус, приоритет, исполнитель, тип + сохранённые + расшариваемые
-- [x] Ctrl+K глобальный поиск (задачи, тест-кейсы, пользователи, проекты, каналы, файлы) — UI 2026-06-20
-- [ ] JQL-подобный язык запросов
+- [x] Сохранённые фильтры на проекте/доске — `backend/ent/schema/project.go` / board filters
+- [x] Ctrl+K глобальный поиск — `frontend/src/components/search/command-palette.tsx:72-73` (UI 2026-06-20)
+- [x] JQL-подобный язык — `backend/internal/search/jql.go`; FE `frontend/src/components/search/jql-editor.tsx`
 
 **Мессенджер:**
-- [ ] Личные чаты (1 на 1) + групповые чаты
-- [ ] Публичные каналы (любой присоединяется) + приватные каналы
-- [ ] Автоканалы проектов (#project-hub) + тематические (#hub-backend, #hub-bugs)
-- [ ] Read-only каналы (бот постит, люди читают — #hub-ci)
-- [ ] Полноценные треды (ответ открывает ветку)
-- [ ] Реакции (любые эмодзи)
-- [ ] Форматирование: bold, italic, code, списки, ссылки
-- [ ] Редактирование и удаление своих сообщений + Owner/Admin канала удаляет любые
-- [ ] Пересылка, закреп (pin), закладки (saved)
-- [ ] Голосовые сообщения
-- [ ] Превью ссылок: задачи, тест-кейсы, прогоны, GitHub PR/Issue + внешние URL (OG meta)
-- [ ] Глобальный + локальный поиск по сообщениям
-- [ ] Статусы: онлайн/оффлайн/отошёл (авто) + кастомный текст
+- [x] DM + групповые чаты / каналы — `backend/internal/messenger/`
+- [x] Публичные + приватные каналы — messenger channel types
+- [x] Автоканалы проектов — `backend/internal/messenger/auto_channels.go`
+- [x] Read-only каналы — `backend/internal/messenger/dto.go` (read_only)
+- [x] Треды — `ListThreadReplies` in `backend/internal/messenger/repository.go:73-74`
+- [x] Реакции — messenger reactions
+- [x] Форматирование rich-text — Plate / message content
+- [x] Edit/delete своих + moderation — messenger service/handlers
+- [x] Пересылка, pin, bookmarks — `AddPin` / bookmarks in `repository.go:97,111`
+- [x] Голосовые сообщения — `backend/internal/messenger/service_messages.go` (voice)
+- [x] Превью ссылок (issue/PR/OG) — `backend/internal/github/preview.go`; platform OpenGraph helper
+- [x] Поиск по сообщениям — messenger search handlers
+- [x] Presence / typing — `backend/internal/messenger/handler_presence.go`; events presence
 
 **TMS (Test Management System):**
-- [ ] Тест-кейсы: классика (шаги + ожидаемый результат) + BDD (Given/When/Then)
-- [ ] Структура: папки/разделы + теги + компоненты + версионирование кейсов (история + откат)
-- [ ] Связь с GitHub: по ID аннотации (@TestCase("HUB-TC-42")), отображение кода, статус синхронизации, webhook при изменении
-- [ ] Прогоны: ручной + автоматический (Allure) + смешанный + переоткрытие + назначение на тестировщиков
-- [ ] Скриншот/комментарий к каждому результату
-- [ ] Связь с трекером: двусторонняя привязка, создание бага из failed кейса, покрытие требований, матрица трассируемости
-- [ ] Окружения: метка (dev/staging/prod), конфигурации (браузер/ОС), сравнение между окружениями, фильтр истории
-- [ ] Отчёты уровня Allure TestOps: тренды, flaky-тесты, категории дефектов, сравнение прогонов, дашборды
-- [ ] Импорт: CSV, JSON, XML, Excel + универсальный маппинг полей
-- [ ] Экспорт: CSV, JSON, XML, PDF
+- [x] Classic + BDD cases — `backend/internal/tms/dto.go`; `backend/ent/schema/testcase.go`
+- [x] Папки/теги/версионирование — tms module + testcase schema
+- [x] Связь с GitHub TestCase annotations / webhooks — github + tms integration paths
+- [x] Прогоны manual/Allure/mixed — `backend/internal/tms/`
+- [x] Вложения/комментарии к результатам — tms result attachments
+- [x] Traceability / связь с трекером — `backend/internal/tms/dto.go` (traceability)
+- [x] Окружения — `backend/ent/schema/environment.go`
+- [x] Отчёты / Allure-oriented analytics — tms reports + Allure parser
+- [x] Импорт кейсов (CSV/JSON/…) — `backend/internal/imex/`
+- [x] Экспорт — imex / tms export paths
 
 **Интеграция с Allure:**
-- [ ] Allure Report (HTML) генерируется в CI
-- [ ] Свой парсер читает allure-results JSON → POST в TMS Hub API
-- [ ] Матчинг с тест-кейсами по allure ID/имени
-- [ ] История прогонов, статистика, уведомления в Telegram
+- [x] CI Allure HTML (внешний) + ingest в Hub — documented pipeline
+- [x] Парсер allure-results → TMS API — `backend/internal/tms/allure_parser.go`
+- [x] Матчинг по ID/имени — `backend/internal/tms/allure_matcher.go`
+- [x] История прогонов + Telegram notify path — tms + notification Telegram bind
 
 **Созвоны:**
-- [ ] Только голос + screen share (без вебкамер), до 50 участников
-- [ ] Запланированные + повторяющиеся звонки (ежедневный стендап)
-- [ ] Mute/unmute, поднять руку, выбор экрана/окна, несколько screen share одновременно
-- [ ] Запись по кнопке (голос + screen share), уведомление всем, сохранение в MinIO, ссылка в канал
-- [ ] Записи привязаны к проекту (раздел "Записи")
-- [ ] Чат звонка (исчезает после завершения)
+- [x] Voice + screen share (без webcam в текущем коде), LiveKit, лимит участников — `backend/internal/calls/`; NFR-03
+- [x] Запланированные + RRULE recurring — `backend/ent/schema/scheduledcall.go:41-43`; `backend/internal/calls/scheduled.go:46`
+- [x] Mute / hand raise / screen share controls — `backend/internal/calls/handler.go` (HandRaise); LiveKit FE
+- [x] Запись через LiveKit Egress → S3-compatible (**SeaweedFS**, не MinIO) — `backend/internal/calls/recording.go:86-149`
+- [x] Записи привязаны к project path `recordings/{projectID}/…` — `recording.go:117-118`
+- [x] Чат звонка — `backend/internal/calls/chat.go`
 
 **Дашборды:**
-- [ ] Личный: мои задачи, непрочитанные, звонки, прогоны, дедлайны, активность, quick actions, фильтры, чаты, таймтрекинг — настраиваемые виджеты (drag & drop, размеры)
-- [ ] Проектный: статусы задач, burndown, velocity, баги, активность команды, тесты, тренды, покрытие, flaky, без исполнителя, просроченные, коммиты — настраиваемый + шаблоны (Dev/QA/Manager)
-- [ ] Админский: пользователи, проекты, задачи, активность DAU/WAU/MAU, хранилище, здоровье сервисов, топ проектов/пользователей, логи ошибок
+- [x] Личный / виджеты — `backend/internal/dashboard/`; FE dashboard routes
+- [x] Проектный (burndown/velocity/…) — dashboard + sprint metrics
+- [x] Админский KPI / audit surface — admin module + dashboard admin widgets
 
 **Уведомления:**
-- [ ] Триггеры: назначение, обновление, @упоминание, статус, чат, звонок, прогон, спринт, дедлайн, блокировка
-- [ ] Каналы: внутри Hub (колокольчик) + Telegram бот
-- [ ] Настройка: по типам + по каналам + по проектам
-- [ ] Quiet hours + срочные пробивают quiet hours
+- [x] Триггеры domain events → inbox — `backend/internal/notification/`
+- [x] In-app + Telegram bot delivery — notification + telego bind (не login)
+- [x] Prefs по типам/каналам/проектам — notification preferences schema/service
+- [x] Quiet hours — `backend/internal/notification/service.go` / repository QuietHours
+- [x] Web Push — `backend/internal/notification/push.go`
 
 **Интеграция с GitHub:**
-- [ ] Ссылки на PR/коммиты в задачах (карточка превью)
-- [ ] Автопривязка: "HUB-123" в коммите → задача получает ссылку
-- [ ] Статус PR в задаче (open/merged/closed)
-- [ ] Автосмена статуса при мерже PR
-- [ ] Создание ветки из задачи (hub-123-fix-login)
+- [x] PR/commit preview cards — `backend/internal/github/preview.go`
+- [x] Автопривязка issue key из коммита — github webhook handlers
+- [x] Статус PR на задаче — github integration
+- [ ] Автосмена статуса workflow при merge PR — **не подтверждено как полный auto-transition** (есть PR review path `pr_review.go`; оставить open)
+- [x] Создание ветки из задачи — `backend/internal/github/dto.go` (CreateBranch)
 
 **API и интеграции:**
-- [ ] REST API + Swagger документация
-- [ ] API ключи (генерация в профиле)
-- [ ] Webhook'и (POST на внешний URL при событии)
-- [ ] hub-cli (CLI утилита для CI/CD: push-results, create-bug, update-task)
+- [x] REST API + Swagger — `backend/docs/docs.go`; 286+ endpoints
+- [x] API ключи пользователя — `backend/internal/apigateway/handler.go:42-45,110`; schema `apikey.go`
+- [x] Outbound webhooks — `backend/internal/apigateway/webhook.go` + handler CRUD
+- [x] hub-cli — `cli/`
 
 **Импорт/экспорт:**
-- [ ] Универсальный CSV/JSON импорт задач + маппинг полей
-- [ ] Импорт тест-кейсов из Excel
-- [ ] Экспорт: задачи (CSV/Excel), прогоны (PDF), спринты (PDF), полный бэкап проекта (ZIP)
+- [x] CSV/JSON импорт задач + mapping — `backend/internal/imex/`
+- [x] Импорт тест-кейсов — imex/tms
+- [x] Экспорт / project backup ZIP — imex + `backend/internal/backup/`
 
 **Аудит и безопасность:**
-- [ ] Полный audit log: логин/логаут, задачи, проекты, TMS, мессенджер — Admin просматривает с фильтрами
-- [ ] Лимиты: размер файла, проекты на пользователя, хранилище на проект — Admin настраивает
-- [ ] Корзина 30 дней (задачи, кейсы, проекты, файлы) + восстановление Admin/Owner
-- [ ] При удалении пользователя: деактивация + переназначение задач + полное удаление данных (GDPR опция)
+- [x] Audit log + admin filters — `backend/internal/audit/`
+- [x] Resource limits (Admin) — audit GetResourceLimits / admin settings
+- [x] Корзина 30д: issue / test_case / file / project — `backend/internal/audit/service.go:197-204,226-237` (newspost/wiki — gaps, SPEC-COVERAGE)
+- [x] GDPR / user deactivation paths — `backend/internal/audit/handler.go` (GDPR handlers)
 
 **Бэкапы:**
-- [ ] Еженедельный автоматический (PG + Mongo + MinIO)
-- [ ] Хранить последние N бэкапов
-- [ ] Восстановление через Admin панель
+- [ ] Еженедельный автоматический cron (PG + Mongo + object storage) — **Admin trigger есть**, отдельный weekly scheduler в коде не найден; storage = SeaweedFS S3, не MinIO
+- [x] Хранить последние N (cleanup) — `backend/internal/backup/service.go:363` (`cleanupOldBackups`)
+- [x] Восстановление через Admin — `backend/internal/backup/handler.go:83` (`RestoreBackup`); routes `:22`
 
 **UI/UX:**
-- [ ] Левый сайдбар (сворачиваемый) + верхняя панель (поиск, уведомления, профиль)
-- [ ] Мобилка: bottom navigation + упрощённый Kanban (список) + мобильные дашборды + мобильные созвоны
-- [ ] Тёмная + светлая тема + системная + кастомный accent color
-- [ ] Русский + английский (переключатель в профиле)
-- [ ] Горячие клавиши: Ctrl+K (поиск), Ctrl+N (новая задача)
-- [ ] PWA: установка на телефон, offline кеш, Web Push
-- [ ] Обработка ошибок: toast + request ID + retry + offline mode + 404/500/403 страницы
-- [ ] Вложения: любые файлы, превью картинок/PDF/видео, Ctrl+V вставка, drag & drop
-- [ ] Пагинация: задачи — страницы, чат — infinite scroll, виртуализация для больших списков, серверная фильтрация
+- [x] Sidebar + topbar shell — `frontend/src/components/layout/app-shell.tsx`
+- [x] Mobile bottom nav — `frontend/src/components/mobile-nav.tsx`
+- [x] Dark / light / system + accent — theme tokens / settings (v2 redesign)
+- [x] RU + EN — `frontend/src/components/language-switcher.tsx:1-28`
+- [x] Hotkeys Ctrl+K (+ Ctrl+N где wired) — command-palette
+- [x] PWA manifest + Web Push client — `frontend/public/manifest.webmanifest`; `frontend/src/lib/push-notifications.ts`
+- [x] Error UX (toast / request_id / error pages) — platform middleware NFR-13 + FE error boundaries
+- [x] Вложения / presigned storage — `backend/internal/storage/handler.go`
+- [x] Пагинация offset tasks / cursor chat — NFR-14/15 в handlers
 
 ### За рамками проекта
 
-- Видеозвонки с вебкамерами — осознанное ограничение, только голос + screen share
-- Мобильные нативные приложения (App Store/Google Play) — PWA достаточно
-- Email уведомления — Telegram бот покрывает потребность
+> Исторический список v1 сохранён. Факт на 2026-07-27 в скобках.
+
+- Видеозвонки с вебкамерами — v1: только голос + screen share *(webcam = Phase 16 / later; в текущем calls-коде webcam enable не найден)*
+- Мобильные нативные приложения (App Store/Google Play) — PWA достаточно *(manifest есть)*
+- Email уведомления — исторически «Telegram покрывает»; *(hub-mail / Resend для Magic Link — отдельно; marketing email — later)*
 - Биллинг/подписки — внутренний инструмент, не SaaS
-- SSO/LDAP/OAuth — Magic Link + Telegram достаточно для v1
-- Gantt-диаграммы — Kanban + Scrum покрывают потребности
+- SSO/LDAP/OAuth — v1 out; *(2026-07-03 scope одобрен, реализация только после ADR-AUTH-SSO)*
+- Gantt-диаграммы — v1 out; *(FE route существует: `frontend/src/routes/_authenticated/projects/$projectId/gantt.tsx` — shipped later)*
 - Видео/аудио сообщения в мессенджере (кроме голосовых) — избыточно для v1
 - Remote control (управление чужим экраном) — сложная фича, не критична
 
@@ -215,8 +220,9 @@ Hub создаётся как внутренний инструмент для �
 - **CI/CD**: GitHub Actions — студенческий пакет ~3000 мин, self-hosted runner как fallback
 - **Оркестрация**: Docker Compose (dev) + K3s (prod) — лёгкий Kubernetes, 500MB RAM
 - **Мониторинг**: Slog + Loki + Prometheus + Grafana — логи + метрики в одном UI
-- **Тестирование бэкенда**: testing + testify + testcontainers + mockery
-- **Тестирование фронтенда**: Vitest + RTL + Playwright + MSW
+- **Тестирование бэкенда**: Go `testing` + testify/manual doubles только для genuine units в `backend/tests/**`
+- **Тестирование фронтенда**: Vitest + RTL + MSW только для genuine units в `frontend/tests/**`; TypeScript Playwright удаляется
+- **Greenfield non-unit QA**: pytest + httpx + Playwright Python + Locust прямо в корневом `testframework/**`; точные зависимости/версии фиксируются scaffold lockfile
 - **Бюджет**: Минимальный — все self-hosted, бесплатные инструменты
 
 ## Ключевые решения
@@ -229,7 +235,7 @@ Hub создаётся как внутренний инструмент для �
 | Redis только кеш (не pub/sub) | NATS взял на себя pub/sub и очереди, Redis остался для кеша/сессий | Ожидает проверки |
 | Ent вместо GORM | Кодогенерация, граф сущностей (иерархия задач), Privacy layer для RBAC | Ожидает проверки |
 | LiveKit вместо Jitsi/mediasoup | Go-native, React SDK, запись из коробки, один Docker контейнер | Ожидает проверки |
-| MinIO вместо файловой системы | S3 API (миграция на облако одной строкой), presigned URLs, веб-консоль | Ожидает проверки |
+| MinIO → SeaweedFS (S3-compatible) | MinIO archived Feb 2026; SeaweedFS + aws-sdk-go-v2 | ✅ shipped |
 | Caddy вместо Nginx | АвтоHTTPS, WebSocket автоматически, конфиг 15 строк vs 60+ | Ожидает проверки |
 | Shadcn/ui вместо Ant Design/MUI | Код копируется (полный контроль), Radix UI (доступность), единый Tailwind стиль | Ожидает проверки |
 | Plate вместо Tiptap | Shadcn-native, всё бесплатно (таблицы у Tiptap платные), @упоминания из коробки | Ожидает проверки |
@@ -250,23 +256,35 @@ Hub создаётся как внутренний инструмент для �
 | Параллельный поиск PG + MongoDB | PG tsvector + MongoDB text index, без отдельного поискового движка для 50 юзеров | Ожидает проверки |
 | Retention policy настраиваемый Admin | Дефолты: чат 2 года, Allure 1 год, записи 6 мес, Admin меняет | Ожидает проверки |
 
-## Current Milestone: v2.0 Hub Redesign
+## Current Milestone: v4 Hub One Super-app — test architecture rebase
 
-**Goal:** Pixel-perfect редизайн всего фронтенда Hub на основе 11 HTML-макетов из папки `редизайн/` — без ломания существующего функционала, без новых фич.
+Исторический v2.0 Hub Redesign завершён 2026-05-15; его цели больше не являются
+текущим routing contract.
 
-**Target features:**
-- Новая дизайн-система (Inter + JetBrains Mono, CSS variables, тёмная палитра #08090B→#1E2028, радиусы 6/8/12/16px, 4 уровня теней, spring/bounce анимации)
-- Light + Dark mode (макеты dark-only → light адаптируется под ту же систему)
-- Редизайн 11 страниц по макетам: Login, Dashboard, Messenger, Kanban, Issue Detail, Calls, TMS, Settings, Admin, Onboarding, Trash
-- Страницы без макетов (Projects list, Sprint management, JQL search, Project settings, Project dashboard) — привести к общему стилю
-- User-chosen accent color (сохранить текущее поведение)
-- Компоненты переписываются поштучно для максимального качества
-- `/gsd:ui-review` после каждой фазы для контроля качества
+**Current goal:** привести тестовую архитектуру к founder-locked greenfield
+модели и только после доказанной Phase 128 authority выполнить Phase 129–141:
 
-**Constraints:**
-- Функционал НЕ трогаем — только визуал
-- Качество > скорость
-- Эталон — HTML-макеты из `редизайн/`
+- `backend/tests/<domain>/**` — только genuine isolated Go units;
+- `frontend/tests/<domain>/**` и `frontend/tests/support/**` — только genuine
+  Vitest/RTL units и их support;
+- один Python QA-проект непосредственно в
+  `testframework/{src/hub_testkit,tests/{contract,api,integration,e2e},selftests,cases,schemas,policies,load,docker,runner,reports/<task-run>}/**`;
+- legacy Go component/API/integration, static-contract Vitest, TypeScript
+  Playwright и их closure удаляются по exact manifest без port/parity/dual-run;
+- 245 hook-dependent Go units защищены до TASK-234; historical 82.0373% —
+  discovery evidence, не migration gate;
+- package/bootstrap, target suites и future versioned launcher API остаются
+  `NOT_READY`, runtime — `NOT_RUN`: будущий API принадлежит только
+  `testframework/runner/**`, а `testframework/docker/**` содержит только immutable execution assets;
+  поддерживаемой команды или fallback нет до separate implementation и independent acceptance.
+
+**Current phase:** 128 / TASK-204 — descriptor-safe authority, независимые
+validator/executor/negative sentinels и sealed cutover manifest. Ни один тест
+ещё не перемещён и не удалён.
+
+**Constraints:** Docker-only execution с CPU/RAM/swap/PID limits, outer timeout,
+task-owned resources, `reports/<task-run>/` owner marker и unconditional exact
+cleanup; `pro-qa-ai/**` остаётся protected external zone.
 
 ## Evolution
 
@@ -286,4 +304,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Последнее обновление: 2026-03-27 — Milestone v2.0 Hub Redesign started*
+*Последнее обновление: 2026-07-27 — C6: Active checkboxes reconciled to code evidence (planning-audit)*

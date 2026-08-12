@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Hub QA routing receipt v1",
+  "type": "array",
+  "minItems": 12,
+  "maxItems": 12,
+  "items": false,
+  "x-record-keys": ["base_commit","candidate_content_sha256","candidate_head","declared_routes","evaluator_sha256","evaluator_version","expected_routes","phase","prompt_sha256","reviewed_at","reviewer","scenario_id","scenario_sha256","schema_version","skill_blobs","unexpected_routes","verdict"],
+  "prefixItems": [
+    {"allOf":[{"$ref":"#/$defs/record"},{"properties":{"phase":{"const":"RED"},"scenario_id":{"const":"api-health"}}}]},
+    {"allOf":[{"$ref":"#/$defs/record"},{"properties":{"phase":{"const":"RED"},"scenario_id":{"const":"contract-openapi"}}}]},
+    {"allOf":[{"$ref":"#/$defs/record"},{"properties":{"phase":{"const":"RED"},"scenario_id":{"const":"e2e-login"}}}]},
+    {"allOf":[{"$ref":"#/$defs/record"},{"properties":{"phase":{"const":"RED"},"scenario_id":{"const":"integration-postgres"}}}]},
+    {"allOf":[{"$ref":"#/$defs/record"},{"properties":{"phase":{"const":"RED"},"scenario_id":{"const":"load-tracker"}}}]},
+    {"allOf":[{"$ref":"#/$defs/record"},{"properties":{"phase":{"const":"RED"},"scenario_id":{"const":"selftest-markers"}}}]},
+    {"allOf":[{"$ref":"#/$defs/record"},{"properties":{"phase":{"const":"GREEN"},"scenario_id":{"const":"api-health"}}}]},
+    {"allOf":[{"$ref":"#/$defs/record"},{"properties":{"phase":{"const":"GREEN"},"scenario_id":{"const":"contract-openapi"}}}]},
+    {"allOf":[{"$ref":"#/$defs/record"},{"properties":{"phase":{"const":"GREEN"},"scenario_id":{"const":"e2e-login"}}}]},
+    {"allOf":[{"$ref":"#/$defs/record"},{"properties":{"phase":{"const":"GREEN"},"scenario_id":{"const":"integration-postgres"}}}]},
+    {"allOf":[{"$ref":"#/$defs/record"},{"properties":{"phase":{"const":"GREEN"},"scenario_id":{"const":"load-tracker"}}}]},
+    {"allOf":[{"$ref":"#/$defs/record"},{"properties":{"phase":{"const":"GREEN"},"scenario_id":{"const":"selftest-markers"}}}]}
+  ],
+  "$defs": {
+    "sha256": {"type":"string","pattern":"^[0-9a-f]{64}$"},
+    "routes": {"type":"array","items":{"type":"string","pattern":"^testframework/"},"uniqueItems":true},
+    "record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version","base_commit","candidate_head","candidate_content_sha256","scenario_sha256","skill_blobs","phase","scenario_id","prompt_sha256","declared_routes","expected_routes","unexpected_routes","verdict","reviewer","reviewed_at","evaluator_version","evaluator_sha256"],
+      "properties": {
+        "schema_version":{"const":"hub.qa-routing-receipt/v1"},
+        "base_commit":{"const":"31dfc7e0aeed4c2667de9d43e62637fd68d3b6f2"},
+        "candidate_head":{"type":"string","pattern":"^[0-9a-f]{40}$"},
+        "candidate_content_sha256":{"$ref":"#/$defs/sha256"},
+        "scenario_sha256":{"$ref":"#/$defs/sha256"},
+        "skill_blobs":{"type":"object","additionalProperties":false,"required":[".cursor/skills/gsd-ru/goal-verify/SKILL.md",".cursor/skills/gsd-ru/phase-plan/SKILL.md",".cursor/skills/qa-gate/SKILL.md"],"properties":{".cursor/skills/gsd-ru/goal-verify/SKILL.md":{"$ref":"#/$defs/sha256"},".cursor/skills/gsd-ru/phase-plan/SKILL.md":{"$ref":"#/$defs/sha256"},".cursor/skills/qa-gate/SKILL.md":{"$ref":"#/$defs/sha256"}}},
+        "phase":{"enum":["RED","GREEN"]},
+        "scenario_id":{"enum":["api-health","contract-openapi","e2e-login","integration-postgres","load-tracker","selftest-markers"]},
+        "prompt_sha256":{"$ref":"#/$defs/sha256"},
+        "declared_routes":{"$ref":"#/$defs/routes"},
+        "expected_routes":{"$ref":"#/$defs/routes"},
+        "unexpected_routes":{"$ref":"#/$defs/routes"},
+        "verdict":{"enum":["MISMATCH","PASS"]},
+        "reviewer":{"const":"qa-auto-ver+arch-ver+security-auditor"},
+        "reviewed_at":{"const":"2026-08-08T00:00:00Z"},
+        "evaluator_version":{"const":"hub.qa-routing-evaluator/v1"},
+        "evaluator_sha256":{"$ref":"#/$defs/sha256"}
+      }
+    }
+  }
+}

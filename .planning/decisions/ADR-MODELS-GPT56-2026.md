@@ -1,123 +1,109 @@
-# ADR-MODELS-GPT56-2026: Переезд AI-команды на GPT-5.6 Sol / Sol Pro + Codex
+# ADR-MODELS-GPT56-2026: Sol orchestrator → Terra decomposition → Codex Spark code
 
-- **Status:** accepted, amended 2026-07-26 (dynamic downstream routing)
+- **Status:** accepted, amended 2026-08-11
 - **Дата решения:** 2026-07-18
-- **Runtime routing applied:** **2026-07-26**; model catalog/profile проверяется при запуске
-- **Автор:** user + docs-sync · **Верифицируют:** team-lead, product-ver
-- **Связанные:** `.cursor/playbooks/README.md`, `team-workflow.md`, `.cursor/REGULATION.md`, `AGENTS.md`, `.cursor/agents/*`
+- **Текущий founder lock:** 2026-08-11
+- **Автор:** founder + docs-sync · **Верифицируют:** team-lead, product-ver
+- **Связанные:** `.cursor/playbooks/model-routing.md`, `team-workflow.md`,
+  `.cursor/REGULATION.md`, `AGENTS.md`, `.cursor/agents/*`
 
 ---
 
 ## Контекст
 
-До июля 2026 AI-команда Hub работала на Claude:
+До июля 2026 команда использовала Claude/Fable/Opus routing. Переход 2026-07-26
+закрепил GPT-5.6 Sol для orchestrator и динамический downstream. Founder
+amendment 2026-08-11 заменяет динамический `inherit` на точный трёхуровневый
+конвейер, чтобы одновременно использовать отдельные лимиты Sol/Terra и Codex
+Spark без потери доказательности.
 
-| Роль | Модель (as-is) |
-|------|----------------|
-| `team-lead` | Fable 5 (thinking-high) |
-| `team-lead-opus` | Opus 4.8 @ 1M (эскалация) |
-| Все остальные (~28) | Sonnet 5 (thinking-high) |
+## Решение
 
-Изначально пользователь планировал переезд в августе. Решением 2026-07-26
-frontmatter/routing активированы раньше: Sol Pro orchestrator + dynamic downstream.
+| Уровень | Exact runtime | Кто | Ответственность |
+|---|---|---|---|
+| Оркестратор | `gpt-5.6-sol` / `max` | root `team-lead` | цель, архитектура, security/product decisions, волны, финальная приёмка |
+| Judgment layer | `gpt-5.6-terra` / `low|medium|high|xhigh` | 30 downstream role profiles | analysis, decomposition, coordination, authoring, independent review |
+| Atomic code | `gpt-5.3-codex` / `xhigh` | `codex-micro` | функция, малый модуль, точечный тест или одно поведение по frozen contract |
 
-## Решение (целевой ростер моделей)
+### Founder locks
 
-| Уровень | Модель | Кто | Когда |
-|---------|--------|-----|-------|
-| Оркестратор | **GPT-5.6 Sol Pro** | `team-lead` | applied 2026-07-26 |
-| Исполнители + верификаторы | **Dynamic / inherit** | tech-lead, product*, ba*, sa*, arch*, designer*, be*, fe*, qa*, devops, security, debugger, code-reviewer, docs-writer | routed by orchestrator |
-| Супер-мелкие задачи | **Lowest sufficient available model** | `codex-micro` slot | routed by orchestrator |
+1. Root — единственный Sol runtime; Sol-субагенты запрещены.
+2. Каждый frontmatter и каждый dispatch содержит literal `model`; каждый
+   dispatch дополнительно содержит literal `reasoning_effort`.
+3. `inherit`, omitted model/effort и full-history model inheritance запрещены.
+4. Terra декомпозирует code backlog до задачи, которую Spark может реализовать
+   без архитектурного/product/security решения.
+5. Spark всегда использует `xhigh`. Он может использовать полное официальное
+   окно 400,000 токенов, если весь контекст релевантен, но ownership остаётся
+   атомарным и exact-path bounded.
+6. Недоступный exact runtime, model mismatch или отсутствующая telemetry дают
+   `UNKNOWN/BLOCKED`; silent fallback между Sol/Terra/Spark запрещён.
+7. Root использует до трёх параллельных субагентов только для независимых
+   workstreams. Пустое дублирование ради заполнения слотов запрещено.
+8. Requested runtime не считается actual runtime. Handoff записывает observed
+   model/evidence или `UNKNOWN`, effort, quota bucket и exact revision.
+9. Сильная модель не заменяет independent verifier, Docker-only evidence,
+   test triage, docs sync или security/authority gate.
 
-## Amendment 2026-07-26 — Sol Pro orchestrator + dynamic routing
+## Effort routing
 
-Пользователь уточнил целевую политику:
+| Класс | Runtime |
+|---|---|
+| Root orchestration, architecture, final acceptance | Sol / Max |
+| Mechanical identity/hash/provenance | Terra / Low |
+| Ordinary analysis, decomposition, authoring | Terra / Medium |
+| Independent review | Terra / High |
+| Complex cross-domain/security audit | Terra / XHigh |
+| Atomic implementation/test code | 5.3 Codex Spark / XHigh |
 
-1. **Оркестратор фиксирован:** GPT-5.6 Sol Pro.
-2. **Исполнители не прибиты навсегда к одному семейству.** Оркестратор выбирает
-   любую фактически доступную в Cursor модель по характеру задачи, её текущим
-   сильным/слабым сторонам, риску, размеру контекста, стоимости и задержке.
-3. **Portable agents используют `inherit`.** Конкретный model ID и параметры
-   принадлежат launcher/model-router, а не ролевому prompt body.
-4. **Каталог моделей проверяется на момент запуска.** Имена из ADR — policy
-   defaults, не доказательство доступности конкретного slug.
-5. **Выбор воспроизводим:** handoff фиксирует выбранную модель, причину,
-   fallback и фактический статус запуска. Неуспешный запуск не считается run.
-6. **Доступ ≠ разрешение на данные:** для non-public контекста обязательны
-   approved provider/processor, region, retention, training-use policy, allowed
-   data classification и unexpired human/policy approval. `UNKNOWN` блокирует
-   передачу internal/confidential/restricted данных.
+Spark не повышается до Sol и не расширяет scope. Если brief недостаточен или
+задача не атомарна, Spark возвращает `BLOCKED`; Terra/root уточняет контракт или
+декомпозирует дальше.
 
-Рекомендуемая маршрутизация:
+## Frontmatter (applied 2026-08-11)
 
-| Класс | Default | Альтернатива |
-|-------|---------|-------------|
-| Оркестрация, конфликт требований, финальная приёмка | GPT-5.6 Sol Pro | остановка/вопрос пользователю |
-| Долгая coding-задача | актуальная coding-specialized модель Cursor | GPT-5.6 Sol |
-| Анализ/архитектура/security | модель с сильным reasoning и достаточным контекстом | GPT-5.6 Sol Pro |
-| Быстрый механический проход | доступная fast-модель | GPT-5.6 Sol |
-| Независимая верификация | по возможности другая подходящая модель/агент | человек для high-impact |
+| Профили | `model:` |
+|---|---|
+| `team-lead` | `gpt-5.6-sol` |
+| `codex-micro` | `gpt-5.3-codex` |
+| остальные 30 downstream profiles, включая deprecated redirect | `gpt-5.6-terra` |
 
-Это amendment отменяет запрет на downstream-модели других провайдеров из
-старого пункта «после cutover не выбирать Claude без override». Ограничение
-остаётся для роли оркестратора: она закреплена за GPT-5.6 Sol Pro.
+Frontmatter не кодирует effort, поэтому launch contract обязан передавать
+`reasoning_effort` явно. Runtime, который не принимает этот параметр, не может
+молча считаться compliant.
 
-Техническая реализация хранится в
-`prompt-engineering/models/registry.template.yaml` и
-`prompt-engineering/playbooks/model-routing.md`. Frontmatter миграция выполнена
-2026-07-26; explicit downstream override всё равно требует живого catalog check.
+## Dispatch examples
 
-### Что меняется относительно as-is
+| Задача | Маршрут |
+|---|---|
+| Milestone, архитектура, conflict resolution, финальный seal | root Sol / Max |
+| Разложить feature/API contract на executable backlog | Terra / High–XHigh |
+| Проверить реализацию или evidence conclusion-blind | Terra / High |
+| Написать одну Go-функцию + regression test по frozen contract | Spark / XHigh |
+| Реализовать небольшой React hook/component по DESIGN-SPEC | Spark / XHigh |
+| Написать Python helper или один test behaviour | Spark / XHigh |
 
-1. **Уходит статическая эскалация Fable → Opus.** Оркестратор — Sol Pro;
-   `team-lead-opus` остаётся deprecated redirect.
-2. **Ролевые агенты используют `inherit`.** Orchestrator может выбрать любую
-   реально доступную модель после catalog-backed оценки.
-3. **`codex-micro` — имя micro-slot, не model pin.** Для него выбирается lowest
-   sufficient available coding model.
+Антипаттерны: Sol downstream; Spark получает неоднозначную архитектуру; Terra
+пишет большой decomposable code block вместо Spark; automatic fallback;
+дублирующие агенты читают один scope; персональная weekly quota угадывается без UI.
 
-### Что НЕ меняется
+## Protected external zone
 
-- Состав ролей (32 agent files), RACI, шаблон делегирования team-lead §5,
-  цикличное качество (rule 56), docs-sync (55), TZ-инварианты.
-- Playbooks и база знаний `docs/*` — модель-агностичны.
-
-## Cursor frontmatter (applied 2026-07-26)
-
-| Агент | `model:` | Runtime |
-|-------|----------|---------|
-| `team-lead` | `gpt-5.6-sol` | Pro mode разрешается текущим Cursor catalog/profile |
-| 31 downstream agents | `inherit` | parent override только после routing + log |
-| `team-lead-opus` | `inherit` | deprecated redirect |
-
-## Когда что запускать
-
-| Класс задачи | Агент / модель |
-|--------------|----------------|
-| Волна, декомпозиция, приёмка, конфликт приоритетов | `team-lead` → **Sol Pro** |
-| Фича / спека / тесты / ревью / ADR | соответствующая роль + routed model |
-| «Поправь опечатку», «добавь одну строку в .gitignore», «переименуй символ в одном файле» | `codex-micro` slot + lowest sufficient model |
-
-Антипаттерн: гонять Sol Pro / полный team-lead на typo; выбирать модель по
-бренду/памяти вместо task fit и текущего catalog.
+`pro-qa-ai/**` остаётся founder-operated Claude Code Opus 5 zone. Internal Hub
+agents не читают и не меняют её без literal founder handoff. Этот ADR не
+расширяет data/process authority ни одной модели.
 
 ## Applied checklist
 
-1. `[done]` `team-lead` frontmatter → `gpt-5.6-sol`; Pro — runtime profile.
-2. `[done]` 31 downstream frontmatter → `inherit`.
-3. `[done]` `team-lead-opus.md` → deprecated redirect.
-4. `[done]` AGENTS/REGULATION/playbooks synchronized.
-5. `[pending]` Representative model-routing/eval pilot; не подменять structural smoke.
-6. `[pending]` Session note/acceptance после полного validation и diff review.
-
-## Последствия
-
-- Стоимость/латентность: Sol Pro дороже Sol — только на оркестрации.
-- A/B Claude (Fable/Opus) остаётся историческим обоснованием до-августовской
-  политики. После amendment downstream-модель выбирает Sol Pro orchestrator по
-  актуальному catalog; отдельный пользовательский override нужен только для
-  смены самого orchestrator или high-impact решения.
+1. `[done]` root `team-lead` → `gpt-5.6-sol`; effort `max`.
+2. `[done]` `codex-micro` → `gpt-5.3-codex`; effort `xhigh` at dispatch.
+3. `[done]` 30 остальных downstream profiles → `gpt-5.6-terra`.
+4. `[done]` `inherit` удалён из agent frontmatter.
+5. `[done]` AGENTS/REGULATION/model-routing/team workflow synchronized.
+6. `[done]` `pro-qa-ai/**` остаётся external protected zone.
+7. `[pending]` Representative measured routing/eval pilot; docs review не
+   подменяет runtime-quality evidence.
 
 ---
 
-*Accepted 2026-07-18 · amended 2026-07-26 · frontmatter cutover после catalog validation*
+*Accepted 2026-07-18 · current amendment 2026-08-11 · explicit models; no inherit*
