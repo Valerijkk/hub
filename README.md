@@ -2,14 +2,14 @@
 
 # Hub
 
-**Self-hosted корпоративный super-app для команд 10–50 человек**
+**Целевой self-hosted корпоративный super-app для команд 10–50 человек — незавершённый MVP**
 
-Заменяет **Jira + Slack + TestRail + Zoom + Grafana + модули Bitrix** одним инстансом:
+Цель MVP — со временем объединить контуры **Jira + Slack + TestRail + Zoom + Grafana + модулей Bitrix** в одном инстансе:
 трекер · мессенджер · TMS · звонки · дашборды · интранет · календарь · CRM · HR · учёт · no-code базы · AI-хаб
 
 <p>
-  <!-- Бейджи-плейсхолдеры: заменить на реальные URL CI после публикации -->
-  <img src="https://img.shields.io/badge/build-passing-brightgreen" alt="Build" />
+  <!-- Статус MVP; этот бейдж не сообщает результат CI или готовность к выпуску. -->
+  <img src="https://img.shields.io/badge/MVP-in_development-yellow" alt="MVP в разработке" />
   <img src="https://img.shields.io/badge/coverage-80.2%25_(2026--07--29)-yellow" alt="Coverage 80.2% (2026-07-29)" />
   <img src="https://img.shields.io/badge/license-proprietary-red" alt="License" />
   <img src="https://img.shields.io/badge/Go-1.25-00ADD8?style=flat&logo=go&logoColor=white" alt="Go" />
@@ -29,7 +29,7 @@
 
 ---
 
-Hub — self-hosted платформа для команд разработки и небольших компаний: полный dev-suite (трекер, мессенджер, TMS, звонки, дашборды) и корпоративные модули (интранет, календарь, CRM-lite, HR, управленческий учёт, no-code базы, AI-хаб) в одном инстансе с единой авторизацией по Magic Link, RBAC и сквозным поиском Ctrl+K. Один сервер, ваши данные, никаких SaaS-подписок.
+Hub — разрабатываемый self-hosted MVP для команд разработки и небольших компаний. Его целевой охват — единый инстанс с dev-контуром (трекер, мессенджер, TMS, звонки, дашборды), корпоративными модулями (интранет, календарь, CRM-lite, HR, управленческий учёт, no-code базы, AI-хаб), Magic Link, RBAC и сквозным поиском Ctrl+K. Hub не завершён; ни один модуль не объявлен готовым или стабильным.
 
 ## Содержание
 
@@ -50,25 +50,25 @@ Hub — self-hosted платформа для команд разработки 
 
 | Модуль | Описание | Статус |
 |--------|----------|--------|
-| **Tracker** | Трекер задач: 9 типов задач, Kanban с WIP-лимитами и swimlanes, кастомные workflow, JQL, automation, time tracking, Gantt, GitHub/GitLab webhooks | ✅ Стабильный |
-| **Sprint** | Scrum-контур: спринты, Planning Poker, burndown, velocity, ежедневные стендапы | ✅ Стабильный |
-| **Messenger** | Каналы (публичные/приватные), DM, треды, реакции, опросы, голосовые сообщения, presence, deep links задача↔сообщение, @hub-ai в чате | ✅ Стабильный |
-| **TMS** | Test Management: Classic/BDD кейсы, suites, runs, **импорт Allure из CI** (hub-cli), traceability matrix, flaky trends, сравнение прогонов, PDF-отчёты | ✅ Стабильный |
-| **Calls** | Звонки на LiveKit (WebRTC): голос, screen share, веб-камеры, до 50 участников, запись, планирование, instant-call из мессенджера | ✅ Стабильный |
-| **Dashboards** | Personal / project / admin дашборды: 12+ виджетов, drag-and-drop layout, шаблоны | ✅ Стабильный |
-| **Search + JQL** | Глобальный поиск Ctrl+K на Meilisearch со строгим user-scope; полный JQL для задач | ✅ Стабильный |
-| **Notifications** | In-app + Web Push + Telegram, quiet hours; пилот выноса в отдельный сервис `hub-notification` | ✅ Стабильный |
-| **AI-хаб** | «Любая ИИшка» — LiteLLM-паттерн: универсальный OpenAI-совместимый адаптер, BYOK, 5+ провайдеров + Ollama, каталог моделей, virtual keys/бюджеты; скоро — MCP-сервер и AI-агенты | ✅ Стабильный (MCP/агенты — планируется) |
-| **Intranet** | Корпоративная лента: новости, kudos, Random Coffee, опросы, onboarding-шаблоны | 🧪 MVP (расширение в работе) |
-| **Calendar** | Единый календарь событий, iCal export/подписки, ресурсы, recurring-события, busy/free | 🧪 MVP (расширение в работе) |
-| **CRM** | CRM-lite: контакты, компании, deals-kanban, won→invoice, импорт CSV/XLSX | 🧪 MVP (расширение в работе) |
-| **HR** | Заявки на отпуск, org chart, грейды, авто-начисление отпусков, 1C webhook | 🧪 MVP (расширение в работе) |
-| **Accounting** | Управленческий учёт: ledger, журнал проводок, инвойсы, P&L, баланс, cash flow | 🧪 MVP (расширение в работе) |
-| **Bases** | No-code базы данных в стиле Lark/Airtable: таблицы, 4 view, формулы, realtime | 🧪 MVP (эпик BS-0..5 в работе) |
-| **Wiki** | База знаний: spaces → страницы → версии, связь с задачами, RBAC на уровне space | 📋 Планируется (спека в Волне 1–2) |
-| **SSO** | OIDC + LDAP/AD, org-политика magic-link/sso/both, JIT-provisioning, break-glass | 📋 Планируется (после ADR-AUTH-SSO) |
+| **Tracker** | Целевой контур MVP: трекер задач с типами задач, Kanban, workflow, JQL, автоматизацией, учётом времени, Gantt и GitHub/GitLab webhooks | 🚧 MVP не завершён; не стабилен |
+| **Sprint** | Целевой контур MVP: Scrum-инструменты — спринты, Planning Poker, burndown, velocity и ежедневные стендапы | 🚧 MVP не завершён; не стабилен |
+| **Messenger** | Целевой контур MVP: каналы, DM, треды, реакции, опросы, голосовые сообщения, presence, deep links и @hub-ai | 🚧 MVP не завершён; не стабилен |
+| **TMS** | Целевой контур MVP: Classic/BDD кейсы, suites, runs, импорт Allure из CI, traceability, flaky trends, сравнение прогонов и PDF-отчёты | 🚧 MVP не завершён; не стабилен |
+| **Calls** | Целевой контур MVP: звонки LiveKit (WebRTC), screen share, веб-камеры, запись, планирование и instant-call из мессенджера | 🚧 MVP не завершён; не стабилен |
+| **Dashboards** | Целевой контур MVP: персональные, проектные и административные дашборды с виджетами, layout и шаблонами | 🚧 MVP не завершён; не стабилен |
+| **Search + JQL** | Целевой контур MVP: поиск Ctrl+K на Meilisearch с user-scope и JQL для задач | 🚧 MVP не завершён; не стабилен |
+| **Notifications** | Целевой контур MVP: in-app, Web Push и Telegram-уведомления, quiet hours и возможный сервис `hub-notification` | 🚧 MVP не завершён; не стабилен |
+| **AI-хаб** | Целевой контур MVP: OpenAI-совместимый LiteLLM-паттерн, BYOK, провайдеры, Ollama, каталог моделей, бюджеты, MCP и AI-агенты | 🚧 MVP не завершён; не стабилен |
+| **Intranet** | Целевой контур MVP: корпоративная лента, новости, kudos, Random Coffee, опросы и onboarding-шаблоны | 🚧 MVP не завершён; не стабилен |
+| **Calendar** | Целевой контур MVP: календарь событий, iCal export/подписки, ресурсы, recurring-события и busy/free | 🚧 MVP не завершён; не стабилен |
+| **CRM** | Целевой контур MVP: CRM-lite с контактами, компаниями, deals-kanban, won→invoice и импортом CSV/XLSX | 🚧 MVP не завершён; не стабилен |
+| **HR** | Целевой контур MVP: заявки на отпуск, org chart, грейды, начисление отпусков и 1C webhook | 🚧 MVP не завершён; не стабилен |
+| **Accounting** | Целевой контур MVP: управленческий учёт с ledger, проводками, инвойсами, P&L, балансом и cash flow | 🚧 MVP не завершён; не стабилен |
+| **Bases** | Целевой контур MVP: no-code базы в стиле Lark/Airtable с таблицами, views, формулами и realtime | 🚧 MVP не завершён; не стабилен |
+| **Wiki** | Целевой контур MVP: база знаний с spaces, страницами, версиями, связью с задачами и RBAC на уровне space | 🚧 MVP не завершён; не стабилен |
+| **SSO** | Целевой контур MVP: OIDC + LDAP/AD, org-политика magic-link/sso/both, JIT-provisioning и break-glass | 🚧 MVP не завершён; не стабилен |
 
-**Платформенное ядро:** Magic Link auth + JWT · RBAC (system + project + custom roles) · организация с invite-регистрацией · audit log · корзина 30 дней · бэкапы · GDPR-delete · i18n RU/EN · тёмная/светлая темы · PWA · observability (Prometheus/Loki/OTel).
+**Платформенное ядро — целевой контур MVP:** Magic Link auth + JWT · RBAC (system + project + custom roles) · организация с invite-регистрацией · audit log · корзина 30 дней · бэкапы · GDPR-delete · i18n RU/EN · тёмная/светлая темы · PWA · observability (Prometheus/Loki/OTel).
 
 ## Скриншоты
 
@@ -274,9 +274,11 @@ Hub разрабатывается **командой из 30 AI-агентов*
 
 ## Roadmap
 
-Выпущено:
+**Исторические обозначения планирования (не релизы):**
 
-| Версия | Дата | Содержание |
+Hub остаётся незавершённым MVP; ни один модуль не объявлен завершённым или стабильным. Ниже приведены исторические ярлыки планов, а не выпуски или подтверждение готовности.
+
+| Обозначение планирования | Дата ярлыка | Целевой охват |
 |---|---|---|
 | **v1.0 MVP** | 2026-03-21 | Tracker, messenger, TMS, calls, dashboards |
 | **v2.0 Hub Redesign** | 2026-05-15 | Slack-style UI |
