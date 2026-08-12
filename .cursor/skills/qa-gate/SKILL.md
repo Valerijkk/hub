@@ -1,174 +1,109 @@
 ---
 name: qa-gate
-description: Полный чек качества перед коммитом — lint + typecheck + unit тесты + API smoke + security scan. Запускай перед каждым PR.
+description: Sole public QA authority for closed G0 routing; future Python jobs remain NOT_READY.
 disable-model-invocation: true
 ---
 
-# /qa-gate — Pre-commit Quality Gate
+# /qa-gate — sole public QA authority
 
-Запусти все проверки последовательно. Останови при первой FAIL. При FAIL — не чини сразу: примени `.cursor/skills/test-triage/SKILL.md`, затем повтори **с начала упавшего шага** (rule `56-regression-verify.mdc`, цикл до green).
+`/qa-gate` is Hub's only public QA execution authority. A caller never invokes the private runner, Docker/Compose, a legacy runner, or an internal command directly.
 
-> **Два режима:** быстрый локальный (Step 1-2, разработка) и **канонический
-> Docker `-tags hubtest`** (Step 2a, обязателен перед handoff/PR — в
-> `backend/testframework/` **515** test files measured 2026-07-27 (was 499 on 2026-07-26), в `internal/` — 0).
+Invoke `/qa-gate` for QA before handoff or PR. Until every acceptance gate listed below is complete, that public request returns `NOT_READY` without private-runner or Docker execution.
 
-## Step 1: Go Build + Vet
+## Current status
 
-```bash
-cd backend
-go build -tags release ./...
-go vet ./...
-```
+- G0-A is static-contract material only: `STATIC_CONTRACT_REVIEWED / PRIVATE_CONTRACT_NOT_RUN`.
+- C1 Cycle-6 scoped static review: `STATIC_SCOPED_REVIEWED`; whole-slice
+  review: `PENDING`. Cycle-6 source:
+  `D0932A7943367DFB07660B0937E79C1A90EB347D40FCFB892D280778F2B433DB`;
+  Cycle-6 package:
+  `8E00ADFA4E5C54AD023B76C267F6CA2DBBE34573C6ED0875AD9811EF0ECB32CA`.
+- C1 execution status: `PS5.1_PARSE_NOT_RUN / PRIVATE_CONTRACT_NOT_RUN`.
+- G0-C source documentation does not imply private-contract, image, Docker, target, runtime, or PASS acceptance.
+- Launcher/package: `NOT_READY`.
+- Runtime: `NOT_RUN`.
+- Target results and PASS evidence: absent.
 
-## Step 2: Go Tests локально (race detector, быстрый цикл)
+Until independent G0-B, G0-C, G0-S, G0-B01, Docker-only authority, and the later acceptance tasks are accepted, every otherwise valid G0 request returns `NOT_READY` before the private runner and Docker. Static review, source files, or image declarations do not remove this gate.
 
-```bash
-cd backend
-go test -race -count=1 -timeout=120s ./...
-```
+## Public request
 
-Expected: `ok` для всех пакетов (в основном `internal/` без бизнес-тестов — они в `testframework/`).
+Caller supplies exactly:
 
-## Step 2a: Go Tests canonical — Docker `-tags hubtest` (обязателен перед handoff)
+- `target` — one closed G0 target below;
+- `task` — lowercase `[a-z0-9][a-z0-9-]{0,23}`;
+- `run` — independently validated lowercase `[a-z0-9][a-z0-9-]{0,23}`.
 
-```bash
-docker compose -f deployments/docker-compose.test.yml up -d
-docker run --rm --network deployments_default \
-  -v "${PWD}/backend:/app" -w /app \
-  -e POSTGRES_TEST_URL="postgresql://hub:hub@postgres:5432/hub?sslmode=disable" \
-  -e MONGODB_TEST_URL="mongodb://hub:hub@mongo:27017/?authSource=admin" \
-  golang:1.25-bookworm \
-  sh -c "go test -tags hubtest -race -count=1 -timeout=600s ./testframework/..."
-```
+`/qa-gate` injects literal contract `hub.qa-runner/v1`. The caller cannot supply or override a contract, executable, script path, arguments, Compose file, image, timeout profile, dependency, fixture, resource inventory, selector, project name, container name, or raw command.
 
-Точечный прогон одного домена (быстрее полного, для итерации на фиче — из той же Docker-сессии):
+Fixed derived identities are:
 
-```bash
-go test -tags hubtest -race -count=1 ./testframework/auth/...
-go test -tags hubtest -race -count=1 ./testframework/tracker/...
-go test -tags hubtest -race -count=1 ./testframework/bases/...
-go test -tags hubtest -race -count=1 ./testframework/tms/...
-go test -tags hubtest -race -count=1 ./testframework/messenger/...
-go test -tags hubtest -race -count=1 ./testframework/ws/...
-go test -tags hubtest -race -count=1 ./testframework/calls/...
-go test -tags hubtest -race -count=1 ./testframework/audit/...
-```
+- Compose project: `hubqa-<task>-<run>`;
+- container: `<project>-<target>`;
+- report root: `testframework/reports/<task>-<run>/`.
 
-Expected: `ok` для всех пакетов. Если `FAIL` — **не чинить сразу**. См. `.cursor/skills/test-triage/SKILL.md`:
-1. Воспроизвести функционал по docs
-2. Код верен → fix test; код неверен → fix code
-3. Повторить тест только после triage (домен + regression)
+## Closed routing table
 
-## Step 3: TypeScript Check
+Exactly three G0 targets may become executable only after every named gate is accepted:
 
-```bash
-cd frontend
-node scripts/link-testframework-node-modules.mjs
-npx tsc --noEmit
-```
+| Public target | Fixed responsibility |
+|---|---|
+| `backend-unit` | baked backend build, vet, genuine unit, and race sequence |
+| `frontend-unit` | baked frontend typecheck, lint, build, and genuine unit sequence |
+| `backend-openapi` | baked deterministic two-pass OpenAPI generation and exact three-file comparison |
 
-Expected: 0 errors.
+Declared future jobs are not G0 targets: `python-contract`, `python-api`, `python-integration`, `python-e2e-smoke`, `python-e2e-full`, and `python-load`. They return `NOT_READY` without invoking G0 or Docker. Missing, unknown, sentinel, test, private, malformed, or extra request input is rejected before G0 with intended exit `64`; no partial or best-effort dispatch exists.
 
-## Step 4: Frontend Lint
+## Validation and private dispatch boundary
 
-```bash
-cd frontend
-npm run lint
-```
+Apply this order without side effects:
 
-## Step 5: Frontend Tests (vitest)
+1. Require exactly `target`, `task`, and `run`.
+2. Return `NOT_READY` for a declared future Python job; reject missing, extra, unknown, sentinel, test, and private input with intended exit `64`.
+3. Validate `task` and `run` independently.
+4. Construct the private request with exactly injected `contract`, validated `target`, `Task`, and `Run`.
+5. Confirm the named G0 source/runtime gates. Until then, return `NOT_READY` without starting the private runner or Docker.
+6. Only after those gates, hand the request internally to canonical private `testframework/runner/run-task.ps1` through fixed inbox Windows PowerShell 5.1 authority at `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`.
 
-```bash
-cd frontend
-npx vitest run
-```
+That internal handoff is not a public command and must not be printed as a copyable runner instruction. No alternate shell, `pwsh`, PATH/PATHEXT lookup, naked Docker/Compose fallback, legacy runner, host-test fallback, runtime image pull/build/install, ad-hoc build, automatic or in-run retry, grace period, or scheduler is permitted. The canonical fixed backend/frontend build jobs in the closed targets remain required.
 
-Точечный домен (реальные пути `testframework/stages/unit/frontend-test/domains/`):
+## Fixed deadline, process, and cleanup contract
 
-```bash
-npx vitest run testframework/stages/unit/frontend-test/domains/auth/
-npx vitest run testframework/stages/unit/frontend-test/domains/tracker/
-npx vitest run testframework/stages/unit/frontend-test/domains/tms/
-npx vitest run testframework/stages/unit/frontend-test/domains/v4/
-npx vitest run testframework/stages/unit/frontend-test/domains/ai/
-npx vitest run testframework/stages/unit/frontend-test/domains/platform/
-npx vitest run testframework/stages/unit/frontend-test/domains/admin/
-npx vitest run testframework/stages/unit/frontend-test/domains/messenger/
-npx vitest run testframework/stages/unit/frontend-test/domains/dashboard/
-```
+`/qa-gate` owns only routing and task/run identity. It never schedules, terminates, extends, automatically retries within a run, or reinterprets a deadline, and it returns the supervisor's immutable first-cause exit unchanged.
 
-При FAIL — `.cursor/skills/test-triage/SKILL.md` (сначала UI/контракт, потом тест).
+| Layer | Exclusive owner | Fixed bound and rule |
+|---|---|---|
+| fixed command | image-baked entrypoint | 180 seconds; image-owned |
+| fixed target | image-baked entrypoint | 780 seconds; image-owned |
+| image inspect/attestation | private supervisor | 30 seconds; distinct layer |
+| fixed target outer process | private supervisor | 810 seconds |
+| inventory, exact-ID cleanup, and zero proof | private supervisor | 30 seconds aggregate |
 
-## Step 6: Security Scan (secrets in staged files)
+After report ownership, if image inspect/attestation reaches its 30-second expiry, it freezes `first_exit_code = 124` and `deadline_layer = inspect`, then skips `RunFixedTarget`, Compose target start, and Compose-environment start. It does not skip the mandatory sole aggregate 30-second cleanup `finally`: `ListOwnedResources` → pure exact owned/foreign selector → `CleanupOwnedResources` only when the complete initial inventory is clean → residual `ListOwnedResources` zero proof. If the fixed target outer process reaches its 810-second expiry, it likewise freezes first exit `124` before that same mandatory cleanup. Cleanup and reporting may record their own categorical outcomes but cannot overwrite frozen `124`.
 
-```bash
-git diff --staged --name-only | xargs grep -l -E "(secret|password|devkey|api_key|token)" 2>/dev/null
-```
+At the first observed private process expiry, completion performs only best-effort termination of that exact handle, makes no further wait, drain, scheduling, read, progress, EOF, stream, or child-exit observation, and disposes the process and streams through the existing path. The bounds have no additive grace, automatic or in-run retry, or duplicate scheduler.
 
-Если нашёл файлы — проверить вручную что это не hardcoded credentials.
+The private supervisor contract has exactly one physical Process constructor. It is shared only by four closed operations: `InspectLockedImage`, `RunFixedTarget`, `ListOwnedResources`, and `CleanupOwnedResources`. These are the only ordinary Docker operations, with at most ten Docker invocations in total; no general command abstraction exists. Cleanup is one closed, exact-ID, foreign-preserving sequence: inventory, typed owned/foreign selection, cleanup of the owned set only, then zero-owned containers, networks, and volumes proof.
 
-Также проверить:
-```bash
-git diff --staged | grep -E "DEV_MODE=true|devkey: secret|livekit_api_secret"
-```
+## Evidence contract
 
-## Step 7: API Smoke (если есть запущенный сервер)
+Only the accepted private boundary may report task-owned evidence:
 
-```bash
-curl -sf http://localhost:3000/api/health | jq .status
-```
+- `commands.json`: actual ordered per-command receipt sequence, which may stop at the first failed or timed-out command;
+- for each actual command ID, closed receipts `commands/<id>.stdout.log`, `commands/<id>.stderr.log`, and `commands/<id>.result.json`;
+- `run.json`: final immutable first-exit, deadline layer, outcome, and artifact manifest; its `commands` field is the fixed expected command-ID list; and
+- `.owner.json`, target artifacts when produced, and `cleanup.json`.
 
-Expected: `"ok"`
+The G0-B filename convention is future `NOT_VERIFIED` until independent G0-B review. It is neither G0-B acceptance evidence nor C1 approval. `run.json` lists only artifacts actually persisted and contained beneath the owned report root; it contains no environment dump or secret value.
 
-## Step 8: E2E smoke (CI job `e2e-smoke`, 3 spec, обязателен на PR)
+## Result and triage
 
-```bash
-npx playwright test testframework/stages/e2e/domains/auth/login.spec.ts \
-  testframework/stages/e2e/domains/auth/logout.spec.ts \
-  testframework/stages/e2e/domains/platform/health.spec.ts
-```
+Report only the status and task-owned evidence produced by the accepted private boundary. Do not infer runtime or PASS from source, static review, files, image declarations, or an absent error.
 
-Expected: `3 passed`.
+If an authorized future target fails, do not immediately edit code or tests. Apply `.cursor/skills/test-triage/SKILL.md`, establish whether the product or test is wrong from current docs, and obtain any separately required correction/execution authority. A fresh explicit public `/qa-gate` request is then allowed; it is a new run, never a continuation or automatic retry of the failed run. Never fall back to a direct or legacy command.
 
-## Step 9: E2E full (CI job `e2e-full`, 9 доменов ~20 spec — перед merge волны/релизом, не на каждый PR)
+## Related authority
 
-```bash
-npx playwright test testframework/stages/e2e/domains/
-```
-
-Домены: `auth` (login, logout, onboarding-profile), `tracker` (project-lifecycle), `tms` (tms), `messenger` (messenger), `ai` (ai-hub, automation), `admin` (admin-ai, admin-audit, admin-metrics), `navigation` (command-palette, shortcuts, navigation), `platform` (health, metrics, notifications, a11y, critical-gate), `v4` (v4-superapp).
-
-## Пример прогона для фичи в одном домене (tracker automation)
-
-```bash
-# 1. Точечный backend
-go test -tags hubtest -race -count=1 ./testframework/tracker/... -run TestAutomationEngine
-
-# 2. Полный домен backend (регрессия)
-go test -tags hubtest -race -count=1 ./testframework/tracker/...
-
-# 3. Смежный домен (automation публикует события, читает dashboard)
-go test -tags hubtest -race -count=1 ./testframework/dashboard/...
-
-# 4. Frontend, если менялся UI автоматизации
-npx vitest run testframework/stages/unit/frontend-test/domains/tracker/
-
-# 5. e2e-smoke перед PR, e2e-full перед merge волны
-```
-
-## Результат
-
-```
-✅ Step 1: build+vet — PASS
-✅ Step 2a: hubtest race (домен + full) — PASS
-✅ Step 3-5: tsc+lint+vitest — PASS
-✅ Step 6: security scan — clean
-✅ Step 8: e2e-smoke (3/3) — PASS
-❌ GATE FAILED at step N: <причина> → test-triage → fix → повтор с начала упавшего шага
-```
-
-## Связанные документы
-
-- Цикличное качество (правило + пример): `.cursor/REGULATION.md` §15-16
-- Test triage: `.cursor/skills/test-triage/SKILL.md`
-- GSD-эквивалент: `.cursor/GSD-INTEGRATION.md` §Hub slash-skills vs GSD skills
+- Docker-only and execution authority: `AGENTS.md` and `.cursor/REGULATION.md`.
+- Failure classification: `.cursor/skills/test-triage/SKILL.md`.
+- G0 contract and gates: `.superpowers/sdd/2026-08-09-minimal-qa-launcher/2026-08-09-minimal-qa-launcher.md`.
