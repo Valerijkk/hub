@@ -15,11 +15,11 @@ readonly: false
 
 ## 2. Метод (научный)
 
-1. **Воспроизвести** → зафиксировать факт vs ожидание (по `docs/system_specification.md`/User Story/`PLAN.md`).
-2. **Сузить**: бинарный поиск по коммитам/слоям (`git bisect` при регрессии), изоляция компонента (unit-тест минимального репро).
-3. **Гипотеза → проверка** (лог/тест/минимальный репро). Не чиню «на угад» — каждая гипотеза проверяется конкретным наблюдением.
-4. **Корневая причина** → минимальный фикс → регрессионный тест, закрывающий именно этот баг-класс (не только конкретный инстанс).
-5. **Test-triage** (§6): если упал тест — сначала функционал по спецификации, потом код vs тест.
+1. **Воспроизвести** → зафиксировать факт vs ожидание (по `docs/system_specification.md`/User Story/`PLAN.md`). Для runtime-репро допустимо только каноническое evidence task-owned outer launcher: source SHA, job, immutable image, bounded resources, result counts, duration, task-owned artifacts и exact cleanup; пока launcher не готов, состояние `NOT_READY` или `NOT_RUN`.
+2. **Сузить**: бинарный поиск по коммитам/слоям (`git bisect` при регрессии), изоляция компонента и сопоставление наблюдения с тем же каноническим evidence.
+3. **Гипотеза → проверка** (лог/контракт/канонический runtime-репро). Не чиню «на угад» — каждая гипотеза проверяется конкретным наблюдением; отсутствие допустимого runtime evidence фиксируется как `NOT_READY` или `NOT_RUN`.
+4. **Корневая причина** → минимальный фикс → регрессионный тест, закрывающий именно этот баг-класс (не только конкретный инстанс); результат не объявляется до канонической записи runtime либо явного `NOT_READY`/`NOT_RUN`.
+5. **Test-triage** (§6): если упал тест — сначала функционал по спецификации, затем ровно один `ROOT=code|test|infra|flaky|stop`.
 
 **Architecture breaker:** после трёх проверенных, но неудачных fix attempts
 четвёртый фикс запрещён до свежего RCA. Зафиксировать hypothesis/action/result
@@ -38,7 +38,7 @@ readonly: false
 Порядок разбора инцидента:
 
 1. Беру `request_id` из ответа пользователю (тело ошибки: `{"code","message","request_id"}` — формат `AppError`, `backend/internal/platform/errors/errors.go:6-18`) или из тикета поддержки.
-2. Ищу в логах (Loki, если поднят `docker-compose.monitoring.yml`; иначе `docker logs hub-backend-1 | grep <request_id>`) все записи с этим `request_id` — это вся цепочка запроса от access-лога до глубокого сервисного слоя.
+2. Ищу в Loki или в task-owned операционных логах все записи с этим `request_id` — это вся цепочка запроса от access-лога до глубокого сервисного слоя.
 3. Смотрю `module` в найденных записях — сужаю до конкретного домена (`tracker`, `messenger`, `ws`, `auth`, ...).
 4. Если запись на уровне `Error` — читаю `error`-поле целиком: благодаря правилу «wrap с `%w` на каждом слое» (`.cursor/rules/10-style.mdc`) цепочка ошибок читается как трасса вызовов даже без стектрейса: `create issue for project <id>: ent create issue: constraint violation`.
 5. Если трейсинг включён (`OTEL_EXPORTER_OTLP_ENDPOINT` задан) — по тому же `request_id` (атрибут `hub.request_id` на server-span, `backend/internal/platform/observability/otel.go:97-127`) нахожу span-дерево в Grafana Tempo/Jaeger и вижу, какой узел (HTTP → service → NATS → Postgres) был медленным или упал.
@@ -100,20 +100,18 @@ func (h *Hub) signalClientDone(client *Client) {
 
 **Как я диагностирую это в новом коде:** если вижу `close(someChan)` рядом с местом, где **несколько** горутин могут писать в тот же канал — немедленно проверяю: (а) есть ли `sync.Once` вокруг close (защита от `close of closed channel`); (б) есть ли отдельный `done`/`stopping` сигнал, который писатели обязаны проверять **до** записи; (в) не закрывается ли именно тот канал, в который пишут другие горутины (симптом виден только под нагрузкой/race — не воспроизводится в однопоточном тесте).
 
-**Регрессионный тест для этого класса:** конкурентный тест с `-race`, который параллельно из N горутин пишет `Broadcast`/`SendToUser` в момент `Unregister` того же клиента — тест должен завершаться без паники и без `go test -race` warning.
+**Регрессионный тест для этого класса:** конкурентный тест параллельно из N горутин пишет `Broadcast`/`SendToUser` в момент `Unregister` того же клиента. Race detection здесь — только диагностический механизм внутри контейнера выбранного канонического job; результат фиксируется его outer-launcher evidence либо `NOT_READY`/`NOT_RUN`.
 
 ### 4.2 Data race (`-race` детектор)
 
-Конкурентно-чувствительные genuine units в `backend/tests/**` проходят `-race`
-в task-owned Docker job `backend-unit`; non-unit boundary/recovery сценарии
-пишутся на Python в root `testframework/**`. Legacy hubtest suite не fallback.
+Конкурентно-чувствительные genuine units в `backend/tests/**` проверяются выбранным каноническим task-owned job. Race detection применим только как внутренний контейнерный диагностический механизм; non-unit boundary/recovery сценарии принадлежат root `testframework/**`. При отсутствии готового outer launcher состояние остаётся `NOT_READY` или `NOT_RUN`; legacy suite не допускается.
 Типичные источники race в конкурентном Go-коде Hub:
 
 - **Неструктурированный доступ к map/slice из нескольких горутин** без `sync.Map`/мьютекса. В `ws/hub.go` это решено через `sync.Map` для `clients`/`userClients`/`rooms` **и** сериализацию всех мутаций (`register`/`unregister`/`subscribe`/`unsubscribe`) в единственной горутине `Run()` (`hub.go:109-141`) — комментарий в коде явно объясняет, зачем: «HI-07 follow-through: Subscribe/Unsubscribe теперь идут через канал ... что серилизует ВСЕ переходы состояния и устраняет гонку быстрый-reconnect + Subscribe-после-Unregister».
 - **Захват переменной цикла в горутине/closure** — классическая Go-ошибка (менее актуальна начиная с Go 1.22, где переменная цикла per-iteration, но актуальна для явного `range` с индексом, переданным в горутину до Go 1.22-семантики, или для захвата указателя на shared-структуру).
 - **Чтение поля структуры без мьютекса, пока другая горутина пишет.** В `ws/hub.go` поле `client.rooms` защищено явным `client.mu.Mutex` (`subscribeClient`: `client.mu.Lock(); client.rooms[room] = true; client.mu.Unlock()`) — если я вижу чтение `client.rooms` **без** захвата `client.mu` где-либо ещё в коде, это потенциальный race, даже если тест локально не поймал его (race детектор находит только гонки, которые **реально произошли** во время прогона — отсутствие warning не доказывает отсутствие гонки, только отсутствие проявления в конкретном прогоне).
 
-**Как диагностирую:** `go test -race` даёт стектрейс **обеих** конкурентных операций (goroutine 1 write at ..., goroutine 2 read at ...) — читаю оба, нахожу общий ресурс, определяю недостающую синхронизацию (мьютекс, канал, `sync.Once`, `atomic`). Никогда не "фиксирую" race добавлением `time.Sleep` — это маскирует симптом, не устраняет гонку (тест может пройти локально и упасть в CI на более медленной/быстрой машине).
+**Как диагностирую:** race detector внутри контейнера канонического job может дать стектрейс **обеих** конкурентных операций (goroutine 1 write at ..., goroutine 2 read at ...) — читаю оба, нахожу общий ресурс, определяю недостающую синхронизацию (мьютекс, канал, `sync.Once`, `atomic`). Никогда не "фиксирую" race добавлением `time.Sleep` — это маскирует симптом, не устраняет гонку. Если каноническая runtime-запись недоступна, фиксирую `NOT_READY` или `NOT_RUN`.
 
 ### 4.3 Fiber v3 (fasthttp) — специфичные подводные камни
 
@@ -128,27 +126,18 @@ Hub на Fiber v3 поверх fasthttp — это **не** net/http, и тип�
 
 ### Backend (Go)
 
-Использую Docker `backend-unit` из `AGENTS.md`, с focused `./tests/<pkg>/...`,
-`-race`, bounded repeat и профилями только внутри task-owned volume. Git bisect
-разрешён read-only/branch-scoped, но каждый oracle запускается тем же Docker
-runner. Goroutine dump снимается только с task-owned container/process; prod
-signal требует отдельной operational authority.
+Для backend использую только evidence канонического task-owned outer launcher: source SHA, выбранный `backend-unit`, immutable image, bounded resources, result counts, duration, task-owned artifacts и exact cleanup. Race detection может быть лишь внутренней диагностикой контейнера. Git bisect разрешён read-only/branch-scoped, но oracle на каждом шаге — только такая же каноническая запись; без неё — `NOT_READY` или `NOT_RUN`. Goroutine dump снимается только с task-owned container/process; prod signal требует отдельной operational authority.
 
 ### Frontend (React/TS)
 
-Typecheck/lint/Vitest выполняются Docker job `frontend-unit`; browser repro —
+Typecheck/lint/Vitest выполняются каноническим task-owned job `frontend-unit`; browser repro —
 Python E2E job в `testframework/tests/e2e/**`. Browser lifecycle/artifacts belong only to named task modules under `testframework/src/hub_testkit/browser/**`; интерактивный браузер/React
 Profiler используется только в разрешённом task-owned debug environment, а не
 как замена воспроизводимому oracle.
 
 ### Инфраструктура (когда причина в деплое/окружении)
 
-```bash
-docker logs hub-backend-1 --tail 200 -f
-docker compose -f docker-compose.prod.yml ps
-kubectl logs deployment/hub-backend -n hub --previous   # если под падал (OOMKilled/panic)
-kubectl describe pod <pod> -n hub                        # events, restarts, resource limits
-```
+Для evidence использую task-owned операционные логи и состояние ресурса с request ID, рестартами и resource limits; доступ к production требует отдельной operational authority. Runtime-вывод не подменяет каноническое outer-launcher evidence для тестового verdict.
 
 `--previous` в K3s критичен для диагностики паники в горутине (§4.3) — сам процесс уже перезапустился, но лог падения сохраняется в предыдущем контейнере.
 
@@ -175,7 +164,7 @@ kubectl describe pod <pod> -n hub                        # events, restarts, res
 - Факт vs ожидание (docs): <что говорит system_specification.md/User Story> vs <что реально происходит>
 - Наблюдения: <request_id / лог-выдержка / метрика / трейс, на основании чего сделан вывод>
 - Корневая причина: <файл:строка / компонент>
-- Классификация: race | closed-channel misuse | logic bug | Fiber ordering | timing/flaky | infra
+- ROOT: code|test|infra|flaky|stop (ровно одно значение)
 - Минимальный фикс: <что менять, без over-engineering>
 - Регрессионный тест: <какой добавить — покрывает именно этот баг-класс, не только инстанс>
 - Исполнитель фикса: be1/be2/fe1/fe2/devops-engineer
@@ -186,31 +175,27 @@ kubectl describe pod <pod> -n hub                        # events, restarts, res
 Skill: `.cursor/skills/test-triage/SKILL.md`. Принцип Hub: **тест — гипотеза о поведении**, падающий тест не означает автоматически баг в коде. Порядок строгий:
 
 1. **Зафиксировать симптом**: `Тест: TestX`, `Пакет: internal/Y`, `Ошибка: expected A, got B`.
-2. **Воспроизвести ФУНКЦИОНАЛ, не тест** — прочитать требование в `docs/system_specification.md`/User Story/`PLAN.md`, трассировать production path (handler → service → repository), ручная проверка или минимальный repro. Ответить на вопрос: «Как ДОЛЖНО работать по спецификации?» — **до** правки чего-либо.
+2. **Воспроизвести ФУНКЦИОНАЛ, не тест** — прочитать требование в `docs/system_specification.md`/User Story/`PLAN.md`, трассировать production path (handler → service → repository) и, когда runtime нужен, использовать только канонический task-owned outer launcher. Ответить на вопрос: «Как ДОЛЖНО работать по спецификации?» — **до** правки чего-либо; при отсутствии launcher/runtime evidence записать `NOT_READY` или `NOT_RUN`.
 3. **Классификация:**
 
    | Ситуация | Действие |
    |----------|----------|
-   | Код нарушает спецификацию | **Fix code** → обновить тесты, если контракт уточнился |
-   | Код соответствует спецификации, тест устарел/неверен | **Fix test** (mock, assertion, fixture, flaky timing) |
-   | Спецификация неясна | **Stop** → уточнить у SA/BA/PO, обновить docs, потом код/тест |
-   | Flaky (race, timing, network) | Стабилизировать тест (deterministic mock, `-race`, fake clock), не добавлять `time.Sleep` как фикс |
+   | Код нарушает однозначную спецификацию | `ROOT=code` → минимальный code fix; связанное обслуживание теста — отдельное последствие, не второй ROOT |
+   | Код соответствует спецификации, а fixture/oracle/metadata теста неверны | `ROOT=test` → минимальный test fix; production не менять |
+   | Среда, image, service, data, resources или cleanup не соответствуют runner contract | `ROOT=infra` → исправить task-owned infra, не product assertion |
+   | Подтверждён nondeterminism race/timing/shared state/network | `ROOT=flaky` → устранить причину; race detection только внутри контейнера канонического job, `time.Sleep` не является фиксом |
+   | Одобренное ожидаемое поведение отсутствует, изменено или контракт неясен | `ROOT=stop` → отдельная авторизованная docs-first contract задача до любых правок кода или теста |
 
 4. **Запрещено:** менять assertion, чтобы «прошло», не проверив шаг 2; удалять тест без обоснования в лог; `t.Skip()` без тикета/плана; чинить продакшн-код только потому что «тест так ожидает», если тест противоречит docs.
-5. **После фикса:**
+5. **После фикса:** записать каноническое task-owned outer-launcher evidence: source SHA, выбранный job, immutable image, bounded resources, result counts, duration, task-owned artifacts и exact cleanup. Если launcher или runtime отсутствуют, записать `NOT_READY` или `NOT_RUN`; не заменять это ручной проверкой либо host-run командой.
 
-```bash
-go test -race -count=1 ./internal/<pkg>/...   # минимум — затронутый пакет
-/qa-gate                                       # перед handoff — полный REGULATION §7
-```
-
-   Запись в лог: `TRIAGE: TestX — ROOT=test (устаревший mock) | ROOT=code (BanUser не проверял reason)`, `FIX: <файл:строка>`, `VERIFIED: manual + go test green`.
+   Запись в лог: `TRIAGE: TestX`, `ROOT: test`, `EVIDENCE: <canonical outer-launcher evidence или NOT_READY/NOT_RUN>`, `FIX: <файл:строка>`, `RUNTIME: <canonical recorded runtime или NOT_READY/NOT_RUN>`. Для каждого симптома допускается ровно один ROOT.
 
 ### 8.1 Примеры классификации из практики Hub
 
 - **Чинить ТЕСТ**: `TestRefreshRedisKey_UsesHashNotPlaintext` падает после фикса `NF-12` — тест ожидал plaintext key в Redis, но код правильно хеширует SHA-256 → обновить ожидание в тесте, код правильный.
 - **Чинить КОД**: `TestBanUser_EmptyReason` падает с `got nil` — спецификация требует обязательный `reason` при бане → добавить validation в `BanUser`, тест оставить как есть (он был прав).
-- **Чинить ОБА**: GDPR delete — тест ожидал `200` при partial failure, спецификация требует явную ошибку при частичном сбое каскадного удаления → код добавляет `errors.Join` агрегацию частичных ошибок, тест обновляется на `want err`.
+- **Один primary ROOT и отдельное последствие:** GDPR delete — тест ожидал `200` при partial failure, а спецификация требует явную ошибку при частичном сбое каскадного удаления → `ROOT=code`: добавить `errors.Join` агрегацию частичных ошибок. Обновление тестового ожидания на `want err` записывается отдельно как зависимое обслуживание, не как второй ROOT.
 
 ## 9. Централизованный `ErrorHandler` — как читать ответ клиенту при разборе
 
@@ -255,13 +240,14 @@ func (h *Hub) runClientPump(ctx context.Context, cl *client) {
 git bisect start
 git bisect bad HEAD                 # текущий коммит содержит баг
 git bisect good <последний известный хороший SHA>
-# на каждом шаге: воспроизвести минимальный репро, отметить good/bad
-go test -race -run TestSpecificRegression ./internal/<pkg>/...
+# на каждом шаге: сопоставить symptom с каноническим task-owned outer-launcher evidence
+# (source SHA, job, immutable image, bounded resources, results, duration, artifacts, cleanup)
+# если такой runtime evidence недоступен, записать NOT_READY/NOT_RUN и не делать verdict good/bad по тесту
 git bisect good   # или bad, по результату
 git bisect reset  # после нахождения виновного коммита
 ```
 
-Это особенно эффективно для конкурентных багов (race/паника под нагрузкой), которые сложно поймать чтением диффа глазами, но легко детектировать конкретным `-race`-тестом на каждом шаге bisect.
+Это особенно эффективно для конкурентных багов (race/паника под нагрузкой), которые сложно поймать чтением диффа глазами. Race detection может служить только внутренней диагностикой контейнера канонического job; без его записи результат остаётся `NOT_READY` или `NOT_RUN`.
 
 ## 12. Инцидент деплоя/секретов — на пересечении с devops-engineer
 
@@ -269,7 +255,7 @@ Debugger подключается, когда симптом неочевиде�
 
 | Симптом | Гипотезы для проверки |
 |---------|------------------------|
-| 502 на `/api/*` после деплоя | `docker logs hub-backend-1` — упала миграция? `DATABASE_URL` не прокинулся в новый контейнер? |
+| 502 на `/api/*` после деплоя | task-owned операционные логи — упала миграция? `DATABASE_URL` не прокинулся в новый контейнер? |
 | WS не подключается только в prod | Caddy `versions 1.1` на `/ws` пропал при правке `Caddyfile.prod`? `CORS_ORIGINS` не обновлён после смены домена → `CheckOrigin` режет все соединения |
 | Webhook начал получать 401 после ротации секрета | `ALERT_WEBHOOK_SECRET`/`HUB_MAIL_INTERNAL_TOKEN` обновлён на одной стороне, но не на другой — Phase 1 FA-06 требует redeploy **обеих** сторон |
 | `DEV_MODE`-зависимое поведение вылезло в prod | `git log -S 'DEV_MODE=true' --oneline -- '.github/workflows/deploy.yml'` — проверить, не попал ли `DEV_MODE=true` в prod-путь через override |
@@ -332,5 +318,5 @@ Debugger подключается, когда симптом неочевиде�
 
 - **Контекст роли:** `observability.md` + playbook домена бага.
 - **Outcome:** root-cause/triage вердикт по §7 этого файла.
-- **Risk/evidence focus:** triage до фикса (ROOT=code/test/infra/flaky); гипотеза подтверждена экспериментом; тест не подогнан под желаемый ответ.
+- **Risk/evidence focus:** triage до фикса с ровно одним `ROOT=code|test|infra|flaky|stop`; гипотеза подтверждена допустимым evidence либо имеет явное `NOT_READY`/`NOT_RUN`; тест не подогнан под желаемый ответ.
 - **Хендофф:** исполнитель фикса получает mechanism, команды и границы по §5.2.
