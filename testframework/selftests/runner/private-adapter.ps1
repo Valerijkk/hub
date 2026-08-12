@@ -2,55 +2,70 @@ function New-HubQaFixtureDependencies {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
-        [pscustomobject]$FixtureCase,
-
-        [Parameter(Mandatory)]
-        [ValidatePattern('^example\.invalid/[a-z0-9][a-z0-9._/-]*@sha256:[a-f0-9]{64}$')]
-        [string]$PrevalidatedImageIdentity
+        [pscustomobject]$FixtureCase
     )
-    $closedImageIdentity = [string]$PrevalidatedImageIdentity
+
+    $closedSelectedTargetInspectRecord = $FixtureCase.LocalInspectRecord
     $closedInjectedResourceInventory = @($FixtureCase.InjectedResourceInventory)
     $closedSelectedOwnedResources = @($FixtureCase.SelectedOwnedResources)
     $closedCleanupOutcome = $FixtureCase.CleanupOutcome
     $closedSelectedOwnedTuples = @(
         foreach ($resource in $closedSelectedOwnedResources) {
-            '{0}|{1}|{2}|{3}' -f @(
+            '{0}|{1}|{2}|{3}|{4}' -f @(
                 $resource.RecordType
                 $resource.Id
                 $resource.Kind
-                $resource.Ownership
+                $resource.Name
+                $resource.Project
             )
         }
     )
 
-    $fixtureRunningProcess = [pscustomobject]@{
-        Kind  = 'fixture-running-process'
-        State = 'inert'
+    $closedInspectResult = [pscustomobject][ordered]@{
+        Verified               = $true
+        ExitCode               = 0
+        DeadlineLayer          = $null
+        ImageId                = $closedSelectedTargetInspectRecord.ImageId
+        Entrypoint             = @($closedSelectedTargetInspectRecord.Config.Entrypoint)
+        EntrypointSha256       = $closedSelectedTargetInspectRecord.EntrypointSha256
+        Cmd                    = @($closedSelectedTargetInspectRecord.Config.Cmd)
+        CmdSha256              = $closedSelectedTargetInspectRecord.CmdSha256
+        LabelsProjectionSha256 = $closedSelectedTargetInspectRecord.LabelsProjectionSha256
     }
-    $fixtureMonotonicStartTick = [int64]0
-    $fixedTargetIdentity = 'fixture-fixed-target'
+    $closedRunResult = [pscustomobject][ordered]@{
+        ExitCode        = 0
+        TimedOut        = $false
+        DeadlineLayer   = $null
+        StreamCompleted = $true
+        Stdout          = ''
+        Stderr          = ''
+        StdoutBytes     = [byte[]]@()
+        StderrBytes     = [byte[]]@()
+    }
 
     return [pscustomobject]@{
         InspectLockedImage = {
-            return [pscustomobject]@{
-                ImageIdentity = $closedImageIdentity
-            }
+            return $closedInspectResult
         }.GetNewClosure()
         RunFixedTarget = {
-            return [pscustomobject]@{
-                RunningProcessDescriptor = $fixtureRunningProcess
-                MonotonicStartTick        = $fixtureMonotonicStartTick
-                FixedTargetIdentity       = $fixedTargetIdentity
-            }
+            return $closedRunResult
         }.GetNewClosure()
         ListOwnedResources = {
-            return ,$closedInjectedResourceInventory
+            param(
+                [Parameter(Mandatory)]
+                [int64]$DeadlineTick
+            )
+
+            return $closedInjectedResourceInventory
         }.GetNewClosure()
         CleanupOwnedResources = {
             param(
                 [Parameter(Mandatory)]
                 [AllowEmptyCollection()]
-                [pscustomobject[]]$OwnedResources
+                [object[]]$OwnedResources,
+
+                [Parameter(Mandatory)]
+                [int64]$DeadlineTick
             )
 
             if ($OwnedResources.Count -ne $closedSelectedOwnedResources.Count) {
@@ -64,26 +79,25 @@ function New-HubQaFixtureDependencies {
                 }
                 $actualFields = @($resource.PSObject.Properties.Name)
                 if (
-                    $actualFields.Count -ne 4 -or
+                    $actualFields.Count -ne 5 -or
                     $actualFields -cnotcontains 'RecordType' -or
                     $actualFields -cnotcontains 'Id' -or
                     $actualFields -cnotcontains 'Kind' -or
-                    $actualFields -cnotcontains 'Ownership'
+                    $actualFields -cnotcontains 'Name' -or
+                    $actualFields -cnotcontains 'Project'
                 ) {
-                    throw 'CleanupOwnedResources requires exact four-field typed resource records.'
+                    throw 'CleanupOwnedResources requires exact five-field typed resource records.'
                 }
-                if (
-                    $resource.RecordType -cne 'hub.qa.fixture-owned-resource/v1' -or
-                    $resource.Ownership -cne 'owned'
-                ) {
-                    throw 'CleanupOwnedResources rejects foreign or untyped resource records.'
+                if ($resource.RecordType -cne 'hub.qa.owned-resource/v1') {
+                    throw 'CleanupOwnedResources rejects unselected resource records.'
                 }
 
-                $actualTuple = '{0}|{1}|{2}|{3}' -f @(
+                $actualTuple = '{0}|{1}|{2}|{3}|{4}' -f @(
                     $resource.RecordType
                     $resource.Id
                     $resource.Kind
-                    $resource.Ownership
+                    $resource.Name
+                    $resource.Project
                 )
                 if ($closedSelectedOwnedTuples -cnotcontains $actualTuple) {
                     throw 'CleanupOwnedResources received an unselected resource tuple.'

@@ -2,41 +2,41 @@
 
 ## Status
 
-This is documentation for a candidate private implementation. The package and
-launcher are `NOT_READY`; PowerShell parsing is `PS5.1_PARSE_NOT_RUN`, private
-contract execution is `PRIVATE_CONTRACT_NOT_RUN`, and runtime is `NOT_RUN`.
-Static inspection of this document or its sibling source cannot promote any
-of those statuses.
+This document describes an unexecuted local-only v3 private contract.
+`testframework/docker/images.lock.v3.json` is absent, and the required local
+dependency bytes are absent. The package and launcher are `NOT_READY`;
+PowerShell parsing is `PS5.1_PARSE_NOT_RUN`, private contract execution is
+`PRIVATE_CONTRACT_NOT_RUN`, and runtime is `NOT_RUN`.
+`G0-B_PARITY_NOT_VERIFIED` remains the status for baked-entrypoint parity.
+Static source reviews for C1, P2, and P4 are accepted, but they provide no
+runtime `PASS`, Docker verification, generated-lock validation, or launch
+readiness. P7 Docker-only verification remains blocked pending separately
+approved READY inputs and evidence.
 
-## Authority boundary
+## Authority and fixed targets
 
 `/qa-gate` is the sole public execution authority. Its private implementation
-detail is `testframework/runner/run-task.ps1`, which is not a supported direct
-command or alternate entrypoint.
+detail is `testframework/runner/run-task.ps1`; it is not a supported direct
+command, alternate entrypoint, or fallback route.
 
-The candidate contract literal is `hub.qa-runner/v1`. It has exactly three
-fixed target identities:
+The private request contract is `hub.qa-runner/v1` and has exactly three fixed
+target identities:
 
 - `backend-unit`
 - `frontend-unit`
 - `backend-openapi`
 
-Declared future Python jobs remain outside this candidate and return
-`NOT_READY` without entering the private runner. Sentinel, selftest, fixture,
-unknown, and caller-selected target names are not normal targets.
+Future Python jobs, sentinel, selftest, fixture, unknown, and caller-selected
+target names are outside this candidate and return `NOT_READY` without entering
+the private runner.
 
-## Closed request and dependency surfaces
-
-The private request contains only these fields:
-
-- `Contract`
-- `Target`
-- `Task`
-- `Run`
-
+The private request contains only `Contract`, `Target`, `Task`, and `Run`.
 It cannot carry an executable, path, argument vector, image or Compose
 override, timeout profile, dependency object, resource inventory, fixture,
-selftest, arbitrary command, or selector.
+selftest, arbitrary command, or selector. All identities for the project,
+container, report root, Compose definition, image lock, and executable are
+derived internally from the canonical repository, fixed target, and validated
+task/run identifiers.
 
 The internal dependency seam has exactly four semantic operations:
 
@@ -45,108 +45,117 @@ The internal dependency seam has exactly four semantic operations:
 3. `ListOwnedResources`
 4. `CleanupOwnedResources`
 
-The frozen candidate contract requires exactly one internal mutable
-`PSCustomObject` context with these properties, in this order: `Images`,
-`Project`, `Container`, `RepositoryRoot`, `ComposePath`, `ReportPath`,
-`SourceSha`, and `ComposeEnvironment`. The contract permits only the four
-dependency closures above to consume it. It remains a private implementation
-detail, not a request field or caller-configurable surface.
+No fifth dependency operation, caller-controlled I/O surface, or public
+execution route is permitted.
 
-`C1 Cycle-6 scoped static review: STATIC_SCOPED_REVIEWED; whole-slice review:
-PENDING`, pinned to Cycle-6 source
-`D0932A7943367DFB07660B0937E79C1A90EB347D40FCFB892D280778F2B433DB` and
-Cycle-6 package
-`8E00ADFA4E5C54AD023B76C267F6CA2DBBE34573C6ED0875AD9811EF0ECB32CA`.
+## Local image identity and v3 control provenance
 
-All identities for the project, container, report root, Compose definition,
-image lock, and executable are derived internally from the canonical
-repository, fixed target, and validated task/run identifiers. Callers cannot
-override any of them.
+The proposed image lock schema is exactly `hub.qa.local-images-lock/v3` in
+`testframework/docker/images.lock.v3.json`. It is a local Docker-engine
+contract: every target is selected only by its complete local `image_id`.
+Target `repo_digest` members reject the lock. Observed target tags and
+RepoDigests are ignored for identity and selection. Base `repo_digest` is
+local inventory/admission evidence only and is never a selector, pull trigger,
+or target identity field.
 
-There is one physical `System.Diagnostics.Process` construction primitive. It
-is reachable only through those four closed dependency operations; it is not a
-claim that `RunFixedTarget` is the only process-construction site. A normal
-run has at most ten Docker CLI calls: one inspect, one fixed target, three
-initial inventory calls, at most two exact-ID cleanup calls, and three
-residual-inventory calls.
+The lock has exactly the fixed bases `golang`, `playwright`, and `python`, and
+the three fixed targets above. Its parser is strict and duplicate-aware:
+duplicate, missing, additional, malformed, escaped, or reparsed members fail
+before report creation, owner-marker creation, or dependency calls. Each exact
+Entrypoint array, Cmd array, and complete labels projection is retained as its
+own value. Their hashes are computed over no-BOM UTF-8 RFC 8785 JSON
+Canonicalization Scheme (JCS) bytes; null substitution, array concatenation,
+or partial label projection is forbidden.
 
-## Validation, ownership, and evidence
+Private attestation accepts one mandatory literal 40-lowercase-hex
+`ControlCommit`. It reads exactly these six mode-`100644` Git blobs from that
+commit, in this order, and derives both the ordered control-bundle digest and
+the raw Compose-byte digest:
 
-The private supervisor completes duplicate-aware image-lock validation before
-creating a report directory, owner marker, or dependency call. The lock has
-only the three fixed target keys and immutable digest references. Invalid,
-duplicate, missing, malformed, escaped, or reparsed input fails before report
-mutation.
+1. `testframework/docker/Dockerfile.backend-openapi`
+2. `testframework/docker/Dockerfile.backend-unit`
+3. `testframework/docker/Dockerfile.frontend-unit`
+4. `testframework/docker/build-manifest.v2.json`
+5. `testframework/docker/compose.unit.yaml`
+6. `testframework/docker/source-policy.v1.json`
 
-After that pre-mutation boundary, a run receives an exclusive task-owned
-report root and owner marker. Its descriptive evidence shape is limited to:
+The control-bundle grammar is exactly
+`path<TAB>100644<TAB>git-blob-sha1<TAB>sha256-of-exact-blob-bytes<LF>` for
+each ordered row. `control.compose_sha256` is the SHA-256 of the exact raw
+Compose blob bytes, not a YAML parse or normalized rendering. Worktree copies
+of control files are non-authoritative. Product source is materialized only
+from mode-`100644` Git blobs at the source policy's `source_commit` (recorded
+in the lock as `source.commit`), never from a source bind, checkout,
+working-tree copy, or Git metadata inference.
 
-- `.owner.json`
-- `run.json`
-- `commands.json`, the actual ordered per-command receipt sequence, which may
-  stop at the first failed or timed-out command
-- fixed-command stdout, stderr, and result artifacts
-- target artifacts
-- `cleanup.json`
+The private attestor is excluded from the control bundle and does not
+self-attest. Its integrity is instead an out-of-band review and commit-admission
+gate. Existing lock objects fail closed: the attestor must not overwrite,
+replace, delete, or adopt an existing `images.lock.v3.json` object.
 
-Each command artifact uses the closed candidate convention
-`commands/<command-id>.stdout.log`, `commands/<command-id>.stderr.log`, and
-`commands/<command-id>.result.json`. This documents the private contract only;
-it does not assert that separately owned image-entrypoint parity was executed.
+Every target uses its exact local `image_id` and binds
+`control_commit` plus `control_bundle_sha256` to the top-level control pair.
+Its v3 identity/provenance binding subset contains exactly these eight labels:
+`hub.qa.target`, `hub.qa.base-image-id`, `hub.qa.control-commit`,
+`hub.qa.control-bundle-sha256`, `hub.qa.source-commit`,
+`hub.qa.source-policy-sha256`, `hub.qa.source-tree-manifest-sha256`, and
+`hub.qa.build-manifest-sha256`. The separate ninth lifecycle/status label is
+`hub.qa.runtime-status`. Attestor and runner equality for the full labels
+projection includes all nine labels; the v3 binding subset remains exactly the
+eight labels above. All required selected images must already exist locally as
+`linux/amd64` image objects. A missing local base, target, platform, identity
+match, or required dependency byte fails closed before staging, execution, or
+publication. There is no registry login, pull, push, manifest lookup, remote
+provenance lookup, remote cache, network download, package installation,
+source bind, or fallback image acquisition.
 
-`G0-B baked-entrypoint filename/parity: NOT_VERIFIED` until an independent G0-B
-review supplies that compatibility evidence.
+## Compose boundary
 
-`run.json` is the final run receipt: it records the actual contract,
-identities, source revision, selected immutable image identity, deadline and
-limit configuration, final artifact manifest, immutable first exit, final
-outcome, result counts where applicable, relative artifact paths, and cleanup
-outcome. Its `commands` field is the fixed expected command identifier list,
-not receipt objects; the actual receipt objects belong to `commands.json`. It
-must not contain a host environment dump or secret value. Evidence records
-observed status; static inspection cannot convert it into runtime, cleanup,
-timeout, isolation, or target-result evidence.
+The six control blobs above are the authoritative v3 private contract inputs.
+The local Compose definition is an immutable raw-byte-pinned input and is
+rechecked against `control.compose_sha256` before staging, execution, or
+publication; no YAML substring parse or transformed representation substitutes
+for that byte identity.
 
-## Bounded supervision
+G0-B remains an inert, no-source-bind template and is `NOT_VERIFIED`; it
+neither consumes the absent lock nor selects or runs an image. Once separately
+accepted, the local Compose contract may use `pull_policy: never`, may bind
+each service only to the exact locked local target `image_id`, and may mount
+only the task-owned report path. It must contain no repository or source bind,
+checkout, working-tree read, Git metadata inference, runtime package download,
+or runtime installation.
 
-| Layer | Owner | Fixed bound | Meaning |
-|---|---|---:|---|
-| Fixed command | Digest-baked entrypoint | 180 seconds | Image-owned inner command bound, not supervisor scheduling. |
-| Fixed target | Digest-baked entrypoint | 780 seconds | Image-owned inner target bound, not supervisor scheduling. |
-| Locked-image inspect/attestation | Private supervisor | 30 seconds | Fixed inspect bound before Compose target start. |
-| Fixed Compose target | Private supervisor | 810 seconds | Fixed outer `RunFixedTarget` process bound. |
-| Inventory, exact cleanup, and zero proof | Private supervisor | 30 seconds aggregate | One fixed cleanup window for the complete owned-resource route. |
+## Evidence, ownership, and deadlines
 
-The supervisor validates baked receipt transitions but does not schedule or
-terminate an inner command or target. There is no post-deadline grace period
-and no retry at any layer. At the first observed process-deadline expiry, the
-contract freezes exit `124` for that layer, permits only best-effort termination
-of the exact handle, and requires disposal without any further wait, drain,
-scheduling, read, progress, EOF, or child-exit observation.
+After successful pre-mutation validation, a run has an exclusive task-owned
+report root and owner marker. It can record the owner marker, final receipt,
+fixed-command receipts, fixed-command output, target artifacts, and cleanup
+outcome. Reports must not contain host environment dumps or secret values.
+Raw Compose output is confined to its owned raw artifacts and is not imported
+into structured receipts.
 
-After report ownership, an inspect expiry freezes immutable
-`first_exit_code = 124` with `deadline_layer = inspect` and skips
-`RunFixedTarget`, Compose target start, and Compose-environment start. It does
-not skip the sole aggregate 30-second cleanup `finally`: the route remains
-`ListOwnedResources` -> typed exact owned/foreign selection ->
-`CleanupOwnedResources` only when the complete initial inventory is clean ->
-`ListOwnedResources` residual zero-owned proof. A dependency-construction
-failure is categorical; it is not an inspect expiry and is not represented as
-exit `124` or deadline layer `inspect`. Cleanup records its own evidence and
-outcome but never overwrites the frozen `124` or any earlier first exit. The
-selector preserves every foreign record. Broad cleanup, pruning, and deletion
-of foreign resources are forbidden.
+The candidate keeps fixed limits: an image-baked command bound of 180 seconds,
+an image-baked target bound of 780 seconds, a private image-inspection bound of
+30 seconds, a private outer fixed-target bound of 810 seconds, and one
+aggregate owned-resource cleanup window of 30 seconds. The first observed
+deadline freezes exit `124` for its layer; there is no retry or post-deadline
+grace period.
 
-## Supply-chain and host boundary
+Cleanup is a single exact owned-resource route: initial inventory, typed exact
+owned/foreign selection, exact cleanup only when the complete initial inventory
+is clean, then residual zero-owned proof. Foreign records are preserved.
+Recursive deletion, wildcard deletion, pruning, automatic staging janitors,
+and deletion of a final report are forbidden.
 
-Only immutable, approved image identities may be used by the future private
-implementation. Runtime pulls, downloads, installation, host-environment
-forwarding, mutable image selection, and secret-bearing reports are forbidden.
-The container contract and private runner do not create a public fallback or a
-separate execution route.
+## Acceptance boundary
 
-Any future runtime evidence requires the public authority, approved immutable
-assets, task-owned evidence, and independent acceptance. Until then this
-boundary remains package `NOT_READY`, launcher `NOT_READY`, PowerShell parsing
-`PS5.1_PARSE_NOT_RUN`, private contract `PRIVATE_CONTRACT_NOT_RUN`, and runtime
-`NOT_RUN`.
+The local successor is not accepted until an independent review and separately
+authorized Docker-only local-cache verification prove exact three-image local
+identity, v3 ControlCommit and control-bundle equality, raw Compose equality,
+complete nine-label full-projection parity (including `hub.qa.runtime-status`)
+with its exact eight-label v3 binding subset, no registry/network path, no
+repository/source bind, and the bounded ownership/cleanup route. Until then
+the exact status is:
+package and launcher `NOT_READY`; private contract
+`PRIVATE_CONTRACT_NOT_RUN`; runtime `NOT_RUN`; and G0-B parity
+`G0-B_PARITY_NOT_VERIFIED`. No static review promotes those statuses.
