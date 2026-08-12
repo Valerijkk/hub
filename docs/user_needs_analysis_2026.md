@@ -1,60 +1,70 @@
 # Hub — Анализ продукта и потребностей пользователей 2026
 
-> **Обновлено:** 2026-06-21  
+> **Текущая product-truth (founder, 2026-08-12):** Hub остаётся
+> незавершённым MVP. Ни один продуктовый модуль не принят как `complete`,
+> `stable` или `production-ready`. Метки `SHIPPED`/`COMPLETE`, milestone/audit
+> `PASS`, зрелость и галочки в датированных срезах ниже являются только
+> историческим planning/technical evidence; они не подтверждают готовность
+> продукта, модуля или production. PG-03/FA-06 — отдельный manual ops-блокер
+> production cutover, а не индикатор готовности MVP.
+>
+> **Обновлено:** 2026-08-12; исходный capability snapshot датирован 2026-06-21.
 > **Основано на:** `docs/vision_and_scope.md`, `.planning/PROJECT.md`, `AUDIT-SCORECARD` / `AGENTS.md` (**89/100**), `competitive_analysis_2026.md`, `.planning/archive/tasks/TASKS-PHASES-121-FINAL-AUDIT.md`.
 
 ---
 
-## 1. Что такое Hub сегодня
+## 1. Текущая product-truth и исторический capability snapshot
 
 ### 1.1 Суть продукта
 
-**Hub** — self-hosted **corporate super-app** для команд разработки, QA и сотрудников компании (10–50 человек). Объединяет dev-suite и корпоративные сервисы в одном инстансе с единой авторизацией и RBAC.
+**Hub** проектируется как self-hosted **corporate super-app** для команд
+разработки, QA и сотрудников компании (10–50 человек). Таблицы ниже фиксируют
+наличие заявленных code/UI surfaces, но не приёмку их модулей.
 
 #### Dev-suite (v1.0–v2.0)
 
 | Модуль | Зрелость | Ключевые возможности |
 |--------|----------|----------------------|
-| **Auth** | Production | Magic Link + Telegram bind, JWT 15m, refresh 30d, org + founder |
-| **Projects + RBAC** | Production | Шаблоны, invite, custom roles, workflow, teams |
-| **Tracker** | Production | 9 типов задач, Kanban, Scrum, JQL, automation lite, Git links |
-| **Messenger** | Production | Каналы, треды, reactions, polls, voice msgs, #hub-ci, @hub-ai |
-| **TMS** | Production | Classic/BDD, runs, Allure CI, traceability, reports, env compare |
-| **Calls** | Production | LiveKit voice/video (`CallControls` camera), screen share, recordings, scheduled |
-| **Dashboards** | Mature | Personal/project/admin widgets, burndown, velocity, health |
-| **Search** | Mature | Ctrl+K, Meilisearch, user-scope API, saved filters |
-| **Integrations** | Mature | GitHub, GitLab, Jira import, webhooks, hub-cli, 1C connector |
+| **Auth** | Не принят | Magic Link + Telegram bind, JWT 15m, refresh 30d, org + founder |
+| **Projects + RBAC** | Не принят | Шаблоны, invite, custom roles, workflow, teams |
+| **Tracker** | Не принят | 9 типов задач, Kanban, Scrum, JQL, automation lite, Git links |
+| **Messenger** | Не принят | Каналы, треды, reactions, polls, voice msgs, #hub-ci, @hub-ai |
+| **TMS** | Не принят | Classic/BDD, runs, Allure CI, traceability, reports, env compare |
+| **Calls** | Не принят | LiveKit voice/video (`CallControls` camera), screen share, recordings, scheduled |
+| **Dashboards** | Не принят | Personal/project/admin widgets, burndown, velocity, health |
+| **Search** | Не принят | Ctrl+K, Meilisearch, user-scope API, saved filters |
+| **Integrations** | Не принят | GitHub, GitLab, Jira import, webhooks, hub-cli, 1C connector |
 
 #### Corporate super-app (v4, Phases 39–58)
 
 | Модуль | Зрелость | Ключевые возможности |
 |--------|----------|----------------------|
-| **Intranet** | Production | News feed, kudos, Random Coffee |
-| **Org directory** | Production | MOD-02, Ctrl+K people search |
-| **Calendar** | Production | Unified events, iCal export |
-| **CRM-lite** | Production | Contacts, deals kanban, won→invoice hook |
-| **HR-lite** | Production | Leave requests, calendar sync, 1C webhook |
-| **Marketplace** | Production | Classifieds, mod queue |
-| **Status page** | Production | Public `/status` |
-| **Bases (no-code)** | Production | Lark-style tables `/bases` |
-| **Accounting MVP** | Production | Ledger, journal, invoices, P&L |
-| **AI Hub** | Production | BYOK + Ollama, composer suggest, external AI consent |
+| **Intranet** | Не принят | News feed, kudos, Random Coffee |
+| **Org directory** | Не принят | MOD-02, Ctrl+K people search |
+| **Calendar** | Не принят | Unified events, iCal export |
+| **CRM-lite** | Не принят | Contacts, deals kanban, won→invoice hook |
+| **HR-lite** | Не принят | Leave requests, calendar sync, 1C webhook |
+| **Marketplace** | Не принят | Classifieds, mod queue |
+| **Status page** | Не принят | Public `/status` |
+| **Bases (no-code)** | Не принят | Lark-style tables `/bases` |
+| **Accounting MVP** | Не принят | Ledger, journal, invoices, P&L |
+| **AI Hub** | Не принят | BYOK + Ollama, composer suggest, external AI consent |
 
 #### Platform & Admin
 
 | Модуль | Зрелость | Ключевые возможности |
 |--------|----------|----------------------|
-| **Admin** | Production | Audit log, trash 30d, backups, limits, ban, GDPR |
-| **Observability** | Production | Prometheus, Loki, OTel, Alertmanager → audit |
-| **Notifications** | Production | In-app + Web Push + Telegram, quiet hours |
-| **API Gateway** | Production | API keys, webhook subscriptions, delivery history |
+| **Admin** | Не принят | Audit log, trash 30d, backups, limits, ban, GDPR |
+| **Observability** | Не принят | Prometheus, Loki, OTel, Alertmanager → audit |
+| **Notifications** | Не принят | In-app + Web Push + Telegram, quiet hours |
+| **API Gateway** | Не принят | API keys, webhook subscriptions, delivery history |
 
-### 1.2 Статус релиза (2026-06-23)
+### 1.2 Исторический technical snapshot (2026-06-23; не release acceptance)
 
 | Показатель | Значение |
 |------------|----------|
-| Milestones shipped | v1.0 · v2.0 · v2.5 Trust · v2.6 Automate · v3.0 AI · **v4 Super-app** |
-| Product score | **89/100** |
+| Historical milestone labels | v1.0 · v2.0 · v2.5 Trust · v2.6 Automate · v3.0 AI · **v4 Super-app** |
+| Historical audit product score | **89/100** |
 | Backend coverage (`internal/`) | **83.0%** (2026-06-22 Docker baseline; Wave C, `-tags hubtest`) |
 | Security-critical ≥80% | **6/6** (auth, ws, rbac, audit, calls, platform/middleware) |
 | REST API (OpenAPI paths) | **252** (`swagger.json`, 2026-07-28); route inventory ~286 |
@@ -62,7 +72,7 @@
 | Playwright E2E | **20** specs |
 | 12 CRITICAL security blockers | **Закрыты** (v2.0.1) |
 | Ветка | `cursor-grok-4.5` · HEAD `d868ba77` |
-| Prod-блокер | **FA-06** PG-03 secret rotation (manual) |
+| Separate ops cutover blocker | **FA-06/PG-03** secret rotation (manual); не proxy готовности MVP |
 
 ### 1.3 Ценностное предложение
 
@@ -71,6 +81,9 @@
 ---
 
 ## 2. Персоны → Jobs-to-be-Done → Боли → Незакрытые needs
+
+> `✅` в таблицах персон означает только исторически зафиксированный capability
+> surface; это не `complete`, `stable` или production acceptance модуля.
 
 ### 2.1 Алексей — Developer
 
@@ -127,7 +140,8 @@
 | HR leave + 1C | ✅ v4 | 1C connector prod wiring (FA-05) |
 | OBS stack | ✅ Prometheus/Loki/AM | — |
 
-**Приоритет:** PG-03 rotation → slow query dashboard → admin toast errors (FA-07)
+**Приоритет:** product gaps развиваются отдельно; PG-03 rotation относится к
+manual ops production cutover и не заменяет product acceptance.
 
 ### 2.6 Игорь — Member (messenger + intranet)
 
@@ -148,9 +162,10 @@
 | JUnit webhook | ✅ | Webhook retry dashboard UX |
 | #hub-ci | ✅ | Pipeline failed→issue (automation) |
 | Observability | ✅ OTel + metrics | hub-mail prod compose (FA-05) |
-| Test framework | ✅ TF-M01–M10 COMPLETE | — |
+| Test framework | исторический TF-M01–M10 technical slice | активен rebase; package/launcher `NOT_READY`, runtime `NOT_RUN` |
 
-**Приоритет:** FA-06 PG-03 → v2.5.0 tag → WCAG/Lighthouse gate
+**Приоритет:** product/quality acceptance; FA-06/PG-03 ведётся отдельно как
+manual ops production-cutover blocker.
 
 ### 2.8 Анна — Employee (non-dev, v4 persona)
 
@@ -166,16 +181,16 @@
 
 ## 3. MoSCoW приоритизация (актуально 2026-06-23)
 
-### Must — production handoff
+### Historical technical handoff gates (не product acceptance)
 
 | ID | Feature | Статус |
 |----|---------|--------|
 | COV ≥82% | Backend coverage | ✅ **83.0%** (2026-06-22 Docker baseline) |
 | Security ≥80% | 6 critical packages | ✅ **6/6** |
-| TF-M04–M08 | Test framework migration | ✅ COMPLETE |
+| TF-M04–M08 | Historical migration slice | historical COMPLETE label; новый package/launcher `NOT_READY`, runtime `NOT_RUN` |
 | FA-10 | Full `/qa-gate` Docker | ✅ PASS |
-| PG-03 | Secret rotation execute | ⏳ **manual — P0 блокер** |
-| v2.5.0 tag | Release | ⏳ после FA-06 |
+| PG-03 | Secret rotation execute | ⏳ отдельный manual ops production-cutover blocker; не readiness proxy |
+| v2.5.0 tag | Historical release-plan item | ⏳ требует отдельного founder sign-off; FA-06 сам по себе готовность не доказывает |
 
 ### Should — differentiation polish
 
@@ -207,7 +222,7 @@ Email notifications (кроме magic link + hub-mail marketing) — Telegram + 
 
 | Ожидание | Ограничение Hub | Mitigation |
 |----------|-----------------|------------|
-| «Slack AI из коробки» | BYOK / Ollama setup | v3.0 shipped; onboarding AI providers |
+| «Slack AI из коробки» | BYOK / Ollama setup | historical v3.0 capability slice; AI-модуль не принят |
 | «SSO для compliance» | No SSO v1–v4 | Self-host + audit; SCIM backlog 999.x |
 | «Email alerts on prod down» | No generic email notif | Telegram + Push + status page + AM webhook |
 | «Jira Automation 50 rules» | Lite automation MVP | Honest UI limits; roadmap depth |
@@ -229,7 +244,7 @@ Email notifications (кроме magic link + hub-mail marketing) — Telegram + 
 ### Retain triggers
 
 1. **Automation lite** — «Done → #releases» без Zapier ✅
-2. **Reliability** — 82.6% cov (2026-06-21 phase-125 exit; superseded by 83.0% 2026-06-22 Docker baseline), e2e 20 specs, no WS panics
+2. **Reliability evidence (historical, not readiness)** — 82.6% cov (2026-06-21 phase-125 exit; superseded by 83.0% 2026-06-22 Docker baseline), e2e 20 specs, no WS panics
 3. **AI @hub-ai RU providers** — GigaChat/YandexGPT/Ollama
 4. **Keyboard UX** — Ctrl+K как Linear
 5. **Single audit trail** — dev + corp actions в одном месте
@@ -239,7 +254,7 @@ Email notifications (кроме magic link + hub-mail marketing) — Telegram + 
 - PO → Jira если **custom fields UI** затянется
 - QA → TestOps если **flaky ML** не улучшится
 - Members → Slack если **mobile PWA** отстанет
-- Admin → cloud если **PG-03 rotation** не выполнится pre-prod
+- Admin → cloud если **PG-03 rotation** не выполнится к production cutover; это отдельный ops-риск, не полный readiness gate
 
 ---
 
@@ -256,7 +271,7 @@ Email notifications (кроме magic link + hub-mail marketing) — Telegram + 
 | Custom fields UI 📋 | ○ | ○ | ○ | ● | ○ | ○ | ○ | ○ |
 | PG-03 rotation ⏳ | ○ | ○ | ○ | ○ | ● | ● | ○ | ○ |
 
-● = высокий impact · ○ = средний/низкий · ✅ shipped · ⚠️ partial · 🔄 in progress · 📋 backlog · ⏳ ops
+● = высокий impact · ○ = средний/низкий · ✅ историческое implementation evidence, не acceptance · ⚠️ partial · 🔄 in progress · 📋 backlog · ⏳ ops
 
 ---
 

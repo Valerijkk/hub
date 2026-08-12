@@ -1,8 +1,19 @@
 # Roadmap: Hub
 
+> **Текущая product-truth (founder, 2026-08-12):** Hub остаётся
+> незавершённым MVP. Ни один продуктовый модуль не принят как `complete`,
+> `stable` или `production-ready`. Метки `SHIPPED`/`COMPLETE`, milestone/audit
+> `PASS` и строки «реализовано» ниже фиксируют только историческое выполнение
+> конкретных planning/technical slices; они не подтверждают готовность продукта,
+> модуля или production. PG-03/FA-06 — отдельный manual ops-блокер production
+> cutover, а не индикатор готовности MVP.
+
 ## Overview
 
-Hub предоставляет единую платформу для команд разработки, объединяя пять интегрированных модулей (аутентификация/проекты, трекер задач, мессенджер, TMS, голосовые звонки) и сквозные функции (уведомления, поиск, дашборды) на общем фундаменте. Дорожная карта следует цепочке зависимостей: сначала базовая инфраструктура, затем четыре основных модуля в порядке ценности и зависимостей (трекер, мессенджер, TMS, звонки), далее сквозные агрегирующие функции, и наконец доработка и расширенные возможности. Каждая фаза поставляет завершённую, проверяемую функциональность, основанную на предыдущих фазах.
+Hub проектируется как единая платформа для команд разработки: общий фундамент,
+продуктовые модули и сквозные функции развиваются по цепочке зависимостей.
+Закрытие фазы означает завершение ограниченного planning/technical slice по её
+критериям; оно не является приёмкой всего модуля, продукта или production.
 
 ## Milestones
 
@@ -173,9 +184,11 @@ Decimal phases appear between their surrounding integers in numeric order.
 сохраняются. Микросервисный split остаётся отложенным до re-audit после тестового
 фундамента.
 
-**Фактическая стадия:** broad internal beta, не production-ready. Исторические
-milestone COMPLETE не равны production acceptance; PG-03/FA-06 остаётся
-prod-blocker. Новая native/Python migration начата только с Phase 128 inventory.
+**Фактическая стадия (founder, 2026-08-12):** незавершённый MVP; ни один
+продуктовый модуль не принят как complete, stable или production-ready.
+Исторические milestone COMPLETE не равны product/production acceptance.
+PG-03/FA-06 — отдельный manual ops-блокер production cutover, а не proxy
+готовности MVP. Новая native/Python migration начата только с Phase 128 inventory.
 Historical ≥82% сохранён как discovery evidence, но founder-approved greenfield
 contract отменяет его как migration gate; destructive batches разрешены только
 по current-SHA manifest.
@@ -1578,7 +1591,7 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. nats ≥65%
   2. tms ≥62%
-  3. notification stable (+0.1%)
+  3. notification coverage unchanged (+0.1%)
   4. race PASS all packages
   5. `/qa-gate` PASS (backend)
 **Plans**: 5 plan(s) · source `.planning/phases/87-tms-notif-nats/PLAN.md`
@@ -1586,7 +1599,7 @@ Plans:
 Plans:
 - [x] nats ≥65%
 - [x] tms ≥62%
-- [x] notification stable (+0.1%)
+- [x] notification coverage unchanged (+0.1%)
 - [x] race PASS all packages
 - [x] `/qa-gate` PASS (backend)
 

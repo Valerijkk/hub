@@ -1,5 +1,12 @@
 # Hub Wiki
 
+> **Текущая product-truth (founder, 2026-08-12):** Hub остаётся
+> незавершённым MVP. Ни один продуктовый модуль не принят как `complete`,
+> `stable` или `production-ready`. Метки `SHIPPED`/`COMPLETE`, milestone/audit
+> `PASS` и галочки ниже — только историческое planning/technical evidence, не
+> product/module acceptance. PG-03/FA-06 — отдельный manual ops-блокер
+> production cutover, а не индикатор готовности MVP.
+
 Добро пожаловать в wiki Hub — единой платформы для команд разработки (10–50 человек): Task Tracker, Messenger, TMS, Voice Calls, Dashboards и корпоративные модули v4.
 
 > **Индекс всей базы знаний:** [docs/README.md](../README.md)
@@ -71,19 +78,23 @@
 
 ---
 
-## Статус проекта
+## Текущая product-truth и исторические milestone labels
+
+Hub — незавершённый MVP; таблица ниже не подтверждает готовность ни одного
+модуля.
 
 | Milestone | Статус |
 |-----------|--------|
-| v1.0 Foundation | ✅ Shipped 2026-03-21 |
-| v2.0 Hub Redesign | ✅ 2026-05-15 |
-| v2.6 Architecture + OBS | ✅ 2026-06-24 |
-| v3.0 AI Native | ✅ 2026-06-22 |
-| v4 Super-app | Archived (phases 39–58) |
-| Coverage floor | **82%+** `internal/` (Phase 120+) |
+| v1.0 Foundation | historical SHIPPED label · 2026-03-21 |
+| v2.0 Hub Redesign | historical technical label · 2026-05-15 |
+| v2.6 Architecture + OBS | historical technical label · 2026-06-24 |
+| v3.0 AI Native | historical technical label · 2026-06-22 |
+| v4 Super-app | historical archived phases 39–58; not module acceptance |
+| Coverage floor | historical **82%+** `internal/` baseline (Phase 120+); not readiness |
 
 Актуальный статус: `.planning/STATE.md`.
 
 ---
+*2026-08-12 — founder product-truth: unfinished MVP; zero accepted complete/stable modules; PG-03/FA-06 is a separate ops cutover blocker.*
 *2026-07-28 — TASK-105: уточнено, что product Wiki planned (G-07 Partial); `docs/wiki/` ≠ Confluence-замена*
 *2026-06-21 — wiki index, broken links removed*

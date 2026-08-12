@@ -1,39 +1,54 @@
-# Делегирование — волна закрытия остатков июля
+# Делегирование — волна закрытия остатков июля (HISTORICAL)
 
-> Составлено: 2026-07-28 · Автор: team-lead · Исполнитель: Grok 4.5
-> Формат: [мастер-промпт](../../pro-qa-ai/agents/templates/_MASTER-PROMPT-TEMPLATE.md)
+> **SUPERSEDED / NON-AUTHORITATIVE (founder, 2026-08-12):** этот датированный
+> delegation snapshot не назначает исполнителей, не открывает scope, не задаёт
+> routing/handoff и не авторизует ни одну команду, проверку, мутацию, ветку,
+> commit, merge или deploy. Любой role/task/path/acceptance text ниже — только
+> исторический provenance. Текущая authority начинается с `AGENTS.md`,
+> `.planning/STATE.md` и живой карточки backlog; при конфликте этот файл всегда
+> проигрывает.
+>
+> Внешняя source-template dependency удалена: этот исторический документ не
+> маршрутизирует работу через protected/toolkit scope и не требует его чтения.
+>
+> **Текущая product-truth:** Hub остаётся незавершённым MVP. Ни один
+> продуктовый модуль не принят как `complete`, `stable` или `production-ready`.
+> Historical `SHIPPED`/`COMPLETE`/`PASS` означает только закрытие
+> planning/technical slice. PG-03/FA-06 — отдельный manual ops-блокер production
+> cutover, а не readiness proxy.
+>
+> Составлено: 2026-07-28 · исторические автор/исполнитель сохранены только в
+> provenance исходной записи; активного назначения нет.
 
-## [OUTCOME]
+## [HISTORICAL OUTCOME SNAPSHOT — NO CURRENT AUTHORITY]
 
 Пять задач бэклога переведены в статус «Закрыта» с доказательством мутацией
 по каждой, либо явно заблокированы с указанием причины.
 
-## [ROLE]
+## [HISTORICAL ROLE SNAPSHOT — NO LIVE ROUTING]
 
-- Role: оркестратор; исполнители — be1 (TASK-001, 002), qa-auto1 (TASK-003),
-  docs-writer или сам (TASK-004, 005)
-- Responsibility: выполнение задач, обновление их статуса, отчёт по волне
-- Handoff to: team-lead (Claude) — верификация мутацией, выборочно и своими руками
+- Имена ролей исходной записи не являются текущим назначением или handoff.
+- Текущие ownership, model routing и verification определяются только живой
+  authority; из этого файла они не восстанавливаются.
 
-## [SCOPE AND CONSTRAINTS]
+## [HISTORICAL SCOPE SNAPSHOT — NOT AN ALLOWLIST]
 
 Scope каждой задачи определён **в её файле**, в блоке `[SCOPE AND CONSTRAINTS]`.
 Здесь — только общие рамки волны.
 
-- Files allowed: объединение scope пяти задач + `.planning/backlog/README.md`
-  (обновление статусов)
-- Do not touch:
+- Historical files record: scope пяти задач + `.planning/backlog/README.md`;
+  это не текущий allowlist.
+- Historical exclusions recorded at the time:
   - `.cursor/**` — решение владельца, не трогаем
   - структура `.planning/` — папки переразложены 2026-07-28, **не перемещать**
   - `.planning/{phases,milestones,research,debug,ui-reviews}/` — пути зашиты
     в GSD-скилах, перемещение сломает gsd-команды
   - ent-схемы кроме `scheduledcall.go` (только добавление `deleted_at`)
-- Constraints:
-  - Docker: `docker compose -f docker-compose.local.yml up -d postgres mongo redis nats`
-  - `POSTGRES_TEST_URL` и `MONGODB_TEST_URL` выставлены, тесты гонять с БД
-  - **Коммиты по новым правилам** — см. `[OPERATING RULES]`
-- Approval record: not granted для деструктивных операций и деплоя.
-  TASK-002 меняет ent-схему → личное ревью владельца перед мержем.
+- Historical runtime assumptions and direct runner invocation removed. Этот
+  файл не даёт launcher/runtime authority: package/launcher `NOT_READY`,
+  runtime `NOT_RUN`; прямого Docker, host или legacy fallback нет.
+- Historical approval record не переносится вперёд: текущая authority должна
+  быть получена заново по живым правилам.
 
 ## [REFERENCES]
 
@@ -51,9 +66,8 @@ Scope каждой задачи определён **в её файле**, в б
 
 Индекс: [`../backlog/README.md`](../backlog/README.md)
 
-**Каждая задача самодостаточна** — содержит проблему, критерий готовности,
-конкретную мутацию для доказательства и границы scope. Постановку из этого
-файла не выводить, читать сам файл задачи.
+Ссылки на задачи сохранены только как исторический provenance. Они не
+активируют задачи и не маршрутизируют чтение или исполнение.
 
 ### Изменения в правилах, вступившие в силу 2026-07-28
 
@@ -81,7 +95,7 @@ Scope каждой задачи определён **в её файле**, в б
 
 - Source precedence: код > `VERIFICATION.md` > файл задачи > `PLAN.md` > README
 
-## [ACCEPTANCE]
+## [HISTORICAL ACCEPTANCE SNAPSHOT — NOT EXECUTABLE]
 
 - Done criteria: критерий каждой задачи — в её файле, блок `[ACCEPTANCE]`.
   Волна закрыта, когда все пять переведены в «Закрыта» или «Отменена».
@@ -96,15 +110,13 @@ TASK-004  ───►  TASK-005    таблица Progress не согласу�
 TASK-003      независима
 ```
 
-- New-behavior checks: по каждой задаче — из её `[ACCEPTANCE]`
-- Regression scope: `go test -tags hubtest ./testframework/...` с БД,
-  до и после волны, с числом ok/fail. Стало меньше ok — объяснить каждый пакет.
-- Evidence required: на **каждую** задачу — вывод мутации (красный),
-  вывод восстановления (зелёный), SHA коммитов
-- Stop when: пять задач закрыты либо заблокированы с причиной.
-  Не продолжать на смежные находки.
+- Direct/legacy runner command удалена. Ни один check или evidence call из
+  исторической волны не разрешён этим файлом; current launcher/runtime остаются
+  `NOT_READY` / `NOT_RUN` до отдельной acceptance.
+- Историческое намерение требовало task-specific evidence и bounded scope, но
+  конкретные current criteria берутся только из живой authority.
 
-## [OUTPUT SCHEMA]
+## [HISTORICAL OUTPUT SNAPSHOT — NOT A CURRENT HANDOFF]
 
 1. Вердикт по каждой из пяти задач
 2. Изменения с путями и SHA
@@ -114,7 +126,10 @@ TASK-003      независима
 6. Handoff: что проверять team-lead в первую очередь
 7. Verification block по `rules/40`
 
-## [OPERATING RULES]
+## [HISTORICAL OPERATING NOTES — NON-AUTHORITATIVE]
+
+Ни один пункт ниже не является текущей инструкцией. Актуальные safety, Git,
+scope и verification rules повторно читаются из живой authority.
 
 ### Доказательство
 

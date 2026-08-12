@@ -1,6 +1,14 @@
 # Hub — Конкурентный анализ 2026
 
-> **Обновлено:** 2026-06-23  
+> **Текущая product-truth (founder, 2026-08-12):** Hub остаётся
+> незавершённым MVP. Ни один продуктовый модуль не принят как `complete`,
+> `stable` или `production-ready`. Метки `SHIPPED`/`COMPLETE`, milestone/audit
+> `PASS`, галочки и score ниже являются только историческим planning/technical
+> evidence; они не подтверждают готовность продукта, модуля или production.
+> PG-03/FA-06 — отдельный manual ops-блокер production cutover, а не индикатор
+> готовности MVP.
+>
+> **Обновлено:** 2026-08-12; исходный конкурентный snapshot датирован 2026-06-23.
 > **Источники:** `docs/competitive_audit.md`, `docs/vision_and_scope.md`, `.planning/decisions/specs/PLATFORM-VISION-v4.md`, web research (Linear, Jira, Plane, Allure TestOps, Slack, Mighty, Bitrix24, Lark).  
 > **Целевой сегмент:** self-hosted команды **10–50 человек**, замена стека Jira + Slack + TestRail/Allure + Meet + Grafana **+** корпоративные сервисы (интранет, HR, CRM).
 
@@ -8,7 +16,12 @@
 
 ## 1. Резюме для руководства
 
-Hub после milestone **v4 Super-app** (Phases 39–58) — единственный self-hosted продукт в нише, объединяющий **dev-suite + corporate super-app** с AI hub и data residency. Покрытие тестами backend **83.0%** (2026-06-22 Docker baseline), product score **89/100**, OpenAPI **~252** paths (route inventory historically ~286). Wave C ✅; prod-блокер — FA-06 manual.
+Hub позиционируется как self-hosted сочетание **dev-suite + corporate
+super-app** с AI hub и data residency, но остаётся незавершённым MVP.
+Покрытие backend **83.0%** (2026-06-22 Docker baseline), score **89/100** и
+OpenAPI **~252** paths (route inventory historically ~286) — исторические
+technical/audit baselines, не readiness. FA-06/PG-03 — отдельный manual ops
+production-cutover blocker, а не единственный gap.
 
 **Ключевое конкурентное преимущество:** TCO на горизонте 2–3 лет + сквозная traceability (задача → тест → PR → уведомление) + RU-friendly AI без VPN.
 
@@ -162,7 +175,7 @@ Hub после milestone **v4 Super-app** (Phases 39–58) — единстве�
 ```
                     HIGH integration depth
                             │
-         Allure TestOps     │     ★ Hub v4 (shipped)
+         Allure TestOps     │     ★ Hub v4 (historical target scope)
          (TMS only)         │     dev + corp + AI
                             │
     LOW ────────────────────┼──────────────────── HIGH
@@ -181,7 +194,10 @@ Hub после milestone **v4 Super-app** (Phases 39–58) — единстве�
 
 ---
 
-## 8. Corporate super-apps — benchmark v4 (реализовано)
+## 8. Corporate super-apps — historical v4 capability benchmark (не acceptance)
+
+`✅` ниже означает зафиксированный code/UI surface в датированном snapshot, а
+не готовность или приёмку модуля.
 
 | Платформа | Фокус | Hub v4 ответ |
 |-----------|-------|--------------|

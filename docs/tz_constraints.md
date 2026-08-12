@@ -1,7 +1,14 @@
 # Hub — Технические ограничения (tracked mirror)
 
-> **Канон для агентов (локально):** `.cursor/rules/60-tz-constraints.mdc`  
-> **Обновлено:** 2026-07-28 · **ADR:** `.planning/decisions/ADR-TZ-REWRITE-2026.md` · пагинация задач: `ADR-PAGINATION-CURSOR-ISSUES-2026.md`
+> **Текущая product-truth (founder, 2026-08-12):** Hub остаётся
+> незавершённым MVP. Ни один продуктовый модуль не принят как `complete`,
+> `stable` или `production-ready`. Метки `SHIPPED`/`COMPLETE`, milestone/audit
+> `PASS` и строки «реализовано» ниже фиксируют только историческое
+> planning/technical evidence. PG-03/FA-06 — отдельный manual ops-блокер
+> production cutover, а не индикатор готовности MVP.
+>
+> **Канон для агентов (локально):** `.cursor/rules/60-tz-constraints.mdc`
+> **Обновлено:** 2026-08-12 · **ADR:** `.planning/decisions/ADR-TZ-REWRITE-2026.md` · пагинация задач: `ADR-PAGINATION-CURSOR-ISSUES-2026.md`
 
 Документ фиксирует то, что **нельзя менять** без явного согласования с PO/архитектором, и то, что **строго запрещено** в коде и инфраструктуре.
 
@@ -115,14 +122,14 @@
 
 Ранее запрещённые фичи, разрешённые по roadmap:
 
-| Фича | Фаза / факт (2026-07-28) |
+| Фича | Фаза / историческое implementation evidence (2026-07-28) |
 |------|------|
-| Gantt | UI shipped (`frontend/.../gantt.lazy.tsx`, `GanttChart`); остаток scope — backlog |
-| Webcam в звонках | UI shipped (`CallControls` / LiveKit `setCameraEnabled`); polish — backlog |
+| Gantt | UI surface зафиксирован (`frontend/.../gantt.lazy.tsx`, `GanttChart`), но модуль не принят; остаток scope — backlog |
+| Webcam в звонках | UI surface зафиксирован (`CallControls` / LiveKit `setCameraEnabled`), но модуль не принят; polish — backlog |
 | Transactional email + marketing (hub-mail) | 15.2 / 16 |
 | Full JQL automation | 17 |
-| AI gateway BYOK + Ollama | AI Hub v3.0 shipped; BYOK/Ollama depth — Phase 17 остаток |
-| Intranet, Calendar, CRM, HR, accounting, no-code DB | v4 ✅ shipped |
+| AI gateway BYOK + Ollama | historical AI Hub v3.0 capability slice; модуль не принят, BYOK/Ollama depth — Phase 17 остаток |
+| Intranet, Calendar, CRM, HR, accounting, no-code DB | historical v4 code/UI surfaces; ни один модуль не принят |
 
 ---
 
