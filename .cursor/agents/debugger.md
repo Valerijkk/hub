@@ -197,14 +197,11 @@ Skill: `.cursor/skills/test-triage/SKILL.md`. Принцип Hub: **тест —
    | Flaky (race, timing, network) | Стабилизировать тест (deterministic mock, `-race`, fake clock), не добавлять `time.Sleep` как фикс |
 
 4. **Запрещено:** менять assertion, чтобы «прошло», не проверив шаг 2; удалять тест без обоснования в лог; `t.Skip()` без тикета/плана; чинить продакшн-код только потому что «тест так ожидает», если тест противоречит docs.
-5. **После фикса:**
-
-```bash
-go test -race -count=1 ./internal/<pkg>/...   # минимум — затронутый пакет
-/qa-gate                                       # перед handoff — полный REGULATION §7
-```
-
-   Запись в лог: `TRIAGE: TestX — ROOT=test (устаревший mock) | ROOT=code (BanUser не проверял reason)`, `FIX: <файл:строка>`, `VERIFIED: manual + go test green`.
+5. **После фикса:** запросить применимый fixed target только через `/qa-gate`.
+   Если launcher/job `NOT_READY`, сохранить `NOT_RUN` и не подменять его host,
+   direct-runner или inline Docker командой. Запись в лог:
+   `TRIAGE: TestX — ROOT=test|code`, `FIX: <файл:строка>`,
+   `EVIDENCE: /qa-gate <target> PASS|FAIL|NOT_READY|NOT_RUN + artifact digest`.
 
 ### 8.1 Примеры классификации из практики Hub
 
@@ -249,19 +246,23 @@ func (h *Hub) runClientPump(ctx context.Context, cl *client) {
 
 ## 11. Практика `git bisect` для регрессий
 
-Когда симптом появился «после какого-то релиза», а не воспроизводится детерминированно по логике кода — использую бинарный поиск по коммитам вместо линейного чтения diff'ов:
+Когда симптом появился после некоторого изменения, а не воспроизводится
+детерминированно по логике кода, сначала замораживаю exact revision range.
+`git bisect` допустим только в отдельном task-owned worktree; проверка каждого
+шага маршрутизируется через применимый `/qa-gate` target и не получает host fallback.
 
 ```bash
 git bisect start
 git bisect bad HEAD                 # текущий коммит содержит баг
 git bisect good <последний известный хороший SHA>
-# на каждом шаге: воспроизвести минимальный репро, отметить good/bad
-go test -race -run TestSpecificRegression ./internal/<pkg>/...
+# на каждом шаге: запросить тот же fixed target через /qa-gate и отметить good/bad
 git bisect good   # или bad, по результату
 git bisect reset  # после нахождения виновного коммита
 ```
 
-Это особенно эффективно для конкурентных багов (race/паника под нагрузкой), которые сложно поймать чтением диффа глазами, но легко детектировать конкретным `-race`-тестом на каждом шаге bisect.
+Это особенно эффективно для конкурентных багов, если один и тот же принятый
+target действительно воспроизводим на каждом шаге. При `NOT_READY`/`NOT_RUN`
+bisect не получает доказательного verdict.
 
 ## 12. Инцидент деплоя/секретов — на пересечении с devops-engineer
 

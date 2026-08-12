@@ -41,11 +41,12 @@ partial/retry/recovery/cancel, stale/version и accessibility. Это не quota
 
 ## Docker evidence
 
-Frontend unit job запускается только versioned outer launcher из `/qa-gate`:
+Frontend unit job запускается только через `/qa-gate` и sole runner boundary:
 outer wall-clock timeout, exit-code preservation, task-owned container/volumes
 и unconditional cleanup в `finally`. Host Node/Vitest/tsc/Biome/Vite и прямой
-`docker run` запрещены. Пока launcher не реализован и независимо не проверен,
-verdict — `NOT_READY`; cleanup result входит в handoff.
+`docker run` запрещены. Private source candidate принят только статически; до
+binding и parser/private-contract/Docker acceptance verdict — `NOT_READY`,
+runtime — `NOT_RUN`; cleanup result входит в handoff.
 
 ## Review
 

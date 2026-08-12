@@ -22,7 +22,7 @@ testframework/                  один Python QA-проект в корне
   policies/**                   marker, environment, redaction and profile policy data
   load/**                       separate bounded Locust lifecycle
   docker/**                     immutable execution assets/container contracts only
-  runner/**                     future reviewed versioned launcher API/entrypoints
+  runner/**                     sole launcher boundary; private static candidate exists
   reports/<task-run>/**         generated owner-marked evidence for one run
 ```
 
@@ -51,8 +51,10 @@ testframework/                  один Python QA-проект в корне
    observable runtime behavior.
 5. **Один безопасный outer runner.** Все target jobs идут через versioned
    launcher с outer wall-clock timeout, exit-code preservation, task-owned
-   resource names и unconditional exact cleanup в `finally`. До его отдельной
-   приёмки launcher status = `NOT_READY`, runtime status = `NOT_RUN`; прямые
+   resource names и unconditional exact cleanup в `finally`. Private source
+   candidate существует и принят только статически; до binding и separate
+   parser/private-contract/Docker acceptance launcher = `NOT_READY`,
+   `PS5.1_PARSE_NOT_RUN`, `PRIVATE_CONTRACT_NOT_RUN`, runtime = `NOT_RUN`; прямые
    snippets не fallback.
 6. **Task-run reports isolated.** Каждый запуск пишет только в
    `testframework/reports/<task-run>/` после проверки owner marker с task и

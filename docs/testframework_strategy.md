@@ -58,19 +58,21 @@ US/AC (vision_and_scope) / FR (system_specification)
 
 ---
 
-## 2. Текущее состояние (до cutover Phase 141)
+## 2. Historical pre-cutover inventory (до Phase 141)
 
 ### 2.1. Слои и стек
 
 | Слой | Стек | Где живёт | CI job |
 |------|------|-----------|--------|
-| Unit backend | Go + testify, `//go:build hubtest` | `backend/testframework/{domain}/` | `backend-test` |
-| Unit frontend | Vitest + RTL + MSW | `testframework/stages/unit/frontend-test/domains/{domain}/` | `frontend-test` |
-| API / handler | Go httptest (в составе unit-слоя) | `backend/testframework/` | `backend-test` |
-| Python E2E target | pytest + playwright-python | planned `testframework/tests/e2e/**` | `smoke` pytest marker / `full` future launcher profile |
-| Coverage gate | `go tool cover` | `backend/testframework/` | `coverage-gate` |
+| Legacy unit backend | Go + testify, `//go:build hubtest` | `backend/testframework/{domain}/` | historical `backend-test` |
+| Legacy unit frontend | Vitest + RTL + MSW | `testframework/stages/unit/frontend-test/domains/{domain}/` | historical `frontend-test` |
+| Legacy API / handler | Go httptest | `backend/testframework/` | delete-not-port inventory |
+| Python E2E target | pytest + playwright-python | planned `testframework/tests/e2e/**` | `smoke` pytest marker / `full` planned launcher profile |
+| Legacy coverage gate | `go tool cover` | `backend/testframework/` | historical baseline only |
 
-Go-тесты физически живут в `backend/testframework/` (не в `testframework/stages/`), потому что Go запрещает импорт `backend/internal/*` из другого модуля; логически это job `backend-test`.
+Строки legacy выше описывают frozen inventory, а не current authoring path.
+Target genuine units принадлежат `backend/tests/**` и `frontend/tests/**`;
+non-unit QA создаётся greenfield в root `testframework/tests/**`.
 
 ### 2.2. Метрики (inventory 2026-08-07)
 
@@ -93,12 +95,14 @@ inventory и не являются исполняемыми инструкция
 tests, validators, linters и builds; прямой `docker run`/`compose up` также не
 является каноническим обходом.
 
-Пакет/bootstrap, target suites и будущий versioned launcher API сейчас **`NOT_READY`**;
-runtime — **`NOT_RUN`**. Будущий API принадлежит только `testframework/runner/**`, а
+Пакет/bootstrap и target suites сейчас **`NOT_READY`**. Private runner source
+candidate существует и имеет только статические C1/P2/P4 review; launcher
+**`NOT_READY`**, `PS5.1_PARSE_NOT_RUN`, `PRIVATE_CONTRACT_NOT_RUN`, runtime —
+**`NOT_RUN`**. API принадлежит только `testframework/runner/**`, а
 `testframework/docker/**` содержит только immutable images, topologies, locks и
 resource/container contracts. `/qa-gate` — только user-facing routing и не может
-выполнять jobs до separate implementation и independent acceptance. После неё future
-runner должен обеспечивать wall-clock timeout, CPU/RAM/swap/PID и network policy,
+выполнять jobs до binding и independent acceptance. После неё runner должен
+обеспечивать wall-clock timeout, CPU/RAM/swap/PID и network policy,
 сохранять first exit code, писать только в `testframework/reports/<task-run>/`
 после owner-marker check и удалять exact task-owned resources в `finally`.
 
@@ -159,7 +163,7 @@ testframework/
 ├── policies/**                                 # markers, environments, redaction, profiles
 ├── load/**                                     # separate bounded Locust lifecycle
 ├── docker/**                                   # immutable execution assets only
-├── runner/**                                   # future reviewed versioned launcher API only
+├── runner/**                                   # sole launcher boundary; private static candidate exists
 └── reports/<task-run>/**                       # owner-marked generated evidence
 ```
 
@@ -168,9 +172,9 @@ Future reusable clients, factories, fixtures, oracles, pages и components со�
 `src/hub_testkit/**`; reusable direct-root `core/` и root
 `conftest.py` не являются target architecture. Если первому accepted suite
 потребуется `tests/conftest.py`, он только композирует узкие package fixtures и
-не становится second framework. Только `smoke` — pytest marker; `full` — future
+не становится second framework. Только `smoke` — pytest marker; `full` — будущий
 launcher profile. Package, target suites и launcher `NOT_READY`, runtime `NOT_RUN`.
-`testframework/runner/**` — единственный будущий владелец versioned API, profile resolution,
+`testframework/runner/**` — единственный владелец versioned API, profile resolution,
 orchestration, first-exit preservation, report ownership и exact cleanup;
 `testframework/docker/**` содержит только immutable execution assets. После Phase 141 в
 `testframework/**` не остаётся исполняемого Go/Vitest/TypeScript E2E-кода.
@@ -353,10 +357,12 @@ package bootstrap прямо в `testframework/**`; launcher в этот slice �
 Исторические file/case counts, dual-run и Go statement coverage не являются
 migration gates.
 
-**Runtime gate:** до separate implementation и independent acceptance future API под
-`testframework/runner/**` имеет status `NOT_READY`, runtime — `NOT_RUN`;
+**Runtime gate:** private API source candidate под `testframework/runner/**`
+существует и принят только статически. До binding и independent
+parser/private-contract/Docker acceptance status остаётся `NOT_READY`,
+`PS5.1_PARSE_NOT_RUN`, `PRIVATE_CONTRACT_NOT_RUN`, runtime — `NOT_RUN`;
 `testframework/docker/**` остаётся immutable-assets-only. Ни legacy runner, ни inline Docker command не могут
-заменить отсутствующий launcher.
+заменить неготовый launcher.
 
 | План | Содержание | Ворота |
 |------|------------|--------|

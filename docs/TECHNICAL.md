@@ -2,19 +2,23 @@
 
 > **Обновлено:** 2026-06-22 · Стек: Go 1.25, React 19, Fiber v3 · Auth: Magic Link only  
 > Wiki: `docs/wiki/API.md` · Deploy: `docs/wiki/DEPLOY.md` · Tests: `docs/test_plan.md`
+>
+> **2026-08-12 status overlay:** CI-строки ниже — historical inventory, не
+> runnable authority и не current PASS. Применимые jobs маршрутизируются только
+> через `/qa-gate`; launcher/package `NOT_READY`, runtime `NOT_RUN`.
 
 ---
 
 ## CI и контроль качества
 
-| Job | Команда / артефакт |
-|-----|-------------------|
-| `backend-test` | `go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...` |
-| `frontend-test` | `tsc`, `vitest run`, `biome check` |
-| `build` | `go build -tags release`, `npm run build` |
-| `e2e-full` | Playwright 20 specs + `scripts/ci-e2e-backend.sh` |
+| Target | Authority | Current status |
+|-----|-------------------|---|
+| `backend-unit` | `/qa-gate` → sole runner boundary | `NOT_READY` |
+| `frontend-unit` | `/qa-gate` → sole runner boundary | `NOT_READY` |
+| Python contract/API/integration/E2E/load | `/qa-gate` → future accepted profiles | `NOT_READY` |
 
-Coverage floor `internal/`: **~82%** (`.planning/COVERAGE.md`).
+Historical coverage baseline `internal/`: **~82%** (`.planning/COVERAGE.md`);
+это не текущий migration/release gate.
 
 ---
 

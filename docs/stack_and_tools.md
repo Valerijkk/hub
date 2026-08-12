@@ -75,7 +75,8 @@ job. Его внутренние шаги — Ent generation и Go release build
 
 Таблица целиком — current legacy inventory, не инструкция для агента. Host
 Vite/build/lint/test процессы запрещены; target checks будут вызываться только
-через будущий versioned launcher API из `testframework/runner/**`, для которого
+через versioned launcher API из `testframework/runner/**`, чей private source
+candidate существует, но имеет только статический review и
 `/qa-gate` является единственным outer consumer.
 
 | Команда | Действие |
@@ -87,8 +88,9 @@ Vite/build/lint/test процессы запрещены; target checks буду
 | `npm run test:e2e:smoke` | Legacy TypeScript Playwright entrypoint; delete в TASK-219 |
 | `npm run test:e2e` | Legacy TypeScript Playwright entrypoint; delete в TASK-219 |
 
-Эти scripts не запускаются агентами на host: после реализации все target
-checks выполняются единственным launcher API из `testframework/runner/**`.
+Эти scripts не запускаются агентами на host: после binding и независимой
+acceptance все target checks выполняются единственным launcher API из
+`testframework/runner/**`.
 TypeScript
 Playwright entrypoints не входят в target и удаляются exact-manifest batch в
 TASK-219 без parity/dual-run. Greenfield Python E2E получает только launcher
@@ -109,7 +111,7 @@ profiles по Phase 137–141, не отдельные Docker entrypoints.
 Файлы compose перечислены только как inventory: `docker-compose.local.yml`
 (корень), `deployments/docker-compose.prod.yml`,
 `deployments/docker-compose.test.yml`. Target service profiles вызываются
-только через будущий launcher API из `testframework/runner/**`, который обязан
+только через launcher API из `testframework/runner/**`, который обязан
 применять immutable execution assets из `testframework/docker/**`,
 CPU/RAM/PID/time budgets и exact cleanup. Прямой Compose/`docker run` fallback
 не разрешён; target launcher пока `NOT_READY`.
@@ -174,10 +176,11 @@ cancel-in-progress. Таблица ниже фиксирует существу�
 
 E2E config: `frontend/playwright.config.ts` · specs: `testframework/stages/e2e/domains/` · `frontend/scripts/link-testframework-node-modules.mjs` · Infra: `scripts/ci-e2e-backend.sh`.
 
-**Target runner status: `NOT_READY`; runtime: `NOT_RUN`.** Phase 129 должна
-создать и независимо проверить versioned launcher API только в
-`testframework/runner/**`. `testframework/docker/**` предоставляет ему только
-immutable execution assets/contracts и не содержит launcher implementation.
+**Private runner source candidate: `STATIC_SOURCE_REVIEWED`; target launcher:
+`NOT_READY`; `PS5.1_PARSE_NOT_RUN`; `PRIVATE_CONTRACT_NOT_RUN`; runtime:
+`NOT_RUN`.** `testframework/runner/**` — единственный launcher owner;
+`testframework/docker/**` предоставляет ему только immutable execution
+assets/contracts. Required `images.lock.v3.json` и dependency bytes отсутствуют.
 После приёмки GitHub jobs и `/qa-gate` вызывают только этот launcher:
 task-owned names, immutable image provenance, CPU/RAM/swap/PID/network limits,
 outer timeout, first-exit preservation, `reports/<task-run>/` owner marker и
@@ -198,8 +201,9 @@ exact cleanup в `finally`. Legacy jobs и скрипты выше
 
 ## Линтеры и quality gates
 
-До реализации и независимой приёмки `testframework/runner/**` launcher API
-target launcher имеет статус `NOT_READY`, runtime — `NOT_RUN`. Immutable
+До binding и независимой parser/private-contract/Docker приёмки
+`testframework/runner/**` target launcher имеет статус `NOT_READY`,
+`PS5.1_PARSE_NOT_RUN`, `PRIVATE_CONTRACT_NOT_RUN`, runtime — `NOT_RUN`. Immutable
 execution assets принадлежат `testframework/docker/**`, но сами по себе не дают
 runtime authority. Команды старого CI ниже — только инвентарный снимок, а не
 разрешённый fallback. После cutover каждый retained job вызывает единственный
@@ -207,11 +211,11 @@ launcher с task-owned report, ограничениями ресурсов и un
 
 | Целевой job | Область | Исполнение | Статус |
 |-------------|---------|------------|--------|
-| `backend-unit` | genuine Go units + backend static gates | future `testframework/runner/**` launcher | `NOT_READY` |
-| `frontend-unit` | genuine Vitest/RTL units + TS/Biome/build gates | future `testframework/runner/**` launcher | `NOT_READY` |
-| `python-contract` / `python-api` / `python-integration` | greenfield pytest suites | future `testframework/runner/**` launcher | `NOT_READY` |
-| `python-e2e-smoke` / `python-e2e-full` | greenfield Playwright Python journeys | future `testframework/runner/**` launcher | `NOT_READY` |
-| `python-load` | bounded Locust profiles | future `testframework/runner/**` launcher | `NOT_READY` |
+| `backend-unit` | genuine Go units + backend static gates | `/qa-gate` → sole `testframework/runner/**` boundary | `NOT_READY` |
+| `frontend-unit` | genuine Vitest/RTL units + TS/Biome/build gates | `/qa-gate` → sole `testframework/runner/**` boundary | `NOT_READY` |
+| `python-contract` / `python-api` / `python-integration` | greenfield pytest suites | `/qa-gate` → sole `testframework/runner/**` boundary | `NOT_READY` |
+| `python-e2e-smoke` / `python-e2e-full` | greenfield Playwright Python journeys | `/qa-gate` → sole `testframework/runner/**` boundary | `NOT_READY` |
+| `python-load` | bounded Locust profiles | `/qa-gate` → sole `testframework/runner/**` boundary | `NOT_READY` |
 | dependabot | weekly go/npm/actions | вне test runner | не настроен |
 
 ---
@@ -267,14 +271,15 @@ hub/
     ├── policies/             # marker/environment/redaction/profile policy
     ├── load/                 # separate Locust lifecycle
     ├── docker/               # immutable execution assets only
-    ├── runner/               # future versioned launcher API
+    ├── runner/               # sole launcher boundary; private static candidate exists
     ├── reports/<task-run>/   # owner-marked generated evidence
     ├── pyproject.toml        # future package/tool authority; NOT_READY
     └── uv.lock               # future exact resolution; NOT_READY
 ```
 
-Structure/boundary scaffold в commit `22035c45` уже существует, но не включает
-future package files, executable suites или launcher. Reusable imports и suite
+Structure/boundary scaffold в commit `22035c45` уже существует. Private runner
+source candidate добавлен отдельно и имеет только статический review; scaffold
+не включает future package files или executable suites. Reusable imports и suite
 roots физически разделены; direct root `core/api/integration/contract/e2e`
 packages не являются target.
 

@@ -1,13 +1,13 @@
 # Hub Python QA project
 
-`testframework/` is the future separately extractable Python QA project for
-Hub. This slice establishes ownership boundaries only; it does not introduce
-behavior, dependencies, a launcher, or runtime authority.
+`testframework/` is the separately extractable Python QA project boundary for
+Hub. The tree contains a statically reviewed private runner source candidate,
+but no accepted package, target suites, launcher runtime, or runtime authority.
 
 Package/bootstrap boundaries for the next slice are defined in
 [`PACKAGE-CONTRACT.md`](PACKAGE-CONTRACT.md). That document is architecture,
-not evidence that `pyproject.toml`, `uv.lock`, `py.typed`, dependencies,
-executable suites or a launcher exist.
+not evidence that `pyproject.toml`, `uv.lock`, `py.typed`, dependencies, or
+executable suites exist, and does not promote the runner candidate to readiness.
 
 ## Legacy quarantine
 
@@ -47,10 +47,11 @@ progressively only by its first accepted consumer.
 - `schemas/` owns closed machine-readable case and run contracts.
 - `policies/` owns marker, environment, redaction, and profile policies.
 - `docker/` owns immutable pinned images, topologies, and resource/container
-  contracts consumed by the future launcher; it does not own launcher
+  contracts consumed by the sole runner boundary; it does not own launcher
   implementation.
-- `runner/` owns the future reviewed versioned launcher code and entrypoint and
-  is not created by this structure-only slice.
+- `runner/` owns the reviewed versioned launcher boundary. The private
+  `runner/run-task.ps1` source candidate exists and has static C1/P2/P4 review
+  only; it is not an accepted public command or executable runtime.
 - `reports/<task-run>/` is the exact generated-artifact boundary. Every run
   directory has a task-run owner marker, and nothing may write outside its
   owned run directory.
@@ -68,8 +69,10 @@ chain.
 ## Current status
 
 Structure-only scaffold: **COMMITTED** as `22035c45`. Package bootstrap:
-**NOT_READY**. Target suites: **NOT_READY**. Future `runner/**` launcher:
-**NOT_READY**. Runtime: **NOT_RUN**. There is no supported direct runner or
+**NOT_READY**. Target suites: **NOT_READY**. Private runner source candidate:
+**STATIC_SOURCE_REVIEWED**; launcher: **NOT_READY**; `PS5.1_PARSE_NOT_RUN`;
+`PRIVATE_CONTRACT_NOT_RUN`. Runtime: **NOT_RUN**. `images.lock.v3.json` and
+required local dependency bytes are absent. There is no supported direct runner or
 fallback command. The next accepted consumer must create the first narrow
 behavioral module test-first under its owning boundary and must not infer
 runtime authority from this directory tree.

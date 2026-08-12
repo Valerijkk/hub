@@ -242,15 +242,18 @@ limits. Host используется лишь для чтения/редакт�
 ## Команды
 
 - Dev stack: `docker compose -f docker-compose.local.yml up -d`.
-- Все test/build/lint/validator jobs запускаются только через `/qa-gate` и его
-  будущий единый versioned outer launcher API, принадлежащий только
+- Все test/build/lint/validator jobs запускаются только через `/qa-gate` и единый
+  versioned outer launcher API, принадлежащий только
   `testframework/runner/**`: task-owned names, CPU/RAM/PID limits,
   wall-clock timeout, isolated `testframework/reports/<task-run>/` с owner marker
   и unconditional exact-resource cleanup в `finally`. `testframework/docker/**`
   хранит только immutable execution assets и не владеет launcher code.
-- Structure-only scaffold зафиксирован commit `22035c45`; package bootstrap,
-  target suites и launcher ещё не реализованы и независимо не проверены.
-  Поэтому package/launcher status равен `NOT_READY`, runtime — `NOT_RUN`.
+- Structure-only scaffold зафиксирован commit `22035c45`; private runner source
+  candidate уже существует в `testframework/runner/run-task.ps1` и прошёл только
+  принятые статические C1/P2/P4 review. `images.lock.v3.json`, dependency bytes,
+  `pyproject.toml`, `uv.lock`, `src/hub_testkit/py.typed` и target suites отсутствуют.
+  Поэтому package/launcher status остаётся `NOT_READY`, `PS5.1_PARSE_NOT_RUN`,
+  `PRIVATE_CONTRACT_NOT_RUN`, runtime — `NOT_RUN`.
   Прямые `docker run`/`compose up` snippets и legacy
   `hubtest`/Vitest/TS Playwright runners не являются допустимым fallback.
 

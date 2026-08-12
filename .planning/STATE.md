@@ -1022,7 +1022,12 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 - **AI quality layer:** empty-repo install dry-run → paired eval pilot; ROI остаётся `NOT_RUN` до замера
 - **PE language:** инструкции `pro-qa-ai/` только RU (машинные id/enum без перевода)
 - **FA-06 / PG-03:** Phase 0 ✅ · scripts ready · **Phase 1–3 manual** (зафиксированный ops-блокер production cutover; не индикатор готовности MVP) · runbook `docs/runbooks/fa06-secret-rotation.md`
-- **Wave 1:** merged пользователем 2026-07-11; policy остаётся — агенты не пушат/не мержат master
+- **Wave 1:** merged пользователем 2026-07-11 (historical). Current standing
+  policy: implementation идёт только в task branch от refreshed protected
+  `master`; после применимой проверки, independent review и docs sync root
+  `team-lead` с founder standing authority merges/pushes `master` и удаляет
+  merged feature branch local+remote. Sensitive security/auth, DB migration,
+  deploy/CI и ADR changes требуют отдельного founder review.
 - **July return kickoff (~конец июля):** align по brief → перестройка планов · старт EPIC-CAL-SYNC / QA-HARDENING execution / Redesign по приоритету
 - **CAL-SYNC:** SEED-002 active — unified calendar + RSVP + mail levels L0–L3 (ADR при L3/OAuth)
 - **QA-HARDENING:** Testing Guide + EDGE-CORNER-CATALOG + CODE-QUALITY-CHARTER → TC → автотесты (исполнение с возврата)

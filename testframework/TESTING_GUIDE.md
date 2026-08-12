@@ -1,12 +1,19 @@
-# Hub — Testing Guide (канон для авторов автотестов)
+# Hub — Historical Testing Design Reference
 
-> **Назначение:** практический executable-гайд «как писать автотесты в Hub».  
+> **SUPERSEDED EXECUTION GUIDE (2026-08-12).** Паттерны test design в документе
+> могут использоваться только как исторический материал. Legacy paths и команды
+> не являются runnable authority. Target roots и единственная публичная
+> маршрутизация определяются `AGENTS.md`, `/qa-gate` и
+> `docs/test_plan.md`; launcher/package `NOT_READY`, runtime `NOT_RUN`.
+
+> **Назначение:** только historical design reference; не executable guide и не
+> источник target paths/commands.
 > **Не дублирует** эталонный playbook целиком — сжимает канон и даёт deep-links.  
 > **Проза:** русский · **код / идентификаторы:** английский.
 
 | Документ | Роль |
 |----------|------|
-| **Этот гайд** | Правила написания, паттерны, DoD перед `qa-auto-ver` |
+| **Этот гайд** | Historical patterns; не текущая execution/authoring authority |
 | [`.cursor/playbooks/testing.md`](../.cursor/playbooks/testing.md) | Полный эталон (техники, Allure, triage, cookbook доменов) |
 | [`docs/testframework_strategy.md`](../docs/testframework_strategy.md) | Стратегия: детерминизм, пирамида, TF-PY roadmap |
 | [`PIPELINE.md`](PIPELINE.md) | Карта CI: стадия → job → путь |
@@ -41,7 +48,11 @@
 
 ---
 
-## 1. Аудитория и конвейер
+## 1. Historical pre-cutover аудитория и конвейер
+
+> Таблица ниже фиксирует quarantined legacy ownership. Она не задаёт authoring
+> paths. Текущие roots: `backend/tests/**`, `frontend/tests/**` и greenfield
+> `testframework/tests/**` из `AGENTS.md`.
 
 | Кто | Пишет | Путь |
 |-----|-------|------|
@@ -65,7 +76,7 @@ BA/SA (US/AC/FR) → qa-manual (TC) → qa-manual-ver (verified)
 
 ---
 
-## 2. Пирамида тестов Hub
+## 2. Historical pre-cutover пирамида Hub
 
 ```
         ┌─────────────┐
@@ -80,10 +91,10 @@ BA/SA (US/AC/FR) → qa-manual (TC) → qa-manual-ver (verified)
 
 | Слой | Стек | Где | Кто |
 |------|------|-----|-----|
-| Unit BE | Go + testify, `//go:build hubtest` | `backend/testframework/{domain}/` | `be*` (+ `qa-auto1` integration) |
-| Unit FE | Vitest + RTL + MSW | `stages/unit/frontend-test/domains/` | `fe*` (+ `qa-auto2`) |
-| E2E | Playwright TS + POM | `stages/e2e/domains/` | `qa-auto1` / `qa-auto2` по доменам |
-| Coverage | `go tool cover` | gate ≥82%, security ≥80% | `coverage-gate` |
+| Legacy Unit BE | Go + testify, `//go:build hubtest` | quarantined `backend/testframework/{domain}/` | historical inventory |
+| Legacy Unit FE | Vitest + RTL + MSW | quarantined `stages/unit/frontend-test/domains/` | historical inventory |
+| Legacy E2E | Playwright TS + POM | quarantined `stages/e2e/domains/` | delete-not-port |
+| Legacy Coverage | `go tool cover` | historical baseline only | not a current gate |
 
 Go физически в `backend/testframework/` (запрет импорта `internal/` из другого модуля). Логически — job `backend-test`. См. [`PIPELINE.md`](PIPELINE.md).
 
@@ -265,11 +276,13 @@ func TestUpdateIssueOptimisticLocking(t *testing.T) { … }
 - [ ] Happy + negative + границы (где применимо); ассерты на **поведение**, не на мок
 - [ ] Детерминизм: нет sleep / реальной сети / shared state; `-race` зелёный
 - [ ] TC-ID в коде + имя в колонке «Автотест»; Allure `AS_ID` при заливке в TMS
-- [ ] Прогон зелёный (команды §10); wall-time известен; артефакты удалены (rule 45)
+- [ ] Применимый fixed target запрошен через `/qa-gate`; при `NOT_READY`
+      записан `NOT_RUN`, без host/direct-runner/inline-Docker fallback
 - [ ] Docs: `docs/TESTING.md` (+ `COVERAGE.md` при coverage-задаче)
 - [ ] При FAIL — triage (`ROOT=code|test`), не «зеленить вслепую» (skill `test-triage`)
 
-`verified: true` — только после green regression + лога.
+`verified: true` — только после accepted target evidence + cleanup receipt;
+статический review или `NOT_RUN` не переименовываются в runtime PASS.
 
 ---
 
@@ -277,27 +290,9 @@ func TestUpdateIssueOptimisticLocking(t *testing.T) { … }
 
 Источник: [`PIPELINE.md`](PIPELINE.md), [`AGENTS.md`](../AGENTS.md).
 
-```bash
-# Backend (job: backend-test)
-cd backend && go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...
-cd backend && go test -tags hubtest -race -count=1 ./testframework/auth/...
-
-# Frontend unit (job: frontend-test)
-cd frontend && node scripts/link-testframework-node-modules.mjs
-cd frontend && npx tsc --noEmit && npm run test:run
-cd frontend && npx vitest run ../testframework/stages/unit/frontend-test/domains/auth
-
-# E2E
-cd frontend && npm run test:e2e:smoke   # e2e-smoke
-cd frontend && npm run test:e2e         # e2e-full
-
-# Canonical Docker backend (как в CI)
-docker compose -f deployments/docker-compose.test.yml up -d
-# затем go test -tags hubtest … в контейнере golang (см. AGENTS.md)
-```
-
-Полный gate: `/qa-gate` (останавливается на первой FAIL).  
-Coverage-профили — **только в TMP**, не в `backend/` (rule 45).
+Execution recipes этого legacy guide отменены. Применимый fixed target
+запрашивается только через `/qa-gate`; direct host, runner или inline
+Docker/Compose запрещены. `NOT_READY`/`NOT_RUN` не заменяются fallback-прогоном.
 
 ---
 

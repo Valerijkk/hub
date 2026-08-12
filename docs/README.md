@@ -39,7 +39,7 @@ negative sentinels. Он дополняет, но не заменяет `code_st
 | [TECHNICAL.md](TECHNICAL.md) | ERD, API, WebSocket, env vars, деплой |
 | [TESTING.md](TESTING.md) | Тест-кейсы TC-*, матрица автоматизации |
 | [testframework_strategy.md](testframework_strategy.md) | Стратегия тестфреймворка: слои Go/TS/Python, Locust, Allure→TMS, гейты |
-| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Типовые грабли разработки: сборка, тесты (`-tags hubtest`), окружение, Docker |
+| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Текущий `/qa-gate`/`NOT_READY` протокол, legacy quarantine, окружение и exact cleanup |
 | [runbooks/](runbooks/README.md) | **Эксплуатация прода:** инцидент, алерты, деплой/откат, БД, бэкапы, ротация секретов |
 | [onboarding/](onboarding/README.md) | Онбординг-листы по ролям (BE/FE/QA-manual/QA-auto/PM+ops) |
 | [wiki/HOME.md](wiki/HOME.md) | Точка входа wiki |
@@ -88,20 +88,23 @@ negative sentinels. Он дополняет, но не заменяет `code_st
 > linters, build/vet, Vite, Playwright, pytest/Locust и тестовые app-процессы.
 > Host используется только для чтения/редактирования, Git и Docker CLI.
 
-Единственная точка входа — skill `/qa-gate`; он только маршрутизирует task и не может
-её выполнить. Все target jobs в будущем обязаны использовать versioned outer launcher API только
-из `testframework/runner/**` с task-owned names, CPU/RAM/PID limits, wall-clock timeout,
+Единственная точка входа — skill `/qa-gate`; он только маршрутизирует task и пока не может
+её выполнить. Private source candidate уже существует в `testframework/runner/run-task.ps1`
+и принят только статически; все target jobs обязаны использовать versioned outer launcher API
+только из `testframework/runner/**` с task-owned names, CPU/RAM/PID limits, wall-clock timeout,
 `reports/<task-run>` + owner marker и cleanup в `finally`. `testframework/docker/**` владеет
-только immutable execution assets. Package, suites и launcher — `NOT_READY`; runtime —
-`NOT_RUN`. Прямые Docker snippets и legacy runners не fallback до separate implementation и
-independent acceptance.
+только immutable execution assets. `images.lock.v3.json`, dependency bytes,
+`pyproject.toml`, `uv.lock`, `py.typed` и target suites отсутствуют. Package/launcher —
+`NOT_READY`; `PS5.1_PARSE_NOT_RUN`, `PRIVATE_CONTRACT_NOT_RUN`, runtime — `NOT_RUN`.
+Прямые Docker snippets и legacy runners не fallback.
 
 Test-rebase 128–141: legacy suites frozen и не являются gate; целевые
 пути — `backend/tests/**` (только Go unit), `frontend/tests/**`
 (только Vitest/RTL unit) и единый Python-проект прямо в
 `testframework/`: `src/hub_testkit/**`, planned `tests/{contract,api,integration,e2e}/**`,
 `selftests/**`, `cases/**`, `schemas/**`, `policies/**`, `load/**`, `docker/**`,
-future `runner/**` и `reports/<task-run>/**`. Package, target suites и launcher —
+`runner/**` и `reports/<task-run>/**`. Runner содержит только статически reviewed
+private candidate; package, target suites и launcher —
 `NOT_READY`; runtime — `NOT_RUN`. Legacy Go component/API/
 integration, static-contract Vitest и TS Playwright удаляются в атомарной
 Phase 129 по exact `cutover-manifest.json`, без port/parity/dual-run; каждый
