@@ -17,7 +17,7 @@ The founder greenfield cutover is authoritative. Preserve these boundaries:
 | contract | `python-contract` | `testframework/tests/contract/` | API, schema, event, and source contracts |
 | API | `python-api` | `testframework/tests/api/` | public backend and frontend-BFF behavior |
 | integration | `python-integration` | `testframework/tests/integration/` | DB, broker, and storage boundaries |
-| e2e | `python-e2e-smoke`, `python-e2e-full` | `testframework/tests/e2e/` | end-to-end user behavior |
+| e2e | `python-e2e-smoke/full` | `testframework/tests/e2e/` | end-to-end user behavior |
 | load | `python-load` | `testframework/load/` | Locust profiles |
 
 `testframework/src/hub_testkit/**` is the only reusable Python package root.
