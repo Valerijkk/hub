@@ -1,7 +1,7 @@
 # Онбординг — QA-автоматизатор
 
 > Роль: автоматизация тестов Hub **по верифицированным тест-кейсам**.
-> Стек сейчас: Go integration/API + Vitest компонентные + Playwright-TS E2E. Целевой стек (фаза TF-PY): **Python pytest + allure-pytest + httpx + playwright-python + Locust**.
+> Legacy Go component/API/integration, static-contract Vitest и Playwright-TS — исторические и не портируются. Целевой greenfield стек: **Python pytest + allure-pytest + httpx + playwright-python + Locust**; package/launcher пока `NOT_READY`, runtime `NOT_RUN`.
 > Главные документы: `.cursor/playbooks/testing.md` + `docs/testframework_strategy.md` · Индекс: [README.md](README.md)
 
 ---
@@ -20,21 +20,13 @@
 
 **Доступы и окружение** — общий чек-лист в [README.md](README.md). Дополнительно:
 
-- [ ] Go 1.25+, Node 22, Docker Compose v2 (Python 3.12+ понадобится с фазы TF-PY).
+- [ ] Docker CLI/Compose доступен; Go/Node/Python test tooling на Windows host не запускается.
 - [ ] Локальный стек поднят, dev-login работает, seed прогнан.
-- [ ] Все слои гоняются локально:
-
-```bash
-# Backend integration/API
-cd backend && go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...
-
-# Frontend (перед Vitest/E2E — линковка обязательна)
-cd frontend && node scripts/link-testframework-node-modules.mjs && npm run test:run
-
-# E2E
-cd frontend && npm run test:e2e:smoke   # 3 spec, без backend
-cd frontend && npm run test:e2e         # 20 spec, нужен backend
-```
+- [ ] Знаешь fixed `/qa-gate` targets: `python-contract`, `python-api`,
+  `python-integration`, `python-e2e-smoke`, `python-e2e-full`, `python-load`.
+  Они должны исполняться только sole versioned outer launcher в task-owned
+  limited Docker. Launcher `NOT_READY`, runtime `NOT_RUN`; direct Go/Vitest/
+  Playwright/pytest/Locust host commands и legacy runners не fallback.
 
 **Что прочитать (в этом порядке):**
 
@@ -46,30 +38,26 @@ cd frontend && npm run test:e2e         # 20 spec, нужен backend
 
 ## Неделя 1
 
-- [ ] Изучи паттерны фреймворка: env `Builder` и `factory` (`backend/testframework/env|factory/`), POM и Steps (`testframework/stages/e2e/shared/`), `render.tsx` для компонентных.
+- [ ] Изучи целевой package contract `testframework/PACKAGE-CONTRACT.md`, структуру `testframework/src/hub_testkit/**` и suites `testframework/tests/{contract,api,integration,e2e}/**`; legacy roots не копируй.
 - [ ] Разбери, как один verified TC превращается в автотест: найди пару «TC-строка в TESTING.md ↔ Go/Playwright-тест» и проследи привязку (имя, `AS_ID`).
-- [ ] Прогони Allure-цикл локально: сгенерируй результаты, посмотри на матчинг в Hub TMS (`POST /projects/:id/tms/allure/import`).
-- [ ] Пойми разделение доменов между потоками (playbook §1.4): qa-auto1 — Go + E2E auth/navigation/tracker/tms/messenger; qa-auto2 — Vitest + E2E admin/ai/platform/v4. Один файл — один владелец.
-- [ ] **Первая задача (good-first):** автоматизируй 1–2 verified TC, у которых в колонке «Автотест» стоит TODO. Полный цикл: тест → привязка TC → зелёная регрессия домена → обновление колонки → handoff на `qa-auto-ver`.
+- [ ] Изучи контракт Allure/TMS (`POST /projects/:id/tms/allure/import`); runtime-цикл не заявляй выполненным до появления canonical launcher evidence.
+- [ ] Пойми целевое ownership по Python suites и `hub_testkit`; один файл — один writer, legacy Go/Vitest/TS Playwright не портируются.
+- [ ] **Первая задача (good-first):** автоматизируй 1–2 verified TC в целевой Python suite. Полный цикл требует canonical target evidence; если launcher всё ещё `NOT_READY`, handoff остаётся `NOT_READY`/`NOT_RUN`, а не green.
 
 ## Инструменты и команды
 
-```bash
-# Один домен backend (быстрый цикл)
-cd backend && go test -tags hubtest -race ./testframework/tracker/...
+| Слой | Fixed target | Текущий статус |
+|---|---|---|
+| Contract | `python-contract` | launcher `NOT_READY`, runtime `NOT_RUN` |
+| API | `python-api` | launcher `NOT_READY`, runtime `NOT_RUN` |
+| Integration | `python-integration` | launcher `NOT_READY`, runtime `NOT_RUN` |
+| E2E | `python-e2e-smoke`, `python-e2e-full` | launcher `NOT_READY`, runtime `NOT_RUN` |
+| Load | `python-load` | launcher `NOT_READY`, runtime `NOT_RUN` |
 
-# Один домен frontend
-cd frontend && npx vitest run ../testframework/stages/unit/frontend-test/domains/auth
+Прямые host-команды и прямой Docker/Compose запрещены как fallback. Принимается
+только task-owned limited Docker evidence sole `/qa-gate` outer launcher.
 
-# Один E2E-spec, детект флейка
-npx playwright test path/to.spec.ts --repeat-each=10
-npx playwright show-trace test-results/<...>/trace.zip
-
-# Флейк-детект Go
-go test -tags hubtest -race -run TestSuspect -count=20 ./testframework/<pkg>/...
-```
-
-**Целевой стек (фаза TF-PY — после микросервисного split M2–M4):** pytest + allure-pytest + httpx (API), playwright-python (E2E, POM), pytest-xdist (параллелизм), **Locust** (`testframework/load/`) для нагрузки с SLO-целями (API p95<200ms, WS<100ms, 500+ WS). Locust-baseline заводится раньше остальной фазы. До завершения TF-PY работаем на текущем стеке — детали и структура каталогов в `docs/testframework_strategy.md` §3, §7.
+**Целевой стек:** pytest + allure-pytest + httpx (API), playwright-python (E2E, POM), pytest-xdist (параллелизм), **Locust** (`testframework/load/`). До готовности package/launcher нет допустимого legacy fallback; детали и структура — в `testframework/PACKAGE-CONTRACT.md` и плане rebase.
 
 **Железные правила слоя:**
 
@@ -89,15 +77,15 @@ qa-manual (TC) → qa-manual-ver → ТЫ (автотесты по verified TC) 
 ```
 
 - **Не стартуй без verified TC.** Нет TC или он не верифицирован — верни задачу в конвейер (через тимлида), а не пиши «по коду».
-- **Кросс-ревью:** твой PR смотрит второй auto-поток, затем `qa-auto-ver` (детерминизм, привязка TC↔тест, отсутствие flaky/sleep, green regression + лог).
+- **Кросс-ревью:** твой PR смотрит второй auto-поток, затем `qa-auto-ver` (детерминизм, привязка TC↔тест, отсутствие flaky/sleep). `verified: true` требует `PASS` canonical Docker target; `NOT_READY`/`NOT_RUN` не green.
 - **Упал тест — triage строго до фикса** (`.cursor/skills/test-triage/SKILL.md`): воспроизведи функционал по спеке → ROOT=code|test → запись `TRIAGE/FIX/VERIFIED` в лог. Менять assertion «чтобы прошло» запрещено; ROOT=code эскалируется разработчику.
 - **Общие фикстуры не форкать:** env Builder, factory, E2E shared — изменения через согласованный handoff (влияют на оба потока).
 - **Docs-sync:** обновляй колонку «Автотест» в `docs/TESTING.md` в той же сессии; session note — `.planning/STATE.md`.
-- **Git:** фича-ветки + Conventional Commits (`test(tracker): automate TC-TRACKER-12..15`); **мерж в master — только владелец**.
+- **Git:** назначенная `codex/<task>` от refreshed master + Conventional Commits (`test(tracker): automate TC-TRACKER-12..15`); direct master implementation запрещён. После Docker-only evidence и независимого review routine merge/push/cleanup выполняет `team-lead`; security/auth, DB migrations, deploy/CI и ADR требуют founder review до integration.
 
 ## Чек-лист готовности
 
-- [ ] Все три слоя (Go/Vitest/Playwright) гоняются локально, зелёные.
+- [ ] Понимаю status boundary: package/launcher `NOT_READY`, runtime `NOT_RUN`; host/legacy fallback запрещён, green без canonical evidence не заявляется.
 - [ ] Прочитаны testing.md (целиком) и testframework_strategy.md.
 - [ ] Понимаю конвейер: работаю только по verified TC, юниты — не моя зона.
 - [ ] Понимаю привязку TC↔автотест и Allure-матчинг (AS_ID/tms-link).

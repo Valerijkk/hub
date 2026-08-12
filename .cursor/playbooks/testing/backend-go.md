@@ -50,11 +50,12 @@ version. Timeout/retry/dependency failure чаще требует Python boundar
 
 ## Docker evidence
 
-Backend unit job запускается только versioned outer launcher из `/qa-gate`:
+Backend unit job запускается только через `/qa-gate` и sole runner boundary:
 outer wall-clock timeout, exit-code preservation, task-owned resources и
 unconditional cleanup в `finally`. Host-run и прямой `docker run` запрещены и
-не являются evidence. Пока launcher не реализован и независимо не проверен,
-verdict — `NOT_READY`.
+не являются evidence. Private source candidate принят только статически; до
+binding и parser/private-contract/Docker acceptance verdict — `NOT_READY`,
+runtime — `NOT_RUN`.
 
 Записать image, source SHA, exact launcher + inner command,
 collect/pass/fail/skip, duration и cleanup. Исторический 82% coverage не

@@ -13,8 +13,17 @@ backend/tests/<domain>/**       только service-free Go unit tests
 frontend/tests/<domain>/**      только Vitest/RTL unit tests
 frontend/tests/support/**       только support для frontend unit tests
 testframework/                  один Python QA-проект в корне
-  pyproject.toml
-  {core,api,integration,contract,e2e,load,docker,reports}/**
+  src/hub_testkit/**            future reusable installable framework package
+  tests/{contract,api,integration,e2e}/**
+                                future executable SUT pytest suites
+  selftests/**                  framework/package contracts; never SUT behavior
+  cases/**                      repository-owned TC-* intent and risk linkage
+  schemas/**                    closed machine-readable case/run/ownership contracts
+  policies/**                   marker, environment, redaction and profile policy data
+  load/**                       separate bounded Locust lifecycle
+  docker/**                     immutable execution assets/container contracts only
+  runner/**                     sole launcher boundary; private static candidate exists
+  reports/<task-run>/**         generated owner-marked evidence for one run
 ```
 
 - Из legacy сохраняются и перемещаются только доказанные genuine units.
@@ -35,14 +44,18 @@ testframework/                  один Python QA-проект в корне
    tests. Coverage не подменяет requirement/risk coverage.
 3. **Cutover ранний, не финальный.** После Phase 128 exact-manifest review
    Phase 129 физически переносит units, удаляет legacy non-units/runners,
-   создаёт root Python scaffold и переключает entrypoints.
+   расширяет уже зафиксированный structure-only root scaffold и переключает
+   entrypoints.
 4. **Новые проверки не являются переводом старых.** Test design выводится из
    актуальных requirements, API/specs, задач, threat model, accessibility и
    observable runtime behavior.
 5. **Один безопасный outer runner.** Все target jobs идут через versioned
    launcher с outer wall-clock timeout, exit-code preservation, task-owned
-   resource names и unconditional exact cleanup в `finally`. До его отдельной
-   проверки runtime gate `NOT_READY`; прямые snippets не fallback.
+   resource names и unconditional exact cleanup в `finally`. Private source
+   candidate существует и принят только статически; до binding и separate
+   parser/private-contract/Docker acceptance launcher = `NOT_READY`,
+   `PS5.1_PARSE_NOT_RUN`, `PRIVATE_CONTRACT_NOT_RUN`, runtime = `NOT_RUN`; прямые
+   snippets не fallback.
 6. **Task-run reports isolated.** Каждый запуск пишет только в
    `testframework/reports/<task-run>/` после проверки owner marker с task и
    exact revision. Shared reports root и чужие artifacts read/write запрещены.

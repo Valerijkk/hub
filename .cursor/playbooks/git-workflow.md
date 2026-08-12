@@ -2,11 +2,11 @@
 
 > Для `be1`/`be2`, `fe1`/`fe2`, `qa-auto1`/`qa-auto2`, `devops-engineer`, `code-reviewer`, `team-lead`/`tech-lead`.
 > Первоисточник: `.cursor/rules/50-git.mdc` (при конфликте правило важнее playbook'а). Стиль коммитов и код — `.cursor/rules/10-style.mdc`.
-> Особый акцент — **параллельная работа двух+ исполнителей одного слоя** без конфликтов, и границы «что агенту разрешено в git, а что только пользователю».
+> Особый акцент — **параллельная работа двух+ исполнителей одного слоя** без конфликтов и standing lifecycle: task-ветка → Docker-only verification + независимый review → интеграция team-lead → cleanup merged ветки.
 
 Все примеры коммитов, веток и merge-сообщений в этом документе — **реальные, взятые из истории репозитория Hub** (`git log --oneline`), а не выдуманные. Это сделано намеренно: playbook должен отражать то, как реально работает команда, а не абстрактный идеал.
 
-*Обновлено: 2026-07-18.*
+*Обновлено: 2026-08-12.*
 
 ---
 
@@ -68,22 +68,16 @@ authority; чужой или ambiguous checkout остаётся нетрону�
 ## 2. Ветки
 
 ```
-master                              production-ready, protected
-feat/<module>/<description>         новая фича
-fix/<module>/<description>          багфикс
-refactor/<module>/<description>     рефакторинг
-chore/<description>                 deps, tooling, config
-docs/<description>                  документация/аналитика/спеки без кода
-hotfix/<issue-id>/<description>     критический прод-фикс
-integration/<wave-name>             интеграционная ветка волны (см. §8)
+master                              protected canonical baseline; not a production-readiness claim
+codex/<task>                        Codex task branch, created only from refreshed master
+<cloud-prefix>/<task>               Cloud Code only; its separate worker owns the prefix
 ```
 
-- `<module>` — из списка scope (см. §3): `auth`, `tracker`, `sprint`, `messenger`, `tms`, `calls`, `dashboard`, `notification`, `search`, `ws`, `rbac`, `platform`, `frontend`, `infra`, `ent`, `ai`, `crm`, `intranet`, `calendar`, `hr`, `accounting`, `bases`, `marketplace`.
-- `<description>` — kebab-case, коротко и по делу.
+- `<task>` — kebab-case, коротко и по делу; перед созданием ветки актуализируй `master`.
 - Одна ветка = одна логическая задача/план. Не смешивай несвязанные изменения.
 - Ветку держим короткоживущей: чем дольше живёт, тем больше конфликтов при финальном мерже.
 
-### Реальные примеры имён веток из истории Hub
+### Исторические примеры имён веток
 
 ```
 feat/platform/otel-nats-trace     — W3C trace context в NATS headers (4 атомарных коммита, см. §3)
@@ -96,23 +90,23 @@ feat/ux-1-palette                 — Ctrl+K палитра, PR #15
 
 <good-example>
 
-Хорошее имя ветки — модуль/scope виден сразу, описание конкретное:
+Для новой Codex ветки хорошее имя короткое и конкретное:
 
 ```
-feat/tracker/wip-limits
-fix/ws/send-on-closed-channel
-refactor/auth/extract-repository-interface
-docs/wave3-specs
+codex/tracker-wip-limits
+codex/ws-closed-channel
+codex/auth-repository-refactor
+codex/wave3-specs
 ```
 </good-example>
 
 <bad-example>
 
 ```
-feature-branch          (нет модуля, нет описания)
-my-fixes                (чьи фиксы, какие?)
+feature-branch          (нет обязательного `codex/` prefix)
+my-fixes                (не отражает задачу)
 tmp                     (не отражает содержимое, легко забыть смерджить)
-wave3                   (для интеграционной ветки нужен префикс integration/, см. §8)
+wave3                   (не отражает owner/prefix)
 ```
 </bad-example>
 
@@ -474,8 +468,9 @@ git rebase --continue
 #    можно безопасно откатить всю операцию:
 git rebase --abort
 
-# 8. После успешного rebase — форс-пуш СВОЕЙ фича-ветки (не master!)
-git push --force-with-lease origin <своя-ветка>
+# 8. После успешного rebase остановиться на локальном результате.
+# Remote write выполняется только team-lead в routine integration lifecycle
+# либо по explicit founder authority на exact non-master branch.
 ```
 
 `--force-with-lease` (а не голый `--force`) — защита от перезаписи чужих коммитов, если кто-то запушил в эту же ветку между твоим fetch и push.
@@ -509,7 +504,7 @@ diff/checksums и возвращает файл merge-owner-у; destructive уд
 4. Пройдено кросс-ревью (парный агент) и **персональный `*-ver`** (`verified: true` + лог регрессии).
 5. `code-reviewer` — approve перед мержем.
 6. **Rebase-merge в `master`** (решение 2026-07-03: линейная история, атомарные коммиты планов сохранены для точечного revert; squash для фича-PR не используется).
-7. **Push/мерж в `master` выполняет ТОЛЬКО пользователь лично.** Агенты коммитят и пушат фича-ветки свободно, но в master не пушат никогда. `team-lead` доводит PR до «merge-ready» и передаёт пользователю. Личное ревью пользователя обязательно для: security/auth, миграций БД, деплой/CI, ADR.
+7. После applicable Docker-only verification, независимого review и docs-sync `team-lead` по standing founder authority выполняет routine merge/push в `master` и удаляет merged branch local+remote. Прямая реализация в `master` запрещена. Founder review обязателен для security/auth, DB migration, deploy/CI и ADR.
 
 ### 7.1. Реальные примеры PR из истории Hub (с номером)
 
@@ -554,7 +549,7 @@ Squash сплющивает атомарные коммиты плана в од
 
 ## 8. Интеграционные ветки волн
 
-Для волновой разработки (несколько параллельных потоков — ba/sa/be/fe/qa на одну фичу-волну) Hub использует паттерн интеграционной ветки: `integration/<wave-name>`.
+Историческая волновая разработка использовала паттерн интеграционной ветки `integration/<wave-name>`. Новые Codex-задачи используют `codex/<task>` от refreshed `master`; controlled integration остаётся зоной `team-lead`.
 
 ### 8.1. Реальный пример (`integration/wave1`)
 
@@ -564,21 +559,21 @@ b3bca09 Merge remote-tracking branch 'origin/fix/platform/wave1-quickfixes' into
 954e6c3 docs(planning): wave1 closure - all streams verified, follow-ups to wave2
 ```
 
-Каждый поток (аналитика, квик-фиксы) мержится в `integration/wave1` отдельным merge-коммитом со стандартным git-сообщением (не Conventional Commits — это техническая точка схождения, не смысловое изменение). После того как все потоки волны собраны и верифицированы, `team-lead` фиксирует closure-коммит (`docs(planning): wave1 closure — ...`) и передаёт интеграционную ветку пользователю на финальный мерж в `master`.
+Каждый поток (аналитика, квик-фиксы) мержится в `integration/wave1` отдельным merge-коммитом со стандартным git-сообщением (не Conventional Commits — это техническая точка схождения, не смысловое изменение). Это исторический пример. В новом lifecycle `team-lead` после Docker-only gate, независимого review и docs-sync интегрирует routine accepted result в protected `master` по standing founder authority.
 
 ### 8.2. Когда использовать интеграционную ветку, а когда — прямой PR в master
 
 | Сценарий | Путь |
 |---|---|
-| Одна фича, один/два агента, одна ветка | Прямой PR `feat/<module>/<desc>` → `master` |
-| Волна из 3+ параллельных потоков (ba+sa+be+fe+qa) на одну крупную фичу | `integration/<wave-name>` собирает потоки → один PR в `master` |
-| Быстрый квикфикс вне волны | Прямой PR `fix/<module>/<desc>` → `master` |
+| Одна фича, один/два агента | `codex/<task>` от refreshed `master` → verification/review → integration team-lead |
+| Волна из параллельных потоков | task-ветки без пересечения ownership → controlled integration → team-lead integration |
+| Cloud Code задача | ветка его отдельного prefix; правила acceptance те же |
 
 ### 8.3. Правила для интеграционной ветки
 
-- Владеет и мержит в неё **только** `team-lead` (или пользователь) — рядовые агенты пушат в свои фича-ветки, не напрямую в `integration/*`.
+- Владеет и мержит в неё **только** `team-lead`; рядовые агенты не реализуют напрямую в `master`.
 - Перед финальным мержем `integration/*` → `master` — полный `/qa-gate` на интеграции (rule 56), не по отдельности на каждый поток.
-- `integration/*` тоже никогда не мержится в `master` агентом — только пользователем, как и любой другой путь в `master` (§14).
+- После Docker-only gate, review и docs-sync `team-lead` интегрирует routine accepted result в `master` и удаляет merged branches; security/auth, DB migrations, deploy/CI и ADR требуют founder review (§14).
 
 ---
 
@@ -641,7 +636,7 @@ v2.0.0   новый milestone
 ```bash
 ./scripts/v25-release-gate.sh
 ```
-Он проверяет наличие обязательных runbook-скриптов (`fa06-rotate-p1.sh`, `fa06-rotate-p1-k3s.sh`, `deploy-preflight.sh`), статус последнего CI на `master` (`gh run list --branch master --limit 1`) и отсутствие открытых PR. Только пользователь запускает финальный тег после того, как gate прошёл и sign-off получен — агенты **не создают** git-теги самостоятельно (эквивалент правила «push в master — только пользователь», §14).
+Он проверяет наличие обязательных runbook-скриптов (`fa06-rotate-p1.sh`, `fa06-rotate-p1-k3s.sh`, `deploy-preflight.sh`), статус последнего CI на `master` (`gh run list --branch master --limit 1`) и отсутствие открытых PR. Только пользователь запускает финальный тег после того, как gate прошёл и sign-off получен — агенты **не создают** git-теги самостоятельно; это отдельный release authority, а не ограничение routine merge lifecycle §14.
 
 ---
 
@@ -702,21 +697,21 @@ git commit --amend --no-edit
 
 ---
 
-## 14. Кто пушит/мержит в master — границы агента
+## 14. Кто интегрирует в `master` — границы агента
 
-Это самое строгое правило git-дисциплины Hub, вынесенное в `.cursor/rules/50-git.mdc` как always-applied.
+`master` — защищённый канонический baseline, не production-readiness claim. Новый код никогда не реализуется напрямую в нём; каждая задача начинается от обновлённого `master` в короткой task-ветке.
 
 | Действие | Кто может |
 |---|---|
-| Коммитить в фича-ветку | Любой агент, свободно, атомарно, после ворот регрессии (§9) |
-| Пушить фича-ветку на remote | Только по явному поручению пользователя |
-| Открывать PR из фича-ветки | Только по явному поручению пользователя |
-| Мержить `integration/*` → доводить до merge-ready | `team-lead` |
-| **Push/merge в `master`** | **ТОЛЬКО пользователь лично** |
+| Коммитить в task-ветку | Исполнитель в назначенных файлах, атомарно, после применимых ворот |
+| Создавать Codex branch | `team-lead`/исполнитель: только `codex/<task>` от refreshed `master` |
+| Cloud Code branch | Только его отдельный worker с собственным prefix |
+| Мержить потоки в controlled integration | `team-lead` |
+| **Routine merge/push в `master`** | **`team-lead` по standing founder authority, после Docker-only verification + независимого review** |
 | Создавать git-теги релиза | Только пользователь (после release gate, §11.1) |
-| `git push --force` в любую ветку, включая свою | Только с `--force-with-lease` после rebase своей же ветки; force в `master` — никогда никому |
+| `git push --force` в любую ветку, включая свою | Только по explicit founder authority на exact non-master branch и только с `--force-with-lease`; force в `master` — никогда никому |
 
-`team-lead` доводит ветку/PR до состояния «merge-ready» (green CI + верификация + `code-reviewer` approve) и **передаёт пользователю** — не мержит самостоятельно, даже если технически может выполнить команду. Личное ревью пользователя дополнительно обязательно для: security/auth, миграций БД, деплой/CI, ADR-изменений — независимо от того, что весь автоматический gate прошёл зелёным.
+`team-lead` принимает routine branch только после применимых Docker-only target jobs, независимого `*-ver`/`code-reviewer` review и docs-sync; затем merge/push в `master` и удаляет merged branch local+remote. Отдельный manual founder merge для routine accepted work не нужен. Личное founder review остаётся обязательным для security/auth, DB migrations, deploy/CI и ADR, независимо от зелёных автоматических ворот.
 
 ---
 
@@ -732,7 +727,7 @@ git commit --amend --no-edit
 | Смешать фичу + рефактор + формат | Не ревьюится | Отдельные атомарные коммиты |
 | Ручное разрешение конфликта в `go.sum`/`package-lock.json` | Портит хеши | Пересобрать (`go mod tidy` / переустановка) |
 | `--amend` запушенного/чужого коммита | Ломает историю других | Новый коммит / `git revert` (§13) |
-| Агент мержит `master` самостоятельно | Нарушение rule 50-git | Передать пользователю как merge-ready (§14) |
+| Реализация напрямую в `master` | Обходит branch/review lifecycle | `codex/<task>` от refreshed `master`, затем §14 |
 | Тег релиза без release gate | Прод без гарантий | `scripts/v25-release-gate.sh` (или аналог) + sign-off |
 
 ---
@@ -757,9 +752,11 @@ high concurrency. See TC-TRCK-04.
 EOF
 )"
 
-# Пуш своей фича-ветки (безопасный форс после rebase)
-git push origin <ветка>
-git push --force-with-lease origin <ветка>
+# Remote writes не являются общей командой разработчика:
+# - routine merge/push master + удаление merged branch выполняет team-lead
+#   только после Docker-only evidence, independent review и docs-sync;
+# - push feature branch / PR вне этого lifecycle требует explicit founder authority;
+# - force в master запрещён всегда.
 
 # Секрет-скан перед коммитом
 git diff --staged | rg -i "(secret|password|token|api[_-]?key|private[_-]?key|BEGIN .*PRIVATE)"
@@ -767,9 +764,8 @@ git diff --staged | rg -i "(secret|password|token|api[_-]?key|private[_-]?key|BE
 # Просмотр истории для стиля коммитов
 git log --oneline -50
 
-# PR (через gh)
-gh pr create --title "feat(tracker): add WIP limits to Kanban columns" --body "..."
-gh pr view --web
+# Read-only просмотр PR/CI; создание PR требует authority, указанной выше
+gh pr view
 gh run list --branch master --limit 1
 ```
 
@@ -785,4 +781,4 @@ gh run list --branch master --limit 1
 - [ ] Docs-sync выполнен; PR ссылается на задачу (§10).
 - [ ] Кросс-ревью парного агента + персональный `*-ver` (verified:true).
 - [ ] Никаких `--amend` запушенных/чужих коммитов (§13); история читаема.
-- [ ] Готово к rebase-merge; ветка запушена, PR «merge-ready» — мерж в `master` выполняет **пользователь** (§14).
+- [ ] Ветка создана от refreshed `master`; после applicable Docker-only verification и независимого review `team-lead` может интегрировать routine accepted work (§14) и удалить merged branch.

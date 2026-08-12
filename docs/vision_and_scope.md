@@ -1,5 +1,13 @@
 # Hub — Видение и границы (Vision and Scope)
 
+> **Текущая product-truth (founder, 2026-08-12):** Hub остаётся
+> незавершённым MVP. Ни один продуктовый модуль не принят как `complete`,
+> `stable` или `production-ready`. Метки `SHIPPED`/`COMPLETE`, milestone/audit
+> `PASS`, KPI и строки «реализовано» ниже фиксируют только историческое
+> planning/technical evidence; они не подтверждают готовность продукта, модуля
+> или production. PG-03/FA-06 — отдельный manual ops-блокер production cutover,
+> а не индикатор готовности MVP.
+>
 > Единая база знаний. Обновляется BA при изменении бизнес-требований.
 > Детальная документация: `docs/BUSINESS.md`, планирование: `.planning/PROJECT.md`
 
@@ -25,9 +33,12 @@
 | G-04 | Production-ready безопасность и стабильность | 0 CRITICAL findings, unit ≥ 80% security-critical, e2e критические пути | v2.5 |
 | G-05 | Pixel-perfect UX после редизайна v2.0 | 11 страниц по макетам (v2.0 ✓); WCAG 2.1 AA + Lighthouse ≥ 90 — цель v2.5, верификация pending | v2.0 partial |
 | G-06 | Снизить стоимость владения TMS vs Allure TestOps | Собственный Allure-парсер + TMS без лицензии TestOps | v1.0 ✓ |
-| G-07 | Закрыть потребности корпоративного портала (intranet, calendar, wiki) без сторонних инструментов | **Partial (PO reconcile 2026-07-28, A2W11-5-001 / TASK-105):** базовый Intranet + Calendar shipped (v4 UI/API); US-INTR/US-CAL v2 — частично/планируется; **US-WIKI — planned** (продуктового модуля нет: нет `backend/internal/wiki`, нет FE routes; `docs/wiki/API.md` — planned/spec). Целевой критерий «US-INTR/US-CAL/US-WIKI реализованы и приняты; 0 Confluence/Notion/внешний календарь» — только после ship wiki (Волны 5/8). Не путать с репозиторной `docs/wiki/` (документация продукта) | Волны 1–8 · Partial |
+| G-07 | Закрыть потребности корпоративного портала (intranet, calendar, wiki) без сторонних инструментов | **Partial (PO reconcile 2026-07-28, A2W11-5-001 / TASK-105):** базовые Intranet + Calendar code/UI surfaces исторически зафиксированы, но модули не приняты; US-INTR/US-CAL v2 — частично/планируется; **US-WIKI — planned** (продуктового модуля нет: нет `backend/internal/wiki`, нет FE routes; `docs/wiki/API.md` — planned/spec). Целевой критерий «US-INTR/US-CAL/US-WIKI реализованы и приняты; 0 Confluence/Notion/внешний календарь» требует отдельной founder acceptance всех трёх модулей. Не путать с репозиторной `docs/wiki/` (документация продукта) | Волны 1–8 · Partial |
 
 ## KPI
+
+> Галочки и числовые baseline ниже являются historical technical evidence, а
+> не product/module acceptance.
 
 | Метрика | Целевое значение | Текущий статус |
 |---------|------------------|----------------|
@@ -71,7 +82,7 @@
 | US-M03 | Как разработчик, хочу управлять задачами (9 типов) с кастомным workflow | CRUD, связи (blocks/relates/duplicates/clones/causes), комментарии, optimistic lock, чеклисты |
 | US-M04 | Как команда, хочу общаться в каналах с тредами и реакциями | Публичные/приватные каналы, DM, треды, presence, typing indicator |
 | US-M05 | Как QA, хочу вести тест-кейсы и получать результаты из CI (Allure) | Парсер Allure JSON, матчинг по ID/annotation, уведомления, создание бага из failed |
-| US-M06 | Как участник, хочу созвоны с screen share и webcam до 50 человек | LiveKit; запись audio+screen; webcam UI shipped (`CallControls` / LiveKit); polish — backlog |
+| US-M06 | Как участник, хочу созвоны с screen share и webcam до 50 человек | LiveKit; запись audio+screen; webcam UI surface зафиксирован (`CallControls` / LiveKit), но модуль не принят; polish — backlog |
 | US-M07 | Как пользователь, хочу глобальный поиск (Ctrl+K) по всем сущностям | User-scope фильтрация; задачи, кейсы, пользователи, проекты, каналы, файлы; JQL для задач |
 | US-M08 | Как новый пользователь, хочу пройти онбординг | Профиль → тур (6 карточек) → тема/accent → создание/вступление в проект |
 | US-M09 | Как Admin, хочу управлять режимом регистрации | Открытая регистрация ИЛИ только по инвайтам — настройка в админ-панели |
@@ -112,10 +123,10 @@
 
 ### Won't Have (v1–v2) — updated v2.5 PO lock
 
-- ~~Видеозвонки с вебкамерами~~ → UI shipped (`CallControls` / LiveKit); polish backlog
+- ~~Видеозвонки с вебкамерами~~ → UI surface зафиксирован (`CallControls` / LiveKit); модуль не принят, polish backlog
 - Нативные мобильные приложения (PWA достаточно)
 - ~~Email только magic link~~ → transactional + marketing via **hub-mail** (v2.5+)
-- SSO/LDAP — после `ADR-AUTH-SSO` (до ADR = Magic Link only); OAuth соцсетей — out; SaaS billing (later); ~~Gantt~~ → UI shipped; multi-org (v5)
+- SSO/LDAP — после `ADR-AUTH-SSO` (до ADR = Magic Link only); OAuth соцсетей — out; SaaS billing (later); ~~Gantt~~ → UI surface зафиксирован, не module acceptance; multi-org (v5)
 - Remote control (управление чужим экраном)
 - Видео/аудио сообщения в мессенджере (кроме голосовых)
 - Route-level page transition animations
@@ -123,7 +134,7 @@
 
 См. также: [tz_constraints.md](tz_constraints.md) · `.planning/archive/roadmaps/DISCUSS-ROADMAP-LOCKED.md`
 
-### v3.0 AI Chat Hub — SHIPPED (`.planning/archive/roadmaps/MILESTONE-3.md`)
+### v3.0 AI Chat Hub — HISTORICAL MILESTONE SLICE, NOT MODULE ACCEPTANCE (`.planning/archive/roadmaps/MILESTONE-3.md`)
 
 | ID | История | Статус |
 |----|---------|--------|
@@ -134,7 +145,7 @@
 | US-F05 | Как Admin, хочу rate limits и audit AI без утечки содержимого | ✅ `AIUsageDaily`, content policy |
 | US-F06 | Как разработчик, хочу OpenAI-compatible API Hub | ⏳ v3.5 backlog |
 
-### v4.0 Corporate Super-App — SHIPPED (`.planning/decisions/specs/PLATFORM-VISION-v4.md`)
+### v4.0 Corporate Super-App — HISTORICAL MILESTONE SLICE, NOT MODULE ACCEPTANCE (`.planning/decisions/specs/PLATFORM-VISION-v4.md`)
 
 | ID | История | Статус |
 |----|---------|--------|
@@ -421,13 +432,13 @@ Edge-cases: неутверждённая заявка на отпуск (pending
 > Границы scope зафиксированы пользователем: `.planning/decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` §2 (GZ-SEC-07/11: space-level RBAC + наследование + restrict-флаг) и §4 (GZ-V4-12/13: handbook = пространство общей wiki, wiki раньше HR-волны); `.planning/archive/july-2026/ROADMAP-FINAL-2026-07-03.md` Волна 1 (задача 1.12), реализация — Волны 5/8. Не расширять без нового решения PO.
 > Модуля в коде ещё нет — это спецификация нового модуля. Редактор — **markdown-first** (WYSIWYG-редактор уровня Confluence — вне scope v1). Поиск — только user-scoped (инвариант NF-03). Персоны: Игорь (Member), Виктор (PO), Елена (Admin), Алексей (Developer).
 >
-> **PO reconcile (2026-07-28, TASK-105 / A2W11-5-001):** G-07 = **Partial**. KPI ниже остаются **планируется** — согласовано с отсутствием shipped-модуля. Не считать G-07 done, пока US-WIKI-01..05 не приняты. `docs/wiki/` в репозитории — документация продукта, не замена Confluence/Notion.
+> **PO reconcile (2026-07-28, TASK-105 / A2W11-5-001):** G-07 = **Partial**. KPI ниже остаются **планируется** — согласовано с отсутствием принятого Wiki-модуля. Не считать G-07 done, пока US-WIKI-01..05 и связанные Intranet/Calendar criteria не получат отдельную founder acceptance. `docs/wiki/` в репозитории — документация продукта, не замена Confluence/Notion.
 
 ### KPI (Wiki v1)
 
 | Метрика | Целевое значение | Текущий статус |
 |---------|------------------|----------------|
-| Замена внешней wiki | Handbook и командная документация ведутся в Hub (0 активных Confluence/Notion-страниц у команды) | **планируется** (US-WIKI-01..05) — не shipped; G-07 Partial |
+| Замена внешней wiki | Handbook и командная документация ведутся в Hub (0 активных Confluence/Notion-страниц у команды) | **планируется** (US-WIKI-01..05) — не принято; G-07 Partial |
 | Изоляция доступа | 0 инцидентов чтения страниц вне прав (space RBAC + restrict + user-scope поиск) | **планируется** (US-WIKI-02, US-WIKI-05) |
 | Восстановимость правок | Любая правка страницы откатывается к прежней версии | **планируется** (US-WIKI-03) |
 | Traceability | Страницы решений связаны с задачами (issue-link) в обе стороны | **планируется** (US-WIKI-04) |
@@ -601,7 +612,10 @@ Edge-cases: сниппет результата не раскрывает кон
 | Роль `founder` | Ровно один на org (`User.system_role`: founder/admin/member) |
 | Org invite | `GET /admin/organization/invite` — ссылка для первичного онбординга |
 
-## Текущий статус проекта
+## Текущая product-truth и исторические milestone labels
+
+Hub остаётся незавершённым MVP; таблица ниже сохраняет датированные labels
+закрытия planning/technical slices и не означает приёмку продукта или модулей.
 
 | Milestone | Phases | Статус | Дата |
 |-----------|--------|--------|------|
@@ -613,14 +627,16 @@ Edge-cases: сниппет результата не раскрывает кон
 | v4 Super-app | 39–58 | ✅ COMPLETE | 2026-06-25 |
 | Coverage wave | 59–125 | ✅ COMPLETE | 2026-06-21 |
 
-**Текущий фокус:** Wave C ✅ · FA-06 manual — единственный prod-блокер · ветка `master`. См. `.planning/STATE.md` и `.planning/audits/2026-06/AUDIT-2026-06-23.md`.
+**Текущий фокус:** test architecture rebase и отдельная приёмка незавершённых
+модулей. FA-06/PG-03 — отдельный manual ops-блокер production cutover, не
+единственный gap и не proxy готовности MVP. См. `.planning/STATE.md`.
 
-### Отложенный polish (не блокирует релиз)
+### Исторический список polish (не исчерпывает readiness gaps)
 
 - PLSH-01: Per-page ambient body gradients
 - PLSH-02: Skeleton loading states для виджетов
 - PLSH-03: Smooth theme toggle transition
-- Phase 16+: Gantt UI shipped (`/projects/$id/gantt`); webcam UI shipped (`CallControls` / LiveKit); hub-mail transactional — residual
+- Phase 16+: Gantt и webcam UI surfaces исторически зафиксированы (`/projects/$id/gantt`, `CallControls` / LiveKit), но не приняты как готовые модули; hub-mail transactional — residual
 
 ## Связанные документы
 
@@ -635,4 +651,4 @@ Edge-cases: сниппет результата не раскрывает кон
 | `.planning/archive/roadmaps/MILESTONE-3.md` | v3.0 AI Chat Hub (30 требований) |
 
 ---
-*Последнее обновление: 2026-07-28 — TASK-105 / A2W11-5-001: G-07 → Partial (INTR+CAL base shipped, US-WIKI planned); KPI Wiki остаются «планируется». Ранее: 2026-07-03 Волна 1 поток D US-INTR/US-CAL/US-WIKI.*
+*Последнее обновление: 2026-08-12 — founder product-truth: unfinished MVP, zero accepted complete/stable modules; historical milestone labels не равны acceptance; PG-03/FA-06 — отдельный ops cutover blocker. Ранее: 2026-07-28 TASK-105 / A2W11-5-001, G-07 → Partial.*

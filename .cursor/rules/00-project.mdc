@@ -77,21 +77,29 @@ hub/
 - Full audit summary: `.planning/audits/code-review-final/SUMMARY.md`
 - v3.0 AI plans: `.planning/archive/roadmaps/MILESTONE-3.md`
 
-## Current Status (2026-07-26)
+## Current Status (founder truth 2026-08-12)
 
-- **v1.0** (Phases 1-7): SHIPPED 2026-03-21
-- **v2.0** (Phases 8-14, Hub Redesign): COMPLETE 2026-05-15
-- **v2.5 Trust / v2.6 Automate+Arch+OBS / v3.0 AI Native / v4 Super-app**: COMPLETE (см. `AGENTS.md`)
-- **Coverage wave (Phases 59–125):** COMPLETE, COV **83.0%** (2026-06-22 Docker baseline), 6/6 security packages ≥80%
+- **Product truth:** Hub — незавершённый MVP; ни один продуктовый модуль не
+  принят как `complete`, `stable` или `production-ready`.
+- **v1.0** (Phases 1-7): historical `SHIPPED` label 2026-03-21
+- **v2.0** (Phases 8-14, Hub Redesign): historical `COMPLETE` label 2026-05-15
+- **v2.5 Trust / v2.6 Automate+Arch+OBS / v3.0 AI Native / v4 Super-app**:
+  historical milestone labels only (см. `AGENTS.md`), не product/module acceptance
+- **Coverage wave (Phases 59–125):** historical technical `COMPLETE`, COV
+  **83.0%** (2026-06-22 Docker baseline), 6/6 security packages ≥80%; не readiness
 - **Волна 1 (roadmap 2026-07-03):** влита в `master` 2026-07-11 (integration/wave1 + otel-nats-trace + wave2 ADR/specs)
-- **Текущая фаза:** July Rebuild / QA-HARDENING **planning** — код freeze до возврата ~конец июля 2026; на диске только доки (`july-2026/*`, edge-expansions wave2–5, EDGE catalog ≈4696 ECC)
+- **Текущая фаза:** test architecture rebase, Phase 128; package/launcher
+  `NOT_READY`, runtime `NOT_RUN`; параллельно остаётся product/module acceptance work
 - **Protected external QA-AI zone:** `pro-qa-ai/**`, owner Claude Code Opus 5
   под управлением founder. Внутренние агенты не сканируют и не меняют; правило
   `.cursor/rules/70-pro-qa-ai.mdc`.
 - **SFU-решение:** остаёмся на **LiveKit** (WebRTC) — миграция на mediasoup **REJECTED** (`.planning/reference/seeds/SEED-001-mediasoup-migration.md`); не предлагать возврат к этой теме без нового триггера
-- **Единственный prod-блокер:** **PG-03/FA-06** секрет-ротация (Resend/Telegram) — **ручная операция**, не гейтит разработку; лог — `.planning/ops/production/FA-06-EXECUTION-LOG.md`, runbook — `docs/runbooks/fa06-secret-rotation.md`
+- **PG-03/FA-06** секрет-ротация (Resend/Telegram) — отдельный manual
+  ops-блокер production cutover; не гейтит разработку, но и не является proxy
+  готовности MVP. Лог — `.planning/ops/production/FA-06-EXECUTION-LOG.md`,
+  runbook — `docs/runbooks/fa06-secret-rotation.md`
 
-## Production checklist (актуальный)
+## Historical technical/ops checklist (не product acceptance)
 
 | Item | Status |
 |------|--------|
@@ -100,7 +108,7 @@ hub/
 | COV overall / security 6×80% | ✅ 83.0% / 6/6 (2026-06-22 Docker baseline) |
 | Ctrl+K global search UI | ✅ |
 | LiveKit (SFU) канон | ✅ mediasoup REJECTED |
-| PG-03/FA-06 secret rotation | ⚠️ manual — **единственный prod-блокер** |
+| PG-03/FA-06 secret rotation | ⚠️ отдельный manual ops production-cutover blocker; не readiness proxy |
 | Docs sync rule | ✅ `.cursor/rules/55-docs-sync.mdc` |
 | Merge Волна 1 → master | ✅ 2026-07-11 |
 | July Rebuild / QA-HARDENING | 📋 planning, код freeze |
@@ -145,6 +153,8 @@ docker compose -f docker-compose.local.yml up -d
 - Не путать `.planning/ROADMAP.md`-исторический с актуальным: актуальный roadmap — `.planning/archive/july-2026/ROADMAP-FINAL-2026-07-03.md` / `ROADMAP-DETAILED-JULY-RETURN.md`.
 - Ростер и модели AI-команды (32 агента) — не дублировать здесь, читать `.cursor/playbooks/README.md` §0/§3 (модели, тиры, обратная карта агент→playbook).
 - main.go (34 строки, инициализация разнесена по 13 `wiring_*.go`) не расширять новой логикой: новая инициализация модуля идёт в `backend/cmd/server/wiring_*.go` (см. `20-backend.mdc`).
-- Реальный пример «единственного prod-блокера, не блокирующего разработку»: `.planning/ops/production/PG-03-SECRET-ROTATION.md` описывает ручную процедуру, которая может идти параллельно с любой фичевой веткой.
+- PG-03/FA-06 — отдельная ручная процедура production cutover, которая может
+  идти параллельно с feature work; её закрытие не означает готовность MVP:
+  `.planning/ops/production/PG-03-SECRET-ROTATION.md`.
 - Wiki-документация продукта (не путать с этим `.cursor/`-справочником): `docs/wiki/` — `API.md`, `SHORTCUTS.md`, `QUICKSTART.md`, `DEPLOY.md`.
 - CI-экономия минут (студенческий пакет GitHub Actions): смотри реальные джобы `.github/workflows/{ci,pr-guard,deploy}.yml` перед добавлением новой матрицы/джобы.

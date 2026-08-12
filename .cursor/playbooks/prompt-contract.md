@@ -308,8 +308,9 @@ Evidence:
 вызовы service). Приложи команду и результат проверки.
 
 [ДОПОЛНИТЕЛЬНЫЕ УСЛОВИЯ]
-- Цикл качества нового: Docker-only backend runner из `AGENTS.md`; внутри него
-  `go test -race -count=1 ./tests/tracker/... -run TestBoards_WipLimit` → FAIL? → triage → fix → повтор до green.
+- Цикл качества нового: применимый fixed backend target только через `/qa-gate`;
+  FAIL → triage → fix → повтор accepted target. `NOT_READY`/`NOT_RUN` сохраняются
+  без direct runner, host или inline Docker fallback.
 - Регрессия старого: весь домен tracker + смежный dashboard (читает board stats).
 - Docs-sync (rule 55): system_specification §FR-TRACKER, COVERAGE.md, STATE.md.
 - Evidence по prompt-contract §6; risk focus: security-инварианты + тест реально падает.

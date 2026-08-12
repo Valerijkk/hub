@@ -1,12 +1,22 @@
 # План на август 2026
 
 **Дата записи:** 2026-07-28
-**Статус:** ⚠️ ОТМЕНЁН в части порядка работ
+**Статус:** ⚠️ ИСТОРИЧЕСКИЙ / НЕИСПОЛНЯЕМЫЙ для test-rebase
 
-> **Действующий план августа — [`05-AUGUST-DETAILED.md`](05-AUGUST-DETAILED.md).**
+> **Текущая product-truth (founder, 2026-08-12):** Hub остаётся
+> незавершённым MVP. Ни один продуктовый модуль не принят как `complete`,
+> `stable` или `production-ready`. Метки `SHIPPED`/`COMPLETE`, milestone/audit
+> `PASS` и строки «реализовано» ниже фиксируют только историческое выполнение
+> конкретных planning/technical slices; они не подтверждают готовность продукта,
+> модуля или production. PG-03/FA-06 — отдельный manual ops-блокер production
+> cutover, а не индикатор готовности MVP.
 >
-> Этот документ сохраняется как источник: замеры, обоснования и разбор
-> зависимостей в нём верны. Отменён **порядок треков**: решением владельца
+> **Действующий канон test-rebase — [`06-TEST-ARCHITECTURE-REBASE.md`](06-TEST-ARCHITECTURE-REBASE.md).**
+> [`05-AUGUST-DETAILED.md`](05-AUGUST-DETAILED.md) сохраняет продуктовый
+> контекст, но его test paths, counts, порядок и cutover-гейты также superseded.
+>
+> Этот документ сохраняется как исторический источник: его команды, фазы,
+> пути, перенос/переписывание и счётчики не авторизуют исполнение. Решением владельца
 > 2026-07-30 ([`04-REVISED-PRIORITIES.md`](04-REVISED-PRIORITIES.md))
 > вынос в микросервисы снят с цикла, модули подняты на второе место.
 >
@@ -76,14 +86,13 @@ tracker, identity, business, integrations, platform.
 
 **Документ:** [`03-MODULES-ROADMAP.md`](03-MODULES-ROADMAP.md)
 
-Шесть модулей помечены «MVP», два заявлены и не существуют в коде.
-Трек снимает пометку MVP по единому критерию: покрытие ≥82% пакетным
-замером, все FR закрыты или вынесены за скоуп, корзина и оптимистичная
-блокировка там, где требует спека, ноль находок P0/P1 в свежем аудите.
+Шесть модулей имели историческую planning-метку «MVP», два были заявлены и не
+существовали в коде на дату записи. Перечисленные ниже критерии описывали
+плановый технический срез; они не являются текущей founder acceptance модуля.
 
 | Группа | Модули | Работы |
 |--------|--------|--------|
-| A стабильные | tracker, sprint, messenger, tms, calls, dashboards, search, notifications | **нет**, только не просаживать гейт |
+| A без отдельного августовского workstream | tracker, sprint, messenger, tms, calls, dashboards, search, notifications | отдельная программа не запланирована; дефекты, регрессия и founder acceptance всё ещё обязательны |
 | B из MVP в продукт | calendar, intranet, accounting, crm, hr, bases | основной объём |
 | C новые | wiki, sso, MCP для AI | заблокированы решениями владельца |
 
@@ -132,4 +141,4 @@ tracker, identity, business, integrations, platform.
 | ~~Судьба модуля Wiki~~ | ✅ строим, решение 2026-07-30 | там же |
 | ~~SSO~~ | ✅ только OIDC, решение 2026-07-30 | там же |
 | NFR-24 и NFR-11 — раскатывать или сузить формулировку | **владельцу** | [`audits/planning-audit-2026-07/NFR-24-VERSION-CLASSIFICATION.md`](../../audits/planning-audit-2026-07/NFR-24-VERSION-CLASSIFICATION.md) |
-| PG-03 ротация секретов — блокирует прод-катку | **ops** | `STATE.md: deploy_blockers` |
+| PG-03 ротация секретов — отдельный ops-блокер production cutover, не proxy готовности MVP | **ops** | `STATE.md: deploy_blockers` |

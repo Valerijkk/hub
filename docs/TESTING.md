@@ -2,6 +2,12 @@
 
 > **Обновлено:** 2026-07-28 · Стратегия: `docs/test_plan.md` · Coverage: `.planning/COVERAGE.md` · Quality audit: `.planning/audits/2026-06/AUDIT-2026-06-22-quality-processes.md`  
 > **Edge/Corner backlog:** [`.planning/archive/july-2026/EDGE-CORNER-CATALOG.md`](../.planning/archive/july-2026/EDGE-CORNER-CATALOG.md) — Happy/Neg/Edge/Corner по доменам (источник будущих TC; CAL-SYNC C1–C15)
+>
+> **Founder authority 2026-08-12:** команды и пути legacy ниже были inventory,
+> а не executable canon. Единственная публичная точка — `/qa-gate`; private
+> runner source candidate имеет только static review. Package/launcher
+> `NOT_READY`, `PS5.1_PARSE_NOT_RUN`, `PRIVATE_CONTRACT_NOT_RUN`, runtime
+> `NOT_RUN`. Direct host/runner/Docker/Compose fallback запрещён.
 
 ---
 
@@ -11,22 +17,21 @@
 
 | Уровень | Инструменты | Расположение | CI job |
 |---------|-------------|--------------|--------|
-| Unit (Backend) | Go testing + testify | `backend/testframework/{domain}/` | `backend-test` |
-| Unit (Frontend) | Vitest + RTL | `testframework/stages/unit/frontend-test/domains/` | `frontend-test` |
-| API / handler | httptest | `backend/testframework/` | в unit |
-| E2E | Playwright + POM | `testframework/stages/e2e/domains/` | `e2e-smoke`, `e2e-full` |
-| Build | tsc + vite | `frontend/` | `build` |
-| Lint | Biome | `frontend/src` | `frontend-test` (gate) |
+| Unit (Backend) | Go testing + testify | `backend/tests/{domain}/` | `backend-unit` (`NOT_READY`) |
+| Unit (Frontend) | Vitest + RTL | `frontend/tests/{domain}/`, `frontend/tests/support/` | `frontend-unit` (`NOT_READY`) |
+| API / integration / contract | pytest + httpx | `testframework/tests/{api,integration,contract}/` | future fixed targets (`NOT_READY`) |
+| E2E | pytest + Playwright | `testframework/tests/e2e/` | `python-e2e-smoke/full` (`NOT_READY`) |
+| Load | Locust | `testframework/load/` | `python-load` (`NOT_READY`) |
 
 ### Принципы
 
-1. **Backend CI:** `go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...`
-2. **Coverage floor:** statement coverage `internal/` **83.0%** (2026-06-22 Docker baseline; ≥82% gate); security packages **≥80%**
+1. **Execution:** fixed target только через `/qa-gate`; unavailable target остаётся `NOT_READY`/`NOT_RUN`.
+2. **Historical metrics:** statement coverage и legacy counts — inventory, не текущий migration/release gate.
 3. **Auth тесты:** Magic Link only (v2.5) — Telegram login endpoints **удалены**
-4. **E2E:** 20 spec files; config `frontend/playwright.config.ts` (см. `docs/test_plan.md`)
+4. **E2E:** legacy TypeScript inventory удаляется, greenfield target — Python suite.
 5. **Triage:** spec-first — `.cursor/skills/test-triage/SKILL.md`
 
-### Актуальные счётчики (2026-07-29)
+### Исторический inventory snapshot (2026-07-29)
 
 | Слой | Метрика |
 |------|---------|
@@ -39,52 +44,17 @@
 
 ---
 
-## Backend-тесты (Go)
+## Исполнение и evidence
 
-Все Go-тесты живут в `backend/testframework/{domain}/` (белый ящик через `export_hooks.go` с `//go:build hubtest`). В `backend/internal/` **нет** `*_test.go`. Каталог доменов и карта CI — `testframework/PIPELINE.md` / `docs/test_plan.md`.
+Backend/Frontend genuine units принадлежат целевым roots из таблицы выше.
+Legacy `backend/testframework/**`, static-contract Vitest и TypeScript
+Playwright остаются только frozen inventory до exact deletion batch и не
+запускаются как fallback.
 
-Покрытие `internal/` меряется флагом `-coverpkg=./internal/...` при прогоне `./testframework/...` (job `coverage-gate`), не путём `./internal/...`.
-
-### Запуск тестов
-
-```bash
-# Backend — как CI (только testframework; в internal/ тестов нет)
-cd backend
-go generate ./ent
-go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...
-
-# Конкретный модуль
-go test -tags hubtest ./testframework/auth/...
-go test -tags hubtest -v ./testframework/tms/...
-
-# С покрытием кода internal (профиль вне repo — rule 45)
-go test -tags hubtest -coverpkg=./internal/auth/... -coverprofile="${TMPDIR:-/tmp}/hub-cov.out" ./testframework/auth/...
-
-# Prod build
-go build -tags release -o bin/server ./cmd/server
-```
-
-### Frontend
-
-```bash
-cd frontend
-npx tsc --noEmit          # типы
-npm run lint              # Biome gate
-npx vitest run            # unit
-npm run build             # полная сборка
-npm run test:e2e          # Playwright (нужен backend для full)
-```
-
-Vite build проверяет: импорты, tree-shaking, Tailwind 4, TanStack Router codegen.
-
-### CI jobs (кратко)
-
-| Job | Ключевые шаги |
-|-----|---------------|
-| `backend-test` | Go 1.25, Mongo 8, `-tags hubtest -race` |
-| `frontend-test` | Node 22, tsc, vitest, biome |
-| `e2e-smoke` | login + a11y + critical-gate (без backend) |
-| `e2e-full` | `scripts/ci-e2e-backend.sh` + 20 specs |
+Применимый target запрашивается через `/qa-gate`. Accepted evidence содержит
+exact revision, immutable image identity, task-owned artifacts, duration/result
+и exact cleanup receipt. Если launcher/job не принят, verdict — `NOT_READY` или
+`NOT_RUN`, а не green.
 
 ---
 

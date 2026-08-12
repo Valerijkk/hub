@@ -116,14 +116,17 @@ task-owned Docker containers с CPU/RAM limits. Host-run не является b
 ### Целевой runner после greenfield scaffold
 
 Host запускает только Docker CLI через единый versioned outer launcher из
-target scaffold. Launcher обязан enforce wall-clock timeout, сохранить exit
-code, задать CPU/RAM/PID limits и в `finally` удалить exact task-owned
-containers/Compose project/volumes/networks. Каждый job пишет только в
+`testframework/runner/**`. Private `run-task.ps1` source candidate существует и
+имеет только статические C1/P2/P4 review. Launcher обязан enforce wall-clock timeout, сохранить exit
+code, задать CPU/RAM/PID limits и в `finally` удалить только заранее записанные
+exact task-owned container/network/resource IDs. Каждый job пишет только в
 `testframework/reports/<task-run>/` после проверки owner marker; общий reports
 root не является output directory.
 
-До появления и независимой проверки launcher/scaffold verdict — `NOT_READY`,
-не PASS. Zero collection, cleanup failure и missing owner marker — FAIL. Legacy
+До binding, parser/private-contract и Docker acceptance verdict — `NOT_READY`,
+`PS5.1_PARSE_NOT_RUN`, `PRIVATE_CONTRACT_NOT_RUN`, runtime `NOT_RUN`, не PASS.
+`images.lock.v3.json` и dependency bytes отсутствуют. Zero collection, cleanup
+failure и missing owner marker — FAIL. Legacy
 runners остаются только источником inventory до exact deletion commit; чинить,
 расширять или использовать их как fallback запрещено.
 

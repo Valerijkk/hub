@@ -1,5 +1,21 @@
 # Hub Python QA Framework Rebase Implementation Plan
 
+> **SUPERSEDED CURRENT-STATUS NOTE (founder, 2026-08-12):** This is a dated
+> planning artifact, not current executable authority. Hub remains an unfinished
+> MVP; no product module is accepted as `complete`, `stable`, or
+> `production-ready`. `SHIPPED`/`COMPLETE`/`PASS` below are historical planning
+> or technical evidence only. PG-03/FA-06 is a separate manual ops blocker for
+> production cutover, not an MVP-readiness proxy.
+>
+> A statically reviewed `testframework/runner/run-task.ps1` source candidate now
+> exists, superseding every statement below that the runner path or source is
+> absent. `testframework/docker/images.lock.v3.json` and required local
+> dependency bytes are absent; package/launcher admission remains `NOT_READY`,
+> `PS5.1_PARSE_NOT_RUN`, private contract `PRIVATE_CONTRACT_NOT_RUN`, and runtime
+> `NOT_RUN`. Static source review is not launcher/runtime acceptance. The body
+> below is preserved only as historical design/provenance and grants no command,
+> fallback, task, phase, mutation, or runtime authority.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 > **Meta-plan bootstrap:** первый executable task — `G-CANON`, синхронизация exact 74-path active routing/canonical/evaluation surface; второй — `G-META`, синхронизация exact 23-path downstream-plan/checker surface; третий — `G128-R`, reseal Phase 128 authority. Ни один guard/code/cutover/runtime task не готов, пока все три predecessor gates не приняты independent reviewers; executable rechecks remain `NOT_READY` until G129-L.

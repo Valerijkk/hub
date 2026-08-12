@@ -32,6 +32,12 @@ PYTHON_PACKAGE_ROOT=testframework/src/hub_testkit/**
 PYTHON_SUITE_ROOT=testframework/tests/**
 PYTHON_COMPOSITION=testframework/tests/conftest.py:COMPOSITION_ONLY
 PYTHON_SELFTEST_ROOT=testframework/selftests/**
+PYTHON_PACKAGE_CONTRACT=testframework/PACKAGE-CONTRACT.md
+PYTHON_PACKAGE_BOOTSTRAP=NOT_READY
+PYTHON_RUNTIME=NOT_RUN
+LAUNCHER_ROOT=testframework/runner/**
+LAUNCHER_STATUS=NOT_READY
+CONTAINER_ASSET_ROOT=testframework/docker/**
 GENERIC_CORE=FORBIDDEN
 PROGRESSIVE_TREE=FIRST_CONSUMER:NO_EMPTY_DIRS
 BACKEND_UNIT_ROOT=backend/tests/<domain>/**
@@ -102,8 +108,8 @@ testframework/
 ├── cases/<domain>/TC-*.md      repository-owned business intent
 ├── schemas/                    test-case and run-contract schemas
 ├── policies/                   environment/marker/redaction/profile policies
-├── docker/                     pinned images/topologies and sole outer launcher
-├── runner/                     validated in-container entrypoint/profile loading
+├── docker/                     immutable images/topologies/resource contracts only
+├── runner/                     source candidate; only future launcher authority
 └── reports/<task-run>/         ignored owner-marked per-run evidence only
 ```
 
@@ -113,10 +119,27 @@ Reusable UI code lives only below
 `testframework/src/hub_testkit/domains/<domain>/ui/{pages,components}/`; root or
 suite-local `support/`, `pages/` and `steps/` warehouses are forbidden.
 
-Executable helpers under `testframework/**` are Python. Dockerfiles,
-YAML/TOML/JSON, Markdown and generated report data are declarative artifacts,
-not alternative test stacks. Go, Vitest and TypeScript Playwright executables
-are forbidden in the root after cutover.
+Commit `22035c45` establishes only the structure and ownership boundaries.
+`testframework/pyproject.toml`, `uv.lock`, `src/hub_testkit/py.typed`, executable
+suites are not part of that scaffold and remain `NOT_READY`. `runner/**` source
+candidate is not admitted; launcher admission remains `NOT_READY` and runtime
+is `NOT_RUN`. The docs-only bootstrap contract is
+`testframework/PACKAGE-CONTRACT.md`. It does not itself authorize package,
+dependency, launcher or runtime implementation.
+
+Launcher and execution assets are separate authorities. Only
+`testframework/runner/**` owns the future reviewed versioned launcher authority;
+its source candidate is not accepted or admitted.
+`testframework/docker/**` contains immutable execution assets and declarative
+container contracts consumed by that launcher; it cannot expose a launcher or
+alternate entrypoint.
+Executable test, load and framework code under `testframework/**` is Python,
+except the reviewed private PowerShell launcher authority under `runner/**`.
+Dockerfiles, YAML/TOML/JSON, Markdown and generated report data are declarative
+artifacts, not alternative test stacks. The source candidate exists, but
+launcher admission remains `NOT_READY` and runtime remains `NOT_RUN`. Go,
+Vitest and TypeScript Playwright executables are forbidden in the root after
+cutover.
 
 ## Exact move, keep and delete boundary
 
@@ -236,7 +259,9 @@ security scenarios, mutation/negative sentinels and observed production risks.
 
 All execution is Docker-only in uniquely named task-owned containers with
 explicit CPU/RAM limits. Host execution is noncanonical. Missing mandatory
-services fail; they never skip.
+services fail; they never skip. Every job below remains `NOT_READY` until the
+`testframework/runner/**` source candidate is independently accepted for
+admission; this table defines target ownership, not a runnable entrypoint.
 
 | Job | Ownership | Services | Required evidence |
 |---|---|---|---|

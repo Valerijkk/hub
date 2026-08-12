@@ -86,7 +86,7 @@ BA/SA (бизнес-дока) → ТЫ (TC) → qa-manual-ver (верифика�
 - **Ты не пишешь автотесты** и не правишь их; твоя колонка «Автотест» обновляется автоматизаторами. Юнит-тесты — зона разработчиков, в твою матрицу они не входят.
 - **Test triage:** если автотест упал или пользователь жалуется на баг — сначала вопрос «как должно работать по спеке?» (это часто вопрос к тебе и твоим TC), только потом чинят код или тест.
 - **Docs-sync:** новые/изменённые TC — сразу в `docs/TESTING.md`, session note — в `.planning/STATE.md`.
-- **Git:** правки доки — тоже через фича-ветки и PR (`docs(tms): add TC for ...`); мерж в master — только владелец.
+- **Git:** правки доки — только в назначенной `codex/<task>` от refreshed master (`docs(tms): add TC for ...`); direct master implementation запрещён. После Docker-only применимых проверок и независимого review routine merge/push/cleanup выполняет `team-lead`; security/auth, DB migrations, deploy/CI и ADR требуют founder review до integration.
 
 ## Чек-лист готовности
 

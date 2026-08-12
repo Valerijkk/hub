@@ -1,6 +1,14 @@
 # Hub — Бизнес-документация
 
-> Расширенное описание продуктовых модулей и сценариев.  
+> **Текущая product-truth (founder, 2026-08-12):** Hub остаётся
+> незавершённым MVP. Ни один продуктовый модуль не принят как `complete`,
+> `stable` или `production-ready`. Метки `SHIPPED`/`COMPLETE`, milestone/audit
+> `PASS` и строки «реализовано» ниже фиксируют только историческое выполнение
+> конкретных planning/technical slices; они не подтверждают готовность продукта,
+> модуля или production. PG-03/FA-06 — отдельный manual ops-блокер production
+> cutover, а не индикатор готовности MVP.
+>
+> Расширенное описание продуктовых модулей и сценариев.
 > Сводка целей и User Stories: `docs/vision_and_scope.md` · Техническая спецификация: `docs/system_specification.md`
 
 ## Описание продукта
@@ -186,7 +194,7 @@ Hub объединяет все инструменты в одном интер�
 | Instant-звонки | Быстрый звонок без канала: генерируется invite-код (hub-abc123), ссылка для присоединения |
 | Присоединение | По ID звонка или по invite-коду. LiveKit выдаёт токен для WebRTC-соединения |
 | Гостевой доступ | Присоединение к звонку без аккаунта Hub: достаточно invite-ссылки и имени. Гость получает гостевой LiveKit-токен (4 часа) |
-| Голос | Аудио + webcam (UI shipped: `CallControls` / LiveKit `setCameraEnabled`); остаточный polish — backlog. Gantt UI: `/projects/$id/gantt` |
+| Голос | Аудио + webcam (UI surface зафиксирован: `CallControls` / LiveKit `setCameraEnabled`, но модуль не принят); остаточный polish — backlog. Gantt UI surface: `/projects/$id/gantt` |
 | Screen share | Демонстрация экрана или окна. Несколько участников могут шарить одновременно |
 | Mute/unmute | Toggle микрофона. Статус виден всем участникам |
 | Поднять руку | Индикатор "Хочу сказать". Видно всем участникам |
@@ -440,7 +448,7 @@ Permissions хранятся как bitmask (uint64) в поле `permissions` �
 | Multi-tenant multi-org | 1 instance = 1 org; v5 |
 | Native App Store/Play | PWA достаточно |
 | SaaS billing/подписки | Internal tool, не commercial SaaS |
-| Webcam в звонках | UI shipped (`CallControls` / LiveKit `setCameraEnabled`); остаточный polish — backlog |
+| Webcam в звонках | UI surface зафиксирован (`CallControls` / LiveKit `setCameraEnabled`), но модуль не принят; остаточный polish — backlog |
 | Payroll / НДФЛ | v4 accounting — ledger/invoices, не зарплатный модуль |
 | Remote control экрана | Сложность vs ценность |
 | Route-level page transitions | Productivity tool, не marketing site |
@@ -448,18 +456,21 @@ Permissions хранятся как bitmask (uint64) в поле `permissions` �
 
 См. также: `docs/tz_constraints.md`, `.planning/archive/roadmaps/DISCUSS-ROADMAP-LOCKED.md`
 
-## Дорожная карта (фактический статус)
+## Дорожная карта (исторические planning/technical labels)
+
+Статусы в таблице фиксируют закрытие датированных slices. Они не означают,
+что версия, продукт или перечисленные модули приняты как complete/stable.
 
 | Версия | Содержание | Статус |
 |--------|------------|--------|
-| **v1.0** | 11 core-модулей: auth, project, tracker, messenger, TMS, calls, dashboard, notification, VCS, imex, backup/audit | ✅ SHIPPED 2026-03-21 |
-| **v2.0** | Pixel-perfect redesign, 85/85 UI reqs, design system | ✅ COMPLETE 2026-05-15 |
-| **v2.5** | Production hardening, security fixes, Ctrl+K search UI | ✅ COMPLETE 2026-06-22 |
-| **v2.6** | Architecture completion, OBS stack (Prometheus/Loki/Grafana), automation rules | ✅ COMPLETE 2026-06-24 |
-| **v3.0** | AI Hub: providers, @hub-ai bot, JQL assist, PR review | ✅ COMPLETE 2026-06-22 |
-| **v4.0** | Super-app: intranet, calendar, CRM, HR, accounting, bases, marketplace | ✅ COMPLETE 2026-06-25 |
-| **Coverage wave** | Phases 59–125, COV 82.6% (2026-06-21 phase-125 exit; later **83.0%** 2026-06-22 Docker baseline), test framework migration | ✅ COMPLETE 2026-06-21 |
-| **Phase 16+** | full JQL automation, hub-mail transactional (Gantt + webcam UI уже shipped; webcam polish — backlog) | ⏳ Residual planned |
+| **v1.0** | 11 core-модулей: auth, project, tracker, messenger, TMS, calls, dashboard, notification, VCS, imex, backup/audit | historical SHIPPED label · 2026-03-21 |
+| **v2.0** | Pixel-perfect redesign, 85/85 UI reqs, design system | historical COMPLETE label · 2026-05-15 |
+| **v2.5** | Production hardening, security fixes, Ctrl+K search UI | historical COMPLETE label · 2026-06-22 |
+| **v2.6** | Architecture completion, OBS stack (Prometheus/Loki/Grafana), automation rules | historical COMPLETE label · 2026-06-24 |
+| **v3.0** | AI Hub: providers, @hub-ai bot, JQL assist, PR review | historical COMPLETE label · 2026-06-22 |
+| **v4.0** | Super-app: intranet, calendar, CRM, HR, accounting, bases, marketplace | historical COMPLETE label · 2026-06-25 |
+| **Coverage wave** | Phases 59–125, COV 82.6% (2026-06-21 phase-125 exit; later **83.0%** 2026-06-22 Docker baseline), historical test-framework work | historical COMPLETE label · 2026-06-21 |
+| **Phase 16+** | full JQL automation, hub-mail transactional (Gantt + webcam UI surfaces зафиксированы, но не приняты; webcam polish — backlog) | ⏳ Residual planned |
 
 ---
-*Последнее обновление: 2026-07-28 — TASK-123: webcam UI shipped consistency (A2W11-4-001); Phase 16+ residual without webcam-as-blocker*
+*Последнее обновление: 2026-08-12 — founder product-truth: unfinished MVP, zero accepted complete/stable modules; historical labels не равны acceptance; PG-03/FA-06 — отдельный ops cutover blocker.*

@@ -88,23 +88,13 @@ Telegram **не используется для входа**. Только:
 
 ---
 
-## Минимальная регрессия (перед коммитом)
+## Проверка перед коммитом
 
-```bash
-# Backend
-cd backend
-go generate ./ent
-go build -tags release ./...
-go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...
-
-# Frontend
-cd frontend
-npx tsc --noEmit
-npm run lint          # Biome
-npx vitest run
-```
-
-Полный gate: skill `/qa-gate` (см. `docs/test_plan.md`).
+Единственная публичная точка маршрутизации применимых target jobs — skill
+`/qa-gate` (см. `docs/test_plan.md`). Он принимает только fixed target identity;
+host test/build/lint, direct runner и inline Docker/Compose не являются fallback.
+Текущий launcher/package `NOT_READY`, поэтому недоступная проверка остаётся
+`NOT_READY`/`NOT_RUN` до отдельной приёмки, без ложного green.
 
 ---
 

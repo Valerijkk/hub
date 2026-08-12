@@ -12,7 +12,7 @@ define a runnable command, or grant runtime authority.
 | Installable `hub_testkit` package bootstrap | `NOT_READY` | `pyproject.toml`, `uv.lock` and `py.typed` are intentionally absent |
 | Framework selftests | NOT_READY | only selftests boundary documentation is accepted; no accepted framework-selftest suite or package-bootstrap evidence exists. Untracked or other-task artifacts are outside this docs-only contract and cannot promote package, launcher, or runtime status |
 | SUT suite layer directories | `NOT_READY` | only `tests/README.md` defines the boundary; `tests/{contract,api,integration,e2e}/` are planned and absent |
-| Versioned launcher API | `NOT_READY` | future owner is `runner/**`; no entrypoint exists |
+| Versioned launcher API | `NOT_READY` | `runner/run-task.ps1` is a private static source candidate only; `PS5.1_PARSE_NOT_RUN`, `PRIVATE_CONTRACT_NOT_RUN`, no accepted public entrypoint |
 | Runtime | `NOT_RUN` | structure and documentation are not execution evidence |
 
 The status values above are independent. A committed directory tree does not
@@ -33,7 +33,7 @@ package code and executable suites on different roots:
 | `policies/**` | marker, environment, redaction, and profile policy data |
 | `load/**` | separate bounded Locust lifecycle |
 | `docker/**` | immutable execution assets and container contracts only |
-| `runner/**` | future reviewed versioned launcher API and entrypoints |
+| `runner/**` | sole reviewed versioned launcher boundary; current private source candidate is static-only and not runtime authority |
 | `reports/<task-run>/**` | generated owner-marked evidence for exactly one run |
 
 The suite tree is progressive. `tests/README.md` is currently its only
@@ -130,12 +130,13 @@ direct command is defined by this document.
 
 ## Launcher and container boundary
 
-The future `runner/**` owns the versioned launcher API, profile resolution,
+`runner/**` owns the versioned launcher API, profile resolution,
 bounded orchestration, exit preservation, task/run ownership, and exact cleanup
 flow. `docker/**` owns only immutable images, topologies, and resource/container
 contracts consumed by that launcher. Neither directory may expose a second or
-implicit fallback. Until the runner is implemented and independently accepted,
-launcher status remains `NOT_READY` and runtime remains `NOT_RUN`.
+implicit fallback. The current private source candidate has only static review;
+until binding, parser/private-contract and Docker evidence are independently
+accepted, launcher status remains `NOT_READY` and runtime remains `NOT_RUN`.
 
 ## Package-bootstrap acceptance
 

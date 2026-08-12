@@ -1,18 +1,28 @@
 ---
-description: Git safety and workflow — branch naming, commit format, never push/merge master, secrets policy. Always applied (session-global).
+description: Git safety and workflow — protected master lifecycle, task branches, commit format and secrets policy. Always applied (session-global).
 alwaysApply: true
 ---
 
 # Hub — Git Workflow
 
-## Политика коммитов и мержа (решение пользователя 2026-07-03, уточнено)
+## Политика коммитов и мержа (founder standing contract, 2026-08-12)
 
 - **Локальные атомарные коммиты** в текущую фича-ветку разрешены, когда пользователь
   или активный TASK/PLAN явно поручил реализацию и commit. Стадия формируется
   allowlist-ом своих файлов после ворот регрессии.
-- **Push, PR и любые remote writes — только по явному поручению пользователя.**
-  Наличие настроенного remote/credential не является разрешением.
-- **Push/мерж в `master` выполняет ТОЛЬКО пользователь лично.** Агенты (включая team-lead) НИКОГДА не пушат в master и не мержат в него. team-lead доводит ветку до состояния «merge-ready» (green CI + верификация + code-reviewer) и передаёт пользователю на мерж.
+- Каждая новая задача начинается от **обновлённого `master`**. Codex использует
+  короткоживущие ветки `codex/<task>`; prefix Cloud Code задаётся и обслуживается
+  его отдельным worker, поэтому его здесь не изобретают и не переименовывают.
+- **`master` — защищённый канонический baseline, а не заявление о production-ready
+  продукте.** Прямая реализация в `master` запрещена.
+- После применимых Docker-only verification, независимого review/`*-ver` и
+  docs-sync `team-lead` по standing founder authority выполняет routine merge
+  принятой ветки в `master`, push `master` и удаляет merged feature-ветку локально
+  и на remote. Для обычных принятых изменений отдельный ручной merge founder не
+  нужен. Security/auth, DB migration, deploy/CI и ADR сохраняют обязательное
+  founder review до интеграции.
+- Push/PR и другие remote writes вне этого lifecycle требуют явного поручения
+  пользователя; наличие remote/credential не является разрешением.
 - **PR = фича/фаза** с атомарными коммитами планов внутри. **Метод мержа: rebase-merge** (линейная история, атомарные коммиты сохранены для точечного revert). Squash не используется для фича-PR.
 - Личное ревью пользователя обязательно для: security/auth, миграций БД, деплой/CI, ADR-изменений. Остальное — цепочка агентов (кросс-ревью + `*-ver` + code-reviewer).
 
@@ -26,12 +36,9 @@ task ownership точного canonical path и явной authority; ambiguous/
 ## Branch Naming
 
 ```
-master            — production-ready, protected
-feat/<module>/<description>     — new features
-fix/<module>/<description>      — bug fixes
-refactor/<module>/<description> — refactoring
-chore/<description>             — deps, tooling, config
-hotfix/<issue-id>/<description> — critical production fixes
+master                 — protected canonical baseline; not a production-readiness claim
+codex/<task>           — all Codex task branches, created from refreshed master
+<cloud-prefix>/<task>  — Cloud Code only when its own worker supplies the prefix
 ```
 
 ## Commit Format (Conventional Commits)
@@ -156,7 +163,9 @@ One-time (human, not agent): `git config core.hooksPath .githooks` — вклю�
 2. All CI checks must pass (lint + test + build)
 3. No `DEV_MODE=true` or hardcoded credentials in diffs
 4. Code-reviewer approval required
-5. Rebase-merge to master (linear history, атомарные коммиты сохранены); мерж — только по команде пользователя
+5. После required Docker-only verification и независимого review `team-lead` интегрирует
+   routine accepted changes в `master` по standing founder authority; security/auth,
+   DB migrations, deploy/CI и ADR требуют founder review до integration.
 
 ## Tag Convention
 
@@ -188,4 +197,4 @@ v2.0.0   — new milestone
 - Feature-ветки удаляются локально и на remote **после** мержа (dependabot-ветки — исключение, не трогать).
 - Rebase-merge в действии: линейная история `master` сохраняет отдельные коммиты `fix(bases)` / `test(bases)` для точечного `git revert`, а не squash в один блоб.
 - Credentials-паттерны, которые реально фигурируют в repo и требуют бдительности: `livekit-prod.yaml` (`devkey:` секция), `docker-compose.local.yml` (Resend/Telegram токены) — см. `.planning/ops/production/PG-03-SECRET-ROTATION.md` для процедуры ротации, если что-то утекло.
-- Кто мержит: агенты доводят ветку до green CI + verified + code-reviewer approval и передают **пользователю**; team-lead никогда не мержит в `master` самостоятельно — см. session note 2026-07-11 в `.planning/STATE.md`.
+- Кто мержит: запись 2026-07-11 — историческое evidence прежнего lifecycle. Текущий standing contract выше: `team-lead` интегрирует routine accepted branch после Docker-only evidence + independent review, а security/auth, DB migrations, deploy/CI и ADR требуют founder review.

@@ -175,27 +175,17 @@ SeaweedFS    LiveKit      Prometheus    testframework/
 ### Требования
 
 - Docker + Docker Compose v2
-- Go 1.25+, Node.js 20+ (для нативного запуска backend/frontend)
 - Git
 
 ### Запуск
 
 ```bash
 git clone <repo-url> hub && cd hub
-
-# 1. Инфраструктура (PostgreSQL, MongoDB, Redis, NATS, SeaweedFS, LiveKit)
 docker compose -f docker-compose.local.yml up -d
-
-# 2. Backend (нативно, с hot-однокомандным запуском)
-cd backend
-go generate ./ent
-go run ./cmd/server
-
-# 3. Frontend
-cd frontend
-npm ci
-npm run dev
 ```
+
+Это dev stack, а не QA evidence. Test/build/lint/validator jobs через него не
+запускаются; применимые проверки маршрутизируются только через `/qa-gate`.
 
 | Сервис | URL |
 |---|---|
@@ -231,44 +221,30 @@ docker compose -f docker-compose.prod.yml --env-file .env up -d
 
 | Слой | Стек | Кто пишет | Статус |
 |---|---|---|---|
-| Unit backend | Go (testify, `-tags hubtest`, `-race`) | be-разработчики | ✅ **824** test files (measured 2026-07-29; was 515), coverage **80.2%** (2026-07-29) |
-| Unit frontend | TypeScript: Vitest + RTL | fe-разработчики | ✅ 99+ тестов |
-| E2E | Playwright (TS), smoke + full | QA | ✅ 20+ спеков (сейчас) |
-| Integration / API / contract / regression | **Python: pytest + allure-pytest + httpx + playwright-python** | QA-конвейер | 📋 целевой слой (фаза TF-PY, после выноса микросервисов) |
-| Нагрузочные | **Python: Locust** (500+ concurrent WS, p95 < 200ms API) | QA | 📋 baseline-профиль до выноса realtime |
+| Unit backend | Go + testify | be-разработчики | Цель: genuine units в `backend/tests/**`; legacy-инвентарь и историческое coverage не доказывают готовность |
+| Unit frontend | TypeScript: Vitest + RTL | fe-разработчики | Цель: genuine units в `frontend/tests/**`; текущий legacy-инвентарь не является acceptance evidence |
+| E2E | Python: pytest + Playwright | QA | Greenfield target в `testframework/tests/e2e/**`; `NOT_READY` |
+| Integration / API / contract / regression | Python: pytest + allure-pytest + httpx | QA-конвейер | Greenfield target; package/suites `NOT_READY` |
+| Нагрузочные | Python: Locust | QA | Будущий bounded profile; `NOT_READY` |
 
 Качество и ворота:
 
-- **Coverage-gate:** backend ≥ 82% (сейчас **83.0%**, 2026-06-22 Docker baseline), security-пакеты (auth/ws/rbac/audit/calls +1) ≥ 80% — **6/6** ✅.
-- **`/qa-gate`** перед handoff/merge: release-build → hubtest → race → Biome → e2e-smoke.
+- Исторические coverage и legacy PASS остаются baseline-инвентарём, а не текущим release/acceptance gate.
+- **`/qa-gate`** — единственная публичная точка маршрутизации применимых target jobs. Сейчас launcher/package `NOT_READY`, runtime `NOT_RUN`; прямой runner, host-команды и inline Docker/Compose не являются fallback.
 - **QA-конвейер:** тест-кейсы (TC-\*) → верификация → автотесты по TC → верификация автотестов; трассируемость TC↔автотест через Allure, результаты заливаются в собственный TMS Hub.
-
-```bash
-# Backend regression (Docker, canonical)
-docker compose -f deployments/docker-compose.test.yml up -d
-docker run --rm --network deployments_default \
-  -v "${PWD}/backend:/app" -w /app \
-  -e POSTGRES_TEST_URL="postgresql://hub:hub@postgres:5432/hub?sslmode=disable" \
-  -e MONGODB_TEST_URL="mongodb://hub:hub@mongo:27017/?authSource=admin" \
-  golang:1.25-bookworm \
-  sh -c "go test -tags hubtest -race -count=1 -timeout=600s ./testframework/..."
-
-# Frontend regression
-cd frontend && node scripts/link-testframework-node-modules.mjs && npx tsc --noEmit && npm run lint && npm run test:run
-```
 
 Стратегия тестового фреймворка: [docs/testframework_strategy.md](docs/testframework_strategy.md) · тест-план: [docs/test_plan.md](docs/test_plan.md) · карта pipeline: [testframework/PIPELINE.md](testframework/PIPELINE.md)
 
 ## AI-команда разработки
 
-Hub разрабатывается **командой из 30 AI-агентов** с ролями, зеркалящими реальную продуктовую команду:
+Hub разрабатывается **ростером из 32 файлов агентов: 31 operational + 1 deprecated redirect** с ролями, зеркалящими реальную продуктовую команду:
 
-- **Оркестрация:** `team-lead` (Fable 5, thinking-high) — декомпозиция волн, параллельный запуск, финальная приёмка; эскалация на `team-lead-opus` (Opus 4.8 @ 1M контекст) для самых тяжёлых декомпозиций и приёмки milestone; остальные агенты — Sonnet 5 (max effort).
+- **Оркестрация:** только root `team-lead` использует GPT-5.6 Sol / Max. Анализ, декомпозиция и review маршрутизируются на GPT-5.6 Terra с явным effort; атомарный код — на 5.3 Codex Spark / XHigh по замороженному контракту. `team-lead-opus` — deprecated redirect, не escalation authority.
 - **Потоки:** дублированные роли (ba1/ba2, sa1/sa2, be1/be2, fe1/fe2, qa-auto1/qa-auto2) работают параллельно с разделением по модулям и взаимным кросс-ревью.
 - **Верификаторы:** у каждого артефакта персональный `*-ver` (ba-ver, sa-ver, arch-ver, designer-ver, be-ver, fe-ver, qa-manual-ver, qa-auto-ver) — `verified: true` только при green-регрессии с приложенным логом.
 - **Cross-cutting:** devops-engineer, security-auditor, debugger, code-reviewer, docs-writer.
 - **QA-конвейер:** тест-кейсы → верификация TC → автотесты → верификация автотестов; юниты пишут разработчики.
-- **Практики:** 10 playbooks (backend, frontend, design, testing, observability, git-workflow, analysis, verification, team-workflow, code-comments) — единый источник ремесленных стандартов для всей команды.
+- **Практики:** tracked playbooks под `.cursor/playbooks/**`, включая model routing и prompt contract, — единый источник ремесленных стандартов для всей команды.
 
 Ростер, модели и RACI: [.cursor/playbooks/README.md](.cursor/playbooks/README.md) · регламент: [.cursor/REGULATION.md](.cursor/REGULATION.md) · воркспейс: [AGENTS.md](AGENTS.md)
 

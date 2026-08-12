@@ -36,7 +36,7 @@ testframework/
   policies/                         marker/environment/redaction/profile policy
   load/                             separate Locust lifecycle
   docker/                           immutable execution assets only
-  runner/                           future versioned launcher API
+  runner/                           sole launcher boundary; private static candidate
   reports/<task-run>/               owner-marked generated evidence
   pyproject.toml                    future; NOT_READY
   uv.lock                           future; NOT_READY
@@ -157,16 +157,19 @@ pytest/Playwright и Locust исполняются только в task-owned co
 - явные CPU/RAM и bounded timeout;
 - source mount read-only, если runner не обязан писать;
 - isolated data/ports/network/artifacts;
-- `--rm` либо guaranteed `down -v --remove-orphans`;
+- unconditional cleanup только по заранее записанным exact owned IDs; broad
+  project teardown, wildcard/prune и foreign-resource deletion запрещены;
 - zero collection, unexpected skip или leaked resource = FAIL.
 
-Единственная будущая точка исполнения — versioned outer launcher API из
+Единственная точка исполнения — versioned outer launcher API из
 `testframework/runner/**`, вызываемый
 [`/qa-gate`](../skills/qa-gate/SKILL.md). Он enforce wall-clock timeout,
 сохраняет exit code и выполняет exact-resource cleanup в `finally`; artifacts
-изолированы в `testframework/reports/<task-run>/` с owner marker. Пока launcher
-не реализован и независимо не проверен, launcher — `NOT_READY`, runtime —
-`NOT_RUN`. `testframework/docker/**` содержит только immutable execution
+изолированы в `testframework/reports/<task-run>/` с owner marker. Private
+`run-task.ps1` source candidate существует и принят только статически; до
+binding и parser/private-contract/Docker acceptance launcher — `NOT_READY`,
+`PS5.1_PARSE_NOT_RUN`, `PRIVATE_CONTRACT_NOT_RUN`, runtime — `NOT_RUN`.
+`testframework/docker/**` содержит только immutable execution
 assets/contracts, не launcher code или alternate entrypoint.
 Прямой `docker run`/`compose up` не является допустимым substitute.
 

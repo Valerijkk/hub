@@ -95,7 +95,7 @@
 - [ ] Нет секретов/токенов/PII/полных `Authorization`-заголовков/query с токеном в логах.
 - [ ] Горутины (WS/consumer/cron) защищены от паники; `context.Canceled` при shutdown не логируется как `Error`.
 - [ ] Уровни выставлены осмысленно (Debug шумное, Info значимое, Warn деградация, Error сбой).
-- [ ] Регрессия зелёная: `go build -tags release ./... && go test -race -count=1 -timeout=600s ./...`.
+- [ ] Применимый backend target через `/qa-gate` имеет raw PASS evidence на exact revision; `NOT_READY`/`NOT_RUN` не маскируются fallback-командой.
 
 ### 10.2 DoD для frontend-фичи
 
@@ -104,7 +104,7 @@
 - [ ] Нет токенов/PII в консоли или в URL/query.
 - [ ] Ошибки API показывают `request_id` пользователю (для поддержки) где уместно.
 - [ ] (Если reporter подключён) ошибки уходят в reporter без чувствительных полей; reporter не роняет приложение.
-- [ ] Регрессия зелёная: `npx tsc --noEmit && npm run lint && npm run test:run`.
+- [ ] Применимый frontend target через `/qa-gate` имеет raw PASS evidence на exact revision; `NOT_READY`/`NOT_RUN` не маскируются fallback-командой.
 
 ### 10.3 DoD для devops-изменения
 

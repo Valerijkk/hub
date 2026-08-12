@@ -81,9 +81,11 @@ user := repo.Get(ctx, id) // получаем пользователя
 ### 2.5 Тесты и регрессия
 
 - Тесты присутствуют для нового поведения; привязаны к TC (`docs/TESTING.md`/testframework) там, где применимо.
-- Регрессия green **и приложен лог** — не принимаю `verified: true` без конкретного вывода прогона (`.cursor/rules/56-regression-verify.mdc`: «один прогон «вроде зелёный» → сразу handoff» запрещено).
-- Для backend: `go test -race -count=1 -timeout=600s ./testframework/...` и `go build -tags release ./...` присутствуют в отчёте.
-- Для frontend: `npx tsc --noEmit && npm run lint && npx vitest run` присутствуют.
+- Для применимого target job требуется raw `/qa-gate` evidence на exact revision;
+  не принимаю `verified: true` без конкретного результата и cleanup receipt.
+- Если `/qa-gate` сообщает `NOT_READY` или job не существует, отчёт обязан
+  сохранить `NOT_READY`/`NOT_RUN`; host-команда, direct runner или inline
+  Docker/Compose не заменяют evidence.
 - Тест покрывает именно новый баг-класс, не только конкретный инстанс (актуально при ревью фиксов от `debugger` — регрессионный тест должен ловить повторение той же гонки/race/паники, не просто «однажды воспроизведённый кейс»).
 
 ### 2.6 Git-гигиена

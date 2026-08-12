@@ -40,10 +40,12 @@ backend/internal/<module>/
 ├── repository.go       # Interface
 ├── ent_repository.go   # Ent implementation
 ├── dto.go              # Request/Response structs
-└── export_hooks.go     # //go:build hubtest — re-export для testframework
+└── export_hooks.go     # legacy inventory; delete after exact protected-unit cutover
 ```
 
-Тесты модуля: `backend/testframework/<module>/` (0 `*_test.go` в `internal/` после TF-M08).
+Target genuine unit tests: `backend/tests/<module>/**`. Старый
+`backend/testframework/<module>/**` — legacy inventory, delete-not-port и не
+является authoring path.
 
 **Запрещено:** `*ent.Client` в Handler или Service — только через Repository interface.
 
@@ -155,7 +157,9 @@ frontend/src/
 ├── stores/<module>-store.ts  # Zustand (**12** stores)
 ```
 
-Unit-тесты FE: `testframework/stages/unit/frontend-test/domains/` (не `frontend/src/testframework/`).
+Target FE unit tests: `frontend/tests/<domain>/**`; общий setup/fixtures —
+`frontend/tests/support/**`. `testframework/stages/unit/frontend-test/**` —
+legacy inventory, delete-not-port и не является authoring path.
 
 ---
 
@@ -265,11 +269,11 @@ const CallsRoom = lazy(() => import('./modules/calls/CallsRoom'))
 
 | Слой | Расположение | Теги |
 |------|--------------|------|
-| Backend unit | `backend/testframework/{domain}/*_test.go` | `-tags hubtest` в CI |
-| Backend fixtures | `backend/testframework/env/`, `factory/` | builders, factories |
-| Frontend unit | `testframework/stages/unit/frontend-test/domains/` | Vitest (0 in `src/`) |
-| E2E specs | `testframework/stages/e2e/domains/{domain}/` | Playwright |
-| E2E shared | `testframework/stages/e2e/shared/` | POM, steps, fixtures |
+| Backend unit | `backend/tests/{domain}/**` | только genuine isolated Go units |
+| Frontend unit | `frontend/tests/{domain}/**`, `frontend/tests/support/**` | genuine Vitest/RTL units |
+| Contract/API/integration | `testframework/tests/{contract,api,integration}/**` | future greenfield pytest suites; `NOT_READY` |
+| E2E | `testframework/tests/e2e/**` | future greenfield pytest + Playwright; `NOT_READY` |
+| Framework selftests | `testframework/selftests/**` | framework contracts, не SUT suites |
 
 Именование Go: table-driven где уместно; testify `require` / `assert`.
 
@@ -277,12 +281,10 @@ const CallsRoom = lazy(() => import('./modules/calls/CallsRoom'))
 
 ## Git и pre-commit
 
-См. `.cursor/rules/50-git.mdc`:
-
-```bash
-cd backend && go build -tags release ./... && go test -race -count=1 ./...
-cd frontend && npx tsc --noEmit && npm run lint
-```
+См. `.cursor/rules/50-git.mdc`. Применимые проверки запрашиваются только как
+fixed targets через `/qa-gate`; прямые host-команды, direct runner и inline
+Docker/Compose не являются допустимым pre-commit fallback. Пока target
+`NOT_READY`, фиксируется `NOT_RUN`, а не выдуманный green.
 
 **Не коммитить:** `.env`, coverage dumps (`backend/cov*`), secrets.
 

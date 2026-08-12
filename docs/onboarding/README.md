@@ -34,9 +34,9 @@ docker compose --env-file .env.local -f docker-compose.local.yml up --build
 
 ## Git-политика (одинакова для людей и агентов)
 
-- Коммиты — **только в фича-ветки** (`feat/<module>/<desc>`, `fix/...`), Conventional Commits.
-- **Push/мерж в `master` выполняет только владелец проекта.** Твоя задача — довести ветку до «merge-ready»: зелёная регрессия, верификация, ревью.
-- PR = фича/фаза, метод мержа — rebase-merge (линейная история).
+- Каждая новая Codex-задача начинается в короткой ветке `codex/<task>` от обновлённого `master`; Cloud Code использует свой отдельный prefix, который задаёт его worker.
+- `master` — защищённый канонический baseline, не заявление о готовности продукта к production. Прямая реализация в нём запрещена.
+- После применимых Docker-only проверок, независимой верификации/ревью и docs-sync `team-lead` по standing founder authority мержит routine accepted change в `master`, push-ит его и удаляет merged branch local+remote. Для security/auth, DB migrations, deploy/CI и ADR сначала нужен founder review.
 - Перед handoff: регрессия своего слоя + docs-sync (`.cursor/rules/55-docs-sync.mdc`).
 
 Детали — `.cursor/playbooks/git-workflow.md`.

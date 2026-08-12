@@ -310,8 +310,11 @@ Wave 4 (приёмка):
 - **Sync point** между волнами: `team-lead` собирает артефакты, прогоняет `/qa-gate` на объединении,
   делает `/handoff-sync` (обновляет `STATE.md`).
 - **Порядок мержа:** сначала фундамент (Ent schema/миграции, общие типы, API-контракт), затем зависимые
-  слои (service → handler → frontend). После green gate и `code-reviewer` атомарные коммиты
-  сохраняются; rebase-merge в `master` выполняет только пользователь по rule 50.
+  слои (service → handler → frontend). Каждая новая задача стартует в `codex/<task>` от refreshed
+  `master`; после applicable Docker-only gate и `code-reviewer` `team-lead` по standing founder
+  authority интегрирует routine accepted result в protected `master` и удаляет merged branch.
+  `master` — baseline, не production-readiness claim; security/auth, DB migrations,
+  deploy/CI и ADR требуют founder review до integration.
 - **Конфликт-резолюция:** если два агента всё же задели один файл — `team-lead` решает, чей коммит
   базовый, второй перебазируется. Не «оба перезаписывают».
 - **Один writer на ownership boundary:** reviewer/verifier всегда read-only; remediation возвращается владельцу-writer. Смена владельца фиксируется явно до следующей записи.
@@ -329,7 +332,7 @@ Wave 4 (приёмка):
 - [ ] Root + ≤3 параллельных субагента; каждый slot занят независимой полезной задачей.
 - [ ] Задачи разведены по модулям/файлам; общий контракт зафиксирован первым коммитом.
 - [ ] Между волнами — sync point: `/qa-gate` + `/handoff-sync`.
-- [ ] Порядок мержа: фундамент → зависимые слои; merge-ready → пользовательский rebase-merge.
+- [ ] Порядок мержа: фундамент → зависимые слои; task branch от refreshed master → Docker-only gate + independent review → team-lead integration → branch cleanup.
 
 ---
 

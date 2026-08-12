@@ -194,9 +194,9 @@ FAIL: CRITICAL (version). Возврат SA, приложить пересчёт
 - Вердикт: verified: false
 
 ## Регрессия
-- Команда: npx tsc --noEmit && npm run lint && npx vitest run
-- Результат: PASS
-- Лог: Test Files 37 passed (37) · Tests 99 passed (99)
+- Historical pre-cutover result: frontend-test PASS; не reusable runtime evidence
+- Current fixed target: `/qa-gate` `frontend-unit`
+- Current status: `NOT_READY` / `NOT_RUN` до accepted launcher evidence
 
 ## Замечания
 | # | Severity | Файл:строка | Ожидалось | Фактически | Действие |
@@ -219,7 +219,8 @@ FAIL: Rules of Hooks + key=index. Возврат fe. Регрессия зелё
 - Вердикт: verified: false
 
 ## Воспроизведение
-go test -race -count=3 ./internal/tms/... → 2/3 PASS, 1 FAIL (нестабильно).
+`/qa-gate` fixed target на exact revision: 2/3 accepted receipts PASS,
+1/3 FAIL (нестабильно); task-owned artifacts и cleanup receipts приложены.
 
 ## Замечания
 | # | Severity | Файл:строка | Ожидалось | Фактически | Действие |

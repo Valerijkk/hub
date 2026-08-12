@@ -19,17 +19,22 @@
 
 ## Phase map (128–136)
 
+> This table is retained as a historical planning audit, not an executable
+> routing authority. The current canonical mapping and all `NOT_READY` /
+> `NOT_RUN` statuses live in
+> [`06-TEST-ARCHITECTURE-REBASE.md`](../../active/august-2026/06-TEST-ARCHITECTURE-REBASE.md).
+
 | Phase | Dir | Э | Estimate | Depends on | Goal (one line) |
 |------:|-----|---|----------:|--------------|-----------------|
 | **128** | [`128-tf-python-scaffold`](../../phases/128-tf-python-scaffold/PLAN.md) | Э1 | 2–3 d | **A3** | `/tests` pyproject + conftest; 1 integration green |
-| **129** | [`129-tf-e2e-shared`](../../phases/129-tf-e2e-shared/PLAN.md) | Э2 shared | 3–4 d | 128 | Auth/fixtures/POM/a11y Python |
-| **130** | [`130-tf-e2e-mechanical`](../../phases/130-tf-e2e-mechanical/PLAN.md) | Э2 mech | 4–5 d | 129 | 15 mechanical specs |
-| **131** | [`131-tf-e2e-rewrite`](../../phases/131-tf-e2e-rewrite/PLAN.md) | Э2 rewrite | 4–5 d | 129, soft:130 | 5 rewrite specs; e2e 20/20 |
-| **132** | [`132-tf-backend-units-colocated`](../../phases/132-tf-backend-units-colocated/PLAN.md) | Э3 | 10–15 d | A3; soft:128 | Go tests → `internal/` |
-| **133** | [`133-tf-frontend-units-colocated`](../../phases/133-tf-frontend-units-colocated/PLAN.md) | Э4 | 5–8 d | parallel OK after 128 | Vitest → `frontend/src` |
-| **134** | [`134-tf-integration-python`](../../phases/134-tf-integration-python/PLAN.md) | Э5 | 5–7 d | 128; soft:132 | `tests/integration` domains |
-| **135** | [`135-tf-locust-load`](../../phases/135-tf-locust-load/PLAN.md) | Э6 | 3–4 d | 128; soft:134 | Locust hot paths + A13 |
-| **136** | [`136-tf-ci-cleanup`](../../phases/136-tf-ci-cleanup/PLAN.md) | Э7 | 3–4 d | 130+131+132+133 | CI cutover; delete legacy |
+| **129** | [historical `129-tf-e2e-shared`](../../phases/129-tf-e2e-shared/PLAN.md) | historical Э2 shared | 3–4 d | 128 | non-executable historical route; canonical plan remains `NOT_READY` / `NOT_RUN` |
+| **130** | [`130-tf-traceability-gates`](../../phases/130-tf-traceability-gates/PLAN.md) | historical Э2 mech | 4–5 d | 129 | current traceability and catalog gates |
+| **131** | [`131-tf-python-core-auth`](../../phases/131-tf-python-core-auth/PLAN.md) | historical Э2 rewrite | 4–5 d | 129, soft:130 | current Python core/auth foundation |
+| **132** | [`132-tf-security-platform`](../../phases/132-tf-security-platform/PLAN.md) | historical Э3 | 10–15 d | A3; soft:128 | current security/platform coverage |
+| **133** | [`133-tf-infrastructure-integration`](../../phases/133-tf-infrastructure-integration/PLAN.md) | historical Э4 | 5–8 d | parallel OK after 128 | current infrastructure integration coverage |
+| **134** | [`134-tf-work-realtime`](../../phases/134-tf-work-realtime/PLAN.md) | historical Э5 | 5–7 d | 128; soft:132 | current work/realtime coverage |
+| **135** | [`135-tf-business-integrations`](../../phases/135-tf-business-integrations/PLAN.md) | historical Э6 | 3–4 d | 128; soft:134 | current business/integration coverage |
+| **136** | [`136-tf-python-contracts`](../../phases/136-tf-python-contracts/PLAN.md) | historical Э7 | 3–4 d | 130+131+132+133 | current contract/schema coverage |
 
 **Total (calendar parallelizable):** ~40–55 person-days; wall-clock shorter if 132∥133∥134 after 128–131.
 
