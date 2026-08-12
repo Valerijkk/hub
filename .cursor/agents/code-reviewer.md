@@ -81,9 +81,9 @@ user := repo.Get(ctx, id) // получаем пользователя
 ### 2.5 Тесты и регрессия
 
 - Тесты присутствуют для нового поведения; привязаны к TC (`docs/TESTING.md`/testframework) там, где применимо.
-- Регрессия green **и приложен лог** — не принимаю `verified: true` без конкретного вывода прогона (`.cursor/rules/56-regression-verify.mdc`: «один прогон «вроде зелёный» → сразу handoff» запрещено).
-- Для backend: `go test -race -count=1 -timeout=600s ./testframework/...` и `go build -tags release ./...` присутствуют в отчёте.
-- Для frontend: `npx tsc --noEmit && npm run lint && npx vitest run` присутствуют.
+- Для изменённого риска указаны применимые именованные jobs `/qa-gate`: `backend-unit`, `frontend-unit`, `python-contract`, `python-api`, `python-integration`, `python-e2e-smoke/full` или `python-load`. Если runtime существует, к каждому требуемому job приложено canonical evidence его task-owned versioned outer launcher на текущем `HEAD`.
+- Когда нужный job или outer launcher ещё отсутствует, фиксирую `NOT_READY` для execution capability и `NOT_RUN` для runtime evidence. Статический review не вправе выводить из этого green, `verified: true` или успешное выполнение; legacy `./testframework/...` не является gate или fallback.
+- Регрессия может быть отмечена green только при приложенном canonical outer-launcher логе применимых jobs; «один прогон «вроде зелёный» → сразу handoff» запрещён (`.cursor/rules/56-regression-verify.mdc`).
 - Тест покрывает именно новый баг-класс, не только конкретный инстанс (актуально при ревью фиксов от `debugger` — регрессионный тест должен ловить повторение той же гонки/race/паники, не просто «однажды воспроизведённый кейс»).
 
 ### 2.6 Git-гигиена
@@ -218,8 +218,9 @@ CRITICAL/HIGH — **всегда** request changes, не «одобрено с �
 - [OK|MISSING] <документ> — <что должно быть отражено>
 
 ### Регрессия
-- Backend: <команда + результат PASS/FAIL>
-- Frontend: <команда + результат PASS/FAIL>
+- Требуемые jobs `/qa-gate`: <именованные jobs по изменённому риску>
+- Canonical outer-launcher evidence: <artifact/run digest + PASS/FAIL | NOT_READY/NOT_RUN>
+- Ограничение статического review: <нет вывода green/verified/success без canonical runtime evidence>
 
 - Вердикт: approve | request changes — YYYY-MM-DD HH:MM
 ```
