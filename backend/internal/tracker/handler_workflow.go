@@ -84,6 +84,10 @@ func (h *Handler) CreateWorkflowStatus(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/workflow/statuses/{statusId} [put]
 func (h *Handler) UpdateWorkflowStatus(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
 	statusID, err := httputil.ParseUUIDParam(c, "statusId")
 	if err != nil {
 		return err
@@ -94,7 +98,7 @@ func (h *Handler) UpdateWorkflowStatus(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
-	resp, err := h.service.UpdateWorkflowStatus(c.Context(), statusID, req)
+	resp, err := h.service.UpdateWorkflowStatus(c.Context(), projectID, statusID, req)
 	if err != nil {
 		return err
 	}
@@ -115,12 +119,16 @@ func (h *Handler) UpdateWorkflowStatus(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/workflow/statuses/{statusId} [delete]
 func (h *Handler) DeleteWorkflowStatus(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
 	statusID, err := httputil.ParseUUIDParam(c, "statusId")
 	if err != nil {
 		return err
 	}
 
-	if err := h.service.DeleteWorkflowStatus(c.Context(), statusID); err != nil {
+	if err := h.service.DeleteWorkflowStatus(c.Context(), projectID, statusID); err != nil {
 		return err
 	}
 
@@ -167,12 +175,17 @@ func (h *Handler) ListWorkflowTransitions(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/workflow/transitions [post]
 func (h *Handler) CreateWorkflowTransition(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
+
 	var req CreateWorkflowTransitionRequest
 	if err := c.Bind().JSON(&req); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
-	resp, err := h.service.CreateWorkflowTransition(c.Context(), req)
+	resp, err := h.service.CreateWorkflowTransition(c.Context(), projectID, req)
 	if err != nil {
 		return err
 	}
@@ -193,12 +206,16 @@ func (h *Handler) CreateWorkflowTransition(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/workflow/transitions/{transitionId} [delete]
 func (h *Handler) DeleteWorkflowTransition(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
 	transitionID, err := httputil.ParseUUIDParam(c, "transitionId")
 	if err != nil {
 		return err
 	}
 
-	if err := h.service.DeleteWorkflowTransition(c.Context(), transitionID); err != nil {
+	if err := h.service.DeleteWorkflowTransition(c.Context(), projectID, transitionID); err != nil {
 		return err
 	}
 

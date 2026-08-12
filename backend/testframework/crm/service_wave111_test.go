@@ -38,7 +38,7 @@ func TestService_UpdateContact_LinkedUserSuccess(t *testing.T) {
 	require.NoError(t, err)
 
 	linkedID := linked.ID
-	updated, err := svc.UpdateContact(ctx, created.ID, crm.UpdateContactRequest{
+	updated, err := svc.UpdateContact(ctx, owner.ID, created.ID, crm.UpdateContactRequest{
 		LinkedUserID: &linkedID,
 		Version:      created.Version,
 	})
@@ -62,7 +62,7 @@ func TestService_UpdateContact_InvalidLinkedUser(t *testing.T) {
 	require.NoError(t, err)
 
 	badID := uuid.New()
-	_, err = svc.UpdateContact(ctx, created.ID, crm.UpdateContactRequest{
+	_, err = svc.UpdateContact(ctx, owner.ID, created.ID, crm.UpdateContactRequest{
 		LinkedUserID: &badID,
 		Version:      created.Version,
 	})
@@ -84,7 +84,7 @@ func TestService_UpdateContact_VersionConflict(t *testing.T) {
 	require.NoError(t, err)
 
 	name := "Renamed"
-	_, err = svc.UpdateContact(ctx, created.ID, crm.UpdateContactRequest{
+	_, err = svc.UpdateContact(ctx, owner.ID, created.ID, crm.UpdateContactRequest{
 		Name:    &name,
 		Version: created.Version + 99,
 	})
@@ -151,7 +151,7 @@ func TestService_DeleteContact_NotFound(t *testing.T) {
 	t.Cleanup(func() { client.Close() })
 
 	svc := crm.NewService(crm.NewEntRepository(client))
-	err := svc.DeleteContact(context.Background(), uuid.New())
+	err := svc.DeleteContact(context.Background(), uuid.New(), uuid.New())
 	require.ErrorIs(t, err, crm.ErrNotFound)
 }
 

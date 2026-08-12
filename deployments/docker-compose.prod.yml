@@ -72,11 +72,18 @@ services:
           cpus: "0.5"
 
   nats:
+    # A14-003: auth required in prod — credentials via NATS_USER/NATS_PASSWORD.
     image: nats:2.11
     restart: unless-stopped
     mem_limit: 256m
     cpus: 0.5
-    command: ["-js", "--store_dir", "/data"]
+    command:
+      [
+        "-js",
+        "--store_dir", "/data",
+        "--user", "${NATS_USER}",
+        "--pass", "${NATS_PASSWORD}",
+      ]
     volumes:
       - natsdata:/data
     healthcheck:
@@ -92,14 +99,37 @@ services:
 
   seaweedfs:
     # LO-Inf: pinned tag (раньше :latest — невоспроизводимый билд).
+    # A14-002: s3.json генерируется из S3_* env (как LiveKit yaml) — не монтировать
+    # committed seaweedfs-s3.json с hub/hubsecret (validate() запрещает в prod).
     image: chrislusf/seaweedfs:3.97
     restart: unless-stopped
     mem_limit: 512m
     cpus: 0.5
-    command: ["server", "-s3", "-dir=/data", "-s3.config=/etc/seaweedfs/s3.json"]
+    environment:
+      S3_ACCESS_KEY: "${S3_ACCESS_KEY}"
+      S3_SECRET_KEY: "${S3_SECRET_KEY}"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        cat > /tmp/s3.json <<EOF
+        {
+          "identities": [
+            {
+              "name": "hub",
+              "credentials": [
+                {
+                  "accessKey": "$${S3_ACCESS_KEY}",
+                  "secretKey": "$${S3_SECRET_KEY}"
+                }
+              ],
+              "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+            }
+          ]
+        }
+        EOF
+        exec weed server -s3 -dir=/data -s3.config=/tmp/s3.json
     volumes:
       - seaweeddata:/data
-      - ./seaweedfs-s3.json:/etc/seaweedfs/s3.json:ro
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:9333/cluster/status"]
       interval: 15s
@@ -181,7 +211,8 @@ services:
       MONGODB_URL: "mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/?authSource=admin"
       MONGODB_DATABASE: "${MONGO_DB:-hub}"
       REDIS_URL: "redis://:${REDIS_PASSWORD}@redis:6379/0"
-      NATS_URL: "nats://nats:4222"
+      # A14-003: credentials in URL (nats.go UserInfo from URL). Avoid @/: in password.
+      NATS_URL: "nats://${NATS_USER}:${NATS_PASSWORD}@nats:4222"
       S3_ENDPOINT: "http://seaweedfs:8333"
       S3_ACCESS_KEY: "${S3_ACCESS_KEY}"
       S3_SECRET_KEY: "${S3_SECRET_KEY}"
@@ -203,8 +234,14 @@ services:
       LIVEKIT_API_KEY: "${LIVEKIT_API_KEY}"
       LIVEKIT_API_SECRET: "${LIVEKIT_API_SECRET}"
       DEV_MODE: "false"
-      METRICS_ALLOWED_CIDRS: "${METRICS_ALLOWED_CIDRS:-}"
+      # A14-005: default loopback-only — RFC1918 default позволял любому Docker peer scrape.
+      # Для Prometheus overlay задайте CIDR scrape-сети в .env (не blanket 10/8+172.16/12+192.168/16).
+      # Пустой METRICS_ALLOWED_CIDRS в production → config.Load fail-closed.
+      METRICS_ALLOWED_CIDRS: "${METRICS_ALLOWED_CIDRS:-127.0.0.1/32}"
       ALERT_WEBHOOK_SECRET: "${ALERT_WEBHOOK_SECRET:-}"
+      # A14-009: optional OTLP; без endpoint InitTracing — no-op.
+      OTEL_EXPORTER_OTLP_ENDPOINT: "${OTEL_EXPORTER_OTLP_ENDPOINT:-}"
+      OTEL_SERVICE_NAME: "${OTEL_SERVICE_NAME:-hub-backend}"
     depends_on:
       postgres:
         condition: service_healthy
@@ -218,8 +255,9 @@ services:
         condition: service_started
       hub-mail:
         condition: service_healthy
+    # A14-001: readiness для depends_on (deps). Liveness в Dockerfile = /api/live.
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/ready"]
       interval: 10s
       timeout: 5s
       retries: 5

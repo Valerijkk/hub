@@ -1,19 +1,24 @@
-﻿package apigateway_test
+package apigateway_test
 import (
 	"github.com/valerii/hub/backend/internal/apigateway"
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/valerii/hub/backend/ent"
 	safehttp "github.com/valerii/hub/backend/internal/platform/http"
 )
 
@@ -28,6 +33,36 @@ func useUnsafeClient(t *testing.T) {
 	t.Cleanup(func() {
 		apigateway.ExportResetWebhookHTTPClient(prev)
 	})
+}
+
+// localTestURL — httptest.Server URL с hostname localhost вместо 127.0.0.1.
+// W4-A1-009: ValidateOutboundURL режет IP-литералы из blocklist; dial к
+// localhost закрывает useUnsafeClient (без SafeDialContext).
+func localTestURL(srv *httptest.Server) string {
+	u, err := url.Parse(srv.URL)
+	if err != nil {
+		return srv.URL
+	}
+	host, port, err := net.SplitHostPort(u.Host)
+	if err != nil {
+		return srv.URL
+	}
+	if host == "127.0.0.1" || host == "::1" {
+		u.Host = net.JoinHostPort("localhost", port)
+	}
+	return u.String()
+}
+
+// localServerURL — alias для TASK-086 tests.
+func localServerURL(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil { return raw }
+	host, port, err := net.SplitHostPort(u.Host)
+	if err != nil { return raw }
+	if host == "127.0.0.1" || host == "::1" {
+		u.Host = net.JoinHostPort("localhost", port)
+	}
+	return u.String()
 }
 
 // TestSendWebhook_BlocksLoopbackSSRF проверяет, что dispatcher отказывается
@@ -54,7 +89,7 @@ func TestSendWebhook_BlocksLoopbackSSRF(t *testing.T) {
 
 	for _, u := range cases {
 		t.Run(u, func(t *testing.T) {
-			status, body, err := apigateway.ExportWebhookSendWebhook(d, u, []byte(`{"ping":true}`), "sig", "test.event")
+			status, body, err := apigateway.ExportWebhookSendWebhook(d, context.Background(), u, []byte(`{"ping":true}`), "sig", "test.event")
 
 			require := assert.New(t)
 			require.Error(err, "ожидалась ошибка для %s", u)
@@ -86,7 +121,7 @@ func TestSendWebhook_RejectsBadScheme(t *testing.T) {
 
 	for _, u := range cases {
 		t.Run(u, func(t *testing.T) {
-			status, _, err := apigateway.ExportWebhookSendWebhook(d, u, []byte("{}"), "sig", "evt")
+			status, _, err := apigateway.ExportWebhookSendWebhook(d, context.Background(), u, []byte("{}"), "sig", "evt")
 			assert.Error(t, err)
 			assert.Zero(t, status)
 		})
@@ -126,18 +161,22 @@ func TestSendWebhook_AllowsPublicURL_200(t *testing.T) {
 	t.Cleanup(srv.Close)
 
 	d := &apigateway.WebhookDispatcher{}
-	status, body, err := apigateway.ExportWebhookSendWebhook(d, srv.URL, []byte(`{"ping":true}`), "sig", "test.event")
+	status, body, err := apigateway.ExportWebhookSendWebhook(d, context.Background(), localTestURL(srv), []byte(`{"ping":true}`), "sig", "test.event")
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, status)
 	assert.Equal(t, `{"ok":true}`, body)
 }
 
-// TestSendWebhook_5xxRetries проверяет, что deliverWithRetry делает
-// несколько попыток при 5xx. delays[1] == 1s — должно быть достаточно
-// для двух попыток за разумный таймаут. Используем atomic.Int32 для
-// бесконкурентного подсчёта обращений к серверу.
+// TestSendWebhook_5xxRetries проверяет полный deliverWithRetry path при 5xx
+// (A2W4-5-005): не ручной 2× sendWebhook — через ExportWebhookDispatcherDeliverWithRetry.
+// Короткие delays — чтобы мутация delays/delivery writes ловилась быстро.
 func TestSendWebhook_5xxRetries(t *testing.T) {
 	useUnsafeClient(t)
+
+	prev := apigateway.ExportSetWebhookRetryDelays([]time.Duration{
+		0, 10 * time.Millisecond, 10 * time.Millisecond,
+	})
+	t.Cleanup(func() { apigateway.ExportSetWebhookRetryDelays(prev) })
 
 	var hits atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -147,20 +186,24 @@ func TestSendWebhook_5xxRetries(t *testing.T) {
 	}))
 	t.Cleanup(srv.Close)
 
-	d := &apigateway.WebhookDispatcher{}
-	// Прямые вызовы sendWebhook — три попытки подряд, по контракту
-	// deliverWithRetry (delays = [0, 1s, 5s, 30s]). Здесь имитируем
-	// первую и вторую попытки руками, без БД (deliverWithRetry пишет
-	// в БД, нам это в этом тесте не нужно).
-	status1, _, err1 := apigateway.ExportWebhookSendWebhook(d, srv.URL, []byte(`{"x":1}`), "sig", "e")
-	require.NoError(t, err1)
-	assert.Equal(t, http.StatusServiceUnavailable, status1)
+	epID := uuid.New()
+	repo := &stubWebhookRepo{
+		endpoints: []*ent.WebhookEndpoint{{
+			ID: epID, URL: localTestURL(srv), Secret: "secret", Events: []string{"*"}, IsActive: true,
+		}},
+	}
+	d := apigateway.NewWebhookDispatcher(repo, nil)
+	body := []byte(`{"x":1}`)
+	payload := map[string]interface{}{"x": float64(1)}
 
-	status2, _, err2 := apigateway.ExportWebhookSendWebhook(d, srv.URL, []byte(`{"x":1}`), "sig", "e")
-	require.NoError(t, err2)
-	assert.Equal(t, http.StatusServiceUnavailable, status2)
+	apigateway.ExportWebhookDispatcherDeliverWithRetry(
+		d, context.Background(), repo.endpoints[0], "project.x.issue.created", body, payload,
+	)
 
-	assert.GreaterOrEqual(t, int(hits.Load()), 2, "сервер должен быть дёрнут ≥ 2 раз")
+	assert.GreaterOrEqual(t, int(hits.Load()), 2, "сервер должен быть дёрнут ≥ 2 раз через deliverWithRetry")
+	assert.GreaterOrEqual(t, len(repo.deliveries), 2, "каждая попытка пишет webhook_delivery")
+	assert.Equal(t, http.StatusServiceUnavailable, repo.deliveries[0].StatusCode)
+	assert.Equal(t, epID, repo.deliveries[0].EndpointID)
 }
 
 // TestSendWebhook_SignatureHeaderPresent — сервер читает заголовок
@@ -194,7 +237,7 @@ func TestSendWebhook_SignatureHeaderPresent(t *testing.T) {
 
 	d := &apigateway.WebhookDispatcher{}
 	sig := apigateway.ExportSignPayload(body, secret)
-	_, _, err := apigateway.ExportWebhookSendWebhook(d, srv.URL, body, sig, "issue.created")
+	_, _, err := apigateway.ExportWebhookSendWebhook(d, context.Background(), localTestURL(srv), body, sig, "issue.created")
 	require.NoError(t, err)
 
 	assert.Equal(t, expected, receivedHeader, "X-Hub-Signature-256 mismatch")
@@ -219,7 +262,7 @@ func TestSendWebhook_ResponseBodyTruncated(t *testing.T) {
 	t.Cleanup(srv.Close)
 
 	d := &apigateway.WebhookDispatcher{}
-	status, body, err := apigateway.ExportWebhookSendWebhook(d, srv.URL, []byte(`{}`), "sig", "evt")
+	status, body, err := apigateway.ExportWebhookSendWebhook(d, context.Background(), localTestURL(srv), []byte(`{}`), "sig", "evt")
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, status)
 	assert.LessOrEqual(t, len(body), apigateway.ExportMaxWebhookResponseBodyBytes(),

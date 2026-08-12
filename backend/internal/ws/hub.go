@@ -183,6 +183,50 @@ func (h *Hub) Register(client *Client) {
 	}
 }
 
+// UnregisterUser удаляет все WS-соединения пользователя (W3-A4-004 / P2-BE-14).
+// Используется при revoke/logout сессии: instant revocation не должна оставлять
+// клиента в rooms до pong-timeout.
+func (h *Hub) UnregisterUser(userID string) {
+	val, ok := h.userClients.Load(userID)
+	if !ok {
+		return
+	}
+	inner := val.(*sync.Map)
+	var clients []*Client
+	inner.Range(func(_, value any) bool {
+		clients = append(clients, value.(*Client))
+		return true
+	})
+	for _, c := range clients {
+		h.Unregister(c)
+	}
+}
+
+// UnregisterBySession удаляет соединения с совпадающим SessionID.
+// Если sessionID пуст — UnregisterUser(userID).
+func (h *Hub) UnregisterBySession(userID, sessionID string) {
+	if sessionID == "" {
+		h.UnregisterUser(userID)
+		return
+	}
+	val, ok := h.userClients.Load(userID)
+	if !ok {
+		return
+	}
+	inner := val.(*sync.Map)
+	var clients []*Client
+	inner.Range(func(_, value any) bool {
+		c := value.(*Client)
+		if c.SessionID == sessionID {
+			clients = append(clients, c)
+		}
+		return true
+	})
+	for _, c := range clients {
+		h.Unregister(c)
+	}
+}
+
 // Unregister удаляет клиента из Hub и всех его комнат.
 func (h *Hub) Unregister(client *Client) {
 	if h.isStopping() {
@@ -218,7 +262,17 @@ func (h *Hub) Unsubscribe(client *Client, room string) {
 
 // registerClient вставляет клиента в обе карты (clients + userClients).
 // Вызывается только из горутины Run, поэтому не требует внешней синхронизации.
+//
+// W3-A4-001 / P1-BE-21: если Unregister (removeClient) уже закрыл done до того,
+// как select в Run дошёл до register, клиента нельзя класть в maps — иначе
+// получается зомби (writePump уже вышел, повторного Unregister нет).
 func (h *Hub) registerClient(client *Client) {
+	select {
+	case <-client.done:
+		return
+	default:
+	}
+
 	h.clients.Store(client.ConnectionID, client)
 
 	inner, _ := h.userClients.LoadOrStore(client.UserID, &sync.Map{})
@@ -229,7 +283,17 @@ func (h *Hub) registerClient(client *Client) {
 // что серилизует её с register/unregister/unsubscribe для того же клиента.
 // Ключом во внутренней карте служит ConnectionID, чтобы два соединения
 // одного и того же юзера могли независимо состоять в одной комнате.
+//
+// W3-A4-002: late Subscribe после Unregister (done уже закрыт) не реанимирует
+// мёртвый Client в rooms. Не требуем clients.Load: Register и Subscribe могут
+// одновременно ждать в select Run — Subscribe раньше Register валиден.
 func (h *Hub) subscribeClient(client *Client, room string) {
+	select {
+	case <-client.done:
+		return
+	default:
+	}
+
 	client.mu.Lock()
 	client.rooms[room] = true
 	client.mu.Unlock()
@@ -245,9 +309,26 @@ func (h *Hub) unsubscribeClient(client *Client, room string) {
 	delete(client.rooms, room)
 	client.mu.Unlock()
 
-	if val, ok := h.rooms.Load(room); ok {
-		members := val.(*sync.Map)
-		members.Delete(client.ConnectionID)
+	h.removeRoomMember(room, client.ConnectionID)
+}
+
+// removeRoomMember убирает conn из комнаты и удаляет пустой ключ из h.rooms
+// (W3-A4-007): иначе уникальные room id копят пустые *sync.Map при uptime.
+// Мутации rooms сериализованы в Run — concurrent Store здесь не конкурирует.
+func (h *Hub) removeRoomMember(room, connID string) {
+	val, ok := h.rooms.Load(room)
+	if !ok {
+		return
+	}
+	members := val.(*sync.Map)
+	members.Delete(connID)
+	empty := true
+	members.Range(func(_, _ any) bool {
+		empty = false
+		return false
+	})
+	if empty {
+		h.rooms.Delete(room)
 	}
 }
 
@@ -347,10 +428,7 @@ func (h *Hub) removeClient(client *Client) {
 	client.mu.Unlock()
 
 	for _, room := range rooms {
-		if val, ok := h.rooms.Load(room); ok {
-			members := val.(*sync.Map)
-			members.Delete(client.ConnectionID)
-		}
+		h.removeRoomMember(room, client.ConnectionID)
 	}
 
 	// SEC-05: закрываем ТОЛЬКО done. Канал send намеренно не закрывается,

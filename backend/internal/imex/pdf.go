@@ -20,7 +20,8 @@ import (
 // ExportRunPDF генерирует PDF-отчёт по тестовому прогону.
 // Содержит заголовок, метаданные прогона и таблицу результатов.
 func (s *ImExService) ExportRunPDF(ctx context.Context, projectID, runID uuid.UUID) ([]byte, error) {
-	run, err := s.repo.GetTestRun(ctx, runID)
+	// A5-010: scope by projectID — без HasProjectWith возможен IDOR PDF чужого прогона.
+	run, err := s.repo.GetTestRunInProject(ctx, projectID, runID)
 	if err != nil {
 		if IsNotFound(err) {
 			return nil, fmt.Errorf("прогон не найден")
@@ -72,7 +73,8 @@ func (s *ImExService) ExportRunPDF(ctx context.Context, projectID, runID uuid.UU
 // ExportSprintPDF генерирует PDF-отчёт по спринту.
 // Содержит заголовок, метаданные спринта и таблицу задач.
 func (s *ImExService) ExportSprintPDF(ctx context.Context, projectID, sprintID uuid.UUID) ([]byte, error) {
-	sp, err := s.repo.GetSprint(ctx, sprintID)
+	// A5-010: scope by projectID — без HasProjectWith возможен IDOR PDF чужого спринта.
+	sp, err := s.repo.GetSprintInProject(ctx, projectID, sprintID)
 	if err != nil {
 		if IsNotFound(err) {
 			return nil, fmt.Errorf("спринт не найден")
@@ -200,10 +202,7 @@ func buildTableRow(values []string) core.Row {
 	colSize := 12 / len(values)
 	r := row.New(7)
 	for _, v := range values {
-		cellVal := v
-		if len(cellVal) > 50 {
-			cellVal = cellVal[:47] + "..."
-		}
+		cellVal := truncateCell(v, 50)
 		r.Add(col.New(colSize).Add(
 			text.New(cellVal, props.Text{
 				Size: 8,

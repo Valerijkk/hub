@@ -15,6 +15,7 @@ import {
 	payInvoice,
 	postJournal,
 } from "@/api/accounting";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -29,30 +30,49 @@ export function AccountingPage() {
 	const [invoiceAmount, setInvoiceAmount] = useState("");
 	const [invoiceDesc, setInvoiceDesc] = useState("");
 
-	const { data: accounts = [] } = useQuery({
+	const {
+		data: accounts = [],
+		isLoading: accountsLoading,
+		isError: accountsError,
+		refetch: refetchAccounts,
+	} = useQuery({
 		queryKey: ["accounting", "accounts"],
 		queryFn: listAccounts,
 	});
 
-	const { data: entries = [] } = useQuery({
+	const { data: entries = [], isError: journalError } = useQuery({
 		queryKey: ["accounting", "journal"],
 		queryFn: listJournal,
 	});
 
-	const { data: trialBalance = [] } = useQuery({
+	const {
+		data: trialBalance = [],
+		isError: trialBalanceError,
+		refetch: refetchTrialBalance,
+	} = useQuery({
 		queryKey: ["accounting", "trial-balance"],
 		queryFn: getTrialBalance,
 	});
 
-	const { data: invoices = [] } = useQuery({
+	const {
+		data: invoices = [],
+		isError: invoicesError,
+		refetch: refetchInvoices,
+	} = useQuery({
 		queryKey: ["accounting", "invoices"],
 		queryFn: listInvoices,
 	});
 
-	const { data: incomeStatement } = useQuery({
+	const {
+		data: incomeStatement,
+		isError: incomeStatementError,
+		refetch: refetchIncomeStatement,
+	} = useQuery({
 		queryKey: ["accounting", "income-statement"],
 		queryFn: getIncomeStatement,
 	});
+
+	const accountsLoadError = accountsError || journalError;
 
 	const expenseAccount = useMemo(
 		() => accounts.find((a) => a.code === "5010"),
@@ -145,6 +165,37 @@ export function AccountingPage() {
 		});
 	};
 
+	if (accountsLoading) {
+		return (
+			<div className="mx-auto max-w-[1200px] space-y-6 px-4 py-6">
+				<header className="space-y-1">
+					<h1 className="text-2xl font-bold tracking-tight">Бухгалтерия</h1>
+					<p className="text-sm text-t2">
+						Двойная запись · счета · P&L · Hub-only (V4-03)
+					</p>
+				</header>
+				<p className="text-sm text-t2">Загрузка...</p>
+			</div>
+		);
+	}
+
+	if (accountsLoadError) {
+		return (
+			<div className="mx-auto max-w-[1200px] space-y-6 px-4 py-6">
+				<header className="space-y-1">
+					<h1 className="text-2xl font-bold tracking-tight">Бухгалтерия</h1>
+					<p className="text-sm text-t2">
+						Двойная запись · счета · P&L · Hub-only (V4-03)
+					</p>
+				</header>
+				<QueryErrorAlert
+					message="Не удалось загрузить данные учёта"
+					retry={() => void refetchAccounts()}
+				/>
+			</div>
+		);
+	}
+
 	return (
 		<div className="mx-auto max-w-[1200px] space-y-6 px-4 py-6">
 			<header className="space-y-1">
@@ -154,27 +205,34 @@ export function AccountingPage() {
 				</p>
 			</header>
 
-			{incomeStatement && (
-				<div className="grid gap-3 sm:grid-cols-3">
-					<div className="rounded-xl border border-b1 p-4">
-						<p className="text-xs text-t3">Выручка</p>
-						<p className="text-lg font-semibold">
-							{formatRub(incomeStatement.revenue_cents)}
-						</p>
+			{incomeStatementError ? (
+				<QueryErrorAlert
+					message="Не удалось загрузить P&L"
+					retry={() => void refetchIncomeStatement()}
+				/>
+			) : (
+				incomeStatement && (
+					<div className="grid gap-3 sm:grid-cols-3">
+						<div className="rounded-xl border border-b1 p-4">
+							<p className="text-xs text-t3">Выручка</p>
+							<p className="text-lg font-semibold">
+								{formatRub(incomeStatement.revenue_cents)}
+							</p>
+						</div>
+						<div className="rounded-xl border border-b1 p-4">
+							<p className="text-xs text-t3">Расходы</p>
+							<p className="text-lg font-semibold">
+								{formatRub(incomeStatement.expense_cents)}
+							</p>
+						</div>
+						<div className="rounded-xl border border-b1 p-4">
+							<p className="text-xs text-t3">Чистая прибыль</p>
+							<p className="text-lg font-semibold">
+								{formatRub(incomeStatement.net_cents)}
+							</p>
+						</div>
 					</div>
-					<div className="rounded-xl border border-b1 p-4">
-						<p className="text-xs text-t3">Расходы</p>
-						<p className="text-lg font-semibold">
-							{formatRub(incomeStatement.expense_cents)}
-						</p>
-					</div>
-					<div className="rounded-xl border border-b1 p-4">
-						<p className="text-xs text-t3">Чистая прибыль</p>
-						<p className="text-lg font-semibold">
-							{formatRub(incomeStatement.net_cents)}
-						</p>
-					</div>
-				</div>
+				)
 			)}
 
 			<div className="grid gap-6 lg:grid-cols-2">
@@ -261,52 +319,59 @@ export function AccountingPage() {
 						Новый счёт
 					</Button>
 				</form>
-				<div className="overflow-x-auto">
-					<table className="w-full text-[13px]">
-						<thead>
-							<tr className="border-b border-b1 text-left text-t2">
-								<th className="py-2 pr-3">№</th>
-								<th className="py-2 pr-3">Клиент</th>
-								<th className="py-2 pr-3">Сумма</th>
-								<th className="py-2 pr-3">Статус</th>
-								<th className="py-2" />
-							</tr>
-						</thead>
-						<tbody>
-							{invoices.map((inv) => (
-								<tr key={inv.id} className="border-b border-b1/60">
-									<td className="py-2 pr-3 font-mono">{inv.number}</td>
-									<td className="py-2 pr-3">{inv.customer_name}</td>
-									<td className="py-2 pr-3">{formatRub(inv.amount_cents)}</td>
-									<td className="py-2 pr-3">{inv.status}</td>
-									<td className="py-2 text-right space-x-2">
-										{inv.status === "draft" && (
-											<Button
-												type="button"
-												size="sm"
-												variant="outline"
-												onClick={() => issueMutation.mutate(inv.id)}
-												disabled={issueMutation.isPending}
-											>
-												Выставить
-											</Button>
-										)}
-										{inv.status === "issued" && (
-											<Button
-												type="button"
-												size="sm"
-												onClick={() => payMutation.mutate(inv.id)}
-												disabled={payMutation.isPending}
-											>
-												Оплачен
-											</Button>
-										)}
-									</td>
+				{invoicesError ? (
+					<QueryErrorAlert
+						message="Не удалось загрузить счета"
+						retry={() => void refetchInvoices()}
+					/>
+				) : (
+					<div className="overflow-x-auto">
+						<table className="w-full text-[13px]">
+							<thead>
+								<tr className="border-b border-b1 text-left text-t2">
+									<th className="py-2 pr-3">№</th>
+									<th className="py-2 pr-3">Клиент</th>
+									<th className="py-2 pr-3">Сумма</th>
+									<th className="py-2 pr-3">Статус</th>
+									<th className="py-2" />
 								</tr>
-							))}
-						</tbody>
-					</table>
-				</div>
+							</thead>
+							<tbody>
+								{invoices.map((inv) => (
+									<tr key={inv.id} className="border-b border-b1/60">
+										<td className="py-2 pr-3 font-mono">{inv.number}</td>
+										<td className="py-2 pr-3">{inv.customer_name}</td>
+										<td className="py-2 pr-3">{formatRub(inv.amount_cents)}</td>
+										<td className="py-2 pr-3">{inv.status}</td>
+										<td className="py-2 text-right space-x-2">
+											{inv.status === "draft" && (
+												<Button
+													type="button"
+													size="sm"
+													variant="outline"
+													onClick={() => issueMutation.mutate(inv.id)}
+													disabled={issueMutation.isPending}
+												>
+													Выставить
+												</Button>
+											)}
+											{inv.status === "issued" && (
+												<Button
+													type="button"
+													size="sm"
+													onClick={() => payMutation.mutate(inv.id)}
+													disabled={payMutation.isPending}
+												>
+													Оплачен
+												</Button>
+											)}
+										</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+				)}
 			</section>
 
 			<section className="rounded-xl border border-b1 p-4 space-y-3">
@@ -351,32 +416,40 @@ export function AccountingPage() {
 				<h2 className="text-sm font-semibold">
 					Оборотно-сальдовая ведомость (posted)
 				</h2>
-				<div className="overflow-x-auto">
-					<table className="w-full text-[13px]">
-						<thead>
-							<tr className="border-b border-b1 text-left text-t2">
-								<th className="py-2 pr-3">Счёт</th>
-								<th className="py-2 pr-3 text-right">Дебет</th>
-								<th className="py-2 text-right">Кредит</th>
-							</tr>
-						</thead>
-						<tbody>
-							{trialBalance.map((r) => (
-								<tr key={r.account_id} className="border-b border-b1/60">
-									<td className="py-2 pr-3">
-										<span className="font-mono text-t3">{r.code}</span> {r.name}
-									</td>
-									<td className="py-2 pr-3 text-right">
-										{r.debit_cents ? formatRub(r.debit_cents) : "—"}
-									</td>
-									<td className="py-2 text-right">
-										{r.credit_cents ? formatRub(r.credit_cents) : "—"}
-									</td>
+				{trialBalanceError ? (
+					<QueryErrorAlert
+						message="Не удалось загрузить оборотно-сальдовую ведомость"
+						retry={() => void refetchTrialBalance()}
+					/>
+				) : (
+					<div className="overflow-x-auto">
+						<table className="w-full text-[13px]">
+							<thead>
+								<tr className="border-b border-b1 text-left text-t2">
+									<th className="py-2 pr-3">Счёт</th>
+									<th className="py-2 pr-3 text-right">Дебет</th>
+									<th className="py-2 text-right">Кредит</th>
 								</tr>
-							))}
-						</tbody>
-					</table>
-				</div>
+							</thead>
+							<tbody>
+								{trialBalance.map((r) => (
+									<tr key={r.account_id} className="border-b border-b1/60">
+										<td className="py-2 pr-3">
+											<span className="font-mono text-t3">{r.code}</span>{" "}
+											{r.name}
+										</td>
+										<td className="py-2 pr-3 text-right">
+											{r.debit_cents ? formatRub(r.debit_cents) : "—"}
+										</td>
+										<td className="py-2 text-right">
+											{r.credit_cents ? formatRub(r.credit_cents) : "—"}
+										</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+				)}
 			</section>
 		</div>
 	);

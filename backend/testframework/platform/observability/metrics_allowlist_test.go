@@ -10,12 +10,24 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMetricsEndpoint_AllowsWhenNoCIDRs(t *testing.T) {
+// TestMetricsEndpoint_EmptyCIDRsForbidden — W4-A3-004 / P2-BE-10: пустой список → 403.
+func TestMetricsEndpoint_EmptyCIDRsForbidden(t *testing.T) {
+	app := fiber.New()
+	app.Get("/metrics", observability.MetricsEndpoint(nil))
+
+	req := httptest.NewRequest(fiber.MethodGet, "/metrics", nil)
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	require.Equal(t, fiber.StatusForbidden, resp.StatusCode)
+}
+
+// TestMetricsEndpoint_AllowAllSentinel — явный "*" открывает scrape.
+func TestMetricsEndpoint_AllowAllSentinel(t *testing.T) {
 	observability.ExportRecordOperation("metrics.test", 1, false)
 	t.Cleanup(observability.ResetMetrics)
 
 	app := fiber.New()
-	app.Get("/metrics", observability.MetricsEndpoint(nil))
+	app.Get("/metrics", observability.MetricsEndpoint(observability.MetricsAllowAllCIDRs))
 
 	req := httptest.NewRequest(fiber.MethodGet, "/metrics", nil)
 	resp, err := app.Test(req)

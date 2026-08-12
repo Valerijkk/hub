@@ -12,6 +12,8 @@ import { getVAPIDKey, subscribeToPush } from "@/api/notifications";
 const PUSH_DISMISSED_KEY = "hub_push_dismissed";
 /** Ключ для отслеживания подписки. */
 const PUSH_SUBSCRIBED_KEY = "hub_push_subscribed";
+/** TTL «Позже» — баннер снова через 7 дней (P2-FE-15 / W11-A4-008). */
+export const PUSH_DISMISS_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * Регистрирует Service Worker для обработки push-событий.
@@ -49,10 +51,10 @@ export function isPushSupported(): boolean {
  * Не показываем если:
  * - Push не поддерживается
  * - Уже подписан
- * - Пользователь нажал "Позже"
+ * - Пользователь нажал "Позже" и TTL ещё не истёк
  * - Разрешение уже отклонено в браузере
  */
-export function shouldShowPushBanner(): boolean {
+export function shouldShowPushBanner(now = Date.now()): boolean {
 	if (!isPushSupported()) return false;
 	if (Notification.permission === "denied") return false;
 	if (
@@ -60,12 +62,20 @@ export function shouldShowPushBanner(): boolean {
 		localStorage.getItem(PUSH_SUBSCRIBED_KEY)
 	)
 		return false;
-	if (localStorage.getItem(PUSH_DISMISSED_KEY)) return false;
+	const dismissed = localStorage.getItem(PUSH_DISMISSED_KEY);
+	if (dismissed) {
+		const ts = Number(dismissed);
+		if (Number.isFinite(ts) && now - ts < PUSH_DISMISS_TTL_MS) {
+			return false;
+		}
+		// TTL истёк — разрешаем баннер снова.
+		localStorage.removeItem(PUSH_DISMISSED_KEY);
+	}
 	return true;
 }
 
 /**
- * Помечает, что пользователь нажал "Позже" — баннер не показывается повторно.
+ * Помечает, что пользователь нажал "Позже" — баннер скрыт на PUSH_DISMISS_TTL_MS.
  */
 export function dismissPushBanner(): void {
 	localStorage.setItem(PUSH_DISMISSED_KEY, Date.now().toString());

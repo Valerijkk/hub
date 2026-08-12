@@ -2,7 +2,6 @@ package auth_test
 
 // Тесты сервиса аутентификации: интеграционные и unit-сценарии testframework.
 import (
-	"github.com/valerii/hub/backend/internal/auth"
 	"context"
 	"testing"
 	"time"
@@ -13,6 +12,8 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/valerii/hub/backend/ent/enttest"
+	"github.com/valerii/hub/backend/internal/auth"
+	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
 func newProfileTestEnv(t *testing.T) (*auth.ProfileService, context.Context, uuid.UUID) {
@@ -123,6 +124,55 @@ func TestProfileService_UpdateProfile_AllFields(t *testing.T) {
 	require.NotNil(t, u.QuietHoursEnd)
 	assert.Equal(t, quietEnd, *u.QuietHoursEnd)
 	assert.Equal(t, custom, u.CustomFields)
+}
+
+// TestProfileService_UpdateProfile_AvatarURL_SchemeWhitelist_A2W6_A1_003
+// отклоняет javascript:/data: и принимает https + относительный `/…`.
+func TestProfileService_UpdateProfile_AvatarURL_SchemeWhitelist_A2W6_A1_003(t *testing.T) {
+	svc, ctx, uid := newProfileTestEnv(t)
+
+	for _, bad := range []string{
+		"javascript:alert(1)",
+		"data:image/png;base64,abc",
+		"vbscript:msgbox(1)",
+		"//evil.example/x.png",
+	} {
+		bad := bad
+		_, err := svc.UpdateProfile(ctx, uid, auth.UpdateProfileRequest{AvatarURL: &bad})
+		require.Error(t, err, "avatar %q must be rejected", bad)
+		var appErr *apperrors.AppError
+		require.ErrorAs(t, err, &appErr)
+		assert.Equal(t, 400, appErr.Code, "avatar %q", bad)
+	}
+
+	httpsURL := "https://cdn.example/avatar.png"
+	u, err := svc.UpdateProfile(ctx, uid, auth.UpdateProfileRequest{AvatarURL: &httpsURL})
+	require.NoError(t, err)
+	assert.Equal(t, httpsURL, u.AvatarURL)
+
+	rel := "/files/avatars/me.png"
+	u, err = svc.UpdateProfile(ctx, uid, auth.UpdateProfileRequest{AvatarURL: &rel})
+	require.NoError(t, err)
+	assert.Equal(t, rel, u.AvatarURL)
+
+	empty := ""
+	u, err = svc.UpdateProfile(ctx, uid, auth.UpdateProfileRequest{AvatarURL: &empty})
+	require.NoError(t, err)
+	assert.Equal(t, "", u.AvatarURL)
+}
+
+// TestProfileService_CompleteOnboarding_JavascriptAvatar_Rejected проверяет
+// тот же whitelist на пути онбординга (не обходит UpdateProfile).
+func TestProfileService_CompleteOnboarding_JavascriptAvatar_Rejected(t *testing.T) {
+	svc, ctx, uid := newProfileTestEnv(t)
+	bad := "javascript:alert(1)"
+	_, err := svc.CompleteOnboarding(ctx, uid, auth.OnboardingCompleteRequest{
+		ProfileData: auth.UpdateProfileRequest{AvatarURL: &bad},
+	})
+	require.Error(t, err)
+	var appErr *apperrors.AppError
+	require.ErrorAs(t, err, &appErr)
+	assert.Equal(t, 400, appErr.Code)
 }
 
 // TestUserToResponse_WithTelegramID проверяет сценарий: user to response with Telegram id.

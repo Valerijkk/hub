@@ -95,7 +95,7 @@ Hub — проприетарное self-hosted ПО. Если вы обнару�
 - [docs/security_guidelines.md](docs/security_guidelines.md) — OWASP Top 10 чек-лист, статусы всех findings (12/12 CRITICAL fixed), grep-паттерны аудита
 - [docs/tz_constraints.md](docs/tz_constraints.md) — mandatory/forbidden инварианты ТЗ
 - [.planning/decisions/](.planning/decisions/) — ADR (auth, микросервисы, SSO)
-- [.planning/code-review-final/SECURITY.md](.planning/code-review-final/SECURITY.md) — полный security-аудит
+- [.planning/audits/code-review-final/SECURITY.md](.planning/audits/code-review-final/SECURITY.md) — полный security-аудит
 - [LICENSE](LICENSE) — проприетарная лицензия
 
 ---

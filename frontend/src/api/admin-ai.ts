@@ -1,20 +1,10 @@
+import type { AdminAIProvider } from "@/api/ai-types";
 import { api } from "@/api/client";
 
-export interface AIProvider {
-	id: string;
-	name: string;
-	provider_type: string;
-	base_url: string;
-	models: string[];
-	enabled: boolean;
-	priority: number;
-	max_rpm: number;
-	ru_resident: boolean;
-	scope: string;
-	has_api_key: boolean;
-	created_at: string;
-	updated_at: string;
-}
+/** @deprecated Используйте AdminAIProvider — оставлено как alias для совместимости импортов. */
+export type AIProvider = AdminAIProvider;
+
+export type { AdminAIProvider };
 
 export interface CreateAIProviderRequest {
 	name: string;
@@ -48,15 +38,15 @@ export interface TestAIProviderResponse {
 }
 
 export function listAIProviders() {
-	return api.get<AIProvider[]>("/admin/ai/providers");
+	return api.get<AdminAIProvider[]>("/admin/ai/providers");
 }
 
 export function createAIProvider(data: CreateAIProviderRequest) {
-	return api.post<AIProvider>("/admin/ai/providers", data);
+	return api.post<AdminAIProvider>("/admin/ai/providers", data);
 }
 
 export function updateAIProvider(id: string, data: UpdateAIProviderRequest) {
-	return api.patch<AIProvider>(`/admin/ai/providers/${id}`, data);
+	return api.patch<AdminAIProvider>(`/admin/ai/providers/${id}`, data);
 }
 
 export function testAIProvider(id: string) {

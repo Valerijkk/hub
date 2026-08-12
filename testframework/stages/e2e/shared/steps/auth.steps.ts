@@ -65,16 +65,20 @@ export class AuthSteps {
 		await this.devLoginViaUI("Админ Хабов");
 	}
 
-	async expectSessionInStorage(page: Page): Promise<void> {
+	async expectSessionInMemory(page: Page): Promise<void> {
+		// A2W11-2-001: JWT не в sessionStorage; сессия живёт в memory-store.
 		const authRaw = await page.evaluate(() =>
 			sessionStorage.getItem("hub-auth"),
 		);
-		expect(authRaw).toBeTruthy();
-		const auth = JSON.parse(authRaw ?? "{}") as {
-			state?: { isAuthenticated?: boolean; user?: { email?: string } };
-		};
-		expect(auth.state?.isAuthenticated).toBe(true);
-		expect(auth.state?.user?.email).toBe(ADMIN_EMAIL);
+		expect(authRaw).toBeNull();
+
+		const hasTokensInStorage = await page.evaluate(() => {
+			const blob = `${sessionStorage.getItem("hub-auth") ?? ""}${localStorage.getItem("hub-auth") ?? ""}`;
+			return blob.includes("accessToken") || blob.includes("refreshToken");
+		});
+		expect(hasTokensInStorage).toBe(false);
+
+		await expect(page).toHaveURL(/\/projects/, { timeout: 10_000 });
 	}
 
 	async expectLoggedOut(page: Page): Promise<void> {
@@ -83,10 +87,7 @@ export class AuthSteps {
 		const authRaw = await page.evaluate(() =>
 			sessionStorage.getItem("hub-auth"),
 		);
-		const auth = JSON.parse(authRaw ?? "{}") as {
-			state?: { isAuthenticated?: boolean };
-		};
-		expect(auth.state?.isAuthenticated).toBe(false);
+		expect(authRaw).toBeNull();
 	}
 
 	async logoutFromProfile(page: Page): Promise<void> {

@@ -38,9 +38,13 @@ func (s *MessengerService) CreateOrGetDM(ctx context.Context, userID, targetUser
 		return nil, apperrors.NewInternal("ошибка создания DM канала")
 	}
 
-	// Добавление обоих участников
+	// A2W3-2-002: оба участника обязательны — иначе orphan DM без members.
 	if err := s.repo.AddMembers(ctx, ch.ID, []uuid.UUID{userID, targetUserID}, "member"); err != nil {
-		slog.Error("не удалось добавить участников DM", "error", err)
+		slog.Error("не удалось добавить участников DM", "error", err, "channel_id", ch.ID)
+		if delErr := s.repo.DeleteChannel(ctx, ch.ID); delErr != nil {
+			slog.Error("не удалось удалить orphan DM", "error", delErr, "channel_id", ch.ID)
+		}
+		return nil, apperrors.NewInternal("ошибка создания DM канала")
 	}
 
 	return toChannelResponse(ch), nil

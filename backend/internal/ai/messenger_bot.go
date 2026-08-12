@@ -134,7 +134,7 @@ func (b *MessengerBot) handleCommand(
 		if b.issues == nil {
 			return b.replyError(ctx, evt, ch, "Поиск задач недоступен.")
 		}
-		title, desc, err := b.issues.IssueContext(ctx, key)
+		title, desc, err := b.issues.IssueContext(ctx, evt.SenderID, key)
 		if err != nil {
 			return b.replyError(ctx, evt, ch, "Задача **"+key+"** не найдена.")
 		}
@@ -154,9 +154,9 @@ func (b *MessengerBot) handleCommand(
 		if b.review == nil {
 			return b.replyError(ctx, evt, ch, "Code review недоступен (нет интеграции GitHub/GitLab).")
 		}
-		reviewCtx, err := b.review.FetchReview(ctx, prURL)
+		reviewCtx, err := b.review.FetchReview(ctx, evt.SenderID, prURL)
 		if err != nil {
-			return b.replyError(ctx, evt, ch, "Не удалось загрузить PR/MR: "+err.Error())
+			return b.replyError(ctx, evt, ch, "Code review недоступен для этого репозитория.")
 		}
 		systemPrompt, userPrompt = buildReviewPrompt(reviewCtx)
 	case "docs":
@@ -169,7 +169,9 @@ func (b *MessengerBot) handleCommand(
 		}
 		docCtx, err := b.docs.SearchContext(ctx, evt.SenderID, query)
 		if err != nil {
-			return b.replyError(ctx, evt, ch, "Ошибка поиска: "+err.Error())
+			// A2W5-A3-004: internals только в slog, в канал — фиксированная строка.
+			slog.WarnContext(ctx, "hub-ai docs search failed", "err", err, "user_id", evt.SenderID)
+			return b.replyError(ctx, evt, ch, "Поиск временно недоступен. Попробуйте позже.")
 		}
 		systemPrompt, userPrompt = buildDocsPrompt(docCtx, query)
 	case "sql":
@@ -232,14 +234,28 @@ func (b *MessengerBot) streamReply(
 }
 
 func (b *MessengerBot) shouldRespond(evt messengermod.MessageHookEvent, ch *ent.Channel, memberIDs []uuid.UUID) bool {
-	if ch.ChannelType == channel.ChannelTypeDm {
-		for _, id := range memberIDs {
-			if id == b.botID {
-				return true
-			}
+	// P1-BE-31: бот отвечает только если он член канала — иначе mention
+	// в private/public без bot∈members читал историю во внешний LLM.
+	botIsMember := false
+	for _, id := range memberIDs {
+		if id == b.botID {
+			botIsMember = true
+			break
 		}
 	}
+	if !botIsMember {
+		return false
+	}
+	// W5-A3-011 / P2-BE-17: в DM тоже нужен mention или /ai — иначе любой текст
+	// уходит во внешний LLM без opt-in на сообщение.
 	if hubAIMentionRe.MatchString(evt.ContentText) {
+		return true
+	}
+	if parseBotCommand(evt.ContentText) != nil {
+		return true
+	}
+	// Короткий префикс /ai без подкоманды (например «/ai привет»).
+	if strings.HasPrefix(strings.ToLower(strings.TrimSpace(evt.ContentText)), "/ai") {
 		return true
 	}
 	botStr := b.botID.String()

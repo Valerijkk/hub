@@ -20,7 +20,7 @@ import (
 
 func setupIntranetTest(t *testing.T) (*fiber.App, uuid.UUID, uuid.UUID) {
 	t.Helper()
-	client := enttest.Open(t, "sqlite3", "file:intranet?mode=memory&cache=shared&_fk=1")
+	client := enttest.Open(t, "sqlite3", "file:intranet_"+uuid.New().String()+"?mode=memory&cache=shared&_fk=1")
 	t.Cleanup(func() { client.Close() })
 
 	admin, err := client.User.Create().
@@ -115,7 +115,7 @@ func TestHandler_DeleteNews(t *testing.T) {
 }
 
 func TestHandler_ListDirectory_GroupsByDepartment(t *testing.T) {
-	client := enttest.Open(t, "sqlite3", "file:dir?mode=memory&cache=shared&_fk=1")
+	client := enttest.Open(t, "sqlite3", "file:dir_"+uuid.New().String()+"?mode=memory&cache=shared&_fk=1")
 	t.Cleanup(func() { client.Close() })
 	ctx := context.Background()
 
@@ -179,7 +179,7 @@ func TestHandler_ListDirectory_GroupsByDepartment(t *testing.T) {
 }
 
 func TestHandler_GetDirectoryUser_NotFoundForPending(t *testing.T) {
-	client := enttest.Open(t, "sqlite3", "file:pend?mode=memory&cache=shared&_fk=1")
+	client := enttest.Open(t, "sqlite3", "file:pend_"+uuid.New().String()+"?mode=memory&cache=shared&_fk=1")
 	t.Cleanup(func() { client.Close() })
 	ctx := context.Background()
 
@@ -248,7 +248,7 @@ func TestHandler_CreateKudos_FeedAndReceived(t *testing.T) {
 }
 
 func TestHandler_RandomCoffee_EnrollAndRun(t *testing.T) {
-	client := enttest.Open(t, "sqlite3", "file:coffee?mode=memory&cache=shared&_fk=1")
+	client := enttest.Open(t, "sqlite3", "file:coffee_"+uuid.New().String()+"?mode=memory&cache=shared&_fk=1")
 	t.Cleanup(func() { client.Close() })
 	ctx := context.Background()
 
@@ -291,6 +291,8 @@ func TestHandler_RandomCoffee_EnrollAndRun(t *testing.T) {
 
 	var round intranet.CoffeeRoundResponse
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&round))
-	assert.Equal(t, 1, round.PairCount)
-	assert.Equal(t, 1, round.UnpairedCount)
+	// FR-INTR-10 / P1-BE-43: нечётное N → одна тройка, не unpaired.
+	assert.Equal(t, 0, round.PairCount)
+	assert.Equal(t, 1, round.TripleCount)
+	assert.Equal(t, 0, round.UnpairedCount)
 }

@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -28,19 +29,31 @@ func NewEntRepository(client *ent.Client, cipher *cryptopkg.Cipher) *EntReposito
 	return &EntRepository{client: client, cipher: cipher}
 }
 
+// ErrEncryptionRequired — cipher обязателен для записи/чтения непустого API-ключа (W5-A3-007).
+var ErrEncryptionRequired = errors.New("encryption required: api key cannot be stored without cipher")
+
 func (r *EntRepository) encryptField(v string) (string, error) {
-	if r.cipher == nil || v == "" {
-		return v, nil
+	if v == "" {
+		return "", nil
+	}
+	if r.cipher == nil {
+		return "", ErrEncryptionRequired
 	}
 	return r.cipher.EncryptString(v)
 }
 
-func (r *EntRepository) decryptField(v string) string {
-	if r.cipher == nil || v == "" {
-		return v
+func (r *EntRepository) decryptField(v string) (string, error) {
+	if v == "" {
+		return "", nil
 	}
-	pt, _ := r.cipher.MaybeDecryptString(v)
-	return pt
+	if r.cipher == nil {
+		return "", ErrEncryptionRequired
+	}
+	pt, err := r.cipher.DecryptString(v)
+	if err != nil {
+		return "", fmt.Errorf("decrypt api key: %w", err)
+	}
+	return pt, nil
 }
 
 func (r *EntRepository) ListProviders(ctx context.Context, scope string) ([]*ent.AIProvider, error) {
@@ -56,7 +69,11 @@ func (r *EntRepository) GetProvider(ctx context.Context, id uuid.UUID) (*ent.AIP
 	if err != nil {
 		return nil, err
 	}
-	p.APIKeyEnc = r.decryptField(p.APIKeyEnc)
+	key, err := r.decryptField(p.APIKeyEnc)
+	if err != nil {
+		return nil, err
+	}
+	p.APIKeyEnc = key
 	return p, nil
 }
 
@@ -92,7 +109,13 @@ func (r *EntRepository) CreateProvider(ctx context.Context, input CreateProvider
 }
 
 func (r *EntRepository) UpdateProvider(ctx context.Context, id uuid.UUID, input UpdateProviderInput) (*ent.AIProvider, error) {
-	b := r.client.AIProvider.UpdateOneID(id)
+	if input.Version <= 0 {
+		return nil, ErrVersionConflict
+	}
+	// A3W5-3-006: VersionEQ + AddVersion — optimistic lock (NFR-24).
+	b := r.client.AIProvider.UpdateOneID(id).
+		Where(aiprovider.VersionEQ(input.Version)).
+		AddVersion(1)
 	if input.Name != nil {
 		b.SetName(strings.TrimSpace(*input.Name))
 	}
@@ -129,7 +152,16 @@ func (r *EntRepository) UpdateProvider(ctx context.Context, id uuid.UUID, input 
 	if input.RuResident != nil {
 		b.SetRuResident(*input.RuResident)
 	}
-	return b.Save(ctx)
+	p, err := b.Save(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			if _, gerr := r.client.AIProvider.Get(ctx, id); gerr == nil {
+				return nil, ErrVersionConflict
+			}
+		}
+		return nil, err
+	}
+	return p, nil
 }
 
 func (r *EntRepository) FindProviderForModel(ctx context.Context, userID uuid.UUID, model string) (*ent.AIProvider, error) {
@@ -160,8 +192,12 @@ func (r *EntRepository) ListProvidersForModel(ctx context.Context, userID uuid.U
 		}
 		for _, p := range userProviders {
 			if providerHasModel(p, model) {
+				key, err := r.decryptField(p.APIKeyEnc)
+				if err != nil {
+					return nil, err
+				}
 				cp := *p
-				cp.APIKeyEnc = r.decryptField(p.APIKeyEnc)
+				cp.APIKeyEnc = key
 				out = append(out, &cp)
 			}
 		}
@@ -175,8 +211,12 @@ func (r *EntRepository) ListProvidersForModel(ctx context.Context, userID uuid.U
 	}
 	for _, p := range systemProviders {
 		if providerHasModel(p, model) {
+			key, err := r.decryptField(p.APIKeyEnc)
+			if err != nil {
+				return nil, err
+			}
 			cp := *p
-			cp.APIKeyEnc = r.decryptField(p.APIKeyEnc)
+			cp.APIKeyEnc = key
 			out = append(out, &cp)
 		}
 	}
@@ -222,30 +262,36 @@ func (r *EntRepository) GetUserProvider(ctx context.Context, userID, providerID 
 
 func (r *EntRepository) IncrementUsage(ctx context.Context, userID uuid.UUID, tokensIn, tokensOut int) error {
 	day := utcDate(time.Now())
-	existing, err := r.client.AIUsageDaily.Query().
+	// A3W5-3-002: create-first + ON CONFLICT retry — без check-then-act.
+	_, err := r.client.AIUsageDaily.Create().
+		SetUserID(userID).
+		SetUsageDate(day).
+		SetTokensIn(tokensIn).
+		SetTokensOut(tokensOut).
+		SetRequestCount(1).
+		Save(ctx)
+	if err == nil {
+		return nil
+	}
+	if !ent.IsConstraintError(err) {
+		return err
+	}
+	n, uerr := r.client.AIUsageDaily.Update().
 		Where(
 			aiusagedaily.HasUserWith(user.IDEQ(userID)),
 			aiusagedaily.UsageDateEQ(day),
 		).
-		Only(ctx)
-	if ent.IsNotFound(err) {
-		_, err = r.client.AIUsageDaily.Create().
-			SetUserID(userID).
-			SetUsageDate(day).
-			SetTokensIn(tokensIn).
-			SetTokensOut(tokensOut).
-			SetRequestCount(1).
-			Save(ctx)
-		return err
-	}
-	if err != nil {
-		return err
-	}
-	return r.client.AIUsageDaily.UpdateOne(existing).
 		AddTokensIn(tokensIn).
 		AddTokensOut(tokensOut).
 		AddRequestCount(1).
-		Exec(ctx)
+		Save(ctx)
+	if uerr != nil {
+		return uerr
+	}
+	if n == 0 {
+		return fmt.Errorf("increment usage: row missing after conflict")
+	}
+	return nil
 }
 
 func (r *EntRepository) ListModels(ctx context.Context, userID *uuid.UUID) ([]ModelInfo, error) {
@@ -324,6 +370,7 @@ func (r *EntRepository) GetUserPreferenceRecord(ctx context.Context, userID uuid
 		DefaultModel:      pref.DefaultModel,
 		DefaultProviderID: pref.DefaultProviderID,
 		AllowExternalAI:   pref.AllowExternalAi,
+		Version:           pref.Version,
 	}, nil
 }
 
@@ -341,8 +388,11 @@ func (r *EntRepository) SaveUserPreference(ctx context.Context, userID uuid.UUID
 		if input.DefaultProviderID != nil {
 			b = b.SetDefaultProviderID(*input.DefaultProviderID)
 		}
+		// A3W5-3-005: create без явного AllowExternalAI → false (opt-in), не Ent Default(true).
 		if input.AllowExternalAI != nil {
 			b = b.SetAllowExternalAi(*input.AllowExternalAI)
+		} else {
+			b = b.SetAllowExternalAi(false)
 		}
 		_, err = b.Save(ctx)
 		return err
@@ -350,7 +400,13 @@ func (r *EntRepository) SaveUserPreference(ctx context.Context, userID uuid.UUID
 	if err != nil {
 		return err
 	}
-	u := r.client.AIUserPreference.UpdateOne(existing)
+	if input.Version <= 0 || input.Version != existing.Version {
+		return ErrVersionConflict
+	}
+	// A3W5-3-006: VersionEQ + AddVersion.
+	u := r.client.AIUserPreference.UpdateOne(existing).
+		Where(aiuserpreference.VersionEQ(input.Version)).
+		AddVersion(1)
 	if input.DefaultModel != nil {
 		if *input.DefaultModel == "" {
 			u.ClearDefaultModel()
@@ -369,7 +425,13 @@ func (r *EntRepository) SaveUserPreference(ctx context.Context, userID uuid.UUID
 		u.SetAllowExternalAi(*input.AllowExternalAI)
 	}
 	_, err = u.Save(ctx)
-	return err
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return ErrVersionConflict
+		}
+		return err
+	}
+	return nil
 }
 
 func (r *EntRepository) GetUsageSummary(ctx context.Context, day time.Time) (int, int, int, int, error) {

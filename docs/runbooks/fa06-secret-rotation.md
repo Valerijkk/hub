@@ -1,8 +1,8 @@
 # Runbook FA-06 — ручная ротация секретов (Resend + Telegram)
 
-> **Кто выполняет:** владелец (пользователь) лично — решение GZ-SEC-01 (`.planning/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` §1).
+> **Кто выполняет:** владелец (пользователь) лично — решение GZ-SEC-01 (`.planning/decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` §1).
 > **Почему:** ключи `RESEND_API_KEY` и `TELEGRAM_BOT_TOKEN` засветились в git-истории (finding INF-03, `docs/security_guidelines.md`). Репо приватный — BFG-purge истории **не делаем** (GZ-SEC-02), достаточно ротации. После ротации — тег `v2.5.0`.
-> **Связанные материалы:** полный чек-лист по всем секретам — `.planning/production/PG-03-SECRET-ROTATION.md`; интерактивные скрипты — `bash scripts/fa06.sh help`; журнал выполнения — `.planning/production/FA-06-EXECUTION-LOG.md`.
+> **Связанные материалы:** полный чек-лист по всем секретам — `.planning/ops/production/PG-03-SECRET-ROTATION.md`; интерактивные скрипты — `bash scripts/fa06.sh help`; журнал выполнения — `.planning/ops/production/FA-06-EXECUTION-LOG.md`.
 > **Главное правило:** значения секретов НИКОГДА не вставлять в тикеты, чат, коммиты и логи.
 
 ## Обзор процедуры
@@ -35,7 +35,7 @@ git log -S 're_' --oneline --all -- '*.yml' '*.yaml' '*.env*'
 git log -S 'TELEGRAM_BOT_TOKEN' --oneline --all
 ```
 
-Найденные SHA запиши в журнал (`.planning/production/FA-06-EXECUTION-LOG.md`). Полный вариант скана по всем секретам — `.planning/production/PG-03-SECRET-ROTATION.md`, Phase 0.
+Найденные SHA запиши в журнал (`.planning/ops/production/FA-06-EXECUTION-LOG.md`). Полный вариант скана по всем секретам — `.planning/ops/production/PG-03-SECRET-ROTATION.md`, Phase 0.
 
 ## Шаг 1 — Новый Resend API key
 
@@ -131,10 +131,10 @@ git grep -E '(re_[a-zA-Z0-9]{20,}|[0-9]{8,}:[A-Za-z0-9_-]{30,})' -- ':!*.md' ':!
 
 ## Шаг 7 — Sign-off
 
-- [ ] Отметь строки RESEND / TELEGRAM в `.planning/production/FA-06-EXECUTION-LOG.md` (Rotated / Verified, дата UTC, исполнитель).
-- [ ] Заполни sign-off секцию в `.planning/production/PG-03-SECRET-ROTATION.md` (Phase 3): git-скан, ротация, smoke, отзыв старых ключей.
+- [ ] Отметь строки RESEND / TELEGRAM в `.planning/ops/production/FA-06-EXECUTION-LOG.md` (Rotated / Verified, дата UTC, исполнитель).
+- [ ] Заполни sign-off секцию в `.planning/ops/production/PG-03-SECRET-ROTATION.md` (Phase 3): git-скан, ротация, smoke, отзыв старых ключей.
 - [ ] Убедись, что `.env` не попал в git: `git status` чист от `deployments/.env`.
-- [ ] Дальше по ops-лейну: `bash scripts/fa06.sh release-gate` → тег `v2.5.0` → SSH deploy (см. `.planning/july-2026/ROADMAP-FINAL-2026-07-03.md`, Ops-лейн).
+- [ ] Дальше по ops-лейну: `bash scripts/fa06.sh release-gate` → тег `v2.5.0` → SSH deploy (см. `.planning/archive/july-2026/ROADMAP-FINAL-2026-07-03.md`, Ops-лейн).
 
 ## Итоговый чек-лист (всё вместе)
 
@@ -153,4 +153,4 @@ git grep -E '(re_[a-zA-Z0-9]{20,}|[0-9]{8,}:[A-Za-z0-9_-]{30,})' -- ':!*.md' ':!
 - [ ] Готово к `v2.5.0` release-gate
 
 ---
-*Владелец: пользователь (ручная ротация, GZ-SEC-01) · Подготовил: devops/docs, Волна 1 задача 1.9/1.13 · Ссылки: `scripts/fa06.sh`, `.planning/production/PG-03-SECRET-ROTATION.md`, `docs/security_guidelines.md` (INF-03) · 2026-07-03*
+*Владелец: пользователь (ручная ротация, GZ-SEC-01) · Подготовил: devops/docs, Волна 1 задача 1.9/1.13 · Ссылки: `scripts/fa06.sh`, `.planning/ops/production/PG-03-SECRET-ROTATION.md`, `docs/security_guidelines.md` (INF-03) · 2026-07-03*

@@ -9,7 +9,7 @@
 
 | Job | Команда / артефакт |
 |-----|-------------------|
-| `backend-test` | `go test -tags hubtest -race ./internal/... ./testframework/...` |
+| `backend-test` | `go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...` |
 | `frontend-test` | `tsc`, `vitest run`, `biome check` |
 | `build` | `go build -tags release`, `npm run build` |
 | `e2e-full` | Playwright 20 specs + `scripts/ci-e2e-backend.sh` |
@@ -58,7 +58,7 @@ Coverage floor `internal/`: **~82%** (`.planning/COVERAGE.md`).
 ```
 backend/internal/
   +-- apigateway/    API Key аутентификация
-  +-- auth/          Авторизация (Magic Link, Telegram, JWT, сессии)
+  +-- auth/          Авторизация (Magic Link + JWT/сессии; Telegram — notify bind, не login)
   +-- project/       Проекты, участники, invite, команды
   +-- tracker/       Задачи, workflow, комментарии, метки, кастомные поля, доски
   +-- sprint/        Спринты, burndown, velocity, planning poker
@@ -298,7 +298,7 @@ backend/internal/
 | Колонка | Тип | Описание |
 |---------|-----|----------|
 | id | UUID | PK |
-| link_type | ENUM(blocks, blocked_by, relates_to, duplicates, duplicated_by, clones, cloned_from, causes, caused_by, parent, child) | |
+| link_type | ENUM(blocks, blocked_by, relates_to, duplicates, duplicated_by, clones, cloned_from, causes, caused_by) | Иерархия epic/sub_task — только Issue.self-edge parent/children (ADR-ENT-ONDELETE-CASCADE-2026) |
 | custom_type | STRING | Для пользовательских типов связей |
 | created_at | TIME | Immutable |
 
@@ -1263,7 +1263,7 @@ backend/internal/
 | GET | /projects/:projectId/tms/cases/:caseKey/links | Список связей с задачами | JWT + RBAC |
 | POST | /projects/:projectId/tms/suites | Создать suite (папку) | JWT + RBAC |
 | GET | /projects/:projectId/tms/suites | Список suites | JWT + RBAC |
-| PUT | /projects/:projectId/tms/suites/:suiteId | Обновить suite | JWT + RBAC |
+| PUT | /projects/:projectId/tms/suites/:suiteId | Обновить suite (`version` OL) | JWT + RBAC |
 | DELETE | /projects/:projectId/tms/suites/:suiteId | Удалить suite | JWT + RBAC |
 | POST | /projects/:projectId/tms/components | Создать компонент | JWT + RBAC |
 | GET | /projects/:projectId/tms/components | Список компонентов | JWT + RBAC |
@@ -1319,8 +1319,8 @@ backend/internal/
 | POST | /calls/:callId/raise-hand | Поднять руку | JWT |
 | POST | /calls/:callId/chat | Отправить сообщение в чат звонка | JWT |
 | GET | /calls/:callId/chat | Список сообщений чата звонка | JWT |
-| POST | /calls/:callId/recording/start | Начать запись | JWT |
-| POST | /calls/:callId/recording/stop | Остановить запись | JWT |
+| POST | /calls/:callId/recording/start | Начать запись (channel member) | JWT |
+| POST | /calls/:callId/recording/stop | Остановить запись (channel member + call ownership) | JWT |
 | GET | /projects/:projectId/recordings | Список записей проекта | JWT |
 | POST | /projects/:projectId/scheduled-calls | Создать запланированный звонок | JWT |
 | GET | /recordings/:recordingId/download | Получить URL для скачивания записи | JWT |
@@ -1457,7 +1457,7 @@ backend/internal/
 | GET | /projects/:projectId/github/workflows | Список workflow runs | JWT + RBAC |
 | GET | /projects/:projectId/github/workflows/:runId | Детали workflow run | JWT + RBAC |
 | GET | /issues/:issueKey/github-links | Список GitHub-ссылок задачи | JWT |
-| POST | /issues/:issueKey/github/create-branch | Создать ветку из задачи | JWT |
+| POST | /projects/:projectId/issues/:issueKey/github/create-branch | Создать ветку из задачи | JWT + task.edit |
 | GET | /link-preview | Preview URL (GitHub/external) | JWT |
 
 ### GitLab (7 эндпоинтов)
@@ -1470,7 +1470,7 @@ backend/internal/
 | DELETE | /projects/:projectId/gitlab/integrations/:integrationId | Удалить интеграцию | JWT + RBAC |
 | GET | /projects/:projectId/gitlab/pipelines | Список pipelines | JWT + RBAC |
 | POST | /projects/:projectId/gitlab/pipelines/trigger | Запустить pipeline | JWT + RBAC |
-| POST | /issues/:issueKey/gitlab/create-branch | Создать ветку из задачи | JWT |
+| POST | /projects/:projectId/issues/:issueKey/gitlab/create-branch | Создать ветку из задачи | JWT + task.edit |
 
 ### Storage (4 эндпоинта)
 
@@ -1530,11 +1530,11 @@ backend/internal/
 
 | Метод | Путь | Описание | Auth |
 |-------|------|----------|------|
-| GET | /crm/contacts | Список контактов | JWT |
+| GET | /crm/contacts | Список контактов (owner; admin=org) | JWT |
 | POST | /crm/contacts | Создать контакт | JWT |
 | PUT | /crm/contacts/:contactId | Обновить (version) | JWT |
 | DELETE | /crm/contacts/:contactId | Soft delete | JWT |
-| GET | /crm/pipeline | Kanban сделок по stage | JWT |
+| GET | /crm/pipeline | Kanban сделок (owner; admin=org) | JWT |
 | POST | /crm/deals | Создать сделку | JWT |
 | PUT | /crm/deals/:dealId | Обновить / переместить stage | JWT |
 | DELETE | /crm/deals/:dealId | Soft delete | JWT |
@@ -1583,7 +1583,7 @@ backend/internal/
 | POST | /marketplace/listings/:listingId/approve | Одобрить | JWT (Admin) |
 | POST | /marketplace/listings/:listingId/sold | Отметить проданным | JWT |
 
-**Итого: ~286+ эндпоинтов** (полный перечень: `docs/wiki/API.md`)
+**Итого:** OpenAPI **252** paths (`backend/docs/swagger.json`, 2026-07-28); исторический route inventory ~286+ — см. `docs/wiki/API.md`
 
 ---
 
@@ -1592,7 +1592,7 @@ backend/internal/
 ### Подключение
 
 ```
-ws://host/ws?token=<JWT_ACCESS_TOKEN>
+ws://host/ws  (+ Sec-WebSocket-Protocol: hub.ws.ticket.<ticket>; ?token= forbidden)
 ```
 
 JWT передаётся через query-параметр, так как WebSocket не поддерживает кастомные заголовки при handshake.
@@ -1649,7 +1649,7 @@ routes/
   __root.tsx                    # Корневой layout
   index.tsx                     # Redirect на dashboard
   login.tsx                     # Страница авторизации
-  onboarding.tsx                # Онбординг (3 шага)
+  onboarding.tsx                # Онбординг (4 шага: профиль → тур → тема → проект)
   _authenticated.tsx            # Layout для авторизованных (sidebar + topbar)
   _authenticated/
     dashboard.tsx               # Личный дашборд
@@ -1687,7 +1687,7 @@ routes/
 | call-store | Активный звонок, участники, mute/hand |
 | dashboard-store | Виджеты, раскладка |
 | messenger-store | Каналы, сообщения, unread, typing |
-| notification-store | Список уведомлений, unread count |
+| (removed) notification-store | A10-007: list/unread → TanStack Query (`hooks/use-notifications.ts`) |
 | sidebar-store | Состояние сайдбара (collapsed/expanded) |
 | sprint-store | Спринты, бэклог |
 | timer-store | Таймтрекинг (активные таймеры) |
@@ -1896,4 +1896,4 @@ Caddy (prod):
 
 ---
 
-*Последнее обновление: 2026-06-22 — RU-FIX-01/02: RU headers, v4 modules API/schema sample, ~286 endpoints*
+*Последнее обновление: 2026-07-28 — auth Magic Link + Telegram notify bind; OpenAPI 252 / inventory ~286; онбординг 4 шага*

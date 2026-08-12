@@ -1,8 +1,14 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, Inbox, ListTodo } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { type IssueResponse, listIssues } from "@/api/tracker";
+import {
+	filterIssuesWithoutSprint,
+	type IssueResponse,
+	listIssues,
+} from "@/api/tracker";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { Button } from "@/components/ui/button";
+import { toastApiError } from "@/lib/format-api-error";
 import { useSprintStore } from "@/stores/sprint-store";
 
 /** Пропсы компонента SprintBacklog. */
@@ -15,25 +21,38 @@ interface SprintBacklogProps {
  * SprintBacklog отображает задачи без спринта (бэклог)
  * и задачи в спринтах со статусом planning.
  * Поддерживает выбор задач и перемещение в спринт.
+ *
+ * A3W10-3-001: backlog = sprint_id:"none" + filterIssuesWithoutSprint.
+ * A3W10-3-004: clear selectedIssues при смене projectId.
+ * A2W10-A3-002: fail load ≠ empty «Бэклог пуст».
  */
 export function SprintBacklog({ projectId }: SprintBacklogProps) {
 	const { sprints, fetchSprints, moveIssueToSprint } = useSprintStore();
 	const [backlogIssues, setBacklogIssues] = useState<IssueResponse[]>([]);
 	const [selectedIssues, setSelectedIssues] = useState<Set<string>>(new Set());
 	const [loading, setLoading] = useState(false);
+	const [loadError, setLoadError] = useState(false);
 
 	const loadBacklog = useCallback(async () => {
 		setLoading(true);
 		try {
-			const resp = await listIssues(projectId, { limit: 100 });
-			setBacklogIssues(resp.items);
-		} catch {
-			// ошибка загрузки бэклога
+			const resp = await listIssues(projectId, {
+				limit: 100,
+				sprint_id: "none",
+			});
+			setBacklogIssues(filterIssuesWithoutSprint(resp.items));
+			setLoadError(false);
+		} catch (err) {
+			setLoadError(true);
+			setBacklogIssues([]);
+			toastApiError(err, "Не удалось загрузить бэклог");
 		}
 		setLoading(false);
 	}, [projectId]);
 
 	useEffect(() => {
+		// A3W10-3-004: не переносить UUID задач чужого проекта в move.
+		setSelectedIssues(new Set());
 		void fetchSprints(projectId);
 		void loadBacklog();
 	}, [projectId, fetchSprints, loadBacklog]);
@@ -52,7 +71,7 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 		if (selectedIssues.size === 0) return;
 		await moveIssueToSprint(projectId, sprintId, Array.from(selectedIssues));
 		setSelectedIssues(new Set());
-		loadBacklog();
+		void loadBacklog();
 	};
 
 	const planningSprints = sprints.filter((s) => s.status === "planning");
@@ -70,7 +89,9 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 							Бэклог
 						</h1>
 						<p className="mt-0.5 text-[13px] text-t2">
-							{backlogIssues.length} задач без спринта
+							{loadError
+								? "Ошибка загрузки"
+								: `${backlogIssues.length} задач без спринта`}
 						</p>
 					</div>
 				</div>
@@ -86,7 +107,7 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 								key={s.id}
 								size="sm"
 								className="btn-glow bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-md shadow-blue-500/20 hover:from-blue-500 hover:to-blue-400"
-								onClick={() => handleMoveToSprint(s.id)}
+								onClick={() => void handleMoveToSprint(s.id)}
 							>
 								<ArrowRight className="mr-1.5 h-3.5 w-3.5" />В {s.name}
 							</Button>
@@ -103,6 +124,11 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 						<p className="text-sm text-t2">Загрузка бэклога...</p>
 					</div>
 				</div>
+			) : loadError ? (
+				<QueryErrorAlert
+					message="Не удалось загрузить бэклог"
+					retry={() => void loadBacklog()}
+				/>
 			) : backlogIssues.length === 0 ? (
 				<div className="flex flex-col items-center justify-center py-16 text-center">
 					<div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/20 to-blue-500/20">
@@ -132,6 +158,7 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 										type="checkbox"
 										checked={isSelected}
 										onChange={() => toggleSelect(issue.id)}
+										aria-label={`Выбрать ${issue.issue_key}`}
 										className="h-4 w-4 shrink-0 cursor-pointer accent-blue-400"
 									/>
 									{/* Ключ задачи */}

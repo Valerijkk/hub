@@ -677,8 +677,8 @@ export function getRunComparison(
 // API-функции: Импорт/экспорт
 // ---------------------------------------------------------------------------
 
-/** Импортировать тест-кейсы из файла (multipart). */
-export function importTestCases(
+/** Импортировать тест-кейсы из файла (multipart через api.post — FE-H1 refresh). */
+export async function importTestCases(
 	projectId: string,
 	file: File,
 	format?: string,
@@ -688,21 +688,22 @@ export function importTestCases(
 	formData.append("file", file);
 	if (format) formData.append("format", format);
 	if (mapping) formData.append("mapping", JSON.stringify(mapping));
+
 	return api.post<ImportResult>(`/projects/${projectId}/tms/import`, formData);
 }
 
-/** Экспортировать тест-кейсы (возвращает blob URL). */
+/** Экспортировать тест-кейсы (binary CSV/XLSX — не JSON client). */
 export function exportTestCases(projectId: string, format: string = "csv") {
-	return api.get<Blob>(`/projects/${projectId}/tms/export?format=${format}`);
+	return api.getBlob(`/projects/${projectId}/tms/export?format=${format}`);
 }
 
-/** Экспортировать отчёт прогона (возвращает blob URL). */
+/** Экспортировать отчёт прогона (binary — не JSON client). */
 export function exportTestRunReport(
 	projectId: string,
 	runId: string,
 	format: string = "csv",
 ) {
-	return api.get<Blob>(
+	return api.getBlob(
 		`/projects/${projectId}/tms/runs/${runId}/export?format=${format}`,
 	);
 }
@@ -771,6 +772,26 @@ export interface EnvironmentResponse {
 /** Получить список окружений проекта. */
 export function listEnvironments(projectId: string) {
 	return api.get<EnvironmentResponse[]>(`/projects/${projectId}/environments`);
+}
+
+/** Создать тестовое окружение. */
+export function createEnvironment(
+	projectId: string,
+	data: {
+		name: string;
+		label?: string;
+		config?: Record<string, string>;
+	},
+) {
+	return api.post<EnvironmentResponse>(
+		`/projects/${projectId}/environments`,
+		data,
+	);
+}
+
+/** Удалить тестовое окружение. */
+export function deleteEnvironment(projectId: string, envId: string) {
+	return api.delete<void>(`/projects/${projectId}/environments/${envId}`);
 }
 
 // ---------------------------------------------------------------------------

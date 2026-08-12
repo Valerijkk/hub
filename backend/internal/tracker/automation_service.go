@@ -51,6 +51,10 @@ func (s *AutomationService) CreateRule(ctx context.Context, projectID, userID uu
 	if err := validateAutomationRuleRequest(req.TriggerType, req.ActionType, req.TriggerConfig, req.ActionConfig); err != nil {
 		return nil, apperrors.NewBadRequest(err.Error())
 	}
+	// A3W1-2-003: channel_id только из этого проекта (иначе пост в чужой канал).
+	if err := s.ensureActionChannelInProject(ctx, projectID, req.ActionType, req.ActionConfig); err != nil {
+		return nil, err
+	}
 	count, err := s.repo.CountAutomationRules(ctx, projectID)
 	if err != nil {
 		return nil, apperrors.NewInternal("failed to count rules")
@@ -99,13 +103,20 @@ func (s *AutomationService) UpdateRule(ctx context.Context, projectID, ruleID uu
 	if err := validateAutomationRuleRequest(triggerType, actionType, triggerCfg, actionCfg); err != nil {
 		return nil, apperrors.NewBadRequest(err.Error())
 	}
-	updated, err := s.repo.UpdateAutomationRule(ctx, ruleID, UpdateAutomationRuleInput{
+	// A3W1-2-003: channel_id только из этого проекта.
+	if err := s.ensureActionChannelInProject(ctx, projectID, actionType, actionCfg); err != nil {
+		return nil, err
+	}
+	updated, err := s.repo.UpdateAutomationRule(ctx, projectID, ruleID, UpdateAutomationRuleInput{
 		Name:          req.Name,
 		Enabled:       req.Enabled,
 		TriggerConfig: req.TriggerConfig,
 		ActionConfig:  req.ActionConfig,
 	})
 	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("automation rule not found")
+		}
 		return nil, apperrors.NewInternal("failed to update rule")
 	}
 	resp := toAutomationRuleResponse(updated)
@@ -119,6 +130,30 @@ func (s *AutomationService) DeleteRule(ctx context.Context, projectID, ruleID uu
 			return apperrors.NewNotFound("automation rule not found")
 		}
 		return apperrors.NewInternal("failed to delete rule")
+	}
+	return nil
+}
+
+// ensureActionChannelInProject проверяет, что channel_id ∈ project при post_to_channel (A3W1-2-003).
+func (s *AutomationService) ensureActionChannelInProject(
+	ctx context.Context,
+	projectID uuid.UUID,
+	actionType string,
+	actionCfg map[string]interface{},
+) error {
+	if actionType != ActionPostToChannel {
+		return nil
+	}
+	raw := configString(actionCfg, "channel_id")
+	channelID, err := uuid.Parse(raw)
+	if err != nil {
+		return apperrors.NewBadRequest("action_config.channel_id invalid")
+	}
+	if _, err := s.repo.FindChannelInProject(ctx, projectID, channelID); err != nil {
+		if ent.IsNotFound(err) {
+			return apperrors.NewNotFound("канал не найден")
+		}
+		return apperrors.NewInternal("ошибка проверки канала")
 	}
 	return nil
 }

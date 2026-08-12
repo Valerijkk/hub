@@ -14,7 +14,7 @@ import { ResourceLimits } from "@/components/admin/resource-limits";
 import { UserManagement } from "@/components/admin/user-management";
 import { adminDefault } from "@/components/dashboard/dashboard-templates";
 import { WidgetGrid } from "@/components/dashboard/widget-grid";
-import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { isSystemAdmin } from "@/lib/is-system-admin";
 import { useAuthStore } from "@/stores/auth-store";
 import { useDashboardStore } from "@/stores/dashboard-store";
@@ -36,25 +36,34 @@ function AdminDashboard() {
 	const layouts = useDashboardStore((s) => s.layouts);
 	const setLayout = useDashboardStore((s) => s.setLayout);
 	const loading = useDashboardStore((s) => s.loading);
+	const error = useDashboardStore((s) => s.error);
 	const [activeTab, setActiveTab] = useState("dashboard");
 
 	useEffect(() => {
-		fetchAdmin();
-		loadLayout("admin").then(() => {
-			const current = useDashboardStore.getState().layouts.admin;
-			if (!current || current.length === 0) {
-				setLayout("admin", adminDefault);
-			}
-		});
+		void fetchAdmin();
+		// A3W11-3-001: default только после успешного load; fail → без setLayout.
+		void loadLayout("admin")
+			.then(() => {
+				const current = useDashboardStore.getState().layouts.admin;
+				if (!current || current.length === 0) {
+					setLayout("admin", adminDefault);
+				}
+			})
+			.catch(() => {
+				/* loadLayout уже выставил error */
+			});
 	}, [fetchAdmin, loadLayout, setLayout]);
 
-	const items = layouts.admin ?? adminDefault;
+	const adminItems = layouts.admin;
+	const layoutLoadFailed =
+		Boolean(error) && adminItems === undefined && Boolean(adminData);
+	const items = adminItems ?? (layoutLoadFailed ? [] : adminDefault);
 
 	return (
 		<div className="flex-1 overflow-y-auto p-6 animate-[eu_450ms_var(--spring)]">
 			{/* Панель вкладок */}
 			<Tabs value={activeTab} onValueChange={setActiveTab}>
-				<div className="flex gap-[3px] mb-5 border-b border-b1 pb-[2px]">
+				<TabsList className="flex h-auto w-full justify-start gap-[3px] mb-5 rounded-none border-b border-b1 bg-transparent p-0 pb-[2px]">
 					{[
 						{
 							value: "dashboard",
@@ -75,20 +84,15 @@ function AdminDashboard() {
 						{ value: "ai", label: "AI" },
 						{ value: "onec", label: "1C" },
 					].map((tab) => (
-						<button
+						<TabsTrigger
 							key={tab.value}
-							type="button"
-							onClick={() => setActiveTab(tab.value)}
-							className={`px-[14px] py-[7px] text-[13px] font-medium text-[var(--t2)] rounded-t-[var(--r2)] transition-colors duration-200 cursor-pointer relative hover:text-t1 ${
-								activeTab === tab.value
-									? "text-t1 font-semibold after:absolute after:bottom-[-2px] after:left-1/4 after:right-1/4 after:h-[2px] after:bg-red after:rounded-[1px] after:shadow-[0_0_6px_var(--red)]"
-									: ""
-							}`}
+							value={tab.value}
+							className="rounded-t-[var(--r2)] rounded-b-none border-b-0 px-[14px] py-[7px] text-[13px] font-medium text-[var(--t2)] shadow-none data-[state=active]:border-transparent data-[state=active]:bg-transparent data-[state=active]:text-t1 data-[state=active]:font-semibold data-[state=active]:shadow-none data-[state=active]:after:absolute data-[state=active]:after:bottom-[-2px] data-[state=active]:after:left-1/4 data-[state=active]:after:right-1/4 data-[state=active]:after:h-[2px] data-[state=active]:after:bg-red data-[state=active]:after:rounded-[1px] data-[state=active]:after:shadow-[0_0_6px_var(--red)] relative"
 						>
 							{tab.label}
-						</button>
+						</TabsTrigger>
 					))}
-				</div>
+				</TabsList>
 
 				{/* Вкладка дашборда */}
 				<TabsContent value="dashboard">
@@ -99,19 +103,16 @@ function AdminDashboard() {
 									"\u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u0435\u0439"
 								}
 								value={adminData.total_users}
-								change={+5}
 								color="green"
 							/>
 							<KpiCard
 								label={"\u041F\u0440\u043E\u0435\u043A\u0442\u043E\u0432"}
 								value={adminData.total_projects}
-								change={+2}
 								color="blue"
 							/>
 							<KpiCard
 								label={"\u0417\u0430\u0434\u0430\u0447"}
 								value={adminData.total_issues}
-								change={-3}
 								color="purple"
 							/>
 							<KpiCard
@@ -124,8 +125,52 @@ function AdminDashboard() {
 						<p className="text-[var(--t2)] text-[13px]">
 							{"\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430..."}
 						</p>
+					) : error && !adminData ? (
+						<div
+							role="alert"
+							className="flex flex-col items-center justify-center py-16 gap-3 text-t2"
+						>
+							<p className="text-sm font-medium">{error}</p>
+							<button
+								type="button"
+								className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+								onClick={() => void fetchAdmin()}
+							>
+								Попробовать снова
+							</button>
+						</div>
+					) : layoutLoadFailed ? (
+						<div
+							role="alert"
+							className="flex flex-col items-center justify-center py-16 gap-3 text-t2"
+						>
+							<p className="text-sm font-medium">{error}</p>
+							<button
+								type="button"
+								className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+								onClick={() => {
+									void loadLayout("admin")
+										.then(() => {
+											const current =
+												useDashboardStore.getState().layouts.admin;
+											if (!current || current.length === 0) {
+												setLayout("admin", adminDefault);
+											}
+										})
+										.catch(() => {
+											/* error уже в store */
+										});
+								}}
+							>
+								Попробовать снова
+							</button>
+						</div>
 					) : (
-						<WidgetGrid items={items} dashboardType="admin" data={adminData} />
+						<WidgetGrid
+							items={items}
+							dashboardType="admin"
+							data={adminData ?? undefined}
+						/>
 					)}
 				</TabsContent>
 

@@ -22,9 +22,9 @@ alwaysApply: false
 | **Тесты / coverage** | `.planning/COVERAGE.md`, `docs/test_plan.md`, `docs/TESTING.md` |
 | **CI / deploy / Docker** | `docs/stack_and_tools.md`, `deployments/.env.example`, `docs/wiki/DEPLOY.md` |
 | **Security** | `docs/security_guidelines.md` |
-| **Закрытие gap / Wave C** | `.planning/tasks/TASKS-CLOSE-GAPS.md`, `.planning/tasks/TASKS-PHASES-121-FINAL-AUDIT.md` |
-| **Prod ops / секрет-ротация / handoff** | `.planning/production/PG-03-SECRET-ROTATION.md`, `.planning/production/FA-06-EXECUTION-LOG.md`, `.planning/production/PRODUCTION-HANDOFF.md`, `docs/runbooks/fa06-secret-rotation.md` |
-| **July Rebuild / QA-HARDENING planning** | `.planning/july-2026/INDEX-JULY-2026.md`, `july-2026/PROJECT-STATUS-2026-07-10.md`, `july-2026/ROADMAP-FINAL-2026-07-03.md` |
+| **Закрытие gap / Wave C** | `.planning/archive/tasks/TASKS-CLOSE-GAPS.md`, `.planning/archive/tasks/TASKS-PHASES-121-FINAL-AUDIT.md` |
+| **Prod ops / секрет-ротация / handoff** | `.planning/ops/production/PG-03-SECRET-ROTATION.md`, `.planning/ops/production/FA-06-EXECUTION-LOG.md`, `.planning/ops/production/PRODUCTION-HANDOFF.md`, `docs/runbooks/fa06-secret-rotation.md` |
+| **July Rebuild / QA-HARDENING planning** | `.planning/archive/july-2026/INDEX-JULY-2026.md`, `july-2026/PROJECT-STATUS-2026-07-10.md`, `july-2026/ROADMAP-FINAL-2026-07-03.md` |
 | **Аудит / ревью findings** | `.planning/audits/2026-06/AUDIT-2026-06-23.md` (или новый файл по дате в этой папке) |
 | **Best practice / backlog** | `docs/competitive_audit.md` |
 | **Статус проекта** | `AGENTS.md` (кратко), `.planning/STATE.md` |
@@ -54,9 +54,9 @@ alwaysApply: false
 
 - Навигационный индекс, который нужно держать синхронным при любой реорганизации: `.planning/README.md` — карта «Живой канон» + «По смыслу» + «Быстрые входы»; обновлён 2026-07-18 после переноса ~42 корневых артефактов без единого удаления.
 - Навигация `.planning/` после реорганизации 2026-07-18: `PROJECT.md`, `ROADMAP.md`, `STATE.md`, `REQUIREMENTS.md`, `COVERAGE.md`, `config.json` остаются в корне; всё остальное разложено по темам (`july-2026/`, `audits/2026-06/`, `production/`, `specs/`, `roadmaps/`, `tasks/`, `gray-zones/`). Новые разовые отчёты — сразу в тематическую папку, **не в корень**.
-- July-индекс как входная точка вместо разрозненных ссылок: `.planning/july-2026/INDEX-JULY-2026.md` ссылается на `JULY-2026-REBUILD-BRIEF.md`, `ROADMAP-DETAILED-JULY-RETURN.md`, `ROADMAP-FINAL-2026-07-03.md`, `CODE-QUALITY-CHARTER.md`, `EDGE-CORNER-CATALOG.md`, `PROJECT-STATUS-2026-07-10.md`.
-- Prod-лог, который обновляется, а не пересоздаётся: `.planning/production/FA-06-EXECUTION-LOG.md` — единственный источник правды по прогрессу секрет-ротации; runbook-копия для DevOps — `docs/runbooks/fa06-secret-rotation.md` (синхронизировать оба при изменении процедуры, создаётся вместе с фиксом, не постфактум).
-- Gap-closure задачи собраны в одной папке, не в корне: `.planning/tasks/{TASKS-CLOSE-GAPS,PLAN-CLOSE-GAPS,TASKS-PHASES-121-FINAL-AUDIT,TASKS-RU-COMMENTS-DOCS}.md`.
+- July-индекс как входная точка вместо разрозненных ссылок: `.planning/archive/july-2026/INDEX-JULY-2026.md` ссылается на `JULY-2026-REBUILD-BRIEF.md`, `ROADMAP-DETAILED-JULY-RETURN.md`, `ROADMAP-FINAL-2026-07-03.md`, `CODE-QUALITY-CHARTER.md`, `EDGE-CORNER-CATALOG.md`, `PROJECT-STATUS-2026-07-10.md`.
+- Prod-лог, который обновляется, а не пересоздаётся: `.planning/ops/production/FA-06-EXECUTION-LOG.md` — единственный источник правды по прогрессу секрет-ротации; runbook-копия для DevOps — `docs/runbooks/fa06-secret-rotation.md` (синхронизировать оба при изменении процедуры, создаётся вместе с фиксом, не постфактум).
+- Gap-closure задачи собраны в одной папке, не в корне: `.planning/archive/tasks/{TASKS-CLOSE-GAPS,PLAN-CLOSE-GAPS,TASKS-PHASES-121-FINAL-AUDIT,TASKS-RU-COMMENTS-DOCS}.md`.
 - Реальный docs-sync для security-фикса в том же коммите, не отдельным PR: `fix(bases)` обновил `backend/internal/bases/service.go` и `docs/wiki/API.md` (owner-scoped доступ для Hub Base) одновременно; session note того же дня — `.planning/STATE.md` («be1 · Волна 1 поток B · bases security fix») — эталон формата (что сделано, какие тесты, какой doc).
 - API-контракт синхронизирован с кодом: `docs/system_specification.md` секция «Спецификации Волны 2» ↔ `docs/wiki/API.md` таблицы planned/spec — сверять оба при добавлении нового REST-эндпоинта.
 - Пример drift-проверки после переноса файлов: session note `.planning/STATE.md` 2026-07-18 — «Ссылки `.planning/<old>` обновлены в docs / AGENTS / scripts / `.cursor` (~126 файлов). Ничего не удаляли» — эталон формулировки doc-sync записи.

@@ -53,9 +53,17 @@ export const useTimerStore = create<TimerState>()(
 			tick: () => {
 				const { startedAt, isRunning } = get();
 				if (!isRunning || !startedAt) return;
-				const elapsed = Math.floor(
-					(Date.now() - new Date(startedAt).getTime()) / 1000,
-				);
+				const startedMs = new Date(startedAt).getTime();
+				// Битый persist (localStorage) → NaN; останавливаем таймер вместо UI «NaN».
+				if (!Number.isFinite(startedMs)) {
+					get().stopTimer();
+					return;
+				}
+				const elapsed = Math.floor((Date.now() - startedMs) / 1000);
+				if (!Number.isFinite(elapsed)) {
+					get().stopTimer();
+					return;
+				}
 				set({ elapsedSeconds: elapsed });
 			},
 		}),

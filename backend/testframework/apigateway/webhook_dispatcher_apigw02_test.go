@@ -13,33 +13,41 @@ import (
 	"github.com/valerii/hub/backend/internal/apigateway"
 )
 
-// subscribedRepo возвращает один активный эндпоинт, подписанный на все события.
-func subscribedRepo() *stubWebhookRepo {
+// subscribedRepo возвращает один активный эндпоинт с events=["*"] и привязанный
+// к проекту (Edges.Project обязателен после TASK-012 project-scope фильтра).
+func subscribedRepo() (*stubWebhookRepo, uuid.UUID) {
+	projectID := uuid.New()
 	return &stubWebhookRepo{
 		endpoints: []*ent.WebhookEndpoint{{
 			ID: uuid.New(), URL: "https://example.com/hook", Secret: "s",
 			Events: []string{"*"}, IsActive: true,
+			Edges: ent.WebhookEndpointEdges{Project: &ent.Project{ID: projectID}},
 		}},
-	}
+	}, projectID
+}
+
+func projectIssueSubject(projectID uuid.UUID) string {
+	return "project." + projectID.String() + ".issue.created"
 }
 
 // APIGW-02: при переполнении воркер-очереди dispatchEvent обязан вернуть
 // errWebhookQueueFull, а не «тихо» дропнуть задачу. Только так вызывающий
 // consumer узнает, что Ack делать нельзя, и JetStream доставит событие повторно.
 func TestWebhookDispatcher_dispatchEvent_QueueFull_ReturnsError(t *testing.T) {
-	repo := subscribedRepo()
+	repo, projectID := subscribedRepo()
 	d := apigateway.NewWebhookDispatcher(repo, nil)
 	apigateway.ExportWebhookDispatcherInitJobs(d, 1)
 
 	ctx := context.Background()
 	body := []byte(`{"k":"v"}`)
 	payload := map[string]interface{}{"k": "v"}
+	subject := projectIssueSubject(projectID)
 
 	// Первый dispatch заполняет очередь (buffer=1) — задача поставлена, ошибки нет.
-	require.NoError(t, apigateway.ExportWebhookDispatcherDispatchEvent(d, ctx, "project.x.issue.created", body, payload))
+	require.NoError(t, apigateway.ExportWebhookDispatcherDispatchEvent(d, ctx, subject, body, payload))
 
 	// Второй dispatch не может поставить задачу — очередь полна.
-	err := apigateway.ExportWebhookDispatcherDispatchEvent(d, ctx, "project.x.issue.created", body, payload)
+	err := apigateway.ExportWebhookDispatcherDispatchEvent(d, ctx, subject, body, payload)
 	require.Error(t, err)
 	assert.ErrorIs(t, err, apigateway.ExportErrWebhookQueueFull())
 }
@@ -47,12 +55,12 @@ func TestWebhookDispatcher_dispatchEvent_QueueFull_ReturnsError(t *testing.T) {
 // APIGW-02: handleMessage должен пробросить ошибку переполнения, чтобы consumer
 // сделал NAK вместо Ack (предотвращение потери данных при всплеске).
 func TestWebhookDispatcher_handleMessage_QueueFull_ReturnsError(t *testing.T) {
-	repo := subscribedRepo()
+	repo, projectID := subscribedRepo()
 	d := apigateway.NewWebhookDispatcher(repo, nil)
 	apigateway.ExportWebhookDispatcherInitJobs(d, 1)
 
 	ctx := context.Background()
-	msg := &stubWebhookJSMsg{subject: "project.x.issue.created", data: []byte(`{"k":"v"}`)}
+	msg := &stubWebhookJSMsg{subject: projectIssueSubject(projectID), data: []byte(`{"k":"v"}`)}
 
 	// Первое сообщение заполняет очередь.
 	require.NoError(t, apigateway.ExportWebhookDispatcherHandleMessage(d, ctx, msg))
@@ -65,11 +73,11 @@ func TestWebhookDispatcher_handleMessage_QueueFull_ReturnsError(t *testing.T) {
 
 // Успешная постановка в очередь не должна возвращать ошибку (consumer делает Ack).
 func TestWebhookDispatcher_handleMessage_Success_NoError(t *testing.T) {
-	repo := subscribedRepo()
+	repo, projectID := subscribedRepo()
 	d := apigateway.NewWebhookDispatcher(repo, nil)
 	apigateway.ExportWebhookDispatcherInitJobs(d, 4)
 
-	msg := &stubWebhookJSMsg{subject: "project.x.issue.created", data: []byte(`{"k":"v"}`)}
+	msg := &stubWebhookJSMsg{subject: projectIssueSubject(projectID), data: []byte(`{"k":"v"}`)}
 	require.NoError(t, apigateway.ExportWebhookDispatcherHandleMessage(d, context.Background(), msg))
 }
 

@@ -10,7 +10,10 @@ import {
 	ResponsiveContainer,
 	Tooltip,
 } from "recharts";
-import type { ProjectStats } from "@/api/dashboard";
+import {
+	type DashboardWidgetData,
+	isProjectStats,
+} from "@/components/dashboard/widget-data";
 
 /** Цвета статусов. */
 const STATUS_COLORS = [
@@ -25,7 +28,7 @@ const STATUS_COLORS = [
 ];
 
 interface Props {
-	data?: unknown;
+	data?: DashboardWidgetData;
 }
 
 /** Кастомный tooltip. */
@@ -55,7 +58,7 @@ function ChartTooltip({
 
 /** Виджет диаграммы статусов задач. */
 export function TaskStatusChartWidget({ data }: Props) {
-	const projectData = data as ProjectStats | undefined;
+	const projectData = isProjectStats(data) ? data : undefined;
 	const statusMap = projectData?.tasks_by_status ?? {};
 
 	const chartData = Object.entries(statusMap).map(([name, value]) => ({
@@ -73,35 +76,41 @@ export function TaskStatusChartWidget({ data }: Props) {
 	}
 
 	return (
-		<ResponsiveContainer width="100%" height="100%">
-			<PieChart>
-				<Pie
-					data={chartData}
-					cx="50%"
-					cy="50%"
-					innerRadius={40}
-					outerRadius={70}
-					dataKey="value"
-					nameKey="name"
-					paddingAngle={3}
-					strokeWidth={0}
-				>
-					{chartData.map((entry, index) => (
-						<Cell
-							key={`cell-${entry.name}`}
-							fill={STATUS_COLORS[index % STATUS_COLORS.length]}
-						/>
-					))}
-				</Pie>
-				<Tooltip content={<ChartTooltip />} />
-				<Legend
-					iconType="circle"
-					iconSize={8}
-					formatter={(value) => (
-						<span className="text-xs text-t2">{value}</span>
-					)}
-				/>
-			</PieChart>
-		</ResponsiveContainer>
+		<div
+			role="img"
+			aria-label={`Статусы задач: ${chartData.map((p) => `${p.name} — ${p.value}`).join("; ")}`}
+			className="h-full w-full"
+		>
+			<ResponsiveContainer width="100%" height="100%">
+				<PieChart>
+					<Pie
+						data={chartData}
+						cx="50%"
+						cy="50%"
+						innerRadius={40}
+						outerRadius={70}
+						dataKey="value"
+						nameKey="name"
+						paddingAngle={3}
+						strokeWidth={0}
+					>
+						{chartData.map((entry, index) => (
+							<Cell
+								key={`cell-${entry.name}`}
+								fill={STATUS_COLORS[index % STATUS_COLORS.length]}
+							/>
+						))}
+					</Pie>
+					<Tooltip content={<ChartTooltip />} />
+					<Legend
+						iconType="circle"
+						iconSize={8}
+						formatter={(value) => (
+							<span className="text-xs text-t2">{value}</span>
+						)}
+					/>
+				</PieChart>
+			</ResponsiveContainer>
+		</div>
 	);
 }

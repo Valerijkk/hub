@@ -14,10 +14,10 @@ type CoffeeEnrollmentResponse struct {
 }
 
 // CoffeePartnerResponse — напарник в текущем/прошлом раунде.
+// P3-BE-15 / W7-A2-014: без email (PII) — достаточно display_name + department.
 type CoffeePartnerResponse struct {
 	UserID      uuid.UUID `json:"user_id"`
 	DisplayName string    `json:"display_name,omitempty"`
-	Email       string    `json:"email,omitempty"`
 	Department  string    `json:"department,omitempty"`
 }
 
@@ -28,23 +28,34 @@ type CoffeePairResponse struct {
 	ParticipantB CoffeePartnerResponse `json:"participant_b"`
 }
 
+// CoffeeTripleResponse — тройка при нечётном N (FR-INTR-10).
+type CoffeeTripleResponse struct {
+	ParticipantA CoffeePartnerResponse `json:"participant_a"`
+	ParticipantB CoffeePartnerResponse `json:"participant_b"`
+	ParticipantC CoffeePartnerResponse `json:"participant_c"`
+}
+
 // CoffeeRoundResponse — результат раунда matching.
 type CoffeeRoundResponse struct {
-	ID            uuid.UUID            `json:"id"`
-	PairCount     int                  `json:"pair_count"`
-	UnpairedCount int                  `json:"unpaired_count"`
-	Pairs         []CoffeePairResponse `json:"pairs"`
+	ID            uuid.UUID              `json:"id"`
+	PairCount     int                    `json:"pair_count"`
+	TripleCount   int                    `json:"triple_count"`
+	UnpairedCount int                    `json:"unpaired_count"`
+	Pairs         []CoffeePairResponse   `json:"pairs"`
+	Triples       []CoffeeTripleResponse `json:"triples,omitempty"`
 	Unpaired      []CoffeePartnerResponse `json:"unpaired,omitempty"`
-	CreatedAt     time.Time            `json:"created_at"`
-	TriggeredBy   string               `json:"triggered_by,omitempty"`
+	CreatedAt     time.Time              `json:"created_at"`
+	TriggeredBy   string                 `json:"triggered_by,omitempty"`
 }
 
 // CoffeeMyMatchResponse — текущий match пользователя (последний раунд).
+// Partners — все напарники (пара: 1; тройка: 2). Partner — первый из Partners (BWC FE).
 type CoffeeMyMatchResponse struct {
-	RoundID   *uuid.UUID            `json:"round_id,omitempty"`
-	RoundAt   *time.Time            `json:"round_at,omitempty"`
-	Partner   *CoffeePartnerResponse `json:"partner,omitempty"`
-	Unpaired  bool                  `json:"unpaired"`
+	RoundID  *uuid.UUID              `json:"round_id,omitempty"`
+	RoundAt  *time.Time              `json:"round_at,omitempty"`
+	Partner  *CoffeePartnerResponse  `json:"partner,omitempty"`
+	Partners []CoffeePartnerResponse `json:"partners,omitempty"`
+	Unpaired bool                    `json:"unpaired"`
 }
 
 // CoffeeStatsResponse — для admin перед запуском.

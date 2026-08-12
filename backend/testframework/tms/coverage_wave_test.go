@@ -117,7 +117,7 @@ func TestEntRepository_TraceabilityAndResults(t *testing.T) {
 		SetProjectID(projectID).
 		Save(ctx)
 	require.NoError(t, err)
-	require.NoError(t, repo.AddFilesToResult(ctx, result.ID, []uuid.UUID{fileID}))
+	require.NoError(t, repo.AddFilesToResult(ctx, run.ID, result.ID, []uuid.UUID{fileID}))
 
 	env, err := repo.CreateEnvironment(ctx, projectID, tms.CreateEnvironmentInput{
 		Name: "Prod", Label: "prod",

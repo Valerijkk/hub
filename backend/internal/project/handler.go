@@ -5,6 +5,7 @@ import (
 	"github.com/gofiber/utils/v2"
 	"github.com/google/uuid"
 	httputil "github.com/valerii/hub/backend/internal/platform/http"
+	"github.com/valerii/hub/backend/internal/rbac"
 )
 
 // Handler предоставляет HTTP-обработчики модуля project.
@@ -19,42 +20,43 @@ func NewHandler(service *ProjectService) *Handler {
 
 // RegisterRoutes регистрирует все маршруты project.
 // authMw — middleware аутентификации.
-// requirePerm — фабрика middleware проверки прав RBAC.
-func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
+// rbacSvc — проверка прав на маршрутах с :projectId (Fiber v3: RBAC после handler в сигнатуре).
+func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc *rbac.RBACService) {
 	projects := api.Group("/projects", authMw)
 
 	// CRUD проектов
 	projects.Post("/", h.CreateProject)
 	projects.Get("/", h.ListProjects)
 	projects.Get("/trash", h.ListTrash) // до :projectId, чтобы избежать конфликта маршрутов
-	projects.Get("/:projectId", h.GetProject)
-	projects.Put("/:projectId", h.UpdateProject)
-	projects.Post("/:projectId/archive", h.ArchiveProject)
-	projects.Post("/:projectId/unarchive", h.UnarchiveProject)
-	projects.Delete("/:projectId", h.DeleteProject)
-	projects.Post("/:projectId/restore", h.RestoreProject)
+	projects.Get("/:projectId", h.GetProject, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	projects.Put("/:projectId", h.UpdateProject, rbac.RequirePermission(rbac.PermProjectEdit, rbacSvc))
+	projects.Post("/:projectId/archive", h.ArchiveProject, rbac.RequirePermission(rbac.PermProjectEdit, rbacSvc))
+	projects.Post("/:projectId/unarchive", h.UnarchiveProject, rbac.RequirePermission(rbac.PermProjectEdit, rbacSvc))
+	projects.Delete("/:projectId", h.DeleteProject, rbac.RequirePermission(rbac.PermProjectDelete, rbacSvc))
+	projects.Post("/:projectId/restore", h.RestoreProject, rbac.RequirePermission(rbac.PermProjectDelete, rbacSvc))
+	projects.Delete("/:projectId/permanent", h.PermanentDeleteProject, rbac.RequirePermission(rbac.PermProjectDelete, rbacSvc))
 
 	// Участники
-	projects.Get("/:projectId/members", h.ListMembers)
-	projects.Post("/:projectId/members", h.AddMember)
-	projects.Put("/:projectId/members/:userId", h.UpdateMemberRole)
-	projects.Delete("/:projectId/members/:userId", h.RemoveMember)
+	projects.Get("/:projectId/members", h.ListMembers, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	projects.Post("/:projectId/members", h.AddMember, rbac.RequirePermission(rbac.PermProjectManageMembers, rbacSvc))
+	projects.Put("/:projectId/members/:userId", h.UpdateMemberRole, rbac.RequirePermission(rbac.PermProjectManageMembers, rbacSvc))
+	projects.Delete("/:projectId/members/:userId", h.RemoveMember, rbac.RequirePermission(rbac.PermProjectManageMembers, rbacSvc))
 
 	// Приглашения
-	projects.Post("/:projectId/invites", h.CreateInvite)
-	projects.Get("/:projectId/invites", h.ListInvites)
-	projects.Delete("/:projectId/invites/:inviteId", h.RevokeInvite)
+	projects.Post("/:projectId/invites", h.CreateInvite, rbac.RequirePermission(rbac.PermInviteCreate, rbacSvc))
+	projects.Get("/:projectId/invites", h.ListInvites, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	projects.Delete("/:projectId/invites/:inviteId", h.RevokeInvite, rbac.RequirePermission(rbac.PermInviteManage, rbacSvc))
 
 	// Join — только auth, без project RBAC (invite-код сам определяет проект).
 	api.Post("/invites/join", authMw, h.JoinByInvite)
 
-	// Команды
+	// Команды (орг-уровень без :projectId — auth; привязка к проекту — RBAC).
 	teams := api.Group("/teams", authMw)
 	teams.Post("/", h.CreateTeam)
 	teams.Get("/", h.ListTeams)
 	teams.Post("/:teamId/members", h.AddTeamMember)
 	teams.Delete("/:teamId/members/:userId", h.RemoveTeamMember)
-	teams.Post("/:teamId/projects/:projectId", h.AddTeamToProject)
+	teams.Post("/:teamId/projects/:projectId", h.AddTeamToProject, rbac.RequirePermission(rbac.PermTeamManage, rbacSvc))
 }
 
 // CreateProject — Создать проект
@@ -273,6 +275,35 @@ func (h *Handler) RestoreProject(c fiber.Ctx) error {
 	}
 
 	return c.JSON(resp)
+}
+
+// PermanentDeleteProject — Жёсткое удаление проекта из корзины
+// @Summary Удалить проект навсегда
+// @Description Безвозвратно удаляет проект (hard-delete). TZ: Admin/GDPR.
+// @Tags Проекты
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Success 204 "Удалён"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 404 {object} fiber.Error "Не найден"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/permanent [delete]
+func (h *Handler) PermanentDeleteProject(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	if err := h.service.PermanentDelete(c.Context(), projectID, userID); err != nil {
+		return err
+	}
+
+	return c.SendStatus(fiber.StatusNoContent)
 }
 
 // ListTrash — Корзина проектов
@@ -503,13 +534,17 @@ func (h *Handler) ListInvites(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/invites/{inviteId} [delete]
 func (h *Handler) RevokeInvite(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid project ID")
+	}
 	inviteIDStr := utils.CopyString(c.Params("inviteId"))
 	inviteUUID, err := uuid.Parse(inviteIDStr)
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid invite ID")
 	}
 
-	if err := h.service.RevokeInvite(c.Context(), inviteUUID); err != nil {
+	if err := h.service.RevokeInvite(c.Context(), projectID, inviteUUID); err != nil {
 		return err
 	}
 
@@ -560,6 +595,10 @@ func (h *Handler) JoinByInvite(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/teams [post]
 func (h *Handler) CreateTeam(c fiber.Ctx) error {
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
 	var req CreateTeamRequest
 	if err := c.Bind().JSON(&req); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid request body")
@@ -567,7 +606,7 @@ func (h *Handler) CreateTeam(c fiber.Ctx) error {
 	if req.Name == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "team name is required")
 	}
-	resp, err := h.service.CreateTeam(c.Context(), req.Name, req.Description)
+	resp, err := h.service.CreateTeam(c.Context(), userID, req.Name, req.Description)
 	if err != nil {
 		return err
 	}
@@ -584,7 +623,11 @@ func (h *Handler) CreateTeam(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/teams [get]
 func (h *Handler) ListTeams(c fiber.Ctx) error {
-	resp, err := h.service.ListTeams(c.Context())
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+	resp, err := h.service.ListTeams(c.Context(), userID)
 	if err != nil {
 		return err
 	}
@@ -605,6 +648,10 @@ func (h *Handler) ListTeams(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/teams/{teamId}/members [post]
 func (h *Handler) AddTeamMember(c fiber.Ctx) error {
+	actorID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
 	teamIDStr := utils.CopyString(c.Params("teamId"))
 	teamID, err := uuid.Parse(teamIDStr)
 	if err != nil {
@@ -618,7 +665,7 @@ func (h *Handler) AddTeamMember(c fiber.Ctx) error {
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid user ID")
 	}
-	if err := h.service.AddTeamMember(c.Context(), teamID, userID); err != nil {
+	if err := h.service.AddTeamMember(c.Context(), teamID, actorID, userID); err != nil {
 		return err
 	}
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"message": "member added to team"})
@@ -636,6 +683,10 @@ func (h *Handler) AddTeamMember(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/teams/{teamId}/members/{userId} [delete]
 func (h *Handler) RemoveTeamMember(c fiber.Ctx) error {
+	actorID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
 	teamIDStr := utils.CopyString(c.Params("teamId"))
 	teamID, err := uuid.Parse(teamIDStr)
 	if err != nil {
@@ -646,7 +697,7 @@ func (h *Handler) RemoveTeamMember(c fiber.Ctx) error {
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid user ID")
 	}
-	if err := h.service.RemoveTeamMember(c.Context(), teamID, userID); err != nil {
+	if err := h.service.RemoveTeamMember(c.Context(), teamID, actorID, userID); err != nil {
 		return err
 	}
 	return c.SendStatus(fiber.StatusNoContent)
@@ -674,7 +725,11 @@ func (h *Handler) AddTeamToProject(c fiber.Ctx) error {
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid project ID")
 	}
-	if err := h.service.AddTeamToProject(c.Context(), teamID, projectID); err != nil {
+	actorID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+	if err := h.service.AddTeamToProject(c.Context(), teamID, projectID, actorID); err != nil {
 		return err
 	}
 	return c.JSON(fiber.Map{"message": "team added to project"})

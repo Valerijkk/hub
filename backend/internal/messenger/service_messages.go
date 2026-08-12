@@ -127,10 +127,22 @@ func (s *MessengerService) ListMessages(ctx context.Context, channelID, userID u
 	return result, nil
 }
 
-// EditMessage редактирует сообщение (только автор).
-func (s *MessengerService) EditMessage(ctx context.Context, messageID string, userID uuid.UUID, req EditMessageRequest) (*MessageResponse, error) {
+// EditMessage редактирует сообщение (только автор + член канала; message ∈ channel).
+// W3-A1-004 / P2-BE-12: channelID из URL обязателен — нельзя править после leave / чужой канал.
+func (s *MessengerService) EditMessage(ctx context.Context, channelID uuid.UUID, messageID string, userID uuid.UUID, req EditMessageRequest) (*MessageResponse, error) {
+	isMember, err := s.repo.IsMember(ctx, channelID, userID)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка проверки участия")
+	}
+	if !isMember {
+		return nil, apperrors.NewForbidden("вы не являетесь участником канала")
+	}
+
 	existing, err := s.repo.FindMessageByID(ctx, messageID)
 	if err != nil {
+		return nil, apperrors.NewNotFound("сообщение не найдено")
+	}
+	if existing.ChannelID != channelID {
 		return nil, apperrors.NewNotFound("сообщение не найдено")
 	}
 
@@ -158,19 +170,24 @@ func (s *MessengerService) EditMessage(ctx context.Context, messageID string, us
 
 // DeleteMessage выполняет мягкое удаление сообщения.
 // Автор удаляет своё; admin/owner — любое сообщение.
+// URL-канал должен совпадать с каналом сообщения (P1-BE-17); роль — по msg.ChannelID.
 func (s *MessengerService) DeleteMessage(ctx context.Context, messageID string, userID uuid.UUID, channelID string, isAdmin bool) error {
 	existing, err := s.repo.FindMessageByID(ctx, messageID)
 	if err != nil {
 		return apperrors.NewNotFound("сообщение не найдено")
 	}
 
-	// Проверка авторства или прав администратора
+	chID, err := uuid.Parse(channelID)
+	if err != nil {
+		return apperrors.NewBadRequest("некорректный channel ID")
+	}
+	if existing.ChannelID != chID {
+		return apperrors.NewNotFound("сообщение не найдено")
+	}
+
+	// Проверка авторства или прав администратора (роль по каналу сообщения).
 	if existing.SenderID != userID && !isAdmin {
-		chID, err := uuid.Parse(channelID)
-		if err != nil {
-			return apperrors.NewBadRequest("некорректный channel ID")
-		}
-		role, _ := s.repo.GetMemberRole(ctx, chID, userID)
+		role, _ := s.repo.GetMemberRole(ctx, existing.ChannelID, userID)
 		if role != "owner" && role != "admin" {
 			return apperrors.NewForbidden("нет прав на удаление этого сообщения")
 		}
@@ -245,6 +262,10 @@ func (s *MessengerService) ForwardMessage(ctx context.Context, channelID, userID
 	if err != nil {
 		return nil, apperrors.NewNotFound("исходное сообщение не найдено")
 	}
+	// W3-A2-018 / P3-BE-07: path channelID обязан совпадать с source.ChannelID.
+	if source.ChannelID != channelID {
+		return nil, apperrors.NewNotFound("исходное сообщение не найдено")
+	}
 
 	// HI-02: проверяем membership в ИСХОДНОМ канале — иначе UUID сообщения
 	// позволяет любому auth-пользователю эксфильтровать контент из закрытых каналов.
@@ -272,6 +293,20 @@ func (s *MessengerService) ForwardMessage(ctx context.Context, channelID, userID
 		return nil, apperrors.NewInternal("ошибка пересылки сообщения")
 	}
 	doc.ID = newID
+
+	// W3-A2-014 / P2-BE-13: тот же unread fanout, что в SendMessage.
+	if s.unread != nil {
+		memberIDs, mErr := s.repo.GetChannelMemberIDs(ctx, targetID)
+		if mErr == nil {
+			memberStrs := make([]string, len(memberIDs))
+			for i, m := range memberIDs {
+				memberStrs[i] = m.String()
+			}
+			if uErr := s.unread.Increment(ctx, targetID.String(), memberStrs, userID.String()); uErr != nil {
+				slog.Error("не удалось инкрементировать непрочитанные при forward", "error", uErr)
+			}
+		}
+	}
 
 	// NATS-событие в целевой канал для WS-fanout.
 	s.nats.PublishJSON(fmt.Sprintf(SubjectMessageSent, targetID.String()), MessageSentEvent{

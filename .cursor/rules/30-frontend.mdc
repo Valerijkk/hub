@@ -121,10 +121,13 @@ export const issueApi = {
 - Модули-обёртки в error boundary для тяжёлых доменов: `frontend/src/routes/_authenticated/messenger.tsx`, `.../crm.tsx`, `.../accounting.tsx`, `.../bases.tsx`.
 - File-based роуты с вложенными параметрами: `frontend/src/routes/_authenticated/projects/$projectId.tsx`, `.../projects/$projectId/tms.tsx`, `.../messenger/$channelId.tsx`.
 - Feature-модули (self-contained `components/`, `hooks/`, `stores/`): `frontend/src/modules/{tracker,messenger,tms,calls,bases,crm,hr,accounting,calendar,intranet,marketplace,admin,settings,status}/`.
-- Zustand-хранилища (11 stores) — образец структуры: `frontend/src/stores/`.
+- Zustand-хранилища (**13** stores, measured 2026-07-27; was claimed 11) — образец структуры: `frontend/src/stores/`.
 - i18n-слой (если меняешь user-facing текст): `frontend/src/i18n/`.
 - Lazy-load тяжёлых зависимостей (LiveKit, графики): искать паттерн `lazy(() => import(...))` в модулях `calls/`, `dashboard/`.
-- Тестовые обёртки/утилиты для Vitest+RTL: `frontend/src/test/`.
+- Тесты Vitest+RTL: `frontend/tests/{domain}/**`; общие
+  обёртки/фабрики: `frontend/tests/support/**`. Этот tree принимает
+  только genuine behavioral units; static/source contracts и TypeScript
+  Playwright не являются target.
 - Дизайн-система `--hub-*` — источник токенов и Tailwind-конфиг: `docs/wiki` + Tailwind config в корне `frontend/`; проверять на drift через `designer-ver`.
 - API-клиенты по модулям: `frontend/src/api/` — один файл на backend-модуль, зеркалит `backend/internal/<module>/dto.go`.
 
@@ -137,4 +140,4 @@ export const issueApi = {
 - ErrorBoundary вокруг модуля: обязателен для `calls`, `dashboard`, `tracker`, `tms`, `messenger` — паника внутри одного модуля не должна валить весь SPA.
 - Design tokens `--hub-*`: смотри применение в `frontend/src/components/ui/` (Shadcn, только `className`) — не создавать параллельную палитру.
 - Ctrl+K / global search UI: пример готовой a11y-friendly command-палитры — `frontend/src/stores/command-store.ts` + связанный компонент в `components/`.
-- TanStack Router file-based маршруты: смотри реальные пути в `frontend/src/routes/` (39 маршрутов) — имя файла = URL-путь, `_authenticated` группа для защищённых страниц.
+- TanStack Router file-based маршруты: смотри реальные пути в `frontend/src/routes/` (**72** `.tsx`, measured 2026-07-27; was claimed 39) — имя файла = URL-путь, `_authenticated` группа для защищённых страниц.

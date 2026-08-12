@@ -1,63 +1,47 @@
 import { Bell } from "lucide-react";
-import { useEffect, useRef } from "react";
-import type { NotificationDTO } from "@/api/notifications";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
 	Popover,
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/popover";
-import { useNotificationStore } from "@/stores/notification-store";
-import { useWsStore } from "@/stores/ws-store";
+import {
+	useNotificationRealtime,
+	useUnreadNotificationCount,
+} from "@/hooks/use-notifications";
 import { NotificationPanel } from "./notification-panel";
 
 /**
- * NotificationBell — иконка колокольчика с badge непрочитанных уведомлений.
- * При клике открывает панель уведомлений в Popover.
- * Подписывается на WS-события notification.new для real-time обновлений.
+ * NotificationBell — иконка колокольчика с badge непрочитанных.
+ * Unread + list — TanStack Query (A10-007); WS — realtime hook.
  */
 export function NotificationBell() {
-	const unreadCount = useNotificationStore((s) => s.unreadCount);
-	const fetchUnreadCount = useNotificationStore((s) => s.fetchUnreadCount);
-	const fetchNotifications = useNotificationStore((s) => s.fetchNotifications);
-	const addNotification = useNotificationStore((s) => s.addNotification);
-	const addListener = useWsStore((s) => s.addListener);
-	const removeListener = useWsStore((s) => s.removeListener);
-
-	// useRef для WS-обработчика — избегаем stale closures при reconnect.
-	const addNotificationRef = useRef(addNotification);
-	addNotificationRef.current = addNotification;
-
-	useEffect(() => {
-		void fetchUnreadCount();
-	}, [fetchUnreadCount]);
-
-	useEffect(() => {
-		const handler = (event: string, payload: unknown) => {
-			if (event === "notification.new" && payload) {
-				addNotificationRef.current(payload as NotificationDTO);
-			}
-		};
-
-		addListener(handler);
-		return () => {
-			removeListener(handler);
-		};
-	}, [addListener, removeListener]);
+	const [open, setOpen] = useState(false);
+	const unreadQuery = useUnreadNotificationCount();
+	const unreadCount = unreadQuery.data ?? 0;
+	useNotificationRealtime();
 
 	return (
-		<Popover>
+		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger asChild>
 				<Button
 					variant="ghost"
 					size="icon"
-					className="relative h-7 w-7 text-[#D1D2D3]/40 hover:text-white hover:bg-white/[0.05]"
-					onClick={() => void fetchNotifications()}
-					aria-label="Уведомления"
+					className="relative h-7 w-7 text-t2/40 hover:text-white hover:bg-white/[0.05]"
+					aria-label={
+						unreadCount > 0
+							? `Уведомления, непрочитанных: ${unreadCount}`
+							: "Уведомления"
+					}
+					type="button"
 				>
-					<Bell className="h-4 w-4" />
+					<Bell className="h-4 w-4" aria-hidden="true" />
 					{unreadCount > 0 && (
-						<span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 animate-scale-in items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-medium text-white">
+						<span
+							aria-hidden="true"
+							className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 animate-scale-in items-center justify-center rounded-full bg-[var(--red)] px-1 text-[10px] font-medium text-white"
+						>
 							{unreadCount > 99 ? "99+" : unreadCount}
 						</span>
 					)}
@@ -68,7 +52,7 @@ export function NotificationBell() {
 				className="w-[380px] max-h-[500px] overflow-hidden rounded-2xl border-white/10 bg-popover p-0 shadow-[0_16px_48px_rgba(0,0,0,0.4)]"
 				sideOffset={8}
 			>
-				<NotificationPanel />
+				<NotificationPanel enabled={open} />
 			</PopoverContent>
 		</Popover>
 	);

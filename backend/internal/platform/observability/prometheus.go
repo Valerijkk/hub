@@ -1,7 +1,6 @@
 package observability
 
 import (
-	"net"
 	"strconv"
 	"time"
 
@@ -68,21 +67,15 @@ func recordPrometheusOperation(operation string, durationMs int64, failed bool) 
 	operationDurationMs.WithLabelValues(operation).Observe(float64(durationMs))
 }
 
-// MetricsEndpoint — /metrics с опциональным CIDR allowlist (OBS-01).
+// MetricsEndpoint — /metrics с CIDR allowlist (OBS-01).
+// W4-A3-004: пустой список → 403 (fail-closed). Явный allow-all —
+// MetricsAllowAllCIDRs / sentinel "*".
+// W4-A3-007 / P3-BE-07: CIDR через authorizeMetricsIP (мёртвый MetricsAllowMiddleware удалён).
 func MetricsEndpoint(allowedCIDRs []string) fiber.Handler {
 	scrape := MetricsHandler()
-	nets := parseCIDRs(allowedCIDRs)
-	denyAll := len(allowedCIDRs) > 0 && len(nets) == 0
-
 	return func(c fiber.Ctx) error {
-		if len(allowedCIDRs) > 0 {
-			if denyAll {
-				return fiber.NewError(fiber.StatusForbidden, "metrics endpoint forbidden")
-			}
-			ip := net.ParseIP(c.IP())
-			if ip == nil || !ipAllowed(ip, nets) {
-				return fiber.NewError(fiber.StatusForbidden, "metrics endpoint forbidden")
-			}
+		if err := authorizeMetricsIP(c, allowedCIDRs); err != nil {
+			return err
 		}
 		return scrape(c)
 	}
@@ -98,6 +91,7 @@ func MetricsHandler() fiber.Handler {
 }
 
 // HTTPMetricsMiddleware — count и latency для Prometheus.
+// W4-A3-002: label route — только шаблон; unmatched → "unmatched" (не c.Path()).
 func HTTPMetricsMiddleware() fiber.Handler {
 	return func(c fiber.Ctx) error {
 		if c.Path() == metricsPath {
@@ -107,10 +101,7 @@ func HTTPMetricsMiddleware() fiber.Handler {
 		start := time.Now()
 		err := c.Next()
 
-		route := c.Path()
-		if r := c.Route(); r != nil && r.Path != "" {
-			route = r.Path
-		}
+		route := httpRouteLabel(c)
 
 		status := c.Response().StatusCode()
 		if status == 0 {

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useAuthStore } from "@/stores/auth-store";
 
 function resetAuthStore(): void {
@@ -14,6 +14,7 @@ function resetAuthStore(): void {
 describe("auth-store", () => {
 	beforeEach(() => {
 		resetAuthStore();
+		vi.restoreAllMocks();
 	});
 
 	it("setTokens stores tokens and sets isAuthenticated", () => {
@@ -23,6 +24,32 @@ describe("auth-store", () => {
 		expect(state.accessToken).toBe("access-abc");
 		expect(state.refreshToken).toBe("refresh-xyz");
 		expect(state.isAuthenticated).toBe(true);
+	});
+
+	it("does not persist JWT into sessionStorage (A2W11-2-001)", () => {
+		useAuthStore.getState().setTokens("access-abc", "refresh-xyz");
+		useAuthStore.getState().setUser({
+			id: "user-1",
+			email: "dev@hub.local",
+			name: "Dev",
+			display_name: "Dev",
+			timezone: "UTC",
+			language: "ru",
+			system_role: "member",
+			onboarding_completed: true,
+		});
+
+		expect(sessionStorage.getItem("hub-auth")).toBeNull();
+		const raw = sessionStorage.getItem("hub-auth");
+		expect(raw).toBeNull();
+		// Defence: nowhere in sessionStorage should JWT substrings appear.
+		for (let i = 0; i < sessionStorage.length; i++) {
+			const key = sessionStorage.key(i);
+			if (!key) continue;
+			const val = sessionStorage.getItem(key) ?? "";
+			expect(val).not.toContain("access-abc");
+			expect(val).not.toContain("refresh-xyz");
+		}
 	});
 
 	it("setUser stores user profile", () => {
@@ -62,5 +89,34 @@ describe("auth-store", () => {
 		expect(state.refreshToken).toBeNull();
 		expect(state.user).toBeNull();
 		expect(state.isAuthenticated).toBe(false);
+	});
+
+	it("clearSessionLocal clears without BroadcastChannel postMessage (P2-FE-09)", () => {
+		const postSpy = vi.spyOn(BroadcastChannel.prototype, "postMessage");
+
+		useAuthStore.setState({
+			accessToken: "access-remote",
+			refreshToken: "refresh-remote",
+			user: null,
+			isAuthenticated: true,
+		});
+		postSpy.mockClear();
+
+		useAuthStore.getState().clearSessionLocal();
+
+		const state = useAuthStore.getState();
+		expect(state.isAuthenticated).toBe(false);
+		expect(state.accessToken).toBeNull();
+		expect(state.refreshToken).toBeNull();
+		expect(postSpy).not.toHaveBeenCalled();
+
+		useAuthStore.setState({
+			accessToken: "a",
+			refreshToken: "r",
+			isAuthenticated: true,
+		});
+		postSpy.mockClear();
+		useAuthStore.getState().logout();
+		expect(postSpy).toHaveBeenCalled();
 	});
 });

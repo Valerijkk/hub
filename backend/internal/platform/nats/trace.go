@@ -11,16 +11,13 @@ import (
 // span-атрибуты, чтобы связать трейс с конкретной outbox-записью в БД.
 const HeaderEventID = "Hub-Event-Id"
 
-// natsPropagator — явный W3C-пропагатор (TraceContext + Baggage).
+// natsPropagator — явный W3C TraceContext (без Baggage: W4-A3-005 / P3-BE-12).
 // Глобальный otel.GetTextMapPropagator() остаётся no-op, пока InitTracing не
 // зарегистрирует настоящий (а это происходит только при заданном OTLP
 // endpoint). Завязка на глобальный сделала бы перенос trace-context через
 // NATS зависимым от конфигурации экспорта; явный пропагатор работает всегда
 // и детерминирован в тестах.
-var natsPropagator = propagation.NewCompositeTextMapPropagator(
-	propagation.TraceContext{},
-	propagation.Baggage{},
-)
+var natsPropagator = propagation.TraceContext{}
 
 // headerCarrier — propagation.TextMapCarrier поверх nats.Header.
 type headerCarrier nats.Header
@@ -37,8 +34,8 @@ func (h headerCarrier) Keys() []string {
 	return keys
 }
 
-// InjectTraceContext кладёт trace-context из ctx (traceparent/tracestate,
-// baggage) в NATS message headers.
+// InjectTraceContext кладёт trace-context из ctx (traceparent/tracestate)
+// в NATS message headers.
 func InjectTraceContext(ctx context.Context, h nats.Header) {
 	natsPropagator.Inject(ctx, headerCarrier(h))
 }

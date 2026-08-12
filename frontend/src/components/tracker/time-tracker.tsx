@@ -7,6 +7,7 @@ import {
 	listTimeLogs,
 	logTime,
 } from "@/api/tracker";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,24 +40,33 @@ export function TimeTracker({
 	timeSpentMinutes,
 }: TimeTrackerProps) {
 	const queryClient = useQueryClient();
-	const timer = useTimerStore();
+	// A10-009: narrow selectors — whole-store subscribe re-ran the tick effect every second
+	const isRunning = useTimerStore((s) => s.isRunning);
+	const activeIssueKey = useTimerStore((s) => s.activeIssueKey);
+	const activeProjectId = useTimerStore((s) => s.activeProjectId);
+	const elapsedSeconds = useTimerStore((s) => s.elapsedSeconds);
+	const startTimer = useTimerStore((s) => s.startTimer);
+	const stopTimer = useTimerStore((s) => s.stopTimer);
+	const tick = useTimerStore((s) => s.tick);
 
 	const isTimerForThisIssue =
-		timer.isRunning &&
-		timer.activeIssueKey === issueKey &&
-		timer.activeProjectId === projectId;
+		isRunning && activeIssueKey === issueKey && activeProjectId === projectId;
 
 	// Тик таймера каждую секунду
 	useEffect(() => {
 		if (!isTimerForThisIssue) return;
 		const interval = setInterval(() => {
-			timer.tick();
+			tick();
 		}, 1000);
 		return () => clearInterval(interval);
-	}, [isTimerForThisIssue, timer]);
+	}, [isTimerForThisIssue, tick]);
 
 	// Логи времени
-	const { data: timeLogs } = useQuery({
+	const {
+		data: timeLogs,
+		isError: timeLogsError,
+		refetch: refetchTimeLogs,
+	} = useQuery({
 		queryKey: ["timeLogs", projectId, issueKey],
 		queryFn: () => listTimeLogs(projectId, issueKey),
 	});
@@ -65,7 +75,7 @@ export function TimeTracker({
 	const startMutation = useMutation({
 		mutationFn: () => apiStartTimer(projectId, issueKey),
 		onSuccess: () => {
-			timer.startTimer(projectId, issueKey);
+			startTimer(projectId, issueKey);
 			toast.success("Таймер запущен");
 		},
 		onError: (err) => toastApiError(err, "Не удалось запустить таймер"),
@@ -74,7 +84,7 @@ export function TimeTracker({
 	const stopMutation = useMutation({
 		mutationFn: () => apiStopTimer(projectId, issueKey),
 		onSuccess: () => {
-			timer.stopTimer();
+			stopTimer();
 			void queryClient.invalidateQueries({
 				queryKey: ["timeLogs", projectId, issueKey],
 			});
@@ -85,7 +95,6 @@ export function TimeTracker({
 		},
 		onError: (err) => toastApiError(err, "Не удалось остановить таймер"),
 	});
-
 	// Ручное логирование
 	const [manualMinutes, setManualMinutes] = useState("");
 	const [manualDescription, setManualDescription] = useState("");
@@ -141,7 +150,7 @@ export function TimeTracker({
 				{isTimerForThisIssue ? (
 					<>
 						<div className="flex-1 text-center text-2xl font-mono font-bold text-primary">
-							{formatSeconds(timer.elapsedSeconds)}
+							{formatSeconds(elapsedSeconds)}
 						</div>
 						<Button
 							variant="destructive"
@@ -156,12 +165,11 @@ export function TimeTracker({
 						className="w-full"
 						onClick={() => startMutation.mutate()}
 						disabled={
-							startMutation.isPending ||
-							(timer.isRunning && !isTimerForThisIssue)
+							startMutation.isPending || (isRunning && !isTimerForThisIssue)
 						}
 					>
-						{timer.isRunning && !isTimerForThisIssue
-							? `Таймер активен на ${timer.activeIssueKey}`
+						{isRunning && !isTimerForThisIssue
+							? `Таймер активен на ${activeIssueKey}`
 							: "Запустить таймер"}
 					</Button>
 				)}
@@ -205,32 +213,40 @@ export function TimeTracker({
 				</div>
 			</div>
 
-			{/* Список логов */}
-			{timeLogs && timeLogs.length > 0 && (
+			{/* Список логов — error≠empty (A3W9-4-006) */}
+			{(timeLogsError || (timeLogs && timeLogs.length > 0)) && (
 				<div className="space-y-2 border-t pt-3">
 					<p className="text-sm font-medium">История</p>
-					{timeLogs.map((log) => (
-						<div
-							key={log.id}
-							className="flex items-center justify-between rounded-md border p-2"
-						>
-							<div className="flex items-center gap-2">
-								<Avatar className="h-5 w-5">
-									<AvatarImage src={log.user.avatar_url} />
-									<AvatarFallback className="text-[10px]">
-										{log.user.name.charAt(0).toUpperCase()}
-									</AvatarFallback>
-								</Avatar>
-								<span className="text-sm">{log.user.name}</span>
-								{log.description && (
-									<span className="text-xs text-t2">— {log.description}</span>
-								)}
+					{timeLogsError ? (
+						<QueryErrorAlert
+							message="Не удалось загрузить историю времени"
+							retry={() => void refetchTimeLogs()}
+							compact
+						/>
+					) : (
+						timeLogs?.map((log) => (
+							<div
+								key={log.id}
+								className="flex items-center justify-between rounded-md border p-2"
+							>
+								<div className="flex items-center gap-2">
+									<Avatar className="h-5 w-5">
+										<AvatarImage src={log.user.avatar_url} />
+										<AvatarFallback className="text-[10px]">
+											{log.user.name.charAt(0).toUpperCase()}
+										</AvatarFallback>
+									</Avatar>
+									<span className="text-sm">{log.user.name}</span>
+									{log.description && (
+										<span className="text-xs text-t2">— {log.description}</span>
+									)}
+								</div>
+								<span className="text-sm font-medium">
+									{formatMinutes(log.minutes)}
+								</span>
 							</div>
-							<span className="text-sm font-medium">
-								{formatMinutes(log.minutes)}
-							</span>
-						</div>
-					))}
+						))
+					)}
 				</div>
 			)}
 		</div>

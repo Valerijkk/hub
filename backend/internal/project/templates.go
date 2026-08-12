@@ -99,7 +99,8 @@ func (s *TemplateService) SaveProjectAsTemplate(ctx context.Context, projectID, 
 }
 
 // DeleteTemplate удаляет пользовательский шаблон (системные нельзя).
-func (s *TemplateService) DeleteTemplate(ctx context.Context, id uuid.UUID) error {
+// P1-BE-09: только автор или system admin.
+func (s *TemplateService) DeleteTemplate(ctx context.Context, id, actorID uuid.UUID) error {
 	t, err := s.repo.GetTemplate(ctx, id)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -110,6 +111,17 @@ func (s *TemplateService) DeleteTemplate(ctx context.Context, id uuid.UUID) erro
 
 	if t.IsSystem {
 		return fiber.NewError(fiber.StatusForbidden, "системные шаблоны нельзя удалять")
+	}
+
+	isAuthor := t.Edges.CreatedBy != nil && t.Edges.CreatedBy.ID == actorID
+	if !isAuthor {
+		admin, err := s.repo.IsSystemAdmin(ctx, actorID)
+		if err != nil {
+			return fmt.Errorf("ошибка проверки роли: %w", err)
+		}
+		if !admin {
+			return fiber.NewError(fiber.StatusForbidden, "недостаточно прав для удаления шаблона")
+		}
 	}
 
 	return s.repo.DeleteTemplate(ctx, id)
@@ -226,7 +238,8 @@ func (h *TemplateHandler) RegisterRoutes(api fiber.Router, authMw fiber.Handler)
 func (h *TemplateHandler) ListTemplates(c fiber.Ctx) error {
 	templates, err := h.svc.ListTemplates(c.Context())
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		// A3W1-A5-005: не fiber.NewError(..., err.Error()) — без утечки internals.
+		return apperr.NewInternal("failed to list templates")
 	}
 	return c.JSON(templates)
 }
@@ -281,13 +294,17 @@ func (h *TemplateHandler) SaveAsTemplate(c fiber.Ctx) error {
 // @Failure 404 {object} map[string]string "Шаблон не найден"
 // @Router /project-templates/{id} [delete]
 func (h *TemplateHandler) DeleteTemplate(c fiber.Ctx) error {
+	actorID, err := templateUserID(c)
+	if err != nil {
+		return err
+	}
 	idStr := utils.CopyString(c.Params("id"))
 	id, err := uuid.Parse(idStr)
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "некорректный ID шаблона")
 	}
 
-	if err := h.svc.DeleteTemplate(c.Context(), id); err != nil {
+	if err := h.svc.DeleteTemplate(c.Context(), id, actorID); err != nil {
 		return err
 	}
 

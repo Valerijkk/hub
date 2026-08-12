@@ -90,7 +90,7 @@ func TestHandler_DeleteEnvironment_NotFound(t *testing.T) {
 func TestService_UpdateEnvironment_NotFound(t *testing.T) {
 	svc := tms.NewTMSService(newMockRepo(), nil)
 	name := "X"
-	_, err := svc.UpdateEnvironment(context.Background(), uuid.New(), tms.UpdateEnvironmentRequest{Name: &name})
+	_, err := svc.UpdateEnvironment(context.Background(), uuid.New(), uuid.New(), tms.UpdateEnvironmentRequest{Name: &name})
 	require.Error(t, err)
 	var fe *fiber.Error
 	require.ErrorAs(t, err, &fe)
@@ -100,7 +100,7 @@ func TestService_UpdateEnvironment_NotFound(t *testing.T) {
 // TestService_DeleteEnvironment_NotFound проверяет бизнес-логику: сервис удаление environment not found.
 func TestService_DeleteEnvironment_NotFound(t *testing.T) {
 	svc := tms.NewTMSService(newMockRepo(), nil)
-	err := svc.DeleteEnvironment(context.Background(), uuid.New())
+	err := svc.DeleteEnvironment(context.Background(), uuid.New(), uuid.New())
 	require.Error(t, err)
 	var fe *fiber.Error
 	require.ErrorAs(t, err, &fe)
@@ -131,8 +131,14 @@ func TestCompareEnvironments_WithResults(t *testing.T) {
 
 	env1ID := uuid.New()
 	env2ID := uuid.New()
-	repo.environments[env1ID] = &ent.Environment{ID: env1ID, Name: "Dev", EnvLabel: "dev"}
-	repo.environments[env2ID] = &ent.Environment{ID: env2ID, Name: "Prod", EnvLabel: "prod"}
+	repo.environments[env1ID] = &ent.Environment{
+		ID: env1ID, Name: "Dev", EnvLabel: "dev",
+		Edges: ent.EnvironmentEdges{Project: &ent.Project{ID: projectID}},
+	}
+	repo.environments[env2ID] = &ent.Environment{
+		ID: env2ID, Name: "Prod", EnvLabel: "prod",
+		Edges: ent.EnvironmentEdges{Project: &ent.Project{ID: projectID}},
+	}
 
 	tc1ID := uuid.New()
 	tc2ID := uuid.New()
@@ -173,7 +179,10 @@ func TestCompareEnvironments_EnvNotFound(t *testing.T) {
 	projectID := uuid.New()
 
 	env2ID := uuid.New()
-	repo.environments[env2ID] = &ent.Environment{ID: env2ID, Name: "Prod", EnvLabel: "prod"}
+	repo.environments[env2ID] = &ent.Environment{
+		ID: env2ID, Name: "Prod", EnvLabel: "prod",
+		Edges: ent.EnvironmentEdges{Project: &ent.Project{ID: projectID}},
+	}
 
 	_, err := svc.CompareEnvironments(ctx, projectID, uuid.New(), env2ID)
 	require.Error(t, err)

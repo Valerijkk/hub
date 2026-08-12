@@ -31,7 +31,7 @@ interface FlakyTestsReportProps {
 /** PROD-02: flaky-тесты по последним N прогонам. */
 export function FlakyTestsReport({ projectId }: FlakyTestsReportProps) {
 	const { data, isLoading, isError } = useQuery({
-		queryKey: ["flaky-tests", projectId],
+		queryKey: ["tms-flaky", projectId],
 		queryFn: () => getFlakyTests(projectId),
 	});
 

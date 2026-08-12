@@ -6,7 +6,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/valerii/hub/backend/ent/user"
+
+	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/internal/auth"
 )
 
 const defaultCacheTTL = 5 * time.Minute
@@ -36,15 +38,28 @@ func (s *RBACService) GetEffectivePermissions(ctx context.Context, userID, proje
 
 	// Сначала Redis-кэш — снижает нагрузку на БД при частых RBAC-проверках.
 	if perm, ok := s.cache.Get(ctx, userStr, projectStr); ok {
-		return perm, nil
+		// P1-BE-33 / W6-A3-003: full-mask (^0) мог быть закэширован для admin/founder.
+		// При demote SystemRole нельзя отдавать stale bypass до TTL — перепроверяем роль.
+		if perm != ^Permission(0) {
+			return perm, nil
+		}
+		u, err := s.repo.GetUser(ctx, userID)
+		if err != nil {
+			return 0, err
+		}
+		if auth.IsSystemAdmin(u.SystemRole) {
+			return perm, nil
+		}
+		_ = s.cache.Invalidate(ctx, userStr, projectStr)
+		// fall through: пересчитать по membership (owner тоже может дать ^0)
 	}
 
-	// Системный admin обходит project membership — полный набор разрешений.
+	// Системный admin/founder обходит project membership — полный набор разрешений (ORG-04).
 	u, err := s.repo.GetUser(ctx, userID)
 	if err != nil {
 		return 0, err
 	}
-	if u.SystemRole == user.SystemRoleAdmin {
+	if auth.IsSystemAdmin(u.SystemRole) {
 		allPerms := ^Permission(0)
 		_ = s.cache.Set(ctx, userStr, projectStr, allPerms, s.ttl)
 		return allPerms, nil
@@ -59,9 +74,13 @@ func (s *RBACService) GetEffectivePermissions(ctx context.Context, userID, proje
 	// Базовые права по фиксированной роли проекта (owner/member/viewer).
 	perm := DefaultRolePermissions[string(member.ProjectRole)]
 
-	// Кастомная роль перекрывает базовую bitmask проекта.
+	// Кастомная роль: permission_names — source of truth (W6-A3-004 / P2-BE-19).
 	if customRole := member.Edges.CustomRole; customRole != nil {
-		perm = Permission(customRole.Permissions)
+		if len(customRole.PermissionNames) > 0 {
+			perm = permissionsFromNames(customRole.PermissionNames)
+		} else {
+			perm = Permission(customRole.Permissions)
+		}
 	}
 
 	// Кэшируем эффективную маску на defaultCacheTTL.
@@ -73,4 +92,24 @@ func (s *RBACService) GetEffectivePermissions(ctx context.Context, userID, proje
 // InvalidateCache удаляет кешированные разрешения пользователя в проекте.
 func (s *RBACService) InvalidateCache(ctx context.Context, userID, projectID string) error {
 	return s.cache.Invalidate(ctx, userID, projectID)
+}
+
+// InvalidateUserCache удаляет все кешированные разрешения пользователя (все проекты).
+// Вызывать при смене system_role / demote admin→member (P1-BE-33).
+func (s *RBACService) InvalidateUserCache(ctx context.Context, userID string) error {
+	return s.cache.InvalidateUser(ctx, userID)
+}
+
+// CanCreateTaskInProject возвращает true, если user имеет PermTaskCreate в проекте.
+// Реализует messenger.PromotePermissionChecker. Не-участник (ent.IsNotFound) →
+// false, nil — чтобы promote-to-issue отдавал 403, а не 500.
+func (s *RBACService) CanCreateTaskInProject(ctx context.Context, userID, projectID uuid.UUID) (bool, error) {
+	eff, err := s.GetEffectivePermissions(ctx, userID, projectID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return eff.Has(PermTaskCreate), nil
 }

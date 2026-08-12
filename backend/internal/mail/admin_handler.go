@@ -1,22 +1,25 @@
 package mail
 
 import (
+	"errors"
+
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
-	"github.com/valerii/hub/backend/ent"
 )
 
 // AdminHandler — admin API для настроек hub-mail (основной Hub server).
+// W7-A1-005: без *ent.Client — user-list через SettingsStore (ActiveUserEmailSource).
 type AdminHandler struct {
 	svc       *AdminService
-	db        *ent.Client
+	store     SettingsStore
 	sender    BroadcastSender
 	isAdminFn func(c fiber.Ctx, userID uuid.UUID) (bool, error)
 }
 
 // NewAdminHandler создаёт admin handler.
-func NewAdminHandler(svc *AdminService, db *ent.Client, sender BroadcastSender, isAdminFn func(c fiber.Ctx, userID uuid.UUID) (bool, error)) *AdminHandler {
-	return &AdminHandler{svc: svc, db: db, sender: sender, isAdminFn: isAdminFn}
+// store должен реализовывать ActiveUserEmailSource для Broadcast (EntSettingsStore).
+func NewAdminHandler(svc *AdminService, store SettingsStore, sender BroadcastSender, isAdminFn func(c fiber.Ctx, userID uuid.UUID) (bool, error)) *AdminHandler {
+	return &AdminHandler{svc: svc, store: store, sender: sender, isAdminFn: isAdminFn}
 }
 
 // RegisterRoutes регистрирует /admin/mail/* под auth + admin middleware.
@@ -102,9 +105,13 @@ func (h *AdminHandler) Broadcast(c fiber.Ctx) error {
 	if err := c.Bind().JSON(&req); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid body")
 	}
-	resp, err := h.svc.Broadcast(c.Context(), h.db, h.sender, req)
+	users, ok := h.store.(ActiveUserEmailSource)
+	if !ok || users == nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "broadcast user source unavailable")
+	}
+	resp, err := h.svc.Broadcast(c.Context(), users, h.sender, req)
 	if err != nil {
-		if err == ErrInvalidRequest {
+		if errors.Is(err, ErrInvalidRequest) {
 			return fiber.NewError(fiber.StatusBadRequest, err.Error())
 		}
 		return fiber.NewError(fiber.StatusInternalServerError, "broadcast failed")

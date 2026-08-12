@@ -10,11 +10,17 @@ import (
 	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/valerii/hub/backend/ent"
+	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 )
 
 // ExportNewMessengerServiceTest создаёт MessengerService без NATS для hubtest.
 func ExportNewMessengerServiceTest(repo Repository) *MessengerService {
 	return &MessengerService{repo: repo, nats: nil}
+}
+
+// ExportNewMessengerServiceWithNATS создаёт MessengerService с NATS для hubtest (capture events).
+func ExportNewMessengerServiceWithNATS(repo Repository, nats *natsclient.Client) *MessengerService {
+	return NewMessengerService(repo, nats, nil, nil)
 }
 
 // ExportAutoChannelServiceHandleProjectCreated вызывает handleProjectCreated для hubtest.
@@ -130,4 +136,9 @@ func ExportInviteTokenLength() int {
 // ExportBase62Chars возвращает алфавит base62 для hubtest.
 func ExportBase62Chars() string {
 	return base62Chars
+}
+
+// ExportTruncateRunes — P3-BE-04 / TASK-060: rune-safe truncate для hubtest.
+func ExportTruncateRunes(s string, maxRunes int) string {
+	return truncateRunes(s, maxRunes)
 }

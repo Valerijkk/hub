@@ -1,12 +1,22 @@
 import { create } from "zustand";
 
-import type { CallResponse } from "@/api/calls";
+import type { ActiveCallSession, CallResponse } from "@/api/calls";
 import * as callsApi from "@/api/calls";
+
+/** Извлечь сообщение из Error / ApiError. */
+function errorMessage(err: unknown, fallback: string): string {
+	if (err instanceof Error && err.message.trim()) return err.message;
+	if (err && typeof err === "object" && "message" in err) {
+		const msg = (err as { message: unknown }).message;
+		if (typeof msg === "string" && msg.trim()) return msg;
+	}
+	return fallback;
+}
 
 /** Состояние стора звонков. */
 interface CallState {
 	/** Активный звонок (null если не в звонке). */
-	activeCall: CallResponse | null;
+	activeCall: ActiveCallSession | null;
 	/** JWT-токен для подключения к LiveKit. */
 	token: string | null;
 	/** Пользователь находится в звонке. */
@@ -150,8 +160,9 @@ export const useCallStore = create<CallState>()((set, get) => ({
 		if (activeCall) {
 			try {
 				await callsApi.leaveCall(activeCall.id);
-			} catch {
-				// Игнорируем ошибку при выходе
+			} catch (err: unknown) {
+				set({ error: errorMessage(err, "Не удалось покинуть звонок") });
+				return;
 			}
 		}
 		set(initialState);
@@ -162,8 +173,9 @@ export const useCallStore = create<CallState>()((set, get) => ({
 		if (activeCall) {
 			try {
 				await callsApi.endCall(activeCall.id);
-			} catch {
-				// Игнорируем ошибку при завершении
+			} catch (err: unknown) {
+				set({ error: errorMessage(err, "Не удалось завершить звонок") });
+				return;
 			}
 		}
 		set(initialState);
@@ -174,8 +186,11 @@ export const useCallStore = create<CallState>()((set, get) => ({
 	checkActiveCall: async (channelId) => {
 		try {
 			return await callsApi.getActiveCall(channelId);
-		} catch {
-			return null;
+		} catch (err: unknown) {
+			set({
+				error: errorMessage(err, "Не удалось проверить активный звонок"),
+			});
+			throw err;
 		}
 	},
 
@@ -184,9 +199,11 @@ export const useCallStore = create<CallState>()((set, get) => ({
 		if (!activeCall) return;
 		try {
 			await callsApi.raiseHand(activeCall.id, !handRaised);
-			set({ handRaised: !handRaised });
-		} catch {
-			// Игнорируем ошибку
+			set({ handRaised: !handRaised, error: null });
+		} catch (err: unknown) {
+			set({
+				error: errorMessage(err, "Не удалось поднять/опустить руку"),
+			});
 		}
 	},
 

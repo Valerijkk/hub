@@ -7,6 +7,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/leaverequest"
+	"github.com/valerii/hub/backend/ent/project"
+	"github.com/valerii/hub/backend/ent/projectmember"
 	"github.com/valerii/hub/backend/ent/user"
 )
 
@@ -15,12 +17,15 @@ type Repository interface {
 	CreateLeaveRequest(ctx context.Context, requesterID uuid.UUID, leaveType leaverequest.LeaveType, start, end time.Time, reason string) (*ent.LeaveRequest, error)
 	ListLeaveByRequester(ctx context.Context, requesterID uuid.UUID) ([]*ent.LeaveRequest, error)
 	ListPendingLeave(ctx context.Context) ([]*ent.LeaveRequest, error)
-	ListApprovedLeaveInRange(ctx context.Context, from, to time.Time) ([]*ent.LeaveRequest, error)
+	// ListApprovedLeaveInRange — W7-A2-009: viewer + shared-project scope (как calendar A6-005), не org-wide.
+	ListApprovedLeaveInRange(ctx context.Context, viewerID uuid.UUID, projectIDs []uuid.UUID, from, to time.Time) ([]*ent.LeaveRequest, error)
 	GetLeaveRequest(ctx context.Context, id uuid.UUID) (*ent.LeaveRequest, error)
 	HasOverlappingLeave(ctx context.Context, requesterID uuid.UUID, start, end time.Time, excludeID *uuid.UUID) (bool, error)
 	ApproveLeave(ctx context.Context, id, reviewerID uuid.UUID, note string, version int) (*ent.LeaveRequest, error)
 	RejectLeave(ctx context.Context, id, reviewerID uuid.UUID, note string, version int) (*ent.LeaveRequest, error)
 	CancelLeave(ctx context.Context, id, requesterID uuid.UUID, version int) (*ent.LeaveRequest, error)
+	// SoftDeleteLeave — GDPR/trash soft-delete (A2W8-3-001 / ADR-ENT-SOFT-DELETE-GAPS-2026).
+	SoftDeleteLeave(ctx context.Context, id uuid.UUID) error
 	IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bool, error)
 	ListSystemAdminIDs(ctx context.Context) ([]uuid.UUID, error)
 }
@@ -49,7 +54,10 @@ func (r *EntRepository) CreateLeaveRequest(ctx context.Context, requesterID uuid
 
 func (r *EntRepository) ListLeaveByRequester(ctx context.Context, requesterID uuid.UUID) ([]*ent.LeaveRequest, error) {
 	return r.client.LeaveRequest.Query().
-		Where(leaverequest.HasRequesterWith(user.IDEQ(requesterID))).
+		Where(
+			leaverequest.HasRequesterWith(user.IDEQ(requesterID)),
+			leaverequest.DeletedAtIsNil(),
+		).
 		WithRequester().
 		WithReviewer().
 		Order(ent.Desc(leaverequest.FieldCreatedAt)).
@@ -58,19 +66,33 @@ func (r *EntRepository) ListLeaveByRequester(ctx context.Context, requesterID uu
 
 func (r *EntRepository) ListPendingLeave(ctx context.Context) ([]*ent.LeaveRequest, error) {
 	return r.client.LeaveRequest.Query().
-		Where(leaverequest.StatusEQ(leaverequest.StatusPending)).
+		Where(
+			leaverequest.StatusEQ(leaverequest.StatusPending),
+			leaverequest.DeletedAtIsNil(),
+		).
 		WithRequester().
 		WithReviewer().
 		Order(ent.Asc(leaverequest.FieldStartDate)).
 		All(ctx)
 }
 
-func (r *EntRepository) ListApprovedLeaveInRange(ctx context.Context, from, to time.Time) ([]*ent.LeaveRequest, error) {
+func (r *EntRepository) ListApprovedLeaveInRange(ctx context.Context, viewerID uuid.UUID, projectIDs []uuid.UUID, from, to time.Time) ([]*ent.LeaveRequest, error) {
+	// W7-A2-009: не отдавать org-wide approved leave (PII footgun при reuse).
+	// Видно: своё + leave участников проектов viewer'а.
+	requesterPred := user.IDEQ(viewerID)
+	if len(projectIDs) > 0 {
+		requesterPred = user.Or(
+			user.IDEQ(viewerID),
+			user.HasProjectMembersWith(projectmember.HasProjectWith(project.IDIn(projectIDs...))),
+		)
+	}
 	return r.client.LeaveRequest.Query().
 		Where(
 			leaverequest.StatusEQ(leaverequest.StatusApproved),
+			leaverequest.DeletedAtIsNil(),
 			leaverequest.StartDateLTE(to),
 			leaverequest.EndDateGTE(from),
+			leaverequest.HasRequesterWith(requesterPred),
 		).
 		WithRequester().
 		All(ctx)
@@ -78,7 +100,7 @@ func (r *EntRepository) ListApprovedLeaveInRange(ctx context.Context, from, to t
 
 func (r *EntRepository) GetLeaveRequest(ctx context.Context, id uuid.UUID) (*ent.LeaveRequest, error) {
 	return r.client.LeaveRequest.Query().
-		Where(leaverequest.ID(id)).
+		Where(leaverequest.ID(id), leaverequest.DeletedAtIsNil()).
 		WithRequester().
 		WithReviewer().
 		Only(ctx)
@@ -88,6 +110,7 @@ func (r *EntRepository) HasOverlappingLeave(ctx context.Context, requesterID uui
 	q := r.client.LeaveRequest.Query().
 		Where(
 			leaverequest.HasRequesterWith(user.IDEQ(requesterID)),
+			leaverequest.DeletedAtIsNil(),
 			leaverequest.StatusIn(leaverequest.StatusPending, leaverequest.StatusApproved),
 			leaverequest.StartDateLTE(end),
 			leaverequest.EndDateGTE(start),
@@ -103,6 +126,7 @@ func (r *EntRepository) ApproveLeave(ctx context.Context, id, reviewerID uuid.UU
 	upd := r.client.LeaveRequest.UpdateOneID(id).
 		Where(
 			leaverequest.StatusEQ(leaverequest.StatusPending),
+			leaverequest.DeletedAtIsNil(),
 			leaverequest.Version(version),
 		).
 		SetStatus(leaverequest.StatusApproved).
@@ -120,6 +144,7 @@ func (r *EntRepository) RejectLeave(ctx context.Context, id, reviewerID uuid.UUI
 	upd := r.client.LeaveRequest.UpdateOneID(id).
 		Where(
 			leaverequest.StatusEQ(leaverequest.StatusPending),
+			leaverequest.DeletedAtIsNil(),
 			leaverequest.Version(version),
 		).
 		SetStatus(leaverequest.StatusRejected).
@@ -136,12 +161,28 @@ func (r *EntRepository) CancelLeave(ctx context.Context, id, requesterID uuid.UU
 	return r.client.LeaveRequest.UpdateOneID(id).
 		Where(
 			leaverequest.HasRequesterWith(user.IDEQ(requesterID)),
+			leaverequest.DeletedAtIsNil(),
 			leaverequest.StatusEQ(leaverequest.StatusPending),
 			leaverequest.Version(version),
 		).
 		SetStatus(leaverequest.StatusCancelled).
 		AddVersion(1).
 		Save(ctx)
+}
+
+// SoftDeleteLeave — A2W8-3-001 / ADR-ENT-SOFT-DELETE-GAPS-2026: GDPR soft-path для HR-PII.
+func (r *EntRepository) SoftDeleteLeave(ctx context.Context, id uuid.UUID) error {
+	affected, err := r.client.LeaveRequest.Update().
+		Where(leaverequest.IDEQ(id), leaverequest.DeletedAtIsNil()).
+		SetDeletedAt(time.Now().UTC()).
+		Save(ctx)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return &ent.NotFoundError{}
+	}
+	return nil
 }
 
 func (r *EntRepository) IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bool, error) {

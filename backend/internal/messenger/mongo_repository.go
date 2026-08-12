@@ -81,9 +81,13 @@ func (r *MongoRepository) InsertMessage(ctx context.Context, doc *MessageDocumen
 }
 
 // FindMessageByID возвращает сообщение по ID.
+// AUDIT-TM-003: только живые (deleted_at nil) — иначе Edit/React/Pin мутируют trash.
 func (r *MongoRepository) FindMessageByID(ctx context.Context, messageID string) (*MessageDocument, error) {
 	var doc MessageDocument
-	err := r.messages().FindOne(ctx, bson.M{"_id": messageID}).Decode(&doc)
+	err := r.messages().FindOne(ctx, bson.M{
+		"_id":        messageID,
+		"deleted_at": nil,
+	}).Decode(&doc)
 	if err != nil {
 		return nil, err
 	}
@@ -123,8 +127,13 @@ func (r *MongoRepository) ListMessages(ctx context.Context, channelID uuid.UUID,
 }
 
 // UpdateMessage обновляет контент сообщения и устанавливает edited_at.
+// AUDIT-TM-003: $set только при deleted_at nil — soft-deleted не редактируются.
 func (r *MongoRepository) UpdateMessage(ctx context.Context, messageID string, contentJSON map[string]interface{}, contentText string) (*MessageDocument, error) {
 	now := time.Now()
+	filter := bson.M{
+		"_id":        messageID,
+		"deleted_at": nil,
+	}
 	update := bson.M{
 		"$set": bson.M{
 			"content_json": contentJSON,
@@ -133,9 +142,12 @@ func (r *MongoRepository) UpdateMessage(ctx context.Context, messageID string, c
 		},
 	}
 
-	_, err := r.messages().UpdateByID(ctx, messageID, update)
+	res, err := r.messages().UpdateOne(ctx, filter, update)
 	if err != nil {
 		return nil, err
+	}
+	if res.MatchedCount == 0 {
+		return nil, mongo.ErrNoDocuments
 	}
 
 	return r.FindMessageByID(ctx, messageID)
@@ -203,8 +215,10 @@ func (r *MongoRepository) ListThreadReplies(ctx context.Context, threadID string
 }
 
 // AddReaction добавляет реакцию пользователя к сообщению.
+// A2W3-3-004: после MatchedCount-фикса concurrent first-react всё ещё TOCTOU —
+// оба видят emoji absent и оба $push. Push только при "reactions.emoji" $ne;
+// проигравший гонку добивает userID через $addToSet.
 func (r *MongoRepository) AddReaction(ctx context.Context, messageID, userID, emoji string) error {
-	// Проверяем, существует ли уже запись для данного emoji
 	filter := bson.M{
 		"_id":             messageID,
 		"reactions.emoji": emoji,
@@ -219,23 +233,45 @@ func (r *MongoRepository) AddReaction(ctx context.Context, messageID, userID, em
 	if err != nil {
 		return err
 	}
-
-	// Если запись для emoji не найдена — создаём новую
-	if result.ModifiedCount == 0 {
-		filter = bson.M{"_id": messageID}
-		update = bson.M{
-			"$push": bson.M{
-				"reactions": ReactionEntry{
-					Emoji:   emoji,
-					UserIDs: []string{userID},
-				},
-			},
-		}
-		_, err = r.messages().UpdateOne(ctx, filter, update)
-		return err
+	// MatchedCount>0: emoji уже есть — $addToSet либо добавил userID, либо no-op
+	// при повторном клике (ModifiedCount==0). Нельзя $push второй ReactionEntry.
+	if result.MatchedCount > 0 {
+		return nil
 	}
 
-	return nil
+	// Emoji отсутствует — атомарный push только пока emoji ещё нет.
+	filter = bson.M{
+		"_id":             messageID,
+		"reactions.emoji": bson.M{"$ne": emoji},
+	}
+	update = bson.M{
+		"$push": bson.M{
+			"reactions": ReactionEntry{
+				Emoji:   emoji,
+				UserIDs: []string{userID},
+			},
+		},
+	}
+	result, err = r.messages().UpdateOne(ctx, filter, update)
+	if err != nil {
+		return err
+	}
+	if result.MatchedCount > 0 {
+		return nil
+	}
+
+	// Гонка: peer уже создал ReactionEntry — добавляем userID через $addToSet.
+	filter = bson.M{
+		"_id":             messageID,
+		"reactions.emoji": emoji,
+	}
+	update = bson.M{
+		"$addToSet": bson.M{
+			"reactions.$.user_ids": userID,
+		},
+	}
+	_, err = r.messages().UpdateOne(ctx, filter, update)
+	return err
 }
 
 // RemoveReaction удаляет реакцию пользователя с сообщения.
@@ -273,18 +309,19 @@ func (r *MongoRepository) FindReaction(ctx context.Context, messageID, userID, e
 	return count > 0, nil
 }
 
-// SearchMessages выполняет полнотекстовый поиск по content_text.
-func (r *MongoRepository) SearchMessages(ctx context.Context, query string, channelID *uuid.UUID, limit int) ([]*MessageDocument, error) {
+// SearchMessages выполняет полнотекстовый поиск по content_text в указанных каналах.
+func (r *MongoRepository) SearchMessages(ctx context.Context, query string, channelIDs []uuid.UUID, limit int) ([]*MessageDocument, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 20
 	}
+	if len(channelIDs) == 0 {
+		return []*MessageDocument{}, nil
+	}
 
 	filter := bson.M{
-		"$text":      bson.M{"$search": query},
-		"deleted_at": nil,
-	}
-	if channelID != nil {
-		filter["channel_id"] = *channelID
+		"$text":       bson.M{"$search": query},
+		"deleted_at":  nil,
+		"channel_id":  bson.M{"$in": channelIDs},
 	}
 
 	opts := options.Find().

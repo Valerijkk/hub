@@ -1,6 +1,8 @@
 package rbac
 
 import (
+	"errors"
+
 	"github.com/gofiber/fiber/v3"
 	httputil "github.com/valerii/hub/backend/internal/platform/http"
 )
@@ -53,6 +55,9 @@ func (h *CustomRoleHandler) CreateRole(c fiber.Ctx) error {
 
 	role, err := h.svc.CreateCustomRole(c.Context(), projectID, req)
 	if err != nil {
+		if errors.Is(err, ErrUnknownPermission) {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, "ошибка создания роли")
 	}
 	return c.Status(fiber.StatusCreated).JSON(role)
@@ -97,6 +102,10 @@ func (h *CustomRoleHandler) ListRoles(c fiber.Ctx) error {
 // @Failure 500 {object} map[string]string "Ошибка обновления"
 // @Router /projects/{projectId}/roles/{roleId} [put]
 func (h *CustomRoleHandler) UpdateRole(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
 	roleID, err := httputil.ParseUUIDParam(c, "roleId")
 	if err != nil {
 		return err
@@ -107,8 +116,17 @@ func (h *CustomRoleHandler) UpdateRole(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "некорректный запрос")
 	}
 
-	role, err := h.svc.UpdateCustomRole(c.Context(), roleID, req)
+	role, err := h.svc.UpdateCustomRole(c.Context(), projectID, roleID, req)
 	if err != nil {
+		if errors.Is(err, ErrUnknownPermission) {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		}
+		if errors.Is(err, ErrRoleProjectMismatch) {
+			return fiber.NewError(fiber.StatusNotFound, "роль не найдена")
+		}
+		if errors.Is(err, ErrSystemRoleUpdate) {
+			return fiber.NewError(fiber.StatusForbidden, "системные роли нельзя изменять")
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, "ошибка обновления роли")
 	}
 	return c.JSON(role)
@@ -127,12 +145,22 @@ func (h *CustomRoleHandler) UpdateRole(c fiber.Ctx) error {
 // @Failure 500 {object} map[string]string "Ошибка удаления"
 // @Router /projects/{projectId}/roles/{roleId} [delete]
 func (h *CustomRoleHandler) DeleteRole(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
 	roleID, err := httputil.ParseUUIDParam(c, "roleId")
 	if err != nil {
 		return err
 	}
 
-	if err := h.svc.DeleteCustomRole(c.Context(), roleID); err != nil {
+	if err := h.svc.DeleteCustomRole(c.Context(), projectID, roleID); err != nil {
+		if errors.Is(err, ErrRoleProjectMismatch) {
+			return fiber.NewError(fiber.StatusNotFound, "роль не найдена")
+		}
+		if errors.Is(err, ErrSystemRoleDelete) {
+			return fiber.NewError(fiber.StatusForbidden, "системные роли нельзя удалять")
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, "ошибка удаления роли")
 	}
 	return c.JSON(fiber.Map{"status": "deleted"})
@@ -166,6 +194,9 @@ func (h *CustomRoleHandler) AssignRole(c fiber.Ctx) error {
 	}
 
 	if err := h.svc.AssignCustomRole(c.Context(), projectID, userID, roleID); err != nil {
+		if errors.Is(err, ErrRoleProjectMismatch) {
+			return fiber.NewError(fiber.StatusNotFound, "роль не найдена")
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, "ошибка назначения роли")
 	}
 	return c.JSON(fiber.Map{"status": "assigned"})
@@ -189,12 +220,19 @@ func (h *CustomRoleHandler) UnassignRole(c fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
+	roleID, err := httputil.ParseUUIDParam(c, "roleId")
+	if err != nil {
+		return err
+	}
 	userID, err := httputil.ParseUUIDParam(c, "userId")
 	if err != nil {
 		return err
 	}
 
-	if err := h.svc.ClearCustomRole(c.Context(), projectID, userID); err != nil {
+	if err := h.svc.ClearCustomRole(c.Context(), projectID, userID, roleID); err != nil {
+		if errors.Is(err, ErrRoleProjectMismatch) {
+			return fiber.NewError(fiber.StatusNotFound, "роль не найдена")
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, "ошибка снятия роли")
 	}
 	return c.JSON(fiber.Map{"status": "unassigned"})

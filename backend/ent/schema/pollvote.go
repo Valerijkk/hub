@@ -8,30 +8,30 @@ import (
 	"github.com/google/uuid"
 )
 
-// PollVote СЃРѕРґРµСЂР¶РёС‚ РѕРїСЂРµРґРµР»РµРЅРёРµ СЃС…РµРјС‹ РґР»СЏ РіРѕР»РѕСЃР° РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ РІ РѕРїСЂРѕСЃРµ.
+// PollVote содержит определение схемы для голоса пользователя в опросе.
 type PollVote struct {
 	ent.Schema
 }
 
-// Fields РѕРїРёСЃС‹РІР°РµС‚ РїРѕР»СЏ СЃСѓС‰РЅРѕСЃС‚Рё PollVote.
+// Fields описывает поля сущности PollVote.
 func (PollVote) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
 			Default(uuid.New).
 			Immutable(),
 		field.UUID("poll_id", uuid.UUID{}).
-			Comment("ID РѕРїСЂРѕСЃР°"),
+			Comment("ID опроса"),
 		field.UUID("option_id", uuid.UUID{}).
-			Comment("ID РІС‹Р±СЂР°РЅРЅРѕРіРѕ РІР°СЂРёР°РЅС‚Р°"),
+			Comment("ID выбранного варианта"),
 		field.UUID("user_id", uuid.UUID{}).
-			Comment("ID РїСЂРѕРіРѕР»РѕСЃРѕРІР°РІС€РµРіРѕ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ"),
+			Comment("ID проголосовавшего пользователя"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
 	}
 }
 
-// Edges РѕРїРёСЃС‹РІР°РµС‚ СЃРІСЏР·Рё СЃСѓС‰РЅРѕСЃС‚Рё PollVote.
+// Edges описывает связи сущности PollVote.
 func (PollVote) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("poll", Poll.Type).
@@ -52,10 +52,10 @@ func (PollVote) Edges() []ent.Edge {
 	}
 }
 
-// Indexes РѕРїРёСЃС‹РІР°РµС‚ РёРЅРґРµРєСЃС‹ СЃСѓС‰РЅРѕСЃС‚Рё PollVote.
+// Indexes описывает индексы сущности PollVote.
 func (PollVote) Indexes() []ent.Index {
 	return []ent.Index{
-		// РЈРЅРёРєР°Р»СЊРЅРѕРµ РѕРіСЂР°РЅРёС‡РµРЅРёРµ: РѕРґРёРЅ РіРѕР»РѕСЃ РЅР° РІР°СЂРёР°РЅС‚ РѕС‚ РѕРґРЅРѕРіРѕ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ.
+		// Уникальное ограничение: один голос на вариант от одного пользователя.
 		index.Fields("poll_id", "option_id", "user_id").Unique(),
 		index.Fields("poll_id", "user_id"),
 	}

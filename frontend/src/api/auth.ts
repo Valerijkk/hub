@@ -17,11 +17,6 @@ interface VerifyMagicLinkRequest {
 	invite_token?: string;
 }
 
-/** Запрос на авторизацию через Telegram. */
-interface TelegramAuthRequest {
-	init_data: string;
-}
-
 /** Запрос на обновление профиля пользователя. */
 export interface UpdateProfileRequest {
 	name?: string;
@@ -91,9 +86,35 @@ export function verifyMagicLink(data: VerifyMagicLinkRequest) {
 	return api.post<TokenPairResponse>("/auth/magic-link/verify", data);
 }
 
-/** Endpoint: POST /auth/telegram — deprecated (AUTH-01). */
-export function loginTelegram(data: TelegramAuthRequest) {
-	return api.post<TokenPairResponse>("/auth/telegram", data);
+/**
+ * BE `*time.Time` accepts RFC3339 JSON; `<input type="date">` yields YYYY-MM-DD.
+ * Normalize date-only to UTC midnight so encoding/json does not 400 (A11-006).
+ */
+export function toBirthdayRFC3339(
+	birthday: string | undefined,
+): string | undefined {
+	if (!birthday) return undefined;
+	const trimmed = birthday.trim();
+	if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+		return `${trimmed}T00:00:00Z`;
+	}
+	return trimmed;
+}
+
+/** Slice RFC3339 / ISO birthday to YYYY-MM-DD for date inputs. */
+export function birthdayForDateInput(
+	birthday: string | undefined | null,
+): string {
+	if (!birthday) return "";
+	const m = /^(\d{4}-\d{2}-\d{2})/.exec(birthday.trim());
+	return m?.[1] ?? "";
+}
+
+function withNormalizedBirthday(
+	data: UpdateProfileRequest,
+): UpdateProfileRequest {
+	if (data.birthday === undefined) return data;
+	return { ...data, birthday: toBirthdayRFC3339(data.birthday) };
 }
 
 /** Endpoint: GET /auth/me — получить данные текущего пользователя. */
@@ -103,12 +124,14 @@ export function getMe() {
 
 /** Endpoint: PUT /auth/me — обновить профиль текущего пользователя. */
 export function updateProfile(data: UpdateProfileRequest) {
-	return api.put<UserResponse>("/auth/me", data);
+	return api.put<UserResponse>("/auth/me", withNormalizedBirthday(data));
 }
 
 /** Endpoint: POST /auth/me/onboarding — завершить онбординг с данными профиля. */
 export function completeOnboarding(data: { profile: UpdateProfileRequest }) {
-	return api.post<UserResponse>("/auth/me/onboarding", data);
+	return api.post<UserResponse>("/auth/me/onboarding", {
+		profile: withNormalizedBirthday(data.profile),
+	});
 }
 
 /** Endpoint: GET /auth/sessions — получить список активных сессий. */
@@ -124,4 +147,15 @@ export function revokeSession(sessionId: string) {
 /** Endpoint: POST /auth/logout — выйти из системы. */
 export function logout() {
 	return api.post<void>("/auth/logout");
+}
+
+/** Ответ POST /auth/ws-ticket (ADR-WS-JWT-HANDSHAKE-2026). */
+export interface WSTicketResponse {
+	ticket: string;
+	expires_in: number;
+}
+
+/** Endpoint: POST /auth/ws-ticket — одноразовый ticket для WS handshake. */
+export function createWSTicket() {
+	return api.post<WSTicketResponse>("/auth/ws-ticket");
 }

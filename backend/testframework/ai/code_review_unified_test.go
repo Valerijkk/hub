@@ -35,15 +35,20 @@ func TestUnifiedCodeReviewProvider_FetchReviewGitLab(t *testing.T) {
 	}))
 	t.Cleanup(srv.Close)
 
+	projectID := uuid.New()
 	repo := &gitlabReviewRepo{
 		integrations: map[string]*ent.GitLabIntegration{
-			"group/app": {GitlabURL: srv.URL, ProjectPath: "group/app", AccessToken: "tok"},
+			"group/app": {
+				GitlabURL: srv.URL, ProjectPath: "group/app", AccessToken: "tok",
+				Edges: ent.GitLabIntegrationEdges{Project: &ent.Project{ID: projectID}},
+			},
 		},
 	}
 	glSvc := gitlabmod.NewGitLabServiceWithHTTPClient(repo, nil, srv.Client())
 	p := ai.NewUnifiedCodeReviewProvider(nil, glSvc)
+	p.SetAccessChecker(stubAccess{allow: map[uuid.UUID]bool{projectID: true}})
 
-	rc, err := p.FetchReview(context.Background(), srv.URL+"/group/app/-/merge_requests/7")
+	rc, err := p.FetchReview(context.Background(), uuid.New(), srv.URL+"/group/app/-/merge_requests/7")
 	require.NoError(t, err)
 	require.NotNil(t, rc)
 	assert.Equal(t, "AI review MR", rc.Title)
@@ -71,15 +76,20 @@ func TestUnifiedCodeReviewProvider_FetchReviewGitHub(t *testing.T) {
 	}))
 	t.Cleanup(srv.Close)
 
+	projectID := uuid.New()
 	ghRepo := &githubReviewRepo{
 		integrations: map[string]*ent.GitHubIntegration{
-			"acme/app": {RepoOwner: "acme", RepoName: "app", AccessToken: "ghp_x"},
+			"acme/app": {
+				RepoOwner: "acme", RepoName: "app", AccessToken: "ghp_x",
+				Edges: ent.GitHubIntegrationEdges{Project: &ent.Project{ID: projectID}},
+			},
 		},
 	}
 	ghSvc := githubmod.NewGitHubServiceWithHTTPClient(ghRepo, nil, srv.Client(), srv.URL)
 	p := ai.NewUnifiedCodeReviewProvider(ghSvc, nil)
+	p.SetAccessChecker(stubAccess{allow: map[uuid.UUID]bool{projectID: true}})
 
-	rc, err := p.FetchReview(context.Background(), "https://github.com/acme/app/pull/9")
+	rc, err := p.FetchReview(context.Background(), uuid.New(), "https://github.com/acme/app/pull/9")
 	require.NoError(t, err)
 	require.NotNil(t, rc)
 	assert.Equal(t, "Add feature", rc.Title)
@@ -100,15 +110,21 @@ func TestMessengerBot_HandleCommand_ReviewUnifiedGitLab(t *testing.T) {
 	}))
 	t.Cleanup(srv.Close)
 
+	projectID := uuid.New()
 	repo := &gitlabReviewRepo{
 		integrations: map[string]*ent.GitLabIntegration{
-			"o/r": {GitlabURL: srv.URL, ProjectPath: "o/r", AccessToken: "k"},
+			"o/r": {
+				GitlabURL: srv.URL, ProjectPath: "o/r", AccessToken: "k",
+				Edges: ent.GitLabIntegrationEdges{Project: &ent.Project{ID: projectID}},
+			},
 		},
 	}
 	glSvc := gitlabmod.NewGitLabServiceWithHTTPClient(repo, nil, srv.Client())
 	adapter := &streamingMockAdapter{chunks: []string{"review done"}}
 	bot, _, userID, channelID, _ := setupHubAIBot(t, adapter)
-	bot.SetCodeReview(ai.NewUnifiedCodeReviewProvider(nil, glSvc))
+	review := ai.NewUnifiedCodeReviewProvider(nil, glSvc)
+	review.SetAccessChecker(stubAccess{allow: map[uuid.UUID]bool{projectID: true}})
+	bot.SetCodeReview(review)
 
 	err := bot.OnMessageSent(context.Background(), messengermod.MessageHookEvent{
 		ChannelID:   channelID,
@@ -130,15 +146,21 @@ func TestMessengerBot_HandleCommand_ReviewUnifiedGitHub(t *testing.T) {
 	}))
 	t.Cleanup(srv.Close)
 
+	projectID := uuid.New()
 	ghRepo := &githubReviewRepo{
 		integrations: map[string]*ent.GitHubIntegration{
-			"o/r": {RepoOwner: "o", RepoName: "r", AccessToken: "tok"},
+			"o/r": {
+				RepoOwner: "o", RepoName: "r", AccessToken: "tok",
+				Edges: ent.GitHubIntegrationEdges{Project: &ent.Project{ID: projectID}},
+			},
 		},
 	}
 	ghSvc := githubmod.NewGitHubServiceWithHTTPClient(ghRepo, nil, srv.Client(), srv.URL)
 	adapter := &streamingMockAdapter{chunks: []string{"github review ok"}}
 	bot, _, userID, channelID, _ := setupHubAIBot(t, adapter)
-	bot.SetCodeReview(ai.NewUnifiedCodeReviewProvider(ghSvc, nil))
+	review := ai.NewUnifiedCodeReviewProvider(ghSvc, nil)
+	review.SetAccessChecker(stubAccess{allow: map[uuid.UUID]bool{projectID: true}})
+	bot.SetCodeReview(review)
 
 	err := bot.OnMessageSent(context.Background(), messengermod.MessageHookEvent{
 		ChannelID:   channelID,
@@ -162,7 +184,10 @@ func (m *gitlabReviewRepo) ListIntegrations(context.Context, uuid.UUID) ([]*ent.
 func (m *gitlabReviewRepo) GetIntegration(context.Context, uuid.UUID) (*ent.GitLabIntegration, error) {
 	return nil, nil
 }
-func (m *gitlabReviewRepo) DeleteIntegration(context.Context, uuid.UUID) error { return nil }
+func (m *gitlabReviewRepo) GetIntegrationInProject(context.Context, uuid.UUID, uuid.UUID) (*ent.GitLabIntegration, error) {
+	return nil, nil
+}
+func (m *gitlabReviewRepo) DeleteIntegration(context.Context, uuid.UUID, uuid.UUID) error { return nil }
 func (m *gitlabReviewRepo) FindIntegrationByProjectPath(_ context.Context, path string) (*ent.GitLabIntegration, error) {
 	if ig, ok := m.integrations[path]; ok {
 		return ig, nil
@@ -172,8 +197,8 @@ func (m *gitlabReviewRepo) FindIntegrationByProjectPath(_ context.Context, path 
 func (m *gitlabReviewRepo) FindIssueByKey(context.Context, string) (*ent.Issue, error) {
 	return nil, nil
 }
-func (m *gitlabReviewRepo) ListAllWebhookSecrets(context.Context) ([]string, error) {
-	return nil, nil
+func (m *gitlabReviewRepo) FindIssueByKeyInProject(context.Context, uuid.UUID, string) (*ent.Issue, error) {
+	return nil, &ent.NotFoundError{}
 }
 
 type githubReviewRepo struct {
@@ -189,7 +214,10 @@ func (m *githubReviewRepo) ListIntegrations(context.Context, uuid.UUID) ([]*ent.
 func (m *githubReviewRepo) GetIntegration(context.Context, uuid.UUID) (*ent.GitHubIntegration, error) {
 	return nil, nil
 }
-func (m *githubReviewRepo) DeleteIntegration(context.Context, uuid.UUID) error { return nil }
+func (m *githubReviewRepo) GetIntegrationInProject(context.Context, uuid.UUID, uuid.UUID) (*ent.GitHubIntegration, error) {
+	return nil, nil
+}
+func (m *githubReviewRepo) DeleteIntegration(context.Context, uuid.UUID, uuid.UUID) error { return nil }
 func (m *githubReviewRepo) FindIntegrationByRepo(_ context.Context, owner, repo string) (*ent.GitHubIntegration, error) {
 	if ig, ok := m.integrations[owner+"/"+repo]; ok {
 		return ig, nil
@@ -207,6 +235,12 @@ func (m *githubReviewRepo) ListGitHubLinks(context.Context, uuid.UUID) ([]*ent.G
 	return nil, nil
 }
 func (m *githubReviewRepo) FindIssueByKey(context.Context, string) (*ent.Issue, error) { return nil, nil }
+func (m *githubReviewRepo) FindTestCaseByKey(context.Context, string) (*ent.TestCase, error) {
+	return nil, &ent.NotFoundError{}
+}
+func (m *githubReviewRepo) FindIssueByKeyInProject(context.Context, uuid.UUID, string) (*ent.Issue, error) {
+	return nil, &ent.NotFoundError{}
+}
 func (m *githubReviewRepo) UpdateIssueStatus(context.Context, uuid.UUID, uuid.UUID) error {
 	return nil
 }
@@ -214,8 +248,8 @@ func (m *githubReviewRepo) FindDoneStatus(context.Context, uuid.UUID) (*ent.Work
 	return nil, nil
 }
 func (m *githubReviewRepo) LogActivity(context.Context, uuid.UUID, string) error { return nil }
-func (m *githubReviewRepo) ListAllWebhookSecrets(context.Context) ([]string, error) {
-	return nil, nil
+func (m *githubReviewRepo) IsProjectMember(context.Context, uuid.UUID, uuid.UUID) (bool, error) {
+	return true, nil
 }
 func (m *githubReviewRepo) MarkTestCasesOutdatedByFiles(context.Context, []string) ([]string, error) {
 	return nil, nil

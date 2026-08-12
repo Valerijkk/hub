@@ -9,8 +9,6 @@ import (
 	"io"
 	"net/http"
 	"strings"
-
-	safehttp "github.com/valerii/hub/backend/internal/platform/http"
 )
 
 // StreamDelta — чанк OpenAI-совместимого SSE.
@@ -27,8 +25,9 @@ type ChatStreamAdapter interface {
 // ChatCompletionStream — POST {baseURL}/chat/completions со stream=true (SSE).
 func (a *OpenAIAdapter) ChatCompletionStream(ctx context.Context, baseURL, apiKey, model string, req ChatCompletionRequest, onDelta func(StreamDelta) error) error {
 	base := strings.TrimRight(baseURL, "/")
-	if err := safehttp.ValidateOutboundURL(base); err != nil {
-		return fmt.Errorf("invalid provider URL: %w", err)
+	httpClient, err := a.resolveStreamHTTPClient(base)
+	if err != nil {
+		return err
 	}
 	req.Model = model
 	req.Stream = true
@@ -36,7 +35,10 @@ func (a *OpenAIAdapter) ChatCompletionStream(ctx context.Context, baseURL, apiKe
 	if err != nil {
 		return fmt.Errorf("marshal request: %w", err)
 	}
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, base+"/chat/completions", bytes.NewReader(body))
+	// Request ctx не должен быть тем же cancel, что mid-stream stop:
+	// иначе Body.Read сам отдаёт Canceled и mid-loop ctx.Err() не mutation-proof
+	// (P2-BE-17 / TASK-044). Отмена стрима — явная проверка ctx в цикле Scan.
+	httpReq, err := http.NewRequestWithContext(context.WithoutCancel(ctx), http.MethodPost, base+"/chat/completions", bytes.NewReader(body))
 	if err != nil {
 		return fmt.Errorf("build request: %w", err)
 	}
@@ -45,18 +47,29 @@ func (a *OpenAIAdapter) ChatCompletionStream(ctx context.Context, baseURL, apiKe
 	if apiKey != "" {
 		httpReq.Header.Set("Authorization", "Bearer "+apiKey)
 	}
-	resp, err := a.client.Do(httpReq)
+	resp, err := httpClient.Do(httpReq)
 	if err != nil {
 		return fmt.Errorf("provider request: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode >= 400 {
-		raw, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		raw, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		if err != nil {
+			return fmt.Errorf("read error body: %w", err)
+		}
 		return fmt.Errorf("provider HTTP %d: %s", resp.StatusCode, truncate(string(raw), 512))
 	}
 	scanner := bufio.NewScanner(io.LimitReader(resp.Body, maxResponseBytes))
 	scanner.Buffer(make([]byte, 0, 64*1024), 256*1024)
-	for scanner.Scan() {
+	// ctx.Err до Scan: после cancel в onDelta не блокируемся на следующем Read
+	// (HTTP — WithoutCancel; иначе mid-loop guard не mutation-proof, P2-BE-17).
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if !scanner.Scan() {
+			break
+		}
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" || strings.HasPrefix(line, ":") {
 			continue

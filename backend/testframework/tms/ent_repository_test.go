@@ -70,7 +70,7 @@ func TestEntRepository_CreateAndGetTestCase(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, created.ID, got.ID)
 
-	byKey, err := repo.FindTestCaseByKey(ctx, created.CaseKey)
+	byKey, err := repo.FindTestCaseByKey(ctx, projectID, created.CaseKey)
 	require.NoError(t, err)
 	assert.Equal(t, created.ID, byKey.ID)
 
@@ -110,11 +110,11 @@ func TestEntRepository_ListUpdateDeleteTestCase(t *testing.T) {
 	require.Len(t, items, 1)
 
 	newTitle := "Updated title"
-	updated, err := repo.UpdateTestCase(ctx, created.ID, tms.UpdateTestCaseInput{Title: &newTitle})
+	updated, err := repo.UpdateTestCase(ctx, created.ID, tms.UpdateTestCaseInput{Title: &newTitle, Version: 1})
 	require.NoError(t, err)
 	assert.Equal(t, newTitle, updated.Title)
 
-	require.NoError(t, repo.DeleteTestCase(ctx, created.ID))
+	require.NoError(t, repo.DeleteTestCase(ctx, projectID, created.ID))
 	_, err = repo.GetTestCase(ctx, created.ID)
 	require.Error(t, err)
 }

@@ -11,7 +11,7 @@ const UNREAD_POLL_INTERVAL = 60_000;
  * Обновляет messenger-store при получении данных.
  */
 export function useUnread() {
-	const updateUnread = useMessengerStore((s) => s.updateUnread);
+	const setUnreadCounts = useMessengerStore((s) => s.setUnreadCounts);
 
 	const query = useQuery({
 		queryKey: ["messenger", "unread"],
@@ -20,28 +20,29 @@ export function useUnread() {
 		staleTime: UNREAD_POLL_INTERVAL - 5_000,
 	});
 
-	// Синхронизация данных в store.
+	// Полная замена карты: каналы, исчезнувшие из Redis HGetAll (MarkRead/HDel), обнуляются.
 	useEffect(() => {
 		if (query.data) {
-			for (const [channelId, count] of Object.entries(query.data)) {
-				updateUnread(channelId, count);
-			}
+			setUnreadCounts(query.data);
 		}
-	}, [query.data, updateUnread]);
+	}, [query.data, setUnreadCounts]);
 
 	return query;
 }
 
 /**
  * useMarkRead возвращает функцию для пометки канала как прочитанного.
- * Сбрасывает локальный store и вызывает API.
+ * Optimistic resetUnread; при ошибке API — rollback badge (W11-A4-004).
  */
 export function useMarkRead() {
 	const resetUnread = useMessengerStore((s) => s.resetUnread);
+	const updateUnread = useMessengerStore((s) => s.updateUnread);
 	const queryClient = useQueryClient();
 
 	return useCallback(
 		async (channelId: string) => {
+			const previous =
+				useMessengerStore.getState().unreadCounts[channelId] ?? 0;
 			resetUnread(channelId);
 			try {
 				await markChannelRead(channelId);
@@ -49,9 +50,9 @@ export function useMarkRead() {
 					queryKey: ["messenger", "unread"],
 				});
 			} catch {
-				// Игнорируем ошибки -- локальный сброс уже выполнен.
+				updateUnread(channelId, previous);
 			}
 		},
-		[resetUnread, queryClient],
+		[resetUnread, updateUnread, queryClient],
 	);
 }

@@ -223,7 +223,7 @@ Route: **no JWT** — signature-only (`handler.go:35`) ✅.
 
 **Fix:** Pass `safehttp.NewSafeHTTPClient(30*time.Second)` in `NewGitHubService` (mirror GitLab). **Tracked:** FA-04.
 
-**References:** `docs/security_guidelines.md` grep table; `.planning/tasks/TASKS-PHASES-121-FINAL-AUDIT.md` FA-04
+**References:** `docs/security_guidelines.md` grep table; `.planning/archive/tasks/TASKS-PHASES-121-FINAL-AUDIT.md` FA-04
 
 ---
 

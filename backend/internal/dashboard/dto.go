@@ -34,13 +34,15 @@ type SaveLayoutRequest struct {
 // --- Персональный дашборд ---
 
 // TaskSummary краткая информация о задаче для виджетов дашборда.
+// ProjectID нужен FE Link на /projects/$projectId/issues/$issueKey (A3W9-2-002/003).
 type TaskSummary struct {
-	ID       uuid.UUID `json:"id"`
-	Key      string    `json:"key"`
-	Title    string    `json:"title"`
-	Status   string    `json:"status"`
-	Priority int       `json:"priority"`
-	DueDate  *time.Time `json:"due_date,omitempty"`
+	ID        uuid.UUID  `json:"id"`
+	Key       string     `json:"key"`
+	Title     string     `json:"title"`
+	Status    string     `json:"status"`
+	Priority  int        `json:"priority"`
+	ProjectID uuid.UUID  `json:"project_id"`
+	DueDate   *time.Time `json:"due_date,omitempty"`
 }
 
 // CallSummary краткая информация о звонке.

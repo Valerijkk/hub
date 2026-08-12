@@ -84,6 +84,12 @@ func mapTestRailType(trType string) string {
 // htmlTagRegexp используется для удаления HTML-тегов из шагов TestRail.
 var htmlTagRegexp = regexp.MustCompile(`<[^>]*>`)
 
+// W2-A4-011 / P3-BE-07: compile once — trimStepNumbering вызывается на каждый шаг CSV.
+var (
+	stepNumberPrefixRegexp = regexp.MustCompile(`^\d+[\.\)]\s*`)
+	stepLabelPrefixRegexp  = regexp.MustCompile(`(?i)^step\s*\d+[:\s]*`)
+)
+
 // stripHTML удаляет HTML-теги и обрезает пробелы.
 func stripHTML(s string) string {
 	text := htmlTagRegexp.ReplaceAllString(s, "")
@@ -145,12 +151,8 @@ func parseTestRailSteps(stepsText, expectedText string) []schema.TestStep {
 
 // trimStepNumbering удаляет типичные префиксы нумерации шагов: "1. ", "1) ", "Step 1: ".
 func trimStepNumbering(s string) string {
-	// "1. text" или "1) text"
-	re := regexp.MustCompile(`^\d+[\.\)]\s*`)
-	s = re.ReplaceAllString(s, "")
-	// префикс вида "Step N: text"
-	re2 := regexp.MustCompile(`(?i)^step\s*\d+[:\s]*`)
-	s = re2.ReplaceAllString(s, "")
+	s = stepNumberPrefixRegexp.ReplaceAllString(s, "")
+	s = stepLabelPrefixRegexp.ReplaceAllString(s, "")
 	return strings.TrimSpace(s)
 }
 
@@ -222,6 +224,13 @@ func (s *TMSService) importTestRailCases(ctx context.Context, projectID uuid.UUI
 			SortOrder: len(suiteName2ID),
 		})
 		if err != nil {
+			// A3W2-4-005: fail CreateSuite не маскируется как полный успех.
+			result.Errors++
+			result.ValidationErrors = append(result.ValidationErrors, ImportValidationError{
+				Row:     0,
+				Field:   "section",
+				Message: "failed to create suite: " + section,
+			})
 			slog.Error("failed to create suite for TestRail import", "section", section, "error", err)
 			continue
 		}
@@ -268,6 +277,7 @@ func (s *TMSService) importTestRailCases(ctx context.Context, projectID uuid.UUI
 		result.Created++
 	}
 
+	result.Partial = result.Errors > 0 || result.Skipped > 0
 	return result, nil
 }
 
@@ -276,12 +286,9 @@ func (s *TMSService) importTestRailCases(ctx context.Context, projectID uuid.UUI
 // ---------------------------------------------------------------------------
 
 // parseTestRailCSV парсит CSV-экспорт TestRail в структуры TestRailCase.
+// A3W2-4-002: records cap (паритет с ImportFromCSV / maxImportRecords).
 func parseTestRailCSV(data []byte) ([]TestRailCase, error) {
-	reader := csv.NewReader(bytes.NewReader(data))
-	reader.LazyQuotes = true
-	reader.TrimLeadingSpace = true
-
-	// Сначала пробуем запятую, затем точку с запятой, затем табуляцию.
+	// W2-A4-010 / P3-BE-07: только tryReadCSV (мёртвый csv.NewReader удалён).
 	records, err := tryReadCSV(data, ',')
 	if err != nil || len(records) < 2 {
 		records, err = tryReadCSV(data, ';')
@@ -295,6 +302,10 @@ func parseTestRailCSV(data []byte) ([]TestRailCase, error) {
 
 	if len(records) < 2 {
 		return nil, fmt.Errorf("CSV file is empty or contains only headers")
+	}
+
+	if len(records)-1 > maxImportRecords {
+		return nil, fmt.Errorf("слишком много записей для импорта (макс. %d)", maxImportRecords)
 	}
 
 	// Строим индекс столбцов.
@@ -345,10 +356,17 @@ func csvField(row []string, colMap map[string]int, field string) string {
 }
 
 // parseTestRailXML парсит XML-экспорт TestRail в структуры TestRailCase.
+// A3W2-4-002: depth + records cap (паритет с ImportFromXML / allure/junit).
 func parseTestRailXML(data []byte) ([]TestRailCase, error) {
+	if err := assertXMLMaxDepth(data, maxImportNestDepth); err != nil {
+		return nil, err
+	}
 	var root TestRailXMLRoot
 	if err := xml.Unmarshal(data, &root); err != nil {
 		return nil, fmt.Errorf("error parsing TestRail XML: %w", err)
+	}
+	if len(root.Cases) > maxImportRecords {
+		return nil, fmt.Errorf("слишком много записей для импорта (макс. %d)", maxImportRecords)
 	}
 	return root.Cases, nil
 }
@@ -393,7 +411,7 @@ func (h *Handler) ImportTestRailCases(c fiber.Ctx) error {
 	// Определяем формат по расширению файла или полю формы.
 	format := c.FormValue("format", "")
 	if format == "" {
-		name := file.Filename
+		name := strings.ToLower(file.Filename)
 		switch {
 		case strings.HasSuffix(name, ".xml"):
 			format = "xml"
@@ -410,7 +428,9 @@ func (h *Handler) ImportTestRailCases(c fiber.Ctx) error {
 		result, err = h.service.ImportTestRailCSV(c.Context(), projectID, userID, data)
 	}
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		// A2W2-4-007: не отдаём internals парсера клиенту.
+		slog.Error("ошибка импорта TestRail", "error", err, "format", format)
+		return fiber.NewError(fiber.StatusBadRequest, "некорректный файл TestRail")
 	}
 
 	return c.JSON(result)

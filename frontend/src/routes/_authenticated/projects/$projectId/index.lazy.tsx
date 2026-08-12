@@ -10,6 +10,7 @@ import {
 	updateProject,
 } from "@/api/projects";
 import { Dropzone } from "@/components/files/dropzone";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -45,8 +46,9 @@ const DESC_MAX = 500;
 /**
  * Страница обзора проекта.
  * Отображает основную информацию, участников, файлы и настройки.
+ * A3W10-4-002: fail load ≠ «Проект не найден».
  */
-function ProjectPage() {
+export function ProjectPage() {
 	const { projectId } = Route.useParams();
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
@@ -56,7 +58,12 @@ function ProjectPage() {
 	const [editName, setEditName] = useState("");
 	const [editDescription, setEditDescription] = useState("");
 
-	const { data: project, isLoading } = useQuery({
+	const {
+		data: project,
+		isLoading,
+		isError,
+		refetch,
+	} = useQuery({
 		queryKey: ["project", projectId],
 		queryFn: () => getProject(projectId),
 	});
@@ -87,8 +94,11 @@ function ProjectPage() {
 	});
 
 	const editMutation = useMutation({
-		mutationFn: (data: { name?: string; description?: string }) =>
-			updateProject(projectId, data),
+		mutationFn: (data: {
+			name?: string;
+			description?: string;
+			version: number;
+		}) => updateProject(projectId, data),
 		onSuccess: () => {
 			void queryClient.invalidateQueries({ queryKey: ["project", projectId] });
 			void queryClient.invalidateQueries({ queryKey: ["projects"] });
@@ -110,9 +120,13 @@ function ProjectPage() {
 			toast.error(i18n.t("common:validation.nameCannotBeEmpty"));
 			return;
 		}
+		if (!project) {
+			return;
+		}
 		editMutation.mutate({
 			name: editName.trim(),
 			description: editDescription.trim(),
+			version: project.version,
 		});
 	}
 
@@ -140,6 +154,17 @@ function ProjectPage() {
 						</div>
 					))}
 				</div>
+			</div>
+		);
+	}
+
+	if (isError) {
+		return (
+			<div className="flex items-center justify-center py-12 px-4">
+				<QueryErrorAlert
+					message="Не удалось загрузить проект. Попробовать снова?"
+					retry={() => void refetch()}
+				/>
 			</div>
 		);
 	}

@@ -3,6 +3,8 @@ package ws_test
 // Тесты HTTP-обработчика WebSocket: интеграционные и unit-сценарии testframework.
 import (
 	"context"
+	"io"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
@@ -35,7 +37,7 @@ func newWSAuthService(t *testing.T) (*auth.AuthService, *auth.MagicLinkService, 
 	t.Cleanup(func() { _ = rdb.Close() })
 
 	magic := auth.NewMagicLinkService(rdb, nil, "test@example.com")
-	svc := auth.NewAuthService(auth.NewEntRepository(client), rdb, nil, "ws-test-secret", 15*time.Minute, 30*24*time.Hour, magic, "bot", nil)
+	svc := auth.NewAuthService(auth.NewEntRepository(client), rdb, nil, "ws-test-secret", 15*time.Minute, 30*24*time.Hour, magic, nil)
 	return svc, magic, client
 }
 
@@ -50,8 +52,28 @@ func wsAccessToken(t *testing.T, svc *auth.AuthService, magic *auth.MagicLinkSer
 	return pair.AccessToken
 }
 
-// TestWSHandler_MissingToken_Unauthorized проверяет отклонение при ws HTTP-обработчик отсутствующий token неавторизованный.
-func TestWSHandler_MissingToken_Unauthorized(t *testing.T) {
+func wsIssueTicket(t *testing.T, svc *auth.AuthService, userID, sessionID string) string {
+	t.Helper()
+	ticket, _, err := svc.IssueWSTicket(t.Context(), userID, sessionID)
+	require.NoError(t, err)
+	return ticket
+}
+
+func wsTicketForAccess(t *testing.T, svc *auth.AuthService, accessToken string) string {
+	t.Helper()
+	claims, err := svc.ParseAccessToken(accessToken)
+	require.NoError(t, err)
+	return wsIssueTicket(t, svc, claims.UserID, claims.SessionID)
+}
+
+func wsReqWithTicket(ticket string) *http.Request {
+	req := httptest.NewRequest(fiber.MethodGet, "/ws", nil)
+	req.Header.Set("Sec-WebSocket-Protocol", ws.WSTicketProtocolPrefix+ticket)
+	return req
+}
+
+// TestWSHandler_MissingTicket_Unauthorized — нет subprotocol ticket → 401.
+func TestWSHandler_MissingTicket_Unauthorized(t *testing.T) {
 	hub := ws.NewHub()
 	svc, _, _ := newWSAuthService(t)
 	app := fiber.New()
@@ -64,14 +86,54 @@ func TestWSHandler_MissingToken_Unauthorized(t *testing.T) {
 	assert.Equal(t, fiber.StatusUnauthorized, resp.StatusCode)
 }
 
-// TestWSHandler_InvalidToken_Unauthorized проверяет отклонение при ws HTTP-обработчик некорректный token неавторизованный.
-func TestWSHandler_InvalidToken_Unauthorized(t *testing.T) {
+// TestWSHandler_QueryToken_Denied — A2W3-4-001: ?token= всегда 401.
+func TestWSHandler_QueryToken_Denied(t *testing.T) {
+	hub := ws.NewHub()
+	svc, magic, _ := newWSAuthService(t)
+	token := wsAccessToken(t, svc, magic)
+
+	app := fiber.New()
+	app.Get("/ws", ws.Handler(hub, svc, ws.ExportAllowAllAuthorizer()))
+
+	req := httptest.NewRequest(fiber.MethodGet, "/ws?token="+token, nil)
+	resp, err := app.Test(req, 5*time.Second)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, fiber.StatusUnauthorized, resp.StatusCode)
+}
+
+// TestWSHandler_QueryToken_WithValidTicket_Denied — A3W3-4-001: валидный
+// ticket subprotocol + непустой ?token= → 401 именно из query-guard
+// (не «missing ticket»). Мутация: убрать deny ?token= в handler.go → FAIL.
+func TestWSHandler_QueryToken_WithValidTicket_Denied(t *testing.T) {
+	hub := ws.NewHub()
+	svc, magic, _ := newWSAuthService(t)
+	access := wsAccessToken(t, svc, magic)
+	ticket := wsTicketForAccess(t, svc, access)
+
+	app := fiber.New()
+	app.Get("/ws", ws.Handler(hub, svc, ws.ExportAllowAllAuthorizer()))
+
+	req := httptest.NewRequest(fiber.MethodGet, "/ws?token="+access, nil)
+	req.Header.Set("Sec-WebSocket-Protocol", ws.WSTicketProtocolPrefix+ticket)
+	resp, err := app.Test(req, 5*time.Second)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, fiber.StatusUnauthorized, resp.StatusCode)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	require.NoError(t, err)
+	assert.Contains(t, string(body), "token query parameter is not allowed",
+		"401 должен быть из query-guard, не из missing/invalid ticket")
+}
+
+// TestWSHandler_InvalidTicket_Unauthorized — битый/чужой ticket → 401.
+func TestWSHandler_InvalidTicket_Unauthorized(t *testing.T) {
 	hub := ws.NewHub()
 	svc, _, _ := newWSAuthService(t)
 	app := fiber.New()
 	app.Get("/ws", ws.Handler(hub, svc, ws.ExportAllowAllAuthorizer()))
 
-	req := httptest.NewRequest(fiber.MethodGet, "/ws?token=not-a-jwt", nil)
+	req := wsReqWithTicket("deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef")
 	resp, err := app.Test(req, 5*time.Second)
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -93,12 +155,38 @@ func TestWSHandler_DeactivatedUser_Forbidden(t *testing.T) {
 	pair, err := svc.CreateSession(ctx, u.ID, "browser", "127.0.0.1")
 	require.NoError(t, err)
 
+	claims, err := svc.ParseAccessToken(pair.AccessToken)
+	require.NoError(t, err)
+	ticket := wsIssueTicket(t, svc, claims.UserID, claims.SessionID)
+
 	app := fiber.New()
 	app.Get("/ws", ws.Handler(hub, svc, ws.ExportAllowAllAuthorizer()))
 
-	req := httptest.NewRequest(fiber.MethodGet, "/ws?token="+pair.AccessToken, nil)
+	req := wsReqWithTicket(ticket)
 	resp, err := app.Test(req, 5*time.Second)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.Equal(t, fiber.StatusForbidden, resp.StatusCode)
+}
+
+// TestWSHandler_TicketOneShot — повторный redeem того же ticket → 401.
+func TestWSHandler_TicketOneShot(t *testing.T) {
+	hub := ws.NewHub()
+	svc, magic, _ := newWSAuthService(t)
+	access := wsAccessToken(t, svc, magic)
+	ticket := wsTicketForAccess(t, svc, access)
+
+	app := fiber.New()
+	app.Get("/ws", ws.Handler(hub, svc, ws.ExportAllowAllAuthorizer()))
+
+	// Первый redeem съедает ticket на HTTP-слое (до upgrade fail без WS headers —
+	// достаточно проверить, что после RedeemWSTicket повторный handler даёт 401).
+	_, err := svc.RedeemWSTicket(t.Context(), ticket)
+	require.NoError(t, err)
+
+	req := wsReqWithTicket(ticket)
+	resp, err := app.Test(req, 5*time.Second)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, fiber.StatusUnauthorized, resp.StatusCode)
 }

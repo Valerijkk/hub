@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	gh "github.com/google/go-github/v68/github"
+	"github.com/google/uuid"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
@@ -69,6 +70,26 @@ func (s *GitHubService) FetchPRForReview(ctx context.Context, prURL string) (*PR
 		out.PatchSummary = out.PatchSummary[:maxPRPatchBytes] + "\n...(truncated)"
 	}
 	return out, nil
+}
+
+// ProjectIDForPRURL — Hub projectID интеграции по URL PR (для AI bot authz, P1-BE-31).
+func (s *GitHubService) ProjectIDForPRURL(ctx context.Context, prURL string) (uuid.UUID, error) {
+	owner, repo, _, err := parseGitHubPRURL(prURL)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	integration, err := s.repo.FindIntegrationByRepo(ctx, owner, repo)
+	if err != nil {
+		return uuid.Nil, apperrors.NewNotFound("GitHub интеграция для репозитория не найдена — подключите repo в настройках проекта")
+	}
+	if integration.Edges.Project != nil {
+		return integration.Edges.Project.ID, nil
+	}
+	proj, err := integration.QueryProject().Only(ctx)
+	if err != nil {
+		return uuid.Nil, apperrors.NewNotFound("GitHub интеграция для репозитория не найдена — подключите repo в настройках проекта")
+	}
+	return proj.ID, nil
 }
 
 func parseGitHubPRURL(raw string) (owner, repo string, number int, err error) {

@@ -6,12 +6,11 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
+	"unicode/utf8"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/utils/v2"
 	"github.com/google/uuid"
-	"github.com/livekit/protocol/auth"
 	apperr "github.com/valerii/hub/backend/internal/platform/errors"
 	httputil "github.com/valerii/hub/backend/internal/platform/http"
 )
@@ -26,6 +25,7 @@ import (
 // @Success 201 {object} CallResponse "Звонок создан"
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет членства в канале"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
 // @Router /api/calls [post]
@@ -47,6 +47,10 @@ func (h *Handler) CreateCall(c fiber.Ctx) error {
 	userName := userNameFromCtx(c)
 	resp, err := h.service.CreateCall(c.Context(), req.ChannelID, userID, userName)
 	if err != nil {
+		// A2-002: non-member -> 403
+		if errors.Is(err, ErrCallForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "недостаточно прав для создания звонка")
+		}
 		slog.Error("ошибка создания звонка", "error", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "не удалось создать звонок")
 	}
@@ -80,6 +84,9 @@ func (h *Handler) CreateInstantCall(c fiber.Ctx) error {
 	userName := userNameFromCtx(c)
 	resp, err := h.service.CreateInstantCall(c.Context(), userID, userName, req.Title)
 	if err != nil {
+		if errors.Is(err, ErrInvalidInput) {
+			return fiber.NewError(fiber.StatusBadRequest, "некорректный title")
+		}
 		slog.Error("ошибка создания instant звонка", "error", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "не удалось создать звонок")
 	}
@@ -140,9 +147,16 @@ func (h *Handler) GetActiveCall(c fiber.Ctx) error {
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "некорректный channel ID")
 	}
-
-	resp, err := h.service.GetActiveCallByChannel(c.Context(), channelID)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
+		return err
+	}
+
+	resp, err := h.service.GetActiveCallByChannel(c.Context(), channelID, userID)
+	if err != nil {
+		if errors.Is(err, ErrCallForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "недостаточно прав для просмотра звонка")
+		}
 		slog.Error("ошибка получения активного звонка", "error", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "ошибка поиска звонка")
 	}
@@ -262,6 +276,7 @@ func (h *Handler) EndCall(c fiber.Ctx) error {
 // @Success 200 {object} map[string]bool "raised: true/false"
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Не участник звонка"
 // @Failure 404 {object} fiber.Error "Звонок не найден"
 // @Security BearerAuth
 // @Router /api/calls/{callId}/raise-hand [post]
@@ -281,12 +296,14 @@ func (h *Handler) RaiseHand(c fiber.Ctx) error {
 		return err
 	}
 
-	callEnt, err := h.service.repo.GetCall(c.Context(), callID)
-	if err != nil {
-		return fiber.NewError(fiber.StatusNotFound, "звонок не найден")
-	}
-
-	if err := h.service.SetRaiseHand(c.Context(), callEnt.RoomName, userID.String(), req.Raised); err != nil {
+	// A2-006: authz в сервисе (active participant), без прямого доступа к repo.
+	if err := h.service.RaiseHand(c.Context(), callID, userID, req.Raised); err != nil {
+		if errors.Is(err, ErrCallNotFound) {
+			return fiber.NewError(fiber.StatusNotFound, "звонок не найден")
+		}
+		if errors.Is(err, ErrCallForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "недостаточно прав для поднятия руки")
+		}
 		slog.Error("ошибка поднятия руки", "error", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "не удалось обновить статус руки")
 	}
@@ -305,6 +322,7 @@ func (h *Handler) RaiseHand(c fiber.Ctx) error {
 // @Success 201 {object} CallChatMessage "Сообщение отправлено"
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа к чату звонка"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
 // @Router /api/calls/{callId}/chat [post]
@@ -332,6 +350,9 @@ func (h *Handler) SendChatMessage(c fiber.Ctx) error {
 	userName := userNameFromCtx(c)
 	msg, err := h.service.SendChatMessage(c.Context(), callID.String(), userID.String(), userName, req.Text, req.Ephemeral)
 	if err != nil {
+		if errors.Is(err, ErrCallForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "недостаточно прав для чата звонка")
+		}
 		slog.Error("ошибка отправки сообщения чата звонка", "error", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "не удалось отправить сообщение")
 	}
@@ -348,11 +369,17 @@ func (h *Handler) SendChatMessage(c fiber.Ctx) error {
 // @Param limit query int false "Лимит сообщений (по умолчанию 50, макс 200)"
 // @Success 200 {object} map[string][]CallChatMessage "messages: массив сообщений"
 // @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа к чату звонка"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
 // @Router /api/calls/{callId}/chat [get]
 func (h *Handler) ListChatMessages(c fiber.Ctx) error {
 	callID, err := parseCallID(c)
+	if err != nil {
+		return err
+	}
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -364,8 +391,11 @@ func (h *Handler) ListChatMessages(c fiber.Ctx) error {
 		}
 	}
 
-	msgs, err := h.service.ListChatMessages(c.Context(), callID.String(), limit)
+	msgs, err := h.service.ListChatMessages(c.Context(), callID.String(), userID.String(), limit)
 	if err != nil {
+		if errors.Is(err, ErrCallForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "недостаточно прав для чтения чата звонка")
+		}
 		slog.Error("ошибка получения сообщений чата звонка", "error", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "не удалось получить сообщения")
 	}
@@ -396,44 +426,22 @@ func (h *Handler) GuestJoinCall(c fiber.Ctx) error {
 	if req.InviteCode == "" || req.GuestName == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "invite_code и guest_name обязательны")
 	}
-
-	// Находим звонок по invite-коду
-	callEnt, err := h.service.repo.GetCallByInviteCode(c.Context(), req.InviteCode)
-	if err != nil {
-		return fiber.NewError(fiber.StatusNotFound, "звонок не найден или завершён")
+	// A3W3-A5-004: guest_name rune-cap до JWT/service (дубль service — fail-fast на HTTP).
+	if utf8.RuneCountInString(req.GuestName) > maxGuestNameRunes {
+		return fiber.NewError(fiber.StatusBadRequest, "guest_name слишком длинный")
 	}
 
-	if callEnt.Status != "active" {
-		return fiber.NewError(fiber.StatusNotFound, "звонок уже завершён")
-	}
-
-	// Генерируем гостевой токен
-	guestIdentity := "guest-" + uuid.New().String()[:8]
-	token, err := h.generateGuestToken(callEnt.RoomName, guestIdentity, req.GuestName)
+	resp, err := h.service.GuestJoin(c.Context(), req.InviteCode, req.GuestName)
 	if err != nil {
-		slog.Error("ошибка генерации гостевого токена", "error", err)
+		if errors.Is(err, ErrCallNotFound) {
+			return fiber.NewError(fiber.StatusNotFound, "звонок не найден или завершён")
+		}
+		if errors.Is(err, ErrInvalidInput) {
+			return fiber.NewError(fiber.StatusBadRequest, "guest_name слишком длинный")
+		}
+		slog.Error("ошибка гостевого входа", "error", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "ошибка генерации токена")
 	}
 
-	return c.JSON(GuestJoinResponse{
-		ID:         callEnt.ID,
-		RoomName:   callEnt.RoomName,
-		Token:      token,
-		LivekitURL: h.cfg.URL,
-	})
-}
-
-// generateGuestToken создаёт JWT-токен LiveKit для гостевого пользователя.
-func (h *Handler) generateGuestToken(roomName, identity, name string) (string, error) {
-	at := auth.NewAccessToken(h.cfg.APIKey, h.cfg.APISecret)
-	grant := &auth.VideoGrant{
-		RoomJoin: true,
-		Room:     roomName,
-	}
-	at.SetVideoGrant(grant).
-		SetIdentity(identity).
-		SetName(name).
-		SetValidFor(4 * time.Hour)
-
-	return at.ToJWT()
+	return c.JSON(resp)
 }

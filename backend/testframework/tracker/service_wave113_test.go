@@ -16,7 +16,7 @@ type notFoundCommentDeleteRepo struct {
 	mockRepo
 }
 
-func (r *notFoundCommentDeleteRepo) DeleteComment(_ context.Context, _ uuid.UUID) error {
+func (r *notFoundCommentDeleteRepo) DeleteComment(_ context.Context, _, _, _ uuid.UUID) error {
 	return &ent.NotFoundError{}
 }
 
@@ -24,7 +24,7 @@ type notFoundFieldDeleteRepo struct {
 	mockRepo
 }
 
-func (r *notFoundFieldDeleteRepo) DeleteCustomField(_ context.Context, _ uuid.UUID) error {
+func (r *notFoundFieldDeleteRepo) DeleteCustomField(_ context.Context, _, _ uuid.UUID) error {
 	return &ent.NotFoundError{}
 }
 
@@ -33,7 +33,7 @@ func TestDeleteComment_NotFound(t *testing.T) {
 	repo := &notFoundCommentDeleteRepo{mockRepo: *newMockRepo()}
 	svc := tracker.NewTrackerService(repo, nil)
 
-	err := svc.DeleteComment(context.Background(), uuid.New())
+	err := svc.DeleteComment(context.Background(), uuid.New(), "TST-1", uuid.New(), uuid.New())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "не найден")
 }
@@ -43,7 +43,7 @@ func TestDeleteCustomField_NotFound(t *testing.T) {
 	repo := &notFoundFieldDeleteRepo{mockRepo: *newMockRepo()}
 	svc := tracker.NewTrackerService(repo, nil)
 
-	err := svc.DeleteCustomField(context.Background(), uuid.New())
+	err := svc.DeleteCustomField(context.Background(), uuid.New(), uuid.New())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "не найдено")
 }
@@ -68,7 +68,7 @@ func TestGetActivity_EmptyIssue(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	logs, err := svc.GetActivity(ctx, created.IssueKey)
+	logs, err := svc.GetActivity(ctx, projectID, created.IssueKey)
 	require.NoError(t, err)
 	assert.NotNil(t, logs)
 }

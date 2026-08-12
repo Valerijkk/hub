@@ -5,12 +5,37 @@
 import type { Value } from "@udecode/plate";
 import { Sparkles } from "lucide-react";
 import { useState } from "react";
+import { z } from "zod";
 import { PlateEditor } from "@/components/tracker/plate-editor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { activateOnEnterOrSpace } from "@/lib/keyboard";
 import { useAIStore } from "@/stores/ai-store";
+
+/** Рекурсивный zod-guard Plate Value (A2W10-A2-006 / W10-A2-018). */
+const plateTextNodeSchema = z.object({ text: z.string() }).passthrough();
+
+type PlateNode =
+	| z.infer<typeof plateTextNodeSchema>
+	| { children: PlateNode[]; [key: string]: unknown };
+
+const plateElementSchema: z.ZodType<PlateNode> = z.lazy(() =>
+	z
+		.object({
+			children: z.array(z.union([plateTextNodeSchema, plateElementSchema])),
+		})
+		.passthrough(),
+);
+
+const plateValueSchema = z.array(plateElementSchema).min(1);
+
+/** Узкий type-guard Plate Value — zod, без bare `as Value`. */
+export function parsePlateValue(raw: unknown): Value | undefined {
+	const parsed = plateValueSchema.safeParse(raw);
+	if (!parsed.success) return undefined;
+	return parsed.data as Value;
+}
 
 export function IssueTitle({
 	title,
@@ -100,6 +125,8 @@ export function IssueDescription({
 		setIsEditing(false);
 	};
 
+	const plateValue = parsePlateValue(descriptionJson);
+
 	return (
 		<div>
 			<div className="mb-2 flex items-center justify-between gap-2">
@@ -142,17 +169,17 @@ export function IssueDescription({
 					type="button"
 					className="cursor-pointer rounded-md p-2 hover:bg-[var(--hover)] text-[14px] leading-[1.75] text-t2 w-full text-left"
 					onClick={() => {
-						setEditValue(descriptionJson as Value | undefined);
+						setEditValue(plateValue);
 						setIsEditing(true);
 					}}
 					onKeyDown={activateOnEnterOrSpace(() => {
-						setEditValue(descriptionJson as Value | undefined);
+						setEditValue(plateValue);
 						setIsEditing(true);
 					})}
 				>
-					{descriptionJson ? (
+					{plateValue ? (
 						<PlateEditor
-							value={descriptionJson as unknown as Value}
+							value={plateValue}
 							readOnly
 							className="border-none p-0"
 						/>

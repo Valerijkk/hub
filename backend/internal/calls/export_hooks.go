@@ -153,6 +153,46 @@ func ExportRecordingServiceRepo(s *RecordingService) *EntRepository {
 	return s.repo
 }
 
+// ExportRecordingServiceSetCreateRecording подменяет CreateRecording для hubtest (A2W3-5-001).
+func ExportRecordingServiceSetCreateRecording(
+	s *RecordingService,
+	fn func(ctx context.Context, egressID string, callID, projectID, userID uuid.UUID, filePath string) (*ent.Recording, error),
+) {
+	s.createRecording = fn
+}
+
+// ExportCallServiceSetCreateCall подменяет CreateCall DB для hubtest (A3W3-A5-001).
+func ExportCallServiceSetCreateCall(
+	s *CallService,
+	fn func(ctx context.Context, roomName string, channelID, createdBy uuid.UUID) (*ent.Call, error),
+) {
+	s.createCall = fn
+}
+
+// ExportCallServiceSetCreateInstantCall подменяет CreateInstantCall DB для hubtest (A3W3-A5-001).
+func ExportCallServiceSetCreateInstantCall(
+	s *CallService,
+	fn func(ctx context.Context, roomName string, createdBy uuid.UUID, inviteCode, title string) (*ent.Call, error),
+) {
+	s.createInstantCall = fn
+}
+
+// ExportMaxCallTitleRunes — лимит title для hubtest (A3W3-A5-004).
+func ExportMaxCallTitleRunes() int { return maxCallTitleRunes }
+
+// ExportMaxGuestNameRunes — лимит guest_name для hubtest (A3W3-A5-004).
+func ExportMaxGuestNameRunes() int { return maxGuestNameRunes }
+
+// ExportGenerateInviteCode — crypto/rand base62 invite для hubtest (A2W3-5-003).
+func ExportGenerateInviteCode() (string, error) {
+	return generateInviteCode()
+}
+
+// ExportInviteCodeLength возвращает длину invite_code для hubtest.
+func ExportInviteCodeLength() int {
+	return inviteCodeLength
+}
+
 // ExportRecordingServicePresignClient возвращает S3 presign client для hubtest.
 func ExportRecordingServicePresignClient(s *RecordingService) *s3.PresignClient {
 	return s.presignClient
@@ -259,8 +299,10 @@ func ExportUserNameFromCtx(c fiber.Ctx) string {
 }
 
 // ExportGenerateGuestToken генерирует JWT для гостевого входа для hubtest.
+// Использует cfg хендлера (ExportNewHandlerWithCfg не поднимает CallService).
 func ExportGenerateGuestToken(h *Handler, roomName, identity, name string) (string, error) {
-	return h.generateGuestToken(roomName, identity, name)
+	room := &CallRoomService{cfg: h.cfg}
+	return room.GenerateToken(roomName, identity, name)
 }
 
 type ExportMongoChatStore struct {

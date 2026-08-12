@@ -22,19 +22,30 @@ func (Environment) Fields() []ent.Field {
 		field.String("name").
 			NotEmpty().
 			MaxLen(100).
-			Comment("РќР°Р·РІР°РЅРёРµ РѕРєСЂСѓР¶РµРЅРёСЏ"),
+			Comment("Название окружения"),
 		field.Enum("env_label").
 			Values("dev", "staging", "prod", "custom").
 			Default("custom").
-			Comment("РњРµС‚РєР° РѕРєСЂСѓР¶РµРЅРёСЏ"),
+			Comment("Метка окружения"),
 		field.JSON("config", map[string]interface{}{}).
 			Optional().
-			Comment("РљРѕРЅС„РёРіСѓСЂР°С†РёСЏ: {browser, os, version}"),
+			Comment("Конфигурация: {browser, os, version}"),
+		field.Time("deleted_at").
+			Optional().
+			Nillable().
+			Comment("Время мягкого удаления (корзина 30 дней)"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
 	}
 }
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (Environment) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
+	}
+}
+
 
 // Рёбра (edges) сущности Environment.
 func (Environment) Edges() []ent.Edge {
@@ -51,5 +62,9 @@ func (Environment) Edges() []ent.Edge {
 func (Environment) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("env_label"),
+		// P2-BE-22: unique (project, name).
+		index.Edges("project").Fields("name").Unique(),
+		index.Fields("deleted_at"),
+		index.Edges("project").Fields("deleted_at"),
 	}
 }

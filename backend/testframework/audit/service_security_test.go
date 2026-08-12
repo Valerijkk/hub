@@ -15,17 +15,28 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/user"
 	"github.com/valerii/hub/backend/internal/audit"
 )
 
 type mockAuditRepo struct {
-	logs           []*ent.AuditLog
-	lastListFilter audit.AuditLogFilters
-	createCalls    []createAuditLogCall
-	deactivateErr  error
-	deactivateIDs  []uuid.UUID
-	deleteSessIDs  []uuid.UUID
+	logs                  []*ent.AuditLog
+	lastListFilter        audit.AuditLogFilters
+	createCalls           []createAuditLogCall
+	createErr             error
+	deactivateErr         error
+	deactivateIDs         []uuid.UUID
+	deleteSessIDs         []uuid.UUID
+	deleteSessErr         error // C-W19-003: fail-closed fallback без SessionRevoker
+	reassignAssignedCalls [][2]uuid.UUID
+	reassignReportedCalls [][2]uuid.UUID
+	reassignAssignedN     int
+	reassignErr           error
+	softDeleteCalls       []string
+	restoreCalls          []string
 }
+
+func (m *mockAuditRepo) ListAdminUsers(context.Context) ([]*ent.User, error) { return nil, nil }
 
 type createAuditLogCall struct {
 	action, entityType, entityID string
@@ -39,6 +50,9 @@ func (m *mockAuditRepo) CreateAuditLog(_ context.Context, action, entityType, en
 		action: action, entityType: entityType, entityID: entityID,
 		userID: userID, details: details, ipAddress: ipAddress, userAgent: userAgent,
 	})
+	if m.createErr != nil {
+		return nil, m.createErr
+	}
 	log := &ent.AuditLog{
 		ID: uuid.New(), Action: action, EntityType: entityType, EntityID: entityID,
 		Details: details, IPAddress: ipAddress, UserAgent: userAgent, CreatedAt: time.Now().UTC(),
@@ -116,6 +130,9 @@ func (m *mockAuditRepo) DeactivateUser(_ context.Context, userID uuid.UUID) erro
 
 func (m *mockAuditRepo) DeleteUserSessions(_ context.Context, userID uuid.UUID) (int, error) {
 	m.deleteSessIDs = append(m.deleteSessIDs, userID)
+	if m.deleteSessErr != nil {
+		return 0, m.deleteSessErr
+	}
 	return 1, nil
 }
 
@@ -138,28 +155,119 @@ func (m *mockAuditRepo) ListDeletedFiles(context.Context, *uuid.UUID, time.Time,
 func (m *mockAuditRepo) ListDeletedProjects(context.Context, time.Time, int, int) ([]audit.TrashItem, int, error) {
 	return nil, 0, nil
 }
-func (m *mockAuditRepo) RestoreIssue(context.Context, uuid.UUID) error   { return nil }
-func (m *mockAuditRepo) RestoreTestCase(context.Context, uuid.UUID) error { return nil }
-func (m *mockAuditRepo) RestoreFile(context.Context, uuid.UUID) error    { return nil }
-func (m *mockAuditRepo) RestoreProject(context.Context, uuid.UUID) error { return nil }
-func (m *mockAuditRepo) SoftDeleteIssue(context.Context, uuid.UUID, time.Time) error {
+func (m *mockAuditRepo) ListDeletedNewsPosts(context.Context, time.Time, int, int) ([]audit.TrashItem, int, error) {
+	return nil, 0, nil
+}
+func (m *mockAuditRepo) ListDeletedScheduledCalls(context.Context, *uuid.UUID, time.Time, int, int) ([]audit.TrashItem, int, error) {
+	return nil, 0, nil
+}
+func (m *mockAuditRepo) ListDeletedCRMContacts(context.Context, time.Time, int, int) ([]audit.TrashItem, int, error) {
+	return nil, 0, nil
+}
+func (m *mockAuditRepo) ListDeletedCRMDeals(context.Context, time.Time, int, int) ([]audit.TrashItem, int, error) {
+	return nil, 0, nil
+}
+func (m *mockAuditRepo) ListDeletedHubBases(context.Context, time.Time, int, int) ([]audit.TrashItem, int, error) {
+	return nil, 0, nil
+}
+func (m *mockAuditRepo) RestoreIssue(_ context.Context, _ uuid.UUID) error {
+	m.restoreCalls = append(m.restoreCalls, "issue")
 	return nil
 }
-func (m *mockAuditRepo) SoftDeleteTestCase(context.Context, uuid.UUID, time.Time) error {
+func (m *mockAuditRepo) RestoreTestCase(_ context.Context, _ uuid.UUID) error {
+	m.restoreCalls = append(m.restoreCalls, "test_case")
 	return nil
 }
-func (m *mockAuditRepo) SoftDeleteFile(context.Context, uuid.UUID, time.Time) error { return nil }
-func (m *mockAuditRepo) SoftDeleteProject(context.Context, uuid.UUID, time.Time) error {
+func (m *mockAuditRepo) RestoreFile(_ context.Context, _ uuid.UUID) error {
+	m.restoreCalls = append(m.restoreCalls, "file")
+	return nil
+}
+func (m *mockAuditRepo) RestoreProject(_ context.Context, _ uuid.UUID) error {
+	m.restoreCalls = append(m.restoreCalls, "project")
+	return nil
+}
+func (m *mockAuditRepo) RestoreNewsPost(_ context.Context, _ uuid.UUID) error {
+	m.restoreCalls = append(m.restoreCalls, "newspost")
+	return nil
+}
+func (m *mockAuditRepo) RestoreScheduledCall(_ context.Context, _ uuid.UUID) error {
+	m.restoreCalls = append(m.restoreCalls, "scheduled_call")
+	return nil
+}
+func (m *mockAuditRepo) RestoreCRMContact(_ context.Context, _ uuid.UUID) error {
+	m.restoreCalls = append(m.restoreCalls, "crm_contact")
+	return nil
+}
+func (m *mockAuditRepo) RestoreCRMDeal(_ context.Context, _ uuid.UUID) error {
+	m.restoreCalls = append(m.restoreCalls, "crm_deal")
+	return nil
+}
+func (m *mockAuditRepo) RestoreHubBase(_ context.Context, _ uuid.UUID) error {
+	m.restoreCalls = append(m.restoreCalls, "hubbase")
+	return nil
+}
+func (m *mockAuditRepo) SoftDeleteIssue(_ context.Context, _ uuid.UUID, _ time.Time) error {
+	m.softDeleteCalls = append(m.softDeleteCalls, "issue")
+	return nil
+}
+func (m *mockAuditRepo) SoftDeleteTestCase(_ context.Context, _ uuid.UUID, _ time.Time) error {
+	m.softDeleteCalls = append(m.softDeleteCalls, "test_case")
+	return nil
+}
+func (m *mockAuditRepo) SoftDeleteFile(_ context.Context, _ uuid.UUID, _ time.Time) error {
+	m.softDeleteCalls = append(m.softDeleteCalls, "file")
+	return nil
+}
+func (m *mockAuditRepo) SoftDeleteProject(_ context.Context, _ uuid.UUID, _ time.Time) error {
+	m.softDeleteCalls = append(m.softDeleteCalls, "project")
+	return nil
+}
+func (m *mockAuditRepo) SoftDeleteNewsPost(_ context.Context, _ uuid.UUID, _ time.Time) error {
+	m.softDeleteCalls = append(m.softDeleteCalls, "newspost")
+	return nil
+}
+func (m *mockAuditRepo) SoftDeleteScheduledCall(_ context.Context, _ uuid.UUID, _ time.Time) error {
+	m.softDeleteCalls = append(m.softDeleteCalls, "scheduled_call")
+	return nil
+}
+func (m *mockAuditRepo) SoftDeleteCRMContact(_ context.Context, _ uuid.UUID, _ time.Time) error {
+	m.softDeleteCalls = append(m.softDeleteCalls, "crm_contact")
+	return nil
+}
+func (m *mockAuditRepo) SoftDeleteCRMDeal(_ context.Context, _ uuid.UUID, _ time.Time) error {
+	m.softDeleteCalls = append(m.softDeleteCalls, "crm_deal")
+	return nil
+}
+func (m *mockAuditRepo) SoftDeleteHubBase(_ context.Context, _ uuid.UUID, _ time.Time) error {
+	m.softDeleteCalls = append(m.softDeleteCalls, "hubbase")
 	return nil
 }
 func (m *mockAuditRepo) PurgeExpiredIssues(context.Context, time.Time) (int, error)    { return 0, nil }
 func (m *mockAuditRepo) PurgeExpiredTestCases(context.Context, time.Time) (int, error) { return 0, nil }
 func (m *mockAuditRepo) PurgeExpiredFiles(context.Context, time.Time) (int, error)     { return 0, nil }
 func (m *mockAuditRepo) PurgeExpiredProjects(context.Context, time.Time) (int, error)  { return 0, nil }
-func (m *mockAuditRepo) ReassignAssignedIssues(context.Context, uuid.UUID, uuid.UUID) (int, error) {
+func (m *mockAuditRepo) PurgeExpiredNewsPosts(context.Context, time.Time) (int, error) { return 0, nil }
+func (m *mockAuditRepo) PurgeExpiredScheduledCalls(context.Context, time.Time) (int, error) {
 	return 0, nil
 }
-func (m *mockAuditRepo) ReassignReportedIssues(context.Context, uuid.UUID, uuid.UUID) (int, error) {
+func (m *mockAuditRepo) PurgeExpiredCRMContacts(context.Context, time.Time) (int, error) {
+	return 0, nil
+}
+func (m *mockAuditRepo) PurgeExpiredCRMDeals(context.Context, time.Time) (int, error) {
+	return 0, nil
+}
+func (m *mockAuditRepo) PurgeExpiredHubBases(context.Context, time.Time) (int, error) {
+	return 0, nil
+}
+func (m *mockAuditRepo) ReassignAssignedIssues(_ context.Context, from, to uuid.UUID) (int, error) {
+	m.reassignAssignedCalls = append(m.reassignAssignedCalls, [2]uuid.UUID{from, to})
+	if m.reassignAssignedN != 0 {
+		return m.reassignAssignedN, m.reassignErr
+	}
+	return 0, m.reassignErr
+}
+func (m *mockAuditRepo) ReassignReportedIssues(_ context.Context, from, to uuid.UUID) (int, error) {
+	m.reassignReportedCalls = append(m.reassignReportedCalls, [2]uuid.UUID{from, to})
 	return 0, nil
 }
 func (m *mockAuditRepo) ClearUserAssignments(context.Context, uuid.UUID) (int, error) { return 0, nil }
@@ -169,8 +277,27 @@ func (m *mockAuditRepo) DeleteUserActivityLogs(context.Context, uuid.UUID) (int,
 	return 0, nil
 }
 func (m *mockAuditRepo) DeleteUserTimeLogs(context.Context, uuid.UUID) (int, error) { return 0, nil }
+func (m *mockAuditRepo) DeleteUserFiles(context.Context, uuid.UUID) (int, error)    { return 0, nil }
+func (m *mockAuditRepo) DeleteUserProjectMemberships(context.Context, uuid.UUID) (int, error) {
+	return 0, nil
+}
+func (m *mockAuditRepo) DeleteUserChannelMemberships(context.Context, uuid.UUID) (int, error) {
+	return 0, nil
+}
+func (m *mockAuditRepo) DeleteUserTeamMemberships(context.Context, uuid.UUID) (int, error) {
+	return 0, nil
+}
+func (m *mockAuditRepo) ScrubUserAuditPII(context.Context, uuid.UUID) (int, error) { return 0, nil }
 func (m *mockAuditRepo) HardDeleteUser(context.Context, uuid.UUID) error            { return nil }
 func (m *mockAuditRepo) IsSystemAdmin(context.Context, uuid.UUID) (bool, error)     { return false, nil }
+func (m *mockAuditRepo) GetUserSystemRole(context.Context, uuid.UUID) (user.SystemRole, error) {
+	return user.SystemRoleMember, nil
+}
+
+// WithTx — mock: без реальной транзакции, fn вызывается на том же mock (A2W6-A4-003).
+func (m *mockAuditRepo) WithTx(_ context.Context, fn func(audit.Repository) error) error {
+	return fn(m)
+}
 
 // TestBanUser проверяет сценарий: ban user.
 func TestBanUser(t *testing.T) {
@@ -179,15 +306,16 @@ func TestBanUser(t *testing.T) {
 	ctx := context.Background()
 
 	tests := []struct {
-		name       string
-		reason     string
-		target     uuid.UUID
-		admin      uuid.UUID
-		deactErr   error
-		wantErr       string
-		wantDeact     bool
+		name           string
+		reason         string
+		target         uuid.UUID
+		admin          uuid.UUID
+		deactErr       error
+		createErr      error
+		wantErr        string
+		wantDeact      bool
 		wantSessRevoke bool
-		wantAudit     bool
+		wantAudit      bool
 	}{
 		{
 			name:    "empty reason rejected",
@@ -221,11 +349,21 @@ func TestBanUser(t *testing.T) {
 			wantSessRevoke: true,
 			wantAudit:      true,
 		},
+		{
+			// W6-A4-015 / P3-BE-01: CreateAuditLog fail после deactivate → err caller.
+			name:      "audit log failure after ban",
+			reason:    "spam",
+			target:    targetID,
+			admin:     adminID,
+			createErr: errors.New("audit db down"),
+			wantErr:   "audit ban log",
+			wantDeact: true,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			repo := &mockAuditRepo{deactivateErr: tt.deactErr}
+			repo := &mockAuditRepo{deactivateErr: tt.deactErr, createErr: tt.createErr}
 			svc := audit.NewAuditService(repo, nil)
 
 			err := svc.BanUser(ctx, tt.target, tt.admin, tt.reason, "10.0.0.1", "test-agent")
@@ -399,15 +537,19 @@ func TestListAuditLogs_SlowOnly(t *testing.T) {
 	assert.True(t, repo.lastListFilter.SlowOnly)
 }
 
-// TestRecordHTTPRequest_SkipsOnCreateError проверяет сценарий: record http request skips on создание ошибка.
+// TestRecordHTTPRequest_SkipsOnCreateError — W6-A5-009 / P3-BE-02: inject createErr,
+// create вызван ровно 1 раз, no panic (ошибка глотается после slog).
 func TestRecordHTTPRequest_SkipsOnCreateError(t *testing.T) {
-	repo := &mockAuditRepo{}
+	repo := &mockAuditRepo{createErr: errors.New("db down")}
 	svc := audit.NewAuditService(repo, nil)
 
-	svc.RecordHTTPRequest(context.Background(), audit.HTTPAuditEntry{
-		Method: "POST", Path: "/api/x", Status: 201, DurationMS: 10,
+	assert.NotPanics(t, func() {
+		svc.RecordHTTPRequest(context.Background(), audit.HTTPAuditEntry{
+			Method: "POST", Path: "/api/x", Status: 201, DurationMS: 10,
+		})
 	})
 	require.Len(t, repo.createCalls, 1)
+	assert.Empty(t, repo.logs, "failed Create must not append to in-memory logs")
 }
 
 // TestRecordHTTPRequest_NilUserID проверяет сценарий: record http request nil user id.

@@ -70,7 +70,8 @@ interface RunResultsTableProps {
 	runStatus: string;
 	executingResultId: string | null;
 	onSelectResult: (id: string) => void;
-	onAddCases: () => void;
+	/** Без callback — кнопка «Добавить тест-кейсы» скрыта (viewer/guest). */
+	onAddCases?: () => void;
 }
 
 /** Таблица результатов прогона тестов с фильтрацией по статусу и подсветкой текущего. */
@@ -103,11 +104,11 @@ export function RunResultsTable({
 				<p className="text-sm text-t2 mb-3">
 					Нет результатов. Добавьте тест-кейсы в прогон.
 				</p>
-				{runStatus === "created" && (
+				{runStatus === "created" && onAddCases ? (
 					<Button variant="outline" size="sm" onClick={onAddCases}>
 						Добавить тест-кейсы
 					</Button>
-				)}
+				) : null}
 			</div>
 		);
 	}
@@ -217,7 +218,7 @@ export function RunResultsTable({
 									Время
 								</th>
 								<th className="sticky top-0 z-[5] bg-base text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-5 py-[14px] border-b border-b2 w-28">
-									Испол��итель
+									Исполнитель
 								</th>
 							</tr>
 						</thead>

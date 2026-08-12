@@ -24,6 +24,8 @@ type Repository interface {
 	GetJournalEntry(ctx context.Context, id uuid.UUID) (*ent.JournalEntry, error)
 	CreateJournalEntry(ctx context.Context, userID uuid.UUID, entryDate time.Time, req CreateJournalRequest) (*ent.JournalEntry, error)
 	PostJournalEntry(ctx context.Context, id uuid.UUID) (*ent.JournalEntry, error)
+	// SoftDeleteJournalEntry — soft-delete родителя; lines скрываются join-filter (A2W8-3-004).
+	SoftDeleteJournalEntry(ctx context.Context, id uuid.UUID) error
 
 	TrialBalance(ctx context.Context) ([]TrialBalanceRow, error)
 	IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bool, error)
@@ -36,6 +38,8 @@ type Repository interface {
 	GetInvoice(ctx context.Context, id uuid.UUID) (*ent.Invoice, error)
 	IssueInvoice(ctx context.Context, id uuid.UUID) (*ent.Invoice, error)
 	MarkInvoicePaid(ctx context.Context, id uuid.UUID, entryID uuid.UUID) (*ent.Invoice, error)
+	// PayInvoiceAtomic — claim issued invoice + journal create/post + mark paid в одной tx.
+	PayInvoiceAtomic(ctx context.Context, userID, invoiceID, bankAccountID, revenueAccountID uuid.UUID) (*ent.Invoice, error)
 	InvoiceExistsForDeal(ctx context.Context, dealID uuid.UUID) (bool, error)
 }
 
@@ -170,6 +174,21 @@ func (r *EntRepository) PostJournalEntry(ctx context.Context, id uuid.UUID) (*en
 		return nil, err
 	}
 	return r.GetJournalEntry(ctx, id)
+}
+
+// SoftDeleteJournalEntry — A2W8-3-004 join-filter: lines наследуют deleted_at родителя.
+func (r *EntRepository) SoftDeleteJournalEntry(ctx context.Context, id uuid.UUID) error {
+	affected, err := r.client.JournalEntry.Update().
+		Where(journalentry.IDEQ(id), journalentry.DeletedAtIsNil()).
+		SetDeletedAt(time.Now().UTC()).
+		Save(ctx)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return &ent.NotFoundError{}
+	}
+	return nil
 }
 
 func (r *EntRepository) TrialBalance(ctx context.Context) ([]TrialBalanceRow, error) {

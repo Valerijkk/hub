@@ -20,10 +20,18 @@ var (
 	ErrDailyQuotaExceeded     = fmt.Errorf("daily AI request quota exceeded")
 	ErrSettingsTooLong        = fmt.Errorf("system prompt too long")
 	ErrSettingsNotConfigured  = fmt.Errorf("settings store not configured")
+	ErrProviderNotFound       = fmt.Errorf("provider not found")
+	// ErrQueryRequired — AssistJQL: пустой/blank query (A3W5-1-002 → HTTP 400).
+	ErrQueryRequired = fmt.Errorf("query is required")
+	// ErrVersionConflict — optimistic lock stale (A3W5-3-006 / NFR-24 → HTTP 409).
+	ErrVersionConflict = fmt.Errorf("version conflict")
 )
 
 // DefaultDailyRequestLimit — requests/day на пользователя (M3-027).
 const DefaultDailyRequestLimit = 500
+
+// msgAIStreamFailed — фиксированный WS error payload (A3W5-3-007); сырой err только в slog.
+const msgAIStreamFailed = "AI stream failed"
 
 const jqlAssistSystemPrompt = `Ты конвертируешь запрос на естественном языке в Hub JQL (Jira Query Language).
 Поддерживаемые поля: status, priority, type, assignee, created, updated.
@@ -161,6 +169,7 @@ func (s *Service) UpdateUserProvider(ctx context.Context, userID, providerID uui
 	input := UpdateProviderInput{
 		Name: req.Name, BaseURL: req.BaseURL, Models: req.Models,
 		Enabled: req.Enabled, RuResident: req.RuResident,
+		Version: req.Version,
 	}
 	if req.APIKey != nil {
 		input.APIKey = req.APIKey
@@ -214,11 +223,16 @@ func (s *Service) CreateProvider(ctx context.Context, req CreateProviderRequest)
 	return &resp, nil
 }
 
-// UpdateProvider патчит config провайдера.
+// UpdateProvider патчит config системного провайдера (admin).
+// W5-A1-010: user-scope BYOK недоступен через /admin/ai — 404.
 func (s *Service) UpdateProvider(ctx context.Context, id uuid.UUID, req UpdateProviderRequest) (*ProviderResponse, error) {
+	if _, err := s.requireSystemProvider(ctx, id); err != nil {
+		return nil, err
+	}
 	input := UpdateProviderInput{
 		Name: req.Name, BaseURL: req.BaseURL, Models: req.Models,
 		Enabled: req.Enabled, Priority: req.Priority, MaxRPM: req.MaxRPM, RuResident: req.RuResident,
+		Version: req.Version,
 	}
 	if req.APIKey != nil {
 		input.APIKey = req.APIKey
@@ -231,9 +245,9 @@ func (s *Service) UpdateProvider(ctx context.Context, id uuid.UUID, req UpdatePr
 	return &resp, nil
 }
 
-// TestProvider — ping провайдера minimal chat request.
+// TestProvider — ping системного провайдера minimal chat request.
 func (s *Service) TestProvider(ctx context.Context, id uuid.UUID) (*TestProviderResponse, error) {
-	p, err := s.repo.GetProvider(ctx, id)
+	p, err := s.requireSystemProvider(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -249,13 +263,31 @@ func (s *Service) TestProvider(ctx context.Context, id uuid.UUID) (*TestProvider
 	})
 	latency := time.Since(start).Milliseconds()
 	if err != nil {
+		// A2W5-A1-004: JSON.error без upstream URL/auth/internals.
 		return &TestProviderResponse{
-			OK: false, Provider: p.Name, Model: model, Latency: latency, Error: err.Error(),
+			OK: false, Provider: p.Name, Model: model, Latency: latency,
+			Error: sanitizeProviderTestError(err),
 		}, nil
 	}
 	return &TestProviderResponse{
 		OK: true, Provider: p.Name, Model: model, Latency: latency,
 	}, nil
+}
+
+// requireSystemProvider — admin-scope guard: user BYOK → ErrProviderNotFound (W5-A1-010).
+func (s *Service) requireSystemProvider(ctx context.Context, id uuid.UUID) (*ent.AIProvider, error) {
+	p, err := s.repo.GetProvider(ctx, id)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, ErrProviderNotFound
+		}
+		return nil, err
+	}
+	// Пустой scope — legacy system (до появления BYOK).
+	if p.Scope != "" && p.Scope != aiprovider.ScopeSystem {
+		return nil, ErrProviderNotFound
+	}
+	return p, nil
 }
 
 // ListModels — enabled models для ModelPicker (system + BYOK).
@@ -299,17 +331,19 @@ func (s *Service) GetUserPreference(ctx context.Context, userID uuid.UUID) (*Use
 	if err != nil {
 		return nil, err
 	}
-	resp := &UserPreferenceResponse{AllowExternalAI: true}
+	// W5-A3-012 / P2-BE-17: default AllowExternalAI=false (opt-in).
+	resp := &UserPreferenceResponse{AllowExternalAI: false}
 	if rec != nil {
 		resp.DefaultModel = rec.DefaultModel
 		resp.AllowExternalAI = rec.AllowExternalAI
+		resp.Version = rec.Version
 	}
 	return resp, nil
 }
 
 // SaveUserPreference — default model и privacy для ModelPicker.
 func (s *Service) SaveUserPreference(ctx context.Context, userID uuid.UUID, req UpdateUserPreferenceRequest) (*UserPreferenceResponse, error) {
-	input := SaveUserPreferenceInput{}
+	input := SaveUserPreferenceInput{Version: req.Version}
 	if req.DefaultModel != nil {
 		model := strings.TrimSpace(*req.DefaultModel)
 		if model != "" {
@@ -464,7 +498,23 @@ func (s *Service) StartChatStream(ctx context.Context, userID uuid.UUID, req Cha
 	if s.streams == nil {
 		return fmt.Errorf("streaming not configured")
 	}
-	go s.runChatStream(context.Background(), userID, req, ip, userAgent)
+	// W5-A1-002: preflight consent/RPM до 202 — те же sentinel, что non-stream.
+	if _, err := s.resolveProviders(ctx, userID, req.Model); err != nil {
+		return err
+	}
+	// W5-A3-005: не Background() — cancel родителя/таймаут останавливает SSE.
+	// WithoutCancel: HTTP handler отдаёт 202 и завершает request ctx; стрим живёт
+	// по собственному deadline, но отмена явного parent (тесты/WS) пробрасывается
+	// через отдельный cancel, если ctx уже отменён до старта.
+	streamCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Minute)
+	if err := ctx.Err(); err != nil {
+		cancel()
+		return err
+	}
+	go func() {
+		defer cancel()
+		s.runChatStream(streamCtx, userID, req, ip, userAgent)
+	}()
 	return nil
 }
 
@@ -488,7 +538,8 @@ func (s *Service) runChatStream(ctx context.Context, userID uuid.UUID, req ChatC
 	})
 	if err != nil {
 		slog.Warn("ai stream failed", "error", err, "stream_id", streamID)
-		publish("error", map[string]interface{}{"message": err.Error()})
+		// A3W5-3-007: клиенту фиксированная строка; detail только в slog.
+		publish("error", map[string]interface{}{"message": msgAIStreamFailed})
 		return
 	}
 	outTokens := len(full.String()) / 4
@@ -510,7 +561,7 @@ func (s *Service) runChatStream(ctx context.Context, userID uuid.UUID, req ChatC
 func (s *Service) AssistJQL(ctx context.Context, userID uuid.UUID, req JQLAssistRequest) (*JQLAssistResponse, error) {
 	query := strings.TrimSpace(req.Query)
 	if query == "" {
-		return nil, fmt.Errorf("query is required")
+		return nil, ErrQueryRequired
 	}
 	model, err := s.DefaultModel(ctx, userID)
 	if err != nil {
@@ -589,6 +640,7 @@ func toProviderResponse(p *ent.AIProvider) ProviderResponse {
 		RuResident:   p.RuResident,
 		Scope:        string(p.Scope),
 		HasAPIKey:    p.APIKeyEnc != "",
+		Version:      p.Version,
 		CreatedAt:    p.CreatedAt.UTC().Format(time.RFC3339),
 		UpdatedAt:    p.UpdatedAt.UTC().Format(time.RFC3339),
 	}

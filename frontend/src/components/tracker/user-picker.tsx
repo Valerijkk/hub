@@ -42,10 +42,16 @@ export function UserPicker({
 	const { t } = useTranslation("tracker");
 	const [open, setOpen] = useState(false);
 
-	const { data: members = [], isLoading } = useQuery({
+	const {
+		data: members = [],
+		isLoading,
+		isError,
+		refetch,
+	} = useQuery({
 		queryKey: ["project-members", projectId],
 		queryFn: () => listMembers(projectId),
 		staleTime: 60_000,
+		enabled: Boolean(projectId),
 	});
 
 	const selected = useMemo(
@@ -71,7 +77,10 @@ export function UserPicker({
 							<UserRound className="h-4 w-4 shrink-0 text-t3" aria-hidden />
 							{selected ? memberLabel(selected) : label}
 						</span>
-						<ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+						<ChevronsUpDown
+							className="h-4 w-4 shrink-0 opacity-50"
+							aria-hidden="true"
+						/>
 					</Button>
 				</PopoverTrigger>
 				<PopoverContent
@@ -84,34 +93,54 @@ export function UserPicker({
 							aria-label={t("userPicker.searchAria")}
 						/>
 						<CommandList>
-							<CommandEmpty>
-								{isLoading ? t("userPicker.loading") : t("userPicker.empty")}
-							</CommandEmpty>
-							<CommandGroup>
-								{members.map((m) => (
-									<CommandItem
-										key={m.user_id}
-										value={`${memberLabel(m)} ${m.email}`}
-										onSelect={() => {
-											onChange(m.user_id);
-											setOpen(false);
-										}}
+							{isError ? (
+								<div role="alert" className="px-3 py-6 text-center space-y-2">
+									<p className="text-sm text-[var(--red)]">
+										{t("userPicker.loadError")}
+									</p>
+									<button
+										type="button"
+										className="text-sm font-semibold text-t2 hover:text-t1 hover:underline"
+										onClick={() => void refetch()}
 									>
-										<Check
-											className={cn(
-												"mr-2 h-4 w-4",
-												value === m.user_id ? "opacity-100" : "opacity-0",
-											)}
-										/>
-										<div className="flex min-w-0 flex-col">
-											<span className="truncate">{memberLabel(m)}</span>
-											<span className="truncate text-xs text-t2">
-												{m.email}
-											</span>
-										</div>
-									</CommandItem>
-								))}
-							</CommandGroup>
+										{t("userPicker.retry")}
+									</button>
+								</div>
+							) : (
+								<>
+									<CommandEmpty>
+										{isLoading
+											? t("userPicker.loading")
+											: t("userPicker.empty")}
+									</CommandEmpty>
+									<CommandGroup>
+										{members.map((m) => (
+											<CommandItem
+												key={m.user_id}
+												value={`${memberLabel(m)} ${m.email}`}
+												onSelect={() => {
+													onChange(m.user_id);
+													setOpen(false);
+												}}
+											>
+												<Check
+													aria-hidden="true"
+													className={cn(
+														"mr-2 h-4 w-4",
+														value === m.user_id ? "opacity-100" : "opacity-0",
+													)}
+												/>
+												<div className="flex min-w-0 flex-col">
+													<span className="truncate">{memberLabel(m)}</span>
+													<span className="truncate text-xs text-t2">
+														{m.email}
+													</span>
+												</div>
+											</CommandItem>
+										))}
+									</CommandGroup>
+								</>
+							)}
 						</CommandList>
 					</Command>
 				</PopoverContent>

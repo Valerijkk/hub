@@ -53,13 +53,17 @@ func (h *Handler) SendTyping(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/messenger/presence [get]
 func (h *Handler) GetPresence(c fiber.Ctx) error {
+	callerID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
 	userIDsStr := c.Query("user_ids")
 	if userIDsStr == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "параметр user_ids обязателен")
 	}
 
 	userIDs := splitComma(userIDsStr)
-	statuses, err := h.service.GetPresence(c.Context(), userIDs)
+	statuses, err := h.service.GetPresence(c.Context(), callerID, userIDs)
 	if err != nil {
 		return err
 	}

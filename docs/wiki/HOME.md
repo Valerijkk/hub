@@ -23,6 +23,7 @@
 - **Звонки** — LiveKit, screen share, запись
 - **Дашборды** — личный, проектный, админский
 - **v4 super-app** — intranet, calendar, CRM-lite, HR, accounting, bases
+- **Wiki (продукт, spaces/pages)** — **planned** (Волны 5/8); G-07 = Partial — см. `docs/vision_and_scope.md`. Эта страница (`docs/wiki/`) — документация репозитория, не продуктовый wiki-модуль.
 
 ### Для администраторов
 
@@ -41,7 +42,7 @@
 
 | Страница | Описание |
 |----------|----------|
-| [API Reference](API.md) | REST API (~286 endpoints под `/api`) |
+| [API Reference](API.md) | REST API (~252 OpenAPI paths; route inventory ~286 — см. API.md) |
 | [Архитектура](ARCHITECTURE.md) | C4, NATS, WebSocket bridge |
 | `docs/TECHNICAL.md` | ERD, полные контракты, env vars |
 | `docs/test_plan.md` | Стратегия тестирования, CI jobs |
@@ -84,4 +85,5 @@
 Актуальный статус: `.planning/STATE.md`.
 
 ---
+*2026-07-28 — TASK-105: уточнено, что product Wiki planned (G-07 Partial); `docs/wiki/` ≠ Confluence-замена*
 *2026-06-21 — wiki index, broken links removed*

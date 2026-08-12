@@ -8,11 +8,12 @@ import {
 	listAutomationRules,
 	updateAutomationRule,
 } from "@/api/automation";
-import { type Channel, getChannels } from "@/api/messenger";
+import { getChannels } from "@/api/messenger";
 import {
 	listWorkflowStatuses,
 	type WorkflowStatusResponse,
 } from "@/api/tracker";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -33,15 +34,28 @@ interface AutomationRulesPanelProps {
 /** PROD-01: правила workflow-автоматизации (макс. 3). */
 export function AutomationRulesPanel({ projectId }: AutomationRulesPanelProps) {
 	const queryClient = useQueryClient();
-	const { data: rules = [], isLoading } = useQuery({
+	const {
+		data: rules = [],
+		isLoading,
+		isError,
+		refetch,
+	} = useQuery({
 		queryKey: ["automation-rules", projectId],
 		queryFn: () => listAutomationRules(projectId),
 	});
-	const { data: statuses = [] } = useQuery({
+	const {
+		data: statuses = [],
+		isError: statusesError,
+		refetch: refetchStatuses,
+	} = useQuery({
 		queryKey: ["workflow-statuses", projectId],
 		queryFn: () => listWorkflowStatuses(projectId),
 	});
-	const { data: channels = [] } = useQuery({
+	const {
+		data: channels = [],
+		isError: channelsError,
+		refetch: refetchChannels,
+	} = useQuery({
 		queryKey: ["channels"],
 		queryFn: () => getChannels(),
 	});
@@ -93,9 +107,7 @@ export function AutomationRulesPanel({ projectId }: AutomationRulesPanelProps) {
 		onError: (err) => toastApiError(err),
 	});
 
-	const projectChannels = (channels as Channel[]).filter(
-		(c) => c.project_id === projectId,
-	);
+	const projectChannels = channels.filter((c) => c.project_id === projectId);
 
 	return (
 		<div className="space-y-6 max-w-2xl">
@@ -108,6 +120,24 @@ export function AutomationRulesPanel({ projectId }: AutomationRulesPanelProps) {
 						До 3 правил на проект. Пример: при переходе в статус → сообщение в
 						канал.
 					</p>
+					{(statusesError || channelsError) && (
+						<div className="space-y-2">
+							{statusesError && (
+								<QueryErrorAlert
+									message="Не удалось загрузить статусы workflow"
+									retry={() => void refetchStatuses()}
+									compact
+								/>
+							)}
+							{channelsError && (
+								<QueryErrorAlert
+									message="Не удалось загрузить каналы"
+									retry={() => void refetchChannels()}
+									compact
+								/>
+							)}
+						</div>
+					)}
 					<div className="space-y-2">
 						<Label htmlFor="rule-name">Название</Label>
 						<Input
@@ -139,16 +169,21 @@ export function AutomationRulesPanel({ projectId }: AutomationRulesPanelProps) {
 						{triggerType === "status_changed" && (
 							<div className="space-y-2">
 								<Label>Статус</Label>
-								<Select value={statusId} onValueChange={setStatusId}>
+								<Select
+									value={statusId}
+									onValueChange={setStatusId}
+									disabled={statusesError}
+								>
 									<SelectTrigger>
 										<SelectValue placeholder="Выберите статус" />
 									</SelectTrigger>
 									<SelectContent>
-										{(statuses as WorkflowStatusResponse[]).map((s) => (
-											<SelectItem key={s.id} value={s.id}>
-												{s.name}
-											</SelectItem>
-										))}
+										{!statusesError &&
+											(statuses as WorkflowStatusResponse[]).map((s) => (
+												<SelectItem key={s.id} value={s.id}>
+													{s.name}
+												</SelectItem>
+											))}
 									</SelectContent>
 								</Select>
 							</div>
@@ -156,16 +191,21 @@ export function AutomationRulesPanel({ projectId }: AutomationRulesPanelProps) {
 					</div>
 					<div className="space-y-2">
 						<Label>Канал</Label>
-						<Select value={channelId} onValueChange={setChannelId}>
+						<Select
+							value={channelId}
+							onValueChange={setChannelId}
+							disabled={channelsError}
+						>
 							<SelectTrigger>
 								<SelectValue placeholder="Куда отправить сообщение" />
 							</SelectTrigger>
 							<SelectContent>
-								{projectChannels.map((ch) => (
-									<SelectItem key={ch.id} value={ch.id}>
-										#{ch.name}
-									</SelectItem>
-								))}
+								{!channelsError &&
+									projectChannels.map((ch) => (
+										<SelectItem key={ch.id} value={ch.id}>
+											#{ch.name}
+										</SelectItem>
+									))}
 							</SelectContent>
 						</Select>
 					</div>
@@ -175,6 +215,8 @@ export function AutomationRulesPanel({ projectId }: AutomationRulesPanelProps) {
 							createMutation.isPending ||
 							!name.trim() ||
 							!channelId ||
+							statusesError ||
+							channelsError ||
 							(triggerType === "status_changed" && !statusId) ||
 							rules.length >= 3
 						}
@@ -193,42 +235,50 @@ export function AutomationRulesPanel({ projectId }: AutomationRulesPanelProps) {
 				</CardHeader>
 				<CardContent>
 					{isLoading && <p className="text-sm text-t3">Загрузка…</p>}
-					{!isLoading && rules.length === 0 && (
+					{isError && (
+						<QueryErrorAlert
+							message="Не удалось загрузить правила автоматизации"
+							retry={() => void refetch()}
+							compact
+						/>
+					)}
+					{!isLoading && !isError && rules.length === 0 && (
 						<p className="text-sm text-t3">Нет правил автоматизации</p>
 					)}
 					<ul className="space-y-3">
-						{rules.map((rule) => (
-							<li
-								key={rule.id}
-								className="flex items-center justify-between gap-3 rounded-lg border border-b1 p-3"
-							>
-								<div>
-									<p className="font-medium text-sm">{rule.name}</p>
-									<p className="text-xs text-t3">
-										{rule.trigger_type} → {rule.action_type}
-										{!rule.enabled ? " · выкл." : ""}
-									</p>
-								</div>
-								<div className="flex gap-2">
-									<Button
-										type="button"
-										variant="outline"
-										size="sm"
-										onClick={() => toggleMutation.mutate(rule)}
-									>
-										{rule.enabled ? "Выкл" : "Вкл"}
-									</Button>
-									<Button
-										type="button"
-										variant="destructive"
-										size="sm"
-										onClick={() => deleteMutation.mutate(rule.id)}
-									>
-										Удалить
-									</Button>
-								</div>
-							</li>
-						))}
+						{!isError &&
+							rules.map((rule) => (
+								<li
+									key={rule.id}
+									className="flex items-center justify-between gap-3 rounded-lg border border-b1 p-3"
+								>
+									<div>
+										<p className="font-medium text-sm">{rule.name}</p>
+										<p className="text-xs text-t3">
+											{rule.trigger_type} → {rule.action_type}
+											{!rule.enabled ? " · выкл." : ""}
+										</p>
+									</div>
+									<div className="flex gap-2">
+										<Button
+											type="button"
+											variant="outline"
+											size="sm"
+											onClick={() => toggleMutation.mutate(rule)}
+										>
+											{rule.enabled ? "Выкл" : "Вкл"}
+										</Button>
+										<Button
+											type="button"
+											variant="destructive"
+											size="sm"
+											onClick={() => deleteMutation.mutate(rule.id)}
+										>
+											Удалить
+										</Button>
+									</div>
+								</li>
+							))}
 					</ul>
 				</CardContent>
 			</Card>

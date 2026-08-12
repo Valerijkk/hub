@@ -5,9 +5,11 @@ import {
 	Save,
 	ThumbsUp,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { toastApiError } from "@/lib/format-api-error";
 import { useSprintStore } from "@/stores/sprint-store";
 
 /** Пропсы компонента ретроспективы спринта. */
@@ -47,6 +49,14 @@ export function SprintRetro({
 	);
 	const [saving, setSaving] = useState(false);
 	const [saved, setSaved] = useState(false);
+	const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	useEffect(
+		() => () => {
+			if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+		},
+		[],
+	);
 
 	const handleSave = async () => {
 		setSaving(true);
@@ -66,7 +76,11 @@ export function SprintRetro({
 					.filter(Boolean),
 			});
 			setSaved(true);
-			setTimeout(() => setSaved(false), 2000);
+			toast.success("Ретроспектива сохранена");
+			if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+			savedTimerRef.current = setTimeout(() => setSaved(false), 2000);
+		} catch (err) {
+			toastApiError(err, "Не удалось сохранить ретроспективу");
 		} finally {
 			setSaving(false);
 		}

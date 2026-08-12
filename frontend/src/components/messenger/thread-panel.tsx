@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Message } from "@/api/messenger";
 import { getMessages } from "@/api/messenger";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,19 @@ interface ThreadPanelProps {
 	onClose: () => void;
 }
 
+/** Ищет сообщение в infinite-cache ленты канала. */
+export function findParentInMessagesCache(
+	cache: { pages: Message[][] } | undefined,
+	messageId: string,
+): Message | null {
+	if (!cache?.pages) return null;
+	for (const page of cache.pages) {
+		const found = page.find((m) => m.id === messageId);
+		if (found) return found;
+	}
+	return null;
+}
+
 /**
  * ThreadPanel -- панель просмотра и ответа в тред.
  * Показывает исходное сообщение, список ответов и composer для нового ответа.
@@ -30,21 +43,32 @@ export function ThreadPanel({
 	projectId,
 	onClose,
 }: ThreadPanelProps) {
+	const queryClient = useQueryClient();
 	const { messages: replies, isLoading } = useThreadMessages(
 		channelId,
 		messageId,
 	);
 
-	// Загрузка родительского сообщения.
-	const { data: parentMessages } = useQuery({
+	// Родитель: сначала cache ленты (limit:1 почти всегда miss — W9-A3-001).
+	const { data: parentMessage } = useQuery({
 		queryKey: ["messenger", "parent-message", channelId, messageId],
-		queryFn: () => getMessages(channelId, { limit: 1 }),
+		queryFn: async () => {
+			const cached = findParentInMessagesCache(
+				queryClient.getQueryData<{ pages: Message[][] }>([
+					"messenger",
+					"messages",
+					channelId,
+				]),
+				messageId,
+			);
+			if (cached) return cached;
+
+			// Fallback: страница истории — parent обычно недавно в ленте.
+			const page = await getMessages(channelId, { limit: 50 });
+			return page.find((m) => m.id === messageId) ?? null;
+		},
 		enabled: !!channelId && !!messageId,
 	});
-
-	// Ищем родительское сообщение из кеша или первого запроса.
-	const parentMessage =
-		parentMessages?.find((m: Message) => m.id === messageId) ?? null;
 
 	return (
 		<div className="flex h-full flex-col">
@@ -55,6 +79,7 @@ export function ThreadPanel({
 					variant="ghost"
 					size="icon"
 					className="h-7 w-7"
+					aria-label="Закрыть тред"
 					onClick={onClose}
 				>
 					<svg

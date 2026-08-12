@@ -4,7 +4,6 @@ import (
 	"context"
 	"log/slog"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,17 +12,12 @@ import (
 	"github.com/valerii/hub/backend/ent/githublink"
 	"github.com/valerii/hub/backend/ent/issue"
 	"github.com/valerii/hub/backend/ent/project"
+	"github.com/valerii/hub/backend/ent/projectmember"
 	"github.com/valerii/hub/backend/ent/testcase"
+	"github.com/valerii/hub/backend/ent/user"
 	"github.com/valerii/hub/backend/ent/workflowstatus"
 	cryptopkg "github.com/valerii/hub/backend/internal/platform/crypto"
 )
-
-// ME-08: TTL для in-memory кеша webhook-секретов. 60s — короткий
-// горизонт, достаточно для гашения хвостовой нагрузки GitHub push-spam
-// и при этом не требует явной инвалидации после CreateIntegration:
-// новые секреты попадают в HMAC-сверку с задержкой максимум 60 секунд,
-// что для регистрации webhook'а допустимо.
-const webhookSecretsCacheTTL = 60 * time.Second
 
 // Repository определяет интерфейс доступа к данным для модуля GitHub-интеграции.
 type Repository interface {
@@ -31,8 +25,13 @@ type Repository interface {
 	CreateIntegration(ctx context.Context, projectID uuid.UUID, input CreateIntegrationInput) (*ent.GitHubIntegration, error)
 	ListIntegrations(ctx context.Context, projectID uuid.UUID) ([]*ent.GitHubIntegration, error)
 	GetIntegration(ctx context.Context, id uuid.UUID) (*ent.GitHubIntegration, error)
-	DeleteIntegration(ctx context.Context, id uuid.UUID) error
+	// GetIntegrationInProject возвращает интеграцию только если она принадлежит projectID (A5-006).
+	GetIntegrationInProject(ctx context.Context, projectID, id uuid.UUID) (*ent.GitHubIntegration, error)
+	// DeleteIntegration удаляет интеграцию только если она принадлежит projectID (A5-003).
+	DeleteIntegration(ctx context.Context, projectID, id uuid.UUID) error
 	FindIntegrationByRepo(ctx context.Context, owner, repo string) (*ent.GitHubIntegration, error)
+	// FindIssueByKeyInProject ищет задачу по ключу только внутри projectID (A5-006).
+	FindIssueByKeyInProject(ctx context.Context, projectID uuid.UUID, issueKey string) (*ent.Issue, error)
 
 	// GitHub-ссылки
 	CreateGitHubLink(ctx context.Context, issueID, integrationID uuid.UUID, input CreateGitHubLinkInput) (*ent.GitHubLink, error)
@@ -49,8 +48,11 @@ type Repository interface {
 	// LogActivity записывает событие в лог активности задачи.
 	LogActivity(ctx context.Context, issueID uuid.UUID, action string) error
 
-	// ListAllWebhookSecrets возвращает все webhook-секреты зарегистрированных интеграций.
-	ListAllWebhookSecrets(ctx context.Context) ([]string, error)
+	// IsProjectMember — W7-A3-002 / P1-BE-37: ListGitHubLinks требует membership.
+	IsProjectMember(ctx context.Context, userID, projectID uuid.UUID) (bool, error)
+
+	// FindTestCaseByKey — link-preview TC path (C-W19-FE-002); soft-deleted → NotFound.
+	FindTestCaseByKey(ctx context.Context, caseKey string) (*ent.TestCase, error)
 
 	// MarkTestCasesOutdatedByFiles находит test cases со статусом "synced",
 	// у которых ClassName/FullName совпадает с одним из переданных путей файлов
@@ -95,14 +97,6 @@ type CreateGitHubLinkInput struct {
 type EntRepository struct {
 	client *ent.Client
 	cipher *cryptopkg.Cipher
-
-	// ME-08: кеш расшифрованных webhook-секретов для быстрой HMAC-сверки
-	// при высокой частоте webhook'ов от GitHub (push-spam на больших
-	// репозиториях). TTL=60s — короткий, чтобы свежие интеграции
-	// подхватывались автоматически без явной инвалидации.
-	secretsMu     sync.RWMutex
-	secretsCache  []string
-	secretsExpire time.Time
 }
 
 // NewEntRepository создаёт новый репозиторий GitHub-интеграции.
@@ -110,16 +104,6 @@ type EntRepository struct {
 // в открытом виде (как до HI-05). В production cipher обязателен.
 func NewEntRepository(client *ent.Client, cipher *cryptopkg.Cipher) *EntRepository {
 	return &EntRepository{client: client, cipher: cipher}
-}
-
-// invalidateSecretsCache сбрасывает кеш webhook-секретов.
-// Вызывается после Create/Delete интеграции, чтобы новая интеграция
-// сразу подхватывалась HMAC-сверкой webhook'ов (без ожидания TTL).
-func (r *EntRepository) invalidateSecretsCache() {
-	r.secretsMu.Lock()
-	r.secretsCache = nil
-	r.secretsExpire = time.Time{}
-	r.secretsMu.Unlock()
 }
 
 // encryptField шифрует значение, если cipher настроен. Иначе возвращает as-is.
@@ -179,18 +163,19 @@ func (r *EntRepository) CreateIntegration(ctx context.Context, projectID uuid.UU
 	if err != nil {
 		return nil, err
 	}
-	// ME-08: новая интеграция — сбрасываем кеш секретов, чтобы её secret
-	// сразу учитывался в HMAC-сверке (а не через 60 секунд).
-	r.invalidateSecretsCache()
 	// Возвращаем decrypt caller — не показываем ciphertext в API.
 	r.decryptIntegration(created)
 	return created, nil
 }
 
-// ListIntegrations возвращает все интеграции проекта.
+// ListIntegrations возвращает все интеграции проекта (без корзины).
+// W7-A3-010: DeletedAtIsNil.
 func (r *EntRepository) ListIntegrations(ctx context.Context, projectID uuid.UUID) ([]*ent.GitHubIntegration, error) {
 	list, err := r.client.GitHubIntegration.Query().
-		Where(githubintegration.HasProjectWith(project.ID(projectID))).
+		Where(
+			githubintegration.HasProjectWith(project.ID(projectID)),
+			githubintegration.DeletedAtIsNil(),
+		).
 		All(ctx)
 	if err != nil {
 		return nil, err
@@ -201,9 +186,11 @@ func (r *EntRepository) ListIntegrations(ctx context.Context, projectID uuid.UUI
 	return list, nil
 }
 
-// GetIntegration возвращает интеграцию по ID.
+// GetIntegration возвращает интеграцию по ID (без корзины).
 func (r *EntRepository) GetIntegration(ctx context.Context, id uuid.UUID) (*ent.GitHubIntegration, error) {
-	ig, err := r.client.GitHubIntegration.Get(ctx, id)
+	ig, err := r.client.GitHubIntegration.Query().
+		Where(githubintegration.IDEQ(id), githubintegration.DeletedAtIsNil()).
+		Only(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -211,23 +198,54 @@ func (r *EntRepository) GetIntegration(ctx context.Context, id uuid.UUID) (*ent.
 	return ig, nil
 }
 
-// DeleteIntegration удаляет интеграцию по ID.
-func (r *EntRepository) DeleteIntegration(ctx context.Context, id uuid.UUID) error {
-	if err := r.client.GitHubIntegration.DeleteOneID(id).Exec(ctx); err != nil {
+// GetIntegrationInProject возвращает интеграцию по ID только в рамках projectID (A5-006).
+// Чужой projectId при UUID интеграции другого проекта → NotFound.
+// Mutation: снять HasProjectWith → cross-project PAT доступен.
+func (r *EntRepository) GetIntegrationInProject(ctx context.Context, projectID, id uuid.UUID) (*ent.GitHubIntegration, error) {
+	ig, err := r.client.GitHubIntegration.Query().
+		Where(
+			githubintegration.IDEQ(id),
+			githubintegration.DeletedAtIsNil(),
+			githubintegration.HasProjectWith(project.ID(projectID)),
+		).
+		Only(ctx)
+	if err != nil {
+		return nil, err
+	}
+	r.decryptIntegration(ig)
+	return ig, nil
+}
+
+// DeleteIntegration мягко удаляет интеграцию по ID только в рамках projectID (A5-003 / W7-A3-010).
+// Чужой projectId в URL при UUID интеграции другого проекта → NotFound (0 rows).
+// Mutation: hard Delete().Exec → row gone → FAIL.
+func (r *EntRepository) DeleteIntegration(ctx context.Context, projectID, id uuid.UUID) error {
+	affected, err := r.client.GitHubIntegration.Update().
+		Where(
+			githubintegration.IDEQ(id),
+			githubintegration.HasProjectWith(project.ID(projectID)),
+			githubintegration.DeletedAtIsNil(),
+		).
+		SetDeletedAt(time.Now().UTC()).
+		Save(ctx)
+	if err != nil {
 		return err
 	}
-	// ME-08: удалённый секрет должен немедленно исчезнуть из HMAC-сверки.
-	r.invalidateSecretsCache()
+	if affected == 0 {
+		return &ent.NotFoundError{}
+	}
 	return nil
 }
 
-// FindIntegrationByRepo ищет интеграцию по owner и repo name.
+// FindIntegrationByRepo ищет интеграцию по owner и repo name (без корзины).
 func (r *EntRepository) FindIntegrationByRepo(ctx context.Context, owner, repo string) (*ent.GitHubIntegration, error) {
 	ig, err := r.client.GitHubIntegration.Query().
 		Where(
 			githubintegration.RepoOwner(owner),
 			githubintegration.RepoName(repo),
+			githubintegration.DeletedAtIsNil(),
 		).
+		WithProject().
 		Only(ctx)
 	if err != nil {
 		return nil, err
@@ -285,9 +303,29 @@ func (r *EntRepository) ListGitHubLinks(ctx context.Context, issueID uuid.UUID) 
 
 // FindIssueByKey ищет задачу по ключу (например "HUB-1").
 // Загружает связи status, assignee, project для использования в webhook-обработчиках.
+// A3W7-3-002: soft-deleted (trash) → NotFound. Mutation: убрать DeletedAtIsNil → trash находится.
 func (r *EntRepository) FindIssueByKey(ctx context.Context, issueKey string) (*ent.Issue, error) {
 	return r.client.Issue.Query().
-		Where(issue.IssueKey(issueKey)).
+		Where(
+			issue.IssueKey(issueKey),
+			issue.DeletedAtIsNil(),
+		).
+		WithStatus().
+		WithAssignee().
+		WithProject().
+		Only(ctx)
+}
+
+// FindIssueByKeyInProject ищет задачу по ключу только внутри projectID (A5-006).
+// Mutation: снять HasProjectWith → cross-project issue key IDOR.
+// A3W7-3-002: soft-deleted → NotFound.
+func (r *EntRepository) FindIssueByKeyInProject(ctx context.Context, projectID uuid.UUID, issueKey string) (*ent.Issue, error) {
+	return r.client.Issue.Query().
+		Where(
+			issue.IssueKey(issueKey),
+			issue.DeletedAtIsNil(),
+			issue.HasProjectWith(project.IDEQ(projectID)),
+		).
 		WithStatus().
 		WithAssignee().
 		WithProject().
@@ -320,62 +358,26 @@ func (r *EntRepository) LogActivity(ctx context.Context, issueID uuid.UUID, acti
 	return err
 }
 
-// ListAllWebhookSecrets возвращает все webhook-секреты зарегистрированных
-// интеграций. Используется только для HMAC-сверки входящей подписи. Возврат
-// расшифрованных значений — необходимое зло (нужно сравнивать HMAC), но
-// дальше функции эти строки не утекают: caller сравнивает HMAC и сразу
-// забывает их. См. HI-05.
-//
-// ME-08: результат кешируется в памяти на webhookSecretsCacheTTL (60s),
-// чтобы спам webhook'ов от GitHub (push-events на больших репозиториях)
-// не приводил к запросу к Postgres на каждом hit. Кеш инвалидируется
-// явно после CreateIntegration / DeleteIntegration; в худшем случае
-// (если invalidate не вызывался) новый секрет подхватится с задержкой
-// до 60 секунд.
-func (r *EntRepository) ListAllWebhookSecrets(ctx context.Context) ([]string, error) {
-	// Fast path: cache hit под RLock — без лишних decrypt.
-	r.secretsMu.RLock()
-	if !r.secretsExpire.IsZero() && time.Now().Before(r.secretsExpire) {
-		// Возвращаем копию, чтобы caller не мог мутировать слайс кеша.
-		out := make([]string, len(r.secretsCache))
-		copy(out, r.secretsCache)
-		r.secretsMu.RUnlock()
-		return out, nil
-	}
-	r.secretsMu.RUnlock()
+// IsProjectMember — true, если userID состоит в projectID.
+func (r *EntRepository) IsProjectMember(ctx context.Context, userID, projectID uuid.UUID) (bool, error) {
+	return r.client.ProjectMember.Query().
+		Where(
+			projectmember.HasProjectWith(project.IDEQ(projectID)),
+			projectmember.HasUserWith(user.IDEQ(userID)),
+		).
+		Exist(ctx)
+}
 
-	// Slow path: rebuild cache. Допускаем гонку — два параллельных
-	// промаха выполнят по одному запросу к БД, но это много лучше,
-	// чем sync.Mutex на весь хот-путь HMAC-сверки.
-	integrations, err := r.client.GitHubIntegration.Query().
-		Select(githubintegration.FieldWebhookSecret).
-		All(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	secrets := make([]string, 0, len(integrations))
-	for _, ig := range integrations {
-		if ig.WebhookSecret == "" {
-			continue
-		}
-		pt := r.decryptField(ig.WebhookSecret)
-		if pt == "" {
-			slog.Warn("github webhook secret decrypted to empty value — skipping")
-			continue
-		}
-		secrets = append(secrets, pt)
-	}
-
-	r.secretsMu.Lock()
-	r.secretsCache = secrets
-	r.secretsExpire = time.Now().Add(webhookSecretsCacheTTL)
-	r.secretsMu.Unlock()
-
-	// Возвращаем копию, чтобы caller не мог мутировать слайс кеша.
-	out := make([]string, len(secrets))
-	copy(out, secrets)
-	return out, nil
+// FindTestCaseByKey ищет тест-кейс по ключу (например "HUB-TC-1") с проектом.
+// C-W19-FE-002: soft-deleted → NotFound. Mutation: убрать DeletedAtIsNil → trash находится.
+func (r *EntRepository) FindTestCaseByKey(ctx context.Context, caseKey string) (*ent.TestCase, error) {
+	return r.client.TestCase.Query().
+		Where(
+			testcase.CaseKey(caseKey),
+			testcase.DeletedAtIsNil(),
+		).
+		WithProject().
+		Only(ctx)
 }
 
 // MarkTestCasesOutdatedByFiles находит test cases со статусом "synced",

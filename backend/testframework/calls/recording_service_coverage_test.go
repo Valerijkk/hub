@@ -67,8 +67,50 @@ func TestRecordingService_StartRecording_EndedCall(t *testing.T) {
 func TestRecordingService_StopRecording_NotFound(t *testing.T) {
 	f := newCallsTestFixture(t)
 	svc := calls.ExportNewRecordingServiceForTest(f.repo, nil, config.S3Config{})
-	err := svc.StopRecording(context.Background(), uuid.New())
+	err := svc.StopRecording(context.Background(), uuid.New(), uuid.New(), f.owner.ID)
 	require.Error(t, err)
+}
+
+// A2-004: не-член канала не может стартовать запись чужого звонка.
+func TestRecordingService_StartRecording_NonMemberForbidden(t *testing.T) {
+	f := newCallsTestFixture(t)
+	ctx := context.Background()
+	proj, err := f.client.Project.Create().SetName("RecDeny").SetKey("RDN").Save(ctx)
+	require.NoError(t, err)
+	_, err = f.client.Channel.UpdateOne(f.channel).SetProjectID(proj.ID).Save(ctx)
+	require.NoError(t, err)
+
+	callEnt := f.createChannelCall(t, f.owner)
+	svc, _ := newRecordingServiceWithMockEgress(t, f.repo)
+
+	_, err = svc.StartRecording(ctx, callEnt.ID, f.stranger.ID)
+	require.ErrorIs(t, err, calls.ErrCallForbidden)
+}
+
+// A2-004: не-член канала не может остановить запись; callID path mismatch — тоже forbid.
+func TestRecordingService_StopRecording_NonMemberForbidden(t *testing.T) {
+	f := newCallsTestFixture(t)
+	ctx := context.Background()
+	proj, err := f.client.Project.Create().SetName("RecStopDeny").SetKey("RSD").Save(ctx)
+	require.NoError(t, err)
+
+	callEnt := f.createChannelCall(t, f.owner)
+	svc, _ := newRecordingServiceWithMockEgress(t, f.repo)
+
+	rec, err := f.client.Recording.Create().
+		SetEgressID("egress-deny-" + uuid.New().String()[:6]).
+		SetStatus(recording.StatusRecording).
+		SetCallID(callEnt.ID).
+		SetProjectID(proj.ID).
+		SetStartedBy(f.owner.ID).
+		Save(ctx)
+	require.NoError(t, err)
+
+	err = svc.StopRecording(ctx, callEnt.ID, rec.ID, f.stranger.ID)
+	require.ErrorIs(t, err, calls.ErrCallForbidden)
+
+	err = svc.StopRecording(ctx, uuid.New(), rec.ID, f.owner.ID)
+	require.ErrorIs(t, err, calls.ErrCallForbidden)
 }
 
 func TestNewRecordingService_WithS3Endpoint(t *testing.T) {

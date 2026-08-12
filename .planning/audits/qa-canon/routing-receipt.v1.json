@@ -1,0 +1,377 @@
+[
+    {
+        "schema_version":  "hub.qa-routing-receipt/v1",
+        "base_commit":  "31dfc7e0aeed4c2667de9d43e62637fd68d3b6f2",
+        "candidate_head":  "0769bc1c13536124808e651903e3c8a2cb4bdd1d",
+        "candidate_content_sha256":  "c748cb3a001084bf36b1c2a9a585dbd66b5c647c442f0a79830457c0846cc3a5",
+        "scenario_sha256":  "526f9cb9b8dc15ed3096486a2e920cf9973f04d6682289889051510e186df99a",
+        "skill_blobs":  {
+                            ".cursor/skills/gsd-ru/goal-verify/SKILL.md":  "92c0bd067ce49d9ec70b1a49b6306ac29aef0321c9790110039fd66c72295e2f",
+                            ".cursor/skills/gsd-ru/phase-plan/SKILL.md":  "31a1e13424cd3eecc568ac35beb23d83b7c867fc3e05466498abf789c8caf549",
+                            ".cursor/skills/qa-gate/SKILL.md":  "23b21d9bd9baa12a96e2bc0d3f4b136182f69781b07d80d486c1cba866d225f3"
+                        },
+        "phase":  "RED",
+        "scenario_id":  "api-health",
+        "prompt_sha256":  "41fb503c19c85d26de5c3d9f56ac7505f1db17e48d0b56215db89ac3f2a96c9f",
+        "declared_routes":  [
+                                "testframework/api/**"
+                            ],
+        "expected_routes":  [
+                                "testframework/src/hub_testkit/domains/health/api.py",
+                                "testframework/tests/api/health/test_health.py"
+                            ],
+        "unexpected_routes":  [
+                                  "testframework/api/**"
+                              ],
+        "verdict":  "MISMATCH",
+        "reviewer":  "qa-auto-ver+arch-ver+security-auditor",
+        "reviewed_at":  "2026-08-08T00:00:00Z",
+        "evaluator_version":  "hub.qa-routing-evaluator/v1",
+        "evaluator_sha256":  "e478736c1ff7868318568ddb7e7815d3975933fb0f6d54820a54149a1aacdd8e"
+    },
+    {
+        "schema_version":  "hub.qa-routing-receipt/v1",
+        "base_commit":  "31dfc7e0aeed4c2667de9d43e62637fd68d3b6f2",
+        "candidate_head":  "0769bc1c13536124808e651903e3c8a2cb4bdd1d",
+        "candidate_content_sha256":  "c748cb3a001084bf36b1c2a9a585dbd66b5c647c442f0a79830457c0846cc3a5",
+        "scenario_sha256":  "526f9cb9b8dc15ed3096486a2e920cf9973f04d6682289889051510e186df99a",
+        "skill_blobs":  {
+                            ".cursor/skills/gsd-ru/goal-verify/SKILL.md":  "92c0bd067ce49d9ec70b1a49b6306ac29aef0321c9790110039fd66c72295e2f",
+                            ".cursor/skills/gsd-ru/phase-plan/SKILL.md":  "31a1e13424cd3eecc568ac35beb23d83b7c867fc3e05466498abf789c8caf549",
+                            ".cursor/skills/qa-gate/SKILL.md":  "23b21d9bd9baa12a96e2bc0d3f4b136182f69781b07d80d486c1cba866d225f3"
+                        },
+        "phase":  "RED",
+        "scenario_id":  "contract-openapi",
+        "prompt_sha256":  "50cdaff61d49fc47561f92dca53a1c59343d44901d2542250db00d0d01828375",
+        "declared_routes":  [
+                                "testframework/src/hub_testkit/contract/openapi.py",
+                                "testframework/tests/contract/api/test_openapi.py"
+                            ],
+        "expected_routes":  [
+                                "testframework/src/hub_testkit/contract/openapi.py",
+                                "testframework/tests/contract/api/test_openapi.py"
+                            ],
+        "unexpected_routes":  [
+
+                              ],
+        "verdict":  "PASS",
+        "reviewer":  "qa-auto-ver+arch-ver+security-auditor",
+        "reviewed_at":  "2026-08-08T00:00:00Z",
+        "evaluator_version":  "hub.qa-routing-evaluator/v1",
+        "evaluator_sha256":  "e478736c1ff7868318568ddb7e7815d3975933fb0f6d54820a54149a1aacdd8e"
+    },
+    {
+        "schema_version":  "hub.qa-routing-receipt/v1",
+        "base_commit":  "31dfc7e0aeed4c2667de9d43e62637fd68d3b6f2",
+        "candidate_head":  "0769bc1c13536124808e651903e3c8a2cb4bdd1d",
+        "candidate_content_sha256":  "c748cb3a001084bf36b1c2a9a585dbd66b5c647c442f0a79830457c0846cc3a5",
+        "scenario_sha256":  "526f9cb9b8dc15ed3096486a2e920cf9973f04d6682289889051510e186df99a",
+        "skill_blobs":  {
+                            ".cursor/skills/gsd-ru/goal-verify/SKILL.md":  "92c0bd067ce49d9ec70b1a49b6306ac29aef0321c9790110039fd66c72295e2f",
+                            ".cursor/skills/gsd-ru/phase-plan/SKILL.md":  "31a1e13424cd3eecc568ac35beb23d83b7c867fc3e05466498abf789c8caf549",
+                            ".cursor/skills/qa-gate/SKILL.md":  "23b21d9bd9baa12a96e2bc0d3f4b136182f69781b07d80d486c1cba866d225f3"
+                        },
+        "phase":  "RED",
+        "scenario_id":  "e2e-login",
+        "prompt_sha256":  "2119357db8c66aadfe5f99edcca3ba63e6f5b945548739b85b52213b5207ed2b",
+        "declared_routes":  [
+                                "testframework/e2e/**"
+                            ],
+        "expected_routes":  [
+                                "testframework/src/hub_testkit/browser/lifecycle.py",
+                                "testframework/src/hub_testkit/domains/identity/ui/components/session_form.py",
+                                "testframework/src/hub_testkit/domains/identity/ui/pages/login.py",
+                                "testframework/tests/e2e/identity/test_login_smoke.py"
+                            ],
+        "unexpected_routes":  [
+                                  "testframework/e2e/**"
+                              ],
+        "verdict":  "MISMATCH",
+        "reviewer":  "qa-auto-ver+arch-ver+security-auditor",
+        "reviewed_at":  "2026-08-08T00:00:00Z",
+        "evaluator_version":  "hub.qa-routing-evaluator/v1",
+        "evaluator_sha256":  "e478736c1ff7868318568ddb7e7815d3975933fb0f6d54820a54149a1aacdd8e"
+    },
+    {
+        "schema_version":  "hub.qa-routing-receipt/v1",
+        "base_commit":  "31dfc7e0aeed4c2667de9d43e62637fd68d3b6f2",
+        "candidate_head":  "0769bc1c13536124808e651903e3c8a2cb4bdd1d",
+        "candidate_content_sha256":  "c748cb3a001084bf36b1c2a9a585dbd66b5c647c442f0a79830457c0846cc3a5",
+        "scenario_sha256":  "526f9cb9b8dc15ed3096486a2e920cf9973f04d6682289889051510e186df99a",
+        "skill_blobs":  {
+                            ".cursor/skills/gsd-ru/goal-verify/SKILL.md":  "92c0bd067ce49d9ec70b1a49b6306ac29aef0321c9790110039fd66c72295e2f",
+                            ".cursor/skills/gsd-ru/phase-plan/SKILL.md":  "31a1e13424cd3eecc568ac35beb23d83b7c867fc3e05466498abf789c8caf549",
+                            ".cursor/skills/qa-gate/SKILL.md":  "23b21d9bd9baa12a96e2bc0d3f4b136182f69781b07d80d486c1cba866d225f3"
+                        },
+        "phase":  "RED",
+        "scenario_id":  "integration-postgres",
+        "prompt_sha256":  "1428479781be9327f0c40b00677721ae56dc4ec900f566c651d2f952361c63b7",
+        "declared_routes":  [
+                                "testframework/integration/**"
+                            ],
+        "expected_routes":  [
+                                "testframework/src/hub_testkit/integration/postgres.py",
+                                "testframework/tests/integration/postgres/test_transactions.py"
+                            ],
+        "unexpected_routes":  [
+                                  "testframework/integration/**"
+                              ],
+        "verdict":  "MISMATCH",
+        "reviewer":  "qa-auto-ver+arch-ver+security-auditor",
+        "reviewed_at":  "2026-08-08T00:00:00Z",
+        "evaluator_version":  "hub.qa-routing-evaluator/v1",
+        "evaluator_sha256":  "e478736c1ff7868318568ddb7e7815d3975933fb0f6d54820a54149a1aacdd8e"
+    },
+    {
+        "schema_version":  "hub.qa-routing-receipt/v1",
+        "base_commit":  "31dfc7e0aeed4c2667de9d43e62637fd68d3b6f2",
+        "candidate_head":  "0769bc1c13536124808e651903e3c8a2cb4bdd1d",
+        "candidate_content_sha256":  "c748cb3a001084bf36b1c2a9a585dbd66b5c647c442f0a79830457c0846cc3a5",
+        "scenario_sha256":  "526f9cb9b8dc15ed3096486a2e920cf9973f04d6682289889051510e186df99a",
+        "skill_blobs":  {
+                            ".cursor/skills/gsd-ru/goal-verify/SKILL.md":  "92c0bd067ce49d9ec70b1a49b6306ac29aef0321c9790110039fd66c72295e2f",
+                            ".cursor/skills/gsd-ru/phase-plan/SKILL.md":  "31a1e13424cd3eecc568ac35beb23d83b7c867fc3e05466498abf789c8caf549",
+                            ".cursor/skills/qa-gate/SKILL.md":  "23b21d9bd9baa12a96e2bc0d3f4b136182f69781b07d80d486c1cba866d225f3"
+                        },
+        "phase":  "RED",
+        "scenario_id":  "load-tracker",
+        "prompt_sha256":  "375308bea671590761cad7095162165962d5ade62d30f506ade89a01ca04921a",
+        "declared_routes":  [
+                                "testframework/load/profiles/steady.toml",
+                                "testframework/load/users/tracker.py"
+                            ],
+        "expected_routes":  [
+                                "testframework/load/profiles/steady.toml",
+                                "testframework/load/users/tracker.py"
+                            ],
+        "unexpected_routes":  [
+
+                              ],
+        "verdict":  "PASS",
+        "reviewer":  "qa-auto-ver+arch-ver+security-auditor",
+        "reviewed_at":  "2026-08-08T00:00:00Z",
+        "evaluator_version":  "hub.qa-routing-evaluator/v1",
+        "evaluator_sha256":  "e478736c1ff7868318568ddb7e7815d3975933fb0f6d54820a54149a1aacdd8e"
+    },
+    {
+        "schema_version":  "hub.qa-routing-receipt/v1",
+        "base_commit":  "31dfc7e0aeed4c2667de9d43e62637fd68d3b6f2",
+        "candidate_head":  "0769bc1c13536124808e651903e3c8a2cb4bdd1d",
+        "candidate_content_sha256":  "c748cb3a001084bf36b1c2a9a585dbd66b5c647c442f0a79830457c0846cc3a5",
+        "scenario_sha256":  "526f9cb9b8dc15ed3096486a2e920cf9973f04d6682289889051510e186df99a",
+        "skill_blobs":  {
+                            ".cursor/skills/gsd-ru/goal-verify/SKILL.md":  "92c0bd067ce49d9ec70b1a49b6306ac29aef0321c9790110039fd66c72295e2f",
+                            ".cursor/skills/gsd-ru/phase-plan/SKILL.md":  "31a1e13424cd3eecc568ac35beb23d83b7c867fc3e05466498abf789c8caf549",
+                            ".cursor/skills/qa-gate/SKILL.md":  "23b21d9bd9baa12a96e2bc0d3f4b136182f69781b07d80d486c1cba866d225f3"
+                        },
+        "phase":  "RED",
+        "scenario_id":  "selftest-markers",
+        "prompt_sha256":  "d5c9298971a284a241afc3a6463f97a8c1c57265a119d04cf4d0008d9140e1b3",
+        "declared_routes":  [
+                                "testframework/selftests/pytest_plugin/test_markers.py",
+                                "testframework/src/hub_testkit/pytest_plugin/markers.py"
+                            ],
+        "expected_routes":  [
+                                "testframework/selftests/pytest_plugin/test_markers.py",
+                                "testframework/src/hub_testkit/pytest_plugin/markers.py"
+                            ],
+        "unexpected_routes":  [
+
+                              ],
+        "verdict":  "PASS",
+        "reviewer":  "qa-auto-ver+arch-ver+security-auditor",
+        "reviewed_at":  "2026-08-08T00:00:00Z",
+        "evaluator_version":  "hub.qa-routing-evaluator/v1",
+        "evaluator_sha256":  "e478736c1ff7868318568ddb7e7815d3975933fb0f6d54820a54149a1aacdd8e"
+    },
+    {
+        "schema_version":  "hub.qa-routing-receipt/v1",
+        "base_commit":  "31dfc7e0aeed4c2667de9d43e62637fd68d3b6f2",
+        "candidate_head":  "0769bc1c13536124808e651903e3c8a2cb4bdd1d",
+        "candidate_content_sha256":  "c748cb3a001084bf36b1c2a9a585dbd66b5c647c442f0a79830457c0846cc3a5",
+        "scenario_sha256":  "526f9cb9b8dc15ed3096486a2e920cf9973f04d6682289889051510e186df99a",
+        "skill_blobs":  {
+                            ".cursor/skills/gsd-ru/goal-verify/SKILL.md":  "6d857901116e22ea80502ca5a18d8849fe30ed35ca3208ff3fd4747f41274fa1",
+                            ".cursor/skills/gsd-ru/phase-plan/SKILL.md":  "d8eaaf8acf1b72b100a4ac0e71f66ed2d42b08cf12a979f5baf4840f2e3b9f17",
+                            ".cursor/skills/qa-gate/SKILL.md":  "103590eca83205b259c990a9b463cc78b39399b8bbafaec3935527aa711239d5"
+                        },
+        "phase":  "GREEN",
+        "scenario_id":  "api-health",
+        "prompt_sha256":  "41fb503c19c85d26de5c3d9f56ac7505f1db17e48d0b56215db89ac3f2a96c9f",
+        "declared_routes":  [
+                                "testframework/src/hub_testkit/domains/health/api.py",
+                                "testframework/tests/api/health/test_health.py"
+                            ],
+        "expected_routes":  [
+                                "testframework/src/hub_testkit/domains/health/api.py",
+                                "testframework/tests/api/health/test_health.py"
+                            ],
+        "unexpected_routes":  [
+
+                              ],
+        "verdict":  "PASS",
+        "reviewer":  "qa-auto-ver+arch-ver+security-auditor",
+        "reviewed_at":  "2026-08-08T00:00:00Z",
+        "evaluator_version":  "hub.qa-routing-evaluator/v1",
+        "evaluator_sha256":  "e478736c1ff7868318568ddb7e7815d3975933fb0f6d54820a54149a1aacdd8e"
+    },
+    {
+        "schema_version":  "hub.qa-routing-receipt/v1",
+        "base_commit":  "31dfc7e0aeed4c2667de9d43e62637fd68d3b6f2",
+        "candidate_head":  "0769bc1c13536124808e651903e3c8a2cb4bdd1d",
+        "candidate_content_sha256":  "c748cb3a001084bf36b1c2a9a585dbd66b5c647c442f0a79830457c0846cc3a5",
+        "scenario_sha256":  "526f9cb9b8dc15ed3096486a2e920cf9973f04d6682289889051510e186df99a",
+        "skill_blobs":  {
+                            ".cursor/skills/gsd-ru/goal-verify/SKILL.md":  "6d857901116e22ea80502ca5a18d8849fe30ed35ca3208ff3fd4747f41274fa1",
+                            ".cursor/skills/gsd-ru/phase-plan/SKILL.md":  "d8eaaf8acf1b72b100a4ac0e71f66ed2d42b08cf12a979f5baf4840f2e3b9f17",
+                            ".cursor/skills/qa-gate/SKILL.md":  "103590eca83205b259c990a9b463cc78b39399b8bbafaec3935527aa711239d5"
+                        },
+        "phase":  "GREEN",
+        "scenario_id":  "contract-openapi",
+        "prompt_sha256":  "50cdaff61d49fc47561f92dca53a1c59343d44901d2542250db00d0d01828375",
+        "declared_routes":  [
+                                "testframework/src/hub_testkit/contract/openapi.py",
+                                "testframework/tests/contract/api/test_openapi.py"
+                            ],
+        "expected_routes":  [
+                                "testframework/src/hub_testkit/contract/openapi.py",
+                                "testframework/tests/contract/api/test_openapi.py"
+                            ],
+        "unexpected_routes":  [
+
+                              ],
+        "verdict":  "PASS",
+        "reviewer":  "qa-auto-ver+arch-ver+security-auditor",
+        "reviewed_at":  "2026-08-08T00:00:00Z",
+        "evaluator_version":  "hub.qa-routing-evaluator/v1",
+        "evaluator_sha256":  "e478736c1ff7868318568ddb7e7815d3975933fb0f6d54820a54149a1aacdd8e"
+    },
+    {
+        "schema_version":  "hub.qa-routing-receipt/v1",
+        "base_commit":  "31dfc7e0aeed4c2667de9d43e62637fd68d3b6f2",
+        "candidate_head":  "0769bc1c13536124808e651903e3c8a2cb4bdd1d",
+        "candidate_content_sha256":  "c748cb3a001084bf36b1c2a9a585dbd66b5c647c442f0a79830457c0846cc3a5",
+        "scenario_sha256":  "526f9cb9b8dc15ed3096486a2e920cf9973f04d6682289889051510e186df99a",
+        "skill_blobs":  {
+                            ".cursor/skills/gsd-ru/goal-verify/SKILL.md":  "6d857901116e22ea80502ca5a18d8849fe30ed35ca3208ff3fd4747f41274fa1",
+                            ".cursor/skills/gsd-ru/phase-plan/SKILL.md":  "d8eaaf8acf1b72b100a4ac0e71f66ed2d42b08cf12a979f5baf4840f2e3b9f17",
+                            ".cursor/skills/qa-gate/SKILL.md":  "103590eca83205b259c990a9b463cc78b39399b8bbafaec3935527aa711239d5"
+                        },
+        "phase":  "GREEN",
+        "scenario_id":  "e2e-login",
+        "prompt_sha256":  "2119357db8c66aadfe5f99edcca3ba63e6f5b945548739b85b52213b5207ed2b",
+        "declared_routes":  [
+                                "testframework/src/hub_testkit/browser/lifecycle.py",
+                                "testframework/src/hub_testkit/domains/identity/ui/components/session_form.py",
+                                "testframework/src/hub_testkit/domains/identity/ui/pages/login.py",
+                                "testframework/tests/e2e/identity/test_login_smoke.py"
+                            ],
+        "expected_routes":  [
+                                "testframework/src/hub_testkit/browser/lifecycle.py",
+                                "testframework/src/hub_testkit/domains/identity/ui/components/session_form.py",
+                                "testframework/src/hub_testkit/domains/identity/ui/pages/login.py",
+                                "testframework/tests/e2e/identity/test_login_smoke.py"
+                            ],
+        "unexpected_routes":  [
+
+                              ],
+        "verdict":  "PASS",
+        "reviewer":  "qa-auto-ver+arch-ver+security-auditor",
+        "reviewed_at":  "2026-08-08T00:00:00Z",
+        "evaluator_version":  "hub.qa-routing-evaluator/v1",
+        "evaluator_sha256":  "e478736c1ff7868318568ddb7e7815d3975933fb0f6d54820a54149a1aacdd8e"
+    },
+    {
+        "schema_version":  "hub.qa-routing-receipt/v1",
+        "base_commit":  "31dfc7e0aeed4c2667de9d43e62637fd68d3b6f2",
+        "candidate_head":  "0769bc1c13536124808e651903e3c8a2cb4bdd1d",
+        "candidate_content_sha256":  "c748cb3a001084bf36b1c2a9a585dbd66b5c647c442f0a79830457c0846cc3a5",
+        "scenario_sha256":  "526f9cb9b8dc15ed3096486a2e920cf9973f04d6682289889051510e186df99a",
+        "skill_blobs":  {
+                            ".cursor/skills/gsd-ru/goal-verify/SKILL.md":  "6d857901116e22ea80502ca5a18d8849fe30ed35ca3208ff3fd4747f41274fa1",
+                            ".cursor/skills/gsd-ru/phase-plan/SKILL.md":  "d8eaaf8acf1b72b100a4ac0e71f66ed2d42b08cf12a979f5baf4840f2e3b9f17",
+                            ".cursor/skills/qa-gate/SKILL.md":  "103590eca83205b259c990a9b463cc78b39399b8bbafaec3935527aa711239d5"
+                        },
+        "phase":  "GREEN",
+        "scenario_id":  "integration-postgres",
+        "prompt_sha256":  "1428479781be9327f0c40b00677721ae56dc4ec900f566c651d2f952361c63b7",
+        "declared_routes":  [
+                                "testframework/src/hub_testkit/integration/postgres.py",
+                                "testframework/tests/integration/postgres/test_transactions.py"
+                            ],
+        "expected_routes":  [
+                                "testframework/src/hub_testkit/integration/postgres.py",
+                                "testframework/tests/integration/postgres/test_transactions.py"
+                            ],
+        "unexpected_routes":  [
+
+                              ],
+        "verdict":  "PASS",
+        "reviewer":  "qa-auto-ver+arch-ver+security-auditor",
+        "reviewed_at":  "2026-08-08T00:00:00Z",
+        "evaluator_version":  "hub.qa-routing-evaluator/v1",
+        "evaluator_sha256":  "e478736c1ff7868318568ddb7e7815d3975933fb0f6d54820a54149a1aacdd8e"
+    },
+    {
+        "schema_version":  "hub.qa-routing-receipt/v1",
+        "base_commit":  "31dfc7e0aeed4c2667de9d43e62637fd68d3b6f2",
+        "candidate_head":  "0769bc1c13536124808e651903e3c8a2cb4bdd1d",
+        "candidate_content_sha256":  "c748cb3a001084bf36b1c2a9a585dbd66b5c647c442f0a79830457c0846cc3a5",
+        "scenario_sha256":  "526f9cb9b8dc15ed3096486a2e920cf9973f04d6682289889051510e186df99a",
+        "skill_blobs":  {
+                            ".cursor/skills/gsd-ru/goal-verify/SKILL.md":  "6d857901116e22ea80502ca5a18d8849fe30ed35ca3208ff3fd4747f41274fa1",
+                            ".cursor/skills/gsd-ru/phase-plan/SKILL.md":  "d8eaaf8acf1b72b100a4ac0e71f66ed2d42b08cf12a979f5baf4840f2e3b9f17",
+                            ".cursor/skills/qa-gate/SKILL.md":  "103590eca83205b259c990a9b463cc78b39399b8bbafaec3935527aa711239d5"
+                        },
+        "phase":  "GREEN",
+        "scenario_id":  "load-tracker",
+        "prompt_sha256":  "375308bea671590761cad7095162165962d5ade62d30f506ade89a01ca04921a",
+        "declared_routes":  [
+                                "testframework/load/profiles/steady.toml",
+                                "testframework/load/users/tracker.py"
+                            ],
+        "expected_routes":  [
+                                "testframework/load/profiles/steady.toml",
+                                "testframework/load/users/tracker.py"
+                            ],
+        "unexpected_routes":  [
+
+                              ],
+        "verdict":  "PASS",
+        "reviewer":  "qa-auto-ver+arch-ver+security-auditor",
+        "reviewed_at":  "2026-08-08T00:00:00Z",
+        "evaluator_version":  "hub.qa-routing-evaluator/v1",
+        "evaluator_sha256":  "e478736c1ff7868318568ddb7e7815d3975933fb0f6d54820a54149a1aacdd8e"
+    },
+    {
+        "schema_version":  "hub.qa-routing-receipt/v1",
+        "base_commit":  "31dfc7e0aeed4c2667de9d43e62637fd68d3b6f2",
+        "candidate_head":  "0769bc1c13536124808e651903e3c8a2cb4bdd1d",
+        "candidate_content_sha256":  "c748cb3a001084bf36b1c2a9a585dbd66b5c647c442f0a79830457c0846cc3a5",
+        "scenario_sha256":  "526f9cb9b8dc15ed3096486a2e920cf9973f04d6682289889051510e186df99a",
+        "skill_blobs":  {
+                            ".cursor/skills/gsd-ru/goal-verify/SKILL.md":  "6d857901116e22ea80502ca5a18d8849fe30ed35ca3208ff3fd4747f41274fa1",
+                            ".cursor/skills/gsd-ru/phase-plan/SKILL.md":  "d8eaaf8acf1b72b100a4ac0e71f66ed2d42b08cf12a979f5baf4840f2e3b9f17",
+                            ".cursor/skills/qa-gate/SKILL.md":  "103590eca83205b259c990a9b463cc78b39399b8bbafaec3935527aa711239d5"
+                        },
+        "phase":  "GREEN",
+        "scenario_id":  "selftest-markers",
+        "prompt_sha256":  "d5c9298971a284a241afc3a6463f97a8c1c57265a119d04cf4d0008d9140e1b3",
+        "declared_routes":  [
+                                "testframework/selftests/pytest_plugin/test_markers.py",
+                                "testframework/src/hub_testkit/pytest_plugin/markers.py"
+                            ],
+        "expected_routes":  [
+                                "testframework/selftests/pytest_plugin/test_markers.py",
+                                "testframework/src/hub_testkit/pytest_plugin/markers.py"
+                            ],
+        "unexpected_routes":  [
+
+                              ],
+        "verdict":  "PASS",
+        "reviewer":  "qa-auto-ver+arch-ver+security-auditor",
+        "reviewed_at":  "2026-08-08T00:00:00Z",
+        "evaluator_version":  "hub.qa-routing-evaluator/v1",
+        "evaluator_sha256":  "e478736c1ff7868318568ddb7e7815d3975933fb0f6d54820a54149a1aacdd8e"
+    }
+]

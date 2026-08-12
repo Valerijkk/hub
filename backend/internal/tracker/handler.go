@@ -42,6 +42,8 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 	issues.Post("/:issueKey/links", h.CreateIssueLink, rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc))
 	issues.Get("/:issueKey/links", h.ListIssueLinks, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
 	issues.Delete("/:issueKey/links/:linkId", h.DeleteIssueLink, rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc))
+	// A13-004: batch links для Gantt (до /issues/:issueKey чтобы не конфликтовать)
+	tracker.Get("/issue-links", h.ListProjectIssueLinks, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
 
 	// Связи задача ↔ тред мессенджера (PROD-03)
 	issues.Get("/:issueKey/message-links", h.ListIssueMessageLinks, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
@@ -68,7 +70,8 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 	// Доски
 	boards := tracker.Group("/boards")
 	boards.Get("/", h.ListBoards, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
-	boards.Post("/", h.CreateBoard, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	// W1-A1-006 / P2-BE-12: создание доски — мутация; viewer с одним PermProjectView → 403.
+	boards.Post("/", h.CreateBoard, rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc))
 	boards.Get("/:boardId", h.GetBoardData, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
 
 	// Рабочий процесс

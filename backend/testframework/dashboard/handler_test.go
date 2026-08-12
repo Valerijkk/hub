@@ -178,6 +178,27 @@ func TestHandler_Admin_AllowedForAdmin(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
 
+// TestHandler_Admin_AllowedForFounder_A7_002 — founder must reach admin dashboard (ORG-04).
+func TestHandler_Admin_AllowedForFounder_A7_002(t *testing.T) {
+	svc, client, ctx, userID := newDashboardTestEnv(t)
+	_, err := client.User.UpdateOneID(userID).SetSystemRole(user.SystemRoleFounder).Save(ctx)
+	require.NoError(t, err)
+
+	h := dashboard.NewHandler(svc)
+	app := fiber.New()
+	app.Use(func(c fiber.Ctx) error {
+		c.Locals("userID", userID)
+		return c.Next()
+	})
+	h.RegisterRoutes(app, func(c fiber.Ctx) error { return c.Next() }, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/dashboard/admin", nil)
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
 func TestHandler_SaveLayout_Success(t *testing.T) {
 	app, _ := testDashboardApp(t)
 
@@ -224,11 +245,26 @@ func TestHandler_Project_ReturnsStats(t *testing.T) {
 }
 
 func TestHandler_ApplyTemplate_Success(t *testing.T) {
-	app, _ := testDashboardApp(t)
-	projectID := uuid.New()
+	svc, client, ctx, userID := newDashboardTestEnv(t)
+	proj, err := client.Project.Create().SetName("Apply").SetKey("APL").Save(ctx)
+	require.NoError(t, err)
+	_, err = client.ProjectMember.Create().
+		SetUserID(userID).
+		SetProjectID(proj.ID).
+		SetProjectRole("owner").
+		Save(ctx)
+	require.NoError(t, err)
+
+	h := dashboard.NewHandler(svc)
+	app := fiber.New()
+	app.Use(func(c fiber.Ctx) error {
+		c.Locals("userID", userID)
+		return c.Next()
+	})
+	h.RegisterRoutes(app, func(c fiber.Ctx) error { return c.Next() }, nil)
 
 	body, _ := json.Marshal(map[string]string{
-		"project_id": projectID.String(),
+		"project_id": proj.ID.String(),
 		"template":   "qa",
 	})
 	req := httptest.NewRequest(http.MethodPost, "/dashboard/templates/apply", bytes.NewReader(body))
@@ -284,6 +320,12 @@ func TestHandler_Project_Success(t *testing.T) {
 	proj, err := client.Project.Create().
 		SetName("Stats Project").
 		SetKey("STP").
+		Save(ctx)
+	require.NoError(t, err)
+	_, err = client.ProjectMember.Create().
+		SetUserID(userID).
+		SetProjectID(proj.ID).
+		SetProjectRole("developer").
 		Save(ctx)
 	require.NoError(t, err)
 

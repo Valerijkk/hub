@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -23,8 +24,6 @@ func (HubBase) Fields() []ent.Field {
 			MaxLen(200),
 		field.Text("description").
 			Optional(),
-		field.Int("version").
-			Default(1),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
@@ -37,18 +36,29 @@ func (HubBase) Fields() []ent.Field {
 	}
 }
 
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (HubBase) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
+	}
+}
+
 func (HubBase) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("owner", User.Type).
 			Ref("hub_bases").
 			Unique().
 			Required(),
-		edge.To("tables", HubTable.Type),
+		// A3W8-2-003: owned_child Cascade. HubTable children — TASK-169.
+		edge.To("tables", HubTable.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 
 func (HubBase) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("deleted_at"),
+		// A2W8-2-009: ListBases WHERE owner AND deleted_at IS NULL
+		index.Edges("owner").Fields("deleted_at"),
 	}
 }

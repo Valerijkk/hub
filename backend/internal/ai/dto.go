@@ -65,6 +65,7 @@ type ProviderResponse struct {
 	RuResident   bool     `json:"ru_resident"`
 	Scope        string   `json:"scope"`
 	HasAPIKey    bool     `json:"has_api_key"`
+	Version      int      `json:"version"`
 	CreatedAt    string   `json:"created_at"`
 	UpdatedAt    string   `json:"updated_at"`
 }
@@ -92,6 +93,7 @@ type UpdateProviderRequest struct {
 	Priority   *int     `json:"priority"`
 	MaxRPM     *int     `json:"max_rpm"`
 	RuResident *bool    `json:"ru_resident"`
+	Version    int      `json:"version"`
 }
 
 // TestProviderResponse — результат ping.
@@ -121,12 +123,14 @@ type UsageTodayResponse struct {
 type UserPreferenceResponse struct {
 	DefaultModel    string `json:"default_model"`
 	AllowExternalAI bool   `json:"allow_external_ai"`
+	Version         int    `json:"version"`
 }
 
 // UpdateUserPreferenceRequest — тело PATCH.
 type UpdateUserPreferenceRequest struct {
 	DefaultModel    *string `json:"default_model"`
 	AllowExternalAI *bool   `json:"allow_external_ai"`
+	Version         int     `json:"version"`
 }
 
 // UsageSummaryResponse — admin aggregate за день.

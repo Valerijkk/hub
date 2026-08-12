@@ -24,11 +24,11 @@ func TestEntRepository_Wave122_UpdateAndMoveSuite(t *testing.T) {
 	require.NoError(t, err)
 
 	newName := "Child renamed"
-	updated, err := repo.UpdateSuite(ctx, child.ID, tms.UpdateSuiteInput{Name: &newName})
+	updated, err := repo.UpdateSuite(ctx, projectID, child.ID, tms.UpdateSuiteInput{Name: &newName, Version: child.Version})
 	require.NoError(t, err)
 	assert.Equal(t, newName, updated.Name)
 
-	_, err = repo.MoveSuite(ctx, child.ID, &parent.ID)
+	_, err = repo.MoveSuite(ctx, projectID, child.ID, &parent.ID)
 	require.NoError(t, err)
 }
 

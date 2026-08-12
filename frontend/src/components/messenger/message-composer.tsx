@@ -6,13 +6,14 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/popover";
+import { useInvalidateMessages } from "@/hooks/use-invalidate";
 import {
 	applyComposerSuggestion,
 	canSuggestComposer,
 	fetchComposerSuggestion,
-} from "@/hooks/use-composer-ai-suggest";
-import { useInvalidateMessages } from "@/hooks/use-invalidate";
+} from "@/lib/composer-ai-suggest";
 import { toastApiError } from "@/lib/format-api-error";
+import { type PlateDoc, plateDocToContentJson } from "@/lib/plate-doc";
 import { cn } from "@/lib/utils";
 import { useMessengerStore } from "@/stores/messenger-store";
 import { CreatePollDialog } from "./create-poll-dialog";
@@ -61,6 +62,7 @@ interface PlateTextNode {
 interface PlateElementNode {
 	type: string;
 	children: (PlateTextNode | PlateElementNode)[];
+	url?: string;
 }
 
 /**
@@ -110,7 +112,7 @@ function parseMarkdownToPlateChildren(line: string): PlateTextNode[] {
  * Преобразует текст с базовым markdown в Plate JSON документ.
  * Каждая строка -- отдельный параграф.
  */
-function textToPlateJson(raw: string): PlateElementNode {
+function textToPlateJson(raw: string): PlateDoc {
 	const lines = raw.split("\n");
 	const children: PlateElementNode[] = lines.map((line) => ({
 		type: "p" as const,
@@ -226,6 +228,8 @@ export function MessageComposer({
 
 	const replyToMessage = useMessengerStore((s) => s.replyToMessage);
 	const setReplyTo = useMessengerStore((s) => s.setReplyTo);
+	/** threadId из панели треда или id сообщения при «Ответить». */
+	const effectiveThreadId = threadId ?? replyToMessage?.id;
 
 	/** Время последней отправки typing-индикатора (троттлинг 3 сек). */
 	const lastTypingSentRef = useRef(0);
@@ -310,17 +314,19 @@ export function MessageComposer({
 
 		setIsSending(true);
 		try {
-			const contentJson = (trimmed
-				? textToPlateJson(trimmed)
-				: {
-						type: "doc",
-						children: [{ type: "p", children: [{ text: "" }] }],
-					}) as unknown as Record<string, unknown>;
+			const contentJson = plateDocToContentJson(
+				trimmed
+					? textToPlateJson(trimmed)
+					: {
+							type: "doc",
+							children: [{ type: "p", children: [{ text: "" }] }],
+						},
+			);
 
 			await sendMessage(channelId, {
 				content_json: contentJson,
 				content_text: trimmed || undefined,
-				thread_id: threadId,
+				thread_id: effectiveThreadId,
 				attachment_ids:
 					pendingAttachments.length > 0
 						? pendingAttachments.map((a) => a.fileId)
@@ -342,7 +348,7 @@ export function MessageComposer({
 		}
 	}, [
 		channelId,
-		threadId,
+		effectiveThreadId,
 		text,
 		pendingAttachments,
 		mentionedUserIds,
@@ -443,7 +449,7 @@ export function MessageComposer({
 	const handleGifSend = useCallback(
 		async (gifUrl: string) => {
 			try {
-				const contentJson = {
+				const contentJson = plateDocToContentJson({
 					type: "doc",
 					children: [
 						{
@@ -457,18 +463,18 @@ export function MessageComposer({
 							],
 						},
 					],
-				} as unknown as Record<string, unknown>;
+				});
 				await sendMessage(channelId, {
 					content_json: contentJson,
 					content_text: gifUrl,
-					thread_id: threadId,
+					thread_id: effectiveThreadId,
 				});
 				invalidateMessages();
 			} catch (err) {
 				toastApiError(err, "Не удалось отправить GIF");
 			}
 		},
-		[channelId, threadId, invalidateMessages],
+		[channelId, effectiveThreadId, invalidateMessages],
 	);
 
 	/** Отправка стикера. */
@@ -479,14 +485,14 @@ export function MessageComposer({
 				await sendMessage(channelId, {
 					content_json: contentJson,
 					content_text: `[sticker: ${sticker.label}]`,
-					thread_id: threadId,
+					thread_id: effectiveThreadId,
 				});
 				invalidateMessages();
 			} catch (err) {
 				toastApiError(err, "Не удалось отправить стикер");
 			}
 		},
-		[channelId, threadId, invalidateMessages],
+		[channelId, effectiveThreadId, invalidateMessages],
 	);
 
 	/** Отправка голосового сообщения. */
@@ -500,7 +506,7 @@ export function MessageComposer({
 					},
 					voice_url: voiceUrl,
 					voice_duration_ms: durationMs,
-					thread_id: threadId,
+					thread_id: effectiveThreadId,
 				});
 				invalidateMessages();
 			} catch (err) {
@@ -508,7 +514,7 @@ export function MessageComposer({
 			}
 			setShowVoice(false);
 		},
-		[channelId, threadId, invalidateMessages],
+		[channelId, effectiveThreadId, invalidateMessages],
 	);
 
 	const hasContent = text.trim().length > 0 || pendingAttachments.length > 0;
@@ -553,6 +559,7 @@ export function MessageComposer({
 								onClick={() => removePendingAttachment(att.fileId)}
 								className="shrink-0 h-4 w-4 flex items-center justify-center rounded-full hover:bg-raised transition-colors"
 								title="Убрать вложение"
+								aria-label="Убрать вложение"
 							>
 								<svg
 									aria-hidden="true"
@@ -581,7 +588,7 @@ export function MessageComposer({
 				/>
 			) : (
 				/* Скруглённый контейнер со всеми контролами */
-				<div className="flex items-end gap-1 bg-[var(--card)] border border-[var(--b1)] rounded-[var(--r4)] px-4 py-1.5 transition-[box-shadow] relative overflow-hidden focus-within:border-[rgba(52,211,153,.25)] focus-within:shadow-[0_0_0_3px_rgba(52,211,153,.05),0_0_24px_rgba(52,211,153,.04)]">
+				<div className="flex items-end gap-1 bg-[var(--card)] border border-[var(--b1)] rounded-[var(--r4)] px-4 py-1.5 transition-[box-shadow] relative overflow-hidden focus-within:border-[color-mix(in_srgb,var(--green)_25%,transparent)] focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--green)_5%,transparent),0_0_24px_color-mix(in_srgb,var(--green)_4%,transparent)]">
 					{/* Верхний highlight */}
 					<div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.03] to-transparent" />
 
@@ -701,6 +708,7 @@ export function MessageComposer({
 										type="button"
 										className="flex h-8 w-8 items-center justify-center rounded text-lg hover:bg-accent transition-colors"
 										onClick={() => handleEmojiSelect(emoji)}
+										aria-label={emoji}
 									>
 										{emoji}
 									</button>
@@ -777,7 +785,7 @@ export function MessageComposer({
 						className={cn(
 							"w-[38px] h-[38px] flex items-center justify-center rounded-[var(--r2)] shrink-0 transition-[color,background-color,border-color,box-shadow,transform,filter,opacity]",
 							hasContent
-								? "bg-gradient-to-br from-[var(--green)] to-[var(--greenS)] text-white shadow-[0_2px_12px_var(--gG)] hover:scale-[1.08] hover:shadow-[0_4px_20px_rgba(52,211,153,.25)] active:scale-[0.92]"
+								? "bg-gradient-to-br from-[var(--green)] to-[var(--greenS)] text-white shadow-[0_2px_12px_var(--gG)] hover:scale-[1.08] hover:shadow-[0_4px_20px_color-mix(in_srgb,var(--green)_25%,transparent)] active:scale-[0.92]"
 								: "bg-[var(--input)] text-[var(--t4)]",
 						)}
 						onClick={() => void handleSend()}

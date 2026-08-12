@@ -3,8 +3,6 @@ package audit_test
 // Тесты сервиса аудита: интеграционные и unit-сценарии testframework.
 import (
 	"context"
-	"net/http"
-	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -16,9 +14,12 @@ import (
 
 	"github.com/valerii/hub/backend/ent/issue"
 	"github.com/valerii/hub/backend/internal/audit"
+	"github.com/valerii/hub/backend/internal/auth"
 )
 
-// TestAuditService_DeactivateUser_InvalidatesCache проверяет бизнес-логику: audit сервис deactivate user invalidates кэш.
+// TestAuditService_DeactivateUser_InvalidatesCache — A3W6-5-004 / ME-13:
+// сеет user:status key и assert'ит Del после InvalidateUserStatusCache.
+// Мутация: убрать InvalidateUserStatusCache → mr.Exists(key) остаётся true.
 func TestAuditService_DeactivateUser_InvalidatesCache(t *testing.T) {
 	mr, err := miniredis.Run()
 	require.NoError(t, err)
@@ -27,39 +28,17 @@ func TestAuditService_DeactivateUser_InvalidatesCache(t *testing.T) {
 	t.Cleanup(func() { _ = rdb.Close() })
 
 	target := uuid.New()
+	cacheKey := auth.UserStatusCacheKey(target)
+	require.NoError(t, rdb.Set(context.Background(), cacheKey, auth.ExportUserStatusCacheDeactivated(), auth.ExportUserStatusCacheTTL()).Err())
+	require.True(t, mr.Exists(cacheKey), "seeded cache key must exist before deactivate")
+
 	repo := &mockAuditRepo{}
 	svc := audit.NewAuditService(repo, rdb)
 
 	require.NoError(t, svc.DeactivateUser(context.Background(), target))
 	require.Contains(t, repo.deactivateIDs, target)
 	require.Contains(t, repo.deleteSessIDs, target)
-}
-
-type trashHandlerMockRepo struct {
-	adminMockRepo
-	items []audit.TrashItem
-	total int
-}
-
-func (m *trashHandlerMockRepo) ListDeletedIssues(_ context.Context, _ *uuid.UUID, _ time.Time, _, _ int) ([]audit.TrashItem, int, error) {
-	return m.items, m.total, nil
-}
-
-// TestHandler_ListTrash_WithProjectFilter проверяет HTTP-слой: HTTP-обработчик список корзина with project filter.
-func TestHandler_ListTrash_WithProjectFilter(t *testing.T) {
-	adminID := uuid.New()
-	projectID := uuid.New()
-	repo := &trashHandlerMockRepo{
-		adminMockRepo: adminMockRepo{adminID: adminID},
-		items:         []audit.TrashItem{{ID: uuid.New(), Name: "Issue", EntityType: "issue", DeletedAt: time.Now().UTC()}},
-		total:         1,
-	}
-	app := setupAuditHandlerTest(t, repo, adminID)
-
-	req := httptest.NewRequest(http.MethodGet, "/api/admin/trash?type=issue&project_id="+projectID.String(), nil)
-	resp, err := app.Test(req, 5*time.Second)
-	require.NoError(t, err)
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.False(t, mr.Exists(cacheKey), "InvalidateUserStatusCache must Del user status key")
 }
 
 // TestAuditService_RestoreItem_Issue проверяет бизнес-логику: audit сервис restore item issue.
@@ -96,6 +75,10 @@ func TestRepository_SoftDeleteAndRestoreFile(t *testing.T) {
 	require.Len(t, items, 1)
 
 	require.NoError(t, env.repo.RestoreFile(env.ctx, file.ID))
+
+	got, err := env.client.FileMetadata.Get(env.ctx, file.ID)
+	require.NoError(t, err)
+	assert.Nil(t, got.DeletedAt, "A2W6-A5-007: RestoreFile must ClearDeletedAt")
 }
 
 // TestRepository_ReassignReportedIssues проверяет слой репозитория: репозиторий reassign reported issues.

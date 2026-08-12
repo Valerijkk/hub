@@ -2,6 +2,7 @@ package tracker
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 
 	"github.com/google/uuid"
@@ -14,8 +15,8 @@ import (
 // ---------------------------------------------------------------------------
 
 // CreateComment добавляет комментарий к задаче.
-func (s *TrackerService) CreateComment(ctx context.Context, issueKey string, userID uuid.UUID, req CreateCommentRequest) (*CommentResponse, error) {
-	existing, err := s.repo.FindIssueByKey(ctx, issueKey)
+func (s *TrackerService) CreateComment(ctx context.Context, projectID uuid.UUID, issueKey string, userID uuid.UUID, req CreateCommentRequest) (*CommentResponse, error) {
+	existing, err := s.repo.FindIssueByKey(ctx, projectID, issueKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("задача не найдена")
@@ -49,8 +50,8 @@ func (s *TrackerService) CreateComment(ctx context.Context, issueKey string, use
 }
 
 // ListComments возвращает все комментарии задачи.
-func (s *TrackerService) ListComments(ctx context.Context, issueKey string) ([]CommentResponse, error) {
-	existing, err := s.repo.FindIssueByKey(ctx, issueKey)
+func (s *TrackerService) ListComments(ctx context.Context, projectID uuid.UUID, issueKey string) ([]CommentResponse, error) {
+	existing, err := s.repo.FindIssueByKey(ctx, projectID, issueKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("задача не найдена")
@@ -70,14 +71,31 @@ func (s *TrackerService) ListComments(ctx context.Context, issueKey string) ([]C
 	return result, nil
 }
 
-// UpdateComment обновляет комментарий.
-func (s *TrackerService) UpdateComment(ctx context.Context, commentID uuid.UUID, req UpdateCommentRequest) (*CommentResponse, error) {
+// UpdateComment обновляет комментарий автора на задаче (A3-011).
+// TASK-095: version обязателен; VersionEQ в repo → 409 при conflict.
+func (s *TrackerService) UpdateComment(ctx context.Context, projectID uuid.UUID, issueKey string, userID, commentID uuid.UUID, req UpdateCommentRequest) (*CommentResponse, error) {
+	if req.Version < 1 {
+		return nil, apperrors.NewBadRequest("version обязателен и должен быть ≥ 1")
+	}
+	existing, err := s.repo.FindIssueByKey(ctx, projectID, issueKey)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("задача не найдена")
+		}
+		return nil, apperrors.NewInternal("ошибка получения задачи")
+	}
 	input := UpdateCommentInput{
 		BodyJSON: req.BodyJSON,
 		BodyText: req.BodyText,
+		Version:  req.Version,
 	}
-	c, err := s.repo.UpdateComment(ctx, commentID, input)
+	c, err := s.repo.UpdateComment(ctx, existing.ID, userID, commentID, input)
 	if err != nil {
+		// A3W1-2-006: AppError (404 missing / 409 version) пробрасываем; сырой NotFound → 404.
+		var ae *apperrors.AppError
+		if errors.As(err, &ae) {
+			return nil, ae
+		}
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("комментарий не найден")
 		}
@@ -86,9 +104,16 @@ func (s *TrackerService) UpdateComment(ctx context.Context, commentID uuid.UUID,
 	return toCommentResponse(c), nil
 }
 
-// DeleteComment удаляет комментарий.
-func (s *TrackerService) DeleteComment(ctx context.Context, commentID uuid.UUID) error {
-	if err := s.repo.DeleteComment(ctx, commentID); err != nil {
+// DeleteComment удаляет комментарий автора на задаче (A3-011).
+func (s *TrackerService) DeleteComment(ctx context.Context, projectID uuid.UUID, issueKey string, userID, commentID uuid.UUID) error {
+	existing, err := s.repo.FindIssueByKey(ctx, projectID, issueKey)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return apperrors.NewNotFound("задача не найдена")
+		}
+		return apperrors.NewInternal("ошибка получения задачи")
+	}
+	if err := s.repo.DeleteComment(ctx, existing.ID, userID, commentID); err != nil {
 		if ent.IsNotFound(err) {
 			return apperrors.NewNotFound("комментарий не найден")
 		}
@@ -97,7 +122,21 @@ func (s *TrackerService) DeleteComment(ctx context.Context, commentID uuid.UUID)
 	return nil
 }
 
-// ToggleReaction добавляет или удаляет реакцию на комментарий.
-func (s *TrackerService) ToggleReaction(ctx context.Context, commentID, userID uuid.UUID, emoji string) (bool, error) {
-	return s.repo.ToggleReaction(ctx, commentID, userID, emoji)
+// ToggleReaction добавляет или удаляет реакцию на комментарий задачи (A3-011-react).
+func (s *TrackerService) ToggleReaction(ctx context.Context, projectID uuid.UUID, issueKey string, commentID, userID uuid.UUID, emoji string) (bool, error) {
+	existing, err := s.repo.FindIssueByKey(ctx, projectID, issueKey)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return false, apperrors.NewNotFound("задача не найдена")
+		}
+		return false, apperrors.NewInternal("ошибка получения задачи")
+	}
+	added, err := s.repo.ToggleReaction(ctx, existing.ID, commentID, userID, emoji)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return false, apperrors.NewNotFound("комментарий не найден")
+		}
+		return false, apperrors.NewInternal("ошибка переключения реакции")
+	}
+	return added, nil
 }

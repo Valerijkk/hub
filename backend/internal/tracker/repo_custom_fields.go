@@ -2,6 +2,7 @@ package tracker
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
@@ -28,15 +29,34 @@ func (r *EntRepository) CreateCustomField(ctx context.Context, projectID uuid.UU
 	return create.Save(ctx)
 }
 
-// ListCustomFields возвращает все определения кастомных полей проекта.
+// ListCustomFields возвращает все определения кастомных полей проекта (без корзины).
+// A2W8-2-004: DeletedAtIsNil. Mutation: снять фильтр → soft-deleted в списке → FAIL.
 func (r *EntRepository) ListCustomFields(ctx context.Context, projectID uuid.UUID) ([]*ent.CustomFieldDefinition, error) {
 	return r.client.CustomFieldDefinition.Query().
-		Where(customfielddefinition.HasProjectWith(project.IDEQ(projectID))).
+		Where(
+			customfielddefinition.HasProjectWith(project.IDEQ(projectID)),
+			customfielddefinition.DeletedAtIsNil(),
+		).
 		Order(ent.Asc(customfielddefinition.FieldSortOrder)).
 		All(ctx)
 }
 
-// DeleteCustomField удаляет определение кастомного поля по ID.
-func (r *EntRepository) DeleteCustomField(ctx context.Context, fieldID uuid.UUID) error {
-	return r.client.CustomFieldDefinition.DeleteOneID(fieldID).Exec(ctx)
+// DeleteCustomField мягко удаляет определение кастомного поля только внутри projectID (P1-BE-02).
+// A2W8-2-004 / ADR-ENT-SOFT-DELETE-GAPS-2026: SetDeletedAt, не hard Delete.
+func (r *EntRepository) DeleteCustomField(ctx context.Context, projectID, fieldID uuid.UUID) error {
+	affected, err := r.client.CustomFieldDefinition.Update().
+		Where(
+			customfielddefinition.IDEQ(fieldID),
+			customfielddefinition.HasProjectWith(project.IDEQ(projectID)),
+			customfielddefinition.DeletedAtIsNil(),
+		).
+		SetDeletedAt(time.Now().UTC()).
+		Save(ctx)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return &ent.NotFoundError{}
+	}
+	return nil
 }

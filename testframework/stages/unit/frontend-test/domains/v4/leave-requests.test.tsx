@@ -37,4 +37,26 @@ describe("LeaveRequestsPage", () => {
 			expect(hrApi.listMyLeave).toHaveBeenCalled();
 		});
 	});
+
+	it("shows error + retry instead of empty my-leave (W10-A1-017)", async () => {
+		vi.mocked(hrApi.listMyLeave).mockRejectedValue(new Error("network"));
+		const qc = new QueryClient({
+			defaultOptions: { queries: { retry: false } },
+		});
+		render(
+			<QueryClientProvider client={qc}>
+				<LeaveRequestsPage />
+			</QueryClientProvider>,
+		);
+
+		await waitFor(() => {
+			expect(screen.getByRole("alert")).toHaveTextContent(
+				/не удалось загрузить заявки/i,
+			);
+		});
+		expect(
+			screen.getByRole("button", { name: /попробовать снова/i }),
+		).toBeInTheDocument();
+		expect(screen.queryByText(/заявок пока нет/i)).not.toBeInTheDocument();
+	});
 });

@@ -1,5 +1,13 @@
+import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
-import { api } from "@/api/client";
+import { getProject } from "@/api/projects";
+import {
+	createEnvironment,
+	deleteEnvironment,
+	type EnvironmentResponse,
+	listEnvironments,
+} from "@/api/tms";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
 	Select,
@@ -8,22 +16,25 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-
-/** Тестовое окружение. */
-interface Environment {
-	id: string;
-	name: string;
-	label: string;
-	config?: Record<string, unknown>;
-	created_at: string;
-}
+import { toastApiError } from "@/lib/format-api-error";
+import { formatEnvConfigValue } from "@/lib/format-env-config";
+import { canMutateProject } from "@/lib/permissions";
 
 const LABELS = ["dev", "staging", "prod", "custom"] as const;
 
+export { formatEnvConfigValue };
+
 /** Страница управления тестовыми окружениями. */
-export function EnvironmentsPage({ projectId }: { projectId: string }) {
-	const [envs, setEnvs] = useState<Environment[]>([]);
+export function EnvironmentsPage({
+	projectId,
+	canMutate: canMutateProp,
+}: {
+	projectId: string;
+	canMutate?: boolean;
+}) {
+	const [envs, setEnvs] = useState<EnvironmentResponse[]>([]);
 	const [loading, setLoading] = useState(true);
+	const [loadError, setLoadError] = useState(false);
 	const [showCreate, setShowCreate] = useState(false);
 	const [name, setName] = useState("");
 	const [label, setLabel] = useState<string>("custom");
@@ -31,20 +42,30 @@ export function EnvironmentsPage({ projectId }: { projectId: string }) {
 	const [configOS, setConfigOS] = useState("");
 	const [deleteDialogId, setDeleteDialogId] = useState<string | null>(null);
 
+	const { data: project } = useQuery({
+		queryKey: ["project", projectId],
+		queryFn: () => getProject(projectId),
+		enabled: Boolean(projectId) && canMutateProp === undefined,
+	});
+	const canMutate = canMutateProp ?? canMutateProject(project?.my_role);
+
 	const fetchEnvs = useCallback(async () => {
 		try {
 			setLoading(true);
-			const data = await api.get<Environment[]>(
-				`/projects/${projectId}/environments`,
-			);
+			const data = await listEnvironments(projectId);
 			setEnvs(data ?? []);
+			setLoadError(false);
+		} catch (err) {
+			setLoadError(true);
+			setEnvs([]);
+			toastApiError(err, "Не удалось загрузить окружения");
 		} finally {
 			setLoading(false);
 		}
 	}, [projectId]);
 
 	useEffect(() => {
-		fetchEnvs();
+		void fetchEnvs();
 	}, [fetchEnvs]);
 
 	const handleCreate = async () => {
@@ -53,22 +74,26 @@ export function EnvironmentsPage({ projectId }: { projectId: string }) {
 		if (configBrowser) config.browser = configBrowser;
 		if (configOS) config.os = configOS;
 
-		await api.post(`/projects/${projectId}/environments`, {
-			name: name.trim(),
-			label,
-			config: Object.keys(config).length > 0 ? config : undefined,
-		});
-		setName("");
-		setLabel("custom");
-		setConfigBrowser("");
-		setConfigOS("");
-		setShowCreate(false);
-		fetchEnvs();
+		try {
+			await createEnvironment(projectId, {
+				name: name.trim(),
+				label,
+				config: Object.keys(config).length > 0 ? config : undefined,
+			});
+			setName("");
+			setLabel("custom");
+			setConfigBrowser("");
+			setConfigOS("");
+			setShowCreate(false);
+			void fetchEnvs();
+		} catch (err) {
+			toastApiError(err, "Не удалось создать окружение");
+		}
 	};
 
 	const handleDelete = async (id: string) => {
-		await api.delete(`/projects/${projectId}/environments/${id}`);
-		fetchEnvs();
+		await deleteEnvironment(projectId, id);
+		void fetchEnvs();
 	};
 
 	const labelBadge = (l: string) => {
@@ -91,16 +116,19 @@ export function EnvironmentsPage({ projectId }: { projectId: string }) {
 		<div className="space-y-6 p-6">
 			<div className="flex items-center justify-between">
 				<h2 className="text-xl font-semibold">Тестовые окружения</h2>
-				<button
-					type="button"
-					onClick={() => setShowCreate(true)}
-					className="rounded-md bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
-				>
-					Создать окружение
-				</button>
+				{canMutate ? (
+					<button
+						type="button"
+						onClick={() => setShowCreate(true)}
+						data-testid="env-create-btn"
+						className="rounded-md bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
+					>
+						Создать окружение
+					</button>
+				) : null}
 			</div>
 
-			{showCreate && (
+			{showCreate && canMutate && (
 				<div className="rounded-md border p-4 dark:border-gray-700">
 					<h3 className="mb-3 font-medium">Новое окружение</h3>
 					<div className="space-y-3">
@@ -159,6 +187,11 @@ export function EnvironmentsPage({ projectId }: { projectId: string }) {
 
 			{loading ? (
 				<p className="text-gray-500">Загрузка...</p>
+			) : loadError ? (
+				<QueryErrorAlert
+					message="Не удалось загрузить окружения"
+					retry={() => void fetchEnvs()}
+				/>
 			) : envs.length === 0 ? (
 				<p className="text-gray-500">Нет окружений</p>
 			) : (
@@ -179,18 +212,23 @@ export function EnvironmentsPage({ projectId }: { projectId: string }) {
 								<td className="p-2 text-gray-500">
 									{env.config
 										? Object.entries(env.config)
-												.map(([k, v]) => `${k}: ${v}`)
+												.map(([k, v]) => `${k}: ${formatEnvConfigValue(v)}`)
 												.join(", ")
 										: "-"}
 								</td>
 								<td className="p-2">
-									<button
-										type="button"
-										onClick={() => setDeleteDialogId(env.id)}
-										className="text-red-600 hover:underline"
-									>
-										Удалить
-									</button>
+									{canMutate ? (
+										<button
+											type="button"
+											onClick={() => setDeleteDialogId(env.id)}
+											data-testid="env-delete-btn"
+											className="text-red-600 hover:underline"
+										>
+											Удалить
+										</button>
+									) : (
+										<span className="text-t3">—</span>
+									)}
 								</td>
 							</tr>
 						))}

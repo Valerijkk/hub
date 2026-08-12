@@ -16,10 +16,11 @@ const (
 	presenceOnlineKey = "presence:online"
 	// presenceStatusKeyPrefix — hash-ключ для кастомного статуса пользователя.
 	presenceStatusKeyPrefix = "presence:status:"
-	// presenceAwayThreshold — порог перехода в статус "away" (5 минут).
-	presenceAwayThreshold = 5 * time.Minute
-	// presenceStaleThreshold — порог удаления устаревших записей (90 секунд).
-	presenceStaleThreshold = 90 * time.Second
+	// presenceAwayThreshold — порог перехода в статус "away" (90 секунд).
+	// W3-A3-003: раньше away=5m > stale=90s → Cleanup удалял запись до появления away.
+	presenceAwayThreshold = 90 * time.Second
+	// presenceStaleThreshold — порог удаления устаревших записей (10 минут).
+	presenceStaleThreshold = 10 * time.Minute
 	// presenceCleanupInterval — интервал между запусками очистки (60 секунд).
 	presenceCleanupInterval = 60 * time.Second
 )
@@ -45,7 +46,8 @@ func (s *PresenceService) Heartbeat(ctx context.Context, userID string) error {
 }
 
 // GetStatus возвращает статус присутствия пользователя.
-// Логика: если score < 5 мин назад -> "online", < 90 сек -> "away", иначе/нет записи -> "offline".
+// Логика (W3-A3-009 / P3-BE-07): elapsed < presenceAwayThreshold (90s) → "online",
+// иначе при наличии записи → "away"; нет записи / ошибка → "offline".
 func (s *PresenceService) GetStatus(ctx context.Context, userID string) (string, error) {
 	score, err := s.rdb.ZScore(ctx, presenceOnlineKey, userID).Result()
 	if errors.Is(err, redis.Nil) {
@@ -73,13 +75,18 @@ func (s *PresenceService) GetBulkStatus(ctx context.Context, userIDs []string) (
 	for i, uid := range userIDs {
 		cmds[i] = pipe.ZScore(ctx, presenceOnlineKey, uid)
 	}
-	_, _ = pipe.Exec(ctx)
+	// W3-A3-004: инфраструктурная ошибка pipeline → return err.
+	// redis.Nil от отсутствующих ZScore — норма (offline), не fail.
+	if _, err := pipe.Exec(ctx); err != nil && !errors.Is(err, redis.Nil) {
+		return nil, fmt.Errorf("presence bulk status: %w", err)
+	}
 
 	now := time.Now()
 	for i, uid := range userIDs {
 		score, err := cmds[i].Result()
 		if err != nil {
-			// err также покрывает redis.Nil (отсутствие записи) — оба случая = offline.
+			// redis.Nil / отсутствие записи = offline; прочие ошибки cmd уже
+			// покрыты fail Exec выше при инфраструктурном сбое.
 			result[uid] = "offline"
 			continue
 		}
@@ -145,7 +152,7 @@ func (s *PresenceService) GetCustomStatus(ctx context.Context, userID string) (s
 }
 
 // GetOnlineUserIDs возвращает ID всех пользователей со статусом "online"
-// (heartbeat менее 5 минут назад).
+// (heartbeat менее presenceAwayThreshold (90s) назад). A3W3-3-003.
 func (s *PresenceService) GetOnlineUserIDs(ctx context.Context) ([]string, error) {
 	minScore := fmt.Sprintf("%d", time.Now().Add(-presenceAwayThreshold).Unix())
 	maxScore := "+inf"

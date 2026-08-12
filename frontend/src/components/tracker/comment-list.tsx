@@ -3,12 +3,14 @@ import type { Value } from "@udecode/plate";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
+	type CommentBodyJson,
 	type CommentResponse,
 	createComment,
 	deleteComment,
 	listComments,
 	toggleReaction,
 } from "@/api/tracker";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { PlateEditor } from "@/components/tracker/plate-editor";
 import {
 	AlertDialog,
@@ -25,6 +27,20 @@ import { Button } from "@/components/ui/button";
 import i18n from "@/i18n";
 import { toastApiError } from "@/lib/format-api-error";
 import { cn } from "@/lib/utils";
+
+/** Plate Value → CommentBodyJson без double-cast (wire = массив узлов). */
+function plateValueToBodyJson(value: Value | undefined): CommentBodyJson {
+	return value ?? [];
+}
+
+/** body_json из API → Plate Value с runtime-guard. */
+function bodyJsonToPlateValue(body: unknown): Value {
+	if (Array.isArray(body)) return body as Value;
+	if (!body || typeof body !== "object") return [];
+	const children = (body as Record<string, unknown>).children;
+	if (Array.isArray(children)) return children as Value;
+	return [];
+}
 
 /** Пропсы компонента CommentList. */
 interface CommentListProps {
@@ -45,7 +61,12 @@ export function CommentList({ projectId, issueKey }: CommentListProps) {
 	const [isInternal, setIsInternal] = useState(false);
 	const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
-	const { data: comments, isLoading } = useQuery({
+	const {
+		data: comments,
+		isLoading,
+		isError,
+		refetch,
+	} = useQuery({
 		queryKey: ["comments", projectId, issueKey],
 		queryFn: () => listComments(projectId, issueKey),
 	});
@@ -53,7 +74,7 @@ export function CommentList({ projectId, issueKey }: CommentListProps) {
 	const createMutation = useMutation({
 		mutationFn: () =>
 			createComment(projectId, issueKey, {
-				body_json: (newBody ?? []) as unknown as Record<string, unknown>,
+				body_json: plateValueToBodyJson(newBody),
 				body_text: extractPlainText(newBody),
 				is_internal: isInternal,
 			}),
@@ -132,19 +153,27 @@ export function CommentList({ projectId, issueKey }: CommentListProps) {
 				</AlertDialogContent>
 			</AlertDialog>
 
-			{/* Список комментариев */}
-			{comments?.map((comment) => (
-				<CommentItem
-					key={comment.id}
-					comment={comment}
-					onDelete={(id) => setDeleteTarget(id)}
-					onReaction={(commentId, emoji) =>
-						reactionMutation.mutate({ commentId, emoji })
-					}
+			{/* Список комментариев — error≠empty (A3W9-4-003) */}
+			{isError && (
+				<QueryErrorAlert
+					message="Не удалось загрузить комментарии"
+					retry={() => void refetch()}
+					compact
 				/>
-			))}
+			)}
+			{!isError &&
+				comments?.map((comment) => (
+					<CommentItem
+						key={comment.id}
+						comment={comment}
+						onDelete={(id) => setDeleteTarget(id)}
+						onReaction={(commentId, emoji) =>
+							reactionMutation.mutate({ commentId, emoji })
+						}
+					/>
+				))}
 
-			{comments?.length === 0 && (
+			{!isError && comments?.length === 0 && (
 				<p className="text-sm text-t2">Нет комментариев</p>
 			)}
 
@@ -197,7 +226,7 @@ function CommentItem({ comment, onDelete, onReaction }: CommentItemProps) {
 		<div
 			className={cn(
 				"flex gap-[14px] py-4 border-b border-b1",
-				comment.is_internal && "border-yellow-300/20 bg-yellow-950/10",
+				comment.is_internal && "border-[var(--amber)]/20 bg-[var(--amber)]/10",
 			)}
 		>
 			{/* Аватар */}
@@ -217,7 +246,9 @@ function CommentItem({ comment, onDelete, onReaction }: CommentItemProps) {
 						</span>
 						<span className="text-[10.5px] text-t4">{timeAgo}</span>
 						{comment.is_internal && (
-							<span className="text-[10.5px] text-yellow-600">Внутренний</span>
+							<span className="text-[10.5px] text-[var(--amber)]">
+								Внутренний
+							</span>
 						)}
 					</div>
 					<Button
@@ -233,7 +264,7 @@ function CommentItem({ comment, onDelete, onReaction }: CommentItemProps) {
 				{/* Тело */}
 				<div className="text-[14px] leading-[1.65] text-t2">
 					<PlateEditor
-						value={comment.body_json as unknown as Value}
+						value={bodyJsonToPlateValue(comment.body_json)}
 						readOnly
 						className="border-none bg-transparent p-0"
 					/>

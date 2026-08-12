@@ -9,11 +9,17 @@ import (
 )
 
 const (
-	composerSuggestMinChars   = 8
-	composerSuggestMaxTokens  = 80
+	composerSuggestMinChars     = 8
+	composerSuggestMaxTokens    = 80
 	composerSuggestSystemPrompt = `You complete short chat messages for a dev team messenger.
 Return ONLY the continuation text in Russian — do not repeat the prefix, no quotes, no markdown.
 One short sentence or phrase max.`
+)
+
+// Sentinels для SuggestComposer — handler мапит через errors.Is (P3-BE-08 / W5-A1-008).
+var (
+	ErrInvalidPrefix   = fmt.Errorf("prefix must be at least %d characters", composerSuggestMinChars)
+	ErrEmptySuggestion = fmt.Errorf("empty suggestion")
 )
 
 // ComposerSuggestRequest — частичный text для Tab completion (M3-024).
@@ -33,7 +39,7 @@ type ComposerSuggestResponse struct {
 func (s *Service) SuggestComposer(ctx context.Context, userID uuid.UUID, req ComposerSuggestRequest, ip, userAgent string) (*ComposerSuggestResponse, error) {
 	prefix := strings.TrimSpace(req.Prefix)
 	if len([]rune(prefix)) < composerSuggestMinChars {
-		return nil, fmt.Errorf("prefix must be at least %d characters", composerSuggestMinChars)
+		return nil, ErrInvalidPrefix
 	}
 	if err := CheckContentPolicy([]ChatMessage{{Role: "user", Content: prefix}}); err != nil {
 		return nil, err
@@ -73,7 +79,7 @@ func (s *Service) SuggestComposer(ctx context.Context, userID uuid.UUID, req Com
 	raw := strings.TrimSpace(resp.Choices[0].Message.Content)
 	suggestion := normalizeComposerCompletion(prefix, raw)
 	if suggestion == "" {
-		return nil, fmt.Errorf("empty suggestion")
+		return nil, ErrEmptySuggestion
 	}
 
 	s.recordUsage(ctx, userID, used, model, resp.Usage.PromptTokens, resp.Usage.CompletionTokens, latency, ip, userAgent)
@@ -86,13 +92,29 @@ func normalizeComposerCompletion(prefix, raw string) string {
 	if s == "" {
 		return ""
 	}
-	if strings.HasPrefix(s, prefix) {
-		s = strings.TrimSpace(strings.TrimPrefix(s, prefix))
-	} else {
-		lowerPrefix := strings.ToLower(strings.TrimSpace(prefix))
-		if strings.HasPrefix(strings.ToLower(s), lowerPrefix) {
-			s = strings.TrimSpace(s[len(prefix):])
-		}
+	prefix = strings.TrimSpace(prefix)
+	if prefix == "" {
+		return strings.TrimSpace(s)
+	}
+	// A3W5-3-001: case/UTF-8-safe trim — не s[len(prefix):] после ToLower (байты ≠ руны).
+	if end := equalFoldPrefixLen(s, prefix); end > 0 {
+		s = strings.TrimSpace(s[end:])
 	}
 	return strings.TrimSpace(s)
+}
+
+// equalFoldPrefixLen возвращает байтовый индекс конца префикса в s при EqualFold-совпадении,
+// иначе 0. Сравнение по рунам — безопасно для кириллицы/mixed-case.
+func equalFoldPrefixLen(s, prefix string) int {
+	pr := []rune(prefix)
+	sr := []rune(s)
+	if len(pr) == 0 || len(sr) < len(pr) {
+		return 0
+	}
+	for i := range pr {
+		if !strings.EqualFold(string(pr[i]), string(sr[i])) {
+			return 0
+		}
+	}
+	return len(string(sr[:len(pr)]))
 }

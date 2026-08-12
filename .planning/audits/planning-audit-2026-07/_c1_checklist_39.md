@@ -1,0 +1,1 @@
+- [x] **Phase 39: Intranet News** - Hub One v4 kickoff — corporate news feed (MOD-INTRA first slice). (2026-06-24)

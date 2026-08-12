@@ -29,8 +29,6 @@ func (HubColumn) Fields() []ent.Field {
 			Comment("select: {choices: []string}"),
 		field.Int("sort_order").
 			Default(0),
-		field.Int("version").
-			Default(1),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
@@ -42,6 +40,13 @@ func (HubColumn) Fields() []ent.Field {
 			Nillable(),
 	}
 }
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (HubColumn) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
+	}
+}
+
 
 func (HubColumn) Edges() []ent.Edge {
 	return []ent.Edge{
@@ -56,5 +61,8 @@ func (HubColumn) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("deleted_at"),
 		index.Fields("sort_order"),
+		// A2W8-2-009: unique name в таблице + list по table+deleted_at
+		index.Edges("table").Fields("name").Unique(),
+		index.Edges("table").Fields("deleted_at"),
 	}
 }

@@ -4,10 +4,10 @@ import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import {
 	createTestCase,
+	deleteTestCase,
 	type ListTestCasesParams,
 	listSuites,
 	listTestCases,
-	type SuiteResponse,
 	type TestCaseResponse,
 	type TestCaseType,
 } from "@/api/tms";
@@ -28,137 +28,15 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { toastApiError } from "@/lib/format-api-error";
-import { cn } from "@/lib/utils";
 import { CaseTableRow } from "@/modules/tms/components/case-table-row";
+import { CaseTreePanel } from "@/modules/tms/components/case-tree";
 import { useTmsStore } from "@/stores/tms-store";
 
 /**
- * Рекурсивный элемент дерева сьютов.
- */
-function SuiteTreeItem({
-	suite,
-	selectedId,
-	onSelect,
-	depth = 0,
-}: {
-	suite: SuiteResponse;
-	selectedId?: string;
-	onSelect: (id: string | undefined) => void;
-	depth?: number;
-}) {
-	const [expanded, setExpanded] = useState(depth < 2);
-	const hasChildren = suite.children && suite.children.length > 0;
-	const isSelected = selectedId === suite.id;
-
-	return (
-		<div>
-			<div
-				className={cn(
-					"group relative flex w-full items-center gap-2 rounded-[var(--r2)] px-[10px] py-2 text-[13px] font-medium text-t2",
-					"hover:bg-[var(--hover)] hover:text-t1",
-					isSelected &&
-						"bg-purple/[0.05] text-white shadow-[0_0_0_1px_rgba(167,139,250,0.08)_inset]",
-				)}
-				style={{ paddingLeft: `${depth * 26 + 10}px` }}
-			>
-				{isSelected && (
-					<span className="absolute left-0 top-0 bottom-0 w-10 bg-gradient-to-r from-purple/[0.06] to-transparent rounded-[var(--r2)] pointer-events-none" />
-				)}
-				{hasChildren ? (
-					<button
-						type="button"
-						className={cn(
-							"w-4 h-4 text-[8px] text-t4 transition-transform duration-[250ms] shrink-0 flex items-center justify-center border-0 bg-transparent p-0 cursor-pointer",
-							expanded && "rotate-90",
-						)}
-						aria-label={expanded ? "Свернуть сьют" : "Развернуть сьют"}
-						aria-expanded={expanded}
-						onClick={() => setExpanded(!expanded)}
-					>
-						<svg
-							aria-hidden="true"
-							className="h-[10px] w-[10px]"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-							strokeWidth={3}
-						>
-							<path
-								strokeLinecap="round"
-								strokeLinejoin="round"
-								d="M9 5l7 7-7 7"
-							/>
-						</svg>
-					</button>
-				) : (
-					<span className="w-4 shrink-0" aria-hidden="true" />
-				)}
-				<button
-					type="button"
-					className="flex min-w-0 flex-1 items-center gap-2 border-0 bg-transparent p-0 text-left text-[13px] font-medium text-inherit cursor-pointer"
-					onClick={() => onSelect(isSelected ? undefined : suite.id)}
-				>
-					{hasChildren ? (
-						<span
-							className={cn(
-								"shrink-0 flex items-center justify-center w-[22px] h-[22px] rounded-[7px] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200",
-								"group-hover:scale-110 group-hover:shadow-[0_0_10px_rgba(167,139,250,0.1)]",
-							)}
-							style={{
-								background: isSelected
-									? "rgba(167,139,250,0.1)"
-									: "rgba(255,255,255,0.035)",
-								color: isSelected ? "var(--purple)" : "var(--text-3)",
-							}}
-						>
-							<svg
-								aria-hidden="true"
-								className="h-3 w-3"
-								fill="none"
-								viewBox="0 0 24 24"
-								stroke="currentColor"
-								strokeWidth={2}
-							>
-								<path
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-								/>
-							</svg>
-						</span>
-					) : (
-						<span
-							className="w-[7px] h-[7px] rounded-full shrink-0 ml-[1px] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200 group-hover:shadow-[0_0_8px_currentColor] group-hover:scale-[1.3]"
-							style={{
-								background: isSelected ? "var(--purple)" : "var(--text-3)",
-								color: isSelected ? "var(--purple)" : "var(--text-3)",
-							}}
-						/>
-					)}
-					<span className="truncate">{suite.name}</span>
-				</button>
-			</div>
-			{expanded && hasChildren && (
-				<div>
-					{suite.children?.map((child) => (
-						<SuiteTreeItem
-							key={child.id}
-							suite={child}
-							selectedId={selectedId}
-							onSelect={onSelect}
-							depth={depth + 1}
-						/>
-					))}
-				</div>
-			)}
-		</div>
-	);
-}
-
-/**
  * Список тест-кейсов — UI уровня Allure TestOps.
+ * A3W10-4-003: fail list ≠ empty «Нет тест-кейсов».
  */
-function TestCasesPage() {
+export function TestCasesPage() {
 	const { projectId } = Route.useParams();
 	const queryClient = useQueryClient();
 	const { filters, updateFilter, resetFilters } = useTmsStore();
@@ -181,7 +59,7 @@ function TestCasesPage() {
 		search: filters.search,
 	};
 
-	const { data, isLoading } = useQuery({
+	const { data, isLoading, isError, refetch } = useQuery({
 		queryKey: ["tms-cases", projectId, params],
 		queryFn: () => listTestCases(projectId, params),
 	});
@@ -225,6 +103,26 @@ function TestCasesPage() {
 	const totalPages = Math.ceil(total / limit);
 	const currentPage = Math.floor(offset / limit) + 1;
 
+	const bulkDeleteMutation = useMutation({
+		mutationFn: async (ids: Set<string>) => {
+			const selected = cases.filter((tc) => ids.has(tc.id));
+			await Promise.all(
+				selected.map((tc) => deleteTestCase(projectId, tc.case_key)),
+			);
+			return selected.length;
+		},
+		onSuccess: (count) => {
+			void queryClient.invalidateQueries({
+				queryKey: ["tms-cases", projectId],
+			});
+			setSelectedIds(new Set());
+			toast.success(
+				count === 1 ? "Тест-кейс удалён" : `Удалено кейсов: ${count}`,
+			);
+		},
+		onError: (err) => toastApiError(err, "Ошибка удаления тест-кейсов"),
+	});
+
 	const toggleSelect = useCallback((id: string) => {
 		setSelectedIds((prev) => {
 			const next = new Set(prev);
@@ -251,56 +149,13 @@ function TestCasesPage() {
 
 	return (
 		<div className="flex flex-col md:flex-row flex-1 overflow-hidden">
-			{/* Sidebar дерева сьютов */}
-			<div className="w-full md:w-[290px] md:min-w-[290px] border-r border-b1 flex flex-col bg-void animate-[enterRight_400ms_var(--spring)_both]">
-				<div className="px-[18px] py-4 border-b border-b1 flex items-center justify-between">
-					<span className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-t4">
-						Тест-сьюты
-					</span>
-				</div>
-				<div className="flex-1 overflow-y-auto p-2">
-					<button
-						type="button"
-						className={cn(
-							"group flex w-full items-center gap-2 rounded-[var(--r2)] px-[10px] py-2 text-left text-[13px] font-medium cursor-pointer transition-colors duration-[180ms] text-t2 relative mb-1",
-							"hover:bg-[var(--hover)] hover:text-t1",
-							!filters.suiteId &&
-								"bg-purple/[0.05] text-white shadow-[0_0_0_1px_rgba(167,139,250,0.08)_inset]",
-						)}
-						onClick={() => handleSuiteSelect(undefined)}
-					>
-						{!filters.suiteId && (
-							<span className="absolute left-0 top-0 bottom-0 w-10 bg-gradient-to-r from-purple/[0.06] to-transparent rounded-[var(--r2)] pointer-events-none" />
-						)}
-						<svg
-							aria-hidden="true"
-							className="h-3.5 w-3.5 shrink-0"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-							strokeWidth={2}
-						>
-							<path
-								strokeLinecap="round"
-								strokeLinejoin="round"
-								d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-							/>
-						</svg>
-						<span className="flex-1">Все кейсы</span>
-						<span className="text-[10.5px] font-semibold text-t4 bg-white/[0.035] px-2 py-[1px] rounded-full transition-colors duration-200 group-hover:bg-white/[0.06] group-hover:text-t3">
-							{total}
-						</span>
-					</button>
-					{suites?.map((suite) => (
-						<SuiteTreeItem
-							key={suite.id}
-							suite={suite}
-							selectedId={filters.suiteId}
-							onSelect={handleSuiteSelect}
-						/>
-					))}
-				</div>
-			</div>
+			{/* Sidebar дерева сьютов — CaseTreePanel (A2W10-A2-008) */}
+			<CaseTreePanel
+				suites={suites}
+				selectedSuiteId={filters.suiteId}
+				onSelectSuite={handleSuiteSelect}
+				total={total}
+			/>
 
 			{/* Панель таблицы кейсов */}
 			<div className="flex-1 flex flex-col overflow-hidden">
@@ -427,6 +282,23 @@ function TestCasesPage() {
 							<span className="text-xs font-medium text-purple">
 								Выбрано: {selectedIds.size}
 							</span>
+							<Button
+								variant="ghost"
+								size="sm"
+								className="h-6 text-xs px-2 text-red-600"
+								disabled={bulkDeleteMutation.isPending}
+								onClick={() => {
+									if (
+										window.confirm(
+											`Удалить выбранные тест-кейсы (${selectedIds.size})?`,
+										)
+									) {
+										bulkDeleteMutation.mutate(selectedIds);
+									}
+								}}
+							>
+								Удалить
+							</Button>
 							<Button
 								variant="ghost"
 								size="sm"
@@ -567,6 +439,23 @@ function TestCasesPage() {
 								))}
 							</tbody>
 						</table>
+					</div>
+				) : isError ? (
+					// A3W10-4-003: fail ≠ «Нет тест-кейсов»
+					<div
+						role="alert"
+						className="flex flex-col items-center justify-center py-20 flex-1 gap-3"
+					>
+						<p className="text-[14px] font-medium text-t1">
+							Не удалось загрузить тест-кейсы
+						</p>
+						<button
+							type="button"
+							className="text-[13px] text-blue font-semibold hover:underline"
+							onClick={() => void refetch()}
+						>
+							Попробовать снова
+						</button>
 					</div>
 				) : cases.length === 0 ? (
 					<div className="flex flex-col items-center justify-center py-20 flex-1 animate-[enterUp_450ms_var(--spring)_both]">

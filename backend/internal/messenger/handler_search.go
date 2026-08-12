@@ -2,6 +2,7 @@ package messenger
 
 import (
 	"github.com/gofiber/fiber/v3"
+	httputil "github.com/valerii/hub/backend/internal/platform/http"
 )
 
 // ---------------------------------------------------------------------------
@@ -22,6 +23,10 @@ import (
 // @Security BearerAuth
 // @Router /api/messenger/search [get]
 func (h *Handler) SearchMessages(c fiber.Ctx) error {
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
 	query := c.Query("query")
 	if query == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "параметр query обязателен")
@@ -29,7 +34,7 @@ func (h *Handler) SearchMessages(c fiber.Ctx) error {
 	channelID := c.Query("channel_id")
 	limit := queryInt(c, "limit", 20)
 
-	resp, err := h.service.SearchMessages(c.Context(), query, channelID, limit)
+	resp, err := h.service.SearchMessages(c.Context(), userID, query, channelID, limit)
 	if err != nil {
 		return err
 	}

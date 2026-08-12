@@ -1,6 +1,5 @@
 ﻿package middleware_test
 import (
-	"github.com/valerii/hub/backend/internal/platform/middleware"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -9,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -20,6 +20,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
+	"github.com/valerii/hub/backend/internal/platform/middleware"
 )
 
 // ---------------------------------------------------------------------------
@@ -87,9 +88,99 @@ func TestRequestID_UniquePerRequest(t *testing.T) {
 	assert.Equal(t, 50, len(ids), "all generated IDs must be unique")
 }
 
+// TestRequestID_RejectsInvalid — A3W4-1-001: невалидный клиентский X-Request-ID
+// (пробелы / <> / вне алфавита) заменяется на UUID; Locals и response header совпадают.
+// Mutation: validRequestID → всегда true (или убрать pattern) → тест краснеет.
+func TestRequestID_RejectsInvalid(t *testing.T) {
+	cases := []struct {
+		name   string
+		header string
+	}{
+		{"spaces", "bad id with spaces"},
+		{"angle_brackets", "evil<script>"},
+		{"slash", "path/like-id"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			app := fiber.New()
+			app.Use(middleware.RequestID())
+			app.Get("/", func(c fiber.Ctx) error {
+				return c.SendString(c.Locals("requestID").(string))
+			})
+
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			req.Header.Set("X-Request-ID", tc.header)
+			resp, err := app.Test(req)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			body, err := io.ReadAll(resp.Body)
+			require.NoError(t, err)
+			id := string(body)
+
+			_, parseErr := uuid.Parse(id)
+			assert.NoError(t, parseErr, "invalid client ID must be replaced with UUID")
+			assert.NotEqual(t, tc.header, id, "generated ID must not equal rejected client value")
+			assert.Equal(t, id, resp.Header.Get("X-Request-ID"))
+		})
+	}
+}
+
+// TestRequestID_RejectsOversized — A3W4-1-001: header >128 рун → UUID ≠ client.
+// Mutation: убрать maxRequestIDLen / ослабить validRequestID → тест краснеет.
+func TestRequestID_RejectsOversized(t *testing.T) {
+	cases := []struct {
+		name   string
+		header string
+	}{
+		{"ascii_129", strings.Repeat("x", 129)},
+		{"rune_cyrillic_129", strings.Repeat("я", 129)}, // rune-safe: 129 рун, не байты
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			app := fiber.New()
+			app.Use(middleware.RequestID())
+			app.Get("/", func(c fiber.Ctx) error {
+				return c.SendString(c.Locals("requestID").(string))
+			})
+
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			req.Header.Set("X-Request-ID", tc.header)
+			resp, err := app.Test(req)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			body, err := io.ReadAll(resp.Body)
+			require.NoError(t, err)
+			id := string(body)
+
+			_, parseErr := uuid.Parse(id)
+			assert.NoError(t, parseErr, "oversized client ID must be replaced with UUID")
+			assert.NotEqual(t, tc.header, id, "generated ID must not equal oversized client value")
+			assert.Equal(t, id, resp.Header.Get("X-Request-ID"))
+		})
+	}
+}
+
 // ---------------------------------------------------------------------------
 // Тесты middleware.ErrorHandler
 // ---------------------------------------------------------------------------
+
+func decodeTZError(t *testing.T, resp *http.Response) map[string]any {
+	t.Helper()
+	var body map[string]any
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+	_, hasCode := body["code"]
+	_, hasMessage := body["message"]
+	assert.False(t, hasCode, "TZ forbids JSON field code")
+	assert.False(t, hasMessage, "TZ forbids JSON field message")
+	assert.Contains(t, body, "error")
+	assert.Contains(t, body, "request_id")
+	assert.Len(t, body, 2, "ErrorHandler must emit only error+request_id")
+	return body
+}
 
 func TestErrorHandler_AppError(t *testing.T) {
 	app := fiber.New(fiber.Config{ErrorHandler: middleware.ErrorHandler})
@@ -104,12 +195,9 @@ func TestErrorHandler_AppError(t *testing.T) {
 	defer resp.Body.Close()
 
 	assert.Equal(t, 400, resp.StatusCode)
-
-	var body apperrors.AppError
-	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
-	assert.Equal(t, 400, body.Code)
-	assert.Equal(t, "invalid input", body.Message)
-	assert.NotEmpty(t, body.RequestID, "request_id must be populated")
+	body := decodeTZError(t, resp)
+	assert.Equal(t, "invalid input", body["error"])
+	assert.NotEmpty(t, body["request_id"], "request_id must be populated")
 }
 
 func TestErrorHandler_FiberError(t *testing.T) {
@@ -125,11 +213,8 @@ func TestErrorHandler_FiberError(t *testing.T) {
 	defer resp.Body.Close()
 
 	assert.Equal(t, 404, resp.StatusCode)
-
-	var body apperrors.AppError
-	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
-	assert.Equal(t, 404, body.Code)
-	assert.Equal(t, "page not found", body.Message)
+	body := decodeTZError(t, resp)
+	assert.Equal(t, "page not found", body["error"])
 }
 
 func TestErrorHandler_GenericError(t *testing.T) {
@@ -145,11 +230,30 @@ func TestErrorHandler_GenericError(t *testing.T) {
 	defer resp.Body.Close()
 
 	assert.Equal(t, 500, resp.StatusCode)
+	body := decodeTZError(t, resp)
+	assert.Equal(t, "internal server error", body["error"])
+	assert.NotContains(t, body["error"], "something broke")
+}
 
-	var body apperrors.AppError
-	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
-	assert.Equal(t, 500, body.Code)
-	assert.Equal(t, "internal server error", body.Message)
+func TestErrorHandler_ForbiddenNoInternals(t *testing.T) {
+	app := fiber.New(fiber.Config{ErrorHandler: middleware.ErrorHandler})
+	app.Use(middleware.RequestID())
+	app.Get("/", func(c fiber.Ctx) error {
+		return apperrors.NewForbidden("нет доступа к каналу")
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, 403, resp.StatusCode)
+	body := decodeTZError(t, resp)
+	assert.Equal(t, "нет доступа к каналу", body["error"])
+	errStr, _ := body["error"].(string)
+	assert.NotContains(t, errStr, "sql:")
+	assert.NotContains(t, errStr, "pq:")
+	assert.NotContains(t, errStr, "ent:")
 }
 
 // ---------------------------------------------------------------------------
@@ -250,6 +354,12 @@ func TestParseCORSOrigins_TrimsAndRejectsWildcardAndEmpty(t *testing.T) {
 		{"wildcard rejected", "http://a,*", []string{"http://a"}, 1},
 		{"empty entries", "http://a,, ,http://b", []string{"http://a", "http://b"}, 2},
 		{"all bad", "*, ,,", nil, 4},
+		// W4-A1-011 / P3-BE-11: shape — только абсолютный origin без path/query.
+		{"null string", "null", nil, 1},
+		{"path rejected", "https://hub.example.com/app", nil, 1},
+		{"query rejected", "https://hub.example.com?x=1", nil, 1},
+		{"ftp rejected", "ftp://hub.example.com", nil, 1},
+		{"mixed valid invalid", "https://ok.example,null,https://hub.example.com/path", []string{"https://ok.example"}, 2},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -280,6 +390,9 @@ func TestSecurityHeaders_SetsExpectedHeaders(t *testing.T) {
 	assert.Equal(t, "DENY", resp.Header.Get("X-Frame-Options"))
 	assert.Equal(t, "strict-origin-when-cross-origin", resp.Header.Get("Referrer-Policy"))
 	assert.Equal(t, "default-src 'self'", resp.Header.Get("Content-Security-Policy"))
+	// A2W4-1-001: HSTS только на Caddy edge, не в Fiber (API за TLS-proxy).
+	assert.Empty(t, resp.Header.Get("Strict-Transport-Security"),
+		"HSTS must not be set by Fiber SecurityHeaders — see deployments/Caddyfile.prod")
 }
 
 // ---------------------------------------------------------------------------
@@ -373,10 +486,8 @@ func TestRateLimit_Middleware_Blocks(t *testing.T) {
 	defer resp.Body.Close()
 	assert.Equal(t, 429, resp.StatusCode)
 
-	var body apperrors.AppError
-	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
-	assert.Equal(t, 429, body.Code)
-	assert.Contains(t, body.Message, "too many requests")
+	body := decodeTZError(t, resp)
+	assert.Contains(t, body["error"], "too many requests")
 }
 
 func TestRateLimitByUser_MessageSendRateLimit_Allows60Blocks61(t *testing.T) {
@@ -405,10 +516,7 @@ func TestRateLimitByUser_MessageSendRateLimit_Allows60Blocks61(t *testing.T) {
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.Equal(t, 429, resp.StatusCode, "61st message in window should be rate-limited")
-
-	var body apperrors.AppError
-	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
-	assert.Equal(t, 429, body.Code)
+	_ = decodeTZError(t, resp)
 }
 
 func TestRateLimitByUser_MessageSendRateLimit_PerUserIsolation(t *testing.T) {
@@ -788,3 +896,4 @@ func TestRateLimiter_CleanupStopsOnCancel(t *testing.T) {
 		t.Fatal("cleanup goroutine did not exit after context cancel")
 	}
 }
+

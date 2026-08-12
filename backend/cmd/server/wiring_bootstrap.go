@@ -69,6 +69,7 @@ func bootstrapServer(d *serverDeps) {
 	// при первом сигнале они все одновременно идут в graceful-shutdown.
 	rootCtx, rootCancel := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM)
+	d.rootCancel = rootCancel
 	d.addCleanup(rootCancel)
 	d.rootCtx = rootCtx
 	// ctx сохраняем как алиас для read-only бутстрапных вызовов

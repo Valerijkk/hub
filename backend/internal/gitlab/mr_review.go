@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/google/uuid"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
@@ -85,6 +86,26 @@ func (s *GitLabService) FetchMRForReview(ctx context.Context, mrURL string) (*MR
 		out.PatchSummary = out.PatchSummary[:maxMRPatchBytes] + "\n...(truncated)"
 	}
 	return out, nil
+}
+
+// ProjectIDForMRURL — Hub projectID интеграции по URL MR (для AI bot authz, P1-BE-31).
+func (s *GitLabService) ProjectIDForMRURL(ctx context.Context, mrURL string) (uuid.UUID, error) {
+	_, projectPath, _, err := parseGitLabMRURL(mrURL)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	integration, err := s.repo.FindIntegrationByProjectPath(ctx, projectPath)
+	if err != nil {
+		return uuid.Nil, apperrors.NewNotFound("GitLab интеграция для проекта не найдена")
+	}
+	if integration.Edges.Project != nil {
+		return integration.Edges.Project.ID, nil
+	}
+	proj, err := integration.QueryProject().Only(ctx)
+	if err != nil {
+		return uuid.Nil, apperrors.NewNotFound("GitLab интеграция для проекта не найдена")
+	}
+	return proj.ID, nil
 }
 
 func (s *GitLabService) fetchGitLabMR(ctx context.Context, base, encodedPath, token string, iid int) (map[string]interface{}, error) {

@@ -9,6 +9,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// A2W5-A5-006: sqlite Empty без entity tables — НЕ NF-03 proof.
+// После A2W5-A4-003 missing-table shards → ErrSearchUnavailable.
+
 func TestSearch_AllEntityTypesParallel(t *testing.T) {
 	db := newScopeTestDB(t)
 	userID := uuid.New()
@@ -27,13 +30,16 @@ func TestSearch_AllEntityTypesParallel(t *testing.T) {
 	require.NoError(t, err)
 
 	svc := search.NewSearchService(&mockSearchRepo{isAdmin: true}, db, nil)
-	results, err := svc.Search(context.Background(), "hub", userID,
-		[]string{"issue", "test_case", "user", "project", "file", "channel", "message"}, 50)
-	require.NoError(t, err)
-	assert.Empty(t, results)
+	// Без message: nil-mongo shard = OK и маскирует total outage.
+	_, _, err = svc.Search(context.Background(), "hub", userID,
+		[]string{"issue", "test_case", "user", "project", "file", "channel"}, 50)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, search.ErrSearchUnavailable)
 }
 
-func TestSearch_LimitCappedAtFifty(t *testing.T) {
+// A3W5-5-001: бывший TestSearch_LimitCappedAtFifty — имя врало про clamp;
+// поведение = Unavailable на missing issues. Clamp → limit_clamp_a3w55_test.go.
+func TestSearch_MissingIssuesTable_Unavailable(t *testing.T) {
 	db := newScopeTestDB(t)
 	userID := uuid.New()
 	projectID := uuid.New()
@@ -44,29 +50,22 @@ func TestSearch_LimitCappedAtFifty(t *testing.T) {
 	require.NoError(t, err)
 
 	svc := search.NewSearchService(&mockSearchRepo{}, db, nil)
-	results, err := svc.Search(context.Background(), "x", userID, []string{"issue"}, 100)
-	require.NoError(t, err)
-	assert.Empty(t, results)
+	_, _, err = svc.Search(context.Background(), "x", userID, []string{"issue"}, 100)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, search.ErrSearchUnavailable)
 }
 
 func TestSearchChannels_TriggersFallbackBeforeError(t *testing.T) {
 	db := newScopeTestDB(t)
 	projectID := uuid.New()
-	_, err := db.Exec(`CREATE TABLE channels (
-		id TEXT NOT NULL,
-		name TEXT NOT NULL,
-		channel_type TEXT NOT NULL,
-		project_id TEXT
-	)`)
-	require.NoError(t, err)
-	_, err = db.Exec(
+	_, err := db.Exec(
 		`INSERT INTO channels (id, name, channel_type, project_id) VALUES (?, ?, ?, ?)`,
 		uuid.New().String(), "general", "public", projectID.String(),
 	)
 	require.NoError(t, err)
 
 	svc := search.ExportNewSearchServiceSQL(db)
-	_, err = search.ExportSearchChannels(svc, context.Background(), "general", []uuid.UUID{projectID})
+	_, err = search.ExportSearchChannels(svc, context.Background(), "general", []uuid.UUID{projectID}, uuid.New())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "каналов")
 }
@@ -85,6 +84,7 @@ func TestSearchUsers_NonAdminScopedQueryFails(t *testing.T) {
 	assert.Contains(t, err.Error(), "пользователей")
 }
 
+// A3W5-5-002: канон closed-DB GetUserChannelIDs (дубль shard_errors удалён).
 func TestGetUserChannelIDs_ClosedDB(t *testing.T) {
 	db := newScopeTestDB(t)
 	require.NoError(t, db.Close())
@@ -101,18 +101,5 @@ func TestGetUserProjectIDs_ClosedDB(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestSearchMessages_WithMembershipNoMongo(t *testing.T) {
-	db := newScopeTestDB(t)
-	userID := uuid.New()
-	channelID := uuid.New()
-	_, err := db.Exec(
-		`INSERT INTO channel_members (channel_id, user_id) VALUES (?, ?)`,
-		channelID.String(), userID.String(),
-	)
-	require.NoError(t, err)
-
-	svc := search.ExportNewSearchServiceFull(nil, db, nil)
-	results, err := search.ExportSearchMessages(svc, context.Background(), "hello", userID)
-	require.NoError(t, err)
-	assert.Nil(t, results)
-}
+// A3W5-5-002: дубль nil-mongo WithMembershipNoMongo снят —
+// канон TestSearchMessages_NilMongoReturnsEmpty (service_scope_test.go).

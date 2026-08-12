@@ -407,6 +407,15 @@ export function JQLEditor({
 				</svg>
 				<Input
 					ref={inputRef}
+					role="combobox"
+					aria-expanded={showSuggestions && suggestions.length > 0}
+					aria-controls="jql-suggestions-listbox"
+					aria-autocomplete="list"
+					aria-activedescendant={
+						showSuggestions && suggestions.length > 0
+							? `jql-option-${selectedIndex}`
+							: undefined
+					}
 					value={value}
 					onChange={handleChange}
 					onKeyDown={handleKeyDown}
@@ -421,11 +430,19 @@ export function JQLEditor({
 			{/* Выпадающий список подсказок */}
 			{showSuggestions && suggestions.length > 0 && (
 				<div className="absolute z-50 mt-1 w-full bg-raised border border-b2 rounded-[var(--r2)] shadow-[var(--sh2)] overflow-hidden">
-					<div className="max-h-60 overflow-y-auto p-1">
+					<div
+						id="jql-suggestions-listbox"
+						role="listbox"
+						aria-label="Подсказки JQL"
+						className="max-h-60 overflow-y-auto p-1"
+					>
 						{suggestions.map((item, idx) => (
 							<button
 								key={item.label}
+								id={`jql-option-${idx}`}
 								type="button"
+								role="option"
+								aria-selected={idx === selectedIndex}
 								className={cn(
 									"flex w-full items-center gap-3 rounded-[var(--r1)] px-3 py-2 text-left text-[13px] transition-colors duration-150",
 									idx === selectedIndex

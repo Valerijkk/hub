@@ -1,13 +1,13 @@
 ---
 name: ba-ver
-model: inherit
-description: Верификатор бизнес-анализа. Проверяет SMART-цели, полноту US/AC, MoSCoW, тестируемость. max effort, readonly. Используй после ba1/ba2.
+model: gpt-5.6-terra
+description: Верификатор бизнес-анализа. Runtime default Terra/High. Проверяет SMART, US/AC, MoSCoW и тестируемость, readonly. Используй после ba1/ba2.
 readonly: true
 ---
 
 # BA Verifier — Hub
 
-**Грузи:** `docs/vision_and_scope.md`, `docs/user_needs_analysis_2026.md`, `docs/tz_constraints.md`, `docs/system_specification.md` (для сверки чисел/scope), `.planning/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` (уже принятые решения — не переоткрывать). Протокол и чек-листы: **`.cursor/playbooks/verification.md`** (§1–§2 общий протокол, §3.5 чек-лист BA), шаблоны: `analysis.md` §3.
+**Грузи:** `docs/vision_and_scope.md`, `docs/user_needs_analysis_2026.md`, `docs/tz_constraints.md`, `docs/system_specification.md` (для сверки чисел/scope), `.planning/decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` (уже принятые решения — не переоткрывать). Протокол и чек-листы: **`.cursor/playbooks/verification.md`** (§1–§2 общий протокол, §3.5 чек-лист BA), шаблоны: `analysis.md` §3.
 
 ## 1. Кто я
 

@@ -1,0 +1,37 @@
+Hubtest gate summary (W20 residual close refresh)
+================================================
+Date (UTC): 2026-07-28 02:25:02 UTC (host local: 2026-07-28 02:25:02 +03:00)
+Branch: cursor-grok-4.5
+HEAD SHA (pre-artifact-commit): 3d313bfe278f1057687e13df85e0be8cec478144
+Network: hub_default (hub-postgres-1, hub-mongo-1 healthy)
+Image: golang:1.25-bookworm
+
+Command:
+docker run --rm --network hub_default \
+  -v "<repo>/backend:/workspace/backend" \
+  -v "<repo>/.planning/audits/grok-2026-07:/artifacts" \
+  -e POSTGRES_TEST_URL="postgresql://hub:hub@postgres:5432/hub?sslmode=disable" \
+  -e MONGODB_TEST_URL="mongodb://hub:hub@mongo:27017/?authSource=admin" \
+  -e CGO_ENABLED=1 \
+  -e PATH="/go/bin:/usr/local/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
+  -w /workspace/backend \
+  golang:1.25-bookworm \
+  bash /artifacts/_run_hubtest_gate.sh
+
+Inner test invocation:
+  go test -tags hubtest -race -count=1 -timeout=900s ./testframework/...
+
+Package counts:
+  ok:   45
+  fail: 0
+  ?:    3
+
+Exit code: 0
+Log artifact: .planning/audits/grok-2026-07/w20-gate-hubtest.txt
+
+Notes:
+- search / crm / messenger: ok
+- First full run failed testframework/calls TestReadPump_CallAuthorizer_ParticipantAllowed_A2_007
+  (race: Hub.Subscribe is async; pong != room membership applied).
+- Fix: ExportClientInRoom + wait in A2-007 before BroadcastToRoom; verified -count=10 then full gate green.
+- FAIL packages: (none)

@@ -215,7 +215,7 @@ docker compose -f docker-compose.prod.yml exec caddy caddy validate --config /et
 5. **Системные действия** — конкретные, с владельцем и сроком. «Быть внимательнее» — не действие.
 6. **Регрессия на класс** — тест/алерт, который поймает **класс** проблемы, а не конкретный инстанс.
 
-☐ Записать инцидент в `.planning/production/` (файл по дате).
+☐ Записать инцидент в `.planning/ops/production/` (файл по дате).
 ☐ Обновить `.planning/STATE.md` — session note с итогом.
 ☐ Если выявлен пробел мониторинга — завести правило в `deployments/monitoring/prometheus/alerts/hub.yml` и описать в [monitoring-and-alerts.md](monitoring-and-alerts.md).
 

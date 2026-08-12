@@ -20,13 +20,16 @@ type UpdateSprintRequest struct {
 	Goal      *string    `json:"goal,omitempty" validate:"omitempty,max=1000"`
 	StartDate *time.Time `json:"start_date,omitempty"`
 	EndDate   *time.Time `json:"end_date,omitempty"`
+	Version   int        `json:"version" validate:"required,min=1"`
 }
 
 // RetroNotesRequest — тело запроса на обновление заметок ретроспективы.
+// Version — optimistic lock (A3W1-A4-003 / TASK-136); stale → 409.
 type RetroNotesRequest struct {
 	WentWell  []string `json:"went_well"`
 	ToImprove []string `json:"to_improve"`
 	Actions   []string `json:"actions"`
+	Version   int      `json:"version" validate:"required,min=1"`
 }
 
 // VoteRequest — тело запроса на голосование в Planning Poker.
@@ -50,16 +53,17 @@ type MoveIssueToSprintRequest struct {
 
 // SprintResponse — представление спринта в API-ответах.
 type SprintResponse struct {
-	ID        string                 `json:"id"`
-	Name      string                 `json:"name"`
-	Goal      string                 `json:"goal,omitempty"`
-	Status    string                 `json:"status"`
-	StartDate time.Time              `json:"start_date"`
-	EndDate   time.Time              `json:"end_date"`
+	ID         string                 `json:"id"`
+	Name       string                 `json:"name"`
+	Goal       string                 `json:"goal,omitempty"`
+	Status     string                 `json:"status"`
+	StartDate  time.Time              `json:"start_date"`
+	EndDate    time.Time              `json:"end_date"`
 	RetroNotes map[string]interface{} `json:"retro_notes,omitempty"`
-	IssueCount int                   `json:"issue_count"`
-	CreatedAt time.Time              `json:"created_at"`
-	UpdatedAt time.Time              `json:"updated_at"`
+	IssueCount int                    `json:"issue_count"`
+	Version    int                    `json:"version"`
+	CreatedAt  time.Time              `json:"created_at"`
+	UpdatedAt  time.Time              `json:"updated_at"`
 }
 
 // BurndownPoint — точка данных для графика burndown.

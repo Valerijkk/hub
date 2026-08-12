@@ -4,10 +4,20 @@ import (
 	"github.com/gofiber/fiber/v3"
 	fiberrecover "github.com/gofiber/fiber/v3/middleware/recover"
 	auditmod "github.com/valerii/hub/backend/internal/audit"
-	devmod "github.com/valerii/hub/backend/internal/dev"
+	backupmod "github.com/valerii/hub/backend/internal/backup"
+	"github.com/valerii/hub/backend/internal/platform/config"
 	"github.com/valerii/hub/backend/internal/platform/middleware"
 	"github.com/valerii/hub/backend/internal/platform/observability"
 )
+
+// fiberRecoverConfig — A14-007: единственная точка сборки recover.Config.
+// EnableStackTrace берётся только из ServerConfig.FiberRecoverEnableStackTrace
+// (DevMode); не хардкодить true — иначе stack paths утекут в Loki на prod.
+func fiberRecoverConfig(serverCfg config.ServerConfig) fiberrecover.Config {
+	return fiberrecover.Config{
+		EnableStackTrace: serverCfg.FiberRecoverEnableStackTrace(),
+	}
+}
 
 func wireFiber(d *serverDeps) {
 	cfg := d.cfg
@@ -19,6 +29,8 @@ func wireFiber(d *serverDeps) {
 		WriteTimeout:            cfg.Server.WriteTimeout,
 		Immutable:               cfg.Server.Immutable,
 		ErrorHandler:            middleware.ErrorHandler,
+		// P2-BE-01: исполняет теги validate:"…" на DTO после Bind().JSON/Body/Query.
+		StructValidator:         middleware.NewStructValidator(),
 		EnableTrustedProxyCheck: true,
 		TrustedProxies: []string{
 			"127.0.0.1",
@@ -38,7 +50,8 @@ func wireFiber(d *serverDeps) {
 	// HI-09: глобальный recover, чтобы паника в обработчике не валила процесс.
 	// Стоит сразу после RequestID, чтобы паническая ошибка уже несла request_id
 	// в лог — но раньше всех бизнес-middleware (логгер, CORS, rate-limit).
-	app.Use(fiberrecover.New(fiberrecover.Config{EnableStackTrace: true}))
+	// A14-007: stack traces только в DevMode — иначе шум + утечка путей в Loki.
+	app.Use(fiberrecover.New(fiberRecoverConfig(cfg.Server)))
 	app.Use(observability.HTTPTraceMiddleware())
 	app.Use(middleware.SecurityHeaders())
 	app.Use(middleware.Logger())
@@ -50,6 +63,10 @@ func wireFiber(d *serverDeps) {
 	app.Use(middleware.RateLimit(d.rootCtx, middleware.APIRateLimit))
 
 	api := app.Group("/api")
+	// A7-003 / U04: cluster-wide maintenance gate (Redis) до бизнес-маршрутов.
+	// BackupService подключается к тому же gate в wireIntegrations.
+	d.maintGate = backupmod.NewRedisMaintenanceGate(d.rdb)
+	api.Use(backupmod.MaintenanceMiddleware(d.maintGate))
 	// HTTP-аудит: все API-запросы пишутся в журнал (кроме health/docs).
 	api.Use(auditmod.HTTPAuditMiddleware(d.auditSvc.RecordHTTPRequest))
 
@@ -58,15 +75,7 @@ func wireFiber(d *serverDeps) {
 	// Rate limit для отправки сообщений: 60/мин на пользователя
 	api.Use("/messenger", middleware.RateLimitByUser(d.rootCtx, middleware.MessageSendRateLimit))
 
-	// API-документация: динамическая страница со списком всех эндпоинтов.
-	// gofiber/swagger несовместим с Fiber v3, поэтому генерируем HTML из зарегистрированных маршрутов.
-	api.Get("/docs", func(c fiber.Ctx) error {
-		return c.Type("html").SendString(devmod.BuildAPIDocsHTML(app))
-	})
-	api.Get("/docs/doc.json", func(c fiber.Ctx) error {
-		c.Set("Content-Type", "application/json")
-		return c.SendString(devmod.BuildAPIDocsJSON(app))
-	})
+	// W7-A5-001: /api/docs регистрируется в wireCore за auth+admin (не публично).
 
 	d.api = api
 }

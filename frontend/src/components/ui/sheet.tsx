@@ -1,6 +1,7 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/utils";
 
@@ -56,6 +57,16 @@ interface SheetContentProps
 	showClose?: boolean;
 }
 
+function SheetCloseControl() {
+	const { t } = useTranslation("common");
+	return (
+		<DialogPrimitive.Close className="absolute right-3 top-3 rounded-[var(--r1)] text-t3 transition-colors duration-150 hover:text-t1 hover:bg-[var(--hover)] focus:outline-none focus:ring-2 focus:ring-ring">
+			<X className="h-4 w-4" aria-hidden="true" />
+			<span className="sr-only">{t("btn.close")}</span>
+		</DialogPrimitive.Close>
+	);
+}
+
 const SheetContent = React.forwardRef<
 	React.ElementRef<typeof DialogPrimitive.Content>,
 	SheetContentProps
@@ -76,12 +87,7 @@ const SheetContent = React.forwardRef<
 				{...props}
 			>
 				{children}
-				{showClose && (
-					<DialogPrimitive.Close className="absolute right-3 top-3 rounded-[var(--r1)] text-t3 transition-colors duration-150 hover:text-t1 hover:bg-[var(--hover)] focus:outline-none focus:ring-2 focus:ring-ring">
-						<X className="h-4 w-4" />
-						<span className="sr-only">Закрыть</span>
-					</DialogPrimitive.Close>
-				)}
+				{showClose && <SheetCloseControl />}
 			</DialogPrimitive.Content>
 		</SheetPortal>
 	),

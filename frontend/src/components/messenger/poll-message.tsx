@@ -2,6 +2,7 @@ import { BarChart3, Check, Lock } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import type { Poll } from "@/api/messenger";
 import { closePoll, getPollResults, votePoll } from "@/api/messenger";
+import { toastApiError } from "@/lib/format-api-error";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
 import { useWsStore } from "@/stores/ws-store";
@@ -19,7 +20,7 @@ interface PollMessageProps {
  * Показывает вопрос, варианты с прогресс-барами, счётчики голосов.
  * Поддерживает голосование кликом, закрытие создателем, real-time обновления.
  */
-export function PollMessage({ pollId }: PollMessageProps) {
+export function PollMessage({ pollId, channelId }: PollMessageProps) {
 	const [poll, setPoll] = useState<Poll | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [voting, setVoting] = useState(false);
@@ -34,8 +35,9 @@ export function PollMessage({ pollId }: PollMessageProps) {
 			const data = await getPollResults(pollId);
 			setPoll(data);
 			setLoading(false);
-		} catch {
+		} catch (err) {
 			setLoading(false);
+			toastApiError(err, "Не удалось загрузить опрос");
 		}
 	}, [pollId]);
 
@@ -46,18 +48,26 @@ export function PollMessage({ pollId }: PollMessageProps) {
 	/** Подписка на WS-обновления опроса (poll_voted, poll_closed). */
 	useEffect(() => {
 		const handler = (event: string, payload: unknown) => {
+			if (!payload || typeof payload !== "object") return;
 			const data = payload as Record<string, unknown>;
+			const eventChannelId = data.channel_id;
+			if (
+				typeof eventChannelId === "string" &&
+				eventChannelId.length > 0 &&
+				eventChannelId !== channelId
+			) {
+				return;
+			}
 			const eventPollId = data.poll_id as string | undefined;
 			if (eventPollId !== pollId) return;
 
 			if (event === "poll_voted" || event === "poll_closed") {
-				// Перезагружаем данные опроса при обновлениях.
 				void fetchPoll();
 			}
 		};
 		addListener(handler);
 		return () => removeListener(handler);
-	}, [pollId, addListener, removeListener, fetchPoll]);
+	}, [pollId, channelId, addListener, removeListener, fetchPoll]);
 
 	/** Проголосовал ли текущий пользователь. */
 	const hasVoted = poll?.options.some((o) => o.voted) ?? false;
@@ -86,8 +96,8 @@ export function PollMessage({ pollId }: PollMessageProps) {
 			try {
 				const updated = await votePoll(pollId, [optionId]);
 				setPoll(updated);
-			} catch {
-				// Ошибка голосования — молча пропускаем.
+			} catch (err) {
+				toastApiError(err, "Не удалось проголосовать");
 			} finally {
 				setVoting(false);
 			}
@@ -103,8 +113,8 @@ export function PollMessage({ pollId }: PollMessageProps) {
 			const updated = await votePoll(pollId, Array.from(selected));
 			setPoll(updated);
 			setSelected(new Set());
-		} catch {
-			// Ошибка — молча пропускаем.
+		} catch (err) {
+			toastApiError(err, "Не удалось проголосовать");
 		} finally {
 			setVoting(false);
 		}
@@ -117,8 +127,8 @@ export function PollMessage({ pollId }: PollMessageProps) {
 		try {
 			const updated = await closePoll(pollId);
 			setPoll(updated);
-		} catch {
-			// Ошибка — молча пропускаем.
+		} catch (err) {
+			toastApiError(err, "Не удалось закрыть опрос");
 		} finally {
 			setVoting(false);
 		}
@@ -162,7 +172,7 @@ export function PollMessage({ pollId }: PollMessageProps) {
 							{poll.is_anonymous && <span>Анонимное</span>}
 							{poll.is_multi_choice && <span>Несколько вариантов</span>}
 							{poll.is_closed && (
-								<span className="flex items-center gap-0.5 text-orange-500">
+								<span className="flex items-center gap-0.5 text-[var(--orange)]">
 									<Lock className="h-3 w-3" />
 									Завершён
 								</span>
@@ -270,7 +280,7 @@ export function PollMessage({ pollId }: PollMessageProps) {
 						type="button"
 						onClick={() => void handleClose()}
 						disabled={voting}
-						className="text-[11px] font-medium text-orange-500 hover:text-orange-600 transition-colors disabled:opacity-50"
+						className="text-[11px] font-medium text-[var(--orange)] hover:text-[var(--orange)]/80 transition-colors disabled:opacity-50"
 					>
 						Закрыть голосование
 					</button>

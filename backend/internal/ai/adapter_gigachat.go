@@ -73,7 +73,11 @@ func (a *GigaChatAdapter) accessToken(ctx context.Context, clientID, clientSecre
 		return "", fmt.Errorf("gigachat oauth: %w", err)
 	}
 	defer resp.Body.Close()
-	raw, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	raw, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	if err != nil {
+		// W5-A2-010 / P3-BE-01: не глотать ошибку чтения OAuth body.
+		return "", fmt.Errorf("gigachat oauth read body: %w", err)
+	}
 	if resp.StatusCode >= 400 {
 		return "", fmt.Errorf("gigachat oauth HTTP %d: %s", resp.StatusCode, truncate(string(raw), 256))
 	}

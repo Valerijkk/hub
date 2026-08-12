@@ -4,10 +4,13 @@ package config
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/valerii/hub/backend/internal/platform/crypto"
 )
 
 // minJWTSecretLen — минимальная длина JWT_SECRET в production. 32 байта
@@ -49,13 +52,21 @@ type ServerConfig struct {
 	Immutable    bool   // true в dev для отлова повторного использования Fiber RequestCtx (Pitfall 1)
 	DevMode             bool     // DevMode включает dev-эндпоинты (seed, login без Magic Link)
 	Environment         string   // ENVIRONMENT: production, staging, development (по умолчанию)
-	MetricsAllowedCIDRs []string // METRICS_ALLOWED_CIDRS — пусто = /metrics без IP-фильтра
+	MetricsAllowedCIDRs []string // METRICS_ALLOWED_CIDRS — пусто non-prod → "*"; production validate fail-closed
 	AlertWebhookSecret  string   // ALERT_WEBHOOK_SECRET — Bearer для Alertmanager webhook
+}
+
+// FiberRecoverEnableStackTrace — A14-007: Fiber recover пишет stack только в DevMode
+// (иначе шум + утечка локальных путей в централизованные логи / Loki).
+// Wiring: cmd/server/wiring_fiber.go → fiberRecoverConfig → EnableStackTrace.
+func (c ServerConfig) FiberRecoverEnableStackTrace() bool {
+	return c.DevMode
 }
 
 // PostgresConfig — параметры подключения к PostgreSQL.
 type PostgresConfig struct {
-	URL string
+	URL                 string
+	AllowInsecureDBSSL  bool // ALLOW_INSECURE_DB_SSL — явный override sslmode=disable в production
 }
 
 // MongoDBConfig — параметры подключения к MongoDB.
@@ -97,7 +108,8 @@ type ResendConfig struct {
 	FromEmail string
 }
 
-// TelegramConfig — параметры Telegram-бота для аутентификации и уведомлений.
+// TelegramConfig — параметры Telegram-бота для уведомлений (bind/delivery).
+// Login через Telegram запрещён (ADR-AUTH-01); Magic Link only.
 type TelegramConfig struct {
 	BotToken    string
 	BotUsername string
@@ -148,7 +160,8 @@ func Load() (*Config, error) {
 			AlertWebhookSecret:  getEnv("ALERT_WEBHOOK_SECRET", ""),
 		},
 		Postgres: PostgresConfig{
-			URL: getEnv("DATABASE_URL", "postgresql://hub:hub@localhost:5432/hub?sslmode=disable"),
+			URL:                getEnv("DATABASE_URL", "postgresql://hub:hub@localhost:5432/hub?sslmode=disable"),
+			AllowInsecureDBSSL: getEnvBool("ALLOW_INSECURE_DB_SSL", false),
 		},
 		MongoDB: MongoDBConfig{
 			URL:      getEnv("MONGODB_URL", "mongodb://hub:hub@localhost:27017"),
@@ -199,6 +212,13 @@ func Load() (*Config, error) {
 		},
 	}
 
+	// W4-A3-004: MetricsEndpoint fail-closed на пустом CIDR. Non-prod пустой
+	// METRICS_ALLOWED_CIDRS → явный sentinel "*", иначе /metrics сразу 403.
+	if len(cfg.Server.MetricsAllowedCIDRs) == 0 &&
+		!strings.EqualFold(cfg.Server.Environment, "production") {
+		cfg.Server.MetricsAllowedCIDRs = []string{"*"}
+	}
+
 	if err := cfg.validate(); err != nil {
 		return nil, err
 	}
@@ -209,6 +229,8 @@ func Load() (*Config, error) {
 // в production (DevMode=false) запрещены dev-дефолты JWT/S3/LiveKit и
 // JWT_SECRET короче minJWTSecretLen. Также запрещена комбинация
 // ENVIRONMENT=production + DEV_MODE=true — запрещено в config.validate.
+// A14-002/A14-003: SeaweedFS hub/hubsecret и NATS без user/pass —
+// fail-closed при ENVIRONMENT=production (и S3-дефолты при любом DEV_MODE=false).
 func (c *Config) validate() error {
 	if c.Server.DevMode && strings.EqualFold(c.Server.Environment, "production") {
 		return errors.New("DEV_MODE=true несовместим с ENVIRONMENT=production — отключите DEV_MODE")
@@ -230,12 +252,12 @@ func (c *Config) validate() error {
 		problems = append(problems, fmt.Sprintf("JWT_SECRET короче %d байт", minJWTSecretLen))
 	}
 
-	// S3 credentials: запрещаем dev-дефолты (hub/hubsecret).
+	// A14-002: S3 credentials — запрещаем SeaweedFS dev-дефолты (hub/hubsecret).
 	if isDevDefault("S3_ACCESS_KEY", c.S3.AccessKey) {
-		problems = append(problems, "S3_ACCESS_KEY использует dev-дефолт")
+		problems = append(problems, "S3_ACCESS_KEY использует dev-дефолт (hub)")
 	}
 	if isDevDefault("S3_SECRET_KEY", c.S3.SecretKey) {
-		problems = append(problems, "S3_SECRET_KEY использует dev-дефолт")
+		problems = append(problems, "S3_SECRET_KEY использует dev-дефолт (hubsecret)")
 	}
 
 	// LiveKit credentials: запрещаем dev-дефолты (devkey/devsecret).
@@ -250,12 +272,94 @@ func (c *Config) validate() error {
 	// шифрования GitHub/GitLab tokens и webhook secrets at rest.
 	if c.Integration.EncryptionKey == "" {
 		problems = append(problems, "INTEGRATION_ENCRYPTION_KEY не задан (требуется 32 байта в hex или base64)")
+	} else if crypto.IsDevDerivedKey(c.Integration.EncryptionKey) {
+		// W4-A4-009: DeriveDevKey() запрещён вне DevMode — иначе at-rest
+		// секреты интеграций шифруются известным hardcoded ключом.
+		problems = append(problems, "INTEGRATION_ENCRYPTION_KEY совпадает с DeriveDevKey — задайте уникальный production-ключ")
+	}
+
+	// A14-005: в production /metrics обязан иметь CIDR allowlist (fail-closed).
+	// Compose prod default — 127.0.0.1/32; blanket RFC1918 небезопасен (любой Docker peer).
+	if strings.EqualFold(c.Server.Environment, "production") && len(c.Server.MetricsAllowedCIDRs) == 0 {
+		problems = append(problems, "METRICS_ALLOWED_CIDRS пуст в production — задайте CIDR scrape-источника (напр. 127.0.0.1/32 или CIDR Prometheus)")
+	}
+
+	// A14-003: в ENVIRONMENT=production NATS URL обязан содержать non-empty user и password.
+	// W4-A4-004: Postgres TLS обязателен (sslmode=require|verify-ca|verify-full),
+	// кроме явного ALLOW_INSECURE_DB_SSL=true.
+	if strings.EqualFold(c.Server.Environment, "production") {
+		if msg := natsProductionCredsProblem(c.NATS.URL); msg != "" {
+			problems = append(problems, msg)
+		}
+		if msg := postgresTLSProblem(c.Postgres.URL, c.Postgres.AllowInsecureDBSSL); msg != "" {
+			problems = append(problems, msg)
+		}
+	}
+
+	// P1-BE-26: weak DB/Mongo/Redis defaults (hub:hub@) запрещены при !DevMode —
+	// симметрия с A14-002 (S3 hub/hubsecret).
+	if msg := weakDataStoreURLProblem("DATABASE_URL", c.Postgres.URL); msg != "" {
+		problems = append(problems, msg)
+	}
+	if msg := weakDataStoreURLProblem("MONGODB_URL", c.MongoDB.URL); msg != "" {
+		problems = append(problems, msg)
+	}
+	if msg := weakDataStoreURLProblem("REDIS_URL", c.Redis.URL); msg != "" {
+		problems = append(problems, msg)
 	}
 
 	if len(problems) > 0 {
 		return fmt.Errorf("небезопасная конфигурация (DEV_MODE=false): %s", strings.Join(problems, "; "))
 	}
 	return nil
+}
+
+// weakDataStoreURLProblem — непустая строка, если URL содержит известные
+// weak credentials hub:hub@ (compose/dev defaults).
+func weakDataStoreURLProblem(name, raw string) string {
+	if strings.Contains(strings.ToLower(raw), "hub:hub@") {
+		return fmt.Sprintf("%s использует weak credentials hub:hub — задайте сильные учётные данные", name)
+	}
+	return ""
+}
+
+// postgresTLSProblem — пустая строка если DATABASE_URL требует TLS к Postgres
+// (W4-A4-004). sslmode=disable/allow/prefer без ALLOW_INSECURE_DB_SSL — fail.
+func postgresTLSProblem(raw string, allowInsecure bool) string {
+	if allowInsecure {
+		return ""
+	}
+	u, err := url.Parse(raw)
+	if err != nil || u.Scheme == "" {
+		return "DATABASE_URL некорректен в production"
+	}
+	mode := strings.ToLower(strings.TrimSpace(u.Query().Get("sslmode")))
+	switch mode {
+	case "require", "verify-ca", "verify-full":
+		return ""
+	case "":
+		return "DATABASE_URL без sslmode в production — задайте sslmode=require|verify-ca|verify-full (или ALLOW_INSECURE_DB_SSL=true)"
+	default:
+		return fmt.Sprintf("DATABASE_URL sslmode=%s небезопасен в production — используйте require|verify-ca|verify-full (или ALLOW_INSECURE_DB_SSL=true)", mode)
+	}
+}
+
+// natsProductionCredsProblem — пустая строка если NATS_URL содержит user+password;
+// иначе человекочитаемая причина fail-start (A14-003).
+func natsProductionCredsProblem(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil || u.Scheme == "" {
+		return "NATS_URL некорректен в production"
+	}
+	if u.User == nil {
+		return "NATS_URL без user/password в production — задайте nats://USER:PASS@host:4222"
+	}
+	user := strings.TrimSpace(u.User.Username())
+	pass, hasPass := u.User.Password()
+	if user == "" || !hasPass || pass == "" {
+		return "NATS_URL: пустой user или password в production"
+	}
+	return ""
 }
 
 // isDevDefault сравнивает значение со списком известных небезопасных

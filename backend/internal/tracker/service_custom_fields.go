@@ -44,9 +44,9 @@ func (s *TrackerService) ListCustomFields(ctx context.Context, projectID uuid.UU
 	return result, nil
 }
 
-// DeleteCustomField удаляет определение кастомного поля.
-func (s *TrackerService) DeleteCustomField(ctx context.Context, fieldID uuid.UUID) error {
-	if err := s.repo.DeleteCustomField(ctx, fieldID); err != nil {
+// DeleteCustomField удаляет определение кастомного поля в рамках проекта (P1-BE-02).
+func (s *TrackerService) DeleteCustomField(ctx context.Context, projectID, fieldID uuid.UUID) error {
+	if err := s.repo.DeleteCustomField(ctx, projectID, fieldID); err != nil {
 		if ent.IsNotFound(err) {
 			return apperrors.NewNotFound("поле не найдено")
 		}

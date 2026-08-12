@@ -17,7 +17,7 @@ import (
 func TestEntRepository_OrganizationPendingFlow(t *testing.T) {
 	repo, client, ctx := newAuthRepoEnv(t)
 
-	founder, err := repo.CreateOrganizationWithFounder(ctx, "founder-"+uuid.New().String()[:6]+"@test.com", "")
+	founder, err := repo.CreateOrganizationWithFounder(ctx, "founder-"+uuid.New().String()[:6]+"@test.com")
 	require.NoError(t, err)
 	assert.Equal(t, user.SystemRoleFounder, founder.SystemRole)
 
@@ -112,7 +112,7 @@ func TestEntRepository_HasOrganization(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 0, n)
 
-	_, err = repo.CreateOrganizationWithFounder(ctx, "founder@test.com", "")
+	_, err = repo.CreateOrganizationWithFounder(ctx, "founder@test.com")
 	require.NoError(t, err)
 
 	n, err = repo.CountOrganizations(ctx)

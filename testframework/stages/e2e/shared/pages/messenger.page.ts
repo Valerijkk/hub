@@ -18,6 +18,10 @@ export class MessengerPage extends BasePage {
 		await expectVisible(this.composer, 15_000);
 		await this.composer.fill(text);
 		await this.sendButton.click();
-		await expect(this.page.getByText(text)).toBeVisible({ timeout: 15_000 });
+		const sentMessage = this.page
+			.getByRole("paragraph")
+			.filter({ hasText: text })
+			.last();
+		await expect(sentMessage).toHaveText(text, { timeout: 15_000 });
 	}
 }

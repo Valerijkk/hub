@@ -33,5 +33,5 @@ Re-run full `/qa-gate` after Phases 64–66; publish `PRODUCTION-HANDOFF.md`; re
 
 ## Non-blocking (manual ops)
 
-- **PG-03** — `.planning/production/PG-03-SECRET-ROTATION.md`
+- **PG-03** — `.planning/ops/production/PG-03-SECRET-ROTATION.md`
 - **COMMIT/PR** — user approval on `feat/v2.5-trust`

@@ -3,6 +3,7 @@ import (
 	"github.com/valerii/hub/backend/internal/ai"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	githubmod "github.com/valerii/hub/backend/internal/github"
@@ -19,9 +20,18 @@ func TestGitlabMRToReview_Nil(t *testing.T) {
 
 func TestUnifiedCodeReviewProvider_NoVCS(t *testing.T) {
 	p := ai.NewUnifiedCodeReviewProvider(nil, nil)
-	_, err := p.FetchReview(t.Context(), "https://gitlab.com/g/p/-/merge_requests/5")
+	_, err := p.FetchReview(t.Context(), uuid.New(), "https://gitlab.com/g/p/-/merge_requests/5")
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "no VCS")
+	// TASK-085: access==nil fail-closed раньше, чем ветка «no VCS».
+	assert.Contains(t, err.Error(), "access checker not configured")
+}
+
+func TestUnifiedCodeReviewProvider_GitLabURLWithoutGitlabService(t *testing.T) {
+	p := ai.NewUnifiedCodeReviewProvider(nil, nil)
+	p.SetAccessChecker(stubAccess{allow: map[uuid.UUID]bool{}})
+	_, err := p.FetchReview(t.Context(), uuid.New(), "https://gitlab.com/g/p/-/merge_requests/5")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "GitLab not configured")
 }
 
 func TestGithubPRToReview(t *testing.T) {
@@ -54,7 +64,7 @@ func TestGitlabMRToReview(t *testing.T) {
 
 func TestUnifiedCodeReviewProviderNil(t *testing.T) {
 	p := &ai.UnifiedCodeReviewProvider{}
-	_, err := p.FetchReview(t.Context(), "https://github.com/o/r/pull/1")
+	_, err := p.FetchReview(t.Context(), uuid.New(), "https://github.com/o/r/pull/1")
 	assert.Error(t, err)
 }
 

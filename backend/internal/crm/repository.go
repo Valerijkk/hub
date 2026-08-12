@@ -16,19 +16,22 @@ import (
 // Repository — доступ к данным CRM.
 type Repository interface {
 	CreateContact(ctx context.Context, userID uuid.UUID, req CreateContactRequest) (*ent.CrmContact, error)
-	ListContacts(ctx context.Context) ([]*ent.CrmContact, error)
+	// ListContacts — ownerID == nil → org-wide (admin); иначе только created_by = ownerID (RT-003).
+	ListContacts(ctx context.Context, ownerID *uuid.UUID) ([]*ent.CrmContact, error)
 	GetContact(ctx context.Context, id uuid.UUID) (*ent.CrmContact, error)
 	UpdateContact(ctx context.Context, id uuid.UUID, req UpdateContactRequest) (*ent.CrmContact, error)
 	SoftDeleteContact(ctx context.Context, id uuid.UUID) error
 
 	CreateDeal(ctx context.Context, ownerID uuid.UUID, req CreateDealRequest) (*ent.CrmDeal, error)
-	ListDeals(ctx context.Context) ([]*ent.CrmDeal, error)
+	// ListDeals — ownerID == nil → org-wide (admin); иначе только owner = ownerID (RT-003).
+	ListDeals(ctx context.Context, ownerID *uuid.UUID) ([]*ent.CrmDeal, error)
 	GetDeal(ctx context.Context, id uuid.UUID) (*ent.CrmDeal, error)
 	UpdateDeal(ctx context.Context, id uuid.UUID, req UpdateDealRequest) (*ent.CrmDeal, error)
 	SoftDeleteDeal(ctx context.Context, id uuid.UUID) error
 
 	IsProjectMember(ctx context.Context, projectID, userID uuid.UUID) (bool, error)
 	UserExists(ctx context.Context, userID uuid.UUID) (bool, error)
+	IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bool, error)
 }
 
 // EntRepository реализует Repository через Ent.
@@ -63,24 +66,37 @@ func (r *EntRepository) CreateContact(ctx context.Context, userID uuid.UUID, req
 	return create.Save(ctx)
 }
 
-func (r *EntRepository) ListContacts(ctx context.Context) ([]*ent.CrmContact, error) {
-	return r.client.CrmContact.Query().
+// MaxCRMList — P3-BE-06 / W7-A2-013: hard cap ListContacts / ListDeals (как accounting invoices 50).
+// Mutation: снять Limit → unbounded All при N>cap.
+const MaxCRMList = 100
+
+func (r *EntRepository) ListContacts(ctx context.Context, ownerID *uuid.UUID) ([]*ent.CrmContact, error) {
+	q := r.client.CrmContact.Query().
 		Where(crmcontact.DeletedAtIsNil()).
 		WithLinkedUser().
 		Order(ent.Desc(crmcontact.FieldUpdatedAt)).
-		All(ctx)
+		Limit(MaxCRMList)
+	if ownerID != nil {
+		q = q.Where(crmcontact.HasCreatedByWith(user.IDEQ(*ownerID)))
+	}
+	return q.All(ctx)
 }
 
 func (r *EntRepository) GetContact(ctx context.Context, id uuid.UUID) (*ent.CrmContact, error) {
 	return r.client.CrmContact.Query().
 		Where(crmcontact.ID(id), crmcontact.DeletedAtIsNil()).
 		WithLinkedUser().
+		WithCreatedBy().
 		Only(ctx)
 }
 
 func (r *EntRepository) UpdateContact(ctx context.Context, id uuid.UUID, req UpdateContactRequest) (*ent.CrmContact, error) {
+	// A6-003: VersionEQ в WHERE — иначе concurrent update = lost write (app-check TOCTOU).
 	upd := r.client.CrmContact.UpdateOneID(id).
-		Where(crmcontact.DeletedAtIsNil()).
+		Where(
+			crmcontact.DeletedAtIsNil(),
+			crmcontact.VersionEQ(req.Version),
+		).
 		AddVersion(1)
 	if req.Name != nil {
 		upd.SetName(*req.Name)
@@ -137,8 +153,8 @@ func (r *EntRepository) CreateDeal(ctx context.Context, ownerID uuid.UUID, req C
 	return create.Save(ctx)
 }
 
-func (r *EntRepository) ListDeals(ctx context.Context) ([]*ent.CrmDeal, error) {
-	return r.client.CrmDeal.Query().
+func (r *EntRepository) ListDeals(ctx context.Context, ownerID *uuid.UUID) ([]*ent.CrmDeal, error) {
+	q := r.client.CrmDeal.Query().
 		Where(crmdeal.DeletedAtIsNil()).
 		WithOwner().
 		WithContact().
@@ -148,7 +164,11 @@ func (r *EntRepository) ListDeals(ctx context.Context) ([]*ent.CrmDeal, error) {
 			ent.Asc(crmdeal.FieldRank),
 			ent.Desc(crmdeal.FieldUpdatedAt),
 		).
-		All(ctx)
+		Limit(MaxCRMList)
+	if ownerID != nil {
+		q = q.Where(crmdeal.HasOwnerWith(user.IDEQ(*ownerID)))
+	}
+	return q.All(ctx)
 }
 
 func (r *EntRepository) GetDeal(ctx context.Context, id uuid.UUID) (*ent.CrmDeal, error) {
@@ -161,8 +181,12 @@ func (r *EntRepository) GetDeal(ctx context.Context, id uuid.UUID) (*ent.CrmDeal
 }
 
 func (r *EntRepository) UpdateDeal(ctx context.Context, id uuid.UUID, req UpdateDealRequest) (*ent.CrmDeal, error) {
+	// A6-003: VersionEQ в WHERE — иначе concurrent update = lost write (app-check TOCTOU).
 	upd := r.client.CrmDeal.UpdateOneID(id).
-		Where(crmdeal.DeletedAtIsNil()).
+		Where(
+			crmdeal.DeletedAtIsNil(),
+			crmdeal.VersionEQ(req.Version),
+		).
 		AddVersion(1)
 	if req.Title != nil {
 		upd.SetTitle(*req.Title)
@@ -213,4 +237,12 @@ func (r *EntRepository) UserExists(ctx context.Context, userID uuid.UUID) (bool,
 	return r.client.User.Query().
 		Where(user.IDEQ(userID)).
 		Exist(ctx)
+}
+
+func (r *EntRepository) IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bool, error) {
+	u, err := r.client.User.Get(ctx, userID)
+	if err != nil {
+		return false, err
+	}
+	return u.SystemRole == user.SystemRoleAdmin || u.SystemRole == user.SystemRoleFounder, nil
 }

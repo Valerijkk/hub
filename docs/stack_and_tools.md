@@ -12,6 +12,7 @@
 | Go | **1.25.0** | `backend/go.mod` | Backend, CLI, hub-mail |
 | TypeScript | **~5.7** | `frontend/package.json` | Frontend |
 | Node.js | **22** (CI), 20+ (local) | `.github/workflows/ci.yml` | Сборка, Vitest, Playwright |
+| Python | **3.12+ target** (локально bundled 3.12.13) | Phase 129 / `testframework/pyproject.toml` | Единый корневой pytest/httpx/Playwright/Locust QA-проект; scaffold ещё не создан |
 
 ---
 
@@ -20,7 +21,7 @@
 | Библиотека | Версия (go.mod) | Назначение |
 |------------|-----------------|------------|
 | Fiber | **v3.0.0-beta.3** | HTTP, WebSocket (fasthttp) |
-| Ent | **v0.14.1** | ORM, кодогенерация схем (**82 schemas**, `backend/ent/schema/`) |
+| Ent | **v0.14.1** | ORM, кодогенерация схем (**87 schemas**, `backend/ent/schema/`, measured 2026-08-07) |
 | Atlas | indirect (Ent) | SQL-миграции |
 | testify | **v1.11.1** | Unit/integration assertions |
 | aws-sdk-go-v2 / s3 | **v1.32.7** / **v1.71.1** | SeaweedFS S3 API |
@@ -57,20 +58,20 @@ go build -tags release -o bin/server ./cmd/server
 | TypeScript | **~5.7.0** | Типизация |
 | TanStack Router | **^1.0.0** | File-based routing |
 | TanStack Query | **^5.0.0** | Server state |
-| Zustand | **^5.0.0** | Client state (11+ stores) |
+| Zustand | **^5.0.0** | Client state (**12** stores в `frontend/src/stores/`, measured 2026-07-28) |
 | Tailwind CSS | **^4.0.0** | Styling (`@tailwindcss/vite`) |
 | Shadcn/ui + Radix | pinned | UI primitives |
 | Plate (`@udecode/plate`) | **^48.0.5** | Rich-text |
 | pragmatic-drag-and-drop | **^1.7.9** | Kanban DnD |
 | Recharts | **^3.8.0** | Dashboard charts |
 | i18next | **^25.9.0** | Локализация RU/EN |
-| motion | **^12.38.0** | UI animations |
+| motion | **^12.40.0** | UI animations |
 | livekit-client | **^2.17.3** | WebRTC UI |
 | Vitest | **^3.0.0** | Unit tests |
 | @testing-library/react | **^16.0.0** | Component tests |
 | @playwright/test | **^1.52.0** | E2E |
 | @biomejs/biome | latest | Lint + format |
-| vite-plugin-pwa | **^1.2.0** | PWA |
+| vite-plugin-pwa | **^1.3.0** | PWA |
 
 ### Скрипты npm
 
@@ -82,6 +83,10 @@ go build -tags release -o bin/server ./cmd/server
 | `npx vitest run` / `npm run test:run` | Unit tests (`testframework/stages/unit/frontend-test/domains/`) |
 | `npm run test:e2e:smoke` | Playwright smoke job (`--project=chromium-smoke`) |
 | `npm run test:e2e` | Playwright full job (`--project=chromium-full`) |
+
+Эти Playwright TypeScript scripts — текущие legacy entrypoints на период
+верифицированного dual-run. Они не входят в целевой стек и подлежат
+удалению в Phase 141 после доказанного Python parity.
 
 ---
 
@@ -96,6 +101,10 @@ go build -tags release -o bin/server ./cmd/server
 | NATS JetStream | `nats:2.11` | 4222, 8222 | Pub/sub, outbox, notifications |
 
 Файлы compose: `docker-compose.local.yml` (корень), `deployments/docker-compose.prod.yml`, `deployments/docker-compose.test.yml`.
+Test Compose по умолчанию ограничивает CPU/RAM каждого сервиса; локальные
+override-переменные имеют вид `HUB_TEST_<SERVICE>_CPUS` и
+`HUB_TEST_<SERVICE>_MEMORY`. Канонический Go runner также запускается с
+`--cpus 2.0 --memory 4g`, чтобы race/coverage не монополизировал Docker Desktop.
 
 ---
 
@@ -104,7 +113,7 @@ go build -tags release -o bin/server ./cmd/server
 | Сервис | Образ | Назначение |
 |--------|-------|------------|
 | LiveKit | `livekit/livekit-server:v1.8` | Voice, screen share, recording (egress) |
-| Fiber WS | built-in | Client events (`GET /ws?token=JWT`) |
+| Fiber WS | built-in | Client events (`GET /ws` + ticket subprotocol) |
 
 Prod LiveKit: конфиг из env heredoc в `docker-compose.prod.yml` (не монтировать `livekit-prod.yaml` с секретами).
 
@@ -119,7 +128,7 @@ Prod LiveKit: конфиг из env heredoc в `docker-compose.prod.yml` (не �
 | K3s | prod (planned) | — | ⚠️ частично: `deployments/k3s/monitoring/networkpolicy-metrics.yaml`; полного deployment-набора нет |
 | GitHub Actions | CI/CD | `.github/workflows/ci.yml`, `deploy.yml` | ✅ |
 | GitLab CI | mirror | `.gitlab-ci.yml` | ✅ |
-| Monitoring | optional | `deployments/docker-compose.monitoring.yml` | Prometheus, Loki, Grafana (pinned v3.x) |
+| Monitoring | optional | `deployments/docker-compose.monitoring.yml` | Prometheus, Loki, Grafana (pinned); Tempo via `--profile otel` (A14-009) |
 
 ### Caddy routing (prod)
 
@@ -194,6 +203,8 @@ E2E config: `frontend/playwright.config.ts` · specs: `testframework/stages/e2e/
 
 ## Структура репозитория
 
+Текущая структура до cutover:
+
 ```
 hub/
 ├── backend/                 # Go API, Ent schemas, internal/* modules
@@ -211,6 +222,39 @@ hub/
 ├── docs/wiki/             # API, DEPLOY, QUICKSTART, SHORTCUTS
 └── .planning/             # GSD roadmap, COVERAGE, STATE, AUDIT-*
 ```
+
+Цель фаз 128–141:
+
+```text
+hub/
+├── backend/tests/<domain>/ # только Go unit tests
+├── frontend/tests/<domain>/ # только Vitest/RTL unit tests
+├── frontend/tests/support/ # frontend setup/render/fixtures
+└── testframework/          # один Python QA-проект, без python/ nesting
+    ├── pyproject.toml        # dependencies + единый pytest config (либо pytest.ini)
+    ├── core/
+    ├── api/
+    ├── integration/
+    ├── contract/
+    ├── e2e/
+    ├── load/
+    ├── docker/
+    └── reports/
+```
+
+Live ledger на HEAD `ee6d696c`: **1,047** rows; **830** Go / **3,667** tests
+(legacy root 829/3,665 + server 1/2; 594 genuine unit + 236 component:
+31 API + 205 integration), **180** Vitest /
+**519** cases (156 unit + 24 static contract) + 3 frontend support,
+**20** E2E specs / **53** cases + 14 E2E support, 39 canonical hooks и
+0 target Python tests. SHA-256: `01dae4e2…`.
+
+В `backend/tests/**` не переносятся component/integration tests: текущие
+**236** `go-component` rows (31 API + 205 integration) направляются в Python
+`api/integration/contract` или
+рефакторятся в genuine isolated Go units до переноса. После Phase 141
+в `testframework/**` допустим только Python для исполняемого test/load кода;
+legacy Go/Vitest/TS E2E и их entrypoints удаляются.
 
 ---
 
@@ -233,4 +277,4 @@ hub/
 См. `docs/tz_constraints.md`: Fiber, NATS, SeaweedFS SDK, TanStack Router, Shadcn, Caddy, Compose/K3s — без ADR.
 
 ---
-*Последнее обновление: 2026-06-22 — quality audit: CI backend-test только testframework/, pipeline repo structure*
+*Последнее обновление: 2026-08-07 — current-vs-target test stack и единый root Python contract.*

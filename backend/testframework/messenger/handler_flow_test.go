@@ -323,7 +323,7 @@ func TestHandler_GetAndUpdateChannel(t *testing.T) {
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&channel))
 	assert.Equal(t, channelID.String(), channel.ID)
 
-	updateBody := `{"name":"renamed-via-handler","description":"updated desc"}`
+	updateBody := `{"name":"renamed-via-handler","description":"updated desc","version":1}`
 	req = httptest.NewRequest(http.MethodPut, "/api/messenger/channels/"+channelID.String(), bytes.NewReader([]byte(updateBody)))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err = app.Test(req)
@@ -387,6 +387,7 @@ func TestHandler_PromoteToIssue_Success(t *testing.T) {
 	projectID := uuid.New()
 	channelID := setupChannelWithMembers(repo, "public", false, userID)
 	svc.SetIssuePromoter(&mockIssuePromoter{issueKey: "HUB-42", issueID: uuid.New().String()})
+	svc.SetPromotePermissionChecker(&stubPromoteChecker{allowed: true})
 
 	msgID := uuid.New().String()
 	repo.messages[msgID] = &messenger.MessageDocument{

@@ -59,5 +59,6 @@ func TestHandler_DeleteFilter_NotFound(t *testing.T) {
 	resp, err := app.Test(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
-	assert.Equal(t, fiber.StatusInternalServerError, resp.StatusCode)
+	// A2W5-A4-001 / TASK-092: missing → 404 (не 500).
+	assert.Equal(t, fiber.StatusNotFound, resp.StatusCode)
 }

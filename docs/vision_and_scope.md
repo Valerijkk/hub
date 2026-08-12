@@ -25,21 +25,21 @@
 | G-04 | Production-ready безопасность и стабильность | 0 CRITICAL findings, unit ≥ 80% security-critical, e2e критические пути | v2.5 |
 | G-05 | Pixel-perfect UX после редизайна v2.0 | 11 страниц по макетам (v2.0 ✓); WCAG 2.1 AA + Lighthouse ≥ 90 — цель v2.5, верификация pending | v2.0 partial |
 | G-06 | Снизить стоимость владения TMS vs Allure TestOps | Собственный Allure-парсер + TMS без лицензии TestOps | v1.0 ✓ |
-| G-07 | Закрыть потребности корпоративного портала (intranet, calendar, wiki) без сторонних инструментов | US-INTR/US-CAL/US-WIKI реализованы и приняты; команда не использует Confluence/Notion/внешний календарь для этих сценариев | Волны 1–8 (ROADMAP-FINAL-2026-07-03) |
+| G-07 | Закрыть потребности корпоративного портала (intranet, calendar, wiki) без сторонних инструментов | **Partial (PO reconcile 2026-07-28, A2W11-5-001 / TASK-105):** базовый Intranet + Calendar shipped (v4 UI/API); US-INTR/US-CAL v2 — частично/планируется; **US-WIKI — planned** (продуктового модуля нет: нет `backend/internal/wiki`, нет FE routes; `docs/wiki/API.md` — planned/spec). Целевой критерий «US-INTR/US-CAL/US-WIKI реализованы и приняты; 0 Confluence/Notion/внешний календарь» — только после ship wiki (Волны 5/8). Не путать с репозиторной `docs/wiki/` (документация продукта) | Волны 1–8 · Partial |
 
 ## KPI
 
 | Метрика | Целевое значение | Текущий статус |
 |---------|------------------|----------------|
-| REST API (`/api/*`) | 280+ production routes | **286** ✅ (+3 infra, +1 WS `GET /ws`; см. `docs/wiki/API.md`) |
-| Frontend UI-маршруты | Покрытие всех модулей | **60+** страниц ✅ (`frontend/src/routeTree.gen.ts`, v4 super-app) |
+| REST API (`/api/*`) | 250+ production routes | **252** OpenAPI paths ✅ (`swagger.json`, 2026-07-28); route inventory historically ~286 |
+| Frontend UI-маршруты | Покрытие всех модулей | **77** `.tsx` routes ✅ (`frontend/src/routes/`, measured 2026-07-28) |
 | Ent schemas (PostgreSQL) | Полная модель домена | **82** сущности ✅ (`backend/ent/schema/`, без `helpers.go`) |
 | Backend domain-модули | Модульный монолит | **31** пакет в `backend/internal/` (+ `platform/`, `testutil/`) |
 | v2.0 UI requirements (DSFN–XTRA) | 85/85 | ✅ COMPLETE (Phases 8–14) |
 | CRITICAL security blockers | 0 | **12/12 FIXED** в коде (v2.0.1); PG-03 ротация секретов в git history — manual ops |
-| Unit coverage (security-critical) | ≥ 80% | **6/6 пакетов ≥80%** ✅ (auth, ws, storage, rbac, audit, calls) |
-| Unit coverage (overall `internal/`) | ≥ 50% (gate), ≥ 82% (wave) | **83.0%** ✅ (Wave C, Docker `-tags hubtest`) |
-| Frontend Vitest | Unit-тесты модулей | **99/99** ✅ |
+| Unit coverage (security-critical) | ≥ 80% | **6/6 пакетов ≥80%** ✅ (auth, ws, rbac, audit, calls, platform/middleware) |
+| Unit coverage (overall `internal/`) | ≥ 50% (gate), ≥ 82% (wave) | **83.0%** ✅ (2026-06-22 Docker baseline; Wave C, `-tags hubtest`) |
+| Frontend Vitest | Unit-тесты модулей | **179** files ✅ (`stages/unit/frontend-test/`, measured 2026-07-29; 61 `.ts` + 118 `.tsx`) |
 | E2E critical paths | Playwright | **20 spec-файлов** ✅ (`testframework/stages/e2e/domains/`) |
 | Global search Ctrl+K (US-M07) | UI + user-scope backend | **UI ✅** (PR #15: Calls, Settings, Admin) |
 | Lighthouse Performance/Accessibility | ≥ 90 | CI artifact job (PR #27, non-blocking); formal gate — backlog |
@@ -71,7 +71,7 @@
 | US-M03 | Как разработчик, хочу управлять задачами (9 типов) с кастомным workflow | CRUD, связи (blocks/relates/duplicates/clones/causes), комментарии, optimistic lock, чеклисты |
 | US-M04 | Как команда, хочу общаться в каналах с тредами и реакциями | Публичные/приватные каналы, DM, треды, presence, typing indicator |
 | US-M05 | Как QA, хочу вести тест-кейсы и получать результаты из CI (Allure) | Парсер Allure JSON, матчинг по ID/annotation, уведомления, создание бага из failed |
-| US-M06 | Как участник, хочу созвоны с screen share (и webcam с Phase 16) до 50 человек | LiveKit; запись audio+screen; webcam Phase 16 (ADR-TZ-REWRITE) |
+| US-M06 | Как участник, хочу созвоны с screen share и webcam до 50 человек | LiveKit; запись audio+screen; webcam UI shipped (`CallControls` / LiveKit); polish — backlog |
 | US-M07 | Как пользователь, хочу глобальный поиск (Ctrl+K) по всем сущностям | User-scope фильтрация; задачи, кейсы, пользователи, проекты, каналы, файлы; JQL для задач |
 | US-M08 | Как новый пользователь, хочу пройти онбординг | Профиль → тур (6 карточек) → тема/accent → создание/вступление в проект |
 | US-M09 | Как Admin, хочу управлять режимом регистрации | Открытая регистрация ИЛИ только по инвайтам — настройка в админ-панели |
@@ -112,18 +112,18 @@
 
 ### Won't Have (v1–v2) — updated v2.5 PO lock
 
-- ~~Видеозвонки с вебкамерами~~ → **Phase 16** (ADR-TZ-REWRITE)
+- ~~Видеозвонки с вебкамерами~~ → UI shipped (`CallControls` / LiveKit); polish backlog
 - Нативные мобильные приложения (PWA достаточно)
 - ~~Email только magic link~~ → transactional + marketing via **hub-mail** (v2.5+)
-- SSO/LDAP/OAuth, SaaS billing (later), ~~Gantt~~ → Phase 16, multi-org (v5)
+- SSO/LDAP — после `ADR-AUTH-SSO` (до ADR = Magic Link only); OAuth соцсетей — out; SaaS billing (later); ~~Gantt~~ → UI shipped; multi-org (v5)
 - Remote control (управление чужим экраном)
 - Видео/аудио сообщения в мессенджере (кроме голосовых)
 - Route-level page transition animations
 - Parallax/3D-анимации на карточках
 
-См. также: [tz_constraints.md](tz_constraints.md) · `.planning/roadmaps/DISCUSS-ROADMAP-LOCKED.md`
+См. также: [tz_constraints.md](tz_constraints.md) · `.planning/archive/roadmaps/DISCUSS-ROADMAP-LOCKED.md`
 
-### v3.0 AI Chat Hub — SHIPPED (`.planning/roadmaps/MILESTONE-3.md`)
+### v3.0 AI Chat Hub — SHIPPED (`.planning/archive/roadmaps/MILESTONE-3.md`)
 
 | ID | История | Статус |
 |----|---------|--------|
@@ -134,7 +134,7 @@
 | US-F05 | Как Admin, хочу rate limits и audit AI без утечки содержимого | ✅ `AIUsageDaily`, content policy |
 | US-F06 | Как разработчик, хочу OpenAI-compatible API Hub | ⏳ v3.5 backlog |
 
-### v4.0 Corporate Super-App — SHIPPED (`.planning/specs/PLATFORM-VISION-v4.md`)
+### v4.0 Corporate Super-App — SHIPPED (`.planning/decisions/specs/PLATFORM-VISION-v4.md`)
 
 | ID | История | Статус |
 |----|---------|--------|
@@ -147,11 +147,11 @@
 
 **Дополнительно в v4 (код):** no-code DB (`/bases`, `HubBase/HubTable/HubRecord`), marketplace (`/marketplace`), kudos и random coffee (`intranet`), status page (`/status`), hub-mail (`/admin/mail`), 1C connector (`integrations/onec`).
 
-**Won't Have v4:** payroll/НДФЛ calc, multi-tenant SaaS (v5), SSO, native apps.
+**Won't Have v4:** payroll/НДФЛ calc, multi-tenant SaaS (v5), SSO до принятия `ADR-AUTH-SSO`, native apps.
 
 ## Волна 1 аналитика — Intranet v2 (US-INTR)
 
-> Границы scope зафиксированы пользователем: `.planning/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` §4 (GZ-V4-01/02/03) и `.planning/july-2026/ROADMAP-FINAL-2026-07-03.md` Волна 1 (задача 1.10). Не расширять без нового решения PO.
+> Границы scope зафиксированы пользователем: `.planning/decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` §4 (GZ-V4-01/02/03) и `.planning/archive/july-2026/ROADMAP-FINAL-2026-07-03.md` Волна 1 (задача 1.10). Не расширять без нового решения PO.
 > Базовый функционал (лента `intranet/news`, kudos, random coffee) реализован в v4 — истории ниже описывают доводку до паритета. Персоны: Игорь (Member), Елена (Admin), Виктор (PO).
 
 ### KPI (Intranet v2)
@@ -292,7 +292,7 @@ Edge-cases: повторение прошлой пары допускается 
 
 ## Волна 1 аналитика — Calendar v2 (US-CAL)
 
-> Границы scope зафиксированы пользователем: `.planning/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` §4 (GZ-V4-04/05/06/07) и `.planning/july-2026/ROADMAP-FINAL-2026-07-03.md` Волна 1 (задача 1.11). Не расширять без нового решения PO.
+> Границы scope зафиксированы пользователем: `.planning/decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` §4 (GZ-V4-04/05/06/07) и `.planning/archive/july-2026/ROADMAP-FINAL-2026-07-03.md` Волна 1 (задача 1.11). Не расширять без нового решения PO.
 > Базовый календарь (`/calendar`, iCal export) реализован в v4 (US-V03) — истории ниже доводят его до паритета. Синхронизация — iCal двусторонне-упрощённо: export + подписка на внешние фиды, **без OAuth** (Google/Outlook API вне scope). Персоны: Игорь (Member), Дмитрий (Team Lead), Елена (Admin).
 
 ### KPI (Calendar v2)
@@ -418,17 +418,19 @@ Edge-cases: неутверждённая заявка на отпуск (pending
 
 ## Волна 1 аналитика — Wiki, новый модуль (US-WIKI)
 
-> Границы scope зафиксированы пользователем: `.planning/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` §2 (GZ-SEC-07/11: space-level RBAC + наследование + restrict-флаг) и §4 (GZ-V4-12/13: handbook = пространство общей wiki, wiki раньше HR-волны); `.planning/july-2026/ROADMAP-FINAL-2026-07-03.md` Волна 1 (задача 1.12), реализация — Волны 5/8. Не расширять без нового решения PO.
+> Границы scope зафиксированы пользователем: `.planning/decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` §2 (GZ-SEC-07/11: space-level RBAC + наследование + restrict-флаг) и §4 (GZ-V4-12/13: handbook = пространство общей wiki, wiki раньше HR-волны); `.planning/archive/july-2026/ROADMAP-FINAL-2026-07-03.md` Волна 1 (задача 1.12), реализация — Волны 5/8. Не расширять без нового решения PO.
 > Модуля в коде ещё нет — это спецификация нового модуля. Редактор — **markdown-first** (WYSIWYG-редактор уровня Confluence — вне scope v1). Поиск — только user-scoped (инвариант NF-03). Персоны: Игорь (Member), Виктор (PO), Елена (Admin), Алексей (Developer).
+>
+> **PO reconcile (2026-07-28, TASK-105 / A2W11-5-001):** G-07 = **Partial**. KPI ниже остаются **планируется** — согласовано с отсутствием shipped-модуля. Не считать G-07 done, пока US-WIKI-01..05 не приняты. `docs/wiki/` в репозитории — документация продукта, не замена Confluence/Notion.
 
 ### KPI (Wiki v1)
 
 | Метрика | Целевое значение | Текущий статус |
 |---------|------------------|----------------|
-| Замена внешней wiki | Handbook и командная документация ведутся в Hub (0 активных Confluence/Notion-страниц у команды) | планируется (US-WIKI-01..05) |
-| Изоляция доступа | 0 инцидентов чтения страниц вне прав (space RBAC + restrict + user-scope поиск) | планируется (US-WIKI-02, US-WIKI-05) |
-| Восстановимость правок | Любая правка страницы откатывается к прежней версии | планируется (US-WIKI-03) |
-| Traceability | Страницы решений связаны с задачами (issue-link) в обе стороны | планируется (US-WIKI-04) |
+| Замена внешней wiki | Handbook и командная документация ведутся в Hub (0 активных Confluence/Notion-страниц у команды) | **планируется** (US-WIKI-01..05) — не shipped; G-07 Partial |
+| Изоляция доступа | 0 инцидентов чтения страниц вне прав (space RBAC + restrict + user-scope поиск) | **планируется** (US-WIKI-02, US-WIKI-05) |
+| Восстановимость правок | Любая правка страницы откатывается к прежней версии | **планируется** (US-WIKI-03) |
+| Traceability | Страницы решений связаны с задачами (issue-link) в обе стороны | **планируется** (US-WIKI-04) |
 
 ### User Stories (MoSCoW)
 
@@ -618,7 +620,7 @@ Edge-cases: сниппет результата не раскрывает кон
 - PLSH-01: Per-page ambient body gradients
 - PLSH-02: Skeleton loading states для виджетов
 - PLSH-03: Smooth theme toggle transition
-- Phase 16: Gantt UI (`/projects/$id/gantt`), webcam в звонках, hub-mail transactional
+- Phase 16+: Gantt UI shipped (`/projects/$id/gantt`); webcam UI shipped (`CallControls` / LiveKit); hub-mail transactional — residual
 
 ## Связанные документы
 
@@ -630,7 +632,7 @@ Edge-cases: сниппет результата не раскрывает кон
 | `.planning/REQUIREMENTS.md` | v2.0 redesign requirements (85 шт., complete) |
 | `.planning/ROADMAP.md` | Фазы и success criteria |
 | `.planning/STATE.md` | Текущая позиция и blockers |
-| `.planning/roadmaps/MILESTONE-3.md` | v3.0 AI Chat Hub (30 требований) |
+| `.planning/archive/roadmaps/MILESTONE-3.md` | v3.0 AI Chat Hub (30 требований) |
 
 ---
-*Последнее обновление: 2026-07-03 — Волна 1 поток D: US/AC Intranet v2 (US-INTR), Calendar v2 (US-CAL), Wiki (US-WIKI) по GRAY-ZONES-DECISIONS-2026-07-03 §4*
+*Последнее обновление: 2026-07-28 — TASK-105 / A2W11-5-001: G-07 → Partial (INTR+CAL base shipped, US-WIKI planned); KPI Wiki остаются «планируется». Ранее: 2026-07-03 Волна 1 поток D US-INTR/US-CAL/US-WIKI.*

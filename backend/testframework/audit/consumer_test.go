@@ -122,15 +122,19 @@ func TestProcessEvent_SkipsUnknownSubject(t *testing.T) {
 	assert.Empty(t, repo.createCalls)
 }
 
-// TestProcessEvent_SkipsInvalidJSON проверяет отклонение при process event skips некорректный json.
-func TestProcessEvent_SkipsInvalidJSON(t *testing.T) {
+// TestProcessEvent_InvalidJSON_NaksWithoutCreate — W6-A4-014 / P3-BE-02:
+// прежнее имя SkipsInvalidJSON устарело; assert Ack/Nak через counting msg.
+func TestProcessEvent_InvalidJSON_NaksWithoutCreate(t *testing.T) {
 	repo := &consumerRepoStub{}
 	consumer := audit.ExportNewAuditConsumerForTest(repo)
-	audit.ExportProcessEvent(consumer, context.Background(), &stubJetStreamMsg{
+	msg := &countingAuditJSMsg{
 		subject: "project.created",
 		data:    []byte(`{not-json`),
-	})
+	}
+	audit.ExportProcessEvent(consumer, context.Background(), msg)
 	assert.Empty(t, repo.createCalls)
+	assert.Equal(t, 1, msg.naks, "invalid JSON must Nak")
+	assert.Equal(t, 0, msg.acks)
 }
 
 // TestProcessEvent_RepoErrorDoesNotPanic гарантирует отсутствие паники/гонок при process event repo ошибка does not паника.

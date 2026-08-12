@@ -58,10 +58,13 @@ func TestEntRepository_ProjectScopedQueries(t *testing.T) {
 	assert.Len(t, issues, 2)
 	assert.Equal(t, openIssue.ID, issues[0].ID)
 
-	completed, err := repo.ListProjectCompletedIssuesSince(ctx, projectID, now.Add(-time.Hour))
+	dayCounts, err := repo.AggregateProjectCompletedByDay(ctx, projectID, now.Add(-time.Hour), now.Add(time.Hour))
 	require.NoError(t, err)
-	assert.Len(t, completed, 1)
-	assert.Equal(t, completedIssue.ID, completed[0].ID)
+	totalDone := 0
+	for _, c := range dayCounts {
+		totalDone += c
+	}
+	assert.Equal(t, 1, totalDone)
 
 	count, err := repo.CountProjectCompletedIssuesInRange(ctx, projectID, now.Add(-time.Hour), now.Add(time.Hour))
 	require.NoError(t, err)

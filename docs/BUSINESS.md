@@ -186,7 +186,7 @@ Hub объединяет все инструменты в одном интер�
 | Instant-звонки | Быстрый звонок без канала: генерируется invite-код (hub-abc123), ссылка для присоединения |
 | Присоединение | По ID звонка или по invite-коду. LiveKit выдаёт токен для WebRTC-соединения |
 | Гостевой доступ | Присоединение к звонку без аккаунта Hub: достаточно invite-ссылки и имени. Гость получает гостевой LiveKit-токен (4 часа) |
-| Голос | Аудио; webcam — **Phase 16** (маршрут Gantt уже в UI: `/projects/$id/gantt`) |
+| Голос | Аудио + webcam (UI shipped: `CallControls` / LiveKit `setCameraEnabled`); остаточный polish — backlog. Gantt UI: `/projects/$id/gantt` |
 | Screen share | Демонстрация экрана или окна. Несколько участников могут шарить одновременно |
 | Mute/unmute | Toggle микрофона. Статус виден всем участникам |
 | Поднять руку | Индикатор "Хочу сказать". Видно всем участникам |
@@ -435,17 +435,18 @@ Permissions хранятся как bitmask (uint64) в поле `permissions` �
 
 | Что НЕ входит | Почему / когда |
 |----------------|----------------|
-| SSO/LDAP/OAuth | Запрещено до ADR; Magic Link only |
+| SSO/LDAP (OIDC/AD) | В scope после принятого `ADR-AUTH-SSO`; до ADR — Magic Link only |
+| OAuth соцсетей (Google/GitHub login и т.п.) | Вне scope |
 | Multi-tenant multi-org | 1 instance = 1 org; v5 |
 | Native App Store/Play | PWA достаточно |
 | SaaS billing/подписки | Internal tool, не commercial SaaS |
-| Webcam в звонках | **Phase 16** (запланировано, ADR-TZ-REWRITE) |
+| Webcam в звонках | UI shipped (`CallControls` / LiveKit `setCameraEnabled`); остаточный polish — backlog |
 | Payroll / НДФЛ | v4 accounting — ledger/invoices, не зарплатный модуль |
 | Remote control экрана | Сложность vs ценность |
 | Route-level page transitions | Productivity tool, не marketing site |
 | Redis pub/sub | NATS JetStream only (NFR-26) |
 
-См. также: `docs/tz_constraints.md`, `.planning/roadmaps/DISCUSS-ROADMAP-LOCKED.md`
+См. также: `docs/tz_constraints.md`, `.planning/archive/roadmaps/DISCUSS-ROADMAP-LOCKED.md`
 
 ## Дорожная карта (фактический статус)
 
@@ -457,8 +458,8 @@ Permissions хранятся как bitmask (uint64) в поле `permissions` �
 | **v2.6** | Architecture completion, OBS stack (Prometheus/Loki/Grafana), automation rules | ✅ COMPLETE 2026-06-24 |
 | **v3.0** | AI Hub: providers, @hub-ai bot, JQL assist, PR review | ✅ COMPLETE 2026-06-22 |
 | **v4.0** | Super-app: intranet, calendar, CRM, HR, accounting, bases, marketplace | ✅ COMPLETE 2026-06-25 |
-| **Coverage wave** | Phases 59–125, COV 82.6%, test framework migration | ✅ COMPLETE 2026-06-21 |
-| **Phase 16+** | Gantt, webcam, full JQL automation, hub-mail transactional | ⏳ Planned |
+| **Coverage wave** | Phases 59–125, COV 82.6% (2026-06-21 phase-125 exit; later **83.0%** 2026-06-22 Docker baseline), test framework migration | ✅ COMPLETE 2026-06-21 |
+| **Phase 16+** | full JQL automation, hub-mail transactional (Gantt + webcam UI уже shipped; webcam polish — backlog) | ⏳ Residual planned |
 
 ---
-*Последнее обновление: 2026-06-21 — RU-D02: auth Magic Link, v3/v4 модули, верификация по backend/internal и frontend/src*
+*Последнее обновление: 2026-07-28 — TASK-123: webcam UI shipped consistency (A2W11-4-001); Phase 16+ residual without webcam-as-blocker*

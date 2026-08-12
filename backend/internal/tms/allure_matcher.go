@@ -117,6 +117,10 @@ func (m *Matcher) MatchTestCase(ctx context.Context, projectID uuid.UUID, result
 				slog.Debug("allure матчинг по automation_id (tms link)", "automation_id", link.Name, "case_key", tc.CaseKey)
 				return tc, MatchByAutomationID, nil
 			}
+			// A2W2-4-003: DB timeout / infra ≠ NotFound → fail, не silent unmapped.
+			if !ent.IsNotFound(err) && err != nil {
+				return nil, -1, err
+			}
 		}
 	}
 	for _, label := range result.Labels {
@@ -125,6 +129,9 @@ func (m *Matcher) MatchTestCase(ctx context.Context, projectID uuid.UUID, result
 			if err == nil && tc != nil {
 				slog.Debug("allure матчинг по automation_id (label)", "automation_id", label.Value, "case_key", tc.CaseKey)
 				return tc, MatchByAutomationID, nil
+			}
+			if !ent.IsNotFound(err) && err != nil {
+				return nil, -1, err
 			}
 		}
 	}
@@ -136,10 +143,13 @@ func (m *Matcher) MatchTestCase(ctx context.Context, projectID uuid.UUID, result
 	for _, text := range searchTexts {
 		keys := caseKeyInNameRegex.FindAllString(text, -1)
 		for _, key := range keys {
-			tc, err := m.repo.FindTestCaseByKey(ctx, key)
+			tc, err := m.repo.FindTestCaseByKey(ctx, projectID, key)
 			if err == nil && tc != nil {
 				slog.Debug("allure матчинг по case_key в имени", "case_key", key, "name", result.Name)
 				return tc, MatchByCaseKey, nil
+			}
+			if !ent.IsNotFound(err) && err != nil {
+				return nil, -1, err
 			}
 		}
 	}

@@ -21,10 +21,10 @@ Full `/qa-gate` on accumulated Phases 59–62; production handoff with PG-03 run
 
 ## Non-blocking (manual ops)
 
-- **PG-03** secret rotation — `.planning/production/PG-03-SECRET-ROTATION.md`
+- **PG-03** secret rotation — `.planning/ops/production/PG-03-SECRET-ROTATION.md`
 - **COMMIT/PR** — user approval on `feat/v2.5-trust`
 
 ## Reference
 
 - Gate skill: `.cursor/skills/qa-gate/SKILL.md`
-- Exit criteria: `.planning/tasks/PLAN-CLOSE-GAPS.md` REGRESSION row
+- Exit criteria: `.planning/archive/tasks/PLAN-CLOSE-GAPS.md` REGRESSION row

@@ -4,6 +4,10 @@
 services:
   postgres:
     image: postgres:17
+    # Локальные тесты не должны монополизировать Docker Desktop. Значения
+    # переопределяются через environment без изменения compose-файла.
+    cpus: "${HUB_TEST_POSTGRES_CPUS:-1.0}"
+    mem_limit: "${HUB_TEST_POSTGRES_MEMORY:-1536m}"
     ports:
       - "5432:5432"
     environment:
@@ -18,6 +22,8 @@ services:
 
   mongo:
     image: mongo:8
+    cpus: "${HUB_TEST_MONGO_CPUS:-1.0}"
+    mem_limit: "${HUB_TEST_MONGO_MEMORY:-1536m}"
     ports:
       - "27017:27017"
     environment:
@@ -26,11 +32,15 @@ services:
 
   redis:
     image: redis:7.4-alpine
+    cpus: "${HUB_TEST_REDIS_CPUS:-0.25}"
+    mem_limit: "${HUB_TEST_REDIS_MEMORY:-512m}"
     ports:
       - "6379:6379"
 
   nats:
     image: nats:2.11
+    cpus: "${HUB_TEST_NATS_CPUS:-0.25}"
+    mem_limit: "${HUB_TEST_NATS_MEMORY:-512m}"
     ports:
       - "4222:4222"
     command: ["-js"]

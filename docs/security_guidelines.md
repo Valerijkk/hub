@@ -1,7 +1,7 @@
 # Hub — Руководство по безопасности
 
 > Единая база знаний. Обновляется ARCH/BE при изменении политик.  
-> Аудит: `.planning/code-review-final/SECURITY.md` · TZ: `docs/tz_constraints.md`
+> Аудит: `.planning/audits/code-review-final/SECURITY.md` · TZ: `docs/tz_constraints.md`
 
 ---
 
@@ -13,14 +13,14 @@
 | Категория | Статус |
 |-----------|--------|
 | CRITICAL findings (v2.0.1) | **12/12 FIXED** ✅ |
-| HIGH findings | **14 FIXED**, 2 PARTIAL, 1 DEFERRED (bundle size) |
+| HIGH findings | **15 FIXED**, 1 PARTIAL (BE-H1), 1 DEFERRED (bundle size) |
 | Production readiness | ✅ YES с оговорками (PG-03 rotation, FE-H5 audit) |
 | Auth model | **Magic Link only** — Telegram notify-only (ADR-AUTH-01) |
 
 ## OWASP Top 10 — чек-лист Hub
 
 > **Последний аудит:** 2026-06-17 (comprehensive re-audit all CRITICAL + HIGH findings).
-> **Baseline:** `.planning/code-review-final/SUMMARY.md` (2026-05-15).
+> **Baseline:** `.planning/audits/code-review-final/SUMMARY.md` (2026-05-15).
 
 | # | Угроза | Статус Hub | Открытые ID |
 |---|--------|------------|-------------|
@@ -41,7 +41,7 @@
 
 | ID | Статус | Файл:строка | Верификация |
 |----|--------|-------------|-------------|
-| SEC-01 / NF-01 | ✅ **FIXED** | `cmd/server/main.go:265` | `api.Use(APIKeyAuth)` перед `RegisterRoutes` |
+| SEC-01 / NF-01 | ✅ **FIXED** | `cmd/server/wiring_auth.go:75-84` | `api.Use(APIKeyAuth)` перед `RegisterRoutes` |
 | SEC-02 / NF-04 | ✅ **FIXED** | `calls/handler.go:261-265` | `sha256` claim mandatory + `hmac.Equal` |
 | SEC-03 / NF-05 | ✅ **FIXED** | `docker-compose.prod.yml:130-153` | `livekit-prod.yaml` удалён; heredoc из env |
 | SEC-04 / C-01 | ✅ **FIXED** | `gitlab/service.go:55,71` | `safehttp.NewSafeHTTPClient` + `ValidateOutboundURL` |
@@ -51,7 +51,7 @@
 | INF-01 | ✅ **FIXED** | `docker-compose.prod.yml:150` | `departure_timeout: 120` |
 | INF-02 | ✅ **FIXED** | `.github/workflows/deploy.yml:63-65` | `DEV_MODE` удалён из CI |
 | INF-03 | ✅ **FIXED** | `docker-compose.local.yml:120-122` | `${RESEND_API_KEY:-}` placeholder |
-| INF-04 | ✅ **FIXED** | `cmd/server/main.go:544-550` | `backupS3Client` проверка + warn |
+| INF-04 | ✅ **FIXED** | `cmd/server/wiring_integrations.go:97-108` | `backupS3Client` проверка + warn при пустом S3 |
 | FE-01 | ✅ **FIXED** | `messenger/message-item.tsx:1-100` | Hooks до conditional return |
 
 **CRITICAL Verdict:** 12/12 FIXED ✅
@@ -68,18 +68,18 @@
 | BE-H1 / H-01 | ⚠️ **PARTIAL** | `backup/service.go:173,237` | `LimitReader` ✅; `imex/handler.go:66` unbounded но BodyLimit 25MB |
 | BE-H2 / H-02 | ✅ **FIXED** | `apigateway/webhook.go:280` | `io.Copy(io.LimitReader)` замена `ReadFrom` |
 | BE-H3 / H-03 | ✅ **FIXED** | `dashboard/service.go:180-210` | Фильтр по `userID` / `projectID` |
-| BE-H4 / H-04 | ✅ **FIXED** | `apigateway/service.go` + `main.go:264` | Worker pool + `defer Close()` |
-| BE-H5 / H-05 | ✅ **FIXED** | `cmd/server/main.go:117-119,341` | `rawDB` shared pool в `/health` |
-| BE-H6 / H-06 | ✅ **FIXED** | `audit/service.go:376-451`, `audit/handler.go:364` | `DeleteUserGDPR` каскад + `errors.Join` частичных ошибок |
+| BE-H4 / H-04 | ✅ **FIXED** | `apigateway/service.go` + `wiring_integrations.go` (API gateway worker) | Worker pool + `defer Close()` |
+| BE-H5 / H-05 | ✅ **FIXED** | `wiring_infra.go:18-26` + `wiring_messenger.go:36-54` | `rawDB` shared pool в `/health` (`/live`/`/ready`) |
+| BE-H6 / H-06 | ✅ **FIXED** | `audit/service.go` DeleteUserGDPR + `gdpr_mongo_retry.go` | Каскад Ent tx; Mongo erase post-Commit; C-W19-002 JetStream retry `audit.gdpr.mongo_erase` |
 | BE-H7 / H-07 | ✅ **FIXED** | `audit/retention.go:98-127`, `audit/service.go:252-268` | `RunRetentionCleanup` cron + S3 purge записей; `PurgeExpired` корзины 30d |
 | FE-H1 | ✅ **FIXED** | `api/client.ts:97-108` | Single-flight mutex `refreshing` |
 | FE-H2 | ✅ **FIXED** | `stores/auth-store.ts:46-88` | `BroadcastChannel` + storage fallback |
 | FE-H3 | ✅ **FIXED** | `api/auth.ts:121-123` | `POST /auth/logout` endpoint |
 | FE-H4 | ✅ **FIXED** | `ui/error-boundary.tsx` + routes | ErrorBoundary в 7 модулях |
 | FE-H5 | 🔄 **DEFERRED** | — | Bundle size требует build analysis |
-| ARCH-H1 | ⚠️ **PARTIAL** | `auth/handler.go:505` | `h.service.GetMe` может прямо DB |
+| ARCH-H1 | ✅ **FIXED** | `auth/handler.go:17-26,206-212` | Handler держит только `*AuthService`; `GetMe` → `h.service.GetMe` (без `*ent.Client`) |
 
-**HIGH Verdict:** 14 FIXED, 0 NOT FOUND, 2 PARTIAL, 0 OPEN
+**HIGH Verdict:** 15 FIXED, 0 NOT FOUND, 1 PARTIAL (BE-H1), 0 OPEN
 
 ---
 
@@ -92,11 +92,11 @@
 | NEW-03 | LOW | ✅ **FIXED** | `backup/service.go:173,237` | `LimitReader` 512 MiB cap |
 | NEW-04 | INFO | ✅ **PASS** | `audit/middleware.go` | Async recorder, skip health/docs |
 | NEW-05 | INFO | ✅ **PASS** | `audit/handler.go:284-305` | `BanUser` требует admin + audit log |
-| NEW-06 | INFO | ✅ **PASS** | `middleware/security_headers.go` | X-Frame-Options, CSP, nosniff |
+| NEW-06 | INFO | ✅ **PASS** | `middleware/security_headers.go` + `Caddyfile.prod` | X-Frame-Options, CSP, nosniff; **HSTS на Caddy** (не Fiber) |
 | NEW-07 | INFO | ✅ **PASS** | `observability/timing.go` | Timed wrapper, no secrets logged |
 | NEW-08 | INFO | ✅ **PASS** | `storage/filename.go` | `sanitizeFilename` 200-char cap |
 | NF-10 | MEDIUM | ⚠️ **ACCEPTED** | `auth/magiclink.go:46-52` | 6-digit (~10⁶ entropy) + rate-limit 3/10m |
-| NF-11 | MEDIUM | ✅ **FIXED** | `cmd/server/main.go` | `EnableTrustedProxyCheck` + private CIDRs |
+| NF-11 | MEDIUM | ✅ **FIXED** | `cmd/server/wiring_fiber.go` | `EnableTrustedProxyCheck` + private CIDRs |
 | NF-12 | MEDIUM | ✅ **FIXED** | `auth/service_session.go` | SHA-256 hash refresh tokens |
 | NF-13 | LOW | ⚠️ **ACCEPTED** | `ws/hub.go:217-220` | Drop message on full buffer (не блокируем room) |
 | NF-14 | INFO | ⚠️ **ACCEPTED** | — | CSRF токены moot при Bearer JWT |
@@ -115,8 +115,10 @@
 ## Аутентификация и авторизация
 
 ```
-Magic Link (email) → JWT access (15 min, memory)
-                  → Refresh token (Redis, 30 days, revocable)
+Magic Link (email) → JWT access (15 min, memory — не sessionStorage)
+                  → Refresh token (Redis, 30 days, revocable; FE memory-only)
+                  → WS: POST /auth/ws-ticket → GET /ws Sec-WebSocket-Protocol hub.ws.ticket.*
+                    (?token= denied; ADR-WS-JWT-HANDSHAKE-2026)
                   → Session record (PostgreSQL)
 Telegram         → Только notify bind/delivery (НЕ login)
 ```
@@ -129,9 +131,11 @@ Telegram         → Только notify bind/delivery (НЕ login)
 | Code compare | `subtle.ConstantTimeCompare` | SEC-07 ✅ |
 | Refresh storage | SHA-256 hash in Redis | NF-12 ✅ |
 | Session list | User видит device/IP, может отозвать | `/auth/sessions` |
+| Admin Deactivate/Ban → WS kill | Redis invalidate + NATS `auth.session.{uid}.revoked` → Bridge UnregisterBySession (C-W19-001); fail-closed при ошибке kill (C-W19-003) | `audit/service.go` + `auth.SessionService.RevokeAllUserSessions` |
 | RBAC | System (Admin/Member) → Project roles → Custom | `rbac/` |
 
-**Запрещено (v1–v4 scope):** пароли, SSO, LDAP, OAuth login providers.
+**Запрещено (v1–v4 без ADR):** пароли; OAuth-провайдеры соцсетей.  
+**SSO/LDAP:** одобрено в scope (2026-07-03); реализация только после принятого `ADR-AUTH-SSO`. До принятия ADR вход — **Magic Link only**.
 
 ## Валидация и санитизация
 
@@ -204,7 +208,7 @@ if expectedHash != "" { ... }
 
 **HIGH (16):**
 - ✅ 14 FIXED (SEC-H1-H3, BE-H2-H7, FE-H1-H4)
-- ⚠️ 2 PARTIAL (BE-H1 imex unbounded но BodyLimit; ARCH-H1 handler→service layering)
+- ⚠️ 1 PARTIAL (BE-H1 imex unbounded но BodyLimit; ARCH-H1 layering ✅ FIXED)
 - ❌ 0 NOT FOUND
 - 🔄 1 DEFERRED (FE-H5 bundle size — требует отдельного анализа)
 
@@ -224,7 +228,6 @@ if expectedHash != "" { ... }
 | BE-H1 | `imex/handler.go:66` unbounded ReadAll | Fiber BodyLimit 25MB срабатывает до ReadAll |
 | BE-H6 | GDPR cascade partial errors | `DeleteUserGDPR` логирует и агрегирует через `errors.Join`; мониторить WARN |
 | BE-H7 | Retention S3 fail-soft | При nil s3Client записи удаляются из PG, объекты S3 — WARN (dev) |
-| ARCH-H1 | `auth/handler.go` прямой DB | Рефакторинг в Phase 19 (Repository pattern) |
 | NF-10 | 6-digit magic-link | Accepted: 10⁶ entropy + rate-limit 3/10m + TTL 10m |
 | NF-13 | WS drop на full buffer | Accepted: fail-soft лучше блокировки room |
 | FE-H5 | Bundle 1.1 MB | Deferred: code-splitting в Phase 17 (v2.5) |
@@ -251,7 +254,7 @@ if expectedHash != "" { ... }
 | `!=` для секретов | ✅ Magic-link/GitLab webhook `ConstantTimeCompare`; LiveKit `iss` string compare — LOW |
 | WS `CheckOrigin` + authz | ✅ FIXED (`ws/handler.go:84-105,218-231`) |
 | Search user scope | ✅ FIXED (`search/service.go:585` channel_id filter) |
-| Webhook signature skip | ✅ FIXED (LiveKit sha256 required; GitHub/GitLab reject empty) |
+| Webhook signature skip | ✅ FIXED (LiveKit sha256 required; GitHub/GitLab reject empty; **A5-008/009**: HMAC/token bound to matched integration repo/path, not any-of instance secrets) |
 | `*ent.Client` в handler | ⚠️ `auth/handler.go` service методы (рефакторинг Phase 19) |
 | `panic()` в production | ✅ 0 найдено |
 | `DEV_MODE=true` в CI | ✅ FIXED (deploy.yml:63-65 удалён) |
@@ -259,6 +262,7 @@ if expectedHash != "" { ... }
 | `pg_advisory_xact_lock` | ✅ Используется (`auth/service_registration_lock.go:47`) |
 | `safehttp.NewSafeHTTPClient` | ✅ `gitlab/service.go:55`, `platform/http/opengraph.go:30` |
 | `ValidateOutboundURL` | ✅ `gitlab:71`, `notification/push.go:157,218`, `opengraph:26` |
+| Offline AI loopback (Ollama) | ✅ ADR-AI-OLLAMA-LOOPBACK-2026: `ValidateOfflineAIURL` + `NewOfflineAIHTTPClient` только для host allowlist; глобальный SafeDial **не** ослаблен (P1-BE-U01 / TASK-101) |
 | `subtle.ConstantTimeCompare` | ✅ `auth/magiclink.go:135` |
 | ErrorBoundary usage | ✅ 7 модулей (messenger, dashboard, calls, tms, projects) |
 | BroadcastChannel | ✅ `stores/auth-store.ts:46-88` multi-tab sync |
@@ -268,7 +272,7 @@ if expectedHash != "" { ... }
 
 ## Итоговое резюме — формальный re-audit 2026-06-17
 
-**Scope:** All 12 CRITICAL + 16 HIGH findings from `.planning/code-review-final/SUMMARY.md` (2026-05-15)  
+**Scope:** All 12 CRITICAL + 16 HIGH findings from `.planning/audits/code-review-final/SUMMARY.md` (2026-05-15)  
 **Method:** File-level verification (Grep + Read actual code) against current codebase  
 **Auditor:** security-auditor (readonly analysis)
 
@@ -310,9 +314,11 @@ if expectedHash != "" { ... }
 - FE-H3: POST /auth/logout
 - FE-H4: Error Boundaries
 
-**⚠️ PARTIAL (2):**
+**⚠️ PARTIAL (1):**
 - BE-H1: Unbounded io.ReadAll (imex handlers — mitigated by Fiber BodyLimit 25MB)
-- ARCH-H1: Direct DB in handler (auth/handler.go service calls — refactor Phase 19)
+
+**✅ FIXED (ARCH-H1):**
+- ARCH-H1: `auth/handler.go` — только `*AuthService`; без прямого `*ent.Client` (комментарий ARCH-H1 + `GetMe` → service)
 
 **✅ FIXED (дополнительно к списку выше):**
 - BE-H6: GDPR delete (`audit/service.go:376`, handler `audit/handler.go:364`)
@@ -327,6 +333,8 @@ if expectedHash != "" { ... }
 - ✅ `audit/middleware.go`: Async recorder, proper skip logic
 - ✅ `audit/handler.go:284` BanUser: Admin check + audit log
 - ✅ `middleware/security_headers.go`: X-Frame-Options, CSP, nosniff
+- ✅ HSTS (`Strict-Transport-Security`): `deployments/Caddyfile.prod` — TLS edge only (A2W4-1-001); Fiber не дублирует HSTS за reverse-proxy
+- ✅ AES-GCM AAD: `crypto.EncryptWithAAD` / `DecryptWithAAD` — привязка ciphertext к entityID (A2W4-4-001); legacy `Encrypt`/`MaybeDecryptString` — migration window без AAD
 - ✅ `observability/timing.go`: No secret logging
 - ✅ `storage/filename.go`: Path traversal mitigation
 - ✅ `platform/http/opengraph.go`: SafeHTTP + ValidateOutboundURL + LimitReader
@@ -342,7 +350,7 @@ if expectedHash != "" { ... }
 
 **Risk Profile:**
 - 0 OPEN CRITICAL vulnerabilities
-- 2 PARTIAL HIGH (mitigated by existing controls)
+- 1 PARTIAL HIGH (BE-H1 mitigated by BodyLimit)
 - 0 NOT FOUND HIGH
 
 **Recommendation:** Clear for production deployment. Residual risks are LOW severity or architectural debt scheduled for v2.6 Phase 19-20.

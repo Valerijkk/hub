@@ -2,18 +2,19 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
 )
 
-// Channel СЃРѕРґРµСЂР¶РёС‚ РѕРїСЂРµРґРµР»РµРЅРёРµ СЃС…РµРјС‹ РґР»СЏ СЃСѓС‰РЅРѕСЃС‚Рё Channel (РєР°РЅР°Р» РјРµСЃСЃРµРЅРґР¶РµСЂР°).
+// Channel содержит определение схемы для сущности Channel (канал мессенджера).
 type Channel struct {
 	ent.Schema
 }
 
-// Fields РѕРїРёСЃС‹РІР°РµС‚ РїРѕР»СЏ СЃСѓС‰РЅРѕСЃС‚Рё Channel.
+// Fields описывает поля сущности Channel.
 func (Channel) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -21,29 +22,33 @@ func (Channel) Fields() []ent.Field {
 			Immutable(),
 		field.Enum("channel_type").
 			Values("dm", "group", "public", "private").
-			Comment("РўРёРї РєР°РЅР°Р»Р°: Р»РёС‡РЅС‹Р№ С‡Р°С‚, РіСЂСѓРїРїРѕРІРѕР№, РїСѓР±Р»РёС‡РЅС‹Р№ РёР»Рё РїСЂРёРІР°С‚РЅС‹Р№"),
+			Comment("Тип канала: личный чат, групповой, публичный или приватный"),
 		field.String("name").
 			Optional().
 			MaxLen(100).
-			Comment("РќР°Р·РІР°РЅРёРµ РєР°РЅР°Р»Р° (РїСѓСЃС‚Рѕ РґР»СЏ DM)"),
+			Comment("Название канала (пусто для DM)"),
 		field.String("description").
 			Optional().
 			MaxLen(500).
-			Comment("РћРїРёСЃР°РЅРёРµ РєР°РЅР°Р»Р°"),
+			Comment("Описание канала"),
 		field.Bool("is_readonly").
 			Default(false).
-			Comment("Р¤Р»Р°Рі read-only РєР°РЅР°Р»Р° (РЅР°РїСЂРёРјРµСЂ, CI-СѓРІРµРґРѕРјР»РµРЅРёСЏ)"),
+			Comment("Флаг read-only канала (например, CI-уведомления)"),
 		field.UUID("project_id", uuid.UUID{}).
 			Optional().
 			Nillable().
-			Comment("ID РїСЂРѕРµРєС‚Р° (nil РґР»СЏ DM Рё РіР»РѕР±Р°Р»СЊРЅС‹С… РєР°РЅР°Р»РѕРІ)"),
+			Comment("ID проекта (nil для DM и глобальных каналов)"),
 		field.UUID("created_by", uuid.UUID{}).
-			Comment("ID СЃРѕР·РґР°С‚РµР»СЏ РєР°РЅР°Р»Р°"),
+			Comment("ID создателя канала"),
 		field.String("dm_key").
 			Optional().
 			Unique().
 			Nillable().
-			Comment("РљР»СЋС‡ РґРµРґСѓРїР»РёРєР°С†РёРё DM: РѕС‚СЃРѕСЂС‚РёСЂРѕРІР°РЅРЅС‹Рµ user IDs С‡РµСЂРµР· '-'"),
+			Comment("Ключ дедупликации DM: отсортированные user IDs через '-'"),
+		field.Time("deleted_at").
+			Optional().
+			Nillable().
+			Comment("Soft-delete timestamp (A8-005); null = active channel"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
@@ -52,11 +57,20 @@ func (Channel) Fields() []ent.Field {
 			UpdateDefault(nowUTC),
 	}
 }
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (Channel) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
+	}
+}
 
-// Edges РѕРїРёСЃС‹РІР°РµС‚ СЃРІСЏР·Рё СЃСѓС‰РЅРѕСЃС‚Рё Channel.
+
+// Edges описывает связи сущности Channel.
+// OnDelete: ADR-ENT-ONDELETE-CASCADE-2026 — owned_junction CASCADE (A2W8-1-003).
 func (Channel) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("members", ChannelMember.Type),
+		edge.To("members", ChannelMember.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.From("project", Project.Type).
 			Ref("channels").
 			Field("project_id").
@@ -66,19 +80,28 @@ func (Channel) Edges() []ent.Edge {
 			Field("created_by").
 			Unique().
 			Required(),
-		edge.To("pinned_messages", PinnedMessage.Type),
-		edge.To("calls", Call.Type),
-		edge.To("scheduled_calls", ScheduledCall.Type),
-		edge.To("polls", Poll.Type),
-		edge.To("invites", ChannelInvite.Type),
-		edge.To("issue_message_links", IssueMessageLink.Type),
+		edge.To("pinned_messages", PinnedMessage.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("calls", Call.Type).
+			Annotations(entsql.OnDelete(entsql.SetNull)),
+		edge.To("scheduled_calls", ScheduledCall.Type).
+			Annotations(entsql.OnDelete(entsql.SetNull)),
+		edge.To("polls", Poll.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("invites", ChannelInvite.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("issue_message_links", IssueMessageLink.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("bookmarks", Bookmark.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 
-// Indexes РѕРїРёСЃС‹РІР°РµС‚ РёРЅРґРµРєСЃС‹ СЃСѓС‰РЅРѕСЃС‚Рё Channel.
+// Indexes описывает индексы сущности Channel.
 func (Channel) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("channel_type"),
 		index.Fields("project_id"),
+		index.Fields("deleted_at"),
 	}
 }

@@ -13,9 +13,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/valerii/hub/backend/internal/platform/middleware"
 )
 
-func setupSprintHandlerApp(t *testing.T) (*fiber.App, uuid.UUID, uuid.UUID) {
+func setupSprintHandlerApp(t *testing.T) (*fiber.App, *mockRepository, uuid.UUID, uuid.UUID) {
 	t.Helper()
 	repo := newMockRepository()
 	rdb, _ := newPokerTestRedis(t)
@@ -25,7 +27,7 @@ func setupSprintHandlerApp(t *testing.T) (*fiber.App, uuid.UUID, uuid.UUID) {
 	projectID := uuid.New()
 	userID := uuid.New()
 
-	app := fiber.New()
+	app := fiber.New(fiber.Config{ErrorHandler: middleware.ErrorHandler})
 	api := app.Group("/api")
 	authMw := func(c fiber.Ctx) error {
 		c.Locals("userID", userID.String())
@@ -50,11 +52,11 @@ func setupSprintHandlerApp(t *testing.T) (*fiber.App, uuid.UUID, uuid.UUID) {
 	pokerRoutes.Post("/:sessionId/reveal", h.RevealVotes)
 	pokerRoutes.Get("/:sessionId", h.GetPokerSession)
 
-	return app, projectID, userID
+	return app, repo, projectID, userID
 }
 
 func TestHandler_CreateListGetSprint(t *testing.T) {
-	app, projectID, _ := setupSprintHandlerApp(t)
+	app, _, projectID, _ := setupSprintHandlerApp(t)
 	base := "/api/projects/" + projectID.String() + "/sprints"
 
 	start := time.Now().UTC().Format(time.RFC3339)
@@ -85,7 +87,7 @@ func TestHandler_CreateListGetSprint(t *testing.T) {
 }
 
 func TestHandler_StartCompleteAndBurndown(t *testing.T) {
-	app, projectID, _ := setupSprintHandlerApp(t)
+	app, _, projectID, _ := setupSprintHandlerApp(t)
 	base := "/api/projects/" + projectID.String() + "/sprints"
 
 	start := time.Now().UTC().Format(time.RFC3339)
@@ -119,7 +121,7 @@ func TestHandler_StartCompleteAndBurndown(t *testing.T) {
 }
 
 func TestHandler_VelocityAndRetro(t *testing.T) {
-	app, projectID, _ := setupSprintHandlerApp(t)
+	app, _, projectID, _ := setupSprintHandlerApp(t)
 	base := "/api/projects/" + projectID.String() + "/sprints"
 
 	start := time.Now().UTC().Format(time.RFC3339)
@@ -133,7 +135,7 @@ func TestHandler_VelocityAndRetro(t *testing.T) {
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&sp))
 	resp.Body.Close()
 
-	retroBody := `{"went_well":["fast tests"],"to_improve":["coverage"],"actions":["add handlers"]}`
+	retroBody := fmt.Sprintf(`{"went_well":["fast tests"],"to_improve":["coverage"],"actions":["add handlers"],"version":%d}`, sp.Version)
 	req = httptest.NewRequest(http.MethodPut, base+"/"+sp.ID+"/retro", bytes.NewReader([]byte(retroBody)))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err = app.Test(req)
@@ -149,7 +151,7 @@ func TestHandler_VelocityAndRetro(t *testing.T) {
 }
 
 func TestHandler_PokerFlow(t *testing.T) {
-	app, projectID, userID := setupSprintHandlerApp(t)
+	app, repo, projectID, userID := setupSprintHandlerApp(t)
 	base := "/api/projects/" + projectID.String() + "/sprints"
 
 	start := time.Now().UTC().Format(time.RFC3339)
@@ -164,6 +166,7 @@ func TestHandler_PokerFlow(t *testing.T) {
 	resp.Body.Close()
 
 	issueID := uuid.New()
+	repo.issueProject[issueID] = projectID
 	pokerBody := fmt.Sprintf(`{"issue_id":%q}`, issueID.String())
 	req = httptest.NewRequest(http.MethodPost, base+"/"+sp.ID+"/poker", bytes.NewReader([]byte(pokerBody)))
 	req.Header.Set("Content-Type", "application/json")

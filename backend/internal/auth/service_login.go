@@ -4,18 +4,16 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"strconv"
 
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/user"
 	"github.com/valerii/hub/backend/internal/platform/observability"
 )
 
-// LoginService инкапсулирует Magic Link / Telegram login-флоу.
+// LoginService инкапсулирует Magic Link login-флоу (AUTH-01: Telegram не login).
 type LoginService struct {
 	repo      Repository
 	magicLink *MagicLinkService
-	botToken  string
 	sessions  *SessionService
 	regMode   *RegistrationModeService
 	org       *OrganizationService
@@ -25,7 +23,6 @@ type LoginService struct {
 func NewLoginService(
 	repo Repository,
 	magicLink *MagicLinkService,
-	botToken string,
 	sessions *SessionService,
 	regMode *RegistrationModeService,
 	org *OrganizationService,
@@ -33,7 +30,6 @@ func NewLoginService(
 	return &LoginService{
 		repo:      repo,
 		magicLink: magicLink,
-		botToken:  botToken,
 		sessions:  sessions,
 		regMode:   regMode,
 		org:       org,
@@ -58,7 +54,12 @@ func (s *LoginService) LoginWithMagicLink(ctx context.Context, email, code, invi
 		}
 
 		if isNew {
-			slog.Info("new user registered via magic link", "user_id", u.ID.String(), "email", email, "status", u.Status)
+			// A14-006: не логировать полный email.
+			slog.Info("new user registered via magic link", "user_id", u.ID.String(), "email", maskEmailMinimized(email), "status", u.Status)
+		}
+
+		if u.Status != user.StatusActive {
+			return nil, ErrAccountNotActive
 		}
 
 		return s.sessions.CreateSession(ctx, u.ID, device, ip)
@@ -91,39 +92,6 @@ func (s *LoginService) CanSendMagicLink(ctx context.Context, email, inviteToken 
 	return s.org.ValidateInviteToken(ctx, inviteToken)
 }
 
-// LoginWithTelegram проверяет initData Telegram, находит или создаёт пользователя, возвращает пару токенов.
-func (s *LoginService) LoginWithTelegram(ctx context.Context, initData, device, ip string) (*TokenPairResponse, error) {
-	tgUser, err := VerifyTelegramAuth(s.botToken, initData)
-	if err != nil {
-		return nil, err
-	}
-
-	telegramID := strconv.FormatInt(tgUser.ID, 10)
-	u, isNew, err := s.findOrCreateUserByTelegram(ctx, telegramID, tgUser)
-	if err != nil {
-		return nil, err
-	}
-
-	if isNew {
-		slog.Info("new user registered via telegram", "user_id", u.ID.String(), "telegram_id", telegramID)
-	}
-
-	return s.sessions.CreateSession(ctx, u.ID, device, ip)
-}
-
-// LoginWithTelegramUser находит или создаёт пользователя по TelegramUser и возвращает пару токенов.
-func (s *LoginService) LoginWithTelegramUser(ctx context.Context, tgUser *TelegramUser, device, ip string) (*TokenPairResponse, error) {
-	telegramID := strconv.FormatInt(tgUser.ID, 10)
-	u, isNew, err := s.findOrCreateUserByTelegram(ctx, telegramID, tgUser)
-	if err != nil {
-		return nil, err
-	}
-	if isNew {
-		slog.Info("new user registered via telegram bot code", "user_id", u.ID.String(), "telegram_id", telegramID)
-	}
-	return s.sessions.CreateSession(ctx, u.ID, device, ip)
-}
-
 func (s *LoginService) findOrCreateUserByEmail(ctx context.Context, email, inviteToken string) (*ent.User, bool, error) {
 	u, err := s.repo.GetUserByEmail(ctx, email)
 	if err == nil {
@@ -134,41 +102,6 @@ func (s *LoginService) findOrCreateUserByEmail(ctx context.Context, email, invit
 	}
 
 	u, err = s.regMode.RegisterNewUserByEmail(ctx, email, inviteToken, s.org)
-	if err != nil {
-		return nil, false, err
-	}
-	return u, true, nil
-}
-
-func (s *LoginService) findOrCreateUserByTelegram(ctx context.Context, telegramID string, tg *TelegramUser) (*ent.User, bool, error) {
-	u, err := s.repo.GetUserByTelegramID(ctx, telegramID)
-	if err == nil {
-		return u, false, nil
-	}
-	if !ent.IsNotFound(err) {
-		return nil, false, fmt.Errorf("find user by telegram: %w", err)
-	}
-
-	if err := s.regMode.CheckRegistrationAllowed(ctx); err != nil {
-		return nil, false, err
-	}
-
-	name := tg.FirstName
-	if tg.LastName != "" {
-		name += " " + tg.LastName
-	}
-
-	placeholderEmail := fmt.Sprintf("telegram_%s@hub.local", telegramID)
-	tgID := telegramID
-
-	u, err = s.regMode.CreateFirstOrMemberUser(ctx, func(b *ent.UserCreate, role user.SystemRole) *ent.UserCreate {
-		return b.
-			SetEmail(placeholderEmail).
-			SetNillableTelegramID(&tgID).
-			SetName(name).
-			SetDisplayName(tg.FirstName).
-			SetSystemRole(role)
-	})
 	if err != nil {
 		return nil, false, err
 	}

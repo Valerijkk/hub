@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -44,7 +45,7 @@ func (TestRun) Fields() []ent.Field {
 			Default(0),
 		field.String("allure_run_id").
 			Optional().
-			Comment("РРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ РїСЂРѕРіРѕРЅР° Allure"),
+			Comment("Идентификатор прогона Allure"),
 		field.Time("started_at").
 			Optional().
 			Nillable(),
@@ -59,6 +60,13 @@ func (TestRun) Fields() []ent.Field {
 			UpdateDefault(nowUTC),
 	}
 }
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (TestRun) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
+	}
+}
+
 
 // Рёбра (edges) сущности TestRun.
 func (TestRun) Edges() []ent.Edge {
@@ -71,7 +79,8 @@ func (TestRun) Edges() []ent.Edge {
 			Ref("created_runs").
 			Unique().
 			Required(),
-		edge.To("results", TestResult.Type),
+		edge.To("results", TestResult.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("assignees", User.Type),
 		edge.From("environment", Environment.Type).
 			Ref("test_runs").

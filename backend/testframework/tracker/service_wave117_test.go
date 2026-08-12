@@ -23,7 +23,7 @@ func TestStopTimer_NoActiveTimer(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	_, err = svc.StopTimer(ctx, issue.IssueKey, userID)
+	_, err = svc.StopTimer(ctx, projectID, issue.IssueKey, userID)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "таймер")
 }
@@ -32,8 +32,9 @@ func TestStopTimer_NoActiveTimer(t *testing.T) {
 func TestLogTime_IssueNotFound(t *testing.T) {
 	svc, _ := newTestService()
 	ctx := context.Background()
+	projectID := uuid.New()
 
-	_, err := svc.LogTime(ctx, "MISSING-1", uuid.New(), tracker.LogTimeRequest{Minutes: 30})
+	_, err := svc.LogTime(ctx, projectID, "MISSING-1", uuid.New(), tracker.LogTimeRequest{Minutes: 30})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "не найдена")
 }
@@ -42,8 +43,9 @@ func TestLogTime_IssueNotFound(t *testing.T) {
 func TestStartTimer_IssueNotFound(t *testing.T) {
 	svc, _ := newTestService()
 	ctx := context.Background()
+	projectID := uuid.New()
 
-	_, err := svc.StartTimer(ctx, "NOPE-99", uuid.New())
+	_, err := svc.StartTimer(ctx, projectID, "NOPE-99", uuid.New())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "не найдена")
 }
@@ -52,8 +54,9 @@ func TestStartTimer_IssueNotFound(t *testing.T) {
 func TestListTimeLogs_IssueNotFound(t *testing.T) {
 	svc, _ := newTestService()
 	ctx := context.Background()
+	projectID := uuid.New()
 
-	_, err := svc.ListTimeLogs(ctx, "GHOST-1")
+	_, err := svc.ListTimeLogs(ctx, projectID, "GHOST-1")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "не найдена")
 }

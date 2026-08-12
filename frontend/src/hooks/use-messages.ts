@@ -48,6 +48,10 @@ export function useMessages(channelId: string | undefined) {
 	const handleEvent = useCallback(
 		(event: string, payload: unknown) => {
 			if (!channelId) return;
+			// W11-A3-010 / P2-FE-10: null/array payload не должен валить listener.
+			if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+				return;
+			}
 			const data = payload as Record<string, unknown>;
 			const msgChannelId = data.channel_id as string | undefined;
 
@@ -124,6 +128,8 @@ export function useMessages(channelId: string | undefined) {
 				case "reaction_toggled": {
 					const reactEvt = data as Record<string, unknown>;
 					const msgId = (reactEvt.message_id ?? reactEvt.id) as string;
+					// A3W11-3-002: мусорный/undefined reactions не затирает кэш.
+					if (!msgId || !Array.isArray(reactEvt.reactions)) break;
 					const reactions = reactEvt.reactions as Message["reactions"];
 					queryClient.setQueryData(queryKey, (old: unknown) => {
 						if (!old) return old;
@@ -187,6 +193,10 @@ export function useThreadMessages(
 	const handleEvent = useCallback(
 		(event: string, payload: unknown) => {
 			if (!channelId || !messageId) return;
+			// W11-A3-010 / P2-FE-10: null/array payload не должен валить listener.
+			if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+				return;
+			}
 			const data = payload as Record<string, unknown>;
 			const threadId = data.thread_id as string | undefined;
 			if (threadId !== messageId) return;

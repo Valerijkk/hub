@@ -8,33 +8,33 @@ import (
 	"github.com/google/uuid"
 )
 
-// CallParticipant С…СЂР°РЅРёС‚ РёРЅС„РѕСЂРјР°С†РёСЋ РѕР± СѓС‡Р°СЃС‚РЅРёРєРµ РіРѕР»РѕСЃРѕРІРѕРіРѕ Р·РІРѕРЅРєР°.
-// РЎРѕРґРµСЂР¶РёС‚ РІСЂРµРјСЏ РїСЂРёСЃРѕРµРґРёРЅРµРЅРёСЏ Рё СѓС…РѕРґР° СѓС‡Р°СЃС‚РЅРёРєР° РёР· Р·РІРѕРЅРєР°.
+// CallParticipant хранит информацию об участнике голосового звонка.
+// Содержит время присоединения и ухода участника из звонка.
 type CallParticipant struct {
 	ent.Schema
 }
 
-// Fields РѕРїРёСЃС‹РІР°РµС‚ РїРѕР»СЏ СЃСѓС‰РЅРѕСЃС‚Рё CallParticipant.
+// Fields описывает поля сущности CallParticipant.
 func (CallParticipant) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
 			Default(uuid.New).
 			Immutable(),
 		field.UUID("call_id", uuid.UUID{}).
-			Comment("ID Р·РІРѕРЅРєР°"),
+			Comment("ID звонка"),
 		field.UUID("user_id", uuid.UUID{}).
-			Comment("ID РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ-СѓС‡Р°СЃС‚РЅРёРєР°"),
+			Comment("ID пользователя-участника"),
 		field.Time("joined_at").
 			Default(nowUTC).
-			Comment("Р’СЂРµРјСЏ РїСЂРёСЃРѕРµРґРёРЅРµРЅРёСЏ Рє Р·РІРѕРЅРєСѓ"),
+			Comment("Время присоединения к звонку"),
 		field.Time("left_at").
 			Optional().
 			Nillable().
-			Comment("Р’СЂРµРјСЏ РІС‹С…РѕРґР° РёР· Р·РІРѕРЅРєР° (nil РµСЃР»Рё РµС‰С‘ РІ Р·РІРѕРЅРєРµ)"),
+			Comment("Время выхода из звонка (nil если ещё в звонке)"),
 	}
 }
 
-// Edges РѕРїРёСЃС‹РІР°РµС‚ СЃРІСЏР·Рё СЃСѓС‰РЅРѕСЃС‚Рё CallParticipant.
+// Edges описывает связи сущности CallParticipant.
 func (CallParticipant) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("call", Call.Type).
@@ -50,7 +50,7 @@ func (CallParticipant) Edges() []ent.Edge {
 	}
 }
 
-// Indexes РѕРїРёСЃС‹РІР°РµС‚ РёРЅРґРµРєСЃС‹ СЃСѓС‰РЅРѕСЃС‚Рё CallParticipant.
+// Indexes описывает индексы сущности CallParticipant.
 func (CallParticipant) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("call_id", "user_id").

@@ -66,7 +66,10 @@ func TestEntRepository_decryptField_PlaintextLegacy(t *testing.T) {
 	assert.Equal(t, "", github.ExportEntRepositoryDecryptField(repo, ""))
 }
 
-func TestEntRepository_ListAllWebhookSecrets(t *testing.T) {
+func TestEntRepository_WebhookSecretBoundToRepo_W7A3004(t *testing.T) {
+	// W7-A3-004: ListAllWebhookSecrets удалён; verify path = FindIntegrationByRepo
+	// (не decrypt всех секретов инстанса в RAM).
+	// Mutation: вернуть ListAllWebhookSecrets any-of в VerifyWebhookSignature → A5-008 FAIL.
 	env := newGitHubRepoEnv(t)
 	cipher, err := cryptopkg.NewCipherFromKey(cryptopkg.DeriveDevKey())
 	require.NoError(t, err)
@@ -81,14 +84,14 @@ func TestEntRepository_ListAllWebhookSecrets(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	secrets, err := env.repo.ListAllWebhookSecrets(env.ctx)
+	ig1, err := env.repo.FindIntegrationByRepo(env.ctx, "o1", "r1")
 	require.NoError(t, err)
-	assert.Contains(t, secrets, "sec-a")
-	assert.Contains(t, secrets, "sec-b")
+	assert.Equal(t, "sec-a", ig1.WebhookSecret)
 
-	secrets2, err := env.repo.ListAllWebhookSecrets(env.ctx)
+	ig2, err := env.repo.FindIntegrationByRepo(env.ctx, "o2", "r2")
 	require.NoError(t, err)
-	assert.Equal(t, secrets, secrets2)
+	assert.Equal(t, "sec-b", ig2.WebhookSecret)
+	assert.NotEqual(t, ig1.WebhookSecret, ig2.WebhookSecret)
 }
 
 func TestGetWorkflowRunDetail_SuccessWithJobs(t *testing.T) {

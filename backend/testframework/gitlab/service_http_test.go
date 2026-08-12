@@ -91,19 +91,24 @@ func TestTriggerPipeline_Success(t *testing.T) {
 	t.Cleanup(srv.Close)
 
 	integrationID := uuid.New()
+	projectID := uuid.New()
+	ig := &ent.GitLabIntegration{
+		ID:          integrationID,
+		GitlabURL:   srv.URL,
+		ProjectPath: "team/app",
+		AccessToken: "glpat-test",
+	}
 	repo := &gitlabMockRepo{
 		byID: map[uuid.UUID]*ent.GitLabIntegration{
-			integrationID: {
-				ID:          integrationID,
-				GitlabURL:   srv.URL,
-				ProjectPath: "team/app",
-				AccessToken: "glpat-test",
-			},
+			integrationID: ig,
+		},
+		byProject: map[uuid.UUID][]*ent.GitLabIntegration{
+			projectID: {ig},
 		},
 	}
 	svc := gitlabServiceWithTestHTTPClient(t, repo)
 
-	resp, err := svc.TriggerPipeline(context.Background(), uuid.New(), gitlab.TriggerPipelineRequest{
+	resp, err := svc.TriggerPipeline(context.Background(), projectID, gitlab.TriggerPipelineRequest{
 		IntegrationID: integrationID.String(),
 		Ref:           "main",
 		Variables:     map[string]string{"CI_ENV": "staging"},
@@ -111,6 +116,32 @@ func TestTriggerPipeline_Success(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, int64(55), resp.PipelineID)
 	assert.Equal(t, "pending", resp.Status)
+}
+
+func TestTriggerPipeline_RejectsForeignProject_A5_005(t *testing.T) {
+	integrationID := uuid.New()
+	projectA := uuid.New()
+	projectB := uuid.New()
+	ig := &ent.GitLabIntegration{
+		ID:          integrationID,
+		GitlabURL:   "https://gitlab.example",
+		ProjectPath: "team/app",
+		AccessToken: "glpat-test",
+	}
+	repo := &gitlabMockRepo{
+		byID: map[uuid.UUID]*ent.GitLabIntegration{integrationID: ig},
+		byProject: map[uuid.UUID][]*ent.GitLabIntegration{
+			projectB: {ig},
+		},
+	}
+	svc := gitlabServiceWithTestHTTPClient(t, repo)
+
+	_, err := svc.TriggerPipeline(context.Background(), projectA, gitlab.TriggerPipelineRequest{
+		IntegrationID: integrationID.String(),
+		Ref:           "main",
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "не найдена")
 }
 
 func TestTriggerPipeline_InvalidIntegrationID(t *testing.T) {
@@ -138,23 +169,27 @@ func TestCreateBranch_Success(t *testing.T) {
 	}))
 	t.Cleanup(srv.Close)
 
+	projectID := uuid.New()
 	integrationID := uuid.New()
+	ig := &ent.GitLabIntegration{
+		ID:          integrationID,
+		GitlabURL:   srv.URL,
+		ProjectPath: "hub/backend",
+		AccessToken: "token",
+	}
 	repo := &gitlabMockRepo{
 		issues: map[string]*ent.Issue{
-			"HUB-5": {ID: uuid.New(), IssueKey: "HUB-5", Title: "Add endpoint"},
-		},
-		byID: map[uuid.UUID]*ent.GitLabIntegration{
-			integrationID: {
-				ID:          integrationID,
-				GitlabURL:   srv.URL,
-				ProjectPath: "hub/backend",
-				AccessToken: "token",
+			"HUB-5": {
+				ID: uuid.New(), IssueKey: "HUB-5", Title: "Add endpoint",
+				Edges: ent.IssueEdges{Project: &ent.Project{ID: projectID}},
 			},
 		},
+		byID:      map[uuid.UUID]*ent.GitLabIntegration{integrationID: ig},
+		byProject: map[uuid.UUID][]*ent.GitLabIntegration{projectID: {ig}},
 	}
 	svc := gitlabServiceWithTestHTTPClient(t, repo)
 
-	resp, err := svc.CreateBranch(context.Background(), "HUB-5", gitlab.CreateBranchRequest{
+	resp, err := svc.CreateBranch(context.Background(), projectID, "HUB-5", gitlab.CreateBranchRequest{
 		IntegrationID: integrationID.String(),
 		BranchName:    "feature/hub-5",
 		Ref:           "main",
@@ -169,23 +204,27 @@ func TestCreateBranch_AutoSlugifyBranchName(t *testing.T) {
 	}))
 	t.Cleanup(srv.Close)
 
+	projectID := uuid.New()
 	integrationID := uuid.New()
+	ig := &ent.GitLabIntegration{
+		ID:          integrationID,
+		GitlabURL:   srv.URL,
+		ProjectPath: "hub/backend",
+		AccessToken: "token",
+	}
 	repo := &gitlabMockRepo{
 		issues: map[string]*ent.Issue{
-			"HUB-9": {ID: uuid.New(), IssueKey: "HUB-9", Title: "Fix login"},
-		},
-		byID: map[uuid.UUID]*ent.GitLabIntegration{
-			integrationID: {
-				ID:          integrationID,
-				GitlabURL:   srv.URL,
-				ProjectPath: "hub/backend",
-				AccessToken: "token",
+			"HUB-9": {
+				ID: uuid.New(), IssueKey: "HUB-9", Title: "Fix login",
+				Edges: ent.IssueEdges{Project: &ent.Project{ID: projectID}},
 			},
 		},
+		byID:      map[uuid.UUID]*ent.GitLabIntegration{integrationID: ig},
+		byProject: map[uuid.UUID][]*ent.GitLabIntegration{projectID: {ig}},
 	}
 	svc := gitlabServiceWithTestHTTPClient(t, repo)
 
-	resp, err := svc.CreateBranch(context.Background(), "HUB-9", gitlab.CreateBranchRequest{
+	resp, err := svc.CreateBranch(context.Background(), projectID, "HUB-9", gitlab.CreateBranchRequest{
 		IntegrationID: integrationID.String(),
 	})
 	require.NoError(t, err)
@@ -194,11 +233,43 @@ func TestCreateBranch_AutoSlugifyBranchName(t *testing.T) {
 
 func TestCreateBranch_IssueNotFound(t *testing.T) {
 	svc := gitlabServiceWithTestHTTPClient(t, &gitlabMockRepo{})
-	_, err := svc.CreateBranch(context.Background(), "NONE-1", gitlab.CreateBranchRequest{
+	_, err := svc.CreateBranch(context.Background(), uuid.New(), "NONE-1", gitlab.CreateBranchRequest{
 		IntegrationID: uuid.New().String(),
 	})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "не найдена")
+}
+
+func TestCreateBranch_RejectsForeignIntegration_A5_007(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		t.Fatal("must not call GitLab API for foreign integration")
+	}))
+	t.Cleanup(srv.Close)
+
+	projectA := uuid.New()
+	projectB := uuid.New()
+	integrationID := uuid.New()
+	ig := &ent.GitLabIntegration{
+		ID: integrationID, GitlabURL: srv.URL, ProjectPath: "other/secret", AccessToken: "pat",
+	}
+	repo := &gitlabMockRepo{
+		issues: map[string]*ent.Issue{
+			"HUB-5": {
+				ID: uuid.New(), IssueKey: "HUB-5", Title: "Task",
+				Edges: ent.IssueEdges{Project: &ent.Project{ID: projectA}},
+			},
+		},
+		byID:      map[uuid.UUID]*ent.GitLabIntegration{integrationID: ig},
+		byProject: map[uuid.UUID][]*ent.GitLabIntegration{projectB: {ig}},
+	}
+	svc := gitlabServiceWithTestHTTPClient(t, repo)
+
+	_, err := svc.CreateBranch(context.Background(), projectA, "HUB-5", gitlab.CreateBranchRequest{
+		IntegrationID: integrationID.String(),
+		BranchName:    "should-not-create",
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "интеграция")
 }
 
 func TestListMergeRequests_Success(t *testing.T) {

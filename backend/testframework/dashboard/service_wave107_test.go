@@ -31,7 +31,7 @@ func TestGetPersonalDashboardData_WithTasksDeadlinesAndTime(t *testing.T) {
 		Only(ctx)
 	require.NoError(t, err)
 
-	dueSoon := time.Now().Add(48 * time.Hour)
+	dueSoon := time.Now().UTC().Add(48 * time.Hour)
 	iss, err := client.Issue.Create().
 		SetProjectID(projectID).
 		SetStatusID(openStatus.ID).
@@ -46,7 +46,7 @@ func TestGetPersonalDashboardData_WithTasksDeadlinesAndTime(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	now := time.Now()
+	now := time.Now().UTC()
 	_, err = client.TimeLog.Create().
 		SetIssueID(iss.ID).
 		SetUserID(userID).
@@ -61,8 +61,10 @@ func TestGetPersonalDashboardData_WithTasksDeadlinesAndTime(t *testing.T) {
 	require.NotNil(t, data)
 	require.Len(t, data.MyTasks, 1)
 	assert.Equal(t, "DASH-1", data.MyTasks[0].Key)
+	assert.Equal(t, projectID, data.MyTasks[0].ProjectID, "A3W9-2-002/003: project_id для FE Link")
 	require.Len(t, data.Deadlines, 1)
 	assert.Equal(t, "Personal task", data.Deadlines[0].Title)
+	assert.Equal(t, projectID, data.Deadlines[0].ProjectID)
 	assert.Equal(t, 45, data.TimeToday)
 }
 
@@ -133,7 +135,7 @@ func TestGetProjectStats_OverdueVelocityAndActivity(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	stats, err := svc.GetProjectStats(ctx, projectID)
+	stats, err := svc.GetProjectStats(ctx, userID, projectID)
 	require.NoError(t, err)
 	assert.Equal(t, 1, stats.BugCount)
 	assert.Equal(t, 1, stats.Overdue)

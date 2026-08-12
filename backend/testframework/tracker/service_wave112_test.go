@@ -26,7 +26,7 @@ func TestUpdateIssue_InvalidStatusID(t *testing.T) {
 	require.NoError(t, err)
 
 	badStatus := "not-a-uuid"
-	_, err = svc.UpdateIssue(ctx, created.IssueKey, userID, tracker.UpdateIssueRequest{
+	_, err = svc.UpdateIssue(ctx, projectID, created.IssueKey, userID, tracker.UpdateIssueRequest{
 		StatusID: &badStatus,
 		Version:  created.Version,
 	})
@@ -46,7 +46,7 @@ func TestUpdateIssue_InvalidAssigneeID(t *testing.T) {
 	require.NoError(t, err)
 
 	badAssignee := "invalid"
-	_, err = svc.UpdateIssue(ctx, created.IssueKey, userID, tracker.UpdateIssueRequest{
+	_, err = svc.UpdateIssue(ctx, projectID, created.IssueKey, userID, tracker.UpdateIssueRequest{
 		AssigneeID: &badAssignee,
 		Version:    created.Version,
 	})
@@ -66,7 +66,7 @@ func TestUpdateIssue_InvalidLabelID(t *testing.T) {
 	require.NoError(t, err)
 
 	labels := []string{"not-uuid"}
-	_, err = svc.UpdateIssue(ctx, created.IssueKey, userID, tracker.UpdateIssueRequest{
+	_, err = svc.UpdateIssue(ctx, projectID, created.IssueKey, userID, tracker.UpdateIssueRequest{
 		Labels:  &labels,
 		Version: created.Version,
 	})
@@ -85,7 +85,7 @@ func TestUpdateIssue_ForbiddenStatusTransition(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	issue, err := repo.FindIssueByKey(ctx, created.IssueKey)
+	issue, err := repo.FindIssueByKey(ctx, projectID, created.IssueKey)
 	require.NoError(t, err)
 	require.NotNil(t, issue.Edges.Status)
 
@@ -94,7 +94,7 @@ func TestUpdateIssue_ForbiddenStatusTransition(t *testing.T) {
 		ID: unreachable, Name: "Blocked", Category: workflowstatus.CategoryInProgress,
 	}
 	statusStr := unreachable.String()
-	_, err = svc.UpdateIssue(ctx, created.IssueKey, userID, tracker.UpdateIssueRequest{
+	_, err = svc.UpdateIssue(ctx, projectID, created.IssueKey, userID, tracker.UpdateIssueRequest{
 		StatusID: &statusStr,
 		Version:  created.Version,
 	})
@@ -113,12 +113,12 @@ func TestUpdateIssue_ValidStatusTransition(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	issue, err := repo.FindIssueByKey(ctx, created.IssueKey)
+	issue, err := repo.FindIssueByKey(ctx, projectID, created.IssueKey)
 	require.NoError(t, err)
 	newStatusID := repo.addStatusWithTransition("In Progress", workflowstatus.CategoryInProgress, issue.Edges.Status.ID)
 	statusStr := newStatusID.String()
 
-	updated, err := svc.UpdateIssue(ctx, created.IssueKey, userID, tracker.UpdateIssueRequest{
+	updated, err := svc.UpdateIssue(ctx, projectID, created.IssueKey, userID, tracker.UpdateIssueRequest{
 		StatusID: &statusStr,
 		Version:  created.Version,
 	})
@@ -151,7 +151,7 @@ func TestUpdateIssue_WithDescriptionAndChecklist(t *testing.T) {
 	}
 	checklist := []tracker.ChecklistItem{{ID: "1", Text: "Step one", Checked: false}}
 	newTitle := "Rich update v2"
-	updated, err := svc.UpdateIssue(ctx, created.IssueKey, userID, tracker.UpdateIssueRequest{
+	updated, err := svc.UpdateIssue(ctx, projectID, created.IssueKey, userID, tracker.UpdateIssueRequest{
 		Title:           &newTitle,
 		DescriptionJSON: &desc,
 		Checklist:       &checklist,
@@ -173,12 +173,12 @@ func TestDeleteComment_Success(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	comment, err := svc.CreateComment(ctx, created.IssueKey, userID, tracker.CreateCommentRequest{BodyText: "remove me"})
+	comment, err := svc.CreateComment(ctx, projectID, created.IssueKey, userID, tracker.CreateCommentRequest{BodyText: "remove me"})
 	require.NoError(t, err)
 
 	commentID, err := uuid.Parse(comment.ID)
 	require.NoError(t, err)
-	require.NoError(t, svc.DeleteComment(ctx, commentID))
+	require.NoError(t, svc.DeleteComment(ctx, projectID, created.IssueKey, userID, commentID))
 	_, ok := repo.comments[commentID]
 	assert.False(t, ok)
 }
@@ -196,6 +196,6 @@ func TestDeleteCustomField_Success(t *testing.T) {
 
 	fieldID, err := uuid.Parse(field.ID)
 	require.NoError(t, err)
-	require.NoError(t, svc.DeleteCustomField(ctx, fieldID))
+	require.NoError(t, svc.DeleteCustomField(ctx, projectID, fieldID))
 	assert.Empty(t, repo.customFields)
 }

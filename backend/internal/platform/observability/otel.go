@@ -2,6 +2,7 @@ package observability
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -79,10 +80,8 @@ func InitTracing(ctx context.Context, cfg TracingConfig) (func(context.Context) 
 		sdktrace.WithResource(res),
 	)
 	otel.SetTracerProvider(tp)
-	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
-		propagation.TraceContext{},
-		propagation.Baggage{},
-	))
+	// W4-A3-005 / P3-BE-12: только TraceContext — без client-controlled Baggage.
+	otel.SetTextMapPropagator(propagation.TraceContext{})
 	tracingActive.Store(true)
 
 	slog.InfoContext(ctx, "OpenTelemetry tracing enabled",
@@ -94,6 +93,8 @@ func InitTracing(ctx context.Context, cfg TracingConfig) (func(context.Context) 
 }
 
 // HTTPTraceMiddleware — server span на запрос и propagation context.
+// W4-A3-001: только http.route (шаблон), без http.target с UUID.
+// W4-A3-003: status/RecordError без сырого err.Error() (PII/internals).
 func HTTPTraceMiddleware() fiber.Handler {
 	tracer := otel.Tracer(httpTracerName)
 	prop := otel.GetTextMapPropagator()
@@ -106,10 +107,7 @@ func HTTPTraceMiddleware() fiber.Handler {
 		carrier := fiberHeaderCarrier{c: c}
 		ctx := prop.Extract(c.UserContext(), carrier)
 
-		route := c.Path()
-		if r := c.Route(); r != nil && r.Path != "" {
-			route = r.Path
-		}
+		route := httpRouteLabel(c)
 		spanName := c.Method() + " " + route
 
 		ctx, span := tracer.Start(ctx, spanName, trace.WithSpanKind(trace.SpanKindServer))
@@ -118,7 +116,6 @@ func HTTPTraceMiddleware() fiber.Handler {
 		span.SetAttributes(
 			attribute.String("http.method", c.Method()),
 			attribute.String("http.route", route),
-			attribute.String("http.target", c.Path()),
 		)
 		if requestID, ok := c.Locals("requestID").(string); ok && requestID != "" {
 			span.SetAttributes(attribute.String("hub.request_id", requestID))
@@ -128,10 +125,7 @@ func HTTPTraceMiddleware() fiber.Handler {
 
 		err := c.Next()
 
-		route = c.Path()
-		if r := c.Route(); r != nil && r.Path != "" {
-			route = r.Path
-		}
+		route = httpRouteLabel(c)
 
 		status := c.Response().StatusCode()
 		if status == 0 {
@@ -143,8 +137,7 @@ func HTTPTraceMiddleware() fiber.Handler {
 			} else if status < fiber.StatusBadRequest {
 				status = fiber.StatusInternalServerError
 			}
-			span.RecordError(err)
-			span.SetStatus(codes.Error, err.Error())
+			recordRedactedSpanError(span, "handler_error")
 		}
 		span.SetAttributes(
 			attribute.String("http.route", route),
@@ -187,11 +180,22 @@ func finishOperationSpan(span trace.Span, err error) {
 	if span == nil {
 		return
 	}
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
+	// A3W4-3-001: Canceled/DeadlineExceeded — штатная отмена, не Error-status.
+	if err != nil && !isBenignContextError(err) {
+		recordRedactedSpanError(span, "operation_error")
 	}
 	span.End()
+}
+
+// isBenignContextError — context.Canceled / DeadlineExceeded (graceful shutdown, client abort).
+func isBenignContextError(err error) bool {
+	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
+}
+
+// recordRedactedSpanError пишет Error-status без сырого текста ошибки (W4-A3-003).
+func recordRedactedSpanError(span trace.Span, code string) {
+	span.RecordError(fmt.Errorf("%s", code))
+	span.SetStatus(codes.Error, code)
 }
 
 // ResetTracingForTest — сброс tracing flag (только tests).

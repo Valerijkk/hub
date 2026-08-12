@@ -191,8 +191,7 @@ Go/No-Go после пилота: lead-time↓, p95 API не хуже +10%, 0 и
 ## Связь
 
 - ADR: `.planning/decisions/ADR-ARCH-MICROSERVICES-2026.md`
-- Roadmap: `.planning/roadmaps/MICROSERVICES-ROADMAP.md` (если есть)
-- Arch kit: `ai-expansion/04-PORTABLE-HUB-ARCH.md`, `10-MICROSERVICES-PLAYBOOK.md`
-- Шаблон PE: `prompt-engineering/agents/templates/microservices-strangler-plan.md`
+- Roadmap: `.planning/archive/roadmaps/MICROSERVICES-ROADMAP.md` (если есть)
+- Arch kit: `ai-expansion/04-PORTABLE-HUB-ARCH.md`, 
 - Следующие skills: [phase-plan](../phase-plan/SKILL.md) → [wave-run](../wave-run/SKILL.md)
 - Индекс: [gsd-ru/README.md](../README.md)

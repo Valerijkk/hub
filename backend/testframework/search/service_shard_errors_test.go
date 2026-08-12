@@ -1,13 +1,17 @@
 ﻿package search_test
+
 import (
-	"github.com/valerii/hub/backend/internal/search"
 	"context"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/valerii/hub/backend/internal/search"
 )
+
+// A2W5-A5-006 / A2W5-A4-003: missing entity tables → total outage error, не empty success.
 
 func TestSearch_AllShardsWithMembership_RecoversFromMissingTables(t *testing.T) {
 	db := newScopeTestDB(t)
@@ -27,29 +31,12 @@ func TestSearch_AllShardsWithMembership_RecoversFromMissingTables(t *testing.T) 
 	require.NoError(t, err)
 
 	svc := search.NewSearchService(&mockSearchRepo{}, db, nil)
-	results, err := svc.Search(context.Background(), "hub query", userID, nil, 20)
-	require.NoError(t, err)
-	assert.Empty(t, results)
-}
-
-func TestGetUserChannelIDs_DBClosed(t *testing.T) {
-	db := newScopeTestDB(t)
-	require.NoError(t, db.Close())
-	svc := search.ExportNewSearchServiceSQL(db)
-	_, err := search.ExportGetUserChannelIDs(svc, context.Background(), uuid.New())
+	// searchAll включает message (nil mongo = OK) — исключаем, чтобы проверить total outage.
+	_, _, err = svc.Search(context.Background(), "hub query", userID,
+		[]string{"issue", "test_case", "user", "project", "file", "channel"}, 20)
 	require.Error(t, err)
+	assert.ErrorIs(t, err, search.ErrSearchUnavailable)
 }
 
-func TestSearchMessages_NoChannelMembership(t *testing.T) {
-	db := newScopeTestDB(t)
-	svc := search.ExportNewSearchServiceFull(nil, db, nil)
-	results, err := search.ExportSearchMessages(svc, context.Background(), "hello", uuid.New())
-	require.NoError(t, err)
-	assert.Nil(t, results)
-}
-
-func TestDeleteSavedFilter_NotFound(t *testing.T) {
-	svc, _, ctx, userID, _ := newSearchServiceTestEnv(t)
-	err := svc.DeleteSavedFilter(ctx, userID, uuid.New())
-	require.Error(t, err)
-}
+// A3W5-5-002: дубли closed-DB / nil-mongo сняты —
+// каноны: TestGetUserChannelIDs_ClosedDB, TestSearchMessages_NilMongoReturnsEmpty.

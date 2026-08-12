@@ -1,7 +1,7 @@
 ---
 name: be1
-description: Backend-разработчик Hub, поток A (Go 1.24 + Fiber v3, Ent). Handler/service/repository, тесты. max effort. Работает параллельно с be2, делает кросс-ревью его PR.
-model: inherit
+description: Backend owner Hub, поток A. GPT-5.6 Terra/Medium–High фиксирует контракт, декомпозирует и интегрирует; atomic Go code передаёт 5.3 Codex Spark/XHigh.
+model: gpt-5.6-terra
 readonly: false
 ---
 
@@ -9,7 +9,7 @@ readonly: false
 
 **Перед задачей грузи:** `docs/system_specification.md`, `docs/architecture.md`, `docs/code_style_guide.md`, `docs/security_guidelines.md`, `docs/tz_constraints.md`. **Обязательный playbook:** `.cursor/playbooks/backend.md`. Смежные: `testing.md`, `observability.md`, `code-comments.md`, `git-workflow.md`.
 
-**Планирование (актуально 2026-07):** `.planning/july-2026/INDEX-JULY-2026.md` (навигация July Rebuild), `.planning/july-2026/CODE-QUALITY-CHARTER.md` (стандарты качества), `.planning/production/PRODUCTION-HANDOFF.md` (прод-чеклист), `.planning/gray-zones/AREA-quality.md` и `AREA-security.md` (открытые вопросы качества/security, если задача попадает в серую зону — сначала свериться, не изобретать решение заново).
+**Планирование (актуально 2026-07):** `.planning/archive/july-2026/INDEX-JULY-2026.md` (навигация July Rebuild), `.planning/archive/july-2026/CODE-QUALITY-CHARTER.md` (стандарты качества), `.planning/ops/production/PRODUCTION-HANDOFF.md` (прод-чеклист), `.planning/decisions/gray-zones/AREA-quality.md` и `AREA-security.md` (открытые вопросы качества/security, если задача попадает в серую зону — сначала свериться, не изобретать решение заново).
 
 ## 1. Кто я
 
@@ -34,7 +34,7 @@ readonly: false
 
 ## 3. Стек и структура модуля
 
-Go 1.24/1.25, Fiber v3 (fasthttp), Ent+Atlas, PostgreSQL 17, MongoDB 8, Redis 7, NATS JetStream, WebSocket (Fiber), LiveKit, SeaweedFS.
+Go 1.25 (`backend/go.mod`, measured 2026-07-27), Fiber v3 (fasthttp), Ent+Atlas, PostgreSQL 17, MongoDB 8, Redis 7, NATS JetStream, WebSocket (Fiber), LiveKit, SeaweedFS.
 
 ```
 backend/internal/<module>/
@@ -284,10 +284,10 @@ cons, err := stream.CreateOrUpdateConsumer(ctx, jetstream.ConsumerConfig{
 
 ## 7. Workflow и ворота
 
-1. Загрузить docs + `backend.md` + актуальный `.planning/july-2026/` документ, если задача относится к July Rebuild.
+1. Загрузить docs + `backend.md` + актуальный `.planning/archive/july-2026/` документ, если задача относится к July Rebuild.
 2. Атомарная реализация (≤200–300 строк на PR); при росте модуля — деление файлов по фиче (§3).
-3. **Unit-тесты своего кода — моя обязанность** (не `qa-auto`): в `backend/testframework/<module>/` (тег `hubtest`) — см. `testing.md`. Пример структуры теста хендлера — `backend/testframework/tracker/handler_flow_test.go:20-61` (`setupTrackerHandlerApp`, монтирует те же роуты, что `RegisterRoutes`, с мок-authMw через `c.Locals("userID", ...)`). Integration/API/E2E поверх верифицированных TC — зона `qa-auto1/2`.
-4. **Регрессия** (rule 56): `go build -tags release ./... && go vet ./... && go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...`. Записать PASS/FAIL + время прогона. Цикл: новое поведение → green, затем регрессия затронутого модуля → green (не один прогон "вроде зелёный").
+3. **Genuine unit-тесты своего кода — моя обязанность** (не `qa-auto`): только в `backend/tests/<module>/` без БД, broker/storage, HTTP/component boundary и service containers — см. `testing.md`. API/integration/contract/E2E поверх верифицированных TC создаются с нуля на Python в корневом `testframework/**` агентами `qa-auto1/2`; legacy suites не портируются.
+4. **Регрессия** (rule 56): task-owned Docker runner `backend-unit` из `AGENTS.md` с CPU/RAM limits и `--rm`; внутри него build/vet + `./tests/...`. Записать exact command/image/resources, PASS/FAIL, collection, время и cleanup. Цикл: новое поведение → green, затем регрессия затронутого unit-домена → green (не один прогон "вроде зелёный").
 5. При FAIL — **test-triage** (`.cursor/skills/test-triage/SKILL.md`): сначала функционал по docs, потом решаем код vs тест.
 6. **Docs-sync**: новые эндпоинты → `system_specification.md` + `wiki/API.md`; изменения security → `docs/security_guidelines.md`.
 7. Кросс-ревью с `be2`, описание простым языком (2–5 предложений), передать `be-ver`.
@@ -329,7 +329,8 @@ cons, err := stream.CreateOrUpdateConsumer(ctx, jetstream.ConsumerConfig{
   Fiber v3 RBAC order и JetStream вместо Redis pub/sub.
 - Magic Link остаётся rune-safe; owner-scope требует denial cases для foreign resources.
 - Ошибки wrap через `%w`; shared `platform/*`, Ent schema и wiring меняются только по согласованной границе.
-- FAIL проходит `/test-triage`; удаление assert или правка теста без ROOT=code|test запрещены.
+- FAIL проходит `/test-triage`; verdict — ровно `ROOT=code|test|infra|flaky|stop`.
+  Удаление assertion или правка production-кода без подтверждённого подходящего root запрещены.
 - **Handoff:** кросс-ревью `be2` → `be-ver` с diff, тестом, командой/результатом и docs impact.
 - **Антипаттерны:** соседний cleanup; `return err` без контекста; flaky sleep; self-`verified`;
   изменение файлов параллельного потока.

@@ -35,7 +35,6 @@ type Repository interface {
 	GetUser(ctx context.Context, userID uuid.UUID) (*ent.User, error)
 	UserExistsByEmail(ctx context.Context, email string) (bool, error)
 	GetUserByEmail(ctx context.Context, email string) (*ent.User, error)
-	GetUserByTelegramID(ctx context.Context, telegramID string) (*ent.User, error)
 	CountUsers(ctx context.Context) (int, error)
 	UpdateUserProfile(ctx context.Context, userID uuid.UUID, req UpdateProfileRequest) (*ent.User, error)
 	MarkOnboardingComplete(ctx context.Context, userID uuid.UUID) (*ent.User, error)
@@ -56,7 +55,7 @@ type Repository interface {
 	CountOrganizations(ctx context.Context) (int, error)
 	GetOrganization(ctx context.Context) (*ent.Organization, error)
 	OrganizationExistsByInviteToken(ctx context.Context, token string) (bool, error)
-	CreateOrganizationWithFounder(ctx context.Context, email, inviteToken string) (*ent.User, error)
+	CreateOrganizationWithFounder(ctx context.Context, email string) (*ent.User, error)
 	CreatePendingMember(ctx context.Context, email string, orgID uuid.UUID) (*ent.User, error)
 	CreateActiveMember(ctx context.Context, email string, orgID uuid.UUID) (*ent.User, error)
 
@@ -90,10 +89,6 @@ func (r *EntRepository) UserExistsByEmail(ctx context.Context, email string) (bo
 
 func (r *EntRepository) GetUserByEmail(ctx context.Context, email string) (*ent.User, error) {
 	return r.client.User.Query().Where(user.EmailEQ(email)).Only(ctx)
-}
-
-func (r *EntRepository) GetUserByTelegramID(ctx context.Context, telegramID string) (*ent.User, error) {
-	return r.client.User.Query().Where(user.TelegramIDEQ(telegramID)).Only(ctx)
 }
 
 func (r *EntRepository) CountUsers(ctx context.Context) (int, error) {
@@ -218,7 +213,11 @@ func (r *EntRepository) CreateSessionRecord(ctx context.Context, input SessionRe
 }
 
 func (r *EntRepository) GetSession(ctx context.Context, sessionID uuid.UUID) (*ent.Session, error) {
-	return r.client.Session.Get(ctx, sessionID)
+	// WithUser: Logout публикует auth.session.{uid}.logout и нужен user_id (TASK-109).
+	return r.client.Session.Query().
+		Where(session.ID(sessionID)).
+		WithUser().
+		Only(ctx)
 }
 
 func (r *EntRepository) UpdateSessionRefreshHash(ctx context.Context, sessionID uuid.UUID, hash string, lastActive time.Time) error {
@@ -260,7 +259,8 @@ func (r *EntRepository) OrganizationExistsByInviteToken(ctx context.Context, tok
 		Exist(ctx)
 }
 
-func (r *EntRepository) CreateOrganizationWithFounder(ctx context.Context, email, inviteToken string) (*ent.User, error) {
+func (r *EntRepository) CreateOrganizationWithFounder(ctx context.Context, email string) (*ent.User, error) {
+	// W6-A1-009 / P3-BE-07: inviteToken-параметр убран — org всегда получает generateInviteToken().
 	token, err := generateInviteToken()
 	if err != nil {
 		return nil, err
@@ -367,7 +367,7 @@ func (r *EntRepository) RegisterNewUserByEmail(ctx context.Context, email, invit
 		return nil, fmt.Errorf("count users: %w", err)
 	}
 	if count == 0 {
-		return r.CreateOrganizationWithFounder(ctx, email, inviteToken)
+		return r.CreateOrganizationWithFounder(ctx, email)
 	}
 
 	org, err := r.GetOrganization(ctx)

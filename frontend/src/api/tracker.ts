@@ -113,13 +113,8 @@ export interface IssueResponse {
 	parent?: IssueBriefResponse;
 	children_count: number;
 	labels: LabelResponse[];
-	attachments?: {
-		file_id: string;
-		file_name: string;
-		file_size: number;
-		mime_type: string;
-		url?: string;
-	}[];
+	/** ID спринта; null/absent — задача в бэклоге (без спринта). */
+	sprint_id?: string | null;
 	created_at: string;
 	updated_at: string;
 }
@@ -132,10 +127,22 @@ export interface IssueLinkResponse {
 	issue: IssueBriefResponse;
 }
 
+/** A13-004: batch-связь проекта (Gantt без N+1). */
+export interface ProjectIssueLinkResponse {
+	id: string;
+	link_type: string;
+	custom_type?: string;
+	source_issue_key: string;
+	target_issue_key: string;
+}
+
+/** Plate body: массив узлов или doc-объект (исторический wire format — массив). */
+export type CommentBodyJson = unknown[] | Record<string, unknown>;
+
 /** Комментарий к задаче. */
 export interface CommentResponse {
 	id: string;
-	body_json: Record<string, unknown>;
+	body_json: CommentBodyJson;
 	body_text: string;
 	is_internal: boolean;
 	mentions: string[];
@@ -269,9 +276,26 @@ export interface ListIssuesParams {
 	status?: string[];
 	priority?: string[];
 	assignee?: string;
+	/**
+	 * Фильтр по спринту: UUID — задачи спринта;
+	 * `"none"` / `"unassigned"` — только без спринта (бэклог).
+	 */
+	sprint_id?: string;
 	issue_type?: string;
 	search?: string;
 	order_by?: string;
+}
+
+/**
+ * Задачи без спринта (бэклог).
+ * Mutation: убрать вызов → UI снова показывает issues со sprint_id.
+ */
+export function filterIssuesWithoutSprint<
+	T extends { sprint_id?: string | null },
+>(issues: T[]): T[] {
+	return issues.filter(
+		(issue) => issue.sprint_id == null || issue.sprint_id === "",
+	);
 }
 
 /** Запрос на создание связи между задачами. */
@@ -283,7 +307,7 @@ export interface CreateIssueLinkRequest {
 
 /** Запрос на создание комментария. */
 export interface CreateCommentRequest {
-	body_json: Record<string, unknown>;
+	body_json: CommentBodyJson;
 	body_text: string;
 	is_internal?: boolean;
 	mentions?: string[];
@@ -291,7 +315,7 @@ export interface CreateCommentRequest {
 
 /** Запрос на обновление комментария. */
 export interface UpdateCommentRequest {
-	body_json: Record<string, unknown>;
+	body_json: CommentBodyJson;
 	body_text: string;
 }
 
@@ -417,6 +441,13 @@ export function createIssueLink(
 export function listIssueLinks(projectId: string, issueKey: string) {
 	return api.get<IssueLinkResponse[]>(
 		`/projects/${projectId}/issues/${issueKey}/links`,
+	);
+}
+
+/** A13-004: все связи проекта одним запросом (Gantt). */
+export function listProjectIssueLinks(projectId: string) {
+	return api.get<ProjectIssueLinkResponse[]>(
+		`/projects/${projectId}/issue-links`,
 	);
 }
 

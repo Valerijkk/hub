@@ -15,13 +15,18 @@ import (
 	"github.com/valerii/hub/backend/ent/user"
 )
 
+// MaxCalendarList — W7-A2-010: hard cap на списки календаря (calls/issues/sprints/leave).
+// Mutation: снять Limit → unbounded All при N>cap.
+const MaxCalendarList = 100
+
 // Repository — доступ к данным календаря.
 type Repository interface {
 	ListUserProjectIDs(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error)
 	ListScheduledCalls(ctx context.Context, projectIDs []uuid.UUID) ([]*ent.ScheduledCall, error)
 	ListSprintsInRange(ctx context.Context, projectIDs []uuid.UUID, from, to time.Time) ([]*ent.Sprint, error)
 	ListIssuesDueInRange(ctx context.Context, projectIDs []uuid.UUID, from, to time.Time) ([]*ent.Issue, error)
-	ListApprovedLeaveInRange(ctx context.Context, from, to time.Time) ([]*ent.LeaveRequest, error)
+	// ListApprovedLeaveInRange — только leave зрителя и участников общих проектов (A6-005).
+	ListApprovedLeaveInRange(ctx context.Context, viewerID uuid.UUID, projectIDs []uuid.UUID, from, to time.Time) ([]*ent.LeaveRequest, error)
 }
 
 // EntRepository реализует Repository через Ent.
@@ -59,7 +64,10 @@ func (r *EntRepository) ListScheduledCalls(ctx context.Context, projectIDs []uui
 		Where(
 			scheduledcall.ProjectIDIn(projectIDs...),
 			scheduledcall.IsActive(true),
+			scheduledcall.DeletedAtIsNil(),
 		).
+		WithProject().
+		Limit(MaxCalendarList).
 		All(ctx)
 }
 
@@ -72,8 +80,11 @@ func (r *EntRepository) ListSprintsInRange(ctx context.Context, projectIDs []uui
 			sprintEnt.HasProjectWith(project.IDIn(projectIDs...)),
 			sprintEnt.StartDateLTE(to),
 			sprintEnt.EndDateGTE(from),
+			// BE-V4-002 / TASK-189: корзина не в /events и .ics.
+			sprintEnt.DeletedAtIsNil(),
 		).
 		WithProject().
+		Limit(MaxCalendarList).
 		All(ctx)
 }
 
@@ -90,16 +101,30 @@ func (r *EntRepository) ListIssuesDueInRange(ctx context.Context, projectIDs []u
 			issue.DeletedAtIsNil(),
 		).
 		WithProject().
+		Limit(MaxCalendarList).
 		All(ctx)
 }
 
-func (r *EntRepository) ListApprovedLeaveInRange(ctx context.Context, from, to time.Time) ([]*ent.LeaveRequest, error) {
+func (r *EntRepository) ListApprovedLeaveInRange(ctx context.Context, viewerID uuid.UUID, projectIDs []uuid.UUID, from, to time.Time) ([]*ent.LeaveRequest, error) {
+	// A6-005: не отдавать org-wide approved leave любому JWT.
+	// Видно: своё + leave участников проектов, в которых состоит viewer.
+	requesterPred := user.IDEQ(viewerID)
+	if len(projectIDs) > 0 {
+		requesterPred = user.Or(
+			user.IDEQ(viewerID),
+			user.HasProjectMembersWith(projectmember.HasProjectWith(project.IDIn(projectIDs...))),
+		)
+	}
 	return r.client.LeaveRequest.Query().
 		Where(
 			leaverequest.StatusEQ(leaverequest.StatusApproved),
 			leaverequest.StartDateLTE(to),
 			leaverequest.EndDateGTE(from),
+			leaverequest.HasRequesterWith(requesterPred),
+			// BE-V4-001 / TASK-189: как hr/repository — GDPR soft-delete не в календаре.
+			leaverequest.DeletedAtIsNil(),
 		).
 		WithRequester().
+		Limit(MaxCalendarList).
 		All(ctx)
 }

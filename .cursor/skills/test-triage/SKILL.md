@@ -1,148 +1,115 @@
 ---
 name: test-triage
-description: При падении теста или баге — сначала проверить корректность функционала, потом решать чинить код или тест. Обязателен для QA, BE, FE, debugger.
+description: При FAIL сначала установить требуемое и наблюдаемое product behavior, затем классифицировать code/test/infra/flaky/stop. Обязателен для QA, BE, FE, debugger и verifier.
 ---
 
-# Test Triage — Code vs Test
+# Test Triage — behavior before fix
 
-> **Принцип Hub:** тест — это гипотеза о поведении. Падающий тест не означает автоматически баг в продакшн-коде.
+Падающий test — свидетельство расхождения, а не автоматический verdict о code.
+Зелёный test также может быть ложным, если oracle не чувствителен.
 
-## Когда применять
+## Scope
 
-- `go test` / `vitest` / Playwright FAIL
-- Регрессия после рефакторинга
-- Агент «чинит» тесты чтобы стали зелёными
-- Пользователь сообщает о баге, а тесты зелёные
+Применять к target jobs:
 
-## Порядок (строго)
+- `backend-unit` → `backend/tests/**`;
+- `frontend-unit` → `frontend/tests/**`;
+- `python-contract|api|integration|e2e|load` → root `testframework/**`.
 
-### 1. Зафиксировать симптом
+Legacy Go component/static Vitest/TS Playwright не чинить и не портировать;
+они удаляются по founder manifest. Если FAIL пришёл только из legacy runner,
+зафиксировать исторический контекст и проверить, относится ли behavior к
+current target requirement/risk.
 
-```
-Тест:     TestBanUser_EmptyReason
-Пакет:    internal/audit
-Ошибка:   expected error, got nil
-```
+## 1. Зафиксировать симптом и provenance
 
-### 2. Воспроизвести ФУНКЦИОНАЛ (не тест)
-
-- Прочитать требование в `docs/system_specification.md` / User Story / PLAN.md
-- Трассировать production path: handler → service → repository
-- Ручная проверка или минимальный repro (curl, integration fixture)
-- Ответить: **«Как ДОЛЖНО работать по спецификации?»**
-
-### 3. Классификация
-
-| Ситуация | Действие |
-|----------|----------|
-| Код нарушает спецификацию | **Fix code** → обновить тесты если контракт уточнился |
-| Код соответствует спецификации, тест устарел/неверен | **Fix test** (mock, assertion, fixture, flaky timing) |
-| Спецификация неясна | **Stop** → уточнить у SA/BA, обновить docs, потом код/тест |
-| Flaky (race, timing, network) | Стабилизировать тест (deterministic mock, `-race`, fake clock) |
-
-### 4. Запрещено
-
-- Менять assertion чтобы «прошло», не проверив шаг 2
-- Удалять тест без обоснования в skill-логе
-- `t.Skip()` без ticket/плана
-- Чинить продакшн-код только потому что «тест так ожидает», если тест противоречит docs
-
-### 5. После фикса
-
-```bash
-# Минимум затронутый пакет
-go test -race -count=1 ./internal/<pkg>/...
-
-# Перед handoff
-/qa-gate  # или полный gate по REGULATION §8
+```text
+Job/case: <target job + exact case/TC>
+Source SHA/image: <values>
+Exact Docker command/resources/services: <values>
+Observed: <error/output/state/side effect>
+Collection/skips/duration/cleanup: <values>
 ```
 
-Записать в skill-лог:
+Host-run, старый лог или неизвестный source SHA не воспроизводят baseline.
 
+## 2. Проверить product behavior первым
+
+До изменения code/test:
+
+1. Найти task, requirement, approved spec/API/ADR и связанный TC.
+2. Сформулировать expected observable outcome и forbidden side effects.
+3. Трассировать production boundary; при необходимости сделать минимальный
+   repro только в task-owned Docker/Compose с CPU/RAM limits.
+4. Сравнить docs, фактический product behavior и test oracle.
+5. Для security/tenant риска проверить deny path, не только happy path.
+
+Нельзя считать test assertion источником истины. Если docs и approved
+decisions расходятся — STOP, не выбирать удобную версию.
+
+## 3. Выбрать ровно один ROOT
+
+| ROOT | Диагноз | Действие |
+|---|---|---|
+| `code` | production behavior нарушает однозначный contract | минимальный code fix; test сохраняет/усиливает oracle |
+| `test` | product соответствует contract, а fixture/oracle/metadata неверны | минимальный test fix; production не менять |
+| `infra` | image/config/service/data/port/resource/cleanup не соответствует runner contract | исправить task-owned infra, не product assertion |
+| `flaky` | недетерминизм time/order/shared state/network/race подтверждён | устранить cause; retry/quarantine только bounded с owner+expiry |
+| `stop` | contract неоднозначен, authority/secret/destructive risk или нужный scope вне ownership | остановиться, передать BA/SA/product/owner |
+
+`code + test` как один root запрещён. Если approved contract изменился, сначала
+owner обновляет normative docs/decision; затем это отдельные согласованные
+изменения с общей traceability.
+
+## 4. False-confidence checks
+
+- case красный при временном удалении защищаемого behavior?
+- oracle наблюдает output/state/effect/no-side-effect, а не private call order?
+- mock interaction является public contract?
+- zero collection/skip/retry не замаскировали FAIL?
+- suite соответствует boundary, а не историческому path?
+- historical 82% coverage/parity не использованы как rationale?
+
+## 5. Запрещено
+
+- менять expected/assertion только ради green;
+- одновременно править code и test «наугад»;
+- удалять case или добавлять skip без risk/ticket/owner/expiry;
+- увеличивать timeout/retry без доказанного `ROOT=flaky|infra`;
+- восстанавливать legacy non-unit ради coverage;
+- запускать host tests/validators/build/app process;
+- выдавать static review или NOT_RUN за verified PASS.
+
+## 6. Verification
+
+Исправление проверяется target Docker job из
+[`qa-gate`](../qa-gate/SKILL.md), затем смежными risk jobs. Evidence содержит
+source SHA/image/command/resources/result/duration/artifacts/cleanup. Если
+воспроизведение не разрешено task scope, записать `NOT_RUN`.
+
+## Log
+
+```text
+TRIAGE: <job/case/TC>
+CONTRACT: <task + requirement + expected observable behavior>
+OBSERVED: <product vs oracle>
+ROOT: code|test|infra|flaky|stop
+EVIDENCE: <Docker provenance or NOT_RUN>
+FIX: <exact files/owner or pending clarification>
+VERIFIED: <target jobs + results + cleanup, or NOT_RUN>
+RESIDUAL: <unverified risk>
 ```
-TRIAGE: TestX — ROOT=test (устаревший mock) | ROOT=code (BanUser не проверял reason)
-FIX: <файл:строка>
-VERIFIED: manual + go test green
-```
 
-## GSD связь
+## Hub calibration examples
 
-- Сложный баг → `gsd-debug` (научный метод, `.planning/debug/`)
-- Массовые падения после аудита → `gsd-audit-fix --dry-run` сначала
-- Новые тесты после фазы → `gsd-add-tests`
+- Magic Link test ожидает plaintext Redis key, а approved security contract
+  требует hash → `ROOT=test`.
+- Cross-tenant object доступ фактически разрешён, requirement требует deny →
+  `ROOT=code`.
+- Integration suite не видит NATS из-за неверного task Compose network →
+  `ROOT=infra`.
+- E2E иногда падает из-за shared account/order → `ROOT=flaky`.
+- Overlap policy отсутствует и в spec, и в ADR → `ROOT=stop` к SA/product.
 
-## Примеры Hub
-
-### Пример A — чинить ТЕСТ
-
-`TestRefreshRedisKey_UsesHashNotPlaintext` падает после NF-12: тест ожидал plaintext key в Redis, но код правильно хеширует → обновить ожидание в тесте.
-
-### Пример B — чинить КОД
-
-`TestBanUser_EmptyReason` падает с `got nil`: спецификация требует reason → добавить validation в `BanUser`, тест оставить.
-
-### Пример C — чинить ОБА
-
-GDPR delete: тест ожидал 200 при partial failure, спецификация требует error → код `errors.Join` + тест обновить на `want err`.
-
----
-
-## Дополнительные сценарии по доменам (`backend/testframework/{domain}/`)
-
-> Полный набор с таблицами и обоснованием: `.cursor/REGULATION.md` §14, §18. Здесь — быстрый справочник по каждому домену для повторного использования.
-
-### `auth` (`backend/internal/auth/`: `magiclink.go`, `service_login.go`, `service_session.go`, `middleware.go`, `telegram.go`)
-
-| Тест | Вердикт | Почему |
-|------|---------|--------|
-| `TestMagicLink_RateLimit_Exceeded` | ROOT=code | `tz_constraints.md`: 3 попытки/10 мин — не реализовано |
-| `TestRefreshToken_TTL` (ожидал 7д) | ROOT=test | Требование поменялось на 30д, тест устарел |
-| `TestTelegramBind_AsLogin` (зелёный, но не должен быть) | ROOT=code | ADR-AUTH-01: Telegram — bind/notify только, тест слишком слабый |
-| `TestSessionMiddleware_ExpiredJWT` (flaky) | Flaky | Заменить `time.Now()` на fake clock |
-
-### `tracker` (`backend/internal/tracker/`: `handler_issues.go`, `automation_engine.go`, `repo_time.go`, `service_workflow.go`)
-
-| Тест | Вердикт | Почему |
-|------|---------|--------|
-| `TestAutomationEngine_TriggerOnStatusChange` | ROOT=code | Consumer не подписан на `hub.tracker.issue.updated` |
-| `TestIssueHandler_Pagination` (ждёт cursor) | ROOT=test | Задачи — offset/limit по TZ, не cursor |
-| `TestRepoTime_Overlap` | Stop → clarify | Спецификация не покрывает overlap явно — эскалация `sa` |
-| `TestWorkflowTransition_SkipGuard` | ROOT=test | Устаревший mock после рефакторинга интерфейса |
-
-### `bases` (no-code БД, `backend/internal/bases/`: `service.go`, `repository.go`)
-
-| Тест | Вердикт | Почему |
-|------|---------|--------|
-| `TestBasesRBAC_ViewerCannotEdit` | ROOT=code | Нет role-guard перед `UpdateRow` |
-| `TestBasesService_SoftDelete` | ROOT=code | Использует hard `Delete()` вместо `SetDeletedAt()` — критично, TZ mandatory |
-| `TestBasesService_OptimisticLock` | ROOT=code | Нет проверки `version` перед update |
-| `TestBasesService_ColumnTypeCast` | Stop → clarify | Неясно ожидаемое поведение при invalid type cast |
-
-### `messenger` (`backend/internal/messenger/`)
-
-| Тест | Вердикт | Почему |
-|------|---------|--------|
-| `TestChannelPagination_Cursor` (ждёт offset/limit) | ROOT=test | Чат — cursor по TZ, тест скопирован из tracker-паттерна |
-| `TestPresence_WSRoomJoin_NoMembershipCheck` (зелёный, не должен быть) | ROOT=code | NF-02: WS room без RBAC — forbidden, дыра скрыта слабым тестом |
-
-### `tms`
-
-| Тест | Вердикт | Почему |
-|------|---------|--------|
-| `TestTestRailImport_DuplicateCase` | ROOT=code | Импорт должен делать upsert по `external_id`, создаёт дубликат |
-| `TestRunsExtra_StatusTransition` | ROOT=test | Сигнатура сервиса изменилась, поведение — нет; обновить mock |
-
-### `calls` (LiveKit)
-
-| Тест | Вердикт | Почему |
-|------|---------|--------|
-| `TestChatMongo_MessagePersist` (после reconnect) | ROOT=code | Consumer не переподписывается на JetStream после reconnect |
-| `TestSearch_Wave103Mongo_NoUserScope` (зелёный, не должен быть) | ROOT=code | NF-03: search без user-scope — forbidden |
-
-## Правило для «Stop → clarify»
-
-Если ни docs, ни ADR, ни TZ-constraints не дают однозначного ответа — **не гадать**. Записать вопрос в `.planning/STATE.md` §Blockers, эскалировать `sa1`/`sa2` или `product`, дождаться уточнения (обновление `docs/system_specification.md`), и только потом классифицировать code/test.
-
----
-
-*Hub mandatory for: qa, be, fe, debugger, *-ver*
+Сложная code/flaky investigation может перейти в `gsd-debug`; root classification
+и evidence сохраняются.

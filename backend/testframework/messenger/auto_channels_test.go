@@ -34,6 +34,7 @@ func (m *mockProjectMemberProvider) listProjectMembers(projectID uuid.UUID) ([]u
 // simulateProjectCreated эмулирует handleProjectCreated messenger.AutoChannelService с entRepo.
 func simulateProjectCreated(
 	svc *messenger.MessengerService,
+	repo *mockRepository,
 	memberProvider *mockProjectMemberProvider,
 	data []byte,
 ) {
@@ -54,6 +55,12 @@ func simulateProjectCreated(
 
 	ctx := context.Background()
 	channelName := "#project-" + strings.ToLower(payload.Key)
+
+	// AUDIT-TM-004: CreateChannel требует IsProjectMember — creator проекта уже member.
+	if repo.projectMembers[projectID] == nil {
+		repo.projectMembers[projectID] = make(map[uuid.UUID]bool)
+	}
+	repo.projectMembers[projectID][createdBy] = true
 
 	ch, err := svc.CreateChannel(ctx, createdBy, messenger.CreateChannelRequest{
 		ChannelType: "public",
@@ -107,7 +114,7 @@ func TestHandleProjectCreated_CreatesChannel(t *testing.T) {
 	require.NoError(t, err)
 
 	// Без memberProvider событие обрабатывается, участники не добавляются.
-	simulateProjectCreated(svc, nil, data)
+	simulateProjectCreated(svc, repo, nil, data)
 
 	// Проверяем, что канал #project-hub создан.
 	found := false
@@ -149,7 +156,7 @@ func TestHandleProjectCreated_AddsMembersToChannel(t *testing.T) {
 	data, err := json.Marshal(payload)
 	require.NoError(t, err)
 
-	simulateProjectCreated(svc, memberProvider, data)
+	simulateProjectCreated(svc, repo, memberProvider, data)
 
 	// Проверяем, что все участники проекта добавлены в канал.
 	var channelID uuid.UUID

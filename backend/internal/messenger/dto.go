@@ -11,13 +11,15 @@ import (
 // ---------------------------------------------------------------------------
 
 // CreateChannelRequest — запрос на создание канала.
+// Version используется только в UpdateChannel (TASK-095 optimistic lock).
 type CreateChannelRequest struct {
-	ChannelType string    `json:"channel_type" validate:"required,oneof=dm group public private"`
-	Name        string    `json:"name,omitempty" validate:"omitempty,min=1,max=100"`
-	Description string    `json:"description,omitempty" validate:"omitempty,max=500"`
-	ProjectID   string    `json:"project_id,omitempty"`
-	IsReadonly  bool      `json:"is_readonly,omitempty"`
-	MemberIDs   []string  `json:"member_ids,omitempty"`
+	ChannelType string   `json:"channel_type" validate:"required,oneof=dm group public private"`
+	Name        string   `json:"name,omitempty" validate:"omitempty,min=1,max=100"`
+	Description string   `json:"description,omitempty" validate:"omitempty,max=500"`
+	ProjectID   string   `json:"project_id,omitempty"`
+	IsReadonly  bool     `json:"is_readonly,omitempty"`
+	MemberIDs   []string `json:"member_ids,omitempty"`
+	Version     int      `json:"version,omitempty"`
 }
 
 // SendMessageRequest — запрос на отправку сообщения.
@@ -86,6 +88,7 @@ type ChannelResponse struct {
 	CreatedBy   string     `json:"created_by"`
 	IsStarred   bool       `json:"is_starred"`
 	MutedUntil  *time.Time `json:"muted_until,omitempty"`
+	Version     int        `json:"version"`
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at"`
 }
@@ -123,11 +126,14 @@ type MessageResponse struct {
 }
 
 // BookmarkResponse — ответ с данными закладки.
+// ChannelName / ContentPreview — enrich для UI (A3W9-2-001); пустые, если канал/сообщение недоступны.
 type BookmarkResponse struct {
-	ID        string    `json:"id"`
-	MessageID string    `json:"message_id"`
-	ChannelID string    `json:"channel_id"`
-	CreatedAt time.Time `json:"created_at"`
+	ID             string    `json:"id"`
+	MessageID      string    `json:"message_id"`
+	ChannelID      string    `json:"channel_id"`
+	ChannelName    string    `json:"channel_name,omitempty"`
+	ContentPreview string    `json:"content_preview,omitempty"`
+	CreatedAt      time.Time `json:"created_at"`
 }
 
 // PinnedMessageResponse — ответ с данными закреплённого сообщения.

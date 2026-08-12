@@ -16,7 +16,7 @@ import (
 )
 
 func TestHandler_CreateSprint_InvalidJSON(t *testing.T) {
-	app, projectID, _ := setupSprintHandlerApp(t)
+	app, _, projectID, _ := setupSprintHandlerApp(t)
 	base := "/api/projects/" + projectID.String() + "/sprints"
 
 	req := httptest.NewRequest(http.MethodPost, base+"/", bytes.NewReader([]byte("{")))
@@ -28,18 +28,22 @@ func TestHandler_CreateSprint_InvalidJSON(t *testing.T) {
 }
 
 func TestHandler_StartSprint_NotFound(t *testing.T) {
-	app, projectID, _ := setupSprintHandlerApp(t)
+	// W1-A4-016 / P3-BE-02: точный 404 + тело error; NotEqual(OK) пропускал 500/400.
+	app, _, projectID, _ := setupSprintHandlerApp(t)
 	base := "/api/projects/" + projectID.String() + "/sprints"
 
 	req := httptest.NewRequest(http.MethodPost, base+"/"+uuid.New().String()+"/start", nil)
 	resp, err := app.Test(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
-	assert.NotEqual(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, fiber.StatusNotFound, resp.StatusCode)
+	var body map[string]string
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+	assert.Contains(t, body["error"], "не найден")
 }
 
 func TestHandler_UpdateRetroNotes_InvalidJSON(t *testing.T) {
-	app, projectID, _ := setupSprintHandlerApp(t)
+	app, _, projectID, _ := setupSprintHandlerApp(t)
 	base := "/api/projects/" + projectID.String() + "/sprints"
 
 	start := time.Now().UTC().Format(time.RFC3339)
@@ -62,7 +66,7 @@ func TestHandler_UpdateRetroNotes_InvalidJSON(t *testing.T) {
 }
 
 func TestHandler_CastVote_InvalidJSON(t *testing.T) {
-	app, projectID, _ := setupSprintHandlerApp(t)
+	app, repo, projectID, _ := setupSprintHandlerApp(t)
 	base := "/api/projects/" + projectID.String() + "/sprints"
 
 	start := time.Now().UTC().Format(time.RFC3339)
@@ -77,6 +81,7 @@ func TestHandler_CastVote_InvalidJSON(t *testing.T) {
 	resp.Body.Close()
 
 	issueID := uuid.New()
+	repo.issueProject[issueID] = projectID
 	pokerBody := fmt.Sprintf(`{"issue_id":%q}`, issueID.String())
 	req = httptest.NewRequest(http.MethodPost, base+"/"+sp.ID+"/poker", bytes.NewReader([]byte(pokerBody)))
 	req.Header.Set("Content-Type", "application/json")
@@ -95,7 +100,7 @@ func TestHandler_CastVote_InvalidJSON(t *testing.T) {
 }
 
 func TestHandler_GetSprint_InvalidID(t *testing.T) {
-	app, projectID, _ := setupSprintHandlerApp(t)
+	app, _, projectID, _ := setupSprintHandlerApp(t)
 	base := "/api/projects/" + projectID.String() + "/sprints"
 
 	req := httptest.NewRequest(http.MethodGet, base+"/not-a-uuid", nil)

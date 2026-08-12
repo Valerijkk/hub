@@ -22,9 +22,9 @@ type ChannelRepository interface {
 	ListUserChannels(ctx context.Context, userID uuid.UUID) ([]*ent.Channel, error)
 	// UpdateChannel обновляет канал.
 	UpdateChannel(ctx context.Context, channelID uuid.UUID, input UpdateChannelInput) (*ent.Channel, error)
-	// DeleteChannel удаляет канал.
+	// DeleteChannel мягко удаляет канал (deleted_at).
 	DeleteChannel(ctx context.Context, channelID uuid.UUID) error
-	// IsMember проверяет, является ли пользователь участником канала.
+	// IsMember проверяет участие в активном (не soft-deleted) канале.
 	IsMember(ctx context.Context, channelID, userID uuid.UUID) (bool, error)
 	// GetMemberRole возвращает роль участника в канале.
 	GetMemberRole(ctx context.Context, channelID, userID uuid.UUID) (string, error)
@@ -38,6 +38,9 @@ type ChannelRepository interface {
 	FindDMChannel(ctx context.Context, dmKey string) (*ent.Channel, error)
 	// ListMembers возвращает всех участников канала.
 	ListMembers(ctx context.Context, channelID uuid.UUID) ([]*ent.ChannelMember, error)
+	// FilterUsersSharingChannel возвращает подмножество candidateIDs,
+	// которые состоят хотя бы в одном активном канале вместе с callerID (A2W3-1-001).
+	FilterUsersSharingChannel(ctx context.Context, callerID uuid.UUID, candidateIDs []uuid.UUID) ([]uuid.UUID, error)
 }
 
 // StarMuteRepository управляет закреплением (starred) и мьютом каналов (Ent/PG).
@@ -86,8 +89,9 @@ type ReactionRepository interface {
 
 // SearchRepository обеспечивает полнотекстовый поиск сообщений (MongoDB).
 type SearchRepository interface {
-	// SearchMessages выполняет полнотекстовый поиск по сообщениям.
-	SearchMessages(ctx context.Context, query string, channelID *uuid.UUID, limit int) ([]*MessageDocument, error)
+	// SearchMessages выполняет полнотекстовый поиск по сообщениям в заданных каналах.
+	// Пустой channelIDs → пустой результат (не «все каналы»).
+	SearchMessages(ctx context.Context, query string, channelIDs []uuid.UUID, limit int) ([]*MessageDocument, error)
 }
 
 // PinRepository управляет закреплёнными сообщениями (Ent/PG).
@@ -106,8 +110,8 @@ type PinRepository interface {
 type BookmarkRepository interface {
 	// AddBookmark добавляет закладку пользователя.
 	AddBookmark(ctx context.Context, userID uuid.UUID, messageID string, channelID uuid.UUID) (*ent.Bookmark, error)
-	// RemoveBookmark удаляет закладку.
-	RemoveBookmark(ctx context.Context, bookmarkID uuid.UUID) error
+	// RemoveBookmark удаляет закладку владельца (userID + bookmarkID).
+	RemoveBookmark(ctx context.Context, userID, bookmarkID uuid.UUID) error
 	// ListBookmarks возвращает все закладки пользователя.
 	ListBookmarks(ctx context.Context, userID uuid.UUID) ([]*ent.Bookmark, error)
 }
@@ -115,6 +119,8 @@ type BookmarkRepository interface {
 // MentionsRepository обеспечивает разрешение групповых упоминаний (@role) и lookup
 // отображаемых имён пользователей для типинг-индикатора (Ent/PG).
 type MentionsRepository interface {
+	// IsProjectMember проверяет, состоит ли userID в проекте (AUDIT-TM-004).
+	IsProjectMember(ctx context.Context, projectID, userID uuid.UUID) (bool, error)
 	// ListProjectMembersByRole возвращает user IDs участников проекта с указанной project_role.
 	ListProjectMembersByRole(ctx context.Context, projectID uuid.UUID, role string) ([]uuid.UUID, error)
 	// GetUserDisplayName возвращает display_name (с fallback на name) пользователя.
@@ -129,9 +135,12 @@ type ChannelInviteRepository interface {
 	// FindChannelInviteByToken ищет приглашение по токену.
 	FindChannelInviteByToken(ctx context.Context, token string) (*ent.ChannelInvite, error)
 	// IncrementInviteUses атомарно увеличивает счётчик использований.
-	IncrementInviteUses(ctx context.Context, inviteID uuid.UUID) error
-	// RevokeChannelInvite ставит is_revoked=true для приглашения.
-	RevokeChannelInvite(ctx context.Context, inviteID uuid.UUID) error
+	// maxUses>0 → WHERE use_count < maxUses; при 0 затронутых строк — ErrInviteUsesExhausted.
+	IncrementInviteUses(ctx context.Context, inviteID uuid.UUID, maxUses int) error
+	// DecrementInviteUses откатывает слот использования (после fail AddMembers).
+	DecrementInviteUses(ctx context.Context, inviteID uuid.UUID) error
+	// RevokeChannelInvite ставит is_revoked=true для приглашения в рамках канала.
+	RevokeChannelInvite(ctx context.Context, channelID, inviteID uuid.UUID) error
 	// ListChannelInvites возвращает активные (не отозванные) приглашения канала.
 	ListChannelInvites(ctx context.Context, channelID uuid.UUID) ([]*ent.ChannelInvite, error)
 }
@@ -196,6 +205,7 @@ type UpdateChannelInput struct {
 	Name        *string
 	Description *string
 	IsReadonly  *bool
+	Version     int
 }
 
 // CreateChannelInviteInput — данные для создания пригласительной ссылки.

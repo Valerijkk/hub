@@ -64,17 +64,31 @@ func TestQueryInt(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, 25, got)
 	})
+
+	t.Run("negative falls back to default", func(t *testing.T) {
+		var got int
+		app.Get("/neg", func(c fiber.Ctx) error {
+			got = messenger.ExportQueryInt(c, "limit", 25)
+			return c.SendStatus(200)
+		})
+		req := httptest.NewRequest(fiber.MethodGet, "/neg?limit=-5", nil)
+		_, err := app.Test(req)
+		require.NoError(t, err)
+		assert.Equal(t, 25, got)
+	})
 }
 
 type mockIssuePromoter struct {
 	issueKey string
 	issueID  string
 	err      error
+	called   bool
 }
 
 func (m *mockIssuePromoter) CreateIssueFromPromotion(
 	_ context.Context, _, _ uuid.UUID, _, _ string, _ map[string]interface{},
 ) (string, string, error) {
+	m.called = true
 	if m.err != nil {
 		return "", "", m.err
 	}
@@ -89,7 +103,9 @@ func TestPromoteToIssue_ValidationAndFlow(t *testing.T) {
 	projectID := uuid.New()
 	channelID := setupChannelWithMembers(repo, "public", false, ownerID)
 
-	svc.SetIssuePromoter(&mockIssuePromoter{issueKey: "HUB-99", issueID: uuid.New().String()})
+	promoter := &mockIssuePromoter{issueKey: "HUB-99", issueID: uuid.New().String()}
+	svc.SetIssuePromoter(promoter)
+	svc.SetPromotePermissionChecker(&stubPromoteChecker{allowed: true})
 	repo.displayNames[ownerID] = "Owner"
 
 	doc := &messenger.MessageDocument{
@@ -140,7 +156,56 @@ func TestPromoteToIssue_ValidationAndFlow(t *testing.T) {
 		assert.Contains(t, err.Error(), "участником")
 	})
 
+	t.Run("nil promote checker forbidden", func(t *testing.T) {
+		noChecker, noRepo, _ := newTestService()
+		deniedPromoter := &mockIssuePromoter{issueKey: "HUB-0", issueID: uuid.New().String()}
+		noChecker.SetIssuePromoter(deniedPromoter)
+		// promoteCheck остаётся nil — fail-closed PrivEsc path.
+		chID := setupChannelWithMembers(noRepo, "public", false, ownerID)
+		msgID := uuid.New().String()
+		noRepo.messages[msgID] = &messenger.MessageDocument{
+			ID: msgID, ChannelID: chID, SenderID: ownerID,
+			ContentText: "x", CreatedAt: time.Now(),
+		}
+
+		_, err := noChecker.PromoteToIssue(ctx, msgID, ownerID, messenger.PromoteToIssueRequest{
+			ProjectID: projectID.String(),
+			Title:     "Task",
+		})
+		require.Error(t, err)
+		appErr, ok := err.(*apperrors.AppError)
+		require.True(t, ok)
+		assert.Equal(t, 403, appErr.Code)
+		assert.Contains(t, err.Error(), "проверка прав")
+		assert.False(t, deniedPromoter.called)
+	})
+
+	t.Run("denied by promote checker", func(t *testing.T) {
+		deniedSvc, deniedRepo, _ := newTestService()
+		deniedPromoter := &mockIssuePromoter{issueKey: "HUB-0", issueID: uuid.New().String()}
+		deniedSvc.SetIssuePromoter(deniedPromoter)
+		deniedSvc.SetPromotePermissionChecker(&stubPromoteChecker{allowed: false})
+		chID := setupChannelWithMembers(deniedRepo, "public", false, ownerID)
+		msgID := uuid.New().String()
+		deniedRepo.messages[msgID] = &messenger.MessageDocument{
+			ID: msgID, ChannelID: chID, SenderID: ownerID,
+			ContentText: "x", CreatedAt: time.Now(),
+		}
+
+		_, err := deniedSvc.PromoteToIssue(ctx, msgID, ownerID, messenger.PromoteToIssueRequest{
+			ProjectID: projectID.String(),
+			Title:     "Task",
+		})
+		require.Error(t, err)
+		appErr, ok := err.(*apperrors.AppError)
+		require.True(t, ok)
+		assert.Equal(t, 403, appErr.Code)
+		assert.Contains(t, err.Error(), "нет права создавать задачи")
+		assert.False(t, deniedPromoter.called)
+	})
+
 	t.Run("success creates issue and backlink", func(t *testing.T) {
+		promoter.called = false
 		resp, err := svc.PromoteToIssue(ctx, doc.ID, ownerID, messenger.PromoteToIssueRequest{
 			ProjectID: projectID.String(),
 			Title:     "Promoted task",
@@ -149,6 +214,7 @@ func TestPromoteToIssue_ValidationAndFlow(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "HUB-99", resp.IssueKey)
 		assert.NotEmpty(t, resp.IssueID)
+		assert.True(t, promoter.called)
 
 		var backlinkFound bool
 		for _, m := range repo.messages {

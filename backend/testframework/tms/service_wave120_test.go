@@ -23,7 +23,7 @@ func TestEntRepository_Wave120_UpdateEnvironment(t *testing.T) {
 	newName := "Staging v2"
 	newLabel := "staging"
 	cfg := map[string]interface{}{"url": "https://staging.example"}
-	updated, err := repo.UpdateEnvironment(ctx, env.ID, tms.UpdateEnvironmentInput{
+	updated, err := repo.UpdateEnvironment(ctx, projectID, env.ID, tms.UpdateEnvironmentInput{
 		Name:   &newName,
 		Label:  &newLabel,
 		Config: &cfg,

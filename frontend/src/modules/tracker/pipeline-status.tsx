@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { listWorkflowRuns, type WorkflowRunResponse } from "@/api/github";
+import { isSafeUrl, sanitizeUrl } from "@/lib/safe-url";
 
 // ---------------------------------------------------------------------------
 // Типы
@@ -29,16 +30,16 @@ function getStatusConfig(run: WorkflowRunResponse): {
 	if (run.status === "in_progress") {
 		return {
 			icon: "spinner",
-			color: "text-yellow-600 dark:text-yellow-400",
-			bgColor: "bg-yellow-100 dark:bg-yellow-900/30",
+			color: "text-[var(--orange)]",
+			bgColor: "bg-raised",
 			label: "В процессе",
 		};
 	}
 	if (run.status === "queued") {
 		return {
 			icon: "clock",
-			color: "text-gray-500 dark:text-gray-400",
-			bgColor: "bg-gray-100 dark:bg-gray-800",
+			color: "text-[var(--gray)]",
+			bgColor: "bg-raised",
 			label: "В очереди",
 		};
 	}
@@ -47,29 +48,29 @@ function getStatusConfig(run: WorkflowRunResponse): {
 		case "success":
 			return {
 				icon: "check",
-				color: "text-green-600 dark:text-green-400",
-				bgColor: "bg-green-100 dark:bg-green-900/30",
+				color: "text-[var(--green)]",
+				bgColor: "bg-[var(--gG)]",
 				label: "Успешно",
 			};
 		case "failure":
 			return {
 				icon: "x",
-				color: "text-red-600 dark:text-red-400",
-				bgColor: "bg-red-100 dark:bg-red-900/30",
+				color: "text-[var(--red)]",
+				bgColor: "bg-[var(--gR)]",
 				label: "Ошибка",
 			};
 		case "cancelled":
 			return {
 				icon: "minus",
-				color: "text-gray-500 dark:text-gray-400",
-				bgColor: "bg-gray-100 dark:bg-gray-800",
+				color: "text-[var(--gray)]",
+				bgColor: "bg-raised",
 				label: "Отменён",
 			};
 		default:
 			return {
 				icon: "minus",
-				color: "text-gray-500 dark:text-gray-400",
-				bgColor: "bg-gray-100 dark:bg-gray-800",
+				color: "text-[var(--gray)]",
+				bgColor: "bg-raised",
 				label: run.conclusion || run.status,
 			};
 	}
@@ -196,21 +197,24 @@ export function PipelineStatus({ projectId }: PipelineStatusProps) {
 	} = useQuery({
 		queryKey: ["github-workflows", projectId],
 		queryFn: () => listWorkflowRuns(projectId),
-		refetchInterval: 30_000, // Обновляем каждые 30 секунд для in_progress
+		// Poll only while CI runs are active (queued / in_progress).
+		refetchInterval: (query) => {
+			const data = query.state.data;
+			if (!data?.length) return false;
+			const active = data.some(
+				(r) => r.status === "queued" || r.status === "in_progress",
+			);
+			return active ? 30_000 : false;
+		},
 	});
 
 	if (isLoading) {
 		return (
 			<div className="space-y-3">
-				<h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-					CI/CD
-				</h4>
+				<h4 className="text-sm font-semibold text-t2">CI/CD</h4>
 				<div className="animate-pulse space-y-2">
 					{["pipe-sk-1", "pipe-sk-2", "pipe-sk-3"].map((sk) => (
-						<div
-							key={sk}
-							className="h-12 w-full rounded-lg bg-gray-200 dark:bg-gray-700"
-						/>
+						<div key={sk} className="h-12 w-full rounded-lg bg-raised" />
 					))}
 				</div>
 			</div>
@@ -220,10 +224,8 @@ export function PipelineStatus({ projectId }: PipelineStatusProps) {
 	if (error || !runs) {
 		return (
 			<div className="space-y-3">
-				<h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-					CI/CD
-				</h4>
-				<p className="text-sm text-gray-500 dark:text-gray-400">
+				<h4 className="text-sm font-semibold text-t2">CI/CD</h4>
+				<p className="text-sm text-t3">
 					Не удалось загрузить данные пайплайнов
 				</p>
 			</div>
@@ -233,32 +235,22 @@ export function PipelineStatus({ projectId }: PipelineStatusProps) {
 	if (runs.length === 0) {
 		return (
 			<div className="space-y-3">
-				<h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-					CI/CD
-				</h4>
-				<p className="text-sm text-gray-500 dark:text-gray-400">
-					Нет запусков CI/CD пайплайнов
-				</p>
+				<h4 className="text-sm font-semibold text-t2">CI/CD</h4>
+				<p className="text-sm text-t3">Нет запусков CI/CD пайплайнов</p>
 			</div>
 		);
 	}
 
 	return (
 		<div className="space-y-3">
-			<h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-				CI/CD
-			</h4>
+			<h4 className="text-sm font-semibold text-t2">CI/CD</h4>
 			<div className="space-y-1.5">
 				{runs.slice(0, 10).map((run) => {
 					const cfg = getStatusConfig(run);
-					return (
-						<a
-							key={run.id}
-							href={run.html_url}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
-						>
+					const rowClass =
+						"flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors hover:bg-[var(--hover)]";
+					const body = (
+						<>
 							{/* Иконка статуса */}
 							<span
 								className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${cfg.bgColor}`}
@@ -270,11 +262,11 @@ export function PipelineStatus({ projectId }: PipelineStatusProps) {
 							<div className="min-w-0 flex-1">
 								<div className="flex items-center gap-1.5">
 									<span className="truncate font-medium">{run.name}</span>
-									<span className="shrink-0 text-xs text-gray-400">
+									<span className="shrink-0 text-xs text-t3">
 										#{run.run_number}
 									</span>
 								</div>
-								<div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+								<div className="flex items-center gap-1.5 text-xs text-t2">
 									<span>{run.branch}</span>
 									<span>-</span>
 									<span>{formatRelativeTime(run.created_at)}</span>
@@ -287,6 +279,25 @@ export function PipelineStatus({ projectId }: PipelineStatusProps) {
 							>
 								{cfg.label}
 							</span>
+						</>
+					);
+					// FE-TA-001: unsafe API url → без href (не javascript:/data:)
+					if (!isSafeUrl(run.html_url)) {
+						return (
+							<div key={run.id} className={rowClass}>
+								{body}
+							</div>
+						);
+					}
+					return (
+						<a
+							key={run.id}
+							href={sanitizeUrl(run.html_url)}
+							target="_blank"
+							rel="noopener noreferrer"
+							className={rowClass}
+						>
+							{body}
 						</a>
 					);
 				})}

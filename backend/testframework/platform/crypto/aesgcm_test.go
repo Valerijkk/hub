@@ -97,3 +97,31 @@ func TestMaybeDecryptString_LegacyPlaintextPassthrough(t *testing.T) {
 		t.Fatalf("expected roundtrip, got %q", got2)
 	}
 }
+
+func TestEncryptDecryptWithAAD_RoundtripAndMismatch(t *testing.T) {
+	// A2W4-4-001: AAD=entityID; swap AAD → Open fails (row-swap detected).
+	c, err := crypto.NewCipherFromKey(crypto.DeriveDevKey())
+	if err != nil {
+		t.Fatalf("NewCipherFromKey: %v", err)
+	}
+	entityA := []byte("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+	entityB := []byte("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
+
+	ct, err := c.EncryptStringWithAAD("secret-token", entityA)
+	if err != nil {
+		t.Fatalf("EncryptStringWithAAD: %v", err)
+	}
+	pt, err := c.DecryptStringWithAAD(ct, entityA)
+	if err != nil {
+		t.Fatalf("DecryptStringWithAAD same AAD: %v", err)
+	}
+	if pt != "secret-token" {
+		t.Fatalf("roundtrip mismatch: got %q", pt)
+	}
+	if _, err := c.DecryptStringWithAAD(ct, entityB); err == nil {
+		t.Fatal("expected error when decrypting with wrong entity AAD")
+	}
+	if _, err := c.DecryptString(ct); err == nil {
+		t.Fatal("expected error when decrypting AAD ciphertext with nil AAD")
+	}
+}

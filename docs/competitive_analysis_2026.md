@@ -1,14 +1,14 @@
 # Hub — Конкурентный анализ 2026
 
 > **Обновлено:** 2026-06-23  
-> **Источники:** `docs/competitive_audit.md`, `docs/vision_and_scope.md`, `.planning/specs/PLATFORM-VISION-v4.md`, web research (Linear, Jira, Plane, Allure TestOps, Slack, Mighty, Bitrix24, Lark).  
+> **Источники:** `docs/competitive_audit.md`, `docs/vision_and_scope.md`, `.planning/decisions/specs/PLATFORM-VISION-v4.md`, web research (Linear, Jira, Plane, Allure TestOps, Slack, Mighty, Bitrix24, Lark).  
 > **Целевой сегмент:** self-hosted команды **10–50 человек**, замена стека Jira + Slack + TestRail/Allure + Meet + Grafana **+** корпоративные сервисы (интранет, HR, CRM).
 
 ---
 
 ## 1. Резюме для руководства
 
-Hub после milestone **v4 Super-app** (Phases 39–58) — единственный self-hosted продукт в нише, объединяющий **dev-suite + corporate super-app** с AI hub и data residency. Покрытие тестами backend **83.0%**, product score **93/100**, 286+ REST endpoints. Wave C ✅; prod-блокер — FA-06 manual.
+Hub после milestone **v4 Super-app** (Phases 39–58) — единственный self-hosted продукт в нише, объединяющий **dev-suite + corporate super-app** с AI hub и data residency. Покрытие тестами backend **83.0%** (2026-06-22 Docker baseline), product score **89/100**, OpenAPI **~252** paths (route inventory historically ~286). Wave C ✅; prod-блокер — FA-06 manual.
 
 **Ключевое конкурентное преимущество:** TCO на горизонте 2–3 лет + сквозная traceability (задача → тест → PR → уведомление) + RU-friendly AI без VPN.
 
@@ -103,7 +103,7 @@ Hub после milestone **v4 Super-app** (Phases 39–58) — единстве�
 |------|-----------------|-----|
 | Audit log UI | ⭐⭐⭐ | ✅ + slow query filter |
 | User ban + session revoke | ⭐⭐⭐ | ✅ |
-| SSO / SCIM | ⭐⭐⭐ | ❌ out of scope (v5 ADR) |
+| SSO / SCIM | ⭐⭐⭐ | ⚠️ scope после `ADR-AUTH-SSO` (не реализовано) |
 | APM / traces | ⭐⭐⭐ | ✅ OTel + Prometheus + Loki |
 | Secret rotation ops | — | ⚠️ PG-03 checklist (manual) |
 
@@ -136,7 +136,7 @@ Hub после milestone **v4 Super-app** (Phases 39–58) — единстве�
 | 7 | Lighthouse ≥90 CI gate | NFR-17 | 📋 not in CI |
 | 8 | Full WCAG AA sign-off | NFR-16 | ⚠️ login PASS; full audit pending |
 | 9 | Bot marketplace / plugins | Slack | ❌ by design (Telegram bind only) |
-| 10 | SSO / SCIM | Enterprise | ❌ v5 ADR |
+| 10 | SSO / SCIM | Enterprise | ⚠️ после `ADR-AUTH-SSO` (не реализовано) |
 
 **Закрытые gaps (2026):** command palette, automation lite, full JQL, OTel, OBS stack, v4 corp modules, AI hub, Gantt, webcams, org directory, CRM, accounting MVP.
 
@@ -147,7 +147,7 @@ Hub после milestone **v4 Super-app** (Phases 39–58) — единстве�
 1. **Единый self-hosted super-app** — dev + corp без 6–8 SaaS контрактов.
 2. **Сквозная traceability** — задача → тест → баг → PR → invoice (CRM won).
 3. **Allure без TestOps license** — парсер + TMS API + `hub-cli push-results`.
-4. **Passwordless RU-friendly auth** — Magic Link + Telegram (без SSO complexity).
+4. **Passwordless RU-friendly auth** — Magic Link + Telegram notify bind (ADR-AUTH-01; без login через Telegram). SSO/LDAP — только после `ADR-AUTH-SSO`.
 5. **LiveKit в контексте проекта** — созвон из канала/задачи, запись в storage.
 6. **Optimistic locking + soft delete 30d** — enterprise patterns без enterprise price.
 7. **Deep module integration** — thread→issue, failed case→bug, deal won→invoice.
@@ -195,4 +195,4 @@ Hub после milestone **v4 Super-app** (Phases 39–58) — единстве�
 
 ---
 
-*Следующий документ: [user_needs_analysis_2026.md](./user_needs_analysis_2026.md) · Vision: [.planning/specs/PLATFORM-VISION-v4.md](../.planning/specs/PLATFORM-VISION-v4.md)*
+*Следующий документ: [user_needs_analysis_2026.md](./user_needs_analysis_2026.md) · Vision: [.planning/decisions/specs/PLATFORM-VISION-v4.md](../.planning/decisions/specs/PLATFORM-VISION-v4.md)*

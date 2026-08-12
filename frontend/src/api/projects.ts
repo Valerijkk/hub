@@ -11,11 +11,12 @@ interface CreateProjectRequest {
 	description?: string;
 }
 
-/** Запрос на обновление проекта. */
-interface UpdateProjectRequest {
+/** Запрос на обновление проекта (version — optimistic lock, BE required). */
+export interface UpdateProjectRequest {
 	name?: string;
 	description?: string;
 	avatar_url?: string;
+	version: number;
 }
 
 /** Запрос на добавление участника в проект. */
@@ -45,6 +46,7 @@ export interface ProjectResponse {
 	status: string;
 	member_count: number;
 	my_role?: string;
+	version: number;
 	created_at: string;
 	updated_at: string;
 }
@@ -80,6 +82,11 @@ export function listProjects() {
 	return api.get<ProjectResponse[]>("/projects");
 }
 
+/** Endpoint: GET /projects/trash — удалённые проекты (soft-delete, ListTrash). */
+export function listTrash() {
+	return api.get<ProjectResponse[]>("/projects/trash");
+}
+
 /** Endpoint: POST /projects — создать новый проект. */
 export function createProject(data: CreateProjectRequest) {
 	return api.post<ProjectResponse>("/projects", data);
@@ -110,6 +117,14 @@ export function restoreProject(projectId: string) {
 	return api.post<void>(`/projects/${projectId}/restore`);
 }
 
+/**
+ * Endpoint: DELETE /projects/:id/permanent — жёсткое удаление из корзины.
+ * Зеркалит backend `ProjectService.PermanentDelete` (HTTP: PermanentDeleteProject).
+ */
+export function permanentDeleteProject(projectId: string) {
+	return api.delete<void>(`/projects/${projectId}/permanent`);
+}
+
 /** Endpoint: GET /projects/:id/members — получить список участников проекта. */
 export function listMembers(projectId: string) {
 	return api.get<MemberResponse[]>(`/projects/${projectId}/members`);
@@ -118,6 +133,17 @@ export function listMembers(projectId: string) {
 /** Endpoint: POST /projects/:id/members — добавить участника в проект. */
 export function addMember(projectId: string, data: AddMemberRequest) {
 	return api.post<MemberResponse>(`/projects/${projectId}/members`, data);
+}
+
+/** Endpoint: PUT /projects/:id/members/:userId — сменить роль участника. */
+export function updateMemberRole(
+	projectId: string,
+	userId: string,
+	role: AddMemberRequest["role"],
+) {
+	return api.put<MemberResponse>(`/projects/${projectId}/members/${userId}`, {
+		role,
+	});
 }
 
 /** Endpoint: DELETE /projects/:id/members/:userId — удалить участника из проекта. */
@@ -130,7 +156,7 @@ export function createInvite(projectId: string, data: CreateInviteRequest) {
 	return api.post<InviteResponse>(`/projects/${projectId}/invites`, data);
 }
 
-/** Endpoint: POST /projects/join — присоединиться к проекту по инвайт-коду. */
+/** Endpoint: POST /invites/join — присоединиться к проекту по инвайт-коду. */
 export function joinByInvite(code: string) {
-	return api.post<void>("/projects/join", { code });
+	return api.post<void>("/invites/join", { code });
 }

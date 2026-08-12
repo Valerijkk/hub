@@ -41,6 +41,9 @@ function CallsPage() {
 				},
 				duration: 15000,
 			});
+		} else {
+			const storeError = useCallStore.getState().error;
+			toast.error(storeError ?? "Не удалось создать звонок");
 		}
 	}, [startInstantCall]);
 
@@ -95,26 +98,26 @@ function CallsPage() {
 								{[
 									{
 										n: "1",
-										color: "blue",
+										badgeClass: "bg-[var(--gB)] text-[var(--blue)]",
 										title: "Откройте канал",
 										desc: "Перейдите в мессенджер и выберите канал",
 									},
 									{
 										n: "2",
-										color: "green",
+										badgeClass: "bg-[var(--gG)] text-[var(--green)]",
 										title: "Нажмите кнопку звонка",
 										desc: "Иконка телефона в шапке чата",
 									},
 									{
 										n: "3",
-										color: "violet",
+										badgeClass: "bg-[var(--gP)] text-[var(--purple)]",
 										title: "Общайтесь!",
 										desc: "Голос + screen share, до 50 участников",
 									},
 								].map((s) => (
 									<div key={s.n} className="flex gap-3">
 										<div
-											className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-${s.color}-500/10 text-${s.color}-500 text-sm font-bold`}
+											className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold ${s.badgeClass}`}
 										>
 											{s.n}
 										</div>

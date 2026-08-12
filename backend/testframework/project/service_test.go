@@ -32,6 +32,9 @@ type mockRepo struct {
 	members        map[uuid.UUID][]*ent.ProjectMember
 	invites        map[string]*ent.Invite // ключ — код приглашения
 	memberCountMap map[uuid.UUID]int
+	teams          map[uuid.UUID]*ent.Team
+	teamMembers    map[uuid.UUID]map[uuid.UUID]struct{} // teamID -> set of userIDs
+	admins         map[uuid.UUID]bool
 
 	// Инъекция ошибок
 	createErr           error
@@ -40,6 +43,8 @@ type mockRepo struct {
 	findInviteByCodeErr error
 	findMemberErr       error
 	removeTeamMemberErr error
+	memberCountErr      error
+	createTeamMidFail   error
 }
 
 func newMockRepo() *mockRepo {
@@ -48,6 +53,9 @@ func newMockRepo() *mockRepo {
 		members:        make(map[uuid.UUID][]*ent.ProjectMember),
 		invites:        make(map[string]*ent.Invite),
 		memberCountMap: make(map[uuid.UUID]int),
+		teams:          make(map[uuid.UUID]*ent.Team),
+		teamMembers:    make(map[uuid.UUID]map[uuid.UUID]struct{}),
+		admins:         make(map[uuid.UUID]bool),
 	}
 }
 
@@ -98,7 +106,7 @@ func (m *mockRepo) ListTrash(_ context.Context, _ uuid.UUID) ([]*ent.Project, er
 	return result, nil
 }
 
-func (m *mockRepo) Create(_ context.Context, name, key, description string, _ uuid.UUID) (*ent.Project, error) {
+func (m *mockRepo) Create(_ context.Context, name, key, description string, ownerID uuid.UUID) (*ent.Project, error) {
 	if m.createErr != nil {
 		return nil, m.createErr
 	}
@@ -116,17 +124,30 @@ func (m *mockRepo) Create(_ context.Context, name, key, description string, _ uu
 		Key:         key,
 		Description: description,
 		Status:      entproject.StatusActive,
+		Version:     1,
 		CreatedAt:   now,
 		UpdatedAt:   now,
 	}
 	m.projects[id] = p
+	// Зеркало EntRepository.Create: создатель — owner (нужно после P2-BE-12 / GetProject membership).
+	m.members[id] = []*ent.ProjectMember{{
+		ID:          uuid.New(),
+		ProjectRole: projectmember.ProjectRoleOwner,
+		Edges:       ent.ProjectMemberEdges{User: &ent.User{ID: ownerID}},
+	}}
 	m.memberCountMap[id] = 1
 	return p, nil
 }
 
-func (m *mockRepo) Update(_ context.Context, id uuid.UUID, name, description, avatarURL *string) (*ent.Project, error) {
+func (m *mockRepo) Update(_ context.Context, id uuid.UUID, version int, name, description, avatarURL *string) (*ent.Project, error) {
 	p, ok := m.projects[id]
 	if !ok {
+		return nil, notFoundErr()
+	}
+	if p.Version == 0 {
+		p.Version = 1
+	}
+	if p.Version != version {
 		return nil, notFoundErr()
 	}
 	if name != nil {
@@ -138,6 +159,7 @@ func (m *mockRepo) Update(_ context.Context, id uuid.UUID, name, description, av
 	if avatarURL != nil {
 		p.AvatarURL = *avatarURL
 	}
+	p.Version++
 	p.UpdatedAt = time.Now()
 	return p, nil
 }
@@ -151,9 +173,19 @@ func (m *mockRepo) UpdateStatus(_ context.Context, id uuid.UUID, status entproje
 	if setDeletedAt {
 		now := time.Now()
 		p.DeletedAt = &now
-	} else {
-		p.DeletedAt = nil
 	}
+	// A3W1-A5-001: setDeletedAt=false не очищает deleted_at (только RestoreFromTrash).
+	p.UpdatedAt = time.Now()
+	return p, nil
+}
+
+func (m *mockRepo) RestoreFromTrash(_ context.Context, id uuid.UUID) (*ent.Project, error) {
+	p, ok := m.projects[id]
+	if !ok {
+		return nil, notFoundErr()
+	}
+	p.Status = entproject.StatusActive
+	p.DeletedAt = nil
 	p.UpdatedAt = time.Now()
 	return p, nil
 }
@@ -164,6 +196,9 @@ func (m *mockRepo) Delete(_ context.Context, id uuid.UUID) error {
 }
 
 func (m *mockRepo) MemberCount(_ context.Context, projectID uuid.UUID) (int, error) {
+	if m.memberCountErr != nil {
+		return 0, m.memberCountErr
+	}
 	return m.memberCountMap[projectID], nil
 }
 
@@ -254,7 +289,7 @@ func (m *mockRepo) FindInviteByCode(_ context.Context, code string) (*ent.Invite
 	return inv, nil
 }
 
-func (m *mockRepo) CreateInvite(_ context.Context, _, _ uuid.UUID, code string, role invite.ProjectRole, maxUses int, expiresAt *time.Time) (*ent.Invite, error) {
+func (m *mockRepo) CreateInvite(_ context.Context, projectID, _ uuid.UUID, code string, role invite.ProjectRole, maxUses int, expiresAt *time.Time) (*ent.Invite, error) {
 	inv := &ent.Invite{
 		ID:          uuid.New(),
 		Code:        code,
@@ -263,6 +298,10 @@ func (m *mockRepo) CreateInvite(_ context.Context, _, _ uuid.UUID, code string, 
 		ProjectRole: role,
 		ExpiresAt:   expiresAt,
 		CreatedAt:   time.Now(),
+		Edges:       ent.InviteEdges{Project: m.projects[projectID]},
+	}
+	if inv.Edges.Project == nil {
+		inv.Edges.Project = &ent.Project{ID: projectID}
 	}
 	m.invites[code] = inv
 	return inv, nil
@@ -299,49 +338,144 @@ func (m *mockRepo) ListInvites(_ context.Context, _ uuid.UUID) ([]*ent.Invite, e
 	return result, nil
 }
 
-func (m *mockRepo) DeleteInvite(_ context.Context, inviteID uuid.UUID) error {
+func (m *mockRepo) DeleteInvite(_ context.Context, projectID, inviteID uuid.UUID) error {
 	for code, inv := range m.invites {
-		if inv.ID == inviteID {
-			delete(m.invites, code)
-			return nil
+		if inv.ID != inviteID {
+			continue
 		}
+		if inv.Edges.Project == nil || inv.Edges.Project.ID != projectID {
+			return notFoundErr()
+		}
+		delete(m.invites, code)
+		return nil
 	}
-	return nil
+	return notFoundErr()
 }
 
 func (m *mockRepo) CreateTeam(_ context.Context, name, description string) (*ent.Team, error) {
-	return &ent.Team{ID: uuid.New(), Name: name, Description: description}, nil
+	t := &ent.Team{ID: uuid.New(), Name: name, Description: description, CreatedAt: time.Now()}
+	m.teams[t.ID] = t
+	m.teamMembers[t.ID] = make(map[uuid.UUID]struct{})
+	return t, nil
 }
 
-func (m *mockRepo) ListTeams(_ context.Context) ([]*ent.Team, error) {
-	return nil, nil
+// CreateTeamWithCreator — атомарный mock: mid-fail откатывает команду (A3W1-A5-003).
+func (m *mockRepo) CreateTeamWithCreator(ctx context.Context, creatorID uuid.UUID, name, description string) (*ent.Team, error) {
+	t, err := m.CreateTeam(ctx, name, description)
+	if err != nil {
+		return nil, err
+	}
+	if m.createTeamMidFail != nil {
+		delete(m.teams, t.ID)
+		delete(m.teamMembers, t.ID)
+		return nil, m.createTeamMidFail
+	}
+	if _, err := m.AddTeamMember(ctx, t.ID, creatorID); err != nil {
+		delete(m.teams, t.ID)
+		delete(m.teamMembers, t.ID)
+		return nil, err
+	}
+	return t, nil
+}
+
+func (m *mockRepo) ListTeamsByUserID(_ context.Context, userID uuid.UUID) ([]*ent.Team, error) {
+	var out []*ent.Team
+	for teamID, members := range m.teamMembers {
+		if _, ok := members[userID]; !ok {
+			continue
+		}
+		t := m.teams[teamID]
+		if t == nil || t.DeletedAt != nil {
+			continue
+		}
+		cp := *t
+		cp.Edges.Members = make([]*ent.TeamMember, 0, len(members))
+		for uid := range members {
+			cp.Edges.Members = append(cp.Edges.Members, &ent.TeamMember{
+				Edges: ent.TeamMemberEdges{User: &ent.User{ID: uid}},
+			})
+		}
+		out = append(out, &cp)
+	}
+	return out, nil
+}
+
+func (m *mockRepo) SoftDeleteTeam(_ context.Context, teamID uuid.UUID) error {
+	t, ok := m.teams[teamID]
+	if !ok || t.DeletedAt != nil {
+		return notFoundErr()
+	}
+	now := time.Now().UTC()
+	t.DeletedAt = &now
+	return nil
 }
 
 func (m *mockRepo) FindTeamByID(_ context.Context, id uuid.UUID) (*ent.Team, error) {
-	return nil, notFoundErr()
+	t, ok := m.teams[id]
+	if !ok || t.DeletedAt != nil {
+		return nil, notFoundErr()
+	}
+	return t, nil
 }
 
-func (m *mockRepo) AddTeamMember(_ context.Context, _, _ uuid.UUID) (*ent.TeamMember, error) {
+func (m *mockRepo) FindTeamMember(_ context.Context, teamID, userID uuid.UUID) (*ent.TeamMember, error) {
+	members, ok := m.teamMembers[teamID]
+	if !ok {
+		return nil, notFoundErr()
+	}
+	if _, ok := members[userID]; !ok {
+		return nil, notFoundErr()
+	}
 	return &ent.TeamMember{ID: uuid.New(), JoinedAt: time.Now()}, nil
 }
 
-func (m *mockRepo) RemoveTeamMember(_ context.Context, _, _ uuid.UUID) error {
+func (m *mockRepo) AddTeamMember(_ context.Context, teamID, userID uuid.UUID) (*ent.TeamMember, error) {
+	if _, ok := m.teams[teamID]; !ok {
+		// Allow add when CreateTeam on embedding repos didn't use m.teams
+		m.teams[teamID] = &ent.Team{ID: teamID}
+	}
+	if m.teamMembers[teamID] == nil {
+		m.teamMembers[teamID] = make(map[uuid.UUID]struct{})
+	}
+	if _, exists := m.teamMembers[teamID][userID]; exists {
+		return nil, constraintErr()
+	}
+	m.teamMembers[teamID][userID] = struct{}{}
+	return &ent.TeamMember{ID: uuid.New(), JoinedAt: time.Now()}, nil
+}
+
+func (m *mockRepo) RemoveTeamMember(_ context.Context, teamID, userID uuid.UUID) error {
 	if m.removeTeamMemberErr != nil {
 		return m.removeTeamMemberErr
+	}
+	if members, ok := m.teamMembers[teamID]; ok {
+		delete(members, userID)
 	}
 	return nil
 }
 
-func (m *mockRepo) TeamMemberCount(_ context.Context, _ uuid.UUID) (int, error) {
-	return 0, nil
+func (m *mockRepo) TeamMemberCount(_ context.Context, teamID uuid.UUID) (int, error) {
+	return len(m.teamMembers[teamID]), nil
 }
 
-func (m *mockRepo) ListTeamMembers(_ context.Context, _ uuid.UUID) ([]*ent.TeamMember, error) {
-	return nil, nil
+func (m *mockRepo) ListTeamMembers(_ context.Context, teamID uuid.UUID) ([]*ent.TeamMember, error) {
+	members := m.teamMembers[teamID]
+	out := make([]*ent.TeamMember, 0, len(members))
+	for uid := range members {
+		out = append(out, &ent.TeamMember{
+			ID: uuid.New(), JoinedAt: time.Now(),
+			Edges: ent.TeamMemberEdges{User: &ent.User{ID: uid}},
+		})
+	}
+	return out, nil
 }
 
 func (m *mockRepo) AddTeamToProject(_ context.Context, _, _ uuid.UUID) error {
 	return nil
+}
+
+func (m *mockRepo) IsSystemAdmin(_ context.Context, userID uuid.UUID) (bool, error) {
+	return m.admins[userID], nil
 }
 
 // --- Очистка межпроектных связей (no-op для unit-тестов) ---
@@ -356,6 +490,32 @@ func (m *mockRepo) ListIncomingCrossProjectLinks(_ context.Context, _ uuid.UUID)
 
 func (m *mockRepo) DeleteIssueLink(_ context.Context, _ uuid.UUID) error {
 	return nil
+}
+
+// SoftDeleteWithCrossLinkCleanup — mock fail-closed: list → delete → UpdateStatus.
+func (m *mockRepo) SoftDeleteWithCrossLinkCleanup(ctx context.Context, projectID uuid.UUID) ([]*ent.IssueLink, []*ent.IssueLink, error) {
+	outgoing, err := m.ListOutgoingCrossProjectLinks(ctx, projectID)
+	if err != nil {
+		return nil, nil, err
+	}
+	incoming, err := m.ListIncomingCrossProjectLinks(ctx, projectID)
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, link := range outgoing {
+		if err := m.DeleteIssueLink(ctx, link.ID); err != nil {
+			return nil, nil, err
+		}
+	}
+	for _, link := range incoming {
+		if err := m.DeleteIssueLink(ctx, link.ID); err != nil {
+			return nil, nil, err
+		}
+	}
+	if _, err := m.UpdateStatus(ctx, projectID, entproject.StatusDeleted, true); err != nil {
+		return nil, nil, err
+	}
+	return outgoing, incoming, nil
 }
 
 // --- Операции с шаблонами проектов (no-op для unit-тестов) ---

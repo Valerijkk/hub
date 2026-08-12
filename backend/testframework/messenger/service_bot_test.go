@@ -109,6 +109,14 @@ func TestServiceBot_NotConfiguredErrors(t *testing.T) {
 
 	err = svc.UpdateBotMessage(ctx, "any", "text", nil)
 	require.Error(t, err)
+
+	// A2W3-2-003: guard на Find/GetChannel/MemberIDs без systemBotID.
+	_, err = svc.FindMessageForBot(ctx, "any")
+	require.Error(t, err)
+	_, err = svc.GetChannelEntity(ctx, channelID)
+	require.Error(t, err)
+	_, err = svc.GetChannelMemberIDsInternal(ctx, channelID)
+	require.Error(t, err)
 }
 
 // TestEmitMessageSent_InvokesHook проверяет сценарий: emit message sent invokes hook.

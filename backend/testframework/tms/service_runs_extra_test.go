@@ -24,7 +24,7 @@ func TestStartTestRun_Success(t *testing.T) {
 	runID, err := uuid.Parse(run.ID)
 	require.NoError(t, err)
 
-	started, err := svc.StartTestRun(ctx, runID)
+	started, err := svc.StartTestRun(ctx, projectID, runID)
 	require.NoError(t, err)
 	assert.Equal(t, "in_progress", started.Status)
 }
@@ -47,13 +47,13 @@ func TestGetTestRunDetail_WithResults(t *testing.T) {
 	runID, err := uuid.Parse(run.ID)
 	require.NoError(t, err)
 
-	detail, err := svc.AddTestCasesToRun(ctx, runID, tms.AddTestCasesToRunRequest{
+	detail, err := svc.AddTestCasesToRun(ctx, projectID, runID, tms.AddTestCasesToRunRequest{
 		CaseIDs: []string{tc.ID},
 	})
 	require.NoError(t, err)
 	require.Len(t, detail.Results, 1)
 
-	got, err := svc.GetTestRunDetail(ctx, runID)
+	got, err := svc.GetTestRunDetail(ctx, projectID, runID)
 	require.NoError(t, err)
 	assert.Equal(t, "Detail run", got.Title)
 	assert.Len(t, got.Results, 1)
@@ -62,7 +62,7 @@ func TestGetTestRunDetail_WithResults(t *testing.T) {
 // TestGetTestRunDetail_NotFound проверяет сценарий: получение test run detail not found.
 func TestGetTestRunDetail_NotFound(t *testing.T) {
 	svc := tms.NewTMSService(newMockRepo(), nil)
-	_, err := svc.GetTestRunDetail(context.Background(), uuid.New())
+	_, err := svc.GetTestRunDetail(context.Background(), uuid.New(), uuid.New())
 	require.Error(t, err)
 }
 
@@ -80,7 +80,8 @@ func TestAssignTestersToRun_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	testerID := uuid.New()
-	detail, err := svc.AssignTestersToRun(ctx, runID, tms.AssignTestersRequest{
+	repo.projectMembers[projectID] = map[uuid.UUID]bool{testerID: true}
+	detail, err := svc.AssignTestersToRun(ctx, projectID, runID, tms.AssignTestersRequest{
 		UserIDs: []string{testerID.String()},
 	})
 	require.NoError(t, err)
@@ -101,7 +102,7 @@ func TestAssignTestersToRun_InvalidUserID(t *testing.T) {
 	runID, err := uuid.Parse(run.ID)
 	require.NoError(t, err)
 
-	_, err = svc.AssignTestersToRun(ctx, runID, tms.AssignTestersRequest{UserIDs: []string{"not-a-uuid"}})
+	_, err = svc.AssignTestersToRun(ctx, projectID, runID, tms.AssignTestersRequest{UserIDs: []string{"not-a-uuid"}})
 	require.Error(t, err)
 }
 

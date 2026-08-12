@@ -1,0 +1,9 @@
+measured=2026-07-29
+overall_statements=80.2%
+baseline_2026_07_27=81.9%
+delta=-1.7pp
+gate_floor=82%
+gate=MISS
+method=local_windows_host_hubtest_coverpkg_internal
+ai_in_profile=false
+failed_packages=ai(build),apigateway,audit,auth,gitlab,messenger,notification,project,rbac,storage,ws

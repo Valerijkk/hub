@@ -14,25 +14,33 @@ import {
 	type GitLabIntegrationResponse,
 	listGitLabIntegrations,
 } from "@/api/gitlab";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toastApiError } from "@/lib/format-api-error";
+import { WebhooksPage } from "@/modules/settings/webhooks";
 
 // ---------------------------------------------------------------------------
 // Секция GitHub
 // ---------------------------------------------------------------------------
 
-function GitHubSection({ projectId }: { projectId: string }) {
+/** A3W10-4-006: list fail ≠ empty «Нет подключённых…». */
+export function GitHubSection({ projectId }: { projectId: string }) {
 	const queryClient = useQueryClient();
 	const [repoOwner, setRepoOwner] = useState("");
 	const [repoName, setRepoName] = useState("");
 	const [accessToken, setAccessToken] = useState("");
 	const [webhookSecret, setWebhookSecret] = useState("");
 
-	const { data: integrations, isLoading } = useQuery({
+	const {
+		data: integrations,
+		isLoading,
+		isError,
+		refetch,
+	} = useQuery({
 		queryKey: ["github-integrations", projectId],
 		queryFn: () => listGitHubIntegrations(projectId),
 	});
@@ -85,13 +93,23 @@ function GitHubSection({ projectId }: { projectId: string }) {
 						</div>
 					)}
 
-					{!isLoading && (!integrations || integrations.length === 0) && (
-						<p className="text-sm text-t2">
-							Нет подключённых GitHub-репозиториев
-						</p>
+					{isError && (
+						<QueryErrorAlert
+							message="Не удалось загрузить GitHub-интеграции. Попробовать снова?"
+							retry={() => void refetch()}
+							compact
+						/>
 					)}
 
-					{integrations && integrations.length > 0 && (
+					{!isLoading &&
+						!isError &&
+						(!integrations || integrations.length === 0) && (
+							<p className="text-sm text-t2">
+								Нет подключённых GitHub-репозиториев
+							</p>
+						)}
+
+					{!isError && integrations && integrations.length > 0 && (
 						<div className="space-y-2">
 							{integrations.map((ig: GitHubIntegrationResponse) => (
 								<div
@@ -120,136 +138,139 @@ function GitHubSection({ projectId }: { projectId: string }) {
 				</CardContent>
 			</Card>
 
-			{/* Форма подключения */}
-			<Card>
-				<CardHeader>
-					<CardTitle className="text-base">Подключить репозиторий</CardTitle>
-				</CardHeader>
-				<CardContent className="space-y-4">
-					<div className="grid grid-cols-2 gap-4">
-						<div>
-							<Label>Владелец (owner)</Label>
-							<Input
-								value={repoOwner}
-								onChange={(e) => setRepoOwner(e.target.value)}
-								placeholder="например, my-org"
-							/>
-						</div>
-						<div>
-							<Label>Имя репозитория</Label>
-							<Input
-								value={repoName}
-								onChange={(e) => setRepoName(e.target.value)}
-								placeholder="например, my-repo"
-							/>
-						</div>
-					</div>
-					<div className="space-y-2">
-						<Label>Access Token</Label>
-						<Input
-							type="password"
-							value={accessToken}
-							onChange={(e) => setAccessToken(e.target.value)}
-							placeholder="ghp_..."
-						/>
-						<details className="group">
-							<summary className="cursor-pointer text-[12px] text-blue hover:underline">
-								Как создать токен в GitHub?
-							</summary>
-							<div className="mt-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-200 space-y-2">
-								<ol className="list-decimal pl-4 space-y-1">
-									<li>
-										Перейдите в{" "}
-										<strong>
-											GitHub &rarr; Settings &rarr; Developer settings &rarr;
-											Personal access tokens &rarr; Fine-grained tokens
-										</strong>
-									</li>
-									<li>
-										Нажмите <strong>Generate new token</strong>
-									</li>
-									<li>
-										Укажите название (например,{" "}
-										<code className="rounded bg-blue-100 px-1 dark:bg-blue-900">
-											hub-integration
-										</code>
-										)
-									</li>
-									<li>
-										В <strong>Repository access</strong> выберите нужный
-										репозиторий
-									</li>
-									<li>
-										В <strong>Permissions</strong> выдайте:
-										<ul className="list-disc pl-4 mt-1">
-											<li>
-												<strong>Contents</strong>: Read (для веток и коммитов)
-											</li>
-											<li>
-												<strong>Pull requests</strong>: Read &amp; Write (для
-												линковки PR)
-											</li>
-											<li>
-												<strong>Webhooks</strong>: Read &amp; Write (для
-												подписки на события)
-											</li>
-											<li>
-												<strong>Actions</strong>: Read (для статуса пайплайнов)
-											</li>
-											<li>
-												<strong>Metadata</strong>: Read (обязательно)
-											</li>
-										</ul>
-									</li>
-									<li>
-										Нажмите <strong>Generate token</strong> и скопируйте
-									</li>
-								</ol>
-								<p className="mt-1 font-medium">
-									Classic token (альтернатива): скоупы{" "}
-									<code className="rounded bg-blue-100 px-1 dark:bg-blue-900">
-										repo
-									</code>
-									,{" "}
-									<code className="rounded bg-blue-100 px-1 dark:bg-blue-900">
-										admin:repo_hook
-									</code>
-								</p>
+			{/* Форма подключения — не поверх failed fetch */}
+			{!isError && (
+				<Card>
+					<CardHeader>
+						<CardTitle className="text-base">Подключить репозиторий</CardTitle>
+					</CardHeader>
+					<CardContent className="space-y-4">
+						<div className="grid grid-cols-2 gap-4">
+							<div>
+								<Label>Владелец (owner)</Label>
+								<Input
+									value={repoOwner}
+									onChange={(e) => setRepoOwner(e.target.value)}
+									placeholder="например, my-org"
+								/>
 							</div>
-						</details>
-					</div>
-					<div className="space-y-2">
-						<Label>Webhook Secret</Label>
-						<Input
-							type="password"
-							value={webhookSecret}
-							onChange={(e) => setWebhookSecret(e.target.value)}
-							placeholder="Секрет для валидации webhook"
-						/>
-						<p className="text-xs text-t2">
-							Настройте Webhook в{" "}
-							<strong>GitHub &rarr; Settings &rarr; Webhooks</strong>. URL:{" "}
-							<code className="rounded-[var(--r1)] bg-input px-1">
-								$&#123;HUB_URL&#125;/api/github/webhook
-							</code>
-							. Укажите тот же секрет. Events: Push, Pull requests, Workflow
-							runs.
-						</p>
-					</div>
-					<Button
-						onClick={() => createMutation.mutate()}
-						disabled={
-							createMutation.isPending ||
-							!repoOwner ||
-							!repoName ||
-							!accessToken ||
-							!webhookSecret
-						}
-					>
-						{createMutation.isPending ? "Подключение..." : "Подключить"}
-					</Button>
-				</CardContent>
-			</Card>
+							<div>
+								<Label>Имя репозитория</Label>
+								<Input
+									value={repoName}
+									onChange={(e) => setRepoName(e.target.value)}
+									placeholder="например, my-repo"
+								/>
+							</div>
+						</div>
+						<div className="space-y-2">
+							<Label>Access Token</Label>
+							<Input
+								type="password"
+								value={accessToken}
+								onChange={(e) => setAccessToken(e.target.value)}
+								placeholder="ghp_..."
+							/>
+							<details className="group">
+								<summary className="cursor-pointer text-[12px] text-blue hover:underline">
+									Как создать токен в GitHub?
+								</summary>
+								<div className="mt-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-200 space-y-2">
+									<ol className="list-decimal pl-4 space-y-1">
+										<li>
+											Перейдите в{" "}
+											<strong>
+												GitHub &rarr; Settings &rarr; Developer settings &rarr;
+												Personal access tokens &rarr; Fine-grained tokens
+											</strong>
+										</li>
+										<li>
+											Нажмите <strong>Generate new token</strong>
+										</li>
+										<li>
+											Укажите название (например,{" "}
+											<code className="rounded bg-blue-100 px-1 dark:bg-blue-900">
+												hub-integration
+											</code>
+											)
+										</li>
+										<li>
+											В <strong>Repository access</strong> выберите нужный
+											репозиторий
+										</li>
+										<li>
+											В <strong>Permissions</strong> выдайте:
+											<ul className="list-disc pl-4 mt-1">
+												<li>
+													<strong>Contents</strong>: Read (для веток и коммитов)
+												</li>
+												<li>
+													<strong>Pull requests</strong>: Read &amp; Write (для
+													линковки PR)
+												</li>
+												<li>
+													<strong>Webhooks</strong>: Read &amp; Write (для
+													подписки на события)
+												</li>
+												<li>
+													<strong>Actions</strong>: Read (для статуса
+													пайплайнов)
+												</li>
+												<li>
+													<strong>Metadata</strong>: Read (обязательно)
+												</li>
+											</ul>
+										</li>
+										<li>
+											Нажмите <strong>Generate token</strong> и скопируйте
+										</li>
+									</ol>
+									<p className="mt-1 font-medium">
+										Classic token (альтернатива): скоупы{" "}
+										<code className="rounded bg-blue-100 px-1 dark:bg-blue-900">
+											repo
+										</code>
+										,{" "}
+										<code className="rounded bg-blue-100 px-1 dark:bg-blue-900">
+											admin:repo_hook
+										</code>
+									</p>
+								</div>
+							</details>
+						</div>
+						<div className="space-y-2">
+							<Label>Webhook Secret</Label>
+							<Input
+								type="password"
+								value={webhookSecret}
+								onChange={(e) => setWebhookSecret(e.target.value)}
+								placeholder="Секрет для валидации webhook"
+							/>
+							<p className="text-xs text-t2">
+								Настройте Webhook в{" "}
+								<strong>GitHub &rarr; Settings &rarr; Webhooks</strong>. URL:{" "}
+								<code className="rounded-[var(--r1)] bg-input px-1">
+									$&#123;HUB_URL&#125;/api/github/webhook
+								</code>
+								. Укажите тот же секрет. Events: Push, Pull requests, Workflow
+								runs.
+							</p>
+						</div>
+						<Button
+							onClick={() => createMutation.mutate()}
+							disabled={
+								createMutation.isPending ||
+								!repoOwner ||
+								!repoName ||
+								!accessToken ||
+								!webhookSecret
+							}
+						>
+							{createMutation.isPending ? "Подключение..." : "Подключить"}
+						</Button>
+					</CardContent>
+				</Card>
+			)}
 		</div>
 	);
 }
@@ -258,14 +279,20 @@ function GitHubSection({ projectId }: { projectId: string }) {
 // Секция GitLab
 // ---------------------------------------------------------------------------
 
-function GitLabSection({ projectId }: { projectId: string }) {
+/** A3W10-4-006 twin: GitLab list fail ≠ empty. */
+export function GitLabSection({ projectId }: { projectId: string }) {
 	const queryClient = useQueryClient();
 	const [gitlabUrl, setGitlabUrl] = useState("https://gitlab.com");
 	const [projectPath, setProjectPath] = useState("");
 	const [accessToken, setAccessToken] = useState("");
 	const [webhookSecret, setWebhookSecret] = useState("");
 
-	const { data: integrations, isLoading } = useQuery({
+	const {
+		data: integrations,
+		isLoading,
+		isError,
+		refetch,
+	} = useQuery({
 		queryKey: ["gitlab-integrations", projectId],
 		queryFn: () => listGitLabIntegrations(projectId),
 	});
@@ -317,13 +344,23 @@ function GitLabSection({ projectId }: { projectId: string }) {
 						</div>
 					)}
 
-					{!isLoading && (!integrations || integrations.length === 0) && (
-						<p className="text-sm text-t2">
-							Нет подключённых GitLab-репозиториев
-						</p>
+					{isError && (
+						<QueryErrorAlert
+							message="Не удалось загрузить GitLab-интеграции. Попробовать снова?"
+							retry={() => void refetch()}
+							compact
+						/>
 					)}
 
-					{integrations && integrations.length > 0 && (
+					{!isLoading &&
+						!isError &&
+						(!integrations || integrations.length === 0) && (
+							<p className="text-sm text-t2">
+								Нет подключённых GitLab-репозиториев
+							</p>
+						)}
+
+					{!isError && integrations && integrations.length > 0 && (
 						<div className="space-y-2">
 							{integrations.map((ig: GitLabIntegrationResponse) => (
 								<div
@@ -355,138 +392,143 @@ function GitLabSection({ projectId }: { projectId: string }) {
 				</CardContent>
 			</Card>
 
-			{/* Форма подключения */}
-			<Card>
-				<CardHeader>
-					<CardTitle className="text-base">Подключить репозиторий</CardTitle>
-				</CardHeader>
-				<CardContent className="space-y-4">
-					<div>
-						<Label>URL GitLab</Label>
-						<Input
-							value={gitlabUrl}
-							onChange={(e) => setGitlabUrl(e.target.value)}
-							placeholder="https://gitlab.com"
-						/>
-						<p className="mt-1 text-xs text-t2">
-							Для self-hosted GitLab укажите URL вашего инстанса
-						</p>
-					</div>
-					<div>
-						<Label>Путь проекта (Project Path)</Label>
-						<Input
-							value={projectPath}
-							onChange={(e) => setProjectPath(e.target.value)}
-							placeholder="например, my-group/my-repo"
-						/>
-					</div>
-					<div className="space-y-2">
-						<Label>Access Token</Label>
-						<Input
-							type="password"
-							value={accessToken}
-							onChange={(e) => setAccessToken(e.target.value)}
-							placeholder="glpat-..."
-						/>
-						<details className="group">
-							<summary className="cursor-pointer text-[12px] text-blue hover:underline">
-								Как создать токен в GitLab?
-							</summary>
-							<div className="mt-2 rounded-lg border border-orange-200 bg-orange-50 p-3 text-xs text-orange-800 dark:border-orange-900 dark:bg-orange-950 dark:text-orange-200 space-y-2">
-								<p className="font-medium">
-									Вариант 1: Project Access Token (рекомендуется)
-								</p>
-								<ol className="list-decimal pl-4 space-y-1">
-									<li>
-										Перейдите в{" "}
-										<strong>
-											GitLab &rarr; Проект &rarr; Settings &rarr; Access Tokens
-										</strong>
-									</li>
-									<li>
-										Нажмите <strong>Add new token</strong>
-									</li>
-									<li>
-										Укажите название (например,{" "}
-										<code className="rounded bg-orange-100 px-1 dark:bg-orange-900">
-											hub-integration
-										</code>
-										)
-									</li>
-									<li>
-										Роль: <strong>Developer</strong> или выше
-									</li>
-									<li>
-										Выберите скоупы:
-										<ul className="list-disc pl-4 mt-1">
-											<li>
-												<strong>api</strong> — полный доступ к API (пайплайны,
-												ветки, MR)
-											</li>
-											<li>
-												<strong>read_repository</strong> — чтение кода и
-												коммитов
-											</li>
-										</ul>
-									</li>
-									<li>
-										Нажмите <strong>Create project access token</strong>
-									</li>
-								</ol>
-								<p className="mt-2 font-medium">
-									Вариант 2: Personal Access Token
-								</p>
-								<ol className="list-decimal pl-4 space-y-1">
-									<li>
-										Перейдите в{" "}
-										<strong>
-											GitLab &rarr; User Settings &rarr; Access Tokens
-										</strong>
-									</li>
-									<li>
-										Создайте токен со скоупами:{" "}
-										<code className="rounded bg-orange-100 px-1 dark:bg-orange-900">
-											api
-										</code>
-										,{" "}
-										<code className="rounded bg-orange-100 px-1 dark:bg-orange-900">
-											read_repository
-										</code>
-									</li>
-								</ol>
-								<p className="mt-1 text-orange-600 dark:text-orange-300">
-									Для self-hosted GitLab убедитесь, что URL инстанса указан
-									корректно выше.
-								</p>
-							</div>
-						</details>
-					</div>
-					<div className="space-y-2">
-						<Label>Webhook Secret (опционально)</Label>
-						<Input
-							type="password"
-							value={webhookSecret}
-							onChange={(e) => setWebhookSecret(e.target.value)}
-							placeholder="Секрет для валидации webhook"
-						/>
-						<p className="text-xs text-t2">
-							Настройте Webhook в{" "}
-							<strong>GitLab &rarr; Settings &rarr; Webhooks</strong>. URL:{" "}
-							<code className="rounded-[var(--r1)] bg-input px-1">
-								$&#123;HUB_URL&#125;/api/gitlab/webhook
-							</code>
-							. Укажите токен в поле <strong>Secret token</strong>. Triggers:
-							Push, Merge request, Pipeline.
-						</p>
-					</div>
-					<Button
-						onClick={() => createMutation.mutate()}
-						disabled={createMutation.isPending || !projectPath || !accessToken}
-					>
-						{createMutation.isPending ? "Подключение..." : "Подключить"}
-					</Button>
-				</CardContent>
-			</Card>
+			{/* Форма подключения — не поверх failed fetch */}
+			{!isError && (
+				<Card>
+					<CardHeader>
+						<CardTitle className="text-base">Подключить репозиторий</CardTitle>
+					</CardHeader>
+					<CardContent className="space-y-4">
+						<div>
+							<Label>URL GitLab</Label>
+							<Input
+								value={gitlabUrl}
+								onChange={(e) => setGitlabUrl(e.target.value)}
+								placeholder="https://gitlab.com"
+							/>
+							<p className="mt-1 text-xs text-t2">
+								Для self-hosted GitLab укажите URL вашего инстанса
+							</p>
+						</div>
+						<div>
+							<Label>Путь проекта (Project Path)</Label>
+							<Input
+								value={projectPath}
+								onChange={(e) => setProjectPath(e.target.value)}
+								placeholder="например, my-group/my-repo"
+							/>
+						</div>
+						<div className="space-y-2">
+							<Label>Access Token</Label>
+							<Input
+								type="password"
+								value={accessToken}
+								onChange={(e) => setAccessToken(e.target.value)}
+								placeholder="glpat-..."
+							/>
+							<details className="group">
+								<summary className="cursor-pointer text-[12px] text-blue hover:underline">
+									Как создать токен в GitLab?
+								</summary>
+								<div className="mt-2 rounded-lg border border-orange-200 bg-orange-50 p-3 text-xs text-orange-800 dark:border-orange-900 dark:bg-orange-950 dark:text-orange-200 space-y-2">
+									<p className="font-medium">
+										Вариант 1: Project Access Token (рекомендуется)
+									</p>
+									<ol className="list-decimal pl-4 space-y-1">
+										<li>
+											Перейдите в{" "}
+											<strong>
+												GitLab &rarr; Проект &rarr; Settings &rarr; Access
+												Tokens
+											</strong>
+										</li>
+										<li>
+											Нажмите <strong>Add new token</strong>
+										</li>
+										<li>
+											Укажите название (например,{" "}
+											<code className="rounded bg-orange-100 px-1 dark:bg-orange-900">
+												hub-integration
+											</code>
+											)
+										</li>
+										<li>
+											Роль: <strong>Developer</strong> или выше
+										</li>
+										<li>
+											Выберите скоупы:
+											<ul className="list-disc pl-4 mt-1">
+												<li>
+													<strong>api</strong> — полный доступ к API (пайплайны,
+													ветки, MR)
+												</li>
+												<li>
+													<strong>read_repository</strong> — чтение кода и
+													коммитов
+												</li>
+											</ul>
+										</li>
+										<li>
+											Нажмите <strong>Create project access token</strong>
+										</li>
+									</ol>
+									<p className="mt-2 font-medium">
+										Вариант 2: Personal Access Token
+									</p>
+									<ol className="list-decimal pl-4 space-y-1">
+										<li>
+											Перейдите в{" "}
+											<strong>
+												GitLab &rarr; User Settings &rarr; Access Tokens
+											</strong>
+										</li>
+										<li>
+											Создайте токен со скоупами:{" "}
+											<code className="rounded bg-orange-100 px-1 dark:bg-orange-900">
+												api
+											</code>
+											,{" "}
+											<code className="rounded bg-orange-100 px-1 dark:bg-orange-900">
+												read_repository
+											</code>
+										</li>
+									</ol>
+									<p className="mt-1 text-orange-600 dark:text-orange-300">
+										Для self-hosted GitLab убедитесь, что URL инстанса указан
+										корректно выше.
+									</p>
+								</div>
+							</details>
+						</div>
+						<div className="space-y-2">
+							<Label>Webhook Secret (опционально)</Label>
+							<Input
+								type="password"
+								value={webhookSecret}
+								onChange={(e) => setWebhookSecret(e.target.value)}
+								placeholder="Секрет для валидации webhook"
+							/>
+							<p className="text-xs text-t2">
+								Настройте Webhook в{" "}
+								<strong>GitLab &rarr; Settings &rarr; Webhooks</strong>. URL:{" "}
+								<code className="rounded-[var(--r1)] bg-input px-1">
+									$&#123;HUB_URL&#125;/api/gitlab/webhook
+								</code>
+								. Укажите токен в поле <strong>Secret token</strong>. Triggers:
+								Push, Merge request, Pipeline.
+							</p>
+						</div>
+						<Button
+							onClick={() => createMutation.mutate()}
+							disabled={
+								createMutation.isPending || !projectPath || !accessToken
+							}
+						>
+							{createMutation.isPending ? "Подключение..." : "Подключить"}
+						</Button>
+					</CardContent>
+				</Card>
+			)}
 		</div>
 	);
 }
@@ -566,12 +608,18 @@ function IntegrationsSettingsPage() {
 						<GitLabIcon className="h-4 w-4" />
 						GitLab
 					</TabsTrigger>
+					<TabsTrigger value="webhooks" className="gap-1.5">
+						Вебхуки
+					</TabsTrigger>
 				</TabsList>
 				<TabsContent value="github" className="mt-4">
 					<GitHubSection projectId={projectId} />
 				</TabsContent>
 				<TabsContent value="gitlab" className="mt-4">
 					<GitLabSection projectId={projectId} />
+				</TabsContent>
+				<TabsContent value="webhooks" className="mt-4">
+					<WebhooksPage projectId={projectId} />
 				</TabsContent>
 			</Tabs>
 		</div>

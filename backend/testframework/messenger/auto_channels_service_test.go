@@ -66,6 +66,8 @@ func TestAutoChannelService_HandleProjectCreated_AddsEntMembers(t *testing.T) {
 	require.NoError(t, err)
 
 	mockRepo := newMockRepository()
+	// AUDIT-TM-004: CreateChannel на mock проверяет IsProjectMember (в prod — Ent).
+	mockRepo.projectMembers[proj.ID] = map[uuid.UUID]bool{owner.ID: true}
 	svc := messenger.ExportNewMessengerServiceTest(mockRepo)
 	entRepo := messenger.NewEntRepository(client)
 	auto := messenger.NewAutoChannelService(svc, entRepo)

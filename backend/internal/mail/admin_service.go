@@ -5,6 +5,7 @@ import (
 )
 
 // SettingsStore — persistence для mail admin settings (SystemSetting).
+// EntSettingsStore также реализует ActiveUserEmailSource (W7-A1-005).
 type SettingsStore interface {
 	Get(ctx context.Context, key string) (string, error)
 	Upsert(ctx context.Context, key, value, description string) error

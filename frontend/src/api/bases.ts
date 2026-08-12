@@ -69,6 +69,17 @@ export function createBase(data: { name: string; description?: string }) {
 	return api.post<BaseDetail>("/bases", data);
 }
 
+export function updateBase(
+	baseId: string,
+	data: { name?: string; description?: string; version: number },
+) {
+	return api.put<BaseDetail>(`/bases/${baseId}`, data);
+}
+
+export function deleteBase(baseId: string) {
+	return api.delete<void>(`/bases/${baseId}`);
+}
+
 export function getTableView(baseId: string, tableId: string) {
 	return api.get<TableView>(`/bases/${baseId}/tables/${tableId}`);
 }
@@ -102,7 +113,7 @@ export function updateRecord(
 	baseId: string,
 	tableId: string,
 	recordId: string,
-	data: { cells: Record<string, unknown>; version?: number },
+	data: { cells: Record<string, unknown>; version: number },
 ) {
 	return api.put<TableRecord>(
 		`/bases/${baseId}/tables/${tableId}/records/${recordId}`,

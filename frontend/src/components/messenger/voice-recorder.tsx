@@ -81,10 +81,9 @@ export function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) {
 		if (!recorder || recorder.state !== "recording") return;
 
 		const durationMs = Date.now() - startTimeRef.current;
-		recorder.stop();
 		setIsRecording(false);
 
-		// Ждём последний chunk.
+		// Сначала onstop, потом stop — иначе событие уходит старому handler'у (W9-A3-003).
 		await new Promise<void>((resolve) => {
 			recorder.onstop = () => {
 				for (const t of recorder.stream.getTracks()) {
@@ -93,6 +92,7 @@ export function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) {
 				clearInterval(timerRef.current);
 				resolve();
 			};
+			recorder.stop();
 		});
 
 		const blob = new Blob(chunksRef.current, { type: "audio/webm" });
@@ -183,7 +183,7 @@ export function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) {
 				<>
 					{/* Индикатор записи */}
 					<div className="flex items-center gap-2">
-						<span className="h-3 w-3 animate-pulse rounded-full bg-red-500" />
+						<span className="h-3 w-3 animate-pulse rounded-full bg-[var(--red)]" />
 						<span className="text-sm font-medium">
 							{formatDuration(duration)}
 						</span>

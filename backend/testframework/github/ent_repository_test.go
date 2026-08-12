@@ -109,15 +109,91 @@ func TestEntRepository_IntegrationCRUDAndSecrets(t *testing.T) {
 	byRepo, err := env.repo.FindIntegrationByRepo(env.ctx, "acme", "hub")
 	require.NoError(t, err)
 	assert.Equal(t, created.ID, byRepo.ID)
+	assert.Equal(t, "gh-secret", byRepo.WebhookSecret)
 
-	secrets, err := env.repo.ListAllWebhookSecrets(env.ctx)
-	require.NoError(t, err)
-	assert.Contains(t, secrets, "gh-secret")
+	require.NoError(t, env.repo.DeleteIntegration(env.ctx, env.projectID, created.ID))
+	_, err = env.repo.FindIntegrationByRepo(env.ctx, "acme", "hub")
+	require.Error(t, err)
+}
 
-	require.NoError(t, env.repo.DeleteIntegration(env.ctx, created.ID))
-	after, err := env.repo.ListAllWebhookSecrets(env.ctx)
+// TestEntRepository_DeleteIntegration_RejectsForeignProject_A5_003 — интеграция проекта B
+// не удаляется через project A. Mutation: снять HasProjectWith → чужой delete проходит → FAIL.
+func TestEntRepository_DeleteIntegration_RejectsForeignProject_A5_003(t *testing.T) {
+	env := newGitHubRepoEnv(t)
+
+	foreign, err := env.client.Project.Create().
+		SetName("Foreign GH Delete A5003").
+		SetKey("FGD" + strings.ToUpper(uuid.New().String()[:3])).
+		Save(env.ctx)
 	require.NoError(t, err)
-	assert.Empty(t, after)
+
+	foreignRepo := github.NewEntRepository(env.client, nil)
+	created, err := foreignRepo.CreateIntegration(env.ctx, foreign.ID, github.CreateIntegrationInput{
+		RepoOwner:     "other",
+		RepoName:      "todelete",
+		AccessToken:   "ghp_foreign",
+		WebhookSecret: "foreign-secret",
+	})
+	require.NoError(t, err)
+
+	err = env.repo.DeleteIntegration(env.ctx, env.projectID, created.ID)
+	require.True(t, ent.IsNotFound(err), "foreign integration must not delete via project A, got %v", err)
+
+	stillThere, err := foreignRepo.GetIntegration(env.ctx, created.ID)
+	require.NoError(t, err)
+	assert.Equal(t, created.ID, stillThere.ID)
+
+	require.NoError(t, foreignRepo.DeleteIntegration(env.ctx, foreign.ID, created.ID))
+	_, err = foreignRepo.GetIntegration(env.ctx, created.ID)
+	require.True(t, ent.IsNotFound(err))
+}
+
+// TestEntRepository_GetIntegrationInProject_RejectsForeign_A5_006 — интеграция проекта B
+// не читается через project A. Mutation: снять HasProjectWith → тест краснеет.
+func TestEntRepository_GetIntegrationInProject_RejectsForeign_A5_006(t *testing.T) {
+	env := newGitHubRepoEnv(t)
+
+	foreign, err := env.client.Project.Create().
+		SetName("Foreign GH Project A5006").
+		SetKey("FGH" + strings.ToUpper(uuid.New().String()[:3])).
+		Save(env.ctx)
+	require.NoError(t, err)
+
+	foreignRepo := github.NewEntRepository(env.client, nil)
+	created, err := foreignRepo.CreateIntegration(env.ctx, foreign.ID, github.CreateIntegrationInput{
+		RepoOwner:     "other",
+		RepoName:      "secret",
+		AccessToken:   "ghp_foreign",
+		WebhookSecret: "foreign-secret",
+	})
+	require.NoError(t, err)
+
+	_, err = env.repo.GetIntegrationInProject(env.ctx, env.projectID, created.ID)
+	require.True(t, ent.IsNotFound(err), "foreign integration must not be visible via project A, got %v", err)
+
+	got, err := foreignRepo.GetIntegrationInProject(env.ctx, foreign.ID, created.ID)
+	require.NoError(t, err)
+	assert.Equal(t, created.ID, got.ID)
+}
+
+// TestEntRepository_FindIssueByKeyInProject_RejectsForeign_A5_006 — issue чужого проекта
+// не находится по ключу. Mutation: снять HasProjectWith → тест краснеет.
+func TestEntRepository_FindIssueByKeyInProject_RejectsForeign_A5_006(t *testing.T) {
+	env := newGitHubRepoEnv(t)
+	iss := env.createIssue(t)
+
+	foreign, err := env.client.Project.Create().
+		SetName("Foreign Issue Project A5006").
+		SetKey("FIS" + strings.ToUpper(uuid.New().String()[:3])).
+		Save(env.ctx)
+	require.NoError(t, err)
+
+	_, err = env.repo.FindIssueByKeyInProject(env.ctx, foreign.ID, iss.IssueKey)
+	require.True(t, ent.IsNotFound(err), "issue must not be visible via foreign project, got %v", err)
+
+	got, err := env.repo.FindIssueByKeyInProject(env.ctx, env.projectID, iss.IssueKey)
+	require.NoError(t, err)
+	assert.Equal(t, iss.ID, got.ID)
 }
 
 func TestEntRepository_GitHubLinksAndIssueLookup(t *testing.T) {
@@ -125,9 +201,10 @@ func TestEntRepository_GitHubLinksAndIssueLookup(t *testing.T) {
 	iss := env.createIssue(t)
 
 	ig, err := env.repo.CreateIntegration(env.ctx, env.projectID, github.CreateIntegrationInput{
-		RepoOwner:   "acme",
-		RepoName:    "app",
-		AccessToken: "token",
+		RepoOwner:     "acme",
+		RepoName:      "app",
+		AccessToken:   "token",
+		WebhookSecret: "gh-secret",
 	})
 	require.NoError(t, err)
 

@@ -16,6 +16,7 @@ type UserPreferenceRecord struct {
 	DefaultModel      string
 	DefaultProviderID *uuid.UUID
 	AllowExternalAI   bool
+	Version           int
 }
 
 // externalAIAllowed — согласие пользователя на external LLM.
@@ -25,7 +26,8 @@ func (s *Service) externalAIAllowed(ctx context.Context, userID uuid.UUID) (bool
 		return false, err
 	}
 	if pref == nil {
-		return true, nil
+		// W5-A3-012 / P2-BE-17: opt-in, не opt-out — без записи external AI запрещён.
+		return false, nil
 	}
 	return pref.AllowExternalAI, nil
 }

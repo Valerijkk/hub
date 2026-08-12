@@ -1,0 +1,46 @@
+﻿# TASK-014 — Project ACL + CompleteSprint atomic tx
+
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Закрыта
+> W18-C2 mutation (be1): **FAIL** → rework → W1-be1 checker **PASS** 2026-07-29. Evidence: `.planning/audits/total-2026-07/MUTATION-2026-07-29-W1-be1.md`  
+> Источник: TASK-008 W12 · Classes: P1-BE-05..09 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P1-BACKEND.md`
+
+## [OUTCOME]
+
+Дефекты класса `P1-BE-05..09` закрыты: denial/regression на слое guard зелёные, критерий мутации воспроизводим.
+
+## [ROLE]
+
+- Role: be1
+- Responsibility: фикс + тесты на слое guard
+- Handoff to: стадия C (мутация независимым агентом)
+
+## [SCOPE AND CONSTRAINTS]
+
+- Files allowed: backend/internal/project/**; backend/internal/sprint/**; testframework/{project,sprint}/**; `.planning/backlog/README.md`; этот файл
+- Do not touch: несвязанные модули; secrets; DEV_MODE в CI
+- Constraints: Docker + `-tags hubtest` для BE; Vitest для FE; один логический коммит на подкласс при необходимости
+- Approval record: миграции Ent — только с явным согласованием владельца
+
+## [REFERENCES]
+
+- Реестр W12 P1 BACKEND (ClassIDs P1-BE-05..09)
+- Сырые находки: отчёты `A*-*.md` стадии A
+- Source precedence: код > отчёт
+
+## [ACCEPTANCE]
+
+- Done criteria: все ClassID из P1-BE-05..09 с мутацией «да» закрыты по реестру
+- **Мутация (C):** revoke чужого invite / demote last owner / stranger AddTeamToProject / fail mid CompleteSprint
+- Regression: соответствующий `testframework` / Vitest domain package
+- Evidence: вывод тестов, SHA коммитов
+- Stop when: green + статус «Исправлена» в README
+
+## [OUTPUT SCHEMA]
+
+- Коммит(ы) Conventional (тип/scope EN, описание RU) + путь задачи в теле
+- Статус README
+
+## [OPERATING RULES]
+
+- Guard тестировать на реальном слое, не только mock
+- Co-authored-by запрещён

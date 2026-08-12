@@ -24,7 +24,6 @@ func TestWebhookFilterSubjects_CoversWebhookEvents(t *testing.T) {
 		"project.created",
 		"tms.run.completed.>",
 		"tms.testrun.completed",
-		"sprint.>",
 		"messenger.channel.*.message_sent",
 	}
 	assert.Equal(t, want, natsclient.WebhookFilterSubjects)

@@ -3,7 +3,6 @@ package ai
 import (
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -95,6 +94,9 @@ func (h *Handler) UpdatePreferences(c fiber.Ctx) error {
 		if errors.Is(err, ErrModelNotAllowed) {
 			return fiber.NewError(fiber.StatusBadRequest, "model not available")
 		}
+		if errors.Is(err, ErrVersionConflict) {
+			return fiber.NewError(fiber.StatusConflict, "version conflict")
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, "failed to save preferences")
 	}
 	return c.JSON(resp)
@@ -125,8 +127,33 @@ func (h *Handler) AssistJQL(c fiber.Ctx) error {
 	}
 	resp, err := h.svc.AssistJQL(c.Context(), userID, req)
 	if err != nil {
-		if errors.Is(err, ErrNoProvider) {
+		// A2W5-A1-001 / TASK-085: те же sentinel, что SuggestComposer (не всё → 502).
+		if errors.Is(err, ErrNoProvider) || errors.Is(err, ErrProviderDisabled) {
 			return fiber.NewError(fiber.StatusServiceUnavailable, err.Error())
+		}
+		if errors.Is(err, ErrProviderRPMUnavailable) {
+			return fiber.NewError(fiber.StatusServiceUnavailable, err.Error())
+		}
+		if errors.Is(err, ErrDailyQuotaExceeded) {
+			c.Set("Retry-After", secondsUntilMidnightUTC())
+			return fiber.NewError(fiber.StatusTooManyRequests, err.Error())
+		}
+		if errors.Is(err, ErrProviderRateLimited) {
+			c.Set("Retry-After", "60")
+			return fiber.NewError(fiber.StatusTooManyRequests, err.Error())
+		}
+		if errors.Is(err, ErrExternalAIConsentRequired) {
+			return fiber.NewError(fiber.StatusForbidden, err.Error())
+		}
+		if errors.Is(err, ErrAllProvidersFailed) {
+			return fiber.NewError(fiber.StatusBadGateway, err.Error())
+		}
+		if errors.Is(err, ErrContentPolicyViolation) {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		}
+		// A3W5-1-002: пустой query — 400, не catch-all 502.
+		if errors.Is(err, ErrQueryRequired) {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
 		}
 		return fiber.NewError(fiber.StatusBadGateway, err.Error())
 	}
@@ -148,6 +175,9 @@ func (h *Handler) SuggestComposer(c fiber.Ctx) error {
 		if errors.Is(err, ErrNoProvider) || errors.Is(err, ErrProviderDisabled) {
 			return fiber.NewError(fiber.StatusServiceUnavailable, err.Error())
 		}
+		if errors.Is(err, ErrProviderRPMUnavailable) {
+			return fiber.NewError(fiber.StatusServiceUnavailable, err.Error())
+		}
 		if errors.Is(err, ErrDailyQuotaExceeded) {
 			c.Set("Retry-After", secondsUntilMidnightUTC())
 			return fiber.NewError(fiber.StatusTooManyRequests, err.Error())
@@ -165,7 +195,8 @@ func (h *Handler) SuggestComposer(c fiber.Ctx) error {
 		if errors.Is(err, ErrContentPolicyViolation) {
 			return fiber.NewError(fiber.StatusBadRequest, err.Error())
 		}
-		if strings.Contains(err.Error(), "prefix must be") || strings.Contains(err.Error(), "empty suggestion") {
+		// P3-BE-08 / W5-A1-008: sentinel + errors.Is, не strings.Contains на err.Error().
+		if errors.Is(err, ErrInvalidPrefix) || errors.Is(err, ErrEmptySuggestion) {
 			return fiber.NewError(fiber.StatusBadRequest, err.Error())
 		}
 		return fiber.NewError(fiber.StatusBadGateway, err.Error())
@@ -193,13 +224,23 @@ func (h *Handler) ChatCompletions(c fiber.Ctx) error {
 				c.Set("Retry-After", "60")
 				return fiber.NewError(fiber.StatusTooManyRequests, err.Error())
 			}
+			if errors.Is(err, ErrProviderRPMUnavailable) {
+				return fiber.NewError(fiber.StatusServiceUnavailable, err.Error())
+			}
 			if errors.Is(err, ErrExternalAIConsentRequired) {
 				return fiber.NewError(fiber.StatusForbidden, err.Error())
 			}
 			if errors.Is(err, ErrContentPolicyViolation) {
 				return fiber.NewError(fiber.StatusBadRequest, err.Error())
 			}
-			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+			// A3W5-1-001: stream preflight — те же sentinel, что non-stream (не 400 + err.Error()).
+			if errors.Is(err, ErrNoProvider) || errors.Is(err, ErrProviderDisabled) {
+				return fiber.NewError(fiber.StatusServiceUnavailable, err.Error())
+			}
+			if errors.Is(err, ErrAllProvidersFailed) {
+				return fiber.NewError(fiber.StatusBadGateway, err.Error())
+			}
+			return fiber.NewError(fiber.StatusBadGateway, "provider error")
 		}
 		return c.Status(fiber.StatusAccepted).JSON(StreamStartResponse{
 			StreamID: req.StreamID,
@@ -209,6 +250,9 @@ func (h *Handler) ChatCompletions(c fiber.Ctx) error {
 	resp, err := h.svc.ChatCompletion(c.Context(), userID, req, c.IP(), string(c.Request().Header.UserAgent()))
 	if err != nil {
 		if errors.Is(err, ErrNoProvider) || errors.Is(err, ErrProviderDisabled) {
+			return fiber.NewError(fiber.StatusServiceUnavailable, err.Error())
+		}
+		if errors.Is(err, ErrProviderRPMUnavailable) {
 			return fiber.NewError(fiber.StatusServiceUnavailable, err.Error())
 		}
 		if errors.Is(err, ErrDailyQuotaExceeded) {

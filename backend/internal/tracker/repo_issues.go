@@ -11,10 +11,21 @@ import (
 	"github.com/valerii/hub/backend/ent/issue"
 	"github.com/valerii/hub/backend/ent/predicate"
 	"github.com/valerii/hub/backend/ent/project"
+	"github.com/valerii/hub/backend/ent/projectmember"
+	sprintEnt "github.com/valerii/hub/backend/ent/sprint"
 	"github.com/valerii/hub/backend/ent/user"
 	"github.com/valerii/hub/backend/ent/workflowstatus"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
+
+// issueProjectIDEQ — A8-001 query rewrite: filter by FK column `project_issues`
+// instead of EXISTS via HasProjectWith. Same semantics for M2O required edge;
+// composite index (project_issues, deleted_at) is on Issue schema (A8-001 FIXED).
+func issueProjectIDEQ(projectID uuid.UUID) predicate.Issue {
+	return predicate.Issue(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(issue.ProjectColumn), projectID))
+	})
+}
 
 // ---------------------------------------------------------------------------
 // CRUD задач
@@ -126,20 +137,26 @@ func (r *EntRepository) CreateIssue(ctx context.Context, projectID uuid.UUID, in
 }
 
 // findDefaultStatusTx ищет дефолтный статус проекта внутри транзакции.
+// AUDIT-TM-001: DeletedAtIsNil — иначе CreateIssue привяжет задачу к soft-deleted default.
 func (r *EntRepository) findDefaultStatusTx(ctx context.Context, tx *ent.Tx, projectID uuid.UUID) (*ent.WorkflowStatus, error) {
 	return tx.WorkflowStatus.Query().
 		Where(
 			workflowstatus.HasProjectWith(project.IDEQ(projectID)),
 			workflowstatus.IsDefaultEQ(true),
+			workflowstatus.DeletedAtIsNil(),
 		).
 		Only(ctx)
 }
 
-// FindIssueByKey возвращает задачу по её ключу (например "HUB-1") с eager loading связей.
+// FindIssueByKey возвращает задачу по ключу внутри projectID (A3-002 IDOR guard).
 // Исключает мягко удалённые задачи.
-func (r *EntRepository) FindIssueByKey(ctx context.Context, issueKey string) (*ent.Issue, error) {
+func (r *EntRepository) FindIssueByKey(ctx context.Context, projectID uuid.UUID, issueKey string) (*ent.Issue, error) {
 	return r.client.Issue.Query().
-		Where(issue.IssueKeyEQ(issueKey), issue.DeletedAtIsNil()).
+		Where(
+			issue.IssueKeyEQ(issueKey),
+			issue.DeletedAtIsNil(),
+			issue.HasProjectWith(project.ID(projectID)),
+		).
 		WithAssignee().
 		WithReporter().
 		WithStatus().
@@ -165,12 +182,31 @@ func (r *EntRepository) FindIssueByID(ctx context.Context, id uuid.UUID) (*ent.I
 		Only(ctx)
 }
 
+// FindIssueInProject возвращает задачу по UUID только внутри projectID (A3-011-target IDOR guard).
+// Исключает мягко удалённые задачи. Mutation: снять issueProjectIDEQ → foreign issue находится.
+func (r *EntRepository) FindIssueInProject(ctx context.Context, projectID, id uuid.UUID) (*ent.Issue, error) {
+	return r.client.Issue.Query().
+		Where(
+			issue.IDEQ(id),
+			issue.DeletedAtIsNil(),
+			issueProjectIDEQ(projectID),
+		).
+		WithAssignee().
+		WithReporter().
+		WithStatus().
+		WithLabels().
+		WithParent().
+		WithChildren().
+		WithProject().
+		Only(ctx)
+}
+
 // ListIssues возвращает пагинированный список задач проекта с фильтрами.
 // Использует курсорную пагинацию по issue_key.
 func (r *EntRepository) ListIssues(ctx context.Context, projectID uuid.UUID, params ListIssuesParams) ([]*ent.Issue, int, error) {
 	// Базовый запрос с фильтром по проекту (исключаем мягко удалённые)
 	query := r.client.Issue.Query().
-		Where(issue.HasProjectWith(project.IDEQ(projectID)), issue.DeletedAtIsNil())
+		Where(issueProjectIDEQ(projectID), issue.DeletedAtIsNil())
 
 	// Фильтры
 	if len(params.Status) > 0 {
@@ -187,6 +223,11 @@ func (r *EntRepository) ListIssues(ctx context.Context, projectID uuid.UUID, par
 		query = query.Where(issue.Not(issue.HasAssignee()))
 	} else if params.Assignee != nil {
 		query = query.Where(issue.HasAssigneeWith(user.IDEQ(*params.Assignee)))
+	}
+	if params.BacklogOnly {
+		query = query.Where(issue.Not(issue.HasSprint()))
+	} else if params.Sprint != nil {
+		query = query.Where(issue.HasSprintWith(sprintEnt.IDEQ(*params.Sprint)))
 	}
 	if params.IssueType != "" {
 		query = query.Where(issue.IssueTypeEQ(issue.IssueType(params.IssueType)))
@@ -213,7 +254,7 @@ func (r *EntRepository) ListIssues(ctx context.Context, projectID uuid.UUID, par
 		cursorIssue, err := r.client.Issue.Query().
 			Where(
 				issue.IssueKeyEQ(params.Cursor),
-				issue.HasProjectWith(project.IDEQ(projectID)),
+				issueProjectIDEQ(projectID),
 				issue.DeletedAtIsNil(),
 			).
 			Only(ctx)
@@ -281,10 +322,12 @@ func applyListIssuesCursorFilter(query *ent.IssueQuery, cursorIssue *ent.Issue, 
 // UpdateIssue обновляет задачу с оптимистичной блокировкой по полю version.
 // Возвращает ошибку конфликта при несовпадении версий.
 func (r *EntRepository) UpdateIssue(ctx context.Context, issueID uuid.UUID, input UpdateIssueInput) (*ent.Issue, error) {
+	// W1-A3-005: DeletedAtIsNil — иначе зная ID+version можно править задачу в корзине.
 	update := r.client.Issue.Update().
 		Where(
 			issue.IDEQ(issueID),
 			issue.VersionEQ(input.Version),
+			issue.DeletedAtIsNil(),
 		).
 		AddVersion(1)
 
@@ -330,6 +373,15 @@ func (r *EntRepository) UpdateIssue(ctx context.Context, issueID uuid.UUID, inpu
 		return nil, fmt.Errorf("обновление задачи: %w", err)
 	}
 	if affected == 0 {
+		alive, existErr := r.client.Issue.Query().
+			Where(issue.IDEQ(issueID), issue.DeletedAtIsNil()).
+			Exist(ctx)
+		if existErr != nil {
+			return nil, fmt.Errorf("проверка задачи после conflict: %w", existErr)
+		}
+		if !alive {
+			return nil, apperrors.NewNotFound("задача не найдена")
+		}
 		return nil, apperrors.NewConflict("version mismatch: задача была изменена другим пользователем")
 	}
 
@@ -341,20 +393,22 @@ func (r *EntRepository) UpdateIssue(ctx context.Context, issueID uuid.UUID, inpu
 	// Публикуем outbox-событие обновления задачи.
 	if r.publisher != nil && updated.Edges.Project != nil {
 		projectID := updated.Edges.Project.ID.String()
-		_ = r.publisher.Publish(ctx, r.client, fmt.Sprintf("project.%s.issue.updated", projectID), IssueUpdatedEvent{
+		subj := fmt.Sprintf("project.%s.issue.updated", projectID)
+		logOutboxPublishErr(ctx, subj, r.publisher.Publish(ctx, r.client, subj, IssueUpdatedEvent{
 			IssueID:   issueID.String(),
 			IssueKey:  updated.IssueKey,
 			ProjectID: projectID,
-		})
+		}))
 
 		// Отдельное событие при смене назначенного.
 		if input.AssigneeID != nil {
-			_ = r.publisher.Publish(ctx, r.client, fmt.Sprintf("project.%s.issue.assigned", projectID), IssueAssignedEvent{
+			subj = fmt.Sprintf("project.%s.issue.assigned", projectID)
+			logOutboxPublishErr(ctx, subj, r.publisher.Publish(ctx, r.client, subj, IssueAssignedEvent{
 				IssueID:    issueID.String(),
 				IssueKey:   updated.IssueKey,
 				ProjectID:  projectID,
 				AssigneeID: input.AssigneeID.String(),
-			})
+			}))
 		}
 	}
 
@@ -369,8 +423,9 @@ func (r *EntRepository) DeleteIssue(ctx context.Context, issueID uuid.UUID) erro
 }
 
 // MoveIssue перемещает задачу в другой статус и обновляет ранг (для Kanban drag-and-drop).
+// W1-A3-004 / W1-A2-007: VersionEQ + DeletedAtIsNil + AddVersion — без guard concurrent drag = last-write-wins.
 // Публикует outbox-событие project.{projectID}.issue.moved.
-func (r *EntRepository) MoveIssue(ctx context.Context, issueID uuid.UUID, statusID uuid.UUID, rank string) (*ent.Issue, error) {
+func (r *EntRepository) MoveIssue(ctx context.Context, issueID uuid.UUID, statusID uuid.UUID, rank string, expectedVersion int) (*ent.Issue, error) {
 	// Получаем текущий статус до обновления для события.
 	current, err := r.FindIssueByID(ctx, issueID)
 	if err != nil {
@@ -381,12 +436,30 @@ func (r *EntRepository) MoveIssue(ctx context.Context, issueID uuid.UUID, status
 		oldStatusID = current.Edges.Status.ID.String()
 	}
 
-	err = r.client.Issue.UpdateOneID(issueID).
+	affected, err := r.client.Issue.Update().
+		Where(
+			issue.IDEQ(issueID),
+			issue.VersionEQ(expectedVersion),
+			issue.DeletedAtIsNil(),
+		).
 		SetStatusID(statusID).
 		SetRank(rank).
-		Exec(ctx)
+		AddVersion(1).
+		Save(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("перемещение задачи: %w", err)
+	}
+	if affected == 0 {
+		alive, existErr := r.client.Issue.Query().
+			Where(issue.IDEQ(issueID), issue.DeletedAtIsNil()).
+			Exist(ctx)
+		if existErr != nil {
+			return nil, fmt.Errorf("проверка задачи после move conflict: %w", existErr)
+		}
+		if !alive {
+			return nil, apperrors.NewNotFound("задача не найдена")
+		}
+		return nil, apperrors.NewConflict("version mismatch: задача была изменена другим пользователем")
 	}
 
 	moved, err := r.FindIssueByID(ctx, issueID)
@@ -397,15 +470,49 @@ func (r *EntRepository) MoveIssue(ctx context.Context, issueID uuid.UUID, status
 	// Публикуем outbox-событие перемещения задачи.
 	if r.publisher != nil && moved.Edges.Project != nil {
 		projectID := moved.Edges.Project.ID.String()
-		_ = r.publisher.Publish(ctx, r.client, fmt.Sprintf("project.%s.issue.moved", projectID), IssueMovedEvent{
+		subj := fmt.Sprintf("project.%s.issue.moved", projectID)
+		logOutboxPublishErr(ctx, subj, r.publisher.Publish(ctx, r.client, subj, IssueMovedEvent{
 			IssueID:     issueID.String(),
 			IssueKey:    moved.IssueKey,
 			ProjectID:   projectID,
 			OldStatusID: oldStatusID,
 			NewStatusID: statusID.String(),
 			NewRank:     rank,
-		})
+		}))
 	}
 
 	return moved, nil
+}
+
+// SearchIssuesJQL выполняет JQL-предикаты в рамках проекта (A2W1-A2-001).
+// Ent-клиент остаётся внутри репозитория — service не вызывает GetDB.
+func (r *EntRepository) SearchIssuesJQL(ctx context.Context, projectID uuid.UUID, predicates []predicate.Issue, orderByField string, limit int) ([]*ent.Issue, error) {
+	if limit <= 0 {
+		limit = 100
+	}
+	q := r.client.Issue.Query().
+		Where(issueProjectIDEQ(projectID)).
+		Where(issue.DeletedAtIsNil())
+	for _, pred := range predicates {
+		q = q.Where(pred)
+	}
+	switch orderByField {
+	case "created":
+		q = q.Order(issue.ByCreatedAt())
+	case "priority":
+		q = q.Order(issue.ByPriority())
+	case "updated":
+		q = q.Order(issue.ByUpdatedAt())
+	}
+	return q.WithStatus().WithAssignee().Limit(limit).All(ctx)
+}
+
+// IsProjectMember проверяет, что userID — участник projectID (A2W1-A2-002 / TASK-088).
+func (r *EntRepository) IsProjectMember(ctx context.Context, projectID, userID uuid.UUID) (bool, error) {
+	return r.client.ProjectMember.Query().
+		Where(
+			projectmember.HasProjectWith(project.IDEQ(projectID)),
+			projectmember.HasUserWith(user.IDEQ(userID)),
+		).
+		Exist(ctx)
 }

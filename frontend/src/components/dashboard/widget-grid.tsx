@@ -29,6 +29,7 @@ import {
 } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
 import type { LayoutItem } from "@/api/dashboard";
+import type { DashboardWidgetData } from "@/components/dashboard/widget-data";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -79,7 +80,7 @@ function ChartWidgetSkeleton() {
 
 /** Определение виджета: компонент, название, иконка, акцентный градиент, ограничения размеров. */
 interface WidgetDefinition {
-	component: React.ComponentType<{ data?: unknown }>;
+	component: React.ComponentType<{ data?: DashboardWidgetData }>;
 	name: string;
 	icon: LucideIcon;
 	accent: string;
@@ -178,7 +179,7 @@ interface WidgetGridProps {
 	/** ID проекта (для проектных дашбордов). */
 	projectId?: string;
 	/** Данные для виджетов. */
-	data?: unknown;
+	data?: DashboardWidgetData;
 }
 
 /**
@@ -373,9 +374,10 @@ export function WidgetGrid({
 											<DropdownMenuTrigger asChild>
 												<button
 													type="button"
-													className="w-7 h-7 flex items-center justify-center rounded-[var(--r1)] text-[var(--t4)] text-base hover:bg-[var(--hover)] hover:text-[var(--t2)] transition-colors opacity-0 group-hover/widget:opacity-100"
+													aria-label={`Меню виджета ${name}`}
+													className="w-7 h-7 flex items-center justify-center rounded-[var(--r1)] text-[var(--t4)] text-base hover:bg-[var(--hover)] hover:text-[var(--t2)] transition-colors opacity-0 group-hover/widget:opacity-100 focus:opacity-100"
 												>
-													<Ellipsis className="h-4 w-4" />
+													<Ellipsis className="h-4 w-4" aria-hidden="true" />
 												</button>
 											</DropdownMenuTrigger>
 											<DropdownMenuContent align="end">

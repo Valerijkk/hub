@@ -5,6 +5,7 @@ package ai
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
@@ -183,7 +184,9 @@ func ExportSettingBotSystemPrompt() string {
 }
 
 func ExportNewOpenAIAdapterWithClient(client *http.Client) *OpenAIAdapter {
-	return &OpenAIAdapter{client: client}
+	// httptest → 127.0.0.1; ValidateOutboundURL блокирует loopback (SSRF).
+	// Custom client в hubtest = явный test transport, не user-controlled URL path.
+	return &OpenAIAdapter{client: client, streamClient: client, skipOutboundURLValidate: true}
 }
 
 func ExportNewYandexGPTAdapterWithClient(client *http.Client) *YandexGPTAdapter {
@@ -223,4 +226,67 @@ func ExportOpenAIAdapterClient(a *OpenAIAdapter) *http.Client {
 		return nil
 	}
 	return a.client
+}
+
+func ExportOpenAIAdapterStreamClient(a *OpenAIAdapter) *http.Client {
+	if a == nil {
+		return nil
+	}
+	if a.streamClient != nil {
+		return a.streamClient
+	}
+	return a.client
+}
+
+// ExportOpenAIAdapterOfflineClient — hubtest: non-stream offline Timeout=90s (A3W5-2-001).
+func ExportOpenAIAdapterOfflineClient(a *OpenAIAdapter) *http.Client {
+	if a == nil {
+		return nil
+	}
+	return a.offlineClient
+}
+
+// ExportOpenAIAdapterOfflineStreamClient — hubtest: offline SSE без Client.Timeout (A3W5-2-001).
+func ExportOpenAIAdapterOfflineStreamClient(a *OpenAIAdapter) *http.Client {
+	if a == nil {
+		return nil
+	}
+	return a.offlineStreamClient
+}
+
+// ExportResolveStreamHTTPClient — hubtest: resolveStreamHTTPClient (A3W5-2-001).
+func ExportResolveStreamHTTPClient(a *OpenAIAdapter, base string) (*http.Client, error) {
+	return a.resolveStreamHTTPClient(base)
+}
+
+// ExportServiceStreamCompletionWithFallback — hubtest hook для W5-A2-005 / TASK-085.
+func ExportServiceStreamCompletionWithFallback(
+	s *Service,
+	ctx context.Context,
+	userID uuid.UUID,
+	model string,
+	req ChatCompletionRequest,
+	onDelta func(StreamDelta) error,
+) (*ent.AIProvider, time.Duration, error) {
+	return s.streamCompletionWithFallback(ctx, userID, model, req, onDelta)
+}
+
+// ExportSanitizeProviderTestError — hubtest для A2W5-A1-004.
+func ExportSanitizeProviderTestError(err error) string {
+	return sanitizeProviderTestError(err)
+}
+
+// ExportMapProviderMutateError — hubtest для A2W5-A1-003.
+func ExportMapProviderMutateError(err error) (int, string) {
+	return mapProviderMutateError(err)
+}
+
+// ExportMsgAIStreamFailed — hubtest для A3W5-3-007 (WS sanitize).
+func ExportMsgAIStreamFailed() string {
+	return msgAIStreamFailed
+}
+
+// ExportNormalizePolicyText — hubtest для A2W5-A2-006.
+func ExportNormalizePolicyText(s string) string {
+	return normalizePolicyText(s)
 }

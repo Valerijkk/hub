@@ -17,16 +17,17 @@ import (
 	"github.com/valerii/hub/backend/ent/enttest"
 )
 
-// TestNewTelegramBindService_NilWhenMisconfigured проверяет бизнес-логику: new Telegram привязка сервис nil when misconfigured.
-func TestNewTelegramBindService_NilWhenMisconfigured(t *testing.T) {
+// TestNewTelegramBindService_RepoServiceWhenBotUnavailable проверяет, что
+// repository-backed API остаётся доступным при недоступной bot-конфигурации.
+func TestNewTelegramBindService_RepoServiceWhenBotUnavailable(t *testing.T) {
 	dsn := "file:tgbindcfg_" + uuid.New().String() + "?mode=memory&cache=shared&_fk=1"
 	client := enttest.Open(t, "sqlite3", dsn)
 	t.Cleanup(func() { _ = client.Close() })
 	repo := notification.NewRepository(client)
 
-	assert.Nil(t, notification.NewTelegramBindService(repo, nil, nil, "token", "bot"))
-	assert.Nil(t, notification.NewTelegramBindService(repo, nil, nil, "", "bot"))
-	assert.Nil(t, notification.NewTelegramBindService(repo, nil, nil, "not-a-valid-token", "bot"))
+	assert.NotNil(t, notification.NewTelegramBindService(repo, nil, nil, "token", "bot"))
+	assert.NotNil(t, notification.NewTelegramBindService(repo, nil, nil, "", "bot"))
+	assert.NotNil(t, notification.NewTelegramBindService(repo, nil, nil, "not-a-valid-token", "bot"))
 }
 
 // TestTelegramBindService_handleUnlinkCommand_NotLinked проверяет бизнес-логику: Telegram привязка сервис handle unlink command not linked.

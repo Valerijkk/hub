@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { uploadFile } from "@/api/files";
 
 /** Параметры хука useFileUpload. */
@@ -23,19 +23,39 @@ interface UseFileUploadReturn {
 	isUploading: boolean;
 	/** Функция загрузки файлов программно. */
 	upload: (files: FileList | File[]) => Promise<void>;
-	/** Пропсы для зоны перетаскивания (drag-and-drop). */
+	/** Пропсы для зоны перетаскивания (drag-and-drop + paste). */
 	dropZoneProps: {
+		onDragEnter: (e: React.DragEvent) => void;
 		onDragOver: (e: React.DragEvent) => void;
 		onDragLeave: (e: React.DragEvent) => void;
 		onDrop: (e: React.DragEvent) => void;
+		onPaste: (e: React.ClipboardEvent) => void;
 	};
+}
+
+/**
+ * Извлекает файлы из clipboardData (paste).
+ */
+function filesFromClipboard(clipboardData: DataTransfer | null): File[] {
+	const items = clipboardData?.items;
+	if (!items) return [];
+
+	const files: File[] = [];
+	for (const item of items) {
+		if (item.kind === "file") {
+			const file = item.getAsFile();
+			if (file) files.push(file);
+		}
+	}
+	return files;
 }
 
 /**
  * useFileUpload предоставляет функциональность drag-and-drop и вставки файлов (Ctrl+V).
  *
- * Обрабатывает события dragover, drop и paste. Загружает файлы
- * через presigned URL (получить URL -> PUT -> подтвердить).
+ * dragCounter инкрементируется только на dragenter (не на dragover) — иначе
+ * частые dragover-события «залипают» isDragging (W11-A3-006 / P2-FE-11).
+ * Paste слушается только на drop-zone, не на document (W11-A3-007).
  *
  * @param options - параметры: проект, тип сущности, ID сущности, callbacks
  * @returns isDragging, isUploading, upload, dropZoneProps
@@ -73,35 +93,17 @@ export function useFileUpload(
 		[projectId, entityType, entityId, onUpload, onError],
 	);
 
-	// Обработка глобальных событий вставки (Ctrl+V).
-	useEffect(() => {
-		const handlePaste = (e: ClipboardEvent) => {
-			const items = e.clipboardData?.items;
-			if (!items) return;
-
-			const files: File[] = [];
-			for (const item of items) {
-				if (item.kind === "file") {
-					const file = item.getAsFile();
-					if (file) files.push(file);
-				}
-			}
-
-			if (files.length > 0) {
-				e.preventDefault();
-				void upload(files);
-			}
-		};
-
-		document.addEventListener("paste", handlePaste);
-		return () => document.removeEventListener("paste", handlePaste);
-	}, [upload]);
-
-	const onDragOver = useCallback((e: React.DragEvent) => {
+	const onDragEnter = useCallback((e: React.DragEvent) => {
 		e.preventDefault();
 		e.stopPropagation();
 		dragCounter.current++;
 		setIsDragging(true);
+	}, []);
+
+	// dragover только preventDefault — иначе counter ≫ enter (W11-A3-006).
+	const onDragOver = useCallback((e: React.DragEvent) => {
+		e.preventDefault();
+		e.stopPropagation();
 	}, []);
 
 	const onDragLeave = useCallback((e: React.DragEvent) => {
@@ -127,10 +129,21 @@ export function useFileUpload(
 		[upload],
 	);
 
+	// Paste только на зоне (не document) — иначе hijack полей чата/форм (W11-A3-007).
+	const onPaste = useCallback(
+		(e: React.ClipboardEvent) => {
+			const files = filesFromClipboard(e.clipboardData);
+			if (files.length === 0) return;
+			e.preventDefault();
+			void upload(files);
+		},
+		[upload],
+	);
+
 	return {
 		isDragging,
 		isUploading,
 		upload,
-		dropZoneProps: { onDragOver, onDragLeave, onDrop },
+		dropZoneProps: { onDragEnter, onDragOver, onDragLeave, onDrop, onPaste },
 	};
 }

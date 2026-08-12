@@ -3,6 +3,7 @@ package apigateway
 
 import (
 	"log/slog"
+	"unicode/utf8"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/utils/v2"
@@ -120,6 +121,10 @@ func (h *Handler) CreateAPIKey(c fiber.Ctx) error {
 	if req.Name == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "name обязателен")
 	}
+	// A3W4-5-004: MaxLen(255) до Ent — иначе validation → 500 через MapToFiber default.
+	if utf8.RuneCountInString(req.Name) > 255 {
+		return fiber.NewError(fiber.StatusBadRequest, "name: максимум 255 символов")
+	}
 
 	resp, err := h.apiKeySvc.CreateAPIKey(c.Context(), userID, req.Name, req.ExpiresAt)
 	if err != nil {
@@ -190,7 +195,7 @@ func (h *Handler) RevokeAPIKey(c fiber.Ctx) error {
 // @Produce json
 // @Param projectId path string true "ID проекта"
 // @Param body body CreateWebhookRequest true "URL и события"
-// @Success 201 {object} WebhookResponse "Эндпоинт создан"
+// @Success 201 {object} CreateWebhookResponse "Эндпоинт создан (secret один раз)"
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth

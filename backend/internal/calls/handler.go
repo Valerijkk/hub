@@ -1,6 +1,7 @@
 package calls
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
@@ -8,12 +9,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/utils/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/internal/platform/config"
+	"github.com/valerii/hub/backend/internal/platform/middleware"
 	"github.com/valerii/hub/backend/internal/rbac"
 )
 
@@ -36,8 +39,12 @@ func NewHandler(service *CallService, recSvc *RecordingService, scheduledSvc *Sc
 // RegisterRoutes регистрирует все маршруты звонков под /api/calls.
 // authMw — middleware аутентификации. Webhook-эндпоинт регистрируется без аутентификации.
 func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
-	// Гостевой доступ — без аутентификации
-	api.Post("/calls/guest-join", h.GuestJoinCall)
+	// Гостевой доступ — без auth; W3-A5-008: отдельный rate limit (брутфорс invite).
+	guestRL := middleware.RateLimit(context.Background(), middleware.RateLimitConfig{
+		Max:    10,
+		Window: time.Minute,
+	})
+	api.Post("/calls/guest-join", h.GuestJoinCall, guestRL)
 
 	// Остальные endpoints — с аутентификацией
 	calls := api.Group("/calls", authMw)

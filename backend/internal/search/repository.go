@@ -2,9 +2,12 @@ package search
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/project"
+	"github.com/valerii/hub/backend/ent/projectmember"
 	"github.com/valerii/hub/backend/ent/savedfilter"
 	"github.com/valerii/hub/backend/ent/user"
 )
@@ -21,6 +24,10 @@ type Repository interface {
 	// IsSystemAdmin возвращает true, если у пользователя SystemRole=admin.
 	// Используется searchUsers для обхода project-scoping (HI-12 follow-through).
 	IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bool, error)
+
+	// IsProjectMember возвращает true, если userID — участник projectID.
+	// A4-003/A4-004: CreateSavedFilter / ListSavedFilters требуют membership.
+	IsProjectMember(ctx context.Context, userID, projectID uuid.UUID) (bool, error)
 
 	// CreateSavedFilter создаёт новый сохранённый фильтр.
 	CreateSavedFilter(ctx context.Context, input CreateSavedFilterInput) (*ent.SavedFilter, error)
@@ -59,6 +66,20 @@ func (r *EntRepository) IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bo
 		return false, err
 	}
 	return u.SystemRole == user.SystemRoleFounder || u.SystemRole == user.SystemRoleAdmin, nil
+}
+
+// IsProjectMember реализует Repository.
+func (r *EntRepository) IsProjectMember(ctx context.Context, userID, projectID uuid.UUID) (bool, error) {
+	exists, err := r.db.ProjectMember.Query().
+		Where(
+			projectmember.HasProjectWith(project.IDEQ(projectID)),
+			projectmember.HasUserWith(user.IDEQ(userID)),
+		).
+		Exist(ctx)
+	if err != nil {
+		return false, fmt.Errorf("project membership: %w", err)
+	}
+	return exists, nil
 }
 
 // CreateSavedFilter реализует Repository.

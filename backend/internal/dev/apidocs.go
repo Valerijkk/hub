@@ -120,7 +120,7 @@ func guessModule(path string) string {
 		return "Import/Export"
 	case seg == "dev":
 		return "Dev"
-	case seg == "docs" || seg == "health":
+	case seg == "docs" || seg == "health" || seg == "live" || seg == "ready" || seg == "status" || seg == "metrics":
 		return "System"
 	case seg == "teams":
 		return "Teams"
@@ -196,8 +196,12 @@ h1{font-size:28px;margin-bottom:4px}
 
 // BuildAPIDocsJSON генерирует JSON-список всех API-эндпоинтов.
 // Формат: массив объектов {method, path}.
-func BuildAPIDocsJSON(app *fiber.App) string {
+// W7-A5-015 / P3-BE-01: marshal err → error (handler отдаёт 500), не пустое тело.
+func BuildAPIDocsJSON(app *fiber.App) (string, error) {
 	routes := collectRoutes(app)
-	data, _ := json.MarshalIndent(routes, "", "  ")
-	return string(data)
+	data, err := json.MarshalIndent(routes, "", "  ")
+	if err != nil {
+		return "", fmt.Errorf("marshal api docs: %w", err)
+	}
+	return string(data), nil
 }

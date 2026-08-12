@@ -25,6 +25,7 @@ export const onboardingProfileSchema = z.object({
 		.max(100, "onboarding:validation.departmentMax")
 		.optional()
 		.or(z.literal("")),
+	timezone: z.string().trim().min(1),
 	language: z.enum(["ru", "en"]),
 });
 

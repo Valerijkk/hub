@@ -26,7 +26,7 @@ func newAPIKeyRepo(t *testing.T) (apigateway.APIKeyRepository, uuid.UUID, contex
 		Save(ctx)
 	require.NoError(t, err)
 
-	return apigateway.NewEntRepository(client), u.ID, ctx
+	return apigateway.NewEntRepository(client, apigatewayTestCipher(t)), u.ID, ctx
 }
 
 func TestEntRepository_CreateAndListAPIKeys(t *testing.T) {
@@ -46,7 +46,7 @@ func TestEntRepository_WebhookEndpointCRUD(t *testing.T) {
 	dsn := "file:whrepo_" + uuid.New().String() + "?mode=memory&cache=shared&_fk=1"
 	client := enttest.Open(t, "sqlite3", dsn)
 	t.Cleanup(func() { _ = client.Close() })
-	repo := apigateway.NewEntRepository(client)
+	repo := apigateway.NewEntRepository(client, apigatewayTestCipher(t))
 	ctx := context.Background()
 
 	proj, err := client.Project.Create().SetName("Webhook Proj").SetKey("PR").Save(ctx)
@@ -62,9 +62,14 @@ func TestEntRepository_WebhookEndpointCRUD(t *testing.T) {
 	active, err := repo.ListActiveWebhookEndpoints(ctx)
 	require.NoError(t, err)
 	assert.Len(t, active, 1)
+	require.NotNil(t, active[0].Edges.Project, "ListActiveWebhookEndpoints must WithProject()")
+	assert.Equal(t, proj.ID, active[0].Edges.Project.ID)
 
 	isActive := false
-	updated, err := repo.UpdateWebhookEndpoint(ctx, ep.ID, apigateway.UpdateWebhookEndpointInput{IsActive: &isActive})
+	updated, err := repo.UpdateWebhookEndpoint(ctx, ep.ID, apigateway.UpdateWebhookEndpointInput{
+		IsActive: &isActive,
+		Version:  ep.Version,
+	})
 	require.NoError(t, err)
 	assert.False(t, updated.IsActive)
 

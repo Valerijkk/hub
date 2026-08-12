@@ -2,15 +2,19 @@
  * Виджет «Активность команды» — последние действия в проекте.
  */
 import { Users } from "lucide-react";
-import type { ActivityEntry, ProjectStats } from "@/api/dashboard";
+import type { ActivityEntry } from "@/api/dashboard";
+import {
+	type DashboardWidgetData,
+	isProjectStats,
+} from "@/components/dashboard/widget-data";
 
 interface Props {
-	data?: unknown;
+	data?: DashboardWidgetData;
 }
 
 /** Виджет активности команды. */
 export function TeamActivityWidget({ data }: Props) {
-	const projectData = data as ProjectStats | undefined;
+	const projectData = isProjectStats(data) ? data : undefined;
 	const activities = projectData?.team_activity ?? [];
 
 	if (activities.length === 0) {

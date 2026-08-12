@@ -15,12 +15,14 @@ disable-model-invocation: true
 - После `gsd-discuss-phase` / SPEC, когда scope зафиксирован
 - Переплан после FAIL goal-verify или конфликта файлов в волне
 
-**Не использовать**, если задача уровня `codex-micro` / `gsd-fast` (одна правка, один файл).
+**Не использовать**, если задача уровня `codex-micro` / `gsd-fast` (одна
+очевидная обратимая правка): LOW выполняется напрямую без плановой церемонии.
 
 ## Входы
 
 | Вход | Источник |
 |------|----------|
+| Task contract | [`$task-packet`](../../task-packet/SKILL.md) или эквивалентный SPEC/PLAN |
 | Goal / outcome | ROADMAP, запрос пользователя, SPEC.md |
 | Границы Won't | product / TZ / ADR |
 | Контекст кода | `.planning/STATE.md`, docs/* |
@@ -29,20 +31,31 @@ disable-model-invocation: true
 
 ## Шаги
 
-1. **Goal одним предложением** — проверяемый outcome (не «улучшить X»).
-2. **Success criteria** — каждый пункт = команда, путь файла или измеримый статус.
-3. **Нарезать атомарные планы:** один артефакт / один слой / ориентир ≤200–300 строк diff.
-4. **Признак «слишком крупно»:** союз «и» между артефактами; BE+FE в одном плане; схема Ent + handler вместе; security-фикс + фича в одной ветке.
-5. **Таблица задач:** # | задача | исполнитель | файлы (only/не трогать) | Depends | оценка | `*-ver`.
-6. **Волны:** параллелить только независимое; карта файлов внутри волны без пересечений.
-7. **Риски** + mitigation; security/auth → отдельная ветка (см. team-lead §11.1).
-8. **Self-check** prompt-contract / rules/40 этапы 1–4 на полноту плана (scope, depends, критерии, owners).
-9. Записать PLAN в `.planning/phases/<id>/PLAN.md` или эквивалент волны.
+1. Для MEDIUM/HIGH/CRITICAL нормализовать `$task-packet`, если входной
+   SPEC/PLAN ещё не содержит objective, user outcome, acceptance, non-goals,
+   ownership, evidence, approval и stop conditions.
+2. **Goal одним предложением** — проверяемый outcome (не «улучшить X»).
+3. **Success criteria** — каждый пункт = команда, путь файла или измеримый статус.
+4. **Нарезать атомарные планы:** один артефакт / один слой / ориентир ≤200–300 строк diff.
+5. Назначить **одного writer на ownership boundary**; reviewers/verifiers остаются read-only.
+6. **Таблица задач:** # | задача | writer | файлы (only/не трогать) | Depends | оценка | `*-ver`.
+7. **Волны:** параллелить только независимое; карта файлов внутри волны без пересечений.
+8. Явно ограничить `fan_out`, `delegation_depth`, `retry_limit`,
+   `max_fix_attempts_per_root_cause` (≤3), `max_re_review_rounds` (≤5) и
+   `task_timebox`; исчерпание лимита = stop/replan.
+9. **Риски** + mitigation; CRITICAL требует action-point approval, recovery и executable verification.
+10. **Self-check** prompt-contract / rules/40 этапы 1–4 на полноту плана.
+11. Записать PLAN в `.planning/phases/<id>/PLAN.md` или эквивалент волны.
 
 ## Полный шаблон PLAN
 
 ```markdown
 # PLAN: <фаза / волна>
+
+## Task packet
+- risk: MEDIUM | HIGH | CRITICAL
+- source: `$task-packet` / SPEC / existing PLAN: `path`
+- owned paths / approval / stop: …
 
 ## Цель
 <одно предложение, проверяемый outcome>
@@ -59,7 +72,7 @@ disable-model-invocation: true
 - [ ] Docs-sync: STATE + domain doc (rule 55)
 
 ## Задачи
-| # | Задача | Исполнитель | Файлы only | Не трогать | Depends | Оценка | Verifier |
+| # | Задача | Writer | Файлы only | Не трогать | Depends | Оценка | Verifier |
 |---|--------|-------------|------------|------------|---------|--------|----------|
 | 1 | … | be1 | `backend/internal/X/` | `ent/schema/` | — | S | be-ver |
 
@@ -67,6 +80,14 @@ disable-model-invocation: true
 - Wave 1 (parallel): #1, #2 — карта файлов: …
 - Sync point: сбор артефактов + conflict check
 - Wave 2: #3 (depends Wave1)
+
+## Execution bounds
+- fan_out: <N>
+- delegation_depth: <N>
+- retry_limit: <N на task>
+- max_fix_attempts_per_root_cause: <N, hard max 3>
+- max_re_review_rounds: <N, hard max 5; rounds 4–5 only after new RCA + stronger/new writer>
+- task_timebox: <duration>; on limit: STOP / REPLAN / ESCALATE
 
 ## Quality gates (rule 56)
 - Новый контур: implement → тест → triage loop до green
@@ -80,7 +101,7 @@ disable-model-invocation: true
 
 ## Verification
 - owners: be-ver / fe-ver / …
-- `verified: true` только при PASS + лог
+- `verified: true` ставит только независимый verifier при PASS + лог
 
 ## Handoff
 - Следующий skill: `wave-run` → `goal-verify` → `handoff`
@@ -104,15 +125,16 @@ disable-model-invocation: true
 
 ## Success criteria
 - [ ] authorizeBase на всех read/mutate путях bases
-- [ ] go test -tags hubtest -race ./testframework/bases/... PASS
+- [ ] Docker `backend-unit` для `backend/tests/bases/**` PASS; применимые Python API denial TC имеют отдельный target/evidence
 - [ ] docs/wiki/API.md — owner-scoped доступ
 - [ ] ветка feat/bases/security-membership-fix merge-ready
 
 ## Задачи
 | # | Задача | Исп. | Файлы | Depends | Verifier |
 |---|--------|------|-------|---------|----------|
-| 1 | authorizeBase + ListBases filter | be1 | internal/bases/*, testframework/bases/* | — | be-ver |
-| 2 | Docs API.md | docs-writer или be1 | docs/wiki/API.md, STATE.md | #1 | — |
+| 1 | authorizeBase + ListBases filter + genuine isolated units | be1 | internal/bases/*, backend/tests/bases/** | — | be-ver |
+| 2 | Python API denial cases по verified TC | qa-auto1 | testframework/tests/api/bases/** | #1 | qa-auto-ver |
+| 3 | Docs API.md | docs-writer или be1 | docs/wiki/API.md, STATE.md | #1 | — |
 
 ## Волны
 - Wave 1: #1 → sync → #2 (docs в той же сессии, rule 55)
@@ -138,6 +160,8 @@ disable-model-invocation: true
 - [ ] Нет задачи с двумя слоями (BE+FE, schema+код)
 - [ ] У каждой задачи — success criteria + verifier
 - [ ] Карта файлов внутри волны без пересечений
+- [ ] Один writer на ownership boundary; reviewers/verifiers read-only
+- [ ] Fan-out/depth/retry/remediation/time bounds заданы явно
 - [ ] Won't scope зафиксирован
 - [ ] Rule 56 и `/qa-gate` ownership прописаны
 - [ ] Нет depends-циклов
@@ -156,7 +180,10 @@ disable-model-invocation: true
 
 ## Связь
 
-- Upstream: `gsd-plan-phase`, `gsd-analyze-dependencies`
+- Upstream: `gsd-plan-phase`, `gsd-graphify`
+<!-- hub.qa-routing-declaration/v1
+{"schema_version":"hub.qa-routing-declaration/v1","scenario_id":"contract-openapi","assigned_skill":".cursor/skills/gsd-ru/phase-plan/SKILL.md","declared_routes":["testframework/src/hub_testkit/contract/openapi.py","testframework/tests/contract/api/test_openapi.py"],"expected_routes":["testframework/src/hub_testkit/contract/openapi.py","testframework/tests/contract/api/test_openapi.py"],"prohibited_legacy_tokens":["testframework/contract/**","testframework/core/**"]}
+-->
 - Hub: `tech-lead.md`, `team-workflow.md` §6, `team-lead.md` §5.2
 - Следующий skill: [wave-run](../wave-run/SKILL.md)
 - Индекс: [gsd-ru/README.md](../README.md)

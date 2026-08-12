@@ -3,11 +3,15 @@
  * Shows up to 3 calls: time left | name | "Войти" button.
  */
 import { Phone, PhoneOff } from "lucide-react";
-import type { CallSummary, PersonalData } from "@/api/dashboard";
+import type { CallSummary } from "@/api/dashboard";
+import {
+	type DashboardWidgetData,
+	isPersonalData,
+} from "@/components/dashboard/widget-data";
 import { useCallStore } from "@/stores/call-store";
 
 interface Props {
-	data?: unknown;
+	data?: DashboardWidgetData;
 }
 
 const GENERATED_ID_RE = /^(call-)?[0-9a-f]{8}-/i;
@@ -40,9 +44,9 @@ function formatCallTime(isoDate: string): string {
 }
 
 export function UpcomingCallsWidget({ data }: Props) {
-	const personalData = data as PersonalData | undefined;
+	const personalData = isPersonalData(data) ? data : undefined;
 	const calls = (personalData?.upcoming_calls ?? []).slice(0, 3);
-	const startCall = useCallStore((s) => s.startCall);
+	const joinCall = useCallStore((s) => s.joinCall);
 
 	if (calls.length === 0) {
 		return (
@@ -77,7 +81,7 @@ export function UpcomingCallsWidget({ data }: Props) {
 								: "border border-white/[0.10] text-t2 hover:text-white hover:border-white/20"
 						}`}
 						onClick={() => {
-							if (call.channel_id) void startCall(call.channel_id);
+							void joinCall(call.id);
 						}}
 					>
 						<span className="flex items-center gap-1">

@@ -4,18 +4,14 @@
  */
 
 import { createLazyFileRoute, useNavigate } from "@tanstack/react-router";
-import {
-	Bell,
-	CalendarPlus,
-	MessageSquarePlus,
-	Plus,
-	Search,
-} from "lucide-react";
-import { useEffect, useMemo } from "react";
+import { CalendarPlus, MessageSquarePlus, Plus, Search } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { personalDefault } from "@/components/dashboard/dashboard-templates";
 import { WidgetGrid } from "@/components/dashboard/widget-grid";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { RouteErrorBoundary } from "@/components/route-error-boundary";
 import { useAuthStore } from "@/stores/auth-store";
+import { useCommandStore } from "@/stores/command-store";
 import { useDashboardStore } from "@/stores/dashboard-store";
 
 /** Обёртка для изоляции рантайм-ошибок раздела «Главная» (FE-H4). */
@@ -67,24 +63,38 @@ function PersonalDashboard() {
 	const loading = useDashboardStore((s) => s.loading);
 	const error = useDashboardStore((s) => s.error);
 	const user = useAuthStore((s) => s.user);
+	const openCommand = useCommandStore((s) => s.setOpen);
 
 	const greeting = useMemo(() => getGreeting(), []);
 	const todayDate = useMemo(() => formatTodayDate(), []);
-	const currentTime = useMemo(() => formatTime(), []);
+	const [currentTime, setCurrentTime] = useState(() => formatTime());
+
+	useEffect(() => {
+		const id = window.setInterval(() => setCurrentTime(formatTime()), 30_000);
+		return () => window.clearInterval(id);
+	}, []);
+
 	const displayName =
 		user?.display_name || user?.name || user?.email?.split("@")[0] || "";
 
+	// A13-012: personal data + layout in parallel (was serial .then waterfall).
+	// A3W11-3-001: default только после успешного load; fail → error в store, без setLayout.
 	useEffect(() => {
-		fetchPersonal();
-		void loadLayout("personal").then(() => {
-			const current = useDashboardStore.getState().layouts.personal;
-			if (!current || current.length === 0) {
-				setLayout("personal", personalDefault);
-			}
-		});
+		void Promise.all([fetchPersonal(), loadLayout("personal")])
+			.then(() => {
+				const current = useDashboardStore.getState().layouts.personal;
+				if (!current || current.length === 0) {
+					setLayout("personal", personalDefault);
+				}
+			})
+			.catch(() => {
+				/* loadLayout уже выставил error; default не подставляем */
+			});
 	}, [fetchPersonal, loadLayout, setLayout]);
 
-	const items = personalItems ?? personalDefault;
+	const layoutLoadFailed =
+		Boolean(error) && personalItems === undefined && Boolean(personalData);
+	const items = personalItems ?? (layoutLoadFailed ? [] : personalDefault);
 
 	return (
 		<div className="flex flex-col h-full animate-fade-in">
@@ -96,16 +106,11 @@ function PersonalDashboard() {
 						type="button"
 						className="w-[34px] h-[34px] rounded-lg bg-transparent text-t2 hover:bg-white/[0.07] hover:text-white flex items-center justify-center transition-colors"
 						aria-label="Поиск"
+						onClick={() => openCommand(true)}
 					>
 						<Search className="h-4 w-4" />
 					</button>
-					<button
-						type="button"
-						className="w-[34px] h-[34px] rounded-lg bg-transparent text-t2 hover:bg-white/[0.07] hover:text-white flex items-center justify-center transition-colors"
-						title="Уведомления"
-					>
-						<Bell className="h-4 w-4" />
-					</button>
+					<NotificationBell />
 					<button
 						type="button"
 						className="btn-glow bg-gradient-to-br from-blue-500 to-blue-600 text-white text-[13px] font-medium px-3 py-1.5 rounded-lg flex items-center gap-1.5"
@@ -185,6 +190,7 @@ function PersonalDashboard() {
 					<button
 						type="button"
 						className="dash-qa-btn flex items-center gap-2.5 px-[18px] py-[11px] rounded-[var(--r3)] text-[13px] font-semibold text-[var(--t2)] cursor-pointer transition-colors"
+						onClick={() => openCommand(true)}
 					>
 						<div
 							className="w-[34px] h-[34px] rounded-[var(--r2)] flex items-center justify-center"
@@ -218,12 +224,41 @@ function PersonalDashboard() {
 						))}
 					</div>
 				) : error && !personalData ? (
-					<div className="flex flex-col items-center justify-center py-20 gap-3 text-t2 dash-enter dash-enter-3">
+					<div
+						role="alert"
+						className="flex flex-col items-center justify-center py-20 gap-3 text-t2 dash-enter dash-enter-3"
+					>
 						<p className="text-sm font-medium">{error}</p>
 						<button
 							type="button"
 							className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
-							onClick={() => fetchPersonal()}
+							onClick={() => void fetchPersonal()}
+						>
+							Попробовать снова
+						</button>
+					</div>
+				) : layoutLoadFailed ? (
+					<div
+						role="alert"
+						className="flex flex-col items-center justify-center py-20 gap-3 text-t2 dash-enter dash-enter-3"
+					>
+						<p className="text-sm font-medium">{error}</p>
+						<button
+							type="button"
+							className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+							onClick={() => {
+								void loadLayout("personal")
+									.then(() => {
+										const current =
+											useDashboardStore.getState().layouts.personal;
+										if (!current || current.length === 0) {
+											setLayout("personal", personalDefault);
+										}
+									})
+									.catch(() => {
+										/* error уже в store */
+									});
+							}}
 						>
 							Попробовать снова
 						</button>
@@ -232,7 +267,7 @@ function PersonalDashboard() {
 					<WidgetGrid
 						items={items}
 						dashboardType="personal"
-						data={personalData}
+						data={personalData ?? undefined}
 					/>
 				)}
 			</div>

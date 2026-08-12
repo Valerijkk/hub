@@ -11,8 +11,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
-	"github.com/valerii/hub/backend/ent/recording"
-	"github.com/valerii/hub/backend/ent/systemsetting"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -33,24 +31,30 @@ const (
 // RetentionService выполняет очистку устаревших данных
 // в соответствии с настраиваемыми периодами хранения.
 //
+// A2W6-A4-004: сервис не хранит *ent.Client — Postgres через RetentionStore.
+//
 // BE-H7: при удалении записей звонков сервис также удаляет соответствующие
 // .mp4-объекты из S3 (через s3Client/s3Bucket). Раньше row в Postgres
 // удалялся, а recording.mp4 оставался в SeaweedFS, что приводило к
 // неограниченному росту storage и нарушало политику хранения.
 type RetentionService struct {
-	db       *ent.Client
+	store    RetentionStore
 	mongoDB  *mongo.Database
 	s3Client *s3.Client
 	s3Bucket string
 }
 
-// NewRetentionService создаёт новый сервис политик хранения данных.
-// s3Client/s3Bucket могут быть nil/"" — тогда S3-объекты записей звонков
-// не удаляются (логируется WARN). Это поведение fail-soft на случай
-// development-окружения без SeaweedFS.
+// NewRetentionService создаёт сервис политик хранения.
+// A2W6-A4-004: *ent.Client оборачивается в RetentionStore; в структуре сервиса
+// клиента нет. mongoDB/s3 могут быть nil.
 func NewRetentionService(db *ent.Client, mongoDB *mongo.Database, s3Client *s3.Client, s3Bucket string) *RetentionService {
+	return NewRetentionServiceWithStore(NewEntRetentionStore(db), mongoDB, s3Client, s3Bucket)
+}
+
+// NewRetentionServiceWithStore — DI с явным RetentionStore (тесты/моки).
+func NewRetentionServiceWithStore(store RetentionStore, mongoDB *mongo.Database, s3Client *s3.Client, s3Bucket string) *RetentionService {
 	return &RetentionService{
-		db:       db,
+		store:    store,
 		mongoDB:  mongoDB,
 		s3Client: s3Client,
 		s3Bucket: s3Bucket,
@@ -129,13 +133,11 @@ func (s *RetentionService) RunRetentionCleanup(ctx context.Context) error {
 
 // getRetentionDays читает настраиваемый период хранения из SystemSetting.
 func (s *RetentionService) getRetentionDays(ctx context.Context, key string, defaultVal int) int {
-	setting, err := s.db.SystemSetting.Query().
-		Where(systemsetting.KeyEQ(key)).
-		Only(ctx)
-	if err != nil {
+	value, err := s.store.GetSystemSetting(ctx, key)
+	if err != nil || value == "" {
 		return defaultVal
 	}
-	val, err := strconv.Atoi(setting.Value)
+	val, err := strconv.Atoi(value)
 	if err != nil || val <= 0 {
 		return defaultVal
 	}
@@ -197,9 +199,7 @@ func (s *RetentionService) purgeOldCallRecordings(ctx context.Context, days int)
 
 	// Если S3 не настроен — fallback на старое поведение (только метаданные).
 	if s.s3Client == nil || s.s3Bucket == "" {
-		n, err := s.db.Recording.Delete().
-			Where(recording.CreatedAtLT(cutoff)).
-			Exec(ctx)
+		n, err := s.store.DeleteRecordingsBefore(ctx, cutoff)
 		if err != nil {
 			return err
 		}
@@ -211,9 +211,7 @@ func (s *RetentionService) purgeOldCallRecordings(ctx context.Context, days int)
 	}
 
 	// Получаем список истёкших записей, чтобы знать ключи S3-объектов.
-	expired, err := s.db.Recording.Query().
-		Where(recording.CreatedAtLT(cutoff)).
-		All(ctx)
+	expired, err := s.store.ListExpiredRecordings(ctx, cutoff)
 	if err != nil {
 		return fmt.Errorf("получение списка истёкших записей: %w", err)
 	}
@@ -251,9 +249,7 @@ func (s *RetentionService) purgeOldCallRecordings(ctx context.Context, days int)
 		return nil
 	}
 
-	n, err := s.db.Recording.Delete().
-		Where(recording.IDIn(ids...)).
-		Exec(ctx)
+	n, err := s.store.DeleteRecordingsByIDs(ctx, ids)
 	if err != nil {
 		return err
 	}

@@ -46,7 +46,10 @@ func wireAuditMailAI(d *serverDeps) {
 	mailStore := mailmod.NewEntSettingsStore(d.db)
 	mailAdminSvc := mailmod.NewAdminService(mailStore, hubMailURL, fromAlerts, cfg.Resend.APIKey != "")
 	mailSender := mailmod.NewService(mailmod.LoadConfig())
-	mailAdminHandler := mailmod.NewAdminHandler(mailAdminSvc, d.db, mailSender, func(c fiber.Ctx, userID uuid.UUID) (bool, error) {
+	mailSender.SetSettingsStore(mailStore) // W7-A1-003: admin daily_limit / alerts_enabled → SendAlert
+	// A3W7-1-001: shared DailyLimit across Hub replicas (Redis INCR+TTL → UTC midnight).
+	mailSender.SetDailySlotStore(mailmod.NewRedisDailySlotStore(d.rdb))
+	mailAdminHandler := mailmod.NewAdminHandler(mailAdminSvc, mailStore, mailSender, func(c fiber.Ctx, userID uuid.UUID) (bool, error) {
 		return d.auditSvc.IsSystemAdmin(c.Context(), userID)
 	})
 	mailAdminHandler.RegisterRoutes(api, requireAuth)
@@ -64,12 +67,13 @@ func wireAuditMailAI(d *serverDeps) {
 	})
 	aiRateLimit := middleware.RateLimitByUser(d.rootCtx, middleware.AIRateLimit)
 	aiHandler.RegisterRoutes(api, requireAuth, aiRateLimit)
-	aiAdminHandler.RegisterRoutes(api, requireAuth)
-	aimod.NewUserHandler(aiSvc).RegisterRoutes(api, requireAuth)
+	// A2W5-A1-002 / TASK-085: AIRateLimit также на admin TestProvider и /ai/my (BYOK).
+	aiAdminHandler.RegisterRoutes(api, requireAuth, aiRateLimit)
+	aimod.NewUserHandler(aiSvc).RegisterRoutes(api, requireAuth, aiRateLimit)
 	d.aiSvc = aiSvc
 	d.aiHandler = aiHandler
 
-	botUserID, err := aimod.EnsureBotUser(d.ctx, d.db)
+	botUserID, err := aimod.EnsureBotUser(d.ctx, aimod.NewEntBotUserRepository(d.db))
 	if err != nil {
 		slog.Error("failed to ensure @hub-ai bot user", "error", err)
 		os.Exit(1)
@@ -78,7 +82,9 @@ func wireAuditMailAI(d *serverDeps) {
 	d.messengerSvc.SetSystemBotID(botUserID)
 	aiHandler.SetBotUserID(botUserID)
 	aiBot := aimod.NewMessengerBot(aiSvc, d.messengerSvc, botUserID)
-	aiBot.SetIssueLookup(aimod.NewTrackerIssueLookup(d.trackerSvc))
+	issueLookup := aimod.NewTrackerIssueLookup(d.trackerSvc, d.projectRepo)
+	issueLookup.SetAccessChecker(aimod.RBACProjectAccess{Svc: d.rbacSvc})
+	aiBot.SetIssueLookup(issueLookup)
 	aiBot.SetDocSearch(aimod.NewSearchDocProvider(d.searchSvc))
 	d.messengerSvc.SetMessageSentHook(aiBot)
 	d.aiBot = aiBot

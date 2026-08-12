@@ -33,9 +33,7 @@ func TestGetProject_ReturnsMyRole(t *testing.T) {
 	require.NoError(t, err)
 	projectID, err := uuid.Parse(created.ID)
 	require.NoError(t, err)
-
-	_, err = repo.AddMember(ctx, projectID, ownerID, projectmember.ProjectRoleOwner)
-	require.NoError(t, err)
+	_ = repo // Create уже добавляет owner (зеркало EntRepository)
 
 	got, err := svc.GetProject(ctx, projectID, ownerID)
 	require.NoError(t, err)
@@ -57,7 +55,7 @@ func TestUpdateProject_Success(t *testing.T) {
 	newDesc := "updated"
 	updated, err := svc.UpdateProject(ctx, projectID, project.UpdateProjectRequest{
 		Name:        &newName,
-		Description: &newDesc,
+		Description: &newDesc, Version: 1,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "New Name", updated.Name)
@@ -144,7 +142,7 @@ func TestAddMember_InvalidatesCache(t *testing.T) {
 	_, err = svc.AddMember(ctx, projectID, memberID, "developer")
 	require.NoError(t, err)
 	assert.Contains(t, cache.invalidated, projectID.String())
-	assert.Len(t, repo.members[projectID], 1)
+	assert.Len(t, repo.members[projectID], 2) // owner (Create) + developer
 }
 
 // TestAddMember_Duplicate проверяет сценарий: add участник duplicate.
@@ -279,9 +277,11 @@ func TestToInviteResponse(t *testing.T) {
 // TestCreateTeam проверяет сценарий: создание team.
 func TestCreateTeam(t *testing.T) {
 	svc, _, _ := newTestService()
-	team, err := svc.CreateTeam(context.Background(), "Platform", "infra team")
+	creatorID := uuid.New()
+	team, err := svc.CreateTeam(context.Background(), creatorID, "Platform", "infra team")
 	require.NoError(t, err)
 	assert.Equal(t, "Platform", team.Name)
+	assert.Equal(t, 1, team.MemberCount)
 }
 
 // TestListTeams_AndMembers проверяет сценарий: список teams and members.
@@ -289,17 +289,19 @@ func TestListTeams_AndMembers(t *testing.T) {
 	svc, _, _ := newTestService()
 	ctx := context.Background()
 
-	team, err := svc.CreateTeam(ctx, "QA", "quality")
+	creatorID := uuid.New()
+	team, err := svc.CreateTeam(ctx, creatorID, "QA", "quality")
 	require.NoError(t, err)
 	teamID, err := uuid.Parse(team.ID)
 	require.NoError(t, err)
 
 	userID := uuid.New()
-	require.NoError(t, svc.AddTeamMember(ctx, teamID, userID))
+	require.NoError(t, svc.AddTeamMember(ctx, teamID, creatorID, userID))
 
-	teams, err := svc.ListTeams(ctx)
+	teams, err := svc.ListTeams(ctx, creatorID)
 	require.NoError(t, err)
-	assert.Empty(t, teams) // mock ListTeams returns nil — service path still exercised
+	require.Len(t, teams, 1)
+	assert.Equal(t, "QA", teams[0].Name)
 }
 
 // TestListTrash_ShowsDeletedProjects проверяет сценарий: список корзина shows deleted projects.
@@ -336,7 +338,8 @@ func TestRemoveMember_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NoError(t, svc.RemoveMember(ctx, projectID, memberID))
-	assert.Empty(t, repo.members[projectID])
+	require.Len(t, repo.members[projectID], 1) // остаётся owner из Create
+	assert.Equal(t, projectmember.ProjectRoleOwner, repo.members[projectID][0].ProjectRole)
 	assert.Contains(t, cache.invalidated, projectID.String())
 }
 
@@ -357,15 +360,21 @@ func TestListMembers_ReturnsAll(t *testing.T) {
 
 	members, err := svc.ListMembers(ctx, projectID)
 	require.NoError(t, err)
-	assert.Len(t, members, 1)
-	assert.Equal(t, "tester", members[0].Role)
+	require.Len(t, members, 2) // owner + tester
+	roles := map[string]bool{}
+	for _, m := range members {
+		roles[m.Role] = true
+	}
+	assert.True(t, roles["owner"])
+	assert.True(t, roles["tester"])
 }
 
 // TestUpdateProject_NotFound проверяет сценарий: обновление project not found.
 func TestUpdateProject_NotFound(t *testing.T) {
 	svc, _, _ := newTestService()
 	name := "nope"
-	_, err := svc.UpdateProject(context.Background(), uuid.New(), project.UpdateProjectRequest{Name: &name})
+	_, err := svc.UpdateProject(context.Background(), uuid.New(), project.UpdateProjectRequest{Name: &name, Version: 1,
+	})
 	require.Error(t, err)
 }
 

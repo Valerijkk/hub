@@ -14,7 +14,7 @@ func TestSearch_NoProjectMemberships_ReturnsEmpty(t *testing.T) {
 	svc := search.NewSearchService(&mockSearchRepo{}, db, nil)
 	userID := uuid.New()
 
-	results, err := svc.Search(context.Background(), "login", userID, nil, 10)
+	results, _, err := svc.Search(context.Background(), "login", userID, nil, 10)
 	require.NoError(t, err)
 	assert.Empty(t, results)
 }
@@ -30,9 +30,10 @@ func TestSearch_TypeFilterIssueOnly(t *testing.T) {
 	require.NoError(t, err)
 
 	svc := search.NewSearchService(&mockSearchRepo{}, db, nil)
-	results, err := svc.Search(context.Background(), "bug", userID, []string{"issue"}, 5)
-	require.NoError(t, err)
-	assert.Empty(t, results)
+	// A2W5-A4-003: issue-only на sqlite без таблицы → total outage.
+	_, _, err = svc.Search(context.Background(), "bug", userID, []string{"issue"}, 5)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, search.ErrSearchUnavailable)
 }
 
 func TestSearch_LimitClampedToDefault(t *testing.T) {
@@ -40,9 +41,10 @@ func TestSearch_LimitClampedToDefault(t *testing.T) {
 	svc := search.NewSearchService(&mockSearchRepo{}, db, nil)
 	userID := uuid.New()
 
-	results, err := svc.Search(context.Background(), "x", userID, []string{"user"}, 0)
-	require.NoError(t, err)
-	assert.Empty(t, results)
+	// Limit 0 → default; user shard на sqlite → hard error (A2W5-A4-003), не empty success.
+	_, _, err := svc.Search(context.Background(), "x", userID, []string{"user"}, 0)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, search.ErrSearchUnavailable)
 }
 
 func TestSearch_MessageTypeWithoutMongo(t *testing.T) {
@@ -56,7 +58,7 @@ func TestSearch_MessageTypeWithoutMongo(t *testing.T) {
 	require.NoError(t, err)
 
 	svc := search.NewSearchService(&mockSearchRepo{}, db, nil)
-	results, err := svc.Search(context.Background(), "hello", userID, []string{"message"}, 10)
+	results, _, err := svc.Search(context.Background(), "hello", userID, []string{"message"}, 10)
 	require.NoError(t, err)
 	assert.Empty(t, results)
 }
@@ -65,6 +67,6 @@ func TestSearch_ProjectIDsLookupError(t *testing.T) {
 	db := newScopeTestDB(t)
 	_ = db.Close()
 	svc := search.NewSearchService(&mockSearchRepo{}, db, nil)
-	_, err := svc.Search(context.Background(), "q", uuid.New(), nil, 10)
+	_, _, err := svc.Search(context.Background(), "q", uuid.New(), nil, 10)
 	require.Error(t, err)
 }

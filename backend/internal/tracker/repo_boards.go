@@ -14,6 +14,10 @@ import (
 	"github.com/valerii/hub/backend/ent/workflowstatus"
 )
 
+// MaxBoardIssuesPerColumn — A13-001: hard cap задач на колонку Kanban.
+// Без лимита GetBoardData тянет весь проект в память на hot path.
+const MaxBoardIssuesPerColumn = 200
+
 // ---------------------------------------------------------------------------
 // Доски
 // ---------------------------------------------------------------------------
@@ -31,27 +35,43 @@ func (r *EntRepository) CreateBoard(ctx context.Context, projectID uuid.UUID, na
 	return create.Save(ctx)
 }
 
-// ListBoards возвращает все доски проекта.
+// ListBoards возвращает активные доски проекта (A2W8-1-004: deleted_at IS NULL).
 func (r *EntRepository) ListBoards(ctx context.Context, projectID uuid.UUID) ([]*ent.Board, error) {
 	return r.client.Board.Query().
-		Where(board.HasProjectWith(project.IDEQ(projectID))).
+		Where(
+			board.HasProjectWith(project.IDEQ(projectID)),
+			board.DeletedAtIsNil(),
+		).
 		All(ctx)
 }
 
 // GetBoardData возвращает доску по ID для рендеринга (доска + данные).
+// Board F: boardID scoped to projectID — чужая доска → NotFound (IDOR).
 // Применяет сохранённые фильтры доски (assignee_id, issue_type, label_ids, priority)
 // к запросу задач, чтобы вернуть только релевантные задачи.
-func (r *EntRepository) GetBoardData(ctx context.Context, boardID uuid.UUID) (*ent.Board, error) {
-	// Загружаем доску отдельно для доступа к фильтрам.
-	b, err := r.client.Board.Get(ctx, boardID)
+func (r *EntRepository) GetBoardData(ctx context.Context, projectID, boardID uuid.UUID) (*ent.Board, error) {
+	// Загружаем доску отдельно для доступа к фильтрам — только в рамках проекта.
+	b, err := r.client.Board.Query().
+		Where(
+			board.IDEQ(boardID),
+			board.HasProjectWith(project.IDEQ(projectID)),
+			board.DeletedAtIsNil(),
+		).
+		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("загрузка доски: %w", err)
 	}
 
 	return r.client.Board.Query().
-		Where(board.IDEQ(boardID)).
+		Where(
+			board.IDEQ(boardID),
+			board.HasProjectWith(project.IDEQ(projectID)),
+			board.DeletedAtIsNil(),
+		).
 		WithProject(func(q *ent.ProjectQuery) {
 			q.WithWorkflowStatuses(func(sq *ent.WorkflowStatusQuery) {
+				// AUDIT-TM-002: не поднимать soft-deleted колонки на Kanban.
+				sq.Where(workflowstatus.DeletedAtIsNil())
 				sq.Order(ent.Asc(workflowstatus.FieldSortOrder))
 				sq.WithIssues(func(iq *ent.IssueQuery) {
 					iq.Where(issue.DeletedAtIsNil())
@@ -59,6 +79,7 @@ func (r *EntRepository) GetBoardData(ctx context.Context, boardID uuid.UUID) (*e
 					iq.WithAssignee()
 					iq.WithLabels()
 					iq.Order(ent.Asc(issue.FieldRank))
+					iq.Limit(MaxBoardIssuesPerColumn)
 				})
 			})
 		}).

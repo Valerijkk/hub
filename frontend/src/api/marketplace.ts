@@ -59,17 +59,21 @@ export function listMarketplaceListings(
 		per_page: String(perPage),
 	});
 	if (category) params.set("category", category);
-	return api.get(`/marketplace/listings?${params}`);
+	return api.get<{ items: MarketplaceListing[]; total: number }>(
+		`/marketplace/listings?${params}`,
+	);
 }
 
 export function listMyListings(): Promise<{ items: MarketplaceListing[] }> {
-	return api.get("/marketplace/listings/mine");
+	return api.get<{ items: MarketplaceListing[] }>("/marketplace/listings/mine");
 }
 
 export function listPendingListings(): Promise<{
 	items: MarketplaceListing[];
 }> {
-	return api.get("/marketplace/listings/pending");
+	return api.get<{ items: MarketplaceListing[] }>(
+		"/marketplace/listings/pending",
+	);
 }
 
 export function createListing(data: {
@@ -79,14 +83,34 @@ export function createListing(data: {
 	price_cents?: number;
 	currency?: string;
 }): Promise<MarketplaceListing> {
-	return api.post("/marketplace/listings", data);
+	return api.post<MarketplaceListing>("/marketplace/listings", data);
+}
+
+export function updateListing(
+	id: string,
+	data: {
+		title?: string;
+		description?: string;
+		category?: ListingCategory;
+		price_cents?: number;
+		currency?: string;
+		version: number;
+	},
+): Promise<MarketplaceListing> {
+	return api.put<MarketplaceListing>(`/marketplace/listings/${id}`, data);
+}
+
+export function deleteListing(id: string): Promise<void> {
+	return api.delete(`/marketplace/listings/${id}`);
 }
 
 export function approveListing(
 	id: string,
 	version: number,
 ): Promise<MarketplaceListing> {
-	return api.post(`/marketplace/listings/${id}/approve`, { version });
+	return api.post<MarketplaceListing>(`/marketplace/listings/${id}/approve`, {
+		version,
+	});
 }
 
 export function rejectListing(
@@ -94,7 +118,7 @@ export function rejectListing(
 	version: number,
 	review_note?: string,
 ): Promise<MarketplaceListing> {
-	return api.post(`/marketplace/listings/${id}/reject`, {
+	return api.post<MarketplaceListing>(`/marketplace/listings/${id}/reject`, {
 		version,
 		review_note,
 	});
@@ -104,14 +128,18 @@ export function markListingSold(
 	id: string,
 	version: number,
 ): Promise<MarketplaceListing> {
-	return api.post(`/marketplace/listings/${id}/sold`, { version });
+	return api.post<MarketplaceListing>(`/marketplace/listings/${id}/sold`, {
+		version,
+	});
 }
 
 export function withdrawListing(
 	id: string,
 	version: number,
 ): Promise<MarketplaceListing> {
-	return api.post(`/marketplace/listings/${id}/withdraw`, { version });
+	return api.post<MarketplaceListing>(`/marketplace/listings/${id}/withdraw`, {
+		version,
+	});
 }
 
 export function formatListingPrice(

@@ -58,7 +58,7 @@ func TestUserHandler_ProviderCRUD(t *testing.T) {
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&created))
 
 	enabled := false
-	patch, _ := json.Marshal(ai.UpdateProviderRequest{Enabled: &enabled})
+	patch, _ := json.Marshal(ai.UpdateProviderRequest{Enabled: &enabled, Version: created.Version})
 	req = httptest.NewRequest(http.MethodPatch, "/api/ai/my/providers/"+created.ID, bytes.NewReader(patch))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err = app.Test(req)

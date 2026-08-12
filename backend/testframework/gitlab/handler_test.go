@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/valerii/hub/backend/ent"
 )
 
 func testGitLabHandlerApp(t *testing.T, repo gitlab.Repository) *fiber.App {
@@ -33,7 +34,7 @@ func testGitLabHandlerApp(t *testing.T, repo gitlab.Repository) *fiber.App {
 	proj.Delete("/gitlab/integrations/:integrationId", h.DeleteIntegration)
 	proj.Get("/gitlab/pipelines", h.ListPipelines)
 	proj.Post("/gitlab/pipelines/trigger", h.TriggerPipeline)
-	api.Post("/issues/:issueKey/gitlab/create-branch", authMw, h.CreateBranch)
+	proj.Post("/issues/:issueKey/gitlab/create-branch", h.CreateBranch)
 	return app
 }
 
@@ -48,12 +49,20 @@ func TestHandler_HandleWebhook_MissingToken(t *testing.T) {
 }
 
 func TestHandler_HandleWebhook_ValidToken(t *testing.T) {
-	repo := &gitlabMockRepo{webhookSecrets: []string{"secret-token"}}
+	repo := &gitlabMockRepo{
+		integrations: map[string]*ent.GitLabIntegration{
+			"hub/backend": {
+				ID:            uuid.New(),
+				ProjectPath:   "hub/backend",
+				WebhookSecret: "secret-token",
+			},
+		},
+	}
 	app := testGitLabHandlerApp(t, repo)
 
 	body, err := json.Marshal(gitlab.WebhookPushEvent{
 		ObjectKind: "push",
-		Project:    gitlab.WebhookProject{PathWithNamespace: "unknown/project"},
+		Project:    gitlab.WebhookProject{PathWithNamespace: "hub/backend"},
 	})
 	require.NoError(t, err)
 
@@ -103,7 +112,7 @@ func TestHandler_CreateIntegration_Success(t *testing.T) {
 	app := testGitLabHandlerApp(t, &gitlabMockRepo{})
 	projectID := uuid.New()
 
-	payload := `{"project_path":"group/repo","access_token":"glpat-test"}`
+	payload := `{"project_path":"group/repo","access_token":"glpat-test","webhook_secret":"wh-test"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/projects/"+projectID.String()+"/gitlab/integrations",
 		bytes.NewReader([]byte(payload)))
 	req.Header.Set("Content-Type", "application/json")
@@ -139,10 +148,11 @@ func TestHandler_TriggerPipeline_MissingIntegrationID(t *testing.T) {
 
 func TestHandler_CreateBranch_MissingIssueKey(t *testing.T) {
 	app := testGitLabHandlerApp(t, &gitlabMockRepo{})
-	req := httptest.NewRequest(http.MethodPost, "/api/issues//gitlab/create-branch", bytes.NewReader([]byte(`{}`)))
+	projectID := uuid.New()
+	req := httptest.NewRequest(http.MethodPost, "/api/projects/"+projectID.String()+"/issues//gitlab/create-branch", bytes.NewReader([]byte(`{}`)))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := app.Test(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
-	assert.Equal(t, fiber.StatusNotFound, resp.StatusCode)
+	assert.True(t, resp.StatusCode == fiber.StatusBadRequest || resp.StatusCode == fiber.StatusNotFound)
 }

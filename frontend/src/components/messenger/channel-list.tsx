@@ -1,7 +1,8 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useMatchRoute } from "@tanstack/react-router";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { Search } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { Channel, PresenceStatus } from "@/api/messenger";
 import {
 	deleteChannel,
@@ -36,6 +37,11 @@ import { PresenceIndicator } from "./presence-indicator";
 // Типы и константы
 // ---------------------------------------------------------------------------
 
+/** A13-018: virtualize when channel rows exceed this (headers count too). */
+const CHANNEL_VIRTUALIZE_THRESHOLD = 40;
+const CHANNEL_ROW_ESTIMATE = 52;
+const CHANNEL_HEADER_ESTIMATE = 28;
+
 /** Варианты длительности мьюта канала. */
 const MUTE_OPTIONS = [
 	{ duration: "1h" as const, label: "1 час" },
@@ -44,6 +50,10 @@ const MUTE_OPTIONS = [
 	{ duration: "1d" as const, label: "1 день" },
 	{ duration: "forever" as const, label: "Навсегда" },
 ] as const;
+
+type ChannelListRow =
+	| { kind: "header"; id: string; label: string }
+	| { kind: "channel"; id: string; channel: Channel };
 
 // ---------------------------------------------------------------------------
 // Утилиты
@@ -74,6 +84,27 @@ function groupChannels(channels: Channel[]) {
 	return groups;
 }
 
+/** Flat rows for virtualization (section headers + channels). */
+function buildChannelRows(
+	starred: Channel[],
+	grouped: [string, { label: string; channels: Channel[] }][],
+): ChannelListRow[] {
+	const rows: ChannelListRow[] = [];
+	if (starred.length > 0) {
+		rows.push({ kind: "header", id: "hdr-starred", label: "Закреплённые" });
+		for (const ch of starred) {
+			rows.push({ kind: "channel", id: ch.id, channel: ch });
+		}
+	}
+	for (const [type, group] of grouped) {
+		rows.push({ kind: "header", id: `hdr-${type}`, label: group.label });
+		for (const ch of group.channels) {
+			rows.push({ kind: "channel", id: ch.id, channel: ch });
+		}
+	}
+	return rows;
+}
+
 /** Проверяет, замьючен ли канал (muted_until в будущем). */
 function isChannelMuted(channel: Channel): boolean {
 	if (!channel.muted_until) return false;
@@ -93,6 +124,7 @@ function BookmarksButton() {
 				type="button"
 				className="w-[34px] h-[34px] flex items-center justify-center rounded-[var(--r2)] text-[var(--t3)] hover:bg-[var(--hover)] hover:text-[var(--t2)] hover:scale-[1.08] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity]"
 				title="Закладки"
+				aria-label="Закладки"
 				onClick={() => setOpen(true)}
 			>
 				<svg
@@ -149,6 +181,7 @@ function ChannelSection({
 	children: React.ReactNode;
 }) {
 	const [collapsed, setCollapsed] = useState(false);
+	const panelId = `channel-section-panel-${type}`;
 
 	return (
 		<div>
@@ -156,6 +189,8 @@ function ChannelSection({
 				<button
 					type="button"
 					className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--t4)] hover:text-[var(--t3)] transition-colors"
+					aria-expanded={!collapsed}
+					aria-controls={panelId}
 					onClick={() => setCollapsed(!collapsed)}
 				>
 					<svg
@@ -181,7 +216,137 @@ function ChannelSection({
 					<SectionAddButton type={type} />
 				</div>
 			</div>
-			{!collapsed && <div className="space-y-px">{children}</div>}
+			<div id={panelId} hidden={collapsed} className="space-y-px">
+				{children}
+			</div>
+		</div>
+	);
+}
+
+/**
+ * A13-018: scrollable channel rows — virtualize when list is long.
+ * Isolated component so useVirtualizer is always called (Rules of Hooks).
+ */
+function ChannelRowsScroll({
+	rows,
+	empty,
+	renderChannel,
+}: {
+	rows: ChannelListRow[];
+	empty: boolean;
+	renderChannel: (channel: Channel) => React.ReactNode;
+}) {
+	const parentRef = useRef<HTMLDivElement>(null);
+	const useVirtual = rows.length >= CHANNEL_VIRTUALIZE_THRESHOLD;
+
+	const virtualizer = useVirtualizer({
+		count: useVirtual ? rows.length : 0,
+		getScrollElement: () => parentRef.current,
+		estimateSize: (index) =>
+			rows[index]?.kind === "header"
+				? CHANNEL_HEADER_ESTIMATE
+				: CHANNEL_ROW_ESTIMATE,
+		overscan: 8,
+	});
+
+	const renderRow = (row: ChannelListRow) => {
+		if (row.kind === "header") {
+			return (
+				<div
+					key={row.id}
+					className="px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--t4)]"
+				>
+					{row.label}
+				</div>
+			);
+		}
+		return renderChannel(row.channel);
+	};
+
+	return (
+		<div ref={parentRef} className="flex-1 overflow-y-auto">
+			<div className="py-1">
+				{useVirtual ? (
+					<div
+						className="relative w-full"
+						style={{ height: `${virtualizer.getTotalSize()}px` }}
+					>
+						{virtualizer.getVirtualItems().map((vRow) => {
+							const row = rows[vRow.index];
+							if (!row) return null;
+							return (
+								<div
+									key={row.id}
+									data-index={vRow.index}
+									ref={virtualizer.measureElement}
+									className="absolute left-0 top-0 w-full"
+									style={{ transform: `translateY(${vRow.start}px)` }}
+								>
+									{renderRow(row)}
+								</div>
+							);
+						})}
+					</div>
+				) : (
+					<div className="space-y-2">
+						{(() => {
+							const sections: {
+								type: string;
+								label: string;
+								channels: Channel[];
+							}[] = [];
+							let current: {
+								type: string;
+								label: string;
+								channels: Channel[];
+							} | null = null;
+							for (const row of rows) {
+								if (row.kind === "header") {
+									current = {
+										type: row.id.replace(/^hdr-/, ""),
+										label: row.label,
+										channels: [],
+									};
+									sections.push(current);
+								} else if (current) {
+									current.channels.push(row.channel);
+								}
+							}
+							return sections.map((sec) => (
+								<ChannelSection
+									key={sec.type}
+									type={sec.type}
+									label={sec.label}
+								>
+									{sec.channels.map((ch) => renderChannel(ch))}
+								</ChannelSection>
+							));
+						})()}
+					</div>
+				)}
+
+				{empty && (
+					<div className="flex flex-col items-center justify-center py-12 px-4">
+						<svg
+							aria-hidden="true"
+							className="mb-3 h-10 w-10 text-sidebar-foreground/20"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							strokeWidth={1}
+						>
+							<path
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+							/>
+						</svg>
+						<p className="text-xs text-sidebar-foreground/40 text-center">
+							Нет каналов
+						</p>
+					</div>
+				)}
+			</div>
 		</div>
 	);
 }
@@ -193,7 +358,7 @@ function StarIcon({ filled }: { filled: boolean }) {
 			aria-hidden="true"
 			className={cn(
 				"h-3.5 w-3.5",
-				filled ? "text-yellow-400" : "text-sidebar-foreground/40",
+				filled ? "text-[var(--amber)]" : "text-sidebar-foreground/40",
 			)}
 			fill={filled ? "currentColor" : "none"}
 			viewBox="0 0 24 24"
@@ -347,6 +512,7 @@ function ChannelItem({
 	isActive,
 	unread,
 	getStatus,
+	presenceUnavailable,
 	getDmPartnerId,
 	onSelect,
 }: {
@@ -354,6 +520,7 @@ function ChannelItem({
 	isActive: boolean;
 	unread: number;
 	getStatus: (userId: string) => PresenceStatus;
+	presenceUnavailable?: boolean;
 	getDmPartnerId: (ch: Channel) => string | undefined;
 	onSelect?: () => void;
 }) {
@@ -391,7 +558,7 @@ function ChannelItem({
 				params={{ channelId: channel.id }}
 				className={cn(
 					"group/item flex items-center gap-[11px] py-2.5 px-3.5 cursor-pointer transition-colors border-l-2 border-transparent",
-					isActive && "bg-[rgba(52,211,153,.04)] border-l-[var(--green)]",
+					isActive && "bg-[var(--gG)] border-l-[var(--green)]",
 					!isActive && "hover:bg-[var(--hover)]",
 				)}
 				onClick={onSelect}
@@ -402,7 +569,11 @@ function ChannelItem({
 					<ChannelIcon type={channel.channel_type} />
 					{channel.channel_type === "dm" && partnerId && (
 						<span className="absolute bottom-0 right-0 w-[9px] h-[9px] rounded-full border-2 border-[var(--void)]">
-							<PresenceIndicator status={getStatus(partnerId)} size="sm" />
+							<PresenceIndicator
+								status={getStatus(partnerId)}
+								unavailable={presenceUnavailable}
+								size="sm"
+							/>
 						</span>
 					)}
 				</div>
@@ -424,9 +595,14 @@ function ChannelItem({
 					</div>
 				</div>
 
-				{/* Индикатор mute */}
+				{/* Индикатор mute — title + aria-label (A10-013, как Bookmarks/CreateChannel) */}
 				{muted && (
-					<span className="shrink-0" title="Канал замьючен">
+					<span
+						className="shrink-0"
+						title="Канал замьючен"
+						aria-label="Канал замьючен"
+						role="img"
+					>
 						<MutedIcon />
 					</span>
 				)}
@@ -440,7 +616,9 @@ function ChannelItem({
 							? "opacity-100"
 							: "opacity-0 group-hover/item:opacity-100",
 					)}
-					title={channel.is_starred ? "Убрать из закреплённых" : "Закрепить"}
+					title={
+						channel.is_starred ? "Убрать из закреплённых" : "Закрепить канал"
+					}
 					aria-label={
 						channel.is_starred ? "Убрать из закреплённых" : "Закрепить канал"
 					}
@@ -490,7 +668,7 @@ interface ChannelListProps {
 }
 
 export function ChannelList({ onChannelSelect }: ChannelListProps = {}) {
-	const { data: channels, isLoading } = useChannels();
+	const { data: channels, isLoading, isError, refetch } = useChannels();
 	useUnread();
 	const unreadCounts = useMessengerStore((s) => s.unreadCounts);
 	const matchRoute = useMatchRoute();
@@ -498,7 +676,7 @@ export function ChannelList({ onChannelSelect }: ChannelListProps = {}) {
 
 	// Presence для DM недоступен — ChannelResponse не содержит members.
 	const dmUserIds: string[] = [];
-	const { getStatus } = usePresence(dmUserIds);
+	const { getStatus, isError: presenceError } = usePresence(dmUserIds);
 
 	const allChannels = channels ?? [];
 
@@ -544,10 +722,41 @@ export function ChannelList({ onChannelSelect }: ChannelListProps = {}) {
 		);
 	}
 
+	if (isError) {
+		return (
+			<div
+				className="w-[280px] min-w-[280px] h-full border-r border-[var(--b1)] flex flex-col bg-[var(--void)] msg-enter-x"
+				data-testid="messenger-channel-list"
+			>
+				<div className="px-3.5 pt-3.5 pb-2">
+					<span className="text-sm font-semibold text-[var(--t1)]">
+						Мессенджер
+					</span>
+				</div>
+				<div
+					role="alert"
+					className="flex flex-1 flex-col items-center justify-center gap-3 px-4 text-center"
+				>
+					<p className="text-[13px] font-semibold text-[var(--t1)]">
+						Не удалось загрузить каналы
+					</p>
+					<button
+						type="button"
+						onClick={() => void refetch()}
+						className="h-9 px-3 rounded-[var(--r2)] border border-[var(--b1)] text-[13px] text-[var(--t2)] hover:text-[var(--t1)] hover:border-[var(--b2)] transition-colors"
+					>
+						Попробовать снова
+					</button>
+				</div>
+			</div>
+		);
+	}
+
 	// Разделяем закреплённые и обычные каналы.
 	const starredChannels = filteredChannels.filter((ch) => ch.is_starred);
 	const regularChannels = filteredChannels.filter((ch) => !ch.is_starred);
 	const grouped = groupChannels(regularChannels);
+	const channelRows = buildChannelRows(starredChannels, grouped);
 
 	/** Рендер одного элемента канала. */
 	const renderChannelItem = (channel: Channel) => {
@@ -565,6 +774,7 @@ export function ChannelList({ onChannelSelect }: ChannelListProps = {}) {
 				isActive={!!isActive}
 				unread={unread}
 				getStatus={getStatus}
+				presenceUnavailable={presenceError}
 				getDmPartnerId={getDmPartnerId}
 				onSelect={onChannelSelect}
 			/>
@@ -591,54 +801,21 @@ export function ChannelList({ onChannelSelect }: ChannelListProps = {}) {
 					<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-[15px] w-[15px] text-[var(--t3)] pointer-events-none" />
 					<input
 						type="text"
-						className="w-full h-9 pl-[38px] pr-3.5 bg-[var(--input)] border border-transparent rounded-full text-[13px] text-[var(--t1)] placeholder:text-[var(--t3)] outline-none transition-all duration-250 focus:border-[rgba(52,211,153,.3)] focus:bg-[var(--card)] focus:shadow-[0_0_0_3px_rgba(52,211,153,.06)]"
+						className="w-full h-9 pl-[38px] pr-3.5 bg-[var(--input)] border border-transparent rounded-full text-[13px] text-[var(--t1)] placeholder:text-[var(--t3)] outline-none transition-all duration-250 focus:border-[color-mix(in_srgb,var(--green)_30%,transparent)] focus:bg-[var(--card)] focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--green)_6%,transparent)]"
 						placeholder="Поиск..."
+						aria-label="Поиск каналов"
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
 					/>
 				</div>
 			</div>
 
-			{/* Список каналов */}
-			<div className="flex-1 overflow-y-auto">
-				<div className="py-1 space-y-2">
-					{/* Закреплённые каналы (starred) */}
-					{starredChannels.length > 0 && (
-						<ChannelSection type="starred" label="Закреплённые">
-							{starredChannels.map(renderChannelItem)}
-						</ChannelSection>
-					)}
-
-					{/* Обычные каналы по группам */}
-					{grouped.map(([type, group]) => (
-						<ChannelSection key={type} type={type} label={group.label}>
-							{group.channels.map(renderChannelItem)}
-						</ChannelSection>
-					))}
-
-					{allChannels.length === 0 && (
-						<div className="flex flex-col items-center justify-center py-12 px-4">
-							<svg
-								aria-hidden="true"
-								className="mb-3 h-10 w-10 text-sidebar-foreground/20"
-								fill="none"
-								viewBox="0 0 24 24"
-								stroke="currentColor"
-								strokeWidth={1}
-							>
-								<path
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-								/>
-							</svg>
-							<p className="text-xs text-sidebar-foreground/40 text-center">
-								Нет каналов
-							</p>
-						</div>
-					)}
-				</div>
-			</div>
+			{/* Список каналов (A13-018 virtualized when long) */}
+			<ChannelRowsScroll
+				rows={channelRows}
+				empty={allChannels.length === 0}
+				renderChannel={renderChannelItem}
+			/>
 
 			{/* Нижняя панель: канал + новый DM */}
 			<div className="border-t border-[var(--b1)] px-3.5 h-12 flex items-center gap-2">

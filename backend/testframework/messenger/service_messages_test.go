@@ -25,7 +25,7 @@ func TestEditMessage_Success(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	edited, err := svc.EditMessage(ctx, sent.ID, ownerID, messenger.EditMessageRequest{
+	edited, err := svc.EditMessage(ctx, channelID, sent.ID, ownerID, messenger.EditMessageRequest{
 		ContentJSON: map[string]interface{}{"text": "edited"},
 		ContentText: "edited",
 	})
@@ -47,7 +47,7 @@ func TestEditMessage_ForbiddenForOtherUser(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	_, err = svc.EditMessage(ctx, sent.ID, memberID, messenger.EditMessageRequest{
+	_, err = svc.EditMessage(ctx, channelID, sent.ID, memberID, messenger.EditMessageRequest{
 		ContentJSON: map[string]interface{}{"text": "hack"},
 		ContentText: "hack",
 	})
@@ -105,7 +105,7 @@ func TestSearchMessages_FindsByQuery(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	results, err := svc.SearchMessages(ctx, "unique-token", channelID.String(), 10)
+	results, err := svc.SearchMessages(ctx, ownerID, "unique-token", channelID.String(), 10)
 	require.NoError(t, err)
 	require.Len(t, results, 1)
 }

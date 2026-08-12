@@ -137,38 +137,47 @@ func (allowAllAuthorizer) CanSubscribe(_ context.Context, _, _ string) (bool, er
 }
 
 // Handler возвращает Fiber-обработчик для апгрейда HTTP-соединения в WebSocket.
-// JWT-токен передаётся через query-параметр ?token=, так как WebSocket
-// не поддерживает кастомные заголовки при рукопожатии.
+//
+// Auth (ADR-WS-JWT-HANDSHAKE-2026): short-lived one-shot ticket через
+// Sec-WebSocket-Protocol `hub.ws.ticket.<ticket>` (выдаётся POST /auth/ws-ticket).
+// Query `?token=` запрещён — 401 (токен не должен попадать в access/proxy logs).
 //
 // ВАЖНО (Pitfall 1): Все значения извлекаются из fiber.Ctx ДО апгрейда
 // через utils.CopyString для предотвращения проблем переиспользования fasthttp RequestCtx.
 //
-// SEC-H1: authz — обязательный параметр для production. Если передан nil,
-// используется allowAllAuthorizer (только для тестов).
+// SEC-H1 / W3-A4-003: authz обязателен. nil → отказ upgrade (fail-closed).
+// Для тестов без БД передавайте ExportAllowAllAuthorizer() явно (hubtest).
 func Handler(hub *Hub, authSvc *auth.AuthService, authz Authorizer) fiber.Handler {
-	if authz == nil {
-		authz = allowAllAuthorizer{}
-	}
 	return func(c fiber.Ctx) error {
-		// JWT из query до upgrade — после hijack fiber.Ctx недоступен (Pitfall 1).
-		tokenStr := utils.CopyString(c.Query("token"))
-		if tokenStr == "" {
-			return fiber.NewError(fiber.StatusUnauthorized, "missing token query parameter")
+		if authz == nil {
+			slog.Error("ws Handler: Authorizer is nil — refusing upgrade (fail-closed)")
+			return fiber.NewError(fiber.StatusServiceUnavailable, "websocket authorizer not configured")
 		}
 
-		claims, err := authSvc.ParseAccessToken(tokenStr)
+		// A2W3-4-001: явный отказ query-JWT (даже если параллельно передан subprotocol).
+		if utils.CopyString(c.Query("token")) != "" {
+			return fiber.NewError(fiber.StatusUnauthorized, "token query parameter is not allowed")
+		}
+
+		protoHeader := utils.CopyString(c.Get("Sec-WebSocket-Protocol"))
+		ticket, negotiated, ok := ParseWSTicketProtocols(SplitSecWebSocketProtocol(protoHeader))
+		if !ok {
+			return fiber.NewError(fiber.StatusUnauthorized, "missing ws ticket subprotocol")
+		}
+
+		ticketClaims, err := authSvc.RedeemWSTicket(c.Context(), ticket)
 		if err != nil {
-			return fiber.NewError(fiber.StatusUnauthorized, "invalid or expired token")
+			return fiber.NewError(fiber.StatusUnauthorized, "invalid or expired ws ticket")
 		}
 
 		// Копируем userID/sessionID до upgrade (Pitfall 1).
-		userID := utils.CopyString(claims.UserID)
-		sessionID := utils.CopyString(claims.SessionID)
+		userID := utils.CopyString(ticketClaims.UserID)
+		sessionID := utils.CopyString(ticketClaims.SessionID)
 
 		// ME-13: та же проверка deactivated, что и RequireAuth — до WS upgrade.
 		uid, parseErr := uuid.Parse(userID)
 		if parseErr != nil {
-			return fiber.NewError(fiber.StatusUnauthorized, "invalid token claims")
+			return fiber.NewError(fiber.StatusUnauthorized, "invalid ticket claims")
 		}
 		deactivated, statusErr := authSvc.IsUserDeactivated(c.Context(), uid)
 		if statusErr != nil {
@@ -178,7 +187,11 @@ func Handler(hub *Hub, authSvc *auth.AuthService, authz Authorizer) fiber.Handle
 			return fiber.NewError(fiber.StatusForbidden, "user account is deactivated")
 		}
 
-		return upgrader.Upgrade(c.Context(), func(conn *websocket.Conn) {
+		// Сообщаем клиенту выбранный subprotocol (Subprotocols==nil → из Response header).
+		fasthttpCtx := c.Context()
+		fasthttpCtx.Response.Header.Set("Sec-WebSocket-Protocol", negotiated)
+
+		return upgrader.Upgrade(fasthttpCtx, func(conn *websocket.Conn) {
 			client := NewClient(userID, sessionID)
 			hub.Register(client)
 
@@ -236,11 +249,22 @@ func readPump(conn *websocket.Conn, client *Client, hub *Hub, authz Authorizer) 
 			if authErr != nil {
 				slog.Warn("ws subscribe authz error",
 					"userID", client.UserID, "room", msg.Room, "error", authErr)
+				// W3-A4-009: клиенту — стабильный error-кадр (без internals).
+				enqueueServerMessage(client, ServerMessage{
+					Type:  TypeError,
+					Event: EventSubscribeError,
+					Room:  msg.Room,
+				})
 				continue
 			}
 			if !allowed {
 				slog.Warn("ws subscribe denied",
 					"userID", client.UserID, "room", msg.Room)
+				enqueueServerMessage(client, ServerMessage{
+					Type:  TypeError,
+					Event: EventSubscribeDenied,
+					Room:  msg.Room,
+				})
 				continue
 			}
 			hub.Subscribe(client, msg.Room)
@@ -259,6 +283,19 @@ func readPump(conn *websocket.Conn, client *Client, hub *Hub, authz Authorizer) 
 			default:
 			}
 		}
+	}
+}
+
+// enqueueServerMessage кладёт кадр в client.send с учётом SEC-05 (done / buffer full).
+func enqueueServerMessage(client *Client, msg ServerMessage) {
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return
+	}
+	select {
+	case <-client.done:
+	case client.send <- data:
+	default:
 	}
 }
 

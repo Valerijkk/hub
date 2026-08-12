@@ -51,7 +51,7 @@ interface DashboardState {
 
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 
-export const useDashboardStore = create<DashboardState>()((set) => ({
+export const useDashboardStore = create<DashboardState>()((set, get) => ({
 	personalData: null,
 	projectData: null,
 	adminData: null,
@@ -73,24 +73,26 @@ export const useDashboardStore = create<DashboardState>()((set) => ({
 	},
 
 	fetchProject: async (projectId: string) => {
-		set({ loading: true });
+		set({ loading: true, error: null });
 		try {
 			const data = await getProjectDashboard(projectId);
 			set({ projectData: data });
 		} catch (err) {
 			console.error("Ошибка загрузки проектного дашборда", err);
+			set({ error: "Не удалось загрузить данные дашборда" });
 		} finally {
 			set({ loading: false });
 		}
 	},
 
 	fetchAdmin: async () => {
-		set({ loading: true });
+		set({ loading: true, error: null });
 		try {
 			const data = await getAdminDashboard();
 			set({ adminData: data });
 		} catch (err) {
 			console.error("Ошибка загрузки админского дашборда", err);
+			set({ error: "Не удалось загрузить данные дашборда" });
 		} finally {
 			set({ loading: false });
 		}
@@ -104,6 +106,9 @@ export const useDashboardStore = create<DashboardState>()((set) => ({
 			}));
 		} catch (err) {
 			console.error("Ошибка загрузки раскладки", err);
+			// error≠empty: fail API ≠ «пустая раскладка / default успех».
+			set({ error: "Не удалось загрузить раскладку" });
+			throw err;
 		}
 	},
 
@@ -112,17 +117,26 @@ export const useDashboardStore = create<DashboardState>()((set) => ({
 		items: LayoutItem[],
 		projectId?: string,
 	) => {
+		const previous = get().layouts[type];
 		// Обновляем локально немедленно
 		set((state) => ({
 			layouts: { ...state.layouts, [type]: items },
+			error: null,
 		}));
 
 		// Дебаунс сохранения на сервер
 		if (saveTimeout) clearTimeout(saveTimeout);
 		saveTimeout = setTimeout(() => {
-			saveLayout(type, items, projectId).catch((err) =>
-				console.error("Ошибка сохранения раскладки", err),
-			);
+			saveLayout(type, items, projectId).catch((err) => {
+				console.error("Ошибка сохранения раскладки", err);
+				set((state) => ({
+					error: "Не удалось сохранить раскладку дашборда",
+					layouts:
+						previous !== undefined
+							? { ...state.layouts, [type]: previous }
+							: state.layouts,
+				}));
+			});
 		}, 500);
 	},
 

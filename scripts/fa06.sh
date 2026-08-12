@@ -33,7 +33,7 @@ FA-06 / PG-03 — ротация секретов (Hub v2.5 Trust)
   bash scripts/fa06.sh release-gate   Чеклист перед git tag v2.5.0
   bash scripts/fa06.sh phase0-log     Пути к FA-06-EXECUTION-LOG.md и PG-03
 
-Runbook: .planning/production/PG-03-SECRET-ROTATION.md
+Runbook: .planning/ops/production/PG-03-SECRET-ROTATION.md
 EOF
     ;;
 esac

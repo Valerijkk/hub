@@ -23,6 +23,7 @@ func TestToSuiteResponse_WithParent(t *testing.T) {
 		Name:        "Regression",
 		Description: "full suite",
 		SortOrder:   1,
+		Version:     3,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 		Edges: ent.TestSuiteEdges{
@@ -33,6 +34,7 @@ func TestToSuiteResponse_WithParent(t *testing.T) {
 	resp := tms.ExportToSuiteResponse(suite)
 	require.NotNil(t, resp)
 	assert.Equal(t, parentID.String(), resp.ParentID)
+	assert.Equal(t, 3, resp.Version)
 }
 
 // TestToComponentResponse проверяет сценарий: to component response.
@@ -120,10 +122,11 @@ func TestBuildSuiteTree_NestedChildren(t *testing.T) {
 
 // TestSnapshotToUpdateInput_PartialFields проверяет сценарий: snapshot to обновление input partial fields.
 func TestSnapshotToUpdateInput_PartialFields(t *testing.T) {
-	input := tms.ExportSnapshotToUpdateInput(map[string]interface{}{
+	input, err := tms.ExportSnapshotToUpdateInput(map[string]interface{}{
 		"title":    "Only title",
 		"priority": string(testcase.PriorityHigh),
 	})
+	require.NoError(t, err)
 	require.NotNil(t, input.Title)
 	assert.Equal(t, "Only title", *input.Title)
 	require.NotNil(t, input.Priority)

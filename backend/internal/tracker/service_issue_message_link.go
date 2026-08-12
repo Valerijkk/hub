@@ -3,6 +3,7 @@ package tracker
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -65,7 +66,7 @@ func (s *TrackerService) CreateIssueMessageLink(
 	userID uuid.UUID,
 	req CreateIssueMessageLinkRequest,
 ) (*IssueMessageLinkResponse, error) {
-	issue, err := s.repo.FindIssueByKey(ctx, issueKey)
+	issue, err := s.repo.FindIssueByKey(ctx, projectID, issueKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("задача не найдена")
@@ -83,6 +84,21 @@ func (s *TrackerService) CreateIssueMessageLink(
 	messageID := strings.TrimSpace(req.MessageID)
 	if messageID == "" {
 		return nil, apperrors.NewBadRequest("message_id обязателен")
+	}
+
+	// P1-BE-04: канал должен принадлежать проекту; пользователь — member канала.
+	if _, err := s.repo.FindChannelInProject(ctx, projectID, channelID); err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("канал не найден")
+		}
+		return nil, apperrors.NewInternal("ошибка проверки канала")
+	}
+	ok, err := s.repo.IsChannelMember(ctx, channelID, userID)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка проверки membership канала")
+	}
+	if !ok {
+		return nil, apperrors.NewForbidden("нет доступа к каналу")
 	}
 
 	mirror := true
@@ -113,6 +129,13 @@ func (s *TrackerService) LinkThreadToIssue(
 	if issue.Edges.Project == nil || issue.Edges.Project.ID != projectID {
 		return fmt.Errorf("issue not in project")
 	}
+	// P1-BE-04: канал должен принадлежать проекту (promote-path).
+	if _, err := s.repo.FindChannelInProject(ctx, projectID, channelID); err != nil {
+		if ent.IsNotFound(err) {
+			return apperrors.NewNotFound("канал не найден")
+		}
+		return fmt.Errorf("check channel in project: %w", err)
+	}
 	_, err = s.repo.CreateIssueMessageLink(ctx, issueID, channelID, userID, threadRootMessageID, true)
 	if err != nil && ent.IsConstraintError(err) {
 		return nil
@@ -122,7 +145,7 @@ func (s *TrackerService) LinkThreadToIssue(
 
 // ListIssueMessageLinks возвращает связи для задачи.
 func (s *TrackerService) ListIssueMessageLinks(ctx context.Context, projectID uuid.UUID, issueKey string) ([]IssueMessageLinkResponse, error) {
-	issue, err := s.repo.FindIssueByKey(ctx, issueKey)
+	issue, err := s.repo.FindIssueByKey(ctx, projectID, issueKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("задача не найдена")
@@ -158,12 +181,9 @@ func (s *TrackerService) ListThreadIssueLinks(
 	}
 	out := make([]IssueMessageLinkResponse, 0, len(links))
 	for _, l := range links {
+		// A3W1-2-004: Issue подгружается batch/eager в ListIssueMessageLinksByThread.
 		if l.Edges.Issue == nil {
-			iss, issErr := s.repo.FindIssueByID(ctx, l.IssueID)
-			if issErr != nil {
-				continue
-			}
-			l.Edges.Issue = iss
+			continue
 		}
 		if l.Edges.Issue.Edges.Project == nil || l.Edges.Issue.Edges.Project.ID != projectID {
 			continue
@@ -175,7 +195,7 @@ func (s *TrackerService) ListThreadIssueLinks(
 
 // DeleteIssueMessageLink удаляет связь задача↔тред.
 func (s *TrackerService) DeleteIssueMessageLink(ctx context.Context, projectID uuid.UUID, issueKey string, linkID uuid.UUID) error {
-	issue, err := s.repo.FindIssueByKey(ctx, issueKey)
+	issue, err := s.repo.FindIssueByKey(ctx, projectID, issueKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return apperrors.NewNotFound("задача не найдена")
@@ -205,6 +225,9 @@ func (s *TrackerService) mirrorIssueCommentsToThreads(
 	}
 	links, err := s.repo.ListIssueMessageLinksByIssue(ctx, issueID)
 	if err != nil {
+		// W1-A2-013 / P3-BE-01: не глотать сбой списка связей без сигнала в ops.
+		slog.WarnContext(ctx, "mirror comments: list issue-message links failed",
+			"issue_id", issueID, "error", err)
 		return
 	}
 	text := fmt.Sprintf("[Hub sync] Комментарий к задаче:\n%s", bodyText)
@@ -213,6 +236,8 @@ func (s *TrackerService) mirrorIssueCommentsToThreads(
 			continue
 		}
 		if err := s.threadMirror.MirrorIssueComment(ctx, link.ChannelID, userID, link.MessageID, text); err != nil {
+			slog.WarnContext(ctx, "mirror comments: thread mirror failed",
+				"issue_id", issueID, "channel_id", link.ChannelID, "error", err)
 			continue
 		}
 	}

@@ -102,7 +102,18 @@ func TestService_FA11_RemoveTeamMember_RepoError(t *testing.T) {
 	svc, repo, _ := newTestService()
 	repo.removeTeamMemberErr = errors.New("delete failed")
 
-	err := svc.RemoveTeamMember(context.Background(), uuid.New(), uuid.New())
+	ctx := context.Background()
+	actorID := uuid.New()
+	otherID := uuid.New()
+	team, err := svc.CreateTeam(ctx, actorID, "FA11", "")
+	require.NoError(t, err)
+	teamID, err := uuid.Parse(team.ID)
+	require.NoError(t, err)
+	// TASK-184: TeamMemberCount≤1 → 409 before repo; keep ≥2 so FA11 hits removeTeamMemberErr.
+	_, err = repo.AddTeamMember(ctx, teamID, otherID)
+	require.NoError(t, err)
+
+	err = svc.RemoveTeamMember(ctx, teamID, actorID, otherID)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to remove team member")
 }
@@ -113,7 +124,9 @@ func TestService_FA11_AddTeamToProject_NotFound(t *testing.T) {
 
 	team, err := env.repo.CreateTeam(env.ctx, "FA11 Team", "")
 	require.NoError(t, err)
+	_, err = env.repo.AddTeamMember(env.ctx, team.ID, env.owner.ID)
+	require.NoError(t, err)
 
-	err = svc.AddTeamToProject(env.ctx, team.ID, uuid.New())
+	err = svc.AddTeamToProject(env.ctx, team.ID, uuid.New(), env.owner.ID)
 	require.Error(t, err)
 }

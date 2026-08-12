@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"os"
 	"os/exec"
 	"time"
 
@@ -28,6 +29,7 @@ type BackupService struct {
 	pgURL      string
 	mongoURL   string
 	maxBackups int
+	gate       *MaintenanceGate
 
 	// lifecycleCtx — долгоживущий контекст (rootCtx из main), используемый
 	// для фоновых goroutine'ов (например, ротация старых бэкапов в
@@ -42,7 +44,14 @@ type BackupService struct {
 // rootCtx должен быть долгоживущим контекстом (обычно signal.NotifyContext
 // из main) — он используется для фоновых задач сервиса (ротация старых
 // бэкапов и т.п.). Передавайте именно rootCtx, а не request-ctx Fiber'а.
+//
+// gate — опциональный MaintenanceGate (A7-003); nil = только лог (тесты без HTTP).
 func NewBackupService(rootCtx context.Context, repo Repository, s3Client *s3.Client, s3Bucket, pgURL, mongoURL string) *BackupService {
+	return NewBackupServiceWithGate(rootCtx, repo, s3Client, s3Bucket, pgURL, mongoURL, nil)
+}
+
+// NewBackupServiceWithGate как NewBackupService, но с явным MaintenanceGate.
+func NewBackupServiceWithGate(rootCtx context.Context, repo Repository, s3Client *s3.Client, s3Bucket, pgURL, mongoURL string, gate *MaintenanceGate) *BackupService {
 	if rootCtx == nil {
 		rootCtx = context.Background()
 	}
@@ -54,6 +63,7 @@ func NewBackupService(rootCtx context.Context, repo Repository, s3Client *s3.Cli
 		mongoURL:     mongoURL,
 		maxBackups:   4,
 		lifecycleCtx: rootCtx,
+		gate:         gate,
 	}
 }
 
@@ -74,34 +84,38 @@ func (s *BackupService) PerformBackup(ctx context.Context) (*BackupResponse, err
 	pgData, err := s.dumpPostgres(ctx)
 	if err != nil {
 		s.markFailed(ctx, record.ID, err)
-		return toBackupResponse(record), nil
+		// A7-004: не отдавать HTTP success при failed dump.
+		return nil, fmt.Errorf("pg_dump: %w", err)
 	}
 
 	// Выполняем mongodump
 	mongoData, err := s.dumpMongo(ctx)
 	if err != nil {
 		s.markFailed(ctx, record.ID, err)
-		return toBackupResponse(record), nil
+		return nil, fmt.Errorf("mongodump: %w", err)
 	}
 
 	// Архивируем в ZIP
 	zipData, err := s.createZIP(pgData, mongoData)
 	if err != nil {
 		s.markFailed(ctx, record.ID, err)
-		return toBackupResponse(record), nil
+		return nil, fmt.Errorf("zip backup: %w", err)
 	}
 
-	// Загружаем в S3
-	if s.s3Client != nil {
-		_, err = s.s3Client.PutObject(ctx, &s3.PutObjectInput{
-			Bucket: &s.s3Bucket,
-			Key:    &s3Key,
-			Body:   bytes.NewReader(zipData),
-		})
-		if err != nil {
-			s.markFailed(ctx, record.ID, fmt.Errorf("ошибка загрузки в S3: %w", err))
-			return toBackupResponse(record), nil
-		}
+	// Загружаем в S3 (W7-A4-004 / P1-BE-39: без S3 — fail-closed, не MarkCompleted).
+	if s.s3Client == nil {
+		err := fmt.Errorf("s3 client not configured")
+		s.markFailed(ctx, record.ID, err)
+		return nil, err
+	}
+	_, err = s.s3Client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket: &s.s3Bucket,
+		Key:    &s3Key,
+		Body:   bytes.NewReader(zipData),
+	})
+	if err != nil {
+		s.markFailed(ctx, record.ID, fmt.Errorf("ошибка загрузки в S3: %w", err))
+		return nil, fmt.Errorf("s3 upload: %w", err)
 	}
 
 	// Обновляем статус
@@ -139,15 +153,17 @@ func (s *BackupService) RestoreBackup(ctx context.Context, backupID uuid.UUID) e
 		return fmt.Errorf("невозможно восстановить бэкап со статусом %s", record.Status)
 	}
 
-	// Включаем режим обслуживания (устанавливаем флаг).
-	s.setMaintenanceMode(true)
-	defer s.setMaintenanceMode(false)
+	// Включаем режим обслуживания (cluster-wide через Redis, U04).
+	// defer без cancel ctx: иначе после отмены запроса DEL в Redis не выполнится.
+	s.setMaintenanceMode(ctx, true)
+	defer s.setMaintenanceMode(context.WithoutCancel(ctx), false)
 
 	// Создаём бэкап текущего состояния перед восстановлением (safety net).
 	slog.Info("создание бэкапа текущего состояния перед восстановлением")
 	if _, preBackupErr := s.PerformBackup(ctx); preBackupErr != nil {
 		slog.Error("не удалось создать бэкап перед восстановлением", "error", preBackupErr)
-		// Продолжаем — pre-restore backup необязателен для выполнения restore.
+		// A7-009: fail-closed — не разрушаем инстанс без safety-net.
+		return fmt.Errorf("pre-restore backup failed: %w", preBackupErr)
 	}
 
 	// Скачиваем ZIP из S3.
@@ -193,8 +209,11 @@ func (s *BackupService) RestoreBackup(ctx context.Context, backupID uuid.UUID) e
 		slog.Info("MongoDB восстановлен из бэкапа")
 	}
 
-	// Обновляем статус записи бэкапа — фиксируем факт восстановления.
-	_ = s.repo.SetRestoredNote(ctx, backupID, "restored at "+time.Now().UTC().Format(time.RFC3339))
+	// W7-A4-018: restored_at отдельно от error_message.
+	if err := s.repo.SetRestoredAt(ctx, backupID, time.Now().UTC()); err != nil {
+		// W7-A4-019 / P3-BE-01: восстановление прошло, но audit timestamp потерян.
+		slog.WarnContext(ctx, "backup: set restored_at failed", "backup_id", backupID, "error", err)
+	}
 
 	slog.Info("восстановление завершено", "s3_key", record.S3Key)
 	return nil
@@ -203,14 +222,29 @@ func (s *BackupService) RestoreBackup(ctx context.Context, backupID uuid.UUID) e
 // strPtr возвращает указатель на строку.
 func strPtr(s string) *string { return &s }
 
-// setMaintenanceMode устанавливает/снимает режим обслуживания.
-// Логирует переключение для наблюдаемости.
-func (s *BackupService) setMaintenanceMode(enabled bool) {
-	if enabled {
-		slog.Warn("включён режим обслуживания для восстановления бэкапа")
-	} else {
-		slog.Info("режим обслуживания выключен")
+// setMaintenanceMode устанавливает/снимает режим обслуживания (A7-003 / U04).
+// Переключает MaintenanceGate (если задан) и логирует для наблюдаемости.
+func (s *BackupService) setMaintenanceMode(ctx context.Context, enabled bool) {
+	if s.gate != nil {
+		s.gate.Set(ctx, enabled)
 	}
+	if enabled {
+		slog.WarnContext(ctx, "включён режим обслуживания для восстановления бэкапа")
+	} else {
+		slog.InfoContext(ctx, "режим обслуживания выключен")
+	}
+}
+
+// IsMaintenanceMode сообщает, активен ли гейт обслуживания.
+func (s *BackupService) IsMaintenanceMode() bool {
+	if s == nil || s.gate == nil {
+		return false
+	}
+	ctx := s.lifecycleCtx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return s.gate.Enabled(ctx)
 }
 
 // extractZIP извлекает файлы postgres.dump и mongo.archive из ZIP-архива.
@@ -245,25 +279,33 @@ func (s *BackupService) extractZIP(zipData []byte) (pgData, mongoData []byte, er
 
 // restorePostgres выполняет pg_restore --clean --if-exists из дампа.
 func (s *BackupService) restorePostgres(ctx context.Context, data []byte) error {
-	cmd := exec.CommandContext(ctx, "pg_restore",
-		"--clean",
-		"--if-exists",
-		"--no-owner",
-		"--dbname="+s.pgURL,
-	)
+	args, env, err := pgDumpArgsEnv(s.pgURL, "--clean", "--if-exists", "--no-owner")
+	if err != nil {
+		return fmt.Errorf("pg_restore failed")
+	}
+	cmd := exec.CommandContext(ctx, "pg_restore", args...)
+	cmd.Env = env
 	cmd.Stdin = bytes.NewReader(data)
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("pg_restore завершился с ошибкой: %w (output: %s)", err, string(output))
+		// A7-007: не вшивать CombinedOutput (могут быть connection strings) в ошибку клиенту.
+		slog.ErrorContext(ctx, "pg_restore failed", "error", err, "output_len", len(output))
+		return fmt.Errorf("pg_restore failed")
 	}
 	return nil
 }
 
 // restoreMongo выполняет mongorestore --archive из дампа.
 func (s *BackupService) restoreMongo(ctx context.Context, data []byte) error {
+	cfgPath, cleanup, err := writeMongoConfig(os.TempDir(), s.mongoURL)
+	if err != nil {
+		return fmt.Errorf("mongorestore failed")
+	}
+	defer cleanup()
+
 	cmd := exec.CommandContext(ctx, "mongorestore",
-		"--uri="+s.mongoURL,
+		mongoConfigArg(cfgPath),
 		"--archive",
 		"--drop",
 	)
@@ -271,7 +313,8 @@ func (s *BackupService) restoreMongo(ctx context.Context, data []byte) error {
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("mongorestore завершился с ошибкой: %w (output: %s)", err, string(output))
+		slog.ErrorContext(ctx, "mongorestore failed", "error", err, "output_len", len(output))
+		return fmt.Errorf("mongorestore failed")
 	}
 	return nil
 }
@@ -300,33 +343,55 @@ func (s *BackupService) DeleteBackup(ctx context.Context, backupID uuid.UUID) er
 		return err
 	}
 
-	// Удаляем из S3
+	// Удаляем из S3 (A3W7-4-002: slog + fail-closed — DB row не трогаем при S3 err).
 	if s.s3Client != nil {
-		_, _ = s.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		if _, err := s.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
 			Bucket: &s.s3Bucket,
 			Key:    &record.S3Key,
-		})
+		}); err != nil {
+			slog.WarnContext(ctx, "s3 delete backup failed",
+				"backup_id", backupID,
+				"s3_key", record.S3Key,
+				"error", err,
+			)
+			return fmt.Errorf("delete backup from s3: %w", err)
+		}
 	}
 
 	return s.repo.Delete(ctx, backupID)
 }
 
-// dumpPostgres выполняет pg_dump --format=custom.
+// dumpPostgres выполняет pg_dump --format=custom (W7-A4-013: пароль в PGPASSWORD).
 func (s *BackupService) dumpPostgres(ctx context.Context) ([]byte, error) {
-	cmd := exec.CommandContext(ctx, "pg_dump", "--format=custom", s.pgURL)
+	args, env, err := pgDumpArgsEnv(s.pgURL, "--format=custom")
+	if err != nil {
+		slog.ErrorContext(ctx, "pg_dump url parse failed", "error", err)
+		return nil, fmt.Errorf("pg_dump failed")
+	}
+	cmd := exec.CommandContext(ctx, "pg_dump", args...)
+	cmd.Env = env
 	out, err := cmd.Output()
 	if err != nil {
-		return nil, fmt.Errorf("ошибка pg_dump: %w", err)
+		slog.ErrorContext(ctx, "pg_dump failed", "error", err)
+		return nil, fmt.Errorf("pg_dump failed")
 	}
 	return out, nil
 }
 
-// dumpMongo выполняет mongodump --archive.
+// dumpMongo выполняет mongodump --archive (W7-A4-013: секреты в --config, не argv).
 func (s *BackupService) dumpMongo(ctx context.Context) ([]byte, error) {
-	cmd := exec.CommandContext(ctx, "mongodump", "--uri="+s.mongoURL, "--archive")
+	cfgPath, cleanup, err := writeMongoConfig(os.TempDir(), s.mongoURL)
+	if err != nil {
+		slog.ErrorContext(ctx, "mongodump config failed", "error", err)
+		return nil, fmt.Errorf("mongodump failed")
+	}
+	defer cleanup()
+
+	cmd := exec.CommandContext(ctx, "mongodump", mongoConfigArg(cfgPath), "--archive")
 	out, err := cmd.Output()
 	if err != nil {
-		return nil, fmt.Errorf("ошибка mongodump: %w", err)
+		slog.ErrorContext(ctx, "mongodump failed", "error", err)
+		return nil, fmt.Errorf("mongodump failed")
 	}
 	return out, nil
 }
@@ -373,10 +438,17 @@ func (s *BackupService) cleanupOldBackups(ctx context.Context) {
 
 	for _, r := range records[s.maxBackups:] {
 		if s.s3Client != nil {
-			_, _ = s.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
+			if _, err := s.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
 				Bucket: &s.s3Bucket,
 				Key:    &r.S3Key,
-			})
+			}); err != nil {
+				slog.WarnContext(ctx, "s3 delete old backup failed",
+					"backup_id", r.ID,
+					"s3_key", r.S3Key,
+					"error", err,
+				)
+				continue // не удаляем DB row при S3 fail — иначе orphan ZIP
+			}
 		}
 		if err := s.repo.Delete(ctx, r.ID); err != nil {
 			slog.Error("ошибка удаления старого бэкапа", "id", r.ID, "error", err)
@@ -386,9 +458,11 @@ func (s *BackupService) cleanupOldBackups(ctx context.Context) {
 	slog.Info("ротация бэкапов завершена", "удалено", len(records)-s.maxBackups)
 }
 
-// markFailed обновляет статус бэкапа на failed.
+// markFailed обновляет статус бэкапа на failed (W7-A4-007: sanitized ErrorMessage).
 func (s *BackupService) markFailed(ctx context.Context, id uuid.UUID, err error) {
-	if updateErr := s.repo.MarkFailed(ctx, id, err.Error()); updateErr != nil {
+	safe := sanitizeBackupErrorMessage(err)
+	slog.ErrorContext(ctx, "backup marked failed", "backup_id", id, "error", err, "safe_message", safe)
+	if updateErr := s.repo.MarkFailed(ctx, id, safe); updateErr != nil {
 		slog.Error("не удалось обновить статус бэкапа на failed", "error", updateErr)
 	}
 }
@@ -405,6 +479,7 @@ func toBackupResponse(r *ent.BackupRecord) *BackupResponse {
 		FileSize:     r.FileSize,
 		Status:       string(r.Status),
 		ErrorMessage: errMsg,
+		RestoredAt:   r.RestoredAt,
 		CreatedAt:    r.CreatedAt,
 	}
 }

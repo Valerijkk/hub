@@ -120,7 +120,9 @@ const AuthenticatedMarketplaceRoute =
     id: '/marketplace',
     path: '/marketplace',
     getParentRoute: () => AuthenticatedRoute,
-  } as any)
+  } as any).lazy(() =>
+    import('./routes/_authenticated/marketplace.lazy').then((d) => d.Route),
+  )
 const AuthenticatedHrRoute = AuthenticatedHrRouteImport.update({
   id: '/hr',
   path: '/hr',
@@ -142,7 +144,9 @@ const AuthenticatedCrmRoute = AuthenticatedCrmRouteImport.update({
   id: '/crm',
   path: '/crm',
   getParentRoute: () => AuthenticatedRoute,
-} as any)
+} as any).lazy(() =>
+  import('./routes/_authenticated/crm.lazy').then((d) => d.Route),
+)
 const AuthenticatedCallsRoute = AuthenticatedCallsRouteImport.update({
   id: '/calls',
   path: '/calls',
@@ -162,7 +166,9 @@ const AuthenticatedAccountingRoute = AuthenticatedAccountingRouteImport.update({
   id: '/accounting',
   path: '/accounting',
   getParentRoute: () => AuthenticatedRoute,
-} as any)
+} as any).lazy(() =>
+  import('./routes/_authenticated/accounting.lazy').then((d) => d.Route),
+)
 const AuthenticatedProjectsIndexRoute =
   AuthenticatedProjectsIndexRouteImport.update({
     id: '/projects/',
@@ -309,7 +315,11 @@ const AuthenticatedProjectsProjectIdGanttRoute =
     id: '/gantt',
     path: '/gantt',
     getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
-  } as any)
+  } as any).lazy(() =>
+    import('./routes/_authenticated/projects/$projectId/gantt.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedProjectsProjectIdDashboardRoute =
   AuthenticatedProjectsProjectIdDashboardRouteImport.update({
     id: '/dashboard',
@@ -343,7 +353,11 @@ const AuthenticatedProjectsProjectIdBoardIndexRoute =
     id: '/board/',
     path: '/board/',
     getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
-  } as any)
+  } as any).lazy(() =>
+    import('./routes/_authenticated/projects/$projectId/board/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedProjectsProjectIdTmsTraceabilityRoute =
   AuthenticatedProjectsProjectIdTmsTraceabilityRouteImport.update({
     id: '/traceability',

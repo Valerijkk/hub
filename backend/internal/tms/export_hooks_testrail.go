@@ -61,3 +61,8 @@ func ExportTrimStepNumbering(s string) string {
 func ExportTruncate(s string, maxLen int) string {
 	return truncate(s, maxLen)
 }
+
+// ExportFormatTestStepsForExport сериализует шаги в plain text (A3W2-4-001).
+func ExportFormatTestStepsForExport(steps []schema.TestStep) string {
+	return formatTestStepsForExport(steps)
+}

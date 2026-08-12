@@ -9,6 +9,7 @@ import (
 	"github.com/valerii/hub/backend/ent/issue"
 	"github.com/valerii/hub/backend/ent/notification"
 	"github.com/valerii/hub/backend/ent/notificationpreference"
+	"github.com/valerii/hub/backend/ent/pushsubscription"
 	"github.com/valerii/hub/backend/ent/user"
 )
 
@@ -24,15 +25,24 @@ func NewRepository(db *ent.Client) *Repository {
 
 // CreateNotification создаёт новое уведомление. Дедупликация: если уведомление
 // с таким же (user_id, type, entity_id) было создано менее 2 секунд назад — пропускает.
+// A2W8-3-006: entity_id — UUID; невалидный/пустой entityID сохраняется как NULL.
 func (r *Repository) CreateNotification(ctx context.Context, userID uuid.UUID, notifType, title, body, entityType, entityID string, projectID, actorID *uuid.UUID, isUrgent bool) (*ent.Notification, error) {
-	// Дедупликация: проверяем наличие аналогичного уведомления за последние 2 секунды.
+	var entityUUID *uuid.UUID
 	if entityID != "" {
+		parsed, err := uuid.Parse(entityID)
+		if err == nil {
+			entityUUID = &parsed
+		}
+	}
+
+	// Дедупликация: проверяем наличие аналогичного уведомления за последние 2 секунды.
+	if entityUUID != nil {
 		cutoff := time.Now().Add(-2 * time.Second)
 		exists, err := r.db.Notification.Query().
 			Where(
 				notification.UserID(userID),
 				notification.Type(notifType),
-				notification.EntityID(entityID),
+				notification.EntityIDEQ(*entityUUID),
 				notification.CreatedAtGTE(cutoff),
 			).
 			Exist(ctx)
@@ -53,8 +63,8 @@ func (r *Repository) CreateNotification(ctx context.Context, userID uuid.UUID, n
 	if entityType != "" {
 		builder.SetEntityType(entityType)
 	}
-	if entityID != "" {
-		builder.SetEntityID(entityID)
+	if entityUUID != nil {
+		builder.SetEntityID(*entityUUID)
 	}
 	if projectID != nil {
 		builder.SetProjectID(*projectID)
@@ -95,6 +105,7 @@ func (r *Repository) ListByUser(ctx context.Context, userID uuid.UUID, page, per
 }
 
 // MarkRead помечает уведомление как прочитанное.
+// A2W8-3-006: инкремент version снижает lost-update на concurrent mark-read.
 func (r *Repository) MarkRead(ctx context.Context, notifID, userID uuid.UUID) error {
 	return r.db.Notification.Update().
 		Where(
@@ -102,6 +113,7 @@ func (r *Repository) MarkRead(ctx context.Context, notifID, userID uuid.UUID) er
 			notification.UserID(userID),
 		).
 		SetIsRead(true).
+		AddVersion(1).
 		Exec(ctx)
 }
 
@@ -113,6 +125,7 @@ func (r *Repository) MarkAllRead(ctx context.Context, userID uuid.UUID) error {
 			notification.IsRead(false),
 		).
 		SetIsRead(true).
+		AddVersion(1).
 		Exec(ctx)
 }
 
@@ -250,40 +263,60 @@ func (r *Repository) ListIssuesWithUpcomingDeadline(ctx context.Context, now, de
 // IsEnabled проверяет, включено ли уведомление данного типа для канала и пользователя.
 // Сначала проверяет per-project настройку, потом глобальную. По умолчанию — включено.
 func (r *Repository) IsEnabled(ctx context.Context, userID uuid.UUID, notifType, channel string, projectID *uuid.UUID) (bool, error) {
-	// Проверяем per-project настройку.
-	if projectID != nil {
-		pref, err := r.db.NotificationPreference.Query().
-			Where(
-				notificationpreference.UserID(userID),
-				notificationpreference.NotificationType(notifType),
-				notificationpreference.Channel(channel),
-				notificationpreference.ProjectID(*projectID),
-			).
-			First(ctx)
-		if err == nil {
-			return pref.Enabled, nil
-		}
-		if !ent.IsNotFound(err) {
-			return false, err
-		}
+	prefs, err := r.ResolveChannelPrefs(ctx, userID, notifType, projectID)
+	if err != nil {
+		return false, err
+	}
+	enabled, ok := prefs[channel]
+	if !ok {
+		return true, nil
+	}
+	return enabled, nil
+}
+
+// ResolveChannelPrefs — A13-005: одним (до двух с project) запросом читает prefs
+// для всех каналов user+type вместо 3× IsEnabled.
+func (r *Repository) ResolveChannelPrefs(ctx context.Context, userID uuid.UUID, notifType string, projectID *uuid.UUID) (map[string]bool, error) {
+	out := map[string]bool{
+		ChannelInApp:    true,
+		ChannelTelegram: true,
+		ChannelPush:     true,
 	}
 
-	// Проверяем глобальную настройку.
-	pref, err := r.db.NotificationPreference.Query().
-		Where(
-			notificationpreference.UserID(userID),
-			notificationpreference.NotificationType(notifType),
-			notificationpreference.Channel(channel),
-			notificationpreference.ProjectIDIsNil(),
-		).
-		First(ctx)
-	if err == nil {
-		return pref.Enabled, nil
+	q := r.db.NotificationPreference.Query().Where(
+		notificationpreference.UserID(userID),
+		notificationpreference.NotificationType(notifType),
+	)
+	if projectID != nil {
+		q = q.Where(
+			notificationpreference.Or(
+				notificationpreference.ProjectID(*projectID),
+				notificationpreference.ProjectIDIsNil(),
+			),
+		)
+	} else {
+		q = q.Where(notificationpreference.ProjectIDIsNil())
 	}
-	if ent.IsNotFound(err) {
-		return true, nil // По умолчанию включено.
+
+	rows, err := q.All(ctx)
+	if err != nil {
+		return nil, err
 	}
-	return false, err
+
+	// Глобальные сначала, затем project override.
+	for _, pref := range rows {
+		if pref.ProjectID == nil {
+			out[pref.Channel] = pref.Enabled
+		}
+	}
+	if projectID != nil {
+		for _, pref := range rows {
+			if pref.ProjectID != nil && *pref.ProjectID == *projectID {
+				out[pref.Channel] = pref.Enabled
+			}
+		}
+	}
+	return out, nil
 }
 
 // GetUserTelegram загружает поля telegram пользователя для статуса bind.
@@ -320,4 +353,78 @@ func (r *Repository) ClearUserTelegram(ctx context.Context, userID uuid.UUID) er
 		ClearTelegramID().
 		Save(ctx)
 	return err
+}
+
+// --- PushSubscriptionStore (ASN-001: CRUD для PushSender без *ent.Client) ---
+
+// ListPushSubscriptions возвращает все Web Push подписки пользователя.
+func (r *Repository) ListPushSubscriptions(ctx context.Context, userID uuid.UUID) ([]PushSub, error) {
+	rows, err := r.db.PushSubscription.Query().
+		Where(pushsubscription.UserID(userID)).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]PushSub, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, pushSubFromEnt(row))
+	}
+	return out, nil
+}
+
+// DeletePushSubscription удаляет подписку по ID (мёртвые/unsafe endpoints).
+func (r *Repository) DeletePushSubscription(ctx context.Context, id uuid.UUID) error {
+	return r.db.PushSubscription.DeleteOneID(id).Exec(ctx)
+}
+
+// UpdateOwnPushSubscription обновляет ключи своей подписки (A2-005: UserID в Where).
+func (r *Repository) UpdateOwnPushSubscription(ctx context.Context, userID uuid.UUID, endpoint, p256dhKey, authKey, userAgent string) (int, error) {
+	return r.db.PushSubscription.Update().
+		Where(
+			pushsubscription.Endpoint(endpoint),
+			pushsubscription.UserID(userID),
+		).
+		SetP256dhKey(p256dhKey).
+		SetAuthKey(authKey).
+		SetUserAgent(userAgent).
+		Save(ctx)
+}
+
+// PushEndpointExists проверяет, занят ли endpoint любой подпиской.
+func (r *Repository) PushEndpointExists(ctx context.Context, endpoint string) (bool, error) {
+	return r.db.PushSubscription.Query().
+		Where(pushsubscription.Endpoint(endpoint)).
+		Exist(ctx)
+}
+
+// CreatePushSubscription создаёт новую Web Push подписку.
+func (r *Repository) CreatePushSubscription(ctx context.Context, userID uuid.UUID, endpoint, p256dhKey, authKey, userAgent string) error {
+	_, err := r.db.PushSubscription.Create().
+		SetUserID(userID).
+		SetEndpoint(endpoint).
+		SetP256dhKey(p256dhKey).
+		SetAuthKey(authKey).
+		SetUserAgent(userAgent).
+		Save(ctx)
+	return err
+}
+
+// DeleteOwnPushSubscription удаляет подписку caller'а по endpoint (A2-005).
+func (r *Repository) DeleteOwnPushSubscription(ctx context.Context, userID uuid.UUID, endpoint string) (int, error) {
+	return r.db.PushSubscription.Delete().
+		Where(
+			pushsubscription.Endpoint(endpoint),
+			pushsubscription.UserID(userID),
+		).
+		Exec(ctx)
+}
+
+func pushSubFromEnt(row *ent.PushSubscription) PushSub {
+	return PushSub{
+		ID:        row.ID,
+		UserID:    row.UserID,
+		Endpoint:  row.Endpoint,
+		P256dhKey: row.P256dhKey,
+		AuthKey:   row.AuthKey,
+	}
 }

@@ -86,12 +86,16 @@ func (h *Handler) ListTestCases(c fiber.Ctx) error {
 // @Failure 404 {object} apperr.AppError
 // @Router /api/projects/{projectId}/tms/cases/{caseKey} [get]
 func (h *Handler) GetTestCase(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
 	caseKey := parseCaseKey(c)
 	if caseKey == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "case key обязателен")
 	}
 
-	resp, err := h.service.GetTestCase(c.Context(), caseKey)
+	resp, err := h.service.GetTestCase(c.Context(), projectID, caseKey)
 	if err != nil {
 		return err
 	}
@@ -111,6 +115,10 @@ func (h *Handler) GetTestCase(c fiber.Ctx) error {
 // @Failure 404 {object} apperr.AppError
 // @Router /api/projects/{projectId}/tms/cases/{caseKey} [put]
 func (h *Handler) UpdateTestCase(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
 	caseKey := parseCaseKey(c)
 	if caseKey == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "case key обязателен")
@@ -125,7 +133,7 @@ func (h *Handler) UpdateTestCase(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
-	resp, err := h.service.UpdateTestCase(c.Context(), caseKey, userID, req)
+	resp, err := h.service.UpdateTestCase(c.Context(), projectID, caseKey, userID, req)
 	if err != nil {
 		return err
 	}
@@ -142,12 +150,16 @@ func (h *Handler) UpdateTestCase(c fiber.Ctx) error {
 // @Failure 404 {object} apperr.AppError
 // @Router /api/projects/{projectId}/tms/cases/{caseKey} [delete]
 func (h *Handler) DeleteTestCase(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
 	caseKey := parseCaseKey(c)
 	if caseKey == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "case key обязателен")
 	}
 
-	if err := h.service.DeleteTestCase(c.Context(), caseKey); err != nil {
+	if err := h.service.DeleteTestCase(c.Context(), projectID, caseKey); err != nil {
 		return err
 	}
 
@@ -167,12 +179,16 @@ func (h *Handler) DeleteTestCase(c fiber.Ctx) error {
 // @Success 200 {array} TestCaseVersionResponse
 // @Router /api/projects/{projectId}/tms/cases/{caseKey}/versions [get]
 func (h *Handler) ListTestCaseVersions(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
 	caseKey := parseCaseKey(c)
 	if caseKey == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "case key обязателен")
 	}
 
-	resp, err := h.service.ListTestCaseVersions(c.Context(), caseKey)
+	resp, err := h.service.ListTestCaseVersions(c.Context(), projectID, caseKey)
 	if err != nil {
 		return err
 	}
@@ -191,6 +207,10 @@ func (h *Handler) ListTestCaseVersions(c fiber.Ctx) error {
 // @Failure 404 {object} apperr.AppError
 // @Router /api/projects/{projectId}/tms/cases/{caseKey}/rollback/{versionId} [post]
 func (h *Handler) RollbackTestCase(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
 	caseKey := parseCaseKey(c)
 	if caseKey == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "case key обязателен")
@@ -204,7 +224,7 @@ func (h *Handler) RollbackTestCase(c fiber.Ctx) error {
 		return err
 	}
 
-	resp, err := h.service.RollbackTestCase(c.Context(), caseKey, versionID, userID)
+	resp, err := h.service.RollbackTestCase(c.Context(), projectID, caseKey, versionID, userID)
 	if err != nil {
 		return err
 	}
@@ -226,6 +246,10 @@ func (h *Handler) RollbackTestCase(c fiber.Ctx) error {
 // @Success 204
 // @Router /api/projects/{projectId}/tms/cases/{caseKey}/links [post]
 func (h *Handler) LinkTestCaseToIssue(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
 	caseKey := parseCaseKey(c)
 	if caseKey == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "case key обязателен")
@@ -241,7 +265,7 @@ func (h *Handler) LinkTestCaseToIssue(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "некорректный issue_id")
 	}
 
-	if err := h.service.LinkTestCaseToIssue(c.Context(), caseKey, issueID); err != nil {
+	if err := h.service.LinkTestCaseToIssue(c.Context(), projectID, caseKey, issueID); err != nil {
 		return err
 	}
 
@@ -257,6 +281,10 @@ func (h *Handler) LinkTestCaseToIssue(c fiber.Ctx) error {
 // @Success 204
 // @Router /api/projects/{projectId}/tms/cases/{caseKey}/links/{issueId} [delete]
 func (h *Handler) UnlinkTestCaseFromIssue(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
 	caseKey := parseCaseKey(c)
 	if caseKey == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "case key обязателен")
@@ -266,7 +294,7 @@ func (h *Handler) UnlinkTestCaseFromIssue(c fiber.Ctx) error {
 		return err
 	}
 
-	if err := h.service.UnlinkTestCaseFromIssue(c.Context(), caseKey, issueID); err != nil {
+	if err := h.service.UnlinkTestCaseFromIssue(c.Context(), projectID, caseKey, issueID); err != nil {
 		return err
 	}
 
@@ -282,12 +310,16 @@ func (h *Handler) UnlinkTestCaseFromIssue(c fiber.Ctx) error {
 // @Success 200 {array} IssueBriefResponse
 // @Router /api/projects/{projectId}/tms/cases/{caseKey}/links [get]
 func (h *Handler) GetTestCaseLinks(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
 	caseKey := parseCaseKey(c)
 	if caseKey == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "case key обязателен")
 	}
 
-	resp, err := h.service.GetTestCaseLinks(c.Context(), caseKey)
+	resp, err := h.service.GetTestCaseLinks(c.Context(), projectID, caseKey)
 	if err != nil {
 		return err
 	}
@@ -312,6 +344,10 @@ func (h *Handler) CreateBugFromResult(c fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
+	runID, err := httputil.ParseUUIDParam(c, "runId")
+	if err != nil {
+		return err
+	}
 	resultID, err := httputil.ParseUUIDParam(c, "resultId")
 	if err != nil {
 		return err
@@ -326,7 +362,8 @@ func (h *Handler) CreateBugFromResult(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
-	resp, err := h.service.CreateBugFromFailedResult(c.Context(), projectID, userID, resultID, req)
+	// A2W2-1-001: URL :runId обязателен — result должен принадлежать именно этому прогону.
+	resp, err := h.service.CreateBugFromFailedResult(c.Context(), projectID, runID, userID, resultID, req)
 	if err != nil {
 		return err
 	}

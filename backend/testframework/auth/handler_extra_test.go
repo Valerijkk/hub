@@ -18,7 +18,8 @@ import (
 	"github.com/valerii/hub/backend/ent/user"
 )
 
-// TestHandler_ListSessions_MarksCurrent проверяет HTTP-слой: HTTP-обработчик список sessions marks current.
+// TestHandler_ListSessions_MarksCurrent проверяет HTTP-слой: ровно одна сессия
+// с is_current=true и её id совпадает с sid из JWT access token (A2W6-A1-004).
 func TestHandler_ListSessions_MarksCurrent(t *testing.T) {
 	h, svc, _, magic := newHandlerTestEnv(t)
 	ctx := t.Context()
@@ -28,6 +29,10 @@ func TestHandler_ListSessions_MarksCurrent(t *testing.T) {
 	pair, err := svc.LoginWithMagicLink(ctx, email, code, "", "browser", "127.0.0.1")
 	require.NoError(t, err)
 
+	claims, err := svc.Sessions.ParseAccessToken(pair.AccessToken)
+	require.NoError(t, err)
+	require.NotEmpty(t, claims.SessionID)
+
 	app := fiber.New()
 	app.Get("/auth/sessions", h.ListSessions, auth.RequireAuth(svc))
 
@@ -36,7 +41,22 @@ func TestHandler_ListSessions_MarksCurrent(t *testing.T) {
 	resp, err := app.Test(req, 5*time.Second)
 	require.NoError(t, err)
 	defer resp.Body.Close()
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var sessions []auth.SessionResponse
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&sessions))
+	require.NotEmpty(t, sessions)
+
+	var currentCount int
+	var currentID string
+	for _, s := range sessions {
+		if s.IsCurrent {
+			currentCount++
+			currentID = s.ID
+		}
+	}
+	require.Equal(t, 1, currentCount, "ровно одна сессия должна быть is_current")
+	assert.Equal(t, claims.SessionID, currentID)
 }
 
 // TestHandler_GetRegistrationMode_Unauthenticated проверяет HTTP-слой: HTTP-обработчик получение регистрация mode unauthenticated.

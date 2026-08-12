@@ -29,6 +29,8 @@ export interface TaskSummary {
 	title: string;
 	status: string;
 	priority: number;
+	/** UUID проекта — обязателен для Link на issue (A3W9-2-002/003). */
+	project_id: string;
 	due_date?: string;
 }
 
@@ -143,5 +145,18 @@ export function saveLayout(
 		dashboard_type: dashboardType,
 		project_id: projectId,
 		items,
+	});
+}
+
+/** Список пресетов шаблонов раскладки (GET /dashboard/templates). */
+export function listDashboardTemplates() {
+	return api.get<Record<string, LayoutItem[]>>("/dashboard/templates");
+}
+
+/** Применить шаблон к проектному дашборду (POST /dashboard/templates/apply). */
+export function applyDashboardTemplate(projectId: string, template: string) {
+	return api.post<void>("/dashboard/templates/apply", {
+		project_id: projectId,
+		template,
 	});
 }

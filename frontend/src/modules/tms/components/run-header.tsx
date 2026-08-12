@@ -59,6 +59,8 @@ interface RunHeaderProps {
 	isStarting: boolean;
 	isCompleting: boolean;
 	isReopening: boolean;
+	/** false = скрыть Start/Complete/Reopen/Add cases (viewer/guest, P2-FE-16). */
+	canMutate?: boolean;
 }
 
 /** Заголовок прогона тестов: breadcrumb, название, статус, прогресс-бар, кнопки управления. */
@@ -72,6 +74,7 @@ export function RunHeader({
 	isStarting,
 	isCompleting,
 	isReopening,
+	canMutate = true,
 }: RunHeaderProps) {
 	// biome-ignore lint/style/noNonNullAssertion: RUN_STATUS_CONFIG.created is always defined
 	const statusCfg = (RUN_STATUS_CONFIG[run.status] ??
@@ -186,91 +189,93 @@ export function RunHeader({
 					)}
 				</div>
 
-				<div className="flex gap-2 shrink-0">
-					{run.status === "created" && (
-						<>
+				{canMutate ? (
+					<div className="flex gap-2 shrink-0">
+						{run.status === "created" && (
+							<>
+								<Button
+									variant="outline"
+									size="sm"
+									className="h-8"
+									onClick={onAddCases}
+								>
+									<svg
+										aria-hidden="true"
+										className="mr-1 h-3.5 w-3.5"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+										strokeWidth={2}
+									>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											d="M12 4v16m8-8H4"
+										/>
+									</svg>
+									Добавить кейсы
+								</Button>
+								<Button
+									size="sm"
+									className="h-8 gradient-tms text-white"
+									disabled={isStarting || (run.results ?? []).length === 0}
+									onClick={onStart}
+								>
+									<svg
+										aria-hidden="true"
+										className="mr-1 h-3.5 w-3.5"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+										strokeWidth={2}
+									>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+										/>
+									</svg>
+									Запустить
+								</Button>
+							</>
+						)}
+						{run.status === "in_progress" && (
+							<Button
+								size="sm"
+								className="h-8"
+								disabled={isCompleting}
+								onClick={onComplete}
+							>
+								<svg
+									aria-hidden="true"
+									className="mr-1 h-3.5 w-3.5"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									strokeWidth={2}
+								>
+									<path
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										d="M5 13l4 4L19 7"
+									/>
+								</svg>
+								Завершить
+							</Button>
+						)}
+						{(run.status === "completed" || run.status === "aborted") && (
 							<Button
 								variant="outline"
 								size="sm"
 								className="h-8"
-								onClick={onAddCases}
+								disabled={isReopening}
+								onClick={onReopen}
 							>
-								<svg
-									aria-hidden="true"
-									className="mr-1 h-3.5 w-3.5"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-									strokeWidth={2}
-								>
-									<path
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										d="M12 4v16m8-8H4"
-									/>
-								</svg>
-								Добавить кейсы
+								Переоткрыть
 							</Button>
-							<Button
-								size="sm"
-								className="h-8 gradient-tms text-white"
-								disabled={isStarting || (run.results ?? []).length === 0}
-								onClick={onStart}
-							>
-								<svg
-									aria-hidden="true"
-									className="mr-1 h-3.5 w-3.5"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-									strokeWidth={2}
-								>
-									<path
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
-									/>
-								</svg>
-								Запустить
-							</Button>
-						</>
-					)}
-					{run.status === "in_progress" && (
-						<Button
-							size="sm"
-							className="h-8"
-							disabled={isCompleting}
-							onClick={onComplete}
-						>
-							<svg
-								aria-hidden="true"
-								className="mr-1 h-3.5 w-3.5"
-								fill="none"
-								viewBox="0 0 24 24"
-								stroke="currentColor"
-								strokeWidth={2}
-							>
-								<path
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									d="M5 13l4 4L19 7"
-								/>
-							</svg>
-							Завершить
-						</Button>
-					)}
-					{(run.status === "completed" || run.status === "aborted") && (
-						<Button
-							variant="outline"
-							size="sm"
-							className="h-8"
-							disabled={isReopening}
-							onClick={onReopen}
-						>
-							Переоткрыть
-						</Button>
-					)}
-				</div>
+						)}
+					</div>
+				) : null}
 			</div>
 		</>
 	);

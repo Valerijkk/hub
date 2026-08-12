@@ -19,6 +19,9 @@ var (
 	ErrVersionConflict = errors.New("news post version conflict")
 	ErrSelfKudo        = errors.New("cannot send kudos to yourself")
 	ErrInvalidKudo     = errors.New("invalid kudos input")
+	ErrAlreadyVoted    = errors.New("already voted in news poll")
+	ErrPollClosed      = errors.New("news poll is closed")
+	ErrPollHasVotes    = errors.New("cannot edit poll options after votes")
 )
 
 const unassignedDepartment = "Без отдела"
@@ -101,12 +104,15 @@ func (s *Service) GetNews(ctx context.Context, userID, id uuid.UUID, adminView b
 	return &resp, nil
 }
 
-// CreateNews создаёт новость (admin).
+// CreateNews создаёт новость (admin), опционально с опросом (FR-INTR-01).
 func (s *Service) CreateNews(ctx context.Context, userID uuid.UUID, req CreateNewsRequest) (*NewsPostResponse, error) {
 	if err := s.requireAdmin(ctx, userID); err != nil {
 		return nil, err
 	}
 	if err := validateNewsInput(req.Title, req.Body); err != nil {
+		return nil, err
+	}
+	if err := validatePollPayload(req.Poll); err != nil {
 		return nil, err
 	}
 	post, err := s.repo.CreateNewsPost(ctx, userID, req)
@@ -118,6 +124,13 @@ func (s *Service) CreateNews(ctx context.Context, userID uuid.UUID, req CreateNe
 		return nil, fmt.Errorf("reload news: %w", err)
 	}
 	resp := toNewsPostResponse(post)
+	if req.Poll != nil {
+		pollResp, err := s.GetNewsPoll(ctx, userID, post.ID)
+		if err != nil {
+			return nil, fmt.Errorf("load created poll: %w", err)
+		}
+		resp.Poll = pollResp
+	}
 	return &resp, nil
 }
 
@@ -126,15 +139,16 @@ func (s *Service) UpdateNews(ctx context.Context, userID, id uuid.UUID, req Upda
 	if err := s.requireAdmin(ctx, userID); err != nil {
 		return nil, err
 	}
+	// TASK-095 / ADR-ENT-VERSION-MIXIN: version обязателен (400); VersionEQ в repo.
+	if req.Version < 1 {
+		return nil, ErrInvalidInput
+	}
 	current, err := s.repo.GetNewsPost(ctx, id)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, ErrNotFound
 		}
 		return nil, fmt.Errorf("get news for update: %w", err)
-	}
-	if req.Version > 0 && current.Version != req.Version {
-		return nil, ErrVersionConflict
 	}
 	if req.Title != nil || req.Body != nil {
 		title := current.Title
@@ -152,7 +166,7 @@ func (s *Service) UpdateNews(ctx context.Context, userID, id uuid.UUID, req Upda
 	post, err := s.repo.UpdateNewsPost(ctx, id, req)
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return nil, ErrNotFound
+			return nil, ErrVersionConflict
 		}
 		return nil, fmt.Errorf("update news: %w", err)
 	}
@@ -164,12 +178,20 @@ func (s *Service) UpdateNews(ctx context.Context, userID, id uuid.UUID, req Upda
 	return &resp, nil
 }
 
-// DeleteNews — мягкое удаление (admin).
+// DeleteNews — мягкое удаление: admin любой пост, автор — свой (FR-INTR-07).
+// Опрос/голоса скрываются вместе с постом (deleted_at); 30д retention без изменений.
 func (s *Service) DeleteNews(ctx context.Context, userID, id uuid.UUID) error {
-	if err := s.requireAdmin(ctx, userID); err != nil {
+	post, err := s.repo.GetNewsPost(ctx, id)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return ErrNotFound
+		}
+		return fmt.Errorf("get news for delete: %w", err)
+	}
+	if err := s.requireAuthorOrAdmin(ctx, userID, post); err != nil {
 		return err
 	}
-	if err := s.repo.SoftDeleteNewsPost(ctx, id); err != nil {
+	if err := s.repo.SoftDeleteNewsPost(ctx, id, userID); err != nil {
 		if ent.IsNotFound(err) {
 			return ErrNotFound
 		}

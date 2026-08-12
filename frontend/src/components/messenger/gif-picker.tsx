@@ -146,6 +146,14 @@ export function GifPicker({ onSelect }: GifPickerProps) {
 	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
 
+	// Очистка debounce при unmount — иначе setState после закрытия (W9-A3-006).
+	useEffect(
+		() => () => {
+			if (debounceRef.current) clearTimeout(debounceRef.current);
+		},
+		[],
+	);
+
 	/** При открытии поповера -- загружаем trending. */
 	const handleOpenChange = useCallback(
 		(isOpen: boolean) => {
@@ -238,6 +246,7 @@ export function GifPicker({ onSelect }: GifPickerProps) {
 							value={query}
 							onChange={(e) => handleSearchInput(e.target.value)}
 							placeholder="Поиск GIF..."
+							aria-label="Поиск GIF"
 							className={cn(
 								"w-full rounded-lg border border-input bg-base px-3 py-2 text-sm",
 								"placeholder:text-t2/50",

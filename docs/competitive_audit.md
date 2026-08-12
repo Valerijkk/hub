@@ -1,7 +1,7 @@
 # Hub — Конкурентный аудит и backlog фич
 
-> **Обновлено:** 2026-06-23  
-> **Связанные документы:** [competitive_analysis_2026.md](./competitive_analysis_2026.md) · [user_needs_analysis_2026.md](./user_needs_analysis_2026.md) · [.planning/specs/PLATFORM-VISION-v4.md](../.planning/specs/PLATFORM-VISION-v4.md)  
+> **Обновлено:** 2026-07-29 (TASK-183 C-W19 inventory/AGENTS/spec drift) · исходный снимок позиции 2026-06-23  
+> **Связанные документы:** [competitive_analysis_2026.md](./competitive_analysis_2026.md) · [user_needs_analysis_2026.md](./user_needs_analysis_2026.md) · [.planning/decisions/specs/PLATFORM-VISION-v4.md](../.planning/decisions/specs/PLATFORM-VISION-v4.md)  
 > **Цель:** best practices от лидеров рынка + приоритизированный backlog для Hub v2.5–v4.5+.
 
 ---
@@ -15,11 +15,11 @@ Hub — **self-hosted corporate super-app** для команд 10–50 чело
 | Milestone v4 Super-app | ✅ Phases 39–58 (2026-06-25) |
 | Milestone v2.5 Trust / v2.6 Automate / v3.0 AI | ✅ Phases 15–19 |
 | Wave C final audit FA-01–FA-12 | ✅ (кроме FA-06 manual) |
-| Покрытие backend (`internal/`) | **83.0%** (Wave C) |
+| Покрытие backend (`internal/`) | **83.0%** (2026-06-22 Docker baseline; Wave C) |
 | Security-critical пакеты ≥80% | **6/6** ✅ |
 | REST API endpoints | **286+** |
-| Product score (AUDIT-SCORECARD) | **93/100** |
-| Ветка | `master` · HEAD `bbdaf16` |
+| Product score (AUDIT-SCORECARD / AGENTS) | **89/100** |
+| Ветка (snapshot 2026-06-23) | `master` — конкретный SHA не фиксируем; не live tip аудита |
 | CI | ✅ green (coverage-gate, e2e-full 20 specs, lighthouse artifact) |
 
 **Стратегия:** не конкурировать с Jira в enterprise workflow; побеждать по **TCO + интеграция + self-host + RU-friendly AI** для команд с data residency.
@@ -33,7 +33,7 @@ Hub — **self-hosted corporate super-app** для команд 10–50 чело
 | Task Tracker | Jira, Linear, Asana | JQL deep, cycles, roadmap, automations | Automation UI есть (v2.6); triage inbox — polish |
 | Messenger | Slack, Discord, Teams | Threads, bots, marketplace | Bot framework ограничен (Telegram); AI v3.0 ✅ |
 | TMS | TestRail, Allure TestOps | Flaky ML, CI gates, run diff | Allure import ✅; flaky detection — partial |
-| Calls | Zoom, Meet, Discord | Breakout, noise cancel, webcams | LiveKit voice+screen ✅; webcams — Phase 16 IN |
+| Calls | Zoom, Meet, Discord | Breakout, noise cancel, webcams | LiveKit voice+screen ✅; webcams ✅ shipped (`CallControls` / LiveKit); polish — backlog |
 | Dashboards | Grafana, Datadog | Custom panels, alerting | Статичные виджеты; OBS stack ✅ (Prometheus/Loki) |
 | Corp super-app | Mighty, Bitrix24, Lark | News, HR, CRM, calendar | **v4 закрыто** — intranet, HR, CRM, bases |
 | Admin/Observability | Datadog, Sentry, Auth0 | APM, audit, ban | ✅ Audit UI + HTTP timing + OTel + Alertmanager |
@@ -96,9 +96,9 @@ Hub — **self-hosted corporate super-app** для команд 10–50 чело
 ### Must Have (production trust — в основном закрыто)
 
 1. ~~12 CRITICAL security blockers~~ — ✅ v2.0.1
-2. ~~Test coverage ≥50% overall / ≥80% security~~ — ✅ **83.0%** / **6/6 ≥80%**
+2. ~~Test coverage ≥50% overall / ≥80% security~~ — ✅ **83.0%** / **6/6 ≥80%** (2026-06-22 Docker baseline)
 3. Secret rotation в git history — ⏳ **FA-06 manual** — единственный prod-блокер
-4. ~~Vitest smoke tests auth + admin~~ — ✅ 99/99 tests
+4. ~~Vitest smoke tests auth + admin~~ — ✅ **179** files (`stages/unit/frontend-test/`, measured 2026-07-29)
 5. ~~E2E critical paths~~ — ✅ 20 Playwright specs
 6. ~~Test framework migration~~ — ✅ 488 testframework / 0 internal
 7. ~~Squash PR v2.5-trust~~ — ✅ merged PR #1 2026-06-22
@@ -106,7 +106,7 @@ Hub — **self-hosted corporate super-app** для команд 10–50 чело
 ### Should Have (v4.5 / Wave C audit — в основном закрыто)
 
 1. ~~Test framework migration~~ — ✅ TF-M01–M10 COMPLETE
-2. ~~tms/project micro-gap~~ — ✅ FA-11 (82.0%)
+2. ~~tms/project micro-gap~~ — ✅ FA-11 (82.0%, 2026-06-22 Docker baseline)
 3. **Webhook delivery log polish** — PROD-04 базово есть; admin UI depth
 4. **Flaky test detection** — PROD-02 partial
 5. **Notification digest** — backlog
@@ -124,11 +124,12 @@ Hub — **self-hosted corporate super-app** для команд 10–50 чело
 ### Won't Have (per ADR / `.cursor/rules/60-tz-constraints.mdc`)
 
 - Native mobile apps (PWA достаточно)
-- SSO/LDAP/OAuth провайдеры (до v5 ADR)
+- SSO/LDAP — реализация только после принятого `ADR-AUTH-SSO` (до ADR вход = Magic Link only)
+- OAuth-провайдеры соцсетей — out of scope
 - Multi-tenant SaaS billing
 - Multi-org на одном инстансе (v5)
 
-**IN SCOPE by phase (PO 2026-06-21):** Gantt (Phase 16), webcams in calls (Phase 16), hub-mail marketing (Phase 15.2/16), full JQL automation (Phase 17), no-code bases + accounting (v4).
+**IN SCOPE by phase (PO 2026-06-21, уточнено 2026-07-28):** Gantt UI shipped (`gantt.lazy.tsx` / `GanttChart`); webcam UI shipped (`CallControls` / LiveKit); AI Hub v3.0 shipped; hub-mail marketing / full JQL automation — остаток Phase 15.2–17; v4 bases/accounting — shipped.
 
 ---
 
@@ -151,12 +152,12 @@ Hub API → slog (JSON) → Loki (Promtail)
 
 | KPI | Target | Текущее (2026-06-23) |
 |-----|--------|----------------------|
-| Statement coverage (`internal/`) | ≥82% | **83.0%** ✅ |
+| Statement coverage (`internal/`) | ≥82% | **83.0%** ✅ (2026-06-22 Docker baseline) |
 | Security packages ≥80% | 6/6 | **6/6** ✅ |
 | Mean API latency (p95) | < 200ms | Измеряется через `duration_ms` в audit |
 | Audit coverage admin + auth | 100% | ✅ |
 | Security findings CRITICAL open | 0 | ✅ (12/12 fixed) |
-| Product score | ≥80 | **93/100** ✅ |
+| Product score | ≥80 | **89/100** ✅ |
 
 ---
 
@@ -171,4 +172,4 @@ Hub API → slog (JSON) → Loki (Promtail)
 
 ---
 
-*См. также: [FEATURE-BACKLOG-2026.md](../.planning/roadmaps/FEATURE-BACKLOG-2026.md) · [COVERAGE.md](../.planning/COVERAGE.md)*
+*См. также: [FEATURE-BACKLOG-2026.md](../.planning/archive/roadmaps/FEATURE-BACKLOG-2026.md) · [COVERAGE.md](../.planning/COVERAGE.md)*

@@ -1,174 +1,140 @@
 ---
 name: qa-gate
-description: Полный чек качества перед коммитом — lint + typecheck + unit тесты + API smoke + security scan. Запускай перед каждым PR.
+description: Founder-cutover quality gate — genuine Go/Vitest units плюс greenfield Python contract/API/integration/E2E/load, только в task-owned Docker с evidence и cleanup.
 disable-model-invocation: true
 ---
 
-# /qa-gate — Pre-commit Quality Gate
+# /qa-gate — target quality gate
 
-Запусти все проверки последовательно. Останови при первой FAIL. При FAIL — не чини сразу: примени `.cursor/skills/test-triage/SKILL.md`, затем повтори **с начала упавшего шага** (rule `56-regression-verify.mdc`, цикл до green).
+Канон: `AGENTS.md` target table, `docs/test_plan.md`,
+`.planning/active/august-2026/06-TEST-ARCHITECTURE-REBASE.md` и
+`.cursor/playbooks/testing.md`.
 
-> **Два режима:** быстрый локальный (Step 1-2, разработка) и **канонический
-> Docker `-tags hubtest`** (Step 2a, обязателен перед handoff/PR — в
-> `backend/testframework/` 499 test files на 2026-07-26, в `internal/` — 0).
+## Founder locks
 
-## Step 1: Go Build + Vet
+- На Windows host не запускать tests, validators, linters, build/vet, Vite,
+  backend/frontend processes, pytest/Playwright или Locust. Host — только
+  чтение/редактирование, Git и Docker CLI.
+- Каждый runner task-owned, имеет CPU/RAM/timeout, isolated resources и cleanup.
+- Не использовать legacy `backend/testframework/**`, static-contract Vitest,
+  TypeScript Playwright, их configs/linkers/runners как gate или fallback.
+- Исторический 82% Go coverage и row parity не gate.
+- Zero collection, unexpected skip или leaked resource = FAIL.
 
-```bash
-cd backend
-go build -tags release ./...
-go vet ./...
+До появления Phase 129 scaffold отсутствие target path/job — FAIL/NOT_READY,
+а не повод прогнать legacy suite и назвать gate green.
+
+## Target jobs
+
+| Порядок | Job | Target | Обязательность |
+|---:|---|---|---|
+| 1 | `backend-unit` | `backend/tests/{domain}/**` | PR при backend change |
+| 2 | `frontend-unit` | `frontend/tests/{domain}/**`, support | PR при frontend change |
+| 3 | `python-contract` | `testframework/tests/contract/**` | PR по contract/schema/event/source change |
+| 4 | `python-api` | `testframework/tests/api/**` | PR по public backend/BFF behavior |
+| 5 | `python-integration` | `testframework/tests/integration/**` | PR по DB/broker/storage boundary |
+| 6 | `python-e2e-smoke` | `testframework/tests/e2e/**`, marker `smoke` | PR/release gate по критическим journeys |
+| 7 | `python-e2e-full` | `testframework/tests/e2e/**`; `full` is a launcher profile, not a pytest marker | merge wave/release |
+| 8 | `python-load` | `testframework/load/**` | change-specific/nightly/manual baseline |
+
+Выбор запускаемых jobs следует changed risk и observable boundary; он не
+создаёт обязательную Pyramid/Trophy/Honeycomb ratio. Skipped job записывается
+как `NOT_APPLICABLE` с rationale, не как PASS.
+
+## Единый outer runner — обязательный gate
+
+Все восемь jobs запускаются только через один versioned PowerShell-safe Docker
+launcher из target scaffold. До появления и отдельной проверки этого launcher
+любой runtime verdict `/qa-gate` — `NOT_READY`; прямые `docker run`/`compose up`
+из документации не являются допустимой заменой.
+
+Launcher принимает `job`, `task_run`, immutable image digest и wall-clock timeout
+и обязан:
+
+1. проверить безопасный формат `task_run` и вычислить exact container/Compose/volume names;
+2. создать только `testframework/reports/<task-run>/` и owner marker с task/revision;
+3. задать CPU, RAM/swap, PID, network и read-only-source ограничения;
+4. enforce outer wall-clock deadline независимо от inner test timeout;
+5. сохранить исходный exit code и raw stdout/stderr;
+6. в безусловном `finally` остановить exact container/Compose project и удалить
+   только task-owned volumes/networks;
+7. после cleanup доказать отсутствие exact resources; cleanup failure делает job FAIL.
+
+Никакой job не пишет в общий `testframework/reports/` root. JUnit/Allure/traces
+пишутся только внутрь `/reports/<task-run>/`, смонтированного из одноимённого
+task-owned host directory.
+
+## Inner job contracts
+
+`backend-unit` выполняет build/vet и service-free genuine Go units из
+`backend/tests/**`. `frontend-unit` выполняет tsc/lint/genuine Vitest/RTL units
+из `frontend/tests/**` и build; static/source contracts запрещены. Python jobs
+используют immutable target image из `testframework/docker/**` и следующие
+entrypoints внутри test container:
+
+```text
+python-contract:     pytest -p no:cacheprovider testframework/tests/contract
+python-api:          pytest -p no:cacheprovider -m api
+python-integration:  pytest -p no:cacheprovider -m integration
+python-e2e-smoke:    pytest -p no:cacheprovider -m "e2e and smoke"
+python-e2e-full:     launcher profile `full` -> pytest -p no:cacheprovider -m e2e testframework/tests/e2e
+python-load:         python -m locust -f load/locustfile.py --headless <approved profile>
 ```
 
-## Step 2: Go Tests локально (race detector, быстрый цикл)
+Если launcher, `tests` service, profile или Locust entrypoint ещё не реализован
+target scaffold, зафиксировать `NOT_READY`. Не изобретать legacy substitute и
+не копировать внутренний command в небезопасный host-side запуск.
 
-```bash
-cd backend
-go test -race -count=1 -timeout=120s ./...
+## FAIL protocol
+
+Остановиться на первой FAIL и применить
+[`test-triage`](../test-triage/SKILL.md): сначала product behavior/docs/repro,
+затем `ROOT=code|test|infra|flaky|stop`. После исправления повторить упавший job,
+его смежные risk jobs и затем полный выбранный gate. Не менять assert/skip/retry
+ради green.
+
+## Evidence record
+
+```yaml
+source_sha: <sha>
+job: <target job>
+image: <digest or immutable tag>
+command: <exact outer and inner command>
+resources: {cpus: 2.0, memory: 4g, timeout: <value>}
+services: <profile or none>
+result: {collected: N, passed: N, failed: N, skipped: N}
+duration: <seconds>
+artifacts: testframework/reports/<task-run>/
+owner_marker: <task/revision marker URI + verified value>
+cleanup: PASS|FAIL
+triage: <root/fix or none>
 ```
 
-Expected: `ok` для всех пакетов (в основном `internal/` без бизнес-тестов — они в `testframework/`).
+`PASS` требует non-zero collection, только expected skips, exact traceability
+`task/requirement/TC`, cleanup PASS и для high-risk behavior чувствительный
+sentinel/mutation evidence. Host/legacy/self-report evidence не принимается.
 
-## Step 2a: Go Tests canonical — Docker `-tags hubtest` (обязателен перед handoff)
+## Result
 
-```bash
-docker compose -f deployments/docker-compose.test.yml up -d
-docker run --rm --network deployments_default \
-  -v "${PWD}/backend:/app" -w /app \
-  -e POSTGRES_TEST_URL="postgresql://hub:hub@postgres:5432/hub?sslmode=disable" \
-  -e MONGODB_TEST_URL="mongodb://hub:hub@mongo:27017/?authSource=admin" \
-  golang:1.25-bookworm \
-  sh -c "go test -tags hubtest -race -count=1 -timeout=600s ./testframework/..."
+```text
+QA GATE: PASS|FAIL|NOT_READY
+Jobs: backend-unit=... frontend-unit=... python-contract=... python-api=...
+      python-integration=... python-e2e-smoke=... python-e2e-full=... python-load=...
+Evidence: source SHA, images, exact commands/results/durations/artifacts
+Cleanup: containers/volumes/networks
+NOT_RUN/NOT_APPLICABLE: job + rationale
+Next: triage/remediation owner
 ```
 
-Точечный прогон одного домена (быстрее полного, для итерации на фиче — из той же Docker-сессии):
-
-```bash
-go test -tags hubtest -race -count=1 ./testframework/auth/...
-go test -tags hubtest -race -count=1 ./testframework/tracker/...
-go test -tags hubtest -race -count=1 ./testframework/bases/...
-go test -tags hubtest -race -count=1 ./testframework/tms/...
-go test -tags hubtest -race -count=1 ./testframework/messenger/...
-go test -tags hubtest -race -count=1 ./testframework/ws/...
-go test -tags hubtest -race -count=1 ./testframework/calls/...
-go test -tags hubtest -race -count=1 ./testframework/audit/...
-```
-
-Expected: `ok` для всех пакетов. Если `FAIL` — **не чинить сразу**. См. `.cursor/skills/test-triage/SKILL.md`:
-1. Воспроизвести функционал по docs
-2. Код верен → fix test; код неверен → fix code
-3. Повторить тест только после triage (домен + regression)
-
-## Step 3: TypeScript Check
-
-```bash
-cd frontend
-node scripts/link-testframework-node-modules.mjs
-npx tsc --noEmit
-```
-
-Expected: 0 errors.
-
-## Step 4: Frontend Lint
-
-```bash
-cd frontend
-npm run lint
-```
-
-## Step 5: Frontend Tests (vitest)
-
-```bash
-cd frontend
-npx vitest run
-```
-
-Точечный домен (реальные пути `testframework/stages/unit/frontend-test/domains/`):
-
-```bash
-npx vitest run testframework/stages/unit/frontend-test/domains/auth/
-npx vitest run testframework/stages/unit/frontend-test/domains/tracker/
-npx vitest run testframework/stages/unit/frontend-test/domains/tms/
-npx vitest run testframework/stages/unit/frontend-test/domains/v4/
-npx vitest run testframework/stages/unit/frontend-test/domains/ai/
-npx vitest run testframework/stages/unit/frontend-test/domains/platform/
-npx vitest run testframework/stages/unit/frontend-test/domains/admin/
-npx vitest run testframework/stages/unit/frontend-test/domains/messenger/
-npx vitest run testframework/stages/unit/frontend-test/domains/dashboard/
-```
-
-При FAIL — `.cursor/skills/test-triage/SKILL.md` (сначала UI/контракт, потом тест).
-
-## Step 6: Security Scan (secrets in staged files)
-
-```bash
-git diff --staged --name-only | xargs grep -l -E "(secret|password|devkey|api_key|token)" 2>/dev/null
-```
-
-Если нашёл файлы — проверить вручную что это не hardcoded credentials.
-
-Также проверить:
-```bash
-git diff --staged | grep -E "DEV_MODE=true|devkey: secret|livekit_api_secret"
-```
-
-## Step 7: API Smoke (если есть запущенный сервер)
-
-```bash
-curl -sf http://localhost:3000/api/health | jq .status
-```
-
-Expected: `"ok"`
-
-## Step 8: E2E smoke (CI job `e2e-smoke`, 3 spec, обязателен на PR)
-
-```bash
-npx playwright test testframework/stages/e2e/domains/auth/login.spec.ts \
-  testframework/stages/e2e/domains/auth/logout.spec.ts \
-  testframework/stages/e2e/domains/platform/health.spec.ts
-```
-
-Expected: `3 passed`.
-
-## Step 9: E2E full (CI job `e2e-full`, 9 доменов ~20 spec — перед merge волны/релизом, не на каждый PR)
-
-```bash
-npx playwright test testframework/stages/e2e/domains/
-```
-
-Домены: `auth` (login, logout, onboarding-profile), `tracker` (project-lifecycle), `tms` (tms), `messenger` (messenger), `ai` (ai-hub, automation), `admin` (admin-ai, admin-audit, admin-metrics), `navigation` (command-palette, shortcuts, navigation), `platform` (health, metrics, notifications, a11y, critical-gate), `v4` (v4-superapp).
-
-## Пример прогона для фичи в одном домене (tracker automation)
-
-```bash
-# 1. Точечный backend
-go test -tags hubtest -race -count=1 ./testframework/tracker/... -run TestAutomationEngine
-
-# 2. Полный домен backend (регрессия)
-go test -tags hubtest -race -count=1 ./testframework/tracker/...
-
-# 3. Смежный домен (automation публикует события, читает dashboard)
-go test -tags hubtest -race -count=1 ./testframework/dashboard/...
-
-# 4. Frontend, если менялся UI автоматизации
-npx vitest run testframework/stages/unit/frontend-test/domains/tracker/
-
-# 5. e2e-smoke перед PR, e2e-full перед merge волны
-```
-
-## Результат
-
-```
-✅ Step 1: build+vet — PASS
-✅ Step 2a: hubtest race (домен + full) — PASS
-✅ Step 3-5: tsc+lint+vitest — PASS
-✅ Step 6: security scan — clean
-✅ Step 8: e2e-smoke (3/3) — PASS
-❌ GATE FAILED at step N: <причина> → test-triage → fix → повтор с начала упавшего шага
-```
-
-## Связанные документы
-
-- Цикличное качество (правило + пример): `.cursor/REGULATION.md` §15-16
-- Test triage: `.cursor/skills/test-triage/SKILL.md`
-- GSD-эквивалент: `.cursor/GSD-INTEGRATION.md` §Hub slash-skills vs GSD skills
+<!-- hub.qa-routing-declaration/v1
+{"schema_version":"hub.qa-routing-declaration/v1","scenario_id":"api-health","assigned_skill":".cursor/skills/qa-gate/SKILL.md","declared_routes":["testframework/src/hub_testkit/domains/health/api.py","testframework/tests/api/health/test_health.py"],"expected_routes":["testframework/src/hub_testkit/domains/health/api.py","testframework/tests/api/health/test_health.py"],"prohibited_legacy_tokens":["testframework/api/**","testframework/core/**"]}
+-->
+<!-- hub.qa-routing-declaration/v1
+{"schema_version":"hub.qa-routing-declaration/v1","scenario_id":"integration-postgres","assigned_skill":".cursor/skills/qa-gate/SKILL.md","declared_routes":["testframework/src/hub_testkit/integration/postgres.py","testframework/tests/integration/postgres/test_transactions.py"],"expected_routes":["testframework/src/hub_testkit/integration/postgres.py","testframework/tests/integration/postgres/test_transactions.py"],"prohibited_legacy_tokens":["testframework/core/**","testframework/integration/**"]}
+-->
+<!-- hub.qa-routing-declaration/v1
+{"schema_version":"hub.qa-routing-declaration/v1","scenario_id":"e2e-login","assigned_skill":".cursor/skills/qa-gate/SKILL.md","declared_routes":["testframework/src/hub_testkit/browser/lifecycle.py","testframework/src/hub_testkit/domains/identity/ui/components/session_form.py","testframework/src/hub_testkit/domains/identity/ui/pages/login.py","testframework/tests/e2e/identity/test_login_smoke.py"],"expected_routes":["testframework/src/hub_testkit/browser/lifecycle.py","testframework/src/hub_testkit/domains/identity/ui/components/session_form.py","testframework/src/hub_testkit/domains/identity/ui/pages/login.py","testframework/tests/e2e/identity/test_login_smoke.py"],"prohibited_legacy_tokens":["testframework/core/**","testframework/e2e/**","testframework/e2e/pages/**","testframework/e2e/support/**"]}
+-->
+<!-- hub.qa-routing-declaration/v1
+{"schema_version":"hub.qa-routing-declaration/v1","scenario_id":"load-tracker","assigned_skill":".cursor/skills/qa-gate/SKILL.md","declared_routes":["testframework/load/profiles/steady.toml","testframework/load/users/tracker.py"],"expected_routes":["testframework/load/profiles/steady.toml","testframework/load/users/tracker.py"],"prohibited_legacy_tokens":["testframework/core/**"]}
+-->

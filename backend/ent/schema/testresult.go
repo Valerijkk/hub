@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// StepResult РѕРїРёСЃС‹РІР°РµС‚ СЂРµР·СѓР»СЊС‚Р°С‚ РІС‹РїРѕР»РЅРµРЅРёСЏ РѕРґРЅРѕРіРѕ С€Р°РіР° С‚РµСЃС‚-РєРµР№СЃР°.
+// StepResult описывает результат выполнения одного шага тест-кейса.
 type StepResult struct {
 	StepOrder int      `json:"step_order"`
 	Status    string   `json:"status"`
@@ -34,25 +34,25 @@ func (TestResult) Fields() []ent.Field {
 			Optional(),
 		field.JSON("step_results", []StepResult{}).
 			Optional().
-			Comment("Р РµР·СѓР»СЊС‚Р°С‚С‹ РІС‹РїРѕР»РЅРµРЅРёСЏ С€Р°РіРѕРІ"),
+			Comment("Результаты выполнения шагов"),
 		field.Int64("duration_ms").
 			Optional().
 			Nillable().
-			Comment("Р”Р»РёС‚РµР»СЊРЅРѕСЃС‚СЊ РІС‹РїРѕР»РЅРµРЅРёСЏ РІ РјРёР»Р»РёСЃРµРєСѓРЅРґР°С…"),
+			Comment("Длительность выполнения в миллисекундах"),
 		field.String("allure_uuid").
 			Optional().
-			Comment("UUID СЂРµР·СѓР»СЊС‚Р°С‚Р° РёР· Allure"),
+			Comment("UUID результата из Allure"),
 		field.Text("error_message").
 			Optional(),
 		field.Text("error_trace").
 			Optional(),
 		field.Bool("is_flaky").
 			Default(false).
-			Comment("РќРµСЃС‚Р°Р±РёР»СЊРЅС‹Р№ С‚РµСЃС‚"),
+			Comment("Нестабильный тест"),
 		field.Enum("match_strategy").
 			Values("annotation", "fullname", "classmethod", "unmapped").
 			Default("unmapped").
-			Comment("РЎС‚СЂР°С‚РµРіРёСЏ РїСЂРёРІСЏР·РєРё Рє С‚РµСЃС‚-РєРµР№СЃСѓ"),
+			Comment("Стратегия привязки к тест-кейсу"),
 		field.Time("started_at").
 			Optional().
 			Nillable(),

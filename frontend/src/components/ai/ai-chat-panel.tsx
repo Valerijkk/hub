@@ -201,6 +201,7 @@ export function AIChatPanel() {
 				"border-l border-b1 bg-base shadow-[var(--sh3)] animate-[eu_300ms_var(--spring)]",
 			)}
 			role="dialog"
+			aria-modal="true"
 			aria-label="AI Chat"
 		>
 			<div className="flex items-center gap-2 border-b border-b1 px-4 py-3">

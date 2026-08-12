@@ -5,19 +5,35 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/component"
 	"github.com/valerii/hub/backend/ent/environment"
+	"github.com/valerii/hub/backend/ent/filemetadata"
 	entissue "github.com/valerii/hub/backend/ent/issue"
+	"github.com/valerii/hub/backend/ent/label"
+	"github.com/valerii/hub/backend/ent/predicate"
 	entproject "github.com/valerii/hub/backend/ent/project"
+	"github.com/valerii/hub/backend/ent/projectmember"
 	"github.com/valerii/hub/backend/ent/testcase"
 	"github.com/valerii/hub/backend/ent/testcaseversion"
 	"github.com/valerii/hub/backend/ent/testresult"
 	"github.com/valerii/hub/backend/ent/testrun"
 	"github.com/valerii/hub/backend/ent/testsuite"
+	"github.com/valerii/hub/backend/ent/user"
 	"github.com/valerii/hub/backend/ent/workflowstatus"
+	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
+
+// testCaseProjectIDEQ — A8-002 query rewrite: FK column `project_test_cases`
+// instead of EXISTS via HasProjectWith. Composite index (project_test_cases,
+// deleted_at) is on TestCase schema (A8-002 FIXED).
+func testCaseProjectIDEQ(projectID uuid.UUID) predicate.TestCase {
+	return predicate.TestCase(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(testcase.ProjectColumn), projectID))
+	})
+}
 
 // EntRepository реализует интерфейс Repository с помощью Ent ORM.
 type EntRepository struct {
@@ -28,6 +44,19 @@ type EntRepository struct {
 func NewEntRepository(client *ent.Client) *EntRepository {
 	return &EntRepository{client: client}
 }
+
+// Hard caps для unbounded All / InsertMany (A2W2-3 / A3W2-3-001).
+// var (не const): hubtest временно снижает лимит для mutation на .Limit(...).
+var (
+	maxListTestResults        = 10000
+	maxListSuites             = 2000
+	maxListComponents         = 1000
+	maxListTestCaseVersions   = 500
+	maxListEnvironments       = 500
+	maxListProjectIssues      = 10000
+	maxBatchCreateTestResults = 5000
+	maxMongoAllureResults     = 5000
+)
 
 // ---------------------------------------------------------------------------
 // Счётчики
@@ -146,10 +175,14 @@ func (r *EntRepository) GetTestCase(ctx context.Context, id uuid.UUID) (*ent.Tes
 		Only(ctx)
 }
 
-// FindTestCaseByKey возвращает тест-кейс по ключу (например "HUB-TC-42").
-func (r *EntRepository) FindTestCaseByKey(ctx context.Context, caseKey string) (*ent.TestCase, error) {
+// FindTestCaseByKey возвращает тест-кейс по ключу внутри projectID (A3-003 IDOR guard).
+func (r *EntRepository) FindTestCaseByKey(ctx context.Context, projectID uuid.UUID, caseKey string) (*ent.TestCase, error) {
 	return r.client.TestCase.Query().
-		Where(testcase.CaseKey(caseKey), testcase.DeletedAtIsNil()).
+		Where(
+			testcase.CaseKey(caseKey),
+			testcase.DeletedAtIsNil(),
+			testcase.HasProjectWith(entproject.ID(projectID)),
+		).
 		WithSuite().
 		WithCreatedBy().
 		WithLabels().
@@ -159,10 +192,12 @@ func (r *EntRepository) FindTestCaseByKey(ctx context.Context, caseKey string) (
 }
 
 // FindTestCaseByExternalID возвращает тест-кейс по внешнему ID аннотации.
+// W2-A3-005: DeletedAtIsNil — Allure matcher не должен цеплять TC из корзины.
 func (r *EntRepository) FindTestCaseByExternalID(ctx context.Context, projectID uuid.UUID, externalID string) (*ent.TestCase, error) {
 	return r.client.TestCase.Query().
 		Where(
 			testcase.ExternalID(externalID),
+			testcase.DeletedAtIsNil(),
 			testcase.HasProjectWith(entproject.ID(projectID)),
 		).
 		Only(ctx)
@@ -173,6 +208,7 @@ func (r *EntRepository) FindTestCaseByAutomationID(ctx context.Context, projectI
 	return r.client.TestCase.Query().
 		Where(
 			testcase.AutomationID(automationID),
+			testcase.DeletedAtIsNil(),
 			testcase.HasProjectWith(entproject.ID(projectID)),
 		).
 		Only(ctx)
@@ -183,6 +219,7 @@ func (r *EntRepository) FindTestCaseByFullName(ctx context.Context, projectID uu
 	return r.client.TestCase.Query().
 		Where(
 			testcase.FullName(fullName),
+			testcase.DeletedAtIsNil(),
 			testcase.HasProjectWith(entproject.ID(projectID)),
 		).
 		Only(ctx)
@@ -194,6 +231,7 @@ func (r *EntRepository) FindTestCaseByClassMethod(ctx context.Context, projectID
 		Where(
 			testcase.ClassName(className),
 			testcase.MethodName(methodName),
+			testcase.DeletedAtIsNil(),
 			testcase.HasProjectWith(entproject.ID(projectID)),
 		).
 		Only(ctx)
@@ -202,7 +240,7 @@ func (r *EntRepository) FindTestCaseByClassMethod(ctx context.Context, projectID
 // ListTestCases возвращает пагинированный список тест-кейсов с фильтрацией.
 func (r *EntRepository) ListTestCases(ctx context.Context, projectID uuid.UUID, params ListTestCasesParams) ([]*ent.TestCase, int, error) {
 	query := r.client.TestCase.Query().
-		Where(testcase.HasProjectWith(entproject.ID(projectID)), testcase.DeletedAtIsNil())
+		Where(testCaseProjectIDEQ(projectID), testcase.DeletedAtIsNil())
 
 	if params.SuiteID != nil {
 		query = query.Where(testcase.HasSuiteWith(testsuite.ID(*params.SuiteID)))
@@ -243,9 +281,16 @@ func (r *EntRepository) ListTestCases(ctx context.Context, projectID uuid.UUID, 
 	return items, total, nil
 }
 
-// UpdateTestCase обновляет тест-кейс.
+// UpdateTestCase обновляет тест-кейс с optimistic lock по Version (A3-004).
+// W2-A3-004: DeletedAtIsNil — нельзя мутировать TC в корзине.
 func (r *EntRepository) UpdateTestCase(ctx context.Context, id uuid.UUID, input UpdateTestCaseInput) (*ent.TestCase, error) {
-	update := r.client.TestCase.UpdateOneID(id)
+	update := r.client.TestCase.Update().
+		Where(
+			testcase.IDEQ(id),
+			testcase.VersionEQ(input.Version),
+			testcase.DeletedAtIsNil(),
+		).
+		AddVersion(1)
 
 	if input.Title != nil {
 		update = update.SetTitle(*input.Title)
@@ -299,22 +344,102 @@ func (r *EntRepository) UpdateTestCase(ctx context.Context, id uuid.UUID, input 
 		update = update.ClearComponents().AddComponentIDs(*input.ComponentIDs...)
 	}
 
-	// Инкрементируем версию
-	update = update.AddVersion(1)
-
-	_, err := update.Save(ctx)
+	affected, err := update.Save(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("обновление тест-кейса: %w", err)
+	}
+	if affected == 0 {
+		alive, existErr := r.client.TestCase.Query().
+			Where(testcase.IDEQ(id), testcase.DeletedAtIsNil()).
+			Exist(ctx)
+		if existErr != nil {
+			return nil, fmt.Errorf("проверка тест-кейса после conflict: %w", existErr)
+		}
+		if !alive {
+			return nil, apperrors.NewNotFound("тест-кейс не найден")
+		}
+		return nil, apperrors.NewConflict("version mismatch: тест-кейс был изменён другим пользователем")
 	}
 
 	return r.GetTestCase(ctx, id)
 }
 
-// DeleteTestCase выполняет мягкое удаление тест-кейса (устанавливает deleted_at).
-func (r *EntRepository) DeleteTestCase(ctx context.Context, id uuid.UUID) error {
-	return r.client.TestCase.UpdateOneID(id).
+// DeleteTestCase выполняет мягкое удаление тест-кейса внутри projectID (A2W2-3-003 / W2-A3-009).
+// Mutation: снять HasProjectWith / projectID → soft-delete чужого кейса.
+func (r *EntRepository) DeleteTestCase(ctx context.Context, projectID, id uuid.UUID) error {
+	affected, err := r.client.TestCase.Update().
+		Where(
+			testcase.IDEQ(id),
+			testcase.DeletedAtIsNil(),
+			testCaseProjectIDEQ(projectID),
+		).
 		SetDeletedAt(time.Now().UTC()).
-		Exec(ctx)
+		Save(ctx)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return &ent.NotFoundError{}
+	}
+	return nil
+}
+
+// CountTestCasesInProject считает тест-кейсы из ids внутри projectID (P1-BE-12).
+func (r *EntRepository) CountTestCasesInProject(ctx context.Context, projectID uuid.UUID, ids []uuid.UUID) (int, error) {
+	if len(ids) == 0 {
+		return 0, nil
+	}
+	return r.client.TestCase.Query().
+		Where(
+			testcase.IDIn(ids...),
+			testCaseProjectIDEQ(projectID),
+			testcase.DeletedAtIsNil(),
+		).
+		Count(ctx)
+}
+
+// CountLabelsInProject считает метки из ids внутри projectID (P1-BE-12).
+// A3W2-3-002: DeletedAtIsNil — soft-deleted labels не входят в count.
+func (r *EntRepository) CountLabelsInProject(ctx context.Context, projectID uuid.UUID, ids []uuid.UUID) (int, error) {
+	if len(ids) == 0 {
+		return 0, nil
+	}
+	return r.client.Label.Query().
+		Where(
+			label.IDIn(ids...),
+			label.DeletedAtIsNil(),
+			label.HasProjectWith(entproject.ID(projectID)),
+		).
+		Count(ctx)
+}
+
+// CountProjectMembers считает, сколько из userIDs — участники projectID (A3W2-2-001).
+// Mutation: убрать HasProjectWith / HasUserWith → non-member проходит AssignTesters.
+func (r *EntRepository) CountProjectMembers(ctx context.Context, projectID uuid.UUID, userIDs []uuid.UUID) (int, error) {
+	if len(userIDs) == 0 {
+		return 0, nil
+	}
+	return r.client.ProjectMember.Query().
+		Where(
+			projectmember.HasProjectWith(entproject.IDEQ(projectID)),
+			projectmember.HasUserWith(user.IDIn(userIDs...)),
+		).
+		Count(ctx)
+}
+
+// CountFilesInProject считает файлы из ids внутри projectID (A3W2-2-002).
+// Mutation: убрать HasProjectWith → чужой FileID проходит ExecuteTestResult.
+func (r *EntRepository) CountFilesInProject(ctx context.Context, projectID uuid.UUID, ids []uuid.UUID) (int, error) {
+	if len(ids) == 0 {
+		return 0, nil
+	}
+	return r.client.FileMetadata.Query().
+		Where(
+			filemetadata.IDIn(ids...),
+			filemetadata.DeletedAtIsNil(),
+			filemetadata.HasProjectWith(entproject.IDEQ(projectID)),
+		).
+		Count(ctx)
 }
 
 // ---------------------------------------------------------------------------
@@ -336,19 +461,23 @@ func (r *EntRepository) CreateTestCaseVersion(ctx context.Context, testCaseID, u
 	return create.Save(ctx)
 }
 
-// ListTestCaseVersions возвращает все версии тест-кейса.
+// ListTestCaseVersions возвращает все версии тест-кейса (A2W2-3-002: hard cap).
 func (r *EntRepository) ListTestCaseVersions(ctx context.Context, testCaseID uuid.UUID) ([]*ent.TestCaseVersion, error) {
 	return r.client.TestCaseVersion.Query().
 		Where(testcaseversion.HasTestCaseWith(testcase.ID(testCaseID))).
 		WithCreatedBy().
 		Order(ent.Desc(testcaseversion.FieldVersionNumber)).
+		Limit(maxListTestCaseVersions).
 		All(ctx)
 }
 
-// GetTestCaseVersion возвращает конкретную версию по ID.
-func (r *EntRepository) GetTestCaseVersion(ctx context.Context, versionID uuid.UUID) (*ent.TestCaseVersion, error) {
+// GetTestCaseVersion возвращает версию по ID только если она принадлежит testCaseID (A3-007).
+func (r *EntRepository) GetTestCaseVersion(ctx context.Context, testCaseID, versionID uuid.UUID) (*ent.TestCaseVersion, error) {
 	return r.client.TestCaseVersion.Query().
-		Where(testcaseversion.ID(versionID)).
+		Where(
+			testcaseversion.ID(versionID),
+			testcaseversion.HasTestCaseWith(testcase.ID(testCaseID)),
+		).
 		WithCreatedBy().
 		WithTestCase().
 		Only(ctx)
@@ -378,25 +507,50 @@ func (r *EntRepository) CreateSuite(ctx context.Context, projectID uuid.UUID, in
 // GetSuite возвращает папку по ID.
 func (r *EntRepository) GetSuite(ctx context.Context, id uuid.UUID) (*ent.TestSuite, error) {
 	return r.client.TestSuite.Query().
-		Where(testsuite.ID(id)).
+		Where(testsuite.ID(id), testsuite.DeletedAtIsNil()).
 		WithParent().
 		WithChildren().
 		Only(ctx)
 }
 
+// GetSuiteInProject возвращает папку только внутри projectID (P1-BE-12 ParentID/SuiteID FK).
+func (r *EntRepository) GetSuiteInProject(ctx context.Context, projectID, id uuid.UUID) (*ent.TestSuite, error) {
+	return r.client.TestSuite.Query().
+		Where(
+			testsuite.IDEQ(id),
+			testsuite.DeletedAtIsNil(),
+			testsuite.HasProjectWith(entproject.ID(projectID)),
+		).
+		WithParent().
+		Only(ctx)
+}
+
 // ListSuites возвращает все папки проекта (для построения дерева).
+// A2W2-3-002: hard cap против unbounded All.
 func (r *EntRepository) ListSuites(ctx context.Context, projectID uuid.UUID) ([]*ent.TestSuite, error) {
 	return r.client.TestSuite.Query().
-		Where(testsuite.HasProjectWith(entproject.ID(projectID))).
+		Where(
+			testsuite.HasProjectWith(entproject.ID(projectID)),
+			testsuite.DeletedAtIsNil(),
+		).
 		WithParent().
 		WithChildren().
 		Order(ent.Asc(testsuite.FieldSortOrder)).
+		Limit(maxListSuites).
 		All(ctx)
 }
 
-// UpdateSuite обновляет папку.
-func (r *EntRepository) UpdateSuite(ctx context.Context, id uuid.UUID, input UpdateSuiteInput) (*ent.TestSuite, error) {
-	update := r.client.TestSuite.UpdateOneID(id)
+// UpdateSuite обновляет папку только внутри projectID (P1-BE-10) с optimistic lock (A3W2-1-001).
+// Mutation: снять testsuite.VersionEQ(input.Version) → stale update проходит (last-write-wins).
+func (r *EntRepository) UpdateSuite(ctx context.Context, projectID, id uuid.UUID, input UpdateSuiteInput) (*ent.TestSuite, error) {
+	update := r.client.TestSuite.Update().
+		Where(
+			testsuite.IDEQ(id),
+			testsuite.VersionEQ(input.Version),
+			testsuite.DeletedAtIsNil(),
+			testsuite.HasProjectWith(entproject.ID(projectID)),
+		).
+		AddVersion(1)
 
 	if input.Name != nil {
 		update = update.SetName(*input.Name)
@@ -408,31 +562,70 @@ func (r *EntRepository) UpdateSuite(ctx context.Context, id uuid.UUID, input Upd
 		update = update.SetSortOrder(*input.SortOrder)
 	}
 
-	_, err := update.Save(ctx)
+	affected, err := update.Save(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("обновление папки: %w", err)
+	}
+	if affected == 0 {
+		alive, existErr := r.client.TestSuite.Query().
+			Where(
+				testsuite.IDEQ(id),
+				testsuite.DeletedAtIsNil(),
+				testsuite.HasProjectWith(entproject.ID(projectID)),
+			).
+			Exist(ctx)
+		if existErr != nil {
+			return nil, fmt.Errorf("проверка папки после conflict: %w", existErr)
+		}
+		if !alive {
+			return nil, &ent.NotFoundError{}
+		}
+		return nil, apperrors.NewConflict("version mismatch: папка была изменена другим пользователем")
 	}
 
 	return r.GetSuite(ctx, id)
 }
 
-// DeleteSuite удаляет папку по ID.
-func (r *EntRepository) DeleteSuite(ctx context.Context, id uuid.UUID) error {
-	return r.client.TestSuite.DeleteOneID(id).Exec(ctx)
+// DeleteSuite мягко удаляет папку только внутри projectID (корзина 30д, W2-A3-008).
+func (r *EntRepository) DeleteSuite(ctx context.Context, projectID, id uuid.UUID) error {
+	affected, err := r.client.TestSuite.Update().
+		Where(
+			testsuite.IDEQ(id),
+			testsuite.DeletedAtIsNil(),
+			testsuite.HasProjectWith(entproject.ID(projectID)),
+		).
+		SetDeletedAt(time.Now().UTC()).
+		Save(ctx)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return &ent.NotFoundError{}
+	}
+	return nil
 }
 
-// MoveSuite перемещает папку к другому родителю.
-func (r *EntRepository) MoveSuite(ctx context.Context, id uuid.UUID, parentID *uuid.UUID) (*ent.TestSuite, error) {
-	update := r.client.TestSuite.UpdateOneID(id)
+// MoveSuite перемещает папку к другому родителю только внутри projectID (P3-BE-05 / W2-A3-009).
+// Mutation: UpdateOneID без HasProjectWith → чужой project UUID двигает suite.
+func (r *EntRepository) MoveSuite(ctx context.Context, projectID, id uuid.UUID, parentID *uuid.UUID) (*ent.TestSuite, error) {
+	update := r.client.TestSuite.Update().
+		Where(
+			testsuite.IDEQ(id),
+			testsuite.DeletedAtIsNil(),
+			testsuite.HasProjectWith(entproject.ID(projectID)),
+		)
 	if parentID != nil {
 		update = update.SetParentID(*parentID)
 	} else {
 		update = update.ClearParent()
 	}
 
-	_, err := update.Save(ctx)
+	affected, err := update.Save(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("перемещение папки: %w", err)
+	}
+	if affected == 0 {
+		return nil, &ent.NotFoundError{}
 	}
 
 	return r.GetSuite(ctx, id)
@@ -455,17 +648,49 @@ func (r *EntRepository) CreateComponent(ctx context.Context, projectID uuid.UUID
 	return create.Save(ctx)
 }
 
-// ListComponents возвращает все компоненты проекта.
+// ListComponents возвращает все компоненты проекта (A2W2-3-002: hard cap).
 func (r *EntRepository) ListComponents(ctx context.Context, projectID uuid.UUID) ([]*ent.Component, error) {
 	return r.client.Component.Query().
-		Where(component.HasProjectWith(entproject.ID(projectID))).
+		Where(
+			component.HasProjectWith(entproject.ID(projectID)),
+			component.DeletedAtIsNil(),
+		).
 		Order(ent.Asc(component.FieldName)).
+		Limit(maxListComponents).
 		All(ctx)
 }
 
-// DeleteComponent удаляет компонент по ID.
-func (r *EntRepository) DeleteComponent(ctx context.Context, id uuid.UUID) error {
-	return r.client.Component.DeleteOneID(id).Exec(ctx)
+// CountComponentsInProject считает компоненты из ids внутри projectID (P1-BE-12).
+func (r *EntRepository) CountComponentsInProject(ctx context.Context, projectID uuid.UUID, ids []uuid.UUID) (int, error) {
+	if len(ids) == 0 {
+		return 0, nil
+	}
+	return r.client.Component.Query().
+		Where(
+			component.IDIn(ids...),
+			component.DeletedAtIsNil(),
+			component.HasProjectWith(entproject.ID(projectID)),
+		).
+		Count(ctx)
+}
+
+// DeleteComponent мягко удаляет компонент только внутри projectID (корзина 30д, W2-A3-008).
+func (r *EntRepository) DeleteComponent(ctx context.Context, projectID, id uuid.UUID) error {
+	affected, err := r.client.Component.Update().
+		Where(
+			component.IDEQ(id),
+			component.DeletedAtIsNil(),
+			component.HasProjectWith(entproject.ID(projectID)),
+		).
+		SetDeletedAt(time.Now().UTC()).
+		Save(ctx)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return &ent.NotFoundError{}
+	}
+	return nil
 }
 
 // ---------------------------------------------------------------------------
@@ -498,10 +723,24 @@ func (r *EntRepository) CreateTestRun(ctx context.Context, projectID uuid.UUID, 
 }
 
 // GetTestRun возвращает прогон по ID с подгруженными связями.
+// Без project-scope — для post-create / внутренних путей; HTTP-facing — GetTestRunInProject.
 func (r *EntRepository) GetTestRun(ctx context.Context, id uuid.UUID) (*ent.TestRun, error) {
 	return r.client.TestRun.Query().
 		Where(testrun.ID(id)).
 		WithCreatedBy().
+		WithProject().
+		Only(ctx)
+}
+
+// GetTestRunInProject возвращает прогон по ID только внутри projectID (A3-012 IDOR guard).
+func (r *EntRepository) GetTestRunInProject(ctx context.Context, projectID, id uuid.UUID) (*ent.TestRun, error) {
+	return r.client.TestRun.Query().
+		Where(
+			testrun.ID(id),
+			testrun.HasProjectWith(entproject.ID(projectID)),
+		).
+		WithCreatedBy().
+		WithProject().
 		Only(ctx)
 }
 
@@ -637,9 +876,13 @@ func (r *EntRepository) CreateTestResult(ctx context.Context, runID uuid.UUID, i
 	return create.Save(ctx)
 }
 
-// UpdateTestResult обновляет результат теста.
-func (r *EntRepository) UpdateTestResult(ctx context.Context, id uuid.UUID, input UpdateTestResultInput) (*ent.TestResult, error) {
-	update := r.client.TestResult.UpdateOneID(id)
+// UpdateTestResult обновляет результат теста только если он принадлежит runID (A3-008).
+func (r *EntRepository) UpdateTestResult(ctx context.Context, runID, id uuid.UUID, input UpdateTestResultInput) (*ent.TestResult, error) {
+	update := r.client.TestResult.Update().
+		Where(
+			testresult.IDEQ(id),
+			testresult.HasRunWith(testrun.ID(runID)),
+		)
 
 	if input.Status != nil {
 		update = update.SetStatus(testresult.Status(*input.Status))
@@ -653,27 +896,54 @@ func (r *EntRepository) UpdateTestResult(ctx context.Context, id uuid.UUID, inpu
 	if input.IsFlaky != nil {
 		update = update.SetIsFlaky(*input.IsFlaky)
 	}
+	if input.ExecutedByID != nil {
+		update = update.SetExecutedByID(*input.ExecutedByID)
+	}
 
-	result, err := update.Save(ctx)
+	affected, err := update.Save(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("обновление результата: %w", err)
 	}
+	if affected == 0 {
+		return nil, &ent.NotFoundError{}
+	}
 
-	return result, nil
+	return r.client.TestResult.Get(ctx, id)
 }
 
-// ListTestResults возвращает все результаты прогона.
+// ListTestResults возвращает все результаты прогона (A2W2-3-002: hard cap).
 func (r *EntRepository) ListTestResults(ctx context.Context, runID uuid.UUID) ([]*ent.TestResult, error) {
 	return r.client.TestResult.Query().
 		Where(testresult.HasRunWith(testrun.ID(runID))).
 		WithTestCase().
 		WithExecutedBy().
 		Order(ent.Asc(testresult.FieldCreatedAt)).
+		Limit(maxListTestResults).
+		All(ctx)
+}
+
+// ListTestResultsByRunIDs возвращает результаты нескольких прогонов одним запросом (A2W2-2-001).
+// A3W2-3-001: hard cap (truncate), как ListTestResults.
+func (r *EntRepository) ListTestResultsByRunIDs(ctx context.Context, runIDs []uuid.UUID) ([]*ent.TestResult, error) {
+	if len(runIDs) == 0 {
+		return nil, nil
+	}
+	return r.client.TestResult.Query().
+		Where(testresult.HasRunWith(testrun.IDIn(runIDs...))).
+		WithTestCase().
+		WithExecutedBy().
+		WithRun().
+		Order(ent.Asc(testresult.FieldCreatedAt)).
+		Limit(maxListTestResults).
 		All(ctx)
 }
 
 // BatchCreateTestResults массово создаёт результаты (для импорта Allure).
+// A2W2-3-002: max batch size.
 func (r *EntRepository) BatchCreateTestResults(ctx context.Context, runID uuid.UUID, inputs []CreateTestResultInput) ([]*ent.TestResult, error) {
+	if len(inputs) > maxBatchCreateTestResults {
+		return nil, fmt.Errorf("слишком много результатов для batch (макс. %d)", maxBatchCreateTestResults)
+	}
 	bulk := make([]*ent.TestResultCreate, 0, len(inputs))
 	for _, input := range inputs {
 		create := r.client.TestResult.Create().
@@ -723,9 +993,30 @@ func (r *EntRepository) BatchCreateTestResults(ctx context.Context, runID uuid.U
 	return r.client.TestResult.CreateBulk(bulk...).Save(ctx)
 }
 
+// DeleteTestResults удаляет результаты по ID (A3W2-2-003 compensating cleanup).
+func (r *EntRepository) DeleteTestResults(ctx context.Context, ids []uuid.UUID) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	_, err := r.client.TestResult.Delete().Where(testresult.IDIn(ids...)).Exec(ctx)
+	return err
+}
+
 // ---------------------------------------------------------------------------
 // Привязка к задачам
 // ---------------------------------------------------------------------------
+
+// FindIssueInProject возвращает задачу по UUID только внутри projectID (A3-003-link IDOR guard).
+// Исключает мягко удалённые задачи. Mutation: снять HasProjectWith → foreign issue находится.
+func (r *EntRepository) FindIssueInProject(ctx context.Context, projectID, issueID uuid.UUID) (*ent.Issue, error) {
+	return r.client.Issue.Query().
+		Where(
+			entissue.IDEQ(issueID),
+			entissue.DeletedAtIsNil(),
+			entissue.HasProjectWith(entproject.IDEQ(projectID)),
+		).
+		Only(ctx)
+}
 
 // LinkTestCaseToIssue привязывает тест-кейс к задаче.
 func (r *EntRepository) LinkTestCaseToIssue(ctx context.Context, testCaseID, issueID uuid.UUID) error {
@@ -742,10 +1033,13 @@ func (r *EntRepository) UnlinkTestCaseFromIssue(ctx context.Context, testCaseID,
 }
 
 // GetTestCaseLinkedIssues возвращает задачи, привязанные к тест-кейсу.
+// A3W2-3-003: edge DeletedAtIsNil — задачи из корзины не возвращаются.
 func (r *EntRepository) GetTestCaseLinkedIssues(ctx context.Context, testCaseID uuid.UUID) ([]*ent.Issue, error) {
 	tc, err := r.client.TestCase.Query().
 		Where(testcase.ID(testCaseID)).
-		WithLinkedIssues().
+		WithLinkedIssues(func(q *ent.IssueQuery) {
+			q.Where(entissue.DeletedAtIsNil())
+		}).
 		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("получение привязанных задач: %w", err)
@@ -754,10 +1048,13 @@ func (r *EntRepository) GetTestCaseLinkedIssues(ctx context.Context, testCaseID 
 }
 
 // GetIssueLinkedTestCases возвращает тест-кейсы, привязанные к задаче (обратная связь).
+// A3W2-3-003: edge DeletedAtIsNil — TC из корзины не возвращаются.
 func (r *EntRepository) GetIssueLinkedTestCases(ctx context.Context, issueID uuid.UUID) ([]*ent.TestCase, error) {
 	issue, err := r.client.Issue.Query().
 		Where(entissue.ID(issueID)).
-		WithLinkedTestCases().
+		WithLinkedTestCases(func(q *ent.TestCaseQuery) {
+			q.Where(testcase.DeletedAtIsNil())
+		}).
 		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("получение привязанных тест-кейсов: %w", err)
@@ -765,11 +1062,19 @@ func (r *EntRepository) GetIssueLinkedTestCases(ctx context.Context, issueID uui
 	return issue.Edges.LinkedTestCases, nil
 }
 
-// GetProjectIssuesWithTestCases возвращает задачи проекта с привязанными тест-кейсами.
+// GetProjectIssuesWithTestCases возвращает живые задачи проекта с привязанными тест-кейсами.
+// P3-BE-05 / W2-A3-010: DeletedAtIsNil — coverage не включает корзину.
+// A3W2-3-001: hard cap; A3W2-3-003: linked TC без soft-deleted.
 func (r *EntRepository) GetProjectIssuesWithTestCases(ctx context.Context, projectID uuid.UUID) ([]*ent.Issue, error) {
 	return r.client.Issue.Query().
-		Where(entissue.HasProjectWith(entproject.ID(projectID))).
-		WithLinkedTestCases().
+		Where(
+			entissue.HasProjectWith(entproject.ID(projectID)),
+			entissue.DeletedAtIsNil(),
+		).
+		WithLinkedTestCases(func(q *ent.TestCaseQuery) {
+			q.Where(testcase.DeletedAtIsNil())
+		}).
+		Limit(maxListProjectIssues).
 		All(ctx)
 }
 
@@ -831,13 +1136,15 @@ func (r *EntRepository) CreateBugIssue(ctx context.Context, projectID, userID, t
 		return nil, fmt.Errorf("создание бага: %w", err)
 	}
 
-	// Привязываем к тест-кейсу
-	err = tx.TestCase.UpdateOneID(testCaseID).
-		AddLinkedIssueIDs(issue.ID).
-		Exec(ctx)
-	if err != nil {
-		_ = tx.Rollback()
-		return nil, fmt.Errorf("привязка бага к тест-кейсу: %w", err)
+	// Привязываем к тест-кейсу только если он известен (A3-009).
+	if testCaseID != uuid.Nil {
+		err = tx.TestCase.UpdateOneID(testCaseID).
+			AddLinkedIssueIDs(issue.ID).
+			Exec(ctx)
+		if err != nil {
+			_ = tx.Rollback()
+			return nil, fmt.Errorf("привязка бага к тест-кейсу: %w", err)
+		}
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -855,12 +1162,46 @@ func (r *EntRepository) GetLastResultForTestCase(ctx context.Context, testCaseID
 		First(ctx)
 }
 
+// GetLastResultsForTestCases возвращает последний результат по каждому caseID (A2W2-2-001).
+// A3W2-3-001: per-case Limit 1 (First) — не грузим всю history в память; вход capped как batch.
+func (r *EntRepository) GetLastResultsForTestCases(ctx context.Context, caseIDs []uuid.UUID) (map[uuid.UUID]*ent.TestResult, error) {
+	out := make(map[uuid.UUID]*ent.TestResult, len(caseIDs))
+	if len(caseIDs) == 0 {
+		return out, nil
+	}
+	if len(caseIDs) > maxBatchCreateTestResults {
+		return nil, fmt.Errorf("слишком много тест-кейсов для last-results (макс. %d)", maxBatchCreateTestResults)
+	}
+	for _, caseID := range caseIDs {
+		res, err := r.client.TestResult.Query().
+			Where(testresult.HasTestCaseWith(testcase.ID(caseID))).
+			WithTestCase().
+			Order(ent.Desc(testresult.FieldCreatedAt)).
+			First(ctx)
+		if err != nil {
+			if ent.IsNotFound(err) {
+				continue
+			}
+			return nil, err
+		}
+		out[caseID] = res
+	}
+	return out, nil
+}
+
 // ---------------------------------------------------------------------------
 // Расширенные операции прогонов
 // ---------------------------------------------------------------------------
 
 // AddTestCasesToRun массово создаёт TestResult записи (со статусом "unknown") для каждого тест-кейса.
+// A3W2-3-001: max batch size — как BatchCreateTestResults (err, не truncate).
 func (r *EntRepository) AddTestCasesToRun(ctx context.Context, runID uuid.UUID, caseIDs []uuid.UUID) error {
+	if len(caseIDs) > maxBatchCreateTestResults {
+		return fmt.Errorf("слишком много тест-кейсов для add-to-run (макс. %d)", maxBatchCreateTestResults)
+	}
+	if len(caseIDs) == 0 {
+		return nil
+	}
 	bulk := make([]*ent.TestResultCreate, 0, len(caseIDs))
 	for _, caseID := range caseIDs {
 		create := r.client.TestResult.Create().
@@ -881,12 +1222,28 @@ func (r *EntRepository) GetTestResult(ctx context.Context, resultID uuid.UUID) (
 	return r.client.TestResult.Query().
 		Where(testresult.ID(resultID)).
 		WithTestCase().
+		WithRun().
+		WithExecutedBy().
+		WithFiles().
+		Only(ctx)
+}
+
+// GetTestResultInRun возвращает результат только внутри runID (A2W2-1-001 / HasRunWith).
+func (r *EntRepository) GetTestResultInRun(ctx context.Context, runID, resultID uuid.UUID) (*ent.TestResult, error) {
+	return r.client.TestResult.Query().
+		Where(
+			testresult.ID(resultID),
+			testresult.HasRunWith(testrun.IDEQ(runID)),
+		).
+		WithTestCase().
+		WithRun().
 		WithExecutedBy().
 		WithFiles().
 		Only(ctx)
 }
 
 // ListTestRunResults возвращает результаты прогона с подгруженными тест-кейсами и файлами.
+// A2W2-3-002: hard cap.
 func (r *EntRepository) ListTestRunResults(ctx context.Context, runID uuid.UUID) ([]*ent.TestResult, error) {
 	return r.client.TestResult.Query().
 		Where(testresult.HasRunWith(testrun.ID(runID))).
@@ -894,6 +1251,7 @@ func (r *EntRepository) ListTestRunResults(ctx context.Context, runID uuid.UUID)
 		WithExecutedBy().
 		WithFiles().
 		Order(ent.Asc(testresult.FieldCreatedAt)).
+		Limit(maxListTestResults).
 		All(ctx)
 }
 
@@ -906,6 +1264,8 @@ func (r *EntRepository) AssignTestersToRun(ctx context.Context, runID uuid.UUID,
 }
 
 // GetTestRunWithResults возвращает прогон с результатами, тест-кейсами, файлами и назначенными.
+// Без project-scope — для внутренних путей; HTTP-facing — GetTestRunWithResultsInProject.
+// A3W2-3-001: nested WithResults Limit (truncate).
 func (r *EntRepository) GetTestRunWithResults(ctx context.Context, runID uuid.UUID) (*ent.TestRun, error) {
 	return r.client.TestRun.Query().
 		Where(testrun.ID(runID)).
@@ -915,16 +1275,49 @@ func (r *EntRepository) GetTestRunWithResults(ctx context.Context, runID uuid.UU
 			q.WithTestCase().
 				WithExecutedBy().
 				WithFiles().
-				Order(ent.Asc(testresult.FieldCreatedAt))
+				Order(ent.Asc(testresult.FieldCreatedAt)).
+				Limit(maxListTestResults)
 		}).
 		Only(ctx)
 }
 
-// AddFilesToResult привязывает файлы к результату теста.
-func (r *EntRepository) AddFilesToResult(ctx context.Context, resultID uuid.UUID, fileIDs []uuid.UUID) error {
-	return r.client.TestResult.UpdateOneID(resultID).
+// GetTestRunWithResultsInProject — detail/export только внутри projectID (A3-012).
+// A3W2-3-001: nested WithResults Limit (truncate).
+func (r *EntRepository) GetTestRunWithResultsInProject(ctx context.Context, projectID, runID uuid.UUID) (*ent.TestRun, error) {
+	return r.client.TestRun.Query().
+		Where(
+			testrun.ID(runID),
+			testrun.HasProjectWith(entproject.ID(projectID)),
+		).
+		WithCreatedBy().
+		WithAssignees().
+		WithResults(func(q *ent.TestResultQuery) {
+			q.WithTestCase().
+				WithExecutedBy().
+				WithFiles().
+				Order(ent.Asc(testresult.FieldCreatedAt)).
+				Limit(maxListTestResults)
+		}).
+		Only(ctx)
+}
+
+// AddFilesToResult привязывает файлы к результату только внутри run (P3-BE-05 / W2-A3-009).
+// Mutation: UpdateOneID без HasRunWith → чужой resultID принимает файлы.
+func (r *EntRepository) AddFilesToResult(ctx context.Context, runID, resultID uuid.UUID, fileIDs []uuid.UUID) error {
+	affected, err := r.client.TestResult.Update().
+		Where(
+			testresult.IDEQ(resultID),
+			testresult.HasRunWith(testrun.IDEQ(runID)),
+		).
 		AddFileIDs(fileIDs...).
-		Exec(ctx)
+		Save(ctx)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return &ent.NotFoundError{}
+	}
+	return nil
 }
 
 // ---------------------------------------------------------------------------
@@ -945,20 +1338,43 @@ func (r *EntRepository) CreateEnvironment(ctx context.Context, projectID uuid.UU
 
 // GetEnvironment возвращает окружение по ID.
 func (r *EntRepository) GetEnvironment(ctx context.Context, envID uuid.UUID) (*ent.Environment, error) {
-	return r.client.Environment.Get(ctx, envID)
+	return r.client.Environment.Query().
+		Where(environment.IDEQ(envID), environment.DeletedAtIsNil()).
+		Only(ctx)
+}
+
+// GetEnvironmentInProject возвращает окружение только внутри projectID (P1-BE-11).
+func (r *EntRepository) GetEnvironmentInProject(ctx context.Context, projectID, envID uuid.UUID) (*ent.Environment, error) {
+	return r.client.Environment.Query().
+		Where(
+			environment.IDEQ(envID),
+			environment.DeletedAtIsNil(),
+			environment.HasProjectWith(entproject.ID(projectID)),
+		).
+		WithProject().
+		Only(ctx)
 }
 
 // ListEnvironmentsByProject возвращает все окружения проекта.
+// A3W2-3-001: hard cap (truncate).
 func (r *EntRepository) ListEnvironmentsByProject(ctx context.Context, projectID uuid.UUID) ([]*ent.Environment, error) {
-	return r.client.Project.Query().
-		Where(entproject.ID(projectID)).
-		QueryEnvironments().
+	return r.client.Environment.Query().
+		Where(
+			environment.HasProjectWith(entproject.ID(projectID)),
+			environment.DeletedAtIsNil(),
+		).
+		Limit(maxListEnvironments).
 		All(ctx)
 }
 
-// UpdateEnvironment обновляет тестовое окружение.
-func (r *EntRepository) UpdateEnvironment(ctx context.Context, envID uuid.UUID, input UpdateEnvironmentInput) (*ent.Environment, error) {
-	builder := r.client.Environment.UpdateOneID(envID)
+// UpdateEnvironment обновляет окружение только внутри projectID (P1-BE-11).
+func (r *EntRepository) UpdateEnvironment(ctx context.Context, projectID, envID uuid.UUID, input UpdateEnvironmentInput) (*ent.Environment, error) {
+	builder := r.client.Environment.Update().
+		Where(
+			environment.IDEQ(envID),
+			environment.DeletedAtIsNil(),
+			environment.HasProjectWith(entproject.ID(projectID)),
+		)
 	if input.Name != nil {
 		builder.SetName(*input.Name)
 	}
@@ -968,12 +1384,33 @@ func (r *EntRepository) UpdateEnvironment(ctx context.Context, envID uuid.UUID, 
 	if input.Config != nil {
 		builder.SetConfig(*input.Config)
 	}
-	return builder.Save(ctx)
+	affected, err := builder.Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if affected == 0 {
+		return nil, &ent.NotFoundError{}
+	}
+	return r.GetEnvironmentInProject(ctx, projectID, envID)
 }
 
-// DeleteEnvironment удаляет тестовое окружение.
-func (r *EntRepository) DeleteEnvironment(ctx context.Context, envID uuid.UUID) error {
-	return r.client.Environment.DeleteOneID(envID).Exec(ctx)
+// DeleteEnvironment мягко удаляет окружение только внутри projectID (корзина 30д, W2-A3-008).
+func (r *EntRepository) DeleteEnvironment(ctx context.Context, projectID, envID uuid.UUID) error {
+	affected, err := r.client.Environment.Update().
+		Where(
+			environment.IDEQ(envID),
+			environment.DeletedAtIsNil(),
+			environment.HasProjectWith(entproject.ID(projectID)),
+		).
+		SetDeletedAt(time.Now().UTC()).
+		Save(ctx)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return &ent.NotFoundError{}
+	}
+	return nil
 }
 
 // GetLatestTestRunForEnvironment возвращает последний прогон проекта в указанном окружении.

@@ -20,23 +20,60 @@ import (
 
 type crossLinkRepo struct {
 	mockRepo
-	outgoing []*ent.IssueLink
-	incoming []*ent.IssueLink
-	deleted  []uuid.UUID
-	teamErr  error
+	outgoing  []*ent.IssueLink
+	incoming  []*ent.IssueLink
+	deleted   []uuid.UUID
+	teamErr   error
+	listErr   error
+	deleteErr error
 }
 
 func (r *crossLinkRepo) ListOutgoingCrossProjectLinks(_ context.Context, _ uuid.UUID) ([]*ent.IssueLink, error) {
+	if r.listErr != nil {
+		return nil, r.listErr
+	}
 	return r.outgoing, nil
 }
 
 func (r *crossLinkRepo) ListIncomingCrossProjectLinks(_ context.Context, _ uuid.UUID) ([]*ent.IssueLink, error) {
+	if r.listErr != nil {
+		return nil, r.listErr
+	}
 	return r.incoming, nil
 }
 
 func (r *crossLinkRepo) DeleteIssueLink(_ context.Context, linkID uuid.UUID) error {
+	if r.deleteErr != nil {
+		return r.deleteErr
+	}
 	r.deleted = append(r.deleted, linkID)
 	return nil
+}
+
+// SoftDeleteWithCrossLinkCleanup вызывает overridden List*/Delete* (не promoted mock).
+func (r *crossLinkRepo) SoftDeleteWithCrossLinkCleanup(ctx context.Context, projectID uuid.UUID) ([]*ent.IssueLink, []*ent.IssueLink, error) {
+	outgoing, err := r.ListOutgoingCrossProjectLinks(ctx, projectID)
+	if err != nil {
+		return nil, nil, err
+	}
+	incoming, err := r.ListIncomingCrossProjectLinks(ctx, projectID)
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, link := range outgoing {
+		if err := r.DeleteIssueLink(ctx, link.ID); err != nil {
+			return nil, nil, err
+		}
+	}
+	for _, link := range incoming {
+		if err := r.DeleteIssueLink(ctx, link.ID); err != nil {
+			return nil, nil, err
+		}
+	}
+	if _, err := r.UpdateStatus(ctx, projectID, entproject.StatusDeleted, true); err != nil {
+		return nil, nil, err
+	}
+	return outgoing, incoming, nil
 }
 
 func (r *crossLinkRepo) Delete(_ context.Context, id uuid.UUID) error {
@@ -62,18 +99,21 @@ func startProjectNATSServer(t *testing.T) *natsclient.Client {
 	return client
 }
 
-// TestPermanentDelete_Success проверяет сценарий: permanent удаление успех.
+// TestPermanentDelete_Success проверяет сценарий: permanent удаление успех (trash + admin).
 func TestPermanentDelete_Success(t *testing.T) {
 	svc, repo, _ := newTestService()
 	ctx := context.Background()
 	ownerID := uuid.New()
+	adminID := uuid.New()
+	repo.admins[adminID] = true
 
 	created, err := svc.CreateProject(ctx, ownerID, "Gone", "GONE", "")
 	require.NoError(t, err)
 	projectID, err := uuid.Parse(created.ID)
 	require.NoError(t, err)
 
-	require.NoError(t, svc.PermanentDelete(ctx, projectID))
+	require.NoError(t, svc.DeleteProject(ctx, projectID))
+	require.NoError(t, svc.PermanentDelete(ctx, projectID, adminID))
 	_, ok := repo.projects[projectID]
 	assert.False(t, ok)
 }
@@ -82,7 +122,9 @@ func TestPermanentDelete_Success(t *testing.T) {
 func TestPermanentDelete_NotFound(t *testing.T) {
 	repo := &crossLinkRepo{mockRepo: *newMockRepo()}
 	svc := project.NewProjectService(repo, &mockCache{}, nil)
-	err := svc.PermanentDelete(context.Background(), uuid.New())
+	adminID := uuid.New()
+	repo.admins[adminID] = true
+	err := svc.PermanentDelete(context.Background(), uuid.New(), adminID)
 	require.Error(t, err)
 }
 
@@ -118,12 +160,65 @@ func TestDeleteProject_CleansCrossProjectLinks(t *testing.T) {
 	assert.Contains(t, repo.deleted, linkID)
 }
 
+// TestDeleteProject_CleanupListError_DoesNotSoftDelete — A2W1-A5-001 fail-closed:
+// ошибка list кросс-связей → DeleteProject err, статус проекта не deleted.
+func TestDeleteProject_CleanupListError_DoesNotSoftDelete(t *testing.T) {
+	repo := &crossLinkRepo{
+		mockRepo: *newMockRepo(),
+		listErr:  assert.AnError,
+	}
+	svc := project.NewProjectService(repo, &mockCache{}, nil)
+	ctx := context.Background()
+
+	projectID := uuid.New()
+	repo.projects[projectID] = &ent.Project{
+		ID: projectID, Name: "Keep Alive", Key: "KEEP", Status: entproject.StatusActive,
+		CreatedAt: time.Now(), UpdatedAt: time.Now(),
+	}
+
+	err := svc.DeleteProject(ctx, projectID)
+	require.Error(t, err)
+	assert.Equal(t, entproject.StatusActive, repo.projects[projectID].Status)
+	assert.Nil(t, repo.projects[projectID].DeletedAt)
+}
+
+// TestDeleteProject_CleanupDeleteError_DoesNotSoftDelete — A2W1-A5-001 fail-closed:
+// ошибка DeleteIssueLink → soft-delete не выполняется.
+func TestDeleteProject_CleanupDeleteError_DoesNotSoftDelete(t *testing.T) {
+	repo := &crossLinkRepo{
+		mockRepo:  *newMockRepo(),
+		deleteErr: assert.AnError,
+	}
+	svc := project.NewProjectService(repo, &mockCache{}, nil)
+	ctx := context.Background()
+
+	projectID := uuid.New()
+	linkID := uuid.New()
+	repo.projects[projectID] = &ent.Project{
+		ID: projectID, Name: "Keep Alive", Key: "KEEP", Status: entproject.StatusActive,
+		CreatedAt: time.Now(), UpdatedAt: time.Now(),
+	}
+	repo.outgoing = []*ent.IssueLink{{
+		ID: linkID,
+		Edges: ent.IssueLinkEdges{
+			Source: &ent.Issue{ID: uuid.New(), IssueKey: "KEEP-1"},
+			Target: &ent.Issue{ID: uuid.New(), IssueKey: "OTH-1"},
+		},
+	}}
+
+	err := svc.DeleteProject(ctx, projectID)
+	require.Error(t, err)
+	assert.Equal(t, entproject.StatusActive, repo.projects[projectID].Status)
+	assert.Nil(t, repo.projects[projectID].DeletedAt)
+	assert.Empty(t, repo.deleted)
+}
+
 // TestAddTeamToProject_NotFound проверяет сценарий: add team to project not found.
 func TestAddTeamToProject_NotFound(t *testing.T) {
 	repo := &crossLinkRepo{mockRepo: *newMockRepo(), teamErr: notFoundErr()}
 	svc := project.NewProjectService(repo, &mockCache{}, nil)
 
-	err := svc.AddTeamToProject(context.Background(), uuid.New(), uuid.New())
+	err := svc.AddTeamToProject(context.Background(), uuid.New(), uuid.New(), uuid.New())
 	require.Error(t, err)
 }
 
@@ -138,12 +233,12 @@ func TestAddTeamToProject_Success(t *testing.T) {
 	projectID, err := uuid.Parse(created.ID)
 	require.NoError(t, err)
 
-	team, err := svc.CreateTeam(ctx, "Squad", "devs")
+	team, err := svc.CreateTeam(ctx, ownerID, "Squad", "devs")
 	require.NoError(t, err)
 	teamID, err := uuid.Parse(team.ID)
 	require.NoError(t, err)
 
-	require.NoError(t, svc.AddTeamToProject(ctx, teamID, projectID))
+	require.NoError(t, svc.AddTeamToProject(ctx, teamID, projectID, ownerID))
 }
 
 // TestNotifyLinkDeleted_NoNatsNoOp проверяет сценарий: notify link deleted no nats no op.

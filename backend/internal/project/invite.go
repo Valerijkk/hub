@@ -37,7 +37,7 @@ func (s *ProjectService) CreateInvite(ctx context.Context, projectID, creatorID 
 		return nil, apperrors.NewInternal("failed to create invite")
 	}
 
-	return toInviteResponse(inv, ""), nil
+	return toInviteResponse(inv, s.resolveFrontendURL()), nil
 }
 
 // JoinByInvite позволяет пользователю вступить в проект по invite-коду.
@@ -107,6 +107,11 @@ func (s *ProjectService) JoinByInvite(ctx context.Context, code string, userID u
 		}
 	}
 
-	count, _ := s.repo.MemberCount(ctx, proj.ID)
+	count, err := s.repo.MemberCount(ctx, proj.ID)
+	if err != nil {
+		slog.Error("failed to get member count after invite join",
+			"project_id", proj.ID, "user_id", userID, "error", err)
+		return nil, apperrors.NewInternal("failed to get member count")
+	}
 	return toProjectResponse(proj, count, string(inv.ProjectRole)), nil
 }

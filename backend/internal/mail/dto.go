@@ -5,6 +5,10 @@ import "errors"
 var (
 	// ErrInvalidRequest — некорректный запрос отправки.
 	ErrInvalidRequest = errors.New("invalid mail send request")
+	// ErrAlertsDisabled — admin/config выключил transactional alerts (W7-A1-003).
+	ErrAlertsDisabled = errors.New("mail alerts disabled")
+	// ErrDailyLimitExceeded — превышен daily_limit на получателя (W7-A1-003).
+	ErrDailyLimitExceeded = errors.New("mail daily limit exceeded")
 )
 
 // StatusResponse — публичный статус hub-mail (без секретов).
@@ -34,8 +38,8 @@ type UpdateSettingsRequest struct {
 }
 
 const (
-	settingHubMailURL     = "mail.hub_url"
-	settingFromAlerts     = "mail.from_alerts"
-	settingAlertsEnabled  = "mail.alerts_enabled"
-	settingDailyLimit     = "mail.daily_limit"
+	settingHubMailURL    = "mail.hub_url"
+	settingFromAlerts    = "mail.from_alerts"
+	settingAlertsEnabled = "mail.alerts_enabled"
+	settingDailyLimit    = "mail.daily_limit"
 )

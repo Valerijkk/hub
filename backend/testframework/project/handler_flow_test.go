@@ -24,6 +24,7 @@ func setupProjectHandlerApp(t *testing.T) (*fiber.App, uuid.UUID) {
 	svc, _, _ := newTestService()
 	h := project.NewHandler(svc)
 	userID := uuid.New()
+	rbacSvc := newFounderBypassRBAC(t, userID)
 
 	app := fiber.New()
 	api := app.Group("/api")
@@ -31,7 +32,7 @@ func setupProjectHandlerApp(t *testing.T) (*fiber.App, uuid.UUID) {
 		c.Locals("userID", userID.String())
 		return c.Next()
 	}
-	h.RegisterRoutes(api, authMw)
+	h.RegisterRoutes(api, authMw, rbacSvc)
 	return app, userID
 }
 
@@ -92,7 +93,7 @@ func TestHandler_Unauthorized(t *testing.T) {
 	h := project.NewHandler(svc)
 	app := fiber.New()
 	api := app.Group("/api")
-	h.RegisterRoutes(api, func(c fiber.Ctx) error { return c.Next() })
+	h.RegisterRoutes(api, func(c fiber.Ctx) error { return c.Next() }, newFounderBypassRBAC(t, uuid.New()))
 
 	req := httptest.NewRequest(http.MethodGet, "/api/projects/", nil)
 	resp, err := app.Test(req)
@@ -121,7 +122,7 @@ func TestHandler_UpdateProject(t *testing.T) {
 	app, _ := setupProjectHandlerApp(t)
 	created := createProjectViaHandler(t, app, "UPDH")
 
-	body := `{"name":"Updated Name","description":"new desc"}`
+	body := `{"name":"Updated Name","description":"new desc","version":1}`
 	req := httptest.NewRequest(http.MethodPut, "/api/projects/"+created.ID, bytes.NewReader([]byte(body)))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := app.Test(req)

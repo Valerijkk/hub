@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"log/slog"
+	"net/url"
 	"os"
 	"strings"
 
@@ -52,6 +53,7 @@ func CORS() fiber.Handler {
 // parseCORSOrigins разбирает значение CORS_ORIGINS и возвращает (валидные,
 // problems). problems — человекочитаемые сообщения о том, что было откинуто.
 // Вынесено в чистую функцию, чтобы покрывалось unit-тестами без os.Exit.
+// W4-A1-011 / P3-BE-11: только абсолютный origin (http/https, без path/query).
 func parseCORSOrigins(env string) (origins []string, problems []string) {
 	if env == "" {
 		return nil, nil
@@ -66,9 +68,35 @@ func parseCORSOrigins(env string) (origins []string, problems []string) {
 			problems = append(problems, "wildcard '*' несовместим с AllowCredentials=true")
 			continue
 		}
+		if !isAbsoluteCORSOrigin(o) {
+			problems = append(problems, "невалидный origin (нужен http(s)://host без path/query): "+o)
+			continue
+		}
 		origins = append(origins, o)
 	}
 	return origins, problems
+}
+
+// isAbsoluteCORSOrigin — scheme http/https, непустой host, без userinfo/path/query/fragment.
+func isAbsoluteCORSOrigin(o string) bool {
+	u, err := url.Parse(o)
+	if err != nil {
+		return false
+	}
+	scheme := strings.ToLower(u.Scheme)
+	if scheme != "http" && scheme != "https" {
+		return false
+	}
+	if u.Host == "" || u.User != nil {
+		return false
+	}
+	if u.Path != "" && u.Path != "/" {
+		return false
+	}
+	if u.RawQuery != "" || u.Fragment != "" {
+		return false
+	}
+	return true
 }
 
 // isDevMode возвращает true, если переменная окружения DEV_MODE имеет

@@ -1,7 +1,7 @@
 # Hub — Технические ограничения (tracked mirror)
 
 > **Канон для агентов (локально):** `.cursor/rules/60-tz-constraints.mdc`  
-> **Обновлено:** 2026-06-21 · **ADR:** `.planning/decisions/ADR-TZ-REWRITE-2026.md`
+> **Обновлено:** 2026-07-28 · **ADR:** `.planning/decisions/ADR-TZ-REWRITE-2026.md` · пагинация задач: `ADR-PAGINATION-CURSOR-ISSUES-2026.md`
 
 Документ фиксирует то, что **нельзя менять** без явного согласования с PO/архитектором, и то, что **строго запрещено** в коде и инфраструктуре.
 
@@ -41,7 +41,7 @@
 | Правило | Детали |
 |---------|--------|
 | Ошибки | `{"error": "message", "request_id": "uuid"}` |
-| Пагинация | Задачи — offset/limit; чат — **cursor** (infinite scroll) |
+| Пагинация | Задачи (list-issues) — **cursor** + limit (max 100); чат — **cursor** (infinite scroll). Offset/limit — для admin/intranet/wiki списков, не для list-issues (`ADR-PAGINATION-CURSOR-ISSUES-2026`) |
 | Rate limiting | API **100/сек**, файлы **10/мин**, сообщения **60/мин** |
 
 ### Real-time
@@ -57,7 +57,7 @@
 |---------|--------|
 | Backend | **SeaweedFS** (S3-compatible) через `aws-sdk-go-v2` — не minio-go |
 | Загрузка | Presigned URLs (не через буфер backend) |
-| Лимит | Max **25 MB** через Fiber BodyLimit (presigned PUT без лимита — известный баг NF-09) |
+| Лимит | Max **25 MB**: Fiber BodyLimit + presigned PUT через обязательный `size` и `ContentLength` bind (ADR-STORAGE-NF09-SIZE-2026; NF-09 closed) |
 | Версия образа | `chrislusf/seaweedfs:3.97` (pinned), не `latest` |
 
 ### Frontend
@@ -115,14 +115,14 @@
 
 Ранее запрещённые фичи, разрешённые по roadmap:
 
-| Фича | Фаза |
+| Фича | Фаза / факт (2026-07-28) |
 |------|------|
-| Gantt | 16 |
-| Webcam в звонках | 16 |
+| Gantt | UI shipped (`frontend/.../gantt.lazy.tsx`, `GanttChart`); остаток scope — backlog |
+| Webcam в звонках | UI shipped (`CallControls` / LiveKit `setCameraEnabled`); polish — backlog |
 | Transactional email + marketing (hub-mail) | 15.2 / 16 |
 | Full JQL automation | 17 |
-| AI gateway BYOK + Ollama | 17 |
-| Intranet, Calendar, CRM, HR, accounting, no-code DB | v4 |
+| AI gateway BYOK + Ollama | AI Hub v3.0 shipped; BYOK/Ollama depth — Phase 17 остаток |
+| Intranet, Calendar, CRM, HR, accounting, no-code DB | v4 ✅ shipped |
 
 ---
 

@@ -3,6 +3,8 @@ package tms
 import (
 	"context"
 
+	"log/slog"
+
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
@@ -23,6 +25,18 @@ func (s *TMSService) GetCoverageReport(ctx context.Context, projectID uuid.UUID)
 		Issues: make([]IssueCoverage, 0),
 	}
 
+	// A2W2-2-001: один batch GetLastResultsForTestCases вместо N+1 GetLastResultForTestCase.
+	caseIDs := make([]uuid.UUID, 0)
+	for _, issue := range issues {
+		for _, tc := range issue.Edges.LinkedTestCases {
+			caseIDs = append(caseIDs, tc.ID)
+		}
+	}
+	lastByCase, err := s.repo.GetLastResultsForTestCases(ctx, caseIDs)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка получения последних результатов тест-кейсов")
+	}
+
 	for _, issue := range issues {
 		if len(issue.Edges.LinkedTestCases) == 0 {
 			continue
@@ -37,8 +51,7 @@ func (s *TMSService) GetCoverageReport(ctx context.Context, projectID uuid.UUID)
 
 		for _, tc := range issue.Edges.LinkedTestCases {
 			lastStatus := "no_results"
-			lastResult, err := s.repo.GetLastResultForTestCase(ctx, tc.ID)
-			if err == nil && lastResult != nil {
+			if lastResult := lastByCase[tc.ID]; lastResult != nil {
 				lastStatus = string(lastResult.Status)
 			}
 
@@ -92,16 +105,16 @@ func (s *TMSService) GetTestTrends(ctx context.Context, projectID uuid.UUID, las
 }
 
 // GetRunComparison сравнивает два прогона, показывая изменения статусов.
-func (s *TMSService) GetRunComparison(ctx context.Context, runID1, runID2 uuid.UUID) (*RunComparison, error) {
-	// Получаем оба прогона
-	run1, err := s.repo.GetTestRun(ctx, runID1)
+func (s *TMSService) GetRunComparison(ctx context.Context, projectID, runID1, runID2 uuid.UUID) (*RunComparison, error) {
+	// Оба прогона должны принадлежать projectID (W4-run-export / A3-012).
+	run1, err := s.repo.GetTestRunInProject(ctx, projectID, runID1)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("прогон 1 не найден")
 		}
 		return nil, apperrors.NewInternal("ошибка получения прогона 1")
 	}
-	run2, err := s.repo.GetTestRun(ctx, runID2)
+	run2, err := s.repo.GetTestRunInProject(ctx, projectID, runID2)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("прогон 2 не найден")
@@ -253,12 +266,26 @@ func (s *TMSService) GetFlakyTests(ctx context.Context, projectID uuid.UUID) (*F
 
 	tcStatuses := make(map[uuid.UUID]*tcMeta)
 	tcMap := make(map[uuid.UUID]*ent.TestCase)
+
+	// A2W2-2-001: один ListTestResultsByRunIDs вместо N ListTestResults.
+	runIDs := make([]uuid.UUID, 0, len(runs))
 	for _, run := range runs {
-		results, err := s.repo.ListTestResults(ctx, run.ID)
-		if err != nil {
+		runIDs = append(runIDs, run.ID)
+	}
+	allResults, err := s.repo.ListTestResultsByRunIDs(ctx, runIDs)
+	if err != nil {
+		slog.WarnContext(ctx, "flaky report: batch list test results failed", "error", err)
+		allResults = nil
+	}
+	byRun := make(map[uuid.UUID][]*ent.TestResult, len(runs))
+	for _, r := range allResults {
+		if r.Edges.Run == nil {
 			continue
 		}
-		for _, r := range results {
+		byRun[r.Edges.Run.ID] = append(byRun[r.Edges.Run.ID], r)
+	}
+	for _, run := range runs {
+		for _, r := range byRun[run.ID] {
 			if r.Edges.TestCase == nil {
 				continue
 			}
@@ -332,6 +359,17 @@ func (s *TMSService) GetTraceabilityMatrix(ctx context.Context, projectID uuid.U
 		return nil, apperrors.NewInternal("ошибка получения задач для матрицы трассировки")
 	}
 
+	caseIDs := make([]uuid.UUID, 0)
+	for _, iss := range issues {
+		for _, tc := range iss.Edges.LinkedTestCases {
+			caseIDs = append(caseIDs, tc.ID)
+		}
+	}
+	lastByCase, err := s.repo.GetLastResultsForTestCases(ctx, caseIDs)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка получения последних результатов для матрицы")
+	}
+
 	rows := make([]TraceabilityRow, 0, len(issues))
 	for _, iss := range issues {
 		if iss.Edges.LinkedTestCases == nil || len(iss.Edges.LinkedTestCases) == 0 {
@@ -343,8 +381,7 @@ func (s *TMSService) GetTraceabilityMatrix(ctx context.Context, projectID uuid.U
 		}
 		for _, tc := range iss.Edges.LinkedTestCases {
 			lastStatus := "no_results"
-			lastResult, err := s.repo.GetLastResultForTestCase(ctx, tc.ID)
-			if err == nil && lastResult != nil {
+			if lastResult := lastByCase[tc.ID]; lastResult != nil {
 				lastStatus = string(lastResult.Status)
 			}
 			row.TestCases = append(row.TestCases, TraceabilityCell{
@@ -367,28 +404,33 @@ func (s *TMSService) GetDefectCategories(ctx context.Context, projectID uuid.UUI
 		return nil, apperrors.NewInternal("ошибка получения прогонов для анализа дефектов")
 	}
 
+	// A2W2-2-001: batch ListTestResultsByRunIDs вместо N+1 по прогонам.
+	runIDs := make([]uuid.UUID, 0, len(runs))
+	for _, run := range runs {
+		runIDs = append(runIDs, run.ID)
+	}
+	allResults, err := s.repo.ListTestResultsByRunIDs(ctx, runIDs)
+	if err != nil {
+		slog.WarnContext(ctx, "defect categories: batch list test results failed", "error", err)
+		allResults = nil
+	}
+
 	// Собираем упавшие результаты и группируем по паттерну ошибки
 	categories := make(map[string][]string) // паттерн -> []caseKey
-	for _, run := range runs {
-		results, err := s.repo.ListTestResults(ctx, run.ID)
-		if err != nil {
+	for _, r := range allResults {
+		if string(r.Status) != "failed" && string(r.Status) != "broken" {
 			continue
 		}
-		for _, r := range results {
-			if string(r.Status) != "failed" && string(r.Status) != "broken" {
-				continue
-			}
-			pattern := "unknown"
-			if r.ErrorMessage != "" {
-				pattern = normalizeErrorPattern(r.ErrorMessage)
-			}
-			caseKey := ""
-			if r.Edges.TestCase != nil {
-				caseKey = r.Edges.TestCase.CaseKey
-			}
-			if caseKey != "" {
-				categories[pattern] = append(categories[pattern], caseKey)
-			}
+		pattern := "unknown"
+		if r.ErrorMessage != "" {
+			pattern = normalizeErrorPattern(r.ErrorMessage)
+		}
+		caseKey := ""
+		if r.Edges.TestCase != nil {
+			caseKey = r.Edges.TestCase.CaseKey
+		}
+		if caseKey != "" {
+			categories[pattern] = append(categories[pattern], caseKey)
 		}
 	}
 
@@ -416,11 +458,11 @@ func (s *TMSService) GetDefectCategories(ctx context.Context, projectID uuid.UUI
 // CompareEnvironments сравнивает результаты тестов между двумя окружениями.
 // Для каждого окружения получает последний прогон и его результаты, затем объединяет по ключу тест-кейса.
 func (s *TMSService) CompareEnvironments(ctx context.Context, projectID uuid.UUID, envID1, envID2 uuid.UUID) (*EnvironmentComparisonResponse, error) {
-	env1, err := s.repo.GetEnvironment(ctx, envID1)
+	env1, err := s.repo.GetEnvironmentInProject(ctx, projectID, envID1)
 	if err != nil {
 		return nil, apperrors.NewNotFound("окружение 1 не найдено")
 	}
-	env2, err := s.repo.GetEnvironment(ctx, envID2)
+	env2, err := s.repo.GetEnvironmentInProject(ctx, projectID, envID2)
 	if err != nil {
 		return nil, apperrors.NewNotFound("окружение 2 не найдено")
 	}

@@ -76,6 +76,6 @@ be/fe → unit tests → qa-gate slice → *-ver → fix → re-verify → commi
 
 ---
 
-*Spike: `.planning/production/PROD-01-SPIKE.md`*
+*Spike: `.planning/ops/production/PROD-01-SPIKE.md`*
 
 **Phase 16: SHIPPED (code complete, uncommitted) — 2026-06-22**

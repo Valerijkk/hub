@@ -2,7 +2,7 @@
 
 // Package dev предоставляет dev-эндпоинты для локальной разработки:
 // сидирование демо-пользователей, проекта, задач, досок, меток, тест-кейсов и каналов.
-// Вход без Magic Link / Telegram.
+// Вход без Magic Link (только DEV). Telegram — notification bind, не login (ADR-AUTH-01).
 // Все эндпоинты доступны только при DEV_MODE=true.
 //
 // ME-09: этот файл НЕ компилируется в release-сборках (`go build -tags release`).
@@ -105,6 +105,11 @@ func (h *Handler) Login(c fiber.Ctx) error {
 			return fiber.NewError(fiber.StatusNotFound, "user not found, run /api/dev/seed first")
 		}
 		return fiber.NewError(fiber.StatusInternalServerError, "failed to find user")
+	}
+
+	// P3-BE-16 / W7-A5-012: не обходить StatusActive (pending/deactivated → 403).
+	if u.Status != user.StatusActive {
+		return fiber.NewError(fiber.StatusForbidden, "user is not active")
 	}
 
 	device := "dev-login"

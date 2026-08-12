@@ -29,12 +29,14 @@ func TestTemplateService_DeleteTemplate_CustomSuccess(t *testing.T) {
 	svc := project.NewTemplateService(repo)
 	ctx := context.Background()
 
+	authorID := uuid.New()
 	customID := uuid.New()
 	repo.templates[customID] = &ent.ProjectTemplate{
 		ID: customID, Name: "Custom", IsSystem: false, CreatedAt: time.Now(),
+		Edges: ent.ProjectTemplateEdges{CreatedBy: &ent.User{ID: authorID}},
 	}
 
-	require.NoError(t, svc.DeleteTemplate(ctx, customID))
+	require.NoError(t, svc.DeleteTemplate(ctx, customID, authorID))
 	_, ok := repo.templates[customID]
 	assert.False(t, ok)
 }
@@ -44,7 +46,7 @@ func TestTemplateService_DeleteTemplate_NotFound(t *testing.T) {
 	repo := newTemplateMockRepo()
 	svc := project.NewTemplateService(repo)
 
-	err := svc.DeleteTemplate(context.Background(), uuid.New())
+	err := svc.DeleteTemplate(context.Background(), uuid.New(), uuid.New())
 	require.Error(t, err)
 }
 

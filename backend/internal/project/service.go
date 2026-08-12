@@ -6,12 +6,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net/url"
+	"os"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/project"
 	"github.com/valerii/hub/backend/ent/projectmember"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
+	safehttp "github.com/valerii/hub/backend/internal/platform/http"
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 	"github.com/valerii/hub/backend/internal/platform/observability"
 )
@@ -24,6 +28,27 @@ type ProjectService struct {
 	trackerProv  TrackerProvisioner
 	tmsProv      TMSProvisioner
 	dashProv     DashboardProvisioner
+	frontendURL  string // P3-BE-09 / W1-A5-011: base для invite Link
+}
+
+// SetFrontendURL задаёт публичный URL фронтенда для invite-ссылок.
+func (s *ProjectService) SetFrontendURL(url string) {
+	s.frontendURL = strings.TrimRight(strings.TrimSpace(url), "/")
+}
+
+// resolveFrontendURL — FRONTEND_URL env, иначе поле сервиса, иначе первый CORS_ORIGINS.
+func (s *ProjectService) resolveFrontendURL() string {
+	if u := strings.TrimRight(strings.TrimSpace(os.Getenv("FRONTEND_URL")), "/"); u != "" {
+		return u
+	}
+	if s != nil && s.frontendURL != "" {
+		return s.frontendURL
+	}
+	if cors := strings.TrimSpace(os.Getenv("CORS_ORIGINS")); cors != "" {
+		first := strings.TrimSpace(strings.Split(cors, ",")[0])
+		return strings.TrimRight(first, "/")
+	}
+	return ""
 }
 
 // memberCountOrZero безопасно читает количество участников проекта для UI-ответа.
@@ -83,6 +108,7 @@ func (s *ProjectService) CreateProject(ctx context.Context, userID uuid.UUID, na
 }
 
 // GetProject возвращает проект по ID и роль текущего пользователя (если userID задан).
+// W1-A5-006 / P2-BE-12: soft-deleted (status=deleted) → 404; не член → 404 (без утечки метаданных).
 func (s *ProjectService) GetProject(ctx context.Context, projectID, userID uuid.UUID) (*ProjectResponse, error) {
 	p, err := s.repo.FindByID(ctx, projectID)
 	if err != nil {
@@ -91,12 +117,20 @@ func (s *ProjectService) GetProject(ctx context.Context, projectID, userID uuid.
 		}
 		return nil, apperrors.NewInternal("failed to get project")
 	}
+	if p.Status == project.StatusDeleted {
+		return nil, apperrors.NewNotFound("project not found")
+	}
 
 	myRole := ""
 	if userID != uuid.Nil {
-		if mem, err := s.repo.FindMember(ctx, projectID, userID); err == nil {
-			myRole = string(mem.ProjectRole)
+		mem, err := s.repo.FindMember(ctx, projectID, userID)
+		if err != nil {
+			if ent.IsNotFound(err) {
+				return nil, apperrors.NewNotFound("project not found")
+			}
+			return nil, apperrors.NewInternal("failed to get project membership")
 		}
+		myRole = string(mem.ProjectRole)
 	}
 
 	return toProjectResponse(p, s.memberCountOrZero(ctx, projectID), myRole), nil
@@ -127,19 +161,74 @@ func (s *ProjectService) ListProjects(ctx context.Context, userID uuid.UUID, inc
 }
 
 // UpdateProject обновляет имя, описание или аватар проекта.
+// W1-A5-007 / P2-BE-12: avatar_url — только https/http или относительный путь `/…`.
+// TASK-095: version обязателен; VersionEQ в repo → 409 при conflict.
 func (s *ProjectService) UpdateProject(ctx context.Context, projectID uuid.UUID, req UpdateProjectRequest) (*ProjectResponse, error) {
-	p, err := s.repo.Update(ctx, projectID, req.Name, req.Description, req.AvatarURL)
-	if err != nil {
+	if req.Version < 1 {
+		return nil, apperrors.NewBadRequest("version обязателен и должен быть ≥ 1")
+	}
+	if req.AvatarURL != nil {
+		if err := validateProjectAvatarURL(*req.AvatarURL); err != nil {
+			return nil, apperrors.NewBadRequest("invalid avatar_url")
+		}
+	}
+	if _, err := s.repo.FindByID(ctx, projectID); err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("project not found")
+		}
+		return nil, apperrors.NewInternal("failed to get project")
+	}
+	p, err := s.repo.Update(ctx, projectID, req.Version, req.Name, req.Description, req.AvatarURL)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewConflict("version mismatch: проект был изменён другим пользователем")
 		}
 		return nil, apperrors.NewInternal("failed to update project")
 	}
 	return toProjectResponse(p, s.memberCountOrZero(ctx, projectID), ""), nil
 }
 
+// validateProjectAvatarURL отклоняет javascript:/data: и прочие не-http(s) схемы.
+// Пустая строка и относительные пути (`/files/...`) допустимы.
+func validateProjectAvatarURL(raw string) error {
+	if raw == "" {
+		return nil
+	}
+	if strings.HasPrefix(raw, "/") && !strings.HasPrefix(raw, "//") {
+		return nil
+	}
+	if err := safehttp.ValidateOutboundURL(raw); err != nil {
+		return err
+	}
+	// Доп. защита: отклоняем URL без явного host после parse (ValidateOutboundURL уже проверяет).
+	u, err := url.Parse(raw)
+	if err != nil {
+		return err
+	}
+	scheme := strings.ToLower(u.Scheme)
+	if scheme != "http" && scheme != "https" {
+		return fmt.Errorf("unsupported avatar scheme: %s", scheme)
+	}
+	return nil
+}
+
 // ArchiveProject переводит проект в статус archived.
+// Soft-deleted (корзина) нельзя архивировать — иначе ClearDeletedAt-resurrect через PermProjectEdit (A3W1-A5-001).
 func (s *ProjectService) ArchiveProject(ctx context.Context, projectID uuid.UUID) (*ProjectResponse, error) {
+	cur, err := s.repo.FindByID(ctx, projectID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("project not found")
+		}
+		return nil, apperrors.NewInternal("failed to find project")
+	}
+	if cur.Status == project.StatusDeleted {
+		return nil, apperrors.NewNotFound("project not found")
+	}
+	if cur.Status != project.StatusActive {
+		return nil, apperrors.NewBadRequest("only active projects can be archived")
+	}
+
 	p, err := s.repo.UpdateStatus(ctx, projectID, project.StatusArchived, false)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -151,7 +240,22 @@ func (s *ProjectService) ArchiveProject(ctx context.Context, projectID uuid.UUID
 }
 
 // UnarchiveProject возвращает проект из archived в active.
+// Soft-deleted нельзя «воскресить» через unarchive (A3W1-A5-001).
 func (s *ProjectService) UnarchiveProject(ctx context.Context, projectID uuid.UUID) (*ProjectResponse, error) {
+	cur, err := s.repo.FindByID(ctx, projectID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("project not found")
+		}
+		return nil, apperrors.NewInternal("failed to find project")
+	}
+	if cur.Status == project.StatusDeleted {
+		return nil, apperrors.NewNotFound("project not found")
+	}
+	if cur.Status != project.StatusArchived {
+		return nil, apperrors.NewBadRequest("only archived projects can be unarchived")
+	}
+
 	p, err := s.repo.UpdateStatus(ctx, projectID, project.StatusActive, false)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -164,6 +268,7 @@ func (s *ProjectService) UnarchiveProject(ctx context.Context, projectID uuid.UU
 
 // DeleteProject выполняет мягкое удаление проекта: статус = deleted, deleted_at = now.
 // Также удаляет кросс-проектные связи задач и уведомляет исполнителей.
+// A2W1-A5-001: cleanup + soft-delete атомарны (tx) и fail-closed.
 func (s *ProjectService) DeleteProject(ctx context.Context, projectID uuid.UUID) error {
 	p, err := s.repo.FindByID(ctx, projectID)
 	if err != nil {
@@ -173,56 +278,27 @@ func (s *ProjectService) DeleteProject(ctx context.Context, projectID uuid.UUID)
 		return apperrors.NewInternal("failed to find project")
 	}
 
-	// Удаляем кросс-проектные связи до soft-delete.
-	s.cleanupCrossProjectLinks(ctx, projectID, p.Name)
-
-	_, err = s.repo.UpdateStatus(ctx, projectID, project.StatusDeleted, true)
+	outgoing, incoming, err := s.repo.SoftDeleteWithCrossLinkCleanup(ctx, projectID)
 	if err != nil {
+		slog.ErrorContext(ctx, "delete project: soft-delete with link cleanup failed",
+			"project_id", projectID, "error", err)
 		if ent.IsNotFound(err) {
 			return apperrors.NewNotFound("project not found")
 		}
 		return apperrors.NewInternal("failed to delete project")
 	}
-	return nil
-}
 
-// cleanupCrossProjectLinks удаляет связи задач, где одна сторона принадлежит
-// удаляемому проекту, а другая — другому проекту. Отправляет NATS-уведомление
-// исполнителю задачи из другого проекта.
-func (s *ProjectService) cleanupCrossProjectLinks(ctx context.Context, projectID uuid.UUID, projectName string) {
-	// Связи, где source принадлежит этому проекту, а target — другому.
-	outgoing, err := s.repo.ListOutgoingCrossProjectLinks(ctx, projectID)
-	if err != nil {
-		slog.Error("ошибка поиска исходящих кросс-проектных связей", "error", err)
-	}
-
-	// Связи, где target принадлежит этому проекту, а source — другому.
-	incoming, err := s.repo.ListIncomingCrossProjectLinks(ctx, projectID)
-	if err != nil {
-		slog.Error("ошибка поиска входящих кросс-проектных связей", "error", err)
-	}
-
-	// Обрабатываем исходящие: уведомляем assignee target-задачи.
 	for _, link := range outgoing {
-		if dErr := s.repo.DeleteIssueLink(ctx, link.ID); dErr != nil {
-			slog.Error("ошибка удаления кросс-проектной связи", "link_id", link.ID, "error", dErr)
-			continue
-		}
 		if link.Edges.Source != nil && link.Edges.Target != nil {
-			s.notifyLinkDeleted(ctx, link.Edges.Target, link.Edges.Source.IssueKey, projectName)
+			s.notifyLinkDeleted(ctx, link.Edges.Target, link.Edges.Source.IssueKey, p.Name)
 		}
 	}
-
-	// Обрабатываем входящие: уведомляем assignee source-задачи.
 	for _, link := range incoming {
-		if dErr := s.repo.DeleteIssueLink(ctx, link.ID); dErr != nil {
-			slog.Error("ошибка удаления кросс-проектной связи", "link_id", link.ID, "error", dErr)
-			continue
-		}
 		if link.Edges.Target != nil && link.Edges.Source != nil {
-			s.notifyLinkDeleted(ctx, link.Edges.Source, link.Edges.Target.IssueKey, projectName)
+			s.notifyLinkDeleted(ctx, link.Edges.Source, link.Edges.Target.IssueKey, p.Name)
 		}
 	}
+	return nil
 }
 
 // notifyLinkDeleted отправляет NATS-уведомление исполнителю задачи о том,
@@ -256,8 +332,20 @@ func (s *ProjectService) notifyLinkDeleted(ctx context.Context, otherIssue *ent.
 }
 
 // RestoreProject восстанавливает проект из корзины (active, cleared deleted_at).
+// ClearDeletedAt только здесь — не через Archive/Unarchive (A3W1-A5-001).
 func (s *ProjectService) RestoreProject(ctx context.Context, projectID uuid.UUID) (*ProjectResponse, error) {
-	p, err := s.repo.UpdateStatus(ctx, projectID, project.StatusActive, false)
+	cur, err := s.repo.FindByID(ctx, projectID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("project not found")
+		}
+		return nil, apperrors.NewInternal("failed to find project")
+	}
+	if cur.Status != project.StatusDeleted {
+		return nil, apperrors.NewBadRequest("only deleted projects can be restored")
+	}
+
+	p, err := s.repo.RestoreFromTrash(ctx, projectID)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("project not found")
@@ -267,10 +355,29 @@ func (s *ProjectService) RestoreProject(ctx context.Context, projectID uuid.UUID
 	return toProjectResponse(p, s.memberCountOrZero(ctx, projectID), ""), nil
 }
 
-// PermanentDelete выполняет жёсткое удаление проекта. Только admin.
-func (s *ProjectService) PermanentDelete(ctx context.Context, projectID uuid.UUID) error {
-	err := s.repo.Delete(ctx, projectID)
+// PermanentDelete выполняет жёсткое удаление проекта из корзины.
+// TZ: hard-delete только Admin/GDPR и только status=deleted (A3W1-A5-002).
+func (s *ProjectService) PermanentDelete(ctx context.Context, projectID, actorID uuid.UUID) error {
+	cur, err := s.repo.FindByID(ctx, projectID)
 	if err != nil {
+		if ent.IsNotFound(err) {
+			return apperrors.NewNotFound("project not found")
+		}
+		return apperrors.NewInternal("failed to find project")
+	}
+	if cur.Status != project.StatusDeleted {
+		return apperrors.NewBadRequest("project must be in trash before permanent delete")
+	}
+
+	ok, err := s.repo.IsSystemAdmin(ctx, actorID)
+	if err != nil {
+		return apperrors.NewInternal("failed to check admin role")
+	}
+	if !ok {
+		return apperrors.NewForbidden("only system admin can permanently delete projects")
+	}
+
+	if err := s.repo.Delete(ctx, projectID); err != nil {
 		if ent.IsNotFound(err) {
 			return apperrors.NewNotFound("project not found")
 		}
@@ -362,9 +469,29 @@ func (s *ProjectService) RemoveMember(ctx context.Context, projectID, userID uui
 }
 
 // UpdateMemberRole меняет роль участника проекта.
+// P1-BE-07: нельзя демоутить последнего owner (как в RemoveMember).
 func (s *ProjectService) UpdateMemberRole(ctx context.Context, projectID, userID uuid.UUID, role string) (*MemberResponse, error) {
 	prole := projectmember.ProjectRole(role)
-	mem, err := s.repo.UpdateMemberRole(ctx, projectID, userID, prole)
+
+	mem, err := s.repo.FindMember(ctx, projectID, userID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("member not found")
+		}
+		return nil, apperrors.NewInternal("failed to find member")
+	}
+
+	if mem.ProjectRole == projectmember.ProjectRoleOwner && prole != projectmember.ProjectRoleOwner {
+		ownerCount, err := s.repo.CountOwners(ctx, projectID)
+		if err != nil {
+			return nil, apperrors.NewInternal("failed to count owners")
+		}
+		if ownerCount <= 1 {
+			return nil, apperrors.NewBadRequest("cannot demote the last owner of a project")
+		}
+	}
+
+	mem, err = s.repo.UpdateMemberRole(ctx, projectID, userID, prole)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("member not found")
@@ -407,6 +534,7 @@ func toProjectResponse(p *ent.Project, memberCount int, myRole string) *ProjectR
 		Status:      string(p.Status),
 		MemberCount: memberCount,
 		MyRole:      myRole,
+		Version:     p.Version,
 		CreatedAt:   p.CreatedAt,
 		UpdatedAt:   p.UpdatedAt,
 	}
@@ -441,21 +569,22 @@ func toInviteResponse(inv *ent.Invite, frontendURL string) *InviteResponse {
 	}
 }
 
-// CreateTeam создаёт команду и возвращает DTO.
-func (s *ProjectService) CreateTeam(ctx context.Context, name, description string) (*TeamResponse, error) {
-	t, err := s.repo.CreateTeam(ctx, name, description)
+// CreateTeam создаёт команду; создатель сразу становится участником (ownership без миграции Team).
+// A3W1-A5-003: create + add creator в одной Ent-tx.
+func (s *ProjectService) CreateTeam(ctx context.Context, creatorID uuid.UUID, name, description string) (*TeamResponse, error) {
+	t, err := s.repo.CreateTeamWithCreator(ctx, creatorID, name, description)
 	if err != nil {
 		if ent.IsConstraintError(err) {
 			return nil, apperrors.NewConflict("team name already exists")
 		}
 		return nil, apperrors.NewInternal("failed to create team")
 	}
-	return toTeamResponse(t, 0), nil
+	return toTeamResponse(t, 1), nil
 }
 
-// ListTeams возвращает все команды с количеством участников.
-func (s *ProjectService) ListTeams(ctx context.Context) ([]TeamResponse, error) {
-	teams, err := s.repo.ListTeams(ctx)
+// ListTeams возвращает команды, в которых состоит пользователь (P1-BE-08).
+func (s *ProjectService) ListTeams(ctx context.Context, userID uuid.UUID) ([]TeamResponse, error) {
+	teams, err := s.repo.ListTeamsByUserID(ctx, userID)
 	if err != nil {
 		return nil, apperrors.NewInternal("failed to list teams")
 	}
@@ -466,8 +595,22 @@ func (s *ProjectService) ListTeams(ctx context.Context) ([]TeamResponse, error) 
 	return result, nil
 }
 
-// AddTeamMember добавляет пользователя в команду.
-func (s *ProjectService) AddTeamMember(ctx context.Context, teamID, userID uuid.UUID) error {
+// requireTeamMember — ACL: мутации команды только для её участников.
+func (s *ProjectService) requireTeamMember(ctx context.Context, teamID, actorID uuid.UUID) error {
+	if _, err := s.repo.FindTeamMember(ctx, teamID, actorID); err != nil {
+		if ent.IsNotFound(err) {
+			return apperrors.NewForbidden("not a team member")
+		}
+		return apperrors.NewInternal("failed to check team membership")
+	}
+	return nil
+}
+
+// AddTeamMember добавляет пользователя в команду (только участник команды).
+func (s *ProjectService) AddTeamMember(ctx context.Context, teamID, actorID, userID uuid.UUID) error {
+	if err := s.requireTeamMember(ctx, teamID, actorID); err != nil {
+		return err
+	}
 	_, err := s.repo.AddTeamMember(ctx, teamID, userID)
 	if err != nil {
 		if ent.IsConstraintError(err) {
@@ -478,8 +621,20 @@ func (s *ProjectService) AddTeamMember(ctx context.Context, teamID, userID uuid.
 	return nil
 }
 
-// RemoveTeamMember удаляет пользователя из команды.
-func (s *ProjectService) RemoveTeamMember(ctx context.Context, teamID, userID uuid.UUID) error {
+// RemoveTeamMember удаляет пользователя из команды (только участник команды).
+// C-W19-TT-001 / TASK-184: last remaining member → 409 Conflict (orphan team
+// without requireTeamMember would lock AddTeamMember / AddTeamToProject forever).
+func (s *ProjectService) RemoveTeamMember(ctx context.Context, teamID, actorID, userID uuid.UUID) error {
+	if err := s.requireTeamMember(ctx, teamID, actorID); err != nil {
+		return err
+	}
+	count, err := s.repo.TeamMemberCount(ctx, teamID)
+	if err != nil {
+		return apperrors.NewInternal("failed to count team members")
+	}
+	if count <= 1 {
+		return apperrors.NewConflict("cannot remove the last member of a team")
+	}
 	if err := s.repo.RemoveTeamMember(ctx, teamID, userID); err != nil {
 		return apperrors.NewInternal("failed to remove team member")
 	}
@@ -487,7 +642,11 @@ func (s *ProjectService) RemoveTeamMember(ctx context.Context, teamID, userID uu
 }
 
 // AddTeamToProject привязывает команду к проекту и bulk-добавляет участников.
-func (s *ProjectService) AddTeamToProject(ctx context.Context, teamID, projectID uuid.UUID) error {
+// P1-BE-08: только участник команды (actor) — stranger → 403, даже при PermTeamManage.
+func (s *ProjectService) AddTeamToProject(ctx context.Context, teamID, projectID, actorID uuid.UUID) error {
+	if err := s.requireTeamMember(ctx, teamID, actorID); err != nil {
+		return err
+	}
 	if err := s.repo.AddTeamToProject(ctx, teamID, projectID); err != nil {
 		if ent.IsNotFound(err) {
 			return apperrors.NewNotFound("team or project not found")
@@ -513,15 +672,22 @@ func (s *ProjectService) ListInvites(ctx context.Context, projectID uuid.UUID) (
 	if err != nil {
 		return nil, apperrors.NewInternal("failed to list invites")
 	}
+	base := s.resolveFrontendURL()
 	result := make([]InviteResponse, 0, len(invites))
 	for _, inv := range invites {
-		result = append(result, *toInviteResponse(inv, ""))
+		result = append(result, *toInviteResponse(inv, base))
 	}
 	return result, nil
 }
 
-// RevokeInvite отзывает приглашение.
-func (s *ProjectService) RevokeInvite(ctx context.Context, inviteID uuid.UUID) error {
-	return s.repo.DeleteInvite(ctx, inviteID)
+// RevokeInvite отзывает приглашение в рамках projectID (P1-BE-06).
+func (s *ProjectService) RevokeInvite(ctx context.Context, projectID, inviteID uuid.UUID) error {
+	if err := s.repo.DeleteInvite(ctx, projectID, inviteID); err != nil {
+		if ent.IsNotFound(err) {
+			return apperrors.NewNotFound("invite not found")
+		}
+		return apperrors.NewInternal("failed to revoke invite")
+	}
+	return nil
 }
 

@@ -1,6 +1,7 @@
 package notification
 
 import (
+	"errors"
 	"strconv"
 
 	"github.com/gofiber/fiber/v3"
@@ -34,13 +35,13 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 	notifs.Post("/push/subscribe", h.PushSubscribe)
 	notifs.Delete("/push/unsubscribe", h.PushUnsubscribe)
 
-	if h.telegramBind != nil {
-		notifs.Post("/telegram/bind", h.TelegramBind)
-		notifs.Post("/telegram/confirm", h.TelegramConfirm)
-		notifs.Delete("/telegram", h.TelegramUnlink)
-		notifs.Post("/telegram/test", h.TelegramTest)
-		notifs.Get("/telegram/status", h.TelegramStatus)
-	}
+	// Telegram API остаётся стабильным независимо от конфигурации бота:
+	// status/unlink работают через repository, bot-dependent операции отвечают 503.
+	notifs.Post("/telegram/bind", h.TelegramBind)
+	notifs.Post("/telegram/confirm", h.TelegramConfirm)
+	notifs.Delete("/telegram", h.TelegramUnlink)
+	notifs.Post("/telegram/test", h.TelegramTest)
+	notifs.Get("/telegram/status", h.TelegramStatus)
 
 	// Статические сегменты — до /:id, иначе «telegram» и «read-all» матчятся как UUID.
 	notifs.Patch("/read-all", h.MarkAllRead)
@@ -289,6 +290,7 @@ type PushSubscribeRequest struct {
 // @Success 201 "Подписка сохранена"
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Endpoint принадлежит другому пользователю"
 // @Failure 503 {object} fiber.Error "Push не настроен"
 // @Security BearerAuth
 // @Router /api/notifications/push/subscribe [post]
@@ -314,6 +316,16 @@ func (h *Handler) PushSubscribe(c fiber.Ctx) error {
 
 	userAgent := c.Get("User-Agent")
 	if err := push.SaveSubscription(c.Context(), userID, req.Endpoint, req.P256dhKey, req.AuthKey, userAgent); err != nil {
+		if errors.Is(err, ErrSubscriptionForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "подписка недоступна")
+		}
+		if errors.Is(err, ErrSubscriptionNotFound) {
+			return fiber.NewError(fiber.StatusNotFound, "подписка не найдена")
+		}
+		// W7-A1-002: NF-07 reject (javascript:/file:/…) → 400, не 500.
+		if errors.Is(err, ErrInvalidPushEndpoint) {
+			return fiber.NewError(fiber.StatusBadRequest, "некорректный endpoint")
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, "ошибка сохранения подписки")
 	}
 
@@ -334,11 +346,12 @@ type PushUnsubscribeRequest struct {
 // @Success 204 "Подписка удалена"
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 404 {object} fiber.Error "Подписка не найдена"
 // @Failure 503 {object} fiber.Error "Push не настроен"
 // @Security BearerAuth
 // @Router /api/notifications/push/unsubscribe [delete]
 func (h *Handler) PushUnsubscribe(c fiber.Ctx) error {
-	_, err := getUserID(c)
+	userID, err := getUserID(c)
 	if err != nil {
 		return fiber.NewError(fiber.StatusUnauthorized, apperr.MsgUnauthorized)
 	}
@@ -357,7 +370,13 @@ func (h *Handler) PushUnsubscribe(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusServiceUnavailable, "push-уведомления не настроены")
 	}
 
-	if err := push.RemoveSubscription(c.Context(), req.Endpoint); err != nil {
+	if err := push.RemoveSubscription(c.Context(), userID, req.Endpoint); err != nil {
+		if errors.Is(err, ErrSubscriptionNotFound) {
+			return fiber.NewError(fiber.StatusNotFound, "подписка не найдена")
+		}
+		if errors.Is(err, ErrSubscriptionForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "подписка недоступна")
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, "ошибка удаления подписки")
 	}
 

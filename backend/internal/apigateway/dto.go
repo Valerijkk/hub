@@ -36,20 +36,30 @@ type CreateWebhookRequest struct {
 }
 
 // UpdateWebhookRequest — запрос на обновление вебхук-эндпоинта.
+// Version обязателен (≥1) для optimistic lock (A3W4-5-002 / NFR-24).
 type UpdateWebhookRequest struct {
 	URL      *string  `json:"url,omitempty"`
 	Secret   *string  `json:"secret,omitempty"`
 	Events   []string `json:"events,omitempty"`
 	IsActive *bool    `json:"is_active,omitempty"`
+	Version  int      `json:"version"`
 }
 
-// WebhookResponse — ответ с данными вебхук-эндпоинта.
+// WebhookResponse — ответ с данными вебхук-эндпоинта (без secret).
 type WebhookResponse struct {
 	ID       string   `json:"id"`
 	URL      string   `json:"url"`
 	Events   []string `json:"events"`
 	IsActive bool     `json:"is_active"`
+	Version  int      `json:"version"`
 	Created  string   `json:"created_at"`
+}
+
+// CreateWebhookResponse — ответ при создании: secret возвращается ОДИН раз
+// (как API key `key`), list/update его не содержат (P1-BE-27 / W4-A5-003).
+type CreateWebhookResponse struct {
+	WebhookResponse
+	Secret string `json:"secret"`
 }
 
 // WebhookDeliveryResponse — ответ с данными доставки вебхука.

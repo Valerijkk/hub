@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
+import { getProject } from "@/api/projects";
 import {
 	addCasesToRun,
 	completeRun,
@@ -19,6 +20,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { toastApiError } from "@/lib/format-api-error";
+import { canMutateProject } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { RunExecutionPanel } from "@/modules/tms/components/run-execution-panel";
 import { RunHeader } from "@/modules/tms/components/run-header";
@@ -37,16 +39,27 @@ function TestRunDetailPage() {
 	const [selectedCaseIds, setSelectedCaseIds] = useState<string[]>([]);
 
 	// Загрузка деталей прогона
-	const { data: run, isLoading } = useQuery({
+	const {
+		data: run,
+		isLoading,
+		isError,
+		refetch,
+	} = useQuery({
 		queryKey: ["tms-run-detail", projectId, runId],
 		queryFn: () => getTestRunDetail(projectId, runId),
 	});
+
+	const { data: project } = useQuery({
+		queryKey: ["project", projectId],
+		queryFn: () => getProject(projectId),
+	});
+	const canMutate = canMutateProject(project?.my_role);
 
 	// Загрузка тест-кейсов для диалога добавления
 	const { data: casesData } = useQuery({
 		queryKey: ["tms-cases-for-run", projectId],
 		queryFn: () => listTestCases(projectId, { limit: 100 }),
-		enabled: addCasesOpen,
+		enabled: addCasesOpen && canMutate,
 	});
 
 	// Мутации управления прогоном
@@ -121,7 +134,7 @@ function TestRunDetailPage() {
 		);
 	}, []);
 
-	if (isLoading || !run) {
+	if (isLoading) {
 		return (
 			<div className="mx-auto max-w-6xl animate-fade-in">
 				<div className="mb-4 flex items-center gap-2">
@@ -139,6 +152,34 @@ function TestRunDetailPage() {
 					))}
 				</div>
 				<div className="h-64 w-full rounded-xl animate-shimmer" />
+			</div>
+		);
+	}
+
+	if (isError) {
+		return (
+			<div
+				role="alert"
+				className="mx-auto flex max-w-6xl flex-col items-center justify-center gap-3 py-16 text-center"
+			>
+				<p className="text-[14px] font-semibold text-t1">
+					Не удалось загрузить прогон
+				</p>
+				<button
+					type="button"
+					onClick={() => void refetch()}
+					className="h-9 px-3 rounded-[var(--r2)] border border-b1 text-[13px] text-t2 hover:text-t1"
+				>
+					Попробовать снова
+				</button>
+			</div>
+		);
+	}
+
+	if (!run) {
+		return (
+			<div className="mx-auto flex max-w-6xl items-center justify-center py-16">
+				<p className="text-t2">Прогон не найден</p>
 			</div>
 		);
 	}
@@ -184,6 +225,7 @@ function TestRunDetailPage() {
 			<RunHeader
 				projectId={projectId}
 				run={run}
+				canMutate={canMutate}
 				onStart={() => startMutation.mutate()}
 				onComplete={() => completeMutation.mutate()}
 				onReopen={() => reopenMutation.mutate()}
@@ -233,7 +275,7 @@ function TestRunDetailPage() {
 						runStatus={run.status}
 						executingResultId={executingResultId}
 						onSelectResult={(id) => setExecutingResultId(id)}
-						onAddCases={() => setAddCasesOpen(true)}
+						onAddCases={canMutate ? () => setAddCasesOpen(true) : undefined}
 					/>
 				</div>
 
@@ -267,45 +309,47 @@ function TestRunDetailPage() {
 						<DialogTitle>Добавить тест-кейсы в прогон</DialogTitle>
 					</DialogHeader>
 					<div className="space-y-1.5">
-						{(casesData?.items ?? []).map((tc) => {
+						{(() => {
 							const existingIds = new Set(
 								(run.results ?? []).map((r) => r.test_case?.id).filter(Boolean),
 							);
-							const alreadyAdded = existingIds.has(tc.id);
-							const isSelected = selectedCaseIds.includes(tc.id);
-							return (
-								<label
-									key={tc.id}
-									className={cn(
-										"flex items-center gap-3 rounded-lg border p-2.5 text-sm transition-colors cursor-pointer",
-										alreadyAdded && "opacity-40 cursor-not-allowed",
-										isSelected &&
-											!alreadyAdded &&
-											"bg-primary/5 border-primary/30",
-										!alreadyAdded && !isSelected && "hover:bg-raised/50",
-									)}
-								>
-									<input
-										type="checkbox"
-										checked={isSelected}
-										disabled={alreadyAdded}
-										onChange={() => toggleCaseSelection(tc.id)}
-										className="rounded"
-									/>
-									<div className="min-w-0 flex-1">
-										<span className="font-mono text-xs font-bold text-primary">
-											{tc.case_key}
-										</span>
-										<span className="ml-2 text-sm">{tc.title}</span>
-										{alreadyAdded && (
-											<span className="ml-2 text-[10px] text-t2">
-												(уже добавлен)
-											</span>
+							return (casesData?.items ?? []).map((tc) => {
+								const alreadyAdded = existingIds.has(tc.id);
+								const isSelected = selectedCaseIds.includes(tc.id);
+								return (
+									<label
+										key={tc.id}
+										className={cn(
+											"flex items-center gap-3 rounded-lg border p-2.5 text-sm transition-colors cursor-pointer",
+											alreadyAdded && "opacity-40 cursor-not-allowed",
+											isSelected &&
+												!alreadyAdded &&
+												"bg-primary/5 border-primary/30",
+											!alreadyAdded && !isSelected && "hover:bg-raised/50",
 										)}
-									</div>
-								</label>
-							);
-						})}
+									>
+										<input
+											type="checkbox"
+											checked={isSelected}
+											disabled={alreadyAdded}
+											onChange={() => toggleCaseSelection(tc.id)}
+											className="rounded"
+										/>
+										<div className="min-w-0 flex-1">
+											<span className="font-mono text-xs font-bold text-primary">
+												{tc.case_key}
+											</span>
+											<span className="ml-2 text-sm">{tc.title}</span>
+											{alreadyAdded && (
+												<span className="ml-2 text-[10px] text-t2">
+													(уже добавлен)
+												</span>
+											)}
+										</div>
+									</label>
+								);
+							});
+						})()}
 					</div>
 					<Button
 						className="mt-4 w-full gradient-tms text-white"

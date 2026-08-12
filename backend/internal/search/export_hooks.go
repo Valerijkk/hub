@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"net/http"
+	"strings"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
@@ -66,8 +67,8 @@ func ExportSearchFiles(s *SearchService, ctx context.Context, query string, proj
 	return s.searchFiles(ctx, query, projectIDs)
 }
 
-func ExportSearchChannels(s *SearchService, ctx context.Context, query string, projectIDs []uuid.UUID) ([]SearchResult, error) {
-	return s.searchChannels(ctx, query, projectIDs)
+func ExportSearchChannels(s *SearchService, ctx context.Context, query string, projectIDs []uuid.UUID, userID uuid.UUID) ([]SearchResult, error) {
+	return s.searchChannels(ctx, query, projectIDs, userID)
 }
 
 func ExportSearchMessages(s *SearchService, ctx context.Context, query string, userID uuid.UUID) ([]SearchResult, error) {
@@ -99,7 +100,17 @@ func ExportIssuesIndex() string {
 }
 
 func ExportNewMeiliIndexerTest(host, apiKey string, client *http.Client) *MeiliIndexer {
-	return &MeiliIndexer{host: host, apiKey: apiKey, client: client}
+	return &MeiliIndexer{host: strings.TrimRight(host, "/"), apiKey: apiKey, client: client}
+}
+
+// ExportValidateMeiliHost — P2-BE-18 SSRF guard для hubtest.
+func ExportValidateMeiliHost(host string) error {
+	return validateMeiliHost(host)
+}
+
+// ExportTruncateRunes — P3-BE-04 / TASK-060: rune-safe truncate для hubtest.
+func ExportTruncateRunes(s string, maxRunes int) string {
+	return truncateRunes(s, maxRunes)
 }
 
 func ExportMeiliIndexerHost(m *MeiliIndexer) string {
@@ -107,6 +118,32 @@ func ExportMeiliIndexerHost(m *MeiliIndexer) string {
 		return ""
 	}
 	return m.host
+}
+
+// ExportMeiliIndexerClient — TASK-092: SafeDial client для hubtest.
+func ExportMeiliIndexerClient(m *MeiliIndexer) *http.Client {
+	if m == nil {
+		return nil
+	}
+	return m.client
+}
+
+// ExportMeiliAllowsOperatorPrivate — A3W5-4-001 hubtest.
+func ExportMeiliAllowsOperatorPrivate(raw string) bool {
+	return meiliAllowsOperatorPrivate(raw)
+}
+
+// ExportSetMeiliIndexBatchSize — A3W5-4-003: уменьшить batch в hubtest (mutation pagination).
+// Возвращает previous; restore через defer.
+func ExportSetMeiliIndexBatchSize(n int) int {
+	prev := meiliIndexBatchSize
+	meiliIndexBatchSize = n
+	return prev
+}
+
+// ExportValidateJQLCondition — A3W5-4-002 hubtest.
+func ExportValidateJQLCondition(c JQLCondition) error {
+	return validateJQLCondition(c)
 }
 
 type ExportMeiliIssueDoc struct {

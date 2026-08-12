@@ -37,6 +37,21 @@ export function createNews(data: CreateNewsRequest): Promise<NewsPost> {
 	return api.post<NewsPost>("/intranet/news", data);
 }
 
+export interface UpdateNewsRequest {
+	title?: string;
+	body?: string;
+	pinned?: boolean;
+	published?: boolean;
+	version: number;
+}
+
+export function updateNews(
+	id: string,
+	data: UpdateNewsRequest,
+): Promise<NewsPost> {
+	return api.put<NewsPost>(`/intranet/news/${id}`, data);
+}
+
 export function deleteNews(id: string): Promise<void> {
 	return api.delete(`/intranet/news/${id}`);
 }
@@ -80,7 +95,6 @@ export interface CoffeeEnrollment {
 export interface CoffeePartner {
 	user_id: string;
 	display_name?: string;
-	email?: string;
 	department?: string;
 }
 

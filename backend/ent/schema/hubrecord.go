@@ -20,8 +20,6 @@ func (HubRecord) Fields() []ent.Field {
 			Immutable(),
 		field.JSON("cells", map[string]interface{}{}).
 			Default(map[string]interface{}{}),
-		field.Int("version").
-			Default(1),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
@@ -33,6 +31,13 @@ func (HubRecord) Fields() []ent.Field {
 			Nillable(),
 	}
 }
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (HubRecord) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
+	}
+}
+
 
 func (HubRecord) Edges() []ent.Edge {
 	return []ent.Edge{
@@ -49,5 +54,7 @@ func (HubRecord) Edges() []ent.Edge {
 func (HubRecord) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("deleted_at"),
+		// A2W8-2-009: ListRecords WHERE table AND deleted_at IS NULL
+		index.Edges("table").Fields("deleted_at"),
 	}
 }

@@ -27,13 +27,23 @@ export function KudosFeed() {
 		queryFn: listDirectory,
 	});
 
-	const { data: feed, isLoading: feedLoading } = useQuery({
+	const {
+		data: feed,
+		isLoading: feedLoading,
+		isError: feedError,
+		refetch: refetchFeed,
+	} = useQuery({
 		queryKey: ["intranet", "kudos", "feed"],
 		queryFn: () => listKudosFeed(1, 50),
 		enabled: tab === "feed",
 	});
 
-	const { data: received, isLoading: receivedLoading } = useQuery({
+	const {
+		data: received,
+		isLoading: receivedLoading,
+		isError: receivedError,
+		refetch: refetchReceived,
+	} = useQuery({
 		queryKey: ["intranet", "kudos", "received"],
 		queryFn: () => listReceivedKudos(1, 50),
 		enabled: tab === "received",
@@ -64,6 +74,8 @@ export function KudosFeed() {
 
 	const items = tab === "feed" ? feed?.items : received?.items;
 	const isLoading = tab === "feed" ? feedLoading : receivedLoading;
+	const isError = tab === "feed" ? feedError : receivedError;
+	const refetchList = tab === "feed" ? refetchFeed : refetchReceived;
 
 	return (
 		<div className="space-y-6">
@@ -148,24 +160,40 @@ export function KudosFeed() {
 			</div>
 
 			{isLoading && <p className="text-sm text-t3">Загрузка…</p>}
-			<ul className="space-y-3">
-				{items?.map((k) => (
-					<li
-						key={k.id}
-						className="rounded-xl border border-b1 p-4 space-y-1 bg-pink-500/[0.03]"
+			{/* W10-A1-018: fail ≠ empty ленты */}
+			{!isLoading && isError && (
+				<div role="alert" className="space-y-2 py-4 text-center">
+					<p className="text-sm text-[var(--red)]">
+						Не удалось загрузить kudos
+					</p>
+					<button
+						type="button"
+						className="text-sm font-semibold text-t2 hover:text-t1 hover:underline"
+						onClick={() => void refetchList()}
 					>
-						<p className="text-sm">
-							<span className="font-medium">{k.sender_name}</span>
-							<span className="text-t3"> → </span>
-							<span className="font-medium">{k.recipient_name}</span>
-						</p>
-						<p className="text-sm text-t1 whitespace-pre-wrap">{k.message}</p>
-						<p className="text-[12px] text-t3">
-							{new Date(k.created_at).toLocaleString("ru-RU")}
-						</p>
-					</li>
-				))}
-				{!isLoading && items && items.length === 0 && (
+						Попробовать снова
+					</button>
+				</div>
+			)}
+			<ul className="space-y-3">
+				{!isError &&
+					items?.map((k) => (
+						<li
+							key={k.id}
+							className="rounded-xl border border-b1 p-4 space-y-1 bg-pink-500/[0.03]"
+						>
+							<p className="text-sm">
+								<span className="font-medium">{k.sender_name}</span>
+								<span className="text-t3"> → </span>
+								<span className="font-medium">{k.recipient_name}</span>
+							</p>
+							<p className="text-sm text-t1 whitespace-pre-wrap">{k.message}</p>
+							<p className="text-[12px] text-t3">
+								{new Date(k.created_at).toLocaleString("ru-RU")}
+							</p>
+						</li>
+					))}
+				{!isLoading && !isError && items && items.length === 0 && (
 					<li className="text-sm text-t3 text-center py-8">
 						{tab === "feed" ? "Лента пока пуста" : "Пока никто не поблагодарил"}
 					</li>

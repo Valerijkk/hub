@@ -55,20 +55,22 @@ func resetPostgresSearchSchema(t *testing.T, db *sql.DB) {
 
 	ctx := context.Background()
 	stmts := []string{
-		`DROP TABLE IF EXISTS file_metadata, test_cases, issues, channels, project_members, projects, users CASCADE`,
+		`DROP TABLE IF EXISTS file_metadata, test_cases, issues, channel_members, channels, project_members, projects, users CASCADE`,
 		`CREATE TABLE issues (
 			id UUID PRIMARY KEY,
 			issue_key TEXT NOT NULL,
 			title TEXT NOT NULL,
 			description_text TEXT,
-			project_issues UUID NOT NULL
+			project_issues UUID NOT NULL,
+			deleted_at TIMESTAMPTZ
 		)`,
 		`CREATE TABLE test_cases (
 			id UUID PRIMARY KEY,
 			case_key TEXT NOT NULL,
 			title TEXT NOT NULL,
 			description TEXT,
-			project_test_cases UUID NOT NULL
+			project_test_cases UUID NOT NULL,
+			deleted_at TIMESTAMPTZ
 		)`,
 		`CREATE TABLE users (
 			id UUID PRIMARY KEY,
@@ -80,12 +82,15 @@ func resetPostgresSearchSchema(t *testing.T, db *sql.DB) {
 			id UUID PRIMARY KEY,
 			key TEXT NOT NULL,
 			name TEXT NOT NULL,
-			description TEXT
+			description TEXT,
+			deleted_at TIMESTAMPTZ
 		)`,
 		`CREATE TABLE file_metadata (
 			id UUID PRIMARY KEY,
 			filename TEXT NOT NULL,
-			project_files UUID NOT NULL
+			project_files UUID NOT NULL,
+			status TEXT NOT NULL DEFAULT 'confirmed',
+			deleted_at TIMESTAMPTZ
 		)`,
 		`CREATE TABLE project_members (
 			project_members UUID NOT NULL,
@@ -95,7 +100,12 @@ func resetPostgresSearchSchema(t *testing.T, db *sql.DB) {
 			id UUID PRIMARY KEY,
 			name TEXT NOT NULL,
 			channel_type TEXT NOT NULL,
-			project_id UUID
+			project_id UUID,
+			deleted_at TIMESTAMPTZ
+		)`,
+		`CREATE TABLE channel_members (
+			channel_id UUID NOT NULL,
+			user_id UUID NOT NULL
 		)`,
 	}
 	for _, stmt := range stmts {
@@ -141,7 +151,7 @@ func TestPostgresSearch_IssuesAndProjects(t *testing.T) {
 	require.NotEmpty(t, projects)
 	assert.Equal(t, "project", projects[0].Type)
 
-	results, err := svc.Search(ctx, "login", userID, []string{"issue", "project"}, 10)
+	results, _, err := svc.Search(ctx, "login", userID, []string{"issue", "project"}, 10)
 	require.NoError(t, err)
 	assert.NotEmpty(t, results)
 }
@@ -231,6 +241,7 @@ func TestPostgresSearch_Channels(t *testing.T) {
 
 	ctx := context.Background()
 	projectID := uuid.New()
+	userID := uuid.New()
 	channelID := uuid.New()
 
 	_, err := db.ExecContext(ctx,
@@ -239,11 +250,62 @@ func TestPostgresSearch_Channels(t *testing.T) {
 	require.NoError(t, err)
 
 	svc := search.ExportNewSearchServiceSQL(db)
-	channels, err := search.ExportSearchChannels(svc, ctx, "general", []uuid.UUID{projectID})
+	channels, err := search.ExportSearchChannels(svc, ctx, "general", []uuid.UUID{projectID}, userID)
 	require.NoError(t, err)
 	require.NotEmpty(t, channels)
 	assert.Equal(t, "channel", channels[0].Type)
 	assert.Contains(t, channels[0].Title, "general")
+}
+
+// TestPostgresSearch_Channels_SoftDeleteAndPrivateScope_P1BE32 — mutation-ready
+// guard for P1-BE-32: soft-deleted → 0 hits; private non-member → не в выдаче.
+func TestPostgresSearch_Channels_SoftDeleteAndPrivateScope_P1BE32(t *testing.T) {
+	db := connectPostgresSearchTest(t)
+	defer db.Close()
+	resetPostgresSearchSchema(t, db)
+
+	ctx := context.Background()
+	projectID := uuid.New()
+	memberID := uuid.New()
+	outsiderID := uuid.New()
+	publicLive := uuid.New()
+	publicDeleted := uuid.New()
+	privateMember := uuid.New()
+	privateSecret := uuid.New()
+	deletedAt := time.Now().UTC()
+
+	_, err := db.ExecContext(ctx,
+		`INSERT INTO channels (id, name, channel_type, project_id, deleted_at) VALUES
+			($1, 'p1be32 public live', 'public', $5, NULL),
+			($2, 'p1be32 public deleted', 'public', $5, $6),
+			($3, 'p1be32 private member', 'private', $5, NULL),
+			($4, 'p1be32 private secret', 'private', $5, NULL)`,
+		publicLive, publicDeleted, privateMember, privateSecret, projectID, deletedAt)
+	require.NoError(t, err)
+	_, err = db.ExecContext(ctx,
+		`INSERT INTO channel_members (channel_id, user_id) VALUES ($1, $2)`,
+		privateMember, memberID)
+	require.NoError(t, err)
+
+	svc := search.ExportNewSearchServiceSQL(db)
+
+	asMember, err := search.ExportSearchChannels(svc, ctx, "p1be32", []uuid.UUID{projectID}, memberID)
+	require.NoError(t, err)
+	require.Len(t, asMember, 2, "member sees public live + own private; not deleted/secret")
+	got := map[string]string{}
+	for _, r := range asMember {
+		got[r.ID] = r.Subtitle
+	}
+	assert.Equal(t, "public", got[publicLive.String()])
+	assert.Equal(t, "private", got[privateMember.String()])
+	assert.NotContains(t, got, publicDeleted.String())
+	assert.NotContains(t, got, privateSecret.String())
+
+	asOutsider, err := search.ExportSearchChannels(svc, ctx, "p1be32", []uuid.UUID{projectID}, outsiderID)
+	require.NoError(t, err)
+	require.Len(t, asOutsider, 1, "project peer without channel membership sees only public")
+	assert.Equal(t, publicLive.String(), asOutsider[0].ID)
+	assert.Equal(t, "public", asOutsider[0].Subtitle)
 }
 
 func TestPostgresEnsureSearchIndexes_Idempotent(t *testing.T) {

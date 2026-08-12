@@ -9,6 +9,7 @@ type BackupResponse struct {
 	FileSize     int64      `json:"file_size"`
 	Status       string     `json:"status"`
 	ErrorMessage string     `json:"error_message,omitempty"`
+	RestoredAt   *time.Time `json:"restored_at,omitempty"`
 	CreatedAt    time.Time  `json:"created_at"`
 }
 

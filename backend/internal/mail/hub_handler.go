@@ -42,6 +42,12 @@ func (h *HubHandler) Send(c fiber.Ctx) error {
 		if err == ErrInvalidRequest {
 			return fiber.NewError(fiber.StatusBadRequest, err.Error())
 		}
+		if err == ErrAlertsDisabled {
+			return fiber.NewError(fiber.StatusForbidden, err.Error())
+		}
+		if err == ErrDailyLimitExceeded {
+			return fiber.NewError(fiber.StatusTooManyRequests, err.Error())
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, "send failed")
 	}
 	return c.JSON(fiber.Map{"message": "queued"})

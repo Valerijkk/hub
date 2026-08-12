@@ -12,9 +12,14 @@ interface AIStore {
 	botDisplayName: string;
 	models: AIModelInfo[];
 	selectedModel: string | null;
+	/** OL для PATCH /ai/preferences (FE-SMA-002). */
+	preferenceVersion: number;
 	panelOpen: boolean;
 	prefillInput: string | null;
+	/** true только после успешного loadBotInfo — fail не блокирует retry. */
 	loaded: boolean;
+	botLoadError: boolean;
+	modelsError: boolean;
 	loadBotInfo: () => Promise<void>;
 	loadModels: () => Promise<void>;
 	setSelectedModel: (model: string) => void;
@@ -31,9 +36,12 @@ export const useAIStore = create<AIStore>((set, get) => ({
 	botDisplayName: "@hub-ai",
 	models: [],
 	selectedModel: null,
+	preferenceVersion: 0,
 	panelOpen: false,
 	prefillInput: null,
 	loaded: false,
+	botLoadError: false,
+	modelsError: false,
 	loadBotInfo: async () => {
 		if (get().loaded) return;
 		try {
@@ -42,16 +50,21 @@ export const useAIStore = create<AIStore>((set, get) => ({
 				botUserId: info.user_id,
 				botDisplayName: info.display_name,
 				loaded: true,
+				botLoadError: false,
 			});
 		} catch {
-			set({ loaded: true });
+			// W11-A2-002: не ставить loaded:true — иначе retry навсегда заблокирован
+			set({ botLoadError: true });
 		}
 	},
 	loadModels: async () => {
 		try {
 			const [resp, pref] = await Promise.all([
 				getAIModels(),
-				getAIPreferences().catch(() => ({ default_model: "" })),
+				getAIPreferences().catch(() => ({
+					default_model: "",
+					version: 0,
+				})),
 			]);
 			const preferred =
 				pref.default_model &&
@@ -62,18 +75,28 @@ export const useAIStore = create<AIStore>((set, get) => ({
 			set((s) => ({
 				models: resp.models,
 				selectedModel: s.selectedModel ?? preferred ?? first,
+				preferenceVersion: pref.version ?? 0,
+				modelsError: false,
 			}));
 		} catch {
-			/* Админ мог ещё не настроить провайдеров — UI остаётся с пустым списком моделей. */
+			// W11-A2-003: fail ≠ «список моделей пуст»
+			set({ modelsError: true });
 		}
 	},
 	setSelectedModel: (model) => set({ selectedModel: model }),
 	saveSelectedModel: async (model) => {
+		const prev = get().selectedModel;
+		const version = get().preferenceVersion;
 		set({ selectedModel: model });
 		try {
-			await updateAIPreferences({ default_model: model });
+			const saved = await updateAIPreferences({
+				default_model: model,
+				version,
+			});
+			set({ preferenceVersion: saved.version ?? version });
 		} catch {
-			/* Синхронизация предпочтений best-effort: локальный выбор важнее серверного ответа. */
+			// rollback optimistic выбора при fail sync
+			set({ selectedModel: prev });
 		}
 	},
 	setPanelOpen: (open) => set({ panelOpen: open }),

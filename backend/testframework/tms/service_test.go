@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/csv"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -20,7 +21,10 @@ import (
 	"github.com/valerii/hub/backend/ent/testcase"
 	"github.com/valerii/hub/backend/ent/testresult"
 	"github.com/valerii/hub/backend/ent/testrun"
+	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
+
+var errInjectStatsFail = errors.New("inject stats fail")
 
 // ---------------------------------------------------------------------------
 // Мок tms.Repository
@@ -37,10 +41,25 @@ type mockRepository struct {
 	issues       map[uuid.UUID]*ent.Issue
 	linkedIssues  map[uuid.UUID][]uuid.UUID // testCaseID -> ID задач
 	environments  map[uuid.UUID]*ent.Environment
+	projectMembers map[uuid.UUID]map[uuid.UUID]bool // projectID -> userID -> member
+	files          map[uuid.UUID]*ent.FileMetadata
 
 	caseCounter  int
 	issueCounter int
 	lastVersion  *ent.TestCaseVersion
+
+	// A2W2-2-001: счётчики batch-вызовов (mutation: N+1 снова → FAIL).
+	getLastResultsBatchCalls  int
+	listResultsByRunIDsCalls  int
+	getLastResultSingleCalls  int
+
+	// Inject hooks for A3W2-2-003 / A3W2-2-006 / C-W19-TT-002.
+	failUpdateStats   bool
+	deleteCaseErr     error
+	linkIssueErr      error
+	unlinkIssueErr    error
+	storeAllureErr    error // C-W19-TT-002: Mongo StoreAllureResults fail
+	findMatchErr      error // C-W19-TT-002: matcher Find* infra err (≠ NotFound)
 }
 
 func (m *mockRepository) CreateEnvironment(_ context.Context, projectID uuid.UUID, input tms.CreateEnvironmentInput) (*ent.Environment, error) {
@@ -66,6 +85,16 @@ func (m *mockRepository) GetEnvironment(_ context.Context, envID uuid.UUID) (*en
 	}
 	return env, nil
 }
+func (m *mockRepository) GetEnvironmentInProject(_ context.Context, projectID, envID uuid.UUID) (*ent.Environment, error) {
+	env, ok := m.environments[envID]
+	if !ok {
+		return nil, &ent.NotFoundError{}
+	}
+	if env.Edges.Project == nil || env.Edges.Project.ID != projectID {
+		return nil, &ent.NotFoundError{}
+	}
+	return env, nil
+}
 func (m *mockRepository) ListEnvironmentsByProject(_ context.Context, projectID uuid.UUID) ([]*ent.Environment, error) {
 	items := make([]*ent.Environment, 0)
 	for _, env := range m.environments {
@@ -75,9 +104,12 @@ func (m *mockRepository) ListEnvironmentsByProject(_ context.Context, projectID 
 	}
 	return items, nil
 }
-func (m *mockRepository) UpdateEnvironment(_ context.Context, envID uuid.UUID, input tms.UpdateEnvironmentInput) (*ent.Environment, error) {
+func (m *mockRepository) UpdateEnvironment(_ context.Context, projectID, envID uuid.UUID, input tms.UpdateEnvironmentInput) (*ent.Environment, error) {
 	env, ok := m.environments[envID]
 	if !ok {
+		return nil, &ent.NotFoundError{}
+	}
+	if env.Edges.Project == nil || env.Edges.Project.ID != projectID {
 		return nil, &ent.NotFoundError{}
 	}
 	if input.Name != nil {
@@ -91,8 +123,12 @@ func (m *mockRepository) UpdateEnvironment(_ context.Context, envID uuid.UUID, i
 	}
 	return env, nil
 }
-func (m *mockRepository) DeleteEnvironment(_ context.Context, envID uuid.UUID) error {
-	if _, ok := m.environments[envID]; !ok {
+func (m *mockRepository) DeleteEnvironment(_ context.Context, projectID, envID uuid.UUID) error {
+	env, ok := m.environments[envID]
+	if !ok {
+		return &ent.NotFoundError{}
+	}
+	if env.Edges.Project == nil || env.Edges.Project.ID != projectID {
 		return &ent.NotFoundError{}
 	}
 	delete(m.environments, envID)
@@ -104,20 +140,22 @@ func (m *mockRepository) GetLatestTestRunForEnvironment(ctx context.Context, pro
 
 func newMockRepo() *mockRepository {
 	return &mockRepository{
-		testCases:    make(map[uuid.UUID]*ent.TestCase),
-		versions:     make(map[uuid.UUID]*ent.TestCaseVersion),
-		runs:         make(map[uuid.UUID]*ent.TestRun),
-		results:      make(map[uuid.UUID]*ent.TestResult),
-		runResults:   make(map[uuid.UUID][]uuid.UUID),
-		suites:       make(map[uuid.UUID]*ent.TestSuite),
-		components:   make(map[uuid.UUID]*ent.Component),
-		issues:       make(map[uuid.UUID]*ent.Issue),
-		linkedIssues: make(map[uuid.UUID][]uuid.UUID),
-		environments: make(map[uuid.UUID]*ent.Environment),
+		testCases:      make(map[uuid.UUID]*ent.TestCase),
+		versions:       make(map[uuid.UUID]*ent.TestCaseVersion),
+		runs:           make(map[uuid.UUID]*ent.TestRun),
+		results:        make(map[uuid.UUID]*ent.TestResult),
+		runResults:     make(map[uuid.UUID][]uuid.UUID),
+		suites:         make(map[uuid.UUID]*ent.TestSuite),
+		components:     make(map[uuid.UUID]*ent.Component),
+		issues:         make(map[uuid.UUID]*ent.Issue),
+		linkedIssues:   make(map[uuid.UUID][]uuid.UUID),
+		environments:   make(map[uuid.UUID]*ent.Environment),
+		projectMembers: make(map[uuid.UUID]map[uuid.UUID]bool),
+		files:          make(map[uuid.UUID]*ent.FileMetadata),
 	}
 }
 
-func (m *mockRepository) CreateTestCase(_ context.Context, _ uuid.UUID, input tms.CreateTestCaseInput) (*ent.TestCase, error) {
+func (m *mockRepository) CreateTestCase(_ context.Context, projectID uuid.UUID, input tms.CreateTestCaseInput) (*ent.TestCase, error) {
 	m.caseCounter++
 	id := uuid.New()
 	tc := &ent.TestCase{
@@ -139,6 +177,7 @@ func (m *mockRepository) CreateTestCase(_ context.Context, _ uuid.UUID, input tm
 		Version:    1,
 		CreatedAt:  time.Now(),
 		UpdatedAt:  time.Now(),
+		Edges:      ent.TestCaseEdges{Project: &ent.Project{ID: projectID}},
 	}
 	m.testCases[id] = tc
 	return tc, nil
@@ -152,7 +191,7 @@ func (m *mockRepository) GetTestCase(_ context.Context, id uuid.UUID) (*ent.Test
 	return tc, nil
 }
 
-func (m *mockRepository) FindTestCaseByKey(_ context.Context, caseKey string) (*ent.TestCase, error) {
+func (m *mockRepository) FindTestCaseByKey(_ context.Context, projectID uuid.UUID, caseKey string) (*ent.TestCase, error) {
 	for _, tc := range m.testCases {
 		if tc.CaseKey == caseKey {
 			return tc, nil
@@ -162,18 +201,30 @@ func (m *mockRepository) FindTestCaseByKey(_ context.Context, caseKey string) (*
 }
 
 func (m *mockRepository) FindTestCaseByExternalID(_ context.Context, _ uuid.UUID, _ string) (*ent.TestCase, error) {
+	if m.findMatchErr != nil {
+		return nil, m.findMatchErr
+	}
 	return nil, &ent.NotFoundError{}
 }
 
 func (m *mockRepository) FindTestCaseByAutomationID(_ context.Context, _ uuid.UUID, _ string) (*ent.TestCase, error) {
+	if m.findMatchErr != nil {
+		return nil, m.findMatchErr
+	}
 	return nil, &ent.NotFoundError{}
 }
 
 func (m *mockRepository) FindTestCaseByFullName(_ context.Context, _ uuid.UUID, _ string) (*ent.TestCase, error) {
+	if m.findMatchErr != nil {
+		return nil, m.findMatchErr
+	}
 	return nil, &ent.NotFoundError{}
 }
 
 func (m *mockRepository) FindTestCaseByClassMethod(_ context.Context, _ uuid.UUID, _, _ string) (*ent.TestCase, error) {
+	if m.findMatchErr != nil {
+		return nil, m.findMatchErr
+	}
 	return nil, &ent.NotFoundError{}
 }
 
@@ -189,6 +240,9 @@ func (m *mockRepository) UpdateTestCase(_ context.Context, id uuid.UUID, input t
 	tc, ok := m.testCases[id]
 	if !ok {
 		return nil, &ent.NotFoundError{}
+	}
+	if tc.Version != input.Version {
+		return nil, apperrors.NewConflict("version mismatch: тест-кейс был изменён другим пользователем")
 	}
 	if input.Title != nil {
 		tc.Title = *input.Title
@@ -210,9 +264,61 @@ func (m *mockRepository) UpdateTestCase(_ context.Context, id uuid.UUID, input t
 	return tc, nil
 }
 
-func (m *mockRepository) DeleteTestCase(_ context.Context, id uuid.UUID) error {
+func (m *mockRepository) DeleteTestCase(_ context.Context, _ uuid.UUID, id uuid.UUID) error {
+	if m.deleteCaseErr != nil {
+		return m.deleteCaseErr
+	}
 	delete(m.testCases, id)
 	return nil
+}
+
+func (m *mockRepository) CountTestCasesInProject(_ context.Context, projectID uuid.UUID, ids []uuid.UUID) (int, error) {
+	n := 0
+	for _, id := range ids {
+		tc, ok := m.testCases[id]
+		if !ok {
+			continue
+		}
+		if tc.Edges.Project != nil && tc.Edges.Project.ID == projectID {
+			n++
+		}
+	}
+	return n, nil
+}
+
+func (m *mockRepository) CountLabelsInProject(_ context.Context, _ uuid.UUID, ids []uuid.UUID) (int, error) {
+	// Мок не хранит метки отдельно — для unit-тестов FK считаем валидными.
+	return len(ids), nil
+}
+
+func (m *mockRepository) CountProjectMembers(_ context.Context, projectID uuid.UUID, userIDs []uuid.UUID) (int, error) {
+	// A3W2-2-001: если projectMembers задан — считаем только членов; иначе все userIDs валидны (legacy unit).
+	members, scoped := m.projectMembers[projectID]
+	if !scoped {
+		return len(userIDs), nil
+	}
+	n := 0
+	for _, id := range userIDs {
+		if members[id] {
+			n++
+		}
+	}
+	return n, nil
+}
+
+func (m *mockRepository) CountFilesInProject(_ context.Context, projectID uuid.UUID, ids []uuid.UUID) (int, error) {
+	// A3W2-2-002 stub: файлы из m.files, принадлежащие projectID.
+	n := 0
+	for _, id := range ids {
+		f, ok := m.files[id]
+		if !ok {
+			continue
+		}
+		if f.Edges.Project != nil && f.Edges.Project.ID == projectID {
+			n++
+		}
+	}
+	return n, nil
 }
 
 func (m *mockRepository) CreateTestCaseVersion(_ context.Context, testCaseID, userID uuid.UUID, versionNumber int, snapshot map[string]interface{}, description string) (*ent.TestCaseVersion, error) {
@@ -223,6 +329,9 @@ func (m *mockRepository) CreateTestCaseVersion(_ context.Context, testCaseID, us
 		Snapshot:          snapshot,
 		ChangeDescription: description,
 		CreatedAt:         time.Now(),
+		Edges: ent.TestCaseVersionEdges{
+			TestCase: &ent.TestCase{ID: testCaseID},
+		},
 	}
 	m.versions[id] = v
 	m.lastVersion = v
@@ -237,17 +346,26 @@ func (m *mockRepository) ListTestCaseVersions(_ context.Context, _ uuid.UUID) ([
 	return items, nil
 }
 
-func (m *mockRepository) GetTestCaseVersion(_ context.Context, versionID uuid.UUID) (*ent.TestCaseVersion, error) {
+func (m *mockRepository) GetTestCaseVersion(_ context.Context, testCaseID, versionID uuid.UUID) (*ent.TestCaseVersion, error) {
 	v, ok := m.versions[versionID]
 	if !ok {
+		return nil, &ent.NotFoundError{}
+	}
+	if v.Edges.TestCase == nil || v.Edges.TestCase.ID != testCaseID {
 		return nil, &ent.NotFoundError{}
 	}
 	return v, nil
 }
 
-func (m *mockRepository) CreateSuite(_ context.Context, _ uuid.UUID, input tms.CreateSuiteInput) (*ent.TestSuite, error) {
+func (m *mockRepository) CreateSuite(_ context.Context, projectID uuid.UUID, input tms.CreateSuiteInput) (*ent.TestSuite, error) {
 	id := uuid.New()
-	s := &ent.TestSuite{ID: id, Name: input.Name, CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	s := &ent.TestSuite{
+		ID: id, Name: input.Name, Version: 1, CreatedAt: time.Now(), UpdatedAt: time.Now(),
+		Edges: ent.TestSuiteEdges{Project: &ent.Project{ID: projectID}},
+	}
+	if input.ParentID != nil {
+		s.Edges.Parent = &ent.TestSuite{ID: *input.ParentID}
+	}
 	m.suites[id] = s
 	return s, nil
 }
@@ -260,31 +378,65 @@ func (m *mockRepository) GetSuite(_ context.Context, id uuid.UUID) (*ent.TestSui
 	return s, nil
 }
 
-func (m *mockRepository) ListSuites(_ context.Context, _ uuid.UUID) ([]*ent.TestSuite, error) {
+func (m *mockRepository) GetSuiteInProject(_ context.Context, projectID, id uuid.UUID) (*ent.TestSuite, error) {
+	s, ok := m.suites[id]
+	if !ok {
+		return nil, &ent.NotFoundError{}
+	}
+	if s.Edges.Project == nil || s.Edges.Project.ID != projectID {
+		return nil, &ent.NotFoundError{}
+	}
+	return s, nil
+}
+
+func (m *mockRepository) ListSuites(_ context.Context, projectID uuid.UUID) ([]*ent.TestSuite, error) {
 	items := make([]*ent.TestSuite, 0, len(m.suites))
 	for _, s := range m.suites {
-		items = append(items, s)
+		if s.Edges.Project != nil && s.Edges.Project.ID == projectID {
+			items = append(items, s)
+		}
 	}
 	return items, nil
 }
 
-func (m *mockRepository) UpdateSuite(_ context.Context, id uuid.UUID, input tms.UpdateSuiteInput) (*ent.TestSuite, error) {
+func (m *mockRepository) UpdateSuite(_ context.Context, projectID, id uuid.UUID, input tms.UpdateSuiteInput) (*ent.TestSuite, error) {
 	s, ok := m.suites[id]
 	if !ok {
 		return nil, &ent.NotFoundError{}
+	}
+	if s.Edges.Project == nil || s.Edges.Project.ID != projectID {
+		return nil, &ent.NotFoundError{}
+	}
+	if s.Version != input.Version {
+		return nil, apperrors.NewConflict("version mismatch: папка была изменена другим пользователем")
 	}
 	if input.Name != nil {
 		s.Name = *input.Name
 	}
+	if input.Description != nil {
+		s.Description = *input.Description
+	}
+	if input.SortOrder != nil {
+		s.SortOrder = *input.SortOrder
+	}
+	s.Version++
+	s.UpdatedAt = time.Now()
 	return s, nil
 }
 
-func (m *mockRepository) DeleteSuite(_ context.Context, id uuid.UUID) error {
+func (m *mockRepository) DeleteSuite(_ context.Context, projectID, id uuid.UUID) error {
+	s, ok := m.suites[id]
+	if !ok {
+		return &ent.NotFoundError{}
+	}
+	if s.Edges.Project == nil || s.Edges.Project.ID != projectID {
+		return &ent.NotFoundError{}
+	}
 	delete(m.suites, id)
 	return nil
 }
 
-func (m *mockRepository) MoveSuite(_ context.Context, id uuid.UUID, _ *uuid.UUID) (*ent.TestSuite, error) {
+func (m *mockRepository) MoveSuite(_ context.Context, _ uuid.UUID, id uuid.UUID, _ *uuid.UUID) (*ent.TestSuite, error) {
 	s, ok := m.suites[id]
 	if !ok {
 		return nil, &ent.NotFoundError{}
@@ -292,27 +444,53 @@ func (m *mockRepository) MoveSuite(_ context.Context, id uuid.UUID, _ *uuid.UUID
 	return s, nil
 }
 
-func (m *mockRepository) CreateComponent(_ context.Context, _ uuid.UUID, name, description string) (*ent.Component, error) {
+func (m *mockRepository) CreateComponent(_ context.Context, projectID uuid.UUID, name, description string) (*ent.Component, error) {
 	id := uuid.New()
-	c := &ent.Component{ID: id, Name: name, Description: description, CreatedAt: time.Now()}
+	c := &ent.Component{
+		ID: id, Name: name, Description: description, CreatedAt: time.Now(),
+		Edges: ent.ComponentEdges{Project: &ent.Project{ID: projectID}},
+	}
 	m.components[id] = c
 	return c, nil
 }
 
-func (m *mockRepository) ListComponents(_ context.Context, _ uuid.UUID) ([]*ent.Component, error) {
+func (m *mockRepository) ListComponents(_ context.Context, projectID uuid.UUID) ([]*ent.Component, error) {
 	items := make([]*ent.Component, 0, len(m.components))
 	for _, c := range m.components {
-		items = append(items, c)
+		if c.Edges.Project != nil && c.Edges.Project.ID == projectID {
+			items = append(items, c)
+		}
 	}
 	return items, nil
 }
 
-func (m *mockRepository) DeleteComponent(_ context.Context, id uuid.UUID) error {
+func (m *mockRepository) CountComponentsInProject(_ context.Context, projectID uuid.UUID, ids []uuid.UUID) (int, error) {
+	n := 0
+	for _, id := range ids {
+		c, ok := m.components[id]
+		if !ok {
+			continue
+		}
+		if c.Edges.Project != nil && c.Edges.Project.ID == projectID {
+			n++
+		}
+	}
+	return n, nil
+}
+
+func (m *mockRepository) DeleteComponent(_ context.Context, projectID, id uuid.UUID) error {
+	c, ok := m.components[id]
+	if !ok {
+		return &ent.NotFoundError{}
+	}
+	if c.Edges.Project == nil || c.Edges.Project.ID != projectID {
+		return &ent.NotFoundError{}
+	}
 	delete(m.components, id)
 	return nil
 }
 
-func (m *mockRepository) CreateTestRun(_ context.Context, _ uuid.UUID, input tms.CreateTestRunInput) (*ent.TestRun, error) {
+func (m *mockRepository) CreateTestRun(_ context.Context, projectID uuid.UUID, input tms.CreateTestRunInput) (*ent.TestRun, error) {
 	id := uuid.New()
 	runType := testrun.RunType(orDefault(input.RunType, "manual"))
 	run := &ent.TestRun{
@@ -322,6 +500,9 @@ func (m *mockRepository) CreateTestRun(_ context.Context, _ uuid.UUID, input tms
 		Status:    testrun.StatusCreated,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
+		Edges: ent.TestRunEdges{
+			Project: &ent.Project{ID: projectID},
+		},
 	}
 	m.runs[id] = run
 	return run, nil
@@ -335,12 +516,39 @@ func (m *mockRepository) GetTestRun(_ context.Context, id uuid.UUID) (*ent.TestR
 	return run, nil
 }
 
-func (m *mockRepository) ListTestRuns(_ context.Context, _ uuid.UUID, _ tms.ListTestRunsParams) ([]*ent.TestRun, int, error) {
+func (m *mockRepository) GetTestRunInProject(_ context.Context, projectID, id uuid.UUID) (*ent.TestRun, error) {
+	run, ok := m.runs[id]
+	if !ok {
+		return nil, &ent.NotFoundError{}
+	}
+	if run.Edges.Project == nil || run.Edges.Project.ID != projectID {
+		return nil, &ent.NotFoundError{}
+	}
+	return run, nil
+}
+
+func (m *mockRepository) ListTestRuns(_ context.Context, _ uuid.UUID, params tms.ListTestRunsParams) ([]*ent.TestRun, int, error) {
 	items := make([]*ent.TestRun, 0, len(m.runs))
 	for _, r := range m.runs {
 		items = append(items, r)
 	}
-	return items, len(items), nil
+	total := len(items)
+	limit := params.Limit
+	if limit <= 0 || limit > 100 {
+		limit = 50
+	}
+	offset := params.Offset
+	if offset < 0 {
+		offset = 0
+	}
+	if offset >= total {
+		return []*ent.TestRun{}, total, nil
+	}
+	end := offset + limit
+	if end > total {
+		end = total
+	}
+	return items[offset:end], total, nil
 }
 
 func (m *mockRepository) UpdateTestRunStatus(_ context.Context, id uuid.UUID, status string, _ *time.Time) (*ent.TestRun, error) {
@@ -362,6 +570,9 @@ func (m *mockRepository) ReopenTestRun(_ context.Context, id uuid.UUID) (*ent.Te
 }
 
 func (m *mockRepository) UpdateTestRunStats(_ context.Context, id uuid.UUID, stats tms.TestRunStats) (*ent.TestRun, error) {
+	if m.failUpdateStats {
+		return nil, errInjectStatsFail
+	}
 	run, ok := m.runs[id]
 	if !ok {
 		return nil, &ent.NotFoundError{}
@@ -382,9 +593,33 @@ func (m *mockRepository) CreateTestResult(_ context.Context, _ uuid.UUID, input 
 	return r, nil
 }
 
-func (m *mockRepository) UpdateTestResult(_ context.Context, id uuid.UUID, input tms.UpdateTestResultInput) (*ent.TestResult, error) {
+func (m *mockRepository) UpdateTestResult(_ context.Context, runID, id uuid.UUID, input tms.UpdateTestResultInput) (*ent.TestResult, error) {
 	r, ok := m.results[id]
 	if !ok {
+		return nil, &ent.NotFoundError{}
+	}
+	// A3W2-2-004: require Edges.Run.ID==runID OR entry in runResults; иначе NotFound.
+	scoped := false
+	if r.Edges.Run != nil {
+		if r.Edges.Run.ID != runID {
+			return nil, &ent.NotFoundError{}
+		}
+		scoped = true
+	}
+	if ids, ok := m.runResults[runID]; ok {
+		found := false
+		for _, rid := range ids {
+			if rid == id {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return nil, &ent.NotFoundError{}
+		}
+		scoped = true
+	}
+	if !scoped {
 		return nil, &ent.NotFoundError{}
 	}
 	if input.Status != nil {
@@ -392,6 +627,9 @@ func (m *mockRepository) UpdateTestResult(_ context.Context, id uuid.UUID, input
 	}
 	if input.Comment != nil {
 		r.Comment = *input.Comment
+	}
+	if input.ExecutedByID != nil {
+		r.Edges.ExecutedBy = &ent.User{ID: *input.ExecutedByID}
 	}
 	return r, nil
 }
@@ -413,15 +651,36 @@ func (m *mockRepository) ListTestResults(_ context.Context, runID uuid.UUID) ([]
 	return items, nil
 }
 
-func (m *mockRepository) BatchCreateTestResults(_ context.Context, _ uuid.UUID, inputs []tms.CreateTestResultInput) ([]*ent.TestResult, error) {
+func (m *mockRepository) BatchCreateTestResults(_ context.Context, runID uuid.UUID, inputs []tms.CreateTestResultInput) ([]*ent.TestResult, error) {
 	var results []*ent.TestResult
 	for range inputs {
 		id := uuid.New()
-		r := &ent.TestResult{ID: id, CreatedAt: time.Now()}
+		r := &ent.TestResult{
+			ID:        id,
+			CreatedAt: time.Now(),
+			Edges:     ent.TestResultEdges{Run: &ent.TestRun{ID: runID}},
+		}
 		m.results[id] = r
+		m.runResults[runID] = append(m.runResults[runID], id)
 		results = append(results, r)
 	}
 	return results, nil
+}
+
+func (m *mockRepository) DeleteTestResults(_ context.Context, ids []uuid.UUID) error {
+	for _, id := range ids {
+		delete(m.results, id)
+		for runID, rids := range m.runResults {
+			filtered := rids[:0]
+			for _, rid := range rids {
+				if rid != id {
+					filtered = append(filtered, rid)
+				}
+			}
+			m.runResults[runID] = filtered
+		}
+	}
+	return nil
 }
 
 func (m *mockRepository) IncrementTestCaseCounter(_ context.Context, _ uuid.UUID) (int, error) {
@@ -429,12 +688,29 @@ func (m *mockRepository) IncrementTestCaseCounter(_ context.Context, _ uuid.UUID
 	return m.caseCounter, nil
 }
 
+func (m *mockRepository) FindIssueInProject(_ context.Context, projectID, issueID uuid.UUID) (*ent.Issue, error) {
+	issue, ok := m.issues[issueID]
+	if !ok {
+		return nil, &ent.NotFoundError{}
+	}
+	if issue.Edges.Project == nil || issue.Edges.Project.ID != projectID {
+		return nil, &ent.NotFoundError{}
+	}
+	return issue, nil
+}
+
 func (m *mockRepository) LinkTestCaseToIssue(_ context.Context, testCaseID, issueID uuid.UUID) error {
+	if m.linkIssueErr != nil {
+		return m.linkIssueErr
+	}
 	m.linkedIssues[testCaseID] = append(m.linkedIssues[testCaseID], issueID)
 	return nil
 }
 
 func (m *mockRepository) UnlinkTestCaseFromIssue(_ context.Context, testCaseID, issueID uuid.UUID) error {
+	if m.unlinkIssueErr != nil {
+		return m.unlinkIssueErr
+	}
 	ids := m.linkedIssues[testCaseID]
 	for i, id := range ids {
 		if id == issueID {
@@ -490,7 +766,7 @@ func (m *mockRepository) GetProjectIssuesWithTestCases(_ context.Context, _ uuid
 	return result, nil
 }
 
-func (m *mockRepository) CreateBugIssue(_ context.Context, _ , _, testCaseID uuid.UUID, title, _ , _ string) (*ent.Issue, error) {
+func (m *mockRepository) CreateBugIssue(_ context.Context, projectID, _, testCaseID uuid.UUID, title, _, _ string) (*ent.Issue, error) {
 	m.issueCounter++
 	id := uuid.New()
 	issue := &ent.Issue{
@@ -502,6 +778,7 @@ func (m *mockRepository) CreateBugIssue(_ context.Context, _ , _, testCaseID uui
 		Priority:    entissue.Priority("high"),
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
+		Edges:       ent.IssueEdges{Project: &ent.Project{ID: projectID}},
 	}
 	m.issues[id] = issue
 	m.linkedIssues[testCaseID] = append(m.linkedIssues[testCaseID], id)
@@ -509,6 +786,7 @@ func (m *mockRepository) CreateBugIssue(_ context.Context, _ , _, testCaseID uui
 }
 
 func (m *mockRepository) GetLastResultForTestCase(_ context.Context, testCaseID uuid.UUID) (*ent.TestResult, error) {
+	m.getLastResultSingleCalls++
 	var latest *ent.TestResult
 	for _, r := range m.results {
 		if r.Edges.TestCase != nil && r.Edges.TestCase.ID == testCaseID {
@@ -523,6 +801,84 @@ func (m *mockRepository) GetLastResultForTestCase(_ context.Context, testCaseID 
 	return latest, nil
 }
 
+func (m *mockRepository) GetLastResultsForTestCases(_ context.Context, testCaseIDs []uuid.UUID) (map[uuid.UUID]*ent.TestResult, error) {
+	m.getLastResultsBatchCalls++
+	out := make(map[uuid.UUID]*ent.TestResult, len(testCaseIDs))
+	want := make(map[uuid.UUID]struct{}, len(testCaseIDs))
+	for _, id := range testCaseIDs {
+		want[id] = struct{}{}
+	}
+	for _, r := range m.results {
+		if r.Edges.TestCase == nil {
+			continue
+		}
+		tcID := r.Edges.TestCase.ID
+		if _, ok := want[tcID]; !ok {
+			continue
+		}
+		prev, exists := out[tcID]
+		if !exists || r.CreatedAt.After(prev.CreatedAt) {
+			out[tcID] = r
+		}
+	}
+	return out, nil
+}
+
+func (m *mockRepository) ListTestResultsByRunIDs(_ context.Context, runIDs []uuid.UUID) ([]*ent.TestResult, error) {
+	m.listResultsByRunIDsCalls++
+	if len(runIDs) == 0 {
+		return nil, nil
+	}
+	seen := make(map[uuid.UUID]struct{})
+	var out []*ent.TestResult
+	anyMapped := false
+	for _, runID := range runIDs {
+		ids, ok := m.runResults[runID]
+		if !ok {
+			continue
+		}
+		anyMapped = true
+		run := m.runs[runID]
+		for _, id := range ids {
+			if _, dup := seen[id]; dup {
+				continue
+			}
+			r, ok := m.results[id]
+			if !ok {
+				continue
+			}
+			seen[id] = struct{}{}
+			if r.Edges.Run == nil && run != nil {
+				r.Edges.Run = run
+			}
+			out = append(out, r)
+		}
+	}
+	if anyMapped {
+		return out, nil
+	}
+	want := make(map[uuid.UUID]struct{}, len(runIDs))
+	for _, id := range runIDs {
+		want[id] = struct{}{}
+	}
+	for _, r := range m.results {
+		if r.Edges.Run == nil {
+			continue
+		}
+		if _, ok := want[r.Edges.Run.ID]; ok {
+			out = append(out, r)
+		}
+	}
+	if len(out) > 0 {
+		return out, nil
+	}
+	// Legacy mock: results без Edges.Run / runResults (GetDefectCategories).
+	for _, r := range m.results {
+		out = append(out, r)
+	}
+	return out, nil
+}
+
 func (m *mockRepository) AddTestCasesToRun(_ context.Context, runID uuid.UUID, caseIDs []uuid.UUID) error {
 	for _, caseID := range caseIDs {
 		id := uuid.New()
@@ -531,12 +887,25 @@ func (m *mockRepository) AddTestCasesToRun(_ context.Context, runID uuid.UUID, c
 			Status: "unknown",
 			Edges: ent.TestResultEdges{
 				TestCase: m.testCases[caseID],
+				Run:      &ent.TestRun{ID: runID},
 			},
 			CreatedAt: time.Now(),
 		}
 		m.results[id] = r
+		m.runResults[runID] = append(m.runResults[runID], id)
 	}
 	return nil
+}
+
+func (m *mockRepository) GetTestResultInRun(_ context.Context, runID, resultID uuid.UUID) (*ent.TestResult, error) {
+	r, err := m.GetTestResult(context.Background(), resultID)
+	if err != nil {
+		return nil, err
+	}
+	if r.Edges.Run == nil || r.Edges.Run.ID != runID {
+		return nil, &ent.NotFoundError{}
+	}
+	return r, nil
 }
 
 func (m *mockRepository) GetTestResult(_ context.Context, resultID uuid.UUID) (*ent.TestResult, error) {
@@ -565,11 +934,27 @@ func (m *mockRepository) GetTestRunWithResults(_ context.Context, runID uuid.UUI
 	return run, nil
 }
 
-func (m *mockRepository) AddFilesToResult(_ context.Context, _ uuid.UUID, _ []uuid.UUID) error {
+func (m *mockRepository) GetTestRunWithResultsInProject(_ context.Context, projectID, runID uuid.UUID) (*ent.TestRun, error) {
+	run, ok := m.runs[runID]
+	if !ok {
+		return nil, &ent.NotFoundError{}
+	}
+	if run.Edges.Project == nil || run.Edges.Project.ID != projectID {
+		return nil, &ent.NotFoundError{}
+	}
+	results := m.listResultsSlice()
+	run.Edges.Results = results
+	return run, nil
+}
+
+func (m *mockRepository) AddFilesToResult(_ context.Context, _, _ uuid.UUID, _ []uuid.UUID) error {
 	return nil
 }
 
 func (m *mockRepository) StoreAllureResults(_ context.Context, _ uuid.UUID, _ []tms.AllureResult) error {
+	if m.storeAllureErr != nil {
+		return m.storeAllureErr
+	}
 	return nil
 }
 
@@ -658,16 +1043,17 @@ func TestUpdateTestCase_CreatesVersion(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	created, err := svc.CreateTestCase(ctx, uuid.New(), uuid.New(), tms.CreateTestCaseRequest{
+	created, err := svc.CreateTestCase(ctx, projectID, uuid.New(), tms.CreateTestCaseRequest{
 		Title: "Исходный заголовок",
 	})
 	require.NoError(t, err)
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
 	newTitle := "Обновлённый заголовок"
-	updated, err := svc.UpdateTestCase(ctx, created.CaseKey, uuid.New(), tms.UpdateTestCaseRequest{
+	updated, err := svc.UpdateTestCase(ctx, projectID, created.CaseKey, uuid.New(), tms.UpdateTestCaseRequest{
 		Title:   &newTitle,
 		Version: 1,
 	})
@@ -687,9 +1073,10 @@ func TestRollbackTestCase(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	created, err := svc.CreateTestCase(ctx, uuid.New(), uuid.New(), tms.CreateTestCaseRequest{
+	created, err := svc.CreateTestCase(ctx, projectID, uuid.New(), tms.CreateTestCaseRequest{
 		Title:    "Версия 1",
 		Priority: "high",
 	})
@@ -697,7 +1084,7 @@ func TestRollbackTestCase(t *testing.T) {
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
 	newTitle := "Версия 2"
-	_, err = svc.UpdateTestCase(ctx, created.CaseKey, uuid.New(), tms.UpdateTestCaseRequest{
+	_, err = svc.UpdateTestCase(ctx, projectID, created.CaseKey, uuid.New(), tms.UpdateTestCaseRequest{
 		Title:   &newTitle,
 		Version: 1,
 	})
@@ -707,7 +1094,7 @@ func TestRollbackTestCase(t *testing.T) {
 	versionID := repo.lastVersion.ID
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	rolledBack, err := svc.RollbackTestCase(ctx, created.CaseKey, versionID, uuid.New())
+	rolledBack, err := svc.RollbackTestCase(ctx, projectID, created.CaseKey, versionID, uuid.New())
 	require.NoError(t, err)
 	assert.Equal(t, "Версия 1", rolledBack.Title)
 }
@@ -717,9 +1104,10 @@ func TestUpdateRunStatus_ValidTransitions(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	run, err := svc.CreateTestRun(ctx, uuid.New(), uuid.New(), tms.CreateTestRunRequest{
+	run, err := svc.CreateTestRun(ctx, projectID, uuid.New(), tms.CreateTestRunRequest{
 		Title: "Прогон 1",
 	})
 	require.NoError(t, err)
@@ -728,12 +1116,12 @@ func TestUpdateRunStatus_ValidTransitions(t *testing.T) {
 	runID, _ := uuid.Parse(run.ID)
 
 	// created -> in_progress (создан -> в работе)
-	updated, err := svc.UpdateRunStatus(ctx, runID, "in_progress")
+	updated, err := svc.UpdateRunStatus(ctx, projectID, runID, "in_progress")
 	require.NoError(t, err)
 	assert.Equal(t, "in_progress", updated.Status)
 
 	// in_progress -> completed (в работе -> завершён)
-	completed, err := svc.UpdateRunStatus(ctx, runID, "completed")
+	completed, err := svc.UpdateRunStatus(ctx, projectID, runID, "completed")
 	require.NoError(t, err)
 	assert.Equal(t, "completed", completed.Status)
 }
@@ -743,9 +1131,10 @@ func TestUpdateRunStatus_InvalidTransition(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	run, err := svc.CreateTestRun(ctx, uuid.New(), uuid.New(), tms.CreateTestRunRequest{
+	run, err := svc.CreateTestRun(ctx, projectID, uuid.New(), tms.CreateTestRunRequest{
 		Title: "Прогон 2",
 	})
 	require.NoError(t, err)
@@ -753,7 +1142,7 @@ func TestUpdateRunStatus_InvalidTransition(t *testing.T) {
 	runID, _ := uuid.Parse(run.ID)
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	_, err = svc.UpdateRunStatus(ctx, runID, "completed")
+	_, err = svc.UpdateRunStatus(ctx, projectID, runID, "completed")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "недопустимый переход статуса")
 }
@@ -763,22 +1152,23 @@ func TestReopenTestRun(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	run, err := svc.CreateTestRun(ctx, uuid.New(), uuid.New(), tms.CreateTestRunRequest{
+	run, err := svc.CreateTestRun(ctx, projectID, uuid.New(), tms.CreateTestRunRequest{
 		Title: "Прогон для переоткрытия",
 	})
 	require.NoError(t, err)
 	runID, _ := uuid.Parse(run.ID)
 
 	// created -> in_progress -> completed (создан -> в работе -> завершён)
-	_, err = svc.UpdateRunStatus(ctx, runID, "in_progress")
+	_, err = svc.UpdateRunStatus(ctx, projectID, runID, "in_progress")
 	require.NoError(t, err)
-	_, err = svc.UpdateRunStatus(ctx, runID, "completed")
+	_, err = svc.UpdateRunStatus(ctx, projectID, runID, "completed")
 	require.NoError(t, err)
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	reopened, err := svc.ReopenTestRun(ctx, runID)
+	reopened, err := svc.ReopenTestRun(ctx, projectID, runID)
 	require.NoError(t, err)
 	assert.Equal(t, "in_progress", reopened.Status)
 }
@@ -788,26 +1178,27 @@ func TestAddTestCasesToRun(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	tc1, err := svc.CreateTestCase(ctx, uuid.New(), uuid.New(), tms.CreateTestCaseRequest{
+	tc1, err := svc.CreateTestCase(ctx, projectID, uuid.New(), tms.CreateTestCaseRequest{
 		Title: "Кейс 1",
 	})
 	require.NoError(t, err)
-	tc2, err := svc.CreateTestCase(ctx, uuid.New(), uuid.New(), tms.CreateTestCaseRequest{
+	tc2, err := svc.CreateTestCase(ctx, projectID, uuid.New(), tms.CreateTestCaseRequest{
 		Title: "Кейс 2",
 	})
 	require.NoError(t, err)
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	run, err := svc.CreateTestRun(ctx, uuid.New(), uuid.New(), tms.CreateTestRunRequest{
+	run, err := svc.CreateTestRun(ctx, projectID, uuid.New(), tms.CreateTestRunRequest{
 		Title: "Прогон с кейсами",
 	})
 	require.NoError(t, err)
 	runID, _ := uuid.Parse(run.ID)
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	detail, err := svc.AddTestCasesToRun(ctx, runID, tms.AddTestCasesToRunRequest{
+	detail, err := svc.AddTestCasesToRun(ctx, projectID, runID, tms.AddTestCasesToRunRequest{
 		CaseIDs: []string{tc1.ID, tc2.ID},
 	})
 	require.NoError(t, err)
@@ -819,15 +1210,16 @@ func TestExecuteTestResult_UpdatesStats(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	run, err := svc.CreateTestRun(ctx, uuid.New(), uuid.New(), tms.CreateTestRunRequest{
+	run, err := svc.CreateTestRun(ctx, projectID, uuid.New(), tms.CreateTestRunRequest{
 		Title: "Прогон для выполнения",
 	})
 	require.NoError(t, err)
 	runID, _ := uuid.Parse(run.ID)
 
-	_, err = svc.UpdateRunStatus(ctx, runID, "in_progress")
+	_, err = svc.UpdateRunStatus(ctx, projectID, runID, "in_progress")
 	require.NoError(t, err)
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
@@ -836,12 +1228,14 @@ func TestExecuteTestResult_UpdatesStats(t *testing.T) {
 		ID:        resultID,
 		Status:    "unknown",
 		CreatedAt: time.Now(),
+		Edges:     ent.TestResultEdges{Run: &ent.TestRun{ID: runID}},
 	}
+	repo.runResults[runID] = []uuid.UUID{resultID}
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
 	passedStatus := "passed"
 	comment := "Тест пройден"
-	resp, err := svc.ExecuteTestResult(ctx, runID, resultID, uuid.New(), tms.UpdateTestResultRequest{
+	resp, err := svc.ExecuteTestResult(ctx, projectID, runID, resultID, uuid.New(), tms.UpdateTestResultRequest{
 		Status:  &passedStatus,
 		Comment: &comment,
 	})
@@ -859,19 +1253,20 @@ func TestCompleteTestRun(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
 	// Создаём и стартуем прогон
-	run, err := svc.CreateTestRun(ctx, uuid.New(), uuid.New(), tms.CreateTestRunRequest{
+	run, err := svc.CreateTestRun(ctx, projectID, uuid.New(), tms.CreateTestRunRequest{
 		Title: "Прогон для завершения",
 	})
 	require.NoError(t, err)
 	runID, _ := uuid.Parse(run.ID)
 
-	_, err = svc.StartTestRun(ctx, runID)
+	_, err = svc.StartTestRun(ctx, projectID, runID)
 	require.NoError(t, err)
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	completed, err := svc.CompleteTestRun(ctx, runID)
+	completed, err := svc.CompleteTestRun(ctx, projectID, runID)
 	require.NoError(t, err)
 	assert.Equal(t, "completed", completed.Status)
 }
@@ -881,9 +1276,10 @@ func TestLinkTestCaseToIssue(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	tc, err := svc.CreateTestCase(ctx, uuid.New(), uuid.New(), tms.CreateTestCaseRequest{
+	tc, err := svc.CreateTestCase(ctx, projectID, uuid.New(), tms.CreateTestCaseRequest{
 		Title: "Кейс для привязки",
 	})
 	require.NoError(t, err)
@@ -894,23 +1290,24 @@ func TestLinkTestCaseToIssue(t *testing.T) {
 		ID:       issueID,
 		IssueKey: "HUB-100",
 		Title:    "Задача для привязки",
+		Edges:    ent.IssueEdges{Project: &ent.Project{ID: projectID}},
 	}
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	err = svc.LinkTestCaseToIssue(ctx, tc.CaseKey, issueID)
+	err = svc.LinkTestCaseToIssue(ctx, projectID, tc.CaseKey, issueID)
 	require.NoError(t, err)
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	links, err := svc.GetTestCaseLinks(ctx, tc.CaseKey)
+	links, err := svc.GetTestCaseLinks(ctx, projectID, tc.CaseKey)
 	require.NoError(t, err)
 	assert.Len(t, links, 1)
 	assert.Equal(t, "HUB-100", links[0].IssueKey)
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	err = svc.UnlinkTestCaseFromIssue(ctx, tc.CaseKey, issueID)
+	err = svc.UnlinkTestCaseFromIssue(ctx, projectID, tc.CaseKey, issueID)
 	require.NoError(t, err)
 
-	links, err = svc.GetTestCaseLinks(ctx, tc.CaseKey)
+	links, err = svc.GetTestCaseLinks(ctx, projectID, tc.CaseKey)
 	require.NoError(t, err)
 	assert.Len(t, links, 0)
 }
@@ -920,13 +1317,22 @@ func TestCreateBugFromFailedResult(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	tc, err := svc.CreateTestCase(ctx, uuid.New(), uuid.New(), tms.CreateTestCaseRequest{
+	tc, err := svc.CreateTestCase(ctx, projectID, uuid.New(), tms.CreateTestCaseRequest{
 		Title: "Кейс с провалом",
 	})
 	require.NoError(t, err)
 	tcID, _ := uuid.Parse(tc.ID)
+
+	runID := uuid.New()
+	repo.runs[runID] = &ent.TestRun{
+		ID: runID,
+		Edges: ent.TestRunEdges{
+			Project: &ent.Project{ID: projectID},
+		},
+	}
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
 	resultID := uuid.New()
@@ -937,11 +1343,12 @@ func TestCreateBugFromFailedResult(t *testing.T) {
 		CreatedAt:    time.Now(),
 		Edges: ent.TestResultEdges{
 			TestCase: repo.testCases[tcID],
+			Run:      repo.runs[runID],
 		},
 	}
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	bug, err := svc.CreateBugFromFailedResult(ctx, uuid.New(), uuid.New(), resultID, tms.CreateBugRequest{})
+	bug, err := svc.CreateBugFromFailedResult(ctx, projectID, runID, uuid.New(), resultID, tms.CreateBugRequest{})
 	require.NoError(t, err)
 	assert.NotEmpty(t, bug.ID)
 	assert.Contains(t, bug.Title, "FAILED:")
@@ -1057,21 +1464,22 @@ func TestStartTestRun_InvalidTransition(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	run, err := svc.CreateTestRun(ctx, uuid.New(), uuid.New(), tms.CreateTestRunRequest{
+	run, err := svc.CreateTestRun(ctx, projectID, uuid.New(), tms.CreateTestRunRequest{
 		Title: "Прогон",
 	})
 	require.NoError(t, err)
 	runID, _ := uuid.Parse(run.ID)
 
-	_, err = svc.StartTestRun(ctx, runID)
+	_, err = svc.StartTestRun(ctx, projectID, runID)
 	require.NoError(t, err)
-	_, err = svc.CompleteTestRun(ctx, runID)
+	_, err = svc.CompleteTestRun(ctx, projectID, runID)
 	require.NoError(t, err)
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	_, err = svc.StartTestRun(ctx, runID)
+	_, err = svc.StartTestRun(ctx, projectID, runID)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "недопустимый переход статуса")
 }

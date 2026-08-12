@@ -13,7 +13,7 @@ function AuthenticatedLayout() {
 
 	const queryClient = useQueryClient();
 	const navigate = useNavigate();
-	const storeLogout = useAuthStore((s) => s.logout);
+	const clearSessionLocal = useAuthStore((s) => s.clearSessionLocal);
 
 	// Регистрируем Service Worker для push-уведомлений при входе.
 	useEffect(() => {
@@ -27,23 +27,25 @@ function AuthenticatedLayout() {
 		const unsubscribe = subscribeAuthSync((event) => {
 			if (event.type === "logout") {
 				queryClient.clear();
-				// Если стор ещё считает нас залогиненными — синхронизируем локально
-				// (без повторного broadcast, чтобы не зациклить).
+				// Remote logout: только локальная очистка без повторного broadcast
+				// (W11-A2-004 / P2-FE-09).
 				const { isAuthenticated } = useAuthStore.getState();
 				if (isAuthenticated) {
-					storeLogout();
+					clearSessionLocal();
 				}
 				void navigate({ to: "/login" });
 			} else if (event.type === "login") {
-				// Другая вкладка залогинилась под, возможно, другим user_id:
-				// чистим cache и перезагружаем приложение, чтобы переподписаться
-				// на корректный WebSocket-канал.
+				const currentId = useAuthStore.getState().user?.id ?? null;
+				// Same-user re-login (token refresh /me) — не перезагружаем вкладку.
+				if (event.userId && currentId && event.userId === currentId) {
+					return;
+				}
 				queryClient.clear();
 				window.location.reload();
 			}
 		});
 		return unsubscribe;
-	}, [queryClient, navigate, storeLogout]);
+	}, [queryClient, navigate, clearSessionLocal]);
 
 	return (
 		<>

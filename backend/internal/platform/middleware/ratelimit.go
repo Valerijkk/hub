@@ -203,19 +203,26 @@ func RateLimitRedis(ctx context.Context, rdb *redis.Client, cfg RedisRateLimitCo
 		now := time.Now()
 		nowMs := now.UnixMilli()
 		windowStart := now.Add(-cfg.Window).UnixMilli()
-
-		pipe := rdb.Pipeline()
-		// Удаляем устаревшие попытки.
-		pipe.ZRemRangeByScore(ctx, key, "0", strconv.FormatInt(windowStart-1, 10))
 		// Member уникален на запрос — nanosecond alone коллидирует в burst.
 		member := strconv.FormatInt(now.UnixNano(), 10) + ":" + c.IP() + ":" + randomHex(8)
-		pipe.ZAdd(ctx, key, redis.Z{Score: float64(nowMs), Member: member})
-		cardCmd := pipe.ZCard(ctx, key)
-		// Гарантируем, что ключ не залипнет навсегда: TTL чуть больше окна.
-		pipe.Expire(ctx, key, cfg.Window+time.Minute)
+		ttlSec := int64((cfg.Window + time.Minute).Seconds())
+		if ttlSec < 1 {
+			ttlSec = 1
+		}
 
-		if _, err := pipe.Exec(ctx); err != nil {
-			slog.Warn("RateLimitRedis: pipeline error, falling back to in-memory limiter",
+		// A2W4-1-003: атомарный Lua — ZADD только если card < Max.
+		// Иначе параллельный pipeline (ZADD→ZCARD→ZRem) даёт ложные 429:
+		// соседний запрос видит inflated card до ZRem отклонённого member.
+		allowed, err := rdb.Eval(ctx, redisSlidingWindowLua,
+			[]string{key},
+			strconv.FormatInt(windowStart-1, 10),
+			strconv.FormatInt(nowMs, 10),
+			member,
+			cfg.Max,
+			ttlSec,
+		).Int64()
+		if err != nil {
+			slog.Warn("RateLimitRedis: lua error, falling back to in-memory limiter",
 				"key", key, "error", err)
 			memKey := raw
 			if memKey == "" {
@@ -231,7 +238,7 @@ func RateLimitRedis(ctx context.Context, rdb *redis.Client, cfg RedisRateLimitCo
 			return c.Next()
 		}
 
-		if cardCmd.Val() > int64(cfg.Max) {
+		if allowed == 0 {
 			sec := int(cfg.Window.Seconds())
 			if sec < 1 {
 				sec = 1
@@ -241,6 +248,22 @@ func RateLimitRedis(ctx context.Context, rdb *redis.Client, cfg RedisRateLimitCo
 		return c.Next()
 	}
 }
+
+// redisSlidingWindowLua — атомарный sliding-window (A2W4-1-003).
+// KEYS[1]=rl key; ARGV: windowStartExclusive, nowMs, member, max, ttlSec.
+// Возвращает 1=allow (ZADD выполнен), 0=reject (ZADD не делали).
+const redisSlidingWindowLua = `
+redis.call('ZREMRANGEBYSCORE', KEYS[1], '0', ARGV[1])
+local card = redis.call('ZCARD', KEYS[1])
+local max = tonumber(ARGV[4])
+if card >= max then
+  redis.call('EXPIRE', KEYS[1], tonumber(ARGV[5]))
+  return 0
+end
+redis.call('ZADD', KEYS[1], ARGV[2], ARGV[3])
+redis.call('EXPIRE', KEYS[1], tonumber(ARGV[5]))
+return 1
+`
 
 // ExtractEmailFromBody возвращает RateLimitKeyExtractor, вытаскивающий
 // email из JSON body запроса. Используется для magic-link verify: лимит
@@ -337,7 +360,10 @@ func (rl *rateLimiter) cleanup(ctx context.Context) {
 
 				if len(entry.timestamps) == 0 {
 					entry.mu.Unlock()
-					rl.entries.Delete(key)
+					// W4-A1-003: CompareAndDelete — иначе параллельный allow мог
+					// LoadOrStore тот же pointer, дописать timestamps, а Delete
+					// выкинул бы живой bucket (сброс счётчика / bypass).
+					rl.entries.CompareAndDelete(key, entry)
 					return true
 				}
 

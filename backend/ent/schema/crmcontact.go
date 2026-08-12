@@ -32,8 +32,6 @@ func (CrmContact) Fields() []ent.Field {
 			MaxLen(200),
 		field.Text("notes").
 			Optional(),
-		field.Int("version").
-			Default(1),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
@@ -45,6 +43,13 @@ func (CrmContact) Fields() []ent.Field {
 			Nillable(),
 	}
 }
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (CrmContact) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
+	}
+}
+
 
 func (CrmContact) Edges() []ent.Edge {
 	return []ent.Edge{
@@ -61,6 +66,8 @@ func (CrmContact) Edges() []ent.Edge {
 
 func (CrmContact) Indexes() []ent.Index {
 	return []ent.Index{
+		// A2W8-2-005: lookup по email — hot-path CRM.
+		index.Fields("email"),
 		index.Fields("deleted_at"),
 		index.Fields("company"),
 	}

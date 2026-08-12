@@ -1,6 +1,8 @@
 package dashboard
 
 import (
+	"errors"
+
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	apperr "github.com/valerii/hub/backend/internal/platform/errors"
@@ -64,11 +66,12 @@ func (h *Handler) Personal(c fiber.Ctx) error {
 // @Success 200 {object} ProjectStats "Статистика проекта"
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет членства в проекте"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
 // @Router /api/dashboard/project/{projectId} [get]
 func (h *Handler) Project(c fiber.Ctx) error {
-	_, err := getUserID(c)
+	userID, err := getUserID(c)
 	if err != nil {
 		return fiber.NewError(fiber.StatusUnauthorized, apperr.MsgUnauthorized)
 	}
@@ -78,8 +81,12 @@ func (h *Handler) Project(c fiber.Ctx) error {
 		return err
 	}
 
-	stats, err := h.service.GetProjectStats(c.Context(), projectID)
+	stats, err := h.service.GetProjectStats(c.Context(), userID, projectID)
 	if err != nil {
+		// A7-001: non-member -> 403 (не отдаём метрики чужого проекта)
+		if errors.Is(err, ErrForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "недостаточно прав для просмотра статистики проекта")
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, "ошибка загрузки статистики проекта")
 	}
 
@@ -103,12 +110,11 @@ func (h *Handler) Admin(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, apperr.MsgUnauthorized)
 	}
 
-	// Проверяем роль администратора через запрос к БД
-	u, uErr := h.service.repo.GetUser(c.Context(), userID)
-	if uErr != nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "пользователь не найден")
-	}
-	if string(u.SystemRole) != "admin" {
+	// W7-A4-017 / P3-BE-07: admin-гейт через service, не h.service.repo.
+	if err := h.service.RequireSystemAdmin(c.Context(), userID); err != nil {
+		if errors.Is(err, ErrUnauthorized) {
+			return fiber.NewError(fiber.StatusUnauthorized, "пользователь не найден")
+		}
 		return fiber.NewError(fiber.StatusForbidden, "требуются права администратора")
 	}
 
@@ -129,6 +135,7 @@ func (h *Handler) Admin(c fiber.Ctx) error {
 // @Param project_id query string false "ID проекта (для проектного дашборда)"
 // @Success 200 {object} LayoutDTO "Раскладка"
 // @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет членства в проекте"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
 // @Router /api/dashboard/layout [get]
@@ -150,6 +157,10 @@ func (h *Handler) GetLayout(c fiber.Ctx) error {
 
 	layout, err := h.service.GetLayout(c.Context(), userID, dashType, projectID)
 	if err != nil {
+		// A3W7-4-003: stranger project_id → 403
+		if errors.Is(err, ErrForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "недостаточно прав для просмотра раскладки проекта")
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, "ошибка загрузки раскладки")
 	}
 
@@ -192,6 +203,9 @@ func (h *Handler) SaveLayout(c fiber.Ctx) error {
 	}
 
 	if err := h.service.SaveLayout(c.Context(), userID, req); err != nil {
+		if errors.Is(err, ErrForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "нет доступа к проекту")
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, "ошибка сохранения раскладки")
 	}
 
@@ -248,6 +262,9 @@ func (h *Handler) ApplyTemplate(c fiber.Ctx) error {
 	}
 
 	if err := h.service.ApplyTemplate(c.Context(), userID, projectID, req.Template); err != nil {
+		if errors.Is(err, ErrForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "нет доступа к проекту")
+		}
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 

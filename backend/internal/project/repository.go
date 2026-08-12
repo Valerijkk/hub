@@ -2,6 +2,7 @@ package project
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -15,6 +16,8 @@ import (
 	"github.com/valerii/hub/backend/ent/team"
 	"github.com/valerii/hub/backend/ent/teammember"
 	"github.com/valerii/hub/backend/ent/user"
+	"github.com/valerii/hub/backend/ent/webhookendpoint"
+	"github.com/valerii/hub/backend/ent/workflowstatus"
 )
 
 // Repository определяет интерфейс доступа к данным модуля project.
@@ -25,8 +28,12 @@ type Repository interface {
 	ListByUserID(ctx context.Context, userID uuid.UUID, includeArchived bool) ([]*ent.Project, error)
 	ListTrash(ctx context.Context, userID uuid.UUID) ([]*ent.Project, error)
 	Create(ctx context.Context, name, key, description string, ownerID uuid.UUID) (*ent.Project, error)
-	Update(ctx context.Context, id uuid.UUID, name, description, avatarURL *string) (*ent.Project, error)
+	Update(ctx context.Context, id uuid.UUID, version int, name, description, avatarURL *string) (*ent.Project, error)
+	// UpdateStatus меняет status; setDeletedAt=true ставит deleted_at.
+	// setDeletedAt=false НЕ очищает deleted_at (A3W1-A5-001) — для Restore см. RestoreFromTrash.
 	UpdateStatus(ctx context.Context, id uuid.UUID, status project.Status, setDeletedAt bool) (*ent.Project, error)
+	// RestoreFromTrash — единственный путь ClearDeletedAt + status=active (A3W1-A5-001).
+	RestoreFromTrash(ctx context.Context, id uuid.UUID) (*ent.Project, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 	MemberCount(ctx context.Context, projectID uuid.UUID) (int, error)
 	MemberCountBatch(ctx context.Context, projectIDs []uuid.UUID) (map[uuid.UUID]int, error)
@@ -45,12 +52,19 @@ type Repository interface {
 	// (race-condition safe — см. HI-06).
 	TryConsumeInvite(ctx context.Context, inviteID uuid.UUID, maxUses int) (bool, error)
 	ListInvites(ctx context.Context, projectID uuid.UUID) ([]*ent.Invite, error)
-	DeleteInvite(ctx context.Context, inviteID uuid.UUID) error
+	// DeleteInvite удаляет invite только внутри projectID (P1-BE-06 IDOR).
+	DeleteInvite(ctx context.Context, projectID, inviteID uuid.UUID) error
 
 	// Операции с командами
 	CreateTeam(ctx context.Context, name, description string) (*ent.Team, error)
-	ListTeams(ctx context.Context) ([]*ent.Team, error)
+	// CreateTeamWithCreator атомарно создаёт команду и добавляет создателя (A3W1-A5-003).
+	CreateTeamWithCreator(ctx context.Context, creatorID uuid.UUID, name, description string) (*ent.Team, error)
+	// ListTeamsByUserID возвращает команды, где userID — участник (P1-BE-08 ACL).
+	ListTeamsByUserID(ctx context.Context, userID uuid.UUID) ([]*ent.Team, error)
+	// SoftDeleteTeam мягко удаляет команду (A3W8-5-001 / TASK-171).
+	SoftDeleteTeam(ctx context.Context, teamID uuid.UUID) error
 	FindTeamByID(ctx context.Context, id uuid.UUID) (*ent.Team, error)
+	FindTeamMember(ctx context.Context, teamID, userID uuid.UUID) (*ent.TeamMember, error)
 	AddTeamMember(ctx context.Context, teamID, userID uuid.UUID) (*ent.TeamMember, error)
 	RemoveTeamMember(ctx context.Context, teamID, userID uuid.UUID) error
 	TeamMemberCount(ctx context.Context, teamID uuid.UUID) (int, error)
@@ -68,6 +82,9 @@ type Repository interface {
 	ListIncomingCrossProjectLinks(ctx context.Context, projectID uuid.UUID) ([]*ent.IssueLink, error)
 	// DeleteIssueLink удаляет связь между задачами по ID.
 	DeleteIssueLink(ctx context.Context, linkID uuid.UUID) error
+	// SoftDeleteWithCrossLinkCleanup атомарно удаляет кросс-проектные связи
+	// и soft-delete'ит проект (A2W1-A5-001). Возвращает удалённые связи для уведомлений.
+	SoftDeleteWithCrossLinkCleanup(ctx context.Context, projectID uuid.UUID) (outgoing, incoming []*ent.IssueLink, err error)
 
 	// Операции с шаблонами проектов (используются в TemplateService)
 	ListTemplates(ctx context.Context) ([]*ent.ProjectTemplate, error)
@@ -78,6 +95,8 @@ type Repository interface {
 	CreateTemplate(ctx context.Context, name, description string, templateType projecttemplate.TemplateType, config map[string]interface{}, createdByID *uuid.UUID, isSystem bool) (*ent.ProjectTemplate, error)
 	DeleteTemplate(ctx context.Context, id uuid.UUID) error
 	CountSystemTemplates(ctx context.Context) (int, error)
+	// IsSystemAdmin — founder/admin (P1-BE-09 DeleteTemplate).
+	IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bool, error)
 }
 
 // CacheInvalidator абстрагирует инвалидацию RBAC-кэша для тестируемости.
@@ -200,8 +219,11 @@ func (r *EntRepository) Create(ctx context.Context, name, key, description strin
 }
 
 // Update обновляет поля проекта (имя, описание, аватар).
-func (r *EntRepository) Update(ctx context.Context, id uuid.UUID, name, description, avatarURL *string) (*ent.Project, error) {
-	update := r.client.Project.UpdateOneID(id)
+func (r *EntRepository) Update(ctx context.Context, id uuid.UUID, version int, name, description, avatarURL *string) (*ent.Project, error) {
+	// TASK-095: VersionEQ + AddVersion — optimistic lock (NFR-24).
+	update := r.client.Project.UpdateOneID(id).
+		Where(project.VersionEQ(version)).
+		AddVersion(1)
 	if name != nil {
 		update = update.SetName(*name)
 	}
@@ -214,15 +236,23 @@ func (r *EntRepository) Update(ctx context.Context, id uuid.UUID, name, descript
 	return update.Save(ctx)
 }
 
-// UpdateStatus обновляет статус проекта и опционально устанавливает deleted_at.
+// UpdateStatus обновляет статус проекта.
+// setDeletedAt=true → soft-delete (SetDeletedAt). Иначе deleted_at не трогаем:
+// ClearDeletedAt только в RestoreFromTrash (A3W1-A5-001 — нельзя воскресить через archive).
 func (r *EntRepository) UpdateStatus(ctx context.Context, id uuid.UUID, status project.Status, setDeletedAt bool) (*ent.Project, error) {
 	update := r.client.Project.UpdateOneID(id).SetStatus(status)
 	if setDeletedAt {
 		update = update.SetDeletedAt(time.Now().UTC())
-	} else {
-		update = update.ClearDeletedAt()
 	}
 	return update.Save(ctx)
+}
+
+// RestoreFromTrash возвращает проект из корзины: status=active + ClearDeletedAt.
+func (r *EntRepository) RestoreFromTrash(ctx context.Context, id uuid.UUID) (*ent.Project, error) {
+	return r.client.Project.UpdateOneID(id).
+		SetStatus(project.StatusActive).
+		ClearDeletedAt().
+		Save(ctx)
 }
 
 // Delete выполняет жёсткое удаление проекта из базы данных.
@@ -336,10 +366,13 @@ func (r *EntRepository) CountOwners(ctx context.Context, projectID uuid.UUID) (i
 		Count(ctx)
 }
 
-// FindInviteByCode ищет приглашение по коду с загруженным проектом.
+// FindInviteByCode ищет активное приглашение по коду с загруженным проектом.
 func (r *EntRepository) FindInviteByCode(ctx context.Context, code string) (*ent.Invite, error) {
 	return r.client.Invite.Query().
-		Where(invite.CodeEQ(code)).
+		Where(
+			invite.CodeEQ(code),
+			invite.RevokedAtIsNil(),
+		).
 		WithProject().
 		Only(ctx)
 }
@@ -378,7 +411,10 @@ func (r *EntRepository) IncrementInviteUseCount(ctx context.Context, inviteID uu
 // Ent возвращает ErrNotFound, если ни одна строка не удовлетворила условию,
 // и мы трактуем это как "лимит достигнут" (HI-06).
 func (r *EntRepository) TryConsumeInvite(ctx context.Context, inviteID uuid.UUID, maxUses int) (bool, error) {
-	upd := r.client.Invite.UpdateOneID(inviteID).AddUseCount(1)
+	upd := r.client.Invite.UpdateOneID(inviteID).
+		Where(invite.RevokedAtIsNil()).
+		AddUseCount(1).
+		AddVersion(1)
 	if maxUses > 0 {
 		upd = upd.Where(invite.UseCountLT(maxUses))
 	}
@@ -392,19 +428,37 @@ func (r *EntRepository) TryConsumeInvite(ctx context.Context, inviteID uuid.UUID
 	return true, nil
 }
 
-// ListInvites возвращает все приглашения проекта.
+// ListInvites возвращает активные (не revoked) приглашения проекта.
 func (r *EntRepository) ListInvites(ctx context.Context, projectID uuid.UUID) ([]*ent.Invite, error) {
 	return r.client.Invite.Query().
-		Where(invite.HasProjectWith(project.IDEQ(projectID))).
+		Where(
+			invite.HasProjectWith(project.IDEQ(projectID)),
+			invite.RevokedAtIsNil(),
+		).
 		All(ctx)
 }
 
-// DeleteInvite удаляет приглашение по ID.
-func (r *EntRepository) DeleteInvite(ctx context.Context, inviteID uuid.UUID) error {
-	return r.client.Invite.DeleteOneID(inviteID).Exec(ctx)
+// DeleteInvite мягко отзывает приглашение (A2W8-3-002: revoked_at вместо hard delete).
+func (r *EntRepository) DeleteInvite(ctx context.Context, projectID, inviteID uuid.UUID) error {
+	n, err := r.client.Invite.Update().
+		Where(
+			invite.IDEQ(inviteID),
+			invite.HasProjectWith(project.IDEQ(projectID)),
+			invite.RevokedAtIsNil(),
+		).
+		SetRevokedAt(time.Now().UTC()).
+		AddVersion(1).
+		Save(ctx)
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return &ent.NotFoundError{}
+	}
+	return nil
 }
 
-// CreateTeam создаёт команду с указанным именем и описанием.
+// CreateTeam создаёт команду с указанным именем и описанием (без участников).
 func (r *EntRepository) CreateTeam(ctx context.Context, name, description string) (*ent.Team, error) {
 	create := r.client.Team.Create().SetName(name)
 	if description != "" {
@@ -413,16 +467,100 @@ func (r *EntRepository) CreateTeam(ctx context.Context, name, description string
 	return create.Save(ctx)
 }
 
-// ListTeams возвращает все команды с eager-loaded участниками.
-func (r *EntRepository) ListTeams(ctx context.Context) ([]*ent.Team, error) {
-	return r.client.Team.Query().WithMembers().All(ctx)
+// CreateTeamWithCreator атомарно создаёт команду и добавляет создателя.
+// A3W1-A5-003: mid-fail после create → rollback, orphan team не остаётся.
+func (r *EntRepository) CreateTeamWithCreator(ctx context.Context, creatorID uuid.UUID, name, description string) (*ent.Team, error) {
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin create team tx: %w", err)
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_ = tx.Rollback()
+		}
+	}()
+
+	create := tx.Team.Create().SetName(name)
+	if description != "" {
+		create = create.SetDescription(description)
+	}
+	t, err := create.Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// hubtest-инъекция mid-fail после CreateTeam (см. ExportSetAfterCreateTeamHook).
+	if afterCreateTeamHook != nil {
+		if err := afterCreateTeamHook(ctx); err != nil {
+			return nil, err
+		}
+	}
+
+	if _, err := tx.TeamMember.Create().
+		SetTeamID(t.ID).
+		SetUserID(creatorID).
+		Save(ctx); err != nil {
+		return nil, fmt.Errorf("add team creator: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit create team: %w", err)
+	}
+	committed = true
+	return t, nil
 }
 
-// FindTeamByID возвращает команду по ID с eager-loaded участниками.
+// afterCreateTeamHook — опциональная инъекция после CreateTeam внутри tx (только hubtest).
+var afterCreateTeamHook func(ctx context.Context) error
+
+// ListTeamsByUserID возвращает активные команды, в которых состоит пользователь.
+func (r *EntRepository) ListTeamsByUserID(ctx context.Context, userID uuid.UUID) ([]*ent.Team, error) {
+	return r.client.Team.Query().
+		Where(
+			team.DeletedAtIsNil(),
+			team.HasMembersWith(teammember.HasUserWith(user.IDEQ(userID))),
+		).
+		WithMembers().
+		All(ctx)
+}
+
+// SoftDeleteTeam мягко удаляет команду (A3W8-5-001 / TASK-171).
+func (r *EntRepository) SoftDeleteTeam(ctx context.Context, teamID uuid.UUID) error {
+	n, err := r.client.Team.Update().
+		Where(
+			team.IDEQ(teamID),
+			team.DeletedAtIsNil(),
+		).
+		SetDeletedAt(time.Now().UTC()).
+		Save(ctx)
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return &ent.NotFoundError{}
+	}
+	return nil
+}
+
+// FindTeamByID возвращает активную команду по ID с eager-loaded участниками.
 func (r *EntRepository) FindTeamByID(ctx context.Context, id uuid.UUID) (*ent.Team, error) {
 	return r.client.Team.Query().
-		Where(team.IDEQ(id)).
+		Where(
+			team.IDEQ(id),
+			team.DeletedAtIsNil(),
+		).
 		WithMembers().
+		Only(ctx)
+}
+
+// FindTeamMember возвращает членство пользователя в команде.
+func (r *EntRepository) FindTeamMember(ctx context.Context, teamID, userID uuid.UUID) (*ent.TeamMember, error) {
+	return r.client.TeamMember.Query().
+		Where(
+			teammember.HasTeamWith(team.IDEQ(teamID)),
+			teammember.HasUserWith(user.IDEQ(userID)),
+		).
 		Only(ctx)
 }
 
@@ -491,6 +629,93 @@ func (r *EntRepository) DeleteIssueLink(ctx context.Context, linkID uuid.UUID) e
 	return r.client.IssueLink.DeleteOneID(linkID).Exec(ctx)
 }
 
+// SoftDeleteWithCrossLinkCleanup атомарно удаляет кросс-проектные связи и
+// soft-delete'ит проект в одной Ent-транзакции (A2W1-A5-001).
+// C-W19-004 / TASK-181: в той же tx гасит webhook endpoints (IsActive=false),
+// чтобы outbound не зависел только от ListActive HasProjectWith(DeletedAtIsNil).
+func (r *EntRepository) SoftDeleteWithCrossLinkCleanup(ctx context.Context, projectID uuid.UUID) (outgoing, incoming []*ent.IssueLink, err error) {
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return nil, nil, fmt.Errorf("begin soft-delete project tx: %w", err)
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_ = tx.Rollback()
+		}
+	}()
+
+	outgoing, err = tx.IssueLink.Query().
+		Where(
+			issuelink.HasSourceWith(issue.HasProjectWith(project.IDEQ(projectID))),
+			issuelink.HasTargetWith(issue.HasProjectWith(project.IDNEQ(projectID))),
+		).
+		WithSource().
+		WithTarget(func(q *ent.IssueQuery) { q.WithAssignee() }).
+		All(ctx)
+	if err != nil {
+		return nil, nil, fmt.Errorf("list outgoing cross-project links: %w", err)
+	}
+
+	incoming, err = tx.IssueLink.Query().
+		Where(
+			issuelink.HasTargetWith(issue.HasProjectWith(project.IDEQ(projectID))),
+			issuelink.HasSourceWith(issue.HasProjectWith(project.IDNEQ(projectID))),
+		).
+		WithTarget().
+		WithSource(func(q *ent.IssueQuery) { q.WithAssignee() }).
+		All(ctx)
+	if err != nil {
+		return nil, nil, fmt.Errorf("list incoming cross-project links: %w", err)
+	}
+
+	for _, link := range outgoing {
+		if err = tx.IssueLink.DeleteOneID(link.ID).Exec(ctx); err != nil {
+			return nil, nil, fmt.Errorf("delete outgoing cross-project link %s: %w", link.ID, err)
+		}
+	}
+	for _, link := range incoming {
+		if err = tx.IssueLink.DeleteOneID(link.ID).Exec(ctx); err != nil {
+			return nil, nil, fmt.Errorf("delete incoming cross-project link %s: %w", link.ID, err)
+		}
+	}
+
+	// hubtest-инъекция mid-fail после DeleteIssueLink (см. ExportSetAfterCrossLinkDeleteHook).
+	// Mutation A2W1-A5-001: убрать tx → inject-fail оставляет удалённые links / не откатывает.
+	if afterCrossLinkDeleteHook != nil {
+		if err := afterCrossLinkDeleteHook(ctx); err != nil {
+			return nil, nil, err
+		}
+	}
+
+	// C-W19-004: deactivate before marking project deleted — same tx, fail-closed.
+	if _, err = tx.WebhookEndpoint.Update().
+		Where(
+			webhookendpoint.HasProjectWith(project.IDEQ(projectID)),
+			webhookendpoint.DeletedAtIsNil(),
+		).
+		SetIsActive(false).
+		Save(ctx); err != nil {
+		return nil, nil, fmt.Errorf("deactivate webhook endpoints for soft-deleted project: %w", err)
+	}
+
+	if _, err = tx.Project.UpdateOneID(projectID).
+		SetStatus(project.StatusDeleted).
+		SetDeletedAt(time.Now().UTC()).
+		Save(ctx); err != nil {
+		return nil, nil, err
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, nil, fmt.Errorf("commit soft-delete project tx: %w", err)
+	}
+	committed = true
+	return outgoing, incoming, nil
+}
+
+// afterCrossLinkDeleteHook — опциональная инъекция после DeleteIssueLink внутри tx (только hubtest).
+var afterCrossLinkDeleteHook func(ctx context.Context) error
+
 // ListTemplates возвращает все шаблоны проектов, упорядоченные по дате создания.
 func (r *EntRepository) ListTemplates(ctx context.Context) ([]*ent.ProjectTemplate, error) {
 	return r.client.ProjectTemplate.Query().
@@ -498,28 +723,39 @@ func (r *EntRepository) ListTemplates(ctx context.Context) ([]*ent.ProjectTempla
 		All(ctx)
 }
 
-// GetTemplate возвращает шаблон проекта по ID.
+// GetTemplate возвращает шаблон проекта по ID (с created_by для ownership).
 func (r *EntRepository) GetTemplate(ctx context.Context, id uuid.UUID) (*ent.ProjectTemplate, error) {
-	return r.client.ProjectTemplate.Get(ctx, id)
+	return r.client.ProjectTemplate.Query().
+		Where(projecttemplate.IDEQ(id)).
+		WithCreatedBy().
+		Only(ctx)
 }
 
 // GetProjectWithWorkflowStatusesAndLabels возвращает проект и имена его
 // workflow_statuses и labels — используется при сохранении проекта как шаблона.
-// Возвращает (project, statusNames, labelNames, err). Ошибки получения списков
-// статусов/меток не считаются фатальными (возвращаются пустые срезы).
+// Возвращает (project, statusNames, labelNames, err).
+// W1-A5-010 / P3-BE-01: ошибки загрузки статусов/меток — fail-closed (не пустой шаблон).
 func (r *EntRepository) GetProjectWithWorkflowStatusesAndLabels(ctx context.Context, projectID uuid.UUID) (*ent.Project, []string, []string, error) {
 	proj, err := r.client.Project.Get(ctx, projectID)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	statuses, _ := r.client.Project.QueryWorkflowStatuses(proj).All(ctx)
+	statuses, err := r.client.Project.QueryWorkflowStatuses(proj).
+		Where(workflowstatus.DeletedAtIsNil()).
+		All(ctx)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("query workflow statuses: %w", err)
+	}
 	statusNames := make([]string, 0, len(statuses))
 	for _, st := range statuses {
 		statusNames = append(statusNames, st.Name)
 	}
 
-	labels, _ := r.client.Project.QueryLabels(proj).All(ctx)
+	labels, err := r.client.Project.QueryLabels(proj).All(ctx)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("query labels: %w", err)
+	}
 	labelNames := make([]string, 0, len(labels))
 	for _, l := range labels {
 		labelNames = append(labelNames, l.Name)
@@ -555,29 +791,74 @@ func (r *EntRepository) CountSystemTemplates(ctx context.Context) (int, error) {
 		Count(ctx)
 }
 
-// AddTeamToProject привязывает команду к проекту и bulk-добавляет участников.
-func (r *EntRepository) AddTeamToProject(ctx context.Context, teamID, projectID uuid.UUID) error {
-	// Привязываем команду к проекту
-	err := r.client.Project.UpdateOneID(projectID).
-		AddTeamIDs(teamID).
-		Exec(ctx)
+// IsSystemAdmin возвращает true для founder/admin.
+func (r *EntRepository) IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bool, error) {
+	u, err := r.client.User.Get(ctx, userID)
 	if err != nil {
-		return err
+		return false, err
+	}
+	return u.SystemRole == user.SystemRoleFounder || u.SystemRole == user.SystemRoleAdmin, nil
+}
+
+// AddTeamToProject привязывает команду к проекту и bulk-добавляет участников.
+// A2W1-A5-002 / TASK-088: AddTeamIDs + AddMember в одной Ent-tx — mid-fail откатывает связь команды.
+func (r *EntRepository) AddTeamToProject(ctx context.Context, teamID, projectID uuid.UUID) error {
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return fmt.Errorf("begin add team to project tx: %w", err)
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_ = tx.Rollback()
+		}
+	}()
+
+	if err := tx.Project.UpdateOneID(projectID).AddTeamIDs(teamID).Exec(ctx); err != nil {
+		return fmt.Errorf("link team to project: %w", err)
 	}
 
-	// Массово добавляем участников команды как участников проекта с ролью "developer"
-	members, err := r.ListTeamMembers(ctx, teamID)
+	// hubtest-инъекция mid-fail после AddTeamIDs (см. ExportSetAfterAddTeamLinkHook).
+	if afterAddTeamLinkHook != nil {
+		if err := afterAddTeamLinkHook(ctx); err != nil {
+			return err
+		}
+	}
+
+	members, err := tx.TeamMember.Query().
+		Where(teammember.HasTeamWith(team.IDEQ(teamID))).
+		WithUser().
+		All(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("list team members: %w", err)
 	}
 
 	for _, m := range members {
 		if m.Edges.User == nil {
 			continue
 		}
-		// Игнорируем ошибки ограничений (пользователь уже участник проекта)
-		_, _ = r.AddMember(ctx, projectID, m.Edges.User.ID, projectmember.ProjectRoleDeveloper)
+		// W1-A5-009 / P3-BE-01: игнорировать только constraint (уже участник);
+		// прочие ошибки БД — fail-closed, не частичный membership без err клиенту.
+		_, err := tx.ProjectMember.Create().
+			SetProjectID(projectID).
+			SetUserID(m.Edges.User.ID).
+			SetProjectRole(projectmember.ProjectRoleDeveloper).
+			Save(ctx)
+		if err != nil {
+			if ent.IsConstraintError(err) {
+				continue
+			}
+			return fmt.Errorf("add team member %s to project: %w", m.Edges.User.ID, err)
+		}
 	}
 
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit add team to project: %w", err)
+	}
+	committed = true
 	return nil
 }
+
+// afterAddTeamLinkHook — опциональная инъекция после AddTeamIDs внутри tx (только hubtest).
+var afterAddTeamLinkHook func(ctx context.Context) error
+

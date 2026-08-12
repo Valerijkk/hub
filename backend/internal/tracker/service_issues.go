@@ -2,12 +2,14 @@ package tracker
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 	"github.com/valerii/hub/backend/internal/platform/observability"
+	"github.com/valerii/hub/backend/internal/search"
 )
 
 // ---------------------------------------------------------------------------
@@ -74,6 +76,43 @@ func (s *TrackerService) CreateIssue(ctx context.Context, projectID, userID uuid
 			input.Labels = labelIDs
 		}
 
+		// P1-BE-03: StatusID / ParentID / Labels должны принадлежать тому же projectID.
+		if input.StatusID != nil {
+			if _, err := s.repo.FindWorkflowStatusInProject(ctx, projectID, *input.StatusID); err != nil {
+				if ent.IsNotFound(err) {
+					return nil, apperrors.NewNotFound("статус не найден")
+				}
+				return nil, apperrors.NewInternal("ошибка проверки статуса")
+			}
+		}
+		if input.ParentID != nil {
+			if _, err := s.repo.FindIssueInProject(ctx, projectID, *input.ParentID); err != nil {
+				if ent.IsNotFound(err) {
+					return nil, apperrors.NewNotFound("родительская задача не найдена")
+				}
+				return nil, apperrors.NewInternal("ошибка проверки родителя")
+			}
+		}
+		if len(input.Labels) > 0 {
+			n, err := s.repo.CountLabelsInProject(ctx, projectID, input.Labels)
+			if err != nil {
+				return nil, apperrors.NewInternal("ошибка проверки меток")
+			}
+			if n != len(input.Labels) {
+				return nil, apperrors.NewBadRequest("метка не принадлежит проекту")
+			}
+		}
+		// A2W1-A2-002 / TASK-088: assignee должен быть участником проекта.
+		if input.AssigneeID != nil {
+			ok, err := s.repo.IsProjectMember(ctx, projectID, *input.AssigneeID)
+			if err != nil {
+				return nil, apperrors.NewInternal("ошибка проверки участника")
+			}
+			if !ok {
+				return nil, apperrors.NewBadRequest("assignee не является участником проекта")
+			}
+		}
+
 		created, err := s.repo.CreateIssue(ctx, projectID, input)
 		if err != nil {
 			return nil, err
@@ -119,9 +158,9 @@ func (s *TrackerService) CreateIssueFromPromotion(
 	return resp.IssueKey, resp.ID, nil
 }
 
-// GetIssue возвращает задачу по ключу (например "HUB-1").
-func (s *TrackerService) GetIssue(ctx context.Context, issueKey string) (*IssueResponse, error) {
-	i, err := s.repo.FindIssueByKey(ctx, issueKey)
+// GetIssue возвращает задачу по ключу внутри projectID (например "HUB-1").
+func (s *TrackerService) GetIssue(ctx context.Context, projectID uuid.UUID, issueKey string) (*IssueResponse, error) {
+	i, err := s.repo.FindIssueByKey(ctx, projectID, issueKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("задача не найдена")
@@ -155,10 +194,34 @@ func (s *TrackerService) ListIssues(ctx context.Context, projectID uuid.UUID, re
 				params.Assignee = &id
 			}
 		}
+		if req.SprintID != "" {
+			switch req.SprintID {
+			case "none", "unassigned":
+				params.BacklogOnly = true
+			default:
+				id, err := uuid.Parse(req.SprintID)
+				if err != nil {
+					return nil, apperrors.NewBadRequest("некорректный sprint_id")
+				}
+				params.Sprint = &id
+			}
+		}
+
+		limit := req.Limit
+		if limit <= 0 || limit > 100 {
+			limit = 50
+		}
+		// W1-A2-008 / P2-BE-21: запрос limit+1 для корректного HasMore.
+		params.Limit = limit + 1
 
 		items, total, err := s.repo.ListIssues(ctx, projectID, params)
 		if err != nil {
 			return nil, apperrors.NewInternal("ошибка получения списка задач")
+		}
+
+		hasMore := len(items) > limit
+		if hasMore {
+			items = items[:limit]
 		}
 
 		responses := make([]IssueResponse, 0, len(items))
@@ -171,24 +234,19 @@ func (s *TrackerService) ListIssues(ctx context.Context, projectID uuid.UUID, re
 			nextCursor = items[len(items)-1].IssueKey
 		}
 
-		limit := req.Limit
-		if limit <= 0 || limit > 100 {
-			limit = 50
-		}
-
 		return &PaginatedResponse[IssueResponse]{
 			Items:      responses,
 			NextCursor: nextCursor,
-			HasMore:    len(items) == limit,
+			HasMore:    hasMore,
 			Total:      total,
 		}, nil
 	})
 }
 
 // UpdateIssue обновляет задачу с проверкой workflow-переходов и оптимистичной блокировкой.
-func (s *TrackerService) UpdateIssue(ctx context.Context, issueKey string, userID uuid.UUID, req UpdateIssueRequest) (*IssueResponse, error) {
+func (s *TrackerService) UpdateIssue(ctx context.Context, projectID uuid.UUID, issueKey string, userID uuid.UUID, req UpdateIssueRequest) (*IssueResponse, error) {
 	// Находим задачу
-	existing, err := s.repo.FindIssueByKey(ctx, issueKey)
+	existing, err := s.repo.FindIssueByKey(ctx, projectID, issueKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("задача не найдена")
@@ -196,7 +254,7 @@ func (s *TrackerService) UpdateIssue(ctx context.Context, issueKey string, userI
 		return nil, apperrors.NewInternal("ошибка получения задачи")
 	}
 
-	// Если меняется статус — валидируем переход
+	// Если меняется статус — валидируем переход и принадлежность статуса проекту (W1-A2-009).
 	if req.StatusID != nil {
 		newStatusID, err := uuid.Parse(*req.StatusID)
 		if err != nil {
@@ -204,6 +262,12 @@ func (s *TrackerService) UpdateIssue(ctx context.Context, issueKey string, userI
 		}
 		if existing.Edges.Status == nil {
 			return nil, apperrors.NewBadRequest("задача не имеет статуса")
+		}
+		if _, err := s.repo.FindWorkflowStatusInProject(ctx, projectID, newStatusID); err != nil {
+			if ent.IsNotFound(err) {
+				return nil, apperrors.NewNotFound("статус не найден")
+			}
+			return nil, apperrors.NewInternal("ошибка проверки статуса")
 		}
 		currentStatusID := existing.Edges.Status.ID
 		if newStatusID != currentStatusID {
@@ -246,6 +310,14 @@ func (s *TrackerService) UpdateIssue(ctx context.Context, issueKey string, userI
 		if err != nil {
 			return nil, apperrors.NewBadRequest("некорректный assignee_id")
 		}
+		// A2W1-A2-002 / TASK-088: assignee должен быть участником проекта.
+		ok, err := s.repo.IsProjectMember(ctx, projectID, id)
+		if err != nil {
+			return nil, apperrors.NewInternal("ошибка проверки участника")
+		}
+		if !ok {
+			return nil, apperrors.NewBadRequest("assignee не является участником проекта")
+		}
 		input.AssigneeID = &id
 	}
 	if req.StatusID != nil {
@@ -263,6 +335,16 @@ func (s *TrackerService) UpdateIssue(ctx context.Context, issueKey string, userI
 				return nil, apperrors.NewBadRequest("некорректный label ID")
 			}
 			labelIDs = append(labelIDs, id)
+		}
+		// A3W1-2-001: как CreateIssue (P1-BE-03) — метки только из этого проекта.
+		if len(labelIDs) > 0 {
+			n, err := s.repo.CountLabelsInProject(ctx, projectID, labelIDs)
+			if err != nil {
+				return nil, apperrors.NewInternal("ошибка проверки меток")
+			}
+			if n != len(labelIDs) {
+				return nil, apperrors.NewBadRequest("метка не принадлежит проекту")
+			}
 		}
 		input.Labels = &labelIDs
 	}
@@ -284,20 +366,72 @@ func (s *TrackerService) UpdateIssue(ctx context.Context, issueKey string, userI
 }
 
 // DeleteIssue удаляет задачу по ключу.
-func (s *TrackerService) DeleteIssue(ctx context.Context, issueKey string, userID uuid.UUID) error {
-	existing, err := s.repo.FindIssueByKey(ctx, issueKey)
+// W1-A2-014 / P3-BE-07: userID пишет activity «deleted» до soft-delete.
+func (s *TrackerService) DeleteIssue(ctx context.Context, projectID uuid.UUID, issueKey string, userID uuid.UUID) error {
+	existing, err := s.repo.FindIssueByKey(ctx, projectID, issueKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return apperrors.NewNotFound("задача не найдена")
 		}
 		return apperrors.NewInternal("ошибка получения задачи")
 	}
+	if _, err := s.repo.LogActivity(ctx, existing.ID, userID, "deleted", nil); err != nil {
+		slog.Error("не удалось записать активность удаления", "error", err, "issue_id", existing.ID)
+	}
 	return s.repo.DeleteIssue(ctx, existing.ID)
 }
 
+// SearchIssuesJQL выполняет JQL-поиск задач проекта (W1-A1-008 / P3-BE-07 / A2W1-A2-001).
+// Handler и service не ходят в Ent напрямую — только через repo.SearchIssuesJQL.
+func (s *TrackerService) SearchIssuesJQL(ctx context.Context, projectID, userID uuid.UUID, query string) (*JQLSearchResponse, error) {
+	if query == "" {
+		return nil, apperrors.NewBadRequest("query обязателен")
+	}
+	parsed, err := search.ParseJQL(query)
+	if err != nil {
+		return nil, apperrors.NewBadRequest("ошибка JQL: " + err.Error())
+	}
+	predicates := search.ToEntPredicates(parsed, userID)
+
+	orderBy := ""
+	if parsed.OrderBy != nil {
+		orderBy = parsed.OrderBy.Field
+	}
+	issues, err := s.repo.SearchIssuesJQL(ctx, projectID, predicates, orderBy, 100)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка выполнения JQL: " + err.Error())
+	}
+
+	result := make([]JQLIssueItem, 0, len(issues))
+	for _, iss := range issues {
+		status := ""
+		if iss.Edges.Status != nil {
+			status = iss.Edges.Status.Name
+		}
+		assignee := ""
+		if iss.Edges.Assignee != nil {
+			if iss.Edges.Assignee.Name != "" {
+				assignee = iss.Edges.Assignee.Name
+			} else {
+				assignee = iss.Edges.Assignee.Email
+			}
+		}
+		result = append(result, JQLIssueItem{
+			Key:       iss.IssueKey,
+			Title:     iss.Title,
+			Type:      string(iss.IssueType),
+			Priority:  string(iss.Priority),
+			Status:    status,
+			Assignee:  assignee,
+			CreatedAt: iss.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		})
+	}
+	return &JQLSearchResponse{Query: query, Total: len(result), Results: result}, nil
+}
+
 // MoveIssue перемещает задачу в другой статус на Kanban-доске.
-func (s *TrackerService) MoveIssue(ctx context.Context, issueKey string, userID uuid.UUID, req MoveIssueRequest) (*IssueResponse, error) {
-	existing, err := s.repo.FindIssueByKey(ctx, issueKey)
+func (s *TrackerService) MoveIssue(ctx context.Context, projectID uuid.UUID, issueKey string, userID uuid.UUID, req MoveIssueRequest) (*IssueResponse, error) {
+	existing, err := s.repo.FindIssueByKey(ctx, projectID, issueKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("задача не найдена")
@@ -310,9 +444,15 @@ func (s *TrackerService) MoveIssue(ctx context.Context, issueKey string, userID 
 		return nil, apperrors.NewBadRequest("некорректный status_id")
 	}
 
-	// Валидируем переход
+	// Валидируем переход и что статус ∈ project (W1-A2-009).
 	if existing.Edges.Status == nil {
 		return nil, apperrors.NewBadRequest("задача не имеет статуса")
+	}
+	if _, err := s.repo.FindWorkflowStatusInProject(ctx, projectID, newStatusID); err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("статус не найден")
+		}
+		return nil, apperrors.NewInternal("ошибка проверки статуса")
 	}
 	currentStatusID := existing.Edges.Status.ID
 	if newStatusID != currentStatusID {
@@ -327,8 +467,12 @@ func (s *TrackerService) MoveIssue(ctx context.Context, issueKey string, userID 
 		}
 	}
 
-	moved, err := s.repo.MoveIssue(ctx, existing.ID, newStatusID, req.Rank)
+	moved, err := s.repo.MoveIssue(ctx, existing.ID, newStatusID, req.Rank, existing.Version)
 	if err != nil {
+		var appErr *apperrors.AppError
+		if errors.As(err, &appErr) {
+			return nil, err
+		}
 		return nil, apperrors.NewInternal("ошибка перемещения задачи")
 	}
 

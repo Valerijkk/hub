@@ -12,12 +12,18 @@ import (
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"github.com/valerii/hub/backend/ent/issue"
-	"github.com/valerii/hub/backend/ent/workflowstatus"
+	"github.com/valerii/hub/backend/internal/auth"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 // projectStatsTTL время жизни кеша статистики проекта.
 const projectStatsTTL = 5 * time.Minute
+
+// ErrForbidden — A7-001: нет membership в проекте (403 без утечки метрик).
+var ErrForbidden = errors.New("forbidden")
+
+// ErrUnauthorized — пользователь не найден / нет сессии для admin-гейта.
+var ErrUnauthorized = errors.New("unauthorized")
 
 // DashboardService предоставляет агрегированные данные для дашбордов.
 type DashboardService struct {
@@ -61,26 +67,29 @@ func (s *DashboardService) GetPersonalDashboardData(ctx context.Context, userID 
 	// Мои задачи: назначены на меня, не завершены, до 20 штук
 	issues, err := s.repo.ListMyOpenTasks(ctx, userID, 20)
 	if err != nil {
-		slog.Error("ошибка загрузки задач", "error", err)
-	} else {
-		for _, iss := range issues {
-			ts := TaskSummary{
-				ID:       iss.ID,
-				Key:      iss.IssueKey,
-				Title:    iss.Title,
-				Priority: priorityRank(iss.Priority),
-			}
-			if iss.Edges.Status != nil {
-				ts.Status = iss.Edges.Status.Name
-			}
-			if iss.DueDate != nil {
-				ts.DueDate = iss.DueDate
-			}
-			data.MyTasks = append(data.MyTasks, ts)
+		// W7-A4-009: critical PG widget → 500, не silent 200 с пустым списком.
+		return nil, fmt.Errorf("load my tasks: %w", err)
+	}
+	for _, iss := range issues {
+		ts := TaskSummary{
+			ID:       iss.ID,
+			Key:      iss.IssueKey,
+			Title:    iss.Title,
+			Priority: priorityRank(iss.Priority),
 		}
+		if iss.Edges.Project != nil {
+			ts.ProjectID = iss.Edges.Project.ID
+		}
+		if iss.Edges.Status != nil {
+			ts.Status = iss.Edges.Status.Name
+		}
+		if iss.DueDate != nil {
+			ts.DueDate = iss.DueDate
+		}
+		data.MyTasks = append(data.MyTasks, ts)
 	}
 
-	// Непрочитанные сообщения: Redis HGETALL
+	// Непрочитанные сообщения: Redis HGETALL (мягкая деградация — виджет не critical).
 	unreadMap, err := s.rdb.HGetAll(ctx, fmt.Sprintf("unread:%s", userID.String())).Result()
 	if err != nil && !errors.Is(err, redis.Nil) {
 		slog.Error("ошибка загрузки непрочитанных", "error", err)
@@ -99,81 +108,89 @@ func (s *DashboardService) GetPersonalDashboardData(ctx context.Context, userID 
 	// личный дашборд показывал чужие звонки.
 	activeCalls, err := s.repo.ListUserActiveCalls(ctx, userID, 10)
 	if err != nil {
-		slog.Error("ошибка загрузки звонков", "error", err)
-	} else {
-		for _, c := range activeCalls {
-			cs := CallSummary{
-				ID:          c.ID,
-				ScheduledAt: c.CreatedAt,
-			}
-			if c.Edges.Channel != nil {
-				cs.ChannelName = c.Edges.Channel.Name
-				cs.Title = c.Edges.Channel.Name
-			} else {
-				cs.Title = c.RoomName
-			}
-			data.UpcomingCalls = append(data.UpcomingCalls, cs)
+		return nil, fmt.Errorf("load active calls: %w", err)
+	}
+	for _, c := range activeCalls {
+		cs := CallSummary{
+			ID:          c.ID,
+			ScheduledAt: c.CreatedAt,
 		}
+		if c.Edges.Channel != nil {
+			cs.ChannelName = c.Edges.Channel.Name
+			cs.Title = c.Edges.Channel.Name
+		} else {
+			cs.Title = c.RoomName
+		}
+		data.UpcomingCalls = append(data.UpcomingCalls, cs)
 	}
 
 	// Последние прогоны тестов
 	runs, err := s.repo.ListUserRecentTestRuns(ctx, userID, 5)
 	if err != nil {
-		slog.Error("ошибка загрузки прогонов", "error", err)
-	} else {
-		for _, r := range runs {
-			data.RecentRuns = append(data.RecentRuns, RunSummary{
-				ID:        r.ID,
-				Name:      r.Title,
-				Status:    string(r.Status),
-				Passed:    r.PassedCount,
-				Failed:    r.FailedCount,
-				Skipped:   r.SkippedCount,
-				CreatedAt: r.CreatedAt,
-			})
-		}
+		return nil, fmt.Errorf("load recent test runs: %w", err)
+	}
+	for _, r := range runs {
+		data.RecentRuns = append(data.RecentRuns, RunSummary{
+			ID:        r.ID,
+			Name:      r.Title,
+			Status:    string(r.Status),
+			Passed:    r.PassedCount,
+			Failed:    r.FailedCount,
+			Skipped:   r.SkippedCount,
+			CreatedAt: r.CreatedAt,
+		})
 	}
 
-	// Дедлайны: задачи с due_date в ближайшие 7 дней
-	now := time.Now()
+	// Дедлайны: задачи с due_date в ближайшие 7 дней (UTC, W7-A4-010 / P2-BE-21).
+	now := time.Now().UTC()
 	weekLater := now.Add(7 * 24 * time.Hour)
 	deadlineIssues, err := s.repo.ListUserDeadlineIssues(ctx, userID, now, weekLater, 10)
 	if err != nil {
-		slog.Error("ошибка загрузки дедлайнов", "error", err)
-	} else {
-		for _, iss := range deadlineIssues {
-			ts := TaskSummary{
-				ID:       iss.ID,
-				Key:      iss.IssueKey,
-				Title:    iss.Title,
-				Priority: priorityRank(iss.Priority),
-			}
-			if iss.Edges.Status != nil {
-				ts.Status = iss.Edges.Status.Name
-			}
-			if iss.DueDate != nil {
-				ts.DueDate = iss.DueDate
-			}
-			data.Deadlines = append(data.Deadlines, ts)
+		return nil, fmt.Errorf("load deadlines: %w", err)
+	}
+	for _, iss := range deadlineIssues {
+		ts := TaskSummary{
+			ID:       iss.ID,
+			Key:      iss.IssueKey,
+			Title:    iss.Title,
+			Priority: priorityRank(iss.Priority),
 		}
+		if iss.Edges.Project != nil {
+			ts.ProjectID = iss.Edges.Project.ID
+		}
+		if iss.Edges.Status != nil {
+			ts.Status = iss.Edges.Status.Name
+		}
+		if iss.DueDate != nil {
+			ts.DueDate = iss.DueDate
+		}
+		data.Deadlines = append(data.Deadlines, ts)
 	}
 
 	// Время за сегодня: сумма time_logs
-	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 	timeLogs, err := s.repo.ListUserTimeLogsBetween(ctx, userID, today, today.Add(24*time.Hour))
 	if err != nil {
-		slog.Error("ошибка загрузки тайм-логов", "error", err)
-	} else {
-		for _, tl := range timeLogs {
-			data.TimeToday += tl.Minutes
-		}
+		return nil, fmt.Errorf("load time logs: %w", err)
+	}
+	for _, tl := range timeLogs {
+		data.TimeToday += tl.Minutes
 	}
 
 	return data, nil
 }
 
 // GetProjectStats возвращает статистику проекта с кешированием в Redis.
-func (s *DashboardService) GetProjectStats(ctx context.Context, projectID uuid.UUID) (*ProjectStats, error) {
+// A7-001: membership check до cache/DB — иначе IDOR + утечка через shared Redis key.
+func (s *DashboardService) GetProjectStats(ctx context.Context, userID, projectID uuid.UUID) (*ProjectStats, error) {
+	isMember, err := s.repo.IsProjectMember(ctx, userID, projectID)
+	if err != nil {
+		return nil, fmt.Errorf("project membership check: %w", err)
+	}
+	if !isMember {
+		return nil, ErrForbidden
+	}
+
 	cacheKey := fmt.Sprintf("dashboard:project:%s", projectID.String())
 
 	// Попытка чтения из кеша
@@ -193,51 +210,24 @@ func (s *DashboardService) GetProjectStats(ctx context.Context, projectID uuid.U
 		TeamActivity:  make([]ActivityEntry, 0),
 	}
 
-	// Задачи по статусам
-	issues, err := s.repo.ListProjectIssuesWithStatusAssignee(ctx, projectID)
+	// Critical PG widgets (A3W7-4-001): Aggregate fail → 500, не silent empty 200.
+	issueAgg, err := s.repo.AggregateProjectIssueStats(ctx, projectID)
 	if err != nil {
-		slog.Error("ошибка загрузки задач проекта", "error", err)
-	} else {
-		now := time.Now()
-		for _, iss := range issues {
-			statusName := "unknown"
-			isDone := false
-			if iss.Edges.Status != nil {
-				statusName = iss.Edges.Status.Name
-				isDone = iss.Edges.Status.Category == workflowstatus.CategoryDone
-			}
-			stats.TasksByStatus[statusName]++
-
-			// Баги: тип bug, не завершены
-			if iss.IssueType == issue.IssueTypeBug && !isDone {
-				stats.BugCount++
-			}
-
-			// Без исполнителя
-			if iss.Edges.Assignee == nil {
-				stats.Unassigned++
-			}
-
-			// Просроченные
-			if iss.DueDate != nil && iss.DueDate.Before(now) && !isDone {
-				stats.Overdue++
-			}
-		}
+		return nil, fmt.Errorf("aggregate project issue stats: %w", err)
 	}
+	stats.TasksByStatus = issueAgg.TasksByStatus
+	stats.BugCount = issueAgg.BugCount
+	stats.Unassigned = issueAgg.Unassigned
+	stats.Overdue = issueAgg.Overdue
 
-	// Burndown: завершённые задачи по дням за последние 30 дней
+	// Burndown: агрегат по дням (A3W7-4-005), без List*.All() всех done-issues.
 	now := time.Now()
 	thirtyDaysAgo := now.AddDate(0, 0, -30)
-	completedIssues, err := s.repo.ListProjectCompletedIssuesSince(ctx, projectID, thirtyDaysAgo)
+	dayCounts, err := s.repo.AggregateProjectCompletedByDay(ctx, projectID, thirtyDaysAgo, now)
 	if err != nil {
+		// Необязательный график — soft-fail (A3W7-4-001).
 		slog.Error("ошибка загрузки burndown", "error", err)
 	} else {
-		// Группируем по дням
-		dayCounts := make(map[string]int)
-		for _, iss := range completedIssues {
-			day := iss.UpdatedAt.Format("01-02")
-			dayCounts[day]++
-		}
 		for d := thirtyDaysAgo; d.Before(now); d = d.AddDate(0, 0, 1) {
 			day := d.Format("01-02")
 			stats.BurndownData = append(stats.BurndownData, DataPoint{
@@ -309,6 +299,19 @@ func (s *DashboardService) GetProjectStats(ctx context.Context, projectID uuid.U
 	return stats, nil
 }
 
+// RequireSystemAdmin проверяет system_role founder|admin (W7-A4-017 / P3-BE-07).
+// Handler не ходит в repo напрямую.
+func (s *DashboardService) RequireSystemAdmin(ctx context.Context, userID uuid.UUID) error {
+	u, err := s.repo.GetUser(ctx, userID)
+	if err != nil {
+		return ErrUnauthorized
+	}
+	if !auth.IsSystemAdmin(u.SystemRole) {
+		return ErrForbidden
+	}
+	return nil
+}
+
 // GetAdminStats возвращает статистику для админского дашборда.
 func (s *DashboardService) GetAdminStats(ctx context.Context) (*AdminStats, error) {
 	stats := &AdminStats{
@@ -316,45 +319,47 @@ func (s *DashboardService) GetAdminStats(ctx context.Context) (*AdminStats, erro
 		TopProjects:   make([]ProjectRank, 0),
 	}
 
-	// Пользователи
+	// Critical Admin counters (A3W7-4-001): Count* fail → 500, не silent zeros.
 	totalUsers, err := s.repo.CountUsers(ctx)
-	if err == nil {
-		stats.TotalUsers = totalUsers
+	if err != nil {
+		return nil, fmt.Errorf("count users: %w", err)
 	}
+	stats.TotalUsers = totalUsers
 
-	// Активные пользователи (последние 30 дней по сессиям)
 	now := time.Now()
 	thirtyDaysAgo := now.AddDate(0, 0, -30)
 	activeUsers, err := s.repo.CountDistinctUsersFromSessionsSince(ctx, thirtyDaysAgo)
-	if err == nil {
-		stats.ActiveUsers = activeUsers
+	if err != nil {
+		return nil, fmt.Errorf("count active users: %w", err)
 	}
+	stats.ActiveUsers = activeUsers
 
-	// Проекты
 	totalProjects, err := s.repo.CountProjects(ctx)
-	if err == nil {
-		stats.TotalProjects = totalProjects
+	if err != nil {
+		return nil, fmt.Errorf("count projects: %w", err)
 	}
+	stats.TotalProjects = totalProjects
 
-	// Задачи
 	totalIssues, err := s.repo.CountIssues(ctx)
-	if err == nil {
-		stats.TotalIssues = totalIssues
+	if err != nil {
+		return nil, fmt.Errorf("count issues: %w", err)
 	}
+	stats.TotalIssues = totalIssues
 
-	// DAU/WAU/MAU — активные пользователи за день/неделю/месяц
 	dayAgo := now.AddDate(0, 0, -1)
 	weekAgo := now.AddDate(0, 0, -7)
 
 	dauUsers, err := s.repo.CountDistinctUsersFromSessionsSince(ctx, dayAgo)
-	if err == nil {
-		stats.DAU = dauUsers
+	if err != nil {
+		return nil, fmt.Errorf("count dau: %w", err)
 	}
+	stats.DAU = dauUsers
 
 	wauUsers, err := s.repo.CountDistinctUsersFromSessionsSince(ctx, weekAgo)
-	if err == nil {
-		stats.WAU = wauUsers
+	if err != nil {
+		return nil, fmt.Errorf("count wau: %w", err)
 	}
+	stats.WAU = wauUsers
 
 	stats.MAU = stats.ActiveUsers
 
@@ -378,38 +383,12 @@ func (s *DashboardService) GetAdminStats(ctx context.Context) (*AdminStats, erro
 	stats.ServiceHealth["nats"] = "unknown"
 	stats.ServiceHealth["seaweedfs"] = "unknown"
 
-	// Топ-5 проектов по количеству задач
-	projects, err := s.repo.ListProjectsWithIssues(ctx)
-	if err == nil {
-		type pRank struct {
-			id    uuid.UUID
-			name  string
-			count int
-		}
-		ranks := make([]pRank, 0, len(projects))
-		for _, p := range projects {
-			ranks = append(ranks, pRank{id: p.ID, name: p.Name, count: len(p.Edges.Issues)})
-		}
-		// Сортируем по количеству задач
-		for i := 0; i < len(ranks); i++ {
-			for j := i + 1; j < len(ranks); j++ {
-				if ranks[j].count > ranks[i].count {
-					ranks[i], ranks[j] = ranks[j], ranks[i]
-				}
-			}
-		}
-		limit := 5
-		if len(ranks) < limit {
-			limit = len(ranks)
-		}
-		for _, r := range ranks[:limit] {
-			stats.TopProjects = append(stats.TopProjects, ProjectRank{
-				ID:         r.id,
-				Name:       r.name,
-				IssueCount: r.count,
-			})
-		}
+	// Топ-5 проектов по количеству задач (W7-A4-008: агрегат без WithIssues.All).
+	top, err := s.repo.ListTopProjectsByIssueCount(ctx, 5)
+	if err != nil {
+		return nil, fmt.Errorf("load top projects: %w", err)
 	}
+	stats.TopProjects = top
 
 	return stats, nil
 }
@@ -455,7 +434,16 @@ func (s *DashboardService) GetTemplates() map[string][]LayoutItem {
 
 // ApplyTemplate применяет шаблон дашборда для пользователя в проекте.
 // Перезаписывает существующую раскладку типа "project" для указанного пользователя.
+// P3-BE-15 / W7-A4-016: stranger без membership → ErrForbidden.
 func (s *DashboardService) ApplyTemplate(ctx context.Context, userID uuid.UUID, projectID uuid.UUID, templateName string) error {
+	isMember, err := s.repo.IsProjectMember(ctx, userID, projectID)
+	if err != nil {
+		return fmt.Errorf("project membership check: %w", err)
+	}
+	if !isMember {
+		return ErrForbidden
+	}
+
 	items, ok := templatePresets[templateName]
 	if !ok {
 		return fmt.Errorf("шаблон %q не найден", templateName)
@@ -470,7 +458,18 @@ func (s *DashboardService) ApplyTemplate(ctx context.Context, userID uuid.UUID, 
 }
 
 // GetLayout возвращает сохранённую раскладку дашборда пользователя.
+// A3W7-4-003: при project_id — только член проекта (как SaveLayout/ApplyTemplate).
 func (s *DashboardService) GetLayout(ctx context.Context, userID uuid.UUID, dashboardType string, projectID *uuid.UUID) (*LayoutDTO, error) {
+	if projectID != nil {
+		isMember, err := s.repo.IsProjectMember(ctx, userID, *projectID)
+		if err != nil {
+			return nil, fmt.Errorf("project membership check: %w", err)
+		}
+		if !isMember {
+			return nil, ErrForbidden
+		}
+	}
+
 	layout, err := s.repo.GetDashboardLayout(ctx, userID, dashboardType, projectID)
 	if err != nil {
 		if IsNotFound(err) {
@@ -496,6 +495,16 @@ func (s *DashboardService) GetLayout(ctx context.Context, userID uuid.UUID, dash
 }
 
 // SaveLayout сохраняет или обновляет раскладку дашборда.
+// P3-BE-15 / W7-A4-016: при project_id — только член проекта.
 func (s *DashboardService) SaveLayout(ctx context.Context, userID uuid.UUID, req SaveLayoutRequest) error {
+	if req.ProjectID != nil {
+		isMember, err := s.repo.IsProjectMember(ctx, userID, *req.ProjectID)
+		if err != nil {
+			return fmt.Errorf("project membership check: %w", err)
+		}
+		if !isMember {
+			return ErrForbidden
+		}
+	}
 	return s.repo.SaveDashboardLayout(ctx, userID, req)
 }

@@ -1,10 +1,11 @@
-﻿package gitlab_test
+package gitlab_test
+
 import (
-	"github.com/valerii/hub/backend/internal/gitlab"
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
+	"github.com/valerii/hub/backend/internal/gitlab"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -13,20 +14,36 @@ import (
 	"github.com/alicebob/miniredis/v2"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/valerii/hub/backend/ent/enttest"
 	"github.com/valerii/hub/backend/internal/rbac"
 )
 
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
+}
+
+type gitlabUpstreamRequest struct {
+	method      string
+	scheme      string
+	host        string
+	escapedPath string
+	rawQuery    string
+	token       string
+	url         string
+}
+
 type gitlabRoutesEnv struct {
 	app       *fiber.App
 	ownerID   uuid.UUID
 	projectID uuid.UUID
-	gitlabURL string
+	requests  <-chan gitlabUpstreamRequest
 }
 
 func newGitLabRoutesEnv(t *testing.T) gitlabRoutesEnv {
@@ -62,18 +79,29 @@ func newGitLabRoutesEnv(t *testing.T) gitlabRoutesEnv {
 		Save(ctx)
 	require.NoError(t, err)
 
-	glSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet && strings.Contains(r.URL.Path, "/pipelines") {
-			w.Header().Set("Content-Type", "application/json")
-			_, _ = w.Write([]byte("[]"))
-			return
+	requests := make(chan gitlabUpstreamRequest, 1)
+	httpClient := &http.Client{Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		requests <- gitlabUpstreamRequest{
+			method:      req.Method,
+			scheme:      req.URL.Scheme,
+			host:        req.URL.Host,
+			escapedPath: req.URL.EscapedPath(),
+			rawQuery:    req.URL.RawQuery,
+			token:       req.Header.Get("PRIVATE-TOKEN"),
+			url:         req.URL.String(),
 		}
-		http.NotFound(w, r)
-	}))
-	t.Cleanup(glSrv.Close)
+
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Status:     "200 OK",
+			Header:     http.Header{"Content-Type": []string{"application/json"}},
+			Body:       io.NopCloser(strings.NewReader("[]")),
+			Request:    req,
+		}, nil
+	})}
 
 	repo := gitlab.NewEntRepository(client, nil)
-	svc := gitlab.NewGitLabServiceWithHTTPClient(repo, nil, glSrv.Client())
+	svc := gitlab.NewGitLabServiceWithHTTPClient(repo, nil, httpClient)
 	h := gitlab.NewHandler(svc)
 
 	app := fiber.New()
@@ -84,17 +112,16 @@ func newGitLabRoutesEnv(t *testing.T) gitlabRoutesEnv {
 	}
 	h.RegisterRoutes(api, authMw, rbacSvc)
 
-	return gitlabRoutesEnv{app: app, ownerID: owner.ID, projectID: proj.ID, gitlabURL: glSrv.URL}
+	return gitlabRoutesEnv{app: app, ownerID: owner.ID, projectID: proj.ID, requests: requests}
 }
 
 func TestHandler_RegisterRoutes_WebhookAndIntegrations(t *testing.T) {
 	env := newGitLabRoutesEnv(t)
 	base := "/api/projects/" + env.projectID.String() + "/gitlab"
 
-	payload := fmt.Sprintf(
-		`{"project_path":"group/routes","access_token":"glpat-routes","webhook_secret":"route-secret","gitlab_url":%q}`,
-		env.gitlabURL,
-	)
+	// gitlab_url не задаём: loopback из httptest блокируется ValidateOutboundURL (SEC-04);
+	// дефолт https://gitlab.com проходит SSRF-guard. webhook_secret обязателен (A2W8-2-007).
+	payload := `{"project_path":"group/routes","access_token":"glpat-routes","webhook_secret":"route-secret"}`
 	req := httptest.NewRequest(http.MethodPost, base+"/integrations", bytes.NewReader([]byte(payload)))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := env.app.Test(req)
@@ -105,7 +132,6 @@ func TestHandler_RegisterRoutes_WebhookAndIntegrations(t *testing.T) {
 	var created gitlab.IntegrationResponse
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&created))
 	require.NotEmpty(t, created.ID)
-
 	req = httptest.NewRequest(http.MethodGet, base+"/integrations", nil)
 	resp, err = env.app.Test(req)
 	require.NoError(t, err)
@@ -121,6 +147,23 @@ func TestHandler_RegisterRoutes_WebhookAndIntegrations(t *testing.T) {
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var upstream gitlabUpstreamRequest
+	select {
+	case upstream = <-env.requests:
+	default:
+		require.FailNow(t, "GitLab pipelines request was not captured")
+	}
+	require.Equal(t, http.MethodGet, upstream.method)
+	require.Equal(t, "https", upstream.scheme)
+	require.Equal(t, "gitlab.com", upstream.host)
+	require.Equal(t, "/api/v4/projects/group%2Froutes/pipelines", upstream.escapedPath)
+	require.Equal(t, "per_page=20&order_by=id&sort=desc", upstream.rawQuery)
+	require.Equal(t, "glpat-routes", upstream.token)
+	require.Equal(t,
+		"https://gitlab.com/api/v4/projects/group%2Froutes/pipelines?per_page=20&order_by=id&sort=desc",
+		upstream.url,
+	)
 
 	req = httptest.NewRequest(http.MethodDelete, base+"/integrations/"+created.ID, nil)
 	resp, err = env.app.Test(req)

@@ -31,6 +31,11 @@ import (
 	"time"
 )
 
+// defaultTickTimeout — бюджет одного tick'а (W4-A4-008). Зависший fn
+// не блокирует следующие тики этой задачи навсегда: контекст отменяется,
+// ошибка логируется, Schedule продолжает цикл.
+const defaultTickTimeout = 10 * time.Minute
+
 // Schedule запускает периодическую задачу в отдельной горутине.
 //
 // - ctx     — контекст отмены (обычно rootCtx из main); при ctx.Done()
@@ -49,27 +54,39 @@ import (
 // - Error "cron task failed" при ошибке fn;
 // - Info "cron task stopped" при завершении (ctx.Done()).
 func Schedule(ctx context.Context, interval time.Duration, name string, fn func(ctx context.Context) error) {
+	ScheduleWithTimeout(ctx, interval, defaultTickTimeout, name, fn)
+}
+
+// ScheduleWithTimeout — как Schedule, но с явным бюджетом одного tick'а.
+func ScheduleWithTimeout(ctx context.Context, interval, tickTimeout time.Duration, name string, fn func(ctx context.Context) error) {
+	if tickTimeout <= 0 {
+		tickTimeout = defaultTickTimeout
+	}
 	go func() {
-		slog.Info("cron task started", "name", name, "interval", interval.String())
+		slog.Info("cron task started", "name", name, "interval", interval.String(), "tick_timeout", tickTimeout.String())
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
+	loop:
 		for {
 			select {
 			case <-ctx.Done():
-				slog.Info("cron task stopped", "name", name)
-				return
+				break loop
 			case <-ticker.C:
-				runTick(ctx, name, fn)
+				// Если ticker.C и ctx.Done() готовы одновременно, select выбирает
+				// случайно. Preflight не даёт queued tick запустить fn после отмены.
+				if ctx.Err() != nil {
+					break loop
+				}
+				runTick(ctx, tickTimeout, name, fn)
 			}
 		}
+		slog.Info("cron task stopped", "name", name)
 	}()
 }
 
-// runTick выполняет одну итерацию fn с локальным recover'ом, чтобы паника
-// в задаче не уносила за собой всю горутину Schedule (а с ней — и весь
-// процесс сервера, если паника всплыла бы на runtime). Зеркалит паттерн
-// platform/outbox/worker.go:72 (processEvent) — повтор outbox.
-func runTick(ctx context.Context, name string, fn func(ctx context.Context) error) {
+// runTick выполняет одну итерацию fn с локальным recover'ом и WithTimeout
+// (W4-A4-008), чтобы паника/hang в задаче не уносили горутину Schedule.
+func runTick(ctx context.Context, tickTimeout time.Duration, name string, fn func(ctx context.Context) error) {
 	start := time.Now()
 	defer func() {
 		if r := recover(); r != nil {
@@ -81,7 +98,11 @@ func runTick(ctx context.Context, name string, fn func(ctx context.Context) erro
 			)
 		}
 	}()
-	if err := fn(ctx); err != nil {
+
+	tickCtx, cancel := context.WithTimeout(ctx, tickTimeout)
+	defer cancel()
+
+	if err := fn(tickCtx); err != nil {
 		slog.Error("cron task failed",
 			"name", name,
 			"error", err,

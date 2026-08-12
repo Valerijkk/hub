@@ -31,6 +31,12 @@ func ExportConnectionsForUser(h *Hub, userID string) int {
 	return count
 }
 
+// ExportHasConnection сообщает, есть ли connectionID в h.clients (P1-BE-21).
+func ExportHasConnection(h *Hub, connectionID string) bool {
+	_, ok := h.clients.Load(connectionID)
+	return ok
+}
+
 func ExportBridgeHandleProjectEvent(b *Bridge, msg *nats.Msg) {
 	b.handleProjectEvent(msg)
 }
@@ -79,7 +85,29 @@ func ExportReadPump(conn *websocket.Conn, client *Client, hub *Hub, authz Author
 	readPump(conn, client, hub, authz)
 }
 
-func ExportClientRooms(c *Client) map[string]bool { return c.rooms }
+func ExportClientRooms(c *Client) map[string]bool {
+	// W3-A4-010: копируем под mu — иначе race с Subscribe/Unregister.
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	out := make(map[string]bool, len(c.rooms))
+	for k, v := range c.rooms {
+		out[k] = v
+	}
+	return out
+}
+
+// ExportRoomExists сообщает, есть ли ключ комнаты в h.rooms (в т.ч. пустая map).
+func ExportRoomExists(h *Hub, room string) bool {
+	_, ok := h.rooms.Load(room)
+	return ok
+}
+
+// ExportClientInRoom reports whether client is subscribed to room (locked; race-safe).
+func ExportClientInRoom(c *Client, room string) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.rooms[room]
+}
 
 func ExportResetOriginCheck() { resetOriginCheck() }
 

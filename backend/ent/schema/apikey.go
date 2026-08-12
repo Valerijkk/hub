@@ -22,23 +22,27 @@ func (APIKey) Fields() []ent.Field {
 		field.String("name").
 			NotEmpty().
 			MaxLen(255).
-			Comment("Р§РµР»РѕРІРµРєРѕС‡РёС‚Р°РµРјРѕРµ РёРјСЏ РєР»СЋС‡Р°"),
+			Comment("Человекочитаемое имя ключа"),
 		field.String("key_hash").
 			Unique().
 			NotEmpty().
-			Comment("SHA-256 С…РµС€ API-РєР»СЋС‡Р°"),
+			Comment("SHA-256 хеш API-ключа"),
 		field.String("prefix").
 			NotEmpty().
 			MaxLen(8).
-			Comment("РџРµСЂРІС‹Рµ 8 СЃРёРјРІРѕР»РѕРІ РєР»СЋС‡Р° РґР»СЏ РѕС‚РѕР±СЂР°Р¶РµРЅРёСЏ"),
+			Comment("Первые 8 символов ключа для отображения"),
 		field.Time("last_used_at").
 			Optional().
 			Nillable().
-			Comment("Р’СЂРµРјСЏ РїРѕСЃР»РµРґРЅРµРіРѕ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ"),
+			Comment("Время последнего использования"),
 		field.Time("expires_at").
 			Optional().
 			Nillable().
-			Comment("РЎСЂРѕРє РґРµР№СЃС‚РІРёСЏ РєР»СЋС‡Р°"),
+			Comment("Срок действия ключа"),
+		field.Time("deleted_at").
+			Optional().
+			Nillable().
+			Comment("Время мягкого удаления / revoke (корзина 30 дней)"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
@@ -56,9 +60,10 @@ func (APIKey) Edges() []ent.Edge {
 }
 
 // Индексы сущности APIKey.
+// key_hash уже Unique() на field — отдельный индекс не дублируем (P3-BE-17 / W8-A1-009).
 func (APIKey) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("key_hash"),
 		index.Fields("expires_at"),
+		index.Fields("deleted_at"),
 	}
 }

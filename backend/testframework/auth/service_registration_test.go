@@ -69,6 +69,19 @@ func TestCheckRegistrationAllowed(t *testing.T) {
 	}
 }
 
+// TestCheckRegistrationAllowed_SettingsFail_InviteOnly — W6-A1-003 / P2-BE-10:
+// сбой чтения registration_mode → fail-closed invite_only (не open).
+func TestCheckRegistrationAllowed_SettingsFail_InviteOnly(t *testing.T) {
+	dsn := "file:regfail_" + uuid.New().String() + "?mode=memory&cache=shared&_fk=1"
+	client := enttest.Open(t, "sqlite3", dsn)
+	svc := auth.NewRegistrationModeService(auth.NewEntRepository(client), nil)
+	require.NoError(t, client.Close())
+
+	err := svc.CheckRegistrationAllowed(context.Background())
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, auth.ErrRegistrationInviteOnly))
+}
+
 // TestIsFirstUser проверяет сценарий: is first user.
 func TestIsFirstUser(t *testing.T) {
 	svc, ctx := newRegistrationTestEnv(t)

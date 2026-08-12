@@ -25,8 +25,8 @@ test.describe("Login flow", () => {
 		await auth.devLoginAsAdminUI();
 	});
 
-	// После dev-login сессия сохраняется в sessionStorage.
-	test("stores auth session in sessionStorage after dev login", async ({
+	// После dev-login JWT не пишется в sessionStorage (memory-only).
+	test("keeps JWT out of sessionStorage after dev login", async ({
 		page,
 		backendAvailable,
 		devModeAvailable,
@@ -36,6 +36,6 @@ test.describe("Login flow", () => {
 
 		const auth = new AuthSteps(page);
 		await auth.devLoginAsAdminUI();
-		await auth.expectSessionInStorage(page);
+		await auth.expectSessionInMemory(page);
 	});
 });

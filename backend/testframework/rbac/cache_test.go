@@ -175,7 +175,7 @@ func TestDeleteCustomRole_ClearsAssignments(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	require.NoError(t, f.svc.DeleteCustomRole(ctx, roleID))
+	require.NoError(t, f.svc.DeleteCustomRole(ctx, f.projectID, roleID))
 
 	mem, err := f.client.ProjectMember.Query().
 		Where(projectmember.HasUserWith(user.IDEQ(f.strangerID))).

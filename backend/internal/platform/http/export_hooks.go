@@ -13,3 +13,13 @@ func ExportParseOpenGraphHTML(doc string) *OpenGraphMeta {
 func ExportIsBlockedIP(ip net.IP) bool {
 	return isBlockedIP(ip)
 }
+
+// ExportNormalizeIPForBlocklist — P1-BE-23: mapped IPv6 → 4 байта (мутация drop To4 → len≠4).
+func ExportNormalizeIPForBlocklist(ip net.IP) net.IP {
+	return normalizeIPForBlocklist(ip)
+}
+
+// ExportIsLoopbackIP — P1-BE-U01 / TASK-101: только loopback для offline dialer.
+func ExportIsLoopbackIP(ip net.IP) bool {
+	return isLoopbackIP(ip)
+}

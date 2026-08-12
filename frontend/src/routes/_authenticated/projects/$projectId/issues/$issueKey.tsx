@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { getProject } from "@/api/projects";
 import {
 	deleteIssue,
 	getIssue,
@@ -25,6 +26,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toastApiError } from "@/lib/format-api-error";
+import { canMutateProject } from "@/lib/permissions";
 import {
 	IssueDescription,
 	IssueTitle,
@@ -45,10 +47,21 @@ function IssueDetailPage() {
 
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
-	const { data: issue, isLoading } = useQuery({
+	const {
+		data: issue,
+		isLoading,
+		isError,
+		refetch,
+	} = useQuery({
 		queryKey: ["issue", projectId, issueKey],
 		queryFn: () => getIssue(projectId, issueKey),
 	});
+
+	const { data: project } = useQuery({
+		queryKey: ["project", projectId],
+		queryFn: () => getProject(projectId),
+	});
+	const canDelete = canMutateProject(project?.my_role);
 
 	const { data: statuses } = useQuery({
 		queryKey: ["workflow-statuses", projectId],
@@ -133,6 +146,26 @@ function IssueDetailPage() {
 		);
 	}
 
+	if (isError) {
+		return (
+			<div
+				role="alert"
+				className="flex flex-col items-center justify-center gap-3 py-12 text-center"
+			>
+				<p className="text-[14px] font-semibold text-t1">
+					Не удалось загрузить задачу
+				</p>
+				<button
+					type="button"
+					onClick={() => void refetch()}
+					className="h-9 px-3 rounded-[var(--r2)] border border-b1 text-[13px] text-t2 hover:text-t1 hover:border-b2 transition-colors"
+				>
+					Попробовать снова
+				</button>
+			</div>
+		);
+	}
+
 	if (!issue) {
 		return (
 			<div className="flex items-center justify-center py-12">
@@ -148,8 +181,7 @@ function IssueDetailPage() {
 					<AlertDialogHeader>
 						<AlertDialogTitle>Удалить задачу?</AlertDialogTitle>
 						<AlertDialogDescription>
-							Задача {issue.issue_key} будет удалена. Это действие нельзя
-							отменить.
+							Задача {issue.issue_key} будет перемещена в корзину на 30 дней.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
@@ -172,6 +204,7 @@ function IssueDetailPage() {
 				issueType={issue.issue_type}
 				onDelete={() => setShowDeleteDialog(true)}
 				isDeleting={deleteMutation.isPending}
+				canDelete={canDelete}
 			/>
 
 			{/* Двухколоночная раскладка */}
@@ -206,11 +239,10 @@ function IssueDetailPage() {
 
 					<Separator />
 
-					{/* Вложения */}
+					{/* Вложения — список локально после upload (BE IssueResponse без attachments) */}
 					<IssueAttachments
 						projectId={projectId}
 						issueId={issue.id}
-						attachments={issue.attachments ?? []}
 						onAttachmentAdded={() =>
 							queryClient.invalidateQueries({
 								queryKey: ["issue", projectId, issueKey],

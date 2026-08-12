@@ -15,8 +15,11 @@ import (
 
 // mockSearchRepo реализует search.Repository для unit-тестов области видимости.
 type mockSearchRepo struct {
-	isAdmin bool
+	isAdmin  bool
 	adminErr error
+	// memberOK: nil = allow (legacy tests); иначе *memberOK.
+	memberOK  *bool
+	memberErr error
 }
 
 func (m *mockSearchRepo) IsSystemAdmin(_ context.Context, _ uuid.UUID) (bool, error) {
@@ -24,6 +27,16 @@ func (m *mockSearchRepo) IsSystemAdmin(_ context.Context, _ uuid.UUID) (bool, er
 		return false, m.adminErr
 	}
 	return m.isAdmin, nil
+}
+
+func (m *mockSearchRepo) IsProjectMember(_ context.Context, _, _ uuid.UUID) (bool, error) {
+	if m.memberErr != nil {
+		return false, m.memberErr
+	}
+	if m.memberOK != nil {
+		return *m.memberOK, nil
+	}
+	return true, nil
 }
 
 func (m *mockSearchRepo) CreateSavedFilter(context.Context, search.CreateSavedFilterInput) (*ent.SavedFilter, error) {
@@ -46,6 +59,13 @@ func newScopeTestDB(t *testing.T) *sql.DB {
 	t.Cleanup(func() { db.Close() })
 
 	_, err = db.Exec(`
+		CREATE TABLE channels (
+			id TEXT PRIMARY KEY,
+			name TEXT NOT NULL DEFAULT '',
+			channel_type TEXT NOT NULL DEFAULT 'public',
+			project_id TEXT,
+			deleted_at TEXT
+		);
 		CREATE TABLE channel_members (channel_id TEXT NOT NULL, user_id TEXT NOT NULL);
 		CREATE TABLE project_members (project_members TEXT NOT NULL, user_project_members TEXT NOT NULL);
 	`)
@@ -72,18 +92,25 @@ func TestGetUserChannelIDs_ReturnsOnlyUserMemberships(t *testing.T) {
 	userID := uuid.New()
 	ownChannel := uuid.New()
 	otherChannel := uuid.New()
+	deletedChannel := uuid.New()
 
 	_, err := db.Exec(
-		`INSERT INTO channel_members (channel_id, user_id) VALUES (?, ?), (?, ?)`,
+		`INSERT INTO channels (id, name, channel_type, deleted_at) VALUES (?, 'own', 'public', NULL), (?, 'other', 'public', NULL), (?, 'gone', 'public', '2026-01-01')`,
+		ownChannel.String(), otherChannel.String(), deletedChannel.String(),
+	)
+	require.NoError(t, err)
+	_, err = db.Exec(
+		`INSERT INTO channel_members (channel_id, user_id) VALUES (?, ?), (?, ?), (?, ?)`,
 		ownChannel.String(), userID.String(),
 		otherChannel.String(), uuid.New().String(),
+		deletedChannel.String(), userID.String(),
 	)
 	require.NoError(t, err)
 
 	svc := search.ExportNewSearchServiceSQL(db)
 	ids, err := search.ExportGetUserChannelIDs(svc, context.Background(), userID)
 	require.NoError(t, err)
-	require.Len(t, ids, 1)
+	require.Len(t, ids, 1, "soft-deleted channel membership must be excluded")
 	assert.Equal(t, ownChannel, ids[0])
 }
 
@@ -108,6 +135,7 @@ func TestGetUserProjectIDs_ReturnsOnlyUserMemberships(t *testing.T) {
 }
 
 func TestSearchScopedEntities_EmptyProjectIDsReturnNothing(t *testing.T) {
+	// W5-A5-005 / P3-BE-02: канонический empty-scope (дубли wave100/108/109/114 удалены).
 	svc := search.ExportNewSearchServiceSQL(newScopeTestDB(t))
 	ctx := context.Background()
 
@@ -131,11 +159,13 @@ func TestSearchScopedEntities_EmptyProjectIDsReturnNothing(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, files)
 
-	channels, err := search.ExportSearchChannels(svc, ctx, "test", nil)
+	channels, err := search.ExportSearchChannels(svc, ctx, "test", nil, uuid.Nil)
 	require.NoError(t, err)
 	assert.Nil(t, channels)
 }
 
+// A3W5-5-002: канон nil-mongo / no-membership messages
+// (дубли wave106/wave114/shard_errors/NoChannels сняты).
 func TestSearchMessages_NilMongoReturnsEmpty(t *testing.T) {
 	svc := search.ExportNewSearchServiceFull(nil, newScopeTestDB(t), nil)
 	results, err := search.ExportSearchMessages(svc, context.Background(), "hello", uuid.New())
@@ -143,29 +173,8 @@ func TestSearchMessages_NilMongoReturnsEmpty(t *testing.T) {
 	assert.Nil(t, results)
 }
 
-func TestSearchMessages_NoChannelsReturnsEmpty(t *testing.T) {
-	db := newScopeTestDB(t)
-	svc := search.ExportNewSearchServiceFull(nil, db, nil)
-	userID := uuid.New()
-
-	results, err := search.ExportSearchMessages(svc, context.Background(), "hello", userID)
-	require.NoError(t, err)
-	assert.Nil(t, results)
-}
-
 func TestSearch_UsesProjectScopeForIssues(t *testing.T) {
-	db := newScopeTestDB(t)
-	userID := uuid.New()
-	allowedProject := uuid.New()
-
-	_, err := db.Exec(
-		`INSERT INTO project_members (project_members, user_project_members) VALUES (?, ?)`,
-		allowedProject.String(), userID.String(),
-	)
-	require.NoError(t, err)
-
-	svc := search.ExportNewSearchServiceFull(&mockSearchRepo{}, db, nil)
-	results, err := svc.Search(context.Background(), "hub", userID, []string{"issue"}, 20)
-	require.NoError(t, err)
-	assert.Empty(t, results)
+	// A2W5-A5-001: hollow sqlite Empty убран. Канон NF-03 — Postgres:
+	// TestPostgresSearch_RejectsForeignProjectIssues_TASK037 (live+foreign).
+	t.Run("delegates_to_postgres_scope_proof", TestPostgresSearch_RejectsForeignProjectIssues_TASK037)
 }

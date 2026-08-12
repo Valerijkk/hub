@@ -42,6 +42,9 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 	news.Get("/:newsId", h.GetNews)
 	news.Put("/:newsId", h.UpdateNews)
 	news.Delete("/:newsId", h.DeleteNews)
+	news.Get("/:newsId/poll", h.GetNewsPoll)
+	news.Post("/:newsId/poll/vote", h.VoteNewsPoll)
+	news.Put("/:newsId/poll", h.UpdateNewsPoll)
 }
 
 // ListDirectory godoc
@@ -199,7 +202,7 @@ func (h *Handler) UpdateNews(c fiber.Ctx) error {
 }
 
 // DeleteNews godoc
-// @Summary Удалить новость (admin, soft)
+// @Summary Удалить новость (author или admin, soft → корзина 30д)
 // @Tags Intranet
 // @Param newsId path string true "News ID"
 // @Success 204
@@ -218,6 +221,90 @@ func (h *Handler) DeleteNews(c fiber.Ctx) error {
 		return mapServiceError(err)
 	}
 	return c.SendStatus(fiber.StatusNoContent)
+}
+
+// GetNewsPoll godoc
+// @Summary Опрос новости
+// @Tags Intranet
+// @Produce json
+// @Param newsId path string true "News ID"
+// @Success 200 {object} NewsPollResponse
+// @Security BearerAuth
+// @Router /api/intranet/news/{newsId}/poll [get]
+func (h *Handler) GetNewsPoll(c fiber.Ctx) error {
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+	id, err := parseNewsID(c)
+	if err != nil {
+		return err
+	}
+	resp, err := h.service.GetNewsPoll(c.Context(), userID, id)
+	if err != nil {
+		return mapServiceError(err)
+	}
+	return c.JSON(resp)
+}
+
+// VoteNewsPoll godoc
+// @Summary Голос в опросе новости
+// @Tags Intranet
+// @Accept json
+// @Produce json
+// @Param newsId path string true "News ID"
+// @Param body body VoteNewsPollRequest true "Vote"
+// @Success 200 {object} NewsPollResponse
+// @Security BearerAuth
+// @Router /api/intranet/news/{newsId}/poll/vote [post]
+func (h *Handler) VoteNewsPoll(c fiber.Ctx) error {
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+	id, err := parseNewsID(c)
+	if err != nil {
+		return err
+	}
+	var req VoteNewsPollRequest
+	if err := c.Bind().JSON(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid request body")
+	}
+	resp, err := h.service.VoteNewsPoll(c.Context(), userID, id, req)
+	if err != nil {
+		return mapServiceError(err)
+	}
+	return c.JSON(resp)
+}
+
+// UpdateNewsPoll godoc
+// @Summary Обновить опрос новости (автор или admin)
+// @Tags Intranet
+// @Accept json
+// @Produce json
+// @Param newsId path string true "News ID"
+// @Param body body UpdateNewsPollRequest true "Poll"
+// @Success 200 {object} NewsPollResponse
+// @Security BearerAuth
+// @Router /api/intranet/news/{newsId}/poll [put]
+func (h *Handler) UpdateNewsPoll(c fiber.Ctx) error {
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+	id, err := parseNewsID(c)
+	if err != nil {
+		return err
+	}
+	var req UpdateNewsPollRequest
+	if err := c.Bind().JSON(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid request body")
+	}
+	resp, err := h.service.UpdateNewsPoll(c.Context(), userID, id, req)
+	if err != nil {
+		return mapServiceError(err)
+	}
+	return c.JSON(resp)
 }
 
 // ListKudosFeed godoc
@@ -405,6 +492,8 @@ func mapServiceError(err error) error {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid news post input")
 	case errors.Is(err, ErrVersionConflict):
 		return fiber.NewError(fiber.StatusConflict, "news post version conflict")
+	case errors.Is(err, ErrAlreadyVoted), errors.Is(err, ErrPollClosed), errors.Is(err, ErrPollHasVotes):
+		return fiber.NewError(fiber.StatusUnprocessableEntity, err.Error())
 	default:
 		return fiber.NewError(fiber.StatusInternalServerError, "intranet operation failed")
 	}

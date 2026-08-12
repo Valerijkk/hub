@@ -211,7 +211,7 @@
 | `.planning/audits/2026-06/AUDIT-SCORECARD.md` | vitest 49, e2e 7 | 99 vitest, 20 e2e | ✅ updated |
 | `docs/test_plan.md` | paths | pipeline structure | ✅ updated earlier |
 | `docs/security_guidelines.md` | date 2026-06-21 | add 2026-06-23 re-audit | ✅ updated |
-| `.planning/code-review-final/SUMMARY.md` | 11.5% cov, 12 CRITICAL open | 83% cov, all fixed | Add banner «historical baseline» |
+| `.planning/audits/code-review-final/SUMMARY.md` | 11.5% cov, 12 CRITICAL open | 83% cov, all fixed | Add banner «historical baseline» |
 
 ### Docs that are current ✅
 

@@ -1,9 +1,11 @@
 package search
 
 import (
+	"errors"
 	"log/slog"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
@@ -63,6 +65,10 @@ func (h *Handler) search(c fiber.Ctx) error {
 	if q == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "параметр q обязателен")
 	}
+	// W5-A4-008 / P2-BE-18: max=500 из DTO — rune-safe (не байты).
+	if utf8.RuneCountInString(q) > 500 {
+		return fiber.NewError(fiber.StatusBadRequest, "параметр q слишком длинный (макс. 500)")
+	}
 
 	var types []string
 	if t := c.Query("type"); t != "" {
@@ -74,7 +80,7 @@ func (h *Handler) search(c fiber.Ctx) error {
 		limit = l
 	}
 
-	results, err := h.svc.Search(c.Context(), q, userID, types, limit)
+	results, partial, err := h.svc.Search(c.Context(), q, userID, types, limit)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "ошибка поиска")
 	}
@@ -85,6 +91,7 @@ func (h *Handler) search(c fiber.Ctx) error {
 	return c.JSON(SearchResponse{
 		Results: results,
 		Total:   len(results),
+		Partial: partial,
 	})
 }
 
@@ -98,6 +105,7 @@ func (h *Handler) search(c fiber.Ctx) error {
 // @Success 201 {object} SavedFilterDTO "Фильтр создан"
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет членства в проекте"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
 // @Router /api/filters [post]
@@ -117,7 +125,13 @@ func (h *Handler) createFilter(c fiber.Ctx) error {
 
 	filter, err := h.svc.CreateSavedFilter(c.Context(), userID, req)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		// A4-003: non-member -> 403
+		if errors.Is(err, ErrFilterForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "недостаточно прав для создания фильтра")
+		}
+		// P3-BE-08 / W5-A4-011: стабильное сообщение; internals — только в slog.
+		slog.Error("create saved filter failed", "error", err, "user_id", userID)
+		return fiber.NewError(fiber.StatusInternalServerError, "не удалось создать фильтр")
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(filter)
@@ -132,6 +146,7 @@ func (h *Handler) createFilter(c fiber.Ctx) error {
 // @Success 200 {object} SavedFilterListResponse "Список фильтров"
 // @Failure 400 {object} fiber.Error "project_id обязателен"
 // @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет членства в проекте"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
 // @Router /api/filters [get]
@@ -152,7 +167,13 @@ func (h *Handler) listFilters(c fiber.Ctx) error {
 
 	filters, err := h.svc.ListSavedFilters(c.Context(), userID, projectID)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		// A4-004: non-member -> 403 (не отдаём shared configs)
+		if errors.Is(err, ErrFilterForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "недостаточно прав для просмотра фильтров")
+		}
+		// P3-BE-08 / W5-A4-011
+		slog.Error("list saved filters failed", "error", err, "user_id", userID, "project_id", projectID)
+		return fiber.NewError(fiber.StatusInternalServerError, "не удалось получить фильтры")
 	}
 
 	return c.JSON(SavedFilterListResponse{Filters: filters})
@@ -166,6 +187,8 @@ func (h *Handler) listFilters(c fiber.Ctx) error {
 // @Success 204 "Фильтр удалён"
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Не владелец фильтра"
+// @Failure 404 {object} fiber.Error "Фильтр не найден"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
 // @Router /api/filters/{id} [delete]
@@ -181,7 +204,15 @@ func (h *Handler) deleteFilter(c fiber.Ctx) error {
 	}
 
 	if err := h.svc.DeleteSavedFilter(c.Context(), userID, filterID); err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		// A2W5-A4-001/004: non-owner → 403; missing → 404 (не 500).
+		if errors.Is(err, ErrFilterForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "недостаточно прав для удаления фильтра")
+		}
+		if errors.Is(err, ErrFilterNotFound) {
+			return fiber.NewError(fiber.StatusNotFound, "фильтр не найден")
+		}
+		slog.Error("delete saved filter failed", "error", err, "user_id", userID, "filter_id", filterID)
+		return fiber.NewError(fiber.StatusInternalServerError, "не удалось удалить фильтр")
 	}
 
 	return c.SendStatus(fiber.StatusNoContent)
@@ -198,6 +229,8 @@ func (h *Handler) deleteFilter(c fiber.Ctx) error {
 // @Success 200 {object} SavedFilterDTO "Фильтр обновлён"
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Не владелец фильтра"
+// @Failure 404 {object} fiber.Error "Фильтр не найден"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
 // @Router /api/filters/{id}/share [patch]
@@ -219,7 +252,15 @@ func (h *Handler) shareFilter(c fiber.Ctx) error {
 
 	filter, err := h.svc.ShareFilter(c.Context(), userID, filterID, req.Shared)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		// A2W5-A4-001/004: non-owner → 403; missing → 404 (не 500).
+		if errors.Is(err, ErrFilterForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "недостаточно прав для изменения фильтра")
+		}
+		if errors.Is(err, ErrFilterNotFound) {
+			return fiber.NewError(fiber.StatusNotFound, "фильтр не найден")
+		}
+		slog.Error("share filter failed", "error", err, "user_id", userID, "filter_id", filterID)
+		return fiber.NewError(fiber.StatusInternalServerError, "не удалось обновить фильтр")
 	}
 
 	return c.JSON(filter)

@@ -14,6 +14,7 @@ type stubJSMsg struct {
 	subject string
 	data    []byte
 	acked   bool
+	naked   bool
 }
 
 func (m *stubJSMsg) Subject() string                           { return m.subject }
@@ -22,8 +23,8 @@ func (m *stubJSMsg) Headers() nats.Header                      { return nil }
 func (m *stubJSMsg) Metadata() (*jetstream.MsgMetadata, error) { return nil, nil }
 func (m *stubJSMsg) Ack() error                                { m.acked = true; return nil }
 func (m *stubJSMsg) DoubleAck(context.Context) error           { return nil }
-func (m *stubJSMsg) Nak() error                                { return nil }
-func (m *stubJSMsg) NakWithDelay(time.Duration) error          { return nil }
+func (m *stubJSMsg) Nak() error                                { m.naked = true; return nil }
+func (m *stubJSMsg) NakWithDelay(time.Duration) error          { m.naked = true; return nil }
 func (m *stubJSMsg) InProgress() error                         { return nil }
 func (m *stubJSMsg) Term() error                               { return nil }
 func (m *stubJSMsg) TermWithReason(string) error               { return nil }

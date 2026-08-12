@@ -2,6 +2,7 @@ package tms
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
@@ -115,6 +116,7 @@ func toSuiteResponse(suite *ent.TestSuite) *SuiteResponse {
 		Name:        suite.Name,
 		Description: suite.Description,
 		SortOrder:   suite.SortOrder,
+		Version:     suite.Version,
 		CreatedAt:   suite.CreatedAt,
 		UpdatedAt:   suite.UpdatedAt,
 	}
@@ -300,7 +302,8 @@ func buildSuiteTree(suites []*ent.TestSuite) []SuiteResponse {
 // ---------------------------------------------------------------------------
 
 // buildSnapshot создаёт снимок тест-кейса для версионирования.
-func buildSnapshot(tc *ent.TestCase) map[string]interface{} {
+// A2W2-2-010: ошибки Marshal/Unmarshal steps не глотаются.
+func buildSnapshot(tc *ent.TestCase) (map[string]interface{}, error) {
 	snapshot := map[string]interface{}{
 		"title":         tc.Title,
 		"description":   tc.Description,
@@ -312,9 +315,14 @@ func buildSnapshot(tc *ent.TestCase) map[string]interface{} {
 		"version":       tc.Version,
 	}
 	if len(tc.Steps) > 0 {
-		stepsJSON, _ := json.Marshal(tc.Steps)
+		stepsJSON, err := json.Marshal(tc.Steps)
+		if err != nil {
+			return nil, fmt.Errorf("сериализация steps для snapshot: %w", err)
+		}
 		var steps interface{}
-		_ = json.Unmarshal(stepsJSON, &steps)
+		if err := json.Unmarshal(stepsJSON, &steps); err != nil {
+			return nil, fmt.Errorf("десериализация steps для snapshot: %w", err)
+		}
 		snapshot["steps"] = steps
 	}
 	if tc.FullName != "" {
@@ -329,11 +337,12 @@ func buildSnapshot(tc *ent.TestCase) map[string]interface{} {
 	if tc.ExternalID != "" {
 		snapshot["external_id"] = tc.ExternalID
 	}
-	return snapshot
+	return snapshot, nil
 }
 
 // snapshotToUpdateInput конвертирует снимок версии в UpdateTestCaseInput для rollback.
-func snapshotToUpdateInput(snapshot map[string]interface{}) UpdateTestCaseInput {
+// A3W2-2-005: Marshal/Unmarshal steps fail-closed (как buildSnapshot / A2W2-2-010).
+func snapshotToUpdateInput(snapshot map[string]interface{}) (UpdateTestCaseInput, error) {
 	input := UpdateTestCaseInput{}
 
 	if v, ok := snapshot["title"].(string); ok {
@@ -358,11 +367,15 @@ func snapshotToUpdateInput(snapshot map[string]interface{}) UpdateTestCaseInput 
 		input.Status = &v
 	}
 	if v, ok := snapshot["steps"]; ok {
-		stepsJSON, _ := json.Marshal(v)
-		var steps []schema.TestStep
-		if err := json.Unmarshal(stepsJSON, &steps); err == nil {
-			input.Steps = &steps
+		stepsJSON, err := json.Marshal(v)
+		if err != nil {
+			return input, fmt.Errorf("сериализация steps snapshot: %w", err)
 		}
+		var steps []schema.TestStep
+		if err := json.Unmarshal(stepsJSON, &steps); err != nil {
+			return input, fmt.Errorf("десериализация steps snapshot: %w", err)
+		}
+		input.Steps = &steps
 	}
 	if v, ok := snapshot["full_name"].(string); ok {
 		input.FullName = &v
@@ -377,13 +390,15 @@ func snapshotToUpdateInput(snapshot map[string]interface{}) UpdateTestCaseInput 
 		input.ExternalID = &v
 	}
 
-	return input
+	return input, nil
 }
 
-// normalizeErrorPattern извлекает основной паттерн из сообщения об ошибке (первые 100 символов).
+// normalizeErrorPattern извлекает основной паттерн из сообщения об ошибке (первые 100 рун).
+// P3-BE-04 / W2-A2-019 / TASK-060 residual: msg[:100] по байтам ломал UTF-8.
 func normalizeErrorPattern(msg string) string {
-	if len(msg) > 100 {
-		return msg[:100]
+	runes := []rune(msg)
+	if len(runes) > 100 {
+		return string(runes[:100])
 	}
 	return msg
 }

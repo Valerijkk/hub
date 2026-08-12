@@ -66,9 +66,48 @@ func TestEntRepository_CreateIssue_IncrementsCounter(t *testing.T) {
 func TestEntRepository_FindIssueByKey_NotFound(t *testing.T) {
 	env := newTrackerRepoTestEnv(t)
 
-	_, err := env.repo.FindIssueByKey(env.ctx, "MISSING-1")
+	_, err := env.repo.FindIssueByKey(env.ctx, env.projectID, "MISSING-1")
 	require.Error(t, err)
 	assert.True(t, ent.IsNotFound(err))
+}
+
+// TestEntRepository_FindIssueByKey_RejectsForeignProject_A3_002 — issue чужого проекта
+// не находится по ключу. Mutation: снять HasProjectWith → FAIL.
+func TestEntRepository_FindIssueByKey_RejectsForeignProject_A3_002(t *testing.T) {
+	env := newTrackerRepoTestEnv(t)
+
+	foreign, err := env.client.Project.Create().
+		SetName("Foreign Project A3002").
+		SetKey("FRN").
+		Save(env.ctx)
+	require.NoError(t, err)
+
+	status, err := env.client.WorkflowStatus.Create().
+		SetName("To Do").
+		SetCategory("todo").
+		SetColor("#6B7280").
+		SetSortOrder(0).
+		SetIsDefault(true).
+		SetProjectID(foreign.ID).
+		Save(env.ctx)
+	require.NoError(t, err)
+
+	foreignRepo := tracker.NewEntRepository(env.client, nil)
+	created, err := foreignRepo.CreateIssue(env.ctx, foreign.ID, tracker.CreateIssueInput{
+		Title:      "Secret",
+		IssueType:  "task",
+		Priority:   "medium",
+		ReporterID: env.userID,
+		StatusID:   &status.ID,
+	})
+	require.NoError(t, err)
+
+	_, err = env.repo.FindIssueByKey(env.ctx, env.projectID, created.IssueKey)
+	require.True(t, ent.IsNotFound(err), "foreign issue must not be visible via project A, got %v", err)
+
+	got, err := foreignRepo.FindIssueByKey(env.ctx, foreign.ID, created.IssueKey)
+	require.NoError(t, err)
+	assert.Equal(t, created.ID, got.ID)
 }
 
 // TestEntRepository_UpdateIssue_OptimisticLock проверяет слой репозитория: ent репозиторий обновление issue optimistic lock.
@@ -125,7 +164,7 @@ func TestEntRepository_WorkflowTransition(t *testing.T) {
 	inProgress, err := env.repo.CreateWorkflowStatus(env.ctx, env.projectID, "In Progress", "in_progress", "#3B82F6", 1)
 	require.NoError(t, err)
 
-	_, err = env.repo.CreateWorkflowTransition(env.ctx, env.statusID, inProgress.ID)
+	_, err = env.repo.CreateWorkflowTransition(env.ctx, env.projectID, env.statusID, inProgress.ID)
 	require.NoError(t, err)
 
 	found, err := env.repo.FindTransition(env.ctx, env.statusID, inProgress.ID)

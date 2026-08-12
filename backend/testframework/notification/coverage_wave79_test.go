@@ -216,13 +216,15 @@ func TestConsumer_processEvent_CommentAdded(t *testing.T) {
 		IssueKey:  issueEnt.IssueKey,
 		ProjectID: projectID.String(),
 		AuthorID:  actor.ID.String(),
-		Mentions:  []string{uuid.New().String()},
+		// No Mentions: unknown mention UUID would fail Dispatch (FK) and Nak entire event (A2-010).
+		Mentions: nil,
 	}
 	data, err := json.Marshal(evt)
 	require.NoError(t, err)
 
 	subject := "project." + projectID.String() + ".issue.comment_created"
-	notification.ExportProcessEvent(c, ctx, &stubJetStreamMsg{subject: subject, data: data})
+	msg := &stubJetStreamMsg{subject: subject, data: data}
+	notification.ExportProcessEvent(c, ctx, msg)
 
 	notifs, err := notification.ExportRepositoryDB(repo).Notification.Query().
 		Where(entnotif.UserID(assignee.ID)).
@@ -230,6 +232,8 @@ func TestConsumer_processEvent_CommentAdded(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, notifs, 1)
 	assert.Equal(t, notification.TypeCommentAdded, notifs[0].Type)
+	assert.True(t, msg.acked, "A2-010: success must Ack")
+	assert.False(t, msg.naked, "A2-010: success must not Nak")
 }
 
 // TestConsumer_processEvent_NewLogin проверяет сценарий: consumer process event new вход.

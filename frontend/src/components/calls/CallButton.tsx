@@ -28,6 +28,7 @@ export function CallButton({ channelId }: CallButtonProps) {
 		useCallStore();
 	const [existingCall, setExistingCall] = useState<CallResponse | null>(null);
 	const [checking, setChecking] = useState(false);
+	const [checkFailed, setCheckFailed] = useState(false);
 
 	/**
 	 * Проверить наличие активного звонка при монтировании, смене канала, а
@@ -40,10 +41,20 @@ export function CallButton({ channelId }: CallButtonProps) {
 		let cancelled = false;
 		const check = async () => {
 			setChecking(true);
-			const call = await checkActiveCall(channelId);
-			if (!cancelled) {
-				setExistingCall(call);
-				setChecking(false);
+			try {
+				const call = await checkActiveCall(channelId);
+				if (!cancelled) {
+					setExistingCall(call);
+					setCheckFailed(false);
+				}
+			} catch (err) {
+				if (!cancelled) {
+					setExistingCall(null);
+					setCheckFailed(true);
+					toastApiError(err, "Не удалось проверить активный звонок");
+				}
+			} finally {
+				if (!cancelled) setChecking(false);
 			}
 		};
 		void check();
@@ -54,6 +65,10 @@ export function CallButton({ channelId }: CallButtonProps) {
 
 	/** Обработчик клика: начать или присоединиться. */
 	const handleClick = useCallback(async () => {
+		if (checkFailed && !existingCall?.id) {
+			toast.error("Сначала дождитесь проверки активного звонка");
+			return;
+		}
 		try {
 			if (existingCall?.id) {
 				await joinCall(existingCall.id);
@@ -68,13 +83,17 @@ export function CallButton({ channelId }: CallButtonProps) {
 		} catch (err) {
 			toastApiError(err, "Не удалось выполнить звонок");
 		}
-	}, [existingCall, joinCall, startCall, channelId]);
+	}, [existingCall, joinCall, startCall, channelId, checkFailed]);
 
 	/** Не показывать кнопку если уже в звонке. */
 	if (isInCall) return null;
 
 	const loading = isConnecting || checking;
-	const label = existingCall?.id ? "Присоединиться к звонку" : "Начать звонок";
+	const label = existingCall?.id
+		? "Присоединиться к звонку"
+		: checkFailed
+			? "Проверка звонка не удалась"
+			: "Начать звонок";
 
 	return (
 		<TooltipProvider>
@@ -84,7 +103,7 @@ export function CallButton({ channelId }: CallButtonProps) {
 						variant="ghost"
 						size="icon"
 						onClick={handleClick}
-						disabled={loading}
+						disabled={loading || (checkFailed && !existingCall?.id)}
 						aria-label={label}
 					>
 						{loading ? (

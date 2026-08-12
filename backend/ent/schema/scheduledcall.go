@@ -8,13 +8,13 @@ import (
 	"github.com/google/uuid"
 )
 
-// ScheduledCall С…СЂР°РЅРёС‚ РјРµС‚Р°РґР°РЅРЅС‹Рµ Р·Р°РїР»Р°РЅРёСЂРѕРІР°РЅРЅРѕРіРѕ РёР»Рё РїРѕРІС‚РѕСЂСЏСЋС‰РµРіРѕСЃСЏ Р·РІРѕРЅРєР°.
-// РџРѕРґРґРµСЂР¶РёРІР°РµС‚ RFC 5545 RRULE РґР»СЏ РїРѕРІС‚РѕСЂСЏСЋС‰РёС…СЃСЏ Р·РІРѕРЅРєРѕРІ (РµР¶РµРґРЅРµРІРЅС‹Р№ СЃС‚РµРЅРґР°Рї Рё С‚.Рґ.).
+// ScheduledCall хранит метаданные запланированного или повторяющегося звонка.
+// Поддерживает RFC 5545 RRULE для повторяющихся звонков (ежедневный стендап и т.д.).
 type ScheduledCall struct {
 	ent.Schema
 }
 
-// Fields РѕРїРёСЃС‹РІР°РµС‚ РїРѕР»СЏ СЃСѓС‰РЅРѕСЃС‚Рё ScheduledCall.
+// Fields описывает поля сущности ScheduledCall.
 func (ScheduledCall) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -23,33 +23,37 @@ func (ScheduledCall) Fields() []ent.Field {
 		field.String("title").
 			NotEmpty().
 			MaxLen(255).
-			Comment("РќР°Р·РІР°РЅРёРµ Р·Р°РїР»Р°РЅРёСЂРѕРІР°РЅРЅРѕРіРѕ Р·РІРѕРЅРєР°"),
+			Comment("Название запланированного звонка"),
 		field.String("description").
 			Optional().
 			MaxLen(2000).
-			Comment("РћРїРёСЃР°РЅРёРµ Р·РІРѕРЅРєР°"),
+			Comment("Описание звонка"),
 		field.Time("scheduled_at").
-			Comment("РЎР»РµРґСѓСЋС‰РµРµ Р·Р°РїР»Р°РЅРёСЂРѕРІР°РЅРЅРѕРµ РІСЂРµРјСЏ Р·РІРѕРЅРєР°"),
+			Comment("Следующее запланированное время звонка"),
 		field.Int("duration_minutes").
 			Optional().
 			Default(60).
-			Comment("Р”Р»РёС‚РµР»СЊРЅРѕСЃС‚СЊ Р·РІРѕРЅРєР° РІ РјРёРЅСѓС‚Р°С…"),
+			Comment("Длительность звонка в минутах"),
 		field.Int("reminder_minutes").
 			Optional().
 			Nillable().
-			Comment("Р—Р° СЃРєРѕР»СЊРєРѕ РјРёРЅСѓС‚ РґРѕ Р·РІРѕРЅРєР° РѕС‚РїСЂР°РІРёС‚СЊ РЅР°РїРѕРјРёРЅР°РЅРёРµ (null = Р±РµР· РЅР°РїРѕРјРёРЅР°РЅРёСЏ)"),
+			Comment("За сколько минут до звонка отправить напоминание (null = без напоминания)"),
 		field.String("rrule").
 			Optional().
-			Comment("RFC 5545 RRULE РґР»СЏ РїРѕРІС‚РѕСЂСЏСЋС‰РёС…СЃСЏ Р·РІРѕРЅРєРѕРІ"),
+			Comment("RFC 5545 RRULE для повторяющихся звонков"),
 		field.UUID("channel_id", uuid.UUID{}).
-			Comment("ID РєР°РЅР°Р»Р°, РІ РєРѕС‚РѕСЂРѕРј Р±СѓРґРµС‚ Р·РІРѕРЅРѕРє"),
+			Comment("ID канала, в котором будет звонок"),
 		field.UUID("project_id", uuid.UUID{}).
-			Comment("ID РїСЂРѕРµРєС‚Р°"),
+			Comment("ID проекта"),
 		field.UUID("created_by", uuid.UUID{}).
-			Comment("ID РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ, СЃРѕР·РґР°РІС€РµРіРѕ Р·Р°РїР»Р°РЅРёСЂРѕРІР°РЅРЅС‹Р№ Р·РІРѕРЅРѕРє"),
+			Comment("ID пользователя, создавшего запланированный звонок"),
 		field.Bool("is_active").
 			Default(true).
-			Comment("РђРєС‚РёРІРµРЅ Р»Рё Р·Р°РїР»Р°РЅРёСЂРѕРІР°РЅРЅС‹Р№ Р·РІРѕРЅРѕРє"),
+			Comment("Активен ли запланированный звонок"),
+		field.Time("deleted_at").
+			Optional().
+			Nillable().
+			Comment("Время мягкого удаления (корзина 30 дней, FR-CAL-05 / NFR-11)"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
@@ -58,8 +62,15 @@ func (ScheduledCall) Fields() []ent.Field {
 			UpdateDefault(nowUTC),
 	}
 }
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (ScheduledCall) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
+	}
+}
 
-// Edges РѕРїРёСЃС‹РІР°РµС‚ СЃРІСЏР·Рё СЃСѓС‰РЅРѕСЃС‚Рё ScheduledCall.
+
+// Edges описывает связи сущности ScheduledCall.
 func (ScheduledCall) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("project", Project.Type).
@@ -78,14 +89,15 @@ func (ScheduledCall) Edges() []ent.Edge {
 			Unique().
 			Required(),
 		edge.To("participants", User.Type).
-			Comment("РџСЂРёРіР»Р°С€С‘РЅРЅС‹Рµ СѓС‡Р°СЃС‚РЅРёРєРё Р·РІРѕРЅРєР°"),
+			Comment("Приглашённые участники звонка"),
 	}
 }
 
-// Indexes РѕРїРёСЃС‹РІР°РµС‚ РёРЅРґРµРєСЃС‹ СЃСѓС‰РЅРѕСЃС‚Рё ScheduledCall.
+// Indexes описывает индексы сущности ScheduledCall.
 func (ScheduledCall) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("channel_id", "scheduled_at"),
 		index.Fields("is_active", "scheduled_at"),
+		index.Fields("deleted_at"),
 	}
 }

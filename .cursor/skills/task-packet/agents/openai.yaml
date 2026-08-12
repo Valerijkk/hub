@@ -1,0 +1,4 @@
+interface:
+  display_name: "Task Packet"
+  short_description: "Нормализует контракт и границы задачи"
+  default_prompt: "Используй $task-packet, чтобы нормализовать эту Hub-задачу перед планированием или исполнением."

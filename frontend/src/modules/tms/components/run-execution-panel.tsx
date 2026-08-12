@@ -6,7 +6,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
-	type StepResult,
 	type TestResultDetailResponse,
 	type TestResultStatus,
 	type UpdateTestResultRequest,
@@ -76,19 +75,12 @@ export function RunExecutionPanel({
 	const [overallStatus, setOverallStatus] = useState<TestResultStatus>(
 		result.status === "unknown" ? "passed" : result.status,
 	);
-	const [stepResults] = useState<StepResult[]>(() => {
-		if (result.step_results && result.step_results.length > 0) {
-			return result.step_results;
-		}
-		return [];
-	});
 
 	const submitMutation = useMutation({
 		mutationFn: () => {
 			const data: UpdateTestResultRequest = {
 				status: overallStatus,
 				comment: comment || undefined,
-				step_results: stepResults.length > 0 ? stepResults : undefined,
 			};
 			return updateTestResult(projectId, runId, result.id, data);
 		},

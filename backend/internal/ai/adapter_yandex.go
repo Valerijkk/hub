@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -155,8 +156,25 @@ func (a *YandexGPTAdapter) ChatCompletionStream(ctx context.Context, baseURL, ap
 	return onDelta(StreamDelta{Done: true})
 }
 
-// IsYandexProvider определяет Yandex GPT endpoints.
+// yandexGPTHosts — allowlist хостов YandexGPT (W5-A2-012).
+// Substring «yandex» запрещён: иначе чужой BaseURL с подстрокой уводит трафик на hard-coded Yandex API.
+var yandexGPTHosts = map[string]struct{}{
+	"llm.api.cloud.yandex.net": {},
+}
+
+// IsYandexProvider определяет Yandex GPT endpoints только по host allowlist.
 func IsYandexProvider(baseURL string) bool {
-	return strings.Contains(strings.ToLower(baseURL), "llm.api.cloud.yandex.net") ||
-		strings.Contains(strings.ToLower(baseURL), "yandex")
+	raw := strings.TrimSpace(baseURL)
+	if raw == "" {
+		return false
+	}
+	if !strings.Contains(raw, "://") {
+		raw = "https://" + raw
+	}
+	u, err := url.Parse(raw)
+	if err != nil {
+		return false
+	}
+	_, ok := yandexGPTHosts[strings.ToLower(u.Hostname())]
+	return ok
 }

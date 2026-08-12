@@ -75,6 +75,7 @@ func (h *Handler) Seed(c fiber.Ctx) error {
 	}
 
 	// Назначить роли в проекте
+	partial := false
 	for _, du := range demoUsers {
 		if !du.AddToProject || du.ProjectRole == "" {
 			continue
@@ -82,6 +83,7 @@ func (h *Handler) Seed(c fiber.Ctx) error {
 		uid := userIDs[du.Email]
 		if err := h.ensureProjectMember(ctx, proj.ID, uid, du.ProjectRole); err != nil {
 			slog.Error("dev seed: не удалось добавить в проект", "email", du.Email, "error", err)
+			partial = true
 		}
 	}
 
@@ -93,6 +95,7 @@ func (h *Handler) Seed(c fiber.Ctx) error {
 	statusMap, err := h.seedWorkflowStatuses(ctx, proj.ID)
 	if err != nil {
 		slog.Error("dev seed: ошибка создания статусов", "error", err)
+		partial = true
 	} else {
 		summary["statuses"] = len(statusMap)
 	}
@@ -101,6 +104,7 @@ func (h *Handler) Seed(c fiber.Ctx) error {
 	transCount, err := h.seedWorkflowTransitions(ctx, proj.ID, statusMap)
 	if err != nil {
 		slog.Error("dev seed: ошибка создания переходов", "error", err)
+		partial = true
 	} else {
 		summary["transitions"] = transCount
 	}
@@ -109,6 +113,7 @@ func (h *Handler) Seed(c fiber.Ctx) error {
 	labelCount, err := h.seedLabels(ctx, proj.ID)
 	if err != nil {
 		slog.Error("dev seed: ошибка создания меток", "error", err)
+		partial = true
 	} else {
 		summary["labels"] = labelCount
 	}
@@ -117,6 +122,7 @@ func (h *Handler) Seed(c fiber.Ctx) error {
 	issueMap, err := h.seedIssues(ctx, proj.ID, userIDs, statusMap)
 	if err != nil {
 		slog.Error("dev seed: ошибка создания задач", "error", err)
+		partial = true
 	} else {
 		summary["issues"] = len(issueMap)
 	}
@@ -125,6 +131,7 @@ func (h *Handler) Seed(c fiber.Ctx) error {
 	linkCount, err := h.seedIssueLinks(ctx, issueMap)
 	if err != nil {
 		slog.Error("dev seed: ошибка создания связей", "error", err)
+		partial = true
 	} else {
 		summary["issue_links"] = linkCount
 	}
@@ -133,6 +140,7 @@ func (h *Handler) Seed(c fiber.Ctx) error {
 	boardCount, err := h.seedBoards(ctx, proj.ID, statusMap)
 	if err != nil {
 		slog.Error("dev seed: ошибка создания досок", "error", err)
+		partial = true
 	} else {
 		summary["boards"] = boardCount
 	}
@@ -141,6 +149,7 @@ func (h *Handler) Seed(c fiber.Ctx) error {
 	tcCount, err := h.seedTestCases(ctx, proj.ID, userIDs)
 	if err != nil {
 		slog.Error("dev seed: ошибка создания тест-кейсов", "error", err)
+		partial = true
 	} else {
 		summary["test_cases"] = tcCount
 	}
@@ -149,6 +158,7 @@ func (h *Handler) Seed(c fiber.Ctx) error {
 	runCount, err := h.seedTestRuns(ctx, proj.ID, userIDs)
 	if err != nil {
 		slog.Error("dev seed: ошибка создания тестовых прогонов", "error", err)
+		partial = true
 	} else {
 		summary["test_runs"] = runCount
 	}
@@ -157,6 +167,7 @@ func (h *Handler) Seed(c fiber.Ctx) error {
 	chCount, err := h.seedChannels(ctx, proj.ID, userIDs)
 	if err != nil {
 		slog.Error("dev seed: ошибка создания каналов", "error", err)
+		partial = true
 	} else {
 		summary["channels"] = chCount
 	}
@@ -164,6 +175,7 @@ func (h *Handler) Seed(c fiber.Ctx) error {
 	// AI-провайдер (локальный Ollama — опционально, для @hub-ai / Tab suggest в dev)
 	if aiSeeded, err := h.seedAIProvider(ctx); err != nil {
 		slog.Error("dev seed: ошибка AI провайдера", "error", err)
+		partial = true
 	} else if aiSeeded {
 		summary["ai_provider"] = "ollama-dev"
 	}
@@ -171,13 +183,21 @@ func (h *Handler) Seed(c fiber.Ctx) error {
 	slog.Info("dev seed: демо-данные созданы",
 		"users", len(createdUsers), "project", proj.Key,
 		"issues", len(issueMap), "statuses", len(statusMap),
+		"partial", partial,
 	)
 
-	return c.JSON(fiber.Map{
+	body := fiber.Map{
 		"users":   createdUsers,
 		"project": fiber.Map{"id": proj.ID.String(), "name": proj.Name, "key": proj.Key},
 		"seeded":  summary,
-	})
+	}
+	// P3-BE-16 / W7-A5-013: частичный seed → non-2xx + partial, не «успешный» 200.
+	if partial {
+		body["partial"] = true
+		body["error"] = "seed incomplete"
+		return c.Status(fiber.StatusInternalServerError).JSON(body)
+	}
+	return c.JSON(body)
 }
 
 // --- Вспомогательные функции сидирования ---
@@ -256,8 +276,8 @@ func (h *Handler) seedWorkflowTransitions(ctx context.Context, projectID uuid.UU
 					SetToStatusID(to).
 					Save(ctx)
 				if err != nil {
-					slog.Error("dev seed: ошибка создания перехода", "from", from, "to", to, "error", err)
-					continue
+					// A3W7-5-002 / W7-A5-013: DB-err → propagate (не slog+continue → silent 200).
+					return created, fmt.Errorf("создание перехода workflow: %w", err)
 				}
 				created++
 			}
@@ -413,8 +433,8 @@ func (h *Handler) seedIssueLinks(ctx context.Context, issueMap map[string]uuid.U
 			).
 			Exist(ctx)
 		if err != nil {
-			slog.Error("dev seed: ошибка проверки связи", "error", err)
-			continue
+			// A3W7-5-002: DB-err → propagate.
+			return created, fmt.Errorf("проверка связи задач: %w", err)
 		}
 		if exists {
 			created++
@@ -427,8 +447,8 @@ func (h *Handler) seedIssueLinks(ctx context.Context, issueMap map[string]uuid.U
 			SetLinkType(dl.LinkType).
 			Save(ctx)
 		if err != nil {
-			slog.Error("dev seed: ошибка создания связи", "source", dl.SourceKey, "target", dl.TargetKey, "error", err)
-			continue
+			// A3W7-5-002 / W7-A5-013: DB-err → propagate (не silent skip).
+			return created, fmt.Errorf("создание связи задач %s→%s: %w", dl.SourceKey, dl.TargetKey, err)
 		}
 		created++
 	}
@@ -638,8 +658,8 @@ func (h *Handler) seedChannels(ctx context.Context, projectID uuid.UUID, userIDs
 			SetCreatedBy(pmID).
 			Save(ctx)
 		if err != nil {
-			slog.Error("dev seed: ошибка создания канала", "name", dc.Name, "error", err)
-			continue
+			// A3W7-5-002 / W7-A5-013: DB-err → propagate (не silent skip).
+			return created, fmt.Errorf("создание канала %s: %w", dc.Name, err)
 		}
 
 		_, err = h.db.ChannelMember.Create().
@@ -648,7 +668,7 @@ func (h *Handler) seedChannels(ctx context.Context, projectID uuid.UUID, userIDs
 			SetRole(channelmember.RoleOwner).
 			Save(ctx)
 		if err != nil {
-			slog.Error("dev seed: ошибка добавления owner в канал", "name", dc.Name, "error", err)
+			return created, fmt.Errorf("добавление owner в канал %s: %w", dc.Name, err)
 		}
 
 		for _, email := range dc.MemberEmails {
@@ -662,7 +682,7 @@ func (h *Handler) seedChannels(ctx context.Context, projectID uuid.UUID, userIDs
 				SetRole(channelmember.RoleMember).
 				Save(ctx)
 			if err != nil {
-				slog.Error("dev seed: ошибка добавления участника в канал", "name", dc.Name, "email", email, "error", err)
+				return created, fmt.Errorf("добавление участника %s в канал %s: %w", email, dc.Name, err)
 			}
 		}
 

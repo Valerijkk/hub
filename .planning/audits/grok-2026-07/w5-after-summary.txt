@@ -1,0 +1,45 @@
+ok  	github.com/valerii/hub/backend/testframework/accounting	0.743s
+ok  	github.com/valerii/hub/backend/testframework/ai	0.178s
+ok  	github.com/valerii/hub/backend/testframework/apigateway	37.117s
+ok  	github.com/valerii/hub/backend/testframework/audit	0.760s
+ok  	github.com/valerii/hub/backend/testframework/auth	1.496s
+ok  	github.com/valerii/hub/backend/testframework/backup	0.449s
+ok  	github.com/valerii/hub/backend/testframework/bases	0.568s
+ok  	github.com/valerii/hub/backend/testframework/calendar	0.087s
+ok  	github.com/valerii/hub/backend/testframework/calls	1.570s
+ok  	github.com/valerii/hub/backend/testframework/crm	0.438s
+ok  	github.com/valerii/hub/backend/testframework/dashboard	0.456s
+ok  	github.com/valerii/hub/backend/testframework/dev	0.110s
+ok  	github.com/valerii/hub/backend/testframework/env	0.028s
+?   	github.com/valerii/hub/backend/testframework/factory	[no test files]
+ok  	github.com/valerii/hub/backend/testframework/github	0.723s
+ok  	github.com/valerii/hub/backend/testframework/gitlab	0.152s
+ok  	github.com/valerii/hub/backend/testframework/hr	0.372s
+ok  	github.com/valerii/hub/backend/testframework/imex	0.823s
+ok  	github.com/valerii/hub/backend/testframework/intranet	0.252s
+ok  	github.com/valerii/hub/backend/testframework/mail	0.088s
+ok  	github.com/valerii/hub/backend/testframework/marketplace	0.268s
+ok  	github.com/valerii/hub/backend/testframework/messenger	0.707s
+?   	github.com/valerii/hub/backend/testframework/mongotest	[no test files]
+ok  	github.com/valerii/hub/backend/testframework/notification	5.081s
+ok  	github.com/valerii/hub/backend/testframework/onec	0.134s
+ok  	github.com/valerii/hub/backend/testframework/platform/config	0.011s
+ok  	github.com/valerii/hub/backend/testframework/platform/cron	0.131s
+ok  	github.com/valerii/hub/backend/testframework/platform/crypto	0.006s
+ok  	github.com/valerii/hub/backend/testframework/platform/errors	0.009s
+ok  	github.com/valerii/hub/backend/testframework/platform/http	0.013s
+ok  	github.com/valerii/hub/backend/testframework/platform/middleware	0.098s
+ok  	github.com/valerii/hub/backend/testframework/platform/nats	0.225s
+ok  	github.com/valerii/hub/backend/testframework/platform/observability	0.024s
+ok  	github.com/valerii/hub/backend/testframework/platform/outbox	0.601s
+ok  	github.com/valerii/hub/backend/testframework/platform/telegram	0.011s
+ok  	github.com/valerii/hub/backend/testframework/project	1.131s
+ok  	github.com/valerii/hub/backend/testframework/rbac	0.740s
+ok  	github.com/valerii/hub/backend/testframework/search	0.727s
+ok  	github.com/valerii/hub/backend/testframework/sprint	0.916s
+ok  	github.com/valerii/hub/backend/testframework/status	0.007s
+?   	github.com/valerii/hub/backend/testframework/steps	[no test files]
+ok  	github.com/valerii/hub/backend/testframework/storage	2.516s
+ok  	github.com/valerii/hub/backend/testframework/tms	3.177s
+ok  	github.com/valerii/hub/backend/testframework/tracker	1.607s
+ok  	github.com/valerii/hub/backend/testframework/ws	0.768s

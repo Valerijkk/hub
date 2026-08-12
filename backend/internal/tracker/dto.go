@@ -54,14 +54,16 @@ type MoveIssueRequest struct {
 
 // ListIssuesRequest — параметры фильтрации и пагинации для списка задач.
 type ListIssuesRequest struct {
-	Cursor    string   `json:"cursor,omitempty" query:"cursor"`
-	Limit     int      `json:"limit,omitempty" query:"limit" validate:"omitempty,min=1,max=100"`
-	Status    []string `json:"status,omitempty" query:"status"`
-	Priority  []string `json:"priority,omitempty" query:"priority"`
-	Assignee  string   `json:"assignee,omitempty" query:"assignee"`
-	IssueType string   `json:"issue_type,omitempty" query:"issue_type"`
-	Search    string   `json:"search,omitempty" query:"search"`
-	OrderBy   string   `json:"order_by,omitempty" query:"order_by" validate:"omitempty,oneof=created_at priority updated_at"`
+	Cursor   string   `json:"cursor,omitempty" query:"cursor"`
+	Limit    int      `json:"limit,omitempty" query:"limit" validate:"omitempty,min=1,max=100"`
+	Status   []string `json:"status,omitempty" query:"status"`
+	Priority []string `json:"priority,omitempty" query:"priority"`
+	Assignee string   `json:"assignee,omitempty" query:"assignee"`
+	// SprintID: UUID спринта; "none"/"unassigned" — только задачи без спринта (бэклог).
+	SprintID  string `json:"sprint_id,omitempty" query:"sprint_id"`
+	IssueType string `json:"issue_type,omitempty" query:"issue_type"`
+	Search    string `json:"search,omitempty" query:"search"`
+	OrderBy   string `json:"order_by,omitempty" query:"order_by" validate:"omitempty,oneof=created_at priority updated_at"`
 }
 
 // CreateIssueLinkRequest — тело запроса на создание связи между двумя задачами.
@@ -83,6 +85,7 @@ type CreateCommentRequest struct {
 type UpdateCommentRequest struct {
 	BodyJSON map[string]interface{} `json:"body_json" validate:"required"`
 	BodyText string                 `json:"body_text" validate:"required"`
+	Version  int                    `json:"version" validate:"required,min=1"`
 }
 
 // LogTimeRequest — тело запроса на списание времени на задачу.
@@ -170,8 +173,10 @@ type IssueResponse struct {
 	Parent           *IssueBriefResponse     `json:"parent,omitempty"`
 	ChildrenCount    int                     `json:"children_count"`
 	Labels           []LabelResponse         `json:"labels,omitempty"`
-	CreatedAt        time.Time               `json:"created_at"`
-	UpdatedAt        time.Time               `json:"updated_at"`
+	// SprintID — спринт задачи; omitempty/nil = бэклог (без спринта).
+	SprintID  *string   `json:"sprint_id,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // IssueBriefResponse — краткое представление задачи для ссылок и списков.
@@ -211,6 +216,24 @@ type WorkflowTransitionResponse struct {
 	ToStatusID   string `json:"to_status_id"`
 }
 
+// JQLIssueItem — элемент результата JQL-поиска (W1-A1-008 / P3-BE-07).
+type JQLIssueItem struct {
+	Key       string `json:"key"`
+	Title     string `json:"title"`
+	Type      string `json:"type"`
+	Priority  string `json:"priority"`
+	Status    string `json:"status,omitempty"`
+	Assignee  string `json:"assignee,omitempty"`
+	CreatedAt string `json:"created_at"`
+}
+
+// JQLSearchResponse — ответ service.SearchIssuesJQL.
+type JQLSearchResponse struct {
+	Query   string         `json:"query"`
+	Total   int            `json:"total"`
+	Results []JQLIssueItem `json:"results"`
+}
+
 // CommentResponse — представление комментария в API-ответах.
 type CommentResponse struct {
 	ID         string                 `json:"id"`
@@ -220,6 +243,7 @@ type CommentResponse struct {
 	Mentions   []string               `json:"mentions,omitempty"`
 	Author     UserBriefResponse      `json:"author"`
 	Reactions  []ReactionResponse     `json:"reactions,omitempty"`
+	Version    int                    `json:"version"`
 	CreatedAt  time.Time              `json:"created_at"`
 	UpdatedAt  time.Time              `json:"updated_at"`
 }
@@ -285,9 +309,9 @@ type BoardResponse struct {
 
 // BoardDataResponse — полные данные доски включая колонки и задачи.
 type BoardDataResponse struct {
-	Board     BoardResponse          `json:"board"`
-	Columns   []BoardColumnResponse  `json:"columns"`
-	Swimlanes []SwimlaneGroup        `json:"swimlanes,omitempty"`
+	Board     BoardResponse         `json:"board"`
+	Columns   []BoardColumnResponse `json:"columns"`
+	Swimlanes []SwimlaneGroup       `json:"swimlanes,omitempty"`
 }
 
 // SwimlaneGroup — группа задач в swimlane (по assignee/priority/type).
@@ -319,6 +343,15 @@ type IssueLinkResponse struct {
 	LinkType   string             `json:"link_type"`
 	CustomType string             `json:"custom_type,omitempty"`
 	Issue      IssueBriefResponse `json:"issue"`
+}
+
+// ProjectIssueLinkResponse — A13-004: связь с ключами source/target для batch Gantt.
+type ProjectIssueLinkResponse struct {
+	ID             string `json:"id"`
+	LinkType       string `json:"link_type"`
+	CustomType     string `json:"custom_type,omitempty"`
+	SourceIssueKey string `json:"source_issue_key"`
+	TargetIssueKey string `json:"target_issue_key"`
 }
 
 // PaginatedResponse — обёртка для пагинированного ответа с курсором.

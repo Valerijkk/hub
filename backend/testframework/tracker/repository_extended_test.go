@@ -28,7 +28,7 @@ func TestEntRepository_LabelsAndGroups(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, groups, 1)
 
-	require.NoError(t, env.repo.DeleteLabel(env.ctx, label.ID))
+	require.NoError(t, env.repo.DeleteLabel(env.ctx, env.projectID, label.ID))
 	labels, err = env.repo.ListLabels(env.ctx, env.projectID)
 	require.NoError(t, err)
 	assert.Empty(t, labels)
@@ -58,7 +58,7 @@ func TestEntRepository_IssueLinks(t *testing.T) {
 	_, err = env.repo.CreateIssueLink(env.ctx, source.ID, target.ID, "blocks", "")
 	require.Error(t, err)
 
-	require.NoError(t, env.repo.DeleteIssueLink(env.ctx, link.ID))
+	require.NoError(t, env.repo.DeleteIssueLink(env.ctx, source.ID, link.ID))
 	links, err = env.repo.ListIssueLinks(env.ctx, source.ID)
 	require.NoError(t, err)
 	assert.Empty(t, links)
@@ -123,5 +123,5 @@ func TestEntRepository_DeleteWorkflowStatus(t *testing.T) {
 	status, err := env.repo.CreateWorkflowStatus(env.ctx, env.projectID, "Done", "done", "#00FF00", 99)
 	require.NoError(t, err)
 
-	require.NoError(t, env.repo.DeleteWorkflowStatus(env.ctx, status.ID))
+	require.NoError(t, env.repo.DeleteWorkflowStatus(env.ctx, env.projectID, status.ID))
 }

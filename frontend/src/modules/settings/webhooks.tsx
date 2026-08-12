@@ -1,4 +1,6 @@
+import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
+import { getProject } from "@/api/projects";
 import {
 	createWebhook,
 	deleteWebhook,
@@ -8,20 +10,31 @@ import {
 	type WebhookDelivery,
 	type WebhookEndpoint,
 } from "@/api/webhooks";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { toastApiError } from "@/lib/format-api-error";
+import { canMutateProject } from "@/lib/permissions";
 
-const AVAILABLE_EVENTS = [
+/** Allowlist UI = BE `allowedWebhookEvents` (TASK-152). `sprint.completed` снят — нет NATS producer (C-W19-FE-001). */
+export const AVAILABLE_EVENTS = [
 	"issue.created",
 	"issue.updated",
 	"issue.status_changed",
 	"test_run.completed",
-	"sprint.completed",
-];
+] as const;
 
 /** Страница управления вебхуками проекта. */
-export function WebhooksPage({ projectId }: { projectId: string }) {
+export function WebhooksPage({
+	projectId,
+	canMutate: canMutateProp,
+}: {
+	projectId: string;
+	/** Явный override; иначе берём из `project.my_role`. */
+	canMutate?: boolean;
+}) {
 	const [endpoints, setEndpoints] = useState<WebhookEndpoint[]>([]);
 	const [loading, setLoading] = useState(true);
+	const [loadError, setLoadError] = useState(false);
 	const [showCreate, setShowCreate] = useState(false);
 	const [url, setUrl] = useState("");
 	const [selectedEvents, setSelectedEvents] = useState<string[]>([]);
@@ -31,37 +44,90 @@ export function WebhooksPage({ projectId }: { projectId: string }) {
 	);
 	const [deleteDialogId, setDeleteDialogId] = useState<string | null>(null);
 
+	const hasProjectId = Boolean(projectId?.trim());
+
+	const { data: project } = useQuery({
+		queryKey: ["project", projectId],
+		queryFn: () => getProject(projectId),
+		enabled: hasProjectId && canMutateProp === undefined,
+	});
+
+	const canMutate = canMutateProp ?? canMutateProject(project?.my_role);
+
 	const fetchEndpoints = useCallback(async () => {
+		if (!projectId?.trim()) {
+			setEndpoints([]);
+			setLoading(false);
+			setLoadError(false);
+			return;
+		}
 		try {
 			setLoading(true);
 			const data = await listWebhooks(projectId);
 			setEndpoints(data ?? []);
+			setLoadError(false);
+		} catch (err) {
+			setLoadError(true);
+			setEndpoints([]);
+			toastApiError(err, "Не удалось загрузить вебхуки");
 		} finally {
 			setLoading(false);
 		}
 	}, [projectId]);
 
 	useEffect(() => {
-		fetchEndpoints();
+		void fetchEndpoints();
 	}, [fetchEndpoints]);
 
 	const handleCreate = async () => {
-		if (!url.trim() || selectedEvents.length === 0) return;
-		await createWebhook(projectId, { url: url.trim(), events: selectedEvents });
-		setUrl("");
-		setSelectedEvents([]);
-		setShowCreate(false);
-		fetchEndpoints();
+		if (!projectId?.trim() || !url.trim() || selectedEvents.length === 0)
+			return;
+		try {
+			await createWebhook(projectId, {
+				url: url.trim(),
+				events: selectedEvents,
+			});
+			setUrl("");
+			setSelectedEvents([]);
+			setShowCreate(false);
+			void fetchEndpoints();
+		} catch (err) {
+			toastApiError(err, "Не удалось создать вебхук");
+		}
 	};
 
+	if (!hasProjectId) {
+		return (
+			<div
+				role="alert"
+				className="rounded-[var(--r3)] border border-b1 bg-card p-4 text-[13px] text-t2"
+				data-testid="webhooks-missing-project"
+			>
+				Вебхуки доступны только в настройках проекта. Выберите проект и откройте
+				раздел «Интеграции».
+			</div>
+		);
+	}
+
 	const handleToggleActive = async (ep: WebhookEndpoint) => {
-		await updateWebhook(ep.id, { is_active: !ep.is_active });
-		fetchEndpoints();
+		try {
+			await updateWebhook(ep.id, {
+				is_active: !ep.is_active,
+				version: ep.version,
+			});
+			void fetchEndpoints();
+		} catch (err) {
+			toastApiError(err, "Не удалось изменить статус вебхука");
+		}
 	};
 
 	const handleDelete = async (id: string) => {
-		await deleteWebhook(id);
-		fetchEndpoints();
+		try {
+			await deleteWebhook(id);
+			void fetchEndpoints();
+		} catch (err) {
+			toastApiError(err, "Не удалось удалить вебхук");
+		}
 	};
 
 	const handleShowDeliveries = async (id: string) => {
@@ -69,9 +135,13 @@ export function WebhooksPage({ projectId }: { projectId: string }) {
 			setShowDeliveriesFor(null);
 			return;
 		}
-		const data = await listDeliveries(id);
-		setDeliveries(data ?? []);
-		setShowDeliveriesFor(id);
+		try {
+			const data = await listDeliveries(id);
+			setDeliveries(data ?? []);
+			setShowDeliveriesFor(id);
+		} catch (err) {
+			toastApiError(err, "Не удалось загрузить доставки");
+		}
 	};
 
 	const toggleEvent = (event: string) => {
@@ -86,16 +156,19 @@ export function WebhooksPage({ projectId }: { projectId: string }) {
 				<h2 className="text-[18px] font-extrabold tracking-[-0.02em]">
 					Вебхуки
 				</h2>
-				<button
-					type="button"
-					onClick={() => setShowCreate(true)}
-					className="settings-btn-save inline-flex items-center gap-[7px] px-5 py-[9px] rounded-[var(--r2)] text-[13px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_16px_var(--gB)] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-220 hover:shadow-[0_0_28px_rgba(91,156,245,0.3)] hover:-translate-y-px active:scale-[0.96]"
-				>
-					Добавить вебхук
-				</button>
+				{canMutate ? (
+					<button
+						type="button"
+						onClick={() => setShowCreate(true)}
+						data-testid="webhook-create-btn"
+						className="settings-btn-save inline-flex items-center gap-[7px] px-5 py-[9px] rounded-[var(--r2)] text-[13px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_16px_var(--gB)] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-220 hover:shadow-[0_0_28px_rgba(91,156,245,0.3)] hover:-translate-y-px active:scale-[0.96]"
+					>
+						Добавить вебхук
+					</button>
+				) : null}
 			</div>
 
-			{showCreate && (
+			{showCreate && canMutate && (
 				<div className="rounded-[var(--r3)] border border-b1 p-4 bg-[var(--card)]">
 					<h3 className="mb-3 text-[14px] font-semibold">Новый вебхук</h3>
 					<input
@@ -142,6 +215,11 @@ export function WebhooksPage({ projectId }: { projectId: string }) {
 
 			{loading ? (
 				<p className="text-t3 text-[13px]">Загрузка...</p>
+			) : loadError ? (
+				<QueryErrorAlert
+					message="Не удалось загрузить вебхуки"
+					retry={() => void fetchEndpoints()}
+				/>
 			) : endpoints.length === 0 ? (
 				<p className="text-t3 text-[13px]">Нет вебхуков</p>
 			) : (
@@ -162,13 +240,15 @@ export function WebhooksPage({ projectId }: { projectId: string }) {
 									>
 										{ep.is_active ? "Активен" : "Отключен"}
 									</span>
-									<button
-										type="button"
-										onClick={() => handleToggleActive(ep)}
-										className="text-[12px] font-semibold text-blue hover:underline"
-									>
-										{ep.is_active ? "Отключить" : "Включить"}
-									</button>
+									{canMutate ? (
+										<button
+											type="button"
+											onClick={() => handleToggleActive(ep)}
+											className="text-[12px] font-semibold text-blue hover:underline"
+										>
+											{ep.is_active ? "Отключить" : "Включить"}
+										</button>
+									) : null}
 									<button
 										type="button"
 										onClick={() => handleShowDeliveries(ep.id)}
@@ -176,13 +256,16 @@ export function WebhooksPage({ projectId }: { projectId: string }) {
 									>
 										Доставки
 									</button>
-									<button
-										type="button"
-										onClick={() => setDeleteDialogId(ep.id)}
-										className="text-[12px] font-bold text-red hover:underline"
-									>
-										Удалить
-									</button>
+									{canMutate ? (
+										<button
+											type="button"
+											onClick={() => setDeleteDialogId(ep.id)}
+											data-testid="webhook-delete-btn"
+											className="text-[12px] font-bold text-red hover:underline"
+										>
+											Удалить
+										</button>
+									) : null}
 								</div>
 							</div>
 

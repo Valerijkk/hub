@@ -2,22 +2,25 @@ package auth_test
 
 // Тесты модуля аутентификации: интеграционные и unit-сценарии testframework.
 import (
-	"github.com/valerii/hub/backend/internal/auth"
+	"bytes"
 	"context"
 	"errors"
+	"log/slog"
 	"strconv"
 	"testing"
 	"time"
 
 	"github.com/alicebob/miniredis/v2"
-	"github.com/redis/go-redis/v9"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/valerii/hub/backend/internal/auth"
 )
 
 // newTestMagicLinkService поднимает miniredis + redis client + auth.MagicLinkService
-// без Resend (dev-mode: код пишется в логи, но возвращается из SendMagicLink).
+// без Resend (dev-mode: код возвращается из SendMagicLink, в slog не пишется — A14-006).
 // Регистрирует cleanup'ы через t.Cleanup.
 func newTestMagicLinkService(t *testing.T) (*auth.MagicLinkService, *miniredis.Miniredis) {
 	t.Helper()
@@ -245,8 +248,9 @@ func TestMagicLink_SendMagicLink_ResendPath(t *testing.T) {
 	assert.True(t, resend.called)
 }
 
-// TestMagicLink_SendMagicLink_ResendErrorStillReturnsCode проверяет сценарий: magic link отправка magic link resend ошибка still returns code.
-func TestMagicLink_SendMagicLink_ResendErrorStillReturnsCode(t *testing.T) {
+// TestMagicLink_SendMagicLink_ResendErrorPropagates_A1_007 — сбой Resend → error, не (code, nil).
+// Mutation: return code, nil при Resend err → require.Error FAIL.
+func TestMagicLink_SendMagicLink_ResendErrorPropagates_A1_007(t *testing.T) {
 	mr, err := miniredis.Run()
 	require.NoError(t, err)
 	t.Cleanup(mr.Close)
@@ -257,7 +261,105 @@ func TestMagicLink_SendMagicLink_ResendErrorStillReturnsCode(t *testing.T) {
 	svc := auth.NewMagicLinkService(rdb, resend, "hub@example.com")
 
 	code, err := svc.SendMagicLink(context.Background(), "fail-"+uuid.New().String()[:6]+"@example.com")
-	require.NoError(t, err)
-	require.NotEmpty(t, code)
+	require.Error(t, err, "Resend failure must not be masked as success")
+	assert.Empty(t, code)
 	assert.True(t, resend.called)
+	assert.Contains(t, err.Error(), "send magic link email")
+}
+
+// TestMaskEmailMinimized_A14_006 — полный email не попадает в маску 1:1.
+func TestMaskEmailMinimized_A14_006(t *testing.T) {
+	assert.Equal(t, "a***@example.com", auth.ExportMaskEmailMinimized("alice@example.com"))
+	assert.Equal(t, "***", auth.ExportMaskEmailMinimized("noperiod"))
+	assert.NotContains(t, auth.ExportMaskEmailMinimized("secret.user@hub.local"), "secret.user")
+}
+
+// TC-AUTH-13 / A14-006: raw OTP must never appear in slog on magic-link issue or verify
+// (dev path returns code to handler; logs must stay mask-only). Mutation: slog.Info(..., "code", code).
+func TestMagicLink_OTPNotLogged_A14_006(t *testing.T) {
+	var buf bytes.Buffer
+	prev := slog.Default()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug})))
+	t.Cleanup(func() { slog.SetDefault(prev) })
+
+	svc, _ := newTestMagicLinkService(t)
+	ctx := context.Background()
+	email := "otp-spy-" + uuid.New().String()[:8] + "@example.com"
+
+	code, err := svc.SendMagicLink(ctx, email)
+	require.NoError(t, err)
+	require.Len(t, code, 6)
+
+	require.NoError(t, svc.VerifyCode(ctx, email, code))
+
+	code2, err := svc.SendMagicLink(ctx, email)
+	require.NoError(t, err)
+	require.Len(t, code2, 6)
+	err = svc.VerifyCode(ctx, email, "000000")
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, auth.ErrMagicLinkInvalid))
+
+	// Resend-fail path: code exists in Redis but must not land in slog.
+	mr2, err := miniredis.Run()
+	require.NoError(t, err)
+	t.Cleanup(mr2.Close)
+	rdb2 := redis.NewClient(&redis.Options{Addr: mr2.Addr()})
+	t.Cleanup(func() { _ = rdb2.Close() })
+	failEmail := "otp-resend-" + uuid.New().String()[:8] + "@example.com"
+	resendSvc := auth.NewMagicLinkService(rdb2, &stubResendClient{err: errors.New("smtp down")}, "hub@example.com")
+	_, err = resendSvc.SendMagicLink(ctx, failEmail)
+	require.Error(t, err)
+	storedFail, getErr := mr2.Get("magiclink:" + failEmail)
+	require.NoError(t, getErr)
+	require.Len(t, storedFail, 6)
+
+	logged := buf.String()
+	require.Contains(t, logged, "magic link issued (dev mode)", "slog spy must observe SendMagicLink logs")
+	assert.NotContains(t, logged, code, "raw OTP from first issue must not appear in slog")
+	assert.NotContains(t, logged, code2, "raw OTP from second issue must not appear in slog")
+	assert.NotContains(t, logged, storedFail, "raw OTP after Resend failure must not appear in slog")
+	assert.NotContains(t, logged, `"code"`, "slog must not carry a code attribute key")
+	assert.NotContains(t, logged, email, "full email must not appear (mask only)")
+	assert.NotContains(t, logged, failEmail, "full email on Resend error must not appear (mask only)")
+}
+
+type failDelHook struct{}
+
+func (failDelHook) DialHook(next redis.DialHook) redis.DialHook { return next }
+func (failDelHook) ProcessHook(next redis.ProcessHook) redis.ProcessHook {
+	return func(ctx context.Context, cmd redis.Cmder) error {
+		if cmd.Name() == "del" {
+			return errors.New("injected del failure")
+		}
+		return next(ctx, cmd)
+	}
+}
+func (failDelHook) ProcessPipelineHook(next redis.ProcessPipelineHook) redis.ProcessPipelineHook {
+	return next
+}
+
+// TestMagicLink_VerifyCode_DelFailure_A1_010 — сбой Del после compare → login fail.
+func TestMagicLink_VerifyCode_DelFailure_A1_010(t *testing.T) {
+	mr, err := miniredis.Run()
+	require.NoError(t, err)
+	t.Cleanup(mr.Close)
+	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	t.Cleanup(func() { _ = rdb.Close() })
+	rdb.AddHook(failDelHook{})
+
+	svc := auth.NewMagicLinkService(rdb, nil, "test@example.com")
+	ctx := context.Background()
+	email := "del-fail-" + uuid.New().String()[:6] + "@example.com"
+
+	code, err := svc.SendMagicLink(ctx, email)
+	require.NoError(t, err)
+
+	err = svc.VerifyCode(ctx, email, code)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalidate magic link code")
+
+	// Код всё ещё в Redis — одноразовость не «съедена» ложным success.
+	stored, getErr := mr.Get("magiclink:" + email)
+	require.NoError(t, getErr)
+	assert.Equal(t, code, stored)
 }

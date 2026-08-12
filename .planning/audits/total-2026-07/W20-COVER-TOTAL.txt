@@ -1,0 +1,5 @@
+github.com/valerii/hub/backend/internal/ws/hub.go:307:						unsubscribeClient					100.0%
+github.com/valerii/hub/backend/internal/ws/hub.go:323:						BroadcastToRoom						76.9%
+github.com/valerii/hub/backend/internal/ws/hub.go:354:						SendToUser						84.6%
+github.com/valerii/hub/backend/internal/ws/hub.go:387:						removeClient						100.0%
+total:												(statements)						80.1%

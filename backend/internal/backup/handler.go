@@ -1,6 +1,8 @@
 package backup
 
 import (
+	"errors"
+
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/utils/v2"
 	"github.com/google/uuid"
@@ -41,7 +43,7 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, adminMw
 func (h *Handler) TriggerBackup(c fiber.Ctx) error {
 	resp, err := h.svc.PerformBackup(c.Context())
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		return fiber.NewError(fiber.StatusInternalServerError, "backup failed")
 	}
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
@@ -60,7 +62,7 @@ func (h *Handler) TriggerBackup(c fiber.Ctx) error {
 func (h *Handler) ListBackups(c fiber.Ctx) error {
 	backups, err := h.svc.ListBackups(c.Context())
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		return fiber.NewError(fiber.StatusInternalServerError, "failed to list backups")
 	}
 	return c.JSON(backups)
 }
@@ -96,7 +98,11 @@ func (h *Handler) RestoreBackup(c fiber.Ctx) error {
 	}
 
 	if err := h.svc.RestoreBackup(c.Context(), backupID); err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		// W7-A4-011: missing id → 404; иначе generic 500 без stderr/URI (A7-007).
+		if errors.Is(err, ErrNotFound) {
+			return fiber.NewError(fiber.StatusNotFound, "backup not found")
+		}
+		return fiber.NewError(fiber.StatusInternalServerError, "restore failed")
 	}
 
 	return c.JSON(fiber.Map{"message": "восстановление запущено"})
@@ -122,7 +128,11 @@ func (h *Handler) DeleteBackup(c fiber.Ctx) error {
 	}
 
 	if err := h.svc.DeleteBackup(c.Context(), backupID); err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		// W7-A4-011: missing id → 404.
+		if errors.Is(err, ErrNotFound) {
+			return fiber.NewError(fiber.StatusNotFound, "backup not found")
+		}
+		return fiber.NewError(fiber.StatusInternalServerError, "delete failed")
 	}
 
 	return c.SendStatus(fiber.StatusNoContent)

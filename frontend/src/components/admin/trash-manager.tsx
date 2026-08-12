@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { getTrash, restoreItem, type TrashItem } from "@/api/admin";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toastApiError } from "@/lib/format-api-error";
 
@@ -9,6 +10,8 @@ const TRASH_TABS = [
 	{ key: "test_case", label: "Тест-кейсы" },
 	{ key: "file", label: "Файлы" },
 	{ key: "project", label: "Проекты" },
+	{ key: "newspost", label: "Новости" },
+	{ key: "scheduled_call", label: "Серии звонков" },
 ] as const;
 
 /**
@@ -22,6 +25,7 @@ export function TrashManager() {
 	const [total, setTotal] = useState(0);
 	const [page, setPage] = useState(1);
 	const [loading, setLoading] = useState(false);
+	const [loadError, setLoadError] = useState(false);
 	const [restoringId, setRestoringId] = useState<string | null>(null);
 	const [restoreDialogItem, setRestoreDialogItem] = useState<TrashItem | null>(
 		null,
@@ -29,11 +33,13 @@ export function TrashManager() {
 
 	const fetchTrash = useCallback(async () => {
 		setLoading(true);
+		setLoadError(false);
 		try {
 			const resp = await getTrash(activeTab, undefined, page);
 			setItems(resp.items);
 			setTotal(resp.total);
 		} catch (err) {
+			setLoadError(true);
 			toastApiError(err, "Не удалось загрузить корзину");
 		} finally {
 			setLoading(false);
@@ -71,11 +77,17 @@ export function TrashManager() {
 			<h2 className="text-xl font-semibold">Корзина</h2>
 
 			{/* Вкладки */}
-			<div className="flex gap-1 border-b">
+			<div
+				role="tablist"
+				aria-label="Категории корзины"
+				className="flex gap-1 border-b"
+			>
 				{TRASH_TABS.map((tab) => (
 					<button
 						type="button"
+						role="tab"
 						key={tab.key}
+						aria-selected={activeTab === tab.key}
 						onClick={() => setActiveTab(tab.key)}
 						className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
 							activeTab === tab.key
@@ -89,63 +101,72 @@ export function TrashManager() {
 			</div>
 
 			{/* Таблица */}
-			<div className="overflow-x-auto rounded border">
-				<table className="w-full text-sm">
-					<thead className="bg-raised/50">
-						<tr>
-							<th className="px-3 py-2 text-left font-medium">Название</th>
-							<th className="px-3 py-2 text-left font-medium">Удалено</th>
-							<th className="px-3 py-2 text-left font-medium">Осталось дней</th>
-							<th className="px-3 py-2 text-right font-medium">Действия</th>
-						</tr>
-					</thead>
-					<tbody>
-						{loading ? (
+			{loadError && !loading ? (
+				<QueryErrorAlert
+					message="Не удалось загрузить корзину"
+					retry={() => void fetchTrash()}
+				/>
+			) : (
+				<div className="overflow-x-auto rounded border">
+					<table className="w-full text-sm">
+						<thead className="bg-raised/50">
 							<tr>
-								<td colSpan={4} className="px-3 py-8 text-center text-t2">
-									Загрузка...
-								</td>
+								<th className="px-3 py-2 text-left font-medium">Название</th>
+								<th className="px-3 py-2 text-left font-medium">Удалено</th>
+								<th className="px-3 py-2 text-left font-medium">
+									Осталось дней
+								</th>
+								<th className="px-3 py-2 text-right font-medium">Действия</th>
 							</tr>
-						) : items.length === 0 ? (
-							<tr>
-								<td colSpan={4} className="px-3 py-8 text-center text-t2">
-									Корзина пуста
-								</td>
-							</tr>
-						) : (
-							items.map((item) => (
-								<tr key={item.id} className="border-t hover:bg-raised/30">
-									<td className="px-3 py-2 font-medium">{item.name}</td>
-									<td className="px-3 py-2 text-t2">
-										{new Date(item.deleted_at).toLocaleString("ru-RU")}
-									</td>
-									<td className="px-3 py-2">
-										<span
-											className={`font-mono text-sm ${
-												item.days_remaining <= 7 ? "text-red-600" : "text-t2"
-											}`}
-										>
-											{item.days_remaining}
-										</span>
-									</td>
-									<td className="px-3 py-2 text-right">
-										<button
-											type="button"
-											onClick={() => setRestoreDialogItem(item)}
-											disabled={restoringId === item.id}
-											className="rounded bg-green-600 px-2.5 py-1 text-xs text-white hover:bg-green-700 disabled:opacity-50"
-										>
-											{restoringId === item.id
-												? "Восстановление..."
-												: "Восстановить"}
-										</button>
+						</thead>
+						<tbody>
+							{loading ? (
+								<tr>
+									<td colSpan={4} className="px-3 py-8 text-center text-t2">
+										Загрузка...
 									</td>
 								</tr>
-							))
-						)}
-					</tbody>
-				</table>
-			</div>
+							) : items.length === 0 ? (
+								<tr>
+									<td colSpan={4} className="px-3 py-8 text-center text-t2">
+										Корзина пуста
+									</td>
+								</tr>
+							) : (
+								items.map((item) => (
+									<tr key={item.id} className="border-t hover:bg-raised/30">
+										<td className="px-3 py-2 font-medium">{item.name}</td>
+										<td className="px-3 py-2 text-t2">
+											{new Date(item.deleted_at).toLocaleString("ru-RU")}
+										</td>
+										<td className="px-3 py-2">
+											<span
+												className={`font-mono text-sm ${
+													item.days_remaining <= 7 ? "text-red-600" : "text-t2"
+												}`}
+											>
+												{item.days_remaining}
+											</span>
+										</td>
+										<td className="px-3 py-2 text-right">
+											<button
+												type="button"
+												onClick={() => setRestoreDialogItem(item)}
+												disabled={restoringId === item.id}
+												className="rounded bg-green-600 px-2.5 py-1 text-xs text-white hover:bg-green-700 disabled:opacity-50"
+											>
+												{restoringId === item.id
+													? "Восстановление..."
+													: "Восстановить"}
+											</button>
+										</td>
+									</tr>
+								))
+							)}
+						</tbody>
+					</table>
+				</div>
+			)}
 
 			<ConfirmDialog
 				open={restoreDialogItem !== null}

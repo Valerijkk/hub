@@ -2,28 +2,42 @@
 
 import * as AvatarPrimitive from "@radix-ui/react-avatar";
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/utils";
+
+function AvatarOnlineLabel() {
+	const { t } = useTranslation("common");
+	return <span className="sr-only">{t("status.online")}</span>;
+}
 
 const Avatar = React.forwardRef<
 	React.ElementRef<typeof AvatarPrimitive.Root>,
 	React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Root>
->(({ className, children, ...props }, ref) => (
-	<AvatarPrimitive.Root
-		ref={ref}
-		className={cn(
-			"group relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full",
-			className,
-		)}
-		{...props}
-	>
-		{children}
-		<span
-			className="absolute bottom-0 right-0 z-10 h-2.5 w-2.5 rounded-full border-2 border-[var(--base)] bg-emerald-500 opacity-0 pointer-events-none transition-opacity group-data-[online=true]:opacity-100 group-data-[online=true]:shadow-[0_0_8px_var(--gG)] group-data-[online=true]:animate-pulse-online"
-			aria-hidden="true"
-		/>
-	</AvatarPrimitive.Root>
-));
+>(({ className, children, ...props }, ref) => {
+	const onlineAttr = (props as { "data-online"?: boolean | string })[
+		"data-online"
+	];
+	const isOnline = onlineAttr === true || onlineAttr === "true";
+
+	return (
+		<AvatarPrimitive.Root
+			ref={ref}
+			className={cn(
+				"group relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full",
+				className,
+			)}
+			{...props}
+		>
+			{children}
+			<span
+				className="absolute bottom-0 right-0 z-10 h-2.5 w-2.5 rounded-full border-2 border-[var(--base)] bg-[var(--green)] opacity-0 pointer-events-none transition-opacity group-data-[online=true]:opacity-100 group-data-[online=true]:shadow-[0_0_8px_var(--gG)] group-data-[online=true]:animate-pulse-online"
+				aria-hidden="true"
+			/>
+			{isOnline && <AvatarOnlineLabel />}
+		</AvatarPrimitive.Root>
+	);
+});
 Avatar.displayName = AvatarPrimitive.Root.displayName;
 
 const AvatarImage = React.forwardRef<

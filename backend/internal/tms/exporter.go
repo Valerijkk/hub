@@ -24,9 +24,9 @@ import (
 
 // ExportTestCasesToCSV записывает тест-кейсы в CSV-формат.
 // Колонки: Key, Title, Type, Priority, Status, Steps, Precondition, Suite.
+// A3W2-4-004: Flush + w.Error() — как ExportRunResultsToCSV (W2-A4-013).
 func ExportTestCasesToCSV(writer io.Writer, cases []TestCaseExportData) error {
 	w := csv.NewWriter(writer)
-	defer w.Flush()
 
 	if err := w.Write([]string{"Key", "Title", "Type", "Priority", "Status", "Steps", "Precondition", "Suite"}); err != nil {
 		return fmt.Errorf("ошибка записи заголовков CSV: %w", err)
@@ -40,6 +40,10 @@ func ExportTestCasesToCSV(writer io.Writer, cases []TestCaseExportData) error {
 		}
 	}
 
+	w.Flush()
+	if err := w.Error(); err != nil {
+		return fmt.Errorf("ошибка записи CSV: %w", err)
+	}
 	return nil
 }
 
@@ -154,17 +158,22 @@ func ExportTestCasesToExcel(writer io.Writer, cases []TestCaseExportData) error 
 // ExportRunResultsToCSV записывает результаты прогона в CSV-формат.
 func ExportRunResultsToCSV(writer io.Writer, data TestRunExportData) error {
 	w := csv.NewWriter(writer)
-	defer w.Flush()
 
-	_ = w.Write([]string{"Run Title", data.Title})
-	_ = w.Write([]string{"Created At", data.CreatedAt})
-	_ = w.Write([]string{"Total", fmt.Sprintf("%d", data.Total)})
-	_ = w.Write([]string{"Passed", fmt.Sprintf("%d", data.Passed)})
-	_ = w.Write([]string{"Failed", fmt.Sprintf("%d", data.Failed)})
-	_ = w.Write([]string{"Pass Rate", fmt.Sprintf("%.1f%%", data.PassRate)})
-	_ = w.Write([]string{""})
-
-	_ = w.Write([]string{"Case Key", "Title", "Status", "Duration", "Comment"})
+	headerRows := [][]string{
+		{"Run Title", data.Title},
+		{"Created At", data.CreatedAt},
+		{"Total", fmt.Sprintf("%d", data.Total)},
+		{"Passed", fmt.Sprintf("%d", data.Passed)},
+		{"Failed", fmt.Sprintf("%d", data.Failed)},
+		{"Pass Rate", fmt.Sprintf("%.1f%%", data.PassRate)},
+		{""},
+		{"Case Key", "Title", "Status", "Duration", "Comment"},
+	}
+	for _, row := range headerRows {
+		if err := w.Write(row); err != nil {
+			return fmt.Errorf("ошибка записи строки CSV: %w", err)
+		}
+	}
 
 	for _, r := range data.Results {
 		if err := w.Write([]string{r.CaseKey, r.Title, r.Status, r.Duration, r.Comment}); err != nil {
@@ -172,6 +181,11 @@ func ExportRunResultsToCSV(writer io.Writer, data TestRunExportData) error {
 		}
 	}
 
+	// encoding/csv буферизует; ошибка io.Writer всплывает на Flush (W2-A4-013 / P3-BE-01).
+	w.Flush()
+	if err := w.Error(); err != nil {
+		return fmt.Errorf("ошибка записи CSV: %w", err)
+	}
 	return nil
 }
 
@@ -248,10 +262,8 @@ func ExportTestRunToPDF(writer io.Writer, data TestRunExportData) error {
 			statusColor = &props.Color{Red: 200, Green: 150}
 		}
 
-		comment := r.Comment
-		if len(comment) > 30 {
-			comment = comment[:30] + "..."
-		}
+		// A2W2-4-002: rune-safe truncate (не comment[:30] по байтам).
+		comment := truncate(r.Comment, 30)
 
 		m.AddRow(7,
 			text.NewCol(2, r.CaseKey, props.Text{Size: 7}),

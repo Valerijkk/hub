@@ -1,4 +1,4 @@
-﻿package onec_test
+package onec_test
 
 import (
 	"context"
@@ -27,7 +27,7 @@ func TestService_ExportApprovedLeave(t *testing.T) {
 	t.Cleanup(srv.Close)
 
 	store := &memStore{data: map[string]string{}}
-	svc := onec.NewService(store, stubUsers{})
+	svc := onec.NewService(store, stubUsers{}, nil)
 	onec.ExportServiceSetClient(svc, &http.Client{Timeout: 5 * time.Second})
 	cfg := onec.Config{
 		Enabled:         true,
@@ -57,7 +57,7 @@ func TestService_ExportApprovedLeave(t *testing.T) {
 }
 
 func TestService_PostBlocksLoopbackSSRF(t *testing.T) {
-	svc := onec.NewService(&memStore{data: map[string]string{}}, stubUsers{})
+	svc := onec.NewService(&memStore{data: map[string]string{}}, stubUsers{}, nil)
 	cfg := onec.Config{WebhookURL: "http://127.0.0.1:9999/hook"}
 	_, err := onec.ExportServicePost(svc, context.Background(), cfg, []byte(`{}`))
 	require.Error(t, err)
@@ -66,7 +66,7 @@ func TestService_PostBlocksLoopbackSSRF(t *testing.T) {
 
 func TestAdminHandler_GetSettings(t *testing.T) {
 	store := &memStore{data: map[string]string{}}
-	svc := onec.NewService(store, stubUsers{})
+	svc := onec.NewService(store, stubUsers{}, nil)
 	h := onec.NewAdminHandler(svc, func(c fiber.Ctx, _ uuid.UUID) (bool, error) { return true, nil })
 	app := fiber.New()
 	api := app.Group("/api")

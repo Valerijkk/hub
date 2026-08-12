@@ -26,7 +26,7 @@
 | 5 FE rest | ✅ 5/5 | v4 · admin · design-system · a11y · stores-api |
 | 6 Tests | ✅ 5/5 | coverage · vitest · hubtest-core · hubtest-domains · e2e |
 | 7 CI/deploy/docs | ✅ 5/5 | ci · deploy-compose · docs-drift · tz-grep · **fa06-secrets** |
-| 8 AI ops + SCORECARD | ✅ 5/5 | gsd-ru · prompt-engineering · cursor-agents · ai-expansion · **SCORECARD** |
+| 8 AI ops + SCORECARD | ✅ 5/5 | gsd-ru · pro-qa-ai · cursor-agents · ai-expansion · **SCORECARD** |
 
 ## Готовые (кратко — headlines; severity **не verified**)
 

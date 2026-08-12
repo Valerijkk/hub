@@ -16,16 +16,12 @@ import (
 )
 
 func TestHandler_ListProjectRecordings_Success(t *testing.T) {
-	svc, projectID, client := newRecordingListFixture(t)
-	ctx := context.Background()
-	owner, err := client.User.Query().First(ctx)
-	require.NoError(t, err)
-
-	h := calls.ExportNewHandlerWithRecSvc(svc)
+	// W3-A5-015 / TASK-064: success через RBAC-фикстуру (не nil rbac).
+	h, ownerID, _, _, projectID := newRecordingHandlerRBACFixture(t)
 	app := newHandlerValidationApp(h)
 
 	req := httptest.NewRequest(fiber.MethodGet, "/projects/"+projectID.String()+"/recordings?offset=0&limit=10", nil)
-	req.Header.Set("X-Test-User-ID", owner.ID.String())
+	req.Header.Set("X-Test-User-ID", ownerID.String())
 	resp, err := app.Test(req, 5*time.Second)
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -40,12 +36,13 @@ func TestScheduledCallService_CheckConflicts_WithOverlap(t *testing.T) {
 
 	scheduled := calls.NewScheduledCallService(f.repo, nil)
 	at := time.Now().UTC().Add(2 * time.Hour)
+	f.linkChannelToProject(t, proj.ID)
 	_, err = scheduled.CreateScheduledCall(ctx, proj.ID, f.owner.ID, calls.CreateScheduledCallRequest{
 		Title: "Overlap", ChannelID: f.channel.ID, ScheduledAt: at,
 	})
 	require.NoError(t, err)
 
-	resp, err := scheduled.CheckConflicts(ctx, at.Add(15*time.Minute), 60, []uuid.UUID{f.owner.ID})
+	resp, err := scheduled.CheckConflicts(ctx, f.owner.ID, at.Add(15*time.Minute), 60, []uuid.UUID{f.owner.ID})
 	require.NoError(t, err)
 	assert.True(t, resp.HasConflict)
 	assert.NotEmpty(t, resp.Conflicts)
@@ -59,6 +56,7 @@ func TestScheduledCallService_ProcessDueScheduledCalls(t *testing.T) {
 
 	scheduled := calls.NewScheduledCallService(f.repo, nil)
 	past := time.Now().UTC().Add(-time.Minute)
+	f.linkChannelToProject(t, proj.ID)
 	_, err = scheduled.CreateScheduledCall(ctx, proj.ID, f.owner.ID, calls.CreateScheduledCallRequest{
 		Title: "Past call", ChannelID: f.channel.ID, ScheduledAt: past,
 	})
@@ -74,13 +72,14 @@ func TestScheduledCallService_UpdateScheduledCall_InvalidRRule(t *testing.T) {
 	require.NoError(t, err)
 
 	scheduled := calls.NewScheduledCallService(f.repo, nil)
+	f.linkChannelToProject(t, proj.ID)
 	created, err := scheduled.CreateScheduledCall(ctx, proj.ID, f.owner.ID, calls.CreateScheduledCallRequest{
 		Title: "RR", ChannelID: f.channel.ID, ScheduledAt: time.Now().UTC().Add(time.Hour),
 	})
 	require.NoError(t, err)
 
 	bad := "NOT_VALID"
-	_, err = scheduled.UpdateScheduledCall(ctx, created.ID, calls.UpdateScheduledCallRequest{RRule: &bad})
+	_, err = scheduled.UpdateScheduledCall(ctx, created.ID, f.owner.ID, calls.UpdateScheduledCallRequest{RRule: &bad})
 	require.Error(t, err)
 }
 
@@ -93,6 +92,7 @@ func TestScheduledCallService_ProcessDueScheduledCalls_Recurring(t *testing.T) {
 	scheduled := calls.NewScheduledCallService(f.repo, nil)
 	past := time.Now().UTC().Add(-time.Minute)
 	rruleStr := "FREQ=DAILY;BYHOUR=10;BYMINUTE=0;BYSECOND=0"
+	f.linkChannelToProject(t, proj.ID)
 	created, err := scheduled.CreateScheduledCall(ctx, proj.ID, f.owner.ID, calls.CreateScheduledCallRequest{
 		Title: "Daily", ChannelID: f.channel.ID, ScheduledAt: past, RRule: rruleStr,
 	})
@@ -127,7 +127,7 @@ func TestRepository_FindConflictingCalls(t *testing.T) {
 	require.NoError(t, err)
 
 	at := time.Now().UTC().Add(2 * time.Hour)
-	_, err = f.repo.CreateScheduledCall(ctx, "Standup", "", at, "", f.channel.ID, proj.ID, f.owner.ID)
+	_, err = f.repo.CreateScheduledCall(ctx, "Standup", "", at, "", f.channel.ID, proj.ID, f.owner.ID, 0, nil, nil)
 	require.NoError(t, err)
 
 	windowStart := at.Add(-30 * time.Minute)
@@ -174,7 +174,9 @@ func TestCallService_CreateInstantCall_LiveKitUnavailable(t *testing.T) {
 
 func TestHandler_RaiseHand_LiveKitUnavailable(t *testing.T) {
 	f := newCallsTestFixture(t)
+	ctx := context.Background()
 	callEnt := f.createChannelCall(t, f.owner)
+	require.NoError(t, f.repo.AddParticipant(ctx, callEnt.ID, f.owner.ID))
 	app := newCallsHandlerApp(f)
 
 	req := httptest.NewRequest(fiber.MethodPost, "/calls/"+callEnt.ID.String()+"/raise-hand", bytes.NewReader([]byte(`{"raised":true}`)))

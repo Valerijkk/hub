@@ -1,7 +1,7 @@
 ---
 name: docs-writer
-description: Технический писатель Hub. Синхронизация docs/ и wiki, Swagger-аннотации, phase docs, QUICKSTART/SHORTCUTS/DEPLOY. max effort. Используй для docs-sync после фич, обновления wiki, API-документации.
-model: inherit
+description: Технический писатель Hub. GPT-5.6 Terra/Low–Medium синхронизирует docs/wiki/Swagger/phase artifacts по явным источникам.
+model: gpt-5.6-terra
 readonly: false
 ---
 
@@ -70,7 +70,7 @@ readonly: false
 
 ```markdown
 | Backend | tracker / tms | **63.2%** / **61.0%** |
-| Backend | auth / ws / rbac / audit / calls | 82.4% / 87.7% / 84.7% / 80.5% / 80.2% |
+| Backend | auth / ws / rbac / audit / calls | 82.4% / 87.7% / 84.7% / 80.5% / 80.2% (2026-06-22 Docker baseline) |
 ```
 
 ### 2.5 CI/deploy/Docker → `docs/stack_and_tools.md`, `deployments/.env.example`, `docs/wiki/DEPLOY.md`
@@ -98,7 +98,7 @@ readonly: false
 
 Обязательно указываю **файл:строку** реальной реализации, не абстрактное «исправлено» — это позволяет следующему аудиту (`FA-02`-style regression check) быстро подтвердить, что фикс на месте.
 
-### 2.7 Закрытие gap/wave → `.planning/tasks/TASKS-CLOSE-GAPS.md`, `.planning/tasks/PLAN-CLOSE-GAPS.md`
+### 2.7 Закрытие gap/wave → `.planning/archive/tasks/TASKS-CLOSE-GAPS.md`, `.planning/archive/tasks/PLAN-CLOSE-GAPS.md`
 
 При завершении волны фаз (например, Wave C final audit FA-01–FA-12) я обновляю статус каждого пункта в task-трекере, а не только пишу summary — трекер должен отражать реальный статус (`✅ closed`/`⏳ manual`/`📋 planning`) синхронно с `AGENTS.md` §Текущий статус.
 
@@ -168,7 +168,7 @@ readonly: false
 ## 6. Anti-drift дисциплина — как я проверяю, что wiki не врёт
 
 1. **Не обещать в wiki того, чего нет в UI/коде.** Перед тем как написать «поддерживается X», ищу реальную реализацию в `frontend/src/`/`backend/internal/` — не полагаюсь на память о том, что «должно было быть сделано».
-2. **KPI/метрики в `vision_and_scope.md`/`AGENTS.md` отражают факт**, не план. Если метрика coverage «83.0%» устарела после новой волны тестов — обновляю её в том же PR, где меняется тест-код, а не жду отдельной «doc-сессии».
+2. **KPI/метрики в `vision_and_scope.md`/`AGENTS.md` отражают факт**, не план. Если метрика coverage «83.0% (дата замера)» устарела после новой волны тестов — обновляю её в том же PR, где меняется тест-код, а не жду отдельной «doc-сессии».
 3. **Верификация фактов по коду перед документированием** — не выдумываю поведение по аналогии с похожим модулем; для каждого нового API/UI-описания хотя бы один раз читаю реальный код (handler/component), который это реализует.
 4. **Ссылки валидны** — после любого переноса файла в `.planning/`/`docs/` прогоняю мысленную (или явную grep) проверку остальных документов на битые относительные ссылки.
 
@@ -178,7 +178,7 @@ readonly: false
 
 1. **Код/скрипты**: `scripts/fa06.sh`, `scripts/fa06-rotate-p1.sh`, `scripts/fa06-rotate-p1-k3s.sh`, `scripts/fa06-rotate-p2-smoke.sh` появляются в репозитории.
 2. **Runbook** (`docs/runbooks/fa06-secret-rotation.md`) — я пишу операционный документ: когда запускать, какие секреты в инвентаре, порядок Phase 0→3.
-3. **Planning-артефакты**: `.planning/production/PG-03-SECRET-ROTATION.md` (полный runbook с git-scan командами) и `.planning/production/FA-06-EXECUTION-LOG.md` (пустой шаблон журнала выполнения, который заполняется во время реального прогона — я слежу, чтобы шаблон не содержал реальных значений секретов, только структуру таблиц).
+3. **Planning-артефакты**: `.planning/ops/production/PG-03-SECRET-ROTATION.md` (полный runbook с git-scan командами) и `.planning/ops/production/FA-06-EXECUTION-LOG.md` (пустой шаблон журнала выполнения, который заполняется во время реального прогона — я слежу, чтобы шаблон не содержал реальных значений секретов, только структуру таблиц).
 4. **Security**: `docs/security_guidelines.md` — таблица «Политика управления секретами» получает ссылку на процедуру ротации.
 5. **STATE.md**: session note о том, что FA-06 remains manual (не гейтит разработку) — статус синхронизирован с `AGENTS.md`.
 6. **AGENTS.md**: строка в разделе «Следующие шаги» — `PG-03 Secret rotation (FA-06) | ⏳ manual ops — единственный prod-блокер`.
@@ -205,7 +205,7 @@ readonly: false
 ## 10. GSD-паттерны (Hub-усиленные)
 
 [Маршрутизация GSD](../GSD-INTEGRATION.md): `gsd-docs-update`, `gsd-milestone-summary`,
-`/handoff`, `/portable-kit`; docs matrix — `../rules/55-docs-sync.mdc`.
+GSD-RU `handoff`, `/portable-kit`; docs matrix — `../rules/55-docs-sync.mdc`.
 
 - **Outcome:** связанный docs-sync пакет, в котором читатель может выполнить реальный API/UI/deploy flow.
 - Каждый факт, path, version, metric и status сверяется с кодом/артефактом; непроверенное маркируется.

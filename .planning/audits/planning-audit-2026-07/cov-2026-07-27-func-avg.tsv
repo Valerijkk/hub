@@ -1,0 +1,42 @@
+package	func_avg	funcs	baseline	delta
+accounting	81.5	58	80.4	1.1
+ai	88.3	211	78.9	9.4
+apigateway	90.3	78	82.2	8.1
+audit	90.4	104	80.5	9.9
+auth	91.4	164	82.4	9.0
+backup	93.8	51	85.8	8.0
+bases	89.6	54	78.6	11.0
+calendar	90.3	26	86.7	3.6
+calls	90.8	168	80.2	10.6
+crm	84.6	46	81.9	2.7
+dashboard	94.0	45	86.4	7.6
+dev	90.1	33		
+github	90.7	76	80.8	9.9
+gitlab	85.9	53		
+hr	89.1	40	83.7	5.4
+imex	94.5	52	84.7	9.8
+integrations/onec	89.3	32	83.4	5.9
+intranet	85.0	82	81.3	3.7
+mail	91.1	28		
+marketplace	85.1	57	80.1	5.0
+messenger	74.6	280	82.3	-7.7
+notification	88.7	149	82.5	6.2
+platform/config	91.4	10		
+platform/cron	93.8	2		
+platform/crypto	84.9	8		
+platform/errors	100.0	9		
+platform/http	95.5	11		
+platform/middleware	92.0	25		
+platform/nats	77.2	16		
+platform/observability	85.1	29		
+platform/outbox	96.2	11	88.6	7.6
+platform/telegram	100.0	1		
+project	89.3	124	82.0	7.3
+rbac	90.3	62	84.7	5.6
+search	96.2	73	92.2	4.0
+sprint	88.9	57	81.7	7.2
+status	100.0	6		
+storage	95.0	35	86.8	8.2
+tms	87.4	251	82.0	5.4
+tracker	87.9	223	82.4	5.5
+ws	95.5	60	87.7	7.8

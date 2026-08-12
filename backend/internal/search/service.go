@@ -25,6 +25,16 @@ import (
 // несколько десятков задач) и при этом не нагружал tsvector indexes.
 const defaultSearchLimit = 10
 
+// ErrFilterForbidden — A4-003/A4-004 / A2W5-A4-001/004: 403 без утечки причины
+// (нет membership или не владелец фильтра).
+var ErrFilterForbidden = errors.New("forbidden")
+
+// ErrFilterNotFound — A2W5-A4-001: отсутствующий фильтр → 404, не 500.
+var ErrFilterNotFound = errors.New("фильтр не найден")
+
+// ErrSearchUnavailable — A2W5-A4-003: все шарды упали (total outage → hard error).
+var ErrSearchUnavailable = errors.New("search unavailable: all shards failed")
+
 // SearchService реализует глобальный поиск по всем сущностям платформы.
 // Выполняет параллельные запросы к PostgreSQL (tsvector) и MongoDB ($text),
 // затем объединяет результаты по релевантности.
@@ -47,7 +57,8 @@ func NewSearchService(repo Repository, sqlDB *sql.DB, mongoDB *mongo.Database) *
 
 // Search выполняет глобальный поиск по всем сущностям с фильтрацией по правам доступа.
 // Параллельно запрашивает PostgreSQL (tsvector) и MongoDB ($text), объединяет по score.
-func (s *SearchService) Search(ctx context.Context, query string, userID uuid.UUID, types []string, limit int) ([]SearchResult, error) {
+// partial=true — часть шардов упала, но есть результаты (W5-A4-007 / P2-BE-18).
+func (s *SearchService) Search(ctx context.Context, query string, userID uuid.UUID, types []string, limit int) ([]SearchResult, bool, error) {
 	if limit <= 0 || limit > 50 {
 		limit = 20
 	}
@@ -55,7 +66,7 @@ func (s *SearchService) Search(ctx context.Context, query string, userID uuid.UU
 	// Получаем ID проектов пользователя для фильтрации по правам
 	projectIDs, err := s.getUserProjectIDs(ctx, userID)
 	if err != nil {
-		return nil, fmt.Errorf("не удалось получить проекты пользователя: %w", err)
+		return nil, false, fmt.Errorf("не удалось получить проекты пользователя: %w", err)
 	}
 
 	typeSet := make(map[string]bool, len(types))
@@ -65,10 +76,12 @@ func (s *SearchService) Search(ctx context.Context, query string, userID uuid.UU
 	searchAll := len(typeSet) == 0
 
 	var (
-		mu      sync.Mutex
-		results []SearchResult
-		wg      sync.WaitGroup
-		errs    []error
+		mu       sync.Mutex
+		results  []SearchResult
+		wg       sync.WaitGroup
+		errs     []error
+		shardOK  int
+		shardErr int
 	)
 
 	// Вспомогательная функция для добавления результатов потокобезопасно
@@ -77,8 +90,10 @@ func (s *SearchService) Search(ctx context.Context, query string, userID uuid.UU
 		defer mu.Unlock()
 		if searchErr != nil {
 			errs = append(errs, searchErr)
+			shardErr++
 			return
 		}
+		shardOK++
 		results = append(results, items...)
 	}
 
@@ -135,7 +150,8 @@ func (s *SearchService) Search(ctx context.Context, query string, userID uuid.UU
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			items, searchErr := s.searchChannels(ctx, query, projectIDs)
+			// P1-BE-32 / NF-03: private/group требуют membership; soft-delete исключаем.
+			items, searchErr := s.searchChannels(ctx, query, projectIDs, userID)
 			appendResults(items, searchErr)
 		}()
 	}
@@ -152,10 +168,9 @@ func (s *SearchService) Search(ctx context.Context, query string, userID uuid.UU
 
 	wg.Wait()
 
-	// ME-2: используем errors.Join вместо cherry-pick первой ошибки — иначе
-	// логи теряют информацию о падениях остальных шардов. errors.Join
-	// корректно скрывает nil-ы и сохраняет все ошибки в цепочке.
-	if joined := errors.Join(errs...); joined != nil {
+	// W5-A4-007 / P2-BE-18: не глотать ошибки шардов — partial flag или hard error.
+	joined := errors.Join(errs...)
+	if joined != nil {
 		slog.Warn("ошибки при поиске", "count", len(errs), "errors", joined)
 	}
 
@@ -167,17 +182,27 @@ func (s *SearchService) Search(ctx context.Context, query string, userID uuid.UU
 		results = results[:limit]
 	}
 
-	return results, nil
+	if shardErr > 0 && shardOK == 0 {
+		// A2W5-A4-003: total outage → hard error (не partial+пусто).
+		if joined != nil {
+			return nil, false, fmt.Errorf("%w: %w", ErrSearchUnavailable, joined)
+		}
+		return nil, false, ErrSearchUnavailable
+	}
+	partial := shardErr > 0
+	return results, partial, nil
 }
 
-// getUserChannelIDs возвращает ID каналов мессенджера, в которых состоит
-// пользователь. Используется SEC-H2 для скоупа Mongo $text-поиска.
-// Таблица channel_members имеет колонки channel_id и user_id (см.
-// ent/migrate/schema.go), что соответствует тому же шаблону, что и в
-// messenger.EntRepository.IsMember.
+// getUserChannelIDs возвращает ID активных каналов мессенджера, в которых
+// состоит пользователь. Используется SEC-H2 для скоупа Mongo $text-поиска.
+// JOIN на channels + deleted_at IS NULL (W5-A4-004): после soft-delete канала
+// строки membership остаются, но корзина не должна индексироваться в Ctrl+K.
 func (s *SearchService) getUserChannelIDs(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error) {
 	rows, err := s.sqlDB.QueryContext(ctx,
-		`SELECT channel_id FROM channel_members WHERE user_id = $1`,
+		`SELECT cm.channel_id
+		FROM channel_members cm
+		INNER JOIN channels c ON c.id = cm.channel_id
+		WHERE cm.user_id = $1 AND c.deleted_at IS NULL`,
 		userID.String())
 	if err != nil {
 		return nil, fmt.Errorf("getUserChannelIDs: %w", err)
@@ -230,6 +255,7 @@ func (s *SearchService) searchIssues(ctx context.Context, query string, projectI
 		FROM issues
 		WHERE search_vector @@ plainto_tsquery('simple', $1)
 			AND project_issues = ANY($2)
+			AND deleted_at IS NULL
 		ORDER BY rank DESC LIMIT %d`, defaultSearchLimit),
 		query, uuidSliceToPgArray(projectIDs))
 	if err != nil {
@@ -269,6 +295,7 @@ func (s *SearchService) searchTestCases(ctx context.Context, query string, proje
 		FROM test_cases
 		WHERE search_vector @@ plainto_tsquery('simple', $1)
 			AND project_test_cases = ANY($2)
+			AND deleted_at IS NULL
 		ORDER BY rank DESC LIMIT %d`, defaultSearchLimit),
 		query, uuidSliceToPgArray(projectIDs))
 	if err != nil {
@@ -435,6 +462,7 @@ func (s *SearchService) searchProjects(ctx context.Context, query string, projec
 		FROM projects
 		WHERE search_vector @@ plainto_tsquery('simple', $1)
 			AND id = ANY($2)
+			AND deleted_at IS NULL
 		ORDER BY rank DESC LIMIT %d`, defaultSearchLimit),
 		query, uuidSliceToPgArray(projectIDs))
 	if err != nil {
@@ -473,6 +501,8 @@ func (s *SearchService) searchFiles(ctx context.Context, query string, projectID
 		FROM file_metadata
 		WHERE search_vector @@ plainto_tsquery('simple', $1)
 			AND project_files = ANY($2)
+			AND deleted_at IS NULL
+			AND status = 'confirmed'
 		ORDER BY rank DESC LIMIT %d`, defaultSearchLimit),
 		query, uuidSliceToPgArray(projectIDs))
 	if err != nil {
@@ -501,7 +531,10 @@ func (s *SearchService) searchFiles(ctx context.Context, query string, projectID
 
 // searchChannels ищет каналы по tsvector с фильтрацией по проектам.
 // Fallback на ILIKE если tsvector-колонка отсутствует.
-func (s *SearchService) searchChannels(ctx context.Context, query string, projectIDs []uuid.UUID) ([]SearchResult, error) {
+//
+// P1-BE-32 (W5-A4-001/002): soft-deleted исключены; public виден участникам
+// проекта; private/group — только при membership в channel_members (NF-03/NFR-19).
+func (s *SearchService) searchChannels(ctx context.Context, query string, projectIDs []uuid.UUID, userID uuid.UUID) ([]SearchResult, error) {
 	if len(projectIDs) == 0 {
 		return nil, nil
 	}
@@ -513,8 +546,13 @@ func (s *SearchService) searchChannels(ctx context.Context, query string, projec
 		FROM channels
 		WHERE to_tsvector('simple', name) @@ plainto_tsquery('simple', $1)
 			AND project_id = ANY($2)
+			AND deleted_at IS NULL
+			AND (
+				channel_type = 'public'
+				OR id IN (SELECT channel_id FROM channel_members WHERE user_id = $3)
+			)
 		ORDER BY rank DESC LIMIT %d`, defaultSearchLimit),
-		query, uuidSliceToPgArray(projectIDs))
+		query, uuidSliceToPgArray(projectIDs), userID.String())
 	if err != nil {
 		// Fallback на ILIKE если tsvector не работает
 		rows, err = s.sqlDB.QueryContext(ctx,
@@ -522,8 +560,13 @@ func (s *SearchService) searchChannels(ctx context.Context, query string, projec
 			FROM channels
 			WHERE name ILIKE '%%' || $1 || '%%'
 				AND project_id = ANY($2)
+				AND deleted_at IS NULL
+				AND (
+					channel_type = 'public'
+					OR id IN (SELECT channel_id FROM channel_members WHERE user_id = $3)
+				)
 			ORDER BY name ASC LIMIT %d`, defaultSearchLimit),
-			query, uuidSliceToPgArray(projectIDs))
+			query, uuidSliceToPgArray(projectIDs), userID.String())
 		if err != nil {
 			return nil, fmt.Errorf("поиск каналов: %w", err)
 		}
@@ -576,8 +619,11 @@ func (s *SearchService) searchMessages(ctx context.Context, query string, userID
 	}
 
 	coll := s.mongoDB.Collection("messages")
+	// P1-BE-32 / W5-A4-003: soft-deleted сообщения (messenger SoftDeleteMessage)
+	// не должны попадать в Ctrl+K — тот же фильтр, что ListMessages.
 	filter := bson.M{
 		"channel_id": bson.M{"$in": channelIDs},
+		"deleted_at": nil,
 		"$text":      bson.M{"$search": query},
 	}
 	opts := options.Find().
@@ -609,10 +655,7 @@ func (s *SearchService) searchMessages(ctx context.Context, query string, userID
 		if err := cursor.Decode(&doc); err != nil {
 			continue
 		}
-		title := doc.ContentText
-		if len(title) > 100 {
-			title = title[:100] + "..."
-		}
+		title := truncateRunes(doc.ContentText, 100)
 		results = append(results, SearchResult{
 			ID:       doc.ID,
 			Type:     "message",
@@ -626,10 +669,15 @@ func (s *SearchService) searchMessages(ctx context.Context, query string, userID
 }
 
 // CreateSavedFilter создаёт новый сохранённый фильтр.
+// A4-003: IsProjectMember before create; else ErrFilterForbidden.
 func (s *SearchService) CreateSavedFilter(ctx context.Context, userID uuid.UUID, req SavedFilterCreateRequest) (*SavedFilterDTO, error) {
 	projectID, err := uuid.Parse(req.ProjectID)
 	if err != nil {
 		return nil, fmt.Errorf("некорректный project_id: %w", err)
+	}
+
+	if err := s.requireProjectMembership(ctx, userID, projectID); err != nil {
+		return nil, err
 	}
 
 	filter, err := s.repo.CreateSavedFilter(ctx, CreateSavedFilterInput{
@@ -645,8 +693,24 @@ func (s *SearchService) CreateSavedFilter(ctx context.Context, userID uuid.UUID,
 	return savedFilterToDTO(filter), nil
 }
 
+// requireProjectMembership — fail-closed: non-member → ErrFilterForbidden.
+func (s *SearchService) requireProjectMembership(ctx context.Context, userID, projectID uuid.UUID) error {
+	isMember, err := s.repo.IsProjectMember(ctx, userID, projectID)
+	if err != nil {
+		return fmt.Errorf("project membership check: %w", err)
+	}
+	if !isMember {
+		return ErrFilterForbidden
+	}
+	return nil
+}
+
 // ListSavedFilters возвращает фильтры пользователя и расшаренные фильтры проекта.
 func (s *SearchService) ListSavedFilters(ctx context.Context, userID, projectID uuid.UUID) ([]SavedFilterDTO, error) {
+	if err := s.requireProjectMembership(ctx, userID, projectID); err != nil {
+		return nil, err
+	}
+
 	filters, err := s.repo.ListSavedFilters(ctx, userID, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("не удалось получить фильтры: %w", err)
@@ -663,10 +727,13 @@ func (s *SearchService) ListSavedFilters(ctx context.Context, userID, projectID 
 func (s *SearchService) DeleteSavedFilter(ctx context.Context, userID uuid.UUID, filterID uuid.UUID) error {
 	filter, err := s.repo.GetSavedFilter(ctx, filterID)
 	if err != nil {
+		if ent.IsNotFound(err) {
+			return ErrFilterNotFound
+		}
 		return fmt.Errorf("фильтр не найден: %w", err)
 	}
 	if filter.OwnerID != userID {
-		return fmt.Errorf("доступ запрещён: только владелец может удалить фильтр")
+		return ErrFilterForbidden
 	}
 	return s.repo.DeleteSavedFilter(ctx, filterID)
 }
@@ -675,10 +742,13 @@ func (s *SearchService) DeleteSavedFilter(ctx context.Context, userID uuid.UUID,
 func (s *SearchService) ShareFilter(ctx context.Context, userID uuid.UUID, filterID uuid.UUID, shared bool) (*SavedFilterDTO, error) {
 	filter, err := s.repo.GetSavedFilter(ctx, filterID)
 	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, ErrFilterNotFound
+		}
 		return nil, fmt.Errorf("фильтр не найден: %w", err)
 	}
 	if filter.OwnerID != userID {
-		return nil, fmt.Errorf("доступ запрещён: только владелец может изменить расшаривание")
+		return nil, ErrFilterForbidden
 	}
 
 	updated, err := s.repo.UpdateSavedFilterShared(ctx, filterID, shared)

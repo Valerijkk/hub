@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -29,8 +30,6 @@ func (JournalEntry) Fields() []ent.Field {
 		field.Enum("status").
 			Values("draft", "posted").
 			Default("draft"),
-		field.Int("version").
-			Default(1),
 		field.Time("posted_at").
 			Optional().
 			Nillable(),
@@ -46,14 +45,25 @@ func (JournalEntry) Fields() []ent.Field {
 	}
 }
 
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (JournalEntry) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
+	}
+}
+
+// Edges — lines CASCADE на hard-purge entry (ADR-ENT-ONDELETE-CASCADE-2026 /
+// A3W8-3-002). Soft-delete entry не триггерит OnDelete; lines скрываются join-filter.
 func (JournalEntry) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("created_by", User.Type).
 			Ref("journal_entries").
 			Unique().
 			Required(),
-		edge.To("lines", JournalLine.Type),
-		edge.To("invoice", Invoice.Type),
+		edge.To("lines", JournalLine.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		// P1-BE-42 / W8-A3-003: O2O с Invoice (From уже Unique).
+		edge.To("invoice", Invoice.Type).Unique(),
 	}
 }
 

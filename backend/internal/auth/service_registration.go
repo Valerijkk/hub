@@ -43,8 +43,12 @@ func (s *RegistrationModeService) SetRegistrationMode(ctx context.Context, mode 
 }
 
 // CheckRegistrationAllowed проверяет, разрешена ли регистрация в текущем режиме.
+// W6-A1-003: ошибка чтения settings → fail-closed (invite_only), не «open».
 func (s *RegistrationModeService) CheckRegistrationAllowed(ctx context.Context) error {
-	mode, _ := s.GetRegistrationMode(ctx)
+	mode, err := s.GetRegistrationMode(ctx)
+	if err != nil {
+		return ErrRegistrationInviteOnly
+	}
 	if mode == "invite_only" {
 		return ErrRegistrationInviteOnly
 	}

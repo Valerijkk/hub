@@ -25,11 +25,69 @@ type ChatAdapter interface {
 // OpenAIAdapter — DeepSeek, Ollama, OpenRouter и др.
 type OpenAIAdapter struct {
 	client *http.Client
+	// streamClient — SSE без Client.Timeout на весь запрос (TASK-085 / W5-A2-003).
+	// nil → fallback на client.
+	streamClient *http.Client
+	// offlineClient — loopback-only dialer (ADR-AI-OLLAMA-LOOPBACK / P1-BE-U01).
+	// nil в hubtest с ExportNewOpenAIAdapterWithClient (custom transport).
+	offlineClient *http.Client
+	// offlineStreamClient — offline SSE без Client.Timeout (A3W5-2-001 / TASK-154).
+	// Non-stream chat остаётся на offlineClient с bounded Timeout.
+	offlineStreamClient *http.Client
+	// skipOutboundURLValidate — только hubtest (ExportNewOpenAIAdapterWithClient + httptest).
+	// Production NewOpenAIAdapter всегда валидирует BaseURL (SSRF).
+	skipOutboundURLValidate bool
 }
 
-// NewOpenAIAdapter — adapter с SSRF-safe HTTP client.
+// NewOpenAIAdapter — adapter с SSRF-safe HTTP client + offline loopback client.
 func NewOpenAIAdapter() *OpenAIAdapter {
-	return &OpenAIAdapter{client: safehttp.NewSafeHTTPClient(90 * time.Second)}
+	return &OpenAIAdapter{
+		client:              safehttp.NewSafeHTTPClient(90 * time.Second),
+		streamClient:        newSafeStreamHTTPClient(),
+		offlineClient:       safehttp.NewOfflineAIHTTPClient(90 * time.Second),
+		offlineStreamClient: newOfflineAIStreamHTTPClient(),
+	}
+}
+
+// resolveHTTPClient — cloud BYOK → SafeDial; Ollama loopback → AllowLoopback
+// только после ValidateOfflineAIURL (явный consent-path, не ослабляет SSRF).
+func (a *OpenAIAdapter) resolveHTTPClient(base string) (*http.Client, error) {
+	if a.skipOutboundURLValidate {
+		return a.client, nil
+	}
+	if err := safehttp.ValidateOfflineAIURL(base); err == nil {
+		if a.offlineClient == nil {
+			return nil, errors.New("offline AI HTTP client not configured")
+		}
+		return a.offlineClient, nil
+	}
+	if err := safehttp.ValidateOutboundURL(base); err != nil {
+		return nil, fmt.Errorf("invalid provider URL: %w", err)
+	}
+	return a.client, nil
+}
+
+// resolveStreamHTTPClient — как resolveHTTPClient, но предпочитает stream*Client (без whole-request Timeout).
+func (a *OpenAIAdapter) resolveStreamHTTPClient(base string) (*http.Client, error) {
+	c, err := a.resolveHTTPClient(base)
+	if err != nil {
+		return nil, err
+	}
+	if a.skipOutboundURLValidate {
+		if a.streamClient != nil {
+			return a.streamClient, nil
+		}
+		return c, nil
+	}
+	// Cloud SafeDial → streamClient без Timeout.
+	if c == a.client && a.streamClient != nil {
+		return a.streamClient, nil
+	}
+	// Offline/Ollama loopback → offlineStreamClient без Timeout (A3W5-2-001).
+	if c == a.offlineClient && a.offlineStreamClient != nil {
+		return a.offlineStreamClient, nil
+	}
+	return c, nil
 }
 
 // ChatCompletion POST {baseURL}/chat/completions
@@ -38,8 +96,9 @@ func (a *OpenAIAdapter) ChatCompletion(ctx context.Context, baseURL, apiKey, mod
 		return nil, errors.New("use stream_id with stream=true for WebSocket delivery")
 	}
 	base := strings.TrimRight(baseURL, "/")
-	if err := safehttp.ValidateOutboundURL(base); err != nil {
-		return nil, fmt.Errorf("invalid provider URL: %w", err)
+	httpClient, err := a.resolveHTTPClient(base)
+	if err != nil {
+		return nil, err
 	}
 	req.Model = model
 	body, err := json.Marshal(req)
@@ -55,7 +114,7 @@ func (a *OpenAIAdapter) ChatCompletion(ctx context.Context, baseURL, apiKey, mod
 	if apiKey != "" {
 		httpReq.Header.Set("Authorization", "Bearer "+apiKey)
 	}
-	resp, err := a.client.Do(httpReq)
+	resp, err := httpClient.Do(httpReq)
 	if err != nil {
 		return nil, fmt.Errorf("provider request: %w", err)
 	}

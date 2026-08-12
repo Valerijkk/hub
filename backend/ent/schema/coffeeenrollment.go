@@ -41,5 +41,7 @@ func (CoffeeEnrollment) Edges() []ent.Edge {
 func (CoffeeEnrollment) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("is_active"),
+		// P1-BE-40 / W8-A1-001: один enrollment на user (O2O на уровне БД).
+		index.Edges("user").Unique(),
 	}
 }

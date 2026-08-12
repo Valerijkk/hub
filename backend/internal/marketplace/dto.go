@@ -1,6 +1,7 @@
 package marketplace
 
 import (
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -83,9 +84,20 @@ type ListingListResponse struct {
 	Total   int               `json:"total"`
 	Page    int               `json:"page"`
 	PerPage int               `json:"per_page"`
+	HasMore bool              `json:"has_more"`
 }
 
+// toListingResponse — публично-безопасный DTO (без email в author_name).
 func toListingResponse(l *ent.MarketplaceListing) ListingResponse {
+	return toListingResponseOpts(l, false)
+}
+
+// toListingResponsePrivate — ListMine/admin: email fallback допустим.
+func toListingResponsePrivate(l *ent.MarketplaceListing) ListingResponse {
+	return toListingResponseOpts(l, true)
+}
+
+func toListingResponseOpts(l *ent.MarketplaceListing, allowEmail bool) ListingResponse {
 	resp := ListingResponse{
 		ID:          l.ID,
 		Title:       l.Title,
@@ -94,10 +106,13 @@ func toListingResponse(l *ent.MarketplaceListing) ListingResponse {
 		Status:      ListingStatus(l.Status),
 		PriceCents:  l.PriceCents,
 		Currency:    l.Currency,
-		ReviewNote:  l.ReviewNote,
 		Version:     l.Version,
 		CreatedAt:   l.CreatedAt,
 		UpdatedAt:   l.UpdatedAt,
+	}
+	// A3W7-5-001: публичная витрина (allowEmail=false) не отдаёт admin review_note / reviewer.
+	if allowEmail {
+		resp.ReviewNote = l.ReviewNote
 	}
 	if l.ReviewedAt != nil {
 		t := l.ReviewedAt.UTC()
@@ -105,28 +120,47 @@ func toListingResponse(l *ent.MarketplaceListing) ListingResponse {
 	}
 	if l.Edges.Author != nil {
 		resp.AuthorID = l.Edges.Author.ID
-		resp.AuthorName = displayName(l.Edges.Author)
+		resp.AuthorName = displayName(l.Edges.Author, allowEmail)
 	}
-	if l.Edges.Reviewer != nil {
+	if allowEmail && l.Edges.Reviewer != nil {
 		resp.ReviewerID = &l.Edges.Reviewer.ID
-		resp.ReviewerName = displayName(l.Edges.Reviewer)
+		resp.ReviewerName = displayName(l.Edges.Reviewer, allowEmail)
 	}
 	return resp
 }
 
-func displayName(u *ent.User) string {
+// displayName — W7-A5-005: на витрине email не отдаём (PII).
+func displayName(u *ent.User, allowEmail bool) string {
 	if u.DisplayName != "" {
 		return u.DisplayName
 	}
 	if u.Name != "" {
 		return u.Name
 	}
-	return u.Email
+	if allowEmail {
+		return u.Email
+	}
+	return "Пользователь"
 }
 
 func isValidCategory(c ListingCategory) bool {
 	switch c {
 	case CategoryEquipment, CategoryBooks, CategoryServices, CategoryFurniture, CategoryOther:
+		return true
+	default:
+		return false
+	}
+}
+
+// normalizeCurrency — A3W7-5-003: TrimSpace+ToUpper до Save (избегаем Ent MaxLen 500 на "USD ").
+func normalizeCurrency(c string) string {
+	return strings.ToUpper(strings.TrimSpace(c))
+}
+
+// isValidCurrency — W7-A5-006: allowlist ISO-4217 (типичные для Hub).
+func isValidCurrency(c string) bool {
+	switch normalizeCurrency(c) {
+	case "RUB", "USD", "EUR", "GBP", "CNY", "KZT", "BYN":
 		return true
 	default:
 		return false

@@ -41,7 +41,8 @@ import (
 type serverDeps struct {
 	cfg *config.Config
 	ctx context.Context
-	rootCtx context.Context
+	rootCtx    context.Context
+	rootCancel context.CancelFunc
 
 	integrationCipher *cryptopkg.Cipher
 	traceShutdown     func(context.Context) error
@@ -102,6 +103,7 @@ type serverDeps struct {
 	autoChannelSvc    *messengermod.AutoChannelService
 	webhookDispatcher *apigatewaymod.WebhookDispatcher
 	backupSvc         *backupmod.BackupService
+	maintGate         *backupmod.MaintenanceGate
 
 	retentionS3Client *s3.Client
 	retentionS3Bucket string

@@ -7,10 +7,21 @@ alwaysApply: true
 
 ## Политика коммитов и мержа (решение пользователя 2026-07-03, уточнено)
 
-- **Агенты свободно коммитят в фича-ветки** (атомарно, после ворот регрессии) и могут пушить фича-ветки на remote — без отдельного запроса пользователя.
+- **Локальные атомарные коммиты** в текущую фича-ветку разрешены, когда пользователь
+  или активный TASK/PLAN явно поручил реализацию и commit. Стадия формируется
+  allowlist-ом своих файлов после ворот регрессии.
+- **Push, PR и любые remote writes — только по явному поручению пользователя.**
+  Наличие настроенного remote/credential не является разрешением.
 - **Push/мерж в `master` выполняет ТОЛЬКО пользователь лично.** Агенты (включая team-lead) НИКОГДА не пушат в master и не мержат в него. team-lead доводит ветку до состояния «merge-ready» (green CI + верификация + code-reviewer) и передаёт пользователю на мерж.
 - **PR = фича/фаза** с атомарными коммитами планов внутри. **Метод мержа: rebase-merge** (линейная история, атомарные коммиты сохранены для точечного revert). Squash не используется для фича-PR.
 - Личное ревью пользователя обязательно для: security/auth, миграций БД, деплой/CI, ADR-изменений. Остальное — цепочка агентов (кросс-ревью + `*-ver` + code-reviewer).
+
+Перед операцией с branch/worktree/submodule агент read-only фиксирует repo root,
+git-dir, git-common-dir, superproject path, branch/detached HEAD и dirty status.
+Различие git-dir/common-dir, detached HEAD или superproject — отдельное состояние,
+а не повод для cleanup. Удалять/перемещать workspace можно только при доказанном
+task ownership точного canonical path и явной authority; ambiguous/foreign path
+не трогать.
 
 ## Branch Naming
 
@@ -26,21 +37,75 @@ hotfix/<issue-id>/<description> — critical production fixes
 ## Commit Format (Conventional Commits)
 
 ```
-<type>(<scope>): <description>
+<type>(<scope>): <описание на русском>
 
 Types: feat | fix | refactor | test | docs | chore | perf | ci
 Scope: auth | tracker | messenger | tms | calls | dashboard |
        notification | search | ws | platform | frontend | infra | ent
-
-Examples:
-feat(tracker): add WIP limits to Kanban columns
-fix(ws): prevent send on closed channel panic
-refactor(auth): extract AuthRepository interface
-test(auth): add magic-link brute-force lockout test
-docs(api): add Swagger annotations for TMS endpoints
-chore(deps): update Go to 1.24.3
-ci(deploy): remove DEV_MODE=true from production workflow
 ```
+
+## Язык сообщения (решение пользователя 2026-07-28)
+
+**Тип и scope — только на английском.** Это ключевые слова формата,
+их парсят инструменты и changelog-генераторы.
+
+**Описание и тело — только на русском.** Команда русскоязычная; коммит
+читают люди, а не парсер.
+
+```
+Правильно:
+fix(auth): запретить выдачу JWT пользователям вне статуса active
+refactor(rbac): вынести проверку принадлежности роли проекту
+test(tms): покрыть optimistic lock на уровне репозитория
+docs(planning): перегруппировать папки по смыслу и истории
+
+Неправильно:
+fix(auth): deny JWT for non-active users          <- описание на английском
+исправление(auth): запретить выдачу JWT           <- тип на русском
+fix(авторизация): запретить выдачу JWT            <- scope на русском
+```
+
+Смешивать языки внутри описания нельзя. Технические термины и имена
+идентификаторов остаются как есть: `fix(ws): не отправлять в закрытый channel`.
+
+Историю до 2026-07-28 не переписываем — там английские описания.
+Правило действует для новых коммитов.
+
+## Связь с задачей (MANDATORY)
+
+Коммит, выполняющий задачу из бэклога, обязан ссылаться на её файл
+**в теле**, а не в subject:
+
+```
+fix(intranet): вернуть новость из корзины вместе с опросом
+
+Задача: .planning/backlog/archive/legacy/TASK-001-fr-intr-08-newspost-trash.md
+Требование: FR-INTR-08 (docs/system_specification.md:231)
+
+<что и почему изменилось>
+```
+
+- Файл задачи указывается **путём**, а не номером — чтобы ссылка
+  открывалась из любого клиента без поиска.
+- Если задача покрывается несколькими коммитами — ссылка в каждом.
+- Коммит без задачи (мелкая правка, hotfix) ссылку не требует, но
+  тогда в теле объясняется, почему задачи нет.
+- Находки из аудитов ссылаются на свой ID дополнительно: `(A3-004)`,
+  `(RT-003)` — в subject, как уже принято в истории.
+
+## FORBIDDEN commit trailers (ABSOLUTE — all models / agents / subagents)
+
+**ЖЕЛЕЗНЫЙ ЗАПРЕТ.** Никогда не добавлять в тело/trailer коммита:
+
+- `Co-authored-by:` / `Co-Authored-By:` — **любые**, в т.ч. Cursor, Claude, Codex, Cloud Agent, Anthropic, OpenAI, Copilot, `cursoragent@cursor.com`, `noreply@*`
+- `Generated-by:` / `Signed-off-by:` от AI-инструментов
+- любые «Made with Cursor / Claude / Codex / Cloud Code» строки в сообщении коммита
+
+Это относится ко **всем** моделям и агентам Hub (team-lead, be/fe, docs-writer, GSD, cloud, local — без исключений).  
+Нельзя «потому что Cursor сам дописал», нельзя «стандартный trailer», нельзя «для attribution».  
+Если среда/хук пытается дописать co-author — **убрать** перед финализацией коммита (`git commit` без trailer; при необходимости `--amend` только своего незапушенного HEAD по git-safety правилам, после ручной проверки `git log -1`).
+
+Допустимый автор коммита: **только** git `user.name` / `user.email` человека-владельца репо. AI не co-author.
 
 ## What NEVER to Commit
 
@@ -75,16 +140,15 @@ tmp_*.py
 ## Pre-commit Checklist
 
 Before every commit:
-```bash
-# Backend
-cd backend && go build ./... && go test -race -count=1 ./...
 
-# Frontend
-cd frontend && npx tsc --noEmit && npm run lint
+1. Выполнить применимые target jobs только в task-owned limited Docker по
+   `AGENTS.md`/`/qa-gate`; host build/test/lint/validator запрещён.
+2. Просмотреть exact staged diff и secret scan; raw keyword hit требует triage,
+   а не автоматического удаления легитимного текста.
+3. Убедиться, что commit message не содержит AI attribution/co-author trailers.
+4. Зафиксировать `PASS|FAIL|NOT_RUN`, exact revision, image/resources/duration и cleanup.
 
-# Security scan
-git diff --staged | grep -E "(secret|password|token|key)" --color
-```
+One-time (human, not agent): `git config core.hooksPath .githooks` — включает `.githooks/commit-msg` отказ с AI trailers.
 
 ## PR Rules
 
@@ -111,7 +175,7 @@ v2.0.0   — new milestone
 - PR = фаза/фича с планами внутри — пример декомпозиции: `.planning/phases/63-production-gate/PLAN.md`, `.planning/phases/67-production-gate/PLAN.md` (атомарные коммиты плана внутри одной фичи).
 - ADR как обязательное личное ревью пользователя: `.planning/decisions/ADR-AUTH-SSO-2026.md`, `ADR-ARCH-MICROSERVICES-2026.md`, `ADR-AI-AGENTS-MCP-2026.md` — изменения auth/архитектуры без merge-approval пользователя не мержить.
 - CI-джобы, которые обязаны быть green перед merge: `.github/workflows/ci.yml` (build+test+lint), `.github/workflows/pr-guard.yml` (PR-гейт), `.github/workflows/deploy.yml` (деплой, гейтится на success CI).
-- Секрет-ротация как отдельный процесс, не блокирующий обычные PR: `.planning/production/PG-03-SECRET-ROTATION.md`, `.planning/production/FA-06-EXECUTION-LOG.md`, скрипты `scripts/fa06*.sh` — ручной запуск DevOps, не часть стандартного git-flow фичи.
+- Секрет-ротация как отдельный процесс, не блокирующий обычные PR: `.planning/ops/production/PG-03-SECRET-ROTATION.md`, `.planning/ops/production/FA-06-EXECUTION-LOG.md`, скрипты `scripts/fa06*.sh` — ручной запуск DevOps, не часть стандартного git-flow фичи.
 - git-workflow playbook с деталями параллельной разработки (be1/be2, fe1/fe2 и т.д.): `.cursor/playbooks/git-workflow.md`.
 
 ## Примеры из Hub
@@ -123,5 +187,5 @@ v2.0.0   — new milestone
 - Ветки Волны 1 (пример naming): `feat/bases/security-membership-fix`, `integration/wave1`, `feat/platform/otel-nats-trace`, `docs/wave2-adr-package`, `docs/wave2-specs` — все смержены в `master` 2026-07-11 пользователем.
 - Feature-ветки удаляются локально и на remote **после** мержа (dependabot-ветки — исключение, не трогать).
 - Rebase-merge в действии: линейная история `master` сохраняет отдельные коммиты `fix(bases)` / `test(bases)` для точечного `git revert`, а не squash в один блоб.
-- Credentials-паттерны, которые реально фигурируют в repo и требуют бдительности: `livekit-prod.yaml` (`devkey:` секция), `docker-compose.local.yml` (Resend/Telegram токены) — см. `.planning/production/PG-03-SECRET-ROTATION.md` для процедуры ротации, если что-то утекло.
+- Credentials-паттерны, которые реально фигурируют в repo и требуют бдительности: `livekit-prod.yaml` (`devkey:` секция), `docker-compose.local.yml` (Resend/Telegram токены) — см. `.planning/ops/production/PG-03-SECRET-ROTATION.md` для процедуры ротации, если что-то утекло.
 - Кто мержит: агенты доводят ветку до green CI + verified + code-reviewer approval и передают **пользователю**; team-lead никогда не мержит в `master` самостоятельно — см. session note 2026-07-11 в `.planning/STATE.md`.

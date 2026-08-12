@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 
 import type { RecordingResponse } from "@/api/calls";
 import * as callsApi from "@/api/calls";
+import { QueryErrorAlert } from "@/components/query-state-view";
+import { toastApiError } from "@/lib/format-api-error";
 
 // ---------------------------------------------------------------------------
 // RecordingsList — раздел «Записи» проекта (CALL-05)
@@ -25,6 +27,7 @@ export function RecordingsList({ projectId }: RecordingsListProps) {
 	const [total, setTotal] = useState(0);
 	const [offset, setOffset] = useState(0);
 	const [isLoading, setIsLoading] = useState(false);
+	const [loadError, setLoadError] = useState(false);
 	const [dateFilter, setDateFilter] = useState("");
 
 	const limit = 20;
@@ -40,24 +43,28 @@ export function RecordingsList({ projectId }: RecordingsListProps) {
 			);
 			setRecordings(data.recordings ?? []);
 			setTotal(data.total);
-		} catch {
-			// Ошибка загрузки
+			setLoadError(false);
+		} catch (err) {
+			setLoadError(true);
+			setRecordings([]);
+			setTotal(0);
+			toastApiError(err, "Не удалось загрузить записи");
 		} finally {
 			setIsLoading(false);
 		}
 	}, [projectId, offset]);
 
 	useEffect(() => {
-		loadRecordings();
+		void loadRecordings();
 	}, [loadRecordings]);
 
 	/** Скачать запись по presigned URL. */
 	const handleDownload = useCallback(async (recordingId: string) => {
 		try {
 			const data = await callsApi.getRecordingDownloadURL(recordingId);
-			window.open(data.url, "_blank");
-		} catch {
-			// Ошибка скачивания
+			window.open(data.url, "_blank", "noopener,noreferrer");
+		} catch (err) {
+			toastApiError(err, "Не удалось скачать запись");
 		}
 	}, []);
 
@@ -99,6 +106,11 @@ export function RecordingsList({ projectId }: RecordingsListProps) {
 
 			{isLoading ? (
 				<div className="flex justify-center py-8 text-t2">Загрузка...</div>
+			) : loadError ? (
+				<QueryErrorAlert
+					message="Не удалось загрузить записи"
+					retry={() => void loadRecordings()}
+				/>
 			) : filteredRecordings.length === 0 ? (
 				<div className="flex justify-center py-8 text-t2">Записей пока нет</div>
 			) : (

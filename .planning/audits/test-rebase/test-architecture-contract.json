@@ -1,0 +1,519 @@
+{
+  "schema_version": 4,
+  "decision": {
+    "id": "ADR-TEST-ARCHITECTURE-REBASE-2026",
+    "status": "Accepted",
+    "accepted_on": "2026-08-07",
+    "authority": "founder",
+    "migration_mode": "greenfield-rebuild",
+    "row_parity_required": false,
+    "dual_run_required": false,
+    "partial_cutover_allowed": true,
+    "phase_129_completion_requires_blocked_units_moved": true,
+    "protected_zone_dependency": "forbidden",
+    "docker_only_execution": true
+  },
+  "baseline_e2e": {
+    "status": "pass",
+    "execution": "task-owned-limited-docker",
+    "collected": 53,
+    "passed": 48,
+    "expected_skipped": 5,
+    "failed": 0,
+    "environment_skipped": 0,
+    "expected_skip_breakdown": {
+      "provider_dependent_ai": 4,
+      "health_negative_sentinel": 1
+    }
+  },
+  "roots": {
+    "backend_unit": "backend/tests/",
+    "frontend_unit": "frontend/tests/",
+    "frontend_support": "frontend/tests/support/",
+    "python_project": "testframework/"
+  },
+  "founder_manifest": {
+    "path": ".planning/audits/test-rebase/founder-greenfield-cutover-manifest.json",
+    "required_status": "verified-hook-blocked",
+    "ledger_revision": "5708671f00411c7c9e9dbee88b725de2092cbacd",
+    "ledger_sha256": "72de6a81b2bd5da8873a98e784a5069a661e9caea083f10722aa85e9f91b4511",
+    "rows": 1049,
+    "declared_tests": 4246,
+    "move_rows": 507,
+    "move_declared_tests": 1673,
+    "keep_blocked_rows": 245,
+    "keep_blocked_declared_tests": 1428,
+    "delete_rows": 297,
+    "delete_declared_tests": 1145,
+    "non_ledger_delete_paths": 28,
+    "non_ledger_delete_paths_sha256": "9b06611c2e5f9342ae081b6917e4033808c642e0b65216d7e60a0b2f89a62d49"
+  },
+  "python_architecture": {
+    "installable_package_root": "testframework/src/hub_testkit/",
+    "executable_suite_roots": [
+      "testframework/tests/api/",
+      "testframework/tests/integration/",
+      "testframework/tests/contract/",
+      "testframework/tests/e2e/"
+    ],
+    "reusable_module_roots": [
+      "testframework/src/hub_testkit/config/",
+      "testframework/src/hub_testkit/runtime/",
+      "testframework/src/hub_testkit/http/",
+      "testframework/src/hub_testkit/contract/",
+      "testframework/src/hub_testkit/browser/",
+      "testframework/src/hub_testkit/integration/",
+      "testframework/src/hub_testkit/observability/",
+      "testframework/src/hub_testkit/traceability/",
+      "testframework/src/hub_testkit/pytest_plugin/",
+      "testframework/src/hub_testkit/domains/<domain>/"
+    ],
+    "composition": {
+      "path": "testframework/tests/conftest.py",
+      "responsibility": "explicit-plugin-and-fixture-composition-only"
+    },
+    "framework_contract_root": "testframework/selftests/",
+    "case_root": "testframework/cases/",
+    "schema_root": "testframework/schemas/",
+    "policy_root": "testframework/policies/",
+    "docker_root": "testframework/docker/",
+    "runner_root": "testframework/runner/",
+    "load_root": "testframework/load/",
+    "reports_root": "testframework/reports/<task-run>/",
+    "materialization": {
+      "creation_policy": "first-accepted-consumer-only",
+      "empty_directories_required": false,
+      "speculative_layers_required": false
+    }
+  },
+  "forbidden_python_physical_paths": [
+    "hub_testkit/",
+    "tests/",
+    "cases/",
+    "selftests/",
+    "docker/",
+    "load/",
+    "testframework/python/",
+    "testframework/core/",
+    "testframework/api/",
+    "testframework/integration/",
+    "testframework/contract/",
+    "testframework/e2e/",
+    "testframework/conftest.py",
+    "testframework/tests/e2e/support/",
+    "testframework/tests/e2e/pages/",
+    "testframework/tests/e2e/steps/"
+  ],
+  "cutover_snapshot": {
+    "ledger_revision": "5708671f00411c7c9e9dbee88b725de2092cbacd",
+    "ledger_sha256": "72de6a81b2bd5da8873a98e784a5069a661e9caea083f10722aa85e9f91b4511",
+    "rows": 1049,
+    "declared_tests": 4246,
+    "move_files": 507,
+    "move_declared_tests": 1673,
+    "keep_blocked_files": 245,
+    "keep_blocked_declared_tests": 1428,
+    "delete_files": 297,
+    "delete_declared_tests": 1145,
+    "groups": [
+      {
+        "id": "MOVE-GO-UNIT-HOOK-FREE",
+        "action": "move",
+        "selector": {
+          "runner": "go-test",
+          "target_class": "go-unit",
+          "hook_consumers_count": 0
+        },
+        "expected_count": 350,
+        "expected_declared_tests": 1264,
+        "source_paths_sha256": "af256cc0c5ad59fe6671641cea5ac138b2e6a4796c23b64aa038ec216ca40ff7",
+        "destination_root": "backend/tests/",
+        "eligibility": "service-free-isolated-go-unit"
+      },
+      {
+        "id": "KEEP-GO-UNIT-HOOK-DEPENDENT",
+        "action": "keep-until-refactor-then-move",
+        "selector": {
+          "runner": "go-test",
+          "target_class": "go-unit",
+          "hook_consumers_count": ">0"
+        },
+        "expected_count": 245,
+        "expected_declared_tests": 1428,
+        "expected_hook_consumer_links": 653,
+        "expected_distinct_hook_files": 42,
+        "expected_distinct_hook_symbols": 434,
+        "source_paths_sha256": "86e55748e6c5986ec4eef370b51fb3f02c7fca7ec24fa8eb1e85d1913ad33924",
+        "release_condition": "zero-hook-consumer-regenerated-ledger-and-docker-green"
+      },
+      {
+        "id": "MOVE-FRONTEND-UNIT",
+        "action": "move",
+        "selector": {
+          "runner": "vitest",
+          "target_class": "frontend-unit"
+        },
+        "expected_count": 156,
+        "expected_declared_tests": 409,
+        "source_paths_sha256": "96fd1cacc09c39a06e894600de9168c5d9a3cf1971ec63f5bfe9c01d978b2b24",
+        "destination_root": "frontend/tests/",
+        "eligibility": "service-free-vitest-rtl-unit"
+      },
+      {
+        "id": "MOVE-FRONTEND-RENDER-SUPPORT",
+        "action": "move",
+        "selector": {
+          "source_path": "testframework/stages/unit/frontend-test/render.tsx",
+          "runner": "vitest-support",
+          "target_class": "frontend-support"
+        },
+        "expected_count": 1,
+        "expected_declared_tests": 0,
+        "source_paths_sha256": "a49f50bbf0b6667a10b0392169fb760311defe06288f9a3775f9d23ebdfe5a23",
+        "destination_root": "frontend/tests/support/",
+        "eligibility": "retained-unit-reachable-render-support"
+      },
+      {
+        "id": "DELETE-GO-COMPONENT",
+        "action": "delete-no-translation",
+        "selector": {
+          "runner": "go-test",
+          "target_class_in": [
+            "python-api",
+            "python-integration"
+          ]
+        },
+        "expected_count": 237,
+        "expected_declared_tests": 982,
+        "source_paths_sha256": "45bc86bd5be985e48d9b599200aa29641e02eb4947c97cb5ff0eb3f49d941e18",
+        "replacement_authority": "requirements-and-risk-greenfield-python"
+      },
+      {
+        "id": "DELETE-FRONTEND-STATIC-CONTRACT",
+        "action": "delete-no-translation",
+        "selector": {
+          "runner": "vitest",
+          "target_class": "python-static-contract"
+        },
+        "expected_count": 24,
+        "expected_declared_tests": 110,
+        "source_paths_sha256": "4952f7970784c22570a263c31836a2e08a31a12592cccbb78e2b696409ae92b9",
+        "replacement_authority": "requirements-and-risk-greenfield-python"
+      },
+      {
+        "id": "DELETE-FRONTEND-COMPILE-FIXTURES",
+        "action": "delete-no-translation",
+        "selector": {
+          "source_path_in": [
+            "testframework/stages/unit/frontend-test/domains/platform/updateBase-version-required.fixture.ts",
+            "testframework/stages/unit/frontend-test/domains/tracker/projects-sprint-version-required.fixture.ts"
+          ],
+          "runner": "vitest-support"
+        },
+        "expected_count": 2,
+        "expected_declared_tests": 0,
+        "source_paths_sha256": "dd0084eb74d5e65fc574849c051c30bedb717379cb215b6ec8c10674f28ea956",
+        "replacement_authority": "requirements-and-risk-greenfield-python"
+      },
+      {
+        "id": "DELETE-PLAYWRIGHT-TS-SPECS",
+        "action": "delete-no-translation",
+        "selector": {
+          "runner": "playwright-ts",
+          "target_class": "python-e2e"
+        },
+        "expected_count": 20,
+        "expected_declared_tests": 53,
+        "source_paths_sha256": "aa521c92eca8744fe41e22d2b278d12d0f9562e08936938a34a6f54c70c0a2fb",
+        "replacement_authority": "requirements-and-risk-greenfield-python"
+      },
+      {
+        "id": "DELETE-PLAYWRIGHT-TS-SUPPORT",
+        "action": "delete-no-translation",
+        "selector": {
+          "runner": "playwright-support-ts",
+          "target_class": "python-e2e-support"
+        },
+        "expected_count": 14,
+        "expected_declared_tests": 0,
+        "source_paths_sha256": "ec40b12fce301f951d299a1e32a651eab73cd4b3cac621d2a1c65aaa6b4e4eef",
+        "replacement_authority": "requirements-and-risk-greenfield-python"
+      }
+    ],
+    "non_ledger_delete": {
+      "expected_count": 28,
+      "source_paths_sha256": "9b06611c2e5f9342ae081b6917e4033808c642e0b65216d7e60a0b2f89a62d49",
+      "source": "founder-greenfield-cutover-manifest.json"
+    }
+  },
+  "unit_eligibility": {
+    "go_forbidden_dependency_fragments": [
+      "dockertest",
+      "testcontainers",
+      "testframework/env",
+      "testframework/mongotest",
+      "postgres",
+      "mongodb",
+      "redis",
+      "nats",
+      "real-listener",
+      "application-startup",
+      "export-hook"
+    ],
+    "frontend_forbidden_traits": [
+      "real-browser",
+      "application-server",
+      "service-dependency",
+      "source-scan",
+      "documentation-drift",
+      "filename-or-token-assertion"
+    ],
+    "frontend_support_policy": "retain-only-when-all-consumers-are-retained-units"
+  },
+  "greenfield_python": {
+    "legacy_non_unit_translation": "forbidden-as-acceptance",
+    "design_authorities": [
+      "current-product-behavior",
+      "docs-and-accepted-contracts",
+      "tasks-and-backlog",
+      "incidents-and-observed-risks",
+      "security-constraints"
+    ],
+    "required_case_metadata": [
+      "test_case_id",
+      "task_or_backlog_ids",
+      "requirement_story_nfr_or_contract_ids",
+      "risk_id",
+      "priority_or_severity",
+      "scenario_kind",
+      "domain",
+      "preconditions",
+      "action",
+      "observable_expected_result"
+    ],
+    "required_design_dimensions": [
+      "happy-path",
+      "negative-and-error-handling",
+      "boundary-and-edge",
+      "corner-and-state-transition",
+      "authorization-and-security",
+      "recovery-idempotency-and-concurrency-when-applicable"
+    ],
+    "applicability_exclusion_requires_owner_reason": true,
+    "definition_of_done": [
+      "reviewed requirement-risk matrix with unique IDs",
+      "non-zero Docker-only collection matching the matrix",
+      "recorded pass-fail-skip totals and runtime",
+      "controlled negative or mutation sentinel",
+      "non-empty sanitized JUnit and Allure linked to IDs",
+      "no live external egress or shared-production state",
+      "independent verifier acceptance"
+    ]
+  },
+  "coverage": {
+    "historical_go_overall_percent": 82.0373,
+    "historical_status": "diagnostic-baseline-only",
+    "go_statement_threshold_is_migration_blocker": false,
+    "security_package_threshold_is_migration_blocker": false,
+    "python_black_box_claims_go_coverage": false,
+    "unit_gate": "compile-race-pass-no-unexpected-skip-service-free",
+    "future_threshold_requires_separate_founder_approved_adr": true
+  },
+  "skip_policy": {
+    "unit_retries": 0,
+    "e2e_infrastructure_retries_max": 2,
+    "zero_collection": "fail",
+    "mandatory_dependency_skip": "fail",
+    "unexpected_skip": "fail",
+    "quarantine_requires": [
+      "issue",
+      "owner",
+      "reason",
+      "expiry_wave"
+    ]
+  },
+  "jobs": [
+    {
+      "id": "backend-unit",
+      "paths": [
+        "backend/tests/**"
+      ],
+      "services": [],
+      "timeout_seconds": 600,
+      "artifacts": [
+        "go-unit-results.json",
+        "go-unit.log",
+        "race-result.json"
+      ]
+    },
+    {
+      "id": "frontend-unit",
+      "paths": [
+        "frontend/tests/**"
+      ],
+      "services": [],
+      "timeout_seconds": 900,
+      "artifacts": [
+        "vitest-results.json",
+        "frontend-unit.log",
+        "typecheck-lint.log"
+      ]
+    },
+    {
+      "id": "python-contract",
+      "paths": [
+        "testframework/tests/contract/**"
+      ],
+      "services": [],
+      "timeout_seconds": 600,
+      "artifacts": [
+        "junit-contract.xml",
+        "allure-results/**"
+      ]
+    },
+    {
+      "id": "python-api",
+      "paths": [
+        "testframework/tests/api/**"
+      ],
+      "services": [
+        "isolated-application-stack"
+      ],
+      "timeout_seconds": 1200,
+      "artifacts": [
+        "junit-api.xml",
+        "allure-results/**",
+        "application.log"
+      ]
+    },
+    {
+      "id": "python-integration",
+      "paths": [
+        "testframework/tests/integration/**"
+      ],
+      "services": [
+        "declared-isolated-dependencies"
+      ],
+      "timeout_seconds": 1200,
+      "artifacts": [
+        "junit-integration.xml",
+        "allure-results/**",
+        "service-logs/**"
+      ]
+    },
+    {
+      "id": "python-e2e-smoke",
+      "paths": [
+        "testframework/tests/e2e/**"
+      ],
+      "services": [
+        "isolated-full-app",
+        "chromium"
+      ],
+      "timeout_seconds": 900,
+      "artifacts": [
+        "junit-e2e-smoke.xml",
+        "allure-results/**",
+        "playwright-traces/**",
+        "screenshots/**"
+      ]
+    },
+    {
+      "id": "python-e2e-full",
+      "paths": [
+        "testframework/tests/e2e/**"
+      ],
+      "services": [
+        "isolated-full-app",
+        "chromium"
+      ],
+      "timeout_seconds": 1800,
+      "artifacts": [
+        "junit-e2e-full.xml",
+        "allure-results/**",
+        "playwright-traces/**",
+        "screenshots/**",
+        "application.log"
+      ]
+    },
+    {
+      "id": "python-load",
+      "paths": [
+        "testframework/load/**"
+      ],
+      "services": [
+        "isolated-full-stack"
+      ],
+      "timeout_seconds": 3600,
+      "artifacts": [
+        "locust-stats.csv",
+        "locust-report.html",
+        "service-logs/**"
+      ]
+    },
+    {
+      "id": "test-architecture-contract",
+      "paths": [
+        ".planning/decisions/ADR-TEST-ARCHITECTURE-REBASE-2026.md",
+        ".planning/audits/test-rebase/test-architecture-contract.json",
+        ".planning/audits/test-rebase/founder-greenfield-cutover-manifest.json",
+        ".planning/audits/test-rebase/inventory.json"
+      ],
+      "services": [],
+      "timeout_seconds": 300,
+      "artifacts": [
+        "architecture-contract.log",
+        "architecture-negative-self-test.log"
+      ]
+    }
+  ],
+  "cutover_deletion_rollback": {
+    "cutover_phase": 129,
+    "exact_allowlist_required": true,
+    "python_rebuild_is_deletion_precondition": false,
+    "partial_cutover_allowed": true,
+    "immediate_move_rows": 507,
+    "immediate_delete_ledger_rows": 297,
+    "immediate_delete_non_ledger_paths": 28,
+    "blocked_go_unit_rows_retained": 245,
+    "phase_129_completion_requires_blocked_units_refactored_and_moved": true,
+    "moved_unit_docker_green_required": true,
+    "unexpected_source_path_policy": "fail",
+    "deletion_scope": "sealed-297-ledger-rows-plus-28-non-ledger-paths",
+    "hook_removal_requires_exact_zero_consumer_scan": true,
+    "cutover_manifest": ".planning/audits/test-rebase/cutover-manifest.json",
+    "commit_shape": "ordered-atomic-cutover-commits",
+    "rollback_strategy": "reverse-order-git-revert-of-affected-atomic-commits",
+    "cleanup_scope": "task-owned-resources-only",
+    "finished_container_policy": "remove-unless-named-downstream-owner-recorded"
+  },
+  "required_adr_markers": [
+    "ADR_STATUS=ACCEPTED",
+    "BASELINE_E2E=DOCKER:53_COLLECTED:48_PASS:5_EXPECTED_SKIP:0_FAIL",
+    "MIGRATION_MODE=GREENFIELD_REBUILD",
+    "LEDGER_HEAD=5708671f00411c7c9e9dbee88b725de2092cbacd",
+    "LEDGER_SHA256=72de6a81b2bd5da8873a98e784a5069a661e9caea083f10722aa85e9f91b4511",
+    "CUTOVER_PARTITION=MOVE:507:KEEP_BLOCKED:245:DELETE:297:NONLEDGER_DELETE:28",
+    "PARTIAL_CUTOVER_ALLOWED=true",
+    "PHASE129_EXIT=HOOK_DEPENDENT_REFACTORED_AND_MOVED",
+    "ROOT_PYTHON_ONLY=testframework/**",
+    "PYTHON_PACKAGE_ROOT=testframework/src/hub_testkit/**",
+    "PYTHON_SUITE_ROOT=testframework/tests/**",
+    "PYTHON_COMPOSITION=testframework/tests/conftest.py:COMPOSITION_ONLY",
+    "PYTHON_SELFTEST_ROOT=testframework/selftests/**",
+    "GENERIC_CORE=FORBIDDEN",
+    "PROGRESSIVE_TREE=FIRST_CONSUMER:NO_EMPTY_DIRS",
+    "BACKEND_UNIT_ROOT=backend/tests/<domain>/**",
+    "FRONTEND_UNIT_ROOT=frontend/tests/<domain>/**",
+    "KEEP_ONLY=ISOLATED_NATIVE_UNITS",
+    "NO_ROW_PARITY=true",
+    "NO_DUAL_RUN=true",
+    "GO_COVERAGE_MIGRATION_BLOCKER=false",
+    "DELETE_ALLOWLIST=TASK-202:SEALED_SOURCE_PATH_SHA256_GROUPS",
+    "TRACEABILITY=TASK:REQUIREMENT:TEST_CASE:RISK",
+    "SCENARIO_DESIGN=HAPPY:NEGATIVE:EDGE:CORNER:SECURITY",
+    "DOCKER_ONLY=true",
+    "ROLLBACK=ATOMIC_COMMIT_REVERT",
+    "PROTECTED_ZONE_DEPENDENCY=FORBIDDEN"
+  ]
+}

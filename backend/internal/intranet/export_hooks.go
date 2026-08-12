@@ -26,3 +26,13 @@ func ExportToCoffeePartner(u *ent.User) CoffeePartnerResponse {
 func ExportPairKey(a, b uuid.UUID) string {
 	return pairKey(a, b)
 }
+
+// ExportBuildCoffeeMatches — FR-INTR-10 matching для hubtest.
+func ExportBuildCoffeeMatches(ids []uuid.UUID, avoid map[string]struct{}) (pairs [][2]uuid.UUID, triples [][3]uuid.UUID) {
+	return buildCoffeeMatches(ids, avoid)
+}
+
+// ExportStripTripleEdgesFromRoundResponse — A2W7-2-N01 для hubtest.
+func ExportStripTripleEdgesFromRoundResponse(resp *CoffeeRoundResponse) {
+	stripTripleEdgesFromRoundResponse(resp)
+}

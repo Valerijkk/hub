@@ -1,5 +1,7 @@
 # Hub — Единая база знаний
 
+> Active Python QA routing: reusable modules belong under `testframework/src/hub_testkit/**`; planned SUT suites belong under `testframework/tests/{contract,api,integration,e2e}/**` and are currently absent.
+
 > Все агенты AI-команды загружают эти файлы **перед любой задачей**.  
 > Регламент: `.cursor/REGULATION.md` · **Docs sync:** `.cursor/rules/55-docs-sync.mdc`
 
@@ -22,6 +24,11 @@
 | [user_needs_analysis_2026.md](user_needs_analysis_2026.md) | Персоны, JTBD | RU |
 | [GLOSSARY.md](GLOSSARY.md) | Термины, ID-конвенции (TC-/FR-/GZ-/ECC-…), модули backend | RU |
 
+Решения о качестве кода и тестов: [`.cursor/knowledge/code-practices/README.md`](../.cursor/knowledge/code-practices/README.md)
+— evidence-aware каталог hard controls, review heuristics, good/bad examples и
+negative sentinels. Он дополняет, но не заменяет `code_style_guide.md`,
+`security_guidelines.md` и доменные спецификации.
+
 ---
 
 ## Справочная документация
@@ -36,7 +43,7 @@
 | [runbooks/](runbooks/README.md) | **Эксплуатация прода:** инцидент, алерты, деплой/откат, БД, бэкапы, ротация секретов |
 | [onboarding/](onboarding/README.md) | Онбординг-листы по ролям (BE/FE/QA-manual/QA-auto/PM+ops) |
 | [wiki/HOME.md](wiki/HOME.md) | Точка входа wiki |
-| [wiki/API.md](wiki/API.md) | Справочник REST API (число endpoints требует пересчёта: грубый счёт регистраций маршрутов даёт ~393, но пути относительны группам) |
+| [wiki/API.md](wiki/API.md) | Справочник REST API (OpenAPI **252** paths в `swagger.json`; исторический route inventory ~286 — см. таблицу в API.md) |
 | [wiki/DEPLOY.md](wiki/DEPLOY.md) | Установка, Docker, CI/CD |
 | [wiki/QUICKSTART.md](wiki/QUICKSTART.md) | Быстрый старт для пользователей |
 | [wiki/SHORTCUTS.md](wiki/SHORTCUTS.md) | Горячие клавиши |
@@ -49,15 +56,15 @@
 | Путь | Назначение |
 |------|------------|
 | `.planning/PROJECT.md` | Полный список требований |
-| `.planning/ROADMAP.md` | Фазы и milestones (исторический) |
-| **`.planning/july-2026/ROADMAP-FINAL-2026-07-03.md`** | **Актуальный roadmap: волны Track F/P, TF-PY, DOCS-EXCELLENCE** |
-| `.planning/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` | **Реестр решений по ~90 серым зонам** |
+| `.planning/ROADMAP.md` | Фазы и milestones; live test-rebase 128–141 + исторические фазы |
+| **`.planning/archive/july-2026/ROADMAP-FINAL-2026-07-03.md`** | **Актуальный roadmap: волны Track F/P, TF-PY, DOCS-EXCELLENCE** |
+| `.planning/decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` | **Реестр решений по ~90 серым зонам** |
 | `.planning/STATE.md` | **Текущий статус сессии** |
 | `.planning/audits/2026-06/AUDIT-2026-06-23.md` | Полный аудит проекта (2026-06-23) |
-| `.planning/july-2026/EXPANSION-ANALYSIS-2026-07-02.md` | Анализ глубины модулей + бэклог расширения |
+| `.planning/archive/july-2026/EXPANSION-ANALYSIS-2026-07-02.md` | Анализ глубины модулей + бэклог расширения |
 | `.planning/research/MARKET-AND-NEEDS-2026-07-02.md` | Рынок/конкуренты/потребности сотрудников |
 | `.planning/COVERAGE.md` | Матрица requirement → code → test |
-| `.planning/specs/PLATFORM-VISION-v4.md` | Corporate super-app vision |
+| `.planning/decisions/specs/PLATFORM-VISION-v4.md` | Corporate super-app vision |
 | `.planning/decisions/ADR-*.md` | AUTH, NOTIF, TZ rewrite, **ARCH-MICROSERVICES-2026** |
 
 ---
@@ -75,23 +82,36 @@
 
 ---
 
-## Быстрые команды
+## Быстрый вход в проверки — только Docker
 
-```bash
-# Полный backend regression
-cd backend && go generate ./ent && go build -tags release ./... \
-  && go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...
-# (в backend/internal/ нет *_test.go — все 499 тестов в backend/testframework/;
-#  покрытие internal меряется флагом -coverpkg=./internal/...)
+> Founder lock 2026-08-07: на Windows host запрещены tests, validators,
+> linters, build/vet, Vite, Playwright, pytest/Locust и тестовые app-процессы.
+> Host используется только для чтения/редактирования, Git и Docker CLI.
 
-# Frontend regression
-cd frontend && npx tsc --noEmit && npm run lint && npx vitest run
+Единственная точка входа — skill `/qa-gate`; он только маршрутизирует task и не может
+её выполнить. Все target jobs в будущем обязаны использовать versioned outer launcher API только
+из `testframework/runner/**` с task-owned names, CPU/RAM/PID limits, wall-clock timeout,
+`reports/<task-run>` + owner marker и cleanup в `finally`. `testframework/docker/**` владеет
+только immutable execution assets. Package, suites и launcher — `NOT_READY`; runtime —
+`NOT_RUN`. Прямые Docker snippets и legacy runners не fallback до separate implementation и
+independent acceptance.
 
-# Локальный стек
-docker compose --env-file .env.local -f docker-compose.local.yml up --build
-```
-
-Skill: `/qa-gate` — останавливается на первой FAIL.
+Test-rebase 128–141: legacy suites frozen и не являются gate; целевые
+пути — `backend/tests/**` (только Go unit), `frontend/tests/**`
+(только Vitest/RTL unit) и единый Python-проект прямо в
+`testframework/`: `src/hub_testkit/**`, planned `tests/{contract,api,integration,e2e}/**`,
+`selftests/**`, `cases/**`, `schemas/**`, `policies/**`, `load/**`, `docker/**`,
+future `runner/**` и `reports/<task-run>/**`. Package, target suites и launcher —
+`NOT_READY`; runtime — `NOT_RUN`. Legacy Go component/API/
+integration, static-contract Vitest и TS Playwright удаляются в атомарной
+Phase 129 по exact `cutover-manifest.json`, без port/parity/dual-run; каждый
+delete batch переключает затронутые CI/scripts/docs в том же commit. Все 245
+hook-dependent genuine Go units защищены до TASK-234. TASK-202 archived/verified;
+current ledger = **1,049 rows / 4,246 declared**, backend **832 / 3,674**,
+E2E baseline **48 pass / 5 expected skip / 0 fail**. Канон:
+[`.planning/active/august-2026/06-TEST-ARCHITECTURE-REBASE.md`](../.planning/active/august-2026/06-TEST-ARCHITECTURE-REBASE.md).
 
 ---
-*2026-07-19 — GLOSSARY, TROUBLESHOOTING, runbooks/, актуализация фактов и счётчиков · 2026-07-03 — реорганизация AI-команды, ADR-MICROSERVICES, ROADMAP-FINAL*
+*2026-08-08 — Docker-only safe runner contract, executable Phase 129 cutover/status ·
+2026-08-07 — root Python testframework contract и current-vs-target split ·
+2026-07-19 — GLOSSARY, TROUBLESHOOTING, runbooks/, актуализация фактов и счётчиков*

@@ -1,11 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Separator } from "@/components/ui/separator";
 import { APIKeysPage } from "@/modules/settings/api-keys";
-import { WebhooksPage } from "@/modules/settings/webhooks";
 
 /**
- * Страница интеграций — API-ключи и вебхуки.
- * Компоненты уже существуют, здесь только маршрут и layout.
+ * Страница интеграций — API-ключи.
+ * Вебхуки привязаны к проекту (`/projects/:id/settings/integrations`),
+ * поэтому здесь только подсказка — без пустого projectId.
  */
 function IntegrationsPage() {
 	return (
@@ -26,9 +26,22 @@ function IntegrationsPage() {
 
 			<Separator className="bg-b1 my-9" />
 
-			{/* Webhooks — в глобальных настройках нет projectId, передаём пустой */}
-			<div className="mb-9">
-				<WebhooksPage projectId="" />
+			{/* Webhooks — только на уровне проекта */}
+			<div className="mb-9 space-y-2" data-testid="webhooks-project-hint">
+				<h3 className="text-[16px] font-bold tracking-[-0.02em]">Вебхуки</h3>
+				<p className="text-[13px] text-t2">
+					Вебхуки настраиваются в настройках конкретного проекта: откройте
+					проект → Настройки → Интеграции.
+				</p>
+				<p className="text-[13px] text-t3">
+					Список проектов:{" "}
+					<Link
+						to="/projects"
+						className="text-blue font-semibold hover:underline"
+					>
+						Перейти к проектам
+					</Link>
+				</p>
 			</div>
 		</div>
 	);

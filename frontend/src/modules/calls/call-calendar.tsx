@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { listScheduledCallsForChannels } from "@/api/calls";
 import { getChannels } from "@/api/messenger";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { Button } from "@/components/ui/button";
 import { AgendaView } from "./calendar-agenda-view";
 import { DayView } from "./calendar-day-view";
@@ -140,8 +141,13 @@ export function CallCalendar() {
 		}
 	}, [view, monthRangeEnd, weekRangeEnd, dayRangeEnd, agendaRangeEnd]);
 
-	// Загружаем каналы для получения списка их ID
-	const { data: channels } = useQuery({
+	// Загружаем каналы для получения списка их ID (FE-MC-001: fail ≠ пустая сетка)
+	const {
+		data: channels,
+		isLoading: channelsLoading,
+		isError: channelsError,
+		refetch: refetchChannels,
+	} = useQuery({
 		queryKey: ["messenger", "channels"],
 		queryFn: getChannels,
 	});
@@ -152,10 +158,15 @@ export function CallCalendar() {
 	);
 
 	// Загружаем запланированные звонки из всех каналов
-	const { data: scheduledCallsData } = useQuery({
+	const {
+		data: scheduledCallsData,
+		isLoading: scheduledLoading,
+		isError: scheduledError,
+		refetch: refetchScheduled,
+	} = useQuery({
 		queryKey: ["calls", "scheduled", channelIds],
 		queryFn: () => listScheduledCallsForChannels(channelIds),
-		enabled: channelIds.length > 0,
+		enabled: !channelsError && channelIds.length > 0,
 	});
 
 	const scheduledCalls = useMemo<ScheduledCallRecord[]>(
@@ -301,8 +312,34 @@ export function CallCalendar() {
 
 	const isCurrentWeek = weekOffset === 0;
 
+	const showCalendarGrid = !channelsError && !channelsLoading;
+
 	return (
 		<div className="space-y-4">
+			{/* FE-MC-001: fail getChannels ≠ пустая сетка */}
+			{channelsLoading && (
+				<p className="text-sm text-t3" role="status">
+					Загрузка каналов…
+				</p>
+			)}
+			{channelsError && (
+				<QueryErrorAlert
+					message="Не удалось загрузить каналы"
+					retry={() => void refetchChannels()}
+				/>
+			)}
+			{/* W10-A1-004: fail scheduled ≠ пустой календарь */}
+			{!channelsError && scheduledLoading && (
+				<p className="text-sm text-t3" role="status">
+					Загрузка запланированных звонков…
+				</p>
+			)}
+			{!channelsError && scheduledError && (
+				<QueryErrorAlert
+					message="Не удалось загрузить запланированные звонки"
+					retry={() => void refetchScheduled()}
+				/>
+			)}
 			{/* Панель навигации */}
 			<div className="flex items-center gap-[14px] pt-[18px] pb-[14px]">
 				{view !== "agenda" && (
@@ -392,8 +429,8 @@ export function CallCalendar() {
 				</Button>
 			</div>
 
-			{/* Область календарных видов */}
-			{view === "month" && (
+			{/* Область календарных видов — не маскируем fail каналов пустой сеткой */}
+			{showCalendarGrid && view === "month" && (
 				<MonthView
 					year={displayMonth.year}
 					month={displayMonth.month}
@@ -403,7 +440,7 @@ export function CallCalendar() {
 					onEventClick={handleEventClick}
 				/>
 			)}
-			{view === "week" && (
+			{showCalendarGrid && view === "week" && (
 				<WeekView
 					weekDays={weekDays}
 					today={today}
@@ -413,7 +450,7 @@ export function CallCalendar() {
 					onEventClick={handleEventClick}
 				/>
 			)}
-			{view === "day" && (
+			{showCalendarGrid && view === "day" && (
 				<DayView
 					day={displayDay}
 					today={today}
@@ -422,7 +459,7 @@ export function CallCalendar() {
 					onEventClick={handleEventClick}
 				/>
 			)}
-			{view === "agenda" && (
+			{showCalendarGrid && view === "agenda" && (
 				<AgendaView events={events} onEventClick={handleEventClick} />
 			)}
 
@@ -445,6 +482,7 @@ export function CallCalendar() {
 								<h3 className="font-semibold">{selectedEvent.title}</h3>
 								<button
 									type="button"
+									aria-label="Закрыть"
 									onClick={() => setSelectedEvent(null)}
 									className="rounded-sm p-0.5 text-t2 hover:text-t1"
 								>

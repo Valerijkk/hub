@@ -35,7 +35,7 @@ func TestHandler_RegisterRoutes_RevokeAPIKeySuccess(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	repo := apigateway.NewEntRepository(client)
+	repo := apigateway.NewEntRepository(client, apigatewayTestCipher(t))
 	apiKeySvc := apigateway.NewAPIKeyService(repo)
 	t.Cleanup(apiKeySvc.Close)
 	h := apigateway.NewHandler(apiKeySvc, apigateway.NewWebhookService(repo))
@@ -93,7 +93,7 @@ func TestHandler_UpdateEndpointAndListDeliveries(t *testing.T) {
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&ep))
 
 	newURL := "https://example.com/hook-v2"
-	updateBody, _ := json.Marshal(apigateway.UpdateWebhookRequest{URL: &newURL})
+	updateBody, _ := json.Marshal(apigateway.UpdateWebhookRequest{URL: &newURL, Version: ep.Version})
 	req = httptest.NewRequest(http.MethodPut, "/api/webhooks/"+ep.ID, bytes.NewReader(updateBody))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err = app.Test(req)

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # v2.5.0 release gate — print checklist before tagging (no auto-tag).
-# Ref: .planning/STATE.md · FA-06: .planning/production/FA-06-EXECUTION-LOG.md
+# Ref: .planning/STATE.md · FA-06: .planning/ops/production/FA-06-EXECUTION-LOG.md
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -44,7 +44,7 @@ fi
 cat <<'EOF'
 
 ── FA-06 / PG-03 (manual — blocks v2.5.0 tag) ──
-  [ ] Phase 0 git scan recorded (.planning/production/FA-06-EXECUTION-LOG.md)
+  [ ] Phase 0 git scan recorded (.planning/ops/production/FA-06-EXECUTION-LOG.md)
   [ ] P1 rotated: RESEND_API_KEY, TELEGRAM_BOT_TOKEN (INF-03)
   [ ] Phase 2 smoke: scripts/fa06-rotate-p2-smoke.sh all pass
   [ ] Old provider keys revoked (Resend, Telegram)

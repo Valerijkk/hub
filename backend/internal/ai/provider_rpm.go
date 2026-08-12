@@ -13,6 +13,9 @@ import (
 // ErrProviderRateLimited — превышен MaxRPM провайдера (AI-SPEC S3).
 var ErrProviderRateLimited = fmt.Errorf("provider rate limit exceeded")
 
+// ErrProviderRPMUnavailable — Redis RPM-проверка недоступна (fail-closed, W5-A2-006 / TASK-085).
+var ErrProviderRPMUnavailable = fmt.Errorf("provider rate limit check unavailable")
+
 // ProviderRPMLimiter — requests/minute на провайдера.
 type ProviderRPMLimiter interface {
 	Allow(ctx context.Context, providerID uuid.UUID, maxRPM int) error
@@ -29,6 +32,7 @@ func NewRedisProviderRPMLimiter(rdb *redis.Client) *RedisProviderRPMLimiter {
 }
 
 // Allow возвращает ErrProviderRateLimited при превышении maxRPM за минуту.
+// При ошибке Redis — ErrProviderRPMUnavailable (не Allow / fail-open).
 func (l *RedisProviderRPMLimiter) Allow(ctx context.Context, providerID uuid.UUID, maxRPM int) error {
 	if l == nil || l.rdb == nil || maxRPM <= 0 {
 		return nil
@@ -40,14 +44,18 @@ func (l *RedisProviderRPMLimiter) Allow(ctx context.Context, providerID uuid.UUI
 
 	pipe := l.rdb.Pipeline()
 	pipe.ZRemRangeByScore(ctx, key, "0", strconv.FormatInt(windowStart-1, 10))
-	member := strconv.FormatInt(now.UnixNano(), 10)
+	// Member уникален: на Windows UnixNano может совпасть в burst (W5-A2-007 / TASK-085).
+	member := strconv.FormatInt(now.UnixNano(), 10) + ":" + uuid.New().String()
 	pipe.ZAdd(ctx, key, redis.Z{Score: float64(nowMs), Member: member})
 	card := pipe.ZCard(ctx, key)
 	pipe.Expire(ctx, key, 2*time.Minute)
 	if _, err := pipe.Exec(ctx); err != nil {
-		return nil
+		// W5-A2-006 / TASK-085: Redis err → fail-closed, не return nil.
+		return fmt.Errorf("%w: %v", ErrProviderRPMUnavailable, err)
 	}
+	// W5-A2-007: rejected не оставляем в ZSET — иначе окно раздувается.
 	if card.Val() > int64(maxRPM) {
+		_ = l.rdb.ZRem(ctx, key, member).Err()
 		return ErrProviderRateLimited
 	}
 	return nil

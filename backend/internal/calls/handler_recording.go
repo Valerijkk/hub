@@ -1,6 +1,7 @@
 package calls
 
 import (
+	"errors"
 	"log/slog"
 	"strconv"
 
@@ -26,6 +27,7 @@ import (
 // @Success 201 {object} RecordingResponse "Запись начата"
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа к каналу звонка"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
 // @Router /api/calls/{callId}/recording/start [post]
@@ -41,6 +43,12 @@ func (h *Handler) StartRecording(c fiber.Ctx) error {
 
 	resp, err := h.recSvc.StartRecording(c.Context(), callID, userID)
 	if err != nil {
+		if errors.Is(err, ErrCallForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "недостаточно прав для записи звонка")
+		}
+		if errors.Is(err, ErrInvalidInput) {
+			return fiber.NewError(fiber.StatusBadRequest, "у канала нет привязанного проекта")
+		}
 		slog.Error("ошибка начала записи", "error", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "не удалось начать запись")
 	}
@@ -57,11 +65,21 @@ func (h *Handler) StartRecording(c fiber.Ctx) error {
 // @Param body body object true "recording_id: ID записи"
 // @Success 200 "Запись остановлена"
 // @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа к записи"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
 // @Router /api/calls/{callId}/recording/stop [post]
 func (h *Handler) StopRecording(c fiber.Ctx) error {
-	// Получаем recording_id из тела запроса
+	callID, err := parseCallID(c)
+	if err != nil {
+		return err
+	}
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+
 	var req struct {
 		RecordingID uuid.UUID `json:"recording_id"`
 	}
@@ -72,7 +90,10 @@ func (h *Handler) StopRecording(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "recording_id обязателен")
 	}
 
-	if err := h.recSvc.StopRecording(c.Context(), req.RecordingID); err != nil {
+	if err := h.recSvc.StopRecording(c.Context(), callID, req.RecordingID, userID); err != nil {
+		if errors.Is(err, ErrCallForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "недостаточно прав для остановки записи")
+		}
 		slog.Error("ошибка остановки записи", "error", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "не удалось остановить запись")
 	}
@@ -105,19 +126,21 @@ func (h *Handler) ListProjectRecordings(c fiber.Ctx) error {
 		return err
 	}
 
-	// CR-02: проверяем, что пользователь — член проекта и имеет право просмотра.
-	if h.rbacSvc != nil {
-		effective, permErr := h.rbacSvc.GetEffectivePermissions(c.Context(), userID, projectID)
-		if permErr != nil {
-			if ent.IsNotFound(permErr) {
-				return fiber.NewError(fiber.StatusForbidden, "not a project member")
-			}
-			slog.Error("rbac check failed", "error", permErr)
-			return fiber.NewError(fiber.StatusInternalServerError, "failed to check permissions")
+	// CR-02 / W3-A5-013: fail-closed без RBAC — ошибочный wiring не открывает IDOR.
+	if h.rbacSvc == nil {
+		slog.Error("rbac service not configured for ListProjectRecordings")
+		return fiber.NewError(fiber.StatusInternalServerError, "RBAC service not configured")
+	}
+	effective, permErr := h.rbacSvc.GetEffectivePermissions(c.Context(), userID, projectID)
+	if permErr != nil {
+		if ent.IsNotFound(permErr) {
+			return fiber.NewError(fiber.StatusForbidden, "not a project member")
 		}
-		if !effective.Has(rbac.PermProjectView) {
-			return fiber.NewError(fiber.StatusForbidden, "insufficient permissions")
-		}
+		slog.Error("rbac check failed", "error", permErr)
+		return fiber.NewError(fiber.StatusInternalServerError, "failed to check permissions")
+	}
+	if !effective.Has(rbac.PermProjectView) {
+		return fiber.NewError(fiber.StatusForbidden, "insufficient permissions")
 	}
 
 	offset := 0
@@ -168,24 +191,26 @@ func (h *Handler) GetRecordingDownloadURL(c fiber.Ctx) error {
 		return err
 	}
 
-	// CR-02: загружаем запись для получения её проекта и проверяем доступ.
-	if h.rbacSvc != nil {
-		projectID, projErr := h.recSvc.RecordingProjectID(c.Context(), recordingID)
-		if projErr != nil {
-			slog.Error("recording lookup failed", "error", projErr)
-			return fiber.NewError(fiber.StatusNotFound, "запись не найдена")
+	// CR-02 / W3-A5-013: fail-closed без RBAC — ошибочный wiring не открывает IDOR.
+	if h.rbacSvc == nil {
+		slog.Error("rbac service not configured for GetRecordingDownloadURL")
+		return fiber.NewError(fiber.StatusInternalServerError, "RBAC service not configured")
+	}
+	projectID, projErr := h.recSvc.RecordingProjectID(c.Context(), recordingID)
+	if projErr != nil {
+		slog.Error("recording lookup failed", "error", projErr)
+		return fiber.NewError(fiber.StatusNotFound, "запись не найдена")
+	}
+	effective, permErr := h.rbacSvc.GetEffectivePermissions(c.Context(), userID, projectID)
+	if permErr != nil {
+		if ent.IsNotFound(permErr) {
+			return fiber.NewError(fiber.StatusForbidden, "not a project member")
 		}
-		effective, permErr := h.rbacSvc.GetEffectivePermissions(c.Context(), userID, projectID)
-		if permErr != nil {
-			if ent.IsNotFound(permErr) {
-				return fiber.NewError(fiber.StatusForbidden, "not a project member")
-			}
-			slog.Error("rbac check failed", "error", permErr)
-			return fiber.NewError(fiber.StatusInternalServerError, "failed to check permissions")
-		}
-		if !effective.Has(rbac.PermProjectView) {
-			return fiber.NewError(fiber.StatusForbidden, "insufficient permissions")
-		}
+		slog.Error("rbac check failed", "error", permErr)
+		return fiber.NewError(fiber.StatusInternalServerError, "failed to check permissions")
+	}
+	if !effective.Has(rbac.PermProjectView) {
+		return fiber.NewError(fiber.StatusForbidden, "insufficient permissions")
 	}
 
 	resp, err := h.recSvc.GetRecordingDownloadURL(c.Context(), recordingID)

@@ -4,7 +4,7 @@ stage: e2e
 needs: [frontend-test]
 working_directory: frontend
 playwright_project: chromium-smoke
-grep: "login page|full page has no critical|path 1"
+grep: "login page loads with Hub branding$|full page has no critical or serious axe violations$|path 1: login page loads without backend$"
 
 specs:
   - domains/auth/login.spec.ts

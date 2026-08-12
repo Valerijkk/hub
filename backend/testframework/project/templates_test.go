@@ -57,6 +57,9 @@ func (m *templateMockRepo) CreateTemplate(_ context.Context, name, description s
 		IsSystem:     isSystem,
 		CreatedAt:    time.Now(),
 	}
+	if createdBy != nil {
+		t.Edges.CreatedBy = &ent.User{ID: *createdBy}
+	}
 	m.templates[id] = t
 	return t, nil
 }
@@ -141,7 +144,7 @@ func TestTemplateService_DeleteTemplate_SystemForbidden(t *testing.T) {
 		ID: systemID, Name: "System", IsSystem: true, CreatedAt: time.Now(),
 	}
 
-	err := svc.DeleteTemplate(ctx, systemID)
+	err := svc.DeleteTemplate(ctx, systemID, uuid.New())
 	require.Error(t, err)
 }
 

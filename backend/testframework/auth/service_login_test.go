@@ -2,11 +2,8 @@ package auth_test
 
 // Тесты сервиса аутентификации: интеграционные и unit-сценарии testframework.
 import (
-	"github.com/valerii/hub/backend/internal/auth"
 	"context"
 	"errors"
-	"net/url"
-	"strconv"
 	"testing"
 	"time"
 
@@ -19,6 +16,8 @@ import (
 
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/enttest"
+	"github.com/valerii/hub/backend/ent/user"
+	"github.com/valerii/hub/backend/internal/auth"
 )
 
 func newLoginTestEnv(t *testing.T) (*auth.LoginService, *ent.Client, *auth.MagicLinkService) {
@@ -38,8 +37,57 @@ func newLoginTestEnv(t *testing.T) (*auth.LoginService, *ent.Client, *auth.Magic
 	sessions := auth.NewSessionService(repo, rdb, nil, "login-jwt-secret", 15*time.Minute, 30*24*time.Hour)
 	regMode := auth.NewRegistrationModeService(repo, nil)
 	org := auth.NewOrganizationService(repo)
-	login := auth.NewLoginService(repo, magic, "telegram-bot-token", sessions, regMode, org)
+	login := auth.NewLoginService(repo, magic, sessions, regMode, org)
 	return login, client, magic
+}
+
+// TestLoginWithMagicLink_PendingUserDenied — A1-001 / ORG-06: pending не получает JWT до admin approve.
+func TestLoginWithMagicLink_PendingUserDenied(t *testing.T) {
+	login, client, magic := newLoginTestEnv(t)
+	ctx := context.Background()
+	email := "pending-" + uuid.New().String()[:8] + "@example.com"
+
+	_, err := client.User.Create().
+		SetEmail(email).
+		SetStatus(user.StatusPending).
+		Save(ctx)
+	require.NoError(t, err)
+
+	code, err := magic.SendMagicLink(ctx, email)
+	require.NoError(t, err)
+
+	pair, err := login.LoginWithMagicLink(ctx, email, code, "", "browser", "127.0.0.1")
+	require.ErrorIs(t, err, auth.ErrAccountNotActive)
+	assert.Nil(t, pair)
+
+	sessions, err := client.Session.Query().Count(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, 0, sessions)
+}
+
+// TestLoginWithMagicLink_DeactivatedUserDenied — A3W6-2-001 / ORG-06 / ECC-AUTH-224:
+// deactivated не получает JWT; мутация guard на == Pending должна краснеть.
+func TestLoginWithMagicLink_DeactivatedUserDenied(t *testing.T) {
+	login, client, magic := newLoginTestEnv(t)
+	ctx := context.Background()
+	email := "deactivated-" + uuid.New().String()[:8] + "@example.com"
+
+	_, err := client.User.Create().
+		SetEmail(email).
+		SetStatus(user.StatusDeactivated).
+		Save(ctx)
+	require.NoError(t, err)
+
+	code, err := magic.SendMagicLink(ctx, email)
+	require.NoError(t, err)
+
+	pair, err := login.LoginWithMagicLink(ctx, email, code, "", "browser", "127.0.0.1")
+	require.ErrorIs(t, err, auth.ErrAccountNotActive)
+	assert.Nil(t, pair)
+
+	sessions, err := client.Session.Query().Count(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, 0, sessions)
 }
 
 // TestLoginWithMagicLink_Success проверяет сценарий: вход with magic link успех.
@@ -93,68 +141,6 @@ func TestLoginWithMagicLink_ExistingUser(t *testing.T) {
 	assert.Equal(t, 1, count)
 }
 
-// TestLoginWithTelegramUser_ExistingUser проверяет сценарий: вход with Telegram user existing user.
-func TestLoginWithTelegramUser_ExistingUser(t *testing.T) {
-	login, client, _ := newLoginTestEnv(t)
-	ctx := context.Background()
-	tgID := "987654321"
-
-	_, err := client.User.Create().
-		SetEmail("telegram_" + tgID + "@hub.local").
-		SetTelegramID(tgID).
-		SetName("Existing TG").
-		Save(ctx)
-	require.NoError(t, err)
-
-	pair, err := login.LoginWithTelegramUser(ctx, &auth.TelegramUser{
-		ID: 987654321, FirstName: "Existing", LastName: "User",
-	}, "tg-app", "192.168.1.1")
-	require.NoError(t, err)
-	require.NotEmpty(t, pair.AccessToken)
-	require.NotEmpty(t, pair.RefreshToken)
-}
-
-// TestLoginWithTelegramUser_NewUser проверяет сценарий: вход with Telegram user new user.
-func TestLoginWithTelegramUser_NewUser(t *testing.T) {
-	login, client, _ := newLoginTestEnv(t)
-	ctx := context.Background()
-	_, err := client.SystemSetting.Create().
-		SetKey("registration_mode").
-		SetValue("open").
-		SetDescription("test").
-		Save(ctx)
-	require.NoError(t, err)
-
-	pair, err := login.LoginWithTelegramUser(ctx, &auth.TelegramUser{
-		ID: 111222333, FirstName: "New", Username: "newtg",
-	}, "tg-app", "192.168.1.2")
-	require.NoError(t, err)
-	require.NotEmpty(t, pair.AccessToken)
-
-	count, err := client.User.Query().Count(ctx)
-	require.NoError(t, err)
-	assert.Equal(t, 1, count)
-}
-
-// TestLoginWithTelegramUser_InviteOnlyBlocked проверяет сценарий: вход with Telegram user приглашение only blocked.
-func TestLoginWithTelegramUser_InviteOnlyBlocked(t *testing.T) {
-	login, client, _ := newLoginTestEnv(t)
-	ctx := context.Background()
-
-	_, err := client.SystemSetting.Create().
-		SetKey("registration_mode").
-		SetValue("invite_only").
-		SetDescription("test").
-		Save(ctx)
-	require.NoError(t, err)
-
-	_, err = login.LoginWithTelegramUser(ctx, &auth.TelegramUser{
-		ID: 444555666, FirstName: "Blocked",
-	}, "tg-app", "10.0.0.3")
-	require.Error(t, err)
-	assert.True(t, errors.Is(err, auth.ErrRegistrationInviteOnly))
-}
-
 // TestUserExistsByEmail проверяет сценарий: user exists by email.
 func TestUserExistsByEmail(t *testing.T) {
 	login, client, _ := newLoginTestEnv(t)
@@ -171,34 +157,4 @@ func TestUserExistsByEmail(t *testing.T) {
 	ok, err = login.UserExistsByEmail(ctx, email)
 	require.NoError(t, err)
 	assert.True(t, ok)
-}
-
-// TestLoginWithTelegram_ValidInitData проверяет сценарий: вход with Telegram корректный init data.
-func TestLoginWithTelegram_ValidInitData(t *testing.T) {
-	login, client, _ := newLoginTestEnv(t)
-	ctx := context.Background()
-	_, err := client.SystemSetting.Create().
-		SetKey("registration_mode").
-		SetValue("open").
-		SetDescription("test").
-		Save(ctx)
-	require.NoError(t, err)
-
-	botToken := "telegram-bot-token"
-
-	authDate := strconv.FormatInt(time.Now().Unix(), 10)
-	userJSON := `{"id":555666777,"first_name":"TG","last_name":"User"}`
-	params := url.Values{}
-	params.Set("auth_date", authDate)
-	params.Set("user", userJSON)
-	params.Set("query_id", "q1")
-	params.Set("hash", computeTelegramHash(t, botToken, params))
-
-	pair, err := login.LoginWithTelegram(ctx, params.Encode(), "tg-web", "10.0.0.5")
-	require.NoError(t, err)
-	require.NotEmpty(t, pair.AccessToken)
-
-	count, err := client.User.Query().Count(ctx)
-	require.NoError(t, err)
-	assert.Equal(t, 1, count)
 }

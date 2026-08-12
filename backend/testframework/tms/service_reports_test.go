@@ -37,12 +37,13 @@ func TestDeleteTestCase(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
-	created, err := svc.CreateTestCase(ctx, uuid.New(), uuid.New(), tms.CreateTestCaseRequest{Title: "Delete me"})
+	created, err := svc.CreateTestCase(ctx, projectID, uuid.New(), tms.CreateTestCaseRequest{Title: "Delete me"})
 	require.NoError(t, err)
 
-	require.NoError(t, svc.DeleteTestCase(ctx, created.CaseKey))
-	_, err = svc.GetTestCase(ctx, created.CaseKey)
+	require.NoError(t, svc.DeleteTestCase(ctx, projectID, created.CaseKey))
+	_, err = svc.GetTestCase(ctx, projectID, created.CaseKey)
 	require.Error(t, err)
 }
 
@@ -51,18 +52,19 @@ func TestListTestCaseVersions(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
-	created, err := svc.CreateTestCase(ctx, uuid.New(), uuid.New(), tms.CreateTestCaseRequest{Title: "Versioned"})
+	created, err := svc.CreateTestCase(ctx, projectID, uuid.New(), tms.CreateTestCaseRequest{Title: "Versioned"})
 	require.NoError(t, err)
 
 	newTitle := "v2"
-	_, err = svc.UpdateTestCase(ctx, created.CaseKey, uuid.New(), tms.UpdateTestCaseRequest{
+	_, err = svc.UpdateTestCase(ctx, projectID, created.CaseKey, uuid.New(), tms.UpdateTestCaseRequest{
 		Title:   &newTitle,
 		Version: 1,
 	})
 	require.NoError(t, err)
 
-	versions, err := svc.ListTestCaseVersions(ctx, created.CaseKey)
+	versions, err := svc.ListTestCaseVersions(ctx, projectID, created.CaseKey)
 	require.NoError(t, err)
 	assert.Len(t, versions, 1)
 }
@@ -158,6 +160,7 @@ func TestGetRunComparison_StatusChanges(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
 	tcID := uuid.New()
 	repo.testCases[tcID] = &ent.TestCase{ID: tcID, CaseKey: "HUB-TC-50", Title: "Compare case"}
@@ -168,10 +171,12 @@ func TestGetRunComparison_StatusChanges(t *testing.T) {
 	repo.runs[run1ID] = &ent.TestRun{
 		ID: run1ID, Title: "Run A", TotalCount: 1, PassedCount: 1,
 		CreatedAt: now, UpdatedAt: now,
+		Edges:     ent.TestRunEdges{Project: &ent.Project{ID: projectID}},
 	}
 	repo.runs[run2ID] = &ent.TestRun{
 		ID: run2ID, Title: "Run B", TotalCount: 1, FailedCount: 1,
 		CreatedAt: now.Add(time.Hour), UpdatedAt: now.Add(time.Hour),
+		Edges:     ent.TestRunEdges{Project: &ent.Project{ID: projectID}},
 	}
 
 	r1 := uuid.New()
@@ -189,7 +194,7 @@ func TestGetRunComparison_StatusChanges(t *testing.T) {
 		run2ID: {r2},
 	}
 
-	cmp, err := svc.GetRunComparison(ctx, run1ID, run2ID)
+	cmp, err := svc.GetRunComparison(ctx, projectID, run1ID, run2ID)
 	require.NoError(t, err)
 	require.Len(t, cmp.Changes, 1)
 	assert.Equal(t, "HUB-TC-50", cmp.Changes[0].CaseKey)

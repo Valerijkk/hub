@@ -8,9 +8,12 @@ function resetAIStore(): void {
 		botDisplayName: "@hub-ai",
 		models: [],
 		selectedModel: null,
+		preferenceVersion: 0,
 		panelOpen: false,
 		prefillInput: null,
 		loaded: false,
+		botLoadError: false,
+		modelsError: false,
 	});
 }
 
@@ -70,18 +73,59 @@ describe("ai-store", () => {
 		vi.spyOn(aiApi, "getAIPreferences").mockResolvedValue({
 			default_model: "deepseek-chat",
 			allow_external_ai: true,
+			version: 5,
 		});
 		await useAIStore.getState().loadModels();
 		expect(useAIStore.getState().selectedModel).toBe("deepseek-chat");
+		expect(useAIStore.getState().preferenceVersion).toBe(5);
 	});
 
-	it("saveSelectedModel persists preference", async () => {
+	it("saveSelectedModel persists preference with version", async () => {
+		useAIStore.setState({ preferenceVersion: 5 });
 		const patchSpy = vi.spyOn(aiApi, "updateAIPreferences").mockResolvedValue({
 			default_model: "llama3",
 			allow_external_ai: true,
+			version: 6,
 		});
 		await useAIStore.getState().saveSelectedModel("llama3");
-		expect(patchSpy).toHaveBeenCalledWith({ default_model: "llama3" });
+		expect(patchSpy).toHaveBeenCalledWith({
+			default_model: "llama3",
+			version: 5,
+		});
 		expect(useAIStore.getState().selectedModel).toBe("llama3");
+		expect(useAIStore.getState().preferenceVersion).toBe(6);
+	});
+
+	it("loadBotInfo fail does not set loaded (W11-A2-002)", async () => {
+		vi.spyOn(aiApi, "getAIBotInfo").mockRejectedValue(new Error("network"));
+		await useAIStore.getState().loadBotInfo();
+		const s = useAIStore.getState();
+		expect(s.loaded).toBe(false);
+		expect(s.botLoadError).toBe(true);
+		// retry still possible
+		vi.spyOn(aiApi, "getAIBotInfo").mockResolvedValue({
+			user_id: "bot-uuid",
+			display_name: "@hub-ai",
+			email: "hub-ai@system.local",
+		});
+		await useAIStore.getState().loadBotInfo();
+		expect(useAIStore.getState().loaded).toBe(true);
+		expect(useAIStore.getState().botLoadError).toBe(false);
+	});
+
+	it("loadModels fail sets modelsError (W11-A2-003)", async () => {
+		vi.spyOn(aiApi, "getAIModels").mockRejectedValue(new Error("network"));
+		await useAIStore.getState().loadModels();
+		expect(useAIStore.getState().modelsError).toBe(true);
+		expect(useAIStore.getState().models).toEqual([]);
+	});
+
+	it("saveSelectedModel rolls back on fail (W11-A2-003)", async () => {
+		useAIStore.setState({ selectedModel: "prev-model" });
+		vi.spyOn(aiApi, "updateAIPreferences").mockRejectedValue(
+			new Error("network"),
+		);
+		await useAIStore.getState().saveSelectedModel("new-model");
+		expect(useAIStore.getState().selectedModel).toBe("prev-model");
 	});
 });

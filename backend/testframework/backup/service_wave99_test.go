@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -55,25 +54,24 @@ func installFakeBackupBinaries(t *testing.T, mongoFail bool) {
 	t.Setenv("PATH", dir+string(os.PathListSeparator)+oldPath)
 }
 
-func TestPerformBackup_CompletesWithoutS3(t *testing.T) {
+func TestPerformBackup_FailsClosedWithoutS3_P1_BE_39(t *testing.T) {
 	installFakeBackupBinaries(t, false)
 
 	svc, client, ctx := newBackupTestService(t)
 	backup.ExportBackupSetURLs(svc, "postgres://localhost/hub_test", "mongodb://localhost:27017/hub_test")
+	// s3Client остаётся nil (default newBackupTestService).
 
 	resp, err := svc.PerformBackup(ctx)
-	require.NoError(t, err)
-	require.NotNil(t, resp)
+	require.Error(t, err, "W7-A4-004: без S3 нельзя MarkCompleted")
+	assert.Nil(t, resp)
+	assert.Contains(t, err.Error(), "s3")
 
 	records, err := client.BackupRecord.Query().All(ctx)
 	require.NoError(t, err)
 	require.Len(t, records, 1)
-	assert.Equal(t, backuprecord.StatusCompleted, records[0].Status)
-	assert.Greater(t, records[0].FileSize, int64(0))
-
-	// Даём горутине очистки завершиться.
-	time.Sleep(50 * time.Millisecond)
+	assert.Equal(t, backuprecord.StatusFailed, records[0].Status)
 }
+
 
 func TestPerformBackup_MongoDumpFailsAfterPgSuccess(t *testing.T) {
 	installFakeBackupBinaries(t, true)
@@ -82,8 +80,9 @@ func TestPerformBackup_MongoDumpFailsAfterPgSuccess(t *testing.T) {
 	backup.ExportBackupSetURLs(svc, "postgres://localhost/hub_test", "mongodb://localhost:27017/hub_test")
 
 	resp, err := svc.PerformBackup(ctx)
-	require.NoError(t, err)
-	require.NotNil(t, resp)
+	require.Error(t, err, "A7-004: mongodump failure must not return nil error")
+	assert.Nil(t, resp)
+	assert.Contains(t, err.Error(), "mongodump")
 
 	records, err := client.BackupRecord.Query().All(ctx)
 	require.NoError(t, err)

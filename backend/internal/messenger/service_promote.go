@@ -54,9 +54,7 @@ func (s *MessengerService) SetIssuePromoter(p IssuePromoter) {
 }
 
 // SetPromotePermissionChecker подключает RBAC-проверку target-проекта для
-// /promote-to-issue. Допускается nil — при отсутствии проверка пропускается,
-// и фактически право создания задачи определяется реализацией IssuePromoter
-// (которая может вернуть ent FK-error или собственную ошибку).
+// /promote-to-issue. Nil недопустим в prod: PromoteToIssue fail-closed (403).
 func (s *MessengerService) SetPromotePermissionChecker(c PromotePermissionChecker) {
 	s.promoteCheck = c
 }
@@ -79,8 +77,8 @@ type PromoteToIssueResponse struct {
 //
 // Контракт:
 //  1. Пользователь должен быть участником канала-источника (IsMember).
-//  2. Пользователь должен иметь PermTaskCreate в целевом проекте — это проверяет
-//     IssuePromoter.CreateIssueFromPromotion (он же читает RBAC-кеш).
+//  2. Пользователь должен иметь PermTaskCreate в целевом проекте —
+//     проверяет PromotePermissionChecker (fail-closed при nil).
 //  3. Описание задачи собирается из родительского сообщения + сиблингов треда:
 //     заголовок «Promoted from #channel-name on YYYY-MM-DD», далее markdown
 //     список «- @user: msg».
@@ -106,9 +104,7 @@ func (s *MessengerService) PromoteToIssue(
 	if title == "" {
 		return nil, apperrors.NewBadRequest("title обязателен")
 	}
-	if len(title) > 500 {
-		title = title[:500]
-	}
+	title = truncateRunes(title, 500)
 
 	issueType := strings.TrimSpace(req.IssueType)
 	if issueType == "" {
@@ -128,6 +124,18 @@ func (s *MessengerService) PromoteToIssue(
 	}
 	if !isMember {
 		return nil, apperrors.NewForbidden("вы не являетесь участником канала-источника")
+	}
+
+	// 2b. PermTaskCreate в целевом проекте (TASK-010 / W3-A2-001). Fail-closed.
+	if s.promoteCheck == nil {
+		return nil, apperrors.NewForbidden("проверка прав не сконфигурирована")
+	}
+	canCreate, checkErr := s.promoteCheck.CanCreateTaskInProject(ctx, userID, projectID)
+	if checkErr != nil {
+		return nil, apperrors.NewInternal("ошибка проверки прав на создание задачи")
+	}
+	if !canCreate {
+		return nil, apperrors.NewForbidden("нет права создавать задачи в проекте")
 	}
 
 	// 3. Канал — для имени в описании.
@@ -170,7 +178,7 @@ func (s *MessengerService) PromoteToIssue(
 	// 6. Формируем описание (Plate-совместимый JSON: doc → paragraph children).
 	description := s.buildPromotionDescription(ctx, channelName, parent, replies)
 
-	// 7. Создаём задачу через IssuePromoter (он же проверяет RBAC на проект).
+	// 7. Создаём задачу через IssuePromoter (RBAC уже проверен выше).
 	issueKey, issueID, err := s.issuePromoter.CreateIssueFromPromotion(ctx, projectID, userID, title, issueType, description)
 	if err != nil {
 		return nil, err

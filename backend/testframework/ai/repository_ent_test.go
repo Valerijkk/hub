@@ -13,6 +13,7 @@ import (
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/aiprovider"
 	"github.com/valerii/hub/backend/ent/enttest"
+	cryptopkg "github.com/valerii/hub/backend/internal/platform/crypto"
 )
 
 func newAIRepoEnv(t *testing.T) (*ai.EntRepository, *ent.Client, context.Context, uuid.UUID) {
@@ -28,7 +29,9 @@ func newAIRepoEnv(t *testing.T) (*ai.EntRepository, *ent.Client, context.Context
 		Save(ctx)
 	require.NoError(t, err)
 
-	return ai.NewEntRepository(client, nil), client, ctx, user.ID
+	cipher, err := cryptopkg.NewCipherFromKey(cryptopkg.DeriveDevKey())
+	require.NoError(t, err)
+	return ai.NewEntRepository(client, cipher), client, ctx, user.ID
 }
 
 func TestEntRepository_ProviderCRUDAndModels(t *testing.T) {
@@ -46,7 +49,7 @@ func TestEntRepository_ProviderCRUDAndModels(t *testing.T) {
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "DeepSeek", created.Name)
-	assert.Equal(t, "sk-test", created.APIKeyEnc)
+	assert.NotEqual(t, "sk-test", created.APIKeyEnc, "api key must be encrypted at rest")
 
 	list, err := repo.ListProviders(ctx, "system")
 	require.NoError(t, err)
@@ -59,6 +62,7 @@ func TestEntRepository_ProviderCRUDAndModels(t *testing.T) {
 	disabled := false
 	updated, err := repo.UpdateProvider(ctx, created.ID, ai.UpdateProviderInput{
 		Enabled: &disabled,
+		Version: created.Version,
 	})
 	require.NoError(t, err)
 	assert.False(t, updated.Enabled)
@@ -68,7 +72,7 @@ func TestEntRepository_ProviderCRUDAndModels(t *testing.T) {
 	assert.Empty(t, models)
 
 	enabled := true
-	_, err = repo.UpdateProvider(ctx, created.ID, ai.UpdateProviderInput{Enabled: &enabled})
+	_, err = repo.UpdateProvider(ctx, created.ID, ai.UpdateProviderInput{Enabled: &enabled, Version: updated.Version})
 	require.NoError(t, err)
 
 	models, err = repo.ListModels(ctx, &userID)
@@ -109,6 +113,8 @@ func TestEntRepository_UserProviderAndPreferences(t *testing.T) {
 	gotUser, err := repo.GetUserProvider(ctx, userID, userProv.ID)
 	require.NoError(t, err)
 	assert.Equal(t, userProv.ID, gotUser.ID)
+	// A2W5-A3-009: GetUserProvider redacts API key (mutation: drop redact → FAIL).
+	assert.Empty(t, gotUser.APIKeyEnc)
 
 	model := "gpt-4o-mini"
 	require.NoError(t, repo.SaveUserPreference(ctx, userID, ai.SaveUserPreferenceInput{
@@ -168,6 +174,7 @@ func TestEntRepository_UpdateProvider_AllFields(t *testing.T) {
 		MaxRPM:     &maxRPM,
 		RuResident: &ru,
 		APIKey:     &emptyKey,
+		Version:    created.Version,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "Renamed", updated.Name)
@@ -180,7 +187,7 @@ func TestEntRepository_UpdateProvider_AllFields(t *testing.T) {
 	assert.Empty(t, updated.APIKeyEnc)
 
 	newKey := "sk-new"
-	_, err = repo.UpdateProvider(ctx, created.ID, ai.UpdateProviderInput{APIKey: &newKey})
+	_, err = repo.UpdateProvider(ctx, created.ID, ai.UpdateProviderInput{APIKey: &newKey, Version: updated.Version})
 	require.NoError(t, err)
 	got, err := repo.GetProvider(ctx, created.ID)
 	require.NoError(t, err)
@@ -197,7 +204,7 @@ func TestEntRepository_UpdateProvider_InvalidURL(t *testing.T) {
 	require.NoError(t, err)
 
 	bad := "file:///etc/passwd"
-	_, err = repo.UpdateProvider(ctx, created.ID, ai.UpdateProviderInput{BaseURL: &bad})
+	_, err = repo.UpdateProvider(ctx, created.ID, ai.UpdateProviderInput{BaseURL: &bad, Version: created.Version})
 	require.Error(t, err)
 }
 

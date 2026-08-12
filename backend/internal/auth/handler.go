@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"errors"
 	"net/mail"
 	"strings"
 	"unicode/utf8"
@@ -9,6 +10,7 @@ import (
 	"github.com/gofiber/utils/v2"
 	"github.com/google/uuid"
 
+	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 	httputil "github.com/valerii/hub/backend/internal/platform/http"
 )
 
@@ -44,6 +46,8 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 	authGroup.Post("/me/onboarding", h.CompleteOnboarding)
 	authGroup.Get("/sessions", h.ListSessions)
 	authGroup.Delete("/sessions/:sessionId", h.RevokeSession)
+	// ADR-WS-JWT-HANDSHAKE-2026: short-lived ticket для WS (не access JWT в query).
+	authGroup.Post("/ws-ticket", h.CreateWSTicket)
 
 	// Эндпоинты только для администраторов.
 	admin := api.Group("/admin", authMw)
@@ -137,6 +141,9 @@ func (h *Handler) VerifyMagicLink(c fiber.Ctx) error {
 		if err == ErrRegistrationInviteOnly || err == ErrInvalidInviteToken {
 			return fiber.NewError(fiber.StatusForbidden, "registration is by invite only")
 		}
+		if err == ErrAccountNotActive {
+			return fiber.NewError(fiber.StatusForbidden, "account pending approval")
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, "login failed")
 	}
 
@@ -191,6 +198,32 @@ func (h *Handler) Logout(c fiber.Ctx) error {
 	return c.JSON(fiber.Map{"message": "Logged out"})
 }
 
+// CreateWSTicket выдаёт одноразовый short-lived ticket для WebSocket handshake.
+// @Summary Выдать WS ticket
+// @Description Одноразовый ticket (TTL 30s) для Sec-WebSocket-Protocol hub.ws.ticket.<ticket>
+// @Tags auth
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} WSTicketResponse
+// @Failure 401 {object} map[string]string "Не аутентифицирован"
+// @Router /auth/ws-ticket [post]
+func (h *Handler) CreateWSTicket(c fiber.Ctx) error {
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "user not authenticated")
+	}
+	sessionID, err := sessionIDFromCtx(c)
+	if err != nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "invalid session")
+	}
+
+	ticket, expiresIn, err := h.service.IssueWSTicket(c.Context(), userID.String(), sessionID.String())
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "failed to issue ws ticket")
+	}
+	return c.JSON(WSTicketResponse{Ticket: ticket, ExpiresIn: expiresIn})
+}
+
 // GetMe возвращает профиль текущего аутентифицированного пользователя.
 // @Summary Получить профиль текущего пользователя
 // @Description Возвращает данные профиля по JWT-токену
@@ -239,6 +272,10 @@ func (h *Handler) UpdateProfile(c fiber.Ctx) error {
 
 	u, err := h.service.UpdateProfile(c.Context(), userID, req)
 	if err != nil {
+		var appErr *apperrors.AppError
+		if errors.As(err, &appErr) {
+			return err
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, "update profile failed")
 	}
 
@@ -270,6 +307,10 @@ func (h *Handler) CompleteOnboarding(c fiber.Ctx) error {
 
 	u, err := h.service.CompleteOnboarding(c.Context(), userID, req)
 	if err != nil {
+		var appErr *apperrors.AppError
+		if errors.As(err, &appErr) {
+			return err
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, "onboarding failed")
 	}
 

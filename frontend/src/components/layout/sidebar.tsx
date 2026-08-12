@@ -57,6 +57,9 @@ export function Sidebar() {
 								<TooltipTrigger asChild>
 									<Link
 										to="/projects/new"
+										aria-label={t("sidebar.createProject", {
+											defaultValue: "Создать проект",
+										})}
 										className="flex h-7 w-7 items-center justify-center rounded-full text-sidebar-muted hover:text-sidebar-foreground hover:bg-[var(--hover)] transition-colors duration-150"
 									>
 										<svg

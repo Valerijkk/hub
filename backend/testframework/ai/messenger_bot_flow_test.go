@@ -1,16 +1,18 @@
 ﻿package ai_test
+
 import (
-	"github.com/valerii/hub/backend/internal/ai"
 	"context"
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/aiprovider"
-
+	"github.com/valerii/hub/backend/internal/ai"
 	messengermod "github.com/valerii/hub/backend/internal/messenger"
 	searchmod "github.com/valerii/hub/backend/internal/search"
 )
@@ -23,10 +25,14 @@ func setupHubAIBot(t *testing.T, adapter ai.ChatAdapter) (*ai.MessengerBot, *mes
 	msgSvc := messengermod.NewMessengerService(hookRepo.Repository(), nil, nil, nil)
 	msgSvc.SetSystemBotID(botID)
 
-	repo := &mockRepo{providers: []*ent.AIProvider{{
-		ID: uuid.New(), Name: "Test", BaseURL: "https://api.example.com/v1",
-		Models: []string{"test-model"}, Enabled: true, Scope: aiprovider.ScopeSystem,
-	}}}
+	// Cloud mock provider → явный AllowExternalAI (A3W5-3-005 opt-in default false).
+	repo := &mockRepo{
+		providers: []*ent.AIProvider{{
+			ID: uuid.New(), Name: "Test", BaseURL: "https://api.example.com/v1",
+			Models: []string{"test-model"}, Enabled: true, Scope: aiprovider.ScopeSystem,
+		}},
+		allowExternal: map[uuid.UUID]bool{userID: true},
+	}
 	aiSvc := ai.NewService(repo, adapter, nil)
 	bot := ai.NewMessengerBot(aiSvc, msgSvc, botID)
 	channelID := hookRepo.SetupDM(userID, botID)
@@ -35,20 +41,32 @@ func setupHubAIBot(t *testing.T, adapter ai.ChatAdapter) (*ai.MessengerBot, *mes
 
 func TestMessengerBot_OnMessageSent_DMStreamReply(t *testing.T) {
 	adapter := &streamingMockAdapter{chunks: []string{"Привет", "!"}}
-	bot, _, userID, channelID, _ := setupHubAIBot(t, adapter)
+	bot, hookRepo, userID, channelID, botID := setupHubAIBot(t, adapter)
 
 	err := bot.OnMessageSent(context.Background(), messengermod.MessageHookEvent{
 		ChannelID:   channelID,
 		SenderID:    userID,
-		ContentText: "hello",
+		ContentText: "@hub-ai hello",
 		MessageID:   "msg-1",
 	})
 	require.NoError(t, err)
+
+	// A3W5-3-009: assert финальный bot reply, не только NoError.
+	msgs, err := hookRepo.Repository().ListMessages(context.Background(), channelID, nil, 20)
+	require.NoError(t, err)
+	var botMsgs []string
+	for _, m := range msgs {
+		if m.SenderID == botID && m.ContentText != "" {
+			botMsgs = append(botMsgs, m.ContentText)
+		}
+	}
+	require.NotEmpty(t, botMsgs)
+	assert.Contains(t, botMsgs[len(botMsgs)-1], "Привет")
 }
 
 func TestMessengerBot_OnMessageSent_HelpCommand(t *testing.T) {
 	adapter := &streamingMockAdapter{chunks: []string{"commands list"}}
-	bot, _, userID, channelID, _ := setupHubAIBot(t, adapter)
+	bot, hookRepo, userID, channelID, botID := setupHubAIBot(t, adapter)
 
 	err := bot.OnMessageSent(context.Background(), messengermod.MessageHookEvent{
 		ChannelID:   channelID,
@@ -57,6 +75,18 @@ func TestMessengerBot_OnMessageSent_HelpCommand(t *testing.T) {
 		MessageID:   "msg-2",
 	})
 	require.NoError(t, err)
+
+	// A3W5-3-009: help reply — не hollow NoError-only.
+	msgs, err := hookRepo.Repository().ListMessages(context.Background(), channelID, nil, 20)
+	require.NoError(t, err)
+	var botText string
+	for _, m := range msgs {
+		if m.SenderID == botID {
+			botText = m.ContentText
+		}
+	}
+	require.NotEmpty(t, botText)
+	assert.Contains(t, botText, "commands")
 }
 
 func TestMessengerBot_OnMessageSent_PublicMention(t *testing.T) {
@@ -84,7 +114,7 @@ func TestMessengerBot_OnMessageSent_SkipsBotMessages(t *testing.T) {
 
 func TestMessengerBot_HandleCommand_Docs(t *testing.T) {
 	adapter := &streamingMockAdapter{chunks: []string{"answer from docs"}}
-	bot, _, userID, channelID, _ := setupHubAIBot(t, adapter)
+	bot, hookRepo, userID, channelID, botID := setupHubAIBot(t, adapter)
 	bot.SetDocSearch(searchDocStub{ctx: "Issue HUB-1: login flow"})
 
 	err := bot.OnMessageSent(context.Background(), messengermod.MessageHookEvent{
@@ -94,6 +124,18 @@ func TestMessengerBot_HandleCommand_Docs(t *testing.T) {
 		MessageID:   "msg-docs",
 	})
 	require.NoError(t, err)
+
+	// A3W5-3-009: docs final reply содержит ответ адаптера.
+	msgs, err := hookRepo.Repository().ListMessages(context.Background(), channelID, nil, 20)
+	require.NoError(t, err)
+	var botText string
+	for _, m := range msgs {
+		if m.SenderID == botID {
+			botText = m.ContentText
+		}
+	}
+	require.NotEmpty(t, botText)
+	assert.Contains(t, botText, "answer from docs")
 }
 
 func TestMessengerBot_HandleCommand_TestCasesMissingKey(t *testing.T) {
@@ -135,11 +177,25 @@ func TestMessengerBot_NoProvider_ReplyError(t *testing.T) {
 	msgSvc.SetSystemBotID(botID)
 	channelID := hookRepo.SetupDM(userID, botID)
 
-	bot := ai.NewMessengerBot(ai.NewService(&mockRepo{}, &mockAdapter{}, nil), msgSvc, botID)
+	bot := ai.NewMessengerBot(ai.NewService(&mockRepo{
+		allowExternal: map[uuid.UUID]bool{userID: true},
+	}, &mockAdapter{}, nil), msgSvc, botID)
 	err := bot.OnMessageSent(context.Background(), messengermod.MessageHookEvent{
-		ChannelID: channelID, SenderID: userID, ContentText: "hi", MessageID: "m1",
+		ChannelID: channelID, SenderID: userID, ContentText: "@hub-ai hi", MessageID: "m1",
 	})
 	require.NoError(t, err)
+
+	// A3W5-3-009: bot отвечает об ошибке провайдера.
+	msgs, err := hookRepo.Repository().ListMessages(context.Background(), channelID, nil, 20)
+	require.NoError(t, err)
+	var botText string
+	for _, m := range msgs {
+		if m.SenderID == botID {
+			botText = m.ContentText
+		}
+	}
+	require.NotEmpty(t, botText)
+	assert.Contains(t, botText, "провайдер")
 }
 
 type searchDocStub struct {
@@ -156,7 +212,7 @@ func (s searchDocStub) SearchContext(_ context.Context, _ uuid.UUID, _ string) (
 
 type stubIssueLookup struct{}
 
-func (stubIssueLookup) IssueContext(_ context.Context, key string) (string, string, error) {
+func (stubIssueLookup) IssueContext(_ context.Context, _ uuid.UUID, key string) (string, string, error) {
 	return "Title " + key, "Description", nil
 }
 
@@ -165,11 +221,11 @@ type searchBackendStub struct {
 	err     error
 }
 
-func (s searchBackendStub) Search(_ context.Context, _ string, _ uuid.UUID, _ []string, _ int) ([]searchmod.SearchResult, error) {
+func (s searchBackendStub) Search(_ context.Context, _ string, _ uuid.UUID, _ []string, _ int) ([]searchmod.SearchResult, bool, error) {
 	if s.err != nil {
-		return nil, s.err
+		return nil, false, s.err
 	}
-	return s.results, nil
+	return s.results, false, nil
 }
 
 type stubCodeReviewProvider struct {
@@ -177,7 +233,7 @@ type stubCodeReviewProvider struct {
 	err error
 }
 
-func (s stubCodeReviewProvider) FetchReview(_ context.Context, _ string) (*ai.ReviewContext, error) {
+func (s stubCodeReviewProvider) FetchReview(_ context.Context, _ uuid.UUID, _ string) (*ai.ReviewContext, error) {
 	if s.err != nil {
 		return nil, s.err
 	}
@@ -186,13 +242,31 @@ func (s stubCodeReviewProvider) FetchReview(_ context.Context, _ string) (*ai.Re
 
 type stubIssueLookupErr struct{}
 
-func (stubIssueLookupErr) IssueContext(_ context.Context, _ string) (string, string, error) {
+func (stubIssueLookupErr) IssueContext(_ context.Context, _ uuid.UUID, _ string) (string, string, error) {
 	return "", "", assert.AnError
+}
+
+type denyIssueLookup struct {
+	called bool
+}
+
+func (d *denyIssueLookup) IssueContext(_ context.Context, _ uuid.UUID, _ string) (string, string, error) {
+	d.called = true
+	return "", "", &ent.NotFoundError{}
+}
+
+type denyCodeReviewProvider struct {
+	called bool
+}
+
+func (d *denyCodeReviewProvider) FetchReview(_ context.Context, _ uuid.UUID, _ string) (*ai.ReviewContext, error) {
+	d.called = true
+	return nil, assert.AnError
 }
 
 func TestMessengerBot_HandleCommand_TestCasesSuccess(t *testing.T) {
 	adapter := &streamingMockAdapter{chunks: []string{"TC-1 login", "TC-2 logout"}}
-	bot, _, userID, channelID, _ := setupHubAIBot(t, adapter)
+	bot, hookRepo, userID, channelID, botID := setupHubAIBot(t, adapter)
 	bot.SetIssueLookup(stubIssueLookup{})
 
 	err := bot.OnMessageSent(context.Background(), messengermod.MessageHookEvent{
@@ -202,10 +276,22 @@ func TestMessengerBot_HandleCommand_TestCasesSuccess(t *testing.T) {
 		MessageID:   "m-tc-ok",
 	})
 	require.NoError(t, err)
+
+	// A3W5-3-009: финальный reply содержит сгенерированные TC.
+	msgs, err := hookRepo.Repository().ListMessages(context.Background(), channelID, nil, 20)
+	require.NoError(t, err)
+	var botText string
+	for _, m := range msgs {
+		if m.SenderID == botID {
+			botText = m.ContentText
+		}
+	}
+	require.NotEmpty(t, botText)
+	assert.Contains(t, botText, "TC-1")
 }
 
 func TestMessengerBot_HandleCommand_TestCasesNotFound(t *testing.T) {
-	bot, _, userID, channelID, _ := setupHubAIBot(t, &mockAdapter{})
+	bot, hookRepo, userID, channelID, botID := setupHubAIBot(t, &mockAdapter{})
 	bot.SetIssueLookup(stubIssueLookupErr{})
 
 	err := bot.OnMessageSent(context.Background(), messengermod.MessageHookEvent{
@@ -215,11 +301,22 @@ func TestMessengerBot_HandleCommand_TestCasesNotFound(t *testing.T) {
 		MessageID:   "m-tc-miss",
 	})
 	require.NoError(t, err)
+
+	msgs, err := hookRepo.Repository().ListMessages(context.Background(), channelID, nil, 20)
+	require.NoError(t, err)
+	var botText string
+	for _, m := range msgs {
+		if m.SenderID == botID {
+			botText = m.ContentText
+		}
+	}
+	require.NotEmpty(t, botText)
+	assert.NotContains(t, botText, "assert.AnError")
 }
 
 func TestMessengerBot_HandleCommand_ReviewSuccess(t *testing.T) {
 	adapter := &streamingMockAdapter{chunks: []string{"LGTM with notes"}}
-	bot, _, userID, channelID, _ := setupHubAIBot(t, adapter)
+	bot, hookRepo, userID, channelID, botID := setupHubAIBot(t, adapter)
 	bot.SetCodeReview(stubCodeReviewProvider{ctx: &ai.ReviewContext{
 		URL: "https://github.com/o/r/pull/1", Title: "Fix auth",
 	}})
@@ -231,10 +328,22 @@ func TestMessengerBot_HandleCommand_ReviewSuccess(t *testing.T) {
 		MessageID:   "m-rev-ok",
 	})
 	require.NoError(t, err)
+
+	// A3W5-3-009: review success — финальный reply с LGTM.
+	msgs, err := hookRepo.Repository().ListMessages(context.Background(), channelID, nil, 20)
+	require.NoError(t, err)
+	var botText string
+	for _, m := range msgs {
+		if m.SenderID == botID {
+			botText = m.ContentText
+		}
+	}
+	require.NotEmpty(t, botText)
+	assert.Contains(t, botText, "LGTM")
 }
 
 func TestMessengerBot_HandleCommand_ReviewFetchError(t *testing.T) {
-	bot, _, userID, channelID, _ := setupHubAIBot(t, &mockAdapter{})
+	bot, hookRepo, userID, channelID, botID := setupHubAIBot(t, &mockAdapter{})
 	bot.SetCodeReview(stubCodeReviewProvider{err: assert.AnError})
 
 	err := bot.OnMessageSent(context.Background(), messengermod.MessageHookEvent{
@@ -244,6 +353,69 @@ func TestMessengerBot_HandleCommand_ReviewFetchError(t *testing.T) {
 		MessageID:   "m-rev-err",
 	})
 	require.NoError(t, err)
+
+	// A3W5-3-009: error reply без сырого assert.AnError.
+	msgs, err := hookRepo.Repository().ListMessages(context.Background(), channelID, nil, 20)
+	require.NoError(t, err)
+	var botText string
+	for _, m := range msgs {
+		if m.SenderID == botID {
+			botText = m.ContentText
+		}
+	}
+	require.NotEmpty(t, botText)
+	assert.NotContains(t, botText, "assert.AnError")
+}
+
+func TestMessengerBot_HandleCommand_TestCasesForeignKeyDenial(t *testing.T) {
+	// P1-BE-31 / W5-A3-002: foreign issue key → denial (not found), без утечки.
+	bot, hookRepo, userID, channelID, _ := setupHubAIBot(t, &mockAdapter{})
+	lookup := &denyIssueLookup{}
+	bot.SetIssueLookup(lookup)
+
+	err := bot.OnMessageSent(context.Background(), messengermod.MessageHookEvent{
+		ChannelID:   channelID,
+		SenderID:    userID,
+		ContentText: "/ai test-cases OTHER-42",
+		MessageID:   "m-tc-foreign",
+	})
+	require.NoError(t, err)
+	assert.True(t, lookup.called)
+	ch := hookRepo.Channel(channelID)
+	require.NotNil(t, ch)
+}
+
+func TestMessengerBot_HandleCommand_ReviewOutsideProjectDenial(t *testing.T) {
+	// P1-BE-31 / W5-A3-003: review вне project → denial без сырого err.Error().
+	bot, _, userID, channelID, _ := setupHubAIBot(t, &mockAdapter{})
+	deny := &denyCodeReviewProvider{}
+	bot.SetCodeReview(deny)
+
+	err := bot.OnMessageSent(context.Background(), messengermod.MessageHookEvent{
+		ChannelID:   channelID,
+		SenderID:    userID,
+		ContentText: "/ai review https://github.com/secret/repo/pull/9",
+		MessageID:   "m-rev-deny",
+	})
+	require.NoError(t, err)
+	assert.True(t, deny.called)
+}
+
+func TestMessengerBot_OnMessageSent_PublicMentionWithoutBotMember(t *testing.T) {
+	// P1-BE-31 / W5-A3-001: mention без bot∈members → no reply / no history load.
+	adapter := &streamingMockAdapter{chunks: []string{"should not run"}}
+	bot, hookRepo, userID, _, botID := setupHubAIBot(t, adapter)
+	// Канал только с user, без bot.
+	channelID := hookRepo.SetupPublicChannel(userID)
+
+	err := bot.OnMessageSent(context.Background(), messengermod.MessageHookEvent{
+		ChannelID:   channelID,
+		SenderID:    userID,
+		ContentText: "@hub-ai summarize secrets",
+		MessageID:   "msg-no-bot",
+	})
+	require.NoError(t, err)
+	_ = botID
 }
 
 func TestMessengerBot_HandleCommand_ExplainTranslateSQL(t *testing.T) {
@@ -265,8 +437,10 @@ func TestMessengerBot_HandleCommand_ExplainTranslateSQL(t *testing.T) {
 }
 
 func TestMessengerBot_HandleCommand_DocsSearchError(t *testing.T) {
-	bot, _, userID, channelID, _ := setupHubAIBot(t, &mockAdapter{})
-	bot.SetDocSearch(searchDocStub{err: assert.AnError})
+	// A2W5-A3-004: канал получает fixed string, не err.Error().
+	bot, hookRepo, userID, channelID, _ := setupHubAIBot(t, &mockAdapter{})
+	leak := "super-secret-db-dsn=postgres://internal"
+	bot.SetDocSearch(searchDocStub{err: errors.New(leak)})
 
 	err := bot.OnMessageSent(context.Background(), messengermod.MessageHookEvent{
 		ChannelID:   channelID,
@@ -275,16 +449,34 @@ func TestMessengerBot_HandleCommand_DocsSearchError(t *testing.T) {
 		MessageID:   "m-docs-err",
 	})
 	require.NoError(t, err)
+
+	msgs, err := hookRepo.Repository().ListMessages(context.Background(), channelID, nil, 20)
+	require.NoError(t, err)
+	require.NotEmpty(t, msgs)
+	var botText string
+	for _, m := range msgs {
+		if m.ContentText != "" && m.ContentText != "/ai docs broken search" {
+			botText = m.ContentText
+			break
+		}
+	}
+	require.NotEmpty(t, botText)
+	assert.Contains(t, botText, "Поиск временно недоступен")
+	assert.NotContains(t, botText, leak)
+	assert.NotContains(t, botText, "Ошибка поиска:")
 }
 
 func TestMessengerBot_StreamReply_AIError(t *testing.T) {
-	repo := &mockRepo{providers: []*ent.AIProvider{{
-		ID: uuid.New(), Name: "Test", BaseURL: "https://api.example.com/v1",
-		Models: []string{"test-model"}, Enabled: true, Scope: aiprovider.ScopeSystem,
-	}}}
-	aiSvc := ai.NewService(repo, &mockAdapter{err: assert.AnError}, nil)
 	botID := uuid.New()
 	userID := uuid.New()
+	repo := &mockRepo{
+		providers: []*ent.AIProvider{{
+			ID: uuid.New(), Name: "Test", BaseURL: "https://api.example.com/v1",
+			Models: []string{"test-model"}, Enabled: true, Scope: aiprovider.ScopeSystem,
+		}},
+		allowExternal: map[uuid.UUID]bool{userID: true},
+	}
+	aiSvc := ai.NewService(repo, &mockAdapter{err: assert.AnError}, nil)
 	hookRepo := messengermod.NewHookTestRepo()
 	msgSvc := messengermod.NewMessengerService(hookRepo.Repository(), nil, nil, nil)
 	msgSvc.SetSystemBotID(botID)
@@ -292,9 +484,22 @@ func TestMessengerBot_StreamReply_AIError(t *testing.T) {
 	bot := ai.NewMessengerBot(aiSvc, msgSvc, botID)
 
 	err := bot.OnMessageSent(context.Background(), messengermod.MessageHookEvent{
-		ChannelID: channelID, SenderID: userID, ContentText: "fail please", MessageID: "m-fail",
+		ChannelID: channelID, SenderID: userID, ContentText: "@hub-ai fail please", MessageID: "m-fail",
 	})
 	require.NoError(t, err)
+
+	// A3W5-3-009: error reply без сырого assert.AnError (placeholder «▍» не считать финалом).
+	msgs, err := hookRepo.Repository().ListMessages(context.Background(), channelID, nil, 20)
+	require.NoError(t, err)
+	var botText string
+	for _, m := range msgs {
+		if m.SenderID == botID && m.ContentText != "" && m.ContentText != "▍" {
+			botText = m.ContentText
+		}
+	}
+	require.NotEmpty(t, botText)
+	assert.Contains(t, botText, "Не удалось получить ответ")
+	assert.NotContains(t, botText, assert.AnError.Error())
 }
 
 func TestMessengerBot_HandleCommand_Summarize(t *testing.T) {

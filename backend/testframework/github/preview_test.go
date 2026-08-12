@@ -13,10 +13,12 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/issue"
+	"github.com/valerii/hub/backend/ent/testcase"
 )
 
 type previewMockRepo struct {
-	issues map[string]*ent.Issue
+	issues    map[string]*ent.Issue
+	testCases map[string]*ent.TestCase
 }
 
 func (m *previewMockRepo) CreateIntegration(context.Context, uuid.UUID, github.CreateIntegrationInput) (*ent.GitHubIntegration, error) {
@@ -28,9 +30,15 @@ func (m *previewMockRepo) ListIntegrations(context.Context, uuid.UUID) ([]*ent.G
 func (m *previewMockRepo) GetIntegration(context.Context, uuid.UUID) (*ent.GitHubIntegration, error) {
 	return nil, nil
 }
-func (m *previewMockRepo) DeleteIntegration(context.Context, uuid.UUID) error { return nil }
+func (m *previewMockRepo) GetIntegrationInProject(context.Context, uuid.UUID, uuid.UUID) (*ent.GitHubIntegration, error) {
+	return nil, nil
+}
+func (m *previewMockRepo) DeleteIntegration(context.Context, uuid.UUID, uuid.UUID) error { return nil }
 func (m *previewMockRepo) FindIntegrationByRepo(context.Context, string, string) (*ent.GitHubIntegration, error) {
 	return nil, nil
+}
+func (m *previewMockRepo) FindIssueByKeyInProject(context.Context, uuid.UUID, string) (*ent.Issue, error) {
+	return nil, &ent.NotFoundError{}
 }
 func (m *previewMockRepo) CreateGitHubLink(context.Context, uuid.UUID, uuid.UUID, github.CreateGitHubLinkInput) (*ent.GitHubLink, error) {
 	return nil, nil
@@ -53,14 +61,22 @@ func (m *previewMockRepo) FindDoneStatus(context.Context, uuid.UUID) (*ent.Workf
 	return nil, nil
 }
 func (m *previewMockRepo) LogActivity(context.Context, uuid.UUID, string) error { return nil }
-func (m *previewMockRepo) ListAllWebhookSecrets(context.Context) ([]string, error) {
-	return nil, nil
+func (m *previewMockRepo) IsProjectMember(context.Context, uuid.UUID, uuid.UUID) (bool, error) {
+	return true, nil
+}
+func (m *previewMockRepo) FindTestCaseByKey(_ context.Context, caseKey string) (*ent.TestCase, error) {
+	if tc, ok := m.testCases[caseKey]; ok {
+		return tc, nil
+	}
+	return nil, &ent.NotFoundError{}
 }
 func (m *previewMockRepo) MarkTestCasesOutdatedByFiles(context.Context, []string) ([]string, error) {
 	return nil, nil
 }
 
 func TestGetLinkPreview_IssueURL(t *testing.T) {
+	projectID := uuid.New()
+	userID := uuid.New()
 	repo := &previewMockRepo{
 		issues: map[string]*ent.Issue{
 			"HUB-42": {
@@ -69,6 +85,7 @@ func TestGetLinkPreview_IssueURL(t *testing.T) {
 				Title:     "Login bug",
 				IssueType: issue.IssueTypeBug,
 				Edges: ent.IssueEdges{
+					Project:  &ent.Project{ID: projectID},
 					Status:   &ent.WorkflowStatus{Name: "Open"},
 					Assignee: &ent.User{Name: "Alice", AvatarURL: "a.png"},
 				},
@@ -78,7 +95,7 @@ func TestGetLinkPreview_IssueURL(t *testing.T) {
 	svc := github.NewLinkPreviewService(repo, nil)
 	ctx := context.Background()
 
-	resp, err := svc.GetLinkPreview(ctx, "https://hub.local/projects/x/issues/HUB-42")
+	resp, err := svc.GetLinkPreview(ctx, userID, "https://hub.local/projects/x/issues/HUB-42")
 	require.NoError(t, err)
 	assert.Equal(t, "issue", resp.Type)
 	assert.Equal(t, "Login bug", resp.Title)
@@ -88,11 +105,25 @@ func TestGetLinkPreview_IssueURL(t *testing.T) {
 }
 
 func TestGetLinkPreview_TestCaseURL(t *testing.T) {
-	svc := github.NewLinkPreviewService(&previewMockRepo{issues: map[string]*ent.Issue{}}, nil)
-	resp, err := svc.GetLinkPreview(context.Background(), "https://hub.local/projects/x/tms/cases/test-cases/HUB-TC-99")
+	projectID := uuid.New()
+	repo := &previewMockRepo{
+		issues: map[string]*ent.Issue{},
+		testCases: map[string]*ent.TestCase{
+			"HUB-TC-99": {
+				ID:      uuid.New(),
+				CaseKey: "HUB-TC-99",
+				Title:   "Login flow",
+				Status:  testcase.StatusActive,
+				Edges:   ent.TestCaseEdges{Project: &ent.Project{ID: projectID}},
+			},
+		},
+	}
+	svc := github.NewLinkPreviewService(repo, nil)
+	resp, err := svc.GetLinkPreview(context.Background(), uuid.New(), "https://hub.local/projects/x/tms/cases/test-cases/HUB-TC-99")
 	require.NoError(t, err)
 	assert.Equal(t, "test_case", resp.Type)
-	assert.Equal(t, "HUB-TC-99", resp.Title)
+	assert.Equal(t, "Login flow", resp.Title)
+	assert.Equal(t, "active", resp.Status)
 }
 
 func TestGetLinkPreview_CacheHit(t *testing.T) {
@@ -102,20 +133,21 @@ func TestGetLinkPreview_CacheHit(t *testing.T) {
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
 	t.Cleanup(func() { _ = rdb.Close() })
 
+	userID := uuid.New()
 	rawURL := "https://hub.local/projects/x/tms/cases/test-cases/HUB-TC-1"
 	cached := github.LinkPreviewResponse{URL: rawURL, Type: "test_case", Title: "HUB-TC-1"}
 	data, _ := json.Marshal(cached)
-	require.NoError(t, rdb.Set(context.Background(), "link_preview:"+rawURL, string(data), time.Hour).Err())
+	require.NoError(t, rdb.Set(context.Background(), "link_preview:"+userID.String()+":"+rawURL, string(data), time.Hour).Err())
 
 	svc := github.NewLinkPreviewService(&previewMockRepo{}, rdb)
-	resp, err := svc.GetLinkPreview(context.Background(), rawURL)
+	resp, err := svc.GetLinkPreview(context.Background(), userID, rawURL)
 	require.NoError(t, err)
 	assert.Equal(t, "test_case", resp.Type)
 }
 
 func TestGetLinkPreview_FallbackExternal(t *testing.T) {
 	svc := github.NewLinkPreviewService(&previewMockRepo{}, nil)
-	resp, err := svc.GetLinkPreview(context.Background(), "not-a-valid-url-scheme")
+	resp, err := svc.GetLinkPreview(context.Background(), uuid.New(), "not-a-valid-url-scheme")
 	require.NoError(t, err)
 	assert.Equal(t, "external", resp.Type)
 	assert.NotEmpty(t, resp.Title)

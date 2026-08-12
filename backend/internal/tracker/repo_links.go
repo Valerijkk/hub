@@ -8,6 +8,7 @@ import (
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/issue"
 	"github.com/valerii/hub/backend/ent/issuelink"
+	"github.com/valerii/hub/backend/ent/project"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
@@ -16,20 +17,21 @@ import (
 // ---------------------------------------------------------------------------
 
 // CreateIssueLink создаёт направленную связь между двумя задачами.
-// Проверяет отсутствие дубликата. Публикует outbox-событие project.{projectID}.issue.link_created.
+// Дубликат = та же тройка (source, target, link_type); blocks+relates на одной паре допустимы (A2W8-3-003).
+// Публикует outbox-событие project.{projectID}.issue.link_created.
 func (r *EntRepository) CreateIssueLink(ctx context.Context, sourceID, targetID uuid.UUID, linkType string, customType string) (*ent.IssueLink, error) {
-	// Проверяем дубликат
 	exists, err := r.client.IssueLink.Query().
 		Where(
 			issuelink.HasSourceWith(issue.IDEQ(sourceID)),
 			issuelink.HasTargetWith(issue.IDEQ(targetID)),
+			issuelink.LinkTypeEQ(issuelink.LinkType(linkType)),
 		).
 		Exist(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("проверка дубликата связи: %w", err)
 	}
 	if exists {
-		return nil, apperrors.NewConflict("связь между этими задачами уже существует")
+		return nil, apperrors.NewConflict("связь этого типа между этими задачами уже существует")
 	}
 
 	create := r.client.IssueLink.Create().
@@ -54,12 +56,13 @@ func (r *EntRepository) CreateIssueLink(ctx context.Context, sourceID, targetID 
 			Only(ctx)
 		if qErr == nil && source.Edges.Project != nil {
 			projectID := source.Edges.Project.ID.String()
-			_ = r.publisher.Publish(ctx, r.client, fmt.Sprintf("project.%s.issue.link_created", projectID), IssueLinkCreatedEvent{
+			subj := fmt.Sprintf("project.%s.issue.link_created", projectID)
+			logOutboxPublishErr(ctx, subj, r.publisher.Publish(ctx, r.client, subj, IssueLinkCreatedEvent{
 				SourceID:  sourceID.String(),
 				TargetID:  targetID.String(),
 				LinkType:  linkType,
 				ProjectID: projectID,
-			})
+			}))
 		}
 	}
 
@@ -93,7 +96,43 @@ func (r *EntRepository) ListIssueLinks(ctx context.Context, issueID uuid.UUID) (
 	return all, nil
 }
 
-// DeleteIssueLink удаляет связь между задачами.
-func (r *EntRepository) DeleteIssueLink(ctx context.Context, linkID uuid.UUID) error {
-	return r.client.IssueLink.DeleteOneID(linkID).Exec(ctx)
+// MaxProjectIssueLinks — A13-004: hard cap batch-загрузки связей проекта для Gantt.
+const MaxProjectIssueLinks = 2000
+
+// ListProjectIssueLinks возвращает связи, где source или target принадлежит проекту.
+func (r *EntRepository) ListProjectIssueLinks(ctx context.Context, projectID uuid.UUID) ([]*ent.IssueLink, error) {
+	return r.client.IssueLink.Query().
+		Where(
+			issuelink.Or(
+				issuelink.HasSourceWith(
+					issue.HasProjectWith(project.IDEQ(projectID)),
+					issue.DeletedAtIsNil(),
+				),
+				issuelink.HasTargetWith(
+					issue.HasProjectWith(project.IDEQ(projectID)),
+					issue.DeletedAtIsNil(),
+				),
+			),
+		).
+		WithSource().
+		WithTarget().
+		Limit(MaxProjectIssueLinks).
+		All(ctx)
+}
+
+// DeleteIssueLink удаляет связь только если она принадлежит sourceIssueID (A3-011-link).
+func (r *EntRepository) DeleteIssueLink(ctx context.Context, sourceIssueID, linkID uuid.UUID) error {
+	affected, err := r.client.IssueLink.Delete().
+		Where(
+			issuelink.IDEQ(linkID),
+			issuelink.HasSourceWith(issue.IDEQ(sourceIssueID)),
+		).
+		Exec(ctx)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return &ent.NotFoundError{}
+	}
+	return nil
 }

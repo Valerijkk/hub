@@ -10,6 +10,11 @@ vendor/
 *.out
 tmp/
 
+# Python (артефакты прогона тестов/скриптов; ломают validate_toolkit.py)
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
 # Node
 node_modules/
 dist/
@@ -30,8 +35,13 @@ frontend/tsconfig.tsbuildinfo
 .claude/
 .gsd/
 .planning/intel/
-.planning/**/VERIFICATION.md
-.planning/**/REVIEW.md
+
+# Git worktrees агентов — рабочие копии, не содержимое репозитория.
+# Ветки живут в git и переживают удаление каталога; сами каталоги временные.
+.worktrees/
+backend/.worktrees/
+ent_gen_tmp/
+backend/ent_gen_tmp/
 
 # Environment & secrets
 .env

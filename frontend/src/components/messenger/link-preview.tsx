@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchLinkPreview, type LinkPreviewData } from "@/api/messenger";
+import { isSafeUrl, sanitizeUrl } from "@/lib/safe-url";
 
 /**
  * Пропсы компонента LinkPreview.
@@ -29,13 +30,13 @@ function InternalIssuePreview({
 }) {
 	return (
 		<a
-			href={url}
-			className="mt-2 flex items-center gap-2 rounded-lg border border-blue-500/20 bg-blue-500/5 p-3 transition-colors hover:bg-blue-500/10"
+			href={sanitizeUrl(url)}
+			className="mt-2 flex items-center gap-2 rounded-lg border border-[var(--blue)]/20 bg-[var(--gB)] p-3 transition-colors hover:bg-[var(--gB)]"
 		>
-			<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10">
+			<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--gB)]">
 				<svg
 					aria-hidden="true"
-					className="h-4 w-4 text-blue-600 dark:text-blue-400"
+					className="h-4 w-4 text-[var(--blue)]"
 					fill="none"
 					viewBox="0 0 24 24"
 					stroke="currentColor"
@@ -49,7 +50,7 @@ function InternalIssuePreview({
 				</svg>
 			</div>
 			<div>
-				<span className="font-mono text-sm font-bold text-blue-600 dark:text-blue-400">
+				<span className="font-mono text-sm font-bold text-[var(--blue)]">
 					{issueKey}
 				</span>
 				<p className="text-xs text-t2">Задача в Hub</p>
@@ -75,12 +76,12 @@ function GitHubPreview({
 }) {
 	return (
 		<a
-			href={url}
+			href={sanitizeUrl(url)}
 			target="_blank"
 			rel="noopener noreferrer"
-			className="mt-2 flex items-center gap-2 rounded-lg border border-gray-500/20 bg-gray-500/5 p-3 transition-colors hover:bg-gray-500/10"
+			className="mt-2 flex items-center gap-2 rounded-lg border border-[var(--b2)] bg-[var(--raised)] p-3 transition-colors hover:bg-[var(--hover)]"
 		>
-			<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gray-500/10">
+			<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--raised)]">
 				<svg
 					aria-hidden="true"
 					className="h-4 w-4"
@@ -124,17 +125,28 @@ function GenericPreview({ url }: { url: string }) {
 		return null;
 	}
 
+	const imageSrc = data.image_url ?? data.image;
+	const hostname =
+		data.domain ??
+		(() => {
+			try {
+				return new URL(url).hostname;
+			} catch {
+				return url;
+			}
+		})();
+
 	return (
 		<a
-			href={url}
+			href={sanitizeUrl(url)}
 			target="_blank"
 			rel="noopener noreferrer"
 			className="mt-2 flex overflow-hidden rounded-lg border transition-colors hover:bg-raised/30"
 		>
-			{data.image && (
+			{imageSrc && (
 				<div className="w-20 shrink-0 bg-raised">
 					<img
-						src={data.image}
+						src={imageSrc}
 						alt=""
 						className="h-full w-full object-cover"
 						loading="lazy"
@@ -151,13 +163,7 @@ function GenericPreview({ url }: { url: string }) {
 					</span>
 				)}
 				<span className="text-[10px] text-t2/60 truncate mt-0.5">
-					{(() => {
-						try {
-							return new URL(url).hostname;
-						} catch {
-							return url;
-						}
-					})()}
+					{hostname}
 				</span>
 			</div>
 		</a>
@@ -167,8 +173,13 @@ function GenericPreview({ url }: { url: string }) {
 /**
  * LinkPreview — определяет тип ссылки и рендерит соответствующее превью.
  * Поддерживает: внутренние задачи Hub, GitHub, generic OG-preview.
+ * A3W9-3-003: unsafe-схемы (javascript:/data:/…) → null, без href.
  */
 export function LinkPreview({ url }: LinkPreviewProps) {
+	if (!isSafeUrl(url)) {
+		return null;
+	}
+
 	// Проверяем внутреннюю ссылку на задачу
 	const internalMatch = url.match(INTERNAL_ISSUE_RE);
 	if (internalMatch) {

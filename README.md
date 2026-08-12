@@ -10,7 +10,7 @@
 <p>
   <!-- Бейджи-плейсхолдеры: заменить на реальные URL CI после публикации -->
   <img src="https://img.shields.io/badge/build-passing-brightgreen" alt="Build" />
-  <img src="https://img.shields.io/badge/coverage-83%25-brightgreen" alt="Coverage" />
+  <img src="https://img.shields.io/badge/coverage-80.2%25_(2026--07--29)-yellow" alt="Coverage 80.2% (2026-07-29)" />
   <img src="https://img.shields.io/badge/license-proprietary-red" alt="License" />
   <img src="https://img.shields.io/badge/Go-1.25-00ADD8?style=flat&logo=go&logoColor=white" alt="Go" />
   <img src="https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react&logoColor=black" alt="React" />
@@ -21,7 +21,8 @@
 </p>
 
 <p>
-  <strong>286+ API endpoints</strong> · <strong>82 Ent-схемы</strong> · <strong>39+ frontend-маршрутов</strong> · <strong>495 backend-тестов</strong> · <strong>Product score 89/100</strong>
+  <strong>286+ API endpoints</strong> · <strong>87 Ent-схем</strong> · <strong>77 frontend route files</strong> · <strong>824 backend-теста</strong> · <strong>coverage 80.2%</strong>
+  <!-- inventory measured 2026-07-29 -->
 </p>
 
 </div>
@@ -81,7 +82,7 @@ Hub — self-hosted платформа для команд разработки 
 
 ## Архитектура
 
-Hub сегодня — **модульный монолит** на Go/Fiber (31+ внутренних модулей, 82 Ent-схемы) с уже вынесенными спутниками (`hub-mail`, `meilisearch-indexer`, внешний LiveKit). Принят ADR о поэтапном выносе доменов в микросервисы по стратегии **strangler fig** — без big-bang, обратимо (route-flip в Caddy):
+Hub сегодня — **модульный монолит** на Go/Fiber (33 внутренних модуля, 87 Ent-схем) с уже вынесенными спутниками (`hub-mail`, `meilisearch-indexer`, внешний LiveKit). Принят ADR о поэтапном выносе доменов в микросервисы по стратегии **strangler fig** — без big-bang, обратимо (route-flip в Caddy):
 
 ```
 Модульный монолит (hub-core)
@@ -98,7 +99,7 @@ Hub сегодня — **модульный монолит** на Go/Fiber (31+ 
 - **Auth между сервисами:** HS256 → асимметричная подпись + JWKS; refresh/revoke централизованно в Redis (инварианты Magic Link / 15 мин / 30 дней сохраняются).
 - **Предусловия выноса:** OTel trace-context через NATS-headers, path-filtered CI, contract-тесты, K3s namespaces + Caddy ingress.
 
-Подробно: [docs/architecture.md](docs/architecture.md) · ADR: [.planning/decisions/ADR-ARCH-MICROSERVICES-2026.md](.planning/decisions/ADR-ARCH-MICROSERVICES-2026.md) · roadmap выноса: [.planning/roadmaps/MICROSERVICES-ROADMAP.md](.planning/roadmaps/MICROSERVICES-ROADMAP.md)
+Подробно: [docs/architecture.md](docs/architecture.md) · ADR: [.planning/decisions/ADR-ARCH-MICROSERVICES-2026.md](.planning/decisions/ADR-ARCH-MICROSERVICES-2026.md) · roadmap выноса: [.planning/archive/roadmaps/MICROSERVICES-ROADMAP.md](.planning/archive/roadmaps/MICROSERVICES-ROADMAP.md)
 
 ```
                           ┌──────────────────────┐
@@ -111,7 +112,7 @@ Hub сегодня — **модульный монолит** на Go/Fiber (31+ 
           ┌─────────────────┐              ┌─────────────────────┐
           │  Frontend (SPA) │              │  Backend (Go+Fiber) │
           │  React 19       │   REST/WS    │  286+ endpoints     │
-          │  39+ routes     │ ◄──────────► │  WebSocket + NATS   │
+          │  72 route files │ ◄──────────► │  WebSocket + NATS   │
           └─────────────────┘              └──────────┬──────────┘
                                                       │
           ┌────────────┬────────────┬───────┴───────┬──────────┐
@@ -151,7 +152,7 @@ SeaweedFS    LiveKit      Prometheus    testframework/
 | React | 19 | UI |
 | TypeScript | 5.7 | Типобезопасность |
 | Vite | 6 | Dev server, сборка, PWA |
-| TanStack Router | 1.x | File-based routing (39+ маршрутов) |
+| TanStack Router | 1.x | File-based routing (**72** `.tsx` under `frontend/src/routes/`, measured 2026-07-27; was claimed 39+) |
 | TanStack Query + Zustand | 5.x | Server / client state (11+ stores) |
 | Tailwind CSS 4 + Shadcn/ui | — | Дизайн-система (токены `--hub-*`) |
 | Plate | 48.x | Rich-text редактор |
@@ -230,7 +231,7 @@ docker compose -f docker-compose.prod.yml --env-file .env up -d
 
 | Слой | Стек | Кто пишет | Статус |
 |---|---|---|---|
-| Unit backend | Go (testify, `-tags hubtest`, `-race`) | be-разработчики | ✅ 495 тестов, coverage **83%** |
+| Unit backend | Go (testify, `-tags hubtest`, `-race`) | be-разработчики | ✅ **824** test files (measured 2026-07-29; was 515), coverage **80.2%** (2026-07-29) |
 | Unit frontend | TypeScript: Vitest + RTL | fe-разработчики | ✅ 99+ тестов |
 | E2E | Playwright (TS), smoke + full | QA | ✅ 20+ спеков (сейчас) |
 | Integration / API / contract / regression | **Python: pytest + allure-pytest + httpx + playwright-python** | QA-конвейер | 📋 целевой слой (фаза TF-PY, после выноса микросервисов) |
@@ -238,7 +239,7 @@ docker compose -f docker-compose.prod.yml --env-file .env up -d
 
 Качество и ворота:
 
-- **Coverage-gate:** backend ≥ 82% (сейчас **83.0%**), security-пакеты (auth/ws/rbac/audit/calls +1) ≥ 80% — **6/6** ✅.
+- **Coverage-gate:** backend ≥ 82% (сейчас **83.0%**, 2026-06-22 Docker baseline), security-пакеты (auth/ws/rbac/audit/calls +1) ≥ 80% — **6/6** ✅.
 - **`/qa-gate`** перед handoff/merge: release-build → hubtest → race → Biome → e2e-smoke.
 - **QA-конвейер:** тест-кейсы (TC-\*) → верификация → автотесты по TC → верификация автотестов; трассируемость TC↔автотест через Allure, результаты заливаются в собственный TMS Hub.
 
@@ -290,7 +291,7 @@ Hub разрабатывается **командой из 30 AI-агентов*
 - **Track P (платформа):** hardening модульного монолита → пилот выноса `hub-notification` (strangler fig) → GATE Go/No-Go → `hub-ai` → realtime-трио (`hub-ws` / `hub-messenger` / `hub-calls`); schema-per-service, NATS + outbox, K3s.
 - **Ops-лейн:** ротация секретов (FA-06) → тег v2.5.0 → SSH deploy.
 
-Детальный план: [.planning/july-2026/ROADMAP-FINAL-2026-07-03.md](.planning/july-2026/ROADMAP-FINAL-2026-07-03.md) · текущее состояние: [.planning/STATE.md](.planning/STATE.md)
+Детальный план: [.planning/archive/july-2026/ROADMAP-FINAL-2026-07-03.md](.planning/archive/july-2026/ROADMAP-FINAL-2026-07-03.md) · текущее состояние: [.planning/STATE.md](.planning/STATE.md)
 
 ## Документация
 
@@ -329,12 +330,87 @@ Hub разрабатывается **командой из 30 AI-агентов*
 
 ---
 
+## Планы на август 2026
+
+Полный план: [.planning/active/august-2026/00-AUGUST-PLAN.md](.planning/active/august-2026/00-AUGUST-PLAN.md)
+
+Два трека, идущих строго последовательно — второй опасен без первого.
+
+### Трек 1 — тестовый фреймворк на Python
+
+[Документ](.planning/audits/planning-audit-2026-07/02-TEST-FRAMEWORK-MIGRATION.md) · фазы 128–136
+
+Фреймворк выносится в корневую папку и переписывается целиком на **pytest +
+Playwright + Locust**. Каталоги `testframework/` в `backend/` и `frontend/`
+ликвидируются. Юнит-тесты возвращаются **к коду** и пишутся на языке своего слоя
+разработчиками, проверяются тестировщиками.
+
+| Фаза | Что |
+|---|---|
+| 128 | Каркас Python-проекта `/tests` |
+| 129–131 | Перенос E2E на Playwright Python (20 сценариев) |
+| 132 | Go-юниты возвращаются в `backend/internal/**` |
+| 133 | Фронт-юниты в `frontend/src/**` — сейчас их ноль |
+| 134 | Интеграционные на Python |
+| 135 | Нагрузочные на Locust — новый слой |
+| 136 | CI и удаление старого фреймворка |
+
+Замеры на 2026-07-29: 824 Go-файла в `backend/testframework/`, 0 юнитов рядом с
+кодом, 0 юнитов во фронте, покрытие 81.9%.
+
+### Трек 2 — вынос монолита в микросервисы
+
+[Документ](.planning/active/august-2026/01-MICROSERVICES-SPLIT.md) · основание:
+[PLAN-team-lead-opus.md](.planning/decisions/ab-microservices/PLAN-team-lead-opus.md)
+
+У каждого сервиса — **свой бэкенд и свой фронтенд**. 34 домена группируются в
+**8 bounded contexts**: notification, ai, realtime, tracker, identity, business,
+integrations, platform.
+
+**Swagger остаётся единый**, разделённый на зоны по сервисам — всё расписано,
+подписано и с примерами. Требование к детализации жёсткое: у каждой ручки полные
+схемы запроса и ответа, единая форма `AppError`, пагинация, требуемая роль, и
+ответы проработаны **по корнер- и эдж-кейсам** — пустой результат, чужой ресурс,
+конкурентная правка, повторный вызов, границы пагинации, частичный успех,
+лимиты, отказ внешней зависимости. Для каждого кода описано, **когда именно** он
+возвращается. Ручка без описанной схемы ответа не проходит ревью; расхождение
+спеки с реализацией валит CI.
+
+| Этап | Что |
+|---|---|
+| Э1 | Modular Monolith Hardening — запрет кросс-импортов |
+| Э2 | Schema-per-service внутри текущего PostgreSQL |
+| Э3 | `hub-shell` + Module Federation, первый фронт-модуль |
+| Э4 | Пилот `hub-notification` — вертикальный срез целиком |
+| **Э5** | **GATE Go/No-Go по результату пилота** |
+| Э6–Э7 | `hub-ai`, затем `hub-realtime` |
+
+Раскладка по контейнерам, схема БД, границы сервисов и транспорт — **решения
+архитектора**, 7 открытых вопросов в §8 документа.
+
+### Жёсткая зависимость
+
+Фаза 133 обязательна до этапа Э3. Во фронте сейчас **ноль юнит-тестов** — резать
+единый SPA на микрофронтенды без них означает регрессии без способа их заметить.
+
+### Открытые решения, блокирующие август
+
+| Что | Кому |
+|---|---|
+| 7 вопросов по архитектуре сервисов | архитектору |
+| [14 решений серых зон, включая GDPR](.planning/audits/planning-audit-2026-07/DECISIONS-PENDING.md) | владельцу |
+| [Судьба модуля Wiki](.planning/audits/planning-audit-2026-07/WIKI-SCOPE-OPTIONS.md) — строить / вынести / удалить | владельцу |
+| [NFR-24 и NFR-11](.planning/audits/planning-audit-2026-07/NFR-24-VERSION-CLASSIFICATION.md) — раскатывать или сузить формулировку | владельцу |
+| PG-03 ротация секретов — блокирует прод-катку | ops |
+
+---
+
 <div align="center">
 
 **Hub — self-hosted super-app для dev-команд**
 
 Go · React · PostgreSQL · MongoDB · Redis · NATS · LiveKit · Meilisearch
 
-*Обновлено: 2026-07-03 (DOCS-EXCELLENCE, DOC-02)*
+*Обновлено: 2026-07-28 (планы на август)*
 
 </div>

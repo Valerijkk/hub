@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ContextHelpTip } from "@/components/help/context-help-tip";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,11 +15,20 @@ interface Props {
 /** Компонент блока кода с кнопкой копирования. */
 function CodeBlock({ code, language }: { code: string; language?: string }) {
 	const [copied, setCopied] = useState(false);
+	const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	useEffect(
+		() => () => {
+			if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+		},
+		[],
+	);
 
 	const handleCopy = useCallback(async () => {
 		await navigator.clipboard.writeText(code);
 		setCopied(true);
-		setTimeout(() => setCopied(false), 2000);
+		if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+		copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
 	}, [code]);
 
 	return (

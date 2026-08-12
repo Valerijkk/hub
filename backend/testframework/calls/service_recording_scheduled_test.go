@@ -6,8 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alicebob/miniredis/v2"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	_ "github.com/mattn/go-sqlite3"
@@ -18,6 +20,7 @@ import (
 	"github.com/valerii/hub/backend/ent/recording"
 	"github.com/valerii/hub/backend/ent/scheduledcall"
 	"github.com/valerii/hub/backend/internal/platform/config"
+	"github.com/valerii/hub/backend/internal/rbac"
 )
 
 func newRecordingListFixture(t *testing.T) (*calls.RecordingService, uuid.UUID, *ent.Client) {
@@ -153,6 +156,20 @@ func TestHandler_GetRecordingDownloadURL_ReadyRecording(t *testing.T) {
 	owner, err := client.User.Query().First(ctx)
 	require.NoError(t, err)
 
+	_, err = client.ProjectMember.Create().
+		SetUserID(owner.ID).
+		SetProjectID(projID).
+		SetProjectRole("owner").
+		Save(ctx)
+	require.NoError(t, err)
+
+	mr, err := miniredis.Run()
+	require.NoError(t, err)
+	t.Cleanup(mr.Close)
+	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	t.Cleanup(func() { _ = rdb.Close() })
+	rbacSvc := rbac.NewRBACService(rbac.NewEntRepository(client), rbac.NewPermissionCache(rdb))
+
 	recSvc := calls.NewRecordingService(
 		config.LiveKitConfig{URL: "http://localhost:7880", APIKey: "k", APISecret: "testsecretthatshouldbelongenough"},
 		config.S3Config{
@@ -165,7 +182,7 @@ func TestHandler_GetRecordingDownloadURL_ReadyRecording(t *testing.T) {
 	rec, err := client.Recording.Query().First(ctx)
 	require.NoError(t, err)
 
-	h := calls.ExportNewHandlerWithRecSvc(recSvc)
+	h := calls.ExportNewHandlerWithRecSvcAndRBAC(recSvc, rbacSvc)
 	app := newHandlerValidationApp(h)
 
 	req := httptest.NewRequest(fiber.MethodGet, "/recordings/"+rec.ID.String()+"/download", nil)
@@ -174,7 +191,6 @@ func TestHandler_GetRecordingDownloadURL_ReadyRecording(t *testing.T) {
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.Equal(t, fiber.StatusOK, resp.StatusCode)
-	_ = projID
 }
 
 func TestNewRecordingService_Constructor(t *testing.T) {
@@ -208,7 +224,7 @@ func TestScheduledCallService_CreateScheduledCall_Validation(t *testing.T) {
 
 func TestScheduledCallService_CheckConflicts_NoParticipants(t *testing.T) {
 	svc := calls.ExportNewScheduledCallServiceForTest(calls.NewEntRepository(newScheduledTestClient(t)))
-	resp, err := svc.CheckConflicts(context.Background(), time.Now(), 30, nil)
+	resp, err := svc.CheckConflicts(context.Background(), uuid.Nil, time.Now(), 30, nil)
 	require.NoError(t, err)
 	assert.False(t, resp.HasConflict)
 	assert.Empty(t, resp.Conflicts)

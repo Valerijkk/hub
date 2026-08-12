@@ -11,43 +11,60 @@ func TestBuildFieldMap(t *testing.T) {
 
 	tests := []struct {
 		name     string
+		headers  []string
 		mappings []imex.FieldMapping
 		expected map[string]int
 	}{
 		{
-			"basic mapping",
-			[]imex.FieldMapping{
+			name:    "basic mapping",
+			headers: headers,
+			mappings: []imex.FieldMapping{
 				{SourceColumn: "Summary", TargetField: "title"},
 				{SourceColumn: "Type", TargetField: "type"},
 			},
-			map[string]int{"title": 1, "type": 2},
+			expected: map[string]int{"title": 1, "type": 2},
 		},
 		{
-			"missing source column",
-			[]imex.FieldMapping{
+			name:    "missing source column",
+			headers: headers,
+			mappings: []imex.FieldMapping{
 				{SourceColumn: "NonExistent", TargetField: "title"},
 			},
-			map[string]int{},
+			expected: map[string]int{},
 		},
 		{
-			"empty mappings",
-			[]imex.FieldMapping{},
-			map[string]int{},
+			name:     "empty mappings auto-maps Type/Priority by name (A5-001)",
+			headers:  headers,
+			mappings: []imex.FieldMapping{},
+			expected: map[string]int{"type": 2, "priority": 3},
 		},
 		{
-			"all columns mapped",
-			[]imex.FieldMapping{
+			name:     "nil mappings auto-maps Title/Type/Priority export headers (A5-001)",
+			headers:  []string{"Key", "Title", "Type", "Priority", "Status"},
+			mappings: nil,
+			expected: map[string]int{"title": 1, "type": 2, "priority": 3},
+		},
+		{
+			name:     "empty mappings auto-maps lowercase target headers (A5-001)",
+			headers:  []string{"title", "type", "priority", "extra"},
+			mappings: nil,
+			expected: map[string]int{"title": 0, "type": 1, "priority": 2},
+		},
+		{
+			name:    "all columns mapped",
+			headers: headers,
+			mappings: []imex.FieldMapping{
 				{SourceColumn: "Name", TargetField: "title"},
 				{SourceColumn: "Type", TargetField: "type"},
 				{SourceColumn: "Priority", TargetField: "priority"},
 			},
-			map[string]int{"title": 0, "type": 2, "priority": 3},
+			expected: map[string]int{"title": 0, "type": 2, "priority": 3},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := imex.ExportBuildFieldMap(tt.mappings, headers)
+			result := imex.ExportBuildFieldMap(tt.mappings, tt.headers)
 			assert.Equal(t, tt.expected, result)
 		})
 	}

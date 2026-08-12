@@ -1,13 +1,17 @@
 ﻿package messenger_test
 
 // Тесты репозитория мессенджера: интеграционные и unit-сценарии testframework.
+// W3-A3-011 / P3-BE-02: файл — mock-фикстура + контрактный Test* (не assert-free «мёртвый» *_test.go).
 
 import (
 	"context"
 	"strings"
+	"testing"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/channel"
 	"github.com/valerii/hub/backend/ent/channelmember"
@@ -41,9 +45,16 @@ type mockRepository struct {
 	// Упоминания
 	displayNames         map[uuid.UUID]string
 	projectMembersByRole map[uuid.UUID]map[string][]uuid.UUID
+	projectMembers       map[uuid.UUID]map[uuid.UUID]bool // projectID -> userID
 	// Состояние избранного/мьюта с ключом channelID:userID
 	starred map[string]bool
 	muted   map[string]*time.Time
+	// Инъекция ошибок для тестов TASK-108 / TASK-144.
+	addMembersErr            error
+	addMembersErrExceptOwner error // fail только role != "owner" (A3W3-2-002)
+	isMemberErr              error
+	deleteChannelErr         error
+	addMembersCalls          int // счётчик вызовов AddMembers (для denial Join)
 }
 
 func newMockRepository() *mockRepository {
@@ -62,6 +73,7 @@ func newMockRepository() *mockRepository {
 		pollVotes:            make(map[uuid.UUID][]*ent.PollVote),
 		displayNames:         make(map[uuid.UUID]string),
 		projectMembersByRole: make(map[uuid.UUID]map[string][]uuid.UUID),
+		projectMembers:       make(map[uuid.UUID]map[uuid.UUID]bool),
 		starred:              make(map[string]bool),
 		muted:                make(map[string]*time.Time),
 	}
@@ -76,6 +88,7 @@ func (m *mockRepository) CreateChannel(_ context.Context, input messenger.Create
 		IsReadonly:  input.IsReadonly,
 		CreatedBy:   input.CreatedBy,
 		ProjectID:   input.ProjectID,
+		Version:     1,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
@@ -93,6 +106,9 @@ func (m *mockRepository) GetChannel(_ context.Context, channelID uuid.UUID) (*en
 	if !ok {
 		return nil, &ent.NotFoundError{}
 	}
+	if ch.DeletedAt != nil {
+		return nil, &ent.NotFoundError{}
+	}
 	return ch, nil
 }
 
@@ -100,7 +116,7 @@ func (m *mockRepository) ListUserChannels(_ context.Context, userID uuid.UUID) (
 	var result []*ent.Channel
 	for chID, members := range m.members {
 		if _, ok := members[userID]; ok {
-			if ch, ok := m.channels[chID]; ok {
+			if ch, ok := m.channels[chID]; ok && ch.DeletedAt == nil {
 				result = append(result, ch)
 			}
 		}
@@ -113,6 +129,12 @@ func (m *mockRepository) UpdateChannel(_ context.Context, channelID uuid.UUID, i
 	if !ok {
 		return nil, &ent.NotFoundError{}
 	}
+	if ch.Version == 0 {
+		ch.Version = 1
+	}
+	if ch.DeletedAt != nil || ch.Version != input.Version {
+		return nil, &ent.NotFoundError{}
+	}
 	if input.Name != nil {
 		ch.Name = *input.Name
 	}
@@ -122,16 +144,31 @@ func (m *mockRepository) UpdateChannel(_ context.Context, channelID uuid.UUID, i
 	if input.IsReadonly != nil {
 		ch.IsReadonly = *input.IsReadonly
 	}
+	ch.Version++
 	return ch, nil
 }
 
 func (m *mockRepository) DeleteChannel(_ context.Context, channelID uuid.UUID) error {
-	delete(m.channels, channelID)
-	delete(m.members, channelID)
+	if m.deleteChannelErr != nil {
+		return m.deleteChannelErr
+	}
+	ch, ok := m.channels[channelID]
+	if !ok {
+		return &ent.NotFoundError{}
+	}
+	now := time.Now().UTC()
+	ch.DeletedAt = &now
 	return nil
 }
 
 func (m *mockRepository) IsMember(_ context.Context, channelID, userID uuid.UUID) (bool, error) {
+	if m.isMemberErr != nil {
+		return false, m.isMemberErr
+	}
+	ch, ok := m.channels[channelID]
+	if !ok || ch.DeletedAt != nil {
+		return false, nil
+	}
 	members, ok := m.members[channelID]
 	if !ok {
 		return false, nil
@@ -141,6 +178,10 @@ func (m *mockRepository) IsMember(_ context.Context, channelID, userID uuid.UUID
 }
 
 func (m *mockRepository) GetMemberRole(_ context.Context, channelID, userID uuid.UUID) (string, error) {
+	ch, ok := m.channels[channelID]
+	if !ok || ch.DeletedAt != nil {
+		return "", &ent.NotFoundError{}
+	}
 	members, ok := m.members[channelID]
 	if !ok {
 		return "", &ent.NotFoundError{}
@@ -153,6 +194,9 @@ func (m *mockRepository) GetMemberRole(_ context.Context, channelID, userID uuid
 }
 
 func (m *mockRepository) GetChannelMemberIDs(_ context.Context, channelID uuid.UUID) ([]uuid.UUID, error) {
+	if ch, ok := m.channels[channelID]; !ok || ch.DeletedAt != nil {
+		return nil, nil
+	}
 	members, ok := m.members[channelID]
 	if !ok {
 		return nil, nil
@@ -165,6 +209,13 @@ func (m *mockRepository) GetChannelMemberIDs(_ context.Context, channelID uuid.U
 }
 
 func (m *mockRepository) AddMembers(_ context.Context, channelID uuid.UUID, userIDs []uuid.UUID, role string) error {
+	m.addMembersCalls++
+	if m.addMembersErr != nil {
+		return m.addMembersErr
+	}
+	if m.addMembersErrExceptOwner != nil && role != "owner" {
+		return m.addMembersErrExceptOwner
+	}
 	if _, ok := m.members[channelID]; !ok {
 		m.members[channelID] = make(map[uuid.UUID]*ent.ChannelMember)
 	}
@@ -189,7 +240,7 @@ func (m *mockRepository) RemoveMember(_ context.Context, channelID, userID uuid.
 
 func (m *mockRepository) FindDMChannel(_ context.Context, dmKey string) (*ent.Channel, error) {
 	ch, ok := m.dmChannels[dmKey]
-	if !ok {
+	if !ok || ch.DeletedAt != nil {
 		return nil, &ent.NotFoundError{}
 	}
 	return ch, nil
@@ -207,6 +258,36 @@ func (m *mockRepository) ListMembers(_ context.Context, channelID uuid.UUID) ([]
 	return result, nil
 }
 
+func (m *mockRepository) FilterUsersSharingChannel(_ context.Context, callerID uuid.UUID, candidateIDs []uuid.UUID) ([]uuid.UUID, error) {
+	if len(candidateIDs) == 0 {
+		return nil, nil
+	}
+	want := make(map[uuid.UUID]struct{}, len(candidateIDs))
+	for _, id := range candidateIDs {
+		want[id] = struct{}{}
+	}
+	shared := make(map[uuid.UUID]struct{})
+	for chID, members := range m.members {
+		ch, ok := m.channels[chID]
+		if !ok || ch.DeletedAt != nil {
+			continue
+		}
+		if _, ok := members[callerID]; !ok {
+			continue
+		}
+		for uid := range members {
+			if _, ok := want[uid]; ok {
+				shared[uid] = struct{}{}
+			}
+		}
+	}
+	out := make([]uuid.UUID, 0, len(shared))
+	for id := range shared {
+		out = append(out, id)
+	}
+	return out, nil
+}
+
 // --- Сообщения ---
 
 func (m *mockRepository) InsertMessage(_ context.Context, doc *messenger.MessageDocument) (string, error) {
@@ -219,7 +300,7 @@ func (m *mockRepository) InsertMessage(_ context.Context, doc *messenger.Message
 
 func (m *mockRepository) FindMessageByID(_ context.Context, messageID string) (*messenger.MessageDocument, error) {
 	doc, ok := m.messages[messageID]
-	if !ok {
+	if !ok || doc.DeletedAt != nil {
 		return nil, &ent.NotFoundError{}
 	}
 	return doc, nil
@@ -240,7 +321,7 @@ func (m *mockRepository) ListMessages(_ context.Context, channelID uuid.UUID, _ 
 
 func (m *mockRepository) UpdateMessage(_ context.Context, messageID string, contentJSON map[string]interface{}, contentText string) (*messenger.MessageDocument, error) {
 	doc, ok := m.messages[messageID]
-	if !ok {
+	if !ok || doc.DeletedAt != nil {
 		return nil, &ent.NotFoundError{}
 	}
 	now := time.Now()
@@ -300,6 +381,11 @@ func (m *mockRepository) AddReaction(_ context.Context, messageID, userID, emoji
 	}
 	for i, r := range doc.Reactions {
 		if r.Emoji == emoji {
+			for _, uid := range r.UserIDs {
+				if uid == userID {
+					return nil
+				}
+			}
 			doc.Reactions[i].UserIDs = append(doc.Reactions[i].UserIDs, userID)
 			return nil
 		}
@@ -347,16 +433,22 @@ func (m *mockRepository) FindReaction(_ context.Context, messageID, userID, emoj
 
 // --- Поиск ---
 
-func (m *mockRepository) SearchMessages(_ context.Context, query string, channelID *uuid.UUID, limit int) ([]*messenger.MessageDocument, error) {
+func (m *mockRepository) SearchMessages(_ context.Context, query string, channelIDs []uuid.UUID, limit int) ([]*messenger.MessageDocument, error) {
+	allowed := make(map[uuid.UUID]struct{}, len(channelIDs))
+	for _, id := range channelIDs {
+		allowed[id] = struct{}{}
+	}
 	var result []*messenger.MessageDocument
 	for _, doc := range m.messages {
 		if doc.DeletedAt != nil {
 			continue
 		}
-		if channelID != nil && doc.ChannelID != *channelID {
+		if len(allowed) == 0 {
 			continue
 		}
-		// Простой поиск по подстроке для тестов
+		if _, ok := allowed[doc.ChannelID]; !ok {
+			continue
+		}
 		if contains(doc.ContentText, query) {
 			result = append(result, doc)
 		}
@@ -425,10 +517,10 @@ func (m *mockRepository) AddBookmark(_ context.Context, userID uuid.UUID, messag
 	return b, nil
 }
 
-func (m *mockRepository) RemoveBookmark(_ context.Context, bookmarkID uuid.UUID) error {
+func (m *mockRepository) RemoveBookmark(_ context.Context, userID, bookmarkID uuid.UUID) error {
 	b, ok := m.bookmarksByID[bookmarkID]
-	if !ok {
-		return nil
+	if !ok || b.UserID != userID {
+		return &ent.NotFoundError{}
 	}
 	delete(m.bookmarksByID, bookmarkID)
 	if list, ok := m.bookmarks[b.UserID]; ok {
@@ -451,13 +543,30 @@ func memberKey(channelID, userID uuid.UUID) string {
 	return channelID.String() + ":" + userID.String()
 }
 
+func (m *mockRepository) requireMember(channelID, userID uuid.UUID) error {
+	members, ok := m.members[channelID]
+	if !ok {
+		return &ent.NotFoundError{}
+	}
+	if _, ok := members[userID]; !ok {
+		return &ent.NotFoundError{}
+	}
+	return nil
+}
+
 func (m *mockRepository) ToggleStar(_ context.Context, channelID, userID uuid.UUID) (bool, error) {
+	if err := m.requireMember(channelID, userID); err != nil {
+		return false, err
+	}
 	key := memberKey(channelID, userID)
 	m.starred[key] = !m.starred[key]
 	return m.starred[key], nil
 }
 
 func (m *mockRepository) MuteChannel(_ context.Context, channelID, userID uuid.UUID, duration string) (time.Time, error) {
+	if err := m.requireMember(channelID, userID); err != nil {
+		return time.Time{}, err
+	}
 	until := time.Now().Add(time.Hour)
 	if duration == "forever" {
 		until = time.Now().Add(365 * 24 * time.Hour)
@@ -467,6 +576,9 @@ func (m *mockRepository) MuteChannel(_ context.Context, channelID, userID uuid.U
 }
 
 func (m *mockRepository) UnmuteChannel(_ context.Context, channelID, userID uuid.UUID) error {
+	if err := m.requireMember(channelID, userID); err != nil {
+		return err
+	}
 	delete(m.muted, memberKey(channelID, userID))
 	return nil
 }
@@ -503,6 +615,14 @@ func (m *mockRepository) ListProjectMembersByRole(_ context.Context, projectID u
 	return byRole[role], nil
 }
 
+func (m *mockRepository) IsProjectMember(_ context.Context, projectID, userID uuid.UUID) (bool, error) {
+	members, ok := m.projectMembers[projectID]
+	if !ok {
+		return false, nil
+	}
+	return members[userID], nil
+}
+
 func (m *mockRepository) GetUserDisplayName(_ context.Context, userID uuid.UUID) (string, error) {
 	return m.displayNames[userID], nil
 }
@@ -534,18 +654,33 @@ func (m *mockRepository) FindChannelInviteByToken(_ context.Context, token strin
 	return inv, nil
 }
 
-func (m *mockRepository) IncrementInviteUses(_ context.Context, inviteID uuid.UUID) error {
+func (m *mockRepository) IncrementInviteUses(_ context.Context, inviteID uuid.UUID, maxUses int) error {
 	inv, ok := m.invites[inviteID]
 	if !ok {
 		return &ent.NotFoundError{}
+	}
+	if maxUses > 0 && inv.UseCount >= maxUses {
+		return messenger.ErrInviteUsesExhausted
 	}
 	inv.UseCount++
 	return nil
 }
 
-func (m *mockRepository) RevokeChannelInvite(_ context.Context, inviteID uuid.UUID) error {
+func (m *mockRepository) DecrementInviteUses(_ context.Context, inviteID uuid.UUID) error {
 	inv, ok := m.invites[inviteID]
 	if !ok {
+		return &ent.NotFoundError{}
+	}
+	if inv.UseCount <= 0 {
+		return &ent.NotFoundError{}
+	}
+	inv.UseCount--
+	return nil
+}
+
+func (m *mockRepository) RevokeChannelInvite(_ context.Context, channelID, inviteID uuid.UUID) error {
+	inv, ok := m.invites[inviteID]
+	if !ok || inv.ChannelID != channelID {
 		return &ent.NotFoundError{}
 	}
 	inv.IsRevoked = true
@@ -639,3 +774,34 @@ func (m *mockRepository) VotePoll(_ context.Context, pollID, userID uuid.UUID, o
 func (m *mockRepository) ListVotes(_ context.Context, pollID uuid.UUID) ([]*ent.PollVote, error) {
 	return m.pollVotes[pollID], nil
 }
+
+// TestMockRepository_AddReactionContract — W3-A3-011: missing message → NotFound;
+// existing message → reaction appended (mutation: no-op AddReaction → FAIL).
+func TestMockRepository_AddReactionContract(t *testing.T) {
+	repo := newMockRepository()
+	ctx := context.Background()
+	msgID := uuid.New().String()
+	userID := uuid.New()
+	channelID := uuid.New()
+
+	err := repo.AddReaction(ctx, msgID, userID.String(), "👍")
+	require.Error(t, err)
+	assert.True(t, ent.IsNotFound(err))
+
+	_, err = repo.InsertMessage(ctx, &messenger.MessageDocument{
+		ID: msgID, ChannelID: channelID, SenderID: userID, ContentText: "hi",
+	})
+	require.NoError(t, err)
+
+	require.NoError(t, repo.AddReaction(ctx, msgID, userID.String(), "👍"))
+	doc, err := repo.FindMessageByID(ctx, msgID)
+	require.NoError(t, err)
+	require.Len(t, doc.Reactions, 1)
+	assert.Equal(t, "👍", doc.Reactions[0].Emoji)
+	assert.Equal(t, []string{userID.String()}, doc.Reactions[0].UserIDs)
+
+	list, err := repo.ListMessages(ctx, channelID, nil, 10)
+	require.NoError(t, err)
+	assert.Len(t, list, 1)
+}
+

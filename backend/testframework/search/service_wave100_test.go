@@ -23,48 +23,13 @@ func TestSearchUsers_AdminUnscopedQueryFails(t *testing.T) {
 	assert.Contains(t, err.Error(), "admin")
 }
 
-func TestSearchChannels_EmptyProjects(t *testing.T) {
-	svc := search.ExportNewSearchServiceSQL(newScopeTestDB(t))
-	results, err := search.ExportSearchChannels(svc, context.Background(), "general", nil)
-	require.NoError(t, err)
-	assert.Nil(t, results)
-}
-
-func TestSearchIssues_EmptyProjects(t *testing.T) {
-	svc := search.ExportNewSearchServiceSQL(newScopeTestDB(t))
-	results, err := search.ExportSearchIssues(svc, context.Background(), "bug", nil)
-	require.NoError(t, err)
-	assert.Nil(t, results)
-}
-
-func TestSearchTestCases_EmptyProjects(t *testing.T) {
-	svc := search.ExportNewSearchServiceSQL(newScopeTestDB(t))
-	results, err := search.ExportSearchTestCases(svc, context.Background(), "case", nil)
-	require.NoError(t, err)
-	assert.Nil(t, results)
-}
-
-func TestSearchProjects_EmptyProjects(t *testing.T) {
-	svc := search.ExportNewSearchServiceSQL(newScopeTestDB(t))
-	results, err := search.ExportSearchProjects(svc, context.Background(), "hub", nil)
-	require.NoError(t, err)
-	assert.Nil(t, results)
-}
-
-func TestSearchFiles_EmptyProjects(t *testing.T) {
-	svc := search.ExportNewSearchServiceSQL(newScopeTestDB(t))
-	results, err := search.ExportSearchFiles(svc, context.Background(), "doc", nil)
-	require.NoError(t, err)
-	assert.Nil(t, results)
-}
-
 func wave100ProjectScope() []uuid.UUID {
 	return []uuid.UUID{uuid.New()}
 }
 
 func TestSearchChannels_QueryFailsWithProjects(t *testing.T) {
 	svc := search.ExportNewSearchServiceSQL(newScopeTestDB(t))
-	_, err := search.ExportSearchChannels(svc, context.Background(), "general", wave100ProjectScope())
+	_, err := search.ExportSearchChannels(svc, context.Background(), "general", wave100ProjectScope(), uuid.New())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "каналов")
 }

@@ -21,10 +21,12 @@ import (
 )
 
 const (
-	tgBindPrefix     = "tg:bind:"
-	tgLinkCodePrefix = "tg:linkcode:"
-	tgBindTTL        = 10 * time.Minute
-	tgLinkCodeTTL    = 5 * time.Minute
+	tgBindPrefix          = "tg:bind:"
+	tgLinkCodePrefix      = "tg:linkcode:"
+	tgLinkCodeFailsPrefix = "tg:linkcode:fails:" // ASN-002: per-user fails, как magiclink:fails:
+	tgBindTTL             = 10 * time.Minute
+	tgLinkCodeTTL         = 5 * time.Minute
+	tgLinkCodeVerifyMax   = 5 // лимит неудачных ConfirmLinkCode на user в окне TTL (как HI-04)
 )
 
 // TelegramBindService управляет привязкой Telegram для уведомлений (NOTIF-02).
@@ -46,9 +48,9 @@ type TelegramBindResponse struct {
 
 // TelegramStatusResponse — GET /notifications/telegram/status.
 type TelegramStatusResponse struct {
-	Linked     bool       `json:"linked"`
-	TelegramID string     `json:"telegram_id,omitempty"`
-	Username   string     `json:"username,omitempty"`
+	Linked     bool   `json:"linked"`
+	TelegramID string `json:"telegram_id,omitempty"`
+	Username   string `json:"username,omitempty"`
 }
 
 // TelegramConfirmRequest — POST /notifications/telegram/confirm.
@@ -56,33 +58,40 @@ type TelegramConfirmRequest struct {
 	Code string `json:"code"`
 }
 
-// NewTelegramBindService создаёт bind-сервис; bot nil при пустом token.
+// NewTelegramBindService создаёт bind-сервис. Repository-backed операции
+// status/unlink доступны без бота; bot-dependent операции возвращают
+// ErrTelegramBindUnavailable, если bot token или Redis не настроены.
 func NewTelegramBindService(
 	repo *Repository,
 	rdb *redis.Client,
 	sender *TelegramSender,
 	botToken, botUsername string,
 ) *TelegramBindService {
-	if botToken == "" || rdb == nil {
-		return nil
+	service := &TelegramBindService{
+		repo:        repo,
+		rdb:         rdb,
+		sender:      sender,
+		botUsername: strings.TrimPrefix(botUsername, "@"),
+	}
+	if botToken == "" || rdb == nil || repo == nil {
+		return service
 	}
 	bot, err := telego.NewBot(botToken)
 	if err != nil {
 		slog.Error("telegram bind: bot init failed", "error", err)
-		return nil
+		return service
 	}
-	return &TelegramBindService{
-		repo:        repo,
-		rdb:         rdb,
-		sender:      sender,
-		bot:         bot,
-		botUsername: strings.TrimPrefix(botUsername, "@"),
-	}
+	service.bot = bot
+	return service
+}
+
+func (s *TelegramBindService) bindingAvailable() bool {
+	return s != nil && s.repo != nil && s.rdb != nil && s.bot != nil
 }
 
 // CreateBindToken сохраняет одноразовый bind-токен для deep link flow.
 func (s *TelegramBindService) CreateBindToken(ctx context.Context, userID uuid.UUID) (*TelegramBindResponse, error) {
-	if s == nil {
+	if !s.bindingAvailable() {
 		return nil, ErrTelegramBindUnavailable
 	}
 	token, err := randomHex(16)
@@ -105,17 +114,27 @@ func (s *TelegramBindService) CreateBindToken(ctx context.Context, userID uuid.U
 }
 
 // ConfirmLinkCode завершает bind по 6-значному коду из команды /link.
+// ASN-002: после tgLinkCodeVerifyMax неудач в окне TTL — ErrTelegramConfirmLimited (как HI-04).
 func (s *TelegramBindService) ConfirmLinkCode(ctx context.Context, userID uuid.UUID, code string) error {
-	if s == nil {
+	if !s.bindingAvailable() {
 		return ErrTelegramBindUnavailable
 	}
+	failsKey := tgLinkCodeFailsPrefix + userID.String()
+	if cnt, err := s.rdb.Get(ctx, failsKey).Int(); err == nil && cnt >= tgLinkCodeVerifyMax {
+		return ErrTelegramConfirmLimited
+	} else if err != nil && !errors.Is(err, redis.Nil) {
+		slog.Warn("telegram linkcode fails counter read error", "user_id", userID, "error", err)
+	}
+
 	code = strings.TrimSpace(code)
 	if len(code) != 6 {
+		s.recordLinkCodeFailure(ctx, failsKey)
 		return ErrTelegramInvalidCode
 	}
 	key := tgLinkCodePrefix + code
 	tgID, err := s.rdb.Get(ctx, key).Result()
 	if errors.Is(err, redis.Nil) {
+		s.recordLinkCodeFailure(ctx, failsKey)
 		return ErrTelegramInvalidCode
 	}
 	if err != nil {
@@ -124,17 +143,44 @@ func (s *TelegramBindService) ConfirmLinkCode(ctx context.Context, userID uuid.U
 	if err := s.linkTelegramID(ctx, userID, tgID); err != nil {
 		return err
 	}
-	s.rdb.Del(ctx, key)
+	// W7-A1-010 / P3-BE-01: не глотать Del — токен может остаться в Redis.
+	if err := s.rdb.Del(ctx, key).Err(); err != nil {
+		slog.WarnContext(ctx, "telegram bind: del link code failed", "error", err)
+	}
+	if err := s.rdb.Del(ctx, failsKey).Err(); err != nil {
+		slog.WarnContext(ctx, "telegram bind: del fails counter failed", "error", err)
+	}
 	return nil
+}
+
+// recordLinkCodeFailure увеличивает счётчик неудач user; TTL = tgLinkCodeTTL при первой ошибке.
+// Mutation (ASN-002): убрать вызовы recordLinkCodeFailure / проверку failsKey → brute-force без 429 → RED.
+func (s *TelegramBindService) recordLinkCodeFailure(ctx context.Context, failsKey string) {
+	cnt, err := s.rdb.Incr(ctx, failsKey).Result()
+	if err != nil {
+		slog.Warn("telegram linkcode fails counter incr error", "key", failsKey, "error", err)
+		return
+	}
+	if cnt == 1 {
+		if expErr := s.rdb.Expire(ctx, failsKey, tgLinkCodeTTL).Err(); expErr != nil {
+			slog.Warn("telegram linkcode fails counter expire error", "key", failsKey, "error", expErr)
+		}
+	}
 }
 
 // Unlink удаляет telegram_id из профиля пользователя.
 func (s *TelegramBindService) Unlink(ctx context.Context, userID uuid.UUID) error {
+	if s == nil || s.repo == nil {
+		return ErrTelegramBindUnavailable
+	}
 	return s.repo.ClearUserTelegram(ctx, userID)
 }
 
 // GetStatus возвращает состояние bind для текущего пользователя.
 func (s *TelegramBindService) GetStatus(ctx context.Context, userID uuid.UUID) (*TelegramStatusResponse, error) {
+	if s == nil || s.repo == nil {
+		return nil, ErrTelegramBindUnavailable
+	}
 	u, err := s.repo.GetUserTelegram(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -148,7 +194,7 @@ func (s *TelegramBindService) GetStatus(ctx context.Context, userID uuid.UUID) (
 
 // SendTest отправляет тестовое уведомление в привязанный Telegram-чат.
 func (s *TelegramBindService) SendTest(ctx context.Context, userID uuid.UUID) error {
-	if s == nil || s.sender == nil {
+	if s == nil || s.repo == nil || s.sender == nil {
 		return ErrTelegramBindUnavailable
 	}
 	u, err := s.repo.GetUserTelegram(ctx, userID)
@@ -242,7 +288,10 @@ func (s *TelegramBindService) handleStartBind(ctx context.Context, chatID int64,
 		s.reply(chatID, "Не удалось привязать аккаунт. Попробуйте позже.")
 		return
 	}
-	s.rdb.Del(ctx, key)
+	// W7-A1-010 / P3-BE-01
+	if err := s.rdb.Del(ctx, key).Err(); err != nil {
+		slog.WarnContext(ctx, "telegram bind: del pending token failed", "error", err)
+	}
 	s.reply(chatID, "Telegram успешно привязан к Hub ✅")
 }
 
@@ -330,6 +379,7 @@ func generateLinkCode() (string, error) {
 var (
 	ErrTelegramBindUnavailable = fmt.Errorf("telegram bind not configured")
 	ErrTelegramInvalidCode     = fmt.Errorf("invalid or expired link code")
+	ErrTelegramConfirmLimited  = fmt.Errorf("too many verification attempts, try again later")
 	ErrTelegramNotLinked       = fmt.Errorf("telegram not linked")
 	ErrTelegramIDTaken         = fmt.Errorf("telegram id already linked to another user")
 )

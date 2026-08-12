@@ -13,15 +13,25 @@ import (
 // парсер никогда не паникует на неполных данных.
 // ---------------------------------------------------------------------------
 
+// maxAllureParseResults — hard-cap числа результатов за один Parse (A2W2-4-001).
+const maxAllureParseResults = 5000
+
 // ParseAllureResults парсит JSON-массив результатов Allure.
 // Возвращает ошибку при невалидном JSON, но никогда не паникует.
+// A2W2-4-001: depth + len cap (как importer assertJSONMaxDepth / maxImportRecords).
 func ParseAllureResults(data []byte) ([]AllureResult, error) {
+	if err := assertJSONMaxDepth(data, maxImportNestDepth); err != nil {
+		return nil, err
+	}
 	var results []AllureResult
 	if err := json.Unmarshal(data, &results); err != nil {
 		return nil, fmt.Errorf("ошибка парсинга allure-results JSON: %w", err)
 	}
 	if results == nil {
 		results = make([]AllureResult, 0)
+	}
+	if len(results) > maxAllureParseResults {
+		return nil, fmt.Errorf("слишком много allure-результатов (макс. %d)", maxAllureParseResults)
 	}
 	for i, r := range results {
 		if r.Status == "" {
@@ -33,6 +43,9 @@ func ParseAllureResults(data []byte) ([]AllureResult, error) {
 
 // ParseAllureResult парсит одиночный результат Allure из JSON.
 func ParseAllureResult(data []byte) (*AllureResult, error) {
+	if err := assertJSONMaxDepth(data, maxImportNestDepth); err != nil {
+		return nil, err
+	}
 	var result AllureResult
 	if err := json.Unmarshal(data, &result); err != nil {
 		return nil, fmt.Errorf("ошибка парсинга allure-result JSON: %w", err)

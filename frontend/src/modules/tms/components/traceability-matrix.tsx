@@ -102,7 +102,7 @@ interface TraceabilityMatrixProps {
 export function TraceabilityMatrix({ projectId }: TraceabilityMatrixProps) {
 	const [search, setSearch] = useState("");
 
-	const { data, isLoading } = useQuery({
+	const { data, isLoading, isError, refetch } = useQuery({
 		queryKey: ["tms-traceability", projectId],
 		queryFn: () => getTraceabilityMatrix(projectId),
 	});
@@ -173,6 +173,28 @@ export function TraceabilityMatrix({ projectId }: TraceabilityMatrixProps) {
 			<div className="py-8 text-center text-t2">
 				Загрузка матрицы трассировки...
 			</div>
+		);
+	}
+
+	// W10-A2-008: fail ≠ empty card
+	if (isError) {
+		return (
+			<Card>
+				<CardContent className="py-8">
+					<div role="alert" className="space-y-3 text-center">
+						<p className="text-sm text-[var(--red)]">
+							Не удалось загрузить матрицу трассировки
+						</p>
+						<button
+							type="button"
+							className="text-sm font-semibold text-t2 hover:text-t1 hover:underline"
+							onClick={() => void refetch()}
+						>
+							Попробовать снова
+						</button>
+					</div>
+				</CardContent>
+			</Card>
 		);
 	}
 

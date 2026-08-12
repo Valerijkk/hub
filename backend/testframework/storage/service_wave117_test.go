@@ -35,8 +35,8 @@ func TestOrphanCleanup_AttemptsS3DeleteWhenClientConfigured(t *testing.T) {
 	cleanup := storage.NewOrphanCleanupService(repo, svc.S3Client(), svc.Bucket())
 	require.NoError(t, cleanup.Cleanup(ctx))
 
-	// Удаление из S3 на недоступный endpoint падает; строка метаданных может остаться — ветка всё равно проверена.
+	// W7-A4-020 / P3-BE-02: S3 delete на недоступный endpoint падает → meta остаётся.
+	// require.NoError(Get) краснеет, если ветка ошибочно hard-delete'ит meta при S3 err.
 	_, err = client.FileMetadata.Get(ctx, oldID)
-	// Либо удалена (если S3-мок успешен), либо ещё присутствует — без паники на пути ошибки S3.
-	_ = err
+	require.NoError(t, err, "orphan meta must remain when S3 delete fails")
 }

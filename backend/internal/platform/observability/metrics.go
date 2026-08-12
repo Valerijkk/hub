@@ -31,6 +31,7 @@ var (
 )
 
 func recordOperation(operation string, durationMs int64, failed bool) {
+	operation = sanitizeOperationLabel(operation)
 	if operation == "" {
 		return
 	}

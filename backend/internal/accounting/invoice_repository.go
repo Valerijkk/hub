@@ -2,15 +2,22 @@ package accounting
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/crmdeal"
 	"github.com/valerii/hub/backend/ent/invoice"
+	"github.com/valerii/hub/backend/ent/journalentry"
 	"github.com/valerii/hub/backend/ent/ledgeraccount"
 )
+
+// invoiceNumberAllocAttempts — сколько раз пересчитать INV-YYYY-NNN при unique race (W7-A2-007).
+const invoiceNumberAllocAttempts = 8
 
 func (r *EntRepository) GetAccountByCode(ctx context.Context, code string) (*ent.LedgerAccount, error) {
 	return r.client.LedgerAccount.Query().
@@ -40,19 +47,26 @@ func (r *EntRepository) IncomeStatement(ctx context.Context) (*IncomeStatementRe
 	}, nil
 }
 
+// nextInvoiceNumber — MAX(suffix)+1 по префиксу года.
+// Unique index на number покрывает и soft-deleted, поэтому Count(DeletedAtIsNil)
+// давал коллизии; берём lexical max по всем строкам с префиксом.
 func (r *EntRepository) nextInvoiceNumber(ctx context.Context) (string, error) {
 	year := time.Now().UTC().Year()
 	prefix := fmt.Sprintf("INV-%d-", year)
-	n, err := r.client.Invoice.Query().
-		Where(
-			invoice.DeletedAtIsNil(),
-			invoice.NumberHasPrefix(prefix),
-		).
-		Count(ctx)
-	if err != nil {
+	last, err := r.client.Invoice.Query().
+		Where(invoice.NumberHasPrefix(prefix)).
+		Order(ent.Desc(invoice.FieldNumber)).
+		First(ctx)
+	seq := 0
+	if err == nil {
+		suffix := strings.TrimPrefix(last.Number, prefix)
+		if n, perr := strconv.Atoi(suffix); perr == nil {
+			seq = n
+		}
+	} else if !ent.IsNotFound(err) {
 		return "", err
 	}
-	return fmt.Sprintf("%s%03d", prefix, n+1), nil
+	return fmt.Sprintf("%s%03d", prefix, seq+1), nil
 }
 
 func (r *EntRepository) ListInvoices(ctx context.Context, limit int) ([]*ent.Invoice, error) {
@@ -69,14 +83,81 @@ func (r *EntRepository) ListInvoices(ctx context.Context, limit int) ([]*ent.Inv
 }
 
 func (r *EntRepository) CreateInvoice(ctx context.Context, userID uuid.UUID, req CreateInvoiceRequest, number string) (*ent.Invoice, error) {
+	if number != "" {
+		return r.createInvoiceOnce(ctx, userID, req, number)
+	}
+	// W7-A2-007: concurrent Count+1 → duplicate INV / unique 500.
+	// MAX+1 + retry на constraint (unique уже в schema); deal-lock A6-004 отдельно.
+	var lastErr error
+	for attempt := 0; attempt < invoiceNumberAllocAttempts; attempt++ {
+		inv, err := r.createInvoiceOnce(ctx, userID, req, "")
+		if err == nil {
+			return inv, nil
+		}
+		if errors.Is(err, ErrInvoiceExists) || errors.Is(err, ErrInvalidInput) {
+			return nil, err
+		}
+		if ent.IsConstraintError(err) {
+			lastErr = err
+			continue
+		}
+		return nil, err
+	}
+	return nil, fmt.Errorf("allocate invoice number: %w", lastErr)
+}
+
+func (r *EntRepository) createInvoiceOnce(ctx context.Context, userID uuid.UUID, req CreateInvoiceRequest, number string) (*ent.Invoice, error) {
+	if req.CrmDealID == nil {
+		return r.insertInvoice(ctx, r.client, userID, req, number)
+	}
+	// A6-004: check+create атомарно под row-lock сделки (без schema unique — запрещено в волне).
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	// Touch deal → RowExclusiveLock до конца tx; concurrent create ждёт и видит invoice.
+	if _, err := tx.CrmDeal.UpdateOneID(*req.CrmDealID).AddVersion(0).Save(ctx); err != nil {
+		if ent.IsNotFound(err) {
+			return nil, ErrInvalidInput
+		}
+		return nil, fmt.Errorf("lock deal for invoice: %w", err)
+	}
+
+	exists, err := tx.Invoice.Query().
+		Where(
+			invoice.HasCrmDealWith(crmdeal.ID(*req.CrmDealID)),
+			invoice.DeletedAtIsNil(),
+			invoice.StatusNEQ(invoice.StatusCancelled),
+		).
+		Exist(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("check deal invoice: %w", err)
+	}
+	if exists {
+		return nil, ErrInvoiceExists
+	}
+
+	inv, err := r.insertInvoice(ctx, tx.Client(), userID, req, number)
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return inv, nil
+}
+
+func (r *EntRepository) insertInvoice(ctx context.Context, client *ent.Client, userID uuid.UUID, req CreateInvoiceRequest, number string) (*ent.Invoice, error) {
 	if number == "" {
 		var err error
-		number, err = r.nextInvoiceNumber(ctx)
+		number, err = (&EntRepository{client: client}).nextInvoiceNumber(ctx)
 		if err != nil {
 			return nil, err
 		}
 	}
-	b := r.client.Invoice.Create().
+	b := client.Invoice.Create().
 		SetNumber(number).
 		SetCustomerName(req.CustomerName).
 		SetAmountCents(req.AmountCents).
@@ -139,6 +220,95 @@ func (r *EntRepository) MarkInvoicePaid(ctx context.Context, id uuid.UUID, entry
 		return nil, err
 	}
 	return r.GetInvoice(ctx, inv.ID)
+}
+
+// PayInvoiceAtomic атомарно оплачивает issued-счёт: journal+post+paid в одной транзакции (A6-002).
+// При ошибке MarkPaid откатывается и проводка — без orphan posted journals.
+func (r *EntRepository) PayInvoiceAtomic(ctx context.Context, userID, invoiceID, bankAccountID, revenueAccountID uuid.UUID) (*ent.Invoice, error) {
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	inv, err := tx.Invoice.Query().
+		Where(
+			invoice.ID(invoiceID),
+			invoice.DeletedAtIsNil(),
+		).
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	if inv.Status != invoice.StatusIssued {
+		return nil, ErrInvalidInvoice
+	}
+
+	desc := fmt.Sprintf("Оплата счёта %s", inv.Number)
+	entryDate := time.Now().UTC()
+	if inv.IssuedAt != nil {
+		entryDate = inv.IssuedAt.UTC()
+	}
+
+	entry, err := tx.JournalEntry.Create().
+		SetEntryDate(entryDate).
+		SetDescription(desc).
+		SetReference(inv.Number).
+		SetCreatedByID(userID).
+		Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("create payment journal: %w", err)
+	}
+	if _, err := tx.JournalLine.Create().
+		SetEntryID(entry.ID).
+		SetAccountID(bankAccountID).
+		SetDebitCents(inv.AmountCents).
+		SetCreditCents(0).
+		SetMemo(inv.CustomerName).
+		Save(ctx); err != nil {
+		return nil, fmt.Errorf("create bank line: %w", err)
+	}
+	if _, err := tx.JournalLine.Create().
+		SetEntryID(entry.ID).
+		SetAccountID(revenueAccountID).
+		SetDebitCents(0).
+		SetCreditCents(inv.AmountCents).
+		Save(ctx); err != nil {
+		return nil, fmt.Errorf("create revenue line: %w", err)
+	}
+
+	now := time.Now().UTC()
+	_, err = tx.JournalEntry.UpdateOneID(entry.ID).
+		Where(journalentry.StatusEQ(journalentry.StatusDraft)).
+		SetStatus(journalentry.StatusPosted).
+		SetPostedAt(now).
+		AddVersion(1).
+		Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("post payment journal: %w", err)
+	}
+
+	paid, err := tx.Invoice.UpdateOneID(invoiceID).
+		Where(
+			invoice.DeletedAtIsNil(),
+			invoice.StatusEQ(invoice.StatusIssued),
+		).
+		SetStatus(invoice.StatusPaid).
+		SetPaidAt(now).
+		SetJournalEntryID(entry.ID).
+		AddVersion(1).
+		Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("mark paid: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return r.GetInvoice(ctx, paid.ID)
 }
 
 func (r *EntRepository) InvoiceExistsForDeal(ctx context.Context, dealID uuid.UUID) (bool, error) {

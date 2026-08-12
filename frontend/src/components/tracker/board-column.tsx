@@ -1,10 +1,15 @@
 import { dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { Link } from "@tanstack/react-router";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import type { IssueBriefResponse, WorkflowStatusResponse } from "@/api/tracker";
 import { cn } from "@/lib/utils";
 import { IssueCard } from "./issue-card";
+
+/** Above this count, prefer virtualization over per-card layout animation (A13-014). */
+const VIRTUALIZE_THRESHOLD = 24;
+const ESTIMATED_CARD_HEIGHT = 96;
 
 /** Пропсы компонента BoardColumn. */
 interface BoardColumnProps {
@@ -31,7 +36,9 @@ export function BoardColumn({
 	onDrop,
 }: BoardColumnProps) {
 	const columnRef = useRef<HTMLDivElement>(null);
+	const listRef = useRef<HTMLDivElement>(null);
 	const [isOver, setIsOver] = useState(false);
+	const useVirtual = issues.length >= VIRTUALIZE_THRESHOLD;
 
 	useEffect(() => {
 		const el = columnRef.current;
@@ -51,6 +58,14 @@ export function BoardColumn({
 			},
 		});
 	}, [status.id, issues.length, onDrop]);
+
+	const virtualizer = useVirtualizer({
+		count: useVirtual ? issues.length : 0,
+		getScrollElement: () => listRef.current,
+		estimateSize: () => ESTIMATED_CARD_HEIGHT,
+		overscan: 4,
+		gap: 10,
+	});
 
 	return (
 		<div
@@ -97,21 +112,49 @@ export function BoardColumn({
 			</div>
 
 			{/* Список карточек — скроллируемый контейнер */}
-			<div className="flex flex-col gap-2.5 overflow-y-auto pr-1 flex-1">
-				<AnimatePresence mode="popLayout">
-					{issues.map((issue) => (
-						<motion.div
-							key={issue.id}
-							layout
-							initial={{ opacity: 0, y: 8 }}
-							animate={{ opacity: 1, y: 0 }}
-							exit={{ opacity: 0, scale: 0.95 }}
-							transition={{ duration: 0.15 }}
-						>
-							<IssueCard issue={issue} projectId={projectId} />
-						</motion.div>
-					))}
-				</AnimatePresence>
+			<div
+				ref={listRef}
+				className="flex flex-col gap-2.5 overflow-y-auto pr-1 flex-1"
+			>
+				{useVirtual ? (
+					<div
+						className="relative w-full"
+						style={{ height: `${virtualizer.getTotalSize()}px` }}
+					>
+						{virtualizer.getVirtualItems().map((virtualRow) => {
+							const issue = issues[virtualRow.index];
+							if (!issue) return null;
+							return (
+								<div
+									key={issue.id}
+									data-index={virtualRow.index}
+									ref={virtualizer.measureElement}
+									className="absolute left-0 top-0 w-full"
+									style={{
+										transform: `translateY(${virtualRow.start}px)`,
+									}}
+								>
+									<IssueCard issue={issue} projectId={projectId} />
+								</div>
+							);
+						})}
+					</div>
+				) : (
+					<AnimatePresence mode="popLayout">
+						{issues.map((issue) => (
+							<motion.div
+								key={issue.id}
+								layout
+								initial={{ opacity: 0, y: 8 }}
+								animate={{ opacity: 1, y: 0 }}
+								exit={{ opacity: 0, scale: 0.95 }}
+								transition={{ duration: 0.15 }}
+							>
+								<IssueCard issue={issue} projectId={projectId} />
+							</motion.div>
+						))}
+					</AnimatePresence>
+				)}
 
 				{/* Пустое состояние — подсказка для перетаскивания */}
 				{issues.length === 0 && (

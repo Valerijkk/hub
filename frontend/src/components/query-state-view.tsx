@@ -42,14 +42,46 @@ function DefaultLoading() {
 	);
 }
 
-/** Дефолтный UI ошибки -- карточка с понятным текстом и кнопкой повтора. */
-function DefaultError({ retry }: { error: unknown; retry: () => void }) {
+/** Пропсы компактного/полного UI ошибки загрузки (P2-FE-01 / TASK-047). */
+export interface QueryErrorAlertProps {
+	/** Текст ошибки; по умолчанию — общая формулировка. */
+	message?: string;
+	/** Повтор запроса. */
+	retry: () => void;
+	/** Компактный вариант для sidebar / inline-блоков. */
+	compact?: boolean;
+}
+
+/**
+ * Единый UI «ошибка ≠ empty»: alert + retry.
+ * Используется QueryStateView и ручными fetch-панелями (admin settings и т.п.).
+ */
+export function QueryErrorAlert({
+	message = "Не удалось загрузить данные. Попробовать снова?",
+	retry,
+	compact = false,
+}: QueryErrorAlertProps) {
+	if (compact) {
+		return (
+			<div role="alert" className="space-y-2 py-2 text-center">
+				<p className="text-[13px] text-[var(--red)]">{message}</p>
+				<button
+					type="button"
+					onClick={retry}
+					className="text-[13px] font-semibold text-t2 hover:text-t1 hover:underline"
+				>
+					Попробовать снова
+				</button>
+			</div>
+		);
+	}
+
 	return (
 		<div
 			role="alert"
 			className="flex flex-col items-center justify-center gap-3 rounded-[var(--r4)] border border-b1 bg-card/80 p-6 text-center"
 		>
-			<div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500/10 text-red-500">
+			<div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--red)]/10 text-[var(--red)]">
 				<svg
 					className="h-5 w-5"
 					fill="none"
@@ -65,9 +97,7 @@ function DefaultError({ retry }: { error: unknown; retry: () => void }) {
 					/>
 				</svg>
 			</div>
-			<p className="text-[14px] font-semibold text-t1">
-				Не удалось загрузить данные. Попробовать снова?
-			</p>
+			<p className="text-[14px] font-semibold text-t1">{message}</p>
 			<Button type="button" variant="outline" size="sm" onClick={retry}>
 				Попробовать снова
 			</Button>
@@ -117,7 +147,7 @@ export function QueryStateView<T>({
 				{errorFallback ? (
 					errorFallback(query.error, retry)
 				) : (
-					<DefaultError error={query.error} retry={retry} />
+					<QueryErrorAlert retry={retry} />
 				)}
 			</>
 		);

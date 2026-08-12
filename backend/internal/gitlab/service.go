@@ -80,6 +80,10 @@ func (s *GitLabService) CreateIntegration(ctx context.Context, projectID uuid.UU
 		return nil, apperrors.NewBadRequest("некорректный gitlab_url: " + err.Error())
 	}
 
+	if strings.TrimSpace(req.WebhookSecret) == "" {
+		return nil, apperrors.NewBadRequest("webhook_secret обязателен")
+	}
+
 	input := CreateIntegrationInput{
 		GitLabURL:     gitlabURL,
 		ProjectPath:   req.ProjectPath,
@@ -109,9 +113,9 @@ func (s *GitLabService) ListIntegrations(ctx context.Context, projectID uuid.UUI
 	return result, nil
 }
 
-// DeleteIntegration удаляет интеграцию по ID.
-func (s *GitLabService) DeleteIntegration(ctx context.Context, id uuid.UUID) error {
-	return s.repo.DeleteIntegration(ctx, id)
+// DeleteIntegration удаляет интеграцию по ID в рамках projectID (A5-004).
+func (s *GitLabService) DeleteIntegration(ctx context.Context, projectID, id uuid.UUID) error {
+	return s.repo.DeleteIntegration(ctx, projectID, id)
 }
 
 // ---------------------------------------------------------------------------
@@ -303,7 +307,9 @@ func (s *GitLabService) fetchPipelines(ctx context.Context, integration *ent.Git
 		if readErr != nil {
 			slog.Error("не удалось прочитать тело ответа GitLab API", "error", readErr)
 		}
-		return nil, fmt.Errorf("GitLab API вернул %d: %s", resp.StatusCode, string(body))
+		// W7-A3-006: upstream body только в server log, клиенту — статус.
+		slog.Error("GitLab API error", "op", "pipelines", "status", resp.StatusCode, "body", string(body))
+		return nil, fmt.Errorf("GitLab API вернул %d", resp.StatusCode)
 	}
 
 	var pipelines []struct {
@@ -350,7 +356,8 @@ func (s *GitLabService) TriggerPipeline(ctx context.Context, projectID uuid.UUID
 		return nil, apperrors.NewBadRequest("некорректный integration_id")
 	}
 
-	integration, err := s.repo.GetIntegration(ctx, integrationID)
+	// A5-005: интеграция должна принадлежать projectID из URL (не чужой PAT).
+	integration, err := s.repo.GetIntegrationInProject(ctx, projectID, integrationID)
 	if err != nil {
 		return nil, apperrors.NewNotFound("интеграция не найдена")
 	}
@@ -406,7 +413,9 @@ func (s *GitLabService) TriggerPipeline(ctx context.Context, projectID uuid.UUID
 		if readErr != nil {
 			slog.Error("не удалось прочитать тело ответа GitLab API", "error", readErr)
 		}
-		return nil, apperrors.NewInternal(fmt.Sprintf("ошибка запуска пайплайна GitLab: %d %s", resp.StatusCode, string(respBody)))
+		// W7-A3-006: upstream body только в server log, клиенту — статус.
+		slog.Error("GitLab API error", "op", "trigger_pipeline", "status", resp.StatusCode, "body", string(respBody))
+		return nil, apperrors.NewInternal(fmt.Sprintf("ошибка запуска пайплайна GitLab: HTTP %d", resp.StatusCode))
 	}
 
 	var pipeline struct {
@@ -419,14 +428,14 @@ func (s *GitLabService) TriggerPipeline(ctx context.Context, projectID uuid.UUID
 		return nil, apperrors.NewInternal("ошибка разбора ответа GitLab API")
 	}
 
-	// Публикуем NATS-событие о запуске пайплайна
+	// Публикуем NATS-событие о запуске пайплайна (W7-A3-001: values redact).
 	s.nats.PublishJSON("gitlab.pipeline.triggered", map[string]interface{}{
 		"pipeline_id":  pipeline.ID,
 		"status":       pipeline.Status,
 		"ref":          pipeline.Ref,
 		"web_url":      pipeline.WebURL,
 		"project_path": integration.ProjectPath,
-		"variables":    req.Variables,
+		"variables":    redactPipelineVariables(req.Variables),
 	})
 
 	return &TriggerPipelineResponse{
@@ -437,13 +446,26 @@ func (s *GitLabService) TriggerPipeline(ctx context.Context, projectID uuid.UUID
 	}, nil
 }
 
+// redactPipelineVariables — P1-BE-36: в NATS/outbox уходят только ключи CI vars, не plaintext values.
+func redactPipelineVariables(vars map[string]string) map[string]string {
+	if len(vars) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(vars))
+	for k := range vars {
+		out[k] = "***"
+	}
+	return out
+}
+
 // ---------------------------------------------------------------------------
 // Создание ветки (GitLab API)
 // ---------------------------------------------------------------------------
 
 // CreateBranch создаёт ветку в GitLab-репозитории через API.
-func (s *GitLabService) CreateBranch(ctx context.Context, issueKey string, req CreateBranchRequest) (*CreateBranchResponse, error) {
-	issue, err := s.repo.FindIssueByKey(ctx, issueKey)
+// A5-007: issue и integration обязаны принадлежать одному projectID (RBAC на маршруте).
+func (s *GitLabService) CreateBranch(ctx context.Context, projectID uuid.UUID, issueKey string, req CreateBranchRequest) (*CreateBranchResponse, error) {
+	issue, err := s.repo.FindIssueByKeyInProject(ctx, projectID, issueKey)
 	if err != nil {
 		return nil, apperrors.NewNotFound("задача не найдена")
 	}
@@ -453,7 +475,7 @@ func (s *GitLabService) CreateBranch(ctx context.Context, issueKey string, req C
 		return nil, apperrors.NewBadRequest("некорректный integration_id")
 	}
 
-	integration, err := s.repo.GetIntegration(ctx, integrationID)
+	integration, err := s.repo.GetIntegrationInProject(ctx, projectID, integrationID)
 	if err != nil {
 		return nil, apperrors.NewNotFound("интеграция не найдена")
 	}
@@ -493,7 +515,9 @@ func (s *GitLabService) CreateBranch(ctx context.Context, issueKey string, req C
 		if readErr != nil {
 			slog.Error("не удалось прочитать тело ответа GitLab API", "error", readErr)
 		}
-		return nil, apperrors.NewInternal(fmt.Sprintf("ошибка создания ветки в GitLab: %d %s", resp.StatusCode, string(body)))
+		// W7-A3-006: upstream body только в server log, клиенту — статус.
+		slog.Error("GitLab API error", "op", "create_branch", "status", resp.StatusCode, "body", string(body))
+		return nil, apperrors.NewInternal(fmt.Sprintf("ошибка создания ветки в GitLab: HTTP %d", resp.StatusCode))
 	}
 
 	return &CreateBranchResponse{BranchName: branchName}, nil
@@ -549,7 +573,9 @@ func (s *GitLabService) fetchMergeRequests(ctx context.Context, integration *ent
 		if readErr != nil {
 			slog.Error("не удалось прочитать тело ответа GitLab API", "error", readErr)
 		}
-		return nil, fmt.Errorf("GitLab API вернул %d: %s", resp.StatusCode, string(body))
+		// W7-A3-006: upstream body только в server log, клиенту — статус.
+		slog.Error("GitLab API error", "op", "merge_requests", "status", resp.StatusCode, "body", string(body))
+		return nil, fmt.Errorf("GitLab API вернул %d", resp.StatusCode)
 	}
 
 	var mrs []map[string]interface{}

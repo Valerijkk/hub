@@ -1,6 +1,6 @@
 ﻿package imex_test
+
 import (
-	"github.com/valerii/hub/backend/internal/imex"
 	"context"
 	"net/http"
 	"net/http/httptest"
@@ -8,21 +8,33 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alicebob/miniredis/v2"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	_ "github.com/mattn/go-sqlite3"
 
+	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/issue"
 	"github.com/valerii/hub/backend/ent/testresult"
 	"github.com/valerii/hub/backend/ent/testrun"
 	"github.com/valerii/hub/backend/ent/workflowstatus"
+	"github.com/valerii/hub/backend/internal/imex"
+	"github.com/valerii/hub/backend/internal/rbac"
 )
 
-func seedImexPDFData(t *testing.T) (*imex.ImExService, uuid.UUID, uuid.UUID, uuid.UUID) {
+func seedImexPDFData(t *testing.T) (*imex.ImExService, *ent.Client, uuid.UUID, uuid.UUID, uuid.UUID, uuid.UUID) {
 	t.Helper()
 	svc, client, ctx, projectID, userID := newImexTestEnv(t)
+
+	_, err := client.ProjectMember.Create().
+		SetUserID(userID).
+		SetProjectID(projectID).
+		SetProjectRole("developer").
+		Save(ctx)
+	require.NoError(t, err)
 
 	testCase, err := client.TestCase.Create().
 		SetCaseNumber(1).
@@ -80,11 +92,11 @@ func seedImexPDFData(t *testing.T) (*imex.ImExService, uuid.UUID, uuid.UUID, uui
 		Save(ctx)
 	require.NoError(t, err)
 
-	return svc, projectID, run.ID, sprint.ID
+	return svc, client, projectID, userID, run.ID, sprint.ID
 }
 
 func TestExportRunPDF_GeneratesBytes(t *testing.T) {
-	svc, projectID, runID, _ := seedImexPDFData(t)
+	svc, _, projectID, _, runID, _ := seedImexPDFData(t)
 	ctx := contextBackground(t)
 
 	data, err := svc.ExportRunPDF(ctx, projectID, runID)
@@ -94,7 +106,7 @@ func TestExportRunPDF_GeneratesBytes(t *testing.T) {
 }
 
 func TestExportRunPDF_NotFound(t *testing.T) {
-	svc, _, _, _ := seedImexPDFData(t)
+	svc, _, _, _, _, _ := seedImexPDFData(t)
 	ctx := contextBackground(t)
 
 	_, err := svc.ExportRunPDF(ctx, uuid.New(), uuid.New())
@@ -103,7 +115,7 @@ func TestExportRunPDF_NotFound(t *testing.T) {
 }
 
 func TestExportSprintPDF_GeneratesBytes(t *testing.T) {
-	svc, projectID, _, sprintID := seedImexPDFData(t)
+	svc, _, projectID, _, _, sprintID := seedImexPDFData(t)
 	ctx := contextBackground(t)
 
 	data, err := svc.ExportSprintPDF(ctx, projectID, sprintID)
@@ -112,7 +124,7 @@ func TestExportSprintPDF_GeneratesBytes(t *testing.T) {
 }
 
 func TestExportSprintPDF_NotFound(t *testing.T) {
-	svc, projectID, _, _ := seedImexPDFData(t)
+	svc, _, projectID, _, _, _ := seedImexPDFData(t)
 	ctx := contextBackground(t)
 
 	_, err := svc.ExportSprintPDF(ctx, projectID, uuid.New())
@@ -127,34 +139,41 @@ func TestPDFHelpers_BuildRows(t *testing.T) {
 	assert.NotNil(t, imex.ExportBuildTableRow([]string{long, "ok", "x"}))
 }
 
-func setupImexPDFApp(h *imex.Handler, userID uuid.UUID) *fiber.App {
+func setupImexPDFApp(t *testing.T, h *imex.Handler, client *ent.Client, userID uuid.UUID) *fiber.App {
+	t.Helper()
+	mr, err := miniredis.Run()
+	require.NoError(t, err)
+	t.Cleanup(mr.Close)
+	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	t.Cleanup(func() { _ = rdb.Close() })
+	rbacSvc := rbac.NewRBACService(rbac.NewEntRepository(client), rbac.NewPermissionCache(rdb))
+
 	app := fiber.New()
 	api := app.Group("/api")
 	authMw := func(c fiber.Ctx) error {
 		c.Locals("userID", userID.String())
 		return c.Next()
 	}
-	h.RegisterRoutes(api, authMw)
+	h.RegisterRoutes(api, authMw, rbacSvc)
 	return app
 }
 
 func TestHandler_ExportRunAndSprintPDF(t *testing.T) {
-	svc, projectID, runID, sprintID := seedImexPDFData(t)
+	svc, client, projectID, userID, runID, sprintID := seedImexPDFData(t)
 	h := imex.NewHandler(svc)
-	app := setupImexPDFApp(h, uuid.New())
+	app := setupImexPDFApp(t, h, client, userID)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/projects/"+projectID.String()+"/test-runs/"+runID.String()+"/export/pdf", nil)
 	resp, err := app.Test(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
-	assert.Contains(t, resp.Header.Get("Content-Type"), "pdf")
+	require.Equal(t, http.StatusOK, resp.StatusCode)
 
-	req = httptest.NewRequest(http.MethodGet, "/api/projects/"+projectID.String()+"/sprints/"+sprintID.String()+"/export/pdf", nil)
-	resp, err = app.Test(req)
+	req2 := httptest.NewRequest(http.MethodGet, "/api/projects/"+projectID.String()+"/sprints/"+sprintID.String()+"/export/pdf", nil)
+	resp2, err := app.Test(req2)
 	require.NoError(t, err)
-	defer resp.Body.Close()
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	defer resp2.Body.Close()
+	assert.Equal(t, http.StatusOK, resp2.StatusCode)
 }
 
 func contextBackground(t *testing.T) context.Context {

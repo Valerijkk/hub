@@ -1,20 +1,25 @@
 ﻿package apigateway_test
+
 import (
-	"github.com/valerii/hub/backend/internal/apigateway"
 	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
+	"github.com/alicebob/miniredis/v2"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/valerii/hub/backend/ent/enttest"
 	"github.com/valerii/hub/backend/ent/user"
+	"github.com/valerii/hub/backend/internal/apigateway"
+	"github.com/valerii/hub/backend/internal/auth"
 )
 
 func newAPIKeyTestService(t *testing.T) (*apigateway.APIKeyService, uuid.UUID, string) {
@@ -31,13 +36,60 @@ func newAPIKeyTestService(t *testing.T) (*apigateway.APIKeyService, uuid.UUID, s
 		Save(ctx)
 	require.NoError(t, err)
 
-	svc := apigateway.NewAPIKeyService(apigateway.NewEntRepository(client))
+	svc := apigateway.NewAPIKeyService(apigateway.NewEntRepository(client, apigatewayTestCipher(t)))
 	t.Cleanup(svc.Close)
 
 	resp, err := svc.CreateAPIKey(ctx, u.ID, "integration-test", nil)
 	require.NoError(t, err)
 
 	return svc, u.ID, resp.Key
+}
+
+// TestAPIKeyAuth_AlonePassesRequireAuth_A9012 — A9-012: X-API-Key alone must
+// authenticate a route guarded by auth.RequireAuth (no Bearer JWT).
+func TestAPIKeyAuth_AlonePassesRequireAuth_A9012(t *testing.T) {
+	dsn := "file:apikey_a9012_" + uuid.New().String() + "?mode=memory&cache=shared&_fk=1"
+	client := enttest.Open(t, "sqlite3", dsn)
+	t.Cleanup(func() { _ = client.Close() })
+
+	ctx := context.Background()
+	u, err := client.User.Create().
+		SetEmail("apikey-a9012-" + uuid.New().String()[:8] + "@example.com").
+		SetSystemRole(user.SystemRoleMember).
+		Save(ctx)
+	require.NoError(t, err)
+
+	apiKeySvc := apigateway.NewAPIKeyService(apigateway.NewEntRepository(client, apigatewayTestCipher(t)))
+	t.Cleanup(apiKeySvc.Close)
+
+	keyResp, err := apiKeySvc.CreateAPIKey(ctx, u.ID, "a9012-ci", nil)
+	require.NoError(t, err)
+
+	mr, err := miniredis.Run()
+	require.NoError(t, err)
+	t.Cleanup(mr.Close)
+	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	t.Cleanup(func() { _ = rdb.Close() })
+
+	magic := auth.NewMagicLinkService(rdb, nil, "test@example.com")
+	authSvc := auth.NewAuthService(auth.NewEntRepository(client), rdb, nil, "a9012-secret", 15*time.Minute, 30*24*time.Hour, magic, nil)
+
+	app := fiber.New()
+	app.Use(apigateway.APIKeyAuth(apiKeySvc))
+	app.Get("/api/protected", func(c fiber.Ctx) error {
+		return c.SendString(c.Locals("userID").(string))
+	}, auth.RequireAuth(authSvc))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/protected", nil)
+	req.Header.Set("X-API-Key", keyResp.Key)
+	// No Authorization / Bearer — API key alone.
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	body, _ := io.ReadAll(resp.Body)
+	assert.Equal(t, u.ID.String(), string(body))
 }
 
 // TestAPIKeyAuth_ValidKey_SetsUserID — smoke: middleware принимает X-API-Key
@@ -76,7 +128,7 @@ func TestAPIKeyAuth_DeactivatedUser_Rejected(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	svc := apigateway.NewAPIKeyService(apigateway.NewEntRepository(client))
+	svc := apigateway.NewAPIKeyService(apigateway.NewEntRepository(client, apigatewayTestCipher(t)))
 	t.Cleanup(svc.Close)
 
 	resp, err := svc.CreateAPIKey(ctx, u.ID, "deactivated-owner", nil)

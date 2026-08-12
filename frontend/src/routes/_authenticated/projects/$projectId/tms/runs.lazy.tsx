@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createLazyFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { getProject } from "@/api/projects";
 import {
 	createTestRun,
 	type ListTestRunsParams,
@@ -27,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import { toastApiError } from "@/lib/format-api-error";
 import { formatRelativeTime } from "@/lib/format-time";
+import { canMutateProject } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
 /** Конфиг статусов прогона с иконками. */
@@ -82,10 +84,8 @@ const RUN_TYPE_CONFIG: Record<
 	},
 };
 
-/**
- * Список прогонов — UI уровня Allure TestOps.
- */
-function TestRunsPage() {
+/** Список прогонов — UI уровня Allure TestOps (экспорт для Vitest authz UI). */
+export function TestRunsPage() {
 	const { projectId } = Route.useParams();
 	const queryClient = useQueryClient();
 	const [statusFilter, setStatusFilter] = useState("");
@@ -101,10 +101,16 @@ function TestRunsPage() {
 		status: (statusFilter || undefined) as ListTestRunsParams["status"],
 	};
 
-	const { data, isLoading } = useQuery({
+	const { data, isLoading, isError, refetch } = useQuery({
 		queryKey: ["tms-runs", projectId, params],
 		queryFn: () => listTestRuns(projectId, params),
 	});
+
+	const { data: project } = useQuery({
+		queryKey: ["project", projectId],
+		queryFn: () => getProject(projectId),
+	});
+	const canMutate = canMutateProject(project?.my_role);
 
 	const createMutation = useMutation({
 		mutationFn: () =>
@@ -188,66 +194,71 @@ function TestRunsPage() {
 					</Button>
 				)}
 
-				<Dialog open={createOpen} onOpenChange={setCreateOpen}>
-					<DialogTrigger asChild>
-						<Button size="sm" className="gradient-tms text-white shadow-sm h-8">
-							<svg
-								aria-hidden="true"
-								className="mr-1.5 h-3.5 w-3.5"
-								fill="none"
-								viewBox="0 0 24 24"
-								stroke="currentColor"
-								strokeWidth={2}
-							>
-								<path
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									d="M12 4v16m8-8H4"
-								/>
-							</svg>
-							Новый прогон
-						</Button>
-					</DialogTrigger>
-					<DialogContent>
-						<DialogHeader>
-							<DialogTitle>Новый прогон тестов</DialogTitle>
-						</DialogHeader>
-						<div className="space-y-4">
-							<Input
-								placeholder="Название прогона"
-								value={newTitle}
-								onChange={(e) => setNewTitle(e.target.value)}
-							/>
-							<Select
-								value={newType}
-								onValueChange={(v) => setNewType(v as TestRunType)}
-							>
-								<SelectTrigger className="w-full rounded-xl border bg-card px-3 py-2 text-sm">
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="manual">Ручной</SelectItem>
-									<SelectItem value="automatic">Автоматический</SelectItem>
-									<SelectItem value="mixed">Смешанный</SelectItem>
-								</SelectContent>
-							</Select>
-							<textarea
-								className="w-full rounded-lg border bg-card px-3 py-2 text-sm"
-								placeholder="Описание (необязательно)"
-								rows={3}
-								value={newDescription}
-								onChange={(e) => setNewDescription(e.target.value)}
-							/>
+				{canMutate ? (
+					<Dialog open={createOpen} onOpenChange={setCreateOpen}>
+						<DialogTrigger asChild>
 							<Button
-								className="w-full"
-								disabled={!newTitle.trim() || createMutation.isPending}
-								onClick={() => createMutation.mutate()}
+								size="sm"
+								className="gradient-tms text-white shadow-sm h-8"
 							>
-								{createMutation.isPending ? "Создание..." : "Создать"}
+								<svg
+									aria-hidden="true"
+									className="mr-1.5 h-3.5 w-3.5"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									strokeWidth={2}
+								>
+									<path
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										d="M12 4v16m8-8H4"
+									/>
+								</svg>
+								Новый прогон
 							</Button>
-						</div>
-					</DialogContent>
-				</Dialog>
+						</DialogTrigger>
+						<DialogContent>
+							<DialogHeader>
+								<DialogTitle>Новый прогон тестов</DialogTitle>
+							</DialogHeader>
+							<div className="space-y-4">
+								<Input
+									placeholder="Название прогона"
+									value={newTitle}
+									onChange={(e) => setNewTitle(e.target.value)}
+								/>
+								<Select
+									value={newType}
+									onValueChange={(v) => setNewType(v as TestRunType)}
+								>
+									<SelectTrigger className="w-full rounded-xl border bg-card px-3 py-2 text-sm">
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="manual">Ручной</SelectItem>
+										<SelectItem value="automatic">Автоматический</SelectItem>
+										<SelectItem value="mixed">Смешанный</SelectItem>
+									</SelectContent>
+								</Select>
+								<textarea
+									className="w-full rounded-lg border bg-card px-3 py-2 text-sm"
+									placeholder="Описание (необязательно)"
+									rows={3}
+									value={newDescription}
+									onChange={(e) => setNewDescription(e.target.value)}
+								/>
+								<Button
+									className="w-full"
+									disabled={!newTitle.trim() || createMutation.isPending}
+									onClick={() => createMutation.mutate()}
+								>
+									{createMutation.isPending ? "Создание..." : "Создать"}
+								</Button>
+							</div>
+						</DialogContent>
+					</Dialog>
+				) : null}
 			</div>
 
 			{/* Список прогонов */}
@@ -270,6 +281,23 @@ function TestRunsPage() {
 							</div>
 						</div>
 					))}
+				</div>
+			) : isError ? (
+				// W10-A5-007: fail ≠ «Нет тестовых прогонов»
+				<div
+					role="alert"
+					className="flex flex-col items-center justify-center py-20 flex-1 gap-3"
+				>
+					<p className="text-[14px] font-medium text-t1">
+						Не удалось загрузить прогоны
+					</p>
+					<button
+						type="button"
+						className="text-[13px] text-blue font-semibold hover:underline"
+						onClick={() => void refetch()}
+					>
+						Попробовать снова
+					</button>
 				</div>
 			) : runs.length === 0 ? (
 				<div className="flex flex-col items-center justify-center py-20 flex-1 animate-[enterUp_450ms_var(--spring)_both]">

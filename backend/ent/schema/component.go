@@ -24,11 +24,22 @@ func (Component) Fields() []ent.Field {
 			MaxLen(200),
 		field.Text("description").
 			Optional(),
+		field.Time("deleted_at").
+			Optional().
+			Nillable().
+			Comment("Время мягкого удаления (корзина 30 дней)"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
 	}
 }
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (Component) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
+	}
+}
+
 
 // Рёбра (edges) сущности Component.
 func (Component) Edges() []ent.Edge {
@@ -45,6 +56,9 @@ func (Component) Edges() []ent.Edge {
 // Индексы сущности Component.
 func (Component) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("name"),
+		// P2-BE-22 / W8-A2-006: unique (project, name).
+		index.Edges("project").Fields("name").Unique(),
+		index.Fields("deleted_at"),
+		index.Edges("project").Fields("deleted_at"),
 	}
 }

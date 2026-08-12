@@ -117,9 +117,9 @@ func (s *GitHubService) ListIntegrations(ctx context.Context, projectID uuid.UUI
 	return result, nil
 }
 
-// DeleteIntegration удаляет интеграцию по ID.
-func (s *GitHubService) DeleteIntegration(ctx context.Context, id uuid.UUID) error {
-	return s.repo.DeleteIntegration(ctx, id)
+// DeleteIntegration удаляет интеграцию по ID в рамках projectID (A5-003).
+func (s *GitHubService) DeleteIntegration(ctx context.Context, projectID, id uuid.UUID) error {
+	return s.repo.DeleteIntegration(ctx, projectID, id)
 }
 
 // ---------------------------------------------------------------------------
@@ -279,8 +279,12 @@ func (s *GitHubService) handlePRWebhook(ctx context.Context, payload []byte) err
 							"issue", key, "error", updateErr)
 					} else {
 						// Записываем активность автосмены статуса.
-						_ = s.repo.LogActivity(ctx, issue.ID,
-							fmt.Sprintf("Статус изменён автоматически (PR #%s merged)", prNumber))
+						if logErr := s.repo.LogActivity(ctx, issue.ID,
+							fmt.Sprintf("Статус изменён автоматически (PR #%s merged)", prNumber)); logErr != nil {
+							// W7-A3-011 / P3-BE-01
+							slog.WarnContext(ctx, "github: log activity failed",
+								"issue", key, "error", logErr)
+						}
 					}
 				}
 
@@ -308,8 +312,9 @@ func (s *GitHubService) handlePRWebhook(ctx context.Context, payload []byte) err
 // ---------------------------------------------------------------------------
 
 // CreateBranch создаёт ветку от default branch через GitHub API.
-func (s *GitHubService) CreateBranch(ctx context.Context, issueKey string, req CreateBranchRequest) (*CreateBranchResponse, error) {
-	issue, err := s.repo.FindIssueByKey(ctx, issueKey)
+// A5-006: issue и integration обязаны принадлежать одному projectID (RBAC на маршруте).
+func (s *GitHubService) CreateBranch(ctx context.Context, projectID uuid.UUID, issueKey string, req CreateBranchRequest) (*CreateBranchResponse, error) {
+	issue, err := s.repo.FindIssueByKeyInProject(ctx, projectID, issueKey)
 	if err != nil {
 		return nil, apperrors.NewNotFound("задача не найдена")
 	}
@@ -319,7 +324,7 @@ func (s *GitHubService) CreateBranch(ctx context.Context, issueKey string, req C
 		return nil, apperrors.NewBadRequest("некорректный integration_id")
 	}
 
-	integration, err := s.repo.GetIntegration(ctx, integrationID)
+	integration, err := s.repo.GetIntegrationInProject(ctx, projectID, integrationID)
 	if err != nil {
 		return nil, apperrors.NewNotFound("интеграция не найдена")
 	}
@@ -465,10 +470,22 @@ func toWorkflowRunResponse(run *gh.WorkflowRun) WorkflowRunResponse {
 // ---------------------------------------------------------------------------
 
 // ListGitHubLinks возвращает все GitHub-ссылки для задачи по ключу.
-func (s *GitHubService) ListGitHubLinks(ctx context.Context, issueKey string) ([]GitHubLinkResponse, error) {
+// W7-A3-002 / P1-BE-37: только участник проекта задачи.
+func (s *GitHubService) ListGitHubLinks(ctx context.Context, userID uuid.UUID, issueKey string) ([]GitHubLinkResponse, error) {
 	issue, err := s.repo.FindIssueByKey(ctx, issueKey)
 	if err != nil {
 		return nil, apperrors.NewNotFound("задача не найдена")
+	}
+	if issue.Edges.Project == nil {
+		return nil, apperrors.NewInternal("задача без проекта")
+	}
+
+	ok, err := s.repo.IsProjectMember(ctx, userID, issue.Edges.Project.ID)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка проверки доступа к проекту")
+	}
+	if !ok {
+		return nil, apperrors.NewForbidden(apperrors.MsgForbidden)
 	}
 
 	links, err := s.repo.ListGitHubLinks(ctx, issue.ID)

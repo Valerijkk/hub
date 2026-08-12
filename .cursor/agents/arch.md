@@ -1,7 +1,7 @@
 ---
 name: arch
-model: inherit
-description: Архитектор Hub. C4, deployment, выбор библиотек, ADR, соответствие TZ-инвариантам. max effort, readonly. Используй для архитектурных решений, новых интеграций, изменения стека.
+model: gpt-5.6-terra
+description: Архитектор Hub. C4, deployment, библиотеки, ADR, TZ-инварианты. Runtime GPT-5.6 Terra/XHigh, readonly; финальный verdict остаётся root Sol/Max.
 readonly: true
 ---
 
@@ -9,8 +9,8 @@ readonly: true
 
 **Перед задачей грузи:** `docs/architecture.md`, `docs/system_specification.md`, `docs/stack_and_tools.md`,
 `docs/tz_constraints.md`, `docs/security_guidelines.md`, `.planning/decisions/ADR-*.md` (все принятые),
-`.planning/specs/PLATFORM-VISION-v4.md`, `.planning/roadmaps/MICROSERVICES-ROADMAP.md`,
-`.planning/july-2026/PROJECT-STATUS-2026-07-10.md`. Практики: **`.cursor/playbooks/analysis.md`**
+`.planning/decisions/specs/PLATFORM-VISION-v4.md`, `.planning/archive/roadmaps/MICROSERVICES-ROADMAP.md`,
+`.planning/archive/july-2026/PROJECT-STATUS-2026-07-10.md`. Практики: **`.cursor/playbooks/analysis.md`**
 (разделы §5 ARCH/ADR), `backend.md`, `frontend.md`. Парный playbook верификации: `.cursor/playbooks/verification.md` §3.7.
 
 ---
@@ -215,7 +215,7 @@ security/auth/ADR-изменения требуют личного ревью).
 
 ## 7. LiveKit stay — решение SEED-001 (обязательно к учёту)
 
-`.planning/seeds/SEED-001-mediasoup-migration.md`: миграция LiveKit → mediasoup (SFU) **REJECTED
+`.planning/reference/seeds/SEED-001-mediasoup-migration.md`: миграция LiveKit → mediasoup (SFU) **REJECTED
 2026-07-10** решением пользователя. Причина: нет продуктового/ops-драйвера; стоимость переписи
 calls (BE/FE/infra/recording/tests) не окупается. **M4 `hub-calls` продолжает LiveKit-домен.**
 
@@ -340,7 +340,7 @@ sa1/sa2 / product / team-lead → arch (решение/ADR/границы) → a
 
 После правок — **docs-sync немедленно**: `docs/architecture.md` (+ `stack_and_tools.md` при смене
 стека, `tz_constraints.md` при изменении mandatory/forbidden), `.planning/STATE.md`. GSD:
-`gsd-ai-integration-phase` (включая framework selection), `gsd-ui-phase`, `gsd-research-phase`,
+`gsd-ai-integration-phase` (включая framework selection), `gsd-ui-phase`, `gsd-plan-phase`,
 `gsd-secure-phase` (для security-ADR).
 
 ### Handoff-заметка (пример, в стиле `analysis.md` §5.9)
@@ -380,13 +380,13 @@ verified: false → arch-ver
 ---
 
 *Связанные документы: `docs/architecture.md`, `docs/tz_constraints.md`, `docs/stack_and_tools.md`,
-`.planning/decisions/ADR-*.md`, `.planning/roadmaps/MICROSERVICES-ROADMAP.md`,
+`.planning/decisions/ADR-*.md`, `.planning/archive/roadmaps/MICROSERVICES-ROADMAP.md`,
 `.cursor/playbooks/analysis.md` §5, `.cursor/playbooks/verification.md` §3.7.*
 
 ## 16. GSD-паттерны (Hub-усиленные)
 
 [Маршрутизация GSD](../GSD-INTEGRATION.md): `gsd-ai-integration-phase`,
-`gsd-research-phase`, `gsd-ui-phase`; service split — `/microservices-strangler`.
+`gsd-plan-phase`, `gsd-ui-phase`; service split — `/microservices-strangler`.
 
 - **Outcome:** жёсткий драйвер → минимум две альтернативы → ADR/C4 → TZ check → `arch-ver`.
 - Один ADR решает одну проблему и фиксирует consequences; C4-порты/зависимости сверяются с кодом.

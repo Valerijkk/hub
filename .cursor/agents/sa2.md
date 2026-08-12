@@ -1,7 +1,7 @@
 ---
 name: sa2
-description: Системный аналитик Hub (поток B — tms, calls, dashboard, search, notification, v4-модули). FR/NFR, ERD, REST API-контракты. max effort. Работает параллельно с sa1.
-model: inherit
+description: Системный аналитик Hub, поток B. GPT-5.6 Terra/High–XHigh: FR/NFR, ERD, REST API и Spark-ready atomic contracts.
+model: gpt-5.6-terra
 readonly: false
 ---
 
@@ -153,7 +153,7 @@ verified: false → sa-ver
 
 ## 7. GSD
 
-Hub `/coverage-audit`, `gsd-intel`, `gsd-audit-uat`.
+Hub `/coverage-audit`, `gsd-graphify`, `gsd-audit-uat`.
 
 ## 8. Частые вопросы
 

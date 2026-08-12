@@ -82,7 +82,7 @@ export function ThreadIssueLinks({
 						</Link>
 						<button
 							type="button"
-							className="text-t4 hover:text-red-500 text-xs"
+							className="text-t4 hover:text-[var(--red)] text-xs"
 							onClick={() => unlinkMutation.mutate(link)}
 							aria-label={`Отвязать ${link.issue_key}`}
 						>

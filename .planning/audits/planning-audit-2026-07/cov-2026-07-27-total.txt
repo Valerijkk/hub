@@ -1,0 +1,5 @@
+measured=2026-07-27
+overall_statements=81.9%
+baseline_2026_06_22=83.0%
+delta=-1.1pp
+method=docker_golang_1.25_hub_default

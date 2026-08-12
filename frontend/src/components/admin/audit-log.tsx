@@ -5,6 +5,7 @@ import {
 	banUser,
 	getAuditLogs,
 } from "@/api/admin";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import {
 	Select,
 	SelectContent,
@@ -81,6 +82,7 @@ export function AuditLogViewer() {
 	const [total, setTotal] = useState(0);
 	const [page, setPage] = useState(1);
 	const [loading, setLoading] = useState(false);
+	const [loadError, setLoadError] = useState(false);
 	const [expandedId, setExpandedId] = useState<string | null>(null);
 	const [banTarget, setBanTarget] = useState<AuditLogEntry | null>(null);
 	const [banReason, setBanReason] = useState("");
@@ -91,23 +93,35 @@ export function AuditLogViewer() {
 		per_page: 25,
 	});
 
-	const fetchLogs = useCallback(async () => {
-		setLoading(true);
-		try {
-			const resp = await getAuditLogs({ ...filters, page });
-			setEntries(resp.items);
-			setTotal(resp.total);
-		} catch (err) {
-			toastApiError(err, "Не удалось загрузить журнал аудита");
-		} finally {
-			setLoading(false);
-		}
-	}, [filters, page]);
+	const fetchLogs = useCallback(
+		async (signal?: { cancelled: boolean }) => {
+			setLoading(true);
+			setLoadError(false);
+			try {
+				const resp = await getAuditLogs({ ...filters, page });
+				if (signal?.cancelled) return;
+				setEntries(resp.items);
+				setTotal(resp.total);
+			} catch (err) {
+				if (!signal?.cancelled) {
+					setLoadError(true);
+					toastApiError(err, "Не удалось загрузить журнал аудита");
+				}
+			} finally {
+				if (!signal?.cancelled) setLoading(false);
+			}
+		},
+		[filters, page],
+	);
 
 	useEffect(() => {
-		fetchLogs();
-		const interval = setInterval(fetchLogs, 30000);
-		return () => clearInterval(interval);
+		const signal = { cancelled: false };
+		void fetchLogs(signal);
+		const interval = setInterval(() => void fetchLogs(signal), 30000);
+		return () => {
+			signal.cancelled = true;
+			clearInterval(interval);
+		};
 	}, [fetchLogs]);
 
 	const exportCSV = () => {
@@ -343,6 +357,16 @@ export function AuditLogViewer() {
 				</button>
 			</div>
 
+			{loadError && !loading && (
+				<div className="mb-4">
+					<QueryErrorAlert
+						message="Не удалось загрузить журнал аудита"
+						retry={() => void fetchLogs()}
+						compact
+					/>
+				</div>
+			)}
+
 			<table
 				className="w-full"
 				aria-label="Журнал аудита"
@@ -404,7 +428,8 @@ export function AuditLogViewer() {
 								Загрузка...
 							</td>
 						</tr>
-					) : entries.length === 0 ? (
+					) : loadError && entries.length === 0 ? null : entries.length ===
+						0 ? (
 						<tr>
 							<td
 								colSpan={7}

@@ -1,7 +1,7 @@
 ---
 name: ba1
-description: Бизнес-аналитик Hub (поток A — auth, tracker, sprint, messenger). US/AC, SMART, MoSCoW. max effort. Используй для формализации требований по своим доменам параллельно с ba2.
-model: inherit
+description: Бизнес-аналитик Hub (поток A — auth, tracker, sprint, messenger). US/AC, SMART, MoSCoW. Runtime default Terra/Medium, High при конфликте KPI. Работает параллельно с ba2.
+model: gpt-5.6-terra
 readonly: false
 ---
 
@@ -206,7 +206,7 @@ US-M12 | Как пользователь, хочу удобный и мощны�
 
 `gsd-discuss-phase` (адаптивные вопросы при сборе контекста фазы), `gsd-spec-phase`
 (falsifiable-требования до discuss), `gsd-review-backlog` (промоция backlog-идей),
-`gsd-add-backlog` (parking lot 999.x).
+`gsd-capture` (явный backlog/parking-lot destination).
 
 ## 10. Частые вопросы
 

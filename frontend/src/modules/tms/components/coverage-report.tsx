@@ -38,13 +38,19 @@ function IssueCoverageRow({ issue }: { issue: IssueCoverage }) {
 	const passRate =
 		totalCount > 0 ? Math.round((passedCount / totalCount) * 100) : 0;
 
+	const toggle = () => setExpanded((v) => !v);
+
 	return (
 		<>
-			<tr
-				className="cursor-pointer border-b transition-colors hover:bg-raised/50"
-				onClick={() => setExpanded(!expanded)}
-			>
+			<tr className="relative cursor-pointer border-b transition-colors hover:bg-raised/50">
 				<td className="px-4 py-3">
+					<button
+						type="button"
+						aria-expanded={expanded}
+						aria-label={`${expanded ? "Свернуть" : "Развернуть"} покрытие ${issue.issue_key}`}
+						className="absolute inset-0 z-10 w-full cursor-pointer rounded-none bg-transparent p-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--blue)]"
+						onClick={toggle}
+					/>
 					<span className="font-medium text-primary">{issue.issue_key}</span>
 				</td>
 				<td className="px-4 py-3 text-sm">{issue.issue_title}</td>
@@ -67,8 +73,10 @@ function IssueCoverageRow({ issue }: { issue: IssueCoverage }) {
 						<span className="text-xs text-t2">{passRate}%</span>
 					</div>
 				</td>
-				<td className="px-4 py-3 text-right text-xs text-t2">
-					{expanded ? "Свернуть" : "Развернуть"}
+				<td className="px-4 py-3 text-right text-xs">
+					<span className="text-t2">
+						{expanded ? "Свернуть" : "Развернуть"}
+					</span>
 				</td>
 			</tr>
 			{expanded &&
@@ -101,13 +109,35 @@ function IssueCoverageRow({ issue }: { issue: IssueCoverage }) {
  */
 /** Отчёт о покрытии задач тестами с раскрывающимися строками и прогресс-барами. */
 export function CoverageReport({ projectId }: { projectId: string }) {
-	const { data, isLoading } = useQuery({
+	const { data, isLoading, isError, refetch } = useQuery({
 		queryKey: ["tms-coverage", projectId],
 		queryFn: () => getCoverageReport(projectId),
 	});
 
 	if (isLoading) {
 		return <div className="py-8 text-center text-t2">Загрузка отчёта...</div>;
+	}
+
+	// W10-A2-007: fail ≠ empty «Нет задач…»
+	if (isError) {
+		return (
+			<Card>
+				<CardContent className="py-8">
+					<div role="alert" className="space-y-3 text-center">
+						<p className="text-sm text-[var(--red)]">
+							Не удалось загрузить отчёт о покрытии
+						</p>
+						<button
+							type="button"
+							className="text-sm font-semibold text-t2 hover:text-t1 hover:underline"
+							onClick={() => void refetch()}
+						>
+							Попробовать снова
+						</button>
+					</div>
+				</CardContent>
+			</Card>
+		);
 	}
 
 	if (!data || data.issues.length === 0) {

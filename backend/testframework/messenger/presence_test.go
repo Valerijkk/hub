@@ -89,9 +89,9 @@ func TestCleanupStale(t *testing.T) {
 	err := svc.Heartbeat(ctx, "fresh-user")
 	require.NoError(t, err)
 
-	// Старый heartbeat (2 минуты назад, > 90 секунд порога)
-	twoMinAgo := time.Now().Add(-2 * time.Minute).Unix()
-	mr.ZAdd(messenger.ExportPresenceOnlineKey(), float64(twoMinAgo), "stale-user")
+	// Старый heartbeat (11 минут назад, > 10 минут порога stale)
+	elevenMinAgo := time.Now().Add(-11 * time.Minute).Unix()
+	mr.ZAdd(messenger.ExportPresenceOnlineKey(), float64(elevenMinAgo), "stale-user")
 
 	// Очистка
 	err = svc.CleanupStale(ctx)
@@ -147,4 +147,19 @@ func TestGetBulkStatus(t *testing.T) {
 	assert.Equal(t, "online", statuses["online-user"])
 	assert.Equal(t, "away", statuses["away-user"])
 	assert.Equal(t, "offline", statuses["offline-user"])
+}
+
+// TestGetBulkStatus_RedisDown_ReturnsError — W3-A3-004 / P2-BE-10:
+// ошибка pipeline не глотается (не silent offline).
+func TestGetBulkStatus_RedisDown_ReturnsError(t *testing.T) {
+	mr, rdb := newTestRedis(t)
+	svc := messenger.NewPresenceService(rdb)
+	ctx := context.Background()
+
+	require.NoError(t, svc.Heartbeat(ctx, "u1"))
+	mr.Close()
+	_ = rdb.Close()
+
+	_, err := svc.GetBulkStatus(ctx, []string{"u1", "u2"})
+	require.Error(t, err)
 }

@@ -27,7 +27,7 @@ interface WsState {
 	/** Набор зарегистрированных слушателей событий. */
 	listeners: Set<EventHandler>;
 
-	/** Подключиться к WS-серверу с указанным JWT-токеном. */
+	/** Подключиться к WS-серверу с указанным JWT-токеном (через ticket). */
 	connect: (token: string) => void;
 	/** Отключиться от WS-сервера. */
 	disconnect: () => void;
@@ -41,6 +41,75 @@ interface WsState {
 	removeListener: (handler: EventHandler) => void;
 }
 
+/** Базовая задержка reconnect (мс); растёт экспоненциально. */
+const RECONNECT_BASE_MS = 1_000;
+/** Потолок backoff (мс). */
+const RECONNECT_MAX_MS = 30_000;
+
+/** Префикс Sec-WebSocket-Protocol для WS ticket (ADR-WS-JWT-HANDSHAKE-2026). */
+export const WS_TICKET_PROTOCOL_PREFIX = "hub.ws.ticket.";
+
+/** Модульные поля вне zustand — таймеры не должны жить в React state. */
+let lastToken: string | null = null;
+let intentionalClose = false;
+let reconnectAttempt = 0;
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+/** Поколение connect — отменяет устаревшие async ticket-fetch. */
+let connectGeneration = 0;
+
+/** Сброс таймера reconnect (logout / intentional disconnect). */
+export function clearWsReconnectTimer(): void {
+	if (reconnectTimer !== null) {
+		clearTimeout(reconnectTimer);
+		reconnectTimer = null;
+	}
+}
+
+/** Экспоненциальный backoff с потолком (для тестов и schedule). */
+export function wsReconnectDelayMs(attempt: number): number {
+	return Math.min(RECONNECT_MAX_MS, RECONNECT_BASE_MS * 2 ** attempt);
+}
+
+function scheduleReconnect(connectFn: (token: string) => void): void {
+	clearWsReconnectTimer();
+	if (intentionalClose || !lastToken) return;
+	const delay = wsReconnectDelayMs(reconnectAttempt);
+	reconnectAttempt += 1;
+	const token = lastToken;
+	reconnectTimer = setTimeout(() => {
+		reconnectTimer = null;
+		if (intentionalClose || !token) return;
+		connectFn(token);
+	}, delay);
+}
+
+/** Запрос one-shot ticket для WS handshake (без access JWT в URL). */
+export async function fetchWSTicket(accessToken: string): Promise<string> {
+	const res = await fetch("/api/auth/ws-ticket", {
+		method: "POST",
+		headers: {
+			Authorization: `Bearer ${accessToken}`,
+			"Content-Type": "application/json",
+		},
+	});
+	if (!res.ok) {
+		throw new Error(`ws ticket failed: ${res.status}`);
+	}
+	const data = (await res.json()) as { ticket?: string };
+	if (!data.ticket) {
+		throw new Error("ws ticket missing in response");
+	}
+	return data.ticket;
+}
+
+function openSocket(ticket: string): WebSocket {
+	const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+	return new WebSocket(
+		`${protocol}//${window.location.host}/ws`,
+		`${WS_TICKET_PROTOCOL_PREFIX}${ticket}`,
+	);
+}
+
 /** Стор WebSocket-подключения. Без персиста — пересоздаётся при каждой загрузке. */
 export const useWsStore = create<WsState>((set, get) => ({
 	connected: false,
@@ -48,47 +117,83 @@ export const useWsStore = create<WsState>((set, get) => ({
 	listeners: new Set(),
 
 	connect: (token: string) => {
+		lastToken = token;
+		intentionalClose = false;
+
 		const { socket } = get();
-		if (socket) return;
+		if (
+			socket &&
+			(socket.readyState === WebSocket.OPEN ||
+				socket.readyState === WebSocket.CONNECTING)
+		) {
+			return;
+		}
 
-		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-		const ws = new WebSocket(
-			`${protocol}//${window.location.host}/ws?token=${encodeURIComponent(token)}`,
-		);
-
-		ws.onopen = () => {
-			set({ connected: true, socket: ws });
-		};
-
-		ws.onclose = () => {
-			set({ connected: false, socket: null });
-		};
-
-		ws.onerror = () => {
-			ws.close();
-		};
-
-		ws.onmessage = (event: MessageEvent) => {
+		const gen = ++connectGeneration;
+		void (async () => {
 			try {
-				const msg = JSON.parse(event.data as string) as ServerMessage;
-				if (msg.type === "event" && msg.event) {
-					const { listeners } = get();
-					for (const handler of listeners) {
-						handler(msg.event, msg.payload);
-					}
-				}
-			} catch {
-				// Некорректный JSON от WS — пропускаем, чтобы не ронять обработчики.
-			}
-		};
+				const ticket = await fetchWSTicket(token);
+				if (gen !== connectGeneration || intentionalClose) return;
 
-		set({ socket: ws });
+				const ws = openSocket(ticket);
+
+				ws.onopen = () => {
+					if (gen !== connectGeneration) {
+						ws.close();
+						return;
+					}
+					reconnectAttempt = 0;
+					clearWsReconnectTimer();
+					set({ connected: true, socket: ws });
+				};
+
+				// A10-003: обрыв сети не должен убивать real-time до remount/logout.
+				ws.onclose = () => {
+					if (gen !== connectGeneration) return;
+					set({ connected: false, socket: null });
+					if (!intentionalClose) {
+						scheduleReconnect(get().connect);
+					}
+				};
+
+				ws.onerror = () => {
+					ws.close();
+				};
+
+				ws.onmessage = (event: MessageEvent) => {
+					try {
+						const msg = JSON.parse(event.data as string) as ServerMessage;
+						if (msg.type === "event" && msg.event) {
+							const { listeners } = get();
+							for (const handler of listeners) {
+								handler(msg.event, msg.payload);
+							}
+						}
+					} catch {
+						// Некорректный JSON от WS — пропускаем, чтобы не ронять обработчики.
+					}
+				};
+
+				set({ socket: ws });
+			} catch {
+				if (gen !== connectGeneration || intentionalClose) return;
+				set({ connected: false, socket: null });
+				scheduleReconnect(get().connect);
+			}
+		})();
 	},
 
 	disconnect: () => {
+		intentionalClose = true;
+		lastToken = null;
+		reconnectAttempt = 0;
+		connectGeneration += 1;
+		clearWsReconnectTimer();
 		const { socket } = get();
 		if (socket) {
 			socket.close();
+			set({ connected: false, socket: null });
+		} else {
 			set({ connected: false, socket: null });
 		}
 	},

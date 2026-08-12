@@ -14,12 +14,17 @@ import {
 import { memo, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import type { NotificationDTO } from "@/api/notifications";
+import { QueryStateView } from "@/components/query-state-view";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import {
+	flattenNotificationPages,
+	useNotificationList,
+	useNotificationMutations,
+} from "@/hooks/use-notifications";
 import i18n from "@/i18n";
 import { formatRelativeTime } from "@/lib/format-time";
-import { useNotificationStore } from "@/stores/notification-store";
 
 /** Карта иконок по типу уведомления. */
 const TYPE_ICONS: Record<string, React.ElementType> = {
@@ -35,31 +40,31 @@ const TYPE_ICONS: Record<string, React.ElementType> = {
 	blocker_added: Link2,
 };
 
-/** Цвета фона иконок по типу уведомления. */
+/** Цвета фона иконок по типу уведомления (токены --hub / app.css). */
 const TYPE_ICON_COLORS: Record<string, string> = {
-	assigned: "rgba(59,130,246,0.15)",
-	mentioned: "rgba(168,85,247,0.15)",
-	status_changed: "rgba(34,197,94,0.15)",
-	comment_added: "rgba(59,130,246,0.15)",
-	message_received: "rgba(59,130,246,0.15)",
-	call_started: "rgba(34,197,94,0.15)",
-	run_completed: "rgba(168,85,247,0.15)",
-	run_failed: "rgba(239,68,68,0.15)",
-	deadline_approaching: "rgba(249,115,22,0.15)",
-	blocker_added: "rgba(239,68,68,0.15)",
+	assigned: "color-mix(in srgb, var(--blue) 15%, transparent)",
+	mentioned: "color-mix(in srgb, var(--purple) 15%, transparent)",
+	status_changed: "color-mix(in srgb, var(--green) 15%, transparent)",
+	comment_added: "color-mix(in srgb, var(--blue) 15%, transparent)",
+	message_received: "color-mix(in srgb, var(--blue) 15%, transparent)",
+	call_started: "color-mix(in srgb, var(--green) 15%, transparent)",
+	run_completed: "color-mix(in srgb, var(--purple) 15%, transparent)",
+	run_failed: "color-mix(in srgb, var(--red) 15%, transparent)",
+	deadline_approaching: "color-mix(in srgb, var(--orange) 15%, transparent)",
+	blocker_added: "color-mix(in srgb, var(--red) 15%, transparent)",
 };
 
 const TYPE_ICON_TEXT_COLORS: Record<string, string> = {
-	assigned: "text-blue-400",
-	mentioned: "text-purple-400",
-	status_changed: "text-emerald-400",
-	comment_added: "text-blue-400",
-	message_received: "text-blue-400",
-	call_started: "text-emerald-400",
-	run_completed: "text-purple-400",
-	run_failed: "text-red-400",
-	deadline_approaching: "text-orange-400",
-	blocker_added: "text-red-400",
+	assigned: "text-[var(--blue)]",
+	mentioned: "text-[var(--purple)]",
+	status_changed: "text-[var(--green)]",
+	comment_added: "text-[var(--blue)]",
+	message_received: "text-[var(--blue)]",
+	call_started: "text-[var(--green)]",
+	run_completed: "text-[var(--purple)]",
+	run_failed: "text-[var(--red)]",
+	deadline_approaching: "text-[var(--orange)]",
+	blocker_added: "text-[var(--red)]",
 };
 
 /** Русские названия типов уведомлений. */
@@ -76,23 +81,28 @@ const TYPE_LABELS: Record<string, string> = {
 	blocker_added: "Блокировщик",
 };
 
+interface NotificationPanelProps {
+	/** Загружать список только когда панель открыта. */
+	enabled?: boolean;
+}
+
 /**
- * NotificationPanel — содержимое панели уведомлений.
- * Показывает список уведомлений с возможностью пометить прочитанным.
+ * NotificationPanel — список уведомлений через InfiniteQuery (A10-007).
+ * Ошибка fetch ≠ пустой список / console.warn — QueryStateView + retry.
  */
-export function NotificationPanel() {
-	const notifications = useNotificationStore((s) => s.notifications);
-	const loading = useNotificationStore((s) => s.loading);
-	const hasMore = useNotificationStore((s) => s.hasMore);
-	const markRead = useNotificationStore((s) => s.markRead);
-	const markAllRead = useNotificationStore((s) => s.markAllRead);
-	const clearAll = useNotificationStore((s) => s.clearAll);
-	const deleteNotification = useNotificationStore((s) => s.deleteNotification);
-	const fetchMore = useNotificationStore((s) => s.fetchMore);
+export function NotificationPanel({ enabled = true }: NotificationPanelProps) {
+	const listQuery = useNotificationList(enabled);
+	const { markRead, markAllRead, clearAll, deleteNotification } =
+		useNotificationMutations();
+
+	const notifications = flattenNotificationPages(listQuery.data);
+	const loading = listQuery.isLoading || listQuery.isFetchingNextPage;
+	const hasMore = Boolean(listQuery.hasNextPage);
 
 	const scrollRef = useRef<HTMLDivElement>(null);
 
-	/** Обработчик прокрутки для подгрузки следующей страницы. */
+	const fetchNextPage = listQuery.fetchNextPage;
+
 	const handleScroll = useCallback(
 		(e: React.UIEvent<HTMLDivElement>) => {
 			const target = e.currentTarget;
@@ -101,18 +111,14 @@ export function NotificationPanel() {
 				hasMore &&
 				!loading
 			) {
-				void fetchMore();
+				void fetchNextPage();
 			}
 		},
-		[hasMore, loading, fetchMore],
+		[hasMore, loading, fetchNextPage],
 	);
 
 	const navigate = useNavigate();
 
-	/**
-	 * Определяет маршрут навигации по типу и связанной сущности уведомления.
-	 * Поддерживает переход к задачам, каналам, тест-прогонам и звонкам.
-	 */
 	const resolveNotificationRoute = useCallback(
 		(notif: NotificationDTO): string | null => {
 			const { entity_type, entity_id, project_id } = notif;
@@ -120,7 +126,6 @@ export function NotificationPanel() {
 
 			switch (entity_type) {
 				case "issue":
-					// entity_id содержит issueKey (например "HUB-1")
 					return project_id
 						? `/projects/${project_id}/issues/${entity_id}`
 						: null;
@@ -131,7 +136,6 @@ export function NotificationPanel() {
 						? `/projects/${project_id}/tms/runs/${entity_id}`
 						: null;
 				case "call":
-					// Для звонков переходим к каналу, в котором начался звонок
 					return entity_id ? `/messenger/${entity_id}` : null;
 				default:
 					return null;
@@ -140,7 +144,6 @@ export function NotificationPanel() {
 		[],
 	);
 
-	/** Обработчик клика по уведомлению — помечает прочитанным и переходит к сущности. */
 	const handleItemClick = useCallback(
 		(notif: NotificationDTO) => {
 			if (!notif.is_read) {
@@ -161,7 +164,6 @@ export function NotificationPanel() {
 		[markRead, navigate, resolveNotificationRoute],
 	);
 
-	/** Обработчик удаления уведомления. */
 	const handleDelete = useCallback(
 		(e: React.MouseEvent, notifId: string) => {
 			e.stopPropagation();
@@ -172,11 +174,11 @@ export function NotificationPanel() {
 
 	return (
 		<div className="flex flex-col animate-dropdown-in">
-			{/* Заголовок */}
 			<div className="flex items-center justify-between px-4 py-3">
 				<h3 className="text-sm font-semibold">Уведомления</h3>
 				<div className="flex items-center gap-1">
 					<Button
+						type="button"
 						variant="ghost"
 						size="sm"
 						className="h-auto px-2 py-1 text-xs text-t2"
@@ -185,6 +187,7 @@ export function NotificationPanel() {
 						Прочитать все
 					</Button>
 					<Button
+						type="button"
 						variant="ghost"
 						size="sm"
 						className="h-auto px-2 py-1 text-xs text-destructive/70 hover:text-destructive"
@@ -196,33 +199,56 @@ export function NotificationPanel() {
 			</div>
 			<Separator />
 
-			{/* Список уведомлений */}
 			<ScrollArea
 				className="h-96"
 				ref={scrollRef}
 				onScrollCapture={handleScroll}
 			>
-				{notifications.length === 0 && !loading ? (
-					<div className="flex h-32 items-center justify-center text-sm text-t2">
-						Нет уведомлений
-					</div>
-				) : (
-					<div className="flex flex-col">
-						{notifications.map((notif) => (
-							<NotificationItem
-								key={notif.id}
-								notification={notif}
-								onClick={() => handleItemClick(notif)}
-								onDelete={(e) => handleDelete(e, notif.id)}
-							/>
-						))}
-						{loading && (
-							<div className="flex items-center justify-center py-4 text-xs text-t2">
-								Загрузка...
-							</div>
-						)}
-					</div>
-				)}
+				<QueryStateView
+					query={listQuery}
+					isEmpty={() => notifications.length === 0}
+					emptyFallback={
+						<div className="flex h-32 items-center justify-center text-sm text-t2">
+							Нет уведомлений
+						</div>
+					}
+					loadingFallback={
+						<div className="flex items-center justify-center py-8 text-xs text-t2">
+							Загрузка...
+						</div>
+					}
+					errorFallback={(_error, retry) => (
+						<div
+							role="alert"
+							className="flex flex-col items-center justify-center gap-3 px-4 py-8 text-center"
+						>
+							<p className="text-[13px] font-semibold text-[var(--t1)]">
+								Не удалось загрузить уведомления
+							</p>
+							<Button type="button" variant="outline" size="sm" onClick={retry}>
+								Попробовать снова
+							</Button>
+						</div>
+					)}
+				>
+					{() => (
+						<div className="flex flex-col">
+							{notifications.map((notif) => (
+								<NotificationItem
+									key={notif.id}
+									notification={notif}
+									onClick={() => handleItemClick(notif)}
+									onDelete={(e) => handleDelete(e, notif.id)}
+								/>
+							))}
+							{listQuery.isFetchingNextPage && (
+								<div className="flex items-center justify-center py-4 text-xs text-t2">
+									Загрузка...
+								</div>
+							)}
+						</div>
+					)}
+				</QueryStateView>
 			</ScrollArea>
 		</div>
 	);
@@ -246,56 +272,58 @@ const NotificationItem = memo(function NotificationItem({
 	const iconTextColor = TYPE_ICON_TEXT_COLORS[notification.type] ?? "text-t2";
 
 	return (
-		<button
-			type="button"
+		<div
 			className={`group flex w-full gap-3 px-4 py-3 text-left transition-colors hover:bg-raised/50 ${
 				!notification.is_read
-					? "border-l-2 border-blue-500 bg-blue-500/[0.04]"
+					? "border-l-2 border-[var(--blue)] bg-[var(--gB)]"
 					: ""
 			}`}
-			onClick={onClick}
 		>
-			{/* Иконка */}
-			<div
-				className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-				style={{ backgroundColor: iconBg }}
+			<button
+				type="button"
+				className="flex min-w-0 flex-1 gap-3 text-left"
+				onClick={onClick}
 			>
-				<Icon className={`h-4 w-4 ${iconTextColor}`} />
-			</div>
+				<div
+					className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+					style={{ backgroundColor: iconBg }}
+				>
+					<Icon className={`h-4 w-4 ${iconTextColor}`} aria-hidden="true" />
+				</div>
 
-			{/* Содержимое */}
-			<div className="min-w-0 flex-1">
-				<div className="flex items-start justify-between gap-2">
-					<p className="text-sm font-medium leading-tight">
-						<span className="mr-1 text-xs text-t2">{typeLabel}</span>
-						{notification.title}
-					</p>
-					<div className="flex items-center gap-1 flex-shrink-0">
-						{/* Кнопка удаления — видна при hover */}
-						<button
-							type="button"
-							className="mt-0.5 hidden group-hover:flex h-5 w-5 items-center justify-center rounded-md hover:bg-destructive/10 text-t2 hover:text-destructive transition-colors"
-							onClick={onDelete}
-							title="Удалить"
-							aria-label="Удалить уведомление"
-						>
-							<X className="h-3 w-3" />
-						</button>
-						{/* Индикатор непрочитанного */}
+				<div className="min-w-0 flex-1">
+					<div className="flex items-start justify-between gap-2">
+						<p className="text-sm font-medium leading-tight">
+							<span className="mr-1 text-xs text-t2">{typeLabel}</span>
+							{notification.title}
+						</p>
 						{!notification.is_read && (
-							<span className="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-blue-500" />
+							<span
+								className="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-[var(--blue)]"
+								role="img"
+								aria-label="Непрочитано"
+							/>
 						)}
 					</div>
-				</div>
-				{notification.body && (
-					<p className="mt-0.5 line-clamp-2 text-xs text-t2">
-						{notification.body}
+					{notification.body && (
+						<p className="mt-0.5 line-clamp-2 text-xs text-t2">
+							{notification.body}
+						</p>
+					)}
+					<p className="mt-1 text-xs text-t2">
+						{formatRelativeTime(notification.created_at)}
 					</p>
-				)}
-				<p className="mt-1 text-xs text-t2">
-					{formatRelativeTime(notification.created_at)}
-				</p>
-			</div>
-		</button>
+				</div>
+			</button>
+			<button
+				type="button"
+				className="mt-0.5 hidden group-hover:flex group-focus-within:flex h-5 w-5 shrink-0 items-center justify-center rounded-md hover:bg-destructive/10 text-t2 hover:text-destructive transition-colors focus-visible:flex focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--blue)]"
+				onClick={onDelete}
+				title="Удалить"
+				aria-label="Удалить уведомление"
+			>
+				<X className="h-3 w-3" aria-hidden="true" />
+			</button>
+		</div>
 	);
 });

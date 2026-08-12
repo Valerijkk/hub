@@ -8,11 +8,14 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"log/slog"
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	"github.com/xuri/excelize/v2"
+	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/schema"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
@@ -29,6 +32,13 @@ const (
 	ImportFormatJSON  ImportFormat = "json"
 	ImportFormatXML   ImportFormat = "xml"
 	ImportFormatExcel ImportFormat = "excel"
+
+	// maxImportFileBytes — лимит тела файла импорта (как TestRail / Fiber BodyLimit).
+	maxImportFileBytes = 25 * 1024 * 1024
+	// maxImportRecords — hard-cap числа кейсов за один импорт (DoS/memory).
+	maxImportRecords = 5000
+	// maxImportNestDepth — лимит вложенности JSON/XML (bomb amplification).
+	maxImportNestDepth = 32
 )
 
 // FieldMapping описывает соответствие колонок источника полям TMS.
@@ -74,6 +84,10 @@ func ImportFromCSV(reader io.Reader, mapping FieldMapping) ([]CreateTestCaseInpu
 		return nil, fmt.Errorf("CSV файл пуст или содержит только заголовки")
 	}
 
+	if len(records)-1 > maxImportRecords {
+		return nil, fmt.Errorf("слишком много записей для импорта (макс. %d)", maxImportRecords)
+	}
+
 	headers := records[0]
 	if len(mapping) == 0 {
 		mapping = AutoDetectMapping(headers)
@@ -116,9 +130,23 @@ type jsonTestCase struct {
 
 // ImportFromJSON парсит JSON-массив и возвращает входные данные для создания тест-кейсов.
 func ImportFromJSON(reader io.Reader) ([]CreateTestCaseInput, error) {
+	data, err := io.ReadAll(io.LimitReader(reader, maxImportFileBytes+1))
+	if err != nil {
+		return nil, fmt.Errorf("ошибка чтения JSON: %w", err)
+	}
+	if len(data) > maxImportFileBytes {
+		return nil, fmt.Errorf("файл слишком большой")
+	}
+	if err := assertJSONMaxDepth(data, maxImportNestDepth); err != nil {
+		return nil, err
+	}
+
 	var items []jsonTestCase
-	if err := json.NewDecoder(reader).Decode(&items); err != nil {
+	if err := json.Unmarshal(data, &items); err != nil {
 		return nil, fmt.Errorf("ошибка разбора JSON: %w", err)
+	}
+	if len(items) > maxImportRecords {
+		return nil, fmt.Errorf("слишком много записей для импорта (макс. %d)", maxImportRecords)
 	}
 
 	inputs := make([]CreateTestCaseInput, 0, len(items))
@@ -130,6 +158,7 @@ func ImportFromJSON(reader io.Reader) ([]CreateTestCaseInput, error) {
 			Priority:     item.Priority,
 			Status:       item.Status,
 			CaseType:     item.CaseType,
+			Steps:        parseTestRailSteps(item.Steps, ""),
 		}
 		inputs = append(inputs, input)
 	}
@@ -155,9 +184,23 @@ type xmlTestCase struct {
 
 // ImportFromXML парсит XML с корневым элементом <testcases> и возвращает входные данные.
 func ImportFromXML(reader io.Reader) ([]CreateTestCaseInput, error) {
+	data, err := io.ReadAll(io.LimitReader(reader, maxImportFileBytes+1))
+	if err != nil {
+		return nil, fmt.Errorf("ошибка чтения XML: %w", err)
+	}
+	if len(data) > maxImportFileBytes {
+		return nil, fmt.Errorf("файл слишком большой")
+	}
+	if err := assertXMLMaxDepth(data, maxImportNestDepth); err != nil {
+		return nil, err
+	}
+
 	var root xmlTestCases
-	if err := xml.NewDecoder(reader).Decode(&root); err != nil {
+	if err := xml.Unmarshal(data, &root); err != nil {
 		return nil, fmt.Errorf("ошибка разбора XML: %w", err)
+	}
+	if len(root.TestCases) > maxImportRecords {
+		return nil, fmt.Errorf("слишком много записей для импорта (макс. %d)", maxImportRecords)
 	}
 
 	inputs := make([]CreateTestCaseInput, 0, len(root.TestCases))
@@ -199,6 +242,10 @@ func ImportFromExcel(reader io.Reader, sheetName string, mapping FieldMapping) (
 
 	if len(rows) < 2 {
 		return nil, fmt.Errorf("Excel файл пуст или содержит только заголовки")
+	}
+
+	if len(rows)-1 > maxImportRecords {
+		return nil, fmt.Errorf("слишком много записей для импорта (макс. %d)", maxImportRecords)
 	}
 
 	headers := rows[0]
@@ -263,6 +310,23 @@ func ValidateImportData(inputs []CreateTestCaseInput) []ImportValidationError {
 // Обработка импорта
 // ---------------------------------------------------------------------------
 
+// detectImportFormat — case-insensitive определение формата по имени файла (P3-BE-09 / W2-A4-012).
+func detectImportFormat(filename string) string {
+	name := strings.ToLower(filename)
+	switch {
+	case strings.HasSuffix(name, ".csv"):
+		return "csv"
+	case strings.HasSuffix(name, ".json"):
+		return "json"
+	case strings.HasSuffix(name, ".xml"):
+		return "xml"
+	case strings.HasSuffix(name, ".xlsx"):
+		return "excel"
+	default:
+		return ""
+	}
+}
+
 // handleImport обрабатывает HTTP-запрос импорта тест-кейсов.
 func handleImport(svc *TMSService, c fiber.Ctx, projectID, userID uuid.UUID) (*ImportResult, error) {
 	file, err := c.FormFile("file")
@@ -272,18 +336,9 @@ func handleImport(svc *TMSService, c fiber.Ctx, projectID, userID uuid.UUID) (*I
 
 	format := c.FormValue("format", "")
 	if format == "" {
-		// Автоопределение формата по расширению
-		name := file.Filename
-		switch {
-		case strings.HasSuffix(name, ".csv"):
-			format = "csv"
-		case strings.HasSuffix(name, ".json"):
-			format = "json"
-		case strings.HasSuffix(name, ".xml"):
-			format = "xml"
-		case strings.HasSuffix(name, ".xlsx"):
-			format = "excel"
-		default:
+		// Автоопределение формата по расширению (case-insensitive — P3-BE-09 / W2-A4-012).
+		format = detectImportFormat(file.Filename)
+		if format == "" {
 			return nil, apperrors.NewBadRequest("не удалось определить формат файла")
 		}
 	}
@@ -293,6 +348,16 @@ func handleImport(svc *TMSService, c fiber.Ctx, projectID, userID uuid.UUID) (*I
 		return nil, apperrors.NewInternal("ошибка открытия файла")
 	}
 	defer f.Close()
+
+	// TASK-016 / P1-BE-13: LimitReader + явный 413 при превышении лимита (не полагаться только на Fiber BodyLimit).
+	data, err := io.ReadAll(io.LimitReader(f, maxImportFileBytes+1))
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка чтения файла")
+	}
+	if len(data) > maxImportFileBytes {
+		return nil, fiber.NewError(fiber.StatusRequestEntityTooLarge, "файл слишком большой")
+	}
+	limited := bytes.NewReader(data)
 
 	// Маппинг из формы
 	mappingStr := c.FormValue("mapping", "")
@@ -306,18 +371,24 @@ func handleImport(svc *TMSService, c fiber.Ctx, projectID, userID uuid.UUID) (*I
 	var inputs []CreateTestCaseInput
 	switch format {
 	case "csv":
-		inputs, err = ImportFromCSV(f, mapping)
+		inputs, err = ImportFromCSV(limited, mapping)
 	case "json":
-		inputs, err = ImportFromJSON(f)
+		inputs, err = ImportFromJSON(limited)
 	case "xml":
-		inputs, err = ImportFromXML(f)
+		inputs, err = ImportFromXML(limited)
 	case "excel":
-		inputs, err = ImportFromExcel(f, "", mapping)
+		inputs, err = ImportFromExcel(limited, "", mapping)
 	default:
 		return nil, apperrors.NewBadRequest("неподдерживаемый формат: " + format)
 	}
 	if err != nil {
-		return nil, apperrors.NewBadRequest("ошибка парсинга файла: " + err.Error())
+		msg := err.Error()
+		if strings.Contains(msg, "файл слишком большой") {
+			return nil, fiber.NewError(fiber.StatusRequestEntityTooLarge, "файл слишком большой")
+		}
+		// A3W2-4-003: фиксированное сообщение клиенту; internals только в slog (как A2W2-4-007).
+		slog.Error("ошибка парсинга файла импорта TMS", "error", err, "format", format)
+		return nil, apperrors.NewBadRequest("некорректный файл импорта")
 	}
 
 	// Валидация
@@ -350,6 +421,9 @@ func handleImport(svc *TMSService, c fiber.Ctx, projectID, userID uuid.UUID) (*I
 		result.Created++
 	}
 
+	// A2W2-4-004: явный partial — частичный импорт без скрытого «успеха».
+	result.Partial = result.Errors > 0 || result.Skipped > 0
+
 	return result, nil
 }
 
@@ -362,12 +436,63 @@ func applyFieldToInput(input *CreateTestCaseInput, field, value string) {
 		input.Description = value
 	case "precondition":
 		input.Precondition = value
+	case "steps":
+		// TASK-016 / P1-BE-14: колонка Steps/Шаги больше не отбрасывается молча.
+		input.Steps = parseTestRailSteps(value, "")
 	case "priority":
 		input.Priority = strings.ToLower(value)
 	case "status":
 		input.Status = strings.ToLower(value)
 	case "case_type":
 		input.CaseType = strings.ToLower(value)
+	}
+}
+
+// assertJSONMaxDepth отклоняет JSON с вложенностью выше maxDepth (XML/JSON bomb).
+func assertJSONMaxDepth(data []byte, maxDepth int) error {
+	dec := json.NewDecoder(bytes.NewReader(data))
+	depth := 0
+	for {
+		tok, err := dec.Token()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return fmt.Errorf("ошибка разбора JSON: %w", err)
+		}
+		switch tok {
+		case json.Delim('{'), json.Delim('['):
+			depth++
+			if depth > maxDepth {
+				return fmt.Errorf("превышена максимальная глубина JSON (%d)", maxDepth)
+			}
+		case json.Delim('}'), json.Delim(']'):
+			depth--
+		}
+	}
+}
+
+// assertXMLMaxDepth отклоняет XML с вложенностью выше maxDepth.
+func assertXMLMaxDepth(data []byte, maxDepth int) error {
+	dec := xml.NewDecoder(bytes.NewReader(data))
+	depth := 0
+	for {
+		tok, err := dec.Token()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return fmt.Errorf("ошибка разбора XML: %w", err)
+		}
+		switch tok.(type) {
+		case xml.StartElement:
+			depth++
+			if depth > maxDepth {
+				return fmt.Errorf("превышена максимальная глубина XML (%d)", maxDepth)
+			}
+		case xml.EndElement:
+			depth--
+		}
 	}
 }
 
@@ -385,6 +510,30 @@ type TestCaseExportData struct {
 	Steps        string
 	Precondition string
 	Suite        string
+}
+
+// formatTestStepsForExport сериализует шаги в plain text для колонки Steps.
+// Формат совместим с parseTestRailSteps / ImportFromCSV (A3W2-4-001).
+func formatTestStepsForExport(steps []schema.TestStep) string {
+	if len(steps) == 0 {
+		return ""
+	}
+	var b strings.Builder
+	for i, step := range steps {
+		if i > 0 {
+			b.WriteByte('\n')
+		}
+		order := step.Order
+		if order <= 0 {
+			order = i + 1
+		}
+		action := strings.TrimSpace(step.Action)
+		if kw := strings.TrimSpace(step.Keyword); kw != "" {
+			action = strings.TrimSpace(kw + " " + action)
+		}
+		fmt.Fprintf(&b, "%d. %s", order, action)
+	}
+	return b.String()
 }
 
 // TestRunExportData содержит данные прогона для экспорта.
@@ -410,14 +559,25 @@ type ResultExportData struct {
 }
 
 // handleExportTestCases экспортирует тест-кейсы проекта.
+// A2W2-4-005: пагинация до конца (ListTestCases cap 100) — без тихой усечённой выгрузки.
 func handleExportTestCases(svc *TMSService, ctx context.Context, projectID uuid.UUID, format string) (io.Reader, string, error) {
-	items, _, err := svc.repo.ListTestCases(ctx, projectID, ListTestCasesParams{Limit: 1000})
-	if err != nil {
-		return nil, "", apperrors.NewInternal("ошибка получения тест-кейсов для экспорта")
+	const pageSize = 100
+	offset := 0
+	var all []*ent.TestCase
+	for {
+		items, total, err := svc.repo.ListTestCases(ctx, projectID, ListTestCasesParams{Offset: offset, Limit: pageSize})
+		if err != nil {
+			return nil, "", apperrors.NewInternal("ошибка получения тест-кейсов для экспорта")
+		}
+		all = append(all, items...)
+		offset += len(items)
+		if offset >= total || len(items) == 0 {
+			break
+		}
 	}
 
-	exportData := make([]TestCaseExportData, 0, len(items))
-	for _, tc := range items {
+	exportData := make([]TestCaseExportData, 0, len(all))
+	for _, tc := range all {
 		suite := ""
 		if tc.Edges.Suite != nil {
 			suite = tc.Edges.Suite.Name
@@ -428,6 +588,8 @@ func handleExportTestCases(svc *TMSService, ctx context.Context, projectID uuid.
 			Type:         string(tc.CaseType),
 			Priority:     string(tc.Priority),
 			Status:       string(tc.Status),
+			// A3W2-4-001: plain text (нумерованные строки) — round-trip через CSV Steps / parseTestRailSteps.
+			Steps:        formatTestStepsForExport(tc.Steps),
 			Precondition: tc.Precondition,
 			Suite:        suite,
 		})
@@ -435,6 +597,7 @@ func handleExportTestCases(svc *TMSService, ctx context.Context, projectID uuid.
 
 	var buf bytes.Buffer
 	var filename string
+	var err error
 
 	switch format {
 	case "csv":
@@ -460,10 +623,13 @@ func handleExportTestCases(svc *TMSService, ctx context.Context, projectID uuid.
 	return bytes.NewReader(buf.Bytes()), filename, nil
 }
 
-// handleExportTestRunReport экспортирует отчёт прогона.
-func handleExportTestRunReport(svc *TMSService, ctx context.Context, runID uuid.UUID, format string) (io.Reader, string, error) {
-	run, err := svc.repo.GetTestRunWithResults(ctx, runID)
+// handleExportTestRunReport экспортирует отчёт прогона (W4-run-export / A3-012).
+func handleExportTestRunReport(svc *TMSService, ctx context.Context, projectID, runID uuid.UUID, format string) (io.Reader, string, error) {
+	run, err := svc.repo.GetTestRunWithResultsInProject(ctx, projectID, runID)
 	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, "", apperrors.NewNotFound("прогон не найден")
+		}
 		return nil, "", apperrors.NewInternal("ошибка получения прогона для экспорта")
 	}
 

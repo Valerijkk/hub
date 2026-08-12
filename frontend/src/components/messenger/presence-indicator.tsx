@@ -5,17 +5,22 @@ import { cn } from "@/lib/utils";
 interface PresenceIndicatorProps {
 	/** Статус присутствия пользователя. */
 	status: PresenceStatus;
+	/**
+	 * Poll presence упал (A2W11-3-001): не показывать «Не в сети» —
+	 * статус недоступен.
+	 */
+	unavailable?: boolean;
 	/** Размер индикатора. */
 	size?: "sm" | "md";
 	/** Дополнительные CSS классы. */
 	className?: string;
 }
 
-/** Цвета для каждого статуса присутствия. */
+/** Цвета для каждого статуса присутствия (дизайн-токены `--green`/`--gray`/`--amber`). */
 const statusColors: Record<PresenceStatus, string> = {
-	online: "bg-green-500",
-	offline: "bg-gray-400",
-	away: "bg-yellow-500",
+	online: "bg-[var(--green)]",
+	offline: "bg-[var(--gray)]",
+	away: "bg-[var(--amber)]",
 };
 
 /** Подписи для каждого статуса (для aria-label). */
@@ -31,16 +36,22 @@ const statusLabels: Record<PresenceStatus, string> = {
  */
 export function PresenceIndicator({
 	status,
+	unavailable = false,
 	size = "sm",
 	className,
 }: PresenceIndicatorProps) {
+	const label = unavailable ? "Статус недоступен" : statusLabels[status];
+	const color = unavailable
+		? "bg-[var(--amber)] opacity-60"
+		: statusColors[status];
+
 	return (
 		<span
 			role="status"
-			aria-label={statusLabels[status]}
+			aria-label={label}
 			className={cn(
 				"inline-block shrink-0 rounded-full",
-				statusColors[status],
+				color,
 				size === "sm" ? "h-2.5 w-2.5" : "h-3.5 w-3.5",
 				className,
 			)}

@@ -5,17 +5,22 @@ import {
 	approveListing,
 	CATEGORY_LABELS,
 	createListing,
+	deleteListing,
 	formatListingPrice,
 	type ListingCategory,
 	listMarketplaceListings,
 	listMyListings,
 	listPendingListings,
+	type MarketplaceListing,
 	markListingSold,
 	rejectListing,
 	STATUS_LABELS,
+	updateListing,
 	withdrawListing,
 } from "@/api/marketplace";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { isSystemAdmin } from "@/lib/is-system-admin";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
@@ -33,20 +38,40 @@ export function MarketplacePage() {
 	const [listingCategory, setListingCategory] =
 		useState<ListingCategory>("other");
 	const [priceRub, setPriceRub] = useState("");
+	const [editingId, setEditingId] = useState<string | null>(null);
+	const [editTitle, setEditTitle] = useState("");
+	const [deleteTarget, setDeleteTarget] = useState<MarketplaceListing | null>(
+		null,
+	);
 
-	const { data: browseData, isLoading: browseLoading } = useQuery({
+	const {
+		data: browseData,
+		isLoading: browseLoading,
+		isError: browseError,
+		refetch: refetchBrowse,
+	} = useQuery({
 		queryKey: ["marketplace", "browse", category],
 		queryFn: () => listMarketplaceListings(category || undefined, 1, 50),
 		enabled: tab === "browse",
 	});
 
-	const { data: mineData } = useQuery({
+	const {
+		data: mineData,
+		isError: mineError,
+		refetch: refetchMine,
+		isPending: mineLoading,
+	} = useQuery({
 		queryKey: ["marketplace", "mine"],
 		queryFn: listMyListings,
 		enabled: tab === "mine",
 	});
 
-	const { data: pendingData } = useQuery({
+	const {
+		data: pendingData,
+		isError: pendingError,
+		refetch: refetchPending,
+		isPending: pendingLoading,
+	} = useQuery({
 		queryKey: ["marketplace", "pending"],
 		queryFn: listPendingListings,
 		enabled: isAdmin,
@@ -71,6 +96,7 @@ export function MarketplacePage() {
 			void queryClient.invalidateQueries({ queryKey: ["marketplace"] });
 			toast.success("Объявление опубликовано");
 		},
+		onError: () => toast.error("Не удалось опубликовать объявление"),
 	});
 
 	const rejectMutation = useMutation({
@@ -80,6 +106,7 @@ export function MarketplacePage() {
 			void queryClient.invalidateQueries({ queryKey: ["marketplace"] });
 			toast.success("Объявление отклонено");
 		},
+		onError: () => toast.error("Не удалось отклонить объявление"),
 	});
 
 	const soldMutation = useMutation({
@@ -89,6 +116,7 @@ export function MarketplacePage() {
 			void queryClient.invalidateQueries({ queryKey: ["marketplace"] });
 			toast.success("Отмечено как проданное");
 		},
+		onError: () => toast.error("Не удалось отметить как проданное"),
 	});
 
 	const withdrawMutation = useMutation({
@@ -98,6 +126,35 @@ export function MarketplacePage() {
 			void queryClient.invalidateQueries({ queryKey: ["marketplace"] });
 			toast.success("Объявление снято");
 		},
+		onError: () => toast.error("Не удалось снять объявление"),
+	});
+
+	const updateMutation = useMutation({
+		mutationFn: ({
+			id,
+			title,
+			version,
+		}: {
+			id: string;
+			title: string;
+			version: number;
+		}) => updateListing(id, { title, version }),
+		onSuccess: () => {
+			setEditingId(null);
+			setEditTitle("");
+			void queryClient.invalidateQueries({ queryKey: ["marketplace"] });
+			toast.success("Объявление обновлено");
+		},
+		onError: () => toast.error("Не удалось обновить объявление"),
+	});
+
+	const deleteMutation = useMutation({
+		mutationFn: (id: string) => deleteListing(id),
+		onSuccess: () => {
+			void queryClient.invalidateQueries({ queryKey: ["marketplace"] });
+			toast.success("Объявление удалено");
+		},
+		onError: () => toast.error("Не удалось удалить объявление"),
 	});
 
 	const handleCreate = (e: React.FormEvent) => {
@@ -120,6 +177,9 @@ export function MarketplacePage() {
 	const mineItems = mineData?.items ?? [];
 	const pendingItems = pendingData?.items ?? [];
 	const displayItems = tab === "browse" ? browseItems : mineItems;
+	const listError = tab === "browse" ? browseError : mineError;
+	const listLoading = tab === "browse" ? browseLoading : mineLoading;
+	const refetchList = tab === "browse" ? refetchBrowse : refetchMine;
 
 	return (
 		<div className="mx-auto max-w-4xl space-y-6 px-4 py-6">
@@ -181,55 +241,68 @@ export function MarketplacePage() {
 				</Button>
 			</form>
 
-			{isAdmin && pendingItems.length > 0 && (
-				<section className="space-y-3 rounded-xl border border-amber-500/30 bg-amber-500/[0.04] p-4">
-					<h2 className="text-sm font-semibold">
-						Очередь модерации ({pendingItems.length})
-					</h2>
-					<ul className="space-y-2">
-						{pendingItems.map((item) => (
-							<li
-								key={item.id}
-								className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-b1 p-3 bg-[var(--bg)]"
-							>
-								<div>
-									<p className="font-medium">{item.title}</p>
-									<p className="text-sm text-t2">
-										{item.author_name} · {CATEGORY_LABELS[item.category]}
-									</p>
-								</div>
-								<div className="flex gap-2">
-									<Button
-										type="button"
-										size="sm"
-										onClick={() =>
-											approveMutation.mutate({
-												id: item.id,
-												version: item.version,
-											})
-										}
+			{isAdmin &&
+				(pendingError || pendingItems.length > 0 || pendingLoading) && (
+					<section className="space-y-3 rounded-xl border border-amber-500/30 bg-amber-500/[0.04] p-4">
+						<h2 className="text-sm font-semibold">
+							Очередь модерации
+							{!pendingError && !pendingLoading
+								? ` (${pendingItems.length})`
+								: ""}
+						</h2>
+						{pendingLoading ? (
+							<p className="text-sm text-t3">Загрузка…</p>
+						) : pendingError ? (
+							<QueryErrorAlert
+								message="Не удалось загрузить очередь модерации"
+								retry={() => void refetchPending()}
+							/>
+						) : (
+							<ul className="space-y-2">
+								{pendingItems.map((item) => (
+									<li
+										key={item.id}
+										className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-b1 p-3 bg-[var(--bg)]"
 									>
-										Одобрить
-									</Button>
-									<Button
-										type="button"
-										size="sm"
-										variant="outline"
-										onClick={() =>
-											rejectMutation.mutate({
-												id: item.id,
-												version: item.version,
-											})
-										}
-									>
-										Отклонить
-									</Button>
-								</div>
-							</li>
-						))}
-					</ul>
-				</section>
-			)}
+										<div>
+											<p className="font-medium">{item.title}</p>
+											<p className="text-sm text-t2">
+												{item.author_name} · {CATEGORY_LABELS[item.category]}
+											</p>
+										</div>
+										<div className="flex gap-2">
+											<Button
+												type="button"
+												size="sm"
+												onClick={() =>
+													approveMutation.mutate({
+														id: item.id,
+														version: item.version,
+													})
+												}
+											>
+												Одобрить
+											</Button>
+											<Button
+												type="button"
+												size="sm"
+												variant="outline"
+												onClick={() =>
+													rejectMutation.mutate({
+														id: item.id,
+														version: item.version,
+													})
+												}
+											>
+												Отклонить
+											</Button>
+										</div>
+									</li>
+								))}
+							</ul>
+						)}
+					</section>
+				)}
 
 			<div className="flex flex-wrap items-center gap-2 border-b border-b1">
 				<button
@@ -274,9 +347,7 @@ export function MarketplacePage() {
 				)}
 			</div>
 
-			{browseLoading && tab === "browse" && (
-				<p className="text-sm text-t3">Загрузка…</p>
-			)}
+			{listLoading && <p className="text-sm text-t3">Загрузка…</p>}
 
 			<ul className="grid gap-3 sm:grid-cols-2">
 				{displayItems.map((item) => (
@@ -304,46 +375,146 @@ export function MarketplacePage() {
 								<span className="text-xs text-t3">
 									{STATUS_LABELS[item.status]}
 								</span>
-								{item.status === "approved" && (
-									<Button
-										type="button"
-										size="sm"
-										variant="outline"
-										onClick={() =>
-											soldMutation.mutate({
-												id: item.id,
-												version: item.version,
-											})
-										}
-									>
-										Продано
-									</Button>
-								)}
-								{(item.status === "pending" || item.status === "approved") && (
-									<Button
-										type="button"
-										size="sm"
-										variant="outline"
-										onClick={() =>
-											withdrawMutation.mutate({
-												id: item.id,
-												version: item.version,
-											})
-										}
-									>
-										Снять
-									</Button>
+								{editingId === item.id ? (
+									<>
+										<input
+											type="text"
+											value={editTitle}
+											onChange={(e) => setEditTitle(e.target.value)}
+											aria-label="Новый заголовок объявления"
+											className="min-w-[140px] flex-1 rounded-lg border border-b1 bg-[var(--card)] px-2 py-1 text-sm text-[var(--t1)]"
+										/>
+										<Button
+											type="button"
+											size="sm"
+											disabled={!editTitle.trim() || updateMutation.isPending}
+											onClick={() =>
+												updateMutation.mutate({
+													id: item.id,
+													title: editTitle.trim(),
+													version: item.version,
+												})
+											}
+										>
+											Сохранить
+										</Button>
+										<Button
+											type="button"
+											size="sm"
+											variant="outline"
+											onClick={() => {
+												setEditingId(null);
+												setEditTitle("");
+											}}
+										>
+											Отмена
+										</Button>
+									</>
+								) : (
+									<>
+										{(item.status === "pending" ||
+											item.status === "approved" ||
+											item.status === "rejected") && (
+											<Button
+												type="button"
+												size="sm"
+												variant="outline"
+												onClick={() => {
+													setEditingId(item.id);
+													setEditTitle(item.title);
+												}}
+											>
+												Изменить
+											</Button>
+										)}
+										{item.status === "approved" && (
+											<Button
+												type="button"
+												size="sm"
+												variant="outline"
+												onClick={() =>
+													soldMutation.mutate({
+														id: item.id,
+														version: item.version,
+													})
+												}
+											>
+												Продано
+											</Button>
+										)}
+										{(item.status === "pending" ||
+											item.status === "approved") && (
+											<Button
+												type="button"
+												size="sm"
+												variant="outline"
+												onClick={() =>
+													withdrawMutation.mutate({
+														id: item.id,
+														version: item.version,
+													})
+												}
+											>
+												Снять
+											</Button>
+										)}
+										<Button
+											type="button"
+											size="sm"
+											variant="outline"
+											className="text-[var(--red)]"
+											aria-label={`Удалить объявление ${item.title}`}
+											onClick={() => setDeleteTarget(item)}
+											disabled={deleteMutation.isPending}
+										>
+											Удалить
+										</Button>
+									</>
 								)}
 							</div>
 						)}
 					</li>
 				))}
 			</ul>
-			{displayItems.length === 0 && !browseLoading && (
+			{displayItems.length === 0 && !listLoading && listError && (
+				<div role="alert" className="space-y-2 py-8 text-center">
+					<p className="text-sm text-[var(--red)]">
+						Не удалось загрузить объявления
+					</p>
+					<button
+						type="button"
+						className="text-sm font-semibold text-t2 hover:text-t1 hover:underline"
+						onClick={() => void refetchList()}
+					>
+						Попробовать снова
+					</button>
+				</div>
+			)}
+			{displayItems.length === 0 && !listLoading && !listError && (
 				<p className="text-sm text-t3 text-center py-8">
 					{tab === "browse" ? "Объявлений пока нет" : "У вас нет объявлений"}
 				</p>
 			)}
+
+			<ConfirmDialog
+				open={deleteTarget !== null}
+				onOpenChange={(open) => {
+					if (!open) setDeleteTarget(null);
+				}}
+				title="Удалить объявление?"
+				description={
+					deleteTarget
+						? `Объявление «${deleteTarget.title}» будет удалено безвозвратно.`
+						: undefined
+				}
+				confirmLabel="Удалить"
+				disabled={deleteMutation.isPending}
+				onConfirm={() => {
+					if (!deleteTarget) return;
+					deleteMutation.mutate(deleteTarget.id);
+					setDeleteTarget(null);
+				}}
+			/>
 		</div>
 	);
 }

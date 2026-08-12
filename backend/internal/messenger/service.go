@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
+	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 )
 
@@ -50,11 +51,44 @@ func (s *MessengerService) Heartbeat(ctx context.Context, userID string) error {
 }
 
 // GetPresence возвращает статусы присутствия для списка пользователей.
-func (s *MessengerService) GetPresence(ctx context.Context, userIDs []string) (map[string]string, error) {
+// W3-A1-007 / P2-BE-12: cap длины списка (DoS/enumeration).
+// A2W3-1-001: только пользователи, с которыми caller делит ≥1 активный канал.
+func (s *MessengerService) GetPresence(ctx context.Context, callerID uuid.UUID, userIDs []string) (map[string]string, error) {
 	if s.presence == nil {
 		return map[string]string{}, nil
 	}
-	return s.presence.GetBulkStatus(ctx, userIDs)
+	const maxPresenceQueryIDs = 50
+	if len(userIDs) > maxPresenceQueryIDs {
+		return nil, apperrors.NewBadRequest("слишком много user_ids (макс. 50)")
+	}
+	candidates := make([]uuid.UUID, 0, len(userIDs))
+	seen := make(map[uuid.UUID]struct{}, len(userIDs))
+	for _, raw := range userIDs {
+		id, err := uuid.Parse(raw)
+		if err != nil || id == uuid.Nil || id == callerID {
+			continue
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		candidates = append(candidates, id)
+	}
+	if len(candidates) == 0 {
+		return map[string]string{}, nil
+	}
+	allowed, err := s.repo.FilterUsersSharingChannel(ctx, callerID, candidates)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка проверки общих каналов")
+	}
+	if len(allowed) == 0 {
+		return map[string]string{}, nil
+	}
+	allowedStrs := make([]string, len(allowed))
+	for i, id := range allowed {
+		allowedStrs[i] = id.String()
+	}
+	return s.presence.GetBulkStatus(ctx, allowedStrs)
 }
 
 // SetCustomStatus устанавливает кастомный текст статуса пользователя.
@@ -79,7 +113,22 @@ func (s *MessengerService) GetCustomStatus(ctx context.Context, userID string) (
 // ---------------------------------------------------------------------------
 
 // PublishTyping публикует событие набора текста в NATS (ephemeral, без записи в БД).
+// A2-009: только участник канала может инжектить typing в NATS room канала.
 func (s *MessengerService) PublishTyping(ctx context.Context, channelID string, userID uuid.UUID) error {
+	chID, err := uuid.Parse(channelID)
+	if err != nil {
+		return apperrors.NewBadRequest("некорректный ID канала")
+	}
+	if s.repo != nil {
+		ok, err := s.repo.IsMember(ctx, chID, userID)
+		if err != nil {
+			return apperrors.NewInternal("ошибка проверки участия")
+		}
+		if !ok {
+			return apperrors.NewForbidden("вы не являетесь участником канала")
+		}
+	}
+
 	// Определяем отображаемое имя пользователя через репозиторий.
 	userName := "user"
 	if s.repo != nil {
@@ -124,31 +173,34 @@ func (s *MessengerService) MarkChannelRead(ctx context.Context, userID, channelI
 // resolveGroupMentions разрешает групповые упоминания (@all, @online, @role)
 // в конкретные user ID. Объединяет с индивидуальными упоминаниями из поля Mentions.
 // Исключает отправителя из результата.
+// W3-A2-013 / P2-BE-13: individual Mentions тоже пересекаются с memberSet.
 func (s *MessengerService) resolveGroupMentions(ctx context.Context, channelID uuid.UUID, projectID *uuid.UUID, groups []string, individualMentions []string, senderID uuid.UUID) []string {
 	seen := make(map[string]struct{})
 	senderStr := senderID.String()
 
-	// Добавляем индивидуальные упоминания.
+	// Участники канала нужны и для individual mentions, и для group.
+	memberIDs, err := s.repo.GetChannelMemberIDs(ctx, channelID)
+	if err != nil {
+		slog.Error("не удалось получить участников канала для упоминаний", "error", err)
+		return nil
+	}
+	memberSet := make(map[string]struct{}, len(memberIDs))
+	for _, m := range memberIDs {
+		memberSet[m.String()] = struct{}{}
+	}
+
+	// Индивидуальные упоминания — только члены канала (не spam UUID вне канала).
 	for _, uid := range individualMentions {
-		if uid != senderStr {
+		if uid == senderStr {
+			continue
+		}
+		if _, ok := memberSet[uid]; ok {
 			seen[uid] = struct{}{}
 		}
 	}
 
 	if len(groups) == 0 {
 		return mapKeys(seen)
-	}
-
-	// Получаем участников канала (нужно для @all и пересечения с @online).
-	memberIDs, err := s.repo.GetChannelMemberIDs(ctx, channelID)
-	if err != nil {
-		slog.Error("не удалось получить участников канала для упоминаний", "error", err)
-		return mapKeys(seen)
-	}
-
-	memberSet := make(map[string]struct{}, len(memberIDs))
-	for _, m := range memberIDs {
-		memberSet[m.String()] = struct{}{}
 	}
 
 	for _, g := range groups {
@@ -219,6 +271,7 @@ func toChannelResponse(ch *ent.Channel) *ChannelResponse {
 		Description: ch.Description,
 		IsReadonly:  ch.IsReadonly,
 		CreatedBy:   ch.CreatedBy.String(),
+		Version:     ch.Version,
 		CreatedAt:   ch.CreatedAt,
 		UpdatedAt:   ch.UpdatedAt,
 	}

@@ -9,6 +9,7 @@ import {
 	type TelegramStatusResponse,
 	unlinkTelegram,
 } from "@/api/notifications";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toastApiError } from "@/lib/format-api-error";
@@ -21,14 +22,19 @@ export function TelegramLinkCard() {
 	const [bindInfo, setBindInfo] = useState<TelegramBindResponse | null>(null);
 	const [code, setCode] = useState("");
 	const [loading, setLoading] = useState(true);
+	const [loadError, setLoadError] = useState(false);
 	const [busy, setBusy] = useState(false);
 
 	const refresh = useCallback(async () => {
 		setLoading(true);
+		setLoadError(false);
 		try {
 			setStatus(await getTelegramStatus());
-		} catch {
-			setStatus({ linked: false });
+		} catch (err) {
+			// W9-A4-006: fail ≠ «не привязан»
+			setStatus(null);
+			setLoadError(true);
+			toastApiError(err, "Не удалось загрузить статус Telegram");
 		} finally {
 			setLoading(false);
 		}
@@ -110,6 +116,12 @@ export function TelegramLinkCard() {
 
 			{loading ? (
 				<p className="text-[13px] text-t3">Загрузка...</p>
+			) : loadError ? (
+				<QueryErrorAlert
+					compact
+					message="Не удалось загрузить статус Telegram"
+					retry={() => void refresh()}
+				/>
 			) : status?.linked ? (
 				<div className="space-y-3">
 					<p className="text-[13px] text-green">

@@ -64,19 +64,26 @@ func (User) Fields() []ent.Field {
 		field.String("quiet_hours_start").
 			Optional().
 			Nillable().
-			Comment("РќР°С‡Р°Р»Рѕ С‚РёС…РёС… С‡Р°СЃРѕРІ РІ С„РѕСЂРјР°С‚Рµ HH:MM"),
+			Comment("Начало тихих часов в формате HH:MM"),
 		field.String("quiet_hours_end").
 			Optional().
 			Nillable().
-			Comment("РљРѕРЅРµС† С‚РёС…РёС… С‡Р°СЃРѕРІ РІ С„РѕСЂРјР°С‚Рµ HH:MM"),
+			Comment("Конец тихих часов в формате HH:MM"),
 		field.JSON("custom_fields", map[string]interface{}{}).
 			Optional().
-			Comment("РџРѕР»СЊР·РѕРІР°С‚РµР»СЊСЃРєРёРµ РєР°СЃС‚РѕРјРЅС‹Рµ РїРѕР»СЏ РїСЂРѕС„РёР»СЏ (JSONB)"),
+			Comment("Пользовательские кастомные поля профиля (JSONB)"),
 		field.Time("updated_at").
 			Default(nowUTC).
 			UpdateDefault(nowUTC),
 	}
 }
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (User) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
+	}
+}
+
 
 // Рёбра (edges) сущности User.
 func (User) Edges() []ent.Edge {
@@ -123,6 +130,7 @@ func (User) Edges() []ent.Edge {
 		edge.To("ai_usage_daily", AIUsageDaily.Type),
 		edge.To("ai_preference", AIUserPreference.Type),
 		edge.To("news_posts", NewsPost.Type),
+		edge.To("news_poll_votes", NewsPollVote.Type),
 		edge.To("crm_contacts_created", CrmContact.Type),
 		edge.To("crm_contact_link", CrmContact.Type),
 		edge.To("crm_deals_owned", CrmDeal.Type),
@@ -132,7 +140,7 @@ func (User) Edges() []ent.Edge {
 		edge.To("kudos_received", Kudo.Type),
 		edge.To("marketplace_listings", MarketplaceListing.Type),
 		edge.To("marketplace_reviews", MarketplaceListing.Type),
-		edge.To("coffee_enrollment", CoffeeEnrollment.Type),
+		edge.To("coffee_enrollment", CoffeeEnrollment.Type).Unique(),
 		edge.To("coffee_rounds_triggered", CoffeeRound.Type),
 		edge.To("coffee_pairs_a", CoffeePair.Type),
 		edge.To("coffee_pairs_b", CoffeePair.Type),

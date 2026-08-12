@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import * as pokerApi from "@/api/sprint";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { Button } from "@/components/ui/button";
+import { toastApiError } from "@/lib/format-api-error";
 import { useSprintStore } from "@/stores/sprint-store";
 
 /** Значения Фибоначчи для голосования. */
@@ -41,19 +43,28 @@ export function PlanningPoker({
 	const { pokerSession, setPokerSession } = useSprintStore();
 	const [selectedValue, setSelectedValue] = useState<string | null>(null);
 	const [voting, setVoting] = useState(false);
+	/** null до первого ответа — не путать с «сессия не найдена» (W10-A3-002). */
+	const [initialLoadDone, setInitialLoadDone] = useState(false);
+	const [loadFailed, setLoadFailed] = useState(false);
 
 	const loadSession = useCallback(async () => {
 		try {
 			const session = await pokerApi.getPokerSession(sessionId);
 			setPokerSession(session);
+			setLoadFailed(false);
 		} catch {
-			// сессия истекла
+			setLoadFailed(true);
+			setPokerSession(null);
+		} finally {
+			setInitialLoadDone(true);
 		}
 	}, [sessionId, setPokerSession]);
 
 	useEffect(() => {
-		loadSession();
-		const interval = setInterval(loadSession, 3000);
+		setInitialLoadDone(false);
+		setLoadFailed(false);
+		void loadSession();
+		const interval = setInterval(() => void loadSession(), 3000);
 		return () => clearInterval(interval);
 	}, [loadSession]);
 
@@ -62,7 +73,9 @@ export function PlanningPoker({
 		try {
 			await pokerApi.castVote(sessionId, { value });
 			setSelectedValue(value);
-			loadSession();
+			void loadSession();
+		} catch (err) {
+			toastApiError(err, "Не удалось отправить голос");
 		} finally {
 			setVoting(false);
 		}
@@ -72,8 +85,8 @@ export function PlanningPoker({
 		try {
 			const revealed = await pokerApi.revealVotes(sessionId);
 			setPokerSession(revealed);
-		} catch {
-			// ошибка раскрытия
+		} catch (err) {
+			toastApiError(err, "Не удалось раскрыть голоса");
 		}
 	};
 
@@ -98,6 +111,29 @@ export function PlanningPoker({
 		return { avg: Math.round(avg * 10) / 10, median };
 	};
 
+	if (!initialLoadDone) {
+		return (
+			<div className="bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-5">
+				<p className="text-[13px] text-t2 text-center py-8">
+					Загрузка сессии...
+				</p>
+			</div>
+		);
+	}
+
+	// FE-TA-003: сеть/500 ≠ «сессия не найдена»
+	if (loadFailed) {
+		return (
+			<div className="bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-5">
+				<QueryErrorAlert
+					message="Не удалось загрузить сессию Planning Poker"
+					retry={() => void loadSession()}
+					compact
+				/>
+			</div>
+		);
+	}
+
 	if (!pokerSession) {
 		return (
 			<div className="bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-5">
@@ -109,7 +145,7 @@ export function PlanningPoker({
 	}
 
 	const stats =
-		pokerSession?.revealed && pokerSession?.votes
+		pokerSession.revealed && pokerSession.votes
 			? computeStats(pokerSession.votes)
 			: null;
 
@@ -121,21 +157,32 @@ export function PlanningPoker({
 			<div className="space-y-6">
 				{/* Карточки для голосования */}
 				{!pokerSession.revealed && (
-					<div className="flex flex-wrap gap-2">
+					<div
+						role="radiogroup"
+						aria-label="Оценка Planning Poker"
+						className="flex flex-wrap gap-2"
+					>
 						{FIBONACCI_VALUES.map((value) => (
-							<button
-								type="button"
+							<label
 								key={value}
-								onClick={() => handleVote(value)}
-								disabled={voting}
-								className={`flex h-16 w-12 items-center justify-center rounded-[var(--r3)] border transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-250 hover:border-b2 hover:-translate-y-1 ${
+								className={`flex h-16 w-12 items-center justify-center rounded-[var(--r3)] border transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-250 hover:border-b2 hover:-translate-y-1 focus-within:outline-none focus-within:ring-2 focus-within:ring-[var(--blue)] focus-within:ring-offset-2 focus-within:ring-offset-[var(--base)] ${
 									selectedValue === value
 										? "border-blue shadow-[0_0_0_3px_rgba(91,156,245,0.1),_0_0_16px_rgba(91,156,245,0.06)] bg-blue/10"
 										: "bg-gradient-to-b from-card to-raised border-b1 hover:shadow-[var(--sh2)]"
-								}`}
+								} ${voting ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
 							>
+								<input
+									type="radio"
+									name={`planning-poker-${sessionId}`}
+									value={value}
+									checked={selectedValue === value}
+									aria-checked={selectedValue === value}
+									onChange={() => void handleVote(value)}
+									disabled={voting}
+									className="sr-only"
+								/>
 								<span className="text-[18px] font-black text-t1">{value}</span>
-							</button>
+							</label>
 						))}
 					</div>
 				)}
@@ -198,7 +245,7 @@ export function PlanningPoker({
 				{/* Кнопка раскрытия */}
 				{canReveal && !pokerSession.revealed && (
 					<Button
-						onClick={handleReveal}
+						onClick={() => void handleReveal()}
 						className="bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-md shadow-blue/20"
 					>
 						Раскрыть голоса

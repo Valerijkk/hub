@@ -3,21 +3,57 @@ package calls
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"log/slog"
+	"math/big"
 	"time"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
+	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/internal/platform/config"
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 )
 
-// ErrCallForbidden — HI-03: 403 для JoinCall/EndCall без утечки причины.
+// inviteCodeAlphabet — base62; 12 символов ≈ 71 bit (A2W3-5-003; MaxLen(12) без Ent-миграции).
+const inviteCodeAlphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+
+// inviteCodeLength — длина invite_code (совпадает с Call.invite_code MaxLen).
+const inviteCodeLength = 12
+
+// generateInviteCode — crypto/rand base62, не усечённый UUID-hex (~48 bit).
+func generateInviteCode() (string, error) {
+	b := make([]byte, inviteCodeLength)
+	max := big.NewInt(int64(len(inviteCodeAlphabet)))
+	for i := range b {
+		n, err := rand.Int(rand.Reader, max)
+		if err != nil {
+			return "", fmt.Errorf("генерация invite_code: %w", err)
+		}
+		b[i] = inviteCodeAlphabet[n.Int64()]
+	}
+	return string(b), nil
+}
+
+// ErrCallForbidden — HI-03: 403 для CreateCall/JoinCall/EndCall / A2-002 без утечки причины.
 var ErrCallForbidden = errors.New("forbidden")
+
+// ErrCallNotFound — звонок отсутствует (RaiseHand и др. без утечки деталей).
+var ErrCallNotFound = errors.New("call not found")
+
+// ErrInvalidInput — клиентский ввод вне контракта (MaxLen, nil project_id) → 400.
+var ErrInvalidInput = errors.New("invalid input")
 
 // defaultMaxCallParticipants — потолок участников комнаты LiveKit.
 const defaultMaxCallParticipants = 50
+
+// maxCallTitleRunes — Call.title MaxLen(255) в Ent; rune-cap до записи (A3W3-A5-004).
+const maxCallTitleRunes = 255
+
+// maxGuestNameRunes — разумный cap имени гостя до JWT (A3W3-A5-004).
+const maxGuestNameRunes = 100
 
 // CallService — тонкий orchestrator модуля звонков (SC-14-2).
 // Делегирует LiveKit → CallRoomService, NATS → CallEventPublisher,
@@ -27,6 +63,11 @@ type CallService struct {
 	room *CallRoomService
 	pub  *CallEventPublisher
 	chat *CallChatService
+
+	// createCall — hubtest override CreateCall DB (A3W3-A5-001 mutation).
+	createCall func(ctx context.Context, roomName string, channelID, createdBy uuid.UUID) (*ent.Call, error)
+	// createInstantCall — hubtest override CreateInstantCall DB (A3W3-A5-001 mutation).
+	createInstantCall func(ctx context.Context, roomName string, createdBy uuid.UUID, inviteCode, title string) (*ent.Call, error)
 }
 
 // NewCallService собирает orchestrator. Сигнатура зафиксирована (cmd/server/main.go).
@@ -46,13 +87,23 @@ func (s *CallService) GenerateToken(roomName, userID, userName string) (string, 
 }
 
 // CreateCall создаёт звонок в канале (room + БД + участник + событие старта).
+// A2-002: IsChannelMember before provisionRoom; else ErrCallForbidden.
 func (s *CallService) CreateCall(ctx context.Context, channelID, userID uuid.UUID, userName string) (*CallResponse, error) {
+	isMember, mErr := s.repo.IsChannelMember(ctx, channelID, userID)
+	if mErr != nil {
+		return nil, fmt.Errorf("channel membership check: %w", mErr)
+	}
+	if !isMember {
+		return nil, ErrCallForbidden
+	}
 	roomName, err := provisionRoom(ctx, s.room)
 	if err != nil {
 		return nil, err
 	}
-	callEnt, err := s.repo.CreateCall(ctx, roomName, channelID, userID)
+	callEnt, err := s.persistChannelCall(ctx, roomName, channelID, userID)
 	if err != nil {
+		// A3W3-A5-001: DB-fail после provisionRoom → DeleteRoom (как invite-fail / rollbackCreate).
+		s.deleteRoomBestEffort(ctx, roomName, "CreateCall: не удалось удалить orphan-комнату после ошибки БД")
 		return nil, fmt.Errorf("не удалось сохранить звонок: %w", err)
 	}
 	resp, err := finalizeCreate(ctx, s.room, s.repo, callEnt, userID, userName)
@@ -67,16 +118,27 @@ func (s *CallService) CreateCall(ctx context.Context, channelID, userID uuid.UUI
 
 // CreateInstantCall создаёт быстрый звонок без канала с invite-кодом.
 func (s *CallService) CreateInstantCall(ctx context.Context, userID uuid.UUID, userName, title string) (*CallResponse, error) {
+	if title == "" {
+		title = userName + " — быстрый звонок"
+	}
+	// A3W3-A5-004: rune-cap до Ent MaxLen(255) → ErrInvalidInput/400, не 500.
+	if utf8.RuneCountInString(title) > maxCallTitleRunes {
+		return nil, ErrInvalidInput
+	}
 	roomName, err := provisionRoom(ctx, s.room)
 	if err != nil {
 		return nil, err
 	}
-	inviteCode := uuid.New().String()[:8]
-	if title == "" {
-		title = userName + " — быстрый звонок"
-	}
-	callEnt, err := s.repo.CreateInstantCall(ctx, roomName, userID, inviteCode, title)
+	// A2W3-5-003: crypto/rand base62×12 (~71 bit). Полный UUID — после MaxLen-миграции.
+	inviteCode, err := generateInviteCode()
 	if err != nil {
+		s.deleteRoomBestEffort(ctx, roomName, "CreateInstantCall: не удалось удалить комнату после ошибки invite")
+		return nil, err
+	}
+	callEnt, err := s.persistInstantCall(ctx, roomName, userID, inviteCode, title)
+	if err != nil {
+		// A3W3-A5-001: DB-fail после provisionRoom → DeleteRoom.
+		s.deleteRoomBestEffort(ctx, roomName, "CreateInstantCall: не удалось удалить orphan-комнату после ошибки БД")
 		return nil, fmt.Errorf("не удалось сохранить звонок: %w", err)
 	}
 	resp, err := finalizeCreate(ctx, s.room, s.repo, callEnt, userID, userName)
@@ -85,6 +147,29 @@ func (s *CallService) CreateInstantCall(ctx context.Context, userID uuid.UUID, u
 	}
 	resp.InviteCode = inviteCode
 	return resp, nil
+}
+
+// persistChannelCall пишет канальный звонок (hubtest может подменить createCall).
+func (s *CallService) persistChannelCall(ctx context.Context, roomName string, channelID, createdBy uuid.UUID) (*ent.Call, error) {
+	if s.createCall != nil {
+		return s.createCall(ctx, roomName, channelID, createdBy)
+	}
+	return s.repo.CreateCall(ctx, roomName, channelID, createdBy)
+}
+
+// persistInstantCall пишет instant-звонок (hubtest может подменить createInstantCall).
+func (s *CallService) persistInstantCall(ctx context.Context, roomName string, createdBy uuid.UUID, inviteCode, title string) (*ent.Call, error) {
+	if s.createInstantCall != nil {
+		return s.createInstantCall(ctx, roomName, createdBy, inviteCode, title)
+	}
+	return s.repo.CreateInstantCall(ctx, roomName, createdBy, inviteCode, title)
+}
+
+// deleteRoomBestEffort — best-effort DeleteRoom после провала post-provision (A3W3-A5-001).
+func (s *CallService) deleteRoomBestEffort(ctx context.Context, roomName, logMsg string) {
+	if delErr := s.room.DeleteRoom(ctx, roomName); delErr != nil {
+		slog.Error(logMsg, "room", roomName, "error", delErr)
+	}
 }
 
 // JoinByInviteCode присоединяет пользователя к звонку по invite-коду.
@@ -106,6 +191,31 @@ func (s *CallService) JoinByInviteCode(ctx context.Context, code string, userID 
 	resp := toCallResponse(callEnt, token)
 	resp.InviteCode = code
 	return resp, nil
+}
+
+// GuestJoin — гостевой вход без аккаунта (W3-A5-007: слой Service, не handler→repo).
+// A3W3-A5-004: guest_name rune-cap до JWT.
+func (s *CallService) GuestJoin(ctx context.Context, inviteCode, guestName string) (*GuestJoinResponse, error) {
+	if utf8.RuneCountInString(guestName) > maxGuestNameRunes {
+		return nil, ErrInvalidInput
+	}
+	callEnt, err := s.repo.GetCallByInviteCode(ctx, inviteCode)
+	if err != nil {
+		return nil, ErrCallNotFound
+	}
+	if callEnt.Status != "active" {
+		return nil, ErrCallNotFound
+	}
+	_, token, err := s.room.GenerateGuestToken(callEnt.RoomName, guestName)
+	if err != nil {
+		return nil, fmt.Errorf("не удалось сгенерировать гостевой токен: %w", err)
+	}
+	return &GuestJoinResponse{
+		ID:         callEnt.ID,
+		RoomName:   callEnt.RoomName,
+		Token:      token,
+		LivekitURL: s.room.cfg.URL,
+	}, nil
 }
 
 // JoinCall присоединяет к существующему звонку. HI-03: канальные — членство в канале;
@@ -182,7 +292,16 @@ func (s *CallService) EndCall(ctx context.Context, callID, userID uuid.UUID) err
 }
 
 // GetActiveCallByChannel — активный звонок в канале или nil.
-func (s *CallService) GetActiveCallByChannel(ctx context.Context, channelID uuid.UUID) (*CallResponse, error) {
+// A2-008: только член канала видит метаданные активного звонка.
+func (s *CallService) GetActiveCallByChannel(ctx context.Context, channelID, userID uuid.UUID) (*CallResponse, error) {
+	isMember, mErr := s.repo.IsChannelMember(ctx, channelID, userID)
+	if mErr != nil {
+		return nil, fmt.Errorf("проверка членства в канале: %w", mErr)
+	}
+	if !isMember {
+		return nil, ErrCallForbidden
+	}
+
 	callEnt, err := s.repo.GetActiveCallByChannel(ctx, channelID)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка поиска активного звонка: %w", err)
@@ -191,6 +310,27 @@ func (s *CallService) GetActiveCallByChannel(ctx context.Context, channelID uuid
 		return nil, nil
 	}
 	return toCallResponse(callEnt, ""), nil
+}
+
+// RaiseHand — A2-006: поднять/опустить руку только для активного участника звонка.
+// Раньше handler брал call по ID и звал LiveKit без authz — любой user с callId
+// мог дергать UpdateParticipantMetadata для своего identity.
+func (s *CallService) RaiseHand(ctx context.Context, callID, userID uuid.UUID, raised bool) error {
+	callEnt, err := s.repo.GetCall(ctx, callID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return ErrCallNotFound
+		}
+		return fmt.Errorf("get call: %w", err)
+	}
+	ok, pErr := s.repo.IsActiveParticipant(ctx, callID, userID)
+	if pErr != nil {
+		return fmt.Errorf("check participant: %w", pErr)
+	}
+	if !ok {
+		return ErrCallForbidden
+	}
+	return s.SetRaiseHand(ctx, callEnt.RoomName, userID.String(), raised)
 }
 
 // SetRaiseHand обновляет LiveKit-метаданные участника ("поднять руку").
@@ -223,9 +363,9 @@ func (s *CallService) SendChatMessage(ctx context.Context, callID string, userID
 	return s.chat.SendMessage(ctx, callID, userID, userName, text, ephemeral)
 }
 
-// ListChatMessages делегирует в CallChatService.
-func (s *CallService) ListChatMessages(ctx context.Context, callID string, limit int) ([]CallChatMessage, error) {
-	return s.chat.ListMessages(ctx, callID, limit)
+// ListChatMessages делегирует в CallChatService (A2-003: userID для authz).
+func (s *CallService) ListChatMessages(ctx context.Context, callID, userID string, limit int) ([]CallChatMessage, error) {
+	return s.chat.ListMessages(ctx, callID, userID, limit)
 }
 
 // OnParticipantJoined — webhook participant_joined от LiveKit.

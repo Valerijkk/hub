@@ -103,7 +103,7 @@ export function WeekView({
 									>
 										<button
 											type="button"
-											aria-label={`Создать встречу на ${String(hour).padStart(2, "0")}:00`}
+											aria-label={`Создать встречу на ${day.toLocaleDateString("ru-RU", { weekday: "short", day: "numeric", month: "long" })} в ${String(hour).padStart(2, "0")}:00`}
 											className="absolute inset-0 z-0 h-full w-full cursor-pointer border-0 bg-transparent transition-colors hover:bg-[var(--hover)] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary/40"
 											onClick={() => onSlotClick(day, hour)}
 										/>

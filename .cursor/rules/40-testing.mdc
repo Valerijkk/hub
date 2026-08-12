@@ -1,233 +1,200 @@
 ---
-description: Testing patterns for Hub — Go hubtest integration, Vitest, Playwright, testframework pipeline. Auto-attaches for test files and testframework/.
-globs: backend/**/*_test.go,frontend/**/*.test.*,frontend/**/*.spec.*,testframework/**/*
+description: Founder-cutover test architecture, risk-based design, and Docker-only execution for Hub tests.
+globs: backend/**/*_test.go,backend/tests/**/*.go,frontend/**/*.test.*,frontend/**/*.spec.*,frontend/tests/**/*,testframework/**/*
 alwaysApply: false
 ---
 
 # Hub — Testing Patterns
 
-## Go Backend Tests
+> Founder greenfield cutover (LOCKED, 2026-08-07). Strategy authority:
+> `AGENTS.md`, `docs/test_plan.md`,
+> `.planning/active/august-2026/06-TEST-ARCHITECTURE-REBASE.md` и
+> `.cursor/playbooks/testing.md`.
 
-### Integration Tests (реальный канон Hub)
+## 1. Target architecture
 
-> **Важно:** Hub **не использует testcontainers-go** в реальном коде — тесты подключаются к контейнерам `deployments/docker-compose.test.yml` через переменную окружения (Postgres/Mongo уже запущены отдельно). Ниже — фактический паттерн, см. `backend/testframework/search/service_wave116_postgres_test.go`.
+| Job | Scope | Target |
+|---|---|---|
+| `backend-unit` | genuine isolated Go units | `backend/tests/{domain}/**` |
+| `frontend-unit` | genuine Vitest/RTL units | `frontend/tests/{domain}/**`, `frontend/tests/support/**` |
+| `python-contract` | API/schema/event/source contracts | `testframework/tests/contract/**` |
+| `python-api` | public backend/frontend-BFF behavior | `testframework/tests/api/**` |
+| `python-integration` | DB/broker/storage boundaries | `testframework/tests/integration/**` |
+| `python-e2e-smoke/full` | browser user journeys | `testframework/tests/e2e/**`; `full` is a launcher profile |
+| `python-load` | load/resilience profiles | `testframework/load/**` |
 
-```go
-func setupTestDB(t *testing.T) *sql.DB {
-    t.Helper()
-    uri := os.Getenv("POSTGRES_TEST_URL")
-    if uri == "" {
-        uri = "postgresql://hub:hub@postgres:5432/hub?sslmode=disable"
-    }
-    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-    defer cancel()
+Root `testframework/` — один greenfield Python-проект:
 
-    db, err := sql.Open("postgres", uri)
-    require.NoError(t, err)
-    if err := db.PingContext(ctx); err != nil {
-        // Запасной вариант для локальных прогонов против опубликованного порта
-        fallback := "postgresql://hub:hub@localhost:5432/hub?sslmode=disable"
-        db2, err2 := sql.Open("postgres", fallback)
-        require.NoError(t, err2)
-        return db2
-    }
-    return db
-}
-```
-
-Каноническая команда запуска (Docker, см. `AGENTS.md`):
-
-```bash
-docker compose -f deployments/docker-compose.test.yml up -d
-docker run --rm --network deployments_default \
-  -v "${PWD}/backend:/app" -w /app \
-  -e POSTGRES_TEST_URL="postgresql://hub:hub@postgres:5432/hub?sslmode=disable" \
-  -e MONGODB_TEST_URL="mongodb://hub:hub@mongo:27017/?authSource=admin" \
-  golang:1.25-bookworm \
-  sh -c "go test -tags hubtest -race -count=1 -timeout=600s ./testframework/..."
-```
-
-### Unit Tests с мок-объектами (без mockery-кодогенерации)
-
-```go
-// Hub держит тесты рядом с реальными зависимостями (httptest.NewRequest + fiber.App),
-// а не через сгенерированные mockery-моки — mockery в проекте не подключён.
-// Пример: backend/testframework/auth/handler_magiclink_runes_test.go
-
-func TestVerifyMagicLink_ThreeEmojiCode_Rejected(t *testing.T) {
-    h := auth.NewHandler(&auth.AuthService{})
-    app := testApp(http.MethodPost, "/auth/magic-link/verify", h.VerifyMagicLink)
-
-    resp := postVerifyMagicLink(t, app, "emoji@example.com", "🔥🔥🔥")
-    defer resp.Body.Close()
-
-    assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
-}
-```
-
-### Race Detector (always use)
-
-```bash
-go test -race -count=1 ./...
-go test -race -run TestSpecific ./internal/module/...
-```
-
-## Frontend Tests (Vitest + RTL)
-
-```typescript
-// components/__tests__/IssueCard.test.tsx
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { IssueCard } from '../IssueCard'
-
-describe('IssueCard', () => {
-    it('renders issue title', () => {
-        render(<IssueCard issue={mockIssue} />)
-        expect(screen.getByText(mockIssue.title)).toBeInTheDocument()
-    })
-
-    it('calls onEdit when edit button clicked', async () => {
-        const onEdit = vi.fn()
-        render(<IssueCard issue={mockIssue} onEdit={onEdit} />)
-        await userEvent.click(screen.getByRole('button', { name: /edit/i }))
-        expect(onEdit).toHaveBeenCalledWith(mockIssue.id)
-    })
-})
-```
-
-## API Mocking (MSW)
-
-```typescript
-// mocks/handlers.ts
-import { http, HttpResponse } from 'msw'
-
-export const handlers = [
-    http.get('/api/projects/:id/issues', ({ params }) => {
-        return HttpResponse.json({ data: mockIssues, total: mockIssues.length })
-    }),
-]
-```
-
-## E2E Tests (Playwright)
-
-```typescript
-// e2e/tracker.spec.ts
-test.describe('Issue Tracker', () => {
-    test.beforeEach(async ({ page }) => {
-        await page.goto('/')
-        await loginAs(page, 'member@hub.local')
-    })
-
-    test('creates a new issue', async ({ page }) => {
-        await page.click('[data-testid="new-issue-btn"]')
-        await page.fill('[data-testid="issue-title"]', 'Test Issue')
-        await page.click('[data-testid="submit-issue"]')
-        await expect(page.locator('[data-testid="issue-card"]').first()).toContainText('Test Issue')
-    })
-})
-```
-
-## Pipeline Stages (canonical map: `testframework/PIPELINE.md`)
-
-Структура `testframework/` повторяет CI: **стадия → job → домен**. Не путать с legacy `docs/test_plan.md` терминологией — актуальный вход всегда `testframework/PIPELINE.md`.
-
-```
+```text
 testframework/
-├── pipeline/jobs/*.yaml         # 1 YAML = 1 CI job (backend-test, frontend-test, e2e-smoke, e2e-full, coverage-gate)
-└── stages/
-    ├── unit/
-    │   ├── backend-test/        # README → реальные тесты живут в backend/testframework/{domain}/
-    │   └── frontend-test/domains/{auth,admin,ai,tracker,v4,...}/
-    ├── build/                   # только сборка, без тестов
-    ├── e2e/
-    │   ├── shared/               # POM (pages/), steps/, fixtures/
-    │   └── domains/{auth,platform,...}/  # e2e-smoke: 3 spec; e2e-full: 20 spec
-    └── quality/coverage-gate/    # README → backend coverage gate, порог ≥82%
+  pyproject.toml
+  core/
+  contract/
+  api/
+  integration/
+  e2e/
+  load/
+  docker/
+  reports/
 ```
 
-| CI Job | Стадия | Путь к тестам | Команда |
-|--------|--------|----------------|---------|
-| `backend-test` | unit | `backend/testframework/{domain}/` | `cd backend && go test -tags hubtest -race -count=1 ./testframework/...` |
-| `frontend-test` | unit | `testframework/stages/unit/frontend-test/domains/{domain}/` | `cd frontend && npx vitest run ../testframework/stages/unit/frontend-test/domains/auth` |
-| `e2e-smoke` | e2e | `stages/e2e/domains/` (auth, platform — 3 spec) | `cd frontend && npm run test:e2e:smoke` |
-| `e2e-full` | e2e | `stages/e2e/domains/` (все 9 доменов — 20 spec) | `cd frontend && npm run test:e2e` |
-| `coverage-gate` | quality | `backend/testframework/` | ≥82% gate |
+Founder constraints:
 
-**Почему Go-тесты физически не в `stages/unit/backend-test/`:** Go запрещает импорт `backend/internal/*` из другого модуля; тесты с `//go:build hubtest` и `export_hooks.go` обязаны жить в `backend/testframework/` (модуль `github.com/valerii/hub/backend`). Логически это job `backend-test`, физически — отдельная директория.
+- в `backend/tests/**` нет HTTP/component/integration tests, БД, broker,
+  storage или service containers;
+- в `frontend/tests/**` нет static/source-contract tests, которые
+  только читают/парсят production source;
+- legacy Go component/API/integration, static-contract Vitest, TypeScript
+  Playwright и их support/config/entrypoints frozen до exact-manifest deletion;
+  их не портируют, не делают fallback и не запускают как gate;
+- row-level parity, dual-run, historical 82% Go statement coverage и
+  package floors не migration gate;
+- `pro-qa-ai/**` не читать и не менять без explicit founder handoff.
 
-Перед Vitest/E2E — линковка node_modules: `node frontend/scripts/link-testframework-node-modules.mjs`.
+## 2. Suite selection
 
-## Примеры из Hub
+Сначала назвать failure mode и observable boundary, потом выбрать
+самый быстрый hermetic scope, который способен обнаружить риск.
 
-- Canonical race-регрессия в Docker: `deployments/docker-compose.test.yml` + `golang:1.25-bookworm` контейнер, команда — см. `AGENTS.md` секция «Команды».
-- Real regression fix + новый тест в одном коммите: `fix(bases)` (`98fb3df`) → `backend/internal/bases/service.go` + `backend/testframework/bases/service_test.go`, `service_wave115_test.go`; следующий коммит `test(bases)` (`8ff10d7`) добавил отдельный denial-suite `backend/testframework/bases/rbac_test.go` (403 для чужой базы, 404 для отсутствующей, позитив владельца).
-- Rune-length regression: `backend/testframework/auth/handler_magiclink_runes_test.go` — тест написан **вместе** с фиксом `576dfbb`, не отдельным PR (цикл «implement → test нового» из rule 56).
-- Паттерны в тестфреймворке: Page Object — `stages/e2e/shared/pages/`; Step — `stages/e2e/shared/steps/`; Builder — `backend/testframework/env/`; Factory — `backend/testframework/factory/`; TestRenderer — `stages/unit/frontend-test/render.tsx`.
-- Coverage по security-пакетам (≥80%): `auth` 82.4%, `ws` 87.7%, `rbac` 84.7%, `audit` 80.5%, `calls` 80.2% — актуальные проценты держи в `.planning/COVERAGE.md`, не в этом rule.
-- Миграция тестфреймворка (история реорганизации): `testframework/MIGRATION.md`, скрипт `scripts/reorganize-testframework-pipeline.ps1`.
+| Boundary | Evidence |
+|---|---|
+| pure calculation/validation/reducer/component behavior | native unit |
+| public HTTP/BFF contract | Python API |
+| schema/event/source compatibility | Python contract |
+| PostgreSQL/Mongo/Redis/NATS/storage semantics | Python integration |
+| browser-visible user outcome | Python E2E |
+| throughput/saturation/recovery under load | Python load |
 
-## Coverage Targets
+Pyramid, Trophy и Honeycomb — модели для обсуждения, а не обязательная
+геометрия. Нет квоты на число тестов по слоям.
 
-| Package | Target | Priority |
-|---------|--------|----------|
-| `auth/` | 80% | Critical (security) |
-| `ws/` | 80% | Critical (panic risk) |
-| `rbac/` | 80% | Critical (authz) |
-| `tracker/` | 60% | High |
-| `messenger/` | 60% | High |
-| `tms/` | 50% | Medium |
-| Overall | 50% | Goal |
+## 3. Behavioral test contract
 
-## Coverage Artifacts — Cleanup (mandatory)
+Каждый новый Python case имеет stable `TC-*` и metadata:
 
-После прогона покрытия, race-тестов или qa-gate **удали локальные артефакты** до коммита/handoff.
+- `task`, `requirement` (`FR-*`, `NFR-*`, `GZ-*`, ADR/API/spec section);
+- `risk`, `layer`, `domain`, `priority`, `owner`;
+- preconditions/data, observable oracle и forbidden side effects;
+- cleanup и ссылку на human-readable case/catalog.
 
-**Go — писать профили только во временную директорию или `/tmp`:**
+Для каждого применимого risk рассмотреть:
 
-```bash
-# ✅ Preferred: profile outside repo
-go test -coverprofile="$TMP/coverage.out" ./internal/...
+- happy и invalid;
+- authn/authz/tenant isolation;
+- empty/one/many, min/max, null, Unicode, time/timezone;
+- duplicate/reorder/version compatibility;
+- timeout/unavailable/partial completion/retry/recovery;
+- cancellation/concurrency/replay/idempotency;
+- resource exhaustion;
+- security/privacy/redaction, accessibility, performance — когда применимо.
 
-# ❌ Never leave in backend/
-go test -coverprofile=coverage.out ./...
-go test -coverprofile=calls_cov.out ./internal/calls/...
-go tool cover -func=coverage.out > cover_auth   # text dump in repo root
+Это choice space, а не квота. `N/A` допустим с rationale. Equivalence
+classes, boundary values, decision tables, state machines и pairwise
+применяются, если они уменьшают реальный риск.
+
+## 4. Test-code quality
+
+- Один test доказывает один behavioral concept, но может иметь
+  несколько assertions, если они вместе доказывают один outcome.
+- DAMP для scenario, DRY для mechanical setup; не скрывать важные
+  values/oracles в непрозрачном DSL.
+- Mock/fake/stub/spy закрывает dependency contract, не доменную
+  логику. Interaction assert нужен только для observable contract.
+- UI сначала использует accessible semantic locator. Tiny helper,
+  Component Object или Page Object появляются после повтора
+  meaningful UI-knowledge; POM/Steps не universal quality gate.
+- Fixed sleep не является synchronization. Использовать controlled
+  time, bounded condition/eventual assertion и explicit cleanup.
+- Shared mutable accounts, records, paths, schema, ports и artifacts
+  запрещены; namespace включает task/run/worker ID.
+- Лимит функции в 25 строк, «один assert» и fixed suite ratios —
+  review heuristics, не blocking rules.
+
+## 5. Native unit examples
+
+```go
+func TestNormalizeIssueTitle_TrimsUnicodeWhitespace(t *testing.T) {
+    got := NormalizeIssueTitle("\u00a0 Задача \u00a0")
+    require.Equal(t, "Задача", got)
+}
 ```
 
-**Удалить после верификации (если создались в repo):**
-
-| Pattern | Пример |
-|---------|--------|
-| `*.out` | `coverage.out`, `calls_cov.out`, `cover_rbac.out` |
-| `backend/cover*` | `cover`, `cover_auth`, `coverprofile`, `covertms` |
-| `backend/cov_*` | `cov_auth`, `cov_calls` |
-| `backend/*_cov*` | `auth_cov.txt`, `gitlab_cov`, `notif_cov` |
-| `backend/tmp*` | `tmpauth`, `tmp-wscov`, `tmp-rbac` |
-| `tmp_*.py` | одноразовые скрипты в корне |
-
-**Cleanup one-liner (PowerShell, из корня repo):**
-
-```powershell
-Get-ChildItem backend -File | Where-Object {
-  $_.Name -match '^(cover|coverage|cov_|tmp|.*_cov)' -or $_.Extension -eq '.out'
-} | Remove-Item -Force
-Remove-Item -Force tmp_*.py -ErrorAction SilentlyContinue
+```tsx
+it('opens edit action for the selected issue', async () => {
+  const onEdit = vi.fn()
+  render(<IssueCard issue={issue} onEdit={onEdit} />)
+  await userEvent.click(screen.getByRole('button', { name: /edit/i }))
+  expect(onEdit).toHaveBeenCalledWith(issue.id)
+})
 ```
 
-**Agent rule:** если ты запускал `go test -coverprofile`, `go tool cover`, race/prof — **удали артефакты в том же PR/сессии** после фиксации метрик в `.planning/COVERAGE.md`. Не коммить dumps; они в `.gitignore`.
+Эти examples показывают observable unit behavior. Они не дают
+разрешение на host execution.
 
-## Примеры из Hub
+## 6. Docker-only execution
 
-- Rune-safe валидация с тремя edge-кейсами в одном файле (multibyte ok / emoji reject / byte-length trap) — образец test-дизайна: `backend/testframework/auth/handler_magiclink_runes_test.go`.
-- RBAC-денай сьют для чужих ресурсов: `backend/testframework/bases/rbac_test.go` — паттерн «создать ресурс от имени A, попытаться получить/изменить от имени B → 403».
-- Postgres-тест через реальное соединение (не testcontainers): `backend/testframework/search/service_wave116_postgres_test.go`.
-- Организация тестов по волнам внутри модуля: `backend/testframework/bases/{handler_test,handler_flow_test,handler_wave107_test,handler_wave115_test,service_wave98_test,service_wave115_test,repository_wave98_test,fixtures_test}.go`.
-- Race-регрессия регистрации: `backend/testframework/auth/service_registration_race_test.go`.
-- Fail-closed middleware тест (что происходит при отказе внешней зависимости): `backend/testframework/auth/middleware_failclosed_test.go`.
-- Vitest unit-тесты по доменам: `testframework/stages/unit/frontend-test/domains/{auth,admin,ai,v4,...}/`.
-- Playwright E2E-спеки (20 всего, smoke — 3): `testframework/stages/e2e/domains/` — карта стадий CI в `testframework/PIPELINE.md`.
-- Backend unit-тесты по домену (499 test files, 0 внутри `internal/`,
-  inventory 2026-07-26): `backend/testframework/{auth,tracker,tms,bases,...}/`.
-- Node-линковка testframework перед Vitest/E2E: `node frontend/scripts/link-testframework-node-modules.mjs` — обязательный шаг перед `npx vitest run`/Playwright.
-- Testing Guide (канон стратегии, Allure, замер времени): `testframework/TESTING_GUIDE.md`, `testframework/guides/06-edge-corner-coverage.md`.
-- Coverage-матрица по модулям (факт на 2026-07): `.planning/COVERAGE.md` — auth 82.4%, ws 87.7%, rbac 84.7%, audit 80.5%, calls 80.2%.
+На Windows host разрешены file read/edit, Git и Docker CLI. Tests,
+validators, linters, build/vet, Vite, backend/frontend processes,
+pytest/Playwright и Locust исполняются только в task-owned
+Docker containers/Compose:
+
+- unique name/project `hub-<job>-<task>`;
+- explicit CPU/RAM и bounded timeout;
+- read-only source mount, если runner не обязан писать;
+- isolated data/ports/network/artifacts;
+- `--rm` или guaranteed task-owned `down -v --remove-orphans`;
+- не останавливать shared stack и не удалять чужие resources.
+
+Exact target runners находятся только в `AGENTS.md` и
+`.cursor/skills/qa-gate/SKILL.md`. Если target scaffold/job ещё не
+существует, результат — `NOT_READY`, а не legacy fallback.
+
+## 7. Evidence and cleanup
+
+Минимальный evidence record:
+
+```yaml
+source_sha: <sha>
+job: <target job>
+image: <digest or immutable tag>
+command: <exact outer and inner command>
+resources: {cpus: 2.0, memory: 4g, timeout: <value>}
+services: <profile or none>
+result: {collected: N, passed: N, failed: N, skipped: N}
+duration: <seconds>
+artifacts: <task-owned URI>
+cleanup: PASS|FAIL
+```
+
+PASS требует non-zero collection, только expected skips, exact
+traceability `task/requirement/TC`, observable oracle и cleanup PASS.
+High-risk behavior требует sensitive sentinel/mutation evidence, когда
+оно безопасно и воспроизводимо. Наличие файла, raw grep,
+mock-only green, coverage percentage, stale evidence и host-run не
+доказывают behavior.
+
+Артефакты пишутся в task-owned mounted output, volume или `/tmp`,
+не в source tree. Container/Compose resources удаляются после
+evidence, если дальше они не нужны.
+
+## 8. Failure protocol and DoD
+
+При FAIL применить `.cursor/skills/test-triage/SKILL.md`: сначала
+product behavior/spec/repro, затем `ROOT=code|test|infra|flaky|stop`.
+Assertion/skip/retry не менят ради green.
+
+Done, когда:
+
+- path/job соответствует таблице §1;
+- suite выбран по risk/boundary, не по quota;
+- TC/task/requirement разрешаются в канон;
+- oracle проверяет outcome и forbidden side effects;
+- applicable negative/boundary/failure families покрыты или `N/A`;
+- Docker evidence содержит exact command/result/duration/artifacts/cleanup;
+- zero collection, unexpected skips и leaked resources отсутствуют;
+- docs/traceability синхронизированы;
+- independent verifier дал verdict по raw evidence, не self-report.
+
+См. также `.cursor/rules/41-test-contracts.mdc`,
+`.cursor/rules/56-regression-verify.mdc`, `.cursor/playbooks/testing.md` и
+`.cursor/skills/qa-gate/SKILL.md`.

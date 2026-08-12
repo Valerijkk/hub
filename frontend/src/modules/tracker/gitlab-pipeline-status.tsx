@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { type GitLabPipelineResponse, listGitLabPipelines } from "@/api/gitlab";
+import { sanitizeUrl } from "@/lib/safe-url";
 
 // ---------------------------------------------------------------------------
 // Типы
@@ -271,7 +272,7 @@ export function GitLabPipelineStatus({ projectId }: GitLabPipelineStatusProps) {
 					return (
 						<a
 							key={pipeline.id}
-							href={pipeline.web_url}
+							href={sanitizeUrl(pipeline.web_url)}
 							target="_blank"
 							rel="noopener noreferrer"
 							className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"

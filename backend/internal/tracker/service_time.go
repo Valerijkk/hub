@@ -14,8 +14,8 @@ import (
 // ---------------------------------------------------------------------------
 
 // LogTime записывает время на задачу.
-func (s *TrackerService) LogTime(ctx context.Context, issueKey string, userID uuid.UUID, req LogTimeRequest) (*TimeLogResponse, error) {
-	existing, err := s.repo.FindIssueByKey(ctx, issueKey)
+func (s *TrackerService) LogTime(ctx context.Context, projectID uuid.UUID, issueKey string, userID uuid.UUID, req LogTimeRequest) (*TimeLogResponse, error) {
+	existing, err := s.repo.FindIssueByKey(ctx, projectID, issueKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("задача не найдена")
@@ -40,8 +40,8 @@ func (s *TrackerService) LogTime(ctx context.Context, issueKey string, userID uu
 }
 
 // StartTimer запускает таймер на задаче.
-func (s *TrackerService) StartTimer(ctx context.Context, issueKey string, userID uuid.UUID) (*TimeLogResponse, error) {
-	existing, err := s.repo.FindIssueByKey(ctx, issueKey)
+func (s *TrackerService) StartTimer(ctx context.Context, projectID uuid.UUID, issueKey string, userID uuid.UUID) (*TimeLogResponse, error) {
+	existing, err := s.repo.FindIssueByKey(ctx, projectID, issueKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("задача не найдена")
@@ -51,15 +51,16 @@ func (s *TrackerService) StartTimer(ctx context.Context, issueKey string, userID
 
 	tl, err := s.repo.StartTimer(ctx, existing.ID, userID)
 	if err != nil {
-		return nil, apperrors.NewInternal("ошибка запуска таймера")
+		// AppError (409 Conflict при уже открытом таймере) пробрасываем как есть.
+		return nil, err
 	}
 
 	return toTimeLogResponse(tl), nil
 }
 
 // StopTimer останавливает таймер на задаче.
-func (s *TrackerService) StopTimer(ctx context.Context, issueKey string, userID uuid.UUID) (*TimeLogResponse, error) {
-	existing, err := s.repo.FindIssueByKey(ctx, issueKey)
+func (s *TrackerService) StopTimer(ctx context.Context, projectID uuid.UUID, issueKey string, userID uuid.UUID) (*TimeLogResponse, error) {
+	existing, err := s.repo.FindIssueByKey(ctx, projectID, issueKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("задача не найдена")
@@ -76,8 +77,8 @@ func (s *TrackerService) StopTimer(ctx context.Context, issueKey string, userID 
 }
 
 // ListTimeLogs возвращает все записи времени для задачи.
-func (s *TrackerService) ListTimeLogs(ctx context.Context, issueKey string) ([]TimeLogResponse, error) {
-	existing, err := s.repo.FindIssueByKey(ctx, issueKey)
+func (s *TrackerService) ListTimeLogs(ctx context.Context, projectID uuid.UUID, issueKey string) ([]TimeLogResponse, error) {
+	existing, err := s.repo.FindIssueByKey(ctx, projectID, issueKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("задача не найдена")

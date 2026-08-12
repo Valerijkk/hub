@@ -16,7 +16,7 @@ type DocSearchProvider interface {
 
 // hubSearchBackend — subset SearchService для doc context (stub в tests).
 type hubSearchBackend interface {
-	Search(ctx context.Context, query string, userID uuid.UUID, types []string, limit int) ([]searchmod.SearchResult, error)
+	Search(ctx context.Context, query string, userID uuid.UUID, types []string, limit int) ([]searchmod.SearchResult, bool, error)
 }
 
 // SearchDocProvider адаптирует SearchService для @hub-ai /ai docs.
@@ -38,7 +38,7 @@ func (p *SearchDocProvider) SearchContext(ctx context.Context, userID uuid.UUID,
 	if query == "" {
 		return "", fmt.Errorf("query is required")
 	}
-	results, err := p.search.Search(ctx, query, userID, []string{"issue", "test_case", "message"}, 8)
+	results, _, err := p.search.Search(ctx, query, userID, []string{"issue", "test_case", "message"}, 8)
 	if err != nil {
 		return "", err
 	}

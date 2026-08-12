@@ -40,7 +40,7 @@ func (h *Handler) ListApproved(c fiber.Ctx) error {
 	category := c.Query("category")
 	resp, err := h.service.ListApproved(c.Context(), category, page, perPage)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "failed to list listings")
+		return mapServiceError(err)
 	}
 	return c.JSON(resp)
 }
@@ -50,11 +50,12 @@ func (h *Handler) ListMine(c fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	items, err := h.service.ListMine(c.Context(), userID)
+	page, perPage := parsePagination(c)
+	resp, err := h.service.ListMine(c.Context(), userID, page, perPage)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "failed to list my listings")
 	}
-	return c.JSON(fiber.Map{"items": items})
+	return c.JSON(resp)
 }
 
 func (h *Handler) ListPending(c fiber.Ctx) error {
@@ -62,11 +63,12 @@ func (h *Handler) ListPending(c fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	items, err := h.service.ListPending(c.Context(), userID)
+	page, perPage := parsePagination(c)
+	resp, err := h.service.ListPending(c.Context(), userID, page, perPage)
 	if err != nil {
 		return mapServiceError(err)
 	}
-	return c.JSON(fiber.Map{"items": items})
+	return c.JSON(resp)
 }
 
 func (h *Handler) CreateListing(c fiber.Ctx) error {

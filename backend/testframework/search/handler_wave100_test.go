@@ -70,7 +70,7 @@ func TestDeleteSavedFilter_NotOwner(t *testing.T) {
 
 	err := svc.DeleteSavedFilter(ctx, uuid.New(), filterID)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "доступ запрещён")
+	assert.ErrorIs(t, err, search.ErrFilterForbidden)
 }
 
 func TestShareFilter_Success(t *testing.T) {
@@ -106,7 +106,7 @@ func TestSearch_AllShardTypesWithMembership(t *testing.T) {
 	require.NoError(t, err)
 
 	svc := search.NewSearchService(&mockSearchRepo{isAdmin: true}, db, nil)
-	results, err := svc.Search(context.Background(), "hub", userID,
+	results, _, err := svc.Search(context.Background(), "hub", userID,
 		[]string{"issue", "test_case", "user", "project", "file", "channel", "message"}, 10)
 	require.NoError(t, err)
 	assert.Empty(t, results)
@@ -115,10 +115,16 @@ func TestSearch_AllShardTypesWithMembership(t *testing.T) {
 func TestGetUserChannelIDs_SkipsInvalidRows(t *testing.T) {
 	db := newScopeTestDB(t)
 	userID := uuid.New()
+	validChannel := uuid.New()
 	_, err := db.Exec(
+		`INSERT INTO channels (id, name, channel_type, deleted_at) VALUES (?, 'valid', 'public', NULL)`,
+		validChannel.String(),
+	)
+	require.NoError(t, err)
+	_, err = db.Exec(
 		`INSERT INTO channel_members (channel_id, user_id) VALUES (?, ?), (?, ?)`,
 		"not-a-uuid", userID.String(),
-		uuid.New().String(), userID.String(),
+		validChannel.String(), userID.String(),
 	)
 	require.NoError(t, err)
 

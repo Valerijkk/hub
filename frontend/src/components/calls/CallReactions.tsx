@@ -112,6 +112,7 @@ export function CallReactionBar({ onClose }: CallReactionBarProps) {
 							"active:scale-95",
 						)}
 						title={label}
+						aria-label={label}
 					>
 						{emoji}
 					</button>

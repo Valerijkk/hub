@@ -12,9 +12,32 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
+	"github.com/valerii/hub/backend/ent/user"
 	"github.com/valerii/hub/backend/internal/auth"
 	"github.com/valerii/hub/backend/internal/platform/observability"
 )
+
+// ErrCannotDeleteFounder — GDPR-erase founder запрещён всегда (ORG-04 / P2-BE-19),
+// включая self-erase: иначе org остаётся без founder (break-glass только через ADR).
+var ErrCannotDeleteFounder = errors.New("cannot delete founder account")
+
+// ErrCannotModifyFounder — A1-009: ban/deactivate founder запрещены (ORG-04).
+var ErrCannotModifyFounder = errors.New("cannot ban or deactivate founder account")
+
+// ErrBanReasonRequired — A3W6-4-002: BanUser без причины.
+var ErrBanReasonRequired = errors.New("укажите причину блокировки")
+
+// ErrCannotBanSelf — A3W6-4-002: admin не может забанить сам себя.
+var ErrCannotBanSelf = errors.New("нельзя заблокировать самого себя")
+
+// ErrUserNotFound — A3W6-4-003: пользователь отсутствует (IsSystemAdmin / admin gate).
+var ErrUserNotFound = errors.New("user not found")
+
+// ErrInvalidResourceLimitKey — A1-013: PUT /admin/limits/{key} только allowlist.
+var ErrInvalidResourceLimitKey = errors.New("invalid resource limit key")
+
+// ErrInvalidResourceLimitValue — A2W6-A4-002: значение лимита — целое > 0.
+var ErrInvalidResourceLimitValue = errors.New("invalid resource limit value")
 
 // Настройки аудита, лимитов и корзины.
 const (
@@ -36,8 +59,23 @@ const (
 // Phase-14: Repository теперь интерфейс (а не *struct), что позволяет
 // подменять реализацию в тестах без cgo-зависимостей Ent.
 type AuditService struct {
-	repo  Repository
-	redis *redis.Client // optional — используется для инвалидации auth-кэшей (ME-13).
+	repo       Repository
+	redis      *redis.Client // optional — используется для инвалидации auth-кэшей (ME-13).
+	msgEraser  MessageEraser // optional — Mongo messages by sender_id (P1-BE-34).
+	sessions   SessionRevoker // optional — C-W19-001: Redis+NATS session kill on deactivate/ban.
+	eraseRetry MongoEraseRetryEnqueuer // optional — C-W19-002: JetStream retry after post-Commit fail.
+}
+
+// MessageEraser удаляет персональные сообщения пользователя (Mongo messenger).
+// Опциональная зависимость: если nil, шаг пропускается (тесты без Mongo).
+type MessageEraser interface {
+	DeleteMessagesBySender(ctx context.Context, senderID uuid.UUID) (int64, error)
+}
+
+// SessionRevoker — C-W19-001: DB+Redis invalidate + NATS revoked/logout → WS Bridge kill.
+// Реализация: auth.SessionService.RevokeAllUserSessions (не дублировать pipeline).
+type SessionRevoker interface {
+	RevokeAllUserSessions(ctx context.Context, userID uuid.UUID) error
 }
 
 // NewAuditService создаёт новый сервис аудита.
@@ -49,10 +87,52 @@ func NewAuditService(repo Repository, rdb *redis.Client) *AuditService {
 	return &AuditService{repo: repo, redis: rdb}
 }
 
+// SetMessageEraser подключает стирание Mongo-сообщений при GDPR erase (P1-BE-34).
+func (s *AuditService) SetMessageEraser(e MessageEraser) {
+	s.msgEraser = e
+}
+
+// SetSessionRevoker подключает session-kill path (Redis + NATS revoked) для Deactivate/Ban.
+// C-W19-001: без этого живой WS жертвы не рвётся. Wiring: wireAuth → authSvc.Sessions.
+func (s *AuditService) SetSessionRevoker(r SessionRevoker) {
+	s.sessions = r
+}
+
+// SetMongoEraseRetry подключает JetStream compensating retry для Mongo erase после GDPR Commit.
+// C-W19-002: sync eraser fail → user уже HardDelete; retry по sender_id (идемпотентный DeleteMany).
+func (s *AuditService) SetMongoEraseRetry(e MongoEraseRetryEnqueuer) {
+	s.eraseRetry = e
+}
+
 // IsSystemAdmin возвращает true, если пользователь — системный администратор.
 // Используется HTTP-обработчиками для проверки доступа к admin-эндпоинтам.
 func (s *AuditService) IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bool, error) {
 	return s.repo.IsSystemAdmin(ctx, userID)
+}
+
+// ListAdminUsers возвращает безопасный список пользователей для admin-панели.
+func (s *AuditService) ListAdminUsers(ctx context.Context) ([]AdminUserResponse, error) {
+	return observability.Timed(ctx, "audit.ListAdminUsers", func(ctx context.Context) ([]AdminUserResponse, error) {
+		users, err := s.repo.ListAdminUsers(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		result := make([]AdminUserResponse, 0, len(users))
+		for _, item := range users {
+			result = append(result, AdminUserResponse{
+				ID:          item.ID.String(),
+				Email:       item.Email,
+				Name:        item.Name,
+				DisplayName: item.DisplayName,
+				SystemRole:  string(item.SystemRole),
+				Status:      string(item.Status),
+				CreatedAt:   item.CreatedAt,
+			})
+		}
+
+		return result, nil
+	})
 }
 
 // ---- Журнал аудита ----
@@ -137,23 +217,49 @@ func (s *AuditService) GetResourceLimits(ctx context.Context) ([]ResourceLimitRe
 }
 
 // UpdateResourceLimit обновляет лимит ресурса в SystemSetting (только для администратора).
+// A1-013: ключ обязан быть из allowlist — иначе можно перезаписать retention.* и др.
+// A2W6-A4-002: value — положительное целое (Atoi + >0); иначе fail-closed.
 func (s *AuditService) UpdateResourceLimit(ctx context.Context, key, value string) error {
+	switch key {
+	case LimitFileMaxSizeMB, LimitUserMaxProjects, LimitProjectMaxStorageMB:
+		// ok
+	default:
+		return ErrInvalidResourceLimitKey
+	}
+	n, err := strconv.Atoi(value)
+	if err != nil || n <= 0 {
+		return ErrInvalidResourceLimitValue
+	}
 	return s.repo.UpsertSystemSetting(ctx, key, value, fmt.Sprintf("Лимит ресурса: %s", key))
 }
 
+// defaultResourceLimits — канонические дефолты (совпадают с GetResourceLimits).
+var defaultResourceLimits = map[string]int{
+	LimitFileMaxSizeMB:       50,
+	LimitUserMaxProjects:     20,
+	LimitProjectMaxStorageMB: 5120,
+}
+
 // CheckLimit проверяет, не превышен ли лимит ресурса.
+// A2W6-A4-002: пустой ключ без дефолта / невалидный Atoi / non-positive → deny (fail-closed).
+// Известные ключи без записи в БД используют defaultResourceLimits.
 func (s *AuditService) CheckLimit(ctx context.Context, limitKey string, currentValue int) (bool, error) {
 	value, err := s.repo.GetSystemSetting(ctx, limitKey)
 	if err != nil {
 		return false, err
 	}
+	var limitVal int
 	if value == "" {
-		return true, nil // Лимит не задан — разрешаем
-	}
-
-	limitVal, err := strconv.Atoi(value)
-	if err != nil {
-		return true, nil // Невалидное значение — разрешаем
+		def, ok := defaultResourceLimits[limitKey]
+		if !ok {
+			return false, nil // неизвестный ключ без значения — deny
+		}
+		limitVal = def
+	} else {
+		limitVal, err = strconv.Atoi(value)
+		if err != nil || limitVal <= 0 {
+			return false, nil // мусор в БД — deny, не fail-open
+		}
 	}
 
 	return currentValue < limitVal, nil
@@ -197,6 +303,16 @@ func (s *AuditService) ListTrash(ctx context.Context, entityType string, project
 		items, total, err = s.repo.ListDeletedFiles(ctx, projectID, cutoff, offset, perPage)
 	case "project":
 		items, total, err = s.repo.ListDeletedProjects(ctx, cutoff, offset, perPage)
+	case "newspost":
+		items, total, err = s.repo.ListDeletedNewsPosts(ctx, cutoff, offset, perPage)
+	case "scheduled_call":
+		items, total, err = s.repo.ListDeletedScheduledCalls(ctx, projectID, cutoff, offset, perPage)
+	case "crm_contact":
+		items, total, err = s.repo.ListDeletedCRMContacts(ctx, cutoff, offset, perPage)
+	case "crm_deal":
+		items, total, err = s.repo.ListDeletedCRMDeals(ctx, cutoff, offset, perPage)
+	case "hubbase":
+		items, total, err = s.repo.ListDeletedHubBases(ctx, cutoff, offset, perPage)
 	default:
 		return resp, nil
 	}
@@ -228,6 +344,16 @@ func (s *AuditService) RestoreItem(ctx context.Context, entityType string, entit
 		return s.repo.RestoreFile(ctx, entityID)
 	case "project":
 		return s.repo.RestoreProject(ctx, entityID)
+	case "newspost":
+		return s.repo.RestoreNewsPost(ctx, entityID)
+	case "scheduled_call":
+		return s.repo.RestoreScheduledCall(ctx, entityID)
+	case "crm_contact":
+		return s.repo.RestoreCRMContact(ctx, entityID)
+	case "crm_deal":
+		return s.repo.RestoreCRMDeal(ctx, entityID)
+	case "hubbase":
+		return s.repo.RestoreHubBase(ctx, entityID)
 	default:
 		return fmt.Errorf("неизвестный тип сущности: %s", entityType)
 	}
@@ -245,6 +371,16 @@ func (s *AuditService) SoftDelete(ctx context.Context, entityType string, entity
 		return s.repo.SoftDeleteFile(ctx, entityID, now)
 	case "project":
 		return s.repo.SoftDeleteProject(ctx, entityID, now)
+	case "newspost":
+		return s.repo.SoftDeleteNewsPost(ctx, entityID, now)
+	case "scheduled_call":
+		return s.repo.SoftDeleteScheduledCall(ctx, entityID, now)
+	case "crm_contact":
+		return s.repo.SoftDeleteCRMContact(ctx, entityID, now)
+	case "crm_deal":
+		return s.repo.SoftDeleteCRMDeal(ctx, entityID, now)
+	case "hubbase":
+		return s.repo.SoftDeleteHubBase(ctx, entityID, now)
 	default:
 		return fmt.Errorf("неизвестный тип сущности: %s", entityType)
 	}
@@ -252,15 +388,20 @@ func (s *AuditService) SoftDelete(ctx context.Context, entityType string, entity
 
 // PurgeExpired окончательно удаляет элементы, находящиеся в корзине дольше 30 дней.
 // Запускается по cron (горутина с 24-часовым тикером).
+// A2W6-A4-001: ошибка любого purge_* пробрасывается наружу (fail-closed для cron),
+// иначе tick trash-purge-expired считается успешным при полном отказе БД.
 func (s *AuditService) PurgeExpired(ctx context.Context) error {
 	cutoff := time.Now().Add(-TrashRetentionDays * 24 * time.Hour)
 
-	// purge вызывает deleteFunc и логирует результат.
+	var errs []error
 	purge := func(entity string, deleteFunc func() (int, error)) {
 		n, err := deleteFunc()
 		if err != nil {
 			slog.Error("purge expired "+entity, "error", err)
-		} else if n > 0 {
+			errs = append(errs, fmt.Errorf("purge expired %s: %w", entity, err))
+			return
+		}
+		if n > 0 {
 			slog.Info("purged expired "+entity, "count", n)
 		}
 	}
@@ -269,8 +410,13 @@ func (s *AuditService) PurgeExpired(ctx context.Context) error {
 	purge("test_cases", func() (int, error) { return s.repo.PurgeExpiredTestCases(ctx, cutoff) })
 	purge("files", func() (int, error) { return s.repo.PurgeExpiredFiles(ctx, cutoff) })
 	purge("projects", func() (int, error) { return s.repo.PurgeExpiredProjects(ctx, cutoff) })
+	purge("newsposts", func() (int, error) { return s.repo.PurgeExpiredNewsPosts(ctx, cutoff) })
+	purge("scheduled_calls", func() (int, error) { return s.repo.PurgeExpiredScheduledCalls(ctx, cutoff) })
+	purge("crm_contacts", func() (int, error) { return s.repo.PurgeExpiredCRMContacts(ctx, cutoff) })
+	purge("crm_deals", func() (int, error) { return s.repo.PurgeExpiredCRMDeals(ctx, cutoff) })
+	purge("hubbases", func() (int, error) { return s.repo.PurgeExpiredHubBases(ctx, cutoff) })
 
-	return nil
+	return errors.Join(errs...)
 }
 
 // ---- Управление пользователями ----
@@ -281,14 +427,30 @@ func (s *AuditService) DeactivateUser(ctx context.Context, userID uuid.UUID) err
 }
 
 func (s *AuditService) deactivateUser(ctx context.Context, userID uuid.UUID) error {
+	// A1-009 / ORG-04: founder нельзя деактивировать (в т.ч. через BanUser).
+	role, err := s.repo.GetUserSystemRole(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("get user role (deactivate): %w", err)
+	}
+	if role == user.SystemRoleFounder {
+		return ErrCannotModifyFounder
+	}
+
 	// Обновляем статус пользователя
 	if err := s.repo.DeactivateUser(ctx, userID); err != nil {
 		return fmt.Errorf("деактивация пользователя: %w", err)
 	}
 
-	// Отзываем все сессии
-	if _, err := s.repo.DeleteUserSessions(ctx, userID); err != nil {
+	// C-W19-001 / C-W19-003: session-kill fail-closed — Redis Del + NATS revoked
+	// (тот же path, что Logout/Revoke). Без SessionRevoker — DB-only fallback для тестов.
+	if s.sessions != nil {
+		if err := s.sessions.RevokeAllUserSessions(ctx, userID); err != nil {
+			slog.Error("revoke sessions on deactivate", "error", err, "user_id", userID)
+			return fmt.Errorf("revoke sessions on deactivate: %w", err)
+		}
+	} else if _, err := s.repo.DeleteUserSessions(ctx, userID); err != nil {
 		slog.Error("revoke sessions on deactivate", "error", err, "user_id", userID)
+		return fmt.Errorf("revoke sessions on deactivate: %w", err)
 	}
 
 	// ME-13: инвалидируем закэшированный статус, чтобы запретить доступ
@@ -302,10 +464,10 @@ func (s *AuditService) deactivateUser(ctx context.Context, userID uuid.UUID) err
 func (s *AuditService) BanUser(ctx context.Context, targetUserID, adminUserID uuid.UUID, reason, ipAddress, userAgent string) error {
 	return observability.TimedVoid(ctx, "audit.BanUser", func(ctx context.Context) error {
 		if reason == "" {
-			return errors.New("укажите причину блокировки")
+			return ErrBanReasonRequired
 		}
 		if targetUserID == adminUserID {
-			return errors.New("нельзя заблокировать самого себя")
+			return ErrCannotBanSelf
 		}
 
 		if err := s.deactivateUser(ctx, targetUserID); err != nil {
@@ -318,7 +480,8 @@ func (s *AuditService) BanUser(ctx context.Context, targetUserID, adminUserID uu
 		}
 		if _, err := s.repo.CreateAuditLog(ctx, "ban", "user", targetUserID.String(),
 			&adminUserID, nil, details, ipAddress, userAgent); err != nil {
-			slog.Error("audit ban log", "error", err, "user_id", targetUserID)
+			// W6-A4-015 / P3-BE-01: ban без audit trail — fail-closed для caller.
+			return fmt.Errorf("audit ban log: %w", err)
 		}
 
 		return nil
@@ -366,92 +529,152 @@ func (s *AuditService) ReassignTasks(ctx context.Context, fromUserID, toUserID u
 
 // DeleteUserGDPR выполняет каскадное удаление пользователя в соответствии с GDPR:
 // 1. Переназначает задачи на указанного пользователя (или очищает assignee)
-// 2. Удаляет комментарии пользователя
-// 3. Удаляет все сессии
-// 4. Hard-delete записи пользователя
-// 5. Записывает аудит-лог "GDPR deletion"
+// 2. Удаляет комментарии/реакции/сессии/activity/time_logs
+// 3. Удаляет файлы, memberships; scrub IP/UA в audit_log
+// 4. (опционально) Mongo messages по sender_id
+// 5. Hard-delete пользователя — только если весь каскад успешен
+// 6. Записывает аудит-лог "GDPR deletion"
 //
-// BE-H6: ошибки каскадного удаления (reactions, sessions, time_logs,
-// activity_logs, comments) накапливаются через errors.Join и возвращаются
-// после Hard-delete пользователя — раньше они молча проглатывались
-// (`_, _ = ...`), и handler возвращал 200 даже при частично проваленной
-// GDPR-операции, что нарушает требование "right to erasure".
-func (s *AuditService) DeleteUserGDPR(ctx context.Context, userID uuid.UUID, reassignTo *uuid.UUID) error {
-	// 1. Переназначаем или очищаем задачи
-	if reassignTo != nil {
-		if _, err := s.repo.ReassignAssignedIssues(ctx, userID, *reassignTo); err != nil {
-			return fmt.Errorf("переназначение задач (GDPR): %w", err)
+// A1-004 / ORG-04 / P2-BE-19: target=founder запрещён всегда (включая self-erase).
+// Self-erase founder оставляет org без founder — break-glass только через ADR.
+//
+// A2W6-A4-003 / A3W6-4-001: все Ent-шаги (включая HardDelete) — одна транзакция;
+// mid-cascade fail → Rollback. Mongo eraser — строго ПОСЛЕ Commit: иначе Mongo ok +
+// Ent Rollback → user жив, chat-история уже стёрта (cross-store partial erasure).
+// C-W19-002 / TASK-178: Mongo fail после Commit → enqueue JetStream retry (sender_id);
+// orphan window до MaxDeliver, dual erase идемпотентен. Mongo НЕ внутрь WithTx.
+func (s *AuditService) DeleteUserGDPR(ctx context.Context, actorID, userID uuid.UUID, reassignTo *uuid.UUID) error {
+	role, err := s.repo.GetUserSystemRole(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("get user role (GDPR): %w", err)
+	}
+	if role == user.SystemRoleFounder {
+		return ErrCannotDeleteFounder
+	}
+
+	if err := s.repo.WithTx(ctx, func(txRepo Repository) error {
+		// 1. Переназначаем или очищаем задачи
+		if reassignTo != nil {
+			if _, err := txRepo.ReassignAssignedIssues(ctx, userID, *reassignTo); err != nil {
+				return fmt.Errorf("переназначение задач (GDPR): %w", err)
+			}
+			if _, err := txRepo.ReassignReportedIssues(ctx, userID, *reassignTo); err != nil {
+				return fmt.Errorf("переназначение reporter-задач (GDPR): %w", err)
+			}
+		} else {
+			if _, err := txRepo.ClearUserAssignments(ctx, userID); err != nil {
+				return fmt.Errorf("очистка задач пользователя (GDPR): %w", err)
+			}
 		}
-		// Также переназначаем задачи где пользователь reporter
-		if _, err := s.repo.ReassignReportedIssues(ctx, userID, *reassignTo); err != nil {
-			return fmt.Errorf("переназначение reporter-задач (GDPR): %w", err)
+
+		run := func(step string, fn func() error) error {
+			if err := fn(); err != nil {
+				slog.Error("GDPR cascade step failed", "step", step, "error", err, "user_id", userID)
+				return fmt.Errorf("%s: %w", step, err)
+			}
+			return nil
 		}
-	} else {
-		if _, err := s.repo.ClearUserAssignments(ctx, userID); err != nil {
-			return fmt.Errorf("очистка задач пользователя (GDPR): %w", err)
+
+		if err := run("delete comments", func() error {
+			_, e := txRepo.DeleteUserComments(ctx, userID)
+			return e
+		}); err != nil {
+			return err
 		}
-	}
+		if err := run("delete reactions", func() error {
+			_, e := txRepo.DeleteUserReactions(ctx, userID)
+			return e
+		}); err != nil {
+			return err
+		}
+		if err := run("delete sessions", func() error {
+			_, e := txRepo.DeleteUserSessions(ctx, userID)
+			return e
+		}); err != nil {
+			return err
+		}
+		if err := run("delete activity_logs", func() error {
+			_, e := txRepo.DeleteUserActivityLogs(ctx, userID)
+			return e
+		}); err != nil {
+			return err
+		}
+		if err := run("delete time_logs", func() error {
+			_, e := txRepo.DeleteUserTimeLogs(ctx, userID)
+			return e
+		}); err != nil {
+			return err
+		}
+		if err := run("delete files", func() error {
+			_, e := txRepo.DeleteUserFiles(ctx, userID)
+			return e
+		}); err != nil {
+			return err
+		}
+		if err := run("delete project memberships", func() error {
+			_, e := txRepo.DeleteUserProjectMemberships(ctx, userID)
+			return e
+		}); err != nil {
+			return err
+		}
+		if err := run("delete channel memberships", func() error {
+			_, e := txRepo.DeleteUserChannelMemberships(ctx, userID)
+			return e
+		}); err != nil {
+			return err
+		}
+		if err := run("delete team memberships", func() error {
+			_, e := txRepo.DeleteUserTeamMemberships(ctx, userID)
+			return e
+		}); err != nil {
+			return err
+		}
+		if err := run("scrub audit PII", func() error {
+			_, e := txRepo.ScrubUserAuditPII(ctx, userID)
+			return e
+		}); err != nil {
+			return err
+		}
 
-	// Каскадные удаления связанных сущностей. Ошибки накапливаем —
-	// часть данных пользователя может остаться, и админ должен узнать.
-	var cascadeErrs []error
-
-	// 2. Удаляем комментарии пользователя
-	if n, err := s.repo.DeleteUserComments(ctx, userID); err != nil {
-		slog.Error("delete comments (GDPR)", "error", err, "user_id", userID)
-		cascadeErrs = append(cascadeErrs, fmt.Errorf("delete comments: %w", err))
-	} else if n > 0 {
-		slog.Info("deleted user comments (GDPR)", "count", n, "user_id", userID)
-	}
-
-	// 3. Удаляем реакции пользователя
-	if _, err := s.repo.DeleteUserReactions(ctx, userID); err != nil {
-		slog.Error("delete reactions (GDPR)", "error", err, "user_id", userID)
-		cascadeErrs = append(cascadeErrs, fmt.Errorf("delete reactions: %w", err))
-	}
-
-	// 4. Удаляем все сессии
-	if _, err := s.repo.DeleteUserSessions(ctx, userID); err != nil {
-		slog.Error("delete sessions (GDPR)", "error", err, "user_id", userID)
-		cascadeErrs = append(cascadeErrs, fmt.Errorf("delete sessions: %w", err))
-	}
-
-	// 5. Удаляем логи активности пользователя
-	if _, err := s.repo.DeleteUserActivityLogs(ctx, userID); err != nil {
-		slog.Error("delete activity_logs (GDPR)", "error", err, "user_id", userID)
-		cascadeErrs = append(cascadeErrs, fmt.Errorf("delete activity_logs: %w", err))
-	}
-
-	// 6. Удаляем записи времени пользователя
-	if _, err := s.repo.DeleteUserTimeLogs(ctx, userID); err != nil {
-		slog.Error("delete time_logs (GDPR)", "error", err, "user_id", userID)
-		cascadeErrs = append(cascadeErrs, fmt.Errorf("delete time_logs: %w", err))
-	}
-
-	// 7. Записываем аудит-лог перед удалением пользователя
-	if s.repo != nil {
-		if _, err := s.repo.CreateAuditLog(ctx, "gdpr_deletion", "user", userID.String(),
-			&userID, nil, map[string]interface{}{"deleted_user_id": userID.String()}, "", ""); err != nil {
+		// Аудит до HardDelete — actor в details (accountability).
+		if _, err := txRepo.CreateAuditLog(ctx, "gdpr_deletion", "user", userID.String(),
+			&actorID, nil, map[string]interface{}{
+				"deleted_user_id": userID.String(),
+				"deleted_by":      actorID.String(),
+			}, "", ""); err != nil {
 			slog.Error("create gdpr audit_log", "error", err, "user_id", userID)
-			cascadeErrs = append(cascadeErrs, fmt.Errorf("create audit_log: %w", err))
+			return fmt.Errorf("create audit_log: %w", err)
+		}
+
+		if err := txRepo.HardDeleteUser(ctx, userID); err != nil {
+			return fmt.Errorf("удаление пользователя (GDPR): %w", err)
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	// A3W6-4-001: Mongo только после успешного Ent Commit.
+	if s.msgEraser != nil {
+		if _, err := s.msgEraser.DeleteMessagesBySender(ctx, userID); err != nil {
+			slog.Error("GDPR mongo erase after commit failed",
+				"error", err, "user_id", userID, "actor_id", actorID)
+			// C-W19-002: compensating JetStream retry — user уже HardDelete, messages orphan
+			// до успешного consumer. DeleteMany по sender_id идемпотентен.
+			if s.eraseRetry != nil {
+				if qErr := s.eraseRetry.EnqueueMongoErase(ctx, userID, actorID); qErr != nil {
+					slog.Error("GDPR mongo erase retry enqueue failed",
+						"error", qErr, "user_id", userID, "actor_id", actorID)
+					return fmt.Errorf("delete mongo messages: %w; enqueue retry: %v", err, qErr)
+				}
+				slog.Warn("GDPR mongo erase retry enqueued",
+					"user_id", userID, "actor_id", actorID, "subject", SubjectGDPRMongoErase)
+			}
+			return fmt.Errorf("delete mongo messages: %w", err)
 		}
 	}
 
-	// 8. Hard-delete пользователя
-	if err := s.repo.HardDeleteUser(ctx, userID); err != nil {
-		cascadeErrs = append(cascadeErrs, fmt.Errorf("удаление пользователя (GDPR): %w", err))
-		return errors.Join(cascadeErrs...)
-	}
-
-	if len(cascadeErrs) > 0 {
-		// Пользователь удалён, но часть связанных данных не очистилась —
-		// возвращаем combined error, чтобы handler вернул 500 и админ
-		// видел, что именно не удалось зачистить.
-		slog.Warn("user deleted (GDPR) with cascade errors", "user_id", userID, "cascade_error_count", len(cascadeErrs))
-		return errors.Join(cascadeErrs...)
-	}
-
-	slog.Info("user deleted (GDPR)", "user_id", userID)
+	slog.Info("user deleted (GDPR)", "user_id", userID, "actor_id", actorID)
 	return nil
 }
 

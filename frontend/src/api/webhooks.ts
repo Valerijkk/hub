@@ -6,6 +6,8 @@ export interface WebhookEndpoint {
 	url: string;
 	events: string[];
 	is_active: boolean;
+	/** Optimistic lock (A3W4-5-002 / FE-SMA-001) — обязателен для Update. */
+	version: number;
 	created_at: string;
 }
 
@@ -33,6 +35,8 @@ export interface UpdateWebhookRequest {
 	secret?: string;
 	events?: string[];
 	is_active?: boolean;
+	/** Optimistic lock — BE VersionEQ, ≥1 (A3W4-5-002). */
+	version: number;
 }
 
 /** Создать вебхук-эндпоинт. */

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
@@ -19,6 +20,9 @@ var (
 	ErrNotOwner        = errors.New("not listing owner")
 	ErrInvalidStatus   = errors.New("invalid listing status for operation")
 )
+
+// maxReviewNoteRunes — A3W7-5-004: лимит admin note на service (без schema MaxLen/migrate).
+const maxReviewNoteRunes = 2000
 
 // Notifier — уведомления mod queue / author.
 type Notifier interface {
@@ -44,46 +48,73 @@ func NewService(repo Repository, notifier Notifier, broadcaster ChannelBroadcast
 }
 
 func (s *Service) ListApproved(ctx context.Context, category string, page, perPage int) (*ListingListResponse, error) {
+	// P3-BE-09 / W7-A5-010: невалидная category → 400, не Ent 500.
+	if category != "" && !isValidCategory(ListingCategory(category)) {
+		return nil, ErrInvalidInput
+	}
 	items, total, err := s.repo.ListApprovedListings(ctx, category, page, perPage)
 	if err != nil {
 		return nil, fmt.Errorf("list approved listings: %w", err)
 	}
+	page, perPage = normalizePage(page, perPage)
 	resp := make([]ListingResponse, 0, len(items))
 	for _, item := range items {
 		resp = append(resp, toListingResponse(item))
 	}
-	return &ListingListResponse{Items: resp, Total: total, Page: page, PerPage: perPage}, nil
+	return &ListingListResponse{
+		Items:   resp,
+		Total:   total,
+		Page:    page,
+		PerPage: perPage,
+		HasMore: page*perPage < total,
+	}, nil
 }
 
-func (s *Service) ListMine(ctx context.Context, userID uuid.UUID) ([]ListingResponse, error) {
-	items, err := s.repo.ListListingsByAuthor(ctx, userID)
+func (s *Service) ListMine(ctx context.Context, userID uuid.UUID, page, perPage int) (*ListingListResponse, error) {
+	items, total, err := s.repo.ListListingsByAuthor(ctx, userID, page, perPage)
 	if err != nil {
 		return nil, fmt.Errorf("list my listings: %w", err)
 	}
+	page, perPage = normalizePage(page, perPage)
 	out := make([]ListingResponse, 0, len(items))
 	for _, item := range items {
-		out = append(out, toListingResponse(item))
+		out = append(out, toListingResponsePrivate(item))
 	}
-	return out, nil
+	return &ListingListResponse{
+		Items:   out,
+		Total:   total,
+		Page:    page,
+		PerPage: perPage,
+		HasMore: page*perPage < total,
+	}, nil
 }
 
-func (s *Service) ListPending(ctx context.Context, userID uuid.UUID) ([]ListingResponse, error) {
+func (s *Service) ListPending(ctx context.Context, userID uuid.UUID, page, perPage int) (*ListingListResponse, error) {
 	if err := s.requireAdmin(ctx, userID); err != nil {
 		return nil, err
 	}
-	items, err := s.repo.ListPendingListings(ctx)
+	items, total, err := s.repo.ListPendingListings(ctx, page, perPage)
 	if err != nil {
 		return nil, fmt.Errorf("list pending listings: %w", err)
 	}
+	page, perPage = normalizePage(page, perPage)
 	out := make([]ListingResponse, 0, len(items))
 	for _, item := range items {
-		out = append(out, toListingResponse(item))
+		out = append(out, toListingResponsePrivate(item))
 	}
-	return out, nil
+	return &ListingListResponse{
+		Items:   out,
+		Total:   total,
+		Page:    page,
+		PerPage: perPage,
+		HasMore: page*perPage < total,
+	}, nil
 }
 
 func (s *Service) CreateListing(ctx context.Context, userID uuid.UUID, req CreateListingRequest) (*ListingResponse, error) {
-	if err := validateListingInput(req.Title, req.Description, req.Category); err != nil {
+	// A3W7-5-003: нормализуем currency до validate+Save.
+	req.Currency = normalizeCurrency(req.Currency)
+	if err := validateListingInput(req.Title, req.Description, req.Category, req.PriceCents, req.Currency); err != nil {
 		return nil, err
 	}
 	l, err := s.repo.CreateListing(ctx, userID, req)
@@ -94,7 +125,7 @@ func (s *Service) CreateListing(ctx context.Context, userID uuid.UUID, req Creat
 	if err != nil {
 		return nil, fmt.Errorf("reload listing: %w", err)
 	}
-	resp := toListingResponse(l)
+	resp := toListingResponsePrivate(l)
 	if s.notifier != nil {
 		adminIDs, aErr := s.repo.ListAdminUserIDs(ctx)
 		if aErr == nil {
@@ -118,45 +149,54 @@ func (s *Service) UpdateListing(ctx context.Context, userID, id uuid.UUID, req U
 	if current.Status != marketplacelisting.StatusPending && current.Status != marketplacelisting.StatusApproved {
 		return nil, ErrInvalidStatus
 	}
-	if req.Version > 0 && current.Version != req.Version {
+	if req.Version < 1 {
 		return nil, ErrVersionConflict
 	}
-	if req.Title != nil || req.Description != nil || req.Category != nil {
-		title := current.Title
-		desc := current.Description
-		cat := ListingCategory(current.Category)
-		if req.Title != nil {
-			title = *req.Title
-		}
-		if req.Description != nil {
-			desc = *req.Description
-		}
-		if req.Category != nil {
-			cat = *req.Category
-		}
-		if err := validateListingInput(title, desc, cat); err != nil {
-			return nil, err
-		}
+	title := current.Title
+	desc := current.Description
+	cat := ListingCategory(current.Category)
+	price := current.PriceCents
+	currency := current.Currency
+	if req.Title != nil {
+		title = *req.Title
 	}
-	l, err := s.repo.UpdateListing(ctx, id, req)
+	if req.Description != nil {
+		desc = *req.Description
+	}
+	if req.Category != nil {
+		cat = *req.Category
+	}
+	if req.PriceCents != nil {
+		price = req.PriceCents
+	}
+	if req.Currency != nil {
+		// A3W7-5-003: нормализуем до validate+Save.
+		n := normalizeCurrency(*req.Currency)
+		req.Currency = &n
+		currency = n
+	}
+	if err := validateListingInput(title, desc, cat, price, currency); err != nil {
+		return nil, err
+	}
+
+	var l *ent.MarketplaceListing
+	if current.Status == marketplacelisting.StatusApproved {
+		// W7-A5-004: один UPDATE — поля + pending (без окна approved+новый контент).
+		l, err = s.repo.UpdateApprovedListingToPending(ctx, id, req)
+	} else {
+		l, err = s.repo.UpdateListing(ctx, id, req)
+	}
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, ErrVersionConflict
 		}
 		return nil, fmt.Errorf("update listing: %w", err)
 	}
-	if current.Status == marketplacelisting.StatusApproved {
-		// Re-moderation после edit — контент мог измениться.
-		l, err = s.repo.SetListingStatus(ctx, id, marketplacelisting.StatusPending, nil, "", l.Version)
-		if err != nil {
-			return nil, fmt.Errorf("reset pending: %w", err)
-		}
-	}
 	l, err = s.repo.GetListing(ctx, l.ID)
 	if err != nil {
 		return nil, fmt.Errorf("reload listing: %w", err)
 	}
-	resp := toListingResponse(l)
+	resp := toListingResponsePrivate(l)
 	return &resp, nil
 }
 
@@ -168,12 +208,13 @@ func (s *Service) ApproveListing(ctx context.Context, reviewerID, id uuid.UUID, 
 	if err != nil {
 		return nil, err
 	}
-	resp := toListingResponse(l)
+	// Private для admin/author notify; публичный DTO — только в broadcast витрины.
+	resp := toListingResponsePrivate(l)
 	if s.notifier != nil && l.Edges.Author != nil {
 		_ = s.notifier.NotifyListingDecision(ctx, l.Edges.Author.ID, true, resp, reviewerID)
 	}
 	if s.broadcaster != nil {
-		_ = s.broadcaster.BroadcastApprovedListing(ctx, resp)
+		_ = s.broadcaster.BroadcastApprovedListing(ctx, toListingResponse(l))
 	}
 	return &resp, nil
 }
@@ -186,7 +227,8 @@ func (s *Service) RejectListing(ctx context.Context, reviewerID, id uuid.UUID, r
 	if err != nil {
 		return nil, err
 	}
-	resp := toListingResponse(l)
+	// Private: author получает review_note с причиной отклонения.
+	resp := toListingResponsePrivate(l)
 	if s.notifier != nil && l.Edges.Author != nil {
 		_ = s.notifier.NotifyListingDecision(ctx, l.Edges.Author.ID, false, resp, reviewerID)
 	}
@@ -213,13 +255,13 @@ func (s *Service) WithdrawListing(ctx context.Context, userID, id uuid.UUID, req
 	if current.Edges.Author == nil || current.Edges.Author.ID != userID {
 		return nil, ErrNotOwner
 	}
-	if req.Version > 0 && current.Version != req.Version {
+	if req.Version < 1 {
 		return nil, ErrVersionConflict
 	}
 	if current.Status != marketplacelisting.StatusPending && current.Status != marketplacelisting.StatusApproved {
 		return nil, ErrInvalidStatus
 	}
-	l, err := s.repo.SetListingStatus(ctx, id, marketplacelisting.StatusWithdrawn, nil, "", current.Version)
+	l, err := s.repo.SetListingStatus(ctx, id, marketplacelisting.StatusWithdrawn, nil, "", req.Version)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, ErrVersionConflict
@@ -242,12 +284,17 @@ func (s *Service) DeleteListing(ctx context.Context, userID, id uuid.UUID) error
 		}
 		return fmt.Errorf("get listing: %w", err)
 	}
-	isAdmin, _ := s.repo.IsSystemAdmin(ctx, userID)
+	isAdmin, err := s.repo.IsSystemAdmin(ctx, userID)
+	if err != nil {
+		// W7-A5-007 / P3-BE-01: DB blip → 500, не маскировать как Forbidden.
+		return fmt.Errorf("check system admin: %w", err)
+	}
 	isOwner := current.Edges.Author != nil && current.Edges.Author.ID == userID
 	if !isOwner && !isAdmin {
-		return ErrForbidden
+		// P3-BE-08 / W7-A5-008: stranger-delete — не admin-кейс.
+		return ErrNotOwner
 	}
-	if err := s.repo.SoftDeleteListing(ctx, id); err != nil {
+	if err := s.repo.SoftDeleteListing(ctx, id, current.Version); err != nil {
 		if ent.IsNotFound(err) {
 			return ErrNotFound
 		}
@@ -267,10 +314,14 @@ func (s *Service) transitionReview(ctx context.Context, id uuid.UUID, req Review
 	if current.Status != marketplacelisting.StatusPending {
 		return nil, ErrInvalidStatus
 	}
-	if req.Version > 0 && current.Version != req.Version {
+	if req.Version < 1 {
 		return nil, ErrVersionConflict
 	}
-	l, err := s.repo.SetListingStatus(ctx, id, status, &reviewerID, req.ReviewNote, current.Version)
+	// A3W7-5-004: rune cap ReviewNote до Save.
+	if utf8.RuneCountInString(req.ReviewNote) > maxReviewNoteRunes {
+		return nil, ErrInvalidInput
+	}
+	l, err := s.repo.SetListingStatus(ctx, id, status, &reviewerID, req.ReviewNote, req.Version)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, ErrVersionConflict
@@ -291,13 +342,13 @@ func (s *Service) ownerStatusChange(ctx context.Context, userID, id uuid.UUID, v
 	if current.Edges.Author == nil || current.Edges.Author.ID != userID {
 		return nil, ErrNotOwner
 	}
-	if version > 0 && current.Version != version {
+	if version < 1 {
 		return nil, ErrVersionConflict
 	}
 	if current.Status != from {
 		return nil, ErrInvalidStatus
 	}
-	l, err := s.repo.SetListingStatus(ctx, id, to, nil, "", current.Version)
+	l, err := s.repo.SetListingStatus(ctx, id, to, nil, "", version)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, ErrVersionConflict
@@ -318,14 +369,22 @@ func (s *Service) requireAdmin(ctx context.Context, userID uuid.UUID) error {
 	return nil
 }
 
-func validateListingInput(title, description string, category ListingCategory) error {
+func validateListingInput(title, description string, category ListingCategory, priceCents *int64, currency string) error {
 	if strings.TrimSpace(title) == "" || strings.TrimSpace(description) == "" {
 		return ErrInvalidInput
 	}
-	if len(title) > 200 || len(description) > 2000 {
+	// P3-BE-04 / TASK-060: лимиты по рунам, не по байтам (кириллица/emoji).
+	if utf8.RuneCountInString(title) > 200 || utf8.RuneCountInString(description) > 2000 {
 		return ErrInvalidInput
 	}
 	if !isValidCategory(category) {
+		return ErrInvalidInput
+	}
+	// W7-A5-006: price ≥ 0; currency allowlist (пусто → default RUB в схеме).
+	if priceCents != nil && *priceCents < 0 {
+		return ErrInvalidInput
+	}
+	if currency != "" && !isValidCurrency(currency) {
 		return ErrInvalidInput
 	}
 	return nil

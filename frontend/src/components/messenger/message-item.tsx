@@ -10,6 +10,7 @@ import {
 } from "@/api/messenger";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useInvalidateMessages } from "@/hooks/use-invalidate";
+import { isSafeUrl } from "@/lib/safe-url";
 import { cn } from "@/lib/utils";
 import { useAIStore } from "@/stores/ai-store";
 import { useAuthStore } from "@/stores/auth-store";
@@ -86,6 +87,10 @@ function MessageEditMode({
 	const [saving, setSaving] = useState(false);
 	const inputRef = useRef<HTMLTextAreaElement>(null);
 
+	useEffect(() => {
+		inputRef.current?.focus();
+	}, []);
+
 	const handleKeyDown = useCallback(
 		(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
 			if (e.key === "Enter" && !e.shiftKey) {
@@ -116,22 +121,24 @@ function MessageEditMode({
 					type="button"
 					className="inline-flex items-center justify-center h-6 w-6 rounded-full hover:bg-accent text-t2 hover:text-t1 transition-colors"
 					title="Отменить (Esc)"
+					aria-label="Отменить редактирование"
 					onClick={onCancel}
 					disabled={saving}
 				>
-					<X className="h-3.5 w-3.5" />
+					<X className="h-3.5 w-3.5" aria-hidden="true" />
 				</button>
 				<button
 					type="button"
 					className="inline-flex items-center justify-center h-6 w-6 rounded-full hover:bg-accent text-primary hover:text-primary transition-colors"
 					title="Сохранить (Enter)"
+					aria-label="Сохранить сообщение"
 					onClick={() => {
 						setSaving(true);
 						onSave(editText);
 					}}
 					disabled={saving || !editText.trim()}
 				>
-					<Check className="h-3.5 w-3.5" />
+					<Check className="h-3.5 w-3.5" aria-hidden="true" />
 				</button>
 			</div>
 		</div>
@@ -183,11 +190,15 @@ function MessageItemInner({
 	 */
 	const extractedUrls = useMemo(() => {
 		const urls = new Set<string>();
+		const addUrl = (u: string) => {
+			// A3W9-3-003: только whitelist-схемы попадают в LinkPreview.
+			if (isSafeUrl(u)) urls.add(u);
+		};
 		if (messageContentText) {
 			const matches = messageContentText.match(URL_REGEX);
 			if (matches) {
 				for (const u of matches) {
-					urls.add(u);
+					addUrl(u);
 				}
 			}
 		}
@@ -196,13 +207,13 @@ function MessageItemInner({
 				if (!node || typeof node !== "object") return;
 				const n = node as Record<string, unknown>;
 				if (n.type === "a" && typeof n.url === "string") {
-					urls.add(n.url);
+					addUrl(n.url);
 				}
 				if (typeof n.text === "string") {
 					const matches = n.text.match(URL_REGEX);
 					if (matches) {
 						for (const u of matches) {
-							urls.add(u);
+							addUrl(u);
 						}
 					}
 				}
@@ -367,7 +378,7 @@ function MessageItemInner({
 								<span
 									className={cn(
 										"text-[13.5px] font-bold tracking-[-0.01em] hover:underline cursor-pointer",
-										fromBot && "text-purple-500",
+										fromBot && "text-[var(--purple)]",
 									)}
 								>
 									{fromBot ? botDisplayName : message.sender_id}
@@ -487,7 +498,7 @@ function MessageItemInner({
 											className={cn(
 												"flex items-center gap-1.5 px-2.5 py-0.5 border border-[var(--b2)] rounded-full text-[13px] cursor-pointer hover:bg-[var(--hover)] hover:border-[var(--b3)] hover:-translate-y-px transition-[color,background-color,border-color,box-shadow,transform,filter,opacity]",
 												hasReacted &&
-													"border-[rgba(52,211,153,.2)] bg-[rgba(52,211,153,.04)]",
+													"border-[color-mix(in_srgb,var(--green)_20%,transparent)] bg-[var(--gG)]",
 											)}
 											onClick={() =>
 												void import("@/api/messenger").then((m) =>
@@ -546,7 +557,7 @@ function MessageItemInner({
 					<div
 						role="toolbar"
 						aria-label="Действия с сообщением"
-						className="pointer-events-none opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100"
+						className="pointer-events-none opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 focus-within:pointer-events-auto focus-within:opacity-100"
 						onMouseLeave={() => setShowReactionPicker(false)}
 					>
 						<MessageActions

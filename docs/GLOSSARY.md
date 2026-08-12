@@ -14,21 +14,21 @@
 
 | Префикс | Расшифровка | Что обозначает | Где живёт | Пример |
 |---------|-------------|-----------------|-----------|--------|
-| `ECC-` | Edge/Corner Case | Краевой/угловой сценарий из каталога покрытия | `.planning/july-2026/EDGE-CORNER-CATALOG.md`, `.planning/edge-expansions/` | `ECC-AI-001` |
+| `ECC-` | Edge/Corner Case | Краевой/угловой сценарий из каталога покрытия | `.planning/archive/july-2026/EDGE-CORNER-CATALOG.md`, `.planning/reference/edge-expansions/` | `ECC-AI-001` |
 | `TC-` | Test Case | Тест-кейс (ручной или автоматизированный) | `docs/TESTING.md` | `TC-AUTH-03` |
 | `US-` | User Story | Пользовательская история | `docs/vision_and_scope.md` | `US-C01` |
 | `NFR-` | Non-Functional Requirement | Нефункциональное требование (производительность, безопасность, надёжность) | `docs/system_specification.md` | `NFR-02` |
 | `FR-` | Functional Requirement | Функциональное требование | `docs/system_specification.md` | `FR-CAL-01` |
-| `GZ-` | Gray Zone | Серая зона — вопрос, требовавший решения; после решения фиксируется как принятое | `.planning/gray-zones/` | `GZ-SEC-02` |
+| `GZ-` | Gray Zone | Серая зона — вопрос, требовавший решения; после решения фиксируется как принятое | `.planning/decisions/gray-zones/` | `GZ-SEC-02` |
 | `FA-` | Final Audit | Задача финального аудита волны | `.planning/audits/` | `FA-06` |
 | `SEC-` | Security finding | Находка безопасности | `docs/security_guidelines.md`, аудиты | `SEC-01` |
 | `ADR-` | Architecture Decision Record | Зафиксированное архитектурное решение с контекстом и последствиями | `.planning/decisions/` | `ADR-AUTH-01-magic-link-only` |
-| `PG-` | Production Gate | Задача-ворота перед выпуском в прод | `.planning/production/` | `PG-03` |
+| `PG-` | Production Gate | Задача-ворота перед выпуском в прод | `.planning/ops/production/` | `PG-03` |
 | `ME-` | (Module/Engineering issue) | Инженерная находка по модулю | аудиты, agent-файлы | `ME-13` |
 | `TF-` | Test Framework | Задача по тестовому фреймворку | `.planning/`, `testframework/` | `TF-CLEANUP-01` |
 | `UX-` | UX task | Задача пользовательского опыта | `.planning/` | `UX-1` |
 | `V4-` | Milestone v4 | Задача milestone v4 (Super-app) | `.planning/milestones/v4-super-app/` | `V4-04` |
-| `PROD-` | Production task | Задача продакшн-эксплуатации | `.planning/production/` | `PROD-01` |
+| `PROD-` | Production task | Задача продакшн-эксплуатации | `.planning/ops/production/` | `PROD-01` |
 | `INF-` | Infrastructure finding | Инфраструктурная находка | аудиты, `docs/security_guidelines.md` | `INF-03` |
 
 **Правила именования:** префикс заглавными, разделитель `-`, номер с ведущими нулями там, где так уже принято в конкретном каталоге (`ECC-AI-001`). Домен в середине — для сквозных каталогов (`TC-AUTH-03`, `FR-CAL-01`).
@@ -143,8 +143,8 @@
 | Термин | Значение |
 |--------|----------|
 | **Milestone** | Крупный этап продукта (v1.0 … v4 Super-app); архив — `.planning/milestones/` |
-| **Gray zone (серая зона)** | Нерешённый вопрос, требующий явного решения владельца; реестр решений — `.planning/gray-zones/` |
-| **Seed** | Идея «на будущее» с условиями активации (`.planning/seeds/`); статусы: active / rejected |
+| **Gray zone (серая зона)** | Нерешённый вопрос, требующий явного решения владельца; реестр решений — `.planning/decisions/gray-zones/` |
+| **Seed** | Идея «на будущее» с условиями активации (`.planning/reference/seeds/`); статусы: active / rejected |
 | **Baseline** | Состояние, принятое как эталонное после верификации |
 | **DoD (Definition of Done)** | Критерии готовности артефакта; у каждого агента свой в agent-файле |
 | **TZ-инвариант** | Жёсткое ограничение техзадания (mandatory/forbidden), `docs/tz_constraints.md` |

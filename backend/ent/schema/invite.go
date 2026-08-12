@@ -21,7 +21,9 @@ func (Invite) Fields() []ent.Field {
 			Immutable(),
 		field.String("code").
 			Unique().
-			NotEmpty(),
+			NotEmpty().
+			MaxLen(64).
+			Comment("Invite code (generator: 8 chars base32; MaxLen guard, DB varchar migrate needs owner approval)"),
 		field.Int("max_uses").
 			Default(0).
 			Comment("0 means unlimited"),
@@ -33,9 +35,19 @@ func (Invite) Fields() []ent.Field {
 		field.Time("expires_at").
 			Optional().
 			Nillable(),
+		// A2W8-3-002: OL для use_count + soft-revoke вместо hard delete.
+		field.Int("version").
+			Default(1),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
+		field.Time("updated_at").
+			Default(nowUTC).
+			UpdateDefault(nowUTC),
+		field.Time("revoked_at").
+			Optional().
+			Nillable().
+			Comment("Мягкий revoke приглашения (аудит кода сохраняется)"),
 	}
 }
 
@@ -57,5 +69,6 @@ func (Invite) Edges() []ent.Edge {
 func (Invite) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("expires_at"),
+		index.Fields("revoked_at"),
 	}
 }

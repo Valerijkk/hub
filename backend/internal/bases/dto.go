@@ -66,6 +66,8 @@ type TableViewResponse struct {
 	Table    TableSummary     `json:"table"`
 	Columns  []ColumnResponse `json:"columns"`
 	Records  []RecordResponse `json:"records"`
+	Total    int              `json:"total"`
+	HasMore  bool             `json:"has_more"`
 }
 
 // BaseDetailResponse — base со списком tables.

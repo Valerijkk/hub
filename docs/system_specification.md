@@ -24,7 +24,7 @@
 | Notification | NOTF | In-app, Telegram bind, Web Push, quiet hours |
 | Search | SRCH | Ctrl+K, Meilisearch indexer, JQL, saved filters |
 | GitHub/GitLab | GHUB/GLAB | Webhooks, PR/MR linking, AI PR review |
-| API | API | REST **286** endpoints (+1 WS), API keys, outbound webhooks |
+| API | API | REST **~252** OpenAPI paths / ~286 route inventory (+1 WS); API keys, outbound webhooks |
 | Import/Export | IMEX | CSV, JSON, PDF, ZIP backup, Jira import |
 | Audit | AUDIT | Full audit log, trash 30d, GDPR, alerts |
 | AI | AI | Multi-provider gateway, @hub-ai bot, JQL assist, usage audit |
@@ -56,8 +56,8 @@
 | NFR-10 | Refresh token TTL | 30 дней, instant revoke |
 | NFR-11 | Soft delete retention | 30 дней |
 | NFR-12 | UTC in DB | Всегда, TZ на фронте |
-| NFR-13 | Error format | `{"error": "...", "request_id": "uuid"}` |
-| NFR-14 | Pagination tasks | offset/limit |
+| NFR-13 | Error format | Wire JSON: `{"error": "...", "request_id": "uuid"}` (`platform/errors`, `middleware.ErrorHandler`). FE `ApiError` maps status→`code`, body.error→`message` — не отдельный wire-контракт |
+| NFR-14 | Pagination tasks (list-issues) | cursor + limit (max 100); `next_cursor` / `has_more` / `total` — `ADR-PAGINATION-CURSOR-ISSUES-2026` |
 | NFR-15 | Pagination chat | cursor (infinite scroll) |
 | NFR-16 | Accessibility | WCAG 2.1 AA |
 | NFR-17 | Lighthouse score | ≥ 90 (цель v2.5) |
@@ -65,15 +65,15 @@
 | NFR-19 | Search user-scope | Фильтрация по project/channel membership (NF-03) |
 | NFR-20 | Webhook signature | LiveKit/GitHub: body hash обязателен, skip запрещён (SEC-02) |
 | NFR-21 | Outbound HTTP safety | `SafeHTTPClient` + `ValidateOutboundURL` для user URLs (SSRF) |
-| NFR-22 | Security headers | CSP, HSTS, X-Frame-Options — ✅ `middleware.SecurityHeaders()` |
+| NFR-22 | Security headers | CSP, X-Frame-Options, nosniff — ✅ `middleware.SecurityHeaders()`; **HSTS** — только Caddy edge (`deployments/Caddyfile.prod`, A2W4-1-001) |
 | NFR-23 | Refresh token storage | Hash в Redis, не plaintext — ✅ |
 | NFR-24 | Optimistic locking | `version` int на каждой изменяемой Ent |
 | NFR-25 | Primary keys | UUID v4 only — string IDs запрещены |
 | NFR-26 | Pub/sub transport | NATS JetStream only — Redis pub/sub запрещён |
-| NFR-27 | File upload path | Presigned PUT в SeaweedFS; backend buffer max 25 MB |
+| NFR-27 | File upload path | Presigned PUT в SeaweedFS; обязательный `size` + ContentLength bind ≤25 MB (ADR-STORAGE-NF09-SIZE-2026); backend buffer max 25 MB |
 | NFR-28 | Tenancy | Single-tenant (1 instance = 1 team) |
-| NFR-29 | Test coverage gate | ≥50% overall ✅ **83.0%**; ≥80% security-critical ✅ **6/6** |
-| NFR-30 | Frontend test gate | Vitest **99+** tests; Playwright **20** E2E specs ✅ |
+| NFR-29 | Test coverage gate | ≥50% overall ✅ **83.0%** (2026-06-22 Docker baseline); ≥80% security-critical ✅ **6/6** |
+| NFR-30 | Frontend test gate | Vitest **179** files; Playwright **20** E2E specs ✅ |
 
 ## Модель данных (ER — ключевые сущности)
 
@@ -141,7 +141,7 @@ rate_limit:<key> → counter
 | POST | `/auth/refresh` | Refresh access token |
 | GET | `/projects` | List projects |
 | POST | `/projects/:id/issues` | Create issue |
-| GET | `/projects/:id/issues?offset=0&limit=50` | Paginated issues |
+| GET | `/projects/:id/issues?cursor=…&limit=50` | Cursor-paginated issues (`sprint_id=none` = backlog); NFR-14 / ADR-PAGINATION-CURSOR-ISSUES |
 | GET | `/channels/:id/messages?cursor=...` | Cursor pagination |
 | POST | `/tms/runs/:id/results` | Submit test result |
 | POST | `/calls/:id/join` | Get LiveKit token |
@@ -156,14 +156,18 @@ rate_limit:<key> → counter
 |-----------|-------|------------|
 | Documented in `docs/wiki/API.md` | **287+** | v4 + AI routes |
 | Handler `RegisterRoutes` (code) | **283** | 21+ domain handlers |
-| Infra (`/docs`, `/health`, `/metrics`) | **+3** | `cmd/server/main.go` |
-| **Total REST `/api/*`** | **286** | Wiki synced |
-| WebSocket `GET /ws` | **+1** | Вне префикса `/api` |
+| Infra (`/docs`, `/live`, `/ready`, `/health`, `/metrics`, `/status`, `/status/details`) | **+7** | probes + status; `/docs` — system admin (W7-A5-001); `/status` aggregate, `/status/details` auth (W7-A5-002) |
+| **Total REST `/api/*`** | **~252** OpenAPI paths (`backend/docs/swagger.json`, measured 2026-07-28); handler `RegisterRoutes` inventory historically ~286 — методика: swagger paths vs route registrations | Wiki / Swagger |
+| WebSocket `GET /ws` | **+1** | Вне префикса `/api` (`wiring_ws.go`) |
 | Dev-only `/api/dev/*` | **3** | `DEV_MODE`, не в `-tags release` |
 
-**По модулям (handler routes, выборочно):** auth 11 · project 24 · tracker 48 · messenger 44 · tms 52 · calls 24 · search 9 · notification 18 · ai 10+ · intranet 19 · bases 13 · accounting 13 · crm 10 · hr 8 · calendar 4 · marketplace 12 · github 13 · gitlab 11 · sprint 16 · dashboard 9 · audit 13 · apigateway 10 · backup 6 · imex 8 · storage 6 · rbac 8 · status 3 · mail (admin) · onec 5.
+**По модулям (handler routes, выборочно):** auth 11 · project 24 · tracker 48 · messenger 44 · tms 52 · calls 24 · search 9 · notification 18 · ai 10+ · intranet 19 · bases 13 · accounting 13 · crm 10 · hr 8 · calendar 4 · marketplace 12 · github 13 · gitlab 11 · sprint 16 · dashboard 9 · audit 13 · apigateway 10 · backup 6 · imex 8 · storage 6 · rbac 8 · status 2 (`/status`, `/status/details`) · mail (admin) · onec 5.
 
 ### WebSocket Protocol
+
+Handshake (ADR-WS-JWT-HANDSHAKE-2026): `POST /auth/ws-ticket` →
+`GET /ws` with `Sec-WebSocket-Protocol: hub.ws.ticket.<ticket>`.
+Query `?token=` is rejected (401). Room subscribe still requires membership/RBAC (NFR-18).
 
 ```json
 { "type": "subscribe", "room": "project:<uuid>" }
@@ -207,7 +211,7 @@ Rooms: `project:<id>`, `channel:<id>`, `user:<id>`, `admin:<id>`
 ## Спецификации Волны 2 — v4 parity + Wiki (2026-07-03)
 
 > Технические спецификации по верифицированным US Волны 1 (`docs/vision_and_scope.md`,
-> разделы «Волна 1 аналитика»). Границы scope: `.planning/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md`
+> разделы «Волна 1 аналитика»). Границы scope: `.planning/decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md`
 > §2 (wiki RBAC) и §4 (intranet/calendar). Статус всех FR ниже: **spec** (реализация — Волны 4/5/8).
 > Нумерация NFR этой волны: NFR-31…NFR-39 (INTR 31–32, CAL 33–36, WIKI 37–39).
 
@@ -231,7 +235,7 @@ CoffeeEnrollment/CoffeeRound/CoffeePair) переиспользуются.
 | FR-INTR-08 | US-INTR-03 | Восстановление поста из корзины возвращает пост вместе с опросом и счётчиками голосов | NFR-11 |
 | FR-INTR-09 | US-INTR-04 | Лидерборд kudos по **полученным** за период `month`/`quarter`/`all`: имя, аватар, счёт. Пустой период → 200 + пустой список. Равенство очков — стабильная сортировка по дате первого kudos. Деактивированные получатели остаются в агрегате | NFR-32 |
 | FR-INTR-10 | US-INTR-05 | Еженедельный cron-матчинг opt-in участников: пары, при нечётном N — одна тройка. Anti-repeat по истории CoffeePair (повтор только если иных комбинаций нет). 1 участник → без матчей + уведомление «пары нет» | NFR-32 |
-| FR-INTR-11 | US-INTR-05 | Для каждой пары авто-DM в messenger с приветственным сообщением; существующий DM переиспользуется (новое сообщение, не новый канал). Участники получают notification. Выключивший участие до запуска не матчится | NFR-26 |
+| FR-INTR-11 | US-INTR-05 | После матчинга каждый участник пары/тройки получает in-app notification о напарнике(ах) (`CoffeeNotifier`, ADR-INTRANET-U05 notify-only). Auto-DM в messenger **не** создаётся до отдельного ADR. Выключивший участие до запуска не матчится | NFR-26 |
 
 #### Новые NFR
 
@@ -281,18 +285,20 @@ Auth: Bearer
 Responses: 200 { "id","question","closed","voted_option_id"|null,
                  "options":[{"id","text","votes_count","percent"}], "total_votes" }
           (percent виден только после собственного голоса или автору поста); 401; 404
+          (unpublished draft: 404 для non-author/non-admin — как GetNews; TASK-189 / BE-V4-003)
 Source FR: FR-INTR-02, FR-INTR-03
 
 ### POST /api/intranet/news/:newsId/poll/vote
 Auth: Bearer
 Request: { "option_id": "uuid" }
-Responses: 200 {агрегаты как в GET}; 400 (option чужого poll); 401; 404; 422 (повторный голос / poll closed); 429
+Responses: 200 {агрегаты как в GET}; 400 (option чужого poll); 401; 404
+          (в т.ч. draft для non-author); 422 (повторный голос / poll closed); 429
 Source FR: FR-INTR-02
 
 ### PUT /api/intranet/news/:newsId/poll
 Auth: Bearer; RBAC: автор поста или admin
-Request: { "question"?, "options"?, "closed"?, "version" }
-Responses: 200; 401; 403; 404; 409 (version); 422 (правка options после первого голоса)
+Request: { "question"?, "options"?, "closed"?, "version" }  // version ≥1 обязателен
+Responses: 200; 400 (version omit/<1); 401; 403; 404; 409 (version conflict); 422 (правка options после первого голоса)
 Source FR: FR-INTR-03
 
 ### GET /api/intranet/onboarding/templates
@@ -311,7 +317,7 @@ Source FR: FR-INTR-04, FR-INTR-06
 Auth: Bearer; RBAC: admin
 Responses: 200 { "items":[{"user":{...},"template_id","done_count","total_count","percent","frozen"}],
                  "total","offset","limit" }; 400 (limit>100); 401; 403
-Source FR: FR-INTR-05  · Пагинация: offset/limit (NFR-14)
+Source FR: FR-INTR-05  · Пагинация: offset/limit (не NFR-14; NFR-14 = cursor list-issues)
 
 ### GET /api/intranet/onboarding/me
 Auth: Bearer
@@ -329,7 +335,7 @@ Auth: Bearer
 Responses: 200 { "items":[{"user":{"id","name","avatar","deactivated"},"received_count"}],
                  "period","total","offset","limit" } (пустой период → items:[]);
            400 (period вне enum, limit>100); 401
-Source FR: FR-INTR-09  · Пагинация: offset/limit (NFR-14)
+Source FR: FR-INTR-09  · Пагинация: offset/limit (не NFR-14; NFR-14 = cursor list-issues)
 
 ### DELETE /api/intranet/news/:newsId  (расширение существующего)
 Auth: Bearer; RBAC: admin ЛИБО автор поста (FR-INTR-07); Member на чужой → 403
@@ -611,7 +617,7 @@ Source FR: FR-WIKI-05
 ### GET  /api/wiki/pages/:pageId/versions/:number · содержимое версии + diff с текущей; 200; 401; 403; 404
 ### POST /api/wiki/pages/:pageId/versions/:number/restore
 · RBAC: write (read → 403, FR-WIKI-07); 200 (новая версия N+1, restored_from=number); 401; 403; 404; 409
-Source FR: FR-WIKI-06, FR-WIKI-07  · Пагинация: offset/limit (NFR-14)
+Source FR: FR-WIKI-06, FR-WIKI-07  · Пагинация: offset/limit (не NFR-14; NFR-14 = cursor list-issues)
 
 ### GET  /api/wiki/pages/:pageId/issue-links     · 200 {items:[{issue: {id,key,status,title} | tombstone}]}; 401; 403; 404
 ### POST /api/wiki/pages/:pageId/issue-links
@@ -667,7 +673,7 @@ DFD user-scoped поиска: `[User Ctrl+K] → GET /search?types=wiki_page →
 
 | Область | Статус | Gap |
 |---------|--------|-----|
-| Backend coverage overall | **83.0%** ✅ | Gate ≥82% PASS |
+| Backend coverage overall | **83.0%** ✅ (2026-06-22 Docker baseline) | Gate ≥82% PASS |
 | PG-03 secret rotation | ⏳ Manual | FA-06 Phase 1–3 — **единственный prod-блокер** |
 | Lighthouse ≥90 formal | ⚠️ Partial | CI artifact job (PR #27, non-blocking) |
 | NFR-16 WCAG 2.1 AA | ⚠️ Partial | Login axe PASS; full human audit pending |
@@ -681,12 +687,12 @@ DFD user-scoped поиска: `[User Ctrl+K] → GET /search?types=wiki_page →
 | Область | Было | Сейчас |
 |---------|------|--------|
 | CRITICAL security (12) | Blockers | **FIXED** в коде |
-| Overall coverage | 11.5% → 56.6% | **83.0%** |
+| Overall coverage | 11.5% → 56.6% | **83.0%** (2026-06-22 Docker baseline) |
 | Playwright E2E | not present | **20 specs** |
-| Frontend Vitest | 0 | **99/99 tests** |
+| Frontend Vitest | 0 | **179** files (`testframework/stages/unit/frontend-test/`, measured 2026-07-29; 61 `.ts` + 118 `.tsx`) |
 | Test framework migration | in progress | **488 / 0 internal** ✅ |
 | Lighthouse CI | missing | **artifact job** (PR #27) |
 | Squash PR v2.5-trust | pending | **merged PR #1** ✅ |
 
 ---
-*Последнее обновление: 2026-06-23 — Wave C complete, COV 83.0%, FA-06 manual blocker, Lighthouse CI*
+*Последнее обновление: 2026-07-29 — TASK-183 inventory recount BE **812** / Vitest **179**; NFR-30 sync; COV 83.0% baseline 2026-06-22; FA-06 manual blocker*

@@ -36,12 +36,15 @@ export function IssueHeader({
 	issueType,
 	onDelete,
 	isDeleting,
+	canDelete = true,
 }: {
 	projectId: string;
 	issueKey: string;
 	issueType: string;
 	onDelete: () => void;
 	isDeleting: boolean;
+	/** Viewer/guest — скрыть удаление (P2-FE-16). */
+	canDelete?: boolean;
 }) {
 	return (
 		<>
@@ -80,15 +83,18 @@ export function IssueHeader({
 						{issueKey}
 					</span>
 				</div>
-				<Button
-					variant="destructive"
-					size="sm"
-					onClick={onDelete}
-					disabled={isDeleting}
-					className="w-[34px] h-[34px] rounded-[var(--r2)] text-t3 hover:bg-[var(--hover)] hover:text-t1 text-[18px] transition-colors duration-150"
-				>
-					Удалить
-				</Button>
+				{canDelete ? (
+					<Button
+						variant="destructive"
+						size="sm"
+						onClick={onDelete}
+						disabled={isDeleting}
+						data-testid="issue-delete-btn"
+						className="w-[34px] h-[34px] rounded-[var(--r2)] text-t3 hover:bg-[var(--hover)] hover:text-t1 text-[18px] transition-colors duration-150"
+					>
+						Удалить
+					</Button>
+				) : null}
 			</div>
 		</>
 	);

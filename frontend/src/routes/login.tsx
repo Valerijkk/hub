@@ -1,4 +1,5 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { DevLoginPanel } from "@/components/auth/dev-login-panel";
 import { MagicLinkForm } from "@/components/auth/magic-link-form";
 import { useAuthStore } from "@/stores/auth-store";
@@ -63,6 +64,7 @@ const FLOATING_FEATURES: FeatureCard[] = [
  */
 function LoginPage() {
 	const navigate = useNavigate();
+	const { t } = useTranslation("common");
 	const { invite } = Route.useSearch();
 
 	function handleLoginSuccess() {
@@ -147,7 +149,7 @@ function LoginPage() {
 					/>
 
 					<div className="text-center mt-7 text-sm text-[var(--t2)]">
-						Введите email — мы отправим одноразовый код для входа.
+						{t("auth.magicLinkOnly")}
 					</div>
 
 					<div className="mt-6">
@@ -163,5 +165,13 @@ export const Route = createFileRoute("/login")({
 	validateSearch: (search: Record<string, unknown>): LoginSearch => ({
 		invite: typeof search.invite === "string" ? search.invite : undefined,
 	}),
+	beforeLoad: () => {
+		const { isAuthenticated, user } = useAuthStore.getState();
+		if (!isAuthenticated) return;
+		if (user && !user.onboarding_completed) {
+			throw redirect({ to: "/onboarding" });
+		}
+		throw redirect({ to: "/projects" });
+	},
 	component: LoginPage,
 });

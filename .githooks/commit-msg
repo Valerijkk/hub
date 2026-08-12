@@ -1,0 +1,22 @@
+#!/bin/sh
+# Reject AI co-author / attribution trailers in commit messages.
+# Enable once (human): git config core.hooksPath .githooks
+
+msg_file="$1"
+if [ -z "$msg_file" ] || [ ! -f "$msg_file" ]; then
+  exit 0
+fi
+
+if grep -Eiq '^(Co-authored-by|Co-Authored-By|Generated-by|Generated-By):' "$msg_file"; then
+  echo "ERROR: AI/tool co-author trailers are FORBIDDEN in Hub commits." >&2
+  echo "Remove Co-authored-by / Generated-by (Cursor, Claude, Codex, Copilot, …)." >&2
+  echo "See .cursor/rules/51-no-ai-coauthor.mdc" >&2
+  exit 1
+fi
+
+if grep -Eiq '(Made with (Cursor|Claude|Codex)|cursoragent@cursor\.com)' "$msg_file"; then
+  echo "ERROR: AI attribution in commit message is FORBIDDEN." >&2
+  exit 1
+fi
+
+exit 0

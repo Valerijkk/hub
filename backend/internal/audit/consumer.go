@@ -46,12 +46,9 @@ func (c *AuditConsumer) Start(ctx context.Context) error {
 		return err
 	}
 
-	// Обработка сообщений
+	// Обработка сообщений: Ack/Nak внутри processEvent (A1-008).
 	cons, err := consumer.Consume(func(msg jetstream.Msg) {
 		c.processEvent(ctx, msg)
-		if err := msg.Ack(); err != nil {
-			slog.Error("ack audit event failed", "error", err)
-		}
 	})
 	if err != nil {
 		return err
@@ -70,10 +67,17 @@ func (c *AuditConsumer) Stop() {
 }
 
 // processEvent обрабатывает событие и записывает в журнал аудита.
+// Ack только после успешной записи; при ошибке — Nak (A1-008), иначе MaxDeliver бесполезен.
 func (c *AuditConsumer) processEvent(ctx context.Context, msg jetstream.Msg) {
 	subject := msg.Subject()
 	action, entityType := c.mapSubjectToAction(subject)
 	if action == "" {
+		// Неизвестный subject — Ack, чтобы не крутить шум в очереди.
+		// W6-A4-013 / P3-BE-01: логируем misrouted/filter drift.
+		slog.Warn("audit consumer: unknown subject", "subject", subject)
+		if err := msg.Ack(); err != nil {
+			slog.Error("ack audit event failed", "error", err, "subject", subject)
+		}
 		return
 	}
 
@@ -81,12 +85,17 @@ func (c *AuditConsumer) processEvent(ctx context.Context, msg jetstream.Msg) {
 	// запись аудита была видна в том же трейсе, что и исходный запрос.
 	ctx = natsclient.ExtractTraceContext(ctx, msg.Headers())
 	ctx, span := observability.StartConsumerSpan(ctx, subject, msg.Headers().Get(natsclient.HeaderEventID))
-	defer observability.EndConsumerSpan(span, nil)
+	var processErr error
+	defer func() { observability.EndConsumerSpan(span, processErr) }()
 
 	// Разбираем payload для получения ID
 	var payload map[string]interface{}
 	if err := json.Unmarshal(msg.Data(), &payload); err != nil {
 		slog.Error("unmarshal audit event", "error", err, "subject", subject)
+		processErr = err
+		if nakErr := msg.Nak(); nakErr != nil {
+			slog.Error("nak audit event failed", "error", nakErr, "subject", subject)
+		}
 		return
 	}
 
@@ -97,6 +106,14 @@ func (c *AuditConsumer) processEvent(ctx context.Context, msg jetstream.Msg) {
 	_, err := c.repo.CreateAuditLog(ctx, action, entityType, entityID, userID, projectID, payload, "", "")
 	if err != nil {
 		slog.Error("create audit log", "error", err, "subject", subject)
+		processErr = err
+		if nakErr := msg.Nak(); nakErr != nil {
+			slog.Error("nak audit event failed", "error", nakErr, "subject", subject)
+		}
+		return
+	}
+	if err := msg.Ack(); err != nil {
+		slog.Error("ack audit event failed", "error", err, "subject", subject)
 	}
 }
 

@@ -3,6 +3,7 @@ package sprint
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"math"
@@ -43,9 +44,9 @@ func (s *SprintService) CreateSprint(ctx context.Context, projectID uuid.UUID, r
 	return s.toSprintResponse(ctx, sp), nil
 }
 
-// GetSprint возвращает спринт по ID.
-func (s *SprintService) GetSprint(ctx context.Context, sprintID uuid.UUID) (*SprintResponse, error) {
-	sp, err := s.repo.GetSprint(ctx, sprintID)
+// GetSprint возвращает спринт по ID в рамках проекта (RT-005 / A3-001 sibling).
+func (s *SprintService) GetSprint(ctx context.Context, projectID, sprintID uuid.UUID) (*SprintResponse, error) {
+	sp, err := s.repo.GetSprintInProject(ctx, projectID, sprintID)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("спринт не найден")
@@ -57,25 +58,60 @@ func (s *SprintService) GetSprint(ctx context.Context, sprintID uuid.UUID) (*Spr
 }
 
 // ListSprints возвращает все спринты проекта.
+// A13-006: issue_count через один GetSprintIssueCounts, не N× GetSprintIssueCount.
 func (s *SprintService) ListSprints(ctx context.Context, projectID uuid.UUID) ([]SprintResponse, error) {
 	sprints, err := s.repo.ListSprints(ctx, projectID)
 	if err != nil {
 		return nil, apperrors.NewInternal("ошибка получения спринтов")
 	}
 
+	ids := make([]uuid.UUID, len(sprints))
+	for i, sp := range sprints {
+		ids[i] = sp.ID
+	}
+	counts, err := s.repo.GetSprintIssueCounts(ctx, ids)
+	if err != nil {
+		// W1-A4-012 / P3-BE-01: fail-closed — не отдавать 200 с ложным issue_count=0.
+		return nil, apperrors.NewInternal("ошибка получения счётчиков задач спринтов")
+	}
+
 	result := make([]SprintResponse, 0, len(sprints))
 	for _, sp := range sprints {
-		result = append(result, *s.toSprintResponse(ctx, sp))
+		result = append(result, *s.sprintToResponse(sp, counts[sp.ID]))
 	}
 	return result, nil
 }
 
-// UpdateSprint обновляет спринт.
-func (s *SprintService) UpdateSprint(ctx context.Context, sprintID uuid.UUID, req UpdateSprintRequest) (*SprintResponse, error) {
-	sp, err := s.repo.UpdateSprint(ctx, sprintID, req)
+// UpdateSprint обновляет спринт в рамках проекта (RT-005 / A3-001 sibling).
+// W1-A4-007: после merge дат — end не раньше start (как в CreateSprint).
+// TASK-095: version обязателен; VersionEQ в repo → 409 при conflict.
+func (s *SprintService) UpdateSprint(ctx context.Context, projectID, sprintID uuid.UUID, req UpdateSprintRequest) (*SprintResponse, error) {
+	if req.Version < 1 {
+		return nil, apperrors.NewBadRequest("version обязателен и должен быть ≥ 1")
+	}
+	current, err := s.repo.GetSprintInProject(ctx, projectID, sprintID)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("спринт не найден")
+		}
+		return nil, apperrors.NewInternal("ошибка получения спринта")
+	}
+
+	start, end := current.StartDate, current.EndDate
+	if req.StartDate != nil {
+		start = *req.StartDate
+	}
+	if req.EndDate != nil {
+		end = *req.EndDate
+	}
+	if end.Before(start) {
+		return nil, apperrors.NewBadRequest("дата окончания должна быть после даты начала")
+	}
+
+	sp, err := s.repo.UpdateSprint(ctx, sprintID, req)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewConflict("version mismatch: спринт был изменён другим пользователем")
 		}
 		return nil, apperrors.NewInternal("ошибка обновления спринта")
 	}
@@ -84,16 +120,15 @@ func (s *SprintService) UpdateSprint(ctx context.Context, sprintID uuid.UUID, re
 }
 
 // StartSprint переводит спринт в статус active.
-// Возвращает ошибку если в проекте уже есть активный спринт.
+// W1-A4-009: check+activate атомарны в StartSprintAtomic (row-lock проекта).
+// A3-016: DB error при поиске active → fail closed.
 func (s *SprintService) StartSprint(ctx context.Context, projectID, sprintID uuid.UUID) (*SprintResponse, error) {
-	// Проверяем что нет другого активного спринта
-	existing, err := s.repo.FindActiveSprint(ctx, projectID)
-	if err == nil && existing.ID != sprintID {
-		return nil, apperrors.NewConflict("в проекте уже есть активный спринт: " + existing.Name)
-	}
-
-	sp, err := s.repo.UpdateSprintStatus(ctx, sprintID, sprintEnt.StatusActive)
+	sp, err := s.repo.StartSprintAtomic(ctx, projectID, sprintID)
 	if err != nil {
+		var conflict *ErrActiveSprintConflict
+		if errors.As(err, &conflict) {
+			return nil, apperrors.NewConflict("в проекте уже есть активный спринт: " + conflict.Name)
+		}
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("спринт не найден")
 		}
@@ -103,9 +138,20 @@ func (s *SprintService) StartSprint(ctx context.Context, projectID, sprintID uui
 	return s.toSprintResponse(ctx, sp), nil
 }
 
+// EnsureIssueInProject проверяет принадлежность issue проекту (W1-A4-006, poker start).
+func (s *SprintService) EnsureIssueInProject(ctx context.Context, projectID, issueID uuid.UUID) error {
+	if err := s.repo.IssueInProject(ctx, projectID, issueID); err != nil {
+		if errors.Is(err, ErrIssueNotInProject) {
+			return apperrors.NewBadRequest("задача не принадлежит проекту")
+		}
+		return apperrors.NewInternal("ошибка проверки задачи")
+	}
+	return nil
+}
+
 // CompleteSprint завершает спринт и переносит незавершённые задачи (SCRM-04).
 func (s *SprintService) CompleteSprint(ctx context.Context, projectID, sprintID uuid.UUID) (*SprintResponse, error) {
-	sp, err := s.repo.GetSprint(ctx, sprintID)
+	sp, err := s.repo.GetSprintInProject(ctx, projectID, sprintID)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("спринт не найден")
@@ -123,49 +169,50 @@ func (s *SprintService) CompleteSprint(ctx context.Context, projectID, sprintID 
 		return nil, apperrors.NewInternal("ошибка поиска незавершённых задач")
 	}
 
-	// Переносим незавершённые задачи в следующий спринт
-	if len(incomplete) > 0 {
-		nextSprint, err := s.repo.FindOrCreateNextPlanningSprint(ctx, projectID, sp)
-		if err != nil {
-			return nil, apperrors.NewInternal("ошибка создания следующего спринта")
-		}
+	issueIDs := make([]uuid.UUID, len(incomplete))
+	for i, iss := range incomplete {
+		issueIDs[i] = iss.ID
+	}
 
-		issueIDs := make([]uuid.UUID, len(incomplete))
-		for i, iss := range incomplete {
-			issueIDs[i] = iss.ID
-		}
-		if err := s.repo.MoveIssuesToSprint(ctx, issueIDs, nextSprint.ID); err != nil {
-			return nil, apperrors.NewInternal("ошибка переноса задач")
-		}
+	// P1-BE-05: create-next + move + status=completed в одной tx (иначе рассинхрон при mid-fail).
+	updated, err := s.repo.CompleteSprintAtomic(ctx, projectID, sprintID, sp, issueIDs)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка завершения спринта")
+	}
 
+	if len(issueIDs) > 0 {
 		slog.Info("перенесены незавершённые задачи",
 			"count", len(issueIDs),
 			"from_sprint", sprintID,
-			"to_sprint", nextSprint.ID,
 		)
-	}
-
-	// Обновляем статус
-	updated, err := s.repo.UpdateSprintStatus(ctx, sprintID, sprintEnt.StatusCompleted)
-	if err != nil {
-		return nil, apperrors.NewInternal("ошибка завершения спринта")
 	}
 
 	return s.toSprintResponse(ctx, updated), nil
 }
 
-// UpdateRetroNotes сохраняет заметки ретроспективы (SCRM-03).
-func (s *SprintService) UpdateRetroNotes(ctx context.Context, sprintID uuid.UUID, req RetroNotesRequest) (*SprintResponse, error) {
+// UpdateRetroNotes сохраняет заметки ретроспективы (SCRM-03; RT-005 / A3-001 sibling).
+// A3W1-A4-003 / TASK-136: version обязателен; VersionEQ в repo → 409 при conflict.
+func (s *SprintService) UpdateRetroNotes(ctx context.Context, projectID, sprintID uuid.UUID, req RetroNotesRequest) (*SprintResponse, error) {
+	if req.Version < 1 {
+		return nil, apperrors.NewBadRequest("version обязателен и должен быть ≥ 1")
+	}
+	if _, err := s.repo.GetSprintInProject(ctx, projectID, sprintID); err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("спринт не найден")
+		}
+		return nil, apperrors.NewInternal("ошибка получения спринта")
+	}
+
 	notes := map[string]interface{}{
 		"went_well":  req.WentWell,
 		"to_improve": req.ToImprove,
 		"actions":    req.Actions,
 	}
 
-	sp, err := s.repo.UpdateRetroNotes(ctx, sprintID, notes)
+	sp, err := s.repo.UpdateRetroNotes(ctx, sprintID, notes, req.Version)
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return nil, apperrors.NewNotFound("спринт не найден")
+			return nil, apperrors.NewConflict("version mismatch: спринт был изменён другим пользователем")
 		}
 		return nil, apperrors.NewInternal("ошибка сохранения заметок ретроспективы")
 	}
@@ -173,9 +220,9 @@ func (s *SprintService) UpdateRetroNotes(ctx context.Context, sprintID uuid.UUID
 	return s.toSprintResponse(ctx, sp), nil
 }
 
-// GetBurndown возвращает данные для графика burndown (SCRM-02).
-func (s *SprintService) GetBurndown(ctx context.Context, sprintID uuid.UUID) ([]BurndownPoint, error) {
-	sp, err := s.repo.GetSprint(ctx, sprintID)
+// GetBurndown возвращает данные для графика burndown (SCRM-02; RT-005 / A3-001 sibling).
+func (s *SprintService) GetBurndown(ctx context.Context, projectID, sprintID uuid.UUID) ([]BurndownPoint, error) {
+	sp, err := s.repo.GetSprintInProject(ctx, projectID, sprintID)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("спринт не найден")
@@ -242,22 +289,46 @@ func (s *SprintService) GetVelocity(ctx context.Context, projectID uuid.UUID) ([
 	return s.repo.GetVelocityData(ctx, projectID)
 }
 
-// AddIssuesToSprint добавляет задачи в спринт.
-func (s *SprintService) AddIssuesToSprint(ctx context.Context, sprintID uuid.UUID, issueIDs []uuid.UUID) error {
-	return s.repo.SetIssuesSprint(ctx, issueIDs, sprintID)
+// AddIssuesToSprint добавляет задачи в спринт в рамках проекта (RT-005).
+// После GetSprintInProject проверяет, что все issueIDs принадлежат тому же project.
+func (s *SprintService) AddIssuesToSprint(ctx context.Context, projectID, sprintID uuid.UUID, issueIDs []uuid.UUID) error {
+	if _, err := s.repo.GetSprintInProject(ctx, projectID, sprintID); err != nil {
+		if ent.IsNotFound(err) {
+			return apperrors.NewNotFound("спринт не найден")
+		}
+		return apperrors.NewInternal("ошибка получения спринта")
+	}
+	if err := s.repo.SetIssuesSprint(ctx, projectID, issueIDs, sprintID); err != nil {
+		if errors.Is(err, ErrIssueNotInProject) {
+			return apperrors.NewBadRequest("задачи не принадлежат проекту")
+		}
+		return apperrors.NewInternal("ошибка добавления задач в спринт")
+	}
+	return nil
 }
 
 // RemoveIssuesFromSprint убирает задачи из спринта (возвращает в бэклог).
-func (s *SprintService) RemoveIssuesFromSprint(ctx context.Context, issueIDs []uuid.UUID) error {
-	return s.repo.ClearIssuesSprint(ctx, issueIDs)
+// projectID обязателен — иначе cross-project clear (P3-BE-05 / W1-A4-013).
+func (s *SprintService) RemoveIssuesFromSprint(ctx context.Context, projectID uuid.UUID, issueIDs []uuid.UUID) error {
+	if err := s.repo.ClearIssuesSprint(ctx, projectID, issueIDs); err != nil {
+		if errors.Is(err, ErrIssueNotInProject) {
+			return apperrors.NewBadRequest("задачи не принадлежат проекту")
+		}
+		return apperrors.NewInternal("ошибка удаления задач из спринта")
+	}
+	return nil
 }
 
 // CheckWIPLimit проверяет WIP-лимит для целевого статуса (KANB-02).
 // Возвращает ошибку 409 если лимит достигнут.
+// A3-015: status not found / count error → fail closed (не silent skip).
 func (s *SprintService) CheckWIPLimit(ctx context.Context, statusID uuid.UUID) error {
 	ws, err := s.repo.GetWorkflowStatus(ctx, statusID)
 	if err != nil {
-		return nil // Если статус не найден, пропускаем проверку
+		if ent.IsNotFound(err) {
+			return apperrors.NewNotFound("статус не найден")
+		}
+		return apperrors.NewInternal("ошибка проверки WIP-лимита")
 	}
 
 	if ws.WipLimit <= 0 {
@@ -266,7 +337,7 @@ func (s *SprintService) CheckWIPLimit(ctx context.Context, statusID uuid.UUID) e
 
 	count, err := s.repo.CountIssuesInStatus(ctx, statusID)
 	if err != nil {
-		return nil // В случае ошибки пропускаем
+		return apperrors.NewInternal("ошибка подсчёта задач для WIP-лимита")
 	}
 
 	if count >= ws.WipLimit {
@@ -278,7 +349,7 @@ func (s *SprintService) CheckWIPLimit(ctx context.Context, statusID uuid.UUID) e
 	return nil
 }
 
-// toSprintResponse конвертирует Ent Sprint в DTO.
+// toSprintResponse конвертирует Ent Sprint в DTO (single-item: edges или 1× Count).
 func (s *SprintService) toSprintResponse(ctx context.Context, sp *ent.Sprint) *SprintResponse {
 	issueCount := 0
 	if sp.Edges.Issues != nil {
@@ -289,7 +360,11 @@ func (s *SprintService) toSprintResponse(ctx context.Context, sp *ent.Sprint) *S
 			issueCount = cnt
 		}
 	}
+	return s.sprintToResponse(sp, issueCount)
+}
 
+// sprintToResponse собирает DTO с уже известным issue_count (list path preload).
+func (s *SprintService) sprintToResponse(sp *ent.Sprint, issueCount int) *SprintResponse {
 	return &SprintResponse{
 		ID:         sp.ID.String(),
 		Name:       sp.Name,
@@ -299,6 +374,7 @@ func (s *SprintService) toSprintResponse(ctx context.Context, sp *ent.Sprint) *S
 		EndDate:    sp.EndDate,
 		RetroNotes: sp.RetroNotes,
 		IssueCount: issueCount,
+		Version:    sp.Version,
 		CreatedAt:  sp.CreatedAt,
 		UpdatedAt:  sp.UpdatedAt,
 	}

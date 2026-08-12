@@ -21,7 +21,7 @@ interface CaseFiltersProps {
 		priority?: string;
 		suiteId?: string;
 	};
-	updateFilter: (patch: Record<string, unknown>) => void;
+	updateFilter: (patch: Partial<CaseFiltersProps["filters"]>) => void;
 	resetFilters: () => void;
 	resetOffset: () => void;
 	selectedCount: number;

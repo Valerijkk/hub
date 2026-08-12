@@ -2,14 +2,15 @@ package github
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
 	"net/url"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
-	"encoding/json"
 
 	safehttp "github.com/valerii/hub/backend/internal/platform/http"
 )
@@ -36,9 +37,10 @@ func NewLinkPreviewService(repo Repository, redis *redis.Client) *LinkPreviewSer
 }
 
 // GetLinkPreview определяет тип ссылки и возвращает превью-данные.
-func (s *LinkPreviewService) GetLinkPreview(ctx context.Context, rawURL string) (*LinkPreviewResponse, error) {
-	// Проверяем кеш
-	cacheKey := "link_preview:" + rawURL
+// userID обязателен для issue-path membership (A3W7-3-003); кеш scoped по userID.
+func (s *LinkPreviewService) GetLinkPreview(ctx context.Context, userID uuid.UUID, rawURL string) (*LinkPreviewResponse, error) {
+	// Кеш per-user — иначе member-preview утечёт non-member через общий ключ.
+	cacheKey := "link_preview:" + userID.String() + ":" + rawURL
 	if s.redis != nil {
 		cached, err := s.redis.Get(ctx, cacheKey).Result()
 		if err == nil && cached != "" {
@@ -53,17 +55,13 @@ func (s *LinkPreviewService) GetLinkPreview(ctx context.Context, rawURL string) 
 
 	// Проверяем внутреннюю ссылку на задачу
 	if matches := issueURLRegex.FindStringSubmatch(rawURL); len(matches) > 1 {
-		resp = s.resolveIssuePreview(ctx, matches[1])
+		resp = s.resolveIssuePreview(ctx, userID, matches[1])
 	}
 
-	// Проверяем внутреннюю ссылку на тест-кейс
+	// Проверяем внутреннюю ссылку на тест-кейс (C-W19-FE-002: membership как у issue).
 	if resp == nil {
 		if matches := testCaseURLRegex.FindStringSubmatch(rawURL); len(matches) > 1 {
-			resp = &LinkPreviewResponse{
-				URL:   rawURL,
-				Type:  "test_case",
-				Title: matches[1],
-			}
+			resp = s.resolveTestCasePreview(ctx, userID, matches[1])
 		}
 	}
 
@@ -92,9 +90,18 @@ func (s *LinkPreviewService) GetLinkPreview(ctx context.Context, rawURL string) 
 }
 
 // resolveIssuePreview загружает данные задачи из БД для превью.
-func (s *LinkPreviewService) resolveIssuePreview(ctx context.Context, issueKey string) *LinkPreviewResponse {
+// A3W7-3-003: только участник проекта; denial → nil (generic external), без title/status/assignee.
+// Mutation: убрать IsProjectMember → foreign key утекает полями.
+func (s *LinkPreviewService) resolveIssuePreview(ctx context.Context, userID uuid.UUID, issueKey string) *LinkPreviewResponse {
 	issue, err := s.repo.FindIssueByKey(ctx, issueKey)
 	if err != nil {
+		return nil
+	}
+	if issue.Edges.Project == nil {
+		return nil
+	}
+	ok, err := s.repo.IsProjectMember(ctx, userID, issue.Edges.Project.ID)
+	if err != nil || !ok {
 		return nil
 	}
 
@@ -114,6 +121,34 @@ func (s *LinkPreviewService) resolveIssuePreview(ctx context.Context, issueKey s
 		resp.AvatarURL = issue.Edges.Assignee.AvatarURL
 	}
 
+	return resp
+}
+
+// resolveTestCasePreview загружает тест-кейс для превью.
+// C-W19-FE-002: только участник проекта; denial → nil (generic external), без type=test_case/title.
+// Mutation: убрать IsProjectMember / вернуть Type+Title по regex → foreign enum keys → FAIL.
+func (s *LinkPreviewService) resolveTestCasePreview(ctx context.Context, userID uuid.UUID, caseKey string) *LinkPreviewResponse {
+	tc, err := s.repo.FindTestCaseByKey(ctx, caseKey)
+	if err != nil {
+		return nil
+	}
+	if tc.Edges.Project == nil {
+		return nil
+	}
+	ok, err := s.repo.IsProjectMember(ctx, userID, tc.Edges.Project.ID)
+	if err != nil || !ok {
+		return nil
+	}
+
+	resp := &LinkPreviewResponse{
+		URL:   "",
+		Type:  "test_case",
+		Title: tc.Title,
+	}
+	if resp.Title == "" {
+		resp.Title = tc.CaseKey
+	}
+	resp.Status = string(tc.Status)
 	return resp
 }
 

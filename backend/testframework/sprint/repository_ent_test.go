@@ -117,7 +117,7 @@ func TestEntRepository_SprintCRUD(t *testing.T) {
 	require.Len(t, list, 1)
 
 	newName := "Renamed"
-	updated, err := env.repo.UpdateSprint(env.ctx, created.ID, sprint.UpdateSprintRequest{Name: &newName})
+	updated, err := env.repo.UpdateSprint(env.ctx, created.ID, sprint.UpdateSprintRequest{Name: &newName, Version: 1})
 	require.NoError(t, err)
 	assert.Equal(t, "Renamed", updated.Name)
 
@@ -130,10 +130,11 @@ func TestEntRepository_SprintCRUD(t *testing.T) {
 	assert.Equal(t, created.ID, found.ID)
 
 	notes := map[string]interface{}{"went_well": []string{"tests"}}
-	withNotes, err := env.repo.UpdateRetroNotes(env.ctx, created.ID, notes)
+	withNotes, err := env.repo.UpdateRetroNotes(env.ctx, created.ID, notes, updated.Version)
 	require.NoError(t, err)
 	require.NotNil(t, withNotes.RetroNotes)
 	assert.NotEmpty(t, withNotes.RetroNotes["went_well"])
+	assert.Equal(t, updated.Version+1, withNotes.Version)
 }
 
 func TestEntRepository_FindOrCreateNextPlanningSprint(t *testing.T) {
@@ -171,7 +172,7 @@ func TestEntRepository_IssueSprintOperations(t *testing.T) {
 	open := env.createIssue(t, 1, env.todoID, nil)
 	done := env.createIssue(t, 2, env.doneID, nil)
 
-	require.NoError(t, env.repo.SetIssuesSprint(env.ctx, []uuid.UUID{open.ID, done.ID}, sp.ID))
+	require.NoError(t, env.repo.SetIssuesSprint(env.ctx, env.projectID, []uuid.UUID{open.ID, done.ID}, sp.ID))
 
 	count, err := env.repo.GetSprintIssueCount(env.ctx, sp.ID)
 	require.NoError(t, err)
@@ -193,7 +194,7 @@ func TestEntRepository_IssueSprintOperations(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, env.repo.MoveIssuesToSprint(env.ctx, []uuid.UUID{open.ID}, sprint2.ID))
 
-	require.NoError(t, env.repo.ClearIssuesSprint(env.ctx, []uuid.UUID{done.ID}))
+	require.NoError(t, env.repo.ClearIssuesSprint(env.ctx, env.projectID, []uuid.UUID{done.ID}))
 	count, err = env.repo.GetSprintIssueCount(env.ctx, sp.ID)
 	require.NoError(t, err)
 	assert.Equal(t, 0, count)

@@ -147,7 +147,7 @@ func TestRepository_UpdateScheduledCallTime(t *testing.T) {
 	require.NoError(t, err)
 
 	at := time.Now().UTC().Add(2 * time.Hour)
-	scheduled, err := f.repo.CreateScheduledCall(ctx, "Daily", "", at, "", f.channel.ID, proj.ID, f.owner.ID)
+	scheduled, err := f.repo.CreateScheduledCall(ctx, "Daily", "", at, "", f.channel.ID, proj.ID, f.owner.ID, 0, nil, nil)
 	require.NoError(t, err)
 
 	next := at.Add(24 * time.Hour)
@@ -198,13 +198,14 @@ func TestScheduledCallService_DeleteScheduledCall(t *testing.T) {
 	require.NoError(t, err)
 
 	scheduled := calls.NewScheduledCallService(f.repo, nil)
+	f.linkChannelToProject(t, proj.ID)
 	created, err := scheduled.CreateScheduledCall(ctx, proj.ID, f.owner.ID, calls.CreateScheduledCallRequest{
 		Title: "Remove me", ChannelID: f.channel.ID, ScheduledAt: time.Now().UTC().Add(time.Hour),
 	})
 	require.NoError(t, err)
 
-	require.NoError(t, scheduled.DeleteScheduledCall(ctx, created.ID))
-	list, err := scheduled.ListScheduledCalls(ctx, f.channel.ID)
+	require.NoError(t, scheduled.DeleteScheduledCall(ctx, created.ID, f.owner.ID))
+	list, err := scheduled.ListScheduledCalls(ctx, f.channel.ID, f.owner.ID)
 	require.NoError(t, err)
 	assert.Empty(t, list)
 }

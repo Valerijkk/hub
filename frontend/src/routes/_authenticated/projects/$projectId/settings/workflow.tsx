@@ -9,6 +9,7 @@ import {
 	listWorkflowTransitions,
 	type WorkflowStatusResponse,
 } from "@/api/tracker";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { AutomationRulesPanel } from "@/components/tracker/automation-rules-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -49,22 +50,35 @@ const CATEGORIES = [
  * Страница настроек workflow проекта.
  * Управление статусами (создание, просмотр) и переходами между статусами.
  * Позволяет настраивать цвета, категории и порядок сортировки статусов.
+ * A3W10-4-005: fail load ≠ empty; create UI блокируется при ошибке.
  */
-function WorkflowSettingsPage() {
+export function WorkflowSettingsPage() {
 	const { projectId } = Route.useParams();
 	const queryClient = useQueryClient();
 
 	// Статусы
-	const { data: statuses, isLoading: statusesLoading } = useQuery({
+	const {
+		data: statuses,
+		isLoading: statusesLoading,
+		isError: statusesError,
+		refetch: refetchStatuses,
+	} = useQuery({
 		queryKey: ["workflow-statuses", projectId],
 		queryFn: () => listWorkflowStatuses(projectId),
 	});
 
 	// Переходы
-	const { data: transitions, isLoading: transitionsLoading } = useQuery({
+	const {
+		data: transitions,
+		isLoading: transitionsLoading,
+		isError: transitionsError,
+		refetch: refetchTransitions,
+	} = useQuery({
 		queryKey: ["workflow-transitions", projectId],
 		queryFn: () => listWorkflowTransitions(projectId),
 	});
+
+	const loadError = statusesError || transitionsError;
 
 	// Форма нового статуса
 	const [statusName, setStatusName] = useState("");
@@ -172,6 +186,12 @@ function WorkflowSettingsPage() {
 					{/* Список существующих */}
 					{statusesLoading ? (
 						<p className="text-[13px] text-t2">Загрузка...</p>
+					) : statusesError ? (
+						<QueryErrorAlert
+							message="Не удалось загрузить статусы. Попробовать снова?"
+							retry={() => void refetchStatuses()}
+							compact
+						/>
 					) : (
 						<div className="space-y-2">
 							{statuses?.map((status) => (
@@ -185,77 +205,83 @@ function WorkflowSettingsPage() {
 						</div>
 					)}
 
-					<Separator />
+					{!loadError && (
+						<>
+							<Separator />
 
-					{/* Форма добавления */}
-					<form onSubmit={handleCreateStatus} className="space-y-3">
-						<p className="text-sm font-medium">Добавить статус</p>
-						<div className="grid grid-cols-2 gap-3">
-							<div className="space-y-1">
-								<Label htmlFor="status_name">Название</Label>
-								<Input
-									id="status_name"
-									value={statusName}
-									onChange={(e) => setStatusName(e.target.value)}
-									placeholder="Название статуса"
-								/>
-							</div>
-							<div className="space-y-1">
-								<Label htmlFor="status_category">Категория</Label>
-								<Select
-									value={statusCategory}
-									onValueChange={(v) =>
-										setStatusCategory(v as "todo" | "in_progress" | "done")
-									}
-								>
-									<SelectTrigger className="w-full rounded-xl border bg-base px-3 py-2 text-sm">
-										<SelectValue />
-									</SelectTrigger>
-									<SelectContent>
-										{CATEGORIES.map((c) => (
-											<SelectItem key={c.value} value={c.value}>
-												{c.label}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
-							</div>
-						</div>
-						<div className="grid grid-cols-2 gap-3">
-							<div className="space-y-1">
-								<Label>Цвет</Label>
-								<div className="flex gap-1">
-									{PRESET_COLORS.map((color) => (
-										<button
-											key={color}
-											type="button"
-											className={`h-6 w-6 rounded-full border-2 ${statusColor === color ? "border-foreground" : "border-transparent"}`}
-											style={{ backgroundColor: color }}
-											onClick={() => setStatusColor(color)}
+							{/* Форма добавления */}
+							<form onSubmit={handleCreateStatus} className="space-y-3">
+								<p className="text-sm font-medium">Добавить статус</p>
+								<div className="grid grid-cols-2 gap-3">
+									<div className="space-y-1">
+										<Label htmlFor="status_name">Название</Label>
+										<Input
+											id="status_name"
+											value={statusName}
+											onChange={(e) => setStatusName(e.target.value)}
+											placeholder="Название статуса"
 										/>
-									))}
+									</div>
+									<div className="space-y-1">
+										<Label htmlFor="status_category">Категория</Label>
+										<Select
+											value={statusCategory}
+											onValueChange={(v) =>
+												setStatusCategory(v as "todo" | "in_progress" | "done")
+											}
+										>
+											<SelectTrigger className="w-full rounded-xl border bg-base px-3 py-2 text-sm">
+												<SelectValue />
+											</SelectTrigger>
+											<SelectContent>
+												{CATEGORIES.map((c) => (
+													<SelectItem key={c.value} value={c.value}>
+														{c.label}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+									</div>
 								</div>
-							</div>
-							<div className="space-y-1">
-								<Label htmlFor="sort_order">Порядок</Label>
-								<Input
-									id="sort_order"
-									type="number"
-									value={statusOrder}
-									onChange={(e) => setStatusOrder(e.target.value)}
-								/>
-							</div>
-						</div>
-						<Button
-							type="submit"
-							size="sm"
-							disabled={createStatusMutation.isPending}
-						>
-							{createStatusMutation.isPending
-								? "Создание..."
-								: "Создать статус"}
-						</Button>
-					</form>
+								<div className="grid grid-cols-2 gap-3">
+									<div className="space-y-1">
+										<Label>Цвет</Label>
+										<div className="flex gap-1">
+											{PRESET_COLORS.map((color) => (
+												<button
+													key={color}
+													type="button"
+													className={`h-6 w-6 rounded-full border-2 ${statusColor === color ? "border-foreground" : "border-transparent"}`}
+													style={{ backgroundColor: color }}
+													onClick={() => setStatusColor(color)}
+													aria-label={color}
+													aria-pressed={statusColor === color}
+												/>
+											))}
+										</div>
+									</div>
+									<div className="space-y-1">
+										<Label htmlFor="sort_order">Порядок</Label>
+										<Input
+											id="sort_order"
+											type="number"
+											value={statusOrder}
+											onChange={(e) => setStatusOrder(e.target.value)}
+										/>
+									</div>
+								</div>
+								<Button
+									type="submit"
+									size="sm"
+									disabled={createStatusMutation.isPending}
+								>
+									{createStatusMutation.isPending
+										? "Создание..."
+										: "Создать статус"}
+								</Button>
+							</form>
+						</>
+					)}
 				</CardContent>
 			</Card>
 
@@ -267,6 +293,12 @@ function WorkflowSettingsPage() {
 				<CardContent className="space-y-4">
 					{transitionsLoading ? (
 						<p className="text-[13px] text-t2">Загрузка...</p>
+					) : transitionsError ? (
+						<QueryErrorAlert
+							message="Не удалось загрузить переходы. Попробовать снова?"
+							retry={() => void refetchTransitions()}
+							compact
+						/>
 					) : (
 						<div className="space-y-2">
 							{transitions?.map((t) => (
@@ -289,64 +321,68 @@ function WorkflowSettingsPage() {
 						</div>
 					)}
 
-					<Separator />
+					{!loadError && (
+						<>
+							<Separator />
 
-					<form onSubmit={handleCreateTransition} className="space-y-3">
-						<p className="text-sm font-medium">Добавить переход</p>
-						<div className="grid grid-cols-2 gap-3">
-							<div className="space-y-1">
-								<Label htmlFor="from_status">Из статуса</Label>
-								<Select
-									value={fromStatusId || "placeholder"}
-									onValueChange={(v) =>
-										setFromStatusId(v === "placeholder" ? "" : v)
-									}
+							<form onSubmit={handleCreateTransition} className="space-y-3">
+								<p className="text-sm font-medium">Добавить переход</p>
+								<div className="grid grid-cols-2 gap-3">
+									<div className="space-y-1">
+										<Label htmlFor="from_status">Из статуса</Label>
+										<Select
+											value={fromStatusId || "placeholder"}
+											onValueChange={(v) =>
+												setFromStatusId(v === "placeholder" ? "" : v)
+											}
+										>
+											<SelectTrigger className="w-full rounded-xl border bg-base px-3 py-2 text-sm">
+												<SelectValue />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="placeholder">Выберите...</SelectItem>
+												{statuses?.map((s) => (
+													<SelectItem key={s.id} value={s.id}>
+														{s.name}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+									</div>
+									<div className="space-y-1">
+										<Label htmlFor="to_status">В статус</Label>
+										<Select
+											value={toStatusId || "placeholder"}
+											onValueChange={(v) =>
+												setToStatusId(v === "placeholder" ? "" : v)
+											}
+										>
+											<SelectTrigger className="w-full rounded-xl border bg-base px-3 py-2 text-sm">
+												<SelectValue />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="placeholder">Выберите...</SelectItem>
+												{statuses?.map((s) => (
+													<SelectItem key={s.id} value={s.id}>
+														{s.name}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+									</div>
+								</div>
+								<Button
+									type="submit"
+									size="sm"
+									disabled={createTransitionMutation.isPending}
 								>
-									<SelectTrigger className="w-full rounded-xl border bg-base px-3 py-2 text-sm">
-										<SelectValue />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value="placeholder">Выберите...</SelectItem>
-										{statuses?.map((s) => (
-											<SelectItem key={s.id} value={s.id}>
-												{s.name}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
-							</div>
-							<div className="space-y-1">
-								<Label htmlFor="to_status">В статус</Label>
-								<Select
-									value={toStatusId || "placeholder"}
-									onValueChange={(v) =>
-										setToStatusId(v === "placeholder" ? "" : v)
-									}
-								>
-									<SelectTrigger className="w-full rounded-xl border bg-base px-3 py-2 text-sm">
-										<SelectValue />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value="placeholder">Выберите...</SelectItem>
-										{statuses?.map((s) => (
-											<SelectItem key={s.id} value={s.id}>
-												{s.name}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
-							</div>
-						</div>
-						<Button
-							type="submit"
-							size="sm"
-							disabled={createTransitionMutation.isPending}
-						>
-							{createTransitionMutation.isPending
-								? "Создание..."
-								: "Создать переход"}
-						</Button>
-					</form>
+									{createTransitionMutation.isPending
+										? "Создание..."
+										: "Создать переход"}
+								</Button>
+							</form>
+						</>
+					)}
 				</CardContent>
 			</Card>
 

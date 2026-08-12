@@ -3,7 +3,7 @@
 > **Provenance class:** PRE_EXISTING · **Confidence:** MIXED · **current_verified:** false (pending code/source recheck)
 > Embedded original verdict below = historical self-check only — **not** independent acceptance. See [`PROVENANCE.md`](./PROVENANCE.md).
 
-> Агент: `docs-writer` (Grok 4.5) · Дата: **2026-07-23** · Scope: `prompt-engineering/` — corporate agents, `prompts/13-corporate-delivery.md`, полнота PORTABLE kit.
+> Агент: `docs-writer` (Grok 4.5) · Дата: **2026-07-23** · Scope: `pro-qa-ai/` — corporate agents, `prompts/13-corporate-delivery.md`, полнота PORTABLE kit.
 > Код **не менялся**. Только findings. Язык: RU.
 
 ## Чек-лист (результат)
@@ -23,7 +23,7 @@
 | Ссылка `playbooks/corporate-delivery.md` | **FAIL** | файл **отсутствует**; ссылки в `orchestrator.md`, `product-owner.md` |
 | README/INSTALL синхрон с corporate+GSD | PARTIAL | drift структуры/ростера/категорий (см. findings) |
 | EXPANDED-EXAMPLES для категории 13 | FAIL | эталон только для 01–12 |
-| Самодостаточный copy L2 без `ai-expansion/` | PARTIAL | dry-run/канон слоёв живут в `.planning/july-2026/` |
+| Самодостаточный copy L2 без `ai-expansion/` | PARTIAL | dry-run/канон слоёв живут в `.planning/archive/july-2026/` |
 
 ## Findings
 
@@ -33,7 +33,7 @@
 | **MEDIUM** | `README.md` (дерево §Структура, шапка) | Дерево всё ещё «тестовый тулкит»: 4 test-агента, skills без GSD, нет `gsd-port/`, `PORTABLE-HUB-KIT.md`; текст «~1000 … по **12** категориям» при наличии категории **13**. Ростер-таблица неполная (нет orchestrator/PO/arch/be/fe/security/devops). | Обновить дерево + ростер + счётчик категорий (12 test + 13 corporate). | open |
 | **MEDIUM** | `INSTALL.md` целиком | INSTALL = 5 шагов только для test-smoke; **0** упоминаний `PORTABLE-HUB-KIT.md`, corporate agents, GSD skills/playbooks. Новый потребитель по INSTALL не видит corporate delivery path. | Добавить развилку: «только тесты» vs «Corporate Hub kit → PORTABLE-HUB-KIT.md»; smoke corporate: phase-kickoff docs-only. | open |
 | **MEDIUM** | `prompts/EXPANDED-EXAMPLES.md` + `prompts/README.md` | Заявлены «12 эталонов» / «по одному на категорию»; категория 13 (112 промптов) **без** развёрнутого `#1`. Риск: corporate prompts остаются однострочниками без эталона профиля. | Добавить эталон `13 #1` (SMART-goal) + обновить таблицу профилей. | open |
-| **MEDIUM** | `PORTABLE-HUB-KIT.md:13,41`; `playbooks/portable-kit-dry-run.md:15`; `playbooks/README.md:17` | Канон слоёв/dry-run — hard-path в `.planning/july-2026/ai-expansion/{05,08}`. После `cp -r prompt-engineering/` **без** L3 reference ссылки битые. Риск описан в PORTABLE §Риски, но L2 сам по себе не самодостаточен. | Вложить в PE краткий `gsd-port/LAYERS.md` (или mirror чек-листа DoD) **или** явно в INSTALL: «Must copy `ai-expansion/04–06,08`». | open (accepted risk, если L3 всегда копируют) |
+| **MEDIUM** | `PORTABLE-HUB-KIT.md:13,41`; `playbooks/portable-kit-dry-run.md:15`; `playbooks/README.md:17` | Канон слоёв/dry-run — hard-path в `.planning/archive/july-2026/ai-expansion/{05,08}`. После `cp -r pro-qa-ai/` **без** L3 reference ссылки битые. Риск описан в PORTABLE §Риски, но L2 сам по себе не самодостаточен. | Вложить в PE краткий `gsd-port/LAYERS.md` (или mirror чек-листа DoD) **или** явно в INSTALL: «Must copy `ai-expansion/04–06,08`». | open (accepted risk, если L3 всегда копируют) |
 | **MEDIUM** | `.planning/.../05-PORTABLE-KIT.md` §XOR («7+4 ролей») vs факт PE | Спека пишет «7+4»; на диске **11** corporate + **4** test. Drift манифеста → путаница при приёмке roster. | В `05` и acceptance: «11 corporate + 4 test» (как M2 в `07-ACCEPTANCE`). | open (planning drift) |
 | **MEDIUM** | PE roster vs corporate prompts #74 / docs-sync | Нет роли `docs-writer` / tech-writer в PE; handoff/docs-sync промпты (#74) и dry-run Accept ссылаются на docs / `team-lead`. В стиле A docs-sync ложится на orchestrator/dev без явного владельца. | Добавить лёгкий `docs-writer.md` **или** явно закрепить docs-sync за `orchestrator` / `product-owner` в playbook. | open |
 | **LOW** | `playbooks/portable-kit-dry-run.md:37` | Гейт Accept: `team-lead / docs` — Hub-имя роли в project-agnostic PE. | Заменить на `orchestrator / docs-writer` (или `{{orchestrator_role}}`). | open |
@@ -54,7 +54,7 @@
 
 ## Полнота PORTABLE kit (сводка L1–L5 с точки зрения L2)
 
-| Слой | Ожидание (`05`) | В `prompt-engineering/` | Вердикт |
+| Слой | Ожидание (`05`) | В `pro-qa-ai/` | Вердикт |
 |------|-----------------|-------------------------|---------|
 | L2 PE целиком | Must | папка полная (~78 файлов) | PASS |
 | L1 agents XOR | PE corporate | 11+4 agents | PASS (стиль A) |

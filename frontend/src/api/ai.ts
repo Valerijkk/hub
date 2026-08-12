@@ -92,13 +92,22 @@ export function getAIUsageToday() {
 export interface AIUserPreference {
 	default_model?: string;
 	allow_external_ai?: boolean;
+	/** Optimistic lock (A3W5-3-006 / FE-SMA-002); 0 = запись ещё не создана. */
+	version: number;
+}
+
+/** PATCH /ai/preferences — version обязателен для Update (create при 0). */
+export interface UpdateAIUserPreferenceRequest {
+	default_model?: string;
+	allow_external_ai?: boolean;
+	version: number;
 }
 
 export function getAIPreferences() {
 	return api.get<AIUserPreference>("/ai/preferences");
 }
 
-export function updateAIPreferences(data: Partial<AIUserPreference>) {
+export function updateAIPreferences(data: UpdateAIUserPreferenceRequest) {
 	return api.patch<AIUserPreference>("/ai/preferences", data);
 }
 

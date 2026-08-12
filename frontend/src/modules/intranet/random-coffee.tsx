@@ -42,6 +42,7 @@ export function RandomCoffeePanel() {
 			void queryClient.invalidateQueries({ queryKey: ["intranet", "coffee"] });
 			toast.success(active ? "Вы в Random Coffee" : "Участие отключено");
 		},
+		onError: () => toast.error("Не удалось изменить участие в Random Coffee"),
 	});
 
 	const runMutation = useMutation({

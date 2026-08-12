@@ -157,7 +157,9 @@ export function CaseTableRow({
 			<td className="px-5 h-14 border-b border-b1 align-middle transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-[180ms] group-hover:bg-[var(--hover)]">
 				{hasAutotest ? (
 					<span
+						role="img"
 						title="Автоматизирован"
+						aria-label="Автоматизирован"
 						className="text-[var(--green)] opacity-70 group-hover:opacity-100 transition-opacity"
 					>
 						<svg
@@ -176,7 +178,12 @@ export function CaseTableRow({
 						</svg>
 					</span>
 				) : (
-					<span title="Ручной" className="text-[var(--t4)]">
+					<span
+						role="img"
+						title="Ручной"
+						aria-label="Ручной"
+						className="text-[var(--t4)]"
+					>
 						<svg
 							aria-hidden="true"
 							className="h-4 w-4"

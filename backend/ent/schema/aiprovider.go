@@ -54,6 +54,13 @@ func (AIProvider) Fields() []ent.Field {
 			UpdateDefault(nowUTC),
 	}
 }
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (AIProvider) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
+	}
+}
+
 
 // Рёбра (edges) сущности AIProvider.
 func (AIProvider) Edges() []ent.Edge {
@@ -61,6 +68,9 @@ func (AIProvider) Edges() []ent.Edge {
 		edge.From("owner", User.Type).
 			Ref("ai_providers").
 			Unique(),
+		// A2W8-1-005: обратная сторона FK из AIUserPreference.default_provider_id.
+		edge.From("user_preferences", AIUserPreference.Type).
+			Ref("default_provider"),
 	}
 }
 

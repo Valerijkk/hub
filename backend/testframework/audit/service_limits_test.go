@@ -198,27 +198,41 @@ func TestAuditService_UpdateResourceLimit(t *testing.T) {
 	assert.Equal(t, "100", val)
 }
 
-// TestAuditService_CheckLimit_NoSetting проверяет бизнес-логику: audit сервис проверка limit no setting.
+// TestAuditService_UpdateResourceLimit_RejectsUnknownKey_A1_013 — allowlist keys only.
+func TestAuditService_UpdateResourceLimit_RejectsUnknownKey_A1_013(t *testing.T) {
+	repo := newAuditRepoTestEnv(t)
+	svc := audit.NewAuditService(repo, nil)
+	ctx := context.Background()
+
+	err := svc.UpdateResourceLimit(ctx, "retention.chat_messages_days", "1")
+	require.ErrorIs(t, err, audit.ErrInvalidResourceLimitKey)
+
+	val, err := repo.GetSystemSetting(ctx, "retention.chat_messages_days")
+	require.NoError(t, err)
+	assert.Empty(t, val, "unknown key must not be upserted")
+}
+
+// TestAuditService_CheckLimit_NoSetting — известный ключ без записи → дефолт (A2W6-A4-002).
 func TestAuditService_CheckLimit_NoSetting(t *testing.T) {
 	repo := newAuditRepoTestEnv(t)
 	svc := audit.NewAuditService(repo, nil)
 	ctx := context.Background()
 
-	ok, err := svc.CheckLimit(ctx, "limit.missing", 999)
+	ok, err := svc.CheckLimit(ctx, audit.LimitUserMaxProjects, 0)
 	require.NoError(t, err)
-	assert.True(t, ok)
+	assert.True(t, ok, "default 20 allows current=0")
 }
 
-// TestAuditService_CheckLimit_InvalidValue проверяет отклонение при audit сервис проверка limit некорректный value.
+// TestAuditService_CheckLimit_InvalidValue — мусор в БД → deny (A2W6-A4-002 fail-closed).
 func TestAuditService_CheckLimit_InvalidValue(t *testing.T) {
 	repo := newAuditRepoTestEnv(t)
 	svc := audit.NewAuditService(repo, nil)
 	ctx := context.Background()
 
-	require.NoError(t, repo.UpsertSystemSetting(ctx, "limit.bad", "not-a-number", "test"))
-	ok, err := svc.CheckLimit(ctx, "limit.bad", 999)
+	require.NoError(t, repo.UpsertSystemSetting(ctx, audit.LimitUserMaxProjects, "not-a-number", "test"))
+	ok, err := svc.CheckLimit(ctx, audit.LimitUserMaxProjects, 999)
 	require.NoError(t, err)
-	assert.True(t, ok)
+	assert.False(t, ok)
 }
 
 // TestAuditService_ListTrash_UnknownType проверяет бизнес-логику: audit сервис список корзина unknown type.
@@ -250,15 +264,18 @@ func TestAuditService_DeactivateUser(t *testing.T) {
 	assert.Equal(t, user.StatusDeactivated, updated.Status)
 }
 
-// TestAuditService_ReassignTasks проверяет бизнес-логику: audit сервис reassign tasks.
+// TestAuditService_ReassignTasks — W6-A5-008 / P3-BE-02: mock counters assigned calls.
 func TestAuditService_ReassignTasks(t *testing.T) {
 	ctx := context.Background()
 	from := uuid.New()
 	to := uuid.New()
-	repo := &mockAuditRepo{}
+	repo := &mockAuditRepo{reassignAssignedN: 3}
 	svc := audit.NewAuditService(repo, nil)
 
 	count, err := svc.ReassignTasks(ctx, from, to)
 	require.NoError(t, err)
-	assert.Equal(t, 0, count)
+	assert.Equal(t, 3, count)
+	require.Len(t, repo.reassignAssignedCalls, 1)
+	assert.Equal(t, from, repo.reassignAssignedCalls[0][0])
+	assert.Equal(t, to, repo.reassignAssignedCalls[0][1])
 }

@@ -62,6 +62,7 @@ export function CallPanel() {
 							"transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200 backdrop-blur-sm",
 						)}
 						title={isFullscreen ? "Свернуть" : "На весь экран"}
+						aria-label={isFullscreen ? "Свернуть" : "На весь экран"}
 					>
 						{isFullscreen ? (
 							<Minimize2 className="h-4 w-4" />

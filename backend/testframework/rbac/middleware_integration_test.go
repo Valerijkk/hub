@@ -232,14 +232,29 @@ func TestRequirePermission_MemberWithoutPermission_403(t *testing.T) {
 }
 
 // TestRequireSystemRole_AdminOnly — endpoint защищён RequireAdmin: admin
-// (system_role=admin) проходит, viewer (system_role=member) — 403.
+// и founder (ORG-04 / IsSystemAdmin) проходят, viewer (member) — 403.
 func TestRequireSystemRole_AdminOnly(t *testing.T) {
 	f := newRBACFixture(t)
+	ctx := context.Background()
+
+	founder, err := f.client.User.Create().
+		SetEmail("founder-" + uuid.New().String()[:6] + "@example.com").
+		SetSystemRole(user.SystemRoleFounder).
+		Save(ctx)
+	require.NoError(t, err)
 
 	guard := rbac.RequireAdmin(rbac.NewEntRepository(f.client))
 
 	t.Run("admin allowed", func(t *testing.T) {
 		app := newAppWithUserID(f.adminID.String(), guard, "/admin/test")
+		status, body := doGet(t, app, "/admin/test")
+		assert.Equal(t, fiber.StatusOK, status)
+		assert.Equal(t, "ok", body)
+	})
+
+	// A1-006: founder must pass RequireAdmin (same criterion as auth.IsSystemAdmin).
+	t.Run("founder allowed", func(t *testing.T) {
+		app := newAppWithUserID(founder.ID.String(), guard, "/admin/test")
 		status, body := doGet(t, app, "/admin/test")
 		assert.Equal(t, fiber.StatusOK, status)
 		assert.Equal(t, "ok", body)

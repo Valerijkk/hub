@@ -2,6 +2,7 @@ package intranet
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
@@ -61,6 +62,50 @@ func (r *EntRepository) CreateCoffeePair(ctx context.Context, roundID, userA, us
 		Save(ctx)
 }
 
+// CreateCoffeeRoundWithPairs атомарно создаёт раунд и все рёбра пар/троек (W7-A2-004).
+// Mutation: убрать tx / Commit после round → mid-fail оставляет orphan round.
+func (r *EntRepository) CreateCoffeeRoundWithPairs(
+	ctx context.Context,
+	adminID uuid.UUID,
+	pairCount, unpairedCount int,
+	edges [][2]uuid.UUID,
+) (*ent.CoffeeRound, []*ent.CoffeePair, error) {
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return nil, nil, fmt.Errorf("begin coffee round tx: %w", err)
+	}
+	rnd, err := tx.CoffeeRound.Create().
+		SetTriggeredByID(adminID).
+		SetPairCount(pairCount).
+		SetUnpairedCount(unpairedCount).
+		Save(ctx)
+	if err != nil {
+		_ = tx.Rollback()
+		return nil, nil, fmt.Errorf("create coffee round: %w", err)
+	}
+	created := make([]*ent.CoffeePair, 0, len(edges))
+	for _, edge := range edges {
+		a, b := edge[0], edge[1]
+		if a.String() > b.String() {
+			a, b = b, a
+		}
+		cp, err := tx.CoffeePair.Create().
+			SetRoundID(rnd.ID).
+			SetParticipantAID(a).
+			SetParticipantBID(b).
+			Save(ctx)
+		if err != nil {
+			_ = tx.Rollback()
+			return nil, nil, fmt.Errorf("create coffee pair: %w", err)
+		}
+		created = append(created, cp)
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, nil, fmt.Errorf("commit coffee round: %w", err)
+	}
+	return rnd, created, nil
+}
+
 func (r *EntRepository) GetLatestCoffeeRound(ctx context.Context) (*ent.CoffeeRound, error) {
 	return r.client.CoffeeRound.Query().
 		Order(ent.Desc(coffeeround.FieldCreatedAt)).
@@ -72,14 +117,13 @@ func (r *EntRepository) GetLatestCoffeeRound(ctx context.Context) (*ent.CoffeeRo
 }
 
 func (r *EntRepository) GetPreviousRoundPairKeys(ctx context.Context) (map[string]struct{}, error) {
+	// A7-006: вызывается ДО CreateCoffeeRound — «предыдущий» = latest (First, без Offset).
 	prev, err := r.client.CoffeeRound.Query().
 		Order(ent.Desc(coffeeround.FieldCreatedAt)).
-		Offset(1).
-		Limit(1).
 		WithPairs(func(q *ent.CoffeePairQuery) {
 			q.WithParticipantA().WithParticipantB()
 		}).
-		Only(ctx)
+		First(ctx)
 	if ent.IsNotFound(err) {
 		return map[string]struct{}{}, nil
 	}
@@ -109,7 +153,8 @@ func (r *EntRepository) ListCoffeeRounds(ctx context.Context, limit int) ([]*ent
 		All(ctx)
 }
 
-func (r *EntRepository) FindUserPairInRound(ctx context.Context, roundID, userID uuid.UUID) (*ent.CoffeePair, error) {
+// FindUserPairsInRound — все рёбра пользователя в раунде (A3W7-2-003: тройка = 2).
+func (r *EntRepository) FindUserPairsInRound(ctx context.Context, roundID, userID uuid.UUID) ([]*ent.CoffeePair, error) {
 	return r.client.CoffeePair.Query().
 		Where(
 			coffeepair.HasRoundWith(coffeeround.ID(roundID)),
@@ -120,7 +165,7 @@ func (r *EntRepository) FindUserPairInRound(ctx context.Context, roundID, userID
 		).
 		WithParticipantA().
 		WithParticipantB().
-		Only(ctx)
+		All(ctx)
 }
 
 func pairKey(a, b uuid.UUID) string {
@@ -139,12 +184,11 @@ func toCoffeePartner(u *ent.User) CoffeePartnerResponse {
 		name = u.Name
 	}
 	if name == "" {
-		name = u.Email
+		name = "Участник"
 	}
 	return CoffeePartnerResponse{
 		UserID:      u.ID,
 		DisplayName: name,
-		Email:       u.Email,
 		Department:  u.Department,
 	}
 }

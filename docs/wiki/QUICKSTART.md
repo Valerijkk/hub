@@ -35,6 +35,8 @@ curl -X POST http://localhost:8080/api/dev/seed
 3. Получите **6-значный код** на почту (Resend / hub-mail)
 4. Введите код на странице верификации — вы в системе
 
+Уже аутентифицированный пользователь на `/login` уходит в `/projects` (или `/onboarding`, если онбординг не завершён). `/onboarding` без сессии редиректит на `/login`; при `onboarding_completed` — на `/projects` (`beforeLoad` в stub-роутах).
+
 В dev-режиме (`DEV_MODE=true`) доступен **dev-login** для E2E и локальной отладки без почты.
 
 ### Telegram
@@ -48,15 +50,16 @@ Telegram **не используется для входа**. Только:
 
 ## Первые шаги после входа
 
-### 1. Онбординг (3 шага)
+### 1. Онбординг (4 шага)
 
 | Шаг | Содержание |
 |-----|------------|
-| Профиль | Имя, должность, отдел, часовой пояс |
-| Обзор | Краткий тур по модулям Hub |
-| Настройки | Тема (тёмная/светлая), язык RU/EN, первый проект |
+| Профиль | Имя, фамилия, должность, отдел, часовой пояс, язык |
+| Тур | Краткий обзор модулей Hub |
+| Тема | Светлая / тёмная / system + акцент |
+| Проект | Создать первый проект или войти по invite-коду |
 
-Завершение: `POST /api/auth/me/onboarding`.
+Завершение: `POST /api/auth/me/onboarding` (`frontend/src/routes/onboarding.lazy.tsx`).
 
 ### 2. Создание проекта
 
@@ -92,7 +95,7 @@ Telegram **не используется для входа**. Только:
 cd backend
 go generate ./ent
 go build -tags release ./...
-go test -tags hubtest -race -count=1 -timeout=600s ./internal/... ./testframework/...
+go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...
 
 # Frontend
 cd frontend

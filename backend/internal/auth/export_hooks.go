@@ -9,15 +9,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/mymmrac/telego"
 	"github.com/redis/go-redis/v9"
 
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 )
-
-func ExportTelegramHandleLogin(t *TelegramBotAuth, ctx context.Context, msg *telego.Message) {
-	t.handleLogin(ctx, msg)
-}
 
 func ExportHandlerService(h *Handler) *AuthService {
 	return h.service
@@ -30,6 +25,8 @@ func ExportMagicLinkRateMax() int { return magicLinkRateMax }
 func ExportMagicLinkTTL() time.Duration { return magicLinkTTL }
 
 func ExportMagicLinkFailsPrefix() string { return magicLinkFailsPrefix }
+
+func ExportMaskEmailMinimized(email string) string { return maskEmailMinimized(email) }
 
 func ExportAuthServiceMagicLink(s *AuthService) *MagicLinkService {
 	return s.magicLink
@@ -49,24 +46,6 @@ func ExportResendEmailClientFromEmail(c *ResendEmailClient) string { return c.fr
 
 func ExportResendEmailClientInjectHTTP(c *ResendEmailClient, hc *http.Client) {
 	c.client = hc
-}
-
-func ExportTGCodePrefix() string { return tgCodePrefix }
-
-func ExportTGFailsPrefix() string { return tgFailsPrefix }
-
-func ExportGenerateTGCode() (string, error) { return generateTGCode() }
-
-func ExportNewTelegramBotAuthForTest(rdb *redis.Client) *TelegramBotAuth {
-	return &TelegramBotAuth{redis: rdb}
-}
-
-func ExportNewTelegramBotAuthForTestWithBot(bot *telego.Bot, rdb *redis.Client) *TelegramBotAuth {
-	return &TelegramBotAuth{bot: bot, redis: rdb}
-}
-
-func ExportTelegramRecordVerifyFailure(bot *TelegramBotAuth, ctx context.Context, key string) {
-	bot.recordVerifyFailure(ctx, key)
 }
 
 func ExportHashRefreshToken(token string) string { return hashRefreshToken(token) }
@@ -96,6 +75,10 @@ func ExportSessionSetNATS(s *SessionService, nc *natsclient.Client) {
 
 func ExportSessionPublishSessionCreated(s *SessionService, userID, sessionID, device, ip string) {
 	s.publishSessionCreated(userID, sessionID, device, ip)
+}
+
+func ExportSessionPublishSessionEnded(s *SessionService, userID, sessionID, event string) {
+	s.publishSessionEnded(userID, sessionID, event)
 }
 
 func ExportGenerateCode() (string, error) { return generateCode() }

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { createSavedFilter, listSavedFilters } from "@/api/search";
 import { listIssues } from "@/api/tracker";
 import { QueryStateView } from "@/components/query-state-view";
@@ -45,22 +46,48 @@ export function TriageInbox({ projectId }: TriageInboxProps) {
 	});
 
 	const presetBootstrapDone = useRef(false);
+	const presetBootstrapFailed = useRef(false);
 
 	useEffect(() => {
+		// Смена проекта должна сбрасывать bootstrap-флаги, даже если refs стабильны.
+		void projectId;
+		presetBootstrapDone.current = false;
+		presetBootstrapFailed.current = false;
+	}, [projectId]);
+
+	useEffect(() => {
+		// mutationFn замыкает projectId; новый проект должен повторить bootstrap.
+		void projectId;
 		if (
 			!presetQuery.data ||
 			createPreset.isPending ||
-			presetBootstrapDone.current
+			presetBootstrapDone.current ||
+			presetBootstrapFailed.current
 		)
 			return;
 		const hasPreset = presetQuery.data.filters.some(
 			(f) => f.name === TRIAGE_FILTER_NAME,
 		);
-		if (!hasPreset) {
+		if (hasPreset) {
 			presetBootstrapDone.current = true;
-			createPreset.mutate();
+			return;
 		}
-	}, [presetQuery.data, createPreset.isPending, createPreset.mutate]);
+		// Flag только в onSuccess (W10-A3-010) — при fail не блокируем remount/смену проекта.
+		createPreset.mutate(undefined, {
+			onSuccess: () => {
+				presetBootstrapDone.current = true;
+			},
+			onError: () => {
+				presetBootstrapFailed.current = true;
+				toast.error("Не удалось создать фильтр Triage inbox");
+			},
+		});
+	}, [
+		presetQuery.data,
+		createPreset.isPending,
+		createPreset.mutate,
+		projectId,
+	]);
 
 	const issuesQuery = useQuery({
 		queryKey: ["triage-inbox", projectId],

@@ -25,11 +25,11 @@ func TestService_UpdateProvider(t *testing.T) {
 	name := "Updated"
 	repo := &mockRepo{providers: []*ent.AIProvider{{
 		ID: pid, Name: "Old", BaseURL: "http://127.0.0.1/v1",
-		Models: []string{"m1"}, Enabled: true, Scope: aiprovider.ScopeSystem,
+		Models: []string{"m1"}, Enabled: true, Scope: aiprovider.ScopeSystem, Version: 1,
 	}}}
 	svc := ai.NewService(repo, &mockAdapter{resp: &ai.ChatCompletionResponse{}}, nil)
 
-	updated, err := svc.UpdateProvider(context.Background(), pid, ai.UpdateProviderRequest{Name: &name})
+	updated, err := svc.UpdateProvider(context.Background(), pid, ai.UpdateProviderRequest{Name: &name, Version: 1})
 	require.NoError(t, err)
 	assert.Equal(t, "Updated", updated.Name)
 }
@@ -124,7 +124,7 @@ func TestAdminHandler_UpdateProvider(t *testing.T) {
 	resp.Body.Close()
 
 	newName := "Patched"
-	patchBody, _ := json.Marshal(ai.UpdateProviderRequest{Name: &newName})
+	patchBody, _ := json.Marshal(ai.UpdateProviderRequest{Name: &newName, Version: created.Version})
 	req = httptest.NewRequest(http.MethodPatch, "/api/admin/ai/providers/"+created.ID, bytes.NewReader(patchBody))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err = app.Test(req)
@@ -152,7 +152,7 @@ func TestRedisProviderRPMLimiter_AllowAndBlock(t *testing.T) {
 func TestNewUnifiedCodeReviewProvider(t *testing.T) {
 	p := ai.NewUnifiedCodeReviewProvider(nil, nil)
 	require.NotNil(t, p)
-	_, err := p.FetchReview(context.Background(), "https://github.com/o/r/pull/1")
+	_, err := p.FetchReview(context.Background(), uuid.New(), "https://github.com/o/r/pull/1")
 	require.Error(t, err)
 }
 

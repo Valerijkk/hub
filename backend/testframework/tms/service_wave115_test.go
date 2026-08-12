@@ -16,7 +16,7 @@ import (
 // TestReopenTestRun_NotFound проверяет сценарий: reopen test run not found.
 func TestReopenTestRun_NotFound(t *testing.T) {
 	svc := tms.NewTMSService(newMockRepo(), nil)
-	_, err := svc.ReopenTestRun(context.Background(), uuid.New())
+	_, err := svc.ReopenTestRun(context.Background(), uuid.New(), uuid.New())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "не найден")
 }
@@ -26,13 +26,15 @@ func TestReopenTestRun_InvalidStatus(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 	runID := uuid.New()
 	repo.runs[runID] = &ent.TestRun{
 		ID:     runID,
 		Status: testrun.StatusInProgress,
+		Edges:  ent.TestRunEdges{Project: &ent.Project{ID: projectID}},
 	}
 
-	_, err := svc.ReopenTestRun(ctx, runID)
+	_, err := svc.ReopenTestRun(ctx, projectID, runID)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "переоткрыть")
 }
@@ -40,7 +42,7 @@ func TestReopenTestRun_InvalidStatus(t *testing.T) {
 // TestCompleteTestRun_NotFound проверяет сценарий: complete test run not found.
 func TestCompleteTestRun_NotFound(t *testing.T) {
 	svc := tms.NewTMSService(newMockRepo(), nil)
-	_, err := svc.CompleteTestRun(context.Background(), uuid.New())
+	_, err := svc.CompleteTestRun(context.Background(), uuid.New(), uuid.New())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "не найден")
 }
@@ -49,10 +51,14 @@ func TestCompleteTestRun_NotFound(t *testing.T) {
 func TestCreateTestResult_InvalidTestCaseID(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
+	projectID := uuid.New()
 	runID := uuid.New()
-	repo.runs[runID] = &ent.TestRun{ID: runID, Status: testrun.StatusInProgress}
+	repo.runs[runID] = &ent.TestRun{
+		ID: runID, Status: testrun.StatusInProgress,
+		Edges: ent.TestRunEdges{Project: &ent.Project{ID: projectID}},
+	}
 
-	_, err := svc.CreateTestResult(context.Background(), runID, tms.CreateTestResultRequest{
+	_, err := svc.CreateTestResult(context.Background(), projectID, runID, tms.CreateTestResultRequest{
 		TestCaseID: "not-uuid",
 		Status:     "passed",
 	})

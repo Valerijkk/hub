@@ -12,6 +12,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -32,6 +33,12 @@ var errWebhookQueueFull = errors.New("webhook delivery queue full")
 // сообщения, когда очередь воркеров переполнена. Даёт воркерам время
 // разгрести очередь до следующей попытки и предотвращает busy-loop.
 const webhookRedeliverDelay = 5 * time.Second
+
+// defaultWebhookRetryDelays — prod backoff для deliverWithRetry.
+var defaultWebhookRetryDelays = []time.Duration{0, time.Second, 5 * time.Second, 30 * time.Second}
+
+// webhookRetryDelays — активный backoff (hubtest может подменить на короткие).
+var webhookRetryDelays = append([]time.Duration(nil), defaultWebhookRetryDelays...)
 
 // webhookHTTPClient — общий безопасный HTTP-клиент для исходящих
 // вебхук-запросов. Использует SafeDialContext, который блокирует RFC1918,
@@ -213,8 +220,22 @@ func (d *WebhookDispatcher) dispatchEvent(ctx context.Context, eventType string,
 		return fmt.Errorf("получение активных вебхук-эндпоинтов: %w", err)
 	}
 
+	// TASK-012: project scope. Событие без extractable projectID не доставляем
+	// ни одному project-scoped эндпоинту (fail-closed). Все Hub webhook
+	// endpoints привязаны к проекту (edge Required); org-level hooks нет.
+	eventProjectID, hasProject := extractEventProjectID(eventType, payload)
+
 	for _, ep := range endpoints {
 		if !containsEvent(ep.Events, eventType) {
+			continue
+		}
+		if !hasProject {
+			// Subject без project UUID (tms.*, messenger.*, project.created)
+			// и без project_id в payload — не шлём в project hooks.
+			continue
+		}
+		epProjectID, ok := webhookEndpointProjectID(ep)
+		if !ok || epProjectID != eventProjectID {
 			continue
 		}
 		job := webhookJob{ep: ep, eventType: eventType, body: body, payload: payload}
@@ -237,7 +258,10 @@ func (d *WebhookDispatcher) dispatchEvent(ctx context.Context, eventType string,
 // deliverWithRetry отправляет вебхук с повторами (1s, 5s, 30s). Тело уже
 // сериализовано в job.body, повторного json.Marshal нет (HI-08).
 func (d *WebhookDispatcher) deliverWithRetry(ctx context.Context, job webhookJob) {
-	delays := []time.Duration{0, time.Second, 5 * time.Second, 30 * time.Second}
+	delays := webhookRetryDelays
+	if len(delays) == 0 {
+		delays = defaultWebhookRetryDelays
+	}
 
 	sig := signPayload(job.body, job.ep.Secret)
 
@@ -250,7 +274,10 @@ func (d *WebhookDispatcher) deliverWithRetry(ctx context.Context, job webhookJob
 			}
 		}
 
-		statusCode, respBody, deliveryErr := d.sendWebhook(job.ep.URL, job.body, sig, job.eventType)
+		// Уникальный X-Hub-Delivery на каждую попытку (A2W4-5-003) —
+		// consumer отличает retry от «нового» события.
+		deliveryID := uuid.New().String()
+		statusCode, respBody, deliveryErr := d.sendWebhook(ctx, job.ep.URL, job.body, sig, job.eventType, deliveryID)
 
 		errMsg := ""
 		if deliveryErr != nil {
@@ -282,12 +309,15 @@ func (d *WebhookDispatcher) deliverWithRetry(ctx context.Context, job webhookJob
 // sendWebhook выполняет HTTP POST к эндпоинту с подписью HMAC-SHA256.
 // URL предварительно валидируется (только http/https, без userinfo) и
 // отправляется через webhookHTTPClient с SafeDialContext (защита от SSRF).
-func (d *WebhookDispatcher) sendWebhook(url string, body []byte, signature, eventType string) (int, string, error) {
+// ctx прокидывается в NewRequestWithContext (A2W4-5-002): cancel/timeout
+// прерывает Do, а не ждёт полный client Timeout × retries.
+// deliveryID — значение заголовка X-Hub-Delivery (UUID на попытку).
+func (d *WebhookDispatcher) sendWebhook(ctx context.Context, url string, body []byte, signature, eventType, deliveryID string) (int, string, error) {
 	if err := safehttp.ValidateOutboundURL(url); err != nil {
 		return 0, "", fmt.Errorf("отклонён небезопасный URL: %w", err)
 	}
 
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
 		return 0, "", fmt.Errorf("ошибка создания запроса: %w", err)
 	}
@@ -295,6 +325,7 @@ func (d *WebhookDispatcher) sendWebhook(url string, body []byte, signature, even
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Hub-Signature-256", "sha256="+signature)
 	req.Header.Set("X-Hub-Event", eventType)
+	req.Header.Set("X-Hub-Delivery", deliveryID)
 	req.Header.Set("User-Agent", "Hub-Webhook/1.0")
 
 	resp, err := webhookHTTPClient.Do(req)
@@ -321,17 +352,125 @@ func signPayload(payload []byte, secret string) string {
 	return hex.EncodeToString(mac.Sum(nil))
 }
 
-// containsEvent проверяет наличие события в списке подписок.
+// webhookEventAliases — UI short names (AVAILABLE_EVENTS) → альтернативные
+// NATS subject / prefix, когда suffix-match недостаточен
+// (test_run.completed ↔ tms.testrun.completed / tms.run.completed.<id>).
+var webhookEventAliases = map[string][]string{
+	"test_run.completed": {
+		"tms.testrun.completed",
+		"tms.run.completed",
+	},
+	// Tracker публикует смену колонки/статуса как issue.moved.
+	"issue.status_changed": {
+		"issue.moved",
+	},
+}
+
+// containsEvent проверяет подписку эндпоинта на NATS subject / UI short name.
+// Match: exact, "*", suffix ("."+sub), first+last token (sprint.<id>.completed),
+// либо alias-таблица webhookEventAliases.
 func containsEvent(events []string, event string) bool {
-	for _, e := range events {
-		if e == event || e == "*" {
+	for _, sub := range events {
+		if eventMatchesSubscription(sub, event) {
 			return true
 		}
 	}
 	return false
 }
 
+func eventMatchesSubscription(sub, event string) bool {
+	if sub == "*" || sub == event {
+		return true
+	}
+	// project.<uuid>.issue.created ← issue.created
+	if strings.HasSuffix(event, "."+sub) {
+		return true
+	}
+	// sprint.<uuid>.completed ← sprint.completed (первый и последний токен)
+	subParts := strings.Split(sub, ".")
+	eventParts := strings.Split(event, ".")
+	if len(subParts) == 2 && len(eventParts) >= 3 &&
+		eventParts[0] == subParts[0] && eventParts[len(eventParts)-1] == subParts[1] {
+		return true
+	}
+	for _, alias := range webhookEventAliases[sub] {
+		if event == alias ||
+			strings.HasSuffix(event, "."+alias) ||
+			strings.HasPrefix(event, alias+".") {
+			return true
+		}
+	}
+	return false
+}
+
+// extractEventProjectID извлекает project UUID из subject
+// (project.<uuid>.… / tracker.<uuid>.…) либо из payload (project_id / projectId).
+// Если извлечь нельзя — ok=false (fail-closed для project-scoped delivery).
+func extractEventProjectID(subject string, payload map[string]interface{}) (uuid.UUID, bool) {
+	parts := strings.Split(subject, ".")
+	if len(parts) >= 2 && (parts[0] == "project" || parts[0] == "tracker") {
+		if id, err := uuid.Parse(parts[1]); err == nil {
+			return id, true
+		}
+	}
+	if payload == nil {
+		return uuid.Nil, false
+	}
+	for _, key := range []string{"project_id", "projectId"} {
+		raw, ok := payload[key]
+		if !ok || raw == nil {
+			continue
+		}
+		switch v := raw.(type) {
+		case string:
+			if id, err := uuid.Parse(v); err == nil {
+				return id, true
+			}
+		case uuid.UUID:
+			if v != uuid.Nil {
+				return v, true
+			}
+		}
+	}
+	return uuid.Nil, false
+}
+
+// webhookEndpointProjectID возвращает ID проекта эндпоинта из eager-loaded edge.
+func webhookEndpointProjectID(ep *ent.WebhookEndpoint) (uuid.UUID, bool) {
+	if ep == nil || ep.Edges.Project == nil {
+		return uuid.Nil, false
+	}
+	return ep.Edges.Project.ID, true
+}
+
 // --- CRUD вебхуков ---
+
+// allowedWebhookEvents — UI short names (AVAILABLE_EVENTS из
+// frontend/src/modules/settings/webhooks.tsx) + wildcard "*".
+// Bind validate-теги Fiber не enforce'ит — проверка в сервисе (P1-BE-28).
+// A3W4-5-003 (trim): sprint.completed убран из allowlist — sprint-сервис
+// не публикует NATS subject sprint.* (только poker.*); подписка была мёртвой.
+// Вернуть в allowlist только вместе с producer sprint.<id>.completed + project_id.
+var allowedWebhookEvents = map[string]struct{}{
+	"*":                    {},
+	"issue.created":        {},
+	"issue.updated":        {},
+	"issue.status_changed": {},
+	"test_run.completed":   {},
+}
+
+// validateWebhookEvents требует непустой список и только allowlist-имена.
+func validateWebhookEvents(events []string) error {
+	if len(events) == 0 {
+		return newInvalidInputError("events: требуется хотя бы одно событие")
+	}
+	for _, e := range events {
+		if _, ok := allowedWebhookEvents[e]; !ok {
+			return newInvalidInputError("events: неизвестное событие " + e)
+		}
+	}
+	return nil
+}
 
 // WebhookService управляет CRUD операциями для вебхук-эндпоинтов.
 type WebhookService struct {
@@ -347,9 +486,13 @@ func NewWebhookService(repo WebhookRepository) *WebhookService {
 // URL валидируется на схему (http/https) и отсутствие userinfo —
 // фактическая блокировка приватных IP происходит в SafeDialContext
 // (CR-03, защита от DNS-rebinding).
-func (s *WebhookService) CreateEndpoint(ctx context.Context, projectID uuid.UUID, req CreateWebhookRequest) (*WebhookResponse, error) {
+// Автогенерированный (или переданный) secret возвращается в ответе один раз.
+func (s *WebhookService) CreateEndpoint(ctx context.Context, projectID uuid.UUID, req CreateWebhookRequest) (*CreateWebhookResponse, error) {
 	if err := safehttp.ValidateOutboundURL(req.URL); err != nil {
 		return nil, newInvalidInputError("некорректный URL вебхука: " + err.Error())
+	}
+	if err := validateWebhookEvents(req.Events); err != nil {
+		return nil, err
 	}
 
 	secret := req.Secret
@@ -362,7 +505,10 @@ func (s *WebhookService) CreateEndpoint(ctx context.Context, projectID uuid.UUID
 		return nil, fmt.Errorf("не удалось создать вебхук-эндпоинт: %w", err)
 	}
 
-	return toWebhookResponse(ep), nil
+	return &CreateWebhookResponse{
+		WebhookResponse: *toWebhookResponse(ep),
+		Secret:          secret,
+	}, nil
 }
 
 // ListEndpoints возвращает вебхук-эндпоинты проекта.
@@ -380,21 +526,34 @@ func (s *WebhookService) ListEndpoints(ctx context.Context, projectID uuid.UUID)
 }
 
 // UpdateEndpoint обновляет вебхук-эндпоинт.
+// A3W4-5-002: version обязателен; VersionEQ в repo → 409 при conflict.
 func (s *WebhookService) UpdateEndpoint(ctx context.Context, endpointID uuid.UUID, req UpdateWebhookRequest) (*WebhookResponse, error) {
+	if req.Version < 1 {
+		return nil, newInvalidInputError("version обязателен и должен быть ≥ 1")
+	}
 	input := UpdateWebhookEndpointInput{
 		URL:      req.URL,
 		Secret:   req.Secret,
 		Events:   req.Events,
 		IsActive: req.IsActive,
+		Version:  req.Version,
 	}
 	if req.URL != nil {
 		if err := safehttp.ValidateOutboundURL(*req.URL); err != nil {
 			return nil, newInvalidInputError("некорректный URL вебхука: " + err.Error())
 		}
 	}
+	if req.Events != nil {
+		if err := validateWebhookEvents(req.Events); err != nil {
+			return nil, err
+		}
+	}
 
 	ep, err := s.repo.UpdateWebhookEndpoint(ctx, endpointID, input)
 	if err != nil {
+		if errors.Is(err, ErrVersionConflict) {
+			return nil, ErrVersionConflict
+		}
 		if IsNotFound(err) {
 			return nil, ErrWebhookEndpointNotFound
 		}
@@ -455,6 +614,7 @@ func toWebhookResponse(ep *ent.WebhookEndpoint) *WebhookResponse {
 		URL:      ep.URL,
 		Events:   ep.Events,
 		IsActive: ep.IsActive,
+		Version:  ep.Version,
 		Created:  ep.CreatedAt.Format(time.RFC3339),
 	}
 }

@@ -32,8 +32,6 @@ func (LeaveRequest) Fields() []ent.Field {
 			Optional(),
 		field.Text("review_note").
 			Optional(),
-		field.Int("version").
-			Default(1),
 		field.Time("reviewed_at").
 			Optional().
 			Nillable(),
@@ -43,8 +41,19 @@ func (LeaveRequest) Fields() []ent.Field {
 		field.Time("updated_at").
 			Default(nowUTC).
 			UpdateDefault(nowUTC),
+		// A2W8-3-001 / ADR-ENT-SOFT-DELETE-GAPS-2026: HR-PII → soft-delete / GDPR.
+		field.Time("deleted_at").
+			Optional().
+			Nillable(),
 	}
 }
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (LeaveRequest) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
+	}
+}
+
 
 func (LeaveRequest) Edges() []ent.Edge {
 	return []ent.Edge{
@@ -62,5 +71,6 @@ func (LeaveRequest) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("status", "start_date"),
 		index.Fields("start_date", "end_date"),
+		index.Fields("deleted_at"),
 	}
 }

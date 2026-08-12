@@ -3,6 +3,7 @@ package notification
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -10,10 +11,16 @@ import (
 
 	"github.com/SherClockHolmes/webpush-go"
 	"github.com/google/uuid"
-	"github.com/valerii/hub/backend/ent"
-	"github.com/valerii/hub/backend/ent/pushsubscription"
 	"github.com/valerii/hub/backend/internal/platform/config"
 	safehttp "github.com/valerii/hub/backend/internal/platform/http"
+)
+
+// A2-005: чужой endpoint нельзя перепривязать/удалить.
+var (
+	ErrSubscriptionNotFound  = errors.New("push subscription not found")
+	ErrSubscriptionForbidden = errors.New("push subscription access denied")
+	// ErrInvalidPushEndpoint — endpoint не проходит NF-07 ValidateOutboundURL (→ HTTP 400).
+	ErrInvalidPushEndpoint = errors.New("invalid push endpoint")
 )
 
 // pushHTTPClient — SafeHTTPClient с SafeDialContext, блокирующим SSRF на
@@ -23,6 +30,25 @@ import (
 // endpoint = http://169.254.169.254/... и заставить бэк выстрелить во
 // внутреннюю сеть. SEC-H3.
 var pushHTTPClient = safehttp.NewSafeHTTPClient(10 * time.Second)
+
+// PushSub — Web Push подписка без зависимости от ent (ASN-001).
+type PushSub struct {
+	ID        uuid.UUID
+	UserID    uuid.UUID
+	Endpoint  string
+	P256dhKey string
+	AuthKey   string
+}
+
+// PushSubscriptionStore — CRUD подписок для PushSender (TZ: без *ent.Client).
+type PushSubscriptionStore interface {
+	ListPushSubscriptions(ctx context.Context, userID uuid.UUID) ([]PushSub, error)
+	DeletePushSubscription(ctx context.Context, id uuid.UUID) error
+	UpdateOwnPushSubscription(ctx context.Context, userID uuid.UUID, endpoint, p256dhKey, authKey, userAgent string) (int, error)
+	PushEndpointExists(ctx context.Context, endpoint string) (bool, error)
+	CreatePushSubscription(ctx context.Context, userID uuid.UUID, endpoint, p256dhKey, authKey, userAgent string) error
+	DeleteOwnPushSubscription(ctx context.Context, userID uuid.UUID, endpoint string) (int, error)
+}
 
 // pushMessage — внутреннее представление push-уведомления для очереди.
 type pushMessage struct {
@@ -41,8 +67,9 @@ type pushPayload struct {
 
 // PushSender отправляет Web Push уведомления через VAPID.
 // Использует буферизованный канал и воркер-горутину (аналогично TelegramSender).
+// ASN-001: хранит PushSubscriptionStore, не *ent.Client.
 type PushSender struct {
-	db     *ent.Client
+	store  PushSubscriptionStore
 	cfg    config.WebPushConfig
 	queue  chan pushMessage
 	cancel context.CancelFunc
@@ -50,14 +77,14 @@ type PushSender struct {
 
 // NewPushSender создаёт нового отправителя push-уведомлений.
 // Если VAPID-ключи не заданы — возвращает nil (nil-safe: Send на nil sender — no-op).
-func NewPushSender(db *ent.Client, cfg config.WebPushConfig) *PushSender {
+func NewPushSender(store PushSubscriptionStore, cfg config.WebPushConfig) *PushSender {
 	if cfg.VAPIDPublicKey == "" || cfg.VAPIDPrivateKey == "" {
 		slog.Info("VAPID ключи не заданы, push-уведомления отключены")
 		return nil
 	}
 
 	return &PushSender{
-		db:    db,
+		store: store,
 		cfg:   cfg,
 		queue: make(chan pushMessage, 200),
 	}
@@ -118,9 +145,10 @@ func (p *PushSender) Send(userID uuid.UUID, title, body, url string) {
 
 // sendToUser находит все подписки пользователя и отправляет push каждому устройству.
 func (p *PushSender) sendToUser(ctx context.Context, msg pushMessage) {
-	subs, err := p.db.PushSubscription.Query().
-		Where(pushsubscription.UserID(msg.userID)).
-		All(ctx)
+	if p.store == nil {
+		return
+	}
+	subs, err := p.store.ListPushSubscriptions(ctx, msg.userID)
 	if err != nil {
 		slog.Error("ошибка загрузки push-подписок", "error", err, "user_id", msg.userID)
 		return
@@ -153,13 +181,14 @@ func (p *PushSender) sendToUser(ctx context.Context, msg pushMessage) {
 // мимо SaveSubscription — например, через миграцию или legacy-данные).
 // Сам исходящий запрос идёт через pushHTTPClient с SafeDialContext —
 // это финальный рубеж против DNS-rebinding на приватные IP.
-func (p *PushSender) sendToSubscription(ctx context.Context, sub *ent.PushSubscription, payload []byte) {
+func (p *PushSender) sendToSubscription(ctx context.Context, sub PushSub, payload []byte) {
 	if err := safehttp.ValidateOutboundURL(sub.Endpoint); err != nil {
 		slog.Warn("отказ отправки push: небезопасный endpoint",
 			"error", err, "endpoint", sub.Endpoint, "user_id", sub.UserID)
-		// Удаляем небезопасную запись, чтобы перестать пытаться к ней стучаться.
-		if err := p.db.PushSubscription.DeleteOne(sub).Exec(ctx); err != nil {
-			slog.Error("ошибка удаления небезопасной push-подписки", "error", err)
+		if p.store != nil {
+			if err := p.store.DeletePushSubscription(ctx, sub.ID); err != nil {
+				slog.Error("ошибка удаления небезопасной push-подписки", "error", err)
+			}
 		}
 		return
 	}
@@ -190,8 +219,10 @@ func (p *PushSender) sendToSubscription(ctx context.Context, sub *ent.PushSubscr
 	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusGone {
 		slog.Info("удаление мёртвой push-подписки",
 			"endpoint", sub.Endpoint, "status", resp.StatusCode, "user_id", sub.UserID)
-		if err := p.db.PushSubscription.DeleteOne(sub).Exec(ctx); err != nil {
-			slog.Error("ошибка удаления мёртвой подписки", "error", err)
+		if p.store != nil {
+			if err := p.store.DeletePushSubscription(ctx, sub.ID); err != nil {
+				slog.Error("ошибка удаления мёртвой подписки", "error", err)
+			}
 		}
 		return
 	}
@@ -203,7 +234,7 @@ func (p *PushSender) sendToSubscription(ctx context.Context, sub *ent.PushSubscr
 }
 
 // SaveSubscription сохраняет или обновляет подписку на push-уведомления.
-// При существующем endpoint — обновляет ключи и привязку к пользователю.
+// Update только для Endpoint AND UserID=caller — без SetUserID (A2-005 hijack).
 //
 // SEC-H3: endpoint валидируется ValidateOutboundURL (http/https-only, без
 // userinfo, непустой host). Это отбрасывает javascript:/file:/data:/gopher:
@@ -214,51 +245,54 @@ func (p *PushSender) SaveSubscription(ctx context.Context, userID uuid.UUID, end
 	if p == nil {
 		return nil
 	}
+	if p.store == nil {
+		return fmt.Errorf("push subscription store not configured")
+	}
 
 	if err := safehttp.ValidateOutboundURL(endpoint); err != nil {
-		return fmt.Errorf("некорректный endpoint push-подписки: %w", err)
+		// W7-A1-002: sentinel → handler мапит в 400, не 500.
+		return fmt.Errorf("%w: %v", ErrInvalidPushEndpoint, err)
 	}
 
-	// Проверяем, существует ли подписка с таким endpoint.
-	existing, err := p.db.PushSubscription.Query().
-		Where(pushsubscription.Endpoint(endpoint)).
-		First(ctx)
-	if err != nil && !ent.IsNotFound(err) {
+	// Mutation: снять UserID из Where → чужой endpoint перезаписывается → FAIL (A2-005).
+	n, err := p.store.UpdateOwnPushSubscription(ctx, userID, endpoint, p256dhKey, authKey, userAgent)
+	if err != nil {
 		return err
 	}
-
-	if existing != nil {
-		// Обновляем существующую подписку (ключи могут измениться при переподписке).
-		_, err = existing.Update().
-			SetUserID(userID).
-			SetP256dhKey(p256dhKey).
-			SetAuthKey(authKey).
-			SetUserAgent(userAgent).
-			Save(ctx)
-		return err
-	}
-
-	// Создаём новую подписку.
-	_, err = p.db.PushSubscription.Create().
-		SetUserID(userID).
-		SetEndpoint(endpoint).
-		SetP256dhKey(p256dhKey).
-		SetAuthKey(authKey).
-		SetUserAgent(userAgent).
-		Save(ctx)
-	return err
-}
-
-// RemoveSubscription удаляет подписку по endpoint.
-func (p *PushSender) RemoveSubscription(ctx context.Context, endpoint string) error {
-	if p == nil {
+	if n > 0 {
 		return nil
 	}
 
-	_, err := p.db.PushSubscription.Delete().
-		Where(pushsubscription.Endpoint(endpoint)).
-		Exec(ctx)
-	return err
+	// Endpoint уже занят другим пользователем — без rebind.
+	taken, err := p.store.PushEndpointExists(ctx, endpoint)
+	if err != nil {
+		return err
+	}
+	if taken {
+		return ErrSubscriptionForbidden
+	}
+
+	return p.store.CreatePushSubscription(ctx, userID, endpoint, p256dhKey, authKey, userAgent)
+}
+
+// RemoveSubscription удаляет подписку по Endpoint AND UserID=caller (A2-005).
+func (p *PushSender) RemoveSubscription(ctx context.Context, userID uuid.UUID, endpoint string) error {
+	if p == nil {
+		return nil
+	}
+	if p.store == nil {
+		return fmt.Errorf("push subscription store not configured")
+	}
+
+	// Mutation: снять UserID из Where → чужой unsubscribe проходит → FAIL (A2-005).
+	n, err := p.store.DeleteOwnPushSubscription(ctx, userID, endpoint)
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return ErrSubscriptionNotFound
+	}
+	return nil
 }
 
 // VAPIDPublicKey возвращает публичный VAPID-ключ для передачи на фронтенд.

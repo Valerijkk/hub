@@ -1,7 +1,7 @@
 # Hub — Тестовая документация
 
-> **Обновлено:** 2026-06-22 · Стратегия: `docs/test_plan.md` · Coverage: `.planning/COVERAGE.md` · Quality audit: `.planning/audits/2026-06/AUDIT-2026-06-22-quality-processes.md`  
-> **Edge/Corner backlog:** [`.planning/july-2026/EDGE-CORNER-CATALOG.md`](../.planning/july-2026/EDGE-CORNER-CATALOG.md) — Happy/Neg/Edge/Corner по доменам (источник будущих TC; CAL-SYNC C1–C15)
+> **Обновлено:** 2026-07-28 · Стратегия: `docs/test_plan.md` · Coverage: `.planning/COVERAGE.md` · Quality audit: `.planning/audits/2026-06/AUDIT-2026-06-22-quality-processes.md`  
+> **Edge/Corner backlog:** [`.planning/archive/july-2026/EDGE-CORNER-CATALOG.md`](../.planning/archive/july-2026/EDGE-CORNER-CATALOG.md) — Happy/Neg/Edge/Corner по доменам (источник будущих TC; CAL-SYNC C1–C15)
 
 ---
 
@@ -21,85 +21,44 @@
 ### Принципы
 
 1. **Backend CI:** `go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...`
-2. **Coverage floor:** statement coverage `internal/` **83.0%** (≥82% gate); security packages **≥80%**
+2. **Coverage floor:** statement coverage `internal/` **83.0%** (2026-06-22 Docker baseline; ≥82% gate); security packages **≥80%**
 3. **Auth тесты:** Magic Link only (v2.5) — Telegram login endpoints **удалены**
 4. **E2E:** 20 spec files; config `frontend/playwright.config.ts` (см. `docs/test_plan.md`)
 5. **Triage:** spec-first — `.cursor/skills/test-triage/SKILL.md`
 
-### Актуальные счётчики (2026-06-22)
+### Актуальные счётчики (2026-07-29)
 
 | Слой | Метрика |
 |------|---------|
-| Backend test files (`testframework/`) | **499** `_test.go` (пересчёт: `find backend -name '*_test.go' | wc -l`) |
-| Backend `internal/*_test.go` | **0** (TF-M08) |
-| Frontend Vitest | **37** files, **99** tests |
+| Backend test files (`backend/testframework/`) | **812** `_test.go` (0 в `internal/` после TF-M08; measured 2026-07-29) |
+| Backend `export_hooks.go` | **39** (`//go:build hubtest`; measured 2026-07-29) |
+| Backend `internal/*_test.go` | **0** |
+| Frontend Vitest | **179** files (`stages/unit/frontend-test/`; measured 2026-07-29; 61 `.ts` + 118 `.tsx`) |
 | Playwright | **20** spec files (`stages/e2e/domains/`) |
-| Overall `internal/` coverage | **83.0%** |
+| Overall `internal/` coverage | **83.0%** (2026-06-22 Docker baseline) |
 
 ---
 
 ## Backend-тесты (Go)
 
-### Покрытие по модулям — 33 тестовых файла, 32 пакета, 272 тестовых функции
+Все Go-тесты живут в `backend/testframework/{domain}/` (белый ящик через `export_hooks.go` с `//go:build hubtest`). В `backend/internal/` **нет** `*_test.go`. Каталог доменов и карта CI — `testframework/PIPELINE.md` / `docs/test_plan.md`.
 
-| # | Модуль | Файл | Что тестируется | Тестов |
-|---|--------|------|-----------------|--------|
-| 1 | apigateway | apikey_test.go | Генерация/валидация API-ключей, SHA-256 хеширование, подпись webhook | 7 |
-| 2 | audit | service_test.go | Аудит-логи, фильтрация, корзина, дни до удаления | 7 |
-| 3 | auth | handler_test.go | HTTP-обработчики: magic link, verify, telegram, refresh, logout, профиль | 6 |
-| 4 | auth | service_test.go | Telegram auth валидация, генерация кодов, JWT round-trip, expiry | 8 |
-| 5 | backup | service_test.go | Создание ZIP-бэкапов, пустые данные | 2 |
-| 6 | calls | service_test.go | LiveKit токены, NATS nil-safe publish, webhook signature | 5 |
-| 7 | calls | chat_test.go | Эфемерный чат: отправка, лимит длины, список, удаление, индексы | 5 |
-| 8 | calls | recording_test.go | Лимит записей, RRule parsing, scheduled call DTO | 7 |
-| 9 | dashboard | service_test.go | Раскладки, сериализация, дефолты, валидация | 6 |
-| 10 | dev | seed_test.go | Валидация seed-данных: пользователи, статусы, задачи, кейсы, каналы | 5 |
-| 11 | github | service_test.go | Issue key regex, webhook signature, slug, truncate | 4 |
-| 12 | gitlab | service_test.go | Issue key regex, slugify, truncate | 3 |
-| 13 | imex | service_test.go | Field mapping, get field, bounds check | 3 |
-| 14 | messenger | service_test.go | DM dedup, сообщения, read-only, реакции, треды, join, forward, поиск | 20 |
-| 15 | messenger | auto_channels_test.go | Автосоздание каналов, добавление участников | 2 |
-| 16 | messenger | presence_test.go | Heartbeat, online/away/offline, cleanup, custom status, bulk | 7 |
-| 17 | messenger | unread_test.go | Increment (skip sender), mark read, get all | 4 |
-| 18 | notification | service_test.go | Subject-to-type, time parsing, Markdown escape, Telegram format, dispatch | 6 |
-| 19 | platform/nats | client_test.go | Stream name, subjects, client struct | 3 |
-| 20 | project | service_test.go | Создание, дубликат ключа, архивирование, удаление, invite, участники | 7 |
-| 21 | rbac | permissions_test.go | Permission bit ops (Has/Add/Remove), idempotent, role defaults | 5 |
-| 22 | search | service_test.go | Merge results, limit, UUID array, saved filter DTO, defaults, types | 7 |
-| 23 | search | jql_test.go | JQL: simple, multi-condition, IN, NOT IN, order by, quoted, OR, predicates | 13 |
-| 24 | sprint | service_test.go | CRUD спринтов, start/complete, WIP-лимиты, burndown, velocity | 10 |
-| 25 | storage | service_test.go | Upload/download URL TTL, result fields | 3 |
-| 26 | tms | service_test.go | CRUD кейсов (classic/BDD), версии, rollback, прогоны, результаты, import/export, coverage | 18 |
-| 27 | tms | allure_parser_test.go | Парсинг Allure JSON, matching (annotation, link, ASID, fullName, className) | 14 |
-| 28 | tracker | service_test.go | CRUD задач, все типы, optimistic locking, workflow, связи, метки, доски, кастомные поля | 12 |
-| 29 | ws | protocol_test.go | Message type constants, JSON serialization, ping, NewClient | 5 |
-| 30 | platform/middleware | middleware_test.go | RequestID, ErrorHandler, CORS, RateLimit, Logger | 18 |
-| 31 | platform/errors | errors_test.go | AppError, все конструкторы (BadRequest..Internal), messages | 16 |
-| 32 | platform/http | helpers_test.go | UserIDFromCtx, ParseUUIDParam, ParseProjectID | 12 |
-| 33 | platform/outbox | outbox_test.go | NewWorker, NewPublisher, JSON marshal, constants | 9 |
-
-### Инфраструктурные пакеты без тестов
-
-Следующие пакеты не имеют `_test.go` файлов (конфигурация, подключения):
-
-- `platform/config` — загрузка env vars
-- `platform/database` — подключение к PostgreSQL/MongoDB
-- `platform/redis` — Redis-клиент
+Покрытие `internal/` меряется флагом `-coverpkg=./internal/...` при прогоне `./testframework/...` (job `coverage-gate`), не путём `./internal/...`.
 
 ### Запуск тестов
 
 ```bash
-# Backend — как CI
+# Backend — как CI (только testframework; в internal/ тестов нет)
 cd backend
 go generate ./ent
-go test -tags hubtest -race -count=1 -timeout=600s ./internal/... ./testframework/...
+go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...
 
 # Конкретный модуль
-go test -tags hubtest ./internal/auth/...
-go test -tags hubtest -v ./internal/tms/...
+go test -tags hubtest ./testframework/auth/...
+go test -tags hubtest -v ./testframework/tms/...
 
-# С покрытием (профиль вне repo — rule 45)
-go test -tags hubtest -cover ./internal/auth/...
+# С покрытием кода internal (профиль вне repo — rule 45)
+go test -tags hubtest -coverpkg=./internal/auth/... -coverprofile="${TMPDIR:-/tmp}/hub-cov.out" ./testframework/auth/...
 
 # Prod build
 go build -tags release -o bin/server ./cmd/server
@@ -217,6 +176,7 @@ Vite build проверяет: импорты, tree-shaking, Tailwind 4, TanStac
 | TC-AUTH-10 | Rate limit | — | 4 auth запроса за 10 мин | 429 на 4-м | manual / middleware test |
 | TC-AUTH-11 | Онбординг | onboarding=false | POST /auth/me/onboarding | 200 | `onboarding-profile.spec.ts` |
 | TC-AUTH-12 | Logout | Авторизован | POST /auth/logout | 200, refresh revoked | `logout.spec.ts` |
+| TC-AUTH-13 | Magic Link: OTP не в slog (A14-006) | Dev/Resend paths | SendMagicLink + VerifyCode; capture slog | raw OTP и `"code"` отсутствуют; email masked | `TestMagicLink_OTPNotLogged_A14_006`, `TestMaskEmailMinimized_A14_006` |
 
 ### PROJ — Проекты
 
@@ -232,6 +192,8 @@ Vite build проверяет: импорты, tree-shaking, Tailwind 4, TanStac
 | TC-PROJ-08 | Invite: присоединение | Валидный invite-код | POST /invites/join {code} | 200, участник добавлен | `TestJoinByInvite_ValidCode`, `TestJoinByInvite_ExpiredCode` |
 | TC-PROJ-09 | Участник: смена роли | Owner | PUT /projects/:id/members/:userId {role: "tester"} | 200 | — (ручной) |
 | TC-PROJ-10 | Участник: удаление | Owner | DELETE /projects/:id/members/:userId | 200, удалён | `TestRemoveMember_LastOwner` |
+| TC-PROJ-11 | Team: last-member remove → 409 | Команда с 1 участником | DELETE /teams/:teamId/members/:userId | 409 Conflict, count=1 | `TestRemoveTeamMember_RejectsLastMember_TASK184` |
+| TC-PROJ-12 | Team: remove non-last OK, then last → 409 | Команда ≥2 участников | DELETE member; затем last | 200 затем 409, count=1 | `TestRemoveTeamMember_AllowsWhenMultiple_TASK184` |
 
 ### TRCK — Трекер задач
 
@@ -294,7 +256,7 @@ Vite build проверяет: импорты, tree-shaking, Tailwind 4, TanStac
 | TC-CALL-06 | End call | В звонке | POST calls/:id/end | 200, status=ended | — (ручной) |
 | TC-CALL-07 | Start recording | В звонке | POST calls/:id/recording/start | 200, egress started | `TestMaxActiveRecordingsLimit` |
 | TC-CALL-08 | Stop recording | Запись идёт | POST calls/:id/recording/stop | 200, status=processing | `TestRecordingStatusValues` |
-| TC-CALL-09 | Chat в звонке | В звонке | POST calls/:id/chat {text} | 200, NATS event | `TestSendMessage`, `TestSendMessage_TextTooLong` |
+| TC-CALL-09 | Chat в звонке | В звонке | POST calls/:id/chat {text} | 200, NATS event | `TestSendMessage`, `TestSendMessage_TextTooLong`, `TestWSAuthorizer_CallRoom_CanSubscribe_A2_007`, `TestReadPump_CallAuthorizer_StrangerDenied_A2_007`, `TestReadPump_CallAuthorizer_ParticipantAllowed_A2_007` |
 | TC-CALL-10 | Raise hand | В звонке | POST calls/:id/raise-hand | 200, NATS event | — (ручной) |
 | TC-CALL-11 | Webhook: participant_joined | LiveKit event | POST calls/webhook | 200, participant_count++ | `TestVerifyWebhookSignature_EmptyAuth`, `TestVerifyWebhookSignature_InvalidJWT` |
 
@@ -314,7 +276,7 @@ Vite build проверяет: импорты, tree-shaking, Tailwind 4, TanStac
 
 | ID | Название | Предусловие | Шаги | Ожидаемый результат | Автотест |
 |----|----------|-------------|------|---------------------|----------|
-| TC-NOTIF-01 | Назначение задачи -> уведомление | Задача существует | PUT issue {assignee: userId} | Уведомление type=assigned | `TestSubjectToType` |
+| TC-NOTIF-01 | Назначение задачи -> уведомление | Задача существует | PUT issue {assignee: userId} | Уведомление type=assigned | `TestSubjectToType`, `TestNotificationConsumer_NakOnBadJSON_A2_010`, `TestNotificationConsumer_AckOnSuccess_A2_010`, `TestNotificationConsumer_NakOnDispatchError_A2_010` |
 | TC-NOTIF-02 | @mention -> уведомление | Комментарий с mention | POST comment {mentions: [userId]} | Уведомление type=mentioned | `TestSubjectToType` |
 | TC-NOTIF-03 | Mark as read | Уведомление unread | PATCH notifications/:id/read | 200, is_read=true | — (ручной) |
 | TC-NOTIF-04 | Mark all read | 5 unread | PATCH notifications/read-all | 200, все is_read=true | — (ручной) |
@@ -331,6 +293,9 @@ Vite build проверяет: импорты, tree-shaking, Tailwind 4, TanStac
 | TC-ADMIN-03 | GDPR удаление | Admin | DELETE users/:id/gdpr | 200, все данные удалены | — (ручной) |
 | TC-ADMIN-04 | Бэкап | Admin | POST /admin/backups | 200, backup started | `TestCreateZIP` |
 | TC-ADMIN-05 | Restore | Admin, backup exists | POST /admin/backups/:id/restore | 200, восстановлено | `TestCreateZIPEmptyData` |
+| TC-ADMIN-06 | Restore/dump errors без секретов (A7-007) | Admin; pg_restore/mongorestore fail | Restore / ExportRestore* | ошибка без DSN/CombinedOutput | `TestRestorePostgres_DoesNotEmbedDumpOutput_A7_007`, `TestRestoreMongo_DoesNotEmbedDumpOutput_A7_007`, `TestRestoreHandler_DoesNotLeakSecrets_A7_007` |
+| TC-ADMIN-07 | Mail broadcast только active (A7-008) | Admin; pending+deactivated users | POST broadcast dry-run | recipients = active only | `TestAdminService_Broadcast` |
+| TC-HR-01 | Leave approve/cancel version≥1 (A6-006) | Member leave pending | approve/cancel version=0 / bad JSON | 400 | `TestHandler_ApproveLeave_VersionZero_A6_006`, `TestHandler_CancelLeave_BindAndVersion_A6_006` |
 
 ### Дополнительные модули
 
@@ -354,6 +319,7 @@ Vite build проверяет: импорты, tree-shaking, Tailwind 4, TanStac
 | TC-STORAGE-01 | Upload URL TTL | `TestUploadURLTTL` |
 | TC-STORAGE-02 | Download URL TTL | `TestDownloadURLTTL` |
 | TC-STORAGE-03 | Result fields | `TestUploadResult_Fields` |
+| TC-STORAGE-04 | ConfirmUpload already confirmed → 409 (A4-006) | `TestHandler_ConfirmUpload_AlreadyConfirmed_409_A4_006`, `TestConfirmUpload_RejectsAlreadyConfirmed_A4_006` |
 | TC-WS-01 | Message type constants | `TestMessageTypeConstants` |
 | TC-WS-02 | Client/Server JSON | `TestClientMessage_JSON`, `TestServerMessage_JSON` |
 | TC-WS-03 | Ping protocol | `TestClientMessage_PingHasNoRoom` |
@@ -363,6 +329,7 @@ Vite build проверяет: импорты, tree-shaking, Tailwind 4, TanStac
 | TC-APIKEY-03 | Event filtering | `TestContainsEvent`, `TestContainsEventWildcard` |
 | TC-APIKEY-04 | Webhook signing | `TestSignPayload` |
 | TC-NATS-01 | Stream config | `TestStreamNameConstant`, `TestStreamSubjects`, `TestClientStructFields` |
+| TC-PLATFORM-01 | Fiber recover EnableStackTrace == DevMode (A14-007) | `TestFiberRecoverEnableStackTrace_FollowsDevMode_A14_007` |
 | TC-SEED-01 | Demo data validity | `TestDemoUsersValid`, `TestDemoStatusesValid`, `TestDemoIssuesValid`, `TestDemoTestCasesValid`, `TestDemoChannelsValid` |
 | TC-DASH-01 | Layout serialization | `TestLayoutItemSerialization`, `TestLayoutDTOEmptyItems` |
 | TC-DASH-02 | Data defaults | `TestPersonalDataDefaults`, `TestProjectStatsDefaults` |
@@ -372,6 +339,7 @@ Vite build проверяет: импорты, tree-shaking, Tailwind 4, TanStac
 | TC-SEARCH-02 | UUID array | `TestUUIDSliceToPgArray`, `TestUUIDSliceToPgArrayEmpty` |
 | TC-SEARCH-03 | Saved filters | `TestSavedFilterToDTO` |
 | TC-SEARCH-04 | Defaults | `TestSearchRequestDefaultLimit`, `TestSearchResultTypes` |
+| TC-SEARCH-05 | Soft-delete exclusion Ctrl+K (A4-002) | `TestPostgresSearch_ExcludesSoftDeleted_A4_002`, `TestSearchSQL_ExcludesSoftDeleted_A4_002` |
 | TC-JQL-01 | JQL parsing | `TestParseJQLSimple` .. `TestParseJQLOR` (13 тестов) |
 | TC-JQL-02 | JQL to Ent predicates | `TestToEntPredicates`, `TestToEntPredicatesIN` |
 | TC-ALLURE-01 | Parse valid JSON | `TestParseAllureResults_ValidJSON` |
@@ -422,7 +390,7 @@ Vite build проверяет: импорты, tree-shaking, Tailwind 4, TanStac
 
 ### WebSocket Regression
 
-1. Подключение /ws?token=JWT
+1. Подключение /ws через ticket subprotocol (не ?token=JWT)
 2. Subscribe to project:{id}
 3. Создать задачу через API
 4. Получить event issue_created через WS
@@ -464,7 +432,7 @@ Vite build проверяет: импорты, tree-shaking, Tailwind 4, TanStac
 - [ ] Профиль: имя, timezone, язык
 - [ ] Сессии: список, отзыв
 - [ ] Logout: POST /auth/logout
-- [ ] Онбординг: 3 шага
+- [ ] Онбординг: 4 шага (профиль → тур → тема → проект)
 - [ ] Telegram: **только** привязка уведомлений (не login)
 
 ### Проекты
@@ -542,4 +510,4 @@ WCAG 2.1 AA (целевой для v2.0 Redesign)
 
 ---
 
-*Последнее обновление: 2026-06-21 — Magic Link auth, CI Go 1.25, coverage 82%+, e2e testframework/*
+*Последнее обновление: 2026-07-29 — inventory **812** BE `*_test.go` / **39** export_hooks / Vitest **179** files; COV 83% остаётся baseline прогона 2026-06-22*

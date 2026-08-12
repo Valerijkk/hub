@@ -1,4 +1,3 @@
-import { useAuthStore } from "@/stores/auth-store";
 import { api } from "./client";
 
 export type CalendarEventKind = "call" | "sprint" | "deadline" | "leave";
@@ -31,22 +30,14 @@ export function listCalendarEvents(
 	);
 }
 
-/** Скачивание .ics с JWT (не через JSON api client). */
+/** Скачивание .ics через api.getBlob (Bearer + one-retry refresh). */
 export async function downloadCalendarExport(
 	from: string,
 	to: string,
 ): Promise<void> {
-	const token = useAuthStore.getState().accessToken;
-	const res = await fetch(
-		`/api/calendar/export.ics?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
-		{
-			headers: token ? { Authorization: `Bearer ${token}` } : {},
-		},
+	const blob = await api.getBlob(
+		`/calendar/export.ics?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
 	);
-	if (!res.ok) {
-		throw new Error("export failed");
-	}
-	const blob = await res.blob();
 	const url = URL.createObjectURL(blob);
 	const a = document.createElement("a");
 	a.href = url;

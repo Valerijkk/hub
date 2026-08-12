@@ -61,13 +61,40 @@ export function TrendsChart({
 	projectId: string;
 	limit?: number;
 }) {
-	const { data: trends, isLoading } = useQuery({
+	const {
+		data: trends,
+		isLoading,
+		isError,
+		refetch,
+	} = useQuery({
 		queryKey: ["tms-trends", projectId, limit],
 		queryFn: () => getTestTrends(projectId, limit),
 	});
 
 	if (isLoading) {
 		return <div className="py-8 text-center text-t2">Загрузка трендов...</div>;
+	}
+
+	// W10-A2-009: fail ≠ empty трендов
+	if (isError) {
+		return (
+			<Card>
+				<CardContent className="py-8">
+					<div role="alert" className="space-y-3 text-center">
+						<p className="text-sm text-[var(--red)]">
+							Не удалось загрузить тренды прогонов
+						</p>
+						<button
+							type="button"
+							className="text-sm font-semibold text-t2 hover:text-t1 hover:underline"
+							onClick={() => void refetch()}
+						>
+							Попробовать снова
+						</button>
+					</div>
+				</CardContent>
+			</Card>
+		);
 	}
 
 	if (!trends || trends.length === 0) {

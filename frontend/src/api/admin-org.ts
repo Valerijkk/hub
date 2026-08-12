@@ -28,3 +28,22 @@ export function rejectPendingUser(userId: string) {
 export function getOrgInvite() {
 	return api.get<OrgInviteResponse>("/admin/organization/invite");
 }
+
+/** Режим регистрации организации: open | invite_only. */
+export type RegistrationMode = "open" | "invite_only";
+
+export interface RegistrationModeResponse {
+	mode: RegistrationMode;
+}
+
+/** Endpoint: GET /admin/registration-mode. */
+export function getRegistrationMode() {
+	return api.get<RegistrationModeResponse>("/admin/registration-mode");
+}
+
+/** Endpoint: PUT /admin/registration-mode. */
+export function setRegistrationMode(mode: RegistrationMode) {
+	return api.put<RegistrationModeResponse>("/admin/registration-mode", {
+		mode,
+	});
+}

@@ -8,6 +8,9 @@ import (
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/issue"
 	"github.com/valerii/hub/backend/ent/project"
+	"github.com/valerii/hub/backend/ent/sprint"
+	"github.com/valerii/hub/backend/ent/testrun"
+	"github.com/valerii/hub/backend/ent/workflowstatus"
 )
 
 // CreateIssueInput — импортированная строка issue.
@@ -31,9 +34,11 @@ type Repository interface {
 	SetIssueParent(ctx context.Context, issueID, parentID uuid.UUID) error
 	ListProjectIssuesForExport(ctx context.Context, projectID uuid.UUID) ([]*ent.Issue, error)
 	ListProjectIssuesPlain(ctx context.Context, projectID uuid.UUID) ([]*ent.Issue, error)
-	GetTestRun(ctx context.Context, runID uuid.UUID) (*ent.TestRun, error)
+	// GetTestRunInProject — прогон только внутри projectID (A5-010 IDOR guard).
+	GetTestRunInProject(ctx context.Context, projectID, runID uuid.UUID) (*ent.TestRun, error)
 	ListTestRunResults(ctx context.Context, run *ent.TestRun) ([]*ent.TestResult, error)
-	GetSprint(ctx context.Context, sprintID uuid.UUID) (*ent.Sprint, error)
+	// GetSprintInProject — спринт только внутри projectID (A5-010 IDOR guard).
+	GetSprintInProject(ctx context.Context, projectID, sprintID uuid.UUID) (*ent.Sprint, error)
 	ListSprintIssues(ctx context.Context, sp *ent.Sprint) ([]*ent.Issue, error)
 }
 
@@ -61,13 +66,26 @@ func (r *EntRepository) AllocateIssueKey(ctx context.Context, projectID uuid.UUI
 		return 0, "", uuid.Nil, fmt.Errorf("инкремент счётчика задач: %w", err)
 	}
 
-	status, err := tx.Project.Query().
-		Where(project.ID(projectID)).
-		QueryWorkflowStatuses().
-		First(ctx)
+	// P3-BE-15 / W7-A3-013: стабильный стартовый статус — is_default, иначе sort_order.
+	status, err := tx.WorkflowStatus.Query().
+		Where(
+			workflowstatus.HasProjectWith(project.ID(projectID)),
+			workflowstatus.IsDefaultEQ(true),
+		).
+		Only(ctx)
 	if err != nil {
-		_ = tx.Rollback()
-		return 0, "", uuid.Nil, fmt.Errorf("получение дефолтного статуса: %w", err)
+		if !ent.IsNotFound(err) {
+			_ = tx.Rollback()
+			return 0, "", uuid.Nil, fmt.Errorf("получение дефолтного статуса: %w", err)
+		}
+		status, err = tx.WorkflowStatus.Query().
+			Where(workflowstatus.HasProjectWith(project.ID(projectID))).
+			Order(ent.Asc(workflowstatus.FieldSortOrder)).
+			First(ctx)
+		if err != nil {
+			_ = tx.Rollback()
+			return 0, "", uuid.Nil, fmt.Errorf("получение дефолтного статуса: %w", err)
+		}
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -132,14 +150,23 @@ func (r *EntRepository) ListProjectIssuesForExport(ctx context.Context, projectI
 }
 
 func (r *EntRepository) ListProjectIssuesPlain(ctx context.Context, projectID uuid.UUID) ([]*ent.Issue, error) {
+	// W7-A3-008: ZIP/xlsx path must exclude soft-deleted (trash) issues — same as CSV export.
 	return r.client.Project.Query().
 		Where(project.ID(projectID)).
 		QueryIssues().
+		Where(issue.DeletedAtIsNil()).
 		All(ctx)
 }
 
-func (r *EntRepository) GetTestRun(ctx context.Context, runID uuid.UUID) (*ent.TestRun, error) {
-	return r.client.TestRun.Get(ctx, runID)
+// GetTestRunInProject возвращает прогон по ID только внутри projectID.
+// Mutation: снять testrun.HasProjectWith → foreign run находится (A5-010).
+func (r *EntRepository) GetTestRunInProject(ctx context.Context, projectID, runID uuid.UUID) (*ent.TestRun, error) {
+	return r.client.TestRun.Query().
+		Where(
+			testrun.ID(runID),
+			testrun.HasProjectWith(project.ID(projectID)),
+		).
+		Only(ctx)
 }
 
 func (r *EntRepository) ListTestRunResults(ctx context.Context, run *ent.TestRun) ([]*ent.TestResult, error) {
@@ -148,12 +175,22 @@ func (r *EntRepository) ListTestRunResults(ctx context.Context, run *ent.TestRun
 		All(ctx)
 }
 
-func (r *EntRepository) GetSprint(ctx context.Context, sprintID uuid.UUID) (*ent.Sprint, error) {
-	return r.client.Sprint.Get(ctx, sprintID)
+// GetSprintInProject возвращает спринт по ID только внутри projectID.
+// Mutation: снять sprint.HasProjectWith → foreign sprint находится (A5-010).
+func (r *EntRepository) GetSprintInProject(ctx context.Context, projectID, sprintID uuid.UUID) (*ent.Sprint, error) {
+	return r.client.Sprint.Query().
+		Where(
+			sprint.ID(sprintID),
+			sprint.HasProjectWith(project.ID(projectID)),
+		).
+		Only(ctx)
 }
 
+// ListSprintIssues — задачи спринта без soft-deleted (A3W7-3-001 / TASK-164).
+// Mutation: убрать issue.DeletedAtIsNil() → trash попадает в sprint PDF.
 func (r *EntRepository) ListSprintIssues(ctx context.Context, sp *ent.Sprint) ([]*ent.Issue, error) {
 	return r.client.Sprint.QueryIssues(sp).
+		Where(issue.DeletedAtIsNil()).
 		WithStatus().
 		WithAssignee().
 		All(ctx)

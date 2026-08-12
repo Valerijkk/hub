@@ -17,35 +17,35 @@ import (
 )
 
 func ExportHandleStatusChanged(c *Consumer, ctx context.Context, data []byte, subject string) {
-	c.handleStatusChanged(ctx, data, subject)
+	_ = c.handleStatusChanged(ctx, data, subject)
 }
 
 func ExportHandleMessageReceived(c *Consumer, ctx context.Context, data []byte, subject string) {
-	c.handleMessageReceived(ctx, data, subject)
+	_ = c.handleMessageReceived(ctx, data, subject)
 }
 
 func ExportHandleCallStarted(c *Consumer, ctx context.Context, data []byte, subject string) {
-	c.handleCallStarted(ctx, data, subject)
+	_ = c.handleCallStarted(ctx, data, subject)
 }
 
 func ExportHandleAssigned(c *Consumer, ctx context.Context, data []byte, subject string) {
-	c.handleAssigned(ctx, data, subject)
+	_ = c.handleAssigned(ctx, data, subject)
 }
 
 func ExportHandleBlockerAdded(c *Consumer, ctx context.Context, data []byte, subject string) {
-	c.handleBlockerAdded(ctx, data, subject)
+	_ = c.handleBlockerAdded(ctx, data, subject)
 }
 
 func ExportHandleCommentAdded(c *Consumer, ctx context.Context, data []byte, subject string) {
-	c.handleCommentAdded(ctx, data, subject)
+	_ = c.handleCommentAdded(ctx, data, subject)
 }
 
 func ExportHandleRunCompleted(c *Consumer, ctx context.Context, data []byte, subject string) {
-	c.handleRunCompleted(ctx, data, subject)
+	_ = c.handleRunCompleted(ctx, data, subject)
 }
 
 func ExportHandleNewLogin(c *Consumer, ctx context.Context, data []byte) {
-	c.handleNewLogin(ctx, data)
+	_ = c.handleNewLogin(ctx, data)
 }
 
 func ExportProcessEvent(c *Consumer, ctx context.Context, msg jetstream.Msg) {
@@ -164,11 +164,23 @@ func ExportPushSendToUser(p *PushSender, ctx context.Context, userID uuid.UUID, 
 	p.sendToUser(ctx, pushMessage{userID: userID, title: title, body: body, url: url})
 }
 
-func ExportPushSendToSubscription(p *PushSender, ctx context.Context, sub *ent.PushSubscription, payload []byte) {
+// ExportPushQueueLen — глубина очереди push (cap 200); для assert drop при overflow (A3W7-1-002).
+func ExportPushQueueLen(p *PushSender) int {
+	if p == nil || p.queue == nil {
+		return 0
+	}
+	return len(p.queue)
+}
+
+func ExportPushSendToSubscription(p *PushSender, ctx context.Context, sub PushSub, payload []byte) {
 	if p == nil {
 		return
 	}
 	p.sendToSubscription(ctx, sub, payload)
+}
+
+func ExportPushSubFromEnt(sub *ent.PushSubscription) PushSub {
+	return pushSubFromEnt(sub)
 }
 
 func ExportIsQuietHours(svc *NotificationService, ctx context.Context, userID uuid.UUID) bool {
@@ -213,6 +225,18 @@ func ExportTGBindTTL() time.Duration {
 
 func ExportTGLinkCodePrefix() string {
 	return tgLinkCodePrefix
+}
+
+func ExportTGLinkCodeFailsPrefix() string {
+	return tgLinkCodeFailsPrefix
+}
+
+func ExportTGLinkCodeVerifyMax() int {
+	return tgLinkCodeVerifyMax
+}
+
+func ExportTGLinkCodeTTL() time.Duration {
+	return tgLinkCodeTTL
 }
 
 func ExportConsumerStart(c *Consumer, ctx context.Context) error {

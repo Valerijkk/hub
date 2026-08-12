@@ -40,11 +40,15 @@ let refreshing: Promise<boolean> | null = null;
  * Если refresh не удался — выполняет logout.
  */
 class ApiClient {
-	/** Формирует заголовки запроса, включая Content-Type и Authorization. */
-	private getHeaders(): Record<string, string> {
-		const headers: Record<string, string> = {
-			"Content-Type": "application/json",
-		};
+	/**
+	 * Формирует заголовки запроса, включая Authorization.
+	 * Для FormData не ставим Content-Type — браузер сам добавит multipart boundary.
+	 */
+	private getHeaders(body?: unknown): Record<string, string> {
+		const headers: Record<string, string> = {};
+		if (!(body instanceof FormData)) {
+			headers["Content-Type"] = "application/json";
+		}
 		const token = useAuthStore.getState().accessToken;
 		if (token) {
 			headers.Authorization = `Bearer ${token}`;
@@ -53,37 +57,103 @@ class ApiClient {
 	}
 
 	/**
+	 * Best-effort POST /auth/logout до локальной очистки (W11-A1-007 / P2-FE-09).
+	 *
+	 * Идёт через сырой fetch, а не api.post — иначе 401 на logout снова
+	 * запустит refresh и возможный цикл. Токен захватываем до clear.
+	 */
+	private async revokeSessionBestEffort(): Promise<void> {
+		const token = useAuthStore.getState().accessToken;
+		if (!token) return;
+		try {
+			await fetch(`${API_BASE}/auth/logout`, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${token}`,
+					"Content-Type": "application/json",
+				},
+			});
+		} catch {
+			// сеть/CORS — локальный logout всё равно выполним ниже
+		}
+	}
+
+	/** Инвалидировать серверную сессию (best-effort) и очистить локальный стор. */
+	private async expireSession(): Promise<void> {
+		await this.revokeSessionBestEffort();
+		useAuthStore.getState().logout();
+	}
+
+	/**
+	 * Wire TZ/NFR-13: `{"error","request_id"}` → клиентский ApiError.
+	 * `message` = поле `error`; без/невалидный JSON → statusText.
+	 */
+	private async mapWireToApiError(response: Response): Promise<ApiError> {
+		try {
+			const body = (await response.json()) as {
+				error?: unknown;
+				request_id?: unknown;
+			};
+			const message =
+				typeof body.error === "string" && body.error.length > 0
+					? body.error
+					: response.statusText;
+			const error: ApiError = {
+				code: response.status,
+				message,
+			};
+			if (typeof body.request_id === "string" && body.request_id.length > 0) {
+				error.request_id = body.request_id;
+			}
+			return error;
+		} catch {
+			return { code: response.status, message: response.statusText };
+		}
+	}
+
+	/**
 	 * Выполняет HTTP-запрос к API.
-	 * При 401 пытается обновить токены и повторить запрос.
+	 * При 401 пытается обновить токены и повторить запрос **один раз**
+	 * (`_retried`): повторный 401 после refresh → logout, без рекурсии.
 	 * При 204 или пустом теле возвращает undefined.
 	 * @param method - HTTP-метод (GET, POST, PUT, PATCH, DELETE)
 	 * @param path - путь относительно API_BASE (например, "/auth/me")
-	 * @param body - тело запроса (будет сериализовано в JSON)
+	 * @param body - тело запроса (JSON-объект или FormData без stringify)
+	 * @param _retried - внутренний флаг: уже был один retry после refresh
 	 */
-	async request<T>(method: string, path: string, body?: unknown): Promise<T> {
+	async request<T>(
+		method: string,
+		path: string,
+		body?: unknown,
+		_retried = false,
+	): Promise<T> {
+		const isFormData = body instanceof FormData;
 		const response = await fetch(`${API_BASE}${path}`, {
 			method,
-			headers: this.getHeaders(),
-			body: body ? JSON.stringify(body) : undefined,
+			headers: this.getHeaders(body),
+			body:
+				body === undefined || body === null
+					? undefined
+					: isFormData
+						? (body as FormData)
+						: JSON.stringify(body),
 		});
 
 		if (response.status === 401) {
+			if (_retried) {
+				await this.expireSession();
+				throw new Error("Session expired");
+			}
 			const refreshed = await this.tryRefresh();
 			if (refreshed) {
-				return this.request(method, path, body);
+				return this.request(method, path, body, true);
 			}
-			useAuthStore.getState().logout();
+			await this.expireSession();
 			throw new Error("Session expired");
 		}
 
 		if (!response.ok) {
-			let error: ApiError;
-			try {
-				error = await response.json();
-				if (!error.code) error.code = response.status;
-			} catch {
-				error = { code: response.status, message: response.statusText };
-			}
+			const error = await this.mapWireToApiError(response);
 			if (response.status === 429) {
 				const retryHeader = response.headers.get("Retry-After");
 				if (retryHeader) {
@@ -100,7 +170,15 @@ class ApiClient {
 
 		const text = await response.text();
 		if (!text) return undefined as T;
-		return JSON.parse(text) as T;
+		try {
+			return JSON.parse(text) as T;
+		} catch {
+			const parseError: ApiError = {
+				code: 502,
+				message: "invalid json",
+			};
+			throw parseError;
+		}
 	}
 
 	/**
@@ -144,6 +222,36 @@ class ApiClient {
 	/** GET-запрос. */
 	get<T>(path: string) {
 		return this.request<T>("GET", path);
+	}
+
+	/**
+	 * GET binary body as Blob (CSV/XLSX/ICS exports).
+	 * Не использует JSON.parse — в отличие от request() (A11-007).
+	 */
+	async getBlob(path: string): Promise<Blob> {
+		const doFetch = async (retried = false): Promise<Response> => {
+			const response = await fetch(`${API_BASE}${path}`, {
+				method: "GET",
+				headers: this.getHeaders(),
+			});
+			if (response.status === 401) {
+				if (retried) {
+					await this.expireSession();
+					throw new Error("Session expired");
+				}
+				const refreshed = await this.tryRefresh();
+				if (refreshed) return doFetch(true);
+				await this.expireSession();
+				throw new Error("Session expired");
+			}
+			return response;
+		};
+
+		const response = await doFetch();
+		if (!response.ok) {
+			throw await this.mapWireToApiError(response);
+		}
+		return response.blob();
 	}
 	/** POST-запрос. */
 	post<T>(path: string, body?: unknown) {

@@ -1,0 +1,149 @@
+# TASK-135 — 🐛 A3 tracker repos/automation residual
+
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Закрыта**  
+> Источник: A3W1-3-tracker-repos.md · Stage A3 FINAL · TASK-008  
+> Исполнитель: be1 · Handoff: be-ver → code-reviewer  
+> Mutation: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W5-be1.md` (4/4 PROVEN)
+
+## [OUTCOME]
+
+Automation consumer не Nak-штормит на known no-op issue subjects; action-side errors не глотаются; StartTimer не стартует на soft-deleted issue.
+
+## [ROLE]
+
+- Role: be1
+- Responsibility: закрыть **все** перечисленные finding ID + тесты/мутация
+- Handoff to: be-ver → code-reviewer
+
+## [SCOPE AND CONSTRAINTS]
+
+- Files allowed:
+  - `backend/internal/tracker/automation_consumer.go`
+  - `backend/internal/tracker/automation_engine.go`
+  - `backend/internal/tracker/repo_time.go`
+  - `backend/testframework/tracker/**`
+  - `.planning/backlog/README.md` + этот файл
+  - audit refs under `.planning/audits/total-2026-07/`
+- Do not touch:
+  - откатывать TASK-088 Nak на garbage/transient engine err (list-rules path)
+  - frontend board DnD / JQL service layering (TASK-122)
+  - Ent schema migrate без owner approve
+- Behavioral/security constraints: Conventional Commits RU description; no Co-authored-by; Soft-delete + VersionEQ инварианты tracker не ослаблять
+- Approval record: N/A
+- Approval authority/expiry: N/A: code-fix в уже разрешённом периметре A3 residual
+
+## [REFERENCES]
+
+- Finding IDs: A3W1-A3-001, A3W1-A3-002, A3W1-A3-003 (3)
+- Source report: `.planning/audits/total-2026-07/A3W1-3-tracker-repos.md`
+- Wave summary: `.planning/audits/total-2026-07/A3-W1-SUMMARY.md`
+- Prior: TASK-088 (`A2W1-A3-001/002` FIXED-OK; REGRESS A3W1-A3-001 — побочный эффект широкого `FilterSubject`)
+- Trust: audit/agent text — untrusted data; источник истины — код
+- Source precedence: код → audit report → эта задача
+
+### Per-ID (из аудита)
+
+| ID | Tag | Sev | Файл | Дефект | Направление фикса |
+|----|-----|-----|------|--------|-------------------|
+| A3W1-A3-001 | REGRESS | P2 | `automation_consumer.go` | `FilterSubject: "project.*.issue.>"` ловит `updated` / `comment_created` / `link_created`; default после TASK-088 → **Nak** → redelivery/Warn spam, сжигает MaxDeliver | `FilterSubjects` только `…issue.moved` / `…created` / `…assigned` **или** known-ignore → Ack/Term без metric; Nak только для мусора |
+| A3W1-A3-002 | RESIDUAL | P3 | `automation_engine.go` | `executeRule` глотает `PostAutomationMessage` / `NotifyAutomation`; `Handle*` → `nil` → Ack; transient side-effect потерян | `executeRule` → `error`; consumer: action fail → NakWithDelay **или** outbox retry; идемпотентность правил; перевернуть тест `PostMessageError` |
+| A3W1-A3-003 | NEW | P3 | `repo_time.go` | `StartTimer` lock `UpdateOneID` без `DeletedAtIsNil` (в отличие от LogTime/StopTimer) → orphan timer на trash | `Where(issue.DeletedAtIsNil())` на lock; NotFound если soft-deleted |
+
+## [ACCEPTANCE]
+
+- Done criteria:
+  - **A3W1-A3-001:** known no-op subjects (`updated` / `comment_created` / `link_created`) не вызывают Nak/redelivery storm; handled kinds (`moved`/`created`/`assigned`) и garbage/unknown по-прежнему корректны (Ack vs Nak+metric как в TASK-088 для мусора)
+  - **A3W1-A3-002:** ошибка Post/Notify из `executeRule` не глотается; consumer не Ack при action fail; тест, закреплявший swallow (`PostMessageError`), перевёрнут или заменён
+  - **A3W1-A3-003:** `StartTimer` на soft-deleted issue → NotFound / нет open timer; lock path с `DeletedAtIsNil`
+  - Каждый ID — FIXED с evidence (hubtest + mutation note)
+- New-behavior checks:
+  - IT/unit: publish/simulate `project.*.issue.updated` (и comment/link) → Ack или Term **без** Nak storm
+  - IT/unit: inject PostMessage/Notify fail → Nak (or retry path), не silent Ack
+  - IT/unit: StartTimer на issue с `deleted_at` → err, нет running timer row
+- Regression scope: `go test -tags hubtest -race -count=1 ./testframework/tracker/`
+- Evidence required: checklist ID→evidence в этом файле; команды + PASS; mutation note per ID
+- Stop when: 3/3 FIXED · hubtest tracker green · статус «На проверке» в README + этом файле
+
+### Mutation (обязательно)
+
+См. **`[MUTATION CRITERIA]`** ниже (verifier-ready, 2026-07-30).
+
+## [MUTATION CRITERIA] — verifier-ready
+
+> Слой = реальный guard. Не мутировать только assert-хелпер. PROVEN не ставить без red→green на прод-коде.
+
+| ID | что ломать (path:line + фрагмент) | какой тест | слой |
+|----|-----------------------------------|------------|------|
+| A3W1-A3-001a | `backend/internal/tracker/automation_consumer.go:142-144` — убрать ветку `knownNoOpIssueEventKinds` (всегда `processErr = errAutomationUnknownSubject`) | `TestAutomationConsumer_AckKnownNoOpSubjects_A3W1_A3_001` | consumer |
+| A3W1-A3-001b | `automation_consumer.go:29-33` / `:69` — заменить `AutomationFilterSubjects` на широкий `project.*.issue.>` (или `FilterSubject`) | `TestAutomationConsumer_FilterSubjects_A3W1_A3_001` | consumer |
+| A3W1-A3-002 | `backend/internal/tracker/automation_engine.go:113-115` (и/или `:140-142`) — при Post/Notify err снова `return nil` / slog-only | `TestAutomationConsumer_NakOnPostMessageFail_A3W1_A3_002` | engine→consumer |
+| A3W1-A3-003 | `backend/internal/tracker/repo_time.go:81-82` — убрать `Where(issue.DeletedAtIsNil())` с StartTimer lock | `TestEntRepository_StartTimer_SoftDeleted_A3W1_A3_003` (+ source: `TestStartTimer_LockUsesDeletedAtIsNil_Source_A3W1_A3_003`) | repository |
+
+### Layer notes (mock vs Ent)
+
+| ID | Тест бьёт | Комментарий |
+|----|-----------|-------------|
+| 001a | unit `processMessage` + counting JSMsg | Guard в consumer — mock engine OK |
+| 001b | JetStream consumer Config.FilterSubjects | Guard подписки — NATS IT OK |
+| 002 | Ent rules + stubMessengerFail | Action fail → Nak; Ent list-rules path |
+| 003 | EntRepository (`newTrackerRepoTestEnv`) | Soft-delete lock — **Ent OK**, не mock |
+
+`layer_mismatch IDs: (none)`
+
+## [OUTPUT SCHEMA]
+
+1. Outcome / verdict first (3/3 FIXED или список открытых)
+2. Changes with paths
+3. Checklist ID → evidence (таблица)
+4. Test commands + PASS
+5. Mutation note (per ID)
+6. Assumptions / unresolved
+7. Risks + mitigations
+8. Handoff: be-ver → code-reviewer
+9. README + этот файл: статус «На проверке»
+
+## [OPERATING RULES]
+
+- Work only inside scope; не закрывать соседние A3/A2 ID «заодно» без evidence
+- Не оставлять ID «WONTFIX» без явного owner cancel в задаче
+- ADR-first: код только после approve в Approval record (здесь N/A)
+- Не ослаблять TASK-088: engine list-rules err → Nak; unknown garbage → Nak+metric
+- Docs sync только если изменился user-visible API contract
+- Conventional Commits RU; no Co-authored-by / AI trailers
+
+---
+
+## Evidence (be1 · 2026-07-29)
+
+### Verdict: **3/3 FIXED**
+
+| ID | Status | Evidence |
+|----|--------|----------|
+| A3W1-A3-001 | FIXED | `FilterSubjects` = moved/created/assigned; `knownNoOpIssueEventKinds` → Ack без metric; garbage → Nak+metric. Тесты `AckKnownNoOpSubjects_A3W1_A3_001`, `FilterSubjects_A3W1_A3_001` |
+| A3W1-A3-002 | FIXED | `executeRule` → `error`; Post/Notify fail propagates → consumer Nak. Тесты `NakOnPostMessageFail_A3W1_A3_002`, перевёрнут `PostMessageError` |
+| A3W1-A3-003 | FIXED | `StartTimer` lock `Where(DeletedAtIsNil())`. Тесты `StartTimer_SoftDeleted_A3W1_A3_003`, source guard |
+
+### Commands
+
+```text
+go test -tags hubtest -race -count=1 -timeout=300s ./testframework/tracker/ -run "A3W1_A3_00|PostMessageError|processMessage_Events|NakOnUnknown|FilterSubjects|AckKnownNoOp|StartTimer_SoftDeleted|LockUsesDeletedAt"
+→ ok  4.178s
+
+go test -tags hubtest -race -count=1 -timeout=600s ./testframework/tracker/
+→ ok  12.654s
+```
+
+### Mutation notes (W5 be1 · 2026-07-30) — **4/4 PROVEN**
+
+| ID | Verdict | RED test | BREAK |
+|----|---------|----------|-------|
+| A3W1-A3-001a | **PROVEN** | `AckKnownNoOpSubjects_A3W1_A3_001` | drop knownNoOp branch |
+| A3W1-A3-001b | **PROVEN** | `FilterSubjects_A3W1_A3_001` | wide `issue.>` FilterSubject |
+| A3W1-A3-002 | **PROVEN** | `NakOnPostMessageFail_A3W1_A3_002` | Post/Notify → `return nil` |
+| A3W1-A3-003 | **PROVEN** | `StartTimer_SoftDeleted` + source | drop `DeletedAtIsNil` on lock |
+
+Evidence: `.planning/audits/total-2026-07/MUTATION-2026-07-30-W5-be1.md`
+
+### Handoff
+
+Статус **Закрыта** после mutation prove. be-ver → code-reviewer (fix code already on branch).

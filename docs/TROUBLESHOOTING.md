@@ -1,4 +1,4 @@
-# Troubleshooting — типовые проблемы разработки
+﻿# Troubleshooting — типовые проблемы разработки
 
 > Грабли, на которые наступают при работе с Hub локально: сборка, тесты, окружение, Docker. Для проблем **продакшна** — [`runbooks/`](runbooks/README.md).
 >
@@ -18,7 +18,7 @@
 vet.exe: testframework\accounting\fixtures_test.go:58:20: undefined: accounting.ExportMapServiceError
 ```
 
-**Причина.** Тесты в `backend/testframework/` — белый ящик: они обращаются к внутренностям модулей через хуки `backend/internal/<module>/export_hooks.go`. Все 39 таких файлов помечены `//go:build hubtest`, то есть **компилируются только с этим build-тегом**. Без тега символы не существуют.
+**Причина.** Тесты в `backend/testframework/` — белый ящик: они обращаются к внутренностям модулей через хуки `backend/internal/<module>/export_hooks.go`. Все **39** таких файлов (`export_hooks.go`, measured 2026-07-29) помечены `//go:build hubtest`, то есть **компилируются только с этим build-тегом**. Без тега символы не существуют.
 
 **Решение — всегда прогонять backend-тесты с `-tags hubtest`:**
 
@@ -45,7 +45,7 @@ test:
 	cd frontend && npm test -- --run
 ```
 
-Здесь **нет `-tags hubtest`**, поэтому пакеты `testframework/*` не компилируются (см. §1.1). Дополнительно: в `backend/internal/` **ноль** файлов `*_test.go` — все 499 тестовых файлов лежат в `backend/testframework/`. То есть даже без ошибки компиляции `./...` не нашёл бы там тестов.
+Здесь **нет `-tags hubtest`**, поэтому пакеты `testframework/*` не компилируются (см. §1.1). Дополнительно: в `backend/internal/` **ноль** файлов `*_test.go` — все **812** тестовых файлов лежат в `backend/testframework/` (measured 2026-07-29; was 515 → 580 → 652 → 805). То есть даже без ошибки компиляции `./...` не нашёл бы там тестов.
 
 **Решение сейчас** — не полагаться на `make test` для backend, использовать канонические команды:
 
@@ -82,7 +82,7 @@ go test -tags hubtest -race -count=1 ./testframework/...
 Канонический прогон (как в CI) — в контейнере, чтобы имена хостов совпадали с сетью compose:
 
 ```bash
-docker run --rm --network deployments_default \
+docker run --rm --cpus 2.0 --memory 4g --network deployments_default \
   -v "${PWD}/backend:/app" -w /app \
   -e POSTGRES_TEST_URL="postgresql://hub:hub@postgres:5432/hub?sslmode=disable" \
   -e MONGODB_TEST_URL="mongodb://hub:hub@mongo:27017/?authSource=admin" \

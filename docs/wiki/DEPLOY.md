@@ -32,7 +32,8 @@
 | hub-mail | `ghcr.io/valerijkk/hub/backend:SHA` (entrypoint `./hub-mail`) | 3001 |
 | Frontend | `ghcr.io/valerijkk/hub/frontend:SHA` | 80 |
 
-Опционально: `deployments/docker-compose.monitoring.yml` — Prometheus v3.2.1, Loki/Grafana 11.5.2.
+Опционально: `deployments/docker-compose.monitoring.yml` — Prometheus v3.2.1, Loki/Grafana 11.5.2.  
+Порты мониторинга bind на `127.0.0.1` только (A14-004) — доступ через SSH tunnel.
 
 ---
 
@@ -75,14 +76,32 @@ docker compose -f docker-compose.prod.yml --env-file .env up -d
 docker compose -f docker-compose.prod.yml --env-file .env up -d --force-recreate livekit
 ```
 
+**OTEL / tracing (A14-009):** prod compose прокидывает `OTEL_EXPORTER_OTLP_ENDPOINT` и `OTEL_SERVICE_NAME`.  
+Без endpoint — `InitTracing` no-op (код готов, spans не экспортируются).  
+Варианты:
+1. External collector/Tempo — задать URL в `.env`.
+2. Overlay Tempo: `docker compose ... --profile otel` + `OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4318`.
+
+**SeaweedFS (A14-002):** S3 identity генерируется из `S3_ACCESS_KEY` / `S3_SECRET_KEY` при старте контейнера (как LiveKit).  
+Не коммитьте `seaweedfs-s3.json` с реальными ключами; справочник — `seaweedfs-s3.json.example`.  
+`hub` / `hubsecret` — fail-closed: `config.validate` отказывает старт при `DEV_MODE=false`.  
+Residual: если эти ключи когда-либо были в живом деплое — ротировать (исторический git secret).
+
+**NATS (A14-003):** в prod включён user/pass (`NATS_USER` / `NATS_PASSWORD`).  
+`NATS_URL` для backend: `nats://USER:PASS@nats:4222`. Пароль без `@ : / ? #`.  
+При `ENVIRONMENT=production` backend **не стартует**, если в `NATS_URL` нет non-empty user и password.  
+После смены кредов: `docker compose ... up -d --force-recreate nats backend`.
+
 ### 5. Проверка
 
 ```bash
 docker compose -f docker-compose.prod.yml ps
-curl -fsS http://localhost/api/health
+curl -fsS http://localhost/api/live    # liveness — всегда 200 если процесс жив
+curl -fsS http://localhost/api/ready   # readiness — 200/503 по deps
 ```
 
-Ожидаемый ответ: `{"status":"ok",...}`.
+Ожидаемый `/ready`: `{"status":"ok","services":{...}}`.  
+K8s: liveness=`/api/live`, readiness=`/api/ready`. Compose `healthcheck` backend = `/api/ready`.
 
 ---
 
@@ -221,6 +240,10 @@ hub.example.com {
 - Cron: еженедельно PG dump + Mongo dump + S3 files → ZIP в SeaweedFS
 - API: `POST /api/admin/backups` (Admin)
 - Restore: `POST /api/admin/backups/:id/restore`
+- **Maintenance (U04 / ADR-BACKUP-MAINTENANCE-GATE-2026):** на время restore
+  все реплики читают Redis-ключ `hub:backup:maintenance` и отдают 503 на
+  non-health API (health/live/ready/metrics bypass). TTL lease 2h — safety
+  net при crash пода без `DEL`. Multi-replica K3s **не** требует affinity.
 - Retention: настраивается в admin limits
 
 ---

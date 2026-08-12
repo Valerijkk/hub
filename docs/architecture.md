@@ -2,7 +2,7 @@
 
 > Единая база знаний. Обновляется ARCH при изменении архитектуры.
 > Детали: `docs/TECHNICAL.md`, `docs/wiki/ARCHITECTURE.md`
-> Аудит кода: `.planning/code-review-final/ARCHITECTURE.md` (2026-05-15)
+> Аудит кода: `.planning/audits/code-review-final/ARCHITECTURE.md` (2026-05-15)
 
 ---
 
@@ -53,7 +53,7 @@
 
 ## C4 Level 3 — Модули backend
 
-**31 domain-пакет** + **`platform/`** (инфраструктура) + `testutil/`. Точка композиции: `backend/cmd/server/main.go` (~820 LOC, wiring v4 modules).
+**31 domain-пакет** + **`platform/`** (инфраструктура) + `testutil/`. Точка композиции: thin `backend/cmd/server/main.go` (~34 LOC) + `wiring_*.go` (`wiring_fiber.go`, `wiring_modules.go`, `wiring_auth.go`, …).
 
 ```
 backend/internal/
@@ -102,7 +102,7 @@ backend/internal/
 
 ```
 frontend/src/
-├── routes/           TanStack Router file-based (~60+ UI pages)
+├── routes/           TanStack Router file-based (**77** `.tsx` routes, measured 2026-07-28)
 │   ├── _authenticated/   projects, messenger, tms, calls, dashboard
 │   ├── intranet/, crm/, hr/, accounting/, bases/, marketplace/
 │   ├── calendar/, settings/, admin/
@@ -124,14 +124,17 @@ Browser → Caddy → Fiber Middleware → Handler → Service → Repository �
                   api group: APIKeyAuth, per-route auth/RBAC limits
 ```
 
-Фактический порядок middleware (`main.go:185-250`):
+Фактический порядок middleware (`backend/cmd/server/wiring_fiber.go`):
 1. `middleware.RequestID()`
 2. `fiberrecover.New()` (не `middleware.Recover`)
-3. `middleware.SecurityHeaders()` — NF-08 (nosniff, DENY, CSP)
-4. `middleware.Logger()`, `middleware.CORS()`
-5. `middleware.RateLimit()` — 100 req/sec
-6. Per-route: `/files` 10/min, `/messenger` 60/min, `/auth` 3/10min (Redis, off in DevMode)
-7. `apigatewaymod.APIKeyAuth()` — на `api` group **до** `RegisterRoutes` (SEC-01 fix)
+3. `observability.HTTPTraceMiddleware()`
+4. `middleware.SecurityHeaders()` — NF-08 (nosniff, DENY, CSP)
+5. `middleware.Logger()`, `middleware.CORS()`
+6. `GET /metrics` + `observability.HTTPMetricsMiddleware()`
+7. `middleware.RateLimit()` — 100 req/sec (API)
+8. `api` group: `MaintenanceMiddleware` → `HTTPAuditMiddleware`
+9. Per-route: `/files` 10/min, `/messenger` 60/min; `/auth` 3/10min (Redis, off in DevMode)
+10. `apigatewaymod.APIKeyAuth()` — на `api` group **до** `RegisterRoutes` (SEC-01; wiring auth/modules)
 
 ### События в реальном времени
 ```
@@ -174,7 +177,7 @@ Client → POST presign URL → Backend (RBAC check) → SeaweedFS PUT (direct)
 | Data | User-scope в search, channel membership в messenger |
 | Network | SSRF protection (`safehttp`), no `http.DefaultClient` |
 | Secrets | Env vars only, AES-GCM at rest для tokens |
-| WS | Origin check + `ws.Authorizer` (channel/project/call membership, `main.go:575-605`) |
+| WS | Origin check + `ws.Authorizer` (channel/project/call membership; `wiring_ws.go` + `internal/ws/`) |
 
 ## Ключевые паттерны
 
@@ -194,19 +197,19 @@ Client → POST presign URL → Backend (RBAC check) → SeaweedFS PUT (direct)
 | 1 | Handler обходит Service — прямой Ent query через escape hatch | `backend/internal/tracker/handler_issues.go:269` |
 | 2 | Repository interface утекает `*ent.Client` (`GetDB()`) | `backend/internal/tracker/repository.go:153` |
 | 3 | HTTP middleware читает Ent напрямую (deactivated user check) | `backend/internal/auth/middleware.go:120` |
-| 4 | RBAC middleware принимает `*ent.Client` (layering leak) | `backend/internal/rbac/middleware.go:46,114` + `main.go:540` |
+| 4 | RBAC middleware принимает `*ent.Client` (layering leak) | `backend/internal/rbac/middleware.go:46,114` (+ wiring в `wiring_*.go`) |
 | 5 | Dev handler обходит Service (`//go:build !release`) | `backend/internal/dev/handler.go:102` |
 
 ## Технический долг (известный)
 
 | ID | Проблема | Evidence | План |
 |----|----------|----------|------|
-| TD-01 | DI-точка раздута | `cmd/server/main.go` — 630 LOC; cron вынесен в `platform/cron` | Wave extraction v2.6 |
+| TD-01 | ~~DI-точка раздута~~ | thin `main.go` + `wiring_*.go`; cron в `platform/cron` | **DONE** (v2.6) |
 | TD-02 | `*ent.Client` в 7 domain-пакетах | `auth/service*.go`, `dashboard/service.go:34`, `backup/service.go:23`, `imex/service.go:23`, `storage/service.go:36`, `apigateway/*.go:40+`, `rbac/service.go:19` | Repository Phase 19 |
 | TD-03 | Escape hatch `GetDB()` | `tracker/repository.go:153`, `handler_issues.go:269` | Убрать, JQL search → service |
 | TD-04 | K3s partial | `deployments/k3s/` exists; full prod manifests incomplete | DevOps backlog |
 | TD-05 | Observability optional stack | `docker-compose.monitoring.yml` + configs; not default prod | Enable per env |
-| TD-06 | ~~Security headers~~ | **FIXED** `main.go:190` + `security_headers.go` | — |
+| TD-06 | ~~Security headers~~ | **FIXED** `wiring_fiber.go` + `security_headers.go` | — |
 | TD-07 | Handler→Service без интерфейсов | все `handler.go` — `*XxxService` concrete type | v2.6 (низкий приоритет) |
 | TD-08 | `audit/retention.go` вне Repository | `retention.go:41` — отдельный `RetentionService` на `*ent.Client` | Phase 19 |
 | TD-09 | `notification/push.go` на Ent | `push.go:45` — `PushSender` держит `*ent.Client` | Phase 19 |
@@ -214,7 +217,7 @@ Client → POST presign URL → Backend (RBAC check) → SeaweedFS PUT (direct)
 
 ## Реализованная архитектура v3–v4 (2026-06-21)
 
-> Ранее «planned» — теперь в monolith `cmd/server`. Детали: `.planning/specs/PLATFORM-VISION-v4.md`, `.planning/roadmaps/MILESTONE-3.md`
+> Ранее «planned» — теперь в monolith `cmd/server`. Детали: `.planning/decisions/specs/PLATFORM-VISION-v4.md`, `.planning/archive/roadmaps/MILESTONE-3.md`
 
 | Версия | Модули в коде | Frontend routes |
 |--------|---------------|-----------------|
@@ -229,8 +232,8 @@ Event bus: **NATS JetStream** (без Redis pub/sub). Search: PostgreSQL + **Mei
 - `docs/system_specification.md` — API, модели данных
 - `docs/security_guidelines.md` — OWASP, уязвимости
 - `docs/stack_and_tools.md` — версии стека
-- `.planning/specs/PLATFORM-VISION-v4.md` — corporate super-app vision
-- `.planning/specs/AI-PROVIDER-HUB-SPEC.md` — AI gateway spec
+- `.planning/decisions/specs/PLATFORM-VISION-v4.md` — corporate super-app vision
+- `.planning/decisions/specs/AI-PROVIDER-HUB-SPEC.md` — AI gateway spec
 
 ---
 *Последнее обновление: 2026-06-22 — RU-FIX-01: RU section headers*

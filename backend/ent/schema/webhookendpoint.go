@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -21,20 +22,32 @@ func (WebhookEndpoint) Fields() []ent.Field {
 			Immutable(),
 		field.String("url").
 			NotEmpty().
-			Comment("URL РґР»СЏ РѕС‚РїСЂР°РІРєРё POST-Р·Р°РїСЂРѕСЃРѕРІ"),
+			Comment("URL для отправки POST-запросов"),
 		field.String("secret").
 			NotEmpty().
-			Comment("РЎРµРєСЂРµС‚ РґР»СЏ HMAC-SHA256 РїРѕРґРїРёСЃРё payload"),
+			Sensitive().
+			Comment("Секрет для HMAC-SHA256 подписи payload (at-rest encrypted)"),
 		field.JSON("events", []string{}).
-			Comment("РњР°СЃСЃРёРІ РїРѕРґРїРёСЃР°РЅРЅС‹С… СЃРѕР±С‹С‚РёР№"),
+			Comment("Массив подписанных событий"),
 		field.Bool("is_active").
 			Default(true).
-			Comment("РђРєС‚РёРІРµРЅ Р»Рё РІРµР±С…СѓРє"),
+			Comment("Активен ли вебхук"),
+		field.Time("deleted_at").
+			Optional().
+			Nillable().
+			Comment("Время мягкого удаления (корзина 30 дней)"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
 	}
 }
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (WebhookEndpoint) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
+	}
+}
+
 
 // Рёбра (edges) сущности WebhookEndpoint.
 func (WebhookEndpoint) Edges() []ent.Edge {
@@ -43,7 +56,8 @@ func (WebhookEndpoint) Edges() []ent.Edge {
 			Ref("webhook_endpoints").
 			Unique().
 			Required(),
-		edge.To("deliveries", WebhookDelivery.Type),
+		edge.To("deliveries", WebhookDelivery.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 
@@ -51,5 +65,6 @@ func (WebhookEndpoint) Edges() []ent.Edge {
 func (WebhookEndpoint) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("is_active"),
+		index.Fields("deleted_at"),
 	}
 }

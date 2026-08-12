@@ -5,6 +5,7 @@ package apigateway
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
@@ -28,9 +29,15 @@ func ExportContainsEvent(events []string, event string) bool {
 	return containsEvent(events, event)
 }
 
-// ExportWebhookSendWebhook вызывает sendWebhook для hubtest.
-func ExportWebhookSendWebhook(d *WebhookDispatcher, url string, body []byte, signature, eventType string) (int, string, error) {
-	return d.sendWebhook(url, body, signature, eventType)
+// ExportWebhookSendWebhook вызывает sendWebhook для hubtest (новый delivery id).
+func ExportWebhookSendWebhook(d *WebhookDispatcher, ctx context.Context, url string, body []byte, signature, eventType string) (int, string, error) {
+	return d.sendWebhook(ctx, url, body, signature, eventType, uuid.New().String())
+}
+
+// ExportWebhookSendWebhookWithDelivery вызывает sendWebhook с заданным
+// X-Hub-Delivery (для проверки заголовка в hubtest).
+func ExportWebhookSendWebhookWithDelivery(d *WebhookDispatcher, ctx context.Context, url string, body []byte, signature, eventType, deliveryID string) (int, string, error) {
+	return d.sendWebhook(ctx, url, body, signature, eventType, deliveryID)
 }
 
 // ExportSetWebhookHTTPClient подменяет webhookHTTPClient для hubtest.
@@ -75,6 +82,18 @@ func ExportWebhookDispatcherDeliverWithRetry(d *WebhookDispatcher, ctx context.C
 	d.deliverWithRetry(ctx, webhookJob{ep: ep, eventType: eventType, body: body, payload: payload})
 }
 
+// ExportSetWebhookRetryDelays подменяет backoff deliverWithRetry (A2W4-5-005).
+// Возвращает предыдущий слайс для restore в t.Cleanup.
+func ExportSetWebhookRetryDelays(delays []time.Duration) []time.Duration {
+	prev := append([]time.Duration(nil), webhookRetryDelays...)
+	if delays == nil {
+		webhookRetryDelays = append([]time.Duration(nil), defaultWebhookRetryDelays...)
+	} else {
+		webhookRetryDelays = append([]time.Duration(nil), delays...)
+	}
+	return prev
+}
+
 // ExportWebhookDispatcherInitJobs инициализирует jobs channel для hubtest.
 func ExportWebhookDispatcherInitJobs(d *WebhookDispatcher, buf int) {
 	d.jobs = make(chan webhookJob, buf)
@@ -88,6 +107,25 @@ func ExportWebhookDispatcherJobAvailable(d *WebhookDispatcher) bool {
 	default:
 		return false
 	}
+}
+
+// ExportWebhookDispatcherDrainJobEndpointIDs снимает все jobs из очереди и
+// возвращает ID эндпоинтов (для denial/scope тестов).
+func ExportWebhookDispatcherDrainJobEndpointIDs(d *WebhookDispatcher) []uuid.UUID {
+	var ids []uuid.UUID
+	for {
+		select {
+		case job := <-d.jobs:
+			ids = append(ids, job.ep.ID)
+		default:
+			return ids
+		}
+	}
+}
+
+// ExportExtractEventProjectID извлекает project UUID из subject/payload для hubtest.
+func ExportExtractEventProjectID(subject string, payload map[string]interface{}) (uuid.UUID, bool) {
+	return extractEventProjectID(subject, payload)
 }
 
 // ExportWebhookDispatcherDispatchEvent вызывает dispatchEvent для hubtest.

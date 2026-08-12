@@ -17,11 +17,6 @@ type VerifyMagicLinkRequest struct {
 	InviteToken string `json:"invite_token,omitempty"`
 }
 
-// TelegramAuthRequest — тело запроса для POST /auth/telegram.
-type TelegramAuthRequest struct {
-	InitData string `json:"init_data" validate:"required"`
-}
-
 // RefreshRequest — тело запроса для POST /auth/refresh.
 type RefreshRequest struct {
 	RefreshToken string `json:"refresh_token" validate:"required"`
@@ -73,6 +68,12 @@ type TokenPairResponse struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
 	ExpiresIn    int64  `json:"expires_in"`
+}
+
+// WSTicketResponse — ответ POST /auth/ws-ticket (ADR-WS-JWT-HANDSHAKE-2026).
+type WSTicketResponse struct {
+	Ticket    string `json:"ticket"`
+	ExpiresIn int    `json:"expires_in"`
 }
 
 // UserResponse — ответ для GET /auth/me и обновления профиля.

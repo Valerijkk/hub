@@ -72,9 +72,12 @@ func TestSearch_SearchAllEntityTypes(t *testing.T) {
 	require.NoError(t, err)
 
 	svc := search.NewSearchService(&mockSearchRepo{}, db, nil)
-	results, err := svc.Search(context.Background(), "hub", userID, nil, 10)
+	// searchAll включает message (nil mongo = OK) → partial, не total outage.
+	// Hard-error proof без message: TestSearch_TotalOutageHardError_TASK113.
+	results, partial, err := svc.Search(context.Background(), "hub", userID, nil, 10)
 	require.NoError(t, err)
-	assert.Len(t, results, 0)
+	assert.True(t, partial)
+	assert.Empty(t, results)
 }
 
 func TestSearch_InvalidTypeIgnored(t *testing.T) {
@@ -88,7 +91,8 @@ func TestSearch_InvalidTypeIgnored(t *testing.T) {
 	require.NoError(t, err)
 
 	svc := search.NewSearchService(&mockSearchRepo{}, db, nil)
-	results, err := svc.Search(context.Background(), "x", userID, []string{"issue", "unknown_type"}, 5)
-	require.NoError(t, err)
-	assert.Empty(t, results)
+	// unknown_type отбрасывается; issue shard на sqlite → total outage (A2W5-A4-003).
+	_, _, err = svc.Search(context.Background(), "x", userID, []string{"issue", "unknown_type"}, 5)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, search.ErrSearchUnavailable)
 }

@@ -16,7 +16,7 @@ import (
 
 func TestGetSprint_NotFound(t *testing.T) {
 	svc := sprint.NewSprintService(newMockRepository(), nil, nil)
-	_, err := svc.GetSprint(context.Background(), uuid.New())
+	_, err := svc.GetSprint(context.Background(), uuid.New(), uuid.New())
 	require.Error(t, err)
 }
 
@@ -24,6 +24,7 @@ func TestUpdateSprint_Success(t *testing.T) {
 	repo := newMockRepository()
 	svc := sprint.NewSprintService(repo, nil, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
 	sprintID := uuid.New()
 	repo.sprints[sprintID] = &ent.Sprint{
@@ -31,9 +32,10 @@ func TestUpdateSprint_Success(t *testing.T) {
 		StartDate: time.Now(), EndDate: time.Now().AddDate(0, 0, 14),
 		CreatedAt: time.Now(), UpdatedAt: time.Now(),
 	}
+	repo.sprintProject[sprintID] = projectID
 
 	newName := "Sprint 1 updated"
-	resp, err := svc.UpdateSprint(ctx, sprintID, sprint.UpdateSprintRequest{Name: &newName})
+	resp, err := svc.UpdateSprint(ctx, projectID, sprintID, sprint.UpdateSprintRequest{Name: &newName, Version: 1})
 	require.NoError(t, err)
 	assert.Equal(t, "Sprint 1 updated", resp.Name)
 }
@@ -60,14 +62,16 @@ func TestCompleteSprint_RejectsNonActive(t *testing.T) {
 	repo := newMockRepository()
 	svc := sprint.NewSprintService(repo, nil, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
 	sprintID := uuid.New()
 	repo.sprints[sprintID] = &ent.Sprint{
 		ID: sprintID, Name: "Planning sprint", Status: sprintEnt.StatusPlanning,
 		StartDate: time.Now(), EndDate: time.Now().AddDate(0, 0, 14),
 	}
+	repo.sprintProject[sprintID] = projectID
 
-	_, err := svc.CompleteSprint(ctx, uuid.New(), sprintID)
+	_, err := svc.CompleteSprint(ctx, projectID, sprintID)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "активный")
 }
@@ -76,18 +80,21 @@ func TestUpdateRetroNotes(t *testing.T) {
 	repo := newMockRepository()
 	svc := sprint.NewSprintService(repo, nil, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
 	sprintID := uuid.New()
 	repo.sprints[sprintID] = &ent.Sprint{
 		ID: sprintID, Name: "Retro", Status: sprintEnt.StatusCompleted,
 		StartDate: time.Now().AddDate(0, 0, -14), EndDate: time.Now(),
-		CreatedAt: time.Now(), UpdatedAt: time.Now(),
+		Version: 1, CreatedAt: time.Now(), UpdatedAt: time.Now(),
 	}
+	repo.sprintProject[sprintID] = projectID
 
-	resp, err := svc.UpdateRetroNotes(ctx, sprintID, sprint.RetroNotesRequest{
+	resp, err := svc.UpdateRetroNotes(ctx, projectID, sprintID, sprint.RetroNotesRequest{
 		WentWell:  []string{"good deploy"},
 		ToImprove: []string{"estimates"},
 		Actions:   []string{"refine poker"},
+		Version:   1,
 	})
 	require.NoError(t, err)
 	require.NotNil(t, resp.RetroNotes)
@@ -98,15 +105,22 @@ func TestAddAndRemoveIssuesFromSprint(t *testing.T) {
 	repo := newMockRepository()
 	svc := sprint.NewSprintService(repo, nil, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
 	sprintID := uuid.New()
+	repo.sprints[sprintID] = &ent.Sprint{
+		ID: sprintID, Name: "S", Status: sprintEnt.StatusPlanning,
+		StartDate: time.Now(), EndDate: time.Now().AddDate(0, 0, 14),
+	}
+	repo.sprintProject[sprintID] = projectID
 	issueID := uuid.New()
+	repo.issueProject[issueID] = projectID // W1-A4-015: mock guard требует project mapping
 
-	require.NoError(t, svc.AddIssuesToSprint(ctx, sprintID, []uuid.UUID{issueID}))
+	require.NoError(t, svc.AddIssuesToSprint(ctx, projectID, sprintID, []uuid.UUID{issueID}))
 	assert.Equal(t, sprintID, repo.movedToSprint)
 	assert.Equal(t, []uuid.UUID{issueID}, repo.movedIssueIDs)
 
-	require.NoError(t, svc.RemoveIssuesFromSprint(ctx, []uuid.UUID{issueID}))
+	require.NoError(t, svc.RemoveIssuesFromSprint(ctx, projectID, []uuid.UUID{issueID}))
 	assert.Equal(t, []uuid.UUID{issueID}, repo.clearedIssueIDs)
 }
 
@@ -144,7 +158,7 @@ func TestPokerService_StartCastRevealGet(t *testing.T) {
 	issueID := uuid.New()
 	userID := uuid.New()
 
-	session, err := poker.StartPokerSession(ctx, sprintID, issueID)
+	session, err := poker.StartPokerSession(ctx, uuid.New(), sprintID, issueID)
 	require.NoError(t, err)
 	assert.False(t, session.Revealed)
 
@@ -172,7 +186,7 @@ func TestPokerService_GetSession_HiddenVotes(t *testing.T) {
 	poker := sprint.NewPokerService(rdb, nil)
 	ctx := context.Background()
 
-	session, err := poker.StartPokerSession(ctx, uuid.New(), uuid.New())
+	session, err := poker.StartPokerSession(ctx, uuid.New(), uuid.New(), uuid.New())
 	require.NoError(t, err)
 
 	userID := uuid.New()

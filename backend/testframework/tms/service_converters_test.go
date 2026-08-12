@@ -162,12 +162,14 @@ func TestBuildSnapshotAndSnapshotToUpdateInput(t *testing.T) {
 		ExternalID:   "EXT",
 	}
 
-	snapshot := tms.ExportBuildSnapshot(tc)
+	snapshot, err := tms.ExportBuildSnapshot(tc)
+	require.NoError(t, err)
 	assert.Equal(t, "Title v1", snapshot["title"])
 	assert.Equal(t, "bdd", snapshot["case_type"])
 	assert.NotNil(t, snapshot["steps"])
 
-	input := tms.ExportSnapshotToUpdateInput(snapshot)
+	input, err := tms.ExportSnapshotToUpdateInput(snapshot)
+	require.NoError(t, err)
 	require.NotNil(t, input.Title)
 	assert.Equal(t, "Title v1", *input.Title)
 	require.NotNil(t, input.Steps)

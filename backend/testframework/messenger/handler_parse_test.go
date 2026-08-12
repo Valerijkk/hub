@@ -61,7 +61,7 @@ func TestParseMessageID_ReturnsParam(t *testing.T) {
 // TestSearchMessages_InvalidChannelID проверяет отклонение при search сообщения некорректный channel id.
 func TestSearchMessages_InvalidChannelID(t *testing.T) {
 	svc, _, _ := newTestService()
-	_, err := svc.SearchMessages(t.Context(), "hello", "bad-uuid", 10)
+	_, err := svc.SearchMessages(t.Context(), uuid.New(), "hello", "bad-uuid", 10)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "channel_id")
 }
@@ -76,7 +76,7 @@ func TestHeartbeat_NilPresenceNoOp(t *testing.T) {
 // TestGetPresence_NilServiceReturnsEmpty проверяет бизнес-логику: получение присутствие nil сервис returns пустой.
 func TestGetPresence_NilServiceReturnsEmpty(t *testing.T) {
 	svc, _, _ := newTestService()
-	statuses, err := svc.GetPresence(t.Context(), []string{uuid.New().String()})
+	statuses, err := svc.GetPresence(t.Context(), uuid.New(), []string{uuid.New().String()})
 	require.NoError(t, err)
 	assert.Empty(t, statuses)
 }

@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
 	ArrowLeft,
@@ -9,8 +10,8 @@ import {
 	Target,
 	Zap,
 } from "lucide-react";
-import { useEffect, useState } from "react";
 import { getSprint, type SprintResponse } from "@/api/sprint";
+import { Button } from "@/components/ui/button";
 import { BurndownChart } from "@/modules/tracker/burndown-chart";
 import { SprintRetro } from "@/modules/tracker/sprint-retro";
 
@@ -78,13 +79,17 @@ function getProgressPercent(startDate: string, endDate: string): number {
  */
 function SprintDetailPage() {
 	const { projectId, sprintId } = Route.useParams();
-	const [sprint, setSprint] = useState<SprintResponse | null>(null);
+	const {
+		data: sprint,
+		isLoading,
+		isError,
+		refetch,
+	} = useQuery({
+		queryKey: ["sprint", projectId, sprintId],
+		queryFn: () => getSprint(projectId, sprintId),
+	});
 
-	useEffect(() => {
-		getSprint(projectId, sprintId).then(setSprint);
-	}, [projectId, sprintId]);
-
-	if (!sprint) {
+	if (isLoading) {
 		return (
 			<div className="flex items-center justify-center p-16">
 				<div className="flex flex-col items-center gap-3">
@@ -95,6 +100,31 @@ function SprintDetailPage() {
 		);
 	}
 
+	if (isError || !sprint) {
+		return (
+			<div className="flex flex-col items-center justify-center p-16 gap-3">
+				<p className="text-[14px] font-bold text-t1">
+					Не удалось загрузить спринт
+				</p>
+				<p className="text-[13px] text-t2">Ошибка сети или спринт не найден.</p>
+				<Button type="button" onClick={() => void refetch()}>
+					Повторить
+				</Button>
+			</div>
+		);
+	}
+
+	return <SprintDetailContent projectId={projectId} sprint={sprint} />;
+}
+
+function SprintDetailContent({
+	projectId,
+	sprint,
+}: {
+	projectId: string;
+	sprint: SprintResponse;
+}) {
+	const sprintId = sprint.id;
 	const badge = getStatusBadge(sprint.status);
 	const BadgeIcon = badge.icon;
 	const daysLeft = getDaysRemaining(sprint.end_date);

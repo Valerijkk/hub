@@ -25,19 +25,25 @@ func TestPushSender_NilStartStop(t *testing.T) {
 }
 
 // TestPushSender_QueueOverflow проверяет сценарий: push sender queue overflow.
+// A3W7-1-002: после 201 Send без Start() очередь ≤200 (default drop); иначе assert зелёный при любом cap.
 func TestPushSender_QueueOverflow(t *testing.T) {
 	_, repo, _, userID := newNotificationTestEnv(t)
 	priv, pub, err := webpush.GenerateVAPIDKeys()
 	require.NoError(t, err)
 
-	push := notification.NewPushSender(notification.ExportRepositoryDB(repo), config.WebPushConfig{
+	push := notification.NewPushSender(repo, config.WebPushConfig{
 		VAPIDPublicKey: pub, VAPIDPrivateKey: priv, VAPIDSubject: "mailto:test@hub.local",
 	})
 	require.NotNil(t, push)
+	// Не Start(): воркер не дренирует — иначе depth может упасть ниже cap до assert.
 
 	for i := 0; i < 201; i++ {
 		push.Send(userID, "title", "body", "/")
 	}
+
+	depth := notification.ExportPushQueueLen(push)
+	assert.LessOrEqual(t, depth, 200, "queue cap 200: overflow must drop via default branch")
+	assert.Equal(t, 200, depth, "exactly 200 queued; 201st dropped")
 }
 
 // TestPushSender_sendToUser_NoSubscriptions проверяет сценарий: push sender отправка to user no subscriptions.
@@ -46,7 +52,7 @@ func TestPushSender_sendToUser_NoSubscriptions(t *testing.T) {
 	priv, pub, err := webpush.GenerateVAPIDKeys()
 	require.NoError(t, err)
 
-	push := notification.NewPushSender(notification.ExportRepositoryDB(repo), config.WebPushConfig{
+	push := notification.NewPushSender(repo, config.WebPushConfig{
 		VAPIDPublicKey: pub, VAPIDPrivateKey: priv, VAPIDSubject: "mailto:test@hub.local",
 	})
 	require.NotNil(t, push)

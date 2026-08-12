@@ -10,6 +10,7 @@ import {
 	listLabelGroups,
 	listLabels,
 } from "@/api/tracker";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -54,22 +55,34 @@ const PRESET_LABEL_COLORS = [
  * Страница управления метками проекта.
  * Отображает метки, сгруппированные по группам, с CRUD-операциями.
  * Позволяет создавать метки с цветами и группы меток.
+ * A3W10-4-004: fail load ≠ empty «Нет меток…»; create не поверх fail.
  */
-function LabelsSettingsPage() {
+export function LabelsSettingsPage() {
 	const { projectId } = Route.useParams();
 	const queryClient = useQueryClient();
 
 	// Метки
-	const { data: labels, isLoading: labelsLoading } = useQuery({
+	const {
+		data: labels,
+		isLoading: labelsLoading,
+		isError: labelsError,
+		refetch: refetchLabels,
+	} = useQuery({
 		queryKey: ["labels", projectId],
 		queryFn: () => listLabels(projectId),
 	});
 
 	// Группы
-	const { data: groups } = useQuery({
+	const {
+		data: groups,
+		isError: groupsError,
+		refetch: refetchGroups,
+	} = useQuery({
 		queryKey: ["label-groups", projectId],
 		queryFn: () => listLabelGroups(projectId),
 	});
+
+	const loadError = labelsError || groupsError;
 
 	const [deleteLabelTarget, setDeleteLabelTarget] = useState<string | null>(
 		null,
@@ -208,6 +221,12 @@ function LabelsSettingsPage() {
 				<CardContent>
 					{labelsLoading ? (
 						<p className="text-[13px] text-t2">Загрузка...</p>
+					) : labelsError ? (
+						<QueryErrorAlert
+							message="Не удалось загрузить метки. Попробовать снова?"
+							retry={() => void refetchLabels()}
+							compact
+						/>
 					) : ungroupedLabels.length > 0 ? (
 						<div className="space-y-2">
 							{ungroupedLabels.map((label) => (
@@ -224,127 +243,147 @@ function LabelsSettingsPage() {
 				</CardContent>
 			</Card>
 
-			{/* Группы меток */}
-			{groups?.map((group) => (
-				<Card key={group.id}>
-					<CardHeader>
-						<CardTitle>{group.name}</CardTitle>
-					</CardHeader>
-					<CardContent>
-						{group.labels.length > 0 ? (
-							<div className="space-y-2">
-								{group.labels.map((label) => (
-									<LabelRow
-										key={label.id}
-										label={label}
-										onDelete={() => setDeleteLabelTarget(label.id)}
-									/>
-								))}
-							</div>
-						) : (
-							<p className="text-[13px] text-t2">Нет меток в группе</p>
-						)}
-					</CardContent>
-				</Card>
-			))}
+			{/* Группы меток — только после успешной загрузки */}
+			{!groupsError &&
+				groups?.map((group) => (
+					<Card key={group.id}>
+						<CardHeader>
+							<CardTitle>{group.name}</CardTitle>
+						</CardHeader>
+						<CardContent>
+							{group.labels.length > 0 ? (
+								<div className="space-y-2">
+									{group.labels.map((label) => (
+										<LabelRow
+											key={label.id}
+											label={label}
+											onDelete={() => setDeleteLabelTarget(label.id)}
+										/>
+									))}
+								</div>
+							) : (
+								<p className="text-[13px] text-t2">Нет меток в группе</p>
+							)}
+						</CardContent>
+					</Card>
+				))}
 
-			<Separator />
+			{groupsError && !labelsError && (
+				<QueryErrorAlert
+					message="Не удалось загрузить группы меток. Попробовать снова?"
+					retry={() => void refetchGroups()}
+					compact
+				/>
+			)}
 
-			{/* Добавить метку */}
-			<Card>
-				<CardHeader>
-					<CardTitle>Добавить метку</CardTitle>
-				</CardHeader>
-				<CardContent>
-					<form onSubmit={handleCreateLabel} className="space-y-3">
-						<div className="grid grid-cols-2 gap-3">
-							<div className="space-y-1">
-								<Label htmlFor="label_name">Название</Label>
-								<Input
-									id="label_name"
-									value={labelName}
-									onChange={(e) => setLabelName(e.target.value)}
-									placeholder="Название метки"
-								/>
-							</div>
-							<div className="space-y-1">
-								<Label htmlFor="label_group">Группа (опционально)</Label>
-								<Select
-									value={labelGroupId || "none"}
-									onValueChange={(v) => setLabelGroupId(v === "none" ? "" : v)}
-								>
-									<SelectTrigger className="w-full rounded-xl border bg-base px-3 py-2 text-sm">
-										<SelectValue />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value="none">Без группы</SelectItem>
-										{groups?.map((g) => (
-											<SelectItem key={g.id} value={g.id}>
-												{g.name}
-											</SelectItem>
+			{/* Create UI блокируется при fail load (риск дублей поверх failed fetch). */}
+			{!loadError && (
+				<>
+					<Separator />
+
+					{/* Добавить метку */}
+					<Card>
+						<CardHeader>
+							<CardTitle>Добавить метку</CardTitle>
+						</CardHeader>
+						<CardContent>
+							<form onSubmit={handleCreateLabel} className="space-y-3">
+								<div className="grid grid-cols-2 gap-3">
+									<div className="space-y-1">
+										<Label htmlFor="label_name">Название</Label>
+										<Input
+											id="label_name"
+											value={labelName}
+											onChange={(e) => setLabelName(e.target.value)}
+											placeholder="Название метки"
+										/>
+									</div>
+									<div className="space-y-1">
+										<Label htmlFor="label_group">Группа (опционально)</Label>
+										<Select
+											value={labelGroupId || "none"}
+											onValueChange={(v) =>
+												setLabelGroupId(v === "none" ? "" : v)
+											}
+										>
+											<SelectTrigger className="w-full rounded-xl border bg-base px-3 py-2 text-sm">
+												<SelectValue />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="none">Без группы</SelectItem>
+												{groups?.map((g) => (
+													<SelectItem key={g.id} value={g.id}>
+														{g.name}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+									</div>
+								</div>
+								<div className="space-y-1">
+									<Label>Цвет</Label>
+									<div className="flex gap-1">
+										{PRESET_LABEL_COLORS.map((color) => (
+											<button
+												key={color}
+												type="button"
+												className={`h-6 w-6 rounded-full border-2 ${labelColor === color ? "border-foreground" : "border-transparent"}`}
+												style={{ backgroundColor: color }}
+												onClick={() => setLabelColor(color)}
+												aria-label={color}
+												aria-pressed={labelColor === color}
+											/>
 										))}
-									</SelectContent>
-								</Select>
-							</div>
-						</div>
-						<div className="space-y-1">
-							<Label>Цвет</Label>
-							<div className="flex gap-1">
-								{PRESET_LABEL_COLORS.map((color) => (
-									<button
-										key={color}
-										type="button"
-										className={`h-6 w-6 rounded-full border-2 ${labelColor === color ? "border-foreground" : "border-transparent"}`}
-										style={{ backgroundColor: color }}
-										onClick={() => setLabelColor(color)}
-									/>
-								))}
-							</div>
-						</div>
-						<div className="flex items-center gap-3">
-							<Badge
-								variant="outline"
-								style={{ borderColor: labelColor, color: labelColor }}
-							>
-								{labelName || "Превью"}
-							</Badge>
-							<Button
-								type="submit"
-								size="sm"
-								disabled={createLabelMutation.isPending}
-							>
-								{createLabelMutation.isPending
-									? "Создание..."
-									: "Создать метку"}
-							</Button>
-						</div>
-					</form>
-				</CardContent>
-			</Card>
+									</div>
+								</div>
+								<div className="flex items-center gap-3">
+									<Badge
+										variant="outline"
+										style={{ borderColor: labelColor, color: labelColor }}
+									>
+										{labelName || "Превью"}
+									</Badge>
+									<Button
+										type="submit"
+										size="sm"
+										disabled={createLabelMutation.isPending}
+									>
+										{createLabelMutation.isPending
+											? "Создание..."
+											: "Создать метку"}
+									</Button>
+								</div>
+							</form>
+						</CardContent>
+					</Card>
 
-			{/* Добавить группу */}
-			<Card>
-				<CardHeader>
-					<CardTitle>Добавить группу</CardTitle>
-				</CardHeader>
-				<CardContent>
-					<form onSubmit={handleCreateGroup} className="flex gap-3">
-						<Input
-							value={groupName}
-							onChange={(e) => setGroupName(e.target.value)}
-							placeholder="Название группы"
-							className="flex-1"
-						/>
-						<Button
-							type="submit"
-							size="sm"
-							disabled={createGroupMutation.isPending}
-						>
-							{createGroupMutation.isPending ? "Создание..." : "Создать группу"}
-						</Button>
-					</form>
-				</CardContent>
-			</Card>
+					{/* Добавить группу */}
+					<Card>
+						<CardHeader>
+							<CardTitle>Добавить группу</CardTitle>
+						</CardHeader>
+						<CardContent>
+							<form onSubmit={handleCreateGroup} className="flex gap-3">
+								<Input
+									value={groupName}
+									onChange={(e) => setGroupName(e.target.value)}
+									placeholder="Название группы"
+									className="flex-1"
+								/>
+								<Button
+									type="submit"
+									size="sm"
+									disabled={createGroupMutation.isPending}
+								>
+									{createGroupMutation.isPending
+										? "Создание..."
+										: "Создать группу"}
+								</Button>
+							</form>
+						</CardContent>
+					</Card>
+				</>
+			)}
 		</div>
 	);
 }

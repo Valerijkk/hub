@@ -2,6 +2,7 @@ package calls
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -19,6 +20,26 @@ import (
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 )
 
+// authorizeCallRecordingAccess — A2-004: запись/остановка только для члена канала
+// звонка (или создателя instant-звонка). Без этой проверки любой authenticated
+// user мог стартовать egress / стопать чужой recording по UUID.
+func (s *RecordingService) authorizeCallRecordingAccess(ctx context.Context, callEnt *ent.Call, userID uuid.UUID) error {
+	if callEnt.ChannelID == nil {
+		if callEnt.CreatedBy != userID {
+			return ErrCallForbidden
+		}
+		return nil
+	}
+	isMember, err := s.repo.IsChannelMember(ctx, *callEnt.ChannelID, userID)
+	if err != nil {
+		return fmt.Errorf("ошибка проверки членства в канале: %w", err)
+	}
+	if !isMember {
+		return ErrCallForbidden
+	}
+	return nil
+}
+
 // maxActiveRecordingsPerCall определяет максимальное количество одновременных
 // записей на один звонок. Ограничение защищает от перегрузки LiveKit Egress.
 const maxActiveRecordingsPerCall = 2
@@ -35,6 +56,8 @@ type RecordingService struct {
 	presignClient *s3.PresignClient
 	repo          *EntRepository
 	nats          *natsclient.Client
+	// createRecording — опциональный override для hubtest (orphan egress compensation).
+	createRecording func(ctx context.Context, egressID string, callID, projectID, userID uuid.UUID, filePath string) (*ent.Recording, error)
 }
 
 // NewRecordingService создаёт новый сервис записи звонков.
@@ -84,8 +107,8 @@ func NewRecordingService(lkCfg config.LiveKitConfig, s3Cfg config.S3Config, repo
 }
 
 // StartRecording запускает запись звонка через LiveKit Egress.
-// Проверяет лимит активных записей, создаёт RoomCompositeEgress с S3 output,
-// сохраняет метаданные в БД и публикует NATS-событие для уведомления участников.
+// A2-004: только член канала звонка. Далее — лимит активных записей,
+// RoomCompositeEgress с S3 output, метаданные в БД и NATS-событие.
 func (s *RecordingService) StartRecording(ctx context.Context, callID, userID uuid.UUID) (*RecordingResponse, error) {
 	// Получаем звонок для проверки и данных комнаты
 	callEnt, err := s.repo.GetCall(ctx, callID)
@@ -100,9 +123,19 @@ func (s *RecordingService) StartRecording(ctx context.Context, callID, userID uu
 	if callEnt.ChannelID == nil {
 		return nil, fmt.Errorf("instant-звонки пока не поддерживают запись")
 	}
+	if err := s.authorizeCallRecordingAccess(ctx, callEnt, userID); err != nil {
+		return nil, err
+	}
 	projectID, err := s.repo.GetProjectIDByChannel(ctx, *callEnt.ChannelID)
 	if err != nil {
+		// A3W3-A5-003: канал без project_id → NotFound/явная ошибка → 400, не FK 500.
+		if ent.IsNotFound(err) || errors.Is(err, ErrInvalidInput) {
+			return nil, ErrInvalidInput
+		}
 		return nil, fmt.Errorf("не удалось получить проект канала: %w", err)
+	}
+	if projectID == uuid.Nil {
+		return nil, ErrInvalidInput
 	}
 
 	// Проверяем лимит активных записей
@@ -151,9 +184,10 @@ func (s *RecordingService) StartRecording(ctx context.Context, callID, userID uu
 		return nil, fmt.Errorf("не удалось запустить запись: %w", err)
 	}
 
-	// Сохраняем запись в БД
-	rec, err := s.repo.CreateRecording(ctx, egressInfo.EgressId, callID, projectID, userID, filePath)
+	// Сохраняем запись в БД. A2W3-5-001: при ошибке — StopEgress, иначе orphan egress в LiveKit/S3.
+	rec, err := s.createRecordingRow(ctx, egressInfo.EgressId, callID, projectID, userID, filePath)
 	if err != nil {
+		s.compensateOrphanEgress(ctx, egressInfo.EgressId)
 		return nil, fmt.Errorf("не удалось сохранить запись: %w", err)
 	}
 
@@ -168,12 +202,44 @@ func (s *RecordingService) StartRecording(ctx context.Context, callID, userID uu
 	return toRecordingResponse(rec), nil
 }
 
+// createRecordingRow пишет метаданные записи. В hubtest можно подменить через
+// ExportRecordingServiceSetCreateRecording (мутация A2W3-5-001).
+func (s *RecordingService) createRecordingRow(ctx context.Context, egressID string, callID, projectID, userID uuid.UUID, filePath string) (*ent.Recording, error) {
+	if s.createRecording != nil {
+		return s.createRecording(ctx, egressID, callID, projectID, userID, filePath)
+	}
+	return s.repo.CreateRecording(ctx, egressID, callID, projectID, userID, filePath)
+}
+
+// compensateOrphanEgress останавливает LiveKit egress после провала CreateRecording (A2W3-5-001).
+func (s *RecordingService) compensateOrphanEgress(ctx context.Context, egressID string) {
+	if s.egressClient == nil || egressID == "" {
+		return
+	}
+	if _, stopErr := s.egressClient.StopEgress(ctx, &livekit.StopEgressRequest{EgressId: egressID}); stopErr != nil {
+		slog.Error("recording: не удалось остановить orphan egress после ошибки CreateRecording",
+			"egress_id", egressID, "error", stopErr)
+	}
+}
+
 // StopRecording останавливает запись звонка через LiveKit Egress.
-// Обновляет статус записи на "processing" и вызывает StopEgress.
-func (s *RecordingService) StopRecording(ctx context.Context, recordingID uuid.UUID) error {
+// A2-004: callID из path должен совпадать с rec.CallID; доступ — член канала
+// (тот же authz, что Start) + userID в сервисе. Статус → processing + StopEgress.
+func (s *RecordingService) StopRecording(ctx context.Context, callID, recordingID, userID uuid.UUID) error {
 	rec, err := s.repo.GetRecording(ctx, recordingID)
 	if err != nil {
 		return fmt.Errorf("запись не найдена: %w", err)
+	}
+	if rec.CallID != callID {
+		return ErrCallForbidden
+	}
+
+	callEnt, err := s.repo.GetCall(ctx, rec.CallID)
+	if err != nil {
+		return fmt.Errorf("звонок не найден: %w", err)
+	}
+	if authErr := s.authorizeCallRecordingAccess(ctx, callEnt, userID); authErr != nil {
+		return authErr
 	}
 
 	if rec.Status != recording.StatusRecording {
@@ -196,6 +262,7 @@ func (s *RecordingService) StopRecording(ctx context.Context, recordingID uuid.U
 	s.nats.PublishJSON("calls.recording.stopped", map[string]interface{}{
 		"recording_id": recordingID,
 		"call_id":      rec.CallID,
+		"stopped_by":   userID,
 	})
 
 	return nil

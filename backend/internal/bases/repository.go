@@ -2,6 +2,7 @@ package bases
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,6 +14,10 @@ import (
 	"github.com/valerii/hub/backend/ent/user"
 )
 
+// MaxTableRecords — A13-002: hard cap records в GetTable / GetTableView.
+// Без лимита мутации и view тянут полный table scan.
+const MaxTableRecords = 500
+
 // Repository — персистентность no-code баз (V4-04).
 type Repository interface {
 	CreateBase(ctx context.Context, ownerID uuid.UUID, req CreateBaseRequest) (*ent.HubBase, error)
@@ -22,7 +27,14 @@ type Repository interface {
 	SoftDeleteBase(ctx context.Context, id uuid.UUID) error
 
 	CreateTable(ctx context.Context, baseID uuid.UUID, req CreateTableRequest) (*ent.HubTable, error)
+	// GetTable возвращает таблицу с колонками и records (cap MaxTableRecords).
 	GetTable(ctx context.Context, baseID, tableID uuid.UUID) (*ent.HubTable, error)
+	// CountTableRecords — число живых records (для has_more после cap).
+	CountTableRecords(ctx context.Context, tableID uuid.UUID) (int, error)
+	// GetTableMeta возвращает таблицу только с колонками (без records) — write-path.
+	GetTableMeta(ctx context.Context, baseID, tableID uuid.UUID) (*ent.HubTable, error)
+	// GetRecord возвращает одну запись таблицы (для update/delete без полного scan).
+	GetRecord(ctx context.Context, tableID, recordID uuid.UUID) (*ent.HubRecord, error)
 	UpdateTable(ctx context.Context, tableID uuid.UUID, req UpdateTableRequest) (*ent.HubTable, error)
 	SoftDeleteTable(ctx context.Context, tableID uuid.UUID) error
 
@@ -45,13 +57,46 @@ func NewEntRepository(client *ent.Client) *EntRepository {
 	return &EntRepository{client: client}
 }
 
+// CreateBase создаёт базу вместе с Main-таблицей и колонкой Name в одной tx (W2-A5-001).
 func (r *EntRepository) CreateBase(ctx context.Context, ownerID uuid.UUID, req CreateBaseRequest) (*ent.HubBase, error) {
-	return r.client.HubBase.Create().
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin create base tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	b, err := tx.HubBase.Create().
 		SetName(req.Name).
 		SetDescription(req.Description).
 		SetOwnerID(ownerID).
 		Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("create base: %w", err)
+	}
+	table, err := tx.HubTable.Create().
+		SetName("Main").
+		SetBaseID(b.ID).
+		Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("create default table: %w", err)
+	}
+	_, err = tx.HubColumn.Create().
+		SetName("Name").
+		SetColType(hubcolumn.ColTypeText).
+		SetTableID(table.ID).
+		Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("create default column: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit create base: %w", err)
+	}
+	return r.GetBase(ctx, b.ID)
 }
+
+// MaxOwnerBases — P3-BE-06 / W2-A5-012: hard cap списка баз владельца.
+// Mutation: снять Limit → unbounded All при N>cap.
+const MaxOwnerBases = 100
 
 func (r *EntRepository) ListBases(ctx context.Context, ownerID uuid.UUID) ([]*ent.HubBase, error) {
 	// Владелец видит только свои базы: без owner-фильтра любой аутентифицированный
@@ -66,6 +111,7 @@ func (r *EntRepository) ListBases(ctx context.Context, ownerID uuid.UUID) ([]*en
 			q.Where(hubtable.DeletedAtIsNil())
 		}).
 		Order(ent.Desc(hubbase.FieldUpdatedAt)).
+		Limit(MaxOwnerBases).
 		All(ctx)
 }
 
@@ -81,8 +127,12 @@ func (r *EntRepository) GetBase(ctx context.Context, id uuid.UUID) (*ent.HubBase
 }
 
 func (r *EntRepository) UpdateBase(ctx context.Context, id uuid.UUID, req UpdateBaseRequest) (*ent.HubBase, error) {
+	// W2-A5-004: VersionEQ в WHERE — иначе TOCTOU app-check → lost update.
 	upd := r.client.HubBase.UpdateOneID(id).
-		Where(hubbase.DeletedAtIsNil()).
+		Where(
+			hubbase.DeletedAtIsNil(),
+			hubbase.VersionEQ(req.Version),
+		).
 		AddVersion(1)
 	if req.Name != nil {
 		upd.SetName(*req.Name)
@@ -94,19 +144,99 @@ func (r *EntRepository) UpdateBase(ctx context.Context, id uuid.UUID, req Update
 }
 
 func (r *EntRepository) SoftDeleteBase(ctx context.Context, id uuid.UUID) error {
+	// A2W2-5-001: cascade soft-delete tables/columns/records в одной tx.
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return fmt.Errorf("begin soft-delete base tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
 	now := time.Now().UTC()
-	_, err := r.client.HubBase.UpdateOneID(id).
-		Where(hubbase.DeletedAtIsNil()).
+
+	// A3W2-A5-002: все tableIDs базы (вкл. уже soft-deleted) — иначе orphans
+	// у таблицы, удалённой раньше через SoftDeleteTable без cascade детей.
+	tableIDs, err := tx.HubTable.Query().
+		Where(hubtable.HasBaseWith(hubbase.ID(id))).
+		IDs(ctx)
+	if err != nil {
+		return fmt.Errorf("list tables for cascade soft-delete: %w", err)
+	}
+
+	if len(tableIDs) > 0 {
+		if _, err := tx.HubRecord.Update().
+			Where(
+				hubrecord.HasTableWith(hubtable.IDIn(tableIDs...)),
+				hubrecord.DeletedAtIsNil(),
+			).
+			SetDeletedAt(now).
+			Save(ctx); err != nil {
+			return fmt.Errorf("cascade soft-delete records: %w", err)
+		}
+		if _, err := tx.HubColumn.Update().
+			Where(
+				hubcolumn.HasTableWith(hubtable.IDIn(tableIDs...)),
+				hubcolumn.DeletedAtIsNil(),
+			).
+			SetDeletedAt(now).
+			Save(ctx); err != nil {
+			return fmt.Errorf("cascade soft-delete columns: %w", err)
+		}
+		if _, err := tx.HubTable.Update().
+			Where(
+				hubtable.IDIn(tableIDs...),
+				hubtable.DeletedAtIsNil(),
+			).
+			SetDeletedAt(now).
+			Save(ctx); err != nil {
+			return fmt.Errorf("cascade soft-delete tables: %w", err)
+		}
+	}
+
+	affected, err := tx.HubBase.Update().
+		Where(
+			hubbase.IDEQ(id),
+			hubbase.DeletedAtIsNil(),
+		).
 		SetDeletedAt(now).
 		Save(ctx)
-	return err
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return &ent.NotFoundError{}
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit soft-delete base: %w", err)
+	}
+	return nil
 }
 
 func (r *EntRepository) CreateTable(ctx context.Context, baseID uuid.UUID, req CreateTableRequest) (*ent.HubTable, error) {
-	return r.client.HubTable.Create().
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin create table tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	table, err := tx.HubTable.Create().
 		SetName(req.Name).
 		SetBaseID(baseID).
 		Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("create table: %w", err)
+	}
+	_, err = tx.HubColumn.Create().
+		SetName("Name").
+		SetColType(hubcolumn.ColTypeText).
+		SetTableID(table.ID).
+		Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("create default column: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit create table: %w", err)
+	}
+	return table, nil
 }
 
 func (r *EntRepository) GetTable(ctx context.Context, baseID, tableID uuid.UUID) (*ent.HubTable, error) {
@@ -123,14 +253,54 @@ func (r *EntRepository) GetTable(ctx context.Context, baseID, tableID uuid.UUID)
 		WithRecords(func(q *ent.HubRecordQuery) {
 			q.Where(hubrecord.DeletedAtIsNil()).
 				WithCreatedBy().
-				Order(ent.Desc(hubrecord.FieldUpdatedAt))
+				Order(ent.Desc(hubrecord.FieldUpdatedAt)).
+				Limit(MaxTableRecords)
 		}).
+		Only(ctx)
+}
+
+func (r *EntRepository) CountTableRecords(ctx context.Context, tableID uuid.UUID) (int, error) {
+	return r.client.HubRecord.Query().
+		Where(
+			hubrecord.DeletedAtIsNil(),
+			hubrecord.HasTableWith(hubtable.ID(tableID), hubtable.DeletedAtIsNil()),
+		).
+		Count(ctx)
+}
+
+// GetTableMeta — columns only; write-path не должен грузить все records (A13-002).
+func (r *EntRepository) GetTableMeta(ctx context.Context, baseID, tableID uuid.UUID) (*ent.HubTable, error) {
+	return r.client.HubTable.Query().
+		Where(
+			hubtable.ID(tableID),
+			hubtable.DeletedAtIsNil(),
+			hubtable.HasBaseWith(hubbase.ID(baseID), hubbase.DeletedAtIsNil()),
+		).
+		WithColumns(func(q *ent.HubColumnQuery) {
+			q.Where(hubcolumn.DeletedAtIsNil()).
+				Order(ent.Asc(hubcolumn.FieldSortOrder), ent.Asc(hubcolumn.FieldName))
+		}).
+		Only(ctx)
+}
+
+// GetRecord загружает одну запись в рамках таблицы.
+func (r *EntRepository) GetRecord(ctx context.Context, tableID, recordID uuid.UUID) (*ent.HubRecord, error) {
+	return r.client.HubRecord.Query().
+		Where(
+			hubrecord.ID(recordID),
+			hubrecord.DeletedAtIsNil(),
+			hubrecord.HasTableWith(hubtable.ID(tableID), hubtable.DeletedAtIsNil()),
+		).
+		WithCreatedBy().
 		Only(ctx)
 }
 
 func (r *EntRepository) UpdateTable(ctx context.Context, tableID uuid.UUID, req UpdateTableRequest) (*ent.HubTable, error) {
 	upd := r.client.HubTable.UpdateOneID(tableID).
-		Where(hubtable.DeletedAtIsNil()).
+		Where(
+			hubtable.DeletedAtIsNil(),
+			hubtable.VersionEQ(req.Version),
+		).
 		AddVersion(1)
 	if req.Name != nil {
 		upd.SetName(*req.Name)
@@ -142,12 +312,49 @@ func (r *EntRepository) UpdateTable(ctx context.Context, tableID uuid.UUID, req 
 }
 
 func (r *EntRepository) SoftDeleteTable(ctx context.Context, tableID uuid.UUID) error {
+	// A3W2-A5-002: симметрия SoftDeleteBase — soft-delete columns+records в одной tx.
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return fmt.Errorf("begin soft-delete table tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
 	now := time.Now().UTC()
-	_, err := r.client.HubTable.UpdateOneID(tableID).
-		Where(hubtable.DeletedAtIsNil()).
+	if _, err := tx.HubRecord.Update().
+		Where(
+			hubrecord.HasTableWith(hubtable.ID(tableID)),
+			hubrecord.DeletedAtIsNil(),
+		).
+		SetDeletedAt(now).
+		Save(ctx); err != nil {
+		return fmt.Errorf("cascade soft-delete table records: %w", err)
+	}
+	if _, err := tx.HubColumn.Update().
+		Where(
+			hubcolumn.HasTableWith(hubtable.ID(tableID)),
+			hubcolumn.DeletedAtIsNil(),
+		).
+		SetDeletedAt(now).
+		Save(ctx); err != nil {
+		return fmt.Errorf("cascade soft-delete table columns: %w", err)
+	}
+	affected, err := tx.HubTable.Update().
+		Where(
+			hubtable.IDEQ(tableID),
+			hubtable.DeletedAtIsNil(),
+		).
 		SetDeletedAt(now).
 		Save(ctx)
-	return err
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return &ent.NotFoundError{}
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit soft-delete table: %w", err)
+	}
+	return nil
 }
 
 func (r *EntRepository) CreateColumn(ctx context.Context, tableID uuid.UUID, req CreateColumnRequest) (*ent.HubColumn, error) {
@@ -168,7 +375,10 @@ func (r *EntRepository) CreateColumn(ctx context.Context, tableID uuid.UUID, req
 
 func (r *EntRepository) UpdateColumn(ctx context.Context, columnID uuid.UUID, req UpdateColumnRequest) (*ent.HubColumn, error) {
 	upd := r.client.HubColumn.UpdateOneID(columnID).
-		Where(hubcolumn.DeletedAtIsNil()).
+		Where(
+			hubcolumn.DeletedAtIsNil(),
+			hubcolumn.VersionEQ(req.Version),
+		).
 		AddVersion(1)
 	if req.Name != nil {
 		upd.SetName(*req.Name)
@@ -205,8 +415,12 @@ func (r *EntRepository) CreateRecord(ctx context.Context, tableID, userID uuid.U
 }
 
 func (r *EntRepository) UpdateRecord(ctx context.Context, recordID uuid.UUID, req UpdateRecordRequest) (*ent.HubRecord, error) {
+	// W2-A5-004: VersionEQ в WHERE — иначе concurrent PUT → lost update.
 	upd := r.client.HubRecord.UpdateOneID(recordID).
-		Where(hubrecord.DeletedAtIsNil()).
+		Where(
+			hubrecord.DeletedAtIsNil(),
+			hubrecord.VersionEQ(req.Version),
+		).
 		AddVersion(1)
 	if req.Cells != nil {
 		upd.SetCells(req.Cells)

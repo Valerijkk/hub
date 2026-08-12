@@ -34,6 +34,13 @@ func newDashboardRepoEnv(t *testing.T) (*dashboard.EntRepository, *ent.Client, c
 		Save(ctx)
 	require.NoError(t, err)
 
+	_, err = client.ProjectMember.Create().
+		SetUserID(user.ID).
+		SetProjectID(proj.ID).
+		SetProjectRole("developer").
+		Save(ctx)
+	require.NoError(t, err)
+
 	_, err = client.WorkflowStatus.Create().
 		SetName("Open").
 		SetCategory(workflowstatus.CategoryTodo).

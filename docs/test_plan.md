@@ -3,91 +3,133 @@
 > Единая база знаний QA. Обновляется при изменении стратегии, CI или coverage floor.  
 > Детали TC-*: `docs/TESTING.md` · Матрица: `.planning/COVERAGE.md` · Triage: `.cursor/skills/test-triage/SKILL.md`
 
+> **Founder greenfield cutover 2026-08-07:** сохраняются и перемещаются только
+> доказанные genuine isolated Go/Vitest/RTL units в `backend/tests/**` и
+> `frontend/tests/**`. Legacy Go component/API/integration, static-contract
+> Vitest, TypeScript Playwright и их support/config/entrypoints удаляются по
+> exact allowlist и не портируются. Весь non-unit и load слой создаётся с нуля
+> как один Python-проект прямо в
+> `testframework/`: `{src/hub_testkit,tests/{api,integration,contract,e2e},selftests,cases,load,docker,reports}/**`
+> плюс корневой `pyproject.toml`/pytest config. Исторический 82% Go coverage и
+> row-level parity не блокируют cutover; новый набор принимается по рискам,
+> требованиям и трассируемости. Канон:
+> [test architecture rebase](../.planning/active/august-2026/06-TEST-ARCHITECTURE-REBASE.md).
+
 ---
 
 ## Пирамида тестирования
 
 ```
         ┌─────────────┐
-        │     E2E     │  Playwright — критические user paths (CI e2e-full)
+        │     E2E     │  pytest + playwright-python — критические user paths
         ├─────────────┤
-        │ Integration │  httptest handlers, enttest/sqlite, Mongo в CI
+        │ Integration │  pytest — DB/broker/storage/application boundaries
         ├─────────────┤
-        │    Unit     │  Go testify (-tags hubtest) + Vitest/RTL
+        │    Unit     │  Go testify + Vitest/RTL, service-free
         └─────────────┘
 ```
 
 | Уровень | Инструмент | Расположение | Gate |
 |---------|------------|--------------|------|
-| Unit (BE) | Go testing + testify | `backend/testframework/{domain}/` (0 в `internal/`) | CI `backend-test` |
-| Unit (FE) | Vitest + RTL | `testframework/stages/unit/frontend-test/domains/{domain}/` | CI `frontend-test` |
-| Integration | httptest, enttest, miniredis | `backend/testframework/` | В составе unit |
-| API smoke | httptest | auth, health, critical handlers | e2e-full |
-| E2E | Playwright + POM + Steps | `testframework/stages/e2e/domains/{domain}/` | `e2e-smoke` + `e2e-full` |
+| Unit (BE) | Go testing + testify | `backend/tests/{domain}/` | CI `backend-unit` |
+| Unit (FE) | Vitest + RTL | `frontend/tests/{domain}/`, support | CI `frontend-unit` |
+| API / Integration / Contract | pytest + httpx | `testframework/tests/{api,integration,contract}/` | Python gates |
+| E2E | pytest + playwright-python | `testframework/tests/e2e/` | `smoke` marker; `full` launcher profile |
+| Load | Locust | `testframework/load/` | nightly/manual |
 | Build | `tsc`, `vite build`, `-tags release` | CI `build` job | 0 errors |
 | Lint | Biome | `npm run lint` | **gate** (не continue-on-error) |
-| Security | grep + audit docs | `.planning/code-review-final/` | 0 CRITICAL |
+| Security | grep + audit docs | `.planning/audits/code-review-final/` | 0 CRITICAL |
+
+Единственный целевой слой:
+
+| Уровень | Инструмент | Расположение |
+|---------|------------|--------------|
+| Unit (BE) | Go testing + testify | `backend/tests/{domain}/` — только genuine units |
+| Unit (FE) | Vitest + RTL | `frontend/tests/{domain}/` — только units; support в `frontend/tests/support/` |
+| API / integration / contract | pytest + httpx | `testframework/tests/{api,integration,contract}/` |
+| E2E smoke/full | pytest + playwright-python | `testframework/tests/e2e/`; `smoke` is a marker and `full` is a launcher profile |
+| Load | Locust | `testframework/load/` |
+
+Текущие **237** `go-component` rows (31 API + 206 integration) не переносятся в
+`backend/tests/**` и не переписываются один-в-один: source удаляется по manifest,
+а новый Python coverage проектируется заново от требований и рисков.
+
+## Definition of coverage для greenfield Python
+
+Каждый Python test module обязан иметь ссылки на `task`, requirement (`FR/NFR`)
+и стабильный `TC-*`. Для применимых требований тест-дизайн явно покрывает:
+
+- happy path и основной пользовательский результат;
+- invalid input, authorization/authentication и forbidden transitions;
+- min/max/empty/null/Unicode/timezone/concurrency boundaries;
+- edge/corner cases, idempotency, retry/timeout и partial failure;
+- recovery/rollback, security, privacy, accessibility и performance risk;
+- observable side effects и отсутствие запрещённых side effects.
+
+Количество старых тестов и старый statement coverage не являются целевыми KPI.
+Zero collection, неожиданные skips и тест без traceability fail closed.
 
 ---
 
 ## Test Triage Protocol (REGULATION §10)
 
-При падении любого теста (Go / Vitest / Playwright):
+При падении любого target test/job:
 
 1. **Воспроизвести функционал** по `docs/system_specification.md`, не только assert
-2. **Классифицировать:** `ROOT=code` (баг в prod) | `ROOT=test` (устаревший тест)
-3. **Чинить минимальный слой** — код или тест, не оба «наугад»
-4. **Записать** обоснование в QA log / STATE.md
+2. **Классифицировать ровно один root:** `code | test | infra | flaky | stop`
+3. **Действовать по root:** минимальный code/test fix; восстановление infra;
+   доказательство flake; либо STOP без произвольной правки
+4. **Записать** root, evidence и решение в QA log / STATE.md
 
 **Запрещено:** зелёные тесты без проверки соответствия спецификации.
 
+**Docker-only:** локальные агенты выполняют tests, validators, lint,
+build/vet, Vite/backend/frontend, Playwright, pytest и Locust только внутри
+task-owned Docker containers с CPU/RAM limits. Host-run не является baseline и
+обязан быть повторён в Docker; host оставлен для редактирования и Git.
+
 ---
 
-## Текущие метрики (2026-06-22)
+## Текущая инвентаризация (2026-08-07)
 
-Источник: `.planning/COVERAGE.md` · `.planning/audits/2026-06/AUDIT-SCORECARD.md`
+Источник: `.planning/audits/test-rebase/{inventory.json,founder-greenfield-cutover-manifest.json}` · HEAD
+`5708671f`; ledger SHA-256 `72de6a81…`.
 
 | Метрика | Значение |
 |---------|----------|
-| Backend `testframework/**/*_test.go` | **499** файлов (filesystem count 2026-07-26) |
+| Ledger | **1,049** source rows / **4,246** declared; drift/unmapped = 0 |
+| Backend Go total | **832** файлов / **3,674** declared: legacy `backend/testframework/` 831/3,672 + server 1/2; taxonomy 595 genuine unit + 237 component (31 API + 206 integration) |
 | Backend `internal/*_test.go` | **0** (TF-M08 ✅) |
-| Statement coverage `internal/` | **83.0%** |
-| Security-critical packages ≥80% | **6/6** ✅ |
-| Frontend Vitest | **37** files, **99/99** tests ✅ |
-| Playwright specs | **20** files в `testframework/stages/e2e/domains/` |
+| Backend hook sources | **43** files / 582 symbols / 892 links; 245 genuine units protected until TASK-234, prune only TASK-219B |
+| Hook-dependent protected subset | **42** distinct hook files / **434** distinct referenced hook symbols / **653** consumer links across the 245 protected units; subset-only, so it does not conflict with the global hook inventory above |
+| Statement coverage `internal/` | **82.0373%** — historical Docker baseline for context, не migration gate |
+| Security-critical packages ≥80% | Historical baseline 6/6; не заменяет risk/requirement coverage нового набора |
+| Frontend Vitest | **180** files / **519** literal cases: 156 unit + 24 static contract |
+| Frontend support | **3** source rows → `frontend/tests/support/**` |
+| Playwright specs | Legacy **20** files / **53** declared; Docker full: **48 pass / 5 expected skip / 0 fail**, затем delete-not-port |
+| Playwright support | Legacy **14** config/shared rows → delete-not-port; новый Python support проектируется greenfield |
+| Target Python tests | **0** до Phase 129 |
 | Lighthouse CI | artifact job (master push, non-blocking) |
-| TypeScript | `tsc --noEmit` — 0 errors (CI) |
+| TypeScript | Docker `tsc --noEmit` + Biome PASS; legacy Vitest 510 pass / 9 fail, remediation отменена founder cutover |
 | Data races | 0 (CI `-race`) |
 
-### Команды регрессии
+### Целевой runner после greenfield scaffold
 
-```bash
-# Backend (как CI — только testframework после TF-M08)
-cd backend
-go generate ./ent
-go vet -tags hubtest ./...
-go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...
+Host запускает только Docker CLI через единый versioned outer launcher из
+target scaffold. Launcher обязан enforce wall-clock timeout, сохранить exit
+code, задать CPU/RAM/PID limits и в `finally` удалить exact task-owned
+containers/Compose project/volumes/networks. Каждый job пишет только в
+`testframework/reports/<task-run>/` после проверки owner marker; общий reports
+root не является output directory.
 
-# Prod build check
-go build -tags release -o bin/server ./cmd/server
-
-# Frontend (как CI)
-cd frontend
-node scripts/link-testframework-node-modules.mjs
-npx tsc --noEmit
-npm run lint
-npm run test:run
-npm run build
-
-# E2E локально (из frontend/, нужен backend + infra)
-cd frontend
-npm run test:e2e:smoke   # job e2e-smoke (--project=chromium-smoke)
-npm run test:e2e         # job e2e-full (--project=chromium-full)
-```
+До появления и независимой проверки launcher/scaffold verdict — `NOT_READY`,
+не PASS. Zero collection, cleanup failure и missing owner marker — FAIL. Legacy
+runners остаются только источником inventory до exact deletion commit; чинить,
+расширять или использовать их как fallback запрещено.
 
 ---
 
-## CI Pipeline (`.github/workflows/ci.yml`)
+## Исторический legacy CI (`.github/workflows/ci.yml`, frozen; под удаление/замену)
 
 | Job | Зависимости | Содержание |
 |-----|-------------|------------|
@@ -101,10 +143,15 @@ npm run test:e2e         # job e2e-full (--project=chromium-full)
 
 **Deploy** (`.github/workflows/deploy.yml`): только после успешного CI на push `master`; образы GHCR по SHA; **без** `DEV_MODE=true`.
 
-E2E конфиг: `frontend/playwright.config.ts` (спеки: `testframework/stages/e2e/domains/{domain}/`)  
+**Historical/forbidden legacy inventory:** `frontend/playwright.config.ts` once selected TypeScript specs under `testframework/stages/e2e/domains/{domain}/`; this is not target execution authority.
 Module resolution: `frontend/scripts/link-testframework-node-modules.mjs`  
 Pipeline manifests: `testframework/pipeline/jobs/*.yaml`  
 Infra: `scripts/ci-e2e-backend.sh` (postgres:17, redis:7.4, mongo:8, nats:2.11).
+
+Эта таблица — inventory, не исполняемый gate. Entry-points не переносятся в
+новый Python framework. Cutover заменяет их
+job-ами `backend-unit`, `frontend-unit`, `python-contract`, `python-api`,
+`python-integration`, `python-e2e-smoke/full`, `python-load`.
 
 ### e2e-full spec list (CI)
 
@@ -125,24 +172,26 @@ Infra: `scripts/ci-e2e-backend.sh` (postgres:17, redis:7.4, mongo:8, nats:2.11).
 
 ## Матрица модулей (краткая)
 
+Покрытие unit — **2026-06-22 Docker baseline** (`.planning/COVERAGE.md`).
+
 | Модуль | Unit | E2E | Security |
 |--------|------|-----|----------|
-| auth | ✅ 82.4% | login, logout | SEC-06, SEC-07, magic-link timing |
-| tracker | ✅ 82.4% | project-lifecycle | optimistic lock |
-| messenger | ✅ 82.3% | messenger.spec | NF-02 WS authz |
-| tms | ✅ 82.0% | tms.spec | webhook API key |
+| auth | ✅ 82.4% (2026-06-22) | login, logout | SEC-06, SEC-07, magic-link timing |
+| tracker | ✅ 82.4% (2026-06-22) | project-lifecycle | optimistic lock |
+| messenger | ✅ 82.3% (2026-06-22) | messenger.spec | NF-02 WS authz |
+| tms | ✅ 82.0% (2026-06-22) | tms.spec | webhook API key |
 | calls | ✅ | partial | SEC-02 webhook sha256 |
 | ws | ✅ | real-time | SEC-05, NF-02 |
-| search | ✅ ~92% | command-palette | NF-03 user scope |
+| search | ✅ ~92% (2026-06-22) | command-palette | NF-03 user scope |
 | apigateway | ✅ | — | SEC-01 API key order |
-| notification | ✅ ~82% | notifications | NF-07 WebPush URL |
+| notification | ✅ ~82% (2026-06-22) | notifications | NF-07 WebPush URL |
 | v4 (crm, hr, intranet…) | ✅ | v4-superapp | RBAC |
 
 Полная матрица: `.planning/COVERAGE.md`.
 
 ---
 
-## E2E — критические пути
+## E2E — текущие legacy критические пути
 
 | ID | Сценарий | Spec | Статус |
 |----|----------|------|--------|
@@ -154,7 +203,7 @@ Infra: `scripts/ci-e2e-backend.sh` (postgres:17, redis:7.4, mongo:8, nats:2.11).
 | E2E-06 | Ctrl+K search | `command-palette.spec.ts` | ✅ |
 | E2E-07 | a11y axe | `a11y.spec.ts` | ✅ |
 
-POM/steps: `testframework/stages/e2e/shared/pages/`, `testframework/stages/e2e/shared/steps/`.
+Greenfield Python browser lifecycle/artifacts: task-named modules in `testframework/src/hub_testkit/browser/**`; domain UI pages/components: `testframework/src/hub_testkit/domains/<domain>/ui/{pages,components}/**`.
 
 ---
 
@@ -196,7 +245,7 @@ Severity: CRITICAL/HIGH/MEDIUM/LOW
 File: path:line
 ```
 
-Трекинг: `.planning/code-review-final/SUMMARY.md`
+Трекинг: `.planning/audits/code-review-final/SUMMARY.md`
 
 ---
 
@@ -210,4 +259,6 @@ File: path:line
 | `.cursor/skills/qa-gate/SKILL.md` | Полный gate |
 
 ---
-*Последнее обновление: 2026-07-26 — inventory 499 BE test files; COV 83% остаётся baseline прогона 2026-06-22*
+*Последнее обновление: 2026-08-07 — founder greenfield cutover: genuine
+Go/Vitest units only, exact-manifest legacy cleanup в Phase 129 и новый root
+Python QA project без parity/dual-run gate.*

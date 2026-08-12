@@ -30,7 +30,8 @@ interface StepEditorEditProps {
 interface StepEditorReadProps {
 	editing: false;
 	tc: TestCaseResponse;
-	onStartEditing: () => void;
+	/** Без callback — read-only (viewer/guest, P2-FE-16). */
+	onStartEditing?: () => void;
 }
 
 export type StepEditorProps = StepEditorEditProps | StepEditorReadProps;
@@ -88,6 +89,7 @@ export function StepEditor(props: StepEditorProps) {
 												: "text-t2 hover:text-t1 hover:bg-raised",
 										)}
 										title="Переместить вверх"
+										aria-label="Переместить вверх"
 									>
 										▲
 									</button>
@@ -105,6 +107,7 @@ export function StepEditor(props: StepEditorProps) {
 												: "text-t2 hover:text-t1 hover:bg-raised",
 										)}
 										title="Переместить вниз"
+										aria-label="Переместить вниз"
 									>
 										▼
 									</button>
@@ -132,6 +135,8 @@ export function StepEditor(props: StepEditorProps) {
 									size="sm"
 									className="mt-1 h-6 w-6 p-0 text-t2 hover:text-destructive"
 									onClick={() => props.onRemoveStep(idx)}
+									aria-label="Удалить шаг"
+									title="Удалить шаг"
 								>
 									<svg
 										aria-hidden="true"
@@ -238,9 +243,11 @@ export function StepEditor(props: StepEditorProps) {
 				/>
 			</svg>
 			<p className="text-sm text-t2 mb-2">Шаги не заданы</p>
-			<Button variant="outline" size="sm" onClick={onStartEditing}>
-				Добавить шаги
-			</Button>
+			{onStartEditing ? (
+				<Button variant="outline" size="sm" onClick={onStartEditing}>
+					Добавить шаги
+				</Button>
+			) : null}
 		</div>
 	);
 }

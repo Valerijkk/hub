@@ -22,14 +22,26 @@ export function useAuth() {
 	} = useAuthStore();
 
 	// Загрузка профиля при наличии токена, но отсутствии данных пользователя.
+	// Guard: не применять setUser после logout / смены токена (W11-A3-001).
 	useEffect(() => {
 		if (isAuthenticated && accessToken && !user) {
+			let cancelled = false;
+			const tokenAtStart = accessToken;
 			getMe()
-				.then((data: UserResponse) => setUser(data))
+				.then((data: UserResponse) => {
+					if (cancelled) return;
+					if (useAuthStore.getState().accessToken !== tokenAtStart) return;
+					setUser(data);
+				})
 				.catch(() => {
+					if (cancelled) return;
+					if (useAuthStore.getState().accessToken !== tokenAtStart) return;
 					// Токен невалиден — выходим.
 					storeLogout();
 				});
+			return () => {
+				cancelled = true;
+			};
 		}
 	}, [isAuthenticated, accessToken, user, setUser, storeLogout]);
 

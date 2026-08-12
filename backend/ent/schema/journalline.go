@@ -2,6 +2,8 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
+	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -9,6 +11,8 @@ import (
 )
 
 // JournalLine — строка дебета/кредита в проводке журнала.
+// Soft-delete: join-filter через JournalEntry.deleted_at (ADR-ENT-SOFT-DELETE-GAPS-2026 /
+// A2W8-3-004) — отдельный deleted_at на line запрещён (двойная запись).
 type JournalLine struct {
 	ent.Schema
 }
@@ -49,5 +53,15 @@ func (JournalLine) Edges() []ent.Edge {
 func (JournalLine) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("debit_cents", "credit_cents"),
+	}
+}
+
+// Annotations — P2-BE-22: XOR debit/credit CHECK.
+// Выражение без OR — совместимо с SQLite (enttest) и Postgres.
+func (JournalLine) Annotations() []schema.Annotation {
+	return []schema.Annotation{
+		entsql.Checks(map[string]string{
+			"journalline_debit_xor_credit": "(debit_cents > 0) = (credit_cents = 0) AND (debit_cents + credit_cents) > 0",
+		}),
 	}
 }

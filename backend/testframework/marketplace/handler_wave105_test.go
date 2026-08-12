@@ -103,7 +103,9 @@ func TestHandler_WithdrawListing_ErrorPaths(t *testing.T) {
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&created))
 	resp.Body.Close()
 
-	req = httptest.NewRequest(http.MethodPost, "/api/marketplace/listings/"+created.ID.String()+"/withdraw", bytes.NewReader([]byte(`{}`)))
+	// Valid version so status guard runs (sold → ErrInvalidStatus → 400), not version<1 → 409.
+	soldWithdrawBody, _ := json.Marshal(map[string]any{"version": created.Version})
+	req = httptest.NewRequest(http.MethodPost, "/api/marketplace/listings/"+created.ID.String()+"/withdraw", bytes.NewReader(soldWithdrawBody))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Test-User-ID", memberID.String())
 	resp, err = app.Test(req)

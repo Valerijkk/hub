@@ -11,6 +11,7 @@ var (
 	ErrUnauthorized            = errors.New("unauthorized")
 	ErrForbidden               = errors.New("forbidden")
 	ErrInvalidInput            = errors.New("invalid input")
+	ErrVersionConflict         = errors.New("version conflict")
 	ErrAPIKeyNotFound          = errors.New("api key not found")
 	ErrAPIKeyInvalid           = errors.New("invalid api key")
 	ErrAPIKeyExpired           = errors.New("expired api key")
@@ -51,6 +52,8 @@ func MapToFiber(err error) error {
 		return fiber.NewError(fiber.StatusForbidden, "user account is deactivated")
 	case errors.Is(err, ErrWebhookEndpointNotFound):
 		return fiber.NewError(fiber.StatusNotFound, "вебхук-эндпоинт не найден")
+	case errors.Is(err, ErrVersionConflict):
+		return fiber.NewError(fiber.StatusConflict, "version mismatch: вебхук был изменён другим пользователем")
 	case errors.Is(err, ErrInvalidInput):
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	case errors.Is(err, ErrUnauthorized):

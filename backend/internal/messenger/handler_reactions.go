@@ -27,6 +27,10 @@ import (
 // @Security BearerAuth
 // @Router /api/messenger/channels/{channelId}/messages/{messageId}/reactions [post]
 func (h *Handler) ToggleReaction(c fiber.Ctx) error {
+	channelID, err := parseChannelID(c)
+	if err != nil {
+		return err
+	}
 	messageID := parseMessageID(c)
 	if messageID == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "message ID обязателен")
@@ -41,7 +45,7 @@ func (h *Handler) ToggleReaction(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
-	added, err := h.service.ToggleReaction(c.Context(), messageID, userID, req.Emoji)
+	added, err := h.service.ToggleReaction(c.Context(), channelID, messageID, userID, req.Emoji)
 	if err != nil {
 		return err
 	}
@@ -196,8 +200,12 @@ func (h *Handler) RemoveBookmark(c fiber.Ctx) error {
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "некорректный bookmark ID")
 	}
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
 
-	if err := h.service.RemoveBookmark(c.Context(), id); err != nil {
+	if err := h.service.RemoveBookmark(c.Context(), userID, id); err != nil {
 		return err
 	}
 

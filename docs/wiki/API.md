@@ -2,17 +2,19 @@
 
 > **Обновлено:** 2026-06-22 (Wave C FA-03) · Базовый путь: `/api` · WebSocket: `GET /ws` (вне `/api`)
 
-Hub предоставляет REST API с **~286 endpoints** под `/api/*`:
+Hub предоставляет REST API под `/api/*`. Подсчёт:
 
 | Категория | Количество | Примечание |
 |-----------|------------|------------|
-| Prod handler routes | **283** | 21+ модулей, v4 super-app |
+| OpenAPI paths (`backend/docs/swagger.json`) | **252** | Measured 2026-07-28 — канон для drift-check |
+| Prod handler `RegisterRoutes` (исторический inventory) | **~283** | 21+ модулей; число выше swagger из-за группировки/alias |
 | Dev-only (`/dev/*`) | **+3** | Только без `-tags release` |
-| Infra (`/health`, `/docs`) | **+3** | `main.go` |
-| **Итого REST** | **~286** | См. `.planning/COVERAGE.md` |
+| Infra probes | `/live`, `/ready`, `/health` | `wiring_messenger.go` |
+| Metrics | `GET /metrics` | `wiring_fiber.go` |
+| **Итого (ориентир wiki)** | **~252 OpenAPI / ~286 route inventory** | См. `docs/system_specification.md` §Endpoint inventory |
 
 Полная спецификация: `docs/system_specification.md`, `docs/TECHNICAL.md`.  
-OpenAPI (dev): `GET /docs`, `GET /docs/doc.json`.
+OpenAPI: `GET /docs`, `GET /docs/doc.json` — **только system admin** (JWT + founder/admin; W7-A5-001).
 
 ---
 
@@ -36,16 +38,25 @@ X-API-Key: <api_key>
 
 ### Ошибки
 
+Публичный HTTP JSON (NFR-13 / TZ, `platform/errors` + `middleware.ErrorHandler`):
+
 ```json
 {"error": "описание", "request_id": "uuid"}
 ```
+
+На фронте тип `ApiError` (`frontend/src/api/client.ts`) — **клиентское** представление: `code` = HTTP status, `message` = поле `error` из тела, опционально `request_id`. Это не отдельный wire-контракт.
 
 ---
 
 ## Auth — Magic Link only (v2.5+)
 
 > **ADR-AUTH-01:** единственный login — Magic Link. Telegram — **только** notify bind (`/notifications/telegram/*`), не login.  
-> Удалено v2.5: `POST /auth/telegram`, `POST /auth/telegram-code`.
+> Удалено v2.5: `POST /auth/telegram`, `POST /auth/telegram-code`.  
+> **ASN-002 / TASK-188:** `POST /notifications/telegram/confirm` — Redis fails-counter 5/5m на user (как HI-04 magic-link verify); lockout → **429**.
+> **Availability contract:** все пять JWT-маршрутов `/notifications/telegram/*`
+> регистрируются независимо от `TELEGRAM_BOT_TOKEN`. Без bot token
+> `GET /status` и `DELETE /telegram` остаются repository-backed, а
+> `POST /bind`, `/confirm` и `/test` отвечают **503** без сетевой попытки.
 
 | Метод | Путь | Auth | Описание |
 |---|---|---|---|
@@ -64,16 +75,18 @@ X-API-Key: <api_key>
 ### Пример: Magic Link
 
 ```bash
-# 1. Запрос кода
-curl -sS -X POST http://localhost:3000/api/auth/magic-link \
+# 1. Запрос кода (через Caddy :8080 — канон локального UX; backend напрямую — :3000)
+curl -sS -X POST http://localhost:8080/api/auth/magic-link \
   -H 'Content-Type: application/json' \
   -d '{"email":"user@company.com"}'
 
 # 2. Верификация
-curl -sS -X POST http://localhost:3000/api/auth/magic-link/verify \
+curl -sS -X POST http://localhost:8080/api/auth/magic-link/verify \
   -H 'Content-Type: application/json' \
   -d '{"email":"user@company.com","code":"123456"}'
 ```
+
+> Локальный UX-путь — Caddy `:8080` (см. QUICKSTART/DEPLOY). Прямой backend без прокси — `:3000`.
 
 ---
 
@@ -90,10 +103,11 @@ curl -sS -X POST http://localhost:3000/api/auth/magic-link/verify \
 | GET | `/projects/trash` | Список удалённых проектов |
 | GET | `/projects/:projectId` | Получить проект по ID |
 | PUT | `/projects/:projectId` | Обновить проект |
-| POST | `/projects/:projectId/archive` | Архивировать проект |
-| POST | `/projects/:projectId/unarchive` | Разархивировать проект |
-| DELETE | `/projects/:projectId` | Удалить проект (в корзину) |
-| POST | `/projects/:projectId/restore` | Восстановить из корзины |
+| POST | `/projects/:projectId/archive` | Архивировать проект (`active` → `archived`; soft-deleted → 404) |
+| POST | `/projects/:projectId/unarchive` | Разархивировать проект (`archived` → `active`; soft-deleted → 404) |
+| DELETE | `/projects/:projectId` | Удалить проект (в корзину); в той же tx гасит webhook endpoints (`is_active=false`, C-W19-004) |
+| POST | `/projects/:projectId/restore` | Восстановить из корзины (`deleted` → `active`, сбрасывает `deleted_at`) |
+| DELETE | `/projects/:projectId/permanent` | Hard-delete только из корзины (`status=deleted`) + system admin/founder; иначе 400/403 |
 
 ### Участники
 
@@ -120,7 +134,7 @@ curl -sS -X POST http://localhost:3000/api/auth/magic-link/verify \
 | POST | `/teams/` | Создать команду |
 | GET | `/teams/` | Список команд |
 | POST | `/teams/:teamId/members` | Добавить участника в команду |
-| DELETE | `/teams/:teamId/members/:userId` | Удалить участника из команды |
+| DELETE | `/teams/:teamId/members/:userId` | Удалить участника из команды (последний участник → 409 Conflict) |
 | POST | `/teams/:teamId/projects/:projectId` | Привязать команду к проекту |
 
 ---
@@ -148,7 +162,7 @@ curl -sS -X POST http://localhost:3000/api/auth/magic-link/verify \
 | Метод | Путь | Описание |
 |---|---|---|
 | POST | `/projects/:projectId/issues/` | Создать задачу |
-| GET | `/projects/:projectId/issues/` | Список задач (cursor pagination) |
+| GET | `/projects/:projectId/issues/` | Список задач (cursor pagination; query `sprint_id`: UUID / `none`\|`unassigned` = бэклог) |
 | GET | `/projects/:projectId/issues/:issueKey` | Получить задачу по ключу |
 | PUT | `/projects/:projectId/issues/:issueKey` | Обновить задачу |
 | DELETE | `/projects/:projectId/issues/:issueKey` | Удалить задачу |
@@ -162,6 +176,7 @@ curl -sS -X POST http://localhost:3000/api/auth/magic-link/verify \
 | POST | `/projects/:projectId/issues/:issueKey/links` | Создать связь |
 | GET | `/projects/:projectId/issues/:issueKey/links` | Список связей |
 | DELETE | `/projects/:projectId/issues/:issueKey/links/:linkId` | Удалить связь |
+| GET | `/projects/:projectId/issue-links` | Batch связей проекта (Gantt, A13-004; cap 2000) |
 
 ### Комментарии и реакции
 
@@ -239,10 +254,10 @@ curl -sS -X POST http://localhost:3000/api/auth/magic-link/verify \
 | POST | `/projects/:projectId/sprints/` | Создать спринт |
 | GET | `/projects/:projectId/sprints/` | Список спринтов проекта |
 | GET | `/projects/:projectId/sprints/:sprintId` | Получить спринт |
-| PUT | `/projects/:projectId/sprints/:sprintId` | Обновить спринт |
+| PUT | `/projects/:projectId/sprints/:sprintId` | Обновить спринт (`version` ≥1; 409 при conflict) |
 | POST | `/projects/:projectId/sprints/:sprintId/start` | Стартовать спринт |
-| POST | `/projects/:projectId/sprints/:sprintId/complete` | Завершить спринт |
-| PUT | `/projects/:projectId/sprints/:sprintId/retro` | Обновить ретро-заметки |
+| POST | `/projects/:projectId/sprints/:sprintId/complete` | Завершить спринт (soft-deleted incomplete не переносятся) |
+| PUT | `/projects/:projectId/sprints/:sprintId/retro` | Обновить ретро-заметки (`version` ≥1; 409 при conflict) |
 | GET | `/projects/:projectId/sprints/:sprintId/burndown` | Данные burndown-графика |
 | POST | `/projects/:projectId/sprints/:sprintId/issues` | Добавить задачи в спринт |
 | POST | `/projects/:projectId/sprints/:sprintId/poker` | Начать сессию Planning Poker |
@@ -335,7 +350,7 @@ curl -sS -X POST http://localhost:3000/api/auth/magic-link/verify \
 
 | Метод | Путь | Описание |
 |---|---|---|
-| GET | `/messenger/bookmarks` | Список закладок |
+| GET | `/messenger/bookmarks` | Список закладок (`channel_name`, `content_preview` — optional enrich для UI) |
 | POST | `/messenger/bookmarks` | Добавить закладку |
 | DELETE | `/messenger/bookmarks/:bookmarkId` | Удалить закладку |
 
@@ -401,7 +416,7 @@ curl -sS -X POST http://localhost:3000/api/auth/magic-link/verify \
 |---|---|---|
 | POST | `/projects/:projectId/tms/suites/` | Создать набор |
 | GET | `/projects/:projectId/tms/suites/` | Список наборов |
-| PUT | `/projects/:projectId/tms/suites/:suiteId` | Обновить набор |
+| PUT | `/projects/:projectId/tms/suites/:suiteId` | Обновить набор (`version` required → 409 при конфликте) |
 | DELETE | `/projects/:projectId/tms/suites/:suiteId` | Удалить набор |
 
 ### Компоненты
@@ -447,6 +462,8 @@ curl -sS -X POST http://localhost:3000/api/auth/magic-link/verify \
 |---|---|---|
 | POST | `/projects/:projectId/tms/allure/import` | Импорт Allure results (новый прогон) |
 | POST | `/projects/:projectId/tms/runs/:runId/allure` | Импорт Allure в существующий прогон |
+
+> **ExistingRun fail-closed (C-W19-TT-002 / TASK-185):** при ошибке Mongo `StoreAllureResults` или infra-ошибке матчера (≠ NotFound) endpoint возвращает **500** с фиксированным сообщением; PG-результаты не пишутся. Create-path (`/allure/import`) Mongo остаётся best-effort после PG commit. Unmapped TC (нет совпадения) — по-прежнему допустим.
 
 ### CI/CD Webhooks
 
@@ -497,9 +514,9 @@ curl -sS -X POST http://localhost:3000/api/auth/magic-link/verify \
 
 | Метод | Путь | Описание |
 |---|---|---|
-| POST | `/calls/guest-join` | Присоединиться к звонку как гость (без аккаунта) |
-| POST | `/calls/` | Создать звонок |
-| POST | `/calls/instant` | Создать мгновенный звонок |
+| POST | `/calls/guest-join` | Присоединиться к звонку как гость (без аккаунта); `guest_name` ≤100 runes → 400 |
+| POST | `/calls/` | Создать звонок в канале (только член канала; иначе 403) |
+| POST | `/calls/instant` | Создать мгновенный звонок; `title` ≤255 runes → 400 |
 | GET | `/calls/invite/:code` | Присоединиться по коду приглашения |
 | GET | `/calls/channel/:channelId` | Получить активный звонок канала |
 | POST | `/calls/:callId/join` | Присоединиться к звонку |
@@ -514,8 +531,8 @@ curl -sS -X POST http://localhost:3000/api/auth/magic-link/verify \
 
 | Метод | Путь | Описание |
 |---|---|---|
-| POST | `/calls/:callId/recording/start` | Начать запись |
-| POST | `/calls/:callId/recording/stop` | Остановить запись |
+| POST | `/calls/:callId/recording/start` | Начать запись (только член канала звонка); канал без `project_id` → 400 |
+| POST | `/calls/:callId/recording/stop` | Остановить запись (член канала; `recording_id` принадлежит `callId`) |
 | GET | `/projects/:projectId/recordings` | Список записей проекта |
 | GET | `/recordings/:recordingId/download` | URL для скачивания записи |
 
@@ -542,11 +559,11 @@ curl -sS -X POST http://localhost:3000/api/auth/magic-link/verify \
 
 | Метод | Путь | Описание |
 |---|---|---|
-| GET | `/dashboard/personal` | Персональный дашборд (мои задачи, активность) |
-| GET | `/dashboard/project/:projectId` | Проектный дашборд (статистика проекта) |
-| GET | `/dashboard/admin` | Админский дашборд (общая статистика) |
-| GET | `/dashboard/layout` | Получить layout дашборда |
-| PUT | `/dashboard/layout` | Сохранить layout (позиции виджетов) |
+| GET | `/dashboard/personal` | Персональный дашборд (мои задачи, активность; `TaskSummary.project_id` для ссылок на issue) |
+| GET | `/dashboard/project/:projectId` | Проектный дашборд (статистика; только член проекта → иначе 403; critical PG widgets fail-closed → 500, не silent empty) |
+| GET | `/dashboard/admin` | Админский дашборд (общая статистика; critical counts fail-closed → 500; TopProjects fail-closed) |
+| GET | `/dashboard/layout` | Получить layout (`project_id` → только член проекта, иначе 403) |
+| PUT | `/dashboard/layout` | Сохранить layout (позиции виджетов; `project_id` → membership) |
 | GET | `/dashboard/templates` | Список шаблонов дашбордов |
 | POST | `/dashboard/templates/apply` | Применить шаблон |
 
@@ -578,10 +595,10 @@ curl -sS -X POST http://localhost:3000/api/auth/magic-link/verify \
 | Метод | Путь | Описание |
 |---|---|---|
 | GET | `/search` | Глобальный поиск (задачи, тест-кейсы, сообщения) |
-| POST | `/filters/` | Создать сохранённый фильтр |
-| GET | `/filters/` | Список сохранённых фильтров |
-| DELETE | `/filters/:id` | Удалить фильтр |
-| PATCH | `/filters/:id/share` | Поделиться фильтром |
+| POST | `/filters/` | Создать сохранённый фильтр (только член проекта; иначе 403) |
+| GET | `/filters/` | Список сохранённых фильтров (только член проекта; иначе 403) |
+| DELETE | `/filters/:id` | Удалить фильтр (только владелец; иначе 403; нет фильтра → 404) |
+| PATCH | `/filters/:id/share` | Поделиться фильтром (только владелец; иначе 403; нет фильтра → 404) |
 
 ---
 
@@ -598,7 +615,7 @@ curl -sS -X POST http://localhost:3000/api/auth/magic-link/verify \
 | GET | `/projects/:projectId/github/workflows` | CI/CD workflow runs |
 | GET | `/projects/:projectId/github/workflows/:runId` | Детали workflow run |
 | GET | `/issues/:issueKey/github-links` | GitHub-ссылки задачи (PR, коммиты) |
-| POST | `/issues/:issueKey/github/create-branch` | Создать ветку из задачи |
+| POST | `/projects/:projectId/issues/:issueKey/github/create-branch` | Создать ветку из задачи (`task.edit`) |
 | GET | `/link-preview` | Превью ссылки (OG-данные) |
 
 ---
@@ -615,7 +632,7 @@ curl -sS -X POST http://localhost:3000/api/auth/magic-link/verify \
 | DELETE | `/projects/:projectId/gitlab/integrations/:integrationId` | Удалить интеграцию |
 | GET | `/projects/:projectId/gitlab/pipelines` | Список пайплайнов |
 | POST | `/projects/:projectId/gitlab/pipelines/trigger` | Запустить пайплайн |
-| POST | `/issues/:issueKey/gitlab/create-branch` | Создать ветку из задачи |
+| POST | `/projects/:projectId/issues/:issueKey/gitlab/create-branch` | Создать ветку из задачи (`task.edit`) |
 
 ---
 
@@ -625,7 +642,7 @@ curl -sS -X POST http://localhost:3000/api/auth/magic-link/verify \
 
 | Метод | Путь | Описание |
 |---|---|---|
-| POST | `/files/upload-url` | Получить presigned URL для загрузки |
+| POST | `/files/upload-url` | Получить presigned URL для загрузки (`size` обязателен, 1…25 MiB; NF-09) |
 | POST | `/files/:fileId/confirm` | Подтвердить завершение загрузки |
 | GET | `/files/:fileId/url` | Получить URL для скачивания |
 | DELETE | `/files/:fileId` | Удалить файл |
@@ -679,13 +696,19 @@ API-ключи для программного доступа, webhook-подп�
 | POST | `/projects/:projectId/webhooks/` | Создать endpoint для проекта |
 | GET | `/projects/:projectId/webhooks/` | Список endpoints проекта |
 
+Allowlist событий: `issue.created`, `issue.updated`, `issue.status_changed`, `test_run.completed`, `*` (wildcard). `sprint.completed` снят до появления NATS producer (A3W4-5-003). Soft-deleted project (корзина): outbound POST не уходит (`ListActive` + `HasProjectWith(DeletedAtIsNil)`); `SoftDeleteWithCrossLinkCleanup` в той же tx ставит `is_active=false` на endpoints (C-W19-004 / TASK-181); `GET …/webhooks/` для trash-project пуст (`project.DeletedAtIsNil`).
+
+Ответ endpoint: `{ id, url, events, is_active, version, created_at }` (+ `secret` только при Create, one-time).
+
 ### Webhook-подписки (по ID)
 
 | Метод | Путь | Описание |
 |---|---|---|
-| PUT | `/webhooks/:id` | Обновить endpoint |
+| PUT | `/webhooks/:id` | Обновить endpoint; body обязан содержать `version` (≥1); stale → **409** |
 | DELETE | `/webhooks/:id` | Удалить endpoint |
 | GET | `/webhooks/:id/deliveries` | История доставок |
+
+Create API key: `name` ≤255 рун; иначе **400** (не 500).
 
 ---
 
@@ -716,7 +739,7 @@ API-ключи для программного доступа, webhook-подп�
 
 ### HTTP audit (middleware)
 
-Не отдельный endpoint. `HTTPAuditMiddleware` (`audit/middleware.go`) подключён ко всем `/api/*` в `main.go` и асинхронно пишет каждый HTTP-запрос в журнал аудита (method, path без query, status, duration, request_id, user_id, IP, User-Agent). Пропускает: `OPTIONS`, `/api/health`, `/api/docs*`, `/api/webhooks/alertmanager`.
+Не отдельный endpoint. `HTTPAuditMiddleware` (`audit/middleware.go`) подключён ко всем `/api/*` в `wiring_fiber.go` и асинхронно пишет каждый HTTP-запрос в журнал аудита (method, path без query, status, duration, request_id, user_id, IP, User-Agent). Пропускает: `OPTIONS`, `/api/health`, `/api/docs*`, `/api/webhooks/alertmanager`.
 
 ### Лимиты и корзина
 
@@ -724,17 +747,18 @@ API-ключи для программного доступа, webhook-подп�
 |---|---|---|
 | GET | `/admin/limits` | Лимиты ресурсов (проекты, участники и др.) |
 | PUT | `/admin/limits/:key` | Обновить лимит |
-| GET | `/admin/trash` | Корзина (удалённые сущности) |
-| POST | `/admin/trash/:type/:id/restore` | Восстановить из корзины |
+| GET | `/admin/trash` | Корзина (удалённые сущности). Query `type`: `issue` \| `test_case` \| `file` \| `project` \| `newspost` \| `scheduled_call` \| `crm_contact` \| `crm_deal` \| `hubbase` (retention 30 дней, NFR-11) |
+| POST | `/admin/trash/:type/:id/restore` | Восстановить из корзины (`newspost` — FR-INTR-08; `scheduled_call` — FR-CAL-05: вся RRULE-серия; `crm_contact`/`crm_deal` — W7-A2-006; `hubbase` — cascade base+tables+columns+records, A3W2-A5-001) |
 
 ### Управление пользователями
 
 | Метод | Путь | Описание |
 |---|---|---|
+| GET | `/admin/users` | Admin-only список пользователей. Ответ — массив объектов только с полями `id`, `email`, `name`, `display_name`, `system_role`, `status`, `created_at`; auth-секреты и поля вне фиксированного allowlist не возвращаются |
 | POST | `/admin/users/:id/deactivate` | Деактивировать пользователя |
 | POST | `/admin/users/:id/ban` | Заблокировать пользователя (`{"reason": "..."}`) |
 | POST | `/admin/users/:id/reassign` | Переназначить задачи пользователя |
-| DELETE | `/admin/users/:id/gdpr` | GDPR-удаление пользователя |
+| DELETE | `/admin/users/:id/gdpr` | GDPR-удаление: Ent HardDelete в tx; Mongo messages post-Commit; fail eraser → JetStream retry `audit.gdpr.mongo_erase` (C-W19-002) |
 
 ### Режим регистрации
 
@@ -764,7 +788,7 @@ API-ключи для программного доступа, webhook-подп�
 | GET | `/intranet/news/:newsId` | Одна новость |
 | POST | `/intranet/news` | Создать (admin) |
 | PUT | `/intranet/news/:newsId` | Обновить (admin, optimistic `version`) |
-| DELETE | `/intranet/news/:newsId` | Soft delete (admin) |
+| DELETE | `/intranet/news/:newsId` | Soft delete (admin **или автор** поста → корзина 30д) |
 
 ### Directory (MOD-02)
 
@@ -804,23 +828,23 @@ Anti-repeat: старается не повторять пары из преды
 
 | Метод | Путь | Описание | Статус |
 |---|---|---|---|
-| POST | `/intranet/news` | + опциональный `poll` (вопрос, 2–10 вариантов) | planned |
-| GET | `/intranet/news/:newsId/poll` | Опрос поста + агрегаты голосов | planned |
-| POST | `/intranet/news/:newsId/poll/vote` | Голос (1 вариант; повторный → 422) | planned |
-| PUT | `/intranet/news/:newsId/poll` | Правка/закрытие опроса (после первого голоса → 422) | planned |
+| POST | `/intranet/news` | + опциональный `poll` (вопрос, 2–10 вариантов) | shipped (TASK-098) |
+| GET | `/intranet/news/:newsId/poll` | Опрос поста + агрегаты голосов; draft → 404 для non-author | shipped (TASK-098, TASK-189) |
+| POST | `/intranet/news/:newsId/poll/vote` | Голос (1 вариант; повторный → 422); draft → 404 для non-author | shipped (TASK-098, TASK-189) |
+| PUT | `/intranet/news/:newsId/poll` | Правка/закрытие опроса (после первого голоса → 422) | shipped (TASK-098) |
 | GET | `/intranet/onboarding/templates` | Системные шаблоны dev/non-dev (admin) | planned |
 | POST | `/intranet/onboarding/assignments` | Назначить шаблон новичку (admin; re-assign → 409 без confirm) | planned |
 | GET | `/intranet/onboarding/assignments` | Прогресс по всем новичкам (admin, offset/limit) | planned |
 | GET | `/intranet/onboarding/me` | Мой чеклист | planned |
 | PATCH | `/intranet/onboarding/me/items/:itemId` | Отметить пункт (`checked`, `version`) | planned |
 | GET | `/intranet/kudos/leaderboard` | Топ получателей за `period=month\|quarter\|all` | planned |
-| DELETE | `/intranet/news/:newsId` | Расширение: admin **или автор** (постмодерация) | planned |
+| DELETE | `/intranet/news/:newsId` | Расширение: admin **или автор** (постмодерация) | shipped (TASK-098) |
 
 ---
 
 ## Calendar (MOD-04, Phase 41)
 
-Единый календарь: созвоны, спринты, дедлайны задач, одобренные отпуска (только проекты пользователя для tracker-событий).
+Единый календарь: созвоны, спринты, дедлайны задач, одобренные отпуска (только проекты пользователя для tracker-событий). Soft-deleted leave/sprint не попадают в `/events` и `.ics` (TASK-189 / BE-V4-001…002).
 
 | Метод | Путь | Описание |
 |---|---|---|
@@ -875,11 +899,11 @@ HR-lite: заявки на отсутствие (отпуск, больничн�
 
 | Метод | Путь | Описание |
 |---|---|---|
-| GET | `/marketplace/listings` | Опубликованные объявления (`category?`, `page`, `per_page`) |
-| GET | `/marketplace/listings/mine` | Мои объявления |
-| GET | `/marketplace/listings/pending` | Очередь модерации (admin) |
-| POST | `/marketplace/listings` | Создать (`title`, `description`, `category`, `price_cents?`) |
-| PUT | `/marketplace/listings/:listingId` | Обновить (re-moderation если было approved) |
+| GET | `/marketplace/listings` | Опубликованные объявления (`category?`, `page`, `per_page`; ответ: `has_more`) |
+| GET | `/marketplace/listings/mine` | Мои объявления (`page`, `per_page`, `has_more`) |
+| GET | `/marketplace/listings/pending` | Очередь модерации (admin; `page`, `per_page`, `has_more`) |
+| POST | `/marketplace/listings` | Создать (`title`, `description`, `category`, `price_cents?≥0`, `currency?` allowlist) |
+| PUT | `/marketplace/listings/:listingId` | Обновить (approved → pending атомарно, W7-A5-004) |
 | POST | `/marketplace/listings/:listingId/approve` | Одобрить (`version`, `review_note?`) |
 | POST | `/marketplace/listings/:listingId/reject` | Отклонить |
 | POST | `/marketplace/listings/:listingId/sold` | Отметить проданным (author) |
@@ -887,7 +911,9 @@ HR-lite: заявки на отсутствие (отпуск, больничн�
 | DELETE | `/marketplace/listings/:listingId` | Soft delete (author или admin) |
 
 `category`: `equipment`, `books`, `services`, `furniture`, `other`.  
-`status`: `pending`, `approved`, `rejected`, `sold`, `withdrawn`.
+`status`: `pending`, `approved`, `rejected`, `sold`, `withdrawn`.  
+`currency` (если задана): `RUB`, `USD`, `EUR`, `GBP`, `CNY`, `KZT`, `BYN`.  
+`author_name` на витрине (`ListApproved`) не содержит email (W7-A5-005).
 
 ---
 
@@ -895,13 +921,15 @@ HR-lite: заявки на отсутствие (отпуск, больничн�
 
 CRM-lite: контакты (отдельная сущность от User) и kanban pipeline сделок. Связь сделки с проектом — optional `project_id` (требуется членство в проекте).
 
+**Доступ (RT-003):** `GET /crm/contacts` и `GET /crm/pipeline` для member — только свои записи (`created_by` / `owner_id`); system admin/founder — полный org-list (CRM-lite admin view). Update/Delete — owner или admin (A6-001).
+
 | Метод | Путь | Описание |
 |---|---|---|
-| GET | `/crm/contacts` | Список контактов |
+| GET | `/crm/contacts` | Список контактов (owner-scoped; admin = org-wide) |
 | POST | `/crm/contacts` | Создать контакт |
 | PUT | `/crm/contacts/:contactId` | Обновить (optimistic `version`) |
 | DELETE | `/crm/contacts/:contactId` | Soft delete |
-| GET | `/crm/pipeline` | Kanban: сделки по stage |
+| GET | `/crm/pipeline` | Kanban: сделки по stage (owner-scoped; admin = org-wide) |
 | POST | `/crm/deals` | Создать сделку |
 | PUT | `/crm/deals/:dealId` | Обновить / переместить stage |
 | DELETE | `/crm/deals/:dealId` | Soft delete |
@@ -936,8 +964,9 @@ Lark Base clone MVP: таблицы с typed columns и grid-редакторо�
 
 ## Wiki — **planned/spec** (FR-WIKI, Волны 5/8)
 
-> Новый модуль, кода ещё нет. Спецификация: `docs/system_specification.md` § «Wiki — новый модуль (FR-WIKI)».
+> Новый модуль, кода ещё нет (`backend/internal/wiki` / FE routes отсутствуют). Спецификация: `docs/system_specification.md` § «Wiki — новый модуль (FR-WIKI)».
 > RBAC: роли space (read/write/admin) + наследование + restrict-флаг страницы (GZ-SEC-07/11).
+> **G-07 Partial (PO reconcile 2026-07-28, TASK-105 / A2W11-5-001):** endpoints ниже — **planned**, не production; цель G-07 «US-WIKI реализованы» не выполнена. Не путать с репозиторной `docs/wiki/` (эта документация).
 
 | Метод | Путь | Описание | Статус |
 |---|---|---|---|
@@ -1001,29 +1030,29 @@ AI gateway, @hub-ai bot, ModelPicker, JQL assist. User routes требуют JWT
 | Метод | Путь | Описание |
 |---|---|---|
 | GET | `/ai/models` | Список доступных моделей (system + BYOK) |
-| GET | `/ai/preferences` | Default model пользователя |
-| PATCH | `/ai/preferences` | Сохранить default model + `allow_external_ai` (M3-030) |
+| GET | `/ai/preferences` | Default model + `allow_external_ai` + `version` (nil-record / create без явного consent → `allow_external_ai=false`, A3W5-3-005) |
+| PATCH | `/ai/preferences` | Сохранить default model + `allow_external_ai`; при update обязателен `version` → **409** при conflict (A3W5-3-006) |
 | GET | `/ai/usage/today` | Дневная квота (tokens, requests, limit 500) |
 | GET | `/ai/bot` | Системный пользователь @hub-ai (user_id для DM) |
 | POST | `/ai/jql/assist` | NL → Hub JQL (`{"query": "..."}`) |
 | POST | `/ai/composer/suggest` | Tab-дополнение сообщения в мессенджере (`{"prefix": "..."}`) |
-| POST | `/ai/v1/chat/completions` | OpenAI-compatible proxy (stream → 202 + WS) |
+| POST | `/ai/v1/chat/completions` | OpenAI-compatible proxy (stream → 202 + WS; error event: фиксированное `AI stream failed`, без raw LLM err) |
 
 ### BYOK (user-scoped providers)
 
 | Метод | Путь | Описание |
 |---|---|---|
-| GET | `/ai/my/providers` | Список user-scoped провайдеров |
+| GET | `/ai/my/providers` | Список user-scoped провайдеров (`version` в ответе) |
 | POST | `/ai/my/providers` | Добавить BYOK провайдер |
-| PATCH | `/ai/my/providers/:id` | Обновить BYOK провайдер |
+| PATCH | `/ai/my/providers/:id` | Обновить BYOK провайдер (`version` required → **409** при conflict) |
 
 ### Admin AI
 
 | Метод | Путь | Описание |
 |---|---|---|
-| GET | `/admin/ai/providers` | Реестр провайдеров |
+| GET | `/admin/ai/providers` | Реестр провайдеров (`version` в ответе) |
 | POST | `/admin/ai/providers` | Создать провайдер |
-| PATCH | `/admin/ai/providers/:id` | Обновить провайдер |
+| PATCH | `/admin/ai/providers/:id` | Обновить провайдер (`version` required → **409** при conflict) |
 | POST | `/admin/ai/providers/:id/test` | Ping провайдера |
 | GET | `/admin/ai/usage/summary` | Агрегат usage за сегодня |
 | GET | `/admin/ai/usage/history` | История по дням (`?days=7`) |
@@ -1053,11 +1082,14 @@ AI gateway, @hub-ai bot, ModelPicker, JQL assist. User routes требуют JWT
 
 | Метод | Путь | Описание |
 |---|---|---|
-| GET | `/health` | Health check (Postgres, Redis, Mongo) |
-| GET | `/status` | Public status page JSON (Postgres, Redis, Mongo, NATS, API) — V4-06 |
-| GET | `/metrics` | Prometheus scrape (`METRICS_ALLOWED_CIDRS` — пусто = без IP-фильтра) |
-| GET | `/docs` | Swagger UI |
-| GET | `/docs/doc.json` | OpenAPI JSON |
+| GET | `/live` | Liveness — процесс up → всегда 200 (K8s/Docker liveness; A14-001) |
+| GET | `/ready` | Readiness — Postgres/Redis/Mongo/NATS → 200 или 503 (Compose healthcheck) |
+| GET | `/health` | Alias `/ready` (обратная совместимость; не использовать как liveness) |
+| GET | `/status` | Public aggregate status (`status`, `updated_at`, один компонент `hub`) — V4-06 / W7-A5-002 |
+| GET | `/status/details` | Per-component postgres/redis/mongo/nats/api (JWT) |
+| GET | `/metrics` | Prometheus scrape; prod: `METRICS_ALLOWED_CIDRS` обязателен (fail-closed если пусто; compose default `127.0.0.1/32`; non-prod пусто = без IP-фильтра) |
+| GET | `/docs` | API docs HTML (system admin) |
+| GET | `/docs/doc.json` | API routes JSON (system admin) |
 
 ---
 
@@ -1085,10 +1117,16 @@ AI gateway, @hub-ai bot, ModelPicker, JQL assist. User routes требуют JWT
 
 ## WebSocket
 
-Подключение к WebSocket для realtime-событий.
+Подключение к WebSocket для realtime-событий (ADR-WS-JWT-HANDSHAKE-2026).
+
+1. `POST /api/auth/ws-ticket` (Bearer access JWT) → `{ "ticket", "expires_in": 30 }`
+2. `GET /ws` с заголовком:
+   `Sec-WebSocket-Protocol: hub.ws.ticket.<ticket>`
+3. Query `?token=` **запрещён** (401).
 
 ```
-ws://host/ws?token=<jwt>
+ws://host/ws
+Sec-WebSocket-Protocol: hub.ws.ticket.<ticket>
 ```
 
 События: новые сообщения, обновления задач, присутствие, уведомления, звонки, typing-индикаторы.
@@ -1120,6 +1158,8 @@ ws://host/ws?token=<jwt>
 
 ### Пагинация (cursor)
 
+Канон для **list-issues** и чата (`ADR-PAGINATION-CURSOR-ISSUES-2026`, NFR-14/NFR-15):
+
 ```json
 {
   "items": [],
@@ -1129,7 +1169,11 @@ ws://host/ws?token=<jwt>
 }
 ```
 
+Query: `?cursor=<issue_key>&limit=1..100` (default limit 50). Параметр `offset` для list-issues **не** поддерживается.
+
 ### Пагинация (offset)
+
+Для admin/intranet/wiki и прочих списков (не list-issues):
 
 ```json
 {
@@ -1140,6 +1184,7 @@ ws://host/ws?token=<jwt>
 }
 ```
 
+либо `{ items, total, offset, limit }`.
 ### HTTP-коды
 
 | Код | Значение |
@@ -1156,4 +1201,4 @@ ws://host/ws?token=<jwt>
 | 500 | Internal Server Error |
 
 ---
-*Последнее обновление: 2026-06-21 — Magic Link auth, error format, ~286 endpoints*
+*Последнее обновление: 2026-07-28 — Magic Link auth; error wire `{"error","request_id"}`; OpenAPI **252** paths / route inventory ~286*

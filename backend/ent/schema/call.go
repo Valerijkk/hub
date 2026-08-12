@@ -2,20 +2,21 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
 )
 
-// Call С…СЂР°РЅРёС‚ РјРµС‚Р°РґР°РЅРЅС‹Рµ РіРѕР»РѕСЃРѕРІРѕРіРѕ Р·РІРѕРЅРєР°.
-// РљР°Р¶РґС‹Р№ Р·РІРѕРЅРѕРє РїСЂРёРІСЏР·Р°РЅ Рє РєР°РЅР°Р»Сѓ РјРµСЃСЃРµРЅРґР¶РµСЂР° Рё СЃРѕРґРµСЂР¶РёС‚ РёРЅС„РѕСЂРјР°С†РёСЋ
-// Рѕ РєРѕРјРЅР°С‚Рµ LiveKit, СЃС‚Р°С‚СѓСЃРµ Рё РєРѕР»РёС‡РµСЃС‚РІРµ СѓС‡Р°СЃС‚РЅРёРєРѕРІ.
+// Call хранит метаданные голосового звонка.
+// Каждый звонок привязан к каналу мессенджера и содержит информацию
+// о комнате LiveKit, статусе и количестве участников.
 type Call struct {
 	ent.Schema
 }
 
-// Fields РѕРїРёСЃС‹РІР°РµС‚ РїРѕР»СЏ СЃСѓС‰РЅРѕСЃС‚Рё Call.
+// Fields описывает поля сущности Call.
 func (Call) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -24,44 +25,45 @@ func (Call) Fields() []ent.Field {
 		field.String("room_name").
 			Unique().
 			NotEmpty().
-			Comment("РЈРЅРёРєР°Р»СЊРЅРѕРµ РёРјСЏ РєРѕРјРЅР°С‚С‹ LiveKit"),
+			Comment("Уникальное имя комнаты LiveKit"),
 		field.UUID("channel_id", uuid.UUID{}).
 			Optional().
 			Nillable().
-			Comment("ID РєР°РЅР°Р»Р° РјРµСЃСЃРµРЅРґР¶РµСЂР° (nil РґР»СЏ instant-Р·РІРѕРЅРєРѕРІ)"),
+			Comment("ID канала мессенджера (nil для instant-звонков)"),
 		field.String("invite_code").
 			Optional().
 			Unique().
 			MaxLen(12).
-			Comment("РљРѕРґ РїСЂРёРіР»Р°С€РµРЅРёСЏ РґР»СЏ instant-Р·РІРѕРЅРєР° (РЅР°РїСЂРёРјРµСЂ hub-abc123)"),
+			Comment("Код приглашения для instant-звонка (например hub-abc123)"),
 		field.String("title").
 			Optional().
 			MaxLen(255).
-			Comment("РќР°Р·РІР°РЅРёРµ Р·РІРѕРЅРєР° (РґР»СЏ instant-Р·РІРѕРЅРєРѕРІ Р±РµР· РєР°РЅР°Р»Р°)"),
+			Comment("Название звонка (для instant-звонков без канала)"),
 		field.UUID("created_by", uuid.UUID{}).
-			Comment("ID РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ, СЃРѕР·РґР°РІС€РµРіРѕ Р·РІРѕРЅРѕРє"),
+			Comment("ID пользователя, создавшего звонок"),
 		field.Enum("status").
 			Values("active", "ended").
 			Default("active").
-			Comment("РЎС‚Р°С‚СѓСЃ Р·РІРѕРЅРєР°: Р°РєС‚РёРІРµРЅ РёР»Рё Р·Р°РІРµСЂС€С‘РЅ"),
+			Comment("Статус звонка: активен или завершён"),
 		field.Time("started_at").
 			Optional().
 			Nillable().
-			Comment("Р’СЂРµРјСЏ РЅР°С‡Р°Р»Р° Р·РІРѕРЅРєР° (СѓСЃС‚Р°РЅР°РІР»РёРІР°РµС‚СЃСЏ РїРѕ webhook room_started)"),
+			Comment("Время начала звонка (устанавливается по webhook room_started)"),
 		field.Time("ended_at").
 			Optional().
 			Nillable().
-			Comment("Р’СЂРµРјСЏ Р·Р°РІРµСЂС€РµРЅРёСЏ Р·РІРѕРЅРєР°"),
+			Comment("Время завершения звонка"),
 		field.Int("participant_count").
 			Default(0).
-			Comment("РўРµРєСѓС‰РµРµ РєРѕР»РёС‡РµСЃС‚РІРѕ СѓС‡Р°СЃС‚РЅРёРєРѕРІ РІ Р·РІРѕРЅРєРµ"),
+			Comment("Текущее количество участников в звонке"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
 	}
 }
 
-// Edges РѕРїРёСЃС‹РІР°РµС‚ СЃРІСЏР·Рё СЃСѓС‰РЅРѕСЃС‚Рё Call.
+// Edges описывает связи сущности Call.
+// OnDelete: ADR-ENT-ONDELETE-CASCADE-2026 — owned_junction CASCADE (A2W8-1-003).
 func (Call) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("channel", Channel.Type).
@@ -73,16 +75,17 @@ func (Call) Edges() []ent.Edge {
 			Field("created_by").
 			Unique().
 			Required(),
-		edge.To("participants", CallParticipant.Type),
-		edge.To("recordings", Recording.Type),
+		edge.To("participants", CallParticipant.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("recordings", Recording.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 
-// Indexes РѕРїРёСЃС‹РІР°РµС‚ РёРЅРґРµРєСЃС‹ СЃСѓС‰РЅРѕСЃС‚Рё Call.
+// Indexes описывает индексы сущности Call.
+// room_name и invite_code уже Unique() на field — не дублируем (P3-BE-17 / W8-A1-009).
 func (Call) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("channel_id", "status"),
-		index.Fields("room_name"),
-		index.Fields("invite_code"),
 	}
 }

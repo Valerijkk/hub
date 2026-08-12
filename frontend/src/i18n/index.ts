@@ -1,72 +1,105 @@
 /**
  * Инициализация i18next с поддержкой русского и английского языков.
  *
- * Поддерживаемые namespace: common, tracker, messenger, tms, calls, dashboard, settings.
- * Язык определяется автоматически (localStorage -> navigator) с fallback на русский.
- * Сохраняется в localStorage при переключении.
+ * A13-016: `common` + `help` eager (login/shell shortcuts/tips); остальные
+ * namespaces — dynamic import() по требованию useTranslation / t(..., { ns }).
+ *
+ * Язык: localStorage -> navigator, fallback ru; сохраняется в localStorage.
  */
 import i18n from "i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { initReactI18next } from "react-i18next";
-import enCalls from "./locales/en/calls.json";
 import enCommon from "./locales/en/common.json";
-import enDashboard from "./locales/en/dashboard.json";
 import enHelp from "./locales/en/help.json";
-import enMessenger from "./locales/en/messenger.json";
-import enOnboarding from "./locales/en/onboarding.json";
-import enSettings from "./locales/en/settings.json";
-import enTms from "./locales/en/tms.json";
-import enTracker from "./locales/en/tracker.json";
-import ruCalls from "./locales/ru/calls.json";
 import ruCommon from "./locales/ru/common.json";
-import ruDashboard from "./locales/ru/dashboard.json";
 import ruHelp from "./locales/ru/help.json";
-import ruMessenger from "./locales/ru/messenger.json";
-import ruOnboarding from "./locales/ru/onboarding.json";
-import ruSettings from "./locales/ru/settings.json";
-import ruTms from "./locales/ru/tms.json";
-import ruTracker from "./locales/ru/tracker.json";
+
+const NAMESPACES = [
+	"common",
+	"tracker",
+	"messenger",
+	"tms",
+	"calls",
+	"dashboard",
+	"settings",
+	"help",
+	"onboarding",
+] as const;
+
+type HubNamespace = (typeof NAMESPACES)[number];
+
+const localeLoaders: Record<
+	string,
+	Partial<
+		Record<HubNamespace, () => Promise<{ default: Record<string, unknown> }>>
+	>
+> = {
+	ru: {
+		tracker: () => import("./locales/ru/tracker.json"),
+		messenger: () => import("./locales/ru/messenger.json"),
+		tms: () => import("./locales/ru/tms.json"),
+		calls: () => import("./locales/ru/calls.json"),
+		dashboard: () => import("./locales/ru/dashboard.json"),
+		settings: () => import("./locales/ru/settings.json"),
+		onboarding: () => import("./locales/ru/onboarding.json"),
+	},
+	en: {
+		tracker: () => import("./locales/en/tracker.json"),
+		messenger: () => import("./locales/en/messenger.json"),
+		tms: () => import("./locales/en/tms.json"),
+		calls: () => import("./locales/en/calls.json"),
+		dashboard: () => import("./locales/en/dashboard.json"),
+		settings: () => import("./locales/en/settings.json"),
+		onboarding: () => import("./locales/en/onboarding.json"),
+	},
+};
+
+/** Minimal backend: dynamic import per language/namespace (no http-backend dep). */
+const dynamicLocaleBackend = {
+	type: "backend" as const,
+	init() {},
+	read(
+		language: string,
+		namespace: string,
+		callback: (
+			err: Error | null,
+			data: Record<string, unknown> | boolean,
+		) => void,
+	) {
+		const lang = language.startsWith("en") ? "en" : "ru";
+		if (namespace === "common") {
+			callback(null, lang === "en" ? enCommon : ruCommon);
+			return;
+		}
+		if (namespace === "help") {
+			callback(null, lang === "en" ? enHelp : ruHelp);
+			return;
+		}
+		const loader = localeLoaders[lang]?.[namespace as HubNamespace];
+		if (!loader) {
+			callback(new Error(`Unknown i18n ns: ${lang}/${namespace}`), false);
+			return;
+		}
+		loader()
+			.then((mod) =>
+				callback(null, (mod.default ?? mod) as Record<string, unknown>),
+			)
+			.catch((err: Error) => callback(err, false));
+	},
+};
 
 void i18n
 	.use(LanguageDetector)
+	.use(dynamicLocaleBackend)
 	.use(initReactI18next)
 	.init({
 		fallbackLng: "ru",
 		defaultNS: "common",
-		ns: [
-			"common",
-			"tracker",
-			"messenger",
-			"tms",
-			"calls",
-			"dashboard",
-			"settings",
-			"help",
-			"onboarding",
-		],
+		ns: ["common", "help"],
+		partialBundledLanguages: true,
 		resources: {
-			ru: {
-				common: ruCommon,
-				tracker: ruTracker,
-				messenger: ruMessenger,
-				tms: ruTms,
-				calls: ruCalls,
-				dashboard: ruDashboard,
-				settings: ruSettings,
-				help: ruHelp,
-				onboarding: ruOnboarding,
-			},
-			en: {
-				common: enCommon,
-				tracker: enTracker,
-				messenger: enMessenger,
-				tms: enTms,
-				calls: enCalls,
-				dashboard: enDashboard,
-				settings: enSettings,
-				help: enHelp,
-				onboarding: enOnboarding,
-			},
+			ru: { common: ruCommon, help: ruHelp },
+			en: { common: enCommon, help: enHelp },
 		},
 		detection: {
 			order: ["localStorage", "navigator"],
@@ -75,6 +108,9 @@ void i18n
 		},
 		interpolation: {
 			escapeValue: false,
+		},
+		react: {
+			useSuspense: false,
 		},
 	});
 

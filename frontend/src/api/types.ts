@@ -1,7 +1,8 @@
 /**
  * Универсальный ответ с пагинацией от API.
- * Поддерживает курсорную (next_cursor/has_more) и offset-пагинацию (offset/limit).
- * Используется для списков задач, тест-кейсов, прогонов и других коллекций.
+ * List-issues и messenger — курсорная (`next_cursor`/`has_more`, NFR-14/15,
+ * ADR-PAGINATION-CURSOR-ISSUES-2026). Offset-поля — для других доменов
+ * (intranet/wiki/admin), не для `listIssues`.
  */
 export interface PaginatedResponse<T> {
 	/** Массив элементов текущей страницы. */
@@ -12,7 +13,7 @@ export interface PaginatedResponse<T> {
 	has_more?: boolean;
 	/** Общее количество элементов (для отображения пагинации). */
 	total: number;
-	/** Смещение текущей страницы (offset-пагинация). */
+	/** Смещение текущей страницы (offset-пагинация; не list-issues). */
 	offset?: number;
 	/** Количество элементов на странице. */
 	limit?: number;

@@ -17,7 +17,14 @@ type Repository interface {
 	GetNewsPost(ctx context.Context, id uuid.UUID) (*ent.NewsPost, error)
 	ListNewsPosts(ctx context.Context, publishedOnly bool, page, perPage int) ([]*ent.NewsPost, int, error)
 	UpdateNewsPost(ctx context.Context, id uuid.UUID, req UpdateNewsRequest) (*ent.NewsPost, error)
-	SoftDeleteNewsPost(ctx context.Context, id uuid.UUID) error
+	// SoftDeleteNewsPost — soft-delete + domain audit (actor, post_id); FR-INTR-07 / P3-BE-15.
+	SoftDeleteNewsPost(ctx context.Context, id, actorID uuid.UUID) error
+	GetNewsPollByPostID(ctx context.Context, newsPostID uuid.UUID) (*ent.NewsPoll, error)
+	GetNewsPollByPostIDIncludingDeleted(ctx context.Context, newsPostID uuid.UUID) (*ent.NewsPoll, error)
+	GetUserNewsPollVote(ctx context.Context, pollID, userID uuid.UUID) (*ent.NewsPollVote, error)
+	CountNewsPollVotes(ctx context.Context, pollID uuid.UUID) (int, error)
+	VoteNewsPoll(ctx context.Context, pollID, optionID, userID uuid.UUID) error
+	UpdateNewsPoll(ctx context.Context, pollID uuid.UUID, in UpdateNewsPollInput) (*ent.NewsPoll, error)
 	IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bool, error)
 	ListActiveUsers(ctx context.Context) ([]*ent.User, error)
 	GetActiveUser(ctx context.Context, id uuid.UUID) (*ent.User, error)
@@ -25,15 +32,20 @@ type Repository interface {
 	GetKudo(ctx context.Context, id uuid.UUID) (*ent.Kudo, error)
 	ListPublicKudos(ctx context.Context, page, perPage int) ([]*ent.Kudo, int, error)
 	ListReceivedKudos(ctx context.Context, recipientID uuid.UUID, page, perPage int) ([]*ent.Kudo, int, error)
+	// SoftDeleteKudo — GDPR soft-path (A2W8-3-004 / ADR-ENT-SOFT-DELETE-GAPS-2026).
+	SoftDeleteKudo(ctx context.Context, id uuid.UUID) error
 	GetCoffeeEnrollment(ctx context.Context, userID uuid.UUID) (*ent.CoffeeEnrollment, error)
 	UpsertCoffeeEnrollment(ctx context.Context, userID uuid.UUID, active bool) (*ent.CoffeeEnrollment, error)
 	ListActiveCoffeeEnrollments(ctx context.Context) ([]*ent.User, error)
 	CreateCoffeeRound(ctx context.Context, adminID uuid.UUID, pairCount, unpairedCount int) (*ent.CoffeeRound, error)
 	CreateCoffeePair(ctx context.Context, roundID, userA, userB uuid.UUID) (*ent.CoffeePair, error)
+	// CreateCoffeeRoundWithPairs — W7-A2-004: round + все рёбра пар в одной tx (mid-fail → rollback).
+	CreateCoffeeRoundWithPairs(ctx context.Context, adminID uuid.UUID, pairCount, unpairedCount int, edges [][2]uuid.UUID) (*ent.CoffeeRound, []*ent.CoffeePair, error)
 	GetLatestCoffeeRound(ctx context.Context) (*ent.CoffeeRound, error)
 	GetPreviousRoundPairKeys(ctx context.Context) (map[string]struct{}, error)
 	ListCoffeeRounds(ctx context.Context, limit int) ([]*ent.CoffeeRound, error)
-	FindUserPairInRound(ctx context.Context, roundID, userID uuid.UUID) (*ent.CoffeePair, error)
+	// FindUserPairsInRound — все рёбра user в раунде (пара:1, тройка:2); A3W7-2-003.
+	FindUserPairsInRound(ctx context.Context, roundID, userID uuid.UUID) ([]*ent.CoffeePair, error)
 }
 
 // EntRepository реализует Repository через Ent.
@@ -44,17 +56,6 @@ type EntRepository struct {
 // NewEntRepository создаёт Ent-репозиторий intranet.
 func NewEntRepository(client *ent.Client) *EntRepository {
 	return &EntRepository{client: client}
-}
-
-func (r *EntRepository) CreateNewsPost(ctx context.Context, authorID uuid.UUID, req CreateNewsRequest) (*ent.NewsPost, error) {
-	return r.client.NewsPost.
-		Create().
-		SetTitle(req.Title).
-		SetBody(req.Body).
-		SetPinned(req.Pinned).
-		SetPublished(req.Published).
-		SetAuthorID(authorID).
-		Save(ctx)
 }
 
 func (r *EntRepository) GetNewsPost(ctx context.Context, id uuid.UUID) (*ent.NewsPost, error) {
@@ -103,8 +104,12 @@ func (r *EntRepository) ListNewsPosts(ctx context.Context, publishedOnly bool, p
 }
 
 func (r *EntRepository) UpdateNewsPost(ctx context.Context, id uuid.UUID, req UpdateNewsRequest) (*ent.NewsPost, error) {
+	// W7-A2-003 / TASK-095: VersionEQ в WHERE — иначе TOCTOU app-check → lost update.
 	upd := r.client.NewsPost.UpdateOneID(id).
-		Where(newspost.DeletedAtIsNil()).
+		Where(
+			newspost.DeletedAtIsNil(),
+			newspost.VersionEQ(req.Version),
+		).
 		AddVersion(1)
 	if req.Title != nil {
 		upd.SetTitle(*req.Title)
@@ -119,15 +124,6 @@ func (r *EntRepository) UpdateNewsPost(ctx context.Context, id uuid.UUID, req Up
 		upd.SetPublished(*req.Published)
 	}
 	return upd.Save(ctx)
-}
-
-func (r *EntRepository) SoftDeleteNewsPost(ctx context.Context, id uuid.UUID) error {
-	now := time.Now().UTC()
-	_, err := r.client.NewsPost.UpdateOneID(id).
-		Where(newspost.DeletedAtIsNil()).
-		SetDeletedAt(now).
-		Save(ctx)
-	return err
 }
 
 func (r *EntRepository) IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bool, error) {
@@ -171,7 +167,7 @@ func (r *EntRepository) CreateKudo(ctx context.Context, senderID, recipientID uu
 
 func (r *EntRepository) GetKudo(ctx context.Context, id uuid.UUID) (*ent.Kudo, error) {
 	return r.client.Kudo.Query().
-		Where(kudo.ID(id)).
+		Where(kudo.ID(id), kudo.DeletedAtIsNil()).
 		WithSender().
 		WithRecipient().
 		Only(ctx)
@@ -184,7 +180,7 @@ func (r *EntRepository) ListPublicKudos(ctx context.Context, page, perPage int) 
 	if perPage < 1 || perPage > 100 {
 		perPage = 25
 	}
-	q := r.client.Kudo.Query().Where(kudo.IsPublic(true))
+	q := r.client.Kudo.Query().Where(kudo.IsPublic(true), kudo.DeletedAtIsNil())
 	total, err := q.Clone().Count(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -209,7 +205,10 @@ func (r *EntRepository) ListReceivedKudos(ctx context.Context, recipientID uuid.
 	if perPage < 1 || perPage > 100 {
 		perPage = 25
 	}
-	q := r.client.Kudo.Query().Where(kudo.HasRecipientWith(user.ID(recipientID)))
+	q := r.client.Kudo.Query().Where(
+		kudo.HasRecipientWith(user.ID(recipientID)),
+		kudo.DeletedAtIsNil(),
+	)
 	total, err := q.Clone().Count(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -225,4 +224,19 @@ func (r *EntRepository) ListReceivedKudos(ctx context.Context, recipientID uuid.
 		return nil, 0, err
 	}
 	return items, total, nil
+}
+
+// SoftDeleteKudo — A2W8-3-004 / ADR-ENT-SOFT-DELETE-GAPS-2026: GDPR soft-path.
+func (r *EntRepository) SoftDeleteKudo(ctx context.Context, id uuid.UUID) error {
+	affected, err := r.client.Kudo.Update().
+		Where(kudo.IDEQ(id), kudo.DeletedAtIsNil()).
+		SetDeletedAt(time.Now().UTC()).
+		Save(ctx)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return &ent.NotFoundError{}
+	}
+	return nil
 }

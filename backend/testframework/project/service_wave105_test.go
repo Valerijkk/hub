@@ -40,7 +40,7 @@ type teamConstraintRepo struct {
 	mockRepo
 }
 
-func (r *teamConstraintRepo) CreateTeam(_ context.Context, _, _ string) (*ent.Team, error) {
+func (r *teamConstraintRepo) CreateTeamWithCreator(_ context.Context, _ uuid.UUID, _, _ string) (*ent.Team, error) {
 	return nil, constraintErr()
 }
 
@@ -105,7 +105,7 @@ func TestCreateTeam_ConstraintConflict(t *testing.T) {
 	repo := &teamConstraintRepo{mockRepo: *newMockRepo()}
 	svc := project.NewProjectService(repo, &mockCache{}, nil)
 
-	_, err := svc.CreateTeam(context.Background(), "Duplicate", "team")
+	_, err := svc.CreateTeam(context.Background(), uuid.New(), "Duplicate", "team")
 	require.Error(t, err)
 }
 
@@ -114,7 +114,7 @@ type teamFailRepo struct {
 	err error
 }
 
-func (r *teamFailRepo) CreateTeam(_ context.Context, _, _ string) (*ent.Team, error) {
+func (r *teamFailRepo) CreateTeamWithCreator(_ context.Context, _ uuid.UUID, _, _ string) (*ent.Team, error) {
 	return nil, r.err
 }
 
@@ -123,6 +123,6 @@ func TestCreateTeam_InternalError(t *testing.T) {
 	repo := &teamFailRepo{mockRepo: *newMockRepo(), err: fmt.Errorf("db down")}
 	svc := project.NewProjectService(repo, &mockCache{}, nil)
 
-	_, err := svc.CreateTeam(context.Background(), "Squad", "desc")
+	_, err := svc.CreateTeam(context.Background(), uuid.New(), "Squad", "desc")
 	require.Error(t, err)
 }

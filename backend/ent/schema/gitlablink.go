@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// GitLabLink С…СЂР°РЅРёС‚ СЃРІСЏР·СЊ MR РёР»Рё РєРѕРјРјРёС‚Р° РёР· GitLab СЃ Р·Р°РґР°С‡РµР№ С‚СЂРµРєРµСЂР°.
+// GitLabLink хранит связь MR или коммита из GitLab с задачей трекера.
 type GitLabLink struct {
 	ent.Schema
 }
@@ -21,28 +21,31 @@ func (GitLabLink) Fields() []ent.Field {
 			Immutable(),
 		field.Enum("link_type").
 			Values("commit", "merge_request").
-			Comment("РўРёРї СЃРІСЏР·Рё: РєРѕРјРјРёС‚ РёР»Рё merge request"),
+			Comment("Тип связи: коммит или merge request"),
 		field.String("external_id").
 			NotEmpty().
-			Comment("GitLab MR IID РёР»Рё commit SHA"),
+			Comment("GitLab MR IID или commit SHA"),
 		field.String("title").
 			MaxLen(500).
-			Comment("Р—Р°РіРѕР»РѕРІРѕРє MR РёР»Рё СЃРѕРѕР±С‰РµРЅРёРµ РєРѕРјРјРёС‚Р°"),
+			Comment("Заголовок MR или сообщение коммита"),
 		field.String("url").
-			Comment("РџРѕР»РЅС‹Р№ URL РЅР° GitLab"),
+			Comment("Полный URL на GitLab"),
 		field.Enum("status").
 			Values("opened", "merged", "closed", "none").
 			Default("none").
-			Comment("РЎС‚Р°С‚СѓСЃ MR (РґР»СЏ РєРѕРјРјРёС‚РѕРІ вЂ” none)"),
+			Comment("Статус MR (для коммитов — none)"),
 		field.String("author").
 			Optional().
-			Comment("РРјСЏ Р°РІС‚РѕСЂР° РЅР° GitLab"),
+			Comment("Имя автора на GitLab"),
 		field.String("source_branch").
 			Optional().
-			Comment("РРјСЏ РёСЃС…РѕРґРЅРѕР№ РІРµС‚РєРё (РґР»СЏ MR)"),
+			Comment("Имя исходной ветки (для MR)"),
 		field.String("project_path").
 			Optional().
-			Comment("РџСѓС‚СЊ РїСЂРѕРµРєС‚Р° РІ GitLab (group/repo)"),
+			Comment("Путь проекта в GitLab (group/repo)"),
+		// A2W8-2-008: optimistic lock для status updates.
+		field.Int("version").
+			Default(1),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
@@ -70,6 +73,7 @@ func (GitLabLink) Edges() []ent.Edge {
 func (GitLabLink) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Edges("issue"),
-		index.Fields("external_id", "link_type"),
+		// A2W8-2-008: уникальность внешней ссылки в рамках интеграции.
+		index.Edges("integration").Fields("external_id", "link_type").Unique(),
 	}
 }

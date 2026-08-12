@@ -33,6 +33,24 @@ export interface CallResponse {
 	updated_at: string;
 }
 
+/**
+ * Узкий shape для guest-join (нет полного CallResponse с channel_id/created_by).
+ * CallRoom/controls используют только эти поля (P2-FE-08 / W10-A5-013).
+ */
+export interface GuestCallSession {
+	id: string;
+	room_name: string;
+	token: string;
+	invite_code?: string;
+	status: CallStatus;
+	/** Guest join не знает creator — всегда undefined. */
+	created_by?: undefined;
+	created_at?: string;
+}
+
+/** Сессия активного звонка: полный API-ответ или guest-join. */
+export type ActiveCallSession = CallResponse | GuestCallSession;
+
 /** Участник звонка. */
 export interface CallParticipantResponse {
 	/** ID записи участника. */
@@ -140,8 +158,10 @@ export async function getActiveCall(
 		return raw as CallResponse;
 	} catch (err: unknown) {
 		const apiErr = err as { code?: number };
+		// Только 404 = «нет активного звонка»; сеть/403 не маскируем как null
+		// (иначе CallButton стартует второй create — W11-A3-002).
 		if (apiErr.code === 404) return null;
-		return null;
+		throw err;
 	}
 }
 
@@ -457,13 +477,24 @@ export async function listScheduledCallsForChannels(
 ): Promise<ScheduledCallResponse[]> {
 	if (channelIds.length === 0) return [];
 
-	const results = await Promise.all(
+	// W11-A1-004: не глотать все ошибки в [] — если все каналы упали, пробрасываем
+	const settled = await Promise.allSettled(
 		channelIds.map((id) =>
-			listScheduledCalls(id)
-				.then((res) => res.scheduled_calls ?? [])
-				.catch(() => [] as ScheduledCallResponse[]),
+			listScheduledCalls(id).then((res) => res.scheduled_calls ?? []),
 		),
 	);
 
-	return results.flat();
+	const ok = settled.filter(
+		(r): r is PromiseFulfilledResult<ScheduledCallResponse[]> =>
+			r.status === "fulfilled",
+	);
+	if (ok.length === 0) {
+		const first = settled[0];
+		if (first?.status === "rejected") {
+			throw first.reason;
+		}
+		throw new Error("failed to load scheduled calls");
+	}
+
+	return ok.flatMap((r) => r.value);
 }

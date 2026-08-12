@@ -34,7 +34,9 @@ func TestNormalizeCells_NilCells(t *testing.T) {
 }
 
 func TestMapServiceError_AllBranches(t *testing.T) {
+	// W2-A5-010 / P3-BE-02: ErrForbidden → 403 обязан быть в «AllBranches».
 	assert.Equal(t, 404, fiberStatus(mapServiceError(bases.ErrNotFound)))
+	assert.Equal(t, 403, fiberStatus(mapServiceError(bases.ErrForbidden)))
 	assert.Equal(t, 400, fiberStatus(mapServiceError(ErrInvalidInput)))
 	assert.Equal(t, 409, fiberStatus(mapServiceError(ErrVersionConflict)))
 	assert.Equal(t, 500, fiberStatus(mapServiceError(assert.AnError)))

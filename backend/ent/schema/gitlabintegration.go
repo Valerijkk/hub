@@ -2,13 +2,14 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
 )
 
-// GitLabIntegration С…СЂР°РЅРёС‚ РЅР°СЃС‚СЂРѕР№РєРё РёРЅС‚РµРіСЂР°С†РёРё РїСЂРѕРµРєС‚Р° СЃ GitLab-СЂРµРїРѕР·РёС‚РѕСЂРёРµРј.
+// GitLabIntegration хранит настройки интеграции проекта с GitLab-репозиторием.
 type GitLabIntegration struct {
 	ent.Schema
 }
@@ -22,20 +23,35 @@ func (GitLabIntegration) Fields() []ent.Field {
 		field.String("gitlab_url").
 			Default("https://gitlab.com").
 			MaxLen(500).
-			Comment("URL РёРЅСЃС‚Р°РЅСЃР° GitLab (РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ https://gitlab.com)"),
+			Comment("URL инстанса GitLab (по умолчанию https://gitlab.com)"),
 		field.String("project_path").
 			NotEmpty().
 			MaxLen(500).
-			Comment("РџСѓС‚СЊ Рє РїСЂРѕРµРєС‚Сѓ РІ GitLab (РЅР°РїСЂРёРјРµСЂ group/repo)"),
+			Comment("Путь к проекту в GitLab (например group/repo)"),
+		// A3W8-2-006: PAT обязателен (симметрия webhook_secret NotEmpty).
 		field.String("access_token").
 			Sensitive().
+			NotEmpty().
 			Comment("GitLab Personal Access Token"),
+		// A2W8-2-007: секрет обязателен (симметрия с GitHubIntegration).
 		field.String("webhook_secret").
-			Optional().
-			Comment("РЎРµРєСЂРµС‚ РґР»СЏ РІР°Р»РёРґР°С†РёРё GitLab webhook (X-Gitlab-Token)"),
+			Sensitive().
+			NotEmpty().
+			Comment("Секрет для валидации GitLab webhook (X-Gitlab-Token)"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
+		// W7-A3-010 / ADR-ENT-SOFT-DELETE-GAPS-2026: soft-delete интеграций.
+		field.Time("deleted_at").
+			Optional().
+			Nillable(),
+	}
+}
+
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (GitLabIntegration) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
 	}
 }
 
@@ -46,7 +62,9 @@ func (GitLabIntegration) Edges() []ent.Edge {
 			Ref("gitlab_integrations").
 			Unique().
 			Required(),
-		edge.To("gitlab_links", GitLabLink.Type),
+		// A3W8-2-004: owned_child Cascade Integration→links.
+		edge.To("gitlab_links", GitLabLink.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 
@@ -56,5 +74,7 @@ func (GitLabIntegration) Indexes() []ent.Index {
 		index.Fields("project_path").
 			Edges("project").
 			Unique(),
+		index.Fields("deleted_at"),
+		index.Edges("project").Fields("deleted_at"),
 	}
 }

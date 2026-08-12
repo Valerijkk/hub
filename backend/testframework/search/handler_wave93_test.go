@@ -21,9 +21,10 @@ func TestSearch_AdminUserShard(t *testing.T) {
 	db := newScopeTestDB(t)
 	svc := search.NewSearchService(&mockSearchRepo{isAdmin: true}, db, nil)
 
-	results, err := svc.Search(context.Background(), "admin-user", uuid.New(), []string{"user"}, 10)
-	require.NoError(t, err)
-	assert.Empty(t, results)
+	// A2W5-A4-003 / A5-006: sqlite Empty ≠ success; missing users table → hard error.
+	_, _, err := svc.Search(context.Background(), "admin-user", uuid.New(), []string{"user"}, 10)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, search.ErrSearchUnavailable)
 }
 
 func TestHandler_Wave93_GetUserID_UUIDLocal(t *testing.T) {

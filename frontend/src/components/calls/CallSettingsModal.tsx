@@ -281,6 +281,9 @@ function ToggleRow({ label, description, checked, onChange }: ToggleRowProps) {
 	return (
 		<button
 			type="button"
+			role="switch"
+			aria-checked={checked}
+			aria-label={label}
 			onClick={onChange}
 			className="flex w-full items-center justify-between gap-4 rounded-lg p-2 -mx-2 hover:bg-white/5 transition-colors text-left"
 		>

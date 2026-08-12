@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/alicebob/miniredis/v2"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
@@ -56,7 +57,7 @@ func newStorageRoutesEnv(t *testing.T) (*fiber.App, uuid.UUID, uuid.UUID, *ent.C
 		Save(ctx)
 	require.NoError(t, err)
 
-	svc, err := storage.NewStorageService(config.S3Config{
+	base, err := storage.NewStorageService(config.S3Config{
 		Region:    "us-east-1",
 		Endpoint:  "http://127.0.0.1:9999",
 		AccessKey: "test",
@@ -64,6 +65,13 @@ func newStorageRoutesEnv(t *testing.T) (*fiber.App, uuid.UUID, uuid.UUID, *ent.C
 		Bucket:    "hub-files",
 	}, storage.NewEntRepository(client))
 	require.NoError(t, err)
+	// Unit-тесты без SeaweedFS: s3Client=nil → Confirm без HEAD; PresignClient остаётся.
+	svc := storage.ExportNewStorageServiceForTestWithS3(
+		storage.NewEntRepository(client),
+		"hub-files",
+		nil,
+		s3.NewPresignClient(base.S3Client()),
+	)
 
 	h := storage.NewHandler(svc)
 	app := fiber.New()
@@ -86,7 +94,7 @@ func TestNewHandler_AndRegisterRoutes(t *testing.T) {
 	app, projectID, _, client := newStorageRoutesEnv(t)
 	_ = client
 
-	payload := fmt.Sprintf(`{"filename":"notes.txt","contentType":"text/plain","projectId":%q}`, projectID.String())
+	payload := fmt.Sprintf(`{"filename":"notes.txt","contentType":"text/plain","projectId":%q,"size":12}`, projectID.String())
 	req := httptest.NewRequest(http.MethodPost, "/api/files/upload-url", bytes.NewReader([]byte(payload)))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := app.Test(req)
@@ -104,9 +112,23 @@ func TestHandler_RegisterRoutes_ConfirmAndDownload(t *testing.T) {
 	app, projectID, userID, client := newStorageRoutesEnv(t)
 	ctx := context.Background()
 
+	ch, err := client.Channel.Create().
+		SetName("routes").
+		SetChannelType("public").
+		SetProjectID(projectID).
+		SetCreatedBy(userID).
+		Save(ctx)
+	require.NoError(t, err)
+	_, err = client.ChannelMember.Create().
+		SetChannelID(ch.ID).
+		SetUserID(userID).
+		SetRole("member").
+		Save(ctx)
+	require.NoError(t, err)
+
 	fileID := uuid.New()
 	s3Key := projectID.String() + "/files/" + fileID.String() + "/doc.txt"
-	_, err := client.FileMetadata.Create().
+	_, err = client.FileMetadata.Create().
 		SetID(fileID).
 		SetFilename("doc.txt").
 		SetContentType("text/plain").
@@ -119,7 +141,7 @@ func TestHandler_RegisterRoutes_ConfirmAndDownload(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	confirmBody := `{"entityType":"issue","entityId":"issue-1"}`
+	confirmBody := fmt.Sprintf(`{"entityType":"message","entityId":%q}`, ch.ID.String())
 	req := httptest.NewRequest(http.MethodPost, "/api/files/"+fileID.String()+"/confirm", bytes.NewReader([]byte(confirmBody)))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := app.Test(req)

@@ -82,7 +82,7 @@ func TestEntRepository_CreateChannel_Get_Update_Delete(t *testing.T) {
 	newName := "announcements"
 	updated, err := env.repo.UpdateChannel(env.ctx, ch.ID, messenger.UpdateChannelInput{
 		Name:        &newName,
-		Description: strPtr("updated"),
+		Description: strPtr("updated"), Version: 1,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "announcements", updated.Name)
@@ -91,9 +91,12 @@ func TestEntRepository_CreateChannel_Get_Update_Delete(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, list, 1)
 
-	// DeleteChannel без каскада участников — FK на sqlite; фиксируем текущее поведение.
+	// A8-005: DeleteChannel — soft-delete (deleted_at); Get скрывает канал.
 	err = env.repo.DeleteChannel(env.ctx, ch.ID)
+	require.NoError(t, err)
+	_, err = env.repo.GetChannel(env.ctx, ch.ID)
 	require.Error(t, err)
+	assert.True(t, ent.IsNotFound(err))
 }
 
 // TestEntRepository_MembersAndRoles проверяет слой репозитория: ent репозиторий members and roles.
@@ -202,7 +205,7 @@ func TestEntRepository_PinsAndBookmarks(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, bookmarks, 1)
 
-	require.NoError(t, env.repo.RemoveBookmark(env.ctx, bm.ID))
+	require.NoError(t, env.repo.RemoveBookmark(env.ctx, env.owner.ID, bm.ID))
 	bookmarks, err = env.repo.ListBookmarks(env.ctx, env.owner.ID)
 	require.NoError(t, err)
 	assert.Empty(t, bookmarks)

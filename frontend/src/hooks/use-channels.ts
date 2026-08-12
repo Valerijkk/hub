@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect } from "react";
 import type { Channel } from "@/api/messenger";
 import { getChannels } from "@/api/messenger";
@@ -7,25 +7,58 @@ import { useAuthStore } from "@/stores/auth-store";
 import { useMessengerStore } from "@/stores/messenger-store";
 import { useWsStore } from "@/stores/ws-store";
 
+/** Ключ кэша списка каналов (единый для Query и WS). */
+export const CHANNELS_QUERY_KEY = ["messenger", "channels"] as const;
+
+/**
+ * Вставляет канал в список (в начало), без дубликатов по id.
+ * A10-001: источник правды для UI — React Query, не только zustand.
+ */
+export function upsertChannelInList(
+	channels: Channel[] | undefined,
+	channel: Channel,
+): Channel[] {
+	if (!channels) return [channel];
+	if (channels.some((c) => c.id === channel.id)) {
+		return channels.map((c) =>
+			c.id === channel.id ? { ...c, ...channel } : c,
+		);
+	}
+	return [channel, ...channels];
+}
+
+/**
+ * Патчит канал в списке по id. Неизвестный id — список без изменений.
+ */
+export function patchChannelInList(
+	channels: Channel[] | undefined,
+	channelId: string,
+	partial: Partial<Channel>,
+): Channel[] | undefined {
+	if (!channels) return channels;
+	return channels.map((ch) =>
+		ch.id === channelId ? { ...ch, ...partial } : ch,
+	);
+}
+
 /**
  * useChannels загружает список каналов пользователя через TanStack Query
  * и подписывается на WS-обновления (новый канал, обновление, удаление).
  */
 export function useChannels() {
+	const queryClient = useQueryClient();
 	const userId = useAuthStore((s) => s.user?.id);
 	const setChannels = useMessengerStore((s) => s.setChannels);
-	const addChannel = useMessengerStore((s) => s.addChannel);
-	const updateChannel = useMessengerStore((s) => s.updateChannel);
 	const incrementUnread = useMessengerStore((s) => s.incrementUnread);
 
 	const { subscribe, unsubscribe, connected } = useWsStore();
 
 	const query = useQuery({
-		queryKey: ["messenger", "channels"],
+		queryKey: CHANNELS_QUERY_KEY,
 		queryFn: getChannels,
 	});
 
-	// Синхронизация данных из query в store.
+	// Синхронизация данных из query в store (unread / side panels).
 	useEffect(() => {
 		if (query.data) {
 			setChannels(query.data);
@@ -42,7 +75,7 @@ export function useChannels() {
 		};
 	}, [connected, userId, subscribe, unsubscribe]);
 
-	// Обработка WS-событий каналов.
+	// Обработка WS-событий каналов — пишем в Query (UI читает query.data).
 	const handleEvent = useCallback(
 		(event: string, payload: unknown) => {
 			if (!payload || typeof payload !== "object") return;
@@ -52,7 +85,9 @@ export function useChannels() {
 					// Проверяем обязательные поля — WS-payload может быть неполным.
 					const ch = data as unknown as Channel;
 					if (ch && typeof ch.id === "string" && typeof ch.name === "string") {
-						addChannel(ch);
+						queryClient.setQueryData<Channel[]>(CHANNELS_QUERY_KEY, (old) =>
+							upsertChannelInList(old, ch),
+						);
 					}
 					break;
 				}
@@ -70,7 +105,9 @@ export function useChannels() {
 							partial.is_readonly = data.is_readonly;
 						if (typeof data.updated_at === "string")
 							partial.updated_at = data.updated_at;
-						updateChannel(data.id, partial);
+						queryClient.setQueryData<Channel[]>(CHANNELS_QUERY_KEY, (old) =>
+							patchChannelInList(old, data.id as string, partial),
+						);
 					}
 					break;
 				case "new_message_notification":
@@ -80,7 +117,7 @@ export function useChannels() {
 					break;
 			}
 		},
-		[addChannel, updateChannel, incrementUnread],
+		[queryClient, incrementUnread],
 	);
 
 	useWsEventListener(handleEvent);

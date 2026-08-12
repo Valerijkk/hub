@@ -124,9 +124,8 @@ func TestEditMessage_AuthorOnly(t *testing.T) {
 	ctx := context.Background()
 	authorID := uuid.New()
 	otherID := uuid.New()
-	channelID := uuid.New()
+	channelID := setupChannelWithMembers(repo, "public", false, authorID, otherID)
 
-	// Обычный участник не может писать в readonly-канале.
 	doc := &messenger.MessageDocument{
 		ID:          uuid.New().String(),
 		ChannelID:   channelID,
@@ -142,13 +141,11 @@ func TestEditMessage_AuthorOnly(t *testing.T) {
 		ContentText: "edited",
 	}
 
-	// Owner может писать в readonly-канале.
-	_, err := svc.EditMessage(ctx, doc.ID, otherID, editReq)
+	_, err := svc.EditMessage(ctx, channelID, doc.ID, otherID, editReq)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "свои сообщения")
 
-	// Помещаем удалённое сообщение в repo.
-	resp, err := svc.EditMessage(ctx, doc.ID, authorID, editReq)
+	resp, err := svc.EditMessage(ctx, channelID, doc.ID, authorID, editReq)
 	require.NoError(t, err)
 	assert.Equal(t, "edited", resp.ContentText)
 	assert.NotNil(t, resp.EditedAt)
@@ -186,7 +183,7 @@ func TestToggleReaction_AddRemove(t *testing.T) {
 	svc, repo, _ := newTestService()
 	ctx := context.Background()
 	userID := uuid.New()
-	channelID := uuid.New()
+	channelID := setupChannelWithMembers(repo, "public", false, userID)
 
 	doc := &messenger.MessageDocument{
 		ID:        uuid.New().String(),
@@ -196,13 +193,11 @@ func TestToggleReaction_AddRemove(t *testing.T) {
 	}
 	repo.messages[doc.ID] = doc
 
-	// Только admin удаляет канал (не member).
-	added, err := svc.ToggleReaction(ctx, doc.ID, userID, "thumbsup")
+	added, err := svc.ToggleReaction(ctx, channelID, doc.ID, userID, "thumbsup")
 	require.NoError(t, err)
 	assert.True(t, added, "первый toggle должен добавить реакцию")
 
-	// Owner может удалить канал после повышения роли.
-	added, err = svc.ToggleReaction(ctx, doc.ID, userID, "thumbsup")
+	added, err = svc.ToggleReaction(ctx, channelID, doc.ID, userID, "thumbsup")
 	require.NoError(t, err)
 	assert.False(t, added, "второй toggle должен удалить реакцию")
 }
@@ -289,14 +284,15 @@ func TestForwardMessage_CreatesNewMessage(t *testing.T) {
 func TestSearchMessages_TextQuery(t *testing.T) {
 	svc, repo, _ := newTestService()
 	ctx := context.Background()
-	channelID := uuid.New()
+	userID := uuid.New()
+	channelID := setupChannelWithMembers(repo, "public", false, userID)
 
 	// Создаём публичный канал.
 	for _, text := range []string{"hello world", "goodbye world", "hello there"} {
 		doc := &messenger.MessageDocument{
 			ID:          uuid.New().String(),
 			ChannelID:   channelID,
-			SenderID:    uuid.New(),
+			SenderID:    userID,
 			ContentText: text,
 			CreatedAt:   time.Now(),
 		}
@@ -304,12 +300,12 @@ func TestSearchMessages_TextQuery(t *testing.T) {
 	}
 
 	// Поиск по тексту «hello».
-	results, err := svc.SearchMessages(ctx, "hello", channelID.String(), 10)
+	results, err := svc.SearchMessages(ctx, userID, "hello", channelID.String(), 10)
 	require.NoError(t, err)
 	assert.Len(t, results, 2, "должны найти 2 сообщения с 'hello'")
 
 	// Поиск по тексту «goodbye».
-	results, err = svc.SearchMessages(ctx, "goodbye", channelID.String(), 10)
+	results, err = svc.SearchMessages(ctx, userID, "goodbye", channelID.String(), 10)
 	require.NoError(t, err)
 	assert.Len(t, results, 1, "должны найти 1 сообщение с 'goodbye'")
 }
@@ -471,10 +467,11 @@ func TestAddMembers_AdminAllowed(t *testing.T) {
 
 // TestCreateChannel_WithProjectID проверяет сценарий: создание channel with project id.
 func TestCreateChannel_WithProjectID(t *testing.T) {
-	svc, _, _ := newTestService()
+	svc, repo, _ := newTestService()
 	ctx := context.Background()
 	userID := uuid.New()
 	projectID := uuid.New()
+	repo.projectMembers[projectID] = map[uuid.UUID]bool{userID: true}
 
 	resp, err := svc.CreateChannel(ctx, userID, messenger.CreateChannelRequest{
 		ChannelType: "public",
@@ -484,6 +481,22 @@ func TestCreateChannel_WithProjectID(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, projectID.String(), resp.ProjectID, "канал должен быть привязан к проекту")
 	assert.Equal(t, "#project-hub", resp.Name)
+}
+
+// TestCreateChannel_RejectsForeignProject_AUDIT_TM_004 — чужой project_id → 403.
+// Mutation: убрать IsProjectMember check → тест краснеет.
+func TestCreateChannel_RejectsForeignProject_AUDIT_TM_004(t *testing.T) {
+	svc, _, _ := newTestService()
+	ctx := context.Background()
+	userID := uuid.New()
+	foreignProject := uuid.New()
+
+	_, err := svc.CreateChannel(ctx, userID, messenger.CreateChannelRequest{
+		ChannelType: "public",
+		Name:        "#idor",
+		ProjectID:   foreignProject.String(),
+	})
+	requireMessengerAppErrorCode(t, err, 403)
 }
 
 // TestCreateChannel_ReadOnlyFlag проверяет сценарий: создание channel read only flag.

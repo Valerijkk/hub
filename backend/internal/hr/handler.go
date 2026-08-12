@@ -83,7 +83,7 @@ func (h *Handler) ApproveLeave(c fiber.Ctx) error {
 	}
 	var req ReviewLeaveRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		req = ReviewLeaveRequest{}
+		return fiber.NewError(fiber.StatusBadRequest, "invalid request body")
 	}
 	resp, err := h.service.ApproveLeave(c.Context(), userID, leaveID, req)
 	if err != nil {
@@ -124,7 +124,10 @@ func (h *Handler) CancelLeave(c fiber.Ctx) error {
 	var body struct {
 		Version int `json:"version"`
 	}
-	_ = c.Bind().JSON(&body)
+	// A6-006: bind errors → 400 (same as Approve/Reject; do not swallow).
+	if err := c.Bind().JSON(&body); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid request body")
+	}
 	resp, err := h.service.CancelLeave(c.Context(), userID, leaveID, body.Version)
 	if err != nil {
 		return mapServiceError(err)
@@ -145,6 +148,9 @@ func mapServiceError(err error) error {
 	switch {
 	case errors.Is(err, ErrNotFound):
 		return fiber.NewError(fiber.StatusNotFound, "leave request not found")
+	case errors.Is(err, ErrAccessDenied):
+		// P3-BE-08 / W7-A2-011: не путать с admin-only путём.
+		return fiber.NewError(fiber.StatusForbidden, "leave access denied")
 	case errors.Is(err, ErrForbidden):
 		return fiber.NewError(fiber.StatusForbidden, "admin access required")
 	case errors.Is(err, ErrInvalidInput):

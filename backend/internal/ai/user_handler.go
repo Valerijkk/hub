@@ -16,9 +16,12 @@ func NewUserHandler(svc *Service) *UserHandler {
 	return &UserHandler{svc: svc}
 }
 
-// RegisterRoutes монтирует /ai/my/*.
-func (h *UserHandler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
+// RegisterRoutes монтирует /ai/my/* (rateLimitMw — AIRateLimit, A2W5-A1-002 / TASK-085).
+func (h *UserHandler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rateLimitMw ...fiber.Handler) {
 	my := api.Group("/ai/my", authMw)
+	for _, mw := range rateLimitMw {
+		my.Use(mw)
+	}
 	my.Get("/providers", h.ListProviders)
 	my.Post("/providers", h.CreateProvider)
 	my.Patch("/providers/:id", h.UpdateProvider)
@@ -52,7 +55,9 @@ func (h *UserHandler) CreateProvider(c fiber.Ctx) error {
 	}
 	resp, err := h.svc.CreateUserProvider(c.Context(), userID, req)
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		// A2W5-A1-003: стабильные коды, без encrypt/base_url internals.
+		status, msg := mapProviderMutateError(err)
+		return fiber.NewError(status, msg)
 	}
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
@@ -64,7 +69,7 @@ func (h *UserHandler) UpdateProvider(c fiber.Ctx) error {
 		return err
 	}
 	id, err := uuid.Parse(c.Params("id"))
-	if err != nil {
+	if err != nil || id == uuid.Nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid id")
 	}
 	var req UpdateProviderRequest
@@ -76,7 +81,9 @@ func (h *UserHandler) UpdateProvider(c fiber.Ctx) error {
 		if ent.IsNotFound(err) {
 			return fiber.NewError(fiber.StatusNotFound, "provider not found")
 		}
-		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		// A2W5-A1-003: стабильные коды, без encrypt/base_url internals.
+		status, msg := mapProviderMutateError(err)
+		return fiber.NewError(status, msg)
 	}
 	return c.JSON(resp)
 }

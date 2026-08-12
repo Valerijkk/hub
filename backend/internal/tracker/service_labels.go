@@ -20,6 +20,13 @@ func (s *TrackerService) CreateLabel(ctx context.Context, projectID uuid.UUID, r
 		if err != nil {
 			return nil, apperrors.NewBadRequest("некорректный group_id")
 		}
+		// A3W1-2-002: группа меток должна принадлежать тому же проекту.
+		if _, err := s.repo.FindLabelGroupInProject(ctx, projectID, id); err != nil {
+			if ent.IsNotFound(err) {
+				return nil, apperrors.NewNotFound("группа меток не найдена")
+			}
+			return nil, apperrors.NewInternal("ошибка проверки группы меток")
+		}
 		groupID = &id
 	}
 
@@ -47,9 +54,9 @@ func (s *TrackerService) ListLabels(ctx context.Context, projectID uuid.UUID) ([
 	return result, nil
 }
 
-// DeleteLabel удаляет метку.
-func (s *TrackerService) DeleteLabel(ctx context.Context, labelID uuid.UUID) error {
-	if err := s.repo.DeleteLabel(ctx, labelID); err != nil {
+// DeleteLabel удаляет метку в рамках проекта (Block F IDOR).
+func (s *TrackerService) DeleteLabel(ctx context.Context, projectID, labelID uuid.UUID) error {
+	if err := s.repo.DeleteLabel(ctx, projectID, labelID); err != nil {
 		if ent.IsNotFound(err) {
 			return apperrors.NewNotFound("метка не найдена")
 		}

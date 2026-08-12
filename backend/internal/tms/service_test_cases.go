@@ -2,6 +2,7 @@ package tms
 
 import (
 	"context"
+	"errors"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
@@ -36,6 +37,12 @@ func (s *TMSService) CreateTestCase(ctx context.Context, projectID, userID uuid.
 		if err != nil {
 			return nil, apperrors.NewBadRequest("некорректный suite_id")
 		}
+		if _, err := s.repo.GetSuiteInProject(ctx, projectID, id); err != nil {
+			if ent.IsNotFound(err) {
+				return nil, apperrors.NewNotFound("папка не найдена")
+			}
+			return nil, apperrors.NewInternal("ошибка проверки папки")
+		}
 		input.SuiteID = &id
 	}
 	if len(req.Labels) > 0 {
@@ -43,12 +50,26 @@ func (s *TMSService) CreateTestCase(ctx context.Context, projectID, userID uuid.
 		if err != nil {
 			return nil, apperrors.NewBadRequest("некорректный label ID")
 		}
+		n, err := s.repo.CountLabelsInProject(ctx, projectID, ids)
+		if err != nil {
+			return nil, apperrors.NewInternal("ошибка проверки меток")
+		}
+		if n != len(ids) {
+			return nil, apperrors.NewNotFound("метка не найдена")
+		}
 		input.LabelIDs = ids
 	}
 	if len(req.Components) > 0 {
 		ids, err := parseUUIDs(req.Components)
 		if err != nil {
 			return nil, apperrors.NewBadRequest("некорректный component ID")
+		}
+		n, err := s.repo.CountComponentsInProject(ctx, projectID, ids)
+		if err != nil {
+			return nil, apperrors.NewInternal("ошибка проверки компонентов")
+		}
+		if n != len(ids) {
+			return nil, apperrors.NewNotFound("компонент не найден")
 		}
 		input.ComponentIDs = ids
 	}
@@ -62,8 +83,8 @@ func (s *TMSService) CreateTestCase(ctx context.Context, projectID, userID uuid.
 }
 
 // GetTestCase возвращает тест-кейс по ключу (например, "HUB-TC-1").
-func (s *TMSService) GetTestCase(ctx context.Context, caseKey string) (*TestCaseResponse, error) {
-	tc, err := s.repo.FindTestCaseByKey(ctx, caseKey)
+func (s *TMSService) GetTestCase(ctx context.Context, projectID uuid.UUID, caseKey string) (*TestCaseResponse, error) {
+	tc, err := s.repo.FindTestCaseByKey(ctx, projectID, caseKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("тест-кейс не найден")
@@ -114,8 +135,8 @@ func (s *TMSService) ListTestCases(ctx context.Context, projectID uuid.UUID, req
 }
 
 // UpdateTestCase обновляет тест-кейс, предварительно создавая снимок текущей версии.
-func (s *TMSService) UpdateTestCase(ctx context.Context, caseKey string, userID uuid.UUID, req UpdateTestCaseRequest) (*TestCaseResponse, error) {
-	existing, err := s.repo.FindTestCaseByKey(ctx, caseKey)
+func (s *TMSService) UpdateTestCase(ctx context.Context, projectID uuid.UUID, caseKey string, userID uuid.UUID, req UpdateTestCaseRequest) (*TestCaseResponse, error) {
+	existing, err := s.repo.FindTestCaseByKey(ctx, projectID, caseKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("тест-кейс не найден")
@@ -123,11 +144,10 @@ func (s *TMSService) UpdateTestCase(ctx context.Context, caseKey string, userID 
 		return nil, apperrors.NewInternal("ошибка получения тест-кейса")
 	}
 
-	// Создаём снимок текущей версии перед обновлением
-	snapshot := buildSnapshot(existing)
-	_, err = s.repo.CreateTestCaseVersion(ctx, existing.ID, userID, existing.Version, snapshot, "")
+	// A2W2-2-002: snapshot + update в одной Ent tx (иначе orphan version при fail update).
+	snapshot, err := buildSnapshot(existing)
 	if err != nil {
-		return nil, apperrors.NewInternal("ошибка создания версии")
+		return nil, apperrors.NewInternal("ошибка создания снимка версии")
 	}
 
 	// Формируем input для обновления
@@ -156,6 +176,12 @@ func (s *TMSService) UpdateTestCase(ctx context.Context, caseKey string, userID 
 			if err != nil {
 				return nil, apperrors.NewBadRequest("некорректный suite_id")
 			}
+			if _, err := s.repo.GetSuiteInProject(ctx, projectID, id); err != nil {
+				if ent.IsNotFound(err) {
+					return nil, apperrors.NewNotFound("папка не найдена")
+				}
+				return nil, apperrors.NewInternal("ошибка проверки папки")
+			}
 			input.SuiteID = &id
 		}
 	}
@@ -164,6 +190,15 @@ func (s *TMSService) UpdateTestCase(ctx context.Context, caseKey string, userID 
 		if err != nil {
 			return nil, apperrors.NewBadRequest("некорректный label ID")
 		}
+		if len(ids) > 0 {
+			n, err := s.repo.CountLabelsInProject(ctx, projectID, ids)
+			if err != nil {
+				return nil, apperrors.NewInternal("ошибка проверки меток")
+			}
+			if n != len(ids) {
+				return nil, apperrors.NewNotFound("метка не найдена")
+			}
+		}
 		input.LabelIDs = &ids
 	}
 	if req.Components != nil {
@@ -171,11 +206,24 @@ func (s *TMSService) UpdateTestCase(ctx context.Context, caseKey string, userID 
 		if err != nil {
 			return nil, apperrors.NewBadRequest("некорректный component ID")
 		}
+		if len(ids) > 0 {
+			n, err := s.repo.CountComponentsInProject(ctx, projectID, ids)
+			if err != nil {
+				return nil, apperrors.NewInternal("ошибка проверки компонентов")
+			}
+			if n != len(ids) {
+				return nil, apperrors.NewNotFound("компонент не найден")
+			}
+		}
 		input.ComponentIDs = &ids
 	}
 
-	updated, err := s.repo.UpdateTestCase(ctx, existing.ID, input)
+	updated, err := s.snapshotAndUpdateTestCase(ctx, existing.ID, userID, existing.Version, snapshot, "", input)
 	if err != nil {
+		var appErr *apperrors.AppError
+		if errors.As(err, &appErr) {
+			return nil, err
+		}
 		return nil, apperrors.NewInternal("ошибка обновления тест-кейса")
 	}
 
@@ -183,20 +231,32 @@ func (s *TMSService) UpdateTestCase(ctx context.Context, caseKey string, userID 
 }
 
 // DeleteTestCase удаляет тест-кейс по ключу.
-func (s *TMSService) DeleteTestCase(ctx context.Context, caseKey string) error {
-	existing, err := s.repo.FindTestCaseByKey(ctx, caseKey)
+func (s *TMSService) DeleteTestCase(ctx context.Context, projectID uuid.UUID, caseKey string) error {
+	existing, err := s.repo.FindTestCaseByKey(ctx, projectID, caseKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return apperrors.NewNotFound("тест-кейс не найден")
 		}
 		return apperrors.NewInternal("ошибка получения тест-кейса")
 	}
-	return s.repo.DeleteTestCase(ctx, existing.ID)
+	// A2W2-3-003: soft-delete scoped by projectID (repo TOCTOU guard).
+	// A3W2-2-006: сырой Ent/constraint не утекает наружу.
+	if err := s.repo.DeleteTestCase(ctx, projectID, existing.ID); err != nil {
+		var appErr *apperrors.AppError
+		if errors.As(err, &appErr) {
+			return err
+		}
+		if ent.IsNotFound(err) {
+			return apperrors.NewNotFound("тест-кейс не найден")
+		}
+		return apperrors.NewInternal("ошибка удаления тест-кейса")
+	}
+	return nil
 }
 
 // RollbackTestCase откатывает тест-кейс к указанной версии.
-func (s *TMSService) RollbackTestCase(ctx context.Context, caseKey string, versionID, userID uuid.UUID) (*TestCaseResponse, error) {
-	existing, err := s.repo.FindTestCaseByKey(ctx, caseKey)
+func (s *TMSService) RollbackTestCase(ctx context.Context, projectID uuid.UUID, caseKey string, versionID, userID uuid.UUID) (*TestCaseResponse, error) {
+	existing, err := s.repo.FindTestCaseByKey(ctx, projectID, caseKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("тест-кейс не найден")
@@ -204,7 +264,8 @@ func (s *TMSService) RollbackTestCase(ctx context.Context, caseKey string, versi
 		return nil, apperrors.NewInternal("ошибка получения тест-кейса")
 	}
 
-	version, err := s.repo.GetTestCaseVersion(ctx, versionID)
+	// Ownership enforced in EntRepository via HasTestCaseWith (A3-007).
+	version, err := s.repo.GetTestCaseVersion(ctx, existing.ID, versionID)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("версия не найдена")
@@ -212,17 +273,25 @@ func (s *TMSService) RollbackTestCase(ctx context.Context, caseKey string, versi
 		return nil, apperrors.NewInternal("ошибка получения версии")
 	}
 
-	// Создаём снимок текущего состояния перед откатом
-	currentSnapshot := buildSnapshot(existing)
-	_, err = s.repo.CreateTestCaseVersion(ctx, existing.ID, userID, existing.Version, currentSnapshot, "перед откатом к версии")
+	// Создаём снимок текущего состояния перед откатом (A2W2-2-002: вместе с update в одной tx).
+	currentSnapshot, err := buildSnapshot(existing)
 	if err != nil {
 		return nil, apperrors.NewInternal("ошибка создания снимка перед откатом")
 	}
 
-	// Применяем снимок как обновление
-	input := snapshotToUpdateInput(version.Snapshot)
-	updated, err := s.repo.UpdateTestCase(ctx, existing.ID, input)
+	// Применяем снимок как обновление (optimistic lock на текущей version)
+	input, err := snapshotToUpdateInput(version.Snapshot)
 	if err != nil {
+		return nil, apperrors.NewInternal("ошибка применения снимка версии")
+	}
+	input.Version = existing.Version
+	updated, err := s.snapshotAndUpdateTestCase(ctx, existing.ID, userID, existing.Version, currentSnapshot, "перед откатом к версии", input)
+	if err != nil {
+		// A2W2-2-003: VersionEQ conflict → 409, не маскировать в 500.
+		var appErr *apperrors.AppError
+		if errors.As(err, &appErr) {
+			return nil, err
+		}
 		return nil, apperrors.NewInternal("ошибка применения отката")
 	}
 
@@ -234,8 +303,8 @@ func (s *TMSService) RollbackTestCase(ctx context.Context, caseKey string, versi
 // ---------------------------------------------------------------------------
 
 // ListTestCaseVersions возвращает все версии тест-кейса.
-func (s *TMSService) ListTestCaseVersions(ctx context.Context, caseKey string) ([]TestCaseVersionResponse, error) {
-	tc, err := s.repo.FindTestCaseByKey(ctx, caseKey)
+func (s *TMSService) ListTestCaseVersions(ctx context.Context, projectID uuid.UUID, caseKey string) ([]TestCaseVersionResponse, error) {
+	tc, err := s.repo.FindTestCaseByKey(ctx, projectID, caseKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("тест-кейс не найден")
@@ -260,32 +329,62 @@ func (s *TMSService) ListTestCaseVersions(ctx context.Context, caseKey string) (
 // ---------------------------------------------------------------------------
 
 // LinkTestCaseToIssue привязывает тест-кейс к задаче трекера.
-func (s *TMSService) LinkTestCaseToIssue(ctx context.Context, caseKey string, issueID uuid.UUID) error {
-	tc, err := s.repo.FindTestCaseByKey(ctx, caseKey)
+// Issue должна принадлежать тому же projectID (A3-003-link) — иначе NotFound.
+func (s *TMSService) LinkTestCaseToIssue(ctx context.Context, projectID uuid.UUID, caseKey string, issueID uuid.UUID) error {
+	tc, err := s.repo.FindTestCaseByKey(ctx, projectID, caseKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return apperrors.NewNotFound("тест-кейс не найден")
 		}
 		return apperrors.NewInternal("ошибка получения тест-кейса")
 	}
-	return s.repo.LinkTestCaseToIssue(ctx, tc.ID, issueID)
+	if _, err := s.repo.FindIssueInProject(ctx, projectID, issueID); err != nil {
+		if ent.IsNotFound(err) {
+			return apperrors.NewNotFound("задача не найдена")
+		}
+		return apperrors.NewInternal("ошибка получения задачи")
+	}
+	// A3W2-2-006: wrap raw repo err → AppError.
+	if err := s.repo.LinkTestCaseToIssue(ctx, tc.ID, issueID); err != nil {
+		var appErr *apperrors.AppError
+		if errors.As(err, &appErr) {
+			return err
+		}
+		return apperrors.NewInternal("ошибка привязки тест-кейса к задаче")
+	}
+	return nil
 }
 
 // UnlinkTestCaseFromIssue отвязывает тест-кейс от задачи трекера.
-func (s *TMSService) UnlinkTestCaseFromIssue(ctx context.Context, caseKey string, issueID uuid.UUID) error {
-	tc, err := s.repo.FindTestCaseByKey(ctx, caseKey)
+// Симметрично Link: foreign issue → NotFound (A3-003-link).
+func (s *TMSService) UnlinkTestCaseFromIssue(ctx context.Context, projectID uuid.UUID, caseKey string, issueID uuid.UUID) error {
+	tc, err := s.repo.FindTestCaseByKey(ctx, projectID, caseKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return apperrors.NewNotFound("тест-кейс не найден")
 		}
 		return apperrors.NewInternal("ошибка получения тест-кейса")
 	}
-	return s.repo.UnlinkTestCaseFromIssue(ctx, tc.ID, issueID)
+	if _, err := s.repo.FindIssueInProject(ctx, projectID, issueID); err != nil {
+		if ent.IsNotFound(err) {
+			return apperrors.NewNotFound("задача не найдена")
+		}
+		return apperrors.NewInternal("ошибка получения задачи")
+	}
+	// A3W2-2-006: wrap raw repo err → AppError.
+	if err := s.repo.UnlinkTestCaseFromIssue(ctx, tc.ID, issueID); err != nil {
+		var appErr *apperrors.AppError
+		if errors.As(err, &appErr) {
+			return err
+		}
+		return apperrors.NewInternal("ошибка отвязки тест-кейса от задачи")
+	}
+	return nil
 }
 
 // GetTestCaseLinks возвращает задачи, привязанные к тест-кейсу.
-func (s *TMSService) GetTestCaseLinks(ctx context.Context, caseKey string) ([]IssueBriefResponse, error) {
-	tc, err := s.repo.FindTestCaseByKey(ctx, caseKey)
+func (s *TMSService) GetTestCaseLinks(ctx context.Context, projectID uuid.UUID, caseKey string) ([]IssueBriefResponse, error) {
+	tc, err := s.repo.FindTestCaseByKey(ctx, projectID, caseKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("тест-кейс не найден")
@@ -310,9 +409,18 @@ func (s *TMSService) GetTestCaseLinks(ctx context.Context, caseKey string) ([]Is
 }
 
 // CreateBugFromFailedResult создаёт баг из упавшего результата теста.
-func (s *TMSService) CreateBugFromFailedResult(ctx context.Context, projectID, userID uuid.UUID, resultID uuid.UUID, req CreateBugRequest) (*IssueBriefResponse, error) {
-	// Получаем результат с привязанным тест-кейсом
-	result, err := s.repo.GetTestResult(ctx, resultID)
+// runID из URL сверяется с принадлежностью result к прогону (A2W2-1-001 / A3-008).
+func (s *TMSService) CreateBugFromFailedResult(ctx context.Context, projectID, runID, userID, resultID uuid.UUID, req CreateBugRequest) (*IssueBriefResponse, error) {
+	// Project scope на URL-прогоне до чтения result (не доверяем произвольному resultId).
+	if _, err := s.repo.GetTestRunInProject(ctx, projectID, runID); err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("результат не найден")
+		}
+		return nil, apperrors.NewInternal("ошибка получения прогона")
+	}
+
+	// HasRunWith(runID): result из другого прогона того же проекта → 404.
+	result, err := s.repo.GetTestResultInRun(ctx, runID, resultID)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("результат не найден")
@@ -341,7 +449,7 @@ func (s *TMSService) CreateBugFromFailedResult(ctx context.Context, projectID, u
 
 	issue, err := s.repo.CreateBugIssue(ctx, projectID, userID, testCaseID, title, description, req.Priority)
 	if err != nil {
-		return nil, apperrors.NewInternal("ошибка создания бага: " + err.Error())
+		return nil, apperrors.NewInternal("ошибка создания бага")
 	}
 
 	return &IssueBriefResponse{

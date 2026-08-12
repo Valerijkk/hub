@@ -1,0 +1,78 @@
+ok  	github.com/valerii/hub/backend/testframework/accounting	0.813s
+ok  	github.com/valerii/hub/backend/testframework/ai	0.194s
+# github.com/valerii/hub/backend/testframework/tms_test [github.com/valerii/hub/backend/testframework/tms.test]
+testframework/tms/allure_matcher_wave99_test.go:21:28: cannot use repo (variable of type *mockMatcherRepo) as tms.Repository value in argument to tms.NewMatcher: *mockMatcherRepo does not implement tms.Repository (wrong type for method GetTestCaseVersion)
+		have GetTestCaseVersion(context.Context, "github.com/google/uuid".UUID, "github.com/google/uuid".UUID) (*"github.com/valerii/hub/backend/ent".TestCaseVersion, error)
+		want GetTestCaseVersion(context.Context, "github.com/google/uuid".UUID) (*"github.com/valerii/hub/backend/ent".TestCaseVersion, error)
+testframework/tms/allure_matcher_wave99_test.go:42:28: cannot use repo (variable of type *mockMatcherRepo) as tms.Repository value in argument to tms.NewMatcher: *mockMatcherRepo does not implement tms.Repository (wrong type for method GetTestCaseVersion)
+		have GetTestCaseVersion(context.Context, "github.com/google/uuid".UUID, "github.com/google/uuid".UUID) (*"github.com/valerii/hub/backend/ent".TestCaseVersion, error)
+		want GetTestCaseVersion(context.Context, "github.com/google/uuid".UUID) (*"github.com/valerii/hub/backend/ent".TestCaseVersion, error)
+testframework/tms/allure_parser_test.go:430:28: cannot use repo (variable of type *mockMatcherRepo) as tms.Repository value in argument to tms.NewMatcher: *mockMatcherRepo does not implement tms.Repository (wrong type for method GetTestCaseVersion)
+		have GetTestCaseVersion(context.Context, "github.com/google/uuid".UUID, "github.com/google/uuid".UUID) (*"github.com/valerii/hub/backend/ent".TestCaseVersion, error)
+		want GetTestCaseVersion(context.Context, "github.com/google/uuid".UUID) (*"github.com/valerii/hub/backend/ent".TestCaseVersion, error)
+testframework/tms/allure_parser_test.go:456:28: cannot use repo (variable of type *mockMatcherRepo) as tms.Repository value in argument to tms.NewMatcher: *mockMatcherRepo does not implement tms.Repository (wrong type for method GetTestCaseVersion)
+		have GetTestCaseVersion(context.Context, "github.com/google/uuid".UUID, "github.com/google/uuid".UUID) (*"github.com/valerii/hub/backend/ent".TestCaseVersion, error)
+		want GetTestCaseVersion(context.Context, "github.com/google/uuid".UUID) (*"github.com/valerii/hub/backend/ent".TestCaseVersion, error)
+testframework/tms/allure_parser_test.go:481:28: cannot use repo (variable of type *mockMatcherRepo) as tms.Repository value in argument to tms.NewMatcher: *mockMatcherRepo does not implement tms.Repository (wrong type for method GetTestCaseVersion)
+		have GetTestCaseVersion(context.Context, "github.com/google/uuid".UUID, "github.com/google/uuid".UUID) (*"github.com/valerii/hub/backend/ent".TestCaseVersion, error)
+		want GetTestCaseVersion(context.Context, "github.com/google/uuid".UUID) (*"github.com/valerii/hub/backend/ent".TestCaseVersion, error)
+testframework/tms/allure_parser_test.go:508:28: cannot use repo (variable of type *mockMatcherRepo) as tms.Repository value in argument to tms.NewMatcher: *mockMatcherRepo does not implement tms.Repository (wrong type for method GetTestCaseVersion)
+		have GetTestCaseVersion(context.Context, "github.com/google/uuid".UUID, "github.com/google/uuid".UUID) (*"github.com/valerii/hub/backend/ent".TestCaseVersion, error)
+		want GetTestCaseVersion(context.Context, "github.com/google/uuid".UUID) (*"github.com/valerii/hub/backend/ent".TestCaseVersion, error)
+testframework/tms/allure_parser_test.go:534:28: cannot use repo (variable of type *mockMatcherRepo) as tms.Repository value in argument to tms.NewMatcher: *mockMatcherRepo does not implement tms.Repository (wrong type for method GetTestCaseVersion)
+		have GetTestCaseVersion(context.Context, "github.com/google/uuid".UUID, "github.com/google/uuid".UUID) (*"github.com/valerii/hub/backend/ent".TestCaseVersion, error)
+		want GetTestCaseVersion(context.Context, "github.com/google/uuid".UUID) (*"github.com/valerii/hub/backend/ent".TestCaseVersion, error)
+testframework/tms/allure_parser_test.go:555:28: cannot use repo (variable of type *mockMatcherRepo) as tms.Repository value in argument to tms.NewMatcher: *mockMatcherRepo does not implement tms.Repository (wrong type for method GetTestCaseVersion)
+		have GetTestCaseVersion(context.Context, "github.com/google/uuid".UUID, "github.com/google/uuid".UUID) (*"github.com/valerii/hub/backend/ent".TestCaseVersion, error)
+		want GetTestCaseVersion(context.Context, "github.com/google/uuid".UUID) (*"github.com/valerii/hub/backend/ent".TestCaseVersion, error)
+testframework/tms/allure_parser_test.go:579:28: cannot use repo (variable of type *mockMatcherRepo) as tms.Repository value in argument to tms.NewMatcher: *mockMatcherRepo does not implement tms.Repository (wrong type for method GetTestCaseVersion)
+		have GetTestCaseVersion(context.Context, "github.com/google/uuid".UUID, "github.com/google/uuid".UUID) (*"github.com/valerii/hub/backend/ent".TestCaseVersion, error)
+		want GetTestCaseVersion(context.Context, "github.com/google/uuid".UUID) (*"github.com/valerii/hub/backend/ent".TestCaseVersion, error)
+testframework/tms/ent_repository_extended_test.go:36:50: too many arguments in call to repo.GetTestCaseVersion
+	have (context.Context, "github.com/google/uuid".UUID, "github.com/google/uuid".UUID)
+	want (context.Context, "github.com/google/uuid".UUID)
+testframework/tms/ent_repository_extended_test.go:36:50: too many errors
+ok  	github.com/valerii/hub/backend/testframework/apigateway	37.208s
+ok  	github.com/valerii/hub/backend/testframework/audit	0.726s
+ok  	github.com/valerii/hub/backend/testframework/auth	1.455s
+ok  	github.com/valerii/hub/backend/testframework/backup	0.480s
+ok  	github.com/valerii/hub/backend/testframework/bases	0.652s
+ok  	github.com/valerii/hub/backend/testframework/calendar	0.102s
+ok  	github.com/valerii/hub/backend/testframework/calls	1.710s
+ok  	github.com/valerii/hub/backend/testframework/crm	0.462s
+ok  	github.com/valerii/hub/backend/testframework/dashboard	0.459s
+ok  	github.com/valerii/hub/backend/testframework/dev	0.106s
+ok  	github.com/valerii/hub/backend/testframework/env	0.029s
+?   	github.com/valerii/hub/backend/testframework/factory	[no test files]
+ok  	github.com/valerii/hub/backend/testframework/github	1.039s
+ok  	github.com/valerii/hub/backend/testframework/gitlab	0.122s
+ok  	github.com/valerii/hub/backend/testframework/hr	0.347s
+ok  	github.com/valerii/hub/backend/testframework/imex	0.756s
+ok  	github.com/valerii/hub/backend/testframework/intranet	0.493s
+ok  	github.com/valerii/hub/backend/testframework/mail	0.123s
+ok  	github.com/valerii/hub/backend/testframework/marketplace	0.308s
+ok  	github.com/valerii/hub/backend/testframework/messenger	1.205s
+?   	github.com/valerii/hub/backend/testframework/mongotest	[no test files]
+ok  	github.com/valerii/hub/backend/testframework/notification	8.269s
+ok  	github.com/valerii/hub/backend/testframework/onec	0.185s
+ok  	github.com/valerii/hub/backend/testframework/platform/config	0.011s
+ok  	github.com/valerii/hub/backend/testframework/platform/cron	0.134s
+ok  	github.com/valerii/hub/backend/testframework/platform/crypto	0.012s
+ok  	github.com/valerii/hub/backend/testframework/platform/errors	0.008s
+ok  	github.com/valerii/hub/backend/testframework/platform/http	0.011s
+ok  	github.com/valerii/hub/backend/testframework/platform/middleware	0.103s
+ok  	github.com/valerii/hub/backend/testframework/platform/nats	0.254s
+ok  	github.com/valerii/hub/backend/testframework/platform/observability	0.026s
+ok  	github.com/valerii/hub/backend/testframework/platform/outbox	0.552s
+ok  	github.com/valerii/hub/backend/testframework/platform/telegram	0.006s
+ok  	github.com/valerii/hub/backend/testframework/project	1.157s
+ok  	github.com/valerii/hub/backend/testframework/rbac	0.761s
+ok  	github.com/valerii/hub/backend/testframework/search	0.784s
+ok  	github.com/valerii/hub/backend/testframework/sprint	0.988s
+ok  	github.com/valerii/hub/backend/testframework/status	0.007s
+?   	github.com/valerii/hub/backend/testframework/steps	[no test files]
+ok  	github.com/valerii/hub/backend/testframework/storage	2.492s
+FAIL	github.com/valerii/hub/backend/testframework/tms [build failed]
+ok  	github.com/valerii/hub/backend/testframework/tracker	1.519s
+ok  	github.com/valerii/hub/backend/testframework/ws	0.748s
+FAIL

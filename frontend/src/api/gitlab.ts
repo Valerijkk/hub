@@ -128,11 +128,12 @@ export function triggerPipeline(
 
 /** Создать ветку в GitLab из задачи. */
 export function createGitLabBranch(
+	projectId: string,
 	issueKey: string,
 	data: GitLabCreateBranchRequest,
 ) {
 	return api.post<GitLabCreateBranchResponse>(
-		`/issues/${issueKey}/gitlab/create-branch`,
+		`/projects/${projectId}/issues/${issueKey}/gitlab/create-branch`,
 		data,
 	);
 }

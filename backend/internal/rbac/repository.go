@@ -32,6 +32,8 @@ type Repository interface {
 	GetRoleProjectID(ctx context.Context, roleID uuid.UUID) (uuid.UUID, error)
 	ListRoleMemberIDs(ctx context.Context, roleID uuid.UUID) ([]uuid.UUID, error)
 	ClearMemberCustomRoleByID(ctx context.Context, memberID uuid.UUID) error
+	// ClearMembersAndDeleteRole атомарно снимает custom_role с участников и удаляет роль (A2W6-A3-002).
+	ClearMembersAndDeleteRole(ctx context.Context, roleID uuid.UUID, memberIDs []uuid.UUID) error
 	DeleteRole(ctx context.Context, roleID uuid.UUID) error
 	GetProjectMember(ctx context.Context, projectID, userID uuid.UUID) (*ent.ProjectMember, error)
 	SetMemberCustomRole(ctx context.Context, memberID, roleID uuid.UUID) error
@@ -137,6 +139,29 @@ func (r *EntRepository) ClearMemberCustomRoleByID(ctx context.Context, memberID 
 		Exec(ctx)
 }
 
+// ClearMembersAndDeleteRole — clear members + delete role в одной Ent-транзакции (A2W6-A3-002).
+// Без tx partial clear + fail delete оставлял dangling edges и stale elevated cache.
+func (r *EntRepository) ClearMembersAndDeleteRole(ctx context.Context, roleID uuid.UUID, memberIDs []uuid.UUID) error {
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return fmt.Errorf("begin clear+delete role tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	for _, id := range memberIDs {
+		if err := tx.ProjectMember.UpdateOneID(id).ClearCustomRole().Exec(ctx); err != nil {
+			return fmt.Errorf("clear member custom role %s: %w", id, err)
+		}
+	}
+	if err := tx.Role.DeleteOneID(roleID).Exec(ctx); err != nil {
+		return fmt.Errorf("delete role %s: %w", roleID, err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit clear+delete role: %w", err)
+	}
+	return nil
+}
+
 func (r *EntRepository) DeleteRole(ctx context.Context, roleID uuid.UUID) error {
 	return r.client.Role.DeleteOneID(roleID).Exec(ctx)
 }
@@ -167,3 +192,12 @@ func IsNotFound(err error) bool {
 
 // ErrSystemRoleDelete возвращается при попытке удалить системную роль.
 var ErrSystemRoleDelete = fmt.Errorf("system roles cannot be deleted")
+
+// ErrSystemRoleUpdate возвращается при попытке изменить системную роль.
+var ErrSystemRoleUpdate = fmt.Errorf("system roles cannot be updated")
+
+// ErrRoleProjectMismatch — роль не принадлежит указанному проекту (IDOR guard).
+var ErrRoleProjectMismatch = fmt.Errorf("role does not belong to project")
+
+// ErrUnknownPermission — имя разрешения отсутствует в реестре (клиентская валидация → 400).
+var ErrUnknownPermission = fmt.Errorf("unknown permission name")

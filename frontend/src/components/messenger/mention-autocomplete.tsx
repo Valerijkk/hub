@@ -88,6 +88,8 @@ export function MentionAutocomplete({
 	keyHandlerRef,
 }: MentionAutocompleteProps) {
 	const [selectedIndex, setSelectedIndex] = useState(0);
+	/** Esc скрывает список, пока контекст @ не сменится. */
+	const [suppressed, setSuppressed] = useState(false);
 	const listRef = useRef<HTMLDivElement>(null);
 
 	// Загружаем участников канала.
@@ -102,6 +104,15 @@ export function MentionAutocomplete({
 		() => extractMentionQuery(text, cursorPosition),
 		[text, cursorPosition],
 	);
+
+	const mentionStart = mentionContext?.startIndex;
+	const mentionQuery = mentionContext?.query;
+
+	// Новый @-контекст снова показывает список после Esc.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: reset on mention context change
+	useEffect(() => {
+		setSuppressed(false);
+	}, [mentionStart, mentionQuery]);
 
 	// Фильтруем участников по введённому тексту после @.
 	const filteredMembers = useMemo(() => {
@@ -162,7 +173,8 @@ export function MentionAutocomplete({
 					return true;
 				}
 				case "Escape":
-					// Позволяем закрыть автокомплит нажатием Escape.
+					e.preventDefault();
+					setSuppressed(true);
 					return true;
 				default:
 					return false;
@@ -191,8 +203,9 @@ export function MentionAutocomplete({
 		item?.scrollIntoView({ block: "nearest" });
 	}, [selectedIndex]);
 
-	// Не рендерим если автокомплит не активен.
-	const isVisible = mentionContext !== null && filteredMembers.length > 0;
+	// Не рендерим если автокомплит не активен или скрыт Esc.
+	const isVisible =
+		mentionContext !== null && filteredMembers.length > 0 && !suppressed;
 
 	if (!isVisible) return null;
 
@@ -200,6 +213,7 @@ export function MentionAutocomplete({
 		<div
 			ref={listRef}
 			role="listbox"
+			aria-label="Участники для упоминания"
 			className="absolute bottom-full left-0 mb-1 w-64 max-h-48 overflow-y-auto rounded-lg border bg-popover shadow-lg z-50"
 			// Предотвращаем потерю фокуса textarea при клике по списку.
 			onMouseDown={(e) => e.preventDefault()}
@@ -208,6 +222,9 @@ export function MentionAutocomplete({
 				<button
 					key={member.id}
 					type="button"
+					role="option"
+					aria-selected={index === selectedIndex}
+					id={`mention-option-${member.id}`}
 					className={cn(
 						"flex w-full items-center gap-2 px-3 py-2 text-sm transition-colors",
 						index === selectedIndex

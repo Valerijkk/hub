@@ -43,6 +43,14 @@ func (r *EntRepository) CreateInstantCall(ctx context.Context, roomName string, 
 		Save(ctx)
 }
 
+// HardDeleteCall удаляет звонок и его участников (rollback finalizeCreate, A2W3-5-002).
+func (r *EntRepository) HardDeleteCall(ctx context.Context, callID uuid.UUID) error {
+	if _, err := r.db.CallParticipant.Delete().Where(callparticipant.CallID(callID)).Exec(ctx); err != nil {
+		return err
+	}
+	return r.db.Call.DeleteOneID(callID).Exec(ctx)
+}
+
 // GetCallByInviteCode возвращает активный звонок по invite-коду.
 func (r *EntRepository) GetCallByInviteCode(ctx context.Context, code string) (*ent.Call, error) {
 	return r.db.Call.Query().
@@ -192,28 +200,111 @@ func (r *EntRepository) ListParticipants(ctx context.Context, callID uuid.UUID) 
 		All(ctx)
 }
 
-// IsChannelMember проверяет, состоит ли пользователь в канале мессенджера.
+// IsActiveParticipant — true, если user сейчас в звонке (left_at IS NULL).
+// A2-003 / A2-006 / A2-007: chat, RaiseHand, WS call:{id}.
+func (r *EntRepository) IsActiveParticipant(ctx context.Context, callID, userID uuid.UUID) (bool, error) {
+	return r.db.CallParticipant.Query().
+		Where(
+			callparticipant.CallID(callID),
+			callparticipant.UserID(userID),
+			callparticipant.LeftAtIsNil(),
+		).
+		Exist(ctx)
+}
+
+
+// IsCallParticipantOrChannelMember — A2-007: доступ к WS-комнате call:{id}.
+// Канальный звонок: член канала ИЛИ активный участник.
+// Instant (ChannelID == nil): только активный участник (раньше всегда deny).
+func (r *EntRepository) IsCallParticipantOrChannelMember(ctx context.Context, callID, userID uuid.UUID) (bool, error) {
+	call, err := r.GetCall(ctx, callID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	if call.ChannelID != nil {
+		isMember, mErr := r.IsChannelMember(ctx, *call.ChannelID, userID)
+		if mErr != nil {
+			return false, mErr
+		}
+		if isMember {
+			return true, nil
+		}
+	}
+	return r.IsActiveParticipant(ctx, callID, userID)
+}
+
+// IsChannelMember проверяет, состоит ли пользователь в активном канале мессенджера.
 // HI-03: используется для авторизации JoinCall/EndCall — у звонка есть
 // channel_id (для канальных звонков), членство в этом канале — необходимое
-// условие для участия/завершения. Эта проверка делается через ту же таблицу
-// channel_members, что и в messenger.EntRepository.IsMember.
+// условие для участия/завершения. Soft-deleted каналы не считаются (A8-005).
 func (r *EntRepository) IsChannelMember(ctx context.Context, channelID, userID uuid.UUID) (bool, error) {
 	return r.db.ChannelMember.Query().
 		Where(
 			channelmember.ChannelID(channelID),
 			channelmember.UserID(userID),
+			channelmember.HasChannelWith(channel.DeletedAtIsNil()),
 		).
 		Exist(ctx)
 }
 
-// GetChannelMemberRole возвращает роль пользователя в канале ("", если не состоит).
+// ListChannelMemberIDs возвращает ID участников канала (для conflict mapping).
+func (r *EntRepository) ListChannelMemberIDs(ctx context.Context, channelID uuid.UUID) ([]uuid.UUID, error) {
+	members, err := r.db.ChannelMember.Query().
+		Where(
+			channelmember.ChannelID(channelID),
+			channelmember.HasChannelWith(channel.DeletedAtIsNil()),
+		).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]uuid.UUID, len(members))
+	for i, m := range members {
+		ids[i] = m.UserID
+	}
+	return ids, nil
+}
+
+// ShareActiveChannel — true, если a и b состоят в хотя бы одном общем активном канале.
+func (r *EntRepository) ShareActiveChannel(ctx context.Context, a, b uuid.UUID) (bool, error) {
+	aChannels, err := r.db.ChannelMember.Query().
+		Where(
+			channelmember.UserID(a),
+			channelmember.HasChannelWith(channel.DeletedAtIsNil()),
+		).
+		All(ctx)
+	if err != nil {
+		return false, err
+	}
+	if len(aChannels) == 0 {
+		return false, nil
+	}
+	channelIDs := make([]uuid.UUID, len(aChannels))
+	for i, m := range aChannels {
+		channelIDs[i] = m.ChannelID
+	}
+	return r.db.ChannelMember.Query().
+		Where(
+			channelmember.UserID(b),
+			channelmember.ChannelIDIn(channelIDs...),
+			channelmember.HasChannelWith(channel.DeletedAtIsNil()),
+		).
+		Exist(ctx)
+}
+
+// GetChannelMemberRole возвращает роль пользователя в активном канале ("", если не состоит / soft-deleted).
 // HI-03: EndCall разрешён владельцу/админу канала; этот метод инкапсулирует
 // чтение роли без раскрытия Ent наружу.
+// P3-BE-05 / W3-A5-014: HasChannelWith(DeletedAtIsNil) как у IsChannelMember.
 func (r *EntRepository) GetChannelMemberRole(ctx context.Context, channelID, userID uuid.UUID) (string, error) {
 	m, err := r.db.ChannelMember.Query().
 		Where(
 			channelmember.ChannelID(channelID),
 			channelmember.UserID(userID),
+			channelmember.HasChannelWith(channel.DeletedAtIsNil()),
 		).
 		Only(ctx)
 	if err != nil {
@@ -231,15 +322,20 @@ func (r *EntRepository) GetChannelMemberRole(ctx context.Context, channelID, use
 
 // GetProjectIDByChannel возвращает project_id канала.
 // Необходим для привязки записей к проекту.
+// A3W3-A5-003: nil ProjectID → NotFound (не (uuid.Nil, nil)), чтобы StartRecording дал 400,
+// а CreateScheduledCall сохранил Forbidden через IsNotFound.
 func (r *EntRepository) GetProjectIDByChannel(ctx context.Context, channelID uuid.UUID) (uuid.UUID, error) {
 	ch, err := r.db.Channel.Query().
-		Where(channel.ID(channelID)).
+		Where(
+			channel.ID(channelID),
+			channel.DeletedAtIsNil(),
+		).
 		Only(ctx)
 	if err != nil {
 		return uuid.Nil, err
 	}
 	if ch.ProjectID == nil {
-		return uuid.Nil, nil
+		return uuid.Nil, &ent.NotFoundError{}
 	}
 	return *ch.ProjectID, nil
 }
@@ -255,15 +351,18 @@ func (r *EntRepository) CreateRecording(ctx context.Context, egressID string, ca
 		Save(ctx)
 }
 
-// GetRecording возвращает запись по ID.
+// GetRecording возвращает активную (не в корзине) запись по ID.
+// A2W8-4-005: DeletedAtIsNil.
 func (r *EntRepository) GetRecording(ctx context.Context, id uuid.UUID) (*ent.Recording, error) {
-	return r.db.Recording.Get(ctx, id)
+	return r.db.Recording.Query().
+		Where(recording.IDEQ(id), recording.DeletedAtIsNil()).
+		Only(ctx)
 }
 
 // GetRecordingByEgressID возвращает запись по ID egress-процесса LiveKit.
 func (r *EntRepository) GetRecordingByEgressID(ctx context.Context, egressID string) (*ent.Recording, error) {
 	return r.db.Recording.Query().
-		Where(recording.EgressID(egressID)).
+		Where(recording.EgressID(egressID), recording.DeletedAtIsNil()).
 		Only(ctx)
 }
 
@@ -272,6 +371,7 @@ func (r *EntRepository) CountActiveRecordings(ctx context.Context, callID uuid.U
 	return r.db.Recording.Query().
 		Where(
 			recording.CallID(callID),
+			recording.DeletedAtIsNil(),
 			recording.StatusEQ(recording.StatusRecording),
 		).
 		Count(ctx)
@@ -280,6 +380,7 @@ func (r *EntRepository) CountActiveRecordings(ctx context.Context, callID uuid.U
 // UpdateRecordingStatus обновляет статус записи.
 func (r *EntRepository) UpdateRecordingStatus(ctx context.Context, id uuid.UUID, status recording.Status) error {
 	return r.db.Recording.UpdateOneID(id).
+		Where(recording.DeletedAtIsNil()).
 		SetStatus(status).
 		Exec(ctx)
 }
@@ -287,6 +388,7 @@ func (r *EntRepository) UpdateRecordingStatus(ctx context.Context, id uuid.UUID,
 // UpdateRecordingCompleted обновляет запись как завершённую (статус ready, размер, длительность).
 func (r *EntRepository) UpdateRecordingCompleted(ctx context.Context, id uuid.UUID, fileSize int64, duration int, endedAt time.Time) error {
 	return r.db.Recording.UpdateOneID(id).
+		Where(recording.DeletedAtIsNil()).
 		SetStatus(recording.StatusReady).
 		SetFileSize(fileSize).
 		SetDurationSeconds(duration).
@@ -294,10 +396,11 @@ func (r *EntRepository) UpdateRecordingCompleted(ctx context.Context, id uuid.UU
 		Exec(ctx)
 }
 
-// ListRecordingsByProject возвращает записи проекта с пагинацией.
+// ListRecordingsByProject возвращает записи проекта с пагинацией (без корзины).
+// A2W8-4-005: DeletedAtIsNil. Mutation: снять фильтр → soft-deleted в списке → FAIL.
 func (r *EntRepository) ListRecordingsByProject(ctx context.Context, projectID uuid.UUID, offset, limit int) ([]*ent.Recording, int, error) {
 	query := r.db.Recording.Query().
-		Where(recording.ProjectID(projectID))
+		Where(recording.ProjectID(projectID), recording.DeletedAtIsNil())
 
 	total, err := query.Count(ctx)
 	if err != nil {
@@ -316,12 +419,38 @@ func (r *EntRepository) ListRecordingsByProject(ctx context.Context, projectID u
 	return recordings, total, nil
 }
 
+// SoftDeleteRecording — A2W8-4-005 / ADR-ENT-SOFT-DELETE-GAPS-2026: media metadata soft-delete.
+func (r *EntRepository) SoftDeleteRecording(ctx context.Context, id uuid.UUID) error {
+	affected, err := r.db.Recording.Update().
+		Where(recording.IDEQ(id), recording.DeletedAtIsNil()).
+		SetDeletedAt(time.Now().UTC()).
+		Save(ctx)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return &ent.NotFoundError{}
+	}
+	return nil
+}
+
 // ---------------------------------------------------------------------------
 // ScheduledCall методы (CALL-02)
 // ---------------------------------------------------------------------------
 
+// GetScheduledCall возвращает активный (не в корзине) запланированный звонок по ID.
+func (r *EntRepository) GetScheduledCall(ctx context.Context, id uuid.UUID) (*ent.ScheduledCall, error) {
+	return r.db.ScheduledCall.Query().
+		Where(
+			scheduledcall.ID(id),
+			scheduledcall.DeletedAtIsNil(),
+		).
+		Only(ctx)
+}
+
 // CreateScheduledCall создаёт запланированный звонок.
-func (r *EntRepository) CreateScheduledCall(ctx context.Context, title, description string, scheduledAt time.Time, rruleStr string, channelID, projectID, userID uuid.UUID) (*ent.ScheduledCall, error) {
+// W3-A5-010: персистит DurationMinutes, ReminderMinutes, ParticipantIDs.
+func (r *EntRepository) CreateScheduledCall(ctx context.Context, title, description string, scheduledAt time.Time, rruleStr string, channelID, projectID, userID uuid.UUID, durationMinutes int, reminderMinutes *int, participantIDs []uuid.UUID) (*ent.ScheduledCall, error) {
 	q := r.db.ScheduledCall.Create().
 		SetTitle(title).
 		SetScheduledAt(scheduledAt).
@@ -335,8 +464,25 @@ func (r *EntRepository) CreateScheduledCall(ctx context.Context, title, descript
 	if rruleStr != "" {
 		q = q.SetRrule(rruleStr)
 	}
+	if durationMinutes > 0 {
+		q = q.SetDurationMinutes(durationMinutes)
+	}
+	if reminderMinutes != nil {
+		q = q.SetReminderMinutes(*reminderMinutes)
+	}
+	if len(participantIDs) > 0 {
+		q = q.AddParticipantIDs(participantIDs...)
+	}
 
-	return q.Save(ctx)
+	sc, err := q.Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+	// Reload with participants for response DTO.
+	return r.db.ScheduledCall.Query().
+		Where(scheduledcall.IDEQ(sc.ID)).
+		WithParticipants().
+		Only(ctx)
 }
 
 // ListScheduledCalls возвращает активные запланированные звонки канала.
@@ -345,14 +491,17 @@ func (r *EntRepository) ListScheduledCalls(ctx context.Context, channelID uuid.U
 		Where(
 			scheduledcall.ChannelID(channelID),
 			scheduledcall.IsActive(true),
+			scheduledcall.DeletedAtIsNil(),
 		).
 		Order(ent.Asc(scheduledcall.FieldScheduledAt)).
 		All(ctx)
 }
 
 // UpdateScheduledCall обновляет запланированный звонок.
+// W3-A5-011: DeletedAtIsNil — нельзя мутировать soft-deleted серию в обход корзины.
 func (r *EntRepository) UpdateScheduledCall(ctx context.Context, id uuid.UUID, req UpdateScheduledCallRequest) (*ent.ScheduledCall, error) {
-	q := r.db.ScheduledCall.UpdateOneID(id)
+	q := r.db.ScheduledCall.UpdateOneID(id).
+		Where(scheduledcall.DeletedAtIsNil())
 
 	if req.Title != nil {
 		q = q.SetTitle(*req.Title)
@@ -373,9 +522,13 @@ func (r *EntRepository) UpdateScheduledCall(ctx context.Context, id uuid.UUID, r
 	return q.Save(ctx)
 }
 
-// DeleteScheduledCall деактивирует запланированный звонок.
+// DeleteScheduledCall мягко удаляет запланированный звонок/серию в корзину (FR-CAL-05).
+// Occurrences не материализованы — soft-delete родителя убирает всю RRULE-серию из выборок.
 func (r *EntRepository) DeleteScheduledCall(ctx context.Context, id uuid.UUID) error {
+	now := time.Now().UTC()
 	return r.db.ScheduledCall.UpdateOneID(id).
+		Where(scheduledcall.DeletedAtIsNil()).
+		SetDeletedAt(now).
 		SetIsActive(false).
 		Exec(ctx)
 }
@@ -385,6 +538,7 @@ func (r *EntRepository) GetDueScheduledCalls(ctx context.Context, now time.Time)
 	return r.db.ScheduledCall.Query().
 		Where(
 			scheduledcall.IsActive(true),
+			scheduledcall.DeletedAtIsNil(),
 			scheduledcall.ScheduledAtLTE(now),
 		).
 		All(ctx)
@@ -400,10 +554,12 @@ func (r *EntRepository) DeactivateScheduledCall(ctx context.Context, id uuid.UUI
 // FindConflictingCalls ищет запланированные звонки, которые пересекаются с заданным временным окном
 // для каналов, в которых состоят указанные участники.
 func (r *EntRepository) FindConflictingCalls(ctx context.Context, participantIDs []uuid.UUID, windowStart, windowEnd time.Time) ([]*ent.ScheduledCall, error) {
-	// Сначала находим все каналы, в которых состоят указанные участники
+	// Сначала находим все каналы, в которых состоят указанные участники.
+	// A3W3-A5-002: только активные каналы (DeletedAtIsNil), как ShareActiveChannel / IsChannelMember.
 	members, err := r.db.ChannelMember.Query().
 		Where(
 			channelmember.UserIDIn(participantIDs...),
+			channelmember.HasChannelWith(channel.DeletedAtIsNil()),
 		).
 		All(ctx)
 	if err != nil {
@@ -419,15 +575,16 @@ func (r *EntRepository) FindConflictingCalls(ctx context.Context, participantIDs
 		channelIDs = append(channelIDs, m.ChannelID)
 	}
 
-	// Ищем активные запланированные звонки в этих каналах, пересекающиеся с окном
-	// Пересечение: call_start < windowEnd AND call_start + duration > windowStart
-	// Поскольку у нас нет поля длительности в БД, считаем DEFAULT_DURATION = 60 мин
+	// Ищем активные запланированные звонки в этих каналах, пересекающиеся с окном.
+	// Нижняя граница: call_start + duration > windowStart ≈ call_start > windowStart - maxDuration.
+	// Берём запас 24h; точное пересечение — в CheckConflicts по DurationMinutes.
 	return r.db.ScheduledCall.Query().
 		Where(
 			scheduledcall.IsActive(true),
+			scheduledcall.DeletedAtIsNil(),
 			scheduledcall.ChannelIDIn(channelIDs...),
 			scheduledcall.ScheduledAtLT(windowEnd),
-			scheduledcall.ScheduledAtGTE(windowStart.Add(-60*time.Minute)),
+			scheduledcall.ScheduledAtGTE(windowStart.Add(-24*time.Hour)),
 		).
 		All(ctx)
 }

@@ -126,6 +126,10 @@ func (h *Handler) GetTestTrends(c fiber.Ctx) error {
 // @Failure 400 {object} apperr.AppError
 // @Router /api/projects/{projectId}/tms/reports/comparison [get]
 func (h *Handler) GetRunComparison(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
 	run1Str := c.Query("run1")
 	run2Str := c.Query("run2")
 	if run1Str == "" || run2Str == "" {
@@ -141,7 +145,7 @@ func (h *Handler) GetRunComparison(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "некорректный run2")
 	}
 
-	resp, err := h.service.GetRunComparison(c.Context(), runID1, runID2)
+	resp, err := h.service.GetRunComparison(c.Context(), projectID, runID1, runID2)
 	if err != nil {
 		return err
 	}

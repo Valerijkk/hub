@@ -1,18 +1,6 @@
 /** Рендерер Plate JSON для содержимого сообщений. */
 
-/**
- * Whitelist безопасных схем для <a href>. Блокирует `javascript:`,
- * `data:`, `vbscript:` и другие опасные схемы.
- */
-const SAFE_URL_RE = /^(https?:|mailto:|\/|#)/i;
-
-/**
- * Санитизация URL для href. Небезопасное → `"#"` (no-op).
- * Если строка не проходит whitelist схем.
- */
-function sanitizeUrl(url: unknown): string {
-	return typeof url === "string" && SAFE_URL_RE.test(url) ? url : "#";
-}
+import { sanitizeUrl } from "@/lib/safe-url";
 
 /**
  * Безопасное приведение к строке для React children.
@@ -157,19 +145,15 @@ export function RenderContent({
 
 	// content_json может быть массивом напрямую (некоторые редакторы Plate так отдают).
 	if (Array.isArray(contentJson)) {
-		const nodes = contentJson as unknown[];
+		const nodes: unknown[] = contentJson;
 		if (nodes.length === 0) return null;
 		return (
 			<div className="prose prose-sm dark:prose-invert max-w-none">
 				{nodes.map((node) => {
 					if (!node || typeof node !== "object" || Array.isArray(node))
 						return null;
-					return (
-						<RenderNode
-							key={nodeKey(node as Record<string, unknown>)}
-							node={node as Record<string, unknown>}
-						/>
-					);
+					const record = node as Record<string, unknown>;
+					return <RenderNode key={nodeKey(record)} node={record} />;
 				})}
 			</div>
 		);

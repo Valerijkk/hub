@@ -1,15 +1,18 @@
 ﻿package mail_test
+
 import (
-	"github.com/valerii/hub/backend/internal/mail"
 	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/valerii/hub/backend/internal/mail"
 )
 
 func testHubMailApp(t *testing.T) *fiber.App {
@@ -73,10 +76,25 @@ func TestHubHandler_Send_AuthAndValidation(t *testing.T) {
 	defer resp.Body.Close()
 	assert.Equal(t, fiber.StatusBadRequest, resp.StatusCode)
 
+	// A7-005: fake Resend key → real HTTP attempt fails (not silent 200 stub).
 	req = httptest.NewRequest(http.MethodPost, "/v1/send", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set(mail.ExportInternalTokenHeader(), "hub-mail-secret")
-	resp, err = app.Test(req)
+	resp, err = app.Test(req, 15*time.Second)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, fiber.StatusInternalServerError, resp.StatusCode)
+
+	// Dev no-op when key empty → 200.
+	devApp := fiber.New()
+	mail.NewHubHandler(mail.NewService(mail.Config{
+		InternalToken: "hub-mail-secret",
+		FromAlerts:    "alerts@hub.local",
+	})).RegisterRoutes(devApp)
+	req = httptest.NewRequest(http.MethodPost, "/v1/send", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(mail.ExportInternalTokenHeader(), "hub-mail-secret")
+	resp, err = devApp.Test(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.Equal(t, fiber.StatusOK, resp.StatusCode)

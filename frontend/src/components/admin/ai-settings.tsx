@@ -16,6 +16,7 @@ import {
 } from "@/api/admin-ai";
 import { getAIBotInfo } from "@/api/ai";
 import { createOrGetDM } from "@/api/messenger";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,6 +26,7 @@ import { toastApiError } from "@/lib/format-api-error";
 export function AISettingsPanel() {
 	const [providers, setProviders] = useState<AIProvider[]>([]);
 	const [loading, setLoading] = useState(true);
+	const [loadError, setLoadError] = useState(false);
 	const [name, setName] = useState("");
 	const [baseURL, setBaseURL] = useState("");
 	const [apiKey, setApiKey] = useState("");
@@ -40,6 +42,7 @@ export function AISettingsPanel() {
 
 	const refresh = useCallback(async () => {
 		setLoading(true);
+		setLoadError(false);
 		try {
 			const [data, summary, history, settings] = await Promise.all([
 				listAIProviders(),
@@ -55,6 +58,7 @@ export function AISettingsPanel() {
 				setOfflineOnly(settings.offline_only);
 			}
 		} catch (err) {
+			setLoadError(true);
 			toastApiError(err, "Не удалось загрузить AI-провайдеров");
 		} finally {
 			setLoading(false);
@@ -102,6 +106,16 @@ export function AISettingsPanel() {
 
 	if (loading) {
 		return <p className="text-[13px] text-t3 py-8 text-center">Загрузка...</p>;
+	}
+
+	// W9-A1-012: fail ≠ пустой реестр провайдеров
+	if (loadError) {
+		return (
+			<QueryErrorAlert
+				message="Не удалось загрузить AI-провайдеров"
+				retry={() => void refresh()}
+			/>
+		);
 	}
 
 	return (

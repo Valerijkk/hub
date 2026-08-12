@@ -1,6 +1,7 @@
 package calls
 
 import (
+	"errors"
 	"log/slog"
 	"strconv"
 	"strings"
@@ -49,6 +50,9 @@ func (h *Handler) CreateScheduledCall(c fiber.Ctx) error {
 
 	resp, err := h.scheduledSvc.CreateScheduledCall(c.Context(), projectID, userID, req)
 	if err != nil {
+		if errors.Is(err, ErrCallForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "недостаточно прав для создания запланированного звонка")
+		}
 		slog.Error("ошибка создания запланированного звонка", "error", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "не удалось создать запланированный звонок")
 	}
@@ -73,9 +77,16 @@ func (h *Handler) ListScheduledCalls(c fiber.Ctx) error {
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "некорректный channel ID")
 	}
-
-	calls, err := h.scheduledSvc.ListScheduledCalls(c.Context(), channelID)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
+		return err
+	}
+
+	calls, err := h.scheduledSvc.ListScheduledCalls(c.Context(), channelID, userID)
+	if err != nil {
+		if errors.Is(err, ErrCallForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "недостаточно прав для просмотра запланированных звонков")
+		}
 		slog.Error("ошибка получения запланированных звонков", "error", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "не удалось получить запланированные звонки")
 	}
@@ -102,14 +113,24 @@ func (h *Handler) UpdateScheduledCall(c fiber.Ctx) error {
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "некорректный ID")
 	}
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
 
 	var req UpdateScheduledCallRequest
 	if err := c.Bind().JSON(&req); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
-	resp, err := h.scheduledSvc.UpdateScheduledCall(c.Context(), id, req)
+	resp, err := h.scheduledSvc.UpdateScheduledCall(c.Context(), id, userID, req)
 	if err != nil {
+		if errors.Is(err, ErrCallForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "недостаточно прав для изменения запланированного звонка")
+		}
+		if errors.Is(err, ErrCallNotFound) {
+			return fiber.NewError(fiber.StatusNotFound, "запланированный звонок не найден")
+		}
 		slog.Error("ошибка обновления запланированного звонка", "error", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "не удалось обновить запланированный звонок")
 	}
@@ -133,8 +154,18 @@ func (h *Handler) DeleteScheduledCall(c fiber.Ctx) error {
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "некорректный ID")
 	}
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
 
-	if err := h.scheduledSvc.DeleteScheduledCall(c.Context(), id); err != nil {
+	if err := h.scheduledSvc.DeleteScheduledCall(c.Context(), id, userID); err != nil {
+		if errors.Is(err, ErrCallForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "недостаточно прав для удаления запланированного звонка")
+		}
+		if errors.Is(err, ErrCallNotFound) {
+			return fiber.NewError(fiber.StatusNotFound, "запланированный звонок не найден")
+		}
 		slog.Error("ошибка удаления запланированного звонка", "error", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "не удалось удалить запланированный звонок")
 	}
@@ -156,6 +187,11 @@ func (h *Handler) DeleteScheduledCall(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/calls/conflicts [get]
 func (h *Handler) CheckConflicts(c fiber.Ctx) error {
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+
 	timeStr := c.Query("time")
 	if timeStr == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "параметр time обязателен")
@@ -190,8 +226,11 @@ func (h *Handler) CheckConflicts(c fiber.Ctx) error {
 		return c.JSON(ConflictResponse{HasConflict: false, Conflicts: []ConflictDetail{}})
 	}
 
-	resp, err := h.scheduledSvc.CheckConflicts(c.Context(), requestedTime, duration, participantIDs)
+	resp, err := h.scheduledSvc.CheckConflicts(c.Context(), userID, requestedTime, duration, participantIDs)
 	if err != nil {
+		if errors.Is(err, ErrCallForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "нет доступа к календарю участника")
+		}
 		slog.Error("ошибка проверки конфликтов", "error", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "не удалось проверить конфликты")
 	}

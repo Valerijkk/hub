@@ -22,10 +22,11 @@ type gitlabMockRepo struct {
 
 func (m *gitlabMockRepo) CreateIntegration(_ context.Context, projectID uuid.UUID, input gitlab.CreateIntegrationInput) (*ent.GitLabIntegration, error) {
 	ig := &ent.GitLabIntegration{
-		ID:          uuid.New(),
-		GitlabURL:   input.GitLabURL,
-		ProjectPath: input.ProjectPath,
-		AccessToken: input.AccessToken,
+		ID:            uuid.New(),
+		GitlabURL:     input.GitLabURL,
+		ProjectPath:   input.ProjectPath,
+		AccessToken:   input.AccessToken,
+		WebhookSecret: input.WebhookSecret,
 	}
 	if m.integrations == nil {
 		m.integrations = make(map[string]*ent.GitLabIntegration)
@@ -56,7 +57,32 @@ func (m *gitlabMockRepo) GetIntegration(_ context.Context, id uuid.UUID) (*ent.G
 	}
 	return nil, &ent.NotFoundError{}
 }
-func (m *gitlabMockRepo) DeleteIntegration(context.Context, uuid.UUID) error { return nil }
+func (m *gitlabMockRepo) GetIntegrationInProject(_ context.Context, projectID, id uuid.UUID) (*ent.GitLabIntegration, error) {
+	ig, err := m.GetIntegration(context.Background(), id)
+	if err != nil {
+		return nil, err
+	}
+	if m.byProject != nil {
+		for _, candidate := range m.byProject[projectID] {
+			if candidate.ID == id {
+				return ig, nil
+			}
+		}
+		// Integration exists but not under this project — IDOR guard.
+		for pid, list := range m.byProject {
+			if pid == projectID {
+				continue
+			}
+			for _, candidate := range list {
+				if candidate.ID == id {
+					return nil, &ent.NotFoundError{}
+				}
+			}
+		}
+	}
+	return ig, nil
+}
+func (m *gitlabMockRepo) DeleteIntegration(context.Context, uuid.UUID, uuid.UUID) error { return nil }
 func (m *gitlabMockRepo) FindIntegrationByProjectPath(_ context.Context, path string) (*ent.GitLabIntegration, error) {
 	if ig, ok := m.integrations[path]; ok {
 		return ig, nil
@@ -69,8 +95,15 @@ func (m *gitlabMockRepo) FindIssueByKey(_ context.Context, key string) (*ent.Iss
 	}
 	return nil, &ent.NotFoundError{}
 }
-func (m *gitlabMockRepo) ListAllWebhookSecrets(context.Context) ([]string, error) {
-	return m.webhookSecrets, nil
+func (m *gitlabMockRepo) FindIssueByKeyInProject(_ context.Context, projectID uuid.UUID, key string) (*ent.Issue, error) {
+	iss, err := m.FindIssueByKey(context.Background(), key)
+	if err != nil {
+		return nil, err
+	}
+	if iss.Edges.Project == nil || iss.Edges.Project.ID != projectID {
+		return nil, &ent.NotFoundError{}
+	}
+	return iss, nil
 }
 
 func TestCreateIntegration_DefaultGitLabURL(t *testing.T) {
@@ -78,8 +111,9 @@ func TestCreateIntegration_DefaultGitLabURL(t *testing.T) {
 	svc := gitlab.NewGitLabService(repo, nil)
 
 	resp, err := svc.CreateIntegration(context.Background(), uuid.New(), gitlab.CreateIntegrationRequest{
-		ProjectPath: "group/repo",
-		AccessToken: "token",
+		ProjectPath:   "group/repo",
+		AccessToken:   "token",
+		WebhookSecret: "wh",
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "https://gitlab.com", resp.GitLabURL)
@@ -90,9 +124,10 @@ func TestCreateIntegration_RejectsUnsafeURL(t *testing.T) {
 	svc := gitlab.NewGitLabService(&gitlabMockRepo{}, nil)
 
 	_, err := svc.CreateIntegration(context.Background(), uuid.New(), gitlab.CreateIntegrationRequest{
-		GitLabURL:   "file:///etc/passwd",
-		ProjectPath: "group/repo",
-		AccessToken: "token",
+		GitLabURL:     "file:///etc/passwd",
+		ProjectPath:   "group/repo",
+		AccessToken:   "token",
+		WebhookSecret: "wh",
 	})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "gitlab_url")
@@ -222,7 +257,7 @@ func TestDeleteIntegration_DelegatesToRepo(t *testing.T) {
 	id := uuid.New()
 	repo := &gitlabMockRepo{}
 	svc := gitlab.NewGitLabService(repo, nil)
-	require.NoError(t, svc.DeleteIntegration(context.Background(), id))
+	require.NoError(t, svc.DeleteIntegration(context.Background(), uuid.New(), id))
 }
 
 func TestCreateIntegration_CustomGitLabURL(t *testing.T) {
@@ -230,9 +265,10 @@ func TestCreateIntegration_CustomGitLabURL(t *testing.T) {
 	svc := gitlab.NewGitLabService(repo, nil)
 
 	resp, err := svc.CreateIntegration(context.Background(), uuid.New(), gitlab.CreateIntegrationRequest{
-		GitLabURL:   "https://gitlab.example.com",
-		ProjectPath: "team/app",
-		AccessToken: "glpat-test",
+		GitLabURL:     "https://gitlab.example.com",
+		ProjectPath:   "team/app",
+		AccessToken:   "glpat-test",
+		WebhookSecret: "wh",
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "https://gitlab.example.com", resp.GitLabURL)

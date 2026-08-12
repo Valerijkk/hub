@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -26,15 +27,26 @@ func (Comment) Fields() []ent.Field {
 		field.Bool("is_internal").
 			Default(false).
 			Comment("Visible only to certain roles"),
-		field.JSON("mentions", []string{}).
+		field.JSON("mentions", []uuid.UUID{}).
 			Optional().
-			Comment("User IDs mentioned"),
+			Comment("User IDs mentioned (UUID)"),
+		field.Time("deleted_at").
+			Optional().
+			Nillable().
+			Comment("Soft-delete timestamp (30-day trash)"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
 		field.Time("updated_at").
 			Default(nowUTC).
 			UpdateDefault(nowUTC),
+	}
+}
+
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (Comment) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
 	}
 }
 
@@ -49,7 +61,9 @@ func (Comment) Edges() []ent.Edge {
 			Ref("comments").
 			Unique().
 			Required(),
-		edge.To("reactions", Reaction.Type),
+		// A3W8-2-005: owned_child Cascade comment→reactions.
+		edge.To("reactions", Reaction.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 
@@ -58,5 +72,6 @@ func (Comment) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Edges("issue").
 			Fields("created_at"),
+		index.Fields("deleted_at"),
 	}
 }

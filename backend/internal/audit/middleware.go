@@ -2,6 +2,7 @@ package audit
 
 import (
 	"context"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -35,7 +36,7 @@ func shouldSkipHTTPAudit(method, path string) bool {
 		return true
 	}
 	switch path {
-	case "/api/health", "/api/status", "/api/docs", "/api/docs/doc.json", "/api/webhooks/alertmanager":
+	case "/api/health", "/api/live", "/api/ready", "/api/status", "/api/docs", "/api/docs/doc.json", "/api/webhooks/alertmanager":
 		return true
 	}
 	if strings.HasPrefix(path, "/api/docs/") {
@@ -75,6 +76,11 @@ func HTTPAuditMiddleware(recorder func(context.Context, HTTPAuditEntry)) fiber.H
 		}
 
 		go func() {
+			defer func() {
+				if rec := recover(); rec != nil {
+					slog.Error("HTTP audit recorder panic", "recover", rec, "path", entry.Path, "method", entry.Method)
+				}
+			}()
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 			recorder(ctx, entry)

@@ -32,10 +32,15 @@ func wireAuth(d *serverDeps) {
 		cfg.JWT.AccessTokenTTL,
 		cfg.JWT.RefreshTokenTTL,
 		magicLinkSvc,
-		cfg.Telegram.BotToken,
 		d.rawDB,
 	)
 	d.authSvc = authSvc
+
+	// C-W19-001 / TASK-177: Deactivate/Ban → Redis invalidate + NATS revoked → WS kill.
+	// auditSvc создан в wireInfra до wireAuth — подключаем SessionRevoker здесь.
+	if d.auditSvc != nil {
+		d.auditSvc.SetSessionRevoker(authSvc.Sessions)
+	}
 
 	// ORG-06: purge pending users старше 7 дней.
 	cron.Schedule(d.rootCtx, time.Hour, "pending-user-purge", func(ctx context.Context) error {
@@ -74,7 +79,7 @@ func wireAuth(d *serverDeps) {
 	d.requireAuth = requireAuth
 
 	// SEC-01: APIKeyAuth должен быть зарегистрирован ДО первого RegisterRoutes.
-	apigatewayRepo := apigatewaymod.NewEntRepository(d.db)
+	apigatewayRepo := apigatewaymod.NewEntRepository(d.db, d.integrationCipher)
 	d.apigatewayRepo = apigatewayRepo
 	apiKeySvc := apigatewaymod.NewAPIKeyService(apigatewayRepo)
 	// async-обновлений last_used_at. Без Close() workers + touchJobs

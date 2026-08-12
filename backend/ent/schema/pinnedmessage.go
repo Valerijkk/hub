@@ -8,12 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// PinnedMessage СЃРѕРґРµСЂР¶РёС‚ РѕРїСЂРµРґРµР»РµРЅРёРµ СЃС…РµРјС‹ РґР»СЏ Р·Р°РєСЂРµРїР»С‘РЅРЅРѕРіРѕ СЃРѕРѕР±С‰РµРЅРёСЏ РІ РєР°РЅР°Р»Рµ.
+// PinnedMessage содержит определение схемы для закреплённого сообщения в канале.
 type PinnedMessage struct {
 	ent.Schema
 }
 
-// Fields РѕРїРёСЃС‹РІР°РµС‚ РїРѕР»СЏ СЃСѓС‰РЅРѕСЃС‚Рё PinnedMessage.
+// Fields описывает поля сущности PinnedMessage.
 func (PinnedMessage) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -21,18 +21,18 @@ func (PinnedMessage) Fields() []ent.Field {
 			Immutable(),
 		field.String("message_id").
 			NotEmpty().
-			Comment("ID СЃРѕРѕР±С‰РµРЅРёСЏ РІ MongoDB"),
+			Comment("ID сообщения в MongoDB"),
 		field.UUID("channel_id", uuid.UUID{}).
-			Comment("ID РєР°РЅР°Р»Р°"),
+			Comment("ID канала"),
 		field.UUID("pinned_by", uuid.UUID{}).
-			Comment("ID РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ, Р·Р°РєСЂРµРїРёРІС€РµРіРѕ СЃРѕРѕР±С‰РµРЅРёРµ"),
+			Comment("ID пользователя, закрепившего сообщение"),
 		field.Time("pinned_at").
 			Default(nowUTC).
-			Comment("Р’СЂРµРјСЏ Р·Р°РєСЂРµРїР»РµРЅРёСЏ"),
+			Comment("Время закрепления"),
 	}
 }
 
-// Edges РѕРїРёСЃС‹РІР°РµС‚ СЃРІСЏР·Рё СЃСѓС‰РЅРѕСЃС‚Рё PinnedMessage.
+// Edges описывает связи сущности PinnedMessage.
 func (PinnedMessage) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("channel", Channel.Type).
@@ -43,7 +43,7 @@ func (PinnedMessage) Edges() []ent.Edge {
 	}
 }
 
-// Indexes РѕРїРёСЃС‹РІР°РµС‚ РёРЅРґРµРєСЃС‹ СЃСѓС‰РЅРѕСЃС‚Рё PinnedMessage.
+// Indexes описывает индексы сущности PinnedMessage.
 func (PinnedMessage) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("channel_id", "message_id").Unique(),

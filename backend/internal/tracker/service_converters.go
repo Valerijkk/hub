@@ -76,6 +76,10 @@ func toIssueResponse(i *ent.Issue) *IssueResponse {
 		}
 		resp.Labels = labels
 	}
+	if i.Edges.Sprint != nil {
+		sid := i.Edges.Sprint.ID.String()
+		resp.SprintID = &sid
+	}
 
 	return resp
 }
@@ -142,12 +146,17 @@ func toWorkflowStatusResponse(st *ent.WorkflowStatus) *WorkflowStatusResponse {
 
 // toCommentResponse конвертирует Ent Comment в DTO.
 func toCommentResponse(c *ent.Comment) *CommentResponse {
+	mentions := make([]string, len(c.Mentions))
+	for i, id := range c.Mentions {
+		mentions[i] = id.String()
+	}
 	resp := &CommentResponse{
 		ID:         c.ID.String(),
 		BodyJSON:   c.BodyJSON,
 		BodyText:   c.BodyText,
 		IsInternal: c.IsInternal,
-		Mentions:   c.Mentions,
+		Mentions:   mentions,
+		Version:    c.Version,
 		CreatedAt:  c.CreatedAt,
 		UpdatedAt:  c.UpdatedAt,
 	}

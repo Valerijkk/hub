@@ -119,7 +119,7 @@ func TestSearch_SearchAllTypesWithMembership(t *testing.T) {
 	require.NoError(t, err)
 
 	svc := search.NewSearchService(&mockSearchRepo{isAdmin: true}, db, nil)
-	results, err := svc.Search(context.Background(), "hub", userID, nil, 10)
+	results, _, err := svc.Search(context.Background(), "hub", userID, nil, 10)
 	require.NoError(t, err)
 	assert.Empty(t, results)
 }

@@ -2,6 +2,7 @@
 import (
 	"github.com/valerii/hub/backend/internal/calls"
 	"context"
+	"net/http"
 	"testing"
 	"time"
 
@@ -79,6 +80,13 @@ func newCallsTestFixture(t *testing.T) *callsTestFixture {
 	}
 }
 
+// linkChannelToProject привязывает fixture-канал к проекту (нужно для CreateScheduledCall authz).
+func (f *callsTestFixture) linkChannelToProject(t *testing.T, projectID uuid.UUID) {
+	t.Helper()
+	_, err := f.client.Channel.UpdateOneID(f.channel.ID).SetProjectID(projectID).Save(context.Background())
+	require.NoError(t, err)
+}
+
 func (f *callsTestFixture) createChannelCall(t *testing.T, creator *ent.User) *ent.Call {
 	t.Helper()
 	ctx := context.Background()
@@ -154,6 +162,28 @@ func TestJoinCall_NonMemberForbidden(t *testing.T) {
 	assert.ErrorIs(t, err, calls.ErrCallForbidden)
 }
 
+// TestCreateCall_NonMemberForbidden — A2-002: CreateCall требует IsChannelMember
+// до provisionRoom. Mutation guard: при снятии проверки stranger создаст call-row
+// (count>0) и тест упадёт; при живой проверке ErrCallForbidden и 0 call rows.
+func TestCreateCall_NonMemberForbidden(t *testing.T) {
+	f := newCallsTestFixture(t)
+	ctx := context.Background()
+	cfg := liveKitTestConfig(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	calls.ExportCallServiceSetRoom(f.svc, calls.NewCallRoomService(cfg))
+
+	_, err := f.svc.CreateCall(ctx, f.channel.ID, f.stranger.ID, "Stranger")
+	require.Error(t, err)
+	assert.ErrorIs(t, err, calls.ErrCallForbidden)
+
+	count, err := f.client.Call.Query().
+		Where(call.HasChannelWith(channel.IDEQ(f.channel.ID))).
+		Count(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, 0, count, "non-member must not create a call row (A2-002)")
+}
+
 func TestJoinCall_InstantOnlyCreator(t *testing.T) {
 	f := newCallsTestFixture(t)
 	ctx := context.Background()
@@ -186,15 +216,26 @@ func TestGetActiveCallByChannel(t *testing.T) {
 	f := newCallsTestFixture(t)
 	ctx := context.Background()
 
-	none, err := f.svc.GetActiveCallByChannel(ctx, f.channel.ID)
+	none, err := f.svc.GetActiveCallByChannel(ctx, f.channel.ID, f.member.ID)
 	require.NoError(t, err)
 	assert.Nil(t, none)
 
 	callEnt := f.createChannelCall(t, f.owner)
-	active, err := f.svc.GetActiveCallByChannel(ctx, f.channel.ID)
+	active, err := f.svc.GetActiveCallByChannel(ctx, f.channel.ID, f.member.ID)
 	require.NoError(t, err)
 	require.NotNil(t, active)
 	assert.Equal(t, callEnt.ID, active.ID)
+}
+
+// TestGetActiveCallByChannel_NonMemberForbidden_A2_008 — stranger must not
+// see active call metadata (mutation: drop IsChannelMember → FAIL).
+func TestGetActiveCallByChannel_NonMemberForbidden_A2_008(t *testing.T) {
+	f := newCallsTestFixture(t)
+	ctx := context.Background()
+	_ = f.createChannelCall(t, f.owner)
+
+	_, err := f.svc.GetActiveCallByChannel(ctx, f.channel.ID, f.stranger.ID)
+	require.ErrorIs(t, err, calls.ErrCallForbidden)
 }
 
 func TestOnRoomStarted_UpdatesCall(t *testing.T) {
@@ -327,6 +368,7 @@ func TestScheduledCallService_UpdateScheduledCall_Success(t *testing.T) {
 	ctx := context.Background()
 	proj, err := f.client.Project.Create().SetName("Upd").SetKey("UPD").Save(ctx)
 	require.NoError(t, err)
+	f.linkChannelToProject(t, proj.ID)
 
 	scheduled := calls.NewScheduledCallService(f.repo, nil)
 	created, err := scheduled.CreateScheduledCall(ctx, proj.ID, f.owner.ID, calls.CreateScheduledCallRequest{
@@ -335,7 +377,7 @@ func TestScheduledCallService_UpdateScheduledCall_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	newTitle := "Updated"
-	updated, err := scheduled.UpdateScheduledCall(ctx, created.ID, calls.UpdateScheduledCallRequest{Title: &newTitle})
+	updated, err := scheduled.UpdateScheduledCall(ctx, created.ID, f.owner.ID, calls.UpdateScheduledCallRequest{Title: &newTitle})
 	require.NoError(t, err)
 	assert.Equal(t, newTitle, updated.Title)
 }
@@ -357,7 +399,7 @@ func TestListChatMessages_NotConfigured(t *testing.T) {
 	ctx := context.Background()
 	callEnt := f.createChannelCall(t, f.owner)
 
-	_, err := f.svc.ListChatMessages(ctx, callEnt.ID.String(), 10)
+	_, err := f.svc.ListChatMessages(ctx, callEnt.ID.String(), f.owner.ID.String(), 10)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "не настроен")
 }

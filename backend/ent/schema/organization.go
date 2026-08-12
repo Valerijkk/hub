@@ -4,6 +4,7 @@ import (
 	"regexp"
 
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -32,6 +33,7 @@ func (Organization) Fields() []ent.Field {
 		field.String("invite_token").
 			Unique().
 			NotEmpty().
+			Sensitive().
 			Comment("Token for org-wide invite links"),
 		field.Time("created_at").
 			Default(nowUTC).
@@ -41,11 +43,21 @@ func (Organization) Fields() []ent.Field {
 			UpdateDefault(nowUTC),
 	}
 }
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (Organization) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
+	}
+}
 
+
+// Edges — ADR-ENT-ONDELETE-CASCADE-2026: Org→users/projects = RESTRICT + app purge (A2W8-4-002).
 func (Organization) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("users", User.Type),
-		edge.To("projects", Project.Type),
+		edge.To("users", User.Type).
+			Annotations(entsql.OnDelete(entsql.NoAction)),
+		edge.To("projects", Project.Type).
+			Annotations(entsql.OnDelete(entsql.NoAction)),
 	}
 }
 

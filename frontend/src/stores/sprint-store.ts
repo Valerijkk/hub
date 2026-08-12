@@ -21,8 +21,12 @@ interface SprintState {
 	velocity: VelocityPoint[];
 	/** Текущая сессия Planning Poker. */
 	pokerSession: PokerSessionResponse | null;
-	/** Флаг загрузки. */
+	/** Флаг загрузки списка спринтов. */
 	loading: boolean;
+	/** Флаг загрузки velocity (отдельно от списка спринтов). */
+	velocityLoading: boolean;
+	/** Ошибка загрузки списка (не путать с пустым списком). */
+	error: string | null;
 
 	/** Загрузить спринты проекта. */
 	fetchSprints: (projectId: string) => Promise<void>;
@@ -63,15 +67,28 @@ export const useSprintStore = create<SprintState>()((set, get) => ({
 	velocity: [],
 	pokerSession: null,
 	loading: false,
+	velocityLoading: false,
+	error: null,
 
 	fetchSprints: async (projectId) => {
-		set({ loading: true });
+		// A3W10-3-003: сброс stale до ответа — иначе чужой projectId в UI.
+		set({
+			loading: true,
+			error: null,
+			sprints: [],
+			activeSprint: null,
+		});
 		try {
 			const sprints = await sprintApi.listSprints(projectId);
 			const activeSprint = sprints.find((s) => s.status === "active") ?? null;
-			set({ sprints, activeSprint, loading: false });
+			set({ sprints, activeSprint, loading: false, error: null });
 		} catch {
-			set({ loading: false });
+			set({
+				loading: false,
+				sprints: [],
+				activeSprint: null,
+				error: "Не удалось загрузить спринты",
+			});
 		}
 	},
 
@@ -101,13 +118,33 @@ export const useSprintStore = create<SprintState>()((set, get) => ({
 	},
 
 	fetchBurndown: async (projectId, sprintId) => {
-		const burndown = await sprintApi.getBurndown(projectId, sprintId);
-		set({ burndown });
+		// A3W10-2-005: loading≠empty на первом fetch burndown.
+		set({ loading: true, error: null });
+		try {
+			const burndown = await sprintApi.getBurndown(projectId, sprintId);
+			set({ burndown, error: null, loading: false });
+		} catch {
+			set({
+				burndown: [],
+				error: "Не удалось загрузить burndown",
+				loading: false,
+			});
+		}
 	},
 
 	fetchVelocity: async (projectId) => {
-		const velocity = await sprintApi.getVelocity(projectId);
-		set({ velocity });
+		// A3W10-3-002/003: loading + сброс stale velocity до ответа.
+		set({ velocityLoading: true, velocity: [], error: null });
+		try {
+			const velocity = await sprintApi.getVelocity(projectId);
+			set({ velocity, velocityLoading: false, error: null });
+		} catch {
+			set({
+				velocity: [],
+				velocityLoading: false,
+				error: "Не удалось загрузить velocity",
+			});
+		}
 	},
 
 	saveRetroNotes: async (projectId, sprintId, data) => {

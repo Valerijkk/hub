@@ -4,6 +4,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/utils/v2"
 	"github.com/google/uuid"
+	"github.com/valerii/hub/backend/ent"
 	apperr "github.com/valerii/hub/backend/internal/platform/errors"
 	httputil "github.com/valerii/hub/backend/internal/platform/http"
 	"github.com/valerii/hub/backend/internal/rbac"
@@ -13,6 +14,7 @@ import (
 type Handler struct {
 	service *SprintService
 	poker   *PokerService
+	rbac    *rbac.RBACService
 }
 
 // NewHandler создаёт новый обработчик спринтов.
@@ -23,6 +25,7 @@ func NewHandler(service *SprintService, poker *PokerService) *Handler {
 // RegisterRoutes регистрирует все маршруты модуля спринтов.
 // ВАЖНО (Fiber v3): RBAC-гард — второй variadic после handler (см. tms/handler.go).
 func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc *rbac.RBACService) {
+	h.rbac = rbacSvc
 	sprints := api.Group("/projects/:projectId/sprints", authMw)
 
 	sprints.Post("/", h.CreateSprint, rbac.RequirePermission(rbac.PermTaskCreate, rbacSvc))
@@ -40,7 +43,7 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 	velocity := api.Group("/projects/:projectId/velocity", authMw)
 	velocity.Get("/", h.GetVelocity, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
 
-	// Poker маршруты без projectId
+	// Poker vote/reveal/GET: URL без projectId — membership через project_id сессии (W1-A4-005).
 	poker := api.Group("/sprints/poker", authMw)
 	poker.Post("/:sessionId/vote", h.CastVote)
 	poker.Post("/:sessionId/reveal", h.RevealVotes)
@@ -122,12 +125,16 @@ func (h *Handler) ListSprints(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/sprints/{sprintId} [get]
 func (h *Handler) GetSprint(c fiber.Ctx) error {
-	sprintID, err := httputil.ParseUUIDParam(c,"sprintId")
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
+	sprintID, err := httputil.ParseUUIDParam(c, "sprintId")
 	if err != nil {
 		return err
 	}
 
-	resp, err := h.service.GetSprint(c.Context(), sprintID)
+	resp, err := h.service.GetSprint(c.Context(), projectID, sprintID)
 	if err != nil {
 		return err
 	}
@@ -151,7 +158,11 @@ func (h *Handler) GetSprint(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/sprints/{sprintId} [put]
 func (h *Handler) UpdateSprint(c fiber.Ctx) error {
-	sprintID, err := httputil.ParseUUIDParam(c,"sprintId")
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
+	sprintID, err := httputil.ParseUUIDParam(c, "sprintId")
 	if err != nil {
 		return err
 	}
@@ -161,7 +172,7 @@ func (h *Handler) UpdateSprint(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
-	resp, err := h.service.UpdateSprint(c.Context(), sprintID, req)
+	resp, err := h.service.UpdateSprint(c.Context(), projectID, sprintID, req)
 	if err != nil {
 		return err
 	}
@@ -241,13 +252,18 @@ func (h *Handler) CompleteSprint(c fiber.Ctx) error {
 // @Param sprintId path string true "ID спринта"
 // @Param body body RetroNotesRequest true "Заметки ретро"
 // @Success 200 {object} SprintResponse "Ретро обновлено"
-// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 400 {object} fiber.Error "Неверный запрос (в т.ч. version < 1)"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
+// @Failure 409 {object} fiber.Error "version mismatch (optimistic lock)"
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/sprints/{sprintId}/retro [put]
 func (h *Handler) UpdateRetroNotes(c fiber.Ctx) error {
-	sprintID, err := httputil.ParseUUIDParam(c,"sprintId")
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
+	sprintID, err := httputil.ParseUUIDParam(c, "sprintId")
 	if err != nil {
 		return err
 	}
@@ -257,7 +273,7 @@ func (h *Handler) UpdateRetroNotes(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
-	resp, err := h.service.UpdateRetroNotes(c.Context(), sprintID, req)
+	resp, err := h.service.UpdateRetroNotes(c.Context(), projectID, sprintID, req)
 	if err != nil {
 		return err
 	}
@@ -278,12 +294,16 @@ func (h *Handler) UpdateRetroNotes(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/sprints/{sprintId}/burndown [get]
 func (h *Handler) GetBurndown(c fiber.Ctx) error {
-	sprintID, err := httputil.ParseUUIDParam(c,"sprintId")
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
+	sprintID, err := httputil.ParseUUIDParam(c, "sprintId")
 	if err != nil {
 		return err
 	}
 
-	resp, err := h.service.GetBurndown(c.Context(), sprintID)
+	resp, err := h.service.GetBurndown(c.Context(), projectID, sprintID)
 	if err != nil {
 		return err
 	}
@@ -331,7 +351,11 @@ func (h *Handler) GetVelocity(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/sprints/{sprintId}/issues [post]
 func (h *Handler) AddIssuesToSprint(c fiber.Ctx) error {
-	sprintID, err := httputil.ParseUUIDParam(c,"sprintId")
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
+	sprintID, err := httputil.ParseUUIDParam(c, "sprintId")
 	if err != nil {
 		return err
 	}
@@ -350,7 +374,7 @@ func (h *Handler) AddIssuesToSprint(c fiber.Ctx) error {
 		issueIDs = append(issueIDs, id)
 	}
 
-	if err := h.service.AddIssuesToSprint(c.Context(), sprintID, issueIDs); err != nil {
+	if err := h.service.AddIssuesToSprint(c.Context(), projectID, sprintID, issueIDs); err != nil {
 		return err
 	}
 
@@ -376,8 +400,17 @@ func (h *Handler) AddIssuesToSprint(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/sprints/{sprintId}/poker [post]
 func (h *Handler) StartPokerSession(c fiber.Ctx) error {
-	sprintID, err := httputil.ParseUUIDParam(c,"sprintId")
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
+		return err
+	}
+	sprintID, err := httputil.ParseUUIDParam(c, "sprintId")
+	if err != nil {
+		return err
+	}
+
+	// RT-005 sibling: poker session must not bind to a foreign sprint UUID.
+	if _, err := h.service.GetSprint(c.Context(), projectID, sprintID); err != nil {
 		return err
 	}
 
@@ -391,12 +424,47 @@ func (h *Handler) StartPokerSession(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "некорректный issue_id")
 	}
 
-	resp, err := h.poker.StartPokerSession(c.Context(), sprintID, issueID)
+	// W1-A4-006: issue_id должен принадлежать тому же проекту.
+	if err := h.service.EnsureIssueInProject(c.Context(), projectID, issueID); err != nil {
+		return err
+	}
+
+	resp, err := h.poker.StartPokerSession(c.Context(), projectID, sprintID, issueID)
 	if err != nil {
 		return err
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(resp)
+}
+
+// authorizePokerSession — W1-A4-005: stranger с sessionId без membership → 403.
+// project_id читается из Redis-сессии; при nil rbac (unit без RegisterRoutes) — skip.
+func (h *Handler) authorizePokerSession(c fiber.Ctx, sessionID string) error {
+	if h.rbac == nil || h.poker == nil {
+		return nil
+	}
+
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	projectID, err := h.poker.SessionProjectID(c.Context(), sessionID)
+	if err != nil {
+		return err
+	}
+
+	effective, err := h.rbac.GetEffectivePermissions(c.Context(), userID, projectID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return fiber.NewError(fiber.StatusForbidden, "not a project member")
+		}
+		return fiber.NewError(fiber.StatusInternalServerError, "failed to check permissions")
+	}
+	if !effective.Has(rbac.PermProjectView) {
+		return fiber.NewError(fiber.StatusForbidden, "insufficient permissions")
+	}
+	return nil
 }
 
 // CastVote — Проголосовать в Poker
@@ -415,6 +483,10 @@ func (h *Handler) CastVote(c fiber.Ctx) error {
 	sessionID := utils.CopyString(c.Params("sessionId"))
 	if sessionID == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "session_id обязателен")
+	}
+
+	if err := h.authorizePokerSession(c, sessionID); err != nil {
+		return err
 	}
 
 	userID, err := httputil.UserIDFromCtx(c)
@@ -451,6 +523,10 @@ func (h *Handler) RevealVotes(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "session_id обязателен")
 	}
 
+	if err := h.authorizePokerSession(c, sessionID); err != nil {
+		return err
+	}
+
 	resp, err := h.poker.RevealVotes(c.Context(), sessionID)
 	if err != nil {
 		return err
@@ -474,6 +550,10 @@ func (h *Handler) GetPokerSession(c fiber.Ctx) error {
 	sessionID := utils.CopyString(c.Params("sessionId"))
 	if sessionID == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "session_id обязателен")
+	}
+
+	if err := h.authorizePokerSession(c, sessionID); err != nil {
+		return err
 	}
 
 	resp, err := h.poker.GetSession(c.Context(), sessionID)

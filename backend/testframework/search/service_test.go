@@ -126,6 +126,56 @@ func TestCreateSavedFilter_InvalidProjectID(t *testing.T) {
 	assert.Contains(t, err.Error(), "project_id")
 }
 
+// TestCreateSavedFilter_NonMemberForbidden — A4-003: CreateSavedFilter требует
+// IsProjectMember до repo.CreateSavedFilter. Mutation guard: при снятии проверки
+// stranger создаст filter (len>0) и тест упадёт; при живой проверке ErrFilterForbidden
+// и 0 filters в repo.
+func TestCreateSavedFilter_NonMemberForbidden(t *testing.T) {
+	deny := false
+	repo := newStatefulSearchRepo()
+	repo.memberOK = &deny
+	svc := search.NewSearchService(repo, newScopeTestDB(t), nil)
+	ctx := context.Background()
+	stranger := uuid.New()
+	projectID := uuid.New()
+
+	_, err := svc.CreateSavedFilter(ctx, stranger, search.SavedFilterCreateRequest{
+		Name:         "Leak",
+		FilterConfig: map[string]interface{}{"status": "open"},
+		ProjectID:    projectID.String(),
+	})
+	require.Error(t, err)
+	assert.ErrorIs(t, err, search.ErrFilterForbidden)
+	assert.Empty(t, repo.filters, "non-member must not create a saved filter (A4-003)")
+}
+
+// TestListSavedFilters_NonMemberForbidden — A4-004: ListSavedFilters требует
+// IsProjectMember до repo.ListSavedFilters. Mutation guard: при снятии проверки
+// stranger получит shared filter (len==1) и тест упадёт; при живой проверке
+// ErrFilterForbidden без утечки filter_config.
+func TestListSavedFilters_NonMemberForbidden(t *testing.T) {
+	deny := false
+	repo := newStatefulSearchRepo()
+	repo.memberOK = &deny
+	svc := search.NewSearchService(repo, newScopeTestDB(t), nil)
+	ctx := context.Background()
+	owner := uuid.New()
+	stranger := uuid.New()
+	projectID := uuid.New()
+	now := time.Now().UTC()
+	filterID := uuid.New()
+	repo.filters[filterID] = &ent.SavedFilter{
+		ID: filterID, Name: "Shared bugs", OwnerID: owner, ProjectID: projectID,
+		Shared: true, FilterConfig: map[string]interface{}{"secret": "leak"},
+		CreatedAt: now, UpdatedAt: now,
+	}
+
+	list, err := svc.ListSavedFilters(ctx, stranger, projectID)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, search.ErrFilterForbidden)
+	assert.Nil(t, list, "non-member must not see shared filters (A4-004)")
+}
+
 func TestSavedFilter_CRUDAndShare(t *testing.T) {
 	svc, _, ctx, userID, projectID := newSearchServiceTestEnv(t)
 	otherUser := uuid.New()
@@ -158,7 +208,7 @@ func TestSavedFilter_CRUDAndShare(t *testing.T) {
 
 	err = svc.DeleteSavedFilter(ctx, otherUser, filterID)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "доступ запрещён")
+	assert.ErrorIs(t, err, search.ErrFilterForbidden)
 
 	require.NoError(t, svc.DeleteSavedFilter(ctx, userID, filterID))
 	list, err = svc.ListSavedFilters(ctx, userID, projectID)
@@ -177,20 +227,11 @@ func TestShareFilter_NotOwnerForbidden(t *testing.T) {
 
 	_, err := svc.ShareFilter(ctx, uuid.New(), filterID, true)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "доступ запрещён")
+	assert.ErrorIs(t, err, search.ErrFilterForbidden)
 }
 
-func TestSearch_NormalizesLimit(t *testing.T) {
-	db := newScopeTestDB(t)
-	userID := uuid.New()
-	svc := search.NewSearchService(&mockSearchRepo{}, db, nil)
-
-	for _, limit := range []int{0, -1, 100} {
-		results, err := svc.Search(context.Background(), "hub", userID, nil, limit)
-		require.NoError(t, err)
-		assert.Empty(t, results)
-	}
-}
+// A3W5-5-001: hollow NormalizesLimit убран — clamp по Len:
+// TestPostgresSearch_LimitClamp_A3W55_001 (limit_clamp_a3w55_test.go).
 
 func TestSearch_FiltersByType(t *testing.T) {
 	db := newScopeTestDB(t)
@@ -205,9 +246,10 @@ func TestSearch_FiltersByType(t *testing.T) {
 
 	svc := search.NewSearchService(&mockSearchRepo{}, db, nil)
 
-	results, err := svc.Search(context.Background(), "hub", userID, []string{"project"}, 5)
-	require.NoError(t, err)
-	assert.Empty(t, results)
+	// A2W5-A4-003: type filter сужает шарды; sqlite без tables → hard error.
+	_, _, err = svc.Search(context.Background(), "hub", userID, []string{"project"}, 5)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, search.ErrSearchUnavailable)
 }
 
 func TestSearch_AdminUsesUnscopedUserSearch(t *testing.T) {
@@ -215,27 +257,21 @@ func TestSearch_AdminUsesUnscopedUserSearch(t *testing.T) {
 	userID := uuid.New()
 	svc := search.NewSearchService(&mockSearchRepo{isAdmin: true}, db, nil)
 
-	results, err := svc.Search(context.Background(), "admin", userID, []string{"user"}, 10)
-	require.NoError(t, err)
-	assert.Empty(t, results)
+	_, _, err := svc.Search(context.Background(), "admin", userID, []string{"user"}, 10)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, search.ErrSearchUnavailable)
 }
 
 func TestSearch_ContinuesOnPartialShardErrors(t *testing.T) {
 	db := newScopeTestDB(t)
 	userID := uuid.New()
-	projectID := uuid.New()
-
-	_, err := db.Exec(
-		`INSERT INTO project_members (project_members, user_project_members) VALUES (?, ?)`,
-		projectID.String(), userID.String(),
-	)
-	require.NoError(t, err)
-
+	// Без project membership: issues shard = OK empty; user shard fail → partial.
 	repo := &mockSearchRepo{adminErr: errors.New("admin lookup failed")}
 	svc := search.NewSearchService(repo, db, nil)
 
-	results, err := svc.Search(context.Background(), "hub", userID, []string{"issue", "user"}, 20)
+	results, partial, err := svc.Search(context.Background(), "hub", userID, []string{"issue", "user"}, 20)
 	require.NoError(t, err)
+	assert.True(t, partial, "user shard fail + issue ok → partial")
 	assert.Empty(t, results)
 }
 
@@ -295,6 +331,35 @@ func TestEntRepository_IsSystemAdmin(t *testing.T) {
 	assert.True(t, ok)
 
 	ok, err = repo.IsSystemAdmin(ctx, member.ID)
+	require.NoError(t, err)
+	assert.False(t, ok)
+}
+
+func TestEntRepository_IsProjectMember(t *testing.T) {
+	dsn := "file:searchpm_" + uuid.New().String() + "?mode=memory&cache=shared&_fk=1"
+	client := enttest.Open(t, "sqlite3", dsn)
+	t.Cleanup(func() { _ = client.Close() })
+	ctx := context.Background()
+
+	member, err := client.User.Create().SetEmail("pm-" + uuid.New().String()[:8] + "@test.com").Save(ctx)
+	require.NoError(t, err)
+	stranger, err := client.User.Create().SetEmail("str-" + uuid.New().String()[:8] + "@test.com").Save(ctx)
+	require.NoError(t, err)
+	proj, err := client.Project.Create().SetName("PM Proj").SetKey("PMP").Save(ctx)
+	require.NoError(t, err)
+	_, err = client.ProjectMember.Create().
+		SetUserID(member.ID).
+		SetProjectID(proj.ID).
+		SetProjectRole("developer").
+		Save(ctx)
+	require.NoError(t, err)
+
+	repo := search.NewEntRepository(client)
+	ok, err := repo.IsProjectMember(ctx, member.ID, proj.ID)
+	require.NoError(t, err)
+	assert.True(t, ok)
+
+	ok, err = repo.IsProjectMember(ctx, stranger.ID, proj.ID)
 	require.NoError(t, err)
 	assert.False(t, ok)
 }

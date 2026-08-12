@@ -1,12 +1,12 @@
 import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
 
 import type { UserResponse } from "@/api/auth";
 
 /**
  * Состояние стора аутентификации.
- * Персистится в sessionStorage под ключом "hub-auth".
- * Сессия завершается при закрытии вкладки/браузера.
+ * JWT (access + refresh) — только в памяти (ADR-WS-JWT-HANDSHAKE-2026 /
+ * A2W11-2-001). sessionStorage/localStorage не содержат токены.
+ * Сессия пропадает при reload вкладки до ADR httpOnly refresh cookie.
  */
 interface AuthState {
 	/** JWT access-токен для авторизации API-запросов. */
@@ -21,8 +21,16 @@ interface AuthState {
 	setTokens: (access: string, refresh: string) => void;
 	/** Установить данные пользователя. */
 	setUser: (user: UserResponse) => void;
-	/** Очистить все данные аутентификации (выход). */
+	/**
+	 * Очистить локальную сессию и транслировать logout в другие вкладки.
+	 * Для remote-sync используйте clearSessionLocal — без повторного broadcast.
+	 */
 	logout: () => void;
+	/**
+	 * Очистить локальную сессию без BroadcastChannel (W11-A2-004).
+	 * Вызывается при получении remote logout, чтобы не зациклить sync.
+	 */
+	clearSessionLocal: () => void;
 }
 
 /**
@@ -54,14 +62,23 @@ if (typeof BroadcastChannel !== "undefined") {
 
 /**
  * Транслирует событие auth-sync в другие вкладки.
- * Используется внутри setTokens/logout стора.
+ * Пишет в BroadcastChannel и зеркало localStorage (storage fallback).
  */
 function broadcastAuth(event: AuthSyncEvent): void {
-	if (!authChannel) return;
+	if (authChannel) {
+		try {
+			authChannel.postMessage(event);
+		} catch {
+			// игнорируем: канал мог закрыться
+		}
+	}
+	// Mirror для storage-event fallback (старые браузеры / без BroadcastChannel).
 	try {
-		authChannel.postMessage(event);
+		localStorage.setItem(`${AUTH_CHANNEL_NAME}-event`, JSON.stringify(event));
+		// Удаляем сразу — storage срабатывает на setItem в других вкладках.
+		localStorage.removeItem(`${AUTH_CHANNEL_NAME}-event`);
 	} catch {
-		// игнорируем: канал мог закрыться
+		// private mode / quota — не критично
 	}
 }
 
@@ -85,9 +102,7 @@ export function subscribeAuthSync(
 	}
 
 	// Запасной вариант: storage event (для очень старых браузеров и кейсов, когда
-	// BroadcastChannel недоступен). sessionStorage НЕ триггерит storage event
-	// между вкладками, но persist-обновления mirror'ятся через localStorage
-	// в некоторых конфигурациях — оставлено как defence-in-depth.
+	// BroadcastChannel недоступен).
 	const storageListener = (ev: StorageEvent) => {
 		if (ev.key === `${AUTH_CHANNEL_NAME}-event` && ev.newValue) {
 			try {
@@ -101,33 +116,82 @@ export function subscribeAuthSync(
 	return () => window.removeEventListener("storage", storageListener);
 }
 
-/** Стор аутентификации с персистом в sessionStorage. */
-export const useAuthStore = create<AuthState>()(
-	persist(
-		(set) => ({
+/** Bootstrap для E2E/Playwright: инъекция сессии без sessionStorage JWT. */
+export type AuthBootstrap = {
+	accessToken: string;
+	refreshToken: string;
+	user: UserResponse | null;
+	isAuthenticated: boolean;
+};
+
+declare global {
+	interface Window {
+		__HUB_AUTH_BOOTSTRAP__?: AuthBootstrap;
+		__HUB_SET_AUTH__?: (state: Partial<AuthBootstrap>) => void;
+	}
+}
+
+function readAuthBootstrap(): Partial<AuthState> {
+	if (typeof window === "undefined") return {};
+	const boot = window.__HUB_AUTH_BOOTSTRAP__;
+	if (!boot) return {};
+	delete window.__HUB_AUTH_BOOTSTRAP__;
+	return {
+		accessToken: boot.accessToken,
+		refreshToken: boot.refreshToken,
+		user: boot.user,
+		isAuthenticated: boot.isAuthenticated,
+	};
+}
+
+const boot = readAuthBootstrap();
+
+/** Стор аутентификации — JWT только в памяти (без persist). */
+export const useAuthStore = create<AuthState>()((set) => ({
+	accessToken: boot.accessToken ?? null,
+	refreshToken: boot.refreshToken ?? null,
+	user: boot.user ?? null,
+	isAuthenticated: boot.isAuthenticated ?? false,
+	setTokens: (access, refresh) => {
+		set({
+			accessToken: access,
+			refreshToken: refresh,
+			isAuthenticated: true,
+		});
+		const userId = useAuthStore.getState().user?.id ?? null;
+		broadcastAuth({ type: "login", userId });
+	},
+	setUser: (user) => {
+		set({ user });
+		// После /auth/me соседние вкладки узнают userId (same-user skip в _authenticated).
+		broadcastAuth({ type: "login", userId: user.id });
+	},
+	clearSessionLocal: () => {
+		set({
 			accessToken: null,
 			refreshToken: null,
 			user: null,
 			isAuthenticated: false,
-			setTokens: (access, refresh) => {
-				set({
-					accessToken: access,
-					refreshToken: refresh,
-					isAuthenticated: true,
-				});
-				broadcastAuth({ type: "login", userId: null });
-			},
-			setUser: (user) => set({ user }),
-			logout: () => {
-				set({
-					accessToken: null,
-					refreshToken: null,
-					user: null,
-					isAuthenticated: false,
-				});
-				broadcastAuth({ type: "logout" });
-			},
-		}),
-		{ name: "hub-auth", storage: createJSONStorage(() => sessionStorage) },
-	),
-);
+		});
+	},
+	logout: () => {
+		set({
+			accessToken: null,
+			refreshToken: null,
+			user: null,
+			isAuthenticated: false,
+		});
+		broadcastAuth({ type: "logout" });
+	},
+}));
+
+if (typeof window !== "undefined") {
+	window.__HUB_SET_AUTH__ = (state) => {
+		useAuthStore.setState({
+			accessToken: state.accessToken ?? null,
+			refreshToken: state.refreshToken ?? null,
+			user: state.user ?? null,
+			isAuthenticated: state.isAuthenticated ?? Boolean(state.accessToken),
+		});
+	};
+}

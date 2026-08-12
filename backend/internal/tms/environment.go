@@ -64,9 +64,9 @@ func (s *TMSService) ListEnvironments(ctx context.Context, projectID uuid.UUID) 
 	return result, nil
 }
 
-// UpdateEnvironment обновляет тестовое окружение.
-func (s *TMSService) UpdateEnvironment(ctx context.Context, envID uuid.UUID, req UpdateEnvironmentRequest) (*EnvironmentResponse, error) {
-	env, err := s.repo.UpdateEnvironment(ctx, envID, UpdateEnvironmentInput{
+// UpdateEnvironment обновляет тестовое окружение только внутри projectID (P1-BE-11).
+func (s *TMSService) UpdateEnvironment(ctx context.Context, projectID, envID uuid.UUID, req UpdateEnvironmentRequest) (*EnvironmentResponse, error) {
+	env, err := s.repo.UpdateEnvironment(ctx, projectID, envID, UpdateEnvironmentInput{
 		Name:   req.Name,
 		Label:  req.Label,
 		Config: req.Config,
@@ -81,9 +81,9 @@ func (s *TMSService) UpdateEnvironment(ctx context.Context, envID uuid.UUID, req
 	return toEnvironmentResponse(env), nil
 }
 
-// DeleteEnvironment удаляет тестовое окружение.
-func (s *TMSService) DeleteEnvironment(ctx context.Context, envID uuid.UUID) error {
-	err := s.repo.DeleteEnvironment(ctx, envID)
+// DeleteEnvironment удаляет тестовое окружение только внутри projectID (P1-BE-11).
+func (s *TMSService) DeleteEnvironment(ctx context.Context, projectID, envID uuid.UUID) error {
+	err := s.repo.DeleteEnvironment(ctx, projectID, envID)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return fiber.NewError(fiber.StatusNotFound, "окружение не найдено")
@@ -179,6 +179,11 @@ func (h *Handler) ListEnvironmentsHandler(c fiber.Ctx) error {
 // @Failure 404 {object} map[string]string "Окружение не найдено"
 // @Router /projects/{projectId}/environments/{envId} [put]
 func (h *Handler) UpdateEnvironmentHandler(c fiber.Ctx) error {
+	projectID, err := parseTMSProjectID(c)
+	if err != nil {
+		return err
+	}
+
 	envIDStr := utils.CopyString(c.Params("envId"))
 	envID, err := uuid.Parse(envIDStr)
 	if err != nil {
@@ -190,7 +195,7 @@ func (h *Handler) UpdateEnvironmentHandler(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
-	resp, err := h.service.UpdateEnvironment(c.Context(), envID, req)
+	resp, err := h.service.UpdateEnvironment(c.Context(), projectID, envID, req)
 	if err != nil {
 		return err
 	}
@@ -210,13 +215,18 @@ func (h *Handler) UpdateEnvironmentHandler(c fiber.Ctx) error {
 // @Failure 404 {object} map[string]string "Окружение не найдено"
 // @Router /projects/{projectId}/environments/{envId} [delete]
 func (h *Handler) DeleteEnvironmentHandler(c fiber.Ctx) error {
+	projectID, err := parseTMSProjectID(c)
+	if err != nil {
+		return err
+	}
+
 	envIDStr := utils.CopyString(c.Params("envId"))
 	envID, err := uuid.Parse(envIDStr)
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "некорректный ID окружения")
 	}
 
-	if err := h.service.DeleteEnvironment(c.Context(), envID); err != nil {
+	if err := h.service.DeleteEnvironment(c.Context(), projectID, envID); err != nil {
 		return err
 	}
 

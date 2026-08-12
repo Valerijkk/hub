@@ -42,6 +42,8 @@ func (h *Handler) TelegramBind(c fiber.Ctx) error {
 // @Success 200 {object} map[string]string "telegram linked"
 // @Failure 400 {object} fiber.Error "Неверный или просроченный код"
 // @Failure 409 {object} fiber.Error "Telegram уже привязан к другому аккаунту"
+// @Failure 429 {object} fiber.Error "Слишком много попыток confirm"
+// @Failure 503 {object} fiber.Error "Telegram bind не настроен"
 // @Router /notifications/telegram/confirm [post]
 func (h *Handler) TelegramConfirm(c fiber.Ctx) error {
 	userID, err := getUserID(c)
@@ -53,8 +55,14 @@ func (h *Handler) TelegramConfirm(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid request body")
 	}
 	if err := h.telegramBind.ConfirmLinkCode(c.Context(), userID, req.Code); err != nil {
+		if errors.Is(err, ErrTelegramBindUnavailable) {
+			return fiber.NewError(fiber.StatusServiceUnavailable, "telegram bind not configured")
+		}
 		if errors.Is(err, ErrTelegramInvalidCode) {
 			return fiber.NewError(fiber.StatusBadRequest, "invalid or expired code")
+		}
+		if errors.Is(err, ErrTelegramConfirmLimited) {
+			return fiber.NewError(fiber.StatusTooManyRequests, "too many verification attempts, try again later")
 		}
 		if errors.Is(err, ErrTelegramIDTaken) {
 			return fiber.NewError(fiber.StatusConflict, "telegram already linked to another account")
@@ -71,6 +79,7 @@ func (h *Handler) TelegramConfirm(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Success 204 "No Content"
 // @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 503 {object} fiber.Error "Telegram repository недоступен"
 // @Router /notifications/telegram [delete]
 func (h *Handler) TelegramUnlink(c fiber.Ctx) error {
 	userID, err := getUserID(c)
@@ -78,6 +87,9 @@ func (h *Handler) TelegramUnlink(c fiber.Ctx) error {
 		return err
 	}
 	if err := h.telegramBind.Unlink(c.Context(), userID); err != nil {
+		if errors.Is(err, ErrTelegramBindUnavailable) {
+			return fiber.NewError(fiber.StatusServiceUnavailable, "telegram bind not configured")
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, "failed to unlink telegram")
 	}
 	return c.SendStatus(fiber.StatusNoContent)
@@ -91,6 +103,7 @@ func (h *Handler) TelegramUnlink(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Success 200 {object} map[string]string "test sent"
 // @Failure 400 {object} fiber.Error "Telegram не привязан"
+// @Failure 503 {object} fiber.Error "Telegram delivery не настроен"
 // @Router /notifications/telegram/test [post]
 func (h *Handler) TelegramTest(c fiber.Ctx) error {
 	userID, err := getUserID(c)
@@ -98,6 +111,9 @@ func (h *Handler) TelegramTest(c fiber.Ctx) error {
 		return err
 	}
 	if err := h.telegramBind.SendTest(c.Context(), userID); err != nil {
+		if errors.Is(err, ErrTelegramBindUnavailable) {
+			return fiber.NewError(fiber.StatusServiceUnavailable, "telegram bind not configured")
+		}
 		if errors.Is(err, ErrTelegramNotLinked) {
 			return fiber.NewError(fiber.StatusBadRequest, "telegram not linked")
 		}
@@ -114,6 +130,7 @@ func (h *Handler) TelegramTest(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Success 200 {object} TelegramStatusResponse "Статус привязки"
 // @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 503 {object} fiber.Error "Telegram repository недоступен"
 // @Router /notifications/telegram/status [get]
 func (h *Handler) TelegramStatus(c fiber.Ctx) error {
 	userID, err := getUserID(c)
@@ -122,6 +139,9 @@ func (h *Handler) TelegramStatus(c fiber.Ctx) error {
 	}
 	resp, err := h.telegramBind.GetStatus(c.Context(), userID)
 	if err != nil {
+		if errors.Is(err, ErrTelegramBindUnavailable) {
+			return fiber.NewError(fiber.StatusServiceUnavailable, "telegram bind not configured")
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, "failed to get status")
 	}
 	return c.JSON(resp)

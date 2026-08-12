@@ -48,7 +48,6 @@ func TestRequireAuth_DBErrorFailsClosed(t *testing.T) {
 		15*time.Minute,
 		30*24*time.Hour,
 		auth.ExportAuthServiceMagicLink(svc),
-		"bot",
 		nil,
 	)
 

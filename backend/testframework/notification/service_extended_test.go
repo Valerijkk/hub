@@ -31,13 +31,15 @@ func TestBuildPushURL(t *testing.T) {
 func TestNotifToDTO(t *testing.T) {
 	projectID := uuid.New()
 	actorID := uuid.New()
+	entityID := uuid.New()
 	now := time.Now()
 	dto := notification.ExportNotifToDTO(&ent.Notification{
 		ID: uuid.New(), Type: notification.TypeAssigned, Title: "Assigned", Body: "body",
-		EntityType: "issue", EntityID: "iss-1", ProjectID: &projectID, ActorID: &actorID,
+		EntityType: "issue", EntityID: &entityID, ProjectID: &projectID, ActorID: &actorID,
 		IsRead: false, IsUrgent: true, CreatedAt: now,
 	})
 	assert.Equal(t, notification.TypeAssigned, dto.Type)
+	assert.Equal(t, entityID.String(), dto.EntityID)
 	assert.True(t, dto.IsUrgent)
 	require.NotNil(t, dto.ProjectID)
 }
@@ -262,7 +264,7 @@ func TestSaveSubscription_ValidatesEndpoint(t *testing.T) {
 	_, repo, ctx, userID := newNotificationTestEnv(t)
 	priv, pub, err := generateTestVAPIDKeys(t)
 	require.NoError(t, err)
-	push := notification.NewPushSender(notification.ExportRepositoryDB(repo), config.WebPushConfig{
+	push := notification.NewPushSender(repo, config.WebPushConfig{
 		VAPIDPublicKey: pub, VAPIDPrivateKey: priv, VAPIDSubject: "mailto:test@hub.local",
 	})
 	require.NotNil(t, push)
@@ -276,7 +278,7 @@ func TestSaveSubscription_CreateAndUpdate(t *testing.T) {
 	_, repo, ctx, userID := newNotificationTestEnv(t)
 	priv, pub, err := generateTestVAPIDKeys(t)
 	require.NoError(t, err)
-	push := notification.NewPushSender(notification.ExportRepositoryDB(repo), config.WebPushConfig{
+	push := notification.NewPushSender(repo, config.WebPushConfig{
 		VAPIDPublicKey: pub, VAPIDPrivateKey: priv, VAPIDSubject: "mailto:test@hub.local",
 	})
 	require.NotNil(t, push)
@@ -297,32 +299,50 @@ func TestRemoveSubscription_DeletesByEndpoint(t *testing.T) {
 	_, repo, ctx, userID := newNotificationTestEnv(t)
 	priv, pub, err := generateTestVAPIDKeys(t)
 	require.NoError(t, err)
-	push := notification.NewPushSender(notification.ExportRepositoryDB(repo), config.WebPushConfig{
+	push := notification.NewPushSender(repo, config.WebPushConfig{
 		VAPIDPublicKey: pub, VAPIDPrivateKey: priv, VAPIDSubject: "mailto:test@hub.local",
 	})
 	require.NotNil(t, push)
 
 	endpoint := "https://push.example.com/sub/remove"
 	require.NoError(t, push.SaveSubscription(ctx, userID, endpoint, "k", "a", "ua"))
-	require.NoError(t, push.RemoveSubscription(ctx, endpoint))
+	require.NoError(t, push.RemoveSubscription(ctx, userID, endpoint))
 
 	count, err := notification.ExportRepositoryDB(repo).PushSubscription.Query().Count(ctx)
 	require.NoError(t, err)
 	assert.Equal(t, 0, count)
 }
 
-// TestIsQuietHours_CrossMidnight проверяет сценарий: is quiet hours cross midnight.
+// TestIsQuietHours_CrossMidnight — W7-A1-009 / P3-BE-02: фиксируем expected bool
+// для cross-midnight ветки (start>end), не `_ = ExportIsQuietHours`.
 func TestIsQuietHours_CrossMidnight(t *testing.T) {
 	svc, repo, ctx, userID := newNotificationTestEnv(t)
+
+	now := time.Now().UTC()
+	// start на 7ч вперёд, end на 1ч вперёд → startMinutes > endMinutes (cross-midnight),
+	// current < end → всегда quiet.
+	inStart := now.Add(7 * time.Hour).Format("15:04")
+	inEnd := now.Add(1 * time.Hour).Format("15:04")
 	_, err := notification.ExportRepositoryDB(repo).User.UpdateOneID(userID).
-		SetQuietHoursStart("22:00").
-		SetQuietHoursEnd("06:00").
+		SetQuietHoursStart(inStart).
+		SetQuietHoursEnd(inEnd).
 		SetTimezone("UTC").
 		Save(ctx)
 	require.NoError(t, err)
+	assert.True(t, notification.ExportIsQuietHours(svc, ctx, userID),
+		"now must be inside cross-midnight quiet window %s–%s", inStart, inEnd)
 
-	// Прогоняет ветку перехода через полночь без проверки реального времени.
-	_ = notification.ExportIsQuietHours(svc, ctx, userID)
+	// start на 1ч вперёд, end на 1ч назад → quiet только вне [end, start); now вне → false.
+	outStart := now.Add(1 * time.Hour).Format("15:04")
+	outEnd := now.Add(-1 * time.Hour).Format("15:04")
+	_, err = notification.ExportRepositoryDB(repo).User.UpdateOneID(userID).
+		SetQuietHoursStart(outStart).
+		SetQuietHoursEnd(outEnd).
+		SetTimezone("UTC").
+		Save(ctx)
+	require.NoError(t, err)
+	assert.False(t, notification.ExportIsQuietHours(svc, ctx, userID),
+		"now must be outside cross-midnight quiet window %s–%s", outStart, outEnd)
 }
 
 // TestPushSender_sendToUser_UnsafeEndpointRemoved проверяет сценарий: push sender отправка to user unsafe endpoint removed.
@@ -330,7 +350,7 @@ func TestPushSender_sendToUser_UnsafeEndpointRemoved(t *testing.T) {
 	_, repo, ctx, userID := newNotificationTestEnv(t)
 	priv, pub, err := generateTestVAPIDKeys(t)
 	require.NoError(t, err)
-	push := notification.NewPushSender(notification.ExportRepositoryDB(repo), config.WebPushConfig{
+	push := notification.NewPushSender(repo, config.WebPushConfig{
 		VAPIDPublicKey: pub, VAPIDPrivateKey: priv, VAPIDSubject: "mailto:test@hub.local",
 	})
 	require.NotNil(t, push)

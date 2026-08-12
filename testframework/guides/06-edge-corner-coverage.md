@@ -1,7 +1,7 @@
 # 06 — Edge / corner coverage → автотесты
 
 > Часть [Testing Guide](../TESTING_GUIDE.md).  
-> Источник кейсов: `.planning/july-2026/EDGE-CORNER-CATALOG.md` (каталог happy / edge / corner → TC backlog).  
+> Источник кейсов: `.planning/archive/july-2026/EDGE-CORNER-CATALOG.md` (каталог happy / edge / corner → TC backlog).  
 > Этот гайд **не копирует** каталог — описывает, как превращать записи в тесты.
 
 ---
@@ -19,7 +19,7 @@
 
 ## Откуда брать кейсы
 
-1. **Каталог** `.planning/july-2026/EDGE-CORNER-CATALOG.md` — систематический backlog.
+1. **Каталог** `.planning/archive/july-2026/EDGE-CORNER-CATALOG.md` — систематический backlog.
 2. **TC-матрица** `docs/TESTING.md` — уже формализованные шаги (после `qa-manual-ver`).
 3. **Спека** `docs/system_specification.md` / NFR / security guidelines (SEC-*, NF-*).
 4. **Аудиты** (например corner/race findings) — только как вход для TC, не для «тихого» автотеста в обход конвейера.

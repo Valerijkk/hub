@@ -27,7 +27,7 @@ func TestGetTestCase_AndList(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	got, err := svc.GetTestCase(ctx, created.CaseKey)
+	got, err := svc.GetTestCase(ctx, projectID, created.CaseKey)
 	require.NoError(t, err)
 	assert.Equal(t, "Login test", got.Title)
 
@@ -50,8 +50,8 @@ func TestDeleteTestCase_RemovesFromRepo(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	require.NoError(t, svc.DeleteTestCase(ctx, created.CaseKey))
-	_, err = svc.GetTestCase(ctx, created.CaseKey)
+	require.NoError(t, svc.DeleteTestCase(ctx, projectID, created.CaseKey))
+	_, err = svc.GetTestCase(ctx, projectID, created.CaseKey)
 	require.Error(t, err)
 }
 
@@ -69,10 +69,11 @@ func TestListTestCaseVersions_AfterUpdate(t *testing.T) {
 	require.NoError(t, err)
 
 	newTitle := "Versioned v2"
-	_, err = svc.UpdateTestCase(ctx, created.CaseKey, userID, tms.UpdateTestCaseRequest{Title: &newTitle})
+	_, err = svc.UpdateTestCase(ctx, projectID, created.CaseKey, userID, tms.UpdateTestCaseRequest{Title: &newTitle,
+		Version: 1,})
 	require.NoError(t, err)
 
-	versions, err := svc.ListTestCaseVersions(ctx, created.CaseKey)
+	versions, err := svc.ListTestCaseVersions(ctx, projectID, created.CaseKey)
 	require.NoError(t, err)
 	assert.NotEmpty(t, versions)
 }
@@ -91,12 +92,15 @@ func TestUnlinkTestCaseFromIssue(t *testing.T) {
 	require.NoError(t, err)
 
 	issueID := uuid.New()
-	repo.issues[issueID] = &ent.Issue{ID: issueID, IssueKey: "HUB-1", Title: "Bug"}
-	entTC, _ := repo.FindTestCaseByKey(ctx, tc.CaseKey)
+	repo.issues[issueID] = &ent.Issue{
+		ID: issueID, IssueKey: "HUB-1", Title: "Bug",
+		Edges: ent.IssueEdges{Project: &ent.Project{ID: projectID}},
+	}
+	entTC, _ := repo.FindTestCaseByKey(ctx, projectID, tc.CaseKey)
 	repo.linkedIssues[entTC.ID] = []uuid.UUID{issueID}
 
-	require.NoError(t, svc.UnlinkTestCaseFromIssue(ctx, tc.CaseKey, issueID))
-	links, err := svc.GetTestCaseLinks(ctx, tc.CaseKey)
+	require.NoError(t, svc.UnlinkTestCaseFromIssue(ctx, projectID, tc.CaseKey, issueID))
+	links, err := svc.GetTestCaseLinks(ctx, projectID, tc.CaseKey)
 	require.NoError(t, err)
 	assert.Empty(t, links)
 }
@@ -114,7 +118,7 @@ func TestGetTestRun_AndListResults(t *testing.T) {
 	runID, err := uuid.Parse(run.ID)
 	require.NoError(t, err)
 
-	got, err := svc.GetTestRun(ctx, runID)
+	got, err := svc.GetTestRun(ctx, projectID, runID)
 	require.NoError(t, err)
 	assert.Equal(t, "Smoke", got.Title)
 
@@ -122,15 +126,15 @@ func TestGetTestRun_AndListResults(t *testing.T) {
 		Title: "Case A", CaseType: "functional", Priority: "medium",
 	})
 	require.NoError(t, err)
-	entTC, _ := repo.FindTestCaseByKey(ctx, tc.CaseKey)
+	entTC, _ := repo.FindTestCaseByKey(ctx, projectID, tc.CaseKey)
 
-	_, err = svc.CreateTestResult(ctx, runID, tms.CreateTestResultRequest{
+	_, err = svc.CreateTestResult(ctx, projectID, runID, tms.CreateTestResultRequest{
 		TestCaseID: entTC.ID.String(),
 		Status:     "passed",
 	})
 	require.NoError(t, err)
 
-	results, err := svc.ListTestResults(ctx, runID)
+	results, err := svc.ListTestResults(ctx, projectID, runID)
 	require.NoError(t, err)
 	assert.NotEmpty(t, results)
 }
@@ -159,5 +163,5 @@ func TestListTestRuns_Pagination(t *testing.T) {
 	page, err := svc.ListTestRuns(ctx, projectID, tms.ListTestRunsRequest{Offset: 0, Limit: 1})
 	require.NoError(t, err)
 	assert.Equal(t, 2, page.Total)
-	assert.Len(t, page.Items, 2) // mock repo ignores pagination params
+	assert.Len(t, page.Items, 1) // A2W2-2-009: Limit=1 → одна страница
 }

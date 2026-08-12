@@ -16,7 +16,7 @@ import (
 // TestUpdateRunStatus_NotFound проверяет сценарий: обновление run status not found.
 func TestUpdateRunStatus_NotFound(t *testing.T) {
 	svc := tms.NewTMSService(newMockRepo(), nil)
-	_, err := svc.UpdateRunStatus(context.Background(), uuid.New(), "completed")
+	_, err := svc.UpdateRunStatus(context.Background(), uuid.New(), uuid.New(), "completed")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "не найден")
 }
@@ -25,10 +25,14 @@ func TestUpdateRunStatus_NotFound(t *testing.T) {
 func TestAddTestCasesToRun_InvalidTestCaseID(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
+	projectID := uuid.New()
 	runID := uuid.New()
-	repo.runs[runID] = &ent.TestRun{ID: runID, Status: testrun.StatusInProgress}
+	repo.runs[runID] = &ent.TestRun{
+		ID: runID, Status: testrun.StatusInProgress,
+		Edges: ent.TestRunEdges{Project: &ent.Project{ID: projectID}},
+	}
 
-	_, err := svc.AddTestCasesToRun(context.Background(), runID, tms.AddTestCasesToRunRequest{
+	_, err := svc.AddTestCasesToRun(context.Background(), projectID, runID, tms.AddTestCasesToRunRequest{
 		CaseIDs: []string{"not-uuid"},
 	})
 	require.Error(t, err)
@@ -38,6 +42,6 @@ func TestAddTestCasesToRun_InvalidTestCaseID(t *testing.T) {
 // TestStartTestRun_NotFound проверяет сценарий: start test run not found.
 func TestStartTestRun_NotFound(t *testing.T) {
 	svc := tms.NewTMSService(newMockRepo(), nil)
-	_, err := svc.StartTestRun(context.Background(), uuid.New())
+	_, err := svc.StartTestRun(context.Background(), uuid.New(), uuid.New())
 	require.Error(t, err)
 }

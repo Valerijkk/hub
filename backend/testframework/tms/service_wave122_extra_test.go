@@ -21,7 +21,7 @@ import (
 func TestService_Wave122_UpdateTestResult_NotFound(t *testing.T) {
 	svc := tms.NewTMSService(newMockRepo(), nil)
 	status := "passed"
-	_, err := svc.UpdateTestResult(context.Background(), uuid.New(), tms.UpdateTestResultRequest{Status: &status})
+	_, err := svc.UpdateTestResult(context.Background(), uuid.New(), uuid.New(), uuid.New(), tms.UpdateTestResultRequest{Status: &status})
 	require.Error(t, err)
 }
 
@@ -38,7 +38,7 @@ func TestService_Wave122_RollbackTestCase_VersionNotFound(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	_, err = svc.RollbackTestCase(ctx, created.CaseKey, uuid.New(), userID)
+	_, err = svc.RollbackTestCase(ctx, projectID, created.CaseKey, uuid.New(), userID)
 	require.Error(t, err)
 }
 
@@ -56,7 +56,8 @@ func TestService_Wave122_UpdateTestCase_InvalidSuiteID(t *testing.T) {
 	require.NoError(t, err)
 
 	badSuite := "not-a-uuid"
-	_, err = svc.UpdateTestCase(ctx, created.CaseKey, userID, tms.UpdateTestCaseRequest{SuiteID: &badSuite})
+	_, err = svc.UpdateTestCase(ctx, projectID, created.CaseKey, userID, tms.UpdateTestCaseRequest{SuiteID: &badSuite,
+		Version: 1,})
 	require.Error(t, err)
 }
 
@@ -69,7 +70,10 @@ func TestService_Wave122_UpdateTestCase_ClearSuite(t *testing.T) {
 	userID := uuid.New()
 
 	suiteID := uuid.New()
-	repo.suites[suiteID] = &ent.TestSuite{ID: suiteID, Name: "S1"}
+	repo.suites[suiteID] = &ent.TestSuite{
+		ID: suiteID, Name: "S1",
+		Edges: ent.TestSuiteEdges{Project: &ent.Project{ID: projectID}},
+	}
 
 	created, err := svc.CreateTestCase(ctx, projectID, userID, tms.CreateTestCaseRequest{
 		Title: "In suite", CaseType: "classic", Priority: "medium",
@@ -77,11 +81,11 @@ func TestService_Wave122_UpdateTestCase_ClearSuite(t *testing.T) {
 	require.NoError(t, err)
 
 	suiteStr := suiteID.String()
-	_, err = svc.UpdateTestCase(ctx, created.CaseKey, userID, tms.UpdateTestCaseRequest{SuiteID: &suiteStr})
+	_, err = svc.UpdateTestCase(ctx, projectID, created.CaseKey, userID, tms.UpdateTestCaseRequest{SuiteID: &suiteStr, Version: 1})
 	require.NoError(t, err)
 
 	empty := ""
-	updated, err := svc.UpdateTestCase(ctx, created.CaseKey, userID, tms.UpdateTestCaseRequest{SuiteID: &empty})
+	updated, err := svc.UpdateTestCase(ctx, projectID, created.CaseKey, userID, tms.UpdateTestCaseRequest{SuiteID: &empty, Version: 2})
 	require.NoError(t, err)
 	assert.NotNil(t, updated)
 }
@@ -91,19 +95,25 @@ func TestService_Wave122_ExecuteTestResult_WithFiles(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
-	run, err := svc.CreateTestRun(ctx, uuid.New(), uuid.New(), tms.CreateTestRunRequest{Title: "Files run"})
+	run, err := svc.CreateTestRun(ctx, projectID, uuid.New(), tms.CreateTestRunRequest{Title: "Files run"})
 	require.NoError(t, err)
 	runID, _ := uuid.Parse(run.ID)
-	_, err = svc.UpdateRunStatus(ctx, runID, "in_progress")
+	_, err = svc.UpdateRunStatus(ctx, projectID, runID, "in_progress")
 	require.NoError(t, err)
 
 	resultID := uuid.New()
 	repo.results[resultID] = &ent.TestResult{ID: resultID, Status: testresult.StatusUnknown, CreatedAt: time.Now()}
+	repo.runResults[runID] = []uuid.UUID{resultID}
 
 	fileID := uuid.New()
+	repo.files[fileID] = &ent.FileMetadata{
+		ID: fileID,
+		Edges: ent.FileMetadataEdges{Project: &ent.Project{ID: projectID}},
+	}
 	passed := "passed"
-	resp, err := svc.ExecuteTestResult(ctx, runID, resultID, uuid.New(), tms.UpdateTestResultRequest{
+	resp, err := svc.ExecuteTestResult(ctx, projectID, runID, resultID, uuid.New(), tms.UpdateTestResultRequest{
 		Status:  &passed,
 		FileIDs: []string{fileID.String()},
 	})
@@ -133,22 +143,22 @@ func TestService_Wave122_RecomputeRunStats_AllStatuses(t *testing.T) {
 	require.NoError(t, err)
 	runID, _ := uuid.Parse(run.ID)
 
-	detail, err := svc.AddTestCasesToRun(ctx, runID, tms.AddTestCasesToRunRequest{CaseIDs: caseIDs})
+	detail, err := svc.AddTestCasesToRun(ctx, projectID, runID, tms.AddTestCasesToRunRequest{CaseIDs: caseIDs})
 	require.NoError(t, err)
 	require.Len(t, detail.Results, 5)
 
-	_, err = svc.StartTestRun(ctx, runID)
+	_, err = svc.StartTestRun(ctx, projectID, runID)
 	require.NoError(t, err)
 
 	for i, st := range statuses {
 		resultID, err := uuid.Parse(detail.Results[i].ID)
 		require.NoError(t, err)
 		status := st
-		_, err = svc.ExecuteTestResult(ctx, runID, resultID, userID, tms.UpdateTestResultRequest{Status: &status})
+		_, err = svc.ExecuteTestResult(ctx, projectID, runID, resultID, userID, tms.UpdateTestResultRequest{Status: &status})
 		require.NoError(t, err)
 	}
 
-	got, err := svc.GetTestRunDetail(ctx, runID)
+	got, err := svc.GetTestRunDetail(ctx, projectID, runID)
 	require.NoError(t, err)
 	assert.Equal(t, 5, got.TotalCount)
 	assert.Equal(t, 1, got.PassedCount)
@@ -180,12 +190,21 @@ func TestService_Wave122_CreateBugFromFailedResult_NoTestCase(t *testing.T) {
 	projectID := uuid.New()
 	userID := uuid.New()
 
+	runID := uuid.New()
+	repo.runs[runID] = &ent.TestRun{
+		ID: runID,
+		Edges: ent.TestRunEdges{
+			Project: &ent.Project{ID: projectID},
+		},
+	}
+
 	resultID := uuid.New()
 	repo.results[resultID] = &ent.TestResult{
 		ID: resultID, Status: testresult.StatusFailed, ErrorMessage: "assertion failed", CreatedAt: time.Now(),
+		Edges: ent.TestResultEdges{Run: repo.runs[runID]},
 	}
 
-	bug, err := svc.CreateBugFromFailedResult(ctx, projectID, userID, resultID, tms.CreateBugRequest{})
+	bug, err := svc.CreateBugFromFailedResult(ctx, projectID, runID, userID, resultID, tms.CreateBugRequest{})
 	require.NoError(t, err)
 	assert.Contains(t, bug.Title, "FAILED")
 }
@@ -193,7 +212,7 @@ func TestService_Wave122_CreateBugFromFailedResult_NoTestCase(t *testing.T) {
 // TestService_Wave122_UnlinkTestCaseFromIssue_NotFound проверяет бизнес-логику: сервис wave 122 unlink test case from issue not found.
 func TestService_Wave122_UnlinkTestCaseFromIssue_NotFound(t *testing.T) {
 	svc := tms.NewTMSService(newMockRepo(), nil)
-	err := svc.UnlinkTestCaseFromIssue(context.Background(), "TC-MISSING", uuid.New())
+	err := svc.UnlinkTestCaseFromIssue(context.Background(), uuid.New(), "TC-MISSING", uuid.New())
 	require.Error(t, err)
 }
 
@@ -249,7 +268,8 @@ func TestService_Wave122_UpdateTestCase_InvalidLabels(t *testing.T) {
 	require.NoError(t, err)
 
 	bad := []string{"not-uuid"}
-	_, err = svc.UpdateTestCase(ctx, created.CaseKey, userID, tms.UpdateTestCaseRequest{Labels: &bad})
+	_, err = svc.UpdateTestCase(ctx, projectID, created.CaseKey, userID, tms.UpdateTestCaseRequest{Labels: &bad,
+		Version: 1,})
 	require.Error(t, err)
 }
 

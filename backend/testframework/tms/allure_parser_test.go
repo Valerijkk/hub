@@ -259,23 +259,32 @@ func newMockMatcherRepo() *mockMatcherRepo {
 	}
 }
 
-func (m *mockMatcherRepo) FindTestCaseByExternalID(_ context.Context, _ uuid.UUID, externalID string) (*ent.TestCase, error) {
+func (m *mockMatcherRepo) FindTestCaseByExternalID(_ context.Context, projectID uuid.UUID, externalID string) (*ent.TestCase, error) {
 	if tc, ok := m.externalIDMap[externalID]; ok {
+		if tc.Edges.Project != nil && tc.Edges.Project.ID != projectID {
+			return nil, &ent.NotFoundError{}
+		}
 		return tc, nil
 	}
 	return nil, &ent.NotFoundError{}
 }
 
-func (m *mockMatcherRepo) FindTestCaseByFullName(_ context.Context, _ uuid.UUID, fullName string) (*ent.TestCase, error) {
+func (m *mockMatcherRepo) FindTestCaseByFullName(_ context.Context, projectID uuid.UUID, fullName string) (*ent.TestCase, error) {
 	if tc, ok := m.fullNameMap[fullName]; ok {
+		if tc.Edges.Project != nil && tc.Edges.Project.ID != projectID {
+			return nil, &ent.NotFoundError{}
+		}
 		return tc, nil
 	}
 	return nil, &ent.NotFoundError{}
 }
 
-func (m *mockMatcherRepo) FindTestCaseByClassMethod(_ context.Context, _ uuid.UUID, className, methodName string) (*ent.TestCase, error) {
+func (m *mockMatcherRepo) FindTestCaseByClassMethod(_ context.Context, projectID uuid.UUID, className, methodName string) (*ent.TestCase, error) {
 	key := className + "::" + methodName
 	if tc, ok := m.classMethodMap[key]; ok {
+		if tc.Edges.Project != nil && tc.Edges.Project.ID != projectID {
+			return nil, &ent.NotFoundError{}
+		}
 		return tc, nil
 	}
 	return nil, &ent.NotFoundError{}
@@ -290,15 +299,22 @@ func (m *mockMatcherRepo) CreateTestCase(_ context.Context, _ uuid.UUID, _ tms.C
 func (m *mockMatcherRepo) GetTestCase(_ context.Context, _ uuid.UUID) (*ent.TestCase, error) {
 	return nil, nil
 }
-func (m *mockMatcherRepo) FindTestCaseByKey(_ context.Context, key string) (*ent.TestCase, error) {
+func (m *mockMatcherRepo) FindTestCaseByKey(_ context.Context, projectID uuid.UUID, key string) (*ent.TestCase, error) {
 	if tc, ok := m.caseKeyMap[key]; ok {
+		if tc.Edges.Project != nil && tc.Edges.Project.ID != projectID {
+			return nil, &ent.NotFoundError{}
+		}
 		return tc, nil
 	}
 	return nil, &ent.NotFoundError{}
 }
 
-func (m *mockMatcherRepo) FindTestCaseByAutomationID(_ context.Context, _ uuid.UUID, automationID string) (*ent.TestCase, error) {
+func (m *mockMatcherRepo) FindTestCaseByAutomationID(_ context.Context, projectID uuid.UUID, automationID string) (*ent.TestCase, error) {
 	if tc, ok := m.automationIDMap[automationID]; ok {
+		// A2W2-4-006: mock respects projectID — cross-project → NotFound.
+		if tc.Edges.Project != nil && tc.Edges.Project.ID != projectID {
+			return nil, &ent.NotFoundError{}
+		}
 		return tc, nil
 	}
 	return nil, &ent.NotFoundError{}
@@ -309,14 +325,14 @@ func (m *mockMatcherRepo) ListTestCases(_ context.Context, _ uuid.UUID, _ tms.Li
 func (m *mockMatcherRepo) UpdateTestCase(_ context.Context, _ uuid.UUID, _ tms.UpdateTestCaseInput) (*ent.TestCase, error) {
 	return nil, nil
 }
-func (m *mockMatcherRepo) DeleteTestCase(_ context.Context, _ uuid.UUID) error { return nil }
+func (m *mockMatcherRepo) DeleteTestCase(_ context.Context, _, _ uuid.UUID) error { return nil }
 func (m *mockMatcherRepo) CreateTestCaseVersion(_ context.Context, _, _ uuid.UUID, _ int, _ map[string]interface{}, _ string) (*ent.TestCaseVersion, error) {
 	return nil, nil
 }
 func (m *mockMatcherRepo) ListTestCaseVersions(_ context.Context, _ uuid.UUID) ([]*ent.TestCaseVersion, error) {
 	return nil, nil
 }
-func (m *mockMatcherRepo) GetTestCaseVersion(_ context.Context, _ uuid.UUID) (*ent.TestCaseVersion, error) {
+func (m *mockMatcherRepo) GetTestCaseVersion(_ context.Context, _, _ uuid.UUID) (*ent.TestCaseVersion, error) {
 	return nil, nil
 }
 func (m *mockMatcherRepo) CreateSuite(_ context.Context, _ uuid.UUID, _ tms.CreateSuiteInput) (*ent.TestSuite, error) {
@@ -325,14 +341,17 @@ func (m *mockMatcherRepo) CreateSuite(_ context.Context, _ uuid.UUID, _ tms.Crea
 func (m *mockMatcherRepo) GetSuite(_ context.Context, _ uuid.UUID) (*ent.TestSuite, error) {
 	return nil, nil
 }
+func (m *mockMatcherRepo) GetSuiteInProject(_ context.Context, _, _ uuid.UUID) (*ent.TestSuite, error) {
+	return nil, nil
+}
 func (m *mockMatcherRepo) ListSuites(_ context.Context, _ uuid.UUID) ([]*ent.TestSuite, error) {
 	return nil, nil
 }
-func (m *mockMatcherRepo) UpdateSuite(_ context.Context, _ uuid.UUID, _ tms.UpdateSuiteInput) (*ent.TestSuite, error) {
+func (m *mockMatcherRepo) UpdateSuite(_ context.Context, _, _ uuid.UUID, _ tms.UpdateSuiteInput) (*ent.TestSuite, error) {
 	return nil, nil
 }
-func (m *mockMatcherRepo) DeleteSuite(_ context.Context, _ uuid.UUID) error { return nil }
-func (m *mockMatcherRepo) MoveSuite(_ context.Context, _ uuid.UUID, _ *uuid.UUID) (*ent.TestSuite, error) {
+func (m *mockMatcherRepo) DeleteSuite(_ context.Context, _, _ uuid.UUID) error { return nil }
+func (m *mockMatcherRepo) MoveSuite(_ context.Context, _, _ uuid.UUID, _ *uuid.UUID) (*ent.TestSuite, error) {
 	return nil, nil
 }
 func (m *mockMatcherRepo) CreateComponent(_ context.Context, _ uuid.UUID, _, _ string) (*ent.Component, error) {
@@ -341,11 +360,17 @@ func (m *mockMatcherRepo) CreateComponent(_ context.Context, _ uuid.UUID, _, _ s
 func (m *mockMatcherRepo) ListComponents(_ context.Context, _ uuid.UUID) ([]*ent.Component, error) {
 	return nil, nil
 }
-func (m *mockMatcherRepo) DeleteComponent(_ context.Context, _ uuid.UUID) error { return nil }
+func (m *mockMatcherRepo) CountComponentsInProject(_ context.Context, _ uuid.UUID, ids []uuid.UUID) (int, error) {
+	return len(ids), nil
+}
+func (m *mockMatcherRepo) DeleteComponent(_ context.Context, _, _ uuid.UUID) error { return nil }
 func (m *mockMatcherRepo) CreateTestRun(_ context.Context, _ uuid.UUID, _ tms.CreateTestRunInput) (*ent.TestRun, error) {
 	return nil, nil
 }
 func (m *mockMatcherRepo) GetTestRun(_ context.Context, _ uuid.UUID) (*ent.TestRun, error) {
+	return nil, nil
+}
+func (m *mockMatcherRepo) GetTestRunInProject(_ context.Context, _, _ uuid.UUID) (*ent.TestRun, error) {
 	return nil, nil
 }
 func (m *mockMatcherRepo) ListTestRuns(_ context.Context, _ uuid.UUID, _ tms.ListTestRunsParams) ([]*ent.TestRun, int, error) {
@@ -363,17 +388,36 @@ func (m *mockMatcherRepo) UpdateTestRunStats(_ context.Context, _ uuid.UUID, _ t
 func (m *mockMatcherRepo) CreateTestResult(_ context.Context, _ uuid.UUID, _ tms.CreateTestResultInput) (*ent.TestResult, error) {
 	return nil, nil
 }
-func (m *mockMatcherRepo) UpdateTestResult(_ context.Context, _ uuid.UUID, _ tms.UpdateTestResultInput) (*ent.TestResult, error) {
+func (m *mockMatcherRepo) UpdateTestResult(_ context.Context, _, _ uuid.UUID, _ tms.UpdateTestResultInput) (*ent.TestResult, error) {
 	return nil, nil
 }
 func (m *mockMatcherRepo) ListTestResults(_ context.Context, _ uuid.UUID) ([]*ent.TestResult, error) {
 	return nil, nil
 }
+func (m *mockMatcherRepo) ListTestResultsByRunIDs(_ context.Context, _ []uuid.UUID) ([]*ent.TestResult, error) {
+	return nil, nil
+}
 func (m *mockMatcherRepo) BatchCreateTestResults(_ context.Context, _ uuid.UUID, _ []tms.CreateTestResultInput) ([]*ent.TestResult, error) {
 	return nil, nil
 }
+func (m *mockMatcherRepo) DeleteTestResults(_ context.Context, _ []uuid.UUID) error { return nil }
 func (m *mockMatcherRepo) IncrementTestCaseCounter(_ context.Context, _ uuid.UUID) (int, error) {
 	return 0, nil
+}
+func (m *mockMatcherRepo) CountTestCasesInProject(_ context.Context, _ uuid.UUID, ids []uuid.UUID) (int, error) {
+	return len(ids), nil
+}
+func (m *mockMatcherRepo) CountLabelsInProject(_ context.Context, _ uuid.UUID, ids []uuid.UUID) (int, error) {
+	return len(ids), nil
+}
+func (m *mockMatcherRepo) CountProjectMembers(_ context.Context, _ uuid.UUID, userIDs []uuid.UUID) (int, error) {
+	return len(userIDs), nil
+}
+func (m *mockMatcherRepo) CountFilesInProject(_ context.Context, _ uuid.UUID, ids []uuid.UUID) (int, error) {
+	return len(ids), nil
+}
+func (m *mockMatcherRepo) FindIssueInProject(_ context.Context, _, _ uuid.UUID) (*ent.Issue, error) {
+	return nil, &ent.NotFoundError{}
 }
 func (m *mockMatcherRepo) LinkTestCaseToIssue(_ context.Context, _, _ uuid.UUID) error { return nil }
 func (m *mockMatcherRepo) UnlinkTestCaseFromIssue(_ context.Context, _, _ uuid.UUID) error {
@@ -385,6 +429,9 @@ func (m *mockMatcherRepo) AddTestCasesToRun(_ context.Context, _ uuid.UUID, _ []
 func (m *mockMatcherRepo) GetTestResult(_ context.Context, _ uuid.UUID) (*ent.TestResult, error) {
 	return nil, nil
 }
+func (m *mockMatcherRepo) GetTestResultInRun(_ context.Context, _, _ uuid.UUID) (*ent.TestResult, error) {
+	return nil, nil
+}
 func (m *mockMatcherRepo) ListTestRunResults(_ context.Context, _ uuid.UUID) ([]*ent.TestResult, error) {
 	return nil, nil
 }
@@ -394,13 +441,53 @@ func (m *mockMatcherRepo) AssignTestersToRun(_ context.Context, _ uuid.UUID, _ [
 func (m *mockMatcherRepo) GetTestRunWithResults(_ context.Context, _ uuid.UUID) (*ent.TestRun, error) {
 	return nil, nil
 }
-func (m *mockMatcherRepo) AddFilesToResult(_ context.Context, _ uuid.UUID, _ []uuid.UUID) error {
+func (m *mockMatcherRepo) GetTestRunWithResultsInProject(_ context.Context, _, _ uuid.UUID) (*ent.TestRun, error) {
+	return nil, nil
+}
+func (m *mockMatcherRepo) AddFilesToResult(_ context.Context, _, _ uuid.UUID, _ []uuid.UUID) error {
 	return nil
+}
+func (m *mockMatcherRepo) GetLastResultForTestCase(_ context.Context, _ uuid.UUID) (*ent.TestResult, error) {
+	return nil, nil
+}
+func (m *mockMatcherRepo) GetLastResultsForTestCases(_ context.Context, _ []uuid.UUID) (map[uuid.UUID]*ent.TestResult, error) {
+	return map[uuid.UUID]*ent.TestResult{}, nil
 }
 func (m *mockMatcherRepo) StoreAllureResults(_ context.Context, _ uuid.UUID, _ []tms.AllureResult) error {
 	return nil
 }
 func (m *mockMatcherRepo) GetAllureResultsByRunID(_ context.Context, _ uuid.UUID) ([]tms.AllureResult, error) {
+	return nil, nil
+}
+func (m *mockMatcherRepo) CreateEnvironment(_ context.Context, _ uuid.UUID, _ tms.CreateEnvironmentInput) (*ent.Environment, error) {
+	return nil, nil
+}
+func (m *mockMatcherRepo) GetEnvironment(_ context.Context, _ uuid.UUID) (*ent.Environment, error) {
+	return nil, nil
+}
+func (m *mockMatcherRepo) GetEnvironmentInProject(_ context.Context, _, _ uuid.UUID) (*ent.Environment, error) {
+	return nil, nil
+}
+func (m *mockMatcherRepo) ListEnvironmentsByProject(_ context.Context, _ uuid.UUID) ([]*ent.Environment, error) {
+	return nil, nil
+}
+func (m *mockMatcherRepo) UpdateEnvironment(_ context.Context, _, _ uuid.UUID, _ tms.UpdateEnvironmentInput) (*ent.Environment, error) {
+	return nil, nil
+}
+func (m *mockMatcherRepo) DeleteEnvironment(_ context.Context, _, _ uuid.UUID) error { return nil }
+func (m *mockMatcherRepo) GetLatestTestRunForEnvironment(_ context.Context, _, _ uuid.UUID) (*ent.TestRun, error) {
+	return nil, nil
+}
+func (m *mockMatcherRepo) GetTestCaseLinkedIssues(_ context.Context, _ uuid.UUID) ([]*ent.Issue, error) {
+	return nil, nil
+}
+func (m *mockMatcherRepo) GetIssueLinkedTestCases(_ context.Context, _ uuid.UUID) ([]*ent.TestCase, error) {
+	return nil, nil
+}
+func (m *mockMatcherRepo) GetProjectIssuesWithTestCases(_ context.Context, _ uuid.UUID) ([]*ent.Issue, error) {
+	return nil, nil
+}
+func (m *mockMatcherRepo) CreateBugIssue(_ context.Context, _, _, _ uuid.UUID, _, _, _ string) (*ent.Issue, error) {
 	return nil, nil
 }
 

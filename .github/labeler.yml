@@ -21,4 +21,4 @@ ci:
 
 e2e:
   - changed-files:
-      - any-glob-to-any-file: "testframework/e2e/**"
+- any-glob-to-any-file: "testframework/tests/e2e/**"

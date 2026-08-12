@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ChannelInvite } from "@/api/messenger";
 import {
 	createInviteLink,
@@ -96,6 +96,13 @@ function CreateInviteForm({
 	const [maxUses, setMaxUses] = useState<number>(0);
 	const [isCreating, setIsCreating] = useState(false);
 	const [copiedToken, setCopiedToken] = useState<string | null>(null);
+	const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	useEffect(() => {
+		return () => {
+			if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+		};
+	}, []);
 
 	const handleCreate = useCallback(async () => {
 		setIsCreating(true);
@@ -109,7 +116,8 @@ function CreateInviteForm({
 			const copied = await copyToClipboard(url);
 			if (copied) {
 				setCopiedToken(invite.token);
-				setTimeout(() => setCopiedToken(null), 2000);
+				if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+				copyTimerRef.current = setTimeout(() => setCopiedToken(null), 2000);
 			}
 			onCreated();
 		} finally {
@@ -199,13 +207,21 @@ function InviteItem({
 }) {
 	const [copied, setCopied] = useState(false);
 	const [revoking, setRevoking] = useState(false);
+	const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	useEffect(() => {
+		return () => {
+			if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+		};
+	}, []);
 
 	const handleCopy = useCallback(async () => {
 		const url = getFullInviteUrl(invite.token);
 		const ok = await copyToClipboard(url);
 		if (ok) {
 			setCopied(true);
-			setTimeout(() => setCopied(false), 2000);
+			if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+			copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
 		}
 	}, [invite.token]);
 
@@ -242,7 +258,7 @@ function InviteItem({
 						</span>
 					)}
 					{isExhausted && !isExpired && (
-						<span className="shrink-0 rounded bg-orange-500/10 px-1.5 py-0.5 text-[10px] text-orange-600">
+						<span className="shrink-0 rounded bg-[var(--orange)]/10 px-1.5 py-0.5 text-[10px] text-[var(--orange)]">
 							Исчерпана
 						</span>
 					)}
@@ -259,12 +275,13 @@ function InviteItem({
 					type="button"
 					className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-raised transition-colors"
 					title="Копировать ссылку"
+					aria-label="Копировать ссылку"
 					onClick={() => void handleCopy()}
 				>
 					{copied ? (
 						<svg
 							aria-hidden="true"
-							className="h-3.5 w-3.5 text-green-500"
+							className="h-3.5 w-3.5 text-[var(--green)]"
 							fill="none"
 							viewBox="0 0 24 24"
 							stroke="currentColor"
@@ -299,6 +316,7 @@ function InviteItem({
 					type="button"
 					className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-destructive/10 text-t2 hover:text-destructive transition-colors"
 					title="Отозвать"
+					aria-label="Отозвать"
 					disabled={revoking}
 					onClick={() => void handleRevoke()}
 				>
@@ -419,6 +437,7 @@ export function InviteLinkDialog({ channelId }: { channelId: string }) {
 					type="button"
 					className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-t2 hover:bg-raised hover:text-t1 transition-colors"
 					title="Пригласить в канал"
+					aria-label="Пригласить в канал"
 				>
 					<svg
 						aria-hidden="true"

@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -50,7 +51,7 @@ func TestGetLinkPreview_ExternalHTTPS(t *testing.T) {
 
 	// SafeHTTP блокирует 127.0.0.1 — resolveExternalPreview через GetLinkPreview использует заблокированный хост.
 	svc := github.NewLinkPreviewService(&previewMockRepo{}, nil)
-	resp, err := svc.GetLinkPreview(context.Background(), srv.URL)
+	resp, err := svc.GetLinkPreview(context.Background(), uuid.New(), srv.URL)
 	require.NoError(t, err)
 	// Откатывается на внешнюю заглушку, когда загрузка OG заблокирована
 	assert.Equal(t, "external", resp.Type)

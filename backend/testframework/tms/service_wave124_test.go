@@ -37,9 +37,10 @@ func TestService_Wave124_UpdateTestCase_WithComponents_Ent(t *testing.T) {
 
 	compIDs := []string{comp.ID.String()}
 	title := "Updated comp case"
-	updated, err := svc.UpdateTestCase(ctx, created.CaseKey, userID, tms.UpdateTestCaseRequest{
+	updated, err := svc.UpdateTestCase(ctx, projectID, created.CaseKey, userID, tms.UpdateTestCaseRequest{
 		Title:      &title,
 		Components: &compIDs,
+		Version:    1,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "Updated comp case", updated.Title)
@@ -56,17 +57,17 @@ func TestService_Wave124_RollbackTestCase_Success_Ent(t *testing.T) {
 	require.NoError(t, err)
 
 	v1Title := "Rollback me"
-	_, err = svc.UpdateTestCase(ctx, created.CaseKey, userID, tms.UpdateTestCaseRequest{Title: &v1Title})
+	_, err = svc.UpdateTestCase(ctx, projectID, created.CaseKey, userID, tms.UpdateTestCaseRequest{Title: &v1Title, Version: 1})
 	require.NoError(t, err)
 
-	versions, err := svc.ListTestCaseVersions(ctx, created.CaseKey)
+	versions, err := svc.ListTestCaseVersions(ctx, projectID, created.CaseKey)
 	require.NoError(t, err)
 	require.NotEmpty(t, versions)
 
 	versionID, err := uuid.Parse(versions[0].ID)
 	require.NoError(t, err)
 
-	rolled, err := svc.RollbackTestCase(ctx, created.CaseKey, versionID, userID)
+	rolled, err := svc.RollbackTestCase(ctx, projectID, created.CaseKey, versionID, userID)
 	require.NoError(t, err)
 	assert.Equal(t, "Rollback me", rolled.Title)
 }
@@ -81,7 +82,7 @@ func TestService_Wave124_GetTestCaseLinks_Ent(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	links, err := svc.GetTestCaseLinks(ctx, created.CaseKey)
+	links, err := svc.GetTestCaseLinks(ctx, projectID, created.CaseKey)
 	require.NoError(t, err)
 	assert.Empty(t, links)
 }
@@ -110,8 +111,8 @@ func TestService_Wave124_LinkTestCaseToIssue_Ent(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	require.NoError(t, svc.LinkTestCaseToIssue(ctx, created.CaseKey, issue.ID))
-	links, err := svc.GetTestCaseLinks(ctx, created.CaseKey)
+	require.NoError(t, svc.LinkTestCaseToIssue(ctx, projectID, created.CaseKey, issue.ID))
+	links, err := svc.GetTestCaseLinks(ctx, projectID, created.CaseKey)
 	require.NoError(t, err)
 	require.Len(t, links, 1)
 	assert.Equal(t, "TMS-42", links[0].IssueKey)
@@ -133,13 +134,14 @@ func TestService_Wave124_UpdateTestCase_AllFields_Ent(t *testing.T) {
 	post := "Post"
 	status := "active"
 	steps := []schema.TestStep{{Order: 1, Action: "click", ExpectedResult: "ok"}}
-	updated, err := svc.UpdateTestCase(ctx, created.CaseKey, userID, tms.UpdateTestCaseRequest{
+	updated, err := svc.UpdateTestCase(ctx, projectID, created.CaseKey, userID, tms.UpdateTestCaseRequest{
 		Title:         &title,
 		Description:   &desc,
 		Precondition:  &pre,
 		Postcondition: &post,
 		Status:        &status,
 		Steps:         &steps,
+		Version:       1,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "Full update v2", updated.Title)

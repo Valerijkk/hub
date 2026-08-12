@@ -38,7 +38,8 @@ type WebhookResponse struct {
 
 // WebhookAllure обрабатывает POST /api/projects/:projectId/tms/webhook
 // @Summary CI/CD webhook для импорта результатов Allure
-// @Description Принимает multipart (zip-архив allure-results) или JSON-массив результатов.
+// @Description Принимает multipart (JSON-файл allure-results) или raw JSON-массив результатов.
+// @Description ZIP-архивы не поддерживаются — передавайте JSON-массив или один .json файл.
 // @Description Аутентификация через X-Hub-Token заголовок или query-параметр token.
 // @Tags TMS
 // @Accept multipart/form-data,application/json
@@ -50,6 +51,7 @@ type WebhookResponse struct {
 // @Success 201 {object} WebhookResponse
 // @Failure 400 {object} apperr.AppError
 // @Failure 401 {object} apperr.AppError
+// @Failure 413 {object} apperr.AppError
 // @Router /api/projects/{projectId}/tms/webhook [post]
 func (h *Handler) WebhookAllure(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
@@ -96,8 +98,11 @@ func (h *Handler) WebhookAllure(c fiber.Ctx) error {
 			title = c.FormValue("title", "")
 		}
 	} else {
-		// тело JSON
+		// A2W2-1-005: raw body — тот же cap, что и multipart (не только Fiber BodyLimit 25 MB).
 		allureData = c.Body()
+		if len(allureData) > maxAllureFileBytes {
+			return fiber.NewError(fiber.StatusRequestEntityTooLarge, "тело запроса превышает лимит 5 MB")
+		}
 	}
 
 	if len(allureData) == 0 {
@@ -107,7 +112,9 @@ func (h *Handler) WebhookAllure(c fiber.Ctx) error {
 	// Пытаемся распарсить как JSON-массив результатов
 	var rawResults json.RawMessage
 	if err := json.Unmarshal(allureData, &rawResults); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "невалидный JSON: "+err.Error())
+		// P3-BE-08 / W2-A1-011: не отдаём internals парсера клиенту.
+		slog.Error("невалидный Allure JSON в webhook", "error", err)
+		return fiber.NewError(fiber.StatusBadRequest, "невалидный JSON")
 	}
 
 	req := ImportAllureRequest{
@@ -191,7 +198,11 @@ func (h *Handler) WebhookJUnit(c fiber.Ctx) error {
 			title = c.FormValue("title", "")
 		}
 	} else {
+		// A2W2-1-005: raw XML body — тот же 5 MB cap, что multipart.
 		xmlData = c.Body()
+		if len(xmlData) > maxAllureFileBytes {
+			return fiber.NewError(fiber.StatusRequestEntityTooLarge, "тело запроса превышает лимит 5 MB")
+		}
 	}
 
 	if len(xmlData) == 0 {
@@ -201,8 +212,9 @@ func (h *Handler) WebhookJUnit(c fiber.Ctx) error {
 	// Парсим JUnit XML -> AllureResult[]
 	allureResults, err := ParseJUnitXML(xmlData)
 	if err != nil {
+		// P3-BE-08 / W2-A1-011: детали парсера только в slog.
 		slog.Error("ошибка парсинга JUnit XML", "error", err)
-		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		return fiber.NewError(fiber.StatusBadRequest, "невалидный JUnit XML")
 	}
 
 	// Конвертируем обратно в JSON для ImportAllureRequest

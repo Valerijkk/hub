@@ -7,6 +7,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/valerii/hub/backend/ent/workflowstatus"
 )
 
 // TestEntRepository_CommentsAndReactions проверяет слой репозитория: ent репозиторий comments and reactions.
@@ -30,22 +32,22 @@ func TestEntRepository_CommentsAndReactions(t *testing.T) {
 	require.Len(t, comments, 1)
 
 	updatedText := "updated"
-	updated, err := env.repo.UpdateComment(env.ctx, comment.ID, tracker.UpdateCommentInput{
+	updated, err := env.repo.UpdateComment(env.ctx, issue.ID, env.userID, comment.ID, tracker.UpdateCommentInput{
 		BodyJSON: map[string]interface{}{"type": "doc", "v": 2},
 		BodyText: updatedText,
-	})
+		Version: 1,})
 	require.NoError(t, err)
 	assert.Equal(t, updatedText, updated.BodyText)
 
-	added, err := env.repo.ToggleReaction(env.ctx, comment.ID, env.userID, "👍")
+	added, err := env.repo.ToggleReaction(env.ctx, issue.ID, comment.ID, env.userID, "👍")
 	require.NoError(t, err)
 	assert.True(t, added)
 
-	removed, err := env.repo.ToggleReaction(env.ctx, comment.ID, env.userID, "👍")
+	removed, err := env.repo.ToggleReaction(env.ctx, issue.ID, comment.ID, env.userID, "👍")
 	require.NoError(t, err)
 	assert.False(t, removed)
 
-	require.NoError(t, env.repo.DeleteComment(env.ctx, comment.ID))
+	require.NoError(t, env.repo.DeleteComment(env.ctx, issue.ID, env.userID, comment.ID))
 	comments, err = env.repo.ListComments(env.ctx, issue.ID)
 	require.NoError(t, err)
 	assert.Empty(t, comments)
@@ -64,7 +66,7 @@ func TestEntRepository_CustomFields(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, fields, 1)
 
-	require.NoError(t, env.repo.DeleteCustomField(env.ctx, field.ID))
+	require.NoError(t, env.repo.DeleteCustomField(env.ctx, env.projectID, field.ID))
 	fields, err = env.repo.ListCustomFields(env.ctx, env.projectID)
 	require.NoError(t, err)
 	assert.Empty(t, fields)
@@ -120,11 +122,11 @@ func TestEntRepository_WorkflowTransitionsAndDefault(t *testing.T) {
 	require.NoError(t, err)
 
 	newName := "Code Review"
-	updated, err := env.repo.UpdateWorkflowStatus(env.ctx, done.ID, &newName, nil, nil)
+	updated, err := env.repo.UpdateWorkflowStatus(env.ctx, env.projectID, done.ID, &newName, nil, nil)
 	require.NoError(t, err)
 	assert.Equal(t, newName, updated.Name)
 
-	tr, err := env.repo.CreateWorkflowTransition(env.ctx, env.statusID, done.ID)
+	tr, err := env.repo.CreateWorkflowTransition(env.ctx, env.projectID, env.statusID, done.ID)
 	require.NoError(t, err)
 
 	transitions, err := env.repo.ListWorkflowTransitions(env.ctx, env.projectID)
@@ -134,7 +136,7 @@ func TestEntRepository_WorkflowTransitionsAndDefault(t *testing.T) {
 	_, err = env.repo.FindTransition(env.ctx, env.statusID, done.ID)
 	require.NoError(t, err)
 
-	require.NoError(t, env.repo.DeleteWorkflowTransition(env.ctx, tr.ID))
+	require.NoError(t, env.repo.DeleteWorkflowTransition(env.ctx, env.projectID, tr.ID))
 }
 
 // TestEntRepository_DeleteAndMoveIssue проверяет слой репозитория: ent репозиторий удаление and move issue.
@@ -149,7 +151,7 @@ func TestEntRepository_DeleteAndMoveIssue(t *testing.T) {
 	done, err := env.repo.CreateWorkflowStatus(env.ctx, env.projectID, "Done2", "done", "#0F0", 50)
 	require.NoError(t, err)
 
-	moved, err := env.repo.MoveIssue(env.ctx, issue.ID, done.ID, "rank-1")
+	moved, err := env.repo.MoveIssue(env.ctx, issue.ID, done.ID, "rank-1", issue.Version)
 	require.NoError(t, err)
 	assert.Equal(t, done.ID, moved.Edges.Status.ID)
 
@@ -174,7 +176,7 @@ func TestEntRepository_GetBoardDataWithFilters(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	data, err := env.repo.GetBoardData(env.ctx, board.ID)
+	data, err := env.repo.GetBoardData(env.ctx, env.projectID, board.ID)
 	require.NoError(t, err)
 	require.NotNil(t, data.Edges.Project)
 }
@@ -198,8 +200,53 @@ func TestEntRepository_StartStopTimer(t *testing.T) {
 	assert.GreaterOrEqual(t, stopped.Minutes, 1)
 }
 
-// TestEntRepository_GetDB проверяет слой репозитория: ent репозиторий получение db.
-func TestEntRepository_GetDB(t *testing.T) {
+// TestEntRepository_SearchIssuesJQL_ProjectScoped проверяет слой репозитория:
+// JQL идёт через SearchIssuesJQL (без GetDB) и ограничен projectID (A2W1-A2-001).
+func TestEntRepository_SearchIssuesJQL_ProjectScoped(t *testing.T) {
 	env := newTrackerRepoTestEnv(t)
-	assert.NotNil(t, env.repo.GetDB())
+
+	mine, err := env.repo.CreateIssue(env.ctx, env.projectID, tracker.CreateIssueInput{
+		Title:      "JQL in project",
+		IssueType:  "task",
+		Priority:   "high",
+		ReporterID: env.userID,
+		StatusID:   &env.statusID,
+	})
+	require.NoError(t, err)
+
+	foreign, err := env.client.Project.Create().
+		SetName("Foreign JQL").
+		SetKey("FJQ").
+		Save(env.ctx)
+	require.NoError(t, err)
+	foreignStatus, err := env.client.WorkflowStatus.Create().
+		SetName("Todo").
+		SetCategory(workflowstatus.CategoryTodo).
+		SetColor("#6B7280").
+		SetSortOrder(0).
+		SetIsDefault(true).
+		SetProjectID(foreign.ID).
+		Save(env.ctx)
+	require.NoError(t, err)
+	_, err = env.repo.CreateIssue(env.ctx, foreign.ID, tracker.CreateIssueInput{
+		Title:      "Other project issue",
+		IssueType:  "task",
+		Priority:   "high",
+		ReporterID: env.userID,
+		StatusID:   &foreignStatus.ID,
+	})
+	require.NoError(t, err)
+
+	found, err := env.repo.SearchIssuesJQL(env.ctx, env.projectID, nil, "priority", 100)
+	require.NoError(t, err)
+	require.Len(t, found, 1)
+	assert.Equal(t, mine.ID, found[0].ID)
+	assert.Equal(t, "JQL in project", found[0].Title)
+
+	// Service path тоже не использует GetDB.
+	svc := tracker.NewTrackerService(env.repo, nil)
+	resp, err := svc.SearchIssuesJQL(env.ctx, env.projectID, env.userID, "priority = high ORDER BY created DESC")
+	require.NoError(t, err)
+	require.Equal(t, 1, resp.Total)
+	require.Equal(t, mine.IssueKey, resp.Results[0].Key)
 }

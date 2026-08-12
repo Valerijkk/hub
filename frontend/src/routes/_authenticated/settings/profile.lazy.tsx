@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createLazyFileRoute, useNavigate } from "@tanstack/react-router";
-import { type FormEvent, useRef, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { SessionResponse } from "@/api/auth";
 import {
+	birthdayForDateInput,
 	getMe,
 	listSessions,
 	logout,
@@ -43,10 +44,9 @@ function ProfilePage() {
 		display_name: user?.display_name ?? "",
 		phone: user?.phone ?? "",
 		position: user?.position ?? "",
-		department: user?.department ?? "",
 		timezone: user?.timezone ?? "",
 		language: user?.language ?? "",
-		birthday: user?.birthday ?? "",
+		birthday: birthdayForDateInput(user?.birthday),
 	});
 
 	const fileInputRef = useRef<HTMLInputElement>(null);
@@ -77,24 +77,24 @@ function ProfilePage() {
 	/** Кастомный статус пользователя (например, "На обеде", "В отпуске"). */
 	const [customStatusText, setCustomStatusText] = useState("");
 
-	/** Длительность кастомного статуса. */
-	const [statusDuration] = useState("1d");
+	/** Длительность кастомного статуса (без UI — дефолт 1 день). */
+	const statusDuration = "1d";
 
-	/* Синхронизация формы при загрузке данных пользователя */
+	/* Синхронизация формы при загрузке данных пользователя (не setState в render). */
 	const [initialized, setInitialized] = useState(false);
-	if (user && !initialized) {
+	useEffect(() => {
+		if (!user || initialized) return;
 		setForm({
 			name: user.name ?? "",
 			display_name: user.display_name ?? "",
 			phone: user.phone ?? "",
 			position: user.position ?? "",
-			department: user.department ?? "",
 			timezone: user.timezone ?? "",
 			language: user.language ?? "",
-			birthday: user.birthday ?? "",
+			birthday: birthdayForDateInput(user.birthday),
 		});
 		setInitialized(true);
-	}
+	}, [user, initialized]);
 
 	const profileMutation = useMutation({
 		mutationFn: updateProfile,
@@ -130,7 +130,6 @@ function ProfilePage() {
 			display_name: form.display_name || undefined,
 			phone: form.phone || undefined,
 			position: form.position || undefined,
-			department: form.department || undefined,
 			timezone: form.timezone || undefined,
 			language: form.language || undefined,
 			birthday: form.birthday || undefined,
@@ -158,7 +157,13 @@ function ProfilePage() {
 
 				{/* Аватар профиля */}
 				<div className="flex items-center gap-5 mb-7">
-					<div className="group w-24 h-24 rounded-full bg-gradient-to-br from-[var(--blueS)] to-[var(--purpleS)] flex items-center justify-center text-[32px] font-extrabold text-white relative cursor-pointer transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-250 shadow-[0_4px_20px_var(--gB)] hover:scale-105 hover:shadow-[0_6px_30px_var(--gB)]">
+					<button
+						type="button"
+						disabled={avatarUploading}
+						aria-label="Загрузить фото профиля"
+						onClick={() => fileInputRef.current?.click()}
+						className="group w-24 h-24 rounded-full bg-gradient-to-br from-[var(--blueS)] to-[var(--purpleS)] flex items-center justify-center text-[32px] font-extrabold text-white relative cursor-pointer transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-250 shadow-[0_4px_20px_var(--gB)] hover:scale-105 hover:shadow-[0_6px_30px_var(--gB)] disabled:opacity-50 disabled:cursor-not-allowed"
+					>
 						{user?.display_name?.[0] ?? user?.name?.[0] ?? "?"}
 						<div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 transition-opacity duration-200 group-hover:opacity-100">
 							<svg
@@ -173,7 +178,7 @@ function ProfilePage() {
 								<circle cx="12" cy="13" r="4" />
 							</svg>
 						</div>
-					</div>
+					</button>
 					<div>
 						<input
 							ref={fileInputRef}

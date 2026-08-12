@@ -40,7 +40,7 @@ func TestHandler_Wave120_CommentReactionUpdateDelete(t *testing.T) {
 	defer resp.Body.Close()
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	updateBody := `{"body_json":{"type":"doc","v":2},"body_text":"Updated wave120"}`
+	updateBody := `{"body_json":{"type":"doc","v":2},"body_text":"Updated wave120","version":1}`
 	req = httptest.NewRequest(http.MethodPut, base+"/comments/"+comment.ID, bytes.NewReader([]byte(updateBody)))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err = app.Test(req)

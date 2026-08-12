@@ -179,12 +179,16 @@ export function IssueForm({
 					aria-describedby={errors.title ? "title-error" : undefined}
 					className={
 						errors.title
-							? "border-red-500 focus-visible:ring-red-500"
+							? "border-[var(--red)] focus-visible:ring-[var(--red)]"
 							: undefined
 					}
 				/>
 				{errors.title ? (
-					<p id="title-error" className="text-sm text-red-500" role="alert">
+					<p
+						id="title-error"
+						className="text-sm text-[var(--red)]"
+						role="alert"
+					>
 						{fieldError("title")}
 					</p>
 				) : null}
@@ -277,7 +281,7 @@ export function IssueForm({
 						placeholder="0"
 					/>
 					{errors.estimate_minutes ? (
-						<p className="text-sm text-red-500">
+						<p className="text-sm text-[var(--red)]">
 							{fieldError("estimate_minutes")}
 						</p>
 					) : null}

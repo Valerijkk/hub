@@ -9,6 +9,24 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// invalidateByPatternScript — атомарный SCAN+DEL в одном EVAL.
+// W6-A3-014: без Lua окно SCAN→DEL позволяет concurrent Set оставить stale key до TTL.
+// A3W6-3-003: комментарий и скрипт согласованы на DEL (не UNLINK).
+const invalidateByPatternScript = `
+local cursor = "0"
+local n = 0
+repeat
+  local result = redis.call("SCAN", cursor, "MATCH", ARGV[1], "COUNT", 100)
+  cursor = result[1]
+  local keys = result[2]
+  for i = 1, #keys do
+    redis.call("DEL", keys[i])
+    n = n + 1
+  end
+until cursor == "0"
+return n
+`
+
 // PermissionCache предоставляет кеширование эффективных разрешений в Redis.
 type PermissionCache struct {
 	rdb *redis.Client
@@ -49,14 +67,20 @@ func (c *PermissionCache) Invalidate(ctx context.Context, userID, projectID stri
 	return c.rdb.Del(ctx, cacheKey(userID, projectID)).Err()
 }
 
-// InvalidateProject удаляет все кешированные разрешения проекта через SCAN+DEL.
+// InvalidateProject удаляет все кешированные разрешения проекта атомарно (Lua SCAN+DEL).
 func (c *PermissionCache) InvalidateProject(ctx context.Context, projectID string) error {
 	pattern := fmt.Sprintf("rbac:*:%s", projectID)
-	iter := c.rdb.Scan(ctx, 0, pattern, 100).Iterator()
-	for iter.Next(ctx) {
-		if err := c.rdb.Del(ctx, iter.Val()).Err(); err != nil {
-			return err
-		}
-	}
-	return iter.Err()
+	return c.invalidateByPattern(ctx, pattern)
+}
+
+// InvalidateUser удаляет все кешированные разрешения пользователя во всех проектах
+// (ключ `rbac:<userID>:<projectID>`). Нужно при demote system_role / смене прав,
+// когда projectID заранее неизвестен (P1-BE-33 / W6-A3-003).
+func (c *PermissionCache) InvalidateUser(ctx context.Context, userID string) error {
+	pattern := fmt.Sprintf("rbac:%s:*", userID)
+	return c.invalidateByPattern(ctx, pattern)
+}
+
+func (c *PermissionCache) invalidateByPattern(ctx context.Context, pattern string) error {
+	return c.rdb.Eval(ctx, invalidateByPatternScript, nil, pattern).Err()
 }

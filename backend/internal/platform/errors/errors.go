@@ -4,11 +4,14 @@ package errors
 import "fmt"
 
 // AppError — структурированная ошибка приложения с HTTP-кодом, сообщением и ID запроса.
+//
+// Публичный JSON (NFR-13 / TZ): только {"error","request_id"}.
+// HTTP-статус берётся из Code; code/message/details в теле не отдаются.
 type AppError struct {
-	Code       int    `json:"code"`
-	Message    string `json:"message"`
+	Code       int    `json:"-"`
+	Message    string `json:"error"`
 	RequestID  string `json:"request_id,omitempty"`
-	Details    any    `json:"details,omitempty"`
+	Details    any    `json:"-"`
 	RetryAfter int    `json:"-"` // секунды для заголовка Retry-After (429)
 }
 

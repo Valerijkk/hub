@@ -16,6 +16,7 @@ func TestEscapeMarkdownV2(t *testing.T) {
 		{"a.b.c", "a\\.b\\.c"},
 		{"all_special: _*[]()~`>#+-=|{}.!",
 			"all\\_special: \\_\\*\\[\\]\\(\\)\\~\\`\\>\\#\\+\\-\\=\\|\\{\\}\\.\\!"},
+		{`a\b`, `a\\b`},
 	}
 
 	for _, tt := range tests {

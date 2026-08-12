@@ -11,13 +11,13 @@ func TestRecordOperationAndSnapshot(t *testing.T) {
 
 	observability.ExportRecordOperation("test.op", 100, false)
 	observability.ExportRecordOperation("test.op", 200, true)
-	observability.ExportRecordOperation("other.op", 50, false)
+	observability.ExportRecordOperation("audit.op", 50, false)
 
 	snap := observability.Snapshot()
 	if len(snap) != 2 {
 		t.Fatalf("expected 2 ops, got %d", len(snap))
 	}
-	if snap[0].Operation != "other.op" || snap[0].Count != 1 {
+	if snap[0].Operation != "audit.op" || snap[0].Count != 1 {
 		t.Fatalf("unexpected first metric: %+v", snap[0])
 	}
 	if snap[1].Operation != "test.op" {

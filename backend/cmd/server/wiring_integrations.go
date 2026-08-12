@@ -40,7 +40,9 @@ func wireIntegrations(d *serverDeps) {
 	gitlabHandler := gitlabmod.NewHandler(gitlabSvc)
 	gitlabHandler.RegisterRoutes(api, requireAuth, rbacSvc)
 	d.gitlabSvc = gitlabSvc
-	d.aiBot.SetCodeReview(aimod.NewUnifiedCodeReviewProvider(githubSvc, gitlabSvc))
+	review := aimod.NewUnifiedCodeReviewProvider(githubSvc, gitlabSvc)
+	review.SetAccessChecker(aimod.RBACProjectAccess{Svc: rbacSvc})
+	d.aiBot.SetCodeReview(review)
 
 	// Calls routes (голосовые звонки через LiveKit)
 	callsRepo := callsmod.NewEntRepository(d.db)
@@ -103,7 +105,7 @@ func wireIntegrations(d *serverDeps) {
 	}
 	d.backupS3Client = backupS3Client
 	d.backupS3Bucket = backupS3Bucket
-	backupSvc := backupmod.NewBackupService(d.rootCtx, backupmod.NewEntRepository(d.db), backupS3Client, backupS3Bucket, cfg.Postgres.URL, cfg.MongoDB.URL)
+	backupSvc := backupmod.NewBackupServiceWithGate(d.rootCtx, backupmod.NewEntRepository(d.db), backupS3Client, backupS3Bucket, cfg.Postgres.URL, cfg.MongoDB.URL, d.maintGate)
 	backupHandler := backupmod.NewHandler(backupSvc)
 	backupHandler.RegisterRoutes(api, requireAuth, rbac.RequireAdmin(d.rbacRepo))
 	d.backupSvc = backupSvc
@@ -118,7 +120,7 @@ func wireIntegrations(d *serverDeps) {
 	// Модуль import/export
 	imexSvc := imexmod.NewImExService(imexmod.NewEntRepository(d.db))
 	imexHandler := imexmod.NewHandler(imexSvc)
-	imexHandler.RegisterRoutes(api, requireAuth)
+	imexHandler.RegisterRoutes(api, requireAuth, rbacSvc)
 
 	// Шаблоны проектов — быстрый старт tracker/TMS из preset.
 	templateSvc := projectmod.NewTemplateService(d.projectRepo)

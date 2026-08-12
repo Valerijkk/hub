@@ -43,3 +43,24 @@ func ExportProjectServiceNotifyLinkDeleted(s *ProjectService, ctx context.Contex
 func ExportToTemplateResponse(t *ent.ProjectTemplate) *TemplateResponse {
 	return toTemplateResponse(t)
 }
+
+// ExportSetAfterAddTeamLinkHook инъектирует mid-fail после AddTeamIDs внутри tx (TASK-088).
+func ExportSetAfterAddTeamLinkHook(fn func(ctx context.Context) error) {
+	afterAddTeamLinkHook = fn
+}
+
+// ExportSetAfterCreateTeamHook инъектирует mid-fail после CreateTeam внутри tx (A3W1-A5-003).
+func ExportSetAfterCreateTeamHook(fn func(ctx context.Context) error) {
+	afterCreateTeamHook = fn
+}
+
+// ExportSetAfterCrossLinkDeleteHook инъектирует mid-fail после DeleteIssueLink
+// внутри SoftDeleteWithCrossLinkCleanup tx (A2W1-A5-001 / TASK-122).
+func ExportSetAfterCrossLinkDeleteHook(fn func(ctx context.Context) error) {
+	afterCrossLinkDeleteHook = fn
+}
+
+// ExportMaxTemplateImportBytes возвращает лимит импорта шаблона для hubtest (A3W1-A5-006).
+func ExportMaxTemplateImportBytes() int {
+	return maxTemplateImportBytes
+}

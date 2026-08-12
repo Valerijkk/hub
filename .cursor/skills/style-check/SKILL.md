@@ -1,142 +1,116 @@
 ---
 name: style-check
-description: Расширенный стиль-чек — anti-AI фразы + deprecated паттерны + echo-comments + a11y проблемы. Запускай перед PR review.
+description: Evidence-based review с раздельными BLOCK/HYBRID/REVIEW. Raw search собирает кандидатов, но не превращает 25 lines, SOLID/DRY/POM/mocks или grep hit в автоматический defect.
 disable-model-invocation: true
 ---
 
-# /style-check — Extended Style Check
+# /style-check — evidence-based style and risk review
 
-Расширенный аудит кода на anti-AI и другие стилевые нарушения.
+Цель — найти конкретные correctness/security/maintainability failures без
+cargo-cult gates. Канон evidence:
+`.cursor/knowledge/code-practices/{00-principles.md,01-evidence-model.md}`,
+controls: `hard-controls.md`, `review-guidelines.md`,
+`negative-sentinels.md`, `adoption-status.md`.
 
-## Phase 1: Anti-AI Check
+Tests, validators, linters, build/vet и app processes выполняются только в
+task-owned Docker через [`qa-gate`](../qa-gate/SKILL.md). Host `rg` допустим
+только как read-only просмотр кандидатов; его output не является canonical
+validator PASS/FAIL и не доказывает defect.
 
-Прочитай и выполни [references/anti-ai.md](references/anti-ai.md). Подтверждай
-контекст каждой находки: grep-кандидат сам по себе не является дефектом.
+## 1. Классификация
 
-## Phase 2: Go Style Violations
+### BLOCK
 
-```bash
-cd C:/Users/Valerii/Desktop/hub/backend
+Только когда есть:
 
-# log.Printf / log.Println вместо slog
-rg -n "log\.(Printf|Println|Print|Fatal|Fatalf|Panic|Panicf)\(" . --type go
+1. точный locked policy или control реально `blocking` в adoption status;
+2. конкретный failure class и применимый scope;
+3. machine/runtime evidence, отличающий violation от допустимого случая;
+4. exact path:line, remediation и exception path.
 
-# fmt.Println в production paths (не в тестах)
-rg -n "fmt\.Println\|fmt\.Printf" ./internal/ --type go
+Примеры: confirmed committed secret (`C01`), exploitable SQL construction
+(`C07`/`NEG-12`), confirmed missing server authz (`C08`/`NEG-13`), founder
+Docker-only или test-target violation. Catalog row без adoption evidence не BLOCK.
 
-# Голые return без значения в функции с returns
-rg -n "^\s+return$" ./internal/ --type go
+### HYBRID
 
-# Неиспользуемые параметры context (должен быть первым)
-rg -n "func.*\(.*context\.Context" ./internal/ --type go -l | head -20
+Machine signal обязателен, семантику подтверждает reviewer. Finding содержит
+`Cxx` и/или `NEG-xx`, observable failure, evidence и remaining uncertainty.
+Примеры: timeout/retry/idempotency (`C10–C13`, `NEG-01/09/16`), cleanup/shared
+state (`C20/C31`, `NEG-07`), cancellation/concurrency (`C29/C30`,
+`NEG-10/11`), arbitrary test sleep (`C19`, `NEG-03`).
 
-# Нет defer для cleanup
-rg -n "resp\, err := " ./internal/ --type go -A2 | grep -v "defer resp.Body.Close"
+### REVIEW
+
+Context-dependent design question. Нужен change/failure model и concrete
+rationale, но raw shape не блокирует:
+
+- function/module size, включая `>25 logical lines`;
+- SOLID, DRY, YAGNI, composition/inheritance/DI;
+- число assertions и test length;
+- DAMP/DRY balance;
+- stub/fake/spy/mock и interaction assertions;
+- helper/Component Object/Page Object;
+- Pyramid/Trophy/Honeycomb suite mix;
+- comment wording, abstraction и naming.
+
+## 2. Workflow
+
+1. Определить changed scope, contract, owner и risk.
+2. Прочитать [anti-ai reference](references/anti-ai.md).
+3. Собрать raw candidates read-only; не считать count verdict.
+4. Проверить каждый candidate в контексте code, callers, tests и docs.
+5. Связать finding с locked policy, `Cxx`/`NEG-xx` или review question.
+6. Назвать observable failure и supporting evidence; если их нет — оставить
+   question/telemetry gap, не defect.
+7. Проверить adoption status перед словами `hard`, `blocking`, `enforced`.
+8. Machine gates запустить только Docker-only; при запрете — `NOT_RUN`.
+
+## 3. Required review areas
+
+- secrets, injection, authn/authz/tenant isolation, redaction;
+- timeout, finite retry, idempotency, cancellation, bounded concurrency;
+- ownership/lifetime, mutable global state, cleanup;
+- API/error/schema/event compatibility;
+- accessible semantic controls and critical flow evidence;
+- test determinism, observable oracle, false-confidence sentinel;
+- agent authority/provenance where agent workflow changes.
+
+Hub deprecated technology (`minio-go`, Gorilla WebSocket) — candidate until
+confirmed in active production path and contradicted by current architecture.
+Fixture, generated, migration or historical references are not automatic defects.
+
+## 4. Forbidden reviewer shortcuts
+
+- `rg`/grep hit = finding;
+- 25 lines = split;
+- SOLID = interface/class quota;
+- DRY = merge similar syntax;
+- one behavior = one assert;
+- mock/POM absent = defect, or present = quality;
+- Pyramid/Trophy/Honeycomb ratio = gate;
+- catalogued control = implemented control;
+- style preference overrides correctness/security/data integrity.
+
+## 5. Report
+
+```text
+STYLE REVIEW: PASS|FINDINGS|NOT_RUN
+Scope: <paths/change contract>
+Docker validators: <exact evidence or NOT_RUN>
+
+BLOCK
+- [Cxx|POLICY] path:line — observable failure; evidence; remediation
+
+HYBRID
+- [Cxx/NEG-xx] path:line — signal; semantic evidence; uncertainty; owner
+
+REVIEW
+- path:line — question tied to change/failure model; recommendation
+
+Dismissed candidates
+- pattern — why false positive/allowed context
 ```
 
-### Layering violations (rule `10-style.mdc` — критично для be-ver)
-
-```bash
-# *ent.Client в Service (запрещено — нарушение layering)
-rg -n "\*ent\.Client" ./internal/*/service*.go --type go
-
-# *ent.Client в Handler (запрещено)
-rg -n "\*ent\.Client" ./internal/*/handler*.go --type go
-
-# Пример реального нарушения (искать по доменам с недавним рефакторингом)
-rg -n "\*ent\.Client" ./internal/tracker/ ./internal/bases/ ./internal/tms/ --type go
-```
-
-### Security-инварианты TZ (обязательный grep перед PR)
-
-```bash
-# http.DefaultClient (SSRF risk) — вместо safehttp.NewSafeHTTPClient
-rg -n "http\.DefaultClient" ./internal/ --type go
-
-# io.ReadAll без LimitReader (memory DoS)
-rg -n "io\.ReadAll\(" ./internal/ --type go
-
-# != для секретов вместо subtle.ConstantTimeCompare
-rg -n '!= "' ./internal/auth/ ./internal/ws/ --type go
-
-# panic() в production paths (handler/service, не тесты)
-rg -n "panic\(" ./internal/ --type go --glob '!*_test.go'
-```
-
-## Phase 3: TypeScript Style
-
-```bash
-cd C:/Users/Valerii/Desktop/hub/frontend/src
-
-# any без комментария
-rg -n ": any\b" . --type ts --type tsx | grep -v "// "
-
-# as any (type assertion escape)
-rg -n " as any\b" . --type ts --type tsx | grep -v "// "
-
-# TODO без тикета
-rg -n "TODO:" . --type ts --type tsx | grep -v "TODO: HUB-"
-
-# console.log
-rg -n "console\.(log|warn|error)\(" . --type ts --type tsx
-```
-
-## Phase 4: A11y Check
-
-```bash
-cd C:/Users/Valerii/Desktop/hub/frontend/src
-
-# Кнопки без aria-label или видимого текста
-rg -n "<button[^>]*>" . --type tsx | grep -v "aria-label\|<button.*>[^<]"
-
-# img без alt
-rg -n "<img[^>]*>" . --type tsx | grep -v "alt="
-
-# Интерактивные div без role
-rg -n "<div.*onClick" . --type tsx | grep -v "role="
-```
-
-## Phase 5: CSS / Design System
-
-```bash
-cd C:/Users/Valerii/Desktop/hub/frontend
-
-# !important (запрещены кроме @media prefers-reduced-motion)
-rg -n "!important" src/ --type css
-
-# Inline styles (должны быть через CSS variables)
-rg -n 'style=\{' src/ --type tsx | grep -v "style=\{.*var(--" | head -20
-
-# Hardcoded hex colors (должны быть через design tokens)
-rg -n "#[0-9a-fA-F]{3,6}" src/ --type tsx --type ts | grep -v "// " | head -20
-```
-
-## Результат
-
-```
-Phase 1: Anti-AI — N findings
-Phase 2: Go Style (+layering +security) — N findings
-Phase 3: TypeScript Style — N findings
-Phase 4: A11y — N findings
-Phase 5: CSS — N findings
-
-Total: N findings
-🔴 FAIL — fix before PR | ✅ PASS
-```
-
-## Примеры реальных находок Hub (для калибровки серьёзности)
-
-| Находка | Домен | Серьёзность | Действие |
-|---------|-------|-------------|----------|
-| `*ent.Client` протащен в `service_boards.go` после быстрого хотфикса | tracker | 🔴 CRITICAL (layering) | Вынести через `repo_boards.go` interface, немедленный фикс до merge |
-| `console.log` оставлен в `use-composer-ai-suggest.ts` после дебага | ai (frontend) | 🟡 MEDIUM | Удалить перед PR, не критично для прод (dev-only лог), но правило style-check ловит |
-| `!= "` в сравнении webhook-подписи (`export_hooks.go`) | tracker/bases | 🔴 CRITICAL (SEC-02) | `subtle.ConstantTimeCompare`, эскалация `security-auditor` |
-| `<button onClick=...>` без `type="button"` в bases inline-edit | v4/bases (frontend) | 🟡 MEDIUM | Implicit submit риск в форме — добавить `type="button"` |
-| `key={index}` в списке кейсов TMS (`case-table-row.tsx`) | tms (frontend) | 🟡 MEDIUM | React reconciliation bug при пересортировке — заменить на `case.id` |
-
-## Связь с REGULATION / GSD
-
-- Полный gate (сборка+тесты+lint) — отдельно, `.cursor/skills/qa-gate/SKILL.md`
-- Anti-AI паттерны — owned reference
-  [references/anti-ai.md](references/anti-ai.md), который читает Phase 1
-- GSD-эквивалент peer review: `gsd-code-review` (более широкий, не построчный grep) — см. `.cursor/GSD-INTEGRATION.md` §Hub slash-skills vs GSD skills
+`PASS` означает отсутствие подтверждённых findings в просмотренном scope, а не
+Hub-wide compliance. Raw candidate count можно приложить отдельно, не как score.

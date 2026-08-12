@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"time"
 
-	"github.com/gofiber/fiber/v3"
-	"github.com/valerii/hub/backend/internal/platform/database"
+	auditmod "github.com/valerii/hub/backend/internal/audit"
 	messengermod "github.com/valerii/hub/backend/internal/messenger"
+	"github.com/valerii/hub/backend/internal/platform/database"
+	"github.com/valerii/hub/backend/internal/platform/health"
 	searchmod "github.com/valerii/hub/backend/internal/search"
 	statusmod "github.com/valerii/hub/backend/internal/status"
 	tmsmod "github.com/valerii/hub/backend/internal/tms"
@@ -29,68 +29,50 @@ func wireMessenger(d *serverDeps) {
 		os.Exit(1)
 	}
 	d.mongoDB = mongoDB
+	// A8-007: PG/Redis/NATS уже в LIFO cleanup — Mongo тоже должен закрываться.
+	d.addCleanup(database.MongoDisconnectCleanup(mongoDB))
 
-	// Health: PostgreSQL, Redis, MongoDB (без auth) — K8s liveness.
-	api.Get("/health", func(c fiber.Ctx) error {
-		healthCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-
-		services := fiber.Map{}
-		overall := "ok"
-
-		// PostgreSQL
-		// BE-H5: переиспользуем pool вместо нового
-		// *sql.DB на каждый probe — утечка connections под нагрузкой.
-		if pingErr := d.rawDB.PingContext(healthCtx); pingErr != nil {
-			services["postgres"] = "error"
-			overall = "degraded"
-		} else {
-			services["postgres"] = "ok"
+	// A14-001: /live = liveness (процесс), /ready = deps (readiness).
+	// /health — alias /ready для обратной совместимости (не использовать как liveness).
+	pingPG := func(ctx context.Context) error { return d.rawDB.PingContext(ctx) }
+	pingRedis := func(ctx context.Context) error { return d.rdb.Ping(ctx).Err() }
+	pingMongo := func(ctx context.Context) error { return mongoDB.Client().Ping(ctx, nil) }
+	pingNATS := func(ctx context.Context) error {
+		if d.nc == nil || d.nc.Conn == nil || !d.nc.Conn.IsConnected() {
+			return fmt.Errorf("nats disconnected")
 		}
-
-		// Клиент Redis
-		if pingErr := d.rdb.Ping(healthCtx).Err(); pingErr != nil {
-			services["redis"] = "error"
-			overall = "degraded"
-		} else {
-			services["redis"] = "ok"
-		}
-
-		// MongoDB
-		if pingErr := mongoDB.Client().Ping(healthCtx, nil); pingErr != nil {
-			services["mongo"] = "error"
-			overall = "degraded"
-		} else {
-			services["mongo"] = "ok"
-		}
-
-		status := fiber.StatusOK
-		if overall != "ok" {
-			status = fiber.StatusServiceUnavailable
-		}
-		return c.Status(status).JSON(fiber.Map{
-			"status":   overall,
-			"services": services,
-		})
+		return nil
+	}
+	readyHandler := health.Ready(health.Deps{
+		PingPostgres: pingPG,
+		PingRedis:    pingRedis,
+		PingMongo:    pingMongo,
+		PingNATS:     pingNATS,
 	})
+	api.Get("/live", health.Live)
+	api.Get("/ready", readyHandler)
+	api.Get("/health", readyHandler)
 
-	statusSvc := statusmod.NewService(
-		func(ctx context.Context) error { return d.rawDB.PingContext(ctx) },
-		func(ctx context.Context) error { return d.rdb.Ping(ctx).Err() },
-		func(ctx context.Context) error { return mongoDB.Client().Ping(ctx, nil) },
-		func(ctx context.Context) error {
-			if d.nc == nil || d.nc.Conn == nil || !d.nc.Conn.IsConnected() {
-				return fmt.Errorf("nats disconnected")
-			}
-			return nil
-		},
-	)
-	statusmod.NewHandler(statusSvc).RegisterRoutes(api)
+	statusSvc := statusmod.NewService(pingPG, pingRedis, pingMongo, pingNATS)
+	// W7-A5-002: публичный aggregate + /status/details за auth.
+	statusmod.NewHandler(statusSvc).RegisterRoutes(api, requireAuth)
 
 	messengerEntRepo := messengermod.NewEntRepository(d.db)
 	messengerMongoRepo := messengermod.NewMongoRepository(mongoDB)
 	if err := messengerMongoRepo.EnsureIndexes(d.ctx); err != nil {
 		slog.Error("failed to ensure messenger indexes", "error", err)
+	}
+	// P1-BE-34 / TASK-023: GDPR erase стирает Mongo-сообщения по sender_id.
+	// C-W19-002 / TASK-178: post-Commit fail → JetStream compensating retry (идемпотентный DeleteMany).
+	if d.auditSvc != nil {
+		eraser := auditmod.NewMongoMessageEraser(mongoDB)
+		d.auditSvc.SetMessageEraser(eraser)
+		d.auditSvc.SetMongoEraseRetry(auditmod.NewJetStreamMongoEraseRetry(d.nc))
+		eraseRetryCons := auditmod.NewMongoEraseRetryConsumer(d.nc, eraser)
+		if err := eraseRetryCons.Start(d.rootCtx); err != nil {
+			slog.Error("failed to start gdpr mongo erase retry consumer", "error", err)
+		}
+		d.addCleanup(eraseRetryCons.Stop)
 	}
 	messengerRepo := messengermod.NewCombinedRepository(messengerEntRepo, messengerMongoRepo)
 	presenceSvc := messengermod.NewPresenceService(d.rdb)
@@ -98,6 +80,8 @@ func wireMessenger(d *serverDeps) {
 	messengerSvc := messengermod.NewMessengerService(messengerRepo, d.nc, presenceSvc, unreadSvc)
 	// Feature #58 (Thread → Issue): MessengerService.PromoteToIssue делегирует в trackerSvc.
 	messengerSvc.SetIssuePromoter(trackerSvc)
+	// TASK-010: обязательный PermTaskCreate в целевом проекте (fail-closed при nil).
+	messengerSvc.SetPromotePermissionChecker(rbacSvc)
 	trackerSvc.SetThreadMirror(&threadMirrorAdapter{svc: messengerSvc})
 	messengerSvc.SetIssueThreadLinker(trackerSvc)
 	messengerHandler := messengermod.NewHandler(messengerSvc)
@@ -120,7 +104,7 @@ func wireMessenger(d *serverDeps) {
 	d.tmsSvc = tmsSvc
 
 	// Search routes (глобальный поиск + сохранённые фильтры)
-	// Поиск переиспользует тот же raw `*sql.DB`, что и /health probe (BE-H5):
+	// Поиск переиспользует тот же raw `*sql.DB`, что и /ready probe (BE-H5):
 	// pool разделяется с Ent, отдельного pgx-подключения не открываем.
 	if err := searchmod.EnsureSearchIndexes(d.ctx, d.rawDB); err != nil {
 		slog.Error("failed to ensure search indexes", "error", err)

@@ -32,6 +32,21 @@ function formatTime(dateStr: string): string {
 	}
 }
 
+/** Проверка payload WS chat.message перед записью в ленту. */
+function isCallChatMessage(
+	payload: unknown,
+	callId: string,
+): payload is CallChatMessage {
+	if (!payload || typeof payload !== "object") return false;
+	const msg = payload as Partial<CallChatMessage>;
+	return (
+		msg.call_id === callId &&
+		typeof msg.id === "string" &&
+		msg.id.length > 0 &&
+		typeof msg.text === "string"
+	);
+}
+
 /** Эфемерный чат звонка — сворачиваемая панель справа, 280px. */
 export function CallChat({ callId }: CallChatProps) {
 	const [text, setText] = useState("");
@@ -42,25 +57,44 @@ export function CallChat({ callId }: CallChatProps) {
 	const toggleChatLogging = useCallStore((s) => s.toggleChatLogging);
 
 	/** Загрузка истории сообщений. */
-	const { data: messages = [] } = useQuery({
+	const {
+		data: messages = [],
+		isPending,
+		isError,
+		refetch,
+	} = useQuery({
 		queryKey: ["call-chat", callId],
 		queryFn: () => listChatMessages(callId),
 		refetchInterval: false,
 	});
 
-	/** Подписка на новые сообщения через WebSocket. */
+	/** Подписка на WS-комнату call:{id} и фильтр chat.message. */
+	const connected = useWsStore((s) => s.connected);
+	const subscribe = useWsStore((s) => s.subscribe);
+	const unsubscribe = useWsStore((s) => s.unsubscribe);
 	const addListener = useWsStore((s) => s.addListener);
 	const removeListener = useWsStore((s) => s.removeListener);
 
 	useEffect(() => {
-		const handler = (_event: string, payload: unknown) => {
-			const msg = payload as CallChatMessage;
-			if (msg.call_id === callId) {
-				queryClient.setQueryData<CallChatMessage[]>(
-					["call-chat", callId],
-					(old = []) => [...old, msg],
-				);
-			}
+		if (!connected || !callId) return;
+		const room = `call:${callId}`;
+		subscribe(room);
+		return () => {
+			unsubscribe(room);
+		};
+	}, [connected, callId, subscribe, unsubscribe]);
+
+	useEffect(() => {
+		const handler = (event: string, payload: unknown) => {
+			if (event !== "chat.message") return;
+			if (!isCallChatMessage(payload, callId)) return;
+			queryClient.setQueryData<CallChatMessage[]>(
+				["call-chat", callId],
+				(old = []) => {
+					if (old.some((m) => m.id === payload.id)) return old;
+					return [...old, payload];
+				},
+			);
 		};
 		addListener(handler);
 		return () => removeListener(handler);
@@ -70,7 +104,20 @@ export function CallChat({ callId }: CallChatProps) {
 	const sendMutation = useMutation({
 		mutationFn: (msg: string) =>
 			sendChatMessage(callId, msg, !chatLoggingEnabled),
-		onSuccess: () => setText(""),
+		onSuccess: (sent) => {
+			setText("");
+			if (!sent?.id) {
+				void queryClient.invalidateQueries({ queryKey: ["call-chat", callId] });
+				return;
+			}
+			queryClient.setQueryData<CallChatMessage[]>(
+				["call-chat", callId],
+				(old = []) => {
+					if (old.some((m) => m.id === sent.id)) return old;
+					return [...old, sent];
+				},
+			);
+		},
 	});
 
 	/** Авто-скролл при новых сообщениях. */
@@ -96,6 +143,12 @@ export function CallChat({ callId }: CallChatProps) {
 					<button
 						type="button"
 						onClick={toggleChatLogging}
+						aria-pressed={chatLoggingEnabled}
+						aria-label={
+							chatLoggingEnabled
+								? "Выключить логирование чата"
+								: "Включить логирование чата"
+						}
 						className={cn(
 							"flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] transition-colors",
 							chatLoggingEnabled
@@ -126,52 +179,74 @@ export function CallChat({ callId }: CallChatProps) {
 				ref={scrollRef}
 				className="flex-1 overflow-y-auto px-3 py-3 space-y-3"
 			>
-				{messages.length === 0 && (
+				{isPending && (
+					<p
+						className="text-center text-xs text-white/20 mt-8"
+						aria-busy="true"
+					>
+						Загрузка…
+					</p>
+				)}
+				{!isPending && isError && (
+					<div role="alert" className="mt-8 space-y-2 text-center">
+						<p className="text-xs text-red-400">Не удалось загрузить чат</p>
+						<button
+							type="button"
+							className="text-xs text-white/50 hover:text-white/80 underline"
+							onClick={() => void refetch()}
+						>
+							Попробовать снова
+						</button>
+					</div>
+				)}
+				{!isPending && !isError && messages.length === 0 && (
 					<p className="text-center text-xs text-white/20 mt-8">
 						Нет сообщений
 					</p>
 				)}
-				{messages.map((msg) => {
-					const own = isOwn(msg);
-					return (
-						<div
-							key={msg.id}
-							className={cn(
-								"flex flex-col gap-0.5",
-								own ? "items-end" : "items-start",
-							)}
-						>
-							{/* Имя + время */}
+				{!isPending &&
+					!isError &&
+					messages.map((msg) => {
+						const own = isOwn(msg);
+						return (
 							<div
+								key={msg.id}
 								className={cn(
-									"flex items-center gap-2 px-1",
-									own ? "flex-row-reverse" : "",
+									"flex flex-col gap-0.5",
+									own ? "items-end" : "items-start",
 								)}
 							>
-								<span className="text-[10px] font-medium text-white/40">
-									{own ? "Вы" : msg.user_name}
-								</span>
-								{msg.created_at && (
-									<span className="text-[10px] text-white/20">
-										{formatTime(msg.created_at)}
+								{/* Имя + время */}
+								<div
+									className={cn(
+										"flex items-center gap-2 px-1",
+										own ? "flex-row-reverse" : "",
+									)}
+								>
+									<span className="text-[10px] font-medium text-white/40">
+										{own ? "Вы" : msg.user_name}
 									</span>
-								)}
-							</div>
+									{msg.created_at && (
+										<span className="text-[10px] text-white/20">
+											{formatTime(msg.created_at)}
+										</span>
+									)}
+								</div>
 
-							{/* Пузырёк сообщения */}
-							<div
-								className={cn(
-									"max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed",
-									own
-										? "bg-blue-500/20 text-blue-100 rounded-br-md"
-										: "bg-white/[0.06] text-white/80 rounded-bl-md",
-								)}
-							>
-								{msg.text}
+								{/* Пузырёк сообщения */}
+								<div
+									className={cn(
+										"max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed",
+										own
+											? "bg-blue-500/20 text-blue-100 rounded-br-md"
+											: "bg-white/[0.06] text-white/80 rounded-bl-md",
+									)}
+								>
+									{msg.text}
+								</div>
 							</div>
-						</div>
-					);
-				})}
+						);
+					})}
 			</div>
 
 			{/* Ввод сообщения */}
@@ -193,6 +268,7 @@ export function CallChat({ callId }: CallChatProps) {
 				<button
 					type="submit"
 					disabled={!text.trim()}
+					aria-label="Отправить"
 					className={cn(
 						"flex h-9 w-9 items-center justify-center rounded-xl transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200",
 						text.trim()
@@ -200,7 +276,7 @@ export function CallChat({ callId }: CallChatProps) {
 							: "bg-white/5 text-white/20 cursor-not-allowed",
 					)}
 				>
-					<Send className="h-4 w-4" />
+					<Send className="h-4 w-4" aria-hidden="true" />
 				</button>
 			</form>
 		</div>

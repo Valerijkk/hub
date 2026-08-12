@@ -10,6 +10,7 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useInvalidateChannels } from "@/hooks/use-invalidate";
 
 /** Диалог создания канала (вариант с кнопкой в заголовке). */
@@ -23,6 +24,7 @@ export function CreateChannelDialog() {
 					type="button"
 					className="inline-flex h-7 w-7 items-center justify-center rounded-md text-sidebar-foreground/60 hover:bg-white/10 hover:text-sidebar-foreground transition-colors"
 					title="Создать канал"
+					aria-label="Создать канал"
 				>
 					<svg
 						aria-hidden="true"
@@ -71,11 +73,15 @@ export function CreateChannelDialogContent() {
 
 	return (
 		<div className="space-y-4 pt-2">
-			<Input
-				placeholder="Название канала"
-				value={name}
-				onChange={(e) => setName(e.target.value)}
-			/>
+			<div className="space-y-1.5">
+				<Label htmlFor="channel-name">Название канала</Label>
+				<Input
+					id="channel-name"
+					placeholder="Название канала"
+					value={name}
+					onChange={(e) => setName(e.target.value)}
+				/>
+			</div>
 			<div className="flex gap-2">
 				{(["group", "public"] as const).map((t) => (
 					<Button

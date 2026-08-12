@@ -11,6 +11,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { formatApiError } from "@/lib/format-api-error";
 import { cn } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
@@ -223,10 +224,14 @@ export function EnvironmentComparison({
 						value={envId1 || "placeholder"}
 						onValueChange={(v) => {
 							setEnvId1(v === "placeholder" ? "" : v);
+							// Сброс флага: иначе React Query отдаёт stale comparison при enabled=false
 							setSubmitted(false);
 						}}
 					>
-						<SelectTrigger className="rounded-xl border bg-card px-3 py-2 text-sm min-w-[200px]">
+						<SelectTrigger
+							aria-label="Окружение 1"
+							className="rounded-xl border bg-card px-3 py-2 text-sm min-w-[200px]"
+						>
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>
@@ -273,7 +278,10 @@ export function EnvironmentComparison({
 							setSubmitted(false);
 						}}
 					>
-						<SelectTrigger className="rounded-xl border bg-card px-3 py-2 text-sm min-w-[200px]">
+						<SelectTrigger
+							aria-label="Окружение 2"
+							className="rounded-xl border bg-card px-3 py-2 text-sm min-w-[200px]"
+						>
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>
@@ -306,13 +314,12 @@ export function EnvironmentComparison({
 			{/* Ошибка */}
 			{compError && (
 				<div className="rounded-lg border border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30 p-3 text-sm text-red-700 dark:text-red-400">
-					{(compError as { message?: string }).message ??
-						"Ошибка сравнения окружений"}
+					{formatApiError(compError) || "Ошибка сравнения окружений"}
 				</div>
 			)}
 
-			{/* Результаты */}
-			{comparison && (
+			{/* Результаты: только при submitted — иначе stale cache React Query (W10-A2-003) */}
+			{submitted && comparison && (
 				<>
 					{/* Заголовки окружений + фильтр */}
 					<div className="flex flex-wrap items-center gap-4">
@@ -453,8 +460,8 @@ export function EnvironmentComparison({
 				</>
 			)}
 
-			{/* Начальное состояние */}
-			{!submitted && !comparison && (
+			{/* Начальное состояние / после смены env до нового «Сравнить» */}
+			{!submitted && (
 				<div className="rounded-lg border bg-card/50 p-8 text-center">
 					<p className="text-sm text-t2">
 						Выберите два окружения и нажмите "Сравнить" для просмотра различий в

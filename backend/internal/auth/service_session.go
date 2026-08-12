@@ -200,6 +200,23 @@ func (s *SessionService) publishSessionCreated(userID, sessionID, device, ip str
 	}
 }
 
+// publishSessionEnded публикует logout/revoked для WS Bridge → UnregisterBySession (TASK-109).
+// Subject: auth.session.{userID}.{event}; payload обязан содержать session_id.
+func (s *SessionService) publishSessionEnded(userID, sessionID, event string) {
+	if s.nats == nil {
+		return
+	}
+	data, err := json.Marshal(SessionEndedEvent{UserID: userID, SessionID: sessionID, Reason: event})
+	if err != nil {
+		slog.Error("marshal session ended event", "error", err)
+		return
+	}
+	subject := fmt.Sprintf("auth.session.%s.%s", userID, event)
+	if err := s.nats.Publish(subject, data); err != nil {
+		slog.Error("publish session ended event", "error", err, "subject", subject)
+	}
+}
+
 // validateSessionForRefresh проверяет, что сессия в БД активна, hash совпадает и пользователь не деактивирован.
 func (s *SessionService) validateSessionForRefresh(ctx context.Context, userID, sessionID uuid.UUID, oldRefreshToken string) error {
 	sess, err := s.repo.GetUserSession(ctx, userID, sessionID)
@@ -263,6 +280,7 @@ func (s *SessionService) RefreshToken(ctx context.Context, oldRefreshToken strin
 }
 
 // Logout удаляет refresh-токен из Redis и сессию из базы данных.
+// После успешного удаления публикует auth.session.{uid}.logout (WS UnregisterBySession).
 func (s *SessionService) Logout(ctx context.Context, sessionID uuid.UUID) error {
 	sess, err := s.repo.GetSession(ctx, sessionID)
 	if err != nil {
@@ -272,7 +290,13 @@ func (s *SessionService) Logout(ctx context.Context, sessionID uuid.UUID) error 
 		return fmt.Errorf("logout: find session: %w", err)
 	}
 	s.redis.Del(ctx, refreshRedisKeyStored(sess.RefreshToken))
-	return s.repo.DeleteSession(ctx, sessionID)
+	if err := s.repo.DeleteSession(ctx, sessionID); err != nil {
+		return fmt.Errorf("logout: delete session: %w", err)
+	}
+	if sess.Edges.User != nil {
+		s.publishSessionEnded(sess.Edges.User.ID.String(), sessionID.String(), "logout")
+	}
+	return nil
 }
 
 // ListSessions возвращает все сессии пользователя, отсортированные по дате создания.
@@ -281,6 +305,7 @@ func (s *SessionService) ListSessions(ctx context.Context, userID uuid.UUID) ([]
 }
 
 // RevokeSession отзывает указанную сессию после проверки принадлежности пользователю.
+// После успешного удаления публикует auth.session.{uid}.revoked (WS UnregisterBySession).
 func (s *SessionService) RevokeSession(ctx context.Context, userID, sessionID uuid.UUID) error {
 	sess, err := s.repo.GetUserSession(ctx, userID, sessionID)
 	if err != nil {
@@ -290,5 +315,36 @@ func (s *SessionService) RevokeSession(ctx context.Context, userID, sessionID uu
 		return fmt.Errorf("revoke session: %w", err)
 	}
 	s.redis.Del(ctx, refreshRedisKeyStored(sess.RefreshToken))
-	return s.repo.DeleteSession(ctx, sessionID)
+	if err := s.repo.DeleteSession(ctx, sessionID); err != nil {
+		return fmt.Errorf("revoke session: delete: %w", err)
+	}
+	s.publishSessionEnded(userID.String(), sessionID.String(), "revoked")
+	return nil
+}
+
+// RevokeAllUserSessions инвалидирует все сессии (DB + Redis) и публикует
+// auth.session.{uid}.revoked для WS Bridge → UnregisterBySession (C-W19-001 / TASK-177).
+// Вызывается из audit.DeactivateUser / BanUser — тот же kill-path, что Logout/Revoke.
+// Fail-closed: ошибка list/invalidate возвращается caller'у (не silent success).
+func (s *SessionService) RevokeAllUserSessions(ctx context.Context, userID uuid.UUID) error {
+	sessions, err := s.repo.ListUserSessions(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("revoke all sessions: list: %w", err)
+	}
+	sessionIDs := make([]string, 0, len(sessions))
+	for _, sess := range sessions {
+		sessionIDs = append(sessionIDs, sess.ID.String())
+	}
+	if err := s.invalidateUserSessions(ctx, userID); err != nil {
+		return fmt.Errorf("revoke all sessions: %w", err)
+	}
+	if len(sessionIDs) == 0 {
+		// Нет DB-сессий — всё равно рвём все WS пользователя (empty sid → UnregisterUser).
+		s.publishSessionEnded(userID.String(), "", "revoked")
+		return nil
+	}
+	for _, sid := range sessionIDs {
+		s.publishSessionEnded(userID.String(), sid, "revoked")
+	}
+	return nil
 }

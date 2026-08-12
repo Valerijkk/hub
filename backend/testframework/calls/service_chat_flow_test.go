@@ -21,12 +21,12 @@ func TestCallChatService_PersistentMessageFlow(t *testing.T) {
 	require.NotNil(t, msg)
 	assert.Equal(t, "persist me", msg.Text)
 
-	msgs, err := f.svc.ListChatMessages(ctx, callEnt.ID.String(), 10)
+	msgs, err := f.svc.ListChatMessages(ctx, callEnt.ID.String(), f.owner.ID.String(), 10)
 	require.NoError(t, err)
 	require.Len(t, msgs, 1)
 
 	calls.ExportCallServiceChat(f.svc).DeleteCallChat(ctx, callEnt.ID.String())
-	msgs, err = f.svc.ListChatMessages(ctx, callEnt.ID.String(), 10)
+	msgs, err = f.svc.ListChatMessages(ctx, callEnt.ID.String(), f.owner.ID.String(), 10)
 	require.NoError(t, err)
 	assert.Empty(t, msgs)
 }
@@ -43,7 +43,7 @@ func TestOnRoomFinished_DeletesCallChat(t *testing.T) {
 
 	require.NoError(t, f.svc.OnRoomFinished(ctx, callEnt.RoomName))
 
-	msgs, err := f.svc.ListChatMessages(ctx, callEnt.ID.String(), 10)
+	msgs, err := f.svc.ListChatMessages(ctx, callEnt.ID.String(), f.owner.ID.String(), 10)
 	require.NoError(t, err)
 	assert.Empty(t, msgs)
 }

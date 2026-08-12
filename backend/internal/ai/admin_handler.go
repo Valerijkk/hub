@@ -19,9 +19,12 @@ func NewAdminHandler(svc *Service, isAdminFn func(c fiber.Ctx, userID uuid.UUID)
 	return &AdminHandler{svc: svc, isAdminFn: isAdminFn}
 }
 
-// RegisterRoutes монтирует /admin/ai/*.
-func (h *AdminHandler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
+// RegisterRoutes монтирует /admin/ai/* (rateLimitMw — AIRateLimit, A2W5-A1-002 / TASK-085).
+func (h *AdminHandler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rateLimitMw ...fiber.Handler) {
 	admin := api.Group("/admin/ai", authMw, h.requireAdmin())
+	for _, mw := range rateLimitMw {
+		admin.Use(mw)
+	}
 	admin.Get("/providers", h.ListProviders)
 	admin.Post("/providers", h.CreateProvider)
 	admin.Patch("/providers/:id", h.UpdateProvider)
@@ -66,7 +69,9 @@ func (h *AdminHandler) CreateProvider(c fiber.Ctx) error {
 	}
 	resp, err := h.svc.CreateProvider(c.Context(), req)
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		// A2W5-A1-003: стабильные коды, без encrypt/base_url internals.
+		status, msg := mapProviderMutateError(err)
+		return fiber.NewError(status, msg)
 	}
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
@@ -74,7 +79,7 @@ func (h *AdminHandler) CreateProvider(c fiber.Ctx) error {
 // UpdateProvider PATCH /admin/ai/providers/:id
 func (h *AdminHandler) UpdateProvider(c fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
-	if err != nil {
+	if err != nil || id == uuid.Nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid id")
 	}
 	var req UpdateProviderRequest
@@ -83,7 +88,9 @@ func (h *AdminHandler) UpdateProvider(c fiber.Ctx) error {
 	}
 	resp, err := h.svc.UpdateProvider(c.Context(), id, req)
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		// A2W5-A1-003: стабильные коды, без encrypt/base_url internals.
+		status, msg := mapProviderMutateError(err)
+		return fiber.NewError(status, msg)
 	}
 	return c.JSON(resp)
 }
@@ -91,7 +98,7 @@ func (h *AdminHandler) UpdateProvider(c fiber.Ctx) error {
 // TestProvider POST /admin/ai/providers/:id/test
 func (h *AdminHandler) TestProvider(c fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
-	if err != nil {
+	if err != nil || id == uuid.Nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid id")
 	}
 	resp, err := h.svc.TestProvider(c.Context(), id)
