@@ -1,14 +1,65 @@
 # TASK-203 — canonical baseline attempt (2026-08-07)
 
-**Verdict:** `BLOCKED`
-**Phase gate:** Phase 128 does not pass; phases 129–141 remain blocked by the
-current contract.
-**Reason:** neither backend nor frontend produced a zero-failure baseline.
-The Go coverage profile is therefore rejected and no coverage percentage from
-this run is published in `.planning/COVERAGE.md`.
+**Verdict:** `RECORDED — LEGACY DISCOVERY BASELINE; MIGRATION GATE SUPERSEDED`
+**Phase gate:** none. On 2026-08-07 the founder approved an immediate
+greenfield cutover: retain only genuine native units, delete legacy non-unit
+suites by exact manifest, and design all new non-unit suites in Python from
+requirements and risks. Row parity and the historical 82% statement target do
+not block that cutover.
+**Final evidence:** backend is zero-failure with exact merged coverage
+**82.0373%** and all **6/6** security packages at or above 80%; Docker frontend
+typecheck and Biome pass; the frozen legacy Vitest diagnostic is **510/519**;
+Docker E2E smoke is **3/3 PASS** and full with retries disabled is **48 PASS / 5
+expected skip / 0 fail**.
 
-This is evidence-only. No product code, tests, CI, Compose files, thresholds,
-or legacy paths were changed.
+This file preserves the initial red attempts below as historical triage
+evidence. Product/test repairs were performed and committed by their own
+TASK-221…225 atomic scopes; the baseline measurement itself did not change CI,
+Compose, thresholds or legacy paths.
+
+## Final backend baseline after remediation
+
+The canonical Docker Go 1.25 command was rerun after TASK-225 and the
+deterministic cron cancellation repair. The named task runner completed with
+exit code `0`; cron and NATS both passed inside the full race-enabled suite.
+
+| Metric | Final value |
+|---|---:|
+| Runtime | `119 s` (`2026-08-07T15:21:16Z` → `15:23:15Z`) |
+| Packages PASS / FAIL / no-test-files | `50 / 0 / 3` |
+| Overall exact source-range coverage | **82.0373%** (`21,269 / 25,926`) |
+| Overall floor `>=82%` | **PASS (+0.0373 pp)** |
+| Security packages `>=80%` | **6/6 PASS** |
+| Profile SHA-256 | `7C20BF7452AD9387D96F548368830282FD2A50361A0D0106E7B8069FC4C99856` |
+
+The profile was written outside tracked source at
+`.gotmp/task203-rerun-20260807/backend-final.cover.out`. `go tool cover`
+rounds the total to `82.0%`; the gate verdict uses exact merged covered/total
+source ranges from the same non-empty atomic profile.
+
+| Package | Covered / total | Exact coverage | Floor `>=80%` |
+|---|---:|---:|:---:|
+| `auth` | 686 / 851 | **80.6110%** | PASS |
+| `ws` | 408 / 443 | **92.0993%** | PASS |
+| `rbac` | 337 / 387 | **87.0801%** | PASS |
+| `audit` | 928 / 1,083 | **85.6879%** | PASS |
+| `calls` | 1,059 / 1,281 | **82.6698%** | PASS |
+| `platform/middleware` | 207 / 245 | **84.4898%** | PASS |
+
+## Final frontend Docker observation
+
+The resource-limited canonical Docker sequence produced:
+
+| Gate | Final result |
+|---|---:|
+| TypeScript `tsc --noEmit` | PASS |
+| Biome `check ./src` | PASS — 370 files, 0 diagnostics |
+| Legacy Vitest | **510/519 PASS, 9 FAIL** |
+
+Six Vitest failures are caused by the Docker harness not mounting `/work/docs`,
+two nested `tsc` fixtures time out under the 2-CPU limit, and one assertion uses
+a stale i18n key. These failures are frozen discovery evidence. The founder
+cancelled further legacy remediation in favor of greenfield Python suites.
 
 ## Revision and environment contract
 
@@ -16,6 +67,7 @@ or legacy paths were changed.
 |---|---|
 | Branch | `cursor-grok-4.5` |
 | Git HEAD | `f7fbdd7ebb23bfaba2aee71d503a7c0280846023` |
+| Post-triage backend rerun HEAD | `1f41dcbd14366d93fc47acf8da86c97d06c1ab28` |
 | Host OS | Microsoft Windows NT `10.0.26200.0` |
 | Docker Desktop | `4.40.0 (187762)` |
 | Docker Engine | `28.0.4`, API `1.48`, linux/amd64 |
@@ -117,6 +169,89 @@ assumes `/.planning`. The documented canonical Docker command mounts only
 contract. GitLab timeout and NATS assertion are separate failures and require
 test-triage against the implementation contract before any fix.
 
+### NATS focused reproduction
+
+The NATS failure was materially refined with two post-baseline diagnostic runs
+in fresh Go 1.25.11 containers. Source, tests, services, and Compose state were
+not changed.
+
+| Scope | Exact test arguments | Result | Wall time |
+|---|---|---|---:|
+| Single failing test | `go test -tags hubtest -race -count=20 -run '^TestNewClient_ConnectAndClose$' ./testframework/platform/nats` | PASS, 20/20 | 33 s |
+| Whole NATS package | `go test -tags hubtest -race -count=5 ./testframework/platform/nats` | PASS, 5/5 | 74 s |
+
+| Temporary diagnostic log | SHA-256 |
+|---|---|
+| `C:\tmp\hub-task203\nats-focused-count20.log` | `67d1106134164c4d374f830aaa30089048fbfe0a1ac90e67411ef48abd69e8e3` |
+| `C:\tmp\hub-task203\nats-package-count5.log` | `3aec302a1c0be3b847cae6fe2edad0d22df4bf41b97e87d1f2c96261ec2eea14` |
+
+The original NATS assertion is not reproducible in isolated or package-level
+repetition. This supports suite-level contention/order as a triage hypothesis;
+it does not prove the root cause and does not make the red full-suite baseline
+valid.
+
+## Backend canonical rerun after triage
+
+The exact canonical backend command was repeated after commits `04283387`
+(portable source guards) and `1f41dcbd` (deterministic GitLab handler fixture).
+Both commits are ancestors of the rerun HEAD.
+
+```text
+go test -tags hubtest -race -count=1 -timeout=600s \
+  -covermode=atomic -coverpkg=./internal/... \
+  -coverprofile=/evidence/backend-rerun-1f41dcbd.cover.out \
+  ./testframework/...
+```
+
+| Metric | Value |
+|---|---:|
+| Exit code | `0` |
+| Wall time | `206 s` |
+| Packages PASS / FAIL / no-test-files | `50 / 0 / 3` |
+| Failing tests | `0` |
+| Declared top-level tests in TASK-202 ledger | `3,663` |
+| Profile mode / lines | `atomic` / `72,324` |
+| Unique coverage blocks | `18,832` |
+| Covered / total statements | `21,206 / 25,924` |
+| Overall `internal/...` | **81.8%** |
+| Overall gate ≥82% | **MISS (-0.2 pp)** |
+
+The canonical non-JSON command does not emit executed/skipped test totals;
+`3,663` is the independently inventoried declared top-level count, not a claim
+that every declaration executed without a runtime skip. Package and failure
+counts above come from this run's result lines.
+
+The full profile is non-empty and parsed successfully with Go 1.25.11
+`go tool cover -func`. Repeated source blocks produced by multi-package
+`-coverpkg` were merged by source range with covered=true when any counter was
+non-zero. The merged overall exactly matches `go tool cover`: 81.8%.
+
+### Security packages from the valid full profile
+
+| Package | Covered / total statements | Coverage | Floor ≥80% |
+|---|---:|---:|:---:|
+| `auth` | 683 / 851 | **80.3%** | PASS |
+| `ws` | 408 / 443 | **92.1%** | PASS |
+| `rbac` | 337 / 387 | **87.1%** | PASS |
+| `audit` | 861 / 1,083 | **79.5%** | MISS |
+| `calls` | 1,059 / 1,281 | **82.7%** | PASS |
+| `platform/middleware` | 207 / 245 | **84.5%** | PASS |
+
+The current full-profile security observation is 5/6 at the 80% floor. The
+historical 6/6 result remains historical and is not used to override this
+dated measurement.
+
+| Temporary artifact | Size | SHA-256 |
+|---|---:|---|
+| `C:\tmp\hub-task203\backend-rerun-1f41dcbd.log` | 15,500 bytes | `c0b384b859fe3dc3a2dc3d95521dd1cc089d1d7cb0332f8a83d1b61585ccf4f0` |
+| `C:\tmp\hub-task203\backend-rerun-1f41dcbd.cover.out` | 5,763,160 bytes | `b415570a86e4d4bbdc9884c8ae6aad4c7b71e40c1cd01d29fa57daf066e367a4` |
+| `C:\tmp\hub-task203\backend-rerun-1f41dcbd-coverfunc.txt` | 330,281 bytes | `689f2fa21e5181818d9e1a751a7e05334f81f5854c1348f522afbc24abc824b8` |
+
+Compared with the first attempt, all 12 test failures and all 10 failed
+packages are cleared. NATS also passed inside the full suite (`6.410 s`),
+consistent with the 20/20 focused and 5/5 package sentinels. Backend execution
+is green, but the coverage contract still blocks Phase 128.
+
 ## Frontend canonical attempt
 
 Commands were executed from `frontend/` in the documented order:
@@ -164,27 +299,44 @@ Vitest JSON result:
 | 6 | `platform/error-empty-auth-p1.test.tsx` — `ErrorBoundary resets when resetKey changes` | `toHaveTextContent` assertion failed |
 | 7 | `tracker/pipeline-status-sanitize.test.tsx` — `source guard: hub tokens` | source still matches `text-(green|red)-600` |
 
-## E2E decision
+## Final E2E baseline after TASK-224
 
-`e2e-full` is `NOT_RUN`, not PASS and not skipped. Read-only
-`docker compose -f docker-compose.local.yml ps --format json` returned no Hub
-application services. The test Compose stack provides databases/brokers only;
-there was no documented running backend, frontend, LiveKit, or authenticated
-seed. Starting Playwright in that state would measure missing prerequisites,
-not the product flow.
+An isolated, resource-limited Docker application stack and deterministic dev
+seed closed the earlier prerequisite gap. The focused admin-users and Telegram
+slices passed **3/3**. The first full run exposed one Messenger retry-only
+locator flake; after the semantic locator repair its focused repeat passed
+**3/3**, and the final full run with `--retries=0` produced **48 PASS / 5
+expected skip / 0 fail** in 1.1 minutes. Smoke produced **3/3 PASS**.
+
+Two failures were classified as product gaps and repaired atomically: the
+admin-safe user list endpoint and stable Telegram routes without a bot token.
+The Messenger failure was classified as a test locator defect. Task-owned E2E
+containers, network, volume, and temporary frontend image were removed after
+evidence capture.
+
+## Frozen frontend diagnostic
+
+The final resource-limited Docker legacy Vitest diagnostic produced **510/519
+PASS, 9 FAIL**: six harness failures from the absent `/work/docs` mount, two
+nested fixture timeouts under the 2-CPU limit, and one stale i18n assertion.
+These are recorded honestly and are not remediated: the founder superseded
+legacy-suite repair with the exact-manifest greenfield cutover. Docker
+TypeScript typecheck and Biome remain green.
 
 ## Sentinel and handoff
 
 - Empty or malformed collection/profile is rejected.
-- This Go profile is non-empty and syntactically valid but still rejected
-  because ten packages failed.
-- Required frontend lint and Vitest are red; required E2E is `NOT_RUN`.
-- `.planning/COVERAGE.md` remains unchanged because TASK-203 permits updating
-  it only after a valid zero-failure result.
-- `qa-auto-ver` should independently rerun after test triage resolves the path
-  contract, GitLab timeout, NATS assertion, frontend failures, and E2E stack
-  prerequisites.
+- The first Go profile remains rejected because ten packages failed.
+- The final Go profile is valid and published in `.planning/COVERAGE.md`;
+  exact coverage is 82.0373% and all 6/6 security floors pass.
+- Required frontend typecheck and lint are green. Legacy Vitest is frozen at
+  510/519 and is not a migration gate.
+- TASK-224 E2E is closed: smoke 3/3; full 48 pass / 5 expected skip / 0 fail
+  with retries disabled.
+- Handoff is the founder cutover contract and exact keep/move/delete manifest,
+  not additional legacy remediation.
 
 **Skill log:** `gsd-execute-phase` contract read; its referenced external
 workflow file is absent in this environment, so the task's embedded gates were
-executed directly. Result: `FAIL/BLOCKED`.
+executed directly. Final result: legacy discovery recorded; migration gate
+superseded by the founder-approved greenfield cutover.

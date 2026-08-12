@@ -12,7 +12,7 @@
 | Go | **1.25.0** | `backend/go.mod` | Backend, CLI, hub-mail |
 | TypeScript | **~5.7** | `frontend/package.json` | Frontend |
 | Node.js | **22** (CI), 20+ (local) | `.github/workflows/ci.yml` | Сборка, Vitest, Playwright |
-| Python | **3.12+ target** (локально bundled 3.12.13) | Phase 129 / `testframework/pyproject.toml` | Единый корневой pytest/httpx/Playwright/Locust QA-проект; scaffold ещё не создан |
+| Python | **3.12+ target** (локально bundled 3.12.13) | Phase 129 / `testframework/PACKAGE-CONTRACT.md` | Structure-only scaffold commit `22035c45`; package bootstrap, dependencies, executable suites и runtime ещё `NOT_READY`/`NOT_RUN` |
 
 ---
 
@@ -39,11 +39,9 @@
 
 ### Сборка production
 
-```bash
-cd backend
-go generate ./ent
-go build -tags release -o bin/server ./cmd/server
-```
+Production build выполняется только внутри принятого resource-limited Docker
+job. Его внутренние шаги — Ent generation и Go release build; этот раздел не
+разрешает host-команду или обход versioned launcher/CI contract.
 
 Тег `release` исключает `/dev/*` routes (ME-09).
 
@@ -75,18 +73,26 @@ go build -tags release -o bin/server ./cmd/server
 
 ### Скрипты npm
 
+Таблица целиком — current legacy inventory, не инструкция для агента. Host
+Vite/build/lint/test процессы запрещены; target checks будут вызываться только
+через будущий versioned launcher API из `testframework/runner/**`, для которого
+`/qa-gate` является единственным outer consumer.
+
 | Команда | Действие |
 |---------|----------|
 | `npm run dev` | Vite dev :5173 |
 | `npm run build` | `tsc -b && vite build` |
 | `npm run lint` | `biome check ./src` |
-| `npx vitest run` / `npm run test:run` | Unit tests (`testframework/stages/unit/frontend-test/domains/`) |
-| `npm run test:e2e:smoke` | Playwright smoke job (`--project=chromium-smoke`) |
-| `npm run test:e2e` | Playwright full job (`--project=chromium-full`) |
+| `npx vitest run` / `npm run test:run` | Legacy unit entrypoint до Phase 129; target: `frontend/tests/**` |
+| `npm run test:e2e:smoke` | Legacy TypeScript Playwright entrypoint; delete в TASK-219 |
+| `npm run test:e2e` | Legacy TypeScript Playwright entrypoint; delete в TASK-219 |
 
-Эти Playwright TypeScript scripts — текущие legacy entrypoints на период
-верифицированного dual-run. Они не входят в целевой стек и подлежат
-удалению в Phase 141 после доказанного Python parity.
+Эти scripts не запускаются агентами на host: после реализации все target
+checks выполняются единственным launcher API из `testframework/runner/**`.
+TypeScript
+Playwright entrypoints не входят в target и удаляются exact-manifest batch в
+TASK-219 без parity/dual-run. Greenfield Python E2E получает только launcher
+profiles по Phase 137–141, не отдельные Docker entrypoints.
 
 ---
 
@@ -100,11 +106,13 @@ go build -tags release -o bin/server ./cmd/server
 | SeaweedFS | `chrislusf/seaweedfs:3.97` | 9333, 8333 | Files (S3), recordings |
 | NATS JetStream | `nats:2.11` | 4222, 8222 | Pub/sub, outbox, notifications |
 
-Файлы compose: `docker-compose.local.yml` (корень), `deployments/docker-compose.prod.yml`, `deployments/docker-compose.test.yml`.
-Test Compose по умолчанию ограничивает CPU/RAM каждого сервиса; локальные
-override-переменные имеют вид `HUB_TEST_<SERVICE>_CPUS` и
-`HUB_TEST_<SERVICE>_MEMORY`. Канонический Go runner также запускается с
-`--cpus 2.0 --memory 4g`, чтобы race/coverage не монополизировал Docker Desktop.
+Файлы compose перечислены только как inventory: `docker-compose.local.yml`
+(корень), `deployments/docker-compose.prod.yml`,
+`deployments/docker-compose.test.yml`. Target service profiles вызываются
+только через будущий launcher API из `testframework/runner/**`, который обязан
+применять immutable execution assets из `testframework/docker/**`,
+CPU/RAM/PID/time budgets и exact cleanup. Прямой Compose/`docker run` fallback
+не разрешён; target launcher пока `NOT_READY`.
 
 ---
 
@@ -141,9 +149,11 @@ Prod LiveKit: конфиг из env heredoc в `docker-compose.prod.yml` (не �
 
 ---
 
-## CI/CD (GitHub Actions)
+## CI/CD (GitHub Actions — current legacy inventory)
 
-Файл: `.github/workflows/ci.yml` · Ветка: `master` · Concurrency: cancel-in-progress.
+Файл: `.github/workflows/ci.yml` · Ветка: `master` · Concurrency:
+cancel-in-progress. Таблица ниже фиксирует существующий до-cutover workflow, но
+не является target execution contract и не разрешает host/inline Docker запуск.
 
 | Job | Что делает | Timeout |
 |-----|------------|---------|
@@ -164,6 +174,16 @@ Prod LiveKit: конфиг из env heredoc в `docker-compose.prod.yml` (не �
 
 E2E config: `frontend/playwright.config.ts` · specs: `testframework/stages/e2e/domains/` · `frontend/scripts/link-testframework-node-modules.mjs` · Infra: `scripts/ci-e2e-backend.sh`.
 
+**Target runner status: `NOT_READY`; runtime: `NOT_RUN`.** Phase 129 должна
+создать и независимо проверить versioned launcher API только в
+`testframework/runner/**`. `testframework/docker/**` предоставляет ему только
+immutable execution assets/contracts и не содержит launcher implementation.
+После приёмки GitHub jobs и `/qa-gate` вызывают только этот launcher:
+task-owned names, immutable image provenance, CPU/RAM/swap/PID/network limits,
+outer timeout, first-exit preservation, `reports/<task-run>/` owner marker и
+exact cleanup в `finally`. Legacy jobs и скрипты выше
+удаляются/переключаются по cutover manifest, без dual-run/parity.
+
 ---
 
 ## Внешние сервисы
@@ -178,16 +198,21 @@ E2E config: `frontend/playwright.config.ts` · specs: `testframework/stages/e2e/
 
 ## Линтеры и quality gates
 
-| Инструмент | Область | Команда | CI |
-|------------|---------|---------|-----|
-| go generate + vet | Backend Ent | `go generate ./ent && go vet ./...` | ✅ |
-| go test -race | Backend | `-tags hubtest`, Mongo service in CI | ✅ |
-| go build -tags release | Prod binary | `go build -tags release ./cmd/server` | ✅ |
-| tsc | Frontend types | `npx tsc --noEmit` | ✅ |
-| Biome | Frontend lint | `npm run lint` | ✅ **gate** (не continue-on-error) |
-| Vitest | Unit | `npx vitest run` | ✅ |
-| Playwright | E2E | smoke + full jobs | ✅ |
-| dependabot | Deps | weekly go/npm/actions | ❌ не настроен (конфига `.github/dependabot.yml` нет) |
+До реализации и независимой приёмки `testframework/runner/**` launcher API
+target launcher имеет статус `NOT_READY`, runtime — `NOT_RUN`. Immutable
+execution assets принадлежат `testframework/docker/**`, но сами по себе не дают
+runtime authority. Команды старого CI ниже — только инвентарный снимок, а не
+разрешённый fallback. После cutover каждый retained job вызывает единственный
+launcher с task-owned report, ограничениями ресурсов и unconditional cleanup.
+
+| Целевой job | Область | Исполнение | Статус |
+|-------------|---------|------------|--------|
+| `backend-unit` | genuine Go units + backend static gates | future `testframework/runner/**` launcher | `NOT_READY` |
+| `frontend-unit` | genuine Vitest/RTL units + TS/Biome/build gates | future `testframework/runner/**` launcher | `NOT_READY` |
+| `python-contract` / `python-api` / `python-integration` | greenfield pytest suites | future `testframework/runner/**` launcher | `NOT_READY` |
+| `python-e2e-smoke` / `python-e2e-full` | greenfield Playwright Python journeys | future `testframework/runner/**` launcher | `NOT_READY` |
+| `python-load` | bounded Locust profiles | future `testframework/runner/**` launcher | `NOT_READY` |
+| dependabot | weekly go/npm/actions | вне test runner | не настроен |
 
 ---
 
@@ -231,28 +256,41 @@ hub/
 ├── frontend/tests/<domain>/ # только Vitest/RTL unit tests
 ├── frontend/tests/support/ # frontend setup/render/fixtures
 └── testframework/          # один Python QA-проект, без python/ nesting
-    ├── pyproject.toml        # dependencies + единый pytest config (либо pytest.ini)
-    ├── core/
-    ├── api/
-    ├── integration/
-    ├── contract/
-    ├── e2e/
-    ├── load/
-    ├── docker/
-    └── reports/
+    ├── PACKAGE-CONTRACT.md   # docs-only future package/bootstrap contract
+    ├── src/hub_testkit/      # reusable installed framework package
+    │   └── py.typed          # future typed-package marker; NOT_READY
+    ├── tests/
+    │   └── {contract,api,integration,e2e}/ # executable pytest suites
+    ├── selftests/            # framework contracts only
+    ├── cases/                # TC intent + risk links
+    ├── schemas/              # closed case/run contracts
+    ├── policies/             # marker/environment/redaction/profile policy
+    ├── load/                 # separate Locust lifecycle
+    ├── docker/               # immutable execution assets only
+    ├── runner/               # future versioned launcher API
+    ├── reports/<task-run>/   # owner-marked generated evidence
+    ├── pyproject.toml        # future package/tool authority; NOT_READY
+    └── uv.lock               # future exact resolution; NOT_READY
 ```
 
-Live ledger на HEAD `ee6d696c`: **1,047** rows; **830** Go / **3,667** tests
-(legacy root 829/3,665 + server 1/2; 594 genuine unit + 236 component:
-31 API + 205 integration), **180** Vitest /
+Structure/boundary scaffold в commit `22035c45` уже существует, но не включает
+future package files, executable suites или launcher. Reusable imports и suite
+roots физически разделены; direct root `core/api/integration/contract/e2e`
+packages не являются target.
+
+Live ledger на pinned revision `5708671f`: **1,049** rows / **4,246** declared;
+**832** Go / **3,674** tests (legacy root 831/3,672 + server 1/2;
+595 genuine unit + 237 component: 31 API + 206 integration), **180** Vitest /
 **519** cases (156 unit + 24 static contract) + 3 frontend support,
-**20** E2E specs / **53** cases + 14 E2E support, 39 canonical hooks и
-0 target Python tests. SHA-256: `01dae4e2…`.
+**20** E2E specs / **53** cases + 14 E2E support, hook sources 43 files /
+582 symbols / 892 links и 0 target Python tests. SHA-256: `72de6a81…`.
 
 В `backend/tests/**` не переносятся component/integration tests: текущие
-**236** `go-component` rows (31 API + 205 integration) направляются в Python
-`api/integration/contract` или
-рефакторятся в genuine isolated Go units до переноса. После Phase 141
+**237** `go-component` rows (31 API + 206 integration) удаляются по exact
+manifest без one-to-one port. Новый Python `api/integration/contract` coverage
+проектируется от current requirements/risks/verified TC. Из 595 genuine units
+350 переносятся сразу; 245 hook-dependent units защищены TASK-234 до
+refactor/move. После Phase 141
 в `testframework/**` допустим только Python для исполняемого test/load кода;
 legacy Go/Vitest/TS E2E и их entrypoints удаляются.
 
@@ -277,4 +315,4 @@ legacy Go/Vitest/TS E2E и их entrypoints удаляются.
 См. `docs/tz_constraints.md`: Fiber, NATS, SeaweedFS SDK, TanStack Router, Shadcn, Caddy, Compose/K3s — без ADR.
 
 ---
-*Последнее обновление: 2026-08-07 — current-vs-target test stack и единый root Python contract.*
+*Последнее обновление: 2026-08-09 — package/suite roots, structure-only scaffold и runner/docker ownership.*

@@ -165,7 +165,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 124: Floor ≥82% (tracker / tms / project)** - tracker: 81.3% → ≥82%; tms: 81.7% → ≥82%; project: 81.0% → ≥82%
 - [x] **Phase 125: COV ≥82%, Security ≥80%, Regression Gate** - COV overall: ≥82% → ✅ **82.6%**; auth: ≥80% → ✅ **82.4%**; ws: ≥80% → ✅ **87.7%**; rbac: ≥80% → ✅ **84.7%** (2026-06-21)
 
-### August 2026 — test architecture rebase (TASK-193…230)
+### August 2026 — test architecture rebase (TASK-193…234)
 
 Канон: [`06-TEST-ARCHITECTURE-REBASE.md`](active/august-2026/06-TEST-ARCHITECTURE-REBASE.md) ·
 карточки: [`backlog/README.md`](backlog/README.md). Старый недельный test-раздел
@@ -175,45 +175,51 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Фактическая стадия:** broad internal beta, не production-ready. Исторические
 milestone COMPLETE не равны production acceptance; PG-03/FA-06 остаётся
-prod-blocker. Новая native/Python migration начата только с Phase 128 inventory;
-перемещение тестов запрещено до green baseline ≥82% или отдельного founder-approved
-coverage contract.
+prod-blocker. Новая native/Python migration начата только с Phase 128 inventory.
+Historical ≥82% сохранён как discovery evidence, но founder-approved greenfield
+contract отменяет его как migration gate; destructive batches разрешены только
+по current-SHA manifest.
 
 | Phase | Status | Depends on | Outcome / tasks |
 |------:|--------|------------|-----------------|
 | 126 | IMPLEMENTED 2026-07-28 | — | Intranet NewsPost trash · TASK-001 |
 | 127 | IMPLEMENTED 2026-07-28 | 126 | Calendar series trash · TASK-002 |
-| 128 | BLOCKED · remediation active | — | inventory + baseline recovery + root-Python contract · TASK-202/203/204/221–226 |
-| 129 | PLANNED | 128 PASS | root `testframework/` Python scaffold + API slice · TASK-193/205 |
-| 130 | PLANNED | 128 PASS | `frontend/tests` foundation · TASK-198/206 |
-| 131 | PLANNED | 129, 130 | frontend units + static-contract split · TASK-207/208/230 |
-| 132 | PLANNED | 128 PASS | `backend/tests` foundation + auth pilot · TASK-197/209 |
-| 133 | PLANNED | 129, 132 | backend units + Python security/platform components · TASK-210/211/227 |
-| 134 | PLANNED | 133 | backend units + Python work/realtime components · TASK-212/213/228 |
-| 135 | PLANNED | 134 | backend units + Python business/integration components · TASK-214/215/229 |
-| 136 | PLANNED | 129, 135 | residual Python API/integration reconciliation · TASK-199/216 |
-| 137 | PLANNED | 129 | Python E2E foundation + 3-spec smoke parity · TASK-194/217 |
-| 138 | PLANNED | 137 | Python E2E 20-spec/53-case parity · TASK-195/196 |
-| 139 | PLANNED | 129, 136 | Locust baseline · TASK-200 |
-| 140 | PLANNED | 131, 135, 136, 138, 139 | CI dual-run + sentinels · TASK-201/218 |
-| 141 | PLANNED | 140 + real CI green | allowlisted cutover + final verification · TASK-219/220 |
+| 128 | IN PROGRESS · contract/manifests | — | TASK-202 archived/verified; TASK-203/224 baseline evidence closed; TASK-204 accepted contract + ordered `cutover-manifest.json` verification pending |
+| 129 | PLANNED · 7 ordered plans | 128 PASS | exact cutover: per-batch operation + CI/docs switch + manifest evidence; move 350 hook-free Go units, preserve/refactor 245 via TASK-234, move frontend units, delete legacy non-units, root Python scaffold · TASK-193/197/198/201/219/234 |
+| 130 | PLANNED | 129 | task/requirement/risk → TC traceability and fail-closed quality gates · TASK-206/218 |
+| 131 | PLANNED | 130 | Python core + health/auth/account API foundation · TASK-205/207 |
+| 132 | PLANNED | 131 | authz, tenant isolation, admin/platform and abuse cases · TASK-208/209/227 |
+| 133 | PLANNED | 131 | PostgreSQL/Mongo/Redis/NATS/jobs integration · TASK-210/211 |
+| 134 | PLANNED | **133** | work + realtime domains from current requirements · TASK-212/213/228 |
+| 135 | PLANNED | **133** | business + external integrations from current requirements · TASK-214/215/229 |
+| 136 | PLANNED | 131 | API/schema/frontend static contracts in Python · TASK-216/230 |
+| 137 | PLANNED | 131 | Python Playwright foundation + risk-based critical smoke · TASK-194/217 |
+| 138 | PLANNED | 137, 134, 135 | new E2E domain and recovery journeys · TASK-195/196 |
+| 139 | PLANNED | 132, 138 | accessibility + cross-cutting security/privacy · TASK-231/232 |
+| 140 | PLANNED | 131, 134, 135 | load/performance/resilience baselines · TASK-200 |
+| 141 | PLANNED | 132–140 | CI quality gates + clean-room verification + docs/handoff · TASK-220/233 |
 
 ```text
-128 ─┬─129────136──┬─139──┐
-     │  └─137─138──┤      │
-     ├─130─131─────┤      ├─140─141
-     └─132─133─134─135────┘
+128 -> 129 -> 130 -> 131
+                    |-> 132 security/platform -----------------------> 139 security/a11y -> 141
+                    |-> 133 infra -> 134 work/realtime --+          /
+                    |              -> 135 business/ext --+-> 138 journeys
+                    |-> 136 contracts                                  -> 141
+                    |-> 137 E2E ---------------------------> 138 journeys
+                    |-> 140 load/resilience ----------------------------> 141
 ```
 
 - [x] **Phase 126:** Intranet NewsPost trash
 - [x] **Phase 127:** Calendar series trash
-- [ ] **Phase 128:** status/baseline recovery — TASK-202 verified PASS;
-  TASK-203 service-backed Docker baseline выполняется
-- [ ] **Phases 129–139:** dual-run migration в целевые
-  `backend/tests/**`, `frontend/tests/**` и единый Python-проект
-  `testframework/**` (`api/`, `integration/`, `contract/`, `e2e/`, `load/`)
-- [ ] **Phase 140:** CI dual-run; ни один legacy required path ещё не удаляется
-- [ ] **Phase 141:** cleanup только по parity manifest и после real CI green
+- [ ] **Phase 128:** accepted founder contract + regenerated current exact
+  keep/move/delete manifest; legacy baseline хранится только как discovery.
+- [ ] **Phase 129:** ранний exact-manifest cutover: genuine native units →
+  `backend/tests/**` / `frontend/tests/**`; legacy non-units/runners удаляются;
+  единый Python-проект создаётся прямо в `testframework/**`. 245 hook-dependent
+  genuine Go units не удаляются: сохраняются и переносятся через TASK-234.
+- [ ] **Phases 130–140:** greenfield Python suites из current requirements,
+  tasks, verified TC и risks; никакого port/parity/dual-run.
+- [ ] **Phase 141:** CI quality gates, clean-room verification и docs/handoff.
 
 ## Phase Details
 

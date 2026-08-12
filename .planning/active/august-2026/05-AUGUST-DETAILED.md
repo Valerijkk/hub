@@ -8,6 +8,8 @@
 > Разделы, недельная раскладка, пути и destructive-cutover предположения по
 > тестовому фреймворку заменены каноном
 > [`06-TEST-ARCHITECTURE-REBASE.md`](06-TEST-ARCHITECTURE-REBASE.md).
+> Ни одна test-framework команда, таблица, count, path или последовательность
+> ниже не является исполняемой инструкцией и не может быть fallback к Phase 128–141.
 > Остальные продуктовые приоритеты этого документа остаются контекстом до
 > evidence-based re-audit после test-rebase.
 

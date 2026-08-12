@@ -1,0 +1,116 @@
+{
+  "schema": "hub.qa.local-images-build-manifest/v2",
+  "status": "NOT_READY",
+  "lock_binding_status": "NOT_LOCK_BOUND",
+  "lock_binding_authority": "private-g0-c-l-runner-only",
+  "platform": "linux/amd64",
+  "source_policy": "source-policy.v1.json",
+  "source_commit": "ae1b5e58239ddf82b2c9a8133b244957ddd76237",
+  "control_provenance": {
+    "authority": "private-control-commit-only",
+    "paths": [
+      "testframework/docker/Dockerfile.backend-openapi",
+      "testframework/docker/Dockerfile.backend-unit",
+      "testframework/docker/Dockerfile.frontend-unit",
+      "testframework/docker/build-manifest.v2.json",
+      "testframework/docker/compose.unit.yaml",
+      "testframework/docker/source-policy.v1.json"
+    ],
+    "label_keys": [
+      "hub.qa.control-commit",
+      "hub.qa.control-bundle-sha256"
+    ]
+  },
+  "local_only": {
+    "registry_login": "forbidden",
+    "pull": "forbidden",
+    "push": "forbidden",
+    "remote_manifest_lookup": "forbidden",
+    "network": "forbidden",
+    "package_install": "forbidden",
+    "mutable_tags": "forbidden"
+  },
+  "base_inventory": {
+    "golang": {
+      "repo_digest": "golang@sha256:bbb255b0e131db500cf0520adc97441d2260cf629c7fa7e39e025ddf53995a24",
+      "image_id": "sha256:1dd0b0cab49abf58ae61bd6509b455375952dc17b7d8a5796905221b78e3531c",
+      "platform": { "os": "linux", "architecture": "amd64", "variant": null },
+      "cmd": ["bash"],
+      "rootfs_layers": [
+        "sha256:c1cea7d579ca16766d00847a63294943a3075a67b9b812fdd6da1ce7aed8f18f",
+        "sha256:b006d3725283964ea0c5d04f4b36b7865aa36c9d3eb272c67689ac8a274f9775",
+        "sha256:4521935bbf4a03a9b5a080603cfc81483f23029ed74de6c291ec3d17b4752266",
+        "sha256:d8d4ddad1e1128bb7a35c895121d43604b0f841b6b15d393538d29d8c9d7ea86",
+        "sha256:8880b812fcb9e6f8705c8d478fd7ab9f0f75228f6acfc870eb0f872b4e16a997",
+        "sha256:3525177f8a7f37bfc0f16006704facb120e00289389d0e486d891a37ff308171",
+        "sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef"
+      ]
+    },
+    "playwright": {
+      "repo_digest": "mcr.microsoft.com/playwright@sha256:57b65fdc9ceabe0ef613124c7bbe2babcf9362c4d85e382fe3b03604e84b428a",
+      "image_id": "sha256:753f831a898523662c36011748ba0729b59838745d577c61c91287fe1778bfe1",
+      "platform": { "os": "linux", "architecture": "amd64", "variant": null },
+      "cmd": ["/bin/bash"],
+      "rootfs_layers": [
+        "sha256:98effb2dfe85d4c431f97d90482075f19e5fc3a57c2dd423d8bdfd4813620043",
+        "sha256:b63b25ca2b11fa8b06891e8e6bf80992e659b988387f1f70d49098e72fc45844",
+        "sha256:9c56731030d6e4810e65dc2090d8074b2fe04602b59b85e14c0e6cc58cb0625e",
+        "sha256:d92e00206cb5dd35f768aa8b319536edf5a106e394fe02f2a1e28ab77bb6dbd1"
+      ]
+    },
+    "python": {
+      "repo_digest": "python@sha256:229a2c5bfa27522db7815ea81f9bed70af17ccb9de9fc7ad142b1877b5830d36",
+      "image_id": "sha256:54a0b2beae90fe14c2131f1e880e1388c9df77390bc260d7317e589765e064e8",
+      "platform": { "os": "linux", "architecture": "amd64", "variant": null },
+      "cmd": ["python3"],
+      "rootfs_layers": [
+        "sha256:6f94328331290cbd81edab450664d42da7b64c191416c9346cd5d28c84f76035",
+        "sha256:eeece50a9eae41fbec657a77c3360a561685b2fc638dbb59c4f59be2e9deb502",
+        "sha256:4bdf3c4a59c868d57940d8a761f38ce2a7269959ff6d1fd5a0157a86f6dac082",
+        "sha256:02bea5b709fab77889748c8fe2fed5a41e60e418e70d6a91b5a4f9c85475b043"
+      ]
+    }
+  },
+  "build_preflight": {
+    "status": "NOT_READY",
+    "reason": "No approved local Go module cache, frontend node_modules, or pinned swag binary asset has been supplied with immutable local provenance.",
+    "required_transition": "A separately reviewed local dependency-asset contract must replace every NOT_READY dependency record before any docker build is attempted."
+  },
+  "targets": {
+    "backend-unit": {
+      "dockerfile": "Dockerfile.backend-unit",
+      "base_inventory_key": "golang",
+      "entrypoint": ["/opt/hub/bin/backend-unit"],
+      "fixed_commands": [
+        "go build ./...",
+        "go vet ./...",
+        "go test -json -count=1 -timeout=150s ./tests/...",
+        "go test -json -race -count=1 -timeout=150s ./tests/..."
+      ],
+      "dependency_assets": { "status": "NOT_READY", "required": ["Go module cache matching backend/go.sum", "C toolchain provenance for -race"] }
+    },
+    "frontend-unit": {
+      "dockerfile": "Dockerfile.frontend-unit",
+      "base_inventory_key": "playwright",
+      "entrypoint": ["/opt/hub/bin/frontend-unit"],
+      "fixed_commands": [
+        "/opt/hub/frontend/node_modules/.bin/tsc -b",
+        "/opt/hub/frontend/node_modules/.bin/biome check ./src",
+        "/opt/hub/frontend/node_modules/.bin/vite build",
+        "/opt/hub/frontend/node_modules/.bin/vitest run --config /opt/hub/config/vitest.frontend-unit.config.ts tests --reporter=json"
+      ],
+      "dependency_assets": { "status": "NOT_READY", "required": ["frontend/package-lock.json-matched node_modules", "audited dedicated Vitest config"] }
+    },
+    "backend-openapi": {
+      "dockerfile": "Dockerfile.backend-openapi",
+      "base_inventory_key": "python",
+      "entrypoint": ["/opt/hub/bin/backend-openapi"],
+      "fixed_commands": [
+        "swag init -g cmd/server/main.go -o /reports/openapi/generation-1 --parseDependency --parseInternal",
+        "swag init -g cmd/server/main.go -o /reports/openapi/generation-2 --parseDependency --parseInternal",
+        "sha256 manifest comparison and exact three-path synchronization"
+      ],
+      "dependency_assets": { "status": "NOT_READY", "required": ["pinned swag binary with local provenance", "Go module cache matching backend/go.sum"] }
+    }
+  }
+}

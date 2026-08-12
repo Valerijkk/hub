@@ -32,6 +32,12 @@ PYTHON_PACKAGE_ROOT=testframework/src/hub_testkit/**
 PYTHON_SUITE_ROOT=testframework/tests/**
 PYTHON_COMPOSITION=testframework/tests/conftest.py:COMPOSITION_ONLY
 PYTHON_SELFTEST_ROOT=testframework/selftests/**
+PYTHON_PACKAGE_CONTRACT=testframework/PACKAGE-CONTRACT.md
+PYTHON_PACKAGE_BOOTSTRAP=NOT_READY
+PYTHON_RUNTIME=NOT_RUN
+LAUNCHER_ROOT=testframework/runner/**
+LAUNCHER_STATUS=NOT_READY
+CONTAINER_ASSET_ROOT=testframework/docker/**
 GENERIC_CORE=FORBIDDEN
 PROGRESSIVE_TREE=FIRST_CONSUMER:NO_EMPTY_DIRS
 BACKEND_UNIT_ROOT=backend/tests/<domain>/**
@@ -102,8 +108,8 @@ testframework/
 ├── cases/<domain>/TC-*.md      repository-owned business intent
 ├── schemas/                    test-case and run-contract schemas
 ├── policies/                   environment/marker/redaction/profile policies
-├── docker/                     pinned images/topologies and sole outer launcher
-├── runner/                     validated in-container entrypoint/profile loading
+├── docker/                     immutable images/topologies/resource contracts only
+├── runner/                     future versioned outer launcher API and entrypoints
 └── reports/<task-run>/         ignored owner-marked per-run evidence only
 ```
 
@@ -112,6 +118,19 @@ required artifact. `testframework/tests/conftest.py` is composition-only.
 Reusable UI code lives only below
 `testframework/src/hub_testkit/domains/<domain>/ui/{pages,components}/`; root or
 suite-local `support/`, `pages/` and `steps/` warehouses are forbidden.
+
+Commit `22035c45` establishes only the structure and ownership boundaries.
+`testframework/pyproject.toml`, `uv.lock`, `src/hub_testkit/py.typed`, executable
+suites and `runner/**` are not part of that scaffold and remain `NOT_READY`;
+runtime is `NOT_RUN`. The docs-only bootstrap contract is
+`testframework/PACKAGE-CONTRACT.md`. It does not itself authorize package,
+dependency, launcher or runtime implementation.
+
+Launcher and execution assets are separate authorities. Only the future
+`testframework/runner/**` may implement the reviewed versioned launcher API.
+`testframework/docker/**` contains immutable execution assets and declarative
+container contracts consumed by that launcher; it cannot expose a launcher or
+alternate entrypoint.
 
 Executable helpers under `testframework/**` are Python. Dockerfiles,
 YAML/TOML/JSON, Markdown and generated report data are declarative artifacts,
@@ -236,7 +255,9 @@ security scenarios, mutation/negative sentinels and observed production risks.
 
 All execution is Docker-only in uniquely named task-owned containers with
 explicit CPU/RAM limits. Host execution is noncanonical. Missing mandatory
-services fail; they never skip.
+services fail; they never skip. Every job below remains `NOT_READY` until the
+future `testframework/runner/**` launcher API is implemented and independently
+accepted; this table defines target ownership, not a runnable entrypoint.
 
 | Job | Ownership | Services | Required evidence |
 |---|---|---|---|

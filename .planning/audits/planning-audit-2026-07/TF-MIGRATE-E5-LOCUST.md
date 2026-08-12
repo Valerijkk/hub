@@ -154,5 +154,7 @@ tests/load/
 
 ## Mapping → GSD
 
-Реализация: **Phase 135** — [`../phases/135-tf-locust-load/PLAN.md`](../../phases/135-tf-locust-load/PLAN.md).  
+Историческая привязка Phase 135 не является исполнимым маршрутом. Актуальная
+нагрузочная работа — [Phase 140 `tf-load-resilience`](../../phases/140-tf-load-resilience/PLAN.md),
+её launcher и runtime остаются `NOT_READY` / `NOT_RUN`.
 Зависит от **128** scaffold (+ желательно **134** integration auth clients для переиспользования httpx helpers).

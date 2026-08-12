@@ -1,130 +1,219 @@
 ---
 name: qa-gate
-description: Founder-cutover quality gate — genuine Go/Vitest units плюс greenfield Python contract/API/integration/E2E/load, только в task-owned Docker с evidence и cleanup.
+description: Sole public QA authority for closed G0 routing; planned Python jobs remain NOT_READY.
 disable-model-invocation: true
 ---
 
-# /qa-gate — target quality gate
+# /qa-gate — sole public QA authority
 
-Канон: `AGENTS.md` target table, `docs/test_plan.md`,
-`.planning/active/august-2026/06-TEST-ARCHITECTURE-REBASE.md` и
-`.cursor/playbooks/testing.md`.
+`/qa-gate` is Hub's only public QA execution authority. A caller never invokes
+the private runner, Docker/Compose, a legacy runner, or an internal command
+directly. Until every named acceptance gate is complete, a public request
+returns `NOT_READY` without private-runner or Docker execution.
 
-## Founder locks
+## Current admission state
 
-- На Windows host не запускать tests, validators, linters, build/vet, Vite,
-  backend/frontend processes, pytest/Playwright или Locust. Host — только
-  чтение/редактирование, Git и Docker CLI.
-- Каждый runner task-owned, имеет CPU/RAM/timeout, isolated resources и cleanup.
-- Не использовать legacy `backend/testframework/**`, static-contract Vitest,
-  TypeScript Playwright, их configs/linkers/runners как gate или fallback.
-- Исторический 82% Go coverage и row parity не gate.
-- Zero collection, unexpected skip или leaked resource = FAIL.
+- `testframework/docker/images.lock.v3.json` and the required local dependency
+  bytes are absent.
+- The candidate image-lock schema is `hub.qa.local-images-lock/v3`.
+- G0-B parity is `G0-B_PARITY_NOT_VERIFIED`.
+- Package and launcher are `NOT_READY`; private contract and runtime are
+  `PRIVATE_CONTRACT_NOT_RUN` / `NOT_RUN`.
+- Static source is accepted only. P7 and every execution acceptance gate remain
+  `BLOCKED`; static review, files, or documentation are not image, Docker,
+  target, runtime, cleanup, or PASS acceptance.
 
-До появления Phase 129 scaffold отсутствие target path/job — FAIL/NOT_READY,
-а не повод прогнать legacy suite и назвать gate green.
+Until independent G0-B, G0-C, G0-S, G0-B01, Docker-only authority, and later
+acceptance tasks are accepted, every otherwise valid G0 request returns
+`NOT_READY` before the private runner and Docker.
 
-## Target jobs
+## Founder and planning boundaries
 
-| Порядок | Job | Target | Обязательность |
-|---:|---|---|---|
-| 1 | `backend-unit` | `backend/tests/{domain}/**` | PR при backend change |
-| 2 | `frontend-unit` | `frontend/tests/{domain}/**`, support | PR при frontend change |
-| 3 | `python-contract` | `testframework/tests/contract/**` | PR по contract/schema/event/source change |
-| 4 | `python-api` | `testframework/tests/api/**` | PR по public backend/BFF behavior |
-| 5 | `python-integration` | `testframework/tests/integration/**` | PR по DB/broker/storage boundary |
-| 6 | `python-e2e-smoke` | `testframework/tests/e2e/**`, marker `smoke` | PR/release gate по критическим journeys |
-| 7 | `python-e2e-full` | `testframework/tests/e2e/**`; `full` is a launcher profile, not a pytest marker | merge wave/release |
-| 8 | `python-load` | `testframework/load/**` | change-specific/nightly/manual baseline |
+- Windows host execution of tests, validators, linters, build/vet, Vite,
+  backend/frontend processes, pytest, Playwright, or Locust is forbidden.
+  The host is only for reading/editing, Git, and Docker CLI.
+- Legacy `backend/testframework/**`, static-contract Vitest, TypeScript
+  Playwright, their configs/linkers/runners, and direct Docker snippets are
+  neither a gate nor a fallback.
+- Historical 82% Go coverage and row parity are not rebase acceptance gates.
+- Zero collection, an unexpected skip, or a leaked task-owned resource is a
+  failure for a future accepted target; it does not authorise a legacy run.
 
-Выбор запускаемых jobs следует changed risk и observable boundary; он не
-создаёт обязательную Pyramid/Trophy/Honeycomb ratio. Skipped job записывается
-как `NOT_APPLICABLE` с rationale, не как PASS.
+The target catalog below describes the founder-greenfield end state only. It
+does not grant execution authority or change the current `NOT_READY` /
+`NOT_RUN` state.
 
-## Единый outer runner — обязательный gate
+| Catalog job | Planned target | Current routing state |
+|---|---|---|
+| `backend-unit` | `backend/tests/{domain}/**` | closed G0 candidate only |
+| `frontend-unit` | `frontend/tests/{domain}/**`, support | closed G0 candidate only |
+| `backend-openapi` | baked deterministic OpenAPI comparison | closed G0 candidate only |
+| `python-contract` | `testframework/tests/contract/**` | future, `NOT_READY` |
+| `python-api` | `testframework/tests/api/**` | future, `NOT_READY` |
+| `python-integration` | `testframework/tests/integration/**` | future, `NOT_READY` |
+| `python-e2e-smoke` | `testframework/tests/e2e/**`, marker `smoke` | future, `NOT_READY` |
+| `python-e2e-full` | `testframework/tests/e2e/**`, launcher profile `full` | future, `NOT_READY` |
+| `python-load` | `testframework/load/**` | future, `NOT_READY` |
 
-Все восемь jobs запускаются только через один versioned PowerShell-safe Docker
-launcher из target scaffold. До появления и отдельной проверки этого launcher
-любой runtime verdict `/qa-gate` — `NOT_READY`; прямые `docker run`/`compose up`
-из документации не являются допустимой заменой.
+## Public request and closed G0 routing
 
-Launcher принимает `job`, `task_run`, immutable image digest и wall-clock timeout
-и обязан:
+Caller supplies exactly:
 
-1. проверить безопасный формат `task_run` и вычислить exact container/Compose/volume names;
-2. создать только `testframework/reports/<task-run>/` и owner marker с task/revision;
-3. задать CPU, RAM/swap, PID, network и read-only-source ограничения;
-4. enforce outer wall-clock deadline независимо от inner test timeout;
-5. сохранить исходный exit code и raw stdout/stderr;
-6. в безусловном `finally` остановить exact container/Compose project и удалить
-   только task-owned volumes/networks;
-7. после cleanup доказать отсутствие exact resources; cleanup failure делает job FAIL.
+- `target` — one closed G0 target;
+- `task` — lowercase `[a-z0-9][a-z0-9-]{0,23}`;
+- `run` — independently validated lowercase `[a-z0-9][a-z0-9-]{0,23}`.
 
-Никакой job не пишет в общий `testframework/reports/` root. JUnit/Allure/traces
-пишутся только внутрь `/reports/<task-run>/`, смонтированного из одноимённого
-task-owned host directory.
+`/qa-gate` injects literal contract `hub.qa-runner/v1`. The caller cannot
+supply or override a contract, executable, script path, arguments, Compose
+file, image, timeout profile, dependency, fixture, resource inventory,
+selector, project name, container name, or raw command.
 
-## Inner job contracts
+Fixed derived identities are:
 
-`backend-unit` выполняет build/vet и service-free genuine Go units из
-`backend/tests/**`. `frontend-unit` выполняет tsc/lint/genuine Vitest/RTL units
-из `frontend/tests/**` и build; static/source contracts запрещены. Python jobs
-используют immutable target image из `testframework/docker/**` и следующие
-entrypoints внутри test container:
+- Compose project: `hubqa-<task>-<run>`;
+- container: `<project>-<target>`;
+- report root: `testframework/reports/<task>-<run>/`.
 
-```text
-python-contract:     pytest -p no:cacheprovider testframework/tests/contract
-python-api:          pytest -p no:cacheprovider -m api
-python-integration:  pytest -p no:cacheprovider -m integration
-python-e2e-smoke:    pytest -p no:cacheprovider -m "e2e and smoke"
-python-e2e-full:     launcher profile `full` -> pytest -p no:cacheprovider -m e2e testframework/tests/e2e
-python-load:         python -m locust -f load/locustfile.py --headless <approved profile>
-```
+Exactly these three G0 targets may become executable only after every named
+gate is accepted:
 
-Если launcher, `tests` service, profile или Locust entrypoint ещё не реализован
-target scaffold, зафиксировать `NOT_READY`. Не изобретать legacy substitute и
-не копировать внутренний command в небезопасный host-side запуск.
+| Public target | Fixed responsibility |
+|---|---|
+| `backend-unit` | baked backend build, vet, genuine unit, and race sequence |
+| `frontend-unit` | baked frontend typecheck, lint, build, and genuine unit sequence |
+| `backend-openapi` | baked deterministic two-pass OpenAPI generation and exact three-file comparison |
 
-## FAIL protocol
+Declared Python catalog jobs are not G0 targets. They return `NOT_READY`
+without invoking G0 or Docker. Missing, unknown, sentinel, test, private,
+malformed, or extra input is rejected before G0 with intended exit `64`; no
+partial or best-effort dispatch exists.
 
-Остановиться на первой FAIL и применить
-[`test-triage`](../test-triage/SKILL.md): сначала product behavior/docs/repro,
-затем `ROOT=code|test|infra|flaky|stop`. После исправления повторить упавший job,
-его смежные risk jobs и затем полный выбранный gate. Не менять assert/skip/retry
-ради green.
+Apply validation without side effects in this order:
 
-## Evidence record
+1. Require exactly `target`, `task`, and `run`.
+2. Return `NOT_READY` for a declared future Python job; reject missing, extra,
+   unknown, sentinel, test, and private input with intended exit `64`.
+3. Validate `task` and `run` independently.
+4. Construct the private request with exactly injected `contract`, validated
+   `target`, `Task`, and `Run`.
+5. Confirm the named G0 source/runtime gates. Until then, return `NOT_READY`
+   without starting the private runner or Docker.
+6. Only after those gates, hand the request internally to the canonical private
+   runner through fixed Windows PowerShell 5.1 authority.
 
-```yaml
-source_sha: <sha>
-job: <target job>
-image: <digest or immutable tag>
-command: <exact outer and inner command>
-resources: {cpus: 2.0, memory: 4g, timeout: <value>}
-services: <profile or none>
-result: {collected: N, passed: N, failed: N, skipped: N}
-duration: <seconds>
-artifacts: testframework/reports/<task-run>/
-owner_marker: <task/revision marker URI + verified value>
-cleanup: PASS|FAIL
-triage: <root/fix or none>
-```
+That internal handoff is not a public command and must not be printed as a
+copyable runner instruction. Alternate shells, PATH/PATHEXT lookup, naked
+Docker/Compose fallback, host-test fallback, runtime image pull/build/install,
+ad-hoc build, automatic or in-run retry, grace period, and scheduler are
+forbidden.
 
-`PASS` требует non-zero collection, только expected skips, exact traceability
-`task/requirement/TC`, cleanup PASS и для high-risk behavior чувствительный
-sentinel/mutation evidence. Host/legacy/self-report evidence не принимается.
+## Local image, control, and Compose boundary
 
-## Result
+The local-only `images.lock.v3.json` selects every base and target solely by
+its complete local Docker `image_id`. A target `repo_digest` member rejects the
+lock; observed target tags and RepoDigests are never selectors. A base
+`repo_digest` is local-inventory/admission evidence only, checked only after
+the exact local `image_id`, and never selects an image.
 
-```text
-QA GATE: PASS|FAIL|NOT_READY
-Jobs: backend-unit=... frontend-unit=... python-contract=... python-api=...
-      python-integration=... python-e2e-smoke=... python-e2e-full=... python-load=...
-Evidence: source SHA, images, exact commands/results/durations/artifacts
-Cleanup: containers/volumes/networks
-NOT_RUN/NOT_APPLICABLE: job + rationale
-Next: triage/remediation owner
-```
+The v3 lock binds a literal reviewed `ControlCommit`, six mode-`100644` control
+Git blobs, their closed control-bundle SHA-256, and the immutable raw
+Compose-byte SHA-256. Product/source Git blobs are worktree-non-authoritative
+provenance inputs, not a self-proof by the attestor. The exact local target
+`image_id` plus its control pair and all eight mandatory provenance labels must
+agree: target, base image ID, control commit, control bundle hash, source
+commit, source-policy hash, source-tree-manifest hash, and build-manifest hash.
+Entrypoint, Cmd, and complete labels projection remain separate values, each
+hashable as no-BOM UTF-8 RFC 8785 JCS bytes.
+
+The strict duplicate-aware parser rejects duplicate, missing, additional,
+malformed, escaped, or reparsed lock members before report mutation or a
+dependency call. An existing task-owned report path is never overwritten or
+adopted.
+
+All selected images must already exist locally as exact `linux/amd64` objects.
+Registry login, pull, push, manifest lookup, remote provenance lookup, remote
+cache, network download, package installation, mutable-tag selection, and
+fallback image acquisition are forbidden. Missing local identity, platform, or
+required dependency bytes fails closed before staging, execution, or
+publication.
+
+The G0-B Compose asset remains an inert no-source-bind template until separate
+acceptance. A subsequent local contract may use `pull_policy: never`, bind a
+service only to its locked local target `image_id`, and mount only the
+task-owned report path. Repository/source binds, checkout, working-tree reads,
+Git metadata inference, and runtime installation are forbidden. Raw Compose
+bytes are pinned to the reviewed control value and rechecked before staging,
+execution, and publication; YAML substring parsing or transformed bytes cannot
+replace that identity check.
+
+The private candidate reserves report staging with one nonce-bound create-new
+record. Before atomic publication, staging is exactly `.owner.json` plus the
+raw-byte-pinned `compose.unit.yaml`; `raw/` is initialized only after verified
+publication and reservation release, before any dependency construction.
+Collision or ambiguity fails leave-only: no object is adopted or deleted, no
+dependency starts, and no fallback route is permitted.
+
+## Fixed deadline, dependency, and cleanup contract
+
+`/qa-gate` owns only routing and task/run identity. It never schedules,
+terminates, extends, automatically retries within a run, or reinterprets a
+deadline, and it returns the supervisor's immutable first-cause exit unchanged.
+
+| Layer | Exclusive owner | Fixed bound and rule |
+|---|---|---|
+| fixed command | image-baked entrypoint | 180 seconds; image-owned |
+| fixed target | image-baked entrypoint | 780 seconds; image-owned |
+| image inspect/attestation | private supervisor | 30 seconds; distinct layer |
+| fixed target outer process | private supervisor | 810 seconds |
+| inventory, exact-ID cleanup, and zero proof | private supervisor | 30 seconds aggregate |
+
+The private supervisor has exactly four closed dependency operations:
+
+1. `InspectLockedImage`
+2. `RunFixedTarget`
+3. `ListOwnedResources`
+4. `CleanupOwnedResources`
+
+There is no fifth dependency operation or general command abstraction. At the
+first observed deadline, exit `124` freezes for that layer; there is no
+additive grace period or retry. Cleanup remains mandatory but cannot overwrite
+that immutable first exit.
+
+Cleanup is a sole exact owned-resource route: initial inventory, typed exact
+owned/foreign selection, exact cleanup only when the complete initial inventory
+is clean, then residual zero-owned proof. Foreign records are preserved.
+Recursive deletion, wildcard deletion, pruning, automatic staging janitors,
+and deletion of a final report are forbidden.
+
+## Evidence and triage
+
+Only the accepted private boundary may report task-owned evidence:
+
+- `.owner.json`;
+- `commands.json`, the actual ordered receipt sequence, which may stop at the
+  first failure or timeout;
+- closed per-command output and result artifacts;
+- `run.json`, with immutable first exit, deadline layer, outcome, and artifact
+  manifest;
+- target artifacts when produced; and
+- `cleanup.json`.
+
+Raw Compose stdout and stderr remain only in owned raw artifacts and are not
+copied into structured receipts. Evidence contains neither a host environment
+dump nor secret values. G0-B filename/baked-entrypoint parity is future
+`NOT_VERIFIED`; it is not G0-B acceptance evidence or C1 approval.
+
+Report only the status and task-owned evidence produced by the accepted private
+boundary. Do not infer runtime or PASS from source, static review, files, image
+declarations, or an absent error. If an authorized future target fails, apply
+`.cursor/skills/test-triage/SKILL.md` before any correction. A fresh explicit
+public `/qa-gate` request is a new run, never a continuation or automatic retry.
+
+## Planned routing declarations
+
+The following declarations preserve target ownership only. Their referenced
+paths are future and non-executable until the relevant accepted phase creates
+them; they never authorise a direct runner or Docker invocation.
 
 <!-- hub.qa-routing-declaration/v1
 {"schema_version":"hub.qa-routing-declaration/v1","scenario_id":"api-health","assigned_skill":".cursor/skills/qa-gate/SKILL.md","declared_routes":["testframework/src/hub_testkit/domains/health/api.py","testframework/tests/api/health/test_health.py"],"expected_routes":["testframework/src/hub_testkit/domains/health/api.py","testframework/tests/api/health/test_health.py"],"prohibited_legacy_tokens":["testframework/api/**","testframework/core/**"]}
@@ -138,3 +227,10 @@ Next: triage/remediation owner
 <!-- hub.qa-routing-declaration/v1
 {"schema_version":"hub.qa-routing-declaration/v1","scenario_id":"load-tracker","assigned_skill":".cursor/skills/qa-gate/SKILL.md","declared_routes":["testframework/load/profiles/steady.toml","testframework/load/users/tracker.py"],"expected_routes":["testframework/load/profiles/steady.toml","testframework/load/users/tracker.py"],"prohibited_legacy_tokens":["testframework/core/**"]}
 -->
+
+## Related authority
+
+- Docker-only and execution authority: `AGENTS.md` and `.cursor/REGULATION.md`.
+- Failure classification: `.cursor/skills/test-triage/SKILL.md`.
+- G0 contract and gates:
+  `.superpowers/sdd/2026-08-09-minimal-qa-launcher/2026-08-09-minimal-qa-launcher.md`.
