@@ -95,7 +95,8 @@
 - [ ] Нет секретов/токенов/PII/полных `Authorization`-заголовков/query с токеном в логах.
 - [ ] Горутины (WS/consumer/cron) защищены от паники; `context.Canceled` при shutdown не логируется как `Error`.
 - [ ] Уровни выставлены осмысленно (Debug шумное, Info значимое, Warn деградация, Error сбой).
-- [ ] Регрессия зелёная: `go build -tags release ./... && go test -race -count=1 -timeout=600s ./...`.
+- [ ] Регрессия выполнена через применимый именованный backend-job будущего versioned outer launcher `/qa-gate`. Evidence: source SHA, имя job, immutable image, CPU/RAM/PID limits, duration + result, task-owned artifacts и exact cleanup.
+- [ ] Пока launcher не реализован, launcher/package имеют статус `NOT_READY`, runtime — `NOT_RUN`: запрещены прямые Docker/Compose, legacy runner и host fallback. Этот чек-лист не подтверждает G0-B: G0-B остаётся `NOT_VERIFIED`.
 
 ### 10.2 DoD для frontend-фичи
 
@@ -104,7 +105,8 @@
 - [ ] Нет токенов/PII в консоли или в URL/query.
 - [ ] Ошибки API показывают `request_id` пользователю (для поддержки) где уместно.
 - [ ] (Если reporter подключён) ошибки уходят в reporter без чувствительных полей; reporter не роняет приложение.
-- [ ] Регрессия зелёная: `npx tsc --noEmit && npm run lint && npm run test:run`.
+- [ ] Регрессия выполнена через применимый именованный frontend-job будущего versioned outer launcher `/qa-gate`. Evidence: source SHA, имя job, immutable image, CPU/RAM/PID limits, duration + result, task-owned artifacts и exact cleanup.
+- [ ] Пока launcher не реализован, launcher/package имеют статус `NOT_READY`, runtime — `NOT_RUN`: запрещены прямые Docker/Compose, legacy runner и host fallback. Этот чек-лист не подтверждает G0-B: G0-B остаётся `NOT_VERIFIED`.
 
 ### 10.3 DoD для devops-изменения
 
