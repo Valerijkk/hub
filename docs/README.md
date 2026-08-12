@@ -38,6 +38,7 @@ negative sentinels. Он дополняет, но не заменяет `code_st
 | [BUSINESS.md](BUSINESS.md) | Расширенная бизнес-документация |
 | [TECHNICAL.md](TECHNICAL.md) | ERD, API, WebSocket, env vars, деплой |
 | [TESTING.md](TESTING.md) | Тест-кейсы TC-*, матрица автоматизации |
+| [mail/QA-HANDOFF.md](mail/QA-HANDOFF.md) | Замороженный контракт будущих Mail + Calendar RSVP: ADR/OpenAPI/events/security/QA; implementation `NOT_IMPLEMENTED`, runtime `NOT_RUN` |
 | [testframework_strategy.md](testframework_strategy.md) | Стратегия тестфреймворка: слои Go/TS/Python, Locust, Allure→TMS, гейты |
 | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Текущий `/qa-gate`/`NOT_READY` протокол, legacy quarantine, окружение и exact cleanup |
 | [runbooks/](runbooks/README.md) | **Эксплуатация прода:** инцидент, алерты, деплой/откат, БД, бэкапы, ротация секретов |
@@ -115,6 +116,7 @@ E2E baseline **48 pass / 5 expected skip / 0 fail**. Канон:
 [`.planning/active/august-2026/06-TEST-ARCHITECTURE-REBASE.md`](../.planning/active/august-2026/06-TEST-ARCHITECTURE-REBASE.md).
 
 ---
-*2026-08-08 — Docker-only safe runner contract, executable Phase 129 cutover/status ·
+*2026-08-13 — Mail + Calendar RSVP contract index (`NOT_IMPLEMENTED` / `NOT_RUN`) ·
+2026-08-08 — Docker-only safe runner contract, executable Phase 129 cutover/status ·
 2026-08-07 — root Python testframework contract и current-vs-target split ·
 2026-07-19 — GLOSSARY, TROUBLESHOOTING, runbooks/, актуализация фактов и счётчиков*

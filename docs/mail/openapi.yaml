@@ -1,10 +1,10 @@
 openapi: 3.1.0
 info:
   title: Hub Mail and Calendar Sync API
-  version: 0.1.0
+  version: 0.1.1
   description: Frozen implementation contract. Presence in this file does not imply implementation.
 servers:
-  - url: /api/v1
+  - url: /api
 security:
   - bearerAuth: []
 tags:
@@ -606,7 +606,29 @@ paths:
   /calendar/events:
     get:
       tags: [CalendarEvents]
-      operationId: listCalendarEventsV2
+      operationId: listLegacyCalendarAggregate
+      deprecated: false
+      description: Existing read-only aggregate; this contract preserves its exact public envelope
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema: {type: string, format: date-time}
+        - name: to
+          in: query
+          required: true
+          schema: {type: string, format: date-time}
+      responses:
+        "200":
+          description: Existing aggregate of calls, sprints, deadlines and leave
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/LegacyCalendarEventsResponse"}
+        default: {$ref: "#/components/responses/Error"}
+  /calendar/v2/events:
+    get:
+      tags: [CalendarEvents]
+      operationId: listCanonicalCalendarEvents
       parameters:
         - name: from
           in: query
@@ -621,7 +643,7 @@ paths:
           schema: {type: boolean, default: false}
       responses:
         "200":
-          description: Existing aggregate plus first-class event kind
+          description: Canonical first-class calendar events; the legacy GET /calendar/events aggregate remains unchanged
           content:
             application/json:
               schema:
@@ -648,8 +670,9 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/CalendarEvent"}
+        "409": {$ref: "#/components/responses/IdempotencyConflict"}
         default: {$ref: "#/components/responses/Error"}
-  /calendar/events/{eventId}:
+  /calendar/v2/events/{eventId}:
     parameters:
       - {$ref: "#/components/parameters/EventId"}
     get:
@@ -694,8 +717,9 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/CalendarEvent"}
+        "409": {$ref: "#/components/responses/Conflict"}
         default: {$ref: "#/components/responses/Error"}
-  /calendar/events/{eventId}/rsvp:
+  /calendar/v2/events/{eventId}/rsvp:
     post:
       tags: [CalendarEvents]
       operationId: respondToCalendarSeries
@@ -713,9 +737,9 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/CalendarAttendee"}
-        "409": {$ref: "#/components/responses/Conflict"}
+        "409": {$ref: "#/components/responses/CalendarMutationConflict"}
         default: {$ref: "#/components/responses/Error"}
-  /calendar/events/{eventId}/instances/{recurrenceId}/rsvp:
+  /calendar/v2/events/{eventId}/instances/{recurrenceId}/rsvp:
     post:
       tags: [CalendarEvents]
       operationId: respondToCalendarOccurrence
@@ -738,9 +762,9 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/CalendarAttendee"}
-        "409": {$ref: "#/components/responses/Conflict"}
+        "409": {$ref: "#/components/responses/CalendarMutationConflict"}
         default: {$ref: "#/components/responses/Error"}
-  /calendar/availability:
+  /calendar/v2/availability:
     post:
       tags: [CalendarEvents]
       operationId: getCalendarAvailability
@@ -778,33 +802,95 @@ paths:
   /admin/mail/settings:
     get:
       tags: [AdminMail]
-      operationId: getAdminMailSettingsV2
+      operationId: getLegacyAdminMailSettings
+      x-hub-rbac: admin
+      x-hub-audit-action: mail.admin.alert_settings.read
       responses:
         "200":
-          description: Existing alert settings plus mailbox policy
+          description: Existing Resend alert settings; response shape remains backward compatible
           content:
             application/json:
-              schema: {$ref: "#/components/schemas/AdminMailSettings"}
+              schema: {$ref: "#/components/schemas/LegacyAdminMailSettings"}
+        "403": {$ref: "#/components/responses/Forbidden"}
         default: {$ref: "#/components/responses/Error"}
-    patch:
+    put:
       tags: [AdminMail]
-      operationId: updateAdminMailSettingsV2
+      operationId: updateLegacyAdminMailSettings
+      x-hub-rbac: admin
+      x-hub-audit-action: mail.admin.alert_settings.update
       requestBody:
         required: true
         content:
           application/json:
-            schema: {$ref: "#/components/schemas/UpdateAdminMailSettingsRequest"}
+            schema: {$ref: "#/components/schemas/UpdateLegacyAdminMailSettingsRequest"}
       responses:
         "200":
-          description: Updated policy; no secret values returned
+          description: Existing Resend alert settings updated; no secret values returned
           content:
             application/json:
-              schema: {$ref: "#/components/schemas/AdminMailSettings"}
+              schema: {$ref: "#/components/schemas/LegacyAdminMailSettings"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        default: {$ref: "#/components/responses/Error"}
+  /admin/mail/broadcast:
+    post:
+      tags: [AdminMail]
+      operationId: sendLegacyAdminMailBroadcast
+      deprecated: true
+      description: Existing admin broadcast compatibility route; conflicts with ADR-NOTIF-01 no-marketing policy and must be removed/disabled or explicitly re-authorized before mailbox acceptance
+      x-hub-current-state: implemented-governance-gap
+      x-hub-rbac: admin
+      x-hub-audit-action: mail.admin.broadcast
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/LegacyAdminMailBroadcastRequest"}
+      responses:
+        "200":
+          description: Current dry-run or per-recipient best-effort broadcast counters
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/LegacyAdminMailBroadcastResponse"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        default: {$ref: "#/components/responses/Error"}
+  /admin/mail/mailbox-settings:
+    get:
+      tags: [AdminMail]
+      operationId: getAdminMailboxSettings
+      x-hub-rbac: admin
+      x-hub-audit-action: mail.admin.mailbox_settings.read
+      responses:
+        "200":
+          description: Mailbox engine policy; separate from legacy Resend alert settings
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/AdminMailboxSettings"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        default: {$ref: "#/components/responses/Error"}
+    put:
+      tags: [AdminMail]
+      operationId: updateAdminMailboxSettings
+      x-hub-rbac: admin
+      x-hub-audit-action: mail.admin.mailbox_settings.update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/UpdateAdminMailboxSettingsRequest"}
+      responses:
+        "200":
+          description: Updated mailbox policy; no secret values returned
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/AdminMailboxSettings"}
+        "403": {$ref: "#/components/responses/Forbidden"}
         default: {$ref: "#/components/responses/Error"}
   /admin/mail/domains:
     get:
       tags: [AdminMail]
       operationId: listAdminMailDomains
+      x-hub-rbac: admin
+      x-hub-audit-action: mail.admin.domains.list
       responses:
         "200":
           description: Configured instance domains
@@ -817,10 +903,13 @@ paths:
                   items:
                     type: array
                     items: {$ref: "#/components/schemas/MailDomain"}
+        "403": {$ref: "#/components/responses/Forbidden"}
         default: {$ref: "#/components/responses/Error"}
     post:
       tags: [AdminMail]
       operationId: createAdminMailDomain
+      x-hub-rbac: admin
+      x-hub-audit-action: mail.admin.domains.create
       requestBody:
         required: true
         content:
@@ -836,6 +925,7 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/MailDomain"}
+        "403": {$ref: "#/components/responses/Forbidden"}
         default: {$ref: "#/components/responses/Error"}
   /admin/mail/domains/{domainId}:
     parameters:
@@ -846,6 +936,8 @@ paths:
     patch:
       tags: [AdminMail]
       operationId: updateAdminMailDomain
+      x-hub-rbac: admin
+      x-hub-audit-action: mail.admin.domains.update
       requestBody:
         required: true
         content:
@@ -861,23 +953,30 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/MailDomain"}
+        "403": {$ref: "#/components/responses/Forbidden"}
         default: {$ref: "#/components/responses/Error"}
     delete:
       tags: [AdminMail]
       operationId: deleteAdminMailDomain
+      x-hub-rbac: admin
+      x-hub-audit-action: mail.admin.domains.delete
       responses:
         "204": {description: Unused non-default domain removed}
+        "403": {$ref: "#/components/responses/Forbidden"}
         default: {$ref: "#/components/responses/Error"}
   /admin/mail/health:
     get:
       tags: [AdminMail]
       operationId: getAdminMailHealth
+      x-hub-rbac: admin
+      x-hub-audit-action: mail.admin.health.read
       responses:
         "200":
           description: Redacted engine and projection health
           content:
             application/json:
               schema: {$ref: "#/components/schemas/MailHealth"}
+        "403": {$ref: "#/components/responses/Forbidden"}
         default: {$ref: "#/components/responses/Error"}
 components:
   securitySchemes:
@@ -947,6 +1046,65 @@ components:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
     Conflict:
       description: Optimistic version or idempotency conflict
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/ErrorEnvelope"}
+    AttendeeVersionConflict:
+      description: RSVP attendee version is stale; client refetches the canonical event before retry
+      headers:
+        X-Hub-Error-Code:
+          required: true
+          schema: {const: ATTENDEE_VERSION_CONFLICT}
+        ETag:
+          required: true
+          description: Current attendee version in the same quoted-integer form as If-Match
+          schema: {type: string, pattern: '^"[1-9][0-9]*"$'}
+        Location:
+          required: true
+          description: Same-origin canonical event path to refetch; clients must reject absolute or cross-origin values
+          schema:
+            type: string
+            format: uri-reference
+            pattern: '^/api/calendar/v2/events/[0-9a-fA-F-]{36}$'
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/ErrorEnvelope"}
+          example:
+            error: rsvp state changed; reload the current attendee
+            request_id: req_01JZZZZZZZZZZZZZZZZZZZZZZZ
+    IdempotencyConflict:
+      description: The idempotency key was already reserved for a different canonical request
+      headers:
+        X-Hub-Error-Code:
+          required: true
+          schema: {const: IDEMPOTENCY_KEY_REUSED}
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/ErrorEnvelope"}
+    CalendarMutationConflict:
+      description: RSVP optimistic-version or idempotency-key conflict
+      headers:
+        X-Hub-Error-Code:
+          required: true
+          schema:
+            type: string
+            enum: [ATTENDEE_VERSION_CONFLICT, IDEMPOTENCY_KEY_REUSED]
+        ETag:
+          required: false
+          description: Present for ATTENDEE_VERSION_CONFLICT; current attendee version
+          schema: {type: string, pattern: '^"[1-9][0-9]*"$'}
+        Location:
+          required: false
+          description: Present for ATTENDEE_VERSION_CONFLICT; same-origin canonical event path, never an absolute URL
+          schema:
+            type: string
+            format: uri-reference
+            pattern: '^/api/calendar/v2/events/[0-9a-fA-F-]{36}$'
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/ErrorEnvelope"}
+    Forbidden:
+      description: Authenticated principal lacks the required role; resource existence is not disclosed
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
@@ -1298,6 +1456,31 @@ components:
           minItems: 1
           maxItems: 10
           items: {$ref: "#/components/schemas/MailRuleAction"}
+    LegacyCalendarAggregateEvent:
+      type: object
+      description: Exact current backend/internal/calendar EventResponse shape
+      required: [id, type, title, starts_at, all_day]
+      properties:
+        id: {type: string}
+        type: {type: string, enum: [call, sprint, deadline, leave]}
+        title: {type: string}
+        description: {type: string}
+        starts_at: {type: string, format: date-time}
+        ends_at: {type: [string, "null"], format: date-time}
+        all_day: {type: boolean}
+        project_id: {type: [string, "null"], format: uuid}
+        project_key: {type: string}
+        url: {type: string}
+    LegacyCalendarEventsResponse:
+      type: object
+      description: Exact current backend/internal/calendar EventsResponse shape
+      required: [events, from, to]
+      properties:
+        events:
+          type: array
+          items: {$ref: "#/components/schemas/LegacyCalendarAggregateEvent"}
+        from: {type: string, format: date-time}
+        to: {type: string, format: date-time}
     CalendarAttendee:
       type: object
       required: [id, email, role, rsvp_status, version, reply_delivery_status]
@@ -1315,6 +1498,30 @@ components:
     CalendarEvent:
       type: object
       required: [id, uid, title, all_day, timezone, sequence, source, status, organizer_email, attendees, version]
+      x-hub-temporal-invariant: relevant end must be strictly after start
+      allOf:
+        - if:
+            properties:
+              all_day: {const: true}
+            required: [all_day]
+          then:
+            required: [starts_at, ends_at, start_date, end_date_exclusive]
+            properties:
+              starts_at: {type: "null"}
+              ends_at: {type: "null"}
+              start_date: {type: string, format: date}
+              end_date_exclusive: {type: string, format: date}
+        - if:
+            properties:
+              all_day: {const: false}
+            required: [all_day]
+          then:
+            required: [starts_at, ends_at, start_date, end_date_exclusive]
+            properties:
+              starts_at: {type: string, format: date-time}
+              ends_at: {type: string, format: date-time}
+              start_date: {type: "null"}
+              end_date_exclusive: {type: "null"}
       properties:
         id: {type: string, format: uuid}
         uid: {type: string, maxLength: 255}
@@ -1326,7 +1533,12 @@ components:
         start_date: {type: [string, "null"], format: date}
         end_date_exclusive: {type: [string, "null"], format: date}
         all_day: {type: boolean}
-        timezone: {type: string, maxLength: 64}
+        timezone:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: Canonical name validated against the runtime IANA timezone database
+          x-hub-validation: iana-timezone
         rrule: {type: [string, "null"], maxLength: 1000}
         exdates:
           type: array
@@ -1346,6 +1558,30 @@ components:
     UpsertCalendarEventRequest:
       type: object
       required: [title, all_day, timezone, attendees]
+      x-hub-temporal-invariant: relevant end must be strictly after start
+      allOf:
+        - if:
+            properties:
+              all_day: {const: true}
+            required: [all_day]
+          then:
+            required: [starts_at, ends_at, start_date, end_date_exclusive]
+            properties:
+              starts_at: {type: "null"}
+              ends_at: {type: "null"}
+              start_date: {type: string, format: date}
+              end_date_exclusive: {type: string, format: date}
+        - if:
+            properties:
+              all_day: {const: false}
+            required: [all_day]
+          then:
+            required: [starts_at, ends_at, start_date, end_date_exclusive]
+            properties:
+              starts_at: {type: string, format: date-time}
+              ends_at: {type: string, format: date-time}
+              start_date: {type: "null"}
+              end_date_exclusive: {type: "null"}
       properties:
         title: {type: string, minLength: 1, maxLength: 500}
         description: {type: string, maxLength: 200000}
@@ -1355,7 +1591,12 @@ components:
         start_date: {type: [string, "null"], format: date}
         end_date_exclusive: {type: [string, "null"], format: date}
         all_day: {type: boolean}
-        timezone: {type: string, maxLength: 64}
+        timezone:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: Canonical name validated against the runtime IANA timezone database
+          x-hub-validation: iana-timezone
         rrule: {type: [string, "null"], maxLength: 1000}
         exdates:
           type: array
@@ -1377,6 +1618,67 @@ components:
     UpdateCalendarEventRequest:
       type: object
       minProperties: 1
+      description: Partial update; the server merges it with the current event and validates the complete timed/all-day invariant before mutation
+      x-hub-temporal-invariant: temporal fields are paired and the resulting relevant end must be strictly after start
+      dependentRequired:
+        starts_at: [ends_at]
+        ends_at: [starts_at]
+        start_date: [end_date_exclusive]
+        end_date_exclusive: [start_date]
+      oneOf:
+        - not:
+            anyOf:
+              - required: [starts_at]
+              - required: [ends_at]
+              - required: [start_date]
+              - required: [end_date_exclusive]
+        - required: [starts_at, ends_at]
+          properties:
+            starts_at: {type: string, format: date-time}
+            ends_at: {type: string, format: date-time}
+          not:
+            anyOf:
+              - required: [start_date]
+                properties:
+                  start_date: {type: string}
+              - required: [end_date_exclusive]
+                properties:
+                  end_date_exclusive: {type: string}
+        - required: [start_date, end_date_exclusive]
+          properties:
+            start_date: {type: string, format: date}
+            end_date_exclusive: {type: string, format: date}
+          not:
+            anyOf:
+              - required: [starts_at]
+                properties:
+                  starts_at: {type: string}
+              - required: [ends_at]
+                properties:
+                  ends_at: {type: string}
+      allOf:
+        - if:
+            properties:
+              all_day: {const: true}
+            required: [all_day]
+          then:
+            required: [starts_at, ends_at, start_date, end_date_exclusive]
+            properties:
+              starts_at: {type: "null"}
+              ends_at: {type: "null"}
+              start_date: {type: string, format: date}
+              end_date_exclusive: {type: string, format: date}
+        - if:
+            properties:
+              all_day: {const: false}
+            required: [all_day]
+          then:
+            required: [starts_at, ends_at, start_date, end_date_exclusive]
+            properties:
+              starts_at: {type: string, format: date-time}
+              ends_at: {type: string, format: date-time}
+              start_date: {type: "null"}
+              end_date_exclusive: {type: "null"}
       properties:
         title: {type: string, minLength: 1, maxLength: 500}
         description: {type: string, maxLength: 200000}
@@ -1386,7 +1688,12 @@ components:
         start_date: {type: [string, "null"], format: date}
         end_date_exclusive: {type: [string, "null"], format: date}
         all_day: {type: boolean}
-        timezone: {type: string, maxLength: 64}
+        timezone:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: Canonical name validated against the runtime IANA timezone database
+          x-hub-validation: iana-timezone
         rrule: {type: [string, "null"], maxLength: 1000}
         exdates:
           type: array
@@ -1426,27 +1733,53 @@ components:
               from: {type: string, format: date-time}
               to: {type: string, format: date-time}
               source: {type: string, enum: [event, call, leave]}
-    AdminMailSettings:
+    LegacyAdminMailSettings:
       type: object
-      required: [alerts, mailbox]
+      description: Exact backward-compatible shape used by the existing Resend admin UI
+      required: [hub_mail_url, from_alerts, alerts_enabled, daily_limit, resend_ready]
       properties:
-        alerts:
-          type: object
-          description: Existing ADR-NOTIF-01 settings, retained for compatibility
-          additionalProperties: true
-        mailbox:
-          type: object
-          required: [external_mail_enabled, max_message_bytes, max_attachment_bytes, max_recipients, send_rate_per_minute, trash_retention_days, junk_retention_days]
-          properties:
-            external_mail_enabled: {type: boolean}
-            max_message_bytes: {type: integer, format: int64, minimum: 1048576}
-            max_attachment_bytes: {type: integer, format: int64, minimum: 1}
-            max_recipients: {type: integer, minimum: 1, maximum: 500}
-            send_rate_per_minute: {type: integer, minimum: 1, maximum: 1000}
-            trash_retention_days: {type: integer, minimum: 1, maximum: 3650}
-            junk_retention_days: {type: integer, minimum: 1, maximum: 3650}
-    UpdateAdminMailSettingsRequest:
+        hub_mail_url: {type: string}
+        from_alerts: {type: string, format: email}
+        alerts_enabled: {type: boolean}
+        daily_limit: {type: integer, minimum: 0}
+        resend_ready: {type: boolean, readOnly: true}
+    UpdateLegacyAdminMailSettingsRequest:
       type: object
+      minProperties: 1
+      properties:
+        hub_mail_url: {type: string}
+        from_alerts: {type: string, format: email}
+        alerts_enabled: {type: boolean}
+        daily_limit: {type: integer, minimum: 0}
+    LegacyAdminMailBroadcastRequest:
+      type: object
+      required: [subject, html_body]
+      properties:
+        subject: {type: string, minLength: 3, maxLength: 200}
+        html_body: {type: string, minLength: 10}
+        dry_run: {type: boolean, default: false}
+    LegacyAdminMailBroadcastResponse:
+      type: object
+      required: [recipients, sent, failed, dry_run]
+      properties:
+        recipients: {type: integer, minimum: 0}
+        sent: {type: integer, minimum: 0}
+        failed: {type: integer, minimum: 0}
+        dry_run: {type: boolean}
+    AdminMailboxSettings:
+      type: object
+      required: [external_mail_enabled, max_message_bytes, max_attachment_bytes, max_recipients, send_rate_per_minute, trash_retention_days, junk_retention_days]
+      properties:
+        external_mail_enabled: {type: boolean}
+        max_message_bytes: {type: integer, format: int64, minimum: 1048576}
+        max_attachment_bytes: {type: integer, format: int64, minimum: 1}
+        max_recipients: {type: integer, minimum: 1, maximum: 500}
+        send_rate_per_minute: {type: integer, minimum: 1, maximum: 1000}
+        trash_retention_days: {type: integer, minimum: 1, maximum: 3650}
+        junk_retention_days: {type: integer, minimum: 1, maximum: 3650}
+    UpdateAdminMailboxSettingsRequest:
+      type: object
+      minProperties: 1
       properties:
         external_mail_enabled: {type: boolean}
         max_message_bytes: {type: integer, format: int64, minimum: 1048576}
@@ -1495,13 +1828,8 @@ components:
         checked_at: {type: string, format: date-time}
     ErrorEnvelope:
       type: object
-      required: [error]
+      description: Canonical Hub NFR-13 wire error; machine codes, when needed, use X-Hub-Error-Code
+      required: [error, request_id]
       properties:
-        error:
-          type: object
-          required: [code, message, request_id]
-          properties:
-            code: {type: string, pattern: "^[A-Z0-9_]+$"}
-            message: {type: string}
-            details: {type: [object, "null"], additionalProperties: true}
-            request_id: {type: string}
+        error: {type: string}
+        request_id: {type: string}

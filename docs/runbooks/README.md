@@ -27,7 +27,7 @@
 | 5xx на части запросов | [monitoring-and-alerts](monitoring-and-alerts.md) `HubHighHTTP5xxRate` |
 | Всё медленно | [monitoring-and-alerts](monitoring-and-alerts.md) `HubHighHTTPLatencyP95` |
 | Задеплоили и стало хуже | [deploy-and-rollback](deploy-and-rollback.md) §4 «Откат» |
-| Не приходят письма/уведомления | [fa06-secret-rotation](fa06-secret-rotation.md) (проверить ключи) + [incident-response](incident-response.md) §5 |
+| Не приходят Magic Link / transactional alert письма Resend | [fa06-secret-rotation](fa06-secret-rotation.md) (проверить ключи) + [incident-response](incident-response.md) §5 |
 | Кончилось место / БД не пишет | [database-operations](database-operations.md) §5 |
 | Утёк секрет | [fa06-secret-rotation](fa06-secret-rotation.md) немедленно |
 | Потеряны данные | [backup-restore](backup-restore.md) §3 |
@@ -35,6 +35,12 @@
 ## Инфраструктура (справка, детали — `deployments/README.md`)
 
 **Production-стек** (`deployments/docker-compose.prod.yml`): `postgres`, `mongo`, `redis`, `nats`, `seaweedfs`, `livekit`, `backend`, `hub-mail`, `frontend`, `caddy`.
+
+Здесь `hub-mail` означает текущий Resend процесс: Magic Link/transactional alerts и
+legacy admin broadcast. Broadcast — известное нарушение no-marketing policy, а не принятая
+mailbox-функция. Stalwart mailbox engine, SMTP receive/send, JMAP adapter и mailbox runbooks
+пока только заморожены в `ADR-MAIL-01`; они отсутствуют в production stack и имеют статус
+`NOT_IMPLEMENTED` / `NOT_RUN`.
 
 **Мониторинг** (`deployments/docker-compose.monitoring.yml`, overlay): `prometheus`, `alertmanager`, `loki`, `promtail`, `grafana`.
 

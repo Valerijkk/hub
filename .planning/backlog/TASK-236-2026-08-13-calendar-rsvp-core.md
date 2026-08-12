@@ -1,6 +1,6 @@
 # TASK-236 — Calendar RSVP core
 
-> Date: **2026-08-13** · Priority: **P0** · Status: **Open** · Phase: **143**
+> Date: **2026-08-13** · Priority: **P0** · Status: **Analysis active; code blocked by exact Spark runtime** · Phase: **143**
 
 ## Outcome
 
@@ -28,5 +28,7 @@ RFC 5545/5546 generation/parsing, optimistic RSVP, and the optional ScheduledCal
 
 ## Blockers
 
-No runtime blocker for pure/domain work. Migration/runtime verification needs the accepted
-Docker launcher. A schema-generation command may run only in Docker.
+Atomic code is blocked because the exact required `gpt-5.3-codex` / `xhigh` runtime is
+unavailable; evidence is in Phase 143 `RUNTIME-BLOCKER.md`. No fallback is allowed.
+Migration/runtime verification additionally needs the accepted Docker launcher. A
+schema-generation command may run only in Docker.

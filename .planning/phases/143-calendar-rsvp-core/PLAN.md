@@ -1,6 +1,6 @@
 # Phase 143 — Calendar RSVP Core
 
-> Task: TASK-236 · Status: PLANNED · Depends on: Phase 142
+> Task: TASK-236 · Status: ANALYSIS_ACTIVE_CODE_BLOCKED_BY_EXACT_RUNTIME · Depends on: Phase 142
 
 ## Goal
 
@@ -55,6 +55,7 @@ breaking existing export behavior.
 - `backend/ent/schema/calendarevent.go`
 - `backend/ent/schema/calendarattendee.go`
 - `backend/ent/schema/calendareventexception.go`
+- `backend/ent/schema/calendarmutationreceipt.go`
 
 **Modify:**
 
@@ -64,7 +65,9 @@ breaking existing export behavior.
 **Steps:**
 
 1. Add UUID/timestamp/soft-delete/version fields, enums, indexes, owner/organizer/attendee
-   edges, unique UID/recurrence constraints and optional one-to-one call link.
+   edges, master UID unique constraint, exception recurrence unique constraint, the two
+   nullable-attendee partial unique constraints, optional one-to-one call link, and a
+   bounded create/RSVP idempotency receipt.
 2. Add schema-level annotations/checks supported by current Ent patterns.
 3. Run Ent generation only in accepted Docker execution; inspect generated diff before
    staging. Never generate on host.
@@ -87,7 +90,8 @@ breaking existing export behavior.
 
 1. Define repository and outbox/notifier ports usable by pure fakes.
 2. Write failing service tests for create, material/silent update, cancellation, series/
-   occurrence RSVP, stale version, duplicate idempotency key and spoofed reply.
+   occurrence RSVP, stale version returning the current version/refetch metadata, same-key
+   response replay, changed-payload key conflict and spoofed reply.
 3. Implement minimal transaction orchestration and version conflict mapping.
 4. Ensure notification/NATS payload contains no description/body.
 5. Focused Docker unit verification when available.
@@ -112,24 +116,29 @@ public-handler unit with fakes and no listener.
 
 **Steps:**
 
-1. Add failing handler units for auth-derived owner, validation, 409 version conflict, and
-   recurrence id decoding.
-2. Implement endpoints exactly as `docs/mail/openapi.yaml` and extend aggregate kind
-   additively.
-3. Preserve existing calendar export/call/sprint/deadline/leave behavior.
+1. Add failing handler units for auth-derived owner, timed/all-day validation, NFR-13 409
+   plus error-code/ETag/Location headers, and recurrence id decoding.
+2. Implement canonical endpoints exactly under `/api/calendar/v2/**` as frozen in
+   `docs/mail/openapi.yaml`.
+3. Preserve the exact legacy `GET /api/calendar/events` `{events,from,to}` envelope,
+   export, and call/sprint/deadline/leave behavior; add an `event` aggregate kind only
+   additively after its DTO compatibility unit exists.
 4. Sync system/architecture docs and record unrun integration evidence honestly.
 5. Focused Docker unit/build verification when available.
 6. Commit `feat(calendar): открыть API событий и RSVP`.
 
 ## Task 143-06 — Backfill migration plan and review
 
-**Create/modify:** repository-standard migration artifact after discovering current
-migration mechanism; do not invent a second migration system.
+**Create/modify:** keep `.planning/phases/143-calendar-rsvp-core/MIGRATION-PLAN.md` current;
+create a production migration artifact only after founder review establishes the canonical
+Atlas/apply mechanism. Do not invent a second migration system.
 
 **Steps:**
 
-1. Backfill active scheduled-call creator and participants as accepted attendees and link
-   one canonical event per call idempotently.
+1. Backfill only active, non-deleted calls. Set owner/organizer to `created_by`, UID to
+   `urn:uuid:<scheduled_call_id>`, timezone to the creator's validated IANA timezone,
+   creator/participants to accepted, and link one canonical event per call idempotently.
+   Emit no historical invitation/outbox records.
 2. Define rollback/forward-only policy consistent with repository practice.
 3. Require database integration evidence through the accepted QA/Docker layer; a unit mock
    is not migration proof.

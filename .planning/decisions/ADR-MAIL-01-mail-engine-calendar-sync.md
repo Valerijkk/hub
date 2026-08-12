@@ -106,7 +106,10 @@ type MailEngine interface {
     RenameFolder(ctx context.Context, accountID, folderID, name string) error
     DeleteFolder(ctx context.Context, accountID, folderID string) error
     ListMessages(ctx context.Context, query EngineMessageQuery) (EngineMessagePage, error)
+    SearchMessages(ctx context.Context, query EngineSearchQuery) (EngineMessagePage, error)
     GetMessage(ctx context.Context, accountID, messageID string) (EngineMessage, error)
+    GetBlob(ctx context.Context, accountID, blobID string) (EngineBlob, error)
+    Changes(ctx context.Context, accountID, since string) (EngineChangePage, error)
     SaveDraft(ctx context.Context, draft EngineDraft) (EngineMessage, error)
     Submit(ctx context.Context, message EngineSubmission) (EngineSubmissionResult, error)
     MoveMessages(ctx context.Context, accountID string, messageIDs []string, folderID string) error
@@ -149,6 +152,23 @@ does not mean bypassing the engine.
 Idempotency is keyed by a Hub-generated submission id propagated to the engine-facing
 request and outbox record. A retry must not create a second visible message.
 
+## HTTP compatibility boundary
+
+The existing `GET /api/calendar/events` aggregate keeps its public
+`{events, from, to}` shape and existing call/sprint/deadline/leave behavior. Canonical
+first-class event CRUD, RSVP and availability use `/api/calendar/v2/**`; the aggregate may
+later expose a new `event` kind only additively. The existing flat
+`GET/PUT /api/admin/mail/settings` Resend contract also remains unchanged. Mailbox-engine
+policy is a separate `GET/PUT /api/admin/mail/mailbox-settings` resource. Every new admin
+mail operation requires the existing admin middleware plus a named audit action.
+
+Repository inspection also found the live `POST /api/admin/mail/broadcast` route. It sends
+arbitrary admin-authored content to all active users and therefore conflicts with
+ADR-NOTIF-01's template whitelist and no-marketing/bulk decision. This ADR does not bless
+or reuse that route. Before mailbox acceptance it must be disabled/removed, or the founder
+must explicitly supersede ADR-NOTIF-01 and approve consent, audit, rate, unsubscribe and
+abuse controls. Until then OpenAPI marks it deprecated as a current governance gap.
+
 ## Calendar model and iTIP policy
 
 ### Authority and ScheduledCall relationship
@@ -160,13 +180,20 @@ migration. New meeting creation writes the event and optional call link in one t
 
 Existing active `ScheduledCall.participants` are backfilled as attendees with `accepted`
 status because they were already explicit call members in Hub. The creator/organizer is
-also `accepted`. Newly invited participants default to `needs_action`.
+also `accepted`. For this backfill, `calendar_owner_id` and `organizer_id` are the call's
+`created_by`, UID is the deterministic `urn:uuid:<scheduled_call_id>`, the timed instant is
+the existing UTC `scheduled_at` plus duration, and the event timezone is the creator's
+validated IANA timezone (the current user default is `UTC`). Rows with missing creator,
+email, or valid timezone fail the preflight report and are not guessed. The backfill writes
+no invitation outbox records and sends no historical mail. Newly invited participants
+default to `needs_action`.
 
 ### UID, SEQUENCE, recurrence, and duplicate handling
 
 - Hub-created events use a stable opaque UID scoped to the instance domain.
-- `(calendar_owner_id, uid, recurrence_id)` is the logical idempotency key for imported
-  instances. Redelivery updates the same event/instance when `SEQUENCE` is newer.
+- `(calendar_owner_id, uid)` identifies the imported master. An occurrence is uniquely
+  identified by `(calendar_event_id, recurrence_id)` in `CalendarEventException`.
+  Redelivery updates the same event/instance when `SEQUENCE` is newer.
 - Lower sequence is ignored. Equal sequence is idempotent when the canonical payload hash
   matches and rejected/quarantined when it conflicts.
 - `SEQUENCE` increments on invitation-relevant changes: time, duration, timezone,
@@ -182,10 +209,20 @@ also `accepted`. Newly invited participants default to `needs_action`.
 
 ### Optimistic locking and spoof defense
 
-`CalendarAttendee.version` is compared on RSVP writes. A stale client receives `409` and
-the current attendee representation. An incoming `METHOD:REPLY` may change only the
-attendee whose normalized email matches the authenticated/envelope sender; organizer,
-other attendees, event fields, UID, and sequence are immutable from a reply.
+`CalendarAttendee.version` is compared on RSVP writes. A stale client receives `409` with
+the canonical Hub NFR-13 body `{error,request_id}`, `X-Hub-Error-Code:
+ATTENDEE_VERSION_CONFLICT`, the current attendee-version `ETag`, and `Location` of the
+canonical event. The client must refetch that event and reconcile before retry; the error
+body is not expanded because Hub forbids endpoint-specific wire error shapes. An incoming
+`METHOD:REPLY` may change only the attendee whose normalized email matches the
+authenticated/envelope sender; organizer, other attendees, event fields, UID, and sequence
+are immutable from a reply.
+
+Create and RSVP request idempotency is persisted in the Hub transaction as a bounded
+receipt keyed by organization, authenticated actor, operation and a hash of
+`Idempotency-Key`. The receipt also stores a canonical request hash and the original
+successful response. A key reused for different input is a conflict; the same completed
+input replays the original response without a second mutation or outbox event.
 
 ### iTIP ownership
 
@@ -268,7 +305,9 @@ outbox pattern where state change and event publication must be atomic.
 ### Explicitly excluded
 
 - Bespoke SMTP/IMAP/JMAP servers.
-- Marketing, newsletters, digests, bulk campaign tooling, and tracking pixels.
+- New marketing, newsletters, digests, bulk campaign tooling, and tracking pixels. The
+  current legacy admin broadcast is a known policy violation routed to the release gate,
+  not an accepted exception.
 - External analytics/tracking beacons.
 - Changes to the Resend alert whitelist from ADR-NOTIF-01.
 

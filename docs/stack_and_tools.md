@@ -193,7 +193,7 @@ exact cleanup в `finally`. Legacy jobs и скрипты выше
 
 | Сервис | Назначение | Ограничения |
 |--------|------------|-------------|
-| Resend / hub-mail | Magic Link email, transactional | Rate limits провайдера |
+| Resend / hub-mail | Magic Link, transactional alerts, and a current legacy admin broadcast | Broadcast is a known ADR-NOTIF-01 governance gap; no mailbox transport/client |
 | Telegram Bot API | Уведомления (не login) | telego SDK |
 | GitHub / GitLab | Webhooks, PR/MR | Tokens encrypted at rest |
 
@@ -225,8 +225,13 @@ launcher с task-owned report, ограничениями ресурсов и un
 | Утилита | Путь | Назначение |
 |---------|------|------------|
 | hub-cli | `cli/` | CI/CD: push-results, create-bug, update-task |
-| hub-mail | `backend/cmd/hub-mail` | Transactional email microservice |
+| hub-mail | `backend/cmd/hub-mail` | Current Resend transactional-alert microservice; not a mailbox engine |
 | meilisearch-indexer | `backend/cmd/meilisearch-indexer` | Search indexing (optional) |
+
+Stalwart is a **conditional future candidate**, not part of the current Hub stack. Its
+adapter, pinned image digest, license choice, resource measurements and runtime acceptance
+remain gated by `.planning/decisions/ADR-MAIL-01-mail-engine-calendar-sync.md`; status is
+`NOT_IMPLEMENTED` / `NOT_RUN`.
 
 ---
 

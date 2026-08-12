@@ -44,7 +44,7 @@
 |---------|------------------|----------------|
 | REST API (`/api/*`) | 250+ production routes | **252** OpenAPI paths ✅ (`swagger.json`, 2026-07-28); route inventory historically ~286 |
 | Frontend UI-маршруты | Покрытие всех модулей | **77** `.tsx` routes ✅ (`frontend/src/routes/`, measured 2026-07-28) |
-| Ent schemas (PostgreSQL) | Полная модель домена | **82** сущности ✅ (`backend/ent/schema/`, без `helpers.go`) |
+| Ent schemas (PostgreSQL) | Полная модель домена | **85** entity schema types / **87** `.go` files (измерено 2026-08-13; `helpers.go` + `mixin_version.go` не entities) |
 | Backend domain-модули | Модульный монолит | **31** пакет в `backend/internal/` (+ `platform/`, `testutil/`) |
 | v2.0 UI requirements (DSFN–XTRA) | 85/85 | ✅ COMPLETE (Phases 8–14) |
 | CRITICAL security blockers | 0 | **12/12 FIXED** в коде (v2.0.1); PG-03 ротация секретов в git history — manual ops |
@@ -125,7 +125,11 @@
 
 - ~~Видеозвонки с вебкамерами~~ → UI surface зафиксирован (`CallControls` / LiveKit); модуль не принят, polish backlog
 - Нативные мобильные приложения (PWA достаточно)
-- ~~Email только magic link~~ → transactional + marketing via **hub-mail** (v2.5+)
+- Email сейчас: Magic Link + transactional alerts через Resend/`hub-mail`, плюс
+  существующий admin broadcast всем active users. Broadcast конфликтует с
+  `ADR-NOTIF-01` (no marketing/bulk) и является governance gap, а не принятым scope:
+  до mailbox acceptance его нужно отключить/удалить либо явно переутвердить founder.
+  Будущий mailbox client/engine описан `ADR-MAIL-01`, но `NOT_IMPLEMENTED` / `NOT_RUN`.
 - SSO/LDAP — после `ADR-AUTH-SSO` (до ADR = Magic Link only); OAuth соцсетей — out; SaaS billing (later); ~~Gantt~~ → UI surface зафиксирован, не module acceptance; multi-org (v5)
 - Remote control (управление чужим экраном)
 - Видео/аудио сообщения в мессенджере (кроме голосовых)
@@ -151,12 +155,12 @@
 |----|---------|--------|
 | US-V01 | Как сотрудник, хочу ленту новостей компании | ✅ `intranet/news`, Ent `NewsPost` |
 | US-V02 | Как сотрудник, хочу каталог коллег и org chart | ✅ `/intranet/directory` |
-| US-V03 | Как сотрудник, хочу единый календарь (созвоны, спринты, отпуск) | ✅ `/calendar`, `backend/internal/calendar/` |
+| US-V03 | Как сотрудник, хочу единый календарь (созвоны, спринты, отпуск) | ⚠️ historical aggregate code surface: `/calendar`, `backend/internal/calendar/`; не acceptance first-class events/Mail Sync L0 |
 | US-V04 | Как PO, хочу CRM-lite (контакты, сделки) | ✅ `/crm`, Ent `CRMContact`, `CRMDeal` |
 | US-V05 | Как сотрудник, хочу подать заявку на отпуск | ✅ `/hr`, Ent `LeaveRequest` |
 | US-V06 | Как Admin, хочу встроенную бухгалтерию (без 1C) | ✅ `/accounting`, journal entries, invoices |
 
-**Дополнительно в v4 (код):** no-code DB (`/bases`, `HubBase/HubTable/HubRecord`), marketplace (`/marketplace`), kudos и random coffee (`intranet`), status page (`/status`), hub-mail (`/admin/mail`), 1C connector (`integrations/onec`).
+**Дополнительно в v4 (код):** no-code DB (`/bases`, `HubBase/HubTable/HubRecord`), marketplace (`/marketplace`), kudos и random coffee (`intranet`), status page (`/status`), текущий Resend alert admin (`/admin/mail`), 1C connector (`integrations/onec`). Это не означает наличие mailbox engine/client.
 
 **Won't Have v4:** payroll/НДФЛ calc, multi-tenant SaaS (v5), SSO до принятия `ADR-AUTH-SSO`, native apps.
 
@@ -305,6 +309,11 @@ Edge-cases: повторение прошлой пары допускается 
 
 > Границы scope зафиксированы пользователем: `.planning/decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` §4 (GZ-V4-04/05/06/07) и `.planning/archive/july-2026/ROADMAP-FINAL-2026-07-03.md` Волна 1 (задача 1.11). Не расширять без нового решения PO.
 > Базовый календарь (`/calendar`, iCal export) реализован в v4 (US-V03) — истории ниже доводят его до паритета. Синхронизация — iCal двусторонне-упрощённо: export + подписка на внешние фиды, **без OAuth** (Google/Outlook API вне scope). Персоны: Игорь (Member), Дмитрий (Team Lead), Елена (Admin).
+>
+> **Mail Sync precedence (2026-08-13):** `.planning/decisions/specs/MAIL-SPEC.md`
+> замораживает L0 first-class event + iTIP/RSVP как первый delivery gate. L1 external
+> feed subscription из исторического FR-CAL отложена до полной реализации и acceptance
+> L0. Текущий aggregator/export code не является acceptance Mail Sync.
 
 ### KPI (Calendar v2)
 
@@ -636,7 +645,7 @@ Hub остаётся незавершённым MVP; таблица ниже с�
 - PLSH-01: Per-page ambient body gradients
 - PLSH-02: Skeleton loading states для виджетов
 - PLSH-03: Smooth theme toggle transition
-- Phase 16+: Gantt и webcam UI surfaces исторически зафиксированы (`/projects/$id/gantt`, `CallControls` / LiveKit), но не приняты как готовые модули; hub-mail transactional — residual
+- Phase 16+: Gantt и webcam UI surfaces исторически зафиксированы (`/projects/$id/gantt`, `CallControls` / LiveKit), но не приняты как готовые модули; `hub-mail` остаётся текущим Resend transactional-alert surface, mailbox — contract-only
 
 ## Связанные документы
 

@@ -54,7 +54,7 @@
 | `storage` | Работа с файловым хранилищем (S3/SeaweedFS) |
 | `search` | Поиск по сущностям |
 | `notification` | Уведомления (in-app, внешние каналы) |
-| `mail` | Почтовый сервис (`hub-mail`) |
+| `mail` | Сейчас: Resend Magic Link/transactional alerts, admin settings и legacy broadcast (`hub-mail`); broadcast — governance gap. Будущий mailbox engine/client заморожен в `ADR-MAIL-01`, но не реализован |
 | `status` | Статусы/доступность |
 | `backup` | Функциональность резервного копирования данных приложения |
 
@@ -67,7 +67,7 @@
 | `sprint` | Спринты |
 | `messenger` | Мессенджер: каналы, сообщения |
 | `calls` | Звонки (LiveKit) |
-| `calendar` | Календарь и события |
+| `calendar` | Сейчас: aggregate/export calls+sprints+deadlines+leave. Future L0: canonical event, attendee, iTIP/RSVP under `/calendar/v2/**` (`NOT_IMPLEMENTED`) |
 | `bases` | No-code базы данных (Lark-подобные таблицы) |
 | `tms` | Test Management System: тест-кейсы, ран-ы, импорт TestRail |
 | `dashboard` | Дашборды и агрегаты |

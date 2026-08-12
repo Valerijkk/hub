@@ -1,6 +1,6 @@
 # MAIL-SPEC — Hub mailbox and calendar synchronization contract
 
-> **Version:** 0.1.0
+> **Version:** 0.1.1
 > **Status:** Frozen for implementation
 > **Date:** 2026-08-13
 > **Architecture:** `../ADR-MAIL-01-mail-engine-calendar-sync.md`
@@ -28,15 +28,19 @@ the Hub mail feature. It does not claim that the described behavior is implement
 2. Every engine identifier is opaque. An id from mailbox A is invalid in mailbox B.
 3. Raw MIME and message body are never persisted in PostgreSQL.
 4. A mail submission is idempotent on `(mailbox_id, idempotency_key)`.
-5. A calendar event is idempotent on `(calendar_owner_id, uid, recurrence_id)` for
-   imported data. Hub-created master events have `recurrence_id = null`.
-6. RSVP updates compare attendee `version`; exactly one successful transition increments
+5. A canonical calendar master is unique on `(calendar_owner_id, uid)`. Imported
+   occurrences are unique on `(calendar_event_id, recurrence_id)` in
+   `CalendarEventException`; `CalendarEvent` itself never carries `recurrence_id`.
+6. Calendar create/RSVP HTTP retries are serialized through a persisted
+   `CalendarMutationReceipt`; a reused key with a different request hash is a conflict,
+   while a matching completed request replays the original status and response.
+7. RSVP updates compare attendee `version`; exactly one successful transition increments
    it by one.
-7. Incoming iTIP replies may mutate only the sender-matching attendee row.
-8. Soft-deleted projection rows never authorize engine access.
-9. Search results are post-filtered by current organization + mailbox ownership before
+8. Incoming iTIP replies may mutate only the sender-matching attendee row.
+9. Soft-deleted projection rows never authorize engine access.
+10. Search results are post-filtered by current organization + mailbox ownership before
    any snippet or identifier is returned.
-10. All externally observable timestamps are RFC 3339. Event timezone is a valid IANA
+11. All externally observable timestamps are RFC 3339. Event timezone is a valid IANA
     name. All-day values use dates and never infer midnight instants.
 
 ## 3. ERD
@@ -59,6 +63,8 @@ erDiagram
     User ||--o{ CalendarEvent : organizes
     CalendarEvent ||--o{ CalendarAttendee : invites
     CalendarEvent ||--o{ CalendarEventException : overrides
+    User ||--o{ CalendarMutationReceipt : initiates
+    CalendarEvent o|--o{ CalendarMutationReceipt : resolves
     CalendarEvent }o--o| ScheduledCall : links
     MailMessage }o--o| CalendarEvent : carries
     User o|--o{ CalendarAttendee : identifies
@@ -214,7 +220,7 @@ The persisted error is a safe code, never raw SMTP content containing addresses/
 |---|---|---|
 | `id` | UUID | primary key |
 | `organization_id`, `calendar_owner_id` | UUID | required, indexed |
-| `uid` | string | stable, bounded, indexed with owner |
+| `uid` | string | stable, bounded, unique with owner; master-level only |
 | `title`, `description`, `location` | string | bounded; description sanitized at render |
 | `starts_at`, `ends_at` | timestamp nullable | required for timed events, end > start |
 | `start_date`, `end_date_exclusive` | date nullable | required for all-day events |
@@ -248,14 +254,30 @@ The persisted error is a safe code, never raw SMTP content containing addresses/
 | `reply_delivery_status` | enum | `not_required`, `pending`, `sent`, `failed` |
 | timestamps | timestamp | required |
 
-Unique `(event_id, normalized_email, recurrence_id)`. An occurrence-specific attendee row
-inherits the series row until a response or override materializes it.
+Database enforcement uses two partial unique indexes because PostgreSQL does not consider
+null values equal: `(event_id, normalized_email) WHERE recurrence_id IS NULL` and
+`(event_id, normalized_email, recurrence_id) WHERE recurrence_id IS NOT NULL`. An
+occurrence-specific attendee row inherits the series row until a response or override
+materializes it.
 
 ### 3.13 CalendarEventException
 
 `id`, `calendar_event_id`, `recurrence_id`, optional overridden start/end/date/timezone/
 location/status, `sequence`, `payload_hash`, timestamps. Unique event + recurrence id.
 Deleting one occurrence stores a cancelled exception rather than mutating the master rule.
+
+### 3.14 CalendarMutationReceipt
+
+`id`, `organization_id`, authenticated `actor_user_id`, `operation`
+(`event_create`, `rsvp_series`, `rsvp_occurrence`), `idempotency_key_hash`, canonical
+`request_hash`, `state` (`in_progress`, `completed`), `response_status`, bounded
+`response_json`, nullable `calendar_event_id`, timestamps and `expires_at`. Unique
+`(organization_id, actor_user_id, operation, idempotency_key_hash)`. The raw key is never
+persisted. Reservation, domain mutation, outbox write and completed response are committed
+atomically; abandoned `in_progress` receipts reconcile by transaction rollback, not by a
+second mutation. Completed responses are retained for at least 24 hours and replayed byte-
+equivalently. The stored response is calendar metadata only and follows the same access and
+retention policy as its event.
 
 ## 4. Calendar state machines
 
@@ -271,7 +293,9 @@ for an active event. A cancelled event accepts no RSVP mutation. Each transition
 5. returns the canonical attendee including delivery status.
 
 Repeated request with the same idempotency key returns the original result. Repeated
-request without the same key but with stale version returns `409 ATTENDEE_VERSION_CONFLICT`.
+request without the same key but with stale version returns `409`, canonical
+`{error,request_id}`, `X-Hub-Error-Code: ATTENDEE_VERSION_CONFLICT`, the current attendee
+version as `ETag`, and a `Location` to refetch the canonical event before retry.
 
 ### 4.2 Event updates
 
@@ -302,13 +326,17 @@ request without the same key but with stale version returns `409 ATTENDEE_VERSIO
 
 The machine-readable contract is `docs/mail/openapi.yaml`. General rules:
 
-- Prefix: `/api/v1`.
+- Prefix: `/api`, matching the existing Fiber router and generated Swagger base path.
 - Auth: existing bearer/session middleware.
 - Pagination: opaque `cursor`, default 50, max 100.
 - Mutation idempotency: `Idempotency-Key` required for send, event create, and RSVP.
+- Calendar create/RSVP idempotency uses `CalendarMutationReceipt`; `MailSubmission`
+  remains the send-specific receipt.
 - Optimistic locking: `If-Match: "<version>"` for draft/event/rule updates; RSVP body
   includes `attendee_version` for explicit conflict responses.
-- Errors use `{error:{code,message,details?,request_id}}`; message is safe for display.
+- Errors retain mandatory Hub NFR-13 wire JSON `{error,request_id}`. Machine-readable
+  calendar conflict codes use `X-Hub-Error-Code`; stale RSVP additionally returns current
+  attendee-version `ETag` and canonical event `Location` for refetch.
 - `403` does not reveal whether an engine/message id exists in another mailbox.
 
 Endpoint groups frozen for v1:
@@ -322,8 +350,10 @@ Endpoint groups frozen for v1:
 | Attachments | `POST /mail/attachments/presign`, `POST /mail/attachments/{id}/confirm`, `GET/DELETE /mail/attachments/{id}` |
 | Search/contacts | `GET /mail/search`, `GET /mail/contacts/suggest` |
 | User settings | `GET/PATCH /mail/settings`, `GET /mail/identities`, CRUD `/mail/signatures`, CRUD `/mail/rules` |
-| Calendar | `GET/POST /calendar/events`, `GET/PATCH/DELETE /calendar/events/{id}`, RSVP series/occurrence, availability |
-| Admin | `GET/PATCH /admin/mail/settings`, domain CRUD, `GET /admin/mail/health` |
+| Existing calendar aggregate | `GET /calendar/events` remains byte-shape compatible as `{events,from,to}`; first-class events are later added only as an additive aggregate kind |
+| Canonical calendar | `GET/POST /calendar/v2/events`, `GET/PATCH/DELETE /calendar/v2/events/{id}`, v2 RSVP series/occurrence and v2 availability |
+| Existing Resend admin | `GET/PUT /admin/mail/settings` retains the flat `hub_mail_url/from_alerts/alerts_enabled/daily_limit/resend_ready` response contract; deprecated `POST /admin/mail/broadcast` is documented as a current ADR-NOTIF-01 governance gap, not new scope |
+| Mailbox admin | `GET/PUT /admin/mail/mailbox-settings`, domain CRUD, `GET /admin/mail/health`; all require admin RBAC and an audit action |
 
 ## 6. Event envelope and compatibility
 

@@ -1,6 +1,6 @@
 # Hub Mail + Calendar Sync — QA handoff
 
-> **Contract version:** 0.1.0
+> **Contract version:** 0.1.1
 > **Prepared:** 2026-08-13
 > **Implementation status:** NOT_IMPLEMENTED
 > **Runtime status:** NOT_RUN
@@ -66,18 +66,38 @@ or more `FR-MAIL-*` / `FR-CALSYNC-*` rows and named `TC-*` scenarios in `MAIL-SP
 
 ### Calendar synchronization
 
-1. REQUEST create/update, CANCEL, and REPLY round-trip UID/SEQUENCE/METHOD correctly.
-2. Whole-series RSVP and occurrence RSVP with `RECURRENCE-ID` remain distinct.
-3. Time/location/recurrence changes reset non-organizer RSVP; silent description edit
+1. Legacy `GET /api/calendar/events` keeps `{events,from,to}` and all existing kinds;
+   canonical CRUD/RSVP lives under `/api/calendar/v2/**`.
+2. REQUEST create/update, CANCEL, and REPLY round-trip UID/SEQUENCE/METHOD correctly.
+3. Whole-series RSVP and occurrence RSVP with `RECURRENCE-ID` remain distinct.
+4. Time/location/recurrence changes reset non-organizer RSVP; silent description edit
    preserves it.
-4. Concurrent stale RSVP returns 409 with current version.
-5. Duplicate equal UID/sequence/payload is idempotent; conflicting equal sequence is
+5. Concurrent stale RSVP returns canonical `{error,request_id}`, 409,
+   `X-Hub-Error-Code: ATTENDEE_VERSION_CONFLICT`, current attendee-version `ETag`, and
+   canonical event `Location`; the client refetches and reconciles before retry.
+6. Duplicate equal UID/sequence/payload is idempotent; conflicting equal sequence is
    quarantined; lower sequence cannot revert state.
-6. REPLY changes only the envelope/authenticated sender's attendee row.
-7. External guest remains email-only and cannot gain Hub authorization.
-8. Timed events retain instants across organizer/viewer timezones and DST transitions.
-9. All-day events preserve date and exclusive end without midnight conversion.
-10. Busy/free combines canonical events, scheduled calls, and approved HR leave.
+7. Reused HTTP idempotency key with identical input replays the original response; changed
+   input conflicts and never emits a second mutation/outbox event.
+8. REPLY changes only the envelope/authenticated sender's attendee row.
+9. External guest remains email-only and cannot gain Hub authorization.
+10. Timed events require `starts_at/ends_at`, null date fields and `end > start`; all-day
+    events require date/exclusive-end, null instants and no midnight conversion.
+11. Timed events retain instants across organizer/viewer timezones and DST transitions.
+12. Busy/free combines canonical events, scheduled calls, and approved HR leave.
+
+### Compatibility and admin
+
+1. Existing `GET/PUT /api/admin/mail/settings` remains flat and supports
+   `hub_mail_url`, `from_alerts`, `alerts_enabled`, `daily_limit`, and read-only
+   `resend_ready` without frontend changes.
+2. Existing `POST /api/admin/mail/broadcast` is documented as a deprecated governance gap:
+   it currently reaches active users but conflicts with ADR-NOTIF-01. Mailbox acceptance
+   requires removal/disablement or explicit founder re-authorization; the new mailbox must
+   never invoke or expand it implicitly.
+3. Mailbox policy uses `/api/admin/mail/mailbox-settings` and remains separate from Resend.
+4. Every admin mail operation rejects a non-admin with 403 and writes its named audit
+   action without secret values.
 
 ## Event subjects
 

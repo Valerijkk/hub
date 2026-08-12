@@ -148,6 +148,18 @@ Telegram         → Только notify bind/delivery (НЕ login)
 | File uploads | Presigned PUT, RBAC on presign generation |
 | Mongo search | Must filter by user's channel/project IDs |
 
+### Mailbox + Calendar RSVP (future contract)
+
+Security controls for the planned mailbox engine, HTML rendering, remote-image proxy,
+attachments, mailbox-owner isolation, iTIP sender binding, parser bounds, rate limits,
+admin RBAC/audit and secret handling are frozen in
+`.planning/decisions/ADR-MAIL-01-mail-engine-calendar-sync.md` § Security contract and
+`.planning/decisions/specs/MAIL-SPEC.md` §7. They are **not implemented or runtime-
+verified** and therefore do not inherit the production-readiness statements in this
+historical document. Current Resend also exposes a legacy admin broadcast that conflicts
+with ADR-NOTIF-01's no-marketing/whitelist policy; treat it as an open governance/security
+gap until removed, disabled, or explicitly re-authorized and audited.
+
 ## Защита от CSRF/XSS/Clickjacking
 
 | Угроза | Мера |

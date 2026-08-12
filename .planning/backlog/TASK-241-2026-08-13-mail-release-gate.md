@@ -15,6 +15,9 @@ Claude's test-rebase branch.
 - Mailbox owner isolation, admin RBAC/audit, HTML/CSP, remote image SSRF proxy, attachment
   scan gate, rate limits, auto-response loop prevention, iTIP spoofing, event idempotency,
   and search authorization are verified at applicable layers.
+- The current `/admin/mail/broadcast` governance gap is removed/disabled, or a founder-
+  approved superseding contract with consent/audit/unsubscribe/abuse controls is implemented
+  and verified; mailbox code never inherits it silently.
 - Projection rebuild/reconciliation and engine-unavailable behavior are documented and
   proven through accepted Docker-only runs.
 - All feature-owned units are green in Docker; QA handoff covers API/integration/E2E/load.

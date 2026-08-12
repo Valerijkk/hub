@@ -29,16 +29,20 @@
 | Audit | AUDIT | Full audit log, trash 30d, GDPR, alerts |
 | AI | AI | Multi-provider gateway, @hub-ai bot, JQL assist, usage audit |
 | Intranet | INTR | News, directory, kudos (+leaderboard spec), random coffee (+auto-DM spec), poll-in-post spec, onboarding spec (FR-INTR) |
-| Calendar | CAL | Unified events (calls, sprints, leave); spec: собственные события, ресурсы+booking, recurrence, iCal feeds, availability (FR-CAL) |
+| Calendar | CAL | Current read-only aggregate (calls, sprints, deadlines, leave); frozen future L0 contract adds first-class events + iTIP/RSVP under `/calendar/v2/**`; L1 feeds remain deferred |
 | CRM | CRM | Contacts, deals (lite) |
 | HR | HR | Leave requests |
 | Accounting | ACCT | Ledger, journal entries, invoices |
 | Bases | BASE | No-code DB (HubBase/Table/Record) |
 | Marketplace | MKT | Internal listings |
-| Mail | MAIL | hub-mail admin, transactional settings |
+| Mail | MAIL | Current Resend `hub-mail` alert admin/control plane; frozen future mailbox-engine/client contract is `NOT_IMPLEMENTED` and runtime `NOT_RUN` |
 | Status | STAT | Public status page |
 | 1C | ONEC | Optional connector (`integrations/onec`) |
 | Wiki | WIKI | **spec (Волны 5/8):** spaces + иерархия страниц, space-RBAC + restrict, версии/rollback, issue-links, user-scoped поиск (FR-WIKI) |
+
+Contract-only Mail + Calendar Sync artifacts are indexed by `docs/mail/QA-HANDOFF.md`.
+They define future implementation and do not add routes, Ent entities, engine runtime, or
+acceptance evidence to the current system.
 
 ## Нефункциональные требования
 
@@ -98,7 +102,8 @@ User ──┬── Session
        └── NotificationPreference
 ```
 
-**Ent schemas:** **82** сущности в `backend/ent/schema/` (2026-06-21).
+**Ent schemas (измерено 2026-08-13):** **85** entity schema types в **87** `.go` files
+(`helpers.go` + `mixin_version.go` не являются entity schemas).
 
 **RBAC / прочие PG-сущности:** Role (founder/admin/member), ProjectRole, Team, InviteLink, AuditLog, TrashItem, Label, MarketplaceListing и др.
 
@@ -149,6 +154,11 @@ rate_limit:<key> → counter
 | WS | `/ws` | WebSocket upgrade |
 
 Полная спецификация: `docs/wiki/API.md`, Swagger annotations в handlers.
+
+The frozen future Mail + Calendar RSVP API is in `docs/mail/openapi.yaml`. It is not part of
+the live route inventory below. In particular, legacy `GET /api/calendar/events` retains
+`{events,from,to}`, while canonical future event CRUD/RSVP is namespaced under
+`/api/calendar/v2/**`; legacy flat Resend admin settings also remain unchanged.
 
 ### Endpoint inventory (2026-06-21)
 
@@ -382,6 +392,11 @@ Outbox hub.intranet.coffee.matched → MessengerService (создать/пере
 - Матчинг: нечётное N → ровно одна тройка; повтор прошлой пары допустим только при отсутствии иных комбинаций; деактивация между матчингом и встречей — DM остаётся, следующий раунд исключает.
 
 ### Calendar v2 (FR-CAL)
+
+> Historical FR-CAL planning remains useful, but Mail Sync L0 now follows
+> `.planning/decisions/specs/MAIL-SPEC.md`: first-class Hub event + iTIP/RSVP reliability
+> precedes L1 external feed subscription. L1 is deferred until L0 is implemented and
+> accepted. Current code remains an aggregate/export surface, not L0 acceptance.
 
 Доводка модуля `calendar` до паритета: ресурсы с бронированием, recurring-события,
 iCal export/подписки, team availability. Календарь v4 — только агрегатор (calls/sprints/leave);

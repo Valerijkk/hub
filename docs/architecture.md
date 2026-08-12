@@ -75,7 +75,7 @@ backend/internal/
 ├── imex/           Import/export CSV/JSON/PDF/Jira
 ├── integrations/   onec/ — 1C connector (v4.5)
 ├── intranet/       News, directory, kudos, random coffee (v4)
-├── mail/           hub-mail admin settings
+├── mail/           current Resend alerts/admin; future mailbox domain is contract-only
 ├── marketplace/    Internal marketplace listings (v4)
 ├── messenger/      Channels, messages, threads, presence
 ├── notification/   In-app, Telegram bind, Web Push
@@ -94,9 +94,17 @@ backend/internal/
 
 **Отдельные процессы (cmd/):** `server` (main), `hub-mail`, `meilisearch-indexer`.
 
+`hub-mail` сейчас — Resend процесс для Magic Link/transactional alerts и существующего
+legacy admin broadcast, а не SMTP/IMAP/JMAP mailbox engine. Broadcast нарушает no-marketing
+policy `ADR-NOTIF-01` и остаётся governance gap до удаления/отключения либо явного
+founder-решения. Предпочтительный Stalwart adapter, first-class mailbox domain и Calendar
+RSVP описаны только замороженным `ADR-MAIL-01`; implementation `NOT_IMPLEMENTED`, runtime
+`NOT_RUN`.
+
 **Repository pattern (основные модули с interface):** audit, bases, calls, crm, github, gitlab, hr, intranet, marketplace, messenger, notification, project, search, sprint, tms, tracker и др.
 
-**Ent schemas:** **82** сущности в `backend/ent/schema/` (+ `helpers.go`).
+**Ent schemas (измерено 2026-08-13):** **85** entity schema types в **87** `.go` files
+(`helpers.go` + `mixin_version.go` не являются entity schemas).
 
 ## C4 Level 3 — Фронтенд
 
@@ -222,7 +230,7 @@ Client → POST presign URL → Backend (RBAC check) → SeaweedFS PUT (direct)
 | Версия | Модули в коде | Frontend routes |
 |--------|---------------|-----------------|
 | v3.0 | `ai/` — providers, bot, JQL, PR review | `/settings/ai` |
-| v4.0 | `intranet/`, `calendar/`, `crm/`, `hr/`, `accounting/`, `bases/`, `marketplace/`, `status/`, `mail/` | `/intranet`, `/calendar`, `/crm`, `/hr`, `/accounting`, `/bases`, `/marketplace`, `/status` |
+| v4.0 | `intranet/`, calendar aggregate, `crm/`, `hr/`, `accounting/`, `bases/`, `marketplace/`, `status/`, Resend alert `mail/` | `/intranet`, `/calendar`, `/crm`, `/hr`, `/accounting`, `/bases`, `/marketplace`, `/status`; mailbox client is not implemented |
 | v4.5 | `integrations/onec/` | settings integrations |
 
 Event bus: **NATS JetStream** (без Redis pub/sub). Search: PostgreSQL + **Meilisearch** indexer (`cmd/meilisearch-indexer`).
@@ -232,6 +240,9 @@ Event bus: **NATS JetStream** (без Redis pub/sub). Search: PostgreSQL + **Mei
 - `docs/system_specification.md` — API, модели данных
 - `docs/security_guidelines.md` — OWASP, уязвимости
 - `docs/stack_and_tools.md` — версии стека
+- `.planning/decisions/ADR-MAIL-01-mail-engine-calendar-sync.md` — замороженная граница mail engine и Calendar RSVP
+- `.planning/decisions/specs/MAIL-SPEC.md` — ERD, state machines, API/event/security contract
+- `docs/mail/QA-HANDOFF.md` — статус и будущие verification gates (`NOT_RUN`)
 - `.planning/decisions/specs/PLATFORM-VISION-v4.md` — corporate super-app vision
 - `.planning/decisions/specs/AI-PROVIDER-HUB-SPEC.md` — AI gateway spec
 

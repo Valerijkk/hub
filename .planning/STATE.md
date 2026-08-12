@@ -118,9 +118,9 @@ mail_feature_workstream:
     branch: codex/mail-module-20260813
     phases: "142-148"
     current_phase: 143
-    status: phase_142_contract_complete_phase_143_ready
+    status: phase_142_contract_complete_phase_143_analysis_active_code_runtime_blocked
     product_truth: unfinished_mvp_feature_not_accepted
-    contract_version: "0.1.0"
+    contract_version: "0.1.1"
     tasks:
       - TASK-235
       - TASK-236
@@ -136,6 +136,10 @@ mail_feature_workstream:
       launcher: NOT_READY
       resource_budget: NOT_MEASURED
       external_delivery: NOT_CONFIGURED
+      atomic_code_model: UNAVAILABLE
+      atomic_code_model_evidence: .planning/phases/143-calendar-rsvp-core/RUNTIME-BLOCKER.md
+      production_migration_authority: UNRESOLVED
+      production_migration_evidence: .planning/phases/143-calendar-rsvp-core/MIGRATION-PLAN.md
     decisions:
       engine_candidate: Stalwart
       engine_acceptance: conditional_on_license_provenance_and_runtime_gates
@@ -143,6 +147,7 @@ mail_feature_workstream:
       message_authority: mail_engine
       calendar_authority: hub_postgresql
       oauth_l3: out_of_scope
+      legacy_admin_broadcast: governance_gap_deprecated_pending_founder_decision
     artifacts:
       adr: .planning/decisions/ADR-MAIL-01-mail-engine-calendar-sync.md
       spec: .planning/decisions/specs/MAIL-SPEC.md
