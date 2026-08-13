@@ -3,7 +3,7 @@
 > **Detected:** 2026-08-13
 > **Scope:** atomic production/test code only
 > **Planning/review:** continues
-> **Current status:** ROUTE_AUTHORIZED · PER_PACKET_TELEMETRY_BLOCKED
+> **Current status:** ROUTE_AUTHORIZED · DISPATCHER_ENFORCED_PROVENANCE_ACCEPTED · RUNTIME_NOT_RUN
 
 ## Current route — task-local founder amendment
 
@@ -17,9 +17,11 @@ Codex for implementation. For Phases 143–148 on `codex/mail-module-20260813`:
   code
 
 This is a branch/workstream-specific amendment, not a global rewrite of Hub routing. Every
-dispatch still records exact requested/actual model and effort. The instruction does not
-authorize protected-path work, direct Docker fallback, migration apply, push, PR, merge,
-deployment, DNS, license purchase or secrets.
+dispatch records its exact requested model/effort and provenance source. An explicit native
+dispatch accepted without rejection records `dispatcher-enforced`; actual telemetry, when
+exposed, must match. A mismatch, rejection, omitted model/effort or fallback remains
+`BLOCKED`. The instruction does not authorize protected-path work, direct Docker fallback,
+migration apply, push, PR, merge, deployment, DNS, license purchase or secrets.
 The mandatory first-read `AGENTS.md` now records this exact narrow exception so a
 fail-closed dispatcher does not have to choose between contradictory routes.
 
@@ -72,7 +74,7 @@ subsequently reported exact provenance; their evidence is recorded in the matchi
 `IMPLEMENTATION-*.md` files. Docker-backed verification remains separately `NOT_READY`
 until the canonical launcher is accepted.
 
-## 2026-08-13 per-packet telemetry regression
+## 2026-08-13 per-packet telemetry regression and founder resolution
 
 Several earlier Terra packets reported requested and actual model/effort and were reviewed
 under that evidence. Later 143-03C and 143-03F review runtimes did not expose actual
@@ -81,14 +83,19 @@ the exact 143-03A hash-pair remediation attempt also explicitly requested the re
 Terra route, reported actual `UNAVAILABLE`, used no fallback and stopped before reading or
 writing files.
 
-Per the founder lock, dispatcher acceptance alone is not silently treated as actual runtime
-evidence. Consequences until question 29 is answered or telemetry returns:
+Founder question 29 is now answered. For this branch and Phases 143–148, an explicit native
+collaboration dispatch with the exact Terra route and effort that the dispatcher accepts and
+runs without rejection is sufficient provenance, recorded as `dispatcher-enforced`. Actual
+telemetry, if exposed, must match; a mismatch, rejection, omitted model/effort or fallback
+remains `BLOCKED`.
 
-- 143-03A/C require the P1 hash-pair remediation; 143-03B/F retain source-content passes
-  but their dependency/independent-review chain is blocked;
-- dependent 143-03D is blocked;
-- 144-01B remains not implemented;
-- root may continue contract, evidence, dependency analysis and source review, but does not
-  author atomic production/test code;
-- Docker availability does not affect this model-provenance gate and does not make the
-  separately missing launcher ready.
+Consequences:
+
+- 143-03A/C remediation and 143-03C/F review may be dispatched under that exact rule;
+- 143-03D remains blocked by completion of its hash-pair and independent-review dependencies;
+- 144-01B remains subject to its independent contract/source-review gates, but not to a
+  telemetry-only provenance block;
+- an exact Terra/xhigh worker may author atomic production/test code only through an accepted
+  native dispatch; root only orchestrates, reviews, stages and commits; and
+- Docker availability does not make the separately missing launcher ready, and all executable
+  evidence remains `NOT_RUN`.

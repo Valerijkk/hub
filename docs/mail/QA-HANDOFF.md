@@ -673,7 +673,9 @@ oracles, not current executable evidence.
   exact config, least-privilege mailbox auth, domain-verification authority, measured
   resource use, and runtime behavior are pending. `v0.16.17` is
   only a researched source/registry candidate; read-only digest capture did not pull or run it.
-- The 0.1.8 root amendment has no independent actual-model-provenance review yet; historical
-  0.1.7 review evidence is stale for its engine/API/persistence changes.
+- The 0.1.8 root amendment still needs an independent exact-SHA Terra/high review. Its
+  provenance may be `dispatcher-enforced` only when the native dispatcher accepted the exact
+  model/effort without rejection; actual telemetry, when exposed, must match. Historical 0.1.7
+  review evidence is stale for its engine/API/persistence changes.
 - Therefore this handoff is a contract deliverable only. It must not be converted into a
   PASS claim until current-SHA executable evidence exists.

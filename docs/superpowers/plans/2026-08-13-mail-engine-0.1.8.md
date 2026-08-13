@@ -20,9 +20,12 @@ and Stalwart adapter own behavioral conformance in later packets.
 
 - Exact contract commit before execution: the clean branch must contain
   `c0f204983fdc929bebeacf75ceb69a416b8b5eb3` and the latest docs-only plan commit.
-- Entry gate: an independent actual-provenance `gpt-5.6-terra` / `high` review must accept
-  the exact contract SHA. Current status is `BLOCKED_MODEL_PROVENANCE`.
-- Worker runtime: exactly `gpt-5.6-terra` / `xhigh`, actual telemetry required, fallback none.
+- Entry gate: an independent `gpt-5.6-terra` / `high` review with accepted per-dispatch
+  provenance must accept the exact contract SHA. Current status is
+  `BLOCKED_INDEPENDENT_CONTRACT_REVIEW_PENDING`.
+- Worker runtime: exactly `gpt-5.6-terra` / `xhigh`, fallback none. For this branch/Phases
+  143–148, an accepted native dispatcher record without rejection is
+  `provenance_source: dispatcher-enforced`; actual telemetry, when exposed, must match.
 - Allowed implementation files only:
   `backend/internal/mail/mailbox_engine.go`,
   `backend/internal/mail/mailbox_types.go`,
@@ -75,11 +78,17 @@ branch=codex/mail-module-20260813
 contract_ancestor=c0f204983fdc929bebeacf75ceb69a416b8b5eb3
 worktree=clean
 requested_model=gpt-5.6-terra/xhigh
-actual_model=gpt-5.6-terra/xhigh
+provenance_source=dispatcher-enforced
+dispatcher_acceptance=accepted_without_rejection
+actual_model=<matching telemetry|UNKNOWN>
+actual_reasoning_effort=<matching telemetry|UNKNOWN>
 independent_contract_review=PASS
 ```
 
-If any line cannot be proven, return `BLOCKED` and make no write.
+If the branch, ancestor, clean state or independent review cannot be proven, or the route has
+a rejection, omitted model/effort, fallback or telemetry mismatch, return `BLOCKED` and make
+no write. Unavailable telemetry alone is recorded as `UNKNOWN` with dispatcher-enforced
+provenance.
 
 - [ ] **Step 2: Change only the consumer stub signatures**
 
@@ -401,8 +410,9 @@ Do not run `go test`, `go test -race`, `go vet`, a direct container, or Compose.
 
 - [ ] **Step 9: Return the uncommitted worker handoff**
 
-Return requested/actual model+effort, starting SHA, four changed paths, exact static searches,
-`git diff --check`, and every `NOT_RUN`. Do not commit, push, open a PR or touch docs.
+Return exact requested model/effort, provenance source, actual telemetry when exposed, starting
+SHA, four changed paths, exact static searches, `git diff --check`, and every `NOT_RUN`. Do not
+commit, push, open a PR or touch docs.
 
 ---
 
@@ -425,7 +435,8 @@ Return requested/actual model+effort, starting SHA, four changed paths, exact st
 
 Reject the handoff if any changed path is outside the four allowed code/test paths, any
 historical hydrated page remains, any projection contains body/bytes, submission contains
-content, an enum/constant differs, or actual model/effort is unproved.
+  content, an enum/constant differs, or the route record has a rejection, omitted
+  model/effort, fallback or telemetry mismatch.
 
 - [ ] **Step 2: Review non-tautological test coverage**
 
@@ -468,5 +479,6 @@ all executable statuses as `NOT_RUN` unless a supported current-SHA launcher res
 - Type consistency: all test names, fields, signatures and enum constants match
   `ENGINE-CONTRACT-0.1.8.md` at `c0f20498` plus the docs-only plan amendment.
 - Placeholder scan: no implementation placeholder or guessed launcher command exists.
-- Current execution state: `BLOCKED_BEFORE_WRITE` until independent actual-provenance
-  Terra/high contract review and actual-provenance Terra/xhigh worker runtime are available.
+- Current execution state: `BLOCKED_INDEPENDENT_CONTRACT_REVIEW_PENDING` until an independent
+  Terra/high contract review accepts the exact SHA. Once that separate gate passes, an exact
+  Terra/xhigh worker may use dispatcher-enforced provenance; runtime remains `NOT_RUN`.

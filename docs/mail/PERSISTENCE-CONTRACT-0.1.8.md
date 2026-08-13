@@ -218,8 +218,8 @@ gate.
 ### 144-02A Ent representation freeze
 
 This subsection closes the remaining Go/Ent representation choices for 144-02A. It is a
-root-frozen candidate until an independent actual-provenance Terra/high review accepts the
-exact commit. It does not authorize generation or migration.
+root-frozen candidate until an independent Terra/high review with accepted per-dispatch
+provenance accepts the exact commit. It does not authorize generation or migration.
 
 #### Scalar representation and validation
 
@@ -798,6 +798,8 @@ database text/locale collation never determines the hash order.
 ## Generation gate
 
 The schema packet is eligible for implementation only after this document and OpenAPI 0.1.8
-receive independent Terra/high review with actual model provenance. Ent generation, schema
-validation, build/tests and migration artifacts remain `NOT_RUN` until the accepted
+receive independent Terra/high review with accepted per-dispatch provenance. For this branch
+and Phases 143–148, `dispatcher-enforced` is sufficient only for an exact native dispatch
+accepted without rejection; actual telemetry, when exposed, must match. Ent generation,
+schema validation, build/tests and migration artifacts remain `NOT_RUN` until the accepted
 task-owned launcher and founder migration decision exist.

@@ -18,10 +18,12 @@ reviewed or reverted independently.
 
 - Frozen source decision:
   `.planning/phases/143-calendar-rsvp-core/REMEDIATION-143-03-HASH-PAIR.md`.
-- Worker runtime for each code packet: exact `gpt-5.6-terra` / `xhigh`, actual telemetry
-  required, fallback none. Reviewer: exact `gpt-5.6-terra` / `high` with the same rule.
-- Current execution state: `BLOCKED_MODEL_PROVENANCE`; no product write begins until actual
-  model/effort is visible.
+- Worker runtime for each code packet: exact `gpt-5.6-terra` / `xhigh`, fallback none.
+  Reviewer: exact `gpt-5.6-terra` / `high`. For this branch/Phases 143–148, the required
+  provenance is an explicit native dispatcher acceptance without rejection, recorded as
+  `dispatcher-enforced`; actual telemetry, when exposed, must match.
+- Current execution state: `READY_FOR_EXACT_DISPATCH`; a packet may start only after it records
+  the required dispatcher-enforced provenance and every remaining packet-specific gate.
 - Packet A implementation ownership: `backend/ent/schema/calendarevent.go`; test ownership:
   `backend/tests/calendar/calendar_event_schema_test.go`.
 - Packet C implementation ownership:
@@ -72,14 +74,18 @@ The worker response must be able to record:
 branch=codex/mail-module-20260813
 worktree=clean
 requested_model=gpt-5.6-terra/xhigh
-actual_model=gpt-5.6-terra/xhigh
+provenance_source=dispatcher-enforced
+dispatcher_acceptance=accepted_without_rejection
+actual_model=<matching telemetry|UNKNOWN>
+actual_reasoning_effort=<matching telemetry|UNKNOWN>
 allowed_product_file=backend/ent/schema/calendarevent.go
 allowed_test_file=backend/tests/calendar/calendar_event_schema_test.go
 runtime=NOT_RUN
 ```
 
-Unavailable actual telemetry, a dirty overlap or an unexpected branch returns `BLOCKED`
-before repository reads or writes.
+A dirty overlap, unexpected branch, dispatcher rejection, omitted model/effort, fallback or
+telemetry mismatch returns `BLOCKED` before repository reads or writes. Unavailable telemetry
+alone is recorded as `UNKNOWN` with `provenance_source=dispatcher-enforced`.
 
 - [ ] **Step 2: Write the external failing annotation oracle**
 
@@ -172,8 +178,9 @@ errors, and exactly two packet paths.
 
 - [ ] **Step 7: Return the uncommitted Terra handoff**
 
-Report exact starting SHA, requested/actual model+effort, two changed paths, source-content
-hashes, static command output, and `generation/compile/unit/runtime=NOT_RUN`. Do not commit.
+Report exact requested model/effort, provenance source, actual telemetry when exposed, starting
+SHA, two changed paths, source-content hashes, static command output, and
+`generation/compile/unit/runtime=NOT_RUN`. Do not commit.
 
 - [ ] **Step 8: Root reviews and commits Packet A**
 
@@ -205,8 +212,9 @@ The evidence status is `STATIC_CONFORMANT`, never runtime PASS.
 
 - [ ] **Step 1: Prove the sequential packet boundary**
 
-Require clean branch, Task 1 as an ancestor, exact Terra/xhigh actual telemetry, and only the
-exception schema/test paths. Any mismatch returns `BLOCKED` before reads or writes.
+Require clean branch, Task 1 as an ancestor, exact Terra/xhigh dispatcher-enforced provenance,
+and only the exception schema/test paths. Any routing mismatch returns `BLOCKED` before reads
+or writes.
 
 - [ ] **Step 2: Write the external failing exception oracle**
 
@@ -288,7 +296,8 @@ Expected: exactly the exception schema/test paths and no whitespace error.
 
 Return exact provenance/SHA/diff evidence with all executable statuses `NOT_RUN`. Root then
 dispatches a fresh exact Terra/high read-only reviewer for Task 2 and rechecks Task 1 remains
-unchanged. Unavailable telemetry is `BLOCKED`, not PASS.
+unchanged. Unavailable telemetry is recorded as `UNKNOWN`; it is sufficient only with an
+accepted `dispatcher-enforced` provenance record and is never a substitute for review.
 
 - [ ] **Step 8: Root docs sync and atomic commit**
 
@@ -316,4 +325,5 @@ Keep Ent generation, compile, migration, unit and runtime `NOT_RUN`.
   representation and import the repository schema externally.
 - Placeholder scan: no guessed launcher/generator command or incomplete implementation step
   exists.
-- Current state: `BLOCKED_BEFORE_WRITE` until actual Terra telemetry is available.
+- Current state: `READY_FOR_EXACT_DISPATCH`; actual Terra telemetry is optional only when the
+  exact native dispatcher acceptance is recorded, and every executable status remains `NOT_RUN`.

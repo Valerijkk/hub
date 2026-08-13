@@ -5,7 +5,7 @@ milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
 last_updated: "2026-08-13T19:13:00+03:00"
-last_activity: 2026-08-13 · Phase 142 machine-contract findings root-remediated; independent actual-provenance rereview and executable validation remain pending, product writes provenance-blocked and runtime NOT_RUN
+last_activity: 2026-08-13 · founder answered Mail question 29: dispatcher-enforced provenance is sufficient for exact accepted native Terra dispatches; independent rereview and executable validation remain pending, runtime NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -139,6 +139,7 @@ mail_feature_workstream:
       external_delivery: NOT_CONFIGURED
       atomic_code_model: gpt-5.6-terra_xhigh_actual_143_01_143_02A
       atomic_code_model_evidence: .planning/phases/143-calendar-rsvp-core/IMPLEMENTATION-143-02A.md
+      atomic_code_provenance_rule: dispatcher_enforced_for_exact_native_acceptance_telemetry_must_match_if_available
       production_migration_authority: UNRESOLVED
       production_migration_evidence: .planning/phases/143-calendar-rsvp-core/MIGRATION-PLAN.md
       frontend_unit_harness: PENDING_PROTECTED_REBASE
@@ -154,7 +155,7 @@ mail_feature_workstream:
       engine_management_permissions: replace_domain_and_individual_crud_list_only_review_pending
       engine_mailbox_auth_options: per_user_oauth_authorization_code_recommended_or_explicit_broad_impersonator_founder_choice_pending
       engine_mailbox_auth_rejections: no_management_key_no_oauth_client_credentials_no_acl_only_full_engine_no_synthesized_user_passwords
-      engine_mailbox_auth_review: route_rereview_no_p0_p1_p2_wording_fixed_actual_model_effort_unknown_not_gate_acceptance
+      engine_mailbox_auth_review: route_rereview_no_p0_p1_p2_wording_fixed_dispatcher_enforced_or_matching_telemetry_required
       engine_public_url: single_stalwart_public_url_for_oauth_oidc_jmap_requires_shared_trusted_origin_if_oauth
       engine_network_profile: default_deny_bounded_service_http_no_8080_no_user_mail_protocols_smtp25_optional_oauth_https_gate
       engine_domain_verification: unresolved_stalwart_domain_has_expected_zone_not_verification_fail_closed_dns_required
@@ -169,7 +170,7 @@ mail_feature_workstream:
       mailbox_versions: if_match_label_settings_signature_rule_policy_domain
       mailbox_content: server_sanitize_or_plain_only_remote_token_byte_proxy_private_nosniff_no_referrer_csp
       mailbox_folder_recovery: exclusive_writer_capability_false_by_default_no_alternate_imap_jmap_admin_writer
-      mail_code_routing: founder_task_local_override_gpt-5.6-terra_xhigh_no_fallback
+      mail_code_routing: founder_task_local_override_gpt-5.6-terra_xhigh_dispatcher_enforced_no_fallback
       mailbox_search: bounded_sanitized_body_attachment_filenames_owner_reauth
       mailbox_spam_feedback: explicit_spam_ham_not_move_alias
       mailbox_engine_bounds: projection_only_pages_1mib_item_8mib_page_budgeted_50mib_message_25mib_blob
@@ -230,8 +231,9 @@ spec_coverage:
   operations while retaining RBAC on all 13 admin operations, aligns event attendee cap 200,
   adds the channel subject/payload UUID invariant and recovery/replay examples, bounds the
   still-blocked legacy broadcast, and makes the mailbox recipient policy reachable at 300.
-  This is not independent acceptance: post-remediation actual-provenance rereview and all
-  executable OpenAPI/JSON Schema/runtime validation remain `NOT_RUN`.
+  This is not independent acceptance: post-remediation independent Terra/high rereview with
+  accepted per-dispatch provenance and all executable OpenAPI/JSON Schema/runtime validation
+  remain `NOT_RUN`.
 - Preferred engine: Stalwart за adapter boundary, условно. Official-source refresh on
   2026-08-13 identifies `v0.16.17` / source commit
   `08509ddccbe6f978a1ffebeb250cab8588d765e5` as the current candidate, not an approved
@@ -258,8 +260,9 @@ spec_coverage:
   security acceptance of broad dedicated-account impersonation. The earlier Terra-requested
   source-only review is explicitly superseded after the route P0 was found. A fresh
   source-only re-review found no remaining P0/P1 and its sole P2 allowlist-wording issue is
-  root-fixed, but actual model/effort telemetry was unavailable. Both review artifacts are
-  non-accepting evidence and cannot authorize implementation.
+  root-fixed, but actual model/effort telemetry was unavailable. Both review artifacts remain
+  non-accepting because their superseded/current-SHA review chain is incomplete, not because
+  unavailable telemetry alone invalidates an accepted native dispatcher record.
   OAuth also cannot be bolted onto the existing internal-only origin: one documented
   `STALWART_PUBLIC_URL` drives OAuth/OIDC and JMAP discovery. Founder question 45/G145-5D
   therefore requires one accepted user-and-Hub HTTPS origin with default-deny path/listener
@@ -310,9 +313,9 @@ spec_coverage:
   adds bounded cursor/detail pages, creation quota errors, compact 366-day calendar pages and
   non-truncating legacy count/byte ceilings. The earlier review files remain discovery
   evidence, not current PASS verdicts; every dependent packet waits for an independent
-  actual-provenance Terra/high review of the exact amendment.
-- A requested Terra/high source-only pass on exact SHA `90229b2b` could not satisfy the
-  actual-provenance gate and therefore is not an acceptance. It nevertheless found three
+  Terra/high review with accepted per-dispatch provenance of the exact amendment.
+- A requested Terra/high source-only pass on exact SHA `90229b2b` is not an acceptance because
+  it found three
   P1 contract gaps now root-remediated for re-review: required `MailMessage.engine_version`,
   separate opaque engine submission/result ids versus the public Hub message UUID with
   projection-before-sent finalization, and a locked durable maximum of 50 attachments per
@@ -320,8 +323,8 @@ spec_coverage:
 - Its source-only re-review found and root-remediated two follow-up P1s without changing that
   gate verdict: retained engine-result pairs now skip submission reconciliation and can only
   retry projection finalization, while the hydrated projection must exactly match account/
-  message/version and receives domain-derived confirmed-owner origin. Another exact-SHA
-  provenance-bearing review remains required.
+  message/version and receives domain-derived confirmed-owner origin. Another independent
+  exact-SHA Terra/high review remains required.
 - The 144-02A root candidate now also fixes exact Ent scalar widths, lower-case ASCII
   validators, a typed bounded DNS JSON value, named SQL CHECK predicates, ordered partial
   indexes and delete edges. Execution is split sequentially into 02A1 typed DNS, 02A2
@@ -330,7 +333,8 @@ spec_coverage:
   and Docker runtime remain pending/`NOT_RUN`.
   The exact test-first packet is recorded in
   `docs/superpowers/plans/2026-08-13-mail-control-plane-schemas.md` and consumes contract base
-  `5f31a74f`; it authorizes no product write while model provenance/review is blocked.
+  `5f31a74f`; it authorizes no product write while independent review and other packet gates
+  remain pending.
   Evidence is recorded in the matching `IMPLEMENTATION-*.md` artifacts. A later root deep
   audit reopened 143-03A and 143-03C:
   both omit the schema-level nullable canonical hash version/hash pair CHECK required by
@@ -339,9 +343,9 @@ spec_coverage:
   dependents. The exact remediation is frozen in `REMEDIATION-143-03-HASH-PAIR.md`, but its
   two-packet TDD execution is now frozen in
   `docs/superpowers/plans/2026-08-13-calendar-hash-pair-remediation.md`; its Terra/xhigh
-  attempt and independent reviews are blocked because new worker runtimes no longer expose
-  actual model/effort. 143-03D and 144-01B stay blocked by the fail-closed
-  provenance rule and founder question 29. Phase 143/144 implementation is `IN_PROGRESS`;
+  attempt and independent reviews must use the amended dispatcher-enforced evidence rule.
+  143-03D and 144-01B stay blocked by their hash-pair, exact-contract and independent-review
+  dependencies, not unavailable telemetry alone. Phase 143/144 implementation is `IN_PROGRESS`;
   executable runtime remains `NOT_RUN`.
 - Mailbox control-plane rules inherited from 0.1.6 remain in 0.1.8: отдельные bounded workers владеют
   idempotent domain/account/primary-identity/alias lifecycle, combined projection/mutation-recovery sync и generation/hash

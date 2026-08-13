@@ -20,11 +20,13 @@ transaction responsibilities.
 
 - Contract base: `5f31a74f362f3d8f678fd3e3e5d403212dd119a1` plus the later docs-only
   plan commit containing this file and the nil/immutability clarification.
-- Entry gate for every product packet: independent actual-provenance
-  `gpt-5.6-terra` / `high` acceptance of the exact contract/plan commit. Current state is
-  `BLOCKED_MODEL_PROVENANCE`.
-- Worker runtime: exact `gpt-5.6-terra` / `xhigh`, actual telemetry required, no fallback.
-  Reviewer runtime: exact `gpt-5.6-terra` / `high`, actual telemetry required, no fallback.
+- Entry gate for every product packet: independent `gpt-5.6-terra` / `high` review with
+  accepted per-dispatch provenance of the exact contract/plan commit. Current state is
+  `BLOCKED_INDEPENDENT_CONTRACT_REVIEW_PENDING`.
+- Worker runtime: exact `gpt-5.6-terra` / `xhigh`, no fallback. Reviewer runtime: exact
+  `gpt-5.6-terra` / `high`, no fallback. For this branch/Phases 143–148, an explicit native
+  dispatcher acceptance without rejection is `provenance_source: dispatcher-enforced`; actual
+  telemetry, when exposed, must match.
 - Founder migration authority and the task-owned Docker launcher remain separate gates.
   Schema source may not be executed until both are recorded.
 - Do not read or change `testframework/**`, `backend/testframework/**`,
@@ -88,13 +90,19 @@ branch=codex/mail-module-20260813
 contract_ancestor=5f31a74f362f3d8f678fd3e3e5d403212dd119a1
 worktree=clean
 requested_model=gpt-5.6-terra/xhigh
-actual_model=gpt-5.6-terra/xhigh
+provenance_source=dispatcher-enforced
+dispatcher_acceptance=accepted_without_rejection
+actual_model=<matching telemetry|UNKNOWN>
+actual_reasoning_effort=<matching telemetry|UNKNOWN>
 independent_contract_review=PASS
 allowed_paths=backend/internal/mail/domain_dns.go,backend/tests/mail/domain_dns_test.go
 runtime=NOT_RUN
 ```
 
-Any unavailable line returns `BLOCKED` before opening product files.
+Any unavailable branch, ancestor, clean-state or independent-review line returns `BLOCKED`
+before opening product files. A dispatcher rejection, omitted model/effort, fallback or
+telemetry mismatch also returns `BLOCKED`; unavailable telemetry alone is `UNKNOWN` with
+dispatcher-enforced provenance.
 
 - [ ] **Step 2: Write the external test matrix first**
 
@@ -140,8 +148,8 @@ delimiter is allowed. Do not trim, normalize, resolve DNS or perform I/O.
 - [ ] **Step 5: Static inspection and handoff**
 
 Inspect only both owned paths with `rg`, `git diff --check`, `git diff --stat`, and a forbidden
-API scan for filesystem/network/time/random/global mutable state. Return start SHA, actual
-model telemetry, both content hashes, diff summary, and
+API scan for filesystem/network/time/random/global mutable state. Return start SHA,
+per-dispatch provenance (plus actual telemetry when exposed), both content hashes, diff summary, and
 `compile/unit/runtime=NOT_RUN`. Do not commit.
 
 - [ ] **Step 6: Root review and atomic commit**
@@ -170,8 +178,9 @@ Evidence status is `STATIC_CONFORMANT`, not runtime PASS.
 
 - [ ] **Step 1: Prove a clean sequential boundary**
 
-Require exact Terra/xhigh telemetry, Task 1 as an ancestor, clean status and only the four
-owned paths. Capture the ordered pre-change `Organization.Edges()` descriptor inventory.
+Require exact Terra/xhigh dispatcher-enforced provenance, Task 1 as an ancestor, clean status
+and only the four owned paths. Capture the ordered pre-change `Organization.Edges()` descriptor
+inventory.
 
 - [ ] **Step 2: Write the external schema metadata oracle first**
 
@@ -293,8 +302,9 @@ feat(mail): add domain and mailbox policy schemas
 
 - [ ] **Step 1: Prove the final sequential boundary**
 
-Require clean status, Tasks 1–2 ancestors, exact Terra/xhigh telemetry, and only the six
-owned paths. Capture pre-change ordered edge descriptors for Domain, Organization and User.
+Require clean status, Tasks 1–2 ancestors, exact Terra/xhigh dispatcher-enforced provenance,
+and only the six owned paths. Capture pre-change ordered edge descriptors for Domain,
+Organization and User.
 
 - [ ] **Step 2: Write the external schema metadata oracle first**
 
