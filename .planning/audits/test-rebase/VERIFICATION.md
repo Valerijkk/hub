@@ -265,3 +265,19 @@ authority ведёт state-transition механика.
 
 Остаются открытыми: канонический wrapper-прогон G128-D (founder-gated),
 независимая подпись arch-ver/qa-auto-ver, honest post-cutover unit baseline.
+
+### Аддендум — проба батч-флоу Phase 129 (тот же день, HEAD `c31150c5`)
+
+Docker-проба (`apply-check-log.txt` не коммитится, итоги здесь):
+`apply_cutover_batch.py --self-test` = PASS (no-replace/crash/link/collision/
+cleanup/receipt сентинелы). `validate_cutover_manifest.py --check` и
+`apply --check 129-02-go-hook-free-accounting` на HEAD `c31150c5` дали
+ожидаемые fail-closed отказы: (а) «live repository HEAD differs from manifest
+source.repository_head» — all-planned манифест привязан к `986b2211`;
+(б) шесть «independent live consumer hash mismatch»
+(consumer-003/004/008/022/024/025) — docs-sync `c31150c5` изменил шесть из 65
+зарегистрированных консюмеров после запечатывания. Механика Phase 129,
+подтверждённая пробой: перед стартом батчей манифест пересобирается на
+стартовом HEAD (rm + `--write` + обе валидации, цепочка отлажена, ~25s),
+после чего батчи идут подряд без промежуточных planning-коммитов — каждый
+батч переключает манифест и консюмеров в одном атомарном коммите.
