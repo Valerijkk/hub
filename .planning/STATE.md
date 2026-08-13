@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
-last_updated: "2026-08-13T22:47:11+03:00"
-last_activity: 2026-08-13 · 03A/03C remain committed and independently STATIC_CONFORMANT (each C/I/M 0/0/0): Packet A `31bfff8f58ba83d12b59600135503f98a6c92fbd`; Packet C `444c6f7b7b7b3d9b77bc9b24b32d1e13000ebbbc`. 03B re-review is STATIC_ACCEPTED C/I/M 0/0/0 on clean `dd346e31`; 03F is STATIC_ACCEPTED on `846cd00ecb243402877e18239c89a62bf07e8d14` after SPEC PASS/QUALITY PASS and final docs/whole-boundary review C/I/M 0/0/0. Launcher NOT_READY and runtime NOT_RUN
+last_updated: "2026-08-13T23:50:00+03:00"
+last_activity: 2026-08-13 · 03A/03C remain committed and independently STATIC_CONFORMANT (each C/I/M 0/0/0): Packet A `31bfff8f58ba83d12b59600135503f98a6c92fbd`; Packet C `444c6f7b7b7b3d9b77bc9b24b32d1e13000ebbbc`. 03B re-review is STATIC_ACCEPTED C/I/M 0/0/0 on clean `dd346e31`; 03D is STATIC_ACCEPTED on `10b4ceead119cb74a16b325b33f9121f60d7b1b5` after final independent C/I/M 0/0/0; 03F is STATIC_ACCEPTED on `846cd00ecb243402877e18239c89a62bf07e8d14` after SPEC PASS/QUALITY PASS and final docs/whole-boundary review C/I/M 0/0/0. Launcher NOT_READY and runtime NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -363,9 +363,13 @@ spec_coverage:
   docs/whole-boundary review returned C/I/M `0/0/0`; 03F is `STATIC_ACCEPTED` at committed boundary
   `846cd00ecb243402877e18239c89a62bf07e8d14`. The two-packet remediation remains in
   `REMEDIATION-143-03-HASH-PAIR.md` and
-  `docs/superpowers/plans/2026-08-13-calendar-hash-pair-remediation.md`. 143-03D is technically
-  unblocked by accepted 03A–C, but no 03D work is claimed here. 143-03E remains blocked on accepted
-  03D plus the launcher; 03F is satisfied. 144-01B remains subject to its own exact-contract and independent-review
+  `docs/superpowers/plans/2026-08-13-calendar-hash-pair-remediation.md`. 143-03D is
+  `STATIC_ACCEPTED` on `10b4ceead119cb74a16b325b33f9121f60d7b1b5` after independent C/I/M
+  `0/0/0`; `IMPLEMENTATION-143-03D.md` records the static boundary and authoritative Git-blob
+  SHA-256 values. 143-03E is no longer blocked by 03D or 03F: it remains
+  `BLOCKED/NOT_RUN` on the accepted launcher `NOT_READY` and separate founder-approved migration
+  mechanism/gate. The all-A product decision does not establish that technical authority or
+  accept an executed migration. 144-01B remains subject to its own exact-contract and independent-review
   dependencies. This does
   not accept Phase 143, the Calendar product, migration or runtime behavior: generation,
   compilation, unit execution and runtime are `NOT_RUN` because the accepted launcher is

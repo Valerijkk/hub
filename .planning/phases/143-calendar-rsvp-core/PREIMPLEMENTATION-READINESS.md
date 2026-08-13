@@ -2,7 +2,7 @@
 
 > **Snapshot:** 2026-08-13
 > **Branch:** `codex/mail-module-20260813`
-> **Product truth:** IMPLEMENTATION_IN_PROGRESS · 143-01/02A/02B/03A/03B/03C/03F_STATIC_ACCEPTED · RUNTIME_NOT_RUN · Phase/product/migration/runtime not accepted
+> **Product truth:** IMPLEMENTATION_IN_PROGRESS · 143-01/02A/02B/03A/03B/03C/03D/03F_STATIC_ACCEPTED · RUNTIME_NOT_RUN · Phase/product/migration/runtime not accepted
 > **Execution truth:** launcher `NOT_READY`; generation, migration, tests and runtime `NOT_RUN`.
 
 ## Prepared artifacts (root and independently reviewed)
@@ -31,7 +31,7 @@
 | Blocker | Evidence | Unblocks |
 |---|---|---|
 | Accepted versioned Docker launcher not implemented | root `AGENTS.md`, `STATE.md` | Ent generation, build/test/validator/runtime evidence |
-| 143-03D has no implementation | `DISPATCH-INDEX.md`, `IMPLEMENTATION-143-03F.md` | 143-03E after 03D is accepted and the launcher is ready; 03F is satisfied |
+| Accepted versioned Docker launcher not implemented; separate founder-approved production migration mechanism/gate still required | root `AGENTS.md`, `STATE.md`, `MIGRATION-PLAN.md`, all-A non-acceptance boundary | 143-03E generation/inspection evidence; all 03A/B/C/D/F schema packets are already static accepted |
 | Engine message/blob responses and admin byte settings lack authoritative hard bounds | Phase 144 `REVIEW-144-01A-ENGINE-BOUNDS.md`, founder questions 28/30/31 | accepted 144-01A amendment, fake, sync/content mapping and runtime adapter |
 | Account/domain schema field matrix and domain/identity cardinality are not exact | Phase 144 `REVIEW-144-02A-SCHEMA-READINESS.md`, founder questions 32–34 | 144-02A and every dependent mailbox schema/service packet |
 | Canonical/legacy calendar list responses lack exact page/expansion bounds | Phase 142 `REVIEW-OPENAPI-RESPONSE-BOUNDS.md`, founder question 37 | calendar list/legacy aggregate DTO, handler and UI transport packets |
@@ -58,9 +58,11 @@
    143-03B is `STATIC_ACCEPTED` on clean `dd346e31`. 143-03F is `STATIC_ACCEPTED` on
    `846cd00ecb243402877e18239c89a62bf07e8d14` after `SPEC PASS`/`QUALITY PASS` and final
    docs/whole-boundary review C/I/M `0/0/0`; the intermediate C/I/M `0/0/1` docs-sync finding
-   is superseded/closed. 143-03D is technically unblocked with no work claimed. Do not start
-   generation: 143-03E remains blocked on accepted 03D plus the launcher; 03F is satisfied.
-5. Resolve migration mechanism and accepted launcher before Ent generation.
+   is superseded/closed. 143-03D is `STATIC_ACCEPTED` on
+   `10b4ceead119cb74a16b325b33f9121f60d7b1b5` after final independent review C/I/M `0/0/0`.
+   Do not start generation: 143-03E is `BLOCKED/NOT_RUN` on the accepted launcher `NOT_READY`
+   and the separate founder-approved migration mechanism/gate; 03F is satisfied.
+5. Resolve the separate migration mechanism/gate and accepted launcher before Ent generation.
 6. Admit `calendar.>` before calendar producers.
 7. Execute Phase 143 service/HTTP plus ScheduledCall bridge packets; retain the legacy
    calendar envelope and count linked pairs once. Keep linked external guests fail-closed

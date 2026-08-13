@@ -1,6 +1,6 @@
 # Phase 143 — Calendar RSVP Core
 
-> Task: TASK-236 · Status: IMPLEMENTATION_IN_PROGRESS_143_01_02A_02B_03A_03B_03C_03F_STATIC_ACCEPTED · Depends on: Phase 142
+> Task: TASK-236 · Status: IMPLEMENTATION_IN_PROGRESS_143_01_02A_02B_03A_03B_03C_03D_03F_STATIC_ACCEPTED · Depends on: Phase 142
 
 ## Goal
 
@@ -32,7 +32,9 @@ authorities, duplicate meetings or dependence on the real mail engine.
 
 ## Task 143-02 — Deterministic iTIP codec with fixtures
 
-> **Status:** 143-02 codec and 143-03A/B/C/F are `STATIC_ACCEPTED`; 03F is committed at
+> **Status:** 143-02 codec and 143-03A/B/C/D/F are `STATIC_ACCEPTED`; 03D is committed at
+> `10b4ceead119cb74a16b325b33f9121f60d7b1b5` after final independent review C/I/M `0/0/0`;
+> 03F is committed at
 > `846cd00ecb243402877e18239c89a62bf07e8d14` after `SPEC PASS`/`QUALITY PASS` and final
 > docs/whole-boundary review C/I/M `0/0/0` (the intermediate `0/0/1` docs-sync finding is
 > superseded/closed). Generation, compilation, migration and executable verification remain `NOT_RUN`.
@@ -173,8 +175,9 @@ public-handler unit with fakes and no listener.
 ## Task 143-06 — Backfill migration plan and review
 
 **Create/modify:** keep `.planning/phases/143-calendar-rsvp-core/MIGRATION-PLAN.md` current;
-create a production migration artifact only after founder review establishes the canonical
-Atlas/apply mechanism. Do not invent a second migration system.
+create a production migration artifact only after the separate founder-approved migration
+mechanism/gate establishes the canonical Atlas/apply authority. The all-A product decision
+record does not establish that technical mechanism. Do not invent a second migration system.
 
 **Steps:**
 

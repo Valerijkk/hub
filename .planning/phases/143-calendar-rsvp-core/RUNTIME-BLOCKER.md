@@ -97,8 +97,8 @@ Consequences:
 - 143-03F is `STATIC_ACCEPTED` on `846cd00ecb243402877e18239c89a62bf07e8d14` after
   `SPEC PASS`/`QUALITY PASS` and final docs/whole-boundary review C/I/M `0/0/0`; the intermediate
   C/I/M `0/0/1` docs-sync finding is superseded/closed;
-- 143-03D is technically unblocked by accepted 03A–C, but no 03D work is claimed;
-- 143-03E remains blocked on accepted 143-03D plus the accepted launcher; 143-03F is satisfied;
+- 143-03D is `STATIC_ACCEPTED` on `10b4ceead119cb74a16b325b33f9121f60d7b1b5` after final independent C/I/M `0/0/0`; requested Terra/xhigh authoring and Terra/high reviews are dispatcher-enforced, actual telemetry `UNKNOWN`.
+- 143-03E is `BLOCKED/NOT_RUN` on the accepted launcher `NOT_READY` and the separate founder-approved migration mechanism/gate; all-A does not establish this technical authority or accept an executed migration. 03F is satisfied.
 - 144-01B remains subject to its independent contract/source-review gates, but not to a
   telemetry-only provenance block;
 - an exact Terra/xhigh worker may author atomic production/test code only through an accepted
