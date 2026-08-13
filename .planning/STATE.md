@@ -5,7 +5,7 @@ milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
 last_updated: "2026-08-14T00:07:53+03:00"
-last_activity: 2026-08-14 · 03A/03C remain committed and independently STATIC_CONFORMANT (each C/I/M 0/0/0): Packet A `31bfff8f58ba83d12b59600135503f98a6c92fbd`; Packet C `444c6f7b7b7b3d9b77bc9b24b32d1e13000ebbbc`. 03B re-review is STATIC_ACCEPTED C/I/M 0/0/0 on clean `dd346e31`; 03D is STATIC_ACCEPTED on `10b4ceead119cb74a16b325b33f9121f60d7b1b5` after final independent C/I/M 0/0/0; 03F is STATIC_ACCEPTED on `846cd00ecb243402877e18239c89a62bf07e8d14` after SPEC PASS/QUALITY PASS and final docs/whole-boundary review C/I/M 0/0/0; 04L is STATIC_ACCEPTED on `4525c559da22729aa8bc51ff5336c29dad4f27e9` after final independent C/I/M 0/0/0. Launcher NOT_READY and runtime NOT_RUN
+last_activity: 2026-08-14 resumed · Mail 0.1.8 five-document amendment independently exact-contract PASS at `5e314fb080d420696642058ae47397e251c23207`; next action is 144-01A. Launcher NOT_READY and runtime NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -118,7 +118,7 @@ mail_feature_workstream:
     branch: codex/mail-module-20260813
     phases: "142-148"
     current_phase: 144
-    status: contract_0_1_8_root_frozen_independent_review_pending_implementation_in_progress
+    status: contract_0_1_8_exact_contract_pass_144_01A_next_runtime_not_run
     product_truth: unfinished_mvp_feature_not_accepted
     contract_version: "0.1.8"
     tasks:
@@ -1351,14 +1351,14 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 
 ## Session Continuity
 
-**Last session:** 2026-08-08 (resumed · Phase 128)
-**Stopped at:** prompt/GSD and Docker/test-contract re-reviews PASS.
+**Last session:** 2026-08-14 (resumed · Mail 0.1.8 contract lifecycle)
+**Stopped at:** five-document Mail 0.1.8 amendment independently exact-contract `PASS` at
+`5e314fb080d420696642058ae47397e251c23207`; launcher remains `NOT_READY` and executable
+evidence remains `NOT_RUN`.
 `pro-qa-ai` beta.3 already exists both in protected Hub source
 and as the Desktop portable copy. Legacy remains frozen; destructive move/delete
 has not started.
-**Resume:** complete independent Docker verification and atomic commit of
-TASK-204 planning/guard artifacts.
-Execute Phase 129 cutover only after both gates pass.
+**Resume:** execute the exact 144-01A packet. Do not start 144-01B before 144-01A acceptance.
 
 **Coverage decision:** TASK-203 backend profile **82.0373%** remains historical
 discovery evidence. Founder waived statement-coverage parity as migration gate;

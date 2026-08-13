@@ -1,11 +1,13 @@
 # Phase 144-02C preimplementation review — object/draft schema readiness
 
 > **Detected:** 2026-08-13 root deep static audit
-> **Status:** 0.1.8_ROOT_AMENDMENT_AVAILABLE · INDEPENDENT_CLOSURE_PENDING · IMPLEMENTATION_BLOCKED · RUNTIME_NOT_RUN
+> **Lifecycle:** exact contract `PASS` at `5e314fb0`; implementation remains separately blocked.
+> **Status:** 0.1.8_EXACT_CONTRACT_PASS `5e314fb0` · IMPLEMENTATION_SEPARATELY_BLOCKED · RUNTIME_NOT_RUN
 > **Scope:** `MailObject`, `MailAttachment`, `MailDraft` and `MailSubmission`
 
-> `docs/mail/ENGINE-CONTRACT-0.1.8.md`, OpenAPI 0.1.8 and the 02C persistence matrix now
-> supply the root candidate; this verdict remains open until independent exact-SHA review.
+> `docs/mail/ENGINE-CONTRACT-0.1.8.md`, OpenAPI 0.1.8 and the 02C persistence matrix supply
+> the independently accepted exact-contract candidate at `5e314fb080d420696642058ae47397e251c23207`;
+> schema implementation remains separately blocked by its packet, generation/migration and launcher gates.
 
 > **2026-08-13 source-only follow-up:** a requested Terra/high review whose actual runtime
 > provenance was unavailable found two remaining P1s: one field conflated the opaque engine
@@ -97,7 +99,9 @@ Recommended normalized representation:
   `storage_object_id`, and an engine blob requires a message owner;
 - SHA-256 fields are exactly 32-byte values, sizes are non-negative and policy-capped, and
   object `(bucket, object_key)` is immutable and unique;
-- the final maximum size remains gated by founder question 31.
+- `MailboxPolicy` creation defaults are independently accepted at `25,000,000` decimal bytes
+  for both message and attachment, distinct from the hard caps of `52,428,800` message bytes
+  and `26,214,400` attachment bytes; administrators configure only within those bounds.
 
 Cross-row account equality and storage-state-to-scan transitions must be enforced in the
 repository transaction because a row-local PostgreSQL CHECK cannot traverse foreign keys.
@@ -136,7 +140,9 @@ Minimum amendment:
 
 ## Gate impact
 
-- 144-02C is `BLOCKED_CONTRACT`; no four-file Ent packet should be authored;
+- 144-02C contract amendment is independently accepted, but schema implementation remains
+  separately blocked; no four-file Ent packet should be authored until its packet and
+  generation/migration/launcher gates are accepted;
 - 144-04D/04E and attachment/storage packets remain blocked on the stable draft key, staging
   cardinality, state matrix and hard byte ceilings;
 - 144-01A also requires the narrow draft-create reconciliation amendment in addition to its

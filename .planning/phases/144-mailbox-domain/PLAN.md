@@ -1,10 +1,13 @@
 # Phase 144 — Mailbox Domain
 
-> Task: TASK-237 · Status: IN_PROGRESS · MAIL_0_1_8_ROOT_FROZEN_REVIEW_PENDING · SOURCE_REVIEW_P1_REMEDIATED_RE_REVIEW_PENDING · 144-01A AMENDMENT_REQUIRED · 144-01B MODEL_AND_ACCEPTANCE_BLOCKED · 144-02A1/A2/A3 EXACT_PLAN_BLOCKED_REVIEW · 144-02B/02C/02D/02F CONTRACT_AMENDED_NOT_ACCEPTED · RUNTIME_NOT_RUN · Depends on: Phase 142
+> Task: TASK-237 · Status: IN_PROGRESS · MAIL_0_1_8_EXACT_CONTRACT_PASS `5e314fb0` · 144-01A NEXT · 144-01B BLOCKED_ON_144-01A_ACCEPTANCE (actual telemetry `UNKNOWN` unless exposed; not the sole blocker) · 144-02A1/A2/A3 EXACT_PLAN_BLOCKED_REVIEW · 144-02B/02C/02D/02F CONTRACT_AMENDED_NOT_ACCEPTED · RUNTIME_NOT_RUN · Depends on: Phase 142
 
 ## Goal
 
 Implement the engine-independent domain and HTTP behavior against a deterministic fake.
+
+`143-04L` is already satisfied for `144-03D`; only `144-01A` remains as that packet's
+entry dependency.
 
 ## Ordered tasks
 
