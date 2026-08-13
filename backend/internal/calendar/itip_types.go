@@ -24,6 +24,14 @@ var (
 	ErrInvalidITIPSequence = errors.New("calendar: invalid iTIP sequence")
 	// ErrInvalidITIPEmail означает некорректный адрес организатора или участника.
 	ErrInvalidITIPEmail = errors.New("calendar: invalid iTIP email")
+	// ErrInvalidITIPLimits означает некорректную конфигурацию ограничений входного iTIP.
+	ErrInvalidITIPLimits = errors.New("calendar: invalid iTIP limits")
+	// ErrITIPLimitExceeded означает превышение одного из ограничений входного iTIP.
+	ErrITIPLimitExceeded = errors.New("calendar: iTIP limit exceeded")
+	// ErrInvalidITIPSyntax означает синтаксически некорректный iCalendar payload.
+	ErrInvalidITIPSyntax = errors.New("calendar: invalid iTIP syntax")
+	// ErrUnsupportedITIPContent означает корректную, но неподдерживаемую конструкцию iCalendar.
+	ErrUnsupportedITIPContent = errors.New("calendar: unsupported iTIP content")
 )
 
 // ITIPMethod задаёт поддерживаемый метод календарного iTIP-сообщения.
@@ -117,4 +125,15 @@ type ITIPMessage struct {
 	RRULE        string
 	EXDates      []ITIPRecurrenceID
 	RecurrenceID *ITIPRecurrenceID
+}
+
+// ITIPIdentity содержит canonical duplicate identity разобранного iTIP-сообщения.
+type ITIPIdentity struct {
+	CanonicalVersion uint8
+	Method           ITIPMethod
+	UID              string
+	HasRecurrenceID  bool
+	RecurrenceID     string
+	Sequence         int
+	PayloadHash      [32]byte
 }
