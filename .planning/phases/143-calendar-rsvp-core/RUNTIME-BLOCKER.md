@@ -91,11 +91,17 @@ remains `BLOCKED`.
 
 Consequences:
 
-- 143-03A/C remediation and 143-03C/F review may be dispatched under that exact rule;
-- 143-03D remains blocked by completion of its hash-pair and independent-review dependencies;
+- 143-03A is `STATIC_ACCEPTED` on `31bfff8f58ba83d12b59600135503f98a6c92fbd`,
+  143-03C is `STATIC_ACCEPTED` on `444c6f7b7b7b3d9b77bc9b24b32d1e13000ebbbc`,
+  and 143-03B is `STATIC_ACCEPTED` at clean `dd346e31`;
+- 143-03F has `SPEC PASS`/`QUALITY PASS` and is statically conformant, but independent docs
+  review and the root commit remain pending; no future commit SHA or acceptance is claimed;
+- 143-03D is technically unblocked by accepted 03A–C, but no 03D work is claimed;
+- 143-03E remains blocked on accepted 143-03D and 143-03F plus the accepted launcher;
 - 144-01B remains subject to its independent contract/source-review gates, but not to a
   telemetry-only provenance block;
 - an exact Terra/xhigh worker may author atomic production/test code only through an accepted
   native dispatch; root only orchestrates, reviews, stages and commits; and
-- Docker availability does not make the separately missing launcher ready, and all executable
-  evidence remains `NOT_RUN`.
+- Docker availability does not make the separately missing launcher ready (`NOT_READY`), and
+  generation, migration, tests and all executable runtime evidence remain `NOT_RUN`. Actual
+  model/effort telemetry for the current accepted dispatcher records remains `UNKNOWN`.

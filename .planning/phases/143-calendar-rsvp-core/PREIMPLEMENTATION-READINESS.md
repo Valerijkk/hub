@@ -2,7 +2,8 @@
 
 > **Snapshot:** 2026-08-13
 > **Branch:** `codex/mail-module-20260813`
-> **Product truth:** IMPLEMENTATION_IN_PROGRESS · 143-01/02A/02B_STATIC_ACCEPTED · 03A/03C_P1_REMEDIATION_BLOCKED · 03B/03F_CHAIN_BLOCKED · RUNTIME_NOT_RUN · not accepted
+> **Product truth:** IMPLEMENTATION_IN_PROGRESS · 143-01/02A/02B/03A/03B/03C_STATIC_ACCEPTED · 03F_SOURCE_CONFORMANT_DOCS_REVIEW_AND_COMMIT_PENDING · RUNTIME_NOT_RUN · not accepted
+> **Execution truth:** launcher `NOT_READY`; generation, migration, tests and runtime `NOT_RUN`.
 
 ## Prepared artifacts (root and independently reviewed)
 
@@ -30,8 +31,7 @@
 | Blocker | Evidence | Unblocks |
 |---|---|---|
 | Accepted versioned Docker launcher not implemented | root `AGENTS.md`, `STATE.md` | Ent generation, build/test/validator/runtime evidence |
-| Actual subagent model telemetry unavailable for new packets | `RUNTIME-BLOCKER.md`, founder question 29 | 143-03A/C remediation, independent acceptance of 143-03C/F, 143-03D, 144-01B and later packets |
-| Calendar event/exception canonical hash pair CHECK absent | `REMEDIATION-143-03-HASH-PAIR.md` | re-acceptance of 143-03A/C and their dependent schema chain |
+| 143-03D has no implementation and 143-03F awaits independent docs review/root commit | `DISPATCH-INDEX.md`, `IMPLEMENTATION-143-03F.md` | 143-03E after both packets are accepted and the launcher is ready |
 | Engine message/blob responses and admin byte settings lack authoritative hard bounds | Phase 144 `REVIEW-144-01A-ENGINE-BOUNDS.md`, founder questions 28/30/31 | accepted 144-01A amendment, fake, sync/content mapping and runtime adapter |
 | Account/domain schema field matrix and domain/identity cardinality are not exact | Phase 144 `REVIEW-144-02A-SCHEMA-READINESS.md`, founder questions 32–34 | 144-02A and every dependent mailbox schema/service packet |
 | Canonical/legacy calendar list responses lack exact page/expansion bounds | Phase 142 `REVIEW-OPENAPI-RESPONSE-BOUNDS.md`, founder question 37 | calendar list/legacy aggregate DTO, handler and UI transport packets |
@@ -53,16 +53,21 @@
 3. ~~Dispatch 143-02A and 143-02B.~~ Both are `STATIC_ACCEPTED`; 143-02B accepted through
    `efa7814d` after parser hardening and host-local timezone rejection. Evidence:
    `IMPLEMENTATION-143-02A.md` and `IMPLEMENTATION-143-02B.md`; runtime `NOT_RUN`.
-4. 143-03A/C need the frozen hash-pair CHECK remediation. 143-03B/F retain source-content
-   passes but do not unlock the chain. Do not start 143-03D or generation until both the P1
-   and provenance gates close.
+4. 143-03A is `STATIC_ACCEPTED` on `31bfff8f58ba83d12b59600135503f98a6c92fbd`;
+   143-03C is `STATIC_ACCEPTED` on `444c6f7b7b7b3d9b77bc9b24b32d1e13000ebbbc`;
+   143-03B is `STATIC_ACCEPTED` on clean `dd346e31`. 143-03F is source-conformant after
+   `SPEC PASS`/`QUALITY PASS`, but independent docs review and the root commit remain pending;
+   no future SHA or acceptance is claimed. 143-03D is technically unblocked with no work
+   claimed. Do not start generation: 143-03E remains blocked on accepted 03D and 03F plus the
+   launcher.
 5. Resolve migration mechanism and accepted launcher before Ent generation.
 6. Admit `calendar.>` before calendar producers.
 7. Execute Phase 143 service/HTTP plus ScheduledCall bridge packets; retain the legacy
    calendar envelope and count linked pairs once. Keep linked external guests fail-closed
    until founder question 23 has a separately reviewed join-credential contract.
 8. Phase 144-01A is source-conformant but its byte-boundary contract is reopened. Freeze the
-   amendment before 144-01B; new packets also wait for actual model telemetry. Then execute
+   amendment before 144-01B. Exact native dispatch provenance is dispatcher-enforced; actual
+   telemetry remains `UNKNOWN` unless exposed and is not a telemetry-only blocker. Then execute
    fake/pure-policy packets, schemas/generation and services.
 9. Admit `mail.>` only after calendar admission; keep webhook filter unchanged.
 10. Execute UI transport/routes/core only after backend contracts are accepted and the

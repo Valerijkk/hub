@@ -5,6 +5,8 @@ import (
 	"errors"
 
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
+	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -31,6 +33,7 @@ func (CalendarInboundReplyReceipt) Fields() []ent.Field {
 			Min(1).
 			Immutable(),
 		field.Bytes("payload_hash").
+			MinLen(sha256.Size).
 			MaxLen(sha256.Size).
 			Validate(func(hash []byte) error {
 				if len(hash) != sha256.Size {
@@ -45,6 +48,15 @@ func (CalendarInboundReplyReceipt) Fields() []ent.Field {
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
+	}
+}
+
+// Annotations задаёт ограничения точной длины хеша входящего REPLY.
+func (CalendarInboundReplyReceipt) Annotations() []schema.Annotation {
+	return []schema.Annotation{
+		entsql.Checks(map[string]string{
+			"calendar_inbound_reply_receipts_payload_hash_length": "octet_length(payload_hash) = 32",
+		}),
 	}
 }
 

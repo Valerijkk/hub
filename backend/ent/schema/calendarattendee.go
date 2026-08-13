@@ -75,7 +75,8 @@ func (CalendarAttendee) Edges() []ent.Edge {
 			Field("user_id").
 			Unique().
 			Annotations(entsql.OnDelete(entsql.SetNull)),
-		edge.To("inbound_reply_receipts", CalendarInboundReplyReceipt.Type),
+		edge.To("inbound_reply_receipts", CalendarInboundReplyReceipt.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 
