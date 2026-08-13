@@ -33,6 +33,7 @@
 | Actual subagent model telemetry unavailable for new packets | `RUNTIME-BLOCKER.md`, founder question 29 | 143-03A/C remediation, independent acceptance of 143-03C/F, 143-03D, 144-01B and later packets |
 | Calendar event/exception canonical hash pair CHECK absent | `REMEDIATION-143-03-HASH-PAIR.md` | re-acceptance of 143-03A/C and their dependent schema chain |
 | Engine message/blob responses and admin byte settings lack authoritative hard bounds | Phase 144 `REVIEW-144-01A-ENGINE-BOUNDS.md`, founder questions 28/30/31 | accepted 144-01A amendment, fake, sync/content mapping and runtime adapter |
+| Account/domain schema field matrix and domain/identity cardinality are not exact | Phase 144 `REVIEW-144-02A-SCHEMA-READINESS.md`, founder questions 32–34 | 144-02A and every dependent mailbox schema/service packet |
 | Production migration mechanism unresolved | `MIGRATION-PLAN.md`, founder question 12 | schema generation/migration/backfill acceptance |
 | Recurring ScheduledCall semantics unresolved | `MIGRATION-PLAN.md`, founder question 18 | recurring backfill and all-or-nothing cutover |
 | Legacy POST idempotency compatibility break unaccepted | OpenAPI, founder question 22 | enabling the ScheduledCall bridge cutover; both shipped clients must move atomically |

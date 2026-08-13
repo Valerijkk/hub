@@ -249,7 +249,7 @@ contract отменяет его как migration gate; destructive batches ра
 |------:|--------|------------|----------------|
 | 142 | CONTRACT ARTIFACTS COMPLETE · DEEP AUDIT P1 ENGINE BYTE BOUNDS REOPENED · runtime NOT_RUN | — | ADR, ERD, OpenAPI, NATS, UI/security/QA contracts · TASK-235 |
 | 143 | 143-01/02A/02B STATIC ACCEPTED · 03A/C P1 HASH-PAIR CHECK REMEDIATION BLOCKED · 03B/F CONTENT PASS, CHAIN BLOCKED · RUNTIME NOT_RUN | 142 | CalendarEvent/Attendee/Exception, deterministic iTIP/RSVP, canonical ScheduledCall bridge/backfill · TASK-236 |
-| 144 | 144-01A SOURCE PASS · P1 ENGINE BOUNDARY REOPENED · 01B CONTRACT+MODEL BLOCKED · RUNTIME NOT_RUN | 142 | Mailbox domain, domain/account/projection+recovery/rule workers, safe content/search, receipts/classifier · TASK-237 |
+| 144 | 144-01A SOURCE PASS · P1 ENGINE BOUNDARY + 02A SCHEMA MATRIX REOPENED · 01B/02A BLOCKED · RUNTIME NOT_RUN | 142 | Mailbox domain, domain/account/projection+recovery/rule workers, safe content/search, receipts/classifier · TASK-237 |
 | 145 | BLOCKED BY 144 CONTRACT + EXTERNAL GATES | 144 + license + launcher | Stalwart adapter, instance-domain mail, bounded Docker profile · TASK-238 |
 | 146 | DISPATCH 0.1.7 · ENGINE ADMIN BYTE CONTRACT P1 REOPENED · DEPENDENCIES+HARNESS BLOCKED | 143, 144 | Outlook three-pane UI, management, rules, safe content/search/realtime · TASK-239 |
 | 147 | CALENDAR 0.1.7 SEMANTICS PASS · GLOBAL MAIL CONTRACT P1 REOPENED · DEPENDENCY BLOCKED | 143–146 | recurrence/import recovery, single-count busy/free, reminders, L1/CRM seam · TASK-240 |
@@ -260,7 +260,7 @@ contract отменяет его как migration gate; destructive batches ра
               -> 144 mailbox domain -> 145 engine/runtime -----------+
 ```
 
-- [ ] **Phase 142:** close the reopened engine byte-bound contract P1, then re-freeze product, architecture, API, event, security and QA contracts.
+- [ ] **Phase 142:** close the reopened engine byte-bound and 144-02A schema-matrix/cardinality P1s, then re-freeze product, architecture, API, event, security and QA contracts.
 - [ ] **Phase 143:** implement canonical calendar RSVP/iTIP core.
 - [ ] **Phase 144:** implement engine-neutral mailbox domain and fake adapter.
 - [ ] **Phase 145:** pass external gates and implement/measure the mail runtime.

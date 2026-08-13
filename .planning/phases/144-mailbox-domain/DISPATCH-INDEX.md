@@ -1,6 +1,6 @@
 # Phase 144 — exact Terra dispatch index
 
-> **Status:** CONTRACT_0_1_7_REOPENED_P1_ENGINE_BOUNDS · 144_01A_SOURCE_PASS · 144_01B_CONTRACT_AND_MODEL_BLOCKED · RUNTIME_NOT_RUN
+> **Status:** CONTRACT_0_1_7_REOPENED_P1_ENGINE_BOUNDS_AND_SCHEMA_MATRIX · 144_01A_SOURCE_PASS · 144_01B_CONTRACT_AND_MODEL_BLOCKED · 144_02A_CONTRACT_BLOCKED · RUNTIME_NOT_RUN
 > **Required runtime:** `gpt-5.6-terra` / `xhigh`, no fallback
 > **Contract:** Mail 0.1.7 calendar CVE-v1 review historically passed on `b3fb6f48`; mailbox engine byte boundary is now P1-reopened
 > **Execution:** sequential for overlapping files; independent pure packets may run in parallel only after root freezes their shared types
@@ -70,7 +70,7 @@ every remaining row/variant, assemble the Common envelope plus exactly one secti
 |---|---|---|---|---|
 | 144-01A | Mailbox engine port, immutable DTOs and stable safe errors — source matches `43d421ef`, but P1 response-byte boundary reopened; evidence `IMPLEMENTATION-144-01A.md` and `REVIEW-144-01A-ENGINE-BOUNDS.md` | `backend/internal/mail/mailbox_engine.go`, `mailbox_types.go`, `mailbox_errors.go`, `backend/tests/mail/mailbox_engine_contract_test.go` | consumer compile oracle; bounded Changes/enumeration; provisioning/Sieve/classifier/draft/submission reconcile explicit | contract 0.1.7 |
 | 144-01B | Deterministic in-memory fake for one account boundary — blocked by 01A contract amendment and unavailable actual model telemetry | `backend/internal/mail/mailbox_fake.go`, `backend/tests/mail/mailbox_fake_test.go` | same-key submit; scripted incremental/enumeration pages, invalid cursor/anchor restart; strict account isolation | accepted 144-01A amendment |
-| 144-02A | Account, identity, domain and mailbox-policy schemas only | `backend/ent/schema/mailaccount.go`, `mailidentity.go`, `maildomain.go`, `mailboxpolicy.go`, narrow inverse edges in `user.go`/`organization.go` | normalized uniqueness; account/domain desired/deployed generations + leases; projection cursors/epochs/cutoff; identity status; no secrets | contract + founder migration gate noted |
+| 144-02A | Account, identity, domain and mailbox-policy schemas only — `BLOCKED_CONTRACT`; evidence `REVIEW-144-02A-SCHEMA-READINESS.md` | `backend/ent/schema/mailaccount.go`, `mailidentity.go`, `maildomain.go`, `mailboxpolicy.go`, narrow inverse edges in `user.go`/`organization.go` | normalized uniqueness; account/domain desired/deployed generations + leases; projection cursors/epochs/cutoff; identity status; no secrets | exact field/bound/cardinality amendment + founder migration gate |
 | 144-02B | Folder, thread, message, message-folder, label and message-label schemas | `mailfolder.go`, `mailthread.go`, `mailmessage.go`, `mailmessagefolder.go`, `maillabel.go`, `mailmessagelabel.go` | pending/versioned folder intent; same-account edges; label marker/provenance; rebuild marks; projection origin/event marker; no body/raw MIME | 144-02A reviewed |
 | 144-02C | Mail object, attachment, draft and submission schemas only | `mailobject.go`, `mailattachment.go`, `maildraft.go`, `mailsubmission.go` | hashed key uniqueness; opaque versions; attachment backing XOR represented; no project ACL edge | 144-02A reviewed |
 | 144-02D | User settings, signature, rule and recent-contact schemas only | `mailusersettings.go`, `mailsignature.go`, `mailrule.go`, `recentcontact.go` | account ownership, bounded config, one defaults, no raw Sieve | 144-02A reviewed |
@@ -173,6 +173,7 @@ every remaining row/variant, assemble the Common envelope plus exactly one secti
 | Gate | Status |
 |---|---|
 | Contract 0.1.7 root/independent static review | Historical PASS on `b3fb6f48`; later root deep audit reopened P1 engine response/admin byte bounds |
+| 144-02A schema readiness | BLOCKED: exact operational field matrix, persisted safe-code allowlists, DNS TTL shape and domain/identity cardinality are not frozen |
 | Exact Terra implementation runtime | 144-01A authoring route recorded; 144-01B is contract-blocked and its attempted actual telemetry was unavailable |
 | Accepted Docker launcher | NOT_READY |
 | Ent generation | NOT_RUN |

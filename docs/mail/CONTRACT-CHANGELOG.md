@@ -2,8 +2,10 @@
 
 > **Current review status (2026-08-13): REOPENED.** A later root deep audit found a P1
 > outside the CVE-v1 amendment: engine message/blob responses and admin byte settings lack
-> authoritative hard memory ceilings. No 0.1.8 contract has been frozen. Evidence:
-> `.planning/phases/144-mailbox-domain/REVIEW-144-01A-ENGINE-BOUNDS.md`.
+> authoritative hard memory ceilings. Phase 144-02A preflight then found a second P1 in the
+> exact account/domain persistence matrix and domain/identity cardinality. No 0.1.8 contract
+> has been frozen. Evidence: `REVIEW-144-01A-ENGINE-BOUNDS.md` and
+> `REVIEW-144-02A-SCHEMA-READINESS.md` under Phase 144.
 
 ## 0.1.7 — 2026-08-13
 

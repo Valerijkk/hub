@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
-last_updated: "2026-08-13T14:19:45.3028170+03:00"
-last_activity: 2026-08-13 · deep audit also reopened Mail 0.1.7/144-01A with P1 unbounded engine message/blob/admin byte boundary; 144-01B blocked; runtime NOT_RUN
+last_updated: "2026-08-13T14:33:00+03:00"
+last_activity: 2026-08-13 · Phase 144-02A preflight found a second contract P1: incomplete exact schema field/bound matrix and unbounded domain/identity cardinality; implementation blocked; runtime NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -222,8 +222,12 @@ spec_coverage:
   contract: up to 100 embedded full-body messages and complete blob bytes have no explicit
   response budget, while public admin byte settings have no maximum. The P1 and decision
   options are in `REVIEW-144-01A-ENGINE-BOUNDS.md`; 144-01B and Phase 145 message mapping
-  must not start against the under-specified surface. Evidence is recorded in the matching
-  `IMPLEMENTATION-*.md` artifacts. A later root deep audit reopened 143-03A and 143-03C:
+  must not start against the under-specified surface. A separate 144-02A preflight found
+  that the account/domain operational column matrix, stored safe-code allowlists, DNS TTL
+  shape and domain/identity cardinality are also not exact; see
+  `REVIEW-144-02A-SCHEMA-READINESS.md`. No dependent mailbox schema packet may start.
+  Evidence is recorded in the matching `IMPLEMENTATION-*.md` artifacts. A later root deep
+  audit reopened 143-03A and 143-03C:
   both omit the schema-level nullable canonical hash version/hash pair CHECK required by
   Mail 0.1.7 and the phase plan. 143-03B retains a source-content PASS but its parent chain
   is reopened; 143-03F retains a root-content PASS. None of 03A/B/C/F currently unlocks
