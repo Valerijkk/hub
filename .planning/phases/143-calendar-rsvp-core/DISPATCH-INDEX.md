@@ -97,7 +97,7 @@ each accepted 143-04B/C/D/E/H/I ── its matching 143-04F-* transaction
 
 | Gate | Status |
 |---|---|
-| Contract root/independent review | STALE after Mail 0.1.4 amendment |
+| Contract root/independent review | ROOT PASS on `46cfa26c`; independent PENDING |
 | Exact Spark implementation runtime | UNAVAILABLE |
 | Accepted Docker launcher | NOT_READY |
 | Ent generation | NOT_RUN |

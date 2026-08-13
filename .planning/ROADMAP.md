@@ -252,7 +252,7 @@ contract отменяет его как migration gate; destructive batches ра
 | 144 | DISPATCH READY · CODE BLOCKED BY EXACT SPARK RUNTIME | 142 | Mailbox domain, engine port/fake, folders/threads/drafts/submission · TASK-237 |
 | 145 | BLOCKED BY EXTERNAL GATES | 144 + license + launcher | Stalwart adapter, instance-domain mail, bounded Docker profile · TASK-238 |
 | 146 | DISPATCH READY · CODE/HARNESS BLOCKED | 143, 144 | Outlook three-pane UI, composer, attachments, search/realtime · TASK-239 |
-| 147 | CONTRACT 0.1.4 · ROOT REVIEW STALE · INDEPENDENT REVIEW PENDING · CODE BLOCKED | 143–146 | recurrence/import recovery, busy/free, reminders, L1/CRM seam · TASK-240 |
+| 147 | CONTRACT 0.1.4 · ROOT STATIC PASS `46cfa26c` · INDEPENDENT REVIEW PENDING · CODE BLOCKED | 143–146 | recurrence/import recovery, busy/free, reminders, L1/CRM seam · TASK-240 |
 | 148 | GATE CONTRACT PREPARED · EXECUTION BLOCKED | 143–147 + test-rebase merge notice | security/reconciliation/docs/verification/rebase gate · TASK-241 |
 
 ```text

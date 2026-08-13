@@ -1,6 +1,6 @@
 # Phase 147 — Mail/Calendar Reliability and Integrations
 
-> Task: TASK-240 · Status: CONTRACT_0_1_4_ROOT_REVIEW_STALE_CODE_BLOCKED · Depends on: Phases 143–146
+> Task: TASK-240 · Status: CONTRACT_0_1_4_ROOT_STATIC_PASS_INDEPENDENT_PENDING_CODE_BLOCKED · Depends on: Phases 143–146
 > Required code runtime: `gpt-5.3-codex` / `xhigh`, no fallback
 > Contract: `CONTRACT.md` · Dispatch: `DISPATCH-INDEX.md` + `DISPATCH-PACKETS.md`
 
@@ -39,7 +39,7 @@ this phase.
 
 | Gate | State |
 |---|---|
-| Root reliability contract static review | STALE after Mail 0.1.4 amendment |
+| Root reliability contract static review | PASS on `46cfa26c` |
 | Independent reliability contract review | PENDING |
 | Exact Spark code runtime | UNAVAILABLE |
 | Phase 143/144 accepted implementation | NOT_IMPLEMENTED |

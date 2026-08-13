@@ -1,6 +1,6 @@
 # TASK-240 — Mail/calendar reliability and product integrations
 
-> Date: **2026-08-13** · Priority: **P1** · Status: **Mail 0.1.4 root review stale; independent review pending; code blocked** · Phase: **147**
+> Date: **2026-08-13** · Priority: **P1** · Status: **Mail 0.1.4 root static pass on 46cfa26c; independent review pending; code blocked** · Phase: **147**
 
 ## Outcome
 

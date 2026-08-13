@@ -1,6 +1,6 @@
 # Phase 147 — exact Spark dispatch index
 
-> **Status:** CONTRACT_0_1_4_ROOT_REVIEW_STALE · CODE_RUNTIME_BLOCKED
+> **Status:** CONTRACT_0_1_4_ROOT_STATIC_PASS_46CFA26C · INDEPENDENT_REVIEW_PENDING · CODE_RUNTIME_BLOCKED
 > **Required runtime:** `gpt-5.3-codex` / `xhigh`, no fallback
 > **Contract:** `CONTRACT.md` + Mail 0.1.4
 > **Execution:** one row/variant per executor; overlapping files are sequential
@@ -119,7 +119,7 @@ all accepted rows ─ 147-08 docs sync/static review
 
 | Gate | Status |
 |---|---|
-| Mail 0.1.4 root static review | STALE after contract amendment; `STATIC-REVIEW.md` |
+| Mail 0.1.4 root static review | PASS on `46cfa26c`; `STATIC-REVIEW.md` |
 | Mail 0.1.4 independent static review | PENDING |
 | Exact Spark implementation runtime | UNAVAILABLE |
 | Accepted Docker launcher | NOT_READY |

@@ -3,8 +3,9 @@
 ## 0.1.4 — 2026-08-13
 
 Reminder/CRM race-closure amendment. Product code and runtime remain
-`NOT_IMPLEMENTED` / `NOT_RUN`; the prior 0.1.3 root review is `STALE` until an exact-SHA
-re-review.
+`NOT_IMPLEMENTED` / `NOT_RUN`; the prior 0.1.3 root review stays historical `STALE`, while
+the 0.1.4 root static review passed on exact semantic SHA `46cfa26c`. Independent review is
+still pending.
 
 - Defined timed and all-day reminder due derivation, including deterministic midnight
   overlap/gap/skipped-date behavior, and made both scheduler emission and notification

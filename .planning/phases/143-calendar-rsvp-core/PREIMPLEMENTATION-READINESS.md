@@ -4,10 +4,11 @@
 > **Branch:** `codex/mail-module-20260813`
 > **Product truth:** NOT_IMPLEMENTED · NOT_RUN · not accepted
 
-## Prepared artifacts (current review stale)
+## Prepared artifacts (root-reviewed; independent pending)
 
 - Architecture, source-of-truth, security and compatibility decisions are amended in Mail
-  contract 0.1.4; the prior root review is stale until exact-SHA re-review.
+  contract 0.1.4; root static review passed on exact semantic SHA `46cfa26c`, while the
+  required independent current-provenance review remains pending.
 - OpenAPI covers mailbox, submission recovery, legacy calendar, canonical calendar and
   separate legacy/new admin resources.
 - Event subjects and webhook privacy boundary are frozen.
@@ -15,8 +16,8 @@
   into exact-file atomic dispatch indexes; high-risk behaviors have full prompts.
 - Historical independent contract/security and dispatch atomicity rereviews returned static
   `PASS` after occurrence, schema-closure, inbound-REPLY-ledger, gateway ownership and
-  mobile-navigation remediation. They target a pre-0.1.4 ancestor and are now `STALE` for
-  current-contract acceptance.
+  mobile-navigation remediation. They target a pre-0.1.4 ancestor and remain `STALE` as
+  independent current-contract evidence; the new root review does not replace them.
 - Phase 145 has a nine-gate legal/provenance/runtime/ops plan.
 - Founder questions have safe unattended defaults and authorize no external action.
 

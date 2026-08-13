@@ -42,7 +42,7 @@ secrets, DNS/operator approval and CTO/founder sign-off remain separate.
 | ID | Required evidence | Current state | Blocks |
 |---|---|---|---|
 | G148-01 baseline | clean isolated branch; base/current SHA; worktree path; changed-file and protected-zone diff; no untracked product artifact | PASS for docs snapshot only; repeat after code | every later gate |
-| G148-02 contract | ADR, Mail spec, OpenAPI, event schema, UI contract, Phase 147 contract and QA handoff independently agree; machine refs/examples closed | STALE: root PASS on `8daaf0d9` covers 0.1.3 ancestor; Mail 0.1.4 root and independent current-provenance reviews PENDING | source work/claim |
+| G148-02 contract | ADR, Mail spec, OpenAPI, event schema, UI contract, Phase 147 contract and QA handoff independently agree; machine refs/examples closed | ROOT_STATIC_PASS on exact semantic SHA `46cfa26c`; independent current-provenance review PENDING, so gate remains open | source work/claim |
 | G148-03 founder decisions | signed answers for exact Spark runtime, migration mechanism, Stalwart license, L1 include/defer, broadcast disposition, rebase signal; push/PR separately authorized | BLOCKED/UNRESOLVED | affected packets and final gate |
 | G148-04 model provenance | every production/test-code packet records actual `gpt-5.3-codex` + `xhigh`; no silent fallback; review packets record allowed Terra effort | BLOCKED: exact Spark unavailable | source acceptance |
 | G148-05 migrations/generation | reviewed mechanism, preflight, generated Ent twice clean, migration/backfill dry-run on empty + realistic snapshot, counts and rollback | NOT_RUN | backend/runtime |
@@ -147,10 +147,9 @@ requirements and evidence request; it does not edit that program.
 
 ## 8. Current honest aggregate
 
-`CONTRACT_REVIEW_STALE_INDEPENDENT_PENDING`: the root static review of Mail 0.1.3 passed on
-`8daaf0d9`, but Mail 0.1.4 changes reminder race semantics and CRM reader linking, so that
-evidence is `STALE`. The amendment is not yet root/independently reviewed with accepted
-current-SHA model provenance. Product code is not implemented,
-the exact code-writing runtime is unavailable, the launcher is not ready, engine/legal/
-migration/broadcast/rebase decisions are unresolved, and all executable evidence is
+`ROOT_CONTRACT_REVIEW_PASS_INDEPENDENT_PENDING`: Mail 0.1.4 root static review passed on the
+exact semantic SHA `46cfa26c`; the historical 0.1.3 review remains stale, and an independent
+current-provenance review is still required before G148-02 can close. Product code is not
+implemented, the exact code-writing runtime is unavailable, the launcher is not ready,
+engine/legal/migration/broadcast/rebase decisions are unresolved, and all executable evidence is
 `NOT_RUN`.

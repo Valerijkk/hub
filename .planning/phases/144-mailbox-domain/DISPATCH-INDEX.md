@@ -110,7 +110,7 @@ every remaining row/variant, assemble the Common envelope plus exactly one secti
 
 | Gate | Status |
 |---|---|
-| Contract 0.1.4 root static review | STALE after amendment |
+| Contract 0.1.4 root static review | PASS on `46cfa26c`; independent PENDING |
 | Exact Spark implementation runtime | UNAVAILABLE |
 | Accepted Docker launcher | NOT_READY |
 | Ent generation | NOT_RUN |
