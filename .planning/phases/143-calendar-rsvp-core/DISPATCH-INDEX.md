@@ -123,7 +123,7 @@ each accepted 143-04B/C/D/E/H/I ── its matching 143-04F-* transaction
 
 | Gate | Status |
 |---|---|
-| Contract root/independent review | Calendar CVE-v1 semantics PASS on `b3fb6f48`; global Mail 0.1.7 later reopened for a distinct Phase 144 engine byte-bound P1 |
+| Contract root/independent review | Calendar CVE-v1 identity semantics PASS on `b3fb6f48`; global Mail 0.1.7 later reopened for engine/schema bounds, and calendar list/legacy aggregate HTTP bounds are also P1-open |
 | Exact Terra implementation runtime | earlier authoring provenance recorded through 143-03F; new 143-03A remediation and independent 143-03C/F review telemetry unavailable, fail-closed `BLOCKED`; executable runtime `NOT_RUN` |
 | Accepted Docker launcher | NOT_READY |
 | Ent generation | NOT_RUN |

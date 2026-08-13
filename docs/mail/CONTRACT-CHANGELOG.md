@@ -4,8 +4,11 @@
 > outside the CVE-v1 amendment: engine message/blob responses and admin byte settings lack
 > authoritative hard memory ceilings. Phase 144-02A preflight then found a second P1 in the
 > exact account/domain persistence matrix and domain/identity cardinality. No 0.1.8 contract
-> has been frozen. Evidence: `REVIEW-144-01A-ENGINE-BOUNDS.md` and
-> `REVIEW-144-02A-SCHEMA-READINESS.md` under Phase 144.
+> has been frozen. A machine-contract audit also found list/detail response collections and
+> calendar expansion without consistent pagination, item/length or aggregate bounds.
+> Evidence: Phase 144 `REVIEW-144-01A-ENGINE-BOUNDS.md`,
+> `REVIEW-144-02A-SCHEMA-READINESS.md`, and Phase 142
+> `REVIEW-OPENAPI-RESPONSE-BOUNDS.md`.
 
 ## 0.1.7 — 2026-08-13
 

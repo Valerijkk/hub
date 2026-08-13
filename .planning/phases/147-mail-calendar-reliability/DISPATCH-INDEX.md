@@ -1,6 +1,6 @@
 # Phase 147 — exact Terra dispatch index
 
-> **Status:** CALENDAR_0_1_7_SEMANTICS_PASS · GLOBAL_MAIL_CONTRACT_REOPENED_P1_ENGINE_BOUNDS · TERRA_CODE_ROUTE_AUTHORIZED · DEPENDENCIES_BLOCKED
+> **Status:** CALENDAR_0_1_7_CVE_SEMANTICS_PASS · CALENDAR_LIST_BOUNDS_REOPENED · GLOBAL_MAIL_CONTRACT_REOPENED · TERRA_CODE_ROUTE_AUTHORIZED · DEPENDENCIES_BLOCKED
 > **Required runtime:** `gpt-5.6-terra` / `xhigh`, no fallback
 > **Contract:** `CONTRACT.md` + Mail 0.1.7
 > **Execution:** one row/variant per executor; overlapping files are sequential

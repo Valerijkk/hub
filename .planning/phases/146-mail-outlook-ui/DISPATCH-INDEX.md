@@ -1,8 +1,8 @@
 # Phase 146 — exact Terra dispatch index
 
-> **Status:** CONTRACT_0_1_7_REOPENED_P1_ENGINE_ADMIN_BYTE_BOUNDS · TERRA_CODE_ROUTE_AUTHORIZED · BACKEND_DEPENDENCIES_AND_TEST_HARNESS_PENDING
+> **Status:** CONTRACT_0_1_7_REOPENED_P1_PUBLIC_LIST_DETAIL_BOUNDS · TERRA_CODE_ROUTE_AUTHORIZED · BACKEND_DEPENDENCIES_AND_TEST_HARNESS_PENDING
 > **Required runtime:** `gpt-5.6-terra` / `xhigh`, no fallback
-> **Contract:** OpenAPI/Mail 0.1.7 + accepted UI spec; mailbox byte maxima/settings remain blocked pending amendment
+> **Contract:** OpenAPI/Mail 0.1.7 + accepted UI spec; mailbox byte maxima plus list/detail pagination and quotas remain blocked pending amendment
 
 The UI uses TanStack Query as server-state authority, TanStack Router/URL as selection
 authority, and a local reducer only for the active composer. It must not create a second

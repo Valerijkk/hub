@@ -1,8 +1,8 @@
 # Phase 144 — exact Terra dispatch index
 
-> **Status:** CONTRACT_0_1_7_REOPENED_P1_ENGINE_BOUNDS_AND_SCHEMA_MATRIX · 144_01A_SOURCE_PASS · 144_01B_CONTRACT_AND_MODEL_BLOCKED · 144_02A_CONTRACT_BLOCKED · RUNTIME_NOT_RUN
+> **Status:** CONTRACT_0_1_7_REOPENED_P1_ENGINE_SCHEMA_AND_OPENAPI_BOUNDS · 144_01A_SOURCE_PASS · 144_01B_CONTRACT_AND_MODEL_BLOCKED · 144_02A_CONTRACT_BLOCKED · RUNTIME_NOT_RUN
 > **Required runtime:** `gpt-5.6-terra` / `xhigh`, no fallback
-> **Contract:** Mail 0.1.7 calendar CVE-v1 review historically passed on `b3fb6f48`; mailbox engine byte boundary is now P1-reopened
+> **Contract:** Mail 0.1.7 calendar CVE-v1 review historically passed on `b3fb6f48`; engine, schema and public response bounds are now P1-reopened
 > **Execution:** sequential for overlapping files; independent pure packets may run in parallel only after root freezes their shared types
 
 Phase 144 adds a mailbox domain beside the existing Resend alert subsystem. It does not
@@ -174,6 +174,7 @@ every remaining row/variant, assemble the Common envelope plus exactly one secti
 |---|---|
 | Contract 0.1.7 root/independent static review | Historical PASS on `b3fb6f48`; later root deep audit reopened P1 engine response/admin byte bounds |
 | 144-02A schema readiness | BLOCKED: exact operational field matrix, persisted safe-code allowlists, DNS TTL shape and domain/identity cardinality are not frozen |
+| OpenAPI response boundedness | BLOCKED: list/detail collections and public hydrated values do not consistently encode accepted page/item/length/aggregate limits |
 | Exact Terra implementation runtime | 144-01A authoring route recorded; 144-01B is contract-blocked and its attempted actual telemetry was unavailable |
 | Accepted Docker launcher | NOT_READY |
 | Ent generation | NOT_RUN |

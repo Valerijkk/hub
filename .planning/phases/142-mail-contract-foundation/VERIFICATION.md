@@ -1,6 +1,6 @@
 # Phase 142 verification — Mail Contract Foundation
 
-> **Verdict:** STALE_PASS · REOPENED_P1_ENGINE_BYTE_BOUNDS_AND_SCHEMA_MATRIX
+> **Verdict:** STALE_PASS · REOPENED_P1_ENGINE_SCHEMA_AND_OPENAPI_BOUNDS
 > **Date:** 2026-08-13
 > **Runtime:** NOT_RUN
 > **Contract:** 0.1.2 independently static-verified 2026-08-13
@@ -11,7 +11,8 @@
 > A subsequent 144-02A preflight also found an incomplete exact persistence matrix and
 > unbounded domain/identity cardinality. Current evidence is Phase 144
 > `REVIEW-144-01A-ENGINE-BOUNDS.md` and `REVIEW-144-02A-SCHEMA-READINESS.md`; Phase 142 is not
-> currently contract-ready.
+> currently contract-ready. `REVIEW-OPENAPI-RESPONSE-BOUNDS.md` additionally records
+> unbounded list/detail/calendar response shapes in the machine contract.
 
 ## Goal-backward evidence
 

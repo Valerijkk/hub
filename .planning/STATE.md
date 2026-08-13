@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
-last_updated: "2026-08-13T14:33:00+03:00"
-last_activity: 2026-08-13 · Phase 144-02A preflight found a second contract P1: incomplete exact schema field/bound matrix and unbounded domain/identity cardinality; implementation blocked; runtime NOT_RUN
+last_updated: "2026-08-13T14:47:00+03:00"
+last_activity: 2026-08-13 · OpenAPI deep audit found another P1: list/detail/calendar response collections lack consistent pagination, item/length and aggregate bounds; affected DTO/handler packets blocked; runtime NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -196,8 +196,8 @@ spec_coverage:
   `d44175f8`. Основная рабочая копия и защищённые зоны test-rebase не меняются.
 - Phase 142 создал contracts-first пакет: ADR-MAIL-01, ERD/API/NATS/security,
   Outlook UI design, traceability и QA handoff. Его readiness сейчас переоткрыта из-за
-  P1 engine byte-boundary; наличие артефактов не означает принятого контракта, реализации
-  или готовности модуля.
+  P1 engine/schema/OpenAPI response bounds; наличие артефактов не означает принятого
+  контракта, реализации или готовности модуля.
 - Preferred engine: Stalwart за adapter boundary, условно. License verdict, image digest,
   API/persistence/resource spike и внешний DNS остаются gates; runtime `NOT_RUN`.
 - Кодовые фазы 143–148 идут после заморозки затронутого контракта. Phase 145 заблокирована
@@ -211,9 +211,11 @@ spec_coverage:
   participant projection is series-only, and linked external guests fail closed pending a
   join-credential contract. It adds a separate versioned inbound CVE-v1 hash, accepts
   occurrence REQUEST without changing outbound 143-02A and fixes all-day identity to the
-  UTC date marker without midnight inference. Root and independent Terra/high review PASS
-  exact Mail 0.1.7 semantic SHA `b3fb6f48`; all three P1 from `7a6ffc1c` are closed. The
-  earlier Mail 0.1.6 PASS on SHA `5a351d5b` is historical `STALE`.
+  UTC date marker without midnight inference. The historical root and independent
+  Terra/high CVE-v1 review passed exact Mail 0.1.7 semantic SHA `b3fb6f48`; all three
+  findings from `7a6ffc1c` were closed. That evidence does not cover the later engine,
+  schema or OpenAPI response-bound findings. The earlier Mail 0.1.6 PASS on SHA `5a351d5b`
+  is historical `STALE`.
   Founder task-local routing override authorizes exact `gpt-5.6-terra`/`xhigh` for
   atomic Mail product/test packets. Tasks 143-01, 143-02A and 143-02B are static accepted;
   bounded iTIP parsing includes reviewed CVE-v1,
@@ -226,6 +228,9 @@ spec_coverage:
   that the account/domain operational column matrix, stored safe-code allowlists, DNS TTL
   shape and domain/identity cardinality are also not exact; see
   `REVIEW-144-02A-SCHEMA-READINESS.md`. No dependent mailbox schema packet may start.
+  Phase 142 `REVIEW-OPENAPI-RESPONSE-BOUNDS.md` separately records unbounded Mail list/detail
+  collections and canonical/legacy calendar expansion; affected DTO/handler packets remain
+  blocked pending one reviewed machine-contract amendment.
   Evidence is recorded in the matching `IMPLEMENTATION-*.md` artifacts. A later root deep
   audit reopened 143-03A and 143-03C:
   both omit the schema-level nullable canonical hash version/hash pair CHECK required by

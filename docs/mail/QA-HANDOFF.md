@@ -2,7 +2,7 @@
 
 > **Contract version:** 0.1.7
 > **Prepared:** 2026-08-13
-> **Contract review status:** REOPENED — P1 engine byte bounds plus 144-02A exact schema/cardinality matrix
+> **Contract review status:** REOPENED — P1 engine/schema/OpenAPI response bounds
 > **Implementation status:** IN_PROGRESS — 143-01/02A/02B static accepted; 144-01A boundary and 144-02A exact schema/cardinality contract reopened; 143-03A/C require a hash-pair CHECK fix; executable verification `NOT_RUN`
 > **Runtime status:** NOT_RUN
 > **QA owner:** founder-designated Claude test program
