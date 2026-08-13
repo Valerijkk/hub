@@ -2,7 +2,7 @@
 
 > **Superseded inventory note (2026-08-07):** legacy counts и parity wording
 > ниже не управляют cutover. Текущий authority — founder manifest на revision
-> `5708671f`: legacy non-units delete-not-port, новые non-unit suites greenfield
+> `b9f690da` (ротация 2026-08-13): legacy non-units delete-not-port, новые non-unit suites greenfield
 > Python, 245 genuine hook-dependent units сохраняются через TASK-234.
 
 **Analysis Date:** 2026-08-07

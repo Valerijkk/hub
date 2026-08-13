@@ -191,7 +191,7 @@ limits. Host используется лишь для чтения/редакт�
 | Product score | **89/100** |
 | REST API | **286+** endpoints |
 | Ent schemas | **82** |
-| Test-rebase ledger | **1,049** source rows · SHA-256 `72de6a81…` (source revision `5708671f`, measured 2026-08-07) |
+| Test-rebase ledger | **1,049** source rows · SHA-256 `83b6a311…` (source revision `b9f690da`, measured 2026-08-07, ротация 2026-08-13) |
 | Backend tests | **832** total / **3,674** declared: **831 / 3,672** в legacy `backend/testframework/` + **1 / 2** server test; taxonomy total = **595** genuine unit + **237** component (**31** API + **206** integration) |
 | Vitest | **180** files / **519** literal cases: **156** frontend unit + **24** static contract; **3** additional frontend support rows |
 | Playwright E2E | **20** specs / **53** declared cases + **14** E2E support rows |

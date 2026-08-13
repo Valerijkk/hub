@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v4
 milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
-stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
-last_updated: "2026-08-08T00:00:00.000Z"
-last_activity: 2026-08-08 · Hub prompt/test contracts rebased from research + GSD + Superpowers; independent prompt and test-contract reviews PASS; no tests moved
+stopped_at: cutover-manifest sealed · independent sign-off and G128-D wrapper pending
+last_updated: "2026-08-13T00:00:00.000Z"
+last_activity: 2026-08-13 · леджер-авторитет ротирован на b9f690da (CRLF-доказательство), три фикса QA-инструментария, cutover-manifest.json запечатан (173 planned батчей) с Docker-evidence GREEN; тесты не перемещались
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -53,6 +53,13 @@ coverage:
     baseline_2026_06_22: 83.0
     delta_pp: -0.9627
     gate_floor_82: historical_pass_not_migration_gate
+inventory_rotated_2026_08_13:
+    source_revision: b9f690da5cdcf322fc5b28a8d96c71a422407154
+    ledger_sha256: 83b6a31149807d21441a2ede91dec0b36b4a4396c4c0ceb58308b58878f5ad89
+    rows_identical_to_2026_08_07: true
+    reason: reconstruction-cut-lineage-and-crlf-polluted-hashes
+    cutover_manifest_sha256: 85dd85ca38923a0211eff6110bef797274289c2ef453ec66364118100dff7bd5
+    cutover_manifest_batches: 173
 inventory_measured_2026_08_07:
     source_revision: 5708671f00411c7c9e9dbee88b725de2092cbacd
     ledger_rows: 1049
@@ -124,6 +131,36 @@ spec_coverage:
 ---
 
 # Состояние проекта Hub
+
+## Session note — 2026-08-13 (ротация леджер-авторитета + sealed cutover-manifest)
+
+- Найдены и исправлены три латентные регрессии QA-инструментария, ни разу не
+  гонявшегося в Docker (VERIFICATION.md фиксировал отсутствие прогонов):
+  fstat-снимок staging до записи payload в `inventory.py` (`72589442`) и в
+  `build_cutover_manifest.py` (`986b2211`) — атомарная публикация и self-test
+  падали всегда; текст file-budget стража vs сентинел (`b9f690da`).
+- Ротация леджер-авторитета (`da2c1c4c` + `31072faa`): реконструкция
+  `b8677d9d` отрезала линию revision `5708671f` (не предок HEAD); пиновые
+  sha256 1027/1049 строк были CRLF-загрязнены средой исходной генерации —
+  доказано байт-в-байт (LF-блоб + CRLF = старый пин). Регенерация tool 2.2.1
+  на `b9f690da`: 1049/1049 строк, партиции/классификация/hook-линки
+  идентичны, групповые source_paths_sha256 не менялись. Пины обновлены во
+  всей цепочке (inventory `83b6a311`, founder `292b40db`, contract
+  `8e9f4819`), включая ADR-маркеры и must_haves PLAN 129; восстановлен
+  `scripts/reorganize-testframework-pipeline.ps1` (12/28 non-ledger).
+  Независимая верификация: 3 агента, полная развёртка 1049 строк + 43 hooks
+  против git-блобов, 0 расхождений, PASS_WITH_NOTES.
+- TASK-204: полная Docker-цепочка GREEN на `986b2211` (python:3.12 digest
+  `dd4fe98a…`, 2 CPU/2GB, network none, ext4 volume, 25s): inventory
+  self-test/check, контракт-валидатор ±, builder self-test/--write,
+  cutover-валидатор --check/--stdin --self-test, ручной traversal-негатив.
+  `cutover-manifest.json` запечатан и закоммичен (`f00292ea`): 173 батча /
+  1120 операций (move 507, delete 325, keep-blocked 288), все planned,
+  sha256 `85dd85ca`, `source.repository_head=986b2211`. Evidence: лог
+  `task204-docker-run-2026-08-13.log` + датированная секция VERIFICATION.md.
+- Открыто по Phase 128: независимая подпись arch-ver/qa-auto-ver,
+  founder-gated G128-D wrapper-прогон, honest post-cutover unit baseline.
+  Ветка `claude/test-rebase-20260813`; в master ничего не пушилось.
 
 ## Session note — 2026-08-08 (test-rebase execution readiness)
 
@@ -1053,14 +1090,14 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 
 ## Session Continuity
 
-**Last session:** 2026-08-08 (resumed · Phase 128)
-**Stopped at:** prompt/GSD and Docker/test-contract re-reviews PASS.
-`pro-qa-ai` beta.3 already exists both in protected Hub source
-and as the Desktop portable copy. Legacy remains frozen; destructive move/delete
-has not started.
-**Resume:** complete independent Docker verification and atomic commit of
-TASK-204 planning/guard artifacts.
-Execute Phase 129 cutover only after both gates pass.
+**Last session:** 2026-08-13 (Phase 128 · ротация авторитета + sealed manifest)
+**Stopped at:** cutover-manifest.json запечатан (`f00292ea`), Docker-цепочка
+TASK-204 полностью GREEN на `986b2211`; legacy остаётся замороженным,
+destructive move/delete не начинался.
+**Resume:** независимая подпись arch-ver/qa-auto-ver артефактов TASK-204 и
+founder-решение по G128-D wrapper; затем Phase 129 батчи через
+`apply_cutover_batch.py` (первый — `129-02-go-hook-free-accounting`) с
+Docker-гейтами на каждом атомарном коммите.
 
 **Coverage decision:** TASK-203 backend profile **82.0373%** remains historical
 discovery evidence. Founder waived statement-coverage parity as migration gate;

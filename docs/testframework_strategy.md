@@ -78,7 +78,7 @@ non-unit QA создаётся greenfield в root `testframework/tests/**`.
 
 | Метрика | Значение |
 |---------|----------|
-| Ledger | **1,049** source rows / **4,246** declared; SHA-256 `72de6a81…`; drift/unmapped = 0 |
+| Ledger | **1,049** source rows / **4,246** declared; SHA-256 `83b6a311…` (ротация 2026-08-13, revision `b9f690da`); drift/unmapped = 0 |
 | Backend test files | **832** total / **3,674** declared: legacy `backend/testframework/` 831/3,672 + server 1/2; taxonomy 595 genuine unit + 237 component (31 API + 206 integration); 0 в target `backend/tests/` |
 | Backend hook sources | **43** files / 582 symbols / 892 links; 245 protected units use 653 links across 42 files; prune only after TASK-234/TASK-219B |
 | Frontend Vitest | **180** files / **519** literal cases: 156 frontend unit + 24 static contract |

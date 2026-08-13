@@ -2,7 +2,7 @@
 
 > **Superseded inventory note (2026-08-07):** counts ниже — pre-final snapshot.
 > Для любых move/delete действий использовать только current founder manifest
-> (revision `5708671f`, 1,049 rows, SHA `72de6a81…`); parity/dual-run не gate,
+> (revision `b9f690da`, 1,049 rows, SHA `83b6a311…`, ротация 2026-08-13); parity/dual-run не gate,
 > hook-dependent genuine units нельзя удалять.
 
 **Analysis Date:** 2026-08-07

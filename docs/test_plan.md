@@ -93,7 +93,7 @@ task-owned Docker containers с CPU/RAM limits. Host-run не является b
 ## Текущая инвентаризация (2026-08-07)
 
 Источник: `.planning/audits/test-rebase/{inventory.json,founder-greenfield-cutover-manifest.json}` · HEAD
-`5708671f`; ledger SHA-256 `72de6a81…`.
+`b9f690da`; ledger SHA-256 `83b6a311…` (ротация 2026-08-13).
 
 | Метрика | Значение |
 |---------|----------|

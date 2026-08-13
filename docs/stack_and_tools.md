@@ -283,12 +283,12 @@ source candidate добавлен отдельно и имеет только с
 roots физически разделены; direct root `core/api/integration/contract/e2e`
 packages не являются target.
 
-Live ledger на pinned revision `5708671f`: **1,049** rows / **4,246** declared;
+Live ledger на pinned revision `b9f690da`: **1,049** rows / **4,246** declared;
 **832** Go / **3,674** tests (legacy root 831/3,672 + server 1/2;
 595 genuine unit + 237 component: 31 API + 206 integration), **180** Vitest /
 **519** cases (156 unit + 24 static contract) + 3 frontend support,
 **20** E2E specs / **53** cases + 14 E2E support, hook sources 43 files /
-582 symbols / 892 links и 0 target Python tests. SHA-256: `72de6a81…`.
+582 symbols / 892 links и 0 target Python tests. SHA-256: `83b6a311…`.
 
 В `backend/tests/**` не переносятся component/integration tests: текущие
 **237** `go-component` rows (31 API + 206 integration) удаляются по exact

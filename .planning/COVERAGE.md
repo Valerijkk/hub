@@ -71,8 +71,8 @@ profile SHA-256
 `7C20BF7452AD9387D96F548368830282FD2A50361A0D0106E7B8069FC4C99856`.
 
 Current cutover inventory is newer and deliberately does not rewrite this
-historical profile: pinned revision `5708671f`, ledger **1,049 / 4,246**, Go
-**832 / 3,674**, SHA-256 `72de6a81…`. It is the path/action authority; the
+historical profile: pinned revision `b9f690da`, ledger **1,049 / 4,246**, Go
+**832 / 3,674**, SHA-256 `83b6a311…`. It is the path/action authority; the
 82.0373% profile remains discovery evidence only.
 
 ### Security packages — same valid full profile

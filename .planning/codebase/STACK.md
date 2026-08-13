@@ -2,7 +2,7 @@
 
 > **Superseded inventory note (2026-08-07):** старые counts ниже — historical
 > map. Текущий cutover authority: founder manifest, 1,049 rows / 4,246 declared,
-> revision `5708671f`, SHA `72de6a81…`; без parity/dual-run/82% migration gate.
+> revision `b9f690da`, SHA `83b6a311…` (ротация 2026-08-13); без parity/dual-run/82% migration gate.
 
 **Analysis Date:** 2026-08-07
 
