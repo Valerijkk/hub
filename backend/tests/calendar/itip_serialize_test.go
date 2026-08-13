@@ -116,6 +116,55 @@ func TestSerializeITIP_RetainsUTF8Text(t *testing.T) {
 	}
 }
 
+func TestSerializeITIP_RejectsDisallowedTextAndParameterControls(t *testing.T) {
+	tests := []struct {
+		name   string
+		mutate func(*calendar.ITIPMessage)
+		wantErr error
+	}{
+		{
+			name: "summary control",
+			mutate: func(message *calendar.ITIPMessage) {
+				message.Summary = "Agenda\x01"
+			},
+			wantErr: calendar.ErrInvalidITIPMessage,
+		},
+		{
+			name: "description control",
+			mutate: func(message *calendar.ITIPMessage) {
+				message.Description = "Agenda\x1f"
+			},
+			wantErr: calendar.ErrInvalidITIPMessage,
+		},
+		{
+			name: "organizer common name control",
+			mutate: func(message *calendar.ITIPMessage) {
+				message.Organizer.DisplayName = "Calendar\x7f Owner"
+			},
+			wantErr: calendar.ErrInvalidITIPMessage,
+		},
+		{
+			name: "attendee common name control",
+			mutate: func(message *calendar.ITIPMessage) {
+				message.Attendees[0].DisplayName = "Attendee\u0085 Name"
+			},
+			wantErr: calendar.ErrInvalidITIPParticipant,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			message := timedITIPMessage(calendar.ITIPMethodRequest)
+			tc.mutate(&message)
+
+			_, err := calendar.SerializeITIP(message)
+			if !errors.Is(err, tc.wantErr) {
+				t.Fatalf("SerializeITIP() error = %v, want errors.Is(..., %v)", err, tc.wantErr)
+			}
+		})
+	}
+}
+
 func TestSerializeITIP_AllDayUsesDateValuesAndExclusiveEnd(t *testing.T) {
 	message := timedITIPMessage(calendar.ITIPMethodRequest)
 	message.Temporal = calendar.ITIPTemporal{AllDay: &calendar.ITIPAllDay{

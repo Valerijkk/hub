@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -86,14 +87,14 @@ func prepareITIPMessage(message ITIPMessage) (preparedITIPMessage, error) {
 	if message.Sequence < 0 {
 		return preparedITIPMessage{}, fmt.Errorf("%w: %d", ErrInvalidITIPSequence, message.Sequence)
 	}
-	if strings.TrimSpace(message.UID) == "" || hasITIPNUL(message.UID) || hasITIPLineBreak(message.UID) {
+	if strings.TrimSpace(message.UID) == "" || hasITIPControl(message.UID) {
 		return preparedITIPMessage{}, fmt.Errorf("%w: UID", ErrInvalidITIPMessage)
 	}
-	if strings.TrimSpace(message.Summary) == "" || hasITIPNUL(message.Summary) {
+	if strings.TrimSpace(message.Summary) == "" || hasITIPForbiddenTextControl(message.Summary) {
 		return preparedITIPMessage{}, fmt.Errorf("%w: SUMMARY", ErrInvalidITIPMessage)
 	}
-	if hasITIPNUL(message.Description) || hasITIPNUL(message.Location) ||
-		hasITIPNUL(message.RRULE) || hasITIPLineBreak(message.RRULE) {
+	if hasITIPForbiddenTextControl(message.Description) || hasITIPForbiddenTextControl(message.Location) ||
+		hasITIPControl(message.RRULE) {
 		return preparedITIPMessage{}, fmt.Errorf("%w: text", ErrInvalidITIPMessage)
 	}
 	if !isITIPStatus(message.Status) || !isITIPMethodStatus(message.Method, message.Status) {
@@ -108,7 +109,7 @@ func prepareITIPMessage(message ITIPMessage) (preparedITIPMessage, error) {
 	if err != nil {
 		return preparedITIPMessage{}, err
 	}
-	if hasITIPNUL(message.Organizer.DisplayName) {
+	if hasITIPForbiddenTextControl(message.Organizer.DisplayName) {
 		return preparedITIPMessage{}, fmt.Errorf("%w: organizer display name", ErrInvalidITIPMessage)
 	}
 
@@ -221,7 +222,7 @@ func prepareITIPAttendees(attendees []ITIPParticipant, method ITIPMethod) ([]pre
 		if err != nil {
 			return nil, err
 		}
-		if hasITIPNUL(attendee.DisplayName) || !isITIPParticipantRole(attendee.Role) {
+		if hasITIPForbiddenTextControl(attendee.DisplayName) || !isITIPParticipantRole(attendee.Role) {
 			return nil, fmt.Errorf("%w: participant", ErrInvalidITIPParticipant)
 		}
 		if err := attendee.Status.Validate(); err != nil {
@@ -248,7 +249,7 @@ func isITIPParticipantRole(role ITIPParticipantRole) bool {
 }
 
 func normalizeITIPEmail(value string) (string, error) {
-	if value == "" || value != strings.TrimSpace(value) || hasITIPLineBreak(value) || hasITIPNUL(value) {
+	if value == "" || value != strings.TrimSpace(value) || hasITIPControl(value) {
 		return "", fmt.Errorf("%w: %q", ErrInvalidITIPEmail, value)
 	}
 	parsed, err := mail.ParseAddress(value)
@@ -436,10 +437,20 @@ func itipRuneBoundary(value string, limit int) int {
 	return cut
 }
 
-func hasITIPNUL(value string) bool {
-	return strings.ContainsRune(value, 0)
+func hasITIPControl(value string) bool {
+	for _, character := range value {
+		if unicode.IsControl(character) {
+			return true
+		}
+	}
+	return false
 }
 
-func hasITIPLineBreak(value string) bool {
-	return strings.ContainsAny(value, "\r\n")
+func hasITIPForbiddenTextControl(value string) bool {
+	for _, character := range value {
+		if character != '\r' && character != '\n' && unicode.IsControl(character) {
+			return true
+		}
+	}
+	return false
 }
