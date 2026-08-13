@@ -17,8 +17,8 @@ with exactly one packet after all named gates pass.
 | 145-01A | Mailbox runtime config parsing/validation only | `backend/internal/mail/mailbox_config.go`, `backend/tests/mail/mailbox_config_test.go` | disabled safe default; exclusive-folder-writer false by default; one fixed internal origin; distinct management-key and mailbox-auth references; enabled mail auth rejected until G145-5B; no secret output | G145-2 + accepted 144-01A; enabled path also G145-5B |
 | 145-01B | Redacting bounded dual-plane HTTP/JMAP client primitive | `backend/internal/mail/stalwart/client.go`, `errors.go`, focused units | fixed origin; management `/api` and mail JMAP auth providers cannot cross; no arbitrary redirect/URL; auth redaction; body/time/size limits | G145-1/2/4/5/5B + 145-01A |
 | 145-02 | Version-specific management compatibility plus mail JMAP session discovery | `stalwart/jmap.go`, `stalwart/config.go`, focused units | fixed `/api` management object contract separate from `/.well-known/jmap`/`/jmap`; required mail capabilities explicit; unsupported/missing capability fails closed | G145-5/5B + 145-01B |
-| 145-03C | Domain desired-state mapping | `stalwart/domain.go`, focused units | Ensure/Get by stable key/generation; bounded public DNS/verification/DKIM; delete absence; no private key | 145-02 + Phase 144 port |
-| 145-03A | Account and identity mapping | `stalwart/account.go`, `mapper.go`, focused units | idempotent EnsureAccount by stable key/local part/domain; exact primary/aliases; opaque ids; no password/token | 145-02 + Phase 144 port |
+| 145-03C | Domain desired-state mapping | `stalwart/domain.go`, focused units | Ensure/Get by stable key/generation; bounded public expected DNS/DKIM; delete absence; `verified` only from the accepted authority, never domain existence/zone text; no private key | G145-5C + 145-02 + Phase 144 port |
+| 145-03A | Account and identity mapping | `stalwart/account.go`, `mapper.go`, focused units | management account/address ensure plus mailbox `Identity/get|set`; exactly one stable opaque id per desired address; Get-before-retry; no fabricated id/password/token | G145-5B + 145-02 + Phase 144 port |
 | 145-03B | Folder mapping | `stalwart/folder.go`, focused units | system roles/custom hierarchy; account scoping; exact state token; reviewed exclusive-writer capability and fail-closed recovery signal | G145-5A + 145-02 |
 | 145-04 | Message/blob/list mapping | `stalwart/message.go`, `stalwart/blob.go`, focused units | bounded hydrate; raw MIME/body only in result value; BCC policy; pagination; no engine-search path | 145-02 |
 | 145-05A | Hydrated incremental changes and invalid-cursor signal | `stalwart/changes.go`, focused units | composite opaque old/new cursor; created/updated/destroyed snapshots; typed invalid/expired; bounded page | 145-04 |
@@ -31,7 +31,7 @@ with exactly one packet after all named gates pass.
 | 145-08 | Port-complete adapter composition | `stalwart/adapter.go`, adapter conformance units | compile assertion; every port method including domain/account/Changes/EnumerateProjection/Sieve/classifier delegated once; redacted health | 145-03A/B/C + 04 + 05A/B + 06A/B + 07A/B/C |
 | 145-09A | Mailbox adapter/workers composition and exact root call | `backend/cmd/server/wiring_mailbox.go`, `backend/cmd/server/main.go` | disabled creates no adapter/worker/probe; enabled starts domain/account/combined projection-recovery/rule workers on one root context with reverse cleanup; Resend unchanged | 145-08 + accepted Phase 144 constructors/04I/K/N/Q/R |
 | 145-09B | Generic mailbox health mapping for the wired adapter | `backend/internal/mail/mailbox_admin_service.go`, `mailbox_admin_handler.go`, `backend/tests/mail/mailbox_admin_health_test.go` | disabled not_configured; enabled unavailable degraded/503; redacted and admin-first | 145-09A + accepted 144-06B/C |
-| 145-10 | Optional bounded Compose profile/config assets | `docker-compose.local.yml`, approved `deployments/mail/**`, names-only env example/docs | digest pin, named volumes for `/etc/stalwart` and `/var/lib/stalwart`, UID/capability review, healthcheck, SMTP-only opt-in public transport; management/mail credential separation; no user IMAP/JMAP/ManageSieve/admin mailbox mutation; CPU/RAM/PID limits, no secret | G145-1/3/4/5/5A/5B + 145-09A/B |
+| 145-10 | Optional bounded Compose profile/config assets | `docker-compose.local.yml`, approved `deployments/mail/**`, names-only env example/docs | digest pin, named volumes for `/etc/stalwart` and `/var/lib/stalwart`, UID/capability review, healthcheck, SMTP-only opt-in public transport; management/mail credential separation; no recovery-admin steady-state credential; no user IMAP/JMAP/ManageSieve/admin mailbox mutation; CPU/RAM/PID limits, no secret | G145-1/3/4/5/5A/5B/5C + 145-09A/B |
 | 145-11A | Dedicated engine backup/restore runbook | `docs/runbooks/mail-engine-backup-restore.md` | exact volume/config/digest prerequisites; restore isolation and cleanup | G145-4/5 + 145-10 |
 | 145-11B | DNS and deliverability operator runbook | `docs/runbooks/mail-domain-deliverability.md` | manual MX/PTR/SPF/DKIM/DMARC/TLS/rollback; no external-success claim | G145-4/5 + founder domain/operator decision |
 | 145-12 | Accepted launcher runtime verification | task-owned report paths only | all GATE-PLAN manifest cases, actual metrics, exact cleanup | G145-1..11 |
@@ -62,7 +62,11 @@ with exactly one packet after all named gates pass.
   combined projection/recovery and rule-deployment worker on the shared root context and registers bounded reverse-order
   cleanup. Disabled composition creates no scheduler, timer, adapter, probe or goroutine.
 - Account mapping uses the selected-version Account API's exact EmailLocalPart/domain/alias
-  model and immutable Hub provisioning key. A timeout repeats ensure, never fresh create.
+  model and immutable Hub provisioning key, then separately authenticated mailbox
+  `Identity/get|set` obtains stable server ids. Missing identities are created only after
+  Get and a lost response is reconciled by another Get; exactly one identity per normalized
+  desired address is accepted. Duplicate/unexpected identities degrade safely. A timeout
+  never triggers an unobserved fresh create.
 - Sieve owns one fixed Hub per-mailbox RFC 9661 `SieveScript` and exposes read/apply
   generation/hash state for reconciliation. It never mutates management
   `x:SieveSystemScript` or `x:SieveUserScript`. Spam/ham uses explicit classifier feedback;
@@ -70,9 +74,11 @@ with exactly one packet after all named gates pass.
 - Reserved Hub label keywords use selected-version message keyword/Sieve flag mapping but
   remain structurally distinct from public flags. Unknown markers never become label ids;
   marker removal is account-scoped and reconciled like other engine mutations.
-- Domain mapping uses the selected-version management object/API, returns only public DNS/
-  verification/DKIM state, and reconciles unknown create/delete through Get before retry;
-  no private DKIM key or provider response crosses the adapter.
+- Domain mapping uses the selected-version management object/API, returns only bounded
+  public expected DNS/DKIM state, and reconciles unknown create/delete through Get before
+  retry. Domain existence, enabled state and `dnsZoneFile` never imply `verified`; only the
+  G145-5C authority may promote it. No private DKIM key or provider response crosses the
+  adapter.
 - Folder exact-match adoption or absence retry is forbidden unless the reviewed profile and
   runtime exposure evidence prove Hub-exclusive custom-folder writing. System-role folders,
   false/unknown capability or any alternate writer keep recovery degraded with zero write.
@@ -91,6 +97,9 @@ with exactly one packet after all named gates pass.
 | Accepted launcher | NOT_READY |
 | Immutable image provenance | Docker Hub OCI index `sha256:a8108e19…`, linux/amd64 manifest `sha256:2bcbd379…` and SLSA attestation reference captured; signature/SBOM verification and approval NOT_RUN |
 | Version-specific Stalwart config/API | PARTIAL_RESEARCH: endpoint/object split frozen; exact config and spam feedback NOT_FROZEN |
-| Management/mail credential separation | OFFICIAL LIMIT CONFIRMED / ENABLED MAIL AUTH DESIGN UNRESOLVED (G145-5B) |
+| Management/mail credential separation | MANAGEMENT TEN-PERMISSION REPLACE SCOPE ROOT_FROZEN / REVIEW PENDING / ENABLED MAIL AUTH DESIGN UNRESOLVED (G145-5B) |
+| Management key permission scope | TEN-PERMISSION REPLACE ALLOWLIST ROOT_FROZEN / INDEPENDENT SECURITY REVIEW PENDING |
+| Domain verification authority | UNRESOLVED / SELECTED `x:Domain` HAS NO MANUAL-DNS VERIFICATION (G145-5C) |
+| Account identity mapping | EXACT `v0.16.17` IDENTITY GET/SET SOURCE FROZEN / ENABLED USE BLOCKED BY G145-5B MAIL AUTH |
 | Exclusive custom-folder writer | NOT_RUN / capability defaults false |
 | Runtime/resources/backup/external mail | NOT_RUN |

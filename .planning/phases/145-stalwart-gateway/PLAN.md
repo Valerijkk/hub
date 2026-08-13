@@ -11,6 +11,12 @@
 3. Candidate image tag and digest provenance are refreshed immediately before use.
 4. Separate management `/api` and mailbox `/jmap` credential planes are reviewed; a
    management API key is never treated as a mail credential.
+5. A domain-verification authority and bounded DNS projection are reviewed. Selected
+   Stalwart `x:Domain` does not expose manual-DNS verification, so domain existence or
+   `dnsZoneFile` cannot satisfy Hub `verified`.
+6. Account provisioning is reviewed as two-plane reconciliation: management `x:Account`
+   owns the address set, while separately authenticated mailbox `Identity/get|set` supplies
+   stable RFC 8621 ids. This path remains disabled until gate 4/G145-5B.
 
 No runtime implementation/claim proceeds by silent fallback.
 
@@ -27,7 +33,10 @@ No runtime implementation/claim proceeds by silent fallback.
    reconciliation; prove adapter contract conformance.
    Folder lost-response recovery is enabled only by a reviewed capability proving Hub is
    the sole custom-folder writer; false/unknown or alternate writer remains degraded.
-   Domain/account mappings use selected-version management `x:*` objects. Per-mailbox
+   Domain/account mappings use selected-version management `x:*` objects. Before the
+   domain-verification gate, domain mapping returns at most `dns_required` and account
+   provisioning remains ineligible. Account mapping obtains identity ids only from mailbox
+   `Identity/get|set` after management provisioning; it never fabricates ids. Per-mailbox
    Sieve uses RFC 9661 `SieveScript/*` on mail JMAP, never the global management
    `x:SieveSystemScript` or `x:SieveUserScript` objects. Spam/ham stays omitted until an
    exact message mapping and idempotency/reconciliation contract is evidenced.
@@ -45,7 +54,8 @@ No runtime implementation/claim proceeds by silent fallback.
 6. Treat invalid/expired change cursors as degraded state followed by a bounded,
    owner-scoped projection rebuild; never silently reset and present stale data as fresh.
 7. Through accepted launcher prove health, authenticated JMAP, internal delivery,
-   instance-domain SMTP, enumeration/catch-up plus folder lost-response recovery, replica
+   instance-domain SMTP, accepted domain-verification authority, enumeration/catch-up plus
+   folder lost-response recovery, replica
    lease exclusion, four-worker cancellation, restart persistence, exact cleanup and actual
    resource use.
 8. Document dedicated engine-volume backup/restore and DNS/deliverability prerequisites.

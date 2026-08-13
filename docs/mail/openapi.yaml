@@ -3247,6 +3247,7 @@ components:
       type: object
       additionalProperties: false
       x-hub-max-serialized-utf8-bytes: 65536
+      x-hub-selected-adapter-gate: Stalwart 0.16.17 may emit verified only through the future G145-5C authority; Domain existence, isEnabled and dnsZoneFile are insufficient
       required: [id, domain, enabled, is_default, state, verification_status, dkim_status, desired_generation, deployed_generation, error_code, version, required_dns_records]
       properties:
         id: {type: string, format: uuid}
@@ -3265,6 +3266,7 @@ components:
         required_dns_records:
           type: array
           maxItems: 32
+          description: Bounded typed projection; exact Stalwart zone inclusion/comparison remains gated by G145-5C and founder question 44.
           items:
             type: object
             additionalProperties: false

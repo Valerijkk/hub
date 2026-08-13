@@ -47,9 +47,12 @@ G145-4 remains open.
 | <https://stalw.art/docs/http/> | Main-server health endpoints are `/healthz/ready` and `/healthz/live`. |
 | <https://stalw.art/docs/http/jmap/> | Mail JMAP is discovered at `/.well-known/jmap`; the mail endpoint is `/jmap`. |
 | <https://www.stalw.art/docs/auth/authentication/api-key/> | API keys authenticate the management JMAP API only. They cannot authenticate JMAP mail, IMAP, POP3, SMTP submission, CalDAV, CardDAV or WebDAV. |
+| <https://stalw.art/docs/auth/authorization/permissions/> | The external permission catalogue exposes exact domain and individual-account CRUD/list permissions. Hub can scope a management key without an administrator-wide allowlist. |
 | <https://stalw.art/docs/auth/authorization/administrator/> | `impersonate` grants broad access and upstream recommends granting it sparingly. It is not silently accepted as Hub's mailbox credential design. |
 | <https://stalw.art/docs/ref/object/domain/> | Domain provisioning uses `x:Domain/*`, `urn:stalwart:jmap` and the management `/api` endpoint. |
+| <https://stalw.art/docs/domains/dns-records/> | Manual mode exposes the expected `dnsZoneFile`; automatic mode mutates a configured DNS provider asynchronously. Neither document defines a manual-DNS verification result on `x:Domain`. |
 | <https://stalw.art/docs/ref/object/account/> | Account provisioning uses `x:Account/*`; a user has a local-part `name`, a `domainId`, credentials, roles, permissions and aliases. |
+| <https://github.com/stalwartlabs/stalwart/blob/08509ddccbe6f978a1ffebeb250cab8588d765e5/crates/jmap/src/identity/get.rs> and adjacent `set.rs` | Exact candidate source implements standard mail-JMAP `Identity/get|set`: identities have stable server ids, initial Get creates identities from all account addresses when none exist, and Set permits only addresses configured on that account. |
 | <https://stalw.art/docs/sieve/jmap/> and <https://www.rfc-editor.org/rfc/rfc9661.html> | A mailbox's personal scripts use RFC 9661 `SieveScript/*` on mail JMAP with capability `urn:ietf:params:jmap:sieve`; script bytes are uploaded as a bounded blob before `SieveScript/set`. |
 | <https://stalw.art/docs/ref/object/sieve-system-script/> | `x:SieveSystemScript` is a server system script under the management capability; it is not the per-mailbox Hub rule target. |
 | <https://stalw.art/docs/ref/object/sieve-user-script/> | `x:SieveUserScript` is a global script available for user imports; it is not a user's active personal script. |
@@ -79,6 +82,79 @@ Hard consequences:
    secret lifecycle are accepted. Hub does not auto-generate or persist one plaintext
    password per user as a guessed fallback.
 
+### Management-plane least-privilege scope
+
+The management half of G145-5B is now frozen from the official permission catalogue. The
+runtime principal is a dedicated non-admin service account, and its API key uses `Replace`
+mode with exactly these ten permissions:
+
+- `domain-create`, `domain-delete`, `domain-get`, `domain-list`, `domain-update`;
+- `individual-create`, `individual-delete`, `individual-get`, `individual-list`,
+  `individual-update`.
+
+The key has an explicit expiry, an operator-owned rotation/revocation record and
+`allowedIps` restricted to the Hub service network when that network has a stable source
+range. Its one-time secret is written directly to the accepted secret provider. The key
+does not receive `api-key-*`, `settings-*`, `role-*`, `group-*`, `principal-*`,
+`impersonate`, `spam-filter-*` or any mail-protocol permission. Bootstrap creates the
+principal/key out of band; the running Hub key cannot mint or widen another key. Account
+queries accept only `@type: "User"`; group, tenant or another variant never satisfies a Hub
+mailbox account lookup.
+
+This freezes management scope only. It does not answer the separate mailbox JMAP
+authentication/delegation decision in founder question 42.
+
+## Selected-version contract findings
+
+### No manual-DNS verification state
+
+The selected `x:Domain` object exposes configuration such as `isEnabled`,
+`dnsManagement`, `dkimManagement` and server-set `dnsZoneFile`, but no verification
+property. In manual mode the operator copies expected zone content to the external DNS
+provider. Existence, enabled state or a non-empty `dnsZoneFile` therefore cannot prove
+that public DNS contains those records.
+
+This conflicts with the current Hub contract, which permits account provisioning only
+after `EngineDomainVerified` / `EngineVerificationVerified`. Until G145-5C selects and
+accepts a verification authority, the Stalwart adapter must return at most
+`dns_required` with bounded public expected records and must never infer `verified`.
+Account provisioning and external mode remain ineligible. Hub continues to make zero DNS
+mutation. Stalwart automatic DNS management is not an implicit fallback because it would
+grant provider credentials and mutate external state asynchronously.
+
+The generated zone also covers more record classes than the current Hub
+`MX|TXT|CNAME` projection. G145-5C must separately freeze whether Hub exposes an explicit
+bounded subset or extends the typed engine/public schema; silently calling a subset the
+complete required zone is forbidden.
+
+### Identity ids belong to the mailbox plane
+
+`x:Account` returns one account id and inline address values, but this does not mean the
+engine lacks identity ids. Exact `v0.16.17` source implements standard RFC 8621
+`Identity/get|set` on mailbox JMAP. Each returned Identity has a stable server id and email;
+an initial Get creates identities from the account's configured primary/alias addresses if
+the identity collection is empty. Later Set creates are restricted to addresses currently
+configured on that account.
+
+Therefore packet 145-03A is a deliberate two-plane reconciliation: management
+`x:Account/*` ensures the address set, then separately authenticated mailbox
+`Identity/get|set` returns/reconciles the opaque ids required by `EngineAccount`. Missing
+identities are created only after Get; a lost create response is followed by Get before any
+retry. Exactly one identity per normalized desired address is accepted. Duplicate email
+identities, an identity outside the desired account address set or an unexpected mutable
+email are indeterminate/degraded and are never resolved by list position or a fabricated
+id. This mapping remains implementation-blocked by the mailbox-auth decision in G145-5B,
+not by a port/persistence mismatch.
+
+### Bootstrap and recovery credentials are operator-only
+
+The image documentation treats `STALWART_RECOVERY_ADMIN` as a temporary bootstrap/recovery
+credential and instructs operators to remove it after a permanent administrator is usable.
+It can also re-enable the HTTP recovery listener. Therefore it is never a Hub runtime
+credential, never appears with a value in repository examples and must be absent from an
+accepted steady-state profile. Recovery mode and the HTTP configuration listener are
+operator-only break-glass paths with separate evidence; Hub never enables them.
+
 ## Packet corrections
 
 - **145-01A:** the disabled configuration shape can remain safe, but enabled parsing must
@@ -90,8 +166,12 @@ Hard consequences:
 - **145-02:** mail JMAP discovery verifies core/mail/submission/blob and optional sieve
   capabilities. Selected-version management compatibility is checked separately against
   fixed `/api` object/method evidence; it is not inferred from the mail session.
-- **145-03A/03C:** account/domain operations use the management plane and exact
-  `x:Account/*` / `x:Domain/*` schemas.
+- **145-03A:** management `x:Account/*` ensures the account/address set; mailbox
+  `Identity/get|set` reconciles the stable opaque primary/alias ids. The packet remains
+  blocked by G145-5B mailbox authentication, and cross-plane credentials never mix.
+- **145-03C:** domain operations use the management plane and exact `x:Domain/*` schema.
+  Before G145-5C they may expose only `dns_required`; existence/enabled/zone text never maps
+  to `verified`.
 - **145-07B:** fixed per-mailbox rules use RFC 9661 `SieveScript/get`, bounded blob upload,
   `SieveScript/set` and activation on the mailbox plane. `x:SieveSystemScript` and
   `x:SieveUserScript` are forbidden for this behavior.
@@ -105,13 +185,14 @@ Hard consequences:
    manifest digests, provenance predicate/signature, SBOM/source relationship immediately
    before any authorized pull. The current registry read is discovery, not approval.
 3. Exact selected-version configuration export/checksum and listener/access-control rules.
-4. Least-privilege management API-key permissions and separate mailbox authentication or
-   delegation design, rotation, revocation and audit.
+4. Independent review of the frozen ten-permission management API-key scope, plus the
+   separate mailbox authentication/delegation design, rotation, revocation and audit.
 5. Proof that no user-facing IMAP/JMAP/ManageSieve or alternate direct mailbox writer can
    mutate Hub-owned custom folders/scripts in the accepted profile.
-6. A documented classifier-feedback mapping with idempotency/reconciliation, or explicit
+6. A domain verification authority and exact bounded public DNS-record projection.
+7. A documented classifier-feedback mapping with idempotency/reconciliation, or explicit
    omission of feedback from the adapter.
-7. Accepted task-owned Docker launcher, bounded runtime evidence, backup/restore and exact
+8. Accepted task-owned Docker launcher, bounded runtime evidence, backup/restore and exact
    cleanup.
 
 Until all applicable gates pass, the truthful state is `candidate researched`,

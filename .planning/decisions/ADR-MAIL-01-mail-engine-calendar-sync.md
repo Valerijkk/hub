@@ -219,6 +219,17 @@ user mailbox resources start only for active accounts. The UUID fallback namespa
 reserved from aliases; a short-prefix collision expands deterministically to the full UUID
 and never chooses a random suffix or calls the engine before reservation succeeds.
 
+**Selected-adapter compatibility gate (2026-08-13):** Stalwart 0.16.17 `x:Domain`
+publishes expected `dnsZoneFile` but no manual-DNS verification result. Therefore its
+adapter cannot satisfy “engine verification is confirmed” from domain existence,
+`isEnabled` or zone text. Until G145-5C/founder question 43 accepts a verification
+authority, the adapter returns at most `dns_required`, provisions no accounts and enables
+no external mode. Exact candidate source confirms stable identity ids exist on mailbox
+RFC 8621 `Identity/get|set`: management `x:Account` ensures the address set and mailbox JMAP
+reconciles exactly one opaque id per desired address. That path remains disabled until
+G145-5B accepts mailbox authentication. This note records a blocker and does not silently
+weaken the canonical verified-domain prerequisite.
+
 Rule CRUD changes only Hub canonical rows and desired generation. A separate rule worker
 holds the account mutation lease, compiles the complete ordered set, owns one fixed-name
 script, and compares its embedded generation/hash marker before retrying an unknown upload.

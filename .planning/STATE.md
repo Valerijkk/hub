@@ -151,6 +151,9 @@ mail_feature_workstream:
       engine_attestation: slsa_reference_captured_signature_sbom_not_verified
       engine_endpoints: fixed_management_api_plus_same_origin_mail_jmap
       engine_credentials: separate_management_api_key_and_unresolved_mailbox_auth_no_cross_plane_reuse
+      engine_management_permissions: replace_domain_and_individual_crud_list_only_review_pending
+      engine_domain_verification: unresolved_stalwart_domain_has_expected_zone_not_verification_fail_closed_dns_required
+      engine_identity_mapping: management_account_addresses_then_mail_jmap_identity_get_set_auth_gate
       internal_delivery: through_engine
       message_authority: mail_engine
       mailbox_projection: leased_bounded_worker_atomic_page_event_cursor_command_lease_begin_end_epoch_fence
@@ -227,6 +230,15 @@ spec_coverage:
   different credential class. Official docs confirm a management API key cannot
   authenticate JMAP mail. Enabled mode therefore remains blocked pending the reviewed
   least-privilege mailbox delegation/rotation/audit decision in founder question 42.
+  The management key is now root-frozen to API-key `Replace` with only domain and
+  individual-account CRUD/list permissions, pending independent security review. A second
+  selected-version mismatch is fail-closed: `x:Domain` exposes expected `dnsZoneFile` but
+  no manual-DNS verification result, so Hub cannot infer `verified`, provision accounts or
+  enable external mode before G145-5C/founder question 43. Exact candidate source confirms
+  mailbox `Identity/get|set` supplies stable ids for configured account addresses, so
+  145-03A is a two-plane mapping rather than an identity-id mismatch; enabled use remains
+  blocked by G145-5B mail auth. Question 44 freezes the exact bounded DNS record projection.
+  Recovery-admin state is operator-only and absent from the accepted steady-state profile.
 - Кодовые фазы 143–148 идут только после независимого принятия затронутого контракта.
   Phase 145 заблокирована 144 acceptance и внешними gates; независимые calendar slices
   сохраняют отдельно доказанную семантику.
@@ -308,9 +320,10 @@ spec_coverage:
   message-to-spam/ham mapping or idempotent lost-response recovery, so 145-07C remains
   blocked rather than guessed.
 - Вопросы, не останавливающие локальную работу, собраны в
-  `docs/mail/FOUNDER-QUESTIONS.md`; вопросы 22–42 фиксируют legacy idempotency, linked-call
+  `docs/mail/FOUNDER-QUESTIONS.md`; вопросы 22–44 фиксируют legacy idempotency, linked-call
   guests, primary-address/sanitizer/Sieve policy, later engine/API/schema defaults и
-  отдельную least-privilege mailbox-auth design decision.
+  отдельную least-privilege mailbox-auth design decision, authority проверки DNS и DNS
+  projection.
   Push/PR/merge/deploy не авторизованы.
 
 ## Session note — 2026-08-08 (test-rebase execution readiness)

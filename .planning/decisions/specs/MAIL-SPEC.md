@@ -788,6 +788,18 @@ account or selected default cannot be deleted. Account provisioning is eligible 
 the selected domain is confirmed `verified`; DNS changes remain an operator action and are
 never performed by Hub automatically.
 
+Selected Stalwart 0.16.17 does not itself satisfy that confirmation contract for manual
+DNS: its `x:Domain` exposes expected `dnsZoneFile`, but no verification result. Until
+G145-5C/founder question 43 selects a reviewed verification authority, its adapter may
+return only `dns_required`; domain existence, enabled state and zone text never promote the
+row, and account provisioning/external mode make zero engine calls. The engine's broader
+expected zone also requires the exact typed public projection in question 44. Exact
+candidate source confirms stable sender identity ids exist through mailbox RFC 8621
+`Identity/get|set`; management `x:Account` ensures the address set and mailbox JMAP
+reconciles exactly one opaque id per desired address. That two-plane path remains disabled
+until G145-5B accepts mailbox authentication. These are explicit selected-adapter gates,
+not permission to weaken the canonical verified-domain or identity reconciliation invariants.
+
 ### 3.10.5 MailboxPolicy
 
 One versioned row per organization containing external-mail enablement, maximum message,

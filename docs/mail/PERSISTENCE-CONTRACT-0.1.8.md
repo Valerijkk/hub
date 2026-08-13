@@ -135,6 +135,13 @@ at most 200 rows/account is enforced under account lock. Only `status=active` ma
 hard-delete is restricted until its account is deleted; only aliases may enter `deleting`,
 and confirmed-absent aliases may hard-delete. Public default is derived from settings.
 
+Selected Stalwart 0.16.17 management `x:Account` represents the address set inline, while
+mailbox RFC 8621 `Identity/get|set` supplies the stable server identity ids persisted here.
+Packet 145-03A must reconcile exactly one id per normalized desired address through
+Get-before-create/Get-before-retry. Duplicate or unexpected identities are degraded rather
+than selected by list position, and no adapter-private id is fabricated. Enabled use remains
+blocked by G145-5B mailbox authentication.
+
 ### `MailDomain`
 
 | Fields | Storage / nullability / default |
@@ -158,6 +165,13 @@ and confirmed-absent aliases may hard-delete. Public default is derived from set
 
 DNS JSON is a typed array of at most 32 unique `(type,name,value)` records: type
 `MX|TXT|CNAME`, name <=253, value <=2,048, TTL 60..86,400; serialized UTF-8 <=65,536 bytes.
+
+Selected Stalwart 0.16.17 exposes expected `dnsZoneFile` but no manual-DNS verification
+result, and that zone may contain record classes outside this enum. Until
+G145-5C/founder questions 43 and 44 freeze the authority and exact projection, the adapter
+may persist only a provisional bounded supported subset in `dns_required`; it may never
+enter `verified` or call account provisioning from domain existence, `isEnabled` or zone
+text alone.
 
 Checks/indexes: global unique live domain; unique provisioning key; unique nullable engine
 id; one live verified+enabled default per organization; attempted/deployed tuples all-or-none,

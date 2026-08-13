@@ -3,7 +3,7 @@
 > **Contract version:** 0.1.8
 > **Prepared:** 2026-08-13
 > **Contract review status:** ROOT_FROZEN · INDEPENDENT_TERRA_REVIEW_PENDING
-> **Implementation status:** IN_PROGRESS — 143-01/02A/02B static accepted historically; 0.1.8 amends the 144-01A boundary and freezes 144-02A/02B/02C/02D/02F schema candidates; the exact 144-02A1/A2/A3 execution split is planned but no dependent code is accepted; 143-03A/C still require the hash-pair CHECK fix; executable verification `NOT_RUN`
+> **Implementation status:** IN_PROGRESS — 143-01/02A/02B static accepted historically; 0.1.8 amends the 144-01A boundary and freezes 144-02A/02B/02C/02D/02F schema candidates; the exact 144-02A1/A2/A3 execution split is planned but no dependent code is accepted; 143-03A/C still require the hash-pair CHECK fix; selected Stalwart has an unresolved domain-verification mismatch and enabled mailbox auth remains blocked; executable verification `NOT_RUN`
 > **Runtime status:** NOT_RUN
 > **QA owner:** founder-designated Claude test program
 > **Product-code owner:** ChatGPT mail feature branch
@@ -132,12 +132,15 @@ or more `FR-MAIL-*` / `FR-CALSYNC-*` rows and named `TC-*` scenarios in `MAIL-SP
     `MAIL_ACCOUNT_BUSY` and bounded `Retry-After` before any engine call. Unknown engine
     outcome never maps to busy, and the UI never blindly replays it as though no call ran.
 21. Domain create first commits only one stable desired intent; its worker reconciles
-    DNS-required/verified/delete state through Ensure/Get without changing DNS or exposing
-    private DKIM. With engine/policy/default verified domain enabled, two account workers
+    DNS-required/delete state through Ensure/Get without changing DNS or exposing private
+    DKIM. Domain existence, `isEnabled` and expected `dnsZoneFile` never produce verified;
+    only the future G145-5C authority may promote it. With engine/policy/default verified domain enabled, two account workers
     scan the same active new/existing user and reserve exactly one deterministic primary address, provisioning key
     and cutoff. A lost ensure response repeats the same key and activates one logical engine
-    account/identity. Missing domain, disabled engine, suspended user and stale lease make
-    zero engine call. `GET /mail/account` is read-only and leaks no reservation, engine id,
+    account/address set; separately authenticated `Identity/get|set` returns exactly one
+    stable opaque id per desired address and reconciles a lost create by Get-before-retry.
+    Missing domain, disabled engine, suspended user and stale lease make zero engine call.
+    `GET /mail/account` is read-only and leaks no reservation, engine id,
     lease or provider text. Alias create/delete and user deactivation/reactivation advance
     account generation; pending/deleting identities are never selectable, and stale workers
     cannot finalize an older set. A claimed 12-hex UUID fallback expands once to the full
@@ -549,6 +552,14 @@ It is not image provenance or runtime evidence. Personal per-mailbox rules must 
 `SieveScript/*` on `/jmap`; management `x:SieveSystemScript` and `x:SieveUserScript` are not
 substitutes. The documented `x:SpamTrainingSample` object does not yet freeze Hub's
 message-to-spam/ham mapping or retry idempotency, so classifier feedback remains blocked.
+The management API-key design is provisionally narrowed to `Replace` with only domain and
+individual-account CRUD/list permissions, pending independent security review. Exact
+candidate source confirms mailbox `Identity/get|set` supplies stable ids for configured
+account addresses, so identity mapping is not a port mismatch; its enabled use remains
+blocked by G145-5B mailbox authentication. The selected Domain object exposes expected zone
+text but no manual-DNS verification result, so domain promotion/account provisioning remains
+blocked by founder questions 43-44 and G145-5C. `STALWART_RECOVERY_ADMIN` is operator-only
+bootstrap/recovery state and is absent from the steady-state Hub credential matrix.
 
 ## Fixtures and clocks
 
@@ -583,9 +594,9 @@ oracles, not current executable evidence.
   exists in this branch.
 - Direct Docker/Compose or host tests are prohibited fallback paths.
 - Stalwart legal acceptance, independent digest/provenance approval, signature/SBOM,
-  exact config, least-privilege mailbox auth, measured resource use, and runtime behavior
-  are pending. `v0.16.17` is only a researched source/registry candidate; read-only digest
-  capture did not pull or run it.
+  exact config, least-privilege mailbox auth, domain-verification authority, measured
+  resource use, and runtime behavior are pending. `v0.16.17` is
+  only a researched source/registry candidate; read-only digest capture did not pull or run it.
 - The 0.1.8 root amendment has no independent actual-model-provenance review yet; historical
   0.1.7 review evidence is stale for its engine/API/persistence changes.
 - Therefore this handoff is a contract deliverable only. It must not be converted into a

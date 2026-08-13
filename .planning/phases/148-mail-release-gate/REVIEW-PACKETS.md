@@ -34,6 +34,9 @@ Review package boundaries, dependency direction, transactions and source of trut
 - engine owns raw MIME/body/mailbox membership/server flags/delivery queue;
 - Hub owns tenant mapping, safe projections, calendar/RSVP, labels/search/audit;
 - no calendar↔mail import cycle or Fiber/JMAP/Ent leakage into pure domain ports;
+- selected Stalwart domain verification is represented by an explicitly accepted authority;
+  domain existence/zone text cannot satisfy it. Account/address management plus mailbox
+  `Identity/get|set` is a credential-separated, Get-before-retry mapping with no fabricated ids;
 - receipt/state ledgers have distinct responsibilities and atomic boundaries;
 - outbox write shares the state transaction; no post-commit durability claim;
 - ScheduledCall↔CalendarEvent, CRM↔MailMessage and notification relations do not introduce
@@ -108,7 +111,9 @@ Threat-review every trust boundary:
   authorization before any legacy conflict title/channel disclosure;
 - CRM permission not becoming mailbox delegation;
 - event/webhook payloads and dead-letter/audit redaction;
-- Stalwart license/image/SBOM/signature/config/secret and network exposure gates.
+- Stalwart license/image/SBOM/signature/config/secret and network exposure gates, including
+  the exact management permission allowlist, separate mailbox auth, authoritative DNS
+  verification and absence of recovery-admin credentials/listeners in steady state.
 - application and ingress logging never persist remote-image token paths, search queries or
   concrete UUID paths; unmatched route labels are constant rather than attacker input.
 

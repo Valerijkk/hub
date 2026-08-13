@@ -15,7 +15,8 @@
 | G145-4 provenance | refreshed official release, immutable digest, signature/SBOM/source and approval record | DevOps/security/founder | `v0.16.17` Docker Hub OCI index + linux/amd64 manifest + SLSA attestation references CAPTURED / SIGNATURE AND SBOM NOT_VERIFIED / NOT_APPROVED | do not pull or reference mutable image |
 | G145-5 config contract | reviewed Stalwart config/API/session/health/volume paths for the selected immutable version | adapter reviewer | PARTIAL RESEARCH: `/api` management, `/jmap` mail, health and volume paths identified; exact image config and feedback semantics NOT_FROZEN | stop rather than guess version-specific fields |
 | G145-5A folder writer exclusivity | reviewed config, internal-network policy and published-port evidence prove only Hub can create/rename/delete custom folders; system roles are distinguishable | adapter + security reviewer | NOT_RUN | capability stays false; automatic folder recovery makes zero mutation and remains degraded |
-| G145-5B credential planes | reviewed least-privilege management API key for `/api` plus separately scoped mailbox JMAP authentication/delegation, rotation, revocation and audit | founder + security + adapter reviewer | MANAGEMENT/MAIL SPLIT PROVEN / ENABLED MAIL AUTH DESIGN UNRESOLVED | keep engine disabled; never reuse a management API key for mail JMAP or invent per-user passwords |
+| G145-5B credential planes | reviewed least-privilege management API key for `/api` plus separately scoped mailbox JMAP authentication/delegation, rotation, revocation and audit | founder + security + adapter reviewer | MANAGEMENT TEN-PERMISSION REPLACE SCOPE + EXACT IDENTITY GET/SET SOURCE ROOT_FROZEN / INDEPENDENT REVIEW PENDING / ENABLED MAIL AUTH DESIGN UNRESOLVED | keep engine disabled; never reuse a management API key for mail JMAP or invent per-user passwords |
+| G145-5C domain verification authority | reviewed authority proves the exact bounded public DNS projection before Hub may report `verified`; selected Stalwart `x:Domain` has no manual-DNS verification field | founder + security + adapter reviewer | UNRESOLVED / P1 SELECTED-VERSION MISMATCH | adapter returns at most `dns_required`; account provisioning and external mode make zero engine/mail calls |
 | G145-6 local profile | bounded health, authenticated JMAP, internal delivery, restart persistence and exact cleanup | accepted launcher | NOT_RUN | gateway remains disabled/not_configured |
 | G145-7 resource budget | observed whole added profile ≤4 CPU and ≤4 GiB under idle + representative load | accepted launcher | NOT_RUN | reduce/rebalance or reject candidate |
 | G145-8 backup/restore | dedicated engine-volume backup and restore exercise with current SHA/digest | ops + accepted launcher | NOT_RUN | no production readiness claim |
@@ -26,7 +27,12 @@ from repository text. G145-4 must be refreshed immediately before an authorized 
 the 2026-08-13 `v0.16.17` research snapshot and read-only registry digest capture are not
 an immutable-image approval. G145-5B
 cannot be inferred from “administrator credentials”: official Stalwart API keys cannot
-authenticate JMAP mail, while impersonation is a separate broad permission.
+authenticate JMAP mail, while impersonation is a separate broad permission. The management
+half uses API-key `Replace` with only domain CRUD/list and individual-account CRUD/list;
+that root freeze still needs independent security review. G145-5C cannot be inferred from
+domain existence, `isEnabled` or a non-empty `dnsZoneFile`. Account identities are separate
+stable RFC 8621 `Identity/get|set` objects on mailbox JMAP; using them remains blocked by
+the unresolved G145-5B mailbox-auth design, not by an id-derivation fallback.
 
 ## Disabled/default behavior
 
@@ -39,6 +45,8 @@ authenticate JMAP mail, while impersonation is a separate broad permission.
   an accepted profile that publishes no user-facing IMAP/JMAP/ManageSieve or direct
   engine-admin mailbox mutation surface.
 - Missing domain or secret refuses external mode without printing values.
+- Without G145-5C, a present Stalwart domain remains `dns_required`; Hub neither reports
+  `verified` nor provisions accounts against it.
 - Invalid/expired JMAP cursor marks the affected mailbox projection degraded and triggers
   a bounded owner-scoped rebuild. It does not silently reset freshness.
 - Enabled startup owns exactly one bounded domain-control, account-control, combined projection/recovery and rule-deployment
@@ -57,6 +65,9 @@ authenticate JMAP mail, while impersonation is a separate broad permission.
   or persists one plaintext password per user.
 - Management keys, mailbox credentials, DKIM private keys and generated tokens are
   secret-provider or engine-volume state. Example files contain names/placeholders only.
+- `STALWART_RECOVERY_ADMIN`, recovery mode and the HTTP configuration listener are
+  operator-only bootstrap/break-glass mechanisms. They are absent from an accepted
+  steady-state profile and are never reused by Hub.
 - Logs, health and API responses redact authorization headers, session capability URLs,
   account ids if credential-like, raw provider bodies and SMTP recipient/body content.
 - Selected reverse-proxy/access-log configuration logs no query string for mail search and
@@ -78,10 +89,14 @@ Required cases:
 2. engine health, separately authenticated management `/api` compatibility and mailbox
    JMAP session discovery; prove that neither credential is accepted/sent on the other plane;
 3. account provisioning and default folders;
-3b. domain create/DNS-required/verification/delete desired state reconciles through
-    Ensure/Get without automatic DNS change or private DKIM exposure;
+3b. domain create/DNS-required/delete desired state reconciles through Ensure/Get without
+    automatic DNS change or private DKIM exposure; before G145-5C, existence, enabled state
+    and expected zone text never produce `verified`; after G145-5C, the accepted authority
+    alone can promote the domain;
 3a. provisioning lost response repeats the same stable key, two replicas create one logical
-    account/primary identity, and disabled/missing-domain paths make zero engine calls;
+    account/address set, then mailbox `Identity/get|set` reconciles exactly one stable opaque
+    identity id per desired address across reorder/restart/lost response; duplicate or
+    unexpected identities degrade safely, and disabled/missing-domain paths make zero engine calls;
 4. internal submit creates one Sent and one recipient Inbox view;
 5. lost-submit response reconciles without duplicate;
 6. draft version conflict and lost-save reconciliation;

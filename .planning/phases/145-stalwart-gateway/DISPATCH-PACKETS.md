@@ -63,30 +63,45 @@
   core/mail/submission/blob and optional RFC 9661 sieve explicitly; derive mail URLs only
   through same-origin/session policy. Bound accounts/capabilities; missing/unknown required
   capability fails closed; management evidence is never inferred from the mail session;
-  no credential/session URL in error.
+  no credential/session URL in error. The accepted management profile uses API-key
+  `Replace` with exactly `domain-create|delete|get|list|update` and
+  `individual-create|delete|get|list|update`; any broader principal/key is an external gate
+  failure rather than an adapter convenience.
 
 ## 145-03A — account/identity mapping
 
-- Gates: prior; dependencies 02 + Phase 144 port. Allowed only
+- Gates: G145-5B; dependencies 02 + Phase 144 port. Allowed only
   `backend/internal/mail/stalwart/account.go`, `mapper.go`,
   `backend/tests/mail/stalwart_account_test.go`.
-- Behavior/oracles: use only the management `/api` plane and exact `x:Account/*` object.
-  Idempotent EnsureAccount by stable Hub key, reserved local part and
-  selected verified domain; normalized primary/alias mapping; same key/spec repeats and
-  changed spec conflicts; no group send until authorized; opaque returned ids; conflict/partial
-  provisioning safe; no password/token persisted/returned; cross-account query impossible.
+- Behavior/oracles: use the management `/api` plane and exact `x:Account/*` object to
+  idempotently ensure the stable Hub key, reserved local part, selected verified domain and
+  normalized primary/alias address set. Accept only `@type: "User"`; same key/spec repeats,
+  changed spec conflicts and group results never satisfy a user account. Then use the
+  separately authenticated mailbox plane's standard `Identity/get|set` to reconcile exactly
+  one stable server id per desired address. Missing identities are created only after Get;
+  a lost create response performs Get-before-retry. Duplicate email identities, identities
+  outside the desired address set or immutable-email mismatch are indeterminate/degraded,
+  never selected by list position and never replaced by fabricated ids. Conflict/partial
+  provisioning is safe; no password/token is persisted/returned; cross-account query is
+  impossible and neither credential crosses planes.
 
 ## 145-03C — domain desired-state mapping
 
-- Gates: G145-5 exact selected-version domain management API. Dependencies: 02 + Phase 144
-  port. Allowed only `backend/internal/mail/stalwart/domain.go`,
+- Gates: G145-5 exact selected-version domain management API and G145-5C verification
+  authority/projection. Dependencies: 02 + Phase 144 port. Allowed only
+  `backend/internal/mail/stalwart/domain.go`,
   `backend/tests/mail/stalwart_domain_test.go`.
 - Behavior/oracles: use only the management `/api` plane and exact `x:Domain/*` object.
   `EnsureDomain` idempotently applies stable key + captured generation/
-  hash + desired present/enabled; `GetDomain` is read-only reconciliation. Map only opaque
-  id, absent/DNS-required/verified/error/indeterminate, bounded public MX/TXT/CNAME records
-  and DKIM status. Lost create/delete response is observable; changed generation conflicts;
-  no automatic DNS call, private DKIM material, credential/provider body or cross-org data.
+  hash + desired present/enabled with manual DNS management; `GetDomain` is read-only
+  reconciliation. Map only opaque id, absent/DNS-required/verified/error/indeterminate, the
+  exact bounded public DNS projection accepted by G145-5C and DKIM status. Domain existence,
+  `isEnabled`, non-empty `dnsZoneFile` or a successful management write never produces
+  `verified`; only the accepted verification authority may do so. Before that authority is
+  available the only present steady state is `dns_required`, account provisioning stays
+  ineligible and no automatic DNS call occurs. Lost create/delete response is observable;
+  changed generation conflicts; no private DKIM material, credential/provider body or
+  cross-org data.
 
 ## 145-03B — folder mapping
 
@@ -262,7 +277,7 @@
 
 ## 145-10 — optional bounded deployment profile
 
-- Gates: G145-1/3/4/5/5A/5B; dependencies 09A/09B. Allowed only
+- Gates: G145-1/3/4/5/5A/5B/5C; dependencies 09A/09B. Allowed only
   `docker-compose.local.yml`, founder-approved production compose if explicitly in scope,
   `deployments/mail/**`, and names-only env example/docs named in dispatch.
 - Behavior/oracles: exact immutable digest; optional `mail` profile; fixed service-network
@@ -270,7 +285,9 @@
   secret references; explicit opt-in SMTP delivery ports and no user-facing
   IMAP/JMAP/ManageSieve/direct-admin mailbox mutation; named volume; image-specific health; non-root /
   capabilities where supported; CPU/RAM/PID/restart caps; no secret/value/DKIM key; compose
-  static/runtime validation only through launcher. The trusted exclusivity setting may be
+  static/runtime validation only through launcher. `STALWART_RECOVERY_ADMIN`, recovery mode
+  and the HTTP configuration listener are absent from steady state; bootstrap/break-glass
+  is operator-owned and never a Hub credential. The trusted exclusivity setting may be
   true only in that reviewed exposure shape. Do not invent volume path/command.
 
 ## 145-11A — engine backup/restore runbook

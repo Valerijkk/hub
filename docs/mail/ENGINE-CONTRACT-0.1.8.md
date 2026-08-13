@@ -5,6 +5,12 @@
 > **Precedence:** this document replaces the 0.1.7 message/blob/draft portions of
 > `ADR-MAIL-01-mail-engine-calendar-sync.md` and Phase 144-01A. Unmentioned methods and safe
 > error behavior remain unchanged.
+>
+> **Selected-adapter gate (2026-08-13):** this amendment does not resolve Stalwart's absent
+> manual-DNS verification result; G145-5C and founder questions 43-44 must bind that
+> unmentioned method before packet 145-03C. Exact candidate source confirms stable identity
+> ids exist through mailbox RFC 8621 `Identity/get|set`; packet 145-03A therefore uses a
+> reviewed two-plane mapping and remains blocked by G145-5B mailbox authentication.
 
 ## Hard limits
 
