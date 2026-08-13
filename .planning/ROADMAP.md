@@ -249,7 +249,7 @@ contract отменяет его как migration gate; destructive batches ра
 |------:|--------|------------|----------------|
 | 142 | CONTRACT ARTIFACTS COMPLETE · DEEP AUDIT P1 ENGINE/SCHEMA/OPENAPI BOUNDS REOPENED · runtime NOT_RUN | — | ADR, ERD, OpenAPI, NATS, UI/security/QA contracts · TASK-235 |
 | 143 | 143-01/02A/02B STATIC ACCEPTED · 03A/C P1 HASH-PAIR CHECK REMEDIATION BLOCKED · 03B/F CONTENT PASS, CHAIN BLOCKED · RUNTIME NOT_RUN | 142 | CalendarEvent/Attendee/Exception, deterministic iTIP/RSVP, canonical ScheduledCall bridge/backfill · TASK-236 |
-| 144 | 144-01A SOURCE PASS · P1 ENGINE BOUNDARY + 02A/02B/02C/02D SCHEMA MATRICES REOPENED · 01B/02A/02B/02C/02D BLOCKED · RUNTIME NOT_RUN | 142 | Mailbox domain, domain/account/projection+recovery/rule workers, safe content/search, receipts/classifier · TASK-237 |
+| 144 | 144-01A SOURCE PASS · P1 ENGINE BOUNDARY + 02A/02B/02C/02D/02F SCHEMA MATRICES REOPENED · 01B/02A/02B/02C/02D/02F BLOCKED · RUNTIME NOT_RUN | 142 | Mailbox domain, domain/account/projection+recovery/rule workers, safe content/search, receipts/classifier · TASK-237 |
 | 145 | BLOCKED BY 144 CONTRACT + EXTERNAL GATES | 144 + license + launcher | Stalwart adapter, instance-domain mail, bounded Docker profile · TASK-238 |
 | 146 | DISPATCH 0.1.7 · PUBLIC LIST/DETAIL BOUNDS P1 REOPENED · DEPENDENCIES+HARNESS BLOCKED | 143, 144 | Outlook three-pane UI, management, rules, safe content/search/realtime · TASK-239 |
 | 147 | CVE-v1 IDENTITY SEMANTICS PASS · CALENDAR HTTP BOUNDS REOPENED · GLOBAL CONTRACT P1 · DEPENDENCY BLOCKED | 143–146 | recurrence/import recovery, single-count busy/free, reminders, L1/CRM seam · TASK-240 |
