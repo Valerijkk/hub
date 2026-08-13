@@ -110,7 +110,7 @@ all accepted rows ─ 147-08 docs sync/static review
 
 | Gate | Status |
 |---|---|
-| Mail 0.1.3 root static review | PENDING |
+| Mail 0.1.3 root static review | PASS on `8daaf0d9`; `STATIC-REVIEW.md` |
 | Mail 0.1.3 independent static review | PENDING |
 | Exact Spark implementation runtime | UNAVAILABLE |
 | Accepted Docker launcher | NOT_READY |

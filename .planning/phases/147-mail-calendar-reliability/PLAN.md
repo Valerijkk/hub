@@ -37,7 +37,8 @@ this phase.
 
 | Gate | State |
 |---|---|
-| Reliability contract static review | PENDING |
+| Root reliability contract static review | PASS on `8daaf0d9` |
+| Independent reliability contract review | PENDING |
 | Exact Spark code runtime | UNAVAILABLE |
 | Phase 143/144 accepted implementation | NOT_IMPLEMENTED |
 | Engine authentication mapping | BLOCKED_BY_PHASE_145 |

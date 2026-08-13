@@ -1,6 +1,6 @@
 # TASK-240 — Mail/calendar reliability and product integrations
 
-> Date: **2026-08-13** · Priority: **P1** · Status: **Contract prepared; code blocked** · Phase: **147**
+> Date: **2026-08-13** · Priority: **P1** · Status: **Root static pass; independent review pending; code blocked** · Phase: **147**
 
 ## Outcome
 
@@ -34,6 +34,7 @@ External-provider IMAP/JMAP account ingest (L2) and Google/Microsoft OAuth (L3).
 - `.planning/phases/147-mail-calendar-reliability/CONTRACT.md`
 - `.planning/phases/147-mail-calendar-reliability/DISPATCH-INDEX.md`
 - `.planning/phases/147-mail-calendar-reliability/DISPATCH-PACKETS.md`
+- `.planning/phases/147-mail-calendar-reliability/STATIC-REVIEW.md`
 
 No implementation/test/runtime evidence exists. Exact Spark, accepted launcher, generation/
 migration and the named engine/L1 gates remain mandatory.

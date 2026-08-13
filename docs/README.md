@@ -40,6 +40,7 @@ negative sentinels. Он дополняет, но не заменяет `code_st
 | [TESTING.md](TESTING.md) | Тест-кейсы TC-*, матрица автоматизации |
 | [mail/QA-HANDOFF.md](mail/QA-HANDOFF.md) | Контракт Mail 0.1.3 + Calendar RSVP/reliability: ADR/OpenAPI/events/security/QA; implementation `NOT_IMPLEMENTED`, runtime `NOT_RUN` |
 | [Phase 147 reliability contract](../.planning/phases/147-mail-calendar-reliability/CONTRACT.md) | REQUEST/CANCEL recovery, outward REPLY, private availability, reminders, conditional L1 and CRM manual-link |
+| [Phase 147 root static review](../.planning/phases/147-mail-calendar-reliability/STATIC-REVIEW.md) | Root PASS на `8daaf0d9`; independent current-provenance review всё ещё PENDING, runtime `NOT_RUN` |
 | [testframework_strategy.md](testframework_strategy.md) | Стратегия тестфреймворка: слои Go/TS/Python, Locust, Allure→TMS, гейты |
 | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Текущий `/qa-gate`/`NOT_READY` протокол, legacy quarantine, окружение и exact cleanup |
 | [runbooks/](runbooks/README.md) | **Эксплуатация прода:** инцидент, алерты, деплой/откат, БД, бэкапы, ротация секретов |

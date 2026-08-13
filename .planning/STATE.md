@@ -118,7 +118,7 @@ mail_feature_workstream:
     branch: codex/mail-module-20260813
     phases: "142-148"
     current_phase: 143
-    status: contract_0_1_3_reliability_review_pending_atomic_dispatches_ready_code_runtime_blocked
+    status: contract_0_1_3_root_static_pass_independent_review_pending_code_runtime_blocked
     product_truth: unfinished_mvp_feature_not_accepted
     contract_version: "0.1.3"
     tasks:
@@ -161,6 +161,7 @@ mail_feature_workstream:
       founder_questions: docs/mail/FOUNDER-QUESTIONS.md
       phase_147_contract: .planning/phases/147-mail-calendar-reliability/CONTRACT.md
       phase_147_dispatch: .planning/phases/147-mail-calendar-reliability/DISPATCH-INDEX.md
+      phase_147_static_review: .planning/phases/147-mail-calendar-reliability/STATIC-REVIEW.md
       phase_148_gate: .planning/phases/148-mail-release-gate/GATE-MATRIX.md
       phase_148_reviews: .planning/phases/148-mail-release-gate/REVIEW-PACKETS.md
 spec_coverage:
@@ -188,7 +189,8 @@ spec_coverage:
   blocked, пока выполняются engine-independent calendar/mailbox/UI slices.
 - Mail 0.1.3 добавляет Phase 147 reliability-контракт: REQUEST/CANCEL tombstones и
   recovery, outward REPLY reconciliation, private availability, durable in-app reminders
-  и CRM manual-link. Статический review 0.1.3 ещё не завершён; product code `NOT_IMPLEMENTED`.
+  и CRM manual-link. Root static review 0.1.3 = PASS на `8daaf0d9`; независимый review с
+  допустимым current-SHA provenance ещё PENDING. Product code `NOT_IMPLEMENTED`.
 - Вопросы, не останавливающие локальную работу, собраны в
   `docs/mail/FOUNDER-QUESTIONS.md`. Push/PR/merge/deploy не авторизованы.
 
