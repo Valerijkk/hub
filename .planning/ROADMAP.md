@@ -248,11 +248,11 @@ contract отменяет его как migration gate; destructive batches ра
 | Phase | Status | Depends on | Outcome / task |
 |------:|--------|------------|----------------|
 | 142 | CONTRACT COMPLETE · static PASS · runtime NOT_RUN | — | ADR, ERD, OpenAPI, NATS, UI/security/QA contracts · TASK-235 |
-| 143 | 143-01 + 143-02A STATIC ACCEPTED through `d73a9380` · 143-02B BLOCKED ON 0.1.7 REMEDIATION RE-REVIEW · RUNTIME NOT_RUN | 142 | CalendarEvent/Attendee/Exception, deterministic iTIP/RSVP, canonical ScheduledCall bridge/backfill · TASK-236 |
-| 144 | DISPATCH 0.1.7 · CONTRACT REMEDIATION RE-REVIEW PENDING / FIRST PACKET BLOCKED | 142 | Mailbox domain, domain/account/projection+recovery/rule workers, safe content/search, receipts/classifier · TASK-237 |
+| 143 | 143-01 + 143-02A STATIC ACCEPTED through `d73a9380` · CONTRACT 0.1.7 PASS `b3fb6f48` · 143-02B NEXT · RUNTIME NOT_RUN | 142 | CalendarEvent/Attendee/Exception, deterministic iTIP/RSVP, canonical ScheduledCall bridge/backfill · TASK-236 |
+| 144 | DISPATCH 0.1.7 · CONTRACT PASS `b3fb6f48` / FIRST PACKET PENDING | 142 | Mailbox domain, domain/account/projection+recovery/rule workers, safe content/search, receipts/classifier · TASK-237 |
 | 145 | BLOCKED BY EXTERNAL GATES | 144 + license + launcher | Stalwart adapter, instance-domain mail, bounded Docker profile · TASK-238 |
-| 146 | DISPATCH 0.1.7 · CONTRACT REVIEW + DEPENDENCIES + HARNESS BLOCKED | 143, 144 | Outlook three-pane UI, management, rules, safe content/search/realtime · TASK-239 |
-| 147 | CONTRACT 0.1.7 HASH REMEDIATION RE-REVIEW PENDING · 0.1.6 PASS STALE · DEPENDENCY BLOCKED | 143–146 | recurrence/import recovery, single-count busy/free, reminders, L1/CRM seam · TASK-240 |
+| 146 | DISPATCH 0.1.7 · CONTRACT PASS `b3fb6f48` / DEPENDENCIES+HARNESS BLOCKED | 143, 144 | Outlook three-pane UI, management, rules, safe content/search/realtime · TASK-239 |
+| 147 | CONTRACT 0.1.7 ROOT/INDEPENDENT STATIC PASS `b3fb6f48` · DEPENDENCY BLOCKED | 143–146 | recurrence/import recovery, single-count busy/free, reminders, L1/CRM seam · TASK-240 |
 | 148 | GATE CONTRACT PREPARED · EXECUTION BLOCKED | 143–147 + test-rebase merge notice | security/reconciliation/docs/verification/rebase gate · TASK-241 |
 
 ```text

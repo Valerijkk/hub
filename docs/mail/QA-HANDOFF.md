@@ -2,7 +2,7 @@
 
 > **Contract version:** 0.1.7
 > **Prepared:** 2026-08-13
-> **Implementation status:** IN_PROGRESS — 143-01 and 143-02A static accepted through `d73a9380`; 143-02B blocked on exact-SHA 0.1.7 remediation re-review; executable verification `NOT_RUN`
+> **Implementation status:** IN_PROGRESS — 143-01 and 143-02A static accepted through `d73a9380`; Mail 0.1.7 static contract PASS on `b3fb6f48`; 143-02B next; executable verification `NOT_RUN`
 > **Runtime status:** NOT_RUN
 > **QA owner:** founder-designated Claude test program
 > **Product-code owner:** ChatGPT mail feature branch

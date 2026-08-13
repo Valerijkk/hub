@@ -3,11 +3,10 @@
 ## 0.1.7 — 2026-08-13
 
 Canonical inbound iTIP identity amendment. Product runtime remains `NOT_RUN`; 143-01 and
-143-02A source acceptance is unchanged, while 143-02B is blocked until this exact semantic
-snapshot passes root and independent Terra/high review. Review of initial SHA `7a6ffc1c`
-found three P1 ambiguities; the escape, UTF-8-byte-limit and status-sync remediation is now
-frozen for exact-SHA re-review. The prior 0.1.6 review on `5a351d5b` is historical `STALE`
-after this semantic change.
+143-02A source acceptance is unchanged. Root and independent Terra/high static review PASS
+on exact semantic SHA `b3fb6f48` with no remaining P0/P1/P2, so 143-02B is next. Review of
+initial SHA `7a6ffc1c` found three P1 ambiguities; escape, UTF-8-byte-limit and status-sync
+remediation closed them. The 0.1.6 review on `5a351d5b` is historical `STALE`.
 
 - Separated inbound duplicate identity from the accepted outbound serializer. Inbound
   occurrence REQUEST is valid without expanding or weakening the 143-02A outbound subset.

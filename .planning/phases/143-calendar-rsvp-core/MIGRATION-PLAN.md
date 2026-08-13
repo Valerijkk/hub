@@ -1,6 +1,6 @@
 # Phase 143 — Calendar schema, ScheduledCall backfill and cutover plan
 
-> **Status:** CONTRACT_0_1_7_REMEDIATION_REVIEW_PENDING · PRODUCTION_ARTIFACT_BLOCKED_BY_FOUNDER_REVIEW
+> **Status:** CONTRACT_0_1_7_STATIC_REVIEW_PASS_B3FB6F48 · PRODUCTION_ARTIFACT_BLOCKED_BY_FOUNDER_REVIEW
 > **Runtime:** NOT_RUN
 > **Owner decision:** `docs/mail/FOUNDER-QUESTIONS.md` #12
 

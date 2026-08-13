@@ -1,6 +1,6 @@
 # Phase 143 — Calendar RSVP Core
 
-> Task: TASK-236 · Status: IMPLEMENTATION_IN_PROGRESS_143_01_AND_143_02A_STATIC_ACCEPTED_143_02B_BLOCKED_ON_0_1_7_REVIEW · Depends on: Phase 142
+> Task: TASK-236 · Status: IMPLEMENTATION_IN_PROGRESS_143_01_AND_143_02A_STATIC_ACCEPTED_143_02B_NEXT · Depends on: Phase 142
 
 ## Goal
 
@@ -32,9 +32,9 @@ authorities, duplicate meetings or dependence on the real mail engine.
 
 ## Task 143-02 — Deterministic iTIP codec with fixtures
 
-> **Status:** 143-02A serializer `STATIC_ACCEPTED` through `d73a9380`; 143-02B parser is
-> blocked until exact-SHA review of the Mail 0.1.7 CVE-v1 amendment; executable verification
-> `NOT_RUN`. Evidence: `IMPLEMENTATION-143-02A.md`.
+> **Status:** 143-02A serializer `STATIC_ACCEPTED` through `d73a9380`; Mail 0.1.7 contract
+> review PASS on `b3fb6f48`; 143-02B parser next; executable verification `NOT_RUN`.
+> Evidence: `IMPLEMENTATION-143-02A.md` and Phase 147 `STATIC-REVIEW-0.1.7.md`.
 
 **Create:**
 

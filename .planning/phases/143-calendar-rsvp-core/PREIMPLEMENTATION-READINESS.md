@@ -2,14 +2,13 @@
 
 > **Snapshot:** 2026-08-13
 > **Branch:** `codex/mail-module-20260813`
-> **Product truth:** IMPLEMENTATION_IN_PROGRESS · 143-01_AND_143-02A_STATIC_ACCEPTED · 143-02B_BLOCKED_ON_0_1_7_REVIEW · RUNTIME_NOT_RUN · not accepted
+> **Product truth:** IMPLEMENTATION_IN_PROGRESS · 143-01_AND_143-02A_STATIC_ACCEPTED · CONTRACT_0_1_7_STATIC_PASS · 143-02B_NEXT · RUNTIME_NOT_RUN · not accepted
 
 ## Prepared artifacts (root and independently reviewed)
 
 - Architecture, source-of-truth, security and compatibility decisions are amended in Mail
-  contract 0.1.7. Review of SHA `7a6ffc1c` found 3 P1; remediation is applied and exact-SHA
-  re-review is pending. The prior root/independent PASS on Mail 0.1.6 SHA `5a351d5b`
-  became historical `STALE` when semantics changed.
+  contract 0.1.7. Root and independent Terra/high re-review PASS on exact SHA `b3fb6f48`
+  after closing 3 P1 from `7a6ffc1c`; Mail 0.1.6 SHA `5a351d5b` is historical `STALE`.
 - OpenAPI covers mailbox, submission recovery, legacy calendar, canonical calendar and
   separate legacy/new admin resources.
 - Event subjects and webhook privacy boundary are frozen.
@@ -46,9 +45,8 @@
 2. ~~Accept or reject that packet before any dependent dispatch.~~ Independent Terra/high
    re-review PASS with no P0/P1/P2 after remediation.
 3. ~~Dispatch 143-02A.~~ `STATIC_ACCEPTED` through `d73a9380` after one reviewed fix
-   round; evidence: `IMPLEMENTATION-143-02A.md`; runtime `NOT_RUN`. Dispatch 143-02B only
-   after exact-SHA root and independent review of Mail 0.1.7
-   to complete the bounded deterministic iTIP surface.
+   round; evidence: `IMPLEMENTATION-143-02A.md`; runtime `NOT_RUN`. Mail 0.1.7 review PASS
+   on `b3fb6f48`; dispatch 143-02B next to complete the bounded iTIP surface.
 4. Resolve migration mechanism and accepted launcher before Ent generation.
 5. Admit `calendar.>` before calendar producers.
 6. Execute Phase 143 service/HTTP plus ScheduledCall bridge packets; retain the legacy

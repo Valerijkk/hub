@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
-last_updated: "2026-08-13T12:22:01.5761197+03:00"
-last_activity: 2026-08-13 · Mail 0.1.7 exact-SHA review found 3 P1; escape/UTF-8-limit/status remediation applied for re-review; 143-01/02A remain static accepted, 143-02B blocked; runtime NOT_RUN
+last_updated: "2026-08-13T12:34:41.3795457+03:00"
+last_activity: 2026-08-13 · Mail 0.1.7 root and independent Terra/high review PASS on semantic SHA b3fb6f48 after closing 3 P1; 143-01/02A remain static accepted, 143-02B next; runtime NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -118,7 +118,7 @@ mail_feature_workstream:
     branch: codex/mail-module-20260813
     phases: "142-148"
     current_phase: 143
-    status: contract_0_1_7_hash_remediation_re_review_pending_143_01_143_02A_static_accepted_143_02B_blocked
+    status: contract_0_1_7_reviewed_pass_143_01_143_02A_static_accepted_143_02B_next
     product_truth: unfinished_mvp_feature_not_accepted
     contract_version: "0.1.7"
     tasks:
@@ -175,7 +175,7 @@ mail_feature_workstream:
       phase_147_contract: .planning/phases/147-mail-calendar-reliability/CONTRACT.md
       phase_147_dispatch: .planning/phases/147-mail-calendar-reliability/DISPATCH-INDEX.md
       phase_147_static_review_historical_0_1_6: .planning/phases/147-mail-calendar-reliability/STATIC-REVIEW-0.1.6.md
-      phase_147_static_review_current_0_1_7: FAIL_7A6FFC1C_3P1_REMEDIATED_RE_REVIEW_PENDING
+      phase_147_static_review_current_0_1_7: .planning/phases/147-mail-calendar-reliability/STATIC-REVIEW-0.1.7.md
       phase_148_gate: .planning/phases/148-mail-release-gate/GATE-MATRIX.md
       phase_148_reviews: .planning/phases/148-mail-release-gate/REVIEW-PACKETS.md
 spec_coverage:
@@ -209,8 +209,9 @@ spec_coverage:
   participant projection is series-only, and linked external guests fail closed pending a
   join-credential contract. It adds a separate versioned inbound CVE-v1 hash, accepts
   occurrence REQUEST without changing outbound 143-02A and fixes all-day identity to the
-  UTC date marker without midnight inference. Exact-SHA 0.1.7 review is pending; the root
-  and independent Terra/high PASS on Mail 0.1.6 SHA `5a351d5b` is historical `STALE`.
+  UTC date marker without midnight inference. Root and independent Terra/high review PASS
+  exact Mail 0.1.7 semantic SHA `b3fb6f48`; all three P1 from `7a6ffc1c` are closed. The
+  earlier Mail 0.1.6 PASS on SHA `5a351d5b` is historical `STALE`.
   Founder task-local routing override authorizes exact `gpt-5.6-terra`/`xhigh` for
   atomic Mail product/test packets. Tasks 143-01 and 143-02A are static accepted through
   `d73a9380`; actual Terra/xhigh provenance, independent Terra/high reviews and the 143-02A

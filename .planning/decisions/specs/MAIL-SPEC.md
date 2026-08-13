@@ -1,7 +1,7 @@
 # MAIL-SPEC — Hub mailbox and calendar synchronization contract
 
 > **Version:** 0.1.7
-> **Status:** Canonical iTIP hash remediation frozen; exact-SHA root/independent re-review pending after 3 P1 on `7a6ffc1c`; 0.1.6 review evidence is historical `STALE`
+> **Status:** Frozen; root and independent Terra/high static review PASS on `b3fb6f48`; 0.1.6 review evidence is historical `STALE`
 > **Date:** 2026-08-13
 > **Architecture:** `../ADR-MAIL-01-mail-engine-calendar-sync.md`
 > **OpenAPI:** `../../../docs/mail/openapi.yaml`

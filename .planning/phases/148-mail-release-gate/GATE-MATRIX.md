@@ -1,6 +1,6 @@
 # Phase 148 — merge-readiness gate matrix
 
-> **Status:** G148_02_STALE_PENDING_MAIL_0_1_7_RE_REVIEW · IMPLEMENTATION_IN_PROGRESS · 143-01_AND_143-02A_STATIC_ACCEPTED
+> **Status:** G148_02_PASS_MAIL_0_1_7_B3FB6F48 · IMPLEMENTATION_IN_PROGRESS · 143-01_AND_143-02A_STATIC_ACCEPTED
 > **Scope:** Mail/Calendar/CRM feature branch only
 > **Evidence rule:** exact current SHA or no PASS
 > **Execution rule:** accepted versioned Docker launcher only; host/direct Compose evidence
@@ -42,7 +42,7 @@ secrets, DNS/operator approval and CTO/founder sign-off remain separate.
 | ID | Required evidence | Current state | Blocks |
 |---|---|---|---|
 | G148-01 baseline | clean isolated branch; base/current SHA; worktree path; changed-file and protected-zone diff; no untracked product artifact | PASS for docs snapshot only; repeat after code | every later gate |
-| G148-02 contract | ADR, Mail spec, OpenAPI, event schema, UI contract, Phase 147 contract and QA handoff independently agree; machine refs/examples closed | STALE — 0.1.7 SHA `7a6ffc1c` review found 3 P1; remediation awaits exact-SHA root + independent Terra/high re-review; prior PASS on 0.1.6 SHA `5a351d5b` historical only | source work/claim |
+| G148-02 contract | ADR, Mail spec, OpenAPI, event schema, UI contract, Phase 147 contract and QA handoff independently agree; machine refs/examples closed | PASS on exact Mail 0.1.7 semantic SHA `b3fb6f48`: root plus independent Terra/high review; all three P1 found on `7a6ffc1c` are closed. Any later semantic contract change makes this evidence `STALE`; prior 0.1.6 PASS on `5a351d5b` is historical only | source work/claim |
 | G148-03 founder decisions | task-local Terra route is answered; signed answers remain required for migration mechanism, Stalwart license, L1 include/defer, recurring-call semantics, pause/resume, legacy POST idempotency break, linked-call guest access, broadcast disposition, primary-address policy, sanitizer dependency, Sieve ownership and rebase signal; push/PR separately authorized | PARTIAL / unresolved items remain | affected packets and final gate |
 | G148-04 model provenance | every production/test-code packet records actual `gpt-5.6-terra` + `xhigh`; no silent fallback; review packets record allowed Terra effort and distinct review context | IN_PROGRESS — 143-01 and 143-02A actual Terra/xhigh plus independent Terra/high reviews recorded in their implementation evidence; repeat for every later packet | source acceptance |
 | G148-05 migrations/generation | reviewed mechanism, preflight, generated Ent twice clean, complete ScheduledCall mapping + recurrence oracle + 100% bridge cutover dry-run on empty/realistic snapshot, counts/hashes and rollback | NOT_RUN | backend/runtime |
@@ -171,12 +171,13 @@ requirements and evidence request; it does not edit that program.
 
 ## 8. Current honest aggregate
 
-`CONTRACT_AMENDMENT_REVIEW_PENDING_IMPLEMENTATION_IN_PROGRESS`: Mail 0.1.7 freezes a
-separate versioned inbound CVE-v1 hash so occurrence REQUEST and future normalization
-migrations cannot silently reuse outbound bytes or compare unlike versions. G148-02 is
-STALE until exact-SHA root and independent Terra/high review; the prior 0.1.6 PASS on
-`5a351d5b` is historical only. Tasks 143-01 and 143-02A remain static accepted through
-`d73a9380` with actual Terra/xhigh provenance and independent packet review/fix/re-review
-evidence; 143-02B is blocked on the amendment review. The launcher is not ready,
+`CONTRACT_REVIEW_PASS_IMPLEMENTATION_IN_PROGRESS`: Mail 0.1.7 freezes a separate
+versioned inbound CVE-v1 hash so occurrence REQUEST and future normalization migrations
+cannot silently reuse outbound bytes or compare unlike versions. G148-02 has root and
+independent Terra/high PASS on exact semantic SHA `b3fb6f48`; the three P1 from
+`7a6ffc1c` are closed and the prior 0.1.6 PASS on `5a351d5b` is historical only. Tasks
+143-01 and 143-02A remain static accepted through `d73a9380` with actual Terra/xhigh
+provenance and independent packet review/fix/re-review evidence; 143-02B is the next
+implementation packet. The launcher is not ready,
 engine/legal/migration/broadcast/rebase decisions are unresolved, and all executable
 evidence is `NOT_RUN`.
