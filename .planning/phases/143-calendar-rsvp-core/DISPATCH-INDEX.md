@@ -1,6 +1,6 @@
 # Phase 143 — exact Terra dispatch index
 
-> **Status:** CONTRACT_0_1_6_STATIC_REVIEW_PASS_5A351D5B · TERRA_CODE_ROUTE_AUTHORIZED · FIRST_PACKET_PENDING
+> **Status:** 143_01_STATIC_ACCEPTED_E7D5F450 · 143_02A_NEXT · RUNTIME_NOT_RUN
 > **Required runtime:** `gpt-5.6-terra` / `xhigh`, no fallback
 > **Execution:** strictly sequential where owned files overlap
 > **Runtime evidence:** `.planning/phases/143-calendar-rsvp-core/RUNTIME-BLOCKER.md`
@@ -48,7 +48,7 @@ each accepted 143-04B/C/D/E/H/I ── its matching 143-04F-* transaction
 
 | ID | Single owned behavior | Exact primary files | Test oracle | Entry dependency |
 |---|---|---|---|---|
-| 143-01 | Timed/all-day validation and sequence/RSVP reset classification | `backend/internal/calendar/event_types.go`, `event_policy.go`, `backend/tests/calendar/event_policy_test.go` | table units for every policy row, including reminder-only version change | contract 0.1.6 |
+| 143-01 | Timed/all-day validation and sequence/RSVP reset classification — `STATIC_ACCEPTED` on `e7d5f450`; evidence: `IMPLEMENTATION-143-01.md`; runtime `NOT_RUN` | `backend/internal/calendar/event_types.go`, `event_policy.go`, `backend/tests/calendar/event_policy_test.go` | table units for every policy row, including reminder-only version change | contract 0.1.6 |
 | 143-02A | Deterministic RFC 5545/5546 serialization for REQUEST/CANCEL/REPLY | `itip_types.go`, `itip_serialize.go`, `backend/tests/calendar/itip_serialize_test.go` | exact in-memory CRLF/folding/escaping output; injected DTSTAMP | 143-01 |
 | 143-02B | Bounded iTIP parsing and canonical duplicate key | `itip_parse.go`, `itip_limits.go`, `backend/tests/calendar/itip_parse_test.go` | in-memory malformed/depth/size/count/TZ/UID/SEQUENCE/spoof fixtures | 143-02A |
 | 143-03A | `CalendarEvent` Ent schema only | `backend/ent/schema/calendarevent.go` | static schema review; generation NOT_RUN until launcher | 143-01 |
@@ -124,7 +124,7 @@ each accepted 143-04B/C/D/E/H/I ── its matching 143-04F-* transaction
 | Gate | Status |
 |---|---|
 | Contract root/independent review | PASS on exact Mail 0.1.6 SHA `5a351d5b`; 0.1.5 `eae6f5e5` historical STALE |
-| Exact Terra implementation runtime | AUTHORIZED_BY_FOUNDER / first actual packet pending |
+| Exact Terra implementation runtime | 143-01 actual Terra/xhigh recorded; executable runtime `NOT_RUN` |
 | Accepted Docker launcher | NOT_READY |
 | Ent generation | NOT_RUN |
 | Production migration authority | UNRESOLVED |

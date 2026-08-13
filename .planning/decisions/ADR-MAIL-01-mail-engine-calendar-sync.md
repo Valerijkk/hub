@@ -410,9 +410,9 @@ backfill writes no invitation/outbox/notification records and sends no historica
 - Description-only changes preserve attendee RSVP but still send an update only when the
   organizer explicitly chooses “notify participants”; that notified update increments
   sequence. Silent description edits do not.
-- Time, timezone, all-day, or location changes reset all non-organizer attendees to
-  `needs_action`; recurrence/EXDATE changes reset only the affected non-organizer scope.
-  Attendee-list-only changes preserve existing attendees and initialize only new attendees.
+- Time, timezone, all-day, location, or recurrence changes reset all non-organizer
+  attendees to `needs_action`. Attendee-list-only changes preserve existing attendees and
+  initialize only new attendees.
 - Series response and occurrence response are distinct. An occurrence response includes
   `RECURRENCE-ID`; without it, the response targets the series.
 

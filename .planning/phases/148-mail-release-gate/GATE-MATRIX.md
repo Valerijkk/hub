@@ -1,6 +1,6 @@
 # Phase 148 — merge-readiness gate matrix
 
-> **Status:** GATE_CONTRACT_PREPARED · IMPLEMENTATION_NOT_STARTED
+> **Status:** GATE_CONTRACT_PREPARED · IMPLEMENTATION_IN_PROGRESS · 143-01_STATIC_ACCEPTED
 > **Scope:** Mail/Calendar/CRM feature branch only
 > **Evidence rule:** exact current SHA or no PASS
 > **Execution rule:** accepted versioned Docker launcher only; host/direct Compose evidence
@@ -44,9 +44,9 @@ secrets, DNS/operator approval and CTO/founder sign-off remain separate.
 | G148-01 baseline | clean isolated branch; base/current SHA; worktree path; changed-file and protected-zone diff; no untracked product artifact | PASS for docs snapshot only; repeat after code | every later gate |
 | G148-02 contract | ADR, Mail spec, OpenAPI, event schema, UI contract, Phase 147 contract and QA handoff independently agree; machine refs/examples closed | PASS on exact Mail 0.1.6 semantic SHA `5a351d5b`; root static + independent Terra/high, no P0/P1/P2; any semantic change makes this STALE | source work/claim |
 | G148-03 founder decisions | task-local Terra route is answered; signed answers remain required for migration mechanism, Stalwart license, L1 include/defer, recurring-call semantics, pause/resume, legacy POST idempotency break, linked-call guest access, broadcast disposition, primary-address policy, sanitizer dependency, Sieve ownership and rebase signal; push/PR separately authorized | PARTIAL / unresolved items remain | affected packets and final gate |
-| G148-04 model provenance | every production/test-code packet records actual `gpt-5.6-terra` + `xhigh`; no silent fallback; review packets record allowed Terra effort and distinct review context | ROUTE AUTHORIZED / actual packet evidence pending | source acceptance |
+| G148-04 model provenance | every production/test-code packet records actual `gpt-5.6-terra` + `xhigh`; no silent fallback; review packets record allowed Terra effort and distinct review context | IN_PROGRESS — 143-01 actual Terra/xhigh + independent Terra/high recorded in `IMPLEMENTATION-143-01.md`; repeat for every later packet | source acceptance |
 | G148-05 migrations/generation | reviewed mechanism, preflight, generated Ent twice clean, complete ScheduledCall mapping + recurrence oracle + 100% bridge cutover dry-run on empty/realistic snapshot, counts/hashes and rollback | NOT_RUN | backend/runtime |
-| G148-06 independent source review | backend, frontend, architecture, security, product and QA lenses on current diff; all P0/P1 fixed and re-reviewed | NOT_RUN | merge-ready |
+| G148-06 independent source review | backend, frontend, architecture, security, product and QA lenses on current diff; all P0/P1 fixed and re-reviewed | NOT_RUN — 143-01 packet review PASS, but full current-source multi-lens gate is not complete | merge-ready |
 | G148-07 launcher integrity | versioned outer launcher has task owner marker, CPU/RAM/PID limits, wall timeout, isolated report root and unconditional exact cleanup | NOT_READY | all executable evidence |
 | G148-08 units/build/contracts | applicable backend/frontend feature units, generation, build/type/lint and schema/source-contract jobs green through launcher | NOT_RUN | merge-ready |
 | G148-09 API/integration | PostgreSQL constraints/transactions, public API/authz, NATS/outbox, Meili, SeaweedFS and mailbox fake/adapter integration green | NOT_RUN | merge-ready |
@@ -171,9 +171,10 @@ requirements and evidence request; it does not edit that program.
 
 ## 8. Current honest aggregate
 
-`CONTRACT_REVIEW_PASS_SOURCE_PENDING`: Mail 0.1.6 root and independent Terra/high static
-reviews PASS on exact semantic SHA `5a351d5b`; the 0.1.5 snapshot on `eae6f5e5` is stale.
-G148-02 is closed only for that semantic snapshot. Product code is not implemented, the
-Terra/xhigh code route is authorized but its first actual packet is pending, the launcher is
-not ready, engine/legal/migration/broadcast/rebase decisions are unresolved, and all
-executable evidence is `NOT_RUN`.
+`CONTRACT_REVIEW_PASS_IMPLEMENTATION_IN_PROGRESS`: Mail 0.1.6 root and independent
+Terra/high static reviews PASS on exact semantic SHA `5a351d5b`; the 0.1.5 snapshot on
+`eae6f5e5` is stale. G148-02 is closed only for that semantic snapshot. Task 143-01 is
+static accepted on `e7d5f450` with actual Terra/xhigh provenance and packet re-review;
+later source packets and the full G148-06 gate remain open. The launcher is not ready,
+engine/legal/migration/broadcast/rebase decisions are unresolved, and all executable
+evidence is `NOT_RUN`.

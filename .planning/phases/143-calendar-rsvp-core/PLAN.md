@@ -1,6 +1,6 @@
 # Phase 143 — Calendar RSVP Core
 
-> Task: TASK-236 · Status: CONTRACT_0_1_6_ROOT_REVIEW_PENDING_CODE_ROUTE_AUTHORIZED · Depends on: Phase 142
+> Task: TASK-236 · Status: IMPLEMENTATION_IN_PROGRESS_143_01_STATIC_ACCEPTED · Depends on: Phase 142
 
 ## Goal
 
@@ -9,6 +9,9 @@ connect it to the existing calendar and ScheduledCall surfaces without two write
 authorities, duplicate meetings or dependence on the real mail engine.
 
 ## Task 143-01 — Freeze public domain types and failing policy units
+
+> **Status:** `STATIC_ACCEPTED` on `e7d5f450`; executable verification `NOT_RUN`.
+> Evidence: `IMPLEMENTATION-143-01.md`.
 
 **Create:**
 

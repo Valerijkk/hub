@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
-last_updated: "2026-08-13T10:12:08.248+03:00"
-last_activity: 2026-08-13 · Mail 0.1.6 root and independent Terra static contract review PASS on 5a351d5b; first Terra/xhigh code packet pending; runtime NOT_RUN
+last_updated: "2026-08-13T10:42:32.2715551+03:00"
+last_activity: 2026-08-13 · Mail Task 143-01 static accepted on e7d5f450 after independent Terra review; 143-02A next; runtime NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -118,7 +118,7 @@ mail_feature_workstream:
     branch: codex/mail-module-20260813
     phases: "142-148"
     current_phase: 143
-    status: contract_0_1_6_reviewed_pass_terra_code_route_authorized_first_packet_pending
+    status: contract_0_1_6_reviewed_pass_143_01_static_accepted_143_02A_next
     product_truth: unfinished_mvp_feature_not_accepted
     contract_version: "0.1.6"
     tasks:
@@ -137,8 +137,8 @@ mail_feature_workstream:
       launcher: NOT_READY
       resource_budget: NOT_MEASURED
       external_delivery: NOT_CONFIGURED
-      atomic_code_model: gpt-5.6-terra_xhigh_authorized_actual_run_pending
-      atomic_code_model_evidence: .planning/phases/143-calendar-rsvp-core/RUNTIME-BLOCKER.md
+      atomic_code_model: gpt-5.6-terra_xhigh_actual_143_01
+      atomic_code_model_evidence: .planning/phases/143-calendar-rsvp-core/IMPLEMENTATION-143-01.md
       production_migration_authority: UNRESOLVED
       production_migration_evidence: .planning/phases/143-calendar-rsvp-core/MIGRATION-PLAN.md
       frontend_unit_harness: PENDING_PROTECTED_REBASE
@@ -208,8 +208,9 @@ spec_coverage:
   join-credential contract. Root static and independent Terra/high reviews of Mail 0.1.6
   PASS on exact semantic SHA `5a351d5b`; 0.1.5 snapshot `eae6f5e5` remains `STALE`.
   Founder task-local routing override authorizes exact `gpt-5.6-terra`/`xhigh` for
-  atomic Mail product/test packets; actual packet provenance is still pending. Product code
-  `NOT_IMPLEMENTED`, runtime `NOT_RUN`.
+  atomic Mail product/test packets. Task 143-01 is static accepted on `e7d5f450`; actual
+  Terra/xhigh provenance and independent Terra/high re-review are recorded in
+  `IMPLEMENTATION-143-01.md`. Phase 143 implementation is `IN_PROGRESS`; runtime `NOT_RUN`.
 - Mailbox 0.1.6 закрывает control-plane gaps: отдельные bounded workers владеют
   idempotent domain/account/primary-identity/alias lifecycle, combined projection/mutation-recovery sync и generation/hash
   reconciliation одного fixed Hub Sieve script. Generic create/bulk receipt хранит только
