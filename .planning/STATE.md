@@ -5,7 +5,7 @@ milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
 last_updated: "2026-08-13T15:02:00+03:00"
-last_activity: 2026-08-13 · 144-02C schema preflight found no durable identity for lost initial draft-create reconciliation plus unresolved attachment staging and upload/scan state authority; runtime NOT_RUN
+last_activity: 2026-08-13 · 144-02D schema preflight found duplicate default authorities plus unresolved rule-target concurrency/JSON bounds and recent-contact retention; runtime NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -237,6 +237,9 @@ spec_coverage:
   Phase 144 `REVIEW-144-02C-SCHEMA-READINESS.md` blocks object/attachment/draft/submission
   schemas until initial draft-create reconciliation has a stable engine key and attachment
   staging, scan authority, exact stored bounds and conditional state checks are frozen.
+  Phase 144 `REVIEW-144-02D-SCHEMA-READINESS.md` blocks settings/signature/rule/contact
+  schemas until one default authority, rule target concurrency/JSON bounds and deterministic
+  recent-contact retention are frozen.
   Evidence is recorded in the matching `IMPLEMENTATION-*.md` artifacts. A later root deep
   audit reopened 143-03A and 143-03C:
   both omit the schema-level nullable canonical hash version/hash pair CHECK required by
