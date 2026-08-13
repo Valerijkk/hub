@@ -240,6 +240,12 @@ spec_coverage:
   non-truncating legacy count/byte ceilings. The earlier review files remain discovery
   evidence, not current PASS verdicts; every dependent packet waits for an independent
   actual-provenance Terra/high review of the exact amendment.
+- The 144-02A root candidate now also fixes exact Ent scalar widths, lower-case ASCII
+  validators, a typed bounded DNS JSON value, named SQL CHECK predicates, ordered partial
+  indexes and delete edges. Execution is split sequentially into 02A1 typed DNS, 02A2
+  domain/policy and 02A3 account/identity so every intermediate source remains compilable.
+  This is representation freeze only: independent review, migration authority, generation
+  and Docker runtime remain pending/`NOT_RUN`.
   Evidence is recorded in the matching `IMPLEMENTATION-*.md` artifacts. A later root deep
   audit reopened 143-03A and 143-03C:
   both omit the schema-level nullable canonical hash version/hash pair CHECK required by

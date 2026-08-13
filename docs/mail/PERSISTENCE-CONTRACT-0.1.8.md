@@ -201,6 +201,195 @@ attachment <= message. Organization deletion
 cascades. Enabling external mail still requires the service-level verified-domain/engine
 gate.
 
+### 144-02A Ent representation freeze
+
+This subsection closes the remaining Go/Ent representation choices for 144-02A. It is a
+root-frozen candidate until an independent actual-provenance Terra/high review accepts the
+exact commit. It does not authorize generation or migration.
+
+#### Scalar representation and validation
+
+- Generations and epochs use `field.Int64`; hash versions and attempt counters use
+  `field.Int32`. Policy byte ceilings use `field.Int64`; policy recipient/rate/retention
+  values use `field.Int32`.
+- Every SHA-256 field uses `field.Bytes(...).MinLen(32).MaxLen(32)`. Nullable hashes are
+  additionally `Optional().Nillable()`.
+- A string bound stated in bytes is implemented by Ent `MinLen`/`MaxLen`; Ent v0.14.1 uses
+  Go `len(string)`, so the validator is byte-counted. `display_name` additionally rejects
+  more than 160 Unicode code points and invalid UTF-8.
+- Normalized domain, local-part and address columns accept only already-normalized lower-case
+  ASCII. Validators reject rather than transform. A domain is one or more dot-separated
+  labels of 1..63 bytes using `a-z`, `0-9` and interior `-`, with no trailing dot. A local
+  part is one dot-atom of 1..64 bytes using lower-case RFC 5322 `atext`, with no leading,
+  trailing or repeated dot. A normalized address contains exactly one `@` and reuses those
+  two validators. IDNA conversion and user-input normalization remain Phase 144-03/service
+  responsibilities; persistence never silently canonicalizes.
+- `verification_status` is exactly `pending|verified|failed`; `dkim_status` is exactly
+  `unknown|pending|valid|invalid`.
+- `MailboxPolicy` has the exact fields `id`, `organization_id`,
+  `external_mail_enabled`, `max_message_bytes`, `max_attachment_bytes`, `max_recipients`,
+  `send_rate_per_minute`, `trash_retention_days`, `junk_retention_days`, `created_at`,
+  `updated_at`, plus `VersionMixin`. None of its policy fields has an Ent default.
+
+`required_dns_records` uses the non-provider persistence value
+`mail.RequiredDNSRecords` from `backend/internal/mail/domain_dns.go`:
+
+```go
+type RequiredDNSRecord struct {
+	Type  EngineDNSRecordType `json:"type"`
+	Name  string              `json:"name"`
+	Value string              `json:"value"`
+	TTL   int                 `json:"ttl"`
+}
+
+type RequiredDNSRecords []RequiredDNSRecord
+```
+
+`RequiredDNSRecords.Validate` rejects more than 32 records, invalid UTF-8, a name over 253
+bytes, a value over 2,048 bytes, a type outside `MX|TXT|CNAME`, TTL outside 60..86,400,
+duplicate `(type,name,value)` triples regardless of TTL, JSON marshal failure, or canonical
+serialized JSON over 65,536 bytes. Empty strings remain representable because the public
+0.1.8 schema gives them no minimum; provider/service validation decides whether a concrete
+record is actionable. The Ent field is required and defaults to a non-nil empty
+`mail.RequiredDNSRecords{}`.
+
+#### Exact indexes
+
+The exact ordered index definitions are:
+
+- `MailAccount`: unique `user_id`; unique `engine_provisioning_key`; unique
+  `engine_account_id` with predicate `engine_account_id IS NOT NULL`; unique
+  `(mail_domain_id,local_part)`; lookup `(status,next_provision_at)`; lookup
+  `(projection_state,next_sync_at)`.
+- `MailIdentity`: global unique `normalized_address`; unique
+  `(mail_account_id,engine_identity_id)` with predicate
+  `engine_identity_id IS NOT NULL`; unique `mail_account_id` with predicate
+  `kind = 'primary'`; lookup `(mail_account_id,status)`.
+- `MailDomain`: unique live `domain` with predicate `deleted_at IS NULL`; unique
+  `engine_provisioning_key`; unique `engine_domain_id` with predicate
+  `engine_domain_id IS NOT NULL`; unique `organization_id` with predicate
+  `deleted_at IS NULL AND is_default = TRUE`; lookup `(state,next_retry_at)`.
+- `MailboxPolicy`: unique `organization_id`.
+
+The service transaction still owns exactly-one-primary creation, 200 identities/account,
+100 live domains/organization, same-account/default eligibility and cross-row domain-use
+checks; an Ent row CHECK cannot prove those cross-row facts.
+
+#### Exact named row checks
+
+`MailAccount.Annotations` contains these exact names and predicates:
+
+```text
+mail_accounts_control_hash:
+  control_generation >= 1 AND control_hash_version >= 1 AND length(control_hash) = 32
+mail_accounts_attempted_control_tuple:
+  ((attempted_control_generation IS NULL) = (attempted_control_hash_version IS NULL)) AND ((attempted_control_generation IS NULL) = (attempted_control_hash IS NULL)) AND (attempted_control_generation IS NULL OR (attempted_control_generation >= 1 AND attempted_control_hash_version >= 1 AND length(attempted_control_hash) = 32 AND attempted_control_generation <= control_generation))
+mail_accounts_deployed_control_tuple:
+  ((deployed_generation IS NULL) = (deployed_hash_version IS NULL)) AND ((deployed_generation IS NULL) = (deployed_hash IS NULL)) AND (deployed_generation IS NULL OR (deployed_generation >= 1 AND deployed_hash_version >= 1 AND length(deployed_hash) = 32 AND deployed_generation <= control_generation))
+mail_accounts_provision_lease_pair:
+  (provision_lease_token IS NULL) = (provision_lease_until IS NULL)
+mail_accounts_sync_lease_pair:
+  (sync_lease_token IS NULL) = (sync_lease_until IS NULL)
+mail_accounts_mutation_lease_pair:
+  (mutation_lease_token IS NULL) = (mutation_lease_until IS NULL)
+mail_accounts_non_negative:
+  sync_epoch >= 0 AND mutation_epoch >= 0 AND provision_attempts >= 0 AND sync_attempts >= 0
+mail_accounts_status_state:
+  status = 'provisioning' OR (status = 'error' AND provision_error_code IS NOT NULL) OR (status = 'active' AND desired_enabled = TRUE AND engine_account_id IS NOT NULL AND deployed_generation IS NOT NULL) OR (status = 'suspended' AND desired_enabled = FALSE AND engine_account_id IS NOT NULL AND deployed_generation IS NOT NULL)
+mail_accounts_ready_projection:
+  projection_state <> 'ready' OR (sync_cursor IS NOT NULL AND last_synced_at IS NOT NULL AND rebuild_checkpoint IS NULL AND rebuild_base_cursor IS NULL AND sync_error_code IS NULL)
+mail_accounts_rebuilding_projection:
+  projection_state <> 'rebuilding' OR rebuild_base_cursor IS NOT NULL
+mail_accounts_live_provision_attempt:
+  provision_lease_token IS NULL OR attempted_control_generation IS NOT NULL
+mail_accounts_retained_provision_attempt:
+  attempted_control_generation IS NULL OR provision_lease_token IS NOT NULL OR (provision_error_code IS NOT NULL AND provision_error_code IN ('MAILBOX_PROVISIONING_RETRY','MAILBOX_UNAVAILABLE') AND next_provision_at IS NOT NULL)
+mail_accounts_unconverged_schedule:
+  provision_lease_token IS NOT NULL OR attempted_control_generation IS NOT NULL OR next_provision_at IS NOT NULL OR (deployed_generation IS NOT NULL AND deployed_generation = control_generation AND deployed_hash_version = control_hash_version AND deployed_hash = control_hash)
+```
+
+`MailIdentity.Annotations` contains:
+
+```text
+mail_identities_send_allowed:
+  send_allowed = FALSE OR status = 'active'
+mail_identities_group_not_sendable:
+  kind <> 'group' OR send_allowed = FALSE
+mail_identities_deleting_alias_only:
+  status <> 'deleting' OR kind = 'alias'
+```
+
+`MailDomain.Annotations` contains:
+
+```text
+mail_domains_desired_hash:
+  desired_generation >= 1 AND desired_hash_version >= 1 AND length(desired_hash) = 32
+mail_domains_attempted_tuple:
+  ((attempted_generation IS NULL) = (attempted_hash_version IS NULL)) AND ((attempted_generation IS NULL) = (attempted_hash IS NULL)) AND (attempted_generation IS NULL OR (attempted_generation >= 1 AND attempted_hash_version >= 1 AND length(attempted_hash) = 32 AND attempted_generation <= desired_generation))
+mail_domains_deployed_tuple:
+  ((deployed_generation IS NULL) = (deployed_hash_version IS NULL)) AND ((deployed_generation IS NULL) = (deployed_hash IS NULL)) AND (deployed_generation IS NULL OR (deployed_generation >= 1 AND deployed_hash_version >= 1 AND length(deployed_hash) = 32 AND deployed_generation <= desired_generation))
+mail_domains_lease_pair:
+  (lease_token IS NULL) = (lease_until IS NULL)
+mail_domains_attempt_count:
+  attempt_count >= 0
+mail_domains_unknown_attempt:
+  last_error_code IS NULL OR last_error_code <> 'MAIL_DOMAIN_OUTCOME_UNKNOWN' OR attempted_generation IS NOT NULL
+mail_domains_pending_state:
+  state <> 'pending' OR (desired_present = TRUE AND attempted_generation IS NULL AND lease_token IS NULL AND last_error_code IS NULL)
+mail_domains_provisioning_state:
+  state <> 'provisioning' OR (desired_present = TRUE AND attempted_generation IS NOT NULL AND lease_token IS NOT NULL AND last_error_code IS NULL AND next_retry_at IS NULL)
+mail_domains_dns_required_state:
+  state <> 'dns_required' OR (desired_present = TRUE AND engine_domain_id IS NOT NULL AND deployed_generation IS NOT NULL AND deployed_generation = desired_generation AND deployed_hash_version = desired_hash_version AND deployed_hash = desired_hash AND jsonb_array_length(required_dns_records) > 0 AND verification_status <> 'verified' AND attempted_generation IS NULL AND lease_token IS NULL AND last_error_code IS NULL AND next_retry_at IS NULL)
+mail_domains_verified_state:
+  state <> 'verified' OR (desired_present = TRUE AND engine_domain_id IS NOT NULL AND deployed_generation IS NOT NULL AND deployed_generation = desired_generation AND deployed_hash_version = desired_hash_version AND deployed_hash = desired_hash AND verification_status = 'verified' AND attempted_generation IS NULL AND lease_token IS NULL AND last_error_code IS NULL AND next_retry_at IS NULL)
+mail_domains_error_state:
+  state <> 'error' OR (desired_present = TRUE AND last_error_code IS NOT NULL AND lease_token IS NULL AND ((last_error_code = 'MAIL_DOMAIN_OUTCOME_UNKNOWN' AND attempted_generation IS NOT NULL AND next_retry_at IS NOT NULL) OR (last_error_code <> 'MAIL_DOMAIN_OUTCOME_UNKNOWN' AND attempted_generation IS NULL)))
+mail_domains_deleting_state:
+  state <> 'deleting' OR (desired_present = FALSE AND enabled = FALSE AND is_default = FALSE AND ((lease_token IS NOT NULL AND attempted_generation IS NOT NULL AND last_error_code IS NULL AND next_retry_at IS NULL) OR (lease_token IS NULL AND attempted_generation IS NOT NULL AND last_error_code = 'MAIL_DOMAIN_OUTCOME_UNKNOWN' AND next_retry_at IS NOT NULL) OR (lease_token IS NULL AND attempted_generation IS NULL)))
+mail_domains_deleted_state:
+  deleted_at IS NULL OR (state = 'deleting' AND desired_present = FALSE AND enabled = FALSE AND is_default = FALSE AND engine_domain_id IS NULL AND attempted_generation IS NULL AND lease_token IS NULL AND last_error_code IS NULL AND next_retry_at IS NULL)
+mail_domains_default_state:
+  is_default = FALSE OR (deleted_at IS NULL AND desired_present = TRUE AND enabled = TRUE AND state = 'verified' AND verification_status = 'verified')
+```
+
+`MailboxPolicy.Annotations` contains:
+
+```text
+mailbox_policies_bounds:
+  max_message_bytes BETWEEN 1048576 AND 52428800 AND max_attachment_bytes BETWEEN 1 AND 26214400 AND max_attachment_bytes <= max_message_bytes AND max_recipients BETWEEN 1 AND 500 AND send_rate_per_minute BETWEEN 1 AND 1000 AND trash_retention_days BETWEEN 1 AND 3650 AND junk_retention_days BETWEEN 1 AND 3650
+```
+
+The PostgreSQL-only `jsonb_array_length` predicate is intentional because Hub persistence is
+PostgreSQL. JSON shape/serialized-size validation still runs in the typed Go value.
+
+#### Exact edges and delete behavior
+
+- `MailAccount` has required unique owner edges to `Organization` and `User`, both
+  `ON DELETE CASCADE`; a required unique edge to `MailDomain` with `ON DELETE NO ACTION`;
+  and a to-many `identities` inverse.
+- `MailIdentity` has one required unique `account` edge on `mail_account_id` with
+  `ON DELETE CASCADE`.
+- `MailDomain` has one required unique `organization` edge with `ON DELETE CASCADE` and a
+  to-many `accounts` inverse. The account foreign key is the database RESTRICT/NO ACTION
+  proof; confirmed engine absence and soft-delete finalization remain service checks.
+- `MailboxPolicy` has one required unique `organization` edge with `ON DELETE CASCADE`.
+- Existing `Organization` edges are preserved byte-semantically and append only
+  `mail_accounts`, `mail_domains`, and unique `mailbox_policy`. Existing `User` edges are
+  preserved byte-semantically and append only unique `mail_account`.
+
+#### Sequential implementation packets
+
+1. `144-02A1`: `backend/internal/mail/domain_dns.go` plus its external unit; no Ent schema.
+2. `144-02A2`: `MailDomain`, `MailboxPolicy`, their metadata oracle, and only the two
+   `Organization` inverse edges they need. `MailDomain.accounts` is deliberately deferred so
+   this intermediate source remains compilable without `MailAccount.Type`.
+3. `144-02A3`: `MailAccount`, `MailIdentity`, their metadata oracle, `MailDomain.accounts`,
+   `Organization.mail_accounts`, and `User.mail_account`.
+
+No packet edits generated Ent output or migrations. 144-02E remains the sole generation
+gate after all schema packets, founder migration authority and the supported Docker launcher
+are accepted.
+
 ## 144-02B — projection
 
 ### `MailFolder`

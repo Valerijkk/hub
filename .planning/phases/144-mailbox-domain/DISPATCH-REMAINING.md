@@ -43,11 +43,18 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   absent vs indeterminate; draft expected-version conflict; changes cursor pages; cross-
   account ids zero disclosure/mutation; deterministic snapshots; no secret/body in errors.
 
-## 144-02A — account/identity/domain/policy schemas
+## 144-02A1/A2/A3 — typed DNS then domain/policy then account/identity schemas
 
-- Dependency: independently accepted contract 0.1.8 and migration gate recorded. Allowed only:
-  `backend/ent/schema/mailaccount.go`, `mailidentity.go`, `maildomain.go`,
-  `mailboxpolicy.go`, narrow additive inverse edges in `user.go`, `organization.go`.
+- Dependency: independently accepted contract 0.1.8 and migration gate recorded. Execute
+  sequentially from clean accepted commits:
+  - `144-02A1`: only `backend/internal/mail/domain_dns.go` and
+    `backend/tests/mail/domain_dns_test.go`;
+  - `144-02A2`: only `backend/ent/schema/maildomain.go`, `mailboxpolicy.go`,
+    `backend/tests/mail/mail_domain_policy_schema_test.go`, and the additive
+    `Organization.mail_domains` / `Organization.mailbox_policy` inverse edges;
+  - `144-02A3`: only `backend/ent/schema/mailaccount.go`, `mailidentity.go`,
+    `backend/tests/mail/mail_account_identity_schema_test.go`, additive
+    `MailDomain.accounts`, `Organization.mail_accounts`, and `User.mail_account`.
 - Behavior: exact spec §3 fields/enums/bounds; unique org+user, opaque engine account;
   nullable engine id, immutable account provisioning key/domain/local part, desired/deployed
   account generations/hashes, paired account-control lease/retry/error; identity pending/
@@ -58,7 +65,7 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   and freshness fields; normalized identity/domain uniqueness;
   partial one-default indexes; one policy/org; no password/admin/DKIM private secret.
   Preserve all existing edges byte-semantically.
-- Oracles: schema field/index/edge table; each lease token/until pair and non-negative
+- Oracles: typed DNS value/JSON bounds first; schema field/index/edge table; each lease token/until pair and non-negative
   epochs/attempts; bounded opaque cursor/error; active/provisioning and projection enums; exact
   pre/post existing-edge inventory; no generated/migration edit.
 

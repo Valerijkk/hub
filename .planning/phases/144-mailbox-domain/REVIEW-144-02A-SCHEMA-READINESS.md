@@ -1,15 +1,26 @@
 # Phase 144-02A preimplementation review — schema contract readiness
 
 > **Detected:** 2026-08-13 root deep static audit
-> **Status:** 0.1.8_ROOT_AMENDMENT_AVAILABLE · INDEPENDENT_CLOSURE_PENDING · IMPLEMENTATION_BLOCKED · RUNTIME_NOT_RUN
+> **Status:** 0.1.8_ROOT_REPRESENTATION_FROZEN · INDEPENDENT_CLOSURE_PENDING · IMPLEMENTATION_BLOCKED · RUNTIME_NOT_RUN
 > **Scope:** `MailAccount`, `MailIdentity`, `MailDomain`, `MailboxPolicy` only
 
 > `docs/mail/PERSISTENCE-CONTRACT-0.1.8.md` now supplies the root candidate matrix; this
 > discovery verdict remains open until independent exact-SHA review.
 
-## Outcome
+## Current root closure
 
-The packet cannot yet satisfy its own requirement to implement the exact section 3
+`docs/mail/PERSISTENCE-CONTRACT-0.1.8.md` now freezes the exact scalar widths, normalized
+ASCII validators, typed DNS JSON value, index order/predicates, named row CHECK predicates,
+edge/delete behavior, service-only cross-row invariants and the sequential 144-02A1/A2/A3
+packet boundary. The historical discovery findings below are closed in the root candidate,
+but no independent actual-provenance Terra/high review has accepted the exact commit.
+
+Product writes, generation and migration therefore remain blocked. The dedicated execution
+plan must consume the exact accepted commit and may not reinterpret these choices.
+
+## Historical discovery outcome
+
+The packet could not satisfy its own requirement to implement the exact section 3
 fields, enums and bounds. The existing documents describe the lifecycle correctly, but
 several persistence shapes and cardinality limits remain non-machine-readable or
 representation-ambiguous. No schema implementation should guess them.
@@ -77,9 +88,10 @@ default, but the contract must state that strengthening explicitly.
 - no password, token, administrator secret, private DKIM material or provider text belongs
   in any of the four schemas.
 
-## Gate impact
+## Historical gate impact
 
-- 144-02A is `BLOCKED_CONTRACT`; no Ent schema or inverse edge should be authored yet;
+- 144-02A was `BLOCKED_CONTRACT`; it is now `BLOCKED_INDEPENDENT_REVIEW` and no Ent schema
+  or inverse edge should be authored yet;
 - 144-02B/C/D/F, generation 144-02E and services/workers depending on 02A remain blocked;
 - the separate founder migration decision and accepted Docker launcher remain required even
   after this contract gap is closed;
