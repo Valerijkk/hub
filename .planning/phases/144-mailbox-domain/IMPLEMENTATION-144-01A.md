@@ -1,6 +1,6 @@
 # Task 144-01A — static acceptance evidence
 
-> **Status:** STATIC_ACCEPTED · RUNTIME_NOT_RUN · not product-accepted
+> **Status:** SOURCE_CONTRACT_PASS · P1_ENGINE_BOUNDARY_REOPENED · DOWNSTREAM_BLOCKED
 > **Implementation commit:** `9c4aba438e8a65c67b4b375636f34416978f8775`
 > **Fix commit / accepted head:** `43d421ef0fc86dbb98330cf68bfd398fc3b40b0d`
 > **Reviewed semantic contract:** `b3fb6f483b1335c4ef9ec3efbb0ff49c6d94ac3d`
@@ -37,9 +37,12 @@ non-forgeable origin marker was rejected because trusted external adapters must 
 the public enum and Go has no package-friend boundary. The exact re-review returned PASS
 with no remaining P0, P1 or P2.
 
-Blob preallocation remains intentionally outside this value contract: a real adapter cannot
-be accepted until the request/stream cap is frozen. That is recorded as a founder question,
-not hidden as a completed safety guarantee.
+A later root deep audit expanded the preallocation concern into a P1 boundary gap: page
+item counts do not bound embedded full message bodies, `GetBlob` has no request/stream byte
+cap, and public admin byte policies have no hard maximum. The source still matches the
+frozen interface, but that interface is not an accepted downstream safety gate. Evidence
+and decision-ready options are in `REVIEW-144-01A-ENGINE-BOUNDS.md` and founder questions
+28, 30 and 31.
 
 ## Exact accepted source blobs
 
@@ -59,5 +62,5 @@ not hidden as a completed safety guarantee.
 - accepted Docker launcher: `NOT_READY`.
 
 Docker Desktop being available does not authorize direct Docker/Compose execution. This
-packet is statically accepted only; it is not runtime-verified, complete, stable or
-production-ready.
+packet is source-conformant only; its contract boundary is reopened and it is not runtime-
+verified, complete, stable or production-ready.

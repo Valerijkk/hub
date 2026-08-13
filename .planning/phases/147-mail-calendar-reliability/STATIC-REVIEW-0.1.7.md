@@ -1,5 +1,10 @@
 # Phase 147 — Mail 0.1.7 canonical-hash static review
 
+> **Current use:** HISTORICAL_CVE_V1_PASS_ONLY. A later root deep audit reopened a distinct
+> P1 in engine message/blob/admin byte bounds. This review still supports the unchanged
+> calendar canonical-identity semantics, but no longer proves global Mail contract readiness.
+> See Phase 144 `REVIEW-144-01A-ENGINE-BOUNDS.md`.
+
 > **Reviewed semantic contract SHA:** `b3fb6f483b1335c4ef9ec3efbb0ff49c6d94ac3d`
 > **Mail 0.1.7 amendment base:** `e2f42b9b469b080291c12bacbc1622c047a401d3`
 > **Initial 0.1.7 snapshot:** `7a6ffc1c340e8b701e37388a871035976620b915`
@@ -7,7 +12,7 @@
 > **Branch:** `codex/mail-module-20260813`
 > **Root verdict:** `ROOT_STATIC_PASS`
 > **Independent verdict:** `TERRA_HIGH_STATIC_PASS`
-> **G148-02 state:** `PASS` for this exact reviewed SHA only
+> **G148-02 state:** historical `PASS` for this exact reviewed SHA; current gate `BLOCKED`
 > **Phase 143 source:** 143-01 and 143-02A `STATIC_ACCEPTED`; 143-02B `NOT_IMPLEMENTED`
 > **Runtime/build/test/schema-validator evidence:** `NOT_RUN`
 

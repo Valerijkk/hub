@@ -1,5 +1,10 @@
 # Hub Mail contract changelog
 
+> **Current review status (2026-08-13): REOPENED.** A later root deep audit found a P1
+> outside the CVE-v1 amendment: engine message/blob responses and admin byte settings lack
+> authoritative hard memory ceilings. No 0.1.8 contract has been frozen. Evidence:
+> `.planning/phases/144-mailbox-domain/REVIEW-144-01A-ENGINE-BOUNDS.md`.
+
 ## 0.1.7 — 2026-08-13
 
 Canonical inbound iTIP identity amendment. Product runtime remains `NOT_RUN`; 143-01 and

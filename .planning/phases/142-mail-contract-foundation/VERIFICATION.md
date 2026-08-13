@@ -1,9 +1,15 @@
 # Phase 142 verification — Mail Contract Foundation
 
-> **Verdict:** PASS for the contract-only phase goal after independent remediation
+> **Verdict:** STALE_PASS · REOPENED_P1_ENGINE_BYTE_BOUNDS
 > **Date:** 2026-08-13
 > **Runtime:** NOT_RUN
 > **Contract:** 0.1.2 independently static-verified 2026-08-13
+
+> **Superseding note:** this file records the historical 0.1.2 verification lifecycle.
+> Mail 0.1.7 later passed its CVE-v1 review, then a root deep audit reopened a distinct P1:
+> engine message/blob responses and admin byte settings have no authoritative hard ceiling.
+> Current evidence is Phase 144 `REVIEW-144-01A-ENGINE-BOUNDS.md`; Phase 142 is not currently
+> contract-ready.
 
 ## Goal-backward evidence
 

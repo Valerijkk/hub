@@ -247,20 +247,20 @@ contract отменяет его как migration gate; destructive batches ра
 
 | Phase | Status | Depends on | Outcome / task |
 |------:|--------|------------|----------------|
-| 142 | CONTRACT COMPLETE · static PASS · runtime NOT_RUN | — | ADR, ERD, OpenAPI, NATS, UI/security/QA contracts · TASK-235 |
+| 142 | CONTRACT ARTIFACTS COMPLETE · DEEP AUDIT P1 ENGINE BYTE BOUNDS REOPENED · runtime NOT_RUN | — | ADR, ERD, OpenAPI, NATS, UI/security/QA contracts · TASK-235 |
 | 143 | 143-01/02A/02B STATIC ACCEPTED · 03A/C P1 HASH-PAIR CHECK REMEDIATION BLOCKED · 03B/F CONTENT PASS, CHAIN BLOCKED · RUNTIME NOT_RUN | 142 | CalendarEvent/Attendee/Exception, deterministic iTIP/RSVP, canonical ScheduledCall bridge/backfill · TASK-236 |
-| 144 | 144-01A STATIC ACCEPTED through `43d421ef` · 01B MODEL PROVENANCE BLOCKED · RUNTIME NOT_RUN | 142 | Mailbox domain, domain/account/projection+recovery/rule workers, safe content/search, receipts/classifier · TASK-237 |
-| 145 | BLOCKED BY EXTERNAL GATES | 144 + license + launcher | Stalwart adapter, instance-domain mail, bounded Docker profile · TASK-238 |
-| 146 | DISPATCH 0.1.7 · CONTRACT PASS `b3fb6f48` / DEPENDENCIES+HARNESS BLOCKED | 143, 144 | Outlook three-pane UI, management, rules, safe content/search/realtime · TASK-239 |
-| 147 | CONTRACT 0.1.7 ROOT/INDEPENDENT STATIC PASS `b3fb6f48` · DEPENDENCY BLOCKED | 143–146 | recurrence/import recovery, single-count busy/free, reminders, L1/CRM seam · TASK-240 |
-| 148 | GATE CONTRACT PREPARED · EXECUTION BLOCKED | 143–147 + test-rebase merge notice | security/reconciliation/docs/verification/rebase gate · TASK-241 |
+| 144 | 144-01A SOURCE PASS · P1 ENGINE BOUNDARY REOPENED · 01B CONTRACT+MODEL BLOCKED · RUNTIME NOT_RUN | 142 | Mailbox domain, domain/account/projection+recovery/rule workers, safe content/search, receipts/classifier · TASK-237 |
+| 145 | BLOCKED BY 144 CONTRACT + EXTERNAL GATES | 144 + license + launcher | Stalwart adapter, instance-domain mail, bounded Docker profile · TASK-238 |
+| 146 | DISPATCH 0.1.7 · ENGINE ADMIN BYTE CONTRACT P1 REOPENED · DEPENDENCIES+HARNESS BLOCKED | 143, 144 | Outlook three-pane UI, management, rules, safe content/search/realtime · TASK-239 |
+| 147 | CALENDAR 0.1.7 SEMANTICS PASS · GLOBAL MAIL CONTRACT P1 REOPENED · DEPENDENCY BLOCKED | 143–146 | recurrence/import recovery, single-count busy/free, reminders, L1/CRM seam · TASK-240 |
+| 148 | G148-02 CONTRACT BLOCKED · EXECUTION BLOCKED | 143–147 + test-rebase merge notice | security/reconciliation/docs/verification/rebase gate · TASK-241 |
 
 ```text
 142 contracts -> 143 calendar core ----+-> 146 UI -> 147 reliability -> 148 gate
               -> 144 mailbox domain -> 145 engine/runtime -----------+
 ```
 
-- [x] **Phase 142:** freeze product, architecture, API, event, security and QA contracts.
+- [ ] **Phase 142:** close the reopened engine byte-bound contract P1, then re-freeze product, architecture, API, event, security and QA contracts.
 - [ ] **Phase 143:** implement canonical calendar RSVP/iTIP core.
 - [ ] **Phase 144:** implement engine-neutral mailbox domain and fake adapter.
 - [ ] **Phase 145:** pass external gates and implement/measure the mail runtime.

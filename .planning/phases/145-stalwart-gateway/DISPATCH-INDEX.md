@@ -1,8 +1,8 @@
 # Phase 145 — exact Terra dispatch index
 
-> **Status:** ALL_CODE_PACKETS_GATE_BLOCKED
+> **Status:** ALL_CODE_PACKETS_BLOCKED_BY_144_CONTRACT_AND_EXTERNAL_GATES
 > **Required runtime:** `gpt-5.6-terra` / `xhigh`, no fallback
-> **Entry contract:** accepted Phase 144 `MailEngine` port + `GATE-PLAN.md`
+> **Entry contract:** amended and accepted Phase 144 `MailEngine` byte boundary + `GATE-PLAN.md`
 
 No packet may begin until its listed gates are satisfied. A dispatch prompt carries the
 exact selected Stalwart version/digest/API evidence; an executor must return `BLOCKED`
@@ -81,8 +81,9 @@ with exactly one packet after all named gates pass.
 
 | Gate | Status |
 |---|---|
+| Phase 144 engine byte boundary | P1 REOPENED / NOT ACCEPTED |
 | Founder/legal license | UNRESOLVED |
-| Exact Terra runtime | AUTHORIZED_BY_FOUNDER / first actual packet pending |
+| Exact Terra runtime | ROUTE_AUTHORIZED / new packet actual telemetry unavailable |
 | Accepted launcher | NOT_READY |
 | Immutable image provenance | NOT_RUN |
 | Version-specific Stalwart config/API | NOT_FROZEN |

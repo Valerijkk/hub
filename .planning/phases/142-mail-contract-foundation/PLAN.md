@@ -1,6 +1,6 @@
 # Phase 142 — Mail Contract Foundation
 
-> Task: TASK-235 · Status: CONTRACT_COMPLETE_STATIC · Runtime: NOT_RUN
+> Task: TASK-235 · Status: CONTRACT_REOPENED_P1_ENGINE_BYTE_BOUNDS · Runtime: NOT_RUN
 
 ## Goal
 

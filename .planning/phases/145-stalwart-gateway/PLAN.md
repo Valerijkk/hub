@@ -1,9 +1,11 @@
 # Phase 145 — Stalwart Gateway and Docker Mail Profile
 
-> Task: TASK-238 · Status: BLOCKED_BY_EXTERNAL_GATES · Depends on: Phase 144
+> Task: TASK-238 · Status: BLOCKED_BY_144_CONTRACT_AND_EXTERNAL_GATES · Depends on: Phase 144
 
 ## Hard entry gates
 
+0. Phase 144 engine projection/content/blob byte boundary and admin hard ceilings are
+   amended and independently accepted.
 1. Founder/legal chooses AGPL-3.0 or SELv2 terms.
 2. Accepted Docker-only launcher exists for this task.
 3. Candidate image tag and digest provenance are refreshed immediately before use.

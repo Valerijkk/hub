@@ -7,8 +7,9 @@
 ## Prepared artifacts (root and independently reviewed)
 
 - Architecture, source-of-truth, security and compatibility decisions are amended in Mail
-  contract 0.1.7. Root and independent Terra/high re-review PASS on exact SHA `b3fb6f48`
-  after closing 3 P1 from `7a6ffc1c`; Mail 0.1.6 SHA `5a351d5b` is historical `STALE`.
+  contract 0.1.7. Its exact `b3fb6f48` review historically passed after closing three CVE-v1
+  findings, but a later root deep audit reopened a distinct P1 in engine response/admin byte
+  bounds. Mail 0.1.6 SHA `5a351d5b` remains historical `STALE`.
 - OpenAPI covers mailbox, submission recovery, legacy calendar, canonical calendar and
   separate legacy/new admin resources.
 - Event subjects and webhook privacy boundary are frozen.
@@ -31,6 +32,7 @@
 | Accepted versioned Docker launcher not implemented | root `AGENTS.md`, `STATE.md` | Ent generation, build/test/validator/runtime evidence |
 | Actual subagent model telemetry unavailable for new packets | `RUNTIME-BLOCKER.md`, founder question 29 | 143-03A/C remediation, independent acceptance of 143-03C/F, 143-03D, 144-01B and later packets |
 | Calendar event/exception canonical hash pair CHECK absent | `REMEDIATION-143-03-HASH-PAIR.md` | re-acceptance of 143-03A/C and their dependent schema chain |
+| Engine message/blob responses and admin byte settings lack authoritative hard bounds | Phase 144 `REVIEW-144-01A-ENGINE-BOUNDS.md`, founder questions 28/30/31 | accepted 144-01A amendment, fake, sync/content mapping and runtime adapter |
 | Production migration mechanism unresolved | `MIGRATION-PLAN.md`, founder question 12 | schema generation/migration/backfill acceptance |
 | Recurring ScheduledCall semantics unresolved | `MIGRATION-PLAN.md`, founder question 18 | recurring backfill and all-or-nothing cutover |
 | Legacy POST idempotency compatibility break unaccepted | OpenAPI, founder question 22 | enabling the ScheduledCall bridge cutover; both shipped clients must move atomically |
@@ -57,8 +59,9 @@
 7. Execute Phase 143 service/HTTP plus ScheduledCall bridge packets; retain the legacy
    calendar envelope and count linked pairs once. Keep linked external guests fail-closed
    until founder question 23 has a separately reviewed join-credential contract.
-8. Phase 144-01A is `STATIC_ACCEPTED`; 144-01B and later packets wait for actual model
-   telemetry. Then execute fake/pure-policy packets, schemas/generation and services.
+8. Phase 144-01A is source-conformant but its byte-boundary contract is reopened. Freeze the
+   amendment before 144-01B; new packets also wait for actual model telemetry. Then execute
+   fake/pure-policy packets, schemas/generation and services.
 9. Admit `mail.>` only after calendar admission; keep webhook filter unchanged.
 10. Execute UI transport/routes/core only after backend contracts are accepted and the
    feature-test harness is available.

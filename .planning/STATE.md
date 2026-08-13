@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
-last_updated: "2026-08-13T14:11:59.9862978+03:00"
-last_activity: 2026-08-13 · deep audit reopened 143-03A/C with P1 missing canonical hash-pair CHECK; Terra fix blocked by unavailable actual telemetry; 143-02B and 144-01A remain STATIC_ACCEPTED; runtime NOT_RUN
+last_updated: "2026-08-13T14:19:45.3028170+03:00"
+last_activity: 2026-08-13 · deep audit also reopened Mail 0.1.7/144-01A with P1 unbounded engine message/blob/admin byte boundary; 144-01B blocked; runtime NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -194,13 +194,15 @@ spec_coverage:
 
 - Изолированная ветка: `codex/mail-module-20260813`; базовый master при создании:
   `d44175f8`. Основная рабочая копия и защищённые зоны test-rebase не меняются.
-- Phase 142 фиксирует contracts-first пакет: ADR-MAIL-01, ERD/API/NATS/security,
-  Outlook UI design, traceability и QA handoff. Наличие контрактов не означает
-  реализации или готовности модуля.
+- Phase 142 создал contracts-first пакет: ADR-MAIL-01, ERD/API/NATS/security,
+  Outlook UI design, traceability и QA handoff. Его readiness сейчас переоткрыта из-за
+  P1 engine byte-boundary; наличие артефактов не означает принятого контракта, реализации
+  или готовности модуля.
 - Preferred engine: Stalwart за adapter boundary, условно. License verdict, image digest,
   API/persistence/resource spike и внешний DNS остаются gates; runtime `NOT_RUN`.
-- Кодовые фазы 143–148 идут после заморозки контракта. Phase 145 может оставаться
-  blocked, пока выполняются engine-independent calendar/mailbox/UI slices.
+- Кодовые фазы 143–148 идут после заморозки затронутого контракта. Phase 145 заблокирована
+  как переоткрытой границей Phase 144, так и внешними gates; независимые calendar slices
+  сохраняют отдельно доказанную семантику.
 - Mail 0.1.7 сохраняет Phase 147 reliability-контракт: REQUEST/CANCEL tombstones и
   recovery, outward REPLY reconciliation, private availability, durable in-app reminders
   и CRM manual-link. Новый amendment закрывает ScheduledCall split-brain: CalendarEvent —
@@ -215,8 +217,12 @@ spec_coverage:
   Founder task-local routing override authorizes exact `gpt-5.6-terra`/`xhigh` for
   atomic Mail product/test packets. Tasks 143-01, 143-02A and 143-02B are static accepted;
   bounded iTIP parsing includes reviewed CVE-v1,
-  safe errors, post-unfold UTF-8 and host-independent timezone handling. Task 144-01A is
-  static accepted through `43d421ef`. Evidence is recorded in the matching
+  safe errors, post-unfold UTF-8 and host-independent timezone handling. Task 144-01A source
+  matches the frozen port through `43d421ef`, but a later root deep audit reopened the
+  contract: up to 100 embedded full-body messages and complete blob bytes have no explicit
+  response budget, while public admin byte settings have no maximum. The P1 and decision
+  options are in `REVIEW-144-01A-ENGINE-BOUNDS.md`; 144-01B and Phase 145 message mapping
+  must not start against the under-specified surface. Evidence is recorded in the matching
   `IMPLEMENTATION-*.md` artifacts. A later root deep audit reopened 143-03A and 143-03C:
   both omit the schema-level nullable canonical hash version/hash pair CHECK required by
   Mail 0.1.7 and the phase plan. 143-03B retains a source-content PASS but its parent chain

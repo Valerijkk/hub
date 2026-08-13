@@ -1,6 +1,6 @@
 # Phase 148 — merge-readiness gate matrix
 
-> **Status:** G148_02_PASS_MAIL_0_1_7_B3FB6F48 · IMPLEMENTATION_IN_PROGRESS · 143-01_AND_143-02A_STATIC_ACCEPTED
+> **Status:** G148_02_BLOCKED_CONTRACT_REOPENED_P1 · IMPLEMENTATION_IN_PROGRESS · RUNTIME_NOT_RUN
 > **Scope:** Mail/Calendar/CRM feature branch only
 > **Evidence rule:** exact current SHA or no PASS
 > **Execution rule:** accepted versioned Docker launcher only; host/direct Compose evidence
@@ -42,11 +42,11 @@ secrets, DNS/operator approval and CTO/founder sign-off remain separate.
 | ID | Required evidence | Current state | Blocks |
 |---|---|---|---|
 | G148-01 baseline | clean isolated branch; base/current SHA; worktree path; changed-file and protected-zone diff; no untracked product artifact | PASS for docs snapshot only; repeat after code | every later gate |
-| G148-02 contract | ADR, Mail spec, OpenAPI, event schema, UI contract, Phase 147 contract and QA handoff independently agree; machine refs/examples closed | PASS on exact Mail 0.1.7 semantic SHA `b3fb6f48`: root plus independent Terra/high review; all three P1 found on `7a6ffc1c` are closed. Any later semantic contract change makes this evidence `STALE`; prior 0.1.6 PASS on `5a351d5b` is historical only | source work/claim |
-| G148-03 founder decisions | task-local Terra route is answered; signed answers remain required for migration mechanism, Stalwart license, L1 include/defer, recurring-call semantics, pause/resume, legacy POST idempotency break, linked-call guest access, broadcast disposition, primary-address policy, sanitizer dependency, Sieve ownership and rebase signal; push/PR separately authorized | PARTIAL / unresolved items remain | affected packets and final gate |
-| G148-04 model provenance | every production/test-code packet records actual `gpt-5.6-terra` + `xhigh`; no silent fallback; review packets record allowed Terra effort and distinct review context | IN_PROGRESS — 143-01 and 143-02A actual Terra/xhigh plus independent Terra/high reviews recorded in their implementation evidence; repeat for every later packet | source acceptance |
+| G148-02 contract | ADR, Mail spec, OpenAPI, event schema, UI contract, Phase 147 contract and QA handoff independently agree; machine refs/examples closed | BLOCKED: historical Mail 0.1.7 CVE-v1 PASS on `b3fb6f48` is stale for global readiness after the Phase 144 engine response/admin byte-bound P1; no 0.1.8 amendment reviewed | source work/claim |
+| G148-03 founder decisions | task-local Terra route is answered; signed answers remain required for migration mechanism, Stalwart license, L1 include/defer, recurring-call semantics, pause/resume, legacy POST idempotency break, linked-call guest access, broadcast disposition, primary-address policy, sanitizer dependency, Sieve ownership, engine hydration/stream shape, message/attachment hard ceilings and rebase signal; push/PR separately authorized | PARTIAL / unresolved items remain | affected packets and final gate |
+| G148-04 model provenance | every production/test-code packet records actual `gpt-5.6-terra` + `xhigh`; no silent fallback; review packets record allowed Terra effort and distinct review context | BLOCKED for new packets: earlier evidence exists, but 143-03A remediation, 143-03C/F reviews and 144-01B report actual telemetry unavailable | source acceptance |
 | G148-05 migrations/generation | reviewed mechanism, preflight, generated Ent twice clean, complete ScheduledCall mapping + recurrence oracle + 100% bridge cutover dry-run on empty/realistic snapshot, counts/hashes and rollback | NOT_RUN | backend/runtime |
-| G148-06 independent source review | backend, frontend, architecture, security, product and QA lenses on current diff; all P0/P1 fixed and re-reviewed | NOT_RUN — 143-01 and 143-02A packet reviews PASS after applicable fix/re-review, but full current-source multi-lens gate is not complete | merge-ready |
+| G148-06 independent source review | backend, frontend, architecture, security, product and QA lenses on current diff; all P0/P1 fixed and re-reviewed | BLOCKED: open 143-03 hash-pair P1 and 144 engine-boundary P1; full current-source multi-lens gate is not complete | merge-ready |
 | G148-07 launcher integrity | versioned outer launcher has task owner marker, CPU/RAM/PID limits, wall timeout, isolated report root and unconditional exact cleanup | NOT_READY | all executable evidence |
 | G148-08 units/build/contracts | applicable backend/frontend feature units, generation, build/type/lint and schema/source-contract jobs green through launcher | NOT_RUN | merge-ready |
 | G148-09 API/integration | PostgreSQL constraints/transactions, public API/authz, NATS/outbox, Meili, SeaweedFS and mailbox fake/adapter integration green | NOT_RUN | merge-ready |

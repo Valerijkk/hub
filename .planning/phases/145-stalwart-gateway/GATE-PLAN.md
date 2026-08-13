@@ -1,6 +1,6 @@
 # Phase 145 — external and runtime gate plan
 
-> **Status:** BLOCKED_BY_EXTERNAL_GATES
+> **Status:** BLOCKED_BY_144_CONTRACT_AND_EXTERNAL_GATES
 > **No implementation authorization:** this plan does not approve a license, image,
 > network egress, DNS change, secret, deployment or runtime command.
 
@@ -8,8 +8,9 @@
 
 | Gate | Evidence required | Owner / authority | Current state | Failure action |
 |---|---|---|---|---|
+| G145-0 engine boundary | accepted projection-only vs hydrated DTO choice, bounded content/blob request shape, hard admin maxima and stable over-limit behavior | founder + architecture/security review | P1 REOPENED | no fake/adapter implementation against an unsafe or changing port |
 | G145-1 license | written choice: unmodified sidecar under AGPL-3.0 or accepted SELv2/commercial terms | founder/legal | UNRESOLVED | select docker-mailserver fallback behind the same port; re-plan adapter |
-| G145-2 runtime model | exact `gpt-5.6-terra` / `xhigh` requested and actual provenance for each code packet | founder/runtime operator | ROUTE_AUTHORIZED / first run pending | reject any mismatch or fallback |
+| G145-2 runtime model | exact `gpt-5.6-terra` / `xhigh` requested and actual provenance for each code packet | founder/runtime operator | ROUTE_AUTHORIZED / new packet actual telemetry unavailable | reject any mismatch or fallback |
 | G145-3 launcher | versioned task-owned outer launcher implementing limits, timeout, report owner marker and exact cleanup | test architecture owner | NOT_READY | no direct Docker/Compose fallback; runtime remains NOT_RUN |
 | G145-4 provenance | refreshed official release, immutable digest, signature/SBOM/source and approval record | DevOps/security/founder | NOT_RUN | do not pull or reference mutable image |
 | G145-5 config contract | reviewed Stalwart config/API/session/health/volume paths for the selected immutable version | adapter reviewer | NOT_RUN | stop rather than guess version-specific fields |
