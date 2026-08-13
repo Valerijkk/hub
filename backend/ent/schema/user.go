@@ -119,6 +119,13 @@ func (User) Edges() []ent.Edge {
 		edge.To("api_keys", APIKey.Type),
 		edge.To("recordings", Recording.Type),
 		edge.To("scheduled_calls", ScheduledCall.Type),
+		edge.From("calendar_events_owned", CalendarEvent.Type).
+			Ref("calendar_owner"),
+		edge.From("organized_calendar_events", CalendarEvent.Type).
+			Ref("organizer"),
+		edge.From("calendar_attendances", CalendarAttendee.Type).
+			Ref("user"),
+		edge.To("calendar_mutation_receipts", CalendarMutationReceipt.Type),
 		edge.To("project_templates", ProjectTemplate.Type),
 		edge.To("polls", Poll.Type),
 		edge.To("poll_votes", PollVote.Type),

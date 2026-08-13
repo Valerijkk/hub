@@ -88,6 +88,9 @@ func (ScheduledCall) Edges() []ent.Edge {
 			Field("created_by").
 			Unique().
 			Required(),
+		edge.From("calendar_event", CalendarEvent.Type).
+			Ref("scheduled_call").
+			Unique(),
 		edge.To("participants", User.Type).
 			Comment("Приглашённые участники звонка"),
 	}
