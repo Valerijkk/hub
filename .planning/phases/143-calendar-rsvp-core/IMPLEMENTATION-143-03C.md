@@ -1,8 +1,8 @@
 # Task 143-03C — content review and provenance blocker
 
-> **Status:** CONTENT_REVIEW_PASS · MODEL_PROVENANCE_BLOCKED · NOT_STATIC_ACCEPTED
+> **Status:** P1_REMEDIATION_REQUIRED · MODEL_PROVENANCE_BLOCKED · NOT_STATIC_ACCEPTED
 > **Implementation commit:** `1288d5dfacd6ee93d78a07da765d6ca3d75cb535`
-> **Accepted dependency:** 143-03A `c6f5ec8b54b7e35327125dd4445634c5d1764491`
+> **Implementation dependency:** 143-03A `c6f5ec8b54b7e35327125dd4445634c5d1764491` · later reopened
 
 ## Scope and result
 
@@ -12,9 +12,12 @@
 - Source blob: `100f9d1e3c6448996f5ec0d02be68be64100375c` (file SHA-256
   `bf263669f894dddc160925bf1a664197f94e7b3bcb5aef0c226a3b0d9c5971dd`).
 
-The source-only review found no P0, P1 or P2: the occurrence override schema has the unique
-event plus recurrence identity, typed timed/all-day override fields, timezone/location/status
-overrides and the accepted no-cascade event edge.
+The first source-only review found no P0, P1 or P2: the occurrence override schema has the
+unique event plus recurrence identity, typed timed/all-day override fields,
+timezone/location/status overrides and the accepted no-cascade event edge. A later root
+deep audit found the same P1 as 143-03A: nullable canonical hash version/hash fields lack
+the required schema-level pair check. The frozen fix is in
+`REMEDIATION-143-03-HASH-PAIR.md`.
 
 ## Why acceptance is blocked
 

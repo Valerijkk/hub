@@ -1,8 +1,8 @@
 # Task 143-03B — static acceptance evidence
 
-> **Status:** STATIC_ACCEPTED · GENERATION_NOT_RUN · RUNTIME_NOT_RUN
+> **Status:** SOURCE_STATIC_PASS · DEPENDENCY_143_03A_REOPENED · CHAIN_BLOCKED
 > **Implementation commit:** `61c19f9f0dee5a406005aeacd4af056dcebc6a36`
-> **Accepted dependency:** 143-03A `c6f5ec8b54b7e35327125dd4445634c5d1764491`
+> **Implementation dependency:** 143-03A `c6f5ec8b54b7e35327125dd4445634c5d1764491` · later reopened
 
 ## Scope and result
 
@@ -26,3 +26,7 @@ Independent static review returned PASS with no P0, P1 or P2. The accepted sourc
 
 Ent generation, schema compilation, migrations and executable tests remain `NOT_RUN`; the
 accepted launcher is `NOT_READY`. No generated or migration file was changed.
+
+The later 143-03A hash-pair P1 does not change this file's source verdict, but it reopens the
+declared parent dependency. Therefore 143-03B cannot currently serve as an accepted chain
+gate for generation or downstream implementation.

@@ -1,6 +1,6 @@
 # Phase 143 — exact Terra dispatch index
 
-> **Status:** 143_01_02A_02B_03A_03B_STATIC_ACCEPTED · 03C_03F_CONTENT_PASS_PROVENANCE_BLOCKED · RUNTIME_NOT_RUN
+> **Status:** 143_01_02A_02B_STATIC_ACCEPTED · 03A_03C_P1_HASH_PAIR_REMEDIATION_BLOCKED · 03B_03F_CHAIN_BLOCKED · RUNTIME_NOT_RUN
 > **Required runtime:** `gpt-5.6-terra` / `xhigh`, no fallback
 > **Execution:** strictly sequential where owned files overlap
 > **Runtime evidence:** `.planning/phases/143-calendar-rsvp-core/RUNTIME-BLOCKER.md`
@@ -51,11 +51,11 @@ each accepted 143-04B/C/D/E/H/I ── its matching 143-04F-* transaction
 | 143-01 | Timed/all-day validation and sequence/RSVP reset classification — `STATIC_ACCEPTED` on `e7d5f450`; evidence: `IMPLEMENTATION-143-01.md`; runtime `NOT_RUN` | `backend/internal/calendar/event_types.go`, `event_policy.go`, `backend/tests/calendar/event_policy_test.go` | table units for every policy row, including reminder-only version change | contract 0.1.7 (policy unchanged) |
 | 143-02A | Deterministic RFC 5545/5546 serialization for REQUEST/CANCEL/REPLY — `STATIC_ACCEPTED` through `d73a9380`; evidence: `IMPLEMENTATION-143-02A.md`; runtime `NOT_RUN` | `itip_types.go`, `itip_serialize.go`, `backend/tests/calendar/itip_serialize_test.go` | exact in-memory CRLF/folding/escaping output; injected DTSTAMP | 143-01 |
 | 143-02B | Bounded iTIP parsing and versioned CVE-v1 canonical duplicate key — `STATIC_ACCEPTED` through `efa7814d`; evidence `IMPLEMENTATION-143-02B.md` | `itip_parse.go`, `itip_limits.go`, `backend/tests/calendar/itip_parse_test.go` | in-memory malformed/depth/size/count/TZ/UID/SEQUENCE/spoof/equivalence/version fixtures | 143-02A + reviewed Mail 0.1.7 |
-| 143-03A | `CalendarEvent` Ent schema only — `STATIC_ACCEPTED` on `c6f5ec8b`; evidence `IMPLEMENTATION-143-03A.md` | `backend/ent/schema/calendarevent.go` | static schema review; generation NOT_RUN until launcher | 143-01 |
-| 143-03B | `CalendarAttendee` schema with two partial unique indexes — `STATIC_ACCEPTED` on `61c19f9f`; evidence `IMPLEMENTATION-143-03B.md` | `backend/ent/schema/calendarattendee.go` | exact NULL/non-NULL index predicates | 143-03A |
-| 143-03C | `CalendarEventException` occurrence schema — content PASS on `1288d5df`, independent model provenance BLOCKED; not accepted | `backend/ent/schema/calendareventexception.go` | event+recurrence unique, timed/all-day override fields | 143-03A |
+| 143-03A | `CalendarEvent` Ent schema — P1 missing canonical hash-pair CHECK; remediation/provenance blocked; not accepted | `backend/ent/schema/calendarevent.go` | static schema review; generation NOT_RUN until launcher | 143-01 |
+| 143-03B | `CalendarAttendee` schema with exact partial indexes — source PASS on `61c19f9f`, parent 03A reopened; chain blocked | `backend/ent/schema/calendarattendee.go` | exact NULL/non-NULL index predicates | 143-03A |
+| 143-03C | `CalendarEventException` occurrence schema — P1 missing canonical hash-pair CHECK plus independent provenance blocked; not accepted | `backend/ent/schema/calendareventexception.go` | event+recurrence unique, timed/all-day override fields | 143-03A |
 | 143-03D | `CalendarMutationReceipt` plus narrow User/ScheduledCall edges | `backend/ent/schema/calendarmutationreceipt.go`, `user.go`, `scheduledcall.go` | hashed key uniqueness, bounded response, optional O2O call | 143-03A..C |
-| 143-03F | Durable bounded inbound-REPLY receipt schema and attendee edge — root content PASS on `fd681bb9`, independent model provenance BLOCKED; not accepted | `backend/ent/schema/calendarinboundreplyreceipt.go`, `calendarattendee.go` | unique attendee/sequence/hash; safe outcome; no raw MIME/key | 143-03B |
+| 143-03F | Durable bounded inbound-REPLY receipt schema and attendee edge — root content PASS on `fd681bb9`, parent chain and independent provenance blocked; not accepted | `backend/ent/schema/calendarinboundreplyreceipt.go`, `calendarattendee.go` | unique attendee/sequence/hash; safe outcome; no raw MIME/key | 143-03B |
 | 143-03E | Generate/inspect Ent output in accepted Docker job | generated Ent only, never manually edited or committed | clean generation and schema compile evidence | launcher + 143-03A..D/F |
 | 143-04L | Shared deterministic v1 event envelope over the unchanged outbox payload seam | `backend/internal/platform/events/envelope.go`, `backend/tests/calendar/event_envelope_test.go` | explicit inputs; strict subject/version/id/time/org/correlation validation; full-envelope JSON; no I/O/random/clock | contract 0.1.7 |
 | 143-04A | Public event repository/outbox/receipt ports and service constructor | `event_repository.go`, `event_service.go`, `event_errors.go` | compile-only consumer fakes in next behavior; no persistence | 143-03E + 143-04L |
@@ -124,7 +124,7 @@ each accepted 143-04B/C/D/E/H/I ── its matching 143-04F-* transaction
 | Gate | Status |
 |---|---|
 | Contract root/independent review | PASS on exact Mail 0.1.7 SHA `b3fb6f48` after closing 3 P1 from `7a6ffc1c`; 0.1.6 SHA `5a351d5b` historical STALE |
-| Exact Terra implementation runtime | authoring provenance recorded through 143-03F, but independent review telemetry unavailable for 143-03C/F; fail-closed `BLOCKED`; executable runtime `NOT_RUN` |
+| Exact Terra implementation runtime | earlier authoring provenance recorded through 143-03F; new 143-03A remediation and independent 143-03C/F review telemetry unavailable, fail-closed `BLOCKED`; executable runtime `NOT_RUN` |
 | Accepted Docker launcher | NOT_READY |
 | Ent generation | NOT_RUN |
 | Production migration authority | UNRESOLVED |

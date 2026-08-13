@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
-last_updated: "2026-08-13T14:05:44.6103834+03:00"
-last_activity: 2026-08-13 · 143-02B, 143-03A/B and 144-01A STATIC_ACCEPTED; 143-03C/F source content PASS but independent reviewer model provenance BLOCKED; runtime NOT_RUN
+last_updated: "2026-08-13T14:11:59.9862978+03:00"
+last_activity: 2026-08-13 · deep audit reopened 143-03A/C with P1 missing canonical hash-pair CHECK; Terra fix blocked by unavailable actual telemetry; 143-02B and 144-01A remain STATIC_ACCEPTED; runtime NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -213,15 +213,19 @@ spec_coverage:
   exact Mail 0.1.7 semantic SHA `b3fb6f48`; all three P1 from `7a6ffc1c` are closed. The
   earlier Mail 0.1.6 PASS on SHA `5a351d5b` is historical `STALE`.
   Founder task-local routing override authorizes exact `gpt-5.6-terra`/`xhigh` for
-  atomic Mail product/test packets. Tasks 143-01, 143-02A, 143-02B, 143-03A and 143-03B
-  are static accepted through `61c19f9f`; bounded iTIP parsing includes reviewed CVE-v1,
+  atomic Mail product/test packets. Tasks 143-01, 143-02A and 143-02B are static accepted;
+  bounded iTIP parsing includes reviewed CVE-v1,
   safe errors, post-unfold UTF-8 and host-independent timezone handling. Task 144-01A is
   static accepted through `43d421ef`. Evidence is recorded in the matching
-  `IMPLEMENTATION-*.md` artifacts. Calendar schema commits 143-03C (`1288d5df`) and
-  143-03F (`fd681bb9`) pass root/source-content review, but independent review runtimes no
-  longer expose actual model/effort. They remain `NOT_STATIC_ACCEPTED`; 143-03D and 144-01B
-  stay blocked by the fail-closed provenance rule and founder question 29. Phase 143/144
-  implementation is `IN_PROGRESS`; executable runtime remains `NOT_RUN`.
+  `IMPLEMENTATION-*.md` artifacts. A later root deep audit reopened 143-03A and 143-03C:
+  both omit the schema-level nullable canonical hash version/hash pair CHECK required by
+  Mail 0.1.7 and the phase plan. 143-03B retains a source-content PASS but its parent chain
+  is reopened; 143-03F retains a root-content PASS. None of 03A/B/C/F currently unlocks
+  dependents. The exact remediation is frozen in `REMEDIATION-143-03-HASH-PAIR.md`, but its
+  Terra/xhigh attempt and independent reviews are blocked because new worker runtimes no
+  longer expose actual model/effort. 143-03D and 144-01B stay blocked by the fail-closed
+  provenance rule and founder question 29. Phase 143/144 implementation is `IN_PROGRESS`;
+  executable runtime remains `NOT_RUN`.
 - Mailbox control-plane rules from 0.1.6 remain unchanged in 0.1.7: отдельные bounded workers владеют
   idempotent domain/account/primary-identity/alias lifecycle, combined projection/mutation-recovery sync и generation/hash
   reconciliation одного fixed Hub Sieve script. Generic create/bulk receipt хранит только

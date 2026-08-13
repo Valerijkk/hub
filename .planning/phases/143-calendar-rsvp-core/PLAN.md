@@ -1,6 +1,6 @@
 # Phase 143 — Calendar RSVP Core
 
-> Task: TASK-236 · Status: IMPLEMENTATION_IN_PROGRESS_143_01_02A_02B_03A_03B_STATIC_ACCEPTED_03C_03F_PROVENANCE_BLOCKED · Depends on: Phase 142
+> Task: TASK-236 · Status: IMPLEMENTATION_IN_PROGRESS_143_01_02A_02B_STATIC_ACCEPTED_03A_03C_P1_REMEDIATION_BLOCKED · Depends on: Phase 142
 
 ## Goal
 
@@ -32,9 +32,9 @@ authorities, duplicate meetings or dependence on the real mail engine.
 
 ## Task 143-02 — Deterministic iTIP codec with fixtures
 
-> **Status:** 143-02 codec and 143-03A/B schemas `STATIC_ACCEPTED` through `61c19f9f`;
-> 143-03C/F source content PASS but independent model provenance BLOCKED; executable
-> verification `NOT_RUN`.
+> **Status:** 143-02 codec `STATIC_ACCEPTED`; 143-03A/C require the canonical hash-pair
+> schema CHECK; 143-03B/F source content passes but the chain/review provenance is blocked;
+> executable verification `NOT_RUN`.
 > Evidence: matching `IMPLEMENTATION-143-*.md` artifacts and Phase 147
 > `STATIC-REVIEW-0.1.7.md`.
 

@@ -2,7 +2,7 @@
 
 > **Status:** ROOT_CONTENT_REVIEW_PASS · INDEPENDENT_MODEL_PROVENANCE_BLOCKED · NOT_STATIC_ACCEPTED
 > **Implementation commit:** `fd681bb9375d4ac64117d832dfe09a8712944d45`
-> **Accepted dependency:** 143-03B `61c19f9f0dee5a406005aeacd4af056dcebc6a36`
+> **Implementation dependency:** 143-03B `61c19f9f0dee5a406005aeacd4af056dcebc6a36` · chain later reopened
 
 ## Scope and provenance
 

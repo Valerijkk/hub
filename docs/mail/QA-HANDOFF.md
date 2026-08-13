@@ -2,7 +2,7 @@
 
 > **Contract version:** 0.1.7
 > **Prepared:** 2026-08-13
-> **Implementation status:** IN_PROGRESS — 143-01/02A/02B/03A/03B and 144-01A static accepted; 143-03C/F source content PASS but independent model provenance BLOCKED; executable verification `NOT_RUN`
+> **Implementation status:** IN_PROGRESS — 143-01/02A/02B and 144-01A static accepted; 143-03A/C require a hash-pair CHECK fix, 143-03B/F are chain/provenance blocked; executable verification `NOT_RUN`
 > **Runtime status:** NOT_RUN
 > **QA owner:** founder-designated Claude test program
 > **Product-code owner:** ChatGPT mail feature branch

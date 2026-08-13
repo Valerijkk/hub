@@ -76,14 +76,16 @@ until the canonical launcher is accepted.
 
 Several earlier Terra packets reported requested and actual model/effort and were reviewed
 under that evidence. Later 143-03C and 143-03F review runtimes did not expose actual
-telemetry. A clean repeat 143-03C provenance review and the first 144-01B authoring attempt
-also explicitly requested the required Terra route, reported actual `UNAVAILABLE`, used no
-fallback and stopped before reading or writing files.
+telemetry. A clean repeat 143-03C provenance review, the first 144-01B authoring attempt and
+the exact 143-03A hash-pair remediation attempt also explicitly requested the required
+Terra route, reported actual `UNAVAILABLE`, used no fallback and stopped before reading or
+writing files.
 
 Per the founder lock, dispatcher acceptance alone is not silently treated as actual runtime
 evidence. Consequences until question 29 is answered or telemetry returns:
 
-- 143-03C and 143-03F retain source-content PASS but are not statically accepted;
+- 143-03A/C require the P1 hash-pair remediation; 143-03B/F retain source-content passes
+  but their dependency/independent-review chain is blocked;
 - dependent 143-03D is blocked;
 - 144-01B remains not implemented;
 - root may continue contract, evidence, dependency analysis and source review, but does not

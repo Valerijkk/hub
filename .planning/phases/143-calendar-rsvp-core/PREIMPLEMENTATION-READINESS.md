@@ -2,7 +2,7 @@
 
 > **Snapshot:** 2026-08-13
 > **Branch:** `codex/mail-module-20260813`
-> **Product truth:** IMPLEMENTATION_IN_PROGRESS · 143-01/02A/02B/03A/03B_STATIC_ACCEPTED · 03C/03F_PROVENANCE_BLOCKED · RUNTIME_NOT_RUN · not accepted
+> **Product truth:** IMPLEMENTATION_IN_PROGRESS · 143-01/02A/02B_STATIC_ACCEPTED · 03A/03C_P1_REMEDIATION_BLOCKED · 03B/03F_CHAIN_BLOCKED · RUNTIME_NOT_RUN · not accepted
 
 ## Prepared artifacts (root and independently reviewed)
 
@@ -29,7 +29,8 @@
 | Blocker | Evidence | Unblocks |
 |---|---|---|
 | Accepted versioned Docker launcher not implemented | root `AGENTS.md`, `STATE.md` | Ent generation, build/test/validator/runtime evidence |
-| Actual subagent model telemetry unavailable for new packets | `RUNTIME-BLOCKER.md`, founder question 29 | independent acceptance of 143-03C/F, 143-03D, 144-01B and later packets |
+| Actual subagent model telemetry unavailable for new packets | `RUNTIME-BLOCKER.md`, founder question 29 | 143-03A/C remediation, independent acceptance of 143-03C/F, 143-03D, 144-01B and later packets |
+| Calendar event/exception canonical hash pair CHECK absent | `REMEDIATION-143-03-HASH-PAIR.md` | re-acceptance of 143-03A/C and their dependent schema chain |
 | Production migration mechanism unresolved | `MIGRATION-PLAN.md`, founder question 12 | schema generation/migration/backfill acceptance |
 | Recurring ScheduledCall semantics unresolved | `MIGRATION-PLAN.md`, founder question 18 | recurring backfill and all-or-nothing cutover |
 | Legacy POST idempotency compatibility break unaccepted | OpenAPI, founder question 22 | enabling the ScheduledCall bridge cutover; both shipped clients must move atomically |
@@ -48,8 +49,9 @@
 3. ~~Dispatch 143-02A and 143-02B.~~ Both are `STATIC_ACCEPTED`; 143-02B accepted through
    `efa7814d` after parser hardening and host-local timezone rejection. Evidence:
    `IMPLEMENTATION-143-02A.md` and `IMPLEMENTATION-143-02B.md`; runtime `NOT_RUN`.
-4. 143-03A/B are `STATIC_ACCEPTED`. 143-03C/F source content passes, but their independent
-   review provenance is blocked. Do not start 143-03D or generation until that gate closes.
+4. 143-03A/C need the frozen hash-pair CHECK remediation. 143-03B/F retain source-content
+   passes but do not unlock the chain. Do not start 143-03D or generation until both the P1
+   and provenance gates close.
 5. Resolve migration mechanism and accepted launcher before Ent generation.
 6. Admit `calendar.>` before calendar producers.
 7. Execute Phase 143 service/HTTP plus ScheduledCall bridge packets; retain the legacy
