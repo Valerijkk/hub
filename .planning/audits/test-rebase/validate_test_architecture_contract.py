@@ -44,8 +44,8 @@ MAX_PATH_COMPONENTS = 64
 MAX_COMPONENT_UTF8_BYTES = 255
 MAX_PATH_UTF8_BYTES = 4096
 
-LEDGER_REVISION = "5708671f00411c7c9e9dbee88b725de2092cbacd"
-LEDGER_SHA256 = "72de6a81b2bd5da8873a98e784a5069a661e9caea083f10722aa85e9f91b4511"
+LEDGER_REVISION = "b9f690da5cdcf322fc5b28a8d96c71a422407154"
+LEDGER_SHA256 = "83b6a31149807d21441a2ede91dec0b36b4a4396c4c0ceb58308b58878f5ad89"
 NON_LEDGER_SHA256 = "9b06611c2e5f9342ae081b6917e4033808c642e0b65216d7e60a0b2f89a62d49"
 
 REQUIRED_DECISION = {
@@ -1982,7 +1982,7 @@ def main() -> int:
         print_errors(errors)
         return 1
     print(
-        "GREEN: LEDGER_HEAD 5708671f ledger 1,049/4,246; move 507/1,673, keep-block "
+        "GREEN: LEDGER_HEAD b9f690da ledger 1,049/4,246; move 507/1,673, keep-block "
         "245/1,428, delete-no-port 297/1,145 plus exact non-ledger closure 28"
     )
     return 0

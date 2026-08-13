@@ -66,11 +66,11 @@ DYNAMIC_BATCH_KEYS = {
 }
 
 AUTHORITY_FILES = {
-    "inventory": (".planning/audits/test-rebase/inventory.json", "72de6a81b2bd5da8873a98e784a5069a661e9caea083f10722aa85e9f91b4511"),
-    "founder_manifest": (".planning/audits/test-rebase/founder-greenfield-cutover-manifest.json", "df503a7f136aed70f0a9aaed2a576350f692574b0fd9f5506bd4b7f5fed0376a"),
-    "architecture_contract": (".planning/audits/test-rebase/test-architecture-contract.json", "62eb27ecd93164cf404639e6c8b85d14843613da2d34ea4da08101a673bf1335"),
+    "inventory": (".planning/audits/test-rebase/inventory.json", "83b6a31149807d21441a2ede91dec0b36b4a4396c4c0ceb58308b58878f5ad89"),
+    "founder_manifest": (".planning/audits/test-rebase/founder-greenfield-cutover-manifest.json", "292b40dbddcc5e5709eef1504a1d6331e5cc45ddeb6e1534642d3ca3dc4288b7"),
+    "architecture_contract": (".planning/audits/test-rebase/test-architecture-contract.json", "8e9f4819f4f9813c2b9c92ec7cae8dba47782c61a2414dda649aa7ac0f3d315e"),
 }
-LEDGER_REVISION = "5708671f00411c7c9e9dbee88b725de2092cbacd"
+LEDGER_REVISION = "b9f690da5cdcf322fc5b28a8d96c71a422407154"
 PHASE129_BATCH_ORDER_SHA256 = "faebb25e84d4efb01fc02fb515118ed28d5224be50dc02ec45da3baea42bb9f5"
 PHASE129_PLAN_ORDER = ("129-02", "129-03", "129-04", "129-05", "129-06", "129-07")
 PHASE129_PLAN_KINDS = {
