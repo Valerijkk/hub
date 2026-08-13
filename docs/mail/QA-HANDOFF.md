@@ -330,12 +330,22 @@ or more `FR-MAIL-*` / `FR-CALSYNC-*` rows and named `TC-*` scenarios in `MAIL-SP
     link is immutable.
     Ordinary events allow email-only guests; under founder question 23's default a linked
     call with an external attendee is rejected before any mutation.
-23. Concurrent v2 and legacy mutations lock event before call. V2 stale `If-Match` mutates
-    nothing; legacy PUT serializes against the locked current version. After every commit,
-    canonical content/temporal/attendee fields and the call projection agree.
+23. Concurrent v2 and legacy mutations lock event before call. V2 master PATCH/DELETE with a
+    stale `If-Match` returns canonical `{error,request_id}`, `409` +
+    `CALENDAR_EVENT_VERSION_CONFLICT`, the current quoted event-version `ETag` and a
+    same-origin canonical event `Location`, with zero mutation. A terminal event update or
+    cancellation returns `CALENDAR_EVENT_NOT_MUTABLE`. Occurrence DELETE returns
+    `CALENDAR_EVENT_VERSION_CONFLICT` with the same recovery headers when the master version
+    is stale, or `CALENDAR_OCCURRENCE_NOT_MUTABLE` when the instance cannot be cancelled.
+    Clients never parse localized `error` text. Legacy PUT still serializes against the
+    locked current version. After every commit, canonical content/temporal/attendee fields
+    and the call projection agree.
 24. Deleting a linked legacy call cancels the event and call atomically. Pausing/resuming
     execution follows founder question 19 and cannot cancel or resurrect the event; one-time
-    due completion deactivates only the call projection.
+    due completion deactivates only the call projection. Any terminal/invalid legacy pause,
+    resume, update or delete returns NFR-13 `409` + `SCHEDULED_CALL_NOT_MUTABLE` and mutates
+    neither event nor call; legacy has no optimistic recovery headers because it has no
+    `If-Match`.
 25. Cancelling the next occurrence advances the projection in the same exception/event/call
     transaction. The due worker validates canonical RRULE/EXDATE/exception state, appends one
     deterministic occurrence-keyed `calls.channel.{channelId}.scheduled_due.v1` outbox row,

@@ -17,6 +17,16 @@
 > further decomposition. Sol is forbidden for subagents. Unavailable runtime
 > means `UNKNOWN/BLOCKED`; silent model or effort fallback is forbidden.
 
+> **FOUNDER TASK-LOCAL ROUTING EXCEPTION (2026-08-13; newer and narrowly
+> scoped):** only on branch `codex/mail-module-20260813`, for Mail workstream
+> Phases 143–148, atomic production/test-code packets use
+> `gpt-5.6-terra` with `xhigh`, explicit requested/actual provenance and no
+> fallback. Root remains `gpt-5.6-sol`/`max` as orchestrator/reviewer and
+> does not own atomic code. This overrides only the Spark sentence above for
+> this branch/workstream; every other routing, scope, protected-zone and
+> verification rule remains unchanged. Evidence:
+> `.planning/phases/143-calendar-rsvp-core/RUNTIME-BLOCKER.md`.
+
 > **Читай первым.** Регламент: `.cursor/REGULATION.md` | База знаний: `docs/README.md`
 
 ---

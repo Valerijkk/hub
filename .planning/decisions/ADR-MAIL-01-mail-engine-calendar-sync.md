@@ -422,7 +422,20 @@ backfill writes no invitation/outbox/notification records and sends no historica
 the canonical Hub NFR-13 body `{error,request_id}`, `X-Hub-Error-Code:
 ATTENDEE_VERSION_CONFLICT`, the current attendee-version `ETag`, and `Location` of the
 canonical event. The client must refetch that event and reconcile before retry; the error
-body is not expanded because Hub forbids endpoint-specific wire error shapes. An incoming
+body is not expanded because Hub forbids endpoint-specific wire error shapes.
+
+Every other calendar writer uses the same NFR-13 body and a route-specific code. Event
+PATCH/DELETE returns `CALENDAR_EVENT_VERSION_CONFLICT` for a stale master `If-Match` and
+includes the current event-version `ETag` plus the same-origin canonical event `Location`;
+terminal event state returns `CALENDAR_EVENT_NOT_MUTABLE` without mutation. Occurrence
+DELETE returns `CALENDAR_EVENT_VERSION_CONFLICT` with the same recovery headers for a stale
+master or `CALENDAR_OCCURRENCE_NOT_MUTABLE` when that instance cannot be cancelled. Legacy
+ScheduledCall PUT/DELETE has no client version input and preserves locked serialized
+last-write-wins, but a terminal or otherwise invalid pause/resume/update/delete transition
+returns `SCHEDULED_CALL_NOT_MUTABLE` and changes neither the event nor call projection.
+Clients branch only on these headers and never parse localized `error` text.
+
+An incoming
 `METHOD:REPLY` may change only the attendee whose normalized email matches the
 authenticated/envelope sender; organizer, other attendees, event fields, UID, and sequence
 are immutable from a reply.

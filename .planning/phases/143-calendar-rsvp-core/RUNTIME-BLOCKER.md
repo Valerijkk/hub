@@ -20,6 +20,8 @@ This is a branch/workstream-specific amendment, not a global rewrite of Hub rout
 dispatch still records exact requested/actual model and effort. The instruction does not
 authorize protected-path work, direct Docker fallback, migration apply, push, PR, merge,
 deployment, DNS, license purchase or secrets.
+The mandatory first-read `AGENTS.md` now records this exact narrow exception so a
+fail-closed dispatcher does not have to choose between contradictory routes.
 
 ## Superseded route at detection
 

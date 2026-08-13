@@ -44,6 +44,10 @@ breaking existing call sites. The client creates headers itself:
 Extend `ApiError` with optional `error_code`, `etag`, `location`, and
 `retry_after_seconds`. Read `X-Hub-Error-Code` and ETag as bounded strings. Reuse the
 existing Retry-After policy, accepting only an integer 1..5 for `MAIL_ACCOUNT_BUSY`.
+The allowlist includes the frozen calendar recovery codes
+`ATTENDEE_VERSION_CONFLICT`, `CALENDAR_EVENT_VERSION_CONFLICT`,
+`CALENDAR_EVENT_NOT_MUTABLE`, `CALENDAR_OCCURRENCE_NOT_MUTABLE` and
+`SCHEDULED_CALL_NOT_MUTABLE`; unknown/provider text never becomes a branch condition.
 Accept Location only if it is a relative same-origin `/api/...` path; reject scheme-
 relative, absolute, backslash/control and non-API values. The calendar wrapper will
 enforce its stricter canonical-event regex.

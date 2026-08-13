@@ -21,7 +21,8 @@
 - Phase 145 has a nine-gate legal/provenance/runtime/ops plan.
 - Founder questions have safe unattended defaults and authorize no external action.
 - Founder question 11 is answered: exact `gpt-5.6-terra` / `xhigh`, no fallback, is the
-  task-local atomic-code route for this Mail branch.
+  task-local atomic-code route for this Mail branch; mandatory first-read `AGENTS.md` records
+  the exact narrow exception and links its provenance record.
 
 ## Hard blockers
 

@@ -133,10 +133,13 @@ dispatchable without duplicating the common safety contract.
   `backend/tests/calendar/event_service_update_test.go`.
 - Behavior: If-Match master version; complete merged temporal validation; exact §4.2
   sequence/RSVP/notification table; whole cancel preserves historical RSVP and emits one
-  master-scoped cancel event/iTIP request descriptor. Reminder-only change advances event
-  version without iTIP sequence/RSVP/invitation mutation.
+  master-scoped cancel event/iTIP request descriptor. A stale master returns typed
+  `CALENDAR_EVENT_VERSION_CONFLICT` recovery metadata; terminal state returns typed
+  `CALENDAR_EVENT_NOT_MUTABLE`. Reminder-only change advances event version without iTIP
+  sequence/RSVP/invitation mutation.
 - Oracles: every change class; no-op; silent/notified description; reminder-only change;
   attendee add/remove;
+  exact stale code/current event version/canonical location; exact terminal code;
   stale/conflict zero mutation; rollback atomic; master cancel cannot masquerade as one
   occurrence.
 
@@ -339,7 +342,8 @@ dispatchable without duplicating the common safety contract.
   version parser; base64url recurrence decoder; NFR-13 metadata carrier; no owner/org input.
 - Oracles: timed/all-day pairs/end order/IANA annotations; unknown/oversized fields;
   creation-only server-authorized `scheduled_call_id` absent from PATCH; RSVP version/status;
-  occurrence cancel response; error body has only error/request_id.
+  occurrence cancel response; exact event/occurrence/legacy writer conflict-code unions;
+  stale event-version ETag plus same-origin Location; error body has only error/request_id.
 
 ## 143-05B — v2 handlers and wiring
 
@@ -348,11 +352,13 @@ dispatchable without duplicating the common safety contract.
   `backend/internal/calendar/handler.go`, `backend/cmd/server/wiring_modules.go`, and
   `backend/tests/calendar/event_handler_test.go`.
 - Behavior: exact `/api/calendar/v2/**` methods including occurrence DELETE; current auth
-  middleware; Idempotency-Key/If-Match; same-origin RSVP Location; no change to legacy
-  route handler/export.
+  middleware; Idempotency-Key/If-Match; same-origin RSVP/event recovery Location; exact
+  `CALENDAR_EVENT_VERSION_CONFLICT`, `CALENDAR_EVENT_NOT_MUTABLE`,
+  `CALENDAR_OCCURRENCE_NOT_MUTABLE` and `SCHEDULED_CALL_NOT_MUTABLE` mappings; no change to
+  legacy route handler/export.
 - Oracles: route inventory, status/body/headers, malformed recurrence/version, cross-org
-  non-disclosure, service fake call counts, occurrence cancel mapping, exact legacy route
-  registration snapshot.
+  non-disclosure, service fake call counts, every writer's exact conflict code/recovery
+  headers/zero-mutation mapping, exact legacy route registration snapshot.
 
 ## 143-05C — additive legacy backend aggregate
 
@@ -397,11 +403,14 @@ dispatchable without duplicating the common safety contract.
   is invented. Founder question 22's default permits the mandatory header only with both
   shipped clients updated in the same cutover. Legacy PUT has no `If-Match`
   and is documented serialized last-write-wins. Map stable validation/conflict/not-found/
-  forbidden errors without leaking another call/event. Apply founder question 19 default:
-  is_active toggles execution; DELETE cancels both.
+  forbidden errors without leaking another call/event; terminal or invalid pause/resume/
+  update/delete maps exactly to `SCHEDULED_CALL_NOT_MUTABLE` with the NFR-13 body and zero
+  mutation. Apply founder question 19 default: is_active toggles execution; DELETE cancels
+  both.
 - Oracles: one bridge call, response mapping, invalid/missing/foreign, rollback error, admin
-  actor audit, invitation-relevant update, pause/resume/delete and no direct old repository
-  mutation after cutover. No handler listener or component test.
+  actor audit, invitation-relevant update, exact not-mutable code for terminal pause/resume/
+  update/delete, and no direct old repository mutation after cutover. No handler listener or
+  component test.
 
 ## 143-05F — canonical legacy readers and due worker
 

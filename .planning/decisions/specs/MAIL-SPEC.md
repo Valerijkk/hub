@@ -306,8 +306,12 @@ as an alternative account work item; this is not a fifth worker. It orders sync 
 items by due time, processes at most one bounded item per account step, and cannot hold sync
 and mutation leases together. Recovery claims the receipt lease, then the account mutation
 lease, and uses only its persisted pending folder intent or bulk target/member snapshot.
-Folder create may retry only after exact-account enumeration proves definitive absence;
-rename/delete/state mutation reconcile current state. Training with an indeterminate result
+Only a proven injected `ExclusiveCustomFolderWriter=true` permits folder exact-match
+finalization, definitive-absence create retry or rename/delete recovery; system roles never
+match. False/unknown or contradicted exclusivity makes zero recovery mutation and leaves the
+projection degraded. Under the true gate, folder create may retry only after exact-account
+enumeration proves definitive absence, while rename/delete/state mutation reconcile current
+state. Training with an indeterminate result
 is finalized `unknown` without another feedback call unless the accepted adapter proves an
 idempotent reconciliation primitive. Completion updates receipt, pending control rows,
 projection/events and both lease/epoch edges atomically. Unknown operations/version or
@@ -1009,17 +1013,25 @@ participant ids. External guests never become ScheduledCall participants.
   `scheduled_call_id` cannot be patched later. Under
   founder question 23's safe default, any external attendee makes a linked-call create
   invalid; ordinary unlinked CalendarEvents continue to support email-only guests.
-- Calendar-v2 and legacy edits serialize on event → call. V2 uses `If-Match`; legacy PUT has
-  no version input and therefore uses the locked current event version with its historical
-  last-write-wins contract. Invitation-relevant legacy edits still apply the canonical
-  sequence/RSVP/notification rules.
+- Calendar-v2 and legacy edits serialize on event → call. V2 master PATCH/DELETE uses
+  `If-Match`: a stale version returns `CALENDAR_EVENT_VERSION_CONFLICT` with the current
+  quoted event-version `ETag` and same-origin canonical event `Location`, while terminal
+  state returns `CALENDAR_EVENT_NOT_MUTABLE`; both change nothing. Occurrence DELETE compares
+  the expected master version and returns the same version-conflict recovery headers when
+  stale, or `CALENDAR_OCCURRENCE_NOT_MUTABLE` when the selected instance cannot be cancelled.
+  Legacy PUT/DELETE has no version input and therefore uses the locked current event version
+  with its historical last-write-wins contract. A terminal or invalid pause/resume/update/
+  delete transition returns `SCHEDULED_CALL_NOT_MUTABLE` with zero event/call mutation.
+  Invitation-relevant legacy edits still apply the canonical sequence/RSVP/notification
+  rules.
 - The call participant edge is a series-level projection of distinct internal non-organizer
   attendees in `needs_action|accepted|tentative`. Declined or removed series attendees are
   removed atomically; an occurrence-specific RSVP never changes this edge.
 - Legacy `DELETE` cancels the canonical event and soft-deletes/deactivates the call in the
   same transaction. Pending founder question 19, `is_active=false/true` pauses/resumes only
   call execution; resume recomputes the next non-cancelled occurrence and rejects a
-  cancelled/deleted event or a series with no future occurrence.
+  cancelled/deleted event or a series with no future occurrence as
+  `SCHEDULED_CALL_NOT_MUTABLE`.
 - Event cancellation deactivates the call projection. One-time due completion deactivates
   only that projection. Cancelling the projection's next occurrence advances it inside the
   occurrence-cancel transaction.
@@ -1099,8 +1111,14 @@ The machine-readable contract is `docs/mail/openapi.yaml`. General rules:
   rule/label/signature deletes use the same header. RSVP body includes `attendee_version`
   for explicit conflict responses.
 - Errors retain mandatory Hub NFR-13 wire JSON `{error,request_id}`. Machine-readable
-  calendar conflict codes use `X-Hub-Error-Code`; stale RSVP additionally returns current
-  attendee-version `ETag` and canonical event `Location` for refetch.
+  calendar conflict codes use `X-Hub-Error-Code`: RSVP uses
+  `ATTENDEE_VERSION_CONFLICT|IDEMPOTENCY_KEY_REUSED`; event PATCH/DELETE uses
+  `CALENDAR_EVENT_VERSION_CONFLICT|CALENDAR_EVENT_NOT_MUTABLE`; occurrence DELETE uses
+  `CALENDAR_EVENT_VERSION_CONFLICT|CALENDAR_OCCURRENCE_NOT_MUTABLE`; legacy ScheduledCall
+  PUT/DELETE uses `SCHEDULED_CALL_NOT_MUTABLE`. Stale RSVP additionally returns the current
+  attendee-version `ETag`; stale event/occurrence mutation returns the current event-version
+  `ETag`; both include a same-origin canonical event `Location` for refetch. Legacy mutation
+  has no optimistic header because its compatibility wire has no `If-Match`.
 - New mailbox 409 responses always carry the route-specific `X-Hub-Error-Code` frozen in
   OpenAPI. Version conflicts are resource-specific; label name/in-use, mailbox-policy
   prerequisite, domain verified/default/in-use and alias mutability/account-state conflicts

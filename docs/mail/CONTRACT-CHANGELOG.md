@@ -39,6 +39,10 @@ independent semantic review is pending.
 - Replaced generic new-mail 409s with route-specific header codes for version/name/in-use,
   policy prerequisites, domain invariants and alias state. Global domain/address collisions
   disclose only `*_UNAVAILABLE`, never another tenant's owner/resource.
+- Replaced the remaining generic calendar/legacy writer 409s with exact event-version,
+  event-not-mutable, occurrence-not-mutable and ScheduledCall-not-mutable codes. Stale v2
+  writes expose only the current quoted event ETag and same-origin canonical event Location;
+  every conflict retains NFR-13 and mutates nothing.
 - Required `If-Match` for draft delete and send as well as save. Same-key send replay is
   resolved first; new stale/not-editable/competing transitions have exact no-mutation codes.
 - Added machine-readable attachment confirm/expiry/non-clean conflicts and constrained clean
@@ -73,7 +77,8 @@ independent semantic review is pending.
 - Bumped the OpenAPI and routed phase/QA contracts to 0.1.6; no event payload changed.
 - Recorded the founder's task-local implementation-route amendment: Mail atomic code uses
   exact `gpt-5.6-terra` / `xhigh`, no fallback; Docker verification remains separately
-  gated by the canonical launcher.
+  gated by the canonical launcher. The narrow exception is also recorded in mandatory
+  first-read `AGENTS.md`, while all non-Mail routing remains unchanged.
 
 ## 0.1.5 — 2026-08-13
 

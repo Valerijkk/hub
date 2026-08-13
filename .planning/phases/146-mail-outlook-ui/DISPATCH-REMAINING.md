@@ -36,9 +36,11 @@ every other row in `DISPATCH-INDEX.md`.
   cursors, safe account status, stable create/bulk key and draft If-Match options,
   submission GET, 204/202 handling, remote-image token and admin-alias routes, no account/
   org/engine id inputs. Query-key factories exclude body/recipient/key.
-- ApiError exposes only the allowlisted route-specific mailbox code; typed callers distinguish
-  stale version, label name/in-use, policy prerequisite, domain invariant/unavailable and
-  alias unavailable/state without parsing localized `error` text.
+- ApiError exposes only allowlisted route-specific codes; typed callers distinguish mailbox
+  stale version/name/in-use/prerequisite/domain/alias states plus
+  `ATTENDEE_VERSION_CONFLICT`, `CALENDAR_EVENT_VERSION_CONFLICT`,
+  `CALENDAR_EVENT_NOT_MUTABLE`, `CALENDAR_OCCURRENCE_NOT_MUTABLE` and
+  `SCHEDULED_CALL_NOT_MUTABLE` without parsing localized `error` text.
 - Oracles: exact method/path/query/body for each group; bounds represented; same-key send;
   nullable/schema states; folder/thread/search pages carry exact `projection_state` and
   required nullable `projection_as_of`; response types flags/folder ids/draft status;
@@ -172,7 +174,8 @@ every other row in `DISPATCH-INDEX.md`.
 - Dependencies: 03A + accepted Phase 143 + 01A/B. Allowed only
   `mail-invite-card.tsx`, `frontend/tests/mail/mail-invite-card.test.tsx`.
 - Behavior/oracles: REQUEST/CANCEL/REPLY state; series vs occurrence endpoint; one RSVP
-  intent; 409 code/ETag and strictly canonical relative Location -> refetch before retry;
+  intent; exact attendee/event/occurrence 409 code, applicable ETag and strictly canonical
+  relative Location -> refetch before retry; terminal/not-mutable is not blindly retried;
   absolute/cross-origin discarded; committed RSVP not rolled back for pending/failed mail
   reply; occurrence cancel display; live/a11y status and timezone text.
 

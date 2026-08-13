@@ -811,7 +811,7 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/ScheduledCall"}
-        "409": {$ref: "#/components/responses/Conflict"}
+        "409": {$ref: "#/components/responses/LegacyScheduledCallMutationConflict"}
         "400": {$ref: "#/components/responses/Error"}
         default: {$ref: "#/components/responses/Error"}
     delete:
@@ -820,7 +820,7 @@ paths:
       description: Cancels the canonical event and soft-deletes/deactivates the call atomically
       responses:
         "200": {description: Event/call pair cancelled}
-        "409": {$ref: "#/components/responses/Conflict"}
+        "409": {$ref: "#/components/responses/LegacyScheduledCallMutationConflict"}
         default: {$ref: "#/components/responses/Error"}
   /calls/conflicts:
     get:
@@ -954,7 +954,7 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/CalendarEvent"}
-        "409": {$ref: "#/components/responses/Conflict"}
+        "409": {$ref: "#/components/responses/CalendarEventMutationConflict"}
         default: {$ref: "#/components/responses/Error"}
     delete:
       tags: [CalendarEvents]
@@ -967,7 +967,7 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/CalendarEvent"}
-        "409": {$ref: "#/components/responses/Conflict"}
+        "409": {$ref: "#/components/responses/CalendarEventMutationConflict"}
         default: {$ref: "#/components/responses/Error"}
   /calendar/v2/events/{eventId}/rsvp:
     post:
@@ -1025,7 +1025,7 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/CalendarOccurrenceCancellation"}
-        "409": {$ref: "#/components/responses/Conflict"}
+        "409": {$ref: "#/components/responses/CalendarOccurrenceMutationConflict"}
         default: {$ref: "#/components/responses/Error"}
   /calendar/v2/availability:
     post:
@@ -1524,11 +1524,6 @@ components:
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
-    Conflict:
-      description: Optimistic version or idempotency conflict
-      content:
-        application/json:
-          schema: {$ref: "#/components/schemas/ErrorEnvelope"}
     MailFolderLimitExceeded:
       description: The owned mailbox already has the maximum 100 non-deleted engine-backed folders
       headers:
@@ -1738,29 +1733,6 @@ components:
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
-    AttendeeVersionConflict:
-      description: RSVP attendee version is stale; client refetches the canonical event before retry
-      headers:
-        X-Hub-Error-Code:
-          required: true
-          schema: {const: ATTENDEE_VERSION_CONFLICT}
-        ETag:
-          required: true
-          description: Current attendee version in the same quoted-integer form as If-Match
-          schema: {type: string, pattern: '^"[1-9][0-9]*"$'}
-        Location:
-          required: true
-          description: Same-origin canonical event path to refetch; clients must reject absolute or cross-origin values
-          schema:
-            type: string
-            format: uri-reference
-            pattern: '^/api/calendar/v2/events/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
-      content:
-        application/json:
-          schema: {$ref: "#/components/schemas/ErrorEnvelope"}
-          example:
-            error: rsvp state changed; reload the current attendee
-            request_id: req_01JZZZZZZZZZZZZZZZZZZZZZZZ
     IdempotencyConflict:
       description: A specialized draft, submission or legacy-call key was reused for changed input; the operation is not executed again
       headers:
@@ -1789,6 +1761,59 @@ components:
           schema:
             type: string
             enum: [IDEMPOTENCY_KEY_REUSED, SCHEDULED_CALL_LINK_MISMATCH, SCHEDULED_CALL_NOT_ATTACHABLE]
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/ErrorEnvelope"}
+    LegacyScheduledCallMutationConflict:
+      description: The linked canonical pair is already terminal or the requested pause/resume/update/delete transition cannot be applied; no mutation occurs
+      headers:
+        X-Hub-Error-Code:
+          required: true
+          schema: {const: SCHEDULED_CALL_NOT_MUTABLE}
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/ErrorEnvelope"}
+    CalendarEventMutationConflict:
+      description: The event version is stale or its current terminal state forbids update/cancellation; no mutation occurs
+      headers:
+        X-Hub-Error-Code:
+          required: true
+          schema:
+            type: string
+            enum: [CALENDAR_EVENT_VERSION_CONFLICT, CALENDAR_EVENT_NOT_MUTABLE]
+        ETag:
+          required: false
+          description: Present for CALENDAR_EVENT_VERSION_CONFLICT; current event version in quoted-integer form
+          schema: {type: string, pattern: '^"[1-9][0-9]*"$'}
+        Location:
+          required: false
+          description: Present for CALENDAR_EVENT_VERSION_CONFLICT; same-origin canonical event path, never an absolute URL
+          schema:
+            type: string
+            format: uri-reference
+            pattern: '^/api/calendar/v2/events/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/ErrorEnvelope"}
+    CalendarOccurrenceMutationConflict:
+      description: The master event version is stale or the selected occurrence is not cancellable; no event, exception, call or outbox mutation occurs
+      headers:
+        X-Hub-Error-Code:
+          required: true
+          schema:
+            type: string
+            enum: [CALENDAR_EVENT_VERSION_CONFLICT, CALENDAR_OCCURRENCE_NOT_MUTABLE]
+        ETag:
+          required: false
+          description: Present for CALENDAR_EVENT_VERSION_CONFLICT; current master event version in quoted-integer form
+          schema: {type: string, pattern: '^"[1-9][0-9]*"$'}
+        Location:
+          required: false
+          description: Present for CALENDAR_EVENT_VERSION_CONFLICT; same-origin canonical master event path, never an absolute URL
+          schema:
+            type: string
+            format: uri-reference
+            pattern: '^/api/calendar/v2/events/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}

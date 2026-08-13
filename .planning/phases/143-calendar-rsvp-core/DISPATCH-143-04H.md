@@ -37,8 +37,10 @@ master event version. The service:
 8. returns event id, canonical recurrence id, cancelled status, sequence and event version.
 
 It never mutates RRULE, other exceptions, attendee historical RSVP or master status.
-Already-cancelled same occurrence with current post-command state is an idempotent read;
-stale pre-command `If-Match` conflicts before any second outbox/notification.
+Already-cancelled same occurrence with current post-command state is an idempotent read.
+A stale pre-command `If-Match` returns typed `CALENDAR_EVENT_VERSION_CONFLICT` carrying the
+current event version and canonical event location before any second outbox/notification;
+an invalid/non-cancellable instance returns typed `CALENDAR_OCCURRENCE_NOT_MUTABLE`.
 
 [REQUIRED ORACLES]
 
@@ -50,11 +52,12 @@ stale pre-command `If-Match` conflicts before any second outbox/notification.
 5. Outbox stores exactly one complete 04L envelope in the same fake transaction: subject is
    `calendar.invite.cancelled.v1`, inner payload contains recurrence id, and event type,
    envelope subject and descriptor subject match.
-6. Retrying stale expected version returns conflict with zero mutation/iTIP/outbox.
+6. Retrying stale expected version returns `CALENDAR_EVENT_VERSION_CONFLICT` plus current
+   event-version/location metadata with zero mutation/iTIP/outbox.
 7. Already-cancelled canonical state with matching current observation returns the same
    cancellation view without duplicate side effects.
 8. Non-recurring event, invalid/out-of-policy recurrence id, cancelled master or unknown
-   occurrence fails safely before mutation.
+   occurrence returns `CALENDAR_OCCURRENCE_NOT_MUTABLE` before mutation.
 9. Non-organizer/cross-organization actor receives non-disclosing error and zero lookup
    hydrate/mutation beyond owner-scoped query.
 10. Transaction failure rolls back exception, master counters and outbox together.
