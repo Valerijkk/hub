@@ -176,6 +176,7 @@ mail_feature_workstream:
       openapi: docs/mail/openapi.yaml
       engine_contract_0_1_8: docs/mail/ENGINE-CONTRACT-0.1.8.md
       persistence_contract_0_1_8: docs/mail/PERSISTENCE-CONTRACT-0.1.8.md
+      control_plane_schema_plan: docs/superpowers/plans/2026-08-13-mail-control-plane-schemas.md
       events: docs/mail/events-v1.schema.json
       qa_handoff: docs/mail/QA-HANDOFF.md
       founder_questions: docs/mail/FOUNDER-QUESTIONS.md
@@ -246,6 +247,9 @@ spec_coverage:
   domain/policy and 02A3 account/identity so every intermediate source remains compilable.
   This is representation freeze only: independent review, migration authority, generation
   and Docker runtime remain pending/`NOT_RUN`.
+  The exact test-first packet is recorded in
+  `docs/superpowers/plans/2026-08-13-mail-control-plane-schemas.md` and consumes contract base
+  `5f31a74f`; it authorizes no product write while model provenance/review is blocked.
   Evidence is recorded in the matching `IMPLEMENTATION-*.md` artifacts. A later root deep
   audit reopened 143-03A and 143-03C:
   both omit the schema-level nullable canonical hash version/hash pair CHECK required by

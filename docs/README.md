@@ -43,6 +43,7 @@ negative sentinels. Он дополняет, но не заменяет `code_st
 | [mail/PERSISTENCE-CONTRACT-0.1.8.md](mail/PERSISTENCE-CONTRACT-0.1.8.md) | Exact Phase 144 mailbox fields, indexes, CHECK/state matrices, quotas and delete behavior |
 | [Mail engine 0.1.8 implementation plan](superpowers/plans/2026-08-13-mail-engine-0.1.8.md) | Exact Terra/xhigh TDD packet for the closed projection/read/blob/draft/submission port; blocked before product writes until actual-provenance review |
 | [Calendar hash-pair remediation plan](superpowers/plans/2026-08-13-calendar-hash-pair-remediation.md) | Sequential external-oracle + Ent CHECK packets for the open event/exception canonical hash P1; product writes provenance-blocked |
+| [Mail control-plane schema plan](superpowers/plans/2026-08-13-mail-control-plane-schemas.md) | Sequential Terra/xhigh TDD packets for typed DNS, domain/policy and account/identity schemas; independent review/migration/runtime gates remain closed |
 | [Phase 147 reliability contract](../.planning/phases/147-mail-calendar-reliability/CONTRACT.md) | REQUEST/CANCEL recovery, outward REPLY, single-count private availability, reminders, conditional L1 and CRM manual-link |
 | [Phase 147 Mail 0.1.7 static review](../.planning/phases/147-mail-calendar-reliability/STATIC-REVIEW-0.1.7.md) | Исторический CVE-v1 semantic PASS `b3fb6f48`; не покрывает engine/API/persistence amendment 0.1.8 |
 | [testframework_strategy.md](testframework_strategy.md) | Стратегия тестфреймворка: слои Go/TS/Python, Locust, Allure→TMS, гейты |

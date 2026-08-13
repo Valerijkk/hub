@@ -3,7 +3,7 @@
 > **Contract version:** 0.1.8
 > **Prepared:** 2026-08-13
 > **Contract review status:** ROOT_FROZEN · INDEPENDENT_TERRA_REVIEW_PENDING
-> **Implementation status:** IN_PROGRESS — 143-01/02A/02B static accepted historically; 0.1.8 amends the 144-01A boundary and freezes 144-02A/02B/02C/02D/02F schema candidates, but no dependent code is accepted; 143-03A/C still require the hash-pair CHECK fix; executable verification `NOT_RUN`
+> **Implementation status:** IN_PROGRESS — 143-01/02A/02B static accepted historically; 0.1.8 amends the 144-01A boundary and freezes 144-02A/02B/02C/02D/02F schema candidates; the exact 144-02A1/A2/A3 execution split is planned but no dependent code is accepted; 143-03A/C still require the hash-pair CHECK fix; executable verification `NOT_RUN`
 > **Runtime status:** NOT_RUN
 > **QA owner:** founder-designated Claude test program
 > **Product-code owner:** ChatGPT mail feature branch
@@ -31,6 +31,7 @@ No new test belongs in legacy `backend/testframework/**`.
 | Machine-readable HTTP API | `docs/mail/openapi.yaml` | all v1 public/admin endpoints and schemas |
 | Bounded engine amendment | `docs/mail/ENGINE-CONTRACT-0.1.8.md` | projection/content separation, byte budgets and stable draft identity |
 | Exact persistence amendment | `docs/mail/PERSISTENCE-CONTRACT-0.1.8.md` | Phase 144 schema fields, checks, indexes and state matrices |
+| Control-plane schema execution plan | `docs/superpowers/plans/2026-08-13-mail-control-plane-schemas.md` | Typed DNS then domain/policy then account/identity external-oracle packets |
 | Machine-readable events | `docs/mail/events-v1.schema.json` | NATS envelope and payload union |
 | Reliability addendum | `.planning/phases/147-mail-calendar-reliability/CONTRACT.md` | inbound ordering, reply recovery, availability, reminders, CRM/L1 seams |
 | Product/UI design | `docs/superpowers/specs/2026-08-13-mail-module-design.md` | three-pane, composer and RSVP interaction |

@@ -226,6 +226,10 @@ exact commit. It does not authorize generation or migration.
   responsibilities; persistence never silently canonicalizes.
 - `verification_status` is exactly `pending|verified|failed`; `dkim_status` is exactly
   `unknown|pending|valid|invalid`.
+- `MailIdentity.mail_account_id`, `normalized_address` and `kind` are immutable; identity
+  address/kind changes use create/delete lifecycle instead of in-place identity mutation.
+  `MailboxPolicy.organization_id` is immutable. The account/domain owner fields already
+  declared immutable remain Ent-immutable.
 - `MailboxPolicy` has the exact fields `id`, `organization_id`,
   `external_mail_enabled`, `max_message_bytes`, `max_attachment_bytes`, `max_recipients`,
   `send_rate_per_minute`, `trash_retention_days`, `junk_retention_days`, `created_at`,
@@ -245,7 +249,7 @@ type RequiredDNSRecord struct {
 type RequiredDNSRecords []RequiredDNSRecord
 ```
 
-`RequiredDNSRecords.Validate` rejects more than 32 records, invalid UTF-8, a name over 253
+`RequiredDNSRecords.Validate` rejects a nil slice, more than 32 records, invalid UTF-8, a name over 253
 bytes, a value over 2,048 bytes, a type outside `MX|TXT|CNAME`, TTL outside 60..86,400,
 duplicate `(type,name,value)` triples regardless of TTL, JSON marshal failure, or canonical
 serialized JSON over 65,536 bytes. Empty strings remain representable because the public
