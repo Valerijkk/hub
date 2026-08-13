@@ -1,7 +1,7 @@
 # Phase 143 packet 04L — shared deterministic event envelope
 
 > **Runtime:** `gpt-5.6-terra` / `xhigh`, no fallback
-> **Status:** CODE_RUNTIME_BLOCKED
+> **Status:** TERRA_CODE_ROUTE_AUTHORIZED · READY_AFTER_CURRENT_EVIDENCE_COMMIT
 > **Scope:** one pure shared value/builder plus one genuine external-package unit
 
 ## Outcome

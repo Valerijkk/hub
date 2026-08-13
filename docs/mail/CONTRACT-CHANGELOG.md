@@ -3,8 +3,8 @@
 ## 0.1.6 — 2026-08-13
 
 Mailbox control-plane, safe-content and mutation-recovery amendment. Product code/runtime
-remain `NOT_IMPLEMENTED` / `NOT_RUN`; 0.1.5 is historical `STALE` and current root plus
-independent semantic review is pending.
+remain `NOT_IMPLEMENTED` / `NOT_RUN`; 0.1.5 is historical `STALE`. Root and independent
+Terra/high static reviews PASS on exact semantic SHA `5a351d5b` with no P0/P1/P2.
 
 - Added an explicit bounded provisioning service/worker: deterministic immutable primary
   address/key/cutoff reservation, idempotent `EnsureAccount`, exact-lease activation,
@@ -84,7 +84,7 @@ independent semantic review is pending.
 
 ScheduledCall canonical-cutover and mailbox-projection amendment. Product code and runtime remain
 `NOT_IMPLEMENTED` / `NOT_RUN`; the 0.1.4 review is historical `STALE` for this revision and
-current semantic SHA review is pending.
+the current 0.1.6 semantic review PASS is recorded separately on `5a351d5b`.
 
 - Made `CalendarEvent` the only business authority for linked meeting content, time,
   recurrence/exceptions, reminder, status and attendees; `ScheduledCall` is a distinct

@@ -42,7 +42,7 @@ secrets, DNS/operator approval and CTO/founder sign-off remain separate.
 | ID | Required evidence | Current state | Blocks |
 |---|---|---|---|
 | G148-01 baseline | clean isolated branch; base/current SHA; worktree path; changed-file and protected-zone diff; no untracked product artifact | PASS for docs snapshot only; repeat after code | every later gate |
-| G148-02 contract | ADR, Mail spec, OpenAPI, event schema, UI contract, Phase 147 contract and QA handoff independently agree; machine refs/examples closed | Mail 0.1.6 root/independent current-provenance review PENDING; 0.1.5 `eae6f5e5` is STALE, so gate remains open | source work/claim |
+| G148-02 contract | ADR, Mail spec, OpenAPI, event schema, UI contract, Phase 147 contract and QA handoff independently agree; machine refs/examples closed | PASS on exact Mail 0.1.6 semantic SHA `5a351d5b`; root static + independent Terra/high, no P0/P1/P2; any semantic change makes this STALE | source work/claim |
 | G148-03 founder decisions | task-local Terra route is answered; signed answers remain required for migration mechanism, Stalwart license, L1 include/defer, recurring-call semantics, pause/resume, legacy POST idempotency break, linked-call guest access, broadcast disposition, primary-address policy, sanitizer dependency, Sieve ownership and rebase signal; push/PR separately authorized | PARTIAL / unresolved items remain | affected packets and final gate |
 | G148-04 model provenance | every production/test-code packet records actual `gpt-5.6-terra` + `xhigh`; no silent fallback; review packets record allowed Terra effort and distinct review context | ROUTE AUTHORIZED / actual packet evidence pending | source acceptance |
 | G148-05 migrations/generation | reviewed mechanism, preflight, generated Ent twice clean, complete ScheduledCall mapping + recurrence oracle + 100% bridge cutover dry-run on empty/realistic snapshot, counts/hashes and rollback | NOT_RUN | backend/runtime |
@@ -171,10 +171,9 @@ requirements and evidence request; it does not edit that program.
 
 ## 8. Current honest aggregate
 
-`CONTRACT_REVIEW_PENDING`: Mail 0.1.6 amended mailbox provisioning, mutation receipts,
-rules/content/search/classifier and UI contracts, so the 0.1.5 docs snapshot on `eae6f5e5`
-is stale. Root and independent
-current-provenance reviews are required before G148-02 can close. Product code is not
-implemented, the exact code-writing runtime is unavailable, the launcher is not ready,
-engine/legal/migration/broadcast/rebase decisions are unresolved, and all executable evidence is
-`NOT_RUN`.
+`CONTRACT_REVIEW_PASS_SOURCE_PENDING`: Mail 0.1.6 root and independent Terra/high static
+reviews PASS on exact semantic SHA `5a351d5b`; the 0.1.5 snapshot on `eae6f5e5` is stale.
+G148-02 is closed only for that semantic snapshot. Product code is not implemented, the
+Terra/xhigh code route is authorized but its first actual packet is pending, the launcher is
+not ready, engine/legal/migration/broadcast/rebase decisions are unresolved, and all
+executable evidence is `NOT_RUN`.

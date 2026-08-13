@@ -39,8 +39,8 @@ this phase.
 
 | Gate | State |
 |---|---|
-| Root reliability contract static review | 0.1.6 PENDING; 0.1.5 `eae6f5e5` historical STALE |
-| Independent reliability contract review | PENDING |
+| Root reliability contract static review | 0.1.6 PASS on exact SHA `5a351d5b`; 0.1.5 `eae6f5e5` historical STALE |
+| Independent reliability contract review | Terra/high PASS on exact SHA `5a351d5b`; no P0/P1/P2 |
 | Exact Terra code runtime | AUTHORIZED_BY_FOUNDER / first actual packet pending |
 | Phase 143/144 accepted implementation | NOT_IMPLEMENTED |
 | Engine authentication mapping | BLOCKED_BY_PHASE_145 |

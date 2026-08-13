@@ -248,11 +248,11 @@ contract отменяет его как migration gate; destructive batches ра
 | Phase | Status | Depends on | Outcome / task |
 |------:|--------|------------|----------------|
 | 142 | CONTRACT COMPLETE · static PASS · runtime NOT_RUN | — | ADR, ERD, OpenAPI, NATS, UI/security/QA contracts · TASK-235 |
-| 143 | CONTRACT 0.1.6 · ROOT REVIEW PENDING · TERRA CODE ROUTE AUTHORIZED / FIRST PACKET PENDING | 142 | CalendarEvent/Attendee/Exception, deterministic iTIP/RSVP, canonical ScheduledCall bridge/backfill · TASK-236 |
+| 143 | CONTRACT 0.1.6 STATIC REVIEW PASS `5a351d5b` · TERRA CODE ROUTE AUTHORIZED / FIRST PACKET PENDING | 142 | CalendarEvent/Attendee/Exception, deterministic iTIP/RSVP, canonical ScheduledCall bridge/backfill · TASK-236 |
 | 144 | DISPATCH 0.1.6 · TERRA CODE ROUTE AUTHORIZED / FIRST PACKET PENDING | 142 | Mailbox domain, domain/account/projection+recovery/rule workers, safe content/search, receipts/classifier · TASK-237 |
 | 145 | BLOCKED BY EXTERNAL GATES | 144 + license + launcher | Stalwart adapter, instance-domain mail, bounded Docker profile · TASK-238 |
 | 146 | DISPATCH 0.1.6 · TERRA ROUTE AUTHORIZED / DEPENDENCIES+HARNESS BLOCKED | 143, 144 | Outlook three-pane UI, management, rules, safe content/search/realtime · TASK-239 |
-| 147 | CONTRACT 0.1.6 · ROOT/INDEPENDENT REVIEW PENDING · DEPENDENCY BLOCKED | 143–146 | recurrence/import recovery, single-count busy/free, reminders, L1/CRM seam · TASK-240 |
+| 147 | CONTRACT 0.1.6 ROOT/INDEPENDENT STATIC PASS `5a351d5b` · DEPENDENCY BLOCKED | 143–146 | recurrence/import recovery, single-count busy/free, reminders, L1/CRM seam · TASK-240 |
 | 148 | GATE CONTRACT PREPARED · EXECUTION BLOCKED | 143–147 + test-rebase merge notice | security/reconciliation/docs/verification/rebase gate · TASK-241 |
 
 ```text

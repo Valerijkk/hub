@@ -1,6 +1,6 @@
 # Phase 147 — exact Terra dispatch index
 
-> **Status:** CONTRACT_0_1_6_ROOT_REVIEW_PENDING · INDEPENDENT_REVIEW_PENDING · CODE_RUNTIME_BLOCKED
+> **Status:** CONTRACT_0_1_6_STATIC_REVIEW_PASS_5A351D5B · TERRA_CODE_ROUTE_AUTHORIZED · DEPENDENCIES_BLOCKED
 > **Required runtime:** `gpt-5.6-terra` / `xhigh`, no fallback
 > **Contract:** `CONTRACT.md` + Mail 0.1.6
 > **Execution:** one row/variant per executor; overlapping files are sequential
@@ -120,8 +120,8 @@ all accepted rows ─ 147-08 docs sync/static review
 
 | Gate | Status |
 |---|---|
-| Mail 0.1.6 root static review | PENDING; 0.1.5 `eae6f5e5` is historical STALE |
-| Mail 0.1.6 independent static review | PENDING |
+| Mail 0.1.6 root static review | PASS on exact SHA `5a351d5b`; 0.1.5 `eae6f5e5` is historical STALE |
+| Mail 0.1.6 independent static review | Terra/high PASS on exact SHA `5a351d5b`; no P0/P1/P2 |
 | Exact Terra implementation runtime | AUTHORIZED_BY_FOUNDER / first actual packet pending |
 | Accepted Docker launcher | NOT_READY |
 | Ent generation/migration | NOT_RUN / FOUNDER_DECISION_PENDING |

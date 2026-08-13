@@ -4,11 +4,11 @@
 > **Branch:** `codex/mail-module-20260813`
 > **Product truth:** NOT_IMPLEMENTED · NOT_RUN · not accepted
 
-## Prepared artifacts (root-reviewed; independent pending)
+## Prepared artifacts (root and independently reviewed)
 
 - Architecture, source-of-truth, security and compatibility decisions are amended in Mail
-  contract 0.1.6. Its root static review is pending; the 0.1.5 docs snapshot on
-  `eae6f5e5` is historical `STALE`, and independent current-provenance review remains pending.
+  contract 0.1.6. Root and independent Terra/high static reviews PASS on exact semantic SHA
+  `5a351d5b`; the 0.1.5 docs snapshot on `eae6f5e5` is historical `STALE`.
 - OpenAPI covers mailbox, submission recovery, legacy calendar, canonical calendar and
   separate legacy/new admin resources.
 - Event subjects and webhook privacy boundary are frozen.

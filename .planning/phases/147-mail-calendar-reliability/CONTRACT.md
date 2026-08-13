@@ -1,7 +1,7 @@
 # Phase 147 — reliability and integration contract
 
 > **Contract addendum:** Mail 0.1.6
-> **Status:** ROOT_STATIC_REVIEW_0_1_6_PENDING · 0_1_5_SNAPSHOT_STALE · INDEPENDENT_REVIEW_PENDING · PRODUCT_CODE_NOT_IMPLEMENTED
+> **Status:** ROOT_AND_INDEPENDENT_STATIC_PASS_5A351D5B · 0_1_5_SNAPSHOT_STALE · PRODUCT_CODE_NOT_IMPLEMENTED
 > **Depends on:** accepted Phase 143 calendar core, Phase 144 mailbox domain, and the
 > engine adapter portions named by each packet
 > **Runtime evidence:** NOT_RUN

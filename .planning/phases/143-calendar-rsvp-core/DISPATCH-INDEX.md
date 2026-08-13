@@ -1,6 +1,6 @@
 # Phase 143 — exact Terra dispatch index
 
-> **Status:** CONTRACT_0_1_6_ROOT_REVIEW_PENDING · INDEPENDENT_REVIEW_PENDING · CODE_RUNTIME_BLOCKED
+> **Status:** CONTRACT_0_1_6_STATIC_REVIEW_PASS_5A351D5B · TERRA_CODE_ROUTE_AUTHORIZED · FIRST_PACKET_PENDING
 > **Required runtime:** `gpt-5.6-terra` / `xhigh`, no fallback
 > **Execution:** strictly sequential where owned files overlap
 > **Runtime evidence:** `.planning/phases/143-calendar-rsvp-core/RUNTIME-BLOCKER.md`
@@ -123,7 +123,7 @@ each accepted 143-04B/C/D/E/H/I ── its matching 143-04F-* transaction
 
 | Gate | Status |
 |---|---|
-| Contract root/independent review | 0.1.6 root review PENDING; 0.1.5 `eae6f5e5` historical STALE; independent PENDING |
+| Contract root/independent review | PASS on exact Mail 0.1.6 SHA `5a351d5b`; 0.1.5 `eae6f5e5` historical STALE |
 | Exact Terra implementation runtime | AUTHORIZED_BY_FOUNDER / first actual packet pending |
 | Accepted Docker launcher | NOT_READY |
 | Ent generation | NOT_RUN |

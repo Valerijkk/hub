@@ -1,8 +1,8 @@
 # Phase 144 — exact Terra dispatch index
 
-> **Status:** CONTRACT_READY · CODE_RUNTIME_BLOCKED
+> **Status:** CONTRACT_0_1_6_STATIC_REVIEW_PASS_5A351D5B · TERRA_CODE_ROUTE_AUTHORIZED · DEPENDENCIES_PENDING
 > **Required runtime:** `gpt-5.6-terra` / `xhigh`, no fallback
-> **Contract:** Mail 0.1.6 (control-plane/idempotency surface changed; current root re-review required)
+> **Contract:** Mail 0.1.6 (root and independent Terra static review PASS on `5a351d5b`)
 > **Execution:** sequential for overlapping files; independent pure packets may run in parallel only after root freezes their shared types
 
 Phase 144 adds a mailbox domain beside the existing Resend alert subsystem. It does not
@@ -172,7 +172,7 @@ every remaining row/variant, assemble the Common envelope plus exactly one secti
 
 | Gate | Status |
 |---|---|
-| Contract 0.1.6 root static review | PENDING; 0.1.5 `eae6f5e5` historical STALE; independent PENDING |
+| Contract 0.1.6 root/independent static review | PASS on exact SHA `5a351d5b`; 0.1.5 `eae6f5e5` historical STALE |
 | Exact Terra implementation runtime | AUTHORIZED_BY_FOUNDER / first actual packet pending |
 | Accepted Docker launcher | NOT_READY |
 | Ent generation | NOT_RUN |

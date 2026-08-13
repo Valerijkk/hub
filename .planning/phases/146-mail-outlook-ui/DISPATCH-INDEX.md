@@ -1,6 +1,6 @@
 # Phase 146 — exact Terra dispatch index
 
-> **Status:** CONTRACT_READY · CODE_RUNTIME_BLOCKED · TEST_HARNESS_PENDING_REBASE
+> **Status:** CONTRACT_0_1_6_STATIC_REVIEW_PASS_5A351D5B · TERRA_CODE_ROUTE_AUTHORIZED · BACKEND_DEPENDENCIES_AND_TEST_HARNESS_PENDING
 > **Required runtime:** `gpt-5.6-terra` / `xhigh`, no fallback
 > **Contract:** OpenAPI/Mail 0.1.6 + accepted UI spec
 

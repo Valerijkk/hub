@@ -1,7 +1,7 @@
 # MAIL-SPEC — Hub mailbox and calendar synchronization contract
 
 > **Version:** 0.1.6
-> **Status:** Candidate frozen; Mail 0.1.6 root/independent review pending
+> **Status:** Frozen; root and independent Terra static review PASS on `5a351d5b`
 > **Date:** 2026-08-13
 > **Architecture:** `../ADR-MAIL-01-mail-engine-calendar-sync.md`
 > **OpenAPI:** `../../../docs/mail/openapi.yaml`
