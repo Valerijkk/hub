@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
-last_updated: "2026-08-13T14:47:00+03:00"
-last_activity: 2026-08-13 · OpenAPI deep audit found another P1: list/detail/calendar response collections lack consistent pagination, item/length and aggregate bounds; affected DTO/handler packets blocked; runtime NOT_RUN
+last_updated: "2026-08-13T15:02:00+03:00"
+last_activity: 2026-08-13 · 144-02B schema preflight blocked projection schemas on missing normalized-name/index representation, exact bounded JSON/string limits and join/state CHECK matrix; runtime NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -231,6 +231,9 @@ spec_coverage:
   Phase 142 `REVIEW-OPENAPI-RESPONSE-BOUNDS.md` separately records unbounded Mail list/detail
   collections and canonical/legacy calendar expansion; affected DTO/handler packets remain
   blocked pending one reviewed machine-contract amendment.
+  Phase 144 `REVIEW-144-02B-SCHEMA-READINESS.md` additionally blocks folder/thread/message/
+  label projection schemas until normalized-name indexes, exact stored bounds and join/state
+  checks are machine-frozen.
   Evidence is recorded in the matching `IMPLEMENTATION-*.md` artifacts. A later root deep
   audit reopened 143-03A and 143-03C:
   both omit the schema-level nullable canonical hash version/hash pair CHECK required by
