@@ -162,7 +162,7 @@
 
 **Дополнительно в v4 (код):** no-code DB (`/bases`, `HubBase/HubTable/HubRecord`), marketplace (`/marketplace`), kudos и random coffee (`intranet`), status page (`/status`), текущий Resend alert admin (`/admin/mail`), 1C connector (`integrations/onec`). Это не означает наличие mailbox engine/client.
 
-Mail 0.1.4 добавляет только CRM-lite seam без кампаний: владелец сделки создаёт обычный
+Mail 0.1.5 добавляет только CRM-lite seam без кампаний: владелец сделки создаёт обычный
 Mail draft и после подтверждённой отправки вручную связывает owned message с timeline;
 уже существующее owned inbound/outbound message также можно явно связать из обычного
 reader. Адрес не попадает в URL, а CRM/admin permission не делегирует mailbox access. Это
@@ -315,7 +315,7 @@ Edge-cases: повторение прошлой пары допускается 
 
 > Границы scope зафиксированы пользователем: `.planning/decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` §4 (GZ-V4-04/05/06/07) и `.planning/archive/july-2026/ROADMAP-FINAL-2026-07-03.md` Волна 1 (задача 1.11). Не расширять без нового решения PO.
 > Базовый календарь (`/calendar`, iCal export) имеет историческую v4-поверхность — истории
-> ниже описывают целевой паритет, но не означают acceptance. Текущий Mail 0.1.4 канон:
+> ниже описывают целевой паритет, но не означают acceptance. Текущий Mail 0.1.5 канон:
 > first-class L0 event/iTIP/RSVP + private availability + reminders раньше L1; подписка на
 > внешний iCal-фид подготовлена контрактом, но её включение в первый merge ждёт founder
 > question 5. OAuth Google/Microsoft остаётся вне scope. Персоны: Игорь (Member), Дмитрий
@@ -325,6 +325,11 @@ Edge-cases: повторение прошлой пары допускается 
 > замораживает L0 first-class event + iTIP/RSVP как первый delivery gate. L1 external
 > feed subscription из исторического FR-CAL отложена до полной реализации и acceptance
 > L0. Текущий aggregator/export code не является acceptance Mail Sync.
+> Связанная встреча не дублируется: `CalendarEvent` владеет расписанием/RSVP, а
+> `ScheduledCall` остаётся call-execution projection. Legacy aggregate показывает пару как
+> прежний `call`, private availability — один `event`; backfill/cutover только all-or-nothing.
+> Email-only гости поддерживаются обычным событием. Привязанный звонок пока fail-closed для
+> такого гостя до отдельного контракта expiring/revocable join credential и доставки ссылки.
 
 ### KPI (Calendar v2)
 

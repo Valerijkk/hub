@@ -98,13 +98,19 @@ backend/internal/
 legacy admin broadcast, а не SMTP/IMAP/JMAP mailbox engine. Broadcast нарушает no-marketing
 policy `ADR-NOTIF-01` и остаётся governance gap до удаления/отключения либо явного
 founder-решения. Предпочтительный Stalwart adapter, first-class mailbox domain и Calendar
-RSVP/reliability описаны Mail 0.1.4 (`ADR-MAIL-01`, `MAIL-SPEC`, Phase 147 `CONTRACT.md`):
+RSVP/reliability описаны Mail 0.1.5 (`ADR-MAIL-01`, `MAIL-SPEC`, Phase 147 `CONTRACT.md`):
 engine хранит raw mail, Hub — calendar/receipts/projections; availability не раскрывает
 детали; reminders используют durable in-app dedupe и повторную проверку текущих offset/
 start/sequence/eligibility перед записью, а transient policy/store failure остаётся
 retriable вместо ложного suppression; CRM создаёт обычный idempotent Mail draft и лишь
 вручную связывает definitively owned message, в том числе из reader. Draft/message deep
-links повторно проверяют Mail ownership. Implementation `NOT_IMPLEMENTED`, runtime `NOT_RUN`.
+links повторно проверяют Mail ownership. Для связанной встречи `CalendarEvent` — единственная
+business-authority, а `ScheduledCall` — event-before-call locked execution projection;
+aggregate/availability не считают пару дважды, due worker использует canonical exceptions и
+durable versioned occurrence-keyed outbox. Exact-channel call UI only refetches canonical
+occurrences on that realtime signal; it does not create a second reminder. Linked-call
+attach is exact-match/fail-closed, and external guests stay ordinary-event-only until secure
+join credential delivery is accepted. Implementation `NOT_IMPLEMENTED`, runtime `NOT_RUN`.
 
 **Repository pattern (основные модули с interface):** audit, bases, calls, crm, github, gitlab, hr, intranet, marketplace, messenger, notification, project, search, sprint, tms, tracker и др.
 
@@ -154,6 +160,14 @@ Browser → Caddy → Fiber Middleware → Handler → Service → Repository �
 Domain Event → Outbox (PG) → Worker → NATS → WS Bridge → Client
 ```
 
+Mail/Calendar/linked-call v1 events use the shared pure
+`platform/events.EnvelopeV1`. Producers pass the complete envelope through the existing
+outbox as `event_type == envelope.subject`; the worker publishes the stored JSON unchanged.
+This is additive: legacy outbox payloads are not globally wrapped. Envelope `event_id` is
+the application dedupe identity, while the outbox-row `Hub-Event-Id` header is a distinct
+transport diagnostic id. New consumers reject broker/JSON subject mismatch or unknown
+schema before mutation.
+
 ### Уведомления
 ```
 NATS Event → JetStream Consumer → NotificationService → In-App + Telegram + Push
@@ -196,7 +210,8 @@ Client → POST presign URL → Backend (RBAC check) → SeaweedFS PUT (direct)
 
 | Паттерн | Где | Зачем |
 |---------|-----|-------|
-| Outbox | `platform/outbox` | At-least-once delivery events |
+| Versioned event value | `platform/events` (planned Mail 0.1.5) | Deterministic full envelope and application-event identity without changing legacy payloads |
+| Outbox | `platform/outbox` | At-least-once raw stored-payload delivery; row id remains transport identity |
 | Optimistic Locking | Ent `version` field | Concurrent edits |
 | Soft Delete | Trash 30 days | Recovery, GDPR path |
 | Presigned URLs | `storage/` | Direct upload, no backend buffer |

@@ -1,7 +1,7 @@
 # Phase 147 — reliability and integration contract
 
-> **Contract addendum:** Mail 0.1.4
-> **Status:** ROOT_STATIC_REVIEW_PASS_46CFA26C · INDEPENDENT_REVIEW_PENDING · PRODUCT_CODE_NOT_IMPLEMENTED
+> **Contract addendum:** Mail 0.1.5
+> **Status:** ROOT_STATIC_REVIEW_0_1_5_PENDING · 0_1_4_PASS_STALE · INDEPENDENT_REVIEW_PENDING · PRODUCT_CODE_NOT_IMPLEMENTED
 > **Depends on:** accepted Phase 143 calendar core, Phase 144 mailbox domain, and the
 > engine adapter portions named by each packet
 > **Runtime evidence:** NOT_RUN
@@ -38,6 +38,11 @@ before its founder gate.
    recipients, tracking state, or a second subject copy.
 9. L1 iCal feed subscription is contract-ready but code-gated by founder question 5. L2
    external mailbox ingest and L3 OAuth remain out of scope.
+10. Every new producer stores the complete shared v1 envelope through the unchanged outbox
+    with `event_type == envelope.subject`. New consumers validate broker/JSON subject
+    equality and deduplicate on envelope application `event_id`; the separate outbox-row
+    `Hub-Event-Id` is transport diagnostics only. Legacy outbox payloads are never globally
+    wrapped or reinterpreted.
 
 ## 2. Incoming REQUEST/CANCEL persistence
 
@@ -193,7 +198,12 @@ response timezone, and `slot_minutes` between 5 and 240.
   availability rule.
 - Busy event policy: organizer plus internal attendees are busy for `accepted`,
   `tentative`, and `needs_action`; `declined`, cancelled and deleted instances are absent.
-- Active scheduled calls include creator and participants. Approved, non-deleted leave is
+- Canonical events include linked-call meetings once as source `event`; source `call` is
+  restricted to active unlinked calls while the pre-cutover transition flag is enabled.
+  Linked call projection rows are not loaded as a second busy interval. After bridge
+  activation, an unlinked non-deleted call is `AVAILABILITY_SOURCE_INVALID` with no partial
+  response. Pre-cutover unlinked active calls include creator and participants.
+  Approved, non-deleted leave is
   loaded only through the existing viewer/shared-project scope. Its stored inclusive UTC
   date labels are interpreted as whole local dates in the target employee's stored IANA
   timezone, converted to an exclusive end, then to instants/response timezone. An invalid
@@ -262,9 +272,10 @@ declined/inactive recipients. `policy_disabled`, `quiet_hours`, `policy_invalid`
 The scheduler uses an injected clock, bounded lookahead and row claims. It selects event
 owners and internal attendees, expands recurrence within the scan window, and at due time
 rechecks current event/exception/attendee/configuration state before the terminal
-transition. Reminder-relevant mutations and both reminder stages use one lock order:
-event, optional exception, optional attendee, stable user-policy guard, reminder receipt,
-then optional notification. The guard is the user row: notification-preference upsert locks
+transition. Reminder-relevant mutations and both reminder stages use one lock order: event,
+optional linked ScheduledCall, optional exception, optional attendee, stable user-policy
+guard, reminder receipt, then optional notification. The guard is the user row:
+notification-preference upsert locks
 it before resolving/upserting optional preference rows, a quiet-hours profile update locks
 it before mutation, and the reminder consumer resolves both only after acquiring it. This
 also serializes an absent default preference with a concurrent first override. Event
@@ -277,9 +288,10 @@ The event payload contains only `reminder_receipt_id`, `event_id`, `user_id`, op
 `recurrence_id`, `sequence`, and `due_at`. The notification consumer refetches the owned
 event, resolves existing `calendar_reminder` channel preferences and quiet hours, and uses
 the receipt/event id as a persistent notification dedupe key. In one PostgreSQL transaction
-and the same lock order, it locks the current event/exception/attendee, user-policy guard
-and a still-pending in-app outcome, then performs the last-chance authorization, policy and
-state check. Current sequence, effective start, non-null `reminder_minutes`, derived
+and the same lock order, it locks the current event/optional linked call/exception/attendee,
+user-policy guard and a still-pending in-app outcome, then performs the last-chance
+authorization, policy and state check. Current sequence, effective start, non-null
+`reminder_minutes`, derived
 `due_at`, owner/attendee eligibility and active event/occurrence must still match the
 receipt and event payload before a notification row may be created. A definitive mismatch
 records one durable suppressed in-app outcome and acknowledges the event; policy
@@ -325,7 +337,7 @@ Guarantees are deliberately narrow:
 ## 6. Conditional L1 iCal feed contract
 
 This section is design-complete but `BLOCKED_BY_FOUNDER_QUESTION_5`. Its endpoints are not
-part of OpenAPI 0.1.4 until accepted.
+part of OpenAPI 0.1.5 until accepted.
 
 - CRUD proposal: `/api/calendar/v2/feeds` and `/feeds/{feedId}` plus explicit
   `/feeds/{feedId}/refresh`; every resource is owner-scoped, with at most 10 active feeds,

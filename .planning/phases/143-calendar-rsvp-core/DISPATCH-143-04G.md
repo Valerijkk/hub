@@ -12,7 +12,8 @@ calendar subjects в существующий JetStream EVENTS stream.
 
 [OWNERSHIP]
 
-- Entry: root accepted 143-04A event subject contract on a clean reviewed HEAD.
+- Entry: root accepted 143-04A event subject contract and 143-04L envelope contract on a
+  clean reviewed HEAD.
 - Allowed mutations only:
   - `backend/internal/platform/nats/client.go`
   - one focused genuine unit under `backend/tests/calendar/**` that imports public/exported
@@ -37,8 +38,9 @@ calendar subjects в существующий JetStream EVENTS stream.
 1. Canonical stream set is exactly prior set plus one `calendar.>` entry.
 2. No duplicate subject and no broader `>`/`*.>` wildcard is introduced.
 3. Exact outbound webhook filter snapshot is unchanged.
-4. All seven frozen `calendar.invite.*.v1` / `calendar.rsvp.changed.v1` subjects match
-   `calendar.>` and no `mail.*` subject is claimed by this packet.
+4. All five schema-listed calendar subjects (`calendar.invite.created|updated|cancelled.v1`,
+   `calendar.rsvp.changed.v1`, `calendar.reminder.due.v1`) match `calendar.>` and no
+   `mail.*` or linked-call subject is claimed by this packet.
 5. No runtime broker interaction is needed for the pure inventory oracle.
 
 [EXECUTION / PROVENANCE]

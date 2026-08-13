@@ -178,8 +178,26 @@ the UI never lies by rolling back an accepted canonical response.
 
 - Unified Calendar adds kind `event` and shows attendee response summaries.
 - Meeting creation uses busy/free results from events, calls, and approved leave.
-- Scheduled calls linked to events share title/time/recurrence but remain distinct
-  entities. Opening a call from the calendar routes to the existing call experience.
+- Scheduled calls linked to events remain distinct entities, but the event is the only
+  authority for title/time/recurrence/exceptions/reminder/attendees. The call stores channel
+  execution state and the next effective occurrence. Legacy and calendar edits update the
+  pair atomically; a cancelled occurrence cannot remain as a ghost call. Opening it still
+  routes to the existing call experience.
+- Attaching an existing scheduled call is a no-surprises conversion: the form must match the
+  locked call's title, time/duration, recurrence, reminder and internal participant set.
+  Mismatch refreshes the call instead of overwriting it. Ordinary events accept email-only
+  guests; while founder question 23 is pending, selecting a Hub call with an external guest
+  shows “External guests cannot join this Hub call yet” and offers to keep an unlinked event.
+  It never implies that an email address grants call access.
+- Both shipped legacy call forms keep one idempotency key for the whole submission attempt.
+  The exact-channel call calendar renders server-expanded canonical occurrences and, on
+  mount/reconnect, subscribes to the authorized rooms for its returned channels. An
+  authorized `call.scheduled_due.v1` silently refetches that query; room cleanup follows
+  channel removal/unmount, and the normal HTTP query recovers a missed best-effort signal.
+  It does not duplicate the calendar reminder with a second toast.
+- The legacy aggregate renders a linked pair once as its existing `call` kind; private v2
+  availability renders it once as `event`. Meeting conflict UX never displays another
+  channel's call title through the older conflict-detail endpoint.
 - Reminders reuse the existing notification pipeline. Mail is not used as a new generic
   notification channel and does not expand the Resend whitelist. When preferences and
   quiet hours permit delivery, one in-app reminder is persistently deduplicated; otherwise

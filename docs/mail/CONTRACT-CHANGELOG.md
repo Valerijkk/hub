@@ -1,5 +1,45 @@
 # Hub Mail contract changelog
 
+## 0.1.5 — 2026-08-13
+
+ScheduledCall canonical-cutover amendment. Product code and runtime remain
+`NOT_IMPLEMENTED` / `NOT_RUN`; the 0.1.4 review is historical `STALE` for this revision and
+current semantic SHA review is pending.
+
+- Made `CalendarEvent` the only business authority for linked meeting content, time,
+  recurrence/exceptions, reminder, status and attendees; `ScheduledCall` is a distinct
+  execution/legacy projection with a next effective occurrence.
+- Froze atomic legacy create/update/delete, calendar-v2 attach/edit, event-before-call lock
+  order, occurrence-cancel projection advancement and occurrence-keyed durable call-due
+  outbox behavior on `calls.channel.{channelId}.scheduled_due.v1`. Legacy PUT keeps
+  serialized last-write-wins because its wire has no `If-Match`; the successful response
+  shape stays compatible.
+- Closed reader duplication: legacy aggregate shows a linked pair once as `call`, while v2
+  availability shows it once as `event` and loads active unlinked calls only before cutover.
+  The backfill now includes paused/completed non-deleted rows so legacy resume cannot restore
+  an unlinked writer; any unlinked non-deleted row after activation is an invariant failure.
+  New meeting conflict UX must use private v2 availability; legacy conflict detail requires
+  membership in the exact conflicting channel.
+- Expanded ScheduledCall backfill to organization/project/channel coherence, description,
+  duration, reminder, recurrence, participant identity, audit timestamps and deterministic
+  hashes. Recurring rows block apply until founder-selected UTC-versus-local semantics and
+  bounded occurrence-oracle evidence agree; partial migration and guessing are forbidden.
+- Made event `scheduled_call_id` an immutable creation-only, server-authorized link in
+  OpenAPI. Attach requires exact normalized equality with the locked call, and the safe
+  default rejects external guests until a join-credential delivery contract exists. Series
+  attendee state alone drives the internal participant projection; occurrence RSVP cannot.
+- Froze mandatory legacy-create idempotency as an explicit compatibility decision, strict
+  conflict UUID parsing, exact-channel/project membership and canonical server-side
+  occurrence delivery to the browser. Added founder questions 18–23 for recurrence,
+  pause/resume, nested call creation, overdue recovery, idempotency compatibility and linked
+  external guests.
+- Closed the outbox/envelope ambiguity: a shared deterministic builder creates the complete
+  versioned envelope, new producers store it unchanged through the existing `PublishInTx`
+  seam with `event_type == subject`, and the global worker/legacy payload contract remains
+  untouched. Envelope `event_id` is the consumer dedupe id; the outbox row
+  `Hub-Event-Id` remains a distinct transport diagnostic id. Phase 144 event mapping now
+  precedes transactional producers instead of depending on them.
+
 ## 0.1.4 — 2026-08-13
 
 Reminder/CRM race-closure amendment. Product code and runtime remain

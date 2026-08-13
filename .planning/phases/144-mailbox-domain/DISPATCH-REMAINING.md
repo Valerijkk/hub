@@ -5,8 +5,8 @@
 > **Runtime:** `gpt-5.3-codex` / `xhigh`, fallback none.
 > **Status:** CODE_RUNTIME_BLOCKED; generation/runtime also launcher-blocked.
 
-Standalone complete prompts exist for 144-01A, 144-04D, 144-04E, 144-05A, 144-05B and
-144-06A. This file completes every other index row.
+Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05A,
+144-05B and 144-06A. This file completes every other index row.
 
 ## Common execution envelope
 
@@ -40,7 +40,7 @@ Standalone complete prompts exist for 144-01A, 144-04D, 144-04E, 144-05A, 144-05
 
 ## 144-02A — account/identity/domain/policy schemas
 
-- Dependency: contract 0.1.4 and migration gate recorded. Allowed only:
+- Dependency: contract 0.1.5 and migration gate recorded. Allowed only:
   `backend/ent/schema/mailaccount.go`, `mailidentity.go`, `maildomain.go`,
   `mailboxpolicy.go`, narrow additive inverse edges in `user.go`, `organization.go`.
 - Behavior: exact spec §3 fields/enums/bounds; unique org+user, opaque engine account;
@@ -164,13 +164,16 @@ Standalone complete prompts exist for 144-01A, 144-04D, 144-04E, 144-05A, 144-05
 
 ## 144-04C — message projection/read/bulk
 
-- Dependencies: 03A-Thread/03B-Folder/04A/01B/02E. Allowed only
+- Dependencies: 03A-Thread/03B-Folder/03D/04A/01B/02E. Allowed only
   `message_service.go`, `message_projection.go`,
   `backend/tests/mail/message_service_test.go`.
 - Behavior: owner filter before engine hydrate; opaque cursor; engine authoritative
   folders/flags, Hub labels/pin; bulk per-message outcomes; projection freshness explicit.
+  A successful mutation that changes the durable projection writes one complete 03D
+  `mail.message.changed.v1` envelope through the supplied transaction outbox seam.
 - Oracles: no cross-mailbox hit/count/snippet/timing hydrate; flag/move failure reconcile;
-  partial batch; BCC owner-sent only; body never repository; duplicate change idempotent.
+  partial batch; BCC owner-sent only; body never repository; duplicate change idempotent;
+  rollback writes neither projection change nor envelope.
 
 ## 144-05C-Search — search seam
 

@@ -1,8 +1,8 @@
 # Phase 147 — exact Spark dispatch index
 
-> **Status:** CONTRACT_0_1_4_ROOT_STATIC_PASS_46CFA26C · INDEPENDENT_REVIEW_PENDING · CODE_RUNTIME_BLOCKED
+> **Status:** CONTRACT_0_1_5_ROOT_REVIEW_PENDING · INDEPENDENT_REVIEW_PENDING · CODE_RUNTIME_BLOCKED
 > **Required runtime:** `gpt-5.3-codex` / `xhigh`, no fallback
-> **Contract:** `CONTRACT.md` + Mail 0.1.4
+> **Contract:** `CONTRACT.md` + Mail 0.1.5
 > **Execution:** one row/variant per executor; overlapping files are sequential
 
 Every code packet starts from a root-reviewed clean SHA, writes its stated genuine unit
@@ -65,7 +65,7 @@ all accepted rows ─ 147-08 docs sync/static review
 | 147-03A | External REPLY delivery state machine and sender port | `backend/internal/calendar/reply_delivery.go`, `backend/tests/calendar/reply_delivery_test.go` | stable draft/send keys; unknown reconciles; permanent/transient split | 01C/E + accepted 143 RSVP/serializer |
 | 147-03B | Mailbox reply adapter and bounded worker | `backend/internal/mail/calendar_reply_adapter.go`, `backend/internal/calendar/reply_worker.go`, narrow `backend/cmd/server/wiring_calendar_mail.go`, `backend/tests/mail/calendar_reply_adapter_test.go`, `backend/tests/calendar/reply_worker_test.go` | genuine fake-port units; hidden draft + one submission; no blind retry; attendee status reflects ledger | 03A + accepted 144 draft/submission + engine availability |
 | 147-04A | Pure busy/free interval and occurrence normalization | `backend/internal/calendar/availability_policy.go`, `backend/tests/calendar/availability_policy_test.go` | half-open range; DST/all-day; merge/complement/bounds; no private fields | accepted 143 temporal/recurrence policy |
-| 147-04B | Owner-scoped availability source queries | `backend/internal/calendar/availability_repository.go`; no Go DB test | authorize all users first; events/calls/policy-visible approved leave; Python integration handoff; bounded rows | 04A + 01E |
+| 147-04B | Owner-scoped availability source queries | `backend/internal/calendar/availability_repository.go`; no Go DB test | authorize all users first; canonical linked pairs once as event, unlinked calls only, policy-visible approved leave; Python integration handoff; bounded rows | 04A + accepted 143 bridge + 01E |
 | 147-04C | Availability service/DTO/HTTP composition | `backend/internal/calendar/availability_service.go`, `availability_dto.go`, `availability_handler.go`, narrow `backend/internal/calendar/handler.go` and `backend/cmd/server/wiring_modules.go`, `backend/tests/calendar/availability_service_test.go` | genuine fake-repository service unit; exact OpenAPI; stable private result; API handoff | 04A/B |
 | 147-05A1 | Stable user-policy guard for preference/quiet-hours serialization | `backend/internal/notification/repository.go`; no Go DB test | preference upsert transaction locks user before optional-row query/insert/update; ordinary user UPDATE is the quiet-hours side of the same guard; Python concurrency handoff | 01D/E |
 | 147-05A2 | Persistent notification dedupe seam | `backend/internal/notification/service.go`, narrow `repository.go`, `events.go`, `backend/tests/calendar/notification_calendar_dedupe_test.go` | genuine fake-repository unit; optional hash; guarded strict policy resolution/no UTC fallback; safe reason; lookup/store failures retry; legacy 2s behavior retained when absent | 05A1 |
@@ -81,7 +81,7 @@ all accepted rows ─ 147-08 docs sync/static review
 | 147-06H | Feed refresh scheduler composition | `backend/internal/calendar/feed_scheduler.go`, `backend/cmd/server/wiring_calendar_feed.go`, `backend/tests/calendar/feed_scheduler_test.go` | genuine fake-clock unit; hourly jitter, one-per-feed claim, manual rate/backoff, context shutdown | 06E/F/G |
 | 147-07A | Immutable CRM mail activity link schema | `backend/ent/schema/crmmailactivity.go`, narrow edges in `crmdeal.go`/`mailmessage.go`/`user.go` | unique deal+message; no content/address/tracking; safe deletion relation | accepted 144 message schema + migration |
 | 147-07B | CRM compose context and owned-message link service | `backend/internal/crm/mail_service.go`, `mail_port.go`, `backend/internal/mail/crm_message_adapter.go`, `backend/tests/mail/crm_mail_service_test.go` | genuine fake-port unit; deal and message owners checked separately; idempotent link; zero hydrate on denial | 07A + accepted mailbox projection |
-| 147-07C | CRM mail DTO/handlers/routes | `backend/internal/crm/mail_dto.go`, `mail_handler.go`, narrow `backend/internal/crm/handler.go` and `backend/cmd/server/wiring_modules.go`; no Go HTTP test | exact 0.1.4 paths/NFR-13; bounded timeline; not-found privacy; Python API handoff | 07B |
+| 147-07C | CRM mail DTO/handlers/routes | `backend/internal/crm/mail_dto.go`, `mail_handler.go`, narrow `backend/internal/crm/handler.go` and `backend/cmd/server/wiring_modules.go`; no Go HTTP test | exact 0.1.5 paths/NFR-13; bounded timeline; not-found privacy; Python API handoff | 07B |
 | 147-07D | Typed CRM mail API client | `frontend/src/api/crm-mail.ts`, `frontend/tests/mail/crm-mail-api.test.ts` | exact compose/list/link/unlink methods; opaque cursor; 204 handling; no draft/send or mailbox-authorization shortcut | 07C + accepted shared client |
 | 147-07E | Deal compose-to-draft handoff | `frontend/src/modules/crm/deal-mail-compose-action.tsx`, narrow `frontend/src/modules/crm/deals-pipeline.tsx`, `frontend/tests/mail/crm-mail-compose.test.tsx` | context + Mail default identity + one idempotent ordinary draft create; recipient only in body; navigate by draft UUID; no send/link | 07D + accepted Phase 146 Mail client/routes + frontend harness |
 | 147-07F | Saved-draft CRM intent and explicit post-send link | `frontend/src/modules/mail/mail-crm-link-intent.ts`, narrow `frontend/src/modules/mail/mail-shell.tsx`, `frontend/tests/mail/mail-crm-draft-link.test.tsx` | deal id only in ephemeral navigation state; normal composer/submission; link enabled only for definitive owned message; reload safely loses hint | 07D/E + accepted Phase 146 composer |
@@ -103,8 +103,9 @@ all accepted rows ─ 147-08 docs sync/static review
   They return no source ids or text and never partially answer an unauthorized user list.
 - Notification persistent dedupe is optional for legacy callers. It must not silently
   change existing 2-second behavior when no key is supplied.
-- Every reminder-relevant event/exception/attendee mutation and both reminder stages use
-  event → exception → attendee → user-policy guard → receipt → notification lock order.
+- Every linked-call/reminder-relevant mutation and both reminder stages use event → optional
+  ScheduledCall → optional exception → optional attendee → user-policy guard → receipt →
+  notification order.
   Preference upsert locks the same stable user row before optional rows. Neither scheduler
   nor consumer may trust the emitted payload instead of rechecking current offset/start/
   state; the consumer also re-resolves quiet hours/preferences under the guard.
@@ -119,8 +120,8 @@ all accepted rows ─ 147-08 docs sync/static review
 
 | Gate | Status |
 |---|---|
-| Mail 0.1.4 root static review | PASS on `46cfa26c`; `STATIC-REVIEW.md` |
-| Mail 0.1.4 independent static review | PENDING |
+| Mail 0.1.5 root static review | PENDING; 0.1.4 `46cfa26c` is historical STALE |
+| Mail 0.1.5 independent static review | PENDING |
 | Exact Spark implementation runtime | UNAVAILABLE |
 | Accepted Docker launcher | NOT_READY |
 | Ent generation/migration | NOT_RUN / FOUNDER_DECISION_PENDING |

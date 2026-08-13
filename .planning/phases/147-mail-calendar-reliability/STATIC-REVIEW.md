@@ -4,6 +4,8 @@
 > **Parent:** `2ac87fcb9722acb6fface1b8db4f9629f39a6793`
 > **Branch:** `codex/mail-module-20260813`
 > **Verdict:** `ROOT_STATIC_PASS`
+> **Superseded by:** Mail 0.1.5 amendment; this pass is historical `STALE` for current
+> contract acceptance and must not be reused as current-provenance evidence.
 > **G148-02 state:** `ROOT_LENS_PASS` · `INDEPENDENT_REVIEW_PENDING`
 > **Product/test code:** `NOT_IMPLEMENTED`
 > **Runtime/build/test/schema-validator evidence:** `NOT_RUN`

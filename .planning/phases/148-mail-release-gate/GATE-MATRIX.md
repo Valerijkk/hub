@@ -42,10 +42,10 @@ secrets, DNS/operator approval and CTO/founder sign-off remain separate.
 | ID | Required evidence | Current state | Blocks |
 |---|---|---|---|
 | G148-01 baseline | clean isolated branch; base/current SHA; worktree path; changed-file and protected-zone diff; no untracked product artifact | PASS for docs snapshot only; repeat after code | every later gate |
-| G148-02 contract | ADR, Mail spec, OpenAPI, event schema, UI contract, Phase 147 contract and QA handoff independently agree; machine refs/examples closed | ROOT_STATIC_PASS on exact semantic SHA `46cfa26c`; independent current-provenance review PENDING, so gate remains open | source work/claim |
-| G148-03 founder decisions | signed answers for exact Spark runtime, migration mechanism, Stalwart license, L1 include/defer, broadcast disposition, rebase signal; push/PR separately authorized | BLOCKED/UNRESOLVED | affected packets and final gate |
+| G148-02 contract | ADR, Mail spec, OpenAPI, event schema, UI contract, Phase 147 contract and QA handoff independently agree; machine refs/examples closed | Mail 0.1.5 root/independent current-provenance review PENDING; 0.1.4 `46cfa26c` is STALE, so gate remains open | source work/claim |
+| G148-03 founder decisions | signed answers for exact Spark runtime, migration mechanism, Stalwart license, L1 include/defer, recurring-call semantics, pause/resume, legacy POST idempotency break, linked-call guest access, broadcast disposition, rebase signal; push/PR separately authorized | BLOCKED/UNRESOLVED | affected packets and final gate |
 | G148-04 model provenance | every production/test-code packet records actual `gpt-5.3-codex` + `xhigh`; no silent fallback; review packets record allowed Terra effort | BLOCKED: exact Spark unavailable | source acceptance |
-| G148-05 migrations/generation | reviewed mechanism, preflight, generated Ent twice clean, migration/backfill dry-run on empty + realistic snapshot, counts and rollback | NOT_RUN | backend/runtime |
+| G148-05 migrations/generation | reviewed mechanism, preflight, generated Ent twice clean, complete ScheduledCall mapping + recurrence oracle + 100% bridge cutover dry-run on empty/realistic snapshot, counts/hashes and rollback | NOT_RUN | backend/runtime |
 | G148-06 independent source review | backend, frontend, architecture, security, product and QA lenses on current diff; all P0/P1 fixed and re-reviewed | NOT_RUN | merge-ready |
 | G148-07 launcher integrity | versioned outer launcher has task owner marker, CPU/RAM/PID limits, wall timeout, isolated report root and unconditional exact cleanup | NOT_READY | all executable evidence |
 | G148-08 units/build/contracts | applicable backend/frontend feature units, generation, build/type/lint and schema/source-contract jobs green through launcher | NOT_RUN | merge-ready |
@@ -91,6 +91,7 @@ Missing fields make the evidence `FAIL` or `STALE`, never assumed.
 | draft save loses response | draft becomes unknown; next operation reconciles opaque engine version; no blind overwrite |
 | send loses response | same `MailSubmission` reconciles; exactly one visible sent message |
 | outbox publish redelivers | consumers remain idempotent; no second state mutation/in-app row |
+| versioned envelope transport | shared builder is deterministic; outbox event type, NATS subject and JSON subject match; full envelope bytes are published unchanged; application `event_id` deduplicates under same/different `Hub-Event-Id`; mismatch/malformed/unknown version dead-letters before mutation; legacy outbox payloads remain unchanged |
 | invalid mailbox cursor | mailbox projection is degraded, bounded owner rebuild occurs, freshness is not forged |
 | engine unavailable | mailbox mutations return safe unavailable/unknown semantics; cached projections are visibly stale; Resend readiness unchanged |
 | projection/search lag | authorized engine result may appear with indexing state; no unauthorized hit/id/snippet; rebuild converges |
@@ -107,6 +108,15 @@ Missing fields make the evidence `FAIL` or `STALE`, never assumed.
 | CRM compose double-click/lost response/navigation | one normal draft and one stable idempotency key/body while unknown; recipient appears only in request body; failed navigation reuses returned draft UUID; no send/link until explicit normal-Mail actions |
 | CRM foreign message | generic not-found/forbidden boundary, zero engine/body hydration, no activity row |
 | CRM existing-message link | ordinary reader offers only current-user owned deals; explicit duplicate PUT converges; forged/admin-visible unowned deal remains server-denied with no content copy |
+| legacy call backfill | full non-deleted set, including paused/completed rows, maps org/project/channel/identity/content/reminder/recurrence exactly; one bad row blocks all; soft-deleted counts are fixed/non-reactivatable; no historical outbox |
+| recurring call semantic drift | raw worker, injected-UTC aggregate and selected canonical future occurrence oracles agree; mismatch/cap/unsupported row blocks apply |
+| paired meeting create/edit/delete | event, attendees, call projection and invitation outbox commit together; v2/legacy concurrency locks event before call and leaves one authority |
+| legacy create retry/attach | both shipped clients reuse one key through ambiguous retry; exact replay returns one pair; changed input conflicts; attach requires exact locked-call equality and never overwrites a mismatch |
+| linked-call membership/guest | creator is an active exact-channel member; internal attendees are active same-project/same-org members; external attendee fails closed pending guest join credentials while an ordinary unlinked event remains valid |
+| series/occurrence participant projection | series `needs_action|accepted|tentative` adds/keeps the internal participant; declined/removed removes it; occurrence RSVP never changes the call edge |
+| occurrence cancel/call due | cancelled next occurrence never fires; projection advances atomically; duplicate worker/outbox delivery uses one occurrence key and never changes event/reminder state; `call.scheduled_due.v1` causes authorized canonical refetch without another reminder |
+| linked-pair readers | legacy aggregate emits one canonical-backed `call`; availability emits one `event`; no duplicate busy interval or ghost occurrence |
+| legacy call detail privacy | title/channel detail requires caller membership in the exact conflicting channel; Mail UI uses private v2 availability |
 | feed refresh failure | if L1 included, last complete snapshot remains, safe stale/error, no cross-source rewrite |
 | restart | engine volume, Hub projections, receipts and workers recover without duplicate mutation |
 | backup/restore | dedicated engine volume plus Hub stores restore in isolation and reconcile |
@@ -147,9 +157,9 @@ requirements and evidence request; it does not edit that program.
 
 ## 8. Current honest aggregate
 
-`ROOT_CONTRACT_REVIEW_PASS_INDEPENDENT_PENDING`: Mail 0.1.4 root static review passed on the
-exact semantic SHA `46cfa26c`; the historical 0.1.3 review remains stale, and an independent
-current-provenance review is still required before G148-02 can close. Product code is not
+`CONTRACT_REVIEW_PENDING`: Mail 0.1.5 amended the ScheduledCall authority, migration and
+reader/worker contracts, so the 0.1.4 pass on `46cfa26c` is stale. Root and independent
+current-provenance reviews are required before G148-02 can close. Product code is not
 implemented, the exact code-writing runtime is unavailable, the launcher is not ready,
 engine/legal/migration/broadcast/rebase decisions are unresolved, and all executable evidence is
 `NOT_RUN`.

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://hub.example.test/schemas/mail/events-v1.schema.json",
-  "title": "Hub mail and calendar event envelope v1",
+  "title": "Hub mail, calendar and linked-call event envelope v1",
   "oneOf": [
     { "$ref": "#/$defs/mailReceived" },
     { "$ref": "#/$defs/mailSent" },
@@ -10,7 +10,8 @@
     { "$ref": "#/$defs/calendarInviteUpdated" },
     { "$ref": "#/$defs/calendarInviteCancelled" },
     { "$ref": "#/$defs/calendarRsvpChanged" },
-    { "$ref": "#/$defs/calendarReminderDue" }
+    { "$ref": "#/$defs/calendarReminderDue" },
+    { "$ref": "#/$defs/callsScheduledDue" }
   ],
   "$defs": {
     "uuid": {
@@ -49,9 +50,15 @@
         "payload"
       ],
       "properties": {
-        "subject": { "type": "string" },
+        "subject": {
+          "type": "string",
+          "description": "Must exactly equal OutboxEvent.event_type and the NATS subject."
+        },
         "schema_version": { "const": 1 },
-        "event_id": { "$ref": "#/$defs/uuid" },
+        "event_id": {
+          "$ref": "#/$defs/uuid",
+          "description": "Stable application-event id; distinct from the outbox row id carried in Hub-Event-Id."
+        },
         "occurred_at": { "$ref": "#/$defs/dateTime" },
         "organization_id": { "$ref": "#/$defs/uuid" },
         "actor_id": {
@@ -357,6 +364,49 @@
                 "recurrence_id": { "type": ["string", "null"], "maxLength": 255 },
                 "sequence": { "type": "integer", "minimum": 0 },
                 "due_at": { "$ref": "#/$defs/dateTime" }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "callsScheduledDue": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "properties": {
+            "subject": {
+              "type": "string",
+              "pattern": "^calls\\.channel\\.[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\\.scheduled_due\\.v1$"
+            },
+            "payload": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "scheduled_call_id",
+                "calendar_event_id",
+                "occurrence_key",
+                "recurrence_id",
+                "channel_id",
+                "project_id",
+                "title",
+                "scheduled_at",
+                "duration_minutes"
+              ],
+              "properties": {
+                "scheduled_call_id": { "$ref": "#/$defs/uuid" },
+                "calendar_event_id": { "$ref": "#/$defs/uuid" },
+                "occurrence_key": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "recurrence_id": { "type": ["string", "null"], "maxLength": 255 },
+                "channel_id": { "$ref": "#/$defs/uuid" },
+                "project_id": { "$ref": "#/$defs/uuid" },
+                "title": { "type": "string", "minLength": 1, "maxLength": 255 },
+                "scheduled_at": { "$ref": "#/$defs/dateTime" },
+                "duration_minutes": { "type": "integer", "minimum": 1, "maximum": 1440 }
               }
             }
           }

@@ -12,7 +12,8 @@ submission state machine после принятого draft service.
 
 [OWNERSHIP]
 
-- Entry: accepted 144-01B, 144-02C/E, 144-04A and 144-04D on clean reviewed HEAD.
+- Entry: accepted 143-04L, 144-01B, 144-02C/E, 144-03D, 144-04A and 144-04D on
+  clean reviewed HEAD.
 - Allowed mutations only:
   - `backend/internal/mail/submission_service.go`
   - `backend/tests/mail/submission_service_test.go`
@@ -29,7 +30,7 @@ POST send(draft, raw key, canonical request)
          -> validate active draft/identity/recipients/clean attachments
          -> atomically freeze draft as submitting
          -> submission submitting -> engine Submit once
-         -> sent + result ids + draft submitted + mail.sent.v1 in same Hub transaction
+         -> sent + result ids + draft submitted + full mail.sent.v1 envelope in same Hub transaction
   same key + different request hash -> 409, zero engine call
   same key + sent/failed -> replay same receipt
   same key + queued/submitting/unknown -> ReconcileSubmission first
@@ -49,7 +50,8 @@ only one can reach engine Submit.
 
 [REQUIRED ORACLES]
 
-1. First request performs one Submit, one receipt finalization and one `mail.sent.v1`.
+1. First request performs one Submit, one receipt finalization and one complete 03D
+   `mail.sent.v1` envelope persisted through `PublishInTx(subject, envelope)`.
 2. Same key/input after success replays byte-equivalent receipt; zero Submit/outbox.
 3. Same key/different canonical input returns idempotency conflict; zero Submit/outbox.
 4. Timeout/indeterminate produces `unknown`; retry and receipt read call reconcile first.
@@ -67,6 +69,9 @@ only one can reach engine Submit.
     credential or raw SMTP/provider error.
 13. Context cancellation after engine confirmation but before Hub finalization converges
     through reconciliation to one sent receipt and one outbox event.
+14. Event id/time/org/actor/correlation are explicit stable inputs; retry/reconcile never
+    regenerates a second envelope id. Stored event type equals JSON subject, and the fake
+    outbox receives the whole envelope rather than only inner payload.
 
 [EXECUTION / PROVENANCE]
 

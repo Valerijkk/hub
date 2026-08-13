@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Hub Mail and Calendar Sync API
-  version: 0.1.4
+  version: 0.1.5
   description: Frozen implementation contract. Presence in this file does not imply implementation.
 servers:
   - url: /api
@@ -14,6 +14,7 @@ tags:
   - name: MailDrafts
   - name: MailAttachments
   - name: MailSettings
+  - name: ScheduledCalls
   - name: CalendarEvents
   - name: CrmMail
   - name: AdminMail
@@ -620,6 +621,134 @@ paths:
       responses:
         "204": {description: Rule deleted from Hub and engine}
         default: {$ref: "#/components/responses/Error"}
+  /projects/{projectId}/scheduled-calls:
+    post:
+      tags: [ScheduledCalls]
+      operationId: createLegacyScheduledCall
+      description: >-
+        Compatibility create. At bridge cutover it atomically creates one canonical event,
+        its attendees, one ScheduledCall execution projection and invitation outbox. The
+        successful response shape remains compatible. The authenticated creator must be an
+        active exact-channel member; every internal participant must be an active member of
+        the same project and organization.
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - {$ref: "#/components/parameters/IdempotencyKey"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/CreateScheduledCallRequest"}
+      responses:
+        "201":
+          description: Canonical event/call pair created
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ScheduledCall"}
+        "409": {$ref: "#/components/responses/IdempotencyConflict"}
+        "400": {$ref: "#/components/responses/Error"}
+        default: {$ref: "#/components/responses/Error"}
+  /channels/{channelId}/scheduled-calls:
+    get:
+      tags: [ScheduledCalls]
+      operationId: listLegacyScheduledCalls
+      description: >-
+        Exact-channel-authorized compatibility list. Without range parameters the existing
+        response fields are unchanged. Paired from/to adds canonical bounded occurrences;
+        supplying only one bound is invalid.
+      parameters:
+        - name: channelId
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - name: from
+          in: query
+          schema: {type: string, format: date-time}
+        - name: to
+          in: query
+          schema: {type: string, format: date-time}
+      x-hub-validation: from-and-to-are-both-absent-or-both-present; half-open range at most 366 days
+      responses:
+        "200":
+          description: Existing envelope with optional canonical occurrence expansion
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [scheduled_calls]
+                properties:
+                  scheduled_calls:
+                    type: array
+                    items: {$ref: "#/components/schemas/ScheduledCall"}
+        "400": {$ref: "#/components/responses/Error"}
+        default: {$ref: "#/components/responses/Error"}
+  /scheduled-calls/{scheduledCallId}:
+    parameters:
+      - name: scheduledCallId
+        in: path
+        required: true
+        schema: {type: string, format: uuid}
+    put:
+      tags: [ScheduledCalls]
+      operationId: updateLegacyScheduledCall
+      description: >-
+        Compatibility last-write-wins mutation serialized on the locked canonical event;
+        invitation-relevant changes still use canonical sequence/RSVP policy.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/UpdateScheduledCallRequest"}
+      responses:
+        "200":
+          description: Canonical event and call projection updated atomically
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ScheduledCall"}
+        "409": {$ref: "#/components/responses/Conflict"}
+        "400": {$ref: "#/components/responses/Error"}
+        default: {$ref: "#/components/responses/Error"}
+    delete:
+      tags: [ScheduledCalls]
+      operationId: deleteLegacyScheduledCall
+      description: Cancels the canonical event and soft-deletes/deactivates the call atomically
+      responses:
+        "200": {description: Event/call pair cancelled}
+        "409": {$ref: "#/components/responses/Conflict"}
+        default: {$ref: "#/components/responses/Error"}
+  /calls/conflicts:
+    get:
+      tags: [ScheduledCalls]
+      operationId: checkLegacyScheduledCallConflicts
+      description: >-
+        Legacy detail endpoint. A returned title/channel requires caller membership in that
+        exact conflicting channel. Invalid, duplicate or over-limit participant UUID input is
+        rejected rather than silently discarded. New meeting UX uses private calendar-v2
+        availability.
+      parameters:
+        - name: time
+          in: query
+          required: true
+          schema: {type: string, format: date-time}
+        - name: duration
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 1440, default: 60}
+        - name: participant_ids
+          in: query
+          description: Comma-separated unique UUIDs; max 50
+          schema: {type: string, maxLength: 1849}
+      responses:
+        "200":
+          description: Authorized conflict details only
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ScheduledCallConflictResponse"}
+        "400": {$ref: "#/components/responses/Error"}
+        default: {$ref: "#/components/responses/Error"}
   /calendar/events:
     get:
       tags: [CalendarEvents]
@@ -637,7 +766,7 @@ paths:
           schema: {type: string, format: date-time}
       responses:
         "200":
-          description: Existing aggregate of calls, sprints, deadlines and leave
+          description: Existing aggregate envelope with calls, sprints, deadlines, leave and additive unlinked canonical events
           content:
             application/json:
               schema: {$ref: "#/components/schemas/LegacyCalendarEventsResponse"}
@@ -687,7 +816,9 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/CalendarEvent"}
-        "409": {$ref: "#/components/responses/IdempotencyConflict"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/CalendarCreateConflict"}
+        "422": {$ref: "#/components/responses/Error"}
         default: {$ref: "#/components/responses/Error"}
   /calendar/v2/events/{eventId}:
     parameters:
@@ -1230,6 +1361,17 @@ components:
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
+    CalendarCreateConflict:
+      description: Idempotency reuse or an owned ScheduledCall cannot be attached without changing its locked canonical-mapped state
+      headers:
+        X-Hub-Error-Code:
+          required: true
+          schema:
+            type: string
+            enum: [IDEMPOTENCY_KEY_REUSED, SCHEDULED_CALL_LINK_MISMATCH, SCHEDULED_CALL_NOT_ATTACHABLE]
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/ErrorEnvelope"}
     CalendarMutationConflict:
       description: RSVP optimistic-version or idempotency-key conflict
       headers:
@@ -1640,13 +1782,128 @@ components:
           minItems: 1
           maxItems: 10
           items: {$ref: "#/components/schemas/MailRuleAction"}
+    ScheduledCallOccurrence:
+      type: object
+      additionalProperties: false
+      required: [recurrence_id, scheduled_at, ends_at]
+      properties:
+        recurrence_id:
+          type: [string, "null"]
+          maxLength: 255
+          description: Canonical normalized RECURRENCE-ID; null for a one-time call
+        scheduled_at: {type: string, format: date-time}
+        ends_at: {type: string, format: date-time}
+    ScheduledCall:
+      type: object
+      additionalProperties: false
+      required: [id, title, scheduled_at, duration_minutes, channel_id, project_id, created_by, is_active, created_at, updated_at]
+      properties:
+        id: {type: string, format: uuid}
+        title: {type: string, minLength: 1, maxLength: 255}
+        description: {type: string, maxLength: 2000}
+        scheduled_at:
+          type: string
+          format: date-time
+          description: Next effective call-execution occurrence; not the canonical series DTSTART
+        duration_minutes: {type: integer, minimum: 1, maximum: 1440}
+        reminder_minutes: {type: [integer, "null"], minimum: 0, maximum: 40320}
+        rrule:
+          type: string
+          maxLength: 1000
+          description: Compatibility mirror; CalendarEvent is authoritative after cutover
+        channel_id: {type: string, format: uuid}
+        project_id: {type: string, format: uuid}
+        created_by: {type: string, format: uuid}
+        is_active: {type: boolean}
+        participant_ids:
+          type: array
+          maxItems: 50
+          uniqueItems: true
+          description: >-
+            Series-level projection only: distinct internal non-organizer attendees in
+            needs_action, accepted or tentative. Occurrence RSVP never changes this field.
+          items: {type: string, format: uuid}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+        occurrences:
+          type: array
+          maxItems: 1000
+          description: >-
+            Additive only for a paired from/to channel-list request. The 1,000 limit applies
+            to the entire response; overflow preserves legacy validation status 400 rather
+            than truncating.
+          items: {$ref: "#/components/schemas/ScheduledCallOccurrence"}
+    CreateScheduledCallRequest:
+      type: object
+      additionalProperties: false
+      required: [title, scheduled_at, channel_id]
+      properties:
+        title: {type: string, minLength: 1, maxLength: 255}
+        description: {type: string, maxLength: 2000}
+        scheduled_at:
+          type: string
+          format: date-time
+          description: Canonical DTSTART instant; creator IANA timezone supplies recurrence wall time
+        duration_minutes: {type: integer, minimum: 1, maximum: 1440, default: 60}
+        reminder_minutes: {type: [integer, "null"], minimum: 0, maximum: 40320}
+        rrule:
+          type: string
+          maxLength: 1000
+          description: >-
+            Canonical subset. Legacy BYHOUR/BYMINUTE/BYSECOND values must exactly match
+            scheduled_at in creator timezone and are removed during normalization.
+        channel_id: {type: string, format: uuid}
+        participant_ids:
+          type: array
+          maxItems: 50
+          uniqueItems: true
+          description: Active users who belong to the target project and its organization; external email guests are not accepted by this legacy call API
+          items: {type: string, format: uuid}
+    UpdateScheduledCallRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        title: {type: string, minLength: 1, maxLength: 255}
+        description: {type: string, maxLength: 2000}
+        scheduled_at:
+          type: string
+          format: date-time
+          description: New canonical DTSTART instant when supplied
+        rrule:
+          type: string
+          maxLength: 1000
+          description: Merged with canonical DTSTART/timezone and validated as the frozen subset
+        is_active:
+          type: boolean
+          description: Pauses/resumes call execution only; DELETE cancels the linked event
+    ScheduledCallConflictResponse:
+      type: object
+      additionalProperties: false
+      required: [has_conflict, conflicts]
+      properties:
+        has_conflict: {type: boolean}
+        conflicts:
+          type: array
+          maxItems: 500
+          items:
+            type: object
+            additionalProperties: false
+            required: [participant_id, call_title, scheduled_at, channel_id]
+            properties:
+              participant_id: {type: string, format: uuid}
+              call_title: {type: string, maxLength: 255}
+              scheduled_at: {type: string, format: date-time}
+              channel_id: {type: string, format: uuid}
     LegacyCalendarAggregateEvent:
       type: object
-      description: Exact current backend/internal/calendar EventResponse shape
+      description: >-
+        Existing backend/internal/calendar EventResponse shape. A linked event/call pair is
+        emitted once as call from canonical temporal truth; only unlinked events use event.
       required: [id, type, title, starts_at, all_day]
       properties:
         id: {type: string}
-        type: {type: string, enum: [call, sprint, deadline, leave]}
+        type: {type: string, enum: [call, sprint, deadline, leave, event]}
         title: {type: string}
         description: {type: string}
         starts_at: {type: string, format: date-time}
@@ -1726,7 +1983,10 @@ components:
           maxLength: 64
           description: Canonical name validated against the runtime IANA timezone database
           x-hub-validation: iana-timezone
-        rrule: {type: [string, "null"], maxLength: 1000}
+        rrule:
+          type: [string, "null"]
+          maxLength: 1000
+          description: Canonical RFC 5545 subset interpreted from DTSTART in the event IANA timezone
         exdates:
           type: array
           maxItems: 1000
@@ -1736,7 +1996,11 @@ components:
         status: {type: string, enum: [confirmed, tentative, cancelled]}
         organizer_id: {type: [string, "null"], format: uuid}
         organizer_email: {type: string, format: email}
-        scheduled_call_id: {type: [string, "null"], format: uuid}
+        scheduled_call_id:
+          type: [string, "null"]
+          format: uuid
+          readOnly: true
+          description: Immutable optional link to the distinct ScheduledCall execution projection
         reminder_minutes:
           type: [integer, "null"]
           minimum: 0
@@ -1767,6 +2031,12 @@ components:
       type: object
       required: [title, all_day, timezone, attendees]
       x-hub-temporal-invariant: relevant end must be strictly after start
+      x-hub-linked-call-invariant: >-
+        scheduled_call_id requires a timed event, title at most 255, description at most
+        2000, duration 1..1440 minutes, at most 50 internal non-organizer attendees, no
+        external attendee, and exact normalized equality with the locked call title,
+        description, start/duration, recurrence, reminder, organizer and current participant
+        set
       allOf:
         - if:
             properties:
@@ -1805,12 +2075,26 @@ components:
           maxLength: 64
           description: Canonical name validated against the runtime IANA timezone database
           x-hub-validation: iana-timezone
-        rrule: {type: [string, "null"], maxLength: 1000}
+        rrule:
+          type: [string, "null"]
+          maxLength: 1000
+          description: Canonical RFC 5545 subset interpreted from DTSTART in the supplied IANA timezone
         exdates:
           type: array
           maxItems: 1000
           items: {type: string}
-        scheduled_call_id: {type: [string, "null"], format: uuid}
+        scheduled_call_id:
+          type: [string, "null"]
+          format: uuid
+          description: >-
+            Optional immutable link to an existing active unlinked ScheduledCall owned by the
+            authenticated organizer. The server independently verifies organization, project,
+            channel and call authorization; v1 does not create a call from nested input. Under
+            the safe pending founder policy, a request with this link cannot contain an
+            external email-only attendee because no guest join-credential delivery contract
+            exists; unlinked CalendarEvents continue to allow external guests. The normalized
+            mapped event fields and internal participant set must exactly match the locked call
+            or the operation conflicts without mutation.
         reminder_minutes:
           type: [integer, "null"]
           minimum: 0
@@ -1909,12 +2193,14 @@ components:
           maxLength: 64
           description: Canonical name validated against the runtime IANA timezone database
           x-hub-validation: iana-timezone
-        rrule: {type: [string, "null"], maxLength: 1000}
+        rrule:
+          type: [string, "null"]
+          maxLength: 1000
+          description: Canonical RFC 5545 subset interpreted from DTSTART in the resulting event IANA timezone
         exdates:
           type: array
           maxItems: 1000
           items: {type: string}
-        scheduled_call_id: {type: [string, "null"], format: uuid}
         reminder_minutes:
           type: [integer, "null"]
           minimum: 0

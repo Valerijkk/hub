@@ -22,6 +22,12 @@ Claude's test-rebase branch.
   proven through accepted Docker-only runs.
 - Reminder offset/state changes are serialized against scheduler and consumer finalization;
   existing-message CRM linking is reauthorized at both UI and server boundaries.
+- ScheduledCall migration is all-or-nothing; linked writes/workers use event-before-call
+  atomicity; recurrence/cancel/due recovery converges; aggregate/availability count one
+  meeting once; legacy conflict details cannot leak without exact-channel membership.
+  Both shipped legacy-create clients preserve one idempotency key, malformed conflict UUIDs
+  fail closed, attach mismatches do not overwrite, and occurrence RSVP cannot mutate the
+  series participant projection.
 - All feature-owned units are green in Docker; QA handoff covers API/integration/E2E/load.
 - `docs/system_specification.md`, `docs/architecture.md`, security/test docs, runbooks and
   the mail-owned `.planning/STATE.md` section match current code and evidence.

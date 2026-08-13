@@ -38,9 +38,9 @@ negative sentinels. Он дополняет, но не заменяет `code_st
 | [BUSINESS.md](BUSINESS.md) | Расширенная бизнес-документация |
 | [TECHNICAL.md](TECHNICAL.md) | ERD, API, WebSocket, env vars, деплой |
 | [TESTING.md](TESTING.md) | Тест-кейсы TC-*, матрица автоматизации |
-| [mail/QA-HANDOFF.md](mail/QA-HANDOFF.md) | Контракт Mail 0.1.4 + Calendar RSVP/reliability: ADR/OpenAPI/events/security/QA; implementation `NOT_IMPLEMENTED`, runtime `NOT_RUN` |
-| [Phase 147 reliability contract](../.planning/phases/147-mail-calendar-reliability/CONTRACT.md) | REQUEST/CANCEL recovery, outward REPLY, private availability, reminders, conditional L1 and CRM manual-link |
-| [Phase 147 root static review](../.planning/phases/147-mail-calendar-reliability/STATIC-REVIEW.md) | Mail 0.1.4 root PASS на exact semantic SHA `46cfa26c`; independent review PENDING, implementation `NOT_IMPLEMENTED`, runtime `NOT_RUN` |
+| [mail/QA-HANDOFF.md](mail/QA-HANDOFF.md) | Контракт Mail 0.1.5 + Calendar RSVP/ScheduledCall bridge/reliability: ADR/OpenAPI/events/security/QA; implementation `NOT_IMPLEMENTED`, runtime `NOT_RUN` |
+| [Phase 147 reliability contract](../.planning/phases/147-mail-calendar-reliability/CONTRACT.md) | REQUEST/CANCEL recovery, outward REPLY, single-count private availability, reminders, conditional L1 and CRM manual-link |
+| [Phase 147 root static review](../.planning/phases/147-mail-calendar-reliability/STATIC-REVIEW.md) | Исторический Mail 0.1.4 PASS `46cfa26c`, теперь `STALE`; Mail 0.1.5 root/independent review PENDING |
 | [testframework_strategy.md](testframework_strategy.md) | Стратегия тестфреймворка: слои Go/TS/Python, Locust, Allure→TMS, гейты |
 | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Текущий `/qa-gate`/`NOT_READY` протокол, legacy quarantine, окружение и exact cleanup |
 | [runbooks/](runbooks/README.md) | **Эксплуатация прода:** инцидент, алерты, деплой/откат, БД, бэкапы, ротация секретов |
@@ -118,7 +118,7 @@ E2E baseline **48 pass / 5 expected skip / 0 fail**. Канон:
 [`.planning/active/august-2026/06-TEST-ARCHITECTURE-REBASE.md`](../.planning/active/august-2026/06-TEST-ARCHITECTURE-REBASE.md).
 
 ---
-*2026-08-13 — Mail 0.1.4 + Calendar RSVP/reliability contract index (`NOT_IMPLEMENTED` / `NOT_RUN`) ·
+*2026-08-13 — Mail 0.1.5 + Calendar RSVP/ScheduledCall bridge/reliability contract index (`NOT_IMPLEMENTED` / `NOT_RUN`) ·
 2026-08-08 — Docker-only safe runner contract, executable Phase 129 cutover/status ·
 2026-08-07 — root Python testframework contract и current-vs-target split ·
 2026-07-19 — GLOSSARY, TROUBLESHOOTING, runbooks/, актуализация фактов и счётчиков*

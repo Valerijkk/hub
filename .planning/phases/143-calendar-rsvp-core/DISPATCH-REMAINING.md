@@ -72,7 +72,8 @@ dispatchable without duplicating the common safety contract.
 - Behavior: §3.14 receipt with actor/org/operation, key/request hashes, in-progress/
   completed, bounded response, expiry and unique tuple; optional event edge. Add only the
   inverse calendar edges and optional one-to-one ScheduledCall link; preserve all existing
-  fields/edges.
+  fields/edges. The link supports creation-time attachment and remains immutable by service
+  contract after event creation.
 - Oracles: raw key absent; uniqueness includes operation/actor/org; response bounded; no
   receipt used for mail submission; exact pre/post edge inventory proves no removal.
 
@@ -103,12 +104,13 @@ dispatchable without duplicating the common safety contract.
 
 ## 143-04A — event service ports and constructor
 
-- Dependency: accepted 03E. Allowed only:
+- Dependencies: accepted 03E and 04L. Allowed only:
   `backend/internal/calendar/event_repository.go`, `event_service.go`, `event_errors.go`,
   `backend/tests/calendar/event_service_contract_test.go`.
 - Behavior: immutable commands/results; repository transaction callback owns receipt,
   event/attendee/exception and outbox operations; actor-to-org resolution; injected clock/
-  id/serializer ports; no Ent/JMAP/Fiber type in public domain contract.
+  id/serializer ports; every outbox descriptor carries the complete accepted 04L envelope,
+  never only inner payload; no Ent/JMAP/Fiber type in public domain contract.
 - Oracles: external fake compiles; transaction API cannot publish post-commit; receipt
   reserve/replay primitives explicit; not-found/authz/conflict/invalid errors safe; no
   constructor side effect.
@@ -188,6 +190,44 @@ dispatchable without duplicating the common safety contract.
   ninth quarantine; rollback. No HTTP idempotency key, `CalendarMutationReceipt`, outbound
   REPLY transport, event sequence change or organizer/event-field mutation is allowed.
 
+## 143-04J — pure ScheduledCall projection policy
+
+- Dependencies: 01/02A/04A/G. Allowed only
+  `backend/internal/calendar/event_call_policy.go` and
+  `backend/tests/calendar/event_call_policy_test.go`.
+- Behavior: pure bounded validation/mapping between canonical timed Hub meetings and a
+  ScheduledCall projection. Require project/channel equality, resolved organization,
+  active exact-channel creator, active same-project/same-organization creator and internal
+  participants, normalized unique emails, positive checked duration, reminder
+  `null|0..40320`, target string bounds and canonical RRULE subset. The event owns
+  recurrence; compute next effective occurrence from DTSTART/RRULE, EXDATE and cancelled
+  exceptions. Reject external attendees on a linked-call event under founder question 23's
+  safe default. Project only series-level internal non-organizer attendees in
+  `needs_action|accepted|tentative`; occurrence RSVP never mutates the participant edge.
+  Define pause/resume/delete and one-time-complete outcomes without I/O.
+- Oracles: every missing/cross-org/boundary case; creator dedupe; DST/UTC anchors; supported
+  daily/weekly/monthly COUNT/UNTIL fixtures; EXDATE/exception removal; no-future result;
+  pause/resume cannot cancel/resurrect event; deterministic projection/result. Do not encode
+  founder question 18 as an assumed migration answer.
+
+## 143-04K — pure call-due service
+
+- Dependencies: 04J/G. Allowed only
+  `backend/internal/calendar/event_call_due_service.go` and
+  `backend/tests/calendar/event_call_due_service_test.go`.
+- Behavior: accept injected clock plus locked canonical event/call snapshot, validate that
+  stored `scheduled_at` is the current non-cancelled effective occurrence, derive a stable
+  key from event id + call id + canonical recurrence id/one-time start, return exactly one
+  complete 04L `calls.channel.{channelId}.scheduled_due.v1` envelope/outbox descriptor and
+  next-projection command. Its application event id/correlation/time are explicit stable
+  inputs; the occurrence key remains the business dedupe key inside payload.
+  Preserve current late
+  behavior from founder question 21: one stored overdue occurrence, then first future
+  effective occurrence; no catch-up burst.
+- Oracles: early/not-due, exact due, overdue, cancelled/deleted/paused, EXDATE/exception,
+  duplicate command, finite exhaustion and one-time completion. Never mutate event
+  version/sequence, RSVP, reminder receipt or publish NATS directly.
+
 ## 143-04F-Base — Ent adapter shell
 
 - Dependencies: 03E/04A/G. Allowed only
@@ -212,17 +252,19 @@ dispatchable without duplicating the common safety contract.
 
 - Dependencies: 04F-Base/04C. Allowed only
   `backend/internal/calendar/event_ent_repository_update.go`.
-- Behavior/oracles: implement only event-first master lock/version read, event/attendee reset or audit
-  tombstone mutations and outbox under one transaction. Stale/no-op paths publish nothing;
-  no post-commit publish or Go DB component test.
+- Behavior/oracles: implement only event-first master lock/version read, then optional linked
+  call lock before event/attendee reset or audit tombstone mutations and outbox under one
+  transaction. Stale/no-op paths publish nothing; no post-commit publish or Go DB component
+  test. Actual projection mutation is owned by 04F-J.
 
 ## 143-04F-D — series-RSVP Ent transaction
 
-- Dependencies: 04F-Base/04D. Allowed only
+- Dependencies: 03D/04F-Base/04D. Allowed only
   `backend/internal/calendar/event_ent_repository_rsvp.go`.
-- Behavior/oracles: lock the event before the series attendee, then implement only attendee
-  version compare/update, HTTP receipt and outbox atomically. Another attendee cannot be
-  selected; replay and stale paths publish nothing; no Go DB component test.
+- Behavior/oracles: lock event → optional linked call → series attendee, then implement
+  attendee version compare/update, series-level call-participant projection, HTTP receipt
+  and outbox atomically. Another attendee cannot be selected; occurrence state is untouched;
+  replay and stale paths publish nothing; no Go DB component test.
 
 ## 143-04F-E — occurrence-RSVP Ent transaction
 
@@ -237,34 +279,67 @@ dispatchable without duplicating the common safety contract.
 
 - Dependencies: 04F-Base/04H. Allowed only
   `backend/internal/calendar/event_ent_repository_occurrence_cancel.go`.
-- Behavior/oracles: lock event before exception, then implement only cancelled exception
-  upsert, master version/sequence compare/increment and occurrence cancel outbox atomically.
+- Behavior/oracles: lock event → optional linked call → exception, then implement only
+  cancelled exception upsert, master version/sequence compare/increment and occurrence
+  cancel outbox atomically.
   RRULE and other instances are
   untouched; stale/retry paths publish nothing; no Go DB component test.
 
 ## 143-04F-I — inbound-REPLY Ent transaction
 
-- Dependencies: 04F-Base/04I. Allowed only
+- Dependencies: 03D/04F-Base/04I. Allowed only
   `backend/internal/calendar/event_ent_repository_inbound_reply.go`.
 - Behavior/oracles: implement only sender-bound attendee lookup plus atomic current event
-  sequence, event → optional exception → attendee lock order, bounded receipt count and
+  sequence, event → optional linked call → optional exception → attendee lock order,
+  bounded receipt count and
   unique ledger lookup/insert. An
   accepted distinct
   PARTSTAT inserts `applied`, updates that one attendee/version and writes one outbox; a new
   same-status hash inserts only `observed_no_change`; existing hashes, stale/future/spoof
   and cap quarantine write nothing. Concurrent duplicate insert converges through the
   unique constraint without a second attendee/outbox mutation. Prove static paths for
-  `A -> B -> redelivered A` and occurrence scope; no HTTP receipt or Go DB component test.
+  `A -> B -> redelivered A` and occurrence scope. A series reply updates the linked call
+  participant projection; an occurrence reply never does. No HTTP receipt or Go DB component
+  test.
+
+## 143-04F-J — event/ScheduledCall bridge transaction
+
+- Dependencies: 03D/04F-Base/04B/C/H/J. Allowed only
+  `backend/internal/calendar/event_ent_repository_call_bridge.go`.
+- Behavior/oracles: implement paired legacy create, calendar-v2 existing-call attach,
+  canonical/legacy edit mirror, pause/resume, legacy delete and event/occurrence cancellation
+  projection effects. Resolve project organization and all identities server-side. Existing
+  call attachment requires authenticated creator ownership, active/non-deleted/unlinked
+  state and same organization/project/channel. Normalize and compare every mapped business
+  field plus organizer/participant set; mismatch is a stable no-mutation conflict rather
+  than an overwrite. Inaccessible/nonexistent ids remain indistinguishable; link is
+  immutable. For existing rows lock
+  event → call → optional exception/attendees and mutate canonical event, attendees,
+  projection and invitation outbox in one transaction. Legacy edits read the locked current
+  event version; v2 still compares If-Match. No partial pair, direct NATS, automatic mismatch
+  winner or Go DB component test.
+
+## 143-04F-K — canonical call-due transaction
+
+- Dependencies: 04F-J/04K. Allowed only
+  `backend/internal/calendar/event_ent_repository_call_due.go`.
+- Behavior/oracles: claim one due linked pair with event → call lock, reload canonical
+  exceptions/participants, re-run 04K, insert one outbox row and advance/deactivate the call
+  in the same transaction. Conditional current scheduled-at/version predicates make
+  concurrent workers converge; rollback leaves both pending. The outbox payload contains
+  only existing safe call metadata plus deterministic occurrence key. Delivery is
+  at-least-once; downstream dedupe is explicit. No event/reminder mutation or direct publish.
 
 ## 143-05A — canonical v2 DTO/validation
 
 - Dependencies: accepted 04B–E/H and matching 04F variants. Allowed only:
   `backend/internal/calendar/event_dto.go`,
   `backend/tests/calendar/event_dto_test.go`.
-- Behavior: OpenAPI 0.1.4 request/response shapes; strict temporal union/bounds; quoted
+- Behavior: OpenAPI 0.1.5 request/response shapes; strict temporal union/bounds; quoted
   version parser; base64url recurrence decoder; NFR-13 metadata carrier; no owner/org input.
-- Oracles: timed/all-day pairs/end order/IANA annotations; unknown/oversized fields; RSVP
-  version/status; occurrence cancel response; error body has only error/request_id.
+- Oracles: timed/all-day pairs/end order/IANA annotations; unknown/oversized fields;
+  creation-only server-authorized `scheduled_call_id` absent from PATCH; RSVP version/status;
+  occurrence cancel response; error body has only error/request_id.
 
 ## 143-05B — v2 handlers and wiring
 
@@ -285,19 +360,88 @@ dispatchable without duplicating the common safety contract.
   `backend/internal/calendar/dto.go`, `repository.go`, `service.go`, and a focused genuine
   unit under `backend/tests/calendar/legacy_aggregate_test.go` when isolatable.
 - Behavior: add canonical event as one new aggregate kind while preserving top-level
-  `{events,from,to}`, existing calls/sprints/deadlines/leave and `.ics` behavior/filters.
-- Oracles: old fixture JSON remains byte-shape compatible; new kind additive; time range/
-  auth filters; no N+1 hydrate; export unchanged. If repository proof requires DB, route it
-  to Python integration instead of a component Go test.
+  `{events,from,to}`, existing calls/sprints/deadlines/leave and `.ics` behavior/filters. A
+  linked active pair is emitted once as existing `call` using canonical temporal truth;
+  only unlinked canonical events are emitted as `event`.
+- Oracles: old fixture JSON remains byte-shape compatible; new unlinked-event kind additive;
+  linked recurrence/exdate/cancelled-exception has no duplicate/ghost; time range/auth
+  filters; no N+1 hydrate; export unchanged. If repository proof requires DB, route it to
+  Python integration instead of a component Go test.
 
 ## 143-05D — additive frontend aggregate type
 
 - Dependencies: 05C + accepted frontend feature-unit harness. Allowed only:
-  `frontend/src/api/calendar.ts`, `frontend/tests/calendar/legacy-event-kind.test.ts`.
+  `frontend/src/api/calendar.ts`, `frontend/tests/mail/calendar-legacy-event-kind.test.ts`.
 - Behavior: type/decode one new `event` kind from the existing endpoint; preserve URL,
   response wrapper and all existing kinds. No canonical v2 mutations or UI.
 - Oracles: old fixtures parse identically; new fixture parse; unknown kind safe; no API
   client/header/dependency change. Docker-only unit; harness missing => BLOCKED.
+
+## 143-05E — legacy ScheduledCall write bridge
+
+- Dependencies: 05B/04F-J. Allowed only
+  `backend/internal/calls/calendar_bridge.go`, the narrow required changes in
+  `backend/internal/calls/scheduled.go`, `handler_scheduled.go`, `dto.go`,
+  `backend/cmd/server/wiring_integrations.go`, both shipped create clients
+  `frontend/src/modules/calls/create-call-dialog.tsx` and `scheduled-calls.tsx`, the narrow
+  API change in `frontend/src/api/calls.ts`, and genuine idempotency/bridge units under
+  `backend/tests/calendar/**` and `frontend/tests/mail/**`.
+- Behavior: inject a consumer-owned bridge interface. Create/update/delete delegate to the
+  canonical transaction while preserving existing successful JSON fields/routes. POST now
+  requires `Idempotency-Key`; the same key/request replays the original response and a
+  changed request conflicts. Both shipped create UIs generate one stable key per submission
+  attempt and reuse it through transport/auth retry. Existing
+  creator-or-channel-owner/admin authorization remains explicit and is passed as actor;
+  calendar authorization still requires creator exact-channel membership plus active
+  same-project/same-organization creator and internal participants; no external guest path
+  is invented. Founder question 22's default permits the mandatory header only with both
+  shipped clients updated in the same cutover. Legacy PUT has no `If-Match`
+  and is documented serialized last-write-wins. Map stable validation/conflict/not-found/
+  forbidden errors without leaking another call/event. Apply founder question 19 default:
+  is_active toggles execution; DELETE cancels both.
+- Oracles: one bridge call, response mapping, invalid/missing/foreign, rollback error, admin
+  actor audit, invitation-relevant update, pause/resume/delete and no direct old repository
+  mutation after cutover. No handler listener or component test.
+
+## 143-05F — canonical legacy readers and due worker
+
+- Dependencies: 05E/04F-K. Allowed only the narrow necessary portions of
+  `backend/internal/calls/repository.go`, `scheduled.go`,
+  `backend/cmd/server/wiring_integrations.go`, plus genuine isolated policy/service units
+  under `backend/tests/calendar/**`.
+- Behavior: list reads the canonical-backed next execution projection; due cron delegates
+  to 04F-K and never parses ScheduledCall RRULE or publishes directly. Conflict reads use
+  canonical effective occurrences for linked calls and a bounded active-unlinked path only
+  before cutover. After activation any unlinked non-deleted row fails the invariant rather
+  than being resumed, processed or silently treated as canonical.
+  A detail containing title/channel is returned only when the caller belongs to that exact
+  channel; sharing another channel with a participant is insufficient. Keep the legacy
+  success envelope and generic safe errors.
+- Oracles: linked/unlinked, recurring exception, paused/cancelled/exhausted, concurrent due,
+  exact-channel member/non-member, participant enumeration and zero title/channel leak.
+  Repository query/transaction proof belongs to Python integration.
+
+## 143-05G — canonical-backed exact-channel call calendar reader
+
+- Dependencies: 05C/F and accepted frontend unit harness. Allowed only
+  `frontend/src/api/calls.ts`, `frontend/src/modules/calls/call-calendar.tsx`, the narrow
+  unused raw-expansion helper removal in `calendar-types.ts`, and
+  `frontend/tests/mail/call-calendar-canonical-range.test.tsx`.
+- Behavior: keep the existing exact-channel list authorization. Add paired `from/to` to
+  every channel request as an RFC3339 UTC half-open range; convert the current view's
+  inclusive visual end to the exact next-millisecond exclusive instant. Render additive
+  canonical `occurrences`; stop expanding
+  ScheduledCall RRULE independently in the browser. Preserve call route, colors and existing
+  call interaction. A cancelled/excluded occurrence is absent because the server is
+  authoritative. Create-call API accepts the stable idempotency key required by 05E. On
+  mount/reconnect, subscribe to each channel room returned by the authorized channel list
+  and unsubscribe on removal/unmount. On authorized `call.scheduled_due.v1`, invalidate only
+  the scheduled-call query family; do not invent a second reminder/toast or trust payload
+  fields as authorization. Missed best-effort WS is recovered by the normal HTTP query.
+- Oracles: one-time/recurring/exception/range edges including local day/month and DST
+  exclusive-end conversion, no duplicate linked event, no raw RRULE
+  expansion path, connect/reconnect/add/remove/unmount room lifecycle, exact-event-only
+  invalidation and unchanged navigation. Docker-only unit; missing harness => BLOCKED.
 
 ## 143-06 — production migration/backfill
 
@@ -305,8 +449,11 @@ dispatchable without duplicating the common safety contract.
   only the founder-selected versioned migration path plus
   `.planning/phases/143-calendar-rsvp-core/MIGRATION-PLAN.md` evidence update; no alternate
   migration system.
-- Behavior: exact preflight, schema indexes/constraints and ScheduledCall backfill policy;
-  missing creator/email/timezone reported, not guessed; no historical invitation outbox.
-- Oracles: empty + realistic bounded snapshot in accepted launcher, before/after counts,
-  deterministic UID, accepted creator/participants, rollback/forward procedure and current
-  SHA artifact. Until authority exists: `BLOCKED`, plan only.
+- Behavior: exact preflight, schema indexes/constraints, complete ScheduledCall field/org/
+  identity mapping, recurring semantic oracle and all-or-nothing bridge cutover from
+  `MIGRATION-PLAN.md`; no historical invitation outbox.
+- Oracles: empty + realistic bounded snapshot in accepted launcher, before/after counts and
+  hashes, deterministic UID/payload, accepted creator/participants, project/channel/org
+  coherence, founder recurrence policy, 100% non-deleted-call linkage, direct-writer inventory,
+  rollback/forward procedure and current SHA artifact. Until authority exists: `BLOCKED`,
+  plan only.

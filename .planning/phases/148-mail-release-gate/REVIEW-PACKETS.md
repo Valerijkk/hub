@@ -13,7 +13,7 @@ review cannot self-certify its own fix.
 ## Common review envelope
 
 - Confirm actual model/effort first. Missing/mismatched provenance returns `BLOCKED`.
-- Read root `AGENTS.md`, `.planning/STATE.md`, routed domain docs, Mail 0.1.4 contract,
+- Read root `AGENTS.md`, `.planning/STATE.md`, routed domain docs, Mail 0.1.5 contract,
   Phase 147 contract and the supplied exact diff. Never read protected test-rebase or
   `pro-qa-ai` paths.
 - Do not run host tests/build/lint/validators or direct Docker/Compose. Review accepted
@@ -38,6 +38,8 @@ Review package boundaries, dependency direction, transactions and source of trut
 - outbox write shares the state transaction; no post-commit durability claim;
 - ScheduledCall↔CalendarEvent, CRM↔MailMessage and notification relations do not introduce
   destructive cascades or implicit authorization;
+- linked meetings have one canonical writer, event-before-call lock order, bridge-only
+  mutations, all-or-nothing cutover and single-count aggregate/availability readers;
 - background workers have bounded leases/retries, context shutdown and one composition;
 - deployment/backup separates engine volume from PostgreSQL/object storage.
 
@@ -55,6 +57,10 @@ Review state machines, concurrency, bounds and error semantics:
 - inbound REPLY sender-bound receipt cap and A→B→A protection;
 - outward REPLY delivery ledger and stable mailbox keys;
 - event/attendee optimistic versions and sequence/reset policy;
+- ScheduledCall mapping, recurring semantic oracle, paired create/edit/delete atomicity,
+  mandatory legacy-create idempotency in both clients, exact-match attach, series-only
+  participant projection, occurrence-cancel projection advancement and versioned
+  occurrence-keyed due-worker recovery;
 - availability half-open intervals, recurrence, all-day, IANA/DST and caps;
 - reminder claim/receipt/outbox/dedupe, current offset/start/eligibility recheck at both
   scheduler and consumer, all-day due derivation, strict no-fallback quiet policy and
@@ -82,6 +88,9 @@ Threat-review every trust boundary:
 - iTIP parser bounds, auth alignment, spoof/forward/delegation, UID/sequence/attendee rules;
 - feed encryption/AAD, redirects, safe dialer, decompression and conditional headers;
 - availability HR/calendar detail minimization;
+- ScheduledCall attach/cutover active project/organization and creator exact-channel checks,
+  linked-external-guest fail-closed behavior, strict conflict UUID parsing and exact-channel
+  authorization before any legacy conflict title/channel disclosure;
 - CRM permission not becoming mailbox delegation;
 - event/webhook payloads and dead-letter/audit redaction;
 - Stalwart license/image/SBOM/signature/config/secret and network exposure gates.
@@ -101,6 +110,9 @@ Review the actual UI against the accepted design and API:
 - draft autosave single-flight/conflict/unknown recovery and send receipt polling;
 - safe reader/remote image/attachment state boundaries;
 - invitation sequence/occurrence/refetch/reply-failed states;
+- call calendar consumes canonical-backed occurrences and does not expand a second browser
+  RRULE or show cancelled/duplicate linked meetings; `call.scheduled_due.v1` invalidates the
+  authorized query without a duplicate reminder/toast;
 - partial bulk rollback and search cursor/error-vs-empty behavior;
 - CRM creates one ordinary Mail draft, never puts recipient/content in URL/history, and
   links only after a confirmed/owned message; draft/message deep links reauthorize through
@@ -119,12 +131,16 @@ workflow against the exact SHA.
 Review whether the feature solves the frozen user outcome without scope drift:
 
 - Outlook-class owned mailbox and inline calendar invitation loop are coherent;
-- external guests remain email-only; L2/L3/read-receipts/OOO/groups stay deferred;
+- external guests remain email-only for ordinary events; a linked call explains its blocked
+  guest-access state until secure join credentials exist; L2/L3/read-receipts/OOO/groups stay
+  deferred;
 - availability is useful without privacy leakage; reminder guarantee is communicated;
 - CRM link is manual and the mailbox remains the sender;
 - L1 is either explicitly included with all gates or explicitly deferred;
 - no marketing/newsletter/digest/tracking behavior or implicit broadcast reuse;
 - legacy calendar aggregate and flat Resend admin contract remain compatible;
+- linked event/call pair appears once per reader, with event as business truth and the
+  existing call experience retained;
 - failure, stale, unknown, blocked and delivery states are honest to the user;
 - wording never claims module/MVP/production complete or stable without all evidence.
 

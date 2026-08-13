@@ -248,11 +248,11 @@ contract отменяет его как migration gate; destructive batches ра
 | Phase | Status | Depends on | Outcome / task |
 |------:|--------|------------|----------------|
 | 142 | CONTRACT COMPLETE · static PASS · runtime NOT_RUN | — | ADR, ERD, OpenAPI, NATS, UI/security/QA contracts · TASK-235 |
-| 143 | DISPATCH READY · CODE BLOCKED BY EXACT SPARK RUNTIME | 142 | CalendarEvent/Attendee/Exception, deterministic iTIP and optimistic RSVP · TASK-236 |
+| 143 | CONTRACT 0.1.5 · ROOT REVIEW PENDING · CODE BLOCKED BY EXACT SPARK RUNTIME | 142 | CalendarEvent/Attendee/Exception, deterministic iTIP/RSVP, canonical ScheduledCall bridge/backfill · TASK-236 |
 | 144 | DISPATCH READY · CODE BLOCKED BY EXACT SPARK RUNTIME | 142 | Mailbox domain, engine port/fake, folders/threads/drafts/submission · TASK-237 |
 | 145 | BLOCKED BY EXTERNAL GATES | 144 + license + launcher | Stalwart adapter, instance-domain mail, bounded Docker profile · TASK-238 |
 | 146 | DISPATCH READY · CODE/HARNESS BLOCKED | 143, 144 | Outlook three-pane UI, composer, attachments, search/realtime · TASK-239 |
-| 147 | CONTRACT 0.1.4 · ROOT STATIC PASS `46cfa26c` · INDEPENDENT REVIEW PENDING · CODE BLOCKED | 143–146 | recurrence/import recovery, busy/free, reminders, L1/CRM seam · TASK-240 |
+| 147 | CONTRACT 0.1.5 · ROOT/INDEPENDENT REVIEW PENDING · CODE BLOCKED | 143–146 | recurrence/import recovery, single-count busy/free, reminders, L1/CRM seam · TASK-240 |
 | 148 | GATE CONTRACT PREPARED · EXECUTION BLOCKED | 143–147 + test-rebase merge notice | security/reconciliation/docs/verification/rebase gate · TASK-241 |
 
 ```text
@@ -2292,11 +2292,12 @@ responsive three-pane mail workspace.
 **Goal**: Close recurrence/import/recovery, busy/free with leave, reminders, L1 feeds and
 the CRM send/manual-log seam.
 **Depends on**: Phases 143–146
-**Requirements**: TASK-240, FR-CALSYNC-009…013, FR-CRM-MAIL-001…002,
+**Requirements**: TASK-240, FR-CALSYNC-009…015, FR-CRM-MAIL-001…002,
 CRM GZ-V4-08…10
 **Success Criteria** (what must be TRUE):
   1. Out-of-order/redelivered recurrence and iTIP flows converge.
-  2. Availability combines events, calls and approved leave without detail leakage.
+  2. Availability combines canonical events, only unlinked transition calls and approved
+     leave without detail leakage or linked-pair duplication.
   3. Reminder and CRM paths reuse existing policy boundaries.
   4. L1 feeds are owner-controlled and SSRF/bounds protected or remain explicitly deferred.
 **Plans**: source `.planning/phases/147-mail-calendar-reliability/PLAN.md` · contract

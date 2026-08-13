@@ -7,8 +7,8 @@
 ## Prepared artifacts (root-reviewed; independent pending)
 
 - Architecture, source-of-truth, security and compatibility decisions are amended in Mail
-  contract 0.1.4; root static review passed on exact semantic SHA `46cfa26c`, while the
-  required independent current-provenance review remains pending.
+  contract 0.1.5. Its root static review is pending; the 0.1.4 pass on `46cfa26c` is
+  historical `STALE`, and independent current-provenance review remains pending.
 - OpenAPI covers mailbox, submission recovery, legacy calendar, canonical calendar and
   separate legacy/new admin resources.
 - Event subjects and webhook privacy boundary are frozen.
@@ -28,6 +28,8 @@
 | Exact atomic-code runtime unavailable | `RUNTIME-BLOCKER.md` | all product/test code in Phases 143–146 |
 | Accepted versioned Docker launcher not implemented | root `AGENTS.md`, `STATE.md` | Ent generation, build/test/validator/runtime evidence |
 | Production migration mechanism unresolved | `MIGRATION-PLAN.md`, founder question 12 | schema generation/migration/backfill acceptance |
+| Recurring ScheduledCall semantics unresolved | `MIGRATION-PLAN.md`, founder question 18 | recurring backfill and all-or-nothing cutover |
+| Legacy POST idempotency compatibility break unaccepted | OpenAPI, founder question 22 | enabling the ScheduledCall bridge cutover; both shipped clients must move atomically |
 | Stalwart license not selected | founder question 1, Phase 145 `GATE-PLAN.md` | gateway/image adoption |
 | Immutable image/config/API provenance not refreshed | Phase 145 `GATE-PLAN.md` | gateway wire implementation and Docker profile |
 | Protected frontend test cutover not handed off/merged | Phase 146 `DISPATCH-INDEX.md` | executable genuine frontend units |
@@ -40,7 +42,9 @@
 3. Dispatch 143-02A then 143-02B; accept deterministic iTIP surface.
 4. Resolve migration mechanism and accepted launcher before Ent generation.
 5. Admit `calendar.>` before calendar producers.
-6. Execute Phase 143 service/HTTP packets; retain legacy calendar envelope.
+6. Execute Phase 143 service/HTTP plus ScheduledCall bridge packets; retain the legacy
+   calendar envelope and count linked pairs once. Keep linked external guests fail-closed
+   until founder question 23 has a separately reviewed join-credential contract.
 7. Execute Phase 144 port/fake/pure-policy packets, then schemas/generation and services.
 8. Admit `mail.>` only after calendar admission; keep webhook filter unchanged.
 9. Execute UI transport/routes/core only after backend contracts are accepted and the

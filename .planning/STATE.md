@@ -118,9 +118,9 @@ mail_feature_workstream:
     branch: codex/mail-module-20260813
     phases: "142-148"
     current_phase: 143
-    status: contract_0_1_4_root_static_pass_independent_review_pending_code_runtime_blocked
+    status: contract_0_1_5_root_review_pending_independent_review_pending_code_runtime_blocked
     product_truth: unfinished_mvp_feature_not_accepted
-    contract_version: "0.1.4"
+    contract_version: "0.1.5"
     tasks:
       - TASK-235
       - TASK-236
@@ -187,14 +187,18 @@ spec_coverage:
   API/persistence/resource spike и внешний DNS остаются gates; runtime `NOT_RUN`.
 - Кодовые фазы 143–148 идут после заморозки контракта. Phase 145 может оставаться
   blocked, пока выполняются engine-independent calendar/mailbox/UI slices.
-- Mail 0.1.4 добавляет Phase 147 reliability-контракт: REQUEST/CANCEL tombstones и
+- Mail 0.1.5 добавляет Phase 147 reliability-контракт: REQUEST/CANCEL tombstones и
   recovery, outward REPLY reconciliation, private availability, durable in-app reminders
-  и CRM manual-link. Amendment закрывает reminder mutation race и reader manual-link;
-  root review 0.1.3 на `8daaf0d9` остаётся исторически `STALE`; root static review 0.1.4
-  = PASS на точном semantic SHA `46cfa26c`, independent current-provenance review PENDING.
+  и CRM manual-link. Новый amendment закрывает ScheduledCall split-brain: CalendarEvent —
+  authority, call — atomic execution projection; backfill/cutover all-or-nothing,
+  aggregate/availability single-count, due occurrence-keyed/versioned. Attach is exact-match,
+  participant projection is series-only, and linked external guests fail closed pending a
+  join-credential contract. Root static review 0.1.5 и
+  independent current-provenance review PENDING; 0.1.4 PASS `46cfa26c` теперь `STALE`.
   Product code `NOT_IMPLEMENTED`, runtime `NOT_RUN`.
 - Вопросы, не останавливающие локальную работу, собраны в
-  `docs/mail/FOUNDER-QUESTIONS.md`. Push/PR/merge/deploy не авторизованы.
+  `docs/mail/FOUNDER-QUESTIONS.md`; вопросы 22–23 отдельно фиксируют legacy idempotency
+  compatibility break и linked-call guest access. Push/PR/merge/deploy не авторизованы.
 
 ## Session note — 2026-08-08 (test-rebase execution readiness)
 

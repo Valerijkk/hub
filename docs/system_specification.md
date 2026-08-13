@@ -391,26 +391,47 @@ Outbox hub.intranet.coffee.matched → MessengerService (создать/пере
 - Лидерборд: kudos, отправленные боту/самому себе, исключаются на уровне существующей валидации Kudo.
 - Матчинг: нечётное N → ровно одна тройка; повтор прошлой пары допустим только при отсутствии иных комбинаций; деактивация между матчингом и встречей — DM остаётся, следующий раунд исключает.
 
-### Calendar v2 (FR-CAL historical parity draft + Mail 0.1.4 overlay)
+### Calendar v2 (FR-CAL historical parity draft + Mail 0.1.5 overlay)
 
 > **Authority:** Mail Sync L0 now follows
 > `.planning/decisions/specs/MAIL-SPEC.md`, `docs/mail/openapi.yaml` and Phase 147
 > `CONTRACT.md`. The older FR-CAL parity draft below remains product history only. Wherever
 > it differs on routes, entities, privacy, recurrence, feed storage, limits or events, Mail
-> 0.1.4 wins. Current code remains an aggregate/export surface, not L0 acceptance.
+> 0.1.5 wins. Current code remains an aggregate/export surface, not L0 acceptance.
 
-#### Current authoritative Mail 0.1.4 slice
+#### Current authoritative Mail 0.1.5 slice
 
 - Existing `GET /api/calendar/events` remains byte-shape compatible as
   `{events,from,to}`. First-class event CRUD, series/occurrence RSVP/cancel and availability
   use `/api/calendar/v2/**`.
 - `CalendarEvent`, `CalendarAttendee`, `CalendarEventException` and the dedicated HTTP,
   inbound-order/reply, outward-delivery and reminder receipts are the current data model;
-  events own UID/SEQUENCE/IANA/all-day semantics and optional ScheduledCall link.
+  events own UID/SEQUENCE/IANA/all-day semantics and an immutable optional ScheduledCall
+  link. For a linked pair, the event alone owns meeting schedule/attendees; the call is an
+  event-before-call-locked execution projection with the next effective occurrence.
+- Legacy scheduled-call create/update/delete delegates to the canonical bridge at cutover;
+  due execution uses one occurrence-keyed durable outbox intent and canonical exceptions.
+  Creator exact-channel membership and active same-project/same-organization membership for
+  every internal participant are mandatory. The call participant edge mirrors series-level
+  internal `needs_action|accepted|tentative` attendees only; occurrence RSVP never changes
+  it. Ordinary events support email-only guests, while a linked-call event rejects them
+  until founder question 23 defines secure join credential delivery.
+  Legacy aggregate counts the pair once as `call`, while availability counts it once as
+  `event`. Recurring legacy rows block backfill until the founder selects UTC-versus-local
+  semantics and the three-oracle occurrence comparison passes.
+- All new Mail/Calendar/linked-call events use one deterministic full v1 envelope. The
+  producer stores it through the unchanged outbox with event type equal to envelope
+  subject; the worker publishes the bytes unchanged. Consumers deduplicate on envelope
+  application `event_id`, treat outbox-row `Hub-Event-Id` as transport diagnostics, and
+  dead-letter subject mismatch/malformed/unknown versions before mutation. Existing event
+  payload families are not globally wrapped.
 - `POST /api/calendar/v2/availability` authorizes 1–50 users as one set: self or an active
   same-organization user sharing a non-deleted project/active channel; admin listing is not
   a bypass. It limits `[from,to)` to 31 days and returns only private busy/free intervals
-  from canonical events, active calls and policy-visible approved leave. Leave dates use
+  from canonical events, active unlinked calls only behind the pre-cutover transition flag,
+  and policy-visible approved leave. After bridge activation an unlinked non-deleted call is
+  an invalid source, not a fallback.
+  Linked event/call pairs are never double-counted. Leave dates use
   the target employee timezone. No detail or source id is exposed.
 - Incoming REQUEST/CANCEL requires authenticated organizer alignment, persists tombstones/
   receipts, and cannot be rolled back by lower/equal conflicting mail. Outward external-

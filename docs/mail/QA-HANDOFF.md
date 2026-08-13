@@ -1,6 +1,6 @@
 # Hub Mail + Calendar Sync — QA handoff
 
-> **Contract version:** 0.1.4
+> **Contract version:** 0.1.5
 > **Prepared:** 2026-08-13
 > **Implementation status:** NOT_IMPLEMENTED
 > **Runtime status:** NOT_RUN
@@ -140,8 +140,9 @@ or more `FR-MAIL-*` / `FR-CALSYNC-*` rows and named `TC-*` scenarios in `MAIL-SP
     notification refetch without an exactly-once realtime claim.
     The due claim and consumer finalization each verify current sequence, effective
     occurrence start, non-null `reminder_minutes`, recomputed `due_at`, active status and
-    owner/internal-attendee eligibility. Event, exception, attendee, stable user-policy
-    guard, receipt and notification use the frozen lock order; preference upsert locks that
+    owner/internal-attendee eligibility. Event, optional linked call, optional exception,
+    optional attendee, stable user-policy guard, receipt and notification use the frozen
+    lock order; preference upsert locks that
     user row before resolving an optional override. In-app channel/reminder disable,
     quiet-hours/offset change, reschedule/cancel/delete or decline/remove committed before
     finalization produces one durable suppression and no in-app row. The opposite
@@ -164,6 +165,66 @@ or more `FR-MAIL-*` / `FR-CALSYNC-*` rows and named `TC-*` scenarios in `MAIL-SP
     pending/retained-event state or evicts a tombstone to admit a new UID. At cap, known UID
     updates still converge, every previously unseen UID state-changing part mutates no
     event, health is visibly degraded, and the content-free ops signal is rate-limited.
+20. Backfill maps every non-deleted call, including paused/completed rows, to the project
+    organization, exact-channel creator, title, description,
+    instant, duration, reminder and distinct active same-project/same-organization
+    participants exactly; preserves source
+    audit timestamps; and emits no historical outbox/notification/mail. Any orphan,
+    inactive, organization mismatch, invalid email/timezone/interval/reminder or target-bound
+    overflow blocks the entire apply. Soft-deleted counts are recorded and cannot be
+    reactivated; cutover requires 100% linkage of the non-deleted set.
+21. Every non-deleted recurring source row compares the current raw-worker, injected-UTC
+    aggregate and proposed canonical ordered occurrence sets with the pinned recurrence
+    library. Parse/subset/cap/non-equality or an unanswered founder recurrence policy blocks
+    migration; no row is skipped or reinterpreted silently.
+22. Legacy scheduled-call create requires one stable `Idempotency-Key` from both shipped
+    clients and commits event, accepted organizer/new attendee state, call projection and
+    one invitation outbox together, or none. The creator is an active exact-channel member;
+    creator and at most 50 participants are active same-project/same-organization members.
+    V2 create can
+    link only an owned active unlinked same-organization call, and its normalized mapped
+    fields plus organizer/participants must exactly match that locked call. Mismatch returns
+    `409` + `SCHEDULED_CALL_LINK_MISMATCH`; inactive/deleted/already-linked owned state
+    returns `SCHEDULED_CALL_NOT_ATTACHABLE`; inaccessible/nonexistent stays `404`. The
+    link is immutable.
+    Ordinary events allow email-only guests; under founder question 23's default a linked
+    call with an external attendee is rejected before any mutation.
+23. Concurrent v2 and legacy mutations lock event before call. V2 stale `If-Match` mutates
+    nothing; legacy PUT serializes against the locked current version. After every commit,
+    canonical content/temporal/attendee fields and the call projection agree.
+24. Deleting a linked legacy call cancels the event and call atomically. Pausing/resuming
+    execution follows founder question 19 and cannot cancel or resurrect the event; one-time
+    due completion deactivates only the call projection.
+25. Cancelling the next occurrence advances the projection in the same exception/event/call
+    transaction. The due worker validates canonical RRULE/EXDATE/exception state, appends one
+    deterministic occurrence-keyed `calls.channel.{channelId}.scheduled_due.v1` outbox row,
+    and advances or
+    deactivates exactly once. Redelivery is consumer-deduplicated; event sequence/version and
+    calendar reminder state remain unchanged.
+26. Legacy aggregate returns one linked pair as its existing `call` kind from canonical
+    temporal truth and only unlinked canonical events as `event`. V2 availability returns
+    the same linked pair once as `event`; active unlinked calls are a pre-cutover-only
+    fallback. After activation any unlinked non-deleted call returns
+    `AVAILABILITY_SOURCE_INVALID` with no partial availability.
+27. A cancelled/excluded occurrence never reappears in the legacy backend aggregate, call
+    calendar UI, availability result or due worker. Only distinct internal non-organizer
+    series attendees in `needs_action|accepted|tentative` mirror to call participants;
+    declined/removed series attendees leave that projection, while occurrence RSVP never
+    changes it. External guests never become call participants.
+28. Legacy `/api/calls/conflicts` reveals title/channel only when the caller belongs to that
+    exact conflicting channel. The Mail meeting UI obtains conflict state from v2 private
+    availability and never treats the legacy detail reader as authorization. Any malformed,
+    duplicate or over-limit participant UUID input preserves legacy validation status 400;
+    it is never silently
+    omitted from the authorization/conflict set.
+29. The exact-channel call calendar invalidates its scheduled-call query on authorized
+    `call.scheduled_due.v1`, then refetches canonical occurrences. Mount/reconnect subscribes
+    to every currently returned authorized channel room; channel removal/unmount cleans it
+    up. It does not create a second reminder/toast or trust payload ids without normal API
+    authorization, and missed best-effort WS recovers on ordinary HTTP refetch.
+30. Every exact-channel call list sends paired RFC3339 UTC `[from,to)` bounds. The visual
+    view's `23:59:59.999` end becomes the exact next millisecond, including local DST day,
+    week, month-grid and agenda boundaries; the server never receives an inclusive end.
 
 ### CRM mail seam
 
@@ -222,6 +283,9 @@ These cases are required only if founder question 5 admits L1 into the first mer
 3. Mailbox policy uses `/api/admin/mail/mailbox-settings` and remains separate from Resend.
 4. Every admin mail operation rejects a non-admin with 403 and writes its named audit
    action without secret values.
+5. Existing scheduled-call success response fields remain compatible while bridge-owned
+   behavior is additive. No client-supplied call id can bypass server-side organization,
+   project, channel, owner or one-to-one-link checks.
 
 ## Event subjects
 
@@ -233,6 +297,9 @@ These cases are required only if founder question 5 admits L1 into the first mer
 - `calendar.invite.cancelled.v1`
 - `calendar.rsvp.changed.v1`
 - `calendar.reminder.due.v1`
+- existing channel realtime family gains
+  `calls.channel.{channelId}.scheduled_due.v1` through durable outbox with a stable occurrence
+  dedupe key; the obsolete unconsumed `calls.scheduled.due` publisher is removed
 
 Every consumer must prove duplicate-event idempotency. Unknown schema versions go to the
 existing dead-letter/error policy and are not heuristically parsed.
@@ -240,9 +307,20 @@ Contract fixtures must also prove every envelope/payload rejects undeclared top-
 payload properties, including `body`, `description`, raw MIME, attachment content, token
 and secret-shaped fields.
 
+For every new subject, the producer passes a complete deterministic envelope to the
+existing outbox as `PublishInTx(ctx, tx, envelope.Subject, envelope)`. Contract oracles must
+prove that stored `event_type`, published NATS subject and JSON `subject` are identical;
+the stored/published bytes contain the full envelope rather than only inner `payload`.
+Envelope `event_id` is stable across transaction retry/reconciliation and consumer
+redelivery and is the new-consumer dedupe key. The distinct outbox row id in the
+`Hub-Event-Id` header is diagnostic only. Subject mismatch, malformed envelope and unknown
+version must reach dead-letter with zero projection/domain mutation. Existing legacy
+outbox payloads and worker behavior must remain byte-semantically unchanged.
+
 Before producers are enabled, the shared EVENTS stream must contain `mail.>` and
-`calendar.>`. The generic outbound webhook filter must not gain either wildcard as part of
-this work; any future webhook exposure needs a separately reviewed payload allowlist.
+`calendar.>`; linked-call due reuses the already admitted `calls.channel.>`. The generic
+outbound webhook filter must not gain any of these wildcards as part of this work; any
+future webhook exposure needs a separately reviewed payload allowlist.
 
 ## Docker mail profile contract
 

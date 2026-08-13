@@ -14,13 +14,14 @@ Implement the engine-independent domain and HTTP behavior against a deterministi
    message-folder membership, label, mail object, attachment, draft, user settings,
    signature, rule, contact and submission; Docker-only generation.
 3. `144-03` — pure address normalization, threading, reply/forward quoting, folder tree,
-   typed rule compiler, rate/loop and attachment policies with failing units first.
+   typed rule compiler, rate/loop and attachment policies plus deterministic mapping of
+   all three mail events through the shared 143-04L envelope, with failing units first.
 4. `144-04` — repositories/services for folders, labels, list/read/bulk, draft revisions,
    unknown-save reconciliation, send idempotency/reconciliation and ownership; fake ports
    and service units.
 5. `144-05` — dedicated mail-storage presign/confirm adapter, scanner interface,
-   search/event projection, recent contacts, notifications/ws/audit seams; project file
-   ACLs are not reused.
+   versioned event projection consumption/subject admission, search, recent contacts,
+   notifications/ws/audit seams; project file ACLs are not reused.
 6. `144-06` — Fiber handlers/routes matching `docs/mail/openapi.yaml`, admin policy DTOs,
    error mapping and handler units where genuine.
 7. `144-07` — after Phase 143 admits `calendar.>`, add `mail.>` to EVENTS without changing

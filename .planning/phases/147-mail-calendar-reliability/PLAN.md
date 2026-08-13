@@ -1,6 +1,6 @@
 # Phase 147 — Mail/Calendar Reliability and Integrations
 
-> Task: TASK-240 · Status: CONTRACT_0_1_4_ROOT_STATIC_PASS_INDEPENDENT_PENDING_CODE_BLOCKED · Depends on: Phases 143–146
+> Task: TASK-240 · Status: CONTRACT_0_1_5_ROOT_REVIEW_PENDING_INDEPENDENT_PENDING_CODE_BLOCKED · Depends on: Phases 143–146
 > Required code runtime: `gpt-5.3-codex` / `xhigh`, no fallback
 > Contract: `CONTRACT.md` · Dispatch: `DISPATCH-INDEX.md` + `DISPATCH-PACKETS.md`
 
@@ -13,15 +13,15 @@ this phase.
 
 ## Ordered execution
 
-1. Independently review Mail 0.1.4 reliability semantics and close contract findings.
+1. Independently review Mail 0.1.5 reliability/bridge semantics and close contract findings.
 2. After accepted Phase 143/144 schemas, add inbound object/message receipts, reply
    delivery and reminder receipts; generate only through the accepted launcher.
 3. Implement REQUEST/CANCEL order policy, atomic application, authenticated message-part
    source, consumer and bounded recovery.
 4. Implement external-organizer REPLY delivery through the accepted mailbox draft/send/
    reconciliation path.
-5. Implement privacy-preserving availability across canonical events, scheduled calls and
-   approved leave.
+5. Implement privacy-preserving availability across canonical events, only unlinked
+   transition scheduled calls and approved leave; never count a linked pair twice.
 6. Add persistent in-app reminder dedupe, scheduler/outbox and notification consumer while
    keeping Telegram/push best-effort and Resend unchanged. Both due claim and consumer
    finalization recheck current offset/start/sequence/eligibility under one lock order;
@@ -39,7 +39,7 @@ this phase.
 
 | Gate | State |
 |---|---|
-| Root reliability contract static review | PASS on `46cfa26c` |
+| Root reliability contract static review | 0.1.5 PENDING; 0.1.4 `46cfa26c` historical STALE |
 | Independent reliability contract review | PENDING |
 | Exact Spark code runtime | UNAVAILABLE |
 | Phase 143/144 accepted implementation | NOT_IMPLEMENTED |

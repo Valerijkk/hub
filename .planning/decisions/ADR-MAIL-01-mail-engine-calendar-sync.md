@@ -169,6 +169,13 @@ outbound webhook filter by default: mailbox/calendar metadata is not a general w
 surface. Adding an individual webhook event requires its own privacy, authorization and
 payload review.
 
+The canonical call bridge replaces the current unconsumed best-effort
+`calls.scheduled.due` publish with transactional outbox delivery on the existing
+`calls.channel.{channelId}.scheduled_due.v1` subject. `calls.channel.>` is already admitted to
+EVENTS and routed to the authorized channel WebSocket room, while `calls.*` remains excluded
+from the webhook filter. The outbox makes the intent durable; JetStream/consumer delivery is
+still at-least-once and the payload occurrence key is mandatory for deduplication.
+
 ## HTTP compatibility boundary
 
 The existing `GET /api/calendar/events` aggregate keeps its public
@@ -190,20 +197,77 @@ abuse controls. Until then OpenAPI marks it deprecated as a current governance g
 
 ### Authority and ScheduledCall relationship
 
-`CalendarEvent` is first-class and canonical for RSVP. `ScheduledCall` remains the call
-execution/scheduling entity and may link one-to-one to a `CalendarEvent`. A calendar event
-can exist without a call; a call may temporarily exist without a calendar link during
-migration. New meeting creation writes the event and optional call link in one transaction.
+`CalendarEvent` is first-class and canonical for meeting title/description, temporal and
+recurrence state, exceptions, reminder, attendee/organizer state and RSVP. `ScheduledCall`
+remains a distinct call-execution entity and may link one-to-one to a `CalendarEvent`; for a
+linked pair its duplicated schedule fields are a legacy/read/execution projection, never a
+second write authority. A calendar event can exist without a call. An active call may exist
+without a calendar link only before the all-or-nothing migration cutover.
 
-Existing active `ScheduledCall.participants` are backfilled as attendees with `accepted`
+New creation through the legacy scheduled-call API writes the call projection, canonical
+event, attendees and invitation outbox atomically. Calendar-v2 event creation may attach an
+existing active, unlinked call only when the authenticated organizer owns it and the server
+proves the same organization/project/channel boundary; v1 does not accept a nested call
+creation object. The normalized create request must exactly match the locked call's title,
+description, start/duration, recurrence, reminder, organizer and current participant set;
+attach never silently chooses a winner or edits the pre-link call. The organizer must be an
+active exact-channel member; organizer and every internal participant must be active members
+of the same project and organization. Ordinary
+CalendarEvents still allow email-only guests, but the safe unattended default rejects an
+external guest on a linked-call event until founder question 23 accepts a join-code/link
+delivery, expiry, revocation and audit contract. The call link is immutable after creation.
+Calendar-v2 and legacy edits
+lock the event before the call, apply event version/sequence policy, then mirror the call in
+the same transaction. Because the legacy wire contract has no `If-Match`, its mutation is
+serialized last-write-wins against the locked current event rather than pretending to offer
+optimistic locking. Existing response fields remain compatible.
+
+The due worker treats `scheduled_at` as the next effective execution occurrence only. It
+derives recurrence from the canonical event plus EXDATE/cancelled exceptions, writes one
+durable occurrence-keyed `calls.channel.{channelId}.scheduled_due.v1` outbox intent and
+advances/deactivates the projection in the same event-before-call transaction. It never
+advances the event master,
+changes RSVP/SEQUENCE, or creates another reminder. NATS delivery stays at-least-once and
+the deterministic occurrence key is the consumer dedupe key. Cancelling the next occurrence
+advances the projection atomically; completing a one-time call deactivates only the call and
+preserves the historical event. Legacy DELETE cancels the event and soft-deletes the call.
+The provisional `is_active=false/true` mapping pauses/resumes call execution without
+cancelling/resurrecting the event, pending founder question 19.
+
+Compatibility readers never double count a linked pair. `GET /api/calendar/events` emits
+it once as the existing `call` kind, populated from canonical temporal truth, and emits only
+unlinked first-class events as additive `event`. Availability emits every canonical event
+once as `event` and active unlinked calls only behind the pre-cutover transition flag. Once
+the bridge is active, any unlinked non-deleted call is an invariant failure. The old
+`/api/calls/conflicts` detail surface is not an authorization source for Mail meeting UX;
+new UI uses privacy-preserving v2 availability, and legacy conflict details require caller
+membership in the exact conflicting channel.
+
+The ScheduledCall participant M2M is a series-level projection only. It contains distinct
+internal non-organizer series attendees whose state is `needs_action`, `accepted`, or
+`tentative`, and removes `declined` or deleted attendees in the same bridge transaction.
+An occurrence-specific RSVP never mutates that M2M and never changes access to another
+occurrence.
+
+Every non-deleted `ScheduledCall`, including paused/completed rows, is backfilled; otherwise
+legacy resume could recreate an unlinked authority. Its existing participants become
+attendees with `accepted`
 status because they were already explicit call members in Hub. The creator/organizer is
 also `accepted`. For this backfill, `calendar_owner_id` and `organizer_id` are the call's
-`created_by`, UID is the deterministic `urn:uuid:<scheduled_call_id>`, the timed instant is
-the existing UTC `scheduled_at` plus duration, and the event timezone is the creator's
-validated IANA timezone (the current user default is `UTC`). Rows with missing creator,
-email, or valid timezone fail the preflight report and are not guessed. The backfill writes
-no invitation outbox records and sends no historical mail. Newly invited participants
-default to `needs_action`.
+`created_by`, `organization_id` is the call project's required organization, UID is the
+deterministic `urn:uuid:<scheduled_call_id>`, and title, description, instant, duration,
+reminder and supported recurrence are mapped explicitly. Project/channel mismatch, missing
+organization, inactive or cross-organization creator/participant, invalid normalized email,
+timezone, interval, reminder or recurrence fails preflight and is not guessed or silently
+dropped. Creator and participants must also be active members of the mapped project; the
+creator must belong to the exact call channel. Newly invited participants default to
+`needs_action`.
+
+Legacy recurring calls need a separate founder decision because their stored
+`scheduled_at` is a moving next occurrence and existing code interprets raw RRULE and an
+injected UTC DTSTART differently. Until question 18 chooses exact-UTC preservation versus
+creator-local reinterpretation, any non-deleted recurring row blocks the whole apply. The
+backfill writes no invitation/outbox/notification records and sends no historical mail.
 
 ### UID, SEQUENCE, recurrence, and duplicate handling
 
@@ -292,8 +356,9 @@ Transient user/policy/repository lookup failure remains pending and retriable ra
 being recorded as suppression; post-commit WebSocket publication is also best-effort.
 Both the due claim and notification transaction revalidate the current effective start,
 sequence, non-null `reminder_minutes`, derived due time and owner/attendee eligibility.
-Reminder-relevant mutations serialize with those checks in event → exception → attendee →
-user-policy guard → receipt → notification lock order. The guard is the stable user row;
+Reminder-relevant mutations serialize with those checks in event → optional linked
+ScheduledCall → optional exception → optional attendee → user-policy guard → receipt →
+notification lock order. The guard is the stable user row;
 notification-preference upsert locks it before resolving/upserting optional preference
 rows, and a quiet-hours profile update locks that row before changing it. Thus a committed
 in-app channel disable, quiet-hours change, reminder disable/reschedule or decline cannot
@@ -316,8 +381,10 @@ in Phase 147 `CONTRACT.md`.
 
 ## Events
 
-All subjects use JSON envelopes with `schema_version: 1`, UUID `event_id`, RFC 3339
-`occurred_at`, `organization_id`, `actor_id` when known, `correlation_id`, and a payload.
+All subjects use JSON envelopes with the exact broker `subject`, `schema_version: 1`, UUID
+application `event_id`, RFC 3339 `occurred_at`, `organization_id`, `actor_id` when known,
+`correlation_id`, and a payload. A shared pure builder receives every value explicitly;
+it owns no clock, random source, persistence or publish side effect.
 
 | Subject | Producer | Required payload | Consumers |
 |---|---|---|---|
@@ -330,8 +397,15 @@ All subjects use JSON envelopes with `schema_version: 1`, UUID `event_id`, RFC 3
 | `calendar.rsvp.changed.v1` | calendar service | event/attendee ids, previous/new status, version, recurrence id | organizer notification, websocket |
 | `calendar.reminder.due.v1` | calendar reminder scheduler | receipt/event/user ids, sequence, recurrence id, due_at | notification consumer |
 
-Consumers are idempotent on `event_id`. Producers write through the existing transactional
-outbox pattern where state change and event publication must be atomic.
+Consumers are idempotent on envelope `event_id`. Producers write the complete envelope
+through the existing transactional outbox pattern as
+`PublishInTx(ctx, tx, envelope.Subject, envelope)`, so state change and event persistence
+remain atomic. `OutboxEvent.event_type`, the NATS subject and envelope `subject` must be
+identical; a mismatch is dead-lettered before mutation. The existing outbox worker remains
+unchanged and publishes its stored bytes as-is. Its row UUID/`Hub-Event-Id` header is a
+separate transport identifier used only for diagnostics by these new consumers; it does
+not replace the application event id. This additive rule deliberately avoids wrapping or
+changing payloads for any legacy outbox subject.
 
 ## Security model
 

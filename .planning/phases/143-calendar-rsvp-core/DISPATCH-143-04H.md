@@ -47,8 +47,9 @@ stale pre-command `If-Match` conflicts before any second outbox/notification.
 3. Master sequence/version each increment exactly one; attendee status unchanged.
 4. Serialized iTIP is `METHOD:CANCEL`, stable UID, new sequence, exact recurrence id and
    cancelled status; no unrelated occurrence.
-5. Outbox subject/payload is `calendar.invite.cancelled.v1` with recurrence id; exactly one
-   row in the same fake transaction.
+5. Outbox stores exactly one complete 04L envelope in the same fake transaction: subject is
+   `calendar.invite.cancelled.v1`, inner payload contains recurrence id, and event type,
+   envelope subject and descriptor subject match.
 6. Retrying stale expected version returns conflict with zero mutation/iTIP/outbox.
 7. Already-cancelled canonical state with matching current observation returns the same
    cancellation view without duplicate side effects.

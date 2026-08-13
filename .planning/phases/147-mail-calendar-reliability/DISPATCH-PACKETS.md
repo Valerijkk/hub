@@ -23,6 +23,10 @@
 - Preserve the legacy calendar `{events,from,to}`, existing Resend settings/broadcast
   implementation, notification callers without a dedupe key, CRM pipeline behavior, and
   outbound webhook allowlist unless this packet explicitly owns a narrow additive seam.
+- Every producer uses accepted 143-04L and passes the complete envelope to the unchanged
+  transaction outbox with `event_type == envelope.subject`. Every consumer compares broker
+  subject to JSON subject and deduplicates on envelope application `event_id`; the separate
+  `Hub-Event-Id` transport header is diagnostic only. Do not edit/wrap the global outbox.
 - Go 1.25; exported comments in Russian; bounded immutable DTOs; stable safe errors; no
   body/MIME/feed URL/token/address/provider response in logs or errors.
 - Response in Russian: summary, exact files/symbols, oracle results, verification, risks,
@@ -151,12 +155,16 @@
   `event_ingest_recovery.go`, `backend/cmd/server/wiring_calendar_mail.go`, the narrow call
   in `backend/cmd/server/wiring_modules.go`, plus
   `backend/tests/calendar/mail_consumer_test.go` using fake source/service/consumer ports.
-- Consume only closed `mail.received.v1`. Resolve each calendar part through 02D; claim its
+- Consume only a closed complete `mail.received.v1` envelope. Before receipt/domain work,
+  require broker subject equal JSON subject, schema version 1 and a valid application event
+  id; malformed/mismatched/unknown versions dead-letter with zero mutation. Resolve each
+  calendar part through 02D; claim its
   receipt; call 02B. Ack finalized permanent outcomes, Nak transient failures, and use a
   bounded recovery scan for deferred/expired leases. Start/stop is context-owned.
-- Oracles: duplicate event/part; malformed envelope; unknown schema dead-letter; transient
-  then success; missing master wake; shutdown cleanup; disabled/unavailable engine safe;
-  no goroutine/listener when dependency absent.
+- Oracles: duplicate application event id under same/different `Hub-Event-Id`; duplicate
+  part; subject mismatch; malformed/inner-payload-only envelope; unknown schema dead-letter;
+  transient then success; missing master wake; shutdown cleanup; disabled/unavailable
+  engine safe; no goroutine/listener when dependency absent.
 
 ## 147-03A — reply delivery state machine
 
@@ -201,8 +209,11 @@
   database/component test; route query/auth/transaction coverage to Python integration.
 - Resolve requester's organization, validate all requested active users in one bounded
   query plus bounded shared-project/channel relation query, then load only relevant
-  canonical events/attendees/exceptions, active scheduled calls/participants and approved
-  non-deleted leave through the existing viewer/shared-project policy for `[from,to)`.
+  canonical events/attendees/exceptions, active unlinked scheduled calls/participants only
+  while the pre-cutover transition flag is enabled, and approved non-deleted leave through
+  the existing viewer/shared-project policy for `[from,to)`. A linked pair is returned once
+  as event, never again as call; an unlinked non-deleted row after activation fails the
+  entire source load as `AVAILABILITY_SOURCE_INVALID`.
   Return domain records, including each target's timezone, not public text DTOs.
 - Oracles: foreign/deleted/missing/unrelated user causes no source queries; admin has no
   bypass; attendees/creator scope; declined/cancelled/deleted filters; approved leave only
@@ -215,7 +226,7 @@
   `backend/internal/calendar/handler.go` and `backend/cmd/server/wiring_modules.go`, and
   `backend/tests/calendar/availability_service_test.go` as a genuine fake-repository
   service unit. Do not add a Fiber/API Go test.
-- Bind exact 0.1.4 request, enforce ≤31 days/IANA/unique 1–50/slot bounds, invoke 04B then
+- Bind exact 0.1.5 request, enforce ≤31 days/IANA/unique 1–50/slot bounds, invoke 04B then
   04A, and serialize stable request-order `{user_id,busy,free}`. Use generic not-found for
   inaccessible users and NFR-13 errors.
 - Oracles: no source IDs/title/reason/project; timed instants and all-day zones; same input
@@ -276,11 +287,12 @@
   all-day due derives from the first representable instant of its civil start date in the
   valid event IANA zone: overlap chooses the earlier instant, a midnight gap chooses the
   first instant after the gap, and a skipped date chooses the first instant after its gap.
-  Date-only storage is unchanged. At/after due time lock event → optional exception →
+  Date-only storage is unchanged. At/after due time lock event → optional ScheduledCall → optional exception →
   optional attendee → user-policy guard → receipt, then require current sequence,
   effective start, active user, non-null `reminder_minutes`, recomputed due and eligibility
-  to match exactly before atomically marking emitted plus writing one closed
-  `calendar.reminder.due.v1`. Expire >24h overdue;
+  to match exactly before atomically marking emitted plus writing one complete 143-04L
+  `calendar.reminder.due.v1` envelope through the unchanged transaction outbox. Its
+  application event id/time/correlation are stable explicit claim inputs. Expire >24h overdue;
   suppress stale, configuration-mismatched, cancelled, deleted, removed or declined work.
   A changed offset uses a separate receipt; disabled offset creates no new work. Pre-due
   RSVP changes do not terminally suppress a pending receipt.
@@ -295,8 +307,10 @@
   `calendar_reminder_repository.go`, narrow additions to `consumer.go`,
   `backend/cmd/server/wiring_notification.go`, and
   `backend/tests/calendar/reminder_consumer_test.go` using fake ports.
-- Validate the closed reminder envelope and refetch owned current event metadata. In one
-  PostgreSQL transaction lock event → optional exception → optional attendee → user-policy
+- Validate the complete closed reminder envelope, including broker/JSON subject equality,
+  and refetch owned current event metadata. Deduplicate on envelope application event id,
+  never on the `Hub-Event-Id` transport header alone. In one
+  PostgreSQL transaction lock event → optional ScheduledCall → optional exception → optional attendee → user-policy
   guard → receipt → optional notification. Resolve current quiet hours/preferences only
   after the guard; reauthorize and require current active state, user eligibility, sequence,
   effective start, non-null offset and recomputed due to match the receipt/payload.
@@ -447,7 +461,7 @@
   `backend/internal/crm/handler.go` and `backend/cmd/server/wiring_modules.go`. Do not add a
   Go HTTP/component test; route the public API cases to the Python API handoff.
 - Implement exact compose-context and mail-activity GET/PUT/DELETE routes from OpenAPI
-  0.1.4. Bound list to max 100 newest-first with an opaque cursor; actor/deal/message are
+  0.1.5. Bound list to max 100 newest-first with an opaque cursor; actor/deal/message are
   path/auth derived; NFR-13 errors and not-found privacy.
 - Oracles: route/method/path shapes; duplicate PUT; invalid UUID; auth ordering; no body/
   recipient/subject in activity response; exact 404/409 codes; existing contacts/pipeline
@@ -459,7 +473,7 @@
   `frontend/tests/mail/crm-mail-api.test.ts` as a genuine typed-client unit with
   in-process fetch fakes.
 - Implement exact compose-context and activity list/PUT/DELETE functions from OpenAPI
-  0.1.4. Use bounded `limit`, opaque cursor and shared safe error parsing. This client has
+  0.1.5. Use bounded `limit`, opaque cursor and shared safe error parsing. This client has
   no draft/save/send function and cannot accept actor, mailbox or organization ids.
 - Oracles: exact methods/paths/query/body/204; 404/409 codes remain available to UI;
   cursor stays opaque; response types contain no content/address beyond compose context;

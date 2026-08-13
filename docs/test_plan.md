@@ -217,7 +217,7 @@ Greenfield Python browser lifecycle/artifacts: task-named modules in `testframew
 - **Попарное тестирование:** filter combinations (status × priority × assignee)
 - **Таблицы решений:** workflow transitions, RBAC permission matrix
 
-### Mail + Calendar 0.1.4 (future, `NOT_RUN`)
+### Mail + Calendar 0.1.5 (future, `NOT_RUN`)
 
 Канон будущей проверки — `docs/mail/QA-HANDOFF.md` и Phase 148
 `GATE-MATRIX.md`. Feature-owned genuine units допускаются только в
@@ -230,6 +230,20 @@ deterministic all-day due including midnight overlap/gap/skipped-date fixtures,
 invalid-policy no-fallback, transient-policy retry and post-commit
 WS failure, CRM idempotent draft handoff/
 existing-message link/no-recipient-in-URL/cross-user denial и условные feed SSRF cases.
+Контрактный P0 набор отдельно доказывает deterministic full-envelope mapping,
+`event_type == NATS subject == JSON subject`, публикацию полного envelope без
+дополнительной обёртки, application-`event_id` dedupe при одинаковом/
+разном `Hub-Event-Id`, dead-letter до mutation при mismatch/malformed/unknown version и
+байтовую неизменность legacy outbox payloads.
+Отдельный P0 cutover-набор доказывает полный ScheduledCall backfill, совпадение legacy/
+canonical recurrence oracle, event-before-call concurrency, atomic create/update/delete,
+occurrence-cancel projection advance, versioned occurrence-keyed due outbox, отсутствие
+linked-pair дублей в aggregate/availability и запрет legacy conflict title/channel leakage
+без членства в точном конфликтующем канале. Он также проверяет обязательный стабильный
+legacy-create idempotency key в обоих клиентах, strict UUID rejection, active
+channel/project/org membership, exact attach equality, series-only participant projection,
+linked-external-guest fail-closed default и WS-driven canonical refetch без второго reminder.
+Любой partial migration или direct linked-call writer — FAIL.
 
 ---
 

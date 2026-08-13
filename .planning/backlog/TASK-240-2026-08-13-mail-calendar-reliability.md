@@ -1,6 +1,6 @@
 # TASK-240 — Mail/calendar reliability and product integrations
 
-> Date: **2026-08-13** · Priority: **P1** · Status: **Mail 0.1.4 root static pass on 46cfa26c; independent review pending; code blocked** · Phase: **147**
+> Date: **2026-08-13** · Priority: **P1** · Status: **Mail 0.1.5 root/independent review pending; 0.1.4 evidence stale; code blocked** · Phase: **147**
 
 ## Outcome
 
@@ -12,8 +12,9 @@ subscription after the P0 mailbox and RSVP paths.
 
 - Series and occurrence exceptions converge under redelivery and out-of-order sequence.
 - Incoming REQUEST/CANCEL and outward REPLY are bounded, spoof-resistant and recoverable.
-- Availability combines first-class events, scheduled calls and approved leave without
-  disclosing private titles/details.
+- Availability combines first-class events, active unlinked calls only before cutover, and
+  approved leave without disclosing private titles/details or counting linked pairs twice;
+  post-cutover unlinked non-deleted state fails closed.
 - Reminder events reuse notification preferences, keep transient policy/store failures
   pending/retriable, recheck current offset/start/eligibility immediately before durable
   delivery, and do not broaden Resend templates.
@@ -23,7 +24,11 @@ subscription after the P0 mailbox and RSVP paths.
 - CRM creates one ordinary idempotent Mail draft without recipient-in-URL, then Mail owns
   compose/send/reconciliation and an explicit owned-message activity link, including from
   the ordinary reader; CRM does not become a sender, campaign or tracking system.
-- Units and docs trace to FR-CALSYNC-009..013, FR-CRM-MAIL-001..002 and relevant FR-MAIL
+- ScheduledCall backfill/cutover, recurrence oracle, paired writer/worker and legacy reader
+  bridge satisfy FR-CALSYNC-014..015 without a second meeting authority. Attach is an exact
+  normalized match, internal participant projection is series-only, due uses the versioned
+  exact-channel signal, and linked external guests fail closed pending secure guest access.
+- Units and docs trace to FR-CALSYNC-009..015, FR-CRM-MAIL-001..002 and relevant FR-MAIL
   requirements.
 
 ## Deferred beyond this card

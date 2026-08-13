@@ -160,7 +160,7 @@ historical document. Current Resend also exposes a legacy admin broadcast that c
 with ADR-NOTIF-01's no-marketing/whitelist policy; treat it as an open governance/security
 gap until removed, disabled, or explicitly re-authorized and audited.
 
-Mail 0.1.4 additionally requires authenticated organizer alignment and immutable organizer
+Mail 0.1.5 additionally requires authenticated organizer alignment and immutable organizer
 identity for REQUEST/CANCEL, capped lifetime tombstones plus bounded receipt retention,
 reconciliation before an
 outward REPLY retry, all-or-nothing self/shared-project-or-channel availability authorization
@@ -176,9 +176,30 @@ server authorization. Conditional L1 feed
 URLs are encrypted/write-only and still pass safe-dial/redirect/decompression checks on
 every fetch; L1 code remains blocked until founder decision 5.
 
+Linked ScheduledCalls add a mandatory same-organization cutover boundary: project and
+channel must agree; the active creator must belong to the exact channel, and creator plus
+every internal participant must be active members of the project and its organization;
+calendar-v2 may attach only an owned active unlinked call; and the link is immutable.
+Ordinary events can keep email-only guests, but a linked-call event is rejected until an
+expiring/revocable join credential and delivery/audit contract is approved; guest email is
+never authority. Event-before-call locking and one atomic bridge transaction prevent a legacy
+writer/worker from bypassing canonical event authorization or recurrence exceptions.
+Availability counts linked pairs once and exposes no title/id. Legacy call-conflict details
+must require caller membership in the exact conflicting channel; sharing some other channel
+with a participant is not authority to reveal the call title or channel id.
+
 Reaching the per-mailbox unbound calendar-state cap is fail-closed and visible: unseen UIDs
 quarantine before mutation, known UIDs continue, and one rate-limited content-free ops
 signal marks degraded import health. Automated tombstone eviction/reset is forbidden.
+
+Versioned Mail/Calendar/linked-call events are also fail-closed. Producers persist the
+complete deterministic envelope through the unchanged outbox only when event type and JSON
+subject are identical. Consumers compare the actual broker subject to that JSON subject and
+reject malformed/unknown versions before any dedupe or domain/projection mutation. Envelope
+application `event_id` is the dedupe identity; the separate outbox-row `Hub-Event-Id` header
+is transport diagnostics and never authorization. Neither id, correlation id nor errors may
+carry a raw idempotency key, credential, message body or MIME data. Legacy outbox payloads
+must not be globally wrapped to implement this contract.
 
 ## Защита от CSRF/XSS/Clickjacking
 
