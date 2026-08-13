@@ -6,8 +6,6 @@ import tailwindcss from "@tailwindcss/vite";
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 import { VitePWA } from "vite-plugin-pwa";
 
-const testframeworkDir = path.resolve(__dirname, "../testframework/stages/unit/frontend-test");
-
 export default defineConfig({
   plugins: [
     TanStackRouterVite(),
@@ -19,7 +17,6 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": "/src",
-      "@testframework": testframeworkDir,
     },
   },
   build: {
@@ -78,7 +75,7 @@ export default defineConfig({
     environment: "happy-dom",
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
-    include: ["../testframework/stages/unit/frontend-test/domains/**/*.test.{ts,tsx}"],
+    include: ["tests/**/*.test.{ts,tsx}"],
     exclude: ["src/**/*.test.{ts,tsx}"],
   },
 });
