@@ -323,7 +323,7 @@ GATE_REGISTRY = [
     {
         "id": "architecture-contract",
         "image": "python:3.12-slim",
-        "expected_image_digest": None,
+        "expected_image_digest": "sha256:229a2c5bfa27522db7815ea81f9bed70af17ccb9de9fc7ad142b1877b5830d36",
         "cpus": "1.0",
         "memory": "1g",
         "memory_swap": "1g",
@@ -344,7 +344,7 @@ GATE_REGISTRY = [
     {
         "id": "backend-unit",
         "image": "golang:1.25-bookworm",
-        "expected_image_digest": None,
+        "expected_image_digest": "sha256:bbb255b0e131db500cf0520adc97441d2260cf629c7fa7e39e025ddf53995a24",
         "cpus": "2.0",
         "memory": "4g",
         "memory_swap": "4g",
@@ -366,7 +366,7 @@ GATE_REGISTRY = [
     {
         "id": "frontend-unit",
         "image": "mcr.microsoft.com/playwright:v1.61.0-noble",
-        "expected_image_digest": None,
+        "expected_image_digest": "sha256:57b65fdc9ceabe0ef613124c7bbe2babcf9362c4d85e382fe3b03604e84b428a",
         "cpus": "2.0",
         "memory": "4g",
         "memory_swap": "4g",

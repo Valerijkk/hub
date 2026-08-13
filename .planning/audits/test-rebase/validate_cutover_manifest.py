@@ -1246,7 +1246,7 @@ def validate_verified_receipt(
         errors.append(f"verified receipt is not canonical JSON: {batch.get('id')}")
     receipt_keys = {
         "schema_version", "manifest_id", "batch_id", "applied_commit",
-        "verifier_commit", "verifier_identity", "verified_at",
+        "verifier_identity", "verified_at",
         "operations_sha256", "transition_chain_sha256", "evidence_sha256",
         "commit_chain_sha256", "verifier_binding_sha256", "receipt_sha256",
     }
@@ -1259,15 +1259,17 @@ def validate_verified_receipt(
         "manifest_id": manifest.get("manifest_id"),
         "batch_id": batch.get("id"),
         "applied_commit": commit.get("applied_commit"),
-        "verifier_commit": commit.get("verifier_commit"),
         "verifier_identity": verifier.get("identity"),
         "verified_at": verifier.get("verified_at"),
         "operations_sha256": batch.get("preconditions", {}).get("operations_sha256"),
         "transition_chain_sha256": object_digest(batch.get("state_transition", {}).get("history")),
         "evidence_sha256": object_digest(batch.get("evidence")),
+        # verifier_commit is intentionally absent from the receipt body: the
+        # receipt lives in the verifier commit's own tree, so embedding that
+        # commit hash would be an unsatisfiable fixed point. Tree membership
+        # (read_bound_artifact commit=) provides the verifier-commit binding.
         "commit_chain_sha256": object_digest({
             "applied_commit": commit.get("applied_commit"),
-            "verifier_commit": commit.get("verifier_commit"),
         }),
         "verifier_binding_sha256": object_digest({
             "identity": verifier.get("identity"),
@@ -1758,10 +1760,15 @@ def _expected_gate_contract() -> dict[str, dict[str, Any]]:
             ],
         ),
     }
+    sealed_digests = {
+        "architecture-contract": "sha256:229a2c5bfa27522db7815ea81f9bed70af17ccb9de9fc7ad142b1877b5830d36",
+        "backend-unit": "sha256:bbb255b0e131db500cf0520adc97441d2260cf629c7fa7e39e025ddf53995a24",
+        "frontend-unit": "sha256:57b65fdc9ceabe0ef613124c7bbe2babcf9362c4d85e382fe3b03604e84b428a",
+    }
     return {
         gate_id: {
             "image": image,
-            "expected_image_digest": None,
+            "expected_image_digest": sealed_digests.get(gate_id),
             "cpus": cpu,
             "memory": memory,
             "memory_swap": swap,
@@ -2350,13 +2357,12 @@ def two_batch_projection_sentinel() -> str | None:
             "manifest_id": manifest["manifest_id"],
             "batch_id": batch["id"],
             "applied_commit": commit["applied_commit"],
-            "verifier_commit": commit["verifier_commit"],
             "verifier_identity": verifier["identity"],
             "verified_at": verifier["verified_at"],
             "operations_sha256": batch["preconditions"]["operations_sha256"],
             "transition_chain_sha256": object_digest(batch["state_transition"]["history"]),
             "evidence_sha256": object_digest(batch["evidence"]),
-            "commit_chain_sha256": object_digest(commit),
+            "commit_chain_sha256": object_digest({"applied_commit": commit["applied_commit"]}),
             "verifier_binding_sha256": object_digest({
                 "identity": verifier["identity"],
                 "verdict": verifier["verdict"],
