@@ -1,6 +1,6 @@
 # Phase 143 — Calendar RSVP Core
 
-> Task: TASK-236 · Status: IMPLEMENTATION_IN_PROGRESS_143_01_STATIC_ACCEPTED · Depends on: Phase 142
+> Task: TASK-236 · Status: IMPLEMENTATION_IN_PROGRESS_143_01_AND_143_02A_STATIC_ACCEPTED · Depends on: Phase 142
 
 ## Goal
 
@@ -31,6 +31,9 @@ authorities, duplicate meetings or dependence on the real mail engine.
 4. Commit `test(calendar): зафиксировать политику событий и RSVP` including docs sync.
 
 ## Task 143-02 — Deterministic iTIP codec with fixtures
+
+> **Status:** 143-02A serializer `STATIC_ACCEPTED` through `d73a9380`; 143-02B parser next;
+> executable verification `NOT_RUN`. Evidence: `IMPLEMENTATION-143-02A.md`.
 
 **Create:**
 

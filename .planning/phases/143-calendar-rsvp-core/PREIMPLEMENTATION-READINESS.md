@@ -2,7 +2,7 @@
 
 > **Snapshot:** 2026-08-13
 > **Branch:** `codex/mail-module-20260813`
-> **Product truth:** IMPLEMENTATION_IN_PROGRESS · 143-01_STATIC_ACCEPTED · RUNTIME_NOT_RUN · not accepted
+> **Product truth:** IMPLEMENTATION_IN_PROGRESS · 143-01_AND_143-02A_STATIC_ACCEPTED · RUNTIME_NOT_RUN · not accepted
 
 ## Prepared artifacts (root and independently reviewed)
 
@@ -44,7 +44,9 @@
    `e7d5f450`; evidence: `IMPLEMENTATION-143-01.md`; runtime `NOT_RUN`.
 2. ~~Accept or reject that packet before any dependent dispatch.~~ Independent Terra/high
    re-review PASS with no P0/P1/P2 after remediation.
-3. Dispatch 143-02A next, then 143-02B; accept deterministic iTIP surface.
+3. ~~Dispatch 143-02A.~~ `STATIC_ACCEPTED` through `d73a9380` after one reviewed fix
+   round; evidence: `IMPLEMENTATION-143-02A.md`; runtime `NOT_RUN`. Dispatch 143-02B next
+   to complete the bounded deterministic iTIP surface.
 4. Resolve migration mechanism and accepted launcher before Ent generation.
 5. Admit `calendar.>` before calendar producers.
 6. Execute Phase 143 service/HTTP plus ScheduledCall bridge packets; retain the legacy

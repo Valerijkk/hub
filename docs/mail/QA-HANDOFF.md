@@ -2,7 +2,7 @@
 
 > **Contract version:** 0.1.6
 > **Prepared:** 2026-08-13
-> **Implementation status:** IN_PROGRESS — 143-01 static accepted on `e7d5f450`; executable verification `NOT_RUN`
+> **Implementation status:** IN_PROGRESS — 143-01 and 143-02A static accepted through `d73a9380`; executable verification `NOT_RUN`
 > **Runtime status:** NOT_RUN
 > **QA owner:** founder-designated Claude test program
 > **Product-code owner:** ChatGPT mail feature branch

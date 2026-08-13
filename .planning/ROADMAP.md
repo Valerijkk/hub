@@ -248,7 +248,7 @@ contract отменяет его как migration gate; destructive batches ра
 | Phase | Status | Depends on | Outcome / task |
 |------:|--------|------------|----------------|
 | 142 | CONTRACT COMPLETE · static PASS · runtime NOT_RUN | — | ADR, ERD, OpenAPI, NATS, UI/security/QA contracts · TASK-235 |
-| 143 | 143-01 STATIC ACCEPTED `e7d5f450` · 143-02A NEXT · RUNTIME NOT_RUN | 142 | CalendarEvent/Attendee/Exception, deterministic iTIP/RSVP, canonical ScheduledCall bridge/backfill · TASK-236 |
+| 143 | 143-01 + 143-02A STATIC ACCEPTED through `d73a9380` · 143-02B NEXT · RUNTIME NOT_RUN | 142 | CalendarEvent/Attendee/Exception, deterministic iTIP/RSVP, canonical ScheduledCall bridge/backfill · TASK-236 |
 | 144 | DISPATCH 0.1.6 · TERRA CODE ROUTE AUTHORIZED / FIRST PACKET PENDING | 142 | Mailbox domain, domain/account/projection+recovery/rule workers, safe content/search, receipts/classifier · TASK-237 |
 | 145 | BLOCKED BY EXTERNAL GATES | 144 + license + launcher | Stalwart adapter, instance-domain mail, bounded Docker profile · TASK-238 |
 | 146 | DISPATCH 0.1.6 · TERRA ROUTE AUTHORIZED / DEPENDENCIES+HARNESS BLOCKED | 143, 144 | Outlook three-pane UI, management, rules, safe content/search/realtime · TASK-239 |
