@@ -2,7 +2,11 @@
 
 > **Detected:** 2026-08-13 root deep static audit
 > **Severity:** P1 contract boundary
-> **Status:** CONTRACT_AMENDMENT_REQUIRED · DOWNSTREAM_BLOCKED · RUNTIME_NOT_RUN
+> **Status:** 0.1.8_ROOT_AMENDMENT_AVAILABLE · INDEPENDENT_CLOSURE_PENDING · DOWNSTREAM_BLOCKED · RUNTIME_NOT_RUN
+
+> **Superseding candidate:** `docs/mail/ENGINE-CONTRACT-0.1.8.md` and OpenAPI 0.1.8
+> root-freeze projection-only pages, byte-budgeted complete reads, hard policy ceilings and
+> stable first-draft identity. This finding remains open until independent exact-SHA review.
 
 ## What remains valid
 

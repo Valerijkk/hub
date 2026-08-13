@@ -13,7 +13,7 @@ review cannot self-certify its own fix.
 ## Common review envelope
 
 - Confirm actual model/effort first. Missing/mismatched provenance returns `BLOCKED`.
-- Read root `AGENTS.md`, `.planning/STATE.md`, routed domain docs, Mail 0.1.7 contract,
+- Read root `AGENTS.md`, `.planning/STATE.md`, routed domain docs, Mail 0.1.8 contract,
   Phase 147 contract and the supplied exact diff. Never read protected test-rebase or
   `pro-qa-ai` paths.
 - Do not run host tests/build/lint/validators or direct Docker/Compose. Review accepted

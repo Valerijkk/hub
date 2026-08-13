@@ -1,6 +1,6 @@
 # Phase 147 — Mail/Calendar Reliability and Integrations
 
-> Task: TASK-240 · Status: CONTRACT_0_1_7_ROOT_INDEPENDENT_STATIC_PASS_B3FB6F48_DEPENDENCY_BLOCKED · Depends on: Phases 143–146
+> Task: TASK-240 · Status: CONTRACT_0_1_8_ROOT_FROZEN_GLOBAL_REVIEW_PENDING_DEPENDENCY_BLOCKED · Depends on: Phases 143–146
 > Required code runtime: `gpt-5.6-terra` / `xhigh`, no fallback
 > Contract: `CONTRACT.md` · Dispatch: `DISPATCH-INDEX.md` + `DISPATCH-PACKETS.md`
 
@@ -13,8 +13,8 @@ this phase.
 
 ## Ordered execution
 
-1. Independently review Mail 0.1.7 reliability/bridge/canonical-hash semantics and close
-   contract findings. The prior 0.1.6 review evidence is historical STALE.
+1. Preserve the independently reviewed 0.1.7 reliability/bridge/canonical-hash semantics and
+   independently review the full Mail 0.1.8 amendment. Prior review evidence is historical.
 2. After accepted Phase 143/144 schemas, add inbound object/message receipts, reply
    delivery and reminder receipts; generate only through the accepted launcher.
 3. Implement REQUEST/CANCEL order policy, atomic application, authenticated message-part
@@ -40,8 +40,8 @@ this phase.
 
 | Gate | State |
 |---|---|
-| Root reliability contract static review | 0.1.7 PASS on exact SHA `b3fb6f48`; 0.1.6 PASS on `5a351d5b` historical STALE |
-| Independent reliability contract review | Terra/high PASS on exact SHA `b3fb6f48`; 3 P1 from `7a6ffc1c` closed; no remaining P0/P1/P2 |
+| Root reliability contract static review | 0.1.8 ROOT_FROZEN; semantic 0.1.7 PASS on exact SHA `b3fb6f48` is historical evidence |
+| Independent reliability contract review | PENDING for 0.1.8; earlier Terra/high review does not cover engine/API/persistence changes |
 | Exact Terra code runtime | AUTHORIZED_BY_FOUNDER / first actual packet pending |
 | Phase 143/144 accepted implementation | NOT_IMPLEMENTED |
 | Engine authentication mapping | BLOCKED_BY_PHASE_145 |

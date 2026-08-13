@@ -1,6 +1,6 @@
 # Phase 148 — merge-readiness gate matrix
 
-> **Status:** G148_02_BLOCKED_CONTRACT_REOPENED_P1 · IMPLEMENTATION_IN_PROGRESS · RUNTIME_NOT_RUN
+> **Status:** G148_02_BLOCKED_INDEPENDENT_REVIEW_PENDING_0_1_8 · IMPLEMENTATION_IN_PROGRESS · RUNTIME_NOT_RUN
 > **Scope:** Mail/Calendar/CRM feature branch only
 > **Evidence rule:** exact current SHA or no PASS
 > **Execution rule:** accepted versioned Docker launcher only; host/direct Compose evidence
@@ -42,11 +42,11 @@ secrets, DNS/operator approval and CTO/founder sign-off remain separate.
 | ID | Required evidence | Current state | Blocks |
 |---|---|---|---|
 | G148-01 baseline | clean isolated branch; base/current SHA; worktree path; changed-file and protected-zone diff; no untracked product artifact | PASS for docs snapshot only; repeat after code | every later gate |
-| G148-02 contract | ADR, Mail spec, OpenAPI, event schema, UI contract, Phase 147 contract and QA handoff independently agree; machine refs/examples closed | BLOCKED: historical Mail 0.1.7 CVE-v1 PASS on `b3fb6f48` is stale for global readiness after engine response/admin, 144-02A schema/cardinality and OpenAPI list/detail/calendar-bound P1s; no 0.1.8 amendment reviewed | source work/claim |
+| G148-02 contract | ADR, Mail spec, OpenAPI, event schema, UI contract, Phase 147 contract and QA handoff independently agree; machine refs/examples closed | BLOCKED: Mail 0.1.8 root-freezes the bounded engine/API and exact 144-02A/B/C/D/F persistence amendment, but no independent actual-provenance review or executable schema/example validation covers it; 0.1.7 PASS is historical | source work/claim |
 | G148-03 founder decisions | task-local Terra route is answered; signed answers remain required for migration mechanism, Stalwart license, L1 include/defer, recurring-call semantics, pause/resume, legacy POST idempotency break, linked-call guest access, broadcast disposition, primary-address policy, sanitizer dependency, Sieve ownership, engine hydration/stream shape, message/attachment hard ceilings, mailbox quotas/pagination, calendar overflow behavior and rebase signal; push/PR separately authorized | PARTIAL / unresolved items remain | affected packets and final gate |
 | G148-04 model provenance | every production/test-code packet records actual `gpt-5.6-terra` + `xhigh`; no silent fallback; review packets record allowed Terra effort and distinct review context | BLOCKED for new packets: earlier evidence exists, but 143-03A remediation, 143-03C/F reviews and 144-01B report actual telemetry unavailable | source acceptance |
 | G148-05 migrations/generation | reviewed mechanism, preflight, generated Ent twice clean, complete ScheduledCall mapping + recurrence oracle + 100% bridge cutover dry-run on empty/realistic snapshot, counts/hashes and rollback | NOT_RUN | backend/runtime |
-| G148-06 independent source review | backend, frontend, architecture, security, product and QA lenses on current diff; all P0/P1 fixed and re-reviewed | BLOCKED: open 143-03 hash-pair P1 plus 144 engine-boundary and 02A/02B/02C/02D/02F schema-readiness P1s; full current-source multi-lens gate is not complete | merge-ready |
+| G148-06 independent source review | backend, frontend, architecture, security, product and QA lenses on current diff; all P0/P1 fixed and re-reviewed | BLOCKED: open 143-03 hash-pair source P1, unimplemented 144-01A amendment, unimplemented 02A/B/C/D/F schemas and no full current-source multi-lens review | merge-ready |
 | G148-07 launcher integrity | versioned outer launcher has task owner marker, CPU/RAM/PID limits, wall timeout, isolated report root and unconditional exact cleanup | NOT_READY | all executable evidence |
 | G148-08 units/build/contracts | applicable backend/frontend feature units, generation, build/type/lint and schema/source-contract jobs green through launcher | NOT_RUN | merge-ready |
 | G148-09 API/integration | PostgreSQL constraints/transactions, public API/authz, NATS/outbox, Meili, SeaweedFS and mailbox fake/adapter integration green | NOT_RUN | merge-ready |
@@ -171,13 +171,11 @@ requirements and evidence request; it does not edit that program.
 
 ## 8. Current honest aggregate
 
-`CONTRACT_REVIEW_PASS_IMPLEMENTATION_IN_PROGRESS`: Mail 0.1.7 freezes a separate
-versioned inbound CVE-v1 hash so occurrence REQUEST and future normalization migrations
-cannot silently reuse outbound bytes or compare unlike versions. G148-02 has root and
-independent Terra/high PASS on exact semantic SHA `b3fb6f48`; the three P1 from
-`7a6ffc1c` are closed and the prior 0.1.6 PASS on `5a351d5b` is historical only. Tasks
-143-01 and 143-02A remain static accepted through `d73a9380` with actual Terra/xhigh
-provenance and independent packet review/fix/re-review evidence; 143-02B is the next
-implementation packet. The launcher is not ready,
-engine/legal/migration/broadcast/rebase decisions are unresolved, and all executable
-evidence is `NOT_RUN`.
+`CONTRACT_ROOT_FROZEN_REVIEW_PENDING_IMPLEMENTATION_IN_PROGRESS`: Mail 0.1.8 preserves the
+reviewed CVE-v1 semantics and root-freezes projection/message/blob budgets, public list and
+calendar bounds, stable first-draft identity and exact Phase 144 persistence matrices.
+Historical independent PASS on 0.1.7 SHA `b3fb6f48` does not review that amendment, so
+G148-02 remains blocked. Tasks 143-01/02A/02B retain their historical static evidence, while
+the 143-03 hash-pair source fix and all dependent 144 implementation packets remain blocked
+by provenance/acceptance. The launcher is not ready, engine/legal/migration/broadcast/rebase
+decisions are unresolved, and all executable evidence is `NOT_RUN`.

@@ -119,11 +119,11 @@ type MailEngine interface {
     CreateFolder(ctx context.Context, accountID string, spec FolderSpec) (EngineFolder, error)
     RenameFolder(ctx context.Context, accountID, folderID, name string) error
     DeleteFolder(ctx context.Context, accountID, folderID string) error
-    ListMessages(ctx context.Context, query EngineMessageQuery) (EngineMessagePage, error)
-    GetMessage(ctx context.Context, accountID, messageID string) (EngineMessage, error)
-    GetBlob(ctx context.Context, accountID, blobID string) (EngineBlob, error)
-    Changes(ctx context.Context, accountID, since string) (EngineChangePage, error)
-    EnumerateProjection(ctx context.Context, accountID, checkpoint string) (EngineEnumerationPage, error)
+    ListMessages(ctx context.Context, query EngineMessageQuery) (EngineProjectionPage, error)
+    GetMessage(ctx context.Context, request EngineMessageReadRequest) (EngineMessage, error)
+    GetBlob(ctx context.Context, request EngineBlobReadRequest) (EngineBlob, error)
+    Changes(ctx context.Context, request EngineChangeRequest) (EngineChangePage, error)
+    EnumerateProjection(ctx context.Context, request EngineEnumerationRequest) (EngineEnumerationPage, error)
     SaveDraft(ctx context.Context, draft EngineDraft) (EngineMessage, error)
     ReconcileDraft(ctx context.Context, draft EngineDraftReconciliation) (EngineDraftResult, error)
     Submit(ctx context.Context, message EngineSubmission) (EngineSubmissionResult, error)
@@ -139,16 +139,23 @@ type MailEngine interface {
 }
 ```
 
-The interface is a contract sketch; exact Go DTOs are frozen by `MAIL-SPEC.md`. Domain
+The interface is a contract sketch; exact bounded Go DTOs are frozen by `MAIL-SPEC.md` and
+`docs/mail/ENGINE-CONTRACT-0.1.8.md`. Domain
 services never expose engine credentials or raw JMAP objects to HTTP handlers.
 Public search does not exist on this port: Meilisearch is the sole Hub search projection,
 and every result is hydrated/reauthorized through owner-scoped message reads.
-`EngineDraft` carries the previous opaque engine version and a stable Hub mutation id;
+`EngineDraft` carries a stable engine draft key derived from its Hub UUID, the previous
+opaque engine id/version when known, a stable Hub mutation id and a positive caller content
+budget no greater than effective policy/hard engine ceiling; reconciliation carries the same
+budget and rejects an expanded result as a whole;
 `ReconcileDraft` distinguishes applied, absent/unchanged, and indeterminate state without
 issuing another save. `EngineSubmission` carries a stable engine submission key. A lost
 response is reconciled through engine state before another mutation is attempted. The
 domain must not translate an indeterminate timeout into a blind save or send retry.
-`Changes` is a bounded hydrated incremental page. `EnumerateProjection` is a resumable
+List/change/enumeration methods return projection-only metadata with per-item and aggregate
+byte ceilings; body hydration is reserved for one authorized budgeted `GetMessage`, while
+`GetBlob` is a complete-value budgeted read that rejects overflow without returning a
+prefix. `Changes` is a bounded incremental projection page. `EnumerateProjection` is a resumable
 bounded base-state-anchored enumeration page, not a promise that standard JMAP freezes a mailbox
 across requests. The adapter captures a composite Mailbox/Email object-state cursor before
 enumeration and must prove stable unfiltered ID-anchor traversal in which unchanged

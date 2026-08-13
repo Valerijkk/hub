@@ -1,6 +1,6 @@
 # Phase 145 — external and runtime gate plan
 
-> **Status:** BLOCKED_BY_144_CONTRACT_AND_EXTERNAL_GATES
+> **Status:** BLOCKED_BY_144_ACCEPTANCE_AND_EXTERNAL_GATES
 > **No implementation authorization:** this plan does not approve a license, image,
 > network egress, DNS change, secret, deployment or runtime command.
 
@@ -8,7 +8,7 @@
 
 | Gate | Evidence required | Owner / authority | Current state | Failure action |
 |---|---|---|---|---|
-| G145-0 engine boundary | accepted projection-only vs hydrated DTO choice, bounded content/blob request shape, hard admin maxima and stable over-limit behavior | founder + architecture/security review | P1 REOPENED | no fake/adapter implementation against an unsafe or changing port |
+| G145-0 engine boundary | independently accepted projection-only pages, bounded content/blob request shape, hard admin maxima and stable over-limit behavior | founder + architecture/security review | 0.1.8 ROOT_FROZEN / INDEPENDENT_REVIEW_PENDING | no fake/adapter implementation against an unaccepted port |
 | G145-1 license | written choice: unmodified sidecar under AGPL-3.0 or accepted SELv2/commercial terms | founder/legal | UNRESOLVED | select docker-mailserver fallback behind the same port; re-plan adapter |
 | G145-2 runtime model | exact `gpt-5.6-terra` / `xhigh` requested and actual provenance for each code packet | founder/runtime operator | ROUTE_AUTHORIZED / new packet actual telemetry unavailable | reject any mismatch or fallback |
 | G145-3 launcher | versioned task-owned outer launcher implementing limits, timeout, report owner marker and exact cleanup | test architecture owner | NOT_READY | no direct Docker/Compose fallback; runtime remains NOT_RUN |

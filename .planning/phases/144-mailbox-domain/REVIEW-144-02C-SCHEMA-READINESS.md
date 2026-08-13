@@ -1,8 +1,11 @@
 # Phase 144-02C preimplementation review — object/draft schema readiness
 
 > **Detected:** 2026-08-13 root deep static audit
-> **Status:** CONTRACT_AMENDMENT_REQUIRED · IMPLEMENTATION_BLOCKED · RUNTIME_NOT_RUN
+> **Status:** 0.1.8_ROOT_AMENDMENT_AVAILABLE · INDEPENDENT_CLOSURE_PENDING · IMPLEMENTATION_BLOCKED · RUNTIME_NOT_RUN
 > **Scope:** `MailObject`, `MailAttachment`, `MailDraft` and `MailSubmission`
+
+> `docs/mail/ENGINE-CONTRACT-0.1.8.md`, OpenAPI 0.1.8 and the 02C persistence matrix now
+> supply the root candidate; this verdict remains open until independent exact-SHA review.
 
 ## Outcome
 

@@ -22,7 +22,7 @@ No runtime implementation/claim proceeds by silent fallback.
    reconciliation; prove adapter contract conformance.
    Folder lost-response recovery is enabled only by a reviewed capability proving Hub is
    the sole custom-folder writer; false/unknown or alternate writer remains degraded.
-3. Implement bounded hydrated incremental Changes plus a resumable base-state/ID-anchored
+3. Implement bounded projection-only incremental Changes plus a resumable base-state/ID-anchored
    projection enumeration whose composite base cursor is accepted by Changes. Query-state
    drift converges through catch-up; missing anchor, unstable enumeration or expired base
    history returns typed restart-required and never resets silently.

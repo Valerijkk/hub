@@ -247,20 +247,20 @@ contract отменяет его как migration gate; destructive batches ра
 
 | Phase | Status | Depends on | Outcome / task |
 |------:|--------|------------|----------------|
-| 142 | CONTRACT ARTIFACTS COMPLETE · DEEP AUDIT P1 ENGINE/SCHEMA/OPENAPI BOUNDS REOPENED · runtime NOT_RUN | — | ADR, ERD, OpenAPI, NATS, UI/security/QA contracts · TASK-235 |
+| 142 | MAIL 0.1.8 ROOT-FROZEN AMENDMENT · INDEPENDENT REVIEW PENDING · runtime NOT_RUN | — | ADR, ERD, bounded OpenAPI/engine/persistence, NATS, UI/security/QA contracts · TASK-235 |
 | 143 | 143-01/02A/02B STATIC ACCEPTED · 03A/C P1 HASH-PAIR CHECK REMEDIATION BLOCKED · 03B/F CONTENT PASS, CHAIN BLOCKED · RUNTIME NOT_RUN | 142 | CalendarEvent/Attendee/Exception, deterministic iTIP/RSVP, canonical ScheduledCall bridge/backfill · TASK-236 |
-| 144 | 144-01A SOURCE PASS · P1 ENGINE BOUNDARY + 02A/02B/02C/02D/02F SCHEMA MATRICES REOPENED · 01B/02A/02B/02C/02D/02F BLOCKED · RUNTIME NOT_RUN | 142 | Mailbox domain, domain/account/projection+recovery/rule workers, safe content/search, receipts/classifier · TASK-237 |
-| 145 | BLOCKED BY 144 CONTRACT + EXTERNAL GATES | 144 + license + launcher | Stalwart adapter, instance-domain mail, bounded Docker profile · TASK-238 |
-| 146 | DISPATCH 0.1.7 · PUBLIC LIST/DETAIL BOUNDS P1 REOPENED · DEPENDENCIES+HARNESS BLOCKED | 143, 144 | Outlook three-pane UI, management, rules, safe content/search/realtime · TASK-239 |
-| 147 | CVE-v1 IDENTITY SEMANTICS PASS · CALENDAR HTTP BOUNDS REOPENED · GLOBAL CONTRACT P1 · DEPENDENCY BLOCKED | 143–146 | recurrence/import recovery, single-count busy/free, reminders, L1/CRM seam · TASK-240 |
-| 148 | G148-02 CONTRACT BLOCKED · EXECUTION BLOCKED | 143–147 + test-rebase merge notice | security/reconciliation/docs/verification/rebase gate · TASK-241 |
+| 144 | 0.1.8 ENGINE/02A/02B/02C/02D/02F ROOT-FROZEN · INDEPENDENT REVIEW + MODEL/LAUNCHER BLOCKED · RUNTIME NOT_RUN | 142 | Mailbox domain, domain/account/projection+recovery/rule workers, safe content/search, receipts/classifier · TASK-237 |
+| 145 | BLOCKED BY 144 ACCEPTANCE + EXTERNAL GATES | 144 + license + launcher | Stalwart adapter, instance-domain mail, bounded Docker profile · TASK-238 |
+| 146 | DISPATCH REQUIRES ACCEPTED 0.1.8 · DEPENDENCIES+HARNESS BLOCKED | 143, 144 | Outlook three-pane UI, management, rules, safe content/search/realtime · TASK-239 |
+| 147 | CVE-v1 IDENTITY SEMANTICS PASS · 0.1.8 CALENDAR BOUNDS ROOT-FROZEN/REVIEW PENDING · DEPENDENCY BLOCKED | 143–146 | recurrence/import recovery, single-count busy/free, reminders, L1/CRM seam · TASK-240 |
+| 148 | G148-02 ROOT-FROZEN/INDEPENDENT REVIEW PENDING · EXECUTION BLOCKED | 143–147 + test-rebase merge notice | security/reconciliation/docs/verification/rebase gate · TASK-241 |
 
 ```text
 142 contracts -> 143 calendar core ----+-> 146 UI -> 147 reliability -> 148 gate
               -> 144 mailbox domain -> 145 engine/runtime -----------+
 ```
 
-- [ ] **Phase 142:** close the reopened engine, schema and OpenAPI response-bound P1s, then re-freeze product, architecture, API, event, security and QA contracts.
+- [ ] **Phase 142:** independently review the root-frozen 0.1.8 engine, persistence and OpenAPI amendment; executable validation remains launcher-gated.
 - [ ] **Phase 143:** implement canonical calendar RSVP/iTIP core.
 - [ ] **Phase 144:** implement engine-neutral mailbox domain and fake adapter.
 - [ ] **Phase 145:** pass external gates and implement/measure the mail runtime.

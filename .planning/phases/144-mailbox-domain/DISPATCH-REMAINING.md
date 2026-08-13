@@ -36,7 +36,7 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 - Behavior: mutex-protected in-memory accounts/folders/messages/blobs/drafts/submissions,
   fixed Sieve state and spam-training outcomes;
   injected ids/clock; scripted typed errors and lost responses; strict account scoping;
-  `ReconcileDraft` and `ReconcileSubmission` never mutate/retry. Script bounded hydrated
+  `ReconcileDraft` and `ReconcileSubmission` never mutate/retry. Script bounded projection-only
   incremental pages plus base-anchored enumeration pages/checkpoints, invalid cursor,
   anchor restart and transient failure without leaking cursor values.
 - Oracles: compile conformance; same stable submit key one visible result; definitive
@@ -45,7 +45,7 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 
 ## 144-02A — account/identity/domain/policy schemas
 
-- Dependency: contract 0.1.7 and migration gate recorded. Allowed only:
+- Dependency: independently accepted contract 0.1.8 and migration gate recorded. Allowed only:
   `backend/ent/schema/mailaccount.go`, `mailidentity.go`, `maildomain.go`,
   `mailboxpolicy.go`, narrow additive inverse edges in `user.go`, `organization.go`.
 - Behavior: exact spec §3 fields/enums/bounds; unique org+user, opaque engine account;
@@ -627,7 +627,7 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   Ensure reconciliation. Group/primary mutation forbidden; cross-org/non-admin zero
   disclosure; collision/reserved address is only `MAIL_ALIAS_ADDRESS_UNAVAILABLE`, while
   inactive account and non-mutable identity have distinct safe codes; no engine identity id/
-  provider error/raw key. Exact OpenAPI 0.1.7/NFR-13.
+  provider error/raw key. Exact OpenAPI 0.1.8/NFR-13.
 
 ## 144-07 — docs sync and independent static verification
 

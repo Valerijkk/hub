@@ -1,9 +1,9 @@
 # Hub Mail + Calendar Sync — QA handoff
 
-> **Contract version:** 0.1.7
+> **Contract version:** 0.1.8
 > **Prepared:** 2026-08-13
-> **Contract review status:** REOPENED — P1 engine/schema/OpenAPI response bounds
-> **Implementation status:** IN_PROGRESS — 143-01/02A/02B static accepted; 144-01A boundary and 144-02A/02B/02C/02D/02F schema contracts reopened; 143-03A/C require a hash-pair CHECK fix; executable verification `NOT_RUN`
+> **Contract review status:** ROOT_FROZEN · INDEPENDENT_TERRA_REVIEW_PENDING
+> **Implementation status:** IN_PROGRESS — 143-01/02A/02B static accepted historically; 0.1.8 amends the 144-01A boundary and freezes 144-02A/02B/02C/02D/02F schema candidates, but no dependent code is accepted; 143-03A/C still require the hash-pair CHECK fix; executable verification `NOT_RUN`
 > **Runtime status:** NOT_RUN
 > **QA owner:** founder-designated Claude test program
 > **Product-code owner:** ChatGPT mail feature branch
@@ -29,6 +29,8 @@ No new test belongs in legacy `backend/testframework/**`.
 | Architecture decision | `.planning/decisions/ADR-MAIL-01-mail-engine-calendar-sync.md` | engine/source-of-truth/scope/security decisions |
 | Domain + traceability spec | `.planning/decisions/specs/MAIL-SPEC.md` | ERD, state machines, requirements and named scenarios |
 | Machine-readable HTTP API | `docs/mail/openapi.yaml` | all v1 public/admin endpoints and schemas |
+| Bounded engine amendment | `docs/mail/ENGINE-CONTRACT-0.1.8.md` | projection/content separation, byte budgets and stable draft identity |
+| Exact persistence amendment | `docs/mail/PERSISTENCE-CONTRACT-0.1.8.md` | Phase 144 schema fields, checks, indexes and state matrices |
 | Machine-readable events | `docs/mail/events-v1.schema.json` | NATS envelope and payload union |
 | Reliability addendum | `.planning/phases/147-mail-calendar-reliability/CONTRACT.md` | inbound ordering, reply recovery, availability, reminders, CRM/L1 seams |
 | Product/UI design | `docs/superpowers/specs/2026-08-13-mail-module-design.md` | three-pane, composer and RSVP interaction |
@@ -68,15 +70,18 @@ or more `FR-MAIL-*` / `FR-CALSYNC-*` rows and named `TC-*` scenarios in `MAIL-SP
    after connection.
 8. Search never leaks another mailbox through hit count, ids, snippets, or timing-oriented
    hydration differences in normal API semantics.
-9. A lost draft-save response reconciles the opaque engine version before another write;
-   PostgreSQL contains no recipient, subject, rich/plain body, or MIME copy.
+9. A lost initial draft-create/save response reconciles the immutable engine draft key and
+   opaque engine version before another write. Save and reconciliation use the same positive
+   caller content budget; an adapter result one byte above it is rejected as a whole and does
+   not replace canonical state. PostgreSQL contains no recipient, subject, rich/plain body,
+   or MIME copy.
 10. Mail uploads use an owner/account-bound `MailObject` namespace and cannot inherit
     authorization from project-scoped file metadata.
 11. `GET /api/mail/submissions/{id}` and a same-key send retry converge from `unknown` to
     the engine-confirmed result; a still-indeterminate result never triggers blind submit.
 12. A draft is immutable while submission is queued/submitting/unknown; confirmation
     marks it submitted, while definitive non-delivery restores the same content for edit.
-13. One hydrated incremental page commits folder/message/thread projection, complete
+13. One projection-only incremental page commits folder/message/thread projection, complete
     envelopes and the exact next composite cursor atomically. Rollback or any stale lease,
     prior cursor, sync epoch, mutation epoch or present command lease advances none of them.
 14. Every synchronous engine-authoritative folder/message/draft/submission command or reconciliation
@@ -239,7 +244,7 @@ or more `FR-MAIL-*` / `FR-CALSYNC-*` rows and named `TC-*` scenarios in `MAIL-SP
    input conflicts and never emits a second mutation/outbox event.
 8. REPLY changes only the normalized envelope/authenticated sender's attendee row. It
    accepts only the current event sequence and persists a bounded durable receipt for
-   every distinct validated Mail 0.1.7 domain-separated SHA-256 over canonical version,
+   every distinct validated Mail 0.1.8 domain-separated SHA-256 over canonical version,
    length-delimited normalized sender and canonical payload hash. Exact
    redelivery is a no-op even after a later PARTSTAT; future/spoofed and the ninth distinct
    current-sequence reply are quarantined; no HTTP idempotency receipt is used. A distinct
@@ -531,6 +536,16 @@ never environment examples containing key material.
 
 ## Fixtures and clocks
 
+The 0.1.8 delta additionally requires maximum / maximum+1 oracles for projection item/page
+bytes, message/blob budgets, every paginated response count/cursor/8 MiB budget, 16 MiB
+legacy calendar/call rejection, stored-resource quotas and 50 MiB/25 MiB policy ceilings.
+Quota failures must replay from the same receipt without later creating a resource after
+capacity is freed. Draft fixtures must prove lost first-create reconciliation by immutable
+engine draft key and reject a second draft claiming the same staging scope/attachment.
+Schema fixtures must exercise every tuple/nullability/state CHECK, the receipt operation and
+bulk count/code matrices, and canonical rule-hash byte vectors. These are required future
+oracles, not current executable evidence.
+
 - All RFC fixtures use reserved domains (`example.test`, `.invalid`) and synthetic users.
 - Calendar tests inject a clock. `DTSTAMP`, generated UID suffixes, and notification times
   are deterministic.
@@ -546,5 +561,7 @@ never environment examples containing key material.
 - Direct Docker/Compose or host tests are prohibited fallback paths.
 - Stalwart legal acceptance, immutable digest, measured resource use, and runtime behavior
   are pending.
+- The 0.1.8 root amendment has no independent actual-model-provenance review yet; historical
+  0.1.7 review evidence is stale for its engine/API/persistence changes.
 - Therefore this handoff is a contract deliverable only. It must not be converted into a
   PASS claim until current-SHA executable evidence exists.

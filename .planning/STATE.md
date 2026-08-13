@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
-last_updated: "2026-08-13T15:02:00+03:00"
-last_activity: 2026-08-13 · 144-02F schema preflight found no durable attempted rule generation/hash plus unresolved receipt lifecycle/operation grammar and aggregate child checks; runtime NOT_RUN
+last_updated: "2026-08-13T16:04:43+03:00"
+last_activity: 2026-08-13 · Mail 0.1.8 root-froze and statically reconciled bounded engine/API plus exact Phase 144 persistence amendments; independent Terra/high review and runtime remain pending/NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -117,10 +117,10 @@ mail_feature_workstream:
     name: hub-mail-calendar-sync
     branch: codex/mail-module-20260813
     phases: "142-148"
-    current_phase: 143
-    status: contract_0_1_7_reviewed_pass_143_01_143_02A_static_accepted_143_02B_next
+    current_phase: 144
+    status: contract_0_1_8_root_frozen_independent_review_pending_implementation_in_progress
     product_truth: unfinished_mvp_feature_not_accepted
-    contract_version: "0.1.7"
+    contract_version: "0.1.8"
     tasks:
       - TASK-235
       - TASK-236
@@ -159,6 +159,11 @@ mail_feature_workstream:
       mail_code_routing: founder_task_local_override_gpt-5.6-terra_xhigh_no_fallback
       mailbox_search: bounded_sanitized_body_attachment_filenames_owner_reauth
       mailbox_spam_feedback: explicit_spam_ham_not_move_alias
+      mailbox_engine_bounds: projection_only_pages_1mib_item_8mib_page_budgeted_50mib_message_25mib_blob
+      mailbox_public_bounds: cursor_pages_8mib_legacy_calendar_call_16mib_non_truncating
+      mailbox_attachment_staging: immutable_draft_client_id_one_draft_then_eventual_message
+      mailbox_defaults: user_settings_pointers_only
+      mailbox_recent_external_contacts: max_1000_lru_non_hub
       calendar_authority: hub_postgresql
       calendar_itip_hash: cve_v1_separate_from_outbound_versioned_all_day_utc_marker
       oauth_l3: out_of_scope
@@ -169,13 +174,15 @@ mail_feature_workstream:
       adr: .planning/decisions/ADR-MAIL-01-mail-engine-calendar-sync.md
       spec: .planning/decisions/specs/MAIL-SPEC.md
       openapi: docs/mail/openapi.yaml
+      engine_contract_0_1_8: docs/mail/ENGINE-CONTRACT-0.1.8.md
+      persistence_contract_0_1_8: docs/mail/PERSISTENCE-CONTRACT-0.1.8.md
       events: docs/mail/events-v1.schema.json
       qa_handoff: docs/mail/QA-HANDOFF.md
       founder_questions: docs/mail/FOUNDER-QUESTIONS.md
       phase_147_contract: .planning/phases/147-mail-calendar-reliability/CONTRACT.md
       phase_147_dispatch: .planning/phases/147-mail-calendar-reliability/DISPATCH-INDEX.md
       phase_147_static_review_historical_0_1_6: .planning/phases/147-mail-calendar-reliability/STATIC-REVIEW-0.1.6.md
-      phase_147_static_review_current_0_1_7: .planning/phases/147-mail-calendar-reliability/STATIC-REVIEW-0.1.7.md
+      phase_147_static_review_historical_0_1_7: .planning/phases/147-mail-calendar-reliability/STATIC-REVIEW-0.1.7.md
       phase_148_gate: .planning/phases/148-mail-release-gate/GATE-MATRIX.md
       phase_148_reviews: .planning/phases/148-mail-release-gate/REVIEW-PACKETS.md
 spec_coverage:
@@ -195,15 +202,15 @@ spec_coverage:
 - Изолированная ветка: `codex/mail-module-20260813`; базовый master при создании:
   `d44175f8`. Основная рабочая копия и защищённые зоны test-rebase не меняются.
 - Phase 142 создал contracts-first пакет: ADR-MAIL-01, ERD/API/NATS/security,
-  Outlook UI design, traceability и QA handoff. Его readiness сейчас переоткрыта из-за
-  P1 engine/schema/OpenAPI response bounds; наличие артефактов не означает принятого
-  контракта, реализации или готовности модуля.
+  Outlook UI design, traceability и QA handoff. Mail 0.1.8 root-freezes the later bounded
+  engine/API and exact persistence amendment, but independent review is pending; наличие
+  артефактов не означает принятого контракта, реализации или готовности модуля.
 - Preferred engine: Stalwart за adapter boundary, условно. License verdict, image digest,
   API/persistence/resource spike и внешний DNS остаются gates; runtime `NOT_RUN`.
-- Кодовые фазы 143–148 идут после заморозки затронутого контракта. Phase 145 заблокирована
-  как переоткрытой границей Phase 144, так и внешними gates; независимые calendar slices
+- Кодовые фазы 143–148 идут только после независимого принятия затронутого контракта.
+  Phase 145 заблокирована 144 acceptance и внешними gates; независимые calendar slices
   сохраняют отдельно доказанную семантику.
-- Mail 0.1.7 сохраняет Phase 147 reliability-контракт: REQUEST/CANCEL tombstones и
+- Mail 0.1.8 сохраняет Phase 147 reliability-контракт: REQUEST/CANCEL tombstones и
   recovery, outward REPLY reconciliation, private availability, durable in-app reminders
   и CRM manual-link. Новый amendment закрывает ScheduledCall split-brain: CalendarEvent —
   authority, call — atomic execution projection; backfill/cutover all-or-nothing,
@@ -213,47 +220,35 @@ spec_coverage:
   occurrence REQUEST without changing outbound 143-02A and fixes all-day identity to the
   UTC date marker without midnight inference. The historical root and independent
   Terra/high CVE-v1 review passed exact Mail 0.1.7 semantic SHA `b3fb6f48`; all three
-  findings from `7a6ffc1c` were closed. That evidence does not cover the later engine,
-  schema or OpenAPI response-bound findings. The earlier Mail 0.1.6 PASS on SHA `5a351d5b`
+  findings from `7a6ffc1c` were closed. That evidence is historical and does not review the
+  0.1.8 engine, persistence or OpenAPI amendment. The earlier Mail 0.1.6 PASS on SHA `5a351d5b`
   is historical `STALE`.
   Founder task-local routing override authorizes exact `gpt-5.6-terra`/`xhigh` for
   atomic Mail product/test packets. Tasks 143-01, 143-02A and 143-02B are static accepted;
   bounded iTIP parsing includes reviewed CVE-v1,
   safe errors, post-unfold UTF-8 and host-independent timezone handling. Task 144-01A source
-  matches the frozen port through `43d421ef`, but a later root deep audit reopened the
-  contract: up to 100 embedded full-body messages and complete blob bytes have no explicit
-  response budget, while public admin byte settings have no maximum. The P1 and decision
-  options are in `REVIEW-144-01A-ENGINE-BOUNDS.md`; 144-01B and Phase 145 message mapping
-  must not start against the under-specified surface. A separate 144-02A preflight found
-  that the account/domain operational column matrix, stored safe-code allowlists, DNS TTL
-  shape and domain/identity cardinality are also not exact; see
-  `REVIEW-144-02A-SCHEMA-READINESS.md`. No dependent mailbox schema packet may start.
-  Phase 142 `REVIEW-OPENAPI-RESPONSE-BOUNDS.md` separately records unbounded Mail list/detail
-  collections and canonical/legacy calendar expansion; affected DTO/handler packets remain
-  blocked pending one reviewed machine-contract amendment.
-  Phase 144 `REVIEW-144-02B-SCHEMA-READINESS.md` additionally blocks folder/thread/message/
-  label projection schemas until normalized-name indexes, exact stored bounds and join/state
-  checks are machine-frozen.
-  Phase 144 `REVIEW-144-02C-SCHEMA-READINESS.md` blocks object/attachment/draft/submission
-  schemas until initial draft-create reconciliation has a stable engine key and attachment
-  staging, scan authority, exact stored bounds and conditional state checks are frozen.
-  Phase 144 `REVIEW-144-02D-SCHEMA-READINESS.md` blocks settings/signature/rule/contact
-  schemas until one default authority, rule target concurrency/JSON bounds and deterministic
-  recent-contact retention are frozen.
-  Phase 144 `REVIEW-144-02F-SCHEMA-READINESS.md` blocks mutation receipts and rule deployment
-  until the attempted generation/hash survives crashes and receipt state/operation/child
-  matrices are machine-frozen.
+  matches only the historical 0.1.7 port through `43d421ef`. Root-frozen
+  `ENGINE-CONTRACT-0.1.8.md` now replaces embedded hydrated pages with projection-only
+  1 MiB-item/8 MiB-page values, budgeted 50 MiB message / 25 MiB blob reads and a stable
+  first-draft key; implementation and independent review are pending.
+  Root-frozen `PERSISTENCE-CONTRACT-0.1.8.md` supplies the exact 144-02A/B/C/D/F fields,
+  tuple/state checks, normalized indexes, scalar attachment staging, sole default/scan
+  authorities, quotas, generic receipt/bulk matrices and canonical rule hash. OpenAPI 0.1.8
+  adds bounded cursor/detail pages, creation quota errors, compact 366-day calendar pages and
+  non-truncating legacy count/byte ceilings. The earlier review files remain discovery
+  evidence, not current PASS verdicts; every dependent packet waits for an independent
+  actual-provenance Terra/high review of the exact amendment.
   Evidence is recorded in the matching `IMPLEMENTATION-*.md` artifacts. A later root deep
   audit reopened 143-03A and 143-03C:
   both omit the schema-level nullable canonical hash version/hash pair CHECK required by
-  Mail 0.1.7 and the phase plan. 143-03B retains a source-content PASS but its parent chain
+  Mail 0.1.8 and the phase plan. 143-03B retains a source-content PASS but its parent chain
   is reopened; 143-03F retains a root-content PASS. None of 03A/B/C/F currently unlocks
   dependents. The exact remediation is frozen in `REMEDIATION-143-03-HASH-PAIR.md`, but its
   Terra/xhigh attempt and independent reviews are blocked because new worker runtimes no
   longer expose actual model/effort. 143-03D and 144-01B stay blocked by the fail-closed
   provenance rule and founder question 29. Phase 143/144 implementation is `IN_PROGRESS`;
   executable runtime remains `NOT_RUN`.
-- Mailbox control-plane rules from 0.1.6 remain unchanged in 0.1.7: отдельные bounded workers владеют
+- Mailbox control-plane rules inherited from 0.1.6 remain in 0.1.8: отдельные bounded workers владеют
   idempotent domain/account/primary-identity/alias lifecycle, combined projection/mutation-recovery sync и generation/hash
   reconciliation одного fixed Hub Sieve script. Generic create/bulk receipt хранит только
   hashes/target/status с 30-day replay и lifetime reject tombstone, различает reused/
@@ -263,7 +258,7 @@ spec_coverage:
   Server rich content sanitizes or falls back to plain-only, remote images use owner/message
   tokens и возвращают только bytes с private/nosniff/no-referrer/CSP, а Meili получает только bounded sanitized body
   и normalized filenames с повторной owner authorization. Phase 144 также владеет leased
-  bounded worker, atomic hydrated page/full-envelope/cursor apply, separate command lease
+  bounded worker, atomic projection-only page/full-envelope/cursor apply, separate command lease
   with begin/end mutation epoch fence и
   resumable no-clear rebuild; Phase 145 владеет incremental + base-state/ID-anchored
   Stalwart mapping и root-context composition. Folder/thread/search API/UI показывают
@@ -274,8 +269,8 @@ spec_coverage:
   только при доказанном Hub-exclusive writer; user IMAP/JMAP/ManageSieve/direct admin
   mailbox mutation не публикуются в wave 1.
 - Вопросы, не останавливающие локальную работу, собраны в
-  `docs/mail/FOUNDER-QUESTIONS.md`; вопросы 22–26 отдельно фиксируют legacy idempotency,
-  linked-call guests, primary-address policy, sanitizer dependency и Sieve ownership.
+  `docs/mail/FOUNDER-QUESTIONS.md`; вопросы 22–40 фиксируют legacy idempotency, linked-call
+  guests, primary-address/sanitizer/Sieve policy and later engine/API/schema defaults.
   Push/PR/merge/deploy не авторизованы.
 
 ## Session note — 2026-08-08 (test-rebase execution readiness)

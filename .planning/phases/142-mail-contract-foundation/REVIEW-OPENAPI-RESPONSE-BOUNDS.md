@@ -2,7 +2,11 @@
 
 > **Detected:** 2026-08-13 root deep static audit
 > **Severity:** P1 machine-contract boundary
-> **Status:** CONTRACT_AMENDMENT_REQUIRED · DOWNSTREAM_BLOCKED · RUNTIME_NOT_RUN
+> **Status:** 0.1.8_ROOT_AMENDMENT_AVAILABLE · INDEPENDENT_CLOSURE_PENDING · DOWNSTREAM_BLOCKED · RUNTIME_NOT_RUN
+
+> **Superseding candidate:** OpenAPI 0.1.8 adds list/detail/count/string/cursor/aggregate
+> bounds and compact/non-truncating calendar behavior. This finding remains open until an
+> independent exact-SHA review and eventual launcher validation.
 
 ## Outcome
 

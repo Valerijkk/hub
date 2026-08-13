@@ -1,8 +1,8 @@
 # Phase 144 — exact Terra dispatch index
 
-> **Status:** CONTRACT_0_1_7_REOPENED_P1_ENGINE_SCHEMA_AND_OPENAPI_BOUNDS · 144_01A_SOURCE_PASS · 144_01B_CONTRACT_AND_MODEL_BLOCKED · 144_02A_CONTRACT_BLOCKED · RUNTIME_NOT_RUN
+> **Status:** CONTRACT_0_1_8_ROOT_FROZEN_REVIEW_PENDING · 144_01A_AMENDMENT_REQUIRED · 144_01B_MODEL_AND_ACCEPTANCE_BLOCKED · 144_02A_02B_02C_02D_02F_ROOT_FROZEN_NOT_ACCEPTED · RUNTIME_NOT_RUN
 > **Required runtime:** `gpt-5.6-terra` / `xhigh`, no fallback
-> **Contract:** Mail 0.1.7 calendar CVE-v1 review historically passed on `b3fb6f48`; engine, schema and public response bounds are now P1-reopened
+> **Contract:** Mail 0.1.8 root-freezes the engine/API/persistence amendment; independent actual-provenance Terra/high review is pending and 0.1.7 evidence is historical
 > **Execution:** sequential for overlapping files; independent pure packets may run in parallel only after root freezes their shared types
 
 Phase 144 adds a mailbox domain beside the existing Resend alert subsystem. It does not
@@ -68,13 +68,13 @@ every remaining row/variant, assemble the Common envelope plus exactly one secti
 
 | ID | Single owned behavior | Exact primary files | Oracle / acceptance | Entry dependency |
 |---|---|---|---|---|
-| 144-01A | Mailbox engine port, immutable DTOs and stable safe errors — source matches `43d421ef`, but P1 response-byte boundary reopened; evidence `IMPLEMENTATION-144-01A.md` and `REVIEW-144-01A-ENGINE-BOUNDS.md` | `backend/internal/mail/mailbox_engine.go`, `mailbox_types.go`, `mailbox_errors.go`, `backend/tests/mail/mailbox_engine_contract_test.go` | consumer compile oracle; bounded Changes/enumeration; provisioning/Sieve/classifier/draft/submission reconcile explicit | contract 0.1.7 |
+| 144-01A | Mailbox engine port, immutable DTOs and stable safe errors — existing source matches historical 0.1.7; 0.1.8 projection/budget/draft-key amendment is root-frozen but unimplemented/unreviewed | `backend/internal/mail/mailbox_engine.go`, `mailbox_types.go`, `mailbox_errors.go`, `backend/tests/mail/mailbox_engine_contract_test.go` | projection-only pages; exact variable-byte/item/page limits; budgeted whole message/blob and draft save/reconcile; stable first-draft reconciliation | independently accepted `ENGINE-CONTRACT-0.1.8.md` |
 | 144-01B | Deterministic in-memory fake for one account boundary — blocked by 01A contract amendment and unavailable actual model telemetry | `backend/internal/mail/mailbox_fake.go`, `backend/tests/mail/mailbox_fake_test.go` | same-key submit; scripted incremental/enumeration pages, invalid cursor/anchor restart; strict account isolation | accepted 144-01A amendment |
-| 144-02A | Account, identity, domain and mailbox-policy schemas only — `BLOCKED_CONTRACT`; evidence `REVIEW-144-02A-SCHEMA-READINESS.md` | `backend/ent/schema/mailaccount.go`, `mailidentity.go`, `maildomain.go`, `mailboxpolicy.go`, narrow inverse edges in `user.go`/`organization.go` | normalized uniqueness; account/domain desired/deployed generations + leases; projection cursors/epochs/cutoff; identity status; no secrets | exact field/bound/cardinality amendment + founder migration gate |
-| 144-02B | Folder, thread, message, message-folder, label and message-label schemas — `BLOCKED_CONTRACT`; evidence `REVIEW-144-02B-SCHEMA-READINESS.md` | `mailfolder.go`, `mailthread.go`, `mailmessage.go`, `mailmessagefolder.go`, `maillabel.go`, `mailmessagelabel.go` | pending/versioned folder intent; same-account edges; label marker/provenance; rebuild marks; projection origin/event marker; no body/raw MIME | accepted 144-02A + exact normalized-name/bound/join/check matrix |
-| 144-02C | Mail object, attachment, draft and submission schemas only — `BLOCKED_CONTRACT`; evidence `REVIEW-144-02C-SCHEMA-READINESS.md` | `mailobject.go`, `mailattachment.go`, `maildraft.go`, `mailsubmission.go` | hashed key uniqueness; opaque versions; attachment backing XOR represented; no project ACL edge | accepted 144-02A + stable draft recovery key + staging/state/bound matrix |
-| 144-02D | User settings, signature, rule and recent-contact schemas only — `BLOCKED_CONTRACT`; evidence `REVIEW-144-02D-SCHEMA-READINESS.md` | `mailusersettings.go`, `mailsignature.go`, `mailrule.go`, `recentcontact.go` | account ownership, bounded config, one defaults, no raw Sieve | accepted 144-02A + one default authority + rule-target/contact-retention matrix |
-| 144-02F | Mail mutation receipt target/member and rule-deployment state schemas — `BLOCKED_CONTRACT`; evidence `REVIEW-144-02F-SCHEMA-READINESS.md` | receipt/target/member schemas, `mailruledeployment.go`, narrow inverse edges | client/internal key source; client hash tombstone + bounded bulk expansion/outcome snapshot, no response/body/raw key; desired/deployed/attempted generations and paired lease | accepted 144-02A/D + exact receipt/deployment matrices |
+| 144-02A | Account, identity, domain and mailbox-policy schemas only — `CONTRACT_AMENDED_ROOT_REVIEW_PENDING`; prior findings remain evidence until independent closure | `backend/ent/schema/mailaccount.go`, `mailidentity.go`, `maildomain.go`, `mailboxpolicy.go`, narrow inverse edges in `user.go`/`organization.go` | normalized uniqueness; desired/attempted/deployed tuples; exact leases/states/quotas/DNS TTL; no secrets | independently accepted persistence 02A matrix + founder migration gate |
+| 144-02B | Folder, thread, message, message-folder, label and message-label schemas — `CONTRACT_AMENDED_ROOT_REVIEW_PENDING` | `mailfolder.go`, `mailthread.go`, `mailmessage.go`, `mailmessagefolder.go`, `maillabel.go`, `mailmessagelabel.go` | exact normalized-name indexes, bounded values, state/join checks and delete behavior; no body/raw MIME | accepted 144-02A + independently accepted persistence 02B matrix |
+| 144-02C | Mail object, attachment, draft and submission schemas only — `CONTRACT_AMENDED_ROOT_REVIEW_PENDING` | `mailobject.go`, `mailattachment.go`, `maildraft.go`, `mailsubmission.go` | stable draft key/client scope; scalar one-draft attachment ownership; scan/upload/submission checks | accepted 144-02A + independently accepted persistence 02C matrix |
+| 144-02D | User settings, signature, rule and recent-contact schemas only — `CONTRACT_AMENDED_ROOT_REVIEW_PENDING` | `mailusersettings.go`, `mailsignature.go`, `mailrule.go`, `recentcontact.go` | sole default authority, concrete locked rule JSON and bounded external-contact retention | accepted 144-02A + independently accepted persistence 02D matrix |
+| 144-02F | Mail mutation receipt target/member and rule-deployment state schemas — `CONTRACT_AMENDED_ROOT_REVIEW_PENDING` | receipt/target/member schemas, `mailruledeployment.go`, narrow inverse edges | exact operation/state/code/count matrices; attempted tuple and canonical rule hash; no response/body/raw key | accepted 144-02A/D + independently accepted persistence 02F matrix |
 | 144-02E | Generate and inspect Ent output | generated Ent tree only through repository launcher workflow | clean generation/compile evidence; no manual generated edits; schema drift report | launcher + 144-02A..D + founder #12 |
 | 144-03A | Address normalization then thread identity as two sequential variants | `address_policy.go`/address unit, then `threading.go`/thread unit | Unicode/case/domain first; message-id/ref chain/prefix/bounds second; no I/O | 144-01A |
 | 144-03B | Folder tree then typed rule compilation as two sequential variants | `folder_tree.go`/folder unit, then `rule_compiler.go`/rule unit | max 100/depth 2/cycle/system roles; native actions + opaque label marker only; injection impossible | 144-01A |
@@ -103,7 +103,7 @@ every remaining row/variant, assemble the Common envelope plus exactly one secti
 | 144-05C | Search, contacts, realtime and named audit as four sequential variants | one of `mailbox_search.go`, `mailbox_contacts.go`, `mailbox_realtime.go`, `mailbox_audit.go` plus its unit | owner filters before snippets; ranking; bounded invalidation; exact named audit | 144-04A..I as applicable |
 | 144-05D | Safe body sanitization then remote-image proxy as sequential variants | `mailbox_content.go`/unit, then `mailbox_remote_image.go`/unit | reviewed allowlist or plain-only; token rewrite; every redirect/connect safe; no origin URL/browser leak | 144-04A + 144-04L |
 | 144-05E | Owner search document hydration/consumer | `mailbox_search_projection.go`, focused unit | bounded sanitized body + filenames; no raw/BCC/URL; delete/update idempotent; checkpoint freshness | 144-05B/D + 144-05C-Search |
-| 144-06A | Public mailbox DTO/error mapping and routes | `mailbox_dto.go`, `mailbox_handler.go`, `backend/cmd/server/wiring_mailbox.go`, focused handler units | exact OpenAPI 0.1.7; account/folder/thread projection metadata; NFR-13; no client account/org; Resend unchanged | 144-04* + 144-05* |
+| 144-06A | Public mailbox DTO/error mapping and routes | `mailbox_dto.go`, `mailbox_handler.go`, `backend/cmd/server/wiring_mailbox.go`, focused handler units | exact OpenAPI 0.1.8; bounded pages/details/calendar; NFR-13; no client account/org; Resend unchanged | 144-04* + 144-05* |
 | 144-06B | Mailbox policy/domain/health admin service | `mailbox_admin_service.go`, focused service unit | owner organization, policy/domain constraints, redacted engine + projection state/lag and exact audit | 144-04I + 144-05C-Audit + 144-06A |
 | 144-06D | Admin per-user alias desired-state service/handler | `mailbox_alias_admin_service.go`, `mailbox_alias_admin_handler.go`, focused units, narrow wiring | same-org account; pending/deleting alias generation; idempotent create; no engine call/423; named audit | 144-04J/K/O + 144-06B/C |
 | 144-06C | Separate mailbox admin handler and narrow wiring | `mailbox_admin_handler.go`, narrow wiring additions, focused handler unit | admin middleware + named audit; no flat Resend route/shape drift | 144-06B |
@@ -125,7 +125,9 @@ every remaining row/variant, assemble the Common envelope plus exactly one secti
   base-anchored epoch-marked enumeration, catches up from its base cursor and only then deletes
   unseen projection rows/marks ready. First-seen event markers suppress rebuild storms.
 - Draft mutation is serialized per draft. A lost response becomes `unknown`; a later
-  operation first compares/retrieves engine state and never overwrites blindly.
+  operation first compares/retrieves engine state and never overwrites blindly. Save and
+  reconciliation carry the same policy-bounded content budget and reject expanded results
+  without committing them.
 - Submission receipts persist only hashes of HTTP keys. `unknown` invokes
   `ReconcileSubmission`; indeterminate stays unknown and never calls `Submit` again.
 - Domain/account provisioning is not a request-path side effect. Domain HTTP writes create
@@ -172,13 +174,13 @@ every remaining row/variant, assemble the Common envelope plus exactly one secti
 
 | Gate | Status |
 |---|---|
-| Contract 0.1.7 root/independent static review | Historical PASS on `b3fb6f48`; later root deep audit reopened P1 engine response/admin byte bounds |
-| 144-02A schema readiness | BLOCKED: exact operational field matrix, persisted safe-code allowlists, DNS TTL shape and domain/identity cardinality are not frozen |
-| 144-02B schema readiness | BLOCKED: case-insensitive uniqueness representation, bounded projection values and join/state relational checks are not frozen |
-| 144-02C schema readiness | BLOCKED: initial draft-create recovery identity, attachment staging cardinality, upload/scan authority and conditional state checks are not frozen |
-| 144-02D schema readiness | BLOCKED: identity/signature defaults have duplicate authorities; rule target concurrency/JSON bounds and recent-contact retention are not frozen |
-| 144-02F schema readiness | BLOCKED: rule deployment lacks durable attempted generation/hash; receipt lifecycle/operation grammar and aggregate child checks are not frozen |
-| OpenAPI response boundedness | BLOCKED: list/detail collections and public hydrated values do not consistently encode accepted page/item/length/aggregate limits |
+| Contract 0.1.8 root/independent static review | ROOT_FROZEN / INDEPENDENT_REVIEW_PENDING; historical 0.1.7 PASS does not cover this amendment |
+| 144-02A schema readiness | ROOT_FROZEN_REVIEW_PENDING: exact fields, tuples, states, limits and delete rules published in the 0.1.8 persistence companion |
+| 144-02B schema readiness | ROOT_FROZEN_REVIEW_PENDING: normalized indexes, bounded projection values and join/state checks published |
+| 144-02C schema readiness | ROOT_FROZEN_REVIEW_PENDING: stable draft identity, scalar staging ownership, single scan authority and state checks published |
+| 144-02D schema readiness | ROOT_FROZEN_REVIEW_PENDING: settings pointers are sole defaults; locked concrete rule JSON and external-contact retention published |
+| 144-02F schema readiness | ROOT_FROZEN_REVIEW_PENDING: attempted deployment tuple, receipt grammar/state and bulk child matrices published |
+| OpenAPI response boundedness | ROOT_FROZEN_REVIEW_PENDING: count/item/string/cursor/aggregate/calendar limits encoded in 0.1.8 |
 | Exact Terra implementation runtime | 144-01A authoring route recorded; 144-01B is contract-blocked and its attempted actual telemetry was unavailable |
 | Accepted Docker launcher | NOT_READY |
 | Ent generation | NOT_RUN |

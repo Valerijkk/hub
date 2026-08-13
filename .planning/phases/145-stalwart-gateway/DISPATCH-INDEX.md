@@ -81,7 +81,7 @@ with exactly one packet after all named gates pass.
 
 | Gate | Status |
 |---|---|
-| Phase 144 engine byte boundary | P1 REOPENED / NOT ACCEPTED |
+| Phase 144 engine byte boundary | 0.1.8 ROOT_FROZEN / INDEPENDENT_REVIEW_PENDING / NOT ACCEPTED |
 | Founder/legal license | UNRESOLVED |
 | Exact Terra runtime | ROUTE_AUTHORIZED / new packet actual telemetry unavailable |
 | Accepted launcher | NOT_READY |

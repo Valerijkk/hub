@@ -1,11 +1,13 @@
 # MAIL-SPEC — Hub mailbox and calendar synchronization contract
 
-> **Version:** 0.1.7
-> **Status:** Frozen; root and independent Terra/high static review PASS on `b3fb6f48`; 0.1.6 review evidence is historical `STALE`
+> **Version:** 0.1.8
+> **Status:** Root-frozen bounds/schema amendment; independent Terra/high review and runtime pending; 0.1.7 review evidence is historical `STALE`
 > **Date:** 2026-08-13
 > **Architecture:** `../ADR-MAIL-01-mail-engine-calendar-sync.md`
 > **OpenAPI:** `../../../docs/mail/openapi.yaml`
 > **QA handoff:** `../../../docs/mail/QA-HANDOFF.md`
+> **Engine boundary:** `../../../docs/mail/ENGINE-CONTRACT-0.1.8.md`
+> **Persistence boundary:** `../../../docs/mail/PERSISTENCE-CONTRACT-0.1.8.md`
 
 ## 1. Scope and terms
 
@@ -139,6 +141,24 @@ the Hub mail feature. It does not claim that the described behavior is implement
     I/O so replay never re-expands a changed thread or double-trains. Per-target results
     retain the request target type; no client-side expansion or partial over-cap execution
     is allowed.
+37. Engine list/change/enumeration values are projection-only and obey both item-count and
+    retained-byte ceilings. Full content, draft save/reconciliation and blobs carry explicit
+    caller byte budgets and whole-value overflow rejection. Hard deployment maxima are 50 MiB
+    per message and 25 MiB per attachment; policy may only lower them.
+38. A draft has an immutable engine draft key derived from its Hub UUID before the first
+    engine call. Initial create/lost-response reconciliation uses that key; an unknown first
+    response never becomes a blind second create.
+39. `MailUserSettings` pointers are the only persisted authority for default identity and
+    signature. Public `is_default` flags are derived; identity/signature rows do not duplicate
+    the canonical choice.
+40. Rule deployment persists desired, attempted and deployed versioned hash tuples. A crash
+    or newer desired generation cannot erase which exact tuple may have reached the engine.
+41. Public stored/list resources are capped before side effects: 100 folders, 100 labels,
+    200 identities including primary, 20 signatures, 100 rules, 100 organization domains
+    and 1,000 recent external contacts per account. Cursor pages default 50/max 100 except
+    contacts max 30 and bounded folder snapshot max 100. Cursor/list pages additionally fit
+    within 8,388,608 serialized UTF-8 bytes by returning fewer whole items plus a cursor;
+    legacy calendar/call envelopes are non-truncating and fail above 16,777,216 bytes.
 
 ## 3. ERD
 
@@ -159,7 +179,7 @@ erDiagram
     MailAccount ||--o{ MailObject : authorizes
     MailObject o|--o| MailAttachment : backs
     MailAccount ||--o{ MailDraft : edits
-    MailDraft }o--o{ MailAttachment : stages
+    MailDraft o|--o{ MailAttachment : stages
     MailAccount ||--o{ MailLabel : owns
     MailAccount ||--o{ MailRule : owns
     MailAccount ||--o| MailRuleDeployment : deploys
@@ -201,6 +221,7 @@ erDiagram
 | `organization_id` | UUID | required, indexed |
 | `user_id` | UUID | required, unique with organization |
 | `engine_account_id` | string nullable | opaque and unique; absent until provisioning commits |
+| `desired_enabled` | bool | canonical engine enable/disable intent; defaults true |
 | `status` | enum | `provisioning`, `active`, `suspended`, `error` |
 | `engine_provisioning_key` | string | stable non-secret Hub-derived key; unique and immutable |
 | `local_part` | string | reserved normalized EmailLocalPart; unique within selected domain and immutable after engine creation |
@@ -208,8 +229,8 @@ erDiagram
 | `provision_lease_token`, `provision_lease_until` | UUID/time nullable | one bounded provisioning claim; both present or absent |
 | `next_provision_at`, `provision_attempts` | timestamp/non-negative int | bounded retry scheduling |
 | `provision_error_code` | string nullable | stable allowlisted code only; no provider text |
-| `control_generation`, `deployed_generation` | positive int64 / nullable positive int64 | exact desired account-enabled + primary/alias set and last confirmed engine generation |
-| `control_hash`, `deployed_hash` | SHA-256 / nullable SHA-256 | canonical desired/confirmed spec; no address list or secret |
+| `control_generation`, `attempted_control_generation`, `deployed_generation` | positive int64 / nullable pairs | exact current, in-flight/unknown and last confirmed engine generation |
+| `control_hash_version`, `control_hash`, attempted/deployed version+hash | positive version + SHA-256 tuples | canonical desired/attempted/confirmed spec per persistence companion; no address list or secret |
 | `projection_state` | enum | `bootstrapping`, `ready`, `degraded`, `rebuilding` |
 | `sync_cursor` | string nullable | last atomically committed opaque incremental state token |
 | `rebuild_checkpoint` | string nullable | opaque resumable enumeration/catch-up checkpoint |
@@ -248,7 +269,9 @@ response repeats `EnsureAccount` with the same key; it never creates a new reser
 Only one transaction that still owns the lease may store the opaque engine account/identity
 ids and change status to `active`. Projection, settings, drafts and commands require active
 status. Disabled engine/policy, missing verified default domain, suspended/deactivated user,
-or unresolved collision causes no engine call and exposes only a safe public status.
+or unresolved collision causes no engine call and exposes only a safe public status. The
+exact v1 account/domain control hash encodings, attempted tuple persistence and state checks
+are defined by `docs/mail/PERSISTENCE-CONTRACT-0.1.8.md`.
 
 `GET /mail/account` is read-only: it reports `not_configured`, `provisioning`, `active`,
 `suspended` or `error`, an optional primary address and allowlisted recovery code. It never
@@ -266,7 +289,7 @@ finalize over a newer alias or user-lifecycle generation.
 
 #### 3.1.2 Projection synchronization lifecycle
 
-`MailEngine.Changes` returns a bounded hydrated page tied to exact `from_cursor` and
+`MailEngine.Changes` returns a bounded projection-only page tied to exact `from_cursor` and
 `next_cursor`; `MailEngine.EnumerateProjection` returns resumable bounded enumeration pages
 associated with one pre-enumeration composite `base_cursor`. Both values are opaque and
 never logged or exposed publicly. The adapter must prove an unfiltered stable ID-anchor
@@ -359,7 +382,7 @@ becomes `mail.received.v1`.
 | `display_name` | string | max 160 |
 | `kind` | enum | `primary`, `alias`, `group` |
 | `send_allowed` | bool | server-authoritative |
-| `is_default` | bool | at most one per account |
+| `is_default` | derived bool | public DTO derives equality with `MailUserSettings.default_identity_id`; not persisted here |
 | `status` | enum | `pending`, `active`, `error`, `deleting`; public From list exposes only active |
 | `engine_identity_id` | string nullable | opaque mapping |
 | `created_at`, `updated_at` | timestamp | required |
@@ -481,6 +504,8 @@ Thread key algorithm:
 Seen/answered/flagged/junk/mailbox membership stay authoritative in the engine and are
 exposed through a projection snapshot. `bcc` is never reconstructed for received mail;
 address or alias equality alone cannot classify a message as confirmed owner provenance.
+`from` stores exactly one normalized Address object. `to`, `cc`, `bcc` and `reply_to` are
+required concrete arrays (empty when absent), each independently bounded at 200 addresses.
 
 ### 3.5.1 MailMessageFolder
 
@@ -519,7 +544,8 @@ recovery; label metadata CRUD remains separate under `/mail/labels`.
 |---|---|---|
 | `id` | UUID | primary key |
 | `mail_message_id` | UUID nullable | set when saved/submitted/ingested |
-| `draft_client_id` | UUID nullable | temporary owner-bound draft scope |
+| `mail_draft_id` | UUID nullable | one consuming draft; never many-to-many |
+| `draft_client_id` | UUID nullable | immutable owner-bound storage-upload scope |
 | `storage_object_id` | UUID nullable | SeaweedFS-backed Hub upload |
 | `engine_blob_id` | string nullable | received/engine MIME blob |
 | `content_id` | string nullable | inline reference |
@@ -529,7 +555,13 @@ recovery; label metadata CRUD remains separate under `/mail/labels`.
 | `sha256` | string | required after confirm/ingest |
 | timestamps | timestamp | required |
 
-Exactly one of `storage_object_id` and `engine_blob_id` is set after attachment creation.
+Exactly one of `storage_object_id` and `engine_blob_id` is always set. A storage-backed
+attachment owns one unique `MailObject`; an engine-blob attachment has an owning message.
+`draft_client_id` is an immutable owner/account staging scope also persisted on its one
+`MailDraft`. A storage attachment is initially unclaimed, then receives that draft's
+`mail_draft_id` in the draft reservation transaction; the scalar edge prevents many-to-many
+reuse. The same draft and its eventual message may retain it, while another draft must
+clone/restage rather than alias the same upload.
 Only `clean` attachments may be submitted. The scanner interface is fail-closed.
 
 ### 3.7.1 MailObject
@@ -537,7 +569,9 @@ Only `clean` attachments may be submitted. The scanner interface is fail-closed.
 `id`, `organization_id`, `mail_account_id`, server-generated `object_key`, bounded
 `bucket`, `upload_state` (`pending`, `confirmed`, `orphaned`, `deleted`), expected and
 actual sizes, normalized filename/media type, nullable `sha256`, uploader user id,
-`draft_client_id`, `scan_status`, `expires_at`, and timestamps. Object keys are generated
+`draft_client_id`, `expires_at`, and timestamps. `MailObject` owns upload lifecycle only;
+`MailAttachment.scan_status` is the sole scan authority for storage and engine backing.
+Object keys are generated
 only by the server under `mail/<organization>/<account>/<object-id>`; no client-supplied
 path is accepted. A dedicated mail storage port performs presign/confirm/read/delete and
 rechecks owner + account on every operation. Pending/orphaned objects expire and are
@@ -565,16 +599,19 @@ marker to the same-account join above. Label names/UUIDs are never embedded in t
 
 #### 3.8.1 MailRuleDeployment
 
-One row per account stores `desired_generation`, `desired_hash`, nullable
-`deployed_generation`/`deployed_hash`, `state` (`pending`, `applying`, `ready`, `unknown`,
-`error`), safe `last_error_code`, retry schedule, attempt count, and a paired expiring lease.
+One row per account stores versioned `desired_generation`/`desired_hash`, nullable
+`attempted_generation`/`attempted_hash` and `deployed_generation`/`deployed_hash` tuples,
+`state` (`pending`, `applying`, `ready`, `unknown`, `error`), safe `last_error_code`, retry
+schedule, attempt count, and a paired expiring lease.
 Every rule create/update/delete transaction increments desired generation and hashes the
 complete canonical ordered active set. The HTTP response returns the saved Hub rule plus
 the current deployment state; it never waits for or promises engine installation.
 
-A bounded worker acquires the ordinary account mutation lease, captures the desired
-generation/hash, compiles the entire ordered set and installs one fixed-name Hub Sieve script
-whose marker contains that generation/hash. Before retrying an `unknown` result it reads the
+A bounded worker acquires the ordinary account mutation lease, captures and persists the
+desired tuple as the immutable current attempted tuple, compiles the entire ordered set and
+installs one fixed-name Hub Sieve script whose marker contains its hash version,
+generation and hash. A newer desired generation never rewrites the attempted tuple. Before
+retrying an `unknown` result it reads the
 active fixed script and compares the marker; matching state finalizes without another
 upload. Only the captured generation may become deployed; a newer desired generation stays
 pending. External activation or mutation of the fixed Hub script is detected as drift and
@@ -584,8 +621,10 @@ script id.
 ### 3.9 RecentContact
 
 `id`, `mail_account_id`, normalized `email`, `display_name`, nullable `user_id`,
-`last_used_at`, `use_count`. Unique by account + normalized email. Suggestions always
-rank active Hub users before external recent contacts.
+`last_used_at`, `use_count`. Unique by account + normalized email. At most 1,000 rows exist
+per account; admitting another deterministically evicts the least-recently-used non-Hub-
+linked row ordered by `(last_used_at,id)`. Suggestions always rank active Hub users before
+external recent contacts.
 
 #### 3.9.1 Search projection
 
@@ -625,14 +664,27 @@ engine submission key derives from the Hub submission id, never from the raw HTT
 
 ### 3.10.1 MailDraft
 
-`id`, `mail_account_id`, opaque `engine_message_id`, opaque `engine_version`, positive
-Hub `revision`, `status` (`active`, `saving`, `unknown`, `submitting`, `submitted`,
+`id`, `mail_account_id`, immutable unique `draft_client_id`, immutable stable
+`engine_draft_key`, nullable-paired opaque
+`engine_message_id`/`engine_version`, positive Hub `revision`, `status` (`active`, `saving`,
+`unknown`, `submitting`, `submitted`,
 `deleted`), hashed
 create-idempotency key + canonical create-request hash, nullable reply/forward message ids,
 nullable last mutation id, timestamps. Unique engine message id per account and unique
-account + create-key hash.
+account + create-key hash and account + draft-client id. Draft create/update requires the
+same `draft_client_id`; every selected storage attachment must carry that scope and is
+atomically bound to this draft before engine I/O.
+The canonical create fingerprint includes account, immutable draft-client id, authorized
+From identity, normalized recipients, subject/body source and content hash, priority,
+ordered attachment ids/hashes and reply/forward snapshots; PATCH requires the stored
+draft-client id but does not change it.
 Recipients, subject, rich/plain bodies and MIME remain canonical in the engine and are
 hydrated only for an authorized draft read; PostgreSQL never stores a second body copy.
+Every engine save and draft reconciliation receives an explicit positive content budget no
+greater than effective mailbox policy and the 52,428,800-byte hard ceiling. The request and
+any returned hydrated draft value are independently validated against that budget using the
+exact variable-byte accounting in `ENGINE-CONTRACT-0.1.8.md`; an expanded adapter response
+fails as a whole and never replaces canonical draft state.
 
 Draft mutation is serialized per draft. Save and delete require `If-Match` against the Hub
 revision; save then supplies the last engine version and a stable Hub mutation id. A successful engine
@@ -648,15 +700,18 @@ edits are rejected until reconciliation proves definitive failure/absence and re
 
 ### 3.10.2 MailUserSettings
 
-One row per active account: required default identity and nullable default signature ids
-owned by the same account, `remote_images` (`blocked`, `trusted_senders`),
+One row per active account is the sole persisted default authority: required default
+identity and nullable default signature ids owned by the same account, `remote_images`
+(`blocked`, `trusted_senders`),
 `compose_format` (`rich`, `plain`), version and timestamps. Provisioning/error accounts do
 not expose this public resource. Defaults never bypass identity `send_allowed` checks.
 
 ### 3.10.3 MailSignature
 
 `id`, `mail_account_id`, bounded name, sanitized rich body, server-normalized plain body,
-`is_default`, version and timestamps. At most one default per account. Signatures are user
+version and timestamps. `is_default` is derived by comparing the signature id with the
+canonical nullable `MailUserSettings.default_signature_id`; it is not persisted on the
+signature row. Signatures are user
 configuration rather than message bodies, but are still sanitized on write and render.
 Create/update accepts rich content plus format; the server derives the stored plain value
 and does not trust a client-supplied rich/plain pair.
@@ -715,9 +770,9 @@ may reconcile from the captured member UUIDs, but cannot re-expand targets or br
 ### 3.10.4 MailDomain
 
 `id`, `organization_id`, normalized ASCII domain, stable non-secret provisioning key,
-desired `enabled`, `is_default`, state (`pending`, `provisioning`, `dns_required`, `verified`,
+desired `desired_present`, `enabled`, `is_default`, state (`pending`, `provisioning`, `dns_required`, `verified`,
 `error`, `deleting`), verification and DKIM status, bounded public required-DNS projection,
-nullable opaque engine domain id, positive desired and nullable deployed generation/hash,
+nullable opaque engine domain id, positive desired and nullable attempted/deployed versioned generation/hash tuples,
 safe error/retry fields, paired expiring lease, version and timestamps. Domain is unique
 globally after normalization; at most one verified enabled default per organization. DKIM
 private material remains engine/secret-provider state and is never stored here.
@@ -1277,7 +1332,11 @@ The machine-readable contract is `docs/mail/openapi.yaml`. General rules:
 
 - Prefix: `/api`, matching the existing Fiber router and generated Swagger base path.
 - Auth: existing bearer/session middleware.
-- Pagination: opaque `cursor`, default 50, max 100.
+- Pagination: opaque `cursor` max 512 characters, default 50, max 100. Labels, identities,
+  signatures, rules, admin domains, admin identities, thread summaries and thread messages
+  use it. Folder snapshot is a single bounded array of at most 100; contact suggestions are
+  at most 30. Every cursor page has an 8 MiB serialized UTF-8 ceiling and may return fewer
+  whole items with a non-null cursor; it never truncates a value inside an item.
 - Mutation idempotency: a client-generated UUID v4/v7 `Idempotency-Key` is required for folder, label, signature, rule,
   attachment-presign, admin-domain and admin-alias create; message bulk mutation/classifier feedback;
   draft create, send, event create, RSVP and legacy ScheduledCall create.
@@ -1319,6 +1378,13 @@ The machine-readable contract is `docs/mail/openapi.yaml`. General rules:
 - Draft recipient input contains only bounded email plus optional display name. Any enriched
   `user_id` in response address objects is resolved server-side and is never accepted as
   request authority or included in the send fingerprint from an untrusted client field.
+- Effective mailbox policy has hard ceilings of 52,428,800 message bytes and 26,214,400
+  attachment bytes, with attachment <= message. Policy can lower but never raise them.
+- V2 calendar list accepts at most a 366-day half-open range and returns compact summaries in
+  cursor pages of at most 100. Full description/attendees are detail-only. Legacy calendar
+  retains `{events,from,to}` but rejects more than 5,000 expanded events with its existing
+  validation status; scheduled-call list rejects more than 100 calls or 1,000 total
+  occurrences. Neither legacy endpoint truncates silently.
 - `scheduled_call_id` on event create is an immutable server-authorized link to an existing
   owned active call. It is not accepted on event PATCH and cannot be used to discover or
   take over another call.

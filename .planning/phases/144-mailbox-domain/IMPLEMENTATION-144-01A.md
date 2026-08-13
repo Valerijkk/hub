@@ -1,6 +1,6 @@
 # Task 144-01A — static acceptance evidence
 
-> **Status:** SOURCE_CONTRACT_PASS · P1_ENGINE_BOUNDARY_REOPENED · DOWNSTREAM_BLOCKED
+> **Status:** HISTORICAL_0_1_7_SOURCE_PASS · 0_1_8_AMENDMENT_UNIMPLEMENTED · DOWNSTREAM_BLOCKED
 > **Implementation commit:** `9c4aba438e8a65c67b4b375636f34416978f8775`
 > **Fix commit / accepted head:** `43d421ef0fc86dbb98330cf68bfd398fc3b40b0d`
 > **Reviewed semantic contract:** `b3fb6f483b1335c4ef9ec3efbb0ff49c6d94ac3d`

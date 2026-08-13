@@ -1,8 +1,11 @@
 # Phase 144-02D preimplementation review — user configuration schema readiness
 
 > **Detected:** 2026-08-13 root deep static audit
-> **Status:** CONTRACT_AMENDMENT_REQUIRED · IMPLEMENTATION_BLOCKED · RUNTIME_NOT_RUN
+> **Status:** 0.1.8_ROOT_AMENDMENT_AVAILABLE · INDEPENDENT_CLOSURE_PENDING · IMPLEMENTATION_BLOCKED · RUNTIME_NOT_RUN
 > **Scope:** `MailUserSettings`, `MailSignature`, `MailRule` and `RecentContact`
+
+> `docs/mail/PERSISTENCE-CONTRACT-0.1.8.md` now supplies the root candidate matrix; this
+> discovery verdict remains open until independent exact-SHA review.
 
 ## Outcome
 

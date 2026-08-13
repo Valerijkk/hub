@@ -1,14 +1,39 @@
 # Hub Mail contract changelog
 
-> **Current review status (2026-08-13): REOPENED.** A later root deep audit found a P1
-> outside the CVE-v1 amendment: engine message/blob responses and admin byte settings lack
-> authoritative hard memory ceilings. Phase 144-02A preflight then found a second P1 in the
-> exact account/domain persistence matrix and domain/identity cardinality. No 0.1.8 contract
-> has been frozen. A machine-contract audit also found list/detail response collections and
-> calendar expansion without consistent pagination, item/length or aggregate bounds.
-> Evidence: Phase 144 `REVIEW-144-01A-ENGINE-BOUNDS.md`,
-> `REVIEW-144-02A-SCHEMA-READINESS.md`, and Phase 142
-> `REVIEW-OPENAPI-RESPONSE-BOUNDS.md`.
+> **Current review status (2026-08-13): 0.1.8 ROOT_FROZEN · INDEPENDENT_REVIEW_PENDING.**
+> The root amendment closes the recorded engine-memory, public-response and Phase 144
+> persistence representation gaps. It is not independently accepted and authorizes no
+> product code, generated Ent output, migration or runtime claim. Executable evidence remains
+> `NOT_RUN`; the accepted launcher remains `NOT_READY`.
+
+## 0.1.8 — 2026-08-13
+
+Bounded engine/API and deterministic mailbox persistence amendment. This is a root-frozen
+review candidate, not an implementation or runtime acceptance.
+
+- Split list/change/enumeration from hydrated message content. Projection pages now have
+  independent count, per-item and aggregate retained-byte ceilings with an exact
+  representation-independent variable-byte measure; authorized message/blob reads and draft
+  save/reconciliation carry caller budgets and reject whole values on overflow with one safe
+  error.
+- Added a stable Hub-derived engine draft key for lost initial-create reconciliation and a
+  required one-draft `draft_client_id` carried by draft API/storage rows; attachment reuse is
+  scalar one-draft ownership rather than an ambiguous many-to-many edge.
+- Added hard 50 MiB message / 25 MiB attachment maxima and enforced attachment <= message.
+- Completed OpenAPI list pagination, nested collection/string bounds, 8 MiB cursor-page
+  budgets, compact calendar summaries, 366-day ranges and non-truncating 16 MiB legacy
+  calendar/call envelopes. Creation quotas now have replay-stable terminal errors.
+- Froze exact Phase 144-02A/B/C/D/F storage names, tuple/nullability checks, state matrices,
+  normalized-name indexes, delete behavior, quotas and transactional same-owner guards in
+  `PERSISTENCE-CONTRACT-0.1.8.md`.
+- Made settings pointers the sole persisted identity/signature default authority, made
+  attachment scan state single-source, bounded recent external contacts at 1,000, and added
+  immutable attempted tuples for account/domain/rule engine work.
+- Froze the generic mutation receipt operation/status/code grammar, bulk target/member
+  matrices and canonical rule-set hash v1. No raw key, body, MIME, provider error, secret or
+  Sieve source enters PostgreSQL.
+- Historical 0.1.7 CVE-v1 semantics remain included; its earlier independent PASS does not
+  review these 0.1.8 changes.
 
 ## 0.1.7 — 2026-08-13
 

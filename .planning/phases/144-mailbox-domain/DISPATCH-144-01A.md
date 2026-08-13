@@ -12,7 +12,8 @@ engine-independent контракт mailbox adapter для Phase 144.
 
 [КОНТЕКСТ И OWNERSHIP]
 
-- Frozen sources: `MAIL-SPEC.md` 0.1.7 §§1–3, 5, 7;
+- Historical packet sources: `MAIL-SPEC.md` 0.1.7 §§1–3, 5, 7. **Do not redispatch this
+  surface:** replacement work must use independently accepted `ENGINE-CONTRACT-0.1.8.md`;
   `ADR-MAIL-01-mail-engine-calendar-sync.md` Adapter boundary;
   Phase 144 `DISPATCH-INDEX.md`.
 - Allowed mutations only:
@@ -92,7 +93,7 @@ Semantic requirements:
 - `KeywordPatch` содержит только server-resolved opaque reserved markers with explicit
   add/remove sets. Public label name/id/raw keyword cannot construct it; hydrated messages
   expose bounded reserved markers separately from public flag enum.
-- `Changes` возвращает bounded hydrated page с точными opaque `from_cursor` и
+- `Changes` возвращает bounded projection-only page с точными opaque `from_cursor` и
   `next_cursor`; invalid/expired cursor имеет отдельный стабильный error kind.
 - `EnumerateProjection` возвращает bounded resumable enumeration page, привязанную к
   одному pre-enumeration composite base cursor. DTO не обещает frozen provider state:

@@ -1,29 +1,26 @@
 # Phase 142 verification — Mail Contract Foundation
 
-> **Verdict:** STALE_PASS · REOPENED_P1_ENGINE_SCHEMA_AND_OPENAPI_BOUNDS
+> **Verdict:** 0.1.8_ROOT_FROZEN_AMENDMENT · INDEPENDENT_REVIEW_PENDING
 > **Date:** 2026-08-13
 > **Runtime:** NOT_RUN
-> **Contract:** 0.1.2 independently static-verified 2026-08-13
+> **Contract:** 0.1.8 root-frozen; historical independent reviews do not cover the amendment
 
 > **Superseding note:** this file records the historical 0.1.2 verification lifecycle.
-> Mail 0.1.7 later passed its CVE-v1 review, then a root deep audit reopened a distinct P1:
-> engine message/blob responses and admin byte settings have no authoritative hard ceiling.
-> A subsequent 144-02A preflight also found an incomplete exact persistence matrix and
-> unbounded domain/identity cardinality. Current evidence is Phase 144
-> `REVIEW-144-01A-ENGINE-BOUNDS.md` and `REVIEW-144-02A-SCHEMA-READINESS.md`; Phase 142 is not
-> currently contract-ready. `REVIEW-OPENAPI-RESPONSE-BOUNDS.md` additionally records
-> unbounded list/detail/calendar response shapes in the machine contract.
+> Mail 0.1.8 now root-freezes the bounded engine/API and exact Phase 144 persistence
+> amendment discovered by the later review files. The candidate is not contract-ready until
+> an independent Terra/high review with actual provenance closes those findings on its exact
+> SHA; executable validation remains unavailable.
 
 ## Goal-backward evidence
 
 | Required outcome | Evidence | Result |
 |---|---|---|
-| Engine/authority/scope decision | `ADR-MAIL-01-mail-engine-calendar-sync.md` | PASS |
-| ERD/state/requirements | `MAIL-SPEC.md` | PASS |
-| Complete v1 HTTP surface | `docs/mail/openapi.yaml` | PASS by static review; executable validation NOT_RUN |
+| Engine/authority/scope decision | ADR plus `ENGINE-CONTRACT-0.1.8.md` | ROOT_FROZEN / INDEPENDENT_PENDING |
+| ERD/state/requirements | `MAIL-SPEC.md` plus `PERSISTENCE-CONTRACT-0.1.8.md` | ROOT_FROZEN / INDEPENDENT_PENDING |
+| Complete v1 HTTP surface | `docs/mail/openapi.yaml` 0.1.8 | ROOT_STATIC_CHECKED; independent/executable validation NOT_RUN |
 | Versioned event contract | `docs/mail/events-v1.schema.json` | PASS by static review; executable validation NOT_RUN |
 | Product/UI interaction design | `docs/superpowers/specs/2026-08-13-mail-module-design.md` | PASS |
-| QA traceability handoff | `docs/mail/QA-HANDOFF.md` | PASS |
+| QA traceability handoff | `docs/mail/QA-HANDOFF.md` | ROOT_SYNCED / INDEPENDENT_PENDING |
 | Planning registration | TASK-235…241, Phases 142…148, roadmap/state/plan | PASS |
 | No protected-zone mutation | staged path review | PASS |
 | No whitespace errors | `git diff --cached --check` after staging | PASS |

@@ -1,6 +1,6 @@
 # Phase 142 — Mail Contract Foundation
 
-> Task: TASK-235 · Status: CONTRACT_REOPENED_P1_ENGINE_SCHEMA_AND_OPENAPI_BOUNDS · Runtime: NOT_RUN
+> Task: TASK-235 · Status: CONTRACT_0_1_8_ROOT_FROZEN_INDEPENDENT_REVIEW_PENDING · Runtime: NOT_RUN
 
 ## Goal
 

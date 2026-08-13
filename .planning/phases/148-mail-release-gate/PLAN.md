@@ -15,7 +15,7 @@
    integration/security/recovery and bounded runtime evidence on current SHA.
 5. Prove idempotent account provisioning, generic create/bulk receipts, rule-generation
    reconciliation, explicit spam/ham feedback, safe-content/image proxy and bounded search
-   hydration; atomic hydrated page/event/cursor reconciliation, command-lease begin/end fencing,
+   hydration; atomic projection-only page/event/cursor reconciliation, command-lease begin/end fencing,
    expiry/late-owner recovery, anchored no-clear rebuild/catch-up, received-event cutoff/
    marker, replica lease/shutdown, retry/
    idempotency, engine outage, visible freshness, persistence, resource limit and cleanup
