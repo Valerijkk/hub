@@ -1,8 +1,8 @@
 # Mail workstream pre-implementation readiness
 
-> **Snapshot:** 2026-08-13
+> **Snapshot:** 2026-08-14
 > **Branch:** `codex/mail-module-20260813`
-> **Product truth:** IMPLEMENTATION_IN_PROGRESS · 143-01/02A/02B/03A/03B/03C/03D/03F_STATIC_ACCEPTED · RUNTIME_NOT_RUN · Phase/product/migration/runtime not accepted
+> **Product truth:** IMPLEMENTATION_IN_PROGRESS · 143-01/02A/02B/03A/03B/03C/03D/03F/04L_STATIC_ACCEPTED · RUNTIME_NOT_RUN · Phase/product/migration/runtime not accepted
 > **Execution truth:** launcher `NOT_READY`; generation, migration, tests and runtime `NOT_RUN`.
 
 ## Prepared artifacts (root and independently reviewed)
@@ -62,19 +62,23 @@
    `10b4ceead119cb74a16b325b33f9121f60d7b1b5` after final independent review C/I/M `0/0/0`.
    Do not start generation: 143-03E is `BLOCKED/NOT_RUN` on the accepted launcher `NOT_READY`
    and the separate founder-approved migration mechanism/gate; 03F is satisfied.
-5. Resolve the separate migration mechanism/gate and accepted launcher before Ent generation.
-6. Admit `calendar.>` before calendar producers.
-7. Execute Phase 143 service/HTTP plus ScheduledCall bridge packets; retain the legacy
+5. 143-04L is `STATIC_ACCEPTED` at `4525c559da22729aa8bc51ff5336c29dad4f27e9` after final
+   independent Terra/high PASS C/I/M `0/0/0`; requested Terra/xhigh implementation and Terra/high
+   review provenance are dispatcher-enforced, actual telemetry `UNKNOWN`. Its static RED only
+   does not make the launcher ready.
+6. Resolve the separate migration mechanism/gate and accepted launcher before Ent generation.
+7. Admit `calendar.>` before calendar producers.
+8. Execute Phase 143 service/HTTP plus ScheduledCall bridge packets; retain the legacy
    calendar envelope and count linked pairs once. Keep linked external guests fail-closed
    until founder question 23 has a separately reviewed join-credential contract.
-8. Phase 144-01A is source-conformant but its byte-boundary contract is reopened. Freeze the
+9. Phase 144-01A is source-conformant but its byte-boundary contract is reopened. Freeze the
    amendment before 144-01B. Exact native dispatch provenance is dispatcher-enforced; actual
    telemetry remains `UNKNOWN` unless exposed and is not a telemetry-only blocker. Then execute
    fake/pure-policy packets, schemas/generation and services.
-9. Admit `mail.>` only after calendar admission; keep webhook filter unchanged.
-10. Execute UI transport/routes/core only after backend contracts are accepted and the
+10. Admit `mail.>` only after calendar admission; keep webhook filter unchanged.
+11. Execute UI transport/routes/core only after backend contracts are accepted and the
    feature-test harness is available.
-11. Begin Phase 145 only in the gate order; external SMTP remains separately disabled.
+12. Begin Phase 145 only in the gate order; external SMTP remains separately disabled.
 
 ## Forbidden shortcuts
 

@@ -1,12 +1,11 @@
 # Phase 143 packet 04L — shared deterministic event envelope
 
 > **Runtime:** `gpt-5.6-terra` / `xhigh`, no fallback
-> **Status:** CONTRACT_AMENDMENT_STATIC_ACCEPTED · READY_FOR_CODE_REMEDIATION_REDISPATCH
+> **Status:** `STATIC_ACCEPTED` at `4525c559da22729aa8bc51ff5336c29dad4f27e9`.
 > **Independent review:** final Terra / high PASS · C/I/M `0/0/0` · dispatcher-enforced
-> provenance · actual telemetry `UNKNOWN` · docs commit pending. The earlier docs-only
-> 255-byte subject sub-amendment remains independently accepted. The prior implementation
-> candidate remains review-failed/unaccepted, C/I/M `0/2/2`, until remediated; global Mail
-> review remains pending.
+> provenance · actual telemetry `UNKNOWN`. The earlier docs-only 255-byte subject sub-amendment
+> and immutable-envelope/payload amendment are accepted historical inputs; the initial code
+> review C/I/M `0/2/2` is remediated and historical. Global Mail review remains pending.
 > **Scope:** one pure shared value/builder plus one genuine external-package unit
 
 ## Outcome
@@ -86,10 +85,10 @@ services, JSON schema, protected test roots or dependencies. Stop on dirty overl
 Write the failing genuine unit first, then the minimum implementation. No real database,
 broker, network, wall clock, random source or listener. Host tests/build/lint/validators and
 direct Docker/Compose are forbidden; absent accepted launcher means `NOT_RUN` with static
-evidence only. This immutable-envelope/payload amendment is static accepted and ready for a
-remediation redispatch, but the prior implementation candidate remains review-failed/unaccepted
-(C/I/M `0/2/2`) until remediated. This does not accept the whole 04L packet or any product
-code; the launcher remains `NOT_READY`, runtime remains `NOT_RUN`, and global Mail review is
-pending. No commit/push/PR. Report in Russian: exact
+evidence only. The remediated code/test boundary is `STATIC_ACCEPTED` at
+`4525c559da22729aa8bc51ff5336c29dad4f27e9`; the historical initial C/I/M `0/2/2` does not
+describe the current packet. This does not accept the Phase, product, global Mail review or
+runtime: the launcher remains `NOT_READY`, and compilation/tests/runtime remain `NOT_RUN`.
+No commit/push/PR. Report in Russian: exact
 symbols/files, oracle matrix, verification status, requested/actual model, source SHA and
 residual risks.

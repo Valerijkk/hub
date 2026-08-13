@@ -99,6 +99,11 @@ Consequences:
   C/I/M `0/0/1` docs-sync finding is superseded/closed;
 - 143-03D is `STATIC_ACCEPTED` on `10b4ceead119cb74a16b325b33f9121f60d7b1b5` after final independent C/I/M `0/0/0`; requested Terra/xhigh authoring and Terra/high reviews are dispatcher-enforced, actual telemetry `UNKNOWN`.
 - 143-03E is `BLOCKED/NOT_RUN` on the accepted launcher `NOT_READY` and the separate founder-approved migration mechanism/gate; all-A does not establish this technical authority or accept an executed migration. 03F is satisfied.
+- 143-04L is `STATIC_ACCEPTED` at `4525c559da22729aa8bc51ff5336c29dad4f27e9` after its
+  historical initial C/I/M `0/2/2`, independently accepted immutable-envelope/payload amendment,
+  and final Terra/high PASS C/I/M `0/0/0`. Implementation is Terra/xhigh; reviews are Terra/high;
+  both use dispatcher-enforced provenance and actual telemetry is `UNKNOWN`. Static acceptance
+  does not change the launcher `NOT_READY` or executable `NOT_RUN` status.
 - 144-01B remains subject to its independent contract/source-review gates, but not to a
   telemetry-only provenance block;
 - an exact Terra/xhigh worker may author atomic production/test code only through an accepted

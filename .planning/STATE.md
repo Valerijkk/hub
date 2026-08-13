@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
-last_updated: "2026-08-13T23:50:00+03:00"
-last_activity: 2026-08-13 · 03A/03C remain committed and independently STATIC_CONFORMANT (each C/I/M 0/0/0): Packet A `31bfff8f58ba83d12b59600135503f98a6c92fbd`; Packet C `444c6f7b7b7b3d9b77bc9b24b32d1e13000ebbbc`. 03B re-review is STATIC_ACCEPTED C/I/M 0/0/0 on clean `dd346e31`; 03D is STATIC_ACCEPTED on `10b4ceead119cb74a16b325b33f9121f60d7b1b5` after final independent C/I/M 0/0/0; 03F is STATIC_ACCEPTED on `846cd00ecb243402877e18239c89a62bf07e8d14` after SPEC PASS/QUALITY PASS and final docs/whole-boundary review C/I/M 0/0/0. Launcher NOT_READY and runtime NOT_RUN
+last_updated: "2026-08-14T00:07:53+03:00"
+last_activity: 2026-08-14 · 03A/03C remain committed and independently STATIC_CONFORMANT (each C/I/M 0/0/0): Packet A `31bfff8f58ba83d12b59600135503f98a6c92fbd`; Packet C `444c6f7b7b7b3d9b77bc9b24b32d1e13000ebbbc`. 03B re-review is STATIC_ACCEPTED C/I/M 0/0/0 on clean `dd346e31`; 03D is STATIC_ACCEPTED on `10b4ceead119cb74a16b325b33f9121f60d7b1b5` after final independent C/I/M 0/0/0; 03F is STATIC_ACCEPTED on `846cd00ecb243402877e18239c89a62bf07e8d14` after SPEC PASS/QUALITY PASS and final docs/whole-boundary review C/I/M 0/0/0; 04L is STATIC_ACCEPTED on `4525c559da22729aa8bc51ff5336c29dad4f27e9` after final independent C/I/M 0/0/0. Launcher NOT_READY and runtime NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -374,18 +374,22 @@ spec_coverage:
   not accept Phase 143, the Calendar product, migration or runtime behavior: generation,
   compilation, unit execution and runtime are `NOT_RUN` because the accepted launcher is
   `NOT_READY`.
-- 143-04L's earlier docs-only subject sub-amendment remains independently accepted: valid UTF-8
-  and 1..255 bytes, deliberately separate from the NATS transport/control-line ceiling. Its
-  later immutable-envelope/payload amendment is `CONTRACT_AMENDMENT_STATIC_ACCEPTED`, ready
-  for code remediation redispatch after final Terra/high PASS C/I/M `0/0/0`, with
-  dispatcher-enforced provenance, actual telemetry `UNKNOWN` and docs commit pending. The
-  prior implementation candidate remains review-failed/unaccepted at C/I/M `0/2/2` until
-  remediated. The frozen remediation requires no exported mutable `EnvelopeV1`
-  fields/references, JSON-object snapshot/frozen complete bytes, copy-returning
-  `Subject()`/`EventID()` and `MarshalJSON`, semantic zero-offset UTC normalization, and stable
-  content-free `ErrInvalidPayload` for every invalid payload class. No whole 04L packet or
-  product/runtime acceptance is claimed; launcher remains `NOT_READY`, runtime `NOT_RUN`, and
-  global Mail review pending. This does not alter the current 03D status or evidence.
+-  143-04L is `STATIC_ACCEPTED` at the authoritative code/test boundary
+  `4525c559da22729aa8bc51ff5336c29dad4f27e9`: implementation was Terra/xhigh; the initial code
+  review was historical C/I/M `0/2/2`; the immutable-envelope/payload contract amendment was
+  independently accepted; and the remediated boundary's final Terra/high review is PASS,
+  C/I/M `0/0/0`. Requested-route provenance is dispatcher-enforced and actual telemetry is
+  `UNKNOWN`. The accepted paths are `backend/internal/platform/events/envelope.go`
+  (Git blob `add892cde5b8fab0fb0c19d08a576d2c915c39b4`, SHA-256
+  `8891E2BEDC0DA40E4C77630374F0B3BDCEEA5FD1D9F281F49049706BC4D55D5A`) and
+  `backend/tests/calendar/event_envelope_test.go` (Git blob
+  `d58055044769d1961005285c31a910cfcc66feae`, SHA-256
+  `4D11A3EDCD5041650D738698DA250DF3ADA769B6FB3D7106161B324EF3540750`). It freezes an
+  immutable complete JSON envelope, snapshot JSON-object payload, copy-returning accessors and
+  `MarshalJSON`, strict 1..255 UTF-8-byte `.v1` subjects, semantic zero-offset UTC `Z`, and
+  stable content-free `ErrInvalidPayload`. Static RED tests are present; the launcher remains
+  `NOT_READY`, so compilation, tests and runtime remain `NOT_RUN`. This does not accept the
+  Phase, product, global Mail review or runtime behavior.
 - Mailbox control-plane rules inherited from 0.1.6 remain in 0.1.8: отдельные bounded workers владеют
   idempotent domain/account/primary-identity/alias lifecycle, combined projection/mutation-recovery sync и generation/hash
   reconciliation одного fixed Hub Sieve script. Generic create/bulk receipt хранит только

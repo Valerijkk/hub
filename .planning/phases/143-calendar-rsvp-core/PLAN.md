@@ -1,6 +1,6 @@
 # Phase 143 — Calendar RSVP Core
 
-> Task: TASK-236 · Status: IMPLEMENTATION_IN_PROGRESS_143_01_02A_02B_03A_03B_03C_03D_03F_STATIC_ACCEPTED · Depends on: Phase 142
+> Task: TASK-236 · Status: IMPLEMENTATION_IN_PROGRESS_143_01_02A_02B_03A_03B_03C_03D_03F_04L_STATIC_ACCEPTED · Depends on: Phase 142
 
 ## Goal
 
@@ -62,6 +62,13 @@ breaking existing export behavior.
 3. Keep METHOD and content method consistent; never use `time.Now` internally.
 4. Focused Docker unit verification when available.
 5. Commit `feat(calendar): добавить детерминированный iTIP-кодек`.
+
+## Task 143-04L — Shared deterministic event envelope
+
+> **Status:** `STATIC_ACCEPTED` at `4525c559da22729aa8bc51ff5336c29dad4f27e9` after final
+> independent Terra/high PASS C/I/M `0/0/0`; evidence: `IMPLEMENTATION-143-04L.md`.
+> The initial C/I/M `0/2/2` and contract-amendment progression are historical only. The
+> launcher remains `NOT_READY`; compile/tests/runtime are `NOT_RUN`.
 
 ## Task 143-03 — Ent schemas and relation contracts
 
