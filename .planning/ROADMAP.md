@@ -197,7 +197,7 @@ contract отменяет его как migration gate; destructive batches ра
 |------:|--------|------------|-----------------|
 | 126 | IMPLEMENTED 2026-07-28 | — | Intranet NewsPost trash · TASK-001 |
 | 127 | IMPLEMENTED 2026-07-28 | 126 | Calendar series trash · TASK-002 |
-| 128 | IN PROGRESS · manifest sealed | — | TASK-202 archived/verified; TASK-203/224 baseline evidence closed; TASK-204: леджер-авторитет ротирован на `b9f690da` (2026-08-13), `cutover-manifest.json` запечатан (173 planned батчей, sha256 `85dd85ca`) с Docker-evidence GREEN; открыты независимая подпись arch-ver/qa-auto-ver и founder-gated G128-D wrapper |
+| 128 | SIGNED 2026-08-13 · G128-D deferred | — | TASK-202 archived/verified; TASK-203/224 baseline evidence closed; TASK-204 Verified (owner sign-off 2026-08-13): ротация авторитета на `b9f690da`, sealed `cutover-manifest.json` (173 батча, `85dd85ca`), Docker-цепочка GREEN, агентная верификация PASS/PASS_WITH_NOTES; deferred: founder-gated G128-D wrapper (конверт пинует доротационные дайджесты), honest baseline → волна 129+ |
 | 129 | PLANNED · 7 ordered plans | 128 PASS | exact cutover: per-batch operation + CI/docs switch + manifest evidence; move 350 hook-free Go units, preserve/refactor 245 via TASK-234, move frontend units, delete legacy non-units, root Python scaffold · TASK-193/197/198/201/219/234 |
 | 130 | PLANNED | 129 | task/requirement/risk → TC traceability and fail-closed quality gates · TASK-206/218 |
 | 131 | PLANNED | 130 | Python core + health/auth/account API foundation · TASK-205/207 |

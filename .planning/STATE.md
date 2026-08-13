@@ -99,7 +99,7 @@ inventory_measured_2026_08_07:
 active_program:
     name: test-architecture-rebase
     phases: "128-141"
-    current_phase: 128
+    current_phase: 129
     completed_tasks:
       - TASK-202
       - TASK-221
@@ -109,10 +109,11 @@ active_program:
       - TASK-225
       - TASK-203
       - TASK-224
+      - TASK-204
     archived_tasks:
       - TASK-202
     in_progress:
-      - TASK-204
+      - TASK-197
     in_review: []
     blocked: []
     target_layout:
