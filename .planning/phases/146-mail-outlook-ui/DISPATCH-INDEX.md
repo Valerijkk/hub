@@ -1,8 +1,8 @@
 # Phase 146 — exact Terra dispatch index
 
-> **Status:** CONTRACT_0_1_6_STATIC_REVIEW_PASS_5A351D5B · TERRA_CODE_ROUTE_AUTHORIZED · BACKEND_DEPENDENCIES_AND_TEST_HARNESS_PENDING
+> **Status:** CONTRACT_0_1_7_REVIEW_PENDING_0_1_6_STALE · TERRA_CODE_ROUTE_AUTHORIZED · BACKEND_DEPENDENCIES_AND_TEST_HARNESS_PENDING
 > **Required runtime:** `gpt-5.6-terra` / `xhigh`, no fallback
-> **Contract:** OpenAPI/Mail 0.1.6 + accepted UI spec
+> **Contract:** OpenAPI/Mail 0.1.7 + accepted UI spec
 
 The UI uses TanStack Query as server-state authority, TanStack Router/URL as selection
 authority, and a local reducer only for the active composer. It must not create a second
@@ -44,7 +44,7 @@ separate accepted Docker/build step.
 | ID | Single owned behavior | Exact primary files | Oracle / acceptance | Dependency |
 |---|---|---|---|---|
 | 146-01A | Safe request options and recovery response headers | `frontend/src/api/client.ts`, `frontend/tests/mail/api-client-mail-headers.test.ts` | idempotency/If-Match survive one auth retry; caller cannot override auth/content type; same-origin Location only; ApiError has code/etag/location/retry-after | runtime + test harness |
-| 146-01B | OpenAPI 0.1.6 mailbox types/client/query keys | `frontend/src/api/mail.ts`, `frontend/src/modules/mail/mail-query-keys.ts`, focused unit | exact paths/body/result; stable create/bulk key; account/projection state; submission GET; no account/org input | 146-01A + Phase 144 |
+| 146-01B | OpenAPI 0.1.7 mailbox types/client/query keys | `frontend/src/api/mail.ts`, `frontend/src/modules/mail/mail-query-keys.ts`, focused unit | exact paths/body/result; stable create/bulk key; account/projection state; submission GET; no account/org input | 146-01A + Phase 144 |
 | 146-02A | Mail route files and shell layout only | `frontend/src/routes/_authenticated/mail*.tsx` as router convention requires, `frontend/src/modules/mail/mail-shell.tsx`, focused route unit | exact redirect/deep links including owned draft/message resources; back-forward; URL truth; no routeTree manual edit | 146-01B |
 | 146-02B | Responsive folder pane + counts | `mail-folder-pane.tsx`, `mail-folder-tree.ts`, focused unit | system/custom hierarchy; keyboard/focus; mobile sheet; loading/error/empty | 146-02A |
 | 146-02C | Virtualized thread list + selection | `mail-thread-list.tsx`, `mail-thread-row.tsx`, focused unit | cursor pages, stable keys, unread/flag/attachment, no duplicate cache | 146-02A |

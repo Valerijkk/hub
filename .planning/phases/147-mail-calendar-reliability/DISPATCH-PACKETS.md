@@ -226,7 +226,7 @@
   `backend/internal/calendar/handler.go` and `backend/cmd/server/wiring_modules.go`, and
   `backend/tests/calendar/availability_service_test.go` as a genuine fake-repository
   service unit. Do not add a Fiber/API Go test.
-- Bind exact 0.1.6 request, enforce ≤31 days/IANA/unique 1–50/slot bounds, invoke 04B then
+- Bind exact 0.1.7 request, enforce ≤31 days/IANA/unique 1–50/slot bounds, invoke 04B then
   04A, and serialize stable request-order `{user_id,busy,free}`. Use generic not-found for
   inaccessible users and NFR-13 errors.
 - Oracles: no source IDs/title/reason/project; timed instants and all-day zones; same input
@@ -461,7 +461,7 @@
   `backend/internal/crm/handler.go` and `backend/cmd/server/wiring_modules.go`. Do not add a
   Go HTTP/component test; route the public API cases to the Python API handoff.
 - Implement exact compose-context and mail-activity GET/PUT/DELETE routes from OpenAPI
-  0.1.6. Bound list to max 100 newest-first with an opaque cursor; actor/deal/message are
+  0.1.7. Bound list to max 100 newest-first with an opaque cursor; actor/deal/message are
   path/auth derived; NFR-13 errors and not-found privacy.
 - Oracles: route/method/path shapes; duplicate PUT; invalid UUID; auth ordering; no body/
   recipient/subject in activity response; exact 404/409 codes; existing contacts/pipeline
@@ -473,7 +473,7 @@
   `frontend/tests/mail/crm-mail-api.test.ts` as a genuine typed-client unit with
   in-process fetch fakes.
 - Implement exact compose-context and activity list/PUT/DELETE functions from OpenAPI
-  0.1.6. Use bounded `limit`, opaque cursor and shared safe error parsing. This client has
+  0.1.7. Use bounded `limit`, opaque cursor and shared safe error parsing. This client has
   no draft/save/send function and cannot accept actor, mailbox or organization ids.
 - Oracles: exact methods/paths/query/body/204; 404/409 codes remain available to UI;
   cursor stays opaque; response types contain no content/address beyond compose context;

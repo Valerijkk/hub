@@ -1,8 +1,8 @@
 # Hub Mail + Calendar Sync — QA handoff
 
-> **Contract version:** 0.1.6
+> **Contract version:** 0.1.7
 > **Prepared:** 2026-08-13
-> **Implementation status:** IN_PROGRESS — 143-01 and 143-02A static accepted through `d73a9380`; executable verification `NOT_RUN`
+> **Implementation status:** IN_PROGRESS — 143-01 and 143-02A static accepted through `d73a9380`; 143-02B blocked on exact-SHA 0.1.7 contract review; executable verification `NOT_RUN`
 > **Runtime status:** NOT_RUN
 > **QA owner:** founder-designated Claude test program
 > **Product-code owner:** ChatGPT mail feature branch
@@ -227,11 +227,17 @@ or more `FR-MAIL-*` / `FR-CALSYNC-*` rows and named `TC-*` scenarios in `MAIL-SP
    canonical event `Location`; the client refetches and reconciles before retry.
 6. Duplicate equal UID/sequence/payload for REQUEST/CANCEL is idempotent; conflicting
    equal sequence is quarantined; lower sequence cannot revert state.
+   The duplicate key is CVE-v1, not serialized/folded wire bytes: property order, folding,
+   parameter case/quoting, attendee/EXDATE order and RRULE component order normalize to
+   equal hashes. Mutating each included semantic field changes the hash. Stored event,
+   exception, object-state and inbound-REPLY hashes include canonical version `1`; another
+   version is never compared as equal.
 7. Reused HTTP idempotency key with identical input replays the original response; changed
    input conflicts and never emits a second mutation/outbox event.
 8. REPLY changes only the normalized envelope/authenticated sender's attendee row. It
    accepts only the current event sequence and persists a bounded durable receipt for
-   every distinct validated SHA-256(normalized sender + canonical payload hash). Exact
+   every distinct validated Mail 0.1.7 domain-separated SHA-256 over canonical version,
+   length-delimited normalized sender and canonical payload hash. Exact
    redelivery is a no-op even after a later PARTSTAT; future/spoofed and the ninth distinct
    current-sequence reply are quarantined; no HTTP idempotency receipt is used. A distinct
    current-sequence PARTSTAT may advance that attendee once with one receipt/outbox, while
@@ -239,6 +245,9 @@ or more `FR-MAIL-*` / `FR-CALSYNC-*` rows and named `TC-*` scenarios in `MAIL-SP
 9. External guest remains email-only and cannot gain Hub authorization.
 10. Timed events require `starts_at/ends_at`, null date fields and `end > start`; all-day
     events require date/exclusive-end, null instants and no midnight conversion.
+    Inbound all-day `VALUE=DATE` uses the fixed CVE-v1 `UTC` semantic marker because it has
+    no trustworthy TZID. An occurrence REQUEST is accepted and hashed inbound even though
+    the outbound 143-02A serializer does not emit that shape.
 11. Timed events retain instants across organizer/viewer timezones and DST transitions.
 12. Busy/free combines canonical events, scheduled calls, and approved HR leave. It
     authorizes the complete requested user set before source queries: self or active same-

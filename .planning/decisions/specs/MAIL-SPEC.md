@@ -1,7 +1,7 @@
 # MAIL-SPEC — Hub mailbox and calendar synchronization contract
 
-> **Version:** 0.1.6
-> **Status:** Frozen; root and independent Terra static review PASS on `5a351d5b`
+> **Version:** 0.1.7
+> **Status:** Canonical iTIP hash amendment frozen; exact-SHA root/independent review pending; 0.1.6 review evidence is historical `STALE`
 > **Date:** 2026-08-13
 > **Architecture:** `../ADR-MAIL-01-mail-engine-calendar-sync.md`
 > **OpenAPI:** `../../../docs/mail/openapi.yaml`
@@ -54,8 +54,9 @@ the Hub mail feature. It does not claim that the described behavior is implement
     `calls.channel.{channelId}.scheduled_due.v1` namespace. None is added to the outbound
     webhook filter because payloads contain mailbox/calendar/call metadata.
 15. Inbound iTIP REPLY delivery is deduplicated by a bounded durable ledger of every
-    processed sender-bound payload hash for attendee + event sequence; storing only the
-    last hash is forbidden because delayed redelivery could roll a later RSVP backward.
+    processed canonical-version + sender-bound payload hash for attendee + event sequence;
+    storing only the last hash is forbidden because delayed redelivery could roll a later
+    RSVP backward.
 16. Incoming REQUEST/CANCEL order is durable per owner + UID + optional recurrence id.
     Lower sequence cannot mutate, equal conflicting content quarantines, and an early
     CANCEL tombstone prevents delayed resurrection.
@@ -757,7 +758,8 @@ timestamps. The existing flat Resend alert setting remains a separate legacy res
 | `organizer_email` | normalized email | required |
 | `scheduled_call_id` | UUID nullable unique | immutable optional 1:1 execution projection; server-authorized at creation |
 | `reminder_minutes` | int nullable | 0..40320 |
-| `payload_hash` | SHA-256 | normalized iTIP idempotency check |
+| `payload_hash_version` | uint8 nullable | present with `payload_hash`; v1 is `1`; cross-version equality is forbidden |
+| `payload_hash` | SHA-256 nullable | versioned normalized inbound-iTIP idempotency check; both hash fields are null until an inbound payload is admitted |
 | `version` | int | optimistic event editing |
 | timestamps + `deleted_at` | timestamp | soft delete/cancellation audit |
 
@@ -797,7 +799,8 @@ materializes it.
 ### 3.13 CalendarEventException
 
 `id`, `calendar_event_id`, `recurrence_id`, optional overridden start/end/date/timezone/
-location/status, `sequence`, `payload_hash`, timestamps. Unique event + recurrence id.
+location/status, `sequence`, nullable paired `payload_hash_version` + `payload_hash`,
+timestamps. Unique event + recurrence id.
 Deleting one occurrence stores a cancelled exception rather than mutating the master rule.
 
 ### 3.14 CalendarMutationReceipt
@@ -816,12 +819,14 @@ retention policy as its event.
 
 ### 3.15 CalendarInboundReplyReceipt
 
-`id`, `calendar_attendee_id`, non-negative `event_sequence`, canonical sender-bound
-`payload_hash` (SHA-256), `outcome` (`applied`, `observed_no_change`), and `created_at`.
-Unique `(calendar_attendee_id, event_sequence, payload_hash)`. The service derives this
-sender-bound hash as SHA-256 over the normalized authenticated/envelope sender plus the
-parser's canonical payload hash (which already covers UID, optional recurrence id,
-sequence and normalized REPLY semantics); raw MIME is never stored. This ledger is
+`id`, `calendar_attendee_id`, non-negative `event_sequence`, `payload_hash_version`,
+canonical sender-bound `payload_hash` (SHA-256), `outcome` (`applied`,
+`observed_no_change`), and `created_at`. Unique `(calendar_attendee_id, event_sequence,
+payload_hash_version, payload_hash)`. For canonical version `v`, normalized sender bytes
+`s` and the parser's 32-byte payload hash `h`, the service derives the sender-bound hash as
+SHA-256(`"hub.calendar.itip.reply" || 0x00 || U8(v) || U32BE(len(s)) || s || h`). The
+parser hash already covers UID, optional recurrence id, sequence and normalized REPLY
+semantics; raw MIME is never stored. This ledger is
 distinct from the HTTP
 `CalendarMutationReceipt` and contains no idempotency key or response body.
 
@@ -837,7 +842,8 @@ serializes concurrent distinct replies and cap checks.
 
 One current ordering row per calendar owner + normalized UID + optional recurrence id
 stores authenticated organizer email, highest non-negative sequence, `request|cancel`,
-canonical payload SHA-256, state (`applied`, `tombstone`, `deferred_missing_master`),
+canonical `payload_hash_version` plus payload SHA-256, state (`applied`, `tombstone`,
+`deferred_missing_master`),
 nullable event link, nullable expiry and timestamps. Series and occurrence uniqueness use
 separate partial
 indexes. The row is locked with the event/exception mutation. An early CANCEL is a
@@ -1074,8 +1080,9 @@ mismatch blocks activation.
 - `REPLY`: match the normalized authenticated/envelope sender to exactly one attendee and
   never accept organizer/event mutations. Its `SEQUENCE` must equal the current event
   sequence: lower is stale, higher is quarantined. The service derives the sender-bound
-  hash from the normalized sender plus parser-provided canonical payload hash and looks it
-  up in `CalendarInboundReplyReceipt`; a hash already processed for that attendee and
+  domain-separated hash from the canonical version, normalized sender and parser-provided
+  canonical payload hash and looks up version + hash in `CalendarInboundReplyReceipt`; a
+  hash already processed for that attendee and
   sequence is a no-op even if later replies changed the attendee again. A distinct
   current-sequence sender-bound PARTSTAT may advance only that attendee and atomically
   records an `applied` receipt plus one outbox event. A distinct hash whose PARTSTAT already
@@ -1089,6 +1096,161 @@ mismatch blocks activation.
   or external DMARC-aligned From equal to ORGANIZER. v1 has no implicit forwarded-message
   or organizer-delegation trust. Message receipt, object state, event/exception and outbox
   update atomically according to Phase 147 `CONTRACT.md`.
+
+### 4.4.1 Canonical iTIP payload hash v1
+
+The inbound duplicate identity is deliberately independent of `SerializeITIP`. The
+serializer is the accepted outbound wire subset and rejects occurrence `REQUEST`; the
+bounded parser must accept a valid inbound occurrence `REQUEST`. Neither wire folding nor
+serializer output is a persistence identity.
+
+After bounded syntax parsing and semantic validation, the parser returns
+`CanonicalVersion = 1` and:
+
+```text
+PayloadHash = SHA-256(CVE-v1(normalized ITIPMessage))
+```
+
+The CVE-v1 byte stream begins with ASCII `hub.calendar.itip.payload`, one zero byte, and
+version byte `0x01`. It then appends each top-level frame once in ascending tag order:
+
+```text
+frame(tag, value) = U8(tag) || U32BE(len(value)) || value
+```
+
+`U32BE` and `U64BE` are unsigned big-endian integers. `I64BE` is a signed two's-complement
+big-endian integer. `str(s) = U32BE(len(UTF-8(s))) || UTF-8(s)`. `bool(false)=0x00` and
+`bool(true)=0x01`. Lengths count bytes, not Unicode code points. No platform-native integer,
+JSON, map iteration, locale, wall clock or random value participates.
+
+| Tag | Value bytes |
+|---:|---|
+| `0x01` | method `REQUEST=0x01`, `CANCEL=0x02`, `REPLY=0x03` |
+| `0x02` | normalized UID as raw UTF-8 inside the outer frame |
+| `0x03` | recurrence id: `0x00` absent, otherwise `0x01 || recurrence` |
+| `0x04` | sequence `0..2147483647` as `U64BE` |
+| `0x05` | UTC `DTSTAMP` Unix seconds as `I64BE` |
+| `0x06` | status `CONFIRMED=0x01`, `TENTATIVE=0x02`, `CANCELLED=0x03` |
+| `0x07` | temporal value |
+| `0x08` | organizer `str(email) || str(display_name)` |
+| `0x09` | attendee vector |
+| `0x0a` | normalized summary as raw UTF-8 inside the outer frame |
+| `0x0b` | normalized description as raw UTF-8 inside the outer frame |
+| `0x0c` | normalized location as raw UTF-8 inside the outer frame |
+| `0x0d` | RRULE: `0x00` absent, otherwise `0x01 || str(normalized_rule)` |
+| `0x0e` | EXDATE vector |
+
+A recurrence value is `0x01 || I64BE(UTC Unix seconds)` for timed data or
+`0x02 || str(YYYY-MM-DD)` for all-day data. A timed temporal value is
+`0x01 || str(canonical IANA zone) || I64BE(start UTC Unix seconds) || I64BE(end UTC Unix
+seconds)`. An all-day temporal value is
+`0x02 || str("UTC") || str(start YYYY-MM-DD) || str(exclusive-end YYYY-MM-DD)`. RFC 5545
+`VALUE=DATE` carries no trustworthy IANA zone; v1 therefore uses the fixed semantic marker
+`UTC` and never infers midnight or a mailbox/organizer zone. Founder question 27 records
+the only permitted future policy change.
+
+The attendee vector is `U32BE(count)` followed by, for each attendee, `U32BE(record_len) ||
+record`. A record is `str(email) || str(display_name) || U8(role) || U8(partstat) ||
+bool(rsvp)`, with role `required=0x01`, `optional=0x02`, and PARTSTAT
+`needs_action=0x01`, `accepted=0x02`, `declined=0x03`, `tentative=0x04`. Records are sorted
+by normalized email bytes and duplicate normalized emails are rejected. The EXDATE vector
+uses the same count + length-delimited-record shape, with each record being one recurrence
+value; values are sorted chronologically for timed data or lexically for dates, and
+duplicates are rejected.
+
+Normalization before encoding is closed and deterministic:
+
+- accept CRLF or LF physical line endings, reject every lone CR, and unfold a following
+  space or tab before parsing. Every unfolded content line, including BEGIN/END, counts
+  toward `MaxProperties`; the line bound excludes its terminator and continuation prefix;
+- property and parameter names and enumerated tokens are case-insensitive;
+  quoted/caret-encoded parameter values and RFC text escapes are decoded;
+- require valid UTF-8; normalize all decoded text line endings to LF; preserve Unicode code
+  points byte-for-byte and perform no NFC/NFKC normalization;
+- UID is 1..255 UTF-8 bytes, contains no control byte or leading/trailing ASCII whitespace,
+  and otherwise remains case-sensitive and byte-exact;
+- email uses the existing strict accepted-address normalizer and lowercases the complete
+  accepted address; display names and text fields retain decoded content after the LF rule;
+- timed values must resolve through the runtime IANA timezone database, preserve the
+  canonical supplied IANA name, convert to UTC whole Unix seconds and reject nanoseconds;
+  all-day values remain dates with an exclusive end and reject `TZID`;
+- normalize the RRULE subset to `FREQ;INTERVAL;BYDAY|BYMONTHDAY;COUNT|UNTIL`: FREQ is
+  `DAILY|WEEKLY|MONTHLY`; absent INTERVAL defaults to 1 and normalized output always emits
+  `INTERVAL=1..365`. DAILY forbids BYDAY/BYMONTHDAY; WEEKLY requires 1..7 unique unnumbered
+  BYDAY values in Monday-first order; MONTHLY requires one `BYMONTHDAY=1..31`. At most one
+  `COUNT=1..1000` or compatible UNTIL is allowed; timed UNTIL normalizes to UTC
+  `YYYYMMDDTHHMMSSZ`, all-day UNTIL to `YYYYMMDD`. Duplicate/unsupported keys, COUNT+UNTIL,
+  numbered weekdays and time selectors are rejected;
+- require `VERSION:2.0`, one matching `METHOD`, exactly one `VEVENT`, one bounded `PRODID`,
+  and absent-or-`GREGORIAN` CALSCALE. VERSION/CALSCALE/PRODID are validated but excluded
+  because they add no v1 domain identity;
+- only the properties and parameters represented above are accepted. Unknown standard or
+  `X-` properties/parameters, additional components, `VTIMEZONE`, `RDATE`, `EXRULE`,
+  `TRANSP`, `CLASS`, `URL`, `ATTACH`, `SENT-BY`, and recurrence `RANGE` are rejected rather
+  than ignored.
+
+The accepted wire grammar is also closed. Every listed singleton occurs exactly once unless
+marked optional; duplicate singleton properties and duplicate parameters reject. Calendar
+properties are `VERSION:2.0`, non-empty UTF-8 `PRODID` (max 255 bytes), optional
+`CALSCALE:GREGORIAN`, and one `METHOD:REQUEST|CANCEL|REPLY`, all without parameters. One
+`VEVENT` contains:
+
+| Property | Cardinality and permitted parameters |
+|---|---|
+| `UID` | one; no parameters; decoded value follows the UID rule above |
+| `DTSTAMP` | one; no parameters; exact whole-second UTC `YYYYMMDDTHHMMSSZ` |
+| `DTSTART`, `DTEND` | one each; both use the same form: `VALUE=DATE`, or the same single `TZID`, or parameterless UTC `...Z`; floating/mixed forms reject |
+| `RECURRENCE-ID` | optional; `VALUE=DATE`, matching event `TZID`, or parameterless UTC `...Z`; `RANGE` and every other parameter reject |
+| `SEQUENCE`, `STATUS`, `SUMMARY` | one each, no parameters; sequence is decimal `0..2147483647`; summary must be non-empty |
+| `DESCRIPTION`, `LOCATION`, `RRULE` | optional singleton, no parameters |
+| `ORGANIZER` | one `mailto:` cal-address; optional `CN` only |
+| `ATTENDEE` | repeatable; one `mailto:` cal-address; optional unique `CN`, `ROLE`, `PARTSTAT`, `RSVP` only |
+| `EXDATE` | repeatable; comma-separated values using `VALUE=DATE`, matching event `TZID`, or parameterless UTC `...Z` |
+
+`ROLE`, `PARTSTAT` and `RSVP` default respectively to required, needs-action and false when
+absent; their accepted explicit values are exactly the enum table above (`REQ-PARTICIPANT`
+or `OPT-PARTICIPANT` on wire for role, and `TRUE|FALSE` for RSVP). REPLY requires exactly
+one attendee whose normalized PARTSTAT is not needs-action. REQUEST and CANCEL may contain
+zero to 200 attendees; addressed-mailbox and sender authorization remain later service
+checks. CANCEL requires cancelled STATUS; REQUEST and REPLY require confirmed or tentative
+STATUS. RECURRENCE-ID is valid for all three inbound methods. Unsupported `DURATION` never
+substitutes for required DTEND.
+
+Timed DTSTART/DTEND with `TZID` use local whole-second basic date-time and the same validated
+IANA name; parameterless values must end in `Z` and normalize to zone `UTC`. Recurrence and
+EXDATE timed values may use that event TZID or UTC and normalize to UTC seconds. All-day
+DTSTART/DTEND/RECURRENCE-ID/EXDATE require `VALUE=DATE`, reject TZID, and normalize compact
+wire dates to `YYYY-MM-DD`. Field maxima after decoding are UID 255 bytes, summary 500,
+description 200,000, location 500, email 320, display name 160, timezone 64 and normalized
+RRULE 1,000; the smaller unfolded-line and total-payload limits still win.
+
+The returned `ITIPMessage` is the normalized value: fresh attendee/EXDATE slices, no alias
+into `payload`, normalized RRULE/email/date/time/text fields and UTC for the all-day timezone
+marker. `CanonicalITIPIdentity` applies the same domain normalizer without calling the
+serializer; its recurrence string is UTC RFC3339 without fractional seconds or `YYYY-MM-DD`.
+Wire-only VERSION/PRODID/CALSCALE checks occur in `ParseITIP` before that domain function.
+
+Physical folding, property/parameter order, quoting style, raw MIME boundaries, transport
+headers, envelope sender and message ids are excluded. The authenticated sender is bound
+later by the separately domain-separated REPLY receipt hash above.
+
+The v1 parser hard maxima/defaults are 1,048,576 total bytes, 8,192 unfolded bytes per
+line, 4,096 unfolded properties, 200 attendees and 1,000 EXDATE values. Component depth is
+fixed at two (`VCALENDAR` -> `VEVENT`) and any additional component is rejected. Every
+caller-supplied limit must be positive and no greater than its hard maximum; zero-value
+magic and caller-raised maxima are forbidden. The implementation streams framed bytes
+directly into SHA-256 and does not retain a second unbounded canonical payload.
+
+Resource/syntax failure exposes only these additional stable sentinels:
+`ErrInvalidITIPLimits`, `ErrITIPLimitExceeded`, `ErrInvalidITIPSyntax`, and
+`ErrUnsupportedITIPContent`. They and the existing iTIP semantic sentinels are returned
+without raw property values, addresses or body text in the error string.
+
+Every stored canonical hash is paired with its version. Hashes from different versions are
+never compared as equal. A future version must keep old encoders available while old rows
+exist: for an equal-sequence input it computes the row's stored version; if that encoder is
+unavailable the input quarantines. A strictly newer admitted revision may store the current
+version. Retained raw MIME is never rehashed because raw calendar content is not persisted.
 
 ## 5. HTTP API contract
 
@@ -1404,6 +1566,15 @@ P2 is explicitly deferred. Risk uses Critical/High/Medium.
 - `TC-CALSYNC-038`: malformed/duplicate/over-limit legacy conflict UUID input returns 400;
   an exact-channel `call.scheduled_due.v1` invalidates canonical call queries without a
   duplicate reminder or trust in payload ids.
+- `TC-CALSYNC-039`: two physically different but semantically equivalent iTIP parts
+  (property order, folding, parameter case/quoting and RRULE order) produce the same
+  CVE-v1 hash, while changing each included semantic field changes it.
+- `TC-CALSYNC-040`: an occurrence `REQUEST` parses and hashes with its normalized
+  `RECURRENCE-ID` even though the outbound 143-02A serializer intentionally rejects that
+  shape; it remains deferred until its trusted matching master exists.
+- `TC-CALSYNC-041`: an all-day inbound part hashes the date/exclusive-end union with the
+  fixed v1 `UTC` marker and no midnight inference; persisted hashes include version `1`,
+  and cross-version bytes are never treated as duplicate identity.
 - Conditional `TC-CALSYNC-023`: L1 feed fetch rejects private/rebound/redirected targets and
   never exposes the encrypted URL or credentials.
 - Conditional `TC-CALSYNC-024`: L1 conditional refresh handles 304 without rewriting the

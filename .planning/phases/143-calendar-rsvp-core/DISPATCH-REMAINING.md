@@ -38,7 +38,8 @@ dispatchable without duplicating the common safety contract.
 - Dependency: accepted 143-01. Allowed: only
   `backend/ent/schema/calendarevent.go`.
 - Behavior: fields/types/defaults/bounds from Mail spec §3.11; owner + UID unique at master
-  level; nullable call link unique; no recurrence id; soft delete/audit timestamps; edges
+  level; nullable call link unique; nullable paired canonical payload-hash version/hash;
+  no recurrence id; soft delete/audit timestamps; edges
   only to already existing schema names or forward declarations allowed by Ent.
 - Oracles: static schema table covers every field; UID uniqueness includes owner; temporal
   union is also enforced in service (do not pretend Ent alone proves cross-field end>start);
@@ -60,7 +61,8 @@ dispatchable without duplicating the common safety contract.
 - Dependency: reviewed 03A. Allowed: only
   `backend/ent/schema/calendareventexception.go`.
 - Behavior: event + normalized recurrence unique; cancelled/materialized occurrence;
-  nullable typed override fields, sequence/hash/timestamps; no master recurrence id field.
+  nullable typed override fields, sequence, paired canonical payload-hash version/hash and
+  timestamps; no master recurrence id field.
 - Oracles: unique index; all-day/timed override representation; cancelled exception can
   exist without rewriting RRULE; service retains cross-field validation responsibility.
 
@@ -83,8 +85,9 @@ dispatchable without duplicating the common safety contract.
   `backend/ent/schema/calendarinboundreplyreceipt.go` and the narrow inverse edge in
   `backend/ent/schema/calendarattendee.go`.
 - Behavior: fields from §3.15; required attendee edge, non-negative event sequence,
-  fixed SHA-256 payload hash, `applied|observed_no_change` outcome and created timestamp;
-  unique attendee + sequence + hash. No sender address, MIME, HTTP key/response, engine id
+  required canonical payload-hash version plus fixed SHA-256 sender-bound hash,
+  `applied|observed_no_change` outcome and created timestamp; unique attendee + sequence +
+  version + hash. No sender address, MIME, HTTP key/response, engine id
   or organizer/event mutation edge. Retention/cap enforcement remains service behavior.
 - Oracles: exact unique columns and bounds; two attendees may hold the same hash; one
   attendee may hold multiple hashes at the same sequence; exact pre/post attendee edge
@@ -178,8 +181,10 @@ dispatchable without duplicating the common safety contract.
   authenticated/envelope sender to exactly one attendee. Require REPLY sequence equal to
   the current event sequence; lower is a typed stale no-op, higher/spoof/malformed identity
   is a typed quarantine with zero mutation. Derive the sender-bound receipt hash as SHA-256
-  over a length-delimited normalized sender plus the parser's fixed canonical payload hash;
-  then look up the durable ledger before state comparison. An existing hash is a no-op even
+  over the Mail 0.1.7 domain prefix, parser canonical version, length-delimited normalized
+  sender and the parser's fixed canonical payload hash; persist the parser version and look
+  up version + hash in the durable ledger before state comparison. Different canonical
+  versions are never equal. An existing hash is a no-op even
   if a later reply changed the status. For a
   new hash below the per-attendee/sequence cap of eight, same-status writes only an
   `observed_no_change` receipt; a distinct PARTSTAT may update only that attendee,
@@ -338,7 +343,7 @@ dispatchable without duplicating the common safety contract.
 - Dependencies: accepted 04B–E/H and matching 04F variants. Allowed only:
   `backend/internal/calendar/event_dto.go`,
   `backend/tests/calendar/event_dto_test.go`.
-- Behavior: OpenAPI 0.1.6 request/response shapes; strict temporal union/bounds; quoted
+- Behavior: OpenAPI 0.1.7 request/response shapes; strict temporal union/bounds; quoted
   version parser; base64url recurrence decoder; NFR-13 metadata carrier; no owner/org input.
 - Oracles: timed/all-day pairs/end order/IANA annotations; unknown/oversized fields;
   creation-only server-authorized `scheduled_call_id` absent from PATCH; RSVP version/status;

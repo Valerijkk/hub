@@ -1,6 +1,6 @@
 # Phase 147 — Mail/Calendar Reliability and Integrations
 
-> Task: TASK-240 · Status: CONTRACT_0_1_6_ROOT_REVIEW_PENDING_INDEPENDENT_PENDING_DEPENDENCY_BLOCKED · Depends on: Phases 143–146
+> Task: TASK-240 · Status: CONTRACT_0_1_7_HASH_AMENDMENT_ROOT_REVIEW_PENDING_INDEPENDENT_PENDING_DEPENDENCY_BLOCKED · Depends on: Phases 143–146
 > Required code runtime: `gpt-5.6-terra` / `xhigh`, no fallback
 > Contract: `CONTRACT.md` · Dispatch: `DISPATCH-INDEX.md` + `DISPATCH-PACKETS.md`
 
@@ -13,7 +13,8 @@ this phase.
 
 ## Ordered execution
 
-1. Independently review Mail 0.1.6 reliability/bridge semantics and close contract findings.
+1. Independently review Mail 0.1.7 reliability/bridge/canonical-hash semantics and close
+   contract findings. The prior 0.1.6 review evidence is historical STALE.
 2. After accepted Phase 143/144 schemas, add inbound object/message receipts, reply
    delivery and reminder receipts; generate only through the accepted launcher.
 3. Implement REQUEST/CANCEL order policy, atomic application, authenticated message-part
@@ -39,7 +40,7 @@ this phase.
 
 | Gate | State |
 |---|---|
-| Root reliability contract static review | 0.1.6 PASS on exact SHA `5a351d5b`; 0.1.5 `eae6f5e5` historical STALE |
+| Root reliability contract static review | 0.1.7 amendment PENDING; 0.1.6 PASS on exact SHA `5a351d5b` is historical STALE |
 | Independent reliability contract review | Terra/high PASS on exact SHA `5a351d5b`; no P0/P1/P2 |
 | Exact Terra code runtime | AUTHORIZED_BY_FOUNDER / first actual packet pending |
 | Phase 143/144 accepted implementation | NOT_IMPLEMENTED |

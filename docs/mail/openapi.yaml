@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Hub Mail and Calendar Sync API
-  version: 0.1.6
+  version: 0.1.7
   description: Frozen implementation contract. Presence in this file does not imply implementation.
 servers:
   - url: /api

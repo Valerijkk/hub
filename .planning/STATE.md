@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
-last_updated: "2026-08-13T11:25:01.1691822+03:00"
-last_activity: 2026-08-13 · Mail Tasks 143-01 and 143-02A static accepted through d73a9380 after independent Terra review/fix/re-review; 143-02B next; runtime NOT_RUN
+last_updated: "2026-08-13T12:06:23.6227778+03:00"
+last_activity: 2026-08-13 · Mail 0.1.7 canonical iTIP hash amendment frozen for exact-SHA review; 143-01/02A remain static accepted, 143-02B blocked pending review; runtime NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -118,9 +118,9 @@ mail_feature_workstream:
     branch: codex/mail-module-20260813
     phases: "142-148"
     current_phase: 143
-    status: contract_0_1_6_reviewed_pass_143_01_143_02A_static_accepted_143_02B_next
+    status: contract_0_1_7_hash_amendment_root_review_pending_143_01_143_02A_static_accepted_143_02B_blocked
     product_truth: unfinished_mvp_feature_not_accepted
-    contract_version: "0.1.6"
+    contract_version: "0.1.7"
     tasks:
       - TASK-235
       - TASK-236
@@ -160,6 +160,7 @@ mail_feature_workstream:
       mailbox_search: bounded_sanitized_body_attachment_filenames_owner_reauth
       mailbox_spam_feedback: explicit_spam_ham_not_move_alias
       calendar_authority: hub_postgresql
+      calendar_itip_hash: cve_v1_separate_from_outbound_versioned_all_day_utc_marker
       oauth_l3: out_of_scope
       legacy_admin_broadcast: governance_gap_deprecated_pending_founder_decision
       reminder_delivery: durable_in_app_best_effort_telegram_push_no_resend
@@ -173,7 +174,8 @@ mail_feature_workstream:
       founder_questions: docs/mail/FOUNDER-QUESTIONS.md
       phase_147_contract: .planning/phases/147-mail-calendar-reliability/CONTRACT.md
       phase_147_dispatch: .planning/phases/147-mail-calendar-reliability/DISPATCH-INDEX.md
-      phase_147_static_review: .planning/phases/147-mail-calendar-reliability/STATIC-REVIEW-0.1.6.md
+      phase_147_static_review_historical_0_1_6: .planning/phases/147-mail-calendar-reliability/STATIC-REVIEW-0.1.6.md
+      phase_147_static_review_current_0_1_7: PENDING
       phase_148_gate: .planning/phases/148-mail-release-gate/GATE-MATRIX.md
       phase_148_reviews: .planning/phases/148-mail-release-gate/REVIEW-PACKETS.md
 spec_coverage:
@@ -199,20 +201,22 @@ spec_coverage:
   API/persistence/resource spike и внешний DNS остаются gates; runtime `NOT_RUN`.
 - Кодовые фазы 143–148 идут после заморозки контракта. Phase 145 может оставаться
   blocked, пока выполняются engine-independent calendar/mailbox/UI slices.
-- Mail 0.1.6 сохраняет Phase 147 reliability-контракт: REQUEST/CANCEL tombstones и
+- Mail 0.1.7 сохраняет Phase 147 reliability-контракт: REQUEST/CANCEL tombstones и
   recovery, outward REPLY reconciliation, private availability, durable in-app reminders
   и CRM manual-link. Новый amendment закрывает ScheduledCall split-brain: CalendarEvent —
   authority, call — atomic execution projection; backfill/cutover all-or-nothing,
   aggregate/availability single-count, due occurrence-keyed/versioned. Attach is exact-match,
   participant projection is series-only, and linked external guests fail closed pending a
-  join-credential contract. Root static and independent Terra/high reviews of Mail 0.1.6
-  PASS on exact semantic SHA `5a351d5b`; 0.1.5 snapshot `eae6f5e5` remains `STALE`.
+  join-credential contract. It adds a separate versioned inbound CVE-v1 hash, accepts
+  occurrence REQUEST without changing outbound 143-02A and fixes all-day identity to the
+  UTC date marker without midnight inference. Exact-SHA 0.1.7 review is pending; the root
+  and independent Terra/high PASS on Mail 0.1.6 SHA `5a351d5b` is historical `STALE`.
   Founder task-local routing override authorizes exact `gpt-5.6-terra`/`xhigh` for
   atomic Mail product/test packets. Tasks 143-01 and 143-02A are static accepted through
   `d73a9380`; actual Terra/xhigh provenance, independent Terra/high reviews and the 143-02A
   fix/re-review are recorded in `IMPLEMENTATION-143-01.md` and
   `IMPLEMENTATION-143-02A.md`. Phase 143 implementation is `IN_PROGRESS`; runtime `NOT_RUN`.
-- Mailbox 0.1.6 закрывает control-plane gaps: отдельные bounded workers владеют
+- Mailbox control-plane rules from 0.1.6 remain unchanged in 0.1.7: отдельные bounded workers владеют
   idempotent domain/account/primary-identity/alias lifecycle, combined projection/mutation-recovery sync и generation/hash
   reconciliation одного fixed Hub Sieve script. Generic create/bulk receipt хранит только
   hashes/target/status с 30-day replay и lifetime reject tombstone, различает reused/

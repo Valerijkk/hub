@@ -405,6 +405,14 @@ backfill writes no invitation/outbox/notification records and sends no historica
   Redelivery updates the same event/instance when `SEQUENCE` is newer.
 - Lower sequence is ignored. Equal sequence is idempotent when the canonical payload hash
   matches and rejected/quarantined when it conflicts.
+- The inbound canonical payload hash is the versioned CVE-v1 value frozen in Mail spec
+  4.4.1, not the bytes emitted by the outbound serializer. This separation permits a valid
+  occurrence REQUEST without expanding the outbound subset. Every event/exception/object-
+  state/reply-receipt hash stores its version; different versions are never compared.
+- RFC all-day `VALUE=DATE` carries no authenticated timezone. CVE-v1 uses a fixed `UTC`
+  semantic marker for its date/exclusive-end union and never converts the dates to
+  midnight. Supplying an owner/organizer zone later requires a reviewed parser-context and
+  hash-version amendment; it is not inferred from the message.
 - `SEQUENCE` increments on invitation-relevant changes: time, duration, timezone,
   all-day state, location, recurrence, organizer, attendee set, or cancellation.
 - Description-only changes preserve attendee RSVP but still send an update only when the

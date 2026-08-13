@@ -1,6 +1,6 @@
 # Phase 143 — Calendar RSVP Core
 
-> Task: TASK-236 · Status: IMPLEMENTATION_IN_PROGRESS_143_01_AND_143_02A_STATIC_ACCEPTED · Depends on: Phase 142
+> Task: TASK-236 · Status: IMPLEMENTATION_IN_PROGRESS_143_01_AND_143_02A_STATIC_ACCEPTED_143_02B_BLOCKED_ON_0_1_7_REVIEW · Depends on: Phase 142
 
 ## Goal
 
@@ -32,8 +32,9 @@ authorities, duplicate meetings or dependence on the real mail engine.
 
 ## Task 143-02 — Deterministic iTIP codec with fixtures
 
-> **Status:** 143-02A serializer `STATIC_ACCEPTED` through `d73a9380`; 143-02B parser next;
-> executable verification `NOT_RUN`. Evidence: `IMPLEMENTATION-143-02A.md`.
+> **Status:** 143-02A serializer `STATIC_ACCEPTED` through `d73a9380`; 143-02B parser is
+> blocked until exact-SHA review of the Mail 0.1.7 CVE-v1 amendment; executable verification
+> `NOT_RUN`. Evidence: `IMPLEMENTATION-143-02A.md`.
 
 **Create:**
 
@@ -50,7 +51,9 @@ breaking existing export behavior.
 1. Add failing tests for REQUEST, update, CANCEL, REPLY, sequence, UID, recurrence id,
    folded lines, attendee parameters, timezone/DST, all-day exclusive end, duplicate
    delivery key, and parser bounds.
-2. Implement deterministic serialize/parse with injected clock and explicit limits.
+2. Keep accepted outbound serialization separate from bounded inbound parsing. The parser
+   uses explicit limits and Mail 0.1.7 CVE-v1 identity, accepts occurrence REQUEST, and
+   never hashes serialized/folded wire bytes.
 3. Keep METHOD and content method consistent; never use `time.Now` internally.
 4. Focused Docker unit verification when available.
 5. Commit `feat(calendar): добавить детерминированный iTIP-кодек`.
@@ -76,8 +79,9 @@ breaking existing export behavior.
    edges, master UID unique constraint, exception recurrence unique constraint, the two
    nullable-attendee partial unique constraints, optional one-to-one call link, and a
    bounded create/RSVP HTTP idempotency receipt. Add the separate bounded inbound-REPLY
-   receipt ledger unique by attendee + event sequence + canonical sender-bound payload
-   hash; it never stores raw MIME or an HTTP idempotency key.
+   receipt ledger unique by attendee + event sequence + canonical hash version + sender-
+   bound payload hash; it never stores raw MIME or an HTTP idempotency key. Every inbound
+   canonical event/exception hash is paired with its version.
 2. Add schema-level annotations/checks supported by current Ent patterns.
 3. Run Ent generation only in accepted Docker execution; inspect generated diff before
    staging. Never generate on host.

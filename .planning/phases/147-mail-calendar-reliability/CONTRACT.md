@@ -1,7 +1,7 @@
 # Phase 147 — reliability and integration contract
 
-> **Contract addendum:** Mail 0.1.6
-> **Status:** ROOT_AND_INDEPENDENT_STATIC_PASS_5A351D5B · 0_1_5_SNAPSHOT_STALE · PRODUCT_CODE_NOT_IMPLEMENTED
+> **Contract addendum:** Mail 0.1.7
+> **Status:** CANONICAL_HASH_V1_AMENDMENT_ROOT_REVIEW_PENDING · 0_1_6_REVIEW_STALE · PRODUCT_CODE_NOT_IMPLEMENTED
 > **Depends on:** accepted Phase 143 calendar core, Phase 144 mailbox domain, and the
 > engine adapter portions named by each packet
 > **Runtime evidence:** NOT_RUN
@@ -18,7 +18,8 @@ before its founder gate.
    organizer-aligned result.
 2. Incoming REQUEST/CANCEL order is decided per calendar owner, UID, and optional
    occurrence key. Lower sequence never rolls state backward; an equal sequence with a
-   different method or canonical payload hash is quarantined.
+   different method or canonical payload hash at the stored canonical version is
+   quarantined. Hashes from different versions are never compared as duplicates.
 3. A CANCEL received before its REQUEST creates a safe tombstone. A delayed older REQUEST
    cannot resurrect it.
 4. Durable consumer receipts contain safe identifiers, hashes, outcome and retry metadata;
@@ -58,6 +59,7 @@ One current ordering record exists for `(calendar_owner_id, uid, recurrence_id)`
 | `organizer_email` | normalized authenticated organizer, max 320 |
 | `sequence` | highest accepted non-negative sequence for this object |
 | `method` | `request` or `cancel` |
+| `payload_hash_version` | exact parser canonical version; v1 is `1` |
 | `payload_hash` | exact parser-provided canonical SHA-256 |
 | `state` | `applied`, `tombstone`, or `deferred_missing_master` |
 | `calendar_event_id` | nullable; absent is valid for an early cancel/deferred occurrence |
@@ -67,6 +69,12 @@ One current ordering record exists for `(calendar_owner_id, uid, recurrence_id)`
 PostgreSQL uses two partial unique indexes because nullable recurrence values are not equal:
 owner + UID where recurrence is null, and owner + UID + recurrence where non-null. The row
 is locked while comparing and advancing sequence. It is not an HTTP idempotency receipt.
+The parser identity follows Mail spec 4.4.1 and is independent of outbound serialization,
+so occurrence REQUEST is valid inbound even though 143-02A does not emit it. Event,
+exception, object-state and inbound-REPLY receipt hashes persist the version next to the
+hash. Equal-sequence comparison uses the row's stored encoder version; lack of that encoder
+quarantines rather than silently comparing another version. The sender-bound REPLY hash is
+domain-separated and includes the canonical version exactly as specified in Mail 0.1.7.
 Known-event state follows calendar retention. An unbound CANCEL tombstone is retained for
 the mailbox/account lifetime so an arbitrarily delayed older REQUEST cannot resurrect it;
 it is removed only with the owning mailbox/account or after a newer admitted object binds
@@ -337,7 +345,7 @@ Guarantees are deliberately narrow:
 ## 6. Conditional L1 iCal feed contract
 
 This section is design-complete but `BLOCKED_BY_FOUNDER_QUESTION_5`. Its endpoints are not
-part of OpenAPI 0.1.6 until accepted.
+part of OpenAPI 0.1.7 until accepted.
 
 - CRUD proposal: `/api/calendar/v2/feeds` and `/feeds/{feedId}` plus explicit
   `/feeds/{feedId}/refresh`; every resource is owner-scoped, with at most 10 active feeds,

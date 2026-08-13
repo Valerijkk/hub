@@ -12,7 +12,7 @@ engine-independent контракт mailbox adapter для Phase 144.
 
 [КОНТЕКСТ И OWNERSHIP]
 
-- Frozen sources: `MAIL-SPEC.md` 0.1.6 §§1–3, 5, 7;
+- Frozen sources: `MAIL-SPEC.md` 0.1.7 §§1–3, 5, 7;
   `ADR-MAIL-01-mail-engine-calendar-sync.md` Adapter boundary;
   Phase 144 `DISPATCH-INDEX.md`.
 - Allowed mutations only:

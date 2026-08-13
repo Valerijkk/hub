@@ -13,7 +13,7 @@ canonical duplicate identity для iTIP payload после принятого 1
 [КОНТЕКСТ И OWNERSHIP]
 
 - Entry dependency: independently accepted 143-02A on a clean reviewed HEAD.
-- Frozen sources: `MAIL-SPEC.md` §§2, 4.3, 7, 8; ADR iTIP/security sections;
+- Frozen sources: `MAIL-SPEC.md` §§2, 4.4, 4.4.1, 7, 8; ADR iTIP/security sections;
   `DISPATCH-INDEX.md`.
 - Allowed mutations only:
   - `backend/internal/calendar/itip_parse.go`
@@ -37,15 +37,41 @@ type ITIPParseLimits struct {
 
 func ParseITIP(payload []byte, limits ITIPParseLimits) (ITIPMessage, error)
 func CanonicalITIPIdentity(message ITIPMessage) (ITIPIdentity, error)
+func DefaultITIPParseLimits() ITIPParseLimits
 ```
 
-Defaults are explicit via a constructor/function, never zero-value magic. Identity contains
-normalized UID, optional normalized recurrence id, sequence, method and canonical payload
-hash; it does not authorize a sender or mutate state.
+The public identity is exactly:
+
+```go
+type ITIPIdentity struct {
+    CanonicalVersion uint8
+    Method ITIPMethod
+    UID string
+    HasRecurrenceID bool
+    RecurrenceID string
+    Sequence int
+    PayloadHash [32]byte
+}
+```
+
+`DefaultITIPParseLimits` returns exactly `{1048576, 8192, 4096, 200, 1000}` in field order.
+Every supplied field must be positive and no greater than that hard maximum. Component
+depth is fixed at two (`VCALENDAR` -> `VEVENT`) with exactly one actionable event. Identity
+does not authorize a sender or mutate state.
+
+The hash is the separate inbound CVE-v1 stream frozen in Mail spec 4.4.1, never
+`SerializeITIP` output. It starts with `hub.calendar.itip.payload`, NUL and version byte 1,
+then streams the exact ordered length-delimited frames into SHA-256. Preserve all tag,
+enum, integer, string, sort, RRULE, inclusion/exclusion and version rules literally.
+Occurrence REQUEST is valid inbound; do not weaken the accepted outbound serializer to
+make it round-trip. All-day `VALUE=DATE` normalizes to the fixed semantic timezone `UTC`
+without midnight conversion or caller context.
 
 [REQUIRED ORACLES]
 
-1. Round-trip every 02A REQUEST/CANCEL/REPLY fixture to equivalent values.
+1. Parse every 02A REQUEST/CANCEL/REPLY fixture to equivalent values; all-day output
+   canonicalizes the wire's zone-less dates to timezone marker UTC. Do not require the
+   parser to reserialize occurrence REQUEST through 02A.
 2. Unfold CRLF+space/tab correctly; reject bare-CR, invalid UTF-8 and over-limit unfolded
    lines before unbounded allocation.
 3. Enforce total bytes, property count, attendee count, EXDATE count, nesting/component
@@ -57,11 +83,26 @@ hash; it does not authorize a sender or mutate state.
 6. Parse quoted parameter values, escaped text, folded multibyte text, attendee PARTSTAT/
    ROLE/RSVP, RRULE/EXDATE and optional RECURRENCE-ID.
 7. Equal canonical payloads yield equal SHA-256 identity; equal UID/sequence with changed
-   canonical payload yields different hash for quarantine logic.
-8. Lower/equal/newer sequence classification is pure and explicit; parser itself does not
+   canonical payload yields different hash for quarantine logic. A test-owned literal
+   CVE-v1 byte vector is hashed with standard SHA-256 and compared with the parser identity;
+   do not copy the unverified host-calculated digest from research notes.
+8. Property order, physical folding, parameter case/quoting and RRULE component order are
+   same-hash equivalences. Every included field mutation differs. Attendee/EXDATE order is
+   normalized, while duplicates reject.
+9. Accept and hash timed and all-day occurrence REQUEST. All-day identity contains the UTC
+   semantic marker/date union and no inferred instant. `CanonicalVersion` is exactly 1.
+10. Lower/equal/newer sequence classification is pure and explicit; parser itself does not
    decide database mutation.
-9. Malformed input returns stable safe errors with no raw addresses/body in error strings.
-10. Fuzz-style boundary tables are deterministic ordinary units, not host fuzz execution.
+11. Malformed input returns stable safe sentinels with no raw addresses/body in error
+    strings. Reject unknown properties/parameters, extra components, VTIMEZONE, RDATE,
+    EXRULE, TRANSP, CLASS, URL, ATTACH, SENT-BY and recurrence RANGE.
+12. Fuzz-style boundary tables are deterministic ordinary units, not host fuzz execution.
+
+Narrow `itip_types.go` additions are exactly `ITIPIdentity` plus
+`ErrInvalidITIPLimits`, `ErrITIPLimitExceeded`, `ErrInvalidITIPSyntax`, and
+`ErrUnsupportedITIPContent`; do not invent another public parser surface. Parse returns
+fresh normalized slices and no alias into the input. Follow the exact singleton/cardinality,
+parameter-default, method/status and timed/all-day wire matrix in Mail spec 4.4.1.
 
 [EXECUTION / PROVENANCE]
 

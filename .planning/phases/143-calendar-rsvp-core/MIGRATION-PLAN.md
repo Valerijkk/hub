@@ -61,7 +61,7 @@ excluded with their counts recorded.
 | organizer attendee | normalized creator email, role `required`, `accepted`, `responded_at=scheduled_calls.created_at` |
 | participant attendees | distinct active same-project/same-organization M2M participant emails, role `required`, `accepted`, `responded_at=scheduled_calls.created_at` |
 | reply delivery | `not_required` for backfilled internal attendees |
-| payload hash | deterministic canonical invitation hash from the accepted serializer and recorded migration clock/revision |
+| payload hash version/hash | both null: backfill is an internal Hub source, not an admitted inbound iTIP payload; never synthesize persistence identity from outbound serializer bytes |
 | audit timestamps | preserve source `created_at` and `updated_at`; migration evidence records apply time separately |
 | future invitees | `needs_action` through normal service behavior |
 | delivery side effects | none: no invitation, notification, NATS, or outbox rows |

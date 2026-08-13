@@ -1,5 +1,34 @@
 # Hub Mail contract changelog
 
+## 0.1.7 — 2026-08-13
+
+Canonical inbound iTIP identity amendment. Product runtime remains `NOT_RUN`; 143-01 and
+143-02A source acceptance is unchanged, while 143-02B is blocked until this exact semantic
+snapshot passes root and independent Terra/high review. The prior 0.1.6 review on
+`5a351d5b` is historical `STALE` after this semantic change.
+
+- Separated inbound duplicate identity from the accepted outbound serializer. Inbound
+  occurrence REQUEST is valid without expanding or weakening the 143-02A outbound subset.
+- Froze CVE-v1 as an explicitly tagged, length-delimited, big-endian canonical value stream
+  domain-separated by `hub.calendar.itip.payload`, NUL and version byte 1, streamed into
+  SHA-256 without retaining another unbounded payload.
+- Closed every included field, enum code, sort rule, RRULE normalization, physical-format
+  exclusion and unsupported property/parameter rejection. No JSON, map order, locale,
+  clock, random value, raw MIME or wire folding participates.
+- Fixed bounded parser maxima/defaults: 1 MiB total, 8 KiB unfolded line, 4,096 properties,
+  200 attendees, 1,000 EXDATE values and exactly one `VCALENDAR` -> `VEVENT` component path.
+- Paired every persisted canonical event/exception/object-state/REPLY-receipt hash with its
+  version and forbade cross-version equality. The sender-bound REPLY receipt hash now has a
+  separate domain prefix and includes that version.
+- Chose the unattended fail-closed default for all-day `VALUE=DATE`: canonical timezone
+  marker `UTC`, date/exclusive-end preserved, no inferred midnight. Founder question 27
+  records the possible trusted-context alternative as a future hash-version amendment.
+- Added TC-CALSYNC-039..041 and synchronized Phase 143/147/148 and QA status. OpenAPI only
+  receives the contract-version bump; no HTTP request/response shape changes.
+- No precomputed digest from ad-hoc host research is accepted as an oracle. The literal
+  canonical byte-vector oracle remains executable `NOT_RUN` until the approved launcher is
+  available; static review can verify the grammar and test construction only.
+
 ## 0.1.6 — 2026-08-13
 
 Mailbox control-plane, safe-content and mutation-recovery amendment. Product code/runtime
