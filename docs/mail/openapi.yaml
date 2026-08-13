@@ -3454,12 +3454,14 @@ components:
     AdminMailboxSettings:
       type: object
       additionalProperties: false
+      x-hub-mailbox-policy-creation-defaults: {max_message_bytes: 25000000, max_attachment_bytes: 25000000, unit: decimal-bytes}
+      x-hub-engine-adapter-hard-caps: {max_message_bytes: 52428800, max_attachment_bytes: 26214400}
       x-hub-validation: max_attachment_bytes must be less than or equal to max_message_bytes
       required: [external_mail_enabled, max_message_bytes, max_attachment_bytes, max_recipients, send_rate_per_minute, trash_retention_days, junk_retention_days, version]
       properties:
         external_mail_enabled: {type: boolean}
-        max_message_bytes: {type: integer, format: int64, minimum: 1048576, maximum: 52428800}
-        max_attachment_bytes: {type: integer, format: int64, minimum: 1, maximum: 26214400}
+        max_message_bytes: {type: integer, format: int64, minimum: 1048576, maximum: 52428800, default: 25000000}
+        max_attachment_bytes: {type: integer, format: int64, minimum: 1, maximum: 26214400, default: 25000000}
         max_recipients: {type: integer, minimum: 1, maximum: 300}
         send_rate_per_minute: {type: integer, minimum: 1, maximum: 1000}
         trash_retention_days: {type: integer, minimum: 1, maximum: 3650}

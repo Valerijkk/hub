@@ -210,10 +210,13 @@ One `id`/`organization_id` row with required `external_mail_enabled`, `max_messa
 1,048,576..52,428,800, `max_attachment_bytes` 1..26,214,400, `max_recipients` 1..300,
 `send_rate_per_minute` 1..1,000, trash/junk retention 1..3,650 days, timestamps and
 `VersionMixin`. All policy values are required with no schema default; the provisioning/admin
-service supplies the configured initial values explicitly. Unique organization; CHECK
-attachment <= message. Organization deletion
-cascades. Enabling external mail still requires the service-level verified-domain/engine
-gate.
+service supplies the configured initial values explicitly. MailboxPolicy creation supplies
+`max_message_bytes=25,000,000` and `max_attachment_bytes=25,000,000` decimal bytes. These
+product defaults are distinct from the engine adapter hard caps of 52,428,800 message bytes
+and 26,214,400 attachment bytes. Administrators may configure each value only within its
+stated inclusive bound, with attachment <= message. Unique organization; CHECK attachment <=
+message. Organization deletion cascades. Enabling external mail still requires the
+service-level verified-domain/engine gate.
 
 ### 144-02A Ent representation freeze
 

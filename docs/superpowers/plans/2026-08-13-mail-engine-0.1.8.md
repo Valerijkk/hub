@@ -19,7 +19,11 @@ and Stalwart adapter own behavioral conformance in later packets.
 ## Global Constraints
 
 - Exact contract commit before execution: the clean branch must contain
-  `c0f204983fdc929bebeacf75ceb69a416b8b5eb3` and the latest docs-only plan commit.
+  `e96fe3de2deb9eddcba9c75ce948892bdd6fe517` and the latest docs-only plan commit.
+- MailboxPolicy creation defaults are 25,000,000 decimal bytes for both message and
+  attachment. These product defaults are distinct from engine adapter hard caps of
+  52,428,800 message bytes and 26,214,400 attachment bytes; administrators configure only
+  within the corresponding bounds.
 - Entry gate: an independent `gpt-5.6-terra` / `high` review with accepted per-dispatch
   provenance must accept the exact contract SHA. Current status is
   `BLOCKED_INDEPENDENT_CONTRACT_REVIEW_PENDING`.
@@ -75,7 +79,7 @@ Record all of the following in the worker response before opening the file:
 
 ```text
 branch=codex/mail-module-20260813
-contract_ancestor=c0f204983fdc929bebeacf75ceb69a416b8b5eb3
+contract_ancestor=e96fe3de2deb9eddcba9c75ce948892bdd6fe517
 worktree=clean
 requested_model=gpt-5.6-terra/xhigh
 provenance_source=dispatcher-enforced
@@ -477,7 +481,8 @@ all executable statuses as `NOT_RUN` unless a supported current-SHA launcher res
   conformance and Phase 145 adapter conformance; no validator or provider behavior is smuggled
   into this compile-contract packet.
 - Type consistency: all test names, fields, signatures and enum constants match
-  `ENGINE-CONTRACT-0.1.8.md` at `c0f20498` plus the docs-only plan amendment.
+  `ENGINE-CONTRACT-0.1.8.md` at `e96fe3de2deb9eddcba9c75ce948892bdd6fe517` plus the
+  docs-only plan amendment.
 - Placeholder scan: no implementation placeholder or guessed launcher command exists.
 - Current execution state: `BLOCKED_INDEPENDENT_CONTRACT_REVIEW_PENDING` until an independent
   Terra/high contract review accepts the exact SHA. Once that separate gate passes, an exact

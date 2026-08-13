@@ -38,7 +38,10 @@ review candidate, not an implementation or runtime acceptance.
 - Added a stable Hub-derived engine draft key for lost initial-create reconciliation and a
   required one-draft `draft_client_id` carried by draft API/storage rows; attachment reuse is
   scalar one-draft ownership rather than an ambiguous many-to-many edge.
-- Added hard 50 MiB message / 25 MiB attachment maxima and enforced attachment <= message.
+- Froze MailboxPolicy creation defaults at 25,000,000 decimal bytes for both message and
+  attachment, separately from the engine adapter hard caps of 52,428,800 and 26,214,400
+  bytes. Administrator configuration remains bounded by the respective cap and enforces
+  attachment <= message.
 - Completed OpenAPI list pagination, nested collection/string bounds, 8 MiB cursor-page
   budgets, compact calendar summaries, 366-day ranges and non-truncating 16 MiB legacy
   calendar/call envelopes. Creation quotas now have replay-stable terminal errors.

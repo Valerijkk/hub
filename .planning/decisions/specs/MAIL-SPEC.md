@@ -143,8 +143,9 @@ the Hub mail feature. It does not claim that the described behavior is implement
     is allowed.
 37. Engine list/change/enumeration values are projection-only and obey both item-count and
     retained-byte ceilings. Full content, draft save/reconciliation and blobs carry explicit
-    caller byte budgets and whole-value overflow rejection. Hard deployment maxima are 50 MiB
-    per message and 25 MiB per attachment; policy may only lower them. Request/page/message/
+    caller byte budgets and whole-value overflow rejection. Engine adapter hard caps are
+    52,428,800 bytes per message and 26,214,400 bytes per attachment; policy may only lower
+    them. Request/page/message/
     attachment field grammar is closed by `ENGINE-CONTRACT-0.1.8.md`; submission references
     the confirmed engine draft and final-MIME ceiling and contains no second content copy.
 38. A draft has an immutable engine draft key derived from its Hub UUID before the first
@@ -837,8 +838,12 @@ One versioned row per organization containing external-mail enablement, maximum 
 attachment and recipient limits, per-minute send rate, trash/junk retention, and
 timestamps. `max_recipients` is 1..300 because draft `to`, `cc` and `bcc` are independently
 bounded at 100; after normalized cross-collection deduplication their combined count must be
-at most the configured value and therefore can never exceed 300. The existing flat Resend
-alert setting remains a separate legacy resource.
+at most the configured value and therefore can never exceed 300. Creation provisions
+`max_message_bytes=25,000,000` and `max_attachment_bytes=25,000,000` decimal bytes. Those
+product defaults are distinct from the engine adapter hard caps of 52,428,800 message bytes
+and 26,214,400 attachment bytes. Administrators may configure each value only within its
+respective bound, with attachment <= message. The existing flat Resend alert setting remains
+a separate legacy resource.
 
 ### 3.11 CalendarEvent
 
@@ -1438,8 +1443,11 @@ The machine-readable contract is `docs/mail/openapi.yaml`. General rules:
 - Draft recipient input contains only bounded email plus optional display name. Any enriched
   `user_id` in response address objects is resolved server-side and is never accepted as
   request authority or included in the send fingerprint from an untrusted client field.
-- Effective mailbox policy has hard ceilings of 52,428,800 message bytes and 26,214,400
-  attachment bytes, with attachment <= message. Policy can lower but never raise them.
+- MailboxPolicy creation defaults are 25,000,000 decimal bytes for both message and
+  attachment. They are product defaults, not engine adapter caps. Effective mailbox policy
+  has hard ceilings of 52,428,800 message bytes and 26,214,400 attachment bytes, with
+  attachment <= message; administrators can lower or raise a configured value only within
+  its corresponding bound.
 - V2 calendar list accepts at most a 366-day half-open range and returns compact summaries in
   cursor pages of at most 100. Full description/attendees are detail-only. Legacy calendar
   retains `{events,from,to}` but rejects more than 5,000 expanded events with its existing
