@@ -543,6 +543,9 @@ Compile/static oracles must also prove that projection pages structurally contai
 body nor attachment bytes, every page/change/enumeration request carries one unambiguous
 cursor/checkpoint plus limit, and `EngineSubmission` contains only the confirmed draft
 reference/version/key and a bounded final-MIME ceiling rather than another content copy.
+Body-union fixtures prove an inbound rich read exposes one untrusted rich source only and
+cannot reach API/search before sanitization/plain derivation, while an outbound rich draft
+contains the accepted sanitized rich value plus only its server-derived plain value.
 Quota failures must replay from the same receipt without later creating a resource after
 capacity is freed. Draft fixtures must prove lost first-create reconciliation by immutable
 engine draft key and reject a second draft claiming the same staging scope/attachment.

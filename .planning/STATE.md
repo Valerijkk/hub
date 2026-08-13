@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
-last_updated: "2026-08-13T16:14:59+03:00"
-last_activity: 2026-08-13 · Mail 0.1.8 root code-to-contract pass closed exact engine DTO/submission representation after the first actual-provenance Terra review attempt failed closed; independent review and runtime remain pending/NOT_RUN
+last_updated: "2026-08-13T16:23:06+03:00"
+last_activity: 2026-08-13 · exact 144-01A Terra/xhigh TDD plan frozen after two actual-provenance Terra/high review attempts failed closed before reading; product writes remain blocked and runtime NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125

@@ -1,8 +1,9 @@
 # Hub Mail + Calendar Sync implementation plan
 
-> **Implementation agent:** follow `superpowers:executing-plans` task by task. Code-writing
-> tasks require the founder-routed `gpt-5.3-codex` / `xhigh` worker after this contract is
-> frozen. Root/Terra retain architecture, review, and acceptance authority.
+> **Implementation agent:** follow `superpowers:subagent-driven-development` task by task.
+> The founder's task-local Mail override routes atomic code to exact `gpt-5.6-terra` /
+> `xhigh`, with actual telemetry required and no fallback. Root/Terra retain architecture,
+> review, and acceptance authority.
 
 **Goal:** Build the self-hosted Outlook-class Hub mail module and canonical RFC 5545/5546
 calendar RSVP flows without changing the protected test-rebase program.
@@ -42,7 +43,8 @@ React/Vite, TanStack Query, Plate, Vitest/RTL, optional Stalwart Docker profile.
 
 1. Phase 142 — `.planning/phases/142-mail-contract-foundation/PLAN.md`
 2. Phase 143 — `.planning/phases/143-calendar-rsvp-core/PLAN.md`
-3. Phase 144 — `.planning/phases/144-mailbox-domain/PLAN.md`
+3. Phase 144 — `.planning/phases/144-mailbox-domain/PLAN.md`; bounded engine port packet:
+   `docs/superpowers/plans/2026-08-13-mail-engine-0.1.8.md`
 4. Phase 145 — `.planning/phases/145-stalwart-gateway/PLAN.md`
 5. Phase 146 — `.planning/phases/146-mail-outlook-ui/PLAN.md`
 6. Phase 147 — `.planning/phases/147-mail-calendar-reliability/PLAN.md`

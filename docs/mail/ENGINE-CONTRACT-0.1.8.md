@@ -122,6 +122,11 @@ type EngineEnumerationPage struct {
 }
 ```
 
+The unchanged closed value shapes remain exactly `EnginePageBounds{Requested, Maximum,
+Returned int}`, `EngineAddress{Email, Name string}` and
+`EngineMessageFlags{Seen, Answered, Draft, Flagged, Junk bool}`. They do not acquire
+provider ids, arbitrary headers or extra state.
+
 `EnginePageRequest.Limit` is 1..100. `Bounds.Requested` echoes it,
 `Bounds.Maximum == MaxEnginePageItems`, and `Bounds.Returned` equals the number of returned
 messages, or for `EngineChangePage` the combined number of projections and destroyed ids.
@@ -249,8 +254,14 @@ The enum sets are exact: body format `plain|rich`, priority `low|normal|high`, a
 disposition `attachment|inline`, and projection origin
 `inbound_or_unknown|confirmed_owner_submission|confirmed_owner_draft`. A projection carries
 no body, raw MIME or attachment bytes. `EngineMessage.Body` contains only the authorized
-normalized body pair; all header/address/attachment metadata occurs exactly once in its
-projection. `EngineSubmission` is reference-only and submits the already confirmed engine
+decoded source body; all header/address/attachment metadata occurs exactly once in its
+projection. On an engine read, `plain` requires empty `RichBody`; `rich` requires empty
+`PlainBody`. A rich read is untrusted decoded provider HTML and must cross the Hub sanitizer
+before API, search or persistence; Hub then derives plain text from the accepted sanitized
+rich value. On an outbound `EngineMessageContent`, `plain` likewise requires empty
+`RichBody`; `rich` carries the already server-sanitized `RichBody` plus the `PlainBody`
+derived from that exact accepted value. No two independently supplied canonical bodies are
+accepted. `EngineSubmission` is reference-only and submits the already confirmed engine
 draft; it cannot contain or silently replace content. Its maximum is positive, no greater
 than effective policy and no greater than `MaxEngineMessageBytes`, and applies to the final
 submitted MIME result.
