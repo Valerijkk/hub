@@ -1477,6 +1477,9 @@ def write_transactionally(
         while written < len(payload):
             written += os.write(descriptor, payload[written:])
         os.fsync(descriptor)
+        # The identity snapshot must be taken after the payload lands: the
+        # post-close comparison includes size/mtime/ctime, which change on write.
+        staging_meta = os.fstat(descriptor)
         os.close(descriptor)
         descriptor = -1
         verify_fd = os.open(staging_name, os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW, dir_fd=parent_fd)
