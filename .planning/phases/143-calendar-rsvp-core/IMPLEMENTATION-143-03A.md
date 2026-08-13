@@ -1,30 +1,41 @@
-# Task 143-03A — superseded static acceptance evidence
+# Task 143-03A — hash-pair remediation static evidence
 
-> **Status:** P1_REMEDIATION_REQUIRED · MODEL_PROVENANCE_BLOCKED · NOT_STATIC_ACCEPTED
-> **Implementation commit:** `c6f5ec8b54b7e35327125dd4445634c5d1764491`
+> **Status:** STATIC_CONFORMANT · INDEPENDENT_REVIEW_C/I/M_0/0/0 · RUNTIME_NOT_RUN
+> **Implementation commit:** the atomic Git commit that contains this evidence document together
+> with `backend/ent/schema/calendarevent.go` and
+> `backend/tests/calendar/calendar_event_schema_test.go`; resolve it from Git history after root
+> creates the pending commit
 > **Accepted dependency:** 143-01 `e7d5f450d112158369de60738f95e0f5e29ace53`
 
 ## Scope and result
 
-- Authoring packet: `/root/mail_143_03a_impl`.
-- Requested and reported actual route: exact `gpt-5.6-terra` / `xhigh`; no fallback.
-- Sole owned file: `backend/ent/schema/calendarevent.go`.
+- Remediation packet: `/root/calendar_hash_pair_a`.
+- Implementation route: exact `gpt-5.6-terra` / `xhigh`; `provenance_source=dispatcher-enforced`;
+  actual telemetry `UNKNOWN`; no fallback.
+- Independent reviewer: `/root/calendar_hash_pair_a_review`, exact `gpt-5.6-terra` / `high`;
+  `provenance_source=dispatcher-enforced`; actual telemetry `UNKNOWN`.
+- Packet A paths: `backend/ent/schema/calendarevent.go` and external oracle
+  `backend/tests/calendar/calendar_event_schema_test.go`.
 - The schema represents the reviewed timed/all-day union, status/sequence/version,
   recurrence/reminder values, immutable optional ScheduledCall link and event ownership.
 - Fields, enum values, lengths, nullable pairs, `VersionMixin`, indexes and edge delete
   behavior were checked against Mail 0.1.7 and the Phase 143 packet.
 
-The initial independent Terra/high static review returned PASS with no P0, P1 or P2. A later
-root deep audit superseded that acceptance: the nullable canonical hash version/hash fields
-lack the schema-level pair check required by Mail 0.1.7 and `PLAN.md` Task 143-03. Per-field
-validators still permit exactly one column to be null, so this is a P1 persistence invariant.
-The frozen remediation is recorded in `REMEDIATION-143-03-HASH-PAIR.md`. Its first exact
-Terra/xhigh attempt stopped before reads/writes because actual model telemetry was
-unavailable.
+The root audit finding for Packet A is remediated by the exact schema-level
+`calendar_events_payload_hash_pair` check with the portable nullable-pair predicate. The
+external Ent-metadata oracle checks that annotation without requiring generated output. An
+independent static review found Critical/Important/Minor `0/0/0`; the Packet A diff is therefore
+`STATIC_CONFORMANT`.
 
-The unchanged source blob is `8cece971a3c1c3b1f76bef72d01e247ae5b5230d` (file SHA-256
-`61D63102FE819C3CE20562065A8A56F2635909824A75677536B4D564D4D8A6EF`).
+Exact reviewed content SHA-256: schema
+`13682c6b1601961a12876431abf346485732b6b2b7aa5eb9bbcb833b565f0ec2`; external oracle
+`da318bfb1fab24129c340f2b656b3cd93cf1c195bdf1970929427539071987ed`.
+
+This is only a Packet A static result. It does not accept Phase 143, the Calendar product, a
+migration, generated Ent output, or runtime behavior. Packet C remains pending and continues to
+block the hash-pair schema chain.
 
 Ent generation, schema compilation, migrations and executable tests remain `NOT_RUN`; the
-accepted launcher is `NOT_READY`. No generated or migration file was changed. This packet
-must not unlock dependents until the P1 is fixed and independently reviewed.
+accepted launcher is `NOT_READY`. No generated or migration file was changed. The code and
+external-test paths and this evidence form the indivisible pending Task 1 commit boundary. Before
+the root commit they remain pending; afterward the containing commit is authoritative.

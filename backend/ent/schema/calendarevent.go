@@ -6,6 +6,8 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/entsql"
+	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -124,6 +126,15 @@ func (CalendarEvent) Fields() []ent.Field {
 func (CalendarEvent) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		VersionMixin{},
+	}
+}
+
+// Annotations задаёт ограничения целостности канонического календарного события.
+func (CalendarEvent) Annotations() []schema.Annotation {
+	return []schema.Annotation{
+		entsql.Checks(map[string]string{
+			"calendar_events_payload_hash_pair": "(payload_hash_version IS NULL) = (payload_hash IS NULL)",
+		}),
 	}
 }
 

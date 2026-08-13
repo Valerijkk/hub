@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
-last_updated: "2026-08-13T19:13:00+03:00"
-last_activity: 2026-08-13 · founder answered Mail question 29: dispatcher-enforced provenance is sufficient for exact accepted native Terra dispatches; independent rereview and executable validation remain pending, runtime NOT_RUN
+last_updated: "2026-08-13T21:41:02+03:00"
+last_activity: 2026-08-13 · 143-03A hash-pair CHECK plus external metadata oracle independently STATIC_CONFORMANT (C/I/M 0/0/0); Packet C pending; launcher NOT_READY and runtime NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -336,17 +336,20 @@ spec_coverage:
   `5f31a74f`; it authorizes no product write while independent review and other packet gates
   remain pending.
   Evidence is recorded in the matching `IMPLEMENTATION-*.md` artifacts. A later root deep
-  audit reopened 143-03A and 143-03C:
-  both omit the schema-level nullable canonical hash version/hash pair CHECK required by
-  Mail 0.1.8 and the phase plan. 143-03B retains a source-content PASS but its parent chain
-  is reopened; 143-03F retains a root-content PASS. None of 03A/B/C/F currently unlocks
-  dependents. The exact remediation is frozen in `REMEDIATION-143-03-HASH-PAIR.md`, but its
-  two-packet TDD execution is now frozen in
-  `docs/superpowers/plans/2026-08-13-calendar-hash-pair-remediation.md`; its Terra/xhigh
-  attempt and independent reviews must use the amended dispatcher-enforced evidence rule.
-  143-03D and 144-01B stay blocked by their hash-pair, exact-contract and independent-review
-  dependencies, not unavailable telemetry alone. Phase 143/144 implementation is `IN_PROGRESS`;
-  executable runtime remains `NOT_RUN`.
+  audit reopened 143-03A and 143-03C over the schema-level nullable canonical hash version/hash
+  pair CHECK required by Mail 0.1.8 and the phase plan. Packet A now has the exact CHECK plus an
+  external Ent-metadata oracle and is independently `STATIC_CONFORMANT` (Critical/Important/Minor
+  `0/0/0`) under exact Terra/xhigh implementation and Terra/high independent-review routes with
+  dispatcher-enforced provenance and actual telemetry `UNKNOWN`; the state, schema, external test
+  and evidence document form the pending atomic Task 1 boundary. Packet C remains pending, so the
+  hash-pair schema chain and its dependents remain blocked. 143-03B retains a source-content PASS but its parent chain is
+  reopened; 143-03F retains a root-content PASS. The two-packet remediation remains in
+  `REMEDIATION-143-03-HASH-PAIR.md` and
+  `docs/superpowers/plans/2026-08-13-calendar-hash-pair-remediation.md`. 143-03D and 144-01B
+  stay blocked by their hash-pair, exact-contract and independent-review dependencies. This does
+  not accept Phase 143, the Calendar product, migration or runtime behavior: generation,
+  compilation, unit execution and runtime are `NOT_RUN` because the accepted launcher is
+  `NOT_READY`.
 - Mailbox control-plane rules inherited from 0.1.6 remain in 0.1.8: отдельные bounded workers владеют
   idempotent domain/account/primary-identity/alias lifecycle, combined projection/mutation-recovery sync и generation/hash
   reconciliation одного fixed Hub Sieve script. Generic create/bulk receipt хранит только
