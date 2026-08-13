@@ -12,9 +12,10 @@
 | G145-1 license | written choice: unmodified sidecar under AGPL-3.0 or accepted SELv2/commercial terms | founder/legal | UNRESOLVED | select docker-mailserver fallback behind the same port; re-plan adapter |
 | G145-2 runtime model | exact `gpt-5.6-terra` / `xhigh` requested and actual provenance for each code packet | founder/runtime operator | ROUTE_AUTHORIZED / new packet actual telemetry unavailable | reject any mismatch or fallback |
 | G145-3 launcher | versioned task-owned outer launcher implementing limits, timeout, report owner marker and exact cleanup | test architecture owner | NOT_READY | no direct Docker/Compose fallback; runtime remains NOT_RUN |
-| G145-4 provenance | refreshed official release, immutable digest, signature/SBOM/source and approval record | DevOps/security/founder | NOT_RUN | do not pull or reference mutable image |
-| G145-5 config contract | reviewed Stalwart config/API/session/health/volume paths for the selected immutable version | adapter reviewer | NOT_RUN | stop rather than guess version-specific fields |
+| G145-4 provenance | refreshed official release, immutable digest, signature/SBOM/source and approval record | DevOps/security/founder | `v0.16.17` SOURCE CANDIDATE RESEARCHED / IMAGE DIGEST NOT CAPTURED / NOT APPROVED | do not pull or reference mutable image |
+| G145-5 config contract | reviewed Stalwart config/API/session/health/volume paths for the selected immutable version | adapter reviewer | PARTIAL RESEARCH: `/api` management, `/jmap` mail, health and volume paths identified; exact image config and feedback semantics NOT_FROZEN | stop rather than guess version-specific fields |
 | G145-5A folder writer exclusivity | reviewed config, internal-network policy and published-port evidence prove only Hub can create/rename/delete custom folders; system roles are distinguishable | adapter + security reviewer | NOT_RUN | capability stays false; automatic folder recovery makes zero mutation and remains degraded |
+| G145-5B credential planes | reviewed least-privilege management API key for `/api` plus separately scoped mailbox JMAP authentication/delegation, rotation, revocation and audit | founder + security + adapter reviewer | MANAGEMENT/MAIL SPLIT PROVEN / ENABLED MAIL AUTH DESIGN UNRESOLVED | keep engine disabled; never reuse a management API key for mail JMAP or invent per-user passwords |
 | G145-6 local profile | bounded health, authenticated JMAP, internal delivery, restart persistence and exact cleanup | accepted launcher | NOT_RUN | gateway remains disabled/not_configured |
 | G145-7 resource budget | observed whole added profile ≤4 CPU and ≤4 GiB under idle + representative load | accepted launcher | NOT_RUN | reduce/rebalance or reject candidate |
 | G145-8 backup/restore | dedicated engine-volume backup and restore exercise with current SHA/digest | ops + accepted launcher | NOT_RUN | no production readiness claim |
@@ -22,7 +23,9 @@
 
 Gates are sequential where evidence depends on an earlier choice. G145-1 never derives
 from repository text. G145-4 must be refreshed immediately before an authorized pull/run;
-the 2026-08-13 research snapshot is not an immutable-image approval.
+the 2026-08-13 `v0.16.17` research snapshot is not an immutable-image approval. G145-5B
+cannot be inferred from “administrator credentials”: official Stalwart API keys cannot
+authenticate JMAP mail, while impersonation is a separate broad permission.
 
 ## Disabled/default behavior
 
@@ -43,10 +46,16 @@ the 2026-08-13 research snapshot is not an immutable-image approval.
 
 ## Secret and endpoint rules
 
-- JMAP/admin base URLs come only from trusted process configuration and resolve to the
-  fixed internal service; no request parameter or domain record can redirect them.
-- Administrator credentials, DKIM private keys and generated tokens are secret-provider
-  or engine-volume state. Example files contain names/placeholders only.
+- One trusted internal origin comes only from process configuration. Management uses the
+  fixed relative `/api` path; mail discovers `/.well-known/jmap` and accepts `/jmap`, upload
+  and download URLs only under the reviewed same-origin policy. No request parameter,
+  domain record or mail session may redirect the management plane.
+- Management and mailbox authorization providers are distinct. The separately scoped
+  management API key is sent only to `/api`; it is never sent to `/jmap` or a mail protocol.
+  Mailbox credentials/delegation remain disabled until G145-5B. No guessed fallback creates
+  or persists one plaintext password per user.
+- Management keys, mailbox credentials, DKIM private keys and generated tokens are
+  secret-provider or engine-volume state. Example files contain names/placeholders only.
 - Logs, health and API responses redact authorization headers, session capability URLs,
   account ids if credential-like, raw provider bodies and SMTP recipient/body content.
 - Selected reverse-proxy/access-log configuration logs no query string for mail search and
@@ -65,7 +74,8 @@ limits, timestamps, wall-clock timeout, cases, observed CPU/RSS and unconditiona
 Required cases:
 
 1. disabled/not_configured startup and unchanged Resend alert routes;
-2. engine health and authenticated JMAP session discovery;
+2. engine health, separately authenticated management `/api` compatibility and mailbox
+   JMAP session discovery; prove that neither credential is accepted/sent on the other plane;
 3. account provisioning and default folders;
 3b. domain create/DNS-required/verification/delete desired state reconciles through
     Ensure/Get without automatic DNS change or private DKIM exposure;

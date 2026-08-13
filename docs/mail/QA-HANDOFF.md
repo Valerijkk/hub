@@ -504,7 +504,7 @@ launcher. The direct Compose command is operator documentation, not accepted tes
 
 | Component | Intended image/config | Network exposure | Persistent data | Hard limit allocation | Current evidence |
 |---|---|---|---|---|---|
-| Mail engine | Stalwart version candidate; digest unresolved until provenance gate | Hub-only internal JMAP/admin; optional SMTP delivery only; no user IMAP/JMAP/ManageSieve/admin mailbox mutation | named engine volume | ≤3 CPU / ≤3 GiB target, subject to measured rebalance | NOT_RUN |
+| Mail engine | Stalwart `v0.16.17` source candidate; container digest unresolved and candidate not approved | Hub-only internal management `/api` plus separately authenticated mailbox `/jmap`; optional SMTP delivery only; no user IMAP/JMAP/ManageSieve/admin mailbox mutation | named `/etc/stalwart` config and `/var/lib/stalwart` data volumes | ≤3 CPU / ≤3 GiB target, subject to measured rebalance | NOT_RUN |
 | Hub mailbox domain/account/combined projection-recovery/rule workers + API | existing backend image/process | existing backend network only | PostgreSQL/outbox | within remaining mail budget when profiled | NOT_RUN |
 | Existing NATS/Meili/SeaweedFS | shared stack, not duplicated | existing internal network | existing volumes | shared-service attribution must be reported separately | NOT_RUN |
 
@@ -516,15 +516,23 @@ worker cancellation/drain, and exact cleanup.
 
 ### Environment matrix (names only; never values in artifacts)
 
+The 2026-08-13 official-source review invalidated the old single
+`MAILBOX_ENGINE_URL` + administrator user/secret shorthand. A Stalwart management API key
+can authenticate fixed `/api` management calls but cannot authenticate JMAP mail. The
+following names express the required separation; any enabled mode remains rejected until
+the mailbox authentication/delegation design in founder question 42 passes security review.
+
 | Variable | Required for | Secret | Safe default |
 |---|---|---:|---|
 | `MAILBOX_ENGINE_ENABLED` | mailbox runtime | no | `false` |
 | `MAILBOX_EXTERNAL_ENABLED` | public SMTP send/receive | no | `false` |
 | `MAILBOX_EXCLUSIVE_FOLDER_WRITER` | enables automatic unknown-folder recovery only for an accepted no-alternate-writer profile | no | `false` |
 | `MAILBOX_INSTANCE_DOMAIN` | addresses/UID domain | no | empty; startup refuses external mode |
-| `MAILBOX_ENGINE_URL` | JMAP/internal API | no | internal service URL |
-| `MAILBOX_ENGINE_ADMIN_USER` | provisioning | yes-like identity | no repository value |
-| `MAILBOX_ENGINE_ADMIN_SECRET` | provisioning | yes | no repository value |
+| `MAILBOX_ENGINE_ORIGIN` | trusted internal origin for fixed `/api`, health and same-origin JMAP discovery/session URLs | no | empty; enabled startup refuses it |
+| `MAILBOX_ENGINE_MANAGEMENT_API_KEY` | scoped provisioning calls to fixed `/api` only | yes | no repository value; never sent to `/jmap` |
+| `MAILBOX_ENGINE_MAIL_AUTH_MODE` | mailbox JMAP authentication/delegation mode | no | `disabled`; no other mode accepted before G145-5B |
+| `MAILBOX_ENGINE_MAIL_PRINCIPAL` | conditional mailbox JMAP identity selected by G145-5B | yes-like identity | no repository value |
+| `MAILBOX_ENGINE_MAIL_SECRET` | conditional mailbox JMAP credential selected by G145-5B | yes | no repository value; never sent to `/api` |
 | `MAILBOX_REMOTE_IMAGE_TOKEN_KEY` | encrypted/signed proxy tokens | yes | startup disables remote-image loading if absent |
 | `MAILBOX_ENGINE_VOLUME` | local operator override | no | named volume |
 | `MAILBOX_MAX_MESSAGE_BYTES` | policy | no | contract-defined bounded value at implementation |
@@ -534,6 +542,13 @@ worker cancellation/drain, and exact cleanup.
 
 DKIM private keys are generated/stored by the engine volume or secret provider and are
 never environment examples containing key material.
+
+The source snapshot and endpoint/object evidence are recorded in
+`.planning/phases/145-stalwart-gateway/RESEARCH-2026-08-13-STALWART-0.16.17.md`.
+It is not image provenance or runtime evidence. Personal per-mailbox rules must use RFC 9661
+`SieveScript/*` on `/jmap`; management `x:SieveSystemScript` and `x:SieveUserScript` are not
+substitutes. The documented `x:SpamTrainingSample` object does not yet freeze Hub's
+message-to-spam/ham mapping or retry idempotency, so classifier feedback remains blocked.
 
 ## Fixtures and clocks
 
@@ -567,8 +582,9 @@ oracles, not current executable evidence.
 - The founder-required test runner/package is `NOT_READY`; no supported execution command
   exists in this branch.
 - Direct Docker/Compose or host tests are prohibited fallback paths.
-- Stalwart legal acceptance, immutable digest, measured resource use, and runtime behavior
-  are pending.
+- Stalwart legal acceptance, immutable digest, exact config, least-privilege mailbox auth,
+  measured resource use, and runtime behavior are pending. `v0.16.17` is only a researched
+  source candidate.
 - The 0.1.8 root amendment has no independent actual-model-provenance review yet; historical
   0.1.7 review evidence is stale for its engine/API/persistence changes.
 - Therefore this handoff is a contract deliverable only. It must not be converted into a

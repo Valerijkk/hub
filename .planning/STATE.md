@@ -144,8 +144,10 @@ mail_feature_workstream:
       frontend_unit_harness: PENDING_PROTECTED_REBASE
       stalwart_gate_plan: .planning/phases/145-stalwart-gateway/GATE-PLAN.md
     decisions:
-      engine_candidate: Stalwart
+      engine_candidate: Stalwart_v0.16.17_source_candidate_only
       engine_acceptance: conditional_on_license_provenance_and_runtime_gates
+      engine_endpoints: fixed_management_api_plus_same_origin_mail_jmap
+      engine_credentials: separate_management_api_key_and_unresolved_mailbox_auth_no_cross_plane_reuse
       internal_delivery: through_engine
       message_authority: mail_engine
       mailbox_projection: leased_bounded_worker_atomic_page_event_cursor_command_lease_begin_end_epoch_fence
@@ -177,6 +179,7 @@ mail_feature_workstream:
       engine_contract_0_1_8: docs/mail/ENGINE-CONTRACT-0.1.8.md
       persistence_contract_0_1_8: docs/mail/PERSISTENCE-CONTRACT-0.1.8.md
       control_plane_schema_plan: docs/superpowers/plans/2026-08-13-mail-control-plane-schemas.md
+      stalwart_0_16_17_research: .planning/phases/145-stalwart-gateway/RESEARCH-2026-08-13-STALWART-0.16.17.md
       events: docs/mail/events-v1.schema.json
       qa_handoff: docs/mail/QA-HANDOFF.md
       founder_questions: docs/mail/FOUNDER-QUESTIONS.md
@@ -206,8 +209,16 @@ spec_coverage:
   Outlook UI design, traceability и QA handoff. Mail 0.1.8 root-freezes the later bounded
   engine/API and exact persistence amendment, but independent review is pending; наличие
   артефактов не означает принятого контракта, реализации или готовности модуля.
-- Preferred engine: Stalwart за adapter boundary, условно. License verdict, image digest,
+- Preferred engine: Stalwart за adapter boundary, условно. Official-source refresh on
+  2026-08-13 identifies `v0.16.17` / source commit
+  `08509ddccbe6f978a1ffebeb250cab8588d765e5` as the current candidate, not an approved
+  image. Container manifest digest/attestation/SBOM, license verdict, exact config,
   API/persistence/resource spike и внешний DNS остаются gates; runtime `NOT_RUN`.
+  Management provisioning is fixed to the separate `/api` plane with a scoped API key;
+  mailbox mail/submission/Sieve uses `/.well-known/jmap` plus same-origin `/jmap` with a
+  different credential class. Official docs confirm a management API key cannot
+  authenticate JMAP mail. Enabled mode therefore remains blocked pending the reviewed
+  least-privilege mailbox delegation/rotation/audit decision in founder question 42.
 - Кодовые фазы 143–148 идут только после независимого принятия затронутого контракта.
   Phase 145 заблокирована 144 acceptance и внешними gates; независимые calendar slices
   сохраняют отдельно доказанную семантику.
@@ -282,9 +293,16 @@ spec_coverage:
   `NOT_READY`. Folder recovery дополнительно fail-closed: exact-match/absence разрешены
   только при доказанном Hub-exclusive writer; user IMAP/JMAP/ManageSieve/direct admin
   mailbox mutation не публикуются в wave 1.
+- Phase 145 official-source research is recorded in
+  `RESEARCH-2026-08-13-STALWART-0.16.17.md`. Per-mailbox Hub rules must use RFC 9661
+  `SieveScript/*` on mail JMAP; management `x:SieveSystemScript` / `x:SieveUserScript` are
+  explicitly excluded. `x:SpamTrainingSample` does not currently prove Hub's exact
+  message-to-spam/ham mapping or idempotent lost-response recovery, so 145-07C remains
+  blocked rather than guessed.
 - Вопросы, не останавливающие локальную работу, собраны в
-  `docs/mail/FOUNDER-QUESTIONS.md`; вопросы 22–40 фиксируют legacy idempotency, linked-call
-  guests, primary-address/sanitizer/Sieve policy and later engine/API/schema defaults.
+  `docs/mail/FOUNDER-QUESTIONS.md`; вопросы 22–42 фиксируют legacy idempotency, linked-call
+  guests, primary-address/sanitizer/Sieve policy, later engine/API/schema defaults и
+  отдельную least-privilege mailbox-auth design decision.
   Push/PR/merge/deploy не авторизованы.
 
 ## Session note — 2026-08-08 (test-rebase execution readiness)

@@ -9,19 +9,28 @@
 1. Founder/legal chooses AGPL-3.0 or SELv2 terms.
 2. Accepted Docker-only launcher exists for this task.
 3. Candidate image tag and digest provenance are refreshed immediately before use.
+4. Separate management `/api` and mailbox `/jmap` credential planes are reviewed; a
+   management API key is never treated as a mail credential.
 
 No runtime implementation/claim proceeds by silent fallback.
 
 ## Ordered tasks after gates
 
-1. Implement JMAP session/auth request client with SSRF-safe fixed internal base URL and
-   redacted errors in `backend/internal/mail/stalwart/**`.
-2. Implement domain/account/identity/folder/message/draft/submission/flags/fixed-Sieve and explicit
-   spam/ham classifier-feedback mappings,
+1. Implement two SSRF-safe, redacting Stalwart transport planes under one trusted internal
+   origin: scoped management API-key calls to fixed `/api`, and separately authenticated
+   mailbox discovery/JMAP calls to `/.well-known/jmap` plus same-origin session URLs in
+   `backend/internal/mail/stalwart/**`.
+2. Implement domain/account/identity/folder/message/draft/submission/flags/fixed-Sieve
+   mappings and, only after its separate evidence gate, explicit spam/ham
+   classifier-feedback mapping,
    including opaque draft versions, stable submission keys and explicit submission
    reconciliation; prove adapter contract conformance.
    Folder lost-response recovery is enabled only by a reviewed capability proving Hub is
    the sole custom-folder writer; false/unknown or alternate writer remains degraded.
+   Domain/account mappings use selected-version management `x:*` objects. Per-mailbox
+   Sieve uses RFC 9661 `SieveScript/*` on mail JMAP, never the global management
+   `x:SieveSystemScript` or `x:SieveUserScript` objects. Spam/ham stays omitted until an
+   exact message mapping and idempotency/reconciliation contract is evidenced.
 3. Implement bounded projection-only incremental Changes plus a resumable base-state/ID-anchored
    projection enumeration whose composite base cursor is accepted by Changes. Query-state
    drift converges through catch-up; missing anchor, unstable enumeration or expired base

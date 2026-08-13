@@ -14,7 +14,9 @@
 - Never read/change protected testframework/test-rebase/pro-qa-ai zones. Existing Resend
   sender/settings/status/broadcast implementation is a separate compatibility boundary.
 - No client-controlled base/capability URL, redirect, engine account id or credential.
-  Bound response bytes/count/depth/time. Redact auth/session/provider bodies/addresses.
+  Management `/api` and mailbox JMAP use separate auth providers; neither credential may
+  cross planes. Bound response bytes/count/depth/time. Redact auth/session/provider
+  bodies/addresses.
 - No host test/build/lint/validator/generator/process. Direct Docker/Compose not accepted
   evidence. Runtime only through accepted task-owned launcher with limits/timeout/owner
   report/finally cleanup.
@@ -23,33 +25,44 @@
 
 ## 145-01A — runtime config
 
-- Gates: G145-2; accepted Phase 144 port. Allowed only
+- Gates: G145-2; accepted Phase 144 port. The disabled-only shape may be frozen before
+  G145-5B, but every enabled path also requires G145-5B. Allowed only
   `backend/internal/mail/mailbox_config.go`,
   `backend/tests/mail/mailbox_config_test.go`.
 - Behavior/oracles: disabled default needs no secret/domain and reports not_configured;
   exclusive custom-folder writer defaults false and cannot be enabled by an HTTP request;
-  enabled requires fixed internal absolute http(s) URL plus admin identity/secret;
-  external requires enabled + domain; validate byte/rate/retention bounds; errors/string
-  dumps redact values; no environment read inside pure parser (map/lookup injected).
+  one fixed internal absolute http(s) origin contains no path/query/fragment. Enabled mode
+  requires a separately scoped management API-key reference plus the reviewed mailbox auth
+  mode/principal/secret references from G145-5B; the legacy single administrator
+  user/secret pair is rejected. Until G145-5B, every enabled mode is rejected while disabled
+  remains usable. External requires enabled + domain; validate byte/rate/retention bounds;
+  errors/string dumps redact values; no environment read inside pure parser (map/lookup
+  injected).
 
 ## 145-01B — redacting bounded transport client
 
-- Gates: G145-1/2/4/5; dependency 01A. Allowed only
+- Gates: G145-1/2/4/5/5B; dependency 01A. Allowed only
   `backend/internal/mail/stalwart/client.go`, `errors.go`,
   `backend/tests/mail/stalwart_client_test.go`.
-- Behavior/oracles: injected `http.Client`, fixed base and same-origin resolved endpoints;
-  redirects disabled/validated; auth generated internally; request/response/time/count
-  bounds; context cancellation; stable mapping of 4xx/5xx/timeout; logs/errors omit header,
+- Behavior/oracles: injected `http.Client`, fixed origin and same-origin resolved endpoints;
+  management client permits only fixed `/api` and injects only the scoped management API
+  key; mailbox client handles well-known/session/upload/download policy and injects only
+  the accepted mailbox credential. Cross-plane header-oracle requests fail before I/O.
+  Redirects are disabled/validated; request/response/time/count bounds and context
+  cancellation are mandatory; map 4xx/5xx/timeout stably; logs/errors omit authorization,
   URL query, provider body/ids. No real network in unit.
 
 ## 145-02 — JMAP session/capabilities
 
-- Gates: G145-5; dependency 01B. Allowed only
+- Gates: G145-5/5B; dependency 01B. Allowed only
   `backend/internal/mail/stalwart/jmap.go`, `config.go`,
   `backend/tests/mail/stalwart_jmap_session_test.go`.
-- Behavior/oracles: exact selected-version session JSON; require mail/submission/core and
-  optional sieve capabilities explicitly; derive URLs only same-origin/fixed-session
-  policy; bound accounts/capabilities; missing/unknown required capability fails closed;
+- Behavior/oracles: freeze management compatibility separately as fixed `/api` plus
+  `urn:stalwart:jmap` and exact selected-version `x:Domain/*` / `x:Account/*` methods. Mail
+  discovery reads exact selected-version session JSON from `/.well-known/jmap`; require
+  core/mail/submission/blob and optional RFC 9661 sieve explicitly; derive mail URLs only
+  through same-origin/session policy. Bound accounts/capabilities; missing/unknown required
+  capability fails closed; management evidence is never inferred from the mail session;
   no credential/session URL in error.
 
 ## 145-03A — account/identity mapping
@@ -57,7 +70,8 @@
 - Gates: prior; dependencies 02 + Phase 144 port. Allowed only
   `backend/internal/mail/stalwart/account.go`, `mapper.go`,
   `backend/tests/mail/stalwart_account_test.go`.
-- Behavior/oracles: idempotent EnsureAccount by stable Hub key, reserved local part and
+- Behavior/oracles: use only the management `/api` plane and exact `x:Account/*` object.
+  Idempotent EnsureAccount by stable Hub key, reserved local part and
   selected verified domain; normalized primary/alias mapping; same key/spec repeats and
   changed spec conflicts; no group send until authorized; opaque returned ids; conflict/partial
   provisioning safe; no password/token persisted/returned; cross-account query impossible.
@@ -67,7 +81,8 @@
 - Gates: G145-5 exact selected-version domain management API. Dependencies: 02 + Phase 144
   port. Allowed only `backend/internal/mail/stalwart/domain.go`,
   `backend/tests/mail/stalwart_domain_test.go`.
-- Behavior/oracles: `EnsureDomain` idempotently applies stable key + captured generation/
+- Behavior/oracles: use only the management `/api` plane and exact `x:Domain/*` object.
+  `EnsureDomain` idempotently applies stable key + captured generation/
   hash + desired present/enabled; `GetDomain` is read-only reconciliation. Map only opaque
   id, absent/DNS-required/verified/error/indeterminate, bounded public MX/TXT/CNAME records
   and DKIM status. Lost create/delete response is observable; changed generation conflicts;
@@ -169,25 +184,33 @@
 - Dependencies: 02 plus accepted Phase 144 rule compiler. Allowed only
   `backend/internal/mail/stalwart/sieve.go` and
   `backend/tests/mail/stalwart_sieve_test.go`.
-- Behavior/oracles: accept only the compiler-produced typed representation and one fixed
-  Hub script name; render selected-version script deterministically; bound bytes/rules and
-  encode generation/hash marker. Native move/read compile directly; label action compiles
-  only the resolved opaque reserved keyword. `GetSieve` returns only active/marker state. `UpsertSieve`
-  distinguishes applied from indeterminate so the worker can Get-before-retry; expose no
-  public raw-script input/provider body. Do not implement message mutations here.
+- Behavior/oracles: use mailbox JMAP only with capability
+  `urn:ietf:params:jmap:sieve`; accept only the compiler-produced typed representation and
+  one fixed Hub script name. Render deterministically, bound bytes/rules, upload the script
+  as a bounded blob, then use standard RFC 9661 `SieveScript/get`, `SieveScript/set` and
+  `onSuccessActivateScript`; encode generation/hash marker. Native move/read compile
+  directly; label action compiles only the resolved opaque reserved keyword. `GetSieve`
+  returns only active/marker state. `UpsertSieve` distinguishes applied from indeterminate
+  so the worker can Get-before-retry; expose no public raw-script input/provider body.
+  Calls to `x:SieveSystemScript` or `x:SieveUserScript` are test-oracle failures. Do not
+  implement message mutations here.
 
 ## 145-07C — spam/ham classifier feedback
 
-- Gates: selected-version official classifier-feedback API frozen under G145-5.
+- Gates: selected-version official message-to-classifier-feedback API and native
+  idempotency/reconciliation frozen under G145-5. The documented
+  `x:SpamTrainingSample` object by itself does not satisfy this gate.
   Dependencies: 02/04. Allowed only `backend/internal/mail/stalwart/spam.go`,
   `backend/tests/mail/stalwart_spam_test.go`.
 - Behavior/oracles: account-scoped unique bounded message ids and explicit `spam|ham` map
   plus stable receipt/message command ids map to documented feedback; per-message accepted/rejected/indeterminate outcomes remain
   distinct from mailbox move/flag. Timeout never becomes accepted, unsupported capability
   is typed rejected, cross-account ids cause zero call, and sample/provider/address data
-  never enter logs/errors. G145-5 must state whether the selected API provides native
-  idempotency/reconciliation; without it an indeterminate call is terminal unknown and the
-  adapter/domain never calls feedback again for that command id.
+  never enter logs/errors. G145-5 must evidence how the target mailbox message/blob and
+  explicit spam/ham label enter the selected API and whether it provides native
+  idempotency/reconciliation. Without both, this packet remains unimplemented; if a future
+  accepted API can return indeterminate without reconciliation, that call is terminal
+  unknown and the adapter/domain never calls feedback again for the command id.
 
 ## 145-08 — adapter composition
 
@@ -239,11 +262,12 @@
 
 ## 145-10 — optional bounded deployment profile
 
-- Gates: G145-1/3/4/5; dependencies 09A/09B. Allowed only
+- Gates: G145-1/3/4/5/5A/5B; dependencies 09A/09B. Allowed only
   `docker-compose.local.yml`, founder-approved production compose if explicitly in scope,
   `deployments/mail/**`, and names-only env example/docs named in dispatch.
 - Behavior/oracles: exact immutable digest; optional `mail` profile; fixed service-network
-  JMAP/admin reachable only by Hub; explicit opt-in SMTP delivery ports and no user-facing
+  `/api` management and `/jmap` mailbox endpoints reachable only by Hub with separate
+  secret references; explicit opt-in SMTP delivery ports and no user-facing
   IMAP/JMAP/ManageSieve/direct-admin mailbox mutation; named volume; image-specific health; non-root /
   capabilities where supported; CPU/RAM/PID/restart caps; no secret/value/DKIM key; compose
   static/runtime validation only through launcher. The trusted exclusivity setting may be
