@@ -56,6 +56,7 @@ breaking existing export behavior.
 - `backend/ent/schema/calendarattendee.go`
 - `backend/ent/schema/calendareventexception.go`
 - `backend/ent/schema/calendarmutationreceipt.go`
+- `backend/ent/schema/calendarinboundreplyreceipt.go`
 
 **Modify:**
 
@@ -67,7 +68,9 @@ breaking existing export behavior.
 1. Add UUID/timestamp/soft-delete/version fields, enums, indexes, owner/organizer/attendee
    edges, master UID unique constraint, exception recurrence unique constraint, the two
    nullable-attendee partial unique constraints, optional one-to-one call link, and a
-   bounded create/RSVP idempotency receipt.
+   bounded create/RSVP HTTP idempotency receipt. Add the separate bounded inbound-REPLY
+   receipt ledger unique by attendee + event sequence + canonical sender-bound payload
+   hash; it never stores raw MIME or an HTTP idempotency key.
 2. Add schema-level annotations/checks supported by current Ent patterns.
 3. Run Ent generation only in accepted Docker execution; inspect generated diff before
    staging. Never generate on host.
@@ -91,7 +94,9 @@ breaking existing export behavior.
 1. Define repository and outbox/notifier ports usable by pure fakes.
 2. Write failing service tests for create, material/silent update, cancellation, series/
    occurrence RSVP, stale version returning the current version/refetch metadata, same-key
-   response replay, changed-payload key conflict and spoofed reply.
+   response replay, changed-payload key conflict and spoofed reply. Cover series and
+   occurrence `REPLY A -> B -> delayed A`, same-status receipt and the bounded ninth-hash
+   quarantine so delivery order cannot roll RSVP backward.
 3. Implement minimal transaction orchestration and version conflict mapping.
 4. Ensure notification/NATS payload contains no description/body.
 5. Focused Docker unit verification when available.

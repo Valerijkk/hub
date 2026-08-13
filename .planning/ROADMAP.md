@@ -248,10 +248,10 @@ contract отменяет его как migration gate; destructive batches ра
 | Phase | Status | Depends on | Outcome / task |
 |------:|--------|------------|----------------|
 | 142 | CONTRACT COMPLETE · static PASS · runtime NOT_RUN | — | ADR, ERD, OpenAPI, NATS, UI/security/QA contracts · TASK-235 |
-| 143 | ANALYSIS ACTIVE · CODE BLOCKED BY EXACT SPARK RUNTIME | 142 | CalendarEvent/Attendee/Exception, deterministic iTIP and optimistic RSVP · TASK-236 |
-| 144 | PLANNED | 142 | Mailbox domain, engine port/fake, folders/threads/drafts/submission · TASK-237 |
+| 143 | DISPATCH READY · CODE BLOCKED BY EXACT SPARK RUNTIME | 142 | CalendarEvent/Attendee/Exception, deterministic iTIP and optimistic RSVP · TASK-236 |
+| 144 | DISPATCH READY · CODE BLOCKED BY EXACT SPARK RUNTIME | 142 | Mailbox domain, engine port/fake, folders/threads/drafts/submission · TASK-237 |
 | 145 | BLOCKED BY EXTERNAL GATES | 144 + license + launcher | Stalwart adapter, instance-domain mail, bounded Docker profile · TASK-238 |
-| 146 | PLANNED | 143, 144 | Outlook three-pane UI, composer, attachments, search/realtime · TASK-239 |
+| 146 | DISPATCH READY · CODE/HARNESS BLOCKED | 143, 144 | Outlook three-pane UI, composer, attachments, search/realtime · TASK-239 |
 | 147 | PLANNED | 143–146 | recurrence/import recovery, busy/free, reminders, L1/CRM seam · TASK-240 |
 | 148 | PLANNED | 143–147 + test-rebase merge notice | security/reconciliation/docs/verification/rebase gate · TASK-241 |
 

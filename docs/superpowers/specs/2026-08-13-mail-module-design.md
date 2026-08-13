@@ -68,6 +68,10 @@ Desktop uses three panes:
 ```
 
 - The main sidebar gains **Mail** between Messenger and Calendar.
+- Mobile bottom navigation is exactly **Dashboard → Messenger → Mail → Calendar → More**.
+  The `More` panel is exactly **Tracker → Calls → Settings → Trash**. This replaces the
+  previous bottom-level Tracker/Calls slots without removing either destination and keeps
+  Mail between Messenger and Calendar on every navigation surface.
 - Mobile shows one screen at a time: folders → list → thread. Browser history and URL
   route state preserve back navigation.
 - Medium layouts keep list + reader; folders open in a Sheet.

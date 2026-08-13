@@ -111,7 +111,9 @@ type MailEngine interface {
     GetBlob(ctx context.Context, accountID, blobID string) (EngineBlob, error)
     Changes(ctx context.Context, accountID, since string) (EngineChangePage, error)
     SaveDraft(ctx context.Context, draft EngineDraft) (EngineMessage, error)
+    ReconcileDraft(ctx context.Context, draft EngineDraftReconciliation) (EngineDraftResult, error)
     Submit(ctx context.Context, message EngineSubmission) (EngineSubmissionResult, error)
+    ReconcileSubmission(ctx context.Context, accountID, submissionKey string) (EngineSubmissionResult, error)
     MoveMessages(ctx context.Context, accountID string, messageIDs []string, folderID string) error
     SetFlags(ctx context.Context, accountID string, messageIDs []string, patch FlagPatch) error
     DeleteMessages(ctx context.Context, accountID string, messageIDs []string, hard bool) error
@@ -122,6 +124,11 @@ type MailEngine interface {
 
 The interface is a contract sketch; exact Go DTOs are frozen by `MAIL-SPEC.md`. Domain
 services never expose engine credentials or raw JMAP objects to HTTP handlers.
+`EngineDraft` carries the previous opaque engine version and a stable Hub mutation id;
+`ReconcileDraft` distinguishes applied, absent/unchanged, and indeterminate state without
+issuing another save. `EngineSubmission` carries a stable engine submission key. A lost
+response is reconciled through engine state before another mutation is attempted. The
+domain must not translate an indeterminate timeout into a blind save or send retry.
 
 ### Source of truth
 
@@ -133,7 +140,7 @@ services never expose engine credentials or raw JMAP objects to HTTP handlers.
 | System/custom mailbox hierarchy | Engine | `MailFolder` maps Hub user to engine folder and adds color/order |
 | Hub labels and pin | Hub PostgreSQL | Canonical `MailLabel`, label edges, pinned projection |
 | Thread identity | Hub PostgreSQL | Canonical normalized thread projection derived from message headers |
-| Attachment bytes | Engine MIME plus SeaweedFS for Hub uploads | `MailAttachment` stores storage object id, scan state, content metadata |
+| Attachment bytes | Engine MIME plus SeaweedFS for Hub uploads | Mail-owned `MailObject` authorization/lease plus `MailAttachment` scan and content metadata; project file ACLs are not reused |
 | Search document | Meilisearch projection | Rebuildable from engine + PostgreSQL metadata |
 | Calendar event, attendee, RSVP, sequence | Hub PostgreSQL | Canonical |
 | Resend alert templates/settings | Existing alert subsystem | Unchanged |
@@ -150,7 +157,17 @@ engine change immediately to NATS/WebSocket and refreshes the recipient projecti
 does not mean bypassing the engine.
 
 Idempotency is keyed by a Hub-generated submission id propagated to the engine-facing
-request and outbox record. A retry must not create a second visible message.
+request and outbox record. The raw HTTP key is stored only as a hash. A timed-out submit
+enters `unknown` and calls `ReconcileSubmission` with the same stable engine key before any
+resubmit. A retry must not create a second visible message.
+
+## Durable event admission
+
+Before enabling calendar or mailbox producers, the shared JetStream EVENTS configuration
+must explicitly admit `calendar.>` and `mail.>`. These subjects remain excluded from the
+outbound webhook filter by default: mailbox/calendar metadata is not a general webhook
+surface. Adding an individual webhook event requires its own privacy, authorization and
+payload review.
 
 ## HTTP compatibility boundary
 

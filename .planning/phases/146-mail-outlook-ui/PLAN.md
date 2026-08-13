@@ -4,12 +4,17 @@
 
 ## Ordered tasks
 
-1. Add typed API client/query keys and MSW fixtures matching OpenAPI.
-2. Add route shell and responsive folder/list/reader panes; URL is selection truth.
+1. Extend the shared API client with typed per-request headers for `Idempotency-Key` and
+   `If-Match`, then add typed mail API/query keys. Use repository-native fetch/client mocks
+   for genuine units unless a separately approved dependency change introduces MSW.
+2. Add `/mail` redirect, `/mail/:folderKey`, thread and search routes plus responsive
+   folder/list/reader panes; URL is selection truth. Coordinate the calendar leaf-route
+   split instead of masking it with mail-local state.
 3. Add thread/message reader with sanitized content boundary, blocked remote images,
    attachment states, keyboard/focus behavior and invitation card.
 4. Add Plate mail composer wrapper, address chips, reply/forward quoting, signatures,
-   alias/CC/BCC/priority, draft autosave conflict state and send-unknown recovery.
+   alias/CC/BCC/priority, draft autosave conflict state and submission polling/retry that
+   recovers `unknown` without a second send.
 5. Add bulk actions, labels/folders, search filters, contact suggestions and realtime
    counter invalidation.
 6. Add user/admin settings and engine health surfaces.

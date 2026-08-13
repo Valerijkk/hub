@@ -36,6 +36,7 @@
     },
     "base": {
       "type": "object",
+      "additionalProperties": false,
       "required": [
         "subject",
         "schema_version",
@@ -204,6 +205,7 @@
     },
     "calendarInviteBasePayload": {
       "type": "object",
+      "additionalProperties": false,
       "required": ["event_id", "uid", "sequence", "attendee_ids"],
       "properties": {
         "event_id": { "$ref": "#/$defs/uuid" },
@@ -215,6 +217,38 @@
           "maxItems": 500,
           "uniqueItems": true,
           "items": { "$ref": "#/$defs/uuid" }
+        }
+      }
+    },
+    "calendarInviteUpdatedPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "uid",
+        "sequence",
+        "attendee_ids",
+        "reset_rsvp",
+        "changed_fields"
+      ],
+      "properties": {
+        "event_id": { "$ref": "#/$defs/uuid" },
+        "uid": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "sequence": { "type": "integer", "minimum": 0 },
+        "recurrence_id": { "type": ["string", "null"], "maxLength": 255 },
+        "attendee_ids": {
+          "type": "array",
+          "maxItems": 500,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/uuid" }
+        },
+        "reset_rsvp": { "type": "boolean" },
+        "changed_fields": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 30,
+          "uniqueItems": true,
+          "items": { "type": "string", "maxLength": 64 }
         }
       }
     },
@@ -237,25 +271,7 @@
           "type": "object",
           "properties": {
             "subject": { "const": "calendar.invite.updated.v1" },
-            "payload": {
-              "allOf": [
-                { "$ref": "#/$defs/calendarInviteBasePayload" },
-                {
-                  "type": "object",
-                  "required": ["reset_rsvp", "changed_fields"],
-                  "properties": {
-                    "reset_rsvp": { "type": "boolean" },
-                    "changed_fields": {
-                      "type": "array",
-                      "minItems": 1,
-                      "maxItems": 30,
-                      "uniqueItems": true,
-                      "items": { "type": "string", "maxLength": 64 }
-                    }
-                  }
-                }
-              ]
-            }
+            "payload": { "$ref": "#/$defs/calendarInviteUpdatedPayload" }
           }
         }
       ]

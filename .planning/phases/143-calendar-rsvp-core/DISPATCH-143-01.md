@@ -66,7 +66,8 @@
 - requested_model: `gpt-5.3-codex`; reasoning_effort: `xhigh`
 - actual_model: UNKNOWN at dispatch; provider: UNKNOWN;
   actual_model_evidence: launcher JSON telemetry if exposed, otherwise none
-- workflow: Hub `codex-micro@cc30ef33`; skills: TDD and verification-before-completion
+- workflow: Hub current `codex-micro` protocol; source_contract_sha: supplied as the exact
+  clean dispatch HEAD by orchestrator; skills: TDD and verification-before-completion
 - plugins: none; MCP: none
 
 [ФОРМАТ ОТВЕТА]

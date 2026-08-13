@@ -3,7 +3,7 @@
 > **Verdict:** PASS for the contract-only phase goal after independent remediation
 > **Date:** 2026-08-13
 > **Runtime:** NOT_RUN
-> **Contract:** 0.1.1
+> **Contract:** 0.1.2 independently static-verified 2026-08-13
 
 ## Goal-backward evidence
 
@@ -40,6 +40,24 @@ legacy `/admin/mail/broadcast` contradiction and stale Ent counts; current truth
 deprecated OpenAPI route, Phase 148 gate and 85 entity types / 87-file measurement are now
 synchronized. Its repeat review returned static `PASS` with no new P0/P1/P2. Executable
 validation remains unavailable.
+
+Contract 0.1.2 is a forward-compatible implementation-readiness addendum: it makes
+message-folder projection, draft metadata/version recovery, mail-owned upload objects,
+mailbox settings/signatures/domains/policy persistence, submission reconciliation and
+EVENTS subject admission explicit. It removes raw idempotency keys from the submission
+response. The HTTP compatibility, calendar conflict and NFR-13 conclusions above are
+unchanged.
+
+Independent 0.1.2 review first blocked occurrence cancellation/schema closure and then
+found a delayed inbound-REPLY redelivery flaw in a last-hash-only oracle. Remediation adds
+the occurrence endpoint/closed event payloads and a bounded durable per-attendee/event-
+sequence receipt ledger, proving `A -> B -> delayed A` cannot roll RSVP backward. Its
+repeat contract/security review is static `PASS` with no P0/P1/P2. A separate atomic-
+dispatch review required splitting HTTP occurrence RSVP from inbound REPLY, exact Ent
+adapter variants, gateway wiring/health/runbook packets and fixed UI integration files/
+mobile navigation. The repeat dispatch review is also `PASS` with no P0/P1/P2. Actual
+reviewer-model telemetry was unavailable and is recorded as `UNKNOWN`; requested review
+role was `gpt-5.6-terra/high`. Executable validation remains `NOT_RUN`.
 
 ## Honesty boundaries
 

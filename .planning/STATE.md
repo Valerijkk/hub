@@ -118,9 +118,9 @@ mail_feature_workstream:
     branch: codex/mail-module-20260813
     phases: "142-148"
     current_phase: 143
-    status: phase_142_contract_complete_phase_143_analysis_active_code_runtime_blocked
+    status: contract_0_1_2_static_review_pass_atomic_dispatches_ready_code_runtime_blocked
     product_truth: unfinished_mvp_feature_not_accepted
-    contract_version: "0.1.1"
+    contract_version: "0.1.2"
     tasks:
       - TASK-235
       - TASK-236
@@ -140,6 +140,8 @@ mail_feature_workstream:
       atomic_code_model_evidence: .planning/phases/143-calendar-rsvp-core/RUNTIME-BLOCKER.md
       production_migration_authority: UNRESOLVED
       production_migration_evidence: .planning/phases/143-calendar-rsvp-core/MIGRATION-PLAN.md
+      frontend_unit_harness: PENDING_PROTECTED_REBASE
+      stalwart_gate_plan: .planning/phases/145-stalwart-gateway/GATE-PLAN.md
     decisions:
       engine_candidate: Stalwart
       engine_acceptance: conditional_on_license_provenance_and_runtime_gates

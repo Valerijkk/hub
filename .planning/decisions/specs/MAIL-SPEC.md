@@ -1,6 +1,6 @@
 # MAIL-SPEC — Hub mailbox and calendar synchronization contract
 
-> **Version:** 0.1.1
+> **Version:** 0.1.2
 > **Status:** Frozen for implementation
 > **Date:** 2026-08-13
 > **Architecture:** `../ADR-MAIL-01-mail-engine-calendar-sync.md`
@@ -27,7 +27,8 @@ the Hub mail feature. It does not claim that the described behavior is implement
    authenticated principal; clients never choose them.
 2. Every engine identifier is opaque. An id from mailbox A is invalid in mailbox B.
 3. Raw MIME and message body are never persisted in PostgreSQL.
-4. A mail submission is idempotent on `(mailbox_id, idempotency_key)`.
+4. A mail submission is idempotent on `(mailbox_id, hash(idempotency_key))`; the raw key
+   is request-scoped only.
 5. A canonical calendar master is unique on `(calendar_owner_id, uid)`. Imported
    occurrences are unique on `(calendar_event_id, recurrence_id)` in
    `CalendarEventException`; `CalendarEvent` itself never carries `recurrence_id`.
@@ -42,26 +43,47 @@ the Hub mail feature. It does not claim that the described behavior is implement
    any snippet or identifier is returned.
 11. All externally observable timestamps are RFC 3339. Event timezone is a valid IANA
     name. All-day values use dates and never infer midnight instants.
+12. Hub-uploaded mail bytes use a mail-owned storage namespace and authorization port;
+    project-scoped `FileMetadata` is never reused as an implicit mailbox ACL.
+13. Raw idempotency keys, engine credentials, DKIM private keys, message bodies, and raw
+    MIME are never persisted in Hub PostgreSQL or returned by read APIs.
+14. Durable `mail.*` and `calendar.*` outbox events are admitted to the shared EVENTS
+    stream explicitly; neither subject family is added to the outbound webhook filter by
+    default because payloads contain mailbox/calendar metadata.
+15. Inbound iTIP REPLY delivery is deduplicated by a bounded durable ledger of every
+    processed sender-bound payload hash for attendee + event sequence; storing only the
+    last hash is forbidden because delayed redelivery could roll a later RSVP backward.
 
 ## 3. ERD
 
 ```mermaid
 erDiagram
+    Organization ||--o{ MailDomain : configures
+    Organization ||--o| MailboxPolicy : governs
     User ||--o| MailAccount : owns
     MailAccount ||--o{ MailIdentity : exposes
     MailAccount ||--o{ MailFolder : maps
     MailAccount ||--o{ MailThread : projects
     MailThread ||--o{ MailMessage : groups
-    MailMessage }o--o{ MailFolder : projected_membership
+    MailMessage ||--o{ MailMessageFolder : projects
+    MailFolder ||--o{ MailMessageFolder : contains
     MailMessage }o--o{ MailLabel : tagged
     MailMessage ||--o{ MailAttachment : has
+    MailAccount ||--o{ MailObject : authorizes
+    MailObject o|--o| MailAttachment : backs
+    MailAccount ||--o{ MailDraft : edits
+    MailDraft }o--o{ MailAttachment : stages
     MailAccount ||--o{ MailLabel : owns
     MailAccount ||--o{ MailRule : owns
     MailAccount ||--o{ RecentContact : remembers
+    MailAccount ||--o| MailUserSettings : configures
+    MailAccount ||--o{ MailSignature : owns
     MailAccount ||--o{ MailSubmission : submits
+    MailDraft o|--o{ MailSubmission : sends
     MailSubmission }o--o| MailMessage : resolves_to
     User ||--o{ CalendarEvent : organizes
     CalendarEvent ||--o{ CalendarAttendee : invites
+    CalendarAttendee ||--o{ CalendarInboundReplyReceipt : deduplicates
     CalendarEvent ||--o{ CalendarEventException : overrides
     User ||--o{ CalendarMutationReceipt : initiates
     CalendarEvent o|--o{ CalendarMutationReceipt : resolves
@@ -163,12 +185,22 @@ Thread key algorithm:
 | `size_bytes` | int64 | non-negative |
 | `priority` | enum | `low`, `normal`, `high` |
 | `has_attachments`, `is_draft` | bool | projection |
+| `is_seen`, `is_answered`, `is_flagged`, `is_junk` | bool | engine-authoritative projection snapshot |
+| `engine_state` | string nullable | opaque bounded state/version token for reconciliation |
+| `flags_synced_at` | timestamp nullable | snapshot freshness |
 | `calendar_method` | enum nullable | `request`, `cancel`, `reply` |
 | `calendar_event_id` | UUID nullable | verified Hub link only |
 | `created_at`, `updated_at`, `deleted_at` | timestamp | projection lifecycle |
 
 Seen/answered/flagged/junk/mailbox membership stay authoritative in the engine and are
 exposed through a projection snapshot. `bcc` is never reconstructed for received mail.
+
+### 3.5.1 MailMessageFolder
+
+`mail_message_id`, `mail_folder_id`, `engine_state`, `projected_at`. Unique message +
+folder. Both rows must belong to the same `MailAccount`. This join is rebuildable from
+engine state and must not be used to authorize an engine call without resolving the
+authenticated owner's account again.
 
 ### 3.6 MailLabel
 
@@ -194,6 +226,18 @@ Many-to-many assignment to messages is Hub-canonical. Thread label aggregation i
 Exactly one of `storage_object_id` and `engine_blob_id` is set after attachment creation.
 Only `clean` attachments may be submitted. The scanner interface is fail-closed.
 
+### 3.7.1 MailObject
+
+`id`, `organization_id`, `mail_account_id`, server-generated `object_key`, bounded
+`bucket`, `upload_state` (`pending`, `confirmed`, `orphaned`, `deleted`), expected and
+actual sizes, normalized filename/media type, nullable `sha256`, uploader user id,
+`draft_client_id`, `scan_status`, `expires_at`, and timestamps. Object keys are generated
+only by the server under `mail/<organization>/<account>/<object-id>`; no client-supplied
+path is accepted. A dedicated mail storage port performs presign/confirm/read/delete and
+rechecks owner + account on every operation. Pending/orphaned objects expire and are
+cleaned idempotently. Project-scoped `FileMetadata` and project membership never grant
+mail access.
+
 ### 3.8 MailRule
 
 `id`, `mail_account_id`, `name`, `enabled`, `priority`, a bounded typed condition tree,
@@ -209,10 +253,69 @@ rank active Hub users before external recent contacts.
 
 ### 3.10 MailSubmission
 
-`id`, `mail_account_id`, `draft_message_id`, `idempotency_key`, `status`
-(`queued`, `submitting`, `sent`, `unknown`, `failed`), `engine_submission_id`,
-`result_message_id`, `last_error_code`, `attempt_count`, timestamps. Unique account + key.
-The persisted error is a safe code, never raw SMTP content containing addresses/body.
+`id`, `mail_account_id`, nullable `mail_draft_id`, `idempotency_key_hash`, canonical
+`request_hash`, stable `engine_submission_key`, `status` (`queued`, `submitting`, `sent`,
+`unknown`, `failed`), nullable `engine_submission_id`, nullable `result_message_id`,
+`last_error_code`, `attempt_count`, timestamps. Unique account + key hash. The raw key is
+never persisted or returned. The persisted error is a safe code, never raw SMTP content
+containing addresses/body.
+
+Before retrying an `unknown` or interrupted submission, the service calls the engine's
+submission reconciliation operation with the stable engine key. A confirmed engine result
+is finalized without another submit; a definitive absence may transition back to queued;
+an indeterminate result remains `unknown` and is not blindly retried. Reusing a key with a
+different request hash returns `409`; identical input returns the same receipt.
+
+The canonical send request hash covers the account, draft id, Hub revision, opaque engine
+version, authorized From identity, normalized recipients, subject/body content hash,
+priority and ordered attachment ids/hashes. Only the final hash is persisted. The stable
+engine submission key derives from the Hub submission id, never from the raw HTTP key.
+
+### 3.10.1 MailDraft
+
+`id`, `mail_account_id`, opaque `engine_message_id`, opaque `engine_version`, positive
+Hub `revision`, `status` (`active`, `saving`, `unknown`, `submitting`, `submitted`,
+`deleted`), hashed
+create-idempotency key + canonical create-request hash, nullable reply/forward message ids,
+nullable last mutation id, timestamps. Unique engine message id per account and unique
+account + create-key hash.
+Recipients, subject, rich/plain bodies and MIME remain canonical in the engine and are
+hydrated only for an authorized draft read; PostgreSQL never stores a second body copy.
+
+Draft mutation is serialized per draft. `If-Match` compares Hub revision, then the engine
+save receives the last engine version and a stable Hub mutation id. A successful engine
+write stores the returned version and increments Hub revision exactly once. If the process
+loses the response, state becomes `unknown`; the next read/save reconciles the engine
+version before accepting another edit. It never overwrites a newer engine draft blindly.
+Starting a submission atomically moves the draft to `submitting` and freezes its content;
+edits are rejected until reconciliation proves definitive failure/absence and restores
+`active`, or successful delivery moves it to `submitted`.
+
+### 3.10.2 MailUserSettings
+
+One row per active account: required default identity and nullable default signature ids
+owned by the same account, `remote_images` (`blocked`, `trusted_senders`),
+`compose_format` (`rich`, `plain`), version and timestamps. Provisioning/error accounts do
+not expose this public resource. Defaults never bypass identity `send_allowed` checks.
+
+### 3.10.3 MailSignature
+
+`id`, `mail_account_id`, bounded name, sanitized rich body, server-normalized plain body,
+`is_default`, version and timestamps. At most one default per account. Signatures are user
+configuration rather than message bodies, but are still sanitized on write and render.
+
+### 3.10.4 MailDomain
+
+`id`, `organization_id`, normalized ASCII domain, `enabled`, `is_default`, verification
+and DKIM status, bounded required-DNS projection, engine domain id, version and timestamps.
+Domain is unique globally after normalization; at most one default per organization. DKIM
+private material remains engine/secret-provider state and is never stored here.
+
+### 3.10.5 MailboxPolicy
+
+One versioned row per organization containing external-mail enablement, maximum message,
+attachment and recipient limits, per-minute send rate, trash/junk retention, and
+timestamps. The existing flat Resend alert setting remains a separate legacy resource.
 
 ### 3.11 CalendarEvent
 
@@ -279,6 +382,25 @@ second mutation. Completed responses are retained for at least 24 hours and repl
 equivalently. The stored response is calendar metadata only and follows the same access and
 retention policy as its event.
 
+### 3.15 CalendarInboundReplyReceipt
+
+`id`, `calendar_attendee_id`, non-negative `event_sequence`, canonical sender-bound
+`payload_hash` (SHA-256), `outcome` (`applied`, `observed_no_change`), and `created_at`.
+Unique `(calendar_attendee_id, event_sequence, payload_hash)`. The service derives this
+sender-bound hash as SHA-256 over the normalized authenticated/envelope sender plus the
+parser's canonical payload hash (which already covers UID, optional recurrence id,
+sequence and normalized REPLY semantics); raw MIME is never stored. This ledger is
+distinct from the HTTP
+`CalendarMutationReceipt` and contains no idempotency key or response body.
+
+The service accepts at most eight distinct validated REPLY hashes for one attendee and
+event sequence. It retains all eight until that event sequence is obsolete; a ninth new
+hash is quarantined without attendee/outbox mutation. Older-sequence receipts may be
+removed only after the event sequence has advanced because every lower-sequence REPLY is
+then unconditionally stale. Receipt insertion, optional attendee transition and optional
+outbox write share the same transaction and a lock on the sender-matched attendee
+serializes concurrent distinct replies and cap checks.
+
 ## 4. Calendar state machines
 
 ### 4.1 RSVP
@@ -311,6 +433,14 @@ version as `ETag`, and a `Location` to refetch the canonical event before retry.
 | remove attendee | +1 | removed row retained as audit tombstone | CANCEL to removed attendee |
 | cancel event/occurrence | +1 | preserve historical response | CANCEL |
 
+Cancelling one occurrence writes or updates a `CalendarEventException` with canonical
+`recurrence_id` and `cancelled` status; it never rewrites the master RRULE or cancels the
+series. `DELETE /calendar/v2/events/{eventId}/instances/{recurrenceId}` compares the master
+event version from `If-Match`, increments master sequence and version once, returns the
+cancelled occurrence metadata, writes one `calendar.invite.cancelled.v1` outbox event and
+queues one iTIP `CANCEL` carrying `RECURRENCE-ID`. A retry after an ambiguous response
+refetches the event/occurrence; a stale version conflicts before any second mutation.
+
 ### 4.3 Incoming iTIP
 
 - MIME parser enforces total size, nesting depth, line length, component count, timezone,
@@ -318,7 +448,18 @@ version as `ETag`, and a `Location` to refetch the canonical event before retry.
 - `REQUEST`: validate addressed mailbox and organizer; upsert by owner + UID + recurrence;
   apply only newer sequence or an exact equal-sequence duplicate.
 - `CANCEL`: same idempotency rules; cancel only matching event/occurrence.
-- `REPLY`: match sender to attendee email and never accept organizer/event mutations.
+- `REPLY`: match the normalized authenticated/envelope sender to exactly one attendee and
+  never accept organizer/event mutations. Its `SEQUENCE` must equal the current event
+  sequence: lower is stale, higher is quarantined. The service derives the sender-bound
+  hash from the normalized sender plus parser-provided canonical payload hash and looks it
+  up in `CalendarInboundReplyReceipt`; a hash already processed for that attendee and
+  sequence is a no-op even if later replies changed the attendee again. A distinct
+  current-sequence sender-bound PARTSTAT may advance only that attendee and atomically
+  records an `applied` receipt plus one outbox event. A distinct hash whose PARTSTAT already
+  equals current state records `observed_no_change` without attendee/outbox mutation, so a
+  later redelivery cannot roll state backward. The bounded ninth distinct hash is
+  quarantined. This inbound path never creates or consumes an HTTP
+  `CalendarMutationReceipt`.
 - Untrusted or malformed calendar parts remain downloadable attachments with zero state
   mutation and a safe parse error code.
 
@@ -346,12 +487,12 @@ Endpoint groups frozen for v1:
 | Folders | `GET/POST /mail/folders`, `PATCH/DELETE /mail/folders/{id}` |
 | Labels | `GET/POST /mail/labels`, `PATCH/DELETE /mail/labels/{id}`, `PUT /mail/messages/{id}/labels` |
 | Threads/messages | `GET /mail/threads`, `GET /mail/threads/{id}`, `GET /mail/messages/{id}`, `POST /mail/messages/bulk` |
-| Draft/send | `POST /mail/drafts`, `GET/PATCH/DELETE /mail/drafts/{id}`, `POST /mail/drafts/{id}/send` |
+| Draft/send | `POST /mail/drafts`, `GET/PATCH/DELETE /mail/drafts/{id}`, `POST /mail/drafts/{id}/send`, `GET /mail/submissions/{id}` |
 | Attachments | `POST /mail/attachments/presign`, `POST /mail/attachments/{id}/confirm`, `GET/DELETE /mail/attachments/{id}` |
 | Search/contacts | `GET /mail/search`, `GET /mail/contacts/suggest` |
 | User settings | `GET/PATCH /mail/settings`, `GET /mail/identities`, CRUD `/mail/signatures`, CRUD `/mail/rules` |
 | Existing calendar aggregate | `GET /calendar/events` remains byte-shape compatible as `{events,from,to}`; first-class events are later added only as an additive aggregate kind |
-| Canonical calendar | `GET/POST /calendar/v2/events`, `GET/PATCH/DELETE /calendar/v2/events/{id}`, v2 RSVP series/occurrence and v2 availability |
+| Canonical calendar | `GET/POST /calendar/v2/events`, `GET/PATCH/DELETE /calendar/v2/events/{id}`, `DELETE /calendar/v2/events/{id}/instances/{recurrenceId}`, v2 RSVP series/occurrence and v2 availability |
 | Existing Resend admin | `GET/PUT /admin/mail/settings` retains the flat `hub_mail_url/from_alerts/alerts_enabled/daily_limit/resend_ready` response contract; deprecated `POST /admin/mail/broadcast` is documented as a current ADR-NOTIF-01 governance gap, not new scope |
 | Mailbox admin | `GET/PUT /admin/mail/mailbox-settings`, domain CRUD, `GET /admin/mail/health`; all require admin RBAC and an audit action |
 
@@ -377,6 +518,9 @@ Canonical JSON envelope:
 - PII-bearing payloads contain normalized addresses but no body, raw MIME, attachment
   content, auth tokens, or engine credentials.
 - Retention follows existing event/audit policies; search consumers store only projections.
+- The shared JetStream `EVENTS` subject configuration must include `mail.>` and
+  `calendar.>` before any producer is enabled. The outbound webhook consumer allowlist is
+  unchanged unless a separate privacy/security decision explicitly adds a safe event.
 
 ### 6.1 Payload schemas
 
@@ -476,6 +620,11 @@ P2 is explicitly deferred. Risk uses Critical/High/Medium.
 - `TC-CALSYNC-010`: organizer/attendee zones cross a DST boundary without instant drift.
 - `TC-CALSYNC-011`: all-day event round-trips exclusive end date.
 - `TC-CALSYNC-012`: spoofed REPLY cannot change another attendee or organizer.
+- `TC-CALSYNC-013`: cancelling one recurrence instance creates a cancelled exception and
+  occurrence-scoped iTIP/outbox without changing or cancelling the remaining series.
+- `TC-CALSYNC-014`: for series and occurrence, accepted REPLY hashes A then B followed by
+  delayed A cannot roll RSVP backward; same-status hashes are durably observed and a ninth
+  distinct current-sequence hash quarantines without attendee/outbox mutation.
 - `TC-MAIL-001`: retry after send timeout reconciles idempotency key without duplicate.
 - `TC-MAIL-002`: mailbox-owner isolation prevents cross-user engine access.
 - `TC-MAIL-003`: hostile HTML and SVG active content are removed server-side.
@@ -484,6 +633,16 @@ P2 is explicitly deferred. Risk uses Critical/High/Medium.
 - `TC-MAIL-006`: nested folder cycle and depth 3 are rejected.
 - `TC-MAIL-007`: References grouping wins over misleading normalized subject.
 - `TC-MAIL-008`: auto-response loop headers suppress generated reply.
+- `TC-MAIL-009`: lost draft-save response reconciles before another write and PostgreSQL
+  contains no body copy.
+- `TC-MAIL-010`: mail attachment object authorization is account-scoped and cannot be
+  obtained through project membership.
+- `TC-MAIL-011`: submission key reuse with changed frozen draft input returns 409; an
+  unknown receipt never causes blind submit.
+- `TC-MAIL-012`: calendar/mail outbox subjects are admitted durably while the generic
+  outbound webhook filter remains unchanged.
+- `TC-MAIL-013`: draft content is frozen while its submission is queued/submitting/unknown
+  and becomes editable again only after a definitive non-delivery result.
 
 ## 9. Delivery phases
 

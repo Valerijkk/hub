@@ -1,6 +1,6 @@
 # Hub Mail + Calendar Sync — QA handoff
 
-> **Contract version:** 0.1.1
+> **Contract version:** 0.1.2
 > **Prepared:** 2026-08-13
 > **Implementation status:** NOT_IMPLEMENTED
 > **Runtime status:** NOT_RUN
@@ -63,6 +63,14 @@ or more `FR-MAIL-*` / `FR-CALSYNC-*` rows and named `TC-*` scenarios in `MAIL-SP
    after connection.
 8. Search never leaks another mailbox through hit count, ids, snippets, or timing-oriented
    hydration differences in normal API semantics.
+9. A lost draft-save response reconciles the opaque engine version before another write;
+   PostgreSQL contains no recipient, subject, rich/plain body, or MIME copy.
+10. Mail uploads use an owner/account-bound `MailObject` namespace and cannot inherit
+    authorization from project-scoped file metadata.
+11. `GET /api/mail/submissions/{id}` and a same-key send retry converge from `unknown` to
+    the engine-confirmed result; a still-indeterminate result never triggers blind submit.
+12. A draft is immutable while submission is queued/submitting/unknown; confirmation
+    marks it submitted, while definitive non-delivery restores the same content for edit.
 
 ### Calendar synchronization
 
@@ -75,16 +83,29 @@ or more `FR-MAIL-*` / `FR-CALSYNC-*` rows and named `TC-*` scenarios in `MAIL-SP
 5. Concurrent stale RSVP returns canonical `{error,request_id}`, 409,
    `X-Hub-Error-Code: ATTENDEE_VERSION_CONFLICT`, current attendee-version `ETag`, and
    canonical event `Location`; the client refetches and reconciles before retry.
-6. Duplicate equal UID/sequence/payload is idempotent; conflicting equal sequence is
-   quarantined; lower sequence cannot revert state.
+6. Duplicate equal UID/sequence/payload for REQUEST/CANCEL is idempotent; conflicting
+   equal sequence is quarantined; lower sequence cannot revert state.
 7. Reused HTTP idempotency key with identical input replays the original response; changed
    input conflicts and never emits a second mutation/outbox event.
-8. REPLY changes only the envelope/authenticated sender's attendee row.
+8. REPLY changes only the normalized envelope/authenticated sender's attendee row. It
+   accepts only the current event sequence and persists a bounded durable receipt for
+   every distinct validated SHA-256(normalized sender + canonical payload hash). Exact
+   redelivery is a no-op even after a later PARTSTAT; future/spoofed and the ninth distinct
+   current-sequence reply are quarantined; no HTTP idempotency receipt is used. A distinct
+   current-sequence PARTSTAT may advance that attendee once with one receipt/outbox, while
+   a distinct same-status hash writes only an `observed_no_change` receipt.
 9. External guest remains email-only and cannot gain Hub authorization.
 10. Timed events require `starts_at/ends_at`, null date fields and `end > start`; all-day
     events require date/exclusive-end, null instants and no midnight conversion.
 11. Timed events retain instants across organizer/viewer timezones and DST transitions.
 12. Busy/free combines canonical events, scheduled calls, and approved HR leave.
+13. Cancelling one recurrence instance increments master sequence/version, materializes a
+    cancelled exception and emits only occurrence-scoped iTIP/outbox; the series remains.
+14. For both series and occurrence attendees, deliver `declined(hash A)`, then
+    `accepted(hash B)`, then redeliver A at the same event sequence: the final RSVP remains
+    accepted and the redelivery creates no attendee/outbox mutation. Repeat with a
+    same-status distinct hash and prove its receipt prevents a later rollback; the ninth
+    distinct hash is quarantined without mutation.
 
 ### Compatibility and admin
 
@@ -111,6 +132,13 @@ or more `FR-MAIL-*` / `FR-CALSYNC-*` rows and named `TC-*` scenarios in `MAIL-SP
 
 Every consumer must prove duplicate-event idempotency. Unknown schema versions go to the
 existing dead-letter/error policy and are not heuristically parsed.
+Contract fixtures must also prove every envelope/payload rejects undeclared top-level or
+payload properties, including `body`, `description`, raw MIME, attachment content, token
+and secret-shaped fields.
+
+Before producers are enabled, the shared EVENTS stream must contain `mail.>` and
+`calendar.>`. The generic outbound webhook filter must not gain either wildcard as part of
+this work; any future webhook exposure needs a separately reviewed payload allowlist.
 
 ## Docker mail profile contract
 

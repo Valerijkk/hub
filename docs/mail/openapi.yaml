@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Hub Mail and Calendar Sync API
-  version: 0.1.1
+  version: 0.1.2
   description: Frozen implementation contract. Presence in this file does not imply implementation.
 servers:
   - url: /api
@@ -263,6 +263,7 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/MailDraft"}
+        "409": {$ref: "#/components/responses/IdempotencyConflict"}
         default: {$ref: "#/components/responses/Error"}
   /mail/drafts/{draftId}:
     parameters:
@@ -311,6 +312,21 @@ paths:
       responses:
         "202":
           description: Submission accepted or reconciled
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/MailSubmission"}
+        "409": {$ref: "#/components/responses/IdempotencyConflict"}
+        default: {$ref: "#/components/responses/Error"}
+  /mail/submissions/{submissionId}:
+    get:
+      tags: [MailDrafts]
+      operationId: getMailSubmission
+      description: Returns the owner-scoped receipt; an unknown receipt is reconciled with the engine before another submit is allowed
+      parameters:
+        - {$ref: "#/components/parameters/SubmissionId"}
+      responses:
+        "200":
+          description: Current reconciled submission state
           content:
             application/json:
               schema: {$ref: "#/components/schemas/MailSubmission"}
@@ -745,11 +761,7 @@ paths:
       operationId: respondToCalendarOccurrence
       parameters:
         - {$ref: "#/components/parameters/EventId"}
-        - name: recurrenceId
-          in: path
-          required: true
-          description: Base64url-encoded normalized RFC 5545 RECURRENCE-ID
-          schema: {type: string, maxLength: 256}
+        - {$ref: "#/components/parameters/RecurrenceId"}
         - {$ref: "#/components/parameters/IdempotencyKey"}
       requestBody:
         required: true
@@ -763,6 +775,23 @@ paths:
             application/json:
               schema: {$ref: "#/components/schemas/CalendarAttendee"}
         "409": {$ref: "#/components/responses/CalendarMutationConflict"}
+        default: {$ref: "#/components/responses/Error"}
+  /calendar/v2/events/{eventId}/instances/{recurrenceId}:
+    delete:
+      tags: [CalendarEvents]
+      operationId: cancelCalendarOccurrence
+      description: Cancels one recurrence instance by writing a canonical cancelled exception and sending an occurrence-scoped iTIP CANCEL
+      parameters:
+        - {$ref: "#/components/parameters/EventId"}
+        - {$ref: "#/components/parameters/RecurrenceId"}
+        - {$ref: "#/components/parameters/IfMatch"}
+      responses:
+        "200":
+          description: Cancelled occurrence; master event sequence and version incremented once
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/CalendarOccurrenceCancellation"}
+        "409": {$ref: "#/components/responses/Conflict"}
         default: {$ref: "#/components/responses/Error"}
   /calendar/v2/availability:
     post:
@@ -1028,6 +1057,11 @@ components:
       in: path
       required: true
       schema: {type: string, format: uuid}
+    SubmissionId:
+      name: submissionId
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
     AttachmentId:
       name: attachmentId
       in: path
@@ -1038,6 +1072,16 @@ components:
       in: path
       required: true
       schema: {type: string, format: uuid}
+    RecurrenceId:
+      name: recurrenceId
+      in: path
+      required: true
+      description: Base64url-encoded normalized RFC 5545 RECURRENCE-ID
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 342
+        pattern: '^[A-Za-z0-9_-]+$'
   responses:
     Error:
       description: Error response
@@ -1187,7 +1231,7 @@ components:
         projection_as_of: {type: string, format: date-time}
     MailMessageSummary:
       type: object
-      required: [id, thread_id, from, to, subject, priority, size_bytes, has_attachments, is_draft]
+      required: [id, thread_id, from, to, subject, priority, size_bytes, has_attachments, is_draft, folder_ids, seen, flagged, answered, junk]
       properties:
         id: {type: string, format: uuid}
         thread_id: {type: string, format: uuid}
@@ -1206,9 +1250,14 @@ components:
         size_bytes: {type: integer, format: int64, minimum: 0}
         has_attachments: {type: boolean}
         is_draft: {type: boolean}
+        folder_ids:
+          type: array
+          uniqueItems: true
+          items: {type: string, format: uuid}
         seen: {type: boolean}
         flagged: {type: boolean}
         answered: {type: boolean}
+        junk: {type: boolean}
         calendar_method: {type: [string, "null"], enum: [request, cancel, reply, null]}
         calendar_event_id: {type: [string, "null"], format: uuid}
     MailThreadDetail:
@@ -1262,10 +1311,11 @@ components:
               code: {type: string}
     MailDraft:
       type: object
-      required: [id, revision, from_identity_id, to, cc, bcc, subject, rich_body, plain_body, priority, attachment_ids, updated_at]
+      required: [id, revision, status, from_identity_id, to, cc, bcc, subject, rich_body, plain_body, priority, attachment_ids, updated_at]
       properties:
         id: {type: string, format: uuid}
         revision: {type: integer, minimum: 1}
+        status: {type: string, enum: [active, saving, unknown, submitting, submitted]}
         from_identity_id: {type: string, format: uuid}
         to:
           type: array
@@ -1317,14 +1367,14 @@ components:
         forward_message_id: {type: [string, "null"], format: uuid}
     MailSubmission:
       type: object
-      required: [id, status, idempotency_key, created_at]
+      required: [id, status, created_at, updated_at]
       properties:
         id: {type: string, format: uuid}
         status: {type: string, enum: [queued, submitting, sent, unknown, failed]}
-        idempotency_key: {type: string}
         message_id: {type: [string, "null"], format: uuid}
         error_code: {type: [string, "null"]}
         created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
     PresignAttachmentRequest:
       type: object
       required: [draft_client_id, filename, media_type, size_bytes, disposition]
@@ -1555,6 +1605,20 @@ components:
           type: array
           items: {$ref: "#/components/schemas/CalendarAttendee"}
         version: {type: integer, minimum: 1}
+    CalendarOccurrenceCancellation:
+      type: object
+      additionalProperties: false
+      required: [event_id, recurrence_id, status, sequence, event_version]
+      properties:
+        event_id: {type: string, format: uuid}
+        recurrence_id:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Canonical decoded and normalized RFC 5545 RECURRENCE-ID
+        status: {const: cancelled}
+        sequence: {type: integer, minimum: 1}
+        event_version: {type: integer, minimum: 2}
     UpsertCalendarEventRequest:
       type: object
       required: [title, all_day, timezone, attendees]
