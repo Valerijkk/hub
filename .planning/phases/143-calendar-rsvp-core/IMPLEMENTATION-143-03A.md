@@ -31,10 +31,11 @@ Exact reviewed content SHA-256: schema
 This is only a Packet A static result. It does not accept Phase 143, the Calendar product, a
 migration, generated Ent output, or runtime behavior. Packet C is separately `STATIC_ACCEPTED`
 on `444c6f7b7b7b3d9b77bc9b24b32d1e13000ebbbc`; 143-03B is `STATIC_ACCEPTED` on clean
-`dd346e31`. Packet 143-03F is source-conformant after `SPEC PASS`/`QUALITY PASS`, but remains
-not accepted while independent docs review and the root commit are pending. Packet 143-03D is
-technically unblocked by accepted 03A–C, with no 03D work claimed; 143-03E remains blocked on
-accepted 03D and 03F plus the launcher.
+`dd346e31`. Packet 143-03F is `STATIC_ACCEPTED` on
+`846cd00ecb243402877e18239c89a62bf07e8d14` after `SPEC PASS`/`QUALITY PASS` and final
+docs/whole-boundary review C/I/M `0/0/0`; the intermediate C/I/M `0/0/1` docs-sync finding is
+superseded/closed. Packet 143-03D is technically unblocked by accepted 03A–C, with no 03D work
+claimed; 143-03E remains blocked on accepted 03D plus the launcher, with 03F satisfied.
 
 Ent generation, schema compilation, migrations and executable tests remain `NOT_RUN`; the
 accepted launcher is `NOT_READY`. No generated or migration file was changed. The code,

@@ -94,10 +94,11 @@ Consequences:
 - 143-03A is `STATIC_ACCEPTED` on `31bfff8f58ba83d12b59600135503f98a6c92fbd`,
   143-03C is `STATIC_ACCEPTED` on `444c6f7b7b7b3d9b77bc9b24b32d1e13000ebbbc`,
   and 143-03B is `STATIC_ACCEPTED` at clean `dd346e31`;
-- 143-03F has `SPEC PASS`/`QUALITY PASS` and is statically conformant, but independent docs
-  review and the root commit remain pending; no future commit SHA or acceptance is claimed;
+- 143-03F is `STATIC_ACCEPTED` on `846cd00ecb243402877e18239c89a62bf07e8d14` after
+  `SPEC PASS`/`QUALITY PASS` and final docs/whole-boundary review C/I/M `0/0/0`; the intermediate
+  C/I/M `0/0/1` docs-sync finding is superseded/closed;
 - 143-03D is technically unblocked by accepted 03A–C, but no 03D work is claimed;
-- 143-03E remains blocked on accepted 143-03D and 143-03F plus the accepted launcher;
+- 143-03E remains blocked on accepted 143-03D plus the accepted launcher; 143-03F is satisfied;
 - 144-01B remains subject to its independent contract/source-review gates, but not to a
   telemetry-only provenance block;
 - an exact Terra/xhigh worker may author atomic production/test code only through an accepted

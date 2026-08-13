@@ -31,8 +31,10 @@ implementation commit is
 The later allowed 143-03F inverse-edge remediation in
 `backend/ent/schema/calendarattendee.go` does not invalidate the 143-03B schema verdict or its
 original source commit. Packet 143-03D is technically unblocked by accepted 03A–C, with no 03D
-work claimed. Packet 143-03F acceptance remains a separate docs-review/root-commit boundary,
-and 143-03E remains separately blocked on accepted 03D and 03F plus the launcher.
+work claimed. Packet 143-03F is `STATIC_ACCEPTED` on
+`846cd00ecb243402877e18239c89a62bf07e8d14` after `SPEC PASS`/`QUALITY PASS` and final
+docs/whole-boundary review C/I/M `0/0/0`; the intermediate C/I/M `0/0/1` docs-sync finding is
+superseded/closed. 143-03E remains separately blocked on accepted 03D plus the launcher.
 
 Ent generation, schema compilation, migrations and executable tests remain `NOT_RUN`; the
 accepted launcher is `NOT_READY`. No generated or migration file was changed.

@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
-last_updated: "2026-08-13T22:10:00+03:00"
-last_activity: 2026-08-13 · 03A/03C remain committed and independently STATIC_CONFORMANT (each C/I/M 0/0/0): Packet A `31bfff8f58ba83d12b59600135503f98a6c92fbd`; Packet C `444c6f7b7b7b3d9b77bc9b24b32d1e13000ebbbc`. 03B re-review is STATIC_ACCEPTED C/I/M 0/0/0 on clean `dd346e31`; 03F source remediation is statically conformant, docs sync complete, independent docs review/root commit pending. Launcher NOT_READY and runtime NOT_RUN
+last_updated: "2026-08-13T22:47:11+03:00"
+last_activity: 2026-08-13 · 03A/03C remain committed and independently STATIC_CONFORMANT (each C/I/M 0/0/0): Packet A `31bfff8f58ba83d12b59600135503f98a6c92fbd`; Packet C `444c6f7b7b7b3d9b77bc9b24b32d1e13000ebbbc`. 03B re-review is STATIC_ACCEPTED C/I/M 0/0/0 on clean `dd346e31`; 03F is STATIC_ACCEPTED on `846cd00ecb243402877e18239c89a62bf07e8d14` after SPEC PASS/QUALITY PASS and final docs/whole-boundary review C/I/M 0/0/0. Launcher NOT_READY and runtime NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -351,21 +351,21 @@ spec_coverage:
   separate. 143-03B is now `STATIC_ACCEPTED` on clean `dd346e31`, C/I/M `0/0/0`, with
   requested Terra/high independent re-review, dispatcher-enforced provenance and actual telemetry
   `UNKNOWN`; its original source commit remains `61c19f9f`, while the attendee source later includes
-  the allowed 03F inverse-edge remediation. Fresh 03F review reopened missing owned-child Cascade
-  and exact database SHA-256 length enforcement at C/I/M `0/2/0`. The current uncommitted fix adds
+  the accepted 03F inverse-edge remediation. Fresh 03F review reopened missing owned-child Cascade
+  and exact database SHA-256 length enforcement at C/I/M `0/2/0`. The committed fix adds
   Cascade only to `CalendarAttendee.inbound_reply_receipts`, adds named CHECK
   `calendar_inbound_reply_receipts_payload_hash_length` = `octet_length(payload_hash) = 32`, and
   adds the genuine external metadata unit
   `backend/tests/calendar/calendar_inbound_reply_receipt_schema_test.go` for those exact risks.
   Static expected RED is recorded; runtime RED/GREEN is `NOT_RUN`. The independent 03F Terra/high
   review, dispatcher-enforced with actual telemetry `UNKNOWN`, reports `SPEC PASS`/`QUALITY PASS`,
-  C/I/M `0/0/1`; the Minor was docs sync, now complete. The current uncommitted commit boundary is
-  pending: source fix statically conformant, commit readiness subject to independent docs review and
-  root exact commit, and 03F remains not accepted until those gates complete. The two-packet remediation remains in
+  C/I/M `0/0/1`; the Minor was the docs-sync finding and is superseded/closed. The final independent
+  docs/whole-boundary review returned C/I/M `0/0/0`; 03F is `STATIC_ACCEPTED` at committed boundary
+  `846cd00ecb243402877e18239c89a62bf07e8d14`. The two-packet remediation remains in
   `REMEDIATION-143-03-HASH-PAIR.md` and
   `docs/superpowers/plans/2026-08-13-calendar-hash-pair-remediation.md`. 143-03D is technically
   unblocked by accepted 03A–C, but no 03D work is claimed here. 143-03E remains blocked on accepted
-  03D/F plus the launcher; 144-01B remains subject to its own exact-contract and independent-review
+  03D plus the launcher; 03F is satisfied. 144-01B remains subject to its own exact-contract and independent-review
   dependencies. This does
   not accept Phase 143, the Calendar product, migration or runtime behavior: generation,
   compilation, unit execution and runtime are `NOT_RUN` because the accepted launcher is

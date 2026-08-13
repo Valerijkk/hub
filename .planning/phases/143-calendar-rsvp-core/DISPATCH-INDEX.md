@@ -1,6 +1,6 @@
 # Phase 143 — exact Terra dispatch index
 
-> **Status:** 143_01_02A_02B_03A_03B_03C_STATIC_ACCEPTED · 03F_SOURCE_FIX_DOCS_REVIEW_AND_COMMIT_PENDING · RUNTIME_NOT_RUN
+> **Status:** 143_01_02A_02B_03A_03B_03C_03F_STATIC_ACCEPTED · RUNTIME_NOT_RUN
 > **Required runtime:** `gpt-5.6-terra` / `xhigh`, no fallback
 > **Execution:** strictly sequential where owned files overlap
 > **Runtime evidence:** `.planning/phases/143-calendar-rsvp-core/RUNTIME-BLOCKER.md`
@@ -22,7 +22,7 @@ assemble the Common envelope plus exactly one matching section from
                   ├── 143-03C
                   └── 143-03D
 contract 0.1.7 ── 143-04L shared versioned envelope
-143-03A/B/C/D/F ── 143-03E + 143-04L ── 143-04A ── 143-04G
+143-03A/B/C/D (03F satisfied) ── 143-03E + 143-04L ── 143-04A ── 143-04G
 
 143-04A/G ──────────────── 143-04B create
 143-04A/G ──────────────── 143-04C update/master cancel
@@ -55,8 +55,8 @@ each accepted 143-04B/C/D/E/H/I ── its matching 143-04F-* transaction
 | 143-03B | `CalendarAttendee` schema with exact partial indexes — `STATIC_ACCEPTED` on clean `dd346e31`, C/I/M `0/0/0`; source commit `61c19f9f` remains the original boundary and current attendee source later includes allowed 03F inverse edge | `backend/ent/schema/calendarattendee.go` | exact NULL/non-NULL index predicates | 143-03A |
 | 143-03C | `CalendarEventException` occurrence schema — `STATIC_ACCEPTED` on `444c6f7b7b7b3d9b77bc9b24b32d1e13000ebbbc`; exact CHECK and external Ent-metadata evidence recorded; runtime `NOT_RUN` | `backend/ent/schema/calendareventexception.go` | event+recurrence unique, timed/all-day override fields | 143-03A |
 | 143-03D | `CalendarMutationReceipt` plus narrow User/ScheduledCall edges — no work claimed here; technically unblocked by accepted 03A–C | `backend/ent/schema/calendarmutationreceipt.go`, `user.go`, `scheduledcall.go` | hashed key uniqueness, bounded response, optional O2O call | 143-03A..C |
-| 143-03F | Durable bounded inbound-REPLY receipt schema and attendee edge — source fix statically conformant; independent `SPEC PASS`/`QUALITY PASS`, C/I/M `0/0/1` (docs sync complete); independent docs review/root commit pending, not accepted | `backend/ent/schema/calendarinboundreplyreceipt.go`, `calendarattendee.go`, `backend/tests/calendar/calendar_inbound_reply_receipt_schema_test.go` | external Ent metadata: exact named SHA-256 length CHECK and owned-child Cascade; runtime RED/GREEN `NOT_RUN` | 143-03B |
-| 143-03E | Generate/inspect Ent output in accepted Docker job — blocked on accepted 03D/F and launcher | generated Ent only, never manually edited or committed | clean generation and schema compile evidence | launcher + 143-03A..D/F |
+| 143-03F | Durable bounded inbound-REPLY receipt schema and attendee edge — `STATIC_ACCEPTED` on `846cd00ecb243402877e18239c89a62bf07e8d14` after `SPEC PASS`/`QUALITY PASS` and final docs/whole-boundary review C/I/M `0/0/0`; the intermediate C/I/M `0/0/1` docs-sync finding is superseded/closed | `backend/ent/schema/calendarinboundreplyreceipt.go`, `calendarattendee.go`, `backend/tests/calendar/calendar_inbound_reply_receipt_schema_test.go` | external Ent metadata: exact named SHA-256 length CHECK and owned-child Cascade; runtime RED/GREEN `NOT_RUN` | 143-03B |
+| 143-03E | Generate/inspect Ent output in accepted Docker job — blocked on accepted 03D plus launcher; 03F is satisfied | generated Ent only, never manually edited or committed | clean generation and schema compile evidence | launcher + 143-03A..D |
 | 143-04L | Shared deterministic v1 event envelope over the unchanged outbox payload seam | `backend/internal/platform/events/envelope.go`, `backend/tests/calendar/event_envelope_test.go` | explicit inputs; strict subject/version/id/time/org/correlation validation; full-envelope JSON; no I/O/random/clock | contract 0.1.7 |
 | 143-04A | Public event repository/outbox/receipt ports and service constructor | `event_repository.go`, `event_service.go`, `event_errors.go` | compile-only consumer fakes in next behavior; no persistence | 143-03E + 143-04L |
 | 143-04G | Admit calendar events to shared EVENTS stream without webhook exposure | `backend/internal/platform/nats/client.go`, focused genuine unit | add `calendar.>` once; exact webhook filter unchanged | 143-04A |

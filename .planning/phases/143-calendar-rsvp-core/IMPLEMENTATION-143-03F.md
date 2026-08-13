@@ -1,8 +1,8 @@
 # Task 143-03F — inbound-REPLY receipt remediation and docs-sync record
 
-> **Status:** SOURCE_FIX_STATICALLY_CONFORMANT · DOCS_REVIEW_AND_COMMIT_PENDING
+> **Status:** STATIC_ACCEPTED · SPEC_PASS · QUALITY_PASS · FINAL_DOCS_WHOLE_BOUNDARY_REVIEW_C/I/M_0/0/0 · RUNTIME_NOT_RUN
 > **Baseline dependency:** 143-03B `61c19f9f0dee5a406005aeacd4af056dcebc6a36`; its current attendee source includes the allowed 03F inverse-edge remediation.
-> **Current boundary:** uncommitted source/test remediation at clean base `dd346e318b9ef2eab390f7509b06eb412a65d730`; no implementation SHA is claimed.
+> **Implementation commit:** `846cd00ecb243402877e18239c89a62bf07e8d14`
 
 ## Scope and provenance
 
@@ -42,6 +42,10 @@ Sender-bound hash computation, the maximum-eight distinct-hash cap and retention
 
 The fresh independent review returned `SPEC PASS` and `QUALITY PASS` with Critical/Important/Minor `0/0/1`; the sole Minor was documentation sync, now complete. Dispatcher-enforced provenance is recorded for both requested routes; actual telemetry remains `UNKNOWN`.
 
-The current uncommitted commit boundary is pending. The source fix is statically conformant, and commit readiness is subject to independent docs review and the root exact commit. 143-03F is not `STATIC_ACCEPTED` until those gates complete; no future commit SHA is claimed. A later docs-only SHA sync may be required after that commit.
+The intermediate C/I/M `0/0/1` result was solely a docs-sync finding and is superseded/closed.
+The final independent docs/whole-boundary review returned C/I/M `0/0/0`. The committed 03F
+boundary is `846cd00ecb243402877e18239c89a62bf07e8d14`; 143-03F is `STATIC_ACCEPTED` after
+the source `SPEC PASS`/`QUALITY PASS`. This static acceptance does not accept Phase 143, the
+Calendar product, migration, generated Ent output or runtime behavior.
 
 Ent generation, schema compilation, migrations and executable tests remain `NOT_RUN`; the accepted launcher is `NOT_READY`.

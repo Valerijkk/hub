@@ -1,6 +1,6 @@
 # Phase 143 — Calendar RSVP Core
 
-> Task: TASK-236 · Status: IMPLEMENTATION_IN_PROGRESS_143_01_02A_02B_03A_03B_03C_STATIC_ACCEPTED_03F_DOCS_REVIEW_AND_COMMIT_PENDING · Depends on: Phase 142
+> Task: TASK-236 · Status: IMPLEMENTATION_IN_PROGRESS_143_01_02A_02B_03A_03B_03C_03F_STATIC_ACCEPTED · Depends on: Phase 142
 
 ## Goal
 
@@ -32,9 +32,10 @@ authorities, duplicate meetings or dependence on the real mail engine.
 
 ## Task 143-02 — Deterministic iTIP codec with fixtures
 
-> **Status:** 143-02 codec and 143-03A/B/C are `STATIC_ACCEPTED`; 143-03F source fix is
-> statically conformant but awaits independent docs review/root commit before acceptance. Generation,
-> compilation, migration and executable verification remain `NOT_RUN`.
+> **Status:** 143-02 codec and 143-03A/B/C/F are `STATIC_ACCEPTED`; 03F is committed at
+> `846cd00ecb243402877e18239c89a62bf07e8d14` after `SPEC PASS`/`QUALITY PASS` and final
+> docs/whole-boundary review C/I/M `0/0/0` (the intermediate `0/0/1` docs-sync finding is
+> superseded/closed). Generation, compilation, migration and executable verification remain `NOT_RUN`.
 > Evidence: matching `IMPLEMENTATION-143-*.md` artifacts and Phase 147
 > `STATIC-REVIEW-0.1.7.md`.
 
