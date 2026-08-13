@@ -1490,6 +1490,11 @@ Canonical JSON envelope:
   timestamp, organization, nullable actor, bounded correlation id and typed payload as
   explicit inputs; it never reads a clock or generates an id. Phase 144 mail mappers and
   every calendar/linked-call producer reuse that builder.
+- Subject validity for every new `EnvelopeV1` is: valid UTF-8; 1..255 bytes; dot-separated
+  nonempty tokens; no leading/trailing dot or `..`; no `*`/`>`; no Unicode whitespace or
+  control characters; suffix `.v1`. The 255-byte bound is a Hub product/safety contract,
+  not a NATS transport/control-line ceiling. It applies only to the new `EnvelopeV1` builder
+  and does not apply globally to legacy `OutboxEvent` or the publisher.
 - The existing outbox contract is additive and remains globally unchanged. A new producer
   calls `PublishInTx(ctx, tx, envelope.Subject, envelope)`: `OutboxEvent.event_type` must
   equal the envelope `subject` byte-for-byte and `OutboxEvent.payload` stores the **full

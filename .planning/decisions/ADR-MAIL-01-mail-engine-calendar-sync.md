@@ -555,6 +555,12 @@ application `event_id`, RFC 3339 `occurred_at`, `organization_id`, `actor_id` wh
 `correlation_id`, and a payload. A shared pure builder receives every value explicitly;
 it owns no clock, random source, persistence or publish side effect.
 
+Subject validity for every new `EnvelopeV1` is: valid UTF-8; 1..255 bytes; dot-separated
+nonempty tokens; no leading/trailing dot or `..`; no `*`/`>`; no Unicode whitespace or
+control characters; suffix `.v1`. The 255-byte bound is a Hub product/safety contract,
+not a NATS transport/control-line ceiling. It applies only to the new `EnvelopeV1` builder
+and does not apply globally to legacy `OutboxEvent` or the publisher.
+
 | Subject | Producer | Required payload | Consumers |
 |---|---|---|---|
 | `mail.received.v1` | mailbox ingestion | mailbox/message/thread ids, sender, recipients, received_at, folder ids, has_attachments | projection, search, notification, websocket |

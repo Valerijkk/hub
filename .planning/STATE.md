@@ -370,6 +370,12 @@ spec_coverage:
   not accept Phase 143, the Calendar product, migration or runtime behavior: generation,
   compilation, unit execution and runtime are `NOT_RUN` because the accepted launcher is
   `NOT_READY`.
+- 143-04L is `CONTRACT_AMENDMENT_STATIC_ACCEPTED` and ready for code redispatch: independent
+  Terra/high review PASS is C/I/M `0/0/0`, with dispatcher-enforced provenance and actual
+  telemetry `UNKNOWN`; the exact docs commit is pending. Its docs-only `EnvelopeV1` subject
+  bound is valid UTF-8 and 1..255 bytes, deliberately separate from the NATS
+  transport/control-line ceiling. No 143-04L product code is claimed, the launcher remains
+  `NOT_READY`, and runtime is `NOT_RUN`; this does not alter the current 03D status or evidence.
 - Mailbox control-plane rules inherited from 0.1.6 remain in 0.1.8: отдельные bounded workers владеют
   idempotent domain/account/primary-identity/alias lifecycle, combined projection/mutation-recovery sync и generation/hash
   reconciliation одного fixed Hub Sieve script. Generic create/bulk receipt хранит только

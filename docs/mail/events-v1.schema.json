@@ -52,7 +52,10 @@
       "properties": {
         "subject": {
           "type": "string",
-          "description": "Must exactly equal OutboxEvent.event_type and the NATS subject."
+          "minLength": 1,
+          "maxLength": 255,
+          "x-hub-max-utf8-bytes": 255,
+          "description": "Must exactly equal OutboxEvent.event_type and the NATS subject. The shared EnvelopeV1 builder enforces the Hub 255 UTF-8-byte subject bound."
         },
         "schema_version": { "const": 1 },
         "event_id": {

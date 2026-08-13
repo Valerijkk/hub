@@ -11,6 +11,12 @@
 Bounded engine/API and deterministic mailbox persistence amendment. This is a root-frozen
 review candidate, not an implementation or runtime acceptance.
 
+- Statically accepted the root-frozen 143-04L `EnvelopeV1` subject amendment: the new builder
+  has a 255 UTF-8-byte Hub product/safety bound distinct from the NATS transport/control-line
+  ceiling, with the corresponding schema extension and static contract oracles. Independent
+  Terra/high review PASS is C/I/M `0/0/0`, with dispatcher-enforced provenance and actual
+  telemetry `UNKNOWN`; the exact docs commit is pending. This records no product
+  implementation or runtime result; the launcher is `NOT_READY` and runtime is `NOT_RUN`.
 - Closed the post-freeze machine-contract review gaps: all public HTTP objects are closed;
   summary/detail composition uses internal field bases plus closed wrappers; every non-admin
   operation declares one default-deny `x-hub-authz` policy; mail received/sent addresses and

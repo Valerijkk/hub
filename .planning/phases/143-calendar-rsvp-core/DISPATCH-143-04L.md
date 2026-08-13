@@ -1,7 +1,9 @@
 # Phase 143 packet 04L — shared deterministic event envelope
 
 > **Runtime:** `gpt-5.6-terra` / `xhigh`, no fallback
-> **Status:** TERRA_CODE_ROUTE_AUTHORIZED · READY_AFTER_CURRENT_EVIDENCE_COMMIT
+> **Status:** CONTRACT_AMENDMENT_STATIC_ACCEPTED · READY_FOR_CODE_REDISPATCH
+> **Independent review:** Terra / high PASS · C/I/M `0/0/0` · dispatcher-enforced
+> provenance · actual telemetry `UNKNOWN` · exact docs commit pending
 > **Scope:** one pure shared value/builder plus one genuine external-package unit
 
 ## Outcome
@@ -28,7 +30,11 @@ services, JSON schema, protected test roots or dependencies. Stop on dirty overl
 - JSON field order/shape follows `docs/mail/events-v1.schema.json`: `subject`,
   `schema_version`, `event_id`, `occurred_at`, `organization_id`, `actor_id`,
   `correlation_id`, `payload`. Schema version is exactly `1`.
-- Subject is bounded, contains no wildcard/whitespace/control character and ends in `.v1`.
+- Subject validity for every new `EnvelopeV1` is: valid UTF-8; 1..255 bytes; dot-separated
+  nonempty tokens; no leading/trailing dot or `..`; no `*`/`>`; no Unicode whitespace or
+  control characters; suffix `.v1`. The 255-byte bound is a Hub product/safety contract,
+  not a NATS transport/control-line ceiling. It applies only to the new `EnvelopeV1` builder
+  and does not apply globally to legacy `OutboxEvent` or the publisher.
   UUIDs are non-zero, occurred-at is UTC, correlation id is trimmed non-empty and at most
   128 bytes, and payload cannot be nil. Validation errors are stable and contain no payload.
 - The constructor does not know `OutboxEvent`. Domain repositories later call the existing
@@ -39,13 +45,17 @@ services, JSON schema, protected test roots or dependencies. Stop on dirty overl
 ## Required oracles
 
 1. Fixed inputs serialize byte-deterministically to the required complete envelope.
-2. Every invalid subject/version-equivalent input, zero UUID, non-UTC time, empty/oversize
+2. A valid exact 255-ASCII-byte subject is accepted and 256 bytes are rejected. A multibyte
+   subject with at most 255 code points but more than 255 UTF-8 bytes, invalid UTF-8, an empty
+   token, leading/trailing dot, wildcard, Unicode whitespace or control character is rejected;
+   every such error excludes payload text.
+3. Every invalid version-equivalent input, zero UUID, non-UTC time, empty/oversize
    correlation and nil payload is rejected before serialization.
-3. Actor null versus UUID is exact; payload remains nested and no undeclared wrapper field
+4. Actor null versus UUID is exact; payload remains nested and no undeclared wrapper field
    appears.
-4. Synthetic body/MIME/credential/idempotency-key values supplied only inside a rejecting
+5. Synthetic body/MIME/credential/idempotency-key values supplied only inside a rejecting
    fixture never appear in error text.
-5. Reusing the same value preserves identical application event id and bytes; the unit
+6. Reusing the same value preserves identical application event id and bytes; the unit
    does not pretend to prove database/outbox behavior.
 
 ## Execution and provenance
@@ -53,5 +63,7 @@ services, JSON schema, protected test roots or dependencies. Stop on dirty overl
 Write the failing genuine unit first, then the minimum implementation. No real database,
 broker, network, wall clock, random source or listener. Host tests/build/lint/validators and
 direct Docker/Compose are forbidden; absent accepted launcher means `NOT_RUN` with static
-evidence only. No commit/push/PR. Report in Russian: exact symbols/files, oracle matrix,
-verification status, requested/actual model, source SHA and residual risks.
+evidence only. Contract acceptance claims no 04L product code; the launcher remains
+`NOT_READY` and runtime remains `NOT_RUN`. No commit/push/PR. Report in Russian: exact
+symbols/files, oracle matrix, verification status, requested/actual model, source SHA and
+residual risks.

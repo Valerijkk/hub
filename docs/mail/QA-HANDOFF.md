@@ -503,6 +503,15 @@ the engine projection-address ceiling; 201 rejects before outbox insertion.
 `deleted` has no live engine folder/flag state, preserves Hub-owned labels/verified links,
 and removes search/counter membership idempotently.
 
+Required `EnvelopeV1` subject contract fixtures accept an exact 255-ASCII-byte subject and
+reject 256 bytes; a multibyte subject with at most 255 code points but more than 255 UTF-8
+bytes; invalid UTF-8; an empty token or leading/trailing dot; wildcard, Unicode whitespace
+or control characters. Every rejecting-subject error excludes payload text. The product
+contract is valid UTF-8, 1..255 bytes, dot-separated nonempty tokens, no leading/trailing
+dot or `..`, no `*`/`>`, no Unicode whitespace/control characters, and suffix `.v1`; this
+is the Hub product/safety bound, not a NATS transport/control-line ceiling. It applies only
+to the new `EnvelopeV1` builder, never globally to legacy `OutboxEvent` or the publisher.
+
 For every new subject, the producer passes a complete deterministic envelope to the
 existing outbox as `PublishInTx(ctx, tx, envelope.Subject, envelope)`. Contract oracles must
 prove that stored `event_type`, published NATS subject and JSON `subject` are identical;
@@ -520,10 +529,11 @@ redelivery and is the new-consumer dedupe key. The distinct outbox row id in the
 version must reach dead-letter with zero projection/domain mutation. Existing legacy
 outbox payloads and worker behavior must remain byte-semantically unchanged.
 
-Before producers are enabled, the shared EVENTS stream must contain `mail.>` and
-`calendar.>`; linked-call due reuses the already admitted `calls.channel.>`. The generic
-outbound webhook filter must not gain any of these wildcards as part of this work; any
-future webhook exposure needs a separately reviewed payload allowlist.
+`mail.>` and `calendar.>` admission remains the 04G/Phase configuration gate, not 04L.
+Before producers are enabled, the shared EVENTS stream must contain them; linked-call due
+reuses the already admitted `calls.channel.>`. The generic outbound webhook filter must not
+gain any of these wildcards as part of this work; any future webhook exposure needs a
+separately reviewed payload allowlist.
 
 ## Machine contract conformance
 
