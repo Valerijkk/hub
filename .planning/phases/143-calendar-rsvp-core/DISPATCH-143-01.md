@@ -65,7 +65,7 @@
 - max_retries_per_failure: 2; max_fix_attempts_per_root_cause: 2
 - max_re_review_rounds: 0
 - wall_clock_limit: 45 minutes
-- requested_model: `gpt-5.3-codex`; reasoning_effort: `xhigh`
+- requested_model: `gpt-5.6-terra`; reasoning_effort: `xhigh`
 - actual_model: UNKNOWN at dispatch; provider: UNKNOWN;
   actual_model_evidence: launcher JSON telemetry if exposed, otherwise none
 - workflow: Hub current `codex-micro` protocol; source_contract_sha: supplied as the exact

@@ -3,7 +3,8 @@
 Ты — `codex-micro`, атомарный TypeScript-исполнитель Hub. Расширь только shared API client
 безопасными опциями для mail/calendar mutation headers и recovery metadata.
 
-- User outcome: draft/send/RSVP используют стабильные `Idempotency-Key`/`If-Match`, а
+- User outcome: все create/bulk, draft/send/RSVP используют стабильные
+  `Idempotency-Key`/`If-Match`, а
   клиент безопасно получает error code, ETag и same-origin refetch location.
 - Completion: failing genuine units сначала; затем минимальная backward-compatible client
   change, включая сохранение опций через единственный auth refresh retry.
@@ -53,6 +54,11 @@ enforce its stricter canonical-event regex.
 2. Idempotency/If-Match appear exactly once with correct casing/value.
 3. A 401 then successful refresh retries once with identical body, key, If-Match and
    AbortSignal; no new key is generated inside client.
+3A. Folder/label/signature/rule/presign/admin-domain/alias create and message bulk callers
+    pass a fresh cryptographic UUID v4/v7 for a new intent and the same narrow key through
+    every retry; the client never scopes, downgrades or regenerates it mid-intent.
+3B. Label/settings/signature/rule/mailbox-policy/domain update and versioned delete callers
+    preserve the last confirmed quoted If-Match through the same single auth retry.
 4. Retry 401 still expires session as before.
 5. Absolute, `//host`, backslash/control and non-`/api/` Location are discarded.
 6. Valid relative `/api/calendar/v2/events/<uuid>` location, error code and ETag are
@@ -69,7 +75,7 @@ enforce its stricter canonical-event regex.
   no MSW/new dependency.
 - Host tests/build/lint forbidden; accepted Docker launcher only. Unavailable => `NOT_RUN`.
 - No commit/push/PR/network/generated files. max_depth 0; fan_out 0; retries 2; 45m.
-- requested_model `gpt-5.3-codex`; reasoning `xhigh`; fallback none; mismatch => `BLOCKED`.
+- requested_model `gpt-5.6-terra`; reasoning `xhigh`; fallback none; mismatch => `BLOCKED`.
 
 [ОТВЕТ]
 

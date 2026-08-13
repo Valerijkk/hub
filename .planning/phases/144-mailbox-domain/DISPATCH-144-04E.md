@@ -24,15 +24,15 @@ submission state machine после принятого draft service.
 [FROZEN STATE MACHINE]
 
 ```text
-POST send(draft, raw key, canonical request)
+POST send(draft, raw key, confirmed If-Match, canonical request)
   hash key; hash canonical request
-  absent -> reserve queued with stable engine_submission_key
-         -> validate active draft/identity/recipients/clean attachments
+  absent -> validate active draft + exact revision, then reserve queued with stable engine_submission_key
+         -> validate identity/recipients/clean attachments
          -> atomically freeze draft as submitting
          -> submission submitting -> engine Submit once
          -> sent + result ids + draft submitted + full mail.sent.v1 envelope in same Hub transaction
   same key + different request hash -> 409, zero engine call
-  same key + sent/failed -> replay same receipt
+  same key + sent/failed -> replay same receipt before current draft-version check
   same key + queued/submitting/unknown -> ReconcileSubmission first
 
 Reconcile result
@@ -68,11 +68,13 @@ database transaction remains open across engine I/O.
 6. Reconcile definitive absence permits one Submit with the original stable engine key.
 7. Reconcile indeterminate never calls Submit even across multiple retries.
 8. Two different keys racing on one draft result in at most one engine Submit; loser gets a
-   stable draft/submission conflict without leaking winner metadata.
+   stable `MAIL_DRAFT_SUBMISSION_IN_PROGRESS` conflict without leaking winner metadata.
 9. Draft is immutable while queued/submitting/unknown, returns active only after definitive
    failure/absence policy, and reaches submitted atomically with confirmed delivery.
 10. Pending/rejected/error attachment, unauthorized From identity, over-limit recipients,
-   suspended account or stale/deleted draft fail before engine call.
+   suspended account or stale/deleted draft fail before engine call. A new send key requires
+   exact quoted `If-Match`; stale returns `MAIL_DRAFT_VERSION_CONFLICT`, while matching-key
+   terminal replay does not fail merely because the draft is now submitted.
 11. Cross-account draft/submission id makes zero engine/repository mutation.
 12. Repository snapshots and response values contain no raw HTTP key, body, MIME,
     credential or raw SMTP/provider error.
@@ -93,7 +95,7 @@ database transaction remains open across engine I/O.
   `NOT_RUN`, never fabricated PASS.
 - No dependency/generated code/commit/push/PR/network. max_depth 0; fan_out 0; retries 2;
   wall clock 60m.
-- requested_model `gpt-5.3-codex`; reasoning `xhigh`; fallback none. Mismatch => `BLOCKED`
+- requested_model `gpt-5.6-terra`; reasoning `xhigh`; fallback none. Mismatch => `BLOCKED`
   without file changes.
 
 [ОТВЕТ]

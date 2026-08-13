@@ -70,8 +70,9 @@ new lease. The service never holds a database transaction open across engine I/O
 2. Create same key + same canonical input returns the original draft and one engine call.
 3. Create same key + changed recipient/body/subject/attachment input conflicts before
    engine call; raw key is absent from repository fake snapshots and returned JSON values.
-4. Correct `If-Match` saves once and increments Hub revision exactly once.
-5. Stale `If-Match` returns conflict and makes zero engine mutation.
+4. Correct `If-Match` saves once and increments Hub revision exactly once. Delete requires
+   the same quoted last-confirmed revision and cannot remove an unknown/newer/submitting draft.
+5. Stale `If-Match` on save/delete returns the exact draft conflict and makes zero engine mutation.
 6. Lost engine response persists `unknown`; an immediate retry calls reconciliation, not
    `SaveDraft`.
 7. Confirmed reconciliation finalizes once; repeated reconciliation/retry replays it.
@@ -79,7 +80,8 @@ new lease. The service never holds a database transaction open across engine I/O
 9. Cross-account draft id returns not-found/forbidden policy with zero engine call.
 10. Read hydrates content from engine only after owner resolution; repository body capture
     assertion remains empty.
-11. Delete is idempotent and never deletes another account's engine draft.
+11. Delete is idempotent for the confirmed revision and never deletes another account's or
+    a newer/non-editable engine draft.
 12. Errors/loggable values do not contain synthetic body, recipient, raw key or engine
     response.
 13. Each engine-authoritative draft command/reconciliation brackets I/O with exact account
@@ -93,7 +95,7 @@ new lease. The service never holds a database transaction open across engine I/O
 - Host verification and direct Docker/Compose forbidden. Accepted launcher absent =>
   `NOT_RUN` plus exact static evidence.
 - No commit/push/PR/network; max_depth 0; max_fan_out 0; retries 2; wall clock 60m.
-- requested_model `gpt-5.3-codex`; reasoning `xhigh`; fallback none; wrong actual runtime
+- requested_model `gpt-5.6-terra`; reasoning `xhigh`; fallback none; wrong actual runtime
   means immediate `BLOCKED` before mutation.
 
 [ОТВЕТ]

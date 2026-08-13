@@ -37,7 +37,7 @@ revision-aware draft autosave, используя принятые mail API и c
 1. Rapid edits coalesce and final snapshot saves; earlier response cannot mark later edit
    clean.
 2. One in-flight save; queued newest edit runs once after success.
-3. PATCH carries exact last-confirmed quoted revision.
+3. PATCH and explicit delete carry exact last-confirmed quoted revision.
 4. Stale revision produces conflict state and zero automatic overwrite.
 5. Lost response refetches/reconciles before any second PATCH.
 6. Indeterminate/unknown reconciliation issues no PATCH and exposes safe status.
@@ -52,7 +52,7 @@ revision-aware draft autosave, используя принятые mail API и c
 - Host tests/build/lint forbidden; accepted Docker launcher only. Missing harness/launcher
   => `NOT_RUN`, never fabricated PASS.
 - No commit/push/PR/network/generated files. max_depth 0; fan_out 0; retries 2; 45m.
-- requested_model `gpt-5.3-codex`; reasoning `xhigh`; fallback none; mismatch => `BLOCKED`.
+- requested_model `gpt-5.6-terra`; reasoning `xhigh`; fallback none; mismatch => `BLOCKED`.
 
 [ОТВЕТ]
 

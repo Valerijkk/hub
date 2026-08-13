@@ -1,6 +1,6 @@
 # Hub Mail + Calendar Sync — QA handoff
 
-> **Contract version:** 0.1.5
+> **Contract version:** 0.1.6
 > **Prepared:** 2026-08-13
 > **Implementation status:** NOT_IMPLEMENTED
 > **Runtime status:** NOT_RUN
@@ -56,7 +56,10 @@ or more `FR-MAIL-*` / `FR-CALSYNC-*` rows and named `TC-*` scenarios in `MAIL-SP
 2. Internal delivery produces exactly one Sent and one recipient Inbox view through the
    engine path and emits idempotent NATS events.
 3. Retrying a timed-out submission reconciles `Idempotency-Key` without duplicate mail.
-4. Draft stale `If-Match` returns conflict and never overwrites newer content.
+4. Draft update, delete and new-key send preserve the exact last-confirmed `If-Match`.
+   Stale/reconciliation/not-editable/submission-in-progress returns its named conflict and
+   never overwrites, deletes or submits newer content; same-key send receipt replay wins
+   before a now-stale version check.
 5. Pending/rejected attachment prevents submission; clean attachment preserves hash/name.
 6. Active HTML, script handlers, unsafe SVG, CSS URL fetches, and tracking images do not
    execute or load directly.
@@ -75,12 +78,14 @@ or more `FR-MAIL-*` / `FR-CALSYNC-*` rows and named `TC-*` scenarios in `MAIL-SP
 13. One hydrated incremental page commits folder/message/thread projection, complete
     envelopes and the exact next composite cursor atomically. Rollback or any stale lease,
     prior cursor, sync epoch, mutation epoch or present command lease advances none of them.
-14. Every engine-authoritative folder/message/draft/submission/rule command or reconciliation
+14. Every synchronous engine-authoritative folder/message/draft/submission command or reconciliation
     acquires one expiring account mutation lease and advances the begin epoch before I/O;
     completion/unknown handoff clears the exact lease and advances the end epoch. Sync
     capture is forbidden while the lease is present. Active-lease contention makes zero
     engine call; sync claim or a later command can reclaim expiry only with an epoch bump,
     invalidating late work whose former owner must reconcile rather than finalize directly.
+    The asynchronous rule-deployment worker uses the same lease/epoch fence; HTTP rule CRUD
+    itself changes Hub desired state only and therefore never returns account-busy.
 15. Invalid/expired cursor preserves current owner rows as visibly degraded, resumes a
     bounded base-state/ID-anchored enumeration without destructive pre-clear, catches up
     from its base cursor and only then tombstones unseen rows and marks ready. Query-state
@@ -105,9 +110,109 @@ or more `FR-MAIL-*` / `FR-CALSYNC-*` rows and named `TC-*` scenarios in `MAIL-SP
 19. The 101st non-deleted engine-backed folder is atomically rejected with 422 and
     `MAIL_FOLDER_LIMIT_EXCEEDED`. An engine account already over cap leaves the last owner
     projection degraded; no truncated folder tree is marked ready.
+19a. Folder create first inserts one unique `creating` row; PATCH/DELETE use `If-Match` and
+     an internal injected unexposed UUID v4/v7 receipt to persist desired state/version before engine I/O.
+     Busy/stale/protected requests create neither receipt nor control change. Lost response returns/retains safe 202
+     state, prevents a second key/name or folder mutation, and the existing projection worker
+     recovers the oldest due receipt without a fifth worker. Exact non-system match/
+     definitive absence may finalize/retry once only when the selected profile proves Hub
+     is the exclusive custom-folder writer. False/unknown capability, an exposed alternate
+     writer, a system-role candidate or ambiguous state makes zero recovery mutation, stays
+     degraded and never duplicates/overwrites.
+     Ordinary sync/rebuild preserves that intent and cannot mark the account ready; internal
+     receipts are never accepted from an HTTP header or kept as lifetime public tombstones.
 20. Concurrent account command/reconciliation lease contention returns 423 plus
     `MAIL_ACCOUNT_BUSY` and bounded `Retry-After` before any engine call. Unknown engine
     outcome never maps to busy, and the UI never blindly replays it as though no call ran.
+21. Domain create first commits only one stable desired intent; its worker reconciles
+    DNS-required/verified/delete state through Ensure/Get without changing DNS or exposing
+    private DKIM. With engine/policy/default verified domain enabled, two account workers
+    scan the same active new/existing user and reserve exactly one deterministic primary address, provisioning key
+    and cutoff. A lost ensure response repeats the same key and activates one logical engine
+    account/identity. Missing domain, disabled engine, suspended user and stale lease make
+    zero engine call. `GET /mail/account` is read-only and leaks no reservation, engine id,
+    lease or provider text. Alias create/delete and user deactivation/reactivation advance
+    account generation; pending/deleting identities are never selectable, and stale workers
+    cannot finalize an older set. A claimed 12-hex UUID fallback expands once to the full
+    UUID; its namespace cannot be claimed by aliases, and no collision path uses randomness
+    or calls the engine before a unique reservation commits.
+22. Folder/label/signature/rule/presign/admin-domain/alias create and bulk message actions
+    require one stable client-generated UUID v4/v7 `Idempotency-Key`. Same key/input reconstructs the original owned
+    result; changed input returns `IDEMPOTENCY_KEY_REUSED`; a removed target returns
+    `IDEMPOTENCY_REPLAY_UNAVAILABLE`; compacted metadata returns
+    `IDEMPOTENCY_REPLAY_EXPIRED`. Unknown engine outcome reconciles before retry and none of
+    those 409 states executes again. Presign replay mints a fresh URL only for the same
+    pending/unexpired attachment id without extending the object lease, and URL expiry never
+    crosses it; confirmed/expired/orphaned/deleted state is unavailable and never allocates
+    another object. Raw keys and response/content data never persist.
+    Key digest is scoped/length-delimited SHA-256; request fingerprint is raw-keyed
+    HMAC-SHA-256 over fingerprint-v1 tagged/length-delimited normalized typed fields with
+    request array order preserved and no maps/unknown fields. Invalid keys are rejected
+    before reservation, and small payloads cannot be enumerated from the stored fingerprint.
+    The 30-day clock begins at first terminal commit; in-progress/unknown never compact and
+    remain safely reconcilable/observable rather than silently becoming expired.
+23. Rich draft/signature input is sanitized on the server and its plain form is derived
+    there; clients cannot supply two independent canonical bodies. Without the approved
+    sanitizer, rich mode fails closed to plain-only. Received hostile HTML cannot retain
+    active/fetch primitives. Remote images remain blocked until explicit action/trusted
+    policy and use only owner/message/expiry-bound tokens; every redirect/connect is
+    SSRF-validated and origin URLs never reach DOM, API output, search, logs or errors. A
+    successful proxy response is bytes with exact private five-minute cache, `nosniff`,
+    `no-referrer` and restrictive CSP headers; it never redirects to an origin/cache URL.
+24. Rule CRUD commits only the complete Hub desired generation/hash and returns deployment
+    `pending|applying|ready|unknown|error`. The bounded worker owns one fixed script, compares
+    generation/hash through Get-before-retry after lost response, cannot finalize a stale
+    generation, detects/repairs external drift, and stores/logs no raw Sieve.
+    `add_label` compiles only an opaque reserved engine keyword; sync maps it to a same-
+    account provenance join. Unknown markers never become labels and visible removal clears
+    an engine-rule marker through the fenced keyword command before clearing its source.
+    The receipt-backed bulk action is the only public message-label mutation path, including
+    a single message; no weaker replace-label endpoint exists.
+25. Bulk selection sends exact `target_type=message|thread`; thread targets are expanded and
+    deduplicated server-side under the 200-message cap. The receipt commits ordered request
+    targets and exact member UUID snapshot before engine I/O, then normalized safe outcome;
+    replay never re-expands changed threads. Per-target results preserve the original type.
+    `junk`/`not_junk` separately report spam/ham training accepted/rejected/unknown; a folder
+    move alone never appears as trained. Without proven engine idempotency/reconciliation,
+    indeterminate training is terminal unknown and receipt replay cannot double-train.
+26. Search finds bounded From/To/subject, server-sanitized plain body and normalized
+    attachment filenames. Index documents exclude raw HTML/MIME/BCC/remote URLs/bytes;
+    consumer replay/update/delete is idempotent, checkpoints drive freshness, and each hit
+    is reauthorized after owner filters before id/snippet return.
+27. Folder/label managers, rules deployment status, blocked-image action, provisioning
+    status and admin aliases have loading/error/empty/conflict/unknown states, keyboard/focus
+    coverage and stable create keys. Folder controls preserve version and render creating/
+    unknown/deleting/error without claiming completion. Primary/group identities cannot be
+    mutated from alias UI.
+28. Settings, signature, label, rule, mailbox-policy and domain edits preserve the last
+     confirmed quoted `If-Match` across one auth retry. Stale versions mutate nothing and
+     refetch before user retry; signature/rule/label deletes are versioned too. Deleting a
+     label referenced by an active rule returns `MAIL_LABEL_IN_USE` without removing joins,
+     markers or rules. Every new mailbox 409 has its exact OpenAPI `X-Hub-Error-Code`;
+     label name, policy prerequisite, domain verified/default/in-use and alias state are
+     distinguishable. Cross-tenant domain/address collisions expose only `*_UNAVAILABLE`.
+29. Attachment confirm with changed hash/size or non-confirmable state returns the named
+    409 and schedules no scan; expired pending returns named 410. Non-clean download is 409.
+    Clean download redirects only to the fixed configured HTTPS storage origin with
+    required `no-store`/`no-referrer`; client/provider origin input is impossible.
+30. New mailbox request objects reject unknown properties before service invocation.
+     Forged organization/account/engine fields and invalid rule condition/action unions make
+     zero repository, engine, classifier, storage or audit-success mutation.
+    Draft recipient inputs also reject response-only `user_id`; Hub-user enrichment is
+    resolved server-side from the normalized address and never grants send authorization.
+    Bulk move/label/pin/no-argument variants reject every missing or irrelevant target field.
+31. Application access log and generic HTTP audit record the matched route template, never
+    concrete remote-image token, UUID path or search query; unmatched uses one constant.
+    Proxy evidence separately proves token-path and query redaction. OTel/metrics labels
+    remain template-only, and named domain audit keeps only its explicit bounded target id.
+31a. Remote-image path token accepts only unpadded base64url of 32..1024 ASCII characters.
+     Padding, slash, percent-escape, Unicode, punctuation and boundary overflow fail before
+     token decode, repository lookup, authorization or outbound network work.
+32. Submission, rule-deployment, domain-control and bulk per-target `error_code` values
+    reject every string outside their OpenAPI allowlists; raw SMTP/JMAP/provider text cannot
+    enter API JSON, persisted safe code, audit or client analytics.
+    Submission state also enforces its nullable shape: only `sent` has `message_id`, only
+    `unknown|failed` have their state-appropriate non-null safe code.
 
 ### Calendar synchronization
 
@@ -316,7 +421,8 @@ These cases are required only if founder question 5 admits L1 into the first mer
    it currently reaches active users but conflicts with ADR-NOTIF-01. Mailbox acceptance
    requires removal/disablement or explicit founder re-authorization; the new mailbox must
    never invoke or expand it implicitly.
-3. Mailbox policy uses `/api/admin/mail/mailbox-settings` and remains separate from Resend.
+3. Mailbox policy uses versioned `GET/PUT /api/admin/mail/mailbox-settings` with `If-Match`
+   and remains separate from Resend.
 4. Every admin mail operation rejects a non-admin with 403 and writes its named audit
    action without secret values.
 5. Existing scheduled-call success response fields remain compatible while bridge-owned
@@ -370,8 +476,8 @@ launcher. The direct Compose command is operator documentation, not accepted tes
 
 | Component | Intended image/config | Network exposure | Persistent data | Hard limit allocation | Current evidence |
 |---|---|---|---|---|---|
-| Mail engine | Stalwart version candidate; digest unresolved until provenance gate | internal JMAP/admin; SMTP/IMAP ports only when explicitly configured | named engine volume | ≤3 CPU / ≤3 GiB target, subject to measured rebalance | NOT_RUN |
-| Hub mailbox worker/API | existing backend image/process | existing backend network only | PostgreSQL/outbox | within remaining mail budget when profiled | NOT_RUN |
+| Mail engine | Stalwart version candidate; digest unresolved until provenance gate | Hub-only internal JMAP/admin; optional SMTP delivery only; no user IMAP/JMAP/ManageSieve/admin mailbox mutation | named engine volume | ≤3 CPU / ≤3 GiB target, subject to measured rebalance | NOT_RUN |
+| Hub mailbox domain/account/combined projection-recovery/rule workers + API | existing backend image/process | existing backend network only | PostgreSQL/outbox | within remaining mail budget when profiled | NOT_RUN |
 | Existing NATS/Meili/SeaweedFS | shared stack, not duplicated | existing internal network | existing volumes | shared-service attribution must be reported separately | NOT_RUN |
 
 The entire added mail profile must remain at or below 4 CPU and 4 GiB RAM. Target
@@ -386,10 +492,12 @@ worker cancellation/drain, and exact cleanup.
 |---|---|---:|---|
 | `MAILBOX_ENGINE_ENABLED` | mailbox runtime | no | `false` |
 | `MAILBOX_EXTERNAL_ENABLED` | public SMTP send/receive | no | `false` |
+| `MAILBOX_EXCLUSIVE_FOLDER_WRITER` | enables automatic unknown-folder recovery only for an accepted no-alternate-writer profile | no | `false` |
 | `MAILBOX_INSTANCE_DOMAIN` | addresses/UID domain | no | empty; startup refuses external mode |
 | `MAILBOX_ENGINE_URL` | JMAP/internal API | no | internal service URL |
 | `MAILBOX_ENGINE_ADMIN_USER` | provisioning | yes-like identity | no repository value |
 | `MAILBOX_ENGINE_ADMIN_SECRET` | provisioning | yes | no repository value |
+| `MAILBOX_REMOTE_IMAGE_TOKEN_KEY` | encrypted/signed proxy tokens | yes | startup disables remote-image loading if absent |
 | `MAILBOX_ENGINE_VOLUME` | local operator override | no | named volume |
 | `MAILBOX_MAX_MESSAGE_BYTES` | policy | no | contract-defined bounded value at implementation |
 | `MAILBOX_MAX_ATTACHMENT_BYTES` | policy | no | contract-defined bounded value at implementation |

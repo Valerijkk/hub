@@ -1,7 +1,7 @@
 # MAIL-SPEC — Hub mailbox and calendar synchronization contract
 
-> **Version:** 0.1.5
-> **Status:** Candidate frozen; Mail 0.1.5 root/independent review pending
+> **Version:** 0.1.6
+> **Status:** Candidate frozen; Mail 0.1.6 root/independent review pending
 > **Date:** 2026-08-13
 > **Architecture:** `../ADR-MAIL-01-mail-engine-calendar-sync.md`
 > **OpenAPI:** `../../../docs/mail/openapi.yaml`
@@ -103,6 +103,41 @@ the Hub mail feature. It does not claim that the described behavior is implement
     scoped and visibly stale while pages apply; destructive cleanup waits for catch-up/
     finalization. A rebuild never clears live rows up front, forges freshness, skips an
     unchanged surviving base object, or re-emits an already recorded inbound event.
+30. Mailbox provisioning/lifecycle is an explicit desired-state control plane. A bounded
+    leased worker creates one stable account intent for each eligible active user only after
+    an enabled verified default domain exists, reconciles exact identity generations, and
+    disables the engine account when the Hub user is deactivated. Projection and public
+    mailbox resources are ineligible until the engine account and primary identity commit
+    atomically as active.
+31. Hub rule rows are canonical. Rule HTTP writes advance a desired generation in the Hub
+    transaction and never claim that Sieve is installed synchronously. A separate leased
+    worker compiles the complete ordered rule set, reconciles the fixed Hub-owned engine
+    script by generation/hash, and reports `pending|applying|ready|unknown|error`.
+32. Rich message and signature input is sanitized on the server. Plain text is derived by
+    the server from the accepted sanitized rich value; raw client HTML is never returned.
+    Received HTML has every remote fetch rewritten to an owner/message-bound short-lived
+    token or removed before it can reach the browser.
+33. The owner Meilisearch document may contain bounded server-sanitized plain body text and
+    normalized attachment filenames because v1 search explicitly covers both. It never
+    contains raw HTML/MIME, BCC, engine credentials, or an unfiltered recipient projection;
+    current owner/account authorization is rechecked before any hit or snippet is returned.
+34. `junk` and `not_junk` are classifier-feedback commands, not aliases for moving a
+    message. The adapter must report spam/ham training outcome explicitly; moving or flagging
+    without accepted feedback cannot be represented as trained.
+35. Every public create intent and bulk classifier intent has a persisted mail mutation
+    receipt keyed by server-derived scope, operation and the frozen generic-key digest.
+    During its 30-day replay window, identical input reconstructs the original resource or
+    safe result when it still exists; a deleted/expired target returns replay-unavailable and
+    never recreates it. Changed input conflicts; an unknown engine outcome reconciles before
+    any retry. After compaction, the lifetime tombstone returns replay-expired for either
+    hash and never executes the operation again.
+36. Bulk thread targets are expanded from one owner-scoped consistent projection snapshot,
+    deduplicated across the request, and rejected before engine I/O when more than 200
+    distinct messages result. One request has exactly one target type. The receipt persists
+    the bounded target order, exact expansion ids and safe per-target outcome before/after
+    I/O so replay never re-expands a changed thread or double-trains. Per-target results
+    retain the request target type; no client-side expansion or partial over-cap execution
+    is allowed.
 
 ## 3. ERD
 
@@ -117,7 +152,8 @@ erDiagram
     MailThread ||--o{ MailMessage : groups
     MailMessage ||--o{ MailMessageFolder : projects
     MailFolder ||--o{ MailMessageFolder : contains
-    MailMessage }o--o{ MailLabel : tagged
+    MailMessage ||--o{ MailMessageLabel : tagged
+    MailLabel ||--o{ MailMessageLabel : applies
     MailMessage ||--o{ MailAttachment : has
     MailAccount ||--o{ MailObject : authorizes
     MailObject o|--o| MailAttachment : backs
@@ -125,6 +161,10 @@ erDiagram
     MailDraft }o--o{ MailAttachment : stages
     MailAccount ||--o{ MailLabel : owns
     MailAccount ||--o{ MailRule : owns
+    MailAccount ||--o| MailRuleDeployment : deploys
+    MailAccount o|--o{ MailMutationReceipt : deduplicates
+    MailMutationReceipt ||--o{ MailMutationReceiptTarget : records
+    MailMutationReceiptTarget ||--o{ MailMutationReceiptMember : expands
     MailAccount ||--o{ RecentContact : remembers
     MailAccount ||--o| MailUserSettings : configures
     MailAccount ||--o{ MailSignature : owns
@@ -159,8 +199,16 @@ erDiagram
 | `id` | UUID | primary key |
 | `organization_id` | UUID | required, indexed |
 | `user_id` | UUID | required, unique with organization |
-| `engine_account_id` | string | opaque, encrypted-at-rest if credential-like, unique |
+| `engine_account_id` | string nullable | opaque and unique; absent until provisioning commits |
 | `status` | enum | `provisioning`, `active`, `suspended`, `error` |
+| `engine_provisioning_key` | string | stable non-secret Hub-derived key; unique and immutable |
+| `local_part` | string | reserved normalized EmailLocalPart; unique within selected domain and immutable after engine creation |
+| `mail_domain_id` | UUID | selected verified default domain; immutable after engine creation |
+| `provision_lease_token`, `provision_lease_until` | UUID/time nullable | one bounded provisioning claim; both present or absent |
+| `next_provision_at`, `provision_attempts` | timestamp/non-negative int | bounded retry scheduling |
+| `provision_error_code` | string nullable | stable allowlisted code only; no provider text |
+| `control_generation`, `deployed_generation` | positive int64 / nullable positive int64 | exact desired account-enabled + primary/alias set and last confirmed engine generation |
+| `control_hash`, `deployed_hash` | SHA-256 / nullable SHA-256 | canonical desired/confirmed spec; no address list or secret |
 | `projection_state` | enum | `bootstrapping`, `ready`, `degraded`, `rebuilding` |
 | `sync_cursor` | string nullable | last atomically committed opaque incremental state token |
 | `rebuild_checkpoint` | string nullable | opaque resumable enumeration/catch-up checkpoint |
@@ -176,7 +224,46 @@ erDiagram
 
 No password, token, DKIM key, or engine administrator secret is stored on this entity.
 
-#### 3.1.1 Projection synchronization lifecycle
+#### 3.1.1 Provisioning lifecycle
+
+When the engine, mailbox policy and one verified enabled default `MailDomain` are ready, a
+bounded control-plane worker enumerates active users without an account in stable UUID order.
+In one transaction it reserves a unique immutable local part, creates `MailAccount` in
+`provisioning`, creates its primary `MailIdentity`, assigns the immutable injected
+`event_cutoff_at`, and schedules the intent. The default local part is the normalized local
+part of the user's existing Hub email when it is valid and unclaimed in the selected domain;
+otherwise it is stable `u-` plus the first 12 lowercase UUID hex characters. If that short
+fallback is already reserved, the deterministic final fallback is `u-` plus all 32 UUID hex
+characters. Both fallback shapes are reserved for system primary creation and admin alias
+requests cannot claim them. Any remaining uniqueness failure is a safe collision error with
+zero engine call, never random suffixing. Founder question 24 may replace this naming policy
+before migration; code must not guess another.
+
+The account-control worker claims an expiring lease and calls idempotent `EnsureAccount`
+with `engine_provisioning_key`, captured generation/hash, desired enabled state, reserved
+local part, selected domain and exact primary/alias set.
+It has a 30-second I/O deadline, bounded retry/backoff and context-owned shutdown. A lost
+response repeats `EnsureAccount` with the same key; it never creates a new reservation.
+Only one transaction that still owns the lease may store the opaque engine account/identity
+ids and change status to `active`. Projection, settings, drafts and commands require active
+status. Disabled engine/policy, missing verified default domain, suspended/deactivated user,
+or unresolved collision causes no engine call and exposes only a safe public status.
+
+`GET /mail/account` is read-only: it reports `not_configured`, `provisioning`, `active`,
+`suspended` or `error`, an optional primary address and allowlisted recovery code. It never
+creates an account, exposes a local-part reservation, engine id, lease, provider error or
+credential. New-user and existing-user coverage comes from the same periodic bounded scan;
+there is no request-path provisioning side effect.
+
+For an active account, admin alias create/delete and Hub user active/deactivated transitions
+change only canonical desired state, increment `control_generation`, and schedule the same
+worker. New aliases remain `pending` and are not selectable for From until the captured
+generation is confirmed; deletions remain `deleting` until the engine no longer exposes the
+alias. A deactivated user is reconciled to engine disabled and Hub `suspended`; reactivation
+reuses the immutable account key/address and a newer generation. A stale worker may never
+finalize over a newer alias or user-lifecycle generation.
+
+#### 3.1.2 Projection synchronization lifecycle
 
 `MailEngine.Changes` returns a bounded hydrated page tied to exact `from_cursor` and
 `next_cursor`; `MailEngine.EnumerateProjection` returns resumable bounded enumeration pages
@@ -213,6 +300,19 @@ fetched before begin fails the first epoch edge; sync cannot capture during the 
 page from any expired owner fails the completion/reclaim edge. If an expired lease was
 reclaimed, a late former owner may only enter explicit reconciliation under a new lease and
 must never finalize directly from its stale result.
+
+The existing bounded projection scheduler also selects due generic engine-mutation receipts
+as an alternative account work item; this is not a fifth worker. It orders sync and recovery
+items by due time, processes at most one bounded item per account step, and cannot hold sync
+and mutation leases together. Recovery claims the receipt lease, then the account mutation
+lease, and uses only its persisted pending folder intent or bulk target/member snapshot.
+Folder create may retry only after exact-account enumeration proves definitive absence;
+rename/delete/state mutation reconcile current state. Training with an indeterminate result
+is finalized `unknown` without another feedback call unless the accepted adapter proves an
+idempotent reconciliation primitive. Completion updates receipt, pending control rows,
+projection/events and both lease/epoch edges atomically. Unknown operations/version or
+ambiguous matches stay degraded with bounded backoff and an operator-visible safe code;
+they never block unrelated accounts or re-expand user scope.
 
 Bootstrap or invalid-cursor recovery enters `bootstrapping`/`rebuilding`, increments
 `sync_epoch`, preserves all current rows and applies base-anchored enumeration pages with
@@ -255,6 +355,7 @@ becomes `mail.received.v1`.
 | `kind` | enum | `primary`, `alias`, `group` |
 | `send_allowed` | bool | server-authoritative |
 | `is_default` | bool | at most one per account |
+| `status` | enum | `pending`, `active`, `error`, `deleting`; public From list exposes only active |
 | `engine_identity_id` | string nullable | opaque mapping |
 | `created_at`, `updated_at` | timestamp | required |
 
@@ -267,13 +368,16 @@ group authorization and fan-out are implemented.
 |---|---|---|
 | `id` | UUID | Hub projection id |
 | `mail_account_id` | UUID | required |
-| `engine_folder_id` | string | opaque, unique per account |
+| `engine_folder_id` | string nullable | opaque, unique per account; null only for a reserved create intent |
 | `parent_id` | UUID nullable | same-account folder only; depth at most 2 in v1 |
 | `role` | enum nullable | `inbox`, `sent`, `drafts`, `archive`, `trash`, `junk` |
 | `name` | string | 1..120; custom sibling names unique case-insensitively |
 | `color` | string nullable | design-token-safe color value |
 | `sort_order` | int | stable user ordering |
 | `unread_count`, `total_count` | non-negative int | rebuildable projection |
+| `control_state` | enum | `creating`, `active`, `unknown`, `deleting`, `error` |
+| `control_receipt_id` | UUID nullable | exact unresolved create/rename/delete receipt |
+| `version` | positive int | optimistic Hub control mutation version |
 | `last_seen_sync_epoch` | non-negative int64 | resumable rebuild mark |
 | `created_at`, `updated_at`, `deleted_at` | timestamp | soft delete for projection |
 
@@ -282,6 +386,37 @@ account has at most 100 non-deleted engine-backed folders including system roles
 prechecks the projected count for UX, but the adapter/engine enforces this cap atomically;
 an over-cap enumeration leaves the prior owner projection degraded and never partially
 marks it ready.
+For a new folder key, Hub first acquires the account command lease; busy returns 423 without
+a receipt or folder change. While that lease is live, one transaction rechecks/reserves the
+client-keyed mutation receipt, evaluates name/cap policy, and inserts a `creating` folder row
+with null engine id before I/O, so another key cannot pass the sibling uniqueness guard.
+Name/cap rejection is terminally replayable but creates no folder row or engine call.
+PATCH/DELETE require `If-Match`; after the same pre-mutation lease claim, Hub generates an
+internal injected unexposed UUID v4/v7 receipt and atomically stores desired visible fields/state,
+receipt link and the next version before engine I/O. A busy/stale/protected request changes
+nothing, and another accepted mutation of that folder conflicts until recovery. After
+an unknown result, reconciliation is enabled only when the injected selected-adapter
+capability proves that Hub is the exclusive custom-folder writer for the reviewed runtime
+profile. It lists the exact account folders and accepts only one exact normalized
+custom-folder parent/name match; a system-role folder is never a match. None permits one
+controlled retry with the same receipt, while multiple/mismatched results stay degraded.
+Rename/delete are desired-state idempotent and likewise read current engine folder state
+before retrying an unknown outcome. If writer exclusivity is false, unknown, or contradicted
+by an exposed user/admin mailbox mutation surface, recovery performs no adoption, retry,
+rename or delete and leaves the account degraded for operator resolution. Public folder rows expose the safe control state/version;
+pending/deleting rows have zero counters and never claim engine completion.
+Any nonterminal or ambiguous folder control intent makes the account projection
+`degraded`; a normal sync page may refresh unrelated engine projection but cannot overwrite
+that row's desired fields, control state, receipt link or version. Rebuild enumeration and
+final cleanup preserve `creating`/`unknown`/`deleting`/`error` control rows even when no
+engine id was seen. Only the same receipt's recovery finalization may activate or delete the
+row and allow projection freshness to become `ready` again.
+
+Wave 1 does not expose user-facing engine IMAP/JMAP/ManageSieve or direct engine-admin
+folder mutation. The engine's JMAP/management endpoints are fixed-internal Hub adapter
+dependencies; optional external SMTP is delivery-only. The capability defaults false and
+may be enabled only by reviewed deployment configuration plus runtime evidence that no
+alternate custom-folder writer is reachable.
 
 ### 3.4 MailThread
 
@@ -352,8 +487,26 @@ authenticated owner's account again.
 
 ### 3.6 MailLabel
 
-`id`, `mail_account_id`, `name` (1..60, unique case-insensitive), `color`, timestamps.
-Many-to-many assignment to messages is Hub-canonical. Thread label aggregation is derived.
+`id`, `mail_account_id`, `name` (1..60, unique case-insensitive), `color`, one server-
+generated opaque `engine_keyword` unique per account, version and timestamps. The keyword is
+never public and contains no label name/account/user id. Thread label aggregation is derived.
+A label referenced by any non-deleted rule cannot be deleted; after rule removal, deletion
+invalidates the keyword mapping and any inert engine keyword is ignored rather than mapped
+to a future/recreated label.
+
+### 3.6.1 MailMessageLabel
+
+One same-account join per message + label stores source bits `manual` and `engine_rule`, at
+least one true, plus timestamps. Manual add changes only Hub state. A Sieve `add_label`
+action compiles the resolved label's opaque keyword into the fixed engine script; mailbox
+sync maps that exact keyword to `engine_rule=true` idempotently. Public/event/search values
+contain only Hub label ids. Removing a visible label deletes the manual source and, when the
+engine source is present, removes the reserved keyword through an account-fenced engine
+command before clearing the engine source. Unknown outcome reconciles current keywords;
+raw/public callers can never submit an engine keyword.
+Public message label add/remove uses only the receipt-backed `/mail/messages/bulk` action,
+including for a single message. There is no second replace-label route with weaker crash
+recovery; label metadata CRUD remains separate under `/mail/labels`.
 
 ### 3.7 MailAttachment
 
@@ -384,14 +537,44 @@ only by the server under `mail/<organization>/<account>/<object-id>`; no client-
 path is accepted. A dedicated mail storage port performs presign/confirm/read/delete and
 rechecks owner + account on every operation. Pending/orphaned objects expire and are
 cleaned idempotently. Project-scoped `FileMetadata` and project membership never grant
-mail access.
+mail access. A matching presign receipt replay may mint a new short-lived upload URL only
+for the same still-pending, unexpired object id and immutable expected metadata. Once the
+object is confirmed, expired, orphaned or deleted, replay returns
+`IDEMPOTENCY_REPLAY_UNAVAILABLE`; it never allocates another object or extends the immutable
+object lease. A refreshed URL expires no later than the existing `MailObject.expires_at`.
+Confirm with changed size/hash or non-confirmable state returns a no-mutation 409; an
+expired pending lease returns 410. Download is available only after `clean` and redirects
+only to a short-lived HTTPS URL minted for the fixed configured mail-storage origin with
+`no-store` and `no-referrer`.
 
 ### 3.8 MailRule
 
 `id`, `mail_account_id`, `name`, `enabled`, `priority`, a bounded typed condition tree,
-typed actions, `engine_script_id`, `version`, timestamps. V1 supports safe conjunctions
+typed actions, `version`, soft-delete state and timestamps. V1 supports safe conjunctions
 over sender/recipient/subject/has-attachment and actions move/add-label/mark-read. Raw
-user-provided Sieve is never accepted by the public API.
+user-provided Sieve is never accepted by the public API. An individual row does not own an
+engine script id or claim deployment success.
+`move` and `mark_read` compile to native Sieve actions. `add_label` compiles only the
+server-resolved opaque `MailLabel.engine_keyword`; the projection worker converts that
+marker to the same-account join above. Label names/UUIDs are never embedded in the script.
+
+#### 3.8.1 MailRuleDeployment
+
+One row per account stores `desired_generation`, `desired_hash`, nullable
+`deployed_generation`/`deployed_hash`, `state` (`pending`, `applying`, `ready`, `unknown`,
+`error`), safe `last_error_code`, retry schedule, attempt count, and a paired expiring lease.
+Every rule create/update/delete transaction increments desired generation and hashes the
+complete canonical ordered active set. The HTTP response returns the saved Hub rule plus
+the current deployment state; it never waits for or promises engine installation.
+
+A bounded worker acquires the ordinary account mutation lease, captures the desired
+generation/hash, compiles the entire ordered set and installs one fixed-name Hub Sieve script
+whose marker contains that generation/hash. Before retrying an `unknown` result it reads the
+active fixed script and compares the marker; matching state finalizes without another
+upload. Only the captured generation may become deployed; a newer desired generation stays
+pending. External activation or mutation of the fixed Hub script is detected as drift and
+repaired under founder question 26's default. No public route accepts raw Sieve or an engine
+script id.
 
 ### 3.9 RecentContact
 
@@ -399,20 +582,36 @@ user-provided Sieve is never accepted by the public API.
 `last_used_at`, `use_count`. Unique by account + normalized email. Suggestions always
 rank active Hub users before external recent contacts.
 
+#### 3.9.1 Search projection
+
+The NATS consumer builds one owner/account-scoped Meilisearch document from safe envelope
+metadata plus bounded engine hydration: normalized From/To, subject, sanitized plain-text
+body, normalized attachment filenames, folder/label ids, flags and timestamps. Body text is
+truncated to 256 KiB UTF-8 after sanitization; each filename is at most 255 characters and
+at most 50 names are indexed. Raw HTML/MIME, BCC, remote-image URLs and attachment bytes are
+forbidden. Delete/change events remove or replace the document idempotently. Query embeds
+organization/account filters before search and then reauthorizes every returned Hub message
+id against the current owner projection before returning identifiers or snippets. Search
+freshness is the conservative minimum of mailbox and search-consumer checkpoints.
+
 ### 3.10 MailSubmission
 
 `id`, `mail_account_id`, nullable `mail_draft_id`, `idempotency_key_hash`, canonical
 `request_hash`, stable `engine_submission_key`, `status` (`queued`, `submitting`, `sent`,
 `unknown`, `failed`), nullable `engine_submission_id`, nullable `result_message_id`,
 `last_error_code`, `attempt_count`, timestamps. Unique account + key hash. The raw key is
-never persisted or returned. The persisted error is a safe code, never raw SMTP content
-containing addresses/body.
+never persisted or returned. Persisted/public submission, rule, domain and bulk-target errors
+come only from their closed OpenAPI allowlists, never raw SMTP/JMAP/provider content or
+recipient/body text.
 
 Before retrying an `unknown` or interrupted submission, the service calls the engine's
 submission reconciliation operation with the stable engine key. A confirmed engine result
 is finalized without another submit; a definitive absence may transition back to queued;
 an indeterminate result remains `unknown` and is not blindly retried. Reusing a key with a
 different request hash returns `409`; identical input returns the same receipt.
+The public receipt has a fixed nullable shape. Queued/submitting have no message or error;
+sent requires a message and no error; unknown requires only an unknown/reconciliation/
+unavailable allowlisted code; failed requires one terminal allowlisted code and no message.
 
 The canonical send request hash covers the account, draft id, Hub revision, opaque engine
 version, authorized From identity, normalized recipients, subject/body content hash,
@@ -430,12 +629,15 @@ account + create-key hash.
 Recipients, subject, rich/plain bodies and MIME remain canonical in the engine and are
 hydrated only for an authorized draft read; PostgreSQL never stores a second body copy.
 
-Draft mutation is serialized per draft. `If-Match` compares Hub revision, then the engine
-save receives the last engine version and a stable Hub mutation id. A successful engine
+Draft mutation is serialized per draft. Save and delete require `If-Match` against the Hub
+revision; save then supplies the last engine version and a stable Hub mutation id. A successful engine
 write stores the returned version and increments Hub revision exactly once. If the process
 loses the response, state becomes `unknown`; the next read/save reconciles the engine
 version before accepting another edit. It never overwrites a newer engine draft blindly.
-Starting a submission atomically moves the draft to `submitting` and freezes its content;
+Delete rejects an unknown/non-editable or stale draft before engine I/O. Starting a
+submission requires both its stable idempotency key and the last confirmed `If-Match`. An
+existing matching submission receipt replays first; for a new key, version/state validation
+and receipt reservation atomically move the draft to `submitting` and freeze its exact content;
 edits are rejected until reconciliation proves definitive failure/absence and restores
 `active`, or successful delivery moves it to `submitted`.
 
@@ -451,13 +653,78 @@ not expose this public resource. Defaults never bypass identity `send_allowed` c
 `id`, `mail_account_id`, bounded name, sanitized rich body, server-normalized plain body,
 `is_default`, version and timestamps. At most one default per account. Signatures are user
 configuration rather than message bodies, but are still sanitized on write and render.
+Create/update accepts rich content plus format; the server derives the stored plain value
+and does not trust a client-supplied rich/plain pair.
+
+### 3.10.3a MailMutationReceipt
+
+`id`, `organization_id`, `actor_user_id`, nullable `mail_account_id`, `operation`, key source
+(`client`, `internal`), `idempotency_key_hash`, canonical `request_hash`, positive
+`fingerprint_version`, state (`in_progress`, `unknown`,
+`completed`, `failed`), nullable target kind/id and safe argument kind/id, original HTTP
+status, safe error code, bounded reconcile attempts/next-at, paired reconcile lease, and
+nullable terminal/replay-until timestamps. Unique organization + actor + operation + key
+hash. Client-keyed rows cover folder/label/signature/rule/attachment-presign/admin-domain/
+admin-alias create and bulk message classifier/mutation intents. Internal rows cover only
+folder update/delete recovery after a valid optimistic check; draft create and send retain
+their specialized receipts. The raw key, response
+body, addresses and content are never stored. `replay_until` is 30 days from the first
+terminal commit; in-progress/unknown receipts are never compacted and must reconcile or
+surface an operator-visible safe stuck state. Full replay metadata expires only after that instant,
+but a client-keyed key/request hash tombstone remains until account or organization deletion;
+an internal terminal row may be deleted after the recovery window. Within
+the window a matching live target is reconstructed, a removed/expired target returns
+`IDEMPOTENCY_REPLAY_UNAVAILABLE`; after compaction any reuse returns
+`IDEMPOTENCY_REPLAY_EXPIRED`. Neither state executes the operation again.
+Generic public mail intents require a fresh client-generated UUID v4/v7. Folder update/
+delete instead receive an injected server-generated UUID v4/v7 only after the account lease and
+`If-Match`/state checks succeed; it never crosses the service boundary. The stored key digest is
+SHA-256 over a length-delimited scope + operation + normalized UUID; `request_hash` is
+HMAC-SHA-256 keyed by the raw UUID over a length-delimited canonical request that repeats
+the same scope/operation. Fingerprint v1 serializes validated typed fields without maps,
+uses explicit field tags/lengths, normalized scalar forms, and preserves request array order;
+unknown fields never enter it. This prevents offline enumeration of small admin/rule payloads
+without adding a lifetime server-pepper rotation dependency. The raw client or internal key
+remains request/transaction-scoped, is dropped after reservation, and never enters
+persistence, logs, errors, audit or response.
+
+### 3.10.3b MailMutationReceiptTarget and Member
+
+During the 30-day full replay window, a bulk receipt owns at most 200 ordered target rows:
+`request_index`, `target_type` (`message|thread`), target UUID, safe mutation status/counts,
+training status and nullable allowlisted code. Each target owns bounded member rows containing
+only the expanded Hub message UUID; total distinct members per receipt is at most 200. For
+message targets the one member equals the target. For thread targets the owner-scoped
+consistent expansion is committed with the reserved receipt before engine I/O; a later
+thread change never alters replay. No engine id, body, address, filename or response JSON is
+stored. An over-cap result terminally stores only safe 422 metadata and no partial expansion/
+I/O. Full target/member rows are deleted at replay compaction while the parent hash tombstone
+remains.
+
+Bulk replay returns these stored safe outcomes even if a target was later deleted; the
+create-target `REPLAY_UNAVAILABLE` rule does not apply. Indeterminate classifier feedback is
+a terminal `unknown` training outcome unless the accepted engine API proves a stable
+idempotent reconciliation primitive. It is never blindly submitted again. State mutation
+may reconcile from the captured member UUIDs, but cannot re-expand targets or broaden scope.
 
 ### 3.10.4 MailDomain
 
-`id`, `organization_id`, normalized ASCII domain, `enabled`, `is_default`, verification
-and DKIM status, bounded required-DNS projection, engine domain id, version and timestamps.
-Domain is unique globally after normalization; at most one default per organization. DKIM
+`id`, `organization_id`, normalized ASCII domain, stable non-secret provisioning key,
+desired `enabled`, `is_default`, state (`pending`, `provisioning`, `dns_required`, `verified`,
+`error`, `deleting`), verification and DKIM status, bounded public required-DNS projection,
+nullable opaque engine domain id, positive desired and nullable deployed generation/hash,
+safe error/retry fields, paired expiring lease, version and timestamps. Domain is unique
+globally after normalization; at most one verified enabled default per organization. DKIM
 private material remains engine/secret-provider state and is never stored here.
+
+Admin create writes a Hub intent and returns pending; it never claims that engine/DNS setup
+completed. A bounded domain-control worker calls idempotent `EnsureDomain` with stable key,
+captured generation and desired presence/config, persists only public DNS requirements and
+safe status, and uses `GetDomain` before retrying an unknown outcome. Delete marks deleting;
+only confirmed engine absence permits hard/soft finalization. A domain referenced by an
+account or selected default cannot be deleted. Account provisioning is eligible only after
+the selected domain is confirmed `verified`; DNS changes remain an operator action and are
+never performed by Hub automatically.
 
 ### 3.10.5 MailboxPolicy
 
@@ -818,20 +1085,41 @@ The machine-readable contract is `docs/mail/openapi.yaml`. General rules:
 - Prefix: `/api`, matching the existing Fiber router and generated Swagger base path.
 - Auth: existing bearer/session middleware.
 - Pagination: opaque `cursor`, default 50, max 100.
-- Mutation idempotency: `Idempotency-Key` required for draft create, send, event create,
-  RSVP and legacy ScheduledCall create.
+- Mutation idempotency: a client-generated UUID v4/v7 `Idempotency-Key` is required for folder, label, signature, rule,
+  attachment-presign, admin-domain and admin-alias create; message bulk mutation/classifier feedback;
+  draft create, send, event create, RSVP and legacy ScheduledCall create.
 - Calendar create/RSVP idempotency uses `CalendarMutationReceipt`; `MailSubmission`
-  remains the send-specific receipt.
-- Optimistic locking: `If-Match: "<version>"` for draft/event/rule updates; RSVP body
-  includes `attendee_version` for explicit conflict responses.
+  remains the send-specific receipt; other named mail operations use
+  `MailMutationReceipt`.
+- Folder PATCH/DELETE do not accept an idempotency header. Their optimistic write creates an
+  internal unexposed UUID v4/v7 receipt solely for crash recovery; a lost response is resolved by
+  refetching the versioned folder state, not by inventing a client key.
+- Optimistic locking: `If-Match: "<version>"` for draft update/delete/send, event/rule,
+  folder, label, user-settings, signature, mailbox-policy and domain updates; versioned
+  rule/label/signature deletes use the same header. RSVP body includes `attendee_version`
+  for explicit conflict responses.
 - Errors retain mandatory Hub NFR-13 wire JSON `{error,request_id}`. Machine-readable
   calendar conflict codes use `X-Hub-Error-Code`; stale RSVP additionally returns current
   attendee-version `ETag` and canonical event `Location` for refetch.
-- Account-scoped engine commands and reconciliations serialize through the mutation lease.
+- New mailbox 409 responses always carry the route-specific `X-Hub-Error-Code` frozen in
+  OpenAPI. Version conflicts are resource-specific; label name/in-use, mailbox-policy
+  prerequisite, domain verified/default/in-use and alias mutability/account-state conflicts
+  are distinct. Global domain/address collisions use only `MAIL_DOMAIN_UNAVAILABLE` or
+  `MAIL_ALIAS_ADDRESS_UNAVAILABLE`, never another tenant's resource identity.
+- Account-scoped synchronous engine commands and reconciliations serialize through the mutation lease.
   Active contention makes zero engine call and returns `423`,
   `X-Hub-Error-Code: MAIL_ACCOUNT_BUSY` and bounded `Retry-After`; this response never
   means that the rejected request may have reached the engine.
 - `403` does not reveal whether an engine/message id exists in another mailbox.
+- New mailbox request objects reject unknown properties. Public payloads cannot smuggle
+  organization/account/engine ids; rule condition/action combinations are exact typed
+  unions rather than permissive field/operator/value bags.
+- Bulk message actions are also an exact union: `move` accepts only `folder_id`, label
+  actions accept only `label_id`, pin/unpin require thread targets, and all other actions
+  forbid both target fields. Irrelevant nullable arguments are not silently ignored.
+- Draft recipient input contains only bounded email plus optional display name. Any enriched
+  `user_id` in response address objects is resolved server-side and is never accepted as
+  request authority or included in the send fingerprint from an untrusted client field.
 - `scheduled_call_id` on event create is an immutable server-authorized link to an existing
   owned active call. It is not accepted on event PATCH and cannot be used to discover or
   take over another call.
@@ -840,19 +1128,20 @@ Endpoint groups frozen for v1:
 
 | Group | Endpoints |
 |---|---|
+| Account state | `GET /mail/account` |
 | Folders | `GET/POST /mail/folders`, `PATCH/DELETE /mail/folders/{id}` |
 | Labels | `GET/POST /mail/labels`, `PATCH/DELETE /mail/labels/{id}`, `PUT /mail/messages/{id}/labels` |
 | Threads/messages | `GET /mail/threads`, `GET /mail/threads/{id}`, `GET /mail/messages/{id}`, `POST /mail/messages/bulk` |
 | Draft/send | `POST /mail/drafts`, `GET/PATCH/DELETE /mail/drafts/{id}`, `POST /mail/drafts/{id}/send`, `GET /mail/submissions/{id}` |
 | Attachments | `POST /mail/attachments/presign`, `POST /mail/attachments/{id}/confirm`, `GET/DELETE /mail/attachments/{id}` |
 | Search/contacts | `GET /mail/search`, `GET /mail/contacts/suggest` |
-| User settings | `GET/PATCH /mail/settings`, `GET /mail/identities`, CRUD `/mail/signatures`, CRUD `/mail/rules` |
+| User settings | `GET/PATCH /mail/settings`, `GET /mail/identities`, CRUD `/mail/signatures`, CRUD `/mail/rules`; rule writes return deployment state and deploy asynchronously |
 | Existing calendar aggregate | `GET /calendar/events` remains byte-shape compatible as `{events,from,to}`; first-class events are later added only as an additive aggregate kind |
 | Canonical calendar | `GET/POST /calendar/v2/events`, `GET/PATCH/DELETE /calendar/v2/events/{id}`, `DELETE /calendar/v2/events/{id}/instances/{recurrenceId}`, v2 RSVP series/occurrence and v2 availability |
 | Existing scheduled calls | POST create requires `Idempotency-Key`; list keeps its envelope and accepts paired `from/to` for additive canonical `occurrences`; update/delete/conflict keep compatible success shapes; every writer delegates to the bridge and new meeting conflict UX uses v2 availability |
 | CRM mail seam | `GET /crm/deals/{dealId}/mail-compose-context`, `GET /crm/deals/{dealId}/mail-activities`, idempotent `PUT` and audited `DELETE /crm/deals/{dealId}/mail-activities/{messageId}` |
 | Existing Resend admin | `GET/PUT /admin/mail/settings` retains the flat `hub_mail_url/from_alerts/alerts_enabled/daily_limit/resend_ready` response contract; deprecated `POST /admin/mail/broadcast` is documented as a current ADR-NOTIF-01 governance gap, not new scope |
-| Mailbox admin | `GET/PUT /admin/mail/mailbox-settings`, domain CRUD, `GET /admin/mail/health`; all require admin RBAC and an audit action |
+| Mailbox admin | `GET/PUT /admin/mail/mailbox-settings`, domain CRUD, per-user alias list/create/delete, `GET /admin/mail/health`; all require admin RBAC and an audit action |
 
 ## 6. Event envelope and compatibility
 
@@ -937,7 +1226,7 @@ eligibility still match before creating the notification.
 | Control | Required behavior | Failure mode |
 |---|---|---|
 | Owner isolation | all engine calls bind server-resolved account id | `404`/`403`, no engine call |
-| HTML sanitization | server allowlist removes active content and fetch primitives | plain-text fallback |
+| HTML sanitization | approved server allowlist removes active content/fetch primitives and derives plain text; absent dependency/configuration fails to plain-only | plain-text fallback |
 | Reader isolation | CSP/sandbox; no direct remote network | content remains blocked |
 | Image proxy SSRF | DNS/IP validation before and after connect; private ranges blocked; size/time/type caps | `REMOTE_CONTENT_BLOCKED` |
 | Attachments | limits, filename normalization, type policy, hash, fail-closed scanner | quarantine/reject |
@@ -950,7 +1239,22 @@ eligibility still match before creating the notification.
 
 Remote image retrieval uses only server-issued tokens bound to an owned message via
 `GET /mail/messages/{messageId}/remote-images/{imageToken}`. The public API never accepts
-an arbitrary target URL for proxying.
+an arbitrary target URL for proxying. The path token is canonical unpadded base64url,
+32..1024 ASCII characters (`A-Z a-z 0-9 _ -`); invalid alphabet, padding, escaping,
+separator or length is rejected before decode, authorization or network work. The
+signed/encrypted token binds organization,
+account, message, normalized original URL and expiry; it is never logged or placed in a
+search document. On every redirect and connect the proxy reauthorizes the message, validates
+scheme/host/resolved IP with the existing safe outbound HTTP primitives, rejects private/
+loopback/link-local/metadata/rebinding targets, sends no user cookies or referrer, and caps
+redirects, bytes, duration and image media types. The browser receives only a short-lived
+same-origin byte response, never a redirect/cache URL or the origin URL. The response is
+`private, max-age=300`, `nosniff`, `no-referrer` and carries the restrictive image CSP.
+Application access logging and generic HTTP audit store only the matched route template
+for this endpoint, never parameter values; unmatched routes use a fixed label. Deployment
+proxy logs must likewise suppress/redact the token path. Mail search query parameters are
+absent from application and ingress access logs even though the user's own browser URL owns
+the explicit search state.
 
 ## 8. Requirements and traceability
 
@@ -976,6 +1280,10 @@ P2 is explicitly deferred. Risk uses Critical/High/Medium.
 | FR-MAIL-015 | admin domains/limits/retention/health/external toggle | P0 | Critical | policy/service tests | API/authz/runtime |
 | FR-MAIL-016 | HTML/remote content/attachment/rate/loop security controls | P0 | Critical | pure policy tests | security/integration |
 | FR-MAIL-017 | durable incremental projection sync, mutation fencing and resumable no-clear rebuild | P0 | Critical | Go sync policy/service/worker fakes | PostgreSQL/adapter/restart/E2E |
+| FR-MAIL-018 | bounded account/identity provisioning control plane and public safe state | P0 | Critical | Go service/worker fakes | PostgreSQL/adapter/restart/admin |
+| FR-MAIL-019 | generation-reconciled asynchronous Hub-owned Sieve deployment | P1 | High | Go service/worker fakes | adapter/restart/security |
+| FR-MAIL-020 | explicit spam/ham classifier feedback distinct from folder movement | P1 | High | Go command/adapter fakes | adapter/integration/E2E |
+| FR-MAIL-021 | mutation receipts for create/bulk lost-response recovery | P0 | Critical | Go receipt/service fakes | PostgreSQL/API/restart |
 | FR-CALSYNC-001 | first-class event/attendee model and call backfill | P0 | Critical | state/policy units | migration/integration |
 | FR-CALSYNC-002 | deterministic REQUEST create/update | P0 | Critical | RFC fixture tests | contract/E2E |
 | FR-CALSYNC-003 | deterministic CANCEL event/occurrence | P0 | Critical | RFC fixture tests | contract/E2E |
@@ -1126,6 +1434,18 @@ P2 is explicitly deferred. Risk uses Critical/High/Medium.
   matching owner From/alias or mutable Sent membership does not.
 - `TC-MAIL-018`: two backend replicas, lease expiry, cancellation and restart permit only
   one page commit; worker shutdown leaks no goroutine and disabled engine starts no worker.
+- `TC-MAIL-019`: two provisioning workers plus a lost engine response create one logical
+  account/primary identity using the same immutable key/address; `/mail/account` is read-only.
+- `TC-MAIL-020`: every named create/bulk key replays the same owned result, conflicts on a
+  changed request and remains duplicate-safe after replay metadata compacts to a tombstone.
+- `TC-MAIL-021`: a lost Sieve apply is reconciled by fixed-script generation/hash before
+  retry; an older generation cannot finalize over newer desired rules.
+- `TC-MAIL-022`: thread-target junk expands owner-scoped messages once and reports spam
+  training separately; moving to Junk without accepted feedback never reports trained.
+- `TC-MAIL-023`: hostile rich/remote content reaches the browser only as sanitized HTML or
+  plain text and owner/message-bound proxy tokens; no original URL or active fetch survives.
+- `TC-MAIL-024`: body/attachment-filename search indexes bounded sanitized content, excludes
+  raw/BCC/URL data, and reauthorizes every hit before returning id/snippet.
 
 ## 9. Delivery phases
 

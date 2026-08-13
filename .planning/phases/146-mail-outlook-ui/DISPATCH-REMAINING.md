@@ -1,7 +1,7 @@
 # Phase 146 — executable packet contracts not split into standalone files
 
 > **Assembly rule:** Common envelope + exactly one packet/variant. Never combine variants.
-> **Runtime:** `gpt-5.3-codex` / `xhigh`, fallback none.
+> **Runtime:** `gpt-5.6-terra` / `xhigh`, fallback none.
 > **Current blockers:** backend NOT_IMPLEMENTED, exact runtime unavailable, frontend
 > feature-unit harness pending protected rebase, launcher NOT_READY.
 
@@ -29,16 +29,21 @@ every other row in `DISPATCH-INDEX.md`.
 
 ## 146-01B — typed mail API and query keys
 
-- Dependencies: 01A + accepted OpenAPI 0.1.5/Phase 144. Allowed only
+- Dependencies: 01A + accepted OpenAPI 0.1.6/Phase 144. Allowed only
   `frontend/src/api/mail.ts`, `frontend/src/modules/mail/mail-query-keys.ts`,
   `frontend/tests/mail/mail-api.test.ts`.
 - Behavior: exact typed functions for all public mailbox paths, `URLSearchParams`, opaque
-  cursors, draft key/If-Match options, submission GET, 204 handling, remote-image token
-  route, no account/org/engine id inputs. Query-key factories exclude body/recipient/key.
+  cursors, safe account status, stable create/bulk key and draft If-Match options,
+  submission GET, 204/202 handling, remote-image token and admin-alias routes, no account/
+  org/engine id inputs. Query-key factories exclude body/recipient/key.
+- ApiError exposes only the allowlisted route-specific mailbox code; typed callers distinguish
+  stale version, label name/in-use, policy prerequisite, domain invariant/unavailable and
+  alias unavailable/state without parsing localized `error` text.
 - Oracles: exact method/path/query/body for each group; bounds represented; same-key send;
   nullable/schema states; folder/thread/search pages carry exact `projection_state` and
   required nullable `projection_as_of`; response types flags/folder ids/draft status;
-  compile negative owner/internal cursor/checkpoint/lease fields; stable small query keys.
+  compile negative owner/internal cursor/checkpoint/lease fields and recipient `user_id`;
+  stable small query keys.
 
 ## 146-02A — mail routes and shell
 
@@ -99,6 +104,35 @@ every other row in `DISPATCH-INDEX.md`.
   enters analytics/logs/query keys. An older cached ready page cannot hide a newer stale
   source, and an older stale page cannot be discarded until its query is actually refetched.
 
+## 146-02E — mailbox account/provisioning status
+
+- Dependencies: 02A/01B. Allowed only `mail-account-status.tsx`, the narrow mount in
+  `mail-shell.tsx`, and `frontend/tests/mail/mail-account-status.test.tsx`.
+- Behavior/oracles: read-only `GET /mail/account`; not_configured explains admin setup,
+  provisioning announces progress/retry, active renders mailbox, suspended/error exposes
+  only safe localized recovery. No client provisioning POST, polling storm, local part/
+  domain/engine/lease/provider text or false empty inbox. Accessible live status and retry
+  invalidates only account state with bounded backoff.
+
+## 146-02F-Folders — folder management
+
+- Dependency: accepted 02B/01B. Allowed only `mail-folder-manager.tsx`,
+  `frontend/tests/mail/mail-folder-manager.test.tsx`, and the narrow trigger in folder pane.
+- Behavior/oracles: create/rename/reparent/delete custom folders; depth 2, 100 total and
+  system-role protections surfaced; create owns one stable v4/v7 idempotency key across
+  retry; update/delete preserve last-confirmed If-Match. Render creating/active/unknown/
+  deleting/error, 202 recovery and named stale/name/system/pending conflicts; never submit a
+  second key for the same pending name. 423/422 states, keyboard/focus/confirm/mobile; no engine ids.
+
+## 146-02F-Labels — label management
+
+- Dependency: accepted 02F-Folders/01B. Allowed only `mail-label-manager.tsx`,
+  `frontend/tests/mail/mail-label-manager.test.tsx`, and one narrow trigger in folder pane.
+- Behavior/oracles: bounded color/name CRUD, create stable key, normalized conflict,
+  last-confirmed If-Match for update/delete, assignment count/confirm on delete,
+  `MAIL_LABEL_IN_USE` refetch/recovery, cache invalidation/focus/a11y; no folder-engine 423
+  semantics or cross-account ids and no optimistic removal of joins/markers on conflict.
+
 ## 146-03A — isolated safe reader
 
 - Dependencies: 02A/01B + backend safe-body contract. Allowed only
@@ -112,13 +146,26 @@ every other row in `DISPATCH-INDEX.md`.
   execute/request; plain text shown on invalid/missing HTML; reader landmarks/focus; body
   absent from logs/query keys. Browser security runtime remains later E2E.
 
+## 146-03C — explicit remote-image consent
+
+- Dependency: accepted 03A/01B. Allowed only `mail-remote-images.tsx`, the narrow reader
+  integration and `frontend/tests/mail/mail-remote-images.test.tsx`.
+- Behavior/oracles: blocked by default; show-once and trusted-sender policy use only
+  server-rewritten same-origin message/token URLs after explicit action; original URLs are
+  structurally absent from props/DOM/fetch/log/query keys. Invalid/expired token remains
+  blocked; no retry loop; sender-trust change is explicit; keyboard/live/a11y states.
+
 ## 146-03B-Attachments — attachment UI
 
 - Dependency: 03A/01B. Allowed only `mail-attachments.tsx`,
   `frontend/tests/mail/mail-attachments.test.tsx`.
 - Behavior/oracles: pending/scanning/clean/rejected/error states; only clean owner download
   via attachment endpoint; filename/type/size accessible; no storage/object/arbitrary URL;
-  pending/rejected prevents send signal; partial/error/live status.
+  pending/rejected prevents send signal; one stable presign key reuses the same attachment
+  id and accepts only a refreshed pending URL; replay-unavailable never allocates/attaches a
+  client replacement implicitly. Confirm mismatch/state/expiry and non-clean download map
+  named UI states; clean redirect is treated as server-authorized only, never accepted from
+  component props or arbitrary API fields; partial/error/live status.
 
 ## 146-03B-Invite — invitation card
 
@@ -166,9 +213,13 @@ every other row in `DISPATCH-INDEX.md`.
 
 - Dependencies: 02B/C/01B. Allowed only `use-mail-actions.ts`,
   `frontend/tests/mail/use-mail-actions.test.tsx`.
-- Behavior/oracles: bounded selected ids, exact mutation, snapshot/optimistic patch for
-  reversible fields, per-message partial failure rollback, definitive refetch on engine
-  ambiguity, invalidate smallest query keys; no body/full cache duplication.
+- Behavior/oracles: exact `target_type=message|thread` plus bounded unique target ids;
+  selected threads remain threads on wire and server expansion results are consumed without
+  guessing ids. One stable idempotency key per bulk intent survives auth retry/unknown.
+  Snapshot/optimistic patch only reversible fields; per-target partial rollback; junk/ham
+  UI distinguishes classifier training accepted/rejected/indeterminate from folder move;
+  add/remove label always uses this same action even for one message; definitive refetch on
+  ambiguity; no replace-label API, body/full cache duplication or weaker recovery path.
 
 ## 146-05-Toolbar — bulk toolbar
 
@@ -184,7 +235,9 @@ every other row in `DISPATCH-INDEX.md`.
   `frontend/tests/mail/mail-search.test.tsx`.
 - Behavior/oracles: validated `q/from/to/folder_id/label_id/unread/has_attachments/date_*`,
   debounced URL replace, cursor query, share/back-forward, loading/error/no results; no raw
-  query in analytics/log beyond existing privacy policy; selected thread deep link.
+  query in analytics/log beyond existing privacy policy; selected thread deep link. Copy
+  states that body and attachment filenames are searched without putting hydrated body or
+  filenames into URL, analytics or persistent client caches.
 
 ## 146-06A-Settings — user mailbox settings
 
@@ -196,8 +249,9 @@ every other row in `DISPATCH-INDEX.md`.
   `frontend/tests/mail/mail-user-settings.test.tsx`, and
   `frontend/tests/mail/mail-settings-route.test.tsx`.
 - Behavior/oracles: active identities, required default identity, nullable signature,
-  remote image blocked/trusted and compose format; server validation/errors; cache
-  invalidation; loading/non-active mailbox; no engine credential. The new route is exactly
+  remote image blocked/trusted and compose format; last-confirmed If-Match, stale refetch and
+  zero optimistic overwrite; server validation/errors; cache invalidation; loading/non-
+  active mailbox; no engine credential. The new route is exactly
   `/settings/mail`; the parent settings navigation adds exactly one Mail item and preserves
   all current entries/order otherwise. `mail-settings-page.tsx` initially mounts only
   `MailUserSettings` and is the sole integration seam for the next packet.
@@ -208,18 +262,32 @@ every other row in `DISPATCH-INDEX.md`.
   `frontend/src/modules/mail/mail-signatures.tsx`,
   `frontend/src/modules/mail/mail-settings-page.tsx`, and
   `frontend/tests/mail/mail-signatures.test.tsx`.
-- Behavior/oracles: list/create/update/delete/default; rich editor input + server-normalized
-  plain response; one default; bounded name/body; safe preview; conflict/error/focus; no
+- Behavior/oracles: list/create/update/delete/default; stable create key; explicit rich/plain
+  source and server-normalized plain response, never a client-authored rich/plain pair; one
+  default; last-confirmed If-Match on update/delete; bounded name/body; stale refetch,
+  safe preview/conflict/error/focus; no
   direct raw HTML render outside safe boundary. Integrate the component only in the
   already-created `mail-settings-page.tsx`; do not edit the route or parent settings nav.
+
+## 146-06A-Rules — typed rule CRUD/deployment status
+
+- Dependency: 06A-Settings + 01B + accepted Phase 144 rule API. Allowed only
+  `frontend/src/modules/mail/mail-rules.tsx`, one narrow settings-page mount and
+  `frontend/tests/mail/mail-rules.test.tsx`.
+- Behavior/oracles: typed frozen conditions/actions/targets, order/enable CRUD, stable create
+  key and If-Match including delete; raw Sieve/script id impossible; pending/applying/ready/unknown/error
+  rendered truthfully with bounded retry/refetch. HTTP save success is never labelled
+  installed until `ready`; delete 202 keeps deployment progress visible; 423 is not expected.
 
 ## 146-06B-API — separate mailbox admin client
 
 - Dependency: Phase 144 admin API + 01A. Allowed only
   `frontend/src/api/admin-mailbox.ts`,
   `frontend/tests/mail/admin-mailbox-api.test.ts`.
-- Behavior/oracles: exact mailbox-settings/domain/health paths/types/methods, redacted
-  health, no secret fields; no changes/imports to legacy `admin-mail.ts`; compile distinction
+- Behavior/oracles: exact mailbox-settings/domain/health and per-user alias paths/types/
+  methods, stable create keys, last-confirmed If-Match for policy/domain writes, redacted
+  health, no secret fields; no changes/imports to
+  legacy `admin-mail.ts`; compile distinction
   between flat Resend and mailbox policy; non-arbitrary headers.
 
 ## 146-06B-UI — mailbox admin UI
@@ -229,12 +297,23 @@ every other row in `DISPATCH-INDEX.md`.
   `frontend/src/routes/_authenticated/admin/mail.tsx`, and
   `frontend/tests/mail/mailbox-admin-settings.test.tsx`.
 - Behavior/oracles: policy limits/external toggle, domain verification/DNS public records,
-  redacted health/not_configured/degraded; admin guard/loading/error/confirm/focus; legacy
+  redacted health/not_configured/degraded, stale policy/domain refetch and zero overwrite;
+  admin guard/loading/error/confirm/focus; legacy
   Resend settings remain separate; broadcast UI is not invoked/expanded (removal requires
   founder decision/own packet). The existing `/admin/mail` route becomes an accessible
   two-tab page: `Alerts` continues to mount the unchanged `MailSettingsPanel`, while
   `Mailbox` mounts the new panel. Do not edit `mail-settings.tsx` or
   `admin/dashboard.tsx` in this packet.
+
+## 146-06B-Aliases — per-user alias admin UI
+
+- Dependency: accepted 06B-API/UI. Allowed only
+  `frontend/src/components/admin/mailbox-aliases.tsx`, the narrow mount in
+  `mailbox-admin-settings.tsx`, and `frontend/tests/mail/mailbox-aliases.test.tsx`.
+- Behavior/oracles: same-org active user selection, list/create/delete aliases with one
+  stable create key; primary/group rows cannot mutate; domain/duplicate/provisioning/unknown
+  states plus system-reserved UUID local-part rejection, confirm/focus/a11y and named result copy; no engine identity id, cross-org user,
+  provider error or arbitrary address-domain inference.
 
 ## 146-07 — realtime query invalidation
 

@@ -23,6 +23,9 @@ intent, submission receipt polling and unknown recovery after accepted draft aut
 
 - One explicit user send intent creates one cryptographically strong key outside render
   and retains it for retries/polls of that intent. It is never persisted or logged.
+- POST carries the exact last-confirmed quoted draft revision; a retry preserves both key and
+  `If-Match`. Same-key receipt replay is accepted even when the draft has since become
+  submitted; a new-key stale/submission conflict refetches and never blindly sends.
 - Double click/Enter while active returns the same promise/state and makes one POST.
 - Send waits for current autosave to confirm/reconcile; conflict, unknown or submitting
   draft blocks a new send with actionable state.
@@ -37,7 +40,8 @@ intent, submission receipt polling and unknown recovery after accepted draft aut
 [REQUIRED ORACLES]
 
 1. Double send produces one POST with one key.
-2. API client's one auth retry preserves the same key (integration with 146-01A oracle).
+2. API client's one auth retry preserves the same key and exact draft `If-Match`
+   (integration with 146-01A oracle).
 3. Queued/submitting/unknown receipt polls GET only and never repeats POST.
 4. Network failure before receipt id creates unknown UI; explicit retry reuses original key
    and exact frozen intent.
@@ -55,7 +59,7 @@ intent, submission receipt polling and unknown recovery after accepted draft aut
 - Host test/build/lint forbidden; accepted Docker launcher only. Missing harness/launcher
   => `NOT_RUN`.
 - No commit/push/PR/network/generated files. max_depth 0; fan_out 0; retries 2; 45m.
-- requested_model `gpt-5.3-codex`; reasoning `xhigh`; fallback none; mismatch => `BLOCKED`.
+- requested_model `gpt-5.6-terra`; reasoning `xhigh`; fallback none; mismatch => `BLOCKED`.
 
 [ОТВЕТ]
 

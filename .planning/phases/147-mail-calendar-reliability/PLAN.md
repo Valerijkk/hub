@@ -1,7 +1,7 @@
 # Phase 147 — Mail/Calendar Reliability and Integrations
 
-> Task: TASK-240 · Status: CONTRACT_0_1_5_ROOT_REVIEW_PENDING_INDEPENDENT_PENDING_CODE_BLOCKED · Depends on: Phases 143–146
-> Required code runtime: `gpt-5.3-codex` / `xhigh`, no fallback
+> Task: TASK-240 · Status: CONTRACT_0_1_6_ROOT_REVIEW_PENDING_INDEPENDENT_PENDING_DEPENDENCY_BLOCKED · Depends on: Phases 143–146
+> Required code runtime: `gpt-5.6-terra` / `xhigh`, no fallback
 > Contract: `CONTRACT.md` · Dispatch: `DISPATCH-INDEX.md` + `DISPATCH-PACKETS.md`
 
 ## Outcome
@@ -13,7 +13,7 @@ this phase.
 
 ## Ordered execution
 
-1. Independently review Mail 0.1.5 reliability/bridge semantics and close contract findings.
+1. Independently review Mail 0.1.6 reliability/bridge semantics and close contract findings.
 2. After accepted Phase 143/144 schemas, add inbound object/message receipts, reply
    delivery and reminder receipts; generate only through the accepted launcher.
 3. Implement REQUEST/CANCEL order policy, atomic application, authenticated message-part
@@ -39,9 +39,9 @@ this phase.
 
 | Gate | State |
 |---|---|
-| Root reliability contract static review | 0.1.5 PENDING; 0.1.4 `46cfa26c` historical STALE |
+| Root reliability contract static review | 0.1.6 PENDING; 0.1.5 `eae6f5e5` historical STALE |
 | Independent reliability contract review | PENDING |
-| Exact Spark code runtime | UNAVAILABLE |
+| Exact Terra code runtime | AUTHORIZED_BY_FOUNDER / first actual packet pending |
 | Phase 143/144 accepted implementation | NOT_IMPLEMENTED |
 | Engine authentication mapping | BLOCKED_BY_PHASE_145 |
 | Accepted Docker launcher | NOT_READY |

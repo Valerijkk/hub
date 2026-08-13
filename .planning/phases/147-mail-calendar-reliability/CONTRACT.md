@@ -1,7 +1,7 @@
 # Phase 147 — reliability and integration contract
 
-> **Contract addendum:** Mail 0.1.5
-> **Status:** ROOT_STATIC_REVIEW_0_1_5_PENDING · 0_1_4_PASS_STALE · INDEPENDENT_REVIEW_PENDING · PRODUCT_CODE_NOT_IMPLEMENTED
+> **Contract addendum:** Mail 0.1.6
+> **Status:** ROOT_STATIC_REVIEW_0_1_6_PENDING · 0_1_5_SNAPSHOT_STALE · INDEPENDENT_REVIEW_PENDING · PRODUCT_CODE_NOT_IMPLEMENTED
 > **Depends on:** accepted Phase 143 calendar core, Phase 144 mailbox domain, and the
 > engine adapter portions named by each packet
 > **Runtime evidence:** NOT_RUN
@@ -337,7 +337,7 @@ Guarantees are deliberately narrow:
 ## 6. Conditional L1 iCal feed contract
 
 This section is design-complete but `BLOCKED_BY_FOUNDER_QUESTION_5`. Its endpoints are not
-part of OpenAPI 0.1.5 until accepted.
+part of OpenAPI 0.1.6 until accepted.
 
 - CRUD proposal: `/api/calendar/v2/feeds` and `/feeds/{feedId}` plus explicit
   `/feeds/{feedId}/refresh`; every resource is owner-scoped, with at most 10 active feeds,
@@ -451,5 +451,5 @@ program without editing it. Required named additions:
 - conditional `TC-CALSYNC-023..025`: feed SSRF, conditional refresh, and snapshot failure.
 
 Static review can accept this contract. Runtime/product status stays `NOT_IMPLEMENTED` /
-`NOT_RUN` until exact Spark implementation, reviewed generation/migration and the accepted
+`NOT_RUN` until exact Terra implementation, reviewed generation/migration and the accepted
 Docker launcher produce current-SHA evidence.

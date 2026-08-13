@@ -1,18 +1,35 @@
-# Phase 143 code-runtime blocker
+# Phase 143 code-runtime routing record
 
 > **Detected:** 2026-08-13
 > **Scope:** atomic production/test code only
 > **Planning/review:** continues
+> **Current status:** RESOLVED_BY_FOUNDER_OVERRIDE
 
-## Required route
+## Current route — task-local founder amendment
 
-Founder lock requires every atomic code task to run as:
+On 2026-08-13 the founder explicitly instructed this Mail branch to use Terra instead of
+Codex for implementation. For Phases 143–148 on `codex/mail-module-20260813`:
+
+- requested model: `gpt-5.6-terra`
+- reasoning effort: `xhigh`
+- fallback: none
+- root `gpt-5.6-sol` remains orchestrator/reviewer and does not write atomic product/test
+  code
+
+This is a branch/workstream-specific amendment, not a global rewrite of Hub routing. Every
+dispatch still records exact requested/actual model and effort. The instruction does not
+authorize protected-path work, direct Docker fallback, migration apply, push, PR, merge,
+deployment, DNS, license purchase or secrets.
+
+## Superseded route at detection
+
+The prior founder lock required every atomic code task to run as:
 
 - requested model: `gpt-5.3-codex` (5.3 Codex Spark)
 - reasoning effort: `xhigh`
 - fallback: none
 
-Root Sol and Terra are not permitted substitutes.
+At detection, Root Sol and Terra were not permitted substitutes.
 
 ## Attempts and evidence
 
@@ -31,21 +48,23 @@ Root Sol and Terra are not permitted substitutes.
 CLI thread ids for provenance: `019ff842-5c0f-7782-a8af-adc755392634` (network-blocked)
 and `019ff843-2b21-72e0-b91f-0c66590c1cba` (catalog rejection).
 
-## Result
+## Historical result
 
-- actual model: `UNAVAILABLE` (no inference or fallback)
+- prior requested model: `UNAVAILABLE` (no inference or fallback)
 - provider: OpenAI Responses API reached on the second attempt
 - code changes from dispatch: none
 - tests/build/lint/validators: NOT_RUN
-- Task 143-01 code status: `BLOCKED_BY_EXACT_RUNTIME`
+- Task 143-01 code status at that attempt: `BLOCKED_BY_EXACT_RUNTIME`
 
-## Resume condition
+## Resolution
 
-Resume code only when either:
+The prior blocker could be resolved only when either:
 
 1. the native dispatcher exposes exact `gpt-5.3-codex` with `xhigh`; or
 2. the ChatGPT-account Codex catalog supports the exact locked slug; or
 3. the founder explicitly amends the model-routing lock with another exact route.
 
-Until then, continue bounded Terra analysis/review, documentation, dispatch preparation,
-and other non-code work. Do not silently use Sol/Terra for implementation.
+Condition 3 was satisfied by the explicit founder directive above. Code dispatch is now
+authorized only as exact `gpt-5.6-terra` / `xhigh`; first-packet actual provenance remains
+`NOT_RUN` until a dispatch completes. Docker-backed verification remains separately
+`NOT_READY` until the canonical launcher is accepted.

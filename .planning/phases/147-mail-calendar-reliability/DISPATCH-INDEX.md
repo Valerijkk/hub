@@ -1,8 +1,8 @@
-# Phase 147 — exact Spark dispatch index
+# Phase 147 — exact Terra dispatch index
 
-> **Status:** CONTRACT_0_1_5_ROOT_REVIEW_PENDING · INDEPENDENT_REVIEW_PENDING · CODE_RUNTIME_BLOCKED
-> **Required runtime:** `gpt-5.3-codex` / `xhigh`, no fallback
-> **Contract:** `CONTRACT.md` + Mail 0.1.5
+> **Status:** CONTRACT_0_1_6_ROOT_REVIEW_PENDING · INDEPENDENT_REVIEW_PENDING · CODE_RUNTIME_BLOCKED
+> **Required runtime:** `gpt-5.6-terra` / `xhigh`, no fallback
+> **Contract:** `CONTRACT.md` + Mail 0.1.6
 > **Execution:** one row/variant per executor; overlapping files are sequential
 
 Every code packet starts from a root-reviewed clean SHA, writes its stated genuine unit
@@ -81,7 +81,7 @@ all accepted rows ─ 147-08 docs sync/static review
 | 147-06H | Feed refresh scheduler composition | `backend/internal/calendar/feed_scheduler.go`, `backend/cmd/server/wiring_calendar_feed.go`, `backend/tests/calendar/feed_scheduler_test.go` | genuine fake-clock unit; hourly jitter, one-per-feed claim, manual rate/backoff, context shutdown | 06E/F/G |
 | 147-07A | Immutable CRM mail activity link schema | `backend/ent/schema/crmmailactivity.go`, narrow edges in `crmdeal.go`/`mailmessage.go`/`user.go` | unique deal+message; no content/address/tracking; safe deletion relation | accepted 144 message schema + migration |
 | 147-07B | CRM compose context and owned-message link service | `backend/internal/crm/mail_service.go`, `mail_port.go`, `backend/internal/mail/crm_message_adapter.go`, `backend/tests/mail/crm_mail_service_test.go` | genuine fake-port unit; deal and message owners checked separately; idempotent link; zero hydrate on denial | 07A + accepted mailbox projection |
-| 147-07C | CRM mail DTO/handlers/routes | `backend/internal/crm/mail_dto.go`, `mail_handler.go`, narrow `backend/internal/crm/handler.go` and `backend/cmd/server/wiring_modules.go`; no Go HTTP test | exact 0.1.5 paths/NFR-13; bounded timeline; not-found privacy; Python API handoff | 07B |
+| 147-07C | CRM mail DTO/handlers/routes | `backend/internal/crm/mail_dto.go`, `mail_handler.go`, narrow `backend/internal/crm/handler.go` and `backend/cmd/server/wiring_modules.go`; no Go HTTP test | exact 0.1.6 paths/NFR-13; bounded timeline; not-found privacy; Python API handoff | 07B |
 | 147-07D | Typed CRM mail API client | `frontend/src/api/crm-mail.ts`, `frontend/tests/mail/crm-mail-api.test.ts` | exact compose/list/link/unlink methods; opaque cursor; 204 handling; no draft/send or mailbox-authorization shortcut | 07C + accepted shared client |
 | 147-07E | Deal compose-to-draft handoff | `frontend/src/modules/crm/deal-mail-compose-action.tsx`, narrow `frontend/src/modules/crm/deals-pipeline.tsx`, `frontend/tests/mail/crm-mail-compose.test.tsx` | context + Mail default identity + one idempotent ordinary draft create; recipient only in body; navigate by draft UUID; no send/link | 07D + accepted Phase 146 Mail client/routes + frontend harness |
 | 147-07F | Saved-draft CRM intent and explicit post-send link | `frontend/src/modules/mail/mail-crm-link-intent.ts`, narrow `frontend/src/modules/mail/mail-shell.tsx`, `frontend/tests/mail/mail-crm-draft-link.test.tsx` | deal id only in ephemeral navigation state; normal composer/submission; link enabled only for definitive owned message; reload safely loses hint | 07D/E + accepted Phase 146 composer |
@@ -120,9 +120,9 @@ all accepted rows ─ 147-08 docs sync/static review
 
 | Gate | Status |
 |---|---|
-| Mail 0.1.5 root static review | PENDING; 0.1.4 `46cfa26c` is historical STALE |
-| Mail 0.1.5 independent static review | PENDING |
-| Exact Spark implementation runtime | UNAVAILABLE |
+| Mail 0.1.6 root static review | PENDING; 0.1.5 `eae6f5e5` is historical STALE |
+| Mail 0.1.6 independent static review | PENDING |
+| Exact Terra implementation runtime | AUTHORIZED_BY_FOUNDER / first actual packet pending |
 | Accepted Docker launcher | NOT_READY |
 | Ent generation/migration | NOT_RUN / FOUNDER_DECISION_PENDING |
 | Engine authentication-result mapping | BLOCKED_BY_G145 |

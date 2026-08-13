@@ -70,7 +70,7 @@ hash; it does not authorize a sender or mutate state.
   launcher unavailable => `NOT_RUN` plus static evidence.
 - No commit/push/PR/network/dependency install/generated code.
 - max_depth 0; max_fan_out 0; retries 2/root cause; wall clock 45m.
-- requested_model `gpt-5.3-codex`; reasoning `xhigh`; fallback none.
+- requested_model `gpt-5.6-terra`; reasoning `xhigh`; fallback none.
 - Orchestrator records exact clean HEAD and verifies only allowed paths changed.
 
 [ОТВЕТ]

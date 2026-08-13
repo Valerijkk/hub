@@ -7,8 +7,8 @@
 ## Prepared artifacts (root-reviewed; independent pending)
 
 - Architecture, source-of-truth, security and compatibility decisions are amended in Mail
-  contract 0.1.5. Its root static review is pending; the 0.1.4 pass on `46cfa26c` is
-  historical `STALE`, and independent current-provenance review remains pending.
+  contract 0.1.6. Its root static review is pending; the 0.1.5 docs snapshot on
+  `eae6f5e5` is historical `STALE`, and independent current-provenance review remains pending.
 - OpenAPI covers mailbox, submission recovery, legacy calendar, canonical calendar and
   separate legacy/new admin resources.
 - Event subjects and webhook privacy boundary are frozen.
@@ -20,12 +20,13 @@
   independent current-contract evidence; the new root review does not replace them.
 - Phase 145 has a nine-gate legal/provenance/runtime/ops plan.
 - Founder questions have safe unattended defaults and authorize no external action.
+- Founder question 11 is answered: exact `gpt-5.6-terra` / `xhigh`, no fallback, is the
+  task-local atomic-code route for this Mail branch.
 
 ## Hard blockers
 
 | Blocker | Evidence | Unblocks |
 |---|---|---|
-| Exact atomic-code runtime unavailable | `RUNTIME-BLOCKER.md` | all product/test code in Phases 143–146 |
 | Accepted versioned Docker launcher not implemented | root `AGENTS.md`, `STATE.md` | Ent generation, build/test/validator/runtime evidence |
 | Production migration mechanism unresolved | `MIGRATION-PLAN.md`, founder question 12 | schema generation/migration/backfill acceptance |
 | Recurring ScheduledCall semantics unresolved | `MIGRATION-PLAN.md`, founder question 18 | recurring backfill and all-or-nothing cutover |
@@ -37,8 +38,9 @@
 
 ## First authorized execution sequence
 
-1. Founder exposes exact `gpt-5.3-codex` / `xhigh` runtime without fallback.
-2. Dispatch 143-01 on the recorded clean HEAD; root reviews allowed-path diff.
+1. Dispatch 143-01 as exact `gpt-5.6-terra` / `xhigh` on the recorded clean HEAD; root
+   records actual provenance and reviews the allowed-path diff.
+2. Accept or reject that packet before any dependent dispatch.
 3. Dispatch 143-02A then 143-02B; accept deterministic iTIP surface.
 4. Resolve migration mechanism and accepted launcher before Ent generation.
 5. Admit `calendar.>` before calendar producers.
@@ -53,7 +55,8 @@
 
 ## Forbidden shortcuts
 
-- Sol/Terra writing atomic product/test code;
+- Root Sol or any runtime other than exact `gpt-5.6-terra` / `xhigh` writing atomic
+  Mail product/test code;
 - silent model fallback;
 - host test/build/lint/validator/generator/process execution;
 - direct Docker/Compose as accepted evidence;

@@ -3,17 +3,17 @@
 > **Review runtime:** `gpt-5.6-terra`; effort is explicit per packet
 > **No implementation:** reviewers do not edit product/test code or commit
 > **Input:** exact current SHA, frozen contract set, changed-file manifest and evidence
-> **Output:** findings only; fixes return to atomic Spark packets
+> **Output:** findings only; fixes return to atomic Terra packets
 
 Each reviewer reads the actual changed source in its scope, not merely plan summaries. The
 root deduplicates findings, freezes exact fixes, dispatches each code fix to
-`gpt-5.3-codex` / `xhigh`, then sends the changed SHA back to the relevant reviewer. A
+`gpt-5.6-terra` / `xhigh`, then sends the changed SHA back to the relevant reviewer. A
 review cannot self-certify its own fix.
 
 ## Common review envelope
 
 - Confirm actual model/effort first. Missing/mismatched provenance returns `BLOCKED`.
-- Read root `AGENTS.md`, `.planning/STATE.md`, routed domain docs, Mail 0.1.5 contract,
+- Read root `AGENTS.md`, `.planning/STATE.md`, routed domain docs, Mail 0.1.6 contract,
   Phase 147 contract and the supplied exact diff. Never read protected test-rebase or
   `pro-qa-ai` paths.
 - Do not run host tests/build/lint/validators or direct Docker/Compose. Review accepted
@@ -41,6 +41,8 @@ Review package boundaries, dependency direction, transactions and source of trut
 - linked meetings have one canonical writer, event-before-call lock order, bridge-only
   mutations, all-or-nothing cutover and single-count aggregate/availability readers;
 - background workers have bounded leases/retries, context shutdown and one composition;
+- provisioning intent/identity ownership, generic mutation receipt and desired/deployed
+  rule generations have distinct atomic boundaries and recovery owners;
 - mailbox Changes/enumeration adapter proves a composite catch-up base and resumable stable
   query anchor; invalid cursor rebuild never pre-clears or finalizes partial enumeration;
 - deployment/backup separates engine volume from PostgreSQL/object storage.
@@ -55,6 +57,10 @@ no packet silently widened a schema/public API/dependency.
 Review state machines, concurrency, bounds and error semantics:
 
 - draft/save/submission idempotency and unknown reconciliation;
+- account provisioning, create/bulk receipt replay/compaction, folder pending-intent
+  exact-match/definitive-absence recovery and rule-generation Get-before-retry/stale-owner
+  recovery;
+- typed message/thread bulk expansion and explicit spam/ham feedback distinct from move;
 - mailbox projection page/event/cursor atomicity, command-lease begin/end fencing, expiry/
   late-owner recovery, invalid-cursor enumeration/catch-up recovery, provenance-safe
   received-event cutoff/marker and multi-replica worker lifecycle;
@@ -73,6 +79,8 @@ Review state machines, concurrency, bounds and error semantics:
 - feed snapshot/conditional refresh if included;
 - CRM link idempotency, existing-message owned-deal picker and no message hydration on denial;
 - NFR-13 body plus exact headers/statuses and legacy shape compatibility.
+- exact route-specific mailbox 409 codes, including non-disclosing global domain/address
+  unavailable semantics; no UI depends on localized error text.
 
 Mutation/transaction failures must leave no partial receipt, event, attendee, projection,
 outbox, CRM link or falsely completed delivery.
@@ -87,6 +95,8 @@ Threat-review every trust boundary:
 - admin middleware before probes/details plus named audit actions;
 - body/MIME/recipient/BCC/secret/idempotency/feed-URL storage/log/error boundaries;
 - server-side HTML sanitization, reader CSP/sandbox and no browser original-URL fetch;
+- server-derived plain content, reviewed-sanitizer-or-plain-only behavior and no client
+  rich/plain dual authority;
 - remote-image proxy pre/post-connect SSRF, DNS rebinding and size/time/type caps;
 - attachment namespace, hash, type, filename, scanner fail-closed and presign reauth;
 - send rate/recipient/message limits and auto-response loop headers;
@@ -99,6 +109,8 @@ Threat-review every trust boundary:
 - CRM permission not becoming mailbox delegation;
 - event/webhook payloads and dead-letter/audit redaction;
 - Stalwart license/image/SBOM/signature/config/secret and network exposure gates.
+- application and ingress logging never persist remote-image token paths, search queries or
+  concrete UUID paths; unmatched route labels are constant rather than attacker input.
 
 Any cross-tenant read/write, arbitrary URL, active-content execution, raw credential/body
 leak, unauthenticated calendar mutation or duplicate send path is P0.
@@ -111,14 +123,20 @@ Review the actual UI against the accepted design and API:
 
 - TanStack Query is server truth; URL is selection truth; composer reducer is local only;
 - three-pane/deep-link/back-forward/mobile behavior and exact navigation order;
-- 401 retry preserves idempotency/If-Match; same-origin canonical Location validation;
+- provisioning status, folder/label management, rule deployment state and admin aliases;
+- 401 retry preserves idempotency/If-Match; versioned folder/settings/signature/label/rule/
+  policy/domain conflicts refetch without overwrite; pending folder controls never claim
+  completion; same-origin canonical Location validation;
 - draft autosave single-flight/conflict/unknown recovery and send receipt polling;
-- safe reader/remote image/attachment state boundaries;
+- safe reader/remote image/attachment state boundaries, same-object presign replay and
+  byte-only proxy headers/no redirect;
 - invitation sequence/occurrence/refetch/reply-failed states;
 - call calendar consumes canonical-backed occurrences and does not expand a second browser
   RRULE or show cancelled/duplicate linked meetings; `call.scheduled_due.v1` invalidates the
   authorized query without a duplicate reminder/toast;
 - partial bulk rollback and search cursor/error-vs-empty behavior;
+- typed message/thread target preservation, stable create/bulk keys, classifier-training
+  outcome and body/attachment-filename search without client content persistence;
 - conservative folder/thread/search projection freshness, stale/rebuilding banner and
   query-only retry with no client-side worker or false-ready transition;
 - CRM creates one ordinary Mail draft, never puts recipient/content in URL/history, and

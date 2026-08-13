@@ -65,7 +65,7 @@ Tests use `package calendar_test` and in-memory values only:
   If accepted launcher is unavailable, return `NOT_RUN` and static evidence only.
 - No commit/push/PR/network/dependency install/generated code.
 - max_depth 0; max_fan_out 0; max retries per root cause 2; wall clock 45m.
-- requested_model `gpt-5.3-codex`; reasoning `xhigh`; fallback none.
+- requested_model `gpt-5.6-terra`; reasoning `xhigh`; fallback none.
 - Orchestrator supplies and records exact clean HEAD at dispatch.
 
 [ОТВЕТ]

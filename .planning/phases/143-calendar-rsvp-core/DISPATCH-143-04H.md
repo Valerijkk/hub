@@ -64,7 +64,7 @@ stale pre-command `If-Match` conflicts before any second outbox/notification.
 - TDD first; no dependency/generated code/global state.
 - Host verification/direct Docker forbidden; accepted launcher absent => `NOT_RUN`.
 - No commit/push/PR/network. max_depth 0; fan_out 0; retries 2; wall clock 45m.
-- requested_model `gpt-5.3-codex`; reasoning `xhigh`; fallback none; mismatch => `BLOCKED`
+- requested_model `gpt-5.6-terra`; reasoning `xhigh`; fallback none; mismatch => `BLOCKED`
   before mutation. Orchestrator records exact clean source-contract SHA.
 
 [ОТВЕТ]

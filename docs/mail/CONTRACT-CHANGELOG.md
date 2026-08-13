@@ -1,5 +1,80 @@
 # Hub Mail contract changelog
 
+## 0.1.6 — 2026-08-13
+
+Mailbox control-plane, safe-content and mutation-recovery amendment. Product code/runtime
+remain `NOT_IMPLEMENTED` / `NOT_RUN`; 0.1.5 is historical `STALE` and current root plus
+independent semantic review is pending.
+
+- Added an explicit bounded provisioning service/worker: deterministic immutable primary
+  address/key/cutoff reservation, idempotent `EnsureAccount`, exact-lease activation,
+  read-only safe `/mail/account` state and no request-path engine creation.
+- Made Hub rules canonical desired state with a generation/hash deployment row and separate
+  mutation-leased worker. One fixed Hub Sieve script is reconciled through Get-before-retry;
+  rule HTTP responses expose honest pending/applying/ready/unknown/error state and no longer
+  return 423 for synchronous engine work they do not perform.
+- Added explicit spam/ham classifier feedback to the engine port. Bulk requests now preserve
+  typed message/thread targets, include label actions, report classifier outcome separately
+  from move/flag state, and use one stable mutation receipt with normalized expansion/outcome
+  children. Replay never re-expands a changed thread or retries indeterminate training.
+- Added generic hashed receipts for folder/label/signature/rule/presign/admin-domain/alias
+  creates and message bulk intents. Full replay metadata lasts 30 days and a compact
+  key/request tombstone remains for the owning scope lifetime; raw keys/response/content do
+  not persist. Generic replay-unavailable/expired conflicts are distinct from specialized
+  draft/send/legacy-call receipts; presign replay refreshes only the same pending object URL.
+  Generic intents use v4/v7 UUID keys and a raw-keyed canonical request HMAC so small
+  payloads cannot be enumerated from database fingerprints.
+- Reused the receipt schema in an explicit non-wire `internal` mode for versioned folder
+  update/delete recovery. Its injected UUID key is created only after lease/optimistic checks,
+  is never accepted from HTTP, and may be removed after the terminal recovery window.
+- Froze server-derived plain content, reviewed-sanitizer-or-plain-only behavior, received
+  remote-image token rewriting and owner/message-bound proxy checks on every redirect/
+  connect. The proxy returns bounded image bytes with fixed private/no-referrer/nosniff/CSP
+  headers and never redirects or returns the origin URL.
+- Constrained the public remote-image path token to unpadded base64url 32..1024 so traversal,
+  escaping, padding and malformed bytes fail before decode, authorization or network work.
+- Made label, user-settings, signature, rule-delete, mailbox-policy and domain wire writes
+  match their versioned models through `If-Match`; active-rule label deletion now has a
+  machine-readable no-mutation conflict.
+- Replaced generic new-mail 409s with route-specific header codes for version/name/in-use,
+  policy prerequisites, domain invariants and alias state. Global domain/address collisions
+  disclose only `*_UNAVAILABLE`, never another tenant's owner/resource.
+- Required `If-Match` for draft delete and send as well as save. Same-key send replay is
+  resolved first; new stale/not-editable/competing transitions have exact no-mutation codes.
+- Added machine-readable attachment confirm/expiry/non-clean conflicts and constrained clean
+  download redirects to fixed HTTPS storage with required `no-store`/`no-referrer`.
+- Closed new mailbox request objects against unknown properties and made rule conditions/
+  actions exact typed unions, preventing client scope ids or ambiguous targets on the wire.
+- Made bulk move/label/thread-pin/no-argument actions mutually exclusive and forbade every
+  irrelevant folder/label target field instead of silently ignoring it.
+- Closed public submission/rule/domain/bulk error codes to explicit allowlists so provider
+  text cannot cross persistence, API, audit or client analytics boundaries.
+- Made submission message/error fields required-nullable with state-conditional invariants;
+  pending cannot masquerade as sent and failed/unknown cannot carry a message id.
+- Split enriched response addresses from draft recipient input so client-supplied `user_id`
+  is rejected and cannot become identity or authorization input.
+- Removed the duplicate message-label replace wire; receipt-backed bulk add/remove now owns
+  both single and multi-target label provenance/recovery.
+- Added an atomic route-metadata redaction packet because current generic access/audit paths
+  would otherwise expose a remote-image token; ingress must independently redact token paths
+  and mail-search queries.
+- Made folders versioned desired intents with owner-visible pending/unknown/delete states and
+  bounded receipt recovery inside the existing projection worker, preventing duplicate
+  create or overwrite after a lost engine response without adding a fifth worker.
+- Made exact-match/absence folder recovery fail closed behind a reviewed Hub-exclusive
+  custom-folder-writer capability. Wave 1 exposes only Hub-internal JMAP/admin plus optional
+  SMTP delivery; user IMAP/JMAP/ManageSieve/direct-admin folder mutation stays unpublished.
+- Froze Meilisearch hydration for bounded sanitized plain body plus normalized attachment
+  filenames, with no raw HTML/MIME/BCC/remote URL and a second current-owner authorization
+  before any id/snippet response.
+- Added missing folder/label management, remote-image consent, rule-deployment, provisioning
+  and admin-alias UI packets. Added founder questions 24–26 for address policy, sanitizer
+  dependency and fixed-script ownership.
+- Bumped the OpenAPI and routed phase/QA contracts to 0.1.6; no event payload changed.
+- Recorded the founder's task-local implementation-route amendment: Mail atomic code uses
+  exact `gpt-5.6-terra` / `xhigh`, no fallback; Docker verification remains separately
+  gated by the canonical launcher.
+
 ## 0.1.5 — 2026-08-13
 
 ScheduledCall canonical-cutover and mailbox-projection amendment. Product code and runtime remain

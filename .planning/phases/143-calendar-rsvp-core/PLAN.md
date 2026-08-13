@@ -1,6 +1,6 @@
 # Phase 143 — Calendar RSVP Core
 
-> Task: TASK-236 · Status: ANALYSIS_ACTIVE_CODE_BLOCKED_BY_EXACT_RUNTIME · Depends on: Phase 142
+> Task: TASK-236 · Status: CONTRACT_0_1_6_ROOT_REVIEW_PENDING_CODE_ROUTE_AUTHORIZED · Depends on: Phase 142
 
 ## Goal
 

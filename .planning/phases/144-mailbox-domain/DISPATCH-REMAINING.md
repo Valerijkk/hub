@@ -2,7 +2,7 @@
 
 > **Assembly rule:** dispatch the Common execution envelope plus exactly one packet or one
 > explicitly named variant below. Combining variants is invalid.
-> **Runtime:** `gpt-5.3-codex` / `xhigh`, fallback none.
+> **Runtime:** `gpt-5.6-terra` / `xhigh`, fallback none.
 > **Status:** CODE_RUNTIME_BLOCKED; generation/runtime also launcher-blocked.
 
 Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05A,
@@ -31,7 +31,8 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 - Dependency: accepted 01A. Allowed only:
   `backend/internal/mail/mailbox_fake.go`,
   `backend/tests/mail/mailbox_fake_test.go`.
-- Behavior: mutex-protected in-memory accounts/folders/messages/blobs/drafts/submissions;
+- Behavior: mutex-protected in-memory accounts/folders/messages/blobs/drafts/submissions,
+  fixed Sieve state and spam-training outcomes;
   injected ids/clock; scripted typed errors and lost responses; strict account scoping;
   `ReconcileDraft` and `ReconcileSubmission` never mutate/retry. Script bounded hydrated
   incremental pages plus base-anchored enumeration pages/checkpoints, invalid cursor,
@@ -42,11 +43,14 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 
 ## 144-02A — account/identity/domain/policy schemas
 
-- Dependency: contract 0.1.5 and migration gate recorded. Allowed only:
+- Dependency: contract 0.1.6 and migration gate recorded. Allowed only:
   `backend/ent/schema/mailaccount.go`, `mailidentity.go`, `maildomain.go`,
   `mailboxpolicy.go`, narrow additive inverse edges in `user.go`, `organization.go`.
 - Behavior: exact spec §3 fields/enums/bounds; unique org+user, opaque engine account;
-  projection state, incremental/rebuild cursor, sync/mutation epoch, separate paired sync
+  nullable engine id, immutable account provisioning key/domain/local part, desired/deployed
+  account generations/hashes, paired account-control lease/retry/error; identity pending/
+  active/error/deleting; domain stable key/state/desired+deployed generation/hash/paired lease/
+  retry/public DNS fields; projection state, incremental/rebuild cursor, sync/mutation epoch, separate paired sync
   and mutation leases,
   retry/error, immutable injected activation cutoff committed before first worker eligibility
   and freshness fields; normalized identity/domain uniqueness;
@@ -59,12 +63,15 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 ## 144-02B — folder/thread/message/membership/label schemas
 
 - Dependency: reviewed 02A. Allowed only new schema files
-  `mailfolder.go`, `mailthread.go`, `mailmessage.go`, `mailmessagefolder.go`, `maillabel.go`.
+  `mailfolder.go`, `mailthread.go`, `mailmessage.go`, `mailmessagefolder.go`, `maillabel.go`,
+  `mailmessagelabel.go`.
 - Behavior: same-account relations; engine folder/message ids unique per account;
+  folder engine id nullable only for a creating intent; folder control state/receipt/version;
   message-folder join unique; non-negative rebuild epoch mark on folder/thread/message/join;
   server-derived projection-origin enum and nullable immutable received-event UUID on
   message; flags/state/freshness rebuildable;
-  labels/pin/verified calendar/CRM relations Hub-owned; bounded headers/snippet only, never
+  label has opaque random engine keyword; unique same-account message-label join carries
+  manual/engine_rule source bits with at least one true; labels/pin/verified calendar/CRM relations Hub-owned; bounded headers/snippet only, never
   raw body/MIME; custom root/child sibling uniqueness with nullable-parent partial indexes.
 - Oracles: exact indexes/predicates; no folder cycle claim at schema alone; soft-delete
   fields; BCC projection policy; no cross-account edge accepted by service contract.
@@ -86,13 +93,37 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   `mailusersettings.go`, `mailsignature.go`, `mailrule.go`, `recentcontact.go`.
 - Behavior: one settings/account; required same-account default identity for active
   account, nullable signature; one default signature; bounded sanitized config; typed rule
-  JSON/version but no raw Sieve; recent contact unique normalized email/account.
+  JSON/version/soft delete but no raw Sieve or engine script id; recent contact unique
+  normalized email/account.
 - Oracles: ownership/default partial indexes; signature/rule bounds; active Hub user rank
   not encoded as persistence; no message body authority or secret.
 
+## 144-02F — mutation receipt and rule-deployment schemas
+
+- Dependencies: reviewed 02A/D. Allowed only new schema files
+  `mailmutationreceipt.go`, `mailmutationreceipttarget.go`,
+  `mailmutationreceiptmember.go`, `mailruledeployment.go` plus their narrow additive
+  inverse edges in new Mail entities/User/Organization.
+- Behavior: receipt organization/actor/nullable account/operation/key source (`client` or
+  `internal`)/key hash/request hash/positive fingerprint version/state/target/status/safe
+  code; no response body/raw key/content/address. Client full replay metadata expires 30 days
+  after first terminal commit while its compact key/request hash tombstone survives account/
+  organization lifetime; internal folder update/delete receipts may hard-delete only after
+  the same terminal recovery window. One rule deployment per account with non-negative desired/
+  deployed generations, bounded hashes, pending/applying/ready/unknown/error, retry fields
+  and paired lease.
+- Oracles: exact composite uniqueness and source-specific delete behavior; client UUID and
+  internal UUID modes cannot be confused; target optionality; completed
+  replay vs tombstone-only reject distinguishable; in-progress/unknown never compact;
+  terminal/replay timestamps coherent; generation monotonic constraints; paired
+  lease fields; no raw Sieve/provider/error/body; no generated/migration edit.
+  Bulk targets preserve unique request index/type/id, bounded safe result counts/training;
+  member UUID snapshots total at most 200/receipt, have no engine/content edge and compact
+  with full replay metadata.
+
 ## 144-02E — Ent generation inspection
 
-- Dependencies: accepted 02A–D, founder migration choice and launcher. Allowed: no manual
+- Dependencies: accepted 02A–D/F, founder migration choice and launcher. Allowed: no manual
   tracked source; task-owned ignored generated output/evidence only.
 - Behavior/oracles: repository Ent generator inside bounded launcher; exact SHA/tool;
   inspect all schema types/edges/index metadata and compile; second generation empty diff;
@@ -126,7 +157,8 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 - Dependency: accepted 03B-Folder. Allowed only
   `rule_compiler.go`, `backend/tests/mail/rule_compiler_test.go`.
 - Behavior/oracles: frozen conjunction conditions/actions only; escape all literals;
-  folder/label targets resolved inputs; priority/order deterministic; raw Sieve/new action/
+  folder target resolves engine folder; mark-read native; add-label accepts only server-
+  resolved opaque engine keyword (never name/UUID); priority/order deterministic; raw Sieve/new action/
   nesting/bounds rejected; injection fixtures cannot add commands.
 
 ## 144-03C-Send — rate/recipient/loop policy
@@ -166,35 +198,195 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 - Dependencies: 03B-Folder/04A/01B. Allowed only `folder_service.go`,
   `backend/tests/mail/folder_service_test.go`.
 - Behavior/oracles: list/create/rename/delete through resolved account + engine; policy
-  first; projected-count precheck is advisory and adapter/engine atomically enforces the
+  first. Existing client receipt replay is resolved before a new command claim. For an absent
+  key, active lease contention returns 423 with no receipt/control mutation; one transaction
+  under the acquired lease rechecks/reserves 04O, inserts a unique creating row before I/O
+  and enforces normalized parent/name absence including pending rows. Name/cap failure is a
+  terminal safe receipt without a folder row or engine call;
+  projected-count precheck is advisory and adapter/engine atomically enforces the
   100-folder cap with `MAIL_FOLDER_LIMIT_EXCEEDED`; `BeginEngineCommand` commits before the
   first engine call and finish clears the exact lease plus advances the second epoch edge;
-  successful engine mutation reconciles projection/state; timeout/partial failure degraded and refetched,
-  not guessed; system roles protected; cross-account zero engine. Hub-only label mutation
+  successful engine mutation reconciles projection/state. PATCH/DELETE require If-Match,
+  then generate an internal injected UUID v4/v7 receipt under the acquired command lease, increment
+  version when atomically persisting desired state/receipt link, and reject a new mutation
+  while that folder is creating/unknown/deleting. Unknown create lists exact-account
+  folders only when the injected adapter capability proves Hub-exclusive custom-folder
+  writing, and accepts only one exact non-system parent/name match before controlled
+  same-receipt retry; rename/delete read current state before retry under the same gate.
+  False/unknown exclusivity, a system-role candidate, multiple/mismatch or alternate writer
+  stays degraded with zero recovery mutation, never guessed; pending state remains
+  owner-visible with zero counters and due recovery. System
+  roles protected; cross-account zero engine. Hub-only label mutation
   never increments the engine fence.
 
 ## 144-04B-Label — label commands
 
 - Dependency: accepted 04A. Allowed only `label_service.go`,
   `backend/tests/mail/label_service_test.go`.
-- Behavior/oracles: Hub-transactional CRUD/assignment, same-account messages, normalized
-  uniqueness and partial per-message result; no engine call; thread aggregation derived;
-  concurrent/version conflict safe.
+- Behavior/oracles: Hub-transactional label metadata CRUD, normalized uniqueness and create
+  reserve/replay through 04O. Message assignment is owned only by receipt-backed 04C bulk,
+  not a second replace route. Label delete rejects active rule references and cannot silently
+  orphan a manual/engine provenance join. PATCH/DELETE require optimistic version; stale or active-rule
+  delete conflicts mutate no label, join, marker or rule. Create/update normalized collision,
+  stale version and active-rule delete map to their exact label conflict code. Thread
+  aggregation derived.
 
 ## 144-04C — message projection/read/bulk
 
-- Dependencies: 03A-Thread/03B-Folder/03D/04A/01B/02E. Allowed only
+- Dependencies: 03A-Thread/03B-Folder/03D/04A/04O/01B/02E. Allowed only
   `message_service.go`, `message_projection.go`,
   `backend/tests/mail/message_service_test.go`.
 - Behavior: owner filter before engine hydrate; opaque cursor; engine authoritative
-  folders/flags, Hub labels/pin; bulk per-message outcomes; projection freshness explicit.
+  folders/flags, Hub labels/pin; typed message-or-thread bulk targets expand owner-scoped and
+  deduplicate before the 200-message cap; per-target outcomes; projection freshness explicit.
   Every engine move/flag/delete batch owns one account command lease with begin/end epoch
   edges around I/O. A competing command returns the stable retryable busy result.
   A successful mutation that changes the durable projection writes one complete 03D
   `mail.message.changed.v1` envelope through the supplied transaction outbox seam.
+- `junk`/`not_junk` use the explicit spam/ham classifier-feedback port and report training
+  outcome separately from folder/flag mutation. The bulk request reserves/replays one 04O
+  receipt so retries cannot double-train. Each message feedback command derives a stable
+  receipt/message id; without an accepted engine reconcile/idempotency primitive,
+  indeterminate training is terminal unknown and never called again.
+- Message/thread targets are expanded from one owner-scoped consistent snapshot, deduplicated
+  and persisted as ordered receipt target/member rows before engine I/O. More than 200
+  distinct messages terminally records/replays safe `MAIL_BULK_EXPANSION_LIMIT` without
+  member rows, mutation or classifier I/O. Pin/unpin requires thread; move and label actions
+  require their typed target ids. Per-target results retain the request target type and
+  exact stored succeeded/failed/training counts. Replay never re-expands current threads;
+  state mutation may reconcile only the captured members.
+- `add_label` and `remove_label` are the only public message-label mutation path, even for a
+  single message. Add changes the manual source; remove clears manual and, if `engine_rule`
+  exists, uses the fenced opaque keyword command/reconciliation before clearing that source.
+  Unknown/deleted markers are ignored, never remapped to a future label.
 - Oracles: no cross-mailbox hit/count/snippet/timing hydrate; flag/move failure reconcile;
   partial batch; BCC owner-sent only; body never repository; duplicate change idempotent;
   rollback writes neither projection change nor envelope.
+
+## 144-04J — account/identity desired-state service
+
+- Dependencies: 01B/02A/E. Allowed only
+  `backend/internal/mail/mailbox_account_control_service.go`,
+  `backend/tests/mail/mailbox_account_control_service_test.go`, and narrow account-control
+  repository signatures in accepted `mailbox_repository.go`.
+- Behavior: stable UUID-ordered eligible active-user scan only when engine/policy and a
+  verified enabled default domain are ready. In one transaction reserve the login-email
+  local part when valid/unclaimed, else `u-` + first 12 lowercase UUID hex, expanding to the
+  full 32 UUID hex only on a reserved short-prefix collision. Both fallback shapes are
+  alias-reserved; any further collision is typed failure, never random suffixing. Persist
+  immutable domain/local part/provisioning key/event cutoff plus primary identity. A claimed step calls
+  idempotent `EnsureAccount` outside DB with 30-second timeout and commits opaque account/
+  identity ids + deployed generation/active only under the exact live lease. Admin alias
+  create/delete and Hub user activation/deactivation atomically change the exact desired
+  enabled/identity set, increment generation/hash and schedule reconciliation; pending/
+  deleting aliases are not public From choices. Lost response repeats the same key/generation.
+- Oracles: disabled/missing-domain/suspended/collision zero engine; deterministic fallback;
+  two replicas one claim; stale generation/expired owner cannot activate/suspend aliases;
+  deactivation disables engine and reactivation reuses identity; partial result safely
+  retries; no password/provider text; public status redacts reservation/lease/engine id.
+
+## 144-04K — bounded account-control worker
+
+- Dependency: accepted 04J. Allowed only
+  `backend/internal/mail/mailbox_account_control_worker.go`,
+  `backend/tests/mail/mailbox_account_control_worker_test.go`.
+- One context-owned scheduler scans at most 50 candidates per second, processes at most four
+  concurrently and one account step per claim. Lease 60 seconds, I/O 30 seconds and capped
+  exponential backoff 1 second..5 minutes are injected. Cancellation stops claims, cancels
+  I/O and waits boundedly; disabled configuration starts nothing. Oracles cover due order,
+  new/existing users, alias generations, deactivate/reactivate, two replicas, renewal/
+  expiry, panic isolation and no leaked timers.
+
+## 144-04L-Settings — user settings service
+
+- Dependencies: 02D/E + 04A. Allowed only `mailbox_settings_service.go`,
+  `backend/tests/mail/mailbox_settings_service_test.go`.
+- Behavior/oracles: active owner only; same-account send-allowed default identity and
+  nullable signature; versioned patch; blocked/trusted-senders and rich/plain enums; no
+  provisioning/error resource, engine call, credential or cross-account disclosure.
+
+## 144-04L-Signatures — signature service
+
+- Dependencies: accepted 04L-Settings + 05D-Content sanitizer port. Allowed only
+  `mailbox_signature_service.go`, `backend/tests/mail/mailbox_signature_service_test.go`.
+- Behavior/oracles: bounded CRUD/default and optimistic version; create uses 04O receipt;
+  sanitizer accepts rich or plain format and derives canonical plain server-side; hostile
+  rich falls back/rejects by typed policy; no client rich/plain pair trust or raw render.
+
+## 144-04M — canonical rule service
+
+- Dependencies: 02D/F/E + 03B-Rule + 04A/O. Allowed only
+  `mailbox_rule_service.go`, `backend/tests/mail/mailbox_rule_service_test.go`.
+- Behavior: owner-scoped typed CRUD/soft delete. Each transaction validates all targets,
+  applies optimistic version, deterministically orders the complete active set, increments
+  desired generation and stores its hash/deployment pending. Create uses 04O receipt.
+  Response includes honest deployment state. It performs no engine call, account mutation
+  lease or 423 mapping.
+- Oracles: concurrent generation monotonic; same key replay; changed key conflict; stale
+  If-Match zero change; delete leaves deployable tombstone until newer generation ready;
+  no raw Sieve/script id/provider text.
+
+## 144-04N — rule deployment worker
+
+- Dependencies: accepted 04M + 01B. Allowed only `mailbox_rule_worker.go`,
+  `backend/tests/mail/mailbox_rule_worker_test.go`.
+- Bounded context-owned worker claims at most 20 due accounts per second and two concurrent
+  deployments. It captures generation/hash, acquires the ordinary account mutation lease,
+  compiles the whole set, and manages one fixed-name Hub script with marker. `unknown` first
+  calls `GetSieve`; matching marker finalizes without upload, mismatch stays/retries safely.
+  Only captured generation may become deployed; newer generation remains pending. External
+  fixed-script drift is degraded and repaired under founder default 26.
+- Oracles: lost response, crash before/after upload, stale generation, active command busy,
+  lease expiry/late owner, disabled capability, retry/backoff/cancel/panic; no raw script in
+  DB/log/error and no overlapping local step.
+
+## 144-04O — mail mutation receipt service
+
+- Dependencies: 02F/E + 04A. Allowed only `mailbox_mutation_receipt.go`,
+  `backend/tests/mail/mailbox_mutation_receipt_test.go`.
+- Behavior/oracles: canonical scope+operation+request hashing; client reserve/replay/conflict;
+  internal mode is callable only by folder update/delete after successful lease/version/state
+  checks and generates an injected UUID v4/v7 that is never an HTTP key;
+  response reconstructed from current owned target, never stored as JSON; in-progress/
+  unknown owned takeover requires operation-specific reconcile; 30-day client full replay
+  cleanup runs only after terminal replay-until and compacts to lifetime key/request
+  tombstone, while an internal terminal folder receipt may then hard-delete because it has
+  no public replay;
+  stuck nonterminal remains safely visible/reconcilable; raw key/body/address absent from persistence,
+  errors and audit. Presign reconstruction permits a fresh URL only for the same pending,
+  unexpired object; terminal/expired targets are unavailable and allocate nothing. Cross-
+  actor/account key reuse is isolated. Reject non-v4/v7 UUID keys before persistence;
+  store a length-delimited scoped key SHA-256 and raw-keyed HMAC-SHA-256 canonical request
+  fingerprint. V1 uses tagged length-delimited typed fields, normalized scalars, no maps and
+  preserves array order; version mismatch never guesses. Raw key never leaves request scope
+  after reservation or enters persistence/error/audit/log values.
+  Bulk reserve atomically persists bounded ordered target/member snapshot; terminal safe
+  outcomes replay exactly even after target deletion, while compaction removes all children.
+
+## 144-04P — domain desired-state service
+
+- Dependencies: 01B/02A/E/04O. Allowed only `mailbox_domain_service.go`,
+  `backend/tests/mail/mailbox_domain_service_test.go`, and narrow domain-control repository
+  signatures in accepted `mailbox_repository.go`.
+- Behavior/oracles: admin same-org create reserves stable provisioning key and generation/
+  hash through 04O, returns pending with no engine/DNS mutation; update desired enabled/
+  default only under version and verified/default invariants; delete marks deleting only
+  when not default/referenced. Repeated/changed key, global normalized collision, stale
+  version and cross-org are safe. DNS records are engine-projected public values only; no
+  private DKIM/provider text.
+
+## 144-04Q — bounded domain-control worker
+
+- Dependency: accepted 04P. Allowed only `mailbox_domain_worker.go`,
+  `backend/tests/mail/mailbox_domain_worker_test.go`.
+- One context-owned scheduler scans at most 20 due domain intents per second, at most two
+  concurrently. It captures generation/hash under a 60-second lease, calls `GetDomain`
+  before retrying unknown and then idempotent `EnsureDomain` with a 30-second timeout. Only
+  the exact live generation may store opaque engine id, bounded public required-DNS data,
+  verification/DKIM/safe state or confirm deleting absence. It never changes DNS.
+- Oracles: create/DNS-required/verified/error/delete; lost response; newer update wins;
+  reference/default guard; two replicas/lease expiry/late owner/backoff/cancel/panic;
+  disabled engine zero calls; no secret/private key/provider body/log value.
 
 ## 144-04F — pure mailbox sync-page policy
 
@@ -213,6 +405,9 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   is never proof. Existing messages emit `mail.message.changed.v1` only for the exact
   allowlisted projection delta; destroyed emits `changed_fields=[deleted]` with empty
   engine folders/flags while preserving current Hub label ids in the intent.
+- Hydrated reserved keywords are mapped only by exact same-account `MailLabel.engine_keyword`
+  into engine_rule join sources. Unknown markers are ignored. Public event label ids are the
+  Hub join union; raw markers never enter event/search/API/log/error.
 - Oracles: duplicate/mixed-account/malformed page rejected; deterministic order; References
   threading; BCC policy; first-seen boundary; spoofed-own-From vs confirmed submission/Sent;
   unknown provenance fails toward inbound; replay marker; no-op;
@@ -265,6 +460,11 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   clears checkpoint/lease/error and marks ready. Retention/canonical link rules run before
   later hard delete. Real constraint/concurrency/rollback proof is a Python integration
   handoff.
+- Incremental/rebuild upsert preserves folder desired fields, `control_state`,
+  `control_receipt_id` and `version` while the folder is not `active`. Final cleanup excludes
+  every pending/error control row, including a create intent with no engine id. An unresolved
+  or ambiguous folder receipt keeps the account degraded; only exact receipt recovery may
+  activate/delete its row and permit `ready` finalization.
 
 ## 144-04I — bounded sync worker lifecycle
 
@@ -284,17 +484,92 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   transient backoff/reset; context cancel before/during page; panic isolation; no leaked
   goroutine/timer; disabled path zero calls. Wiring belongs to gated Phase 145 composition.
 
+## 144-04R — bounded generic mutation recovery in the sync worker
+
+- Dependencies: accepted 04B/C/I/O plus 04A repository. Allowed only
+  `backend/internal/mail/mailbox_mutation_recovery.go`, a narrow sequential edit to
+  `mailbox_sync_worker.go`, and `backend/tests/mail/mailbox_mutation_recovery_test.go`.
+- The existing one scheduler chooses the oldest due sync-page or receipt-recovery work item;
+  it does not start a fifth worker. One account step performs one item and never holds sync
+  and mutation leases together. A recovery claim uses paired receipt lease then account
+  mutation lease, with the same 60/30-second lease/I/O and capped backoff bounds.
+- Folder recovery first checks the injected selected-adapter
+  `ExclusiveCustomFolderWriter` capability. Only a proven true value permits exact account
+  enumeration: one non-system desired match finalizes, none permits at most one controlled
+  same-receipt create attempt, and rename/delete reconcile current vs persisted desired/
+  prior state. False/unknown capability, a system-role candidate, alternate-writer signal,
+  multiple or mismatch remains degraded and makes zero recovery mutation. Bulk uses only
+  stored target/member snapshot; state mutations may read/reconcile those ids, while
+  indeterminate training is terminal unknown unless an accepted adapter primitive proves
+  idempotent reconciliation. Unknown operation/fingerprint version executes nothing.
+- Finalization atomically updates receipt/target outcomes, folder control state/projection,
+  required full envelope, receipt lease, account mutation lease and end epoch. Oracles cover
+  crash/reclaim, two replicas, later thread change, target deletion, exclusive-writer true/
+  false/unknown, system-role and ambiguous folder match,
+  preservation through ordinary sync/rebuild/final cleanup, no sync or recovery starvation,
+  cancel/panic/backoff and no raw key/content/provider data.
+
 ## 144-05C-Search — search seam
 
 - Dependency: 04A/C/I + 05B. Allowed only `mailbox_search.go`,
   `backend/tests/mail/mailbox_search_test.go`.
 - Behavior/oracles: typed search port/query; mandatory org/account filters embedded before
   query and again before hydrate; bounded cursor/filters/snippet; foreign hits discarded
-  without leaking total/id; index document has no raw body beyond approved safe projection.
+  without leaking total/id; index document accepts only the 05E bounded sanitized body and
+  normalized filename projection, never raw HTML/MIME/BCC/remote URL.
   Delete events remove owner documents; rebuilding/degraded state is reported and never
   relabelled fresh, while all hits remain owner-filtered during convergence. Search response
   state is the conservative composition of mailbox projection and owner search-consumer
   checkpoint; ready requires both and freshness is their older complete instant.
+
+## 144-05D-Content — server body sanitizer
+
+- Dependencies: 03C-Attachment/04A. Allowed only `mailbox_content.go`,
+  `backend/tests/mail/mailbox_content_test.go`.
+- Pure port/policy accepts explicit rich/plain format. Approved implementation removes
+  script/event/form/meta/base/frame/object/embed/active SVG, unsafe URL schemes, CSS fetches
+  and all remote fetches; derives bounded canonical plain text; remote images become opaque
+  token intents bound to org/account/message/normalized URL/expiry. Without the founder-
+  approved dependency it returns plain-only capability and never passes raw HTML through.
+- Oracles: hostile HTML matrix, Unicode/size/depth/count bounds, deterministic plain,
+  rewritten/removed images, no origin URL in safe errors/loggable DTO.
+
+## 144-05D-Remote — remote-image proxy
+
+- Dependency: accepted 05D-Content + existing `safehttp` primitives. Allowed only
+  `mailbox_remote_image.go`, `backend/tests/mail/mailbox_remote_image_test.go`.
+- Behavior/oracles: reject any path token outside exact unpadded base64url 32..1024 before
+  decode/repository/network, then verify signed/encrypted token and owner/message/expiry before network;
+  validate http(s) URL and resolved IP before every redirect/connect with injected safe
+  dialer; block private/loopback/link-local/metadata/rebinding, credentials and non-image;
+  max 3 redirects, 5 MiB, 10 seconds, no cookie/auth/referrer, restrictive response/cache
+  headers. Browser gets Hub-controlled bytes with fixed private five-minute cache,
+  `nosniff`, `no-referrer` and restrictive CSP; no redirect/cache URL. No arbitrary URL route, DNS/
+  real network in unit, origin URL in logs/errors/search or cross-owner timing disclosure.
+
+## 144-05E — owner search projection hydration consumer
+
+- Dependencies: 05B + accepted 05D-Content/05C-Search. Allowed only
+  `mailbox_search_projection.go`, `backend/tests/mail/mailbox_search_projection_test.go`.
+- Behavior/oracles: admitted mail event resolves current owner/account then bounded engine
+  hydrate; indexes normalized From/To/subject, at most 256 KiB sanitized UTF-8 plain body,
+  at most 50 normalized 255-char filenames, allowed folder/label/flag/time metadata and no
+  BCC/raw HTML/MIME/URL/bytes. Duplicate/update/delete idempotent; foreign/missing owner
+  deletes/ignores safely; checkpoint commits only after index outcome and drives freshness.
+
+## 144-06E — sensitive HTTP route metadata redaction
+
+- Dependency: accepted 06A. Allowed only
+  `backend/internal/platform/middleware/logging.go`,
+  `backend/internal/audit/middleware.go`, and
+  `backend/tests/mail/mail_sensitive_http_path_test.go`.
+- Behavior/oracles: after `Next`, both application access logging and generic HTTP audit use
+  the matched Fiber route template for every matched route and a fixed `unmatched` label for
+  misses; query strings and concrete UUID/token segments never persist. Existing method,
+  status, duration, request/user metadata and skip rules remain. The remote-image token,
+  arbitrary 404 path and mail-search query are absent from captured slog/audit/panic values;
+  named domain audit still carries its separate bounded target id. No request body/header,
+  auth token or new async work is added.
 
 ## 144-05C-Contacts — contact ranking
 
@@ -324,8 +599,11 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 - Dependencies: 05C-Audit/04A/02E. Allowed only `mailbox_admin_service.go`,
   `backend/tests/mail/mailbox_admin_service_test.go`.
 - Behavior/oracles: admin principal + current org; policy get/update, domain list/create/
-  update/delete and redacted health; normalized uniqueness/default safety; enabled/external
-  preconditions; exact audit intent; no secret/DKIM private material; non-admin zero mutate.
+  update/delete desired-state and redacted health; domain create uses 04O receipt and no
+  handler calls engine/DNS directly; normalized uniqueness/default safety; enabled/external
+  preconditions; exact policy/domain conflict codes; global normalized collision is only
+  `MAIL_DOMAIN_UNAVAILABLE`; exact audit intent; no secret/DKIM private material; non-admin
+  zero mutate.
 
 ## 144-06C — mailbox admin handler/wiring
 
@@ -334,6 +612,20 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 - Behavior/oracles: exact OpenAPI mailbox-settings/domain/health routes and x-hub audit;
   admin middleware; NFR-13; legacy `/admin/mail/settings` response/registration and
   `/broadcast` current state untouched; health redacted; no credential input/output.
+
+## 144-06D — admin per-user aliases
+
+- Dependencies: 04J/K/O + 06B/C + 05C-Audit. Allowed only
+  `mailbox_alias_admin_service.go`, `mailbox_alias_admin_handler.go`, their focused units and
+  the narrow route registration in `wiring_mailbox.go`.
+- Behavior/oracles: admin/current org selects the user account server-side; list plus
+  idempotent normalized alias create and non-primary delete change canonical identity state,
+  increment account desired generation and return pending/deleting; verified enabled domain
+  and global address uniqueness; no handler engine call/423. Account worker performs exact
+  Ensure reconciliation. Group/primary mutation forbidden; cross-org/non-admin zero
+  disclosure; collision/reserved address is only `MAIL_ALIAS_ADDRESS_UNAVAILABLE`, while
+  inactive account and non-mutable identity have distinct safe codes; no engine identity id/
+  provider error/raw key. Exact OpenAPI 0.1.6/NFR-13.
 
 ## 144-07 — docs sync and independent static verification
 

@@ -49,7 +49,7 @@ calendar subjects в существующий JetStream EVENTS stream.
 - Host tests/build/lint/validators and direct Docker/Compose forbidden. Accepted launcher
   unavailable => runtime `NOT_RUN`; static diff/oracle review only.
 - No commit/push/PR. max_depth 0; fan_out 0; retries 2; wall clock 30m.
-- requested_model `gpt-5.3-codex`; reasoning `xhigh`; fallback none; actual mismatch means
+- requested_model `gpt-5.6-terra`; reasoning `xhigh`; fallback none; actual mismatch means
   immediate `BLOCKED` before mutation.
 
 [ОТВЕТ]

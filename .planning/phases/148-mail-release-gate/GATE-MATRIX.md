@@ -42,9 +42,9 @@ secrets, DNS/operator approval and CTO/founder sign-off remain separate.
 | ID | Required evidence | Current state | Blocks |
 |---|---|---|---|
 | G148-01 baseline | clean isolated branch; base/current SHA; worktree path; changed-file and protected-zone diff; no untracked product artifact | PASS for docs snapshot only; repeat after code | every later gate |
-| G148-02 contract | ADR, Mail spec, OpenAPI, event schema, UI contract, Phase 147 contract and QA handoff independently agree; machine refs/examples closed | Mail 0.1.5 root/independent current-provenance review PENDING; 0.1.4 `46cfa26c` is STALE, so gate remains open | source work/claim |
-| G148-03 founder decisions | signed answers for exact Spark runtime, migration mechanism, Stalwart license, L1 include/defer, recurring-call semantics, pause/resume, legacy POST idempotency break, linked-call guest access, broadcast disposition, rebase signal; push/PR separately authorized | BLOCKED/UNRESOLVED | affected packets and final gate |
-| G148-04 model provenance | every production/test-code packet records actual `gpt-5.3-codex` + `xhigh`; no silent fallback; review packets record allowed Terra effort | BLOCKED: exact Spark unavailable | source acceptance |
+| G148-02 contract | ADR, Mail spec, OpenAPI, event schema, UI contract, Phase 147 contract and QA handoff independently agree; machine refs/examples closed | Mail 0.1.6 root/independent current-provenance review PENDING; 0.1.5 `eae6f5e5` is STALE, so gate remains open | source work/claim |
+| G148-03 founder decisions | task-local Terra route is answered; signed answers remain required for migration mechanism, Stalwart license, L1 include/defer, recurring-call semantics, pause/resume, legacy POST idempotency break, linked-call guest access, broadcast disposition, primary-address policy, sanitizer dependency, Sieve ownership and rebase signal; push/PR separately authorized | PARTIAL / unresolved items remain | affected packets and final gate |
+| G148-04 model provenance | every production/test-code packet records actual `gpt-5.6-terra` + `xhigh`; no silent fallback; review packets record allowed Terra effort and distinct review context | ROUTE AUTHORIZED / actual packet evidence pending | source acceptance |
 | G148-05 migrations/generation | reviewed mechanism, preflight, generated Ent twice clean, complete ScheduledCall mapping + recurrence oracle + 100% bridge cutover dry-run on empty/realistic snapshot, counts/hashes and rollback | NOT_RUN | backend/runtime |
 | G148-06 independent source review | backend, frontend, architecture, security, product and QA lenses on current diff; all P0/P1 fixed and re-reviewed | NOT_RUN | merge-ready |
 | G148-07 launcher integrity | versioned outer launcher has task owner marker, CPU/RAM/PID limits, wall timeout, isolated report root and unconditional exact cleanup | NOT_READY | all executable evidence |
@@ -88,17 +88,26 @@ Missing fields make the evidence `FAIL` or `STALE`, never assumed.
 
 | Case | Required observable result |
 |---|---|
-| draft save loses response | draft becomes unknown; next operation reconciles opaque engine version; no blind overwrite |
+| draft save/delete/send race | update/delete/new-key send require exact last-confirmed If-Match; lost save becomes unknown and reconciles; matching send receipt replays before current-version check; no blind overwrite/delete/second submit |
 | send loses response | same `MailSubmission` reconciles; exactly one visible sent message |
 | outbox publish redelivers | consumers remain idempotent; no second state mutation/in-app row |
 | versioned envelope transport | shared builder is deterministic; outbox event type, NATS subject and JSON subject match; full envelope bytes are published unchanged; application `event_id` deduplicates under same/different `Hub-Event-Id`; mismatch/malformed/unknown version dead-letters before mutation; legacy outbox payloads remain unchanged |
 | incremental mailbox page | hydrated projection, complete envelopes and exact composite next cursor commit atomically under live sync lease/prior cursor/sync+mutation epochs and absent command lease; any mismatch/rollback advances none |
 | command/sync interlock | command or reconciliation acquires one account mutation lease and begin epoch before I/O, blocks sync capture, then clears the exact lease and advances the end epoch; active contention makes zero engine call, expired reclaim invalidates late finalization and forces reconciliation |
+| domain/account control | domain intent uses Ensure/Get with public DNS only and no DNS mutation; eligible account scan reserves one immutable address/key/cutoff; two replicas/lost response yield one account/identity set; alias/user lifecycle generations fence stale workers; public status is read-only/redacted |
+| generic create/bulk receipt | every named route requires one stable cryptographic v4/v7 UUID; scoped key digest + raw-keyed canonical request HMAC prevent small-payload enumeration; same input replays/reconstructs, changed input is `KEY_REUSED`, removed target is `REPLAY_UNAVAILABLE`, terminal metadata compacts 30 days after first terminal commit to `REPLAY_EXPIRED`, nonterminal never compacts and unknown reconciles; none executes again; presign replay refreshes only the same pending/unexpired object URL; no raw key/body/response persists |
+| folder unknown recovery | unique pending row precedes create I/O; busy changes no receipt/control state; update/delete create an internal unexposed receipt only after lease + optimistic checks; combined projection/recovery worker may use exact non-system match/definitive absence and captured receipt only under proven Hub-exclusive custom-folder writing; false/unknown capability, alternate writer, system role or ambiguity makes zero recovery mutation and stays degraded; later command cannot duplicate/overwrite an unresolved folder |
+| rule deployment | HTTP commits desired generation without engine I/O; worker owns fixed script under mutation lease, Get-before-retry reconciles lost response, stale generation cannot finalize, external drift is detected/repaired |
+| junk/ham feedback | typed message/thread expansion snapshot stays bounded/persisted and per-target; replay never re-expands; classifier accepted/rejected/unknown is distinct from move/flag, stable command ids are reconciled only when capability is proven, and receipt replay never double-trains |
 | invalid mailbox cursor | current owner rows remain visibly degraded; base-state/ID-anchored enumeration resumes without pre-clear, query-state drift converges through Changes, catches up from its base cursor and finalizes only when complete; anchor/base-history loss causes typed restart rather than forged freshness |
 | received-event replay/provenance | pre-cutoff history and stably mapped Hub submission/draft emit none; spoofed owner From/alias or mutable Sent membership cannot suppress; first-seen post-cutoff inbound-or-unknown reserves one marker/event across page replay, rebuild and replica retry |
-| projection worker lifecycle | one enabled root-context worker obeys scan/page/concurrency/timeout/backoff caps and multi-replica lease exclusion; disabled starts none; cancellation drains without leak |
+| mailbox worker lifecycle | exactly one domain, account, combined projection/recovery and rule worker obey independent scan/page/concurrency/timeout/backoff caps and multi-replica lease exclusion; recovery never holds sync+mutation leases together; disabled starts none; reverse cancellation drains without leak |
 | engine unavailable | mailbox mutations return safe unavailable/unknown semantics; cached projections are visibly stale; Resend readiness unchanged |
-| projection/search lag | authorized engine result may appear with indexing state; no unauthorized hit/id/snippet; rebuild converges |
+| safe content/remote image | server derives plain from sanitized rich or fails plain-only; hostile fetch/active content is removed; path accepts only unpadded base64url 32..1024 and rejects all other input before decode/I/O; token binds owner/message/expiry; every redirect/connect is SSRF-safe; response is bytes with fixed private cache/nosniff/no-referrer/CSP and never redirects; browser/API/log/search never sees origin URL |
+| sensitive HTTP metadata | app access log/generic audit use matched route templates and constant unmatched label; image token/UUID/query absent; ingress independently proves remote-token path and search-query redaction |
+| attachment confirm/download | changed confirm metadata/state and expired lease are no-scan named conflicts; non-clean cannot download; clean 302 is fixed-storage HTTPS only with no-store/no-referrer and no arbitrary origin input |
+| versioned mailbox resources | stale folder/label/settings/signature/rule/policy/domain update and versioned delete mutate nothing; one auth retry preserves exact If-Match; pending folder intent blocks overwrite and active-rule label delete returns `MAIL_LABEL_IN_USE` without join/marker/rule loss |
+| projection/search lag | bounded sanitized body and normalized filenames index idempotently; no raw HTML/MIME/BCC/URL or unauthorized hit/id/snippet; current owner is rechecked and rebuild converges |
 | REQUEST/CANCEL reorder | lower/equal conflict cannot roll state back; early CANCEL tombstone survives delayed mail |
 | REPLY A→B→A | attendee remains B; durable reply receipts/cap/outbox match contract |
 | outward REPLY timeout | hidden draft/submission reconciles; no duplicate external reply |
@@ -161,8 +170,9 @@ requirements and evidence request; it does not edit that program.
 
 ## 8. Current honest aggregate
 
-`CONTRACT_REVIEW_PENDING`: Mail 0.1.5 amended the ScheduledCall authority, migration and
-reader/worker contracts, so the 0.1.4 pass on `46cfa26c` is stale. Root and independent
+`CONTRACT_REVIEW_PENDING`: Mail 0.1.6 amended mailbox provisioning, mutation receipts,
+rules/content/search/classifier and UI contracts, so the 0.1.5 docs snapshot on `eae6f5e5`
+is stale. Root and independent
 current-provenance reviews are required before G148-02 can close. Product code is not
 implemented, the exact code-writing runtime is unavailable, the launcher is not ready,
 engine/legal/migration/broadcast/rebase decisions are unresolved, and all executable evidence is

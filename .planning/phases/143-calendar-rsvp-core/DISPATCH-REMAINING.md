@@ -2,7 +2,7 @@
 
 > **Assembly rule:** a valid dispatch consists of the Common execution envelope below plus
 > exactly one numbered packet. Never send two packets in one executor turn.
-> **Runtime:** `gpt-5.3-codex` / `xhigh`, fallback none.
+> **Runtime:** `gpt-5.6-terra` / `xhigh`, fallback none.
 > **Status:** every code packet is blocked until that exact runtime is available; generation
 > and runtime packets additionally require the accepted Docker launcher.
 
@@ -335,7 +335,7 @@ dispatchable without duplicating the common safety contract.
 - Dependencies: accepted 04B–E/H and matching 04F variants. Allowed only:
   `backend/internal/calendar/event_dto.go`,
   `backend/tests/calendar/event_dto_test.go`.
-- Behavior: OpenAPI 0.1.5 request/response shapes; strict temporal union/bounds; quoted
+- Behavior: OpenAPI 0.1.6 request/response shapes; strict temporal union/bounds; quoted
   version parser; base64url recurrence decoder; NFR-13 metadata carrier; no owner/org input.
 - Oracles: timed/all-day pairs/end order/IANA annotations; unknown/oversized fields;
   creation-only server-authorized `scheduled_call_id` absent from PATCH; RSVP version/status;

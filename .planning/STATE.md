@@ -118,9 +118,9 @@ mail_feature_workstream:
     branch: codex/mail-module-20260813
     phases: "142-148"
     current_phase: 143
-    status: contract_0_1_5_root_review_pending_independent_review_pending_code_runtime_blocked
+    status: contract_0_1_6_root_review_pending_independent_review_pending_terra_code_route_authorized
     product_truth: unfinished_mvp_feature_not_accepted
-    contract_version: "0.1.5"
+    contract_version: "0.1.6"
     tasks:
       - TASK-235
       - TASK-236
@@ -133,10 +133,11 @@ mail_feature_workstream:
     runtime:
       mail_engine: NOT_RUN
       docker_profile: NOT_IMPLEMENTED
+      docker_daemon: AVAILABLE_29.7.2_access_verified_2026-08-13
       launcher: NOT_READY
       resource_budget: NOT_MEASURED
       external_delivery: NOT_CONFIGURED
-      atomic_code_model: UNAVAILABLE
+      atomic_code_model: gpt-5.6-terra_xhigh_authorized_actual_run_pending
       atomic_code_model_evidence: .planning/phases/143-calendar-rsvp-core/RUNTIME-BLOCKER.md
       production_migration_authority: UNRESOLVED
       production_migration_evidence: .planning/phases/143-calendar-rsvp-core/MIGRATION-PLAN.md
@@ -149,6 +150,15 @@ mail_feature_workstream:
       message_authority: mail_engine
       mailbox_projection: leased_bounded_worker_atomic_page_event_cursor_command_lease_begin_end_epoch_fence
       mailbox_rebuild: no_clear_base_state_id_anchor_enumeration_then_changes_catchup
+      mailbox_provisioning: leased_bounded_domain_then_account_control_stable_keys_generations
+      mailbox_rules: hub_desired_generation_fixed_sieve_get_before_retry_worker
+      mailbox_mutations: v4_v7_scoped_digest_hmac_receipt_30d_bulk_snapshot_lifetime_tombstone_same_object_presign
+      mailbox_versions: if_match_label_settings_signature_rule_policy_domain
+      mailbox_content: server_sanitize_or_plain_only_remote_token_byte_proxy_private_nosniff_no_referrer_csp
+      mailbox_folder_recovery: exclusive_writer_capability_false_by_default_no_alternate_imap_jmap_admin_writer
+      mail_code_routing: founder_task_local_override_gpt-5.6-terra_xhigh_no_fallback
+      mailbox_search: bounded_sanitized_body_attachment_filenames_owner_reauth
+      mailbox_spam_feedback: explicit_spam_ham_not_move_alias
       calendar_authority: hub_postgresql
       oauth_l3: out_of_scope
       legacy_admin_broadcast: governance_gap_deprecated_pending_founder_decision
@@ -189,25 +199,41 @@ spec_coverage:
   API/persistence/resource spike и внешний DNS остаются gates; runtime `NOT_RUN`.
 - Кодовые фазы 143–148 идут после заморозки контракта. Phase 145 может оставаться
   blocked, пока выполняются engine-independent calendar/mailbox/UI slices.
-- Mail 0.1.5 добавляет Phase 147 reliability-контракт: REQUEST/CANCEL tombstones и
+- Mail 0.1.6 сохраняет Phase 147 reliability-контракт: REQUEST/CANCEL tombstones и
   recovery, outward REPLY reconciliation, private availability, durable in-app reminders
   и CRM manual-link. Новый amendment закрывает ScheduledCall split-brain: CalendarEvent —
   authority, call — atomic execution projection; backfill/cutover all-or-nothing,
   aggregate/availability single-count, due occurrence-keyed/versioned. Attach is exact-match,
   participant projection is series-only, and linked external guests fail closed pending a
-  join-credential contract. Root static review 0.1.5 и
-  independent current-provenance review PENDING; 0.1.4 PASS `46cfa26c` теперь `STALE`.
-  Product code `NOT_IMPLEMENTED`, runtime `NOT_RUN`.
-- Mailbox 0.1.5 теперь закрывает отдельный L0 ingestion gap: Phase 144 владеет leased
+  join-credential contract. Root static review 0.1.6 и
+  independent current-provenance review PENDING; 0.1.5 snapshot `eae6f5e5` теперь `STALE`.
+  Founder task-local routing override authorizes exact `gpt-5.6-terra`/`xhigh` for
+  atomic Mail product/test packets; actual packet provenance is still pending. Product code
+  `NOT_IMPLEMENTED`, runtime `NOT_RUN`.
+- Mailbox 0.1.6 закрывает control-plane gaps: отдельные bounded workers владеют
+  idempotent domain/account/primary-identity/alias lifecycle, combined projection/mutation-recovery sync и generation/hash
+  reconciliation одного fixed Hub Sieve script. Generic create/bulk receipt хранит только
+  hashes/target/status с 30-day replay и lifetime reject tombstone, различает reused/
+  unavailable/expired и для presign обновляет URL только того же pending object; junk/ham
+  требует отдельный classifier outcome. Label/settings/signature/rule/policy/domain writes
+  теперь имеют wire-level `If-Match`, а active-rule label delete — отдельный safe conflict.
+  Server rich content sanitizes or falls back to plain-only, remote images use owner/message
+  tokens и возвращают только bytes с private/nosniff/no-referrer/CSP, а Meili получает только bounded sanitized body
+  и normalized filenames с повторной owner authorization. Phase 144 также владеет leased
   bounded worker, atomic hydrated page/full-envelope/cursor apply, separate command lease
   with begin/end mutation epoch fence и
   resumable no-clear rebuild; Phase 145 владеет incremental + base-state/ID-anchored
   Stalwart mapping и root-context composition. Folder/thread/search API/UI показывают
   bootstrapping/degraded/rebuilding freshness без false-ready. Всё это contract-only;
-  adapter/worker/runtime остаются `NOT_IMPLEMENTED` / `NOT_RUN`.
+  adapter/workers/runtime остаются `NOT_IMPLEMENTED` / `NOT_RUN`.
+- Docker Desktop 29.7.2 доступен из сессии, но это не меняет канонический launcher
+  `NOT_READY`. Folder recovery дополнительно fail-closed: exact-match/absence разрешены
+  только при доказанном Hub-exclusive writer; user IMAP/JMAP/ManageSieve/direct admin
+  mailbox mutation не публикуются в wave 1.
 - Вопросы, не останавливающие локальную работу, собраны в
-  `docs/mail/FOUNDER-QUESTIONS.md`; вопросы 22–23 отдельно фиксируют legacy idempotency
-  compatibility break и linked-call guest access. Push/PR/merge/deploy не авторизованы.
+  `docs/mail/FOUNDER-QUESTIONS.md`; вопросы 22–26 отдельно фиксируют legacy idempotency,
+  linked-call guests, primary-address policy, sanitizer dependency и Sieve ownership.
+  Push/PR/merge/deploy не авторизованы.
 
 ## Session note — 2026-08-08 (test-rebase execution readiness)
 

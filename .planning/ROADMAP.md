@@ -248,11 +248,11 @@ contract отменяет его как migration gate; destructive batches ра
 | Phase | Status | Depends on | Outcome / task |
 |------:|--------|------------|----------------|
 | 142 | CONTRACT COMPLETE · static PASS · runtime NOT_RUN | — | ADR, ERD, OpenAPI, NATS, UI/security/QA contracts · TASK-235 |
-| 143 | CONTRACT 0.1.5 · ROOT REVIEW PENDING · CODE BLOCKED BY EXACT SPARK RUNTIME | 142 | CalendarEvent/Attendee/Exception, deterministic iTIP/RSVP, canonical ScheduledCall bridge/backfill · TASK-236 |
-| 144 | DISPATCH 0.1.5 · CODE BLOCKED BY EXACT SPARK RUNTIME | 142 | Mailbox domain, engine port/fake, bounded projection worker/rebuild, folders/threads/drafts/submission · TASK-237 |
+| 143 | CONTRACT 0.1.6 · ROOT REVIEW PENDING · TERRA CODE ROUTE AUTHORIZED / FIRST PACKET PENDING | 142 | CalendarEvent/Attendee/Exception, deterministic iTIP/RSVP, canonical ScheduledCall bridge/backfill · TASK-236 |
+| 144 | DISPATCH 0.1.6 · TERRA CODE ROUTE AUTHORIZED / FIRST PACKET PENDING | 142 | Mailbox domain, domain/account/projection+recovery/rule workers, safe content/search, receipts/classifier · TASK-237 |
 | 145 | BLOCKED BY EXTERNAL GATES | 144 + license + launcher | Stalwart adapter, instance-domain mail, bounded Docker profile · TASK-238 |
-| 146 | DISPATCH READY · CODE/HARNESS BLOCKED | 143, 144 | Outlook three-pane UI, composer, attachments, search/realtime · TASK-239 |
-| 147 | CONTRACT 0.1.5 · ROOT/INDEPENDENT REVIEW PENDING · CODE BLOCKED | 143–146 | recurrence/import recovery, single-count busy/free, reminders, L1/CRM seam · TASK-240 |
+| 146 | DISPATCH 0.1.6 · TERRA ROUTE AUTHORIZED / DEPENDENCIES+HARNESS BLOCKED | 143, 144 | Outlook three-pane UI, management, rules, safe content/search/realtime · TASK-239 |
+| 147 | CONTRACT 0.1.6 · ROOT/INDEPENDENT REVIEW PENDING · DEPENDENCY BLOCKED | 143–146 | recurrence/import recovery, single-count busy/free, reminders, L1/CRM seam · TASK-240 |
 | 148 | GATE CONTRACT PREPARED · EXECUTION BLOCKED | 143–147 + test-rebase merge notice | security/reconciliation/docs/verification/rebase gate · TASK-241 |
 
 ```text
@@ -2256,7 +2256,7 @@ invite/update/cancel/reply behavior with optimistic RSVP.
 **Goal**: Engine-neutral Hub mailbox domain supports owned folders/messages/threads,
 drafts, submissions, labels, attachments, rules, contacts and projections.
 **Depends on**: Phase 142
-**Requirements**: TASK-237, FR-MAIL-001…017
+**Requirements**: TASK-237, FR-MAIL-001…021
 **Success Criteria** (what must be TRUE):
   1. MailEngine port and deterministic fake freeze engine isolation.
   2. Domain/services/handlers match OpenAPI and store no raw body in PostgreSQL.
@@ -2264,21 +2264,29 @@ drafts, submissions, labels, attachments, rules, contacts and projections.
   4. One bounded leased worker atomically advances projection/events/cursor, coordinates
      with begin/end-leased user commands and recovers invalid cursors through resumable
      no-clear enumeration/catch-up.
-  5. Genuine mail units cover pure policies and fake-adapter service behavior.
+  5. Separate bounded domain/account control and rule-deployment workers reconcile stable
+     desired generations/fixed-script intents; generic create/bulk receipts and explicit spam/ham feedback do
+     not duplicate side effects.
+  6. Safe content either passes server sanitizer or falls back to plain-only; remote images
+     and bounded body/filename search cannot leak origin URL/raw MIME/cross-owner data.
+  7. Genuine mail units cover pure policies and fake-adapter service behavior.
 **Plans**: source `.planning/phases/144-mailbox-domain/PLAN.md`
 
 ### Phase 145: Stalwart Gateway and Docker Mail Profile
 **Goal**: After explicit gates, connect the preferred engine and prove bounded persistent
 instance-domain mail runtime.
 **Depends on**: Phase 144; founder/legal license verdict; accepted Docker launcher
-**Requirements**: TASK-238, FR-MAIL-001, FR-MAIL-009, FR-MAIL-015, FR-MAIL-017
+**Requirements**: TASK-238, FR-MAIL-001, FR-MAIL-009, FR-MAIL-015, FR-MAIL-017…020
 **Success Criteria** (what must be TRUE):
   1. Immutable image provenance and license choice are recorded.
   2. JMAP adapter and provisioning pass accepted integration evidence.
-  3. Incremental and base-state/ID-anchored enumeration adapters plus one context-owned worker
-     pass cursor, crash/restart, two-replica lease and shutdown evidence.
-  4. Optional `mail` profile is healthy, persistent and ≤4 CPU/≤4 GiB by measured run.
-  5. External-domain claims remain blocked until DNS/PTR/network acceptance exists.
+  3. Incremental and base-state/ID-anchored enumeration adapters plus exactly one domain,
+     account, combined projection/recovery and rule worker pass cursor, crash/restart, lost-response,
+     generation, two-replica lease and shutdown evidence.
+  4. Fixed Sieve and spam/ham adapters prove generation reconciliation and feedback outcome
+     separately from mailbox movement.
+  5. Optional `mail` profile is healthy, persistent and ≤4 CPU/≤4 GiB by measured run.
+  6. External-domain claims remain blocked until DNS/PTR/network acceptance exists.
 **Plans**: source `.planning/phases/145-stalwart-gateway/PLAN.md`
 
 ### Phase 146: Outlook-class Mail UI
@@ -2292,7 +2300,9 @@ responsive three-pane mail workspace.
   3. Invitation card handles success, conflict, cancellation, stale and untrusted states.
   4. Projection bootstrapping/degraded/rebuilding state is visible and conservatively
      derived across current folder/thread/search pages without a client-side false ready.
-  5. Feature units live only in `frontend/tests/mail/**` and pass in Docker.
+  5. Provisioning status, folder/label CRUD, rule deployment, remote-image consent and admin
+     aliases expose honest loading/error/conflict/unknown states and stable create/bulk keys.
+  6. Feature units live only in `frontend/tests/mail/**` and pass in Docker.
 **Plans**: source `.planning/phases/146-mail-outlook-ui/PLAN.md`
 
 ### Phase 147: Mail/Calendar Reliability and Integrations

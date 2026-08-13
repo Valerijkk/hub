@@ -12,7 +12,7 @@ storage boundary для вложений; не переиспользуй projec
 
 [OWNERSHIP]
 
-- Entry: accepted 144-02C/E, 144-03C and 144-04A.
+- Entry: accepted 144-02C/E, 144-03C, 144-04A and 144-04O.
 - Allowed mutations only:
   - `backend/internal/mail/mailbox_storage.go`
   - `backend/internal/mail/mailbox_storage_adapter.go`
@@ -30,13 +30,18 @@ storage boundary для вложений; не переиспользуй projec
   not derive object key from filename.
 - Presign persists a pending `MailObject` lease with expected size/type/name, uploader,
   draft client id and expiry before returning a bounded upload contract.
+- Presign reserves the generic 04O receipt before allocation. Matching replay mints a new
+  bounded URL only for the same pending/unexpired object id and immutable request metadata;
+  confirmed/expired/orphaned/deleted target returns replay-unavailable and never allocates
+  another object. The object expiry is immutable and a refreshed URL cannot outlive it.
 - Confirm re-resolves owner/account, checks pending state/expiry, reads authoritative
   object metadata, requires exact size and supplied SHA-256, transitions to scan pending,
   and is idempotent for an identical confirmation.
 - Read/download requires confirmed clean attachment plus owner/account. Delete is
   idempotent; pending/orphaned cleanup is exact-object only and never prefix-wide.
 - Upload URL may target the configured storage origin; API never accepts an arbitrary
-  download/proxy URL. Required headers are an explicit allowlist.
+  download/proxy URL. Clean download redirect is HTTPS to that fixed origin only and adds
+  `no-store`/`no-referrer`; required upload headers are an explicit allowlist.
 - Scanner result is fail-closed: only `clean` is attachable/sendable.
 
 [REQUIRED ORACLES]
@@ -53,6 +58,11 @@ storage boundary для вложений; не переиспользуй projec
 9. Safe errors/log values omit upload URL query, object credentials, filename controls and
    synthetic hash secrets.
 10. No storage call receives an unresolved or empty account id.
+11. Same-key presign replay returns the same attachment id with a refreshed URL only while
+    pending/unexpired; every terminal/expired replay allocates nothing and returns the
+    frozen machine-readable conflict; neither object lease nor URL crosses original expiry.
+12. Changed confirm size/hash or non-confirmable state is a no-scan 409; expired pending is
+    410. Non-clean download is 409, and a clean redirect cannot use a client/provider origin.
 
 [EXECUTION / PROVENANCE]
 
@@ -60,7 +70,7 @@ storage boundary для вложений; не переиспользуй projec
 - Host validation/direct Docker forbidden; accepted launcher absent => `NOT_RUN`.
 - No new dependency/generated code/commit/push/PR. max_depth 0; fan_out 0; retries 2;
   wall clock 60m.
-- requested_model `gpt-5.3-codex`; reasoning `xhigh`; fallback none; mismatch => `BLOCKED`.
+- requested_model `gpt-5.6-terra`; reasoning `xhigh`; fallback none; mismatch => `BLOCKED`.
 
 [ОТВЕТ]
 

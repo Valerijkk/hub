@@ -73,7 +73,7 @@ projection application seam и admission `mail.>` в shared EVENTS stream.
   => `NOT_RUN` and exact static diff.
 - No dependency/generated code/commit/push/PR. max_depth 0; fan_out 0; retries 2;
   wall clock 45m.
-- requested_model `gpt-5.3-codex`; reasoning `xhigh`; fallback none; mismatch => `BLOCKED`.
+- requested_model `gpt-5.6-terra`; reasoning `xhigh`; fallback none; mismatch => `BLOCKED`.
 
 [ОТВЕТ]
 

@@ -1,6 +1,6 @@
 # Phase 144 packet 03D — deterministic mail event mapping
 
-> **Runtime:** `gpt-5.3-codex` / `xhigh`, no fallback
+> **Runtime:** `gpt-5.6-terra` / `xhigh`, no fallback
 > **Status:** CODE_RUNTIME_BLOCKED
 > **Dependency:** accepted 143-04L and 144-01A
 

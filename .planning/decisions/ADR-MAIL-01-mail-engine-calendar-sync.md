@@ -47,8 +47,14 @@ not an allowed substitute.
    (L3). Keep L1 iCal feeds as a later phase after L0 reliability.
 7. Treat the owner-scoped mailbox projection loop as an L0 product component, not adapter
    glue: one leased worker atomically applies each change page with its cursor/outbox,
-   fences concurrent Hub operations by an account mutation lease plus epochs, and performs resumable no-clear
-   base-anchored enumeration and mandatory change catch-up after an invalid cursor.
+    fences concurrent Hub operations by an account mutation lease plus epochs, and performs resumable no-clear
+    base-anchored enumeration and mandatory change catch-up after an invalid cursor.
+8. Treat account provisioning and rule deployment as separate bounded control-plane
+   workers. Public requests read or change Hub canonical state; they do not provision an
+   engine account on GET or synchronously claim Sieve deployment success.
+9. Treat spam/ham feedback as a first-class adapter command and search body/filename data
+   as a bounded sanitized owner projection, never as an incidental folder move or raw MIME
+   index.
 
 ## Candidate comparison
 
@@ -106,13 +112,14 @@ composition root, so the domain owns a port intentionally narrower than JMAP:
 ```go
 type MailEngine interface {
     Capabilities(ctx context.Context) (EngineCapabilities, error)
+    GetDomain(ctx context.Context, provisioningKey string) (EngineDomainState, error)
+    EnsureDomain(ctx context.Context, domain DomainSpec) (EngineDomainState, error)
     EnsureAccount(ctx context.Context, account AccountSpec) (EngineAccount, error)
     ListFolders(ctx context.Context, accountID string) ([]EngineFolder, error)
     CreateFolder(ctx context.Context, accountID string, spec FolderSpec) (EngineFolder, error)
     RenameFolder(ctx context.Context, accountID, folderID, name string) error
     DeleteFolder(ctx context.Context, accountID, folderID string) error
     ListMessages(ctx context.Context, query EngineMessageQuery) (EngineMessagePage, error)
-    SearchMessages(ctx context.Context, query EngineSearchQuery) (EngineMessagePage, error)
     GetMessage(ctx context.Context, accountID, messageID string) (EngineMessage, error)
     GetBlob(ctx context.Context, accountID, blobID string) (EngineBlob, error)
     Changes(ctx context.Context, accountID, since string) (EngineChangePage, error)
@@ -123,14 +130,19 @@ type MailEngine interface {
     ReconcileSubmission(ctx context.Context, accountID, submissionKey string) (EngineSubmissionResult, error)
     MoveMessages(ctx context.Context, accountID string, messageIDs []string, folderID string) error
     SetFlags(ctx context.Context, accountID string, messageIDs []string, patch FlagPatch) error
+    SetKeywords(ctx context.Context, accountID string, messageIDs []string, patch KeywordPatch) error
     DeleteMessages(ctx context.Context, accountID string, messageIDs []string, hard bool) error
-    UpsertSieve(ctx context.Context, accountID string, script SieveScript) error
+    GetSieve(ctx context.Context, accountID, scriptName string) (EngineSieveState, error)
+    UpsertSieve(ctx context.Context, accountID string, script SieveScript) (EngineSieveState, error)
+    ClassifyMessages(ctx context.Context, command EngineSpamTraining) (EngineSpamTrainingResult, error)
     Health(ctx context.Context) (EngineHealth, error)
 }
 ```
 
 The interface is a contract sketch; exact Go DTOs are frozen by `MAIL-SPEC.md`. Domain
 services never expose engine credentials or raw JMAP objects to HTTP handlers.
+Public search does not exist on this port: Meilisearch is the sole Hub search projection,
+and every result is hydrated/reauthorized through owner-scoped message reads.
 `EngineDraft` carries the previous opaque engine version and a stable Hub mutation id;
 `ReconcileDraft` distinguishes applied, absent/unchanged, and indeterminate state without
 issuing another save. `EngineSubmission` carries a stable engine submission key. A lost
@@ -145,6 +157,13 @@ boundary. It then catches up from that base through `Changes`. Query-state drift
 expected; missing anchor, unstable enumeration or expired base change history is typed
 restart-required, never empty-cursor success. Opaque cursor/checkpoint values stay inside
 the adapter/repository boundary and never enter logs, APIs or event payloads.
+`EnsureDomain` and `EnsureAccount` are idempotent on stable non-secret Hub provisioning
+keys plus captured desired generation/hash. `GetDomain` reconciles unknown create/delete
+outcomes without guessing DNS/provider state. `GetSieve` and
+`UpsertSieve` expose only a fixed-name Hub script plus bounded generation/hash marker so a
+lost deployment response can be reconciled before upload. `ClassifyMessages` distinguishes
+accepted spam/ham training, rejected samples, indeterminate outcomes and mailbox/flag
+projection work; an ordinary move cannot masquerade as classifier feedback.
 
 ### Source of truth
 
@@ -154,15 +173,53 @@ the adapter/repository boundary and never enter logs, APIs or event payloads.
 | Mailbox membership and server flags (`seen`, `answered`, `draft`, junk) | Engine | Leased owner projection; page + full events + cursor commit atomically; mutation lease plus begin/end epochs prevent stale overwrite |
 | Delivery queue and SMTP result | Engine | Submission status/audit projection |
 | System/custom mailbox hierarchy | Engine | `MailFolder` maps Hub user to engine folder and adds color/order |
-| Hub labels and pin | Hub PostgreSQL | Canonical `MailLabel`, label edges, pinned projection |
+| Hub labels and pin | Hub PostgreSQL | Canonical label/join/pin; opaque engine keyword is only a Sieve effect marker reconciled into the join |
 | Thread identity | Hub PostgreSQL | Canonical normalized thread projection derived from message headers |
 | Attachment bytes | Engine MIME plus SeaweedFS for Hub uploads | Mail-owned `MailObject` authorization/lease plus `MailAttachment` scan and content metadata; project file ACLs are not reused |
-| Search document | Meilisearch projection | Rebuildable from engine + PostgreSQL metadata |
+| Account and primary/alias engine identities | Engine after idempotent ensure | Canonical provisioning intent, reserved address, safe state and opaque ids |
+| User rule definitions and order | Hub PostgreSQL | Canonical desired generation/hash; one fixed-name engine Sieve script is a reconciled projection |
+| Search document | Meilisearch projection | Rebuildable bounded sanitized plain body/attachment-filename + PostgreSQL metadata, owner-filtered before snippets |
 | Calendar event, attendee, RSVP, sequence | Hub PostgreSQL | Canonical |
 | Resend alert templates/settings | Existing alert subsystem | Unchanged |
 
+Wave 1 has one custom-folder control writer: the Hub adapter. JMAP and the engine
+management API remain on the fixed internal network for Hub only; user-facing IMAP,
+JMAP, ManageSieve and direct engine-admin folder mutation are not published. Optional
+external SMTP transports messages only and does not grant mailbox-management access.
+Engine-created system-role bootstrap folders are separately typed and can never satisfy a
+custom-folder intent. `EngineCapabilities.ExclusiveCustomFolderWriter` defaults false and
+may become true only from reviewed deployment configuration plus runtime exposure evidence.
+Automatic exact-match adoption, definitive-absence retry, rename or delete recovery is
+allowed only while that capability is true. False, unknown or violated exclusivity leaves
+the persisted intent and owner projection degraded and performs no recovery mutation.
+
 No message body is duplicated in PostgreSQL. Sanitized HTML may be cached only in a
 bounded, invalidatable application cache; it is not canonical persistence.
+
+The domain-control worker first reconciles Hub domain intents through `EnsureDomain`/
+`GetDomain`; DNS publication remains manual and account provisioning cannot use a domain
+until engine verification is confirmed. The account-control worker scans eligible active
+users only when the engine, mailbox policy and a verified enabled default domain are ready.
+It reserves a deterministic local part and primary identity transactionally, calls
+`EnsureAccount` with the same immutable key/generation across timeouts, and activates only
+after the exact lease owner commits opaque engine ids. The same worker reconciles alias
+generations and disables/reactivates the engine account as the Hub user lifecycle changes;
+pending/deleting aliases are never selectable. Public `GET /mail/account` is read-only and
+safe; it neither calls the engine nor leaks reservation/provider details. Projection and
+user mailbox resources start only for active accounts. The UUID fallback namespace is
+reserved from aliases; a short-prefix collision expands deterministically to the full UUID
+and never chooses a random suffix or calls the engine before reservation succeeds.
+
+Rule CRUD changes only Hub canonical rows and desired generation. A separate rule worker
+holds the account mutation lease, compiles the complete ordered set, owns one fixed-name
+script, and compares its embedded generation/hash marker before retrying an unknown upload.
+Only a captured generation can be finalized; newer desired state stays pending. This makes
+HTTP success truthful even across crash/lost-response boundaries.
+Engine-native move/read actions compile directly. Add-label compiles a server-generated
+opaque per-label keyword; sync maps it into a same-account label join with engine-rule
+provenance. Manual label state remains Hub-owned. Removing an engine-rule label clears the
+marker through the fenced keyword port; label names/ids and raw keywords never cross HTTP or
+event/search payloads.
 
 The projection worker is context-owned and starts only with an enabled engine. Multiple
 backend replicas claim accounts by expiring leases. Engine I/O occurs outside the database
@@ -199,6 +256,30 @@ request and outbox record. The raw HTTP key is stored only as a hash. A timed-ou
 enters `unknown` and calls `ReconcileSubmission` with the same stable engine key before any
 resubmit. A retry must not create a second visible message.
 
+Folder, label, signature, rule, attachment-presign, admin-domain and admin-alias creates plus bulk
+message/classifier commands use a client-keyed generic mail mutation receipt scoped by
+authenticated actor, operation and a digest of a required UUID v4/v7 key. Folder rename/
+delete additionally use the same table as an internal recovery ledger: after a valid
+`If-Match` and mutation-lease claim, Hub generates an injected unexposed UUID v4/v7 and atomically stores
+the desired folder intent before engine I/O. The key source is explicit; an internal key is
+never accepted from or replayable by an HTTP header. Request fingerprints are HMAC-SHA-256
+keyed by the raw client or internal UUID over a length-delimited canonical scoped request,
+so small admin/rule/folder payloads cannot be enumerated from database hashes. The receipt
+stores only fingerprint, target/status and safe recovery metadata. Same client input
+reconstructs the original result, changed input conflicts, and an unknown engine result
+reconciles before retry. Client-keyed full replay metadata is retained for 30 days; its key/
+request hash tombstone remains for the owning account or organization lifetime so an old
+retry cannot create a duplicate. An internal folder receipt may be removed after its
+terminal 30-day recovery window because no public key can address it. A presign
+replay may mint a fresh bounded upload URL only for the same pending, unexpired object id;
+confirmed/expired/orphaned/deleted targets are replay-unavailable and never reallocated.
+Refresh never extends the object lease and its URL expires no later than that lease.
+Bulk receipts additionally store normalized ordered request targets, their owner-scoped
+consistent expansion UUIDs and safe per-target mutation/training outcomes for the replay
+window. They never store response JSON/content/engine ids. Replay uses that snapshot rather
+than re-expanding changed threads; indeterminate training is returned as unknown and is not
+blindly sent again.
+
 ## Durable event admission
 
 Before enabling calendar or mailbox producers, the shared JetStream EVENTS configuration
@@ -223,6 +304,15 @@ later expose a new `event` kind only additively. The existing flat
 `GET/PUT /api/admin/mail/settings` Resend contract also remains unchanged. Mailbox-engine
 policy is a separate `GET/PUT /api/admin/mail/mailbox-settings` resource. Every new admin
 mail operation requires the existing admin middleware plus a named audit action.
+
+New Mail resource conflicts keep the canonical `{error,request_id}` body and use an exact
+route-specific `X-Hub-Error-Code`. Stale label/settings/signature/rule/policy/domain writes,
+label name/in-use, policy prerequisites, domain verified/default/in-use and alias state are
+not collapsed into an untyped 409. Global normalized domain or address collisions return
+only an unavailable code so the API never confirms another tenant's ownership.
+Draft update/delete/send bind the user's last confirmed revision through `If-Match`; matching
+send receipt replay is resolved first, while a new stale or competing send performs no
+second engine submission and returns the exact draft/submission code.
 
 Repository inspection also found the live `POST /api/admin/mail/broadcast` route. It sends
 arbitrary admin-authored content to all active users and therefore conflicts with
@@ -456,17 +546,38 @@ changing payloads for any legacy outbox subject.
 - The reader uses a restrictive CSP/sandbox boundary. Remote images are blocked by
   default. User-authorized display goes through a size/time/type-limited SSRF-safe proxy
   that rejects private, loopback, link-local, metadata, and rebinding targets.
+- The sanitizer derives plain text from accepted rich content; it never trusts two
+  independently supplied rich/plain bodies. If no reviewed sanitizer is available, rich
+  content is disabled and plain-only behavior is the safe fallback. Received remote fetches
+  are removed or rewritten to expiring owner/message-bound tokens before browser render.
+- The image proxy reauthorizes the message and validates every redirect/connect with the
+  existing safe outbound URL and dial primitives, sends no user cookie/referrer, applies
+  byte/time/redirect/type caps and never returns or logs the original URL. It returns bytes
+  with fixed private five-minute cache, `nosniff`, `no-referrer` and restrictive CSP
+  headers; it never redirects the browser to an origin or cache URL. Application access
+  logs and generic HTTP audit use matched route templates, not concrete token paths;
+  ingress/proxy logging must prove equivalent token-path and mail-search-query redaction.
 - SeaweedFS uploads use existing presign/confirm flow. Attachment metadata enforces total
   and per-file limits, safe filename handling, blocked executable types, and a pluggable
-  `AttachmentScanner`; unscanned/quarantined data cannot be submitted.
+  `AttachmentScanner`; unscanned/quarantined data cannot be submitted or downloaded.
+  Confirm mismatch/state/expiry is machine-readable and no-mutation. Clean downloads use
+  only a short-lived redirect minted for the fixed configured storage origin with
+  `no-store`/`no-referrer`; arbitrary/provider-supplied origins are forbidden.
 - Send operations have per-user and per-instance token buckets. Automatic replies carry
   loop-prevention headers and never answer another automatic/bulk response.
 - Engine/admin secrets and DKIM material live only in secrets/env/volumes, never Git or
   API responses.
 - iTIP sender matching, UID/sequence checks, attendee-version checks, MIME depth/size
   bounds, and calendar parser limits are mandatory before state mutation.
-- Search indexes store only the minimum authorized projection and are always filtered by
-  organization + mailbox owner before returning identifiers.
+- Search indexes store only the minimum authorized projection: bounded sanitized plain
+  body, normalized attachment filenames and allowed message metadata. They never store raw
+  HTML/MIME/BCC/remote URLs and are filtered by organization + mailbox owner before search,
+  then each hit is reauthorized before returning identifiers or snippets.
+- Spam and ham actions call an explicit classifier-feedback adapter method. Folder/flag
+  mutation and training result are represented separately; a move alone is never audited or
+  shown as successful training. Each training command derives a stable receipt/message id;
+  without an accepted engine reconciliation/idempotency primitive, a lost response remains
+  terminal unknown and is never trained twice.
 
 ## Product scope
 
@@ -477,7 +588,11 @@ changing payloads for any legacy outbox subject.
 - Inbox/Sent/Drafts/Archive/Trash/Junk plus nested custom folders and labels.
 - Threads, flags, pin, unread counters, bulk actions, drafts/autosave, signatures,
   aliases, CC/BCC, priority, reply/reply-all/forward, SeaweedFS attachments.
+- Folder/label management, rule management with deployment state, explicit remote-image
+  consent, per-user admin alias management and visible mailbox provisioning state.
 - Instance-domain inbound/outbound SMTP through the engine.
+- Hub-exclusive custom-folder management; no alternate user/operator mailbox writer in
+  wave 1.
 - Meilisearch projection indexed asynchronously from NATS.
 - Hub users and recent external recipients for autocomplete.
 
@@ -495,6 +610,8 @@ changing payloads for any legacy outbox subject.
 ### Explicitly excluded
 
 - Bespoke SMTP/IMAP/JMAP servers.
+- User-facing engine IMAP/JMAP/ManageSieve or direct engine-admin mailbox mutation in wave
+  1; these would invalidate safe lost-response folder recovery.
 - New marketing, newsletters, digests, bulk campaign tooling, and tracking pixels. The
   current legacy admin broadcast is a known policy violation routed to the release gate,
   not an accepted exception.

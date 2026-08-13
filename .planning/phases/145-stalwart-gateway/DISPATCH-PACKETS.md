@@ -1,7 +1,7 @@
 # Phase 145 — executable gated packet contracts
 
 > **Assembly rule:** Common envelope + exactly one packet. No packet is currently eligible.
-> **Runtime for code:** `gpt-5.3-codex` / `xhigh`, fallback none.
+> **Runtime for code:** `gpt-5.6-terra` / `xhigh`, fallback none.
 > **Authority:** `GATE-PLAN.md`; a table row here never self-satisfies a gate.
 
 ## Common execution envelope
@@ -27,6 +27,7 @@
   `backend/internal/mail/mailbox_config.go`,
   `backend/tests/mail/mailbox_config_test.go`.
 - Behavior/oracles: disabled default needs no secret/domain and reports not_configured;
+  exclusive custom-folder writer defaults false and cannot be enabled by an HTTP request;
   enabled requires fixed internal absolute http(s) URL plus admin identity/secret;
   external requires enabled + domain; validate byte/rate/retention bounds; errors/string
   dumps redact values; no environment read inside pure parser (map/lookup injected).
@@ -56,9 +57,21 @@
 - Gates: prior; dependencies 02 + Phase 144 port. Allowed only
   `backend/internal/mail/stalwart/account.go`, `mapper.go`,
   `backend/tests/mail/stalwart_account_test.go`.
-- Behavior/oracles: idempotent EnsureAccount by stable Hub identity; normalized primary/
-  alias mapping; no group send until authorized; opaque returned ids; conflict/partial
+- Behavior/oracles: idempotent EnsureAccount by stable Hub key, reserved local part and
+  selected verified domain; normalized primary/alias mapping; same key/spec repeats and
+  changed spec conflicts; no group send until authorized; opaque returned ids; conflict/partial
   provisioning safe; no password/token persisted/returned; cross-account query impossible.
+
+## 145-03C — domain desired-state mapping
+
+- Gates: G145-5 exact selected-version domain management API. Dependencies: 02 + Phase 144
+  port. Allowed only `backend/internal/mail/stalwart/domain.go`,
+  `backend/tests/mail/stalwart_domain_test.go`.
+- Behavior/oracles: `EnsureDomain` idempotently applies stable key + captured generation/
+  hash + desired present/enabled; `GetDomain` is read-only reconciliation. Map only opaque
+  id, absent/DNS-required/verified/error/indeterminate, bounded public MX/TXT/CNAME records
+  and DKIM status. Lost create/delete response is observable; changed generation conflicts;
+  no automatic DNS call, private DKIM material, credential/provider body or cross-org data.
 
 ## 145-03B — folder mapping
 
@@ -68,9 +81,12 @@
   state; account id in every request; deterministic pagination; unsupported hierarchy /
   partial failure typed; configure/enforce at most 100 non-deleted folders atomically and
   map over-limit safely; an over-cap get is rejected rather than partially projected;
-  no Hub color/order sent as engine authority unless port says so.
+  no Hub color/order sent as engine authority unless port says so. Expose the injected
+  exclusive-custom-folder-writer capability only from accepted trusted runtime config;
+  system-role bootstrap folders stay separately typed. False/unknown capability supports
+  reads but cannot authorize exact-match adoption or any automatic recovery write.
 
-## 145-04 — message/blob/list/search mapping
+## 145-04 — message/blob/list mapping
 
 - Dependencies: 02/03B. Allowed only `stalwart/message.go`, `blob.go`,
   `backend/tests/mail/stalwart_message_test.go`.
@@ -81,6 +97,7 @@
   an accepted Hub submission/draft identifier. Address/From/alias equality and mutable Sent
   membership never produce confirmed-owner origin; ambiguous provenance maps
   `inbound_or_unknown` so the domain fails toward event admission.
+  No engine-search method/query exists; public search is the Hub Meilisearch projection.
 
 ## 145-05A — hydrated incremental changes and invalid cursor
 
@@ -142,8 +159,9 @@
 - Dependencies: 03B/04. Allowed only
   `backend/internal/mail/stalwart/mutation.go` and
   `backend/tests/mail/stalwart_mutation_test.go`.
-- Behavior/oracles: account-scoped move/flags/delete; partial per-id errors; hard-delete
-  policy explicit; returned opaque state is reconciled; another account's ids produce no
+- Behavior/oracles: account-scoped move/public flags/reserved keyword add-remove/delete;
+  reserved markers are typed separately and never accept label name/UUID/public raw input;
+  partial per-id errors; hard-delete policy explicit; returned opaque state is reconciled; another account's ids produce no
   call/mutation. Do not implement or upload Sieve in this packet.
 
 ## 145-07B — typed Sieve mapping
@@ -151,17 +169,33 @@
 - Dependencies: 02 plus accepted Phase 144 rule compiler. Allowed only
   `backend/internal/mail/stalwart/sieve.go` and
   `backend/tests/mail/stalwart_sieve_test.go`.
-- Behavior/oracles: accept only the compiler-produced typed representation; render the
-  selected-version script deterministically; bound name/bytes/rules; upload then activate
-  with explicit partial-failure state; expose no public raw-script input. Do not implement
-  message mutations in this packet.
+- Behavior/oracles: accept only the compiler-produced typed representation and one fixed
+  Hub script name; render selected-version script deterministically; bound bytes/rules and
+  encode generation/hash marker. Native move/read compile directly; label action compiles
+  only the resolved opaque reserved keyword. `GetSieve` returns only active/marker state. `UpsertSieve`
+  distinguishes applied from indeterminate so the worker can Get-before-retry; expose no
+  public raw-script input/provider body. Do not implement message mutations here.
+
+## 145-07C — spam/ham classifier feedback
+
+- Gates: selected-version official classifier-feedback API frozen under G145-5.
+  Dependencies: 02/04. Allowed only `backend/internal/mail/stalwart/spam.go`,
+  `backend/tests/mail/stalwart_spam_test.go`.
+- Behavior/oracles: account-scoped unique bounded message ids and explicit `spam|ham` map
+  plus stable receipt/message command ids map to documented feedback; per-message accepted/rejected/indeterminate outcomes remain
+  distinct from mailbox move/flag. Timeout never becomes accepted, unsupported capability
+  is typed rejected, cross-account ids cause zero call, and sample/provider/address data
+  never enter logs/errors. G145-5 must state whether the selected API provides native
+  idempotency/reconciliation; without it an indeterminate call is terminal unknown and the
+  adapter/domain never calls feedback again for that command id.
 
 ## 145-08 — adapter composition
 
-- Dependencies: 03A/B, 04, 05A/B, 06A/B and 07A/B. Allowed only `stalwart/adapter.go`,
+- Dependencies: 03A/B/C, 04, 05A/B, 06A/B and 07A/B/C. Allowed only `stalwart/adapter.go`,
   `backend/tests/mail/stalwart_adapter_contract_test.go`.
 - Behavior/oracles: compile `MailEngine` assertion; every method, including hydrated
-  `Changes` and anchored `EnumerateProjection`, delegates exactly once to its accepted
+  domain/account, `Changes`, anchored `EnumerateProjection`, `GetSieve` and
+  `ClassifyMessages`, delegates exactly once to its accepted
   mapper/client; no hidden fallback; account id required; capabilities cached only with
   bounded/invalidation policy; redacted health; constructor no network.
 
@@ -173,14 +207,16 @@
   before module consumers. `wiring_mailbox.go` parses the accepted mailbox config,
   constructs exactly one Stalwart adapter only when enabled, and injects the generic
   `MailEngine` into the already accepted mailbox services/handlers. It then composes the
-  accepted Phase 144 sync repository/service/worker, starts exactly one worker with
-  `d.rootCtx`, and immediately registers its bounded `Stop` with `d.addCleanup`. Start or
+  accepted Phase 144 domain, account, combined sync/recovery and rule repository/service/workers, starts
+  exactly one of each with `d.rootCtx`, and immediately registers bounded reverse-order `Stop`
+  callbacks with `d.addCleanup`. Start or
   constructor failure is redacted, follows the frozen startup policy and never reports
   mailbox readiness. Disabled mode creates no adapter, worker, timer/goroutine or probe and
   preserves the explicit not-configured engine supplied by Phase 144.
-- Oracles: exact pre/post root-call inventory; one engine instance and one worker; enabled
-  start gets the shared root context and cleanup drains in LIFO order; start failure has no
-  orphan scheduler; disabled zero adapter/worker/probe; no secret/cursor in DI/log; legacy
+- Oracles: exact pre/post root-call inventory; one engine instance and four workers;
+  provisioning precedes projection eligibility; every start gets the shared root context
+  and cleanup drains in LIFO order; start failure has no orphan scheduler; disabled zero
+  adapter/worker/probe; no secret/cursor in DI/log; legacy
   `wireAuditMailAI`, Resend readiness/routes and `/admin/mail/settings` registration byte-
   semantically unchanged. This is composition, so no fake isolated Go unit is invented;
   handler/API/runtime proof remains in 09B and the accepted launcher gate.
@@ -206,10 +242,12 @@
 - Gates: G145-1/3/4/5; dependencies 09A/09B. Allowed only
   `docker-compose.local.yml`, founder-approved production compose if explicitly in scope,
   `deployments/mail/**`, and names-only env example/docs named in dispatch.
-- Behavior/oracles: exact immutable digest; optional `mail` profile; fixed internal JMAP/
-  admin; explicit opt-in SMTP/IMAP ports; named volume; image-specific health; non-root /
+- Behavior/oracles: exact immutable digest; optional `mail` profile; fixed service-network
+  JMAP/admin reachable only by Hub; explicit opt-in SMTP delivery ports and no user-facing
+  IMAP/JMAP/ManageSieve/direct-admin mailbox mutation; named volume; image-specific health; non-root /
   capabilities where supported; CPU/RAM/PID/restart caps; no secret/value/DKIM key; compose
-  static/runtime validation only through launcher. Do not invent volume path/command.
+  static/runtime validation only through launcher. The trusted exclusivity setting may be
+  true only in that reviewed exposure shape. Do not invent volume path/command.
 
 ## 145-11A — engine backup/restore runbook
 

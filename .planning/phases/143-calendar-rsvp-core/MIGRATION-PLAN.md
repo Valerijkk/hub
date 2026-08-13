@@ -1,6 +1,6 @@
 # Phase 143 — Calendar schema, ScheduledCall backfill and cutover plan
 
-> **Status:** CONTRACT_0_1_5_ROOT_REVIEW_PENDING · PRODUCTION_ARTIFACT_BLOCKED_BY_FOUNDER_REVIEW
+> **Status:** CONTRACT_0_1_6_ROOT_REVIEW_PENDING · PRODUCTION_ARTIFACT_BLOCKED_BY_FOUNDER_REVIEW
 > **Runtime:** NOT_RUN
 > **Owner decision:** `docs/mail/FOUNDER-QUESTIONS.md` #12
 
@@ -16,7 +16,7 @@
 - Database migrations and this ADR require founder review before integration.
 
 No SQL file or apply command is authorized until the owner resolves that mismatch. Ent
-schema work may proceed independently once the exact Spark runtime is available, but it is
+schema work may proceed independently under the exact founder-authorized Terra route, but it is
 not production-migration evidence.
 
 ## Target schema invariants

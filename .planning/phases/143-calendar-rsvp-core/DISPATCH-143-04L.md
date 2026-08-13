@@ -1,6 +1,6 @@
 # Phase 143 packet 04L — shared deterministic event envelope
 
-> **Runtime:** `gpt-5.3-codex` / `xhigh`, no fallback
+> **Runtime:** `gpt-5.6-terra` / `xhigh`, no fallback
 > **Status:** CODE_RUNTIME_BLOCKED
 > **Scope:** one pure shared value/builder plus one genuine external-package unit
 
