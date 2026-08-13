@@ -1,6 +1,6 @@
 # Phase 147 — Mail/Calendar Reliability and Integrations
 
-> Task: TASK-240 · Status: CONTRACT_0_1_7_HASH_AMENDMENT_ROOT_REVIEW_PENDING_INDEPENDENT_PENDING_DEPENDENCY_BLOCKED · Depends on: Phases 143–146
+> Task: TASK-240 · Status: CONTRACT_0_1_7_HASH_REMEDIATION_ROOT_REVIEW_PENDING_INDEPENDENT_RE_REVIEW_PENDING_DEPENDENCY_BLOCKED · Depends on: Phases 143–146
 > Required code runtime: `gpt-5.6-terra` / `xhigh`, no fallback
 > Contract: `CONTRACT.md` · Dispatch: `DISPATCH-INDEX.md` + `DISPATCH-PACKETS.md`
 
@@ -40,8 +40,8 @@ this phase.
 
 | Gate | State |
 |---|---|
-| Root reliability contract static review | 0.1.7 amendment PENDING; 0.1.6 PASS on exact SHA `5a351d5b` is historical STALE |
-| Independent reliability contract review | Terra/high PASS on exact SHA `5a351d5b`; no P0/P1/P2 |
+| Root reliability contract static review | 0.1.7 remediation exact-SHA review PENDING; 0.1.6 PASS on `5a351d5b` historical STALE |
+| Independent reliability contract review | Terra/high FAIL on 0.1.7 SHA `7a6ffc1c` with 3 P1; escape/limit/status remediation applied, exact-SHA re-review pending; 0.1.6 PASS on `5a351d5b` historical STALE |
 | Exact Terra code runtime | AUTHORIZED_BY_FOUNDER / first actual packet pending |
 | Phase 143/144 accepted implementation | NOT_IMPLEMENTED |
 | Engine authentication mapping | BLOCKED_BY_PHASE_145 |

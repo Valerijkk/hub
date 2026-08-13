@@ -7,8 +7,9 @@
 ## Prepared artifacts (root and independently reviewed)
 
 - Architecture, source-of-truth, security and compatibility decisions are amended in Mail
-  contract 0.1.7. The CVE-v1 amendment is root-review pending; the prior root/independent
-  PASS on Mail 0.1.6 SHA `5a351d5b` became historical `STALE` when semantics changed.
+  contract 0.1.7. Review of SHA `7a6ffc1c` found 3 P1; remediation is applied and exact-SHA
+  re-review is pending. The prior root/independent PASS on Mail 0.1.6 SHA `5a351d5b`
+  became historical `STALE` when semantics changed.
 - OpenAPI covers mailbox, submission recovery, legacy calendar, canonical calendar and
   separate legacy/new admin resources.
 - Event subjects and webhook privacy boundary are frozen.

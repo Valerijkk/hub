@@ -1,6 +1,6 @@
 # Phase 143 — exact Terra dispatch index
 
-> **Status:** 143_01_AND_143_02A_STATIC_ACCEPTED_D73A9380 · 0_1_7_HASH_AMENDMENT_ROOT_REVIEW_PENDING · 143_02B_BLOCKED · RUNTIME_NOT_RUN
+> **Status:** 143_01_AND_143_02A_STATIC_ACCEPTED_D73A9380 · 0_1_7_HASH_REMEDIATION_RE_REVIEW_PENDING · 143_02B_BLOCKED · RUNTIME_NOT_RUN
 > **Required runtime:** `gpt-5.6-terra` / `xhigh`, no fallback
 > **Execution:** strictly sequential where owned files overlap
 > **Runtime evidence:** `.planning/phases/143-calendar-rsvp-core/RUNTIME-BLOCKER.md`
@@ -123,7 +123,7 @@ each accepted 143-04B/C/D/E/H/I ── its matching 143-04F-* transaction
 
 | Gate | Status |
 |---|---|
-| Contract root/independent review | 0.1.7 canonical-hash amendment root review pending; prior PASS on exact Mail 0.1.6 SHA `5a351d5b` is historical STALE |
+| Contract root/independent review | 0.1.7 SHA `7a6ffc1c` FAIL with 3 P1; remediation applied and exact-SHA re-review pending; prior PASS on Mail 0.1.6 SHA `5a351d5b` historical STALE |
 | Exact Terra implementation runtime | 143-01 and 143-02A actual Terra/xhigh recorded; executable runtime `NOT_RUN` |
 | Accepted Docker launcher | NOT_READY |
 | Ent generation | NOT_RUN |

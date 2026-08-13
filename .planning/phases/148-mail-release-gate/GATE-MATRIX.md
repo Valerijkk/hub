@@ -1,6 +1,6 @@
 # Phase 148 — merge-readiness gate matrix
 
-> **Status:** G148_02_STALE_PENDING_MAIL_0_1_7_REVIEW · IMPLEMENTATION_IN_PROGRESS · 143-01_AND_143-02A_STATIC_ACCEPTED
+> **Status:** G148_02_STALE_PENDING_MAIL_0_1_7_RE_REVIEW · IMPLEMENTATION_IN_PROGRESS · 143-01_AND_143-02A_STATIC_ACCEPTED
 > **Scope:** Mail/Calendar/CRM feature branch only
 > **Evidence rule:** exact current SHA or no PASS
 > **Execution rule:** accepted versioned Docker launcher only; host/direct Compose evidence
@@ -42,7 +42,7 @@ secrets, DNS/operator approval and CTO/founder sign-off remain separate.
 | ID | Required evidence | Current state | Blocks |
 |---|---|---|---|
 | G148-01 baseline | clean isolated branch; base/current SHA; worktree path; changed-file and protected-zone diff; no untracked product artifact | PASS for docs snapshot only; repeat after code | every later gate |
-| G148-02 contract | ADR, Mail spec, OpenAPI, event schema, UI contract, Phase 147 contract and QA handoff independently agree; machine refs/examples closed | STALE — Mail 0.1.7 canonical-hash amendment awaits exact-SHA root + independent Terra/high review; prior PASS on 0.1.6 SHA `5a351d5b` remains historical only | source work/claim |
+| G148-02 contract | ADR, Mail spec, OpenAPI, event schema, UI contract, Phase 147 contract and QA handoff independently agree; machine refs/examples closed | STALE — 0.1.7 SHA `7a6ffc1c` review found 3 P1; remediation awaits exact-SHA root + independent Terra/high re-review; prior PASS on 0.1.6 SHA `5a351d5b` historical only | source work/claim |
 | G148-03 founder decisions | task-local Terra route is answered; signed answers remain required for migration mechanism, Stalwart license, L1 include/defer, recurring-call semantics, pause/resume, legacy POST idempotency break, linked-call guest access, broadcast disposition, primary-address policy, sanitizer dependency, Sieve ownership and rebase signal; push/PR separately authorized | PARTIAL / unresolved items remain | affected packets and final gate |
 | G148-04 model provenance | every production/test-code packet records actual `gpt-5.6-terra` + `xhigh`; no silent fallback; review packets record allowed Terra effort and distinct review context | IN_PROGRESS — 143-01 and 143-02A actual Terra/xhigh plus independent Terra/high reviews recorded in their implementation evidence; repeat for every later packet | source acceptance |
 | G148-05 migrations/generation | reviewed mechanism, preflight, generated Ent twice clean, complete ScheduledCall mapping + recurrence oracle + 100% bridge cutover dry-run on empty/realistic snapshot, counts/hashes and rollback | NOT_RUN | backend/runtime |

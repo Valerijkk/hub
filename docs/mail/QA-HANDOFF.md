@@ -2,7 +2,7 @@
 
 > **Contract version:** 0.1.7
 > **Prepared:** 2026-08-13
-> **Implementation status:** IN_PROGRESS — 143-01 and 143-02A static accepted through `d73a9380`; 143-02B blocked on exact-SHA 0.1.7 contract review; executable verification `NOT_RUN`
+> **Implementation status:** IN_PROGRESS — 143-01 and 143-02A static accepted through `d73a9380`; 143-02B blocked on exact-SHA 0.1.7 remediation re-review; executable verification `NOT_RUN`
 > **Runtime status:** NOT_RUN
 > **QA owner:** founder-designated Claude test program
 > **Product-code owner:** ChatGPT mail feature branch
@@ -231,7 +231,9 @@ or more `FR-MAIL-*` / `FR-CALSYNC-*` rows and named `TC-*` scenarios in `MAIL-SP
    parameter case/quoting, attendee/EXDATE order and RRULE component order normalize to
    equal hashes. Mutating each included semantic field changes the hash. Stored event,
    exception, object-state and inbound-REPLY hashes include canonical version `1`; another
-   version is never compared as equal.
+   version is never compared as equal. Malformed/unknown TEXT or caret escapes, decoded
+   controls other than the explicitly allowed LF, and multibyte strings exceeding the
+   post-normalization UTF-8 byte bounds reject before hashing.
 7. Reused HTTP idempotency key with identical input replays the original response; changed
    input conflicts and never emits a second mutation/outbox event.
 8. REPLY changes only the normalized envelope/authenticated sender's attendee row. It

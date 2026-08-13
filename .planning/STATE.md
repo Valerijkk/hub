@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
-last_updated: "2026-08-13T12:06:23.6227778+03:00"
-last_activity: 2026-08-13 · Mail 0.1.7 canonical iTIP hash amendment frozen for exact-SHA review; 143-01/02A remain static accepted, 143-02B blocked pending review; runtime NOT_RUN
+last_updated: "2026-08-13T12:22:01.5761197+03:00"
+last_activity: 2026-08-13 · Mail 0.1.7 exact-SHA review found 3 P1; escape/UTF-8-limit/status remediation applied for re-review; 143-01/02A remain static accepted, 143-02B blocked; runtime NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -118,7 +118,7 @@ mail_feature_workstream:
     branch: codex/mail-module-20260813
     phases: "142-148"
     current_phase: 143
-    status: contract_0_1_7_hash_amendment_root_review_pending_143_01_143_02A_static_accepted_143_02B_blocked
+    status: contract_0_1_7_hash_remediation_re_review_pending_143_01_143_02A_static_accepted_143_02B_blocked
     product_truth: unfinished_mvp_feature_not_accepted
     contract_version: "0.1.7"
     tasks:
@@ -175,7 +175,7 @@ mail_feature_workstream:
       phase_147_contract: .planning/phases/147-mail-calendar-reliability/CONTRACT.md
       phase_147_dispatch: .planning/phases/147-mail-calendar-reliability/DISPATCH-INDEX.md
       phase_147_static_review_historical_0_1_6: .planning/phases/147-mail-calendar-reliability/STATIC-REVIEW-0.1.6.md
-      phase_147_static_review_current_0_1_7: PENDING
+      phase_147_static_review_current_0_1_7: FAIL_7A6FFC1C_3P1_REMEDIATED_RE_REVIEW_PENDING
       phase_148_gate: .planning/phases/148-mail-release-gate/GATE-MATRIX.md
       phase_148_reviews: .planning/phases/148-mail-release-gate/REVIEW-PACKETS.md
 spec_coverage:

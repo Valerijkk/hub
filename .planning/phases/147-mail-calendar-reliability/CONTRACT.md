@@ -1,7 +1,7 @@
 # Phase 147 — reliability and integration contract
 
 > **Contract addendum:** Mail 0.1.7
-> **Status:** CANONICAL_HASH_V1_AMENDMENT_ROOT_REVIEW_PENDING · 0_1_6_REVIEW_STALE · PRODUCT_CODE_NOT_IMPLEMENTED
+> **Status:** CANONICAL_HASH_V1_REMEDIATION_RE_REVIEW_PENDING · 0_1_6_REVIEW_STALE · PRODUCT_CODE_NOT_IMPLEMENTED
 > **Depends on:** accepted Phase 143 calendar core, Phase 144 mailbox domain, and the
 > engine adapter portions named by each packet
 > **Runtime evidence:** NOT_RUN

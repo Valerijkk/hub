@@ -4,8 +4,10 @@
 
 Canonical inbound iTIP identity amendment. Product runtime remains `NOT_RUN`; 143-01 and
 143-02A source acceptance is unchanged, while 143-02B is blocked until this exact semantic
-snapshot passes root and independent Terra/high review. The prior 0.1.6 review on
-`5a351d5b` is historical `STALE` after this semantic change.
+snapshot passes root and independent Terra/high review. Review of initial SHA `7a6ffc1c`
+found three P1 ambiguities; the escape, UTF-8-byte-limit and status-sync remediation is now
+frozen for exact-SHA re-review. The prior 0.1.6 review on `5a351d5b` is historical `STALE`
+after this semantic change.
 
 - Separated inbound duplicate identity from the accepted outbound serializer. Inbound
   occurrence REQUEST is valid without expanding or weakening the 143-02A outbound subset.
@@ -15,6 +17,9 @@ snapshot passes root and independent Terra/high review. The prior 0.1.6 review o
 - Closed every included field, enum code, sort rule, RRULE normalization, physical-format
   exclusion and unsupported property/parameter rejection. No JSON, map order, locale,
   clock, random value, raw MIME or wire folding participates.
+- Closed RFC TEXT and RFC 6868 decoding to explicit allowlists, rejecting terminal/unknown
+  escapes and decoded controls except the contracted LF in text/CN. All decoded field
+  maxima are post-normalization UTF-8 byte counts, including multibyte boundaries.
 - Fixed bounded parser maxima/defaults: 1 MiB total, 8 KiB unfolded line, 4,096 properties,
   200 attendees, 1,000 EXDATE values and exactly one `VCALENDAR` -> `VEVENT` component path.
 - Paired every persisted canonical event/exception/object-state/REPLY-receipt hash with its

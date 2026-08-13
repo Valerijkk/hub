@@ -1,7 +1,7 @@
 # MAIL-SPEC — Hub mailbox and calendar synchronization contract
 
 > **Version:** 0.1.7
-> **Status:** Canonical iTIP hash amendment frozen; exact-SHA root/independent review pending; 0.1.6 review evidence is historical `STALE`
+> **Status:** Canonical iTIP hash remediation frozen; exact-SHA root/independent re-review pending after 3 P1 on `7a6ffc1c`; 0.1.6 review evidence is historical `STALE`
 > **Date:** 2026-08-13
 > **Architecture:** `../ADR-MAIL-01-mail-engine-calendar-sync.md`
 > **OpenAPI:** `../../../docs/mail/openapi.yaml`
@@ -1163,10 +1163,23 @@ Normalization before encoding is closed and deterministic:
 - accept CRLF or LF physical line endings, reject every lone CR, and unfold a following
   space or tab before parsing. Every unfolded content line, including BEGIN/END, counts
   toward `MaxProperties`; the line bound excludes its terminator and continuation prefix;
-- property and parameter names and enumerated tokens are case-insensitive;
-  quoted/caret-encoded parameter values and RFC text escapes are decoded;
-- require valid UTF-8; normalize all decoded text line endings to LF; preserve Unicode code
-  points byte-for-byte and perform no NFC/NFKC normalization;
+- property and parameter names and enumerated tokens are case-insensitive. During wire
+  parsing, RFC TEXT values (`PRODID`, `UID`, `SUMMARY`, `DESCRIPTION`, `LOCATION`) decode
+  exactly once: only `\\` -> `\`,
+  `\,` -> `,`, `\;` -> `;`, and `\n|\N` -> LF. A terminal backslash or backslash
+  before any other character is `ErrInvalidITIPSyntax`; escape matching is otherwise
+  case-sensitive;
+- parameter values use RFC 6868 only: `^^` -> `^`, `^n|^N` -> LF, and `^'` -> `"`.
+  A terminal caret or every other caret pair rejects with `ErrInvalidITIPSyntax` instead
+  of being preserved. Quoted parameter values have no backslash escape; they must close,
+  and a literal quote inside is invalid;
+- require valid UTF-8. The only content line break produced by decoding is LF from the
+  explicit `\n|\N` or `^n|^N` forms above; no other control is translated. Preserve
+  Unicode code points byte-for-byte and perform no NFC/NFKC normalization. After decoding,
+  UID and PRODID reject every Unicode general-category `Cc` control.
+  Summary/description/location and `CN` allow
+  LF only and reject CR, NUL, DEL/C1 and every other `Cc` code point. All non-text fields
+  reject every `Cc` code point, including encoded LF;
 - UID is 1..255 UTF-8 bytes, contains no control byte or leading/trailing ASCII whitespace,
   and otherwise remains case-sensitive and byte-exact;
 - email uses the existing strict accepted-address normalizer and lowercases the complete
@@ -1222,13 +1235,19 @@ EXDATE timed values may use that event TZID or UTC and normalize to UTC seconds.
 DTSTART/DTEND/RECURRENCE-ID/EXDATE require `VALUE=DATE`, reject TZID, and normalize compact
 wire dates to `YYYY-MM-DD`. Field maxima after decoding are UID 255 bytes, summary 500,
 description 200,000, location 500, email 320, display name 160, timezone 64 and normalized
-RRULE 1,000; the smaller unfolded-line and total-payload limits still win.
+RRULE 1,000. Every maximum in this sentence is a UTF-8 byte count after all decoding,
+LF/email/RRULE normalization and before CVE framing; the smaller unfolded-line and total-
+payload limits still win.
 
 The returned `ITIPMessage` is the normalized value: fresh attendee/EXDATE slices, no alias
 into `payload`, normalized RRULE/email/date/time/text fields and UTC for the all-day timezone
-marker. `CanonicalITIPIdentity` applies the same domain normalizer without calling the
-serializer; its recurrence string is UTC RFC3339 without fractional seconds or `YYYY-MM-DD`.
-Wire-only VERSION/PRODID/CALSCALE checks occur in `ParseITIP` before that domain function.
+marker. `CanonicalITIPIdentity` treats its `ITIPMessage` strings as already-decoded domain
+values: it applies semantic validation, byte bounds, email/RRULE/date/time normalization and
+sorting, but never interprets backslash or caret a second time. A literal backslash/caret in
+a domain string therefore remains literal. The identity function does not call the
+serializer; its recurrence string is UTC RFC3339 without fractional seconds or
+`YYYY-MM-DD`. Wire-only VERSION/PRODID/CALSCALE and escape syntax checks occur in
+`ParseITIP` before that domain function.
 
 Physical folding, property/parameter order, quoting style, raw MIME boundaries, transport
 headers, envelope sender and message ids are excluded. The authenticated sender is bound

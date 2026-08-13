@@ -95,7 +95,10 @@ without midnight conversion or caller context.
    decide database mutation.
 11. Malformed input returns stable safe sentinels with no raw addresses/body in error
     strings. Reject unknown properties/parameters, extra components, VTIMEZONE, RDATE,
-    EXRULE, TRANSP, CLASS, URL, ATTACH, SENT-BY and recurrence RANGE.
+    EXRULE, TRANSP, CLASS, URL, ATTACH, SENT-BY and recurrence RANGE. Cover every accepted
+    TEXT/caret escape plus terminal/unknown escape and decoded-control rejection. Prove
+    Parse decodes exactly once and CanonicalITIPIdentity preserves literal backslash/caret
+    in already-decoded domain strings.
 12. Fuzz-style boundary tables are deterministic ordinary units, not host fuzz execution.
 
 Narrow `itip_types.go` additions are exactly `ITIPIdentity` plus
@@ -103,6 +106,8 @@ Narrow `itip_types.go` additions are exactly `ITIPIdentity` plus
 `ErrUnsupportedITIPContent`; do not invent another public parser surface. Parse returns
 fresh normalized slices and no alias into the input. Follow the exact singleton/cardinality,
 parameter-default, method/status and timed/all-day wire matrix in Mail spec 4.4.1.
+All decoded field maxima are post-normalization UTF-8 bytes; include multibyte boundary
+oracles that distinguish bytes from runes.
 
 [EXECUTION / PROVENANCE]
 

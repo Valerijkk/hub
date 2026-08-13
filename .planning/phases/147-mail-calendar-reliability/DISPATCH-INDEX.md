@@ -1,6 +1,6 @@
 # Phase 147 — exact Terra dispatch index
 
-> **Status:** CONTRACT_0_1_7_HASH_AMENDMENT_ROOT_REVIEW_PENDING · 0_1_6_REVIEW_STALE · TERRA_CODE_ROUTE_AUTHORIZED · DEPENDENCIES_BLOCKED
+> **Status:** CONTRACT_0_1_7_HASH_REMEDIATION_RE_REVIEW_PENDING · 0_1_6_REVIEW_STALE · TERRA_CODE_ROUTE_AUTHORIZED · DEPENDENCIES_BLOCKED
 > **Required runtime:** `gpt-5.6-terra` / `xhigh`, no fallback
 > **Contract:** `CONTRACT.md` + Mail 0.1.7
 > **Execution:** one row/variant per executor; overlapping files are sequential
@@ -120,8 +120,8 @@ all accepted rows ─ 147-08 docs sync/static review
 
 | Gate | Status |
 |---|---|
-| Mail 0.1.7 root static review | PENDING on the canonical-hash amendment; prior 0.1.6 SHA `5a351d5b` is historical STALE |
-| Mail 0.1.7 independent static review | PENDING until root freezes and commits the exact snapshot |
+| Mail 0.1.7 root static review | SHA `7a6ffc1c` FAIL with 3 P1; remediation frozen for exact-SHA re-review; prior 0.1.6 SHA `5a351d5b` historical STALE |
+| Mail 0.1.7 independent static review | RE-REVIEW PENDING after escape/UTF-8-limit/status remediation |
 | Exact Terra implementation runtime | AUTHORIZED_BY_FOUNDER / first actual packet pending |
 | Accepted Docker launcher | NOT_READY |
 | Ent generation/migration | NOT_RUN / FOUNDER_DECISION_PENDING |
