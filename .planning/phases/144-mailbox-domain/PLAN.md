@@ -1,6 +1,6 @@
 # Phase 144 — Mailbox Domain
 
-> Task: TASK-237 · Status: PLANNED · Depends on: Phase 142
+> Task: TASK-237 · Status: IN_PROGRESS · 144-01A STATIC_ACCEPTED · 144-01B MODEL_PROVENANCE_BLOCKED · RUNTIME_NOT_RUN · Depends on: Phase 142
 
 ## Goal
 

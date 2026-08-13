@@ -3,8 +3,9 @@
 > **Assembly rule:** a valid dispatch consists of the Common execution envelope below plus
 > exactly one numbered packet. Never send two packets in one executor turn.
 > **Runtime:** `gpt-5.6-terra` / `xhigh`, fallback none.
-> **Status:** every code packet is blocked until that exact runtime is available; generation
-> and runtime packets additionally require the accepted Docker launcher.
+> **Status:** the exact route is founder-authorized, but each packet must expose matching
+> actual telemetry or fail closed; generation/runtime packets additionally require the
+> accepted Docker launcher.
 
 Standalone complete prompts already exist for 143-01, 143-02A, 143-02B, 143-04G and
 143-04H. This file makes every remaining row in `DISPATCH-INDEX.md` independently

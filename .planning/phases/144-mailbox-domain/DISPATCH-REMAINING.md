@@ -3,8 +3,9 @@
 > **Assembly rule:** dispatch the Common execution envelope plus exactly one packet or one
 > explicitly named variant below. Combining variants is invalid.
 > **Runtime:** `gpt-5.6-terra` / `xhigh`, fallback none.
-> **Status:** TERRA_CODE_ROUTE_AUTHORIZED; packet dependencies apply; executable
-> generation/runtime evidence remains launcher-blocked.
+> **Status:** TERRA_CODE_ROUTE_AUTHORIZED; actual per-packet telemetry is mandatory and
+> currently unavailable for new attempts; dependencies apply; executable generation/runtime
+> evidence remains launcher-blocked.
 
 Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05A,
 144-05B and 144-06A. This file completes every other index row.

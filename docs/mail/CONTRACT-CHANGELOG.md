@@ -4,7 +4,9 @@
 
 Canonical inbound iTIP identity amendment. Product runtime remains `NOT_RUN`; 143-01 and
 143-02A source acceptance is unchanged. Root and independent Terra/high static review PASS
-on exact semantic SHA `b3fb6f48` with no remaining P0/P1/P2, so 143-02B is next. Review of
+on exact semantic SHA `b3fb6f48` with no remaining P0/P1/P2, which authorized 143-02B at
+the time of this contract amendment. Current implementation status belongs to `STATE.md`
+and the phase evidence rather than this historical entry. Review of
 initial SHA `7a6ffc1c` found three P1 ambiguities; escape, UTF-8-byte-limit and status-sync
 remediation closed them. The 0.1.6 review on `5a351d5b` is historical `STALE`.
 

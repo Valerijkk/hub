@@ -1,6 +1,6 @@
 # Phase 144 — exact Terra dispatch index
 
-> **Status:** CONTRACT_0_1_7_STATIC_REVIEW_PASS_B3FB6F48 · TERRA_CODE_ROUTE_AUTHORIZED · FIRST_PACKET_PENDING
+> **Status:** CONTRACT_0_1_7_STATIC_REVIEW_PASS_B3FB6F48 · 144_01A_STATIC_ACCEPTED_43D421EF · 144_01B_MODEL_PROVENANCE_BLOCKED · RUNTIME_NOT_RUN
 > **Required runtime:** `gpt-5.6-terra` / `xhigh`, no fallback
 > **Contract:** Mail 0.1.7 (root/independent static PASS on `b3fb6f48`; mailbox behavior unchanged from 0.1.6)
 > **Execution:** sequential for overlapping files; independent pure packets may run in parallel only after root freezes their shared types
@@ -68,8 +68,8 @@ every remaining row/variant, assemble the Common envelope plus exactly one secti
 
 | ID | Single owned behavior | Exact primary files | Oracle / acceptance | Entry dependency |
 |---|---|---|---|---|
-| 144-01A | Mailbox engine port, immutable DTOs and stable safe errors | `backend/internal/mail/mailbox_engine.go`, `mailbox_types.go`, `mailbox_errors.go`, `backend/tests/mail/mailbox_engine_contract_test.go` | consumer compile oracle; bounded Changes/enumeration; provisioning/Sieve/classifier/draft/submission reconcile explicit | contract 0.1.7 |
-| 144-01B | Deterministic in-memory fake for one account boundary | `backend/internal/mail/mailbox_fake.go`, `backend/tests/mail/mailbox_fake_test.go` | same-key submit; scripted incremental/enumeration pages, invalid cursor/anchor restart; strict account isolation | 144-01A |
+| 144-01A | Mailbox engine port, immutable DTOs and stable safe errors — `STATIC_ACCEPTED` through `43d421ef`; evidence `IMPLEMENTATION-144-01A.md` | `backend/internal/mail/mailbox_engine.go`, `mailbox_types.go`, `mailbox_errors.go`, `backend/tests/mail/mailbox_engine_contract_test.go` | consumer compile oracle; bounded Changes/enumeration; provisioning/Sieve/classifier/draft/submission reconcile explicit | contract 0.1.7 |
+| 144-01B | Deterministic in-memory fake for one account boundary — implementation attempt stopped before reads because actual model telemetry was unavailable | `backend/internal/mail/mailbox_fake.go`, `backend/tests/mail/mailbox_fake_test.go` | same-key submit; scripted incremental/enumeration pages, invalid cursor/anchor restart; strict account isolation | 144-01A |
 | 144-02A | Account, identity, domain and mailbox-policy schemas only | `backend/ent/schema/mailaccount.go`, `mailidentity.go`, `maildomain.go`, `mailboxpolicy.go`, narrow inverse edges in `user.go`/`organization.go` | normalized uniqueness; account/domain desired/deployed generations + leases; projection cursors/epochs/cutoff; identity status; no secrets | contract + founder migration gate noted |
 | 144-02B | Folder, thread, message, message-folder, label and message-label schemas | `mailfolder.go`, `mailthread.go`, `mailmessage.go`, `mailmessagefolder.go`, `maillabel.go`, `mailmessagelabel.go` | pending/versioned folder intent; same-account edges; label marker/provenance; rebuild marks; projection origin/event marker; no body/raw MIME | 144-02A reviewed |
 | 144-02C | Mail object, attachment, draft and submission schemas only | `mailobject.go`, `mailattachment.go`, `maildraft.go`, `mailsubmission.go` | hashed key uniqueness; opaque versions; attachment backing XOR represented; no project ACL edge | 144-02A reviewed |
@@ -173,7 +173,7 @@ every remaining row/variant, assemble the Common envelope plus exactly one secti
 | Gate | Status |
 |---|---|
 | Contract 0.1.7 root/independent static review | PASS on exact SHA `b3fb6f48` after 3-P1 remediation; mailbox behavior unchanged, 0.1.6 SHA `5a351d5b` historical STALE |
-| Exact Terra implementation runtime | AUTHORIZED_BY_FOUNDER / first actual packet pending |
+| Exact Terra implementation runtime | 144-01A actual route recorded; 144-01B actual telemetry unavailable and fail-closed `BLOCKED` |
 | Accepted Docker launcher | NOT_READY |
 | Ent generation | NOT_RUN |
 | Production migration mechanism | FOUNDER_DECISION_PENDING |

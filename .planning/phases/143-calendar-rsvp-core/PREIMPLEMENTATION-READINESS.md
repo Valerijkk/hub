@@ -2,7 +2,7 @@
 
 > **Snapshot:** 2026-08-13
 > **Branch:** `codex/mail-module-20260813`
-> **Product truth:** IMPLEMENTATION_IN_PROGRESS · 143-01_AND_143-02A_STATIC_ACCEPTED · CONTRACT_0_1_7_STATIC_PASS · 143-02B_NEXT · RUNTIME_NOT_RUN · not accepted
+> **Product truth:** IMPLEMENTATION_IN_PROGRESS · 143-01/02A/02B/03A/03B_STATIC_ACCEPTED · 03C/03F_PROVENANCE_BLOCKED · RUNTIME_NOT_RUN · not accepted
 
 ## Prepared artifacts (root and independently reviewed)
 
@@ -29,6 +29,7 @@
 | Blocker | Evidence | Unblocks |
 |---|---|---|
 | Accepted versioned Docker launcher not implemented | root `AGENTS.md`, `STATE.md` | Ent generation, build/test/validator/runtime evidence |
+| Actual subagent model telemetry unavailable for new packets | `RUNTIME-BLOCKER.md`, founder question 29 | independent acceptance of 143-03C/F, 143-03D, 144-01B and later packets |
 | Production migration mechanism unresolved | `MIGRATION-PLAN.md`, founder question 12 | schema generation/migration/backfill acceptance |
 | Recurring ScheduledCall semantics unresolved | `MIGRATION-PLAN.md`, founder question 18 | recurring backfill and all-or-nothing cutover |
 | Legacy POST idempotency compatibility break unaccepted | OpenAPI, founder question 22 | enabling the ScheduledCall bridge cutover; both shipped clients must move atomically |
@@ -44,19 +45,22 @@
    `e7d5f450`; evidence: `IMPLEMENTATION-143-01.md`; runtime `NOT_RUN`.
 2. ~~Accept or reject that packet before any dependent dispatch.~~ Independent Terra/high
    re-review PASS with no P0/P1/P2 after remediation.
-3. ~~Dispatch 143-02A.~~ `STATIC_ACCEPTED` through `d73a9380` after one reviewed fix
-   round; evidence: `IMPLEMENTATION-143-02A.md`; runtime `NOT_RUN`. Mail 0.1.7 review PASS
-   on `b3fb6f48`; dispatch 143-02B next to complete the bounded iTIP surface.
-4. Resolve migration mechanism and accepted launcher before Ent generation.
-5. Admit `calendar.>` before calendar producers.
-6. Execute Phase 143 service/HTTP plus ScheduledCall bridge packets; retain the legacy
+3. ~~Dispatch 143-02A and 143-02B.~~ Both are `STATIC_ACCEPTED`; 143-02B accepted through
+   `efa7814d` after parser hardening and host-local timezone rejection. Evidence:
+   `IMPLEMENTATION-143-02A.md` and `IMPLEMENTATION-143-02B.md`; runtime `NOT_RUN`.
+4. 143-03A/B are `STATIC_ACCEPTED`. 143-03C/F source content passes, but their independent
+   review provenance is blocked. Do not start 143-03D or generation until that gate closes.
+5. Resolve migration mechanism and accepted launcher before Ent generation.
+6. Admit `calendar.>` before calendar producers.
+7. Execute Phase 143 service/HTTP plus ScheduledCall bridge packets; retain the legacy
    calendar envelope and count linked pairs once. Keep linked external guests fail-closed
    until founder question 23 has a separately reviewed join-credential contract.
-7. Execute Phase 144 port/fake/pure-policy packets, then schemas/generation and services.
-8. Admit `mail.>` only after calendar admission; keep webhook filter unchanged.
-9. Execute UI transport/routes/core only after backend contracts are accepted and the
+8. Phase 144-01A is `STATIC_ACCEPTED`; 144-01B and later packets wait for actual model
+   telemetry. Then execute fake/pure-policy packets, schemas/generation and services.
+9. Admit `mail.>` only after calendar admission; keep webhook filter unchanged.
+10. Execute UI transport/routes/core only after backend contracts are accepted and the
    feature-test harness is available.
-10. Begin Phase 145 only in the gate order; external SMTP remains separately disabled.
+11. Begin Phase 145 only in the gate order; external SMTP remains separately disabled.
 
 ## Forbidden shortcuts
 

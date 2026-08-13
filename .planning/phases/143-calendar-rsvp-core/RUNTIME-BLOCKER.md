@@ -3,7 +3,7 @@
 > **Detected:** 2026-08-13
 > **Scope:** atomic production/test code only
 > **Planning/review:** continues
-> **Current status:** RESOLVED_BY_FOUNDER_OVERRIDE
+> **Current status:** ROUTE_AUTHORIZED · PER_PACKET_TELEMETRY_BLOCKED
 
 ## Current route — task-local founder amendment
 
@@ -67,6 +67,26 @@ The prior blocker could be resolved only when either:
 3. the founder explicitly amends the model-routing lock with another exact route.
 
 Condition 3 was satisfied by the explicit founder directive above. Code dispatch is now
-authorized only as exact `gpt-5.6-terra` / `xhigh`; first-packet actual provenance remains
-`NOT_RUN` until a dispatch completes. Docker-backed verification remains separately
-`NOT_READY` until the canonical launcher is accepted.
+authorized only as exact `gpt-5.6-terra` / `xhigh`. Several authoring and review packets
+subsequently reported exact provenance; their evidence is recorded in the matching
+`IMPLEMENTATION-*.md` files. Docker-backed verification remains separately `NOT_READY`
+until the canonical launcher is accepted.
+
+## 2026-08-13 per-packet telemetry regression
+
+Several earlier Terra packets reported requested and actual model/effort and were reviewed
+under that evidence. Later 143-03C and 143-03F review runtimes did not expose actual
+telemetry. A clean repeat 143-03C provenance review and the first 144-01B authoring attempt
+also explicitly requested the required Terra route, reported actual `UNAVAILABLE`, used no
+fallback and stopped before reading or writing files.
+
+Per the founder lock, dispatcher acceptance alone is not silently treated as actual runtime
+evidence. Consequences until question 29 is answered or telemetry returns:
+
+- 143-03C and 143-03F retain source-content PASS but are not statically accepted;
+- dependent 143-03D is blocked;
+- 144-01B remains not implemented;
+- root may continue contract, evidence, dependency analysis and source review, but does not
+  author atomic production/test code;
+- Docker availability does not affect this model-provenance gate and does not make the
+  separately missing launcher ready.
