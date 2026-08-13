@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
-last_updated: "2026-08-13T16:23:06+03:00"
-last_activity: 2026-08-13 · exact 144-01A Terra/xhigh TDD plan frozen after two actual-provenance Terra/high review attempts failed closed before reading; product writes remain blocked and runtime NOT_RUN
+last_updated: "2026-08-13T16:27:43+03:00"
+last_activity: 2026-08-13 · exact sequential Terra TDD plan added for the open Calendar event/exception hash-pair P1; all product writes remain provenance-blocked and runtime NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -246,8 +246,10 @@ spec_coverage:
   Mail 0.1.8 and the phase plan. 143-03B retains a source-content PASS but its parent chain
   is reopened; 143-03F retains a root-content PASS. None of 03A/B/C/F currently unlocks
   dependents. The exact remediation is frozen in `REMEDIATION-143-03-HASH-PAIR.md`, but its
-  Terra/xhigh attempt and independent reviews are blocked because new worker runtimes no
-  longer expose actual model/effort. 143-03D and 144-01B stay blocked by the fail-closed
+  two-packet TDD execution is now frozen in
+  `docs/superpowers/plans/2026-08-13-calendar-hash-pair-remediation.md`; its Terra/xhigh
+  attempt and independent reviews are blocked because new worker runtimes no longer expose
+  actual model/effort. 143-03D and 144-01B stay blocked by the fail-closed
   provenance rule and founder question 29. Phase 143/144 implementation is `IN_PROGRESS`;
   executable runtime remains `NOT_RUN`.
 - Mailbox control-plane rules inherited from 0.1.6 remain in 0.1.8: отдельные bounded workers владеют

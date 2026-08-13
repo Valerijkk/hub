@@ -42,7 +42,8 @@ React/Vite, TanStack Query, Plate, Vitest/RTL, optional Stalwart Docker profile.
 ## Phase execution index
 
 1. Phase 142 — `.planning/phases/142-mail-contract-foundation/PLAN.md`
-2. Phase 143 — `.planning/phases/143-calendar-rsvp-core/PLAN.md`
+2. Phase 143 — `.planning/phases/143-calendar-rsvp-core/PLAN.md`; open schema P1 packet:
+   `docs/superpowers/plans/2026-08-13-calendar-hash-pair-remediation.md`
 3. Phase 144 — `.planning/phases/144-mailbox-domain/PLAN.md`; bounded engine port packet:
    `docs/superpowers/plans/2026-08-13-mail-engine-0.1.8.md`
 4. Phase 145 — `.planning/phases/145-stalwart-gateway/PLAN.md`

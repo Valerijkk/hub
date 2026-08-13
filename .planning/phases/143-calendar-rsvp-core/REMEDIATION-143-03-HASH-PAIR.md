@@ -20,6 +20,11 @@ dedupe state ambiguous and violates the persistence contract.
 
 ## Frozen minimal remediation
 
+The exact tests-first sequential execution packet is
+`docs/superpowers/plans/2026-08-13-calendar-hash-pair-remediation.md`. It adds one external
+Ent-metadata unit oracle beside each sole product schema; this does not authorize generated
+output, a migration or runtime execution.
+
 Apply two sequential atomic packets so the original sole-file ownership remains intact.
 For each schema:
 
