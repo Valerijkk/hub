@@ -574,7 +574,13 @@ The management API-key design is provisionally narrowed to `Replace` with only d
 individual-account CRUD/list permissions, pending independent security review. Exact
 candidate source confirms mailbox `Identity/get|set` supplies stable ids for configured
 account addresses, so identity mapping is not a port mismatch; its enabled use remains
-blocked by G145-5B mailbox authentication. The selected Domain object exposes expected zone
+blocked by G145-5B mailbox authentication. Shared-account ACL is not a full-engine fallback:
+selected-version Email/Mailbox methods admit shared access, while Identity,
+EmailSubmission, Sieve and Blob require account membership. OAuth exposes Authorization
+Code and Device Authorization, not client credentials. Until founder question 42 selects
+per-user Authorization Code OAuth or explicitly accepts broad impersonation, config accepts
+only `MAILBOX_ENGINE_MAIL_AUTH_MODE=disabled` and every other mail-auth mode fails before
+network I/O. The selected Domain object exposes expected zone
 text but no manual-DNS verification result, so domain promotion/account provisioning remains
 blocked by founder questions 43-44 and G145-5C. `STALWART_RECOVERY_ADMIN` is operator-only
 bootstrap/recovery state and is absent from the steady-state Hub credential matrix.

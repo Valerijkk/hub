@@ -15,7 +15,7 @@
 | G145-4 provenance | refreshed official release, immutable digest, signature/SBOM/source and approval record | DevOps/security/founder | `v0.16.17` Docker Hub OCI index + linux/amd64 manifest + SLSA attestation references CAPTURED / SIGNATURE AND SBOM NOT_VERIFIED / NOT_APPROVED | do not pull or reference mutable image |
 | G145-5 config contract | reviewed Stalwart config/API/session/health/volume paths for the selected immutable version | adapter reviewer | PARTIAL RESEARCH: `/api` management, `/jmap` mail, health and volume paths identified; exact image config and feedback semantics NOT_FROZEN | stop rather than guess version-specific fields |
 | G145-5A folder writer exclusivity | reviewed config, internal-network policy and published-port evidence prove only Hub can create/rename/delete custom folders; system roles are distinguishable | adapter + security reviewer | NOT_RUN | capability stays false; automatic folder recovery makes zero mutation and remains degraded |
-| G145-5B credential planes | reviewed least-privilege management API key for `/api` plus separately scoped mailbox JMAP authentication/delegation, rotation, revocation and audit | founder + security + adapter reviewer | MANAGEMENT TEN-PERMISSION REPLACE SCOPE + EXACT IDENTITY GET/SET SOURCE ROOT_FROZEN / INDEPENDENT REVIEW PENDING / ENABLED MAIL AUTH DESIGN UNRESOLVED | keep engine disabled; never reuse a management API key for mail JMAP or invent per-user passwords |
+| G145-5B credential planes | reviewed least-privilege management API key for `/api` plus separately scoped mailbox JMAP authentication/delegation, rotation, revocation and audit | founder + security + adapter reviewer | MANAGEMENT TEN-PERMISSION REPLACE SCOPE + EXACT AUTH/ACL SOURCE ROOT_FROZEN / SOURCE-ONLY REVIEW NO FINDINGS BUT ACTUAL TELEMETRY UNKNOWN / OAUTH AUTHORIZATION-CODE RECOMMENDED / IMPERSONATION HIGH-RISK FALLBACK / FOUNDER CHOICE + ACCEPTED REVIEW PENDING | keep engine disabled; reject management-key reuse, OAuth client-credentials assumptions, ACL-only full-engine mode and invented per-user passwords |
 | G145-5C domain verification authority | reviewed authority proves the exact bounded public DNS projection before Hub may report `verified`; selected Stalwart `x:Domain` has no manual-DNS verification field | founder + security + adapter reviewer | UNRESOLVED / P1 SELECTED-VERSION MISMATCH | adapter returns at most `dns_required`; account provisioning and external mode make zero engine/mail calls |
 | G145-6 local profile | bounded health, authenticated JMAP, internal delivery, restart persistence and exact cleanup | accepted launcher | NOT_RUN | gateway remains disabled/not_configured |
 | G145-7 resource budget | observed whole added profile ≤4 CPU and ≤4 GiB under idle + representative load | accepted launcher | NOT_RUN | reduce/rebalance or reject candidate |
@@ -33,6 +33,12 @@ that root freeze still needs independent security review. G145-5C cannot be infe
 domain existence, `isEnabled` or a non-empty `dnsZoneFile`. Account identities are separate
 stable RFC 8621 `Identity/get|set` objects on mailbox JMAP; using them remains blocked by
 the unresolved G145-5B mailbox-auth design, not by an id-derivation fallback.
+Exact candidate source also prevents an ACL-only shortcut: Email and Mailbox methods may
+use shared-account access, but Identity, EmailSubmission, Sieve and Blob paths require
+account membership. Stalwart documents Authorization Code and Device Authorization only,
+not an unattended OAuth client-credentials grant. The default recommendation is therefore
+per-user Authorization Code OAuth; zero-touch operation requires explicit acceptance of a
+broad dedicated `impersonate` principal and its incident-grade controls.
 
 ## Disabled/default behavior
 
@@ -63,6 +69,9 @@ the unresolved G145-5B mailbox-auth design, not by an id-derivation fallback.
   management API key is sent only to `/api`; it is never sent to `/jmap` or a mail protocol.
   Mailbox credentials/delegation remain disabled until G145-5B. No guessed fallback creates
   or persists one plaintext password per user.
+- Shared-mailbox ACL is not an accepted full-engine authentication mode. Before G145-5B is
+  accepted, configuration accepts only `disabled`; it must reject OAuth client-credentials,
+  ACL-only, impersonation and per-user password modes before any network I/O.
 - Management keys, mailbox credentials, DKIM private keys and generated tokens are
   secret-provider or engine-volume state. Example files contain names/placeholders only.
 - `STALWART_RECOVERY_ADMIN`, recovery mode and the HTTP configuration listener are

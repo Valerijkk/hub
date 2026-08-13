@@ -44,6 +44,10 @@ with exactly one packet after all named gates pass.
 - Management calls use only fixed `/api` with a separately scoped API key. Mail JMAP uses
   `/.well-known/jmap` and same-origin session URLs with a separately accepted mailbox
   credential/delegation. Neither authorization header can be sent on the other plane.
+- A shared-account ACL is not a complete mailbox credential: exact selected-version source
+  permits shared Email/Mailbox access but requires membership for Identity, EmailSubmission,
+  Sieve and Blob. OAuth supports Authorization Code/Device flows only; no client-credentials
+  grant is invented. Before G145-5B, `disabled` is the only accepted mail-auth mode.
 - Redirects, capability URLs and upload/download URLs are accepted only when derived from
   the already trusted fixed internal session and same-origin policy frozen for the chosen
   version.

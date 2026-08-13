@@ -152,6 +152,9 @@ mail_feature_workstream:
       engine_endpoints: fixed_management_api_plus_same_origin_mail_jmap
       engine_credentials: separate_management_api_key_and_unresolved_mailbox_auth_no_cross_plane_reuse
       engine_management_permissions: replace_domain_and_individual_crud_list_only_review_pending
+      engine_mailbox_auth_options: per_user_oauth_authorization_code_recommended_or_explicit_broad_impersonator_founder_choice_pending
+      engine_mailbox_auth_rejections: no_management_key_no_oauth_client_credentials_no_acl_only_full_engine_no_synthesized_user_passwords
+      engine_mailbox_auth_review: source_only_no_findings_actual_model_effort_unknown_not_gate_acceptance
       engine_domain_verification: unresolved_stalwart_domain_has_expected_zone_not_verification_fail_closed_dns_required
       engine_identity_mapping: management_account_addresses_then_mail_jmap_identity_get_set_auth_gate
       internal_delivery: through_engine
@@ -231,7 +234,14 @@ spec_coverage:
   mailbox mail/submission/Sieve uses `/.well-known/jmap` plus same-origin `/jmap` with a
   different credential class. Official docs confirm a management API key cannot
   authenticate JMAP mail. Enabled mode therefore remains blocked pending the reviewed
-  least-privilege mailbox delegation/rotation/audit decision in founder question 42.
+  mailbox authentication/rotation/audit decision in founder question 42. Exact selected-
+  version source rejects an ACL-only full-engine shortcut: shared access covers Email/
+  Mailbox, while Identity, EmailSubmission, Sieve and Blob remain member-only. OAuth docs
+  expose Authorization Code and Device Authorization, not client credentials. Root
+  recommends per-user Authorization Code linking; zero-touch requires explicit founder/
+  security acceptance of broad dedicated-account impersonation. A Terra-requested
+  source-only review found no P0/P1/P2 content issue, but actual model/effort telemetry was
+  unavailable, so `REVIEW-145-0.16.17-AUTH-SOURCE-ONLY-2026-08-13.md` is not gate acceptance.
   The management key is now root-frozen to API-key `Replace` with only domain and
   individual-account CRUD/list permissions, pending independent security review. A second
   selected-version mismatch is fail-closed: `x:Domain` exposes expected `dnsZoneFile` but

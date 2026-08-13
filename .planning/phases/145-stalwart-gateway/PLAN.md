@@ -10,7 +10,11 @@
 2. Accepted Docker-only launcher exists for this task.
 3. Candidate image tag and digest provenance are refreshed immediately before use.
 4. Separate management `/api` and mailbox `/jmap` credential planes are reviewed; a
-   management API key is never treated as a mail credential.
+   management API key is never treated as a mail credential. Shared-account ACL is not a
+   full-engine substitute because exact candidate source keeps Identity, EmailSubmission,
+   Sieve and Blob member-only. Founder/security selects per-user Authorization Code OAuth
+   (root recommendation) or explicitly accepts broad dedicated-account impersonation for
+   zero-touch operation; no OAuth client-credentials flow is assumed.
 5. A domain-verification authority and bounded DNS projection are reviewed. Selected
    Stalwart `x:Domain` does not expose manual-DNS verification, so domain existence or
    `dnsZoneFile` cannot satisfy Hub `verified`.

@@ -47,8 +47,13 @@ G145-4 remains open.
 | <https://stalw.art/docs/http/> | Main-server health endpoints are `/healthz/ready` and `/healthz/live`. |
 | <https://stalw.art/docs/http/jmap/> | Mail JMAP is discovered at `/.well-known/jmap`; the mail endpoint is `/jmap`. |
 | <https://www.stalw.art/docs/auth/authentication/api-key/> | API keys authenticate the management JMAP API only. They cannot authenticate JMAP mail, IMAP, POP3, SMTP submission, CalDAV, CardDAV or WebDAV. |
+| <https://stalw.art/docs/auth/oauth/flows/> | Stalwart documents only Authorization Code and Device Authorization flows. There is no documented non-interactive OAuth client-credentials flow for Hub to assume. |
+| <https://stalw.art/docs/auth/oauth/tokens/> | Access tokens are short-lived and scoped; refresh tokens are longer-lived, sensitive, renewable and revocable. Hub must persist them encrypted and handle rotation/expiry rather than treating OAuth as a static secret. |
 | <https://stalw.art/docs/auth/authorization/permissions/> | The external permission catalogue exposes exact domain and individual-account CRUD/list permissions. Hub can scope a management key without an administrator-wide allowlist. |
 | <https://stalw.art/docs/auth/authorization/administrator/> | `impersonate` grants broad access and upstream recommends granting it sparingly. It is not silently accepted as Hub's mailbox credential design. |
+| <https://github.com/stalwartlabs/stalwart/blob/08509ddccbe6f978a1ffebeb250cab8588d765e5/crates/http/src/request.rs#L83-L89> and <https://github.com/stalwartlabs/stalwart/blob/08509ddccbe6f978a1ffebeb250cab8588d765e5/crates/http/src/request.rs#L429-L435> | Exact candidate source routes authenticated mail requests under `/jmap` and dispatches `/api` to the management API handler. |
+| <https://github.com/stalwartlabs/stalwart/blob/08509ddccbe6f978a1ffebeb250cab8588d765e5/crates/jmap/src/api/request.rs#L252-L310> and adjacent Query/Set/Blob branches | Shared-account ACL access is accepted for Email/Mailbox methods, but `Identity`, `EmailSubmission`, `Sieve` and Blob operations require account membership. |
+| <https://github.com/stalwartlabs/stalwart/blob/08509ddccbe6f978a1ffebeb250cab8588d765e5/crates/jmap-proto/src/object/mailbox.rs#L449-L461> | Mailbox `shareWith` rights map to read/add/remove/modify/create-child/submit/delete/share ACLs; those rights do not replace the member-only checks above. |
 | <https://stalw.art/docs/ref/object/domain/> | Domain provisioning uses `x:Domain/*`, `urn:stalwart:jmap` and the management `/api` endpoint. |
 | <https://stalw.art/docs/domains/dns-records/> | Manual mode exposes the expected `dnsZoneFile`; automatic mode mutates a configured DNS provider asynchronously. Neither document defines a manual-DNS verification result on `x:Domain`. |
 | <https://stalw.art/docs/ref/object/account/> | Account provisioning uses `x:Account/*`; a user has a local-part `name`, a `domainId`, credentials, roles, permissions and aliases. |
@@ -103,6 +108,26 @@ mailbox account lookup.
 
 This freezes management scope only. It does not answer the separate mailbox JMAP
 authentication/delegation decision in founder question 42.
+
+### Mailbox-plane authentication options
+
+The exact candidate narrows G145-5B to the following real choices. A management API key is
+not one of them, and a shared-mailbox ACL cannot implement the complete Phase 144 engine:
+
+| Candidate mode | Full Phase 144 mailbox surface | Security/operations consequence | Current verdict |
+|---|---|---|---|
+| Per-user OAuth Authorization Code | Protocol class supports mail JMAP without storing the user's password; exact scopes and adapter compatibility remain to be proven | one-time user consent, encrypted refresh-token storage, rotation/expiry/revocation/audit and reconnect UX; no client-credentials shortcut | **RECOMMENDED DEFAULT IF USER LINKING IS ACCEPTABLE / FOUNDER DECISION PENDING** |
+| Per-user OAuth Device Authorization | Same user-scoped token class, with device polling rather than browser redirect | still interactive and needs the same token lifecycle; weaker fit for the normal Hub web flow | OPTIONAL BOOTSTRAP ONLY / NOT SELECTED |
+| Dedicated service account with `impersonate` and its non-API account password | Candidate source/docs indicate mailbox-wide login, but runtime conformance is not proven | one credential can reach every mailbox; high-blast-radius secret, strict network restriction, rotation, revocation, named audit and incident controls are mandatory | ZERO-TOUCH FALLBACK ONLY / EXPLICIT FOUNDER + SECURITY ACCEPTANCE REQUIRED |
+| One app/account password per user | Mail protocols accept this credential class | creates an unbounded fleet of user secrets and provisioning/revocation burden | REJECTED AS DEFAULT; HUB MUST NOT SYNTHESIZE PLAINTEXT PASSWORDS |
+| Shared service account plus mailbox `shareWith` ACL | Email/Mailbox access only; exact source rejects non-members for `Identity`, `EmailSubmission`, Sieve and Blob | would require a second credential path and split authority for core Hub operations | **REJECTED FOR THE COMPLETE ENGINE** |
+
+Root recommendation is per-user Authorization Code OAuth when a one-time mailbox-link flow
+is acceptable. If zero-touch corporate provisioning is mandatory, founder/security must
+explicitly accept the broader dedicated impersonator model; it is not described as
+least-privilege. Until one mode and its secret lifecycle are accepted, only
+`MAILBOX_ENGINE_MAIL_AUTH_MODE=disabled` is valid and all enabled mailbox network calls
+remain blocked before I/O.
 
 ## Selected-version contract findings
 
