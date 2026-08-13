@@ -12,8 +12,11 @@
 |---|---|---|
 | Latest official release observed | `v0.16.17`, released 2026-08-10 | CANDIDATE_ONLY |
 | Source commit | `08509ddccbe6f978a1ffebeb250cab8588d765e5` | SOURCE_REFERENCE_ONLY |
-| Container image tag | exact `v0.16.17` tag expected for a future provenance check | NOT_PULLED / NOT_APPROVED |
-| Container manifest digest | not captured | BLOCKED |
+| Container image tag | `docker.io/stalwartlabs/stalwart:v0.16.17` | REGISTRY_METADATA_INSPECTED / NOT_PULLED / NOT_APPROVED |
+| Multi-platform OCI index digest | `sha256:a8108e19bd927e172d4d8c128907b8dfc93fd180ae8ee07dccdd42cb97eb9dfa` | CAPTURED_NOT_APPROVED |
+| `linux/amd64` image manifest | `sha256:2bcbd3797c8170bd261a533d54d3b25c1a49558aa69f3e42b0d37bdf2b106a28` | CAPTURED_NOT_APPROVED |
+| `linux/amd64` attestation manifest | `sha256:30141f15afd19a4dab739a31be018b3874df7b8cc01ced79125e7b34c9cf5c24` | CONTAINS_SLSA_PROVENANCE_REFERENCE / NOT_VERIFIED |
+| SLSA provenance layer | `sha256:f5c80070c2184e8caa6caa5f32e90fa42d7e15f6e2bde66a77775d6d9125dba6` | PREDICATE_REFERENCE_ONLY |
 | Binary asset checksums/attestations | release page publishes them, but they are not a container manifest digest | NOT_CONTAINER_PROVENANCE |
 | License | upstream is dual-licensed AGPL-3.0 / SELv2 | FOUNDER_LEGAL_DECISION_PENDING |
 | Docker/runtime evidence | none | NOT_RUN |
@@ -23,6 +26,15 @@ JMAP `*/changes` shared-object id disclosure fix, and after the scoped API-key p
 escalation fix listed in `v0.16.15`. This is only a release-floor observation. It is not a
 security acceptance or a substitute for digest, attestation, SBOM and configuration review.
 
+Read-only registry inspection was performed with `docker buildx imagetools inspect`; it did
+not pull or run the image. The available Docker daemon reports `linux/x86_64`, which maps to
+the captured `linux/amd64` manifest. Registry metadata ties that image to source revision
+`08509ddccbe6f978a1ffebeb250cab8588d765e5`, runs as user `stalwart`, declares
+`/etc/stalwart` and `/var/lib/stalwart`, and contains the expected built-in healthcheck.
+The index exposes one attestation manifest for that platform whose only layer is labelled
+as SLSA provenance. Signature verification and SBOM discovery/validation were not run, so
+G145-4 remains open.
+
 ## Official evidence used
 
 | Official source | Frozen finding for Hub |
@@ -30,7 +42,8 @@ security acceptance or a substitute for digest, attestation, SBOM and configurat
 | <https://github.com/stalwartlabs/stalwart/releases> | `v0.16.17` is the latest observed release; the page identifies commit `08509dd` and binary asset attestations/checksums. |
 | <https://github.com/stalwartlabs/stalwart/commit/08509ddccbe6f978a1ffebeb250cab8588d765e5> | Full source commit for the candidate release. |
 | <https://github.com/stalwartlabs/stalwart> | Upstream license choice is AGPL-3.0 or SELv2; Hub's legal choice remains external to this repository. |
-| <https://stalw.art/docs/install/platform/docker/> | Official images are published with full and moving tags. Volumes are `/etc/stalwart` and `/var/lib/stalwart`; bind mounts require UID 2000 ownership. Hub still requires an exact patch tag plus immutable manifest digest. |
+| <https://hub.docker.com/r/stalwartlabs/stalwart/tags> plus read-only OCI registry metadata | Docker Hub candidate index/platform/attestation digests above; image labels point to the exact source revision. Search-page caches were not used for the digest. |
+| <https://stalw.art/docs/install/platform/docker/> | Official images are published with full and moving tags. Volumes are `/etc/stalwart` and `/var/lib/stalwart`; bind mounts require UID 2000 ownership. Hub still pins the exact immutable digest rather than trusting a tag. |
 | <https://stalw.art/docs/http/> | Main-server health endpoints are `/healthz/ready` and `/healthz/live`. |
 | <https://stalw.art/docs/http/jmap/> | Mail JMAP is discovered at `/.well-known/jmap`; the mail endpoint is `/jmap`. |
 | <https://www.stalw.art/docs/auth/authentication/api-key/> | API keys authenticate the management JMAP API only. They cannot authenticate JMAP mail, IMAP, POP3, SMTP submission, CalDAV, CardDAV or WebDAV. |
@@ -88,8 +101,9 @@ Hard consequences:
 ## Still-open acceptance gates
 
 1. Founder/legal license selection.
-2. Exact `v0.16.17` container registry, platform manifest digest, signature/attestation,
-   SBOM/source relationship and approval immediately before any authorized pull.
+2. Independent verification/approval of the captured `v0.16.17` index and `linux/amd64`
+   manifest digests, provenance predicate/signature, SBOM/source relationship immediately
+   before any authorized pull. The current registry read is discovery, not approval.
 3. Exact selected-version configuration export/checksum and listener/access-control rules.
 4. Least-privilege management API-key permissions and separate mailbox authentication or
    delegation design, rotation, revocation and audit.

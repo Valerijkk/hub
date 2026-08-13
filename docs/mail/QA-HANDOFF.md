@@ -504,7 +504,7 @@ launcher. The direct Compose command is operator documentation, not accepted tes
 
 | Component | Intended image/config | Network exposure | Persistent data | Hard limit allocation | Current evidence |
 |---|---|---|---|---|---|
-| Mail engine | Stalwart `v0.16.17` source candidate; container digest unresolved and candidate not approved | Hub-only internal management `/api` plus separately authenticated mailbox `/jmap`; optional SMTP delivery only; no user IMAP/JMAP/ManageSieve/admin mailbox mutation | named `/etc/stalwart` config and `/var/lib/stalwart` data volumes | ≤3 CPU / ≤3 GiB target, subject to measured rebalance | NOT_RUN |
+| Mail engine | Stalwart `v0.16.17` source candidate; Docker Hub OCI index `sha256:a8108e19…`, linux/amd64 manifest `sha256:2bcbd379…`; signature/SBOM not verified and candidate not approved | Hub-only internal management `/api` plus separately authenticated mailbox `/jmap`; optional SMTP delivery only; no user IMAP/JMAP/ManageSieve/admin mailbox mutation | named `/etc/stalwart` config and `/var/lib/stalwart` data volumes | ≤3 CPU / ≤3 GiB target, subject to measured rebalance | registry metadata only; runtime NOT_RUN |
 | Hub mailbox domain/account/combined projection-recovery/rule workers + API | existing backend image/process | existing backend network only | PostgreSQL/outbox | within remaining mail budget when profiled | NOT_RUN |
 | Existing NATS/Meili/SeaweedFS | shared stack, not duplicated | existing internal network | existing volumes | shared-service attribution must be reported separately | NOT_RUN |
 
@@ -582,9 +582,10 @@ oracles, not current executable evidence.
 - The founder-required test runner/package is `NOT_READY`; no supported execution command
   exists in this branch.
 - Direct Docker/Compose or host tests are prohibited fallback paths.
-- Stalwart legal acceptance, immutable digest, exact config, least-privilege mailbox auth,
-  measured resource use, and runtime behavior are pending. `v0.16.17` is only a researched
-  source candidate.
+- Stalwart legal acceptance, independent digest/provenance approval, signature/SBOM,
+  exact config, least-privilege mailbox auth, measured resource use, and runtime behavior
+  are pending. `v0.16.17` is only a researched source/registry candidate; read-only digest
+  capture did not pull or run it.
 - The 0.1.8 root amendment has no independent actual-model-provenance review yet; historical
   0.1.7 review evidence is stale for its engine/API/persistence changes.
 - Therefore this handoff is a contract deliverable only. It must not be converted into a

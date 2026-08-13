@@ -146,6 +146,9 @@ mail_feature_workstream:
     decisions:
       engine_candidate: Stalwart_v0.16.17_source_candidate_only
       engine_acceptance: conditional_on_license_provenance_and_runtime_gates
+      engine_oci_index: sha256_a8108e19bd927e172d4d8c128907b8dfc93fd180ae8ee07dccdd42cb97eb9dfa_captured_not_approved
+      engine_linux_amd64_manifest: sha256_2bcbd3797c8170bd261a533d54d3b25c1a49558aa69f3e42b0d37bdf2b106a28_captured_not_approved
+      engine_attestation: slsa_reference_captured_signature_sbom_not_verified
       engine_endpoints: fixed_management_api_plus_same_origin_mail_jmap
       engine_credentials: separate_management_api_key_and_unresolved_mailbox_auth_no_cross_plane_reuse
       internal_delivery: through_engine
@@ -212,7 +215,12 @@ spec_coverage:
 - Preferred engine: Stalwart за adapter boundary, условно. Official-source refresh on
   2026-08-13 identifies `v0.16.17` / source commit
   `08509ddccbe6f978a1ffebeb250cab8588d765e5` as the current candidate, not an approved
-  image. Container manifest digest/attestation/SBOM, license verdict, exact config,
+  image. Read-only Docker Hub registry inspection captured OCI index
+  `sha256:a8108e19bd927e172d4d8c128907b8dfc93fd180ae8ee07dccdd42cb97eb9dfa`,
+  linux/amd64 manifest
+  `sha256:2bcbd3797c8170bd261a533d54d3b25c1a49558aa69f3e42b0d37bdf2b106a28`
+  and a linked SLSA-provenance attestation manifest. No image was pulled or run; signature,
+  SBOM and independent approval remain `NOT_RUN`. License verdict, exact config,
   API/persistence/resource spike и внешний DNS остаются gates; runtime `NOT_RUN`.
   Management provisioning is fixed to the separate `/api` plane with a scoped API key;
   mailbox mail/submission/Sieve uses `/.well-known/jmap` plus same-origin `/jmap` with a

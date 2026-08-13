@@ -12,7 +12,7 @@
 | G145-1 license | written choice: unmodified sidecar under AGPL-3.0 or accepted SELv2/commercial terms | founder/legal | UNRESOLVED | select docker-mailserver fallback behind the same port; re-plan adapter |
 | G145-2 runtime model | exact `gpt-5.6-terra` / `xhigh` requested and actual provenance for each code packet | founder/runtime operator | ROUTE_AUTHORIZED / new packet actual telemetry unavailable | reject any mismatch or fallback |
 | G145-3 launcher | versioned task-owned outer launcher implementing limits, timeout, report owner marker and exact cleanup | test architecture owner | NOT_READY | no direct Docker/Compose fallback; runtime remains NOT_RUN |
-| G145-4 provenance | refreshed official release, immutable digest, signature/SBOM/source and approval record | DevOps/security/founder | `v0.16.17` SOURCE CANDIDATE RESEARCHED / IMAGE DIGEST NOT CAPTURED / NOT APPROVED | do not pull or reference mutable image |
+| G145-4 provenance | refreshed official release, immutable digest, signature/SBOM/source and approval record | DevOps/security/founder | `v0.16.17` Docker Hub OCI index + linux/amd64 manifest + SLSA attestation references CAPTURED / SIGNATURE AND SBOM NOT_VERIFIED / NOT_APPROVED | do not pull or reference mutable image |
 | G145-5 config contract | reviewed Stalwart config/API/session/health/volume paths for the selected immutable version | adapter reviewer | PARTIAL RESEARCH: `/api` management, `/jmap` mail, health and volume paths identified; exact image config and feedback semantics NOT_FROZEN | stop rather than guess version-specific fields |
 | G145-5A folder writer exclusivity | reviewed config, internal-network policy and published-port evidence prove only Hub can create/rename/delete custom folders; system roles are distinguishable | adapter + security reviewer | NOT_RUN | capability stays false; automatic folder recovery makes zero mutation and remains degraded |
 | G145-5B credential planes | reviewed least-privilege management API key for `/api` plus separately scoped mailbox JMAP authentication/delegation, rotation, revocation and audit | founder + security + adapter reviewer | MANAGEMENT/MAIL SPLIT PROVEN / ENABLED MAIL AUTH DESIGN UNRESOLVED | keep engine disabled; never reuse a management API key for mail JMAP or invent per-user passwords |
@@ -23,7 +23,8 @@
 
 Gates are sequential where evidence depends on an earlier choice. G145-1 never derives
 from repository text. G145-4 must be refreshed immediately before an authorized pull/run;
-the 2026-08-13 `v0.16.17` research snapshot is not an immutable-image approval. G145-5B
+the 2026-08-13 `v0.16.17` research snapshot and read-only registry digest capture are not
+an immutable-image approval. G145-5B
 cannot be inferred from “administrator credentials”: official Stalwart API keys cannot
 authenticate JMAP mail, while impersonation is a separate broad permission.
 

@@ -89,7 +89,7 @@ with exactly one packet after all named gates pass.
 | Founder/legal license | UNRESOLVED |
 | Exact Terra runtime | ROUTE_AUTHORIZED / new packet actual telemetry unavailable |
 | Accepted launcher | NOT_READY |
-| Immutable image provenance | `v0.16.17` source candidate researched; container digest/attestation/SBOM approval NOT_RUN |
+| Immutable image provenance | Docker Hub OCI index `sha256:a8108e19…`, linux/amd64 manifest `sha256:2bcbd379…` and SLSA attestation reference captured; signature/SBOM verification and approval NOT_RUN |
 | Version-specific Stalwart config/API | PARTIAL_RESEARCH: endpoint/object split frozen; exact config and spam feedback NOT_FROZEN |
 | Management/mail credential separation | OFFICIAL LIMIT CONFIRMED / ENABLED MAIL AUTH DESIGN UNRESOLVED (G145-5B) |
 | Exclusive custom-folder writer | NOT_RUN / capability defaults false |
