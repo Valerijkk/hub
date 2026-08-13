@@ -268,7 +268,7 @@ optional `deleted_at`.
 Indexes: unique `(mail_account_id,engine_message_id)`; indexed normalized message id;
 unique nullable `received_event_id`; account/thread/date live indexes. Thread/account equality
 is transactionally proven. Priority is `low|normal|high`, projection origin is
-`inbound_or_unknown|confirmed_owner_submission|draft`, and calendar method is nullable
+`inbound_or_unknown|confirmed_owner_submission|confirmed_owner_draft`, and calendar method is nullable
 `request|cancel|reply`. BCC is empty except confirmed owner draft/submission. Account and
 thread hard deletion cascade the owned projection; calendar deletion sets the optional link
 null. A received event marker is set once and never rewritten.

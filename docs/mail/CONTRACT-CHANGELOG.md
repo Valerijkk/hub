@@ -16,6 +16,9 @@ review candidate, not an implementation or runtime acceptance.
   representation-independent variable-byte measure; authorized message/blob reads and draft
   save/reconciliation carry caller budgets and reject whole values on overflow with one safe
   error.
+- Closed every request/page/projection/body/blob/draft/submission DTO field. Projection
+  headers and attachment metadata are fixed rather than map-shaped, draft attachments carry
+  stable keys and bounded bytes, and submission is reference-only with a final-MIME ceiling.
 - Added a stable Hub-derived engine draft key for lost initial-create reconciliation and a
   required one-draft `draft_client_id` carried by draft API/storage rows; attachment reuse is
   scalar one-draft ownership rather than an ambiguous many-to-many edge.

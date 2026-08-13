@@ -28,9 +28,11 @@ engine-independent контракт mailbox adapter для Phase 144.
 - Go 1.25; комментарии экспортируемых идентификаторов на русском; новая dependency,
   global mutable state, filesystem/network/DB/broker/listener/wall clock запрещены.
 
-[FROZEN PORT]
+[HISTORICAL 0.1.7 PORT — DO NOT EXECUTE]
 
-Сохрани смысл следующего интерфейса; DTO могут быть названы только как в принятом тесте:
+The following interface is retained only as source-history evidence. It is not a current
+dispatch contract; the exact replacement surface and DTO fields are exclusively in
+`docs/mail/ENGINE-CONTRACT-0.1.8.md`:
 
 ```go
 type MailEngine interface {
@@ -71,7 +73,9 @@ Semantic requirements:
   mutation id и письмо целиком только как request value; никакой persistence.
 - `EngineDraftResult` различает applied, absent/unchanged и indeterminate; reconciliation
   не имеет права вызывать save.
-- `EngineSubmission` содержит stable engine submission key, account/draft/message value.
+- Historical `EngineSubmission` carried a stable key plus a second message value. Mail
+  0.1.8 replaces it with account/draft/message references, confirmed version, stable key
+  and final-MIME ceiling only; no second content value is permitted.
 - `EngineSubmissionResult` различает `sent`, `absent`, `indeterminate` и несет result ids
   только когда они подтверждены; zero value не должен выглядеть как success.
 - `AccountSpec` содержит immutable stable provisioning key, normalized reserved local part,

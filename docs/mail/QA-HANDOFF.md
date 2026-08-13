@@ -539,6 +539,10 @@ never environment examples containing key material.
 The 0.1.8 delta additionally requires maximum / maximum+1 oracles for projection item/page
 bytes, message/blob budgets, every paginated response count/cursor/8 MiB budget, 16 MiB
 legacy calendar/call rejection, stored-resource quotas and 50 MiB/25 MiB policy ceilings.
+Compile/static oracles must also prove that projection pages structurally contain neither
+body nor attachment bytes, every page/change/enumeration request carries one unambiguous
+cursor/checkpoint plus limit, and `EngineSubmission` contains only the confirmed draft
+reference/version/key and a bounded final-MIME ceiling rather than another content copy.
 Quota failures must replay from the same receipt without later creating a resource after
 capacity is freed. Draft fixtures must prove lost first-create reconciliation by immutable
 engine draft key and reject a second draft claiming the same staging scope/attachment.

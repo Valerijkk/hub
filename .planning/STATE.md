@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
-last_updated: "2026-08-13T16:04:43+03:00"
-last_activity: 2026-08-13 · Mail 0.1.8 root-froze and statically reconciled bounded engine/API plus exact Phase 144 persistence amendments; independent Terra/high review and runtime remain pending/NOT_RUN
+last_updated: "2026-08-13T16:14:59+03:00"
+last_activity: 2026-08-13 · Mail 0.1.8 root code-to-contract pass closed exact engine DTO/submission representation after the first actual-provenance Terra review attempt failed closed; independent review and runtime remain pending/NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -230,7 +230,9 @@ spec_coverage:
   matches only the historical 0.1.7 port through `43d421ef`. Root-frozen
   `ENGINE-CONTRACT-0.1.8.md` now replaces embedded hydrated pages with projection-only
   1 MiB-item/8 MiB-page values, budgeted 50 MiB message / 25 MiB blob reads and a stable
-  first-draft key; implementation and independent review are pending.
+  first-draft key. The post-commit code-to-contract pass additionally froze every request,
+  page, projection, body, attachment, blob, draft and reference-only submission field and
+  synchronized `confirmed_owner_draft`; implementation and independent review are pending.
   Root-frozen `PERSISTENCE-CONTRACT-0.1.8.md` supplies the exact 144-02A/B/C/D/F fields,
   tuple/state checks, normalized indexes, scalar attachment staging, sole default/scan
   authorities, quotas, generic receipt/bulk matrices and canonical rule hash. OpenAPI 0.1.8

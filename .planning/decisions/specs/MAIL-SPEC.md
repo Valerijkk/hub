@@ -144,7 +144,9 @@ the Hub mail feature. It does not claim that the described behavior is implement
 37. Engine list/change/enumeration values are projection-only and obey both item-count and
     retained-byte ceilings. Full content, draft save/reconciliation and blobs carry explicit
     caller byte budgets and whole-value overflow rejection. Hard deployment maxima are 50 MiB
-    per message and 25 MiB per attachment; policy may only lower them.
+    per message and 25 MiB per attachment; policy may only lower them. Request/page/message/
+    attachment field grammar is closed by `ENGINE-CONTRACT-0.1.8.md`; submission references
+    the confirmed engine draft and final-MIME ceiling and contains no second content copy.
 38. A draft has an immutable engine draft key derived from its Hub UUID before the first
     engine call. Initial create/lost-response reconciliation uses that key; an unknown first
     response never becomes a blind second create.
@@ -493,7 +495,7 @@ Thread key algorithm:
 | `has_attachments`, `is_draft` | bool | projection |
 | `is_seen`, `is_answered`, `is_flagged`, `is_junk` | bool | engine-authoritative projection snapshot |
 | `engine_state` | string nullable | opaque bounded state/version token for reconciliation |
-| `projection_origin` | enum | `inbound_or_unknown`, `confirmed_owner_submission`, `draft`; server-derived, never address-trusted |
+| `projection_origin` | enum | `inbound_or_unknown`, `confirmed_owner_submission`, `confirmed_owner_draft`; server-derived, never address-trusted |
 | `flags_synced_at` | timestamp nullable | snapshot freshness |
 | `calendar_method` | enum nullable | `request`, `cancel`, `reply` |
 | `calendar_event_id` | UUID nullable | verified Hub link only |

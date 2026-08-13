@@ -149,8 +149,10 @@ opaque engine id/version when known, a stable Hub mutation id and a positive cal
 budget no greater than effective policy/hard engine ceiling; reconciliation carries the same
 budget and rejects an expanded result as a whole;
 `ReconcileDraft` distinguishes applied, absent/unchanged, and indeterminate state without
-issuing another save. `EngineSubmission` carries a stable engine submission key. A lost
-response is reconciled through engine state before another mutation is attempted. The
+issuing another save. `EngineSubmission` is reference-only: account, immutable draft key,
+confirmed opaque message id/version, stable engine submission key and a positive effective
+final-MIME ceiling. It never carries a second content/attachment value. A lost response is
+reconciled through engine state before another mutation is attempted. The
 domain must not translate an indeterminate timeout into a blind save or send retry.
 List/change/enumeration methods return projection-only metadata with per-item and aggregate
 byte ceilings; body hydration is reserved for one authorized budgeted `GetMessage`, while

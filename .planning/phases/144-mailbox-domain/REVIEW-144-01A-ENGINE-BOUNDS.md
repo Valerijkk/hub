@@ -6,7 +6,10 @@
 
 > **Superseding candidate:** `docs/mail/ENGINE-CONTRACT-0.1.8.md` and OpenAPI 0.1.8
 > root-freeze projection-only pages, byte-budgeted complete reads, hard policy ceilings and
-> stable first-draft identity. This finding remains open until independent exact-SHA review.
+> stable first-draft identity. A later root code-to-contract pass also closed the exact
+> request/page/projection/body/attachment field grammar and made submission reference-only,
+> so the implementer owns no representation decision. This finding remains open until
+> independent exact-SHA review.
 
 ## What remains valid
 
@@ -36,6 +39,9 @@ serve as a meaningful conformance oracle until this is frozen.
 
 ## Decision-ready options
 
+The unattended root pass applied the founder-file safe default from questions 28, 30, 31,
+38 and 41. The alternatives remain recorded for morning confirmation:
+
 ### Option A — recommended safe default
 
 - projection/list/change/enumeration pages return a projection-only message DTO with no
@@ -53,6 +59,20 @@ Keep `EngineMessage` in every page, but add explicit per-item and aggregate byte
 every read/page request and require the adapter to reject before body/blob allocation. This
 is a smaller type split but makes projection sync pay for body hydration and increases the
 memory/error matrix.
+
+### Option C — identifiers-only pages
+
+Return only message ids and hydrate every projection separately. This minimizes a page DTO
+but creates up to 100 provider round trips, cannot atomically carry the folder/flag/header
+snapshot needed by projection sync, and moves the same byte/race problem into an N+1 loop.
+
+### Applied root candidate
+
+Option A is frozen with one additional narrowing: the exact projection/header/attachment
+fields are closed, body occurs only on one authorized message read, attachment bytes occur
+only on bounded draft/blob values, and submission references the already confirmed draft.
+This is the smallest representation that supports one-pass projection sync without a second
+50 MiB content copy.
 
 ## Gate impact
 
