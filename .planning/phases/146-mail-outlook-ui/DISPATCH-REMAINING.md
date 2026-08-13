@@ -29,7 +29,7 @@ every other row in `DISPATCH-INDEX.md`.
 
 ## 146-01B — typed mail API and query keys
 
-- Dependencies: 01A + accepted OpenAPI 0.1.3/Phase 144. Allowed only
+- Dependencies: 01A + accepted OpenAPI 0.1.4/Phase 144. Allowed only
   `frontend/src/api/mail.ts`, `frontend/src/modules/mail/mail-query-keys.ts`,
   `frontend/tests/mail/mail-api.test.ts`.
 - Behavior: exact typed functions for all public mailbox paths, `URLSearchParams`, opaque

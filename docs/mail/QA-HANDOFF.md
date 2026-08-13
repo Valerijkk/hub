@@ -1,6 +1,6 @@
 # Hub Mail + Calendar Sync — QA handoff
 
-> **Contract version:** 0.1.3
+> **Contract version:** 0.1.4
 > **Prepared:** 2026-08-13
 > **Implementation status:** NOT_IMPLEMENTED
 > **Runtime status:** NOT_RUN
@@ -132,11 +132,32 @@ or more `FR-MAIL-*` / `FR-CALSYNC-*` rows and named `TC-*` scenarios in `MAIL-SP
     suppresses it. Redelivery/concurrency yields one receipt and one reminder event. When
     policy permits, exactly one in-app row exists; preferences/quiet hours may instead
     produce zero. No Resend/email fallback is called. Telegram/push are asserted only as
-    existing best-effort channels.
+    existing best-effort channels, invoked after canonical commit; rollback invokes none,
+    and their result cannot change the committed receipt/notification outcome.
     A transient user/event/preferences/repository failure leaves the in-app outcome
     pending and NAKs for bounded retry; it is not recorded as suppression. A failed
     post-commit WebSocket publish leaves the durable row intact and is repaired by normal
     notification refetch without an exactly-once realtime claim.
+    The due claim and consumer finalization each verify current sequence, effective
+    occurrence start, non-null `reminder_minutes`, recomputed `due_at`, active status and
+    owner/internal-attendee eligibility. Event, exception, attendee, stable user-policy
+    guard, receipt and notification use the frozen lock order; preference upsert locks that
+    user row before resolving an optional override. In-app channel/reminder disable,
+    quiet-hours/offset change, reschedule/cancel/delete or decline/remove committed before
+    finalization produces one durable suppression and no in-app row. The opposite
+    transaction order preserves only the already committed valid row; Telegram/Web Push
+    remain best-effort. Timed due uses the effective instant. All-day due uses the first
+    representable instant of local `start_date` in the event's IANA timezone without
+    changing date-only storage: midnight overlap picks the earlier instant, midnight gap
+    picks the first instant after the gap, and a skipped date picks the first instant after
+    that date's gap.
+    Both-absent quiet-hour fields mean disabled; an incomplete/malformed pair or invalid
+    IANA timezone creates one durable `policy_invalid` suppression, no notification row and
+    a bounded content-free signal. It never falls back to UTC or delivery.
+    Assert every receipt-state tuple: pending has no outbox/notification; emitted requires
+    outbox; delivered requires notification and no reason; suppressed has no notification
+    and one closed safe reason; scheduler-expired uses reason `expired`. No terminal tuple
+    reopens.
 19. A flood of authenticated unique unknown CANCELs cannot grow unbound state past 10,000
     per mailbox; excess input quarantines, CANCEL tombstones remain for mailbox/account
     lifetime, deferred work expires/dead-letters after seven days, and cleanup never removes
@@ -169,6 +190,11 @@ or more `FR-MAIL-*` / `FR-CALSYNC-*` rows and named `TC-*` scenarios in `MAIL-SP
 7. Timeline `Open mail` uses `/mail/message/{messageId}` and reauthorizes through Mail;
    the CRM activity row or admin CRM access is never sufficient. Loading/error/empty and
    unlink failure are distinct and accessible.
+8. An existing owned inbound or outbound message can be manually linked from the ordinary
+   reader. The picker uses the authenticated user id and existing authorized CRM pipeline,
+   offers only deals with matching `owner_id`, and exposes no mutation when user/pipeline
+   state is unavailable. The server PUT still independently reauthorizes deal and message;
+   client filtering is not accepted as security evidence.
 
 ### Conditional L1 feed
 

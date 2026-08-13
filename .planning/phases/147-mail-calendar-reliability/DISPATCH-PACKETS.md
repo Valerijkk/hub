@@ -68,10 +68,13 @@
 - Implement CONTRACT §5. Receipt unique columns include event, internal user, normalized
   occurrence key, event sequence and due-at; use partial indexes if recurrence is nullable.
   Receipt also has nullable in-app pending/delivered/suppressed outcome and notification
-  edge. Notification gains an optional fixed hash field and a partial unique
+  edge plus the closed safe suppression-reason enum from CONTRACT §5. Notification gains
+  an optional fixed hash field and a partial unique
   user+type+hash index.
 - Oracles: legacy notifications with null key remain legal; keyed duplicates conflict;
-  receipt contains no title/details; exact pre/post Notification field/index inventory;
+  suppressed requires reason and pending/delivered forbid it; receipt contains no title/
+  details; state/outbox/outcome/notification/reason combinations match the CONTRACT table;
+  exact pre/post Notification field/index inventory;
   retention fields permit 90-day final cleanup without pending deletion; no generated edit.
 
 ## 147-01E — Ent generation/inspection
@@ -212,7 +215,7 @@
   `backend/internal/calendar/handler.go` and `backend/cmd/server/wiring_modules.go`, and
   `backend/tests/calendar/availability_service_test.go` as a genuine fake-repository
   service unit. Do not add a Fiber/API Go test.
-- Bind exact 0.1.3 request, enforce ≤31 days/IANA/unique 1–50/slot bounds, invoke 04B then
+- Bind exact 0.1.4 request, enforce ≤31 days/IANA/unique 1–50/slot bounds, invoke 04B then
   04A, and serialize stable request-order `{user_id,busy,free}`. Use generic not-found for
   inaccessible users and NFR-13 errors.
 - Oracles: no source IDs/title/reason/project; timed instants and all-day zones; same input
@@ -221,10 +224,27 @@
   AVAILABILITY_SOURCE_INVALID with no UTC fallback; legacy `/calendar/events` byte-shape
   untouched.
 
-## 147-05A — persistent notification dedupe
+## 147-05A1 — stable user-policy guard
 
-- Allowed only `backend/internal/notification/service.go`, `repository.go`, `events.go`
-  and `backend/tests/calendar/notification_calendar_dedupe_test.go` as a genuine
+- Allowed only `backend/internal/notification/repository.go`. This is a PostgreSQL/Ent
+  transaction behavior, so add no Go DB/component test; route its concurrency proof to the
+  Python integration handoff.
+- Make `UpsertPreference` execute one transaction that locks the stable user row before
+  querying, updating or first-inserting an optional preference row. The existing auth
+  profile `UPDATE users` already takes the same row lock when quiet hours change; do not
+  modify auth DTO/service/repository. Expose the narrow caller-owned transaction primitive
+  needed by 05A2/05C to lock the guard and resolve quiet hours/preferences on the same Ent
+  transaction. Do not change the HTTP wire API.
+- Oracles: existing and absent preference in both serialization orders; quiet-hours UPDATE
+  versus guarded read; user missing/disabled; rollback leaves no preference mutation;
+  unrelated user does not block; exact pre/post methods; Python integration handoff; no
+  generated/migration edit.
+
+## 147-05A2 — persistent notification dedupe
+
+- Allowed only `backend/internal/notification/service.go`, narrow additions to
+  `repository.go`, `events.go`, and
+  `backend/tests/calendar/notification_calendar_dedupe_test.go` as a genuine
   fake-repository unit.
 - Add optional safe dedupe hash to `DispatchEvent`. When present, atomically create/find
   the one in-app row under the 01D unique index and finalize the locked reminder receipt's
@@ -232,10 +252,19 @@
   re-evaluated on duplicate delivery. When absent, preserve current callers and 2-second
   behavior exactly. Add
   `calendar_reminder` type and calendar push path; do not add mail/Resend channel.
+- For the keyed calendar path, use 05A1's caller-owned transaction primitive to read quiet
+  hours and resolve optional preference rows after the stable user-row guard. Evaluate
+  quiet hours at an injected policy clock instant acquired under that guard. The unkeyed
+  legacy dispatch path keeps its existing behavior.
 - Oracles: keyed concurrency/redelivery; absent-key regression; prefs/quiet hours; in-app
-  disabled; user/preferences/repository failure leaves outcome pending and returns a
-  retriable error instead of suppression; Telegram/push result explicitly best effort; no
-  raw caller key persisted/logged.
+  disabled; guarded policy fake call and policy change in both serialization orders;
+  both-absent quiet hours disabled; incomplete/malformed pair or invalid IANA timezone
+  creates `policy_invalid` suppression and bounded content-free signal with no UTC fallback;
+  user/preferences/repository failure leaves outcome pending and returns a retriable error
+  instead of suppression. For the keyed path, return/queue external channel work for
+  caller-owned post-commit execution; never invoke Telegram/push before the canonical
+  transaction commits. External result remains best effort and cannot mutate/rollback the
+  receipt outcome. No raw caller key is persisted/logged.
 
 ## 147-05B — reminder scheduler/outbox
 
@@ -243,33 +272,55 @@
   `event_ent_repository_reminder.go`, and
   `backend/tests/calendar/reminder_service_test.go`.
 - With injected clock/claim lease, create/find pending occurrences in bounded lookahead for
-  owners and internal attendees. At/after due time recheck current sequence/exception/
-  attendee and atomically mark emitted plus write one closed `calendar.reminder.due.v1`.
-  Expire >24h overdue; suppress stale, cancelled, deleted or declined. Pre-due RSVP changes
-  do not terminally suppress a pending receipt.
-- Oracles: timed/all-day/DST/recurrence; duplicate/concurrent scans; update/cancel race;
-  owner-attendee dedupe; external guest absent; transaction rollback; no content in event.
+  owners and internal attendees. Timed due derives from effective occurrence instant;
+  all-day due derives from the first representable instant of its civil start date in the
+  valid event IANA zone: overlap chooses the earlier instant, a midnight gap chooses the
+  first instant after the gap, and a skipped date chooses the first instant after its gap.
+  Date-only storage is unchanged. At/after due time lock event → optional exception →
+  optional attendee → user-policy guard → receipt, then require current sequence,
+  effective start, active user, non-null `reminder_minutes`, recomputed due and eligibility
+  to match exactly before atomically marking emitted plus writing one closed
+  `calendar.reminder.due.v1`. Expire >24h overdue;
+  suppress stale, configuration-mismatched, cancelled, deleted, removed or declined work.
+  A changed offset uses a separate receipt; disabled offset creates no new work. Pre-due
+  RSVP changes do not terminally suppress a pending receipt.
+- Oracles: timed/all-day/IANA/DST, midnight overlap/gap and skipped civil date; recurrence;
+  duplicate/concurrent scans; offset disable/change, update/cancel and attendee race in
+  both serialization orders; owner-attendee
+  dedupe; external guest absent; transaction rollback; no content in event.
 
 ## 147-05C — reminder consumer and scheduling composition
 
-- Allowed only `backend/internal/notification/consumer_calendar.go`, narrow additions to
-  `consumer.go`, `backend/cmd/server/wiring_notification.go`, and
+- Allowed only `backend/internal/notification/consumer_calendar.go`,
+  `calendar_reminder_repository.go`, narrow additions to `consumer.go`,
+  `backend/cmd/server/wiring_notification.go`, and
   `backend/tests/calendar/reminder_consumer_test.go` using fake ports.
-- Validate the closed reminder envelope, refetch owned current event metadata, dispatch
-  with receipt/event-derived dedupe hash and existing preferences/quiet hours. Atomically
-  persist one delivered/suppressed in-app outcome before ack; duplicate events reuse it.
+- Validate the closed reminder envelope and refetch owned current event metadata. In one
+  PostgreSQL transaction lock event → optional exception → optional attendee → user-policy
+  guard → receipt → optional notification. Resolve current quiet hours/preferences only
+  after the guard; reauthorize and require current active state, user eligibility, sequence,
+  effective start, non-null offset and recomputed due to match the receipt/payload.
+  A definitive mismatch durably suppresses and acks with no row. Otherwise dispatch with
+  receipt/event-derived dedupe hash and existing preferences/quiet hours, atomically
+  persisting one delivered/suppressed in-app outcome before ack; duplicate events reuse it.
   A transient user/event/preferences/repository read or write failure leaves the outcome
   pending and NAKs through the existing bounded retry path. It is never converted to
-  suppression. Publish WebSocket invalidation only after commit as best effort; clients
-  recover a missed publish through the ordinary notification list/query refetch.
+  suppression. Only after commit invoke any permitted Telegram/Web Push work and publish
+  WebSocket invalidation, all as best effort; a rollback invokes none. Clients recover a
+  missed WebSocket publish through the ordinary notification list/query refetch.
   Wire one context-owned bounded scheduler; preserve existing notification/automation
   consumers.
 - Oracles: duplicate JetStream event one permitted in-app row or one durable suppression;
-  policy change after first handling cannot change outcome; disabled channel/quiet suppression;
-  transient lookup/store failure NAKs with no terminal outcome; title fetched after
-  authorization; stale/deleted event ack without notification; post-commit WebSocket
-  failure preserves the row and exposes no exactly-once claim; unknown schema existing
-  dead-letter path; no email or broadcast call.
+  policy change after first handling cannot change outcome; offset disable/change,
+  reschedule/cancel/delete, attendee decline/remove, in-app channel first-insert/disable and
+  quiet-hours races in both transaction orders; disabled in-app channel/quiet suppression;
+  external Telegram/push race is asserted best-effort only; rollback produces no external
+  attempt and external failure cannot alter the committed outcome; transient lookup/store
+  failure NAKs with no terminal outcome; invalid policy suppresses with its exact safe
+  reason; title fetched after authorization;
+  stale/deleted event durable suppression;
+  post-commit WebSocket failure preserves the row and exposes no exactly-once claim;
+  unknown schema existing dead-letter path; no email or broadcast call.
 
 ## 147-06A — conditional feed persistence schema
 
@@ -396,7 +447,7 @@
   `backend/internal/crm/handler.go` and `backend/cmd/server/wiring_modules.go`. Do not add a
   Go HTTP/component test; route the public API cases to the Python API handoff.
 - Implement exact compose-context and mail-activity GET/PUT/DELETE routes from OpenAPI
-  0.1.3. Bound list to max 100 newest-first with an opaque cursor; actor/deal/message are
+  0.1.4. Bound list to max 100 newest-first with an opaque cursor; actor/deal/message are
   path/auth derived; NFR-13 errors and not-found privacy.
 - Oracles: route/method/path shapes; duplicate PUT; invalid UUID; auth ordering; no body/
   recipient/subject in activity response; exact 404/409 codes; existing contacts/pipeline
@@ -408,7 +459,7 @@
   `frontend/tests/mail/crm-mail-api.test.ts` as a genuine typed-client unit with
   in-process fetch fakes.
 - Implement exact compose-context and activity list/PUT/DELETE functions from OpenAPI
-  0.1.3. Use bounded `limit`, opaque cursor and shared safe error parsing. This client has
+  0.1.4. Use bounded `limit`, opaque cursor and shared safe error parsing. This client has
   no draft/save/send function and cannot accept actor, mailbox or organization ids.
 - Oracles: exact methods/paths/query/body/204; 404/409 codes remain available to UI;
   cursor stays opaque; response types contain no content/address beyond compose context;
@@ -462,6 +513,25 @@
 - Oracles: cursor pagination/order; duplicate link collapse; unlink confirmation/error;
   404/permission revocation; open route contains UUID only and reauthorizes; no body,
   subject, address, engine id, campaign/tracking state or second mailbox cache.
+
+## 147-07H — existing-message manual deal link
+
+- Allowed only `frontend/src/modules/mail/mail-crm-link-action.tsx`, a narrow composition in
+  accepted `frontend/src/modules/mail/mail-message-reader.tsx`, narrow matching key
+  additions to `frontend/src/i18n/locales/en/mail.json` and
+  `frontend/src/i18n/locales/ru/mail.json`, and
+  `frontend/tests/mail/mail-crm-link-action.test.tsx` using typed in-process fakes. Do not
+  modify `frontend/src/api/crm.ts` or the auth store.
+- After the ordinary Mail reader has definitively loaded an owned inbound/outbound message,
+  load the existing authorized `getPipeline()` result and current user from `useAuthStore`.
+  Offer an explicit deal picker containing only deals with `owner_id === user.id`, then use
+  07D's idempotent PUT. Client filtering is not authorization: forged/stale selections and
+  admin-visible unowned deals must still fail at the server without body/engine hydration.
+  Missing user, pipeline error or no owned deals exposes no mutation; never auto-link.
+- Oracles: owned inbound/outbound happy path; same link double-click converges; unowned deals
+  filtered even for admin-visible pipeline data; forged deal id 404; user/pipeline loading,
+  error and empty states; keyboard/focus/44px target; no subject/address/body/engine id in
+  CRM request, local persistence, query key, URL or log; reader security boundary unchanged.
 
 ## 147-08 — documentation and independent review
 

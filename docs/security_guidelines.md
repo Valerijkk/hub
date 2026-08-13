@@ -160,14 +160,19 @@ historical document. Current Resend also exposes a legacy admin broadcast that c
 with ADR-NOTIF-01's no-marketing/whitelist policy; treat it as an open governance/security
 gap until removed, disabled, or explicitly re-authorized and audited.
 
-Mail 0.1.3 additionally requires authenticated organizer alignment and immutable organizer
+Mail 0.1.4 additionally requires authenticated organizer alignment and immutable organizer
 identity for REQUEST/CANCEL, capped lifetime tombstones plus bounded receipt retention,
 reconciliation before an
 outward REPLY retry, all-or-nothing self/shared-project-or-channel availability authorization
 without admin bypass, metadata-only reminder
-events, fail-closed retriable preference/repository lookup, and independent deal-owner/
+events, fail-closed retriable preference/repository lookup, stable user-row serialization
+for absent/existing preference and quiet-hours changes, last-chance reminder state/config/
+eligibility reauthorization, durable `policy_invalid` suppression with no UTC/delivery
+fallback for malformed policy, post-commit-only external reminder channels with no send on
+rollback, and independent deal-owner/
 mailbox-owner checks for CRM draft/message routes and links. Recipient data is allowed only
-in the ordinary draft body, never URL/history/logs. Conditional L1 feed
+in the ordinary draft body, never URL/history/logs; a reader's owned-deal filter is not
+server authorization. Conditional L1 feed
 URLs are encrypted/write-only and still pass safe-dial/redirect/decompression checks on
 every fetch; L1 code remains blocked until founder decision 5.
 

@@ -118,9 +118,9 @@ mail_feature_workstream:
     branch: codex/mail-module-20260813
     phases: "142-148"
     current_phase: 143
-    status: contract_0_1_3_root_static_pass_independent_review_pending_code_runtime_blocked
+    status: contract_0_1_4_root_review_stale_independent_review_pending_code_runtime_blocked
     product_truth: unfinished_mvp_feature_not_accepted
-    contract_version: "0.1.3"
+    contract_version: "0.1.4"
     tasks:
       - TASK-235
       - TASK-236
@@ -187,10 +187,11 @@ spec_coverage:
   API/persistence/resource spike и внешний DNS остаются gates; runtime `NOT_RUN`.
 - Кодовые фазы 143–148 идут после заморозки контракта. Phase 145 может оставаться
   blocked, пока выполняются engine-independent calendar/mailbox/UI slices.
-- Mail 0.1.3 добавляет Phase 147 reliability-контракт: REQUEST/CANCEL tombstones и
+- Mail 0.1.4 добавляет Phase 147 reliability-контракт: REQUEST/CANCEL tombstones и
   recovery, outward REPLY reconciliation, private availability, durable in-app reminders
-  и CRM manual-link. Root static review 0.1.3 = PASS на `8daaf0d9`; независимый review с
-  допустимым current-SHA provenance ещё PENDING. Product code `NOT_IMPLEMENTED`.
+  и CRM manual-link. Amendment закрывает reminder mutation race и reader manual-link;
+  root review 0.1.3 на `8daaf0d9` теперь `STALE`, root/independent 0.1.4 reviews PENDING.
+  Product code `NOT_IMPLEMENTED`.
 - Вопросы, не останавливающие локальную работу, собраны в
   `docs/mail/FOUNDER-QUESTIONS.md`. Push/PR/merge/deploy не авторизованы.
 

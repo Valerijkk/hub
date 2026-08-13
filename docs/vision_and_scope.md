@@ -162,9 +162,10 @@
 
 **Дополнительно в v4 (код):** no-code DB (`/bases`, `HubBase/HubTable/HubRecord`), marketplace (`/marketplace`), kudos и random coffee (`intranet`), status page (`/status`), текущий Resend alert admin (`/admin/mail`), 1C connector (`integrations/onec`). Это не означает наличие mailbox engine/client.
 
-Mail 0.1.3 добавляет только CRM-lite seam без кампаний: владелец сделки создаёт обычный
-Mail draft и после подтверждённой отправки вручную связывает owned message с timeline.
-Адрес не попадает в URL, а CRM/admin permission не делегирует mailbox access. Это
+Mail 0.1.4 добавляет только CRM-lite seam без кампаний: владелец сделки создаёт обычный
+Mail draft и после подтверждённой отправки вручную связывает owned message с timeline;
+уже существующее owned inbound/outbound message также можно явно связать из обычного
+reader. Адрес не попадает в URL, а CRM/admin permission не делегирует mailbox access. Это
 контрактный scope; реализация и runtime пока отсутствуют.
 
 **Won't Have v4:** payroll/НДФЛ calc, multi-tenant SaaS (v5), SSO до принятия `ADR-AUTH-SSO`, native apps.
@@ -314,7 +315,7 @@ Edge-cases: повторение прошлой пары допускается 
 
 > Границы scope зафиксированы пользователем: `.planning/decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` §4 (GZ-V4-04/05/06/07) и `.planning/archive/july-2026/ROADMAP-FINAL-2026-07-03.md` Волна 1 (задача 1.11). Не расширять без нового решения PO.
 > Базовый календарь (`/calendar`, iCal export) имеет историческую v4-поверхность — истории
-> ниже описывают целевой паритет, но не означают acceptance. Текущий Mail 0.1.3 канон:
+> ниже описывают целевой паритет, но не означают acceptance. Текущий Mail 0.1.4 канон:
 > first-class L0 event/iTIP/RSVP + private availability + reminders раньше L1; подписка на
 > внешний iCal-фид подготовлена контрактом, но её включение в первый merge ждёт founder
 > question 5. OAuth Google/Microsoft остаётся вне scope. Персоны: Игорь (Member), Дмитрий

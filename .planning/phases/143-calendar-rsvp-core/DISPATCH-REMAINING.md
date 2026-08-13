@@ -131,8 +131,10 @@ dispatchable without duplicating the common safety contract.
   `backend/tests/calendar/event_service_update_test.go`.
 - Behavior: If-Match master version; complete merged temporal validation; exact §4.2
   sequence/RSVP/notification table; whole cancel preserves historical RSVP and emits one
-  master-scoped cancel event/iTIP request descriptor.
-- Oracles: every change class; no-op; silent/notified description; attendee add/remove;
+  master-scoped cancel event/iTIP request descriptor. Reminder-only change advances event
+  version without iTIP sequence/RSVP/invitation mutation.
+- Oracles: every change class; no-op; silent/notified description; reminder-only change;
+  attendee add/remove;
   stale/conflict zero mutation; rollback atomic; master cancel cannot masquerade as one
   occurrence.
 
@@ -210,7 +212,7 @@ dispatchable without duplicating the common safety contract.
 
 - Dependencies: 04F-Base/04C. Allowed only
   `backend/internal/calendar/event_ent_repository_update.go`.
-- Behavior/oracles: implement only master lock/version read, event/attendee reset or audit
+- Behavior/oracles: implement only event-first master lock/version read, event/attendee reset or audit
   tombstone mutations and outbox under one transaction. Stale/no-op paths publish nothing;
   no post-commit publish or Go DB component test.
 
@@ -218,24 +220,26 @@ dispatchable without duplicating the common safety contract.
 
 - Dependencies: 04F-Base/04D. Allowed only
   `backend/internal/calendar/event_ent_repository_rsvp.go`.
-- Behavior/oracles: implement only series attendee version compare/update, HTTP receipt and
-  outbox atomically. Another attendee cannot be selected; replay and stale paths publish
-  nothing; no Go DB component test.
+- Behavior/oracles: lock the event before the series attendee, then implement only attendee
+  version compare/update, HTTP receipt and outbox atomically. Another attendee cannot be
+  selected; replay and stale paths publish nothing; no Go DB component test.
 
 ## 143-04F-E — occurrence-RSVP Ent transaction
 
 - Dependencies: 04F-Base/04E. Allowed only
   `backend/internal/calendar/event_ent_repository_occurrence.go`.
-- Behavior/oracles: implement only inherited occurrence attendee materialization/update,
-  HTTP receipt and outbox atomically; the series row remains unchanged. Duplicate/stale/
-  rollback paths create no partial override; no Go DB component test.
+- Behavior/oracles: lock event → exception → attendee, then implement only inherited
+  occurrence attendee materialization/update, HTTP receipt and outbox atomically; the
+  series row remains unchanged. Duplicate/stale/rollback paths create no partial override;
+  no Go DB component test.
 
 ## 143-04F-H — occurrence-cancel Ent transaction
 
 - Dependencies: 04F-Base/04H. Allowed only
   `backend/internal/calendar/event_ent_repository_occurrence_cancel.go`.
-- Behavior/oracles: implement only cancelled exception upsert, master version/sequence
-  compare/increment and occurrence cancel outbox atomically. RRULE and other instances are
+- Behavior/oracles: lock event before exception, then implement only cancelled exception
+  upsert, master version/sequence compare/increment and occurrence cancel outbox atomically.
+  RRULE and other instances are
   untouched; stale/retry paths publish nothing; no Go DB component test.
 
 ## 143-04F-I — inbound-REPLY Ent transaction
@@ -243,7 +247,8 @@ dispatchable without duplicating the common safety contract.
 - Dependencies: 04F-Base/04I. Allowed only
   `backend/internal/calendar/event_ent_repository_inbound_reply.go`.
 - Behavior/oracles: implement only sender-bound attendee lookup plus atomic current event
-  sequence, attendee-row lock, bounded receipt count and unique ledger lookup/insert. An
+  sequence, event → optional exception → attendee lock order, bounded receipt count and
+  unique ledger lookup/insert. An
   accepted distinct
   PARTSTAT inserts `applied`, updates that one attendee/version and writes one outbox; a new
   same-status hash inserts only `observed_no_change`; existing hashes, stale/future/spoof
@@ -256,7 +261,7 @@ dispatchable without duplicating the common safety contract.
 - Dependencies: accepted 04B–E/H and matching 04F variants. Allowed only:
   `backend/internal/calendar/event_dto.go`,
   `backend/tests/calendar/event_dto_test.go`.
-- Behavior: OpenAPI 0.1.2 request/response shapes; strict temporal union/bounds; quoted
+- Behavior: OpenAPI 0.1.4 request/response shapes; strict temporal union/bounds; quoted
   version parser; base64url recurrence decoder; NFR-13 metadata carrier; no owner/org input.
 - Oracles: timed/all-day pairs/end order/IANA annotations; unknown/oversized fields; RSVP
   version/status; occurrence cancel response; error body has only error/request_id.

@@ -254,7 +254,7 @@ CoffeeEnrollment/CoffeeRound/CoffeePair) переиспользуются.
 | NFR-31 | Уникальность голоса | Уникальный индекс `(poll_id, user_id)` в news_poll_vote; конкурентный повторный голос → 422, не дубль |
 | NFR-32 | Агрегаты intranet | Лидерборд и матчинг: p95 < 500ms при 1k пользователей / 50k kudos (индекс по recipient+created_at); cron-матчинг идемпотентен (повторный запуск раунда не создаёт дублей пар) |
 
-#### Historical ERD delta (superseded for Mail 0.1.3)
+#### Historical ERD delta (superseded for Mail 0.1.4)
 
 Именование `news_poll*` — чтобы не конфликтовать с существующими messenger-сущностями
 Poll/PollOption/PollVote (channel-scoped).
@@ -279,7 +279,7 @@ CoffeePair (существует) + dm_channel_id
 Инварианты соблюдены: голоса удаляются каскадно с постом только через корзину (FR-INTR-07/08);
 `onboarding_progress.items` — копия (FR-INTR-04); лидерборд не хранит state.
 
-#### Historical API draft (not the Mail 0.1.3 machine contract)
+#### Historical API draft (not the Mail 0.1.4 machine contract)
 
 Все ошибки — `{"error","request_id"}` (NFR-13); rate limit — общий API 100/с (NFR-06) → 429.
 
@@ -391,15 +391,15 @@ Outbox hub.intranet.coffee.matched → MessengerService (создать/пере
 - Лидерборд: kudos, отправленные боту/самому себе, исключаются на уровне существующей валидации Kudo.
 - Матчинг: нечётное N → ровно одна тройка; повтор прошлой пары допустим только при отсутствии иных комбинаций; деактивация между матчингом и встречей — DM остаётся, следующий раунд исключает.
 
-### Calendar v2 (FR-CAL historical parity draft + Mail 0.1.3 overlay)
+### Calendar v2 (FR-CAL historical parity draft + Mail 0.1.4 overlay)
 
 > **Authority:** Mail Sync L0 now follows
 > `.planning/decisions/specs/MAIL-SPEC.md`, `docs/mail/openapi.yaml` and Phase 147
 > `CONTRACT.md`. The older FR-CAL parity draft below remains product history only. Wherever
 > it differs on routes, entities, privacy, recurrence, feed storage, limits or events, Mail
-> 0.1.3 wins. Current code remains an aggregate/export surface, not L0 acceptance.
+> 0.1.4 wins. Current code remains an aggregate/export surface, not L0 acceptance.
 
-#### Current authoritative Mail 0.1.3 slice
+#### Current authoritative Mail 0.1.4 slice
 
 - Existing `GET /api/calendar/events` remains byte-shape compatible as
   `{events,from,to}`. First-class event CRUD, series/occurrence RSVP/cancel and availability
@@ -416,13 +416,23 @@ Outbox hub.intranet.coffee.matched → MessengerService (создать/пере
   receipts, and cannot be rolled back by lower/equal conflicting mail. Outward external-
   organizer REPLY reconciles the same hidden draft and MailSubmission before retry.
 - `calendar.reminder.due.v1` creates one durable in-app intent through existing preferences
-  and quiet hours. Transient user/policy/repository failure stays pending and retriable;
-  post-commit WebSocket, Telegram and Web Push are best-effort. Resend/email is not a
-  reminder channel.
+  and quiet hours. Scheduler and consumer both recheck the current effective start,
+  sequence, non-null reminder offset, derived due and owner/attendee eligibility under one
+  lock order; the consumer also resolves preferences/quiet hours under a stable user-row
+  guard, so a policy or event mutation committed first durably suppresses stale work.
+  All-day due uses the first representable instant of the local start date: a midnight
+  overlap selects the earlier instant and a gap/skipped date selects the first instant
+  after the gap, without changing date-only event semantics. Invalid timezone/quiet policy
+  produces `policy_invalid` with no UTC/delivery fallback. Transient user/policy/repository
+  failure stays pending and retriable; post-commit WebSocket, Telegram and Web Push are
+  best-effort. A rollback invokes no external channel, and its later result cannot alter
+  the canonical outcome. Resend/email is not a reminder channel.
 - CRM `Write email` creates one ordinary idempotent Mail draft with the recipient only in
   its request body, then opens `/mail/drafts/{draftId}`. Explicit deal linking is available
-  only after definitive Mail submission. `/mail/message/{messageId}` and the draft route
-  independently reauthorize through Mail; CRM/admin access never delegates a mailbox.
+  only after definitive Mail submission or from an already owned message reader, whose
+  picker offers current-user owned deals only. `/mail/message/{messageId}` and the draft
+  route independently reauthorize through Mail; client filtering and CRM/admin access never
+  delegate a mailbox.
 - L1 HTTPS iCal subscription remains contract-ready but code-gated by founder question 5.
   If accepted, feed URLs are AES-GCM encrypted/write-only and every fetch/redirect uses
   SSRF-safe bounded transport. L2 mailbox ingest and L3 OAuth remain out of scope.

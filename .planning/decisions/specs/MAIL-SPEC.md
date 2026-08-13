@@ -42,7 +42,9 @@ the Hub mail feature. It does not claim that the described behavior is implement
 10. Search results are post-filtered by current organization + mailbox ownership before
    any snippet or identifier is returned.
 11. All externally observable timestamps are RFC 3339. Event timezone is a valid IANA
-    name. All-day values use dates and never infer midnight instants.
+    name. All-day event values use dates and never infer persisted/wire midnight instants;
+    the reminder subsystem's explicitly contracted first-representable local day boundary
+    does not replace that date representation.
 12. Hub-uploaded mail bytes use a mail-owned storage namespace and authorization port;
     project-scoped `FileMetadata` is never reused as an implicit mailbox ACL.
 13. Raw idempotency keys, engine credentials, DKIM private keys, message bodies, and raw
@@ -475,19 +477,49 @@ The public attendee status maps `pending|submitting|unknown` to `pending`, `sent
 One receipt per event + internal user + normalized occurrence + event sequence + derived
 due time stores reminder minutes, state (`pending`, `emitted`, `suppressed`, `expired`),
 nullable outbox id, nullable in-app outcome (`pending`, `delivered`, `suppressed`), nullable
-notification id and timestamps. No event text is stored. The notification row accepts an
+safe suppressed-outcome reason (`policy_disabled`, `quiet_hours`, `stale_event`,
+`ineligible_user`, `configuration_changed`, `policy_invalid`, `expired`), notification id and
+timestamps. Suppressed requires a reason; pending/delivered forbid one. No event text is
+stored. The notification row accepts an
 optional fixed dedupe-key hash with a partial unique user + type + hash index; legacy callers
 without a key preserve their existing behavior. Final reminder receipts remain for 90 days
 after due time; cleanup never removes pending work.
+Timed `due_at` is the effective occurrence start instant minus the offset. All-day
+`due_at` uses the first representable instant of the effective `start_date` in the event's
+valid IANA timezone minus the offset. A midnight overlap chooses the earlier instant, a
+midnight gap chooses the first instant after the gap, and a wholly skipped date chooses the
+first instant after that date's gap. This scheduling instant never converts the date-only
+event in persistence, API or iTIP.
 Lookahead creates/finds `pending`; the due-time claim alone rechecks current event,
-occurrence and attendee state, then atomically emits one outbox event or finalizes
-suppressed/expired. When notification policy permits in-app delivery, one row is created;
-policy suppression creates none. The consumer stores delivered/suppressed on the reminder
-receipt in the same transaction as the optional notification row, so duplicate delivery
-cannot re-evaluate policy or change either outcome. Transient user/event/preferences/
-repository failure leaves the outcome pending and NAKs for bounded retry. WebSocket
-publication is post-commit best-effort; notification list/query refetch is the recovery
-path and no exactly-once realtime guarantee is claimed.
+occurrence, attendee and reminder configuration, then atomically emits one outbox event or
+finalizes suppressed/expired. The current sequence, effective start, non-null offset and
+recomputed due time must exactly match the receipt. A changed/disabled offset creates no
+delivery from the old receipt; a new offset uses a separate receipt at its own derived due.
+The notification consumer repeats those checks plus owner/internal-attendee eligibility in
+the same transaction and lock order as the optional notification row. Event, optional
+exception, optional attendee, stable user-policy guard, reminder receipt and notification
+are locked in that order. The guard is the user row: preference upsert locks it before
+resolving/upserting optional preference rows, a quiet-hours profile update locks it before
+mutation, and the consumer resolves both only after acquiring it. This serializes policy
+changes even when a preference row did not previously exist.
+When notification policy permits in-app delivery, one row is created; a definitive stale,
+ineligible or policy-suppressed outcome creates none and is durably recorded. Duplicate
+delivery cannot re-evaluate policy or change either outcome. Transient user/event/
+preferences/repository failure leaves the outcome pending and NAKs for bounded retry.
+WebSocket publication is post-commit best-effort; notification list/query refetch is the
+recovery path and no exactly-once realtime guarantee is claimed.
+Telegram/Web Push attempts for this keyed path are also post-commit only. A transaction
+rollback produces no external attempt, and an external success/failure never changes or
+rolls back the canonical receipt/notification outcome; crash-boundary misses/duplicates
+remain within their documented best-effort contract.
+The keyed calendar path treats quiet hours as disabled only when both fields are absent.
+Otherwise both must be strict `HH:MM` and the user timezone valid IANA. Invalid/incomplete
+policy has no UTC/deliver fallback: it durably suppresses with `policy_invalid` and emits a
+rate-limited content-free health signal. Repository/read failures remain transient instead.
+State coherence is closed: pending has no outbox/notification; emitted requires outbox;
+delivered requires notification and no reason; every suppressed outcome has no notification
+and one safe reason; scheduler-expired uses outcome suppressed + reason `expired`. No
+terminal state is reopened.
 
 ### 3.20 CrmMailActivity
 
@@ -530,6 +562,7 @@ version as `ETag`, and a `Location` to refetch the canonical event before retry.
 | time, timezone, all-day | +1 | reset non-organizer | REQUEST update |
 | location | +1 | reset non-organizer | REQUEST update |
 | recurrence/exdate | +1 | reset affected non-organizer scope | REQUEST update |
+| reminder_minutes only | unchanged | preserve | none; event version still increments |
 | add attendee | +1 | preserve existing; new needs_action | REQUEST to affected/all per transport policy |
 | remove attendee | +1 | removed row retained as audit tombstone | CANCEL to removed attendee |
 | cancel event/occurrence | +1 | preserve historical response | CANCEL |
@@ -541,6 +574,10 @@ event version from `If-Match`, increments master sequence and version once, retu
 cancelled occurrence metadata, writes one `calendar.invite.cancelled.v1` outbox event and
 queues one iTIP `CANCEL` carrying `RECURRENCE-ID`. A retry after an ambiguous response
 refetches the event/occurrence; a stale version conflicts before any second mutation.
+Changing only `reminder_minutes` is local scheduling metadata: it advances optimistic event
+version but not iTIP `SEQUENCE`, attendee RSVP or invitation delivery. Existing reminder
+receipts are not rewritten; the due-time and consumer checks suppress mismatched old work,
+and a non-null new offset obtains its own derived receipt.
 
 ### 4.3 Incoming iTIP
 
@@ -664,6 +701,8 @@ previous/new status, new version, recurrence id, and reply delivery status.
 `calendar.reminder.due.v1` contains only reminder receipt id, event id, internal user id,
 optional recurrence id, sequence and due time. The notification consumer reauthorizes and
 hydrates display metadata after consumption; the event contains no title or description.
+It must also transactionally prove the current effective start, offset, sequence and
+eligibility still match before creating the notification.
 
 ## 7. Security acceptance contract
 
@@ -719,10 +758,10 @@ P2 is explicitly deferred. Risk uses Critical/High/Medium.
 | FR-CALSYNC-009 | series vs RECURRENCE-ID response | P0 | Critical | recurrence fixtures | integration/E2E |
 | FR-CALSYNC-010 | IANA TZ, DST and all-day correctness | P0 | Critical | fixed-zone fixtures | integration/E2E |
 | FR-CALSYNC-011 | busy/free includes calls/events/leave | P1 | High | interval pure tests | API/E2E |
-| FR-CALSYNC-012 | durable in-app reminders through existing preferences; transient lookup retries; external realtime/channels best-effort | P1 | High | event mapping | integration/E2E |
+| FR-CALSYNC-012 | durable in-app reminders through existing preferences; due/consumer current-config recheck; transient lookup retries; external realtime/channels best-effort | P1 | High | scheduler/consumer policy units | integration/E2E |
 | FR-CALSYNC-013 | L1 external iCal feed subscription | P2 | High | parser fixtures | integration/security |
 | FR-CRM-MAIL-001 | owned deal compose context creates one ordinary idempotent Mail draft and opens it by opaque UUID | P1 | High | authz/adapter/UI units | API/E2E |
-| FR-CRM-MAIL-002 | explicit idempotent owned-message link/unlink in deal timeline | P1 | High | service/privacy units | API/security/E2E |
+| FR-CRM-MAIL-002 | explicit idempotent owned-message link/unlink from deal timeline or owned reader | P1 | High | service/privacy/reader units | API/security/E2E |
 
 ### Named critical scenarios
 
@@ -760,6 +799,15 @@ P2 is explicitly deferred. Risk uses Critical/High/Medium.
   back to Resend/email.
 - `TC-CALSYNC-020A`: transient user/preferences/repository failure leaves the reminder
   pending and retriable; post-commit WebSocket failure preserves the canonical in-app row.
+- `TC-CALSYNC-020B`: an in-app reminder/channel disable, quiet-hours/offset change,
+  reschedule/cancel/delete, or attendee decline/removal committed before consumer
+  finalization durably suppresses the emitted intent without an in-app row; a consumer
+  commit that serializes first remains the one valid row. Telegram/Web Push keep the
+  documented best-effort boundary. Timed and all-day due derivation are deterministic
+  across IANA/DST cases.
+- `TC-CALSYNC-020C`: invalid IANA timezone or incomplete/malformed quiet hours records one
+  `policy_invalid` suppression, no notification row and a bounded content-free signal; no
+  UTC or delivery fallback occurs.
 - `TC-CALSYNC-021`: an occurrence from another organizer cannot attach to or mutate a known
   series UID even when that occurrence has no prior ordering row.
 - `TC-CALSYNC-022`: a whole-series CANCEL cancels materialized exceptions and an isolated
@@ -776,6 +824,9 @@ P2 is explicitly deferred. Risk uses Critical/High/Medium.
   deal timeline.
 - `TC-CRM-MAIL-002`: CRM admin/deal access cannot grant access to another user's message
   or cause engine hydration.
+- `TC-CRM-MAIL-003`: the reader can manually link an existing owned inbound/outbound
+  message, offers only deals owned by the authenticated user, and still relies on the
+  server's independent deal/message ownership check.
 - `TC-MAIL-001`: retry after send timeout reconciles idempotency key without duplicate.
 - `TC-MAIL-002`: mailbox-owner isolation prevents cross-user engine access.
 - `TC-MAIL-003`: hostile HTML and SVG active content are removed server-side.

@@ -42,7 +42,7 @@ secrets, DNS/operator approval and CTO/founder sign-off remain separate.
 | ID | Required evidence | Current state | Blocks |
 |---|---|---|---|
 | G148-01 baseline | clean isolated branch; base/current SHA; worktree path; changed-file and protected-zone diff; no untracked product artifact | PASS for docs snapshot only; repeat after code | every later gate |
-| G148-02 contract | ADR, Mail spec, OpenAPI, event schema, UI contract, Phase 147 contract and QA handoff independently agree; machine refs/examples closed | root static PASS on `8daaf0d9`; independent current-provenance review PENDING | source work/claim |
+| G148-02 contract | ADR, Mail spec, OpenAPI, event schema, UI contract, Phase 147 contract and QA handoff independently agree; machine refs/examples closed | STALE: root PASS on `8daaf0d9` covers 0.1.3 ancestor; Mail 0.1.4 root and independent current-provenance reviews PENDING | source work/claim |
 | G148-03 founder decisions | signed answers for exact Spark runtime, migration mechanism, Stalwart license, L1 include/defer, broadcast disposition, rebase signal; push/PR separately authorized | BLOCKED/UNRESOLVED | affected packets and final gate |
 | G148-04 model provenance | every production/test-code packet records actual `gpt-5.3-codex` + `xhigh`; no silent fallback; review packets record allowed Terra effort | BLOCKED: exact Spark unavailable | source acceptance |
 | G148-05 migrations/generation | reviewed mechanism, preflight, generated Ent twice clean, migration/backfill dry-run on empty + realistic snapshot, counts and rollback | NOT_RUN | backend/runtime |
@@ -99,9 +99,14 @@ Missing fields make the evidence `FAIL` or `STALE`, never assumed.
 | outward REPLY timeout | hidden draft/submission reconciles; no duplicate external reply |
 | occurrence before master | deferred source rehydrates; newer tombstone/order is rechecked |
 | unbound calendar-state cap | previously unseen UID mutates nothing and quarantines; known UID continues; degraded health/ops signal is bounded and content-free; no tombstone eviction |
-| reminder duplicate/policy-store outage | one durable intent plus one permitted in-app row or one durable suppression; policy is not re-evaluated after terminal outcome; transient lookup/store failure stays pending and retries; post-commit WS failure preserves the row; external channel guarantee remains best-effort |
+| reminder duplicate/policy-store outage | one durable intent plus one permitted in-app row or one durable suppression; policy is not re-evaluated after terminal outcome; transient lookup/store failure stays pending and retries; post-commit WS failure preserves the row; Telegram/Web Push start only after commit, rollback starts none, and their guarantee remains best-effort |
+| reminder setting/state race | scheduler and consumer each recheck current sequence, effective start, non-null offset, recomputed due and eligibility; consumer resolves channel/quiet policy under the stable user-row guard; mutation-first suppresses with no row, consumer-first preserves only its committed valid row |
+| reminder receipt coherence | pending has no outbox/notification; emitted requires outbox; delivered requires notification/no reason; suppressed has no notification/one closed reason; expired uses suppressed + `expired`; no terminal tuple reopens |
+| all-day reminder boundary | ordinary midnight, overlap, midnight gap and wholly skipped date resolve to the frozen first-representable-instant rule in the event IANA zone without changing date-only storage/API/iTIP |
+| reminder invalid policy | invalid timezone or incomplete/malformed quiet hours yields durable `policy_invalid`, no row, bounded content-free signal and no UTC/delivery fallback; transient lookup/store remains pending/retriable |
 | CRM compose double-click/lost response/navigation | one normal draft and one stable idempotency key/body while unknown; recipient appears only in request body; failed navigation reuses returned draft UUID; no send/link until explicit normal-Mail actions |
 | CRM foreign message | generic not-found/forbidden boundary, zero engine/body hydration, no activity row |
+| CRM existing-message link | ordinary reader offers only current-user owned deals; explicit duplicate PUT converges; forged/admin-visible unowned deal remains server-denied with no content copy |
 | feed refresh failure | if L1 included, last complete snapshot remains, safe stale/error, no cross-source rewrite |
 | restart | engine volume, Hub projections, receipts and workers recover without duplicate mutation |
 | backup/restore | dedicated engine volume plus Hub stores restore in isolation and reconcile |
@@ -142,8 +147,9 @@ requirements and evidence request; it does not edit that program.
 
 ## 8. Current honest aggregate
 
-`ROOT_CONTRACT_REVIEW_PASS_INDEPENDENT_PENDING`: the root static review of Mail 0.1.3
-passed on `8daaf0d9`, but the addendum is not yet independently reviewed with accepted
+`CONTRACT_REVIEW_STALE_INDEPENDENT_PENDING`: the root static review of Mail 0.1.3 passed on
+`8daaf0d9`, but Mail 0.1.4 changes reminder race semantics and CRM reader linking, so that
+evidence is `STALE`. The amendment is not yet root/independently reviewed with accepted
 current-SHA model provenance. Product code is not implemented,
 the exact code-writing runtime is unavailable, the launcher is not ready, engine/legal/
 migration/broadcast/rebase decisions are unresolved, and all executable evidence is

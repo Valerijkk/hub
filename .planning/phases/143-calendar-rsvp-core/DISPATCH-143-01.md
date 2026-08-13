@@ -42,6 +42,8 @@
     increment sequence;
   - title/agenda and explicitly notified description increment sequence but preserve RSVP;
   - silent description-only edit changes neither sequence nor RSVP;
+  - reminder-only edit increments optimistic event version but changes neither iTIP
+    sequence nor RSVP and emits no invitation update;
   - attendee-only update preserves existing attendees and initializes added attendees;
   - cancellation increments sequence but preserves historical RSVP.
 - Return explicit typed policy results; do not invent persistence. Stable typed/sentinel

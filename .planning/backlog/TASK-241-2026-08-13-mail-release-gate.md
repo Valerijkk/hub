@@ -20,6 +20,8 @@ Claude's test-rebase branch.
   and verified; mailbox code never inherits it silently.
 - Projection rebuild/reconciliation and engine-unavailable behavior are documented and
   proven through accepted Docker-only runs.
+- Reminder offset/state changes are serialized against scheduler and consumer finalization;
+  existing-message CRM linking is reauthorized at both UI and server boundaries.
 - All feature-owned units are green in Docker; QA handoff covers API/integration/E2E/load.
 - `docs/system_specification.md`, `docs/architecture.md`, security/test docs, runbooks and
   the mail-owned `.planning/STATE.md` section match current code and evidence.

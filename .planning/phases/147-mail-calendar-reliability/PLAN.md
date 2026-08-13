@@ -1,6 +1,6 @@
 # Phase 147 — Mail/Calendar Reliability and Integrations
 
-> Task: TASK-240 · Status: CONTRACT_PREPARED_CODE_BLOCKED · Depends on: Phases 143–146
+> Task: TASK-240 · Status: CONTRACT_0_1_4_ROOT_REVIEW_STALE_CODE_BLOCKED · Depends on: Phases 143–146
 > Required code runtime: `gpt-5.3-codex` / `xhigh`, no fallback
 > Contract: `CONTRACT.md` · Dispatch: `DISPATCH-INDEX.md` + `DISPATCH-PACKETS.md`
 
@@ -13,7 +13,7 @@ this phase.
 
 ## Ordered execution
 
-1. Independently review Mail 0.1.3 reliability semantics and close contract findings.
+1. Independently review Mail 0.1.4 reliability semantics and close contract findings.
 2. After accepted Phase 143/144 schemas, add inbound object/message receipts, reply
    delivery and reminder receipts; generate only through the accepted launcher.
 3. Implement REQUEST/CANCEL order policy, atomic application, authenticated message-part
@@ -23,13 +23,15 @@ this phase.
 5. Implement privacy-preserving availability across canonical events, scheduled calls and
    approved leave.
 6. Add persistent in-app reminder dedupe, scheduler/outbox and notification consumer while
-   keeping Telegram/push best-effort and Resend unchanged.
+   keeping Telegram/push best-effort and Resend unchanged. Both due claim and consumer
+   finalization recheck current offset/start/sequence/eligibility under one lock order;
+   a stable user-row guard serializes preference and quiet-hours changes.
 7. If founder question 5 is affirmative, separately execute the eight L1 feed packets after
    encryption, migration and SSRF gates; otherwise leave them `BLOCKED/DEFERRED`.
 8. Add CRM compose context, create one ordinary idempotent Mail draft, navigate by the
    owner-scoped draft UUID, and offer explicit owned-message link only after definitive
-   Mail submission; no recipient in URL/history and no campaign, tracking or auto-log
-   behavior.
+   Mail submission or from an already owned message reader; no recipient in URL/history
+   and no campaign, tracking or auto-log behavior.
 9. Synchronize routed docs and hand non-unit scenarios to QA without changing protected
    testframework/test-rebase paths.
 
@@ -37,7 +39,7 @@ this phase.
 
 | Gate | State |
 |---|---|
-| Root reliability contract static review | PASS on `8daaf0d9` |
+| Root reliability contract static review | STALE after Mail 0.1.4 amendment |
 | Independent reliability contract review | PENDING |
 | Exact Spark code runtime | UNAVAILABLE |
 | Phase 143/144 accepted implementation | NOT_IMPLEMENTED |

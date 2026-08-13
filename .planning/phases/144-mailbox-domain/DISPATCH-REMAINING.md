@@ -40,7 +40,7 @@ Standalone complete prompts exist for 144-01A, 144-04D, 144-04E, 144-05A, 144-05
 
 ## 144-02A — account/identity/domain/policy schemas
 
-- Dependency: contract 0.1.2 and migration gate recorded. Allowed only:
+- Dependency: contract 0.1.4 and migration gate recorded. Allowed only:
   `backend/ent/schema/mailaccount.go`, `mailidentity.go`, `maildomain.go`,
   `mailboxpolicy.go`, narrow additive inverse edges in `user.go`, `organization.go`.
 - Behavior: exact spec §3 fields/enums/bounds; unique org+user, opaque engine account;

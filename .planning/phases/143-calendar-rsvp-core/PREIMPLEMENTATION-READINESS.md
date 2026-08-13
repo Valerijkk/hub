@@ -4,18 +4,19 @@
 > **Branch:** `codex/mail-module-20260813`
 > **Product truth:** NOT_IMPLEMENTED · NOT_RUN · not accepted
 
-## Ready
+## Prepared artifacts (current review stale)
 
-- Architecture, source-of-truth, security and compatibility decisions are frozen in Mail
-  contract 0.1.2.
+- Architecture, source-of-truth, security and compatibility decisions are amended in Mail
+  contract 0.1.4; the prior root review is stale until exact-SHA re-review.
 - OpenAPI covers mailbox, submission recovery, legacy calendar, canonical calendar and
   separate legacy/new admin resources.
 - Event subjects and webhook privacy boundary are frozen.
 - Phase 143 calendar, Phase 144 mailbox, Phase 145 gateway and Phase 146 UI work are split
   into exact-file atomic dispatch indexes; high-risk behaviors have full prompts.
-- Independent contract/security and dispatch atomicity rereviews both returned static
-  `PASS` with no remaining P0/P1/P2 after occurrence, schema-closure, inbound-REPLY-ledger,
-  gateway ownership and mobile-navigation remediation.
+- Historical independent contract/security and dispatch atomicity rereviews returned static
+  `PASS` after occurrence, schema-closure, inbound-REPLY-ledger, gateway ownership and
+  mobile-navigation remediation. They target a pre-0.1.4 ancestor and are now `STALE` for
+  current-contract acceptance.
 - Phase 145 has a nine-gate legal/provenance/runtime/ops plan.
 - Founder questions have safe unattended defaults and authorize no external action.
 

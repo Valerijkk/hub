@@ -290,6 +290,22 @@ policy permits or durable suppression when it does not. Telegram/Web Push preser
 existing best-effort boundary; the decision does not add Resend/email notifications.
 Transient user/policy/repository lookup failure remains pending and retriable rather than
 being recorded as suppression; post-commit WebSocket publication is also best-effort.
+Both the due claim and notification transaction revalidate the current effective start,
+sequence, non-null `reminder_minutes`, derived due time and owner/attendee eligibility.
+Reminder-relevant mutations serialize with those checks in event → exception → attendee →
+user-policy guard → receipt → notification lock order. The guard is the stable user row;
+notification-preference upsert locks it before resolving/upserting optional preference
+rows, and a quiet-hours profile update locks that row before changing it. Thus a committed
+in-app channel disable, quiet-hours change, reminder disable/reschedule or decline cannot
+leak a stale in-app reminder. Telegram/Web Push attempts happen only after the canonical
+transaction commits, remain outside it, and retain their best-effort race boundary; a
+rollback produces no external attempt. All-day reminder scheduling uses the first
+representable instant of the local date in the event IANA timezone: a midnight overlap
+selects the earlier instant and a gap/skipped date selects the first instant after the gap,
+without changing the date-only event representation. The keyed calendar path rejects
+legacy fail-open policy interpretation:
+invalid timezone or incomplete/malformed quiet hours durably suppresses with a safe reason
+and bounded content-free signal, never UTC/delivery fallback.
 
 CRM compose creates one ordinary idempotent Mail draft and opens its owner-scoped UUID in
 the normal mailbox composer; recipient data never travels in the URL. It is not a second

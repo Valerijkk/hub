@@ -184,7 +184,15 @@ the UI never lies by rolling back an accepted canonical response.
   notification channel and does not expand the Resend whitelist. When preferences and
   quiet hours permit delivery, one in-app reminder is persistently deduplicated; otherwise
   the outcome is suppressed. Telegram/Web Push keep their existing best-effort boundary
-  and the UI does not label them exactly-once.
+  and the UI does not label them exactly-once. Disabling/changing the reminder, moving or
+  cancelling the occurrence, declining/removing the attendee, disabling the in-app channel
+  or changing quiet hours is rechecked immediately before durable delivery; the transaction
+  that commits first defines the durable in-app outcome. Telegram/Web Push retain their
+  documented best-effort race boundary, but are attempted only after canonical commit;
+  rollback invokes neither and their result cannot change the committed outcome.
+  All-day due time uses the first representable instant of the event-local start date:
+  overlap selects the earlier instant, and a gap or skipped date selects the first instant
+  after the gap. This does not change the date-only event shown to the user.
 
 ### CRM mail seam
 
@@ -195,7 +203,9 @@ the UI never lies by rolling back an accepted canonical response.
   returned draft UUID; CRM has no separate draft, sender, send or campaign workflow.
 - After a send receipt resolves to a message, linking to the deal is an explicit user
   action. Queued/submitting/unknown/failed states never appear linked. Existing owned
-  inbound/outbound messages may also be linked manually.
+  inbound/outbound messages may also be linked manually from the ordinary reader; its
+  picker shows only deals owned by the current user, while the server independently checks
+  both resources again.
 - The timeline shows direction/time and an “Open mail” action only for the mailbox owner.
   The action uses `/mail/message/:messageId`, whose ordinary Mail load reauthorizes the
   resource. It does not copy body, subject, recipients, tracking or engine identifiers

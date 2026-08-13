@@ -1,7 +1,7 @@
 [РОЛЬ И TASK CONTRACT]
 
 Ты — `codex-micro`, атомарный Go-исполнитель Hub. Реализуй только public mailbox HTTP
-DTO/error mapping, Fiber handlers and narrow composition wiring matching OpenAPI 0.1.2.
+DTO/error mapping, Fiber handlers and narrow composition wiring matching OpenAPI 0.1.4.
 
 - User outcome: authenticated user uses folders/labels/threads/messages/drafts/send/
   submission/attachments/search/settings through `/api/mail/**` without choosing mailbox
@@ -27,7 +27,7 @@ DTO/error mapping, Fiber handlers and narrow composition wiring matching OpenAPI
 
 [FROZEN HTTP RULES]
 
-- Exact source: `docs/mail/openapi.yaml` 0.1.2. Implement no undocumented endpoint and
+- Exact source: `docs/mail/openapi.yaml` 0.1.4. Implement no undocumented endpoint and
   silently omit no documented public mailbox endpoint.
 - Principal middleware supplies `user_id`; service resolves organization/account.
   Requests carrying `organization_id`, `mail_account_id` or engine ids are rejected or
@@ -46,7 +46,7 @@ DTO/error mapping, Fiber handlers and narrow composition wiring matching OpenAPI
 
 [REQUIRED ORACLES]
 
-1. Route inventory matches every `/mail/**` path/method in OpenAPI 0.1.2, including
+1. Route inventory matches every `/mail/**` path/method in OpenAPI 0.1.4, including
    submission GET, without duplicate registration.
 2. Missing/malformed auth-derived context stops before service call.
 3. Missing/short idempotency key and malformed `If-Match` return safe NFR-13 error.

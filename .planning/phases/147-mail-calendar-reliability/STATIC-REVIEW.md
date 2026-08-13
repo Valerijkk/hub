@@ -1,13 +1,18 @@
-# Phase 147 — Mail 0.1.3 root static review
+# Phase 147 — historical Mail 0.1.3 root static review (stale for 0.1.4)
 
 > **Reviewed contract SHA:** `8daaf0d9a021e99e0f838dfdd765abd9dd9e8194`
 > **Parent:** `5c12e907b5c5e1a9f484b3fe46031e7aee4a5879`
 > **Branch:** `codex/mail-module-20260813`
-> **Verdict:** `ROOT_STATIC_PASS`
+> **Verdict:** `STALE_AFTER_CONTRACT_CHANGE`
 > **Independent G148-02 verdict:** `PENDING`
 > **Runtime/build/test/schema-validator evidence:** `NOT_RUN`
 > **Actual model telemetry:** `UNKNOWN`; this root review is not accepted as the required
 > independent Terra provenance artifact
+
+Mail 0.1.4 amends reminder race/lock semantics and adds the missing existing-message CRM
+reader packet after this snapshot. Therefore this review remains provenance for the exact
+0.1.3 commit only and cannot support the current contract. Root and independent 0.1.4
+reviews are `PENDING`.
 
 ## Scope and method
 
@@ -47,13 +52,14 @@ runtime claims remain `NOT_RUN` rather than being inferred from this review.
 
 ## Remaining gates
 
-No unresolved P0/P1 was found in the root-reviewed contract snapshot. This does not make
-G148-02 pass: an independent current-SHA review with accepted actual model/effort provenance
-is still required. Exact Spark implementation, migration/generation authority, selected
+No unresolved P0/P1 was found in the historical 0.1.3 snapshot. That result is now `STALE`
+and does not make G148-02 pass: a root re-review plus an independent current-SHA review with
+accepted actual model/effort provenance are required. Exact Spark implementation,
+migration/generation authority, selected
 engine evidence, accepted Docker launcher, executable QA, broadcast disposition, final
 rebase and push/PR authority remain separately blocked, unresolved or `NOT_RUN` in
 `GATE-MATRIX.md`.
 
-The only claim supported here is: Mail 0.1.3 is internally coherent enough for independent
-static review. It is not implemented, runtime-verified, merge-ready, complete, stable or
-production-ready.
+The only current claim supported here is that the listed checks were performed on the exact
+0.1.3 ancestor. It supports no Mail 0.1.4 coherence, implementation, runtime, merge-ready,
+complete, stable or production-ready claim.

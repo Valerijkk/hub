@@ -13,7 +13,7 @@ review cannot self-certify its own fix.
 ## Common review envelope
 
 - Confirm actual model/effort first. Missing/mismatched provenance returns `BLOCKED`.
-- Read root `AGENTS.md`, `.planning/STATE.md`, routed domain docs, Mail 0.1.3 contract,
+- Read root `AGENTS.md`, `.planning/STATE.md`, routed domain docs, Mail 0.1.4 contract,
   Phase 147 contract and the supplied exact diff. Never read protected test-rebase or
   `pro-qa-ai` paths.
 - Do not run host tests/build/lint/validators or direct Docker/Compose. Review accepted
@@ -56,9 +56,11 @@ Review state machines, concurrency, bounds and error semantics:
 - outward REPLY delivery ledger and stable mailbox keys;
 - event/attendee optimistic versions and sequence/reset policy;
 - availability half-open intervals, recurrence, all-day, IANA/DST and caps;
-- reminder claim/receipt/outbox/dedupe and stale recheck;
+- reminder claim/receipt/outbox/dedupe, current offset/start/eligibility recheck at both
+  scheduler and consumer, all-day due derivation, strict no-fallback quiet policy and
+  serialized mutation race;
 - feed snapshot/conditional refresh if included;
-- CRM link idempotency and no message hydration on denial;
+- CRM link idempotency, existing-message owned-deal picker and no message hydration on denial;
 - NFR-13 body plus exact headers/statuses and legacy shape compatibility.
 
 Mutation/transaction failures must leave no partial receipt, event, attendee, projection,

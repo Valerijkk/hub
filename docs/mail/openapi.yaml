@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Hub Mail and Calendar Sync API
-  version: 0.1.3
+  version: 0.1.4
   description: Frozen implementation contract. Presence in this file does not imply implementation.
 servers:
   - url: /api
@@ -1214,7 +1214,7 @@ components:
           schema:
             type: string
             format: uri-reference
-            pattern: '^/api/calendar/v2/events/[0-9a-fA-F-]{36}$'
+            pattern: '^/api/calendar/v2/events/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
@@ -1248,7 +1248,7 @@ components:
           schema:
             type: string
             format: uri-reference
-            pattern: '^/api/calendar/v2/events/[0-9a-fA-F-]{36}$'
+            pattern: '^/api/calendar/v2/events/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
@@ -1737,7 +1737,14 @@ components:
         organizer_id: {type: [string, "null"], format: uuid}
         organizer_email: {type: string, format: email}
         scheduled_call_id: {type: [string, "null"], format: uuid}
-        reminder_minutes: {type: [integer, "null"], minimum: 0, maximum: 40320}
+        reminder_minutes:
+          type: [integer, "null"]
+          minimum: 0
+          maximum: 40320
+          description: >-
+            Local scheduling metadata; null disables reminders. All-day due uses the first
+            representable instant of the event-local civil start date. A reminder-only
+            update advances event version but not iTIP sequence or attendee RSVP.
         attendees:
           type: array
           items: {$ref: "#/components/schemas/CalendarAttendee"}
@@ -1804,7 +1811,14 @@ components:
           maxItems: 1000
           items: {type: string}
         scheduled_call_id: {type: [string, "null"], format: uuid}
-        reminder_minutes: {type: [integer, "null"], minimum: 0, maximum: 40320}
+        reminder_minutes:
+          type: [integer, "null"]
+          minimum: 0
+          maximum: 40320
+          description: >-
+            Minutes before effective occurrence start. All-day uses the first representable
+            instant of the event-local civil start date; overlap selects the earlier instant
+            and a gap selects the first instant after it. Null disables reminders.
         attendees:
           type: array
           maxItems: 200
@@ -1901,7 +1915,14 @@ components:
           maxItems: 1000
           items: {type: string}
         scheduled_call_id: {type: [string, "null"], format: uuid}
-        reminder_minutes: {type: [integer, "null"], minimum: 0, maximum: 40320}
+        reminder_minutes:
+          type: [integer, "null"]
+          minimum: 0
+          maximum: 40320
+          description: >-
+            Local scheduling metadata; null disables reminders. All-day due uses the first
+            representable instant of the event-local civil start date. Reminder-only changes
+            advance event version without invitation sequence/RSVP changes.
         attendees:
           type: array
           maxItems: 200

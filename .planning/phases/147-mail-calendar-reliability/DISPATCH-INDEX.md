@@ -1,8 +1,8 @@
 # Phase 147 — exact Spark dispatch index
 
-> **Status:** CONTRACT_READY_FOR_REVIEW · CODE_RUNTIME_BLOCKED
+> **Status:** CONTRACT_0_1_4_ROOT_REVIEW_STALE · CODE_RUNTIME_BLOCKED
 > **Required runtime:** `gpt-5.3-codex` / `xhigh`, no fallback
-> **Contract:** `CONTRACT.md` + Mail 0.1.3
+> **Contract:** `CONTRACT.md` + Mail 0.1.4
 > **Execution:** one row/variant per executor; overlapping files are sequential
 
 Every code packet starts from a root-reviewed clean SHA, writes its stated genuine unit
@@ -30,8 +30,9 @@ one matching section from `DISPATCH-PACKETS.md`.
 143 event schemas + 147-01E
   └─ 147-04A interval/recurrence core ─ 147-04B Ent query ─ 147-04C HTTP handler
 
-147-01D/E ─ 147-05A notification dedupe ─ 147-05B scheduler/outbox
-                                         └─ 147-05C notification consumer/wiring
+147-01D/E ─ 147-05A1 user-policy guard ─ 147-05A2 notification dedupe
+                                             └─ 147-05B scheduler/outbox
+                                                  └─ 147-05C notification consumer/wiring
 
 founder #5 + crypto/safe-dialer + 147 L0 accepted
   └─ 147-06A schema ─ 06B secret ─ 06C fetch ─ 06D parser ─ 06E service
@@ -41,7 +42,8 @@ founder #5 + crypto/safe-dialer + 147 L0 accepted
 144 owned message projection + CRM owner policy
   └─ 147-07A activity schema ─ 07B service/port ─ 07C HTTP ─ 07D typed client
                                                        ├─ 07E draft handoff ─ 07F post-send link
-                                                       └─ 07G activity timeline
+                                                       ├─ 07G activity timeline
+                                                       └─ 07H existing-message reader link
 
 all accepted rows ─ 147-08 docs sync/static review
 ```
@@ -53,7 +55,7 @@ all accepted rows ─ 147-08 docs sync/static review
 | 147-01A | Incoming UID/sequence/tombstone ordering schema | `backend/ent/schema/calendarinboundobjectstate.go`, narrow edges in `calendarevent.go`/`user.go` | two nullable-recurrence partial uniques; safe hash/state; no MIME | accepted 143 schemas + founder migration mechanism |
 | 147-01B | Per-message calendar-part processing receipt | `backend/ent/schema/calendarinboundmessagereceipt.go`, narrow edge in `mailmessage.go` | unique message+locator hash; lease/retry/outcome bounds; no part bytes | 147-01A + accepted 144 schemas |
 | 147-01C | External-organizer REPLY delivery ledger | `backend/ent/schema/calendarreplydelivery.go`, narrow edges in `calendarattendee.go`/`mailsubmission.go` | immutable intent unique by attendee/sequence/version; unknown distinct | accepted 143/144 schemas |
-| 147-01D | Reminder receipt and persistent notification dedupe fields | `backend/ent/schema/calendarreminderreceipt.go`, narrow edges in `calendarevent.go`/`user.go`, `backend/ent/schema/notification.go` | receipt unique intent; optional hashed notification dedupe partial unique; no content | accepted 143 schemas + notification review |
+| 147-01D | Reminder receipt and persistent notification dedupe fields | `backend/ent/schema/calendarreminderreceipt.go`, narrow edges in `calendarevent.go`/`user.go`, `backend/ent/schema/notification.go` | receipt unique intent + closed safe suppression reason; optional hashed notification dedupe partial unique; no content | accepted 143 schemas + notification review |
 | 147-01E | Generate and inspect Ent output | generated Ent only through accepted launcher | clean generation/compile; all four entities/indexes/edges; second diff empty | 01A–D + founder migration + launcher |
 | 147-02A | Pure REQUEST/CANCEL order classifier | `backend/internal/calendar/itip_ingest_policy.go`, `backend/tests/calendar/itip_ingest_policy_test.go` | complete decision table, no I/O/clock, master/occurrence distinct | accepted 143 parser + contract |
 | 147-02B | Incoming REQUEST/CANCEL domain application | `event_service_inbound_invite.go`, `backend/tests/calendar/event_service_inbound_invite_test.go` | auth admission, tombstone/defer/reactivate, one state transition/outbox | 02A + 01E + accepted 143 service |
@@ -65,9 +67,10 @@ all accepted rows ─ 147-08 docs sync/static review
 | 147-04A | Pure busy/free interval and occurrence normalization | `backend/internal/calendar/availability_policy.go`, `backend/tests/calendar/availability_policy_test.go` | half-open range; DST/all-day; merge/complement/bounds; no private fields | accepted 143 temporal/recurrence policy |
 | 147-04B | Owner-scoped availability source queries | `backend/internal/calendar/availability_repository.go`; no Go DB test | authorize all users first; events/calls/policy-visible approved leave; Python integration handoff; bounded rows | 04A + 01E |
 | 147-04C | Availability service/DTO/HTTP composition | `backend/internal/calendar/availability_service.go`, `availability_dto.go`, `availability_handler.go`, narrow `backend/internal/calendar/handler.go` and `backend/cmd/server/wiring_modules.go`, `backend/tests/calendar/availability_service_test.go` | genuine fake-repository service unit; exact OpenAPI; stable private result; API handoff | 04A/B |
-| 147-05A | Persistent notification dedupe seam | `backend/internal/notification/service.go`, `repository.go`, `events.go`, `backend/tests/calendar/notification_calendar_dedupe_test.go` | genuine fake-repository unit; optional hash; one durable delivered/suppressed outcome; lookup/store failures stay pending/retriable; legacy 2s behavior retained when absent | 01D/E |
-| 147-05B | Reminder scheduler, receipt and outbox | `backend/internal/calendar/reminder_service.go`, `event_ent_repository_reminder.go`, `backend/tests/calendar/reminder_service_test.go` | injected clock; recurrence; stale recheck; one receipt/event; expired/suppressed | 05A + accepted outbox |
-| 147-05C | Reminder event mapping and server scheduling | `backend/internal/notification/consumer_calendar.go`, narrow `consumer.go`, `backend/cmd/server/wiring_notification.go`, `backend/tests/calendar/reminder_consumer_test.go` | genuine fake-port unit; preferences/quiet hours; transient lookup NAK; durable outcome before best-effort WS; no Resend; bounded cleanup | 05B |
+| 147-05A1 | Stable user-policy guard for preference/quiet-hours serialization | `backend/internal/notification/repository.go`; no Go DB test | preference upsert transaction locks user before optional-row query/insert/update; ordinary user UPDATE is the quiet-hours side of the same guard; Python concurrency handoff | 01D/E |
+| 147-05A2 | Persistent notification dedupe seam | `backend/internal/notification/service.go`, narrow `repository.go`, `events.go`, `backend/tests/calendar/notification_calendar_dedupe_test.go` | genuine fake-repository unit; optional hash; guarded strict policy resolution/no UTC fallback; safe reason; lookup/store failures retry; legacy 2s behavior retained when absent | 05A1 |
+| 147-05B | Reminder scheduler, receipt and outbox | `backend/internal/calendar/reminder_service.go`, `event_ent_repository_reminder.go`, `backend/tests/calendar/reminder_service_test.go` | injected clock; timed/all-day recurrence; current offset/start/sequence/eligibility recheck; one receipt/event; expired/suppressed | 05A2 + accepted outbox |
+| 147-05C | Reminder event mapping and server scheduling | `backend/internal/notification/consumer_calendar.go`, `calendar_reminder_repository.go`, narrow `consumer.go`, `backend/cmd/server/wiring_notification.go`, `backend/tests/calendar/reminder_consumer_test.go` | genuine fake-port unit; transactional last-chance state/config/authz recheck; transient lookup NAK; durable outcome before best-effort WS; no Resend; bounded cleanup | 05B |
 | 147-06A | Conditional feed persistence schema | `backend/ent/schema/calendarfeedsubscription.go`, narrow `calendarevent.go`/`user.go` edges; no Go DB test | ciphertext-only URL fields; owner/source unique; conditional/freshness state | founder #5 + migration + exact runtime |
 | 147-06B | Feed URL encryption envelope | `backend/internal/calendar/feed_secret.go`, `backend/tests/calendar/feed_secret_test.go` | genuine crypto unit; AES-256-GCM, org/owner/feed AAD, no plaintext fallback/log/string | 06A schema contract + accepted key source |
 | 147-06C | SSRF-safe conditional fetch | `backend/internal/calendar/feed_fetcher.go`, `backend/tests/calendar/feed_fetcher_test.go` | genuine fake-transport unit; HTTPS/443; every redirect/IP checked; 304; byte/decompression/time caps | 06B + accepted safe dialer |
@@ -78,11 +81,12 @@ all accepted rows ─ 147-08 docs sync/static review
 | 147-06H | Feed refresh scheduler composition | `backend/internal/calendar/feed_scheduler.go`, `backend/cmd/server/wiring_calendar_feed.go`, `backend/tests/calendar/feed_scheduler_test.go` | genuine fake-clock unit; hourly jitter, one-per-feed claim, manual rate/backoff, context shutdown | 06E/F/G |
 | 147-07A | Immutable CRM mail activity link schema | `backend/ent/schema/crmmailactivity.go`, narrow edges in `crmdeal.go`/`mailmessage.go`/`user.go` | unique deal+message; no content/address/tracking; safe deletion relation | accepted 144 message schema + migration |
 | 147-07B | CRM compose context and owned-message link service | `backend/internal/crm/mail_service.go`, `mail_port.go`, `backend/internal/mail/crm_message_adapter.go`, `backend/tests/mail/crm_mail_service_test.go` | genuine fake-port unit; deal and message owners checked separately; idempotent link; zero hydrate on denial | 07A + accepted mailbox projection |
-| 147-07C | CRM mail DTO/handlers/routes | `backend/internal/crm/mail_dto.go`, `mail_handler.go`, narrow `backend/internal/crm/handler.go` and `backend/cmd/server/wiring_modules.go`; no Go HTTP test | exact 0.1.3 paths/NFR-13; bounded timeline; not-found privacy; Python API handoff | 07B |
+| 147-07C | CRM mail DTO/handlers/routes | `backend/internal/crm/mail_dto.go`, `mail_handler.go`, narrow `backend/internal/crm/handler.go` and `backend/cmd/server/wiring_modules.go`; no Go HTTP test | exact 0.1.4 paths/NFR-13; bounded timeline; not-found privacy; Python API handoff | 07B |
 | 147-07D | Typed CRM mail API client | `frontend/src/api/crm-mail.ts`, `frontend/tests/mail/crm-mail-api.test.ts` | exact compose/list/link/unlink methods; opaque cursor; 204 handling; no draft/send or mailbox-authorization shortcut | 07C + accepted shared client |
 | 147-07E | Deal compose-to-draft handoff | `frontend/src/modules/crm/deal-mail-compose-action.tsx`, narrow `frontend/src/modules/crm/deals-pipeline.tsx`, `frontend/tests/mail/crm-mail-compose.test.tsx` | context + Mail default identity + one idempotent ordinary draft create; recipient only in body; navigate by draft UUID; no send/link | 07D + accepted Phase 146 Mail client/routes + frontend harness |
 | 147-07F | Saved-draft CRM intent and explicit post-send link | `frontend/src/modules/mail/mail-crm-link-intent.ts`, narrow `frontend/src/modules/mail/mail-shell.tsx`, `frontend/tests/mail/mail-crm-draft-link.test.tsx` | deal id only in ephemeral navigation state; normal composer/submission; link enabled only for definitive owned message; reload safely loses hint | 07D/E + accepted Phase 146 composer |
 | 147-07G | Deal mail activity timeline and owner-scoped open/unlink | `frontend/src/modules/crm/deal-mail-activity-list.tsx`, narrow `frontend/src/modules/crm/deal-mail-compose-action.tsx`, `frontend/tests/mail/crm-mail-activity.test.tsx` | bounded pages; error distinct from empty; `/mail/message/:messageId` reauthorizes through Mail; explicit unlink; no body/subject/address | 07D + accepted Phase 146 direct-message route |
+| 147-07H | Existing-message manual deal link from ordinary reader | `frontend/src/modules/mail/mail-crm-link-action.tsx`, narrow `frontend/src/modules/mail/mail-message-reader.tsx`, EN/RU Mail locale additions, `frontend/tests/mail/mail-crm-link-action.test.tsx` | current-user owned-deal filter from existing pipeline; explicit idempotent PUT; server remains authority; no auto-link/content copy | 07D + accepted Phase 146 reader/i18n + existing CRM pipeline/auth store |
 | 147-08 | Docs synchronization and independent static/runtime review | mail-owned phase/domain docs only | implementation matrix, current SHA, findings closed; missing runtime remains NOT_RUN | all applicable accepted packets |
 
 ## Hard review points
@@ -99,6 +103,11 @@ all accepted rows ─ 147-08 docs sync/static review
   They return no source ids or text and never partially answer an unauthorized user list.
 - Notification persistent dedupe is optional for legacy callers. It must not silently
   change existing 2-second behavior when no key is supplied.
+- Every reminder-relevant event/exception/attendee mutation and both reminder stages use
+  event → exception → attendee → user-policy guard → receipt → notification lock order.
+  Preference upsert locks the same stable user row before optional rows. Neither scheduler
+  nor consumer may trust the emitted payload instead of rechecking current offset/start/
+  state; the consumer also re-resolves quiet hours/preferences under the guard.
 - Feed packets remain ineligible until founder question 5 is answered affirmatively; an
   encrypted URL still requires SSRF validation on every fetch and redirect.
 - CRM owner/admin permission never becomes mailbox delegation. The ordinary mail send API
@@ -110,8 +119,8 @@ all accepted rows ─ 147-08 docs sync/static review
 
 | Gate | Status |
 |---|---|
-| Mail 0.1.3 root static review | PASS on `8daaf0d9`; `STATIC-REVIEW.md` |
-| Mail 0.1.3 independent static review | PENDING |
+| Mail 0.1.4 root static review | STALE after contract amendment; `STATIC-REVIEW.md` |
+| Mail 0.1.4 independent static review | PENDING |
 | Exact Spark implementation runtime | UNAVAILABLE |
 | Accepted Docker launcher | NOT_READY |
 | Ent generation/migration | NOT_RUN / FOUNDER_DECISION_PENDING |

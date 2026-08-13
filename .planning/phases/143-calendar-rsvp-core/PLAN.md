@@ -18,8 +18,8 @@ connect it to the existing calendar API without requiring the real mail engine.
 **Steps:**
 
 1. Write external-package table tests for validation of timed/all-day shapes, valid IANA
-   timezone, RSVP transitions, material vs non-material edits, sequence increments, and
-   attendee reset/preserve policy.
+   timezone, RSVP transitions, material vs non-material edits, sequence increments,
+   reminder-only version behavior, and attendee reset/preserve policy.
 2. Add public immutable input/output types and pure policy functions with injected clock
    only where time is required.
 3. Run the focused Go unit job only through the accepted Docker launcher. If unavailable,

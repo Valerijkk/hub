@@ -2,7 +2,7 @@
 
 > **Status:** CONTRACT_READY · CODE_RUNTIME_BLOCKED
 > **Required runtime:** `gpt-5.3-codex` / `xhigh`, no fallback
-> **Contract:** Mail 0.1.2
+> **Contract:** Mail 0.1.4 (mailbox surface unchanged; current root re-review required)
 > **Execution:** sequential for overlapping files; independent pure packets may run in parallel only after root freezes their shared types
 
 Phase 144 adds a mailbox domain beside the existing Resend alert subsystem. It does not
@@ -52,7 +52,7 @@ every remaining row/variant, assemble the Common envelope plus exactly one secti
 
 | ID | Single owned behavior | Exact primary files | Oracle / acceptance | Entry dependency |
 |---|---|---|---|---|
-| 144-01A | Mailbox engine port, immutable DTOs and stable safe errors | `backend/internal/mail/mailbox_engine.go`, `mailbox_types.go`, `mailbox_errors.go`, `backend/tests/mail/mailbox_engine_contract_test.go` | consumer compile oracle; opaque account/message/blob/state ids; `SaveDraft` expected version + mutation id; `ReconcileDraft`; `Submit` stable key; `ReconcileSubmission` explicit | contract 0.1.2 |
+| 144-01A | Mailbox engine port, immutable DTOs and stable safe errors | `backend/internal/mail/mailbox_engine.go`, `mailbox_types.go`, `mailbox_errors.go`, `backend/tests/mail/mailbox_engine_contract_test.go` | consumer compile oracle; opaque account/message/blob/state ids; `SaveDraft` expected version + mutation id; `ReconcileDraft`; `Submit` stable key; `ReconcileSubmission` explicit | contract 0.1.4 |
 | 144-01B | Deterministic in-memory fake for one account boundary | `backend/internal/mail/mailbox_fake.go`, `backend/tests/mail/mailbox_fake_test.go` | same-key submit never duplicates; timeout/unknown/reconcile scripted; owner/account mismatch makes zero mutation | 144-01A |
 | 144-02A | Account, identity, domain and mailbox-policy schemas only | `backend/ent/schema/mailaccount.go`, `mailidentity.go`, `maildomain.go`, `mailboxpolicy.go`, narrow inverse edges in `user.go`/`organization.go` | normalized uniqueness, one default partial indexes, no secrets; no generated edit | contract + founder migration gate noted |
 | 144-02B | Folder, thread, message, message-folder and label schemas only | `mailfolder.go`, `mailthread.go`, `mailmessage.go`, `mailmessagefolder.go`, `maillabel.go` | same-account edges, engine projection fields, no body/raw MIME | 144-02A reviewed |
@@ -70,7 +70,7 @@ every remaining row/variant, assemble the Common envelope plus exactly one secti
 | 144-05A | Mail-owned object storage authorization and lifecycle | `mailbox_storage.go`, `mailbox_storage_adapter.go`, `backend/tests/mail/mailbox_storage_test.go` | `mail/<org>/<account>/<uuid>` server key; presign/confirm/read/delete reauthorize; no project metadata | 144-02C/E + 144-03C + 144-04A |
 | 144-05B | Projection outbox and mail subject admission | `mailbox_events.go`, `mailbox_projection.go`, `backend/internal/platform/nats/client.go`, focused units | add `mail.>` exactly once after Phase 143 admitted `calendar.>`; webhook filter byte-equivalent; no body/secret in payload | 144-04C/E + 143-04G |
 | 144-05C | Search, contacts, realtime and named audit as four sequential variants | one of `mailbox_search.go`, `mailbox_contacts.go`, `mailbox_realtime.go`, `mailbox_audit.go` plus its unit | owner filters before snippets; ranking; bounded invalidation; exact named audit | 144-04A..E |
-| 144-06A | Public mailbox DTO/error mapping and routes | `mailbox_dto.go`, `mailbox_handler.go`, `backend/cmd/server/wiring_mailbox.go`, focused handler units | exact OpenAPI 0.1.2 paths; NFR-13; no client account/org; legacy Resend routes unchanged | 144-04* + 144-05* |
+| 144-06A | Public mailbox DTO/error mapping and routes | `mailbox_dto.go`, `mailbox_handler.go`, `backend/cmd/server/wiring_mailbox.go`, focused handler units | exact OpenAPI 0.1.4 paths; NFR-13; no client account/org; legacy Resend routes unchanged | 144-04* + 144-05* |
 | 144-06B | Mailbox policy/domain/health admin service | `mailbox_admin_service.go`, focused service unit | owner organization, policy/domain constraints, redacted health and exact audit intent | 144-05C-Audit + 144-06A |
 | 144-06C | Separate mailbox admin handler and narrow wiring | `mailbox_admin_handler.go`, narrow wiring additions, focused handler unit | admin middleware + named audit; no flat Resend route/shape drift | 144-06B |
 | 144-07 | Current-state docs sync and independent static review | routed domain docs + phase verification artifact only | implementation vs contract matrix; honest `NOT_RUN`; no protected QA paths | all accepted code packets |
@@ -110,7 +110,7 @@ every remaining row/variant, assemble the Common envelope plus exactly one secti
 
 | Gate | Status |
 |---|---|
-| Contract 0.1.2 static freeze | STATIC_REVIEW_PASS |
+| Contract 0.1.4 root static review | STALE after amendment |
 | Exact Spark implementation runtime | UNAVAILABLE |
 | Accepted Docker launcher | NOT_READY |
 | Ent generation | NOT_RUN |

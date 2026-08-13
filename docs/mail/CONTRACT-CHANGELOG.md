@@ -1,5 +1,28 @@
 # Hub Mail contract changelog
 
+## 0.1.4 — 2026-08-13
+
+Reminder/CRM race-closure amendment. Product code and runtime remain
+`NOT_IMPLEMENTED` / `NOT_RUN`; the prior 0.1.3 root review is `STALE` until an exact-SHA
+re-review.
+
+- Defined timed and all-day reminder due derivation, including deterministic midnight
+  overlap/gap/skipped-date behavior, and made both scheduler emission and notification
+  finalization recheck current sequence, effective start, non-null offset, derived due and
+  owner/attendee eligibility under one lock order. A stable user-row guard also serializes
+  quiet-hours and absent/existing preference changes.
+- Defined concurrent mutation semantics: mutation-first durably suppresses stale work;
+  consumer-first preserves only the already committed valid row. Transient reads/writes
+  remain pending/retriable. Telegram/Web Push are post-commit-only best effort, with no
+  attempt on rollback and no authority to change the canonical outcome.
+- Invalid timezone or incomplete/malformed quiet hours now suppresses with a safe bounded
+  reason/signal instead of the legacy UTC/delivery fail-open behavior.
+- Added the missing atomic UI packet and QA case for manually linking an existing owned
+  inbound/outbound message from the ordinary reader, showing only current-user owned deals
+  while preserving independent server authorization.
+- Tightened RSVP conflict `Location` to a same-origin canonical UUID event path.
+- Bumped OpenAPI metadata to 0.1.4; endpoint and event payload shapes are unchanged.
+
 ## 0.1.3 — 2026-08-13
 
 Phase 147 reliability/integration addendum. Product code and runtime remain

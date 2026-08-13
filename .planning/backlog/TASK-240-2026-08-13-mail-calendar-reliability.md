@@ -1,6 +1,6 @@
 # TASK-240 — Mail/calendar reliability and product integrations
 
-> Date: **2026-08-13** · Priority: **P1** · Status: **Root static pass; independent review pending; code blocked** · Phase: **147**
+> Date: **2026-08-13** · Priority: **P1** · Status: **Mail 0.1.4 root review stale; independent review pending; code blocked** · Phase: **147**
 
 ## Outcome
 
@@ -15,13 +15,14 @@ subscription after the P0 mailbox and RSVP paths.
 - Availability combines first-class events, scheduled calls and approved leave without
   disclosing private titles/details.
 - Reminder events reuse notification preferences, keep transient policy/store failures
-  pending/retriable, and do not broaden Resend templates.
+  pending/retriable, recheck current offset/start/eligibility immediately before durable
+  delivery, and do not broaden Resend templates.
 - If founder question 5 admits L1, feed ingestion has SSRF protections, owner controls,
   ETag/Last-Modified handling, bounded recurrence expansion, disable/delete semantics, and
   source attribution; otherwise every L1 packet remains explicitly deferred.
 - CRM creates one ordinary idempotent Mail draft without recipient-in-URL, then Mail owns
-  compose/send/reconciliation and an explicit owned-message activity link; CRM does not
-  become a sender, campaign or tracking system.
+  compose/send/reconciliation and an explicit owned-message activity link, including from
+  the ordinary reader; CRM does not become a sender, campaign or tracking system.
 - Units and docs trace to FR-CALSYNC-009..013, FR-CRM-MAIL-001..002 and relevant FR-MAIL
   requirements.
 
