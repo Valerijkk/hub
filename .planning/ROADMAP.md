@@ -252,8 +252,8 @@ contract отменяет его как migration gate; destructive batches ра
 | 144 | DISPATCH READY · CODE BLOCKED BY EXACT SPARK RUNTIME | 142 | Mailbox domain, engine port/fake, folders/threads/drafts/submission · TASK-237 |
 | 145 | BLOCKED BY EXTERNAL GATES | 144 + license + launcher | Stalwart adapter, instance-domain mail, bounded Docker profile · TASK-238 |
 | 146 | DISPATCH READY · CODE/HARNESS BLOCKED | 143, 144 | Outlook three-pane UI, composer, attachments, search/realtime · TASK-239 |
-| 147 | PLANNED | 143–146 | recurrence/import recovery, busy/free, reminders, L1/CRM seam · TASK-240 |
-| 148 | PLANNED | 143–147 + test-rebase merge notice | security/reconciliation/docs/verification/rebase gate · TASK-241 |
+| 147 | CONTRACT PREPARED · REVIEW PENDING · CODE BLOCKED | 143–146 | recurrence/import recovery, busy/free, reminders, L1/CRM seam · TASK-240 |
+| 148 | GATE CONTRACT PREPARED · EXECUTION BLOCKED | 143–147 + test-rebase merge notice | security/reconciliation/docs/verification/rebase gate · TASK-241 |
 
 ```text
 142 contracts -> 143 calendar core ----+-> 146 UI -> 147 reliability -> 148 gate
@@ -2292,13 +2292,16 @@ responsive three-pane mail workspace.
 **Goal**: Close recurrence/import/recovery, busy/free with leave, reminders, L1 feeds and
 the CRM send/manual-log seam.
 **Depends on**: Phases 143–146
-**Requirements**: TASK-240, FR-CALSYNC-009…013, CRM GZ-V4-08…10
+**Requirements**: TASK-240, FR-CALSYNC-009…013, FR-CRM-MAIL-001…002,
+CRM GZ-V4-08…10
 **Success Criteria** (what must be TRUE):
   1. Out-of-order/redelivered recurrence and iTIP flows converge.
   2. Availability combines events, calls and approved leave without detail leakage.
   3. Reminder and CRM paths reuse existing policy boundaries.
   4. L1 feeds are owner-controlled and SSRF/bounds protected or remain explicitly deferred.
-**Plans**: source `.planning/phases/147-mail-calendar-reliability/PLAN.md`
+**Plans**: source `.planning/phases/147-mail-calendar-reliability/PLAN.md` · contract
+`.planning/phases/147-mail-calendar-reliability/CONTRACT.md` · atomic dispatch index
+`.planning/phases/147-mail-calendar-reliability/DISPATCH-INDEX.md`
 
 ### Phase 148: Mail Merge-readiness Gate
 **Goal**: Resolve independent review findings, prove security/recovery/docs, hand off QA,
@@ -2310,7 +2313,9 @@ and rebase after the test-program merge signal.
   2. QA handoff and code/docs/contracts are synchronized.
   3. Branch is rebased after the protected test migration and conflicts are resolved.
   4. No push/PR/merge/deploy or readiness overclaim occurs without founder authority.
-**Plans**: source `.planning/phases/148-mail-release-gate/PLAN.md`
+**Plans**: source `.planning/phases/148-mail-release-gate/PLAN.md` · gate matrix
+`.planning/phases/148-mail-release-gate/GATE-MATRIX.md` · independent review packets
+`.planning/phases/148-mail-release-gate/REVIEW-PACKETS.md`
 
 ## Progress
 

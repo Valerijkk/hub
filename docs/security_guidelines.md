@@ -160,6 +160,21 @@ historical document. Current Resend also exposes a legacy admin broadcast that c
 with ADR-NOTIF-01's no-marketing/whitelist policy; treat it as an open governance/security
 gap until removed, disabled, or explicitly re-authorized and audited.
 
+Mail 0.1.3 additionally requires authenticated organizer alignment and immutable organizer
+identity for REQUEST/CANCEL, capped lifetime tombstones plus bounded receipt retention,
+reconciliation before an
+outward REPLY retry, all-or-nothing self/shared-project-or-channel availability authorization
+without admin bypass, metadata-only reminder
+events, fail-closed retriable preference/repository lookup, and independent deal-owner/
+mailbox-owner checks for CRM draft/message routes and links. Recipient data is allowed only
+in the ordinary draft body, never URL/history/logs. Conditional L1 feed
+URLs are encrypted/write-only and still pass safe-dial/redirect/decompression checks on
+every fetch; L1 code remains blocked until founder decision 5.
+
+Reaching the per-mailbox unbound calendar-state cap is fail-closed and visible: unseen UIDs
+quarantine before mutation, known UIDs continue, and one rate-limited content-free ops
+signal marks degraded import health. Automated tombstone eviction/reset is forbidden.
+
 ## Защита от CSRF/XSS/Clickjacking
 
 | Угроза | Мера |

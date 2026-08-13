@@ -247,14 +247,14 @@ CoffeeEnrollment/CoffeeRound/CoffeePair) переиспользуются.
 | FR-INTR-10 | US-INTR-05 | Еженедельный cron-матчинг opt-in участников: пары, при нечётном N — одна тройка. Anti-repeat по истории CoffeePair (повтор только если иных комбинаций нет). 1 участник → без матчей + уведомление «пары нет» | NFR-32 |
 | FR-INTR-11 | US-INTR-05 | После матчинга каждый участник пары/тройки получает in-app notification о напарнике(ах) (`CoffeeNotifier`, ADR-INTRANET-U05 notify-only). Auto-DM в messenger **не** создаётся до отдельного ADR. Выключивший участие до запуска не матчится | NFR-26 |
 
-#### Новые NFR
+#### Historical NFR draft
 
 | ID | Требование | Значение |
 |----|------------|----------|
 | NFR-31 | Уникальность голоса | Уникальный индекс `(poll_id, user_id)` в news_poll_vote; конкурентный повторный голос → 422, не дубль |
 | NFR-32 | Агрегаты intranet | Лидерборд и матчинг: p95 < 500ms при 1k пользователей / 50k kudos (индекс по recipient+created_at); cron-матчинг идемпотентен (повторный запуск раунда не создаёт дублей пар) |
 
-#### ERD-дельта (PostgreSQL / Ent)
+#### Historical ERD delta (superseded for Mail 0.1.3)
 
 Именование `news_poll*` — чтобы не конфликтовать с существующими messenger-сущностями
 Poll/PollOption/PollVote (channel-scoped).
@@ -279,7 +279,7 @@ CoffeePair (существует) + dm_channel_id
 Инварианты соблюдены: голоса удаляются каскадно с постом только через корзину (FR-INTR-07/08);
 `onboarding_progress.items` — копия (FR-INTR-04); лидерборд не хранит state.
 
-#### API-контракты
+#### Historical API draft (not the Mail 0.1.3 machine contract)
 
 Все ошибки — `{"error","request_id"}` (NFR-13); rate limit — общий API 100/с (NFR-06) → 429.
 
@@ -391,19 +391,48 @@ Outbox hub.intranet.coffee.matched → MessengerService (создать/пере
 - Лидерборд: kudos, отправленные боту/самому себе, исключаются на уровне существующей валидации Kudo.
 - Матчинг: нечётное N → ровно одна тройка; повтор прошлой пары допустим только при отсутствии иных комбинаций; деактивация между матчингом и встречей — DM остаётся, следующий раунд исключает.
 
-### Calendar v2 (FR-CAL)
+### Calendar v2 (FR-CAL historical parity draft + Mail 0.1.3 overlay)
 
-> Historical FR-CAL planning remains useful, but Mail Sync L0 now follows
-> `.planning/decisions/specs/MAIL-SPEC.md`: first-class Hub event + iTIP/RSVP reliability
-> precedes L1 external feed subscription. L1 is deferred until L0 is implemented and
-> accepted. Current code remains an aggregate/export surface, not L0 acceptance.
+> **Authority:** Mail Sync L0 now follows
+> `.planning/decisions/specs/MAIL-SPEC.md`, `docs/mail/openapi.yaml` and Phase 147
+> `CONTRACT.md`. The older FR-CAL parity draft below remains product history only. Wherever
+> it differs on routes, entities, privacy, recurrence, feed storage, limits or events, Mail
+> 0.1.3 wins. Current code remains an aggregate/export surface, not L0 acceptance.
+
+#### Current authoritative Mail 0.1.3 slice
+
+- Existing `GET /api/calendar/events` remains byte-shape compatible as
+  `{events,from,to}`. First-class event CRUD, series/occurrence RSVP/cancel and availability
+  use `/api/calendar/v2/**`.
+- `CalendarEvent`, `CalendarAttendee`, `CalendarEventException` and the dedicated HTTP,
+  inbound-order/reply, outward-delivery and reminder receipts are the current data model;
+  events own UID/SEQUENCE/IANA/all-day semantics and optional ScheduledCall link.
+- `POST /api/calendar/v2/availability` authorizes 1–50 users as one set: self or an active
+  same-organization user sharing a non-deleted project/active channel; admin listing is not
+  a bypass. It limits `[from,to)` to 31 days and returns only private busy/free intervals
+  from canonical events, active calls and policy-visible approved leave. Leave dates use
+  the target employee timezone. No detail or source id is exposed.
+- Incoming REQUEST/CANCEL requires authenticated organizer alignment, persists tombstones/
+  receipts, and cannot be rolled back by lower/equal conflicting mail. Outward external-
+  organizer REPLY reconciles the same hidden draft and MailSubmission before retry.
+- `calendar.reminder.due.v1` creates one durable in-app intent through existing preferences
+  and quiet hours. Transient user/policy/repository failure stays pending and retriable;
+  post-commit WebSocket, Telegram and Web Push are best-effort. Resend/email is not a
+  reminder channel.
+- CRM `Write email` creates one ordinary idempotent Mail draft with the recipient only in
+  its request body, then opens `/mail/drafts/{draftId}`. Explicit deal linking is available
+  only after definitive Mail submission. `/mail/message/{messageId}` and the draft route
+  independently reauthorize through Mail; CRM/admin access never delegates a mailbox.
+- L1 HTTPS iCal subscription remains contract-ready but code-gated by founder question 5.
+  If accepted, feed URLs are AES-GCM encrypted/write-only and every fetch/redirect uses
+  SSRF-safe bounded transport. L2 mailbox ingest and L3 OAuth remain out of scope.
+
+#### Historical functional requirements (non-authoritative where they conflict)
 
 Доводка модуля `calendar` до паритета: ресурсы с бронированием, recurring-события,
 iCal export/подписки, team availability. Календарь v4 — только агрегатор (calls/sprints/leave);
 Волна 2 вводит **собственные события календаря** (`calendar_event`) как первокласную сущность —
 без неё невозможны booking и recurrence.
-
-#### Функциональные требования
 
 | ID | Source | Поведение | NFR link |
 |----|--------|-----------|----------|
@@ -503,7 +532,7 @@ Auth: секретный токен в query (без JWT — для внешни
 Source FR: FR-CAL-06
 ```
 
-#### События NATS (`hub.calendar.*`, JetStream, outbox)
+#### Historical NATS draft (current subjects are in `docs/mail/events-v1.schema.json`)
 
 | Subject | Payload (ключевое) | Потребители |
 |---------|--------------------|-------------|

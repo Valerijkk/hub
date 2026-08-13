@@ -1,6 +1,6 @@
 # Hub Mail + Calendar Sync — QA handoff
 
-> **Contract version:** 0.1.2
+> **Contract version:** 0.1.3
 > **Prepared:** 2026-08-13
 > **Implementation status:** NOT_IMPLEMENTED
 > **Runtime status:** NOT_RUN
@@ -29,6 +29,7 @@ No new test belongs in legacy `backend/testframework/**`.
 | Domain + traceability spec | `.planning/decisions/specs/MAIL-SPEC.md` | ERD, state machines, requirements and named scenarios |
 | Machine-readable HTTP API | `docs/mail/openapi.yaml` | all v1 public/admin endpoints and schemas |
 | Machine-readable events | `docs/mail/events-v1.schema.json` | NATS envelope and payload union |
+| Reliability addendum | `.planning/phases/147-mail-calendar-reliability/CONTRACT.md` | inbound ordering, reply recovery, availability, reminders, CRM/L1 seams |
 | Product/UI design | `docs/superpowers/specs/2026-08-13-mail-module-design.md` | three-pane, composer and RSVP interaction |
 | Founder decision queue | `docs/mail/FOUNDER-QUESTIONS.md` | defaults that do not authorize external action |
 
@@ -98,7 +99,14 @@ or more `FR-MAIL-*` / `FR-CALSYNC-*` rows and named `TC-*` scenarios in `MAIL-SP
 10. Timed events require `starts_at/ends_at`, null date fields and `end > start`; all-day
     events require date/exclusive-end, null instants and no midnight conversion.
 11. Timed events retain instants across organizer/viewer timezones and DST transitions.
-12. Busy/free combines canonical events, scheduled calls, and approved HR leave.
+12. Busy/free combines canonical events, scheduled calls, and approved HR leave. It
+    authorizes the complete requested user set before source queries: self or active same-
+    organization users sharing a non-deleted project/active channel, without admin bypass,
+    returns only `{from,to,source}` busy data plus free complements, and never leaks title,
+    ids, leave reason, project or participants. Missing/inaccessible users share one `404`;
+    expansion cap returns `422` + `AVAILABILITY_LIMIT_EXCEEDED` without partial users.
+    Approved leave stays viewer/shared-project scoped, expands in the employee timezone,
+    and invalid legacy timezone returns `422` + `AVAILABILITY_SOURCE_INVALID`.
 13. Cancelling one recurrence instance increments master sequence/version, materializes a
     cancelled exception and emits only occurrence-scoped iTIP/outbox; the series remains.
 14. For both series and occurrence attendees, deliver `declined(hash A)`, then
@@ -106,6 +114,75 @@ or more `FR-MAIL-*` / `FR-CALSYNC-*` rows and named `TC-*` scenarios in `MAIL-SP
     accepted and the redelivery creates no attendee/outbox mutation. Repeat with a
     same-status distinct hash and prove its receipt prevents a later rollback; the ninth
     distinct hash is quarantined without mutation.
+15. A trusted CANCEL received before REQUEST creates an owner/UID/occurrence ordering
+    tombstone. A delayed lower or equal REQUEST is stale/conflicting and cannot resurrect
+    it; a strictly newer authenticated REQUEST follows the frozen transition table only
+    for the same organizer. Another authenticated organizer cannot take over the UID with
+    a higher sequence.
+16. An occurrence REQUEST received before its master is durably deferred without calendar
+    bytes in PostgreSQL. Master arrival rehydrates and rechecks it; a newer occurrence
+    tombstone wins. A different organizer cannot attach an occurrence to a known UID
+    series. Whole-series CANCEL makes all materialized exceptions cancelled, and a later
+    occurrence-only REQUEST stays deferred until a same-organizer active master exists.
+17. An external-organizer REPLY uses one immutable delivery, hidden draft intent and
+    `MailSubmission`; a lost result enters unknown and reconciles without a second submit.
+    Public delivery status stays pending for pending/submitting/unknown, becomes sent only
+    after definitive success, and becomes failed only after permanent failure.
+18. Reminder lookahead creates/finds pending work; only the due-time recheck emits or
+    suppresses it. Redelivery/concurrency yields one receipt and one reminder event. When
+    policy permits, exactly one in-app row exists; preferences/quiet hours may instead
+    produce zero. No Resend/email fallback is called. Telegram/push are asserted only as
+    existing best-effort channels.
+    A transient user/event/preferences/repository failure leaves the in-app outcome
+    pending and NAKs for bounded retry; it is not recorded as suppression. A failed
+    post-commit WebSocket publish leaves the durable row intact and is repaired by normal
+    notification refetch without an exactly-once realtime claim.
+19. A flood of authenticated unique unknown CANCELs cannot grow unbound state past 10,000
+    per mailbox; excess input quarantines, CANCEL tombstones remain for mailbox/account
+    lifetime, deferred work expires/dead-letters after seven days, and cleanup never removes
+    pending/retained-event state or evicts a tombstone to admit a new UID. At cap, known UID
+    updates still converge, every previously unseen UID state-changing part mutates no
+    event, health is visibly degraded, and the content-free ops signal is rate-limited.
+
+### CRM mail seam
+
+1. Only the deal owner receives compose context for a linked contact with a valid email.
+   One click obtains the ordinary Mail default send-enabled identity and creates one normal
+   draft with one stable idempotency key, putting the recipient only in the draft request
+   body. It navigates to `/mail/drafts/{draftId}`; URL/history/query keys/logs contain no
+   address, subject or body. Missing recipient is `409` +
+   `CRM_MAIL_RECIPIENT_REQUIRED`; missing/unavailable Mail identity creates no draft. A
+   lost create response repeats only the same key/body, and failed navigation reopens the
+   returned draft id rather than creating another draft.
+2. Linking the same owned projected message to the same deal is idempotent. The activity
+   stores direction/timestamps/link ids only, never subject, recipient, body, MIME, engine
+   id or tracking fields.
+3. Deal/admin access cannot grant another user's mailbox access. A foreign message id is
+   indistinguishable from not found and causes zero engine/body hydration.
+4. Unlink removes only CRM metadata and is audited; it never deletes the mailbox message.
+5. All inaccessible/nonexistent deal or message ids use the same `404` envelope. The
+   10,001st active link returns `409` + `CRM_MAIL_ACTIVITY_LIMIT` without eviction.
+6. The saved-draft route independently authorizes the draft through Mail. Only a
+   definitively reconciled submission with an owned `message_id` enables an explicit link;
+   queued/submitting/unknown/failed never auto-link. Losing the optional deal-id navigation
+   hint on reload safely removes the prompt.
+7. Timeline `Open mail` uses `/mail/message/{messageId}` and reauthorizes through Mail;
+   the CRM activity row or admin CRM access is never sufficient. Loading/error/empty and
+   unlink failure are distinct and accessible.
+
+### Conditional L1 feed
+
+These cases are required only if founder question 5 admits L1 into the first merge:
+
+1. HTTPS fetch blocks private/loopback/link-local/metadata/rebinding targets and rechecks
+   every redirect; non-443 ports, fourth redirect, >10-second, >5/10 MiB compressed/
+   decompressed and ratio>10 inputs fail; URL/token never appears in log/error/API.
+2. ETag/Last-Modified 304 advances freshness without event rewrite; failed refresh retains
+   the last complete snapshot and marks it stale/error.
+3. Owner/source uniqueness, bounded recurrence, disable/delete and cross-feed isolation
+   hold. Max 10 active feeds, 5,000 VEVENTs, 500 VTIMEZONEs, 500 attendees/event and
+   hourly/manual-refresh rate/backoff boundaries are enforced. No feed can overwrite Hub-
+   created or mail-import events.
 
 ### Compatibility and admin
 
@@ -129,6 +206,7 @@ or more `FR-MAIL-*` / `FR-CALSYNC-*` rows and named `TC-*` scenarios in `MAIL-SP
 - `calendar.invite.updated.v1`
 - `calendar.invite.cancelled.v1`
 - `calendar.rsvp.changed.v1`
+- `calendar.reminder.due.v1`
 
 Every consumer must prove duplicate-event idempotency. Unknown schema versions go to the
 existing dead-letter/error policy and are not heuristically parsed.

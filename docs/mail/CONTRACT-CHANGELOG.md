@@ -1,5 +1,31 @@
 # Hub Mail contract changelog
 
+## 0.1.3 — 2026-08-13
+
+Phase 147 reliability/integration addendum. Product code and runtime remain
+`NOT_IMPLEMENTED` / `NOT_RUN`.
+
+- Added durable owner/UID/occurrence ordering and per-message processing receipts for
+  authenticated incoming REQUEST/CANCEL, including cancel-before-request tombstones and
+  missing-master occurrence recovery. CANCEL tombstones persist for mailbox/account life
+  under a hard cap; only deferred missing-master state expires.
+- Added immutable external-organizer REPLY delivery reconciliation through stable mailbox
+  draft/submission keys and froze its conservative public status mapping.
+- Froze privacy-preserving availability: all-or-nothing collaboration-scoped authorization
+  for self or same-organization shared-project-or-channel users, bounded event/call/
+  policy-visible approved-leave intervals and free complements without private detail.
+- Added durable reminder intents and `calendar.reminder.due.v1`; transient policy/store
+  failures remain pending/retriable, in-app is persistently deduplicated, and post-commit
+  WebSocket/Telegram/push remain explicitly best-effort while Resend stays unchanged.
+- Added the CRM compose-context and idempotent manual deal/message link API. `Write email`
+  creates one ordinary Mail draft and navigates by its opaque UUID without putting the
+  recipient in URL/history. The normal mailbox remains the only send path; no body,
+  campaign or tracking data enters CRM.
+- Prepared but did not activate the L1 feed contract pending founder question 5; L2/L3
+  remain deferred.
+- Added exact Phase 147 Spark dispatch packets and named QA scenarios 015–025 plus CRM
+  cases. No code packet is eligible while the locked runtime and launcher gates are absent.
+
 ## 0.1.2 — 2026-08-13
 
 Implementation-readiness addendum. No runtime or product-code claim.

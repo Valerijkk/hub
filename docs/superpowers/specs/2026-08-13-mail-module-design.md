@@ -83,10 +83,18 @@ Desktop uses three panes:
 - `/mail/:folderKey` renders folder + list.
 - `/mail/:folderKey/thread/:threadId` selects a thread.
 - `/mail/search?q=...` keeps shareable search/filter state.
+- `/mail/drafts/:draftId` opens one owner-scoped saved draft in the ordinary composer.
+- `/mail/message/:messageId` opens one owner-scoped message in the ordinary safe reader.
 - `/calendar/event/:eventId` deep-links the canonical event.
 
+Draft/message deep links carry only opaque UUIDs. Recipient, subject, body, engine id and
+CRM authorization never appear in URL/query state or logs; each route loads through the
+ordinary owner-scoped Mail API.
+
 TanStack Query owns server data. URL state owns selected folder/thread/search. A local
-reducer owns transient multi-select and composer interaction. No second mailbox cache is
+reducer owns transient multi-select and composer interaction. Optional CRM deal-link
+intent contains only a deal UUID in ephemeral navigation state and is never authorization;
+losing it on reload safely removes the linking prompt. No second mailbox cache is
 introduced in Zustand; only a small global unread aggregate may be exposed for navigation.
 
 ## Mail list behavior
@@ -173,7 +181,27 @@ the UI never lies by rolling back an accepted canonical response.
 - Scheduled calls linked to events share title/time/recurrence but remain distinct
   entities. Opening a call from the calendar routes to the existing call experience.
 - Reminders reuse the existing notification pipeline. Mail is not used as a new generic
-  notification channel and does not expand the Resend whitelist.
+  notification channel and does not expand the Resend whitelist. When preferences and
+  quiet hours permit delivery, one in-app reminder is persistently deduplicated; otherwise
+  the outcome is suppressed. Telegram/Web Push keep their existing best-effort boundary
+  and the UI does not label them exactly-once.
+
+### CRM mail seam
+
+- “Write email” on an owned deal loads the authorized contact recipient and ordinary Mail
+  default identity, creates one standard draft with the normal idempotent Mail endpoint,
+  then navigates to `/mail/drafts/:draftId`. The recipient exists only in the draft request
+  body. A lost create response retries the same key/body, and failed navigation reopens the
+  returned draft UUID; CRM has no separate draft, sender, send or campaign workflow.
+- After a send receipt resolves to a message, linking to the deal is an explicit user
+  action. Queued/submitting/unknown/failed states never appear linked. Existing owned
+  inbound/outbound messages may also be linked manually.
+- The timeline shows direction/time and an “Open mail” action only for the mailbox owner.
+  The action uses `/mail/message/:messageId`, whose ordinary Mail load reauthorizes the
+  resource. It does not copy body, subject, recipients, tracking or engine identifiers
+  into CRM.
+- Unknown send state must reconcile before the UI offers a successful link. Admin CRM
+  visibility never grants access to another user's message.
 
 ## Accessibility and keyboard contract
 
@@ -197,6 +225,8 @@ the UI never lies by rolling back an accepted canonical response.
 | RSVP conflict | Current server RSVP replaces stale local state | User may choose a new response |
 | Newer invite sequence | Older card disabled | Navigate to newest message/event |
 | Remote content blocked | Placeholder with domain disclosure | Explicit proxied load |
+| Reminder external channel uncertain | In-app state remains canonical; no false delivery badge | User keeps existing channel preferences; no email fallback |
+| CRM send unknown | Deal link is not shown as complete | Poll/reconcile the same mail submission, then link explicitly |
 
 ## Rollout slices
 

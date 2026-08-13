@@ -29,7 +29,7 @@ every other row in `DISPATCH-INDEX.md`.
 
 ## 146-01B — typed mail API and query keys
 
-- Dependencies: 01A + accepted OpenAPI 0.1.2/Phase 144. Allowed only
+- Dependencies: 01A + accepted OpenAPI 0.1.3/Phase 144. Allowed only
   `frontend/src/api/mail.ts`, `frontend/src/modules/mail/mail-query-keys.ts`,
   `frontend/tests/mail/mail-api.test.ts`.
 - Behavior: exact typed functions for all public mailbox paths, `URLSearchParams`, opaque
@@ -44,14 +44,21 @@ every other row in `DISPATCH-INDEX.md`.
 - Dependency: 01B. Allowed only:
   `frontend/src/routes/_authenticated/mail/index.tsx`,
   `mail/$folderKey.tsx`, `mail/$folderKey/thread/$threadId.tsx`, `mail/search.tsx`,
-  `mail/search/thread/$threadId.tsx`,
+  `mail/search/thread/$threadId.tsx`, `mail/drafts/$draftId.tsx`,
+  `mail/message/$messageId.tsx`,
   `frontend/src/modules/mail/mail-shell.tsx`,
   `frontend/tests/mail/mail-routes.test.tsx`.
-- Behavior: `/mail` redirect inbox; exact deep links; validated bounded search fields;
-  shell chooses desktop/medium/mobile pane visibility from route + responsive primitives;
-  back/forward closes reader naturally; no server fetch duplicated by route components.
-- Oracles: each URL/render/invalid param/encoded id/back-forward; desktop 3 panes, medium 2,
-  mobile one; focus handoff; no manual `routeTree.gen.ts` edit. Generation is packet 09.
+- Behavior: `/mail` redirect inbox; exact folder/search deep links; owner-scoped
+  `/mail/drafts/:draftId` opens the saved draft in the ordinary composer and
+  `/mail/message/:messageId` opens the ordinary safe reader after the normal Mail API
+  authorizes the resource. URL/search/history never carries recipient, subject, body,
+  engine id or CRM authorization. Shell chooses desktop/medium/mobile pane visibility
+  from route + responsive primitives; back/forward closes reader/composer naturally; no
+  server fetch is duplicated by route components.
+- Oracles: each URL/render/invalid UUID/encoded id/back-forward; 404/permission-revoked;
+  desktop 3 panes, medium 2, mobile one; direct thread/draft/message URL loads only the
+  owned resource; focus handoff; no manual `routeTree.gen.ts` edit. Generation is packet
+  09.
 
 ## 146-02B — folder pane/tree
 

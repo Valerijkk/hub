@@ -118,9 +118,9 @@ mail_feature_workstream:
     branch: codex/mail-module-20260813
     phases: "142-148"
     current_phase: 143
-    status: contract_0_1_2_static_review_pass_atomic_dispatches_ready_code_runtime_blocked
+    status: contract_0_1_3_reliability_review_pending_atomic_dispatches_ready_code_runtime_blocked
     product_truth: unfinished_mvp_feature_not_accepted
-    contract_version: "0.1.2"
+    contract_version: "0.1.3"
     tasks:
       - TASK-235
       - TASK-236
@@ -150,6 +150,8 @@ mail_feature_workstream:
       calendar_authority: hub_postgresql
       oauth_l3: out_of_scope
       legacy_admin_broadcast: governance_gap_deprecated_pending_founder_decision
+      reminder_delivery: durable_in_app_best_effort_telegram_push_no_resend
+      ical_l1: contract_ready_code_pending_founder_question_5
     artifacts:
       adr: .planning/decisions/ADR-MAIL-01-mail-engine-calendar-sync.md
       spec: .planning/decisions/specs/MAIL-SPEC.md
@@ -157,6 +159,10 @@ mail_feature_workstream:
       events: docs/mail/events-v1.schema.json
       qa_handoff: docs/mail/QA-HANDOFF.md
       founder_questions: docs/mail/FOUNDER-QUESTIONS.md
+      phase_147_contract: .planning/phases/147-mail-calendar-reliability/CONTRACT.md
+      phase_147_dispatch: .planning/phases/147-mail-calendar-reliability/DISPATCH-INDEX.md
+      phase_148_gate: .planning/phases/148-mail-release-gate/GATE-MATRIX.md
+      phase_148_reviews: .planning/phases/148-mail-release-gate/REVIEW-PACKETS.md
 spec_coverage:
     fr_total: 28
     fr_with_phase: 9
@@ -180,6 +186,9 @@ spec_coverage:
   API/persistence/resource spike и внешний DNS остаются gates; runtime `NOT_RUN`.
 - Кодовые фазы 143–148 идут после заморозки контракта. Phase 145 может оставаться
   blocked, пока выполняются engine-independent calendar/mailbox/UI slices.
+- Mail 0.1.3 добавляет Phase 147 reliability-контракт: REQUEST/CANCEL tombstones и
+  recovery, outward REPLY reconciliation, private availability, durable in-app reminders
+  и CRM manual-link. Статический review 0.1.3 ещё не завершён; product code `NOT_IMPLEMENTED`.
 - Вопросы, не останавливающие локальную работу, собраны в
   `docs/mail/FOUNDER-QUESTIONS.md`. Push/PR/merge/deploy не авторизованы.
 

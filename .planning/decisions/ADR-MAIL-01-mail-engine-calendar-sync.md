@@ -254,6 +254,50 @@ Incoming external `REQUEST` creates or updates a `mail_import` event for the add
 Hub user. External guests are allowed as nullable-user attendees and participate only by
 email iTIP in v1; there is no guest Hub session.
 
+### Reliability and integration addendum
+
+Incoming REQUEST/CANCEL is admitted only when the engine proves an authenticated local
+identity or an external DMARC-aligned From that equals ORGANIZER. Parsing alone, forwarding
+and unverified delegation are not trust. Ordering is stored per calendar owner + UID +
+optional recurrence id: lower sequence is stale, exact equal method/hash is duplicate,
+equal conflict quarantines, and newer input advances. A valid CANCEL before REQUEST creates
+a tombstone rather than an incomplete event, so delayed mail cannot resurrect it. After
+the first admitted object, organizer identity is immutable; a different authenticated
+sender cannot take over a known UID merely by presenting a higher sequence.
+Unbound CANCEL tombstones remain for the mailbox/account lifetime and count against a hard
+10,000-row per-mailbox unbound-state cap; they are never expired merely to admit a new UID.
+Only a missing-master deferred occurrence expires after seven days with its dead-lettered
+processing receipt.
+[RFC 5546 §2.1.5](https://www.rfc-editor.org/rfc/rfc5546.html#section-2.1.5)
+orders revisions for the same UID plus optional RECURRENCE-ID. Hub preserves those distinct
+component keys but additionally locks the series admission record before an occurrence:
+the organizer must match, an absent/cancelled master keeps an occurrence REQUEST deferred,
+and whole-series CANCEL makes all materialized exceptions effectively cancelled. Thus an
+occurrence-only message cannot attach to another organizer's UID or resurrect a cancelled
+series.
+
+External-organizer RSVP delivery is an immutable ledger intent created with the attendee
+transition. It builds a hidden engine draft and `MailSubmission` from stable derived keys;
+indeterminate results call reconciliation before any retry. The iTIP body remains request-
+lifetime engine data.
+
+Availability authorizes the full user set first under the existing self/shared-project-or-
+channel boundary (never admin org-wide bypass), then combines canonical events, active
+scheduled calls and policy-visible approved leave into busy/free intervals without names,
+ids, reasons, projects or participant detail. Calendar reminder scheduling persists one intent and uses
+a persistent notification dedupe key for one terminal in-app outcome: exactly one row when
+policy permits or durable suppression when it does not. Telegram/Web Push preserve their
+existing best-effort boundary; the decision does not add Resend/email notifications.
+Transient user/policy/repository lookup failure remains pending and retriable rather than
+being recorded as suppression; post-commit WebSocket publication is also best-effort.
+
+CRM compose creates one ordinary idempotent Mail draft and opens its owner-scoped UUID in
+the normal mailbox composer; recipient data never travels in the URL. It is not a second
+sender. A manual deal timeline link references an already authorized message projection
+and stores no mail content or tracking. Draft/message deep links reauthorize through Mail;
+CRM/admin access never delegates another user's mailbox. Full field/state rules are frozen
+in Phase 147 `CONTRACT.md`.
+
 ## Events
 
 All subjects use JSON envelopes with `schema_version: 1`, UUID `event_id`, RFC 3339
@@ -268,6 +312,7 @@ All subjects use JSON envelopes with `schema_version: 1`, UUID `event_id`, RFC 3
 | `calendar.invite.updated.v1` | calendar service | event id, uid, sequence, reset RSVP flag, changed fields | iTIP sender, notification, websocket |
 | `calendar.invite.cancelled.v1` | calendar service | event id, uid, sequence, recurrence id if any | iTIP sender, notification, websocket |
 | `calendar.rsvp.changed.v1` | calendar service | event/attendee ids, previous/new status, version, recurrence id | organizer notification, websocket |
+| `calendar.reminder.due.v1` | calendar reminder scheduler | receipt/event/user ids, sequence, recurrence id, due_at | notification consumer |
 
 Consumers are idempotent on `event_id`. Producers write through the existing transactional
 outbox pattern where state change and event publication must be atomic.

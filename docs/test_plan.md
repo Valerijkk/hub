@@ -217,6 +217,18 @@ Greenfield Python browser lifecycle/artifacts: task-named modules in `testframew
 - **Попарное тестирование:** filter combinations (status × priority × assignee)
 - **Таблицы решений:** workflow transitions, RBAC permission matrix
 
+### Mail + Calendar 0.1.3 (future, `NOT_RUN`)
+
+Канон будущей проверки — `docs/mail/QA-HANDOFF.md` и Phase 148
+`GATE-MATRIX.md`. Feature-owned genuine units допускаются только в
+`backend/tests/{mail,calendar}/**` и `frontend/tests/mail/**`; contract/API/integration/
+E2E/security/load остаются handoff в защищённую Python-программу. До принятого launcher
+нельзя подменять evidence host-командами или direct Docker/Compose. Особо обязательны
+lost-response reconciliation, REQUEST/CANCEL tombstone/order, REPLY A→B→A, private
+availability, reminder redelivery plus transient-policy retry and post-commit WS failure,
+CRM idempotent draft handoff/no-recipient-in-URL/cross-user denial и условные feed SSRF
+cases.
+
 ---
 
 ## Security-critical тесты (приоритет)

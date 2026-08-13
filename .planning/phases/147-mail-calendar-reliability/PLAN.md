@@ -1,17 +1,47 @@
 # Phase 147 — Mail/Calendar Reliability and Integrations
 
-> Task: TASK-240 · Status: PLANNED · Depends on: Phases 143–146
+> Task: TASK-240 · Status: CONTRACT_PREPARED_CODE_BLOCKED · Depends on: Phases 143–146
+> Required code runtime: `gpt-5.3-codex` / `xhigh`, no fallback
+> Contract: `CONTRACT.md` · Dispatch: `DISPATCH-INDEX.md` + `DISPATCH-PACKETS.md`
 
-## Ordered tasks
+## Outcome
 
-1. Prove out-of-order/equal/lower sequence reconciliation and occurrence exceptions.
-2. Complete incoming REQUEST/CANCEL and external-organizer REPLY recovery/dead-letter
-   behavior with parser bounds and sender authentication results.
-3. Implement privacy-preserving availability across events, calls and approved leave.
-4. Route event reminders through existing notification preferences and dedupe semantics.
-5. Implement L1 iCal feed subscription only if still accepted: SSRF-safe fetch, conditional
-   requests, bounded recurrence, source ownership, disable/delete and stale status.
-6. Add CRM authorized compose/send and manual activity link without campaign semantics.
-7. Update units/contracts/docs and hand non-unit scenarios to QA.
+Close deterministic incoming invitation ordering and outward REPLY recovery, private
+availability, durable reminder scheduling and the CRM manual-mail seam. Keep L1 feed code
+conditional on founder question 5. L2 external mailbox ingest and L3 OAuth remain outside
+this phase.
 
-L2 external mailbox ingest and L3 OAuth remain outside this phase.
+## Ordered execution
+
+1. Independently review Mail 0.1.3 reliability semantics and close contract findings.
+2. After accepted Phase 143/144 schemas, add inbound object/message receipts, reply
+   delivery and reminder receipts; generate only through the accepted launcher.
+3. Implement REQUEST/CANCEL order policy, atomic application, authenticated message-part
+   source, consumer and bounded recovery.
+4. Implement external-organizer REPLY delivery through the accepted mailbox draft/send/
+   reconciliation path.
+5. Implement privacy-preserving availability across canonical events, scheduled calls and
+   approved leave.
+6. Add persistent in-app reminder dedupe, scheduler/outbox and notification consumer while
+   keeping Telegram/push best-effort and Resend unchanged.
+7. If founder question 5 is affirmative, separately execute the eight L1 feed packets after
+   encryption, migration and SSRF gates; otherwise leave them `BLOCKED/DEFERRED`.
+8. Add CRM compose context, create one ordinary idempotent Mail draft, navigate by the
+   owner-scoped draft UUID, and offer explicit owned-message link only after definitive
+   Mail submission; no recipient in URL/history and no campaign, tracking or auto-log
+   behavior.
+9. Synchronize routed docs and hand non-unit scenarios to QA without changing protected
+   testframework/test-rebase paths.
+
+## Current gates
+
+| Gate | State |
+|---|---|
+| Reliability contract static review | PENDING |
+| Exact Spark code runtime | UNAVAILABLE |
+| Phase 143/144 accepted implementation | NOT_IMPLEMENTED |
+| Engine authentication mapping | BLOCKED_BY_PHASE_145 |
+| Accepted Docker launcher | NOT_READY |
+| Ent generation/migration | NOT_RUN / FOUNDER_DECISION_PENDING |
+| L1 feed decision | UNRESOLVED |
+| Product code/tests/runtime | NOT_RUN |

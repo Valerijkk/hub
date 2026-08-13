@@ -1,6 +1,6 @@
 # TASK-241 — Mail security, reconciliation and merge-readiness gate
 
-> Date: **2026-08-13** · Priority: **P0** · Status: **Open** · Phase: **148**
+> Date: **2026-08-13** · Priority: **P0** · Status: **Gate contract prepared** · Phase: **148**
 
 ## Outcome
 
@@ -27,3 +27,11 @@ Claude's test-rebase branch.
   moved/deleted unit/CI paths without touching protected artifacts.
 - No “complete/stable/production-ready” claim is made unless every listed gate has current
   evidence. Push/PR/merge/deploy remain founder-authorized actions.
+
+## Prepared artifacts
+
+- `.planning/phases/148-mail-release-gate/GATE-MATRIX.md`
+- `.planning/phases/148-mail-release-gate/REVIEW-PACKETS.md`
+
+Current aggregate remains `BLOCKED/NOT_RUN`: code is absent, exact Spark and the accepted
+launcher are unavailable, and founder/external/rebase decisions are unresolved.

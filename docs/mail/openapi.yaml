@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Hub Mail and Calendar Sync API
-  version: 0.1.2
+  version: 0.1.3
   description: Frozen implementation contract. Presence in this file does not imply implementation.
 servers:
   - url: /api
@@ -15,6 +15,7 @@ tags:
   - name: MailAttachments
   - name: MailSettings
   - name: CalendarEvents
+  - name: CrmMail
   - name: AdminMail
 paths:
   /mail/folders:
@@ -797,12 +798,14 @@ paths:
     post:
       tags: [CalendarEvents]
       operationId: getCalendarAvailability
+      description: Returns private availability only for self or active same-organization users sharing a non-deleted project or active channel; admin/founder listing is not a bypass
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              additionalProperties: false
               required: [user_ids, from, to, timezone]
               properties:
                 user_ids:
@@ -811,22 +814,113 @@ paths:
                   maxItems: 50
                   uniqueItems: true
                   items: {type: string, format: uuid}
-                from: {type: string, format: date-time}
-                to: {type: string, format: date-time}
-                timezone: {type: string, maxLength: 64}
-                slot_minutes: {type: integer, minimum: 5, maximum: 240, default: 30}
+                from:
+                  type: string
+                  format: date-time
+                  description: Inclusive start of a half-open range; range length is at most 31 days
+                to:
+                  type: string
+                  format: date-time
+                  description: Exclusive end of a half-open range; must be after from
+                timezone:
+                  type: string
+                  minLength: 1
+                  maxLength: 64
+                  description: Canonical name validated against the runtime IANA timezone database
+                  x-hub-validation: iana-timezone
+                slot_minutes:
+                  type: integer
+                  minimum: 5
+                  maximum: 240
+                  default: 30
+                  description: Free gaps shorter than this requested duration are omitted
       responses:
         "200":
-          description: Busy intervals from calls, events and approved leave
+          description: Privacy-preserving busy and free intervals from events, calls and approved leave
           content:
             application/json:
               schema:
                 type: object
+                additionalProperties: false
                 required: [users]
                 properties:
                   users:
                     type: array
+                    minItems: 1
+                    maxItems: 50
                     items: {$ref: "#/components/schemas/UserAvailability"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "422": {$ref: "#/components/responses/AvailabilityUnprocessable"}
+        default: {$ref: "#/components/responses/Error"}
+  /crm/deals/{dealId}/mail-compose-context:
+    parameters:
+      - {$ref: "#/components/parameters/DealId"}
+    get:
+      tags: [CrmMail]
+      operationId: getCrmDealMailComposeContext
+      description: Returns an authorized deal contact recipient only. The client may place it in the body of the ordinary idempotent POST /mail/drafts, then open the returned owner-scoped draft id; it must not place the recipient in a URL or use an alternate send path.
+      responses:
+        "200":
+          description: Owner-scoped compose context
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/CrmMailComposeContext"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/CrmMailComposeConflict"}
+        default: {$ref: "#/components/responses/Error"}
+  /crm/deals/{dealId}/mail-activities:
+    parameters:
+      - {$ref: "#/components/parameters/DealId"}
+    get:
+      tags: [CrmMail]
+      operationId: listCrmDealMailActivities
+      description: Lists bounded manual links for the authorized deal owner; CRM access does not delegate mailbox access
+      parameters:
+        - {$ref: "#/components/parameters/Cursor"}
+        - {$ref: "#/components/parameters/Limit"}
+      responses:
+        "200":
+          description: Newest-first manual mail activity links
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [items, next_cursor]
+                properties:
+                  items:
+                    type: array
+                    maxItems: 100
+                    items: {$ref: "#/components/schemas/CrmMailActivity"}
+                  next_cursor: {type: [string, "null"], maxLength: 512}
+        "404": {$ref: "#/components/responses/NotFound"}
+        default: {$ref: "#/components/responses/Error"}
+  /crm/deals/{dealId}/mail-activities/{messageId}:
+    parameters:
+      - {$ref: "#/components/parameters/DealId"}
+      - {$ref: "#/components/parameters/MessageId"}
+    put:
+      tags: [CrmMail]
+      operationId: linkCrmDealMailActivity
+      x-hub-audit-action: crm.mail_activity.link
+      description: Idempotently links an already projected message owned by the authenticated deal owner; no body hydration is required
+      responses:
+        "200":
+          description: Existing or newly created immutable link
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/CrmMailActivity"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/CrmMailActivityLimitConflict"}
+        default: {$ref: "#/components/responses/Error"}
+    delete:
+      tags: [CrmMail]
+      operationId: unlinkCrmDealMailActivity
+      x-hub-audit-action: crm.mail_activity.unlink
+      description: Audited unlink of the owned message from the deal; the canonical mailbox message is unchanged
+      responses:
+        "204": {description: Link removed or already absent}
+        "404": {$ref: "#/components/responses/NotFound"}
         default: {$ref: "#/components/responses/Error"}
   /admin/mail/settings:
     get:
@@ -1017,6 +1111,7 @@ components:
     Cursor:
       name: cursor
       in: query
+      description: Opaque server-issued pagination token; clients must not parse or construct it
       schema: {type: string, maxLength: 512}
     Limit:
       name: limit
@@ -1072,6 +1167,11 @@ components:
       in: path
       required: true
       schema: {type: string, format: uuid}
+    DealId:
+      name: dealId
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
     RecurrenceId:
       name: recurrenceId
       in: path
@@ -1085,6 +1185,11 @@ components:
   responses:
     Error:
       description: Error response
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/ErrorEnvelope"}
+    NotFound:
+      description: Resource or authorized scope not found; inaccessible and nonexistent identifiers use the same envelope
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
@@ -1144,6 +1249,35 @@ components:
             type: string
             format: uri-reference
             pattern: '^/api/calendar/v2/events/[0-9a-fA-F-]{36}$'
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/ErrorEnvelope"}
+    AvailabilityUnprocessable:
+      description: Authorized availability cannot be completed because expansion exceeded a frozen cap or an authorized source contains invalid calendar data; no partial result is returned
+      headers:
+        X-Hub-Error-Code:
+          required: true
+          schema:
+            type: string
+            enum: [AVAILABILITY_LIMIT_EXCEEDED, AVAILABILITY_SOURCE_INVALID]
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/ErrorEnvelope"}
+    CrmMailComposeConflict:
+      description: The owned deal has no linked contact with a valid email recipient
+      headers:
+        X-Hub-Error-Code:
+          required: true
+          schema: {const: CRM_MAIL_RECIPIENT_REQUIRED}
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/ErrorEnvelope"}
+    CrmMailActivityLimitConflict:
+      description: The deal already has the maximum 10,000 active mail activity links
+      headers:
+        X-Hub-Error-Code:
+          required: true
+          schema: {const: CRM_MAIL_ACTIVITY_LIMIT}
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
@@ -1544,7 +1678,10 @@ components:
         recurrence_id: {type: [string, "null"]}
         responded_at: {type: [string, "null"], format: date-time}
         version: {type: integer, minimum: 1}
-        reply_delivery_status: {type: string, enum: [not_required, pending, sent, failed]}
+        reply_delivery_status:
+          type: string
+          enum: [not_required, pending, sent, failed]
+          description: pending also represents internal submitting or unknown reconciliation; failed is permanent only
     CalendarEvent:
       type: object
       required: [id, uid, title, all_day, timezone, sequence, source, status, organizer_email, attendees, version]
@@ -1785,18 +1922,59 @@ components:
         comment: {type: [string, "null"], maxLength: 2000}
     UserAvailability:
       type: object
-      required: [user_id, busy]
+      additionalProperties: false
+      required: [user_id, busy, free]
       properties:
         user_id: {type: string, format: uuid}
         busy:
           type: array
+          maxItems: 1000
           items:
             type: object
+            additionalProperties: false
             required: [from, to, source]
             properties:
               from: {type: string, format: date-time}
               to: {type: string, format: date-time}
               source: {type: string, enum: [event, call, leave]}
+        free:
+          type: array
+          maxItems: 1001
+          description: Complement of the union of busy intervals; gaps shorter than slot_minutes are omitted
+          items:
+            type: object
+            additionalProperties: false
+            required: [from, to]
+            properties:
+              from: {type: string, format: date-time}
+              to: {type: string, format: date-time}
+    CrmMailComposeContext:
+      type: object
+      additionalProperties: false
+      required: [deal_id, contact_id, to]
+      properties:
+        deal_id: {type: string, format: uuid}
+        contact_id: {type: string, format: uuid}
+        to: {$ref: "#/components/schemas/CrmMailRecipient"}
+    CrmMailRecipient:
+      type: object
+      additionalProperties: false
+      required: [email]
+      properties:
+        email: {type: string, format: email, maxLength: 320}
+        name: {type: [string, "null"], maxLength: 160}
+    CrmMailActivity:
+      type: object
+      additionalProperties: false
+      required: [id, deal_id, message_id, linked_by, direction, occurred_at, created_at]
+      properties:
+        id: {type: string, format: uuid}
+        deal_id: {type: string, format: uuid}
+        message_id: {type: string, format: uuid}
+        linked_by: {type: string, format: uuid}
+        direction: {type: string, enum: [inbound, outbound]}
+        occurred_at: {type: string, format: date-time}
+        created_at: {type: string, format: date-time}
     LegacyAdminMailSettings:
       type: object
       description: Exact backward-compatible shape used by the existing Resend admin UI

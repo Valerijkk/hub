@@ -98,8 +98,12 @@ backend/internal/
 legacy admin broadcast, а не SMTP/IMAP/JMAP mailbox engine. Broadcast нарушает no-marketing
 policy `ADR-NOTIF-01` и остаётся governance gap до удаления/отключения либо явного
 founder-решения. Предпочтительный Stalwart adapter, first-class mailbox domain и Calendar
-RSVP описаны только замороженным `ADR-MAIL-01`; implementation `NOT_IMPLEMENTED`, runtime
-`NOT_RUN`.
+RSVP/reliability описаны Mail 0.1.3 (`ADR-MAIL-01`, `MAIL-SPEC`, Phase 147 `CONTRACT.md`):
+engine хранит raw mail, Hub — calendar/receipts/projections; availability не раскрывает
+детали; reminders используют durable in-app dedupe, а transient policy/store failure
+остаётся retriable вместо ложного suppression; CRM создаёт обычный idempotent Mail draft
+и лишь вручную связывает definitively owned message. Draft/message deep links повторно
+проверяют Mail ownership. Implementation `NOT_IMPLEMENTED`, runtime `NOT_RUN`.
 
 **Repository pattern (основные модули с interface):** audit, bases, calls, crm, github, gitlab, hr, intranet, marketplace, messenger, notification, project, search, sprint, tms, tracker и др.
 

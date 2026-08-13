@@ -1,6 +1,6 @@
 # MAIL-SPEC — Hub mailbox and calendar synchronization contract
 
-> **Version:** 0.1.2
+> **Version:** 0.1.3
 > **Status:** Frozen for implementation
 > **Date:** 2026-08-13
 > **Architecture:** `../ADR-MAIL-01-mail-engine-calendar-sync.md`
@@ -53,6 +53,20 @@ the Hub mail feature. It does not claim that the described behavior is implement
 15. Inbound iTIP REPLY delivery is deduplicated by a bounded durable ledger of every
     processed sender-bound payload hash for attendee + event sequence; storing only the
     last hash is forbidden because delayed redelivery could roll a later RSVP backward.
+16. Incoming REQUEST/CANCEL order is durable per owner + UID + optional recurrence id.
+    Lower sequence cannot mutate, equal conflicting content quarantines, and an early
+    CANCEL tombstone prevents delayed resurrection.
+17. External-organizer REPLY delivery uses stable mailbox draft/submission keys and
+    reconciles indeterminate results before retry.
+18. Availability authorizes the whole requested user set before source queries: self or an
+    active same-org user sharing a non-deleted project/active channel, without admin bypass.
+    It exposes only busy/free intervals with `event|call|leave` attribution, never private
+    details; approved leave preserves the existing viewer/shared-project scope.
+19. Calendar reminders have one durable intent and one durable in-app outcome: one
+    persistently deduplicated row when policy permits, otherwise suppression. Existing
+    Telegram/push delivery remains best-effort; no Resend channel is added. Transient
+    policy/repository lookup failure remains pending and retriable rather than becoming a
+    false suppression.
 
 ## 3. ERD
 
@@ -84,11 +98,21 @@ erDiagram
     User ||--o{ CalendarEvent : organizes
     CalendarEvent ||--o{ CalendarAttendee : invites
     CalendarAttendee ||--o{ CalendarInboundReplyReceipt : deduplicates
+    User ||--o{ CalendarInboundObjectState : orders
+    CalendarEvent o|--o{ CalendarInboundObjectState : resolves
+    MailMessage ||--o{ CalendarInboundMessageReceipt : processes
+    CalendarEvent o|--o{ CalendarInboundMessageReceipt : resolves
+    CalendarAttendee ||--o{ CalendarReplyDelivery : transports
+    MailSubmission o|--o{ CalendarReplyDelivery : reconciles
+    CalendarEvent ||--o{ CalendarReminderReceipt : schedules
+    User ||--o{ CalendarReminderReceipt : receives
     CalendarEvent ||--o{ CalendarEventException : overrides
     User ||--o{ CalendarMutationReceipt : initiates
     CalendarEvent o|--o{ CalendarMutationReceipt : resolves
     CalendarEvent }o--o| ScheduledCall : links
     MailMessage }o--o| CalendarEvent : carries
+    CrmDeal ||--o{ CrmMailActivity : timelines
+    MailMessage ||--o{ CrmMailActivity : links
     User o|--o{ CalendarAttendee : identifies
 ```
 
@@ -401,6 +425,83 @@ then unconditionally stale. Receipt insertion, optional attendee transition and 
 outbox write share the same transaction and a lock on the sender-matched attendee
 serializes concurrent distinct replies and cap checks.
 
+### 3.16 CalendarInboundObjectState
+
+One current ordering row per calendar owner + normalized UID + optional recurrence id
+stores authenticated organizer email, highest non-negative sequence, `request|cancel`,
+canonical payload SHA-256, state (`applied`, `tombstone`, `deferred_missing_master`),
+nullable event link, nullable expiry and timestamps. Series and occurrence uniqueness use
+separate partial
+indexes. The row is locked with the event/exception mutation. An early CANCEL is a
+tombstone, not an invalid empty `CalendarEvent`. After first admission the normalized
+organizer is immutable; any other organizer is quarantined regardless of sequence. State
+bound to a retained event follows calendar retention. An unbound CANCEL tombstone persists
+for the mailbox/account lifetime so delayed mail cannot resurrect the object;
+`deferred_missing_master` expires after seven days with its dead-lettered message receipt.
+All unbound object states share a 10,000-row mailbox cap. At the cap, state-changing parts
+for previously unseen UIDs quarantine before event mutation, known UID state continues,
+and calendar-import health becomes visibly degraded with a rate-limited content-free ops
+signal. Cleanup never evicts a tombstone to make room; recovery requires an approved quota
+increase or mailbox/account removal, not automatic tombstone reset.
+Occurrence admission also locks the series state: it must match an existing series
+organizer, or remain deferred with its candidate organizer until a matching active master
+exists. A whole-series CANCEL makes every materialized exception effectively cancelled and
+an occurrence-only REQUEST cannot reactivate the series. Sequence comparison itself remains
+per RFC 5546 component key (UID plus optional RECURRENCE-ID), not across distinct keys.
+
+### 3.17 CalendarInboundMessageReceipt
+
+One row per projected mail message + SHA-256 of the stable calendar-part locator stores the
+source event-envelope id, bounded attempt/lease/retry data, nullable event link and state
+(`pending`, `processing`, `applied`, `ignored_stale`, `duplicate`,
+`deferred_missing_master`, `quarantined`, `dead_letter`). It contains no calendar bytes,
+raw locator, provider error or authentication header. It provides consumer idempotency;
+`CalendarInboundObjectState` separately provides cross-message ordering. Deferred work
+dead-letters after seven days; finalized receipts are retained for 30 days.
+
+### 3.18 CalendarReplyDelivery
+
+One immutable outward REPLY intent is unique on attendee + event sequence + attendee
+version. It stores optional recurrence id, RSVP status, state (`pending`, `submitting`,
+`unknown`, `sent`, `failed_permanent`), nullable mail submission link, bounded retry/error
+metadata and timestamps. It is created with the RSVP transaction. `unknown` reconciles the
+same hidden draft and `MailSubmission`; it never blindly resubmits.
+The public attendee status maps `pending|submitting|unknown` to `pending`, `sent` to `sent`,
+`failed_permanent` to `failed`, and absence of an external delivery intent to
+`not_required`.
+
+### 3.19 CalendarReminderReceipt
+
+One receipt per event + internal user + normalized occurrence + event sequence + derived
+due time stores reminder minutes, state (`pending`, `emitted`, `suppressed`, `expired`),
+nullable outbox id, nullable in-app outcome (`pending`, `delivered`, `suppressed`), nullable
+notification id and timestamps. No event text is stored. The notification row accepts an
+optional fixed dedupe-key hash with a partial unique user + type + hash index; legacy callers
+without a key preserve their existing behavior. Final reminder receipts remain for 90 days
+after due time; cleanup never removes pending work.
+Lookahead creates/finds `pending`; the due-time claim alone rechecks current event,
+occurrence and attendee state, then atomically emits one outbox event or finalizes
+suppressed/expired. When notification policy permits in-app delivery, one row is created;
+policy suppression creates none. The consumer stores delivered/suppressed on the reminder
+receipt in the same transaction as the optional notification row, so duplicate delivery
+cannot re-evaluate policy or change either outcome. Transient user/event/preferences/
+repository failure leaves the outcome pending and NAKs for bounded retry. WebSocket
+publication is post-commit best-effort; notification list/query refetch is the recovery
+path and no exactly-once realtime guarantee is claimed.
+
+### 3.20 CrmMailActivity
+
+Immutable link metadata contains id, deal id, owned projected mail message id, linking user,
+server-derived inbound/outbound direction, message occurred-at, created-at and nullable
+deleted-at. Unique
+`(deal_id, mail_message_id)`. It stores no subject, address, body, raw MIME, engine id,
+campaign or tracking state and never authorizes mailbox access. Relinking restores the same
+owned soft-deleted link instead of creating duplicate history. A deal is capped at 10,000
+active mail links and public lists use an opaque cursor with at most 100 rows; history is
+never silently evicted. Deal/mail
+retention tombstones links before either parent can be hard-deleted; no cascade deletes a
+deal or leaves a navigable link to removed personal mail.
+
 ## 4. Calendar state machines
 
 ### 4.1 RSVP
@@ -446,8 +547,15 @@ refetches the event/occurrence; a stale version conflicts before any second muta
 - MIME parser enforces total size, nesting depth, line length, component count, timezone,
   recurrence expansion, and attendee count bounds.
 - `REQUEST`: validate addressed mailbox and organizer; upsert by owner + UID + recurrence;
-  apply only newer sequence or an exact equal-sequence duplicate.
-- `CANCEL`: same idempotency rules; cancel only matching event/occurrence.
+  apply only newer sequence or recognize an exact equal-sequence duplicate. An occurrence
+  REQUEST received before its master is durably deferred and rehydrated later.
+- `CANCEL`: same idempotency rules; cancel only matching event/occurrence. If no event
+  exists, record an ordering tombstone so a delayed lower/equal REQUEST cannot resurrect it.
+- For an occurrence, lock and verify the series organizer before its own object state. If
+  the master is absent or cancelled, an occurrence REQUEST remains deferred; a whole-series
+  CANCEL cancels every materialized exception without deleting its ordering watermark.
+  Series and occurrence SEQUENCE values are compared only within the same UID plus optional
+  RECURRENCE-ID key, following RFC 5546 section 2.1.5.
 - `REPLY`: match the normalized authenticated/envelope sender to exactly one attendee and
   never accept organizer/event mutations. Its `SEQUENCE` must equal the current event
   sequence: lower is stale, higher is quarantined. The service derives the sender-bound
@@ -462,6 +570,10 @@ refetches the event/occurrence; a stale version conflicts before any second muta
   `CalendarMutationReceipt`.
 - Untrusted or malformed calendar parts remain downloadable attachments with zero state
   mutation and a safe parse error code.
+- REQUEST/CANCEL mutation requires either an engine-confirmed authenticated local identity
+  or external DMARC-aligned From equal to ORGANIZER. v1 has no implicit forwarded-message
+  or organizer-delegation trust. Message receipt, object state, event/exception and outbox
+  update atomically according to Phase 147 `CONTRACT.md`.
 
 ## 5. HTTP API contract
 
@@ -493,6 +605,7 @@ Endpoint groups frozen for v1:
 | User settings | `GET/PATCH /mail/settings`, `GET /mail/identities`, CRUD `/mail/signatures`, CRUD `/mail/rules` |
 | Existing calendar aggregate | `GET /calendar/events` remains byte-shape compatible as `{events,from,to}`; first-class events are later added only as an additive aggregate kind |
 | Canonical calendar | `GET/POST /calendar/v2/events`, `GET/PATCH/DELETE /calendar/v2/events/{id}`, `DELETE /calendar/v2/events/{id}/instances/{recurrenceId}`, v2 RSVP series/occurrence and v2 availability |
+| CRM mail seam | `GET /crm/deals/{dealId}/mail-compose-context`, `GET /crm/deals/{dealId}/mail-activities`, idempotent `PUT` and audited `DELETE /crm/deals/{dealId}/mail-activities/{messageId}` |
 | Existing Resend admin | `GET/PUT /admin/mail/settings` retains the flat `hub_mail_url/from_alerts/alerts_enabled/daily_limit/resend_ready` response contract; deprecated `POST /admin/mail/broadcast` is documented as a current ADR-NOTIF-01 governance gap, not new scope |
 | Mailbox admin | `GET/PUT /admin/mail/mailbox-settings`, domain CRUD, `GET /admin/mail/health`; all require admin RBAC and an audit action |
 
@@ -548,6 +661,9 @@ Canonical JSON envelope:
 Calendar invite events contain `event_id`, `uid`, `sequence`, optional `recurrence_id`,
 attendee ids, and changed fields. `calendar.rsvp.changed.v1` contains attendee id/email,
 previous/new status, new version, recurrence id, and reply delivery status.
+`calendar.reminder.due.v1` contains only reminder receipt id, event id, internal user id,
+optional recurrence id, sequence and due time. The notification consumer reauthorizes and
+hydrates display metadata after consumption; the event contains no title or description.
 
 ## 7. Security acceptance contract
 
@@ -603,8 +719,10 @@ P2 is explicitly deferred. Risk uses Critical/High/Medium.
 | FR-CALSYNC-009 | series vs RECURRENCE-ID response | P0 | Critical | recurrence fixtures | integration/E2E |
 | FR-CALSYNC-010 | IANA TZ, DST and all-day correctness | P0 | Critical | fixed-zone fixtures | integration/E2E |
 | FR-CALSYNC-011 | busy/free includes calls/events/leave | P1 | High | interval pure tests | API/E2E |
-| FR-CALSYNC-012 | reminders through existing notification preferences | P1 | High | event mapping | integration/E2E |
+| FR-CALSYNC-012 | durable in-app reminders through existing preferences; transient lookup retries; external realtime/channels best-effort | P1 | High | event mapping | integration/E2E |
 | FR-CALSYNC-013 | L1 external iCal feed subscription | P2 | High | parser fixtures | integration/security |
+| FR-CRM-MAIL-001 | owned deal compose context creates one ordinary idempotent Mail draft and opens it by opaque UUID | P1 | High | authz/adapter/UI units | API/E2E |
+| FR-CRM-MAIL-002 | explicit idempotent owned-message link/unlink in deal timeline | P1 | High | service/privacy units | API/security/E2E |
 
 ### Named critical scenarios
 
@@ -625,6 +743,39 @@ P2 is explicitly deferred. Risk uses Critical/High/Medium.
 - `TC-CALSYNC-014`: for series and occurrence, accepted REPLY hashes A then B followed by
   delayed A cannot roll RSVP backward; same-status hashes are durably observed and a ninth
   distinct current-sequence hash quarantines without attendee/outbox mutation.
+- `TC-CALSYNC-015`: authenticated CANCEL before REQUEST creates a tombstone; delayed lower
+  or equal REQUEST cannot resurrect the series/occurrence.
+- `TC-CALSYNC-016`: an occurrence REQUEST received before its master is deferred; when the
+  master arrives it is rehydrated and cannot override a newer occurrence tombstone.
+- `TC-CALSYNC-017`: outward external-organizer REPLY loses its submit response and
+  reconciles the same hidden draft/submission without duplicate mail.
+- `TC-CALSYNC-018`: availability returns deterministic private busy/free for canonical
+  events, calls and policy-visible approved leave while rejecting the whole request when
+  any user is foreign, inactive or outside self/shared-project-or-channel scope. Leave date
+  labels expand in the target employee's valid IANA timezone.
+- `TC-CALSYNC-019`: duplicate reminder outbox delivery creates exactly one in-app
+  notification row when policy permits, or zero when suppressed; Telegram/push guarantees
+  remain explicitly best-effort.
+- `TC-CALSYNC-020`: reminder preferences/quiet hours suppress delivery without falling
+  back to Resend/email.
+- `TC-CALSYNC-020A`: transient user/preferences/repository failure leaves the reminder
+  pending and retriable; post-commit WebSocket failure preserves the canonical in-app row.
+- `TC-CALSYNC-021`: an occurrence from another organizer cannot attach to or mutate a known
+  series UID even when that occurrence has no prior ordering row.
+- `TC-CALSYNC-022`: a whole-series CANCEL cancels materialized exceptions and an isolated
+  occurrence REQUEST stays deferred until a same-organizer active master exists.
+- Conditional `TC-CALSYNC-023`: L1 feed fetch rejects private/rebound/redirected targets and
+  never exposes the encrypted URL or credentials.
+- Conditional `TC-CALSYNC-024`: L1 conditional refresh handles 304 without rewriting the
+  last complete source snapshot.
+- Conditional `TC-CALSYNC-025`: L1 parse/apply failure retains the prior snapshot and cannot
+  overwrite another calendar source.
+- `TC-CRM-MAIL-001`: a deal owner creates one ordinary Mail draft with a stable key and no
+  recipient in URL/history; a lost create response retries the same key/body. The owner
+  sends through Mail and explicitly links the definitively owned projected message to the
+  deal timeline.
+- `TC-CRM-MAIL-002`: CRM admin/deal access cannot grant access to another user's message
+  or cause engine hydration.
 - `TC-MAIL-001`: retry after send timeout reconciles idempotency key without duplicate.
 - `TC-MAIL-002`: mailbox-owner isolation prevents cross-user engine access.
 - `TC-MAIL-003`: hostile HTML and SVG active content are removed server-side.
@@ -658,6 +809,7 @@ P2 is explicitly deferred. Risk uses Critical/High/Medium.
 
 ## 10. Status honesty
 
-Freezing this document authorizes implementation but proves no runtime behavior. Until
-the corresponding evidence exists, all implementation, migration, Docker, API, UI,
-security, and end-to-end statuses remain `NOT_RUN` or `NOT_IMPLEMENTED`.
+Freezing this document makes named atomic packets eligible only after their model,
+dependency, migration, founder and launcher gates pass; it does not itself authorize a
+blocked write. Until corresponding evidence exists, all implementation, migration,
+Docker, API, UI, security, and end-to-end statuses remain `NOT_RUN` or `NOT_IMPLEMENTED`.

@@ -9,7 +9,8 @@
     { "$ref": "#/$defs/calendarInviteCreated" },
     { "$ref": "#/$defs/calendarInviteUpdated" },
     { "$ref": "#/$defs/calendarInviteCancelled" },
-    { "$ref": "#/$defs/calendarRsvpChanged" }
+    { "$ref": "#/$defs/calendarRsvpChanged" },
+    { "$ref": "#/$defs/calendarReminderDue" }
   ],
   "$defs": {
     "uuid": {
@@ -323,8 +324,39 @@
                 "recurrence_id": { "type": ["string", "null"], "maxLength": 255 },
                 "reply_delivery_status": {
                   "type": "string",
-                  "enum": ["not_required", "pending", "sent", "failed"]
+                  "enum": ["not_required", "pending", "sent", "failed"],
+                  "description": "pending includes submitting or unknown reconciliation; failed is permanent only"
                 }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "calendarReminderDue": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "properties": {
+            "subject": { "const": "calendar.reminder.due.v1" },
+            "payload": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "reminder_receipt_id",
+                "event_id",
+                "user_id",
+                "sequence",
+                "due_at"
+              ],
+              "properties": {
+                "reminder_receipt_id": { "$ref": "#/$defs/uuid" },
+                "event_id": { "$ref": "#/$defs/uuid" },
+                "user_id": { "$ref": "#/$defs/uuid" },
+                "recurrence_id": { "type": ["string", "null"], "maxLength": 255 },
+                "sequence": { "type": "integer", "minimum": 0 },
+                "due_at": { "$ref": "#/$defs/dateTime" }
               }
             }
           }
