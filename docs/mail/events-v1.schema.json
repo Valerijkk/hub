@@ -101,7 +101,7 @@
                 "to": {
                   "type": "array",
                   "minItems": 1,
-                  "maxItems": 500,
+                  "maxItems": 200,
                   "items": { "$ref": "#/$defs/address" }
                 },
                 "received_at": { "$ref": "#/$defs/dateTime" },
@@ -152,7 +152,7 @@
                 "to": {
                   "type": "array",
                   "minItems": 1,
-                  "maxItems": 500,
+                  "maxItems": 200,
                   "items": { "$ref": "#/$defs/address" }
                 },
                 "sent_at": { "$ref": "#/$defs/dateTime" },
@@ -245,7 +245,7 @@
         "recurrence_id": { "type": ["string", "null"], "maxLength": 255 },
         "attendee_ids": {
           "type": "array",
-          "maxItems": 500,
+          "maxItems": 200,
           "uniqueItems": true,
           "items": { "$ref": "#/$defs/uuid" }
         }
@@ -269,7 +269,7 @@
         "recurrence_id": { "type": ["string", "null"], "maxLength": 255 },
         "attendee_ids": {
           "type": "array",
-          "maxItems": 500,
+          "maxItems": 200,
           "uniqueItems": true,
           "items": { "$ref": "#/$defs/uuid" }
         },
@@ -394,6 +394,19 @@
       ]
     },
     "callsScheduledDue": {
+      "x-hub-cross-field-invariants": [
+        {
+          "id": "CALLS_CHANNEL_SUBJECT_PAYLOAD_MATCH",
+          "kind": "regex-capture-equals-json-pointer",
+          "source_pointer": "/subject",
+          "source_pattern": "^calls\\.channel\\.([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\\.scheduled_due\\.v1$",
+          "capture_group": 1,
+          "target_pointer": "/payload/channel_id",
+          "normalization": "uuid-lowercase",
+          "producer_failure": "reject-before-outbox",
+          "consumer_failure": "dead-letter-with-zero-domain-mutation"
+        }
+      ],
       "allOf": [
         { "$ref": "#/$defs/base" },
         {

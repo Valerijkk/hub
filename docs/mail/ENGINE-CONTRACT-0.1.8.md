@@ -29,6 +29,7 @@ to reject earlier.
 | `MaxEngineAttachmentBytes` | 26,214,400 | one blob/uploaded attachment |
 | `MaxEngineAddressItems` | 200 | each projection address collection; draft write uses OpenAPI 100 |
 | `MaxEngineDraftRecipientItems` | 100 | each draft `to`, `cc` or `bcc` collection |
+| `MaxEngineDraftTotalRecipientItems` | 300 | normalized unique recipients across draft `to` + `cc` + `bcc` |
 | `MaxEngineReferenceItems` | 100 | normalized RFC Message-ID references |
 | `MaxEngineFolderItems` | 100 | one account's non-deleted engine-backed folders |
 | `MaxEngineKeywordItems` | 200 | one projection's reserved keyword markers |
@@ -41,7 +42,9 @@ to reject earlier.
 | `MaxEngineBodyPartBytes` | 8,388,608 | each normalized plain or rich body value |
 
 Deployment policy may lower message, attachment and recipient ceilings but can never raise
-them. `max_attachment_bytes <= max_message_bytes` is mandatory.
+them. `MailboxPolicy.max_recipients` is 1..300 and a draft must satisfy both the independent
+100-item collection limits and `len(to)+len(cc)+len(bcc) <= max_recipients` after normalized
+cross-collection deduplication. `max_attachment_bytes <= max_message_bytes` is mandatory.
 
 ## Port amendment
 
@@ -279,9 +282,10 @@ accepted projection snapshot.
 All address/reference/recipient/folder/keyword/attachment slices are concrete, unique after
 normalization where identity has meaning, and obey their independent count ceilings.
 Projection addresses use the 200-item ceiling per collection; draft `to`, `cc` and `bcc`
-each use 100 and their combined count also obeys effective recipient policy. `From` is one
-required normalized address. BCC is non-empty only for confirmed-owner draft/submission
-origin. `References` contains at most 100 normalized values. Projection folder ids contain
+each use 100 and their normalized cross-collection combined count is at most
+`min(MailboxPolicy.max_recipients, MaxEngineDraftTotalRecipientItems)`. `From` is one required
+normalized address. BCC is non-empty only for confirmed-owner draft/submission origin.
+`References` contains at most 100 normalized values. Projection folder ids contain
 1..100 values. Attachment metadata contains 0..50 values. An inline attachment requires a
 Content-ID. A projected MIME attachment may be empty; a draft upload has 1..effective
 attachment maximum bytes, a required stable Hub attachment UUID-derived key and a confirmed
@@ -410,5 +414,7 @@ those exact ids. That branch can never requeue or call `Submit`.
 9. The external compile oracle proves the exact field grammar: page DTOs cannot carry body
    or attachment bytes, message metadata is not duplicated in the body, and submission is
    reference-only.
-10. No direct Docker/host fallback is valid; executable evidence remains `NOT_RUN` until the
-   accepted launcher exists.
+10. Combined normalized recipients at the configured maximum 300 are accepted when each
+    collection is at most 100; recipient 301 rejects before any engine save or submit.
+11. No direct Docker/host fallback is valid; executable evidence remains `NOT_RUN` until the
+    accepted launcher exists.

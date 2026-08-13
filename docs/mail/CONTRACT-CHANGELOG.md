@@ -11,6 +11,16 @@
 Bounded engine/API and deterministic mailbox persistence amendment. This is a root-frozen
 review candidate, not an implementation or runtime acceptance.
 
+- Closed the post-freeze machine-contract review gaps: all public HTTP objects are closed;
+  summary/detail composition uses internal field bases plus closed wrappers; every non-admin
+  operation declares one default-deny `x-hub-authz` policy; mail received/sent addresses and
+  calendar invite attendees use their canonical 200-item ceilings, and channel-due events
+  carry a structured subject/payload UUID equality invariant. Added standard
+  cursor/recovery/idempotent-replay examples, bounded the still-blocked legacy broadcast
+  compatibility shape, and made mailbox policy's maximum 300 recipients reachable from the
+  three independently capped 100-item draft collections.
+  This root remediation remains pending independent actual-provenance rereview and executable
+  Docker validation.
 - Split list/change/enumeration from hydrated message content. Projection pages now have
   independent count, per-item and aggregate retained-byte ceilings with an exact
   representation-independent variable-byte measure; authorized message/blob reads and draft

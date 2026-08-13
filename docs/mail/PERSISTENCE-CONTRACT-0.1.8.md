@@ -207,7 +207,7 @@ versioned transaction. Generation is stored beside, not inside, the hash.
 ### `MailboxPolicy`
 
 One `id`/`organization_id` row with required `external_mail_enabled`, `max_message_bytes`
-1,048,576..52,428,800, `max_attachment_bytes` 1..26,214,400, `max_recipients` 1..500,
+1,048,576..52,428,800, `max_attachment_bytes` 1..26,214,400, `max_recipients` 1..300,
 `send_rate_per_minute` 1..1,000, trash/junk retention 1..3,650 days, timestamps and
 `VersionMixin`. All policy values are required with no schema default; the provisioning/admin
 service supplies the configured initial values explicitly. Unique organization; CHECK
@@ -374,7 +374,7 @@ mail_domains_default_state:
 
 ```text
 mailbox_policies_bounds:
-  max_message_bytes BETWEEN 1048576 AND 52428800 AND max_attachment_bytes BETWEEN 1 AND 26214400 AND max_attachment_bytes <= max_message_bytes AND max_recipients BETWEEN 1 AND 500 AND send_rate_per_minute BETWEEN 1 AND 1000 AND trash_retention_days BETWEEN 1 AND 3650 AND junk_retention_days BETWEEN 1 AND 3650
+  max_message_bytes BETWEEN 1048576 AND 52428800 AND max_attachment_bytes BETWEEN 1 AND 26214400 AND max_attachment_bytes <= max_message_bytes AND max_recipients BETWEEN 1 AND 300 AND send_rate_per_minute BETWEEN 1 AND 1000 AND trash_retention_days BETWEEN 1 AND 3650 AND junk_retention_days BETWEEN 1 AND 3650
 ```
 
 The PostgreSQL-only `jsonb_array_length` predicate is intentional because Hub persistence is

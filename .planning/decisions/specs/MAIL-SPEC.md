@@ -835,7 +835,10 @@ not permission to weaken the canonical verified-domain or identity reconciliatio
 
 One versioned row per organization containing external-mail enablement, maximum message,
 attachment and recipient limits, per-minute send rate, trash/junk retention, and
-timestamps. The existing flat Resend alert setting remains a separate legacy resource.
+timestamps. `max_recipients` is 1..300 because draft `to`, `cc` and `bcc` are independently
+bounded at 100; after normalized cross-collection deduplication their combined count must be
+at most the configured value and therefore can never exceed 300. The existing flat Resend
+alert setting remains a separate legacy resource.
 
 ### 3.11 CalendarEvent
 
@@ -1377,6 +1380,14 @@ The machine-readable contract is `docs/mail/openapi.yaml`. General rules:
 
 - Prefix: `/api`, matching the existing Fiber router and generated Swagger base path.
 - Auth: existing bearer/session middleware.
+- Authorization: every non-admin operation declares exactly one policy id from OpenAPI
+  `x-hub-authz-vocabulary` v1. The vocabulary is default-deny, applies the organization and
+  resource relationship before response-body hydration, engine I/O or mutation, and maps a
+  resource-scope miss to the same `404` as a nonexistent id. Admin operations instead retain
+  explicit `x-hub-rbac: admin` and their named audit action. The read-only
+  `GET /api/mail/account` status probe authorizes the authenticated user's mail namespace,
+  not a pre-existing account row, so it can safely return `not_configured` without creating
+  an authorization existence oracle.
 - Pagination: opaque `cursor` max 512 characters, default 50, max 100. Labels, identities,
   signatures, rules, admin domains, admin identities, thread summaries and thread messages
   use it. Folder snapshot is a single bounded array of at most 100; contact suggestions are
@@ -1417,6 +1428,10 @@ The machine-readable contract is `docs/mail/openapi.yaml`. General rules:
 - New mailbox request objects reject unknown properties. Public payloads cannot smuggle
   organization/account/engine ids; rule condition/action combinations are exact typed
   unions rather than permissive field/operator/value bags.
+- Public response DTOs and NFR-13 `ErrorEnvelope` reject unknown properties. OpenAPI examples
+  are required for bounded cursor continuation, recoverable `409` headers, mailbox-busy
+  `423` retry metadata and identical-input idempotent replay; examples do not substitute for
+  executable Docker validation.
 - Bulk message actions are also an exact union: `move` accepts only `folder_id`, label
   actions accept only `label_id`, pin/unpin require thread targets, and all other actions
   forbid both target fields. Irrelevant nullable arguments are not silently ignored.

@@ -497,6 +497,8 @@ existing dead-letter/error policy and are not heuristically parsed.
 Contract fixtures must also prove every envelope/payload rejects undeclared top-level or
 payload properties, including `body`, `description`, raw MIME, attachment content, token
 and secret-shaped fields.
+`mail.received.v1` and `mail.sent.v1` admit at most 200 normalized `to` addresses, matching
+the engine projection-address ceiling; 201 rejects before outbox insertion.
 `mail.message.changed.v1` additionally accepts only the frozen changed-field/flag enums;
 `deleted` has no live engine folder/flag state, preserves Hub-owned labels/verified links,
 and removes search/counter membership idempotently.
@@ -505,6 +507,13 @@ For every new subject, the producer passes a complete deterministic envelope to 
 existing outbox as `PublishInTx(ctx, tx, envelope.Subject, envelope)`. Contract oracles must
 prove that stored `event_type`, published NATS subject and JSON `subject` are identical;
 the stored/published bytes contain the full envelope rather than only inner `payload`.
+For `calls.channel.{channelId}.scheduled_due.v1`, the schema's
+`CALLS_CHANNEL_SUBJECT_PAYLOAD_MATCH` invariant captures the UUID from `/subject`, normalizes
+it as lowercase UUID text and requires equality with `/payload/channel_id`. A producer
+mismatch is rejected before outbox insertion; a consumer mismatch is dead-lettered with zero
+calendar, call, notification or receipt mutation. Fixtures must cover equal mixed-case UUID
+text, a different valid UUID and a malformed subject. Calendar invite payloads admit at most
+200 unique `attendee_ids`; 201 is rejected before outbox insertion.
 Envelope `event_id` is stable across transaction retry/reconciliation and consumer
 redelivery and is the new-consumer dedupe key. The distinct outbox row id in the
 `Hub-Event-Id` header is diagnostic only. Subject mismatch, malformed envelope and unknown
@@ -515,6 +524,37 @@ Before producers are enabled, the shared EVENTS stream must contain `mail.>` and
 `calendar.>`; linked-call due reuses the already admitted `calls.channel.>`. The generic
 outbound webhook filter must not gain any of these wildcards as part of this work; any
 future webhook exposure needs a separately reviewed payload allowlist.
+
+## Machine contract conformance
+
+1. Every non-admin OpenAPI operation has exactly one `x-hub-authz` value declared in
+   `x-hub-authz-vocabulary` v1. An absent/unknown policy fails the contract gate. Every admin
+   operation retains `x-hub-rbac: admin` and its named audit action.
+2. Mailbox ids resolve only inside the authenticated user's mailbox; calendar reads require
+   organizer/internal-attendee visibility, writes require organizer ownership, RSVP requires
+   the matching internal attendee, and CRM link/unlink requires both deal and mailbox-message
+   ownership. A missing scope relationship and a nonexistent id return the same NFR-13 `404`
+   before engine/body hydration or mutation and do not disclose another organization. The
+   read-only `GET /api/mail/account` probe is authorized against the user's mail namespace,
+   requires no existing account resource and may return the safe `not_configured` state.
+3. Every public request/response object and `ErrorEnvelope` rejects undeclared properties.
+   The only intentionally open OpenAPI object components are internal thread/message field
+   bases, and they are exposed only through public wrappers with
+   `unevaluatedProperties: false`.
+4. Standard OpenAPI examples must validate against their adjacent schemas and cover: a page
+   stopped before the next complete item with a non-null cursor; calendar version `409` with
+   `X-Hub-Error-Code`, quoted `ETag` and same-origin `Location`; mailbox `423` with bounded
+   integer `Retry-After`; and a calendar create whose identical key/request replays the
+   original `201` and byte-equivalent body without another mutation.
+5. Draft `to`, `cc` and `bcc` each admit at most 100 normalized unique recipients. Their
+   cross-collection normalized count must be at most policy `max_recipients`, whose persisted
+   and public maximum is 300. Exactly 300 is accepted when each list fits; 301 rejects before
+   draft save, submit, receipt success or engine I/O.
+6. The deprecated legacy admin broadcast remains blocked for mailbox acceptance and is not
+   re-authorized by this contract. While the compatibility route still exists, unknown input
+   fields reject, subject/body have explicit UTF-8 ceilings, counters are non-negative int32,
+   `sent + failed <= recipients`, and dry-run requires zero sent/failed. Phase 148 still
+   requires disable/removal unless the founder separately re-authorizes the feature.
 
 ## Docker mail profile contract
 

@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
-last_updated: "2026-08-13T16:27:43+03:00"
-last_activity: 2026-08-13 · exact sequential Terra TDD plan added for the open Calendar event/exception hash-pair P1; all product writes remain provenance-blocked and runtime NOT_RUN
+last_updated: "2026-08-13T19:13:00+03:00"
+last_activity: 2026-08-13 · Phase 142 machine-contract findings root-remediated; independent actual-provenance rereview and executable validation remain pending, product writes provenance-blocked and runtime NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -224,6 +224,14 @@ spec_coverage:
   Outlook UI design, traceability и QA handoff. Mail 0.1.8 root-freezes the later bounded
   engine/API and exact persistence amendment, but independent review is pending; наличие
   артефактов не означает принятого контракта, реализации или готовности модуля.
+- Source-only Terra/high-requested review at `c48046b8` reported actual telemetry `UNKNOWN`,
+  no P0, five P1 machine-contract gaps and two P2 bound/example gaps. Root remediation closes
+  public DTOs, applies one declared default-deny `x-hub-authz` policy to all 56 non-admin
+  operations while retaining RBAC on all 13 admin operations, aligns event attendee cap 200,
+  adds the channel subject/payload UUID invariant and recovery/replay examples, bounds the
+  still-blocked legacy broadcast, and makes the mailbox recipient policy reachable at 300.
+  This is not independent acceptance: post-remediation actual-provenance rereview and all
+  executable OpenAPI/JSON Schema/runtime validation remain `NOT_RUN`.
 - Preferred engine: Stalwart за adapter boundary, условно. Official-source refresh on
   2026-08-13 identifies `v0.16.17` / source commit
   `08509ddccbe6f978a1ffebeb250cab8588d765e5` as the current candidate, not an approved

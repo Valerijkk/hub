@@ -17,8 +17,8 @@
 |---|---|---|
 | Engine/authority/scope decision | ADR plus `ENGINE-CONTRACT-0.1.8.md` | ROOT_FROZEN / INDEPENDENT_PENDING |
 | ERD/state/requirements | `MAIL-SPEC.md` plus `PERSISTENCE-CONTRACT-0.1.8.md` | ROOT_FROZEN / INDEPENDENT_PENDING |
-| Complete v1 HTTP surface | `docs/mail/openapi.yaml` 0.1.8 | ROOT_STATIC_CHECKED; independent/executable validation NOT_RUN |
-| Versioned event contract | `docs/mail/events-v1.schema.json` | PASS by static review; executable validation NOT_RUN |
+| Complete v1 HTTP surface | `docs/mail/openapi.yaml` 0.1.8 | ROOT_REMEDIATED; independent rereview/executable validation NOT_RUN |
+| Versioned event contract | `docs/mail/events-v1.schema.json` | ROOT_REMEDIATED; independent rereview/executable validation NOT_RUN |
 | Product/UI interaction design | `docs/superpowers/specs/2026-08-13-mail-module-design.md` | PASS |
 | QA traceability handoff | `docs/mail/QA-HANDOFF.md` | ROOT_SYNCED / INDEPENDENT_PENDING |
 | Planning registration | TASK-235…241, Phases 142…148, roadmap/state/plan | PASS |
@@ -39,13 +39,13 @@ findings. Contract 0.1.1 resolves them without product-code changes:
 - UID/recurrence partial uniqueness, persisted HTTP idempotency receipts, ScheduledCall
   mapping and migration-authority uncertainty are explicit.
 
-The final independent contract rereview returned static `PASS` with only a P2 asking that
+The historical pre-0.1.8 contract rereview returned static `PASS` with only a P2 asking that
 RSVP `Location` be constrained. The contract now requires a same-origin
 `/api/calendar/v2/events/<uuid>` URI-reference. A separate docs review exposed the current
 legacy `/admin/mail/broadcast` contradiction and stale Ent counts; current truth, the
 deprecated OpenAPI route, Phase 148 gate and 85 entity types / 87-file measurement are now
 synchronized. Its repeat review returned static `PASS` with no new P0/P1/P2. Executable
-validation remains unavailable.
+validation remained unavailable; that result does not cover 0.1.8.
 
 Contract 0.1.2 is a forward-compatible implementation-readiness addendum: it makes
 message-folder projection, draft metadata/version recovery, mail-owned upload objects,
@@ -64,6 +64,19 @@ adapter variants, gateway wiring/health/runbook packets and fixed UI integration
 mobile navigation. The repeat dispatch review is also `PASS` with no P0/P1/P2. Actual
 reviewer-model telemetry was unavailable and is recorded as `UNKNOWN`; requested review
 role was `gpt-5.6-terra/high`. Executable validation remains `NOT_RUN`.
+
+A source-only review of 0.1.8 at
+`c48046b876f429c7ab31f58fbc3ee0b960529144` requested `gpt-5.6-terra/high`, but actual
+model/effort telemetry was unavailable and is therefore `UNKNOWN`. It found no P0, five P1
+machine-contract gaps (open public DTOs, unbounded legacy broadcast, calendar event-envelope
+attendee mismatch, missing channel subject/payload UUID equality, and prose-only non-admin
+authorization) plus two P2 gaps (missing recovery/replay examples and unreachable recipient
+policy maximum). `REMEDIATION-142-MACHINE-CONTRACT-2026-08-13.md` records the root fixes:
+closed public schemas, default-deny policy ids on every non-admin operation, standard examples,
+200 attendee ids, a structured cross-field invariant, a bounded still-blocked broadcast and a
+reachable 300-recipient policy. This is root remediation only. No independent post-remediation
+actual-provenance rereview or executable validation has occurred, so the phase remains
+`INDEPENDENT_REVIEW_PENDING` and runtime remains `NOT_RUN`.
 
 ## Honesty boundaries
 
