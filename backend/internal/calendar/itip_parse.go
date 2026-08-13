@@ -25,32 +25,6 @@ const (
 	itipCanonicalVersion    = 1
 )
 
-// ITIPSequenceRelation описывает отношение входящего SEQUENCE к текущему.
-type ITIPSequenceRelation int8
-
-const (
-	// ITIPSequenceLower означает устаревший входящий SEQUENCE.
-	ITIPSequenceLower ITIPSequenceRelation = -1
-	// ITIPSequenceEqual означает совпадающий SEQUENCE.
-	ITIPSequenceEqual ITIPSequenceRelation = 0
-	// ITIPSequenceNewer означает более новый входящий SEQUENCE.
-	ITIPSequenceNewer ITIPSequenceRelation = 1
-)
-
-// CompareITIPSequence чисто классифицирует входящий SEQUENCE относительно текущего.
-func CompareITIPSequence(incoming, current int) (ITIPSequenceRelation, error) {
-	if incoming < 0 || current < 0 {
-		return ITIPSequenceEqual, ErrInvalidITIPSequence
-	}
-	if incoming < current {
-		return ITIPSequenceLower, nil
-	}
-	if incoming > current {
-		return ITIPSequenceNewer, nil
-	}
-	return ITIPSequenceEqual, nil
-}
-
 type parsedITIPProperty struct {
 	name   string
 	params map[string]string
@@ -98,7 +72,7 @@ func ParseITIP(payload []byte, limits ITIPParseLimits) (ITIPMessage, error) {
 }
 
 func unfoldITIPLines(payload []byte, limits ITIPParseLimits) ([]string, error) {
-	if len(payload) == 0 || !utf8.Valid(payload) {
+	if len(payload) == 0 {
 		return nil, ErrInvalidITIPSyntax
 	}
 
@@ -146,6 +120,9 @@ func unfoldITIPLines(payload []byte, limits ITIPParseLimits) ([]string, error) {
 			current = append(current, physical[1:]...)
 		} else {
 			if current != nil {
+				if !utf8.Valid(current) {
+					return nil, ErrInvalidITIPSyntax
+				}
 				lines = append(lines, string(current))
 			}
 			logicalCount++
@@ -160,6 +137,9 @@ func unfoldITIPLines(payload []byte, limits ITIPParseLimits) ([]string, error) {
 		start = next
 	}
 	if current != nil {
+		if !utf8.Valid(current) {
+			return nil, ErrInvalidITIPSyntax
+		}
 		lines = append(lines, string(current))
 	}
 	if len(lines) == 0 {
@@ -267,13 +247,30 @@ func parseITIPContentLine(line string) (parsedITIPProperty, error) {
 	if line == "" {
 		return parsedITIPProperty{}, ErrInvalidITIPSyntax
 	}
+	nameEnd := strings.IndexAny(line, ";:")
+	if nameEnd <= 0 || !isITIPToken(line[:nameEnd]) {
+		return parsedITIPProperty{}, ErrInvalidITIPSyntax
+	}
+	propertyName := strings.ToUpper(line[:nameEnd])
+	maximumParameters, supported := itipParameterPolicy(propertyName)
+	if !supported {
+		return parsedITIPProperty{}, ErrUnsupportedITIPContent
+	}
 
 	colon := -1
 	quoted := false
-	for index := 0; index < len(line); index++ {
+	parameterCount := 0
+	for index := nameEnd; index < len(line); index++ {
 		switch line[index] {
 		case '"':
 			quoted = !quoted
+		case ';':
+			if !quoted {
+				parameterCount++
+				if parameterCount > maximumParameters || parameterCount > itipHardMaxParameterSlots {
+					return parsedITIPProperty{}, ErrUnsupportedITIPContent
+				}
+			}
 		case ':':
 			if !quoted {
 				colon = index
@@ -285,12 +282,12 @@ func parseITIPContentLine(line string) (parsedITIPProperty, error) {
 		return parsedITIPProperty{}, ErrInvalidITIPSyntax
 	}
 
-	headerParts, err := splitITIPHeader(line[:colon])
+	headerParts, err := splitITIPHeader(line[:colon], parameterCount)
 	if err != nil || len(headerParts) == 0 || !isITIPToken(headerParts[0]) {
 		return parsedITIPProperty{}, ErrInvalidITIPSyntax
 	}
 	property := parsedITIPProperty{
-		name:   strings.ToUpper(headerParts[0]),
+		name:   propertyName,
 		params: make(map[string]string, len(headerParts)-1),
 		value:  line[colon+1:],
 	}
@@ -304,6 +301,9 @@ func parseITIPContentLine(line string) (parsedITIPProperty, error) {
 			return parsedITIPProperty{}, ErrInvalidITIPSyntax
 		}
 		key = strings.ToUpper(key)
+		if !isAllowedITIPParameter(property.name, key) {
+			return parsedITIPProperty{}, ErrUnsupportedITIPContent
+		}
 		if _, exists := property.params[key]; exists {
 			return parsedITIPProperty{}, ErrInvalidITIPSyntax
 		}
@@ -325,8 +325,8 @@ func parseITIPContentLine(line string) (parsedITIPProperty, error) {
 	return property, nil
 }
 
-func splitITIPHeader(header string) ([]string, error) {
-	parts := make([]string, 0, 4)
+func splitITIPHeader(header string, parameterCount int) ([]string, error) {
+	parts := make([]string, 0, 1+parameterCount)
 	quoted := false
 	start := 0
 	for index := 0; index < len(header); index++ {
@@ -348,6 +348,38 @@ func splitITIPHeader(header string) ([]string, error) {
 	}
 	parts = append(parts, header[start:])
 	return parts, nil
+}
+
+func itipParameterPolicy(propertyName string) (int, bool) {
+	switch propertyName {
+	case "BEGIN", "END", "VERSION", "PRODID", "CALSCALE", "METHOD", "UID", "DTSTAMP",
+		"SEQUENCE", "STATUS", "SUMMARY", "DESCRIPTION", "LOCATION", "RRULE":
+		return 0, true
+	case "DTSTART", "DTEND", "RECURRENCE-ID", "EXDATE", "ORGANIZER":
+		return 1, true
+	case "ATTENDEE":
+		return itipHardMaxParameterSlots, true
+	default:
+		return 0, false
+	}
+}
+
+func isAllowedITIPParameter(propertyName, parameterName string) bool {
+	switch propertyName {
+	case "DTSTART", "DTEND", "RECURRENCE-ID", "EXDATE":
+		return parameterName == "VALUE" || parameterName == "TZID"
+	case "ORGANIZER":
+		return parameterName == "CN"
+	case "ATTENDEE":
+		switch parameterName {
+		case "CN", "ROLE", "PARTSTAT", "RSVP":
+			return true
+		default:
+			return false
+		}
+	default:
+		return false
+	}
 }
 
 func isITIPToken(value string) bool {
@@ -957,11 +989,19 @@ func parseITIPMailto(value string) (string, error) {
 	if len(rawEmail) > itipMaxEmailBytes {
 		return "", ErrInvalidITIPEmail
 	}
-	email, err := normalizeITIPEmail(rawEmail)
+	email, err := normalizeSafeITIPEmail(rawEmail)
 	if err != nil || len(email) > itipMaxEmailBytes {
 		return "", ErrInvalidITIPEmail
 	}
 	return email, nil
+}
+
+func normalizeSafeITIPEmail(value string) (string, error) {
+	normalized, err := normalizeITIPEmail(value)
+	if err != nil {
+		return "", ErrInvalidITIPEmail
+	}
+	return normalized, nil
 }
 
 func normalizeAndValidateITIPAttendees(attendees []ITIPParticipant, method ITIPMethod) error {
@@ -1281,7 +1321,7 @@ func normalizeITIPIdentityMessage(message ITIPMessage) (ITIPMessage, error) {
 	if len(message.Organizer.Email) > itipMaxEmailBytes {
 		return ITIPMessage{}, ErrInvalidITIPEmail
 	}
-	organizerEmail, err := normalizeITIPEmail(message.Organizer.Email)
+	organizerEmail, err := normalizeSafeITIPEmail(message.Organizer.Email)
 	if err != nil || len(organizerEmail) > itipMaxEmailBytes {
 		return ITIPMessage{}, ErrInvalidITIPEmail
 	}
@@ -1299,7 +1339,7 @@ func normalizeITIPIdentityMessage(message ITIPMessage) (ITIPMessage, error) {
 		if len(attendee.Email) > itipMaxEmailBytes {
 			return ITIPMessage{}, ErrInvalidITIPEmail
 		}
-		email, emailErr := normalizeITIPEmail(attendee.Email)
+		email, emailErr := normalizeSafeITIPEmail(attendee.Email)
 		if emailErr != nil || len(email) > itipMaxEmailBytes {
 			return ITIPMessage{}, ErrInvalidITIPEmail
 		}

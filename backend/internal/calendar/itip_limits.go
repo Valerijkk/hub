@@ -6,6 +6,7 @@ const (
 	itipHardMaxProperties        = 4096
 	itipHardMaxAttendees         = 200
 	itipHardMaxExDates           = 1000
+	itipHardMaxParameterSlots    = 4
 )
 
 // ITIPParseLimits задаёт проверяемые до выделения памяти пределы входного iTIP payload.

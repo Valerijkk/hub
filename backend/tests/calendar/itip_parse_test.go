@@ -1,6 +1,7 @@
 package calendar_test
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"errors"
 	"strings"
@@ -139,6 +140,22 @@ func TestParseITIP_AcceptsLFAndUnfoldsSpaceOrTab(t *testing.T) {
 	message := mustParse(t, wire)
 	if message.Summary != "Planning, Q2" || message.Organizer.DisplayName != "Owner\" ^ Ops" {
 		t.Fatalf("unfolded values = %q / %q", message.Summary, message.Organizer.DisplayName)
+	}
+}
+
+func TestParseITIP_UnfoldsRuneSplitAcrossPhysicalLinesBeforeUTF8Validation(t *testing.T) {
+	payload := bytes.Replace(
+		[]byte(timedRequestWire()),
+		[]byte(`SUMMARY:Planning\, Q2`),
+		[]byte{'S', 'U', 'M', 'M', 'A', 'R', 'Y', ':', 0xd0, '\r', '\n', ' ', 0x96},
+		1,
+	)
+	message, err := calendar.ParseITIP(payload, calendar.DefaultITIPParseLimits())
+	if err != nil {
+		t.Fatalf("ParseITIP() rejected valid UTF-8 split by a fold: %v", err)
+	}
+	if message.Summary != "Ж" {
+		t.Fatalf("SUMMARY = %q, want Ж", message.Summary)
 	}
 }
 
@@ -341,6 +358,37 @@ func TestParseITIP_RejectsUnknownPropertiesParametersAndComponents(t *testing.T)
 				t.Fatalf("ParseITIP() error = %v, want ErrUnsupportedITIPContent", err)
 			}
 			assertSafeError(t, err, "secret@example.com", "secret.example")
+		})
+	}
+}
+
+func TestParseITIP_BoundsAndAllowlistsParametersBeforeDecodeAllocation(t *testing.T) {
+	const privateValue = "private-address@example.test"
+	accepted := mustParse(t, timedRequestWire())
+	if len(accepted.Attendees) != 2 {
+		t.Fatalf("four-parameter ATTENDEE boundary was not accepted: %#v", accepted.Attendees)
+	}
+
+	cases := map[string]string{
+		"ATTENDEE above four slots": replaceLine(
+			timedRequestWire(),
+			`ATTENDEE;CN="Bee";ROLE=OPT-PARTICIPANT;PARTSTAT=TENTATIVE;RSVP=TRUE:mailto:B@example.com`,
+			`ATTENDEE;CN="Bee";ROLE=OPT-PARTICIPANT;PARTSTAT=TENTATIVE;RSVP=TRUE`+
+				strings.Repeat(";X-AMPLIFY="+privateValue, 64)+`:mailto:B@example.com`,
+		),
+		"unknown property before malformed parameter decode": insertBefore(
+			timedRequestWire(),
+			"END:VEVENT",
+			"X-AMPLIFY;P="+privateValue+"^:body",
+		),
+	}
+	for name, wire := range cases {
+		t.Run(name, func(t *testing.T) {
+			_, err := calendar.ParseITIP([]byte(wire), calendar.DefaultITIPParseLimits())
+			if err != calendar.ErrUnsupportedITIPContent {
+				t.Fatalf("ParseITIP() error = %v, want bare ErrUnsupportedITIPContent", err)
+			}
+			assertSafeError(t, err, privateValue, "body")
 		})
 	}
 }
@@ -720,26 +768,23 @@ func TestCanonicalITIPIdentity_RecurrenceIdentityIsExplicitAndNonAliasable(t *te
 	}
 }
 
-func TestCompareITIPSequence_ClassifiesAndRejectsNegativeInputs(t *testing.T) {
+func TestParseITIP_PreservesValidatedSequenceWithoutMutationDecision(t *testing.T) {
 	cases := []struct {
-		incoming int
-		current  int
-		want     calendar.ITIPSequenceRelation
-	}{
-		{incoming: 4, current: 5, want: calendar.ITIPSequenceLower},
-		{incoming: 5, current: 5, want: calendar.ITIPSequenceEqual},
-		{incoming: 6, current: 5, want: calendar.ITIPSequenceNewer},
-	}
+		wire string
+		want int
+	}{{wire: "0", want: 0}, {wire: "7", want: 7}, {wire: "2147483647", want: 2147483647}}
 	for _, tc := range cases {
-		got, err := calendar.CompareITIPSequence(tc.incoming, tc.current)
-		if err != nil || got != tc.want {
-			t.Fatalf("CompareITIPSequence(%d, %d) = %v, %v; want %v, nil", tc.incoming, tc.current, got, err, tc.want)
-		}
+		t.Run(tc.wire, func(t *testing.T) {
+			wire := replaceLine(timedRequestWire(), "SEQUENCE:7", "SEQUENCE:"+tc.wire)
+			message := mustParse(t, wire)
+			if message.Sequence != tc.want {
+				t.Fatalf("parsed SEQUENCE = %d, want %d", message.Sequence, tc.want)
+			}
+		})
 	}
-	for _, tc := range [][2]int{{-1, 0}, {0, -1}, {-1, -1}} {
-		if _, err := calendar.CompareITIPSequence(tc[0], tc[1]); !errors.Is(err, calendar.ErrInvalidITIPSequence) {
-			t.Fatalf("CompareITIPSequence(%d, %d) error = %v", tc[0], tc[1], err)
-		}
+	negative := replaceLine(timedRequestWire(), "SEQUENCE:7", "SEQUENCE:-1")
+	if _, err := calendar.ParseITIP([]byte(negative), calendar.DefaultITIPParseLimits()); err != calendar.ErrInvalidITIPSequence {
+		t.Fatalf("negative SEQUENCE error = %v, want bare ErrInvalidITIPSequence", err)
 	}
 }
 
@@ -758,6 +803,47 @@ func TestParserAndIdentityErrorsAreStableAndContentFree(t *testing.T) {
 		t.Fatalf("identity error = %v", identityErr)
 	}
 	assertSafeError(t, identityErr, "private-owner", "example.test")
+}
+
+func TestParserAndIdentity_EmailNormalizationErrorsAreBareAndContentFree(t *testing.T) {
+	const privateAddress = "Private Person <victim@example.test>"
+	parseCases := map[string]string{
+		"organizer": replaceLine(
+			timedRequestWire(),
+			`ORGANIZER;CN="Owner^' ^^ Ops":mailto:Owner@Example.COM`,
+			"ORGANIZER:mailto:"+privateAddress,
+		),
+		"attendee": replaceLine(
+			timedRequestWire(),
+			"ATTENDEE:mailto:a@example.com",
+			"ATTENDEE:mailto:"+privateAddress,
+		),
+	}
+	for name, wire := range parseCases {
+		t.Run("parse "+name, func(t *testing.T) {
+			_, err := calendar.ParseITIP([]byte(wire), calendar.DefaultITIPParseLimits())
+			if err != calendar.ErrInvalidITIPEmail {
+				t.Fatalf("ParseITIP() error = %v, want bare ErrInvalidITIPEmail", err)
+			}
+			assertSafeError(t, err, "Private Person", "victim", "example.test")
+		})
+	}
+
+	identityCases := map[string]func(*calendar.ITIPMessage){
+		"organizer": func(message *calendar.ITIPMessage) { message.Organizer.Email = privateAddress },
+		"attendee":  func(message *calendar.ITIPMessage) { message.Attendees[0].Email = privateAddress },
+	}
+	for name, mutate := range identityCases {
+		t.Run("identity "+name, func(t *testing.T) {
+			message := baseIdentityMessage()
+			mutate(&message)
+			_, err := calendar.CanonicalITIPIdentity(message)
+			if err != calendar.ErrInvalidITIPEmail {
+				t.Fatalf("CanonicalITIPIdentity() error = %v, want bare ErrInvalidITIPEmail", err)
+			}
+			assertSafeError(t, err, "Private Person", "victim", "example.test")
+		})
+	}
 }
 
 func withLimit(value calendar.ITIPParseLimits, mutate func(*calendar.ITIPParseLimits)) calendar.ITIPParseLimits {
