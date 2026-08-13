@@ -513,7 +513,7 @@ is the Hub product/safety bound, not a NATS transport/control-line ceiling. It a
 to the new `EnvelopeV1` builder, never globally to legacy `OutboxEvent` or the publisher.
 
 For every new subject, the producer passes a complete deterministic envelope to the
-existing outbox as `PublishInTx(ctx, tx, envelope.Subject, envelope)`. Contract oracles must
+existing outbox as `PublishInTx(ctx, tx, envelope.Subject(), envelope)`. Contract oracles must
 prove that stored `event_type`, published NATS subject and JSON `subject` are identical;
 the stored/published bytes contain the full envelope rather than only inner `payload`.
 For `calls.channel.{channelId}.scheduled_due.v1`, the schema's
@@ -528,6 +528,26 @@ redelivery and is the new-consumer dedupe key. The distinct outbox row id in the
 `Hub-Event-Id` header is diagnostic only. Subject mismatch, malformed envelope and unknown
 version must reach dead-letter with zero projection/domain mutation. Existing legacy
 outbox payloads and worker behavior must remain byte-semantically unchanged.
+
+The 04L envelope immutability/payload amendment is `CONTRACT_AMENDMENT_STATIC_ACCEPTED`, ready
+for code remediation redispatch after final Terra/high PASS (C/I/M `0/0/0`), with
+dispatcher-enforced provenance, actual telemetry `UNKNOWN` and docs commit pending. The prior
+implementation candidate remains review-failed/unaccepted (C/I/M `0/2/2`) until remediated;
+the independently accepted 255-byte subject sub-amendment remains in force. Required 04L unit oracles also
+prove that `EnvelopeV1` exposes no mutable exported field/reference; construction snapshots
+only a successfully serializable non-null JSON object and stores frozen complete-envelope
+bytes; `MarshalJSON` returns a fresh caller-owned copy; public reads are `Subject() string`
+and `EventID() uuid.UUID`. Mutating source map/nested slice/struct-pointer values after
+construction, and mutating returned marshal bytes, cannot change later bytes, subject or
+event id. Valid struct/map objects pass. Scalars, non-nil arrays/slices, funcs/chans,
+typed-nil map/slice/pointer/function/channel/interface, `null`, marshal-error and custom
+array/scalar/null marshal payloads reject without panic as stable, content-free
+`ErrInvalidPayload`. A custom `json.Marshaler` whose source value successfully returns a
+non-null JSON object must pass; its object bytes are frozen, so later source mutation and
+mutation of a `MarshalJSON`-returned slice cannot alter later envelope bytes. An
+RFC3339-capable `time.FixedZone("UTC", 0)` occurrence passes, normalizes to `Z` and produces
+schema-valid output; nonzero offset rejects. Launcher is `NOT_READY`; runtime is `NOT_RUN`;
+global Mail review remains pending and no product/runtime acceptance is implied.
 
 `mail.>` and `calendar.>` admission remains the 04G/Phase configuration gate, not 04L.
 Before producers are enabled, the shared EVENTS stream must contain them; linked-call due

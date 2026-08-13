@@ -1488,18 +1488,28 @@ Canonical JSON envelope:
 - Phase 143 first adds one shared pure `events.EnvelopeV1` builder under
   `backend/internal/platform/events/**`. It accepts the subject, application event UUID,
   timestamp, organization, nullable actor, bounded correlation id and typed payload as
-  explicit inputs; it never reads a clock or generates an id. Phase 144 mail mappers and
-  every calendar/linked-call producer reuse that builder.
+  explicit inputs; it never reads a clock or generates an id. It exposes no mutable exported
+  fields/references: construction snapshots one valid JSON-object payload and freezes the
+  complete envelope; `MarshalJSON` gives callers a copy of those frozen bytes. Its public
+  copy-returning reads are `Subject() string` and `EventID() uuid.UUID`. Phase 144 mail
+  mappers and every calendar/linked-call producer reuse that builder.
 - Subject validity for every new `EnvelopeV1` is: valid UTF-8; 1..255 bytes; dot-separated
   nonempty tokens; no leading/trailing dot or `..`; no `*`/`>`; no Unicode whitespace or
   control characters; suffix `.v1`. The 255-byte bound is a Hub product/safety contract,
   not a NATS transport/control-line ceiling. It applies only to the new `EnvelopeV1` builder
   and does not apply globally to legacy `OutboxEvent` or the publisher.
 - The existing outbox contract is additive and remains globally unchanged. A new producer
-  calls `PublishInTx(ctx, tx, envelope.Subject, envelope)`: `OutboxEvent.event_type` must
+  calls `PublishInTx(ctx, tx, envelope.Subject(), envelope)`: `OutboxEvent.event_type` must
   equal the envelope `subject` byte-for-byte and `OutboxEvent.payload` stores the **full
   envelope**, not only its inner `payload`. The existing worker therefore publishes that
   full JSON unchanged on `event_type`; no global wrapper is added around legacy payloads.
+- Occurrence time is accepted when it is RFC3339-capable and its actual zone offset is zero,
+  then normalized and emitted as UTC `Z`; UTC location pointer identity is not a condition.
+  Payload is accepted only when serialization succeeds and yields a non-null JSON object.
+  Scalars, arrays/slices, funcs/chans/unsupported values, typed nils, `null`, marshal errors
+  and custom non-object marshal output reject as stable, content-free `ErrInvalidPayload`.
+  The object bytes are snapshotted before envelope assembly, so source mutation cannot change
+  a constructed envelope.
 - Envelope `event_id` is the stable application-event id generated once before the domain
   transaction. The existing outbox row UUID, exposed as the `Hub-Event-Id` NATS header, is
   a separate transport id. New mail/calendar/linked-call consumers deduplicate on envelope

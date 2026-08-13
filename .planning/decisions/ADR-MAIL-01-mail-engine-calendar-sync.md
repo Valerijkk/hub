@@ -553,7 +553,10 @@ in Phase 147 `CONTRACT.md`.
 All subjects use JSON envelopes with the exact broker `subject`, `schema_version: 1`, UUID
 application `event_id`, RFC 3339 `occurred_at`, `organization_id`, `actor_id` when known,
 `correlation_id`, and a payload. A shared pure builder receives every value explicitly;
-it owns no clock, random source, persistence or publish side effect.
+it owns no clock, random source, persistence or publish side effect. `EnvelopeV1` has no
+exported mutable fields/references: it snapshots a valid JSON-object payload and freezes the
+complete envelope. `MarshalJSON` returns a caller-owned copy of frozen bytes; `Subject()` and
+`EventID()` are the public copy-returning reads.
 
 Subject validity for every new `EnvelopeV1` is: valid UTF-8; 1..255 bytes; dot-separated
 nonempty tokens; no leading/trailing dot or `..`; no `*`/`>`; no Unicode whitespace or
@@ -574,13 +577,20 @@ and does not apply globally to legacy `OutboxEvent` or the publisher.
 
 Consumers are idempotent on envelope `event_id`. Producers write the complete envelope
 through the existing transactional outbox pattern as
-`PublishInTx(ctx, tx, envelope.Subject, envelope)`, so state change and event persistence
+`PublishInTx(ctx, tx, envelope.Subject(), envelope)`, so state change and event persistence
 remain atomic. `OutboxEvent.event_type`, the NATS subject and envelope `subject` must be
 identical; a mismatch is dead-lettered before mutation. The existing outbox worker remains
 unchanged and publishes its stored bytes as-is. Its row UUID/`Hub-Event-Id` header is a
 separate transport identifier used only for diagnostics by these new consumers; it does
 not replace the application event id. This additive rule deliberately avoids wrapping or
 changing payloads for any legacy outbox subject.
+
+An occurred-at value is valid when RFC3339 serialization succeeds and its actual zone offset
+is zero; it is normalized and rendered as UTC `Z`, irrespective of location pointer identity.
+Payload is valid only when it serializes to a non-null JSON object. Every scalar, array/slice,
+func/chan/unsupported or typed-nil value, JSON `null`, marshal error and custom non-object
+marshal result rejects with stable, content-free `ErrInvalidPayload`; the object bytes are
+snapshotted before complete-envelope assembly.
 
 ## Security model
 
