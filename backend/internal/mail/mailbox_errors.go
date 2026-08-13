@@ -53,7 +53,26 @@ func (e *EngineError) Error() string {
 	if e == nil {
 		return "mail engine error"
 	}
-	return "mail engine " + string(e.Kind)
+	switch e.Kind {
+	case EngineErrorNotFound:
+		return "mail engine object not found"
+	case EngineErrorConflict:
+		return "mail engine state conflict"
+	case EngineErrorInvalidCursor:
+		return "mail engine invalid cursor"
+	case EngineErrorUnavailable:
+		return "mail engine unavailable"
+	case EngineErrorIndeterminate:
+		return "mail engine indeterminate result"
+	case EngineErrorRejectedPolicy:
+		return "mail engine policy rejected"
+	case EngineErrorUnauthorizedAccount:
+		return "mail engine unauthorized account"
+	case EngineErrorRestartRequired:
+		return "mail engine projection restart required"
+	default:
+		return "mail engine error"
+	}
 }
 
 // Unwrap возвращает стабильный sentinel для errors.Is.

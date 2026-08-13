@@ -197,15 +197,6 @@ func TestMailEngine_HealthAndCapabilitiesDoNotExposeCredentials(t *testing.T) {
 }
 
 func TestMailEngine_SentinelErrorsAreTypedAndSafe(t *testing.T) {
-	for _, forbidden := range []string{
-		"synthetic-secret@example.test",
-		"synthetic message body",
-		"synthetic-address@example.test",
-	} {
-		if strings.Contains((&mail.EngineError{Kind: mail.EngineErrorInvalidCursor}).Error(), forbidden) {
-			t.Fatalf("safe engine error must not include %q", forbidden)
-		}
-	}
 	err := &mail.EngineError{Kind: mail.EngineErrorInvalidCursor}
 
 	if !errors.Is(err, mail.ErrEngineInvalidCursor) {
@@ -214,6 +205,22 @@ func TestMailEngine_SentinelErrorsAreTypedAndSafe(t *testing.T) {
 	var typed *mail.EngineError
 	if !errors.As(err, &typed) || typed.Kind != mail.EngineErrorInvalidCursor {
 		t.Fatal("invalid cursor error must be available through errors.As")
+	}
+}
+
+func TestMailEngine_UnknownErrorKindIsGenericAndDoesNotUnwrap(t *testing.T) {
+	for _, unknownKind := range []mail.EngineErrorKind{
+		"unknown synthetic-secret@example.test",
+		"unknown synthetic message body",
+		"unknown synthetic-address@example.test",
+	} {
+		err := &mail.EngineError{Kind: unknownKind}
+		if got := err.Error(); got != "mail engine error" {
+			t.Errorf("EngineError{%q}.Error() = %q, want fixed generic error", unknownKind, got)
+		}
+		if unwrapped := errors.Unwrap(err); unwrapped != nil {
+			t.Errorf("errors.Unwrap(EngineError{%q}) = %v, want nil", unknownKind, unwrapped)
+		}
 	}
 }
 
@@ -244,6 +251,16 @@ func TestMailEngine_IncrementalAndEnumerationPagesCarryBoundsAndTypedRecovery(t 
 }
 
 func TestMailEngine_ProjectionOriginDoesNotInferOwnerFromAddressOrSentFolder(t *testing.T) {
+	addressAndSentOnly := mail.EngineMessage{
+		AccountID: "account-opaque",
+		MessageID: "message-opaque",
+		FolderIDs: []string{"sent-folder-opaque"},
+		From:      mail.EngineAddress{Email: "owner@example.test"},
+	}
+	if addressAndSentOnly.Origin != "" {
+		t.Fatal("From and Sent fields alone must not derive projection origin")
+	}
+
 	message := mail.EngineMessage{
 		AccountID:        "account-opaque",
 		MessageID:        "message-opaque",
@@ -256,17 +273,27 @@ func TestMailEngine_ProjectionOriginDoesNotInferOwnerFromAddressOrSentFolder(t *
 	if message.Origin != mail.EngineProjectionOriginInboundOrUnknown {
 		t.Fatal("address and Sent membership must not imply confirmed-owner origin")
 	}
-	if mail.EngineProjectionOriginConfirmedOwnerSubmission == mail.EngineProjectionOriginConfirmedOwnerDraft {
-		t.Fatal("confirmed submission and draft provenance must remain distinct")
+	origins := []mail.EngineProjectionOrigin{
+		mail.EngineProjectionOriginInboundOrUnknown,
+		mail.EngineProjectionOriginConfirmedOwnerSubmission,
+		mail.EngineProjectionOriginConfirmedOwnerDraft,
 	}
+	for left := range origins {
+		for right := left + 1; right < len(origins); right++ {
+			if origins[left] == origins[right] {
+				t.Fatalf("projection origins at indexes %d and %d must be distinct", left, right)
+			}
+		}
+	}
+	// Стабильное поведение mapper по подтверждённой provenance проверяет conformance-пакет.
 }
 
 func TestMailEngine_ConsumerCompileAssertionRemainsStable(t *testing.T) {
 	var _ mail.MailEngine = (*consumerStub)(nil)
 }
 
-func TestMailEngine_ProvisioningSpecCarriesOnlyStableDesiredState(t *testing.T) {
-	sameKey := mail.AccountSpec{
+func TestMailEngine_ProvisioningSpecShapeCarriesOnlyStableDesiredState(t *testing.T) {
+	spec := mail.AccountSpec{
 		ProvisioningKey:  "stable-provisioning-key",
 		LocalPart:        "u-0123456789ab",
 		Domain:           "mail.example.test",
@@ -275,17 +302,11 @@ func TestMailEngine_ProvisioningSpecCarriesOnlyStableDesiredState(t *testing.T) 
 		Enabled:          true,
 		Primary:          mail.AccountIdentitySpec{LocalPart: "u-0123456789ab", Domain: "mail.example.test"},
 	}
-	changedSpec := sameKey
-	changedSpec.DesiredGeneration++
-	changedSpec.DesiredHash = "changed-desired-hash"
-
-	if sameKey.ProvisioningKey != changedSpec.ProvisioningKey || sameKey.DesiredHash == changedSpec.DesiredHash {
-		t.Fatal("same provisioning key must remain distinct from a changed desired specification")
-	}
-	if !errors.Is(&mail.EngineError{Kind: mail.EngineErrorConflict}, mail.ErrEngineConflict) {
-		t.Fatal("changed provisioning spec must have a typed conflict outcome")
+	if spec.ProvisioningKey == "" || spec.DesiredGeneration == 0 || spec.DesiredHash == "" {
+		t.Fatal("provisioning shape must carry stable key, generation and desired hash")
 	}
 	assertNoFields(t, reflect.TypeOf(mail.AccountSpec{}), "Password", "Token", "Secret", "Credential")
+	// Повторный ensure и conflict изменённого spec проверяет поведенческий conformance-пакет fake.
 }
 
 func TestMailEngine_SieveAndSpamTrainingUseBoundedTypedValues(t *testing.T) {
