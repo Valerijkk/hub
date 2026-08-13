@@ -1,10 +1,9 @@
 # Task 143-03C — hash-pair remediation static evidence
 
 > **Status:** STATIC_CONFORMANT · INDEPENDENT_REVIEW_C/I/M_0/0/0 · RUNTIME_NOT_RUN
-> **Implementation commit:** the atomic Git commit that will contain this evidence document together
-> with `backend/ent/schema/calendareventexception.go` and
-> `backend/tests/calendar/calendar_event_exception_schema_test.go`; resolve it from Git history
-> after root creates the pending commit
+> **Implementation commit:** `444c6f7b7b7b3d9b77bc9b24b32d1e13000ebbbc`, containing this evidence document together with
+> `backend/ent/schema/calendareventexception.go` and the external oracle
+> `backend/tests/calendar/calendar_event_exception_schema_test.go`
 > **Accepted dependency:** Packet A `31bfff8f58ba83d12b59600135503f98a6c92fbd`
 
 ## Scope and result
@@ -34,6 +33,6 @@ Phase 143, the Calendar product, a migration, generated Ent output, or runtime b
 downstream acceptance remains separate.
 
 Ent generation, schema compilation, migrations and executable tests remain `NOT_RUN`; the
-accepted launcher is `NOT_READY`. No generated or migration file was changed. The code and
-external-test paths and this evidence form the indivisible pending Task 2 commit boundary. Before
-the root commit they remain pending; afterward the containing commit is authoritative.
+accepted launcher is `NOT_READY`. No generated or migration file was changed. The schema,
+external oracle and this evidence form the indivisible committed Task 2 boundary
+`444c6f7b7b7b3d9b77bc9b24b32d1e13000ebbbc`.

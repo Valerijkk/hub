@@ -63,8 +63,8 @@ independent reviewer `/root/calendar_hash_pair_c_review` used exact `gpt-5.6-ter
 with the same accepted dispatcher provenance and actual telemetry `UNKNOWN`. The source diff and
 external Ent-metadata oracle are independently `STATIC_CONFORMANT`; code review
 Critical/Important/Minor is `0/0/0`. Documentation sync uses exact `gpt-5.6-terra` / `medium`.
-The two Packet C paths and this evidence form the indivisible pending Task 2 commit boundary.
-Before the root commit they remain pending; afterward the containing commit is authoritative.
+The two Packet C paths and this evidence form the indivisible committed Task 2 boundary
+`444c6f7b7b7b3d9b77bc9b24b32d1e13000ebbbc`.
 
 Both hash-pair P1 remediations are statically conformant. This is not a Phase 143, product,
 migration or runtime PASS; downstream acceptance remains separate.
