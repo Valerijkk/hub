@@ -168,8 +168,10 @@ mail_feature_workstream:
       mailbox_search: bounded_sanitized_body_attachment_filenames_owner_reauth
       mailbox_spam_feedback: explicit_spam_ham_not_move_alias
       mailbox_engine_bounds: projection_only_pages_1mib_item_8mib_page_budgeted_50mib_message_25mib_blob
+      mailbox_projection_version: required_engine_version_same_projection_atomic
+      mailbox_submission_identity: split_opaque_engine_ids_and_hub_message_uuid_projection_before_sent
       mailbox_public_bounds: cursor_pages_8mib_legacy_calendar_call_16mib_non_truncating
-      mailbox_attachment_staging: immutable_draft_client_id_one_draft_then_eventual_message
+      mailbox_attachment_staging: immutable_draft_client_id_one_draft_then_eventual_message_max_50_locked
       mailbox_defaults: user_settings_pointers_only
       mailbox_recent_external_contacts: max_1000_lru_non_hub
       calendar_authority: hub_postgresql
@@ -272,6 +274,17 @@ spec_coverage:
   non-truncating legacy count/byte ceilings. The earlier review files remain discovery
   evidence, not current PASS verdicts; every dependent packet waits for an independent
   actual-provenance Terra/high review of the exact amendment.
+- A requested Terra/high source-only pass on exact SHA `90229b2b` could not satisfy the
+  actual-provenance gate and therefore is not an acceptance. It nevertheless found three
+  P1 contract gaps now root-remediated for re-review: required `MailMessage.engine_version`,
+  separate opaque engine submission/result ids versus the public Hub message UUID with
+  projection-before-sent finalization, and a locked durable maximum of 50 attachments per
+  draft. Product code remains unauthorized by this source-only remediation.
+- Its source-only re-review found and root-remediated two follow-up P1s without changing that
+  gate verdict: retained engine-result pairs now skip submission reconciliation and can only
+  retry projection finalization, while the hydrated projection must exactly match account/
+  message/version and receives domain-derived confirmed-owner origin. Another exact-SHA
+  provenance-bearing review remains required.
 - The 144-02A root candidate now also fixes exact Ent scalar widths, lower-case ASCII
   validators, a typed bounded DNS JSON value, named SQL CHECK predicates, ordered partial
   indexes and delete edges. Execution is split sequentially into 02A1 typed DNS, 02A2

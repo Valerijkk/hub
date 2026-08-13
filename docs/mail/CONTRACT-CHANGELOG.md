@@ -29,6 +29,15 @@ review candidate, not an implementation or runtime acceptance.
 - Froze exact Phase 144-02A/B/C/D/F storage names, tuple/nullability checks, state matrices,
   normalized-name indexes, delete behavior, quotas and transactional same-owner guards in
   `PERSISTENCE-CONTRACT-0.1.8.md`.
+- Required every `MailMessage` projection to persist the engine version supplied with its
+  opaque engine id; optional auxiliary state is no longer allowed to stand in for version.
+- Split confirmed submission identity into opaque engine submission/result-message ids and
+  an immutable Hub message UUID snapshot. Public `sent` now requires a bounded result read
+  and atomic projection upsert. Retained-pair recovery retries only exact account/message
+  hydration and finalization, derives confirmed submission origin in the domain, and can
+  never requeue or resubmit.
+- Enforced the 50-attachment maximum both on the public draft value and on the locked durable
+  draft-to-attachment association, so sequential saves cannot manufacture an over-limit row.
 - Made settings pointers the sole persisted identity/signature default authority, made
   attachment scan state single-source, bounded recent external contacts at 1,000, and added
   immutable attempted tuples for account/domain/rule engine work.

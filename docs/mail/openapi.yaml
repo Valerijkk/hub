@@ -2372,7 +2372,10 @@ components:
       properties:
         id: {type: string, format: uuid}
         status: {type: string, enum: [queued, submitting, sent, unknown, failed]}
-        message_id: {type: [string, "null"], format: uuid}
+        message_id:
+          type: [string, "null"]
+          format: uuid
+          description: Hub MailMessage projection UUID; never an opaque engine message identifier
         error_code:
           type: [string, "null"]
           enum: [MAIL_SUBMISSION_REJECTED, MAIL_SUBMISSION_OUTCOME_UNKNOWN, MAIL_SUBMISSION_RECONCILIATION_REQUIRED, MAIL_SUBMISSION_POLICY, MAIL_SUBMISSION_ATTACHMENT_NOT_CLEAN, MAIL_SUBMISSION_IDENTITY_UNAVAILABLE, MAIL_SUBMISSION_RECIPIENT_LIMIT, MAIL_SUBMISSION_SIZE_LIMIT, MAILBOX_UNAVAILABLE, null]

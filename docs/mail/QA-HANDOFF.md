@@ -223,6 +223,24 @@ or more `FR-MAIL-*` / `FR-CALSYNC-*` rows and named `TC-*` scenarios in `MAIL-SP
     enter API JSON, persisted safe code, audit or client analytics.
     Submission state also enforces its nullable shape: only `sent` has `message_id`, only
     `unknown|failed` have their state-appropriate non-null safe code.
+33. Every stored `MailMessage` has a non-empty bounded `engine_version` from the same engine
+    projection as `engine_message_id`; optional auxiliary engine state cannot substitute for
+    it. A same-id newer-version page updates both projection content and version atomically.
+34. Submission success stores the opaque engine submission/message ids separately from the
+    Hub UUID returned as public `message_id`. The engine message id is never parseable as a
+    UUID oracle. `sent` is committed only after a bounded same-account result read and atomic
+    `MailMessage` projection upsert; failure after delivery confirmation remains
+    reconciliation-required. With no opaque result pair retry calls submission reconciliation;
+    with a complete pair it skips reconciliation and retries only result hydration/finalization,
+    never requeue or a second Submit.
+35. Draft create/save accepts at most 50 distinct attachment ids. The 51st id and a direct
+    repository attempt to create a 51st draft association both fail before engine I/O and
+    leave the previous complete attachment set unchanged; an over-limit persisted state is
+    fail-closed at submission.
+36. Result hydration accepts only exact requested account, exact confirmed engine message id
+    and non-empty bounded version. A mismatched account/id or spoofed adapter origin stores no
+    Hub binding, returns no `sent`, publishes no outbox and never resubmits. The domain derives
+    `confirmed_owner_submission` only from the persisted confirmed result pair.
 
 ### Calendar synchronization
 

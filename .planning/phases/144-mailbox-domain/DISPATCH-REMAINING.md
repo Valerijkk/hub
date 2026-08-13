@@ -40,7 +40,9 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   incremental pages plus base-anchored enumeration pages/checkpoints, invalid cursor,
   anchor restart and transient failure without leaking cursor values.
 - Oracles: compile conformance; same stable submit key one visible result; definitive
-  absent vs indeterminate; draft expected-version conflict; changes cursor pages; cross-
+  absent vs indeterminate; sent returns two bounded non-UUID opaque ids; account/message-
+  keyed `GetMessage` can script exact and mismatched projections for submission-finalization
+  oracles; draft expected-version conflict; changes cursor pages; cross-
   account ids zero disclosure/mutation; deterministic snapshots; no secret/body in errors.
 
 ## 144-02A1/A2/A3 — typed DNS then domain/policy then account/identity schemas
@@ -78,7 +80,8 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   folder engine id nullable only for a creating intent; folder control state/receipt/version;
   message-folder join unique; non-negative rebuild epoch mark on folder/thread/message/join;
   server-derived projection-origin enum and nullable immutable received-event UUID on
-  message; flags/state/freshness rebuildable;
+  message; required bounded engine version from the same projection as its message id;
+  auxiliary state/flags/freshness rebuildable;
   label has opaque random engine keyword; unique same-account message-label join carries
   manual/engine_rule source bits with at least one true; labels/pin/verified calendar/CRM relations Hub-owned; bounded headers/snippet only, never
   raw body/MIME; custom root/child sibling uniqueness with nullable-parent partial indexes.
@@ -90,10 +93,12 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 - Dependency: reviewed 02A. Allowed only new schema files
   `mailobject.go`, `mailattachment.go`, `maildraft.go`, `mailsubmission.go`.
 - Behavior: mail object owner/account/lease/key/hash/scan; attachment backing metadata;
-  draft opaque engine id/version/revision/states/hashes, no content; submission hashed key,
-  request hash, stable engine key/states/result. Express XOR/check through selected
+  draft opaque engine id/version/revision/states/hashes, no content and at most 50 locked
+  scalar attachment associations; submission hashed key, request hash, stable engine
+  key/states, separate opaque engine result ids and scalar Hub result UUID. Express XOR/check through selected
   migration only when authority exists; service invariants remain explicit.
-- Oracles: raw key/body absent; unique account+hash and account+engine ids; draft submitting
+- Oracles: raw key/body absent; unique account+hash and account+engine ids; 51st draft
+  association rejected atomically; exact result-id/nullability matrix; draft submitting
   state; no project/FileMetadata edge; expiry/audit; no generated/migration edits.
 
 ## 144-02D — settings/signature/rule/contact schemas

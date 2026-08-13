@@ -272,6 +272,10 @@ draft; it cannot contain or silently replace content. Its maximum is positive, n
 than effective policy and no greater than `MaxEngineMessageBytes`, and applies to the final
 submitted MIME result.
 
+Every `EngineMessageProjection` has non-empty `AccountID`, `MessageID` and `Version`; the
+opaque message id and version are each 1..`MaxEngineOpaqueIDBytes` and describe the same
+accepted projection snapshot.
+
 All address/reference/recipient/folder/keyword/attachment slices are concrete, unique after
 normalization where identity has meaning, and obey their independent count ceilings.
 Projection addresses use the 200-item ceiling per collection; draft `to`, `cc` and `bcc`
@@ -340,6 +344,36 @@ must reconcile that same key before another create. Applied reconciliation retur
 opaque message id/version; definitive absence permits the domain to retry the same
 `DraftKey`; indeterminate state permits no save. Later saves additionally require the last
 confirmed message id/version plus a fresh stable mutation id.
+
+## Submission result identity
+
+The unchanged closed success value is
+`EngineSubmissionSent{SubmissionID string, MessageID string}`. Both values are opaque engine
+identifiers, are independently required and bounded by `MaxEngineOpaqueIDBytes`, and are
+never Hub UUIDs. The persistence names are therefore `engine_submission_id` and
+`engine_result_message_id`; an adapter or repository must not place either value in the
+public `MailSubmission.message_id` field.
+
+After `Submit` or `ReconcileSubmission` returns `EngineSubmissionSent`, the domain uses the
+same account plus `MessageID` to obtain a bounded `EngineMessage`, atomically upserts its
+projection (including the required projection `Version`) and only then records the resulting
+Hub `MailMessage.id` snapshot and public `sent` receipt. A transient failure between engine
+confirmation and that projection transaction remains reconciliation-required and never
+permits a second submit.
+
+The returned projection is accepted only when its `AccountID` exactly equals the requested
+account, its `MessageID` exactly equals the confirmed opaque result message id and its
+`Version` is non-empty and bounded. The domain derives the stored
+`confirmed_owner_submission` origin from the persisted confirmed result pair; address,
+folder membership and an adapter-provided origin are not independent proof. Any mismatch
+retains reconciliation-required state and produces no Hub message binding, `sent` receipt or
+outbox event.
+
+Recovery has two disjoint branches. With no persisted opaque result pair, the domain calls
+`ReconcileSubmission`; only definitive absence from that branch may permit the one controlled
+retry. With a complete persisted pair, the domain does not call `ReconcileSubmission` and
+repeats only the bounded `GetMessage` validation, projection upsert and finalization using
+those exact ids. That branch can never requeue or call `Submit`.
 
 ## Validation and errors
 

@@ -7,6 +7,18 @@
 > `docs/mail/ENGINE-CONTRACT-0.1.8.md`, OpenAPI 0.1.8 and the 02C persistence matrix now
 > supply the root candidate; this verdict remains open until independent exact-SHA review.
 
+> **2026-08-13 source-only follow-up:** a requested Terra/high review whose actual runtime
+> provenance was unavailable found two remaining P1s: one field conflated the opaque engine
+> result message id with the public Hub UUID, and the durable draft association lacked the
+> 50-attachment cap. The root candidate now separates both identities, requires projection
+> finalization before `sent`, and enforces the cap under a locked draft. Re-review is pending.
+
+> A second source-only pass found that generic unknown reconciliation could still requeue a
+> confirmed result and that hydration lacked exact account/message/origin proof. The root
+> candidate now splits no-pair reconciliation from retained-pair projection-only recovery,
+> validates exact returned identity/version and derives confirmed submission origin in the
+> domain. This follow-up also remains independently unaccepted.
+
 ## Outcome
 
 The four-entity packet cannot yet be implemented deterministically. The documents freeze the
@@ -62,6 +74,11 @@ Every ownership path must remain explicit:
 - draft/message/attachment links are same-account service invariants before insert;
 - no `FileMetadata`, project or project-membership edge is permitted.
 
+The accepted scalar relation is additionally capped at 50 selected attachment rows per
+draft. Replacement validates the entire distinct id set and resulting count while the draft
+is locked; a 51st association is rejected before any engine I/O and cannot partially alter
+the prior set.
+
 ## P1 — upload and scan state have two authorities and no conditional CHECK matrix
 
 `MailObject` and `MailAttachment` both list `scan_status`, although the ERD makes the backing
@@ -100,12 +117,20 @@ Minimum amendment:
 - make draft revision positive; make attempt counts non-negative and bounded; use UUID for
   Hub mutation ids and exact allowlisted enums/codes;
 - enforce the draft engine id/version nullable pair and the stable-key rules above;
-- enforce submission states: `queued|submitting` have no result ids/error, `sent` requires
-  both engine submission id and result message id with no error, `unknown` has no result ids
-  and one reconciliation allowlist code, and `failed` has no result ids and one terminal
-  allowlist code;
-- make stable engine submission key unique per account, and make a confirmed result message
-  resolve from at most one submission in that account;
+- persist opaque `engine_submission_id` and `engine_result_message_id` separately from the
+  scalar Hub UUID snapshot `result_mail_message_id`;
+- enforce submission states: `queued|submitting` have no result ids/error; `sent` requires
+  both opaque ids plus the Hub UUID and no error; `unknown` has no Hub UUID and either no
+  opaque result pair or a complete pair awaiting projection finalization; `failed` has no
+  result ids and one terminal allowlist code;
+- make stable engine submission key and both nullable result identities unique per account;
+  the Hub result UUID is a receipt snapshot, not a deletion-sensitive foreign key;
+- require a bounded same-account result read and atomic `MailMessage` id/version projection
+  upsert before `sent`; returned account/message must exactly equal the requested/persisted
+  result and confirmed submission origin is domain-derived;
+- split unknown recovery: no opaque pair calls `ReconcileSubmission` and may requeue only on
+  definitive absence; a complete pair retries only message hydration/finalization and can
+  never requeue or call Submit;
 - freeze `OnDelete` behavior: account hard-delete cascades owned rows; draft/message result
   links use restrict or set-null only where the retention contract explicitly permits it.
 

@@ -7,6 +7,11 @@
 > `docs/mail/PERSISTENCE-CONTRACT-0.1.8.md` now supplies the root candidate matrix; this
 > discovery verdict remains open until independent exact-SHA review.
 
+> **2026-08-13 source-only follow-up:** a requested Terra/high review whose actual runtime
+> provenance was unavailable found that `EngineMessageProjection.Version` had no durable
+> `MailMessage` field. The root amendment now requires `engine_version` 1..1,024 bytes and
+> same-projection atomic persistence; this remediation is not independently accepted.
+
 ## Outcome
 
 The lifecycle and ownership model are coherent, but the packet is not yet deterministic at
@@ -43,12 +48,12 @@ The following fields are called bounded but have no complete machine/storage cei
 
 - thread normalized subject and participant-address JSON;
 - message `internet_message_id`, `in_reply_to`, `references`, structured address JSON,
-  engine state and snippets;
+  engine version, auxiliary engine state and snippets;
 - folder engine ids/control links and label engine keywords;
 - folder/thread/message/join rebuild markers where relevant.
 
-The accepted engine contract already supports 1,024-byte opaque ids, 4,096-byte state/cursor
-values, 200 addresses, 100 folders and 50 attachments. The write API also freezes a 998-byte
+The accepted engine contract already supports 1,024-byte opaque ids and mandatory versions,
+4,096-byte state/cursor values, 200 addresses, 100 folders and 50 attachments. The write API also freezes a 998-byte
 subject transport ceiling. The amendment should bind stored values to those limits, cap
 references explicitly, and combine the 400-grapheme snippet rule with an independent UTF-8
 byte ceiling. Grapheme count alone is not a memory bound because one grapheme may contain an

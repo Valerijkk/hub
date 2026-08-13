@@ -459,7 +459,8 @@ soft-deletes a thread in the same transaction that would otherwise make the coun
 
 ### `MailMessage`
 
-Fields: `id`, `mail_account_id`, `mail_thread_id`, `engine_message_id` (<=1,024 bytes),
+Fields: `id`, `mail_account_id`, `mail_thread_id`, required `engine_message_id` and required
+`engine_version` (each 1..1,024 bytes),
 optional normalized `internet_message_id`/`in_reply_to` (<=998 UTF-8 bytes), required concrete
 `references` typed JSON array default empty (<=100 items, each <=998 bytes, <=65,536
 serialized bytes), required concrete `from` typed JSON object containing exactly one Address,
@@ -467,7 +468,8 @@ and required concrete `to`/`cc`/`bcc`/`reply_to` typed JSON arrays default empty
 addresses and <=65,536 serialized bytes),
 subject <=998 UTF-8 bytes, snippet limits above, optional `sent_at`/`received_at`,
 `size_bytes` 0..52,428,800, priority, `has_attachments`, `is_draft`, `is_seen`, `is_answered`,
-`is_flagged`, `is_junk`, optional `engine_state` <=4,096 bytes, `projection_origin`, optional
+`is_flagged`, `is_junk`, optional auxiliary `engine_state` <=4,096 bytes,
+`projection_origin`, optional
 `flags_synced_at`, optional `calendar_method`, optional `calendar_event_id`, required
 non-negative `last_seen_sync_epoch`, optional immutable `received_event_id`, timestamps and
 optional `deleted_at`.
@@ -478,7 +480,10 @@ is transactionally proven. Priority is `low|normal|high`, projection origin is
 `inbound_or_unknown|confirmed_owner_submission|confirmed_owner_draft`, and calendar method is nullable
 `request|cancel|reply`. BCC is empty except confirmed owner draft/submission. Account and
 thread hard deletion cascade the owned projection; calendar deletion sets the optional link
-null. A received event marker is set once and never rewritten.
+null. Every projection upsert stores `engine_message_id` and the
+`EngineMessageProjection.Version` from the same accepted engine value atomically. The
+optional auxiliary `engine_state` is not a version substitute and cannot satisfy optimistic
+reconciliation. A received event marker is set once and never rewritten.
 
 ### `MailMessageFolder`
 
@@ -557,26 +562,49 @@ account+engine message id. The engine pair is both-null or both-present. Status 
 pair and null mutation id; saving/unknown require a mutation id and permit a null pair only
 for initial create; deleted is terminal, forbids mutation id and may retain either valid pair
 state. Every selected storage attachment has the same draft-client id and receives this one
-draft edge atomically; an existing different draft edge conflicts before engine I/O.
+draft edge atomically; an existing different draft edge conflicts before engine I/O. One
+draft owns at most 50 selected storage-backed attachments. Create/save replacement locks the
+draft, validates the complete distinct attachment-id set and resulting row count, and rejects
+a 51st association before any engine I/O. The repository enforces the same transactional
+invariant even when called outside HTTP; a corrupted over-limit draft is never submitted.
 Reply/forward links set null on projected-message hard delete. Account deletion cascades;
 individual draft deletion is the terminal status transition, not row deletion.
 
 ### `MailSubmission`
 
 Fields: UUID id/account, optional draft id, exact key/request SHA-256 hashes, immutable stable
-engine submission key <=1,024 bytes, status, optional engine submission id <=1,024 bytes,
-optional result message id, optional allowlisted error, non-negative attempts, timestamps.
+engine submission key 1..1,024 bytes, status, optional `engine_submission_id` and optional
+`engine_result_message_id` (each 1..1,024 bytes), optional UUID
+`result_mail_message_id`, optional allowlisted error, non-negative attempts, timestamps.
 
 Unique account+key hash, account+engine key, nullable account+engine submission id and
-nullable result message id. State checks mirror OpenAPI: queued/submitting have no result ids
-or error; sent requires both engine submission and result message with no error; unknown has
-neither result id and one of `MAIL_SUBMISSION_OUTCOME_UNKNOWN|MAIL_SUBMISSION_RECONCILIATION_REQUIRED|MAILBOX_UNAVAILABLE`; failed has neither result id and exactly one of
+nullable account+engine-result-message id and nullable account+Hub-result-message snapshot.
+Across every status the two opaque engine result fields are a both-null or both-present
+pair.
+State checks mirror OpenAPI while preserving engine identity: queued/submitting have no
+result ids or error; sent requires both opaque engine ids plus `result_mail_message_id` with
+no error; unknown always has a null Hub result and one of
+`MAIL_SUBMISSION_OUTCOME_UNKNOWN|MAIL_SUBMISSION_RECONCILIATION_REQUIRED|MAILBOX_UNAVAILABLE`.
+An unknown outcome may have both opaque engine ids null; a delivery-confirmed but
+projection-pending unknown has both opaque engine ids present and uses only
+`MAIL_SUBMISSION_RECONCILIATION_REQUIRED|MAILBOX_UNAVAILABLE`. Failed has all three result
+ids null and exactly one of
 `MAIL_SUBMISSION_REJECTED|MAIL_SUBMISSION_POLICY|MAIL_SUBMISSION_ATTACHMENT_NOT_CLEAN|MAIL_SUBMISSION_IDENTITY_UNAVAILABLE|MAIL_SUBMISSION_RECIPIENT_LIMIT|MAIL_SUBMISSION_SIZE_LIMIT|MAILBOX_UNAVAILABLE`.
 The exact field names are `idempotency_key_hash`, `request_hash`, `engine_submission_key`,
-`engine_submission_id`, `result_message_id`, `last_error_code`, `attempt_count`,
+`engine_submission_id`, `engine_result_message_id`, `result_mail_message_id`,
+`last_error_code`, `attempt_count`,
 `created_at`, `updated_at`; hashes are immutable bytes(32), attempt count is int32 default 0.
 Draft deletion is restricted while non-terminal, otherwise its edge may set null; account
-deletion cascades and result-message projection deletion does not erase the immutable UUID.
+deletion cascades. The result Hub UUID is an immutable scalar snapshot, not a foreign key;
+message projection deletion therefore does not erase it. A service may enter `sent` only in
+the same transaction that maps `engine_result_message_id` to an owned `MailMessage`
+projection whose returned account and engine message id exactly equal the requested account
+and persisted result id and whose version is non-empty/bounded. That transaction derives
+`confirmed_owner_submission` from the confirmed result pair rather than trusting an address,
+folder or adapter-supplied origin. A mismatch stores no Hub UUID/event and remains
+reconciliation-required. Until finalization the receipt remains `unknown`: a null opaque
+pair calls `ReconcileSubmission`, while a complete pair skips it and retries only bounded
+message read/projection/finalization. The complete-pair branch cannot requeue or call Submit.
 
 ## 144-02D — user configuration
 

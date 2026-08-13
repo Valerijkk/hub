@@ -161,6 +161,17 @@ the Hub mail feature. It does not claim that the described behavior is implement
     contacts max 30 and bounded folder snapshot max 100. Cursor/list pages additionally fit
     within 8,388,608 serialized UTF-8 bytes by returning fewer whole items plus a cursor;
     legacy calendar/call envelopes are non-truncating and fail above 16,777,216 bytes.
+42. Every accepted message projection carries and atomically persists a required opaque
+    engine version with its engine message id; optional auxiliary state is never a version
+    substitute.
+43. A confirmed submission stores opaque engine submission/result-message ids separately
+    from the Hub message UUID exposed to clients. `sent` is committed only after a bounded
+    exact-account/exact-message read and atomic Hub projection upsert; the domain derives
+    confirmed submission origin from that persisted result pair. Any gap reconciles without
+    resubmit, and a stored result pair can only retry projection finalization.
+44. A draft owns at most 50 selected attachment rows. The complete replacement and resulting
+    durable association count are checked under the draft lock before engine I/O, so
+    sequential saves cannot bypass the public request bound.
 
 ## 3. ERD
 
@@ -193,7 +204,6 @@ erDiagram
     MailAccount ||--o{ MailSignature : owns
     MailAccount ||--o{ MailSubmission : submits
     MailDraft o|--o{ MailSubmission : sends
-    MailSubmission }o--o| MailMessage : resolves_to
     User ||--o{ CalendarEvent : organizes
     CalendarEvent ||--o{ CalendarAttendee : invites
     CalendarAttendee ||--o{ CalendarInboundReplyReceipt : deduplicates
@@ -483,6 +493,7 @@ Thread key algorithm:
 | `id` | UUID | Hub projection id |
 | `mail_account_id`, `mail_thread_id` | UUID | required |
 | `engine_message_id` | string | opaque, unique per account |
+| `engine_version` | string | required opaque projection version, stored atomically with engine message id |
 | `internet_message_id` | string nullable | normalized RFC Message-ID, indexed |
 | `in_reply_to` | string nullable | normalized RFC Message-ID |
 | `references` | JSON array | bounded normalized Message-IDs |
@@ -494,7 +505,7 @@ Thread key algorithm:
 | `priority` | enum | `low`, `normal`, `high` |
 | `has_attachments`, `is_draft` | bool | projection |
 | `is_seen`, `is_answered`, `is_flagged`, `is_junk` | bool | engine-authoritative projection snapshot |
-| `engine_state` | string nullable | opaque bounded state/version token for reconciliation |
+| `engine_state` | string nullable | optional auxiliary engine state; never substitutes for `engine_version` |
 | `projection_origin` | enum | `inbound_or_unknown`, `confirmed_owner_submission`, `confirmed_owner_draft`; server-derived, never address-trusted |
 | `flags_synced_at` | timestamp nullable | snapshot freshness |
 | `calendar_method` | enum nullable | `request`, `cancel`, `reply` |
@@ -564,6 +575,9 @@ attachment owns one unique `MailObject`; an engine-blob attachment has an owning
 `mail_draft_id` in the draft reservation transaction; the scalar edge prevents many-to-many
 reuse. The same draft and its eventual message may retain it, while another draft must
 clone/restage rather than alias the same upload.
+One draft may select at most 50 distinct attachments. Draft create/save locks the draft and
+validates the complete replacement set plus resulting row count before associating rows or
+calling the engine; the repository independently rejects a 51st association.
 Only `clean` attachments may be submitted. The scanner interface is fail-closed.
 
 ### 3.7.1 MailObject
@@ -644,20 +658,36 @@ freshness is the conservative minimum of mailbox and search-consumer checkpoints
 
 `id`, `mail_account_id`, nullable `mail_draft_id`, `idempotency_key_hash`, canonical
 `request_hash`, stable `engine_submission_key`, `status` (`queued`, `submitting`, `sent`,
-`unknown`, `failed`), nullable `engine_submission_id`, nullable `result_message_id`,
+`unknown`, `failed`), nullable opaque `engine_submission_id`, nullable opaque
+`engine_result_message_id`, nullable Hub UUID snapshot `result_mail_message_id`,
 `last_error_code`, `attempt_count`, timestamps. Unique account + key hash. The raw key is
 never persisted or returned. Persisted/public submission, rule, domain and bulk-target errors
 come only from their closed OpenAPI allowlists, never raw SMTP/JMAP/provider content or
 recipient/body text.
 
-Before retrying an `unknown` or interrupted submission, the service calls the engine's
+An `unknown` or interrupted submission with no stored opaque result pair calls the engine's
 submission reconciliation operation with the stable engine key. A confirmed engine result
-is finalized without another submit; a definitive absence may transition back to queued;
-an indeterminate result remains `unknown` and is not blindly retried. Reusing a key with a
-different request hash returns `409`; identical input returns the same receipt.
+stores the complete pair and enters projection finalization without another submit; only a
+definitive absence from this no-pair branch may transition back to queued. An indeterminate
+result remains `unknown` and is not blindly retried. An `unknown` row that already has the
+complete opaque pair skips submission reconciliation and retries only bounded result-message
+read, projection upsert and finalization; it can never requeue or call Submit. Reusing a key
+with a different request hash returns `409`; identical input returns the same receipt.
 The public receipt has a fixed nullable shape. Queued/submitting have no message or error;
 sent requires a message and no error; unknown requires only an unknown/reconciliation/
 unavailable allowlisted code; failed requires one terminal allowlisted code and no message.
+The public `message_id` is always `result_mail_message_id`, never either opaque engine id.
+Confirmed engine submission/result ids are persisted as a pair. The domain then performs a
+bounded same-account result-message read, atomically upserts the required message id/version
+projection and stores its Hub UUID before publishing `sent`; a failed projection/finalization
+step remains reconciliation-required and cannot submit again. The Hub result UUID is an
+immutable scalar receipt snapshot so later projection retention does not rewrite history.
+The returned projection account and message id must exactly match the request/persisted
+opaque result, and its version must be non-empty/bounded. The domain derives
+`confirmed_owner_submission` from the persisted confirmed pair; address, Sent membership and
+the adapter-provided origin are not proof. Mismatch produces no binding, `sent` or outbox.
+The ERD intentionally has no `MailSubmission` foreign-key edge to `MailMessage`; the scalar
+snapshot is owner-validated when written but survives later projection retention/deletion.
 
 The canonical send request hash covers the account, draft id, Hub revision, opaque engine
 version, authorized From identity, normalized recipients, subject/body content hash,
@@ -675,7 +705,8 @@ create-idempotency key + canonical create-request hash, nullable reply/forward m
 nullable last mutation id, timestamps. Unique engine message id per account and unique
 account + create-key hash and account + draft-client id. Draft create/update requires the
 same `draft_client_id`; every selected storage attachment must carry that scope and is
-atomically bound to this draft before engine I/O.
+atomically bound to this draft before engine I/O. The complete distinct selected set and
+persisted draft association are both capped at 50 under the locked draft.
 The canonical create fingerprint includes account, immutable draft-client id, authorized
 From identity, normalized recipients, subject/body source and content hash, priority,
 ordered attachment ids/hashes and reply/forward snapshots; PATCH requires the stored
@@ -1702,7 +1733,9 @@ P2 is explicitly deferred. Risk uses Critical/High/Medium.
 - `TC-MAIL-010`: mail attachment object authorization is account-scoped and cannot be
   obtained through project membership.
 - `TC-MAIL-011`: submission key reuse with changed frozen draft input returns 409; an
-  unknown receipt never causes blind submit.
+  unknown receipt never causes blind submit. A retained opaque result pair skips submission
+  reconciliation, hydrates only the exact account/message/version, and mismatch cannot bind
+  a Hub message, publish sent/outbox or resubmit.
 - `TC-MAIL-012`: calendar/mail outbox subjects are admitted durably while the generic
   outbound webhook filter remains unchanged.
 - `TC-MAIL-013`: draft content is frozen while its submission is queued/submitting/unknown

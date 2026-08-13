@@ -77,7 +77,8 @@ Semantic requirements:
   0.1.8 replaces it with account/draft/message references, confirmed version, stable key
   and final-MIME ceiling only; no second content value is permitted.
 - `EngineSubmissionResult` различает `sent`, `absent`, `indeterminate` и несет result ids
-  только когда они подтверждены; zero value не должен выглядеть как success.
+  только когда они подтверждены; оба success id — непрозрачные bounded engine strings, не
+  Hub UUID, а zero value не должен выглядеть как success.
 - `AccountSpec` содержит immutable stable provisioning key, normalized reserved local part,
   selected domain, captured generation/hash, enabled state и exact primary/alias set.
   `EnsureAccount` idempotent на key + desired spec;
@@ -123,7 +124,8 @@ External-package тест `package mail_test` должен доказать:
 1. Независимый consumer может реализовать интерфейс без импорта internal adapter package.
 2. Draft expected version + mutation id и submission stable key доступны типобезопасно.
 3. Draft/submission reconciliation results не смешивают definitive absence с
-   indeterminate timeout и имеют отдельные typed result shapes.
+   indeterminate timeout и имеют отдельные typed result shapes. Submission success требует
+   два непустых independently bounded opaque id и не навязывает UUID grammar.
 4. Folder/message queries всегда несут account id; message ids без account контекста не
    являются допустимым вызовом.
 5. Flag patch различает отсутствие изменения от явного `false`.
