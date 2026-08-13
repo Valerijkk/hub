@@ -455,6 +455,44 @@ func TestParseITIP_RejectsInvalidTemporalForms(t *testing.T) {
 	}
 }
 
+func TestParserAndIdentity_RejectHostDependentLocalTimezone(t *testing.T) {
+	wire := strings.ReplaceAll(timedRequestWire(), "America/New_York", "Local")
+	_, parseErr := calendar.ParseITIP([]byte(wire), calendar.DefaultITIPParseLimits())
+	if parseErr != calendar.ErrInvalidTimezone {
+		t.Fatalf("ParseITIP() error = %v, want bare ErrInvalidTimezone", parseErr)
+	}
+	assertSafeError(t, parseErr, "Local")
+
+	message := baseIdentityMessage()
+	message.Temporal.Timed.Timezone = "Local"
+	_, identityErr := calendar.CanonicalITIPIdentity(message)
+	if identityErr != calendar.ErrInvalidTimezone {
+		t.Fatalf("CanonicalITIPIdentity() error = %v, want bare ErrInvalidTimezone", identityErr)
+	}
+	assertSafeError(t, identityErr, "Local")
+}
+
+func TestParserAndIdentity_AcceptExplicitCanonicalTimezoneNames(t *testing.T) {
+	for _, timezone := range []string{"UTC", "Etc/GMT+5", "America/New_York"} {
+		t.Run(timezone, func(t *testing.T) {
+			wire := strings.ReplaceAll(timedRequestWire(), "America/New_York", timezone)
+			message, err := calendar.ParseITIP([]byte(wire), calendar.DefaultITIPParseLimits())
+			if err != nil {
+				t.Fatalf("ParseITIP() error = %v", err)
+			}
+			if message.Temporal.Timed == nil || message.Temporal.Timed.Timezone != timezone {
+				t.Fatalf("parsed timezone = %#v, want %q", message.Temporal.Timed, timezone)
+			}
+
+			direct := baseIdentityMessage()
+			direct.Temporal.Timed.Timezone = timezone
+			if _, err := calendar.CanonicalITIPIdentity(direct); err != nil {
+				t.Fatalf("CanonicalITIPIdentity() error = %v", err)
+			}
+		})
+	}
+}
+
 func TestParseITIP_NormalizesSupportedRRULEs(t *testing.T) {
 	cases := map[string]string{
 		"daily default interval":   "FREQ=DAILY;INTERVAL=1;COUNT=4",

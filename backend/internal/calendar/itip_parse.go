@@ -807,12 +807,9 @@ func parseITIPTemporalValue(property parsedITIPProperty, semanticError error) (p
 		return parsedITIPTemporalValue{form: parsedITIPValueDate, date: date}, nil
 	}
 	if hasTimezone {
-		if timezone == "" || len(timezone) > itipMaxTimezoneBytes || hasAnyITIPControl(timezone) {
-			return parsedITIPTemporalValue{}, ErrInvalidTimezone
-		}
-		location, err := time.LoadLocation(timezone)
+		location, err := loadCanonicalITIPLocation(timezone)
 		if err != nil {
-			return parsedITIPTemporalValue{}, ErrInvalidTimezone
+			return parsedITIPTemporalValue{}, err
 		}
 		instant, err := parseITIPLocalInstant(property.value, location)
 		if err != nil {
@@ -829,6 +826,18 @@ func parseITIPTemporalValue(property parsedITIPProperty, semanticError error) (p
 		return parsedITIPTemporalValue{}, err
 	}
 	return parsedITIPTemporalValue{form: parsedITIPValueUTC, timezone: "UTC", instant: instant}, nil
+}
+
+func loadCanonicalITIPLocation(timezone string) (*time.Location, error) {
+	if timezone == "" || timezone == "Local" || !utf8.ValidString(timezone) ||
+		len(timezone) > itipMaxTimezoneBytes || hasAnyITIPControl(timezone) {
+		return nil, ErrInvalidTimezone
+	}
+	location, err := time.LoadLocation(timezone)
+	if err != nil {
+		return nil, ErrInvalidTimezone
+	}
+	return location, nil
 }
 
 func parseITIPUTCInstant(value string, semanticError error) (time.Time, error) {
@@ -1395,12 +1404,11 @@ func normalizeITIPIdentityTemporal(message *ITIPMessage) error {
 	if temporal.Timed != nil {
 		value := *temporal.Timed
 		if value.StartsAt.IsZero() || value.EndsAt.IsZero() || value.StartsAt.Nanosecond() != 0 || value.EndsAt.Nanosecond() != 0 ||
-			!value.EndsAt.After(value.StartsAt) || value.Timezone == "" || !utf8.ValidString(value.Timezone) || len(value.Timezone) > itipMaxTimezoneBytes ||
-			hasAnyITIPControl(value.Timezone) {
+			!value.EndsAt.After(value.StartsAt) {
 			return ErrInvalidITIPTemporal
 		}
-		if _, err := time.LoadLocation(value.Timezone); err != nil {
-			return ErrInvalidTimezone
+		if _, err := loadCanonicalITIPLocation(value.Timezone); err != nil {
+			return err
 		}
 		value.StartsAt = value.StartsAt.UTC()
 		value.EndsAt = value.EndsAt.UTC()
