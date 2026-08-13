@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
-last_updated: "2026-08-13T21:41:02+03:00"
-last_activity: 2026-08-13 · 143-03A hash-pair CHECK plus external metadata oracle independently STATIC_CONFORMANT (C/I/M 0/0/0); Packet C pending; launcher NOT_READY and runtime NOT_RUN
+last_updated: "2026-08-13T21:55:32+03:00"
+last_activity: 2026-08-13 · 143-03A and 143-03C hash-pair CHECKs plus external metadata oracles independently STATIC_CONFORMANT (each C/I/M 0/0/0); Task 2 atomic commit boundary pending; launcher NOT_READY and runtime NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -341,9 +341,15 @@ spec_coverage:
   external Ent-metadata oracle and is independently `STATIC_CONFORMANT` (Critical/Important/Minor
   `0/0/0`) under exact Terra/xhigh implementation and Terra/high independent-review routes with
   dispatcher-enforced provenance and actual telemetry `UNKNOWN`; the state, schema, external test
-  and evidence document form the pending atomic Task 1 boundary. Packet C remains pending, so the
-  hash-pair schema chain and its dependents remain blocked. 143-03B retains a source-content PASS but its parent chain is
-  reopened; 143-03F retains a root-content PASS. The two-packet remediation remains in
+  and evidence document form committed Task 1 boundary `31bfff8f58ba83d12b59600135503f98a6c92fbd`.
+  Packet C now has the exact CHECK plus external Ent-metadata oracle and is independently
+  `STATIC_CONFORMANT` (Critical/Important/Minor `0/0/0`) under exact Terra/xhigh implementation
+  and Terra/high independent-review routes with dispatcher-enforced provenance and actual telemetry
+  `UNKNOWN`; docs sync uses Terra/medium. Its schema, external test and evidence document form the
+  pending atomic Task 2 boundary; after the root commit, the containing commit is authoritative.
+  Both hash-pair P1 remediations are statically conformant, but downstream acceptance remains
+  separate. 143-03B retains a source-content PASS but its parent chain is reopened; 143-03F retains
+  a root-content PASS. The two-packet remediation remains in
   `REMEDIATION-143-03-HASH-PAIR.md` and
   `docs/superpowers/plans/2026-08-13-calendar-hash-pair-remediation.md`. 143-03D and 144-01B
   stay blocked by their hash-pair, exact-contract and independent-review dependencies. This does

@@ -6,6 +6,8 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/entsql"
+	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -76,6 +78,15 @@ func (CalendarEventException) Fields() []ent.Field {
 		field.Time("updated_at").
 			Default(nowUTC).
 			UpdateDefault(nowUTC),
+	}
+}
+
+// Annotations задаёт ограничения целостности переопределения экземпляра события.
+func (CalendarEventException) Annotations() []schema.Annotation {
+	return []schema.Annotation{
+		entsql.Checks(map[string]string{
+			"calendar_event_exceptions_payload_hash_pair": "(payload_hash_version IS NULL) = (payload_hash IS NULL)",
+		}),
 	}
 }
 

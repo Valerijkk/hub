@@ -1,31 +1,39 @@
-# Task 143-03C — content review and provenance blocker
+# Task 143-03C — hash-pair remediation static evidence
 
-> **Status:** P1_REMEDIATION_REQUIRED · MODEL_PROVENANCE_BLOCKED · NOT_STATIC_ACCEPTED
-> **Implementation commit:** `1288d5dfacd6ee93d78a07da765d6ca3d75cb535`
-> **Implementation dependency:** 143-03A `c6f5ec8b54b7e35327125dd4445634c5d1764491` · later reopened
+> **Status:** STATIC_CONFORMANT · INDEPENDENT_REVIEW_C/I/M_0/0/0 · RUNTIME_NOT_RUN
+> **Implementation commit:** the atomic Git commit that will contain this evidence document together
+> with `backend/ent/schema/calendareventexception.go` and
+> `backend/tests/calendar/calendar_event_exception_schema_test.go`; resolve it from Git history
+> after root creates the pending commit
+> **Accepted dependency:** Packet A `31bfff8f58ba83d12b59600135503f98a6c92fbd`
 
 ## Scope and result
 
-- Authoring packet: `/root/mail_143_03c_impl`.
-- Requested authoring route: exact `gpt-5.6-terra` / `xhigh`; no fallback.
-- Sole owned file: `backend/ent/schema/calendareventexception.go`.
-- Source blob: `100f9d1e3c6448996f5ec0d02be68be64100375c` (file SHA-256
-  `bf263669f894dddc160925bf1a664197f94e7b3bcb5aef0c226a3b0d9c5971dd`).
+- Remediation packet: `/root/calendar_hash_pair_c`.
+- Implementation route: exact `gpt-5.6-terra` / `xhigh`; `provenance_source=dispatcher-enforced`;
+  actual telemetry `UNKNOWN`; no fallback.
+- Independent reviewer: `/root/calendar_hash_pair_c_review`, exact `gpt-5.6-terra` / `high`;
+  `provenance_source=dispatcher-enforced`; actual telemetry `UNKNOWN`.
+- Documentation sync route: exact `gpt-5.6-terra` / `medium`.
+- Packet C paths: `backend/ent/schema/calendareventexception.go` and external oracle
+  `backend/tests/calendar/calendar_event_exception_schema_test.go`.
+- Packet A commit `31bfff8f58ba83d12b59600135503f98a6c92fbd` is unchanged.
 
-The first source-only review found no P0, P1 or P2: the occurrence override schema has the
-unique event plus recurrence identity, typed timed/all-day override fields,
-timezone/location/status overrides and the accepted no-cascade event edge. A later root
-deep audit found the same P1 as 143-03A: nullable canonical hash version/hash fields lack
-the required schema-level pair check. The frozen fix is in
-`REMEDIATION-143-03-HASH-PAIR.md`.
+The root audit finding for Packet C is remediated by the exact schema-level
+`calendar_event_exceptions_payload_hash_pair` check with the portable nullable-pair predicate.
+The external Ent-metadata oracle checks that annotation without requiring generated output. An
+independent static review found Critical/Important/Minor `0/0/0`; the Packet C diff is therefore
+`STATIC_CONFORMANT`.
 
-## Why acceptance is blocked
+Exact reviewed content SHA-256: schema
+`a653e046e7c8247add965d22eb0c73d7f543b50f4ba6389a0c22af16ed53950d`; external oracle
+`23554a0379c34c16853ec564fdd7bd76498b0505108919a5a5c29b8984ef0cd5`.
 
-The review runtime did not expose its actual model/effort. A second independent provenance
-attempt explicitly requested `gpt-5.6-terra` / `high`, reported actual `UNAVAILABLE`, used no
-fallback and stopped before reading files. The founder routing lock says unavailable runtime
-provenance is `UNKNOWN/BLOCKED`. Therefore content quality is recorded, but packet 143-03C
-is not statically accepted and dependent 143-03D must not start.
+After Packet C, both hash-pair P1 remediations are statically conformant. This does not accept
+Phase 143, the Calendar product, a migration, generated Ent output, or runtime behavior;
+downstream acceptance remains separate.
 
 Ent generation, schema compilation, migrations and executable tests remain `NOT_RUN`; the
-accepted launcher is `NOT_READY`.
+accepted launcher is `NOT_READY`. No generated or migration file was changed. The code and
+external-test paths and this evidence form the indivisible pending Task 2 commit boundary. Before
+the root commit they remain pending; afterward the containing commit is authoritative.

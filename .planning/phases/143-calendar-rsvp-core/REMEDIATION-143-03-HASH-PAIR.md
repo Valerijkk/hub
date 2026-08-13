@@ -2,14 +2,14 @@
 
 > **Detected:** 2026-08-13 root deep static audit
 > **Severity:** P1 persistence invariant
-> **Status:** PACKET_A_STATIC_CONFORMANT · PACKET_C_PENDING · RUNTIME_NOT_RUN
+> **Status:** PACKET_A_STATIC_CONFORMANT · PACKET_C_STATIC_CONFORMANT · RUNTIME_NOT_RUN
 
 ## Finding
 
 Mail 0.1.7 requires every stored canonical payload hash to be paired with its version.
 `PLAN.md` Task 143-03 additionally requires schema-level annotations/checks supported by
-current Ent patterns. Packet A now remediates the `CalendarEvent` pair statically; Packet C
-for `CalendarEventException` remains pending:
+current Ent patterns. Packet A remediates the `CalendarEvent` pair statically; Packet C
+remediates the `CalendarEventException` pair statically:
 
 - `backend/ent/schema/calendarevent.go`
 - `backend/ent/schema/calendareventexception.go`
@@ -25,9 +25,9 @@ The exact tests-first sequential execution packet is
 Ent-metadata unit oracle beside each sole product schema; this does not authorize generated
 output, a migration or runtime execution.
 
-Apply two sequential atomic packets so the original sole-file ownership remains intact. Packet A
-has the exact CHECK and external metadata oracle and is independently `STATIC_CONFORMANT`
-(Critical/Important/Minor `0/0/0`). Packet C remains pending.
+Apply two sequential atomic packets so the original sole-file ownership remains intact. Both
+packets have the exact CHECK and external metadata oracle and are independently
+`STATIC_CONFORMANT` (Critical/Important/Minor `0/0/0`).
 For each schema:
 
 1. add only the imports needed for `schema.Annotation` and `entsql.Checks`;
@@ -55,8 +55,19 @@ independent reviewer `/root/calendar_hash_pair_a_review` used exact `gpt-5.6-ter
 with the same accepted dispatcher provenance and actual telemetry `UNKNOWN`. The source diff and
 external Ent-metadata oracle are independently `STATIC_CONFORMANT`; code review
 Critical/Important/Minor is `0/0/0`. The two Packet A paths and this evidence form the
-indivisible pending Task 1 commit boundary. Before the root commit they remain pending; afterward
-the containing commit is authoritative. Packet C is still pending.
+indivisible committed Task 1 boundary `31bfff8f58ba83d12b59600135503f98a6c92fbd`.
+
+Packet C was dispatched on exact `gpt-5.6-terra` / `xhigh` with
+`provenance_source=dispatcher-enforced` and actual telemetry `UNKNOWN`; no fallback. Its
+independent reviewer `/root/calendar_hash_pair_c_review` used exact `gpt-5.6-terra` / `high`
+with the same accepted dispatcher provenance and actual telemetry `UNKNOWN`. The source diff and
+external Ent-metadata oracle are independently `STATIC_CONFORMANT`; code review
+Critical/Important/Minor is `0/0/0`. Documentation sync uses exact `gpt-5.6-terra` / `medium`.
+The two Packet C paths and this evidence form the indivisible pending Task 2 commit boundary.
+Before the root commit they remain pending; afterward the containing commit is authoritative.
+
+Both hash-pair P1 remediations are statically conformant. This is not a Phase 143, product,
+migration or runtime PASS; downstream acceptance remains separate.
 
 Generation, schema compilation, unit execution and runtime remain `NOT_RUN` because the accepted
 launcher is `NOT_READY`. This static result is not a Phase 143, product, migration or runtime
