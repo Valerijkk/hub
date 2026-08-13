@@ -18,7 +18,7 @@ requirements: [TASK-193, TASK-197, TASK-198, TASK-201, TASK-204, TASK-219, TASK-
 must_haves:
   truths:
     - "Phase 129 remains blocked until Phase 128 has sealed the 1,049-row authority, the descriptor-relative no-follow executor, its negative sentinels, and an independent HIGH-free acceptance."
-    - "The sealed ledger identity is 1,049 rows at SHA-256 72de6a81b2bd5da8873a98e784a5069a661e9caea083f10722aa85e9f91b4511."
+    - "The sealed ledger identity is 1,049 rows at SHA-256 83b6a31149807d21441a2ede91dec0b36b4a4396c4c0ceb58308b58878f5ad89."
     - "Exactly 507 initially actionable moves, 245 initially blocked hook-dependent Go unit releases/moves, 297 ledger deletes, 28 non-ledger deletes, and 43 hook-file deletes are represented by 173 explicit planned batch tasks; IDs become authoritative only after the Phase-128 seal."
     - "Every planned batch has at most 56 literal operations and maps to one task; it remains non-executable until exact Phase-128 seal equality and separate future runner implementation plus independent acceptance."
     - "Every batch uses one sealed apply-and-verify transaction: an owner-authorized Linux writer applies the exact Phase-128 batch, emits a mutation receipt and rollback handle, then a fresh conclusion-blind read-only verifier records separate repository-root and focused-gate evidence."
