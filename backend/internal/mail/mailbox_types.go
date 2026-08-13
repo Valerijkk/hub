@@ -1,5 +1,7 @@
 package mail
 
+import "time"
+
 const (
 	// MaxEngineOpaqueIDBytes ограничивает непрозрачный идентификатор движка.
 	MaxEngineOpaqueIDBytes = 1024
@@ -7,12 +9,40 @@ const (
 	MaxEngineCursorBytes = 4096
 	// MaxEnginePageItems ограничивает одну страницу движка.
 	MaxEnginePageItems = 100
+	// MaxEngineProjectionItemBytes ограничивает переменные байты одной проекции сообщения.
+	MaxEngineProjectionItemBytes = 1048576
+	// MaxEngineProjectionPageBytes ограничивает переменные байты одной страницы проекций.
+	MaxEngineProjectionPageBytes = 8388608
+	// MaxEngineMessageBytes ограничивает размер полного сообщения или черновика движка.
+	MaxEngineMessageBytes = 52428800
+	// MaxEngineAttachmentBytes ограничивает размер одного вложения движка.
+	MaxEngineAttachmentBytes = 26214400
+	// MaxEngineDraftRecipientItems ограничивает каждый список получателей черновика.
+	MaxEngineDraftRecipientItems = 100
+	// MaxEngineDraftTotalRecipientItems ограничивает суммарное число получателей черновика.
+	MaxEngineDraftTotalRecipientItems = 300
+	// MaxEngineReferenceItems ограничивает список ссылок Message-ID.
+	MaxEngineReferenceItems = 100
 	// MaxEngineFolderItems ограничивает список папок одной учётной записи.
 	MaxEngineFolderItems = 100
 	// MaxEngineAddressItems ограничивает каждый набор адресов содержимого.
 	MaxEngineAddressItems = 200
 	// MaxEngineKeywordItems ограничивает набор зарезервированных markers.
 	MaxEngineKeywordItems = 200
+	// MaxEngineAttachmentItems ограничивает набор вложений сообщения или черновика.
+	MaxEngineAttachmentItems = 50
+	// MaxEngineAddressEmailBytes ограничивает нормализованный адрес электронной почты.
+	MaxEngineAddressEmailBytes = 320
+	// MaxEngineAddressNameBytes ограничивает отображаемое имя адреса.
+	MaxEngineAddressNameBytes = 640
+	// MaxEngineHeaderValueBytes ограничивает значение одного заголовка сообщения.
+	MaxEngineHeaderValueBytes = 998
+	// MaxEngineSnippetBytes ограничивает безопасный текстовый сниппет.
+	MaxEngineSnippetBytes = 4096
+	// MaxEngineMIMEFieldBytes ограничивает поле MIME-вложения.
+	MaxEngineMIMEFieldBytes = 1020
+	// MaxEngineBodyPartBytes ограничивает одно нормализованное тело сообщения.
+	MaxEngineBodyPartBytes = 8388608
 	// MaxEngineSpamTrainingItems ограничивает feedback-команду classifier.
 	MaxEngineSpamTrainingItems = 200
 	// MaxEngineDNSRecordItems ограничивает публичные DNS-требования домена.
@@ -197,8 +227,7 @@ type FolderSpec struct {
 
 // EnginePageRequest — запрошенная ограниченная страница данных движка.
 type EnginePageRequest struct {
-	Cursor string
-	Limit  int
+	Limit int
 }
 
 // EnginePageBounds — явные ограничения и фактический размер страницы движка.
@@ -212,16 +241,46 @@ type EnginePageBounds struct {
 type EngineMessageQuery struct {
 	AccountID string
 	FolderID  string
+	Cursor    string
 	Page      EnginePageRequest
 }
 
-// EngineMessagePage — account-scoped ограниченная страница гидратированных сообщений.
-type EngineMessagePage struct {
+// EngineMessageReadRequest — account-scoped запрос полного сообщения с ограничением содержимого.
+type EngineMessageReadRequest struct {
+	AccountID       string
+	MessageID       string
+	MaxContentBytes int64
+}
+
+// EngineBlobReadRequest — account-scoped запрос двоичного вложения с ограничением размера.
+type EngineBlobReadRequest struct {
+	AccountID string
+	BlobID    string
+	MaxBytes  int64
+}
+
+// EngineChangeRequest — account-scoped запрос инкрементальных изменений от заданного курсора.
+type EngineChangeRequest struct {
+	AccountID  string
+	FromCursor string
+	Page       EnginePageRequest
+}
+
+// EngineEnumerationRequest — account-scoped запрос возобновляемого перечисления проекций.
+type EngineEnumerationRequest struct {
+	AccountID  string
+	BaseCursor string
+	Checkpoint string
+	Page       EnginePageRequest
+}
+
+// EngineProjectionPage — account-scoped ограниченная страница проекций сообщений.
+type EngineProjectionPage struct {
 	AccountID  string
 	Cursor     string
 	NextCursor string
 	Bounds     EnginePageBounds
-	Messages   []EngineMessage
+	Messages   []EngineMessageProjection
 }
 
 // EngineAddress — ограниченный адрес сообщения или черновика.
@@ -230,15 +289,108 @@ type EngineAddress struct {
 	Name  string
 }
 
-// EngineMessageContent — каноническое содержимое, передаваемое только движку.
-type EngineMessageContent struct {
-	From      EngineAddress
-	To        []EngineAddress
-	CC        []EngineAddress
-	BCC       []EngineAddress
-	Subject   string
+// EngineBodyFormat — формат нормализованного тела сообщения.
+type EngineBodyFormat string
+
+const (
+	// EngineBodyPlain обозначает текстовое тело сообщения.
+	EngineBodyPlain EngineBodyFormat = "plain"
+	// EngineBodyRich обозначает форматированное тело сообщения.
+	EngineBodyRich EngineBodyFormat = "rich"
+)
+
+// EngineMessagePriority — безопасный приоритет сообщения.
+type EngineMessagePriority string
+
+const (
+	// EnginePriorityLow обозначает низкий приоритет сообщения.
+	EnginePriorityLow EngineMessagePriority = "low"
+	// EnginePriorityNormal обозначает обычный приоритет сообщения.
+	EnginePriorityNormal EngineMessagePriority = "normal"
+	// EnginePriorityHigh обозначает высокий приоритет сообщения.
+	EnginePriorityHigh EngineMessagePriority = "high"
+)
+
+// EngineAttachmentDisposition — способ представления вложения в сообщении.
+type EngineAttachmentDisposition string
+
+const (
+	// EngineAttachmentDispositionAttachment обозначает отдельное вложение.
+	EngineAttachmentDispositionAttachment EngineAttachmentDisposition = "attachment"
+	// EngineAttachmentDispositionInline обозначает встроенное вложение.
+	EngineAttachmentDispositionInline EngineAttachmentDisposition = "inline"
+)
+
+// EngineProjectionAttachment — ограниченные метаданные вложения в проекции сообщения.
+type EngineProjectionAttachment struct {
+	BlobID      string
+	ContentID   string
+	Filename    string
+	MediaType   string
+	SizeBytes   int64
+	Disposition EngineAttachmentDisposition
+	SHA256      []byte
+}
+
+// EngineMessageProjection — ограниченные метаданные одного сообщения без его тела.
+type EngineMessageProjection struct {
+	AccountID         string
+	MessageID         string
+	Version           string
+	InternetMessageID string
+	InReplyTo         string
+	References        []string
+	From              EngineAddress
+	To                []EngineAddress
+	CC                []EngineAddress
+	BCC               []EngineAddress
+	ReplyTo           []EngineAddress
+	Subject           string
+	Snippet           string
+	SentAt            *time.Time
+	ReceivedAt        *time.Time
+	SizeBytes         int64
+	Priority          EngineMessagePriority
+	FolderIDs         []string
+	Flags             EngineMessageFlags
+	ReservedKeywords  []EngineKeywordMarker
+	Attachments       []EngineProjectionAttachment
+	Origin            EngineProjectionOrigin
+}
+
+// EngineMessageBody — разрешённое нормализованное тело сообщения.
+type EngineMessageBody struct {
+	Format    EngineBodyFormat
 	PlainBody string
 	RichBody  string
+}
+
+// EngineDraftAttachment — полное вложение, передаваемое только при сохранении черновика.
+type EngineDraftAttachment struct {
+	AttachmentKey string
+	ContentID     string
+	Filename      string
+	MediaType     string
+	Disposition   EngineAttachmentDisposition
+	SHA256        [32]byte
+	Bytes         []byte
+}
+
+// EngineMessageContent — каноническое содержимое, передаваемое только движку.
+type EngineMessageContent struct {
+	From        EngineAddress
+	To          []EngineAddress
+	CC          []EngineAddress
+	BCC         []EngineAddress
+	ReplyTo     []EngineAddress
+	Subject     string
+	InReplyTo   string
+	References  []string
+	Format      EngineBodyFormat
+	PlainBody   string
+	RichBody    string
+	Priority    EngineMessagePriority
+	Attachments []EngineDraftAttachment
 }
 
 // EngineProjectionOrigin — серверно подтверждённое происхождение проекции сообщения.
@@ -256,17 +408,10 @@ const (
 // EngineKeywordMarker — непрозрачный зарезервированный marker ключевого слова движка.
 type EngineKeywordMarker string
 
-// EngineMessage — гидратированное account-scoped сообщение движка.
+// EngineMessage — полное account-scoped сообщение с проекцией и разрешённым телом.
 type EngineMessage struct {
-	AccountID        string
-	MessageID        string
-	Version          string
-	Content          EngineMessageContent
-	From             EngineAddress
-	FolderIDs        []string
-	Flags            EngineMessageFlags
-	ReservedKeywords []EngineKeywordMarker
-	Origin           EngineProjectionOrigin
+	Projection EngineMessageProjection
+	Body       EngineMessageBody
 }
 
 // EngineMessageFlags — серверно подтверждённые флаги гидратированного сообщения.
@@ -293,7 +438,7 @@ type EngineChangePage struct {
 	FromCursor       string
 	NextCursor       string
 	Bounds           EnginePageBounds
-	CreatedOrUpdated []EngineMessage
+	CreatedOrUpdated []EngineMessageProjection
 	DestroyedIDs     []string
 }
 
@@ -305,24 +450,28 @@ type EngineEnumerationPage struct {
 	NextCheckpoint string
 	Complete       bool
 	Bounds         EnginePageBounds
-	Messages       []EngineMessage
+	Messages       []EngineMessageProjection
 }
 
-// EngineDraft — request-only полный черновик с прежней версией и стабильной мутацией Hub.
+// EngineDraft — request-only полный черновик со стабильным ключом и ограничением содержимого.
 type EngineDraft struct {
 	AccountID       string
+	DraftKey        string
 	MessageID       string
 	PreviousVersion string
 	MutationID      string
+	MaxContentBytes int64
 	Message         EngineMessageContent
 }
 
 // EngineDraftReconciliation — account-scoped запрос сверки неопределённого черновика.
 type EngineDraftReconciliation struct {
 	AccountID       string
+	DraftKey        string
 	MessageID       string
 	PreviousVersion string
 	MutationID      string
+	MaxContentBytes int64
 }
 
 // EngineDraftResult — закрытый результат сверки черновика.
@@ -359,13 +508,14 @@ type EngineDraftIndeterminate struct {
 
 func (EngineDraftIndeterminate) engineDraftResult() {}
 
-// EngineSubmission — request-only отправка с неизменяемым ключом движка.
+// EngineSubmission — request-only ссылочная отправка подтверждённого черновика.
 type EngineSubmission struct {
-	AccountID     string
-	DraftID       string
-	MessageID     string
-	SubmissionKey string
-	Message       EngineMessageContent
+	AccountID       string
+	DraftKey        string
+	MessageID       string
+	ExpectedVersion string
+	SubmissionKey   string
+	MaxMessageBytes int64
 }
 
 // EngineSubmissionResult — закрытый результат отправки или её сверки.

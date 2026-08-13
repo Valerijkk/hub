@@ -19,6 +19,8 @@ var (
 	ErrEngineUnauthorizedAccount = errors.New("mail engine unauthorized account")
 	// ErrEngineRestartRequired обозначает необходимость перезапустить базовую синхронизацию.
 	ErrEngineRestartRequired = errors.New("mail engine projection restart required")
+	// ErrEnginePayloadTooLarge обозначает превышение безопасного ограничения полезной нагрузки движка.
+	ErrEnginePayloadTooLarge = errors.New("mail engine payload too large")
 )
 
 // EngineErrorKind — безопасный стабильный вид ошибки порта движка.
@@ -41,6 +43,8 @@ const (
 	EngineErrorUnauthorizedAccount EngineErrorKind = "unauthorized_account"
 	// EngineErrorRestartRequired обозначает необходимость перезапустить синхронизацию.
 	EngineErrorRestartRequired EngineErrorKind = "restart_required"
+	// EngineErrorPayloadTooLarge обозначает превышение безопасного ограничения полезной нагрузки.
+	EngineErrorPayloadTooLarge EngineErrorKind = "payload_too_large"
 )
 
 // EngineError — безопасная типизированная ошибка без данных провайдера.
@@ -70,6 +74,8 @@ func (e *EngineError) Error() string {
 		return "mail engine unauthorized account"
 	case EngineErrorRestartRequired:
 		return "mail engine projection restart required"
+	case EngineErrorPayloadTooLarge:
+		return "mail engine payload too large"
 	default:
 		return "mail engine error"
 	}
@@ -97,6 +103,8 @@ func (e *EngineError) Unwrap() error {
 		return ErrEngineUnauthorizedAccount
 	case EngineErrorRestartRequired:
 		return ErrEngineRestartRequired
+	case EngineErrorPayloadTooLarge:
+		return ErrEnginePayloadTooLarge
 	default:
 		return nil
 	}

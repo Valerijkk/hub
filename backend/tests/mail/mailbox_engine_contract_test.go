@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/valerii/hub/backend/internal/mail"
 )
@@ -44,23 +45,23 @@ func (consumerStub) DeleteFolder(context.Context, string, string) error {
 	return nil
 }
 
-func (consumerStub) ListMessages(context.Context, mail.EngineMessageQuery) (mail.EngineMessagePage, error) {
-	return mail.EngineMessagePage{}, nil
+func (consumerStub) ListMessages(context.Context, mail.EngineMessageQuery) (mail.EngineProjectionPage, error) {
+	return mail.EngineProjectionPage{}, nil
 }
 
-func (consumerStub) GetMessage(context.Context, string, string) (mail.EngineMessage, error) {
+func (consumerStub) GetMessage(context.Context, mail.EngineMessageReadRequest) (mail.EngineMessage, error) {
 	return mail.EngineMessage{}, nil
 }
 
-func (consumerStub) GetBlob(context.Context, string, string) (mail.EngineBlob, error) {
+func (consumerStub) GetBlob(context.Context, mail.EngineBlobReadRequest) (mail.EngineBlob, error) {
 	return mail.EngineBlob{}, nil
 }
 
-func (consumerStub) Changes(context.Context, string, string) (mail.EngineChangePage, error) {
+func (consumerStub) Changes(context.Context, mail.EngineChangeRequest) (mail.EngineChangePage, error) {
 	return mail.EngineChangePage{}, nil
 }
 
-func (consumerStub) EnumerateProjection(context.Context, string, string) (mail.EngineEnumerationPage, error) {
+func (consumerStub) EnumerateProjection(context.Context, mail.EngineEnumerationRequest) (mail.EngineEnumerationPage, error) {
 	return mail.EngineEnumerationPage{}, nil
 }
 
@@ -124,23 +125,27 @@ func TestMailEngine_ExternalConsumerImplementsFrozenPort(t *testing.T) {
 func TestMailEngine_DraftAndSubmissionValuesAreTyped(t *testing.T) {
 	draft := mail.EngineDraft{
 		AccountID:       "account-opaque",
-		MessageID:       "draft-opaque",
+		DraftKey:        "stable-draft-key",
+		MessageID:       "message-opaque",
 		PreviousVersion: "version-opaque",
 		MutationID:      "hub-mutation-id",
+		MaxContentBytes: 1024,
 		Message: mail.EngineMessageContent{
 			Subject:   "Draft subject",
 			PlainBody: "Draft body",
 		},
 	}
 	submission := mail.EngineSubmission{
-		AccountID:     "account-opaque",
-		DraftID:       draft.MessageID,
-		SubmissionKey: "stable-submission-key",
-		Message:       draft.Message,
+		AccountID:       "account-opaque",
+		DraftKey:        draft.DraftKey,
+		MessageID:       draft.MessageID,
+		ExpectedVersion: draft.PreviousVersion,
+		SubmissionKey:   "stable-submission-key",
+		MaxMessageBytes: 1024,
 	}
 
-	if draft.PreviousVersion == "" || draft.MutationID == "" || submission.SubmissionKey == "" {
-		t.Fatal("draft version, mutation id and submission key must remain explicit typed fields")
+	if draft.DraftKey == "" || draft.PreviousVersion == "" || draft.MutationID == "" || submission.SubmissionKey == "" {
+		t.Fatal("draft key, version, mutation id and submission key must remain explicit typed fields")
 	}
 }
 
@@ -251,9 +256,10 @@ func TestMailEngine_IncrementalAndEnumerationPagesCarryBoundsAndTypedRecovery(t 
 }
 
 func TestMailEngine_ProjectionOriginDoesNotInferOwnerFromAddressOrSentFolder(t *testing.T) {
-	addressAndSentOnly := mail.EngineMessage{
+	addressAndSentOnly := mail.EngineMessageProjection{
 		AccountID: "account-opaque",
 		MessageID: "message-opaque",
+		Version:   "version-opaque",
 		FolderIDs: []string{"sent-folder-opaque"},
 		From:      mail.EngineAddress{Email: "owner@example.test"},
 	}
@@ -261,9 +267,10 @@ func TestMailEngine_ProjectionOriginDoesNotInferOwnerFromAddressOrSentFolder(t *
 		t.Fatal("From and Sent fields alone must not derive projection origin")
 	}
 
-	message := mail.EngineMessage{
+	message := mail.EngineMessageProjection{
 		AccountID:        "account-opaque",
 		MessageID:        "message-opaque",
+		Version:          "version-opaque",
 		Origin:           mail.EngineProjectionOriginInboundOrUnknown,
 		FolderIDs:        []string{"sent-folder-opaque"},
 		From:             mail.EngineAddress{Email: "owner@example.test"},
@@ -362,6 +369,268 @@ func TestMailEngine_ReservedKeywordPatchIsDistinctFromPublicFlagsAndLabels(t *te
 	}
 	assertNoFields(t, reflect.TypeOf(mail.KeywordPatch{}), "Label", "Flag", "UnknownKeyword")
 	assertNoFields(t, reflect.TypeOf(mail.EngineMessage{}), "Labels", "PublicKeywords")
+}
+
+func TestMailEngine_HardLimitsMatchContract018(t *testing.T) {
+	want := map[string]int{
+		"opaque": 1024, "cursor": 4096, "page": 100,
+		"projection_item": 1048576, "projection_page": 8388608,
+		"message": 52428800, "attachment": 26214400,
+		"projection_addresses": 200, "draft_recipients": 100,
+		"draft_total_recipients": 300,
+		"references": 100, "folders": 100, "keywords": 200,
+		"attachments": 50, "email": 320, "display_name": 640,
+		"header": 998, "snippet": 4096, "mime_field": 1020,
+		"body_part": 8388608,
+	}
+	got := map[string]int{
+		"opaque": mail.MaxEngineOpaqueIDBytes,
+		"cursor": mail.MaxEngineCursorBytes,
+		"page": mail.MaxEnginePageItems,
+		"projection_item": mail.MaxEngineProjectionItemBytes,
+		"projection_page": mail.MaxEngineProjectionPageBytes,
+		"message": mail.MaxEngineMessageBytes,
+		"attachment": mail.MaxEngineAttachmentBytes,
+		"projection_addresses": mail.MaxEngineAddressItems,
+		"draft_recipients": mail.MaxEngineDraftRecipientItems,
+		"draft_total_recipients": mail.MaxEngineDraftTotalRecipientItems,
+		"references": mail.MaxEngineReferenceItems,
+		"folders": mail.MaxEngineFolderItems,
+		"keywords": mail.MaxEngineKeywordItems,
+		"attachments": mail.MaxEngineAttachmentItems,
+		"email": mail.MaxEngineAddressEmailBytes,
+		"display_name": mail.MaxEngineAddressNameBytes,
+		"header": mail.MaxEngineHeaderValueBytes,
+		"snippet": mail.MaxEngineSnippetBytes,
+		"mime_field": mail.MaxEngineMIMEFieldBytes,
+		"body_part": mail.MaxEngineBodyPartBytes,
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("hard limits = %#v, want %#v", got, want)
+	}
+}
+
+func TestMailEngine_RequestAndPageShapesAreClosed(t *testing.T) {
+	assertExactFields(t, reflect.TypeOf(mail.EnginePageRequest{}), reflect.TypeOf(struct {
+		Limit int
+	}{}))
+	assertExactFields(t, reflect.TypeOf(mail.EnginePageBounds{}), reflect.TypeOf(struct {
+		Requested int
+		Maximum   int
+		Returned  int
+	}{}))
+	assertExactFields(t, reflect.TypeOf(mail.EngineMessageQuery{}), reflect.TypeOf(struct {
+		AccountID string
+		FolderID  string
+		Cursor    string
+		Page      mail.EnginePageRequest
+	}{}))
+	assertExactFields(t, reflect.TypeOf(mail.EngineMessageReadRequest{}), reflect.TypeOf(struct {
+		AccountID       string
+		MessageID       string
+		MaxContentBytes int64
+	}{}))
+	assertExactFields(t, reflect.TypeOf(mail.EngineBlobReadRequest{}), reflect.TypeOf(struct {
+		AccountID string
+		BlobID    string
+		MaxBytes  int64
+	}{}))
+	assertExactFields(t, reflect.TypeOf(mail.EngineChangeRequest{}), reflect.TypeOf(struct {
+		AccountID  string
+		FromCursor string
+		Page       mail.EnginePageRequest
+	}{}))
+	assertExactFields(t, reflect.TypeOf(mail.EngineEnumerationRequest{}), reflect.TypeOf(struct {
+		AccountID  string
+		BaseCursor string
+		Checkpoint string
+		Page       mail.EnginePageRequest
+	}{}))
+	assertExactFields(t, reflect.TypeOf(mail.EngineProjectionPage{}), reflect.TypeOf(struct {
+		AccountID  string
+		Cursor     string
+		NextCursor string
+		Bounds     mail.EnginePageBounds
+		Messages   []mail.EngineMessageProjection
+	}{}))
+	assertExactFields(t, reflect.TypeOf(mail.EngineChangePage{}), reflect.TypeOf(struct {
+		AccountID        string
+		FromCursor       string
+		NextCursor       string
+		Bounds           mail.EnginePageBounds
+		CreatedOrUpdated []mail.EngineMessageProjection
+		DestroyedIDs     []string
+	}{}))
+	assertExactFields(t, reflect.TypeOf(mail.EngineEnumerationPage{}), reflect.TypeOf(struct {
+		AccountID      string
+		BaseCursor     string
+		Checkpoint     string
+		NextCheckpoint string
+		Complete       bool
+		Bounds         mail.EnginePageBounds
+		Messages       []mail.EngineMessageProjection
+	}{}))
+}
+
+func TestMailEngine_ContentAndSubmissionShapesAreClosed(t *testing.T) {
+	assertExactFields(t, reflect.TypeOf(mail.EngineAddress{}), reflect.TypeOf(struct {
+		Email string
+		Name  string
+	}{}))
+	assertExactFields(t, reflect.TypeOf(mail.EngineMessageFlags{}), reflect.TypeOf(struct {
+		Seen     bool
+		Answered bool
+		Draft    bool
+		Flagged  bool
+		Junk     bool
+	}{}))
+	assertExactFields(t, reflect.TypeOf(mail.EngineProjectionAttachment{}), reflect.TypeOf(struct {
+		BlobID      string
+		ContentID   string
+		Filename    string
+		MediaType   string
+		SizeBytes   int64
+		Disposition mail.EngineAttachmentDisposition
+		SHA256      []byte
+	}{}))
+	assertExactFields(t, reflect.TypeOf(mail.EngineMessageProjection{}), reflect.TypeOf(struct {
+		AccountID         string
+		MessageID         string
+		Version           string
+		InternetMessageID string
+		InReplyTo         string
+		References        []string
+		From              mail.EngineAddress
+		To                []mail.EngineAddress
+		CC                []mail.EngineAddress
+		BCC               []mail.EngineAddress
+		ReplyTo           []mail.EngineAddress
+		Subject           string
+		Snippet           string
+		SentAt            *time.Time
+		ReceivedAt        *time.Time
+		SizeBytes         int64
+		Priority          mail.EngineMessagePriority
+		FolderIDs         []string
+		Flags             mail.EngineMessageFlags
+		ReservedKeywords  []mail.EngineKeywordMarker
+		Attachments       []mail.EngineProjectionAttachment
+		Origin            mail.EngineProjectionOrigin
+	}{}))
+	assertExactFields(t, reflect.TypeOf(mail.EngineMessageBody{}), reflect.TypeOf(struct {
+		Format    mail.EngineBodyFormat
+		PlainBody string
+		RichBody  string
+	}{}))
+	assertExactFields(t, reflect.TypeOf(mail.EngineMessage{}), reflect.TypeOf(struct {
+		Projection mail.EngineMessageProjection
+		Body       mail.EngineMessageBody
+	}{}))
+	assertExactFields(t, reflect.TypeOf(mail.EngineDraftAttachment{}), reflect.TypeOf(struct {
+		AttachmentKey string
+		ContentID     string
+		Filename      string
+		MediaType     string
+		Disposition   mail.EngineAttachmentDisposition
+		SHA256        [32]byte
+		Bytes         []byte
+	}{}))
+	assertExactFields(t, reflect.TypeOf(mail.EngineMessageContent{}), reflect.TypeOf(struct {
+		From        mail.EngineAddress
+		To          []mail.EngineAddress
+		CC          []mail.EngineAddress
+		BCC         []mail.EngineAddress
+		ReplyTo     []mail.EngineAddress
+		Subject     string
+		InReplyTo   string
+		References  []string
+		Format      mail.EngineBodyFormat
+		PlainBody   string
+		RichBody    string
+		Priority    mail.EngineMessagePriority
+		Attachments []mail.EngineDraftAttachment
+	}{}))
+	assertExactFields(t, reflect.TypeOf(mail.EngineBlob{}), reflect.TypeOf(struct {
+		AccountID string
+		BlobID    string
+		MediaType string
+		SizeBytes int64
+		Bytes     []byte
+	}{}))
+	assertExactFields(t, reflect.TypeOf(mail.EngineDraft{}), reflect.TypeOf(struct {
+		AccountID       string
+		DraftKey        string
+		MessageID       string
+		PreviousVersion string
+		MutationID      string
+		MaxContentBytes int64
+		Message         mail.EngineMessageContent
+	}{}))
+	assertExactFields(t, reflect.TypeOf(mail.EngineDraftReconciliation{}), reflect.TypeOf(struct {
+		AccountID       string
+		DraftKey        string
+		MessageID       string
+		PreviousVersion string
+		MutationID      string
+		MaxContentBytes int64
+	}{}))
+	assertExactFields(t, reflect.TypeOf(mail.EngineSubmission{}), reflect.TypeOf(struct {
+		AccountID       string
+		DraftKey        string
+		MessageID       string
+		ExpectedVersion string
+		SubmissionKey   string
+		MaxMessageBytes int64
+	}{}))
+	assertExactFields(t, reflect.TypeOf(mail.EngineSubmissionSent{}), reflect.TypeOf(struct {
+		SubmissionID string
+		MessageID    string
+	}{}))
+	assertNoFields(t, reflect.TypeOf(mail.EngineMessageProjection{}), "Content", "Body", "Bytes", "RawMIME")
+	assertNoFields(t, reflect.TypeOf(mail.EngineSubmission{}), "Message", "Content", "Attachments", "Bytes", "RawMIME")
+}
+
+func TestMailEngine_Contract018EnumsAndPayloadErrorAreStable(t *testing.T) {
+	if mail.EngineBodyPlain != "plain" || mail.EngineBodyRich != "rich" ||
+		mail.EnginePriorityLow != "low" || mail.EnginePriorityNormal != "normal" ||
+		mail.EnginePriorityHigh != "high" ||
+		mail.EngineAttachmentDispositionAttachment != "attachment" ||
+		mail.EngineAttachmentDispositionInline != "inline" ||
+		mail.EngineProjectionOriginConfirmedOwnerDraft != "confirmed_owner_draft" {
+		t.Fatal("0.1.8 enum value drift")
+	}
+	if mail.EngineProjectionOriginInboundOrUnknown != "inbound_or_unknown" {
+		t.Fatal("inbound-or-unknown projection origin value drift")
+	}
+	if mail.EngineProjectionOriginConfirmedOwnerSubmission != "confirmed_owner_submission" {
+		t.Fatal("confirmed-owner-submission projection origin value drift")
+	}
+	if mail.EngineErrorPayloadTooLarge != "payload_too_large" {
+		t.Fatal("payload-too-large engine error kind value drift")
+	}
+	err := &mail.EngineError{Kind: mail.EngineErrorPayloadTooLarge}
+	if !errors.Is(err, mail.ErrEnginePayloadTooLarge) {
+		t.Fatal("payload-too-large must match its stable sentinel")
+	}
+	if got := err.Error(); got != "mail engine payload too large" {
+		t.Fatalf("payload error = %q", got)
+	}
+}
+
+func assertExactFields(t *testing.T, valueType, expectedType reflect.Type) {
+	t.Helper()
+	if valueType.NumField() != expectedType.NumField() {
+		t.Fatalf("%s field count = %d, want %d", valueType.Name(), valueType.NumField(), expectedType.NumField())
+	}
+	for index := 0; index < expectedType.NumField(); index++ {
+		actual := valueType.Field(index)
+		expected := expectedType.Field(index)
+		if actual.Name != expected.Name || actual.Type != expected.Type || actual.Tag != expected.Tag || actual.Anonymous != expected.Anonymous {
+			t.Fatalf("%s field %d = {Name:%q Type:%s Tag:%q Anonymous:%t}, want {Name:%q Type:%s Tag:%q Anonymous:%t}",
+				valueType.Name(), index, actual.Name, actual.Type, actual.Tag, actual.Anonymous,
+				expected.Name, expected.Type, expected.Tag, expected.Anonymous)
+		}
+	}
 }
 
 func assertNoFields(t *testing.T, valueType reflect.Type, forbiddenNames ...string) {

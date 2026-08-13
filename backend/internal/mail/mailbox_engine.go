@@ -12,11 +12,11 @@ type MailEngine interface {
 	CreateFolder(context.Context, string, FolderSpec) (EngineFolder, error)
 	RenameFolder(context.Context, string, string, string) error
 	DeleteFolder(context.Context, string, string) error
-	ListMessages(context.Context, EngineMessageQuery) (EngineMessagePage, error)
-	GetMessage(context.Context, string, string) (EngineMessage, error)
-	GetBlob(context.Context, string, string) (EngineBlob, error)
-	Changes(context.Context, string, string) (EngineChangePage, error)
-	EnumerateProjection(context.Context, string, string) (EngineEnumerationPage, error)
+	ListMessages(context.Context, EngineMessageQuery) (EngineProjectionPage, error)
+	GetMessage(context.Context, EngineMessageReadRequest) (EngineMessage, error)
+	GetBlob(context.Context, EngineBlobReadRequest) (EngineBlob, error)
+	Changes(context.Context, EngineChangeRequest) (EngineChangePage, error)
+	EnumerateProjection(context.Context, EngineEnumerationRequest) (EngineEnumerationPage, error)
 	SaveDraft(context.Context, EngineDraft) (EngineMessage, error)
 	ReconcileDraft(context.Context, EngineDraftReconciliation) (EngineDraftResult, error)
 	Submit(context.Context, EngineSubmission) (EngineSubmissionResult, error)

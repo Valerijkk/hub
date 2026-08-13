@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
-last_updated: "2026-08-14T00:07:53+03:00"
-last_activity: 2026-08-14 resumed · Mail 0.1.8 five-document amendment independently exact-contract PASS at `5e314fb080d420696642058ae47397e251c23207`; next action is 144-01A. Launcher NOT_READY and runtime NOT_RUN
+last_updated: "2026-08-14T02:18:43+03:00"
+last_activity: 2026-08-14 · Mail 144-01A atomic seven-path boundary is STATIC_CONFORMANT after independent source reviews; exact post-commit independent review remains pending. Launcher NOT_READY and executable evidence NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -118,7 +118,7 @@ mail_feature_workstream:
     branch: codex/mail-module-20260813
     phases: "142-148"
     current_phase: 144
-    status: contract_0_1_8_exact_contract_pass_144_01A_next_runtime_not_run
+    status: contract_0_1_8_exact_contract_pass_144_01A_static_conformant_post_commit_review_pending_runtime_not_run
     product_truth: unfinished_mvp_feature_not_accepted
     contract_version: "0.1.8"
     tasks:
@@ -137,8 +137,8 @@ mail_feature_workstream:
       launcher: NOT_READY
       resource_budget: NOT_MEASURED
       external_delivery: NOT_CONFIGURED
-      atomic_code_model: gpt-5.6-terra_xhigh_actual_143_01_143_02A
-      atomic_code_model_evidence: .planning/phases/143-calendar-rsvp-core/IMPLEMENTATION-143-02A.md
+      atomic_code_model: gpt-5.6-terra_xhigh_dispatcher_enforced_144_01A_telemetry_UNKNOWN
+      atomic_code_model_evidence: .planning/phases/144-mailbox-domain/IMPLEMENTATION-144-01A.md
       atomic_code_provenance_rule: dispatcher_enforced_for_exact_native_acceptance_telemetry_must_match_if_available
       production_migration_authority: UNRESOLVED
       production_migration_evidence: .planning/phases/143-calendar-rsvp-core/MIGRATION-PLAN.md
@@ -300,13 +300,19 @@ spec_coverage:
   Founder task-local routing override authorizes exact `gpt-5.6-terra`/`xhigh` for
   atomic Mail product/test packets. Tasks 143-01, 143-02A and 143-02B are static accepted;
   bounded iTIP parsing includes reviewed CVE-v1,
-  safe errors, post-unfold UTF-8 and host-independent timezone handling. Task 144-01A source
-  matches only the historical 0.1.7 port through `43d421ef`. Root-frozen
-  `ENGINE-CONTRACT-0.1.8.md` now replaces embedded hydrated pages with projection-only
-  1 MiB-item/8 MiB-page values, budgeted 50 MiB message / 25 MiB blob reads and a stable
-  first-draft key. The post-commit code-to-contract pass additionally froze every request,
-  page, projection, body, attachment, blob, draft and reference-only submission field and
-  synchronized `confirmed_owner_draft`; implementation and independent review are pending.
+  safe errors, post-unfold UTF-8 and host-independent timezone handling. Task 144-01A's
+  `43d421ef` source is historical 0.1.7 evidence. Against the root-frozen 0.1.8 contract at
+  `5e314fb080d420696642058ae47397e251c23207`, the atomic seven-path 144-01A boundary
+  containing this evidence is `STATIC_CONFORMANT`: projection-only 1 MiB-item/8 MiB-page values, budgeted 50 MiB message /
+  25 MiB blob reads, stable first-draft identity, closed request/page/projection/body/
+  attachment/blob/draft grammar, `confirmed_owner_draft`, and reference-only submission.
+  Exact Terra/xhigh authoring and Terra/high independent reviews are dispatcher-enforced with
+  actual telemetry `UNKNOWN`; the source reviews report Spec/Quality PASS C/I/M `0/0/0`, then
+  Security/Oracle PASS after fix round 1 and final C/I/M `0/0/0`. This does not close the
+  exact atomic-commit independent review: the seven-path boundary has parent
+  `fa0a2f2a542caadd9f5951e6f703b060b4776780`, and its own SHA must be recorded post-commit.
+  `144-01B` and Phase 145 remain blocked; launcher and all executable evidence remain
+  `NOT_READY` / `NOT_RUN`.
   Root-frozen `PERSISTENCE-CONTRACT-0.1.8.md` supplies the exact 144-02A/B/C/D/F fields,
   tuple/state checks, normalized indexes, scalar attachment staging, sole default/scan
   authorities, quotas, generic receipt/bulk matrices and canonical rule hash. OpenAPI 0.1.8
@@ -1351,14 +1357,17 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 
 ## Session Continuity
 
-**Last session:** 2026-08-14 (resumed · Mail 0.1.8 contract lifecycle)
-**Stopped at:** five-document Mail 0.1.8 amendment independently exact-contract `PASS` at
-`5e314fb080d420696642058ae47397e251c23207`; launcher remains `NOT_READY` and executable
-evidence remains `NOT_RUN`.
+**Last session:** 2026-08-14 (Mail 144-01A source docs sync)
+**Stopped at:** the 0.1.8 144-01A atomic seven-path boundary containing this evidence is
+`STATIC_CONFORMANT` against `5e314fb080d420696642058ae47397e251c23207`; its parent is
+`fa0a2f2a542caadd9f5951e6f703b060b4776780`, and it awaits exact-commit independent review.
+The launcher remains `NOT_READY` and all executable evidence remains `NOT_RUN`.
 `pro-qa-ai` beta.3 already exists both in protected Hub source
 and as the Desktop portable copy. Legacy remains frozen; destructive move/delete
 has not started.
-**Resume:** execute the exact 144-01A packet. Do not start 144-01B before 144-01A acceptance.
+**Resume:** run the exact-commit independent review and record the commit SHA through
+post-commit Git evidence. Do not start 144-01B before that gate and applicable supported
+Docker evidence close.
 
 **Coverage decision:** TASK-203 backend profile **82.0373%** remains historical
 discovery evidence. Founder waived statement-coverage parity as migration gate;

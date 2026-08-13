@@ -2,88 +2,61 @@
 
 > **Detected:** 2026-08-13 root deep static audit
 > **Severity:** P1 contract boundary
-> **Status:** 0.1.8_ROOT_AMENDMENT_AVAILABLE · INDEPENDENT_CLOSURE_PENDING · DOWNSTREAM_BLOCKED · RUNTIME_NOT_RUN
+> **Status:** `P1_STATICALLY_REMEDIATED_BY_0_1_8_ATOMIC_BOUNDARY` ·
+> `EXACT_ATOMIC_COMMIT_INDEPENDENT_REVIEW_PENDING` · `DOWNSTREAM_BLOCKED` · `RUNTIME_NOT_RUN`
+> **Frozen contract:** `docs/mail/ENGINE-CONTRACT-0.1.8.md` at
+> `5e314fb080d420696642058ae47397e251c23207`
 
-> **Superseding candidate:** `docs/mail/ENGINE-CONTRACT-0.1.8.md` and OpenAPI 0.1.8
-> root-freeze projection-only pages, byte-budgeted complete reads, hard policy ceilings and
-> stable first-draft identity. A later root code-to-contract pass also closed the exact
-> request/page/projection/body/attachment field grammar and made submission reference-only,
-> so the implementer owns no representation decision. This finding remains open until
-> independent exact-SHA review.
+## Historical finding
 
-## What remains valid
+The superseded 0.1.7 boundary embedded full `EngineMessageContent` in pages, accepted a
+whole `GetBlob(accountID, blobID)` without a caller budget, and did not expose hard public
+message/attachment ceilings. A provider response could therefore make an item-count-bounded
+page consume unbounded retained memory. The historical 0.1.7 source/fix evidence through
+`43d421ef` remains useful only as history; it is not the current safety gate.
 
-The implementation through `43d421ef` matches the exact frozen 144-01A method surface and
-its safe error taxonomy. No new source defect was found in the allowlisted `EngineError`
-fix. The public interface, DTO shapes and external compile oracle remain useful evidence.
+## Decision record
 
-## Reopened contract gap
+The retained options were: (A) projection-only pages plus explicit bounded reads; (B) hydrated
+pages with item and aggregate budgets; or (C) identifiers-only pages with N+1 hydration.
+Option A is frozen in 0.1.8. It avoids projection body duplication without moving an adapter
+or runtime-validation implementation into this DTO packet. The earlier founder-question
+uncertainty is superseded by the frozen 0.1.8 contract and is no longer this packet's gate.
 
-The current boundary does not actually bound response memory:
+## Static remediation proof
 
-1. `EngineMessage` embeds `EngineMessageContent`, including recipient slices and complete
-   plain/rich body strings. `ListMessages`, `Changes` and `EnumerateProjection` return up to
-   100 such values, but neither the request nor DTO specifies a per-message or aggregate
-   byte budget. An item-count cap alone is not a memory cap.
-2. `GetBlob(accountID, blobID)` returns one complete `EngineBlob.Bytes` value and accepts no
-   maximum byte request or bounded stream primitive. A provider-reported size can therefore
-   drive allocation before the domain has a chance to reject it.
-3. OpenAPI `max_message_bytes` and `max_attachment_bytes` have minimums but no maximums.
-   Phase 145 says provider bodies/messages/blobs must be bounded before allocation, yet the
-   accepted port and admin contract do not define the authoritative ceilings or over-limit
-   behavior.
+The atomic seven-path boundary containing this evidence is `STATIC_CONFORMANT` against the
+frozen contract. Static reviews
+returned `Spec/Quality PASS` C/I/M `0/0/0`, then Security/Oracle PASS after fix round 1 and a
+final C/I/M `0/0/0`. The source proof is:
 
-A malicious/compromised adapter response or an unsafe administrator value could therefore
-turn a nominally bounded page into unbounded process memory. The deterministic fake cannot
-serve as a meaningful conformance oracle until this is frozen.
+1. `ListMessages`, `Changes` and `EnumerateProjection` return projection-only page values;
+   `EngineMessageProjection` has no body, raw MIME or attachment-byte field.
+2. `GetMessage` and `GetBlob` take explicit account-bound byte-budget requests; the closed
+   DTO surface carries the 1 MiB item, 8 MiB page, 50 MiB message and 25 MiB attachment caps.
+3. `EngineMessage` is exactly projection plus one authorized body. Draft and blob byte values
+   remain only in their bounded read/write DTOs, not page projections.
+4. `EngineSubmission` is the six-field reference-only value; it cannot carry or replace
+   draft/message content.
+5. `ErrEnginePayloadTooLarge` and `payload_too_large` are exact safe literals in both error
+   allowlists; unknown error kinds retain the content-free fallback.
+6. The external-package oracle fixes method signatures, field count/order/type, forbidden
+   projection/submission fields, literal limits/enums and `errors.Is` sentinel behavior.
 
-## Decision-ready options
+This is a structural source proof, not proof that a future adapter validates before allocation,
+rejects an overflowing stream, or runs a fake/provider integration. Those behaviors require
+their later packet and supported execution evidence.
 
-The unattended root pass applied the founder-file safe default from questions 28, 30, 31,
-38 and 41. The alternatives remain recorded for morning confirmation:
+## Remaining gate impact
 
-### Option A — recommended safe default
+The atomic seven-path boundary containing this evidence has parent
+`fa0a2f2a542caadd9f5951e6f703b060b4776780`. Its own commit SHA cannot be self-recorded in the
+same commit and must be captured by post-commit Git evidence; no placeholder SHA is valid.
 
-- projection/list/change/enumeration pages return a projection-only message DTO with no
-  full body;
-- authorized `GetMessage` uses an explicit request byte budget and returns one bounded
-  content value;
-- blob reads use either a caller-supplied byte ceiling plus exact-size rejection before
-  allocation, or a bounded streaming handle whose reader cannot exceed the ceiling;
-- OpenAPI/admin policy gets hard `maximum` values no larger than deployment hard caps;
-- one stable content-too-large error is safe and contains no provider/body/id value.
-
-### Option B — retain one hydrated DTO
-
-Keep `EngineMessage` in every page, but add explicit per-item and aggregate byte budgets to
-every read/page request and require the adapter to reject before body/blob allocation. This
-is a smaller type split but makes projection sync pay for body hydration and increases the
-memory/error matrix.
-
-### Option C — identifiers-only pages
-
-Return only message ids and hydrate every projection separately. This minimizes a page DTO
-but creates up to 100 provider round trips, cannot atomically carry the folder/flag/header
-snapshot needed by projection sync, and moves the same byte/race problem into an N+1 loop.
-
-### Applied root candidate
-
-Option A is frozen with one additional narrowing: the exact projection/header/attachment
-fields are closed, body occurs only on one authorized message read, attachment bytes occur
-only on bounded draft/blob values, and submission references the already confirmed draft.
-This is the smallest representation that supports one-pass projection sync without a second
-50 MiB content copy.
-
-## Gate impact
-
-Until founder questions 28, 30 and 31 are answered or the safe default is explicitly
-accepted:
-
-- 144-01A is source-conformant but no longer a fully accepted contract gate;
-- 144-01B should not be authored against a surface expected to change;
-- Phase 145 message/blob/change/enumeration mapping remains blocked independently of its
-  license/runtime gates;
-- no direct Docker run can resolve an under-specified public boundary.
-
-No production/test source, dependency, generator, migration, runtime, test or Docker command
-was changed or run by this review.
+- Independent review of that exact atomic commit is still pending.
+- The accepted task-owned launcher remains `NOT_READY`; compile, unit, race, build, lint,
+  validators, Docker and runtime remain `NOT_RUN`.
+- `144-01B` remains blocked, and Phase 145 message/blob/change/enumeration mapping remains
+  blocked until the exact-commit review and each packet's applicable supported Docker evidence
+  close their gates.
+- No direct Docker run can convert this static finding into runtime evidence.
