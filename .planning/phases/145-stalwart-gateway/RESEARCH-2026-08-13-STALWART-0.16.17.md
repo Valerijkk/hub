@@ -1,6 +1,6 @@
 # Stalwart 0.16.17 research snapshot — 2026-08-13
 
-> **Status:** `RESEARCH_SNAPSHOT_ONLY / NOT_GATE_PASS`
+> **Status:** `ROUTE_P0_ROOT_CORRECTED / SOURCE_ONLY_REREVIEW_NO_P0_P1 / P2_ROOT_FIXED / TELEMETRY_UNKNOWN / NOT_GATE_PASS`
 >
 > This file records current official-source findings for Phase 145. It does not
 > approve a license, container image, credential design, deployment, network
@@ -43,7 +43,11 @@ G145-4 remains open.
 | <https://github.com/stalwartlabs/stalwart/commit/08509ddccbe6f978a1ffebeb250cab8588d765e5> | Full source commit for the candidate release. |
 | <https://github.com/stalwartlabs/stalwart> | Upstream license choice is AGPL-3.0 or SELv2; Hub's legal choice remains external to this repository. |
 | <https://hub.docker.com/r/stalwartlabs/stalwart/tags> plus read-only OCI registry metadata | Docker Hub candidate index/platform/attestation digests above; image labels point to the exact source revision. Search-page caches were not used for the digest. |
-| <https://stalw.art/docs/install/platform/docker/> | Official images are published with full and moving tags. Volumes are `/etc/stalwart` and `/var/lib/stalwart`; bind mounts require UID 2000 ownership. Hub still pins the exact immutable digest rather than trusting a tag. |
+| <https://stalw.art/docs/install/platform/docker/> | Volumes are `/etc/stalwart` and `/var/lib/stalwart`; the image runs as UID 2000 without `--privileged`/extra capability. The broad example publishes every mail/HTTP port, but docs explicitly permit pruning. `STALWART_PUBLIC_URL` controls the single base advertised by OAuth, OIDC and JMAP discovery without changing listener binds. Hub still pins the exact immutable digest rather than trusting a tag. |
+| <https://stalw.art/docs/server/listener/> | Listener objects have explicit protocol, bind set, TLS and per-listener maximum connections. Supported protocols include SMTP, HTTP, IMAP, POP3 and ManageSieve; unused listener objects must be absent rather than merely undocumented. |
+| <https://stalw.art/docs/http/access-control/> | `Http.allowedEndpoints` can filter by listener, source, path and method, but its default is allow-all. The Hub profile therefore requires an explicit default-deny expression. |
+| <https://stalw.art/docs/install/security/> | Upstream enables many listeners initially and recommends removing unused ports. Port 8080 is bootstrap/recovery-only; unused IMAP/POP3/submission/ManageSieve and broad HTTP exposure must not survive steady state. |
+| <https://stalw.art/docs/development/api/> | OAuth UI/device completion uses anonymous, rate-limited `POST /api/auth`. The page's generic `/api` management examples conflict with the exact selected-version source below and are not accepted as route evidence for `v0.16.17`. |
 | <https://stalw.art/docs/http/> | Main-server health endpoints are `/healthz/ready` and `/healthz/live`. |
 | <https://stalw.art/docs/http/jmap/> | Mail JMAP is discovered at `/.well-known/jmap`; the mail endpoint is `/jmap`. |
 | <https://www.stalw.art/docs/auth/authentication/api-key/> | API keys authenticate the management JMAP API only. They cannot authenticate JMAP mail, IMAP, POP3, SMTP submission, CalDAV, CardDAV or WebDAV. |
@@ -51,39 +55,48 @@ G145-4 remains open.
 | <https://stalw.art/docs/auth/oauth/tokens/> | Access tokens are short-lived and scoped; refresh tokens are longer-lived, sensitive, renewable and revocable. Hub must persist them encrypted and handle rotation/expiry rather than treating OAuth as a static secret. |
 | <https://stalw.art/docs/auth/authorization/permissions/> | The external permission catalogue exposes exact domain and individual-account CRUD/list permissions. Hub can scope a management key without an administrator-wide allowlist. |
 | <https://stalw.art/docs/auth/authorization/administrator/> | `impersonate` grants broad access and upstream recommends granting it sparingly. It is not silently accepted as Hub's mailbox credential design. |
-| <https://github.com/stalwartlabs/stalwart/blob/08509ddccbe6f978a1ffebeb250cab8588d765e5/crates/http/src/request.rs#L83-L89> and <https://github.com/stalwartlabs/stalwart/blob/08509ddccbe6f978a1ffebeb250cab8588d765e5/crates/http/src/request.rs#L429-L435> | Exact candidate source routes authenticated mail requests under `/jmap` and dispatches `/api` to the management API handler. |
+| <https://github.com/stalwartlabs/stalwart/blob/08509ddccbe6f978a1ffebeb250cab8588d765e5/UPGRADING/v0_16.md#L27-L35> | Exact-version upgrade guidance says previous-release `/api/...` management endpoints no longer exist and management operations are JMAP objects reachable at `/jmap`. This source outranks conflicting current object-document examples. |
+| <https://github.com/stalwartlabs/stalwart/blob/08509ddccbe6f978a1ffebeb250cab8588d765e5/crates/http/src/request.rs#L83-L132> and <https://github.com/stalwartlabs/stalwart/blob/08509ddccbe6f978a1ffebeb250cab8588d765e5/crates/http/src/request.rs#L429-L435> | Exact candidate source authenticates and dispatches JMAP on `/jmap`; `/api` dispatches to a separate helper API handler rather than the Registry JMAP method processor. |
+| <https://github.com/stalwartlabs/stalwart/blob/08509ddccbe6f978a1ffebeb250cab8588d765e5/crates/jmap/src/api/request.rs#L350-L590> | The same JMAP request registry dispatches standard mail methods and management Registry Get/Query/Set branches for `x:*` objects. Hub therefore separates typed method/capability contexts and credentials on one `/jmap` route. |
+| <https://github.com/stalwartlabs/stalwart/blob/08509ddccbe6f978a1ffebeb250cab8588d765e5/crates/http/src/api/mod.rs#L55-L250> | Exact `/api` handler contains auth/discovery/account/schema/token/live helpers; anonymous rate-limited `POST /api/auth` is the OAuth login exception. Root `POST /api` is not the management Registry JMAP endpoint. |
 | <https://github.com/stalwartlabs/stalwart/blob/08509ddccbe6f978a1ffebeb250cab8588d765e5/crates/jmap/src/api/request.rs#L252-L310> and adjacent Query/Set/Blob branches | Shared-account ACL access is accepted for Email/Mailbox methods, but `Identity`, `EmailSubmission`, `Sieve` and Blob operations require account membership. |
 | <https://github.com/stalwartlabs/stalwart/blob/08509ddccbe6f978a1ffebeb250cab8588d765e5/crates/jmap-proto/src/object/mailbox.rs#L449-L461> | Mailbox `shareWith` rights map to read/add/remove/modify/create-child/submit/delete/share ACLs; those rights do not replace the member-only checks above. |
-| <https://stalw.art/docs/ref/object/domain/> | Domain provisioning uses `x:Domain/*`, `urn:stalwart:jmap` and the management `/api` endpoint. |
+| <https://stalw.art/docs/ref/object/domain/> | Domain provisioning uses `x:Domain/*` and `urn:stalwart:jmap`. Its current `/api` example conflicts with pinned `v0.16.17` source/upgrade guidance; Hub sends the Registry method only to `/jmap`. |
 | <https://stalw.art/docs/domains/dns-records/> | Manual mode exposes the expected `dnsZoneFile`; automatic mode mutates a configured DNS provider asynchronously. Neither document defines a manual-DNS verification result on `x:Domain`. |
 | <https://stalw.art/docs/ref/object/account/> | Account provisioning uses `x:Account/*`; a user has a local-part `name`, a `domainId`, credentials, roles, permissions and aliases. |
 | <https://github.com/stalwartlabs/stalwart/blob/08509ddccbe6f978a1ffebeb250cab8588d765e5/crates/jmap/src/identity/get.rs> and adjacent `set.rs` | Exact candidate source implements standard mail-JMAP `Identity/get|set`: identities have stable server ids, initial Get creates identities from all account addresses when none exist, and Set permits only addresses configured on that account. |
 | <https://stalw.art/docs/sieve/jmap/> and <https://www.rfc-editor.org/rfc/rfc9661.html> | A mailbox's personal scripts use RFC 9661 `SieveScript/*` on mail JMAP with capability `urn:ietf:params:jmap:sieve`; script bytes are uploaded as a bounded blob before `SieveScript/set`. |
 | <https://stalw.art/docs/ref/object/sieve-system-script/> | `x:SieveSystemScript` is a server system script under the management capability; it is not the per-mailbox Hub rule target. |
 | <https://stalw.art/docs/ref/object/sieve-user-script/> | `x:SieveUserScript` is a global script available for user imports; it is not a user's active personal script. |
-| <https://stalw.art/docs/ref/object/spam-training-sample/> | `x:SpamTrainingSample` exists on `/api`, but current docs do not freeze a client-supplied message/blob-to-spam-or-ham mapping or native idempotency/reconciliation for Hub feedback commands. |
+| <https://stalw.art/docs/ref/object/spam-training-sample/> | `x:SpamTrainingSample` is a Registry object; the selected version routes Registry methods through `/jmap`, despite the current page's `/api` example. The docs still do not freeze a client-supplied message/blob-to-spam-or-ham mapping or native idempotency/reconciliation for Hub feedback commands. |
 
-## Required endpoint and credential separation
+## Required method and credential separation on the shared JMAP endpoint
 
-The earlier Phase 145 shorthand of one “JMAP/admin URL” and one administrator secret is
-invalid for this candidate. The accepted adapter must model two non-interchangeable planes:
+The earlier Phase 145 shorthand of separate management `/api` and mailbox `/jmap` routes is
+invalid for this exact candidate. Both control contexts use one fixed same-origin `/jmap`
+endpoint, but their capabilities, methods and credentials remain non-interchangeable:
 
-| Plane | Fixed endpoint | Capability / objects | Credential class | Hub use |
+| Typed context | Fixed endpoint | Capability / objects | Credential class | Hub use |
 |---|---|---|---|---|
-| Management | trusted origin + `/api` | `urn:stalwart:jmap`; `x:Domain`, `x:Account` and other reviewed management objects | separately scoped management API key | domain/account/identity provisioning and only explicitly reviewed administrative objects |
-| Mailbox | `/.well-known/jmap` discovery, then same-origin `/jmap`/session URLs | core, mail, submission, blob and optional RFC 9661 sieve | account password/app password/OAuth, or a separately reviewed least-privilege delegation design | messages, mailboxes, drafts, submission, changes and personal Sieve |
+| Management Registry | trusted origin + `/jmap` | `urn:stalwart:jmap`; exact reviewed `x:Domain`, `x:Account` and other Registry objects | separately scoped management API key | domain/account provisioning and only explicitly reviewed Registry methods |
+| Mailbox | `/.well-known/jmap` discovery, then same-origin `/jmap`/session upload/download URLs | core, mail, submission, blob and optional RFC 9661 sieve | OAuth/account password or separately reviewed delegation design | identities, messages, mailboxes, drafts, submission, changes and personal Sieve |
+| Helper/auth | individually allowlisted `/api` path+method pairs, especially `POST /api/auth` | OAuth login, account/schema/token/live helpers; no Registry JMAP provisioning | endpoint-specific public or operator policy; never selected merely because the path starts `/api` | only explicitly reviewed helper operations |
 | Health | trusted origin + `/healthz/ready` and `/healthz/live` | main server health | deployment-specific; no credential assumption frozen here | bounded readiness/liveness observation only |
 
 Hard consequences:
 
-1. A management API key must never be sent to `/jmap`, an upload/download URL or a mail
-   protocol port.
-2. A mailbox credential must never be reused as the management API key.
-3. Management `/api` is a fixed reviewed path, not a URL learned from a user or mailbox
-   JMAP session.
-4. Mail session, upload and download URLs are accepted only under the same-origin policy
+1. A management API key may be sent only to the fixed `/jmap` endpoint for an exact
+   management Registry method allowlist. It must never accompany standard mail methods,
+   upload/download requests, helper `/api/*` requests or a mail protocol.
+2. A mailbox credential may be sent only for standard mailbox JMAP methods and accepted
+   same-origin upload/download URLs. It must never authorize an `x:*` Registry method.
+3. One JMAP request batch may not mix Registry and mailbox method calls. Credential/context
+   selection is typed before request construction and never inferred from the shared URL.
+4. `/api` is a fixed helper/auth namespace, not the management provisioning endpoint.
+   Only exact reviewed path+method pairs are callable; prefix-based authorization is banned.
+5. Mail session, upload and download URLs are accepted only under the same-origin policy
    rooted at the trusted configured origin.
-5. Enabled mailbox mode remains blocked until the least-privilege mailbox delegation and
+6. Enabled mailbox mode remains blocked until the least-privilege mailbox delegation and
    secret lifecycle are accepted. Hub does not auto-generate or persist one plaintext
    password per user as a guessed fallback.
 
@@ -129,6 +142,45 @@ least-privilege. Until one mode and its secret lifecycle are accepted, only
 `MAILBOX_ENGINE_MAIL_AUTH_MODE=disabled` is valid and all enabled mailbox network calls
 remain blocked before I/O.
 
+### OAuth origin and listener topology
+
+The selected image documents one `STALWART_PUBLIC_URL` for the URLs advertised by OAuth,
+OIDC and JMAP discovery. It changes advertised URLs, not listener binds. Hub's contract also
+requires every JMAP session/upload/download URL to stay on the configured trusted origin.
+Therefore an internal-only `MAILBOX_ENGINE_ORIGIN` and a different browser-facing OAuth
+origin cannot be assumed to interoperate: discovery would deliberately move one caller to
+the other origin.
+
+If Authorization Code OAuth is selected, G145-5D must freeze one user-reachable HTTPS origin
+that both Hub and users resolve through an accepted reverse-proxy or split-DNS boundary.
+The user-facing listener may expose only the exact OAuth discovery/authorization UI paths
+and assets proven necessary by the selected version. Exact source identifies one especially
+sensitive exception: anonymous rate-limited `POST /api/auth` performs OAuth authorization-
+code/device login. The allowlist must match that exact path and method; it must never allow
+the `/api` prefix. Both management Registry and mailbox `POST /jmap`, every other `/api/*`,
+upload/download, admin/static UI, telemetry and health remain Hub/service-network or
+operator-only through listener/source/method/path rules. Proxy enforcement is
+defense in depth, not a replacement for Stalwart `allowedEndpoints`. If that shared origin
+cannot be provided, Authorization Code OAuth is not deployable in this profile and the
+explicit broad impersonation decision must be reconsidered instead.
+
+The root-frozen steady-state network baseline is:
+
+- one bounded HTTP listener reachable from the task-owned service network; no host publish
+  in disabled or impersonation-only mode;
+- optional public SMTP port 25 only when external receive is separately enabled; no user
+  submission, IMAP, POP3 or ManageSieve listeners/host mappings in wave 1;
+- no steady-state port 8080, recovery mode or recovery-admin environment variable;
+- explicit per-listener connection caps and default-deny `Http.allowedEndpoints`;
+- `usePermissiveCors=false`; `useXForwarded=false` unless an exact trusted proxy topology is
+  accepted, in which case direct untrusted reachability is blocked;
+- named `/etc/stalwart` and `/var/lib/stalwart` volumes, UID 2000 image user, no
+  `privileged`, no added capability and no Windows host bind-mount ownership workaround.
+
+This is a source-backed baseline, not a selected-version configuration acceptance. Exact
+OAuth authorization/UI paths, listener objects, access expression, configuration export
+and checksum still require G145-5/G145-5D review and accepted-launcher runtime evidence.
+
 ## Selected-version contract findings
 
 ### No manual-DNS verification state
@@ -152,7 +204,7 @@ The generated zone also covers more record classes than the current Hub
 bounded subset or extends the typed engine/public schema; silently calling a subset the
 complete required zone is forbidden.
 
-### Identity ids belong to the mailbox plane
+### Identity ids belong to the mailbox context
 
 `x:Account` returns one account id and inline address values, but this does not mean the
 engine lacks identity ids. Exact `v0.16.17` source implements standard RFC 8621
@@ -161,8 +213,8 @@ an initial Get creates identities from the account's configured primary/alias ad
 the identity collection is empty. Later Set creates are restricted to addresses currently
 configured on that account.
 
-Therefore packet 145-03A is a deliberate two-plane reconciliation: management
-`x:Account/*` ensures the address set, then separately authenticated mailbox
+Therefore packet 145-03A is a deliberate two-context reconciliation on shared `/jmap`:
+management `x:Account/*` ensures the address set, then separately authenticated mailbox
 `Identity/get|set` returns/reconciles the opaque ids required by `EngineAccount`. Missing
 identities are created only after Get; a lost create response is followed by Get before any
 retry. Exactly one identity per normalized desired address is accepted. Duplicate email
@@ -186,19 +238,20 @@ operator-only break-glass paths with separate evidence; Hub never enables them.
   require distinct management and mailbox credential references. The old
   `MAILBOX_ENGINE_ADMIN_USER` / `MAILBOX_ENGINE_ADMIN_SECRET` pair is not an accepted
   enabled contract.
-- **145-01B:** transport code must keep auth providers separated by plane. Redaction and
-  same-origin policy are shared invariants; an authorization header is not.
+- **145-01B:** transport code must keep auth providers separated by typed operation context
+  on shared `/jmap`. Registry/mail mixed batches and wrong-context credentials fail before
+  I/O. Redaction and same-origin policy are shared invariants; an authorization header is not.
 - **145-02:** mail JMAP discovery verifies core/mail/submission/blob and optional sieve
   capabilities. Selected-version management compatibility is checked separately against
-  fixed `/api` object/method evidence; it is not inferred from the mail session.
+  exact Registry object/method evidence on `/jmap`; it is not inferred from mail capabilities.
 - **145-03A:** management `x:Account/*` ensures the account/address set; mailbox
   `Identity/get|set` reconciles the stable opaque primary/alias ids. The packet remains
-  blocked by G145-5B mailbox authentication, and cross-plane credentials never mix.
-- **145-03C:** domain operations use the management plane and exact `x:Domain/*` schema.
+  blocked by G145-5B mailbox authentication, and credentials never cross contexts.
+- **145-03C:** domain operations use the management Registry context and exact `x:Domain/*` schema.
   Before G145-5C they may expose only `dns_required`; existence/enabled/zone text never maps
   to `verified`.
 - **145-07B:** fixed per-mailbox rules use RFC 9661 `SieveScript/get`, bounded blob upload,
-  `SieveScript/set` and activation on the mailbox plane. `x:SieveSystemScript` and
+  `SieveScript/set` and activation in the mailbox context. `x:SieveSystemScript` and
   `x:SieveUserScript` are forbidden for this behavior.
 - **145-07C:** classifier feedback remains blocked. `x:SpamTrainingSample` alone does not
   establish the required explicit message mapping or safe lost-response retry semantics.

@@ -525,7 +525,7 @@ launcher. The direct Compose command is operator documentation, not accepted tes
 
 | Component | Intended image/config | Network exposure | Persistent data | Hard limit allocation | Current evidence |
 |---|---|---|---|---|---|
-| Mail engine | Stalwart `v0.16.17` source candidate; Docker Hub OCI index `sha256:a8108e19…`, linux/amd64 manifest `sha256:2bcbd379…`; signature/SBOM not verified and candidate not approved | Hub-only internal management `/api` plus separately authenticated mailbox `/jmap`; optional SMTP delivery only; no user IMAP/JMAP/ManageSieve/admin mailbox mutation | named `/etc/stalwart` config and `/var/lib/stalwart` data volumes | ≤3 CPU / ≤3 GiB target, subject to measured rebalance | registry metadata only; runtime NOT_RUN |
+| Mail engine | Stalwart `v0.16.17` source candidate; Docker Hub OCI index `sha256:a8108e19…`, linux/amd64 manifest `sha256:2bcbd379…`; signature/SBOM not verified and candidate not approved | Hub-only shared `/jmap` endpoint with separately authorized Registry and mailbox method contexts; exact OAuth helper exception only if accepted; optional SMTP delivery only; no user IMAP/JMAP/ManageSieve/admin mailbox mutation | named `/etc/stalwart` config and `/var/lib/stalwart` data volumes | ≤3 CPU / ≤3 GiB target, subject to measured rebalance | registry metadata only; runtime NOT_RUN |
 | Hub mailbox domain/account/combined projection-recovery/rule workers + API | existing backend image/process | existing backend network only | PostgreSQL/outbox | within remaining mail budget when profiled | NOT_RUN |
 | Existing NATS/Meili/SeaweedFS | shared stack, not duplicated | existing internal network | existing volumes | shared-service attribution must be reported separately | NOT_RUN |
 
@@ -537,11 +537,13 @@ worker cancellation/drain, and exact cleanup.
 
 ### Environment matrix (names only; never values in artifacts)
 
-The 2026-08-13 official-source review invalidated the old single
-`MAILBOX_ENGINE_URL` + administrator user/secret shorthand. A Stalwart management API key
-can authenticate fixed `/api` management calls but cannot authenticate JMAP mail. The
-following names express the required separation; any enabled mode remains rejected until
-the mailbox authentication/delegation design in founder question 42 passes security review.
+The 2026-08-13 exact-source review invalidated both the old single administrator-secret
+shorthand and the interim separate-URL model. A Stalwart management API key authenticates
+only reviewed Registry `x:*` methods on shared `/jmap`; it cannot authenticate standard
+JMAP mail. Typed operation context, not URL, selects the credential, and a JMAP batch may
+not mix Registry and mail methods. The following names express the required separation;
+any enabled mode remains rejected until the mailbox authentication/delegation design in
+founder question 42 passes security review.
 
 | Variable | Required for | Secret | Safe default |
 |---|---|---:|---|
@@ -549,11 +551,12 @@ the mailbox authentication/delegation design in founder question 42 passes secur
 | `MAILBOX_EXTERNAL_ENABLED` | public SMTP send/receive | no | `false` |
 | `MAILBOX_EXCLUSIVE_FOLDER_WRITER` | enables automatic unknown-folder recovery only for an accepted no-alternate-writer profile | no | `false` |
 | `MAILBOX_INSTANCE_DOMAIN` | addresses/UID domain | no | empty; startup refuses external mode |
-| `MAILBOX_ENGINE_ORIGIN` | trusted internal origin for fixed `/api`, health and same-origin JMAP discovery/session URLs | no | empty; enabled startup refuses it |
-| `MAILBOX_ENGINE_MANAGEMENT_API_KEY` | scoped provisioning calls to fixed `/api` only | yes | no repository value; never sent to `/jmap` |
+| `MAILBOX_ENGINE_ORIGIN` | trusted internal origin for shared `/jmap`, individually allowlisted `/api` helper path+method pairs, health and same-origin JMAP discovery/session URLs | no | empty; enabled startup refuses it |
+| `MAILBOX_ENGINE_MANAGEMENT_API_KEY` | scoped provisioning through exact Registry methods on fixed `/jmap` only | yes | no repository value; never used for standard mail methods, mixed batches, upload/download or `/api/*` helpers |
 | `MAILBOX_ENGINE_MAIL_AUTH_MODE` | mailbox JMAP authentication/delegation mode | no | `disabled`; no other mode accepted before G145-5B |
 | `MAILBOX_ENGINE_MAIL_PRINCIPAL` | conditional mailbox JMAP identity selected by G145-5B | yes-like identity | no repository value |
-| `MAILBOX_ENGINE_MAIL_SECRET` | conditional mailbox JMAP credential selected by G145-5B | yes | no repository value; never sent to `/api` |
+| `MAILBOX_ENGINE_MAIL_SECRET` | conditional mailbox JMAP credential selected by G145-5B | yes | no repository value; never used for Registry `x:*` methods or mixed batches |
+| `STALWART_PUBLIC_URL` | conditional single advertised OAuth/OIDC/JMAP origin selected by G145-5D | no | absent; never guessed from request headers or set before the OAuth topology is accepted |
 | `MAILBOX_REMOTE_IMAGE_TOKEN_KEY` | encrypted/signed proxy tokens | yes | startup disables remote-image loading if absent |
 | `MAILBOX_ENGINE_VOLUME` | local operator override | no | named volume |
 | `MAILBOX_MAX_MESSAGE_BYTES` | policy | no | contract-defined bounded value at implementation |
@@ -580,7 +583,16 @@ EmailSubmission, Sieve and Blob require account membership. OAuth exposes Author
 Code and Device Authorization, not client credentials. Until founder question 42 selects
 per-user Authorization Code OAuth or explicitly accepts broad impersonation, config accepts
 only `MAILBOX_ENGINE_MAIL_AUTH_MODE=disabled` and every other mail-auth mode fails before
-network I/O. The selected Domain object exposes expected zone
+network I/O. QA must also prove both typed contexts use fixed `/jmap`, wrong-context
+credentials and mixed Registry/mail batches fail before I/O, and provisioning never uses
+`/api`. If OAuth is selected, one `STALWART_PUBLIC_URL` also drives JMAP discovery, so
+QA must prove one accepted HTTPS origin for browser and Hub, exact user-visible OAuth paths,
+an exact-method/rate-limited `POST /api/auth` exception, and negative access to shared
+management/mail `POST /jmap`, every unrelated `/api/*`, upload/download, admin/static UI and
+telemetry from the user-facing boundary. Prefix-wide `/api`, default/allow-all
+`Http.allowedEndpoints`, steady-state 8080, unused IMAP/POP3/submission/ManageSieve
+listeners, permissive CORS and untrusted forwarded headers
+are release blockers. The selected Domain object exposes expected zone
 text but no manual-DNS verification result, so domain promotion/account provisioning remains
 blocked by founder questions 43-44 and G145-5C. `STALWART_RECOVERY_ADMIN` is operator-only
 bootstrap/recovery state and is absent from the steady-state Hub credential matrix.

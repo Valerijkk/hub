@@ -9,27 +9,34 @@
 1. Founder/legal chooses AGPL-3.0 or SELv2 terms.
 2. Accepted Docker-only launcher exists for this task.
 3. Candidate image tag and digest provenance are refreshed immediately before use.
-4. Separate management `/api` and mailbox `/jmap` credential planes are reviewed; a
-   management API key is never treated as a mail credential. Shared-account ACL is not a
+4. Shared `/jmap` management Registry and mailbox method contexts are reviewed with
+   separate credential providers and non-overlapping method allowlists; authentication is
+   selected by typed operation, never URL, and mixed batches fail before I/O. A management
+   API key is never treated as a mail credential. Shared-account ACL is not a
    full-engine substitute because exact candidate source keeps Identity, EmailSubmission,
    Sieve and Blob member-only. Founder/security selects per-user Authorization Code OAuth
    (root recommendation) or explicitly accepts broad dedicated-account impersonation for
    zero-touch operation; no OAuth client-credentials flow is assumed.
-5. A domain-verification authority and bounded DNS projection are reviewed. Selected
+5. If Authorization Code OAuth is selected, one user-reachable HTTPS origin and exact
+   default-deny listener/path/proxy boundary are accepted. `STALWART_PUBLIC_URL` controls
+   OAuth/OIDC and JMAP discovery together; separate browser and Hub origins are not assumed.
+6. A domain-verification authority and bounded DNS projection are reviewed. Selected
    Stalwart `x:Domain` does not expose manual-DNS verification, so domain existence or
    `dnsZoneFile` cannot satisfy Hub `verified`.
-6. Account provisioning is reviewed as two-plane reconciliation: management `x:Account`
-   owns the address set, while separately authenticated mailbox `Identity/get|set` supplies
-   stable RFC 8621 ids. This path remains disabled until gate 4/G145-5B.
+7. Account provisioning is reviewed as two-context reconciliation on shared `/jmap`:
+   management `x:Account` owns the address set, while separately authenticated mailbox
+   `Identity/get|set` supplies stable RFC 8621 ids. This path remains disabled until gate
+   4/G145-5B.
 
 No runtime implementation/claim proceeds by silent fallback.
 
 ## Ordered tasks after gates
 
-1. Implement two SSRF-safe, redacting Stalwart transport planes under one trusted internal
-   origin: scoped management API-key calls to fixed `/api`, and separately authenticated
-   mailbox discovery/JMAP calls to `/.well-known/jmap` plus same-origin session URLs in
-   `backend/internal/mail/stalwart/**`.
+1. Implement two SSRF-safe, redacting typed Stalwart contexts under one trusted internal
+   origin and shared fixed `/jmap`: scoped API-key Registry calls and separately authenticated
+   mailbox calls. Mail discovery uses `/.well-known/jmap`; `/api` is limited to individually
+   allowlisted helper/auth path+method pairs. Reject mixed Registry/mail batches and wrong-
+   context credentials before I/O in `backend/internal/mail/stalwart/**`.
 2. Implement domain/account/identity/folder/message/draft/submission/flags/fixed-Sieve
    mappings and, only after its separate evidence gate, explicit spam/ham
    classifier-feedback mapping,
@@ -53,8 +60,9 @@ No runtime implementation/claim proceeds by silent fallback.
    only for an enabled adapter on the shared root context, with bounded reverse-order
    cleanup; extend admin health without exposing credentials, cursors or checkpoints.
 5. Add optional `mail` profile, named volumes, healthcheck, restart and explicit CPU/RAM/
-   PID limits; add names-only env examples. Public transport is SMTP-only in wave 1;
-   JMAP/admin stay internal to Hub and user IMAP/JMAP/ManageSieve remain unpublished.
+   PID limits; add names-only env examples. Public mail transport is SMTP-only in wave 1;
+   JMAP/admin stay Hub-only and user IMAP/JMAP/ManageSieve remain unpublished. A separately
+   reviewed HTTPS surface may expose only OAuth paths if G145-5D selects Authorization Code.
 6. Treat invalid/expired change cursors as degraded state followed by a bounded,
    owner-scoped projection rebuild; never silently reset and present stale data as fresh.
 7. Through accepted launcher prove health, authenticated JMAP, internal delivery,

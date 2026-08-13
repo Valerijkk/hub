@@ -14,9 +14,11 @@
 - Never read/change protected testframework/test-rebase/pro-qa-ai zones. Existing Resend
   sender/settings/status/broadcast implementation is a separate compatibility boundary.
 - No client-controlled base/capability URL, redirect, engine account id or credential.
-  Management `/api` and mailbox JMAP use separate auth providers; neither credential may
-  cross planes. Bound response bytes/count/depth/time. Redact auth/session/provider
-  bodies/addresses.
+  Registry and mailbox methods share fixed `/jmap` but use separate typed auth/method
+  contexts; neither credential nor method may cross, and a batch may not mix contexts.
+  `/api` permits only individually allowlisted helper/auth path+method pairs. Bound response
+  bytes/count/depth/time. Redact
+  auth/session/provider bodies/addresses.
 - No host test/build/lint/validator/generator/process. Direct Docker/Compose not accepted
   evidence. Runtime only through accepted task-owned launcher with limits/timeout/owner
   report/finally cleanup.
@@ -45,9 +47,11 @@
   `backend/internal/mail/stalwart/client.go`, `errors.go`,
   `backend/tests/mail/stalwart_client_test.go`.
 - Behavior/oracles: injected `http.Client`, fixed origin and same-origin resolved endpoints;
-  management client permits only fixed `/api` and injects only the scoped management API
-  key; mailbox client handles well-known/session/upload/download policy and injects only
-  the accepted mailbox credential. Cross-plane header-oracle requests fail before I/O.
+  management Registry client permits only fixed `/jmap` plus exact `x:*` method allowlist
+  and injects only the scoped management API key; mailbox client handles well-known/session/
+  upload/download policy, permits only standard mail methods and injects only the accepted
+  mailbox credential. Mixed Registry/mail batches, wrong-context credentials and provisioning
+  through `/api` fail before I/O.
   Redirects are disabled/validated; request/response/time/count bounds and context
   cancellation are mandatory; map 4xx/5xx/timeout stably; logs/errors omit authorization,
   URL query, provider body/ids. No real network in unit.
@@ -57,12 +61,14 @@
 - Gates: G145-5/5B; dependency 01B. Allowed only
   `backend/internal/mail/stalwart/jmap.go`, `config.go`,
   `backend/tests/mail/stalwart_jmap_session_test.go`.
-- Behavior/oracles: freeze management compatibility separately as fixed `/api` plus
-  `urn:stalwart:jmap` and exact selected-version `x:Domain/*` / `x:Account/*` methods. Mail
+- Behavior/oracles: freeze management compatibility as a typed Registry context on fixed
+  `/jmap` with `urn:stalwart:jmap` and exact selected-version `x:Domain/*` / `x:Account/*`
+  methods. Mail
   discovery reads exact selected-version session JSON from `/.well-known/jmap`; require
   core/mail/submission/blob and optional RFC 9661 sieve explicitly; derive mail URLs only
   through same-origin/session policy. Bound accounts/capabilities; missing/unknown required
-  capability fails closed; management evidence is never inferred from the mail session;
+  capability fails closed; management evidence is never inferred from mail capabilities;
+  Registry and mail method calls cannot share one JMAP batch, and `/api` is not provisioning;
   no credential/session URL in error. The accepted management profile uses API-key
   `Replace` with exactly `domain-create|delete|get|list|update` and
   `individual-create|delete|get|list|update`; any broader principal/key is an external gate
@@ -73,17 +79,18 @@
 - Gates: G145-5B; dependencies 02 + Phase 144 port. Allowed only
   `backend/internal/mail/stalwart/account.go`, `mapper.go`,
   `backend/tests/mail/stalwart_account_test.go`.
-- Behavior/oracles: use the management `/api` plane and exact `x:Account/*` object to
+- Behavior/oracles: use the management Registry context on shared `/jmap` and exact
+  `x:Account/*` object to
   idempotently ensure the stable Hub key, reserved local part, selected verified domain and
   normalized primary/alias address set. Accept only `@type: "User"`; same key/spec repeats,
   changed spec conflicts and group results never satisfy a user account. Then use the
-  separately authenticated mailbox plane's standard `Identity/get|set` to reconcile exactly
+  separately authenticated mailbox context's standard `Identity/get|set` to reconcile exactly
   one stable server id per desired address. Missing identities are created only after Get;
   a lost create response performs Get-before-retry. Duplicate email identities, identities
   outside the desired address set or immutable-email mismatch are indeterminate/degraded,
   never selected by list position and never replaced by fabricated ids. Conflict/partial
   provisioning is safe; no password/token is persisted/returned; cross-account query is
-  impossible and neither credential crosses planes.
+  impossible and neither credential crosses typed contexts.
 
 ## 145-03C — domain desired-state mapping
 
@@ -91,7 +98,8 @@
   authority/projection. Dependencies: 02 + Phase 144 port. Allowed only
   `backend/internal/mail/stalwart/domain.go`,
   `backend/tests/mail/stalwart_domain_test.go`.
-- Behavior/oracles: use only the management `/api` plane and exact `x:Domain/*` object.
+- Behavior/oracles: use only the management Registry context on shared `/jmap` and exact
+  `x:Domain/*` object.
   `EnsureDomain` idempotently applies stable key + captured generation/
   hash + desired present/enabled with manual DNS management; `GetDomain` is read-only
   reconciliation. Map only opaque id, absent/DNS-required/verified/error/indeterminate, the
@@ -277,12 +285,14 @@
 
 ## 145-10 — optional bounded deployment profile
 
-- Gates: G145-1/3/4/5/5A/5B/5C; dependencies 09A/09B. Allowed only
+- Gates: G145-1/3/4/5/5A/5B/5C and conditional G145-5D; dependencies 09A/09B. Allowed only
   `docker-compose.local.yml`, founder-approved production compose if explicitly in scope,
   `deployments/mail/**`, and names-only env example/docs named in dispatch.
 - Behavior/oracles: exact immutable digest; optional `mail` profile; fixed service-network
-  `/api` management and `/jmap` mailbox endpoints reachable only by Hub with separate
-  secret references; explicit opt-in SMTP delivery ports and no user-facing
+  `/jmap` endpoint reachable only by Hub for separately authorized Registry and mailbox
+  contexts; individually allowlisted `/api` helper path+method exposure only; separate secret
+  references; explicit opt-in
+  SMTP delivery ports and no user-facing
   IMAP/JMAP/ManageSieve/direct-admin mailbox mutation; named volume; image-specific health; non-root /
   capabilities where supported; CPU/RAM/PID/restart caps; no secret/value/DKIM key; compose
   static/runtime validation only through launcher. `STALWART_RECOVERY_ADMIN`, recovery mode

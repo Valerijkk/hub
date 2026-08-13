@@ -149,12 +149,14 @@ mail_feature_workstream:
       engine_oci_index: sha256_a8108e19bd927e172d4d8c128907b8dfc93fd180ae8ee07dccdd42cb97eb9dfa_captured_not_approved
       engine_linux_amd64_manifest: sha256_2bcbd3797c8170bd261a533d54d3b25c1a49558aa69f3e42b0d37bdf2b106a28_captured_not_approved
       engine_attestation: slsa_reference_captured_signature_sbom_not_verified
-      engine_endpoints: fixed_management_api_plus_same_origin_mail_jmap
-      engine_credentials: separate_management_api_key_and_unresolved_mailbox_auth_no_cross_plane_reuse
+      engine_endpoints: shared_jmap_for_registry_and_mail_plus_fixed_api_helpers
+      engine_credentials: separate_management_api_key_and_unresolved_mailbox_auth_same_jmap_no_method_or_batch_crossing
       engine_management_permissions: replace_domain_and_individual_crud_list_only_review_pending
       engine_mailbox_auth_options: per_user_oauth_authorization_code_recommended_or_explicit_broad_impersonator_founder_choice_pending
       engine_mailbox_auth_rejections: no_management_key_no_oauth_client_credentials_no_acl_only_full_engine_no_synthesized_user_passwords
-      engine_mailbox_auth_review: source_only_no_findings_actual_model_effort_unknown_not_gate_acceptance
+      engine_mailbox_auth_review: route_rereview_no_p0_p1_p2_wording_fixed_actual_model_effort_unknown_not_gate_acceptance
+      engine_public_url: single_stalwart_public_url_for_oauth_oidc_jmap_requires_shared_trusted_origin_if_oauth
+      engine_network_profile: default_deny_bounded_service_http_no_8080_no_user_mail_protocols_smtp25_optional_oauth_https_gate
       engine_domain_verification: unresolved_stalwart_domain_has_expected_zone_not_verification_fail_closed_dns_required
       engine_identity_mapping: management_account_addresses_then_mail_jmap_identity_get_set_auth_gate
       internal_delivery: through_engine
@@ -191,6 +193,8 @@ mail_feature_workstream:
       persistence_contract_0_1_8: docs/mail/PERSISTENCE-CONTRACT-0.1.8.md
       control_plane_schema_plan: docs/superpowers/plans/2026-08-13-mail-control-plane-schemas.md
       stalwart_0_16_17_research: .planning/phases/145-stalwart-gateway/RESEARCH-2026-08-13-STALWART-0.16.17.md
+      stalwart_0_16_17_route_remediation: .planning/phases/145-stalwart-gateway/REMEDIATION-145-JMAP-ROUTE-P0-2026-08-13.md
+      stalwart_0_16_17_route_review: .planning/phases/145-stalwart-gateway/REVIEW-145-0.16.17-ROUTE-SOURCE-ONLY-2026-08-13.md
       events: docs/mail/events-v1.schema.json
       qa_handoff: docs/mail/QA-HANDOFF.md
       founder_questions: docs/mail/FOUNDER-QUESTIONS.md
@@ -230,26 +234,41 @@ spec_coverage:
   and a linked SLSA-provenance attestation manifest. No image was pulled or run; signature,
   SBOM and independent approval remain `NOT_RUN`. License verdict, exact config,
   API/persistence/resource spike и внешний DNS остаются gates; runtime `NOT_RUN`.
-  Management provisioning is fixed to the separate `/api` plane with a scoped API key;
-  mailbox mail/submission/Sieve uses `/.well-known/jmap` plus same-origin `/jmap` with a
-  different credential class. Official docs confirm a management API key cannot
-  authenticate JMAP mail. Enabled mode therefore remains blocked pending the reviewed
-  mailbox authentication/rotation/audit decision in founder question 42. Exact selected-
+  Exact `v0.16.17` source and `UPGRADING/v0_16.md` supersede an earlier docs-based route
+  assumption: both management Registry `x:*` calls and standard mailbox calls use fixed
+  same-origin `POST /jmap`; `/api` contains OAuth/account/schema/telemetry helpers and is
+  not the management-JMAP endpoint. The adapter must select credentials and method
+  allowlists from a typed operation context, never from the URL, and must reject any JMAP
+  batch mixing Registry and mail methods before I/O. A management API key authenticates
+  only the reviewed Registry methods; it is never a mailbox credential. Enabled mailbox
+  mode remains blocked pending the authentication/rotation/audit choice in founder
+  question 42. Exact selected-
   version source rejects an ACL-only full-engine shortcut: shared access covers Email/
   Mailbox, while Identity, EmailSubmission, Sieve and Blob remain member-only. OAuth docs
   expose Authorization Code and Device Authorization, not client credentials. Root
   recommends per-user Authorization Code linking; zero-touch requires explicit founder/
-  security acceptance of broad dedicated-account impersonation. A Terra-requested
-  source-only review found no P0/P1/P2 content issue, but actual model/effort telemetry was
-  unavailable, so `REVIEW-145-0.16.17-AUTH-SOURCE-ONLY-2026-08-13.md` is not gate acceptance.
+  security acceptance of broad dedicated-account impersonation. The earlier Terra-requested
+  source-only review is explicitly superseded after the route P0 was found. A fresh
+  source-only re-review found no remaining P0/P1 and its sole P2 allowlist-wording issue is
+  root-fixed, but actual model/effort telemetry was unavailable. Both review artifacts are
+  non-accepting evidence and cannot authorize implementation.
+  OAuth also cannot be bolted onto the existing internal-only origin: one documented
+  `STALWART_PUBLIC_URL` drives OAuth/OIDC and JMAP discovery. Founder question 45/G145-5D
+  therefore requires one accepted user-and-Hub HTTPS origin with default-deny path/listener
+  isolation. OAuth's exact anonymous rate-limited `POST /api/auth` must be a narrow
+  path/method exception while both management Registry and mailbox `POST /jmap`, all other
+  `/api/*`, upload/download, admin/static UI and telemetry remain Hub/service-only;
+  prefix-wide `/api` is forbidden. Otherwise OAuth stays invalid and no HTTP listener is
+  published.
   The management key is now root-frozen to API-key `Replace` with only domain and
   individual-account CRUD/list permissions, pending independent security review. A second
   selected-version mismatch is fail-closed: `x:Domain` exposes expected `dnsZoneFile` but
   no manual-DNS verification result, so Hub cannot infer `verified`, provision accounts or
   enable external mode before G145-5C/founder question 43. Exact candidate source confirms
   mailbox `Identity/get|set` supplies stable ids for configured account addresses, so
-  145-03A is a two-plane mapping rather than an identity-id mismatch; enabled use remains
-  blocked by G145-5B mail auth. Question 44 freezes the exact bounded DNS record projection.
+  145-03A is a two-context mapping on shared `/jmap`, not an identity-id mismatch;
+  enabled use remains blocked by G145-5B mail auth. Question 44 freezes the exact bounded
+  DNS record projection.
   Recovery-admin state is operator-only and absent from the accepted steady-state profile.
 - Кодовые фазы 143–148 идут только после независимого принятия затронутого контракта.
   Phase 145 заблокирована 144 acceptance и внешними gates; независимые calendar slices
@@ -343,7 +362,7 @@ spec_coverage:
   message-to-spam/ham mapping or idempotent lost-response recovery, so 145-07C remains
   blocked rather than guessed.
 - Вопросы, не останавливающие локальную работу, собраны в
-  `docs/mail/FOUNDER-QUESTIONS.md`; вопросы 22–44 фиксируют legacy idempotency, linked-call
+  `docs/mail/FOUNDER-QUESTIONS.md`; вопросы 22–45 фиксируют legacy idempotency, linked-call
   guests, primary-address/sanitizer/Sieve policy, later engine/API/schema defaults и
   отдельную least-privilege mailbox-auth design decision, authority проверки DNS и DNS
   projection.
