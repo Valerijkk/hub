@@ -191,3 +191,77 @@ window closes after the attempt and the wrapper is forbidden after G129-L;
 direct host/Docker fallback remains prohibited. The wrapper is an execution
 boundary, not a scheduler, so any claim that the one attempt occurred remains
 invalid until the separate G128-D receipt exists.
+
+## 2026-08-13 — ротация леджер-авторитета и Docker-цепочка TASK-204
+
+Этот раздел — датированная evidence-запись; вердикт фронтматтера выше
+(NOT_RUN для канонического wrapper-прогона G128-D) он не меняет.
+
+### Контекст и фиксы инструментария
+
+Реконструкция репозитория (`b8677d9d`) создала параллельную git-линию:
+recorded revision `5708671f` перестал быть предком HEAD, и fail-closed
+`inventory.py --check` корректно уходил в RED по ancestry. Дополнительно
+вскрыты и исправлены три никогда не гонявшиеся регрессии инструментария:
+
+- `72589442` — fstat-снимок staging до записи payload в
+  `inventory.py::write_inventory_atomically` (публикация и `--self-test`
+  падали всегда);
+- `b9f690da` — текст file-budget стража расходился с негативным сентинелом;
+- `986b2211` — та же fstat-регрессия в
+  `build_cutover_manifest.py` (destination-race сентинел падал wrong failure).
+
+### Ротация авторитета (`da2c1c4c` + `31072faa`)
+
+Доказано байт-в-байт: пиновые sha256 у 1027/1049 строк старого леджера были
+хэшами CRLF-варианта тех же git-блобов (пример
+`backend/testframework/accounting/fixtures_test.go`: LF-блоб `883e1aa1…`,
+блоб+CRLF = старый пин `d8e92a58…`); блобы линий `5708671f` и `b9f690da`
+байт-идентичны. Регенерация tool 2.2.1 в контейнере: 1049/1049 строк, у 1026
+изменились только `sha256`+`evidence`, у 1 строки
+(`testframework/stages/unit/frontend-test/domains/tms/import-multipart-api.test.ts`)
+дополнительно `dependency_hints` (CRLF внутри сниппетов); у всех 43 записей
+`hooks[]` ротирован `sha256`; классификация, партиции, hook-линки и групповые
+`source_paths_sha256` не изменились. Пары дайджестов:
+
+| Артефакт | Старый | Новый |
+|---|---|---|
+| inventory.json | `72de6a81b2bd…` @ `5708671f` | `83b6a3114980…` @ `b9f690da` |
+| founder-greenfield-cutover-manifest.json | `df503a7f136a…` | `292b40dbddcc…` |
+| test-architecture-contract.json | `62eb27ecd931…` | `8e9f4819f4f9…` |
+
+Независимая верификация (3 агента, полная развёртка всех 1049 строк и 43
+hooks против git-блобов): 0 расхождений, вердикты PASS_WITH_NOTES.
+`scripts/reorganize-testframework-pipeline.ps1` (позиция 12/28 non-ledger
+удалений) восстановлен байт-точно из старой линии (blob `0e967e22…`).
+
+### Docker-цепочка (source revision `986b2211`)
+
+Окружение: image `python:3.12`
+(`sha256:dd4fe98ab39f91e936f8e7e7a65a3ce59ecfb11e32f9a125b3132779920ba7f7`),
+контейнер `--cpus 2 --memory 2g --pids-limit 512 --network none`, workspace —
+named volume (ext4), клон в нативную ФС, checkout `986b2211`. Полный лог:
+`task204-docker-run-2026-08-13.log` (в этом каталоге). Результаты:
+
+| Шаг | Результат | Время |
+|---|---|---|
+| inventory `--self-test` | GREEN | 0s |
+| inventory `--check` | GREEN: rows=1049, LEDGER_HEAD=b9f690da | 4s |
+| контракт-валидатор позитив | GREEN: move 507/1673, keep-block 245/1428, delete 297/1145, non-ledger 28 | 0s |
+| контракт-валидатор `--self-test` (bind-sentinel) | GREEN (негативы RED) | 1s |
+| builder `--self-test` | PASS (atomic no-replace race sentinel) | 0s |
+| builder `--write` | PASS: sealed planned manifest | 1s |
+| cutover-валидатор `--check` | PASS: batches=173 planned=173 | 1s |
+| cutover-валидатор `--stdin --self-test` | PASS (негативная батарея RED) | 5s |
+| ручной traversal-негатив | exit 1 (ожидаемо) | — |
+
+Контейнер удалён (`--rm`); суммарно 25s. `cutover-manifest.json` перенесён в
+этот каталог байт-точно: sha256
+`85dd85ca38923a0211eff6110bef797274289c2ef453ec66364118100dff7bd5`,
+173 батча в состоянии `planned`, `source.repository_head=986b2211`. По
+конструкции валидатора live-HEAD-проверка all-planned манифеста привязана к
+`986b2211`: PASS зафиксирован до коммита манифеста; после старта батчей
+authority ведёт state-transition механика.
+
+Остаются открытыми: канонический wrapper-прогон G128-D (founder-gated),
+независимая подпись arch-ver/qa-auto-ver, honest post-cutover unit baseline.

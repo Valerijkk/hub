@@ -1,0 +1,183 @@
++ PIN_SHA=986b22119c88ab6f9f8d109d31b4fe1cfd67383f
+++ date -u +%s
++ T0=1786603821
++ step environment
+++ date -u +%H:%M:%S
++ echo '===== [06:50:21] environment ====='
+===== [06:50:21] environment =====
++ cat /etc/os-release
++ head -2
+PRETTY_NAME="Debian GNU/Linux 13 (trixie)"
+NAME="Debian GNU/Linux"
++ python3 --version
+Python 3.12.13
++ git --version
+git version 2.47.3
++ step 'clone to volume fs (stable inodes, not overlayfs)'
+++ date -u +%H:%M:%S
++ echo '===== [06:50:21] clone to volume fs (stable inodes, not overlayfs) ====='
+===== [06:50:21] clone to volume fs (stable inodes, not overlayfs) =====
++ mkdir -p /work/tmp
++ export TMPDIR=/work/tmp
++ TMPDIR=/work/tmp
++ export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.directory 'GIT_CONFIG_VALUE_0=*'
++ GIT_CONFIG_COUNT=1
++ GIT_CONFIG_KEY_0=safe.directory
++ GIT_CONFIG_VALUE_0='*'
++ rm -rf /work/repo
++ git clone --no-checkout /hub /work/repo
+Cloning into '/work/repo'...
+hint: Using 'master' as the name for the initial branch. This default branch name
+hint: is subject to change. To configure the initial branch name to use in all
+hint: of your new repositories, which will suppress this warning, call:
+hint:
+hint: 	git config --global init.defaultBranch <name>
+hint:
+hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+hint: 'development'. The just-created branch can be renamed via this command:
+hint:
+hint: 	git branch -m <name>
+done.
++ cd /work/repo
++ git checkout --detach 986b22119c88ab6f9f8d109d31b4fe1cfd67383f
+Previous HEAD position was f054261c docs(testframework): зафиксировать package contract
+HEAD is now at 986b2211 fix(test-rebase): восстановить атомарную запись cutover-манифеста
+++ git rev-parse HEAD
++ test 986b22119c88ab6f9f8d109d31b4fe1cfd67383f = 986b22119c88ab6f9f8d109d31b4fe1cfd67383f
++ export HUB_PHASE128_REPO_ROOT=/work/repo
++ HUB_PHASE128_REPO_ROOT=/work/repo
++ step 'authority digests before run'
+++ date -u +%H:%M:%S
++ echo '===== [06:50:33] authority digests before run ====='
+===== [06:50:33] authority digests before run =====
++ sha256sum .planning/audits/test-rebase/inventory.json .planning/audits/test-rebase/founder-greenfield-cutover-manifest.json .planning/audits/test-rebase/test-architecture-contract.json
+83b6a31149807d21441a2ede91dec0b36b4a4396c4c0ceb58308b58878f5ad89  .planning/audits/test-rebase/inventory.json
+292b40dbddcc5e5709eef1504a1d6331e5cc45ddeb6e1534642d3ca3dc4288b7  .planning/audits/test-rebase/founder-greenfield-cutover-manifest.json
+8e9f4819f4f9813c2b9c92ec7cae8dba47782c61a2414dda649aa7ac0f3d315e  .planning/audits/test-rebase/test-architecture-contract.json
++ step 'A inventory --self-test'
+++ date -u +%H:%M:%S
++ echo '===== [06:50:33] A inventory --self-test ====='
+===== [06:50:33] A inventory --self-test =====
+++ date -u +%s
++ TA=1786603833
++ python3 .planning/audits/test-rebase/inventory.py --self-test
+GREEN: root Python/frontend/E2E/component mappings and clean inventory/schema/physical-path sentinels passed; symlink/reparse, hardlink, file/tree/row-budget, duplicate, removal, misroute, missing-owner, coherent Git/worktree cross-file/HEAD-drift, and atomic publication race/crash/idempotence sentinels produced RED
+++ date -u +%s
++ echo A_SECONDS=0
+A_SECONDS=0
++ step 'B inventory --check (ledger recount vs pinned, current SHA)'
+++ date -u +%H:%M:%S
++ echo '===== [06:50:33] B inventory --check (ledger recount vs pinned, current SHA) ====='
+===== [06:50:33] B inventory --check (ledger recount vs pinned, current SHA) =====
+++ date -u +%s
++ TB=1786603833
++ python3 .planning/audits/test-rebase/inventory.py --check
+GREEN: ledger matches allow-listed inputs; sha256=83b6a31149807d21441a2ede91dec0b36b4a4396c4c0ceb58308b58878f5ad89 rows=1049 LEDGER_HEAD=b9f690da
+++ date -u +%s
++ echo B_SECONDS=4
+B_SECONDS=4
++ step 'C contract validator positive'
+++ date -u +%H:%M:%S
++ echo '===== [06:50:37] C contract validator positive ====='
+===== [06:50:37] C contract validator positive =====
+++ date -u +%s
++ TC=1786603837
++ python3 .planning/audits/test-rebase/validate_test_architecture_contract.py
+GREEN: LEDGER_HEAD b9f690da ledger 1,049/4,246; move 507/1,673, keep-block 245/1,428, delete-no-port 297/1,145 plus exact non-ledger closure 28
+++ date -u +%s
++ echo C_SECONDS=0
+C_SECONDS=0
++ step 'D contract validator negative self-test'
+++ date -u +%H:%M:%S
++ echo '===== [06:50:37] D contract validator negative self-test ====='
+===== [06:50:37] D contract validator negative self-test =====
+++ date -u +%s
++ TD=1786603837
++ mkdir -p /sentinel/real
++ printf 'package sentinel\n'
++ ln -s real /sentinel/linked
++ python3 .planning/audits/test-rebase/validate_test_architecture_contract.py --self-test --docker-bind-sentinel /sentinel
+GREEN: negative-only self-test (no positive baseline) passed; contract/manifest/traversal/duplicate/hook/portable-alias/Windows-superscript/budget sentinels and validate_all-wired tmp+Docker-bind symlink, hardlink and destination sentinels all produced RED
+++ date -u +%s
++ echo D_SECONDS=1
+D_SECONDS=1
++ step 'E builder --self-test'
+++ date -u +%H:%M:%S
++ echo '===== [06:50:38] E builder --self-test ====='
+===== [06:50:38] E builder --self-test =====
+++ date -u +%s
++ TE=1786603838
++ python3 .planning/audits/test-rebase/build_cutover_manifest.py --repo-root /work/repo --self-test
+PASS: builder atomic no-replace race sentinel
+++ date -u +%s
++ echo E_SECONDS=0
+E_SECONDS=0
++ step 'F builder --write cutover-manifest.json'
+++ date -u +%H:%M:%S
++ echo '===== [06:50:38] F builder --write cutover-manifest.json ====='
+===== [06:50:38] F builder --write cutover-manifest.json =====
+++ date -u +%s
++ TF=1786603838
++ python3 .planning/audits/test-rebase/build_cutover_manifest.py --repo-root /work/repo --write .planning/audits/test-rebase/cutover-manifest.json
+PASS: wrote sealed planned manifest to /work/repo/.planning/audits/test-rebase/cutover-manifest.json
+++ date -u +%s
++ echo F_SECONDS=1
+F_SECONDS=1
++ step 'G cutover validator positive --check'
+++ date -u +%H:%M:%S
++ echo '===== [06:50:39] G cutover validator positive --check ====='
+===== [06:50:39] G cutover validator positive --check =====
+++ date -u +%s
++ TG=1786603839
++ python3 .planning/audits/test-rebase/validate_cutover_manifest.py --repo-root /work/repo --check .planning/audits/test-rebase/cutover-manifest.json
+PASS: cutover manifest exact; batches=173 planned=173 applied-unverified=0 verified=0
+++ date -u +%s
++ echo G_SECONDS=1
+G_SECONDS=1
++ step 'H cutover validator negative battery --stdin --self-test'
+++ date -u +%H:%M:%S
++ echo '===== [06:50:40] H cutover validator negative battery --stdin --self-test ====='
+===== [06:50:40] H cutover validator negative battery --stdin --self-test =====
+++ date -u +%s
++ TH=1786603840
++ python3 .planning/audits/test-rebase/validate_cutover_manifest.py --repo-root /work/repo --stdin --self-test
+PASS: independent input manifest GREEN; temp-only negative sentinels RED, including two-batch stale-predecessor/global-order rejection
+++ date -u +%s
++ echo H_SECONDS=5
+H_SECONDS=5
++ step 'I manual negative smoke (traversal mutation must FAIL)'
+++ date -u +%H:%M:%S
++ echo '===== [06:50:45] I manual negative smoke (traversal mutation must FAIL) ====='
+===== [06:50:45] I manual negative smoke (traversal mutation must FAIL) =====
++ set +e
++ python3 -
++ python3 .planning/audits/test-rebase/validate_cutover_manifest.py --repo-root /work/repo --stdin
+FAIL: independent operation source union differs from sealed 1,120-operation authority
+FAIL: independent batch membership/metadata mismatch: order 1
+FAIL: operation source 129-02-go-hook-free-accounting:0 contains traversal/alias segment
+FAIL: digest substitution detected: 129-02-go-hook-free-accounting
+FAIL: source path digest substitution detected: 129-02-go-hook-free-accounting
+FAIL: stale-reference declaration failure: 129-02-go-hook-free-accounting
+FAIL: operation source contains traversal/alias segment
+FAIL: filesystem state mismatch: 129-02-go-hook-free-accounting: validator repository path contains traversal/alias segment
++ NEG_EXIT=1
++ set -e
++ echo negative_smoke_exit=1
+negative_smoke_exit=1
++ test 1 -eq 1
++ step 'export manifest + digests'
+++ date -u +%H:%M:%S
++ echo '===== [06:50:46] export manifest + digests ====='
+===== [06:50:46] export manifest + digests =====
++ sha256sum .planning/audits/test-rebase/cutover-manifest.json
++ tee /out/cutover-manifest.sha256
+85dd85ca38923a0211eff6110bef797274289c2ef453ec66364118100dff7bd5  .planning/audits/test-rebase/cutover-manifest.json
++ cp .planning/audits/test-rebase/cutover-manifest.json /out/cutover-manifest.json
++ python3 -c 'import json; m=json.load(open('\''/work/repo/.planning/audits/test-rebase/cutover-manifest.json'\'')); print('\''batches='\'', len(m['\''batches'\''])); print('\''repository_head='\'', m['\''source'\'']['\''repository_head'\''] if '\''source'\'' in m and isinstance(m['\''source'\''], dict) and '\''repository_head'\'' in m['\''source'\''] else '\''SEE-MANIFEST'\'')'
+batches= 173
+repository_head= 986b22119c88ab6f9f8d109d31b4fe1cfd67383f
+++ date -u +%s
++ echo TOTAL_SECONDS=25
+TOTAL_SECONDS=25
++ echo ALL-GREEN
+ALL-GREEN
