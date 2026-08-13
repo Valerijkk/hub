@@ -2,7 +2,7 @@
 
 > **Status:** CONTRACT_READY · CODE_RUNTIME_BLOCKED · TEST_HARNESS_PENDING_REBASE
 > **Required runtime:** `gpt-5.3-codex` / `xhigh`, no fallback
-> **Contract:** OpenAPI/Mail 0.1.4 + accepted UI spec
+> **Contract:** OpenAPI/Mail 0.1.5 + accepted UI spec
 
 The UI uses TanStack Query as server-state authority, TanStack Router/URL as selection
 authority, and a local reducer only for the active composer. It must not create a second
@@ -43,11 +43,12 @@ separate accepted Docker/build step.
 
 | ID | Single owned behavior | Exact primary files | Oracle / acceptance | Dependency |
 |---|---|---|---|---|
-| 146-01A | Safe request options and recovery response headers | `frontend/src/api/client.ts`, `frontend/tests/mail/api-client-mail-headers.test.ts` | idempotency/If-Match survive one auth retry; caller cannot override auth/content type; same-origin Location only; ApiError has code/etag/location | runtime + test harness |
-| 146-01B | OpenAPI 0.1.4 mailbox types/client/query keys | `frontend/src/api/mail.ts`, `frontend/src/modules/mail/mail-query-keys.ts`, focused unit | exact paths/body/result; opaque cursor; submission GET; no account/org input | 146-01A + Phase 144 |
+| 146-01A | Safe request options and recovery response headers | `frontend/src/api/client.ts`, `frontend/tests/mail/api-client-mail-headers.test.ts` | idempotency/If-Match survive one auth retry; caller cannot override auth/content type; same-origin Location only; ApiError has code/etag/location/retry-after | runtime + test harness |
+| 146-01B | OpenAPI 0.1.5 mailbox types/client/query keys | `frontend/src/api/mail.ts`, `frontend/src/modules/mail/mail-query-keys.ts`, focused unit | exact paths/body/result; opaque cursor; projection freshness; submission GET; no account/org input | 146-01A + Phase 144 |
 | 146-02A | Mail route files and shell layout only | `frontend/src/routes/_authenticated/mail*.tsx` as router convention requires, `frontend/src/modules/mail/mail-shell.tsx`, focused route unit | exact redirect/deep links including owned draft/message resources; back-forward; URL truth; no routeTree manual edit | 146-01B |
 | 146-02B | Responsive folder pane + counts | `mail-folder-pane.tsx`, `mail-folder-tree.ts`, focused unit | system/custom hierarchy; keyboard/focus; mobile sheet; loading/error/empty | 146-02A |
 | 146-02C | Virtualized thread list + selection | `mail-thread-list.tsx`, `mail-thread-row.tsx`, focused unit | cursor pages, stable keys, unread/flag/attachment, no duplicate cache | 146-02A |
+| 146-02D | Projection freshness derivation and owner-visible status banner | `mail-projection-status.ts`, `mail-projection-banner.tsx`, narrow `mail-shell.tsx`, focused unit | conservative mixed-page state; stale/as-of/rebuilding explicit; retry only invalidates queries; accessible | 146-02A/B/C |
 | 146-03A | Isolated safe message reader boundary | `mail-message-reader.tsx`, `mail-safe-content.ts`, focused security unit | sanitized server HTML only; sandbox/CSP boundary; no direct remote fetch; plain fallback | 146-02A + Phase 144 |
 | 146-03B | Attachment states then calendar invite card as two sequential variants | `mail-attachments.tsx`/unit, then `mail-invite-card.tsx`/unit | pending/rejected/clean; then refetch-on-409 and occurrence/series | 146-03A + Phase 143 |
 | 146-04A | Local composer reducer then Plate wrapper as two sequential variants | `mail-composer-state.ts`/unit, then `mail-composer-editor.tsx`/unit | deterministic dirty/revision state; then rich/plain editor boundary | 146-01B |
@@ -62,7 +63,7 @@ separate accepted Docker/build step.
 | 146-07 | WebSocket/query invalidation mapping | `use-mail-realtime.ts`, focused unit | invalidates smallest keys; duplicate event safe; no payload body cache | 146-01B/02 |
 | 146-08-I18n | Register Mail namespace and exact EN/RU navigation/user strings | `frontend/src/i18n/index.ts`, `frontend/src/i18n/locales/en/mail.json`, `frontend/src/i18n/locales/ru/mail.json`, `frontend/src/i18n/locales/en/common.json`, `frontend/src/i18n/locales/ru/common.json`, `frontend/tests/mail/mail-i18n.test.ts` | identical keys; escaped interpolation; no hard-coded Mail UI strings | 146-02A |
 | 146-08-Nav | Desktop/mobile Mail navigation and mailbox unread selector | `frontend/src/components/layout/sidebar-nav.tsx`, `frontend/src/components/layout/sidebar-link.tsx`, `frontend/src/components/mobile-nav.tsx`, `frontend/src/modules/mail/use-mail-unread-count.ts`, `frontend/tests/mail/mail-navigation.test.tsx` | Mail between Messenger/Calendar; query-derived unread; no Messenger count reuse | 146-02A/07 + 146-08-I18n |
-| 146-09 | Route generation, Docker-only build/unit/a11y verification | generated route tree + task report only via accepted launcher | current SHA evidence; keyboard/resize/reduced motion; exact cleanup | all + harness/launcher |
+| 146-09 | Route generation, Docker-only build/unit/a11y verification | generated route tree + task report only via accepted launcher | current SHA evidence; keyboard/resize/reduced motion/projection states; exact cleanup | all + harness/launcher |
 
 ## Cross-packet hard rules
 
@@ -80,6 +81,12 @@ separate accepted Docker/build step.
   mutation metadata persisted beyond need, Zustand, localStorage or logs.
 - Autosave and send are separate state machines. Send waits for or reconciles the current
   draft revision; unknown send polls/retries the same receipt key.
+- `MAIL_ACCOUNT_BUSY` is shown as a bounded retryable state and honors validated
+  `Retry-After`; it is never conflated with an unknown command outcome or auto-replayed
+  without the same safe request/idempotency context.
+- Folder/thread/search data is labelled fresh only when every visible source is `ready`.
+  Bootstrapping, degraded and rebuilding remain owner-filtered but visibly stale/in-progress;
+  client retry invalidates bounded Mail queries and never starts or simulates the worker.
 - Accessibility includes logical focus on pane changes, keyboard list/reader navigation,
   visible focus, semantic labels/status announcements and mobile escape/back behavior.
 - No manual edit of generated route tree and no host test/build/lint/validator.

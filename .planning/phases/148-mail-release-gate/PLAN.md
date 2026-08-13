@@ -13,8 +13,11 @@
    routing rules; fix findings atomically.
 4. Through the accepted Docker launcher run applicable feature units, generation/build,
    integration/security/recovery and bounded runtime evidence on current SHA.
-5. Prove projection reconciliation, retry/idempotency, engine outage, persistence, resource
-   limit and cleanup behavior; keep unavailable gates explicit.
+5. Prove atomic hydrated page/event/cursor reconciliation, command-lease begin/end fencing,
+   expiry/late-owner recovery, anchored no-clear rebuild/catch-up, received-event cutoff/
+   marker, replica lease/shutdown, retry/
+   idempotency, engine outage, visible freshness, persistence, resource limit and cleanup
+   behavior; keep unavailable gates explicit.
 6. Synchronize system, architecture, security, test, runbook and state documentation.
 7. Finalize QA handoff without editing the protected Python test program.
 8. After founder confirms Claude test-rebase is merged, rebase onto current master, resolve

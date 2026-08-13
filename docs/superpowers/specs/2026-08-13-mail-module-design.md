@@ -247,6 +247,8 @@ the UI never lies by rolling back an accepted canonical response.
 | Failure | User-visible behavior | Recovery |
 |---|---|---|
 | Engine unavailable | Read-only cached list labels data as stale; bodies not falsely cached | Retry with backoff; admin health link for admins |
+| Another account command owns the mutation lease | The command is not sent to the engine; show a short retryable busy state | Honor bounded Retry-After with the same safe request context; never treat unknown delivery as busy |
+| Projection bootstrapping/rebuilding/degraded | Current owner-filtered rows remain visible with setup, rebuilding or stale status and conservative last-sync time | Bounded server worker converges; user Retry only refetches Mail queries and never fabricates ready state |
 | Send timeout | “Delivery status unknown” | Reconcile by idempotency key before retry |
 | Projection/search delay | Newly sent/received item appears from engine response with indexing badge | Event consumer catches up; rebuild is supported |
 | Attachment scan pending | Send disabled for that attachment | Remove or wait; no bypass |

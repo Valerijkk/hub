@@ -72,6 +72,42 @@ or more `FR-MAIL-*` / `FR-CALSYNC-*` rows and named `TC-*` scenarios in `MAIL-SP
     the engine-confirmed result; a still-indeterminate result never triggers blind submit.
 12. A draft is immutable while submission is queued/submitting/unknown; confirmation
     marks it submitted, while definitive non-delivery restores the same content for edit.
+13. One hydrated incremental page commits folder/message/thread projection, complete
+    envelopes and the exact next composite cursor atomically. Rollback or any stale lease,
+    prior cursor, sync epoch, mutation epoch or present command lease advances none of them.
+14. Every engine-authoritative folder/message/draft/submission/rule command or reconciliation
+    acquires one expiring account mutation lease and advances the begin epoch before I/O;
+    completion/unknown handoff clears the exact lease and advances the end epoch. Sync
+    capture is forbidden while the lease is present. Active-lease contention makes zero
+    engine call; sync claim or a later command can reclaim expiry only with an epoch bump,
+    invalidating late work whose former owner must reconcile rather than finalize directly.
+15. Invalid/expired cursor preserves current owner rows as visibly degraded, resumes a
+    bounded base-state/ID-anchored enumeration without destructive pre-clear, catches up
+    from its base cursor and only then tombstones unseen rows and marks ready. Query-state
+    drift must converge through catch-up; missing anchor/expired base history restarts.
+    Crash/restart in every enumeration/catch-up phase resumes without guessing.
+16. Enumeration history at or before account event cutoff emits no inbound notification. A
+    first-seen post-cutoff inbound-or-unknown message reserves one stable marker and emits
+    one `mail.received.v1` even across page replay/rebuild. Only a stable mapped Hub
+    submission/draft suppresses it; spoofed owner `From`, alias equality or mutable Sent
+    membership never does.
+    The cutoff is committed once before worker eligibility and comparison uses engine
+    receipt time, not the message `Date` header or local sync observation time.
+17. Two backend replicas contend through one expiring account lease. Scan/page/concurrency,
+    timeout and backoff caps hold; disabled configuration starts no worker/timer/probe, and
+    root-context cancellation drains in-flight work without leaked goroutines. Command I/O
+    deadline is shorter than its 60-second lease, and begin/during/end sync races are covered.
+18. Folder/thread/search responses always carry `projection_state` and required nullable
+    `projection_as_of`. UI labels bootstrapping/degraded/rebuilding data stale or in progress,
+    derives mixed pages conservatively and never fabricates ready after a query-only retry.
+    Search is ready only when both mailbox projection and owner search checkpoint are ready;
+    its freshness is the older complete instant.
+19. The 101st non-deleted engine-backed folder is atomically rejected with 422 and
+    `MAIL_FOLDER_LIMIT_EXCEEDED`. An engine account already over cap leaves the last owner
+    projection degraded; no truncated folder tree is marked ready.
+20. Concurrent account command/reconciliation lease contention returns 423 plus
+    `MAIL_ACCOUNT_BUSY` and bounded `Retry-After` before any engine call. Unknown engine
+    outcome never maps to busy, and the UI never blindly replays it as though no call ran.
 
 ### Calendar synchronization
 
@@ -306,6 +342,9 @@ existing dead-letter/error policy and are not heuristically parsed.
 Contract fixtures must also prove every envelope/payload rejects undeclared top-level or
 payload properties, including `body`, `description`, raw MIME, attachment content, token
 and secret-shaped fields.
+`mail.message.changed.v1` additionally accepts only the frozen changed-field/flag enums;
+`deleted` has no live engine folder/flag state, preserves Hub-owned labels/verified links,
+and removes search/counter membership idempotently.
 
 For every new subject, the producer passes a complete deterministic envelope to the
 existing outbox as `PublishInTx(ctx, tx, envelope.Subject, envelope)`. Contract oracles must
@@ -338,7 +377,8 @@ launcher. The direct Compose command is operator documentation, not accepted tes
 The entire added mail profile must remain at or below 4 CPU and 4 GiB RAM. Target
 allocations are not proof. The accepted run must capture actual idle and representative
 load, health, restart persistence, JMAP session discovery, authenticated access, SMTP
-delivery, and exact cleanup.
+delivery, incremental and base-anchored-enumeration recovery, two-replica lease exclusion,
+worker cancellation/drain, and exact cleanup.
 
 ### Environment matrix (names only; never values in artifacts)
 

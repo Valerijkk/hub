@@ -30,11 +30,24 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [items]
+                required: [items, projection_state, projection_as_of]
                 properties:
                   items:
                     type: array
                     items: {$ref: "#/components/schemas/MailFolder"}
+                  projection_state: {$ref: "#/components/schemas/MailProjectionState"}
+                  projection_as_of:
+                    type: [string, "null"]
+                    format: date-time
+                    description: Last fully committed projection instant; non-null whenever projection_state is ready
+                allOf:
+                  - if:
+                      properties:
+                        projection_state: {const: ready}
+                      required: [projection_state]
+                    then:
+                      properties:
+                        projection_as_of: {type: string, format: date-time}
         default: {$ref: "#/components/responses/Error"}
     post:
       tags: [MailFolders]
@@ -50,6 +63,8 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/MailFolder"}
+        "423": {$ref: "#/components/responses/MailAccountBusy"}
+        "422": {$ref: "#/components/responses/MailFolderLimitExceeded"}
         default: {$ref: "#/components/responses/Error"}
   /mail/folders/{folderId}:
     parameters:
@@ -68,12 +83,14 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/MailFolder"}
+        "423": {$ref: "#/components/responses/MailAccountBusy"}
         default: {$ref: "#/components/responses/Error"}
     delete:
       tags: [MailFolders]
       operationId: deleteMailFolder
       responses:
         "204": {description: Custom folder deleted}
+        "423": {$ref: "#/components/responses/MailAccountBusy"}
         default: {$ref: "#/components/responses/Error"}
   /mail/labels:
     get:
@@ -247,6 +264,7 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/BulkMailMutationResult"}
+        "423": {$ref: "#/components/responses/MailAccountBusy"}
         default: {$ref: "#/components/responses/Error"}
   /mail/drafts:
     post:
@@ -266,6 +284,7 @@ paths:
             application/json:
               schema: {$ref: "#/components/schemas/MailDraft"}
         "409": {$ref: "#/components/responses/IdempotencyConflict"}
+        "423": {$ref: "#/components/responses/MailAccountBusy"}
         default: {$ref: "#/components/responses/Error"}
   /mail/drafts/{draftId}:
     parameters:
@@ -297,12 +316,14 @@ paths:
             application/json:
               schema: {$ref: "#/components/schemas/MailDraft"}
         "409": {$ref: "#/components/responses/Conflict"}
+        "423": {$ref: "#/components/responses/MailAccountBusy"}
         default: {$ref: "#/components/responses/Error"}
     delete:
       tags: [MailDrafts]
       operationId: deleteMailDraft
       responses:
         "204": {description: Draft moved to trash or deleted by policy}
+        "423": {$ref: "#/components/responses/MailAccountBusy"}
         default: {$ref: "#/components/responses/Error"}
   /mail/drafts/{draftId}/send:
     post:
@@ -318,6 +339,7 @@ paths:
             application/json:
               schema: {$ref: "#/components/schemas/MailSubmission"}
         "409": {$ref: "#/components/responses/IdempotencyConflict"}
+        "423": {$ref: "#/components/responses/MailAccountBusy"}
         default: {$ref: "#/components/responses/Error"}
   /mail/submissions/{submissionId}:
     get:
@@ -590,6 +612,7 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/MailRule"}
+        "423": {$ref: "#/components/responses/MailAccountBusy"}
         default: {$ref: "#/components/responses/Error"}
   /mail/rules/{ruleId}:
     parameters:
@@ -614,12 +637,14 @@ paths:
             application/json:
               schema: {$ref: "#/components/schemas/MailRule"}
         "409": {$ref: "#/components/responses/Conflict"}
+        "423": {$ref: "#/components/responses/MailAccountBusy"}
         default: {$ref: "#/components/responses/Error"}
     delete:
       tags: [MailSettings]
       operationId: deleteMailRule
       responses:
         "204": {description: Rule deleted from Hub and engine}
+        "423": {$ref: "#/components/responses/MailAccountBusy"}
         default: {$ref: "#/components/responses/Error"}
   /projects/{projectId}/scheduled-calls:
     post:
@@ -1329,6 +1354,29 @@ components:
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
+    MailFolderLimitExceeded:
+      description: The owned mailbox already has the maximum 100 non-deleted engine-backed folders
+      headers:
+        X-Hub-Error-Code:
+          required: true
+          schema: {const: MAIL_FOLDER_LIMIT_EXCEEDED}
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/ErrorEnvelope"}
+    MailAccountBusy:
+      description: >-
+        Another engine command or reconciliation currently owns the account mutation
+        lease; retry the same safe request after the bounded delay
+      headers:
+        X-Hub-Error-Code:
+          required: true
+          schema: {const: MAIL_ACCOUNT_BUSY}
+        Retry-After:
+          required: true
+          schema: {type: integer, minimum: 1, maximum: 5}
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/ErrorEnvelope"}
     AttendeeVersionConflict:
       description: RSVP attendee version is stale; client refetches the canonical event before retry
       headers:
@@ -1498,13 +1546,31 @@ components:
           items: {$ref: "#/components/schemas/MailLabel"}
     MailThreadPage:
       type: object
-      required: [items]
+      required: [items, projection_state, projection_as_of]
       properties:
         items:
           type: array
           items: {$ref: "#/components/schemas/MailThreadSummary"}
         next_cursor: {type: [string, "null"]}
-        projection_as_of: {type: string, format: date-time}
+        projection_state: {$ref: "#/components/schemas/MailProjectionState"}
+        projection_as_of:
+          type: [string, "null"]
+          format: date-time
+          description: Last fully committed projection instant; non-null whenever projection_state is ready
+      allOf:
+        - if:
+            properties:
+              projection_state: {const: ready}
+            required: [projection_state]
+          then:
+            properties:
+              projection_as_of: {type: string, format: date-time}
+    MailProjectionState:
+      type: string
+      enum: [bootstrapping, ready, degraded, rebuilding]
+      description: >-
+        Owner-visible freshness state for all sources behind the endpoint; search is ready
+        only when both mailbox and owner index are ready. Any other value is stale/in-progress.
     MailMessageSummary:
       type: object
       required: [id, thread_id, from, to, subject, priority, size_bytes, has_attachments, is_draft, folder_ids, seen, flagged, answered, junk]
@@ -2372,7 +2438,9 @@ components:
           type: object
           required: [status]
           properties:
-            status: {type: string}
+            status:
+              type: string
+              enum: [bootstrapping, ready, degraded, rebuilding, unavailable]
             lag_seconds: {type: [integer, "null"], minimum: 0}
         checked_at: {type: string, format: date-time}
     ErrorEnvelope:

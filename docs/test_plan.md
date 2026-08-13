@@ -235,6 +235,18 @@ existing-message link/no-recipient-in-URL/cross-user denial и условные 
 дополнительной обёртки, application-`event_id` dedupe при одинаковом/
 разном `Hub-Event-Id`, dead-letter до mutation при mismatch/malformed/unknown version и
 байтовую неизменность legacy outbox payloads.
+Mailbox projection P0 отдельно покрывает atomic page+envelope+cursor commit/rollback,
+command-lease begin/during/end races, active-command blocking, expiry reclaim/late-finalizer,
+sync-lease expiry/two-replica exclusion, invalid-cursor no-clear
+base-state/ID-anchored enumeration, query-state drift, anchor/base-history restart,
+crash/resume and catch-up, first-seen cutoff/replay marker,
+spoofed-own-From/alias/Sent-vs-confirmed-submission provenance, deleted projection
+semantics, bounded scheduler/backoff/shutdown and disabled-zero-worker.
+The fixed 100-folder boundary is checked at 99/100/101, including concurrent engine-side
+enforcement and over-cap enumeration that must not publish a truncated ready tree.
+API/UI fixtures требуют `projection_state`/nullable `projection_as_of`, conservative mixed-
+page status and отсутствие cursor/checkpoint/lease/provider text; query retry не может
+сымитировать ready.
 Отдельный P0 cutover-набор доказывает полный ScheduledCall backfill, совпадение legacy/
 canonical recurrence oracle, event-before-call concurrency, atomic create/update/delete,
 occurrence-cancel projection advance, versioned occurrence-keyed due outbox, отсутствие

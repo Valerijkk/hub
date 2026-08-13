@@ -25,7 +25,10 @@ health/queue status, persistence, and optional bounded Docker profile.
 - Added mail profile totals at most 4 CPU and 4 GiB RAM by configuration and measured
   evidence; shared-service usage is reported separately.
 - Accepted launcher proves JMAP discovery/auth, mailbox operations, internal + external
-  instance-domain transport, restart persistence, health, and cleanup.
+  instance-domain transport, composite change cursors, base-state/ID-anchored enumeration/catch-up,
+  two-replica lease exclusion, worker shutdown, restart persistence, health, and cleanup.
+- Enabled composition starts one bounded Phase 144 projection worker on the shared root
+  context; disabled composition creates no adapter, worker, timer, probe or goroutine.
 - Failure preserves the `MailEngine` boundary and stops; docker-mailserver fallback needs
   an explicit recorded switch, not silent fallback.
 

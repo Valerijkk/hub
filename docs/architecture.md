@@ -100,7 +100,13 @@ policy `ADR-NOTIF-01` и остаётся governance gap до удаления/�
 founder-решения. Предпочтительный Stalwart adapter, first-class mailbox domain и Calendar
 RSVP/reliability описаны Mail 0.1.5 (`ADR-MAIL-01`, `MAIL-SPEC`, Phase 147 `CONTRACT.md`):
 engine хранит raw mail, Hub — calendar/receipts/projections; availability не раскрывает
-детали; reminders используют durable in-app dedupe и повторную проверку текущих offset/
+детали. L0 Inbox обновляет один context-owned bounded worker: replica-safe lease,
+hydrated page and full-envelope/cursor atomic commit, separate expiring command lease with
+begin/end mutation-epoch edges; sync capture is forbidden while
+it is present. Recovery uses no-clear base-state/ID-anchored enumeration with catch-up.
+Non-ready projection stays owner-filtered but visibly stale; disabled engine starts no
+worker/probe. Reminders используют
+durable in-app dedupe и повторную проверку текущих offset/
 start/sequence/eligibility перед записью, а transient policy/store failure остаётся
 retriable вместо ложного suppression; CRM создаёт обычный idempotent Mail draft и лишь
 вручную связывает definitively owned message, в том числе из reader. Draft/message deep

@@ -2,7 +2,7 @@
 
 ## 0.1.5 — 2026-08-13
 
-ScheduledCall canonical-cutover amendment. Product code and runtime remain
+ScheduledCall canonical-cutover and mailbox-projection amendment. Product code and runtime remain
 `NOT_IMPLEMENTED` / `NOT_RUN`; the 0.1.4 review is historical `STALE` for this revision and
 current semantic SHA review is pending.
 
@@ -39,6 +39,20 @@ current semantic SHA review is pending.
   untouched. Envelope `event_id` is the consumer dedupe id; the outbox row
   `Hub-Event-Id` remains a distinct transport diagnostic id. Phase 144 event mapping now
   precedes transactional producers instead of depending on them.
+- Closed the L0 mailbox ingestion/recovery gap: one leased bounded worker owns hydrated
+  incremental pages, separate command-lease begin/end epoch fencing, atomic projection/
+  event/cursor commits and a
+  no-clear resumable base-anchored enumeration/catch-up rebuild. First-seen post-cutoff
+  inbound mail emits one stable received event; history and only stably mapped Hub
+  submission/draft copies do not. From/alias or mutable Sent membership never proves owner
+  origin. Phase 145 now owns incremental and base-state/ID-anchored enumeration adapters
+  plus root-context worker composition, while OpenAPI/UI expose bootstrapping/degraded/
+  rebuilding freshness without false-ready state.
+- Closed the command/sync overlap race: sync cannot capture while an account command lease
+  is present; command completion advances a second epoch edge, expired-lease reclaim also
+  advances it, and a late former owner must reconcile instead of finalizing stale state.
+- Froze the 100-folder total account cap with engine-atomic enforcement, a machine-readable
+  422 response and fail-closed degraded projection for an already over-cap engine account.
 
 ## 0.1.4 — 2026-08-13
 

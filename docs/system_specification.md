@@ -159,6 +159,10 @@ The frozen future Mail + Calendar RSVP API is in `docs/mail/openapi.yaml`. It is
 the live route inventory below. In particular, legacy `GET /api/calendar/events` retains
 `{events,from,to}`, while canonical future event CRUD/RSVP is namespaced under
 `/api/calendar/v2/**`; legacy flat Resend admin settings also remain unchanged.
+Future folder/thread/search pages expose projection state and last committed freshness.
+One leased bounded backend worker owns L0 Inbox ingestion; invalid cursors preserve current
+owner rows, rebuild through base-state/ID-anchored enumeration, catch up incrementally, then finalize. This
+is a frozen contract, not current route or runtime evidence.
 
 ### Endpoint inventory (2026-06-21)
 
@@ -425,6 +429,18 @@ Outbox hub.intranet.coffee.matched → MessengerService (создать/пере
   application `event_id`, treat outbox-row `Hub-Event-Id` as transport diagnostics, and
   dead-letter subject mismatch/malformed/unknown versions before mutation. Existing event
   payload families are not globally wrapped.
+- Instance-domain Inbox projection uses one bounded replica-safe worker. It commits a
+  hydrated incremental page, full events and exact composite cursor atomically only when
+  lease/prior cursor/sync epoch/mutation epoch still match and no account command lease is
+  present. Each engine command/reconciliation owns a separate expiring mutation lease with
+  begin/end epoch edges; sync cannot capture during it, expiry reclaim invalidates late work,
+  and a former owner must reconcile rather than finalize stale state. Invalid cursor keeps current
+  owner-filtered data visibly degraded, resumes a base-state/ID-anchored no-clear enumeration,
+  catches up from its base state and finalizes unseen tombstones only afterward. A stable
+  per-message marker prevents `mail.received.v1` replay storms; pre-cutoff history and only
+  stably mapped Hub submission/draft copies emit none. `From`/alias or Sent membership alone
+  cannot suppress an event; unknown provenance fails toward inbound admission. Disabled
+  engine starts no scheduler or probe.
 - `POST /api/calendar/v2/availability` authorizes 1–50 users as one set: self or an active
   same-organization user sharing a non-deleted project/active channel; admin listing is not
   a bypass. It limits `[from,to)` to 31 days and returns only private busy/free intervals

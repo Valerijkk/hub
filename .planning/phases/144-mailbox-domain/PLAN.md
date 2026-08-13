@@ -17,13 +17,14 @@ Implement the engine-independent domain and HTTP behavior against a deterministi
    typed rule compiler, rate/loop and attachment policies plus deterministic mapping of
    all three mail events through the shared 143-04L envelope, with failing units first.
 4. `144-04` — repositories/services for folders, labels, list/read/bulk, draft revisions,
-   unknown-save reconciliation, send idempotency/reconciliation and ownership; fake ports
-   and service units.
+   unknown-save reconciliation, send idempotency/reconciliation and ownership; then the
+   separately packetized incremental/enumeration sync policy, epoch-fenced service, atomic Ent
+   apply and bounded worker lifecycle against fake ports.
 5. `144-05` — dedicated mail-storage presign/confirm adapter, scanner interface,
    versioned event projection consumption/subject admission, search, recent contacts,
    notifications/ws/audit seams; project file ACLs are not reused.
-6. `144-06` — Fiber handlers/routes matching `docs/mail/openapi.yaml`, admin policy DTOs,
-   error mapping and handler units where genuine.
+6. `144-06` — Fiber handlers/routes matching `docs/mail/openapi.yaml`, owner-visible
+   projection freshness, admin policy/health DTOs, error mapping and genuine handler units.
 7. `144-07` — after Phase 143 admits `calendar.>`, add `mail.>` to EVENTS without changing
    the webhook filter, then system/architecture/security docs sync and independent review.
 

@@ -44,6 +44,7 @@ type MailEngine interface {
     GetMessage(context.Context, string, string) (EngineMessage, error)
     GetBlob(context.Context, string, string) (EngineBlob, error)
     Changes(context.Context, string, string) (EngineChangePage, error)
+    EnumerateProjection(context.Context, string, string) (EngineEnumerationPage, error)
     SaveDraft(context.Context, EngineDraft) (EngineMessage, error)
     ReconcileDraft(context.Context, EngineDraftReconciliation) (EngineDraftResult, error)
     Submit(context.Context, EngineSubmission) (EngineSubmissionResult, error)
@@ -66,12 +67,24 @@ Semantic requirements:
 - `EngineSubmission` содержит stable engine submission key, account/draft/message value.
 - `EngineSubmissionResult` различает `sent`, `absent`, `indeterminate` и несет result ids
   только когда они подтверждены; zero value не должен выглядеть как success.
-- `Changes` cursor opaque; invalid/expired cursor имеет отдельный стабильный error kind.
+- `Changes` возвращает bounded hydrated page с точными opaque `from_cursor` и
+  `next_cursor`; invalid/expired cursor имеет отдельный стабильный error kind.
+- `EnumerateProjection` возвращает bounded resumable enumeration page, привязанную к
+  одному pre-enumeration composite base cursor. DTO не обещает frozen provider state:
+  adapter обязан доказать стабильный resume boundary и последующий Changes
+  catch-up. Missing anchor, unsupported stable enumeration или expired base history —
+  отдельный restart-required error kind, а не пустой cursor или тихая новая enumeration.
+- Cursor/checkpoint/base-cursor DTO остаются adapter/repository-only: они не являются
+  публичными API/event/log полями.
 - Error taxonomy различает not-found, conflict/state-mismatch, invalid-cursor,
   unavailable, timeout-indeterminate, rejected-policy и unauthorized-account, не включает
   body, адреса, секреты или сырой ответ провайдера.
 - DTO имеют явные лимитируемые slices/maps; никакого `any`/`map[string]any` для domain
   contract и никаких JMAP-specific полей/имен.
+- Hydrated message DTO несёт server-derived projection origin enum. Только подтверждённая
+  submission/draft provenance может подавить inbound event; `From`/alias или Sent folder
+  сами по себе никогда не кодируются как confirmed-owner proof, unknown остаётся
+  отдельным kind.
 
 [REQUIRED ORACLES]
 
@@ -87,7 +100,11 @@ External-package тест `package mail_test` должен доказать:
 6. Health/capabilities не содержат credential/token fields.
 7. Stable sentinel/kind errors распознаются через `errors.Is`/`errors.As`, а safe string не
    содержит переданный synthetic secret/body/address.
-8. Компиляционный assertion `var _ mail.MailEngine = (*consumerStub)(nil)` проходит.
+8. Incremental и enumeration pages несут явные bounds, exact cursor/checkpoint metadata и
+   typed invalid-cursor/restart-required outcomes без provider-specific объектов.
+9. Spoofed owner address and mutable Sent membership cannot construct confirmed-owner
+   origin; confirmed submission, draft and inbound-or-unknown remain distinct typed values.
+10. Компиляционный assertion `var _ mail.MailEngine = (*consumerStub)(nil)` проходит.
 
 [EXECUTION / PROVENANCE]
 

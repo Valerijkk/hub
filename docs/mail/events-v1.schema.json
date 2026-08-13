@@ -177,6 +177,23 @@
               "type": "object",
               "additionalProperties": false,
               "required": ["mailbox_id", "message_id", "changed_fields", "folder_ids", "flags", "label_ids"],
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "changed_fields": { "contains": { "const": "deleted" } }
+                    },
+                    "required": ["changed_fields"]
+                  },
+                  "then": {
+                    "properties": {
+                      "changed_fields": { "maxItems": 1 },
+                      "folder_ids": { "maxItems": 0 },
+                      "flags": { "maxItems": 0 }
+                    }
+                  }
+                }
+              ],
               "properties": {
                 "mailbox_id": { "$ref": "#/$defs/uuid" },
                 "message_id": { "$ref": "#/$defs/uuid" },
@@ -185,7 +202,10 @@
                   "minItems": 1,
                   "maxItems": 30,
                   "uniqueItems": true,
-                  "items": { "type": "string", "maxLength": 64 }
+                  "items": {
+                    "type": "string",
+                    "enum": ["folder_ids", "seen", "answered", "flagged", "junk", "labels", "deleted"]
+                  }
                 },
                 "folder_ids": {
                   "type": "array",
@@ -197,7 +217,10 @@
                   "type": "array",
                   "maxItems": 30,
                   "uniqueItems": true,
-                  "items": { "type": "string", "maxLength": 64 }
+                  "items": {
+                    "type": "string",
+                    "enum": ["seen", "answered", "flagged", "junk", "draft"]
+                  }
                 },
                 "label_ids": {
                   "type": "array",

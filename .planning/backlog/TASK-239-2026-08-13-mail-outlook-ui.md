@@ -19,6 +19,9 @@ counters, and settings surfaces.
 
 - Desktop/medium/mobile navigation follows the approved design and keeps selection in URL.
 - TanStack Query is server truth; transient reducer state does not duplicate mailbox cache.
+- Folder/thread/search results are called fresh only when every visible source is `ready`;
+  bootstrapping/degraded/rebuilding keeps current owner rows with an accessible stale or
+  in-progress banner and a query-only retry.
 - Composer autosave coalesces edits, detects revision conflict, and never blind-retries send.
 - Plate editor is reused through a mail wrapper with deterministic HTML/plain serialization.
 - Remote content is blocked by default; sanitized reader never fetches it directly.

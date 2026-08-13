@@ -40,10 +40,12 @@ breaking existing call sites. The client creates headers itself:
 - caller cannot override `Authorization`, `Cookie`, `Host`, `Content-Type` or pass an
   arbitrary header map.
 
-Extend `ApiError` with optional `error_code`, `etag`, and `location`. Read
-`X-Hub-Error-Code` and ETag as bounded strings. Accept Location only if it is a relative
-same-origin `/api/...` path; reject scheme-relative, absolute, backslash/control and
-non-API values. The calendar wrapper will enforce its stricter canonical-event regex.
+Extend `ApiError` with optional `error_code`, `etag`, `location`, and
+`retry_after_seconds`. Read `X-Hub-Error-Code` and ETag as bounded strings. Reuse the
+existing Retry-After policy, accepting only an integer 1..5 for `MAIL_ACCOUNT_BUSY`.
+Accept Location only if it is a relative same-origin `/api/...` path; reject scheme-
+relative, absolute, backslash/control and non-API values. The calendar wrapper will
+enforce its stricter canonical-event regex.
 
 [REQUIRED ORACLES]
 
@@ -54,9 +56,10 @@ non-API values. The calendar wrapper will enforce its stricter canonical-event r
 4. Retry 401 still expires session as before.
 5. Absolute, `//host`, backslash/control and non-`/api/` Location are discarded.
 6. Valid relative `/api/calendar/v2/events/<uuid>` location, error code and ETag are
-   available on thrown ApiError.
+   available on thrown ApiError; 423 busy exposes only a validated 1..5 second retry value.
 7. Malformed error JSON keeps statusText fallback and never throws during mapping.
-8. 429 retry-after behavior remains intact alongside new fields.
+8. Existing 429 retry-after behavior remains intact; missing/fractional/out-of-range 423
+   Retry-After is discarded, and busy is never mapped from an unknown engine outcome.
 9. Compile-time negative cases prove arbitrary headers cannot be passed.
 10. No token, key or request body is copied into an error object/message.
 

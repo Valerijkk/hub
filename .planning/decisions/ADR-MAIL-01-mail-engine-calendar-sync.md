@@ -45,6 +45,10 @@ not an allowed substitute.
 6. Implement L0 completely. Implement instance-domain SMTP receive/send as part of the
    mailbox product. Defer external-provider mailbox ingest (L2) and OAuth two-way sync
    (L3). Keep L1 iCal feeds as a later phase after L0 reliability.
+7. Treat the owner-scoped mailbox projection loop as an L0 product component, not adapter
+   glue: one leased worker atomically applies each change page with its cursor/outbox,
+   fences concurrent Hub operations by an account mutation lease plus epochs, and performs resumable no-clear
+   base-anchored enumeration and mandatory change catch-up after an invalid cursor.
 
 ## Candidate comparison
 
@@ -65,6 +69,8 @@ must be resolved again immediately before an approved runtime run.
 
 Primary sources:
 
+- [RFC 8620 — JMAP core query, anchor and changes semantics](https://www.rfc-editor.org/rfc/rfc8620.html)
+- [RFC 8621 — JMAP for Mail](https://www.rfc-editor.org/rfc/rfc8621.html)
 - [Stalwart repository and protocol/security feature list](https://github.com/stalwartlabs/stalwart)
 - [Stalwart Docker installation](https://stalw.art/docs/install/platform/docker/)
 - [Stalwart JMAP overview](https://stalw.art/docs/http/jmap/)
@@ -110,6 +116,7 @@ type MailEngine interface {
     GetMessage(ctx context.Context, accountID, messageID string) (EngineMessage, error)
     GetBlob(ctx context.Context, accountID, blobID string) (EngineBlob, error)
     Changes(ctx context.Context, accountID, since string) (EngineChangePage, error)
+    EnumerateProjection(ctx context.Context, accountID, checkpoint string) (EngineEnumerationPage, error)
     SaveDraft(ctx context.Context, draft EngineDraft) (EngineMessage, error)
     ReconcileDraft(ctx context.Context, draft EngineDraftReconciliation) (EngineDraftResult, error)
     Submit(ctx context.Context, message EngineSubmission) (EngineSubmissionResult, error)
@@ -129,13 +136,22 @@ services never expose engine credentials or raw JMAP objects to HTTP handlers.
 issuing another save. `EngineSubmission` carries a stable engine submission key. A lost
 response is reconciled through engine state before another mutation is attempted. The
 domain must not translate an indeterminate timeout into a blind save or send retry.
+`Changes` is a bounded hydrated incremental page. `EnumerateProjection` is a resumable
+bounded base-state-anchored enumeration page, not a promise that standard JMAP freezes a mailbox
+across requests. The adapter captures a composite Mailbox/Email object-state cursor before
+enumeration and must prove stable unfiltered ID-anchor traversal in which unchanged
+surviving base objects cannot cross the resume
+boundary. It then catches up from that base through `Changes`. Query-state drift alone is
+expected; missing anchor, unstable enumeration or expired base change history is typed
+restart-required, never empty-cursor success. Opaque cursor/checkpoint values stay inside
+the adapter/repository boundary and never enter logs, APIs or event payloads.
 
 ### Source of truth
 
 | Data | Authority | Hub PostgreSQL role |
 |---|---|---|
 | Raw MIME, body parts, protocol headers, immutable message id | Engine | Stores engine id, safe snippet, normalized searchable metadata |
-| Mailbox membership and server flags (`seen`, `answered`, `draft`, junk) | Engine | Projection for fast Hub counters; reconciled from engine changes |
+| Mailbox membership and server flags (`seen`, `answered`, `draft`, junk) | Engine | Leased owner projection; page + full events + cursor commit atomically; mutation lease plus begin/end epochs prevent stale overwrite |
 | Delivery queue and SMTP result | Engine | Submission status/audit projection |
 | System/custom mailbox hierarchy | Engine | `MailFolder` maps Hub user to engine folder and adds color/order |
 | Hub labels and pin | Hub PostgreSQL | Canonical `MailLabel`, label edges, pinned projection |
@@ -148,6 +164,20 @@ domain must not translate an indeterminate timeout into a blind save or send ret
 No message body is duplicated in PostgreSQL. Sanitized HTML may be cached only in a
 bounded, invalidatable application cache; it is not canonical persistence.
 
+The projection worker is context-owned and starts only with an enabled engine. Multiple
+backend replicas claim accounts by expiring leases. Engine I/O occurs outside the database
+transaction; final page apply locks the account and verifies lease, exact prior cursor,
+sync epoch, captured mutation epoch and absence of an active mutation lease. Mismatch
+discards the whole page. A user command acquires a separate expiring account mutation
+lease and increments the epoch before engine I/O; its completion/reconciliation clears the
+lease and increments the epoch again in the same projection transaction. Sync capture is
+forbidden while that lease is present. Reclaiming an expired mutation lease also increments
+the epoch, and a late former owner must reconcile instead of finalizing directly. Invalid cursor
+keeps the old owner-scoped projection visibly degraded, applies a resumable base-anchored
+enumeration without destructive pre-clear, catches up from its base cursor, and only then
+tombstones unseen engine rows and reports ready. This recovery path is required for L0
+instance-domain mail even though unrelated external-account L2 ingest remains deferred.
+
 ## Internal delivery
 
 Internal mail uses the same engine submission path as external mail. This decision avoids
@@ -155,6 +185,14 @@ split-brain delivery, ensures Sent/Inbox copies and RFC headers are produced onc
 keeps Sieve/spam/audit behavior consistent. “Instant” means Hub publishes the successful
 engine change immediately to NATS/WebSocket and refreshes the recipient projection; it
 does not mean bypassing the engine.
+
+The sender transaction owns `mail.sent.v1`. The recipient projection worker owns exactly
+one `mail.received.v1` for a first-seen post-cutoff inbound-or-unknown engine message.
+Suppressing it requires a stable mapped Hub submission/draft provenance; `From`/alias or
+mutable Sent membership alone is never confirmed-owner provenance. Rebuild history at/before the
+cutoff is projected without an event storm; the persisted message marker prevents replay/
+rebuild duplication. Incremental/rebuild
+state is always surfaced as projection freshness rather than silently labelled current.
 
 Idempotency is keyed by a Hub-generated submission id propagated to the engine-facing
 request and outbox record. The raw HTTP key is stored only as a hash. A timed-out submit

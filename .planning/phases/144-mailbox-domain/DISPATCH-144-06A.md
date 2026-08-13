@@ -40,6 +40,13 @@ DTO/error mapping, Fiber handlers and narrow composition wiring matching OpenAPI
 - Cross-account opaque ids do not disclose existence and produce zero engine call through
   the service oracle.
 - Pagination cursors are opaque/bounded; limits default 50/max 100.
+- Folder and thread-list responses always serialize `projection_state` plus nullable
+  `projection_as_of` exactly as OpenAPI. `bootstrapping`, `degraded` and `rebuilding` keep
+  owner filtering and current rows but are never mapped to fresh/ready. Opaque engine
+  cursor/checkpoint/base-cursor and safe internal retry state never leave the service.
+- Engine command/reconciliation lease contention maps only to `423` plus
+  `X-Hub-Error-Code: MAIL_ACCOUNT_BUSY` and bounded `Retry-After`; the service guarantees
+  zero engine call for that response. Unknown/indeterminate outcomes never map to busy.
 - Remote image route accepts only server token paired with owned message id; never URL.
 - Response serializes draft/message bodies returned by authorized engine hydration but
   handler logging/error mapping must not retain them.
@@ -48,6 +55,8 @@ DTO/error mapping, Fiber handlers and narrow composition wiring matching OpenAPI
 
 1. Route inventory matches every `/mail/**` path/method in OpenAPI 0.1.5, including
    submission GET, without duplicate registration.
+1A. Folder/thread list fixtures cover all four projection states and nullable freshness;
+    stale states remain explicit and expose no engine cursor/checkpoint/lease/error text.
 2. Missing/malformed auth-derived context stops before service call.
 3. Missing/short idempotency key and malformed `If-Match` return safe NFR-13 error.
 4. Service idempotency conflict returns 409 + `X-Hub-Error-Code:
@@ -61,6 +70,11 @@ DTO/error mapping, Fiber handlers and narrow composition wiring matching OpenAPI
    upload URL query and engine error.
 10. Existing Resend status/settings/broadcast and legacy calendar route registrations are
     unchanged by exact diff.
+11. Folder create over the fixed 100-folder engine cap maps to 422 plus
+    `X-Hub-Error-Code: MAIL_FOLDER_LIMIT_EXCEEDED`; no partial projection is returned.
+12. Every OpenAPI engine-command route maps pre-I/O lease contention to the exact 423 busy
+    response; fixtures reject missing/invalid code or Retry-After and prove no busy mapping
+    after an indeterminate engine call.
 
 [EXECUTION / PROVENANCE]
 

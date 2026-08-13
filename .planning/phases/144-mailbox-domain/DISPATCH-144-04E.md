@@ -48,6 +48,15 @@ stable engine key. The receipt response never exposes any of those values. A sub
 may consume an active draft exactly once; concurrent keys for the same draft serialize and
 only one can reach engine Submit.
 
+The first submission/reconciliation workflow acquires one owning-account mutation lease and
+increments `mutation_epoch` before engine I/O. Its completion/unknown handoff verifies the
+token, finalizes the receipt/projection, clears the lease and increments the epoch again in
+one transaction. A replay of an already final receipt performs no engine I/O or lease.
+Reconciliation of an unknown receipt acquires a new lease; if it proves definitive absence,
+the controlled Submit may continue under that same live lease. Active-lease busy makes zero
+engine call. Expiry/reclaim forbids a late former owner from finalizing directly, and no
+database transaction remains open across engine I/O.
+
 [REQUIRED ORACLES]
 
 1. First request performs one Submit, one receipt finalization and one complete 03D
@@ -72,6 +81,10 @@ only one can reach engine Submit.
 14. Event id/time/org/actor/correlation are explicit stable inputs; retry/reconcile never
     regenerates a second envelope id. Stored event type equals JSON subject, and the fake
     outbox receives the whole envelope rather than only inner payload.
+15. Every submission/reconciliation engine workflow has exact mutation-lease begin/end
+    epoch edges; only a final stored-receipt replay skips the lease. Active-lease busy makes
+    zero engine call, expiry forbids stale finalization, and a sync page cannot capture
+    during the workflow or regress confirmed submission/draft projection.
 
 [EXECUTION / PROVENANCE]
 

@@ -31,7 +31,11 @@ handlers or protected test roots. Stop on dirty overlap.
   recipients, received time, folder ids, attachment flag and nullable calendar method.
   `mail.sent.v1` contains confirmed submission/message/thread identifiers, normalized
   sender/recipients, sent time and delivery class. `mail.message.changed.v1` contains
-  message id, a non-empty bounded changed-field set and current folder/flag/label state.
+  message id, a non-empty bounded changed-field set from exactly `folder_ids`, `seen`,
+  `answered`, `flagged`, `junk`, `labels`, `deleted`; its current flags are drawn only from
+  `seen`, `answered`, `flagged`, `junk`, `draft`. A `deleted` change has empty engine
+  folder/flag state while preserving the current bounded Hub label ids supplied by the
+  authoritative projection command.
 - Reject missing/zero/cross-account identifiers, duplicate/unbounded addresses or ids,
   unknown field/change/delivery values and non-normalized inputs with stable safe errors.
 - No event contains body, subject line, snippet, raw MIME/header, attachment bytes/name,
@@ -47,6 +51,8 @@ handlers or protected test roots. Stop on dirty overlap.
 4. Synthetic forbidden content cannot appear anywhere in serialized envelope bytes.
 5. Reusing an application event id produces identical envelope bytes. A distinct event id
    changes only the expected field when all other inputs are fixed.
+6. Unknown changed-field/flag values, `deleted` mixed with live engine state, duplicate
+   values and an empty changed-field set are rejected before envelope construction.
 
 ## Execution and provenance
 

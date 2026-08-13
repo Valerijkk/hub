@@ -201,6 +201,21 @@ is transport diagnostics and never authorization. Neither id, correlation id nor
 carry a raw idempotency key, credential, message body or MIME data. Legacy outbox payloads
 must not be globally wrapped to implement this contract.
 
+Mailbox projection recovery is also a security boundary. Every page is account-scoped,
+bounded and committed only under the exact live sync lease, prior cursor, sync epoch,
+captured mutation epoch and absence of an account command lease. Each engine command or
+reconciliation owns an expiring mutation lease plus begin/end epoch edges; sync capture is
+forbidden while it exists. Expired reclaim advances the epoch, and the late former owner
+cannot finalize directly. Cursor/checkpoint/query-state/lease values and provider errors never enter
+public API, events or logs. Invalid cursor preserves the last owner-filtered projection and
+uses a base-state/ID-anchored no-clear rebuild; it cannot swap accounts, finalize partial
+enumeration or label stale data ready. First-seen received-event emission is cutoff- and marker-guarded to
+prevent notification storms or history disclosure during bootstrap/rebuild.
+Inbound event suppression is provenance-based, never address-based. A matching owner
+`From`/alias or mutable Sent membership cannot prove an owner submission; only stable
+engine-to-Hub submission/draft linkage can. Ambiguous origin is treated as inbound for
+event admission so spoofing cannot silently bypass realtime/calendar processing.
+
 ## Защита от CSRF/XSS/Clickjacking
 
 | Угроза | Мера |

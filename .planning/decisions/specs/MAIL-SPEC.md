@@ -92,6 +92,17 @@ the Hub mail feature. It does not claim that the described behavior is implement
     revocable join credentials and delivery.
 27. ScheduledCall participants mirror series-level internal non-organizer attendees only;
     an occurrence RSVP cannot change another occurrence's call access/projection.
+28. One durable owner-scoped mailbox sync lease advances one engine change page and its
+    Hub projection/outbox events atomically with the opaque cursor. Every engine command
+    workflow acquires an expiring account mutation lease and increments `mutation_epoch`
+    before network I/O; completion/reconciliation clears it and increments the epoch again.
+    Sync capture is forbidden while the lease is present, and a page under an older epoch
+    is discarded and refetched, never committed over newer user-visible state.
+29. An invalid/expired engine cursor marks the projection degraded and starts a resumable
+    base-anchored enumeration plus mandatory change catch-up. Existing rows remain owner-
+    scoped and visibly stale while pages apply; destructive cleanup waits for catch-up/
+    finalization. A rebuild never clears live rows up front, forges freshness, skips an
+    unchanged surviving base object, or re-emits an already recorded inbound event.
 
 ## 3. ERD
 
@@ -150,11 +161,88 @@ erDiagram
 | `user_id` | UUID | required, unique with organization |
 | `engine_account_id` | string | opaque, encrypted-at-rest if credential-like, unique |
 | `status` | enum | `provisioning`, `active`, `suspended`, `error` |
-| `sync_cursor` | string nullable | opaque JMAP/adapter state token |
-| `last_synced_at` | timestamp nullable | projection freshness |
+| `projection_state` | enum | `bootstrapping`, `ready`, `degraded`, `rebuilding` |
+| `sync_cursor` | string nullable | last atomically committed opaque incremental state token |
+| `rebuild_checkpoint` | string nullable | opaque resumable enumeration/catch-up checkpoint |
+| `rebuild_base_cursor` | string nullable | adapter-issued composite object-state cursor captured before enumeration |
+| `sync_epoch`, `mutation_epoch` | non-negative int64 | rebuild marking and begin/end command fencing |
+| `sync_lease_token`, `sync_lease_until` | UUID/time nullable | one bounded worker claim; both present or both absent |
+| `mutation_lease_token`, `mutation_lease_until` | UUID/time nullable | one account-scoped engine command/reconciliation; both present or both absent |
+| `next_sync_at`, `sync_attempts` | timestamp/non-negative int | bounded retry scheduling |
+| `sync_error_code` | string nullable | stable allowlisted code only; no provider text |
+| `event_cutoff_at` | timestamp | immutable injected activation instant committed before first worker eligibility; compare engine receipt time, never message `Date` |
+| `last_synced_at` | timestamp nullable | last fully committed incremental page/finalized rebuild |
 | `created_at`, `updated_at` | timestamp | required |
 
 No password, token, DKIM key, or engine administrator secret is stored on this entity.
+
+#### 3.1.1 Projection synchronization lifecycle
+
+`MailEngine.Changes` returns a bounded hydrated page tied to exact `from_cursor` and
+`next_cursor`; `MailEngine.EnumerateProjection` returns resumable bounded enumeration pages
+associated with one pre-enumeration composite `base_cursor`. Both values are opaque and
+never logged or exposed publicly. The adapter must prove an unfiltered stable ID-anchor
+enumeration whose ordering cannot move an unchanged surviving
+base object across the resume boundary. Pages may hydrate a newer object value; mandatory
+`Changes(base_cursor)` catch-up converges those values and every create/update/destroy after
+the base. Ordinary JMAP `queryState` drift is therefore not itself completion or failure.
+Missing resume anchor, unstable/unsupported enumeration, or inability to calculate changes
+from the base is typed restart-required; the domain never guesses an empty cursor.
+
+An incremental worker claim first atomically reclaims any expired mutation lease by
+clearing it and incrementing `mutation_epoch`; it otherwise refuses to capture while a
+mutation lease is present. The claim then records sync lease token, current cursor,
+`sync_epoch` and `mutation_epoch` before engine I/O outside the PostgreSQL transaction. Page apply
+locks the account, proves the same live lease/cursor/epochs, upserts current snapshots,
+soft-deletes destroyed engine objects, recomputes affected threads/folder counts, writes
+the complete versioned events and advances cursor/freshness in one transaction. It also
+requires no mutation lease to be present. Epoch or lease mismatch discards the entire page
+and retries from the unchanged committed cursor.
+The lease is renewable but bounded; crash/timeout recovery can reclaim it without two
+workers committing the same page.
+
+Every Hub command workflow that mutates or reconciles engine-authoritative folder/message/
+draft/submission/rule state first atomically acquires a 60-second account mutation lease and
+increments `mutation_epoch`. Before acquisition it may reclaim an expired prior lease only
+by clearing it and incrementing the epoch; a live prior lease returns the stable retryable
+busy result after a bounded wait. Only one such workflow runs per account. Engine I/O has a shorter
+30-second deadline and no database transaction spans it. Completion, definitive failure or
+unknown-result handoff verifies the exact token, reconciles or marks degraded as required,
+clears the lease and increments `mutation_epoch` again in one transaction. A sync page
+fetched before begin fails the first epoch edge; sync cannot capture during the lease; a
+page from any expired owner fails the completion/reclaim edge. If an expired lease was
+reclaimed, a late former owner may only enter explicit reconciliation under a new lease and
+must never finalize directly from its stale result.
+
+Bootstrap or invalid-cursor recovery enters `bootstrapping`/`rebuilding`, increments
+`sync_epoch`, preserves all current rows and applies base-anchored enumeration pages with
+that epoch marker. It then catches up from the captured `base_cursor` through ordinary
+change pages; every row seen in enumeration or catch-up receives the current epoch marker.
+Only finalization may soft-delete engine projection rows not seen in the epoch,
+recompute derived rows/counts, install the final cursor, clear rebuild/lease/error state
+and mark `ready`. Until then read APIs return the current owner-filtered projection with
+explicit `projection_state` and nullable `projection_as_of`; they never call it fresh.
+For folder/thread projection, `ready` requires non-null
+`projection_as_of == last_synced_at`; non-ready states may retain the prior value or use
+null when no complete page has ever committed.
+For `/mail/search`, the server derives these fields conservatively from both the mailbox
+projection and the owner-scoped search consumer checkpoint: `ready` requires both ready,
+and `projection_as_of` is their older complete instant. Search lag can therefore never be
+hidden behind a ready mailbox cursor.
+Transient failures retain checkpoint and retry with bounded backoff. Missing anchor,
+unsupported stable enumeration or expired base catch-up restarts the rebuild with a new
+epoch without clearing rows.
+
+First-seen inbound-or-unknown messages whose engine arrival time is after
+`event_cutoff_at` reserve one nullable `received_event_id` and write one
+`mail.received.v1` envelope in the same projection transaction. Suppression requires stable
+proof that the object is a Hub-confirmed owner submission or draft, such as the mapped
+engine submission/message id; matching `From`/alias, a mutable Sent mailbox membership or
+address equality is never proof. Unknown provenance fails toward inbound admission, not
+silent suppression. Existing marker means no second event during cursor replay/rebuild.
+Enumeration history at/before the cutoff is projected without notification/calendar-import
+events. Successful submit already owns `mail.sent.v1`; its confirmed Sent projection never
+becomes `mail.received.v1`.
 
 ### 3.2 MailIdentity
 
@@ -186,9 +274,14 @@ group authorization and fan-out are implemented.
 | `color` | string nullable | design-token-safe color value |
 | `sort_order` | int | stable user ordering |
 | `unread_count`, `total_count` | non-negative int | rebuildable projection |
+| `last_seen_sync_epoch` | non-negative int64 | resumable rebuild mark |
 | `created_at`, `updated_at`, `deleted_at` | timestamp | soft delete for projection |
 
-System-role folders cannot be deleted or reparented. Folder cycles are rejected.
+System-role folders cannot be deleted or reparented. Folder cycles are rejected. An
+account has at most 100 non-deleted engine-backed folders including system roles. Hub
+prechecks the projected count for UX, but the adapter/engine enforces this cap atomically;
+an over-cap enumeration leaves the prior owner projection degraded and never partially
+marks it ready.
 
 ### 3.4 MailThread
 
@@ -204,6 +297,7 @@ System-role folders cannot be deleted or reparented. Folder cycles are rejected.
 | `is_pinned` | bool | Hub canonical |
 | `has_attachments` | bool | projection |
 | `snippet` | string | sanitized plain text, max 400 graphemes |
+| `last_seen_sync_epoch` | non-negative int64 | resumable rebuild mark |
 | `created_at`, `updated_at`, `deleted_at` | timestamp | projection lifecycle |
 
 Thread key algorithm:
@@ -227,7 +321,7 @@ Thread key algorithm:
 | `internet_message_id` | string nullable | normalized RFC Message-ID, indexed |
 | `in_reply_to` | string nullable | normalized RFC Message-ID |
 | `references` | JSON array | bounded normalized Message-IDs |
-| `from`, `to`, `cc`, `bcc`, `reply_to` | structured JSON | normalized addresses; BCC only for owner-sent copy |
+| `from`, `to`, `cc`, `bcc`, `reply_to` | structured JSON | normalized addresses; BCC only for confirmed owner submission/draft |
 | `subject` | string | max 998 octets at transport boundary |
 | `snippet` | string | safe plain-text projection, max 400 graphemes |
 | `sent_at`, `received_at` | timestamp nullable | protocol timestamps |
@@ -236,17 +330,22 @@ Thread key algorithm:
 | `has_attachments`, `is_draft` | bool | projection |
 | `is_seen`, `is_answered`, `is_flagged`, `is_junk` | bool | engine-authoritative projection snapshot |
 | `engine_state` | string nullable | opaque bounded state/version token for reconciliation |
+| `projection_origin` | enum | `inbound_or_unknown`, `confirmed_owner_submission`, `draft`; server-derived, never address-trusted |
 | `flags_synced_at` | timestamp nullable | snapshot freshness |
 | `calendar_method` | enum nullable | `request`, `cancel`, `reply` |
 | `calendar_event_id` | UUID nullable | verified Hub link only |
+| `last_seen_sync_epoch` | non-negative int64 | resumable rebuild mark |
+| `received_event_id` | UUID nullable | stable application event id; set once for admitted inbound |
 | `created_at`, `updated_at`, `deleted_at` | timestamp | projection lifecycle |
 
 Seen/answered/flagged/junk/mailbox membership stay authoritative in the engine and are
-exposed through a projection snapshot. `bcc` is never reconstructed for received mail.
+exposed through a projection snapshot. `bcc` is never reconstructed for received mail;
+address or alias equality alone cannot classify a message as confirmed owner provenance.
 
 ### 3.5.1 MailMessageFolder
 
-`mail_message_id`, `mail_folder_id`, `engine_state`, `projected_at`. Unique message +
+`mail_message_id`, `mail_folder_id`, `engine_state`, `last_seen_sync_epoch`, `projected_at`.
+Unique message +
 folder. Both rows must belong to the same `MailAccount`. This join is rebuildable from
 engine state and must not be used to authorize an engine call without resolving the
 authenticated owner's account again.
@@ -719,7 +818,8 @@ The machine-readable contract is `docs/mail/openapi.yaml`. General rules:
 - Prefix: `/api`, matching the existing Fiber router and generated Swagger base path.
 - Auth: existing bearer/session middleware.
 - Pagination: opaque `cursor`, default 50, max 100.
-- Mutation idempotency: `Idempotency-Key` required for send, event create, and RSVP.
+- Mutation idempotency: `Idempotency-Key` required for draft create, send, event create,
+  RSVP and legacy ScheduledCall create.
 - Calendar create/RSVP idempotency uses `CalendarMutationReceipt`; `MailSubmission`
   remains the send-specific receipt.
 - Optimistic locking: `If-Match: "<version>"` for draft/event/rule updates; RSVP body
@@ -727,6 +827,10 @@ The machine-readable contract is `docs/mail/openapi.yaml`. General rules:
 - Errors retain mandatory Hub NFR-13 wire JSON `{error,request_id}`. Machine-readable
   calendar conflict codes use `X-Hub-Error-Code`; stale RSVP additionally returns current
   attendee-version `ETag` and canonical event `Location` for refetch.
+- Account-scoped engine commands and reconciliations serialize through the mutation lease.
+  Active contention makes zero engine call and returns `423`,
+  `X-Hub-Error-Code: MAIL_ACCOUNT_BUSY` and bounded `Retry-After`; this response never
+  means that the rejected request may have reached the engine.
 - `403` does not reveal whether an engine/message id exists in another mailbox.
 - `scheduled_call_id` on event create is an immutable server-authorized link to an existing
   owned active call. It is not accepted on event PATCH and cannot be used to discover or
@@ -871,6 +975,7 @@ P2 is explicitly deferred. Risk uses Critical/High/Medium.
 | FR-MAIL-014 | user rules compile to safe typed Sieve | P1 | High | compiler tests | integration/security |
 | FR-MAIL-015 | admin domains/limits/retention/health/external toggle | P0 | Critical | policy/service tests | API/authz/runtime |
 | FR-MAIL-016 | HTML/remote content/attachment/rate/loop security controls | P0 | Critical | pure policy tests | security/integration |
+| FR-MAIL-017 | durable incremental projection sync, mutation fencing and resumable no-clear rebuild | P0 | Critical | Go sync policy/service/worker fakes | PostgreSQL/adapter/restart/E2E |
 | FR-CALSYNC-001 | first-class event/attendee model and call backfill | P0 | Critical | state/policy units | migration/integration |
 | FR-CALSYNC-002 | deterministic REQUEST create/update | P0 | Critical | RFC fixture tests | contract/E2E |
 | FR-CALSYNC-003 | deterministic CANCEL event/occurrence | P0 | Critical | RFC fixture tests | contract/E2E |
@@ -1006,6 +1111,21 @@ P2 is explicitly deferred. Risk uses Critical/High/Medium.
   outbound webhook filter remains unchanged.
 - `TC-MAIL-013`: draft content is frozen while its submission is queued/submitting/unknown
   and becomes editable again only after a definitive non-delivery result.
+- `TC-MAIL-014`: one incremental change page commits projection, full envelopes and exact
+  next cursor atomically; rollback/crash preserves the old cursor and redelivery emits no
+  duplicate application event.
+- `TC-MAIL-015`: a user mutation increments the account epoch before engine I/O; a page
+  fetched under the prior epoch is discarded and cannot overwrite the reconciled result.
+- `TC-MAIL-016`: invalid cursor enters visible degraded/rebuilding state, resumes a
+  base-state/ID-anchored enumeration without clearing live rows, catches up from its
+  captured composite cursor and only then tombstones unseen rows/marks ready. Query-state
+  drift is caught up; missing anchor/expired base history restarts without pre-clear.
+- `TC-MAIL-017`: initial/rebuild history at or before the event cutoff emits no inbound
+  storm; a first-seen later inbound-or-unknown message emits one stable `mail.received.v1`,
+  while replay/rebuild emits none. Only stable Hub submission/draft provenance suppresses;
+  matching owner From/alias or mutable Sent membership does not.
+- `TC-MAIL-018`: two backend replicas, lease expiry, cancellation and restart permit only
+  one page commit; worker shutdown leaks no goroutine and disabled engine starts no worker.
 
 ## 9. Delivery phases
 

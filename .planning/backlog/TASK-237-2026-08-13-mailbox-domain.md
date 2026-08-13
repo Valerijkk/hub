@@ -28,5 +28,14 @@ unchanged unless a narrowly documented compatibility seam is required.
 - PostgreSQL stores no raw MIME/body and no engine credentials.
 - SeaweedFS uses existing presign/confirm infrastructure plus fail-closed scan state.
 - Search is asynchronous through versioned NATS events and owner-filtered hydration.
+- One bounded leased worker commits each hydrated projection page, complete event envelopes
+  and exact cursor atomically. Account command leases plus begin/end mutation epochs block
+  capture during engine commands and discard stale pages. Invalid cursors rebuild
+  without pre-clearing rows, resume from checkpoints, catch up from an anchored base and
+  emit `mail.received.v1` only once for first-seen post-cutoff inbound-or-unknown mail.
+  Suppression requires a stable mapped Hub submission/draft; owner From/alias or Sent
+  membership alone cannot suppress it.
+- Folder/thread/search responses expose projection state and freshness; non-ready data is
+  never represented as fresh.
 - API behavior matches `docs/mail/openapi.yaml` or the contract is amended before code.
 - Same-session docs sync and atomic commits are maintained.

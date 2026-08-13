@@ -32,6 +32,8 @@ the 2026-08-13 research snapshot is not an immutable-image approval.
 - Missing domain or secret refuses external mode without printing values.
 - Invalid/expired JMAP cursor marks the affected mailbox projection degraded and triggers
   a bounded owner-scoped rebuild. It does not silently reset freshness.
+- Enabled startup owns exactly one bounded projection worker on the process root context;
+  disabled startup owns none. Shutdown cancels and drains it through registered cleanup.
 
 ## Secret and endpoint rules
 
@@ -57,8 +59,12 @@ Required cases:
 4. internal submit creates one Sent and one recipient Inbox view;
 5. lost-submit response reconciles without duplicate;
 6. draft version conflict and lost-save reconciliation;
-7. change cursor advance, invalid cursor degraded state and bounded rebuild;
-8. restart persistence for engine volume and Hub projection recovery;
+7. change cursor advance, invalid cursor degraded state, base-state/ID-anchored enumeration,
+   query-state drift catch-up, typed restart on anchor/base-history loss, and command-lease
+   begin/during/end exclusion from sync capture/apply;
+8. crash/resume during enumeration and catch-up, two-replica lease exclusion, worker context
+   cancellation/drain, expired command-lease reclaim/late-owner reconciliation,
+   engine-volume persistence and Hub projection recovery;
 9. backup, destructive-in-container data loss simulation and restore;
 10. exact task-resource cleanup even after timeout/failure;
 11. idle and representative load resource measurement;

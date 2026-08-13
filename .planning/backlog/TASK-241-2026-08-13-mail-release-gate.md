@@ -18,8 +18,10 @@ Claude's test-rebase branch.
 - The current `/admin/mail/broadcast` governance gap is removed/disabled, or a founder-
   approved superseding contract with consent/audit/unsubscribe/abuse controls is implemented
   and verified; mailbox code never inherits it silently.
-- Projection rebuild/reconciliation and engine-unavailable behavior are documented and
-  proven through accepted Docker-only runs.
+- Atomic projection/event/cursor apply, command-lease begin/end fencing, expiry/late-owner
+  recovery, base-state/ID-anchored no-clear rebuild/catch-up, received-event cutoff/marker,
+  replica lease/shutdown, visible freshness and engine-unavailable behavior are documented
+  and proven through accepted Docker-only runs.
 - Reminder offset/state changes are serialized against scheduler and consumer finalization;
   existing-message CRM linking is reauthorized at both UI and server boundaries.
 - ScheduledCall migration is all-or-nothing; linked writes/workers use event-before-call

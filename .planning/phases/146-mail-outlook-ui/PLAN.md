@@ -10,15 +10,18 @@
 2. Add `/mail` redirect, folder/thread/search routes, owner-scoped draft/message deep links
    and responsive folder/list/reader panes; URL is selection truth. Coordinate the
    calendar leaf-route split instead of masking it with mail-local state.
-3. Add thread/message reader with sanitized content boundary, blocked remote images,
+3. Surface projection bootstrapping/degraded/rebuilding state conservatively across folder,
+   thread and search pages. Keep current owner-filtered rows visible, label them stale or
+   in progress, and let Retry invalidate queries without pretending to control the worker.
+4. Add thread/message reader with sanitized content boundary, blocked remote images,
    attachment states, keyboard/focus behavior and invitation card.
-4. Add Plate mail composer wrapper, address chips, reply/forward quoting, signatures,
+5. Add Plate mail composer wrapper, address chips, reply/forward quoting, signatures,
    alias/CC/BCC/priority, draft autosave conflict state and submission polling/retry that
    recovers `unknown` without a second send.
-5. Add bulk actions, labels/folders, search filters, contact suggestions and realtime
+6. Add bulk actions, labels/folders, search filters, contact suggestions and realtime
    counter invalidation.
-6. Add user/admin settings and engine health surfaces.
-7. Add genuine Vitest/RTL units in `frontend/tests/mail/**`, Docker-only verification,
+7. Add user/admin settings and engine health surfaces.
+8. Add genuine Vitest/RTL units in `frontend/tests/mail/**`, Docker-only verification,
    accessibility pass and docs sync.
 
 Primary production paths are `frontend/src/api/mail.ts`, `frontend/src/modules/mail/**`

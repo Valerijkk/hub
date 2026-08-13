@@ -33,7 +33,9 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   `backend/tests/mail/mailbox_fake_test.go`.
 - Behavior: mutex-protected in-memory accounts/folders/messages/blobs/drafts/submissions;
   injected ids/clock; scripted typed errors and lost responses; strict account scoping;
-  `ReconcileDraft` and `ReconcileSubmission` never mutate/retry.
+  `ReconcileDraft` and `ReconcileSubmission` never mutate/retry. Script bounded hydrated
+  incremental pages plus base-anchored enumeration pages/checkpoints, invalid cursor,
+  anchor restart and transient failure without leaking cursor values.
 - Oracles: compile conformance; same stable submit key one visible result; definitive
   absent vs indeterminate; draft expected-version conflict; changes cursor pages; cross-
   account ids zero disclosure/mutation; deterministic snapshots; no secret/body in errors.
@@ -44,19 +46,26 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   `backend/ent/schema/mailaccount.go`, `mailidentity.go`, `maildomain.go`,
   `mailboxpolicy.go`, narrow additive inverse edges in `user.go`, `organization.go`.
 - Behavior: exact spec §3 fields/enums/bounds; unique org+user, opaque engine account;
-  normalized identity/domain uniqueness; partial one-default indexes; one policy/org; no
-  password/admin/DKIM private secret. Preserve all existing edges byte-semantically.
-- Oracles: schema field/index/edge table; partial predicates; active/provisioning states;
-  exact pre/post existing-edge inventory; no generated/migration edit.
+  projection state, incremental/rebuild cursor, sync/mutation epoch, separate paired sync
+  and mutation leases,
+  retry/error, immutable injected activation cutoff committed before first worker eligibility
+  and freshness fields; normalized identity/domain uniqueness;
+  partial one-default indexes; one policy/org; no password/admin/DKIM private secret.
+  Preserve all existing edges byte-semantically.
+- Oracles: schema field/index/edge table; each lease token/until pair and non-negative
+  epochs/attempts; bounded opaque cursor/error; active/provisioning and projection enums; exact
+  pre/post existing-edge inventory; no generated/migration edit.
 
 ## 144-02B — folder/thread/message/membership/label schemas
 
 - Dependency: reviewed 02A. Allowed only new schema files
   `mailfolder.go`, `mailthread.go`, `mailmessage.go`, `mailmessagefolder.go`, `maillabel.go`.
 - Behavior: same-account relations; engine folder/message ids unique per account;
-  message-folder join unique; flags/state/freshness rebuildable; labels/pin Hub-owned;
-  bounded headers/snippet only, never raw body/MIME; custom root/child sibling uniqueness
-  with nullable-parent partial indexes.
+  message-folder join unique; non-negative rebuild epoch mark on folder/thread/message/join;
+  server-derived projection-origin enum and nullable immutable received-event UUID on
+  message; flags/state/freshness rebuildable;
+  labels/pin/verified calendar/CRM relations Hub-owned; bounded headers/snippet only, never
+  raw body/MIME; custom root/child sibling uniqueness with nullable-parent partial indexes.
 - Oracles: exact indexes/predicates; no folder cycle claim at schema alone; soft-delete
   fields; BCC projection policy; no cross-account edge accepted by service contract.
 
@@ -108,8 +117,9 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 ## 144-03B-Folder — folder tree policy
 
 - Dependency: 01A. Allowed only `folder_tree.go`, `backend/tests/mail/folder_tree_test.go`.
-- Behavior/oracles: depth ≤2, no cycle/self-parent/cross-account parent; system role cannot
-  delete/reparent; normalized sibling collision; deterministic ordering; no engine call.
+- Behavior/oracles: at most 100 non-deleted folders including system roles; depth ≤2, no
+  cycle/self-parent/cross-account parent; system role cannot delete/reparent; normalized
+  sibling collision; deterministic ordering; no engine call.
 
 ## 144-03B-Rule — typed rule compiler
 
@@ -142,17 +152,26 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   `backend/tests/mail/mailbox_owner_test.go`.
 - Behavior: authenticated user -> active User organization -> active MailAccount -> opaque
   engine account. Public commands never carry org/account. Repository interfaces expose
-  transaction/lease primitives for later services; Ent adapter implements only resolution.
-- Oracles: cross/suspended/deleted/no account zero engine; no client id; transaction lease
-  contract; safe non-disclosure. Real DB constraints remain Python integration.
+  `BeginEngineCommand`, `FinishEngineCommand`, expired-command reclaim, bounded sync claim/
+  renew/release and page/rebuild transaction primitives for later services. Begin acquires
+  one expiring account mutation lease and increments the epoch; finish verifies the token,
+  clears it and increments again. Sync capture refuses a present mutation lease; reclaim
+  clears an expired lease and increments before any engine fetch.
+- Oracles: cross/suspended/deleted/no account zero engine; one command per account; active-
+  lease busy; begin/finish/reclaim epoch edges; late owner cannot finalize; no client id;
+  transaction lease contract; safe non-disclosure. Real DB constraints remain Python integration.
 
 ## 144-04B-Folder — folder commands
 
 - Dependencies: 03B-Folder/04A/01B. Allowed only `folder_service.go`,
   `backend/tests/mail/folder_service_test.go`.
 - Behavior/oracles: list/create/rename/delete through resolved account + engine; policy
-  first; successful engine mutation reconciles projection/state; timeout/partial failure
-  degraded and refetched, not guessed; system roles protected; cross-account zero engine.
+  first; projected-count precheck is advisory and adapter/engine atomically enforces the
+  100-folder cap with `MAIL_FOLDER_LIMIT_EXCEEDED`; `BeginEngineCommand` commits before the
+  first engine call and finish clears the exact lease plus advances the second epoch edge;
+  successful engine mutation reconciles projection/state; timeout/partial failure degraded and refetched,
+  not guessed; system roles protected; cross-account zero engine. Hub-only label mutation
+  never increments the engine fence.
 
 ## 144-04B-Label — label commands
 
@@ -169,19 +188,113 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   `backend/tests/mail/message_service_test.go`.
 - Behavior: owner filter before engine hydrate; opaque cursor; engine authoritative
   folders/flags, Hub labels/pin; bulk per-message outcomes; projection freshness explicit.
+  Every engine move/flag/delete batch owns one account command lease with begin/end epoch
+  edges around I/O. A competing command returns the stable retryable busy result.
   A successful mutation that changes the durable projection writes one complete 03D
   `mail.message.changed.v1` envelope through the supplied transaction outbox seam.
 - Oracles: no cross-mailbox hit/count/snippet/timing hydrate; flag/move failure reconcile;
   partial batch; BCC owner-sent only; body never repository; duplicate change idempotent;
   rollback writes neither projection change nor envelope.
 
+## 144-04F — pure mailbox sync-page policy
+
+- Dependencies: 01B/03A-Address/03A-Thread/03D. Allowed only
+  `backend/internal/mail/mailbox_sync_policy.go` and
+  `backend/tests/mail/mailbox_sync_policy_test.go`.
+- Accept only bounded normalized engine pages: at most 100 total folder snapshots, 100 message
+  snapshots and 100 destroyed ids, unique per account, exact incremental from/next cursor
+  or enumeration base/checkpoint metadata plus caller-supplied current sync epoch and
+  immutable event cutoff. Produce deterministic upsert/tombstone/thread/count and
+  complete-envelope intents without I/O, clock or ids of its own.
+- A first-seen inbound-or-unknown message with engine arrival strictly after cutoff requests
+  one `mail.received.v1`; enumeration history at/before cutoff and confirmed owner submission/
+  Draft copies do not. Suppression requires a stable engine-submission/message mapping or
+  accepted Hub submission relation; From/alias equality or mutable Sent membership alone
+  is never proof. Existing messages emit `mail.message.changed.v1` only for the exact
+  allowlisted projection delta; destroyed emits `changed_fields=[deleted]` with empty
+  engine folders/flags while preserving current Hub label ids in the intent.
+- Oracles: duplicate/mixed-account/malformed page rejected; deterministic order; References
+  threading; BCC policy; first-seen boundary; spoofed-own-From vs confirmed submission/Sent;
+  unknown provenance fails toward inbound; replay marker; no-op;
+  changed field/flag enum; destroy; size/count/address bounds; no raw body/MIME/cursor/
+  provider error in command/event/error.
+
+## 144-04G — mailbox sync orchestration
+
+- Dependencies: 04A/F and deterministic fake. Allowed only
+  `backend/internal/mail/mailbox_sync_service.go`,
+  `backend/tests/mail/mailbox_sync_service_test.go`, and the minimal new sync repository
+  signatures in accepted `mailbox_repository.go`.
+- One `Step(account)` claims/renews a bounded lease and captures exact cursor, sync epoch and
+  mutation epoch and proves no mutation lease is present; engine I/O occurs outside the
+  repository transaction. Incremental page
+  apply succeeds only through one repository call carrying all captured guards/commands.
+  Guard or new mutation-lease mismatch discards the entire page and retries the unchanged
+  committed cursor. An expired mutation lease is atomically reclaimed with an epoch bump
+  before capture; a late former command owner cannot finalize from its stale result.
+- Typed invalid cursor enters degraded then resumable rebuilding without clearing rows:
+  increment epoch, retain cutoff/old freshness, apply base-anchored enumeration pages/checkpoints,
+  catch up through Changes from the base cursor, then request one atomic finalization.
+  Typed anchor-restart starts a new epoch; transient error retains checkpoint and schedules
+  bounded retry. Inject clock, event ids, lease ids and jitter; never log cursors/provider
+  text or manufacture empty success.
+- First bootstrap is eligible only after the account's immutable `event_cutoff_at` is
+  committed. Event admission compares engine receipt/arrival time, never the spoofable
+  message `Date` header or local observation time.
+- Oracles: first bootstrap; incremental page/more-pages; rollback; stale lease/cursor/sync-
+  epoch/mutation-epoch/active-mutation-lease; command begin/during/end races; expired
+  command-lease reclaim and late finalizer; invalid cursor; crash/resume each rebuild phase; anchor restart;
+  catch-up arrival; cutoff boundary; one received marker/event; transient/permanent account
+  state; cancellation. No DB/broker/network in unit.
+
+## 144-04H — atomic Ent sync adapter
+
+- Dependency: accepted 02E/04G. Allowed only
+  `backend/internal/mail/mailbox_ent_repository_sync.go`; no Go DB/component test.
+- Claim/renew/release uses one expiring account lease. Incremental/rebuild page transaction
+  locks MailAccount, verifies token/until/prior cursor/sync epoch/mutation epoch and absent
+  mutation lease, upserts by
+  account + opaque engine id while preserving stable Hub ids and Hub-owned labels/pin/
+  verified calendar/CRM edges, marks the current rebuild epoch for every row seen during
+  enumeration or catch-up, recomputes affected derived threads/
+  counts, reserves first received-event id once, writes full envelopes and advances cursor/
+  checkpoint/freshness atomically.
+- Rebuild page never pre-clears or tombstones unseen rows. Finalization alone, after
+  base-anchored enumeration plus catch-up, soft-deletes unseen engine-authoritative folder/message/
+  membership/thread projections, emits required delete envelopes, installs final cursor,
+  clears checkpoint/lease/error and marks ready. Retention/canonical link rules run before
+  later hard delete. Real constraint/concurrency/rollback proof is a Python integration
+  handoff.
+
+## 144-04I — bounded sync worker lifecycle
+
+- Dependencies: 04G/H. Allowed only `backend/internal/mail/mailbox_sync_worker.go` and
+  `backend/tests/mail/mailbox_sync_worker_test.go`.
+- One context-owned scheduler scans at most 50 due active accounts per second and runs at
+  most four account steps concurrently; one step handles at most one bounded engine page.
+  Default I/O timeout 30 seconds, lease 60 seconds and capped retry backoff 1 second to
+  5 minutes are injected/config-bounded. No goroutine per mailbox, unbounded queue or
+  overlapping local step. Multiple replicas rely on repository lease guards.
+- Disabled/unavailable engine starts no worker or probe. Cancellation stops claims, cancels
+  in-flight I/O, waits boundedly and leaves leases recoverable. Panic is isolated to the
+  account step, recorded only as safe code and rescheduled; no cursor/provider/message data
+  enters logs.
+- Oracles: due ordering/batch/concurrency caps; two-worker lease race; active command blocks
+  capture; expired command reclaim invalidates late work; sync renewal/expiry;
+  transient backoff/reset; context cancel before/during page; panic isolation; no leaked
+  goroutine/timer; disabled path zero calls. Wiring belongs to gated Phase 145 composition.
+
 ## 144-05C-Search — search seam
 
-- Dependency: 04A/C. Allowed only `mailbox_search.go`,
+- Dependency: 04A/C/I + 05B. Allowed only `mailbox_search.go`,
   `backend/tests/mail/mailbox_search_test.go`.
 - Behavior/oracles: typed search port/query; mandatory org/account filters embedded before
   query and again before hydrate; bounded cursor/filters/snippet; foreign hits discarded
   without leaking total/id; index document has no raw body beyond approved safe projection.
+  Delete events remove owner documents; rebuilding/degraded state is reported and never
+  relabelled fresh, while all hits remain owner-filtered during convergence. Search response
+  state is the conservative composition of mailbox projection and owner search-consumer
+  checkpoint; ready requires both and freshness is their older complete instant.
 
 ## 144-05C-Contacts — contact ranking
 

@@ -41,6 +41,8 @@ Review package boundaries, dependency direction, transactions and source of trut
 - linked meetings have one canonical writer, event-before-call lock order, bridge-only
   mutations, all-or-nothing cutover and single-count aggregate/availability readers;
 - background workers have bounded leases/retries, context shutdown and one composition;
+- mailbox Changes/enumeration adapter proves a composite catch-up base and resumable stable
+  query anchor; invalid cursor rebuild never pre-clears or finalizes partial enumeration;
 - deployment/backup separates engine volume from PostgreSQL/object storage.
 
 Required cross-check: every implementation file maps to one accepted dispatch packet and
@@ -53,6 +55,9 @@ no packet silently widened a schema/public API/dependency.
 Review state machines, concurrency, bounds and error semantics:
 
 - draft/save/submission idempotency and unknown reconciliation;
+- mailbox projection page/event/cursor atomicity, command-lease begin/end fencing, expiry/
+  late-owner recovery, invalid-cursor enumeration/catch-up recovery, provenance-safe
+  received-event cutoff/marker and multi-replica worker lifecycle;
 - REQUEST/CANCEL lower/equal/newer, tombstone and missing-master occurrence handling;
 - inbound REPLY sender-bound receipt cap and A→B→A protection;
 - outward REPLY delivery ledger and stable mailbox keys;
@@ -114,6 +119,8 @@ Review the actual UI against the accepted design and API:
   RRULE or show cancelled/duplicate linked meetings; `call.scheduled_due.v1` invalidates the
   authorized query without a duplicate reminder/toast;
 - partial bulk rollback and search cursor/error-vs-empty behavior;
+- conservative folder/thread/search projection freshness, stale/rebuilding banner and
+  query-only retry with no client-side worker or false-ready transition;
 - CRM creates one ordinary Mail draft, never puts recipient/content in URL/history, and
   links only after a confirmed/owned message; draft/message deep links reauthorize through
   Mail and ephemeral deal intent is not authorization;

@@ -29,15 +29,16 @@ every other row in `DISPATCH-INDEX.md`.
 
 ## 146-01B — typed mail API and query keys
 
-- Dependencies: 01A + accepted OpenAPI 0.1.4/Phase 144. Allowed only
+- Dependencies: 01A + accepted OpenAPI 0.1.5/Phase 144. Allowed only
   `frontend/src/api/mail.ts`, `frontend/src/modules/mail/mail-query-keys.ts`,
   `frontend/tests/mail/mail-api.test.ts`.
 - Behavior: exact typed functions for all public mailbox paths, `URLSearchParams`, opaque
   cursors, draft key/If-Match options, submission GET, 204 handling, remote-image token
   route, no account/org/engine id inputs. Query-key factories exclude body/recipient/key.
 - Oracles: exact method/path/query/body for each group; bounds represented; same-key send;
-  nullable/schema states; response types flags/folder ids/draft status; compile negative
-  owner fields; stable small query keys.
+  nullable/schema states; folder/thread/search pages carry exact `projection_state` and
+  required nullable `projection_as_of`; response types flags/folder ids/draft status;
+  compile negative owner/internal cursor/checkpoint/lease fields; stable small query keys.
 
 ## 146-02A — mail routes and shell
 
@@ -75,6 +76,28 @@ every other row in `DISPATCH-INDEX.md`.
 - Behavior/oracles: infinite cursor pages, TanStack virtual stable keys, URL selection,
   unread/flag/attachment/participants/date semantics; loading/error/empty/end; no duplicate
   row/page; j/k/x/Enter outside editable target; focus and mobile navigation.
+
+## 146-02D — projection freshness status
+
+- Dependencies: accepted 02A/B/C and 01B. Allowed only
+  `frontend/src/modules/mail/mail-projection-status.ts`,
+  `frontend/src/modules/mail/mail-projection-banner.tsx`, the narrow integration in
+  `frontend/src/modules/mail/mail-shell.tsx`, and
+  `frontend/tests/mail/mail-projection-status.test.tsx`.
+- Behavior: derive one conservative status from the current folder response and every
+  visible thread/search page. Any `degraded` wins, then `rebuilding`, then
+  `bootstrapping`, and only an all-`ready` set is fresh. Use the oldest non-null
+  `projection_as_of`; if any non-ready source lacks it, age is unknown. Ready renders no
+  stale banner. Bootstrapping announces initial setup; rebuilding says current rows are
+  last available while refresh continues; degraded says mail may be out of date and shows
+  the age only when known. A Retry action invalidates only bounded folder/thread/search
+  query keys; it never calls engine/admin APIs, fabricates ready state or starts a worker.
+- Oracles: each state, empty/partial source set, mixed/stale paginated sources, null and
+  oldest timestamps, transition after complete refetch, deep-link/search/mobile shell,
+  polite live region, focus/keyboard/44px target and EN/RU keys. Current owner-filtered rows
+  remain visible; internal cursor/checkpoint/lease/safe provider state never renders or
+  enters analytics/logs/query keys. An older cached ready page cannot hide a newer stale
+  source, and an older stale page cannot be discarded until its query is actually refetched.
 
 ## 146-03A — isolated safe reader
 
@@ -262,4 +285,5 @@ every other row in `DISPATCH-INDEX.md`.
 - Behavior/oracles: accepted launcher runs route generation, type/build, feature genuine
   units and scoped accessibility/browser checks with exact SHA/versions/limits/timeout and
   cleanup. Inspect generated diff contains only new routes. Keyboard/resize/mobile/reduced-
-  motion/reader network isolation/unknown send cases recorded. Missing gate => NOT_RUN.
+  motion/reader network isolation/unknown send/projection bootstrap-degraded-rebuild cases
+  recorded. Missing gate => NOT_RUN.

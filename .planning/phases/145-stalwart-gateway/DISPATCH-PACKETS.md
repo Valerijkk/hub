@@ -66,7 +66,9 @@
   `backend/tests/mail/stalwart_folder_test.go`.
 - Behavior/oracles: selected-version mailbox get/set mapping, roles, parent ids, counts and
   state; account id in every request; deterministic pagination; unsupported hierarchy /
-  partial failure typed; no Hub color/order sent as engine authority unless port says so.
+  partial failure typed; configure/enforce at most 100 non-deleted folders atomically and
+  map over-limit safely; an over-cap get is rejected rather than partially projected;
+  no Hub color/order sent as engine authority unless port says so.
 
 ## 145-04 — message/blob/list/search mapping
 
@@ -75,18 +77,51 @@
 - Behavior/oracles: exact selected-version properties; bounded ids/page/body/blob; body/
   MIME exists only in returned request-lifetime values; received BCC absent; folder/flags/
   state mapped; account scoping; malformed/missing property safe; no raw response error.
+  Map stable submission/draft provenance only when selected-version engine evidence ties to
+  an accepted Hub submission/draft identifier. Address/From/alias equality and mutable Sent
+  membership never produce confirmed-owner origin; ambiguous provenance maps
+  `inbound_or_unknown` so the domain fails toward event admission.
 
-## 145-05 — changes and invalid cursor
+## 145-05A — hydrated incremental changes and invalid cursor
 
 - Dependency: 04. Allowed only `stalwart/changes.go`,
   `backend/tests/mail/stalwart_changes_test.go`.
-- Behavior/oracles: opaque since/new state, bounded hasMore loop contract, created/updated/
-  destroyed ids; expired/cannotCalculateChanges maps typed invalid-cursor; it never returns
-  empty-success cursor; caller can mark degraded + bounded rebuild; duplicate page stable.
+- Behavior/oracles: an adapter-private composite cursor carries the exact selected-version
+  Mailbox and Email states. One call returns at most 100 unique account-scoped created/
+  updated hydrated snapshots plus destroyed ids and the exact old/new composite cursor;
+  `hasMore` never advances past an unreturned change. Expired/cannot-calculate state maps
+  typed invalid-cursor; empty-success reset is forbidden. Mixed-account/missing hydration,
+  duplicate/conflicting ids, oversized result and provider-body error fail safely. Replay
+  of the same page is stable and exposes no cursor/provider text in logs/errors/events.
+
+## 145-05B — base-anchored resumable projection enumeration
+
+- Dependencies: 03B/04/05A. Allowed only `stalwart/enumeration.go`,
+  `backend/tests/mail/stalwart_enumeration_test.go`.
+- Behavior: capture the selected-version Mailbox/Email object states before enumeration
+  (standard empty-id get/state or the reviewed version-specific equivalent) and encode that
+  composite base with the unfiltered Email query resume anchor in an opaque adapter-private
+  checkpoint. Return at most 100 normalized folder/message snapshots per call. Mailboxes
+  are fetched as one bounded set under the contract account cap. Email query uses the same
+  unfiltered filter and reviewed immutable comparator set on every request, the prior last
+  ID as `anchor` with `anchorOffset=1`, and never a drifting positional offset. JMAP's
+  server-dependent tie order is accepted only because RFC 8620 requires it stable between
+  calls. Query-state drift is recorded but is not by itself restart-required: result-list
+  inserts/deletes after the composite base are converged by mandatory 05A Changes catch-up.
+  Hydrated object values may be newer than the base and apply idempotently.
+- Oracles: first page/base capture; multi-page resume; exact final base cursor accepted by
+  05A; stable duplicate page; current hydration followed by base catch-up; create/delete/
+  flag mutation and query-state drift during enumeration. Query drift alone completes only
+  after Changes catch-up; anchor-not-found, unsupported/unstable sort-anchor semantics or
+  cannotCalculateChanges for the base returns typed restart-required with no partial-final
+  signal. An unchanged object present at the base and still present at finalization is never
+  skipped. Folder/message/count/address/body bounds and account scope hold. Checkpoint/base/
+  query states and provider objects never enter API/event/log/error values. No empty cursor,
+  destructive clear or domain event emission exists in this adapter packet.
 
 ## 145-06A — draft save/reconciliation
 
-- Dependencies: 04/05 + Phase 144 draft port. Allowed only
+- Dependencies: 04/05A + Phase 144 draft port. Allowed only
   `stalwart/draft.go`, `backend/tests/mail/stalwart_draft_test.go`.
 - Behavior/oracles: create/update selected-version JMAP calls with expected opaque state and
   stable mutation id; version conflict distinct; timeout indeterminate; `ReconcileDraft`
@@ -123,28 +158,32 @@
 
 ## 145-08 — adapter composition
 
-- Dependencies: 03–06 plus 07A/07B. Allowed only `stalwart/adapter.go`,
+- Dependencies: 03A/B, 04, 05A/B, 06A/B and 07A/B. Allowed only `stalwart/adapter.go`,
   `backend/tests/mail/stalwart_adapter_contract_test.go`.
-- Behavior/oracles: compile `MailEngine` assertion; every method delegates exactly once to
-  accepted mapper/client; no hidden fallback; account id required; capabilities cached only
-  with bounded/invalidation policy; redacted health; constructor no network.
+- Behavior/oracles: compile `MailEngine` assertion; every method, including hydrated
+  `Changes` and anchored `EnumerateProjection`, delegates exactly once to its accepted
+  mapper/client; no hidden fallback; account id required; capabilities cached only with
+  bounded/invalidation policy; redacted health; constructor no network.
 
-## 145-09A — mailbox adapter composition and root call
+## 145-09A — mailbox adapter/worker composition and root call
 
 - Dependencies: 08 plus accepted Phase 144 constructor surfaces. Allowed only
   `backend/cmd/server/wiring_mailbox.go` and `backend/cmd/server/main.go`.
 - Behavior: `main.go` adds exactly one `wireMailbox(d)` call after `wireAuditMailAI(d)` and
   before module consumers. `wiring_mailbox.go` parses the accepted mailbox config,
   constructs exactly one Stalwart adapter only when enabled, and injects the generic
-  `MailEngine` into the already accepted mailbox services/handlers. Disabled mode creates
-  no adapter, performs no probe/network call and preserves the explicit not-configured
-  engine supplied by Phase 144. Constructor failure is redacted and follows the frozen
-  startup policy; no background probe is invented.
-- Oracles: exact pre/post root-call inventory; one engine instance; disabled zero adapter/
-  probe; no secret in DI/log; legacy `wireAuditMailAI`, Resend readiness/routes and
-  `/admin/mail/settings` registration byte-semantically unchanged. This is composition,
-  so no fake isolated Go unit is invented; handler/API/runtime proof remains in 09B and the
-  accepted launcher gate.
+  `MailEngine` into the already accepted mailbox services/handlers. It then composes the
+  accepted Phase 144 sync repository/service/worker, starts exactly one worker with
+  `d.rootCtx`, and immediately registers its bounded `Stop` with `d.addCleanup`. Start or
+  constructor failure is redacted, follows the frozen startup policy and never reports
+  mailbox readiness. Disabled mode creates no adapter, worker, timer/goroutine or probe and
+  preserves the explicit not-configured engine supplied by Phase 144.
+- Oracles: exact pre/post root-call inventory; one engine instance and one worker; enabled
+  start gets the shared root context and cleanup drains in LIFO order; start failure has no
+  orphan scheduler; disabled zero adapter/worker/probe; no secret/cursor in DI/log; legacy
+  `wireAuditMailAI`, Resend readiness/routes and `/admin/mail/settings` registration byte-
+  semantically unchanged. This is composition, so no fake isolated Go unit is invented;
+  handler/API/runtime proof remains in 09B and the accepted launcher gate.
 
 ## 145-09B — mailbox health service/handler mapping
 
@@ -197,6 +236,8 @@
   explicitly handed off by test owner; no product source change.
 - Behavior/oracles: execute all 12 cases in `GATE-PLAN.md` with exact SHA/digest/config
   checksum, task resource names, CPU/RAM/PID limits, timeout, idle/load metrics, restart,
-  lost response reconciliation, invalid cursor repair, backup restore and unconditional
-  cleanup. External SMTP is a separate opt-in report. Any missing cleanup/evidence => FAIL,
-  not partial PASS. Direct compose is forbidden.
+  lost response reconciliation, invalid cursor repair, crash/resume in enumeration and catch-
+  up phases, command-lease begin/end interlock and expired-owner recovery, two-replica sync-
+  lease exclusion, worker cancellation/drain, backup restore and
+  unconditional cleanup. External SMTP is a separate opt-in report. Any missing cleanup/
+  evidence => FAIL, not partial PASS. Direct compose is forbidden.

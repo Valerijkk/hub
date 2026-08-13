@@ -54,6 +54,15 @@ state, idempotency/request hashes, reply/forward links, mutation id and timestam
 Recipients, subject, rich/plain bodies and MIME appear only in the engine request/result
 and the authorized HTTP response value, never in repository records/log/errors.
 
+Before every engine-authoritative draft create/save/delete or unknown-result reconciliation
+workflow, the service atomically acquires the owning account mutation lease and increments
+`mutation_epoch` through `BeginEngineCommand`; it commits that first edge before engine I/O.
+Completion/unknown handoff verifies the exact token, reconciles as required, clears the
+lease and increments the epoch again through `FinishEngineCommand` in one transaction.
+Hub-only metadata changes do not acquire it. A competing active lease returns the stable
+retryable busy result; a reclaimed/expired token cannot finalize and must reconcile under a
+new lease. The service never holds a database transaction open across engine I/O.
+
 [REQUIRED ORACLES]
 
 1. Client account/org fields do not exist; authenticated account resolution happens before
@@ -73,6 +82,10 @@ and the authorized HTTP response value, never in repository records/log/errors.
 11. Delete is idempotent and never deletes another account's engine draft.
 12. Errors/loggable values do not contain synthetic body, recipient, raw key or engine
     response.
+13. Each engine-authoritative draft command/reconciliation brackets I/O with exact account
+    mutation-lease begin/end epoch edges; active-lease busy makes zero engine call, expiry/
+    reclaim forbids late finalization, and no sync page can capture during the lease or
+    overwrite the reconciled draft state.
 
 [EXECUTION / PROVENANCE]
 

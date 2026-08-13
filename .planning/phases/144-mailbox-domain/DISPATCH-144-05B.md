@@ -38,6 +38,10 @@ projection application seam и admission `mail.>` в shared EVENTS stream.
 - Subject mismatch, malformed envelope, unknown major version or invalid payload returns
   the existing dead-letter/error classification before projection mutation; never parse
   heuristically.
+- `mail.message.changed.v1.changed_fields` accepts only `folder_ids`, `seen`, `answered`,
+  `flagged`, `junk`, `labels`, `deleted`; flags accept only `seen`, `answered`, `flagged`,
+  `junk`, `draft`. `deleted` removes the engine-authoritative projection state without
+  deleting Hub-owned labels or independently verified calendar/CRM edges.
 - Payload contains normalized bounded addresses/ids/state only; no body, raw MIME,
   attachment bytes, upload URL, credential, raw engine response or idempotency key.
 - Domain services already persist full envelopes transactionally. This packet neither maps
@@ -58,6 +62,9 @@ projection application seam и admission `mail.>` в shared EVENTS stream.
 7. Missing org/mailbox/message/thread/submission fields returns safe validation error and
    zero ledger/projection mutation.
 8. Mail sent event is emitted only from confirmed `sent`, never `unknown`/`submitting`.
+9. Deleted change removes owner projection/search/counter membership idempotently while
+   retaining Hub-owned labels and verified cross-domain links until their own retention
+   policy acts; mixed deleted/live engine state is rejected.
 
 [EXECUTION / PROVENANCE]
 

@@ -92,7 +92,11 @@ Missing fields make the evidence `FAIL` or `STALE`, never assumed.
 | send loses response | same `MailSubmission` reconciles; exactly one visible sent message |
 | outbox publish redelivers | consumers remain idempotent; no second state mutation/in-app row |
 | versioned envelope transport | shared builder is deterministic; outbox event type, NATS subject and JSON subject match; full envelope bytes are published unchanged; application `event_id` deduplicates under same/different `Hub-Event-Id`; mismatch/malformed/unknown version dead-letters before mutation; legacy outbox payloads remain unchanged |
-| invalid mailbox cursor | mailbox projection is degraded, bounded owner rebuild occurs, freshness is not forged |
+| incremental mailbox page | hydrated projection, complete envelopes and exact composite next cursor commit atomically under live sync lease/prior cursor/sync+mutation epochs and absent command lease; any mismatch/rollback advances none |
+| command/sync interlock | command or reconciliation acquires one account mutation lease and begin epoch before I/O, blocks sync capture, then clears the exact lease and advances the end epoch; active contention makes zero engine call, expired reclaim invalidates late finalization and forces reconciliation |
+| invalid mailbox cursor | current owner rows remain visibly degraded; base-state/ID-anchored enumeration resumes without pre-clear, query-state drift converges through Changes, catches up from its base cursor and finalizes only when complete; anchor/base-history loss causes typed restart rather than forged freshness |
+| received-event replay/provenance | pre-cutoff history and stably mapped Hub submission/draft emit none; spoofed owner From/alias or mutable Sent membership cannot suppress; first-seen post-cutoff inbound-or-unknown reserves one marker/event across page replay, rebuild and replica retry |
+| projection worker lifecycle | one enabled root-context worker obeys scan/page/concurrency/timeout/backoff caps and multi-replica lease exclusion; disabled starts none; cancellation drains without leak |
 | engine unavailable | mailbox mutations return safe unavailable/unknown semantics; cached projections are visibly stale; Resend readiness unchanged |
 | projection/search lag | authorized engine result may appear with indexing state; no unauthorized hit/id/snippet; rebuild converges |
 | REQUEST/CANCEL reorder | lower/equal conflict cannot roll state back; early CANCEL tombstone survives delayed mail |
@@ -118,7 +122,7 @@ Missing fields make the evidence `FAIL` or `STALE`, never assumed.
 | linked-pair readers | legacy aggregate emits one canonical-backed `call`; availability emits one `event`; no duplicate busy interval or ghost occurrence |
 | legacy call detail privacy | title/channel detail requires caller membership in the exact conflicting channel; Mail UI uses private v2 availability |
 | feed refresh failure | if L1 included, last complete snapshot remains, safe stale/error, no cross-source rewrite |
-| restart | engine volume, Hub projections, receipts and workers recover without duplicate mutation |
+| restart | engine volume, Hub projections, enumeration/catch-up checkpoints, command/sync leases, receipts and workers recover without duplicate mutation or stale late finalization |
 | backup/restore | dedicated engine volume plus Hub stores restore in isolation and reconcile |
 
 Every case must identify which source of truth is checked: engine mail state, Hub PostgreSQL,

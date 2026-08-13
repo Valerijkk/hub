@@ -147,6 +147,8 @@ mail_feature_workstream:
       engine_acceptance: conditional_on_license_provenance_and_runtime_gates
       internal_delivery: through_engine
       message_authority: mail_engine
+      mailbox_projection: leased_bounded_worker_atomic_page_event_cursor_command_lease_begin_end_epoch_fence
+      mailbox_rebuild: no_clear_base_state_id_anchor_enumeration_then_changes_catchup
       calendar_authority: hub_postgresql
       oauth_l3: out_of_scope
       legacy_admin_broadcast: governance_gap_deprecated_pending_founder_decision
@@ -196,6 +198,13 @@ spec_coverage:
   join-credential contract. Root static review 0.1.5 и
   independent current-provenance review PENDING; 0.1.4 PASS `46cfa26c` теперь `STALE`.
   Product code `NOT_IMPLEMENTED`, runtime `NOT_RUN`.
+- Mailbox 0.1.5 теперь закрывает отдельный L0 ingestion gap: Phase 144 владеет leased
+  bounded worker, atomic hydrated page/full-envelope/cursor apply, separate command lease
+  with begin/end mutation epoch fence и
+  resumable no-clear rebuild; Phase 145 владеет incremental + base-state/ID-anchored
+  Stalwart mapping и root-context composition. Folder/thread/search API/UI показывают
+  bootstrapping/degraded/rebuilding freshness без false-ready. Всё это contract-only;
+  adapter/worker/runtime остаются `NOT_IMPLEMENTED` / `NOT_RUN`.
 - Вопросы, не останавливающие локальную работу, собраны в
   `docs/mail/FOUNDER-QUESTIONS.md`; вопросы 22–23 отдельно фиксируют legacy idempotency
   compatibility break и linked-call guest access. Push/PR/merge/deploy не авторизованы.
