@@ -2,8 +2,8 @@
 
 > **Detected:** 2026-08-13 root deep static audit
 > **Severity:** P1 contract boundary
-> **Status:** `P1_STATICALLY_REMEDIATED_BY_0_1_8_ATOMIC_BOUNDARY` ·
-> `EXACT_ATOMIC_COMMIT_INDEPENDENT_REVIEW_PENDING` · `DOWNSTREAM_BLOCKED` · `RUNTIME_NOT_RUN`
+> **Status:** `P1_STATICALLY_REMEDIATED_BY_0_1_8_ATOMIC_BOUNDARY` · `STATIC_ACCEPTED`
+> at `e3e8c774d734f926f77f8e600b58dc68dabbd993` after Terra/high `EXACT_SHA_PASS` · `RUNTIME_NOT_RUN`
 > **Frozen contract:** `docs/mail/ENGINE-CONTRACT-0.1.8.md` at
 > `5e314fb080d420696642058ae47397e251c23207`
 
@@ -25,10 +25,9 @@ uncertainty is superseded by the frozen 0.1.8 contract and is no longer this pac
 
 ## Static remediation proof
 
-The atomic seven-path boundary containing this evidence is `STATIC_CONFORMANT` against the
-frozen contract. Static reviews
-returned `Spec/Quality PASS` C/I/M `0/0/0`, then Security/Oracle PASS after fix round 1 and a
-final C/I/M `0/0/0`. The source proof is:
+The atomic seven-path boundary at `e3e8c774d734f926f77f8e600b58dc68dabbd993` is
+`STATIC_ACCEPTED` against the frozen contract. Exact-commit Terra/high review returned
+Spec/Quality/Security/Evidence PASS and C/I/M `0/0/0`. The source proof is:
 
 1. `ListMessages`, `Changes` and `EnumerateProjection` return projection-only page values;
    `EngineMessageProjection` has no body, raw MIME or attachment-byte field.
@@ -49,14 +48,14 @@ their later packet and supported execution evidence.
 
 ## Remaining gate impact
 
-The atomic seven-path boundary containing this evidence has parent
-`fa0a2f2a542caadd9f5951e6f703b060b4776780`. Its own commit SHA cannot be self-recorded in the
-same commit and must be captured by post-commit Git evidence; no placeholder SHA is valid.
+The accepted atomic seven-path boundary is
+`e3e8c774d734f926f77f8e600b58dc68dabbd993`; its parent is
+`fa0a2f2a542caadd9f5951e6f703b060b4776780`.
 
-- Independent review of that exact atomic commit is still pending.
+- Exact-commit independent review is `EXACT_SHA_PASS`; dispatcher-enforced provenance with
+  actual telemetry `UNKNOWN` is accepted unless exposed telemetry mismatches the requested route.
 - The accepted task-owned launcher remains `NOT_READY`; compile, unit, race, build, lint,
   validators, Docker and runtime remain `NOT_RUN`.
-- `144-01B` remains blocked, and Phase 145 message/blob/change/enumeration mapping remains
-  blocked until the exact-commit review and each packet's applicable supported Docker evidence
-  close their gates.
+- `144-01B` remains blocked by the stricter Task3 authority pending its applicable supported
+  current-SHA Docker evidence. Phase 145 remains independently gated.
 - No direct Docker run can convert this static finding into runtime evidence.

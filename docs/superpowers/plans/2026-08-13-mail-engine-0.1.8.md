@@ -25,8 +25,8 @@ and Stalwart adapter own behavioral conformance in later packets.
   52,428,800 message bytes and 26,214,400 attachment bytes; administrators configure only
   within the corresponding bounds.
 - Entry gate: an independent `gpt-5.6-terra` / `high` review with accepted per-dispatch
-  provenance must accept the exact contract SHA. Current status is
-  `BLOCKED_INDEPENDENT_CONTRACT_REVIEW_PENDING`.
+  provenance PASSed the exact five-document amendment at
+  `5e314fb080d420696642058ae47397e251c23207`; it authorized only 144-01A entry.
 - Worker runtime: exactly `gpt-5.6-terra` / `xhigh`, fallback none. For this branch/Phases
   143–148, an accepted native dispatcher record without rejection is
   `provenance_source: dispatcher-enforced`; actual telemetry, when exposed, must match.
@@ -451,6 +451,10 @@ does not count.
 
 - [ ] **Step 3: Sync evidence without a PASS overclaim**
 
+`CONSUMED / HISTORICAL PRE-ACCEPTANCE STEP`: the e3 lifecycle completed this step; source is
+`STATIC_ACCEPTED` after exact-commit review, while 144-01B remains blocked pending applicable
+supported current-SHA Docker evidence.
+
 Record source status as `STATIC_CONFORMANT` only if Steps 1–2 pass. Keep runtime, compile,
 unit and race as `NOT_RUN` while the launcher is unavailable. Keep 144-01B and Phase 145
 blocked until independent source review and applicable Docker evidence close their gates.
@@ -484,6 +488,7 @@ all executable statuses as `NOT_RUN` unless a supported current-SHA launcher res
   `ENGINE-CONTRACT-0.1.8.md` at `e96fe3de2deb9eddcba9c75ce948892bdd6fe517` plus the
   docs-only plan amendment.
 - Placeholder scan: no implementation placeholder or guessed launcher command exists.
-- Current execution state: `BLOCKED_INDEPENDENT_CONTRACT_REVIEW_PENDING` until an independent
-  Terra/high contract review accepts the exact SHA. Once that separate gate passes, an exact
-  Terra/xhigh worker may use dispatcher-enforced provenance; runtime remains `NOT_RUN`.
+- Current execution state: the narrow entry gate PASSed at
+  `5e314fb080d420696642058ae47397e251c23207`; 144-01A is now `STATIC_ACCEPTED` at
+  `e3e8c774d734f926f77f8e600b58dc68dabbd993`. Broader Phase 142/cross-contract review,
+  144-01B and executable evidence remain pending; runtime remains `NOT_RUN`.

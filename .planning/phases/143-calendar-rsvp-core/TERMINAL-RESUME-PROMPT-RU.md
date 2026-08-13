@@ -1,5 +1,9 @@
 # Terminal Codex: продолжение Hub после Desktop handoff
 
+> **CONSUMED / HISTORICAL PRE-01A RESUME PROMPT:** не выполняй старое следующее действие из
+> исторического текста ниже. Текущая authority — `.continue-here.md`; точное следующее действие
+> — только `144-03A-Address` (static/TDD, executable evidence `NOT_RUN`).
+
 Ты продолжаешь работу как root-orchestrator Hub. Не полагайся на этот чат и не считай любую неуказанную проверку выполненной.
 
 ## Старт и обязательный preflight

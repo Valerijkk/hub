@@ -1,10 +1,9 @@
 # Task 144-01A — static conformance evidence
 
-> **Status:** `STATIC_CONFORMANT` · `EXACT_ATOMIC_COMMIT_INDEPENDENT_REVIEW_PENDING` · `DOWNSTREAM_BLOCKED` · `RUNTIME_NOT_RUN`
+> **Status:** `STATIC_ACCEPTED` at `e3e8c774d734f926f77f8e600b58dc68dabbd993` · `EXACT_SHA_PASS` · `RUNTIME_NOT_RUN`
 > **Frozen contract:** Mail 0.1.8 at `5e314fb080d420696642058ae47397e251c23207`
-> **Atomic boundary:** the atomic seven-path commit containing this evidence; its parent is
-> `fa0a2f2a542caadd9f5951e6f703b060b4776780`. A commit cannot self-reference, so its exact
-> SHA is deliberately not invented here and is recorded by post-commit Git evidence.
+> **Atomic boundary:** `e3e8c774d734f926f77f8e600b58dc68dabbd993`; parent
+> `fa0a2f2a542caadd9f5951e6f703b060b4776780`.
 
 ## Scope and provenance
 
@@ -54,10 +53,10 @@ Docker job exists.
 
 ## Review lifecycle
 
-Independent source reviews of the atomic-boundary content returned `Spec/Quality PASS` with C/I/M
-`0/0/0`. Security/Oracle review passed after fix round 1; the final source review is C/I/M
-`0/0/0`. These reviews establish source conformance of the atomic boundary, but do not close the
-required independent review of the exact atomic commit.
+The exact-commit independent Terra/high review returned `EXACT_SHA_PASS`: Spec/Quality/Security/
+Evidence PASS, C/I/M `0/0/0`. Requested routes are dispatcher-enforced and actual telemetry is
+`UNKNOWN`; `UNKNOWN` alone is not a blocker for an accepted native dispatch. Any exposed mismatch,
+rejection, omitted model/effort or fallback remains blocking.
 
 The 0.1.7 implementation commit `9c4aba438e8a65c67b4b375636f34416978f8775`, fix commit
 `43d421ef0fc86dbb98330cf68bfd398fc3b40b0d`, and semantic contract
@@ -74,11 +73,13 @@ fallback, but it did not implement the 0.1.8 projection/budget/reference-only am
 
 ## Verification and remaining gates
 
-- Source status: `STATIC_CONFORMANT`; owned-path, exact-field, safe-error and oracle reviews
-  are static only.
+- Source status: `STATIC_ACCEPTED` at `e3e8c774d734f926f77f8e600b58dc68dabbd993`; owned-path,
+  exact-field, safe-error and oracle reviews are static only.
 - Accepted task-owned launcher: `NOT_READY`.
 - Compile, unit, race, build, lint, validators, Docker and runtime: all `NOT_RUN`.
 - Docker Desktop availability does not authorize a direct Docker/Compose substitute.
 - The packet is not runtime-verified, complete, stable or production-ready.
-- `144-01B` and Phase 145 remain `BLOCKED` until independent review of the exact atomic commit
-  and their applicable supported Docker evidence close the respective gates.
+- `144-01B` remains `BLOCKED` under stricter Task3 authority until its applicable supported
+  current-SHA Docker evidence closes; Phase 145 remains independently gated.
+- Pure static authoring is authorized for 144-03A-Address, 144-03B-Folder, 144-03C-Send and
+  144-03D; the exact next action is 144-03A-Address.

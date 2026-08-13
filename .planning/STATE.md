@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
-last_updated: "2026-08-14T02:18:43+03:00"
-last_activity: 2026-08-14 · Mail 144-01A atomic seven-path boundary is STATIC_CONFORMANT after independent source reviews; exact post-commit independent review remains pending. Launcher NOT_READY and executable evidence NOT_RUN
+last_updated: "2026-08-14T02:31:01+03:00"
+last_activity: 2026-08-14 · Mail 144-01A atomic seven-path boundary is STATIC_ACCEPTED at e3e8c774d734f926f77f8e600b58dc68dabbd993 after exact-commit Terra/high EXACT_SHA_PASS; launcher NOT_READY and executable evidence NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -118,7 +118,7 @@ mail_feature_workstream:
     branch: codex/mail-module-20260813
     phases: "142-148"
     current_phase: 144
-    status: contract_0_1_8_exact_contract_pass_144_01A_static_conformant_post_commit_review_pending_runtime_not_run
+    status: five_document_default_vs_hard_cap_144_01a_entry_amendment_pass_5e314fb0_144_01a_static_accepted_exact_sha_pass_runtime_not_run
     product_truth: unfinished_mvp_feature_not_accepted
     contract_version: "0.1.8"
     tasks:
@@ -301,18 +301,23 @@ spec_coverage:
   atomic Mail product/test packets. Tasks 143-01, 143-02A and 143-02B are static accepted;
   bounded iTIP parsing includes reviewed CVE-v1,
   safe errors, post-unfold UTF-8 and host-independent timezone handling. Task 144-01A's
-  `43d421ef` source is historical 0.1.7 evidence. Against the root-frozen 0.1.8 contract at
-  `5e314fb080d420696642058ae47397e251c23207`, the atomic seven-path 144-01A boundary
-  containing this evidence is `STATIC_CONFORMANT`: projection-only 1 MiB-item/8 MiB-page values, budgeted 50 MiB message /
+  `43d421ef` source is historical 0.1.7 evidence. The exact five-document
+  default-vs-hard-cap/144-01A entry amendment passed at
+  `5e314fb080d420696642058ae47397e251c23207`; it authorizes only the 144-01A entry, while
+  broader Phase 142/cross-contract current-source review remains pending. Against that narrow
+  amendment, the atomic seven-path 144-01A boundary
+  at `e3e8c774d734f926f77f8e600b58dc68dabbd993` is `STATIC_ACCEPTED` after exact-commit
+  Terra/high `EXACT_SHA_PASS`: projection-only 1 MiB-item/8 MiB-page values, budgeted 50 MiB message /
   25 MiB blob reads, stable first-draft identity, closed request/page/projection/body/
   attachment/blob/draft grammar, `confirmed_owner_draft`, and reference-only submission.
-  Exact Terra/xhigh authoring and Terra/high independent reviews are dispatcher-enforced with
-  actual telemetry `UNKNOWN`; the source reviews report Spec/Quality PASS C/I/M `0/0/0`, then
-  Security/Oracle PASS after fix round 1 and final C/I/M `0/0/0`. This does not close the
-  exact atomic-commit independent review: the seven-path boundary has parent
-  `fa0a2f2a542caadd9f5951e6f703b060b4776780`, and its own SHA must be recorded post-commit.
-  `144-01B` and Phase 145 remain blocked; launcher and all executable evidence remain
-  `NOT_READY` / `NOT_RUN`.
+  Exact Terra/xhigh authoring and distinct-context Terra/high independent review are
+  dispatcher-enforced with actual telemetry `UNKNOWN`; this is not a blocker by itself for an
+  accepted native dispatch. The exact-commit review reports Spec/Quality/Security/Evidence PASS
+  and C/I/M `0/0/0`. Any exposed mismatch, rejection, omitted model/effort or fallback remains
+  blocking. `144-01B` remains `BLOCKED` pending its own applicable supported current-SHA Docker
+  evidence under the stricter Task3 authority. Pure static authoring is authorized for
+  `144-03A-Address`, `144-03B-Folder`, `144-03C-Send` and `144-03D`; the exact next action is
+  `144-03A-Address`. Launcher and all executable evidence remain `NOT_READY` / `NOT_RUN`.
   Root-frozen `PERSISTENCE-CONTRACT-0.1.8.md` supplies the exact 144-02A/B/C/D/F fields,
   tuple/state checks, normalized indexes, scalar attachment staging, sole default/scan
   authorities, quotas, generic receipt/bulk matrices and canonical rule hash. OpenAPI 0.1.8
@@ -1357,17 +1362,18 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 
 ## Session Continuity
 
-**Last session:** 2026-08-14 (Mail 144-01A source docs sync)
-**Stopped at:** the 0.1.8 144-01A atomic seven-path boundary containing this evidence is
-`STATIC_CONFORMANT` against `5e314fb080d420696642058ae47397e251c23207`; its parent is
-`fa0a2f2a542caadd9f5951e6f703b060b4776780`, and it awaits exact-commit independent review.
-The launcher remains `NOT_READY` and all executable evidence remains `NOT_RUN`.
+**Last session:** 2026-08-14 (Mail 144-01A exact-SHA acceptance/status sync)
+**Stopped at:** the 0.1.8 144-01A atomic seven-path boundary is `STATIC_ACCEPTED` at
+`e3e8c774d734f926f77f8e600b58dc68dabbd993` against
+`5e314fb080d420696642058ae47397e251c23207` after exact-commit Terra/high `EXACT_SHA_PASS`,
+Spec/Quality/Security/Evidence PASS and C/I/M `0/0/0`. The launcher remains `NOT_READY` and all
+executable evidence remains `NOT_RUN`.
 `pro-qa-ai` beta.3 already exists both in protected Hub source
 and as the Desktop portable copy. Legacy remains frozen; destructive move/delete
 has not started.
-**Resume:** run the exact-commit independent review and record the commit SHA through
-post-commit Git evidence. Do not start 144-01B before that gate and applicable supported
-Docker evidence close.
+**Resume:** dispatch only pure static/TDD `144-03A-Address`; executable verification remains
+`NOT_RUN`. Do not start `144-01B`: the stricter Task3 authority requires its applicable supported
+current-SHA Docker evidence.
 
 **Coverage decision:** TASK-203 backend profile **82.0373%** remains historical
 discovery evidence. Founder waived statement-coverage parity as migration gate;

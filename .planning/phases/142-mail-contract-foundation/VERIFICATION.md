@@ -5,6 +5,12 @@
 > **Runtime:** NOT_RUN
 > **Contract:** 0.1.8 root-frozen; historical independent reviews do not cover the amendment
 
+> **Scope note (2026-08-14):** the later five-document 0.1.8 entry amendment independently
+> PASSed at `5e314fb080d420696642058ae47397e251c23207`, and 144-01A is
+> `STATIC_ACCEPTED` at `e3e8c774d734f926f77f8e600b58dc68dabbd993`. This narrow entry result
+> does not close Phase 142-wide cross-contract or executable gates; 143-04L is already
+> `STATIC_ACCEPTED` at `4525c559da22729aa8bc51ff5336c29dad4f27e9` and does not need redispatch.
+
 > **Superseding note:** this file records the historical 0.1.2 verification lifecycle.
 > Mail 0.1.8 now root-freezes the bounded engine/API and exact Phase 144 persistence
 > amendment discovered by the later review files. The candidate is not contract-ready until

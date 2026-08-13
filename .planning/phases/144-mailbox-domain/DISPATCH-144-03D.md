@@ -1,8 +1,8 @@
 # Phase 144 packet 03D — deterministic mail event mapping
 
 > **Runtime:** `gpt-5.6-terra` / `xhigh`, no fallback
-> **Status:** TERRA_CODE_ROUTE_AUTHORIZED · BLOCKED_BY_143_04L_AND_144_01A
-> **Dependency:** accepted 143-04L and 144-01A
+> **Status:** TERRA_CODE_ROUTE_AUTHORIZED · STATIC_AUTHORING_AUTHORIZED · EXECUTABLE_NOT_RUN
+> **Dependency:** accepted 143-04L and 144-01A (`STATIC_ACCEPTED` at `e3e8c774d734f926f77f8e600b58dc68dabbd993`)
 
 ## Outcome
 

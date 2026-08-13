@@ -1,6 +1,6 @@
 # Mail persistence contract 0.1.8
 
-> **Status:** root-frozen schema contract; independent Terra/high review pending
+> **Status:** five-document 0.1.8 entry amendment independently PASS at `5e314fb080d420696642058ae47397e251c23207`, authorizing only 144-01A entry; Phase 144 schema and broader cross-contract review remain pending
 > **Runtime/generation/migration:** NOT_RUN / NOT_RUN / NOT_AUTHORIZED
 > **Scope:** Phase 144-02A/B/C/D/F Ent schemas only
 > **Precedence:** this document supplies exact storage representation for the corresponding
@@ -220,9 +220,10 @@ service-level verified-domain/engine gate.
 
 ### 144-02A Ent representation freeze
 
-This subsection closes the remaining Go/Ent representation choices for 144-02A. It is a
-root-frozen candidate until an independent Terra/high review with accepted per-dispatch
-provenance accepts the exact commit. It does not authorize generation or migration.
+This subsection closes the remaining Go/Ent representation choices for 144-02A. The later
+five-document entry amendment PASS at `5e314fb080d420696642058ae47397e251c23207` authorizes
+only 144-01A entry; this schema subsection remains pending its own applicable review. It does
+not authorize generation or migration.
 
 #### Scalar representation and validation
 

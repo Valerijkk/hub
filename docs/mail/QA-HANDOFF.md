@@ -2,8 +2,8 @@
 
 > **Contract version:** 0.1.8
 > **Prepared:** 2026-08-13
-> **Contract review status:** ROOT_FROZEN · INDEPENDENT_TERRA_REVIEW_PENDING
-> **Implementation status:** IN_PROGRESS — 143-01/02A/02B static accepted historically; 0.1.8 amends the 144-01A boundary and freezes 144-02A/02B/02C/02D/02F schema candidates; the exact 144-02A1/A2/A3 execution split is planned but no dependent code is accepted; 143-03A/C still require the hash-pair CHECK fix; selected Stalwart has an unresolved domain-verification mismatch and enabled mailbox auth remains blocked; executable verification `NOT_RUN`
+> **Contract review status:** five-document 0.1.8 entry amendment PASS at `5e314fb080d420696642058ae47397e251c23207`; broader Phase 142/cross-contract review remains `INDEPENDENT_TERRA_REVIEW_PENDING`
+> **Implementation status:** IN_PROGRESS — 143-01/02A/02B static accepted historically; 144-01A is `STATIC_ACCEPTED` at `e3e8c774d734f926f77f8e600b58dc68dabbd993`; 144-02A/02B/02C/02D/02F schema candidates remain unaccepted and the exact 144-02A1/A2/A3 execution split is planned; 143-03A is `STATIC_ACCEPTED` at `31bfff8f58ba83d12b59600135503f98a6c92fbd` and 143-03C at `444c6f7b7b7b3d9b77bc9b24b32d1e13000ebbbc`; 143-04L is `STATIC_ACCEPTED` at `4525c559da22729aa8bc51ff5336c29dad4f27e9` (status-sync commit `1c0299bd`) and needs no redispatch; selected Stalwart has an unresolved domain-verification mismatch and enabled mailbox auth remains blocked; executable verification `NOT_RUN`
 > **Runtime status:** NOT_RUN
 > **QA owner:** founder-designated Claude test program
 > **Product-code owner:** ChatGPT mail feature branch
@@ -529,11 +529,10 @@ redelivery and is the new-consumer dedupe key. The distinct outbox row id in the
 version must reach dead-letter with zero projection/domain mutation. Existing legacy
 outbox payloads and worker behavior must remain byte-semantically unchanged.
 
-The 04L envelope immutability/payload amendment is `CONTRACT_AMENDMENT_STATIC_ACCEPTED`, ready
-for code remediation redispatch after final Terra/high PASS (C/I/M `0/0/0`), with
-dispatcher-enforced provenance, actual telemetry `UNKNOWN` and docs commit pending. The prior
-implementation candidate remains review-failed/unaccepted (C/I/M `0/2/2`) until remediated;
-the independently accepted 255-byte subject sub-amendment remains in force. Required 04L unit oracles also
+The 04L envelope immutability/payload amendment is `STATIC_ACCEPTED` at
+`4525c559da22729aa8bc51ff5336c29dad4f27e9`; status sync is commit `1c0299bd` and no redispatch
+is required. Dispatcher-enforced provenance is recorded and actual telemetry remains `UNKNOWN`.
+Required 04L unit oracles also
 prove that `EnvelopeV1` exposes no mutable exported field/reference; construction snapshots
 only a successfully serializable non-null JSON object and stores frozen complete-envelope
 bytes; `MarshalJSON` returns a fresh caller-owned copy; public reads are `Subject() string`
@@ -703,9 +702,11 @@ oracles, not current executable evidence.
   exact config, least-privilege mailbox auth, domain-verification authority, measured
   resource use, and runtime behavior are pending. `v0.16.17` is
   only a researched source/registry candidate; read-only digest capture did not pull or run it.
-- The 0.1.8 root amendment still needs an independent exact-SHA Terra/high review. Its
-  provenance may be `dispatcher-enforced` only when the native dispatcher accepted the exact
-  model/effort without rejection; actual telemetry, when exposed, must match. Historical 0.1.7
+- The five-document 0.1.8 entry amendment independently PASSed at
+  `5e314fb080d420696642058ae47397e251c23207`, authorizing only 144-01A; 144-01A is
+  `STATIC_ACCEPTED` at `e3e8c774d734f926f77f8e600b58dc68dabbd993`. Broader Phase 142/
+  cross-contract and Phase 148 cross-discipline review remain pending. Historical 0.1.7
   review evidence is stale for its engine/API/persistence changes.
-- Therefore this handoff is a contract deliverable only. It must not be converted into a
-  PASS claim until current-SHA executable evidence exists.
+- Therefore this handoff remains a contract deliverable only. The narrow entry amendment and
+  static packet acceptance must not be converted into a global or executable PASS claim until
+  supported current-SHA executable evidence exists.

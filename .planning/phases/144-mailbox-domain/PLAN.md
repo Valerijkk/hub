@@ -1,13 +1,13 @@
 # Phase 144 — Mailbox Domain
 
-> Task: TASK-237 · Status: IN_PROGRESS · MAIL_0_1_8_EXACT_CONTRACT_PASS `5e314fb0` · 144-01A NEXT · 144-01B BLOCKED_ON_144-01A_ACCEPTANCE (actual telemetry `UNKNOWN` unless exposed; not the sole blocker) · 144-02A1/A2/A3 EXACT_PLAN_BLOCKED_REVIEW · 144-02B/02C/02D/02F CONTRACT_AMENDED_NOT_ACCEPTED · RUNTIME_NOT_RUN · Depends on: Phase 142
+> Task: TASK-237 · Status: IN_PROGRESS · FIVE_DOCUMENT_DEFAULT_VS_HARD_CAP_144_01A_ENTRY_AMENDMENT_PASS `5e314fb0` (authorizes 144-01A entry only; broader Phase 142/cross-contract pending) · 144-01A STATIC_ACCEPTED `e3e8c774` / EXACT_SHA_PASS · 144-03A-Address NEXT (static/TDD; executable NOT_RUN) · 144-01B BLOCKED_ON_APPLICABLE_SUPPORTED_CURRENT_SHA_DOCKER_EVIDENCE_BY_TASK3 · 144-02A1/A2/A3 EXACT_PLAN_BLOCKED_REVIEW · 144-02B/02C/02D/02F CONTRACT_AMENDED_NOT_ACCEPTED · RUNTIME_NOT_RUN · Depends on: Phase 142
 
 ## Goal
 
 Implement the engine-independent domain and HTTP behavior against a deterministic fake.
 
-`143-04L` is already satisfied for `144-03D`; only `144-01A` remains as that packet's
-entry dependency.
+`143-04L` and `144-01A` are satisfied for `144-03D`. Pure static authoring is authorized for
+144-03A-Address, 144-03B-Folder, 144-03C-Send and 144-03D; choose 144-03A-Address only next.
 
 ## Ordered tasks
 

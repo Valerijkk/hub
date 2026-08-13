@@ -3,9 +3,10 @@
 > **Assembly rule:** dispatch the Common execution envelope plus exactly one packet or one
 > explicitly named variant below. Combining variants is invalid.
 > **Runtime:** `gpt-5.6-terra` / `xhigh`, fallback none.
-> **Status:** TERRA_CODE_ROUTE_AUTHORIZED; actual per-packet telemetry is mandatory and
-> currently unavailable for new attempts; dependencies apply; executable generation/runtime
-> evidence remains launcher-blocked.
+> **Status:** TERRA_CODE_ROUTE_AUTHORIZED; accepted native `dispatcher-enforced` provenance
+> permits actual telemetry `UNKNOWN` when telemetry is unavailable. Any exposed mismatch,
+> rejection, omitted model/effort or fallback is `BLOCKED`; dependencies apply; executable
+> generation/runtime evidence remains launcher-blocked.
 
 Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05A,
 144-05B and 144-06A. This file completes every other index row.
@@ -30,7 +31,8 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 
 ## 144-01B — deterministic engine fake
 
-- Dependency: accepted 01A. Allowed only:
+- Dependency: accepted 01A plus, under stricter Task3 authority, applicable supported current-SHA
+  Docker evidence. Until both close, `BLOCKED`. Allowed only:
   `backend/internal/mail/mailbox_fake.go`,
   `backend/tests/mail/mailbox_fake_test.go`.
 - Behavior: mutex-protected in-memory accounts/folders/messages/blobs/drafts/submissions,

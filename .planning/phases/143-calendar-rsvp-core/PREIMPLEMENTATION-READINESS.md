@@ -7,10 +7,12 @@
 
 ## Prepared artifacts (root and independently reviewed)
 
-- Architecture, source-of-truth, security and compatibility decisions are amended in Mail
-  contract 0.1.7. Its exact `b3fb6f48` review historically passed after closing three CVE-v1
-  findings, but a later root deep audit reopened a distinct P1 in engine response/admin byte
-  bounds. Mail 0.1.6 SHA `5a351d5b` remains historical `STALE`.
+- Architecture, source-of-truth, security and compatibility decisions include the exact
+  five-document default-vs-hard-cap/144-01A entry amendment, which passed at
+  `5e314fb080d420696642058ae47397e251c23207`. This is not a full Mail 0.1.8, Phase 142 or
+  global cross-contract PASS. The bounded 144-01A engine DTO/error boundary is `STATIC_ACCEPTED` at
+  `e3e8c774d734f926f77f8e600b58dc68dabbd993` after `EXACT_SHA_PASS`. The 0.1.7
+  `b3fb6f48` and 0.1.6 `5a351d5b` evidence remain historical.
 - OpenAPI covers mailbox, submission recovery, legacy calendar, canonical calendar and
   separate legacy/new admin resources.
 - Event subjects and webhook privacy boundary are frozen.
@@ -32,9 +34,9 @@
 |---|---|---|
 | Accepted versioned Docker launcher not implemented | root `AGENTS.md`, `STATE.md` | Ent generation, build/test/validator/runtime evidence |
 | Accepted versioned Docker launcher not implemented; separate founder-approved production migration mechanism/gate still required | root `AGENTS.md`, `STATE.md`, `MIGRATION-PLAN.md`, all-A non-acceptance boundary | 143-03E generation/inspection evidence; all 03A/B/C/D/F schema packets are already static accepted |
-| Engine message/blob responses and admin byte settings lack authoritative hard bounds | Phase 144 `REVIEW-144-01A-ENGINE-BOUNDS.md`, founder questions 28/30/31 | accepted 144-01A amendment, fake, sync/content mapping and runtime adapter |
-| Account/domain schema field matrix and domain/identity cardinality are not exact | Phase 144 `REVIEW-144-02A-SCHEMA-READINESS.md`, founder questions 32–34 | 144-02A and every dependent mailbox schema/service packet |
-| Canonical/legacy calendar list responses lack exact page/expansion bounds | Phase 142 `REVIEW-OPENAPI-RESPONSE-BOUNDS.md`, founder question 37 | calendar list/legacy aggregate DTO, handler and UI transport packets |
+| 144-01B requires applicable supported current-SHA Docker evidence under stricter Task3 authority | Phase 144 `IMPLEMENTATION-144-01A.md`, `REVIEW-144-01A-ENGINE-BOUNDS.md`, `DISPATCH-REMAINING.md` | 144-01B deterministic fake only; pure 144-03A/B/C/D static authoring remains authorized |
+| 144-02A source/schema packet is unimplemented and not independently source-accepted; generation remains launcher-gated | five-document 144-01A entry amendment PASS `5e314fb080d420696642058ae47397e251c23207`, Phase 144 `REVIEW-144-02A-SCHEMA-READINESS.md`, `DISPATCH-INDEX.md` | 144-02A and every dependent mailbox schema/service packet |
+| Calendar DTO/handler implementation is unimplemented; accepted 0.1.8 OpenAPI page/expansion bounds still lack executable evidence | five-document 144-01A entry amendment PASS `5e314fb080d420696642058ae47397e251c23207`; accepted 0.1.8 OpenAPI page/expansion bounds are a contract fact, Phase 142 `REVIEW-OPENAPI-RESPONSE-BOUNDS.md` | calendar list/legacy aggregate DTO, handler and UI transport packets |
 | Production migration mechanism unresolved | `MIGRATION-PLAN.md`, founder question 12 | schema generation/migration/backfill acceptance |
 | Recurring ScheduledCall semantics unresolved | `MIGRATION-PLAN.md`, founder question 18 | recurring backfill and all-or-nothing cutover |
 | Legacy POST idempotency compatibility break unaccepted | OpenAPI, founder question 22 | enabling the ScheduledCall bridge cutover; both shipped clients must move atomically |
@@ -71,10 +73,11 @@
 8. Execute Phase 143 service/HTTP plus ScheduledCall bridge packets; retain the legacy
    calendar envelope and count linked pairs once. Keep linked external guests fail-closed
    until founder question 23 has a separately reviewed join-credential contract.
-9. Phase 144-01A is source-conformant but its byte-boundary contract is reopened. Freeze the
-   amendment before 144-01B. Exact native dispatch provenance is dispatcher-enforced; actual
-   telemetry remains `UNKNOWN` unless exposed and is not a telemetry-only blocker. Then execute
-   fake/pure-policy packets, schemas/generation and services.
+9. Phase 144-01A is `STATIC_ACCEPTED` at `e3e8c774d734f926f77f8e600b58dc68dabbd993` after
+   exact-commit Terra/high `EXACT_SHA_PASS`, Spec/Quality/Security/Evidence PASS and C/I/M
+   `0/0/0`. Exact native dispatch provenance is dispatcher-enforced; actual telemetry `UNKNOWN`
+   is not a telemetry-only blocker. Next dispatch only pure static/TDD `144-03A-Address`; 01B
+   remains blocked by stricter Task3 authority pending applicable supported current-SHA Docker evidence.
 10. Admit `mail.>` only after calendar admission; keep webhook filter unchanged.
 11. Execute UI transport/routes/core only after backend contracts are accepted and the
    feature-test harness is available.

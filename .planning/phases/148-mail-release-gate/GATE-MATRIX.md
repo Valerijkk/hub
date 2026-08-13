@@ -1,6 +1,6 @@
 # Phase 148 — merge-readiness gate matrix
 
-> **Status:** G148_02_BLOCKED_INDEPENDENT_REVIEW_PENDING_0_1_8 · IMPLEMENTATION_IN_PROGRESS · RUNTIME_NOT_RUN
+> **Status:** G148_02_BLOCKED_BROADER_CROSS_CONTRACT_CURRENT_SOURCE_EXECUTABLE_GAPS · FIVE_DOCUMENT_144_01A_ENTRY_AMENDMENT_PASS_5E314FB0 · 144_01A_STATIC_ACCEPTED_E3E8C774 · IMPLEMENTATION_IN_PROGRESS · RUNTIME_NOT_RUN
 > **Scope:** Mail/Calendar/CRM feature branch only
 > **Evidence rule:** exact current SHA or no PASS
 > **Execution rule:** accepted versioned Docker launcher only; host/direct Compose evidence
@@ -42,11 +42,11 @@ secrets, DNS/operator approval and CTO/founder sign-off remain separate.
 | ID | Required evidence | Current state | Blocks |
 |---|---|---|---|
 | G148-01 baseline | clean isolated branch; base/current SHA; worktree path; changed-file and protected-zone diff; no untracked product artifact | PASS for docs snapshot only; repeat after code | every later gate |
-| G148-02 contract | ADR, Mail spec, OpenAPI, event schema, UI contract, Phase 147 contract and QA handoff independently agree; machine refs/examples closed | BLOCKED: Mail 0.1.8 root-freezes the bounded engine/API and exact 144-02A/B/C/D/F persistence amendment, but no independent review with accepted per-dispatch provenance or executable schema/example validation covers it; selected Stalwart also lacks the assumed manual-DNS verification, now explicitly gated rather than guessed; 0.1.7 PASS is historical | source work/claim |
+| G148-02 contract | ADR, Mail spec, OpenAPI, event schema, UI contract, Phase 147 contract and QA handoff independently agree; machine refs/examples closed | BLOCKED: the exact five-document default-vs-hard-cap/144-01A entry amendment passed at `5e314fb080d420696642058ae47397e251c23207` and 144-01A is `STATIC_ACCEPTED` at `e3e8c774d734f926f77f8e600b58dc68dabbd993`; broader cross-contract/current-source review and executable schema/example validation remain absent, and selected Stalwart lacks authoritative manual-DNS verification | source work/claim |
 | G148-03 founder decisions | task-local Terra route is answered; signed answers remain required for migration mechanism, Stalwart license, L1 include/defer, recurring-call semantics, pause/resume, legacy POST idempotency break, linked-call guest access, broadcast disposition, primary-address policy, sanitizer dependency, Sieve ownership, engine hydration/stream shape, message/attachment hard ceilings, mailbox quotas/pagination, calendar overflow behavior, Stalwart mailbox auth, DNS verification authority/projection and rebase signal; push/PR separately authorized | PARTIAL / unresolved items remain | affected packets and final gate |
 | G148-04 model provenance | every production/test-code packet records exact requested `gpt-5.6-terra` and `xhigh`, no fallback, and either matching actual telemetry or an accepted native `provenance_source: dispatcher-enforced` record; review packets record exact allowed Terra effort and distinct review context | PASS for the provenance rule: for this branch/Phases 143–148, an explicit native dispatcher acceptance without rejection is sufficient where telemetry is unavailable; any telemetry mismatch, rejection, omitted model/effort or fallback remains `BLOCKED` | source acceptance |
 | G148-05 migrations/generation | reviewed mechanism, preflight, generated Ent twice clean, complete ScheduledCall mapping + recurrence oracle + 100% bridge cutover dry-run on empty/realistic snapshot, counts/hashes and rollback | NOT_RUN | backend/runtime |
-| G148-06 independent source review | backend, frontend, architecture, security, product and QA lenses on current diff; all P0/P1 fixed and re-reviewed | BLOCKED: open 143-03 hash-pair source P1, unimplemented 144-01A amendment, unimplemented 02A/B/C/D/F schemas and no full current-source multi-lens review | merge-ready |
+| G148-06 independent source review | backend, frontend, architecture, security, product and QA lenses on current diff; all P0/P1 fixed and re-reviewed | BLOCKED: 143-03A/C are `STATIC_ACCEPTED`; 144-01A is `STATIC_ACCEPTED` at `e3e8c774d734f926f77f8e600b58dc68dabbd993` after exact-commit Terra/high `EXACT_SHA_PASS`; 02A/B/C/D/F schemas remain unimplemented and no full current-source multi-lens review exists | merge-ready |
 | G148-07 launcher integrity | versioned outer launcher has task owner marker, CPU/RAM/PID limits, wall timeout, isolated report root and unconditional exact cleanup | NOT_READY | all executable evidence |
 | G148-08 units/build/contracts | applicable backend/frontend feature units, generation, build/type/lint and schema/source-contract jobs green through launcher | NOT_RUN | merge-ready |
 | G148-09 API/integration | PostgreSQL constraints/transactions, public API/authz, NATS/outbox, Meili, SeaweedFS and mailbox fake/adapter integration green | NOT_RUN | merge-ready |
@@ -172,11 +172,13 @@ requirements and evidence request; it does not edit that program.
 
 ## 8. Current honest aggregate
 
-`CONTRACT_ROOT_FROZEN_REVIEW_PENDING_IMPLEMENTATION_IN_PROGRESS`: Mail 0.1.8 preserves the
-reviewed CVE-v1 semantics and root-freezes projection/message/blob budgets, public list and
-calendar bounds, stable first-draft identity and exact Phase 144 persistence matrices.
-Historical independent PASS on 0.1.7 SHA `b3fb6f48` does not review that amendment, so
-G148-02 remains blocked. Tasks 143-01/02A/02B retain their historical static evidence, while
-the 143-03 hash-pair source fix and all dependent 144 implementation packets remain blocked
-by outstanding remediation and independent acceptance. The launcher is not ready, engine/legal/migration/broadcast/rebase
+`FIVE_DOCUMENT_144_01A_ENTRY_AMENDMENT_PASS_144_01A_STATIC_ACCEPTED_IMPLEMENTATION_IN_PROGRESS`:
+the exact five-document default-vs-hard-cap/144-01A entry amendment passed at
+`5e314fb080d420696642058ae47397e251c23207`; this is not a full Mail 0.1.8, Phase 142 or global
+cross-contract PASS. The 144-01A bounded engine DTO/error boundary is `STATIC_ACCEPTED` at
+`e3e8c774d734f926f77f8e600b58dc68dabbd993`. G148-02 remains blocked only for broader
+cross-contract/current-source review, executable schema/example validation and Stalwart
+authoritative manual-DNS verification. 144-01B remains blocked under stricter Task3 authority
+pending applicable supported current-SHA Docker evidence; only pure 144-03A/B/C/D static
+authoring is authorized. The launcher is `NOT_READY`, engine/legal/migration/broadcast/rebase
 decisions are unresolved, and all executable evidence is `NOT_RUN`.

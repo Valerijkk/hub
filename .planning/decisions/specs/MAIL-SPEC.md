@@ -1,7 +1,7 @@
 # MAIL-SPEC — Hub mailbox and calendar synchronization contract
 
 > **Version:** 0.1.8
-> **Status:** Root-frozen bounds/schema amendment; independent Terra/high review and runtime pending; 0.1.7 review evidence is historical `STALE`
+> **Status:** five-document 0.1.8 entry amendment independently PASS at `5e314fb080d420696642058ae47397e251c23207`, authorizing only 144-01A entry; broader Phase 142/cross-contract review and runtime remain pending; 0.1.7 review evidence is historical `STALE`
 > **Date:** 2026-08-13
 > **Architecture:** `../ADR-MAIL-01-mail-engine-calendar-sync.md`
 > **OpenAPI:** `../../../docs/mail/openapi.yaml`

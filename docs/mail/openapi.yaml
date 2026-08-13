@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Hub Mail and Calendar Sync API
   version: 0.1.8
-  description: Root-frozen bounded implementation contract; independent review and runtime remain pending. Presence in this file does not imply implementation.
+  description: The five-document 0.1.8 entry amendment independently PASSed at 5e314fb080d420696642058ae47397e251c23207 and authorizes only 144-01A entry; broader cross-contract review and runtime remain pending. Presence in this file does not imply implementation.
 servers:
   - url: /api
 security:

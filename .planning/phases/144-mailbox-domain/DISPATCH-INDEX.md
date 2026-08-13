@@ -1,8 +1,8 @@
 # Phase 144 — exact Terra dispatch index
 
-> **Status:** CONTRACT_0_1_8_EXACT_CONTRACT_PASS `5e314fb0` · 144_01A_NEXT_AUTHORIZED_BY_CONTRACT · 144_01B_BLOCKED_ON_144_01A_ACCEPTANCE · 144_02A_02B_02C_02D_02F_ROOT_FROZEN_NOT_ACCEPTED · RUNTIME_NOT_RUN
+> **Status:** FIVE_DOCUMENT_DEFAULT_VS_HARD_CAP_144_01A_ENTRY_AMENDMENT_PASS `5e314fb0` (144-01A entry only; broader Phase 142/cross-contract pending) · 144_01A_STATIC_ACCEPTED `e3e8c774` / EXACT_SHA_PASS · 144_03A_ADDRESS_NEXT_STATIC_TDD · 144_01B_BLOCKED_ON_APPLICABLE_SUPPORTED_CURRENT_SHA_DOCKER_EVIDENCE_BY_TASK3 · 144_02A_02B_02C_02D_02F_ROOT_FROZEN_NOT_ACCEPTED · RUNTIME_NOT_RUN
 > **Required runtime:** `gpt-5.6-terra` / `xhigh`, no fallback
-> **Contract:** Mail 0.1.8 engine/API/persistence amendment passed independent exact-contract review at `5e314fb0`; 0.1.7 evidence is historical
+> **Contract:** exact five-document default-vs-hard-cap/144-01A entry amendment passed at `5e314fb0`; it authorizes only 144-01A entry, while broader Phase 142/cross-contract review remains pending; 0.1.7 evidence is historical
 > **Execution:** sequential for overlapping files; independent pure packets may run in parallel only after root freezes their shared types
 
 Phase 144 adds a mailbox domain beside the existing Resend alert subsystem. It does not
@@ -31,7 +31,7 @@ every remaining row/variant, assemble the Common envelope plus exactly one secti
 144-03A address -> threading variants
 144-03B folder tree -> rule compiler variants
 144-03C rate/loop -> attachment policy variants
-143-04L satisfied; 144-01A remains -> 144-03D deterministic mail event mapper
+143-04L and 144-01A satisfied -> 144-03D deterministic mail event mapper
 
 144-01B + 144-02E
    ├── 144-04A account resolver/repository base
@@ -68,8 +68,8 @@ every remaining row/variant, assemble the Common envelope plus exactly one secti
 
 | ID | Single owned behavior | Exact primary files | Oracle / acceptance | Entry dependency |
 |---|---|---|---|---|
-| 144-01A | Mailbox engine port, immutable DTOs and stable safe errors — existing source matches historical 0.1.7; 0.1.8 projection/budget/closed-DTO/draft-key amendment is root-frozen but unimplemented/unreviewed | `backend/internal/mail/mailbox_engine.go`, `mailbox_types.go`, `mailbox_errors.go`, `backend/tests/mail/mailbox_engine_contract_test.go` | projection-only pages; exact request/projection/body/attachment fields; variable-byte/item/page limits; budgeted whole message/blob and draft save/reconcile; reference-only submission; stable first-draft reconciliation | independently accepted `ENGINE-CONTRACT-0.1.8.md` |
-| 144-01B | Deterministic in-memory fake for one account boundary — blocked on 144-01A acceptance; actual telemetry is `UNKNOWN` unless exposed and is not the sole blocker | `backend/internal/mail/mailbox_fake.go`, `backend/tests/mail/mailbox_fake_test.go` | same-key submit with opaque result pair; exact/mismatched result hydration; scripted incremental/enumeration pages, invalid cursor/anchor restart; strict account isolation | accepted 144-01A amendment |
+| 144-01A | Mailbox engine port, immutable DTOs and stable safe errors — 0.1.8 projection/budget/closed-DTO/draft-key amendment is `STATIC_ACCEPTED` at `e3e8c774d734f926f77f8e600b58dc68dabbd993` after Terra/high `EXACT_SHA_PASS`; executable evidence remains `NOT_RUN` | `backend/internal/mail/mailbox_engine.go`, `mailbox_types.go`, `mailbox_errors.go`, `backend/tests/mail/mailbox_engine_contract_test.go` | projection-only pages; exact request/projection/body/attachment fields; variable-byte/item/page limits; budgeted whole message/blob and draft save/reconcile; reference-only submission; stable first-draft reconciliation | accepted `ENGINE-CONTRACT-0.1.8.md` |
+| 144-01B | Deterministic in-memory fake for one account boundary — blocked by stricter Task3 authority pending applicable supported current-SHA Docker evidence | `backend/internal/mail/mailbox_fake.go`, `backend/tests/mail/mailbox_fake_test.go` | same-key submit with opaque result pair; exact/mismatched result hydration; scripted incremental/enumeration pages, invalid cursor/anchor restart; strict account isolation | accepted 144-01A amendment + applicable supported current-SHA Docker evidence |
 | 144-02A1/A2/A3 | Typed DNS persistence value, then domain/policy schemas, then account/identity schemas — exact representation root-frozen; independent review pending | A1 `backend/internal/mail/domain_dns.go`; A2 `maildomain.go`/`mailboxpolicy.go` + narrow org inverses; A3 `mailaccount.go`/`mailidentity.go` + remaining narrow inverses | typed bounded DNS JSON; normalized uniqueness; exact named tuple/lease/state checks and delete edges; each intermediate commit compiles without a missing schema type | independently accepted persistence 02A representation + founder migration gate |
 | 144-02B | Folder, thread, message, message-folder, label and message-label schemas — `CONTRACT_AMENDED_ROOT_REVIEW_PENDING` | `mailfolder.go`, `mailthread.go`, `mailmessage.go`, `mailmessagefolder.go`, `maillabel.go`, `mailmessagelabel.go` | exact normalized-name indexes, required engine message version, bounded values, state/join checks and delete behavior; no body/raw MIME | accepted 144-02A + independently accepted persistence 02B matrix |
 | 144-02C | Mail object, attachment, draft and submission schemas only — `CONTRACT_AMENDED_ROOT_REVIEW_PENDING` | `mailobject.go`, `mailattachment.go`, `maildraft.go`, `mailsubmission.go` | stable draft key/client scope; maximum 50 scalar one-draft attachment owners; split engine-result ids/Hub UUID; scan/upload/submission checks | accepted 144-02A + independently accepted persistence 02C matrix |
@@ -79,7 +79,7 @@ every remaining row/variant, assemble the Common envelope plus exactly one secti
 | 144-03A | Address normalization then thread identity as two sequential variants | `address_policy.go`/address unit, then `threading.go`/thread unit | Unicode/case/domain first; message-id/ref chain/prefix/bounds second; no I/O | 144-01A |
 | 144-03B | Folder tree then typed rule compilation as two sequential variants | `folder_tree.go`/folder unit, then `rule_compiler.go`/rule unit | max 100/depth 2/cycle/system roles; native actions + opaque label marker only; injection impossible | 144-01A |
 | 144-03C | Send/rate/loop then attachment policy as two sequential variants | `send_policy.go`/send unit, then `attachment_policy.go`/attachment unit | recipient/byte caps and loop headers; fail-closed scan and filename/type bounds | 144-01A |
-| 144-03D | Deterministic mapping of the three mail payloads into shared full v1 envelopes | `mailbox_events.go`, `backend/tests/mail/mailbox_events_test.go` | explicit event/time/org/actor/correlation; exact schema fields; no body/secret; no clock/random/outbox | 143-04L satisfied; 144-01A remains |
+| 144-03D | Deterministic mapping of the three mail payloads into shared full v1 envelopes — static authoring authorized | `mailbox_events.go`, `backend/tests/mail/mailbox_events_test.go` | explicit event/time/org/actor/correlation; exact schema fields; no body/secret; no clock/random/outbox | 143-04L and 144-01A satisfied |
 | 144-04A | Resolve authenticated user to one organization/account and expose repositories | `mailbox_repository.go`, `mailbox_ent_repository.go`, `mailbox_service.go`, focused owner units | owner binding; begin/finish/reclaim mutation lease+epoch fence; sync lease/page interfaces; zero engine on invalid owner | 144-01B + 144-02E |
 | 144-04J | Deterministic account/identity desired-state service | `mailbox_account_control_service.go`, focused unit, narrow repository signatures | eligible user/domain scan; immutable address/key/cutoff; alias/user lifecycle generation; idempotent ensure | 144-01B + 144-02A/E |
 | 144-04K | Bounded multi-replica account-control worker | `mailbox_account_control_worker.go`, focused unit | due scan/lease/backoff/context shutdown; captured generation only; disable/reactivate; pending aliases | 144-04J |
@@ -175,14 +175,14 @@ every remaining row/variant, assemble the Common envelope plus exactly one secti
 
 | Gate | Status |
 |---|---|
-| Contract 0.1.8 root/independent static review | Independently exact-contract PASS at full commit `5e314fb080d420696642058ae47397e251c23207`; historical 0.1.7 remains non-authoritative; this contract PASS authorizes only 144-01A entry and does not accept implementation/runtime. |
+| Five-document default-vs-hard-cap/144-01A entry amendment | PASS at `5e314fb080d420696642058ae47397e251c23207`; historical 0.1.7 remains non-authoritative; this narrow PASS authorizes only 144-01A entry and does not accept implementation/runtime or broader Phase 142/cross-contract scope. |
 | 144-02A schema readiness | ROOT_FROZEN_REVIEW_PENDING: exact fields, tuples, states, limits and delete rules published in the 0.1.8 persistence companion |
 | 144-02B schema readiness | ROOT_FROZEN_RE_REVIEW_PENDING: normalized indexes, required engine version, bounded projection values and join/state checks published |
 | 144-02C schema readiness | ROOT_FROZEN_RE_REVIEW_PENDING: stable draft identity, maximum-50 scalar staging ownership, split engine/Hub result identity, single scan authority and state checks published |
 | 144-02D schema readiness | ROOT_FROZEN_REVIEW_PENDING: settings pointers are sole defaults; locked concrete rule JSON and external-contact retention published |
 | 144-02F schema readiness | ROOT_FROZEN_REVIEW_PENDING: attempted deployment tuple, receipt grammar/state and bulk child matrices published |
 | OpenAPI response boundedness | ROOT_FROZEN_REVIEW_PENDING: count/item/string/cursor/aggregate/calendar limits encoded in 0.1.8 |
-| Exact Terra implementation runtime | 144-01A authoring route recorded; 144-01B remains blocked on 144-01A acceptance. Actual telemetry is `UNKNOWN` unless exposed, not the sole blocker |
+| Exact Terra implementation runtime | 144-01A is `STATIC_ACCEPTED` at `e3e8c774`; native dispatcher-enforced provenance with actual telemetry `UNKNOWN` is accepted unless exposed telemetry mismatches. 144-01B remains Docker-blocked by Task3 |
 | Accepted Docker launcher | NOT_READY |
 | Ent generation | NOT_RUN |
 | Production migration mechanism | FOUNDER_DECISION_PENDING |

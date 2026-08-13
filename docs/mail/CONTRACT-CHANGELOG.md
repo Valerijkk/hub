@@ -1,15 +1,17 @@
 # Hub Mail contract changelog
 
-> **Current review status (2026-08-13): 0.1.8 ROOT_FROZEN · INDEPENDENT_REVIEW_PENDING.**
+> **Current review status (2026-08-14): five-document 0.1.8 entry amendment PASS at `5e314fb080d420696642058ae47397e251c23207`; broader Phase 142/cross-contract review remains `INDEPENDENT_REVIEW_PENDING`.**
 > The root amendment closes the recorded engine-memory, public-response and Phase 144
-> persistence representation gaps. It is not independently accepted and authorizes no
-> product code, generated Ent output, migration or runtime claim. Executable evidence remains
+> persistence representation gaps. Its independent PASS authorizes only 144-01A entry, not
+> product code beyond that packet, generated Ent output, migration or runtime claim. Executable evidence remains
 > `NOT_RUN`; the accepted launcher remains `NOT_READY`.
 
 ## 0.1.8 — 2026-08-13
 
-Bounded engine/API and deterministic mailbox persistence amendment. This is a root-frozen
-review candidate, not an implementation or runtime acceptance.
+Bounded engine/API and deterministic mailbox persistence amendment. The exact five-document
+entry amendment independently PASSed at `5e314fb080d420696642058ae47397e251c23207`, which
+authorizes only 144-01A entry; it is not implementation or runtime acceptance and does not
+close broader Phase 142/cross-contract review.
 
 - Statically accepted the root-frozen 143-04L `EnvelopeV1` subject amendment: the new builder
   has a 255 UTF-8-byte Hub product/safety bound distinct from the NATS transport/control-line
@@ -25,8 +27,8 @@ review candidate, not an implementation or runtime acceptance.
   cursor/recovery/idempotent-replay examples, bounded the still-blocked legacy broadcast
   compatibility shape, and made mailbox policy's maximum 300 recipients reachable from the
   three independently capped 100-item draft collections.
-  This root remediation remains pending independent actual-provenance rereview and executable
-  Docker validation.
+  The narrow five-document entry review is accepted at `5e314fb080d420696642058ae47397e251c23207`
+  only for 144-01A entry. Broader cross-contract rereview and executable Docker validation remain pending.
 - Split list/change/enumeration from hydrated message content. Projection pages now have
   independent count, per-item and aggregate retained-byte ceilings with an exact
   representation-independent variable-byte measure; authorized message/blob reads and draft
