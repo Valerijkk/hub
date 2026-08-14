@@ -675,14 +675,52 @@ terminally stored in its receipt before a rule or desired deployment generation 
 
 ### `RecentContact`
 
-UUID/account, normalized email 1..320 bytes, optional display name <=160 chars/640 bytes,
-optional user id, `last_used_at`, non-negative saturating use count, timestamps. Unique
-account+email and partial eviction index `(mail_account_id,last_used_at,id) WHERE user_id IS
-NULL`. At most 1,000 rows with null `user_id` exist per account. Before admitting a new
-external row, the same account-locked transaction evicts the oldest null-user row; Hub-linked
-rows do not count toward the external-retention cap. If user deletion sets links null, that
-transaction deterministically evicts oldest newly-external rows until the cap is restored.
-`use_count` saturates at 2,147,483,647. Account deletion cascades.
+Required `mail_account_id` FK `ON DELETE CASCADE`; nullable `user_id` FK `ON DELETE SET NULL`.
+Canonical normalized email is required 1..320 bytes; nullable display name uses the safe
+address-name policy and is <=160 runes/640 bytes; `last_used_at` is required; `use_count` is
+int32 `0..2147483647`; timestamps apply.
+The database enforces unique `(mail_account_id, normalized_email)` and partial eviction index
+`(mail_account_id,last_used_at,id) WHERE user_id IS NULL`. The storage cap is exactly <=1,000
+rows per account where `user_id IS NULL`; linked rows are exempt.
+
+Only an active same-organization user with exactly equal canonical normalized email may link;
+linked rows have `display_name NULL`, linking clears it, and unlink/user deletion never restores
+a stale external name. Cap restoration is transaction/service logic, not a row CHECK.
+
+External-only admission/upsert locks the account row first and revalidates live ownership. Same-email
+upsert refreshes injected UTC `last_used_at` and saturates `use_count` at `INT32_MAX`; distinct
+admission at 999 inserts without eviction, while at 1,000 it evicts the exact per-account minimum
+`(last_used_at ASC,id ASC raw UUID)` before insert. Every operation that creates, changes or
+consumes `RecentContact.user_id`, including link/manual unlink and user delete/deactivate/
+organization/email mutation, locks the user row first, then enumerates/revalidates affected
+accounts and locks them ascending raw UUID. The user lock prevents new link or invalidating user
+mutation races. After account locks, link/unlink re-reads exact rows and revalidates account/user
+organization, status and exact canonical email. Explicit unlink clears `user_id`+`display_name`,
+then repeatedly deletes the global minimum within that locked account among all its current
+null-user rows until <=1,000. The just-unlinked row participates and may be
+evicted; unlink is never rejected or truncated to preserve it.
+
+User delete/deactivate/organization/email mutation holds the user lock, then defines the affected
+account set before account locking as the deduplicated union of (a) every account containing a
+`RecentContact.user_id` link to that user and (b) every MailAccount owned by that user that will
+be cascade-deleted or whose ownership/lifecycle is affected. It locks the complete union ascending
+raw UUID and re-reads/revalidates that the union remains complete; while the user is locked, no
+link or owned-account lifecycle may change outside this protocol. It clears all invalid
+`user_id`+`display_name`, restores the cap within each `mail_account_id` by repeatedly deleting
+that account's global minimum among all current null-user rows, then completes the user mutation;
+it never rejects/truncates the user mutation or prefers only newly external rows. Final
+`User -> MailAccount` FK cascade must not acquire an omitted account lock because every owned
+account due for cascade is already in the sorted union. Standalone account deletion locks account
+only and never later requests a user lock; it serializes with the account-scoped phase without a
+cycle. Delete-first makes later link/mutation revalidation fail without a row;
+mutation-first is followed by cascade. Both outcomes leave no orphan or cap breach. Direct deletion outside the
+lifecycle service is unsupported. `ON DELETE SET NULL` is referential fallback only, never cap
+restoration.
+
+External `display_name` ingestion reuses safe address-name validation: valid UTF-8, no Unicode
+`Cc` or header-injection controls, <=160 runes/640 bytes. Permitted whitespace, `Cf`, rune and
+byte content is preserved exactly without trim/NFC/casefold. Linking clears the name; unlink and
+user invalidation never restore a stale value.
 
 ## 144-02F — receipts and rule deployment
 
@@ -905,4 +943,4 @@ Compiler neither calculates nor returns 04M-owned canonical hash v1; input actio
 hash material. Labels use server-generated immutable unique keywords: `hubk-` plus canonical
 lower-case unpadded RFC-4648 base32 of 32 random bytes, decode-to-32/re-encode exact. This does
 not close 144-02D/02F or authorize schemas, generation, Rule TDD or production. The Rule contract is
-docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`; its lifecycle transition/review target is `6735ae746c7acde657359e8a709cd897c4dce61c`, Contract/Spec Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`, provenance is dispatcher-enforced with no fallback and telemetry `UNKNOWN` unless exposed; 144-02D/02F adjudication/closure, a later separate Rule plan and Phase-145 engine-port/carrier remain required.
+docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`; its lifecycle transition/review target is `6735ae746c7acde657359e8a709cd897c4dce61c`, Contract/Spec Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`, provenance is dispatcher-enforced with no fallback and telemetry `UNKNOWN` unless exposed. The broad `63e419897aa0683e1d3dfcd442aca78eea1b0727` candidate and `6c424ed2d6703ceccbb269c37d9abc03e75a0410` transition are historical only. Current sequence: three precommit reviews of the exact nine-document 02D corrective candidate, exact root commit, three exact-SHA 02D closure reviews, only then 02F; a later separate Rule plan and Phase-145 engine-port/carrier remain required. Launcher `NOT_READY`; executable evidence `NOT_RUN`.

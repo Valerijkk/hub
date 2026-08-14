@@ -5,7 +5,7 @@ milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
 last_updated: "2026-08-14T12:45:44+03:00"
-last_activity: 2026-08-14 · 144-02A representation snapshot at b631866b2ba372101fd80eea30951eaa267c1931 is narrowly STATIC_CONTRACT_READY / docs-only accepted: Contract/Spec Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high independently PASS C/I/M 0/0/0; dispatcher-enforced, no fallback, telemetry UNKNOWN unless exposed. This accepts only frozen A1/A2/A3 persistence representation, not source, TDD, generated output, migration, launcher or runtime; founder migration authority and sequential explicit source dispatch/review remain required. 02D/02F normative correction candidate is next; DNS G145-5C remains open; launcher NOT_READY and executable evidence NOT_RUN
+last_activity: 2026-08-14 · 144-02A representation is docs-only accepted at b631866b2ba372101fd80eea30951eaa267c1931. Broad 02D/02F candidate 63e419897aa0683e1d3dfcd442aca78eea1b0727 and transition 6c424ed2d6703ceccbb269c37d9abc03e75a0410 are historical only. Current exact sequence is three precommit static reviews of the exact nine-document 02D corrective candidate, exact root commit, three exact-SHA 02D closure reviews, then and only then 02F reviews. No source, schema, generation, migration, service, launcher or runtime authority; DNS G145-5C remains open; launcher NOT_READY and executable evidence NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -338,8 +338,12 @@ spec_coverage:
   `f199546513b758ca7b95328b5ccd7680009b732e`, reviewed against transition commit
   `6735ae746c7acde657359e8a709cd897c4dce61c`; Contract/Spec Terra/high,
   Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`,
-  dispatcher-enforced with no fallback and telemetry `UNKNOWN`. 144-02D/02F adjudication,
-  then a later Rule plan and Phase-145 carrier, precede Rule TDD/production. Other packet eligibility
+  dispatcher-enforced with no fallback and telemetry `UNKNOWN`. Initial 144-02D/02F candidate
+  `63e419897aa0683e1d3dfcd442aca78eea1b0727` and transition
+  `6c424ed2d6703ceccbb269c37d9abc03e75a0410` are `CONSUMED/HISTORICAL`; RecentContact is
+  superseded by a docs-only root corrective candidate. Three precommit reviews, an exact
+  nine-document root commit, exact-SHA 02D closure reviews, then 02F reviews precede a later
+  Rule plan and Phase-145 carrier; no source/schema/runtime authority. Other packet eligibility
   remains status only. `144-01B` remains `BLOCKED`; broader
   Phase 142/cross-contract acceptance and Phase 148 remain pending. Launcher and all executable
   evidence remain `NOT_READY` / `NOT_RUN`.
@@ -1413,7 +1417,15 @@ The distinct `144-03B-Rule-Compiler` is narrowly docs-only `STATIC_ACCEPTED` / `
 `f199546513b758ca7b95328b5ccd7680009b732e`, reviewed against transition commit
 `6735ae746c7acde657359e8a709cd897c4dce61c`; Contract/Spec Terra/high, Security/Adversarial
 Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced with no
-fallback and telemetry `UNKNOWN`. 144-02D/02F adjudication, later plan and engine-port/145 carrier precede Rule TDD.
+fallback and telemetry `UNKNOWN`. Initial 144-02D/02F candidate
+`63e419897aa0683e1d3dfcd442aca78eea1b0727` and transition
+`6c424ed2d6703ceccbb269c37d9abc03e75a0410` are `CONSUMED/HISTORICAL`; its RecentContact
+portion is superseded while receipt/deployment facts remain frozen. The current docs-only packet
+is `ROOT_CORRECTION_CANDIDATE` / `PRECOMMIT_REVIEWS_REQUIRED` /
+`INDEPENDENT_CLOSURE_NOT_DISPATCHABLE` / `IMPLEMENTATION_BLOCKED`: three precommit reviews,
+an exact nine-document root commit, exact-SHA 02D closure reviews, then 02F reviews. Launcher
+`NOT_READY`, executable evidence `NOT_RUN`; no source/schema/generation/migration/service/runtime
+authority. Later plan and engine-port/145 carrier precede Rule TDD.
 Its callable/encoding/oracle
 contract remains `THREAD_CALLABLE_ENCODING_ORACLE_STATIC_ACCEPTED` at
 `cbc12577a6444df9c660e43fedfd0c8133c6e461` / `EXACT_SHA_PASS` after independent
@@ -1446,4 +1458,4 @@ new quality gate is requirement/risk traceability plus fail-closed execution.
 - hubtest `./testframework/tms/...` PASS; mutation 001–006 red/green ALL_OK.
 - Коммиты: `1dbf42f4` fix · `9e634ee5` test · статус TASK → На проверке (README не трогали). Handoff: be-ver → code-reviewer.
 
-> **Current Rule status (2026-08-14):** `144-03B-Rule-Compiler` is narrowly docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`, reviewed against transition commit `6735ae746c7acde657359e8a709cd897c4dce61c`. Contract/Spec (`gpt-5.6-terra`/high), Security/Adversarial (`gpt-5.6-terra`/xhigh), and Lifecycle/Dependency (`gpt-5.6-terra`/high) PASS C/I/M `0/0/0`; provenance is dispatcher-enforced with no fallback and telemetry `UNKNOWN`. It authorizes no code, TDD/tests, schemas, migrations, runtime, phase, product or release. Next: 144-02D/02F adjudication, then later Rule-plan and Phase-145 engine-port/carrier; 144-01B, Phase 142/148, launcher `NOT_READY` and executable evidence `NOT_RUN` remain unchanged.
+> **Current Rule status (2026-08-14):** `144-03B-Rule-Compiler` is narrowly docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`, reviewed against transition commit `6735ae746c7acde657359e8a709cd897c4dce61c`. Contract/Spec (`gpt-5.6-terra`/high), Security/Adversarial (`gpt-5.6-terra`/xhigh), and Lifecycle/Dependency (`gpt-5.6-terra`/high) PASS C/I/M `0/0/0`; provenance is dispatcher-enforced with no fallback and telemetry `UNKNOWN`. It authorizes no code, TDD/tests, schemas, migrations, runtime, phase, product or release. Initial 144-02D/02F candidate `63e419897aa0683e1d3dfcd442aca78eea1b0727` and transition `6c424ed2d6703ceccbb269c37d9abc03e75a0410` are `CONSUMED/HISTORICAL`; corrected 02D needs three precommit static reviews, a root exact nine-document commit, three exact-SHA 02D closure reviews, then 02F reviews. 144-01B, Phase 142/148, launcher `NOT_READY` and executable evidence `NOT_RUN` remain unchanged.

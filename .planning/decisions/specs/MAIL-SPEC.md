@@ -158,7 +158,8 @@ the Hub mail feature. It does not claim that the described behavior is implement
     or newer desired generation cannot erase which exact tuple may have reached the engine.
 41. Public stored/list resources are capped before side effects: 100 folders, 100 labels,
     200 identities including primary, 20 signatures, 100 rules, 100 organization domains
-    and 1,000 recent external contacts per account. Cursor pages default 50/max 100 except
+    and at most 1,000 recent contacts with `user_id IS NULL` per account; Hub-linked contacts
+    are exempt from that external-retention cap. Cursor pages default 50/max 100 except
     contacts max 30 and bounded folder snapshot max 100. Cursor/list pages additionally fit
     within 8,388,608 serialized UTF-8 bytes by returning fewer whole items plus a cursor;
     legacy calendar/call envelopes are non-truncating and fail above 16,777,216 bytes.
@@ -650,11 +651,62 @@ script id.
 
 ### 3.9 RecentContact
 
-`id`, `mail_account_id`, normalized `email`, `display_name`, nullable `user_id`,
-`last_used_at`, `use_count`. Unique by account + normalized email. At most 1,000 rows exist
-per account; admitting another deterministically evicts the least-recently-used non-Hub-
-linked row ordered by `(last_used_at,id)`. Suggestions always rank active Hub users before
-external recent contacts.
+`id`, required `mail_account_id` FK (`ON DELETE CASCADE`), canonical normalized `email`,
+nullable `display_name`, nullable `user_id` FK (`ON DELETE SET NULL`), `last_used_at`,
+`use_count`. The database enforces unique `(mail_account_id, normalized_email)`, canonical email
+1..320 UTF-8 bytes, nullable display name using the safe address-name policy and <=160 runes/640
+UTF-8 bytes, required
+`last_used_at`, `use_count` int32 `0..2,147,483,647`, and partial eviction index
+`(mail_account_id,last_used_at,id) WHERE user_id IS NULL`. The external retention cap is
+exactly <=1,000 rows with `user_id IS NULL` per account; Hub-linked rows are exempt.
+
+A link is allowed only to an active same-organization Hub user with exactly the same canonical
+normalized email. Linked rows have `display_name NULL`; linking clears it, and unlink or user
+deletion never restores a stale external name. These lifecycle rules are service/transaction
+invariants, not a row CHECK.
+
+External-only admission/upsert locks the account row first and revalidates that it is live and owned.
+A same-account/email upsert refreshes injected UTC `last_used_at` and saturates `use_count` at
+`INT32_MAX`; a distinct admission at 999 external rows inserts without eviction, while at 1,000
+it evicts the exact per-account minimum `(last_used_at ASC,id ASC raw UUID)` before insert.
+Every operation that creates, changes or consumes `RecentContact.user_id`, including link/manual
+unlink and user delete/deactivate/organization/email mutation, locks the user row first, then
+enumerates/revalidates affected accounts and locks those accounts by ascending raw UUID. With the
+user locked, no new link or invalidating user mutation may race. After account locks, link/unlink
+re-reads exact rows and revalidates account plus user organization/status/email. Explicit unlink first clears
+`user_id` and `display_name`, then repeatedly evicts the global minimum within that locked account
+among all its current null-user rows until <=1,000; the just-unlinked row participates and may be
+the victim. Unlink is never
+rejected or truncated to preserve that row.
+
+For user delete/deactivate/organization/email mutation, the locked user row prevents new links and
+owned-account lifecycle changes outside this protocol. Before account locking, the affected set is
+the deduplicated union of every account containing a `RecentContact.user_id` link to that user and
+every MailAccount owned by the user that will be cascade-deleted or whose ownership/lifecycle is
+affected. The operation locks that complete union by ascending raw UUID, then re-reads and
+revalidates that the union remains complete. It clears every invalidated `user_id` and
+`display_name`, restores the cap within each `mail_account_id` by repeatedly evicting that account's
+global minimum among all current null-user rows, then completes the user mutation; it never
+rejects/truncates the user mutation and never prefers only newly external rows. Final
+`User -> MailAccount` FK cascade must not acquire an omitted account lock: every owned account due
+for cascade is already in the sorted union. Standalone account deletion locks only the account and
+never subsequently requests a user lock; it serializes with the account-scoped phase of link/user
+operations without a lock cycle. Delete-first makes later link/mutation revalidation fail without
+a row; mutation-first is followed by cascade. Either outcome leaves no orphan or cap breach. Direct
+deletion outside this lifecycle service is unsupported. FK `SET NULL` is referential fallback,
+never cap restoration.
+
+External `display_name` ingestion reuses the safe address-name validator: valid UTF-8, no Unicode
+`Cc` or header-injection controls, and <=160 runes/640 bytes. It preserves permitted whitespace,
+`Cf`, rune and byte content exactly—no trim, NFC or casefold. Linking clears the name, and no
+unlink or invalidating user mutation restores a stale value.
+
+Suggestions remain a separate privacy projection: existing `limit`/`maxItems` 30 is unchanged,
+with active same-organization Hub users first and caller-account external rows second, deduped by
+canonical email with the Hub user winning. Hub-user results derive live directory name and may
+expose `user_id`/avatar/presence; external results use stored nullable display name and expose
+those fields as null. They never expose RecentContact id, account, `last_used_at` or `use_count`,
+and have no cursor, history or list route.
 
 #### 3.9.1 Search projection
 
@@ -1882,7 +1934,9 @@ static-only accepted at `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`. `144-03B-Rul
 separately narrowly docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`,
 reviewed against transition commit `6735ae746c7acde657359e8a709cd897c4dce61c`; Contract/Spec Terra/high,
 Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced
-with no fallback and telemetry `UNKNOWN`. 144-02D/02F adjudication, later plan and Phase-145 carrier remain required. It does not authorize
+with no fallback and telemetry `UNKNOWN`. The active next sequence is three precommit reviews of
+the exact nine-document 02D corrective candidate, its exact root commit, three exact-SHA 02D
+closure reviews, and only then 02F reviews; later plan and Phase-145 carrier remain required. It does not authorize
 schemas, generation, migration, runtime or a version bump. 144-01B, Phase 142/148 and 144-02B
 remain pending; launcher is `NOT_READY` and runtime is `NOT_RUN`.
 

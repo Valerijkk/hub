@@ -697,8 +697,11 @@ oracles, not current executable evidence.
 
 ### 144-02D/02F correction-candidate external/static oracle matrix
 
-This candidate is `ROOT_CORRECTION_CANDIDATE` / `INDEPENDENT_CLOSURE_PENDING` /
-`IMPLEMENTATION_BLOCKED` / `RUNTIME_NOT_RUN`; the launcher remains `NOT_READY`.
+The initial candidate status was `ROOT_CORRECTION_CANDIDATE` / `INDEPENDENT_CLOSURE_PENDING` /
+`IMPLEMENTATION_BLOCKED` / `RUNTIME_NOT_RUN`; it is historical and superseded by the current
+`ROOT_CORRECTION_CANDIDATE` / `PRECOMMIT_REVIEWS_REQUIRED` /
+`INDEPENDENT_CLOSURE_NOT_DISPATCHABLE` / `IMPLEMENTATION_BLOCKED` / `RUNTIME_NOT_RUN` packet.
+The launcher remains `NOT_READY`.
 
 | Oracle | Static/external assertion | Runtime status |
 |---|---|---|
@@ -708,6 +711,14 @@ This candidate is `ROOT_CORRECTION_CANDIDATE` / `INDEPENDENT_CLOSURE_PENDING` /
 | Bulk rows | index/count/outcome/training checks; parent-transaction-only member aggregate/cardinality | NOT_RUN |
 | Deployment | attempt `0..10`, internal-only exhaustion code, tuple/state/lease, tenth crash/no-11th and late owner CAS token/epoch invariants | NOT_RUN |
 | OpenAPI | only `MailFolderCreateConflict`, `MailFolderMutationConflict`, `MailMutationIdempotencyConflict` as named folder/idempotency 409 components | NOT_RUN |
+| RecentContact persistence | FK `mail_account_id ON DELETE CASCADE`, nullable `user_id ON DELETE SET NULL`, unique account/email, partial null-user eviction index, canonical/bounds/checks | NOT_RUN |
+| RecentContact unlink cap | With 1,000 external rows plus one linked row, unlink clears link/name, yields exactly 1,000 and removes the exact per-account global minimum across all now-null rows; the just-unlinked row can be the victim | NOT_RUN |
+| RecentContact lifecycle | 999/1,000 boundary, linked exemption, timestamp+raw-UUID LRU tie, concurrent distinct admit/same-email upsert, INT32 saturation, user-first then sorted-account locks, cap restoration per account | NOT_RUN |
+| RecentContact user races | Link versus delete in a previously unlinked account plus deactivate/org/email invalidation: user lock prevents new/invalid links; exact rows re-read after account locks; no stale name, orphan or cap breach | NOT_RUN |
+| RecentContact account-delete race | Delete-first makes later mutation revalidation fail with no row; mutation-first is later cascaded; account delete never requests user lock | NOT_RUN |
+| RecentContact reciprocal user delete | U owns A and is linked in B; V owns B and is linked in A. Concurrent delete U/V takes user-first plus each transaction's sorted owned+linked union `{A,B}` before cascade and completes without deadlock, orphan, duplicate or cap breach | NOT_RUN |
+| RecentContact display name | Reject invalid UTF-8, CR/LF, Unicode Cc and header injection; enforce 160-rune/640-byte edges; preserve permitted whitespace/Cf/content exactly with no trim/NFC/casefold; never restore stale name | NOT_RUN |
+| RecentContact projection | active same-org Hub user first, canonical-email Hub winner, external privacy projection, no hidden persistence fields/route, existing max 30 | NOT_RUN |
 
 ### 144-03A Thread accepted-contract future scenarios (not implemented or run)
 
@@ -754,7 +765,9 @@ C/I/M `0/0/0`), static only. Folder docs are also static-only accepted at
 `f199546513b758ca7b95328b5ccd7680009b732e`, reviewed against transition commit
 `6735ae746c7acde657359e8a709cd897c4dce61c`; Contract/Spec Terra/high, Security/Adversarial
 Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced with no
-fallback and telemetry `UNKNOWN`. 144-02D/02F adjudication, later plan and Phase-145 carrier remain required. Launcher remains
+fallback and telemetry `UNKNOWN`. The active sequence is three precommit static reviews of this
+exact nine-document candidate, exact root commit, three exact-SHA 02D closure reviews, and only
+then 02F; later plan and Phase-145 carrier remain required. Launcher remains
 `NOT_READY` and runtime `NOT_RUN`.
 
 ### 144-03B Folder static-accepted source/oracle scenarios (executable evidence NOT_RUN)
@@ -803,7 +816,9 @@ fallback and telemetry `UNKNOWN`. 144-02D/02F adjudication, later plan and Phase
 Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced with no
 fallback and telemetry `UNKNOWN`. Future RED oracle
 must cover ABI/errors, closed union/bounds/Unicode/targets/order/deep-copy/static purity and
-reject noncanonical base32 (decode-to-32 plus identical re-encode). No test before 02D/02F
-adjudication and closure, later plan and separate Phase-145 carrier; launcher `NOT_READY`.
+reject noncanonical base32 (decode-to-32 plus identical re-encode). No test before the exact
+nine-document candidate passes three precommit reviews, is committed, passes three exact-SHA 02D
+closure reviews, and only then passes 02F reviews; later plan and separate Phase-145 carrier remain;
+launcher `NOT_READY`.
 Compiler errors are internal; HTTP uses 04M account-scoped lookup which masks foreign/missing
 targets identically and never makes mismatch/ambiguity an existence oracle.

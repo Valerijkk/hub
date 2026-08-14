@@ -1,7 +1,7 @@
 # Phase 144-02F preimplementation review — receipt/deployment schema readiness
 
 > **Detected:** 2026-08-13 root deep static audit
-> **Status:** ROOT_CORRECTION_CANDIDATE · INDEPENDENT_CLOSURE_PENDING · IMPLEMENTATION_BLOCKED · RUNTIME_NOT_RUN
+> **Historical status:** ROOT_CORRECTION_CANDIDATE · INDEPENDENT_CLOSURE_PENDING · IMPLEMENTATION_BLOCKED · RUNTIME_NOT_RUN; superseded by the current corrective packet below.
 > **Scope:** `MailMutationReceipt`, receipt target/member rows and `MailRuleDeployment`
 
 > `docs/mail/PERSISTENCE-CONTRACT-0.1.8.md` now supplies the root candidate state/operation/
@@ -129,7 +129,7 @@ later-plan exact-SHA acceptance, and the separate Phase-145 engine-port carrier.
 
 ## Correction-candidate adjudication — 2026-08-14
 
-> **Status:** `ROOT_CORRECTION_CANDIDATE` · `INDEPENDENT_CLOSURE_PENDING` · `IMPLEMENTATION_BLOCKED` · `RUNTIME_NOT_RUN`
+> **Historical status:** `ROOT_CORRECTION_CANDIDATE` · `INDEPENDENT_CLOSURE_PENDING` · `IMPLEMENTATION_BLOCKED` · `RUNTIME_NOT_RUN`; superseded by the current corrective packet below.
 
 | Prior P1 | Candidate adjudication | Remaining gate |
 |---|---|---|
@@ -145,18 +145,22 @@ index/count/outcome/training alternatives, member non-row-CHECK disclaimer, depl
 state predicates, and the three named OpenAPI folder/idempotency 409 components. No test or
 runtime oracle has run; launcher stays `NOT_READY` and all runtime evidence stays `NOT_RUN`.
 
-Candidate provenance: `gpt-5.6-terra`/medium, `dispatcher-enforced`; fallback none; telemetry
-`UNKNOWN`. The required atomic eight-document commit is `CONSUMED` at
-`63e419897aa0683e1d3dfcd442aca78eea1b0727` (parent
-`5df4`): it contains the exact eight candidate documents. It is not a closure or acceptance;
-`63e` establishes only candidate exact content/security PASS and repairs the lifecycle
-transition.
+Historical lifecycle: initial eight-document candidate
+`63e419897aa0683e1d3dfcd442aca78eea1b0727` is `CONSUMED/HISTORICAL`. Its 02F receipt/deployment
+normative facts remain frozen, but it is not a closure or acceptance; its 02D RecentContact
+portion is superseded. Lifecycle transition `6c424ed2d6703ceccbb269c37d9abc03e75a0410` is
+`CONSUMED/HISTORICAL` and its former next-review instruction is superseded.
 
-**Current next step:** only after 02D closes, conduct an independent exact-SHA closure review
-of 02F against `63e419897aa0683e1d3dfcd442aca78eea1b0727` with the accepted 02D predecessor.
-Its required routes are Contract/Spec (`gpt-5.6-terra`/high), Security/Adversarial
-(`gpt-5.6-terra`/xhigh), and Lifecycle/Dependency (`gpt-5.6-terra`/high), each
-dispatcher-enforced with no fallback; telemetry remains `UNKNOWN` unless exposed. 02F remains
-unclosed/candidate pending those reviews; no source, schema, migration or runtime authority is
-granted.
+This current root corrective packet is `ROOT_CORRECTION_CANDIDATE` /
+`PRECOMMIT_REVIEWS_REQUIRED` / `INDEPENDENT_CLOSURE_NOT_DISPATCHABLE` /
+`IMPLEMENTATION_BLOCKED` / `RUNTIME_NOT_RUN`. Candidate provenance: `gpt-5.6-terra`/medium,
+`dispatcher-enforced`; fallback none; telemetry `UNKNOWN` unless exposed.
+
+**Current exact next step:** three independent precommit static reviews, then root atomic exact
+nine-document docs commit. Only after three exact-SHA 02D closure reviews PASS may an independent
+02F exact-SHA closure review occur. Its routes are Contract/Spec (`gpt-5.6-terra`/high),
+Security/Adversarial (`gpt-5.6-terra`/xhigh), and Lifecycle/Dependency
+(`gpt-5.6-terra`/high), each dispatcher-enforced with no fallback. 02F remains unclosed;
+no source, schema, generation, migration, service or runtime authority is granted. Launcher
+stays `NOT_READY`; executable evidence stays `NOT_RUN`.
 > **Current Rule acceptance:** the three Terra routes PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed. Rule contract acceptance does not close this review or authorize schemas.

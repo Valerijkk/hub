@@ -1,15 +1,32 @@
 # Hub Mail contract changelog
 
+## 144-02D RecentContact corrective candidate — 2026-08-14
+
+Narrow docs-only corrective candidate, no version bump. It supersedes only the RecentContact
+portion of initial candidate `63e419897aa0683e1d3dfcd442aca78eea1b0727`: the hard cap applies
+only to null-`user_id` external rows, linked rows are exempt, and `user_id ON DELETE SET NULL`
+is explicit. It freezes external account-only locking, user-first then sorted complete owned+linked
+account-union locking for user lifecycle (so cascades acquire no omitted account lock), user-first
+link/unlink, per-account raw-UUID LRU tie-breaking, safe exact-content display-name
+validation, link/name privacy and public max-30 projection. The initial candidate and transition
+`6c424ed2d6703ceccbb269c37d9abc03e75a0410` are `CONSUMED/HISTORICAL`; neither is accepted.
+Receipt/deployment facts from `63e` remain frozen for later 02F closure, which waits on accepted
+corrected 02D. Status: `ROOT_CORRECTION_CANDIDATE` / `PRECOMMIT_REVIEWS_REQUIRED` /
+`INDEPENDENT_CLOSURE_NOT_DISPATCHABLE` / `IMPLEMENTATION_BLOCKED` / `RUNTIME_NOT_RUN`.
+Next: three independent precommit static reviews, root atomic exact nine-document commit, three
+exact-SHA 02D closure reviews, then and only then 02F reviews. Launcher `NOT_READY`; no source,
+schema, generation, migration, service or runtime authority.
+
 ## 144-02D/02F normative correction candidate — 2026-08-14
 
-Narrow docs-only candidate, no version bump: corrects identity/signature derived-response versus
+Historical initial narrow docs-only candidate, no version bump: corrects identity/signature derived-response versus
 Upsert command semantics; freezes named 02D checks, receipt attempts/exhaustion and the exhaustive
 operation-target-status-safe-code predicate; adds the internal-only deployment exhaustion terminal
-with a bounded ten-slot attempted-tuple budget; and retains flat rule conjunction wording. Status remains
-`ROOT_CORRECTION_CANDIDATE` / `INDEPENDENT_CLOSURE_PENDING` / `IMPLEMENTATION_BLOCKED` /
-`RUNTIME_NOT_RUN`. Author provenance: `gpt-5.6-terra`/medium, dispatcher-enforced, fallback
-none, telemetry `UNKNOWN`. Next: atomic eight-doc commit only after three precommit PASS, then
-three independent exact-SHA reviews. Launcher `NOT_READY`; no schema/generation/migration/product/release authorization.
+with a bounded ten-slot attempted-tuple budget; and retains flat rule conjunction wording. Its
+status `ROOT_CORRECTION_CANDIDATE` / `INDEPENDENT_CLOSURE_PENDING` / `IMPLEMENTATION_BLOCKED` /
+`RUNTIME_NOT_RUN` is historical and superseded above. Author provenance: `gpt-5.6-terra`/medium,
+dispatcher-enforced, fallback none, telemetry `UNKNOWN`. Launcher `NOT_READY`; no
+schema/generation/migration/product/release authorization.
 
 > **Current 144-03B authority (2026-08-14):** earlier Folder lifecycle-gate wording below is
 > `CONSUMED/HISTORICAL`. Source/oracle commit `f8cb7643986fc591cae16764575337b72ef3a692`
@@ -21,8 +38,10 @@ three independent exact-SHA reviews. Launcher `NOT_READY`; no schema/generation/
 > The separate Rule contract is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at
 > `f199546513b758ca7b95328b5ccd7680009b732e`; it accepts provider-neutral typed IR only,
 > never raw Sieve or engine-port bytes. Its lifecycle transition/review target is
-> `6735ae746c7acde657359e8a709cd897c4dce61c`, not the acceptance commit; 144-02D/02F
-> adjudication/closure and a later separate Rule plan remain required before the separate
+> `6735ae746c7acde657359e8a709cd897c4dce61c`, not the acceptance commit. The broad 02D/02F
+> candidate/transition is historical; current sequence is three precommit reviews of exact
+> nine-doc corrected 02D, exact root commit, three exact-SHA 02D closure reviews, then 02F.
+> A later separate Rule plan remains required before the separate
 > Phase-145 carrier, with no Rule TDD or production authorization. Runner `NOT_READY`; all
 > executable evidence `NOT_RUN`.
 
@@ -38,7 +57,9 @@ only frozen persistence representation, not Ent/product source or TDD, generated
 migrations, launcher execution, tests/validators/build/runtime, 02B/C/D/F, services, product,
 module, phase or release. Founder migration authority, supported task-owned launcher,
 sequential explicit source dispatch and source-level review remain required. G145-5C remains
-open; the next action is one docs-only 02D/02F normative correction candidate, not code.
+open. That broad candidate action is historical; current next sequence is three precommit reviews
+of the exact nine-document corrected 02D, exact root commit, three exact-SHA 02D closure reviews,
+then and only then 02F, not code.
 
 ## 0.1.8 rule compiler candidate — 2026-08-14
 
@@ -46,7 +67,8 @@ open; the next action is one docs-only 02D/02F normative correction candidate, n
 `f199546513b758ca7b95328b5ccd7680009b732e`, not product, module, phase or release acceptance. It freezes
 provider-neutral typed IR, never raw Sieve or hash v1. The keyword is `hubk-` plus canonical
 lower-case unpadded RFC-4648 base32 of exactly 32 random bytes; validation decode-to-32 then
-identical re-encode, not regex alone. Rule TDD/production await 144-02D/02F adjudication/closure,
+identical re-encode, not regex alone. Rule TDD/production await corrected 02D precommit/commit/
+exact-SHA closure, then 02F,
 a later separate Rule plan and engine-port/145 carrier; no Rule source, schema, runtime, product or
 release authority follows from this docs-only acceptance.
 

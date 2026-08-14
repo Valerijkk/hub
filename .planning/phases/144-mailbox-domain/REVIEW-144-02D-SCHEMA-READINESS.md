@@ -1,7 +1,7 @@
 # Phase 144-02D preimplementation review — user configuration schema readiness
 
 > **Detected:** 2026-08-13 root deep static audit
-> **Status:** ROOT_CORRECTION_CANDIDATE · INDEPENDENT_CLOSURE_PENDING · IMPLEMENTATION_BLOCKED · RUNTIME_NOT_RUN
+> **Historical status:** ROOT_CORRECTION_CANDIDATE · INDEPENDENT_CLOSURE_PENDING · IMPLEMENTATION_BLOCKED · RUNTIME_NOT_RUN; superseded by the current corrective packet below.
 > **Scope:** `MailUserSettings`, `MailSignature`, `MailRule` and `RecentContact`
 
 > `docs/mail/PERSISTENCE-CONTRACT-0.1.8.md` now supplies the root candidate matrix; this
@@ -112,7 +112,7 @@ later-plan exact-SHA acceptance, and the separate Phase-145 engine-port carrier.
 
 ## Correction-candidate adjudication — 2026-08-14
 
-> **Status:** `ROOT_CORRECTION_CANDIDATE` · `INDEPENDENT_CLOSURE_PENDING` · `IMPLEMENTATION_BLOCKED` · `RUNTIME_NOT_RUN`
+> **Historical status:** `ROOT_CORRECTION_CANDIDATE` · `INDEPENDENT_CLOSURE_PENDING` · `IMPLEMENTATION_BLOCKED` · `RUNTIME_NOT_RUN`; superseded by the current corrective packet below.
 
 | Prior P1 | Candidate adjudication | Remaining gate |
 |---|---|---|
@@ -123,20 +123,36 @@ later-plan exact-SHA acceptance, and the separate Phase-145 engine-port carrier.
 External/static oracle matrix: inspect the four literal signature CHECK names and predicates;
 assert create/update/delete pointer truth table, same-account/live and stale-If-Match gates;
 assert settings version changes iff pointer changes; assert no second settings PATCH. These are
-static candidate oracles only. No schema, generated output, migration, source, test, launcher
-or runtime result exists or is authorized.
+static candidate oracles only. RecentContact additionally requires exact FK actions, unique/index
+and bounds/checks; 999/1,000 boundary; linked exemption; timestamp/raw-UUID LRU tie; concurrent
+distinct admission and same-email upsert; INT32 saturation/display bounds; cross-org/inactive/
+email-mismatch link rejection; linked-name clearing; multi-account user-delete global lock order,
+cap restoration and per-account global LRU; account-delete race; and public projection/privacy/
+max-30 separation. Exact oracles include: at 1,000 external plus one linked row, unlink produces
+exactly 1,000 and evicts the exact per-account minimum including possibly the just-unlinked row;
+user-first then ascending-account lock order over the complete deduplicated owned+linked account
+union; reciprocal concurrent delete where U owns A/links B and V owns B/links A locks `{A,B}` in
+each transaction before cascade without deadlock/orphan/duplicate/cap breach; link-versus-delete
+in a previously unlinked account; delete-first and mutation-first standalone-account races;
+deactivate/org/email invalidation; and safe
+display-name rejection of invalid UTF-8, CR/LF, Unicode Cc/header injection while preserving
+permitted whitespace/Cf/content without trim/NFC/casefold. No schema, generated output, migration,
+source, test, launcher or runtime result exists or is authorized.
 
+Historical lifecycle: initial eight-document candidate
+`63e419897aa0683e1d3dfcd442aca78eea1b0727` is `CONSUMED/HISTORICAL`; its 02D RecentContact
+portion is superseded, never accepted. Lifecycle transition
+`6c424ed2d6703ceccbb269c37d9abc03e75a0410` is likewise `CONSUMED/HISTORICAL`; its former
+next-review instruction is superseded. This current root corrective packet is
+`ROOT_CORRECTION_CANDIDATE` / `PRECOMMIT_REVIEWS_REQUIRED` /
+`INDEPENDENT_CLOSURE_NOT_DISPATCHABLE` / `IMPLEMENTATION_BLOCKED` / `RUNTIME_NOT_RUN`.
 Candidate provenance: `gpt-5.6-terra`/medium, `dispatcher-enforced`; fallback none; telemetry
-`UNKNOWN`. The required atomic eight-document commit is `CONSUMED` at
-`63e419897aa0683e1d3dfcd442aca78eea1b0727` (parent
-`5df4`): it contains the exact eight candidate documents. It is not a closure or acceptance;
-`63e` establishes only candidate exact content/security PASS and repairs the lifecycle
-transition.
+`UNKNOWN` unless exposed.
 
-**Current next step:** an independent exact-SHA closure review of 02D against
-`63e419897aa0683e1d3dfcd442aca78eea1b0727`. Its required routes are Contract/Spec
+**Current exact next step:** three independent precommit static reviews. After all PASS, root
+makes one atomic exact nine-document docs commit; only then run Contract/Spec
 (`gpt-5.6-terra`/high), Security/Adversarial (`gpt-5.6-terra`/xhigh), and
-Lifecycle/Dependency (`gpt-5.6-terra`/high), each dispatcher-enforced with no fallback;
-telemetry remains `UNKNOWN` unless exposed. 02D remains unclosed/candidate pending those
-reviews; no source, schema, migration or runtime authority is granted.
+Lifecycle/Dependency (`gpt-5.6-terra`/high) exact-SHA 02D closure reviews. Only after accepted
+02D may 02F closure reviews start. No source, schema, generation, migration, service or runtime
+authority is granted; launcher stays `NOT_READY` and executable evidence stays `NOT_RUN`.
 > **Current Rule acceptance:** the three Terra routes PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed. Rule contract acceptance does not close this review or authorize schemas.
