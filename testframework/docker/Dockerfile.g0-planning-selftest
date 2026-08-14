@@ -1,0 +1,31 @@
+# The local tag is created only after Package A1 verifies the immutable
+# bootstrap-helper-python base in the nonce-bound local-base receipt.
+FROM hub-qa-bootstrap-helper-python:local
+
+LABEL hub.qa.target="g0-planning-selftest" \
+      hub.qa.execution-authority="hub.qa-bootstrap/v1" \
+      hub.qa.network="none" \
+      hub.qa.runtime-status="NOT_RUN"
+
+WORKDIR /opt/hub
+
+# Package C alone creates this closed build context after accepted A0 and A1.
+# The immutable A1 controls are the only binding inputs.  Shared Python
+# admission code is image-baked; the Windows host launcher and Package-B code
+# are deliberately absent.
+COPY controls/dependency-bundle.manifest.v1.json /opt/hub/controls/dependency-bundle.manifest.v1.json
+COPY controls/source-policy.v2.json /opt/hub/controls/source-policy.v2.json
+COPY controls/build-manifest.v3.json /opt/hub/controls/build-manifest.v3.json
+COPY testframework/docker/dependency-bundle.schema.v1.json /opt/hub/testframework/docker/dependency-bundle.schema.v1.json
+COPY testframework/docker/admission/verify_local_dependency_bundle.py /opt/hub/admission/verify_local_dependency_bundle.py
+COPY testframework/docker/admission/admit_local_dependency_assets.py /opt/hub/admission/admit_local_dependency_assets.py
+COPY testframework/docker/entrypoints/g0-planning-selftest.sh /opt/hub/bin/g0-planning-selftest
+COPY testframework/docker/runner-fixtures/g0-planning-selftest.py /opt/hub/testframework/docker/runner-fixtures/g0-planning-selftest.py
+
+RUN chmod 0555 /opt/hub/bin/g0-planning-selftest \
+ && chmod 0555 /opt/hub/testframework/docker/runner-fixtures/g0-planning-selftest.py \
+ && test ! -L /opt/hub/bin/g0-planning-selftest \
+ && test ! -L /opt/hub/testframework/docker/runner-fixtures/g0-planning-selftest.py
+
+ENTRYPOINT ["/opt/hub/bin/g0-planning-selftest"]
+CMD ["--hub-qa-target=g0-planning-selftest"]

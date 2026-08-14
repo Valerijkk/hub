@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "hub.qa.dependency-bundle/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "bundle_id",
+    "source_commit",
+    "platform",
+    "assets",
+    "bases",
+    "bundle_sha256"
+  ],
+  "properties": {
+    "schema": { "const": "hub.qa.dependency-bundle/v1" },
+    "bundle_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{7,63}$" },
+    "source_commit": { "const": "7b5d5501cefab34f9aa5661e4f8c38e71474f9ce" },
+    "platform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["os", "architecture", "variant"],
+      "properties": {
+        "os": { "const": "linux" },
+        "architecture": { "const": "amd64" },
+        "variant": { "type": "null" }
+      }
+    },
+    "assets": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": { "$ref": "#/$defs/asset" }
+    },
+    "bases": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": { "$ref": "#/$defs/base" }
+    },
+    "bundle_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "SHA-256 of UTF-8/no-BOM canonical JSON after removing this property; every closed object retains its declared key order and arrays retain declared order."
+    }
+  },
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_id",
+        "targets",
+        "relative_path",
+        "sha256",
+        "bytes",
+        "license_spdx",
+        "license_evidence_sha256",
+        "provenance_sha256"
+      ],
+      "properties": {
+        "asset_id": {
+          "enum": [
+            "go-module-cache",
+            "go-race-toolchain",
+            "frontend-node-modules",
+            "swag-binary"
+          ]
+        },
+        "targets": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "enum": ["backend-unit", "frontend-unit", "backend-openapi"] }
+        },
+        "relative_path": { "type": "string", "pattern": "^assets/[a-z0-9][a-z0-9._/-]*$" },
+        "sha256": { "$ref": "#/$defs/digest" },
+        "bytes": { "type": "integer", "minimum": 1 },
+        "license_spdx": { "$ref": "#/$defs/spdx" },
+        "license_evidence_sha256": { "$ref": "#/$defs/digest" },
+        "provenance_sha256": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "base": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "base_id",
+        "consumers",
+        "local_image_id",
+        "manifest_digest",
+        "license_spdx",
+        "license_evidence_sha256",
+        "provenance_sha256"
+      ],
+      "properties": {
+        "base_id": {
+          "enum": [
+            "go-backend-unit",
+            "go-backend-openapi",
+            "frontend-unit",
+            "bootstrap-helper-python"
+          ]
+        },
+        "consumers": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "backend-unit",
+              "frontend-unit",
+              "backend-openapi",
+              "g0-admission-helper",
+              "g0-planning-selftest"
+            ]
+          }
+        },
+        "local_image_id": { "$ref": "#/$defs/digest" },
+        "manifest_digest": { "$ref": "#/$defs/digest" },
+        "license_spdx": { "$ref": "#/$defs/spdx" },
+        "license_evidence_sha256": { "$ref": "#/$defs/digest" },
+        "provenance_sha256": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "spdx": {
+      "type": "string",
+      "enum": [
+        "0BSD", "Apache-2.0", "Artistic-2.0", "BSD-2-Clause", "BSD-3-Clause",
+        "CC0-1.0", "EPL-2.0", "ISC", "MIT", "MPL-2.0", "PSF-2.0",
+        "Python-2.0", "Unicode-DFS-2016", "Zlib"
+      ]
+    }
+  }
+}

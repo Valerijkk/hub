@@ -1,0 +1,13 @@
+# The local tag is created only after Package A1 base-identity verification.
+# This source contract has no pull, network, package, or build-argument path.
+FROM hub-qa-bootstrap-helper-python:local
+
+WORKDIR /opt/hub
+COPY dependency-bundle.schema.v1.json /opt/hub/controls/dependency-bundle.schema.v1.json
+COPY admission/verify_local_dependency_bundle.py /opt/hub/admission/verify_local_dependency_bundle.py
+COPY admission/admit_local_dependency_assets.py /opt/hub/admission/admit_local_dependency_assets.py
+COPY controls/dependency-bundle.manifest.v1.json /opt/hub/controls/dependency-bundle.manifest.v1.json
+COPY --chmod=0555 entrypoints/g0-admission-helper.sh /opt/hub/bin/g0-admission-helper
+
+ENTRYPOINT ["/opt/hub/bin/g0-admission-helper"]
+CMD []

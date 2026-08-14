@@ -1,0 +1,81 @@
+{
+  "schema": "hub.qa.bootstrap-control/v1",
+  "status": "NOT_RUN",
+  "bootstrap_contract": "hub.qa-bootstrap/v1",
+  "platform": {
+    "os": "linux",
+    "architecture": "amd64",
+    "variant": null
+  },
+  "candidate_lock": {
+    "path_template": "testframework/reports/<task-run>/bootstrap/images.lock.v3.json",
+    "repository_publication": "forbidden",
+    "runtime_status": "READY_FOR_G0_BOOTSTRAP_ONLY"
+  },
+  "runtime": {
+    "network_mode": "none",
+    "read_only": true,
+    "cpus": 2.0,
+    "mem_limit": "2g",
+    "pids_limit": 256,
+    "cap_drop": ["ALL"],
+    "no_new_privileges": true,
+    "pull_policy": "never",
+    "only_writable_mount": "/reports"
+  },
+  "targets": {
+    "backend-unit": {
+      "dockerfile": "testframework/docker/Dockerfile.backend-unit",
+      "entrypoint_path": "/opt/hub/bin/backend-unit",
+      "compose_service": "backend-unit",
+      "local_image_lock_field": "targets.backend-unit.local_image_id",
+      "docker_cmd": ["--hub-qa-target=backend-unit"],
+      "target_action": [
+        "go build ./...",
+        "go vet ./...",
+        "go test -json -count=1 -timeout=150s ./tests/...",
+        "go test -json -race -count=1 -timeout=150s ./tests/..."
+      ],
+      "bootstrap_selectable": false
+    },
+    "frontend-unit": {
+      "dockerfile": "testframework/docker/Dockerfile.frontend-unit",
+      "entrypoint_path": "/opt/hub/bin/frontend-unit",
+      "compose_service": "frontend-unit",
+      "local_image_lock_field": "targets.frontend-unit.local_image_id",
+      "docker_cmd": ["--hub-qa-target=frontend-unit"],
+      "target_action": [
+        "/opt/hub/frontend/node_modules/.bin/tsc -b",
+        "/opt/hub/frontend/node_modules/.bin/biome check ./src",
+        "/opt/hub/frontend/node_modules/.bin/vite build --outDir /reports/frontend-unit/vite-dist",
+        "/opt/hub/frontend/node_modules/.bin/vitest run --config /opt/hub/config/vitest.frontend-unit.config.ts --reporter=json"
+      ],
+      "bootstrap_selectable": false
+    },
+    "backend-openapi": {
+      "dockerfile": "testframework/docker/Dockerfile.backend-openapi",
+      "entrypoint_path": "/opt/hub/bin/backend-openapi",
+      "compose_service": "backend-openapi",
+      "local_image_lock_field": "targets.backend-openapi.local_image_id",
+      "docker_cmd": ["--hub-qa-target=backend-openapi"],
+      "target_action": [
+        "/opt/hub/offline/swag/swag init -g cmd/server/main.go -o /reports/backend-openapi/generation-1 --parseDependency --parseInternal",
+        "/opt/hub/offline/swag/swag init -g cmd/server/main.go -o /reports/backend-openapi/generation-2 --parseDependency --parseInternal",
+        "sha256 manifest comparison and exact three-path synchronization"
+      ],
+      "bootstrap_selectable": false
+    },
+    "g0-planning-selftest": {
+      "dockerfile": "testframework/docker/Dockerfile.g0-planning-selftest",
+      "entrypoint_path": "/opt/hub/bin/g0-planning-selftest",
+      "compose_service": "g0-planning-selftest",
+      "local_image_lock_field": "targets.g0-planning-selftest.local_image_id",
+      "docker_cmd": ["--hub-qa-target=g0-planning-selftest"],
+      "target_action": [
+        "image-baked Python stdlib fixture imports the shared A0 verifier and admission modules directly",
+        "fixed valid and negative dependency-bundle fixtures prove verifier reasons and no success receipt after rejection"
+      ],
+      "bootstrap_selectable": true
+    }
+  }
+}

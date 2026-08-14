@@ -1,26 +1,94 @@
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory = $true)]
-    [ValidateNotNullOrEmpty()]
-    [ValidatePattern('^[0-9a-f]{40}$')]
-    [string]$ControlCommit
+    [switch]$Describe
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# Private P2 materializer only. It is not a qa-gate target, does not attest
-# itself, and is never a target-runner dependency operation.
+# Private hub.qa-bootstrap/v1 source contract. Package A0 only defines this
+# closed future behavior. It never builds, invokes Docker, or publishes a
+# repository lock. Package B supplies the internally validated context.
+
+$script:Utf8 = [Text.UTF8Encoding]::new($false, $true)
+$script:SourceBaseline = '7b5d5501cefab34f9aa5661e4f8c38e71474f9ce'
+$script:BindingFiles = [ordered]@{
+    dependency = 'testframework/docker/dependency-bundle.manifest.v1.json'
+    source = 'testframework/docker/source-policy.v2.json'
+    build = 'testframework/docker/build-manifest.v3.json'
+}
+$script:FixedTargets = [ordered]@{
+    'backend-unit' = [ordered]@{
+        dockerfile = 'testframework/docker/Dockerfile.backend-unit'
+        entrypoint_path = '/opt/hub/bin/backend-unit'
+        compose_service = 'backend-unit'
+        local_image_lock_field = 'targets.backend-unit.local_image_id'
+        docker_cmd = @('--hub-qa-target=backend-unit')
+        target_action = @(
+            'go build ./...'
+            'go vet ./...'
+            'go test -json -count=1 -timeout=150s ./tests/...'
+            'go test -json -race -count=1 -timeout=150s ./tests/...'
+        )
+        bootstrap_selectable = $false
+    }
+    'frontend-unit' = [ordered]@{
+        dockerfile = 'testframework/docker/Dockerfile.frontend-unit'
+        entrypoint_path = '/opt/hub/bin/frontend-unit'
+        compose_service = 'frontend-unit'
+        local_image_lock_field = 'targets.frontend-unit.local_image_id'
+        docker_cmd = @('--hub-qa-target=frontend-unit')
+        target_action = @(
+            '/opt/hub/frontend/node_modules/.bin/tsc -b'
+            '/opt/hub/frontend/node_modules/.bin/biome check ./src'
+            '/opt/hub/frontend/node_modules/.bin/vite build --outDir /reports/frontend-unit/vite-dist'
+            '/opt/hub/frontend/node_modules/.bin/vitest run --config /opt/hub/config/vitest.frontend-unit.config.ts --reporter=json'
+        )
+        bootstrap_selectable = $false
+    }
+    'backend-openapi' = [ordered]@{
+        dockerfile = 'testframework/docker/Dockerfile.backend-openapi'
+        entrypoint_path = '/opt/hub/bin/backend-openapi'
+        compose_service = 'backend-openapi'
+        local_image_lock_field = 'targets.backend-openapi.local_image_id'
+        docker_cmd = @('--hub-qa-target=backend-openapi')
+        target_action = @(
+            '/opt/hub/offline/swag/swag init -g cmd/server/main.go -o /reports/backend-openapi/generation-1 --parseDependency --parseInternal'
+            '/opt/hub/offline/swag/swag init -g cmd/server/main.go -o /reports/backend-openapi/generation-2 --parseDependency --parseInternal'
+            'sha256 manifest comparison and exact three-path synchronization'
+        )
+        bootstrap_selectable = $false
+    }
+    'g0-planning-selftest' = [ordered]@{
+        dockerfile = 'testframework/docker/Dockerfile.g0-planning-selftest'
+        entrypoint_path = '/opt/hub/bin/g0-planning-selftest'
+        compose_service = 'g0-planning-selftest'
+        local_image_lock_field = 'targets.g0-planning-selftest.local_image_id'
+        docker_cmd = @('--hub-qa-target=g0-planning-selftest')
+        target_action = @(
+            'image-baked Python stdlib fixture imports the shared A0 verifier and admission modules directly'
+            'fixed valid and negative dependency-bundle fixtures prove verifier reasons and no success receipt after rejection'
+        )
+        bootstrap_selectable = $true
+    }
+}
+$script:CandidateChildKeys = [string[]]@(
+    'local_image_id',
+    'local_image_id_sha256',
+    'entrypoint_path',
+    'entrypoint_sha256',
+    'command_sha256',
+    'compose_service',
+    'runtime_status'
+)
 
 class HubQaUtf8BytePathComparer : System.Collections.Generic.IComparer[string] {
-    [int] Compare([string]$left, [string]$right) {
-        if ([Object]::ReferenceEquals($left, $right)) { return 0 }
-        if ($null -eq $left) { return -1 }
-        if ($null -eq $right) { return 1 }
-
-        $encoding = [Text.UTF8Encoding]::new($false, $true)
-        [byte[]]$leftBytes = $encoding.GetBytes($left)
-        [byte[]]$rightBytes = $encoding.GetBytes($right)
+    [int] Compare([string]$Left, [string]$Right) {
+        if ([Object]::ReferenceEquals($Left, $Right)) { return 0 }
+        if ($null -eq $Left) { return -1 }
+        if ($null -eq $Right) { return 1 }
+        [byte[]]$leftBytes = ([Text.UTF8Encoding]::new($false, $true)).GetBytes($Left)
+        [byte[]]$rightBytes = ([Text.UTF8Encoding]::new($false, $true)).GetBytes($Right)
         $sharedLength = [Math]::Min($leftBytes.Length, $rightBytes.Length)
         for ($index = 0; $index -lt $sharedLength; $index++) {
             $difference = [int]$leftBytes[$index] - [int]$rightBytes[$index]
@@ -33,108 +101,120 @@ class HubQaUtf8BytePathComparer : System.Collections.Generic.IComparer[string] {
     }
 }
 
-$utf8 = [Text.UTF8Encoding]::new($false, $true)
-$controlAssetPaths = [string[]]@(
-    'testframework/docker/Dockerfile.backend-openapi',
-    'testframework/docker/Dockerfile.backend-unit',
-    'testframework/docker/Dockerfile.frontend-unit',
-    'testframework/docker/build-manifest.v2.json',
-    'testframework/docker/compose.unit.yaml',
-    'testframework/docker/source-policy.v1.json'
-)
-$controlLabelKeys = [string[]]@(
-    'hub.qa.control-commit',
-    'hub.qa.control-bundle-sha256'
-)
-$script:controlBlobRequests = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+function Get-HubQaSha256 {
+    param([byte[]]$Bytes)
 
-function Resolve-CanonicalNonReparseDirectory {
-    param([string]$Path, [string]$Identity)
-
-    $item = Get-Item -LiteralPath $Path -Force -ErrorAction Stop
-    if (-not $item.PSIsContainer) { throw "$Identity must be a directory: $Path" }
-
-    $cursor = [IO.DirectoryInfo]$item
-    while ($null -ne $cursor) {
-        if ($cursor.Attributes -band [IO.FileAttributes]::ReparsePoint) {
-            throw "$Identity contains a reparse point: $($cursor.FullName)"
-        }
-        $cursor = $cursor.Parent
+    $algorithm = [Security.Cryptography.SHA256]::Create()
+    try {
+        return 'sha256:' + ([BitConverter]::ToString($algorithm.ComputeHash($Bytes))).Replace('-', '').ToLowerInvariant()
+    } finally {
+        $algorithm.Dispose()
     }
-    return [IO.Path]::GetFullPath($item.FullName)
 }
 
-function Assert-ContainedPath {
+function Assert-HubQaDigest {
+    param([string]$Value, [string]$Identity)
+
+    if ($Value -notmatch '^sha256:[0-9a-f]{64}$') { throw "$Identity must be sha256 plus 64 lowercase hexadecimal characters." }
+}
+
+function Assert-HubQaSha1 {
+    param([string]$Value, [string]$Identity)
+
+    if ($Value -notmatch '^[0-9a-f]{40}$') { throw "$Identity must be 40 lowercase hexadecimal characters." }
+}
+
+function Resolve-HubQaCanonicalDirectory {
+    param([string]$Path, [string]$Identity)
+
+    $directory = [IO.DirectoryInfo]::new([IO.Path]::GetFullPath($Path))
+    while ($null -ne $directory) {
+        $directory.Refresh()
+        if (-not $directory.Exists -or ($directory.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw "$Identity is missing, noncanonical, or contains a reparse point: $Path"
+        }
+        $directory = $directory.Parent
+    }
+    return [IO.Path]::GetFullPath($Path).TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
+}
+
+function Assert-HubQaContainedPath {
     param([string]$Path, [string]$Root, [string]$Identity)
 
     $fullPath = [IO.Path]::GetFullPath($Path)
-    $fullRoot = [IO.Path]::GetFullPath($Root)
-    $rootPrefix = $fullRoot.TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
-    if (-not $fullPath.StartsWith($rootPrefix, [StringComparison]::OrdinalIgnoreCase)) {
-        throw "$Identity escapes its declared root: $Path"
+    $fullRoot = [IO.Path]::GetFullPath($Root).TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
+    $prefix = $fullRoot + [IO.Path]::DirectorySeparatorChar
+    if (-not $fullPath.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "$Identity escapes the closed root."
     }
     return $fullPath
 }
 
-function Test-FilesystemObjectExists {
-    param([string]$Path)
+function Read-HubQaRegularUtf8File {
+    param([string]$Path, [string]$Root, [string]$Identity)
 
-    try {
-        [IO.File]::GetAttributes($Path) | Out-Null
-        return $true
-    } catch [IO.FileNotFoundException] {
-        return $false
-    } catch [IO.DirectoryNotFoundException] {
-        return $false
+    $fullPath = Assert-HubQaContainedPath -Path $Path -Root $Root -Identity $Identity
+    $file = [IO.FileInfo]::new($fullPath)
+    $file.Refresh()
+    if (-not $file.Exists -or ($file.Attributes -band [IO.FileAttributes]::Directory) -ne 0 -or ($file.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+        throw "$Identity is not a regular file."
     }
-}
-
-function Assert-FilesystemObjectAbsent {
-    param([string]$Path, [string]$Identity)
-
-    if (Test-FilesystemObjectExists -Path $Path) {
-        throw "$Identity already exists and must never be replaced: $Path"
+    $parent = $file.Directory
+    while ($null -ne $parent -and $parent.FullName.Length -ge $Root.Length) {
+        $parent.Refresh()
+        if (-not $parent.Exists -or ($parent.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { throw "$Identity has a reparse ancestor." }
+        if ([StringComparer]::OrdinalIgnoreCase.Equals($parent.FullName, $Root)) { break }
+        $parent = $parent.Parent
     }
+    [byte[]]$bytes = [IO.File]::ReadAllBytes($fullPath)
+    if ($bytes.Length -eq 0 -or ($bytes.Length -ge 3 -and $bytes[0] -eq 0xef -and $bytes[1] -eq 0xbb -and $bytes[2] -eq 0xbf)) {
+        throw "$Identity is empty or has a UTF-8 BOM."
+    }
+    try { $text = $script:Utf8.GetString($bytes) } catch { throw "$Identity is not strict UTF-8." }
+    return [pscustomobject]@{ Path = $fullPath; Bytes = $bytes; Text = $text; Sha256 = Get-HubQaSha256 -Bytes $bytes }
 }
 
-function Assert-ExactLowerSha1 {
-    param([string]$Value, [string]$Identity)
+function ConvertFrom-HubQaClosedJson {
+    param([string]$Text, [string]$Identity)
 
-    if ($Value -notmatch '^[0-9a-f]{40}$') { throw "$Identity must be exactly 40 lowercase hexadecimal characters." }
+    try { return $Text | ConvertFrom-Json -ErrorAction Stop } catch { throw "$Identity is not valid JSON." }
 }
 
-function Assert-ExactStringSequence {
-    param([AllowNull()][object]$Actual, [string[]]$Expected, [string]$Identity)
+function Get-HubQaMember {
+    param([object]$Object, [string]$Name, [string]$Identity)
 
-    $actualValues = @($Actual)
-    if ($actualValues.Count -ne $Expected.Count) { throw "$Identity count mismatch." }
+    if ($null -eq $Object -or $null -eq $Object.PSObject.Properties[$Name]) { throw "$Identity is missing $Name." }
+    return $Object.PSObject.Properties[$Name].Value
+}
+
+function Assert-HubQaExactPropertyNames {
+    param([object]$Object, [string[]]$Expected, [string]$Identity)
+
+    $actual = @($Object.PSObject.Properties.Name)
+    if ($actual.Count -ne $Expected.Count) { throw "$Identity has an unexpected property count." }
     for ($index = 0; $index -lt $Expected.Count; $index++) {
-        if (-not [StringComparer]::Ordinal.Equals([string]$actualValues[$index], $Expected[$index])) {
-            throw "$Identity differs at index $index."
-        }
+        if (-not [StringComparer]::Ordinal.Equals([string]$actual[$index], $Expected[$index])) { throw "$Identity has a missing, extra, or reordered property." }
     }
 }
 
-function Get-ByteSha256 {
-    param([byte[]]$Bytes)
+function Assert-HubQaExactStringArray {
+    param([object]$Actual, [string[]]$Expected, [string]$Identity)
 
-    $sha = [Security.Cryptography.SHA256]::Create()
-    try {
-        return ([BitConverter]::ToString($sha.ComputeHash($Bytes))).Replace('-', '').ToLowerInvariant()
-    } finally {
-        $sha.Dispose()
+    $values = @($Actual)
+    if ($values.Count -ne $Expected.Count) { throw "$Identity has an unexpected array count." }
+    for ($index = 0; $index -lt $Expected.Count; $index++) {
+        if (-not [StringComparer]::Ordinal.Equals([string]$values[$index], $Expected[$index])) { throw "$Identity differs at index $index." }
     }
 }
 
-function ConvertTo-JcsString {
-    param([AllowNull()][object]$Value)
+function ConvertTo-HubQaJcsString {
+    param([string]$Value)
 
-    if ($null -eq $Value -or -not ($Value -is [string])) { throw 'JCS string value must be a non-null string.' }
-    $text = [string]$Value
+    if ($null -eq $Value) { throw 'JCS string cannot be null.' }
     $builder = New-Object Text.StringBuilder
     [void]$builder.Append('"')
-    for ($index = 0; $index -lt $text.Length; $index++) {
-        $code = [int][char]$text[$index]
+    for ($index = 0; $index -lt $Value.Length; $index++) {
+        $code = [int][char]$Value[$index]
         if ($code -eq 0x22) { [void]$builder.Append('\"'); continue }
         if ($code -eq 0x5c) { [void]$builder.Append('\\'); continue }
         if ($code -eq 0x08) { [void]$builder.Append('\b'); continue }
@@ -143,145 +223,48 @@ function ConvertTo-JcsString {
         if ($code -eq 0x0c) { [void]$builder.Append('\f'); continue }
         if ($code -eq 0x0d) { [void]$builder.Append('\r'); continue }
         if ($code -lt 0x20) { [void]$builder.Append(('\u{0:x4}' -f $code)); continue }
-        if ($code -ge 0xd800 -and $code -le 0xdbff) {
-            if (($index + 1) -ge $text.Length) { throw 'JCS string contains an unpaired high surrogate.' }
-            $low = [int][char]$text[$index + 1]
-            if ($low -lt 0xdc00 -or $low -gt 0xdfff) { throw 'JCS string contains an unpaired high surrogate.' }
-            [void]$builder.Append([char]$code)
-            [void]$builder.Append([char]$low)
-            $index++
-            continue
-        }
-        if ($code -ge 0xdc00 -and $code -le 0xdfff) { throw 'JCS string contains an unpaired low surrogate.' }
         [void]$builder.Append([char]$code)
     }
     [void]$builder.Append('"')
     return $builder.ToString()
 }
 
-function Get-JcsSortedStrings {
-    param([AllowEmptyCollection()][string[]]$Values)
-
-    $ordered = [string[]]@($Values)
-    [Array]::Sort($ordered, [StringComparer]::Ordinal)
-    return $ordered
-}
-
-function Get-Utf8ByteSortedStrings {
-    param([AllowEmptyCollection()][string[]]$Values)
-
-    $ordered = [string[]]@($Values)
-    [Array]::Sort($ordered, [HubQaUtf8BytePathComparer]::new())
-    return $ordered
-}
-
-function ConvertTo-JcsStringArray {
-    param([AllowNull()][object]$Value)
+function Get-JcsArraySha256 {
+    param([object]$Value)
 
     if ($null -eq $Value -or $Value -is [string]) { throw 'JCS array must be a non-null array of strings.' }
-    $encoded = New-Object Collections.Generic.List[string]
-    foreach ($item in @($Value)) { $encoded.Add((ConvertTo-JcsString -Value $item)) }
-    return '[' + ($encoded -join ',') + ']'
+    $parts = New-Object Collections.Generic.List[string]
+    foreach ($item in @($Value)) {
+        if ($item -isnot [string]) { throw 'JCS array contains a non-string member.' }
+        $parts.Add((ConvertTo-HubQaJcsString -Value ([string]$item)))
+    }
+    return Get-HubQaSha256 -Bytes $script:Utf8.GetBytes(('[' + ($parts -join ',') + ']'))
 }
 
-function Get-FullLabelsProjection {
-    param([AllowNull()][object]$Labels)
+function Get-HubQaGitBlobBytes {
+    param([string]$Repository, [string]$BlobSha1, [string]$Identity)
 
-    if ($null -eq $Labels) { throw 'Docker Config.Labels must be a non-null object.' }
-    $propertyNames = @($Labels.psobject.Properties.Name)
-    if ($propertyNames.Count -eq 0) { throw 'Docker Config.Labels must not be empty.' }
-    $projection = [ordered]@{}
-    foreach ($name in @(Get-JcsSortedStrings -Values ([string[]]$propertyNames))) {
-        $value = $Labels.$name
-        if ($null -eq $value -or -not ($value -is [string])) { throw "Docker label must be a string: $name" }
-        $projection[$name] = [string]$value
-    }
-    return $projection
-}
-
-function ConvertTo-JcsStringObject {
-    param([Collections.IDictionary]$Value)
-
-    if ($null -eq $Value -or $Value.Count -eq 0) { throw 'JCS label projection must be a nonempty object.' }
-    $members = New-Object Collections.Generic.List[string]
-    foreach ($name in @(Get-JcsSortedStrings -Values ([string[]]@($Value.Keys)))) {
-        $members.Add(('{0}:{1}' -f (ConvertTo-JcsString -Value $name), (ConvertTo-JcsString -Value $Value[$name])))
-    }
-    return '{' + ($members -join ',') + '}'
-}
-
-function Get-JcsArraySha256 {
-    param([AllowNull()][object]$Value)
-
-    return 'sha256:' + (Get-ByteSha256 -Bytes $utf8.GetBytes((ConvertTo-JcsStringArray -Value $Value)))
-}
-
-function Get-JcsObjectSha256 {
-    param([Collections.IDictionary]$Value)
-
-    return 'sha256:' + (Get-ByteSha256 -Bytes $utf8.GetBytes((ConvertTo-JcsStringObject -Value $Value)))
-}
-
-function Assert-GitCommitObject {
-    param([string]$Repository, [string]$Commit, [string]$Identity)
-
-    Assert-ExactLowerSha1 -Value $Commit -Identity $Identity
-    $type = @(& git -C $Repository cat-file -t $Commit 2>$null)
-    if ($LASTEXITCODE -ne 0 -or $type.Count -ne 1 -or [string]$type[0] -ne 'commit') {
-        throw "$Identity is not an available commit object: $Commit"
-    }
-}
-
-function Get-ExactGitTreeEntry {
-    param([string]$Repository, [string]$Commit, [string]$RepositoryRelativePath)
-
-    if ($RepositoryRelativePath -notmatch '^[A-Za-z0-9._/-]+$' -or $RepositoryRelativePath.StartsWith('/') -or $RepositoryRelativePath.Contains('..')) {
-        throw "Unsafe repository-relative path: $RepositoryRelativePath"
-    }
-    $lines = @(& git -C $Repository ls-tree $Commit -- $RepositoryRelativePath 2>$null)
-    if ($LASTEXITCODE -ne 0 -or $lines.Count -ne 1) { throw "Git tree entry is unavailable: $RepositoryRelativePath" }
-    if ([string]$lines[0] -notmatch '^(?<mode>[0-7]{6}) (?<type>blob|tree|commit) (?<object>[0-9a-f]{40})\t(?<path>.+)$') {
-        throw "Malformed Git tree entry: $RepositoryRelativePath"
-    }
-    if (-not [StringComparer]::Ordinal.Equals($Matches.path, $RepositoryRelativePath)) {
-        throw "Git tree path mismatch: $RepositoryRelativePath"
-    }
-    if ($Matches.mode -ne '100644' -or $Matches.type -ne 'blob') {
-        throw "Git tree entry must be mode 100644 blob: $RepositoryRelativePath"
-    }
-    Assert-ExactLowerSha1 -Value $Matches.object -Identity "Git blob identity for $RepositoryRelativePath"
-    return [pscustomobject]@{ Mode = $Matches.mode; BlobSha1 = $Matches.object }
-}
-
-function Read-GitBlobBytes {
-    param([string]$Repository, [string]$ObjectSpec, [Int64]$MaximumBytes, [string]$Identity)
-
-    if ($MaximumBytes -le 0) { throw "Invalid byte bound: $Identity" }
-    if ($Repository.Contains('"') -or $ObjectSpec.Contains('"')) { throw "Unsafe Git argument: $Identity" }
-
-    $processInfo = New-Object Diagnostics.ProcessStartInfo
-    $processInfo.FileName = 'git'
-    $processInfo.WorkingDirectory = $Repository
-    $processInfo.Arguments = ('cat-file blob "{0}"' -f $ObjectSpec)
-    $processInfo.UseShellExecute = $false
-    $processInfo.RedirectStandardOutput = $true
-    $processInfo.RedirectStandardError = $true
+    Assert-HubQaSha1 -Value $BlobSha1 -Identity "$Identity Git blob SHA-1"
+    if ($Repository.Contains('"')) { throw "$Identity Git repository path is unsafe." }
+    $startInfo = New-Object Diagnostics.ProcessStartInfo
+    $startInfo.FileName = 'git'
+    $startInfo.WorkingDirectory = $Repository
+    $startInfo.Arguments = ('cat-file blob {0}' -f $BlobSha1)
+    $startInfo.UseShellExecute = $false
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
     $process = New-Object Diagnostics.Process
-    $process.StartInfo = $processInfo
-    if (-not $process.Start()) { throw "Cannot start Git blob reader: $Identity" }
-
-    $buffer = New-Object byte[] 65536
+    $process.StartInfo = $startInfo
+    if (-not $process.Start()) { throw "$Identity could not start Git blob reader." }
     $memory = New-Object IO.MemoryStream
-    $count = [Int64]0
+    $buffer = New-Object byte[] 65536
     try {
         while (($read = $process.StandardOutput.BaseStream.Read($buffer, 0, $buffer.Length)) -gt 0) {
-            $count += $read
-            if ($count -gt $MaximumBytes) { throw "Git blob byte bound exceeded: $Identity" }
             $memory.Write($buffer, 0, $read)
         }
         $stderr = $process.StandardError.ReadToEnd()
         $process.WaitForExit()
-        if ($process.ExitCode -ne 0) { throw "Git blob read failed for $Identity: $stderr" }
+        if ($process.ExitCode -ne 0) { throw "$Identity Git blob read failed: $stderr" }
         return $memory.ToArray()
     } finally {
         $memory.Dispose()
@@ -289,229 +272,250 @@ function Read-GitBlobBytes {
     }
 }
 
-function Read-ControlCommitBlobExact {
-    param([string]$Repository, [string]$Commit, [string]$RepositoryRelativePath)
+function Get-HubQaGitTreeEntry {
+    param([string]$Repository, [string]$RepositoryRelativePath)
 
-    Assert-ExactLowerSha1 -Value $Commit -Identity 'ControlCommit'
-    if ($controlAssetPaths -notcontains $RepositoryRelativePath) {
-        throw "Control path is not in the closed P0 set: $RepositoryRelativePath"
+    # This gate uses git ls-tree and git cat-file object data only; the
+    # worktree and index (including the staged legacy deletions) are ignored.
+    if ($RepositoryRelativePath -notmatch '^[A-Za-z0-9._/-]+$' -or $RepositoryRelativePath.StartsWith('/') -or $RepositoryRelativePath.Contains('..')) {
+        throw 'E_SOURCE_TREE_INVALID: source-policy path is unsafe.'
     }
-    if (-not $script:controlBlobRequests.Add($RepositoryRelativePath)) {
-        throw "Duplicate control blob request is forbidden: $RepositoryRelativePath"
+    $lines = @(& git -C $Repository ls-tree $script:SourceBaseline -- $RepositoryRelativePath 2>$null)
+    if ($LASTEXITCODE -ne 0 -or $lines.Count -ne 1) { throw "E_SOURCE_TREE_INVALID: missing Git tree entry $RepositoryRelativePath." }
+    if ([string]$lines[0] -notmatch '^(?<mode>[0-7]{6}) (?<type>blob|tree|commit) (?<object>[0-9a-f]{40})\t(?<path>.+)$') {
+        throw "E_SOURCE_TREE_INVALID: malformed Git tree entry $RepositoryRelativePath."
+    }
+    if (-not [StringComparer]::Ordinal.Equals([string]$Matches.path, $RepositoryRelativePath)) {
+        throw "E_SOURCE_TREE_INVALID: Git tree path mismatch $RepositoryRelativePath."
+    }
+    if ($Matches.mode -ne '100644' -or $Matches.type -ne 'blob') {
+        throw "E_SOURCE_TREE_INVALID: source entry must be a mode 100644 blob $RepositoryRelativePath."
+    }
+    Assert-HubQaSha1 -Value ([string]$Matches.object) -Identity "Git tree object $RepositoryRelativePath"
+    return [pscustomobject]@{ Mode = [string]$Matches.mode; BlobSha1 = [string]$Matches.object }
+}
+
+function Get-HubQaGitObjectSourceTree {
+    [CmdletBinding()]
+    param([object]$Controls)
+
+    $policy = $Controls.source.Value
+    Assert-HubQaExactPropertyNames -Object $policy -Expected @('schema', 'source_commit', 'source_tree_sha256', 'allowlist') -Identity 'source policy'
+    if ($policy.schema -cne 'hub.qa.local-source-policy/v2' -or $policy.source_commit -cne $script:SourceBaseline) {
+        throw 'E_SOURCE_TREE_INVALID: source policy baseline is not closed.'
+    }
+    Assert-HubQaDigest -Value ([string]$policy.source_tree_sha256) -Identity 'source policy source tree digest'
+    if ($null -eq $policy.allowlist -or $policy.allowlist -is [string]) { throw 'E_SOURCE_TREE_INVALID: source policy allowlist is invalid.' }
+    $root = Get-HubQaSourceRoot
+    $commitType = @(& git -C $root cat-file -t $script:SourceBaseline 2>$null)
+    if ($LASTEXITCODE -ne 0 -or $commitType.Count -ne 1 -or [string]$commitType[0] -ne 'commit') {
+        throw 'E_SOURCE_TREE_INVALID: recovery source commit is unavailable.'
     }
 
-    $entry = Get-ExactGitTreeEntry -Repository $Repository -Commit $Commit -RepositoryRelativePath $RepositoryRelativePath
-    [byte[]]$bytes = Read-GitBlobBytes -Repository $Repository -ObjectSpec ('{0}:{1}' -f $Commit, $RepositoryRelativePath) -MaximumBytes 4194304 -Identity $RepositoryRelativePath
-    if ($bytes.Length -le 0) { throw "Control blob is empty: $RepositoryRelativePath" }
-    return [pscustomobject]@{
-        Path = $RepositoryRelativePath
-        Mode = [string]$entry.Mode
-        BlobSha1 = [string]$entry.BlobSha1
-        Bytes = $bytes
-        Sha256 = ('sha256:' + (Get-ByteSha256 -Bytes $bytes))
+    $seenPaths = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    $linesByPath = @{}
+    foreach ($allowlistEntry in @($policy.allowlist)) {
+        Assert-HubQaExactPropertyNames -Object $allowlistEntry -Expected @('path', 'blob_sha1') -Identity 'source policy allowlist entry'
+        $path = [string]$allowlistEntry.path
+        $declaredBlobSha1 = [string]$allowlistEntry.blob_sha1
+        if (-not $seenPaths.Add($path)) { throw "E_SOURCE_TREE_INVALID: duplicate or unlisted source path $path." }
+        Assert-HubQaSha1 -Value $declaredBlobSha1 -Identity "source policy blob SHA-1 $path"
+        $treeEntry = Get-HubQaGitTreeEntry -Repository $root -RepositoryRelativePath $path
+        if (-not [StringComparer]::Ordinal.Equals($treeEntry.BlobSha1, $declaredBlobSha1)) {
+            throw "E_SOURCE_TREE_INVALID: Git blob SHA-1 mismatch $path."
+        }
+        [byte[]]$blobBytes = Get-HubQaGitBlobBytes -Repository $root -BlobSha1 $treeEntry.BlobSha1 -Identity "source policy blob $path"
+        $line = $path + "`t100644`t" + $treeEntry.BlobSha1 + "`t" + (Get-HubQaSha256 -Bytes $blobBytes) + "`n"
+        if ($linesByPath.ContainsKey($path)) { throw "E_SOURCE_TREE_INVALID: UTF-8 source path collision $path." }
+        $linesByPath[$path] = $line
+    }
+    if ($linesByPath.Count -eq 0) { throw 'E_SOURCE_TREE_INVALID: source policy allowlist is empty.' }
+    $orderedPaths = [string[]]@($linesByPath.Keys)
+    [Array]::Sort($orderedPaths, [HubQaUtf8BytePathComparer]::new())
+    $canonical = New-Object Text.StringBuilder
+    foreach ($path in $orderedPaths) { [void]$canonical.Append([string]$linesByPath[$path]) }
+    $computed = Get-HubQaSha256 -Bytes $script:Utf8.GetBytes($canonical.ToString())
+    if ($computed -cne [string]$policy.source_tree_sha256 -or $computed -cne [string]$Controls.build.Value.source_tree_sha256) {
+        throw 'E_SOURCE_TREE_DIGEST_MISMATCH: canonical Git object source tree digest disagrees with A1 controls.'
+    }
+    return [pscustomobject]@{ SourceTreeSha256 = $computed; SourceCommit = $script:SourceBaseline; Entries = $linesByPath.Count }
+}
+
+function Get-HubQaSourceRoot {
+    $dockerRoot = Resolve-HubQaCanonicalDirectory -Path $PSScriptRoot -Identity 'source-image-attestor directory'
+    return Resolve-HubQaCanonicalDirectory -Path (Join-Path $dockerRoot '..\..') -Identity 'repository root derived from source-image-attestor'
+}
+
+function Get-HubQaBootstrapImageContract {
+    [CmdletBinding()]
+    param()
+
+    return [ordered]@{
+        schema = 'hub.qa.bootstrap-image-attestation/v1'
+        status = 'NOT_RUN'
+        execution_authority = 'hub.qa-bootstrap/v1'
+        source_baseline = $script:SourceBaseline
+        platform = [ordered]@{ os = 'linux'; architecture = 'amd64'; variant = $null }
+        dependency_binding = [ordered]@{
+            required_files = @($script:BindingFiles.Values)
+            missing_or_unbound_verdict = 'NOT_RUN'
+            publication_before_binding = 'forbidden'
+        }
+        candidate_lock = [ordered]@{
+            template = 'testframework/reports/<task-run>/bootstrap/images.lock.v3.json'
+            repository_publication = 'forbidden'
+            create_semantics = 'create-new-after-four-runner-produced-local-inspections'
+        }
+        targets = $script:FixedTargets
     }
 }
 
-function ConvertFrom-ControlJsonBytes {
-    param([byte[]]$Bytes, [string]$Identity)
+function Assert-HubQaExactBoolean {
+    param([object]$Actual, [bool]$Expected, [string]$Identity)
 
-    if ($Bytes.Length -lt 2 -or ($Bytes.Length -ge 3 -and $Bytes[0] -eq 0xef -and $Bytes[1] -eq 0xbb -and $Bytes[2] -eq 0xbf)) {
-        throw "$Identity must be nonempty no-BOM UTF-8 JSON."
+    if ($Actual -isnot [bool] -or [bool]$Actual -ne $Expected) {
+        throw "$Identity must be the exact Boolean value $Expected."
+    }
+}
+
+function Read-HubQaBootstrapControl {
+    param([string]$Root)
+
+    $controlPath = Join-Path $Root 'testframework\docker\bootstrap-control.v1.json'
+    $raw = Read-HubQaRegularUtf8File -Path $controlPath -Root $Root -Identity 'fixed bootstrap control'
+    $control = ConvertFrom-HubQaClosedJson -Text $raw.Text -Identity 'fixed bootstrap control'
+    Assert-HubQaExactPropertyNames -Object $control -Expected @('schema', 'status', 'bootstrap_contract', 'platform', 'candidate_lock', 'runtime', 'targets') -Identity 'fixed bootstrap control'
+    if ($control.schema -cne 'hub.qa.bootstrap-control/v1' -or $control.status -cne 'NOT_RUN' -or $control.bootstrap_contract -cne 'hub.qa-bootstrap/v1') {
+        throw 'Fixed bootstrap control identity is not closed.'
+    }
+    Assert-HubQaExactPropertyNames -Object $control.platform -Expected @('os', 'architecture', 'variant') -Identity 'fixed bootstrap control platform'
+    if ($control.platform.os -cne 'linux' -or $control.platform.architecture -cne 'amd64' -or $null -ne $control.platform.variant) {
+        throw 'Fixed bootstrap control platform is not linux/amd64.'
+    }
+    Assert-HubQaExactPropertyNames -Object $control.candidate_lock -Expected @('path_template', 'repository_publication', 'runtime_status') -Identity 'fixed bootstrap control candidate lock'
+    if ($control.candidate_lock.path_template -cne 'testframework/reports/<task-run>/bootstrap/images.lock.v3.json' -or
+        $control.candidate_lock.repository_publication -cne 'forbidden' -or
+        $control.candidate_lock.runtime_status -cne 'READY_FOR_G0_BOOTSTRAP_ONLY') {
+        throw 'Fixed bootstrap control candidate lock contract is invalid.'
+    }
+    Assert-HubQaExactPropertyNames -Object $control.runtime -Expected @('network_mode', 'read_only', 'cpus', 'mem_limit', 'pids_limit', 'cap_drop', 'no_new_privileges', 'pull_policy', 'only_writable_mount') -Identity 'fixed bootstrap control runtime'
+    if ($control.runtime.network_mode -cne 'none' -or $control.runtime.read_only -isnot [bool] -or -not [bool]$control.runtime.read_only -or
+        [double]$control.runtime.cpus -ne 2.0 -or $control.runtime.mem_limit -cne '2g' -or [int]$control.runtime.pids_limit -ne 256 -or
+        $control.runtime.no_new_privileges -isnot [bool] -or -not [bool]$control.runtime.no_new_privileges -or
+        $control.runtime.pull_policy -cne 'never' -or $control.runtime.only_writable_mount -cne '/reports') {
+        throw 'Fixed bootstrap control runtime contract is invalid.'
+    }
+    Assert-HubQaExactStringArray -Actual $control.runtime.cap_drop -Expected @('ALL') -Identity 'fixed bootstrap control capability drop'
+    if (@($control.targets.PSObject.Properties.Name).Count -ne $script:FixedTargets.Count) {
+        throw 'Fixed bootstrap control target count is not closed.'
+    }
+    foreach ($targetName in $script:FixedTargets.Keys) {
+        $expected = $script:FixedTargets[$targetName]
+        $property = $control.targets.PSObject.Properties[$targetName]
+        if ($null -eq $property) { throw "Fixed bootstrap control lacks $targetName." }
+        $target = $property.Value
+        Assert-HubQaExactPropertyNames -Object $target -Expected @('dockerfile', 'entrypoint_path', 'compose_service', 'local_image_lock_field', 'docker_cmd', 'target_action', 'bootstrap_selectable') -Identity "fixed bootstrap control target $targetName"
+        if ($target.dockerfile -cne $expected.dockerfile -or $target.entrypoint_path -cne $expected.entrypoint_path -or
+            $target.compose_service -cne $expected.compose_service -or $target.local_image_lock_field -cne $expected.local_image_lock_field) {
+            throw "Fixed bootstrap control target mapping differs: $targetName"
+        }
+        Assert-HubQaExactStringArray -Actual $target.docker_cmd -Expected @($expected.docker_cmd) -Identity "fixed bootstrap control Docker Cmd $targetName"
+        Assert-HubQaExactStringArray -Actual $target.target_action -Expected @($expected.target_action) -Identity "fixed bootstrap control target action $targetName"
+        Assert-HubQaExactBoolean -Actual $target.bootstrap_selectable -Expected ([bool]$expected.bootstrap_selectable) -Identity "fixed bootstrap control bootstrap selection $targetName"
+    }
+    if ($raw.Text.IndexOf('g0-admission-helper', [StringComparison]::Ordinal) -ge 0) {
+        throw 'Fixed bootstrap control must exclude the ephemeral admission helper.'
+    }
+    return [pscustomobject]@{ Raw = $raw; Value = $control }
+}
+
+function Read-HubQaBoundControls {
+    param([string]$Root)
+
+    $records = [ordered]@{}
+    foreach ($key in $script:BindingFiles.Keys) {
+        $relativePath = [string]$script:BindingFiles[$key]
+        $path = Join-Path $Root $relativePath
+        if (-not [IO.File]::Exists($path)) { return $null }
+        $record = Read-HubQaRegularUtf8File -Path $path -Root $Root -Identity "A1 $key control"
+        $records[$key] = [pscustomobject]@{ Raw = $record; Value = ConvertFrom-HubQaClosedJson -Text $record.Text -Identity "A1 $key control" }
+    }
+    return $records
+}
+
+function Assert-HubQaBoundControlContract {
+    param([object]$Controls, [object]$BootstrapControl)
+
+    $dependency = $Controls.dependency.Value
+    $source = $Controls.source.Value
+    $build = $Controls.build.Value
+    Assert-HubQaExactPropertyNames -Object $source -Expected @('schema', 'source_commit', 'source_tree_sha256', 'allowlist') -Identity 'source policy'
+    Assert-HubQaExactPropertyNames -Object $build -Expected @('schema', 'source_commit', 'source_tree_sha256', 'source_policy_sha256', 'dependency_bundle_sha256', 'platform', 'targets') -Identity 'build manifest'
+    if ($source.schema -cne 'hub.qa.local-source-policy/v2' -or $build.schema -cne 'hub.qa.local-images-build-manifest/v3') {
+        throw 'A1 source or build control schema mismatch.'
+    }
+    if ($source.source_commit -cne $script:SourceBaseline -or $build.source_commit -cne $script:SourceBaseline) {
+        throw 'A1 controls do not bind the immutable recovery source baseline.'
+    }
+    Assert-HubQaDigest -Value ([string]$source.source_tree_sha256) -Identity 'source policy tree digest'
+    Assert-HubQaDigest -Value ([string]$build.source_tree_sha256) -Identity 'build manifest tree digest'
+    Assert-HubQaDigest -Value ([string]$build.source_policy_sha256) -Identity 'build manifest source policy digest'
+    Assert-HubQaDigest -Value ([string]$build.dependency_bundle_sha256) -Identity 'build manifest dependency bundle digest'
+    if ($build.source_tree_sha256 -cne $source.source_tree_sha256 -or $build.source_policy_sha256 -cne $Controls.source.Raw.Sha256 -or $build.dependency_bundle_sha256 -cne $Controls.dependency.Raw.Sha256) {
+        throw 'A1 raw control bytes or source-tree bindings disagree.'
+    }
+    if ($dependency.schema -cne 'hub.qa.dependency-bundle/v1' -or $dependency.source_commit -cne $script:SourceBaseline) {
+        throw 'Dependency manifest source baseline mismatch.'
+    }
+    Assert-HubQaExactPropertyNames -Object $build.platform -Expected @('os', 'architecture', 'variant') -Identity 'build manifest platform'
+    if ($build.platform.os -cne 'linux' -or $build.platform.architecture -cne 'amd64' -or $null -ne $build.platform.variant) {
+        throw 'Build manifest platform mismatch.'
+    }
+    if (@($build.targets.PSObject.Properties.Name).Count -ne $script:FixedTargets.Count) { throw 'Build manifest target count is not closed.' }
+    foreach ($targetName in $script:FixedTargets.Keys) {
+        if ($null -eq $build.targets.PSObject.Properties[$targetName]) { throw "Build manifest lacks $targetName." }
+        $target = $build.targets.PSObject.Properties[$targetName].Value
+        $controlTarget = Get-HubQaMember -Object $BootstrapControl.Value.targets -Name $targetName -Identity 'fixed bootstrap control target'
+        $expected = $script:FixedTargets[$targetName]
+        Assert-HubQaExactPropertyNames -Object $target -Expected @('dockerfile', 'dockerfile_sha256', 'entrypoint_path', 'entrypoint_sha256', 'docker_entrypoint', 'docker_cmd', 'compose_service', 'local_image_lock_field', 'target_action', 'bootstrap_selectable') -Identity "build manifest target $targetName"
+        Assert-HubQaDigest -Value ([string]$target.dockerfile_sha256) -Identity "build manifest Dockerfile digest $targetName"
+        Assert-HubQaDigest -Value ([string]$target.entrypoint_sha256) -Identity "build manifest entrypoint digest $targetName"
+        if ($target.dockerfile -cne $expected.dockerfile -or $target.entrypoint_path -cne $expected.entrypoint_path -or
+            $target.compose_service -cne $expected.compose_service -or $target.local_image_lock_field -cne $expected.local_image_lock_field -or
+            $target.dockerfile -cne $controlTarget.dockerfile -or $target.entrypoint_path -cne $controlTarget.entrypoint_path -or
+            $target.compose_service -cne $controlTarget.compose_service -or $target.local_image_lock_field -cne $controlTarget.local_image_lock_field) {
+            throw "Build manifest target mapping is not bound to fixed control: $targetName"
+        }
+        Assert-HubQaExactStringArray -Actual $target.docker_entrypoint -Expected @([string]$expected.entrypoint_path) -Identity "build manifest Docker Entrypoint $targetName"
+        Assert-HubQaExactStringArray -Actual $target.docker_cmd -Expected @($expected.docker_cmd) -Identity "build manifest Docker Cmd $targetName"
+        Assert-HubQaExactStringArray -Actual $target.target_action -Expected @($expected.target_action) -Identity "build manifest target action $targetName"
+        Assert-HubQaExactStringArray -Actual $target.docker_entrypoint -Expected @($controlTarget.entrypoint_path) -Identity "build manifest control Docker Entrypoint $targetName"
+        Assert-HubQaExactStringArray -Actual $target.docker_cmd -Expected @($controlTarget.docker_cmd) -Identity "build manifest control Docker Cmd $targetName"
+        Assert-HubQaExactStringArray -Actual $target.target_action -Expected @($controlTarget.target_action) -Identity "build manifest control target action $targetName"
+        Assert-HubQaExactBoolean -Actual $target.bootstrap_selectable -Expected ([bool]$expected.bootstrap_selectable) -Identity "build manifest bootstrap selection $targetName"
+        Assert-HubQaExactBoolean -Actual $target.bootstrap_selectable -Expected ([bool]$controlTarget.bootstrap_selectable) -Identity "build manifest control bootstrap selection $targetName"
+    }
+}
+
+function Test-HubQaBootstrapImageBindings {
+    [CmdletBinding()]
+    param()
+
+    $root = Get-HubQaSourceRoot
+    $controls = Read-HubQaBoundControls -Root $root
+    if ($null -eq $controls) {
+        return [pscustomobject]@{ Verdict = 'NOT_RUN'; ReasonCode = 'E_BINDING_DATA_UNAVAILABLE'; Controls = $null }
     }
     try {
-        $text = $utf8.GetString($Bytes)
-        return $text | ConvertFrom-Json -ErrorAction Stop
+        $bootstrapControl = Read-HubQaBootstrapControl -Root $root
+        Assert-HubQaBoundControlContract -Controls $controls -BootstrapControl $bootstrapControl
+        return [pscustomobject]@{ Verdict = 'READY_FOR_G0_BOOTSTRAP_ONLY'; ReasonCode = $null; Controls = $controls; BootstrapControl = $bootstrapControl }
     } catch {
-        throw "Invalid control JSON: $Identity"
+        return [pscustomobject]@{ Verdict = 'NOT_RUN'; ReasonCode = 'E_A1_CONTROL_BINDING_INVALID'; Controls = $null }
     }
 }
 
-function Assert-ControlTextBindings {
-    param([hashtable]$ControlBlobs)
-
-    foreach ($dockerfilePath in @(
-        'testframework/docker/Dockerfile.backend-openapi',
-        'testframework/docker/Dockerfile.backend-unit',
-        'testframework/docker/Dockerfile.frontend-unit'
-    )) {
-        $text = $utf8.GetString([byte[]]$ControlBlobs[$dockerfilePath].Bytes)
-        foreach ($requiredToken in @('ARG CONTROL_COMMIT', 'ARG CONTROL_BUNDLE_SHA256', 'hub.qa.control-commit', 'hub.qa.control-bundle-sha256', 'hub.qa.runtime-status="NOT_READY"')) {
-            if (-not $text.Contains($requiredToken)) { throw "Control Dockerfile misses $requiredToken: $dockerfilePath" }
-        }
-    }
-
-    $composeText = $utf8.GetString([byte[]]$ControlBlobs['testframework/docker/compose.unit.yaml'].Bytes)
-    foreach ($requiredToken in @('images.lock.v3.json', 'strict-fixed-target-image-id-and-control-commit')) {
-        if (-not $composeText.Contains($requiredToken)) { throw "Control Compose misses $requiredToken." }
-    }
-    if ($composeText.Contains('images.lock.v2.json')) { throw 'Control Compose must not name the v2 lock.' }
-}
-
-function Read-ValidatedControlBundle {
-    param([string]$Repository, [string]$Commit)
-
-    $blobs = @{}
-    foreach ($path in $controlAssetPaths) {
-        $blobs[$path] = Read-ControlCommitBlobExact -Repository $Repository -Commit $Commit -RepositoryRelativePath $path
-    }
-    Assert-ExactStringSequence -Actual ([string[]]@($blobs.Keys | Sort-Object)) -Expected ([string[]]@($controlAssetPaths | Sort-Object)) -Identity 'Control blob membership'
-
-    $sourcePolicyPath = 'testframework/docker/source-policy.v1.json'
-    $buildManifestPath = 'testframework/docker/build-manifest.v2.json'
-    $composePath = 'testframework/docker/compose.unit.yaml'
-    $policy = ConvertFrom-ControlJsonBytes -Bytes ([byte[]]$blobs[$sourcePolicyPath].Bytes) -Identity $sourcePolicyPath
-    $buildManifest = ConvertFrom-ControlJsonBytes -Bytes ([byte[]]$blobs[$buildManifestPath].Bytes) -Identity $buildManifestPath
-
-    if ([string]$policy.schema -ne 'hub.qa.local-source-policy/v1') { throw 'Unexpected source-policy schema.' }
-    if ([string]$buildManifest.schema -ne 'hub.qa.local-images-build-manifest/v2') { throw 'Unexpected build-manifest schema.' }
-    if ([string]$buildManifest.source_policy -ne 'source-policy.v1.json') { throw 'Build manifest must name source-policy.v1.json.' }
-    Assert-ExactLowerSha1 -Value ([string]$policy.source_commit) -Identity 'Source policy source_commit'
-    if ([string]$policy.source_commit -ne [string]$buildManifest.source_commit) { throw 'Source commit disagreement between control blobs.' }
-    if ([string]$buildManifest.platform -ne 'linux/amd64') { throw 'Unsupported controlled build platform.' }
-    if ([string]$buildManifest.control_provenance.authority -ne 'private-control-commit-only') {
-        throw 'Unexpected control provenance authority.'
-    }
-    Assert-ExactStringSequence -Actual $buildManifest.control_provenance.paths -Expected $controlAssetPaths -Identity 'Control provenance paths'
-    Assert-ExactStringSequence -Actual $buildManifest.control_provenance.label_keys -Expected $controlLabelKeys -Identity 'Control provenance label keys'
-    Assert-ExactStringSequence -Actual ([string[]]@($buildManifest.base_inventory.psobject.Properties.Name | Sort-Object)) -Expected ([string[]]@('golang', 'playwright', 'python')) -Identity 'Base inventory keys'
-    Assert-ExactStringSequence -Actual ([string[]]@($buildManifest.targets.psobject.Properties.Name | Sort-Object)) -Expected ([string[]]@('backend-openapi', 'backend-unit', 'frontend-unit')) -Identity 'Target keys'
-    Assert-ControlTextBindings -ControlBlobs $blobs
-
-    $controlRows = New-Object Collections.Generic.List[string]
-    foreach ($path in $controlAssetPaths) {
-        $blob = $blobs[$path]
-        if ([string]$blob.Mode -ne '100644') { throw "Unexpected control mode: $path" }
-        $controlRows.Add(("{0}`t100644`t{1}`t{2}`n" -f $path, [string]$blob.BlobSha1, [string]$blob.Sha256))
-    }
-    $bundleBytes = $utf8.GetBytes(($controlRows -join ''))
-    return [pscustomobject]@{
-        Blobs = $blobs
-        SourcePolicy = $policy
-        BuildManifest = $buildManifest
-        BundleSha256 = ('sha256:' + (Get-ByteSha256 -Bytes $bundleBytes))
-        ComposeSha256 = [string]$blobs[$composePath].Sha256
-    }
-}
-
-function Assert-DependenciesReady {
-    param([object]$BuildManifest)
-
-    if ([string]$BuildManifest.build_preflight.status -ne 'READY') {
-        throw ('NOT_READY: {0}' -f [string]$BuildManifest.build_preflight.reason)
-    }
-    foreach ($targetName in @('backend-unit', 'frontend-unit', 'backend-openapi')) {
-        if ([string]$BuildManifest.targets.$targetName.dependency_assets.status -ne 'READY') {
-            throw "NOT_READY: dependency assets are not approved for $targetName"
-        }
-    }
-}
-
-function Test-PolicyPath {
-    param([string]$Path, [object]$Policy)
-
-    $normalized = $Path.Replace('\', '/')
-    foreach ($segment in @($normalized.Split('/'))) {
-        foreach ($excludedSegment in @($Policy.materialization.exclude_segments_any_depth)) {
-            if ([StringComparer]::OrdinalIgnoreCase.Equals($segment, [string]$excludedSegment)) { return $false }
-        }
-    }
-    $included = $false
-    foreach ($pattern in @($Policy.include)) {
-        if ($normalized -like [string]$pattern) { $included = $true; break }
-    }
-    if (-not $included) { return $false }
-    foreach ($pattern in @($Policy.exclude)) {
-        if ($normalized -like [string]$pattern) { return $false }
-    }
-    return $true
-}
-
-function Get-ExactCommitTree {
-    param([string]$Repository, [object]$Policy)
-
-    $commit = [string]$Policy.source_commit
-    Assert-GitCommitObject -Repository $Repository -Commit $commit -Identity 'Source commit'
-    $tree = @(& git -C $Repository ls-tree -r --full-tree $commit 2>$null)
-    if ($LASTEXITCODE -ne 0) { throw "Declared source commit is unavailable: $commit" }
-
-    $entriesByPath = @{}
-    foreach ($line in $tree) {
-        if ([string]$line -notmatch '^(?<mode>[0-7]{6}) (?<type>blob|tree|commit) (?<object>[0-9a-f]{40})\t(?<path>.+)$') {
-            throw 'Unexpected Git tree record.'
-        }
-        $path = [string]$Matches.path
-        if (-not (Test-PolicyPath -Path $path -Policy $Policy)) { continue }
-        if ($Matches.mode -ne '100644' -or $Matches.type -ne 'blob') { throw "Source tree entry must be mode 100644 blob: $path" }
-        if ($path.Contains(':') -or $path.StartsWith('/') -or $path.Contains('\') -or $path.Split('/') -contains '..' -or $path.Split('/') -contains '.') {
-            throw "Unsafe source path: $path"
-        }
-        if ($entriesByPath.ContainsKey($path)) { throw "Duplicate or case-colliding source path: $path" }
-        $entriesByPath[$path] = [pscustomobject]@{ path = $path; mode = $Matches.mode; object = $Matches.object }
-        if ($entriesByPath.Count -gt [int]$Policy.materialization.max_files) { throw 'Source file-count bound exceeded.' }
-    }
-    if ($entriesByPath.Count -eq 0) { throw 'The declared source policy selected no Git files.' }
-
-    $orderedEntries = New-Object Collections.Generic.List[object]
-    foreach ($path in @(Get-Utf8ByteSortedStrings -Values ([string[]]@($entriesByPath.Keys)))) { $orderedEntries.Add($entriesByPath[$path]) }
-    return @($orderedEntries)
-}
-
-function Write-BytesCreateNew {
-    param([string]$Destination, [byte[]]$Bytes)
-
-    $parent = Split-Path -Parent $Destination
-    [IO.Directory]::CreateDirectory($parent) | Out-Null
-    $stream = [IO.File]::Open($Destination, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
-    try {
-        $stream.Write($Bytes, 0, $Bytes.Length)
-        $stream.Flush($true)
-    } finally {
-        $stream.Dispose()
-    }
-}
-
-function Materialize-ExactSource {
-    param([string]$Repository, [object]$Policy, [object[]]$Entries, [string]$ContextRoot)
-
-    $sourceRoot = Assert-ContainedPath -Path (Join-Path $ContextRoot 'source') -Root $ContextRoot -Identity 'Source materialization root'
-    [IO.Directory]::CreateDirectory($sourceRoot) | Out-Null
-    $manifestLines = New-Object Collections.Generic.List[string]
-    $totalBytes = [Int64]0
-    foreach ($entry in $Entries) {
-        $destination = Assert-ContainedPath -Path (Join-Path $sourceRoot $entry.path) -Root $sourceRoot -Identity 'Source materialization destination'
-        [byte[]]$bytes = Read-GitBlobBytes -Repository $Repository -ObjectSpec ('{0}:{1}' -f [string]$Policy.source_commit, [string]$entry.path) -MaximumBytes ([Int64]$Policy.materialization.max_file_bytes) -Identity ([string]$entry.path)
-        $totalBytes += $bytes.Length
-        if ($totalBytes -gt [Int64]$Policy.materialization.max_total_bytes) { throw 'Total source byte bound exceeded.' }
-        Write-BytesCreateNew -Destination $destination -Bytes $bytes
-        $manifestLines.Add(("{0}`t{1}`t{2}" -f [string]$entry.path, [string]$entry.mode, (Get-ByteSha256 -Bytes $bytes)))
-    }
-    $canonicalManifest = ((@(Get-Utf8ByteSortedStrings -Values ([string[]]@($manifestLines))) -join "`n") + "`n")
-    return [pscustomobject]@{
-        Root = $sourceRoot
-        Bytes = $totalBytes
-        Sha256 = ('sha256:' + (Get-ByteSha256 -Bytes $utf8.GetBytes($canonicalManifest)))
-    }
-}
-
-function New-ReservedStagingRoot {
-    $nonce = [Guid]::NewGuid().ToString('N')
-    $name = 'hub-qa-local-image-attestor-' + $nonce
-    $temporaryRoot = Resolve-CanonicalNonReparseDirectory -Path ([IO.Path]::GetTempPath()) -Identity 'temporary root'
-    $root = Join-Path $temporaryRoot $name
-    [IO.Directory]::CreateDirectory($root) | Out-Null
-    $marker = Join-Path $root '.reservation.json'
-    [byte[]]$markerBytes = $utf8.GetBytes(('{' + '"owner":"hub.qa.local-image-attestor","nonce":"' + $nonce + '"}'))
-    Write-BytesCreateNew -Destination $marker -Bytes $markerBytes
-    return [pscustomobject]@{
-        Root = [IO.Path]::GetFullPath($root)
-        TemporaryRoot = $temporaryRoot
-        MarkerPath = [IO.Path]::GetFullPath($marker)
-        MarkerBytes = $markerBytes
-        Nonce = $nonce
-    }
-}
-
-function Test-ExactBytesEqual {
+function Test-HubQaByteArrayEqual {
     param([byte[]]$Left, [byte[]]$Right)
 
     if ($Left.Length -ne $Right.Length) { return $false }
@@ -521,384 +525,225 @@ function Test-ExactBytesEqual {
     return $true
 }
 
-function Add-ExpectedDirectoryChain {
-    param(
-        [Collections.Generic.HashSet[string]]$ExpectedDirectories,
-        [string]$Directory,
-        [string]$StagingRoot
-    )
+function Assert-HubQaPrivateBootstrapContext {
+    param([hashtable]$BootstrapPrivateContext)
 
-    $current = [IO.Path]::GetFullPath($Directory)
-    $root = [IO.Path]::GetFullPath($StagingRoot)
-    while ($true) {
-        [void]$ExpectedDirectories.Add($current)
-        if ([StringComparer]::OrdinalIgnoreCase.Equals($current, $root)) { break }
-        $parent = [IO.Path]::GetDirectoryName($current)
-        if ([string]::IsNullOrEmpty($parent)) { throw 'Expected staging directory chain escaped its root.' }
-        $parentPrefix = $root.TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
-        if (-not [StringComparer]::OrdinalIgnoreCase.Equals($parent, $root) -and
-            -not $parent.StartsWith($parentPrefix, [StringComparison]::OrdinalIgnoreCase)) {
-            throw 'Expected staging directory chain escaped its root.'
-        }
-        $current = $parent
+    $expectedKeys = [string[]]@('Task', 'Run', 'RoleClaim', 'OwnerNonce', 'OwnerMarkerRawBytes', 'OwnerMarkerSha256', 'RunnerInspectionRawBytes', 'RunnerInspectionSha256')
+    if ($BootstrapPrivateContext.Count -ne $expectedKeys.Count) { throw 'Runner-private bootstrap context has an unexpected field count.' }
+    foreach ($name in $expectedKeys) {
+        if (-not $BootstrapPrivateContext.ContainsKey($name)) { throw "Runner-private bootstrap context lacks $name." }
+    }
+    if ([string]$BootstrapPrivateContext.Task -cne 'g0-assets-runner') { throw 'Runner-private bootstrap context task is not closed.' }
+    if ([string]$BootstrapPrivateContext.Run -notmatch '^[a-z0-9][a-z0-9-]{7,63}$') { throw 'Runner-private bootstrap context run grammar is invalid.' }
+    if ([string]$BootstrapPrivateContext.RoleClaim -cne 'hub.qa-bootstrap/v1') { throw 'Runner-private bootstrap context role claim is invalid.' }
+    if ([string]$BootstrapPrivateContext.OwnerNonce -notmatch '^[0-9a-f]{32}$') { throw 'Runner-private bootstrap context owner nonce is invalid.' }
+    if ($BootstrapPrivateContext.OwnerMarkerRawBytes -isnot [byte[]] -or $BootstrapPrivateContext.RunnerInspectionRawBytes -isnot [byte[]]) {
+        throw 'Runner-private bootstrap context must retain raw receipt and owner-marker bytes.'
+    }
+    Assert-HubQaDigest -Value ([string]$BootstrapPrivateContext.OwnerMarkerSha256) -Identity 'runner-private owner marker digest'
+    Assert-HubQaDigest -Value ([string]$BootstrapPrivateContext.RunnerInspectionSha256) -Identity 'runner-private inspection receipt digest'
+    if ((Get-HubQaSha256 -Bytes $BootstrapPrivateContext.OwnerMarkerRawBytes) -cne [string]$BootstrapPrivateContext.OwnerMarkerSha256 -or
+        (Get-HubQaSha256 -Bytes $BootstrapPrivateContext.RunnerInspectionRawBytes) -cne [string]$BootstrapPrivateContext.RunnerInspectionSha256) {
+        throw 'Runner-private bootstrap context raw-byte digest binding is invalid.'
     }
 }
 
-function Remove-OwnedStagingAfterPublication {
-    param(
-        [object]$Reservation,
-        [object[]]$SourceEntries,
-        [string[]]$TargetNames
-    )
+function Get-HubQaBootstrapContextPaths {
+    param([hashtable]$BootstrapPrivateContext, [string]$Root)
 
-    if ([string]$Reservation.Nonce -notmatch '^[0-9a-f]{32}$') { throw 'Owned staging nonce is malformed.' }
-    $temporaryRoot = Resolve-CanonicalNonReparseDirectory -Path ([string]$Reservation.TemporaryRoot) -Identity 'owned staging temporary root'
-    $stagingRoot = Resolve-CanonicalNonReparseDirectory -Path ([string]$Reservation.Root) -Identity 'owned staging root'
-    $expectedRootName = 'hub-qa-local-image-attestor-' + [string]$Reservation.Nonce
-    if (-not [StringComparer]::Ordinal.Equals([IO.Path]::GetFileName($stagingRoot), $expectedRootName)) {
-        throw 'Owned staging root name does not match its nonce.'
+    Assert-HubQaPrivateBootstrapContext -BootstrapPrivateContext $BootstrapPrivateContext
+    $reportsRoot = Assert-HubQaContainedPath -Path (Join-Path $Root 'testframework\reports') -Root $Root -Identity 'reports root'
+    $taskRunName = [string]$BootstrapPrivateContext.Task + '-' + [string]$BootstrapPrivateContext.Run
+    $taskRunRoot = Assert-HubQaContainedPath -Path (Join-Path $reportsRoot $taskRunName) -Root $reportsRoot -Identity 'task-owned report root'
+    $bootstrapRoot = Assert-HubQaContainedPath -Path (Join-Path $taskRunRoot 'bootstrap') -Root $taskRunRoot -Identity 'task-owned bootstrap root'
+    return [pscustomobject]@{
+        ReportsRoot = $reportsRoot
+        TaskRunRoot = $taskRunRoot
+        BootstrapRoot = $bootstrapRoot
+        OwnerMarkerPath = Join-Path $bootstrapRoot 'owner-marker.v1.json'
+        InspectionPath = Join-Path $bootstrapRoot 'local-image-inspect.v1.json'
+        CandidatePath = Join-Path $bootstrapRoot 'images.lock.v3.json'
+        ReservationPath = Join-Path $bootstrapRoot ('.image-attestor-reservation-' + [string]$BootstrapPrivateContext.OwnerNonce + '.json')
+        StagingRoot = Join-Path $bootstrapRoot ('.image-attestor-staging-' + [string]$BootstrapPrivateContext.OwnerNonce)
     }
-    $temporaryPrefix = $temporaryRoot.TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
-    if (-not $stagingRoot.StartsWith($temporaryPrefix, [StringComparison]::OrdinalIgnoreCase)) {
-        throw 'Owned staging root escaped the canonical temporary root.'
-    }
-
-    $expectedFiles = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
-    $expectedDirectories = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
-    [void]$expectedDirectories.Add($stagingRoot)
-    Assert-ExactStringSequence -Actual $TargetNames -Expected ([string[]]@('backend-unit', 'frontend-unit', 'backend-openapi')) -Identity 'owned staging target names'
-    $markerPath = Assert-ContainedPath -Path ([string]$Reservation.MarkerPath) -Root $stagingRoot -Identity 'owned staging marker'
-    $expectedMarkerPath = [IO.Path]::GetFullPath((Join-Path $stagingRoot '.reservation.json'))
-    if (-not [StringComparer]::OrdinalIgnoreCase.Equals($markerPath, $expectedMarkerPath)) {
-        throw 'Owned staging marker path mismatch.'
-    }
-    [void]$expectedFiles.Add($markerPath)
-
-    foreach ($targetName in $TargetNames) {
-        if ($targetName -notmatch '^(backend-unit|frontend-unit|backend-openapi)$') { throw "Unexpected owned target name: $targetName" }
-        $targetRoot = Assert-ContainedPath -Path (Join-Path $stagingRoot $targetName) -Root $stagingRoot -Identity 'owned target root'
-        $sourceRoot = Assert-ContainedPath -Path (Join-Path $targetRoot 'source') -Root $stagingRoot -Identity 'owned source root'
-        Add-ExpectedDirectoryChain -ExpectedDirectories $expectedDirectories -Directory $sourceRoot -StagingRoot $stagingRoot
-        foreach ($knownFileName in @('Dockerfile', '.iid')) {
-            $knownFile = Assert-ContainedPath -Path (Join-Path $targetRoot $knownFileName) -Root $stagingRoot -Identity 'known owned target file'
-            [void]$expectedFiles.Add($knownFile)
-        }
-        foreach ($entry in $SourceEntries) {
-            $sourceFile = Assert-ContainedPath -Path (Join-Path $sourceRoot ([string]$entry.path)) -Root $stagingRoot -Identity 'owned materialized source file'
-            if (-not $expectedFiles.Add($sourceFile)) { throw "Duplicate owned source path: $sourceFile" }
-            Add-ExpectedDirectoryChain -ExpectedDirectories $expectedDirectories -Directory ([IO.Path]::GetDirectoryName($sourceFile)) -StagingRoot $stagingRoot
-        }
-    }
-
-    $actualFiles = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
-    $actualDirectories = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
-    $pendingDirectories = New-Object Collections.Generic.Stack[string]
-    $pendingDirectories.Push($stagingRoot)
-    while ($pendingDirectories.Count -gt 0) {
-        $directory = $pendingDirectories.Pop()
-        $directoryItem = Get-Item -LiteralPath $directory -Force -ErrorAction Stop
-        if (-not $directoryItem.PSIsContainer -or ($directoryItem.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
-            throw "Owned staging directory is not a regular non-reparse directory: $directory"
-        }
-        $canonicalDirectory = [IO.Path]::GetFullPath($directoryItem.FullName)
-        if (-not $expectedDirectories.Contains($canonicalDirectory)) { throw "Foreign owned-staging directory: $canonicalDirectory" }
-        [void]$actualDirectories.Add($canonicalDirectory)
-        foreach ($child in @(Get-ChildItem -LiteralPath $canonicalDirectory -Force -ErrorAction Stop)) {
-            if ($child.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "Reparse point in owned staging: $($child.FullName)" }
-            $childPath = Assert-ContainedPath -Path $child.FullName -Root $stagingRoot -Identity 'owned staging child'
-            if ($child.PSIsContainer) {
-                if (-not $expectedDirectories.Contains($childPath)) { throw "Foreign owned-staging directory: $childPath" }
-                $pendingDirectories.Push($childPath)
-            } else {
-                if (-not $expectedFiles.Contains($childPath)) { throw "Foreign owned-staging file: $childPath" }
-                [void]$actualFiles.Add($childPath)
-            }
-        }
-    }
-    if ($actualFiles.Count -ne $expectedFiles.Count -or $actualDirectories.Count -ne $expectedDirectories.Count) {
-        throw 'Owned staging tree is missing an expected file or directory.'
-    }
-    foreach ($path in $expectedFiles) {
-        if (-not $actualFiles.Contains($path)) { throw "Owned staging file is missing: $path" }
-    }
-    foreach ($path in $expectedDirectories) {
-        if (-not $actualDirectories.Contains($path)) { throw "Owned staging directory is missing: $path" }
-    }
-    [byte[]]$expectedMarkerBytes = $utf8.GetBytes(('{' + '"owner":"hub.qa.local-image-attestor","nonce":"' + [string]$Reservation.Nonce + '"}'))
-    if (-not (Test-ExactBytesEqual -Left ([byte[]]$Reservation.MarkerBytes) -Right $expectedMarkerBytes)) {
-        throw 'Owned staging in-memory marker/nonce mismatch.'
-    }
-    [byte[]]$observedMarkerBytes = [IO.File]::ReadAllBytes($markerPath)
-    if (-not (Test-ExactBytesEqual -Left $observedMarkerBytes -Right $expectedMarkerBytes)) {
-        throw 'Owned staging marker/nonce mismatch.'
-    }
-
-    # Validation is complete before the first delete. Known files and known
-    # directories are removed exactly and non-recursively; a foreign or changed
-    # tree is abandoned rather than adopted or recursively cleaned.
-    foreach ($path in $expectedFiles) {
-        if (-not [StringComparer]::OrdinalIgnoreCase.Equals($path, $markerPath)) { [IO.File]::Delete($path) }
-    }
-    [string[]]$directoriesToDelete = @($expectedDirectories | Where-Object { -not [StringComparer]::OrdinalIgnoreCase.Equals($_, $stagingRoot) })
-    while ($directoriesToDelete.Count -gt 0) {
-        $maximumDepth = ($directoriesToDelete | ForEach-Object { $_.Split([IO.Path]::DirectorySeparatorChar).Count } | Measure-Object -Maximum).Maximum
-        [string[]]$deepestDirectories = @($directoriesToDelete | Where-Object { $_.Split([IO.Path]::DirectorySeparatorChar).Count -eq $maximumDepth })
-        [Array]::Sort($deepestDirectories, [StringComparer]::OrdinalIgnoreCase)
-        foreach ($directory in $deepestDirectories) { [IO.Directory]::Delete($directory, $false) }
-        $directoriesToDelete = [string[]]@($directoriesToDelete | Where-Object { $_.Split([IO.Path]::DirectorySeparatorChar).Count -ne $maximumDepth })
-    }
-    [IO.File]::Delete($markerPath)
-    [IO.Directory]::Delete($stagingRoot, $false)
 }
 
-function Invoke-LocalImageInspect {
-    param([string]$ImageReference)
+function Assert-HubQaRunnerOwnedBootstrapRoot {
+    param([pscustomobject]$Paths, [hashtable]$BootstrapPrivateContext)
 
-    if ($ImageReference -notmatch '^sha256:[0-9a-f]{64}$') { throw "Image reference must be a complete local ImageId: $ImageReference" }
-    $format = '{"id":{{json .Id}},"repo_digests":{{json .RepoDigests}},"os":{{json .Os}},"architecture":{{json .Architecture}},"variant":{{json .Variant}},"rootfs_layers":{{json .RootFS.Layers}},"entrypoint":{{json .Config.Entrypoint}},"cmd":{{json .Config.Cmd}},"labels":{{json .Config.Labels}}}'
-    $json = & docker image inspect --format $format $ImageReference 2>$null
-    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($json)) { throw "Local image is unavailable: $ImageReference" }
-    try { return $json | ConvertFrom-Json -ErrorAction Stop } catch { throw "Local image inspect output is malformed: $ImageReference" }
+    # The runner creates this exact task-run report namespace before it calls
+    # the attestor.  The attestor must only consume it; it must never adopt or
+    # create a report or bootstrap root on the runner's behalf.
+    [void](Resolve-HubQaCanonicalDirectory -Path $Paths.ReportsRoot -Identity 'pre-existing reports root')
+    [void](Resolve-HubQaCanonicalDirectory -Path $Paths.TaskRunRoot -Identity 'pre-existing task-owned report root')
+    [void](Resolve-HubQaCanonicalDirectory -Path $Paths.BootstrapRoot -Identity 'pre-existing runner-owned bootstrap root')
+    $ownerMarker = Read-HubQaRegularUtf8File -Path $Paths.OwnerMarkerPath -Root $Paths.TaskRunRoot -Identity 'runner-owned bootstrap owner marker'
+    if (-not (Test-HubQaByteArrayEqual -Left $ownerMarker.Bytes -Right $BootstrapPrivateContext.OwnerMarkerRawBytes) -or
+        $ownerMarker.Sha256 -cne [string]$BootstrapPrivateContext.OwnerMarkerSha256) {
+        throw 'Runner-owned bootstrap owner marker does not match the held private context.'
+    }
+    $marker = ConvertFrom-HubQaClosedJson -Text $ownerMarker.Text -Identity 'runner-owned bootstrap owner marker'
+    Assert-HubQaExactPropertyNames -Object $marker -Expected @('schema', 'task', 'run', 'owner_nonce') -Identity 'runner-owned bootstrap owner marker'
+    if ($marker.schema -cne 'hub.qa.bootstrap-owner/v1' -or
+        $marker.task -cne $BootstrapPrivateContext.Task -or
+        $marker.run -cne $BootstrapPrivateContext.Run -or
+        $marker.owner_nonce -cne $BootstrapPrivateContext.OwnerNonce) {
+        throw 'Runner-owned bootstrap owner marker identity is not closed.'
+    }
+    return $ownerMarker
 }
 
-function Get-ValidatedPlatform {
-    param([object]$Actual, [string]$Identity)
+function Read-HubQaRunnerInspection {
+    param([pscustomobject]$Paths, [hashtable]$BootstrapPrivateContext, [object]$Controls)
 
-    if ([string]$Actual.os -ne 'linux' -or [string]$Actual.architecture -ne 'amd64') { throw "Platform mismatch: $Identity" }
-    if ($null -ne $Actual.variant -and -not [string]::IsNullOrEmpty([string]$Actual.variant)) { throw "Platform variant must be null: $Identity" }
-    return [ordered]@{ os = 'linux'; architecture = 'amd64'; variant = $null }
+    $raw = Read-HubQaRegularUtf8File -Path $Paths.InspectionPath -Root $Paths.TaskRunRoot -Identity 'runner-produced local image inspection receipt'
+    if (-not (Test-HubQaByteArrayEqual -Left $raw.Bytes -Right $BootstrapPrivateContext.RunnerInspectionRawBytes) -or
+        $raw.Sha256 -cne [string]$BootstrapPrivateContext.RunnerInspectionSha256) {
+        throw 'Runner inspection receipt is not the exact raw receipt held by the private bootstrap context.'
+    }
+    $receipt = ConvertFrom-HubQaClosedJson -Text $raw.Text -Identity 'runner-produced local image inspection receipt'
+    Assert-HubQaExactPropertyNames -Object $receipt -Expected @('schema', 'producer', 'task', 'run', 'source_commit', 'owner_marker_sha256', 'receipt_nonce', 'controls', 'targets') -Identity 'runner inspection receipt'
+    if ($receipt.schema -cne 'hub.qa.local-image-inspect/v1' -or $receipt.producer -cne 'hub.qa-bootstrap/v1' -or $receipt.task -cne $BootstrapPrivateContext.Task -or $receipt.run -cne $BootstrapPrivateContext.Run -or $receipt.source_commit -cne $script:SourceBaseline -or
+        $receipt.owner_marker_sha256 -cne [string]$BootstrapPrivateContext.OwnerMarkerSha256 -or $receipt.receipt_nonce -cne $BootstrapPrivateContext.OwnerNonce) {
+        throw 'Runner inspection receipt identity is not closed.'
+    }
+    Assert-HubQaExactPropertyNames -Object $receipt.controls -Expected @('dependency_bundle_sha256', 'source_policy_sha256', 'build_manifest_sha256') -Identity 'runner inspection controls'
+    if ($receipt.controls.dependency_bundle_sha256 -cne $Controls.dependency.Raw.Sha256 -or $receipt.controls.source_policy_sha256 -cne $Controls.source.Raw.Sha256 -or $receipt.controls.build_manifest_sha256 -cne $Controls.build.Raw.Sha256) {
+        throw 'Runner inspection receipt control bytes do not bind fixed A1 controls.'
+    }
+    if (@($receipt.targets.PSObject.Properties.Name).Count -ne $script:FixedTargets.Count) { throw 'Runner inspection target count is not closed.' }
+    foreach ($targetName in $script:FixedTargets.Keys) {
+        if ($null -eq $receipt.targets.PSObject.Properties[$targetName]) { throw "Runner inspection lacks $targetName." }
+    }
+    return $receipt
 }
 
-function Get-ValidatedRootfsLayers {
-    param([AllowNull()][object]$Value, [string]$Identity)
+function Get-HubQaTargetRecord {
+    param([string]$TargetName, [object]$Inspection, [object]$Controls, [object]$BootstrapControl, [string]$Root)
 
-    if ($null -eq $Value) { throw "RootFS layer array is null: $Identity" }
-    $layers = [string[]]@($Value)
-    if ($layers.Count -eq 0) { throw "RootFS layer array is empty: $Identity" }
-    foreach ($layer in $layers) {
-        if ($layer -notmatch '^sha256:[0-9a-f]{64}$') { throw "Invalid RootFS layer identity: $Identity" }
+    $expected = $script:FixedTargets[$TargetName]
+    $controlTarget = Get-HubQaMember -Object $BootstrapControl.Value.targets -Name $TargetName -Identity 'fixed bootstrap control target'
+    $actual = $Inspection.targets.PSObject.Properties[$TargetName].Value
+    Assert-HubQaExactPropertyNames -Object $actual -Expected @('local_image_id', 'platform', 'entrypoint', 'cmd', 'labels') -Identity "runner inspection $TargetName"
+    Assert-HubQaExactPropertyNames -Object $actual.platform -Expected @('os', 'architecture', 'variant') -Identity "runner inspection platform $TargetName"
+    if ($actual.platform.os -cne 'linux' -or $actual.platform.architecture -cne 'amd64' -or $null -ne $actual.platform.variant) { throw "Runner inspection platform mismatch: $TargetName" }
+    Assert-HubQaDigest -Value ([string]$actual.local_image_id) -Identity "Local image ID $TargetName"
+    Assert-HubQaExactStringArray -Actual $actual.entrypoint -Expected @([string]$expected.entrypoint_path) -Identity "Entrypoint $TargetName"
+    Assert-HubQaExactStringArray -Actual $actual.cmd -Expected @($expected.docker_cmd) -Identity "Docker Cmd $TargetName"
+    Assert-HubQaExactPropertyNames -Object $actual.labels -Expected @('hub.qa.target', 'hub.qa.execution-authority', 'hub.qa.network', 'hub.qa.runtime-status') -Identity "runner inspection labels $TargetName"
+    if ($null -eq $actual.labels.PSObject.Properties['hub.qa.target'] -or $actual.labels.'hub.qa.target' -cne $TargetName) { throw "Target label mismatch: $TargetName" }
+    if ($null -eq $actual.labels.PSObject.Properties['hub.qa.execution-authority'] -or $actual.labels.'hub.qa.execution-authority' -cne 'hub.qa-bootstrap/v1') { throw "Execution authority label mismatch: $TargetName" }
+    if ($actual.labels.'hub.qa.network' -cne 'none' -or $actual.labels.'hub.qa.runtime-status' -cne 'NOT_RUN') { throw "Target runtime label mismatch: $TargetName" }
+
+    $buildTarget = Get-HubQaMember -Object $Controls.build.Value.targets -Name $TargetName -Identity 'build manifest target'
+    if ($buildTarget.dockerfile -cne $expected.dockerfile -or $buildTarget.entrypoint_path -cne $expected.entrypoint_path -or
+        $buildTarget.compose_service -cne $expected.compose_service -or $buildTarget.local_image_lock_field -cne $expected.local_image_lock_field -or
+        $buildTarget.dockerfile -cne $controlTarget.dockerfile -or $buildTarget.entrypoint_path -cne $controlTarget.entrypoint_path -or
+        $buildTarget.compose_service -cne $controlTarget.compose_service -or $buildTarget.local_image_lock_field -cne $controlTarget.local_image_lock_field) {
+        throw "Build manifest target binding mismatch: $TargetName"
     }
-    return $layers
-}
-
-function Get-ValidatedConfigStringArray {
-    param([AllowNull()][object]$Value, [string]$Field, [string]$Identity)
-
-    if ($null -eq $Value -or $Value -is [string]) { throw "Docker Config.$Field must be a non-null string array: $Identity" }
-    foreach ($item in @($Value)) {
-        if ($null -eq $item -or -not ($item -is [string])) { throw "Docker Config.$Field contains a non-string: $Identity" }
+    Assert-HubQaExactStringArray -Actual $buildTarget.docker_entrypoint -Expected @($expected.entrypoint_path) -Identity "Build manifest Docker Entrypoint $TargetName"
+    Assert-HubQaExactStringArray -Actual $buildTarget.docker_cmd -Expected @($expected.docker_cmd) -Identity "Build manifest Docker Cmd $TargetName"
+    Assert-HubQaExactStringArray -Actual $buildTarget.target_action -Expected @($expected.target_action) -Identity "Build manifest target action $TargetName"
+    Assert-HubQaExactStringArray -Actual $buildTarget.docker_entrypoint -Expected @($controlTarget.entrypoint_path) -Identity "Build manifest control Docker Entrypoint $TargetName"
+    Assert-HubQaExactStringArray -Actual $buildTarget.docker_cmd -Expected @($controlTarget.docker_cmd) -Identity "Build manifest control Docker Cmd $TargetName"
+    Assert-HubQaExactStringArray -Actual $buildTarget.target_action -Expected @($controlTarget.target_action) -Identity "Build manifest control target action $TargetName"
+    Assert-HubQaExactBoolean -Actual $buildTarget.bootstrap_selectable -Expected ([bool]$expected.bootstrap_selectable) -Identity "Build manifest bootstrap selection $TargetName"
+    Assert-HubQaExactBoolean -Actual $buildTarget.bootstrap_selectable -Expected ([bool]$controlTarget.bootstrap_selectable) -Identity "Build manifest control bootstrap selection $TargetName"
+    Assert-HubQaDigest -Value ([string]$buildTarget.dockerfile_sha256) -Identity "Build manifest Dockerfile digest $TargetName"
+    Assert-HubQaDigest -Value ([string]$buildTarget.entrypoint_sha256) -Identity "Build manifest entrypoint digest $TargetName"
+    $dockerBytes = Read-HubQaRegularUtf8File -Path (Join-Path $Root $expected.dockerfile) -Root $Root -Identity "Dockerfile $TargetName"
+    $entrypointRelative = 'testframework/docker/entrypoints/' + $TargetName + '.sh'
+    $entrypointBytes = Read-HubQaRegularUtf8File -Path (Join-Path $Root $entrypointRelative) -Root $Root -Identity "Entrypoint $TargetName"
+    if ($dockerBytes.Sha256 -cne $buildTarget.dockerfile_sha256 -or $entrypointBytes.Sha256 -cne $buildTarget.entrypoint_sha256) { throw "Build manifest source byte binding mismatch: $TargetName" }
+    if ((Get-JcsArraySha256 -Value $actual.entrypoint) -cne (Get-JcsArraySha256 -Value $buildTarget.docker_entrypoint) -or (Get-JcsArraySha256 -Value $actual.cmd) -cne (Get-JcsArraySha256 -Value $buildTarget.docker_cmd)) {
+        throw "Docker inspection JCS command binding mismatch: $TargetName"
     }
-    return [string[]]@($Value)
-}
 
-function New-BaseRecord {
-    param([string]$BaseKey, [object]$Inventory)
-
-    $expectedImageId = [string]$Inventory.image_id
-    if ($expectedImageId -notmatch '^sha256:[0-9a-f]{64}$') { throw "Build-manifest base ImageId is invalid: $BaseKey" }
-    $actual = Invoke-LocalImageInspect -ImageReference $expectedImageId
-    if ([string]$actual.id -ne $expectedImageId) { throw "Local base image ID mismatch: $BaseKey" }
-    $platform = Get-ValidatedPlatform -Actual $actual -Identity $BaseKey
-    if ([string]$Inventory.platform.os -ne 'linux' -or [string]$Inventory.platform.architecture -ne 'amd64' -or $null -ne $Inventory.platform.variant) {
-        throw "Build-manifest base platform mismatch: $BaseKey"
-    }
-    $layers = @(Get-ValidatedRootfsLayers -Value $actual.rootfs_layers -Identity $BaseKey)
-    if (($layers -join "`n") -ne (@($Inventory.rootfs_layers) -join "`n")) { throw "Local base rootfs layers mismatch: $BaseKey" }
-    $entrypoint = @(Get-ValidatedConfigStringArray -Value $actual.entrypoint -Field 'Entrypoint' -Identity $BaseKey)
-    $cmd = @(Get-ValidatedConfigStringArray -Value $actual.cmd -Field 'Cmd' -Identity $BaseKey)
-    if (($cmd -join "`n") -ne (@($Inventory.cmd) -join "`n")) { throw "Local base Cmd mismatch: $BaseKey" }
-    $repoDigest = [string]$Inventory.repo_digest
-    if (-not [string]::IsNullOrEmpty($repoDigest)) {
-        if ($repoDigest -notmatch '^[A-Za-z0-9./_-]+@sha256:[0-9a-f]{64}$') { throw "Build-manifest base RepoDigest is invalid: $BaseKey" }
-        if ((@($actual.repo_digests) -notcontains $repoDigest)) { throw "Local base repo digest admission failed: $BaseKey" }
-    }
-    $labels = Get-FullLabelsProjection -Labels $actual.labels
     return [ordered]@{
-        repo_digest = $repoDigest
-        image_id = [string]$actual.id
-        platform = $platform
-        rootfs_layers = $layers
-        entrypoint = $entrypoint
-        entrypoint_sha256 = Get-JcsArraySha256 -Value $entrypoint
-        cmd = $cmd
-        cmd_sha256 = Get-JcsArraySha256 -Value $cmd
-        labels_projection = $labels
-        labels_projection_sha256 = Get-JcsObjectSha256 -Value $labels
+        local_image_id = [string]$actual.local_image_id
+        local_image_id_sha256 = Get-HubQaSha256 -Bytes $script:Utf8.GetBytes([string]$actual.local_image_id)
+        entrypoint_path = [string]$expected.entrypoint_path
+        entrypoint_sha256 = $entrypointBytes.Sha256
+        command_sha256 = Get-JcsArraySha256 -Value $actual.cmd
+        compose_service = [string]$expected.compose_service
+        runtime_status = 'READY_FOR_G0_BOOTSTRAP_ONLY'
     }
 }
 
-function Invoke-LocalBuild {
-    param([string]$Context, [string]$Dockerfile, [object]$BuildArguments, [string]$IidFile)
+function New-HubQaCreateNewFile {
+    param([string]$Path, [byte[]]$Bytes, [string]$Identity)
 
-    $arguments = @('build', '--pull=false', '--network=none', '--platform', 'linux/amd64', '--iidfile', $IidFile, '-f', $Dockerfile)
-    foreach ($name in @(Get-JcsSortedStrings -Values ([string[]]@($BuildArguments.Keys)))) {
-        $arguments += @('--build-arg', ('{0}={1}' -f $name, $BuildArguments[$name]))
-    }
-    $arguments += $Context
-    & docker @arguments
-    if ($LASTEXITCODE -ne 0) { throw 'Local image build failed.' }
-    $imageId = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($IidFile)).Trim()
-    if ($imageId -notmatch '^sha256:[0-9a-f]{64}$') { throw 'Docker build did not produce a complete local image ID.' }
-    return $imageId
-}
-
-function Publish-NoOverwriteLock {
-    param([string]$Destination, [string]$Content)
-
-    $directory = Split-Path -Parent $Destination
-    $temporary = Join-Path $directory ('.images.lock.v3.' + [Guid]::NewGuid().ToString('N') + '.partial')
-    $stream = [IO.File]::Open($temporary, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
+    $stream = [IO.File]::Open($Path, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
     try {
-        [byte[]]$bytes = $utf8.GetBytes($Content)
-        $stream.Write($bytes, 0, $bytes.Length)
+        $stream.Write($Bytes, 0, $Bytes.Length)
         $stream.Flush($true)
+    } catch {
+        throw "$Identity could not be written with create-new semantics."
     } finally {
         $stream.Dispose()
     }
-    Assert-FilesystemObjectAbsent -Path $Destination -Identity 'v3 lock destination before publication'
-    [IO.File]::Move($temporary, $Destination)
 }
 
-$scriptDirectory = Resolve-CanonicalNonReparseDirectory -Path $PSScriptRoot -Identity 'testframework/docker directory'
-$repositoryRoot = Resolve-CanonicalNonReparseDirectory -Path (Join-Path $scriptDirectory '..\..') -Identity 'repository root'
-$lockParent = Resolve-CanonicalNonReparseDirectory -Path $scriptDirectory -Identity 'v3 lock parent'
-$lockPath = Assert-ContainedPath -Path (Join-Path $lockParent 'images.lock.v3.json') -Root $lockParent -Identity 'v3 lock destination'
+function New-HubQaCandidateReservation {
+    param([pscustomobject]$Paths, [hashtable]$BootstrapPrivateContext)
 
-# P0 gates 1-4: canonical roots, absent destination, immutable ControlCommit
-# objects, then closed-control validation. No Docker, staging, or source action
-# occurs before these gates complete.
-Assert-FilesystemObjectAbsent -Path $lockPath -Identity 'v3 lock destination'
-Assert-ExactLowerSha1 -Value $ControlCommit -Identity 'ControlCommit'
-if (-not [StringComparer]::Ordinal.Equals($ControlCommit, '5afb8ba750f02d390ef75295db1afa12a041d7ff')) {
-    throw 'ControlCommit is not the accepted P1A control commit.'
-}
-Assert-GitCommitObject -Repository $repositoryRoot -Commit $ControlCommit -Identity 'ControlCommit'
-$control = Read-ValidatedControlBundle -Repository $repositoryRoot -Commit $ControlCommit
-
-# P0 gate 5 is deliberately before local inspection, source staging, and builds.
-Assert-DependenciesReady -BuildManifest $control.BuildManifest
-
-$baseRecords = [ordered]@{}
-foreach ($baseKey in @('golang', 'playwright', 'python')) {
-    $baseRecords[$baseKey] = New-BaseRecord -BaseKey $baseKey -Inventory $control.BuildManifest.base_inventory.$baseKey
+    if ([IO.File]::Exists($Paths.CandidatePath) -or [IO.Directory]::Exists($Paths.CandidatePath)) { throw 'Candidate lock destination already exists.' }
+    if ([IO.File]::Exists($Paths.ReservationPath) -or [IO.Directory]::Exists($Paths.ReservationPath) -or [IO.Directory]::Exists($Paths.StagingRoot)) { throw 'Task-owned image attestor reservation already exists.' }
+    $reservation = ('{"schema":"hub.qa.image-attestor-reservation/v1","task":"' + [string]$BootstrapPrivateContext.Task + '","run":"' + [string]$BootstrapPrivateContext.Run + '","owner_nonce":"' + [string]$BootstrapPrivateContext.OwnerNonce + '","owner_marker_sha256":"' + [string]$BootstrapPrivateContext.OwnerMarkerSha256 + '"}')
+    New-HubQaCreateNewFile -Path $Paths.ReservationPath -Bytes $script:Utf8.GetBytes($reservation) -Identity 'image attestor reservation'
+    try {
+        [IO.Directory]::CreateDirectory($Paths.StagingRoot) | Out-Null
+        $markerPath = Join-Path $Paths.StagingRoot '.owner.json'
+        $marker = ('{"schema":"hub.qa.image-attestor-owner/v1","reservation_sha256":"' + (Get-HubQaSha256 -Bytes $script:Utf8.GetBytes($reservation)) + '"}')
+        New-HubQaCreateNewFile -Path $markerPath -Bytes $script:Utf8.GetBytes($marker) -Identity 'image attestor owner marker'
+        return [pscustomobject]@{ MarkerPath = $markerPath; StagedCandidatePath = Join-Path $Paths.StagingRoot 'images.lock.v3.json' }
+    } catch { throw 'Task-owned image attestor staging creation failed after reservation.' }
 }
 
-$sourceEntries = Get-ExactCommitTree -Repository $repositoryRoot -Policy $control.SourcePolicy
-$stagingReservation = New-ReservedStagingRoot
-$stagingRoot = [string]$stagingReservation.Root
-$fixedTargetNames = [string[]]@('backend-unit', 'frontend-unit', 'backend-openapi')
-$targetBaseMap = [ordered]@{
-    'backend-unit' = 'golang'
-    'frontend-unit' = 'playwright'
-    'backend-openapi' = 'python'
-}
-$targetRecords = [ordered]@{}
-$sourceTreeManifestSha = $null
-$publicationSucceeded = $false
+function Invoke-HubQaBootstrapImageAttestation {
+    [CmdletBinding()]
+    param([hashtable]$BootstrapPrivateContext)
 
-try {
-    foreach ($targetName in $fixedTargetNames) {
-        $target = $control.BuildManifest.targets.$targetName
-        $baseKey = [string]$targetBaseMap[$targetName]
-        if ([string]$target.base_inventory_key -ne $baseKey) { throw "Target-to-base mapping mismatch: $targetName" }
-        $dockerfileName = [string]$target.dockerfile
-        if ($dockerfileName -notmatch '^Dockerfile\.(backend-unit|frontend-unit|backend-openapi)$') { throw "Unexpected controlled Dockerfile: $targetName" }
-        $dockerfilePath = 'testframework/docker/' + $dockerfileName
-        if (-not $control.Blobs.ContainsKey($dockerfilePath)) { throw "Controlled Dockerfile is outside the P0 bundle: $targetName" }
-
-        $contextRoot = Assert-ContainedPath -Path (Join-Path $stagingRoot $targetName) -Root $stagingRoot -Identity 'Target build context'
-        [IO.Directory]::CreateDirectory($contextRoot) | Out-Null
-        $source = Materialize-ExactSource -Repository $repositoryRoot -Policy $control.SourcePolicy -Entries $sourceEntries -ContextRoot $contextRoot
-        if ($null -eq $sourceTreeManifestSha) {
-            $sourceTreeManifestSha = [string]$source.Sha256
-        } elseif ($sourceTreeManifestSha -ne [string]$source.Sha256) {
-            throw "Exact source materialization changed between targets: $targetName"
-        }
-
-        $contextDockerfile = Assert-ContainedPath -Path (Join-Path $contextRoot 'Dockerfile') -Root $contextRoot -Identity 'Controlled Dockerfile destination'
-        Write-BytesCreateNew -Destination $contextDockerfile -Bytes ([byte[]]$control.Blobs[$dockerfilePath].Bytes)
-        $iidFile = Assert-ContainedPath -Path (Join-Path $contextRoot '.iid') -Root $contextRoot -Identity 'Docker IID file'
-        $imageId = Invoke-LocalBuild -Context $contextRoot -Dockerfile $contextDockerfile -IidFile $iidFile -BuildArguments ([ordered]@{
-            BASE_IMAGE_ID = [string]$baseRecords[$baseKey].image_id
-            SOURCE_COMMIT = [string]$control.SourcePolicy.source_commit
-            SOURCE_POLICY_SHA256 = [string]$control.Blobs['testframework/docker/source-policy.v1.json'].Sha256
-            SOURCE_TREE_MANIFEST_SHA256 = $sourceTreeManifestSha
-            BUILD_MANIFEST_SHA256 = [string]$control.Blobs['testframework/docker/build-manifest.v2.json'].Sha256
-            CONTROL_COMMIT = $ControlCommit
-            CONTROL_BUNDLE_SHA256 = [string]$control.BundleSha256
-        })
-
-        $actual = Invoke-LocalImageInspect -ImageReference $imageId
-        if ([string]$actual.id -ne $imageId) { throw "Target image ID mismatch: $targetName" }
-        $platform = Get-ValidatedPlatform -Actual $actual -Identity $targetName
-        $layers = @(Get-ValidatedRootfsLayers -Value $actual.rootfs_layers -Identity $targetName)
-        $entrypoint = @(Get-ValidatedConfigStringArray -Value $actual.entrypoint -Field 'Entrypoint' -Identity $targetName)
-        $cmd = @(Get-ValidatedConfigStringArray -Value $actual.cmd -Field 'Cmd' -Identity $targetName)
-        if (($entrypoint -join "`n") -ne (@($target.entrypoint) -join "`n")) { throw "Target entrypoint mismatch: $targetName" }
-        $labels = Get-FullLabelsProjection -Labels $actual.labels
-        $requiredLabels = [ordered]@{
-            'hub.qa.target' = $targetName
-            'hub.qa.base-image-id' = [string]$baseRecords[$baseKey].image_id
-            'hub.qa.control-commit' = $ControlCommit
-            'hub.qa.control-bundle-sha256' = [string]$control.BundleSha256
-            'hub.qa.source-commit' = [string]$control.SourcePolicy.source_commit
-            'hub.qa.source-policy-sha256' = [string]$control.Blobs['testframework/docker/source-policy.v1.json'].Sha256
-            'hub.qa.source-tree-manifest-sha256' = $sourceTreeManifestSha
-            'hub.qa.build-manifest-sha256' = [string]$control.Blobs['testframework/docker/build-manifest.v2.json'].Sha256
-            'hub.qa.runtime-status' = 'NOT_READY'
-        }
-        foreach ($labelName in $requiredLabels.Keys) {
-            if (-not $labels.Contains($labelName) -or [string]$labels[$labelName] -ne [string]$requiredLabels[$labelName]) {
-                throw "Required target label binding mismatch: $targetName / $labelName"
-            }
-        }
-        $targetRecords[$targetName] = [ordered]@{
-            base_key = $baseKey
-            image_id = [string]$actual.id
-            platform = $platform
-            rootfs_layers = $layers
-            entrypoint = $entrypoint
-            entrypoint_sha256 = Get-JcsArraySha256 -Value $entrypoint
-            cmd = $cmd
-            cmd_sha256 = Get-JcsArraySha256 -Value $cmd
-            control_commit = $ControlCommit
-            control_bundle_sha256 = [string]$control.BundleSha256
-            source_commit = [string]$control.SourcePolicy.source_commit
-            source_policy_sha256 = [string]$control.Blobs['testframework/docker/source-policy.v1.json'].Sha256
-            source_tree_manifest_sha256 = $sourceTreeManifestSha
-            build_manifest_sha256 = [string]$control.Blobs['testframework/docker/build-manifest.v2.json'].Sha256
-            labels_projection = $labels
-            labels_projection_sha256 = Get-JcsObjectSha256 -Value $labels
-        }
+    $binding = Test-HubQaBootstrapImageBindings
+    if ($binding.Verdict -ne 'READY_FOR_G0_BOOTSTRAP_ONLY') { return $binding }
+    Assert-HubQaPrivateBootstrapContext -BootstrapPrivateContext $BootstrapPrivateContext
+    $root = Get-HubQaSourceRoot
+    $paths = Get-HubQaBootstrapContextPaths -BootstrapPrivateContext $BootstrapPrivateContext -Root $root
+    # Before the first reservation or directory/file creation, consume the
+    # runner-created physical report root and its raw-byte owner marker. This
+    # closes the task/run namespace and excludes reparse or foreign roots.
+    [void](Assert-HubQaRunnerOwnedBootstrapRoot -Paths $paths -BootstrapPrivateContext $BootstrapPrivateContext)
+    # Reserve with create-new semantics only after runner ownership is closed;
+    # then consume the nonce/digest-bound local inspection receipt.
+    $reservation = New-HubQaCandidateReservation -Paths $paths -BootstrapPrivateContext $BootstrapPrivateContext
+    # Package B invokes this same Git-object-only gate before its first image
+    # build.  Repeating it here makes candidate publication fail closed if the
+    # committed recovery source tree or either A1 digest binding has drifted.
+    $sourceTree = Get-HubQaGitObjectSourceTree -Controls $binding.Controls
+    $inspection = Read-HubQaRunnerInspection -Paths $paths -BootstrapPrivateContext $BootstrapPrivateContext -Controls $binding.Controls
+    $targets = [ordered]@{}
+    foreach ($targetName in $script:FixedTargets.Keys) {
+        $targets[$targetName] = Get-HubQaTargetRecord -TargetName $targetName -Inspection $inspection -Controls $binding.Controls -BootstrapControl $binding.BootstrapControl -Root $root
     }
-
-    $lock = [ordered]@{
+    $candidate = [ordered]@{
         schema = 'hub.qa.local-images-lock/v3'
-        control = [ordered]@{
-            commit = $ControlCommit
-            bundle_sha256 = [string]$control.BundleSha256
-            compose_sha256 = [string]$control.ComposeSha256
-        }
-        source = [ordered]@{
-            commit = [string]$control.SourcePolicy.source_commit
-            policy_sha256 = [string]$control.Blobs['testframework/docker/source-policy.v1.json'].Sha256
-            tree_manifest_sha256 = $sourceTreeManifestSha
-        }
-        build = [ordered]@{ manifest_sha256 = [string]$control.Blobs['testframework/docker/build-manifest.v2.json'].Sha256 }
-        bases = $baseRecords
-        targets = $targetRecords
+        platform = [ordered]@{ os = 'linux'; architecture = 'amd64'; variant = $null }
+        targets = $targets
     }
-    Publish-NoOverwriteLock -Destination $lockPath -Content (($lock | ConvertTo-Json -Depth 32) + "`n")
-    $publicationSucceeded = $true
-} finally {
-    if ($publicationSucceeded) {
-        try {
-            Remove-OwnedStagingAfterPublication -Reservation $stagingReservation -SourceEntries $sourceEntries -TargetNames $fixedTargetNames
-        } catch {
-            # A cleanup mismatch abandons the remaining staging object and does
-            # not replace the successful lock-publication outcome.
-            $cleanupFailureMessage = 'Owned staging cleanup was abandoned: {0}' -f $_.Exception.Message
-            try { [Console]::Error.WriteLine($cleanupFailureMessage) } catch { }
-        }
+    $candidateBytes = $script:Utf8.GetBytes(($candidate | ConvertTo-Json -Depth 16 -Compress) + "`n")
+    New-HubQaCreateNewFile -Path $reservation.StagedCandidatePath -Bytes $candidateBytes -Identity 'staged candidate lock'
+    [IO.File]::Move($reservation.StagedCandidatePath, $paths.CandidatePath)
+    return [pscustomobject]@{
+        Verdict = 'READY_FOR_G0_BOOTSTRAP_ONLY'
+        ReasonCode = $null
+        CandidateLockPath = $paths.CandidatePath
+        CandidateLockSha256 = Get-HubQaSha256 -Bytes $candidateBytes
+        OwnerMarkerPath = $reservation.MarkerPath
+        SourceTreeSha256 = $sourceTree.SourceTreeSha256
     }
+}
+
+if ($Describe -or -not $PSBoundParameters.ContainsKey('Describe')) {
+    Get-HubQaBootstrapImageContract | ConvertTo-Json -Depth 16
 }

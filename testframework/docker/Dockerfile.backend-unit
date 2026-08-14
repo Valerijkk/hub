@@ -1,25 +1,37 @@
 FROM sha256:1dd0b0cab49abf58ae61bd6509b455375952dc17b7d8a5796905221b78e3531c
 
-ARG SOURCE_COMMIT
-ARG BASE_IMAGE_ID
-ARG SOURCE_POLICY_SHA256
-ARG SOURCE_TREE_MANIFEST_SHA256
-ARG BUILD_MANIFEST_SHA256
-ARG CONTROL_COMMIT
-ARG CONTROL_BUNDLE_SHA256
+ARG A1_BINDING_STATUS
+ARG DEPENDENCY_BUNDLE_SHA256
+ARG SOURCE_POLICY_V2_SHA256
+ARG BUILD_MANIFEST_V3_SHA256
 
 LABEL hub.qa.target="backend-unit" \
-      hub.qa.base-image-id="${BASE_IMAGE_ID}" \
-      hub.qa.control-commit="${CONTROL_COMMIT}" \
-      hub.qa.control-bundle-sha256="${CONTROL_BUNDLE_SHA256}" \
-      hub.qa.source-commit="${SOURCE_COMMIT}" \
-      hub.qa.source-policy-sha256="${SOURCE_POLICY_SHA256}" \
-      hub.qa.source-tree-manifest-sha256="${SOURCE_TREE_MANIFEST_SHA256}" \
-      hub.qa.build-manifest-sha256="${BUILD_MANIFEST_SHA256}" \
-      hub.qa.runtime-status="NOT_READY"
+      hub.qa.execution-authority="hub.qa-bootstrap/v1" \
+      hub.qa.network="none" \
+      hub.qa.runtime-status="NOT_RUN"
 
 WORKDIR /opt/hub/source/backend
+
+# These inputs do not exist during A0.  A future A1-controlled bootstrap
+# context must supply all of them or this image fails to build before execution.
+COPY bindings/dependency-bundle.manifest.v1.json /opt/hub/bindings/dependency-bundle.manifest.v1.json
+COPY bindings/source-policy.v2.json /opt/hub/bindings/source-policy.v2.json
+COPY bindings/build-manifest.v3.json /opt/hub/bindings/build-manifest.v3.json
+COPY bindings/assets/go-module-cache/ /opt/hub/offline/go-module-cache/
+COPY bindings/assets/go-race-toolchain/ /opt/hub/offline/go-race-toolchain/
 COPY source/backend/ /opt/hub/source/backend/
-RUN set -eu; mkdir -p /opt/hub/bin; printf '%s\n' '#!/bin/sh' 'set -eu' 'printf "%s\\n" "{\\"target\\":\\"backend-unit\\",\\"status\\":\\"NOT_READY\\",\\"reason\\":\\"approved local Go module cache and race-toolchain provenance are absent\\"}"' 'exit 66' > /opt/hub/bin/backend-unit; chmod 0555 /opt/hub/bin/backend-unit
+COPY entrypoints/backend-unit.sh /opt/hub/bin/backend-unit
+
+RUN test "$A1_BINDING_STATUS" = "BOUND" \
+ && test -n "$DEPENDENCY_BUNDLE_SHA256" \
+ && test -n "$SOURCE_POLICY_V2_SHA256" \
+ && test -n "$BUILD_MANIFEST_V3_SHA256" \
+ && chmod 0555 /opt/hub/bin/backend-unit
+
+ENV GOPROXY=off \
+    GOSUMDB=off \
+    GOMODCACHE=/opt/hub/offline/go-module-cache \
+    PATH=/opt/hub/offline/go-race-toolchain/bin:$PATH
 
 ENTRYPOINT ["/opt/hub/bin/backend-unit"]
+CMD ["--hub-qa-target=backend-unit"]
