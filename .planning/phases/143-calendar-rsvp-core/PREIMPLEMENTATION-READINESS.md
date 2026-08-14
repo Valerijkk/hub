@@ -13,10 +13,12 @@
   global cross-contract PASS. The bounded 144-01A engine DTO/error boundary is `STATIC_ACCEPTED` at
   `e3e8c774d734f926f77f8e600b58dc68dabbd993` after `EXACT_SHA_PASS`. The 0.1.7
   `b3fb6f48` and 0.1.6 `5a351d5b` evidence remain historical.
-- `144-03A-Thread` is separately `THREAD_CALLABLE_ENCODING_ORACLE_ROOT_FROZEN_CANDIDATE` /
-  `INDEPENDENT_REVIEW_PENDING` / `NOT_AUTHORIZED`: its versioned key, bytewise Message-ID and
-  literal-oracle contract is root-frozen candidate only, and implementation waits for
-  independent acceptance.
+- `144-03A-Thread` callable/encoding/oracle is separately
+  `THREAD_CALLABLE_ENCODING_ORACLE_STATIC_ACCEPTED` at
+  `cbc12577a6444df9c660e43fedfd0c8133c6e461` / `EXACT_SHA_PASS` after independent
+  Spec/API/Persistence, Security and Lifecycle/Evidence PASS reviews with C/I/M `0/0/0`.
+  Implementation remains `UNIMPLEMENTED` / `STATIC_TDD_AUTHORIZED`; only dispatcher-enforced
+  `gpt-5.6-terra`/`xhigh`, no-fallback static TDD for the exact two Thread files is authorized.
 - OpenAPI covers mailbox, submission recovery, legacy calendar, canonical calendar and
   separate legacy/new admin resources.
 - Event subjects and webhook privacy boundary are frozen.
@@ -81,9 +83,12 @@
    exact-commit Terra/high `EXACT_SHA_PASS`, Spec/Quality/Security/Evidence PASS and C/I/M
    `0/0/0`. Exact native dispatch provenance is dispatcher-enforced; actual telemetry `UNKNOWN`
    is not a telemetry-only blocker. `144-03A-Address` is `STATIC_ACCEPTED` at
-   `41564d003946ddb78df18efca166ca86e4055405` after exact-SHA PASS. `144-03A-Thread` is
-   `THREAD_CALLABLE_ENCODING_ORACLE_ROOT_FROZEN_CANDIDATE` / `INDEPENDENT_REVIEW_PENDING` /
-   `NOT_AUTHORIZED`; it is not implemented or dispatch-authorized before independent acceptance.
+   `41564d003946ddb78df18efca166ca86e4055405` after exact-SHA PASS. `144-03A-Thread`
+   callable/encoding/oracle is `THREAD_CALLABLE_ENCODING_ORACLE_STATIC_ACCEPTED` at
+   `cbc12577a6444df9c660e43fedfd0c8133c6e461` / `EXACT_SHA_PASS` with independent
+   Spec/API/Persistence, Security and Lifecycle/Evidence PASS reviews and C/I/M `0/0/0`.
+   Its implementation remains `UNIMPLEMENTED` / `STATIC_TDD_AUTHORIZED`; authorize only its
+   exact dispatcher-enforced Terra/xhigh no-fallback two-file static-TDD packet.
    `144-01B` remains blocked by applicable
    supported current-SHA Docker evidence and executable status `NOT_RUN`.
 10. Admit `mail.>` only after calendar admission; keep webhook filter unchanged.

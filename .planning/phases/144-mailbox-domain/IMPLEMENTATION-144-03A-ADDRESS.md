@@ -63,10 +63,12 @@ do not establish executable, phase, product, or runtime acceptance.
 
 - This packet is `STATIC_ACCEPTED`; it is not executable, phase, product, or runtime `PASS`.
 - The exact next action is only pure static/TDD `144-03A-Thread`. Its dependency on accepted
-  Address is satisfied; its callable/encoding contract and oracle are
-  `THREAD_CALLABLE_ENCODING_ORACLE_ROOT_FROZEN_CANDIDATE` / `INDEPENDENT_REVIEW_PENDING` /
-  `NOT_AUTHORIZED`, and dispatch is allowed only after independent acceptance. Thread is not
-  implemented or authorized before that acceptance.
+  Address is satisfied; its callable/encoding/oracle contract is
+  `THREAD_CALLABLE_ENCODING_ORACLE_STATIC_ACCEPTED` at
+  `cbc12577a6444df9c660e43fedfd0c8133c6e461` / `EXACT_SHA_PASS` with C/I/M `0/0/0`.
+  Authorize only dispatcher-enforced `gpt-5.6-terra`/`xhigh`, no-fallback TDD of
+  `backend/internal/mail/threading.go` and `backend/tests/mail/threading_test.go`; Thread
+  implementation remains `UNIMPLEMENTED` / `STATIC_TDD_AUTHORIZED`.
 - The task-owned launcher is `NOT_READY`; compile, unit, race, build, lint, validators,
   Docker, and runtime are all `NOT_RUN`. No direct host or Docker substitute is valid evidence.
 - `144-01B` remains `BLOCKED`; broader Phase 142/cross-contract acceptance and Phase 148 are

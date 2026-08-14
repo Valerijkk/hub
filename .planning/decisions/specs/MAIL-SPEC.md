@@ -1,7 +1,7 @@
 # MAIL-SPEC — Hub mailbox and calendar synchronization contract
 
 > **Version:** 0.1.8
-> **Status:** five-document 0.1.8 entry amendment independently PASS at `5e314fb080d420696642058ae47397e251c23207`, authorizing only 144-01A entry; 144-03A Thread is `THREAD_CALLABLE_ENCODING_ORACLE_ROOT_FROZEN_CANDIDATE` / `INDEPENDENT_REVIEW_PENDING` / `NOT_AUTHORIZED`; broader Phase 142/cross-contract review and runtime remain pending; 0.1.7 review evidence is historical `STALE`
+> **Status:** five-document 0.1.8 entry amendment independently PASS at `5e314fb080d420696642058ae47397e251c23207`, authorizing only 144-01A entry; 144-03A Thread callable/encoding/oracle is `THREAD_CALLABLE_ENCODING_ORACLE_STATIC_ACCEPTED` at `cbc12577a6444df9c660e43fedfd0c8133c6e461` / `EXACT_SHA_PASS` after independent Spec/API/Persistence, Security and Lifecycle/Evidence PASS reviews with C/I/M `0/0/0`; implementation is `UNIMPLEMENTED` / `STATIC_TDD_AUTHORIZED`; broader Phase 142/cross-contract review and runtime remain pending; 0.1.7 review evidence is historical `STALE`
 > **Date:** 2026-08-13
 > **Architecture:** `../ADR-MAIL-01-mail-engine-calendar-sync.md`
 > **OpenAPI:** `../../../docs/mail/openapi.yaml`
@@ -1826,14 +1826,21 @@ dependency, migration, founder and launcher gates pass; it does not itself autho
 blocked write. Until corresponding evidence exists, all implementation, migration,
 Docker, API, UI, security, and end-to-end statuses remain `NOT_RUN` or `NOT_IMPLEMENTED`.
 
-## 11. 144-03A-Thread callable and encoding amendment (root-frozen candidate)
+## 11. 144-03A-Thread callable and encoding amendment (static accepted contract)
 
-**Status:** `THREAD_CALLABLE_ENCODING_ORACLE_ROOT_FROZEN_CANDIDATE` /
-`INDEPENDENT_REVIEW_PENDING` / `NOT_AUTHORIZED`. This narrow preimplementation 0.1.8
-amendment is separate from the `5e314fb0` 144-01A entry-only amendment: it neither revokes
-the `144-03A-Address` `STATIC_ACCEPTED` boundary `41564d00` nor authorizes `threading.go`,
-tests, schemas, generation, migration, runtime or a version bump. 144-01B, Phase 142/148 and
-144-02B remain pending; launcher is `NOT_READY` and runtime is `NOT_RUN`.
+**Status:** `THREAD_CALLABLE_ENCODING_ORACLE_STATIC_ACCEPTED` at
+`cbc12577a6444df9c660e43fedfd0c8133c6e461` (parent
+`4071ad8120850a8bde2d45d56fdedb5779270047`, tree
+`2ee25fa08d343201ee72f80070c3fb58346f223c`) / `EXACT_SHA_PASS`. Independent
+Spec/API/Persistence, Security and Lifecycle/Evidence reviews PASS with C/I/M `0/0/0`.
+This narrow preimplementation 0.1.8 amendment is separate from the `5e314fb0` 144-01A
+entry-only amendment: it neither revokes the `144-03A-Address` `STATIC_ACCEPTED` boundary
+`41564d00` nor accepts Thread implementation. The exact next packet is dispatcher-enforced
+`gpt-5.6-terra`/`xhigh`, no fallback, static TDD only for `backend/internal/mail/threading.go`
+and `backend/tests/mail/threading_test.go`; implementation remains `UNIMPLEMENTED` /
+`STATIC_TDD_AUTHORIZED`, with actual telemetry `UNKNOWN` unless exposed. It does not authorize
+schemas, generation, migration, runtime or a version bump. 144-01B, Phase 142/148 and 144-02B
+remain pending; launcher is `NOT_READY` and runtime is `NOT_RUN`.
 
 The exact two-file public API (`backend/internal/mail/threading.go` and its focused unit) has
 the following **text declaration signatures**; implementation bodies are intentionally omitted

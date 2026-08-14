@@ -1,8 +1,10 @@
 # Mail engine boundary 0.1.8
 
-> **Status:** 144-01A remains `STATIC_ACCEPTED`; 144-03A Thread is
-> `THREAD_CALLABLE_ENCODING_ORACLE_ROOT_FROZEN_CANDIDATE` / `INDEPENDENT_REVIEW_PENDING` /
-> `NOT_AUTHORIZED`
+> **Status:** 144-01A remains `STATIC_ACCEPTED`; 144-03A Thread callable/encoding/oracle is
+> `THREAD_CALLABLE_ENCODING_ORACLE_STATIC_ACCEPTED` at
+> `cbc12577a6444df9c660e43fedfd0c8133c6e461` / `EXACT_SHA_PASS` after independent
+> Spec/API/Persistence, Security and Lifecycle/Evidence PASS reviews with C/I/M `0/0/0`;
+> implementation remains `UNIMPLEMENTED` / `STATIC_TDD_AUTHORIZED`
 > **Runtime:** NOT_RUN
 > **Precedence:** this document replaces the 0.1.7 message/blob/draft portions of
 > `ADR-MAIL-01-mail-engine-calendar-sync.md` and Phase 144-01A. Unmentioned methods and safe
@@ -451,7 +453,7 @@ those exact ids. That branch can never requeue or call `Submit`.
 11. No direct Docker/host fallback is valid; executable evidence remains `NOT_RUN` until the
     accepted launcher exists.
 
-## 144-03A Thread candidate clarification
+## 144-03A Thread accepted-contract clarification
 
 This engine contract remains count/item bounded only. A provider adapter may present up to 100
 candidate References and one InReplyTo, but the Thread callable accepts only the strict

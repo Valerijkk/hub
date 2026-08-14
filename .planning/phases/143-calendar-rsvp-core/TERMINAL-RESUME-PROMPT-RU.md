@@ -2,10 +2,11 @@
 
 > **CONSUMED / HISTORICAL PRE-01A RESUME PROMPT:** не выполняй старое следующее действие из
 > исторического текста ниже. Текущая authority — `.continue-here.md`: `144-03A-Address` уже
-> `STATIC_ACCEPTED` на `41564d003946ddb78df18efca166ca86e4055405`; `144-03A-Thread` имеет
-> статус `THREAD_CALLABLE_ENCODING_ORACLE_ROOT_FROZEN_CANDIDATE` /
-> `INDEPENDENT_REVIEW_PENDING` / `NOT_AUTHORIZED` и может быть dispatched только после
-> independent acceptance его root-frozen callable/encoding contract и oracle. Текст
+> `STATIC_ACCEPTED` на `41564d003946ddb78df18efca166ca86e4055405`; callable/encoding/oracle
+> `144-03A-Thread` имеет статус `THREAD_CALLABLE_ENCODING_ORACLE_STATIC_ACCEPTED` на
+> `cbc12577a6444df9c660e43fedfd0c8133c6e461` / `EXACT_SHA_PASS` (C/I/M `0/0/0`). Текущее
+> действие — только dispatcher-enforced `gpt-5.6-terra`/`xhigh`, no-fallback static TDD двух
+> файлов; реализация остаётся `UNIMPLEMENTED` / `STATIC_TDD_AUTHORIZED`. Текст
 > ниже исторический и подчинён `.continue-here.md`.
 
 Ты продолжаешь работу как root-orchestrator Hub. Не полагайся на этот чат и не считай любую неуказанную проверку выполненной.

@@ -1,6 +1,6 @@
 # Phase 144 — Mailbox Domain
 
-> Task: TASK-237 · Status: IN_PROGRESS · FIVE_DOCUMENT_DEFAULT_VS_HARD_CAP_144_01A_ENTRY_AMENDMENT_PASS `5e314fb0` (authorizes 144-01A entry only; broader Phase 142/cross-contract pending) · 144-01A STATIC_ACCEPTED `e3e8c774` / EXACT_SHA_PASS · 144-03A-Address STATIC_ACCEPTED `41564d00` / EXACT_SHA_PASS · 144-03A-Thread THREAD_CALLABLE_ENCODING_ORACLE_ROOT_FROZEN_CANDIDATE / INDEPENDENT_REVIEW_PENDING / NOT_AUTHORIZED (static/TDD; executable NOT_RUN) · 144-01B BLOCKED_ON_APPLICABLE_SUPPORTED_CURRENT_SHA_DOCKER_EVIDENCE_BY_TASK3 · 144-02A1/A2/A3 EXACT_PLAN_BLOCKED_REVIEW · 144-02B/02C/02D/02F CONTRACT_AMENDED_NOT_ACCEPTED · RUNTIME_NOT_RUN · Depends on: Phase 142
+> Task: TASK-237 · Status: IN_PROGRESS · FIVE_DOCUMENT_DEFAULT_VS_HARD_CAP_144_01A_ENTRY_AMENDMENT_PASS `5e314fb0` (authorizes 144-01A entry only; broader Phase 142/cross-contract pending) · 144-01A STATIC_ACCEPTED `e3e8c774` / EXACT_SHA_PASS · 144-03A-Address STATIC_ACCEPTED `41564d00` / EXACT_SHA_PASS · 144-03A-Thread THREAD_CALLABLE_ENCODING_ORACLE_STATIC_ACCEPTED `cbc12577a6444df9c660e43fedfd0c8133c6e461` / EXACT_SHA_PASS / C_I_M_0_0_0; implementation UNIMPLEMENTED / STATIC_TDD_AUTHORIZED (executable NOT_RUN) · 144-01B BLOCKED_ON_APPLICABLE_SUPPORTED_CURRENT_SHA_DOCKER_EVIDENCE_BY_TASK3 · 144-02A1/A2/A3 EXACT_PLAN_BLOCKED_REVIEW · 144-02B/02C/02D/02F CONTRACT_AMENDED_NOT_ACCEPTED · RUNTIME_NOT_RUN · Depends on: Phase 142
 
 ## Goal
 
@@ -8,9 +8,12 @@ Implement the engine-independent domain and HTTP behavior against a deterministi
 
 `143-04L` and `144-01A` are satisfied for `144-03D`; Address is `STATIC_ACCEPTED` at
 `41564d003946ddb78df18efca166ca86e4055405`. The only next action is pure static/TDD
-`144-03A-Thread`, whose callable/encoding/oracle is now root-frozen candidate and independently
-review pending. Thread is neither implemented nor authorized before independent acceptance; other static-authorized packets
-remain unselected.
+`144-03A-Thread`, whose callable/encoding/oracle is static accepted at
+`cbc12577a6444df9c660e43fedfd0c8133c6e461` / `EXACT_SHA_PASS`. The only authorization is
+dispatcher-enforced `gpt-5.6-terra`/`xhigh`, no-fallback static TDD of
+`backend/internal/mail/threading.go` and `backend/tests/mail/threading_test.go`; implementation
+remains `UNIMPLEMENTED` / `STATIC_TDD_AUTHORIZED`, and other static-authorized packets remain
+unselected.
 
 ## Ordered tasks
 

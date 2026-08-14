@@ -158,15 +158,18 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 
 - Dependency: 03A-Address is `STATIC_ACCEPTED` at
   `41564d003946ddb78df18efca166ca86e4055405`, but dependencies are necessary and not
-  sufficient. Status: `THREAD_CALLABLE_ENCODING_ORACLE_ROOT_FROZEN_CANDIDATE` /
-  `INDEPENDENT_REVIEW_PENDING` / `NOT_AUTHORIZED`. The candidate freezes the exact callable,
+  sufficient. Status: `THREAD_CALLABLE_ENCODING_ORACLE_STATIC_ACCEPTED` at
+  `cbc12577a6444df9c660e43fedfd0c8133c6e461` / `EXACT_SHA_PASS`; independent
+  Spec/API/Persistence, Security and Lifecycle/Evidence reviews PASS with C/I/M `0/0/0`.
+  The accepted contract freezes the exact callable,
   strict bytewise Message-ID lookup, bounds/preflight/purity, normalized_subject_v1, raw
   ThreadKey hash framing, persistence/OpenAPI participant representation, exact typed
   `ThreadPolicyError` Error/Unwrap mapping and three literal SHA-256 oracles in
-  `MAIL-SPEC.md`; it does not authorize implementation.
-  Do not dispatch or write `backend/internal/mail/threading.go` or
-  `backend/tests/mail/threading_test.go` until independent review accepts this root-frozen
-  candidate, including its callable API, exact Message-ID grammar and resolution semantics,
+  `MAIL-SPEC.md`; it does not accept implementation.
+  Authorize only dispatcher-enforced `gpt-5.6-terra`/`xhigh`, no-fallback static TDD for
+  `backend/internal/mail/threading.go` and `backend/tests/mail/threading_test.go`; Thread
+  remains `UNIMPLEMENTED` / `STATIC_TDD_AUTHORIZED`. The accepted contract includes its callable
+  API, exact Message-ID grammar and resolution semantics,
   participant and bounds policy, Unicode and prefix policy, raw 32-byte versioned hash
   encoding/preimage, safe errors, and literal oracle vectors. The required external error
   oracle asserts the exact literals and typed `errors.Is` mapping: nil receiver or unknown

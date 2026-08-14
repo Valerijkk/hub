@@ -1,6 +1,6 @@
 # Hub Mail contract changelog
 
-> **Current review status (2026-08-14): five-document 0.1.8 entry amendment PASS at `5e314fb080d420696642058ae47397e251c23207`; 144-03A Thread is `THREAD_CALLABLE_ENCODING_ORACLE_ROOT_FROZEN_CANDIDATE` / `INDEPENDENT_REVIEW_PENDING` / `NOT_AUTHORIZED`; broader Phase 142/cross-contract review remains pending.**
+> **Current review status (2026-08-14): five-document 0.1.8 entry amendment PASS at `5e314fb080d420696642058ae47397e251c23207`; 144-03A Thread callable/encoding/oracle is `THREAD_CALLABLE_ENCODING_ORACLE_STATIC_ACCEPTED` at `cbc12577a6444df9c660e43fedfd0c8133c6e461` / `EXACT_SHA_PASS` with C/I/M `0/0/0`; implementation remains `UNIMPLEMENTED` / `STATIC_TDD_AUTHORIZED`; broader Phase 142/cross-contract review remains pending.**
 > The root amendment closes the recorded engine-memory, public-response and Phase 144
 > persistence representation gaps. Its independent PASS authorizes only 144-01A entry, not
 > product code beyond that packet, generated Ent output, migration or runtime claim. Executable evidence remains
@@ -8,14 +8,21 @@
 
 ## 0.1.8 preimplementation amendment — 2026-08-14
 
-`144-03A-Thread` callable/encoding oracle is a root-frozen candidate, independent review
-pending and not authorized. It is separate from the `5e314fb0` five-document 144-01A
-entry-only amendment and preserves Address `STATIC_ACCEPTED` `41564d00`. It freezes strict
+`144-03A-Thread` callable/encoding/oracle contract is statically accepted at
+`cbc12577a6444df9c660e43fedfd0c8133c6e461` (parent `4071ad8120850a8bde2d45d56fdedb5779270047`,
+tree `2ee25fa08d343201ee72f80070c3fb58346f223c`, subject `docs(mail): freeze deterministic thread identity`)
+with `EXACT_SHA_PASS`: independent Spec/API/Persistence, Security and Lifecycle/Evidence reviews
+PASS, C/I/M `0/0/0`. This is docs contract acceptance, not implementation acceptance. It is
+separate from the `5e314fb0` five-document 144-01A entry-only amendment and preserves Address
+`STATIC_ACCEPTED` `41564d00`. It freezes strict
 byte-preserved case-sensitive Message-ID literals/equality and same-account live resolver
 provenance, V1 versioned raw key framing and literal SHA oracles, seed-only 1..401 participant
 snapshots, 1 MiB typed JSON bounds, and closed public email-only participants. Any x/text
 change requires separately accepted version/rekey/dual-read planning.
-No 0.1.8 version bump, code, tests, schema/generation/migration or runtime acceptance exists.
+The exact next packet is dispatcher-enforced `gpt-5.6-terra`/`xhigh`, no fallback, static TDD
+only for `backend/internal/mail/threading.go` and `backend/tests/mail/threading_test.go`.
+Thread implementation remains `UNIMPLEMENTED` / `STATIC_TDD_AUTHORIZED`; no 0.1.8 version
+bump, schema/generation/migration or runtime acceptance exists.
 
 ## 0.1.8 — 2026-08-13
 

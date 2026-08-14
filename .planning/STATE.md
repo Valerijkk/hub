@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
-last_updated: "2026-08-14T03:30:00+03:00"
-last_activity: 2026-08-14 · Mail 144-03A-Address is STATIC_ACCEPTED at 41564d003946ddb78df18efca166ca86e4055405 after three independent Terra/high EXACT_SHA_PASS reviews (C/I/M 0/0/0); 144-03A-Thread is THREAD_CALLABLE_ENCODING_ORACLE_ROOT_FROZEN_CANDIDATE / INDEPENDENT_REVIEW_PENDING / NOT_AUTHORIZED and dispatch waits for independent acceptance, launcher NOT_READY and executable evidence NOT_RUN
+last_updated: "2026-08-14T04:00:00+03:00"
+last_activity: 2026-08-14 · Mail 144-03A Thread callable/encoding/oracle contract is THREAD_CALLABLE_ENCODING_ORACLE_STATIC_ACCEPTED at cbc12577a6444df9c660e43fedfd0c8133c6e461 / EXACT_SHA_PASS after three independent reviews (Spec/API/Persistence, Security, Lifecycle/Evidence PASS; C/I/M 0/0/0); exact next packet is dispatcher-enforced gpt-5.6-terra/xhigh no-fallback static TDD for threading.go plus threading_test.go, implementation UNIMPLEMENTED / STATIC_TDD_AUTHORIZED, launcher NOT_READY and executable evidence NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -118,7 +118,7 @@ mail_feature_workstream:
     branch: codex/mail-module-20260813
     phases: "142-148"
     current_phase: 144
-    status: five_document_default_vs_hard_cap_144_01a_entry_amendment_pass_5e314fb0_144_01a_static_accepted_exact_sha_pass_runtime_not_run
+    status: thread_callable_encoding_oracle_static_accepted_cbc12577_exact_sha_pass_c_i_m_0_0_0_thread_implementation_unimplemented_static_tdd_authorized_runtime_not_run
     product_truth: unfinished_mvp_feature_not_accepted
     contract_version: "0.1.8"
     tasks:
@@ -326,9 +326,14 @@ spec_coverage:
   report `EXACT_SHA_PASS`, Spec/Quality/Security/Evidence PASS and C/I/M `0/0/0`; Terra/xhigh
   authoring and Terra/high review provenance are dispatcher-enforced, fallback `none`, with
   actual telemetry `UNKNOWN` unless exposed. The only next action is pure static/TDD
-  `144-03A-Thread`; its Address dependency is accepted and its callable/encoding contract and
-  oracle are root-frozen candidate, but dispatch waits for independent acceptance. Thread is not
-  implemented or authorized before that acceptance; other static-authorized packets remain unselected. `144-01B` remains `BLOCKED`; broader
+  `144-03A-Thread`; its callable/encoding/oracle contract is
+  `THREAD_CALLABLE_ENCODING_ORACLE_STATIC_ACCEPTED` at
+  `cbc12577a6444df9c660e43fedfd0c8133c6e461` / `EXACT_SHA_PASS` after independent
+  Spec/API/Persistence, Security and Lifecycle/Evidence PASS reviews with C/I/M `0/0/0`.
+  The exact next packet is dispatcher-enforced `gpt-5.6-terra`/`xhigh`, no fallback, static TDD
+  only for `backend/internal/mail/threading.go` and `backend/tests/mail/threading_test.go`.
+  Thread implementation remains `UNIMPLEMENTED` / `STATIC_TDD_AUTHORIZED`; other
+  static-authorized packets remain unselected. `144-01B` remains `BLOCKED`; broader
   Phase 142/cross-contract acceptance and Phase 148 remain pending. Launcher and all executable
   evidence remain `NOT_READY` / `NOT_RUN`.
   Root-frozen `PERSISTENCE-CONTRACT-0.1.8.md` supplies the exact 144-02A/B/C/D/F fields,
@@ -1375,7 +1380,7 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 
 ## Session Continuity
 
-**Last session:** 2026-08-14 (Mail 144-03A-Thread callable/encoding root-frozen candidate sync)
+**Last session:** 2026-08-14 (Mail 144-03A-Thread callable/encoding/oracle static acceptance sync)
 **Stopped at:** 144-01A remains `STATIC_ACCEPTED` at
 `e3e8c774d734f926f77f8e600b58dc68dabbd993`; 144-03A-Address is now `STATIC_ACCEPTED` at the
 exact five-path boundary `41564d003946ddb78df18efca166ca86e4055405` (parent
@@ -1387,10 +1392,14 @@ and all executable evidence remains `NOT_RUN`.
 `pro-qa-ai` beta.3 already exists both in protected Hub source
 and as the Desktop portable copy. Legacy remains frozen; destructive move/delete
 has not started.
-**Resume:** only after independent review accepts the root-frozen callable/encoding contract and
-oracle, dispatch pure static/TDD `144-03A-Thread`. Its Address dependency is accepted; Thread is
-`THREAD_CALLABLE_ENCODING_ORACLE_ROOT_FROZEN_CANDIDATE` / `INDEPENDENT_REVIEW_PENDING` /
-`NOT_AUTHORIZED`, not implemented or authorized. Other static-authorized packets remain unselected. Executable
+**Resume:** dispatch the exact pure static/TDD `144-03A-Thread` packet only for
+`backend/internal/mail/threading.go` and `backend/tests/mail/threading_test.go`, using
+dispatcher-enforced `gpt-5.6-terra`/`xhigh` with no fallback. Its callable/encoding/oracle
+contract is `THREAD_CALLABLE_ENCODING_ORACLE_STATIC_ACCEPTED` at
+`cbc12577a6444df9c660e43fedfd0c8133c6e461` / `EXACT_SHA_PASS` after independent
+Spec/API/Persistence, Security and Lifecycle/Evidence PASS reviews with C/I/M `0/0/0`.
+Thread implementation remains `UNIMPLEMENTED` / `STATIC_TDD_AUTHORIZED`; actual telemetry is
+`UNKNOWN` unless exposed. Other static-authorized packets remain unselected. Executable
 verification remains `NOT_RUN`. Do not start `144-01B`: the stricter Task3 authority requires its
 applicable supported current-SHA Docker evidence. Broader Phase 142/cross-contract work and Phase
 148 remain pending.
