@@ -155,4 +155,4 @@ Required cases:
 12. optional external SMTP only after G145-9, reported separately.
 
 **Rule gate:** candidate alone authorizes no Sieve runtime case. `144-03B-Rule-Compiler` is
-docs-only `COMMITTED_UNACCEPTED_AT_f1995465`; Lifecycle/Dependency re-review, later plan, 144-02D/02F and engine-port carrier are open.
+docs-only narrowly `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`, reviewed against transition commit `6735ae746c7acde657359e8a709cd897c4dce61c`; Contract/Spec Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced with no fallback and telemetry `UNKNOWN`. It authorizes no Sieve runtime case; 144-02D/02F adjudication, later Rule plan and Phase-145 engine-port/carrier remain required.

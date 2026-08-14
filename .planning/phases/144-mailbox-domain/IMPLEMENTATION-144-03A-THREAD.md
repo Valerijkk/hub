@@ -44,9 +44,10 @@ Docker evidence.
 Folder source+oracle are narrowly `STATIC_ACCEPTED` at `f8cb7643986fc591cae16764575337b72ef3a692`
 (source `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b`, oracle `efe0db0071cb22ce4b026c635157f0fb08885d64`,
 C/I/M `0/0/0`), static only. Folder docs are also static-only accepted at
-`ca4e2854a319a020f7322ae0a9a98e3fb4a07374`; Rule is separately an unaccepted docs-only
-`COMMITTED_UNACCEPTED_AT_f1995465` pending Lifecycle/Dependency re-review, 02D/02F closure, later plan and
-Phase-145 carrier. 144-03C/144-03D eligibility is status
+`ca4e2854a319a020f7322ae0a9a98e3fb4a07374`; Rule is separately docs-only `STATIC_ACCEPTED` /
+`EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; acceptance transition/review target
+is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`. 144-02D/02F closure, later plan and the separate
+Phase-145 carrier remain. 144-03C/144-03D eligibility is status
 only, not the current action.
 
 1. `.planning/STATE.md`
@@ -69,6 +70,4 @@ only, not the current action.
 18. `backend/internal/mail/threading.go`
 19. `backend/tests/mail/threading_test.go`
 
-> **Current rule gate:** distinct `144-03B-Rule-Compiler` is docs-only
-> `COMMITTED_UNACCEPTED_AT_f1995465`, not accepted; it needs Lifecycle/Dependency re-review, 02D/02F, later plan and
-> engine-port/145 carrier before Rule TDD/production.
+> **Current Rule gate:** distinct `144-03B-Rule-Compiler` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; the acceptance transition/review target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`. 144-02D/02F, later plan and the separate engine-port/145 carrier precede Rule TDD/production.

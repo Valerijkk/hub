@@ -7,17 +7,23 @@
 > with source blob `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b` and oracle blob
 > `efe0db0071cb22ce4b026c635157f0fb08885d64`, after three `EXACT_SHA_PASS` reviews C/I/M
 > `0/0/0`. Folder docs are also static-only accepted at `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`.
-> The separate Rule candidate is `COMMITTED_UNACCEPTED_AT_f1995465`, pending Lifecycle/Dependency re-review, 02D/02F closure, later plan and
+> The separate Rule contract is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at
+> `f199546513b758ca7b95328b5ccd7680009b732e`; it accepts provider-neutral typed IR only,
+> never raw Sieve or engine-port bytes. Its lifecycle transition/review target is
+> `6735ae746c7acde657359e8a709cd897c4dce61c`, not the acceptance commit; 144-02D/02F
+> adjudication/closure and a later separate Rule plan remain required before the separate
 > Phase-145 carrier, with no Rule TDD or production authorization. Runner `NOT_READY`; all
 > executable evidence `NOT_RUN`.
 
 ## 0.1.8 rule compiler candidate — 2026-08-14
 
-`144-03B-Rule-Compiler` is docs-only `ROOT_FROZEN_CANDIDATE`, not acceptance. It freezes
+`144-03B-Rule-Compiler` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at
+`f199546513b758ca7b95328b5ccd7680009b732e`, not product, module, phase or release acceptance. It freezes
 provider-neutral typed IR, never raw Sieve or hash v1. The keyword is `hubk-` plus canonical
 lower-case unpadded RFC-4648 base32 of exactly 32 random bytes; validation decode-to-32 then
-identical re-encode, not regex alone. Rule TDD/production await Lifecycle/Dependency exact-SHA
-reviews C/I/M `0/0/0`, 144-02D/02F closure, later plan and engine-port/145 carrier.
+identical re-encode, not regex alone. Rule TDD/production await 144-02D/02F adjudication/closure,
+a later separate Rule plan and engine-port/145 carrier; no Rule source, schema, runtime, product or
+release authority follows from this docs-only acceptance.
 
 ## 144-03B Folder lifecycle sync candidate — 2026-08-14
 

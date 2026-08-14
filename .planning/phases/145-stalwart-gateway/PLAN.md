@@ -77,6 +77,12 @@ transport passes.
 
 ## Rule compiler boundary blocker
 
-`144-03B-Rule-Compiler` is an unaccepted docs-only `COMMITTED_UNACCEPTED_AT_f1995465`, typed IR only.
-Phase 145 needs Lifecycle/Dependency re-review, its later accepted plan, 144-02D/02F closure and a separate accepted engine-port
-carrier before Sieve work. Engine folder ID is not mailbox name; attachment IR needs MIME gate.
+`144-03B-Rule-Compiler` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at
+`f199546513b758ca7b95328b5ccd7680009b732e`; the lifecycle transition/review target is
+`6735ae746c7acde657359e8a709cd897c4dce61c`, not the acceptance commit. Contract/Spec
+Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M
+`0/0/0`; provenance is dispatcher-enforced, fallback none and telemetry `UNKNOWN` unless
+exposed. It accepts typed IR only, not an engine port or Sieve bytes. Phase 145 still needs
+144-02D/02F adjudication and explicit docs-only closure, then its later separate Rule plan and
+a separate accepted engine-port carrier before Sieve work. Engine folder ID is not mailbox name;
+attachment IR needs MIME gate. No Rule TDD/source/schema/runtime/product/release authority follows.

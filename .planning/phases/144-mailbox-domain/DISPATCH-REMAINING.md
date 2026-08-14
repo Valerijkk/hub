@@ -156,7 +156,7 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 
 ## 144-03A-Thread — thread identity
 
-> **Accepted exact boundary:** implementation+oracle are narrowly `STATIC_ACCEPTED` at `9903f4df3e5ca8034ea3f043b0386170e83a5101` / `EXACT_SHA_PASS` (parent `73060a4b`, tree `b73f23b`, exact 19 paths, source `c221d547`, oracle `b21bd6fd`, reviews C/I/M `0/0/0`). This is static only. Folder source/oracle `f8cb7643986fc591cae16764575337b72ef3a692` and docs `ca4e2854a319a020f7322ae0a9a98e3fb4a07374` are static-only accepted; Rule is separately `COMMITTED_UNACCEPTED_AT_f1995465` pending Lifecycle/Dependency re-review, 02D/02F closure, later plan and Phase-145 carrier.
+> **Accepted exact boundary:** implementation+oracle are narrowly `STATIC_ACCEPTED` at `9903f4df3e5ca8034ea3f043b0386170e83a5101` / `EXACT_SHA_PASS` (parent `73060a4b`, tree `b73f23b`, exact 19 paths, source `c221d547`, oracle `b21bd6fd`, reviews C/I/M `0/0/0`). This is static only. Folder source/oracle `f8cb7643986fc591cae16764575337b72ef3a692` and docs `ca4e2854a319a020f7322ae0a9a98e3fb4a07374` are static-only accepted; Rule is separately docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`, with acceptance transition/review target recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`; 02D/02F closure, later plan and Phase-145 carrier remain.
 
 - Dependency: 03A-Address is `STATIC_ACCEPTED` at
   `41564d003946ddb78df18efca166ca86e4055405`, but dependencies are necessary and not
@@ -187,9 +187,9 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 - Accepted exact two-path source+oracle boundary: `f8cb7643986fc591cae16764575337b72ef3a692` /
   `EXACT_SHA_PASS`, static-only (source `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b`, oracle
   `efe0db0071cb22ce4b026c635157f0fb08885d64`, C/I/M `0/0/0`). Folder docs are accepted
-  static-only at `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`. The current next action after this
-  transition commit is Lifecycle/Dependency exact-SHA re-review against `f1995465` plus transition HEAD; 02D/02F, later plan and
-  separate Phase-145 carrier remain blocked.
+  static-only at `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`. The current next action is
+  144-02D/02F adjudication and explicit docs-only closure; later, separately, Rule-plan acceptance and the
+  Phase-145 engine-port/carrier remain before Rule TDD/production.
 - Static behavior/oracle summary: Hub admission has at most 100 live non-deleted control slots
   including system/reserved states, separate from <=100 engine-backed enumeration; depth ≤2,
   no cycle/self-parent/cross-account parent; system role cannot rename/reparent/delete and
@@ -687,10 +687,9 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   Resend untouched, bodies/keys absent from persistence, `mail.>` present once and webhook
   list unchanged; record current SHA and all Docker/test/build/generation statuses honestly.
   Must request independent Terra review; cannot mark runtime PASS from static review.
-> **Current Rule lifecycle (2026-08-14):** `144-03B-Rule-Compiler` is `COMMITTED_UNACCEPTED_AT_f1995465`, with exact path/blob integrity verified. Contract/Spec Terra/high and Security Terra/xhigh PASS C/I/M `0/0/0`; Lifecycle Terra/high FAILed C/I/M `0/1/0` solely on precommit lifecycle text. After this transition commit, only independent Lifecycle/Dependency exact-SHA re-review against `f1995465` plus transition HEAD remains. It is not `STATIC_ACCEPTED`; 144-02D/02F, later plan and Phase-145 carrier remain blockers. Rule TDD/production unauthorized; launcher `NOT_READY`, executable evidence `NOT_RUN`, Phase 148 blocked.
 
 ## 144-03B-Rule-Compiler — frozen candidate, no dispatch
 
-`CONTRACT-144-03B-RULE.md` is docs-only `COMMITTED_UNACCEPTED_AT_f1995465`. No source/oracle dispatch is
-authorized: it awaits Lifecycle/Dependency exact-SHA re-review; 144-02D/02F, later plan
-acceptance and a separate engine-port/Phase-145 carrier must close before Rule TDD/production.
+> **Current Rule acceptance:** `144-03B-Rule-Compiler` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; acceptance transition/review target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`. Contract/Spec Terra/high, Security Terra/xhigh and Lifecycle Terra/high PASS C/I/M `0/0/0`; provenance is dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed. 144-02D/02F adjudication/closure remains next.
+
+`CONTRACT-144-03B-RULE.md` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; no source/oracle dispatch is authorized. 144-02D/02F closure, later-plan acceptance and a separate engine-port/Phase-145 carrier must close before Rule TDD/production. Launcher remains `NOT_READY`, executable evidence `NOT_RUN`, Phase 148 blocked, and 144-01B remains blocked on applicable supported current-SHA Docker evidence under Task3.

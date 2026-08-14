@@ -64,10 +64,12 @@ The literal exact 20-path manifest, in accepted contract order and spelling, is:
 19. `.planning/phases/144-mailbox-domain/CONTRACT-144-03B-FOLDER.md`
 20. `.planning/phases/144-mailbox-domain/PLAN-144-03B-FOLDER.md`
 
-This candidate remains pending its own Lifecycle/Evidence `gpt-5.6-terra/high`,
-Security/Dependency `gpt-5.6-terra/xhigh` and Exact/Boundary `gpt-5.6-terra/high` exact-SHA
-reviews. Author provenance is `gpt-5.6-terra/medium`, dispatcher-enforced, no fallback,
-telemetry `UNKNOWN`.
+**CONSUMED/HISTORICAL:** This 20-path docs candidate formerly required its own
+Lifecycle/Evidence `gpt-5.6-terra/high`, Security/Dependency `gpt-5.6-terra/xhigh` and
+Exact/Boundary `gpt-5.6-terra/high` exact-SHA reviews. The Folder docs lifecycle is now
+accepted static-only at `ca4e2854a319a020f7322ae0a9a98e3fb4a07374` after those reviews;
+author/review provenance remains dispatcher-enforced with no fallback and telemetry `UNKNOWN`
+unless exposed. This historical acceptance grants no executable or runtime authority.
 
 ## Preserved blockers and next action
 
@@ -76,9 +78,9 @@ applicable supported current-SHA Docker evidence under Task3. Broader Phase 142 
 remain pending or blocked.
 
 Folder docs are accepted static-only at `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`.
-`144-03B-Rule-Compiler` is separately docs-only `COMMITTED_UNACCEPTED_AT_f1995465`: Contract/Spec
-Terra/high and Security Terra/xhigh PASS C/I/M `0/0/0`; after this transition commit, the only
-next action is Lifecycle/Dependency exact-SHA re-review against `f1995465` plus transition HEAD.
-144-02D/02F closure, a later plan and a separate Phase-145 engine-port/carrier remain blocked;
-this is not Rule TDD or production authorization, and `rule_compiler.go` plus its test remain
-unauthorized.
+Rule is separately docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at
+`f199546513b758ca7b95328b5ccd7680009b732e`; the acceptance transition/review target is recorded in
+`6735ae746c7acde657359e8a709cd897c4dce61c`. Contract/Spec Terra/high, Security/Adversarial Terra/xhigh
+and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`; 144-02D/02F closure, a later Rule plan and the
+separate Phase-145 carrier precede any Rule TDD or production, and `rule_compiler.go` plus its test remain
+unauthorized; no runtime authority follows.

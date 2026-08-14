@@ -106,6 +106,7 @@ Minimum remaining schema decisions:
 
 ## 144-03B Rule dependency clarification
 
-`144-03B-Rule-Compiler` is only docs-only `COMMITTED_UNACCEPTED_AT_f1995465`; this 02D review is not
-closed or accepted by it. Rule TDD/production requires explicit 02D closure, candidate and
+Rule contract is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; acceptance transition/review target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`.
+This 02D review is not closed or accepted by Rule-contract acceptance. Rule TDD/production requires explicit 02D closure, candidate and
 later-plan exact-SHA acceptance, and the separate Phase-145 engine-port carrier.
+> **Current Rule acceptance:** the three Terra routes PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed. Rule contract acceptance does not close this review or authorize schemas.

@@ -837,4 +837,4 @@ Compiler neither calculates nor returns 04M-owned canonical hash v1; input actio
 hash material. Labels use server-generated immutable unique keywords: `hubk-` plus canonical
 lower-case unpadded RFC-4648 base32 of 32 random bytes, decode-to-32/re-encode exact. This does
 not close 144-02D/02F or authorize schemas, generation, Rule TDD or production. The Rule contract is
-docs-only `COMMITTED_UNACCEPTED_AT_f1995465`; Lifecycle/Dependency exact-SHA re-review remains required.
+docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`; its lifecycle transition/review target is `6735ae746c7acde657359e8a709cd897c4dce61c`, Contract/Spec Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`, provenance is dispatcher-enforced with no fallback and telemetry `UNKNOWN` unless exposed; 144-02D/02F adjudication/closure, a later separate Rule plan and Phase-145 engine-port/carrier remain required.

@@ -5,7 +5,7 @@ milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
 last_updated: "2026-08-14T04:00:00+03:00"
-last_activity: 2026-08-14 · Folder source/oracle f8cb7643986fc591cae16764575337b72ef3a692 is narrowly STATIC_ACCEPTED static-only and Folder docs acceptance is ca4e2854a319a020f7322ae0a9a98e3fb4a07374; 144-03B-Rule-Compiler is the committed docs-only ROOT_FROZEN_CANDIDATE f199546513b758ca7b95328b5ccd7680009b732e with exact path/blob integrity verified, unaccepted pending Lifecycle/Dependency exact-SHA re-review against f1995465 plus transition HEAD, 144-02D/02F closure, later plan and engine-port/145 carrier; launcher NOT_READY and executable evidence NOT_RUN
+last_activity: 2026-08-14 · Folder source/oracle f8cb7643986fc591cae16764575337b72ef3a692 and Folder docs ca4e2854a319a020f7322ae0a9a98e3fb4a07374 remain narrowly STATIC_ACCEPTED static-only; 144-03B-Rule-Compiler is narrowly docs-only STATIC_ACCEPTED / EXACT_SHA_PASS at f199546513b758ca7b95328b5ccd7680009b732e, reviewed against transition commit 6735ae746c7acde657359e8a709cd897c4dce61c: Contract/Spec Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M 0/0/0; dispatcher-enforced, no fallback, telemetry UNKNOWN; 144-02D/02F adjudication next, then later Rule-plan and Phase-145 carrier; launcher NOT_READY and executable evidence NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -118,7 +118,7 @@ mail_feature_workstream:
     branch: codex/mail-module-20260813
     phases: "142-148"
     current_phase: 144
-    status: folder_source_oracle_f8cb7643_and_docs_ca4e2854_static_accepted_rule_root_frozen_candidate_unaccepted_runtime_not_run
+    status: folder_source_oracle_f8cb7643_and_docs_ca4e2854_static_accepted_rule_docs_only_static_accepted_runtime_not_run
     product_truth: unfinished_mvp_feature_not_accepted
     contract_version: "0.1.8"
     tasks:
@@ -334,10 +334,12 @@ spec_coverage:
   narrowly `STATIC_ACCEPTED` at `f8cb7643986fc591cae16764575337b72ef3a692` (source
   `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b`, oracle `efe0db0071cb22ce4b026c635157f0fb08885d64`,
   C/I/M `0/0/0`), static only. Folder docs acceptance is `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`.
-  `144-03B-Rule-Compiler` is the committed docs-only `ROOT_FROZEN_CANDIDATE` at
-  `f199546513b758ca7b95328b5ccd7680009b732e`, unaccepted; Lifecycle/Dependency exact-SHA
-  re-review, 144-02D/02F closure, later plan and engine-port/145 carrier precede
-  Rule TDD/production. Other packet eligibility
+  `144-03B-Rule-Compiler` is narrowly docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at
+  `f199546513b758ca7b95328b5ccd7680009b732e`, reviewed against transition commit
+  `6735ae746c7acde657359e8a709cd897c4dce61c`; Contract/Spec Terra/high,
+  Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`,
+  dispatcher-enforced with no fallback and telemetry `UNKNOWN`. 144-02D/02F adjudication,
+  then a later Rule plan and Phase-145 carrier, precede Rule TDD/production. Other packet eligibility
   remains status only. `144-01B` remains `BLOCKED`; broader
   Phase 142/cross-contract acceptance and Phase 148 remain pending. Launcher and all executable
   evidence remain `NOT_READY` / `NOT_RUN`.
@@ -1405,9 +1407,11 @@ is narrowly `STATIC_ACCEPTED`, static-only: exactly `backend/internal/mail/folde
 `backend/tests/mail/folder_tree_test.go` (`efe0db0071cb22ce4b026c635157f0fb08885d64`), after
 Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and ABI/Compile-shape Terra/high
 `EXACT_SHA_PASS` reviews, C/I/M `0/0/0`. Folder docs acceptance is `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`.
-The distinct `144-03B-Rule-Compiler` is the committed docs-only `ROOT_FROZEN_CANDIDATE` at
-`f199546513b758ca7b95328b5ccd7680009b732e`, unaccepted; Lifecycle/Dependency re-review,
-144-02D/02F closure, later plan and engine-port/145 carrier precede Rule TDD.
+The distinct `144-03B-Rule-Compiler` is narrowly docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at
+`f199546513b758ca7b95328b5ccd7680009b732e`, reviewed against transition commit
+`6735ae746c7acde657359e8a709cd897c4dce61c`; Contract/Spec Terra/high, Security/Adversarial
+Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced with no
+fallback and telemetry `UNKNOWN`. 144-02D/02F adjudication, later plan and engine-port/145 carrier precede Rule TDD.
 Its callable/encoding/oracle
 contract remains `THREAD_CALLABLE_ENCODING_ORACLE_STATIC_ACCEPTED` at
 `cbc12577a6444df9c660e43fedfd0c8133c6e461` / `EXACT_SHA_PASS` after independent
@@ -1440,4 +1444,4 @@ new quality gate is requirement/risk traceability plus fail-closed execution.
 - hubtest `./testframework/tms/...` PASS; mutation 001–006 red/green ALL_OK.
 - Коммиты: `1dbf42f4` fix · `9e634ee5` test · статус TASK → На проверке (README не трогали). Handoff: be-ver → code-reviewer.
 
-> **Current Rule lifecycle (2026-08-14):** `144-03B-Rule-Compiler` is the committed docs-only `ROOT_FROZEN_CANDIDATE` at `f199546513b758ca7b95328b5ccd7680009b732e`, with exact path/blob integrity verified; it is not `STATIC_ACCEPTED`. Contract/Spec and Security/Adversarial exact-SHA reviews PASS C/I/M `0/0/0`; the prior Lifecycle/Dependency exact-SHA review FAILed solely on its then-precommit lifecycle text. After this transition document is committed, the only next action is an independent Lifecycle/Dependency exact-SHA re-review against `f1995465` plus transition HEAD. Only a PASS C/I/M `0/0/0` permits a later separate status sync to mark `f1995465` narrowly `STATIC_ACCEPTED`. 144-02D/02F remain open; Rule TDD/production remain unauthorized; launcher `NOT_READY`, all executable evidence `NOT_RUN`, and Phase 148 remains blocked.
+> **Current Rule status (2026-08-14):** `144-03B-Rule-Compiler` is narrowly docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`, reviewed against transition commit `6735ae746c7acde657359e8a709cd897c4dce61c`. Contract/Spec (`gpt-5.6-terra`/high), Security/Adversarial (`gpt-5.6-terra`/xhigh), and Lifecycle/Dependency (`gpt-5.6-terra`/high) PASS C/I/M `0/0/0`; provenance is dispatcher-enforced with no fallback and telemetry `UNKNOWN`. It authorizes no code, TDD/tests, schemas, migrations, runtime, phase, product or release. Next: 144-02D/02F adjudication, then later Rule-plan and Phase-145 engine-port/carrier; 144-01B, Phase 142/148, launcher `NOT_READY` and executable evidence `NOT_RUN` remain unchanged.

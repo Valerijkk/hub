@@ -1861,9 +1861,10 @@ Folder source+oracle are narrowly `STATIC_ACCEPTED` at `f8cb7643986fc591cae16764
 (source blob `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b`, oracle blob
 `efe0db0071cb22ce4b026c635157f0fb08885d64`, C/I/M `0/0/0`), static only. Folder docs are also
 static-only accepted at `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`. `144-03B-Rule-Compiler` is
-separately a committed docs-only `ROOT_FROZEN_CANDIDATE` at `f199546513b758ca7b95328b5ccd7680009b732e`,
-unaccepted pending only Lifecycle/Dependency exact-SHA re-review, 144-02D/02F closure, later plan and Phase-145 carrier. Actual telemetry is
-`UNKNOWN` unless exposed. It does not authorize
+separately narrowly docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`,
+reviewed against transition commit `6735ae746c7acde657359e8a709cd897c4dce61c`; Contract/Spec Terra/high,
+Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced
+with no fallback and telemetry `UNKNOWN`. 144-02D/02F adjudication, later plan and Phase-145 carrier remain required. It does not authorize
 schemas, generation, migration, runtime or a version bump. 144-01B, Phase 142/148 and 144-02B
 remain pending; launcher is `NOT_READY` and runtime is `NOT_RUN`.
 
@@ -1966,10 +1967,14 @@ octet `01` and their SHA literals remain unchanged.
 
 ## 144-03B Rule compiler candidate
 
-`CONTRACT-144-03B-RULE.md` is `ROOT_FROZEN_CANDIDATE`, docs-only and unaccepted. It freezes a
+`CONTRACT-144-03B-RULE.md` is narrowly docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at
+`f199546513b758ca7b95328b5ccd7680009b732e`, reviewed against transition commit
+`6735ae746c7acde657359e8a709cd897c4dce61c`; Contract/Spec Terra/high, Security/Adversarial
+Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced with no
+fallback and telemetry `UNKNOWN`. It freezes a
 provider-neutral typed IR, not Sieve: rules are first-match-wins and its compiler neither emits
 scripts nor calculates persistence hash v1. A separate accepted engine-port/Phase-145 carrier,
-closed 144-02D/02F gates, later plan acceptance and three candidate exact-SHA reviews are all
+closed 144-02D/02F gates and later plan acceptance are all
 required before Rule TDD/production. Folder static acceptance remains `f8cb7643`; Folder docs
 acceptance remains `ca4e2854`; launcher `NOT_READY`, all executable evidence `NOT_RUN`.
 

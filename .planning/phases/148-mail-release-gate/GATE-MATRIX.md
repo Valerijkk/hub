@@ -184,12 +184,18 @@ pending applicable supported current-SHA Docker evidence. Thread is narrowly `ST
   narrowly `STATIC_ACCEPTED` at `f8cb7643986fc591cae16764575337b72ef3a692` (source
   `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b`, oracle `efe0db0071cb22ce4b026c635157f0fb08885d64`,
   C/I/M `0/0/0`), static only. Folder docs are also static-only accepted at
-  `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`; Rule is separately an unaccepted docs-only
-  `COMMITTED_UNACCEPTED_AT_f1995465` pending Lifecycle/Dependency re-review, 02D/02F closure, later plan and
-  Phase-145 carrier. No execution. The launcher is
+  `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`; Rule is separately docs-only
+  `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`, not a
+  release acceptance. Its lifecycle transition/review target is
+  `6735ae746c7acde657359e8a709cd897c4dce61c`; Contract/Spec Terra/high,
+  Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`,
+  dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed. 144-02D/02F
+  adjudication/closure, later separate Rule plan and Phase-145 carrier remain required. No execution. The launcher is
 `NOT_READY`, engine/legal/migration/broadcast/rebase decisions are unresolved, and all executable
 evidence is `NOT_RUN`.
 
-`144-03B-Rule-Compiler` is docs-only `COMMITTED_UNACCEPTED_AT_f1995465`, not a release PASS. Lifecycle/Dependency
-re-review, 144-02D/02F closure, later plan and engine-port/145 carrier remain
-required before Rule TDD/production and Phase 148 acceptance.
+`144-03B-Rule-Compiler` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at
+`f199546513b758ca7b95328b5ccd7680009b732e`, not a release PASS. 144-02D/02F
+adjudication/closure, a later separate Rule plan and engine-port/145 carrier remain required
+before Rule TDD/production and Phase 148 acceptance. The launcher remains `NOT_READY` and
+executable evidence `NOT_RUN`.

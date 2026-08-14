@@ -218,7 +218,7 @@
   Calls to `x:SieveSystemScript` or `x:SieveUserScript` are test-oracle failures. Do not
   implement message mutations here.
 
-> **Current gate override:** Phase-144 compiler is `COMMITTED_UNACCEPTED_AT_f1995465`, not accepted.
+> **Current Rule acceptance:** docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`; lifecycle transition/review target `6735ae746c7acde657359e8a709cd897c4dce61c`, not the acceptance commit; Contract/Spec Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed. 144-02D/02F adjudication/closure, later separate Rule plan and accepted Phase-145 engine-port/carrier remain required; no Rule TDD/source/schema/runtime/product/release authority.
 > 145-07B additionally requires accepted engine-port carrier for typed IR/script bytes;
 > renderer owns escaping, engine folder ID is not mailbox name, and attachment stays MIME-blocked.
 

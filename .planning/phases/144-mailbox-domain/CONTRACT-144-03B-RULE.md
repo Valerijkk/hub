@@ -1,6 +1,6 @@
-# 144-03B-Rule-Compiler — committed ROOT_FROZEN_CANDIDATE
+# 144-03B-Rule-Compiler — STATIC_ACCEPTED static contract
 
-> **Status:** committed docs-only `ROOT_FROZEN_CANDIDATE` at `f199546513b758ca7b95328b5ccd7680009b732e`, with exact path/blob integrity verified; it is not `STATIC_ACCEPTED`, TDD authority, production authority, or executable evidence.
+> **Status:** narrowly docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; acceptance transition/review target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`. The Contract/Spec (`gpt-5.6-terra`/high), Security/Adversarial (`gpt-5.6-terra`/xhigh), and Lifecycle/Dependency (`gpt-5.6-terra`/high) exact review routes PASS C/I/M `0/0/0`; each has `provenance_source: dispatcher-enforced`, no fallback, and telemetry `UNKNOWN` unless exposed. This is not TDD, source/test, production, schema, migration, runtime, module, phase, product, or release authority.
 > **Packet:** `144-03B-Rule-Compiler`. **Base:**
 > `ca4e2854a319a020f7322ae0a9a98e3fb4a07374` on
 > `codex/mail-module-20260813`. **Author routing:** requested/accepted
@@ -12,12 +12,11 @@
 Folder source/oracle remains narrowly `STATIC_ACCEPTED` at
 `f8cb7643986fc591cae16764575337b72ef3a692`; Folder docs acceptance remains
 `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`. Neither accepts this candidate.
-Contract/Spec and Security/Adversarial exact-SHA reviews PASS C/I/M `0/0/0`. The prior
-Lifecycle/Dependency exact-SHA review FAILed solely because its target retained precommit lifecycle
-text. Once this transition document is committed, the only next action is an independent
-Lifecycle/Dependency exact-SHA re-review against `f1995465` plus transition HEAD; this document
-intentionally cannot name its own future SHA. Only that PASS C/I/M `0/0/0` permits a later,
-separate acceptance-status sync to mark `f1995465` narrowly `STATIC_ACCEPTED`.
+Contract/Spec, Security/Adversarial, and Lifecycle/Dependency exact-SHA reviews PASS C/I/M
+`0/0/0`. **HISTORICAL / SUPERSEDED:** the prior Lifecycle/Dependency review failed solely because
+its target retained precommit lifecycle text. The exact next action is 144-02D/02F adjudication
+and explicit docs-only closure; later, separately, Rule-plan acceptance and the Phase-145
+engine-port/carrier may be considered.
 
 The future pure source/oracle packet is exactly:
 

@@ -3,9 +3,11 @@
 > **CURRENT BANNER:** This historical terminal text is subordinate to `.continue-here.md`.
 > Folder source/oracle `f8cb7643986fc591cae16764575337b72ef3a692` is static accepted; Folder
 > docs acceptance is `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`. Separate
-> `144-03B-Rule-Compiler` is docs-only `COMMITTED_UNACCEPTED_AT_f1995465`: Contract/Spec Terra/high and
-> Security Terra/xhigh PASS C/I/M `0/0/0`; Lifecycle Terra/high FAILed C/I/M `0/1/0` solely stale text and must be re-reviewed after this transition commit; 144-02D/02F, later plan and engine-port/145
-> carrier remain blockers, with no Rule TDD or production authorization.
+> `144-03B-Rule-Compiler` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at
+> `f199546513b758ca7b95328b5ccd7680009b732e`; acceptance transition/review target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`.
+> Contract/Spec Terra/high, Security Terra/xhigh and Lifecycle Terra/high PASS C/I/M `0/0/0`;
+> dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed. Rule TDD/production remain
+> unauthorized; the current action is determined only by `.continue-here.md`.
 
 > **CONSUMED / HISTORICAL PRE-01A RESUME PROMPT:** не выполняй старое следующее действие из
 > исторического текста ниже. Текущая authority — `.continue-here.md`: `144-03A-Address` уже
@@ -102,4 +104,5 @@ Founder выбрал Option A для всех 209 вопросов; канони
 - Не перезаписывай и не откатывай чужие изменения; при overlap остановись и сообщи.
 
 Заверши каждый этап честным статусом: отдельно static acceptance и отдельно `NOT_READY`/`NOT_RUN`. При любом mismatch, отсутствующем документе, конфликте границ, неявном fallback или ином blocker сообщи его с точными фактами и не импровизируй.
-> **HISTORICAL / SUPERSEDED — 144-03B Folder post-source lifecycle (2026-08-14):** this terminal-only subordinate record is superseded by `.continue-here.md` and `CONTRACT-144-03B-RULE.md`. Folder source/oracle `f8cb7643986fc591cae16764575337b72ef3a692` and docs `ca4e2854a319a020f7322ae0a9a98e3fb4a07374` are static-only accepted. Current truth is `COMMITTED_UNACCEPTED_AT_f1995465`, pending Lifecycle/Dependency re-review, 02D/02F closure, later plan and Phase-145 carrier; launcher `NOT_READY`, executable evidence `NOT_RUN`, and Phase 148 blocked.
+
+> **HISTORICAL / SUBORDINATE AUDIT NOTE (2026-08-14):** This terminal record is historical and subordinate to `.continue-here.md`, which remains the current authority. The Rule contract is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; it does not close 144-02D/02F or authorize Rule source or TDD. Launcher status remains `NOT_READY`, executable evidence remains `NOT_RUN`, and Phase 148 remains blocked and nonrelease. No next action is stated here.

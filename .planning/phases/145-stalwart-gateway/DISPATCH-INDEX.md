@@ -115,4 +115,4 @@ with exactly one packet after all named gates pass.
 | Account identity mapping | EXACT `v0.16.17` IDENTITY GET/SET SOURCE FROZEN / ENABLED USE BLOCKED BY G145-5B MAIL AUTH |
 | Exclusive custom-folder writer | NOT_RUN / capability defaults false |
 | Runtime/resources/backup/external mail | NOT_RUN |
-| 144-03B Rule compiler input | COMMITTED_UNACCEPTED_AT_f1995465 only; no accepted IR carrier, no Sieve bytes; Lifecycle/Dependency re-review, later plan, 02D/02F and carrier remain blockers |
+| 144-03B Rule compiler input | docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`; transition/review target `6735ae746c7acde657359e8a709cd897c4dce61c`; Contract/Spec Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry `UNKNOWN`; no accepted IR carrier or Sieve bytes; 144-02D/02F adjudication/closure, later separate Rule plan and Phase-145 carrier remain blockers |

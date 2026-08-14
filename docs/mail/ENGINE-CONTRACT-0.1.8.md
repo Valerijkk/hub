@@ -4,7 +4,7 @@
 > `THREAD_CALLABLE_ENCODING_ORACLE_STATIC_ACCEPTED` at
 > `cbc12577a6444df9c660e43fedfd0c8133c6e461` / `EXACT_SHA_PASS` after independent
 > Spec/API/Persistence, Security and Lifecycle/Evidence PASS reviews with C/I/M `0/0/0`;
-> implementation+oracle are narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS` (source `c221d547`, oracle `b21bd6fd`), static only; Folder source/oracle `f8cb7643986fc591cae16764575337b72ef3a692` and docs `ca4e2854a319a020f7322ae0a9a98e3fb4a07374` are static-only accepted; Rule is separately `COMMITTED_UNACCEPTED_AT_f1995465`, pending Lifecycle/Dependency re-review, 02D/02F closure, later plan and Phase-145 carrier
+> implementation+oracle are narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS` (source `c221d547`, oracle `b21bd6fd`), static only; Folder source/oracle `f8cb7643986fc591cae16764575337b72ef3a692` and docs `ca4e2854a319a020f7322ae0a9a98e3fb4a07374` are static-only accepted; Rule is separately docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`, pending 144-02D/02F adjudication/closure, later separate Rule plan and Phase-145 carrier; no Rule source, schema, runtime, product or release authority follows.
 > **Runtime:** NOT_RUN
 > **Precedence:** this document replaces the 0.1.7 message/blob/draft portions of
 > `ADR-MAIL-01-mail-engine-calendar-sync.md` and Phase 144-01A. Unmentioned methods and safe
@@ -475,7 +475,7 @@ alter the adapter ABI or establish executable validation: compile, tests, build 
 
 ## 144-03B Rule compiler / adapter split
 
-The unaccepted docs-only `ROOT_FROZEN_CANDIDATE` compiles typed rules to provider-neutral IR,
-not engine port or Sieve bytes. Future Phase 145 separately resolves engine folder ID (not Sieve
+The docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` Rule contract compiles typed rules to provider-neutral IR,
+not an engine port or Sieve bytes. Future Phase 145 separately resolves engine folder ID (not Sieve
 mailbox name), renders/escapes, checks RFC 9661 and carries rendered digest. Attachment IR is
 capability-blocked without an accepted MIME mapping.

@@ -1,6 +1,6 @@
 # Phase 144 — Mailbox Domain
 
-> Task: TASK-237 · Status: IN_PROGRESS · FIVE_DOCUMENT_DEFAULT_VS_HARD_CAP_144_01A_ENTRY_AMENDMENT_PASS `5e314fb0` (authorizes 144-01A entry only; broader Phase 142/cross-contract pending) · 144-01A STATIC_ACCEPTED `e3e8c774` / EXACT_SHA_PASS · 144-03A-Address STATIC_ACCEPTED `41564d00` / EXACT_SHA_PASS · 144-03A-Thread STATIC_ACCEPTED `9903f4df` / EXACT_SHA_PASS, contract `cbc12577`, C/I/M `0/0/0`, executable NOT_RUN · Folder source+oracle STATIC_ACCEPTED `f8cb7643986fc591cae16764575337b72ef3a692`, Folder docs acceptance `ca4e2854` · 144-03B-Rule-Compiler COMMITTED_UNACCEPTED_AT_f1995465 pending Lifecycle/Dependency re-review, 02D/02F, later plan and engine-port/145 carrier · 144-01B BLOCKED_ON_APPLICABLE_SUPPORTED_CURRENT_SHA_DOCKER_EVIDENCE_BY_TASK3 · 144-02A1/A2/A3 EXACT_PLAN_BLOCKED_REVIEW · 144-02B/02C/02D/02F CONTRACT_AMENDED_NOT_ACCEPTED · RUNTIME_NOT_RUN · Depends on: Phase 142
+> Task: TASK-237 · Status: IN_PROGRESS · FIVE_DOCUMENT_DEFAULT_VS_HARD_CAP_144_01A_ENTRY_AMENDMENT_PASS `5e314fb0` (authorizes 144-01A entry only; broader Phase 142/cross-contract pending) · 144-01A STATIC_ACCEPTED `e3e8c774` / EXACT_SHA_PASS · 144-03A-Address STATIC_ACCEPTED `41564d00` / EXACT_SHA_PASS · 144-03A-Thread STATIC_ACCEPTED `9903f4df` / EXACT_SHA_PASS, contract `cbc12577`, C/I/M `0/0/0`, executable NOT_RUN · Folder source+oracle STATIC_ACCEPTED `f8cb7643986fc591cae16764575337b72ef3a692`, Folder docs acceptance `ca4e2854` · 144-03B-Rule-Compiler docs-only STATIC_ACCEPTED / EXACT_SHA_PASS accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; acceptance transition/review target recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`; 02D/02F, later plan and engine-port/145 carrier remain · 144-01B BLOCKED_ON_APPLICABLE_SUPPORTED_CURRENT_SHA_DOCKER_EVIDENCE_BY_TASK3 · 144-02A1/A2/A3 EXACT_PLAN_BLOCKED_REVIEW · 144-02B/02C/02D/02F CONTRACT_AMENDED_NOT_ACCEPTED · RUNTIME_NOT_RUN · Depends on: Phase 142
 
 ## Goal
 
@@ -13,8 +13,7 @@ its exact 19-path implementation/oracle boundary is `STATIC_ACCEPTED` at `9903f4
 narrowly `STATIC_ACCEPTED` at `f8cb7643986fc591cae16764575337b72ef3a692` (source
 `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b`, oracle `efe0db0071cb22ce4b026c635157f0fb08885d64`,
 C/I/M `0/0/0`), static only; Folder docs acceptance is `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`.
-The distinct Rule contract is `COMMITTED_UNACCEPTED_AT_f1995465`; its Lifecycle/Dependency re-review,
-02D/02F closure, later plan and engine-port/145 carrier precede TDD/production.
+The distinct Rule contract is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; its acceptance transition/review target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`. Rule docs acceptance authorizes neither source nor TDD. The future implementation boundary remains exactly `rule_compiler.go` plus `rule_compiler_test.go`, but only after 02D/02F closure, a separate accepted Rule plan, and the Phase-145 engine-port carrier.
 
 ## Ordered tasks
 
@@ -45,9 +44,6 @@ The distinct Rule contract is `COMMITTED_UNACCEPTED_AT_f1995465`; its Lifecycle/
 Each item is one or more atomic commits split further when generated schema, service,
 handler, or docs cannot be reviewed independently. Existing Resend alert behavior stays
 separate and green.
-> **Current Rule lifecycle (2026-08-14):** Folder source/oracle `f8cb7643986fc591cae16764575337b72ef3a692` and Folder docs `ca4e2854a319a020f7322ae0a9a98e3fb4a07374` are static-only accepted. `144-03B-Rule-Compiler` is `COMMITTED_UNACCEPTED_AT_f1995465`: exact path/blob integrity verified; Contract/Spec Terra/high and Security Terra/xhigh PASS C/I/M `0/0/0`; Lifecycle Terra/high FAILed C/I/M `0/1/0` solely on precommit lifecycle text. After this transition commit, only independent Lifecycle/Dependency exact-SHA re-review against `f1995465` plus transition HEAD remains. Only that PASS permits later separate `STATIC_ACCEPTED` status sync. 144-02D/02F, later plan and separate Phase-145 engine-port/carrier remain open; Rule TDD/production unauthorized; launcher `NOT_READY`, executable evidence `NOT_RUN`, Phase 148 blocked.
+> **Current Rule lifecycle (2026-08-14):** `144-03B-Rule-Compiler` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; acceptance transition/review target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`. Contract/Spec Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced provenance, no fallback, telemetry `UNKNOWN` unless exposed. 144-02D/02F remain unclosed; later separate Rule plan and Phase-145 engine-port/carrier remain required. No Rule source/test/TDD/schema/runtime/product/release authority; launcher `NOT_READY`, executable evidence `NOT_RUN`, Phase 148 blocked.
 
-> **Current 144-03B rule gate:** `144-03B-Rule-Compiler` contract is a docs-only
-> `ROOT_FROZEN_CANDIDATE`, not accepted and not a TDD plan. Its exact two-file future boundary
-> is `rule_compiler.go` plus `rule_compiler_test.go`; 144-02D/02F closure, an independently
-> accepted later plan and a separate engine-port/145 carrier remain mandatory.
+> **Current 144-03B rule gate:** Rule docs acceptance authorizes neither source nor TDD. The future implementation boundary remains exactly `rule_compiler.go` plus `rule_compiler_test.go`, but only after 02D/02F closure, a separate accepted Rule plan, and the Phase-145 engine-port carrier. All other blockers remain in force.
