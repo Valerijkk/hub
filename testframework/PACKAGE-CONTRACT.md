@@ -9,8 +9,8 @@ define a runnable command, or grant runtime authority.
 | Surface | Status | Evidence |
 |---|---|---|
 | Structure and ownership boundaries | `COMMITTED` | commit `22035c45` |
-| Installable `hub_testkit` package bootstrap | `NOT_READY` | `pyproject.toml`, `uv.lock` and `py.typed` are intentionally absent |
-| Framework selftests | NOT_READY | only selftests boundary documentation is accepted; no accepted framework-selftest suite or package-bootstrap evidence exists. Untracked or other-task artifacts are outside this docs-only contract and cannot promote package, launcher, or runtime status |
+| Installable `hub_testkit` package bootstrap | `NOT_READY` | package metadata, Python pin, typed marker, and package-contract selftests are source-authored; `uv.lock`, installation, build, and Docker evidence remain absent |
+| Framework selftests | `NOT_READY` | package-contract selftest source exists under the registered architecture profile root; it is not executed evidence |
 | SUT suite layer directories | `NOT_READY` | only `tests/README.md` defines the boundary; `tests/{contract,api,integration,e2e}/` are planned and absent |
 | Versioned launcher API | `NOT_READY` | `runner/run-task.ps1` is a private static source candidate only; `PS5.1_PARSE_NOT_RUN`, `PRIVATE_CONTRACT_NOT_RUN`, no accepted public entrypoint |
 | Runtime | `NOT_RUN` | structure and documentation are not execution evidence |
@@ -76,14 +76,15 @@ cases bind a Locust entrypoint; manual cases bind an evidence owner. Fields for
 another automation kind are forbidden, and pytest collection proves a
 bijection between active case, node ID, and sole `case_id` marker.
 
-## Future bootstrap artifacts
+## Bootstrap source and deferred resolver artifact
 
-The following artifacts are one future implementation slice. They are named
-here to reserve authority, not to claim that they currently exist.
+The source bootstrap artifacts below are authored under F0-01. Their presence
+does not mean that dependencies are resolved, the package is installed, or any
+selftest has run. `uv.lock` remains a separate resolver-owned artifact.
 
 ### `pyproject.toml`
 
-The root `testframework/pyproject.toml` will be the single authority for:
+The root `testframework/pyproject.toml` is the single source authority for:
 
 - project and supported-Python metadata;
 - `src/` package discovery for the sole import namespace `hub_testkit`;
@@ -127,9 +128,10 @@ A lock that is stale relative to project metadata fails package acceptance.
 
 ### `src/hub_testkit/py.typed`
 
-The PEP 561 marker will be added only with typed public package surfaces and a
-selftest proving that the built distribution includes it. Its presence alone
-must never be treated as proof that the package is type-safe.
+The PEP 561 marker is present with a typed public package boundary and a
+source-authored selftest that will verify its installed distribution location.
+Neither file presence nor source review is proof that the package is installed
+or type-safe.
 
 ### `tests/conftest.py`
 

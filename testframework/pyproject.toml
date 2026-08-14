@@ -1,0 +1,70 @@
+[build-system]
+requires = ["hatchling>=1,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "hub-testkit"
+version = "0.1.0"
+description = "Greenfield quality framework for Hub"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "jsonschema>=4,<5",
+  "pydantic>=2,<3",
+]
+
+[dependency-groups]
+framework = [
+  "pytest>=9,<10",
+  "pytest-randomly>=4,<5",
+  "pytest-timeout>=2,<3",
+]
+quality = [
+  "import-linter>=2,<3",
+  "mypy>=2,<3",
+  "ruff>=0.16,<1",
+]
+http = ["httpx>=0.28,<1"]
+contract = ["openapi-spec-validator>=0.7,<1"]
+browser = [
+  "playwright>=1,<2",
+  "pytest-playwright>=0.7,<1",
+]
+load = ["locust>=2,<3"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/hub_testkit"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/README.md",
+  "/pyproject.toml",
+  "/src/hub_testkit",
+]
+
+[tool.pytest.ini_options]
+minversion = "9.0"
+addopts = [
+  "-ra",
+  "--showlocals",
+  "--strict-config",
+  "--strict-markers",
+]
+testpaths = ["selftests", "tests"]
+python_files = ["test_*.py"]
+xfail_strict = true
+filterwarnings = ["error"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["src", "selftests", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "RUF", "UP"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src"]
+
