@@ -1,9 +1,9 @@
 # Terminal Codex: продолжение Hub после Desktop handoff
 
 > **CURRENT BANNER:** This historical terminal text is subordinate to `.continue-here.md`.
-> Contract `a565af26` and plan `a98c7235` are narrowly accepted. The current lifecycle sync is
-> candidate-only pending three exact-SHA reviews; after PASS, Task 1 external RED oracle only is
-> authorized. Production remains forbidden until oracle static reviews PASS.
+> Folder source/oracle `f8cb7643986fc591cae16764575337b72ef3a692` is narrowly static accepted;
+> the 20-path docs candidate awaits three exact-SHA reviews. After PASS, root only freezes and
+> adjudicates `144-03B-Rule`; no Rule TDD or production authorization follows.
 
 > **CONSUMED / HISTORICAL PRE-01A RESUME PROMPT:** не выполняй старое следующее действие из
 > исторического текста ниже. Текущая authority — `.continue-here.md`: `144-03A-Address` уже
@@ -100,4 +100,4 @@ Founder выбрал Option A для всех 209 вопросов; канони
 - Не перезаписывай и не откатывай чужие изменения; при overlap остановись и сообщи.
 
 Заверши каждый этап честным статусом: отдельно static acceptance и отдельно `NOT_READY`/`NOT_RUN`. При любом mismatch, отсутствующем документе, конфликте границ, неявном fallback или ином blocker сообщи его с точными фактами и не импровизируй.
-> **144-03B Folder lifecycle sync (2026-08-14):** historical subordinate to `.continue-here.md`. Contract `a565af2632bc5f76a7d2fe26ebf3065fb3cefba9` / blob `0f9ed0adb0cec6ffa83619cb4c7c4cb4d3f3263c` and plan `a98c7235521852dee1ebc0d09558c7bcbefc4534` / blob `c79658d61e496489be697bc971d0797ed30fb61f` are narrowly `STATIC_ACCEPTED` after independent PASS reviews C/I/M `0/0/0`. The lifecycle sync awaits its own three exact-SHA reviews; only then Task 1 external RED oracle is authorized. Launcher `NOT_READY`, all executable evidence `NOT_RUN`; 04B reparent, 144-01B, Phase 142 and Phase 148 remain blocked. Dispatcher-enforced Terra/medium authorship, Terra/high + Terra/xhigh + Terra/high reviews, no fallback, telemetry `UNKNOWN`.
+> **144-03B Folder post-source lifecycle (2026-08-14):** historical subordinate to `.continue-here.md`. Source/oracle `f8cb7643986fc591cae16764575337b72ef3a692` is `STATIC_ACCEPTED`, static-only, after Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and ABI/Compile-shape Terra/high `EXACT_SHA_PASS` reviews, C/I/M `0/0/0`. The 20-path docs candidate awaits its own three reviews; then root only freezes/adjudicates `144-03B-Rule`. Launcher `NOT_READY`, executable evidence `NOT_RUN`; 04B reparent, 144-01B, Phase 142 and Phase 148 remain blocked. Author Terra/medium, dispatcher-enforced, no fallback, telemetry `UNKNOWN`.

@@ -1,5 +1,15 @@
 # 144-03B Folder Tree Policy Implementation Plan
 
+> **Current Task 4 authority (2026-08-14):** Task 1 through Task 3 instructions below are
+> `CONSUMED/HISTORICAL`. Source/oracle commit `f8cb7643986fc591cae16764575337b72ef3a692`
+> (parent `32e3dcb5b4f7ae65a88b79781646d25726ae16c6`, tree
+> `14e7f6ce9a0f4b7912b955515d122c411159c579`) is narrowly `STATIC_ACCEPTED`, static-only,
+> after three exact-SHA PASS reviews C/I/M `0/0/0`. The Task 4 candidate is exactly 20 paths:
+> 16 existing paths from literal Step 1 discovery, plus three existing stale-gate implementation
+> evidence documents, plus `IMPLEMENTATION-144-03B-FOLDER.md` as one new evidence file. This
+> yields the exact 20-path candidate and creates no product decision. Candidate reviews precede only root
+> freeze/adjudication of `144-03B-Rule`; no Rule TDD or production authorization.
+
 > For agentic workers: REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 ## Goal
@@ -17,7 +27,7 @@ Go 1.25; `github.com/google/uuid v1.6.0`; `golang.org/x/text v0.35.0` using `cas
 ## Global Constraints
 
 - Contract commit `a565af2632bc5f76a7d2fe26ebf3065fb3cefba9` (blob `0f9ed0adb0cec6ffa83619cb4c7c4cb4d3f3263c`) is narrowly `STATIC_ACCEPTED` after three independent exact-SHA reviews PASS with C/I/M `0/0/0`.
-- Plan commit `a98c7235521852dee1ebc0d09558c7bcbefc4534` (blob `c79658d61e496489be697bc971d0797ed30fb61f`) is narrowly `EXACT_SHA_PASS` / `STATIC_ACCEPTED` after exact, security and boundary reviews PASS with C/I/M `0/0/0`. This lifecycle sync is candidate-only pending its own three exact-SHA reviews; Task 1 becomes authorized only after those reviews PASS.
+- Plan commit `a98c7235521852dee1ebc0d09558c7bcbefc4534` (blob `c79658d61e496489be697bc971d0797ed30fb61f`) is narrowly `EXACT_SHA_PASS` / `STATIC_ACCEPTED` after exact, security and boundary reviews PASS with C/I/M `0/0/0`. Folder source+oracle are now statically accepted at `f8cb7643986fc591cae16764575337b72ef3a692`; this exact 20-path docs candidate is pending its own three exact-SHA reviews, after which root only freezes/adjudicates `144-03B-Rule`.
 - The production boundary contains exactly two paths: `backend/tests/mail/folder_tree_test.go` first, then `backend/internal/mail/folder_tree.go`. No dependency, schema, handler, repository, engine, migration, generated, configuration, or additional source change is allowed.
 - Hub identifiers are `uuid.UUID`. Snapshot AccountID, row AccountID/ID, all action IDs, and target IDs reject `uuid.Nil`; only ParentID `uuid.Nil` means root. Engine opaque IDs are mapped to Hub UUID projection rows before either public callable.
 - Snapshot input includes every live non-deleted control row, including system and reserved creating/unknown/error/deleting rows. It is bounded to 100 rows. Deleted tombstones are excluded by caller. The separate engine enumeration bound does not alter this pure policy.
@@ -900,6 +910,30 @@ git status --short
 
 Expected: root selects only current lifecycle references returned by this scoped inventory. Historical-only docs and all nonmatching files remain outside this commit.
 
+The discovery command is historical inventory evidence only. The authoritative Task 4 manifest is
+the following literal exact 20-path list, in the accepted contract order and spelling:
+
+1. `.planning/phases/144-mailbox-domain/IMPLEMENTATION-144-03B-FOLDER.md` (new evidence file)
+2. `.planning/STATE.md`
+3. `.planning/decisions/specs/MAIL-SPEC.md`
+4. `.planning/phases/143-calendar-rsvp-core/.continue-here.md`
+5. `.planning/phases/143-calendar-rsvp-core/PREIMPLEMENTATION-READINESS.md`
+6. `.planning/phases/143-calendar-rsvp-core/TERMINAL-RESUME-PROMPT-RU.md`
+7. `.planning/phases/144-mailbox-domain/DISPATCH-INDEX.md`
+8. `.planning/phases/144-mailbox-domain/DISPATCH-REMAINING.md`
+9. `.planning/phases/144-mailbox-domain/IMPLEMENTATION-144-01A.md`
+10. `.planning/phases/144-mailbox-domain/IMPLEMENTATION-144-03A-ADDRESS.md`
+11. `.planning/phases/144-mailbox-domain/IMPLEMENTATION-144-03A-THREAD.md`
+12. `.planning/phases/144-mailbox-domain/PLAN.md`
+13. `.planning/phases/148-mail-release-gate/GATE-MATRIX.md`
+14. `docs/mail/CONTRACT-CHANGELOG.md`
+15. `docs/mail/ENGINE-CONTRACT-0.1.8.md`
+16. `docs/mail/PERSISTENCE-CONTRACT-0.1.8.md`
+17. `docs/mail/QA-HANDOFF.md`
+18. `docs/mail/openapi.yaml`
+19. `.planning/phases/144-mailbox-domain/CONTRACT-144-03B-FOLDER.md`
+20. `.planning/phases/144-mailbox-domain/PLAN-144-03B-FOLDER.md`
+
 - [ ] **Step 2: Write evidence with exact static facts and preserved blockers.**
 
 ```markdown
@@ -945,7 +979,7 @@ git diff-tree --no-commit-id --name-only -r HEAD
 git rev-parse HEAD
 ```
 
-Route Lifecycle/Evidence `gpt-5.6-terra/high`, Security/Dependency `gpt-5.6-terra/xhigh`, and Exact/Boundary `gpt-5.6-terra/high`. Each reviewer compares the full `git diff-tree` name-only output with the literal selected docs manifest from Task 4 Step 1, then inspects the full `git diff HEAD^ HEAD` content; no reviewer filters to the evidence file alone. Every dispatch explicitly uses model `gpt-5.6-terra`, its stated effort, no fallback, `dispatcher-enforced` and telemetry `UNKNOWN` unless exposed. Until those three exact-SHA reviews complete, the docs commit stays a candidate; the already `STATIC_ACCEPTED` source/oracle boundary and `NOT_READY`/`NOT_RUN` runtime truth do not change.
+Route Lifecycle/Evidence `gpt-5.6-terra/high`, Security/Dependency `gpt-5.6-terra/xhigh`, and Exact/Boundary `gpt-5.6-terra/high`. Each reviewer compares the full `git diff-tree` name-only output with the literal exact 20-path manifest in Task 4 Step 1, then inspects the full `git diff HEAD^ HEAD` content; no reviewer filters to the evidence file alone. Every dispatch explicitly uses model `gpt-5.6-terra`, its stated effort, no fallback, `dispatcher-enforced` and telemetry `UNKNOWN` unless exposed. Until those three exact-SHA reviews complete, the docs commit stays a candidate; the already `STATIC_ACCEPTED` source/oracle boundary and `NOT_READY`/`NOT_RUN` runtime truth do not change.
 
 ## Self-review checklist
 

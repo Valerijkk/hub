@@ -1850,9 +1850,11 @@ entry-only amendment: it neither revokes the `144-03A-Address` `STATIC_ACCEPTED`
 `41564d00` and now narrowly accepts Thread implementation at exact 19-path commit
 `9903f4df3e5ca8034ea3f043b0386170e83a5101` / `EXACT_SHA_PASS` (source `c221d547`, oracle
 `b21bd6fd`, C/I/M `0/0/0`). This is static-only and preserves contract acceptance `cbc12577`.
-The 144-03B Folder contract and plan are accepted; this lifecycle sync needs three exact-SHA PASS
-reviews before Task 1 external RED oracle. Production source remains forbidden until that oracle's
-static reviews PASS. Actual telemetry is `UNKNOWN` unless exposed. It does not authorize
+Folder source+oracle are narrowly `STATIC_ACCEPTED` at `f8cb7643986fc591cae16764575337b72ef3a692`
+(source blob `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b`, oracle blob
+`efe0db0071cb22ce4b026c635157f0fb08885d64`, C/I/M `0/0/0`), static only. Its exact 20-path docs
+candidate awaits its own three exact-SHA reviews; after PASS, root only freezes/adjudicates
+`144-03B-Rule`. Actual telemetry is `UNKNOWN` unless exposed. It does not authorize
 schemas, generation, migration, runtime or a version bump. 144-01B, Phase 142/148 and 144-02B
 remain pending; launcher is `NOT_READY` and runtime is `NOT_RUN`.
 
@@ -1952,4 +1954,4 @@ rekey and dual-read plan. Fallback returns `ThreadKeyVersionV1`; storage/equalit
 versioned `(thread_key_version, thread_key)` tuple. An accepted ancestor returns its exact V1
 version+key and never hashes it again; the three existing preimages already contain version
 octet `01` and their SHA literals remain unchanged.
-> **144-03B Folder lifecycle sync (2026-08-14):** contract `a565af2632bc5f76a7d2fe26ebf3065fb3cefba9` / blob `0f9ed0adb0cec6ffa83619cb4c7c4cb4d3f3263c` is narrowly `STATIC_ACCEPTED`; plan `a98c7235521852dee1ebc0d09558c7bcbefc4534` / blob `c79658d61e496489be697bc971d0797ed30fb61f` is narrowly `EXACT_SHA_PASS` / `STATIC_ACCEPTED`, each after three independent reviews PASS C/I/M `0/0/0`. This docs-only sync is candidate-only pending its own three exact-SHA reviews; then Task 1 only creates external `backend/tests/mail/folder_tree_test.go` RED oracle via fresh Terra/xhigh/no fallback. Production `backend/internal/mail/folder_tree.go` remains forbidden until its oracle static reviews PASS. Launcher `NOT_READY`; all executable evidence `NOT_RUN`; 04B reparent, 144-01B, Phase 142 and Phase 148 remain blocked. Provenance dispatcher-enforced; authors Terra/medium, reviews Terra/high + Terra/xhigh + Terra/high, fallback none, telemetry `UNKNOWN`.
+> **144-03B Folder post-source lifecycle (2026-08-14):** source/oracle commit `f8cb7643986fc591cae16764575337b72ef3a692` (parent `32e3dcb5b4f7ae65a88b79781646d25726ae16c6`, tree `14e7f6ce9a0f4b7912b955515d122c411159c579`) is narrowly `STATIC_ACCEPTED`, static-only, with exactly `backend/internal/mail/folder_tree.go` blob `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b` and `backend/tests/mail/folder_tree_test.go` blob `efe0db0071cb22ce4b026c635157f0fb08885d64`. Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and ABI/Compile-shape Terra/high exact-SHA reviews are `EXACT_SHA_PASS`, C/I/M `0/0/0`. This exact 20-path docs candidate (the frozen prior 19-path lifecycle manifest plus its new evidence file, including the three stale-gate evidence documents) awaits its own Lifecycle/Evidence high, Security/Dependency xhigh and Exact/Boundary high exact-SHA reviews. Launcher `NOT_READY`; compile, unit, race, build, lint, validators, Docker and runtime `NOT_RUN`; 04B reparent, 144-01B, Phase 142 and Phase 148 remain blocked. Author provenance Terra/medium, `dispatcher-enforced`, no fallback, telemetry `UNKNOWN`. After candidate reviews PASS, root only freezes/adjudicates `144-03B-Rule`; no Rule TDD or production authorization.

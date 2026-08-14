@@ -7,13 +7,18 @@
 
 ## Scope and next gate
 
-This is an accepted docs-only contract for future `backend/internal/mail/folder_tree.go` and external `backend/tests/mail/folder_tree_test.go`. It makes no product, schema, handler, migration, repository, engine, or runtime claim. Thread remains `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS` and is not changed by this acceptance.
+This is an accepted docs-only ABI contract. Its separately accepted source+oracle boundary is
+`f8cb7643986fc591cae16764575337b72ef3a692` (source `backend/internal/mail/folder_tree.go` blob
+`3044055e1c5f6ff897fc646f4380d5a5a5be1b4b`, oracle `backend/tests/mail/folder_tree_test.go` blob
+`efe0db0071cb22ce4b026c635157f0fb08885d64`), narrowly `STATIC_ACCEPTED` / `EXACT_SHA_PASS`,
+C/I/M `0/0/0`, static only. It makes no product, schema, handler, migration, repository, engine,
+or runtime claim. Thread remains `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS` and is not changed by this acceptance.
 
-The accepted plan is `a98c7235521852dee1ebc0d09558c7bcbefc4534` / blob `c79658d61e496489be697bc971d0797ed30fb61f`, narrowly `EXACT_SHA_PASS` / `STATIC_ACCEPTED` after exact, security and boundary reviews PASS, C/I/M `0/0/0`. This docs-only lifecycle sync is still a candidate pending its own three exact-SHA reviews; Task 1 authorization becomes effective only after they PASS. The exact next action then is Task 1 only: create external `backend/tests/mail/folder_tree_test.go` RED oracle through fresh `gpt-5.6-terra` / `xhigh`, no fallback. `backend/internal/mail/folder_tree.go` remains forbidden until Task 1 oracle static reviews PASS. The runner is `NOT_READY`; Docker, tests, build, lint and validators remain `NOT_RUN`.
+The accepted plan is `a98c7235521852dee1ebc0d09558c7bcbefc4534` / blob `c79658d61e496489be697bc971d0797ed30fb61f`, narrowly `EXACT_SHA_PASS` / `STATIC_ACCEPTED` after exact, security and boundary reviews PASS, C/I/M `0/0/0`. This exact 20-path docs candidate remains pending its own Lifecycle/Evidence high, Security/Dependency xhigh and Exact/Boundary high exact-SHA reviews. After they PASS, the exact next action is root-only freeze/adjudication of the `144-03B-Rule` typed rule-compiler callable/error/escaping/oracle contract; no Rule TDD or production authorization follows. The runner is `NOT_READY`; Docker, tests, build, lint and validators remain `NOT_RUN`.
 
-## Frozen future Go ABI
+## Frozen Go ABI
 
-Only the following exported Folder-tree ABI may be introduced by the later accepted packet; there is no custom role literal and no additional public API:
+The accepted source exposes only the following frozen Folder-tree ABI; there is no custom role literal and no additional public API:
 
 ```go
 import (
@@ -138,32 +143,33 @@ Evaluate validates O(1) union shape, then the complete current snapshot (includi
 
 Precedence is fixed: union shape; complete current snapshot (scope/count/raw bounds, per-row semantic+name, duplicate ID, duplicate system role, self, missing/foreign unavailable, cycles, depth, custom collision); for Create: nonzero ID, raw candidate byte bound, capacity, then remaining name semantics/parent/depth/collision; for rename/reparent/delete: exact nonzero target lookup, system target before action name/parent/reference/children semantics, then custom action-field validation and prospective overlay. Create has no target and is custom. Delete system_role precedes in_use.
 
-## Wire amendment and future oracle
+## Wire amendment and accepted oracle scope
 
 OpenAPI remains flat ordered items. `MailFolder` requires nullable `parent_id` and `role`; its response name has minLength 1. Wording distinguishes live-slot quota. POST/PATCH/DELETE expose 400 through the existing generic `Error` response and 404 through `NotFound`; POST parent-unavailable is 404, PATCH/DELETE target-unavailable is 404. After nondisclosing target resolution and system-role guard, only a resolved custom PATCH target's supplied `parent_id` is temporarily rejected with 409 TREE_CONFLICT before receipt or engine I/O until port acceptance; a missing target is 404 and a system target is SYSTEM_ROLE. Create and mutation 409 vocab gain `MAIL_FOLDER_TREE_CONFLICT` for self/cycle/depth: existing name conflict remains 409, system/in-use remain existing 409, limit is 422, invalid/too-large are 400, and duplicate/account mismatch projection is degraded/internal. Evaluate may cover reparent, but 04B remains blocked. Color/sort are outside this structural packet.
 
-Future external-package oracle uses reflection for exact UUID fields/types, literals and callables and proves no extra public API or custom role. It covers literal errors/sentinels/nil, zero account/ID/target versus zero-root-parent, raw and post-fold names (whitespace-only, NFC, Straße/STRASSE, sigma, fold expansion, empty-or-over-480-byte postfold key), 0/100/101 slots and delete-not-freeing, Create zero ID at 100 => invalid, nonzero ID at 100 with >480 raw bytes => too_large, nonzero ID at 100 with malformed <=480-byte name => limit_exceeded, mixed account/UUIDs, duplicate ID/role, root depth 0..2/depth 3, self, cycles/subtree reparent, custom collisions/system-name coexistence, all system mutations (system before name/parent/reference/children and delete before in_use), invalid union, same-name rename, exact UUID raw-byte ordering, no mutation/alias/partial, and static source purity. Fixtures use only reserved synthetic UUIDs/names.
+The accepted external-package oracle uses reflection for exact UUID fields/types, literals and callables and proves no extra public API or custom role. It covers literal errors/sentinels/nil, zero account/ID/target versus zero-root-parent, raw and post-fold names (whitespace-only, NFC, Straße/STRASSE, sigma, fold expansion, empty-or-over-480-byte postfold key), 0/100/101 slots and delete-not-freeing, Create zero ID at 100 => invalid, nonzero ID at 100 with >480 raw bytes => too_large, nonzero ID at 100 with malformed <=480-byte name => limit_exceeded, mixed account/UUIDs, duplicate ID/role, root depth 0..2/depth 3, self, cycles/subtree reparent, custom collisions/system-name coexistence, all system mutations (system before name/parent/reference/children and delete before in_use), invalid union, same-name rename, exact UUID raw-byte ordering, no mutation/alias/partial, and static source purity. Fixtures use only reserved synthetic UUIDs/names.
 
-## Exact 19-path lifecycle-sync manifest
+## Exact 20-path post-source docs candidate manifest
 
-1. `.planning/STATE.md`
-2. `.planning/decisions/specs/MAIL-SPEC.md`
-3. `.planning/phases/143-calendar-rsvp-core/.continue-here.md`
-4. `.planning/phases/143-calendar-rsvp-core/PREIMPLEMENTATION-READINESS.md`
-5. `.planning/phases/143-calendar-rsvp-core/TERMINAL-RESUME-PROMPT-RU.md`
-6. `.planning/phases/144-mailbox-domain/DISPATCH-INDEX.md`
-7. `.planning/phases/144-mailbox-domain/DISPATCH-REMAINING.md`
-8. `.planning/phases/144-mailbox-domain/IMPLEMENTATION-144-01A.md`
-9. `.planning/phases/144-mailbox-domain/IMPLEMENTATION-144-03A-ADDRESS.md`
-10. `.planning/phases/144-mailbox-domain/IMPLEMENTATION-144-03A-THREAD.md`
-11. `.planning/phases/144-mailbox-domain/PLAN.md`
-12. `.planning/phases/148-mail-release-gate/GATE-MATRIX.md`
-13. `docs/mail/CONTRACT-CHANGELOG.md`
-14. `docs/mail/ENGINE-CONTRACT-0.1.8.md`
-15. `docs/mail/PERSISTENCE-CONTRACT-0.1.8.md`
-16. `docs/mail/QA-HANDOFF.md`
-17. `docs/mail/openapi.yaml`
-18. `.planning/phases/144-mailbox-domain/CONTRACT-144-03B-FOLDER.md`
-19. `.planning/phases/144-mailbox-domain/PLAN-144-03B-FOLDER.md`
+1. `.planning/phases/144-mailbox-domain/IMPLEMENTATION-144-03B-FOLDER.md` (new evidence file)
+2. `.planning/STATE.md`
+3. `.planning/decisions/specs/MAIL-SPEC.md`
+4. `.planning/phases/143-calendar-rsvp-core/.continue-here.md`
+5. `.planning/phases/143-calendar-rsvp-core/PREIMPLEMENTATION-READINESS.md`
+6. `.planning/phases/143-calendar-rsvp-core/TERMINAL-RESUME-PROMPT-RU.md`
+7. `.planning/phases/144-mailbox-domain/DISPATCH-INDEX.md`
+8. `.planning/phases/144-mailbox-domain/DISPATCH-REMAINING.md`
+9. `.planning/phases/144-mailbox-domain/IMPLEMENTATION-144-01A.md`
+10. `.planning/phases/144-mailbox-domain/IMPLEMENTATION-144-03A-ADDRESS.md`
+11. `.planning/phases/144-mailbox-domain/IMPLEMENTATION-144-03A-THREAD.md`
+12. `.planning/phases/144-mailbox-domain/PLAN.md`
+13. `.planning/phases/148-mail-release-gate/GATE-MATRIX.md`
+14. `docs/mail/CONTRACT-CHANGELOG.md`
+15. `docs/mail/ENGINE-CONTRACT-0.1.8.md`
+16. `docs/mail/PERSISTENCE-CONTRACT-0.1.8.md`
+17. `docs/mail/QA-HANDOFF.md`
+18. `docs/mail/openapi.yaml`
+19. `.planning/phases/144-mailbox-domain/CONTRACT-144-03B-FOLDER.md`
+20. `.planning/phases/144-mailbox-domain/PLAN-144-03B-FOLDER.md`
 
-Facts in this file are current lifecycle/commit/provenance facts. The ABI, policy, wire and oracle paragraphs are narrowly accepted static contract, not product or executable acceptance.
+Step 1 literal discovery found 16 existing paths. Adding the three existing stale-gate implementation evidence documents yields the frozen 19 existing paths; adding this one new evidence file yields this exact 20-path candidate. This bounded lifecycle inventory does not create a product decision. Facts in this file are current lifecycle/commit/provenance facts. The ABI, policy, wire and oracle paragraphs are narrowly accepted static contract, not product or executable acceptance.

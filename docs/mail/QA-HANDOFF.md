@@ -729,11 +729,15 @@ oracles, not current executable evidence.
   participants are closed email-only objects with unique 1..401 items; pages/details stop before
   8 MiB with whole items only.
 
-These are future required oracles for the statically accepted callable/encoding/oracle contract.
-The exact 19-path candidate is narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`.
-Thread implementation/test are narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`; Folder contract `a565af26` and plan `a98c7235` are accepted, while lifecycle-sync reviews gate Task 1 external RED oracle. Production remains forbidden until its oracle static reviews PASS. Launcher remains `NOT_READY` and runtime `NOT_RUN`.
+These remain non-executable required oracle scenarios. The exact 19-path Thread candidate is narrowly
+`STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`. Thread implementation/test are narrowly
+`STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`; Folder source+oracle are narrowly
+`STATIC_ACCEPTED` at `f8cb7643986fc591cae16764575337b72ef3a692` (source
+`3044055e1c5f6ff897fc646f4380d5a5a5be1b4b`, oracle `efe0db0071cb22ce4b026c635157f0fb08885d64`,
+C/I/M `0/0/0`), static only. Its exact 20-path docs candidate reviews precede root-only
+`144-03B-Rule` contract freeze; launcher remains `NOT_READY` and runtime `NOT_RUN`.
 
-### 144-03B Folder static-contract scenarios (not implemented or run)
+### 144-03B Folder static-accepted source/oracle scenarios (executable evidence NOT_RUN)
 
 - Reflection must prove the exact UUID-only Folder ABI, all 13 error literals/sentinels and
   pointer `FolderPolicyError` methods, no custom role or extra public API. Zero account/ID/
@@ -767,7 +771,7 @@ Thread implementation/test are narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT
   `STATIC_ACCEPTED` at `e3e8c774d734f926f77f8e600b58dc68dabbd993`. Broader Phase 142/
   cross-contract and Phase 148 cross-discipline review remain pending. Historical 0.1.7
   review evidence is stale for its engine/API/persistence changes.
-- Therefore this handoff remains a contract deliverable only. The narrow entry amendment and
-  static packet acceptance must not be converted into a global or executable PASS claim until
-  supported current-SHA executable evidence exists.
-> **144-03B Folder lifecycle sync:** contract `a565af2632bc5f76a7d2fe26ebf3065fb3cefba9` / blob `0f9ed0adb0cec6ffa83619cb4c7c4cb4d3f3263c` and plan `a98c7235521852dee1ebc0d09558c7bcbefc4534` / blob `c79658d61e496489be697bc971d0797ed30fb61f` are narrowly `STATIC_ACCEPTED` after independent PASS reviews C/I/M `0/0/0`. This docs-only sync awaits its own three exact-SHA reviews; only then Task 1 external RED oracle is authorized. Production source remains forbidden until oracle reviews PASS; launcher `NOT_READY`, executable evidence `NOT_RUN`, and 04B/144-01B/Phase 142/148 blockers remain. Dispatcher-enforced, authors Terra/medium, reviews Terra/high + Terra/xhigh + Terra/high, no fallback, telemetry `UNKNOWN`.
+- Therefore this handoff is static-only: contract plus accepted source/oracle evidence. It must
+  not become a global, product or executable PASS claim until supported current-SHA evidence and
+  the remaining gates close.
+> **144-03B Folder post-source lifecycle (2026-08-14):** source/oracle commit `f8cb7643986fc591cae16764575337b72ef3a692` (parent `32e3dcb5b4f7ae65a88b79781646d25726ae16c6`, tree `14e7f6ce9a0f4b7912b955515d122c411159c579`) is narrowly `STATIC_ACCEPTED`, static-only, with exactly `backend/internal/mail/folder_tree.go` blob `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b` and `backend/tests/mail/folder_tree_test.go` blob `efe0db0071cb22ce4b026c635157f0fb08885d64`. Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and ABI/Compile-shape Terra/high exact-SHA reviews are `EXACT_SHA_PASS`, C/I/M `0/0/0`. This exact 20-path docs candidate (the frozen prior 19-path lifecycle manifest plus its new evidence file, including the three stale-gate evidence documents) awaits its own Lifecycle/Evidence high, Security/Dependency xhigh and Exact/Boundary high exact-SHA reviews. Launcher `NOT_READY`; compile, unit, race, build, lint, validators, Docker and runtime `NOT_RUN`; 04B reparent, 144-01B, Phase 142 and Phase 148 remain blocked. Author provenance Terra/medium, `dispatcher-enforced`, no fallback, telemetry `UNKNOWN`. After candidate reviews PASS, root only freezes/adjudicates `144-03B-Rule`; no Rule TDD or production authorization.

@@ -1,6 +1,18 @@
 # Hub Mail contract changelog
 
+> **Current 144-03B authority (2026-08-14):** earlier Folder lifecycle-gate wording below is
+> `CONSUMED/HISTORICAL`. Source/oracle commit `f8cb7643986fc591cae16764575337b72ef3a692`
+> (parent `32e3dcb5b4f7ae65a88b79781646d25726ae16c6`, tree
+> `14e7f6ce9a0f4b7912b955515d122c411159c579`) is narrowly `STATIC_ACCEPTED`, static-only,
+> with source blob `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b` and oracle blob
+> `efe0db0071cb22ce4b026c635157f0fb08885d64`, after three `EXACT_SHA_PASS` reviews C/I/M
+> `0/0/0`. The exact 20-path docs candidate awaits reviews; then root only freezes/adjudicates
+> `144-03B-Rule`, with no Rule TDD or production authorization. Runner `NOT_READY`; all
+> executable evidence `NOT_RUN`.
+
 ## 144-03B Folder lifecycle sync candidate — 2026-08-14
+
+> **CONSUMED / HISTORICAL PRE-SOURCE:** this preserved entry is superseded by the current 144-03B authority banner above.
 
 Contract `a565af2632bc5f76a7d2fe26ebf3065fb3cefba9` (blob
 `0f9ed0adb0cec6ffa83619cb4c7c4cb4d3f3263c`) is narrowly `STATIC_ACCEPTED` after three

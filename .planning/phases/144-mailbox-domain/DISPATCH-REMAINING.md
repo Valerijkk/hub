@@ -156,7 +156,7 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 
 ## 144-03A-Thread — thread identity
 
-> **Accepted exact boundary:** implementation+oracle are narrowly `STATIC_ACCEPTED` at `9903f4df3e5ca8034ea3f043b0386170e83a5101` / `EXACT_SHA_PASS` (parent `73060a4b`, tree `b73f23b`, exact 19 paths, source `c221d547`, oracle `b21bd6fd`, reviews C/I/M `0/0/0`). This is static only. Folder contract `a565af26` and plan `a98c7235` are accepted; lifecycle-sync reviews gate Task 1 external RED oracle, and production remains forbidden until that oracle's static reviews PASS.
+> **Accepted exact boundary:** implementation+oracle are narrowly `STATIC_ACCEPTED` at `9903f4df3e5ca8034ea3f043b0386170e83a5101` / `EXACT_SHA_PASS` (parent `73060a4b`, tree `b73f23b`, exact 19 paths, source `c221d547`, oracle `b21bd6fd`, reviews C/I/M `0/0/0`). This is static only. Folder source+oracle are likewise narrowly `STATIC_ACCEPTED` at `f8cb7643986fc591cae16764575337b72ef3a692` (source `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b`, oracle `efe0db0071cb22ce4b026c635157f0fb08885d64`, C/I/M `0/0/0`); their exact 20-path docs candidate reviews precede root-only Rule contract freeze.
 
 - Dependency: 03A-Address is `STATIC_ACCEPTED` at
   `41564d003946ddb78df18efca166ca86e4055405`, but dependencies are necessary and not
@@ -184,21 +184,27 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 
 ## 144-03B-Folder — folder tree policy
 
-- Dependency: 01A. Allowed only `folder_tree.go`, `backend/tests/mail/folder_tree_test.go`.
-- Candidate behavior/oracles only: Hub admission has at most 100 live non-deleted control slots
+- Accepted exact two-path source+oracle boundary: `f8cb7643986fc591cae16764575337b72ef3a692` /
+  `EXACT_SHA_PASS`, static-only (source `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b`, oracle
+  `efe0db0071cb22ce4b026c635157f0fb08885d64`, C/I/M `0/0/0`). Its docs candidate awaits three
+  exact-SHA reviews; after PASS root only freezes/adjudicates `144-03B-Rule`.
+- Static behavior/oracle summary: Hub admission has at most 100 live non-deleted control slots
   including system/reserved states, separate from <=100 engine-backed enumeration; depth ≤2,
   no cycle/self-parent/cross-account parent; system role cannot rename/reparent/delete and
   create is custom; UUID-only policy receives projection-mapped Hub rows, normalized sibling
-  collision and deterministic ordering; no engine call or Folder TDD before acceptance.
+  collision and deterministic ordering; no engine call or executable evidence acceptance.
 
 ## 144-03B-Rule — typed rule compiler
 
-- Dependency: accepted 03B-Folder. Allowed only
-  `rule_compiler.go`, `backend/tests/mail/rule_compiler_test.go`.
-- Behavior/oracles: frozen conjunction conditions/actions only; escape all literals;
-  folder target resolves engine folder; mark-read native; add-label accepts only server-
-  resolved opaque engine keyword (never name/UUID); priority/order deterministic; raw Sieve/new action/
-  nesting/bounds rejected; injection fixtures cannot add commands.
+- Future frozen-boundary proposal only; accepted 03B-Folder is necessary but not sufficient.
+  The callable/error/escaping/oracle contract and plan must be root-frozen and independently
+  accepted before any RED oracle, production/test authoring or dispatch; this section does not
+  authorize Rule code.
+- A future accepted boundary may name only `rule_compiler.go` and
+  `backend/tests/mail/rule_compiler_test.go`, with frozen conjunction conditions/actions, escaped
+  literals, engine-folder target resolution, native mark-read, server-resolved opaque engine
+  keywords (never name/UUID), deterministic priority/order, and rejection of raw Sieve/new
+  action/nesting/bounds and command-injection fixtures.
 
 ## 144-03C-Send — rate/recipient/loop policy
 
@@ -679,4 +685,4 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   Resend untouched, bodies/keys absent from persistence, `mail.>` present once and webhook
   list unchanged; record current SHA and all Docker/test/build/generation statuses honestly.
   Must request independent Terra review; cannot mark runtime PASS from static review.
-> **144-03B Folder lifecycle sync (2026-08-14):** contract `a565af2632bc5f76a7d2fe26ebf3065fb3cefba9` / blob `0f9ed0adb0cec6ffa83619cb4c7c4cb4d3f3263c` is narrowly `STATIC_ACCEPTED`; plan `a98c7235521852dee1ebc0d09558c7bcbefc4534` / blob `c79658d61e496489be697bc971d0797ed30fb61f` is narrowly `EXACT_SHA_PASS` / `STATIC_ACCEPTED`, each after three independent reviews PASS C/I/M `0/0/0`. This docs-only sync is candidate-only pending its own three exact-SHA reviews; then Task 1 only creates external `backend/tests/mail/folder_tree_test.go` RED oracle via fresh Terra/xhigh/no fallback. Production `backend/internal/mail/folder_tree.go` remains forbidden until its oracle static reviews PASS. Launcher `NOT_READY`; all executable evidence `NOT_RUN`; 04B reparent, 144-01B, Phase 142 and Phase 148 remain blocked. Provenance dispatcher-enforced; authors Terra/medium, reviews Terra/high + Terra/xhigh + Terra/high, fallback none, telemetry `UNKNOWN`.
+> **144-03B Folder post-source lifecycle (2026-08-14):** source/oracle commit `f8cb7643986fc591cae16764575337b72ef3a692` (parent `32e3dcb5b4f7ae65a88b79781646d25726ae16c6`, tree `14e7f6ce9a0f4b7912b955515d122c411159c579`) is narrowly `STATIC_ACCEPTED`, static-only, with exactly `backend/internal/mail/folder_tree.go` blob `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b` and `backend/tests/mail/folder_tree_test.go` blob `efe0db0071cb22ce4b026c635157f0fb08885d64`. Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and ABI/Compile-shape Terra/high exact-SHA reviews are `EXACT_SHA_PASS`, C/I/M `0/0/0`. This exact 20-path docs candidate (the frozen prior 19-path lifecycle manifest plus its new evidence file, including the three stale-gate evidence documents) awaits its own Lifecycle/Evidence high, Security/Dependency xhigh and Exact/Boundary high exact-SHA reviews. Launcher `NOT_READY`; compile, unit, race, build, lint, validators, Docker and runtime `NOT_RUN`; 04B reparent, 144-01B, Phase 142 and Phase 148 remain blocked. Author provenance Terra/medium, `dispatcher-enforced`, no fallback, telemetry `UNKNOWN`. After candidate reviews PASS, root only freezes/adjudicates `144-03B-Rule`; no Rule TDD or production authorization.
