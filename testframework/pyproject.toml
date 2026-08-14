@@ -67,4 +67,3 @@ select = ["E", "F", "I", "N", "RUF", "UP"]
 python_version = "3.12"
 strict = true
 files = ["src"]
-
