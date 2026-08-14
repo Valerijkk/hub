@@ -157,7 +157,7 @@ limits. Host используется лишь для чтения/редакт�
 
 ---
 
-## Текущий статус (2026-08-08)
+## Текущий статус (2026-08-14)
 
 > July Rebuild planning · LiveKit канон · метрики ниже = baseline master (без регрессии).
 >
@@ -178,7 +178,7 @@ limits. Host используется лишь для чтения/редакт�
 | Волна 1 (roadmap 2026-07-03) | ✅ merged to `master` by user 2026-07-11 |
 | July Rebuild / QA-HARDENING | 📋 planning · kickoff ~конец июля |
 | AI quality layer / GSD / portable kit | **Touchstone** `0.4.0-beta.3` foundation-ready pre-release · workflow contracts `30f75a25` · `STRUCTURAL_PASS` · paired eval **NOT_RUN** |
-| Test architecture rebase (Ph 128–141) | 🚧 Phase 128 IN PROGRESS · TASK-202 archived/verified · TASK-203 + TASK-224 baselines closed · TASK-204 independent verification pending · no tests moved |
+| Test architecture rebase (Ph 128–141) | 🚧 **CURRENT RECOVERY TRUTH (2026-08-14):** Option A preserves bulk commits `794ae3cc`/`7b5d5501`, but Phase 129 is `RECOVERY_BLOCKED`: `STATIC_PATH_MAPPING=PASS`, `CUTOVER_ACCEPTANCE=FAIL/BLOCKED`; 241 legacy deletions are only staged/uncommitted and no runtime evidence exists. See `.planning/audits/test-rebase/RECOVERY-OPTION-A-2026-08-14.md`. |
 
 ### Метрики качества
 
@@ -206,7 +206,7 @@ limits. Host используется лишь для чтения/редакт�
 | Wave C final audit FA-01–FA-12 | ✅ COMPLETE (кроме FA-06 manual) |
 | FA-10 e2e-smoke | ✅ 3/3 PASS |
 | PG-03 Secret rotation (FA-06) | ⏳ manual ops — **отдельный ops-блокер production cutover; не индикатор готовности MVP** |
-| Test-rebase Phase 128 | 🚧 TASK-202 archived/verified; TASK-203 historical baseline + TASK-224 E2E baseline closed (**48 pass / 5 expected skip / 0 fail**); TASK-204 verification pending |
+| Test-rebase Phase 128/129 | 🚧 historical TASK-202/203/224/204 evidence remains archival; current Phase 129 cutover is `RECOVERY_BLOCKED` pending independent recovery review, successor authority, ordered deletion handling, CI binding, package/runner implementation and Docker-only runtime |
 | Merge Волна 1 → master | ✅ user merged 2026-07-11 |
 | July return / CAL-SYNC / QA-HARDENING / Redesign | 📋 planning → kickoff ~конец июля |
 | AI-layer prompt research / paired pilot / portable release | ⏳ `0.4.0-beta.3` on Hub + Desktop, `STRUCTURAL_PASS`; paired effectiveness/ROI eval NOT_RUN |
@@ -259,4 +259,4 @@ limits. Host используется лишь для чтения/редакт�
 
 ---
 
-*Обновлено: 2026-08-08 — executable cutover waves, current TASK-202 archive/counts, Touchstone beta.2 pre-release*
+*Обновлено: 2026-08-14 — Option A preserves bulk commits `794ae3cc`/`7b5d5501`; Phase 129 is `RECOVERY_BLOCKED`, 241 legacy deletions remain staged/uncommitted, runtime `NOT_RUN`.*

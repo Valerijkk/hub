@@ -9,6 +9,29 @@ verified_at: null
 
 # Phase 128 test-rebase guard verification
 
+> **Current recovery truth (2026-08-14):** this file retains historical
+> TASK-204 evidence below. It does not accept the present Phase 129 cutover.
+> `STATIC_PATH_MAPPING=PASS`; `CUTOVER_ACCEPTANCE=FAIL/BLOCKED`;
+> `PHASE_129=RECOVERY_BLOCKED`; `LAUNCHER=NOT_READY`; and
+> `POST_CUTOVER_RUNTIME=NOT_RUN`. The immutable v1 manifest remains all
+> `planned` with no receipts or independent batch verdicts. Read the
+> forward-only Option A record before relying on any historical statement:
+> `RECOVERY-OPTION-A-2026-08-14.md`.
+
+## Independent Option A recovery re-review — ACCEPT (2026-08-14)
+
+W-01 was fixed before a fresh independent re-review. That re-review found no
+`HIGH` or `WARNING` finding and accepts only the recovery observation packet:
+the recorded static path facts, including the 350 backend moves, 157 frontend
+moves, limited 58 render-helper rewrites, 241 staged deletions, and the
+unchanged all-`planned` v1 manifest.
+
+This is not acceptance of a v1 batch, either bulk move, the staged deletion
+set, CI binding, launcher/package readiness, runtime evidence, or Phase 129
+completion. The current statuses remain `CUTOVER_ACCEPTANCE=FAIL/BLOCKED`,
+`PHASE_129=RECOVERY_BLOCKED`, `LAUNCHER=NOT_READY`, and
+`POST_CUTOVER_RUNTIME=NOT_RUN`.
+
 ## Current verdict
 
 **NOT_RUN.** The current guard implementation has not received a fresh run of

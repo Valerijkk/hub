@@ -137,6 +137,16 @@ Live slugs 130-141 follow phase outcomes. Historical snapshots using an old slug
 
 ## 6. Dependency graph
 
+> **Current recovery override (2026-08-14):** founder selected forward-only
+> Option A after the current worktree accumulated bulk moves. The prescribed
+> per-batch execution history was not produced. `STATIC_PATH_MAPPING=PASS`,
+> but `CUTOVER_ACCEPTANCE=FAIL/BLOCKED` and Phase 129 is `RECOVERY_BLOCKED`.
+> The immutable v1 manifest stays `PLANNED_UNCHANGED`; no receipt, verifier
+> verdict, phase completion, or runtime result may be inferred from the bulk
+> commits. The 241 staged legacy deletions must be handled in explicit ordered
+> successor work, never accepted as one bulk deletion. See
+> `../../audits/test-rebase/RECOVERY-OPTION-A-2026-08-14.md`.
+
 ```text
 128 contract/manifests
   -> 129 immediate cutover/scaffold

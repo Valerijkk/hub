@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v4
 milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
-stopped_at: cutover-manifest sealed · independent sign-off and G128-D wrapper pending
-last_updated: "2026-08-13T00:00:00.000Z"
-last_activity: 2026-08-13 · леджер-авторитет ротирован на b9f690da (CRLF-доказательство), три фикса QA-инструментария, cutover-manifest.json запечатан (173 planned батчей) с Docker-evidence GREEN; тесты не перемещались
+stopped_at: Option A recovery packet independently re-reviewed; successor authority is pending and Phase 129 bulk history is not accepted
+last_updated: "2026-08-14T00:00:00.000Z"
+last_activity: 2026-08-14 · independent re-review accepted the Option A recovery observation packet only; successor authority remains pending and Phase 129 remains RECOVERY_BLOCKED
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -132,6 +132,36 @@ spec_coverage:
 ---
 
 # Состояние проекта Hub
+
+## Current recovery truth — 2026-08-14 (supersedes conflicting live-cutover claims above)
+
+Founder selected **Option A**: preserve commits `794ae3cc` and `7b5d5501` and
+reconcile forward only. This is a recovery record, not retroactive acceptance.
+
+| Field | Current status |
+|---|---|
+| `STATIC_PATH_MAPPING` | `PASS` |
+| `CUTOVER_ACCEPTANCE` | `FAIL/BLOCKED` |
+| `PHASE_129` | `RECOVERY_BLOCKED` |
+| `CUTOVER_MANIFEST` | `PLANNED_UNCHANGED` |
+| `BATCH_RECEIPTS` / `INDEPENDENT_BATCH_VERDICTS` | `ABSENT` / `ABSENT` |
+| `129-02_BULK_MOVE` / `129-03_BULK_MOVE` | `OBSERVED_RECOVERY_UNACCEPTED` / `OBSERVED_RECOVERY_UNACCEPTED` |
+| `129-04_DELETE_SET` | `STAGED_UNCOMMITTED_UNACCEPTED` |
+| `CI_ROOT_DISCOVERY` | `UNBOUND` |
+| `LAUNCHER` / `POST_CUTOVER_RUNTIME` | `NOT_READY` / `NOT_RUN` |
+| `RECOVERY_VERIFICATION` | `RECOVERY_VERIFIED_NOT_BATCH_ACCEPTED` |
+
+The immutable v1 `cutover-manifest.json` remains byte-identical with all 173
+batches `planned`; it has no receipts or verifier evidence. The index contains
+241 staged legacy deletions. Staged is not deleted or accepted. No Phase 129
+completion or post-cutover runtime evidence is claimed. Exact observations and
+successor gates are in `audits/test-rebase/RECOVERY-OPTION-A-2026-08-14.md`.
+
+The independent re-review accepted the recovery observation packet after W-01
+was fixed and found no `HIGH` or `WARNING` finding. It accepted no v1 batch,
+bulk move, staged deletion, CI binding, launcher, runtime evidence, or Phase
+129 completion; `CUTOVER_ACCEPTANCE=FAIL/BLOCKED` and
+`PHASE_129=RECOVERY_BLOCKED` remain unchanged.
 
 ## Session note — 2026-08-13 (ротация леджер-авторитета + sealed cutover-manifest)
 
