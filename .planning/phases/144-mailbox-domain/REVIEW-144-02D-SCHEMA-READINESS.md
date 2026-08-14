@@ -2,12 +2,14 @@
 
 > **Detected:** 2026-08-13 root deep static audit
 > **Historical status:** ROOT_CORRECTION_CANDIDATE · INDEPENDENT_CLOSURE_PENDING · IMPLEMENTATION_BLOCKED · RUNTIME_NOT_RUN; superseded by the current corrective packet below.
-> **Current downstream lifecycle (2026-08-14):** 02D retains its narrow docs-only `STATIC_ACCEPTED` at the `7d`/`e563` chain. 02F correction `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus exact 28-doc transition `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract/Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency/Boundary Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed. Former unaccepted/transition-review lifecycle is `CONSUMED/HISTORICAL`. No 02D source/schema/runtime authority changes. Root's sole next action is separately accepting the Rule implementation plan; Rule TDD/production also awaits accepted Phase-145 carrier/G145-5B/G145-5C.
+> **Historical downstream lifecycle (2026-08-14):** 02D retains its narrow docs-only `STATIC_ACCEPTED` at the `7d`/`e563` chain. 02F correction `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus exact 28-doc transition `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract/Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency/Boundary Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed. Former unaccepted/transition-review lifecycle and its Rule-plan acceptance instruction are `CONSUMED/HISTORICAL`. No 02D source/schema/runtime authority changes.
 > **Scope:** `MailUserSettings`, `MailSignature`, `MailRule` and `RecentContact`
 
 > **CONSUMED/HISTORICAL discovery record:** `docs/mail/PERSISTENCE-CONTRACT-0.1.8.md` supplied
 > the root candidate matrix. This former discovery verdict was superseded by the accepted 02F
 > docs/readiness receipt above and does not reopen a review or authorize source/schema/runtime work.
+
+> **Current Rule-plan acceptance:** Standalone `PLAN-144-03B-RULE.md` is docs/plan-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `669ef761715ec35a638bc87d8396e6f562b162c4` (parent `77eb4356de06a5304521b60c57af4e73c5740ce1`, tree `1b554d1c5763818ffef4f3c06c2a5bde16046d37`, sole path, blob `b86c0423a307fd2673a3d322435922aa2a398e8f`); Contract/Spec/Oracle Terra/high, Security/Adversarial/Purity Terra/xhigh, Lifecycle/Dependency/Boundary Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. This accepts only the plan: former Rule-plan author/adjudicate/accept/review/commit instructions are `CONSUMED/HISTORICAL`; no Rule oracle/source/TDD, schema, migration, service, Phase145 carrier, runtime, product, phase or release authority follows. Rule Task 1 RED is `NOT_AUTHORIZED/BLOCKED` until all accepted non-marker Phase145 typed-IR/script carrier, G145-5B, G145-5C and launcher readiness, without implied order; post-task runtime `NOT_RUN`. The Rule-plan acceptance receipt is the documentation sync; it is not a future Rule Task 4. 02D/02F docs-only acceptance, 144-01B Docker blocker, Phase142/148 and release gates, launcher `NOT_READY`, executable tests/build/lint/validators/Docker/runtime `NOT_RUN` remain unchanged.
 
 ## Outcome
 
@@ -108,9 +110,10 @@ Minimum remaining schema decisions:
 
 ## 144-03B Rule dependency clarification
 
-Rule contract is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; acceptance transition/review target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`.
-This 02D review is not closed or accepted by Rule-contract acceptance. Rule TDD/production requires explicit 02D closure, candidate and
-later-plan exact-SHA acceptance, and the separate Phase-145 engine-port carrier.
+The former `f1995465`/`6735ae74` Rule acceptance transition is `CONSUMED/HISTORICAL` and superseded
+by the current `669ef761` sole-plan receipt above. This 02D review is not broadened by Rule-plan
+acceptance. Rule TDD/production remains `NOT_AUTHORIZED/BLOCKED` under the current receipt's stated
+carrier, G145-5B, G145-5C and launcher-readiness prerequisites, without an implied order.
 
 ## Correction-candidate adjudication — 2026-08-14
 
@@ -159,9 +162,10 @@ This accepts only the 144-02D static documentation representation/readiness boun
 no source, Ent schema, generation, migration, service, test/build/lint/validator/Docker/runtime,
 phase, product or release authority. Launcher remains `NOT_READY`; executable evidence `NOT_RUN`.
 The former direct-closure instruction is `CONSUMED/HISTORICAL`. The 144-02F docs/readiness boundary
-at `fcb5b84f` plus `2f4381a2` is separately `STATIC_ACCEPTED` / `EXACT_SHA_PASS`. The active sole
-next action is root's separate Rule-plan authoring/adjudication and independent acceptance. Rule
-TDD/source additionally requires that plan and Phase-145 engine-port/carrier gates G145-5B/G145-5C.
+at `fcb5b84f` plus `2f4381a2` is separately `STATIC_ACCEPTED` / `EXACT_SHA_PASS`. The former
+Rule-plan authoring/adjudication/acceptance instruction is `CONSUMED/HISTORICAL`. Rule TDD/source
+remains `NOT_AUTHORIZED/BLOCKED` under the current receipt's stated carrier, G145-5B, G145-5C and
+launcher-readiness prerequisites, without an implied order.
 
 Historical lifecycle: initial eight-document candidate
 `63e419897aa0683e1d3dfcd442aca78eea1b0727` is `CONSUMED/HISTORICAL`; its 02D RecentContact
@@ -184,5 +188,5 @@ plus this transition record; fresh Contract/Security trace-only rechecks are per
 exact reviews PASS, a separate docs-only 02D `STATIC_ACCEPTED` sync is required. Only then may 02F
 closure reviews start. No source, schema, generation, migration, service or runtime authority is
 granted; launcher stays `NOT_READY` and executable evidence stays `NOT_RUN`.
-> **Current Rule acceptance:** the three Terra routes PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed. Rule contract acceptance does not close this review or authorize schemas.
-> **144-02F sync:** `fcb5b84f` + `2f4381a2` docs/readiness `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; three Terra routes PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Former transition text `CONSUMED/HISTORICAL`; no implementation authority. Root next: accept separate Rule plan only; Rule TDD also awaits Phase-145/G145-5B/G145-5C; 144-01B Docker-blocked, Phase 142/148 pending, launcher `NOT_READY`, executables `NOT_RUN`.
+> **Current Rule acceptance:** the current `669ef761` sole-plan receipt above is the only Rule acceptance; it does not close this review or authorize schemas.
+> **144-02F sync (historical):** `fcb5b84f` + `2f4381a2` docs/readiness `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; three Terra routes PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Former transition text and Rule-plan acceptance instruction are `CONSUMED/HISTORICAL`; no implementation authority. Rule TDD remains `NOT_AUTHORIZED/BLOCKED` under the current receipt's stated prerequisites; 144-01B Docker-blocked, Phase 142/148 pending, launcher `NOT_READY`, executables `NOT_RUN`.

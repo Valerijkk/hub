@@ -1,6 +1,6 @@
 # Mail Control-Plane Schemas Implementation Plan
 
-> **Current upstream lifecycle (2026-08-14):** 144-02F correction `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus exact-28 transition `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract/Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency/Boundary Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. Former lifecycle is `CONSUMED/HISTORICAL`. This plan remains blocked: no source/Ent/generation/migration/service/runtime authority. Root next accepts separate Rule plan only; Rule TDD awaits Phase-145/G145-5B/G145-5C.
+> **Current upstream lifecycle (2026-08-14):** 144-02F correction `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus exact-28 transition `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract/Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency/Boundary Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. Former lifecycle and Rule-plan-next instructions are `CONSUMED/HISTORICAL`. This plan remains blocked: no source/Ent/generation/migration/service/runtime authority. Accepted Rule plan `669ef761` leaves Rule Task 1 `NOT_AUTHORIZED/BLOCKED` pending ALL accepted non-marker Phase145 typed-IR/script carrier + G145-5B + G145-5C + launcher readiness, without implied order; post-task runtime `NOT_RUN`.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use
 > `superpowers:subagent-driven-development` to implement this plan task-by-task. Steps use
@@ -18,8 +18,8 @@ schemas without generating migrations or guessing lifecycle representation.
 > or runtime; founder migration authority, supported task-owned launcher, sequential explicit
 > source dispatch and source-level review remain required. 144-02D is docs-only accepted; the former
 > direct 02F-closure and transition route are `CONSUMED/HISTORICAL`. 02F `fcb5b84f` + `2f4381a2`
-> is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; the sole current next action is
-> separate Rule-plan author/adjudication, not code. Rule TDD also awaits Phase-145/G145-5B/G145-5C.
+> is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; the former Rule-plan-next action is
+> `CONSUMED/HISTORICAL`, not code authority. Accepted Rule plan `669ef761` leaves Task 1 blocked on Phase-145/G145-5B/G145-5C/launcher readiness.
 
 **Architecture:** Three sequential Terra packets keep every intermediate source coherent.
 The first packet adds a provider-neutral validated DNS JSON value. The second adds domain and
@@ -30,7 +30,9 @@ transaction responsibilities.
 
 **Tech Stack:** Go 1.25, Ent v0.14.1, PostgreSQL CHECK/index annotations, standard library.
 
-> **Lifecycle update:** 144-02D retains narrow docs-only acceptance. 144-02F correction `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus exact-28 transition `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; all three Terra routes PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. Former lifecycle is `CONSUMED/HISTORICAL`. This plan grants no source/schema/runtime authority; Phase145/Rule gates remain blocked until the separate Rule plan and Phase145 carrier gates are accepted.
+> **Lifecycle update:** 144-02D retains narrow docs-only acceptance. 144-02F correction `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus exact-28 transition `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; all three Terra routes PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. Former lifecycle is `CONSUMED/HISTORICAL`. This plan grants no source/schema/runtime authority; Rule Task 1 remains `NOT_AUTHORIZED/BLOCKED` pending ALL accepted non-marker Phase145 typed-IR/script carrier + G145-5B + G145-5C + launcher readiness, without implied order; post-task runtime `NOT_RUN`.
+
+> **Current Rule-plan acceptance:** Standalone `PLAN-144-03B-RULE.md` is docs/plan-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `669ef761715ec35a638bc87d8396e6f562b162c4` (parent `77eb4356de06a5304521b60c57af4e73c5740ce1`, tree `1b554d1c5763818ffef4f3c06c2a5bde16046d37`, sole path, blob `b86c0423a307fd2673a3d322435922aa2a398e8f`); Contract/Spec/Oracle Terra/high, Security/Adversarial/Purity Terra/xhigh, Lifecycle/Dependency/Boundary Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. This accepts only the plan: former Rule-plan author/adjudicate/accept instructions are `CONSUMED/HISTORICAL`; no Rule oracle/source/TDD, schema, migration, service, Phase145 carrier, runtime, product, phase or release authority follows. Rule Task 1 RED remains `NOT_AUTHORIZED/BLOCKED` pending ALL accepted non-marker Phase145 typed-IR/script carrier + G145-5B + G145-5C + launcher readiness, without implied order; post-task runtime `NOT_RUN`. Task4 docs sync remains separately discovered after future source Task3 acceptance. 02D/02F docs-only acceptance, 144-01B Docker blocker, Phase142/148 and release gates, launcher `NOT_READY`, executable tests/build/lint/validators/Docker/runtime `NOT_RUN` remain unchanged.
 
 ## Global Constraints
 
@@ -41,9 +43,9 @@ transaction responsibilities.
   Every product source packet remains gated by root-owned explicit source dispatch and
   independent `gpt-5.6-terra` / `high` source-level review with accepted per-dispatch provenance.
    The former direct-closure and transition route are `CONSUMED/HISTORICAL`; 02F `fcb5b84f` +
-   `2f4381a2` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`. The active global Mail
-   action is separate Rule-plan author/adjudication, not 02A review or code; Rule TDD also awaits
-   Phase-145 carrier/G145-5B/G145-5C.
+   `2f4381a2` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`. The former global Rule-plan
+   author/adjudication action is `CONSUMED/HISTORICAL`, not 02A review or code authority; accepted plan
+   `669ef761` still leaves Rule Task 1 `NOT_AUTHORIZED/BLOCKED` pending ALL accepted non-marker Phase145 typed-IR/script carrier + G145-5B + G145-5C + launcher readiness, without implied order; post-task runtime `NOT_RUN`.
 - Worker runtime: exact `gpt-5.6-terra` / `xhigh`, no fallback. Reviewer runtime: exact
   `gpt-5.6-terra` / `high`, no fallback. For this branch/Phases 143–148, an explicit native
   dispatcher acceptance without rejection is `provenance_source: dispatcher-enforced`; actual
@@ -445,4 +447,4 @@ compile=NOT_RUN
 unit=NOT_RUN
 runtime=NOT_RUN
 ```
-> **144-02F sync:** `fcb5b84f` + `2f4381a2` docs/readiness `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; all three Terra routes PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Former transition text `CONSUMED/HISTORICAL`; no source/schema/runtime/product/release authority. Root next accepts separate Rule plan only; Rule TDD also awaits Phase-145/G145-5B/G145-5C; 144-01B Docker-blocked, Phase 142/148 pending, launcher `NOT_READY`, executables `NOT_RUN`.
+> **144-02F sync:** `fcb5b84f` + `2f4381a2` docs/readiness `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; all three Terra routes PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Former transition and Rule-plan-next text is `CONSUMED/HISTORICAL`; no source/schema/runtime/product/release authority. Accepted Rule plan `669ef761` does not authorize Task 1, which remains `NOT_AUTHORIZED/BLOCKED` pending ALL accepted non-marker Phase145 typed-IR/script carrier + G145-5B + G145-5C + launcher readiness, without implied order; post-task runtime `NOT_RUN`; Task4 is post-future-Task3 source acceptance only. 144-01B remains Docker-blocked, Phase 142/148 and release pending, launcher `NOT_READY`, executables `NOT_RUN`.

@@ -1,6 +1,6 @@
 # 144-03B-Rule-Compiler — STATIC_ACCEPTED static contract
 
-> **Current upstream lifecycle (2026-08-14):** correction `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus exact-28 transition `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract/Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency/Boundary Terra/high PASS `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. Former lifecycle is `CONSUMED/HISTORICAL`. This contract owns neither persistence hash v1 nor a Rule implementation plan; no Rule source/schema/runtime/Phase-145 authority follows. Root next accepts separate Rule plan only; Rule TDD awaits Phase-145/G145-5B/G145-5C.
+> **Current upstream lifecycle (2026-08-14):** correction `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus exact-28 transition `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract/Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency/Boundary Terra/high PASS `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. Former lifecycle and Rule-plan authoring/review are `CONSUMED/HISTORICAL`. This contract owns neither persistence hash v1 nor Rule source/schema/runtime/Phase-145 authority. Rule Task 1 remains `NOT_AUTHORIZED/BLOCKED` pending ALL accepted non-marker Phase145 typed-IR/script carrier + G145-5B + G145-5C + launcher readiness, without implied order; post-task runtime `NOT_RUN`.
 
 > **Status:** narrowly docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; acceptance transition/review target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`. The Contract/Spec (`gpt-5.6-terra`/high), Security/Adversarial (`gpt-5.6-terra`/xhigh), and Lifecycle/Dependency (`gpt-5.6-terra`/high) exact review routes PASS C/I/M `0/0/0`; each has `provenance_source: dispatcher-enforced`, no fallback, and telemetry `UNKNOWN` unless exposed. This is not TDD, source/test, production, schema, migration, runtime, module, phase, product, or release authority.
 > **Packet:** `144-03B-Rule-Compiler`. **Base:**
@@ -9,7 +9,9 @@
 > `gpt-5.6-terra` / `medium`; `provenance_source: dispatcher-enforced`;
 > fallback: none; telemetry: `UNKNOWN`.
 
-> **Historical mail prerequisite update:** 144-02D docs-only boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS` after three exact PASS routes C/I/M `0/0/0`. The former sole-next 02F closure-review instruction is `CONSUMED/HISTORICAL`; the current exact action is stated in the lifecycle banner above. Rule TDD/source still requires accepted 02F, separate accepted Rule implementation plan and Phase-145 carrier/G145-5B/G145-5C.
+> **Historical mail prerequisite update:** 144-02D docs-only boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS` after three exact PASS routes C/I/M `0/0/0`. The former sole-next 02F closure-review instruction is `CONSUMED/HISTORICAL`; the current exact action is stated in the lifecycle banner above. Rule Task 1 remains `NOT_AUTHORIZED/BLOCKED` pending ALL accepted non-marker Phase145 typed-IR/script carrier + G145-5B + G145-5C + launcher readiness, without implied order; post-task runtime `NOT_RUN`.
+
+> **Standalone implementation-plan acceptance (current):** `PLAN-144-03B-RULE.md` is docs/plan-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `669ef761715ec35a638bc87d8396e6f562b162c4` (parent `77eb4356de06a5304521b60c57af4e73c5740ce1`, tree `1b554d1c5763818ffef4f3c06c2a5bde16046d37`, sole path, blob `b86c0423a307fd2673a3d322435922aa2a398e8f`). Contract/Spec/Oracle Terra/high, Security/Adversarial/Purity Terra/xhigh, Lifecycle/Dependency/Boundary Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. This accepts only the plan; former Rule-plan author/adjudicate/accept instructions are `CONSUMED/HISTORICAL`; no Rule oracle/source/TDD, schema, migration, service, Phase145 carrier, runtime, product, phase or release authority follows. Rule Task 1 RED is `NOT_AUTHORIZED/BLOCKED` until all accepted non-marker Phase145 typed-IR/script carrier, G145-5B, G145-5C and launcher readiness, without implied order; post-task runtime `NOT_RUN`. Task4 docs sync remains separately discovered after future source Task3 acceptance.
 
 ## Lifecycle and exact boundary
 
@@ -18,8 +20,9 @@ it requires NULL-safe receipt exhaustion, manual-only `message_bulk p=10`, exact
 physical uniqueness and transaction-owned aggregates, desired/attempted/deployed deployment
 fencing, and the v1 binary header `hub.mail.ruleset||0x00||0x01||U32BE(active_count)`. This
 contract neither changes those bytes nor authorizes source/schema/generation/migration/service/
-runtime. Rule TDD remains blocked by accepted 02F, a separate accepted Rule plan and Phase-145
-carrier/G145-5B/G145-5C; launcher `NOT_READY`, executable `NOT_RUN`.
+runtime. Rule Task 1 remains `NOT_AUTHORIZED/BLOCKED` pending ALL accepted non-marker Phase145
+typed-IR/script carrier + G145-5B + G145-5C + launcher readiness, without implied order;
+post-task runtime `NOT_RUN`; launcher `NOT_READY`, executable `NOT_RUN`.
 
 Folder source/oracle remains narrowly `STATIC_ACCEPTED` at
 `f8cb7643986fc591cae16764575337b72ef3a692`; Folder docs acceptance remains
@@ -30,9 +33,10 @@ its target retained precommit lifecycle text. That failed review and its entire 
 commit → re-review → sync sequence are `CONSUMED/HISTORICAL`; 144-02D remains docs-only accepted.
 02F correction `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus exact-28 transition
 `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is docs/readiness-only `STATIC_ACCEPTED` /
-`EXACT_SHA_PASS` after all three Terra routes PASS C/I/M `0/0/0`. The sole current next action is
-separate Rule-plan author/adjudication; Rule TDD/production remains blocked until that plan and the
-Phase-145 engine-port/carrier/G145-5B/G145-5C are accepted.
+`EXACT_SHA_PASS` after all three Terra routes PASS C/I/M `0/0/0`. Rule-plan authoring/review/acceptance
+is `CONSUMED/HISTORICAL`; Rule Task 1 remains `NOT_AUTHORIZED/BLOCKED` pending ALL accepted
+non-marker Phase145 typed-IR/script carrier + G145-5B + G145-5C + launcher readiness, without
+implied order; post-task runtime `NOT_RUN`.
 
 The future pure source/oracle packet is exactly:
 
@@ -40,11 +44,11 @@ The future pure source/oracle packet is exactly:
 - `backend/tests/mail/rule_compiler_test.go`
 
 It contains no schema, service, worker, engine port, provider adapter, generated artifact,
-migration, handler, or public raw-script path. Rule TDD and production are not authorized
-until this contract and a later separate implementation plan have each received
-exact-commit independent acceptance and applicable 144-02D and 144-02F gates are explicitly
-closed. Launcher is `NOT_READY`; tests, build, lint, validators, Docker, Compose, generation
-and runtime are all `NOT_RUN`. Phase 145 and Phase 148 blockers remain open.
+migration, handler, or public raw-script path. Rule Task 1 remains `NOT_AUTHORIZED/BLOCKED`
+pending ALL accepted non-marker Phase145 typed-IR/script carrier + G145-5B + G145-5C + launcher
+readiness, without implied order; post-task runtime `NOT_RUN`. Launcher is `NOT_READY`; tests,
+build, lint, validators, Docker, Compose, generation and runtime are all `NOT_RUN`. Phase 145
+and Phase 148 blockers remain open.
 
 ## Layer ownership
 
@@ -53,9 +57,11 @@ provider-neutral typed IR: validation, canonicalization, same-account target res
 ordering and deep copy. It emits no Sieve text, quoted literal, comment, script marker/name,
 blob, provider capability/response, generation or hash. Phase 145 alone owns Sieve rendering
 and quoted-string escaping, RFC 9661 capability/size checks, upload/activation and observed
-deployed-source reconciliation. A separately accepted engine-port/Phase-145 carrier is
-required: current `SieveScript` is marker-only and cannot carry typed IR or script bytes; it
-must not be smuggled into this two-file packet.
+deployed-source reconciliation. The Rule Task 1 gate remains `NOT_AUTHORIZED/BLOCKED` pending
+ALL accepted non-marker Phase145 typed-IR/script carrier + G145-5B + G145-5C + launcher
+readiness, without implied order; post-task runtime `NOT_RUN`. Current `SieveScript` is
+marker-only and cannot carry typed IR or script bytes; it must not be smuggled into this
+two-file packet.
 
 Selection, soft delete, account locking, desired generation, persistence and canonical hash
 v1 remain service/04M responsibilities. Input is a complete same-account set of enabled,
@@ -236,4 +242,4 @@ ordering; first-match, condition and label order; repeatability/deep copy; concr
 output; and zero result on all failures. Static purity rejects raw Sieve/script syntax/types,
 context, ports/repositories, filesystem/network/clock/randomness/goroutines/environment,
 logging, provider/JMAP imports and global mutable state.
-> **144-02F sync:** `fcb5b84f` + `2f4381a2` docs/readiness `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; all three Terra routes PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Former transition text `CONSUMED/HISTORICAL`; no source/schema/runtime/product/release authority. Root next accepts separate Rule plan only; Rule TDD also awaits Phase-145/G145-5B/G145-5C; 144-01B Docker-blocked, Phase 142/148 pending, launcher `NOT_READY`, executables `NOT_RUN`.
+> **Rule-plan acceptance receipt:** standalone `PLAN-144-03B-RULE.md` is docs/plan-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at full `669ef761715ec35a638bc87d8396e6f562b162c4` (parent `77eb4356de06a5304521b60c57af4e73c5740ce1`, tree `1b554d1c5763818ffef4f3c06c2a5bde16046d37`, sole added plan blob `b86c0423a307fd2673a3d322435922aa2a398e8f`); Contract high, Security xhigh and Lifecycle high reviews PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Former transition and Rule-plan authoring/review are `CONSUMED/HISTORICAL`; no source/schema/runtime/product/release authority. Rule Task 1 RED remains `NOT_AUTHORIZED/BLOCKED` pending ALL accepted non-marker Phase145 typed-IR/script carrier + G145-5B + G145-5C + launcher readiness, without implied order; post-task runtime `NOT_RUN`; 144-01B Docker-blocked, Phase 142/148 pending, launcher `NOT_READY`, executables `NOT_RUN`.

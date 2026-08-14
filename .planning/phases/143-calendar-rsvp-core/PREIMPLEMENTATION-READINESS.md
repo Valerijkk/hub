@@ -1,12 +1,14 @@
 # Mail workstream pre-implementation readiness
 
-> **144-02F acceptance sync (2026-08-14):** Canonical receipt is `REVIEW-144-02F-SCHEMA-READINESS.md`: correction `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus exact 28-doc transition `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` after Contract/Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency/Boundary Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed. All former 02F unaccepted/transition-review instructions are `CONSUMED/HISTORICAL`. No source, Ent schema, generation, migration, service, runtime, product, phase or release authority follows. Root's exact next action is a separately accepted Rule implementation plan only; Rule TDD/production still awaits that plan and Phase-145 carrier/G145-5B/G145-5C. 144-01B stays Docker-blocked; Phase 142/148 pending; launcher `NOT_READY`, executables `NOT_RUN`.
+> **Rule-plan acceptance receipt (2026-08-14):** standalone `PLAN-144-03B-RULE.md` is docs/plan-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at full `669ef761715ec35a638bc87d8396e6f562b162c4` (parent `77eb4356de06a5304521b60c57af4e73c5740ce1`, tree `1b554d1c5763818ffef4f3c06c2a5bde16046d37`, sole added plan blob `b86c0423a307fd2673a3d322435922aa2a398e8f`). Contract/Spec/Oracle Terra/high, Security/Adversarial/Purity Terra/xhigh and Lifecycle/Dependency/Boundary Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN`. All former 02F and Rule-plan authoring/review/acceptance instructions are `CONSUMED/HISTORICAL`. No Rule source, Ent schema, generation, migration, service, runtime, product, phase or release authority follows. Rule Task 1 RED remains blocked on all accepted non-marker Phase145 typed-IR/script carrier, G145-5B, G145-5C and launcher readiness, unordered; post-task runtime `NOT_RUN`. 144-01B stays Docker-blocked; Phase 142/148 pending; launcher `NOT_READY`, executables `NOT_RUN`.
 
-> **Current Mail gate:** 144-02D retains its narrow docs-only acceptance. 144-02F correction `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus exact-28 transition `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high PASS `0/0/0`, dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed. Former lifecycle is `CONSUMED/HISTORICAL`. No implementation/runtime authority follows; root next independently accepts the separate Rule implementation plan only, and Rule TDD/production also awaits Phase-145 carrier/G145-5B/G145-5C.
+> **Current Mail gate:** 144-02D retains its narrow docs-only acceptance. 144-02F correction `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus exact-28 transition `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high PASS `0/0/0`, dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed. Former lifecycle and Rule-plan authoring/review are `CONSUMED/HISTORICAL`. No implementation/runtime authority follows; Rule TDD/production awaits all accepted non-marker Phase-145 carrier/G145-5B/G145-5C and launcher readiness.
 > **Snapshot:** 2026-08-14
 > **Branch:** `codex/mail-module-20260813`
 > **Product truth:** IMPLEMENTATION_IN_PROGRESS · 143-01/02A/02B/03A/03B/03C/03D/03F/04L_STATIC_ACCEPTED · RUNTIME_NOT_RUN · Phase/product/migration/runtime not accepted
 > **Execution truth:** launcher `NOT_READY`; generation, migration, tests and runtime `NOT_RUN`.
+
+> **Current Rule-plan acceptance:** Standalone `PLAN-144-03B-RULE.md` is docs/plan-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `669ef761715ec35a638bc87d8396e6f562b162c4` (parent `77eb4356de06a5304521b60c57af4e73c5740ce1`, tree `1b554d1c5763818ffef4f3c06c2a5bde16046d37`, sole path, blob `b86c0423a307fd2673a3d322435922aa2a398e8f`). Contract/Spec/Oracle Terra/high, Security/Adversarial/Purity Terra/xhigh, Lifecycle/Dependency/Boundary Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. This accepts only the plan; former Rule-plan author/adjudicate/accept instructions are `CONSUMED/HISTORICAL`; no Rule oracle/source/TDD, schema, migration, service, Phase145 carrier, runtime, product, phase or release authority follows. Rule Task 1 RED is `NOT_AUTHORIZED/BLOCKED` until all accepted non-marker Phase145 typed-IR/script carrier, G145-5B, G145-5C and launcher readiness, without implied order; post-task runtime `NOT_RUN`. Task4 docs sync remains separately discovered after future source Task3 acceptance.
 
 ## Prepared artifacts (root and independently reviewed)
 
@@ -29,7 +31,7 @@
   `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`, transition
   `6735ae746c7acde657359e8a709cd897c4dce61c`. Contract/Spec Terra/high, Security Terra/xhigh and
   Lifecycle Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless
-  exposed. 144-02D and 02F docs/readiness are accepted; the former lifecycle is `CONSUMED/HISTORICAL`. The sole next action is root's independent acceptance of the separate Rule implementation plan; Rule TDD/production also awaits the Phase-145 carrier/G145-5B/G145-5C.
+  exposed. 144-02D and 02F docs/readiness are accepted; the former lifecycle and Rule-plan authoring/review are `CONSUMED/HISTORICAL`. Rule TDD/production awaits all accepted non-marker Phase-145 carrier/G145-5B/G145-5C and launcher readiness.
   No execution.
 - OpenAPI covers mailbox, submission recovery, legacy calendar, canonical calendar and
   separate legacy/new admin resources.
@@ -52,7 +54,7 @@
 |---|---|---|
 | Accepted versioned Docker launcher not implemented | root `AGENTS.md`, `STATE.md` | Ent generation, build/test/validator/runtime evidence |
 | Accepted versioned Docker launcher not implemented; separate founder-approved production migration mechanism/gate still required | root `AGENTS.md`, `STATE.md`, `MIGRATION-PLAN.md`, all-A non-acceptance boundary | 143-03E generation/inspection evidence; all 03A/B/C/D/F schema packets are already static accepted |
-| 144-01B requires applicable supported current-SHA Docker evidence under stricter Task3 authority | Phase 144 `IMPLEMENTATION-144-01A.md`, `REVIEW-144-01A-ENGINE-BOUNDS.md`, `DISPATCH-REMAINING.md` | 144-01B deterministic fake only; Folder source/oracle and docs are static-only accepted; Rule is separately docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`; 02F correction `fcb5b84f` plus transition `2f4381a2` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` after all three Terra routes PASS C/I/M `0/0/0`. The sole next action is separate Rule-plan author/adjudication; Rule TDD/production also awaits the accepted plan and Phase-145 carrier/G145-5B/G145-5C |
+| 144-01B requires applicable supported current-SHA Docker evidence under stricter Task3 authority | Phase 144 `IMPLEMENTATION-144-01A.md`, `REVIEW-144-01A-ENGINE-BOUNDS.md`, `DISPATCH-REMAINING.md` | 144-01B deterministic fake only; Folder source/oracle and docs are static-only accepted; Rule plan is separately docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at full `669ef761` (parent `77eb`, tree `1b554d`, plan blob `b86c0423`), reviews PASS C/I/M `0/0/0`; former authoring/review is `CONSUMED/HISTORICAL`. Rule TDD/production awaits all accepted non-marker Phase-145 carrier/G145-5B/G145-5C and launcher readiness |
 | 144-02A representation is docs-only accepted at reviewed snapshot `b631866b2ba372101fd80eea30951eaa267c1931`, but source schemas are unimplemented and source review absent; generation remains launcher-gated | Phase 144 `REVIEW-144-02A-SCHEMA-READINESS.md`, `DISPATCH-INDEX.md` | 144-02A source and every dependent mailbox schema/service packet remain BLOCKED pending founder migration authority, launcher and sequential source dispatch/review |
 | Calendar DTO/handler implementation is unimplemented; accepted 0.1.8 OpenAPI page/expansion bounds still lack executable evidence | five-document 144-01A entry amendment PASS `5e314fb080d420696642058ae47397e251c23207`; accepted 0.1.8 OpenAPI page/expansion bounds are a contract fact, Phase 142 `REVIEW-OPENAPI-RESPONSE-BOUNDS.md` | calendar list/legacy aggregate DTO, handler and UI transport packets |
 | Production migration mechanism unresolved | `MIGRATION-PLAN.md`, founder question 12 | schema generation/migration/backfill acceptance |
@@ -108,7 +110,7 @@
     `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`, transition
     `6735ae746c7acde657359e8a709cd897c4dce61c`. Contract/Spec Terra/high, Security Terra/xhigh and
     Lifecycle Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless
-    exposed. 144-02D and 02F docs/readiness are accepted; the former lifecycle is `CONSUMED/HISTORICAL`. The sole next action is root's independent acceptance of the separate Rule implementation plan; Rule TDD/production also awaits the Phase-145 carrier/G145-5B/G145-5C.
+    exposed. 144-02D and 02F docs/readiness are accepted; the former lifecycle and Rule-plan authoring/review are `CONSUMED/HISTORICAL`. Rule TDD/production awaits all accepted non-marker Phase-145 carrier/G145-5B/G145-5C and launcher readiness.
     No execution.
    `144-01B` remains blocked by applicable
    supported current-SHA Docker evidence and executable status `NOT_RUN`.
@@ -137,5 +139,5 @@
 > no fallback, telemetry `UNKNOWN` unless exposed. 144-02D is docs-only accepted. The former 02F closure
 > attempt and transition route are `CONSUMED/HISTORICAL`; correction `fcb5b84f` plus transition `2f4381a2`
 > is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` with all three Terra routes PASS C/I/M
-> `0/0/0`. The sole next action is separate Rule-plan author/adjudication; Rule TDD/production also
-> awaits that plan and Phase-145 carrier/G145-5B/G145-5C.
+> `0/0/0`. Rule-plan authoring/review is `CONSUMED/HISTORICAL`; Rule TDD/production awaits all
+> accepted non-marker Phase-145 carrier/G145-5B/G145-5C and launcher readiness.

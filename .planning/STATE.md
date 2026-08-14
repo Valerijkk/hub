@@ -5,7 +5,8 @@ milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
 last_updated: "2026-08-14T12:45:44+03:00"
-last_activity: 2026-08-14 · 144-02D remains narrowly docs-only STATIC_ACCEPTED at 7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb plus e563a3d3be8898371e5c8a9861c58f11b72167bc and 55e36b7a sync. 144-02F correction fcb5b84fed4a417e736ddb4053256e494a0c25f6 plus exact same-28-document transition 2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260 is docs/readiness-only STATIC_ACCEPTED / EXACT_SHA_PASS. Contract/Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency/Boundary Terra/high PASS C/I/M 0/0/0; dispatcher-enforced, fallback none, telemetry UNKNOWN unless exposed. The prior lifecycle is CONSUMED/HISTORICAL. No source, Ent schema, generation, migration, service, runtime, phase/product/release authority; launcher NOT_READY and executable evidence NOT_RUN. Exact next action: root author/adjudicate and independently accept the separate Rule implementation plan only; Rule TDD/production additionally awaits accepted Phase145 carrier/G145-5B/G145-5C.
+rule_plan_acceptance: "Standalone PLAN-144-03B-RULE.md is docs/plan-only STATIC_ACCEPTED / EXACT_SHA_PASS at 669ef761715ec35a638bc87d8396e6f562b162c4 (parent 77eb4356de06a5304521b60c57af4e73c5740ce1, tree 1b554d1c5763818ffef4f3c06c2a5bde16046d37, sole path, blob b86c0423a307fd2673a3d322435922aa2a398e8f); Contract/Spec/Oracle Terra/high, Security/Adversarial/Purity Terra/xhigh, Lifecycle/Dependency/Boundary Terra/high PASS C/I/M 0/0/0; dispatcher-enforced, fallback none, telemetry UNKNOWN unless exposed. Former Rule-plan author/adjudicate/accept instructions CONSUMED/HISTORICAL. Plan only: no Rule oracle/source/TDD/schema/migration/service/Phase145/runtime/product/phase/release authority. Task 1 RED NOT_AUTHORIZED/BLOCKED until all accepted non-marker Phase145 typed-IR/script carrier, G145-5B, G145-5C and launcher readiness, no order implied; post-task runtime NOT_RUN. Task4 docs sync separately discovered after future source Task3 acceptance."
+last_activity: 2026-08-14 · Rule plan acceptance is complete at 669ef761715ec35a638bc87d8396e6f562b162c4 (parent 77eb4356de06a5304521b60c57af4e73c5740ce1, tree 1b554d1c5763818ffef4f3c06c2a5bde16046d37, sole added plan blob b86c0423a307fd2673a3d322435922aa2a398e8f): docs/plan-only STATIC_ACCEPTED / EXACT_SHA_PASS, Contract/Spec/Oracle Terra/high, Security/Adversarial/Purity Terra/xhigh, Lifecycle/Dependency/Boundary Terra/high PASS C/I/M 0/0/0; dispatcher-enforced, fallback none, telemetry UNKNOWN unless exposed. Former Rule-plan author/adjudicate/accept lifecycle is CONSUMED/HISTORICAL. No Rule source/TDD/schema/migration/service/Phase145/runtime/product/phase/release authority; Task 1 RED remains NOT_AUTHORIZED/BLOCKED pending ALL accepted non-marker Phase145 typed-IR/script carrier + G145-5B + G145-5C + launcher readiness, without implied order; post-task runtime NOT_RUN. 02D/02F, 144-01B, Phase 142/148 and launcher/executable status remain unchanged.
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -346,8 +347,9 @@ spec_coverage:
   `EXACT_SHA_PASS` after all three post-transition reviews PASS C/I/M `0/0/0`. The former
   pre-acceptance record is `CONSUMED/HISTORICAL`. Correction
   `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus transition
-  `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is docs/readiness-only accepted. The sole next
-  action is independently accepting the separate Rule plan; no source/schema/runtime authority.
+  `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is docs/readiness-only accepted. Rule-plan
+  authoring/review/acceptance is `CONSUMED/HISTORICAL`; the accepted plan remains docs-only,
+  with no source/schema/runtime authority.
   Other packet eligibility
   remains status only. `144-01B` remains `BLOCKED`; broader
   Phase 142/cross-contract acceptance and Phase 148 remain pending. Launcher and all executable
@@ -1430,10 +1432,12 @@ portion is superseded while receipt/deployment facts remain frozen. Corrective c
 `e563a3d3be8898371e5c8a9861c58f11b72167bc` is docs-only `STATIC_ACCEPTED` /
 `EXACT_SHA_PASS`; all three post-transition exact reviews PASS C/I/M `0/0/0`. Former lifecycle is
   `CONSUMED/HISTORICAL`; correction `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus transition
-  `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is docs/readiness-only accepted. The sole next action
-  is independently accepting the separate Rule plan. Launcher
+  `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is docs/readiness-only accepted. Rule-plan
+  authoring/review/acceptance is `CONSUMED/HISTORICAL`; its accepted plan confers no implementation authority. Launcher
 `NOT_READY`, executable evidence `NOT_RUN`; no source/schema/generation/migration/service/runtime
-authority. Later plan and engine-port/145 carrier precede Rule TDD.
+authority. Rule Task 1 remains `NOT_AUTHORIZED/BLOCKED` pending ALL accepted non-marker Phase145
+typed-IR/script carrier + G145-5B + G145-5C + launcher readiness, without implied order;
+post-task runtime `NOT_RUN`.
 Its callable/encoding/oracle
 contract remains `THREAD_CALLABLE_ENCODING_ORACLE_STATIC_ACCEPTED` at
 `cbc12577a6444df9c660e43fedfd0c8133c6e461` / `EXACT_SHA_PASS` after independent
@@ -1466,5 +1470,4 @@ new quality gate is requirement/risk traceability plus fail-closed execution.
 - hubtest `./testframework/tms/...` PASS; mutation 001–006 red/green ALL_OK.
 - Коммиты: `1dbf42f4` fix · `9e634ee5` test · статус TASK → На проверке (README не трогали). Handoff: be-ver → code-reviewer.
 
-> **Current Rule status (2026-08-14):** Rule docs remain narrowly `STATIC_ACCEPTED` at `f199546513b758ca7b95328b5ccd7680009b732e`; 02D and 02F docs/readiness are accepted. Prior lifecycle is `CONSUMED/HISTORICAL`. Root's sole next action is independently accepting the separate Rule implementation plan; Rule TDD/production also awaits Phase-145 carrier/G145-5B/G145-5C. 144-01B, Phase 142/148, launcher `NOT_READY` and executable evidence `NOT_RUN` remain unchanged.
-> **144-02F acceptance sync (2026-08-14):** `fcb5b84fed4a417e736ddb4053256e494a0c25f6` + exact-28 transition `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` are docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract/Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh, Lifecycle/Dependency/Boundary Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. Former 02F unaccepted/transition-review text is `CONSUMED/HISTORICAL`. No source/Ent/generation/migration/service/runtime/product/phase/release authority; root next accepts separate Rule plan only; Rule TDD/production also awaits Phase-145 carrier/G145-5B/G145-5C. 144-01B Docker-blocked; Phase 142/148 pending; launcher `NOT_READY`, executables `NOT_RUN`.
+> **Current Rule status (2026-08-14):** `PLAN-144-03B-RULE.md` is docs/plan-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `669ef761715ec35a638bc87d8396e6f562b162c4` (parent `77eb4356de06a5304521b60c57af4e73c5740ce1`, tree `1b554d1c5763818ffef4f3c06c2a5bde16046d37`, sole added plan blob `b86c0423a307fd2673a3d322435922aa2a398e8f`); Contract/Spec/Oracle Terra/high, Security/Adversarial/Purity Terra/xhigh and Lifecycle/Dependency/Boundary Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Rule-plan authoring/review/acceptance is `CONSUMED/HISTORICAL`; no Rule source/TDD/schema/migration/service/Phase145/runtime authority. Task 1 RED remains `NOT_AUTHORIZED/BLOCKED` pending ALL accepted non-marker Phase145 typed-IR/script carrier + G145-5B + G145-5C + launcher readiness, without implied order; post-task runtime `NOT_RUN`. 144-01B, Phase 142/148 and launcher `NOT_READY` remain unchanged.

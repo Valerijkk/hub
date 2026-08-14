@@ -1,12 +1,14 @@
 # Phase 145 — executable gated packet contracts
 
-> **Current upstream lifecycle (2026-08-14):** 144-02F correction `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus exact-28 transition `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; all three Terra routes PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. Former lifecycle is `CONSUMED/HISTORICAL`. Every Phase-145 packet remains blocked and G145-5B/G145-5C remain open; root next accepts separate Rule plan only, while Rule TDD/production stays blocked.
+> **Current upstream lifecycle (2026-08-14):** 144-02F correction `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus exact-28 transition `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; all three Terra routes PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. Former lifecycle and Rule-plan-next instructions are `CONSUMED/HISTORICAL`. Every Phase-145 packet remains blocked and G145-5B/G145-5C remain open; Rule Task 1 is `NOT_AUTHORIZED/BLOCKED` pending all independent carrier/G145-5B/G145-5C/launcher prerequisites, without implied order.
 
 > **Assembly rule:** Common envelope + exactly one packet. No packet is currently eligible.
 > **Runtime for code:** `gpt-5.6-terra` / `xhigh`, fallback none.
 > **Authority:** `GATE-PLAN.md`; a table row here never self-satisfies a gate.
 
 > **Historical upstream lifecycle update:** 144-02D docs-only boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` and docs-only acceptance sync `55e36b7a` is narrowly `STATIC_ACCEPTED` / `EXACT_SHA_PASS`. The former direct 02F-closure instruction is `CONSUMED/HISTORICAL`. Phase 145 remains blocked/not accepted; no packet is eligible and G145-5B/G145-5C remain open.
+
+> **Current Rule-plan acceptance:** Standalone `PLAN-144-03B-RULE.md` is docs/plan-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `669ef761715ec35a638bc87d8396e6f562b162c4` (parent `77eb4356de06a5304521b60c57af4e73c5740ce1`, tree `1b554d1c5763818ffef4f3c06c2a5bde16046d37`, sole path, blob `b86c0423a307fd2673a3d322435922aa2a398e8f`); Contract/Spec/Oracle Terra/high, Security/Adversarial/Purity Terra/xhigh, Lifecycle/Dependency/Boundary Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. This accepts only the plan: former Rule-plan author/adjudicate/accept instructions are `CONSUMED/HISTORICAL`; no Rule oracle/source/TDD, schema, migration, service, Phase145 carrier, runtime, product, phase or release authority follows. Rule Task 1 RED is `NOT_AUTHORIZED/BLOCKED` until all accepted non-marker Phase145 typed-IR/script carrier, G145-5B, G145-5C and launcher readiness, without implied order; post-task runtime `NOT_RUN`. Task4 docs sync remains separately discovered after future source Task3 acceptance. 02D/02F docs-only acceptance, 144-01B Docker blocker, Phase142/148 and release gates, launcher `NOT_READY`, executable tests/build/lint/validators/Docker/runtime `NOT_RUN` remain unchanged.
 
 ## Common execution envelope
 
@@ -222,7 +224,7 @@
   Calls to `x:SieveSystemScript` or `x:SieveUserScript` are test-oracle failures. Do not
   implement message mutations here.
 
-> **Current Rule acceptance:** docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`; lifecycle transition/review target `6735ae746c7acde657359e8a709cd897c4dce61c`, not the acceptance commit; Contract/Spec Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed. 144-02F at `fcb5b84f` plus `2f4381a2` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; former transition instructions are `CONSUMED/HISTORICAL`. No Rule TDD/source/schema/runtime/product/release authority.
+> **Current Rule acceptance:** pre-acceptance `f199546513b758ca7b95328b5ccd7680009b732e` / `6735ae746c7acde657359e8a709cd897c4dce61c` lifecycle is `CONSUMED/HISTORICAL`. Standalone Rule plan `669ef761715ec35a638bc87d8396e6f562b162c4`, sole-path blob `b86c0423a307fd2673a3d322435922aa2a398e8f`, is docs/plan-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` after Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. No Rule TDD/source/schema/runtime/product/release authority; Rule Task 1 remains `NOT_AUTHORIZED/BLOCKED` on carrier/G145-5B/G145-5C/launcher readiness.
 > 145-07B additionally requires accepted engine-port carrier for typed IR/script bytes;
 > renderer owns escaping, engine folder ID is not mailbox name, and attachment stays MIME-blocked.
 
@@ -338,4 +340,4 @@
   lease exclusion, worker cancellation/drain, backup restore and
   unconditional cleanup. External SMTP is a separate opt-in report. Any missing cleanup/
   evidence => FAIL, not partial PASS. Direct compose is forbidden.
-> **144-02F sync:** `fcb5b84f` + `2f4381a2` docs/readiness `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; all three Terra routes PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Former transition text `CONSUMED/HISTORICAL`; no source/schema/runtime/product/release authority. Root next accepts separate Rule plan only; Rule TDD also awaits Phase-145/G145-5B/G145-5C; 144-01B Docker-blocked, Phase 142/148 pending, launcher `NOT_READY`, executables `NOT_RUN`.
+> **144-02F sync:** `fcb5b84f` + `2f4381a2` docs/readiness `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; all three Terra routes PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Former transition and Rule-plan-next text is `CONSUMED/HISTORICAL`; no source/schema/runtime/product/release authority. Accepted Rule plan `669ef761` (blob `b86c0423`) does not authorize Rule Task 1, which awaits Phase-145 carrier/G145-5B/G145-5C/launcher readiness without implied order; Task4 is post-future-Task3 source acceptance only. 144-01B remains Docker-blocked, Phase 142/148 and release pending, launcher `NOT_READY`, executables `NOT_RUN`.

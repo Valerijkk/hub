@@ -1,6 +1,6 @@
 # Phase 144-02A preimplementation review — schema contract readiness
 
-> **Current 02F lifecycle (2026-08-14):** Correction `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus exact 28-doc transition `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is narrowly docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract/Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency/Boundary Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed. Former unaccepted/transition-review lifecycle is `CONSUMED/HISTORICAL`. This changes neither 02A's narrow acceptance nor any source/schema/runtime authority. Root's sole next action is to author/adjudicate and independently accept the separate Rule implementation plan; Rule TDD/production also requires the accepted Phase-145 carrier/G145-5B/G145-5C.
+> **Historical 02F lifecycle (2026-08-14):** Correction `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus exact 28-doc transition `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is narrowly docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract/Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency/Boundary Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed. Former unaccepted/transition-review lifecycle and its Rule-plan next step are `CONSUMED/HISTORICAL`. This changes neither 02A's narrow acceptance nor any source/schema/runtime authority.
 
 > **Historical downstream lifecycle update:** 144-02D docs-only boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is narrowly `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; three exact routes PASS C/I/M `0/0/0`. The former sole-next 02F closure-review instruction is `CONSUMED/HISTORICAL`; the current exact action is stated in the lifecycle banner above. No source/schema/runtime authority follows.
 > **Detected:** 2026-08-13 root deep static audit
@@ -9,6 +9,8 @@
 
 > `docs/mail/PERSISTENCE-CONTRACT-0.1.8.md` now supplies the root candidate matrix; this
 > historical discovery verdict is preserved below; its representation closure is now docs-only accepted.
+
+> **Current Rule-plan acceptance:** Standalone `PLAN-144-03B-RULE.md` is docs/plan-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `669ef761715ec35a638bc87d8396e6f562b162c4` (parent `77eb4356de06a5304521b60c57af4e73c5740ce1`, tree `1b554d1c5763818ffef4f3c06c2a5bde16046d37`, sole path, blob `b86c0423a307fd2673a3d322435922aa2a398e8f`); Contract/Spec/Oracle Terra/high, Security/Adversarial/Purity Terra/xhigh, Lifecycle/Dependency/Boundary Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. This accepts only the plan: former Rule-plan author/adjudicate/accept/review/commit instructions are `CONSUMED/HISTORICAL`; no Rule oracle/source/TDD, schema, migration, service, Phase145 carrier, runtime, product, phase or release authority follows. Rule Task 1 RED is `NOT_AUTHORIZED/BLOCKED` until all accepted non-marker Phase145 typed-IR/script carrier, G145-5B, G145-5C and launcher readiness, without implied order; post-task runtime `NOT_RUN`. The Rule-plan acceptance receipt is the documentation sync; it is not a future Rule Task 4. 02D/02F docs-only acceptance, 144-01B Docker blocker, Phase142/148 and release gates, launcher `NOT_READY`, executable tests/build/lint/validators/Docker/runtime `NOT_RUN` remain unchanged.
 
 ## Current root closure
 
@@ -27,8 +29,8 @@ runtime remain blocked/not authorized. Founder migration authority, supported ta
 sequential explicit source dispatch and source-level review remain required. 144-02D's docs/readiness
 boundary is now `STATIC_ACCEPTED` / `EXACT_SHA_PASS`. The 144-02F docs/readiness boundary at
 `fcb5b84f` plus `2f4381a2` is likewise `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; the former direct
-02F-closure action is `CONSUMED/HISTORICAL`. The active next action is only root's separate Rule-plan
-authoring/adjudication and independent acceptance, not code.
+02F-closure action and its former Rule-plan authoring/adjudication/acceptance instruction are
+`CONSUMED/HISTORICAL`, not code.
 
 ## Historical discovery outcome (preserved)
 
@@ -111,4 +113,4 @@ default, but the contract must state that strengthening explicitly.
 
 No production/test source was changed. The review used the routed Mail contract, OpenAPI,
 Phase 144 packet documents and the already accepted engine-port/schema conventions only.
-> **144-02F sync:** `fcb5b84f` + `2f4381a2` docs/readiness `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; three Terra routes PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Former transition text `CONSUMED/HISTORICAL`; no implementation authority. Root next: accept separate Rule plan only; Rule TDD also awaits Phase-145/G145-5B/G145-5C; 144-01B Docker-blocked, Phase 142/148 pending, launcher `NOT_READY`, executables `NOT_RUN`.
+> **144-02F sync (historical):** `fcb5b84f` + `2f4381a2` docs/readiness `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; three Terra routes PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Former transition text and Rule-plan acceptance instruction are `CONSUMED/HISTORICAL`; no implementation authority. Rule TDD remains `NOT_AUTHORIZED/BLOCKED` under the current receipt's stated prerequisites; 144-01B Docker-blocked, Phase 142/148 pending, launcher `NOT_READY`, executables `NOT_RUN`.

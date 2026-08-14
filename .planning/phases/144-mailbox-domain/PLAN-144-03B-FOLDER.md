@@ -1,8 +1,8 @@
 # 144-03B Folder Tree Policy Implementation Plan
 
-> **Current upstream lifecycle (2026-08-14):** 144-02F correction `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus exact-28 transition `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract/Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency/Boundary Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. Former lifecycle is `CONSUMED/HISTORICAL`; no Folder source/runtime authority changes. Root next accepts separate Rule plan only; Rule TDD/production also awaits Phase-145 carrier/G145-5B/G145-5C.
+> **Historical upstream lifecycle (2026-08-14):** 144-02F correction `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus exact-28 transition `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract/Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency/Boundary Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. Former lifecycle and its Rule-plan acceptance instruction are `CONSUMED/HISTORICAL`; no Folder source/runtime authority changes.
 
-> **Current Task 4 authority (2026-08-14):** Task 1 through Task 3 instructions below are
+> **Historical Task 4 authority (2026-08-14):** Task 1 through Task 3 instructions below are
 > `CONSUMED/HISTORICAL`. Source/oracle commit `f8cb7643986fc591cae16764575337b72ef3a692`
 > (parent `32e3dcb5b4f7ae65a88b79781646d25726ae16c6`, tree
 > `14e7f6ce9a0f4b7912b955515d122c411159c579`) is narrowly `STATIC_ACCEPTED`, static-only,
@@ -11,11 +11,13 @@
 > evidence documents, plus `IMPLEMENTATION-144-03B-FOLDER.md` as one new evidence file. This
 > yields the historical 20-path candidate and creates no product decision. Folder docs are now
 > static-only accepted at `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`; the separate Rule contract is
-> **Current Rule acceptance:** docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; acceptance transition/review target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`. Three Terra routes PASS C/I/M `0/0/0`; 144-02D is docs-only accepted and 02F `fcb5b84f` + `2f4381a2` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`. Rule TDD/production remain unauthorized pending separate Rule-plan acceptance and Phase-145 carrier/G145-5B/G145-5C.
+> **Historical Rule acceptance:** the former `f1995465`/`6735ae74` transition is `CONSUMED/HISTORICAL` and superseded by the current `669ef761` sole-plan receipt below. 144-02D and 02F remain docs-only accepted; Rule TDD/production remains `NOT_AUTHORIZED/BLOCKED` under the current receipt's stated prerequisites, without an implied order.
 
 > For agentic workers: REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> **Mail lifecycle update:** 02D retains narrow docs-only acceptance. 02F correction `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus exact-28 transition `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract, Security and Lifecycle Terra routes PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. Former lifecycle is `CONSUMED/HISTORICAL`; runtime blockers remain. Root next accepts separate Rule plan only; Rule TDD awaits Phase-145/G145-5B/G145-5C.
+> **Historical mail lifecycle update:** 02D retains narrow docs-only acceptance. 02F correction `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus exact-28 transition `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract, Security and Lifecycle Terra routes PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. Former lifecycle and its Rule-plan acceptance instruction are `CONSUMED/HISTORICAL`; runtime blockers remain.
+
+> **Current Rule-plan acceptance:** Standalone `PLAN-144-03B-RULE.md` is docs/plan-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `669ef761715ec35a638bc87d8396e6f562b162c4` (parent `77eb4356de06a5304521b60c57af4e73c5740ce1`, tree `1b554d1c5763818ffef4f3c06c2a5bde16046d37`, sole path, blob `b86c0423a307fd2673a3d322435922aa2a398e8f`); Contract/Spec/Oracle Terra/high, Security/Adversarial/Purity Terra/xhigh, Lifecycle/Dependency/Boundary Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. This accepts only the plan: former Rule-plan author/adjudicate/accept/review/commit instructions are `CONSUMED/HISTORICAL`; no Rule oracle/source/TDD, schema, migration, service, Phase145 carrier, runtime, product, phase or release authority follows. Rule Task 1 RED is `NOT_AUTHORIZED/BLOCKED` until all accepted non-marker Phase145 typed-IR/script carrier, G145-5B, G145-5C and launcher readiness, without implied order; post-task runtime `NOT_RUN`. The Rule-plan acceptance receipt is the documentation sync; it is not a future Rule Task 4. 02D/02F docs-only acceptance, 144-01B Docker blocker, Phase142/148 and release gates, launcher `NOT_READY`, executable tests/build/lint/validators/Docker/runtime `NOT_RUN` remain unchanged.
 
 ## Goal
 
@@ -32,7 +34,7 @@ Go 1.25; `github.com/google/uuid v1.6.0`; `golang.org/x/text v0.35.0` using `cas
 ## Global Constraints
 
 - Contract commit `a565af2632bc5f76a7d2fe26ebf3065fb3cefba9` (blob `0f9ed0adb0cec6ffa83619cb4c7c4cb4d3f3263c`) is narrowly `STATIC_ACCEPTED` after three independent exact-SHA reviews PASS with C/I/M `0/0/0`.
-- Plan commit `a98c7235521852dee1ebc0d09558c7bcbefc4534` (blob `c79658d61e496489be697bc971d0797ed30fb61f`) is narrowly `EXACT_SHA_PASS` / `STATIC_ACCEPTED` after exact, security and boundary reviews PASS with C/I/M `0/0/0`. Folder source+oracle and docs are accepted static-only at `f8cb7643986fc591cae16764575337b72ef3a692` and `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`; Rule is separately docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`, with acceptance transition/review target recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`. The former 02F transition route is `CONSUMED/HISTORICAL`; 02F `fcb5b84f` + `2f4381a2` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` after all three Terra routes PASS C/I/M `0/0/0`. The sole next action is separate Rule-plan author/adjudication; Rule TDD/production also awaits that plan and Phase-145 carrier/G145-5B/G145-5C.
+- Plan commit `a98c7235521852dee1ebc0d09558c7bcbefc4534` (blob `c79658d61e496489be697bc971d0797ed30fb61f`) is narrowly `EXACT_SHA_PASS` / `STATIC_ACCEPTED` after exact, security and boundary reviews PASS with C/I/M `0/0/0`. Folder source+oracle and docs are accepted static-only at `f8cb7643986fc591cae16764575337b72ef3a692` and `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`; the former `f1995465`/`6735ae74` Rule transition is `CONSUMED/HISTORICAL` and superseded by the current `669ef761` sole-plan receipt above. The former 02F transition route is `CONSUMED/HISTORICAL`; 02F `fcb5b84f` + `2f4381a2` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` after all three Terra routes PASS C/I/M `0/0/0`. Rule TDD/production remains `NOT_AUTHORIZED/BLOCKED` under the current receipt's stated prerequisites, without an implied order.
 - The production boundary contains exactly two paths: `backend/tests/mail/folder_tree_test.go` first, then `backend/internal/mail/folder_tree.go`. No dependency, schema, handler, repository, engine, migration, generated, configuration, or additional source change is allowed.
 - Hub identifiers are `uuid.UUID`. Snapshot AccountID, row AccountID/ID, all action IDs, and target IDs reject `uuid.Nil`; only ParentID `uuid.Nil` means root. Engine opaque IDs are mapped to Hub UUID projection rows before either public callable.
 - Snapshot input includes every live non-deleted control row, including system and reserved creating/unknown/error/deleting rows. It is bounded to 100 rows. Deleted tombstones are excluded by caller. The separate engine enumeration bound does not alter this pure policy.
@@ -1014,12 +1016,10 @@ exact-SHA reviews completed, so Folder docs are static-only accepted at
 Founder `--auto` preselects `superpowers:subagent-driven-development`; no user choice is requested. Root orchestrates gates, dispatches, reviews and commits. Task 1 author is fresh Terra/xhigh; Task 2 author is fresh Terra/xhigh; Task 3 review routing is Terra/high, Terra/xhigh, Terra/high; Task 4 docs author is Terra/medium and reviews are Terra/high, Terra/xhigh, Terra/high. Every dispatch is explicit `gpt-5.6-terra` with stated effort, no fallback, `dispatcher-enforced` and telemetry `UNKNOWN` unless exposed. No task author stages, commits or executes tests.
 
 **Current successor gate:** Folder docs acceptance is `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`.
-Rule is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at full
-`f199546513b758ca7b95328b5ccd7680009b732e`; its lifecycle transition/review target is
-`6735ae746c7acde657359e8a709cd897c4dce61c`. Contract/Spec Terra/high, Security/Adversarial Terra/xhigh
-and Lifecycle/Dependency Terra/high reviews PASS C/I/M `0/0/0`; provenance is dispatcher-enforced, with
-no fallback and telemetry `UNKNOWN` unless exposed. The former 02F transition route is
-`CONSUMED/HISTORICAL`; 02F `fcb5b84f` + `2f4381a2` is docs/readiness-only `STATIC_ACCEPTED` /
-`EXACT_SHA_PASS`. The sole next action is separate Rule-plan author/adjudication; Rule TDD/production
-also awaits that plan and Phase-145 carrier/G145-5B/G145-5C; no runtime authority follows.
-> **144-02F sync:** `fcb5b84f` + `2f4381a2` docs/readiness `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; three Terra routes PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Former transition text `CONSUMED/HISTORICAL`; no implementation authority. Root next: accept separate Rule plan only; Rule TDD also awaits Phase-145/G145-5B/G145-5C; 144-01B Docker-blocked, Phase 142/148 pending, launcher `NOT_READY`, executables `NOT_RUN`.
+The former `f1995465`/`6735ae74` Rule transition is `CONSUMED/HISTORICAL` and superseded by the
+current `669ef761` sole-plan receipt above. The former 02F transition route is likewise
+`CONSUMED/HISTORICAL`; 02F `fcb5b84f` + `2f4381a2` remains docs/readiness-only `STATIC_ACCEPTED` /
+`EXACT_SHA_PASS`. Rule TDD/production remains `NOT_AUTHORIZED/BLOCKED` under the current receipt's
+stated carrier, G145-5B, G145-5C and launcher-readiness prerequisites, without an implied order; no
+runtime authority follows.
+> **144-02F sync (historical):** `fcb5b84f` + `2f4381a2` docs/readiness `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; three Terra routes PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Former transition text and Rule-plan acceptance instruction are `CONSUMED/HISTORICAL`; no implementation authority. 144-01B Docker-blocked, Phase 142/148 pending, launcher `NOT_READY`, executables `NOT_RUN`.

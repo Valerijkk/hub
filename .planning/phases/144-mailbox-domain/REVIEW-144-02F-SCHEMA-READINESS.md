@@ -2,7 +2,7 @@
 
 > **144-02F acceptance receipt (2026-08-14):** The docs/readiness boundary is narrowly docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`, based on correction `fcb5b84fed4a417e736ddb4053256e494a0c25f6` and exact 28-document transition `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260`. Contract/Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh, and Lifecycle/Dependency/Boundary Terra/high independently PASS C/I/M `0/0/0`. Provenance is `dispatcher-enforced`, fallback none; telemetry is `UNKNOWN` unless exposed. Former `COMMITTED_UNACCEPTED_AT_FCB5B84F` / `EXACT_SHA_TRANSITION_REQUIRED` status and every transition-review instruction are `CONSUMED/HISTORICAL`.
 >
-> This acceptance authorizes no source, Ent schema, generation, migration, service, runtime, product, phase, or release work. 144-02D remains narrowly accepted; 144-01B remains blocked on applicable supported current-SHA Docker evidence; broader Phase 142/148 work remains pending; launcher `NOT_READY` and executables `NOT_RUN`. The exact next action is only for root to author/adjudicate and independently accept the separate Rule implementation plan. Rule TDD/production remains blocked until that plan and the Phase-145 carrier/G145-5B/G145-5C are accepted.
+> This acceptance authorizes no source, Ent schema, generation, migration, service, runtime, product, phase, or release work. 144-02D remains narrowly accepted; 144-01B remains blocked on applicable supported current-SHA Docker evidence; broader Phase 142/148 work remains pending; launcher `NOT_READY` and executables `NOT_RUN`. The former Rule-plan author/adjudicate/accept instruction is `CONSUMED/HISTORICAL`; Rule TDD/production remains `NOT_AUTHORIZED/BLOCKED` under the current receipt's stated prerequisites, without an implied order.
 > **Detected:** 2026-08-13 root deep static audit
 > **Historical status:** prior `ROOT_CORRECTION_CANDIDATE` / precommit/root-commit-next sequence is `CONSUMED/HISTORICAL`; it does not alter the accepted 02F docs/readiness boundary.
 
@@ -11,6 +11,8 @@
 
 > `docs/mail/PERSISTENCE-CONTRACT-0.1.8.md` supplies the root candidate state/operation/
 > hash matrices; this discovery verdict is `CONSUMED/HISTORICAL` and does not reopen 02F acceptance.
+
+> **Current Rule-plan acceptance:** Standalone `PLAN-144-03B-RULE.md` is docs/plan-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `669ef761715ec35a638bc87d8396e6f562b162c4` (parent `77eb4356de06a5304521b60c57af4e73c5740ce1`, tree `1b554d1c5763818ffef4f3c06c2a5bde16046d37`, sole path, blob `b86c0423a307fd2673a3d322435922aa2a398e8f`); Contract/Spec/Oracle Terra/high, Security/Adversarial/Purity Terra/xhigh, Lifecycle/Dependency/Boundary Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. This accepts only the plan: former Rule-plan author/adjudicate/accept/review/commit instructions are `CONSUMED/HISTORICAL`; no Rule oracle/source/TDD, schema, migration, service, Phase145 carrier, runtime, product, phase or release authority follows. Rule Task 1 RED is `NOT_AUTHORIZED/BLOCKED` until all accepted non-marker Phase145 typed-IR/script carrier, G145-5B, G145-5C and launcher readiness, without implied order; post-task runtime `NOT_RUN`. The Rule-plan acceptance receipt is the documentation sync; it is not a future Rule Task 4. 02D/02F docs-only acceptance, 144-01B Docker blocker, Phase142/148 and release gates, launcher `NOT_READY`, executable tests/build/lint/validators/Docker/runtime `NOT_RUN` remain unchanged.
 
 ## Outcome
 
@@ -128,8 +130,10 @@ In addition to the attempted tuple, the one-row-per-account deployment needs:
 
 ## 144-03B Rule dependency clarification
 
-Rule contract is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; acceptance transition/review target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`.
-This 02F review's docs/readiness boundary is separately accepted and is not broadened by Rule-contract acceptance. Rule TDD/production requires a separately accepted Rule implementation plan and the separate Phase-145 engine-port carrier.
+The former `f1995465`/`6735ae74` Rule acceptance transition is `CONSUMED/HISTORICAL` and superseded
+by the current `669ef761` sole-plan receipt above. This 02F review's docs/readiness boundary is
+separately accepted and is not broadened by Rule-plan acceptance. Rule TDD/production remains
+`NOT_AUTHORIZED/BLOCKED` under the current receipt's stated prerequisites, without an implied order.
 
 ## Correction-candidate adjudication — 2026-08-14
 

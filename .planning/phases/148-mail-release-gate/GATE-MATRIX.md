@@ -1,6 +1,6 @@
 # Phase 148 — merge-readiness gate matrix
 
-> **Current upstream lifecycle (2026-08-14):** correction `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus exact-28 transition `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high PASS `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. Former lifecycle is `CONSUMED/HISTORICAL`. Launcher `NOT_READY`; executables `NOT_RUN`; root next accepts separate Rule plan only and Rule TDD remains blocked.
+> **Current upstream lifecycle (2026-08-14):** correction `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus exact-28 transition `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high PASS `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. Former lifecycle and Rule-plan-next instructions are `CONSUMED/HISTORICAL`. Launcher `NOT_READY`; executables `NOT_RUN`; accepted Rule plan `669ef761` leaves Rule Task 1 `NOT_AUTHORIZED/BLOCKED` on independent carrier/G145-5B/G145-5C/launcher prerequisites.
 
 > **Status:** G148_02_BLOCKED_BROADER_CROSS_CONTRACT_CURRENT_SOURCE_EXECUTABLE_GAPS · FIVE_DOCUMENT_144_01A_ENTRY_AMENDMENT_PASS_5E314FB0 · 144_01A_STATIC_ACCEPTED_E3E8C774 · 144_03A_THREAD_STATIC_ACCEPTED_9903F4DF_EXACT_SHA_PASS · IMPLEMENTATION_IN_PROGRESS · RUNTIME_NOT_RUN
 > **Scope:** Mail/Calendar/CRM feature branch only
@@ -13,6 +13,8 @@ or merge gate never means the unfinished Hub MVP, mail module, or production cut
 complete/stable/ready.
 
 > **Upstream lifecycle update:** 144-02D remains docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; 02F `fcb5b84f` plus `2f4381a2` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` after Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high PASS `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Former lifecycle is `CONSUMED/HISTORICAL`. Phase 148 remains pending/blocked; no release or runtime acceptance follows.
+
+> **Current Rule-plan acceptance:** Standalone `PLAN-144-03B-RULE.md` is docs/plan-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `669ef761715ec35a638bc87d8396e6f562b162c4` (parent `77eb4356de06a5304521b60c57af4e73c5740ce1`, tree `1b554d1c5763818ffef4f3c06c2a5bde16046d37`, sole path, blob `b86c0423a307fd2673a3d322435922aa2a398e8f`); Contract/Spec/Oracle Terra/high, Security/Adversarial/Purity Terra/xhigh, Lifecycle/Dependency/Boundary Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. This accepts only the plan: former Rule-plan author/adjudicate/accept instructions are `CONSUMED/HISTORICAL`; no Rule oracle/source/TDD, schema, migration, service, Phase145 carrier, runtime, product, phase or release authority follows. Rule Task 1 RED is `NOT_AUTHORIZED/BLOCKED` until all accepted non-marker Phase145 typed-IR/script carrier, G145-5B, G145-5C and launcher readiness, without implied order; post-task runtime `NOT_RUN`. Task4 docs sync remains separately discovered after future source Task3 acceptance. 02D/02F docs-only acceptance, 144-01B Docker blocker, Phase142/148 and release gates, launcher `NOT_READY`, executable tests/build/lint/validators/Docker/runtime `NOT_RUN` remain unchanged.
 
 ## 1. Verdict vocabulary
 
@@ -189,18 +191,12 @@ pending applicable supported current-SHA Docker evidence. Thread is narrowly `ST
   `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b`, oracle `efe0db0071cb22ce4b026c635157f0fb08885d64`,
   C/I/M `0/0/0`), static only. Folder docs are also static-only accepted at
   `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`; Rule is separately docs-only
-  `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`, not a
-  release acceptance. Its lifecycle transition/review target is
-  `6735ae746c7acde657359e8a709cd897c4dce61c`; Contract/Spec Terra/high,
-  Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`,
-dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed. 02F `fcb5b84f` plus `2f4381a2` is docs/readiness-only
-`STATIC_ACCEPTED` / `EXACT_SHA_PASS` with the three PASS `0/0/0` reviews; former lifecycle is `CONSUMED/HISTORICAL`. Sole next action is a separate Rule plan author/adjudication; Rule TDD/production also awaits the Phase-145 carrier/G145-5B/G145-5C. No execution. The launcher is
+  `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `669ef761715ec35a638bc87d8396e6f562b162c4`, sole-path blob `b86c0423a307fd2673a3d322435922aa2a398e8f`, not a release acceptance. The prior `f199546513b758ca7b95328b5ccd7680009b732e` / `6735ae746c7acde657359e8a709cd897c4dce61c` lifecycle is `CONSUMED/HISTORICAL`; Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Rule Task 1 remains `NOT_AUTHORIZED/BLOCKED` until all independent Phase-145 carrier/G145-5B/G145-5C/launcher prerequisites; no execution. The launcher is
 `NOT_READY`, engine/legal/migration/broadcast/rebase decisions are unresolved, and all executable
 evidence is `NOT_RUN`.
 
-`144-03B-Rule-Compiler` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at
-`f199546513b758ca7b95328b5ccd7680009b732e`, not a release PASS. 02F `fcb5b84f` plus `2f4381a2` is docs/readiness-only
-`STATIC_ACCEPTED` / `EXACT_SHA_PASS`; former lifecycle is `CONSUMED/HISTORICAL`. Sole next action is a separate Rule plan author/adjudication; Rule TDD/production also awaits the engine-port/145 carrier/G145-5B/G145-5C before
+`144-03B-Rule-Compiler` plan is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at
+`669ef761715ec35a638bc87d8396e6f562b162c4` (blob `b86c0423a307fd2673a3d322435922aa2a398e8f`), not a release PASS; the prior candidate lifecycle is `CONSUMED/HISTORICAL`. Rule Task 1 remains blocked on the engine-port/145 carrier/G145-5B/G145-5C/launcher prerequisites before
 Phase 148 acceptance. The launcher remains `NOT_READY` and
 executable evidence `NOT_RUN`.
-> **144-02F sync:** `fcb5b84f` + `2f4381a2` docs/readiness `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; all three Terra routes PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Former transition text `CONSUMED/HISTORICAL`; no source/schema/runtime/product/release authority. Root next accepts separate Rule plan only; Rule TDD also awaits Phase-145/G145-5B/G145-5C; 144-01B Docker-blocked, Phase 142/148 pending, launcher `NOT_READY`, executables `NOT_RUN`.
+> **144-02F sync:** `fcb5b84f` + `2f4381a2` docs/readiness `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; all three Terra routes PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Former transition and Rule-plan-next text is `CONSUMED/HISTORICAL`; no source/schema/runtime/product/release authority. Accepted Rule plan `669ef761` does not authorize Task 1; its independent carrier/G145-5B/G145-5C/launcher gates remain open. 144-01B remains Docker-blocked, Phase 142/148 and release pending, launcher `NOT_READY`, executables `NOT_RUN`.
