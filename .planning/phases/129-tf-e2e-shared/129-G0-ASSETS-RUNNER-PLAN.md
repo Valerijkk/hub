@@ -21,10 +21,11 @@ The required order is closed and forward-only:
 
 1. Commit this G0 plan.
 2. Package A0 authors and independently accepts the static source contract without dependency or provenance values.
-3. Package A0.1 independently accepts and commits the archive-security amendment on top of accepted A0. It neither admits bytes nor writes A1 data; it closes the only archive representation that a later A1 handoff may bind.
-4. Only after accepted and committed A0.1 may Package B be authored, statically reviewed, or committed in parallel with pending A1. Package B and A1 have no overlapping file ownership. A pre-A0.1 B worktree draft is not an accepted source package and must remain uncommitted.
-5. A founder-approved offline-ingress handoff closes one handoff ID and its fixed physical repository-root-derived handoff root. That root supplies exact local bytes, digests, licenses, and provenance; Package A1 binds only those supplied values, receives independent review, and commits no code. The recovery source-tree baseline is permanently `7b5d5501cefab34f9aa5661e4f8c38e71474f9ce`; later plan, A0, A0.1, A1, B, release, C1, evidence, and activation commits are control/repository history, not a substitute source baseline.
-6. Only after accepted A0.1, A1, and B commits and a separate explicit founder approval, Package R writes and commits the sole closed pre-C repository authority artifact `.planning/audits/test-rebase/g0-bootstrap-founder-release.v1.json`. In Package-R fields and every C/C1/D/E/activation consumer, `a0_commit` means the accepted A0.1 commit whose first-parent ancestry chain contains the fixed independently accepted A0 source-contract commit `8626c38d...`: the check is membership of that accepted A0 full commit in `git rev-list --first-parent <a0.1_commit>`, never generic ancestry and never immediate-parent equality. The accepted A0.1 commit retains the exact thirteen-file A0.1 allowlist scope; it is the final source authority for both A0 and the archive amendment. The artifact commit is the release; it is repository authority plus an explicit founder gate, not a cryptographic identity, signature, or assertion that cryptographic authentication occurred.
+3. Package A0.1 independently accepts and commits the archive-security amendment on top of accepted A0 at `56a288dd51e261bbb91ed693d7b58a8a97994faf`. It neither admits bytes nor writes A1 data; it closes the archive representation that a later A1 handoff may bind.
+4. Package A0.2 independently accepts and commits the bounded unit-runner successor on top of A0.1. It neither admits bytes nor writes A1 data, and its exact nine-path scope is frozen below; it is the only successor that may change the runner/source-attestor binding before A1.
+5. Only after accepted and committed A0.2 may Package B be authored, statically reviewed, or committed in parallel with pending A1. Package B and A1 have no overlapping file ownership. A pre-A0.2 B worktree draft is not an accepted source package and must remain uncommitted.
+6. A founder-approved offline-ingress handoff closes one handoff ID and its fixed physical repository-root-derived handoff root. That root supplies exact local bytes, digests, licenses, and provenance; Package A1 binds only those supplied values, receives independent review, and commits no code. The recovery source-tree baseline is the immutable Git object `61b38573682d7c01e6d9381babc5085537d7990f` (`S`); it is deliberately resealed after the ordered legacy deletion/unit work, while later plan, A0, A0.1, A0.2, A1, B, release, C1, evidence, and activation commits remain control/repository history and never substitute a source baseline.
+7. Only after accepted A0.1, A0.2, A1, and B commits and a separate explicit founder approval, Package R writes and commits the sole closed pre-C repository authority artifact `.planning/audits/test-rebase/g0-bootstrap-founder-release.v1.json`. In Package-R fields and every C/C1/D/E/activation consumer, `a0_commit` means the accepted A0.1 commit `56a288dd51e261bbb91ed693d7b58a8a97994faf`, and `a02_commit` means an accepted later commit whose first-parent history contains `a0_commit`, whose actual first parent descends from `S`, and whose exact nine-path diff is measured against that actual parent. The accepted A0.1 commit retains the exact thirteen-file A0.1 allowlist scope; the accepted A0.2 commit is the final source authority for the nine successor bindings. The artifact commit is the release; it is repository authority plus an explicit founder gate, not a cryptographic identity, signature, or assertion that cryptographic authentication occurred.
 7. Package C derives authority only from that accepted artifact at committed `HEAD` and its commit, then performs one local-only `hub.qa-bootstrap/v1` transaction.
 8. That transaction builds and attests four images, writes one task-owned candidate lock at `testframework/reports/<task-run>/bootstrap/images.lock.v3.json`, runs only `g0-planning-selftest`, performs exact cleanup, then captures the one-way snapshot/envelope/run evidence chain from the already-existing retained receipts.
 9. Package C1 independently compares that candidate's raw bytes with Package C receipts and local attestations, then commits only `testframework/docker/images.lock.v3.json` without regenerating or editing it.
@@ -132,7 +133,7 @@ mistaken for a bootstrap receipt.
 
 It accepts no release record, release path, handoff path, JSON, environment override, or other authority input from its caller. It derives the sole release only from the fixed artifact path `.planning/audits/test-rebase/g0-bootstrap-founder-release.v1.json` at committed `HEAD`, requires that `HEAD` equal that artifact's dedicated Package-R commit, and derives `task=g0-assets-runner`, the grammar-valid unique `run`, and `release_id` only from its closed raw bytes. Immediately after complete accepted-committed Package-R validation and **before any per-run report root, owner marker, Docker/runtime resource, ingress copy, or other runtime receipt**, it uses a repository-root-anchored, no-reparse ancestor walk to inspect every child of the fixed nonce-consumption root. Every child must be one physical regular final file matching the fixed `<release_id>.nonce-consumption.v1.json` form and strict-canonical parse to the exact closed `nonce_consumption.keys` order; an unknown, malformed, duplicate, reparse, nonphysical, or mismatched receipt blocks rather than being ignored. It rejects a matching `one_shot_nonce` from any retained receipt and rejects a pre-existing current receipt path. Only after this whole-ledger scan passes does it create the exact current nonce-consumption path with create-new semantics, raw Package-R `release_commit` and `release_raw_sha256`, the release `task`/`run`/`release_id`/`one_shot_nonce`, `consumed_at_utc`, and immutable `status=CONSUMED`. It retains the receipt's exact no-BOM raw bytes and raw SHA-256 in private bootstrap state. This durable ledger receipt is the sole pre-report exception: it is not the per-run root, has no owner marker, is never rewritten, and survives success, any first failure, and cleanup. A failure after consumption may retain diagnostic cleanup output, but it must not fabricate a completed `run.json`, snapshot, envelope, candidate, positive-green, or C1/D/E evidence chain. It then creates exactly `testframework/reports/<task>-<run>/bootstrap/owner-marker.v1.json` with create-new semantics, retains its exact raw bytes and raw SHA-256, and then owns this fixed sequence:
 
-1. verify the committed Package-R repository authority, its exact A0.1/A1/B/plan commit bindings, the accepted A0 `8626c38d...` membership in `git rev-list --first-parent <a0.1_commit>` (not generic ancestry or immediate-parent equality), expiry, one-shot nonce, and local-only prerequisites;
+1. verify the committed Package-R repository authority, its exact A0.1/A0.2/A1/B/plan commit bindings, A0.1 membership in `git rev-list --first-parent <a02_commit>`, A0.2's actual first parent on the `S` lineage, and the exact nine-path diff against that actual parent (not generic ancestry or immediate-parent equality to A0.1), expiry, one-shot nonce, and local-only prerequisites;
 2. perform the complete fixed-root nonce-consumption ledger scan and create the durable create-new receipt before any per-run report root, owner marker, or runtime resource;
 3. create the owner marker, inspect **all** required local bases, and create the nonce/digest-bound local-base receipt;
 4. verify the A1-bound `bootstrap-helper-python` identity against that receipt before any build;
@@ -280,7 +281,7 @@ The four immutable targets are exactly `backend-unit`, `frontend-unit`, `backend
 
 ### Closed founder offline-ingress handoff
 
-Offline ingress is a founder-approved, local-only handoff; it is not a caller argument, a discovery scan, a Docker build context, or repository source. The committed Package-R artifact is the only bootstrap release record and binds the already-approved handoff through the closed fields defined below, including `offline_ingress_handoff_id`, `offline_ingress_owner_marker_sha256`, `dependency_bundle_manifest_sha256`, and `source_commit`. `offline_ingress_handoff_id` is grammar-valid lowercase ASCII `[a-z0-9][a-z0-9-]{7,63}` and selects exactly one physical root derived from the canonical repository root: `.qa-local-ingress/g0-assets/<offline_ingress_handoff_id>`. The artifact must name `source_commit=7b5d5501cefab34f9aa5661e4f8c38e71474f9ce`; it cannot name a later plan, package, evidence, or activation commit. The bootstrap derives this path itself after validating the committed artifact; no API, environment variable, CLI switch, JSON, or runtime caller can provide or override any portion of it.
+Offline ingress is a founder-approved, local-only handoff; it is not a caller argument, a discovery scan, a Docker build context, or repository source. The committed Package-R artifact is the only bootstrap release record and binds the already-approved handoff through the closed fields defined below, including `offline_ingress_handoff_id`, `offline_ingress_owner_marker_sha256`, `dependency_bundle_manifest_sha256`, and `source_commit`. `offline_ingress_handoff_id` is grammar-valid lowercase ASCII `[a-z0-9][a-z0-9-]{7,63}` and selects exactly one physical root derived from the canonical repository root: `.qa-local-ingress/g0-assets/<offline_ingress_handoff_id>`. The artifact must name `source_commit=61b38573682d7c01e6d9381babc5085537d7990f`; it cannot name a later plan, package, evidence, activation, or mutable checkout revision. The bootstrap derives this path itself after validating the committed artifact; no API, environment variable, CLI switch, JSON, or runtime caller can provide or override any portion of it.
 
 That root is an untracked local ingress zone and is never committed, added to a source image build context, mounted as source, copied by a Dockerfile, retained by a task, or deleted by task cleanup. Its exact regular-file tree is closed: `handoff-owner.v1.json`, `dependency-bundle.manifest.v1.json`, `assets/<relative_path>` for every ordered `assets[].relative_path` in the manifest, `evidence/licenses/assets/<asset_id>.txt`, `evidence/provenance/assets/<asset_id>.json`, `evidence/licenses/bases/<base_id>.txt`, and `evidence/provenance/bases/<base_id>.json`. No directory, file, alternate stream, reparse point, symlink, junction, hidden foreign child, or path outside this set is accepted. `handoff-owner.v1.json` is UTF-8/no-BOM, create-new, and has exactly `schema`, `handoff_id`, `source_commit`, `dependency_bundle_manifest_sha256`, `owner`, and `released_at_utc`; it must name the same handoff ID and source baseline as the founder release and its raw SHA-256 must equal `offline_ingress_owner_marker_sha256`. The raw manifest bytes must equal the release's `dependency_bundle_manifest_sha256` and later be byte-identical to the only A1 repository file `testframework/docker/dependency-bundle.manifest.v1.json`. Each asset and evidence file must be a physical regular file below this root, have no ADS/reparse traversal, and match its A1-bound byte length and SHA-256 or the associated manifest hash (`license_evidence_sha256` / `provenance_sha256`) exactly. Absent or mismatched handoff root, marker, manifest, child, raw bytes, digest, baseline, or physical-path proof is `BLOCKED_EXTERNAL_INGRESS` before helper construction or admission.
 
@@ -288,15 +289,15 @@ During C, after the base receipt and helper attestation but before admission, th
 
 ### Package R — committed founder bootstrap authority
 
-**Files:** create only `.planning/audits/test-rebase/g0-bootstrap-founder-release.v1.json`. Package R starts only after independent `ACCEPT` verdicts and already-existing commits for A0.1, A1, and B, and only after the founder explicitly approves this exact local-only one-shot transaction. Its `a0_commit` is the accepted A0.1 commit whose `git rev-list --first-parent <a0.1_commit>` output contains the fixed accepted A0 source-contract commit `8626c38d...`; it must not require A0 to be the immediate parent or use generic ancestry. The A0.1 commit retains the exact thirteen-file A0.1 allowlist scope. It is committed separately, after that approval, with no runtime operation before or during its creation:
+**Files:** create only `.planning/audits/test-rebase/g0-bootstrap-founder-release.v1.json`. Package R starts only after independent `ACCEPT` verdicts and already-existing commits for A0.1, A0.2, A1, and B, and only after the founder explicitly approves this exact local-only one-shot transaction. Its `a0_commit` is exactly `56a288dd51e261bbb91ed693d7b58a8a97994faf`; `git rev-list --first-parent <a02_commit>` must contain that exact A0.1 value; A0.2's actual first parent must have `S=61b38573682d7c01e6d9381babc5085537d7990f` in its first-parent lineage; and the exact A0.2 nine-path diff is measured against that actual parent, not against A0.1. The A0.1 commit retains the exact thirteen-file A0.1 allowlist scope. It is committed separately, after that approval, with no runtime operation before or during its creation:
 
 ```powershell
 git commit --only .planning/audits/test-rebase/g0-bootstrap-founder-release.v1.json -m "docs(test-rebase): release one G0 bootstrap transaction"
 ```
 
-The artifact uses the global ordered canonical JSON bytes, has schema `hub.qa.g0-bootstrap-founder-release/v1`, and has exactly these top-level keys in order: `schema`, `release_id`, `g0_plan_path`, `g0_plan_commit`, `a0_commit`, `a1_commit`, `b_commit`, `task`, `run`, `local_only`, `network`, `offline_ingress_handoff_id`, `offline_ingress_owner_marker_sha256`, `dependency_bundle_manifest_sha256`, `source_commit`, `expires_at_utc`, `one_shot_nonce`, `founder_approval`, `created_at_utc`. `release_id` matches exactly `^[a-z][a-z0-9-]{2,63}$`; `task` is exactly `g0-assets-runner`; `run` matches exactly `^[a-z0-9][a-z0-9-]{7,63}$` and is unique; `local_only` is JSON `true`; `network` is exactly `"disabled"`; `source_commit` is exactly `7b5d5501cefab34f9aa5661e4f8c38e71474f9ce`; every named commit is an existing full lowercase 40-hex commit and must be an ancestor of the dedicated Package-R commit; `a0_commit` is the accepted A0.1 commit, has the exact thirteen-file A0.1 allowlist scope, and must have the accepted A0 source-contract full commit `8626c38d...` as a member of `git rev-list --first-parent <a0.1_commit>`; generic ancestry and immediate-parent equality are invalid substitutes; `g0_plan_path` is this plan's repository-relative path; `offline_ingress_handoff_id` and both SHA-256 fields obey the closed handoff contract; `expires_at_utc` is a future UTC instant at Package-R review and C must reject expiry; `one_shot_nonce` is a unique 32-lowercase-hex value with no matching receipt in the current physical fixed nonce-ledger at Package-R acceptance or C's pre-create scan; C later creates and retains its fixed receipt with create-new semantics, and that receipt is never a repository commit; and `founder_approval` is exactly `EXPLICIT_LOCAL_ONLY_ONE_SHOT`.
+The artifact uses the global ordered canonical JSON bytes, has schema `hub.qa.g0-bootstrap-founder-release/v1`, and has exactly these top-level keys in order: `schema`, `release_id`, `g0_plan_path`, `g0_plan_commit`, `a0_commit`, `a02_commit`, `a1_commit`, `b_commit`, `task`, `run`, `local_only`, `network`, `offline_ingress_handoff_id`, `offline_ingress_owner_marker_sha256`, `dependency_bundle_manifest_sha256`, `source_commit`, `expires_at_utc`, `one_shot_nonce`, `founder_approval`, `created_at_utc`. `release_id` matches exactly `^[a-z][a-z0-9-]{2,63}$`; `task` is exactly `g0-assets-runner`; `run` matches exactly `^[a-z0-9][a-z0-9-]{7,63}$` and is unique; `local_only` is JSON `true`; `network` is exactly `"disabled"`; `source_commit` is exactly `61b38573682d7c01e6d9381babc5085537d7990f`; every named commit is an existing full lowercase 40-hex commit and must be an ancestor of the dedicated Package-R commit; `a0_commit` is the fixed accepted A0.1 commit and has the exact thirteen-file A0.1 allowlist scope; `a02_commit` must have `a0_commit` in `git rev-list --first-parent <a02_commit>`, its actual first parent must have `S` in its first-parent lineage, and its diff versus that actual parent must be exactly the frozen nine paths; generic ancestry, an immediate-parent equality to A0.1, and a mutable checkout are invalid substitutes; `g0_plan_path` is this plan's repository-relative path; `offline_ingress_handoff_id` and both SHA-256 fields obey the closed handoff contract; `expires_at_utc` is a future UTC instant at Package-R review and C must reject expiry; `one_shot_nonce` is a unique 32-lowercase-hex value with no matching receipt in the current physical fixed nonce-ledger at Package-R acceptance or C's pre-create scan; C later creates and retains its fixed receipt with create-new semantics, and that receipt is never a repository commit; and `founder_approval` is exactly `EXPLICIT_LOCAL_ONLY_ONE_SHOT`.
 
-This artifact is deliberately not a cryptographic signature, identity proof, or substitute for founder authentication. Its authority is the explicit founder approval followed by this separately reviewed repository commit. C must read only the fixed raw artifact at committed `HEAD`, require `HEAD` to be its dedicated commit, and verify raw bytes, closed schema, exact plan/A0.1/A1/B commit allowlist, release expiry, all handoff bindings, and the durable nonce-ledger preflight before it creates the current nonce-consumption receipt. It must reject a caller-supplied artifact/path/environment/JSON, an artifact from any other commit, a dirty replacement, a detached historical artifact, a malformed/nonphysical/reparse ledger child, a nonce collision, or a release whose named commit is not already accepted. Until this artifact exists and is independently accepted, `G0_C=BLOCKED`, `BOOTSTRAP=NOT_RUN`; it authorizes neither network nor any other ingress.
+This artifact is deliberately not a cryptographic signature, identity proof, or substitute for founder authentication. Its authority is the explicit founder approval followed by this separately reviewed repository commit. C must read only the fixed raw artifact at committed `HEAD`, require `HEAD` to be its dedicated commit, and verify raw bytes, closed schema, exact plan/A0.1/A0.2/A1/B commit allowlist and A0.2 proof, release expiry, all handoff bindings, and the durable nonce-ledger preflight before it creates the current nonce-consumption receipt. It must reject a caller-supplied artifact/path/environment/JSON, an artifact from any other commit, a dirty replacement, a detached historical artifact, a malformed/nonphysical/reparse ledger child, a nonce collision, or a release whose named commit is not already accepted. Until this artifact exists and is independently accepted, `G0_C=BLOCKED`, `BOOTSTRAP=NOT_RUN`; it authorizes neither network nor any other ingress.
 
 **Independent acceptance:** Terra/high independently verifies the founder-approved intent against the exact raw artifact bytes and schema; `git rev-parse HEAD` and the artifact-containing dedicated commit; A0.1/A1/B/plan commit existence, accepted verdicts, and literal allowlists; and that `git rev-list --first-parent <a0.1_commit>` contains the fixed accepted A0 source-contract full commit `8626c38d...` without using generic ancestry or immediate-parent equality; fixed source baseline; release ID/task/run/expiry/nonce grammar; local-only and no-network fields; and fixed handoff ID/marker/manifest hashes. It does not pre-create a nonce-consumption receipt, but verifies that C will scan every canonical physical receipt under the fixed root before its create-new write. It rejects ambiguous founder approval, altered raw bytes, an extra file in Package R, a self-reference, a stale pre-A0.1 `a0_commit`, an A0.1 commit outside the exact thirteen-file allowlist, a later activation/evidence/C1 commit substituted for A0.1/A1/B, or any claim of cryptographic identity. A HIGH finding blocks C.
 
@@ -304,7 +305,7 @@ This artifact is deliberately not a cryptographic signature, identity proof, or 
 
 Package A0 freezes the schema and verifier/admission implementation only. It must test only structural fixtures and explicit missing/unbound cases, state `NOT_RUN`, and write no `dependency-bundle.manifest.v1.json`. Package A1 later creates the manifest only from approved ingress; it changes no A0 code.
 
-`dependency-bundle.manifest.v1.json` is strict UTF-8 without BOM and schema `hub.qa.dependency-bundle/v1`. Its closed top-level keys, in this order, are `schema`, `bundle_id`, `source_commit`, `platform`, `assets`, `bases`, and `bundle_sha256`. `source_commit` is exactly `7b5d5501cefab34f9aa5661e4f8c38e71474f9ce`: it binds the recovered source tree and must never be changed to a later control/repository commit. `platform` is exactly `{"os":"linux","architecture":"amd64","variant":null}`.
+`dependency-bundle.manifest.v1.json` is strict UTF-8 without BOM and schema `hub.qa.dependency-bundle/v1`. Its closed top-level keys, in this order, are `schema`, `bundle_id`, `source_commit`, `platform`, `assets`, `bases`, and `bundle_sha256`. `source_commit` is exactly `61b38573682d7c01e6d9381babc5085537d7990f`: it binds the resealed source Git object and must never be changed to a later control/repository commit. `platform` is exactly `{"os":"linux","architecture":"amd64","variant":null}`.
 
 Each `assets` item has exactly `asset_id`, `targets`, `relative_path`, `sha256`, `bytes`, `archive_format`, `member_count`, `expanded_bytes`, `layout_sha256`, `license_spdx`, `license_evidence_sha256`, and `provenance_sha256`. It binds the raw archive's exact byte length and SHA-256 before any archive interpretation. The only asset identities, target mappings, and paths are exactly: `go-module-cache` / `["backend-unit","backend-openapi"]` / `assets/go-module-cache.tar`; `go-race-toolchain` / `["backend-unit"]` / `assets/go-race-toolchain.tar`; `frontend-node-modules` / `["frontend-unit"]` / `assets/frontend-node-modules.tar`; and `swag-binary` / `["backend-openapi"]` / `assets/swag-binary.tar`. `archive_format` is exactly `posix-pax-tar`; `member_count` and `expanded_bytes` are positive base-10 integers; and `layout_sha256` is the raw layout-projection digest defined by `Package A0.1 — secure regular-file archive amendment` below. There is no `powershell-runtime` asset, Linux PowerShell archive, package, interpreter, `PATH` lookup, host extraction, `COPY` extraction, or install in G0. Each `bases` item has exactly `base_id`, `consumers`, `local_image_id`, `manifest_digest`, `license_spdx`, `license_evidence_sha256`, and `provenance_sha256`. Its closed `consumers` values may name one or more of the four immutable targets and the sole non-target consumer `g0-admission-helper`; `g0-admission-helper` is valid only in `bases`, never in `assets`, Compose, bootstrap control, a candidate lock, or activation. The required helper base is `base_id=bootstrap-helper-python` with consumers exactly `["g0-admission-helper","g0-planning-selftest"]`; A1 binds its exact local ID/digest/provenance. This replaces and retires the legacy permanent `Assert-BaseBinding` branch: no A0 implementation may preserve a separate hard-coded base assertion. Every base is valid only when its `local_image_id` is already present locally and agrees with its pinned digest in the runner-produced `local-base-inspect.v1.json` receipt. All digest values use `sha256:` plus 64 lowercase hexadecimal characters.
 
@@ -318,8 +319,8 @@ Each `assets` item has exactly `asset_id`, `targets`, `relative_path`, `sha256`,
 
 ### Package A0.1 — secure regular-file archive amendment
 
-**Precondition:** accepted A0 is already committed. A0.1 is the only source
-amendment allowed between A0 and B. Its exact thirteen-file allowlist commit
+**Precondition:** accepted A0 is already committed. A0.1 is the archive
+amendment before the separately accepted A0.2 unit-runner successor. Its exact thirteen-file allowlist commit
 must be independently accepted with the fixed accepted A0 source-contract
 commit `8626c38d...` present in `git rev-list --first-parent <a0.1_commit>`;
 generic ancestry and immediate-parent equality are invalid. It must be
@@ -670,7 +671,7 @@ git commit --only testframework/docker/dependency-bundle.schema.v1.json testfram
 
 Package A0 freezes `source-image-attestor.ps1`, four Dockerfiles, four entrypoints, dedicated Vitest config, Compose topology, bootstrap control, and the two failing-first static selftest sources. Accepted A0.1 is the required final archive-security revision of the affected A0 files before B starts. Neither package creates `source-policy.v2.json` or `build-manifest.v3.json`; those A1 data files bind the exact approved ingress and source values only after ingress is available. The final A0.1 source contracts must cover unbound/missing binding data as `NOT_RUN`, never manufacture a plausible digest, image identity, archive, or provenance value.
 
-`source-policy.v2.json` is `hub.qa.local-source-policy/v2`; `build-manifest.v3.json` is `hub.qa.local-images-build-manifest/v3`. They bind the committed recovery source revision, the mandatory sorted source-tree digest, four target definitions, entrypoint digests, the dedicated Vitest config digest, bundle digest, and no network or registry capability. `source-policy.v2.json` contains the closed ordered allowlist of every source `path` and its Git `blob_sha1` expected at source commit `7b5d5501cefab34f9aa5661e4f8c38e71474f9ce`; it admits only mode `100644` regular blobs. `build-manifest.v3.json` repeats the exact source commit and source-tree digest and binds the raw SHA-256 of `source-policy.v2.json`. Neither file may infer source entries from the worktree, index, glob, Docker context, or a later control commit.
+`source-policy.v2.json` is `hub.qa.local-source-policy/v2`; `build-manifest.v3.json` is `hub.qa.local-images-build-manifest/v3`. They bind the committed recovery source revision `S=61b38573682d7c01e6d9381babc5085537d7990f`, the mandatory sorted source-tree digest, four target definitions, entrypoint digests, the dedicated Vitest config digest, bundle digest, and no network or registry capability. `source-policy.v2.json` contains the closed ordered allowlist of every source `path` and its Git `blob_sha1` expected at source commit `S`; it admits only mode `100644` regular blobs. `build-manifest.v3.json` repeats the exact source commit and source-tree digest and binds the raw SHA-256 of `source-policy.v2.json`. Neither file may infer source entries from the worktree, index, glob, Docker context, or a later control commit.
 
 `source-image-attestor.ps1` has no caller-selectable `RepositoryRoot`, `CandidatePath`, `TargetAttestations`, record collection, source-policy path, build-manifest path, archive path, archive receipt, or image-inspection input. It resolves the canonical repository root only from its own physical `PSScriptRoot`, verifies every ancestor and consumed path is non-reparse and contained, and reads the fixed raw A1 controls `testframework/docker/source-policy.v2.json`, `testframework/docker/build-manifest.v3.json`, and `testframework/docker/dependency-bundle.manifest.v1.json`. Receipt and control authority is established only by one private pure-PS5.1 byte parser: it rejects BOM, non-UTF-8, insignificant whitespace, duplicate, unknown, missing, or reordered keys at every closed object before values are used. `ConvertFrom-Json`, `Get-Content -Raw | ConvertFrom-Json`, and any other ordinary PowerShell JSON object conversion may not establish authority for the helper receipt or any A1 control. The attestor derives the candidate lock path only as `testframework/reports/<task-run>/bootstrap/images.lock.v3.json` from the internally validated post-build image-attestation context. Before a target image can be accepted or a candidate reservation created, it uses that parser for the fixed raw helper-admission receipt at `bootstrap/g0-admission-helper.admission.v1.json`: exact nine ordered receipt keys; the public nine asset fields plus exactly `descriptor_contract`, `source_observations`, and `staged_targets`; `descriptor_contract=linux-held-nofollow-fd/v1`; the six closed source-observation phases and equal descriptor/path identities; and manifest-order closed `staged_targets`. Every public asset must exactly equal the A1 manifest raw archive identity and accepted `archive_format`, `member_count`, `expanded_bytes`, and `layout_sha256`. For every staged child it derives only the fixed task report root, checks its exact contained `bootstrap/build-context/<target>/bindings/<relative_path>` path, and bounded-streams the tar to recompute its length and SHA-256; it rejects a whole-file read, duplicate/reordered/missing/extra child, boolean other than JSON `true`, rehash disagreement, or any later copy/re-root. An absent or malformed receipt/binding is `E_RECEIPT_BINDING_INVALID`; a path-reopened, substituted, unsafe, or partially staged asset blocks candidate publication as `E_ASSET_ARCHIVE_INVALID`. It accepts only the runner-produced, closed projection of `docker image inspect` rooted at that same task report and recomputes the four target records, entrypoint hashes, and Docker `Cmd` hashes itself using JCS canonical bytes plus fixed Dockerfile/entrypoint/control bytes. It consumes, but never creates or adopts, the runner-created exact raw `bootstrap/owner-marker.v1.json` file, then creates only its task-owned reservation paths before candidate publication; asset staging already happened through the helper's held-descriptor admission transaction.
 
@@ -701,7 +702,7 @@ check-then-open path sequence is forbidden. Static contract cases are exactly
 `windows-staged-tar-safe-reopen-identity`; each proves the required API contract
 and `E_ASSET_ARCHIVE_INVALID` with no candidate reservation.
 
-Before any build or candidate publication it must verify the source tree directly from Git object data at exact commit `7b5d5501cefab34f9aa5661e4f8c38e71474f9ce`, never from the worktree or index (the 241 staged legacy deletions are therefore irrelevant). It enumerates only the closed `source-policy.v2.json` allowlist and requires a one-to-one match: every path occurs exactly once, has Git mode `100644`, resolves to the declared Git blob SHA-1, and has raw content SHA-256 equal to the independently read blob bytes. It rejects every symlink (`120000`), submodule/gitlink (`160000`), tree, nonregular entry, duplicate/collision after UTF-8 byte encoding, unlisted entry, missing entry, or blob/digest disagreement. It canonicalizes each admitted source blob as raw UTF-8/no-BOM line bytes `path<TAB>100644<TAB>blob_sha1<TAB>sha256(raw)<LF>`, sorts those complete lines by the UTF-8 byte order of `path`, concatenates them with no separators or trailing bytes beyond each required LF, and computes SHA-256. That value must equal both `source-policy.v2.json.source_tree_sha256` and `build-manifest.v3.json.source_tree_sha256`; the build manifest's source-policy raw SHA-256 and source commit must also equal the fixed raw policy values. A missing/invalid closed source entry is `E_SOURCE_TREE_INVALID`; a computed digest or cross-control binding mismatch is `E_SOURCE_TREE_DIGEST_MISMATCH`; either gate is `G0_C=FAIL/BLOCKED` before build or candidate. It rejects a missing, duplicate, nonlocal, foreign-root, reparse, mismatched-source-baseline, or caller-forged record before writing a candidate. The source baseline comparison is exactly `7b5d5501cefab34f9aa5661e4f8c38e71474f9ce`; later control/repository commits are recorded separately and cannot satisfy it.
+Before any build or candidate publication it must verify the source tree directly from Git object data at exact commit `S=61b38573682d7c01e6d9381babc5085537d7990f`, never from the worktree or index (the 241 staged legacy deletions are therefore irrelevant). It enumerates only the closed `source-policy.v2.json` allowlist and requires a one-to-one match: every path occurs exactly once, has Git mode `100644`, resolves to the declared Git blob SHA-1, and has raw content SHA-256 equal to the independently read blob bytes. It rejects every symlink (`120000`), submodule/gitlink (`160000`), tree, nonregular entry, duplicate/collision after UTF-8 byte encoding, unlisted entry, missing entry, or blob/digest disagreement. It canonicalizes each admitted source blob as raw UTF-8/no-BOM line bytes `path<TAB>100644<TAB>blob_sha1<TAB>sha256(raw)<LF>`, sorts those complete lines by the UTF-8 byte order of `path`, concatenates them with no separators or trailing bytes beyond each required LF, and computes SHA-256. That value must equal both `source-policy.v2.json.source_tree_sha256` and `build-manifest.v3.json.source_tree_sha256`; the build manifest's source-policy raw SHA-256 and source commit must also equal the fixed raw policy values. A missing/invalid closed source entry is `E_SOURCE_TREE_INVALID`; a computed digest or cross-control binding mismatch is `E_SOURCE_TREE_DIGEST_MISMATCH`; either gate is `G0_C=FAIL/BLOCKED` before build or candidate. It rejects a missing, duplicate, nonlocal, foreign-root, reparse, mismatched-source-baseline, or caller-forged record before writing a candidate. The source baseline comparison is exactly `S`; later control/repository commits are recorded separately and cannot satisfy it.
 
 The frontend target must use only `testframework/docker/vitest.frontend-unit.config.ts`, whose include is exactly `/opt/hub/source/frontend/tests/**/*.test.{ts,tsx}`. It has no exclusion that can hide a failure. The three SUT entrypoints are fixed source contracts only: backend unit runs the declared isolated `backend/tests/...` sequence, frontend unit runs its fixed TypeScript/Biome/Vite/Vitest sequence, and OpenAPI compares two independent fixed generations. `build-manifest.v3.json` separately binds (a) each image's literal Docker `Entrypoint` and `Cmd`, whose JCS hash is the target `command_sha256`, and (b) its target-action contract, which may contain human-readable purpose text but is not a Docker `Cmd` and is never hashed as one. This distinction is mandatory for `backend-openapi`. Neither representation may reference legacy test roots, `testframework/stages`, a network client, or installation command.
 
@@ -776,7 +777,7 @@ Every snapshot report location is deterministic and task-owned: `testframework/r
 
 The sole producer is `testframework/runner/new-repository-snapshot.ps1`; the activation record binds both that literal path and its SHA-256. It accepts no caller-selected source path and rejects invalid raw bytes, reparse points, changed closed controls, or an unexpected source revision before any container dependency operation.
 
-`testframework/schemas/run-envelope.schema.v1.json`, `$id` `hub.qa.run-envelope/v1`, is a closed schema with top-level keys `schema`, `producer`, `envelope_id`, `contract`, `target`, `task`, `run`, `owner_nonce`, `repository_snapshot_sha256`, `report_root`, `limits`, `cleanup_contract`, `created_at_utc`. `contract` is `hub.qa-runner/v2`; target is one of the four fixed G0 targets or the schema-only `recovery-successor-authority` target. The latter has no Package-B/C runner route and remains `NOT_READY` until its separately accepted recovery package; it exists only so Recovery consumes this one schema rather than forking it. `limits` has exactly `command_seconds`, `target_seconds`, `inspect_seconds`, `outer_seconds`, `cleanup_seconds` and values `180`, `780`, `30`, `810`, `30`; `cleanup_contract` is `hub.qa.exact-cleanup/v1`. Its only producer is `testframework/runner/new-run-envelope.ps1` and the activation record binds that path and digest.
+`testframework/schemas/run-envelope.schema.v1.json`, `$id` `hub.qa.run-envelope/v1`, is a closed schema with top-level keys `schema`, `producer`, `envelope_id`, `contract`, `target`, `task`, `run`, `owner_nonce`, `repository_snapshot_sha256`, `report_root`, `limits`, `cleanup_contract`, `created_at_utc`. `contract` is `hub.qa-runner/v2`; target is one of the four fixed G0 targets or the schema-only `recovery-successor-authority` target. The latter has no Package-B/C runner route and remains `NOT_READY` until its separately accepted recovery package; it exists only so Recovery consumes this one schema rather than forking it. `limits` has exactly `command_seconds`, `target_seconds`, `inspect_seconds`, `outer_seconds`, `cleanup_seconds`, `orchestration_slack_seconds` and values `180`, `780`, `30`, `840`, `30`, `30`; `cleanup_contract` is `hub.qa.exact-cleanup/v1`. The producer must record and enforce one cumulative remaining target budget across the four builds and all inspections, clipping each child timeout to that remainder and the reserved outer budget. Its only producer is `testframework/runner/new-run-envelope.ps1` and the activation record binds that path and digest.
 
 For a completed-zero G0 transaction, the records have one acyclic production order. The durable nonce-consumption receipt already exists before any per-run root and is not a snapshot/envelope/run predecessor or successor. First,
 `new-repository-snapshot.ps1` creates the snapshot after the already-existing
@@ -827,12 +828,12 @@ the recovery plan.
 | Both payloads | `schema` is the matching `$id`; `task` and `run` use the global grammars; `created_at_utc` is a UTC RFC-3339 instant with `Z`; strings/integers/booleans obey the ordered-byte rules. G0 additionally requires `task=g0-assets-runner`. | G0 values exactly match Package R, the owner marker, local-base receipt, private context, and deterministic report root. Recovery values must match its immutable genesis and use no different grammar. |
 | Snapshot IDs and role | `snapshot_id` matches `^[a-z][a-z0-9-]{2,31}-snapshot-[a-z0-9][a-z0-9-]{7,63}-[0-9]{3}-[A-Z_]+$`; `envelope_id` matches `^[a-z][a-z0-9-]{2,31}-envelope-[a-z0-9][a-z0-9-]{7,63}$`; `role_claim` is a nonempty ASCII string of at most 128 characters; `self_attested` is JSON `true` for `G0_BOOTSTRAP`. | G0 must use `g0-assets-runner-snapshot-<run>-<ordinal>-<kind>`, `g0-assets-runner-envelope-<run>`, and literal role `hub.qa-bootstrap/v1`. A recovery snapshot preserves the same field names and can use only the exact role/self-attestation required by its frozen genesis. |
 | `captured_for` | `kind` is one of the eight literals in `Shared snapshot and envelope contracts`; `ordinal` is a non-negative base-10 integer; every path/digest/commit member is either all `null` in its declared group or a valid typed value | The all-null rules and the per-kind predecessor/pre-event matrix in that section are authoritative. `G0_BOOTSTRAP` is exactly ordinal `0`, has every subject/predecessor/pre-event member `null`, and never refers to later `run.json`. |
-| `source_revision`, `head` | `source_revision.commit` is exactly `7b5d5501cefab34f9aa5661e4f8c38e71474f9ce`; `source_revision.tree`, `head.commit`, and `head.tree` are lower 40-hex Git values. `head.event` has exactly `event_id`, `event_type`, `captured_at_utc`; all three are `null` for `G0_BOOTSTRAP`. | Recovery may make `head.event` all non-null only for its already-committed event; a partial null triplet is invalid. Later control commits never replace `source_revision.commit`. |
+| `source_revision`, `head` | `source_revision.commit` is exactly `61b38573682d7c01e6d9381babc5085537d7990f` (`S`); `source_revision.tree`, `head.commit`, and `head.tree` are lower 40-hex Git values. `head.event` has exactly `event_id`, `event_type`, `captured_at_utc`; all three are `null` for `G0_BOOTSTRAP`. | Recovery may make `head.event` all non-null only for its already-committed event; a partial null triplet is invalid. Later control commits never replace `source_revision.commit`. |
 | `index`, `worktree`, `commits`, `ancestry` | Every listed child object is closed as declared in `Shared snapshot and envelope contracts`. `count` equals array length. `sha256` is the raw ordered canonical projection digest defined by that producer. `paths` and `changed_paths` are ordered lexicographically by UTF-8 path bytes. | A record cannot infer a live worktree/index when consumed by Recovery; its raw snapshot bytes and bound digest are the evidence. |
 | `control` | All seven named digest fields are typed SHA-256 strings except `images_lock_sha256`, which is JSON `null` only in the pre-C1 `G0_BOOTSTRAP` snapshot and non-null in a post-C1/recovery snapshot. | Non-null control values equal the exact raw bytes of the named committed source controls. A C1 lock digest cannot be invented from the candidate report lock. |
 | `evidence`, `lifecycle` | `evidence` has exactly `positive_green_path`, `positive_green_sha256`, `candidate_lock_path`, `candidate_lock_sha256`, `cleanup_path`, `cleanup_sha256`. For `G0_BOOTSTRAP`, all six are non-null valid pairs that already exist before snapshot creation; it contains no envelope or run field. For every recovery kind, all six are JSON `null`; its committed event evidence remains in the closed `captured_for` linkage, and adding different runtime evidence needs a later schema version. `lifecycle` has exactly `state`, `started_at_utc`, `finished_at_utc`; successful state is `CAPTURED` and both times are non-null UTC instants, failed state is `FAILED` and blocks progression. | G0 evidence paths are contained in the deterministic report root and bind only the positive-green, candidate-lock, and cleanup raw bytes. Retained reports are never cleanup targets. |
 | Envelope identity | G0 `envelope_id` is exactly `g0-assets-runner-envelope-<run>`; G0 `target` is one fixed target. A recovery envelope can use only `recovery-successor-authority`. `owner_nonce` is exactly the private context nonce for G0 and the genesis-bound nonce for recovery; `report_root` is its deterministic root; `cleanup_contract` is `hub.qa.exact-cleanup/v1`. | The envelope is written once after its snapshot is available, has no caller-selected report path, and one-way raw-links `repository_snapshot_sha256` to that snapshot. The snapshot carries only the deterministic matching `envelope_id`, never envelope bytes or digest. |
-| Envelope limits | `limits` is the exact five-integer object declared immediately before this matrix; no null limit, alias, unit conversion, or extra member is allowed. | `outer_seconds=810` is greater than every nested budget plus fixed cleanup; `timeout` terminates with `124` and preserves the first earlier non-zero exit. |
+| Envelope limits | `limits` is the exact six-integer object declared immediately before this matrix; no null limit, alias, unit conversion, or extra member is allowed. | `outer_seconds=840` is exactly `target_seconds=780` + `cleanup_seconds=30` + `orchestration_slack_seconds=30`; every build/inspection receives only the cumulatively remaining target and outer budget, and timeout terminates with `124` while preserving the first earlier non-zero exit. |
 
 The completed-zero G0 bootstrap creates exactly one `G0_BOOTSTRAP` snapshot after the
 positive-green, candidate-lock, and cleanup receipts already exist, then one
@@ -852,13 +853,13 @@ or a missing/mismatched durable nonce-consumption path/raw digest.
 
 `.planning/audits/test-rebase/g0-activation.v1.json` uses schema `hub.qa.g0-activation/v1`, is written only after bootstrap and an independent post-run evidence acceptance commit, and has exactly these top-level fields in this order:
 
-`schema`, `activation_id`, `g0_plan_path`, `required_plan_commit`, `founder_release_path`, `founder_release_sha256`, `founder_release_commit`, `nonce_consumption_path`, `nonce_consumption_sha256`, `repository_commit`, `bootstrap_contract`, `bootstrap_contract_path`, `bootstrap_contract_sha256`, `runner_contract`, `runner_contract_path`, `runner_contract_sha256`, `dependency_bundle_manifest_path`, `dependency_bundle_manifest_sha256`, `source_policy_path`, `source_policy_sha256`, `build_manifest_path`, `build_manifest_sha256`, `images_lock_path`, `images_lock_sha256`, `target_entrypoints`, `planning_selftest`, `repository_snapshot_schema_path`, `repository_snapshot_schema_sha256`, `run_envelope_schema_path`, `run_envelope_schema_sha256`, `repository_snapshot_producer_path`, `repository_snapshot_producer_sha256`, `run_envelope_producer_path`, `run_envelope_producer_sha256`, `report_cleanup_contract`, `acceptance_verdict`, `acceptance_commit`, `created_at_utc`.
+`schema`, `activation_id`, `g0_plan_path`, `required_plan_commit`, `a0_commit`, `a02_commit`, `a1_commit`, `b_commit`, `founder_release_path`, `founder_release_sha256`, `founder_release_commit`, `nonce_consumption_path`, `nonce_consumption_sha256`, `repository_commit`, `bootstrap_contract`, `bootstrap_contract_path`, `bootstrap_contract_sha256`, `runner_contract`, `runner_contract_path`, `runner_contract_sha256`, `dependency_bundle_manifest_path`, `dependency_bundle_manifest_sha256`, `source_policy_path`, `source_policy_sha256`, `build_manifest_path`, `build_manifest_sha256`, `images_lock_path`, `images_lock_sha256`, `target_entrypoints`, `planning_selftest`, `repository_snapshot_schema_path`, `repository_snapshot_schema_sha256`, `run_envelope_schema_path`, `run_envelope_schema_sha256`, `repository_snapshot_producer_path`, `repository_snapshot_producer_sha256`, `run_envelope_producer_path`, `run_envelope_producer_sha256`, `report_cleanup_contract`, `acceptance_verdict`, `acceptance_commit`, `created_at_utc`.
 
 Path/digest semantics are exact: each `*_path` is a repository-relative regular file path; its companion `*_sha256` is the SHA-256 of that file's no-BOM raw bytes from `repository_commit`, except `g0_plan_path` which is bound by `required_plan_commit`, and `founder_release_path`/`founder_release_sha256` which are bound by `founder_release_commit`. `founder_release_path` is exactly `.planning/audits/test-rebase/g0-bootstrap-founder-release.v1.json`; `founder_release_commit` is the earlier dedicated Package-R commit and must equal the authority commit used by C. `nonce_consumption_path` is exactly the safe, repository-root-derived fixed ledger path `testframework/reports/g0-assets-runner-nonce-consumptions/<release_id>.nonce-consumption.v1.json`; `nonce_consumption_sha256` is its retained raw no-BOM SHA-256 and must equal the C/D nonce-consumption pair. Its strict canonical record must have the exact nine-key `hub.qa.g0-nonce-consumption/v1` shape, match the accepted raw Package-R release ID/commit/digest/task/run/nonce, and have `status=CONSUMED`; it has no owner marker because it precedes one. `bootstrap_contract` is `hub.qa-bootstrap/v1`; `runner_contract` is `hub.qa-runner/v2`; `report_cleanup_contract` is `hub.qa.exact-cleanup/v1`; and `acceptance_verdict` is exactly `ACCEPT`.
 
 `target_entrypoints` is a closed object with exactly the four fixed target names. Each child has exactly `local_image_id`, `local_image_id_sha256`, `entrypoint_path`, `entrypoint_sha256`, `command_sha256`, `compose_service`, and `runtime_status`; every field must exactly equal the corresponding Package C1 repository-lock child and the bootstrap-control child. `planning_selftest` has exactly `target`, `task`, `run`, `run_receipt_sha256`, `cleanup_receipt_sha256`, `snapshot_sha256`, `envelope_sha256`, and `verdict`; target is `g0-planning-selftest`, task is `g0-assets-runner`, and verdict is `ACCEPT`. `run_receipt_sha256` is accepted only after strict canonical parsing of the same ten-key `hub.qa.bootstrap-run/v1` shape declared by `run_receipt`: its `release_one_shot_nonce` must exactly equal the committed Package-R `one_shot_nonce`, its `status` must be `completed-zero`, and its snapshot/envelope pairs must equal the retained raw records.
 
-`acceptance_commit` is an existing full 40-lowercase-hex independent evidence acceptance commit. It cannot equal the later activation-record commit. `repository_commit` is exactly the already committed Package C1 lock commit; it is the baseline for all later evidence acceptance and activation comparisons. `required_plan_commit` identifies the earlier plan commit. `Write-HubQaG0Activation` uses create-new semantics, validates all values, and cannot create a second activation; it must consume the same exact ten-key `run_receipt` shape and Package-R nonce binding that D consumed, then independently safe-read and bind the identical durable nonce-consumption path/raw digest that D accepted. It rejects a missing, byte-mismatched, rewritten, or reparse-reached receipt and a missing or byte-mismatched Package-R authority even though it makes no claim that the artifact cryptographically identifies its founder.
+`acceptance_commit` is an existing full 40-lowercase-hex independent evidence acceptance commit. It cannot equal the later activation-record commit. `repository_commit` is exactly the already committed Package C1 lock commit; it is the baseline for all later evidence acceptance and activation comparisons. `required_plan_commit` identifies the earlier plan commit. `a0_commit`, `a02_commit`, `a1_commit`, and `b_commit` are required full 40-hex values byte-equal to the Package-R and D records; activation independently proves the A0.1-in-A0.2 first-parent membership, S-lineage actual parent, exact-nine diff, seven-overlap blobs, and six-remaining A0.1 blobs before accepting them. `Write-HubQaG0Activation` uses create-new semantics, validates all values, and cannot create a second activation; it must consume the same exact ten-key `run_receipt` shape and Package-R nonce binding that D consumed, then independently safe-read and bind the identical durable nonce-consumption path/raw digest that D accepted. It rejects a missing, byte-mismatched, rewritten, or reparse-reached receipt and a missing or byte-mismatched Package-R authority even though it makes no claim that the artifact cryptographically identifies its founder.
 
 The activation's `planning_selftest.run_receipt_sha256` is never sufficient by
 itself to consume authority: its successful ten-key run receipt must be paired
@@ -875,7 +876,7 @@ ordered-byte rules, uses schema `hub.qa.g0-bootstrap-evidence-acceptance/v1`,
 and has exactly these top-level keys in this order:
 
 ```text
-schema, acceptance_id, g0_plan_path, g0_plan_commit, a0_commit, a1_commit,
+schema, acceptance_id, g0_plan_path, g0_plan_commit, a0_commit, a02_commit, a1_commit,
 b_commit, founder_release, repository_commit, task, run, c_receipts, c1_lock,
 repository_snapshot, run_envelope, acceptance_verdict, accepted_at_utc
 ```
@@ -895,12 +896,13 @@ file's exact no-BOM raw bytes. `founder_release` has exactly `path`,
 `raw_sha256`, `commit`, whose values are respectively the fixed Package-R path
 `.planning/audits/test-rebase/g0-bootstrap-founder-release.v1.json`, its raw
 digest, and its dedicated R commit. `g0_plan_commit`, `a0_commit`,
-`a1_commit`, `b_commit`, task, run, and all handoff/authority facts must equal
-the exact raw Package-R artifact; `a0_commit` is specifically the accepted
-A0.1 exact thirteen-file commit for which `git rev-list --first-parent
-<a0.1_commit>` contains fixed accepted A0 `8626c38d...`, not a generic-ancestry
-or immediate-parent relation. None may be reconstructed from a caller or from a
-mutable worktree.
+`a02_commit`, `a1_commit`, `b_commit`, task, run, and all handoff/authority
+facts must equal the exact raw Package-R artifact. D proves `a0_commit` is the
+fixed A0.1 thirteen-file commit; `git rev-list --first-parent <a02_commit>`
+contains it; A0.2's actual parent has S in its first-parent lineage; the
+nine-path A0.2 diff is exact against that actual parent; the seven overlap
+blobs equal A0.2; and the six remaining A0.1 blobs equal A0.1. None may be
+reconstructed from a caller or mutable worktree.
 
 `c_receipts` has exactly these keys in this order:
 
@@ -983,6 +985,12 @@ required C/C1/R link to `E_B0_ACTIVATION_D_ACCEPTANCE`; it must not treat an
 unparsed or re-emitted D object as evidence.
 
 ### `Write-HubQaG0Activation` closed interface and causal inputs
+
+Its parser must require the ordered `a0_commit`, `a02_commit`, `a1_commit`,
+and `b_commit` from the canonical D record and raw R artifact, reject any
+missing/duplicate/reordered value, and repeat the A0.1-in-A0.2 first-parent,
+S-lineage actual-parent, exact-nine diff, seven-overlap, and six-remaining
+blob proof before it writes activation.
 
 `testframework/runner/write-g0-activation.ps1` has one named internal command
 surface and no positional, environment, JSON, stdin, path, task, run, output,
@@ -1118,7 +1126,7 @@ git commit --only testframework/docker/dependency-bundle.schema.v1.json testfram
 - `testframework/docker/source-policy.v2.json`
 - `testframework/docker/build-manifest.v3.json`
 
-**Binding rule:** A1 is blocked until a founder-approved offline ingress closes the exact physical `.qa-local-ingress/g0-assets/<handoff-id>` handoff root and its owner marker/manifest hashes. It reads no caller path and records only the byte-for-byte manifest, four byte-identical `.tar` archive identities/lengths/declared layout fields, local base image IDs/digests, SPDX licenses, license-evidence digests, and provenance digests from that fixed handoff into the three binding data files. The later create-new task-owned ingress copy is an owner-bound immutable staging source, not a mutable cache or a fresh path authority: its initial safe-open descriptor identity and all later no-follow identity/size/mtime checks must remain bound to these A1 facts, and a substitution blocks. A1 neither extracts, rewrites, normalizes, nor pre-accepts an archive; A0.1's helper validation during the later C transaction is the only archive acceptance. It makes no code, Dockerfile, entrypoint, control, runner, selftest, or documentation change. The dependency schema value `source_commit` is the constant `7b5d5501cefab34f9aa5661e4f8c38e71474f9ce`; `bases` binds the required `bootstrap-helper-python` identity for both `g0-admission-helper` and `g0-planning-selftest`. `build-manifest.v3.json` binds the helper Dockerfile/entrypoint digests and excludes it from the four target definitions and `images.lock.v3.json`.
+**Binding rule:** A1 is blocked until a founder-approved offline ingress closes the exact physical `.qa-local-ingress/g0-assets/<handoff-id>` handoff root and its owner marker/manifest hashes. It reads no caller path and records only the byte-for-byte manifest, four byte-identical `.tar` archive identities/lengths/declared layout fields, local base image IDs/digests, SPDX licenses, license-evidence digests, and provenance digests from that fixed handoff into the three binding data files. The later create-new task-owned ingress copy is an owner-bound immutable staging source, not a mutable cache or a fresh path authority: its initial safe-open descriptor identity and all later no-follow identity/size/mtime checks must remain bound to these A1 facts, and a substitution blocks. A1 neither extracts, rewrites, normalizes, nor pre-accepts an archive; A0.1's helper validation during the later C transaction is the only archive acceptance. It makes no code, Dockerfile, entrypoint, control, runner, selftest, or documentation change. The dependency schema value `source_commit` is the constant `61b38573682d7c01e6d9381babc5085537d7990f`; `bases` binds the required `bootstrap-helper-python` identity for both `g0-admission-helper` and `g0-planning-selftest`. `build-manifest.v3.json` binds the helper Dockerfile/entrypoint digests, the frontend dedicated Vitest config path/raw digest, and excludes the helper from the four target definitions and `images.lock.v3.json`.
 
 **Independent acceptance:** Terra/high verifies the exact data only against the separately explicit founder-approved fixed offline-ingress handoff, its repository-root-derived physical handoff root, owner marker, fixed source baseline, raw manifest bytes, A1 raw files, local availability/provenance evidence, schema, historical v1/v2 files, and A0.1's frozen archive contracts. This acceptance precedes Package R and must not read, require, or compare any Package-R bootstrap release artifact. It rejects a `powershell-runtime` asset, non-`.tar` relative path, archive field/value outside A0.1's closed mapping, or any asset/consumer not in that mapping. Missing, mutable, remote, tagged-only, nonlocal, reparse/ADS-tainted, inferred, invented, caller-provided, or byte-mismatched values are `A1=BLOCKED_EXTERNAL_INGRESS`; no commit is made.
 
@@ -1148,13 +1156,14 @@ git commit --only testframework/docker/dependency-bundle.manifest.v1.json testfr
 This is the literal 12-file Package-B allowlist. A0.1 changes no B file and
 may not add a schema, fixture, archive helper, or compatibility file to it;
 the runner sources implement the amended contracts only after the accepted
-A0.1 receipt/staging schema is committed.
+A0.2 receipt/staging schema is committed.
 
 `hub.qa-runner/v2` accepts only validated `target`, `task`, and `run`; it rejects extras with exit `64`, has no v1 bridge, no public direct invocation, and no general command operation. It supports the four fixed target names but reports all future Python jobs `NOT_READY`. The G0 selftest is callable only from the bootstrap launcher with the exact internal role capability above; `/qa-gate` documents v2 but is not a bootstrap route.
 
-**Mandatory A0.1 call chain:** Package B source must dot-source the accepted A0.1
-`testframework/docker/source-image-attestor.ps1` into its bootstrap-private
-scope, retaining no separate source-tree implementation. During C, after
+**Mandatory A0.2 source-attestor chain:** Package B source must dot-source the
+accepted A0.2/current `testframework/docker/source-image-attestor.ps1` blob
+into its bootstrap-private scope, retaining A0.1 archive safety and no separate
+source-tree implementation. During C, after
 helper cleanup and after A1 controls are bound but before the first of the four
 target image builds, it calls exactly
 `Get-HubQaGitObjectSourceTree -Controls $binding.Controls`. It creates exactly
@@ -1223,7 +1232,7 @@ files and no runtime execution before C):
 | `postbuild-base-receipt-binding` | altered local-base raw bytes/digest/nonce, a noncanonical local-base or helper receipt/A1 control, task/run/owner/base drift, or a helper receipt digest/nonce mismatch is `E_RECEIPT_BINDING_INVALID` and creates no candidate |
 | `d-evidence-acceptance-contract` | duplicate/reordered/unknown D keys, a wrong C/C1/R raw link, non-`ACCEPT` verdict, or D self/future reference is the matching `E_B0_D_*` error and causes `Write-HubQaG0Activation` to reject with `E_B0_ACTIVATION_D_ACCEPTANCE` |
 | `activation-r-c1-d-chain` | wrong Package-R raw digest, C1 lock commit, D acceptance, output collision, or self/future commit is the exact `E_B0_ACTIVATION_*` code above |
-| `first-exit-cleanup` | first non-zero exit wins; timeout is `124`; foreign resource/report exclusion and exact cleanup remain closed |
+| `first-exit-cleanup` | first non-zero exit wins; timeout is `124`; exact `840=780+30+30` outer budget, cumulative remaining-budget clipping across all four builds/inspection, foreign resource/report exclusion, and exact cleanup remain closed |
 
 The host PowerShell sources and this static selftest are reviewed as source
 only before C; neither is copied to a Linux image as a false runtime proof.
@@ -1279,7 +1288,13 @@ git commit --only testframework/runner/contracts/hub.qa-bootstrap.v1.json testfr
 
 **Founder prerequisites:** the one already-committed, independently accepted Package-R authority artifact at the fixed path and at current committed `HEAD`; no caller may supply, select, or override it. Its raw bytes name the exact plan/A0.1/A1/B commits, task, unique run, local-only/no-network authority, closed offline-ingress handoff ID, its owner-marker SHA-256, its dependency-manifest SHA-256, fixed source baseline, expiry, one-shot nonce, and explicit founder approval. C requires `HEAD` to equal the dedicated Package-R commit, derives the physical repository-root `.qa-local-ingress/g0-assets/<handoff-id>` tree only from those raw bytes, and immediately after accepted R validation but before any per-run root/owner/runtime resource strictly scans every physical no-reparse nonce-consumption receipt beneath the fixed ledger root. It rejects a malformed/foreign child or any matching nonce, then creates the exact current durable receipt create-new and retains its raw path/digest. An absent ingress item is `G0_C=BLOCKED_EXTERNAL_INGRESS`; an absent/rejected Package-R artifact, nonce collision, or any other authority failure is `G0_C=BLOCKED`.
 
-**Only permitted operation:** call `hub.qa-bootstrap/v1` once from the accepted committed Package-R authority. In exact order, after accepted R validation it scans and create-new writes the durable nonce-consumption receipt; only then does it create the owner marker, inspect all local bases, and write the raw nonce/digest-bound local-base receipt; verify the A1 helper base identity against that receipt; build and locally attest the ephemeral `g0-admission-helper`; copy and verify the fixed founder handoff into the create-new task-owned ingress subtree while retaining its in-memory digest map and writing the closed ingress-copy receipt; give `admit-local-dependency-assets.ps1` only the immutable, owner-bound copied ingress and runner-held private receipt/digest map; and let the helper safely open each archive once, retain that descriptor through the raw hash, scanner, tarfile view, and all target staging, and reject every unsafe no-follow, identity, size, mtime, or path-substitution condition as `E_ASSET_ARCHIVE_INVALID`. The helper makes each target staging tar only by seeking the held admitted source descriptor, exclusive create-new bounded streaming copy with SHA-256/length, `fsync`/close, and safe target reopen/rehash to the exact admitted identity; it never copies from an unbound later path. The launcher neither reads nor copies/adopts the founder handoff/ingress. Bootstrap then removes and receipts the helper; binds the closed A1 controls; calls the full A0.1 `Get-HubQaGitObjectSourceTree -Controls $binding.Controls`; writes and validates the exact source-tree-verification receipt; and only then builds the four fixed targets from byte-identical admitted tar files. After all four immutable local inspection records exist it calls the full A0.1 `Invoke-HubQaBootstrapImageAttestation -BootstrapPrivateContext $ImageAttestationPrivateContext` and accepts no result except the exact post-build value/path/digests defined for Package B. Only then does it retain the candidate v3 lock at its fixed task-owned path and invoke `g0-planning-selftest` through the private v2 closure. The planning selftest executes the shared Python fixture negative-red and positive-green cases. On completed-zero it writes `cleanup.json`, then snapshot first, envelope second, and the ten-key `run.json` third exactly as the shared contract requires, binding the earlier nonce receipt through C evidence. The outer host launcher and B runner behavior are proven by this real transaction rather than a Linux structural imitation. It does not run `backend-unit`, `frontend-unit`, `backend-openapi`, a package Python job, or any legacy suite.
+**A0.2 pre-build proof:** before any owner marker, process, or report-root write, C independently requires R's ordered `a0_commit`, `a02_commit`, `a1_commit`, and `b_commit`; proves A0.1 membership in `git rev-list --first-parent <a02_commit>`; requires S in the first-parent history of A0.2's actual parent; compares the exact A0.2 nine-path diff against that parent; then proves the current seven overlap blobs equal A0.2 and the current six remaining A0.1 blobs equal A0.1. A failure is `G0_C=BLOCKED` and creates no nonce receipt.
+
+**Function authority:** the calls below are to the **A0.1 archive contract as
+amended by A0.2**, not a frozen full-A0.1 implementation: they use the accepted
+A0.2/current source-attestor blob while retaining A0.1 archive safety.
+
+**Only permitted operation:** call `hub.qa-bootstrap/v1` once from the accepted committed Package-R authority. In exact order, after accepted R validation it scans and create-new writes the durable nonce-consumption receipt; only then does it create the owner marker, inspect all local bases, and write the raw nonce/digest-bound local-base receipt; verify the A1 helper base identity against that receipt; build and locally attest the ephemeral `g0-admission-helper`; copy and verify the fixed founder handoff into the create-new task-owned ingress subtree while retaining its in-memory digest map and writing the closed ingress-copy receipt; give `admit-local-dependency-assets.ps1` only the immutable, owner-bound copied ingress and runner-held private receipt/digest map; and let the helper safely open each archive once, retain that descriptor through the raw hash, scanner, tarfile view, and all target staging, and reject every unsafe no-follow, identity, size, mtime, or path-substitution condition as `E_ASSET_ARCHIVE_INVALID`. The helper makes each target staging tar only by seeking the held admitted source descriptor, exclusive create-new bounded streaming copy with SHA-256/length, `fsync`/close, and safe target reopen/rehash to the exact admitted identity; it never copies from an unbound later path. The launcher neither reads nor copies/adopts the founder handoff/ingress. Bootstrap then removes and receipts the helper; binds the closed A1 controls; calls the A0.1 archive contract as amended by A0.2 `Get-HubQaGitObjectSourceTree -Controls $binding.Controls`; writes and validates the exact source-tree-verification receipt; and only then builds the four fixed targets from byte-identical admitted tar files. After all four immutable local inspection records exist it calls the A0.1 archive contract as amended by A0.2 `Invoke-HubQaBootstrapImageAttestation -BootstrapPrivateContext $ImageAttestationPrivateContext` and accepts no result except the exact post-build value/path/digests defined for Package B. Only then does it retain the candidate v3 lock at its fixed task-owned path and invoke `g0-planning-selftest` through the private v2 closure. The planning selftest executes the shared Python fixture negative-red and positive-green cases. On completed-zero it writes `cleanup.json`, then snapshot first, envelope second, and the ten-key `run.json` third exactly as the shared contract requires, binding the earlier nonce receipt through C evidence. The outer host launcher and B runner behavior are proven by this real transaction rather than a Linux structural imitation. It does not run `backend-unit`, `frontend-unit`, `backend-openapi`, a package Python job, or any legacy suite.
 
 The preceding no-read rule means no founder-handoff access and no ingress archive
 content authority: the host launcher may consume only the bounded fixed
@@ -1292,9 +1307,9 @@ safe-opens and streams the archives.
 
 ### Package C1 — independent candidate-lock admission
 
-**Input:** exactly one completed-zero Package C report root, its immutable candidate `testframework/reports/<task-run>/bootstrap/images.lock.v3.json`, the candidate SHA-256 receipt, the durable nonce-consumption receipt path/raw digest, the nonce/digest-bound local-base receipt, helper attestation/admission/cleanup receipts, all four immutable local image-ID attestations, the retained snapshot and envelope path/raw-digest pairs, `bootstrap-control.v1.json`, the accepted committed Package-R artifact/raw digest/commit, and the accepted Package A0.1/A1/B commit SHAs. **Output:** either `G0_C1=REJECT/BLOCKED` with no repository mutation, or one repository file `testframework/docker/images.lock.v3.json` whose raw no-BOM bytes are byte-for-byte identical to the candidate. C1 never rebuilds, reattests, regenerates, normalizes, or edits a lock.
+**Input:** exactly one completed-zero Package C report root, its immutable candidate `testframework/reports/<task-run>/bootstrap/images.lock.v3.json`, the candidate SHA-256 receipt, the durable nonce-consumption receipt path/raw digest, the nonce/digest-bound local-base receipt, helper attestation/admission/cleanup receipts, all four immutable local image-ID attestations, the retained snapshot and envelope path/raw-digest pairs, `bootstrap-control.v1.json`, the accepted committed Package-R artifact/raw digest/commit, and the accepted Package A0.1/A0.2/A1/B commit SHAs. **Output:** either `G0_C1=REJECT/BLOCKED` with no repository mutation, or one repository file `testframework/docker/images.lock.v3.json` whose raw no-BOM bytes are byte-for-byte identical to the candidate. C1 never rebuilds, reattests, regenerates, normalizes, or edits a lock.
 
-**Independent review:** Terra/high verifies the committed Package-R raw authority digest/commit, exact plan/A0.1/A1/B bindings, the exact thirteen-file A0.1 scope, and membership of accepted A0 `8626c38d...` in `git rev-list --first-parent <a0.1_commit>` rather than generic ancestry or immediate-parent equality, expiry and no-network/local-only fields. It safe-reads the fixed repository-root-derived nonce-consumption path without reparse traversal, strict-parses its exact nine-key canonical shape, requires `status=CONSUMED`, and byte-binds its fixed create-new ledger path, raw receipt bytes/digest, and task/run/release ID/release commit/release raw digest/one-shot nonce to the fixed raw Package-R artifact path, raw digest, and values and to the C evidence. It then verifies the in-memory nonce/digest linkage, archive-admission receipt/layout binding, one held-source descriptor's no-follow and pre/post identity/mode/size/mtime checks, each target staging create-new stream/`fsync`/safe-reopen/rehash equality, A1 `bootstrap-helper-python` identity, mandatory source-tree verification evidence, and the helper's exact build/attest/admit/cleanup sequence before comparing each target's `local_image_id`, `local_image_id_sha256`, `entrypoint_path`, `entrypoint_sha256`, `command_sha256`, `compose_service`, and `runtime_status` against the candidate, raw C receipts, local attestations, and bootstrap control. It strict-parses the accepted current C `run.json` in the same ten-key shape, requires `status=completed-zero`, requires its release nonce to equal both R and the retained nonce-consumption receipt, and requires its `repository_snapshot.path`/`raw_sha256` and `run_envelope.path`/`raw_sha256` pairs to equal exactly the separately retained C snapshot and envelope records. Canonical/duplicate/order/shape failures are `E_B0_C1_CANONICAL_JSON` or `E_B0_C1_SCHEMA_CLOSED`; non-completed status is `E_B0_C1_RUN_STATUS`; a nonce-consumption path/raw-byte/value/reparse mismatch is `E_B0_C1_NONCE_CONSUMPTION_BINDING`; and either snapshot/envelope pair disagreement is `E_B0_C1_SNAPSHOT_ENVELOPE_LINK`. It verifies the helper is absent from the lock, all four target names are present, the candidate digest/report containment are exact, and no SUT target ran. Its review decision must precede the C1 commit.
+**Independent review:** Terra/high verifies the committed Package-R raw authority digest/commit, exact plan/A0.1/A0.2/A1/B bindings, the exact thirteen-file A0.1 scope, A0.1 membership in `git rev-list --first-parent <a02_commit>`, S in the first-parent history of A0.2's actual parent, the exact A0.2 nine-path diff against that parent, seven overlap blobs equal to A0.2, and six remaining A0.1 blobs equal to A0.1, plus expiry and no-network/local-only fields. It safe-reads the fixed repository-root-derived nonce-consumption path without reparse traversal, strict-parses its exact nine-key canonical shape, requires `status=CONSUMED`, and byte-binds its fixed create-new ledger path, raw receipt bytes/digest, and task/run/release ID/release commit/release raw digest/one-shot nonce to the fixed raw Package-R artifact path, raw digest, and values and to the C evidence. It then verifies the in-memory nonce/digest linkage, archive-admission receipt/layout binding, one held-source descriptor's no-follow and pre/post identity/mode/size/mtime checks, each target staging create-new stream/`fsync`/safe-reopen/rehash equality, A1 `bootstrap-helper-python` identity, mandatory source-tree verification evidence, and the helper's exact build/attest/admit/cleanup sequence before comparing each target's `local_image_id`, `local_image_id_sha256`, `entrypoint_path`, `entrypoint_sha256`, `command_sha256`, `compose_service`, and `runtime_status` against the candidate, raw C receipts, local attestations, and bootstrap control. It strict-parses the accepted current C `run.json` in the same ten-key shape, requires `status=completed-zero`, requires its release nonce to equal both R and the retained nonce-consumption receipt, and requires its `repository_snapshot.path`/`raw_sha256` and `run_envelope.path`/`raw_sha256` pairs to equal exactly the separately retained C snapshot and envelope records. Canonical/duplicate/order/shape failures are `E_B0_C1_CANONICAL_JSON` or `E_B0_C1_SCHEMA_CLOSED`; non-completed status is `E_B0_C1_RUN_STATUS`; a nonce-consumption path/raw-byte/value/reparse mismatch is `E_B0_C1_NONCE_CONSUMPTION_BINDING`; and either snapshot/envelope pair disagreement is `E_B0_C1_SNAPSHOT_ENVELOPE_LINK`. It verifies the helper is absent from the lock, all four target names are present, the candidate digest/report containment are exact, and no SUT target ran. Its review decision must precede the C1 commit.
 
 The later local-base owner binding is distinct from the pre-owner nonce ledger:
 the nonce-consumption receipt has no owner field by construction, while the
@@ -1313,6 +1328,13 @@ git commit --only testframework/docker/images.lock.v3.json -m "feat(qa): admit G
 
 **Files:** create only `.planning/audits/test-rebase/g0-bootstrap-evidence-acceptance.v1.json`.
 
+**A0.2 proof:** before D may emit `ACCEPT`, its ordered `a0_commit`,
+`a02_commit`, `a1_commit`, and `b_commit` must byte-equal R and C1; it must
+prove A0.1 membership in A0.2 first-parent history, S in A0.2 actual-parent
+first-parent history, the exact nine-path actual-parent diff, seven overlap
+blobs equal to A0.2, and six remaining A0.1 blobs equal to A0.1. The older
+A0-only membership wording below is superseded by this closed proof.
+
 The independent Terra/high reviewer checks every closed field/link in `Package-D evidence-acceptance record contract`: the frozen contracts, the accepted Package-R artifact/commit/raw digest and its exact plan/A0.1/A1/B bindings, the exact thirteen-file A0.1 scope, and membership of accepted A0 `8626c38d...` in `git rev-list --first-parent <a0.1_commit>` rather than generic ancestry or immediate-parent equality; the durable nonce-consumption receipt's safe repository-derived path/raw digest/nine-key shape/status and exact R binding; the C1 `repository_commit`, and every Package C receipt against exact raw bytes, including the distinct local-base and local-image receipts, archive-admission receipt/layout binding, held-descriptor no-follow and pre/post identity/mode/size/mtime proof, target staging create-new stream/`fsync`/safe-reopen/rehash proof, the mandatory source-tree receipt, helper build/attest/admit/cleanup receipts, shared snapshot/envelope identity plus its one-way raw link and the same exact ten-key completed-zero `run.json` shape with snapshot/envelope pairs exactly equal to retained C records and one-shot nonce equal to both Package R and the durable receipt, the four C1 lock records, exact resource cleanup, first-exit semantics, and proof that no SUT target ran. It rejects an in-container execution of a Windows host launcher as proof. The record must name the exact C1 SHA as `repository_commit`; no A, B, R, C report, D, or E commit is valid in this field. Only an `ACCEPT` record is committed separately before activation; a rejection writes no Package-D artifact and creates no activation record.
 
 ```powershell
@@ -1322,6 +1344,12 @@ git commit --only .planning/audits/test-rebase/g0-bootstrap-evidence-acceptance.
 ### Package E — activation record after acceptance
 
 **Files:** create only `.planning/audits/test-rebase/g0-activation.v1.json`.
+
+**A0.2 proof:** Package E's ordered `a0_commit`, `a02_commit`, `a1_commit`,
+and `b_commit` must exactly equal R and D. Before its create-new write,
+activation repeats the A0.1-in-A0.2 first-parent membership, S-lineage actual
+parent, exact-nine diff, seven-overlap blob, and six-remaining blob proofs; an
+older A0-only membership phrase cannot satisfy activation.
 
 `Write-HubQaG0Activation` is invoked only after Package D's independent acceptance commit exists and must set `repository_commit` to the already-existing C1 lock commit. It also records the earlier Package-R artifact path, raw digest, and commit used by C plus the same durable nonce-consumption path/raw digest accepted by C1/D; its raw bytes must match that committed artifact, including the exact thirteen-file A0.1 scope, membership of accepted A0 `8626c38d...` in `git rev-list --first-parent <a0.1_commit>`, never generic ancestry or immediate-parent equality, and the same exact ten-key accepted C `run.json` shape with its `release_one_shot_nonce` equal to both Package R and the durable nonce record. `acceptance_commit` points to that already-existing commit, never the Package E commit. Package E therefore records causal evidence without a self-commit cycle. It remains a pre-genesis input, not a recovery event.
 
@@ -1335,6 +1363,189 @@ git commit --only .planning/audits/test-rebase/g0-activation.v1.json -m "docs(te
 
 No file is changed by G0. Recovery Package A may read Package E only as immutable pre-genesis input. It must create a new successor authority and ordered handling for the 241 legacy deletions; it cannot modify the all-planned v1 cutover manifest, infer receipts, mark a historical batch applied or verified, or claim Phase 129 complete.
 
+## A0.2 successor and Package-B corrective amendment (authoritative)
+
+This amendment supersedes every earlier wording in this plan that makes
+`7b5d5501cefab34f9aa5661e4f8c38e71474f9ce` permanent, treats the thirteen
+A0.1 paths as the final runner/source-attestor authority, permits B before
+A0.2, or binds R/C/C1/D/E/activation only to `a0_commit`. Historical A0.1
+descriptions remain evidence for the thirteen-file archive amendment only.
+There is no worktree-derived baseline: all source sealing is against the
+immutable Git object `S=61b38573682d7c01e6d9381babc5085537d7990f`.
+
+### A0.2 authority chain and exact ownership
+
+`a0_commit` is permanently
+`56a288dd51e261bbb91ed693d7b58a8a97994faf`. `a02_commit` is a separately
+accepted commit whose first-parent history contains `a0_commit`; its actual
+first parent must have `S` in that parent's first-parent history, and its exact
+commit diff versus that actual parent is the following nine paths, with no
+other path added, removed, or modified:
+
+1. `testframework/docker/dependency-bundle.schema.v1.json`
+2. `testframework/docker/admission/verify_local_dependency_bundle.py`
+3. `testframework/docker/admit-local-dependency-assets.ps1`
+4. `testframework/docker/entrypoints/backend-unit.sh`
+5. `testframework/docker/vitest.frontend-unit.config.ts`
+6. `testframework/docker/bootstrap-control.v1.json`
+7. `testframework/docker/source-image-attestor.ps1`
+8. `testframework/selftests/runner/g0-bootstrap-attestor-contract.ps1`
+9. `testframework/selftests/runner/g0-image-contract.ps1`
+
+The release schema and every R/C/C1/D/E/activation reader/writer carry both
+`a0_commit` and `a02_commit`. They must (1) require the fixed A0.1 value,
+(2) require `a0_commit` in `git rev-list --first-parent <a02_commit>`,
+(3) require `S` in the first-parent history of A0.2's actual parent,
+(4) compare the A0.2 exact diff against that actual parent, (5) compare the
+current blobs for the seven A0.1-overlap paths below against `a02_commit`,
+and (6) compare the six remaining A0.1 paths below against `a0_commit`.
+They reject a missing, foreign, reordered, non-first-parent, wrong-path, or
+worktree-derived A0.2 claim. No consumer may infer A0.2 from generic ancestry
+or mutable `HEAD`.
+
+The exact seven A0.1-overlap paths, whose current blobs must equal
+`a02_commit`, are:
+
+1. `testframework/docker/dependency-bundle.schema.v1.json`
+2. `testframework/docker/admission/verify_local_dependency_bundle.py`
+3. `testframework/docker/admit-local-dependency-assets.ps1`
+4. `testframework/docker/bootstrap-control.v1.json`
+5. `testframework/docker/source-image-attestor.ps1`
+6. `testframework/selftests/runner/g0-bootstrap-attestor-contract.ps1`
+7. `testframework/selftests/runner/g0-image-contract.ps1`
+
+The exact six remaining A0.1 paths, whose current blobs must equal
+`a0_commit`, are:
+
+1. `testframework/docker/admission/admit_local_dependency_assets.py`
+2. `testframework/docker/Dockerfile.backend-unit`
+3. `testframework/docker/Dockerfile.frontend-unit`
+4. `testframework/docker/Dockerfile.backend-openapi`
+5. `testframework/docker/entrypoints/frontend-unit.sh`
+6. `testframework/docker/runner-fixtures/g0-planning-selftest.py`
+
+The three and only three A1 seal files are:
+
+1. `testframework/docker/dependency-bundle.manifest.v1.json`
+2. `testframework/docker/source-policy.v2.json`
+3. `testframework/docker/build-manifest.v3.json`
+
+`source-policy.v2.json` seals `source_commit` to `S` and the source attestor
+must read the Git object for `S`, not the checkout. This is deliberately
+non-cyclic: S is the source subject captured before the A0.2/A1/R control
+commits; those later commits bind controls and evidence, not a replacement
+source revision. The attestor receipts and every downstream record retain
+`S` verbatim and reject a value derived from the worktree or from a later
+control commit.
+
+### A0.2 genuine-unit execution contract
+
+`backend-unit.sh` keeps its existing build and vet commands but its only unit
+and race executions are exactly:
+
+```sh
+go test -tags hubtest -json -count=1 -timeout=150s ./tests/...
+go test -tags hubtest -json -race -count=1 -timeout=150s ./tests/...
+```
+
+`vitest.frontend-unit.config.ts` is exactly the following dedicated config;
+frontend units may not rely on an application Vite config or an implicit
+alias/setup environment:
+
+```ts
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  root: "/opt/hub/source/frontend",
+  resolve: {
+    alias: {
+      "@": "/opt/hub/source/frontend/src",
+    },
+  },
+  test: {
+    include: ["/opt/hub/source/frontend/tests/**/*.test.{ts,tsx}"],
+    environment: "jsdom",
+    globals: true,
+    setupFiles: ["/opt/hub/source/frontend/src/test/setup.ts"],
+  },
+});
+```
+
+`bootstrap-control.v1.json` continues to bind the frontend target action to
+this dedicated config path. `build-manifest.v3.json` must add, only to the
+`frontend-unit` target, the closed fields
+`vitest_config_path="testframework/docker/vitest.frontend-unit.config.ts"`
+and `vitest_config_sha256="sha256:<raw-no-BOM-SHA-256>"`. The A0.2 source
+attestor and both static selftests must byte-check that exact path and raw
+digest for frontend only, while also checking the exact backend tag on both
+unit commands. No Dockerfile, Compose file, legacy runner, or source test
+path enters this amendment's allowlist.
+
+### A1 asset, bounded-process, and durable-receipt repairs
+
+For every A1 dependency asset, the canonical manifest entry has exactly these
+twelve ordered fields, with no optional, inferred, or substituted field:
+`asset_id`, `targets`, `relative_path`, `sha256`, `bytes`, `archive_format`,
+`member_count`, `expanded_bytes`, `layout_sha256`, `license_spdx`,
+`license_evidence_sha256`, and `provenance_sha256`. The A0.2 schema,
+Python verifier, PowerShell admission wrapper, source attestor, and static
+contracts all require this full twelve-field entry before it can be copied or
+staged.
+
+All Git inspection and every spawned process in B have a bounded wait and
+captured termination path: Git and inspection operations are limited to 30s,
+an individual command to 180s, target operation to 780s, cleanup to 30s, and
+the sole outer budget to 840s, including exactly 30s orchestration slack. The
+four target builds and all inspections share one cumulative remaining target
+budget: before each operation B clips its child timeout to the lesser of its
+nominal limit and the remaining 780s target budget, and also clips it to the
+remaining outer budget after reserving cleanup and orchestration slack. An
+elapsed wait yields exit `124`; the first non-zero outcome wins over
+termination or cleanup failure. No implementation may use an unbounded
+`WaitForExit`, stream read, Git invocation, Docker invocation, or child-process
+wait.
+
+The durable nonce receipt remains exactly
+`testframework/reports/g0-assets-runner-nonce-consumptions/<release_id>.nonce-consumption.v1.json`.
+Immediately after R validation, C writes it create-new and retains its raw
+no-BOM bytes, repository-derived path, and raw SHA-256. C, C1, D, E, and
+activation each bind that same path and digest plus the nine closed receipt
+fields to R; it is never adopted, regenerated, or selected for cleanup.
+
+`commands/command-receipts.v1.json` is the canonical ordered receipt emitted
+by `invoke-qa-bootstrap-v1.ps1` only after positive-green and before cleanup,
+snapshot, envelope, and `run.json`. Its exact top-level keys are `schema`,
+`producer`, `task`, `run`, `owner_marker_sha256`, `release_one_shot_nonce`,
+`commands`, and `created_at_utc`, with `schema="hub.qa.command-receipts/v1"`
+and `producer="hub.qa-bootstrap/v1"`. `commands` is ordered invocation
+evidence; each entry has exactly `name`, `argv`, `exit_code`, `timed_out`,
+`started_at_utc`, `finished_at_utc`, `stdout_sha256`, and `stderr_sha256`.
+Package C retains exactly these sixteen receipt keys, in this order:
+`nonce_consumption`, `owner_marker`, `local_base_inspect`,
+`helper_base_verification`, `helper_image_attestation`, `ingress_copy`,
+`helper_admission`, `helper_cleanup`, `source_tree_verification`,
+`local_image_inspection`, `candidate_lock`, `planning_selftest_negative_red`,
+`planning_selftest_positive_green`, `command_receipts`, `run`, and `cleanup`.
+Each retained child is exactly `{path, raw_sha256}`; C1/D/E/activation reject
+any absent, duplicate, reordered, or extra key and bind the durable nonce
+receipt separately rather than treating it as a cleanup-owned report child.
+
+The static selftest may inspect parseable PowerShell/JSON/Python structure,
+function bodies, or brace-aware/token-aware fragments, but no comment, string
+literal, dead declaration, or raw broad substring may satisfy an acceptance
+assertion. It must prove the active writer/reader call graph for the timeout,
+A0.2, nonce, command-receipt, and release-chain requirements.
+
+The exact static fixture matrix has fourteen fixtures and no aggregate-count
+substitute: `noncanonical-bootstrap-json`, `wrong-version-or-producer`,
+`short-or-foreign-run`, `serialized-role-claim`, `direct-planning-selftest`,
+`release-nonce-consumption`, `successful-run-receipt-binding`,
+`snapshot-envelope-drift`, `missing-prebuild-source-receipt`,
+`partial-postbuild-attestation`, `postbuild-base-receipt-binding`,
+`d-evidence-acceptance-contract`, `activation-r-c1-d-chain`, and
+`first-exit-cleanup`. The static contract must assert all fourteen names and
+their active code paths rather than only checking a numeric count.
+
 ## Acceptance matrix
 
 | Gate | Static evidence | Runtime evidence | Truthful precondition status |
@@ -1342,10 +1553,11 @@ No file is changed by G0. Recovery Package A may read Package E only as immutabl
 | Plan | independent Terra/high plan review | none | `BLOCKED` on HIGH finding |
 | A0 | dependency schema, shared Python admission modules, fixed physical founder-handoff contract, ephemeral helper contract, Windows-host launcher/source-image-attestor, four-target topology, Compose/control, and both static contracts | none | `NOT_READY/NOT_RUN` |
 | A0.1 | independently accepted archive fields, stdlib uncompressed POSIX/PAX validation, marker/layout/ABI provenance gates, local `ADD` targets, direct frontend module actions, and amended source contracts | none | `NOT_READY/NOT_RUN`; B remains uncommitted until this commit exists |
+| A0.2 | exact nine-path successor; backend `hubtest` unit/race commands, dedicated frontend Vitest alias/jsdom/globals/setup config, frontend config raw digest in v3 build manifest, and S-bound source-attestor/static contracts | none | `NOT_READY/NOT_RUN`; B remains uncommitted until this commit exists |
 | A1 | exact fixed-root founder ingress binding data only; independent raw-byte/value/provenance review | none | `BLOCKED_EXTERNAL_INGRESS` until released ingress exists |
-| B | bootstrap/v2/shared schemas and producers, closed release-to-root derivation, durable pre-root nonce-consumption contract, base-receipt/helper/ingress-copy ordering, static contracts; starts only after accepted and committed A0.1 and has no A1 overlap | none | `NOT_READY/NOT_RUN` |
-| R | explicit founder-approved, separately committed repository authority with exact plan/A0.1/A1/B allowlists, source/handoff bindings, expiry and one-shot nonce | none | `BLOCKED` until the artifact exists and is independently accepted |
-| C | committed Package-R authority at `HEAD` with fixed handoff and all accepted A0.1/A1/B packages | one bootstrap transaction: create-new durable nonce-consumption receipt before any per-run root/resource, then all-base nonce-bound receipt, helper identity/build/attest, byte-identical archive admission, create-new ingress-copy receipt, mandatory source-tree verification, helper admission/cleanup, planning selftest only, then only on completed-zero cleanup→snapshot→envelope→run evidence, exact cleanup never touching nonce ledger | `BLOCKED_EXTERNAL_INGRESS` or `BLOCKED` |
+| B | bootstrap/v2/shared schemas and producers, closed release-to-root derivation, durable pre-root nonce-consumption contract, bounded process waits, canonical command receipts, base-receipt/helper/ingress-copy ordering, and AST/comment-safe static contracts; starts only after accepted and committed A0.2 and has no A1 overlap | none | `NOT_READY/NOT_RUN` |
+| R | explicit founder-approved, separately committed repository authority with exact plan/A0.1/A0.2/A1/B allowlists, source/handoff bindings, expiry and one-shot nonce | none | `BLOCKED` until the artifact exists and is independently accepted |
+| C | committed Package-R authority at `HEAD` with fixed handoff and all accepted A0.1/A0.2/A1/B packages | one bootstrap transaction: create-new durable nonce-consumption receipt before any per-run root/resource, then all-base nonce-bound receipt, helper identity/build/attest, byte-identical archive admission, create-new ingress-copy receipt, mandatory source-tree verification, helper admission/cleanup, planning selftest only, then only on completed-zero command-receipts→cleanup→snapshot→envelope→run evidence, exact cleanup never touching nonce ledger | `BLOCKED_EXTERNAL_INGRESS` or `BLOCKED` |
 | C1 | independent completed-zero candidate/receipt/local-attestation comparison including exact nonce receipt and snapshot/envelope run pairs; only lock allowlist | committed byte-identical repository lock | `REJECT/BLOCKED` unless exact candidate is present |
 | D | independent Terra/high C/C1 receipt review including the same nonce receipt | accepted evidence commit naming C1 as `repository_commit` | `REJECT` unless complete |
 | E | activation record static validation against C1 plus prior D acceptance and same nonce receipt | references prior D acceptance only | `BLOCKED` until C1 and D exist |
