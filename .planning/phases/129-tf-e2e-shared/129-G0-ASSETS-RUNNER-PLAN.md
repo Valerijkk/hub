@@ -4,7 +4,7 @@
 
 ## Goal and recovery boundary
 
-G0 creates one immutable, auditable input for the Option-A successor-authority recovery. G0 activation is a **pre-genesis input**, never a recovery event and never evidence that a v1 manifest batch was applied or verified.
+G0 creates a static source contract first, then one immutable, auditable binding input for the Option-A successor-authority recovery. G0 activation is a **pre-genesis input**, never a recovery event and never evidence that a v1 manifest batch was applied or verified.
 
 The initial state remains:
 
@@ -20,15 +20,17 @@ The initial state remains:
 The required order is closed and forward-only:
 
 1. Commit this G0 plan.
-2. Founder supplies external offline ingress and separately releases one local-only bootstrap exception.
-3. Source Packages A and B are authored, independently statically reviewed, and committed.
-4. The one authorized `hub.qa-bootstrap/v1` transaction admits assets, builds and attests four images, writes one task-owned candidate lock at `testframework/reports/<task-run>/bootstrap/images.lock.v3.json`, runs only `g0-planning-selftest`, and performs exact cleanup.
-5. Package C1 independently compares that candidate's raw bytes with Package C receipts and local attestations, then commits only `testframework/docker/images.lock.v3.json` without regenerating or editing it.
-6. An independent evidence reviewer verifies the C/C1 transaction and creates the already-existing evidence acceptance commit. All later evidence acceptance and activation use the C1 commit as `repository_commit`.
-7. A separate later commit writes the G0 activation record, whose `acceptance_commit` names step 6. The activation file cannot attest its own commit.
-8. Only then may Recovery Package A consume activation as its pre-genesis input.
+2. Package A0 authors and independently accepts the static source contract without dependency or provenance values.
+3. Only after A0 independent acceptance, Package B may be authored and statically reviewed in parallel with pending A1. Package B and A1 have no overlapping file ownership.
+4. Founder-approved offline ingress supplies exact local bytes, digests, licenses, and provenance; Package A1 binds only those supplied values, receives independent review, and commits no code.
+5. The founder separately releases one local-only `hub.qa-bootstrap/v1` transaction only after accepted A0, A1, and B commits.
+6. That transaction admits assets, builds and attests four images, writes one task-owned candidate lock at `testframework/reports/<task-run>/bootstrap/images.lock.v3.json`, runs only `g0-planning-selftest`, and performs exact cleanup.
+7. Package C1 independently compares that candidate's raw bytes with Package C receipts and local attestations, then commits only `testframework/docker/images.lock.v3.json` without regenerating or editing it.
+8. An independent evidence reviewer verifies the C/C1 transaction and creates the already-existing evidence acceptance commit. All later evidence acceptance and activation use the C1 commit as `repository_commit`.
+9. A separate later commit writes the G0 activation record, whose `acceptance_commit` names step 8. The activation file cannot attest its own commit.
+10. Only then may Recovery Package A consume activation as its pre-genesis input.
 
-There is no repository lock prerequisite before bootstrap: the only lock produced by step 4 is the task-owned candidate at `testframework/reports/<task-run>/bootstrap/images.lock.v3.json`. Package C1 is the only later path by which identical candidate bytes may enter the repository. Source contract tests are written failing-first but are `NOT_RUN` before bootstrap. The founder release explicitly authorizes this exception to normal red-run sequencing. After image creation, the bootstrap profile runs the source contract fixtures through runner v2 and retains the required negative-red and positive-green proof before activation. It never runs a SUT target.
+There is no repository lock prerequisite before bootstrap: the only lock produced by step 6 is the task-owned candidate at `testframework/reports/<task-run>/bootstrap/images.lock.v3.json`. Package C1 is the only later path by which identical candidate bytes may enter the repository. Source contract tests are written failing-first but are `NOT_RUN` before bootstrap. The founder release explicitly authorizes this exception to normal red-run sequencing. After image creation, the bootstrap profile runs the source contract fixtures through runner v2 and retains the required negative-red and positive-green proof before activation. It never runs a SUT target.
 
 ## Global safety constraints
 
@@ -38,6 +40,7 @@ There is no repository lock prerequisite before bootstrap: the only lock produce
 - The only pre-run authority is static independent review. The only runtime authority is a separately founder-released, local-only `hub.qa-bootstrap/v1` transaction. Until that release, all runtime states are `NOT_READY/NOT_RUN`.
 - Bootstrap is not `/qa-gate`, a public runner route, direct Docker/Compose, or a host test fallback. Its outer launcher owns the complete build, admission, attestation, run, evidence publication, and cleanup lifecycle.
 - No network, registry login, pull, push, remote lookup, cache lookup, package installation, or dependency resolution is permitted. If exact offline dependency bytes or locally preloaded base identities are absent, the result is `BLOCKED`.
+- This plan does not authorize network ingress. Network, registry, package, or other external ingress needs a later explicit founder release; A0 must not invent values while that release is pending.
 - Every bootstrap container is `linux/amd64`, network-disabled, read-only except its single task-owned report mount, `cpus: 2.0`, `mem_limit: 2g`, `pids_limit: 256`, `cap_drop: [ALL]`, and `no-new-privileges:true`.
 
 ## Closed bootstrap contract
@@ -57,22 +60,25 @@ It accepts exactly one founder release record plus `task=g0-assets-runner` and a
 
 It has no arbitrary command, image, path, environment, retry, install, network, pull, or SUT-target capability. A timeout uses exit `124`; an earlier failure always wins over cleanup failure. Cleanup selects only resources carrying the exact owner marker from the initial owned-resource inventory; foreign resources and final reports are never adopted or deleted.
 
-External ingress must provide, before bootstrap, every byte and evidence item in the closed dependency bundle plus all locally preloaded pinned base image IDs/digests, SPDX licenses, license-evidence digests, and provenance digests. Missing, mutable, remote, tagged-only, or nonlocal input is `BLOCKED_EXTERNAL_INGRESS`.
+External ingress must provide, before A1 and bootstrap, every byte and evidence item in the closed dependency bundle plus all locally preloaded pinned base image IDs/digests, SPDX licenses, license-evidence digests, and provenance digests. Missing, mutable, remote, tagged-only, or nonlocal input is `BLOCKED_EXTERNAL_INGRESS`. A1 is the only package allowed to bind those exact values into repository data.
 
 ## Fixed source deliverables
 
-All static source packages below are authored and independently accepted before the founder may release bootstrap. Existing historical `source-policy.v1.json` and `build-manifest.v2.json` remain byte-for-byte unchanged.
+Package A0 is a static source contract and may proceed without external ingress. It creates no dependency binding data and must not invent byte, digest, license, image-ID, or provenance values. Package A1 is the later binding-data-only package; it is blocked until founder-approved offline ingress supplies the exact values. Existing historical `source-policy.v1.json` and `build-manifest.v2.json` remain byte-for-byte unchanged.
 
 | Concern | New or changed files |
 |---|---|
-| Dependency admission | `testframework/docker/dependency-bundle.schema.v1.json`, `testframework/docker/dependency-bundle.manifest.v1.json`, `testframework/docker/verify-local-dependency-bundle.ps1`, `testframework/docker/admit-local-dependency-assets.ps1`, `testframework/selftests/runner/g0-bootstrap-attestor-contract.ps1` |
-| Source/build provenance | `testframework/docker/source-policy.v2.json`, `testframework/docker/build-manifest.v3.json`, `testframework/docker/source-image-attestor.ps1`, `testframework/selftests/runner/g0-image-contract.ps1` |
-| Four image targets | `testframework/docker/Dockerfile.backend-unit`, `testframework/docker/Dockerfile.frontend-unit`, `testframework/docker/Dockerfile.backend-openapi`, `testframework/docker/Dockerfile.g0-planning-selftest`, `testframework/docker/entrypoints/backend-unit.sh`, `testframework/docker/entrypoints/frontend-unit.sh`, `testframework/docker/entrypoints/backend-openapi.sh`, `testframework/docker/entrypoints/g0-planning-selftest.sh`, `testframework/docker/vitest.frontend-unit.config.ts`, `testframework/docker/compose.g0-bootstrap.yaml`, `testframework/docker/bootstrap-control.v1.json` |
+| A0 dependency-admission source contract | `testframework/docker/dependency-bundle.schema.v1.json`, `testframework/docker/verify-local-dependency-bundle.ps1`, `testframework/docker/admit-local-dependency-assets.ps1`, `testframework/selftests/runner/g0-bootstrap-attestor-contract.ps1` |
+| A0 source/build-attestation source contract | `testframework/docker/source-image-attestor.ps1`, `testframework/selftests/runner/g0-image-contract.ps1` |
+| A0 four image targets and bootstrap control | `testframework/docker/Dockerfile.backend-unit`, `testframework/docker/Dockerfile.frontend-unit`, `testframework/docker/Dockerfile.backend-openapi`, `testframework/docker/Dockerfile.g0-planning-selftest`, `testframework/docker/entrypoints/backend-unit.sh`, `testframework/docker/entrypoints/frontend-unit.sh`, `testframework/docker/entrypoints/backend-openapi.sh`, `testframework/docker/entrypoints/g0-planning-selftest.sh`, `testframework/docker/vitest.frontend-unit.config.ts`, `testframework/docker/compose.g0-bootstrap.yaml`, `testframework/docker/bootstrap-control.v1.json` |
+| A1 binding data only | `testframework/docker/dependency-bundle.manifest.v1.json`, `testframework/docker/source-policy.v2.json`, `testframework/docker/build-manifest.v3.json` |
 | Bootstrap and v2 runner | `testframework/runner/contracts/hub.qa-bootstrap.v1.json`, `testframework/runner/invoke-qa-bootstrap-v1.ps1`, `testframework/runner/invoke-qa-gate-v2.ps1`, `testframework/runner/run-task-v2.ps1`, `testframework/runner/new-repository-snapshot.ps1`, `testframework/runner/new-run-envelope.ps1`, `testframework/runner/write-g0-activation.ps1`, `testframework/schemas/repository-snapshot.schema.v1.json`, `testframework/schemas/run-envelope.schema.v1.json`, `testframework/selftests/runner/g0-runner-v2-contract.ps1`, `testframework/runner/README.md`, `.cursor/skills/qa-gate/SKILL.md` |
 
 The four immutable targets are exactly `backend-unit`, `frontend-unit`, `backend-openapi`, and `g0-planning-selftest`. The first three are never executed by G0. `g0-planning-selftest` is an image-baked runner-fixture target, not an end-user or SUT QA target.
 
 ### Dependency admission contract
+
+Package A0 freezes the schema and verifier/admission implementation only. It must test only structural fixtures and explicit missing/unbound cases, state `NOT_RUN`, and write no `dependency-bundle.manifest.v1.json`. Package A1 later creates the manifest only from approved ingress; it changes no A0 code.
 
 `dependency-bundle.manifest.v1.json` is strict UTF-8 without BOM and schema `hub.qa.dependency-bundle/v1`. Its closed top-level keys, in this order, are `schema`, `bundle_id`, `source_commit`, `platform`, `assets`, `bases`, and `bundle_sha256`. `source_commit` equals the recovery baseline named by the committed G0 plan. `platform` is exactly `{"os":"linux","architecture":"amd64","variant":null}`.
 
@@ -81,6 +87,8 @@ Each `assets` item has exactly `asset_id`, `targets`, `relative_path`, `sha256`,
 `Test-HubQaLocalDependencyBundle` verifies exact keys, duplicate-aware JSON, strict decoding, path containment below `assets/`, byte counts, SHA-256, licenses, provenance, reparse points, and all four bases before derived output. It returns exactly `{ Verdict; ManifestSha256; Assets; Bases; ReasonCode }`; allowed reason codes are `E_MANIFEST_UTF8`, `E_MANIFEST_SCHEMA`, `E_DUPLICATE_ASSET_ID`, `E_ASSET_PATH_ESCAPE`, `E_ASSET_MISSING`, `E_ASSET_BYTES_MISMATCH`, `E_ASSET_SHA256_MISMATCH`, `E_LICENSE_EVIDENCE_MISSING`, `E_PROVENANCE_EVIDENCE_MISSING`, `E_BASE_MISSING`, `E_BASE_ID_MISMATCH`, and `E_SOURCE_COMMIT_MISMATCH`.
 
 ## Four-target image and lock contract
+
+Package A0 freezes `source-image-attestor.ps1`, four Dockerfiles, four entrypoints, dedicated Vitest config, Compose topology, bootstrap control, and the two failing-first static selftest sources. It creates no `source-policy.v2.json` or `build-manifest.v3.json`; those A1 data files bind the exact approved ingress and source values only after ingress is available. A0 source contracts must cover unbound/missing binding data as `NOT_RUN`, never manufacture a plausible digest or image identity.
 
 `source-policy.v2.json` is `hub.qa.local-source-policy/v2`; `build-manifest.v3.json` is `hub.qa.local-images-build-manifest/v3`. They bind the committed recovery source revision, sorted source tree digest, four target definitions, entrypoint digests, the dedicated Vitest config digest, bundle digest, and no network or registry capability.
 
@@ -156,16 +164,13 @@ Path/digest semantics are exact: each `*_path` is a repository-relative regular 
 git commit --only .planning/phases/129-tf-e2e-shared/129-G0-ASSETS-RUNNER-PLAN.md -m "docs(test-rebase): plan G0 bootstrap pre-genesis"
 ```
 
-### Package A — static bootstrap admission and source contracts
+### Package A0 — static source contract
 
 **Files:**
 
 - `testframework/docker/dependency-bundle.schema.v1.json`
-- `testframework/docker/dependency-bundle.manifest.v1.json`
 - `testframework/docker/verify-local-dependency-bundle.ps1`
 - `testframework/docker/admit-local-dependency-assets.ps1`
-- `testframework/docker/source-policy.v2.json`
-- `testframework/docker/build-manifest.v3.json`
 - `testframework/docker/source-image-attestor.ps1`
 - `testframework/docker/Dockerfile.backend-unit`
 - `testframework/docker/Dockerfile.frontend-unit`
@@ -181,14 +186,32 @@ git commit --only .planning/phases/129-tf-e2e-shared/129-G0-ASSETS-RUNNER-PLAN.m
 - `testframework/selftests/runner/g0-bootstrap-attestor-contract.ps1`
 - `testframework/selftests/runner/g0-image-contract.ps1`
 
-**Failing-first source contracts:** author literal valid/duplicate/hash/path-escape/missing-asset fixtures for admission and local-ID/four-target/config/fixed-command fixtures for images. They must state `NOT_RUN` pre-bootstrap. No claim of red or green execution is permitted.
+**Failing-first source contracts:** author both static selftest sources: literal valid/duplicate/hash/path-escape/missing-asset and unbound-manifest fixtures for admission, plus local-ID/four-target/config/fixed-command and unbound-binding-data fixtures for images. They must state `NOT_RUN` pre-bootstrap. No claim of red or green execution is permitted.
 
-**Static acceptance:** independent Terra/high verifies closed keys, no network/install/source bind/arbitrary command, historical v1/v2 policy files unchanged, exact four target mapping, and no invented dependency or image digest. A HIGH finding blocks the package.
+**Static acceptance:** independent Terra/high verifies the dependency schema, verifier/admission code, source-image-attestor code, four Dockerfiles, four entrypoints, dedicated Vitest config, bootstrap Compose/control, and both static selftest sources. It verifies closed keys, no network/install/source bind/arbitrary command, historical v1/v2 policy files unchanged, exact four-target mapping, and no invented dependency or image value. A HIGH finding blocks the package.
 
-**STOP:** Without the founder's offline ingress and separate bootstrap release, do not build, attest, execute a selftest, or write a lock-derived runtime receipt. Source package status is `STATIC_ACCEPTED` only after review; runtime is `NOT_READY/NOT_RUN`.
+**STOP:** A0 creates no `dependency-bundle.manifest.v1.json`, `source-policy.v2.json`, `build-manifest.v3.json`, `images.lock.v3.json`, lock, or receipt. Without the founder's offline ingress and separate bootstrap release, do not build, attest, execute a selftest, or write a lock-derived runtime receipt. A0 status is `STATIC_ACCEPTED` only after review; runtime is `NOT_READY/NOT_RUN`. This plan does not authorize any network ingress.
 
 ```powershell
-git commit --only testframework/docker/dependency-bundle.schema.v1.json testframework/docker/dependency-bundle.manifest.v1.json testframework/docker/verify-local-dependency-bundle.ps1 testframework/docker/admit-local-dependency-assets.ps1 testframework/docker/source-policy.v2.json testframework/docker/build-manifest.v3.json testframework/docker/source-image-attestor.ps1 testframework/docker/Dockerfile.backend-unit testframework/docker/Dockerfile.frontend-unit testframework/docker/Dockerfile.backend-openapi testframework/docker/Dockerfile.g0-planning-selftest testframework/docker/entrypoints/backend-unit.sh testframework/docker/entrypoints/frontend-unit.sh testframework/docker/entrypoints/backend-openapi.sh testframework/docker/entrypoints/g0-planning-selftest.sh testframework/docker/vitest.frontend-unit.config.ts testframework/docker/compose.g0-bootstrap.yaml testframework/docker/bootstrap-control.v1.json testframework/selftests/runner/g0-bootstrap-attestor-contract.ps1 testframework/selftests/runner/g0-image-contract.ps1 -m "feat(qa): add G0 bootstrap assets"
+git commit --only testframework/docker/dependency-bundle.schema.v1.json testframework/docker/verify-local-dependency-bundle.ps1 testframework/docker/admit-local-dependency-assets.ps1 testframework/docker/source-image-attestor.ps1 testframework/docker/Dockerfile.backend-unit testframework/docker/Dockerfile.frontend-unit testframework/docker/Dockerfile.backend-openapi testframework/docker/Dockerfile.g0-planning-selftest testframework/docker/entrypoints/backend-unit.sh testframework/docker/entrypoints/frontend-unit.sh testframework/docker/entrypoints/backend-openapi.sh testframework/docker/entrypoints/g0-planning-selftest.sh testframework/docker/vitest.frontend-unit.config.ts testframework/docker/compose.g0-bootstrap.yaml testframework/docker/bootstrap-control.v1.json testframework/selftests/runner/g0-bootstrap-attestor-contract.ps1 testframework/selftests/runner/g0-image-contract.ps1 -m "feat(qa): add G0 static source contract"
+```
+
+### Package A1 — binding data after approved offline ingress
+
+**Files:** only:
+
+- `testframework/docker/dependency-bundle.manifest.v1.json`
+- `testframework/docker/source-policy.v2.json`
+- `testframework/docker/build-manifest.v3.json`
+
+**Binding rule:** A1 is blocked until founder-approved offline ingress provides exact dependency bytes, local base image IDs/digests, SPDX licenses, license-evidence digests, and provenance digests. It records the exact supplied values in the three binding data files and makes no code, Dockerfile, entrypoint, control, runner, selftest, or documentation change.
+
+**Independent acceptance:** Terra/high verifies the exact data against founder-approved ingress, schema, local availability/provenance evidence, historical v1/v2 files, and A0's frozen contracts. Missing, mutable, remote, tagged-only, nonlocal, inferred, or invented values are `A1=BLOCKED_EXTERNAL_INGRESS`; no commit is made.
+
+**STOP:** A1 has no network authority, no build, no attestation, no selftest execution, no lock, and no runtime receipt. It may not begin before approved ingress exists, and it may not change an A0 or B-owned path.
+
+```powershell
+git commit --only testframework/docker/dependency-bundle.manifest.v1.json testframework/docker/source-policy.v2.json testframework/docker/build-manifest.v3.json -m "feat(qa): bind G0 offline ingress data"
 ```
 
 ### Package B — static bootstrap and runner v2 controls
@@ -214,7 +237,7 @@ git commit --only testframework/docker/dependency-bundle.schema.v1.json testfram
 
 **Static acceptance:** independent Terra/high checks closed schemas, producer-only paths, no arbitrary inputs or v1/v2 bridge, owner marker before any dependency operation, no activation before accepted evidence, and that the bootstrap exception remains founder-released.
 
-**STOP:** A HIGH finding, an absent Package A independent verdict, or a request to execute any source contract without founder release blocks Package B. Do not create a runtime receipt.
+**STOP:** A HIGH finding, an absent independently accepted A0 verdict, or a request to execute any source contract without founder release blocks Package B. B static source may be authored and accepted after A0 while A1 waits for ingress, because its allowlist does not overlap A0 or A1. B runtime remains blocked until A1 is independently accepted and the founder releases bootstrap. Do not create a runtime receipt.
 
 ```powershell
 git commit --only testframework/runner/contracts/hub.qa-bootstrap.v1.json testframework/runner/invoke-qa-bootstrap-v1.ps1 testframework/runner/invoke-qa-gate-v2.ps1 testframework/runner/run-task-v2.ps1 testframework/runner/new-repository-snapshot.ps1 testframework/runner/new-run-envelope.ps1 testframework/runner/write-g0-activation.ps1 testframework/schemas/repository-snapshot.schema.v1.json testframework/schemas/run-envelope.schema.v1.json testframework/selftests/runner/g0-runner-v2-contract.ps1 testframework/runner/README.md .cursor/skills/qa-gate/SKILL.md -m "feat(qa): add G0 bootstrap runner controls"
@@ -222,7 +245,7 @@ git commit --only testframework/runner/contracts/hub.qa-bootstrap.v1.json testfr
 
 ### Package C — founder-released one-time local bootstrap
 
-**Repository source files:** none. This runtime package consumes the accepted Package A and B commits and produces only task-owned reports, including the candidate `testframework/reports/<task-run>/bootstrap/images.lock.v3.json`. It never creates, edits, stages, or commits `testframework/docker/images.lock.v3.json`.
+**Repository source files:** none. This runtime package consumes the accepted Package A0, A1, and B commits and produces only task-owned reports, including the candidate `testframework/reports/<task-run>/bootstrap/images.lock.v3.json`. It never creates, edits, stages, or commits `testframework/docker/images.lock.v3.json`.
 
 **Founder prerequisites:** one explicit release naming the exact plan commit, source package commits, task, unique run, local-only execution authority, accepted ingress manifest, all dependency assets, all local base IDs/digests/licenses/provenance, and permission for this one bootstrap exception. An absent item is `G0_C=BLOCKED`.
 
@@ -234,7 +257,7 @@ git commit --only testframework/runner/contracts/hub.qa-bootstrap.v1.json testfr
 
 ### Package C1 — independent candidate-lock admission
 
-**Input:** exactly one successful Package C report root, its immutable candidate `testframework/reports/<task-run>/bootstrap/images.lock.v3.json`, the candidate SHA-256 receipt, all four immutable local image-ID attestations, `bootstrap-control.v1.json`, and the accepted Package A/B commit SHAs. **Output:** either `G0_C1=REJECT/BLOCKED` with no repository mutation, or one repository file `testframework/docker/images.lock.v3.json` whose raw no-BOM bytes are byte-for-byte identical to the candidate. C1 never rebuilds, reattests, regenerates, normalizes, or edits a lock.
+**Input:** exactly one successful Package C report root, its immutable candidate `testframework/reports/<task-run>/bootstrap/images.lock.v3.json`, the candidate SHA-256 receipt, all four immutable local image-ID attestations, `bootstrap-control.v1.json`, and the accepted Package A0/A1/B commit SHAs. **Output:** either `G0_C1=REJECT/BLOCKED` with no repository mutation, or one repository file `testframework/docker/images.lock.v3.json` whose raw no-BOM bytes are byte-for-byte identical to the candidate. C1 never rebuilds, reattests, regenerates, normalizes, or edits a lock.
 
 **Independent review:** Terra/high compares each target's `local_image_id`, `local_image_id_sha256`, `entrypoint_path`, `entrypoint_sha256`, `command_sha256`, `compose_service`, and `runtime_status` against the candidate, raw C receipts, local attestations, and bootstrap control. It verifies all four target names, candidate digest, report containment, and that no SUT target ran. Its review decision must precede the C1 commit.
 
@@ -277,9 +300,10 @@ No file is changed by G0. Recovery Package A may read Package E only as immutabl
 | Gate | Static evidence | Runtime evidence | Truthful precondition status |
 |---|---|---|---|
 | Plan | independent Terra/high plan review | none | `BLOCKED` on HIGH finding |
-| A | dependency/source/build/image source contracts, four-target topology, static contracts | none | `NOT_READY/NOT_RUN` |
-| B | bootstrap/v2/shared schemas and producers, static contracts | none | `NOT_READY/NOT_RUN` |
-| C | founder release and all accepted static packages | one bootstrap transaction, planning selftest only, red/green fixtures, exact cleanup | `BLOCKED_EXTERNAL_INGRESS` or `BLOCKED` |
+| A0 | dependency schema, verifier/admission code, source-image-attestor, four-target topology, Compose/control, and both static contracts | none | `NOT_READY/NOT_RUN` |
+| A1 | exact approved ingress binding data only; independent value/provenance review | none | `BLOCKED_EXTERNAL_INGRESS` until exact ingress exists |
+| B | bootstrap/v2/shared schemas and producers, static contracts; starts only after accepted A0 and has no A1 overlap | none | `NOT_READY/NOT_RUN` |
+| C | founder release and all accepted A0/A1/B packages | one bootstrap transaction, planning selftest only, red/green fixtures, exact cleanup | `BLOCKED_EXTERNAL_INGRESS` or `BLOCKED` |
 | C1 | independent candidate/receipt/local-attestation comparison; only lock allowlist | committed byte-identical repository lock | `REJECT/BLOCKED` unless exact candidate is present |
 | D | independent Terra/high C/C1 receipt review | accepted evidence commit naming C1 as `repository_commit` | `REJECT` unless complete |
 | E | activation record static validation against C1 plus prior D acceptance | references prior D acceptance only | `BLOCKED` until C1 and D exist |
@@ -289,4 +313,4 @@ No file is changed by G0. Recovery Package A may read Package E only as immutabl
 
 Rollback is forward-only: revert only an exact named source-package commit after a separate review; never alter the 241 staged paths. A bootstrap failure retains its task-owned evidence and removes only its proven owned resources. No automatic retry, continuation, lock edit, or digest rewrite is permitted; a new founder release must name a new run.
 
-Before source authoring, commit this corrected plan separately and obtain independent Terra/high review. Until all prerequisites exist, hand off exactly: `G0=NOT_READY`, `BOOTSTRAP=NOT_RUN`, `CUTOVER_ACCEPTANCE=FAIL/BLOCKED`.
+Before A0 source authoring, commit this corrected plan separately and obtain independent Terra/high review. Until all prerequisites exist, hand off exactly: `G0=NOT_READY`, `A1=BLOCKED_EXTERNAL_INGRESS`, `BOOTSTRAP=NOT_RUN`, `CUTOVER_ACCEPTANCE=FAIL/BLOCKED`.
