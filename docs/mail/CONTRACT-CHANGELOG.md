@@ -1,6 +1,21 @@
 # Hub Mail contract changelog
 
-## 144-02D RecentContact corrective candidate — 2026-08-14
+## 144-02D postcommit lifecycle transition candidate — 2026-08-14
+
+Corrective commit `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` (parent
+`6c424ed2d6703ceccbb269c37d9abc03e75a0410`, tree
+`da3fa6e19316bcf2c7c318a63ec09e1b175f68df`, exact nine documents) exists and is `COMMITTED_UNACCEPTED` /
+`EXACT_SHA_CLOSURE_IN_PROGRESS`, not accepted. Contract/Spec/Oracle Terra/high and
+Security/Adversarial Terra/xhigh postcommit exact-SHA reviews PASS C/I/M `0/0/0`;
+Lifecycle/Dependency Terra/high exact-SHA review FAIL C/I/M `0/1/0` solely because active text
+still said precommit/commit-next, while content/object boundary passed. Dispatcher-enforced,
+fallback none, telemetry `UNKNOWN`. This transition record consumes that stale instruction and
+does not claim its own commit SHA. Next: fresh independent Lifecycle exact-SHA re-review of `7d`
+plus this transition record; fresh Contract/Security trace-only rechecks are permitted. After all
+exact reviews PASS, a separate docs-only 02D `STATIC_ACCEPTED` sync is required; only then 02F
+closure reviews. All implementation/runtime blockers remain.
+
+## 144-02D RecentContact corrective candidate — 2026-08-14 (committed, unaccepted)
 
 Narrow docs-only corrective candidate, no version bump. It supersedes only the RecentContact
 portion of initial candidate `63e419897aa0683e1d3dfcd442aca78eea1b0727`: the hard cap applies
@@ -11,11 +26,9 @@ link/unlink, per-account raw-UUID LRU tie-breaking, safe exact-content display-n
 validation, link/name privacy and public max-30 projection. The initial candidate and transition
 `6c424ed2d6703ceccbb269c37d9abc03e75a0410` are `CONSUMED/HISTORICAL`; neither is accepted.
 Receipt/deployment facts from `63e` remain frozen for later 02F closure, which waits on accepted
-corrected 02D. Status: `ROOT_CORRECTION_CANDIDATE` / `PRECOMMIT_REVIEWS_REQUIRED` /
-`INDEPENDENT_CLOSURE_NOT_DISPATCHABLE` / `IMPLEMENTATION_BLOCKED` / `RUNTIME_NOT_RUN`.
-Next: three independent precommit static reviews, root atomic exact nine-document commit, three
-exact-SHA 02D closure reviews, then and only then 02F reviews. Launcher `NOT_READY`; no source,
-schema, generation, migration, service or runtime authority.
+corrected 02D. Its precommit status/instruction is consumed by the transition record above.
+Commit `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` remains unaccepted. Launcher `NOT_READY`;
+no source, schema, generation, migration, service or runtime authority.
 
 ## 144-02D/02F normative correction candidate — 2026-08-14
 
@@ -39,8 +52,9 @@ schema/generation/migration/product/release authorization.
 > `f199546513b758ca7b95328b5ccd7680009b732e`; it accepts provider-neutral typed IR only,
 > never raw Sieve or engine-port bytes. Its lifecycle transition/review target is
 > `6735ae746c7acde657359e8a709cd897c4dce61c`, not the acceptance commit. The broad 02D/02F
-> candidate/transition is historical; current sequence is three precommit reviews of exact
-> nine-doc corrected 02D, exact root commit, three exact-SHA 02D closure reviews, then 02F.
+> candidate/transition is historical. Corrected `7d29d08c` is committed unaccepted; fresh
+> Lifecycle exact-SHA re-review plus transition, all-review PASS and separate 02D acceptance sync
+> precede 02F.
 > A later separate Rule plan remains required before the separate
 > Phase-145 carrier, with no Rule TDD or production authorization. Runner `NOT_READY`; all
 > executable evidence `NOT_RUN`.
@@ -57,9 +71,9 @@ only frozen persistence representation, not Ent/product source or TDD, generated
 migrations, launcher execution, tests/validators/build/runtime, 02B/C/D/F, services, product,
 module, phase or release. Founder migration authority, supported task-owned launcher,
 sequential explicit source dispatch and source-level review remain required. G145-5C remains
-open. That broad candidate action is historical; current next sequence is three precommit reviews
-of the exact nine-document corrected 02D, exact root commit, three exact-SHA 02D closure reviews,
-then and only then 02F, not code.
+open. That broad candidate action is historical. Current next action is fresh Lifecycle exact-SHA
+re-review of committed-unaccepted `7d29d08c` plus this transition record, all-review PASS, then a
+separate docs-only 02D acceptance sync and only then 02F, not code.
 
 ## 0.1.8 rule compiler candidate — 2026-08-14
 
@@ -67,9 +81,10 @@ then and only then 02F, not code.
 `f199546513b758ca7b95328b5ccd7680009b732e`, not product, module, phase or release acceptance. It freezes
 provider-neutral typed IR, never raw Sieve or hash v1. The keyword is `hubk-` plus canonical
 lower-case unpadded RFC-4648 base32 of exactly 32 random bytes; validation decode-to-32 then
-identical re-encode, not regex alone. Rule TDD/production await corrected 02D precommit/commit/
-exact-SHA closure, then 02F,
-a later separate Rule plan and engine-port/145 carrier; no Rule source, schema, runtime, product or
+identical re-encode, not regex alone. Current sequence is fresh Lifecycle exact-SHA re-review of
+`7d29d08c` plus the transition record, all exact reviews PASS, separate 02D acceptance sync, then
+only 02F; Rule TDD/production still await accepted 02D/02F plus a separate Rule plan and
+engine-port/145 carrier; no Rule source, schema, runtime, product or
 release authority follows from this docs-only acceptance.
 
 ## 144-03B Folder lifecycle sync candidate — 2026-08-14

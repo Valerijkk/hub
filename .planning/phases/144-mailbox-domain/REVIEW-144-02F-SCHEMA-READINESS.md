@@ -151,14 +151,16 @@ normative facts remain frozen, but it is not a closure or acceptance; its 02D Re
 portion is superseded. Lifecycle transition `6c424ed2d6703ceccbb269c37d9abc03e75a0410` is
 `CONSUMED/HISTORICAL` and its former next-review instruction is superseded.
 
-This current root corrective packet is `ROOT_CORRECTION_CANDIDATE` /
-`PRECOMMIT_REVIEWS_REQUIRED` / `INDEPENDENT_CLOSURE_NOT_DISPATCHABLE` /
-`IMPLEMENTATION_BLOCKED` / `RUNTIME_NOT_RUN`. Candidate provenance: `gpt-5.6-terra`/medium,
-`dispatcher-enforced`; fallback none; telemetry `UNKNOWN` unless exposed.
+Corrected 02D commit `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` is
+`COMMITTED_UNACCEPTED` / `EXACT_SHA_CLOSURE_IN_PROGRESS`. Its Contract and Security exact-SHA
+reviews PASS C/I/M `0/0/0`; Lifecycle exact-SHA FAIL C/I/M `0/1/0` solely on stale lifecycle
+wording, with content/object boundary PASS. This transition record consumes the stale instruction;
+all review provenance is dispatcher-enforced, fallback none, telemetry `UNKNOWN`.
 
-**Current exact next step:** three independent precommit static reviews, then root atomic exact
-nine-document docs commit. Only after three exact-SHA 02D closure reviews PASS may an independent
-02F exact-SHA closure review occur. Its routes are Contract/Spec (`gpt-5.6-terra`/high),
+**Current exact next step:** fresh Lifecycle exact-SHA re-review of `7d` plus this transition
+record, with fresh Contract/Security trace-only rechecks permitted. After every exact review PASS,
+a separate docs-only 02D `STATIC_ACCEPTED` sync is required. Only then may an independent 02F
+exact-SHA closure review occur. Its routes remain Contract/Spec (`gpt-5.6-terra`/high),
 Security/Adversarial (`gpt-5.6-terra`/xhigh), and Lifecycle/Dependency
 (`gpt-5.6-terra`/high), each dispatcher-enforced with no fallback. 02F remains unclosed;
 no source, schema, generation, migration, service or runtime authority is granted. Launcher

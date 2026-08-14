@@ -1934,9 +1934,18 @@ static-only accepted at `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`. `144-03B-Rul
 separately narrowly docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`,
 reviewed against transition commit `6735ae746c7acde657359e8a709cd897c4dce61c`; Contract/Spec Terra/high,
 Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced
-with no fallback and telemetry `UNKNOWN`. The active next sequence is three precommit reviews of
-the exact nine-document 02D corrective candidate, its exact root commit, three exact-SHA 02D
-closure reviews, and only then 02F reviews; later plan and Phase-145 carrier remain required. It does not authorize
+with no fallback and telemetry `UNKNOWN`. Corrective commit
+`7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` (parent
+`6c424ed2d6703ceccbb269c37d9abc03e75a0410`, tree
+`da3fa6e19316bcf2c7c318a63ec09e1b175f68df`, exact nine
+documents) is `COMMITTED_UNACCEPTED` / `EXACT_SHA_CLOSURE_IN_PROGRESS`. Postcommit
+Contract/Spec/Oracle Terra/high and Security/Adversarial Terra/xhigh exact-SHA reviews PASS C/I/M
+`0/0/0`; Lifecycle/Dependency Terra/high exact-SHA review FAIL C/I/M `0/1/0` solely because
+`7d` retained active precommit/commit-next wording, while content/object boundary passed. This
+transition record consumes that stale instruction. Next is fresh Lifecycle exact-SHA re-review of
+`7d` plus this transition (with fresh Contract/Security trace-only rechecks permitted); after all
+exact reviews PASS, a separate docs-only 02D `STATIC_ACCEPTED` sync is required, and only then 02F
+closure reviews. Later plan and Phase-145 carrier remain required. It does not authorize
 schemas, generation, migration, runtime or a version bump. 144-01B, Phase 142/148 and 144-02B
 remain pending; launcher is `NOT_READY` and runtime is `NOT_RUN`.
 

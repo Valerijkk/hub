@@ -143,16 +143,21 @@ Historical lifecycle: initial eight-document candidate
 `63e419897aa0683e1d3dfcd442aca78eea1b0727` is `CONSUMED/HISTORICAL`; its 02D RecentContact
 portion is superseded, never accepted. Lifecycle transition
 `6c424ed2d6703ceccbb269c37d9abc03e75a0410` is likewise `CONSUMED/HISTORICAL`; its former
-next-review instruction is superseded. This current root corrective packet is
-`ROOT_CORRECTION_CANDIDATE` / `PRECOMMIT_REVIEWS_REQUIRED` /
-`INDEPENDENT_CLOSURE_NOT_DISPATCHABLE` / `IMPLEMENTATION_BLOCKED` / `RUNTIME_NOT_RUN`.
-Candidate provenance: `gpt-5.6-terra`/medium, `dispatcher-enforced`; fallback none; telemetry
-`UNKNOWN` unless exposed.
+next-review instruction is superseded. Corrective commit
+`7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` (parent
+`6c424ed2d6703ceccbb269c37d9abc03e75a0410`, tree
+`da3fa6e19316bcf2c7c318a63ec09e1b175f68df`, exact nine docs) is
+`COMMITTED_UNACCEPTED` / `EXACT_SHA_CLOSURE_IN_PROGRESS`, not accepted. Postcommit
+Contract/Spec/Oracle (`gpt-5.6-terra`/high) and Security/Adversarial
+(`gpt-5.6-terra`/xhigh) exact-SHA reviews PASS C/I/M `0/0/0`. Lifecycle/Dependency
+(`gpt-5.6-terra`/high) exact-SHA review FAIL C/I/M `0/1/0` solely because `7d` still described
+precommit/commit-next work; content/object boundary passed. All routes are dispatcher-enforced,
+fallback none, telemetry `UNKNOWN`. This transition record consumes that stale instruction and
+does not claim its own commit SHA.
 
-**Current exact next step:** three independent precommit static reviews. After all PASS, root
-makes one atomic exact nine-document docs commit; only then run Contract/Spec
-(`gpt-5.6-terra`/high), Security/Adversarial (`gpt-5.6-terra`/xhigh), and
-Lifecycle/Dependency (`gpt-5.6-terra`/high) exact-SHA 02D closure reviews. Only after accepted
-02D may 02F closure reviews start. No source, schema, generation, migration, service or runtime
-authority is granted; launcher stays `NOT_READY` and executable evidence stays `NOT_RUN`.
+**Current exact next step:** fresh independent Lifecycle/Dependency exact-SHA re-review of `7d`
+plus this transition record; fresh Contract/Security trace-only rechecks are permitted. After all
+exact reviews PASS, a separate docs-only 02D `STATIC_ACCEPTED` sync is required. Only then may 02F
+closure reviews start. No source, schema, generation, migration, service or runtime authority is
+granted; launcher stays `NOT_READY` and executable evidence stays `NOT_RUN`.
 > **Current Rule acceptance:** the three Terra routes PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed. Rule contract acceptance does not close this review or authorize schemas.

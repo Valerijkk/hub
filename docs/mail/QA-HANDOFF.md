@@ -697,11 +697,16 @@ oracles, not current executable evidence.
 
 ### 144-02D/02F correction-candidate external/static oracle matrix
 
-The initial candidate status was `ROOT_CORRECTION_CANDIDATE` / `INDEPENDENT_CLOSURE_PENDING` /
-`IMPLEMENTATION_BLOCKED` / `RUNTIME_NOT_RUN`; it is historical and superseded by the current
-`ROOT_CORRECTION_CANDIDATE` / `PRECOMMIT_REVIEWS_REQUIRED` /
-`INDEPENDENT_CLOSURE_NOT_DISPATCHABLE` / `IMPLEMENTATION_BLOCKED` / `RUNTIME_NOT_RUN` packet.
-The launcher remains `NOT_READY`.
+The initial `63e`/`6c` candidate lifecycle is historical. Corrective commit
+`7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` (parent
+`6c424ed2d6703ceccbb269c37d9abc03e75a0410`, tree
+`da3fa6e19316bcf2c7c318a63ec09e1b175f68df`, exact nine
+documents) is `COMMITTED_UNACCEPTED` / `EXACT_SHA_CLOSURE_IN_PROGRESS`, not accepted.
+Contract/Spec/Oracle and Security/Adversarial exact-SHA reviews PASS C/I/M `0/0/0`;
+Lifecycle/Dependency exact-SHA review FAIL C/I/M `0/1/0` solely on stale precommit/commit-next
+wording, while content/object boundary passed. This transition record consumes that instruction.
+All review provenance is dispatcher-enforced, fallback none, telemetry `UNKNOWN`. Launcher remains
+`NOT_READY`; runtime stays `NOT_RUN`.
 
 | Oracle | Static/external assertion | Runtime status |
 |---|---|---|
@@ -765,9 +770,11 @@ C/I/M `0/0/0`), static only. Folder docs are also static-only accepted at
 `f199546513b758ca7b95328b5ccd7680009b732e`, reviewed against transition commit
 `6735ae746c7acde657359e8a709cd897c4dce61c`; Contract/Spec Terra/high, Security/Adversarial
 Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced with no
-fallback and telemetry `UNKNOWN`. The active sequence is three precommit static reviews of this
-exact nine-document candidate, exact root commit, three exact-SHA 02D closure reviews, and only
-then 02F; later plan and Phase-145 carrier remain required. Launcher remains
+fallback and telemetry `UNKNOWN`. Corrective `7d29d08c` is committed unaccepted. Current next
+action is fresh Lifecycle exact-SHA re-review of `7d` plus this transition record; fresh
+Contract/Security trace-only rechecks are permitted. After all exact reviews PASS, separate
+docs-only 02D `STATIC_ACCEPTED` sync is required, then only 02F; later plan and Phase-145 carrier
+remain required. Launcher remains
 `NOT_READY` and runtime `NOT_RUN`.
 
 ### 144-03B Folder static-accepted source/oracle scenarios (executable evidence NOT_RUN)
@@ -816,9 +823,9 @@ then 02F; later plan and Phase-145 carrier remain required. Launcher remains
 Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced with no
 fallback and telemetry `UNKNOWN`. Future RED oracle
 must cover ABI/errors, closed union/bounds/Unicode/targets/order/deep-copy/static purity and
-reject noncanonical base32 (decode-to-32 plus identical re-encode). No test before the exact
-nine-document candidate passes three precommit reviews, is committed, passes three exact-SHA 02D
-closure reviews, and only then passes 02F reviews; later plan and separate Phase-145 carrier remain;
+reject noncanonical base32 (decode-to-32 plus identical re-encode). No test before fresh Lifecycle
+exact-SHA re-review plus this transition, all exact reviews PASS, a separate docs-only 02D
+acceptance sync, and only then 02F reviews; later plan and separate Phase-145 carrier remain;
 launcher `NOT_READY`.
 Compiler errors are internal; HTTP uses 04M account-scoped lookup which masks foreign/missing
 targets identically and never makes mismatch/ambiguity an existence oracle.
