@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
-last_updated: "2026-08-14T04:00:00+03:00"
-last_activity: 2026-08-14 · Folder source/oracle f8cb7643986fc591cae16764575337b72ef3a692 and Folder docs ca4e2854a319a020f7322ae0a9a98e3fb4a07374 remain narrowly STATIC_ACCEPTED static-only; 144-03B-Rule-Compiler is narrowly docs-only STATIC_ACCEPTED / EXACT_SHA_PASS at f199546513b758ca7b95328b5ccd7680009b732e, reviewed against transition commit 6735ae746c7acde657359e8a709cd897c4dce61c: Contract/Spec Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M 0/0/0; dispatcher-enforced, no fallback, telemetry UNKNOWN; 144-02D/02F adjudication next, then later Rule-plan and Phase-145 carrier; launcher NOT_READY and executable evidence NOT_RUN
+last_updated: "2026-08-14T12:45:44+03:00"
+last_activity: 2026-08-14 · 144-02A representation snapshot at b631866b2ba372101fd80eea30951eaa267c1931 is narrowly STATIC_CONTRACT_READY / docs-only accepted: Contract/Spec Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high independently PASS C/I/M 0/0/0; dispatcher-enforced, no fallback, telemetry UNKNOWN unless exposed. This accepts only frozen A1/A2/A3 persistence representation, not source, TDD, generated output, migration, launcher or runtime; founder migration authority and sequential explicit source dispatch/review remain required. 02D/02F normative correction candidate is next; DNS G145-5C remains open; launcher NOT_READY and executable evidence NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -118,7 +118,7 @@ mail_feature_workstream:
     branch: codex/mail-module-20260813
     phases: "142-148"
     current_phase: 144
-    status: folder_source_oracle_f8cb7643_and_docs_ca4e2854_static_accepted_rule_docs_only_static_accepted_runtime_not_run
+    status: folder_source_oracle_f8cb7643_and_docs_ca4e2854_static_accepted_rule_docs_only_144_02a_representation_snapshot_b631866b2ba372101fd80eea30951eaa267c1931_static_contract_ready_docs_only_02d_02f_normative_correction_next_source_schema_unauthorized_launcher_not_ready_runtime_not_run
     product_truth: unfinished_mvp_feature_not_accepted
     contract_version: "0.1.8"
     tasks:
@@ -365,12 +365,14 @@ spec_coverage:
   validators, a typed bounded DNS JSON value, named SQL CHECK predicates, ordered partial
   indexes and delete edges. Execution is split sequentially into 02A1 typed DNS, 02A2
   domain/policy and 02A3 account/identity so every intermediate source remains compilable.
-  This is representation freeze only: independent review, migration authority, generation
-  and Docker runtime remain pending/`NOT_RUN`.
+  This is representation freeze only: the historical pre-receipt independent-contract-review
+  pending wording is superseded by the `b631866b2ba372101fd80eea30951eaa267c1931` docs-only
+  acceptance; source-level review, migration authority, generation and Docker runtime remain
+  pending/`NOT_RUN`.
   The exact test-first packet is recorded in
   `docs/superpowers/plans/2026-08-13-mail-control-plane-schemas.md` and consumes contract base
-  `5f31a74f`; it authorizes no product write while independent review and other packet gates
-  remain pending.
+  `5f31a74f`; it authorizes no product write while explicit source dispatch, source-level review
+  and other packet gates remain pending.
   Evidence is recorded in the matching `IMPLEMENTATION-*.md` artifacts. A later root deep
   audit reopened 143-03A and 143-03C over the schema-level nullable canonical hash version/hash
   pair CHECK required by Mail 0.1.8 and the phase plan. Packet A now has the exact CHECK plus an

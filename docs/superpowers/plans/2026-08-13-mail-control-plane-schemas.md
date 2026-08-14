@@ -7,6 +7,16 @@
 **Goal:** Implement the bounded typed DNS value and the four Phase 144 control-plane Ent
 schemas without generating migrations or guessing lifecycle representation.
 
+> **Representation receipt (not execution authority):** the frozen 144-02A A1/A2/A3
+> representation at reviewed snapshot `b631866b2ba372101fd80eea30951eaa267c1931` is
+> `STATIC_CONTRACT_READY` / docs-only accepted after Contract/Spec Terra/high,
+> Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`.
+> Dispatcher-enforced, fallback none, telemetry `UNKNOWN` unless exposed. It does not authorize
+> this plan's source/TDD execution, generated output, migration, launcher, tests/validators/build
+> or runtime; founder migration authority, supported task-owned launcher, sequential explicit
+> source dispatch and source-level review remain required. The next action is a docs-only 02D/02F
+> normative correction candidate, not code.
+
 **Architecture:** Three sequential Terra packets keep every intermediate source coherent.
 The first packet adds a provider-neutral validated DNS JSON value. The second adds domain and
 policy schemas that depend only on existing Organization. The third adds the mutually linked
@@ -20,9 +30,11 @@ transaction responsibilities.
 
 - Contract base: `5f31a74f362f3d8f678fd3e3e5d403212dd119a1` plus the later docs-only
   plan commit containing this file and the nil/immutability clarification.
-- Entry gate for every product packet: independent `gpt-5.6-terra` / `high` review with
-  accepted per-dispatch provenance of the exact contract/plan commit. Current state is
-  `BLOCKED_INDEPENDENT_CONTRACT_REVIEW_PENDING`.
+- The accepted `b631866b2ba372101fd80eea30951eaa267c1931` representation receipt consumes the
+  historical independent contract-review prerequisite for this docs-only representation.
+  Every product source packet remains gated by root-owned explicit source dispatch and
+  independent `gpt-5.6-terra` / `high` source-level review with accepted per-dispatch provenance.
+  The next global Mail action is the docs-only 02D/02F normative correction, not 02A review.
 - Worker runtime: exact `gpt-5.6-terra` / `xhigh`, no fallback. Reviewer runtime: exact
   `gpt-5.6-terra` / `high`, no fallback. For this branch/Phases 143–148, an explicit native
   dispatcher acceptance without rejection is `provenance_source: dispatcher-enforced`; actual

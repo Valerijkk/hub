@@ -1,6 +1,6 @@
 # Phase 144 — Mailbox Domain
 
-> Task: TASK-237 · Status: IN_PROGRESS · FIVE_DOCUMENT_DEFAULT_VS_HARD_CAP_144_01A_ENTRY_AMENDMENT_PASS `5e314fb0` (authorizes 144-01A entry only; broader Phase 142/cross-contract pending) · 144-01A STATIC_ACCEPTED `e3e8c774` / EXACT_SHA_PASS · 144-03A-Address STATIC_ACCEPTED `41564d00` / EXACT_SHA_PASS · 144-03A-Thread STATIC_ACCEPTED `9903f4df` / EXACT_SHA_PASS, contract `cbc12577`, C/I/M `0/0/0`, executable NOT_RUN · Folder source+oracle STATIC_ACCEPTED `f8cb7643986fc591cae16764575337b72ef3a692`, Folder docs acceptance `ca4e2854` · 144-03B-Rule-Compiler docs-only STATIC_ACCEPTED / EXACT_SHA_PASS accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; acceptance transition/review target recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`; 02D/02F, later plan and engine-port/145 carrier remain · 144-01B BLOCKED_ON_APPLICABLE_SUPPORTED_CURRENT_SHA_DOCKER_EVIDENCE_BY_TASK3 · 144-02A1/A2/A3 EXACT_PLAN_BLOCKED_REVIEW · 144-02B/02C/02D/02F CONTRACT_AMENDED_NOT_ACCEPTED · RUNTIME_NOT_RUN · Depends on: Phase 142
+> Task: TASK-237 · Status: IN_PROGRESS · 144-02A A1/A2/A3 representation `STATIC_CONTRACT_READY` / docs-only accepted at reviewed snapshot `b631866b2ba372101fd80eea30951eaa267c1931` (three independent Terra reviews PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry UNKNOWN unless exposed) · 144-01A STATIC_ACCEPTED `e3e8c774` / EXACT_SHA_PASS · 144-03A-Address STATIC_ACCEPTED `41564d00` / EXACT_SHA_PASS · 144-03A-Thread STATIC_ACCEPTED `9903f4df` / EXACT_SHA_PASS, contract `cbc12577`, C/I/M `0/0/0`, executable NOT_RUN · 144-02B/02C/02D/02F CONTRACT_AMENDED_NOT_ACCEPTED · 144-01B BLOCKED_ON_APPLICABLE_SUPPORTED_CURRENT_SHA_DOCKER_EVIDENCE_BY_TASK3 · RUNTIME_NOT_RUN · Depends on: Phase 142
 
 ## Goal
 
@@ -44,6 +44,13 @@ The distinct Rule contract is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` acc
 Each item is one or more atomic commits split further when generated schema, service,
 handler, or docs cannot be reviewed independently. Existing Resend alert behavior stays
 separate and green.
+
+> **02A source gate:** the accepted b631 snapshot is representation-only and is not an
+> implementation commit. It does not authorize Ent/product source or TDD, generated output,
+> migrations, launcher execution, tests/validators/build or runtime. Founder migration authority,
+> supported task-owned launcher, sequential explicit source dispatch and source-level review remain
+> required. Before any source work, the next action is a docs-only 02D/02F normative correction
+> candidate; Rule plan/TDD and the Phase-145 carrier remain later.
 > **Current Rule lifecycle (2026-08-14):** `144-03B-Rule-Compiler` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; acceptance transition/review target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`. Contract/Spec Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced provenance, no fallback, telemetry `UNKNOWN` unless exposed. 144-02D/02F remain unclosed; later separate Rule plan and Phase-145 engine-port/carrier remain required. No Rule source/test/TDD/schema/runtime/product/release authority; launcher `NOT_READY`, executable evidence `NOT_RUN`, Phase 148 blocked.
 
 > **Current 144-03B rule gate:** Rule docs acceptance authorizes neither source nor TDD. The future implementation boundary remains exactly `rule_compiler.go` plus `rule_compiler_test.go`, but only after 02D/02F closure, a separate accepted Rule plan, and the Phase-145 engine-port carrier. All other blockers remain in force.

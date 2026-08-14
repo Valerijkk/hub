@@ -50,7 +50,12 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 
 ## 144-02A1/A2/A3 — typed DNS then domain/policy then account/identity schemas
 
-- Dependency: independently accepted contract 0.1.8 and migration gate recorded. Execute
+- Representation dependency is satisfied narrowly by the docs-only `STATIC_CONTRACT_READY`
+  acceptance of reviewed snapshot `b631866b2ba372101fd80eea30951eaa267c1931`: Contract/Spec
+  Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M
+  `0/0/0`, dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed. It authorizes
+  neither source/TDD nor generation/migration/runtime. Founder migration authority, supported
+  task-owned launcher, sequential explicit source dispatch and source-level review remain gates. Execute
   sequentially from clean accepted commits:
   - `144-02A1`: only `backend/internal/mail/domain_dns.go` and
     `backend/tests/mail/domain_dns_test.go`;

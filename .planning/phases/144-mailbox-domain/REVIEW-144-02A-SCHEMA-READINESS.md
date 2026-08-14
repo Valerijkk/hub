@@ -1,11 +1,11 @@
 # Phase 144-02A preimplementation review — schema contract readiness
 
 > **Detected:** 2026-08-13 root deep static audit
-> **Status:** 0.1.8_ROOT_REPRESENTATION_FROZEN · INDEPENDENT_CLOSURE_PENDING · IMPLEMENTATION_BLOCKED · RUNTIME_NOT_RUN
+> **Status:** STATIC_CONTRACT_READY · DOCS_ONLY_ACCEPTED_AT_REVIEWED_SNAPSHOT_b631866b2ba372101fd80eea30951eaa267c1931 · IMPLEMENTATION_BLOCKED · RUNTIME_NOT_RUN
 > **Scope:** `MailAccount`, `MailIdentity`, `MailDomain`, `MailboxPolicy` only
 
 > `docs/mail/PERSISTENCE-CONTRACT-0.1.8.md` now supplies the root candidate matrix; this
-> discovery verdict remains open until independent exact-SHA review.
+> historical discovery verdict is preserved below; its representation closure is now docs-only accepted.
 
 ## Current root closure
 
@@ -13,12 +13,19 @@
 ASCII validators, typed DNS JSON value, index order/predicates, named row CHECK predicates,
 edge/delete behavior, service-only cross-row invariants and the sequential 144-02A1/A2/A3
 packet boundary. The historical discovery findings below are closed in the root candidate,
-but no independent actual-provenance Terra/high review has accepted the exact commit.
+and three independent reviews accepted the reviewed representation snapshot: Contract/Spec
+`gpt-5.6-terra/high`, Security/Adversarial `gpt-5.6-terra/xhigh`, and Lifecycle/Dependency
+`gpt-5.6-terra/high`, each PASS C/I/M `0/0/0`; provenance is dispatcher-enforced, fallback
+none, telemetry `UNKNOWN` unless exposed.
 
-Product writes, generation and migration therefore remain blocked. The dedicated execution
-plan must consume the exact accepted commit and may not reinterpret these choices.
+This acceptance covers only the frozen A1/A2/A3 persistence representation. Product writes,
+Ent source/TDD, generated output, migration, launcher execution, tests/validators/build and
+runtime remain blocked/not authorized. Founder migration authority, supported task-owned launcher,
+sequential explicit source dispatch and source-level review remain required. The exact next action
+is one docs-only normative correction candidate for 02D/02F (default-signature false semantics,
+exact named predicates, dispatch dependency/crash wording and Rule flat-conjunction wording), not code.
 
-## Historical discovery outcome
+## Historical discovery outcome (preserved)
 
 The packet could not satisfy its own requirement to implement the exact section 3
 fields, enums and bounds. The existing documents describe the lifecycle correctly, but
@@ -90,8 +97,8 @@ default, but the contract must state that strengthening explicitly.
 
 ## Historical gate impact
 
-- 144-02A was `BLOCKED_CONTRACT`; it is now `BLOCKED_INDEPENDENT_REVIEW` and no Ent schema
-  or inverse edge should be authored yet;
+- 144-02A was `BLOCKED_CONTRACT`; its representation is now docs-only accepted, but no Ent
+  schema or inverse edge is authorized until the remaining source gates close;
 - 144-02B/C/D/F, generation 144-02E and services/workers depending on 02A remain blocked;
 - the separate founder migration decision and accepted Docker launcher remain required even
   after this contract gap is closed;

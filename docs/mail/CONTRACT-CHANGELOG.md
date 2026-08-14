@@ -15,6 +15,20 @@
 > Phase-145 carrier, with no Rule TDD or production authorization. Runner `NOT_READY`; all
 > executable evidence `NOT_RUN`.
 
+## 144-02A representation acceptance receipt — 2026-08-14
+
+The frozen A1/A2/A3 persistence representation at reviewed snapshot
+`b631866b2ba372101fd80eea30951eaa267c1931` is narrowly `STATIC_CONTRACT_READY` /
+docs-only accepted. Contract/Spec `gpt-5.6-terra/high`, Security/Adversarial
+`gpt-5.6-terra/xhigh` and Lifecycle/Dependency `gpt-5.6-terra/high` independently PASSed
+C/I/M `0/0/0`; each route is dispatcher-enforced, fallback none, telemetry `UNKNOWN` unless
+exposed. This receipt is not an implementation commit and makes no version bump. It accepts
+only frozen persistence representation, not Ent/product source or TDD, generated output,
+migrations, launcher execution, tests/validators/build/runtime, 02B/C/D/F, services, product,
+module, phase or release. Founder migration authority, supported task-owned launcher,
+sequential explicit source dispatch and source-level review remain required. G145-5C remains
+open; the next action is one docs-only 02D/02F normative correction candidate, not code.
+
 ## 0.1.8 rule compiler candidate — 2026-08-14
 
 `144-03B-Rule-Compiler` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at
