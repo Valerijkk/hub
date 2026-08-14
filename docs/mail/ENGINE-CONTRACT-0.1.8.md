@@ -1,6 +1,8 @@
 # Mail engine boundary 0.1.8
 
-> **Status:** root-frozen contract; independent Terra/high review pending
+> **Status:** 144-01A remains `STATIC_ACCEPTED`; 144-03A Thread is
+> `THREAD_CALLABLE_ENCODING_ORACLE_ROOT_FROZEN_CANDIDATE` / `INDEPENDENT_REVIEW_PENDING` /
+> `NOT_AUTHORIZED`
 > **Runtime:** NOT_RUN
 > **Precedence:** this document replaces the 0.1.7 message/blob/draft portions of
 > `ADR-MAIL-01-mail-engine-calendar-sync.md` and Phase 144-01A. Unmentioned methods and safe
@@ -30,7 +32,7 @@ to reject earlier.
 | `MaxEngineAddressItems` | 200 | each projection address collection; draft write uses OpenAPI 100 |
 | `MaxEngineDraftRecipientItems` | 100 | each draft `to`, `cc` or `bcc` collection |
 | `MaxEngineDraftTotalRecipientItems` | 300 | normalized unique recipients across draft `to` + `cc` + `bcc` |
-| `MaxEngineReferenceItems` | 100 | normalized RFC Message-ID references |
+| `MaxEngineReferenceItems` | 100 | adapter candidate references; accepted stored literals are strict byte-preserved case-sensitive ASCII Message-ID values |
 | `MaxEngineFolderItems` | 100 | one account's non-deleted engine-backed folders |
 | `MaxEngineKeywordItems` | 200 | one projection's reserved keyword markers |
 | `MaxEngineAttachmentItems` | 50 | one message/draft attachment set |
@@ -314,7 +316,8 @@ Projection addresses use the 200-item ceiling per collection; draft `to`, `cc` a
 each use 100 and their normalized cross-collection combined count is at most
 `min(MailboxPolicy.max_recipients, MaxEngineDraftTotalRecipientItems)`. `From` is one required
 normalized address. BCC is non-empty only for confirmed-owner draft/submission origin.
-`References` contains at most 100 normalized values. Projection folder ids contain
+`References` contains at most 100 strict byte-preserved case-sensitive ASCII Message-ID
+literals. Projection folder ids contain
 1..100 values. Attachment metadata contains 0..50 values. An inline attachment requires a
 Content-ID. A projected MIME attachment may be empty; a draft upload has 1..effective
 attachment maximum bytes, a required stable Hub attachment UUID-derived key and a confirmed
@@ -447,3 +450,13 @@ those exact ids. That branch can never requeue or call `Submit`.
     collection is at most 100; recipient 301 rejects before any engine save or submit.
 11. No direct Docker/host fallback is valid; executable evidence remains `NOT_RUN` until the
     accepted launcher exists.
+
+## 144-03A Thread candidate clarification
+
+This engine contract remains count/item bounded only. A provider adapter may present up to 100
+candidate References and one InReplyTo, but the Thread callable accepts only the strict
+byte-preserved case-sensitive ASCII Message-ID literal defined in `MAIL-SPEC.md`; malformed
+candidates are skipped by Thread, not normalized, and only after a definitive successful
+ancestor lookup outcome. The adapter preflights raw candidate bytes before any
+UTF-8/Message-ID/IDNA work; it does not alter the accepted 144-01A DTO/source or its structural
+acceptance.

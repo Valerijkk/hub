@@ -1,7 +1,7 @@
 # Task 144-01A — static conformance evidence
 
 > **Status:** `STATIC_ACCEPTED` at `e3e8c774d734f926f77f8e600b58dc68dabbd993` · `EXACT_SHA_PASS` · `RUNTIME_NOT_RUN`
-> **Frozen contract:** Mail 0.1.8 at `5e314fb080d420696642058ae47397e251c23207`
+> **Frozen contract:** Mail 0.1.8 144-01A entry amendment at `5e314fb080d420696642058ae47397e251c23207`; 144-03A Thread is a separate `THREAD_CALLABLE_ENCODING_ORACLE_ROOT_FROZEN_CANDIDATE` / `INDEPENDENT_REVIEW_PENDING` / `NOT_AUTHORIZED`
 > **Atomic boundary:** `e3e8c774d734f926f77f8e600b58dc68dabbd993`; parent
 > `fa0a2f2a542caadd9f5951e6f703b060b4776780`.
 
@@ -83,6 +83,7 @@ fallback, but it did not implement the 0.1.8 projection/budget/reference-only am
   current-SHA Docker evidence closes; Phase 145 remains independently gated.
 - `144-03A-Address` is separately `STATIC_ACCEPTED` at
   `41564d003946ddb78df18efca166ca86e4055405`. The only next action is pure static/TDD
-  `144-03A-Thread`, and dispatch waits for root to freeze its callable/encoding contract and
-  oracle; Thread is not implemented or authorized before that freeze. Other static-authorized
+  `144-03A-Thread`, whose callable/encoding contract and oracle are root-frozen candidate;
+  dispatch waits for independent acceptance. Thread is not implemented or authorized before
+  that acceptance. Other static-authorized
   packets remain unselected.

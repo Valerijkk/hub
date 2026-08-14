@@ -5,7 +5,7 @@ milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
 last_updated: "2026-08-14T03:30:00+03:00"
-last_activity: 2026-08-14 · Mail 144-03A-Address is STATIC_ACCEPTED at 41564d003946ddb78df18efca166ca86e4055405 after three independent Terra/high EXACT_SHA_PASS reviews (C/I/M 0/0/0); only 144-03A-Thread is next after root freezes its callable/encoding contract and oracle, launcher NOT_READY and executable evidence NOT_RUN
+last_activity: 2026-08-14 · Mail 144-03A-Address is STATIC_ACCEPTED at 41564d003946ddb78df18efca166ca86e4055405 after three independent Terra/high EXACT_SHA_PASS reviews (C/I/M 0/0/0); 144-03A-Thread is THREAD_CALLABLE_ENCODING_ORACLE_ROOT_FROZEN_CANDIDATE / INDEPENDENT_REVIEW_PENDING / NOT_AUTHORIZED and dispatch waits for independent acceptance, launcher NOT_READY and executable evidence NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -326,9 +326,9 @@ spec_coverage:
   report `EXACT_SHA_PASS`, Spec/Quality/Security/Evidence PASS and C/I/M `0/0/0`; Terra/xhigh
   authoring and Terra/high review provenance are dispatcher-enforced, fallback `none`, with
   actual telemetry `UNKNOWN` unless exposed. The only next action is pure static/TDD
-  `144-03A-Thread`; its Address dependency is accepted, but dispatch waits for root to freeze its
-  callable/encoding contract and oracle. Thread is not implemented or authorized before that
-  freeze; other static-authorized packets remain unselected. `144-01B` remains `BLOCKED`; broader
+  `144-03A-Thread`; its Address dependency is accepted and its callable/encoding contract and
+  oracle are root-frozen candidate, but dispatch waits for independent acceptance. Thread is not
+  implemented or authorized before that acceptance; other static-authorized packets remain unselected. `144-01B` remains `BLOCKED`; broader
   Phase 142/cross-contract acceptance and Phase 148 remain pending. Launcher and all executable
   evidence remain `NOT_READY` / `NOT_RUN`.
   Root-frozen `PERSISTENCE-CONTRACT-0.1.8.md` supplies the exact 144-02A/B/C/D/F fields,
@@ -1375,7 +1375,7 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 
 ## Session Continuity
 
-**Last session:** 2026-08-14 (Mail 144-03A-Address exact-commit static acceptance sync)
+**Last session:** 2026-08-14 (Mail 144-03A-Thread callable/encoding root-frozen candidate sync)
 **Stopped at:** 144-01A remains `STATIC_ACCEPTED` at
 `e3e8c774d734f926f77f8e600b58dc68dabbd993`; 144-03A-Address is now `STATIC_ACCEPTED` at the
 exact five-path boundary `41564d003946ddb78df18efca166ca86e4055405` (parent
@@ -1387,9 +1387,10 @@ and all executable evidence remains `NOT_RUN`.
 `pro-qa-ai` beta.3 already exists both in protected Hub source
 and as the Desktop portable copy. Legacy remains frozen; destructive move/delete
 has not started.
-**Resume:** only after root freezes the callable/encoding contract and oracle, dispatch pure
-static/TDD `144-03A-Thread`. Its Address dependency is accepted, but Thread is not implemented or
-authorized before that freeze; other static-authorized packets remain unselected. Executable
+**Resume:** only after independent review accepts the root-frozen callable/encoding contract and
+oracle, dispatch pure static/TDD `144-03A-Thread`. Its Address dependency is accepted; Thread is
+`THREAD_CALLABLE_ENCODING_ORACLE_ROOT_FROZEN_CANDIDATE` / `INDEPENDENT_REVIEW_PENDING` /
+`NOT_AUTHORIZED`, not implemented or authorized. Other static-authorized packets remain unselected. Executable
 verification remains `NOT_RUN`. Do not start `144-01B`: the stricter Task3 authority requires its
 applicable supported current-SHA Docker evidence. Broader Phase 142/cross-contract work and Phase
 148 remain pending.

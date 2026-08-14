@@ -2,7 +2,7 @@
 
 > **Contract version:** 0.1.8
 > **Prepared:** 2026-08-13
-> **Contract review status:** five-document 0.1.8 entry amendment PASS at `5e314fb080d420696642058ae47397e251c23207`; broader Phase 142/cross-contract review remains `INDEPENDENT_TERRA_REVIEW_PENDING`
+> **Contract review status:** five-document 0.1.8 entry amendment PASS at `5e314fb080d420696642058ae47397e251c23207`; 144-03A Thread is `THREAD_CALLABLE_ENCODING_ORACLE_ROOT_FROZEN_CANDIDATE` / `INDEPENDENT_REVIEW_PENDING` / `NOT_AUTHORIZED`; broader Phase 142/cross-contract review remains pending
 > **Implementation status:** IN_PROGRESS — 143-01/02A/02B static accepted historically; 144-01A is `STATIC_ACCEPTED` at `e3e8c774d734f926f77f8e600b58dc68dabbd993`; 144-02A/02B/02C/02D/02F schema candidates remain unaccepted and the exact 144-02A1/A2/A3 execution split is planned; 143-03A is `STATIC_ACCEPTED` at `31bfff8f58ba83d12b59600135503f98a6c92fbd` and 143-03C at `444c6f7b7b7b3d9b77bc9b24b32d1e13000ebbbc`; 143-04L is `STATIC_ACCEPTED` at `4525c559da22729aa8bc51ff5336c29dad4f27e9` (status-sync commit `1c0299bd`) and needs no redispatch; selected Stalwart has an unresolved domain-verification mismatch and enabled mailbox auth remains blocked; executable verification `NOT_RUN`
 > **Runtime status:** NOT_RUN
 > **QA owner:** founder-designated Claude test program
@@ -694,6 +694,43 @@ oracles, not current executable evidence.
 - No test contacts real DNS, SMTP, remote image, or public mailbox service.
 
 ## Current blockers and honesty
+
+### 144-03A Thread candidate scenarios (not implemented or run)
+
+- Assert the exact exported callable/error grammar including `ThreadKeyVersionV1`, versioned
+  ancestor/identity tuple, unchanged NormalizeAddress propagation, no Base64 API, purity and
+  no input alias/mutation. The external error oracle checks exact `ThreadPolicyError` mapping:
+  nil receiver/unknown kind returns `mail thread policy error` and nil unwrap; invalid returns
+  `mail thread invalid`/`Unwrap() == ErrThreadInvalid`; too-large returns
+  `mail thread exceeds bounds`/`Unwrap() == ErrThreadTooLarge`; `errors.Is` matches only the
+  corresponding sentinel and neither method
+  leaks raw input/detail.
+- Exercise all raw preflight maxima/+1: References 100, To/CC 200, Ancestors 202, subject and
+  strict Message-ID 998 bytes, email 320 and name 640, before UTF-8/rune/Message-ID/IDNA/NFC/
+  fold/prefix/group/NormalizeAddress processing. Invalid UTF-8 subject and control subject
+  fail safely; malformed/oversize candidates skip while malformed/oversize/zero-key/non-V1
+  ancestors fail safely. Verify strict ASCII byte/case equality and ambiguity collapse/skip.
+- Prove References right-to-left unique resolution, then InReplyTo, then fallback; ancestor
+  resolver receives only same-account live message+live-thread rows and copies exact
+  `(MessageID,KeyVersion,Key)`; ancestor result returns its exact version+key, empty subject
+  and concrete nonnil empty participants.
+- Prove `AncestorLookupComplete=false` returns content-free `ThreadErrorInvalid` with zero
+  result, no fallback and no partial result. A resolver/database/cancellation failure aborts
+  before Derive/fallback/write as safe retriable projection failure; only a definitive successful
+  lookup may skip a candidate, while complete true plus empty Ancestors permits fallback.
+- Prove From→To→CC first-occurrence dedupe, bytewise ASCII sort, ReplyTo/BCC/name/user_id
+  exclusion, 1..401 participant bounds and seed-only (non-growing) semantics.
+- Cover normalized_subject_v1 NFC/fold/NFC, all Unicode-space collapse, longest-first prefixes,
+  sixteen removals then preserved seventeenth, ASCII colon-only behavior and postnormalization
+  bytes; V1 remains fixed to x/text v0.35.0, while any change needs accepted new version/rekey/
+  dual-read.
+- Check V1/V2/V3 preimage and SHA-256 literals exactly, version octet 01 and raw versioned
+  32-byte key tuples only, and 1 MiB typed JSON participant/reference boundaries. Public
+  participants are closed email-only objects with unique 1..401 items; pages/details stop before
+  8 MiB with whole items only.
+
+These are future required oracles. No Thread test exists or ran; launcher remains `NOT_READY`
+and runtime `NOT_RUN`.
 
 - The founder-required test runner/package is `NOT_READY`; no supported execution command
   exists in this branch.

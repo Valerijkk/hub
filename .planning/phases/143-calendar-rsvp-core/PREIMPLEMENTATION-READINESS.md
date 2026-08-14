@@ -13,6 +13,10 @@
   global cross-contract PASS. The bounded 144-01A engine DTO/error boundary is `STATIC_ACCEPTED` at
   `e3e8c774d734f926f77f8e600b58dc68dabbd993` after `EXACT_SHA_PASS`. The 0.1.7
   `b3fb6f48` and 0.1.6 `5a351d5b` evidence remain historical.
+- `144-03A-Thread` is separately `THREAD_CALLABLE_ENCODING_ORACLE_ROOT_FROZEN_CANDIDATE` /
+  `INDEPENDENT_REVIEW_PENDING` / `NOT_AUTHORIZED`: its versioned key, bytewise Message-ID and
+  literal-oracle contract is root-frozen candidate only, and implementation waits for
+  independent acceptance.
 - OpenAPI covers mailbox, submission recovery, legacy calendar, canonical calendar and
   separate legacy/new admin resources.
 - Event subjects and webhook privacy boundary are frozen.
@@ -77,9 +81,10 @@
    exact-commit Terra/high `EXACT_SHA_PASS`, Spec/Quality/Security/Evidence PASS and C/I/M
    `0/0/0`. Exact native dispatch provenance is dispatcher-enforced; actual telemetry `UNKNOWN`
    is not a telemetry-only blocker. `144-03A-Address` is `STATIC_ACCEPTED` at
-   `41564d003946ddb78df18efca166ca86e4055405` after exact-SHA PASS. Only
-   `144-03A-Thread` is next after root freezes its callable/encoding contract and oracle; Thread
-   is not implemented or authorized before that freeze. `144-01B` remains blocked by applicable
+   `41564d003946ddb78df18efca166ca86e4055405` after exact-SHA PASS. `144-03A-Thread` is
+   `THREAD_CALLABLE_ENCODING_ORACLE_ROOT_FROZEN_CANDIDATE` / `INDEPENDENT_REVIEW_PENDING` /
+   `NOT_AUTHORIZED`; it is not implemented or dispatch-authorized before independent acceptance.
+   `144-01B` remains blocked by applicable
    supported current-SHA Docker evidence and executable status `NOT_RUN`.
 10. Admit `mail.>` only after calendar admission; keep webhook filter unchanged.
 11. Execute UI transport/routes/core only after backend contracts are accepted and the

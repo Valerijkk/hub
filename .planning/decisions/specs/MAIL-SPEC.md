@@ -1,7 +1,7 @@
 # MAIL-SPEC — Hub mailbox and calendar synchronization contract
 
 > **Version:** 0.1.8
-> **Status:** five-document 0.1.8 entry amendment independently PASS at `5e314fb080d420696642058ae47397e251c23207`, authorizing only 144-01A entry; broader Phase 142/cross-contract review and runtime remain pending; 0.1.7 review evidence is historical `STALE`
+> **Status:** five-document 0.1.8 entry amendment independently PASS at `5e314fb080d420696642058ae47397e251c23207`, authorizing only 144-01A entry; 144-03A Thread is `THREAD_CALLABLE_ENCODING_ORACLE_ROOT_FROZEN_CANDIDATE` / `INDEPENDENT_REVIEW_PENDING` / `NOT_AUTHORIZED`; broader Phase 142/cross-contract review and runtime remain pending; 0.1.7 review evidence is historical `STALE`
 > **Date:** 2026-08-13
 > **Architecture:** `../ADR-MAIL-01-mail-engine-calendar-sync.md`
 > **OpenAPI:** `../../../docs/mail/openapi.yaml`
@@ -465,9 +465,10 @@ alternate custom-folder writer is reachable.
 |---|---|---|
 | `id` | UUID | primary key |
 | `mail_account_id` | UUID | required |
-| `thread_key` | SHA-256/base64url | unique per account |
-| `normalized_subject` | string | prefix-normalized, Unicode-normalized |
-| `participant_addresses` | JSON array | normalized unique addresses, bounded |
+| `thread_key_version` | int32 | required immutable version, default 1; version/key is one identity tuple |
+| `thread_key` | raw SHA-256 `[32]byte` | unique with account+version; never base64url in storage/API/hash |
+| `normalized_subject` | string | `normalized_subject_v1` prefix-normalized and Unicode-normalized |
+| `participant_addresses` | typed JSON `[]string` | canonical seed snapshot, unique, live 1..401, <=1,048,576 serialized UTF-8 bytes |
 | `last_message_at` | timestamp | sort key |
 | `message_count`, `unread_count` | non-negative int | projection |
 | `is_pinned` | bool | Hub canonical |
@@ -495,9 +496,9 @@ Thread key algorithm:
 | `mail_account_id`, `mail_thread_id` | UUID | required |
 | `engine_message_id` | string | opaque, unique per account |
 | `engine_version` | string | required opaque projection version, stored atomically with engine message id |
-| `internet_message_id` | string nullable | normalized RFC Message-ID, indexed |
-| `in_reply_to` | string nullable | normalized RFC Message-ID |
-| `references` | JSON array | bounded normalized Message-IDs |
+| `internet_message_id` | string nullable | strict byte-preserved case-sensitive ASCII Message-ID literal; non-unique resolver index is `(mail_account_id, internet_message_id COLLATE "C") WHERE deleted_at IS NULL` or binary equivalent |
+| `in_reply_to` | string nullable | strict byte-preserved case-sensitive ASCII Message-ID literal |
+| `references` | JSON array | bounded strict byte-preserved case-sensitive ASCII Message-ID literals |
 | `from`, `to`, `cc`, `bcc`, `reply_to` | structured JSON | normalized addresses; BCC only for confirmed owner submission/draft |
 | `subject` | string | max 998 octets at transport boundary |
 | `snippet` | string | safe plain-text projection, max 400 graphemes |
@@ -1824,3 +1825,109 @@ Freezing this document makes named atomic packets eligible only after their mode
 dependency, migration, founder and launcher gates pass; it does not itself authorize a
 blocked write. Until corresponding evidence exists, all implementation, migration,
 Docker, API, UI, security, and end-to-end statuses remain `NOT_RUN` or `NOT_IMPLEMENTED`.
+
+## 11. 144-03A-Thread callable and encoding amendment (root-frozen candidate)
+
+**Status:** `THREAD_CALLABLE_ENCODING_ORACLE_ROOT_FROZEN_CANDIDATE` /
+`INDEPENDENT_REVIEW_PENDING` / `NOT_AUTHORIZED`. This narrow preimplementation 0.1.8
+amendment is separate from the `5e314fb0` 144-01A entry-only amendment: it neither revokes
+the `144-03A-Address` `STATIC_ACCEPTED` boundary `41564d00` nor authorizes `threading.go`,
+tests, schemas, generation, migration, runtime or a version bump. 144-01B, Phase 142/148 and
+144-02B remain pending; launcher is `NOT_READY` and runtime is `NOT_RUN`.
+
+The exact two-file public API (`backend/internal/mail/threading.go` and its focused unit) has
+the following **text declaration signatures**; implementation bodies are intentionally omitted
+and this fence is not complete compilable Go source:
+
+```text
+type ThreadKey [32]byte
+type ThreadKeyVersion uint8
+const (
+	ThreadKeyVersionV1 ThreadKeyVersion = 1
+)
+type ThreadIdentitySource string
+const (
+	ThreadIdentitySourceAncestor ThreadIdentitySource = "ancestor"
+	ThreadIdentitySourceFallback ThreadIdentitySource = "fallback"
+)
+type ThreadAncestor struct { MessageID string; KeyVersion ThreadKeyVersion; Key ThreadKey }
+type ThreadingInput struct { References []string; InReplyTo string; Subject string; From EngineAddress; To []EngineAddress; CC []EngineAddress; Ancestors []ThreadAncestor; AncestorLookupComplete bool }
+type ThreadIdentity struct { KeyVersion ThreadKeyVersion; Key ThreadKey; Source ThreadIdentitySource; NormalizedSubject string; CanonicalParticipants []string }
+type ThreadErrorKind string
+const (
+	ThreadErrorInvalid ThreadErrorKind = "invalid"
+	ThreadErrorTooLarge ThreadErrorKind = "too_large"
+)
+var ErrThreadInvalid = errors.New("mail thread invalid")
+var ErrThreadTooLarge = errors.New("mail thread exceeds bounds")
+type ThreadPolicyError struct { Kind ThreadErrorKind }
+func (e *ThreadPolicyError) Error() string
+func (e *ThreadPolicyError) Unwrap() error
+func DeriveThreadIdentity(input ThreadingInput) (ThreadIdentity,error)
+```
+
+`ThreadPolicyError` mirrors the accepted Address policy mapping exactly: a nil receiver or
+unknown `Kind` has `Error() == "mail thread policy error"` and `Unwrap() == nil`;
+`ThreadErrorInvalid` has `Error() == "mail thread invalid"` and
+`Unwrap() == ErrThreadInvalid`; `ThreadErrorTooLarge` has
+`Error() == "mail thread exceeds bounds"` and `Unwrap() == ErrThreadTooLarge`. Consequently
+`errors.Is` matches only the corresponding
+sentinel, and Error/Unwrap never expose raw input or detail. An external oracle must assert
+these literals, the typed mapping, and unknown/nil receiver behavior. `NormalizeAddress`
+errors propagate unchanged. There is no exported Base64 method. `DeriveThreadIdentity`
+requires `AncestorLookupComplete==true`; false returns zero
+`ThreadIdentity{}` plus content-free `ThreadErrorInvalid`. Resolver/database/cancellation
+failure must instead abort the caller flow as a safe retriable projection failure: it must not
+call Derive, fallback or write. Empty `Ancestors` with `AncestorLookupComplete==true` is a
+successful definitive no-match lookup and permits fallback. The function is pure: no
+mutation/aliasing, I/O, DB, network, clock, random or global
+mutable state. Before any UTF-8/rune/Message-ID/IDNA/NFC/fold/prefix/group or
+`NormalizeAddress` operation, it byte-preflights Subject, References, InReplyTo and ancestor
+MessageID at <=998, every address email at <=320 and every address name at <=640. References
+<=100 including invalid entries, To <=200, CC <=200 and Ancestors <=202 are also preflight
+limits. Oversized candidate Reference/InReplyTo is skipped; oversize Subject, counts and
+ancestor ID are `ThreadTooLarge`, while oversize email/name is the unchanged safe
+`AddressTooLarge`. After the raw subject limit it requires `utf8.ValidString(Subject)` and no
+`unicode.IsControl`; invalid UTF-8 is `ThreadInvalid`. It then strictly validates every
+ancestor id/nonzero V1 key and normalizes/validates every From/To/CC before lookup. Ancestor
+invalid/oversize/zero-key/non-V1-version is `ThreadInvalid`/`ThreadTooLarge`.
+
+Strict Message-ID is exactly ASCII `<left@right>`, total 1..998 bytes including brackets;
+left and right are nonempty RFC5322 `atext` dot-atoms without leading/trailing/repeated dot.
+Whitespace/folding/trim/comments/quotes/domain-literals/control/Unicode are rejected. Whole
+bytes and case are preserved: no lower/casefold/IDNA. Stored `internet_message_id`,
+`in_reply_to`, `references`, and resolver equality are bytewise deterministic `C`/binary
+equivalent, never normalized or shadow-keyed. The resolver has a non-unique live same-account
+index/equality `(mail_account_id, internet_message_id COLLATE "C") WHERE deleted_at IS NULL` or
+binary equivalent, and joins/requires same-account `MailThread` with `thread.deleted_at IS NULL`.
+Candidate References then InReplyTo are individually skipped only after a definitive successful
+lookup outcome when empty, malformed, oversized, unknown or ambiguous. Duplicate identical `(MessageID,KeyVersion,Key)` collapses; one ID with
+distinct nonzero version/key tuple is ambiguous and skipped. `Ancestors` is trusted resolver
+output only, never a header/API/event input: before the pure call the resolver copies exact
+`(MessageID,KeyVersion,Key)` only from the same resolved mailbox account's live MailMessage
+and live MailThread, excluding every other row. References scan right-to-left for the first
+unique resolved tuple, then InReplyTo. An ancestor result returns its exact existing V1
+version+key, source `ancestor`, empty normalized subject and a concrete nonnil empty
+participants slice; caller preserves existing summary.
+
+Fallback uses exactly From+To+CC (not ReplyTo/BCC/name/user_id), normalizes all, dedupes first
+occurrence in From→To→CC, byte-sorts canonical ASCII email strings, and requires 1..401
+participants. This is a seed snapshot, never a thread-wide union. `normalized_subject_v1`
+runs only after raw preflight: NFC under pinned `x/text v0.35.0`, full `cases.Fold`, NFC again,
+collapse every `unicode.IsSpace` run to ASCII space and trim; output <=998 UTF-8 bytes and may
+be empty. Repeatedly (max 16) remove longest-first folded prefix token `пересылка|пересл|ответ|отв|fwd|fw|re` only at start when followed by optional one ASCII space, literal ASCII `:`, optional one ASCII space, then trim. On the 17th preserve the remainder; counters, fullwidth colon, arbitrary `x:` and locale lookup never qualify. The pinned x/text change requires a new hash version.
+
+Fallback key is raw `sha256.Sum256` of `ASCII("hub.mail.thread.fallback") || 0x00 || 0x01 || str(subject) || U32BE(participantCount) || each sorted str(email)`, where `str` is `U32BE(UTF8 byte length)||bytes` and bounds precede uint conversion. No base64url enters storage, API or hashing; ancestor keys are reused without hashing. Independent literal oracles are V1 ` RE: alpha ` / `[alice@example.test]`: preimage `6875622e6d61696c2e7468726561642e66616c6c6261636b000100000005616c7068610000000100000012616c696365406578616d706c652e74657374`, SHA `abd293687e172e7a1df63bde199adf75d910a8e231a1c4374996e69cb582f279`; V2 `Ответ:  Café` / alice,bob: preimage `6875622e6d61696c2e7468726561642e66616c6c6261636b000100000005636166c3a90000000200000012616c696365406578616d706c652e7465737400000010626f62406578616d706c652e74657374`, SHA `42890e72238d36dec301d71ac6398623d417a56140609b903d7e6527a693e969`; V3 empty / `a@x.test,b@x.test`: preimage `6875622e6d61696c2e7468726561642e66616c6c6261636b00010000000000000002000000086140782e74657374000000086240782e74657374`, SHA `be60db881374e85b6f8129b562b910cb0f95cafc2704eeb855a94ce8051a3999`.
+
+Persistence stores participant addresses as exact typed JSON `[]string`, live 1..401, max
+serialized UTF-8 1,048,576 under default HTML-escaping JSON; no truncation/preview flag.
+Thread pages/details retain their 8 MiB aggregate cap and stop before it with fewer complete
+items/messages, never truncating an item/participant. References storage is typed strict
+byte-preserved case-sensitive ASCII Message-ID string array <=100, each <=998, serialized UTF-8
+<=1,048,576: no silent truncate.
+
+V1 fixes `x/text v0.35.0`. Any x/text change requires separately accepted new key version,
+rekey and dual-read plan. Fallback returns `ThreadKeyVersionV1`; storage/equality is the
+versioned `(thread_key_version, thread_key)` tuple. An accepted ancestor returns its exact V1
+version+key and never hashes it again; the three existing preimages already contain version
+octet `01` and their SHA literals remain unchanged.

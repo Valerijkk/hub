@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Hub Mail and Calendar Sync API
   version: 0.1.8
-  description: The five-document 0.1.8 entry amendment independently PASSed at 5e314fb080d420696642058ae47397e251c23207 and authorizes only 144-01A entry; broader cross-contract review and runtime remain pending. Presence in this file does not imply implementation.
+  description: The five-document 0.1.8 entry amendment independently PASSed at 5e314fb080d420696642058ae47397e251c23207 and authorizes only 144-01A entry. 144-03A Thread is THREAD_CALLABLE_ENCODING_ORACLE_ROOT_FROZEN_CANDIDATE, INDEPENDENT_REVIEW_PENDING and NOT_AUTHORIZED; broader cross-contract review and runtime remain pending. Presence in this file does not imply implementation.
 servers:
   - url: /api
 security:
@@ -2314,8 +2314,11 @@ components:
         subject: {type: string, maxLength: 998, x-hub-max-utf8-bytes: 998}
         participants:
           type: array
-          maxItems: 200
-          items: {$ref: "#/components/schemas/Address"}
+          minItems: 1
+          maxItems: 401
+          uniqueItems: true
+          x-hub-max-serialized-utf8-bytes: 1048576
+          items: {$ref: "#/components/schemas/MailThreadParticipant"}
         message_count: {type: integer, minimum: 1}
         unread_count: {type: integer, minimum: 0}
         last_message_at: {type: string, format: date-time}
@@ -2330,6 +2333,12 @@ components:
       unevaluatedProperties: false
       allOf:
         - {$ref: "#/components/schemas/MailThreadFields"}
+    MailThreadParticipant:
+      type: object
+      additionalProperties: false
+      required: [email]
+      properties:
+        email: {type: string, format: email, maxLength: 320, x-hub-max-utf8-bytes: 320}
     MailThreadPage:
       type: object
       additionalProperties: false

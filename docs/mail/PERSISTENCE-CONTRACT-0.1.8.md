@@ -1,6 +1,6 @@
 # Mail persistence contract 0.1.8
 
-> **Status:** five-document 0.1.8 entry amendment independently PASS at `5e314fb080d420696642058ae47397e251c23207`, authorizing only 144-01A entry; Phase 144 schema and broader cross-contract review remain pending
+> **Status:** five-document 0.1.8 entry amendment independently PASS at `5e314fb080d420696642058ae47397e251c23207`, authorizing only 144-01A entry; 144-03A Thread storage representation is `THREAD_CALLABLE_ENCODING_ORACLE_ROOT_FROZEN_CANDIDATE` / `INDEPENDENT_REVIEW_PENDING` / `NOT_AUTHORIZED`; Phase 144 schemas and broader cross-contract review remain pending
 > **Runtime/generation/migration:** NOT_RUN / NOT_RUN / NOT_AUTHORIZED
 > **Scope:** Phase 144-02A/B/C/D/F Ent schemas only
 > **Precedence:** this document supplies exact storage representation for the corresponding
@@ -449,25 +449,29 @@ control rows, not only rows that already have an engine id.
 
 ### `MailThread`
 
-Fields: `id`, `mail_account_id`, exact 32-byte `thread_key`, `normalized_subject`
+Fields: `id`, `mail_account_id`, required immutable int32 `thread_key_version` default 1,
+exact 32-byte `thread_key`, `normalized_subject`
 (<=998 UTF-8 bytes), required concrete `participant_addresses` typed JSON array default empty
-(unique normalized addresses, <=200 items/65,536 serialized UTF-8 bytes),
+(exact `[]string` seed snapshot of unique canonical normalized addresses, live 1..401 items,
+<=1,048,576 serialized UTF-8 bytes under default HTML-escaping JSON; no truncation/preview),
 `last_message_at`, required int32 `message_count`/`unread_count`, required booleans
 `is_pinned`/`has_attachments`, snippet
 (<=1,200 chars, <=400 graphemes, <=4,096 bytes), required non-negative
 `last_seen_sync_epoch` default 0, timestamps and optional `deleted_at`. Unique
-`(mail_account_id,thread_key)`; read index
+`(mail_account_id,thread_key_version,thread_key)`; read index
 `(mail_account_id,is_pinned,last_message_at,id)` on live rows. Account deletion cascades.
 Every live thread has `message_count >= 1` and `0 <= unread_count <= message_count`; cleanup
 soft-deletes a thread in the same transaction that would otherwise make the count zero.
+Only V1 is valid in this packet; version/key is immutable as one identity tuple. This is
+storage representation only and authorizes neither schema code nor migration.
 
 ### `MailMessage`
 
 Fields: `id`, `mail_account_id`, `mail_thread_id`, required `engine_message_id` and required
 `engine_version` (each 1..1,024 bytes),
-optional normalized `internet_message_id`/`in_reply_to` (<=998 UTF-8 bytes), required concrete
-`references` typed JSON array default empty (<=100 items, each <=998 bytes, <=65,536
-serialized bytes), required concrete `from` typed JSON object containing exactly one Address,
+optional byte-preserved strict case-sensitive ASCII `internet_message_id`/`in_reply_to` Message-ID literals (<=998 UTF-8 bytes), required concrete
+`references` typed JSON strict byte-preserved case-sensitive ASCII Message-ID string array default empty (<=100 items, each <=998 bytes, <=1,048,576
+serialized UTF-8 bytes; no silent truncation), required concrete `from` typed JSON object containing exactly one Address,
 and required concrete `to`/`cc`/`bcc`/`reply_to` typed JSON arrays default empty (each <=200
 addresses and <=65,536 serialized bytes),
 subject <=998 UTF-8 bytes, snippet limits above, optional `sent_at`/`received_at`,
@@ -478,7 +482,10 @@ subject <=998 UTF-8 bytes, snippet limits above, optional `sent_at`/`received_at
 non-negative `last_seen_sync_epoch`, optional immutable `received_event_id`, timestamps and
 optional `deleted_at`.
 
-Indexes: unique `(mail_account_id,engine_message_id)`; indexed normalized message id;
+Indexes: unique `(mail_account_id,engine_message_id)`; non-unique live same-account resolver
+index/equality `(mail_account_id, internet_message_id COLLATE "C") WHERE deleted_at IS NULL` or
+binary equivalent over the strict byte-preserved case-sensitive ASCII literal (no folded/IDNA/
+shadow key). Resolver joins/requires a same-account live `MailThread` (`thread.deleted_at IS NULL`);
 unique nullable `received_event_id`; account/thread/date live indexes. Thread/account equality
 is transactionally proven. Priority is `low|normal|high`, projection origin is
 `inbound_or_unknown|confirmed_owner_submission|confirmed_owner_draft`, and calendar method is nullable

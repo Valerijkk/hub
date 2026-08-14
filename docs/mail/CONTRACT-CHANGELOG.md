@@ -1,10 +1,21 @@
 # Hub Mail contract changelog
 
-> **Current review status (2026-08-14): five-document 0.1.8 entry amendment PASS at `5e314fb080d420696642058ae47397e251c23207`; broader Phase 142/cross-contract review remains `INDEPENDENT_REVIEW_PENDING`.**
+> **Current review status (2026-08-14): five-document 0.1.8 entry amendment PASS at `5e314fb080d420696642058ae47397e251c23207`; 144-03A Thread is `THREAD_CALLABLE_ENCODING_ORACLE_ROOT_FROZEN_CANDIDATE` / `INDEPENDENT_REVIEW_PENDING` / `NOT_AUTHORIZED`; broader Phase 142/cross-contract review remains pending.**
 > The root amendment closes the recorded engine-memory, public-response and Phase 144
 > persistence representation gaps. Its independent PASS authorizes only 144-01A entry, not
 > product code beyond that packet, generated Ent output, migration or runtime claim. Executable evidence remains
 > `NOT_RUN`; the accepted launcher remains `NOT_READY`.
+
+## 0.1.8 preimplementation amendment — 2026-08-14
+
+`144-03A-Thread` callable/encoding oracle is a root-frozen candidate, independent review
+pending and not authorized. It is separate from the `5e314fb0` five-document 144-01A
+entry-only amendment and preserves Address `STATIC_ACCEPTED` `41564d00`. It freezes strict
+byte-preserved case-sensitive Message-ID literals/equality and same-account live resolver
+provenance, V1 versioned raw key framing and literal SHA oracles, seed-only 1..401 participant
+snapshots, 1 MiB typed JSON bounds, and closed public email-only participants. Any x/text
+change requires separately accepted version/rekey/dual-read planning.
+No 0.1.8 version bump, code, tests, schema/generation/migration or runtime acceptance exists.
 
 ## 0.1.8 — 2026-08-13
 

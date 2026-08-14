@@ -158,11 +158,22 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 
 - Dependency: 03A-Address is `STATIC_ACCEPTED` at
   `41564d003946ddb78df18efca166ca86e4055405`, but dependencies are necessary and not
-  sufficient. Status: `ROOT_CALLABLE_ENCODING_ORACLE_FREEZE_PENDING` / `NOT_AUTHORIZED`.
+  sufficient. Status: `THREAD_CALLABLE_ENCODING_ORACLE_ROOT_FROZEN_CANDIDATE` /
+  `INDEPENDENT_REVIEW_PENDING` / `NOT_AUTHORIZED`. The candidate freezes the exact callable,
+  strict bytewise Message-ID lookup, bounds/preflight/purity, normalized_subject_v1, raw
+  ThreadKey hash framing, persistence/OpenAPI participant representation, exact typed
+  `ThreadPolicyError` Error/Unwrap mapping and three literal SHA-256 oracles in
+  `MAIL-SPEC.md`; it does not authorize implementation.
   Do not dispatch or write `backend/internal/mail/threading.go` or
-  `backend/tests/mail/threading_test.go` until root freezes the callable API, exact Message-ID
-  grammar and resolution semantics, participant and bounds policy, Unicode and prefix policy,
-  raw 32-byte hash encoding/preimage, safe errors, and literal oracle vectors. Executable
+  `backend/tests/mail/threading_test.go` until independent review accepts this root-frozen
+  candidate, including its callable API, exact Message-ID grammar and resolution semantics,
+  participant and bounds policy, Unicode and prefix policy, raw 32-byte versioned hash
+  encoding/preimage, safe errors, and literal oracle vectors. The required external error
+  oracle asserts the exact literals and typed `errors.Is` mapping: nil receiver or unknown
+  kind yields `mail thread policy error`/nil unwrap; invalid yields `mail thread invalid` /
+  `Unwrap() == ErrThreadInvalid`; too-large yields `mail thread exceeds bounds` /
+  `Unwrap() == ErrThreadTooLarge`;
+  no case leaks raw input/detail or matches a noncorresponding sentinel. Executable
   evidence remains `NOT_RUN`.
 
 ## 144-03B-Folder — folder tree policy
