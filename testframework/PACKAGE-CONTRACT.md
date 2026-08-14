@@ -18,6 +18,22 @@ define a runnable command, or grant runtime authority.
 The status values above are independent. A committed directory tree does not
 make the package, launcher, suites, or runtime ready.
 
+## Founder maximum-coverage source-authoring authority (2026-08-15)
+
+The founder has authorized the F0--F3 source waves in
+`.planning/active/august-2026/07-TESTFRAMEWORK-MAX-COVERAGE-IMPLEMENTATION.md`.
+That authority replaces the former `G129-C`/`G130-H`/per-feature activation
+stops for authoring and independent source review only. It does **not** change
+the table above: package execution, launcher execution, and runtime remain
+`NOT_READY` / `NOT_RUN` until one exact revision has separately accepted A1
+versioned-runner admission, R Docker resolver admission, immutable image
+evidence, generated `uv.lock`, and Docker-only evidence.
+
+Therefore source review may say that a bootstrap artifact is authored or
+closed; it must never call it installed, resolved, runnable, PASS, or green.
+The current task must not produce a lock, image, report, test execution, or
+runtime claim.
+
 ## Physical ownership
 
 The repository contains one Python project directly in `testframework/`, with
@@ -28,7 +44,7 @@ package code and executable suites on different roots:
 | `src/hub_testkit/**` | reusable installable framework modules imported as `hub_testkit.*` |
 | Planned `tests/{contract,api,integration,e2e}/**` | future executable SUT pytest suites grouped by layer and domain; layer directories are currently absent |
 | `selftests/**` | contracts of the framework/package itself; never SUT behavior |
-| `cases/**` | repository-owned `TC-*` intent and risk linkage |
+| `cases/**` | repository-owned new-case intent and risk linkage; IDs match `^TC-[A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*-[0-9]{4}$` |
 | `schemas/**` | closed machine-readable case/run/ownership contracts |
 | `policies/**` | marker, environment, redaction, and profile policy data |
 | `load/**` | separate bounded Locust lifecycle |
@@ -45,6 +61,20 @@ Direct root `core/`, `api/`, `integration/`, `contract/`, or `e2e/` package or
 suite trees are not target architecture. A nested `testframework/python/`
 project, a second import namespace, and a generic helper warehouse are
 forbidden.
+
+`TC-HEALTH-0001` is a canonical new record. Old documentation examples such as
+`TC-AUTH-03` and inventory identifiers such as `HUB-TC-*` are historical only;
+they do not satisfy the new schema and may not be used for new
+`testframework/cases/**` files.
+
+Each case is strict UTF-8 Markdown with exactly one leading TOML frontmatter
+block delimited by `+++` lines and parsed with CPython 3.12 `tomllib`. YAML
+frontmatter and a separate parser dependency are forbidden. The loaded mapping
+is validated by the closed JSON Schema. `automation` is a closed tagged object:
+active pytest-layer cases bind one unique repo-relative pytest node ID; load
+cases bind a Locust entrypoint; manual cases bind an evidence owner. Fields for
+another automation kind are forbidden, and pytest collection proves a
+bijection between active case, node ID, and sole `case_id` marker.
 
 ## Future bootstrap artifacts
 
@@ -68,13 +98,32 @@ It must not add Hub application dependencies to the reusable package merely to
 make suite collection convenient. Optional execution concerns remain explicit
 dependency groups rather than ambient machine requirements.
 
+Its fixed bootstrap contract is:
+
+- `[build-system]` uses Hatchling only;
+- `requires-python = ">=3.12,<3.13"`, and `.python-version` is exactly
+  `3.12.13`;
+- project runtime dependencies are `pydantic` and `jsonschema`;
+- dependency group `framework` contains `pytest`, `pytest-timeout`, and
+  `pytest-randomly`;
+- dependency group `quality` contains `ruff`, `mypy`, and `import-linter`;
+- dependency group `http` contains `httpx`; `contract` contains
+  `openapi-spec-validator`; `browser` contains `playwright` and
+  `pytest-playwright`; and `load` contains `locust`;
+- browser and load dependencies are not bootstrap imports and are consumed
+  only by their F3 source slices.
+
+Version resolution, transitive hashes, and the final exact dependency set are
+not invented in this document. They become authoritative only when R generates
+the lock in a task-owned Docker resolver.
+
 ### `uv.lock`
 
 The root `testframework/uv.lock` will be the sole exact Python dependency
 resolution derived from `pyproject.toml`. It is generated, reviewed, and
-committed with the bootstrap slice; it is never hand-maintained as an
-independent dependency list. A lock that is stale relative to project metadata
-fails package acceptance.
+committed only after R Docker resolver admission; before that it may and should
+remain absent. It is never hand-maintained as an independent dependency list.
+A lock that is stale relative to project metadata fails package acceptance.
 
 ### `src/hub_testkit/py.typed`
 
@@ -110,9 +159,10 @@ second reusable framework. Reusable implementation belongs under the owning
 
 ## Required framework selftests for the bootstrap slice
 
-The future package slice starts with failing contracts in `selftests/**`, then
-adds the minimum package artifacts needed to satisfy them. At minimum, the
-accepted slice must prove:
+The source-authoring package slice starts with negative contracts in
+`selftests/**`, then adds the minimum package artifacts needed to satisfy them.
+At minimum, source review must establish that the future accepted slice can
+prove:
 
 - clean installed import of `hub_testkit` without repository-root path hacks;
 - package discovery includes only the intended namespace;
@@ -126,7 +176,10 @@ accepted slice must prove:
 
 These are framework contracts, not a substitute for SUT tests. Their future
 execution must use the accepted launcher and evidence boundary; no host or
-direct command is defined by this document.
+direct command is defined by this document. F0 also adds source-level negative
+contracts for strict config/environment admission, nonce-bound ownership and
+cleanup, recursive idempotent secret redaction, closed test-case schema links,
+and public-hook-only collection behavior.
 
 ## Launcher and container boundary
 
@@ -138,10 +191,17 @@ implicit fallback. The current private source candidate has only static review;
 until binding, parser/private-contract and Docker evidence are independently
 accepted, launcher status remains `NOT_READY` and runtime remains `NOT_RUN`.
 
-## Package-bootstrap acceptance
+## Source closure and package-bootstrap acceptance
 
-The future implementation slice is not accepted until all of the following are
-true on one exact revision:
+F0 source closure requires the exact Python/build/group contract above,
+`src/hub_testkit/py.typed`, framework selftests, closed schema/policies, the
+literal 47-profile registry, public-hook collection policy, and
+`TC-HEALTH-0001` as a source tracer for implemented `GET /api/live`. It also
+requires independent package, traceability, architecture, API-contract, and
+security review. It cannot yield a runtime result.
+
+The installable/executable package slice is not accepted until all of the
+following are true on one exact revision:
 
 - `pyproject.toml`, generated `uv.lock`, `py.typed`, and the minimal failing-
   first selftests are reviewed together;
@@ -155,5 +215,6 @@ true on one exact revision:
 - independent verification records package, launcher, and runtime statuses
   separately and does not turn file existence into `PASS`.
 
-Until that slice exists and is independently verified, the only valid package
-verdict is `NOT_READY` and the only valid runtime statement is `NOT_RUN`.
+Until A1, R, immutable image evidence, the generated lock, and Docker-only
+evidence exist and are independently verified, the only valid package verdict
+is `NOT_READY` and the only valid runtime statement is `NOT_RUN`.
