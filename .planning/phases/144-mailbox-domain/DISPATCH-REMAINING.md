@@ -156,7 +156,7 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 
 ## 144-03A-Thread — thread identity
 
-> **Consumed into candidate boundary:** implementation+oracle are `STATIC_CONFORMANT` on base `73060a4b879334c5b1acee68746fa834e6666424` (source `c221d547a931e084265a558be7aa0b23658b487d`, oracle `b21bd6fd7f260fabbdfa1084af6521f3ea44c771`; reviews C/I/M `0/0/0`). This is no longer remaining code authorization. It is not `STATIC_ACCEPTED`: create one exact atomic commit, then obtain independent exact-SHA review. Do not dispatch `144-03B-Folder`.
+> **Accepted exact boundary:** implementation+oracle are narrowly `STATIC_ACCEPTED` at `9903f4df3e5ca8034ea3f043b0386170e83a5101` / `EXACT_SHA_PASS` (parent `73060a4b`, tree `b73f23b`, exact 19 paths, source `c221d547`, oracle `b21bd6fd`, reviews C/I/M `0/0/0`). This is static only. Next action is only root freeze/adjudication of the Folder callable/error/normalization/oracle contract; do not authorize or dispatch Folder production/test TDD before its own static acceptance.
 
 - Dependency: 03A-Address is `STATIC_ACCEPTED` at
   `41564d003946ddb78df18efca166ca86e4055405`, but dependencies are necessary and not
@@ -170,9 +170,8 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   `MAIL-SPEC.md`; it does not accept implementation.
   The prior dispatcher-enforced `gpt-5.6-terra`/`xhigh`, no-fallback static-TDD authorization
   for `backend/internal/mail/threading.go` and `backend/tests/mail/threading_test.go` is
-  **CONSUMED/HISTORICAL**. Thread is now an uncommitted `STATIC_CONFORMANT` candidate, pending
-  the live next action of exact 19-path commit then independent exact-SHA review; it is not
-  remaining code authorization. The accepted contract includes its callable
+  **CONSUMED/HISTORICAL**. Thread is now narrowly `STATIC_ACCEPTED` at `9903f4df` /
+  `EXACT_SHA_PASS`; it is not remaining code authorization. The accepted contract includes its callable
   API, exact Message-ID grammar and resolution semantics,
   participant and bounds policy, Unicode and prefix policy, raw 32-byte versioned hash
   encoding/preimage, safe errors, and literal oracle vectors. The required external error

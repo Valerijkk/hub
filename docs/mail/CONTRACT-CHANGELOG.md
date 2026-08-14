@@ -1,14 +1,13 @@
 # Hub Mail contract changelog
 
-> **Current review status (2026-08-14): five-document 0.1.8 entry amendment PASS at `5e314fb080d420696642058ae47397e251c23207`; Thread contract remains accepted at `cbc12577a6444df9c660e43fedfd0c8133c6e461`; implementation+oracle are `STATIC_CONFORMANT` pre-commit on base `73060a4b` (source `c221d547`, oracle `b21bd6fd`, C/I/M `0/0/0`) and are not `STATIC_ACCEPTED` until exact atomic commit plus independent exact-SHA review; broader Phase 142/cross-contract review remains pending.**
+> **Current review status (2026-08-14): five-document 0.1.8 entry amendment PASS at `5e314fb080d420696642058ae47397e251c23207`; Thread contract remains accepted at `cbc12577a6444df9c660e43fedfd0c8133c6e461`; implementation+oracle are narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS` (source `c221d547`, oracle `b21bd6fd`, C/I/M `0/0/0`), static only; broader Phase 142/cross-contract review remains pending.**
 
 ## Candidate lifecycle sync — 2026-08-14
 
-The historical preimplementation entry below is preserved. The two implementation/test files and
-external oracle are an atomic `STATIC_CONFORMANT` pre-commit candidate; the next action is one
-exact atomic commit then independent exact-SHA review. No schemas, routes, migrations, services,
-generation or executable evidence are added; launcher remains `NOT_READY`, runtime `NOT_RUN`,
-and `144-03B-Folder` is not dispatched.
+The historical preimplementation entry below is preserved. The exact 19-path boundary is now
+narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`; no schemas, routes, migrations,
+services, generation or executable evidence are added. Launcher remains `NOT_READY`, runtime
+`NOT_RUN`, and only Folder root-contract freeze/adjudication is next; Folder TDD is not dispatched.
 > The root amendment closes the recorded engine-memory, public-response and Phase 144
 > persistence representation gaps. Its independent PASS authorizes only 144-01A entry, not
 > product code beyond that packet, generated Ent output, migration or runtime claim. Executable evidence remains
@@ -27,9 +26,9 @@ byte-preserved case-sensitive Message-ID literals/equality and same-account live
 provenance, V1 versioned raw key framing and literal SHA oracles, seed-only 1..401 participant
 snapshots, 1 MiB typed JSON bounds, and closed public email-only participants. Any x/text
 change requires separately accepted version/rekey/dual-read planning.
-That packet is now the `STATIC_CONFORMANT` pre-commit candidate; exact next action is one
-atomic commit then independent exact-SHA review, with no 144-03B-Folder dispatch. No 0.1.8
-version bump, schema/generation/migration or runtime acceptance exists.
+That packet is now narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`. Next is only
+Folder root-contract freeze/adjudication, not Folder TDD dispatch. No 0.1.8 version bump,
+schema/generation/migration or runtime acceptance exists.
 
 ## 0.1.8 — 2026-08-13
 

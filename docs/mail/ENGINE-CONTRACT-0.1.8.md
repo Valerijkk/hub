@@ -4,7 +4,7 @@
 > `THREAD_CALLABLE_ENCODING_ORACLE_STATIC_ACCEPTED` at
 > `cbc12577a6444df9c660e43fedfd0c8133c6e461` / `EXACT_SHA_PASS` after independent
 > Spec/API/Persistence, Security and Lifecycle/Evidence PASS reviews with C/I/M `0/0/0`;
-> implementation+oracle are `STATIC_CONFORMANT` pre-commit on base `73060a4b` (source `c221d547`, oracle `b21bd6fd`), not `STATIC_ACCEPTED` until exact commit-SHA review; do not dispatch 144-03B-Folder
+> implementation+oracle are narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS` (source `c221d547`, oracle `b21bd6fd`), static only; only Folder root-contract freeze/adjudication is next, without Folder TDD dispatch
 > **Runtime:** NOT_RUN
 > **Precedence:** this document replaces the 0.1.7 message/blob/draft portions of
 > `ADR-MAIL-01-mail-engine-calendar-sync.md` and Phase 144-01A. Unmentioned methods and safe

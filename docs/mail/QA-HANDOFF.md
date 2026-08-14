@@ -2,7 +2,7 @@
 
 > **Contract version:** 0.1.8
 > **Prepared:** 2026-08-13
-> **Contract review status:** five-document 0.1.8 entry amendment PASS at `5e314fb080d420696642058ae47397e251c23207`; Thread contract remains accepted at `cbc12577a6444df9c660e43fedfd0c8133c6e461`; implementation+oracle are `STATIC_CONFORMANT` pre-commit on base `73060a4b` (source `c221d547`, oracle `b21bd6fd`, reviews C/I/M `0/0/0`), not `STATIC_ACCEPTED` until one atomic commit and independent exact-SHA review; broader Phase 142/cross-contract review remains pending
+> **Contract review status:** five-document 0.1.8 entry amendment PASS at `5e314fb080d420696642058ae47397e251c23207`; Thread contract remains accepted at `cbc12577a6444df9c660e43fedfd0c8133c6e461`; implementation+oracle are narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS` (source `c221d547`, oracle `b21bd6fd`, reviews C/I/M `0/0/0`), static only; broader Phase 142/cross-contract review remains pending
 > **Implementation status:** IN_PROGRESS — 143-01/02A/02B static accepted historically; 144-01A is `STATIC_ACCEPTED` at `e3e8c774d734f926f77f8e600b58dc68dabbd993`; 144-02A/02B/02C/02D/02F schema candidates remain unaccepted and the exact 144-02A1/A2/A3 execution split is planned; 143-03A is `STATIC_ACCEPTED` at `31bfff8f58ba83d12b59600135503f98a6c92fbd` and 143-03C at `444c6f7b7b7b3d9b77bc9b24b32d1e13000ebbbc`; 143-04L is `STATIC_ACCEPTED` at `4525c559da22729aa8bc51ff5336c29dad4f27e9` (status-sync commit `1c0299bd`) and needs no redispatch; selected Stalwart has an unresolved domain-verification mismatch and enabled mailbox auth remains blocked; executable verification `NOT_RUN`
 > **Runtime status:** NOT_RUN
 > **QA owner:** founder-designated Claude test program
@@ -730,8 +730,8 @@ oracles, not current executable evidence.
   8 MiB with whole items only.
 
 These are future required oracles for the statically accepted callable/encoding/oracle contract.
-The candidate is consumed; exact next action is one atomic commit then independent exact-SHA review.
-Thread implementation/test now exist only as the uncommitted `STATIC_CONFORMANT` candidate; create one atomic commit and obtain independent exact-SHA review before acceptance or any 144-03B dispatch. Launcher remains `NOT_READY` and runtime `NOT_RUN`.
+The exact 19-path candidate is narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`.
+Thread implementation/test are narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`; root Folder contract freeze/adjudication is next, without Folder TDD dispatch. Launcher remains `NOT_READY` and runtime `NOT_RUN`.
 
 - The founder-required test runner/package is `NOT_READY`; no supported execution command
   exists in this branch.

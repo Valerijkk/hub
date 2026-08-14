@@ -1,7 +1,7 @@
 # MAIL-SPEC — Hub mailbox and calendar synchronization contract
 
 > **Version:** 0.1.8
-> **Status:** five-document 0.1.8 entry amendment independently PASS at `5e314fb080d420696642058ae47397e251c23207`, authorizing only 144-01A entry; Thread callable/encoding/oracle remains accepted at `cbc12577a6444df9c660e43fedfd0c8133c6e461`; its implementation+oracle are `STATIC_CONFORMANT` at an uncommitted atomic candidate based on `73060a4b879334c5b1acee68746fa834e6666424` (source `c221d547a931e084265a558be7aa0b23658b487d`, oracle `b21bd6fd7f260fabbdfa1084af6521f3ea44c771`, reviews PASS C/I/M `0/0/0`) and are not `STATIC_ACCEPTED` until exact commit-SHA review; broader Phase 142/cross-contract review and runtime remain pending; 0.1.7 review evidence is historical `STALE`
+> **Status:** five-document 0.1.8 entry amendment independently PASS at `5e314fb080d420696642058ae47397e251c23207`, authorizing only 144-01A entry; Thread callable/encoding/oracle contract remains accepted at `cbc12577a6444df9c660e43fedfd0c8133c6e461`; its implementation+oracle are narrowly `STATIC_ACCEPTED` at `9903f4df3e5ca8034ea3f043b0386170e83a5101` / `EXACT_SHA_PASS` (source `c221d547`, oracle `b21bd6fd`, exact-SHA reviews PASS C/I/M `0/0/0`); broader Phase 142/cross-contract review and runtime remain pending; 0.1.7 review evidence is historical `STALE`
 > **Date:** 2026-08-13
 > **Architecture:** `../ADR-MAIL-01-mail-engine-calendar-sync.md`
 > **OpenAPI:** `../../../docs/mail/openapi.yaml`
@@ -1835,13 +1835,12 @@ Docker, API, UI, security, and end-to-end statuses remain `NOT_RUN` or `NOT_IMPL
 Spec/API/Persistence, Security and Lifecycle/Evidence reviews PASS with C/I/M `0/0/0`.
 This narrow preimplementation 0.1.8 amendment is separate from the `5e314fb0` 144-01A
 entry-only amendment: it neither revokes the `144-03A-Address` `STATIC_ACCEPTED` boundary
-`41564d00` nor accepts Thread implementation. The prior static-TDD authorization for
-`backend/internal/mail/threading.go` and `backend/tests/mail/threading_test.go` is
-**CONSUMED/HISTORICAL** for this candidate. Those files plus their external oracle are now a
-pre-commit `STATIC_CONFORMANT` candidate on base `73060a4b` (source `c221d547`, oracle
-`b21bd6fd`), not `STATIC_ACCEPTED`; live next action is one exact 19-path atomic commit then
-independent exact-SHA review before any acceptance or next dispatch. Actual telemetry is
-`UNKNOWN` unless exposed. It does not authorize
+`41564d00` and now narrowly accepts Thread implementation at exact 19-path commit
+`9903f4df3e5ca8034ea3f043b0386170e83a5101` / `EXACT_SHA_PASS` (source `c221d547`, oracle
+`b21bd6fd`, C/I/M `0/0/0`). This is static-only and preserves contract acceptance `cbc12577`.
+Live next action is only root freeze/adjudication of the 144-03B-Folder callable/error/
+normalization/oracle contract; it does not authorize Folder production/test TDD before that
+contract obtains its own static acceptance. Actual telemetry is `UNKNOWN` unless exposed. It does not authorize
 schemas, generation, migration, runtime or a version bump. 144-01B, Phase 142/148 and 144-02B
 remain pending; launcher is `NOT_READY` and runtime is `NOT_RUN`.
 

@@ -1,18 +1,20 @@
-# Task 144-03A-Thread — pre-commit static-conformance evidence
+# Task 144-03A-Thread — exact-commit static-acceptance evidence
 
-> **Lifecycle status:** `STATIC_CONFORMANT` atomic candidate — **not** `STATIC_ACCEPTED`.
-> **Base HEAD:** `73060a4b879334c5b1acee68746fa834e6666424`.
-> **Candidate scope:** exact 19-path atomic manifest below; no other path is in scope.
+> **Lifecycle status:** narrow `STATIC_ACCEPTED` / `EXACT_SHA_PASS` — static only.
+> **Exact accepted commit:** `9903f4df3e5ca8034ea3f043b0386170e83a5101`; parent `73060a4b879334c5b1acee68746fa834e6666424`; tree `b73f23b37747dd4d17f7fceda001c340ed81fa32`; subject `feat(mail): add deterministic thread identity`.
+> **Exact scope:** 19 paths only; no drift.
 > **Reviewed source blob:** `c221d547a931e084265a558be7aa0b23658b487d`.
 > **External oracle blob:** `b21bd6fd7f260fabbdfa1084af6521f3ea44c771`.
+> **Evidence blob committed in the accepted boundary:** `489905ac4ef4108224984929194d3db726ccfdf2`.
 
 ## Static evidence
 
-The two uncommitted candidate files are statically conformant to the accepted callable,
-encoding and oracle contract at `cbc12577a6444df9c660e43fedfd0c8133c6e461`. Three
-independent static reviews — Spec/Quality, Security, and Exact/Oracle — report PASS with
-C/I/M `0/0/0`. This records an atomic candidate boundary only; it is not an exact-commit
-review and must not be represented as `STATIC_ACCEPTED` before an exact commit SHA exists.
+The exact 19-path commit is narrowly `STATIC_ACCEPTED` at
+`9903f4df3e5ca8034ea3f043b0386170e83a5101`, preserving the accepted callable, encoding and
+oracle contract at `cbc12577a6444df9c660e43fedfd0c8133c6e461`. Three independent exact-SHA
+reviews — Spec/Quality/Fresh, Security/Adversarial and Exact/Oracle — report PASS with C/I/M
+`0/0/0`. This is static acceptance only, not executable, product, module, phase or release
+acceptance.
 
 ## Dispatcher provenance
 
@@ -39,8 +41,10 @@ Docker evidence.
 
 ## Exact next action
 
-Create one exact atomic commit containing exactly these 19 paths, then obtain independent
-exact-SHA review. Do not dispatch or authorize `144-03B-Folder` yet.
+Only root freeze/adjudication of the `144-03B-Folder` callable, error, normalization and oracle
+contract may proceed. Do not authorize or dispatch Folder production/test TDD until that root
+contract freeze has its own static acceptance. 144-03C/144-03D eligibility is status only, not
+the current action.
 
 1. `.planning/STATE.md`
 2. `.planning/decisions/specs/MAIL-SPEC.md`

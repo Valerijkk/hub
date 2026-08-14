@@ -5,7 +5,7 @@ milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
 last_updated: "2026-08-14T04:00:00+03:00"
-last_activity: 2026-08-14 · Mail 144-03A Thread implementation+oracle are STATIC_CONFORMANT at an uncommitted atomic candidate boundary on base 73060a4b879334c5b1acee68746fa834e6666424 (source blob c221d547a931e084265a558be7aa0b23658b487d; external oracle blob b21bd6fd7f260fabbdfa1084af6521f3ea44c771); contract acceptance cbc12577 and status-sync 73060a4b are preserved; three independent static reviews PASS C/I/M 0/0/0; not STATIC_ACCEPTED until one exact atomic commit exists, then independent exact-SHA review; launcher NOT_READY and executable evidence NOT_RUN
+last_activity: 2026-08-14 · Mail 144-03A Thread is narrowly STATIC_ACCEPTED at 9903f4df3e5ca8034ea3f043b0386170e83a5101 / EXACT_SHA_PASS (parent 73060a4b, tree b73f23b, exact 19 paths, source c221d547, oracle b21bd6fd, committed evidence 489905ac); contract acceptance cbc12577 preserved; three independent exact-SHA reviews PASS C/I/M 0/0/0; static only, launcher NOT_READY and executable evidence NOT_RUN; only next action is root freeze/adjudication of 144-03B-Folder contract, without Folder TDD dispatch
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -118,7 +118,7 @@ mail_feature_workstream:
     branch: codex/mail-module-20260813
     phases: "142-148"
     current_phase: 144
-    status: thread_candidate_static_conformant_pre_commit_base_73060a4b_source_c221d547_oracle_b21bd6fd_static_accepted_pending_exact_commit_and_review_runtime_not_run
+    status: thread_static_accepted_9903f4df_exact_sha_pass_c_i_m_0_0_0_contract_cbc12577_runtime_not_run_folder_contract_freeze_only
     product_truth: unfinished_mvp_feature_not_accepted
     contract_version: "0.1.8"
     tasks:
@@ -315,8 +315,8 @@ spec_coverage:
   accepted native dispatch. The exact-commit review reports Spec/Quality/Security/Evidence PASS
   and C/I/M `0/0/0`. Any exposed mismatch, rejection, omitted model/effort or fallback remains
   blocking. `144-01B` remains `BLOCKED` pending its own applicable supported current-SHA Docker
-  evidence under the stricter Task3 authority. Pure static authoring is authorized for
-  `144-03A-Address`, `144-03B-Folder`, `144-03C-Send` and `144-03D`. Address is
+  evidence under the stricter Task3 authority. Static eligibility for 144-03B/03C/03D is
+  status only and not a current dispatch authorization. Address is
   `STATIC_ACCEPTED` at the exact five-path atomic boundary
   `41564d003946ddb78df18efca166ca86e4055405` (parent
   `d659c67ce657fb33da391819edbdb954454be4b9`, tree
@@ -329,10 +329,10 @@ spec_coverage:
   `THREAD_CALLABLE_ENCODING_ORACLE_STATIC_ACCEPTED` at
   `cbc12577a6444df9c660e43fedfd0c8133c6e461` / `EXACT_SHA_PASS` after independent
   Spec/API/Persistence, Security and Lifecycle/Evidence PASS reviews with C/I/M `0/0/0`.
-  Thread implementation+oracle are `STATIC_CONFORMANT` pre-commit on base `73060a4b` (source
-  `c221d547`, oracle `b21bd6fd`), not `STATIC_ACCEPTED`; exact next action is one 19-path atomic
-  commit then independent exact-SHA review, with no 144-03B-Folder dispatch. Other
-  static-authorized packets remain unselected. `144-01B` remains `BLOCKED`; broader
+  Thread implementation+oracle are narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`
+  (source `c221d547`, oracle `b21bd6fd`, C/I/M `0/0/0`), static only. Exact next action is only
+  root freeze/adjudication of Folder callable/error/normalization/oracle contract; Folder TDD is
+  not authorized. Other packet eligibility remains status only. `144-01B` remains `BLOCKED`; broader
   Phase 142/cross-contract acceptance and Phase 148 remain pending. Launcher and all executable
   evidence remain `NOT_READY` / `NOT_RUN`.
   Root-frozen `PERSISTENCE-CONTRACT-0.1.8.md` supplies the exact 144-02A/B/C/D/F fields,
@@ -1391,14 +1391,15 @@ and all executable evidence remains `NOT_RUN`.
 `pro-qa-ai` beta.3 already exists both in protected Hub source
 and as the Desktop portable copy. Legacy remains frozen; destructive move/delete
 has not started.
-**Resume:** the Thread candidate is consumed; create one exact 19-path atomic commit, then
-obtain independent exact-SHA review. Do not dispatch `144-03B-Folder`. Its callable/encoding/oracle
+**Resume:** Thread is narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`. Only root
+freeze/adjudication of Folder callable/error/normalization/oracle contract is next; do not
+authorize or dispatch Folder production/test TDD. Its callable/encoding/oracle
 contract remains `THREAD_CALLABLE_ENCODING_ORACLE_STATIC_ACCEPTED` at
 `cbc12577a6444df9c660e43fedfd0c8133c6e461` / `EXACT_SHA_PASS` after independent
 Spec/API/Persistence, Security and Lifecycle/Evidence PASS reviews with C/I/M `0/0/0`.
-Thread implementation+oracle are `STATIC_CONFORMANT` pre-commit candidate (base `73060a4b`,
-source `c221d547`, oracle `b21bd6fd`), not `STATIC_ACCEPTED`; create one atomic commit then
-independent exact-SHA review. Actual telemetry is `UNKNOWN` unless exposed. Executable
+Thread implementation+oracle are narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`
+(source `c221d547`, oracle `b21bd6fd`, C/I/M `0/0/0`), static only. Actual telemetry is
+`UNKNOWN` unless exposed. Executable
 verification remains `NOT_RUN`. Do not start `144-01B`: the stricter Task3 authority requires its
 applicable supported current-SHA Docker evidence. Broader Phase 142/cross-contract work and Phase
 148 remain pending.

@@ -1,18 +1,17 @@
 # Terminal Codex: продолжение Hub после Desktop handoff
 
-> **CURRENT BANNER:** This historical terminal text is subordinate to `.continue-here.md`. The
-> only live action is one exact 19-path atomic commit then independent exact-SHA review; Thread
-> is `STATIC_CONFORMANT`, not `STATIC_ACCEPTED`, and `144-03B-Folder` is not dispatched.
+> **CURRENT BANNER:** This historical terminal text is subordinate to `.continue-here.md`.
+> Thread is narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`; the only live action
+> is root Folder contract freeze/adjudication, without Folder production/test TDD dispatch.
 
 > **CONSUMED / HISTORICAL PRE-01A RESUME PROMPT:** не выполняй старое следующее действие из
 > исторического текста ниже. Текущая authority — `.continue-here.md`: `144-03A-Address` уже
 > `STATIC_ACCEPTED` на `41564d003946ddb78df18efca166ca86e4055405`; callable/encoding/oracle
 > `144-03A-Thread` имеет статус `THREAD_CALLABLE_ENCODING_ORACLE_STATIC_ACCEPTED` на
 > `cbc12577a6444df9c660e43fedfd0c8133c6e461` / `EXACT_SHA_PASS` (C/I/M `0/0/0`). Текущее
-> действие — только dispatcher-enforced `gpt-5.6-terra`/`xhigh`, no-fallback static TDD двух
-> файлов; реализация+oracle теперь `STATIC_CONFORMANT` pre-commit candidate на base `73060a4b`
-> (source `c221d547`, oracle `b21bd6fd`), но не `STATIC_ACCEPTED`: следующий шаг — один exact
-> atomic commit и независимый exact-SHA review; `144-03B-Folder` не dispatch. Текст
+> Следующая строка историческая и не является текущей authority: Thread уже narrowly
+> `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`; current action определяет banner выше —
+> только root Folder contract freeze/adjudication без Folder production/test TDD dispatch. Текст
 > ниже исторический и подчинён `.continue-here.md`.
 
 Ты продолжаешь работу как root-orchestrator Hub. Не полагайся на этот чат и не считай любую неуказанную проверку выполненной.

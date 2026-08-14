@@ -17,9 +17,9 @@
   `THREAD_CALLABLE_ENCODING_ORACLE_STATIC_ACCEPTED` at
   `cbc12577a6444df9c660e43fedfd0c8133c6e461` / `EXACT_SHA_PASS` after independent
   Spec/API/Persistence, Security and Lifecycle/Evidence PASS reviews with C/I/M `0/0/0`.
-  Implementation+oracle are now a `STATIC_CONFORMANT` pre-commit candidate on base `73060a4b`
-  (source `c221d547`, oracle `b21bd6fd`), not `STATIC_ACCEPTED`; next is one exact atomic
-  commit followed by independent exact-SHA review, with no 144-03B-Folder dispatch.
+  Implementation+oracle are narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`
+  (source `c221d547`, oracle `b21bd6fd`, C/I/M `0/0/0`), static only; next is root Folder
+  contract freeze/adjudication, with no Folder production/test TDD dispatch.
 - OpenAPI covers mailbox, submission recovery, legacy calendar, canonical calendar and
   separate legacy/new admin resources.
 - Event subjects and webhook privacy boundary are frozen.
@@ -41,7 +41,7 @@
 |---|---|---|
 | Accepted versioned Docker launcher not implemented | root `AGENTS.md`, `STATE.md` | Ent generation, build/test/validator/runtime evidence |
 | Accepted versioned Docker launcher not implemented; separate founder-approved production migration mechanism/gate still required | root `AGENTS.md`, `STATE.md`, `MIGRATION-PLAN.md`, all-A non-acceptance boundary | 143-03E generation/inspection evidence; all 03A/B/C/D/F schema packets are already static accepted |
-| 144-01B requires applicable supported current-SHA Docker evidence under stricter Task3 authority | Phase 144 `IMPLEMENTATION-144-01A.md`, `REVIEW-144-01A-ENGINE-BOUNDS.md`, `DISPATCH-REMAINING.md` | 144-01B deterministic fake only; other packet eligibility is status, while the sole current action is Thread exact commit then review |
+| 144-01B requires applicable supported current-SHA Docker evidence under stricter Task3 authority | Phase 144 `IMPLEMENTATION-144-01A.md`, `REVIEW-144-01A-ENGINE-BOUNDS.md`, `DISPATCH-REMAINING.md` | 144-01B deterministic fake only; sole current action is root freeze/adjudication of 144-03B-Folder callable/error/normalization/oracle contract, with Folder production/test TDD unauthorized until its own static contract acceptance |
 | 144-02A source/schema packet is unimplemented and not independently source-accepted; generation remains launcher-gated | five-document 144-01A entry amendment PASS `5e314fb080d420696642058ae47397e251c23207`, Phase 144 `REVIEW-144-02A-SCHEMA-READINESS.md`, `DISPATCH-INDEX.md` | 144-02A and every dependent mailbox schema/service packet |
 | Calendar DTO/handler implementation is unimplemented; accepted 0.1.8 OpenAPI page/expansion bounds still lack executable evidence | five-document 144-01A entry amendment PASS `5e314fb080d420696642058ae47397e251c23207`; accepted 0.1.8 OpenAPI page/expansion bounds are a contract fact, Phase 142 `REVIEW-OPENAPI-RESPONSE-BOUNDS.md` | calendar list/legacy aggregate DTO, handler and UI transport packets |
 | Production migration mechanism unresolved | `MIGRATION-PLAN.md`, founder question 12 | schema generation/migration/backfill acceptance |
@@ -88,9 +88,9 @@
    callable/encoding/oracle is `THREAD_CALLABLE_ENCODING_ORACLE_STATIC_ACCEPTED` at
    `cbc12577a6444df9c660e43fedfd0c8133c6e461` / `EXACT_SHA_PASS` with independent
    Spec/API/Persistence, Security and Lifecycle/Evidence PASS reviews and C/I/M `0/0/0`.
-   Its implementation+oracle are the `STATIC_CONFORMANT` pre-commit candidate on base
-   `73060a4b` (source `c221d547`, oracle `b21bd6fd`); exact atomic commit then independent
-   exact-SHA review are required before `STATIC_ACCEPTED`, and 144-03B-Folder is not dispatched.
+   Its implementation+oracle are narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`
+   (source `c221d547`, oracle `b21bd6fd`, C/I/M `0/0/0`), static only. Root Folder contract
+   freeze/adjudication is the only next action; Folder TDD remains undispatched/unapproved.
    `144-01B` remains blocked by applicable
    supported current-SHA Docker evidence and executable status `NOT_RUN`.
 10. Admit `mail.>` only after calendar admission; keep webhook filter unchanged.

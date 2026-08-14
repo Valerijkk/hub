@@ -1,7 +1,7 @@
 # Task 144-01A — static conformance evidence
 
 > **Status:** `STATIC_ACCEPTED` at `e3e8c774d734f926f77f8e600b58dc68dabbd993` · `EXACT_SHA_PASS` · `RUNTIME_NOT_RUN`
-> **Frozen contract:** Mail 0.1.8 144-01A entry amendment at `5e314fb080d420696642058ae47397e251c23207`; Thread contract remains accepted at `cbc12577a6444df9c660e43fedfd0c8133c6e461`; implementation+oracle are `STATIC_CONFORMANT` pre-commit on base `73060a4b` (source `c221d547`, oracle `b21bd6fd`), not `STATIC_ACCEPTED` until exact commit-SHA review
+> **Frozen contract:** Mail 0.1.8 144-01A entry amendment at `5e314fb080d420696642058ae47397e251c23207`; Thread contract remains accepted at `cbc12577a6444df9c660e43fedfd0c8133c6e461`; implementation+oracle are narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`, static only
 > **Atomic boundary:** `e3e8c774d734f926f77f8e600b58dc68dabbd993`; parent
 > `fa0a2f2a542caadd9f5951e6f703b060b4776780`.
 
@@ -83,7 +83,6 @@ fallback, but it did not implement the 0.1.8 projection/budget/reference-only am
   current-SHA Docker evidence closes; Phase 145 remains independently gated.
 - `144-03A-Address` is separately `STATIC_ACCEPTED` at
   `41564d003946ddb78df18efca166ca86e4055405`. Thread callable/encoding/oracle contract remains
-  accepted at `cbc12577a6444df9c660e43fedfd0c8133c6e461`; its former two-file authorization is
-  consumed into the `STATIC_CONFORMANT` candidate. One exact 19-path atomic commit and
-  independent exact-SHA review are next; other packet eligibility is status only and
-  `144-03B-Folder` is not dispatched.
+  accepted at `cbc12577a6444df9c660e43fedfd0c8133c6e461`; its exact 19-path boundary is
+  `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`. Only root Folder contract freeze/
+  adjudication is next; Folder production/test TDD remains unauthorized pending its own static acceptance.

@@ -1,6 +1,6 @@
 # Mail persistence contract 0.1.8
 
-> **Status:** five-document 0.1.8 entry amendment independently PASS at `5e314fb080d420696642058ae47397e251c23207`, authorizing only 144-01A entry; Thread contract is accepted at `cbc12577a6444df9c660e43fedfd0c8133c6e461`; implementation+oracle are `STATIC_CONFORMANT` pre-commit on base `73060a4b` (source `c221d547`, oracle `b21bd6fd`) and need one exact atomic commit plus independent exact-SHA review before `STATIC_ACCEPTED`; Phase 144 schemas and broader cross-contract review remain pending
+> **Status:** five-document 0.1.8 entry amendment independently PASS at `5e314fb080d420696642058ae47397e251c23207`, authorizing only 144-01A entry; Thread contract is accepted at `cbc12577a6444df9c660e43fedfd0c8133c6e461`; implementation+oracle are narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS` (source `c221d547`, oracle `b21bd6fd`), static only; Phase 144 schemas and broader cross-contract review remain pending
 > **Runtime/generation/migration:** NOT_RUN / NOT_RUN / NOT_AUTHORIZED
 > **Scope:** Phase 144-02A/B/C/D/F Ent schemas only
 > **Precedence:** this document supplies exact storage representation for the corresponding

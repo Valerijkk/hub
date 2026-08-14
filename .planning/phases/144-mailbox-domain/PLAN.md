@@ -1,17 +1,18 @@
 # Phase 144 — Mailbox Domain
 
-> Task: TASK-237 · Status: IN_PROGRESS · FIVE_DOCUMENT_DEFAULT_VS_HARD_CAP_144_01A_ENTRY_AMENDMENT_PASS `5e314fb0` (authorizes 144-01A entry only; broader Phase 142/cross-contract pending) · 144-01A STATIC_ACCEPTED `e3e8c774` / EXACT_SHA_PASS · 144-03A-Address STATIC_ACCEPTED `41564d00` / EXACT_SHA_PASS · 144-03A-Thread contract accepted `cbc12577`; implementation+oracle STATIC_CONFORMANT pre-commit candidate on base `73060a4b` (source `c221d547`, oracle `b21bd6fd`, reviews C/I/M `0/0/0`), STATIC_ACCEPTED pending exact atomic commit plus independent exact-SHA review (executable NOT_RUN) · 144-01B BLOCKED_ON_APPLICABLE_SUPPORTED_CURRENT_SHA_DOCKER_EVIDENCE_BY_TASK3 · 144-02A1/A2/A3 EXACT_PLAN_BLOCKED_REVIEW · 144-02B/02C/02D/02F CONTRACT_AMENDED_NOT_ACCEPTED · RUNTIME_NOT_RUN · Depends on: Phase 142
+> Task: TASK-237 · Status: IN_PROGRESS · FIVE_DOCUMENT_DEFAULT_VS_HARD_CAP_144_01A_ENTRY_AMENDMENT_PASS `5e314fb0` (authorizes 144-01A entry only; broader Phase 142/cross-contract pending) · 144-01A STATIC_ACCEPTED `e3e8c774` / EXACT_SHA_PASS · 144-03A-Address STATIC_ACCEPTED `41564d00` / EXACT_SHA_PASS · 144-03A-Thread STATIC_ACCEPTED `9903f4df` / EXACT_SHA_PASS, contract `cbc12577`, C/I/M `0/0/0`, executable NOT_RUN · only next action: root freeze/adjudication of 144-03B-Folder callable/error/normalization/oracle contract, no Folder TDD dispatch · 144-01B BLOCKED_ON_APPLICABLE_SUPPORTED_CURRENT_SHA_DOCKER_EVIDENCE_BY_TASK3 · 144-02A1/A2/A3 EXACT_PLAN_BLOCKED_REVIEW · 144-02B/02C/02D/02F CONTRACT_AMENDED_NOT_ACCEPTED · RUNTIME_NOT_RUN · Depends on: Phase 142
 
 ## Goal
 
 Implement the engine-independent domain and HTTP behavior against a deterministic fake.
 
 `143-04L` and `144-01A` are satisfied for `144-03D`; Address is `STATIC_ACCEPTED` at
-`41564d003946ddb78df18efca166ca86e4055405`. Thread callable/encoding/oracle remains accepted
-at `cbc12577a6444df9c660e43fedfd0c8133c6e461` / `EXACT_SHA_PASS`; its two code/test files and
-external oracle are the consumed uncommitted `STATIC_CONFORMANT` candidate. Live next action is
-one exact 19-path atomic commit followed by independent exact-SHA review. Do not dispatch
-`144-03B-Folder`; other packet eligibility is status only, not current authorization.
+`41564d003946ddb78df18efca166ca86e4055405`. Thread contract remains accepted at `cbc12577` and
+its exact 19-path implementation/oracle boundary is `STATIC_ACCEPTED` at `9903f4df` /
+`EXACT_SHA_PASS`, C/I/M `0/0/0`; this remains static-only evidence. Live next action is only
+root freeze/adjudication of the 144-03B-Folder callable/error/normalization/oracle contract.
+Do not authorize or dispatch Folder production/test TDD until that contract has independent
+static acceptance; other packet eligibility is status only.
 
 ## Ordered tasks
 
