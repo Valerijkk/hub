@@ -16,9 +16,10 @@ close broader Phase 142/cross-contract review.
 - Statically accepted the root-frozen 143-04L `EnvelopeV1` subject amendment: the new builder
   has a 255 UTF-8-byte Hub product/safety bound distinct from the NATS transport/control-line
   ceiling, with the corresponding schema extension and static contract oracles. Independent
-  Terra/high review PASS is C/I/M `0/0/0`, with dispatcher-enforced provenance and actual
-  telemetry `UNKNOWN`; the exact docs commit is pending. This records no product
-  implementation or runtime result; the launcher is `NOT_READY` and runtime is `NOT_RUN`.
+  Terra/high review PASS is C/I/M `0/0/0`; 143-04L is `STATIC_ACCEPTED` at
+  `4525c559da22729aa8bc51ff5336c29dad4f27e9`, and status-sync commit
+  `1c0299bd720ad6f8521314d83e478dedc666eccd` records it. The launcher remains `NOT_READY`,
+  runtime remains `NOT_RUN`, and this records no product acceptance.
 - Closed the post-freeze machine-contract review gaps: all public HTTP objects are closed;
   summary/detail composition uses internal field bases plus closed wrappers; every non-admin
   operation declares one default-deny `x-hub-authz` policy; mail received/sent addresses and

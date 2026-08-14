@@ -1,8 +1,10 @@
 # Terminal Codex: продолжение Hub после Desktop handoff
 
 > **CONSUMED / HISTORICAL PRE-01A RESUME PROMPT:** не выполняй старое следующее действие из
-> исторического текста ниже. Текущая authority — `.continue-here.md`; точное следующее действие
-> — только `144-03A-Address` (static/TDD, executable evidence `NOT_RUN`).
+> исторического текста ниже. Текущая authority — `.continue-here.md`: `144-03A-Address` уже
+> `STATIC_ACCEPTED` на `41564d003946ddb78df18efca166ca86e4055405`; только `144-03A-Thread`
+> является следующим действием после root freeze его callable/encoding contract и oracle. Текст
+> ниже исторический и подчинён `.continue-here.md`.
 
 Ты продолжаешь работу как root-orchestrator Hub. Не полагайся на этот чат и не считай любую неуказанную проверку выполненной.
 

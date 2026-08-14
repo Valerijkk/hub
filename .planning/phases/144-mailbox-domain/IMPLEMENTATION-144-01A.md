@@ -81,5 +81,8 @@ fallback, but it did not implement the 0.1.8 projection/budget/reference-only am
 - The packet is not runtime-verified, complete, stable or production-ready.
 - `144-01B` remains `BLOCKED` under stricter Task3 authority until its applicable supported
   current-SHA Docker evidence closes; Phase 145 remains independently gated.
-- Pure static authoring is authorized for 144-03A-Address, 144-03B-Folder, 144-03C-Send and
-  144-03D; the exact next action is 144-03A-Address.
+- `144-03A-Address` is separately `STATIC_ACCEPTED` at
+  `41564d003946ddb78df18efca166ca86e4055405`. The only next action is pure static/TDD
+  `144-03A-Thread`, and dispatch waits for root to freeze its callable/encoding contract and
+  oracle; Thread is not implemented or authorized before that freeze. Other static-authorized
+  packets remain unselected.

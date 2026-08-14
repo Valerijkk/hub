@@ -5,8 +5,9 @@
 > **Runtime:** `gpt-5.6-terra` / `xhigh`, fallback none.
 > **Status:** TERRA_CODE_ROUTE_AUTHORIZED; accepted native `dispatcher-enforced` provenance
 > permits actual telemetry `UNKNOWN` when telemetry is unavailable. Any exposed mismatch,
-> rejection, omitted model/effort or fallback is `BLOCKED`; dependencies apply; executable
-> generation/runtime evidence remains launcher-blocked.
+> rejection, omitted model/effort or fallback is `BLOCKED`; dependencies are necessary but
+> not sufficient: each packet requires its own explicit root authorization. Executable
+> generation/runtime evidence remains launcher-blocked and `NOT_RUN`.
 
 Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05A,
 144-05B and 144-06A. This file completes every other index row.
@@ -155,11 +156,14 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 
 ## 144-03A-Thread — thread identity
 
-- Dependency: accepted 03A-Address. Allowed only
-  `backend/internal/mail/threading.go`, `backend/tests/mail/threading_test.go`.
-- Behavior/oracles: valid nearest References then In-Reply-To; fallback normalized subject
-  + canonical participants; bounded localized prefix stripping; Unicode normalization;
-  deterministic SHA-256/base64url; misleading subject cannot beat header ancestor; bounds.
+- Dependency: 03A-Address is `STATIC_ACCEPTED` at
+  `41564d003946ddb78df18efca166ca86e4055405`, but dependencies are necessary and not
+  sufficient. Status: `ROOT_CALLABLE_ENCODING_ORACLE_FREEZE_PENDING` / `NOT_AUTHORIZED`.
+  Do not dispatch or write `backend/internal/mail/threading.go` or
+  `backend/tests/mail/threading_test.go` until root freezes the callable API, exact Message-ID
+  grammar and resolution semantics, participant and bounds policy, Unicode and prefix policy,
+  raw 32-byte hash encoding/preimage, safe errors, and literal oracle vectors. Executable
+  evidence remains `NOT_RUN`.
 
 ## 144-03B-Folder — folder tree policy
 

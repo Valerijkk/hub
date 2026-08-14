@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
-last_updated: "2026-08-14T02:31:01+03:00"
-last_activity: 2026-08-14 · Mail 144-03A-Address candidate is STATIC_CONFORMANT after three independent exact-blob static PASS reviews (C/I/M 0/0/0); exact atomic commit and independent exact-SHA review remain pending, launcher NOT_READY and executable evidence NOT_RUN
+last_updated: "2026-08-14T03:30:00+03:00"
+last_activity: 2026-08-14 · Mail 144-03A-Address is STATIC_ACCEPTED at 41564d003946ddb78df18efca166ca86e4055405 after three independent Terra/high EXACT_SHA_PASS reviews (C/I/M 0/0/0); only 144-03A-Thread is next after root freezes its callable/encoding contract and oracle, launcher NOT_READY and executable evidence NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -316,18 +316,21 @@ spec_coverage:
   and C/I/M `0/0/0`. Any exposed mismatch, rejection, omitted model/effort or fallback remains
   blocking. `144-01B` remains `BLOCKED` pending its own applicable supported current-SHA Docker
   evidence under the stricter Task3 authority. Pure static authoring is authorized for
-  `144-03A-Address`, `144-03B-Folder`, `144-03C-Send` and `144-03D`. The 144-03A candidate
-  has exact source blob `fe7472d6a5bf9baa140fef95352cbbf206f49612` and oracle blob
-  `67f35c39dfbbfdd92573f52103798e15de922b37` against parent
-  `d659c67ce657fb33da391819edbdb954454be4b9`. Three independent exact-blob static reviews
-  (oracle/spec/security) are PASS, each C/I/M `0/0/0`; exact Terra/xhigh authoring and
-  Terra/high review provenance are dispatcher-enforced, fallback `none`, with actual telemetry
-  `UNKNOWN` unless exposed. It remains `STATIC_CONFORMANT` and
-  `EXACT_ATOMIC_COMMIT_INDEPENDENT_REVIEW_PENDING`: its self SHA is unknowable before commit,
-  and it is neither `STATIC_ACCEPTED` nor task PASS. The exact next action is to commit
-  `144-03A-Address` atomically and independently review that exact SHA. `144-01B` remains
-  `BLOCKED`; broader Phase 142/cross-contract acceptance and Phase 148 remain pending. Launcher
-  and all executable evidence remain `NOT_READY` / `NOT_RUN`.
+  `144-03A-Address`, `144-03B-Folder`, `144-03C-Send` and `144-03D`. Address is
+  `STATIC_ACCEPTED` at the exact five-path atomic boundary
+  `41564d003946ddb78df18efca166ca86e4055405` (parent
+  `d659c67ce657fb33da391819edbdb954454be4b9`, tree
+  `13a97333f08df6946e65766d3223c1ede85e1f50`, subject `feat(mail): add bounded address policy`)
+  with committed code/test blobs `fe7472d6a5bf9baa140fef95352cbbf206f49612` and
+  `67f35c39dfbbfdd92573f52103798e15de922b37`. Three independent exact-commit Terra/high reviews
+  report `EXACT_SHA_PASS`, Spec/Quality/Security/Evidence PASS and C/I/M `0/0/0`; Terra/xhigh
+  authoring and Terra/high review provenance are dispatcher-enforced, fallback `none`, with
+  actual telemetry `UNKNOWN` unless exposed. The only next action is pure static/TDD
+  `144-03A-Thread`; its Address dependency is accepted, but dispatch waits for root to freeze its
+  callable/encoding contract and oracle. Thread is not implemented or authorized before that
+  freeze; other static-authorized packets remain unselected. `144-01B` remains `BLOCKED`; broader
+  Phase 142/cross-contract acceptance and Phase 148 remain pending. Launcher and all executable
+  evidence remain `NOT_READY` / `NOT_RUN`.
   Root-frozen `PERSISTENCE-CONTRACT-0.1.8.md` supplies the exact 144-02A/B/C/D/F fields,
   tuple/state checks, normalized indexes, scalar attachment staging, sole default/scan
   authorities, quotas, generic receipt/bulk matrices and canonical rule hash. OpenAPI 0.1.8
@@ -1372,20 +1375,24 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 
 ## Session Continuity
 
-**Last session:** 2026-08-14 (Mail 144-03A pre-commit static evidence/status sync)
-**Stopped at:** the 0.1.8 144-01A atomic seven-path boundary is `STATIC_ACCEPTED` at
-`e3e8c774d734f926f77f8e600b58dc68dabbd993` against
-`5e314fb080d420696642058ae47397e251c23207` after exact-commit Terra/high `EXACT_SHA_PASS`,
-Spec/Quality/Security/Evidence PASS and C/I/M `0/0/0`. The launcher remains `NOT_READY` and all
-executable evidence remains `NOT_RUN`.
+**Last session:** 2026-08-14 (Mail 144-03A-Address exact-commit static acceptance sync)
+**Stopped at:** 144-01A remains `STATIC_ACCEPTED` at
+`e3e8c774d734f926f77f8e600b58dc68dabbd993`; 144-03A-Address is now `STATIC_ACCEPTED` at the
+exact five-path boundary `41564d003946ddb78df18efca166ca86e4055405` (parent
+`d659c67ce657fb33da391819edbdb954454be4b9`, tree `13a97333f08df6946e65766d3223c1ede85e1f50`)
+after three independent Terra/high `EXACT_SHA_PASS` reviews, Spec/Quality/Security/Evidence PASS
+and C/I/M `0/0/0`. Dispatcher-enforced provenance is Terra/xhigh authoring and Terra/high review,
+fallback `none`; actual telemetry is `UNKNOWN` unless exposed. The launcher remains `NOT_READY`
+and all executable evidence remains `NOT_RUN`.
 `pro-qa-ai` beta.3 already exists both in protected Hub source
 and as the Desktop portable copy. Legacy remains frozen; destructive move/delete
 has not started.
-**Resume:** create the exact atomic commit for `144-03A-Address`, then dispatch its independent
-exact-SHA review. The candidate is `STATIC_CONFORMANT`, not `STATIC_ACCEPTED`; executable
-verification remains `NOT_RUN`. Do not start `144-01B`: the stricter Task3 authority requires
-its applicable supported current-SHA Docker evidence. Broader Phase 142/cross-contract work and
-Phase 148 remain pending.
+**Resume:** only after root freezes the callable/encoding contract and oracle, dispatch pure
+static/TDD `144-03A-Thread`. Its Address dependency is accepted, but Thread is not implemented or
+authorized before that freeze; other static-authorized packets remain unselected. Executable
+verification remains `NOT_RUN`. Do not start `144-01B`: the stricter Task3 authority requires its
+applicable supported current-SHA Docker evidence. Broader Phase 142/cross-contract work and Phase
+148 remain pending.
 
 **Coverage decision:** TASK-203 backend profile **82.0373%** remains historical
 discovery evidence. Founder waived statement-coverage parity as migration gate;
