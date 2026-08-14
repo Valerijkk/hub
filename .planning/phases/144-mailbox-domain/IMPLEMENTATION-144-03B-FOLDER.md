@@ -75,7 +75,9 @@ telemetry `UNKNOWN`.
 applicable supported current-SHA Docker evidence under Task3. Broader Phase 142 and Phase 148
 remain pending or blocked.
 
-After this docs candidate receives its three exact-SHA PASS reviews, the only next action is root
-freeze/adjudication of the `144-03B-Rule` typed rule compiler callable/error/escaping/oracle
-contract. This is a dependency-index planning inference, not Rule TDD or production authorization;
-`rule_compiler.go` and its test remain unauthorized.
+Folder docs are accepted static-only at `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`.
+`144-03B-Rule-Compiler` is separately an unaccepted docs-only `ROOT_FROZEN_CANDIDATE`: the
+current next action is its atomic 27-path docs commit, then three Rule exact-SHA reviews.
+144-02D/02F closure, a later plan and a separate Phase-145 engine-port/carrier remain blocked;
+this is not Rule TDD or production authorization, and `rule_compiler.go` plus its test remain
+unauthorized.

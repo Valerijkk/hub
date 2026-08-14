@@ -156,7 +156,7 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 
 ## 144-03A-Thread — thread identity
 
-> **Accepted exact boundary:** implementation+oracle are narrowly `STATIC_ACCEPTED` at `9903f4df3e5ca8034ea3f043b0386170e83a5101` / `EXACT_SHA_PASS` (parent `73060a4b`, tree `b73f23b`, exact 19 paths, source `c221d547`, oracle `b21bd6fd`, reviews C/I/M `0/0/0`). This is static only. Folder source+oracle are likewise narrowly `STATIC_ACCEPTED` at `f8cb7643986fc591cae16764575337b72ef3a692` (source `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b`, oracle `efe0db0071cb22ce4b026c635157f0fb08885d64`, C/I/M `0/0/0`); their exact 20-path docs candidate reviews precede root-only Rule contract freeze.
+> **Accepted exact boundary:** implementation+oracle are narrowly `STATIC_ACCEPTED` at `9903f4df3e5ca8034ea3f043b0386170e83a5101` / `EXACT_SHA_PASS` (parent `73060a4b`, tree `b73f23b`, exact 19 paths, source `c221d547`, oracle `b21bd6fd`, reviews C/I/M `0/0/0`). This is static only. Folder source/oracle `f8cb7643986fc591cae16764575337b72ef3a692` and docs `ca4e2854a319a020f7322ae0a9a98e3fb4a07374` are static-only accepted; Rule is separately an unaccepted docs-only `ROOT_FROZEN_CANDIDATE` pending its own commit/reviews, 02D/02F closure, later plan and Phase-145 carrier.
 
 - Dependency: 03A-Address is `STATIC_ACCEPTED` at
   `41564d003946ddb78df18efca166ca86e4055405`, but dependencies are necessary and not
@@ -186,8 +186,10 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 
 - Accepted exact two-path source+oracle boundary: `f8cb7643986fc591cae16764575337b72ef3a692` /
   `EXACT_SHA_PASS`, static-only (source `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b`, oracle
-  `efe0db0071cb22ce4b026c635157f0fb08885d64`, C/I/M `0/0/0`). Its docs candidate awaits three
-  exact-SHA reviews; after PASS root only freezes/adjudicates `144-03B-Rule`.
+  `efe0db0071cb22ce4b026c635157f0fb08885d64`, C/I/M `0/0/0`). Folder docs are accepted
+  static-only at `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`. The current next action is the
+  atomic 27-path Rule docs commit, then three Rule exact-SHA reviews; 02D/02F, later plan and
+  separate Phase-145 carrier remain blocked.
 - Static behavior/oracle summary: Hub admission has at most 100 live non-deleted control slots
   including system/reserved states, separate from <=100 engine-backed enumeration; depth ≤2,
   no cycle/self-parent/cross-account parent; system role cannot rename/reparent/delete and
@@ -685,4 +687,10 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   Resend untouched, bodies/keys absent from persistence, `mail.>` present once and webhook
   list unchanged; record current SHA and all Docker/test/build/generation statuses honestly.
   Must request independent Terra review; cannot mark runtime PASS from static review.
-> **144-03B Folder post-source lifecycle (2026-08-14):** source/oracle commit `f8cb7643986fc591cae16764575337b72ef3a692` (parent `32e3dcb5b4f7ae65a88b79781646d25726ae16c6`, tree `14e7f6ce9a0f4b7912b955515d122c411159c579`) is narrowly `STATIC_ACCEPTED`, static-only, with exactly `backend/internal/mail/folder_tree.go` blob `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b` and `backend/tests/mail/folder_tree_test.go` blob `efe0db0071cb22ce4b026c635157f0fb08885d64`. Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and ABI/Compile-shape Terra/high exact-SHA reviews are `EXACT_SHA_PASS`, C/I/M `0/0/0`. This exact 20-path docs candidate (the frozen prior 19-path lifecycle manifest plus its new evidence file, including the three stale-gate evidence documents) awaits its own Lifecycle/Evidence high, Security/Dependency xhigh and Exact/Boundary high exact-SHA reviews. Launcher `NOT_READY`; compile, unit, race, build, lint, validators, Docker and runtime `NOT_RUN`; 04B reparent, 144-01B, Phase 142 and Phase 148 remain blocked. Author provenance Terra/medium, `dispatcher-enforced`, no fallback, telemetry `UNKNOWN`. After candidate reviews PASS, root only freezes/adjudicates `144-03B-Rule`; no Rule TDD or production authorization.
+> **Current Rule lifecycle (2026-08-14):** Folder source/oracle `f8cb7643986fc591cae16764575337b72ef3a692` and Folder docs `ca4e2854a319a020f7322ae0a9a98e3fb4a07374` are static-only accepted. `144-03B-Rule-Compiler` is an unaccepted docs-only `ROOT_FROZEN_CANDIDATE`: it awaits its own root atomic 27-path commit and three exact-SHA reviews C/I/M `0/0/0`, explicit 144-02D/02F closure, a later separate plan and a separate Phase-145 engine-port/carrier. Rule TDD/production remain unauthorized; launcher `NOT_READY` and all executable evidence `NOT_RUN`; Phase 148 remains blocked.
+
+## 144-03B-Rule-Compiler — frozen candidate, no dispatch
+
+`CONTRACT-144-03B-RULE.md` is docs-only `ROOT_FROZEN_CANDIDATE`. No source/oracle dispatch is
+authorized: it awaits root atomic commit and three exact-SHA reviews; 144-02D/02F, later plan
+acceptance and a separate engine-port/Phase-145 carrier must close before Rule TDD/production.

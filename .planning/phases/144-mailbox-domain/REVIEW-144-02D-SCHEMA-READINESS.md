@@ -102,5 +102,10 @@ Minimum remaining schema decisions:
 - 144-02A must be amended consistently because persisted identity `is_default` participates
   in the same duplicate-authority problem;
 - generation/migration and runtime remain independently blocked by founder/launcher gates;
-- no production/test source, dependency, generator, validator, migration or Docker command
-  was changed or run.
+- no production/test source, dependency, generator, validator, migration or Docker command was changed or run.
+
+## 144-03B Rule dependency clarification
+
+`144-03B-Rule-Compiler` is only a docs-only `ROOT_FROZEN_CANDIDATE`; this 02D review is not
+closed or accepted by it. Rule TDD/production requires explicit 02D closure, candidate and
+later-plan exact-SHA acceptance, and the separate Phase-145 engine-port carrier.

@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Hub Mail and Calendar Sync API
   version: 0.1.8
-  description: The five-document 0.1.8 entry amendment independently PASSed at 5e314fb080d420696642058ae47397e251c23207 and authorizes only 144-01A entry. Thread contract remains accepted at cbc12577a6444df9c660e43fedfd0c8133c6e461; implementation+oracle are narrowly STATIC_ACCEPTED at 9903f4df / EXACT_SHA_PASS (source c221d547, oracle b21bd6fd, reviews C/I/M 0/0/0), static only. Folder source/oracle f8cb7643986fc591cae16764575337b72ef3a692 (parent 32e3dcb5b4f7ae65a88b79781646d25726ae16c6, tree 14e7f6ce9a0f4b7912b955515d122c411159c579) is narrowly STATIC_ACCEPTED static-only with source blob 3044055e1c5f6ff897fc646f4380d5a5a5be1b4b and oracle blob efe0db0071cb22ce4b026c635157f0fb08885d64 after Spec/Oracle, Security/Adversarial and ABI/Compile-shape EXACT_SHA_PASS reviews C/I/M 0/0/0. The exact 20-path docs candidate awaits its own reviews; then root only freezes/adjudicates 144-03B-Rule, with no Rule TDD or production authorization. Broader cross-contract review and runtime remain pending. Presence in this file does not imply implementation.
+  description: The five-document 0.1.8 entry amendment independently PASSed at 5e314fb080d420696642058ae47397e251c23207 and authorizes only 144-01A entry. Thread contract remains accepted at cbc12577a6444df9c660e43fedfd0c8133c6e461; implementation+oracle are narrowly STATIC_ACCEPTED at 9903f4df / EXACT_SHA_PASS (source c221d547, oracle b21bd6fd, reviews C/I/M 0/0/0), static only. Folder source/oracle f8cb7643986fc591cae16764575337b72ef3a692 is narrowly STATIC_ACCEPTED static-only. 144-03B-Rule-Compiler is an unaccepted docs-only ROOT_FROZEN_CANDIDATE; it defines provider-neutral typed IR only, never raw Sieve. Rule TDD/production await root atomic docs commit plus three exact-SHA reviews C/I/M 0/0/0, explicit 144-02D/02F closure, later plan acceptance and a separate engine-port/Phase-145 carrier. Launcher is NOT_READY; all executable evidence NOT_RUN. Presence in this file does not imply implementation.
 servers:
   - url: /api
 security:
@@ -2779,6 +2779,7 @@ components:
           required: [plain_body]
     MailRuleCondition:
       type: object
+      description: Flat conjunction condition. String values are exact valid UTF-8, 1..500 code points and <=2000 bytes; reject Unicode control, format, surrogate, private-use or unassigned characters and CR/LF/NUL/U+2028/U+2029 without trim, normalization, case fold or whitespace collapse. from/to equals canonicalizes address; matches_domain canonicalizes IDNA Lookup exact domain; to is visible To only. has_attachment is typed but deployment is capability-blocked until accepted mapping.
       additionalProperties: false
       required: [field, operator, value]
       properties:
@@ -2789,17 +2790,18 @@ components:
         - properties:
             field: {enum: [from, to]}
             operator: {enum: [equals, contains, matches_domain]}
-            value: {type: string, minLength: 1, maxLength: 500}
+            value: {type: string, minLength: 1, maxLength: 500, x-hub-max-utf8-bytes: 2000}
         - properties:
             field: {const: subject}
             operator: {enum: [equals, contains]}
-            value: {type: string, minLength: 1, maxLength: 500}
+            value: {type: string, minLength: 1, maxLength: 500, x-hub-max-utf8-bytes: 2000}
         - properties:
             field: {const: has_attachment}
             operator: {const: is}
             value: {type: boolean}
     MailRuleAction:
       type: object
+      description: Actions are evaluated by first matching rule in priority then raw UUID order. A rule has 1..10 actions, at most one move and one mark_read, and distinct add_label targets; private engine markers and raw Sieve are never public.
       additionalProperties: false
       required: [type]
       properties:
@@ -2818,7 +2820,7 @@ components:
       required: [id, name, enabled, priority, conditions, actions, version, deployment]
       properties:
         id: {type: string, format: uuid}
-        name: {type: string, maxLength: 120, x-hub-max-utf8-bytes: 480}
+        name: {type: string, minLength: 1, maxLength: 120, x-hub-max-utf8-bytes: 480, description: "valid UTF-8 1..120 code points and <=480 bytes; reject Unicode category C/control incl CR/LF/NUL/U+2028/U+2029; preserve exact accepted bytes; no trim/NFC/NFKC/casefold/whitespace collapse."}
         enabled: {type: boolean}
         priority: {type: integer, minimum: 0, maximum: 10000}
         conditions:
@@ -2846,11 +2848,12 @@ components:
           enum: [MAIL_RULE_CAPABILITY_UNAVAILABLE, MAIL_RULE_ENGINE_UNAVAILABLE, MAIL_RULE_APPLY_REJECTED, MAIL_RULE_OUTCOME_UNKNOWN, MAIL_RULE_DRIFT, null]
     UpsertMailRuleRequest:
       type: object
+      description: Rules are evaluated first-match-wins in priority/raw UUID order; conditions are a flat conjunction. This public request never carries private engine keywords or raw Sieve.
       additionalProperties: false
       x-hub-max-serialized-utf8-bytes: 65536
       required: [name, enabled, priority, conditions, actions]
       properties:
-        name: {type: string, minLength: 1, maxLength: 120, x-hub-max-utf8-bytes: 480}
+        name: {type: string, minLength: 1, maxLength: 120, x-hub-max-utf8-bytes: 480, description: "valid UTF-8 1..120 code points and <=480 bytes; reject Unicode category C/control incl CR/LF/NUL/U+2028/U+2029; preserve exact accepted bytes; no trim/NFC/NFKC/casefold/whitespace collapse."}
         enabled: {type: boolean}
         priority: {type: integer, minimum: 0, maximum: 10000}
         conditions:

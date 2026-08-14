@@ -5,7 +5,7 @@ milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
 last_updated: "2026-08-14T04:00:00+03:00"
-last_activity: 2026-08-14 · Mail 144-03B source/oracle f8cb7643986fc591cae16764575337b72ef3a692 (parent 32e3dcb5b4f7ae65a88b79781646d25726ae16c6, tree 14e7f6ce9a0f4b7912b955515d122c411159c579) is narrowly STATIC_ACCEPTED static-only after three exact-SHA PASS reviews C/I/M 0/0/0; exact 20-path docs candidate reviews pending, then root freeze/adjudication of 144-03B-Rule only; launcher NOT_READY and executable evidence NOT_RUN
+last_activity: 2026-08-14 · Folder source/oracle f8cb7643986fc591cae16764575337b72ef3a692 is narrowly STATIC_ACCEPTED static-only and Folder docs acceptance is ca4e2854a319a020f7322ae0a9a98e3fb4a07374; 144-03B-Rule-Compiler is unaccepted docs-only ROOT_FROZEN_CANDIDATE pending root atomic commit plus three exact-SHA reviews, 144-02D/02F closure, later plan and engine-port/145 carrier; launcher NOT_READY and executable evidence NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -118,7 +118,7 @@ mail_feature_workstream:
     branch: codex/mail-module-20260813
     phases: "142-148"
     current_phase: 144
-    status: folder_source_oracle_f8cb7643_static_accepted_exact_20_path_docs_candidate_reviews_pending_rule_contract_freeze_next_runtime_not_run
+    status: folder_source_oracle_f8cb7643_and_docs_ca4e2854_static_accepted_rule_root_frozen_candidate_unaccepted_runtime_not_run
     product_truth: unfinished_mvp_feature_not_accepted
     contract_version: "0.1.8"
     tasks:
@@ -333,8 +333,10 @@ spec_coverage:
   (source `c221d547`, oracle `b21bd6fd`, C/I/M `0/0/0`), static only. Folder source+oracle are
   narrowly `STATIC_ACCEPTED` at `f8cb7643986fc591cae16764575337b72ef3a692` (source
   `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b`, oracle `efe0db0071cb22ce4b026c635157f0fb08885d64`,
-  C/I/M `0/0/0`), static only. Its exact 20-path docs candidate awaits its own three exact-SHA
-  reviews; after PASS, root only freezes/adjudicates `144-03B-Rule`. Other packet eligibility
+  C/I/M `0/0/0`), static only. Folder docs acceptance is `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`.
+  `144-03B-Rule-Compiler` is docs-only `ROOT_FROZEN_CANDIDATE`, unaccepted; root commit and
+  three exact-SHA reviews, 144-02D/02F closure, later plan and engine-port/145 carrier precede
+  Rule TDD/production. Other packet eligibility
   remains status only. `144-01B` remains `BLOCKED`; broader
   Phase 142/cross-contract acceptance and Phase 148 remain pending. Launcher and all executable
   evidence remain `NOT_READY` / `NOT_RUN`.
@@ -1401,9 +1403,10 @@ is narrowly `STATIC_ACCEPTED`, static-only: exactly `backend/internal/mail/folde
 (`3044055e1c5f6ff897fc646f4380d5a5a5be1b4b`) and
 `backend/tests/mail/folder_tree_test.go` (`efe0db0071cb22ce4b026c635157f0fb08885d64`), after
 Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and ABI/Compile-shape Terra/high
-`EXACT_SHA_PASS` reviews, C/I/M `0/0/0`. The 20-path docs candidate is pending its own three
-exact-SHA reviews. Next action after those reviews is root freeze/adjudication for the
-`144-03B-Rule` contract only; no Rule TDD or production authorization. Its callable/encoding/oracle
+`EXACT_SHA_PASS` reviews, C/I/M `0/0/0`. Folder docs acceptance is `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`.
+The distinct `144-03B-Rule-Compiler` is docs-only `ROOT_FROZEN_CANDIDATE`, unaccepted; root
+commit/reviews, 144-02D/02F closure, later plan and engine-port/145 carrier precede Rule TDD.
+Its callable/encoding/oracle
 contract remains `THREAD_CALLABLE_ENCODING_ORACLE_STATIC_ACCEPTED` at
 `cbc12577a6444df9c660e43fedfd0c8133c6e461` / `EXACT_SHA_PASS` after independent
 Spec/API/Persistence, Security and Lifecycle/Evidence PASS reviews with C/I/M `0/0/0`.
@@ -1434,4 +1437,5 @@ new quality gate is requirement/risk traceability plus fail-closed execution.
 - A3W2-2-001..006 FIXED: AssignTesters membership (400), FileIDs project-scope (404), ImportAllure ExistingRun tx/compensating, mock UpdateTestResult scope, snapshot steps fail-closed, Delete/Link/Unlink AppError.
 - hubtest `./testframework/tms/...` PASS; mutation 001–006 red/green ALL_OK.
 - Коммиты: `1dbf42f4` fix · `9e634ee5` test · статус TASK → На проверке (README не трогали). Handoff: be-ver → code-reviewer.
-> **144-03B Folder post-source lifecycle (2026-08-14):** source/oracle commit `f8cb7643986fc591cae16764575337b72ef3a692` (parent `32e3dcb5b4f7ae65a88b79781646d25726ae16c6`, tree `14e7f6ce9a0f4b7912b955515d122c411159c579`) is narrowly `STATIC_ACCEPTED`, static-only, with exactly `backend/internal/mail/folder_tree.go` blob `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b` and `backend/tests/mail/folder_tree_test.go` blob `efe0db0071cb22ce4b026c635157f0fb08885d64`. Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and ABI/Compile-shape Terra/high exact-SHA reviews are `EXACT_SHA_PASS`, C/I/M `0/0/0`. This exact 20-path docs candidate (the frozen prior 19-path lifecycle manifest plus its new evidence file, including the three stale-gate evidence documents) awaits its own Lifecycle/Evidence high, Security/Dependency xhigh and Exact/Boundary high exact-SHA reviews. Launcher `NOT_READY`; compile, unit, race, build, lint, validators, Docker and runtime `NOT_RUN`; 04B reparent, 144-01B, Phase 142 and Phase 148 remain blocked. Author provenance Terra/medium, `dispatcher-enforced`, no fallback, telemetry `UNKNOWN`. After candidate reviews PASS, root only freezes/adjudicates `144-03B-Rule`; no Rule TDD or production authorization.
+
+> **Current Rule lifecycle (2026-08-14):** `144-03B-Rule-Compiler` is now a docs-only `ROOT_FROZEN_CANDIDATE` at this uncommitted SHA, governed by `CONTRACT-144-03B-RULE.md`; it is not accepted. Next: root atomic docs-only commit, then contract/spec, security/adversarial and lifecycle/dependency exact-SHA reviews with C/I/M `0/0/0`. 144-02D/02F remain open; launcher `NOT_READY` and all executable evidence `NOT_RUN`.

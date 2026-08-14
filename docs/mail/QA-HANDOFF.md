@@ -734,8 +734,10 @@ These remain non-executable required oracle scenarios. The exact 19-path Thread 
 `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`; Folder source+oracle are narrowly
 `STATIC_ACCEPTED` at `f8cb7643986fc591cae16764575337b72ef3a692` (source
 `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b`, oracle `efe0db0071cb22ce4b026c635157f0fb08885d64`,
-C/I/M `0/0/0`), static only. Its exact 20-path docs candidate reviews precede root-only
-`144-03B-Rule` contract freeze; launcher remains `NOT_READY` and runtime `NOT_RUN`.
+C/I/M `0/0/0`), static only. Folder docs are also static-only accepted at
+`ca4e2854a319a020f7322ae0a9a98e3fb4a07374`; the separate Rule candidate awaits its own
+root commit/reviews, 02D/02F closure, later plan and Phase-145 carrier. Launcher remains
+`NOT_READY` and runtime `NOT_RUN`.
 
 ### 144-03B Folder static-accepted source/oracle scenarios (executable evidence NOT_RUN)
 
@@ -774,4 +776,12 @@ C/I/M `0/0/0`), static only. Its exact 20-path docs candidate reviews precede ro
 - Therefore this handoff is static-only: contract plus accepted source/oracle evidence. It must
   not become a global, product or executable PASS claim until supported current-SHA evidence and
   the remaining gates close.
-> **144-03B Folder post-source lifecycle (2026-08-14):** source/oracle commit `f8cb7643986fc591cae16764575337b72ef3a692` (parent `32e3dcb5b4f7ae65a88b79781646d25726ae16c6`, tree `14e7f6ce9a0f4b7912b955515d122c411159c579`) is narrowly `STATIC_ACCEPTED`, static-only, with exactly `backend/internal/mail/folder_tree.go` blob `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b` and `backend/tests/mail/folder_tree_test.go` blob `efe0db0071cb22ce4b026c635157f0fb08885d64`. Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and ABI/Compile-shape Terra/high exact-SHA reviews are `EXACT_SHA_PASS`, C/I/M `0/0/0`. This exact 20-path docs candidate (the frozen prior 19-path lifecycle manifest plus its new evidence file, including the three stale-gate evidence documents) awaits its own Lifecycle/Evidence high, Security/Dependency xhigh and Exact/Boundary high exact-SHA reviews. Launcher `NOT_READY`; compile, unit, race, build, lint, validators, Docker and runtime `NOT_RUN`; 04B reparent, 144-01B, Phase 142 and Phase 148 remain blocked. Author provenance Terra/medium, `dispatcher-enforced`, no fallback, telemetry `UNKNOWN`. After candidate reviews PASS, root only freezes/adjudicates `144-03B-Rule`; no Rule TDD or production authorization.
+
+## 144-03B Rule candidate test handoff
+
+`144-03B-Rule-Compiler` is docs-only `ROOT_FROZEN_CANDIDATE`, unaccepted. Future RED oracle
+must cover ABI/errors, closed union/bounds/Unicode/targets/order/deep-copy/static purity and
+reject noncanonical base32 (decode-to-32 plus identical re-encode). No test before candidate
+reviews, 02D/02F closure, later plan and separate Phase-145 carrier; launcher `NOT_READY`.
+Compiler errors are internal; HTTP uses 04M account-scoped lookup which masks foreign/missing
+targets identically and never makes mismatch/ambiguity an existence oracle.

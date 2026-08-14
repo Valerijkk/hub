@@ -1446,6 +1446,13 @@ The machine-readable contract is `docs/mail/openapi.yaml`. General rules:
 - New mailbox request objects reject unknown properties. Public payloads cannot smuggle
   organization/account/engine ids; rule condition/action combinations are exact typed
   unions rather than permissive field/operator/value bags.
+
+  Rule compiler conditions are flat conjunctions and selected rules evaluate first-match-wins by
+  `(priority, raw UUID bytes)`. String rules retain exact valid UTF-8 within 500 code points/
+  2000 bytes and reject forbidden category-C/control values; address equals and IDNA exact-domain
+  normalization are limited to from/to, with `to` only visible To. `has_attachment` stays typed
+  but deployment-blocked until accepted mapping. Compiler errors are internal; 04M masks foreign
+  and missing account-scoped target lookup identically.
 - Public response DTOs and NFR-13 `ErrorEnvelope` reject unknown properties. OpenAPI examples
   are required for bounded cursor continuation, recoverable `409` headers, mailbox-busy
   `423` retry metadata and identical-input idempotent replay; examples do not substitute for
@@ -1852,9 +1859,11 @@ entry-only amendment: it neither revokes the `144-03A-Address` `STATIC_ACCEPTED`
 `b21bd6fd`, C/I/M `0/0/0`). This is static-only and preserves contract acceptance `cbc12577`.
 Folder source+oracle are narrowly `STATIC_ACCEPTED` at `f8cb7643986fc591cae16764575337b72ef3a692`
 (source blob `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b`, oracle blob
-`efe0db0071cb22ce4b026c635157f0fb08885d64`, C/I/M `0/0/0`), static only. Its exact 20-path docs
-candidate awaits its own three exact-SHA reviews; after PASS, root only freezes/adjudicates
-`144-03B-Rule`. Actual telemetry is `UNKNOWN` unless exposed. It does not authorize
+`efe0db0071cb22ce4b026c635157f0fb08885d64`, C/I/M `0/0/0`), static only. Folder docs are also
+static-only accepted at `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`. `144-03B-Rule-Compiler` is
+separately an unaccepted docs-only `ROOT_FROZEN_CANDIDATE`, pending its own atomic commit and
+three exact-SHA reviews, 144-02D/02F closure, later plan and Phase-145 carrier. Actual telemetry is
+`UNKNOWN` unless exposed. It does not authorize
 schemas, generation, migration, runtime or a version bump. 144-01B, Phase 142/148 and 144-02B
 remain pending; launcher is `NOT_READY` and runtime is `NOT_RUN`.
 
@@ -1954,4 +1963,17 @@ rekey and dual-read plan. Fallback returns `ThreadKeyVersionV1`; storage/equalit
 versioned `(thread_key_version, thread_key)` tuple. An accepted ancestor returns its exact V1
 version+key and never hashes it again; the three existing preimages already contain version
 octet `01` and their SHA literals remain unchanged.
-> **144-03B Folder post-source lifecycle (2026-08-14):** source/oracle commit `f8cb7643986fc591cae16764575337b72ef3a692` (parent `32e3dcb5b4f7ae65a88b79781646d25726ae16c6`, tree `14e7f6ce9a0f4b7912b955515d122c411159c579`) is narrowly `STATIC_ACCEPTED`, static-only, with exactly `backend/internal/mail/folder_tree.go` blob `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b` and `backend/tests/mail/folder_tree_test.go` blob `efe0db0071cb22ce4b026c635157f0fb08885d64`. Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and ABI/Compile-shape Terra/high exact-SHA reviews are `EXACT_SHA_PASS`, C/I/M `0/0/0`. This exact 20-path docs candidate (the frozen prior 19-path lifecycle manifest plus its new evidence file, including the three stale-gate evidence documents) awaits its own Lifecycle/Evidence high, Security/Dependency xhigh and Exact/Boundary high exact-SHA reviews. Launcher `NOT_READY`; compile, unit, race, build, lint, validators, Docker and runtime `NOT_RUN`; 04B reparent, 144-01B, Phase 142 and Phase 148 remain blocked. Author provenance Terra/medium, `dispatcher-enforced`, no fallback, telemetry `UNKNOWN`. After candidate reviews PASS, root only freezes/adjudicates `144-03B-Rule`; no Rule TDD or production authorization.
+
+## 144-03B Rule compiler candidate
+
+`CONTRACT-144-03B-RULE.md` is `ROOT_FROZEN_CANDIDATE`, docs-only and unaccepted. It freezes a
+provider-neutral typed IR, not Sieve: rules are first-match-wins and its compiler neither emits
+scripts nor calculates persistence hash v1. A separate accepted engine-port/Phase-145 carrier,
+closed 144-02D/02F gates, later plan acceptance and three candidate exact-SHA reviews are all
+required before Rule TDD/production. Folder static acceptance remains `f8cb7643`; Folder docs
+acceptance remains `ca4e2854`; launcher `NOT_READY`, all executable evidence `NOT_RUN`.
+
+Rule names are compiler-validated as valid UTF-8, `1..120` code points and `1..480` bytes;
+category-C/control (including CR/LF/NUL/U+2028/U+2029) rejects. Accepted name bytes are exact:
+no trim, normalization, case fold or whitespace collapse. Names participate in 04M hash v1 but
+are not in compiled output; compiled output retains only Hub rule ID, never target UUIDs.

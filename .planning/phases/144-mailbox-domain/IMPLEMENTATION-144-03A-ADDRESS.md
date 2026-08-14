@@ -65,8 +65,10 @@ do not establish executable, phase, product, or runtime acceptance.
 - Thread is narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS` (source `c221d547`, oracle `b21bd6fd`; C/I/M `0/0/0`), static only.
 - Folder source+oracle are narrowly `STATIC_ACCEPTED` at `f8cb7643986fc591cae16764575337b72ef3a692`
   (source `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b`, oracle `efe0db0071cb22ce4b026c635157f0fb08885d64`,
-  C/I/M `0/0/0`), static only. Their exact 20-path docs candidate awaits three exact-SHA reviews;
-  after PASS root only freezes/adjudicates `144-03B-Rule`. No execution. Its dependency on accepted
+  C/I/M `0/0/0`), static only. Folder docs are also static-only accepted at
+  `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`; Rule is separately an unaccepted docs-only
+  `ROOT_FROZEN_CANDIDATE` pending its own commit/reviews, 02D/02F closure, later plan and
+  Phase-145 carrier. No execution. Its dependency on accepted
   Address is satisfied; its callable/encoding/oracle contract is
   `THREAD_CALLABLE_ENCODING_ORACLE_STATIC_ACCEPTED` at
   `cbc12577a6444df9c660e43fedfd0c8133c6e461` / `EXACT_SHA_PASS` with C/I/M `0/0/0`.
@@ -75,4 +77,7 @@ do not establish executable, phase, product, or runtime acceptance.
   Docker, and runtime are all `NOT_RUN`. No direct host or Docker substitute is valid evidence.
 - `144-01B` remains `BLOCKED`; broader Phase 142/cross-contract acceptance and Phase 148 are
   pending. This evidence does not accept the phase, product, persistence, OpenAPI, or runtime.
-> **144-03B Folder post-source lifecycle (2026-08-14):** source/oracle commit `f8cb7643986fc591cae16764575337b72ef3a692` (parent `32e3dcb5b4f7ae65a88b79781646d25726ae16c6`, tree `14e7f6ce9a0f4b7912b955515d122c411159c579`) is narrowly `STATIC_ACCEPTED`, static-only, with exactly `backend/internal/mail/folder_tree.go` blob `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b` and `backend/tests/mail/folder_tree_test.go` blob `efe0db0071cb22ce4b026c635157f0fb08885d64`. Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and ABI/Compile-shape Terra/high exact-SHA reviews are `EXACT_SHA_PASS`, C/I/M `0/0/0`. This exact 20-path docs candidate (the frozen prior 19-path lifecycle manifest plus its new evidence file, including the three stale-gate evidence documents) awaits its own Lifecycle/Evidence high, Security/Dependency xhigh and Exact/Boundary high exact-SHA reviews. Launcher `NOT_READY`; compile, unit, race, build, lint, validators, Docker and runtime `NOT_RUN`; 04B reparent, 144-01B, Phase 142 and Phase 148 remain blocked. Author provenance Terra/medium, `dispatcher-enforced`, no fallback, telemetry `UNKNOWN`. After candidate reviews PASS, root only freezes/adjudicates `144-03B-Rule`; no Rule TDD or production authorization.
+
+> **Current rule gate:** `144-03B-Rule-Compiler` is unaccepted docs-only
+> `ROOT_FROZEN_CANDIDATE`; root commit/reviews, 02D/02F, later plan and engine-port carrier
+> remain required before Rule TDD/production.

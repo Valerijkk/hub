@@ -153,3 +153,6 @@ Required cases:
 10. exact task-resource cleanup even after timeout/failure;
 11. idle and representative load resource measurement;
 12. optional external SMTP only after G145-9, reported separately.
+
+**Rule gate:** candidate alone authorizes no Sieve runtime case. `144-03B-Rule-Compiler` is
+docs-only `ROOT_FROZEN_CANDIDATE`; later plan, 144-02D/02F and engine-port carrier are open.

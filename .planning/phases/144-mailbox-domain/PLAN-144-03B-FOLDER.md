@@ -7,8 +7,9 @@
 > after three exact-SHA PASS reviews C/I/M `0/0/0`. The Task 4 candidate is exactly 20 paths:
 > 16 existing paths from literal Step 1 discovery, plus three existing stale-gate implementation
 > evidence documents, plus `IMPLEMENTATION-144-03B-FOLDER.md` as one new evidence file. This
-> yields the exact 20-path candidate and creates no product decision. Candidate reviews precede only root
-> freeze/adjudication of `144-03B-Rule`; no Rule TDD or production authorization.
+> yields the historical 20-path candidate and creates no product decision. Folder docs are now
+> static-only accepted at `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`; the separate Rule candidate
+> awaits its own root commit/reviews, 02D/02F closure, later plan and Phase-145 carrier; no Rule TDD or production authorization.
 
 > For agentic workers: REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -27,7 +28,7 @@ Go 1.25; `github.com/google/uuid v1.6.0`; `golang.org/x/text v0.35.0` using `cas
 ## Global Constraints
 
 - Contract commit `a565af2632bc5f76a7d2fe26ebf3065fb3cefba9` (blob `0f9ed0adb0cec6ffa83619cb4c7c4cb4d3f3263c`) is narrowly `STATIC_ACCEPTED` after three independent exact-SHA reviews PASS with C/I/M `0/0/0`.
-- Plan commit `a98c7235521852dee1ebc0d09558c7bcbefc4534` (blob `c79658d61e496489be697bc971d0797ed30fb61f`) is narrowly `EXACT_SHA_PASS` / `STATIC_ACCEPTED` after exact, security and boundary reviews PASS with C/I/M `0/0/0`. Folder source+oracle are now statically accepted at `f8cb7643986fc591cae16764575337b72ef3a692`; this exact 20-path docs candidate is pending its own three exact-SHA reviews, after which root only freezes/adjudicates `144-03B-Rule`.
+- Plan commit `a98c7235521852dee1ebc0d09558c7bcbefc4534` (blob `c79658d61e496489be697bc971d0797ed30fb61f`) is narrowly `EXACT_SHA_PASS` / `STATIC_ACCEPTED` after exact, security and boundary reviews PASS with C/I/M `0/0/0`. Folder source+oracle and docs are accepted static-only at `f8cb7643986fc591cae16764575337b72ef3a692` and `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`; Rule is separately an unaccepted docs-only `ROOT_FROZEN_CANDIDATE` pending its own commit/reviews, 02D/02F closure, later plan and Phase-145 carrier.
 - The production boundary contains exactly two paths: `backend/tests/mail/folder_tree_test.go` first, then `backend/internal/mail/folder_tree.go`. No dependency, schema, handler, repository, engine, migration, generated, configuration, or additional source change is allowed.
 - Hub identifiers are `uuid.UUID`. Snapshot AccountID, row AccountID/ID, all action IDs, and target IDs reject `uuid.Nil`; only ParentID `uuid.Nil` means root. Engine opaque IDs are mapped to Hub UUID projection rows before either public callable.
 - Snapshot input includes every live non-deleted control row, including system and reserved creating/unknown/error/deleting rows. It is bounded to 100 rows. Deleted tombstones are excluded by caller. The separate engine enumeration bound does not alter this pure policy.
@@ -992,3 +993,7 @@ Route Lifecycle/Evidence `gpt-5.6-terra/high`, Security/Dependency `gpt-5.6-terr
 ## Execution handoff
 
 Founder `--auto` preselects `superpowers:subagent-driven-development`; no user choice is requested. Root orchestrates gates, dispatches, reviews and commits. Task 1 author is fresh Terra/xhigh; Task 2 author is fresh Terra/xhigh; Task 3 review routing is Terra/high, Terra/xhigh, Terra/high; Task 4 docs author is Terra/medium and reviews are Terra/high, Terra/xhigh, Terra/high. Every dispatch is explicit `gpt-5.6-terra` with stated effort, no fallback, `dispatcher-enforced` and telemetry `UNKNOWN` unless exposed. No task author stages, commits or executes tests.
+
+**Current successor gate:** Folder docs acceptance is `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`.
+The Rule contract is separate docs-only `ROOT_FROZEN_CANDIDATE`, unaccepted; root commit/reviews,
+144-02D/02F, later plan and engine-port/145 carrier precede Rule TDD/production.

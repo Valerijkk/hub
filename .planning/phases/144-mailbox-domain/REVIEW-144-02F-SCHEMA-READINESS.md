@@ -119,5 +119,10 @@ In addition to the attempted tuple, the one-row-per-account deployment needs:
 - 144-02E generation, generic mutation services, rule CRUD/deployment and every dependent
   handler remain blocked on the exact matrices above and the earlier 02A/02D amendments;
 - generation/migration and runtime remain independently blocked by founder/launcher gates;
-- no production/test source, dependency, generator, validator, migration or Docker command
-  was changed or run.
+- no production/test source, dependency, generator, validator, migration or Docker command was changed or run.
+
+## 144-03B Rule dependency clarification
+
+`144-03B-Rule-Compiler` is only a docs-only `ROOT_FROZEN_CANDIDATE`; this 02F review is not
+closed or accepted by it. Rule TDD/production requires explicit 02F closure, candidate and
+later-plan exact-SHA acceptance, and the separate Phase-145 engine-port carrier.

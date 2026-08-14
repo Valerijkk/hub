@@ -1,9 +1,11 @@
 # Terminal Codex: продолжение Hub после Desktop handoff
 
 > **CURRENT BANNER:** This historical terminal text is subordinate to `.continue-here.md`.
-> Folder source/oracle `f8cb7643986fc591cae16764575337b72ef3a692` is narrowly static accepted;
-> the 20-path docs candidate awaits three exact-SHA reviews. After PASS, root only freezes and
-> adjudicates `144-03B-Rule`; no Rule TDD or production authorization follows.
+> Folder source/oracle `f8cb7643986fc591cae16764575337b72ef3a692` is static accepted; Folder
+> docs acceptance is `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`. Separate
+> `144-03B-Rule-Compiler` is docs-only `ROOT_FROZEN_CANDIDATE`, unaccepted: root commits then
+> three exact-SHA reviews require C/I/M `0/0/0`; 144-02D/02F, later plan and engine-port/145
+> carrier remain blockers, with no Rule TDD or production authorization.
 
 > **CONSUMED / HISTORICAL PRE-01A RESUME PROMPT:** не выполняй старое следующее действие из
 > исторического текста ниже. Текущая authority — `.continue-here.md`: `144-03A-Address` уже
@@ -100,4 +102,4 @@ Founder выбрал Option A для всех 209 вопросов; канони
 - Не перезаписывай и не откатывай чужие изменения; при overlap остановись и сообщи.
 
 Заверши каждый этап честным статусом: отдельно static acceptance и отдельно `NOT_READY`/`NOT_RUN`. При любом mismatch, отсутствующем документе, конфликте границ, неявном fallback или ином blocker сообщи его с точными фактами и не импровизируй.
-> **144-03B Folder post-source lifecycle (2026-08-14):** historical subordinate to `.continue-here.md`. Source/oracle `f8cb7643986fc591cae16764575337b72ef3a692` is `STATIC_ACCEPTED`, static-only, after Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and ABI/Compile-shape Terra/high `EXACT_SHA_PASS` reviews, C/I/M `0/0/0`. The 20-path docs candidate awaits its own three reviews; then root only freezes/adjudicates `144-03B-Rule`. Launcher `NOT_READY`, executable evidence `NOT_RUN`; 04B reparent, 144-01B, Phase 142 and Phase 148 remain blocked. Author Terra/medium, dispatcher-enforced, no fallback, telemetry `UNKNOWN`.
+> **HISTORICAL / SUPERSEDED — 144-03B Folder post-source lifecycle (2026-08-14):** this terminal-only subordinate record is superseded by `.continue-here.md` and `CONTRACT-144-03B-RULE.md`. Folder source/oracle `f8cb7643986fc591cae16764575337b72ef3a692` and docs `ca4e2854a319a020f7322ae0a9a98e3fb4a07374` are static-only accepted. The current Rule candidate awaits its own root commit/reviews, 02D/02F closure, later plan and Phase-145 carrier; launcher `NOT_READY`, executable evidence `NOT_RUN`, and Phase 148 blocked.

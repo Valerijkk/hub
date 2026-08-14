@@ -115,3 +115,4 @@ with exactly one packet after all named gates pass.
 | Account identity mapping | EXACT `v0.16.17` IDENTITY GET/SET SOURCE FROZEN / ENABLED USE BLOCKED BY G145-5B MAIL AUTH |
 | Exclusive custom-folder writer | NOT_RUN / capability defaults false |
 | Runtime/resources/backup/external mail | NOT_RUN |
+| 144-03B Rule compiler input | ROOT_FROZEN_CANDIDATE only; no accepted IR carrier, no Sieve bytes; later plan, 02D/02F and carrier remain blockers |

@@ -514,9 +514,17 @@ same-account is checked before insert.
 ### `MailLabel`
 
 Fields: UUID id/account, display name 1..60 chars/240 bytes, private normalized name <=240
-bytes, color 1..32, immutable random `engine_keyword` 1..1,024 bytes, timestamps, optional
-`deleted_at`, `VersionMixin`. Live unique account+normalized name; unique account+keyword;
-at most 100 live labels/account under account lock. The quota failure is terminally retained
+bytes, color 1..32, immutable server-generated non-public `engine_keyword`: exactly 57 ASCII
+bytes, `hubk-` plus canonical lower-case unpadded RFC-4648 base32 of exactly 32 cryptographically
+random bytes. Validation must decode the suffix to exactly 32 bytes then re-encode it to the
+identical lower-case suffix; `[a-z2-7]{52}` alone is insufficient. The value is immutable and
+unique per account and embeds no Hub/account/user/label identifier or label name; timestamps,
+optional `deleted_at`, `VersionMixin`. Live unique account+normalized name; unique account+keyword;
+the database guard enforces ASCII/octet length 57 and `hubk-` plus `[a-z2-7]{52}`; application
+validation additionally requires canonical decode-to-32/re-encode. The private marker is never
+in OpenAPI/public DTOs. Resolver snapshots supplied to compiler are complete all-and-only live
+non-deleted same-account rows under the same account lock; lifecycle freshness stays 04M-owned.
+At most 100 live labels/account under account lock. The quota failure is terminally retained
 by its receipt. Active rule references restrict delete.
 
 ### `MailMessageLabel`
@@ -822,4 +830,10 @@ and Phases 143–148, `dispatcher-enforced` is sufficient only for an exact nati
 accepted without rejection; actual telemetry, when exposed, must match. Ent generation,
 schema validation, build/tests and migration artifacts remain `NOT_RUN` until the accepted
 task-owned launcher and founder migration decision exist.
-> **144-03B Folder post-source lifecycle (2026-08-14):** source/oracle commit `f8cb7643986fc591cae16764575337b72ef3a692` (parent `32e3dcb5b4f7ae65a88b79781646d25726ae16c6`, tree `14e7f6ce9a0f4b7912b955515d122c411159c579`) is narrowly `STATIC_ACCEPTED`, static-only, with exactly `backend/internal/mail/folder_tree.go` blob `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b` and `backend/tests/mail/folder_tree_test.go` blob `efe0db0071cb22ce4b026c635157f0fb08885d64`. Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and ABI/Compile-shape Terra/high exact-SHA reviews are `EXACT_SHA_PASS`, C/I/M `0/0/0`. This exact 20-path docs candidate (the frozen prior 19-path lifecycle manifest plus its new evidence file, including the three stale-gate evidence documents) awaits its own Lifecycle/Evidence high, Security/Dependency xhigh and Exact/Boundary high exact-SHA reviews. Launcher `NOT_READY`; compile, unit, race, build, lint, validators, Docker and runtime `NOT_RUN`; 04B reparent, 144-01B, Phase 142 and Phase 148 remain blocked. Author provenance Terra/medium, `dispatcher-enforced`, no fallback, telemetry `UNKNOWN`. After candidate reviews PASS, root only freezes/adjudicates `144-03B-Rule`; no Rule TDD or production authorization.
+
+## 144-03B Rule compiler candidate dependency
+
+Compiler neither calculates nor returns 04M-owned canonical hash v1; input action order remains
+hash material. Labels use server-generated immutable unique keywords: `hubk-` plus canonical
+lower-case unpadded RFC-4648 base32 of 32 random bytes, decode-to-32/re-encode exact. This does
+not close 144-02D/02F or authorize schemas, generation, Rule TDD or production.

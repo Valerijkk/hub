@@ -43,8 +43,10 @@ Docker evidence.
 
 Folder source+oracle are narrowly `STATIC_ACCEPTED` at `f8cb7643986fc591cae16764575337b72ef3a692`
 (source `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b`, oracle `efe0db0071cb22ce4b026c635157f0fb08885d64`,
-C/I/M `0/0/0`), static only. Its exact 20-path docs candidate awaits three exact-SHA reviews;
-after PASS root only freezes/adjudicates `144-03B-Rule`. 144-03C/144-03D eligibility is status
+C/I/M `0/0/0`), static only. Folder docs are also static-only accepted at
+`ca4e2854a319a020f7322ae0a9a98e3fb4a07374`; Rule is separately an unaccepted docs-only
+`ROOT_FROZEN_CANDIDATE` pending its own commit/reviews, 02D/02F closure, later plan and
+Phase-145 carrier. 144-03C/144-03D eligibility is status
 only, not the current action.
 
 1. `.planning/STATE.md`
@@ -66,4 +68,7 @@ only, not the current action.
 17. `.planning/phases/144-mailbox-domain/IMPLEMENTATION-144-03A-THREAD.md`
 18. `backend/internal/mail/threading.go`
 19. `backend/tests/mail/threading_test.go`
-> **144-03B Folder post-source lifecycle (2026-08-14):** source/oracle commit `f8cb7643986fc591cae16764575337b72ef3a692` (parent `32e3dcb5b4f7ae65a88b79781646d25726ae16c6`, tree `14e7f6ce9a0f4b7912b955515d122c411159c579`) is narrowly `STATIC_ACCEPTED`, static-only, with exactly `backend/internal/mail/folder_tree.go` blob `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b` and `backend/tests/mail/folder_tree_test.go` blob `efe0db0071cb22ce4b026c635157f0fb08885d64`. Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and ABI/Compile-shape Terra/high exact-SHA reviews are `EXACT_SHA_PASS`, C/I/M `0/0/0`. This exact 20-path docs candidate (the frozen prior 19-path lifecycle manifest plus its new evidence file, including the three stale-gate evidence documents) awaits its own Lifecycle/Evidence high, Security/Dependency xhigh and Exact/Boundary high exact-SHA reviews. Launcher `NOT_READY`; compile, unit, race, build, lint, validators, Docker and runtime `NOT_RUN`; 04B reparent, 144-01B, Phase 142 and Phase 148 remain blocked. Author provenance Terra/medium, `dispatcher-enforced`, no fallback, telemetry `UNKNOWN`. After candidate reviews PASS, root only freezes/adjudicates `144-03B-Rule`; no Rule TDD or production authorization.
+
+> **Current rule gate:** distinct `144-03B-Rule-Compiler` is docs-only
+> `ROOT_FROZEN_CANDIDATE`, not accepted; it needs root commit/reviews, 02D/02F, later plan and
+> engine-port/145 carrier before Rule TDD/production.
