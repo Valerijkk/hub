@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Hub Mail and Calendar Sync API
   version: 0.1.8
-  description: The five-document 0.1.8 entry amendment independently PASSed at 5e314fb080d420696642058ae47397e251c23207 and authorizes only 144-01A entry. 144-03A Thread callable/encoding/oracle is THREAD_CALLABLE_ENCODING_ORACLE_STATIC_ACCEPTED at cbc12577a6444df9c660e43fedfd0c8133c6e461 / EXACT_SHA_PASS after Spec/API/Persistence, Security and Lifecycle/Evidence PASS reviews with C/I/M 0/0/0; implementation remains UNIMPLEMENTED / STATIC_TDD_AUTHORIZED. Broader cross-contract review and runtime remain pending. Presence in this file does not imply implementation.
+  description: The five-document 0.1.8 entry amendment independently PASSed at 5e314fb080d420696642058ae47397e251c23207 and authorizes only 144-01A entry. Thread contract remains accepted at cbc12577a6444df9c660e43fedfd0c8133c6e461; implementation+oracle are STATIC_CONFORMANT pre-commit candidate on base 73060a4b (source c221d547, oracle b21bd6fd, reviews C/I/M 0/0/0), not STATIC_ACCEPTED until exact atomic commit plus independent exact-SHA review. Broader cross-contract review and runtime remain pending. Presence in this file does not imply implementation.
 servers:
   - url: /api
 security:

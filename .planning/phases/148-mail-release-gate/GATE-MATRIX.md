@@ -1,6 +1,6 @@
 # Phase 148 — merge-readiness gate matrix
 
-> **Status:** G148_02_BLOCKED_BROADER_CROSS_CONTRACT_CURRENT_SOURCE_EXECUTABLE_GAPS · FIVE_DOCUMENT_144_01A_ENTRY_AMENDMENT_PASS_5E314FB0 · 144_01A_STATIC_ACCEPTED_E3E8C774 · IMPLEMENTATION_IN_PROGRESS · RUNTIME_NOT_RUN
+> **Status:** G148_02_BLOCKED_BROADER_CROSS_CONTRACT_CURRENT_SOURCE_EXECUTABLE_GAPS · FIVE_DOCUMENT_144_01A_ENTRY_AMENDMENT_PASS_5E314FB0 · 144_01A_STATIC_ACCEPTED_E3E8C774 · 144_03A_THREAD_STATIC_CONFORMANT_PRE_COMMIT_PENDING_EXACT_COMMIT_REVIEW · IMPLEMENTATION_IN_PROGRESS · RUNTIME_NOT_RUN
 > **Scope:** Mail/Calendar/CRM feature branch only
 > **Evidence rule:** exact current SHA or no PASS
 > **Execution rule:** accepted versioned Docker launcher only; host/direct Compose evidence
@@ -179,6 +179,8 @@ cross-contract PASS. The 144-01A bounded engine DTO/error boundary is `STATIC_AC
 `e3e8c774d734f926f77f8e600b58dc68dabbd993`. G148-02 remains blocked only for broader
 cross-contract/current-source review, executable schema/example validation and Stalwart
 authoritative manual-DNS verification. 144-01B remains blocked under stricter Task3 authority
-pending applicable supported current-SHA Docker evidence; only pure 144-03A/B/C/D static
-authoring is authorized. The launcher is `NOT_READY`, engine/legal/migration/broadcast/rebase
-decisions are unresolved, and all executable evidence is `NOT_RUN`.
+pending applicable supported current-SHA Docker evidence. Packet eligibility is status only:
+the sole current action is the Thread candidate's exact 19-path commit then independent
+exact-SHA review; `144-03B-Folder` is not dispatched. The launcher is `NOT_READY`,
+engine/legal/migration/broadcast/rebase decisions are unresolved, and all executable evidence
+is `NOT_RUN`.
