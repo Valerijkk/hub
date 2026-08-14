@@ -1,5 +1,9 @@
 # 144-03B-Folder — static-accepted callable, error and oracle contract
 
+> **Carrier-lifecycle clause precedence:** Only the lower clause or fragment asserting carrier **contract** acceptance is pending, unaccepted, or open is superseded and `CONSUMED/HISTORICAL`; every unrelated/current fact in the same record remains authoritative, including 02F accepted, Phase 145 blocked, implementation-plan/source, G145-5A/B/C/D/6-9, launcher and runtime status. Contract `1daef787` is docs/design accepted.
+
+> **Phase-145 carrier receipt (2026-08-15):** Carrier `1daef78768048d7672c38a65b78ef0f119f3c207` (parent `c14c208889e8aa1ce7f005a3d9ce03d1a3bb6dc6`, tree `1086a93f2f52423cfdf9dcfc01eadd2e0d434947`, blob `218a38117ae51d014f40218e0f5c4606ec8d4dfa`) is docs/design/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; exact reviews PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`; base/correction lifecycle `CONSUMED/HISTORICAL`. No plan/source/test/runtime authority. Separate carrier-plan acceptance + G145-5B/G145-5C/launcher readiness block Rule Task 1/145-07B; launcher `NOT_READY`, executables `NOT_RUN`.
+
 > **Lifecycle:** `FOLDER_TREE_CALLABLE_ERROR_NORMALIZATION_ORACLE_STATIC_ACCEPTED`.
 > **Contract commit:** `a565af2632bc5f76a7d2fe26ebf3065fb3cefba9` · **blob:** `0f9ed0adb0cec6ffa83619cb4c7c4cb4d3f3263c`.
 > **Status:** narrowly `STATIC_ACCEPTED` after three independent exact-SHA reviews PASS, C/I/M `0/0/0`; executable evidence is `NOT_RUN`.

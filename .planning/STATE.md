@@ -4,7 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
-last_updated: "2026-08-14T12:45:44+03:00"
+last_updated: "2026-08-15T00:00:00+03:00"
+carrier_contract_acceptance: "Phase-145 non-marker typed-IR/Sieve carrier is docs/design/readiness-only STATIC_ACCEPTED / EXACT_SHA_PASS at 1daef78768048d7672c38a65b78ef0f119f3c207 (parent c14c208889e8aa1ce7f005a3d9ce03d1a3bb6dc6, tree 1086a93f2f52423cfdf9dcfc01eadd2e0d434947, sole carrier blob 218a38117ae51d014f40218e0f5c4606ec8d4dfa); Contract/Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh, Lifecycle/Dependency/Boundary Terra/high exact-SHA PASS C/I/M 0/0/0; dispatcher-enforced, fallback none, telemetry UNKNOWN unless exposed. Base 692b99d8 and correction c14c2088 lifecycle records are CONSUMED/HISTORICAL. No source/implementation-plan/test/build/runtime/product/phase/release authority. Root-only next action is separate carrier-plan authoring/adjudication. Rule Task 1 and 145-07B remain NOT_AUTHORIZED/BLOCKED until that plan is separately STATIC_ACCEPTED plus G145-5B, G145-5C and launcher readiness; launcher NOT_READY and executables NOT_RUN."
 rule_plan_acceptance: "Standalone PLAN-144-03B-RULE.md is docs/plan-only STATIC_ACCEPTED / EXACT_SHA_PASS at 669ef761715ec35a638bc87d8396e6f562b162c4 (parent 77eb4356de06a5304521b60c57af4e73c5740ce1, tree 1b554d1c5763818ffef4f3c06c2a5bde16046d37, sole path, blob b86c0423a307fd2673a3d322435922aa2a398e8f); Contract/Spec/Oracle Terra/high, Security/Adversarial/Purity Terra/xhigh, Lifecycle/Dependency/Boundary Terra/high PASS C/I/M 0/0/0; dispatcher-enforced, fallback none, telemetry UNKNOWN unless exposed. Former Rule-plan author/adjudicate/accept instructions CONSUMED/HISTORICAL. Plan only: no Rule oracle/source/TDD/schema/migration/service/Phase145/runtime/product/phase/release authority. Task 1 RED NOT_AUTHORIZED/BLOCKED until all accepted non-marker Phase145 typed-IR/script carrier, G145-5B, G145-5C and launcher readiness, no order implied; post-task runtime NOT_RUN. Task4 docs sync separately discovered after future source Task3 acceptance."
 last_activity: 2026-08-14 · Rule plan acceptance is complete at 669ef761715ec35a638bc87d8396e6f562b162c4 (parent 77eb4356de06a5304521b60c57af4e73c5740ce1, tree 1b554d1c5763818ffef4f3c06c2a5bde16046d37, sole added plan blob b86c0423a307fd2673a3d322435922aa2a398e8f): docs/plan-only STATIC_ACCEPTED / EXACT_SHA_PASS, Contract/Spec/Oracle Terra/high, Security/Adversarial/Purity Terra/xhigh, Lifecycle/Dependency/Boundary Terra/high PASS C/I/M 0/0/0; dispatcher-enforced, fallback none, telemetry UNKNOWN unless exposed. Former Rule-plan author/adjudicate/accept lifecycle is CONSUMED/HISTORICAL. No Rule source/TDD/schema/migration/service/Phase145/runtime/product/phase/release authority; Task 1 RED remains NOT_AUTHORIZED/BLOCKED pending ALL accepted non-marker Phase145 typed-IR/script carrier + G145-5B + G145-5C + launcher readiness, without implied order; post-task runtime NOT_RUN. 02D/02F, 144-01B, Phase 142/148 and launcher/executable status remain unchanged.
 progress:
@@ -217,6 +218,8 @@ spec_coverage:
 ---
 
 # Состояние проекта Hub
+
+> **Carrier-lifecycle clause precedence (2026-08-15):** Only the lower clause or fragment asserting carrier **contract** acceptance is missing, pending, unaccepted, or open is superseded and `CONSUMED/HISTORICAL`; every unrelated/current fact in the same record remains authoritative, including 02F accepted, Phase 145 blocked, implementation-plan/source, G145-5A/B/C/D/6-9, launcher and runtime status. Contract `1daef787` is docs/design accepted.
 
 ## Product workstream — Hub Mail + Calendar Sync (2026-08-13)
 
