@@ -258,7 +258,7 @@ Package A0 is a static source contract and may proceed without external ingress.
 | A0 dependency-admission source contract | `testframework/docker/dependency-bundle.schema.v1.json`, `testframework/docker/admission/verify_local_dependency_bundle.py`, `testframework/docker/admission/admit_local_dependency_assets.py`, `testframework/docker/Dockerfile.g0-admission-helper`, `testframework/docker/entrypoints/g0-admission-helper.sh`, `testframework/docker/admit-local-dependency-assets.ps1`, `testframework/selftests/runner/g0-bootstrap-attestor-contract.ps1` |
 | A0 source/build-attestation source contract | `testframework/docker/source-image-attestor.ps1`, `testframework/selftests/runner/g0-image-contract.ps1` |
 | A0 four image targets and bootstrap control | `testframework/docker/Dockerfile.backend-unit`, `testframework/docker/Dockerfile.frontend-unit`, `testframework/docker/Dockerfile.backend-openapi`, `testframework/docker/Dockerfile.g0-planning-selftest`, `testframework/docker/entrypoints/backend-unit.sh`, `testframework/docker/entrypoints/frontend-unit.sh`, `testframework/docker/entrypoints/backend-openapi.sh`, `testframework/docker/entrypoints/g0-planning-selftest.sh`, `testframework/docker/runner-fixtures/g0-planning-selftest.py`, `testframework/docker/vitest.frontend-unit.config.ts`, `testframework/docker/compose.g0-bootstrap.yaml`, `testframework/docker/bootstrap-control.v1.json` |
-| A0.1 archive-security amendment | `testframework/docker/dependency-bundle.schema.v1.json`, `testframework/docker/admission/verify_local_dependency_bundle.py`, `testframework/docker/Dockerfile.backend-unit`, `testframework/docker/Dockerfile.frontend-unit`, `testframework/docker/Dockerfile.backend-openapi`, `testframework/docker/entrypoints/frontend-unit.sh`, `testframework/docker/runner-fixtures/g0-planning-selftest.py`, `testframework/docker/bootstrap-control.v1.json`, `testframework/docker/source-image-attestor.ps1`, `testframework/selftests/runner/g0-bootstrap-attestor-contract.ps1`, `testframework/selftests/runner/g0-image-contract.ps1` |
+| A0.1 archive-security amendment | `testframework/docker/dependency-bundle.schema.v1.json`, `testframework/docker/admission/verify_local_dependency_bundle.py`, `testframework/docker/admission/admit_local_dependency_assets.py`, `testframework/docker/Dockerfile.backend-unit`, `testframework/docker/Dockerfile.frontend-unit`, `testframework/docker/Dockerfile.backend-openapi`, `testframework/docker/entrypoints/frontend-unit.sh`, `testframework/docker/runner-fixtures/g0-planning-selftest.py`, `testframework/docker/bootstrap-control.v1.json`, `testframework/docker/source-image-attestor.ps1`, `testframework/selftests/runner/g0-bootstrap-attestor-contract.ps1`, `testframework/selftests/runner/g0-image-contract.ps1` |
 | A1 binding data only | `testframework/docker/dependency-bundle.manifest.v1.json`, `testframework/docker/source-policy.v2.json`, `testframework/docker/build-manifest.v3.json` |
 | Bootstrap and v2 runner | `testframework/runner/contracts/hub.qa-bootstrap.v1.json`, `testframework/runner/invoke-qa-bootstrap-v1.ps1`, `testframework/runner/invoke-qa-gate-v2.ps1`, `testframework/runner/run-task-v2.ps1`, `testframework/runner/new-repository-snapshot.ps1`, `testframework/runner/new-run-envelope.ps1`, `testframework/runner/write-g0-activation.ps1`, `testframework/schemas/repository-snapshot.schema.v1.json`, `testframework/schemas/run-envelope.schema.v1.json`, `testframework/selftests/runner/g0-runner-v2-contract.ps1`, `testframework/runner/README.md`, `.cursor/skills/qa-gate/SKILL.md` |
 
@@ -361,6 +361,68 @@ consume only that private held session during the same helper process; a new
 process, path reopen, or attempt to continue from receipt data alone is
 `E_ASSET_ARCHIVE_INVALID`.
 
+### A0.1 private helper-admission receipt and staging contract
+
+Only `admit_local_dependency_assets.py` augments the successful public
+verifier projection with a private helper-admission receipt. Its ordered
+top-level keys remain exactly `schema`, `bundle_id`, `source_commit`,
+`manifest_sha256`, `assets`, `bases`, `local_base_receipt_sha256`,
+`receipt_nonce`, and `verdict`, in that order. This remains the exact
+nine-key compatibility surface consumed by the existing host PowerShell
+contract. The schema literal is
+`hub.qa.g0-dependency-admission-receipt/v1` and `verdict` is exactly
+`ACCEPT`; failure writes no receipt. The public verifier return remains exactly
+`verdict`, `manifest_sha256`, `assets`, `bases`, `reason_code`, and every
+public verifier asset remains exactly its existing nine fields:
+`asset_id`, `targets`, `relative_path`, `sha256`, `bytes`, `archive_format`,
+`member_count`, `expanded_bytes`, `layout_sha256`.
+
+In the receipt only, every `assets` child has the public nine fields first and
+then exactly these closed additional fields in this order:
+`descriptor_contract`, `source_observations`, `staged_targets`.
+`descriptor_contract` is literally `linux-held-nofollow-fd/v1`. It binds the
+single Linux retained descriptor used for every raw/archive pass and target
+copy; it is not a serialized descriptor, path capability, or alternate
+platform fallback. `source_observations` is a closed ordered object with only
+`opened`, `post_hash`, `post_raw_scan`, `post_tarfile`, `pre_stage`, and
+`post_stage`, in that exact order. Each phase child is a closed object with
+only `descriptor` then `pathname`; each of those is a closed identity object
+with exactly `device`, `inode`, `mode`, `size`, `mtime_ns`, in that order.
+`descriptor` is the held-descriptor `fstat` identity and `pathname` is the
+same final-component no-follow pathname-stat identity. Both identities at
+every phase must equal the `opened.descriptor` identity, must equal one
+another, must prove a regular file, and must have `size` equal to the accepted
+raw manifest `bytes`; any disagreement is `E_ASSET_ARCHIVE_INVALID`.
+
+`staged_targets` is an array in the manifest asset's declared `targets` order,
+with no duplicate, omission, extra, sorting, or alternate target. Every child
+is closed and has exactly `target`, `relative_tar_path`, `bytes`, `sha256`,
+`create_new`, `fsync`, `safe_reopen`, `rehash_sha256`, in that order.
+`relative_tar_path` is exactly the contained report-root-relative destination
+`bootstrap/build-context/<target>/bindings/<relative_path>`; it is never
+absolute, caller-controlled, or a later source locator. `bytes` and `sha256` equal the
+asset's admitted raw identity; `create_new`, `fsync`, and `safe_reopen` are
+JSON `true`; `rehash_sha256` equals `sha256`. The writer derives the
+build-context root only from its fixed successful receipt/report root, never a
+caller path. It seeks the held descriptor to zero for each declared target,
+creates that exact destination once, bounded-streams it, fsyncs/closes it,
+safely no-follow reopens it, and rehashes it before appending the child and
+create-new writing the receipt. It writes no success receipt if an expected
+target already exists or if any child cannot be fully proven.
+
+The source-image attestor duplicate-aware parses these exact receipt children
+from its fixed report path before candidate reservation. It streams every
+`relative_tar_path` only as the exact contained
+`bootstrap/build-context/<target>/bindings/<relative_path>` child of that
+fixed report root, requires closed path containment plus the declared byte
+length and SHA-256, and rejects every whole-file read, path alias, missing
+child, or disagreement as
+`E_ASSET_ARCHIVE_INVALID`; it never trusts a receipt field without re-streaming
+the staged archive. A missing, malformed, duplicate, reordered, or
+owner/base/nonce-bound receipt link is `E_RECEIPT_BINDING_INVALID` where the
+binding itself is invalid; unsafe archive/identity/path/staging facts remain
+`E_ASSET_ARCHIVE_INVALID`.
+
 The archive profile is closed as follows. `member_count` counts only admitted
 directory and regular-file members, `expanded_bytes` is their regular-file
 payload sum, and both observed values must equal the manifest. Every archive
@@ -431,12 +493,12 @@ path supplied by the caller or an extracted directory. This makes the raw
 archive bytes, member count, expanded byte count, and normalized layout all
 separately A1-bound facts.
 
-| Asset | Exact archive path | Docker `ADD` destination | Required normalized marker members |
-|---|---|---|---|
-| `go-module-cache` | `assets/go-module-cache.tar` | `/opt/hub/offline/go-module-cache/` | directory `pkg/mod/cache/download` |
-| `go-race-toolchain` | `assets/go-race-toolchain.tar` | `/opt/hub/offline/go-race-toolchain/` | regular executable `bin/cc` (`0755`) and `bin/go` (`0755`) |
-| `frontend-node-modules` | `assets/frontend-node-modules.tar` | `/opt/hub/frontend/` | directory `node_modules`; regular `node_modules/typescript/bin/tsc`, executable `node_modules/@biomejs/biome/bin/biome` (`0755`), regular `node_modules/vite/bin/vite.js`, and regular `node_modules/vitest/vitest.mjs` |
-| `swag-binary` | `assets/swag-binary.tar` | `/opt/hub/offline/swag/` | regular executable `swag` (`0755`) |
+| Asset | Manifest `relative_path` | Docker `ADD` source (within target context) | Docker `ADD` destination | Required normalized marker members |
+|---|---|---|---|---|
+| `go-module-cache` | `assets/go-module-cache.tar` | `bindings/assets/go-module-cache.tar` | `/opt/hub/offline/go-module-cache/` | directory `pkg/mod/cache/download` |
+| `go-race-toolchain` | `assets/go-race-toolchain.tar` | `bindings/assets/go-race-toolchain.tar` | `/opt/hub/offline/go-race-toolchain/` | regular executable `bin/cc` (`0755`) and `bin/go` (`0755`) |
+| `frontend-node-modules` | `assets/frontend-node-modules.tar` | `bindings/assets/frontend-node-modules.tar` | `/opt/hub/frontend/` | directory `node_modules`; regular `node_modules/typescript/bin/tsc`, executable `node_modules/@biomejs/biome/bin/biome` (`0755`), regular `node_modules/vite/bin/vite.js`, and regular `node_modules/vitest/vitest.mjs` |
+| `swag-binary` | `assets/swag-binary.tar` | `bindings/assets/swag-binary.tar` | `/opt/hub/offline/swag/` | regular executable `swag` (`0755`) |
 
 The required markers are part of the static verifier, not caller data. For
 `go-race-toolchain`, the exact provenance evidence
@@ -453,9 +515,12 @@ all of these before admission. `Dockerfile.backend-unit` sets exactly
 race action; no `CC` search or host compiler fallback is allowed.
 
 The three target Dockerfiles may receive those asset bytes only through local
-Docker `ADD` auto-extraction from the exact A1-staged `.tar` paths to the table
-destinations. They have no `RUN`, `tar`, package-manager, installer, network,
-or archive-extraction command. Normal controls, source trees, and entrypoint
+Docker `ADD` auto-extraction from the exact `bindings/<relative_path>` source
+listed in the table, within the one target's staged
+`bootstrap/build-context/<target>/` context, to the table destinations. No
+later copy, re-root, rename, or alternate archive source is permitted. They
+have no `RUN`, `tar`, package-manager, installer, network, or
+archive-extraction command. Normal controls, source trees, and entrypoint
 files remain fixed local `COPY` inputs; entrypoints use `COPY --chmod=0555` so
 no shell chmod layer is needed. The frontend entrypoint first requires the
 fixed executable `/usr/local/bin/node` and has this exact ordered command
@@ -479,11 +544,13 @@ human-readable target-action array. The amended
 entrypoint, and bootstrap-control sequence to these exact Node-prefixed
 commands; `g0-planning-selftest.py` retains the raw-archive fixtures below and
 may not introduce a second frontend command representation. All of those
-bindings are owned by the existing 11-file A0.1 allowlist below; no extra
+bindings are owned by the existing 12-file A0.1 allowlist below; no extra
 fixture, command wrapper, or compatibility file is authorized. During Package
-C, the helper's admission transaction stages byte-identical tar bytes into each
-target build context only from the already-admitted source descriptor/handle:
-it seeks the still-held descriptor to zero for each declared destination,
+C, the helper's admission transaction stages byte-identical tar bytes only at
+each target context's exact `bindings/<relative_path>` destination, i.e.
+`bootstrap/build-context/<target>/bindings/<relative_path>`, and only from the
+already-admitted source descriptor/handle: it seeks the still-held descriptor
+to zero for each declared destination,
 creates that target path with exclusive create-new and no-follow/contained
 parent semantics, streams bounded bytes while computing SHA-256 and length,
 `fsync`s and closes the target, then safely reopens the target with no-follow
@@ -491,7 +558,8 @@ semantics and rehashes it to require the exact admitted source digest and
 length before any build can see it. It must recheck the held source descriptor
 and no-follow ingress-path identity before and after every staged copy. It may
 not copy by a later pathname, `Copy-Item`, archive member, cached byte array,
-or unbound second open. A source replacement, target collision, reparse,
+unbound second open, or a later copy/re-root from the staged target tar. A
+source replacement, target collision, reparse,
 identity/size/mtime drift, `fsync`/rehash failure, or later pathname
 substitution is `E_ASSET_ARCHIVE_INVALID` and publishes no target build
 context. Neither the host nor helper extracts an archive.
@@ -513,17 +581,22 @@ cross-check before deterministic layout projection. It also verifies canonical
 member order, collision and special-member rejection, required markers, race
 `CC` plus Go-base ABI provenance binding, target-only local `ADD` behavior, and
 the literal frontend Node-prefixed command sequence. In the exact existing
-11-file A0.1 allowlist it checks that `bootstrap-control.v1.json`,
+12-file A0.1 allowlist it checks that `bootstrap-control.v1.json`,
 `source-image-attestor.ps1`, and `g0-image-contract.ps1` bind the same frontend
-sequence, and that `g0-planning-selftest.py` owns the stated raw-tar negative
-fixtures, including source replacement between descriptor passes and before
-staging, without duplicating the parser. It verifies that
+sequence, and that `g0-planning-selftest.py` and
+`admit_local_dependency_assets.py` own the stated raw-tar and receipt/staging
+negative fixtures, including source replacement between descriptor passes,
+before staging, and receipt-child closure, without duplicating the parser. It verifies that
 `Dockerfile.g0-admission-helper` and `Dockerfile.g0-planning-selftest` are
 intentionally unchanged: their image-build definitions neither stage nor
-extract target archives, while the amended shared verifier in the already-built
-helper performs the runtime held-descriptor staging and the existing
-verifier/fixture copy set already supplies the amended schema and verifier. A
-HIGH finding leaves B uncommitted and all runtime states blocked.
+extract target archives. `Dockerfile.g0-admission-helper` already copies
+`admission/admit_local_dependency_assets.py`, so the added A0.1 source file
+needs no Dockerfile change; the amended shared module in the already-built
+helper performs the runtime held-descriptor staging. A
+HIGH finding leaves B uncommitted and all runtime states blocked. Acceptance
+must explicitly include this closed receipt/staging schema and its negative
+fixture contract; an acceptance limited to the older nine-key top-level receipt
+shape is not A0.1 acceptance and cannot unlock Package B.
 
 **Files:** only the exact allowlist below. `bootstrap-control.v1.json` changes
 because it binds the new archive admission gate and direct frontend actions;
@@ -531,10 +604,13 @@ because it binds the new archive admission gate and direct frontend actions;
 missing or mismatched archive-admission receipt; the bootstrap attestor source
 contract changes to prove host byte-preservation/no extraction; and the image
 contract changes to prove `ADD`, no-`RUN`, marker, and direct-module rules.
-No other A0 file is justified.
+`admit_local_dependency_assets.py` is the sole twelfth file: it owns the
+closed private receipt/staging writer while preserving the public verifier
+surface. No Dockerfile changes because the helper Dockerfile already copies
+that module. No other A0 file is justified.
 
 ```powershell
-git commit --only testframework/docker/dependency-bundle.schema.v1.json testframework/docker/admission/verify_local_dependency_bundle.py testframework/docker/Dockerfile.backend-unit testframework/docker/Dockerfile.frontend-unit testframework/docker/Dockerfile.backend-openapi testframework/docker/entrypoints/frontend-unit.sh testframework/docker/runner-fixtures/g0-planning-selftest.py testframework/docker/bootstrap-control.v1.json testframework/docker/source-image-attestor.ps1 testframework/selftests/runner/g0-bootstrap-attestor-contract.ps1 testframework/selftests/runner/g0-image-contract.ps1 -m "fix(qa): harden G0 dependency archives"
+git commit --only testframework/docker/dependency-bundle.schema.v1.json testframework/docker/admission/verify_local_dependency_bundle.py testframework/docker/admission/admit_local_dependency_assets.py testframework/docker/Dockerfile.backend-unit testframework/docker/Dockerfile.frontend-unit testframework/docker/Dockerfile.backend-openapi testframework/docker/entrypoints/frontend-unit.sh testframework/docker/runner-fixtures/g0-planning-selftest.py testframework/docker/bootstrap-control.v1.json testframework/docker/source-image-attestor.ps1 testframework/selftests/runner/g0-bootstrap-attestor-contract.ps1 testframework/selftests/runner/g0-image-contract.ps1 -m "fix(qa): harden G0 dependency archives"
 ```
 
 ## Four-target image and lock contract
@@ -543,7 +619,7 @@ Package A0 freezes `source-image-attestor.ps1`, four Dockerfiles, four entrypoin
 
 `source-policy.v2.json` is `hub.qa.local-source-policy/v2`; `build-manifest.v3.json` is `hub.qa.local-images-build-manifest/v3`. They bind the committed recovery source revision, the mandatory sorted source-tree digest, four target definitions, entrypoint digests, the dedicated Vitest config digest, bundle digest, and no network or registry capability. `source-policy.v2.json` contains the closed ordered allowlist of every source `path` and its Git `blob_sha1` expected at source commit `7b5d5501cefab34f9aa5661e4f8c38e71474f9ce`; it admits only mode `100644` regular blobs. `build-manifest.v3.json` repeats the exact source commit and source-tree digest and binds the raw SHA-256 of `source-policy.v2.json`. Neither file may infer source entries from the worktree, index, glob, Docker context, or a later control commit.
 
-`source-image-attestor.ps1` has no caller-selectable `RepositoryRoot`, `CandidatePath`, `TargetAttestations`, record collection, source-policy path, build-manifest path, archive path, archive receipt, or image-inspection input. It resolves the canonical repository root only from its own physical `PSScriptRoot`, verifies every ancestor and consumed path is non-reparse and contained, reads the fixed raw A1 controls `testframework/docker/source-policy.v2.json`, `testframework/docker/build-manifest.v3.json`, and `testframework/docker/dependency-bundle.manifest.v1.json`, and derives the candidate lock path only as `testframework/reports/<task-run>/bootstrap/images.lock.v3.json` from the internally validated post-build image-attestation context. Before a target image can be accepted or a candidate reservation created, it derives and duplicate-aware validates the fixed raw helper-admission receipt at `bootstrap/g0-admission-helper.admission.v1.json`; every returned asset must exactly equal the A1 manifest raw archive identity and accepted `archive_format`, `member_count`, `expanded_bytes`, and `layout_sha256`. The receipt must additionally bind the owner marker, held-source descriptor identity/mode/size/mtime observations, no-follow identity rechecks, and each exact declared target staging destination's create-new source digest/length, `fsync`, safe reopen, and rehash equality. A missing, path-reopened, substituted, or partially staged asset blocks candidate publication as `E_ASSET_ARCHIVE_INVALID`. It accepts only the runner-produced, closed projection of `docker image inspect` rooted at that same task report and recomputes the four target records, entrypoint hashes, and Docker `Cmd` hashes itself using JCS canonical bytes plus fixed Dockerfile/entrypoint/control bytes. It consumes, but never creates or adopts, the runner-created exact raw `bootstrap/owner-marker.v1.json` file, then creates only its task-owned reservation paths before candidate publication; asset staging already happened through the helper's held-descriptor admission transaction.
+`source-image-attestor.ps1` has no caller-selectable `RepositoryRoot`, `CandidatePath`, `TargetAttestations`, record collection, source-policy path, build-manifest path, archive path, archive receipt, or image-inspection input. It resolves the canonical repository root only from its own physical `PSScriptRoot`, verifies every ancestor and consumed path is non-reparse and contained, reads the fixed raw A1 controls `testframework/docker/source-policy.v2.json`, `testframework/docker/build-manifest.v3.json`, and `testframework/docker/dependency-bundle.manifest.v1.json`, and derives the candidate lock path only as `testframework/reports/<task-run>/bootstrap/images.lock.v3.json` from the internally validated post-build image-attestation context. Before a target image can be accepted or a candidate reservation created, it duplicate-aware parses the fixed raw helper-admission receipt at `bootstrap/g0-admission-helper.admission.v1.json`: exact nine ordered receipt keys; the public nine asset fields; `descriptor_contract=linux-held-nofollow-fd/v1`; the six closed source-observation phases and equal descriptor/path identities; and manifest-order closed `staged_targets`. Every public asset must exactly equal the A1 manifest raw archive identity and accepted `archive_format`, `member_count`, `expanded_bytes`, and `layout_sha256`. For every staged child it derives only the fixed task report root, checks its exact contained `bootstrap/build-context/<target>/bindings/<relative_path>` path, and bounded-streams the tar to recompute its length and SHA-256; it rejects a whole-file read, duplicate/reordered/missing/extra child, boolean other than JSON `true`, rehash disagreement, or any later copy/re-root. An absent or malformed receipt/binding is `E_RECEIPT_BINDING_INVALID`; a path-reopened, substituted, unsafe, or partially staged asset blocks candidate publication as `E_ASSET_ARCHIVE_INVALID`. It accepts only the runner-produced, closed projection of `docker image inspect` rooted at that same task report and recomputes the four target records, entrypoint hashes, and Docker `Cmd` hashes itself using JCS canonical bytes plus fixed Dockerfile/entrypoint/control bytes. It consumes, but never creates or adopts, the runner-created exact raw `bootstrap/owner-marker.v1.json` file, then creates only its task-owned reservation paths before candidate publication; asset staging already happened through the helper's held-descriptor admission transaction.
 
 Before any build or candidate publication it must verify the source tree directly from Git object data at exact commit `7b5d5501cefab34f9aa5661e4f8c38e71474f9ce`, never from the worktree or index (the 241 staged legacy deletions are therefore irrelevant). It enumerates only the closed `source-policy.v2.json` allowlist and requires a one-to-one match: every path occurs exactly once, has Git mode `100644`, resolves to the declared Git blob SHA-1, and has raw content SHA-256 equal to the independently read blob bytes. It rejects every symlink (`120000`), submodule/gitlink (`160000`), tree, nonregular entry, duplicate/collision after UTF-8 byte encoding, unlisted entry, missing entry, or blob/digest disagreement. It canonicalizes each admitted source blob as raw UTF-8/no-BOM line bytes `path<TAB>100644<TAB>blob_sha1<TAB>sha256(raw)<LF>`, sorts those complete lines by the UTF-8 byte order of `path`, concatenates them with no separators or trailing bytes beyond each required LF, and computes SHA-256. That value must equal both `source-policy.v2.json.source_tree_sha256` and `build-manifest.v3.json.source_tree_sha256`; the build manifest's source-policy raw SHA-256 and source commit must also equal the fixed raw policy values. A missing/invalid closed source entry is `E_SOURCE_TREE_INVALID`; a computed digest or cross-control binding mismatch is `E_SOURCE_TREE_DIGEST_MISMATCH`; either gate is `G0_C=FAIL/BLOCKED` before build or candidate. It rejects a missing, duplicate, nonlocal, foreign-root, reparse, mismatched-source-baseline, or caller-forged record before writing a candidate. The source baseline comparison is exactly `7b5d5501cefab34f9aa5661e4f8c38e71474f9ce`; later control/repository commits are recorded separately and cannot satisfy it.
 
@@ -555,7 +631,7 @@ Before dependency admission, Package C uses the runner-private in-memory bootstr
 
 `Dockerfile.g0-planning-selftest` has a separate closed A0 copy set: `dependency-bundle.schema.v1.json`, `admission/verify_local_dependency_bundle.py`, `admission/admit_local_dependency_assets.py`, `entrypoints/g0-planning-selftest.sh`, and `runner-fixtures/g0-planning-selftest.py`. Its only A1 build-context inputs are the three immutable controls at `controls/dependency-bundle.manifest.v1.json`, `controls/source-policy.v2.json`, and `controls/build-manifest.v3.json`; C alone stages them under `testframework/reports/<task-run>/bootstrap/build-context/g0-planning-selftest/` with create-new, owner-marker, physical-path, and raw-byte checks before the first build. It never copies or executes `admit-local-dependency-assets.ps1`, `source-image-attestor.ps1`, any PowerShell archive, or any Package-B PowerShell source. No Package-B file is copied into this image, so A0 has no A0/B build cycle.
 
-The planning fixture imports and calls the same two Python admission modules directly with fixed test-owned fixture roots. It writes deterministic uncompressed regular-file tar bytes without extracting them, proves valid, duplicate-ID, SHA mismatch, path-escape, missing-asset, and unbound-manifest cases, and proves `E_ASSET_ARCHIVE_INVALID` for these fixed archive cases: a non-regular final asset path (`archive-lstat-regular-only`); unavailable safe no-follow/descriptor primitives (`archive-safe-handle-required`); a pathname replacement after the raw hash but before the raw scan (`archive-replaced-between-passes`); a pathname replacement after the `tarfile` view but before create-new staging (`archive-replaced-before-staging`); raw bytes at or over the hard cap before a tar open (`archive-stream-cap-before-tar`); compressed bytes; a truncated/non-512-byte tail; missing, third, or trailing bytes after the exact two terminal zero blocks (`archive-terminal-eof`); checksum or POSIX-octal drift; forbidden member type; noncanonical member order; malformed PAX length, invalid UTF-8, duplicate PAX key, or non-`path` PAX field (`archive-pax-closed`); raw-scanner versus `tarfile` effective-header/member drift (`archive-raw-tarfile-crosscheck`); marker absence; and layout/count/per-file/expanded-byte mismatch. The two replacement fixtures must prove that the raw hash, scanner, `tarfile` view, and target staging use one held source descriptor only, that the final no-follow identity recheck rejects a replaced path, and that no success receipt or build-context tar exists. The fixture statically asserts that the shared modules contain no `Path.read_bytes()` or equivalent whole-asset read, no archive-path reopen after the initial safe open, and no `tarfile.open` path argument; it asserts raw archive hashing occurs before `tarfile.open(fileobj=<same-held-descriptor-stream>, mode="r:")`; it does not fake a PowerShell or Docker execution. It verifies that the admission wrapper publishes no success receipt on every rejected fixture. It does not test Windows-host launcher behavior or future Package-B PowerShell behavior; those are static-reviewed in A0.1/B and evidenced only in the founder-released Package C transaction. The selftest image runs only through the internal G0 v2 profile during C, never as a public target. It installs no packages and does not invoke backend, frontend, OpenAPI, application Python suites, Playwright, legacy tests, or application source commands. Before C all fixture evidence remains `NOT_READY/NOT_RUN`.
+The planning fixture imports and calls the same two Python admission modules directly with fixed test-owned fixture roots. It writes deterministic uncompressed regular-file tar bytes without extracting them, proves valid, duplicate-ID, SHA mismatch, path-escape, missing-asset, and unbound-manifest cases, and proves `E_ASSET_ARCHIVE_INVALID` for these fixed archive cases: a non-regular final asset path (`archive-lstat-regular-only`); unavailable safe no-follow/descriptor primitives (`archive-safe-handle-required`); a pathname replacement after the raw hash but before the raw scan (`archive-replaced-between-passes`); a pathname replacement after the `tarfile` view but before create-new staging (`archive-replaced-before-staging`); raw bytes at or over the hard cap before a tar open (`archive-stream-cap-before-tar`); compressed bytes; a truncated/non-512-byte tail; missing, third, or trailing bytes after the exact two terminal zero blocks (`archive-terminal-eof`); checksum or POSIX-octal drift; forbidden member type; noncanonical member order; malformed PAX length, invalid UTF-8, duplicate PAX key, or non-`path` PAX field (`archive-pax-closed`); raw-scanner versus `tarfile` effective-header/member drift (`archive-raw-tarfile-crosscheck`); marker absence; and layout/count/per-file/expanded-byte mismatch. It also contains exact helper-admission receipt/staging negatives: missing, reordered, duplicate, or extra `source_observations` phase or `staged_targets` child; unequal descriptor/path identity in any phase; a path other than `bootstrap/build-context/<target>/bindings/<relative_path>`, wrong target manifest order, digest, length, or any non-true `create_new`/`fsync`/`safe_reopen`; a target collision before exclusive creation; a later copy/re-root attempt; and an absent helper-admission receipt. Observation/target archive and staging safety negatives reject as `E_ASSET_ARCHIVE_INVALID`; absent or malformed receipt-link negatives reject as `E_RECEIPT_BINDING_INVALID`. The two replacement fixtures must prove that the raw hash, scanner, `tarfile` view, and target staging use one held source descriptor only, that the final no-follow identity recheck rejects a replaced path, and that no success receipt or `bootstrap/build-context/<target>/bindings/<relative_path>` tar exists. The fixture statically asserts that the shared modules contain no `Path.read_bytes()` or equivalent whole-asset read, no archive-path reopen after the initial safe open, and no `tarfile.open` path argument; it asserts raw archive hashing occurs before `tarfile.open(fileobj=<same-held-descriptor-stream>, mode="r:")`; it does not fake a PowerShell or Docker execution. It verifies that the admission wrapper publishes no success receipt on every rejected fixture. It does not test Windows-host launcher behavior or future Package-B PowerShell behavior; those are static-reviewed in A0.1/B and evidenced only in the founder-released Package C transaction. The selftest image runs only through the internal G0 v2 profile during C, never as a public target. It installs no packages and does not invoke backend, frontend, OpenAPI, application Python suites, Playwright, legacy tests, or application source commands. Before C all fixture evidence remains `NOT_READY/NOT_RUN`.
 
 The bootstrap transaction generates exactly one candidate lock at `testframework/reports/<task-run>/bootstrap/images.lock.v3.json`; it never hand-authors a repository lock as a prerequisite. The candidate has exactly four `targets` records keyed `backend-unit`, `frontend-unit`, `backend-openapi`, and `g0-planning-selftest`. Every target child has exactly `local_image_id`, `local_image_id_sha256`, `entrypoint_path`, `entrypoint_sha256`, `command_sha256`, `compose_service`, and `runtime_status`; those are the identical seven target-child names later required by activation. The planning record binds the fixed `g0-planning-selftest` command through `command_sha256`. The lock root binds `linux/amd64`; all target children bind locally inspected immutable image IDs and `runtime_status=READY_FOR_G0_BOOTSTRAP_ONLY` until a later non-G0 authority says otherwise. Only Package C1 may copy those already-generated bytes, unchanged, to `testframework/docker/images.lock.v3.json` after independent comparison.
 
@@ -884,7 +960,7 @@ git commit --only .planning/phases/129-tf-e2e-shared/129-G0-ASSETS-RUNNER-PLAN.m
 
 `testframework/docker/verify-local-dependency-bundle.ps1` is retired from this plan and is not an A0 deliverable or commit allowlist entry. A pre-amendment worktree draft of that path is unaccepted and must not be staged or committed under any package.
 
-**Failing-first source contracts:** author both static PowerShell selftest sources and the exact Python-stdlib image-baked fixture. `g0-planning-selftest.py` must import the A0 Python public verifier/admission modules directly, not duplicate their parser or emit fixture metadata. It specifies literal valid, duplicate-ID, SHA mismatch, path-escape, missing-asset, unbound-manifest, `archive-replaced-between-passes`, and `archive-replaced-before-staging` fixtures, and asserts that a rejected fixture yields its exact reason code and no admission success receipt or staged build-context tar. `g0-bootstrap-attestor-contract.ps1` statically asserts the host launcher has only runner-private bootstrap context, the fixed helper image/receipt paths, immutable owner-bound ingress-copy propagation, no public CLI path/JSON/Docker input, and no Linux PowerShell invocation. `g0-image-contract.ps1` statically asserts the helper is absent from the four-target topology/Compose/control/lock while its Dockerfile/entrypoint and fixed base binding are present, and that all four actual target commands remain closed. The two PowerShell selftests and the host launcher are not copied into either Linux image. All contracts state `NOT_READY/NOT_RUN` before bootstrap. No claim of red or green execution is permitted before Package C.
+**Failing-first source contracts:** author both static PowerShell selftest sources and the exact Python-stdlib image-baked fixture. `g0-planning-selftest.py` must import the A0 Python public verifier/admission modules directly, not duplicate their parser or emit fixture metadata. It specifies literal valid, duplicate-ID, SHA mismatch, path-escape, missing-asset, unbound-manifest, `archive-replaced-between-passes`, and `archive-replaced-before-staging` fixtures, and asserts that a rejected fixture yields its exact reason code and no admission success receipt or staged `bootstrap/build-context/<target>/bindings/<relative_path>` tar. `g0-bootstrap-attestor-contract.ps1` statically asserts the host launcher has only runner-private bootstrap context, the fixed helper image/receipt paths, immutable owner-bound ingress-copy propagation, no public CLI path/JSON/Docker input, and no Linux PowerShell invocation. `g0-image-contract.ps1` statically asserts the helper is absent from the four-target topology/Compose/control/lock while its Dockerfile/entrypoint and fixed base binding are present, and that all four actual target commands remain closed. The two PowerShell selftests and the host launcher are not copied into either Linux image. All contracts state `NOT_READY/NOT_RUN` before bootstrap. No claim of red or green execution is permitted before Package C.
 
 **Static acceptance:** independent Terra/high verifies the dependency schema, two Python-stdlib admission modules, helper Dockerfile/entrypoint, Windows-host launcher contract, source-image-attestor code, the four Dockerfiles and four entrypoints, dedicated Vitest config, bootstrap Compose/control, image-baked Python fixture, and both static selftest sources. It verifies closed trusted roots; the Package-R-derived, untracked handoff-root contract; fixed source baseline versus later control commits; the mandatory Git-object-only `100644` allowlist/tree-digest algorithm and its stable pre-build gates; the owner marker then all-local-base inspection then nonce/digest-bound receipt sequence; non-self-referential bundle digest; closed SPDX policy; A1-bound `bootstrap-helper-python` identity; retirement of `Assert-BaseBinding`; no caller-forged repository/path/record/receipt/base-inventory/ingress input; no network/install/source mount/arbitrary command; historical v1/v2 policy files unchanged; and exact four-target mapping. It verifies that helper build/attestation precedes the create-new verified ingress copy, helper admission, helper cleanup, mandatory source-tree verification, and only then four-target builds; that the helper is a pre-admission ephemeral implementation detail with fixed receipt and cleanup paths but no Compose/control/lock/activation record; and that `g0-planning-selftest` copies and calls only the shared Python logic plus its three fixed A1 controls. It rejects every PowerShell asset, Linux `pwsh`, PowerShell `COPY`, in-image host launcher, Package-B copy, A0/B cycle, caller-selected handoff path, or direct handoff-root mount/read by helper. A HIGH finding blocks the package.
 
@@ -931,7 +1007,8 @@ git commit --only testframework/docker/dependency-bundle.manifest.v1.json testfr
 
 This is the literal 12-file Package-B allowlist. A0.1 changes no B file and
 may not add a schema, fixture, archive helper, or compatibility file to it;
-the runner sources implement the amended contracts only after A0.1 is accepted.
+the runner sources implement the amended contracts only after the accepted
+A0.1 receipt/staging schema is committed.
 
 `hub.qa-runner/v2` accepts only validated `target`, `task`, and `run`; it rejects extras with exit `64`, has no v1 bridge, no public direct invocation, and no general command operation. It supports the four fixed target names but reports all future Python jobs `NOT_READY`. The G0 selftest is callable only from the bootstrap launcher with the exact internal role capability above; `/qa-gate` documents v2 but is not a bootstrap route.
 
@@ -1012,12 +1089,21 @@ only after helper attestation, the task-owned ingress is immutable and
 owner-marker/digest-map-bound, and the Windows-host admission launcher only
 consumes that copied ingress plus held private receipt/digest map during C. It
 also verifies that A0.1 stages every target archive only from the held admitted
-source descriptor, with create-new bounded stream/sha/length/`fsync`/safe
-reopen/rehash proof and no later source-path copy; any replacement between
+source descriptor at exact `bootstrap/build-context/<target>/bindings/<relative_path>`,
+with create-new bounded stream/sha/length/`fsync`/safe reopen/rehash proof and
+no later source-path copy, copy, re-root, or rename; any replacement between
 passes or staging blocks. Cleanup removes only the copied ingress subtree, and
 static PowerShell selftests cannot become runtime evidence.
 
-**STOP:** A HIGH finding, an absent independently accepted and committed A0.1 verdict, or a request to execute any source contract without founder release blocks Package B. B static source may be authored, accepted, and committed only after A0.1 while A1 waits for ingress, because its 12-file allowlist does not overlap A0.1 or A1. A pre-A0.1 B draft is not accepted evidence and must remain uncommitted. B runtime remains blocked until A1 is independently accepted, the founder explicitly approves, and the dedicated Package-R artifact commit is independently accepted. Do not create a runtime receipt.
+**STOP:** A HIGH finding, an absent independently accepted and committed A0.1
+receipt/staging-schema verdict, or a request to execute any source contract
+without founder release blocks Package B. B static source may be authored,
+accepted, and committed only after that A0.1 receipt schema while A1 waits for
+ingress, because its 12-file allowlist does not overlap A0.1 or A1. A
+pre-A0.1 B draft is not accepted evidence and must remain uncommitted. B
+runtime remains blocked until A1 is independently accepted, the founder
+explicitly approves, and the dedicated Package-R artifact commit is
+independently accepted. Do not create a runtime receipt.
 
 ```powershell
 git commit --only testframework/runner/contracts/hub.qa-bootstrap.v1.json testframework/runner/invoke-qa-bootstrap-v1.ps1 testframework/runner/invoke-qa-gate-v2.ps1 testframework/runner/run-task-v2.ps1 testframework/runner/new-repository-snapshot.ps1 testframework/runner/new-run-envelope.ps1 testframework/runner/write-g0-activation.ps1 testframework/schemas/repository-snapshot.schema.v1.json testframework/schemas/run-envelope.schema.v1.json testframework/selftests/runner/g0-runner-v2-contract.ps1 testframework/runner/README.md .cursor/skills/qa-gate/SKILL.md -m "feat(qa): add G0 bootstrap runner controls"
