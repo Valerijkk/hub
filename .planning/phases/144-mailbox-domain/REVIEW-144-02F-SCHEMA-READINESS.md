@@ -1,7 +1,7 @@
 # Phase 144-02F preimplementation review — receipt/deployment schema readiness
 
 > **Detected:** 2026-08-13 root deep static audit
-> **Status:** 0.1.8_ROOT_AMENDMENT_AVAILABLE · INDEPENDENT_CLOSURE_PENDING · IMPLEMENTATION_BLOCKED · RUNTIME_NOT_RUN
+> **Status:** ROOT_CORRECTION_CANDIDATE · INDEPENDENT_CLOSURE_PENDING · IMPLEMENTATION_BLOCKED · RUNTIME_NOT_RUN
 > **Scope:** `MailMutationReceipt`, receipt target/member rows and `MailRuleDeployment`
 
 > `docs/mail/PERSISTENCE-CONTRACT-0.1.8.md` now supplies the root candidate state/operation/
@@ -126,4 +126,26 @@ In addition to the attempted tuple, the one-row-per-account deployment needs:
 Rule contract is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; acceptance transition/review target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`.
 This 02F review is not closed or accepted by Rule-contract acceptance. Rule TDD/production requires explicit 02F closure, candidate and
 later-plan exact-SHA acceptance, and the separate Phase-145 engine-port carrier.
+
+## Correction-candidate adjudication — 2026-08-14
+
+> **Status:** `ROOT_CORRECTION_CANDIDATE` · `INDEPENDENT_CLOSURE_PENDING` · `IMPLEMENTATION_BLOCKED` · `RUNTIME_NOT_RUN`
+
+| Prior P1 | Candidate adjudication | Remaining gate |
+|---|---|---|
+| in-flight deployment generation crash | `CLOSED_IN_CANDIDATE`: immutable attempted tuple is persisted before I/O and only confirmed reconciliation copies it to deployed | independent exact-SHA contract/spec, security/adversarial and lifecycle/evidence reviews |
+| receipt lifecycle/compaction state machine | `CLOSED_IN_CANDIDATE`: named digest/pair/state/replay/compaction predicates define `prior_attempts p`, live-tenth contention and post-expiry no-I/O exhaustion | same three independent exact-SHA reviews |
+| operation, target and safe-code grammar | `CLOSED_IN_CANDIDATE`: closed union, exhaustive named operation-target-status-safe-code CASE, separate key-source/account predicate and folder matrices are published | same three independent exact-SHA reviews |
+| bulk limits/outcomes | `CLOSED_IN_CANDIDATE`: row predicates are separated from locked-parent aggregate/cardinality invariants | same three independent exact-SHA reviews |
+| deployment state/nullability | `CLOSED_IN_CANDIDATE`: tuple, lease, public/internal error separation, `0..10` budget, exhaustion terminal and ready/non-ready rules are explicit | same three independent exact-SHA reviews |
+
+External/static oracle matrix: inspect every named receipt predicate (including attempts,
+lease, unknown, exhaustion terminal, replay window and safe-code/operation/state), target
+index/count/outcome/training alternatives, member non-row-CHECK disclaimer, deployment tuple/
+state predicates, and the three named OpenAPI folder/idempotency 409 components. No test or
+runtime oracle has run; launcher stays `NOT_READY` and all runtime evidence stays `NOT_RUN`.
+
+Candidate provenance: `gpt-5.6-terra`/medium, `dispatcher-enforced`; fallback none; telemetry
+`UNKNOWN`. Next step is exactly one atomic eight-document commit after three precommit PASS,
+then the three exact-SHA independent reviews. This is neither closure nor acceptance.
 > **Current Rule acceptance:** the three Terra routes PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed. Rule contract acceptance does not close this review or authorize schemas.

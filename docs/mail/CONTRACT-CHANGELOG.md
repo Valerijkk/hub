@@ -1,5 +1,16 @@
 # Hub Mail contract changelog
 
+## 144-02D/02F normative correction candidate — 2026-08-14
+
+Narrow docs-only candidate, no version bump: corrects identity/signature derived-response versus
+Upsert command semantics; freezes named 02D checks, receipt attempts/exhaustion and the exhaustive
+operation-target-status-safe-code predicate; adds the internal-only deployment exhaustion terminal
+with a bounded ten-slot attempted-tuple budget; and retains flat rule conjunction wording. Status remains
+`ROOT_CORRECTION_CANDIDATE` / `INDEPENDENT_CLOSURE_PENDING` / `IMPLEMENTATION_BLOCKED` /
+`RUNTIME_NOT_RUN`. Author provenance: `gpt-5.6-terra`/medium, dispatcher-enforced, fallback
+none, telemetry `UNKNOWN`. Next: atomic eight-doc commit only after three precommit PASS, then
+three independent exact-SHA reviews. Launcher `NOT_READY`; no schema/generation/migration/product/release authorization.
+
 > **Current 144-03B authority (2026-08-14):** earlier Folder lifecycle-gate wording below is
 > `CONSUMED/HISTORICAL`. Source/oracle commit `f8cb7643986fc591cae16764575337b72ef3a692`
 > (parent `32e3dcb5b4f7ae65a88b79781646d25726ae16c6`, tree

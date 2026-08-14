@@ -111,7 +111,9 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 
 ## 144-02D — settings/signature/rule/contact schemas
 
-- Dependency: reviewed 02A. Allowed only new schema files
+- Dependency: accepted 02A representation and independently accepted 02D contract review.
+  Until both exist this packet is `ROOT_CORRECTION_CANDIDATE` / `INDEPENDENT_CLOSURE_PENDING` /
+  `IMPLEMENTATION_BLOCKED`; no source authorization. Allowed only new schema files
   `mailusersettings.go`, `mailsignature.go`, `mailrule.go`, `recentcontact.go`.
 - Behavior: one settings/account; required same-account default identity for active
   account, nullable signature; one default signature; bounded sanitized config; typed rule
@@ -122,7 +124,9 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 
 ## 144-02F — mutation receipt and rule-deployment schemas
 
-- Dependencies: reviewed 02A/D. Allowed only new schema files
+- Dependencies: accepted 02A representation, independently accepted 02D and independently
+  accepted 02F contract reviews. Until all three exist this packet is
+  `ROOT_CORRECTION_CANDIDATE` / `INDEPENDENT_CLOSURE_PENDING` / `IMPLEMENTATION_BLOCKED`; no source authorization. Allowed only new schema files
   `mailmutationreceipt.go`, `mailmutationreceipttarget.go`,
   `mailmutationreceiptmember.go`, `mailruledeployment.go` plus their narrow additive
   inverse edges in new Mail entities/User/Organization.
@@ -132,8 +136,17 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   after first terminal commit while its compact key/request hash tombstone survives account/
   organization lifetime; internal folder update/delete receipts may hard-delete only after
   the same terminal recovery window. One rule deployment per account with non-negative desired/
-  deployed generations, bounded hashes, pending/applying/ready/unknown/error, retry fields
-  and paired lease.
+  attempted/deployed generations, bounded hashes, pending/applying/ready/unknown/error, retry
+  fields and paired lease. Claim persists immutable attempted tuple before I/O; only confirmed
+  reconciliation copies it to deployed, and ready requires equality with current desired.
+  `attempt_count` is exactly `0..10`; nullable internal-only `internal_terminal_code` is only
+  `MAIL_RULE_DEPLOYMENT_EXHAUSTED` and never leaves persistence. Per immutable attempted tuple/
+  current desired, `p<10` persists attempted tuple+lease/fence+`p+1` before at most one
+  read/install cycle (`p=9` tenth); p=10 is no-I/O after expiry. An unchanged desired then
+  terminalizes error with null public error/retry/lease and retained attempted tuple; an advanced
+  desired cannot be terminalized by the old tuple and begins budget zero after old outcome/expiry.
+  Late owner deploy CAS includes account token/epoch; tenth confirmed result may complete while
+  crash/unknown exhausts with no eleventh cycle.
 - Oracles: exact composite uniqueness and source-specific delete behavior; client UUID and
   internal UUID modes cannot be confused; target optionality; completed
   replay vs tombstone-only reject distinguishable; in-progress/unknown never compact;
@@ -368,6 +381,8 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 - Behavior/oracles: bounded CRUD/default and optimistic version; create uses 04O receipt;
   sanitizer accepts rich or plain format and derives canonical plain server-side; hostile
   rich falls back/rejects by typed policy; no client rich/plain pair trust or raw render.
+  `is_default` mutates only the locked settings pointer: false clears only self if selected,
+  true selects self, delete clears before soft delete, and settings version changes iff pointer changes.
 
 ## 144-04M — canonical rule service
 
@@ -387,10 +402,10 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 - Dependencies: accepted 04M + 01B. Allowed only `mailbox_rule_worker.go`,
   `backend/tests/mail/mailbox_rule_worker_test.go`.
 - Bounded context-owned worker claims at most 20 due accounts per second and two concurrent
-  deployments. It captures generation/hash, acquires the ordinary account mutation lease,
+  deployments. It captures and persists immutable attempted generation/hash before I/O, acquires the ordinary account mutation lease,
   compiles the whole set, and manages one fixed-name Hub script with marker. `unknown` first
   calls `GetSieve`; matching marker finalizes without upload, mismatch stays/retries safely.
-  Only captured generation may become deployed; newer generation remains pending. External
+  Only confirmed reconciliation may copy captured attempted data to deployed; newer generation remains pending. External
   fixed-script drift is degraded and repaired under founder default 26.
 - Oracles: lost response, crash before/after upload, stale generation, active command busy,
   lease expiry/late owner, disabled capability, retry/backoff/cancel/panic; no raw script in
@@ -416,6 +431,12 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   fingerprint. V1 uses tagged length-delimited typed fields, normalized scalars, no maps and
   preserves array order; version mismatch never guesses. Raw key never leaves request scope
   after reservation or enters persistence/error/audit/log values.
+  Recovery defines `prior_attempts p`: for `0<=p<10` it claims receipt plus account lease/epoch,
+  persists `p+1`, then receives exactly one bounded I/O slot (`p=9` tenth); preclaim/poll/busy/
+  pre-engine failure do not increment. A live tenth lease is no-op contention; `p=10` allows no
+  I/O and post-expiry takeover terminalizes folder receipts as generic NFR-13
+  `MAIL_RECONCILIATION_EXHAUSTED`/409 with leases cleared/end epoch advanced. Tenth completion is
+  valid; tenth crash/unknown exhausts with no eleventh slot.
   Bulk reserve atomically persists bounded ordered target/member snapshot; terminal safe
   outcomes replay exactly even after target deletion, while compaction removes all children.
 

@@ -700,7 +700,7 @@ transaction deterministically evicts oldest newly-external rows until the cap is
 | `argument_kind`, `argument_id` | nullable `folder|label` plus UUID pair, both-null or both-present |
 | `original_http_status` | nullable int16, 100..599 |
 | `safe_code` | nullable closed enum below, <=128 bytes |
-| `reconcile_attempts` | required int32, default 0, bounded non-negative |
+| `reconcile_attempts` | required int32, default 0, exact range 0..10 |
 | `next_reconcile_at` | nullable UTC timestamp |
 | `reconcile_lease_token`, `reconcile_lease_until` | nullable UUID/time pair |
 | `terminal_at`, `replay_until`, `compacted_at` | nullable UTC timestamps |
@@ -715,9 +715,9 @@ operation grammar is:
 
 | Operation | Target | Action / argument | Terminal success | Terminal failure code/status | Non-terminal unknown |
 |---|---|---|---|---|---|
-| `folder_create` | `folder` required after row reservation | none | 201 | `MAIL_FOLDER_NAME_CONFLICT|MAIL_FOLDER_TREE_CONFLICT|MAIL_FOLDER_LIMIT_EXCEEDED` / 409 or 422 as applicable | `MAIL_FOLDER_RECONCILIATION_REQUIRED` |
-| `folder_update` | `folder` always | none; desired fields live on folder | 200 | none (preconditions occur before internal receipt) | `MAIL_FOLDER_RECONCILIATION_REQUIRED` |
-| `folder_delete` | `folder` always | none | 204 | none (preconditions occur before internal receipt) | `MAIL_FOLDER_RECONCILIATION_REQUIRED` |
+| `folder_create` | `folder` required after row reservation | none | 201 | `MAIL_FOLDER_NAME_CONFLICT|MAIL_FOLDER_TREE_CONFLICT` / 409; `MAIL_FOLDER_LIMIT_EXCEEDED` / 422; `MAIL_RECONCILIATION_EXHAUSTED` / 409 | `MAIL_FOLDER_RECONCILIATION_REQUIRED` |
+| `folder_update` | `folder` always | none; desired fields live on folder | 200 | `MAIL_RECONCILIATION_EXHAUSTED` / 409 only (preconditions occur before internal receipt) | `MAIL_FOLDER_RECONCILIATION_REQUIRED` |
+| `folder_delete` | `folder` always | none | 204 | `MAIL_RECONCILIATION_EXHAUSTED` / 409 only (preconditions occur before internal receipt) | `MAIL_FOLDER_RECONCILIATION_REQUIRED` |
 | `label_create` | `label` only on success | none | 201 | `MAIL_LABEL_NAME_CONFLICT|MAIL_LABEL_LIMIT_EXCEEDED` / 409 or 422 | forbidden |
 | `signature_create` | `signature` only on success | none | 201 | `MAIL_SIGNATURE_LIMIT_EXCEEDED` / 422 | forbidden |
 | `rule_create` | `rule` only on success | none | 201 | `MAIL_RULE_LIMIT_EXCEEDED` / 422 | forbidden |
@@ -727,7 +727,7 @@ operation grammar is:
 | `message_bulk` | parent target pair null; ordered child targets required | exact `bulk_action`; argument folder only for `move`, label only for add/remove-label, null otherwise | 200 | `MAIL_BULK_EXPANSION_LIMIT` / 422 | `MAIL_ENGINE_OUTCOME_UNKNOWN` only for reconcilable non-classifier engine state |
 
 The persisted parent `safe_code` enum is exactly the union named by that matrix:
-`MAIL_FOLDER_NAME_CONFLICT|MAIL_FOLDER_TREE_CONFLICT|MAIL_FOLDER_LIMIT_EXCEEDED|MAIL_FOLDER_RECONCILIATION_REQUIRED|MAIL_LABEL_NAME_CONFLICT|MAIL_LABEL_LIMIT_EXCEEDED|MAIL_SIGNATURE_LIMIT_EXCEEDED|MAIL_RULE_LIMIT_EXCEEDED|MAIL_DOMAIN_UNAVAILABLE|MAIL_DOMAIN_LIMIT_EXCEEDED|MAIL_ALIAS_ADDRESS_UNAVAILABLE|MAIL_ALIAS_ACCOUNT_NOT_ACTIVE|MAIL_IDENTITY_LIMIT_EXCEEDED|MAIL_BULK_EXPANSION_LIMIT|MAIL_ENGINE_OUTCOME_UNKNOWN`.
+`MAIL_FOLDER_NAME_CONFLICT|MAIL_FOLDER_TREE_CONFLICT|MAIL_FOLDER_LIMIT_EXCEEDED|MAIL_FOLDER_RECONCILIATION_REQUIRED|MAIL_RECONCILIATION_EXHAUSTED|MAIL_LABEL_NAME_CONFLICT|MAIL_LABEL_LIMIT_EXCEEDED|MAIL_SIGNATURE_LIMIT_EXCEEDED|MAIL_RULE_LIMIT_EXCEEDED|MAIL_DOMAIN_UNAVAILABLE|MAIL_DOMAIN_LIMIT_EXCEEDED|MAIL_ALIAS_ADDRESS_UNAVAILABLE|MAIL_ALIAS_ACCOUNT_NOT_ACTIVE|MAIL_IDENTITY_LIMIT_EXCEEDED|MAIL_BULK_EXPANSION_LIMIT|MAIL_ENGINE_OUTCOME_UNKNOWN`.
 No idempotency reuse/expiry code or target-child code is a member of this enum.
 
 `bulk_action` is exactly
@@ -791,24 +791,46 @@ deletion does not.
 One UUID/account row has required `desired_generation`, `desired_hash_version`,
 `desired_hash`; nullable `attempted_generation`, `attempted_hash_version`, `attempted_hash`;
 nullable `deployed_generation`, `deployed_hash_version`, `deployed_hash`; required `state`;
-nullable `last_error_code`, nullable `next_retry_at`, required int32 `attempt_count` default
-0, nullable `lease_token`/`lease_until`, timestamps. Hashes are bytes(32), generations int64
+nullable public `last_error_code`, nullable internal-only `internal_terminal_code`, nullable
+`next_retry_at`, required int32 `attempt_count` default 0 and bounded `0..10`, nullable
+`lease_token`/`lease_until`, timestamps. `internal_terminal_code` is nullable or exactly
+`MAIL_RULE_DEPLOYMENT_EXHAUSTED`; it is never an API, audit, event, log or error output.
+Hashes are bytes(32), generations int64
 >=1, versions int32 >=1. Unique account; tuples and lease are independently all-or-none.
 
 | State | Required | Forbidden / additional rule |
 |---|---|---|
-| `pending` | desired tuple; deployed null or older/different | attempted, lease and error null; retry optional |
-| `applying` | attempted tuple and lease; attempted generation <= desired | error/retry null |
-| `ready` | deployed tuple exactly equals desired | attempted, lease, error and retry null |
-| `unknown` | attempted tuple, retry and `MAIL_RULE_OUTCOME_UNKNOWN|MAIL_RULE_ENGINE_UNAVAILABLE` | lease null while waiting; deployed does not advance |
-| `error` | attempted tuple and one definitive/retryable error | lease null; deployed never equals desired unless state immediately becomes ready |
+| `pending` | desired tuple; deployed null or older/different; `attempt_count=0` | attempted, lease, public/internal error null; retry optional |
+| `applying` | attempted tuple and lease; attempted generation <= desired; `attempt_count=1..10` | public/internal error and retry null |
+| `ready` | deployed tuple exactly equals desired; `attempt_count=0` | attempted, lease, public/internal error and retry null |
+| `unknown` | attempted tuple, retry and `MAIL_RULE_OUTCOME_UNKNOWN|MAIL_RULE_ENGINE_UNAVAILABLE`; `attempt_count=1..9` | lease null; internal code null; deployed does not advance |
+| `error` | attempted tuple and one definitive/retryable public error with `attempt_count=1..9`, or exhaustion with `attempt_count=10` | lease null; deployed never equals desired unless state immediately becomes ready |
 
 Error allowlist is exactly
 `MAIL_RULE_CAPABILITY_UNAVAILABLE|MAIL_RULE_ENGINE_UNAVAILABLE|MAIL_RULE_APPLY_REJECTED|MAIL_RULE_OUTCOME_UNKNOWN|MAIL_RULE_DRIFT`.
 Capability-unavailable/apply-rejected errors have null retry; engine-unavailable/drift errors
-have non-null retry. A successful attempted tuple copies exactly to deployed, then clears
-attempted: it becomes ready only when it equals current desired, otherwise pending. A newer
-desired tuple never rewrites applying/unknown attempted state.
+have non-null retry. The exact deployment row checks are
+`mail_rule_deployments_attempt_count_bounds` (`attempt_count BETWEEN 0 AND 10`),
+`mail_rule_deployments_internal_terminal_code_allowlist`
+(`internal_terminal_code IS NULL OR internal_terminal_code = 'MAIL_RULE_DEPLOYMENT_EXHAUSTED'`),
+`mail_rule_deployments_exhaustion_terminal`
+(`internal_terminal_code <> 'MAIL_RULE_DEPLOYMENT_EXHAUSTED' OR (state = 'error' AND attempt_count = 10 AND last_error_code IS NULL AND next_retry_at IS NULL AND lease_token IS NULL AND lease_until IS NULL AND attempted_generation IS NOT NULL)`),
+`mail_rule_deployments_unknown_pre_cap` (`state <> 'unknown' OR attempt_count BETWEEN 1 AND 9`),
+and state updates: applying is `1..10`; unknown/retryable public error is `1..9`; pending/ready
+are zero; ready has internal code null. Existing desired/attempted/deployed tuple
+equality/inequality constraints remain locked.
+
+Define `prior_attempts p` per immutable attempted tuple/current desired. For `0 <= p < 10`, a
+claim persists attempted generation/hash, lease/fence and `p + 1` before at most one bounded
+read/install cycle; `p = 9` is the tenth cycle. A tenth owner may confirm and complete. If it
+crashes or remains unknown, no eleventh cycle is allowed: `p = 10` does no I/O after expiry and,
+only when the attempted tuple still equals current desired, transitions to `error` with the
+internal terminal code, null public `last_error_code`, null retry/lease, retained attempted tuple
+and unchanged deployed tuple. If desired advanced, the old owner cannot terminalize the new desired;
+after its outcome or expiry the new tuple begins at budget zero. Late owners CAS deployment with the
+account token/epoch. A successful attempted tuple copies exactly to deployed, then clears attempted:
+it becomes ready only when it equals current desired, otherwise pending. A newer desired tuple never
+rewrites applying/unknown attempted state.
 
 Canonical hash v1 is SHA-256 of `ASCII("hub.mail.ruleset") || 0x00 || 0x01 || U32BE(count)`
 followed by active non-deleted rules ordered `(priority,id)`. Each rule is a
@@ -822,6 +844,51 @@ for the first two. Stored array order is preserved; JSON encoding, map order, lo
 timestamps never participate. Account deletion cascades; no engine script id/body is stored.
 For equal priority, id order is unsigned lexicographic order of the 16 RFC-4122 UUID bytes;
 database text/locale collation never determines the hash order.
+
+#### 144-02D exact named row checks and signature-pointer transaction
+
+`MailSignature` owns no default column. `is_default` is only a command over the canonical `MailUserSettings.default_signature_id`, and every response derives it after commit by equality with that pointer. The schema packet must emit these named row CHECKs with these literal SQL-like predicates:
+
+| Name | Literal predicate |
+|---|---|
+| `mail_signatures_body_format` | `((body_format = 'rich' AND rich_body IS NOT NULL) OR (body_format = 'plain' AND rich_body IS NULL))` |
+| `mail_signatures_name_bounds` | `(char_length(name) BETWEEN 1 AND 80 AND octet_length(name) BETWEEN 1 AND 320)` |
+| `mail_signatures_plain_body_length` | `(char_length(plain_body) <= 100000 AND octet_length(plain_body) <= 400000)` |
+| `mail_signatures_rich_body_length` | `(rich_body IS NULL OR (char_length(rich_body) <= 100000 AND octet_length(rich_body) <= 400000))` |
+
+Create/update/delete lock the live signature (when it exists), the new live signature (when selected) and the unique settings row in one transaction. Create `is_default=false` leaves the pointer unchanged; create `true` selects it. Update `false` clears only when this signature is currently selected, and is otherwise a no-op; update `true` selects it and is a no-op when already selected. Deleting a selected signature clears the pointer before its soft delete. Increment settings `version` exactly iff the pointer changes. All selected signatures must be same-account and live; stale signature `If-Match` conflicts. No second caller settings PATCH is used to perform any of these commands.
+
+#### 144-02F exact named row checks, recovery and deployment transaction invariants
+
+The following are row CHECKs; each literal predicate is part of the candidate schema contract. Temporal, aggregate and cross-row guarantees following this table are service-transaction invariants, not claimed current Ent CHECKs.
+
+| Name | Literal predicate |
+|---|---|
+| `mail_mutation_receipts_digest_version` | `(octet_length(idempotency_key_hash) = 32 AND octet_length(request_hash) = 32 AND fingerprint_version >= 1)` |
+| `mail_mutation_receipts_target_pair` | `((target_kind IS NULL AND target_id IS NULL) OR (target_kind IS NOT NULL AND target_id IS NOT NULL))` |
+| `mail_mutation_receipts_argument_pair` | `((argument_kind IS NULL AND argument_id IS NULL) OR (argument_kind IS NOT NULL AND argument_id IS NOT NULL))` |
+| `mail_mutation_receipts_http_status_range` | `(original_http_status IS NULL OR original_http_status BETWEEN 100 AND 599)` |
+| `mail_mutation_receipts_safe_code_closed_union` | `(safe_code IS NULL OR safe_code IN ('MAIL_FOLDER_NAME_CONFLICT','MAIL_FOLDER_TREE_CONFLICT','MAIL_FOLDER_LIMIT_EXCEEDED','MAIL_FOLDER_RECONCILIATION_REQUIRED','MAIL_RECONCILIATION_EXHAUSTED','MAIL_LABEL_NAME_CONFLICT','MAIL_LABEL_LIMIT_EXCEEDED','MAIL_SIGNATURE_LIMIT_EXCEEDED','MAIL_RULE_LIMIT_EXCEEDED','MAIL_DOMAIN_UNAVAILABLE','MAIL_DOMAIN_LIMIT_EXCEEDED','MAIL_ALIAS_ADDRESS_UNAVAILABLE','MAIL_ALIAS_ACCOUNT_NOT_ACTIVE','MAIL_IDENTITY_LIMIT_EXCEEDED','MAIL_BULK_EXPANSION_LIMIT','MAIL_ENGINE_OUTCOME_UNKNOWN'))` |
+| `mail_mutation_receipts_reconcile_attempts_bounds` | `(reconcile_attempts BETWEEN 0 AND 10)` |
+| `mail_mutation_receipts_reconcile_lease_pair` | `((reconcile_lease_token IS NULL AND reconcile_lease_until IS NULL) OR (reconcile_lease_token IS NOT NULL AND reconcile_lease_until IS NOT NULL))` |
+| `mail_mutation_receipts_terminal_replay_pair` | `((terminal_at IS NULL AND replay_until IS NULL) OR (terminal_at IS NOT NULL AND replay_until = terminal_at + INTERVAL '30 days'))` |
+| `mail_mutation_receipts_compaction` | `(compacted_at IS NULL OR (terminal_at IS NOT NULL AND compacted_at >= replay_until))` |
+| `mail_mutation_receipts_in_progress_shape` | `(state <> 'in_progress' OR (safe_code IS NULL AND original_http_status IS NULL AND terminal_at IS NULL AND replay_until IS NULL AND compacted_at IS NULL))` |
+| `mail_mutation_receipts_unknown_shape` | `(state <> 'unknown' OR (safe_code IN ('MAIL_FOLDER_RECONCILIATION_REQUIRED','MAIL_ENGINE_OUTCOME_UNKNOWN') AND next_reconcile_at IS NOT NULL AND original_http_status IS NULL AND terminal_at IS NULL AND replay_until IS NULL AND compacted_at IS NULL))` |
+| `mail_mutation_receipts_completed_shape` | `(state <> 'completed' OR (safe_code IS NULL AND original_http_status BETWEEN 200 AND 299 AND terminal_at IS NOT NULL AND replay_until = terminal_at + INTERVAL '30 days' AND next_reconcile_at IS NULL AND reconcile_lease_token IS NULL AND reconcile_lease_until IS NULL))` |
+| `mail_mutation_receipts_failed_shape` | `(state <> 'failed' OR (safe_code IS NOT NULL AND original_http_status BETWEEN 400 AND 599 AND terminal_at IS NOT NULL AND replay_until = terminal_at + INTERVAL '30 days' AND next_reconcile_at IS NULL AND reconcile_lease_token IS NULL AND reconcile_lease_until IS NULL))` |
+| `mail_mutation_receipts_reconciliation_exhausted_terminal` | `(safe_code <> 'MAIL_RECONCILIATION_EXHAUSTED' OR (state = 'failed' AND original_http_status = 409 AND terminal_at IS NOT NULL AND replay_until = terminal_at + INTERVAL '30 days' AND reconcile_attempts = 10 AND next_reconcile_at IS NULL AND reconcile_lease_token IS NULL AND reconcile_lease_until IS NULL))` |
+| `mail_mutation_receipts_operation_bulk_action` | `(operation = 'message_bulk' OR bulk_action IS NULL)` |
+| `mail_mutation_receipts_operation_target_status_safe_code` | `COALESCE(CASE operation WHEN 'folder_create' THEN ((state = 'in_progress' AND safe_code IS NULL AND original_http_status IS NULL AND argument_kind IS NULL AND argument_id IS NULL AND (target_kind IS NULL OR target_kind = 'folder')) OR (state = 'unknown' AND target_kind = 'folder' AND safe_code = 'MAIL_FOLDER_RECONCILIATION_REQUIRED' AND original_http_status IS NULL AND argument_kind IS NULL AND argument_id IS NULL) OR (state = 'completed' AND target_kind = 'folder' AND safe_code IS NULL AND original_http_status = 201 AND argument_kind IS NULL AND argument_id IS NULL) OR (state = 'failed' AND target_kind = 'folder' AND argument_kind IS NULL AND argument_id IS NULL AND ((safe_code IN ('MAIL_FOLDER_NAME_CONFLICT','MAIL_FOLDER_TREE_CONFLICT','MAIL_RECONCILIATION_EXHAUSTED') AND original_http_status = 409) OR (safe_code = 'MAIL_FOLDER_LIMIT_EXCEEDED' AND original_http_status = 422)))) WHEN 'folder_update' THEN (target_kind = 'folder' AND argument_kind IS NULL AND argument_id IS NULL AND ((state = 'in_progress' AND safe_code IS NULL AND original_http_status IS NULL) OR (state = 'unknown' AND safe_code = 'MAIL_FOLDER_RECONCILIATION_REQUIRED' AND original_http_status IS NULL) OR (state = 'completed' AND safe_code IS NULL AND original_http_status = 200) OR (state = 'failed' AND safe_code = 'MAIL_RECONCILIATION_EXHAUSTED' AND original_http_status = 409))) WHEN 'folder_delete' THEN (target_kind = 'folder' AND argument_kind IS NULL AND argument_id IS NULL AND ((state = 'in_progress' AND safe_code IS NULL AND original_http_status IS NULL) OR (state = 'unknown' AND safe_code = 'MAIL_FOLDER_RECONCILIATION_REQUIRED' AND original_http_status IS NULL) OR (state = 'completed' AND safe_code IS NULL AND original_http_status = 204) OR (state = 'failed' AND safe_code = 'MAIL_RECONCILIATION_EXHAUSTED' AND original_http_status = 409))) WHEN 'label_create' THEN ((state = 'in_progress' AND safe_code IS NULL AND original_http_status IS NULL AND target_kind IS NULL AND argument_kind IS NULL AND argument_id IS NULL) OR (state = 'completed' AND target_kind = 'label' AND safe_code IS NULL AND original_http_status = 201 AND argument_kind IS NULL AND argument_id IS NULL) OR (state = 'failed' AND target_kind IS NULL AND argument_kind IS NULL AND argument_id IS NULL AND ((safe_code = 'MAIL_LABEL_NAME_CONFLICT' AND original_http_status = 409) OR (safe_code = 'MAIL_LABEL_LIMIT_EXCEEDED' AND original_http_status = 422)))) WHEN 'signature_create' THEN ((state = 'in_progress' AND safe_code IS NULL AND original_http_status IS NULL AND target_kind IS NULL AND argument_kind IS NULL AND argument_id IS NULL) OR (state = 'completed' AND target_kind = 'signature' AND safe_code IS NULL AND original_http_status = 201 AND argument_kind IS NULL AND argument_id IS NULL) OR (state = 'failed' AND target_kind IS NULL AND safe_code = 'MAIL_SIGNATURE_LIMIT_EXCEEDED' AND original_http_status = 422 AND argument_kind IS NULL AND argument_id IS NULL)) WHEN 'rule_create' THEN ((state = 'in_progress' AND safe_code IS NULL AND original_http_status IS NULL AND target_kind IS NULL AND argument_kind IS NULL AND argument_id IS NULL) OR (state = 'completed' AND target_kind = 'rule' AND safe_code IS NULL AND original_http_status = 201 AND argument_kind IS NULL AND argument_id IS NULL) OR (state = 'failed' AND target_kind IS NULL AND safe_code = 'MAIL_RULE_LIMIT_EXCEEDED' AND original_http_status = 422 AND argument_kind IS NULL AND argument_id IS NULL)) WHEN 'attachment_presign' THEN ((state = 'in_progress' AND safe_code IS NULL AND original_http_status IS NULL AND target_kind IS NULL AND argument_kind IS NULL AND argument_id IS NULL) OR (state = 'completed' AND target_kind = 'attachment' AND safe_code IS NULL AND original_http_status = 201 AND argument_kind IS NULL AND argument_id IS NULL)) WHEN 'domain_create' THEN ((state = 'in_progress' AND safe_code IS NULL AND original_http_status IS NULL AND target_kind IS NULL AND argument_kind IS NULL AND argument_id IS NULL) OR (state = 'completed' AND target_kind = 'domain' AND safe_code IS NULL AND original_http_status = 202 AND argument_kind IS NULL AND argument_id IS NULL) OR (state = 'failed' AND target_kind IS NULL AND argument_kind IS NULL AND argument_id IS NULL AND ((safe_code = 'MAIL_DOMAIN_UNAVAILABLE' AND original_http_status = 409) OR (safe_code = 'MAIL_DOMAIN_LIMIT_EXCEEDED' AND original_http_status = 422)))) WHEN 'alias_create' THEN ((state = 'in_progress' AND safe_code IS NULL AND original_http_status IS NULL AND target_kind IS NULL AND argument_kind IS NULL AND argument_id IS NULL) OR (state = 'completed' AND target_kind = 'identity' AND safe_code IS NULL AND original_http_status = 202 AND argument_kind IS NULL AND argument_id IS NULL) OR (state = 'failed' AND target_kind IS NULL AND argument_kind IS NULL AND argument_id IS NULL AND ((safe_code IN ('MAIL_ALIAS_ADDRESS_UNAVAILABLE','MAIL_ALIAS_ACCOUNT_NOT_ACTIVE') AND original_http_status = 409) OR (safe_code = 'MAIL_IDENTITY_LIMIT_EXCEEDED' AND original_http_status = 422)))) WHEN 'message_bulk' THEN (target_kind IS NULL AND target_id IS NULL AND ((bulk_action = 'move' AND argument_kind = 'folder' AND argument_id IS NOT NULL) OR (bulk_action IN ('add_label','remove_label') AND argument_kind = 'label' AND argument_id IS NOT NULL) OR (bulk_action IN ('mark_read','mark_unread','flag','unflag','archive','junk','not_junk','trash','restore','pin','unpin') AND argument_kind IS NULL AND argument_id IS NULL)) AND ((state = 'in_progress' AND safe_code IS NULL AND original_http_status IS NULL) OR (state = 'unknown' AND safe_code = 'MAIL_ENGINE_OUTCOME_UNKNOWN' AND original_http_status IS NULL) OR (state = 'completed' AND safe_code IS NULL AND original_http_status = 200) OR (state = 'failed' AND safe_code = 'MAIL_BULK_EXPANSION_LIMIT' AND original_http_status = 422))) ELSE FALSE END, FALSE)` |
+| `mail_mutation_receipts_operation_key_source_account` | `((operation IN ('folder_update','folder_delete') AND key_source = 'internal' AND mail_account_id IS NOT NULL) OR (operation = 'domain_create' AND key_source = 'client' AND mail_account_id IS NULL) OR (operation IN ('folder_create','label_create','signature_create','rule_create','attachment_presign','alias_create','message_bulk') AND key_source = 'client' AND mail_account_id IS NOT NULL))` |
+
+The named operation predicate is exhaustive across operation, state, target, HTTP status, safe code and argument; `mail_mutation_receipts_operation_bulk_action` makes its non-bulk `bulk_action IS NULL` requirement explicit, and it is deliberately separate from `mail_mutation_receipts_operation_key_source_account`. For the three folder operations, create may lack its target only while pre-reservation `in_progress`; unknown, completed and exhausted terminal rows require a folder target. `MailFolderCreateConflict` and `MailFolderMutationConflict` are the folder-only OpenAPI 409 components that expose `MAIL_RECONCILIATION_EXHAUSTED` as the generic NFR-13 code with no internal detail; `MailMutationIdempotencyConflict` excludes it.
+
+Target CHECKs are: `request_index BETWEEN 0 AND 199`; `affected_count`, `succeeded_count` and `failed_count` each `BETWEEN 0 AND 200`; `succeeded_count + failed_count <= affected_count`; and the exact status/outcome and training alternatives in the target matrix above. Child equality, request-index contiguity, aggregate distinct-members `<= 200`, and one-member cardinality are not row CHECKs: the service enforces them under the locked parent transaction (or only a later accepted migration may add a composite FK). No current Ent CHECK is claimed for them.
+
+Define `prior_attempts p` as the persisted `reconcile_attempts` observed by the recovery claimant. For `0 <= p < 10`, it atomically claims the receipt plus account lease/epoch and persists `p + 1` before exactly one bounded recovery I/O slot; `p = 9` is the tenth slot. Preclaim, poll, busy contention and pre-engine failure do not increment. A live tenth lease is contention/no-op. `p = 10` grants no I/O: after its lease expires, a takeover terminalizes without I/O as `failed`/`MAIL_RECONCILIATION_EXHAUSTED`/HTTP 409, sets `terminal_at` and the exact 30-day replay window, clears receipt and account leases, and advances the account end epoch. The tenth owner may complete normally; its crash or unknown result exhausts and permits no eleventh I/O. Only an authorized matching same-key/same-request replay inside that window receives generic NFR-13 error; after it expires it receives `IDEMPOTENCY_REPLAY_EXPIRED`. No attempt, receipt, lease, engine or provider detail is exposed. A fresh/different key cannot bypass unresolved folder control/error; it never re-expands, retrains or resubmits. This rule excludes drafts, submissions, authorization/not-found, and classifier feedback.
+
+`MailRuleDeployment` emits these row CHECKs: desired/attempted/deployed tuples are each all-or-none; present generation/version are positive and every present hash satisfies `octet_length(hash) = 32`; deployed generation is `<= desired_generation`; lease is paired; `attempt_count BETWEEN 0 AND 10`; and `last_error_code`/`next_retry_at` follow the stated allowlist. State predicates are: `pending` has no attempted tuple or lease; `applying` has attempted tuple and lease; `ready` has no attempted tuple/lease/error/retry and deployed exactly equals desired; `unknown` retains attempted tuple and its unknown code; `error` retains attempted tuple and allowlisted error. In every non-ready state deployed is null or not equal to current desired. Applying/unknown/error retain immutable attempted data; a newer desired never rewrites it. The claim transaction persists attempted before I/O; only confirmed reconciliation copies attempted to deployed, becoming ready only if it equals current desired, otherwise pending. No raw Sieve, script id/body or provider text is persisted.
 
 ## Generation gate
 

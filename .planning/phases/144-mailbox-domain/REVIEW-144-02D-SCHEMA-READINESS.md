@@ -1,7 +1,7 @@
 # Phase 144-02D preimplementation review — user configuration schema readiness
 
 > **Detected:** 2026-08-13 root deep static audit
-> **Status:** 0.1.8_ROOT_AMENDMENT_AVAILABLE · INDEPENDENT_CLOSURE_PENDING · IMPLEMENTATION_BLOCKED · RUNTIME_NOT_RUN
+> **Status:** ROOT_CORRECTION_CANDIDATE · INDEPENDENT_CLOSURE_PENDING · IMPLEMENTATION_BLOCKED · RUNTIME_NOT_RUN
 > **Scope:** `MailUserSettings`, `MailSignature`, `MailRule` and `RecentContact`
 
 > `docs/mail/PERSISTENCE-CONTRACT-0.1.8.md` now supplies the root candidate matrix; this
@@ -109,4 +109,24 @@ Minimum remaining schema decisions:
 Rule contract is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; acceptance transition/review target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`.
 This 02D review is not closed or accepted by Rule-contract acceptance. Rule TDD/production requires explicit 02D closure, candidate and
 later-plan exact-SHA acceptance, and the separate Phase-145 engine-port carrier.
+
+## Correction-candidate adjudication — 2026-08-14
+
+> **Status:** `ROOT_CORRECTION_CANDIDATE` · `INDEPENDENT_CLOSURE_PENDING` · `IMPLEMENTATION_BLOCKED` · `RUNTIME_NOT_RUN`
+
+| Prior P1 | Candidate adjudication | Remaining gate |
+|---|---|---|
+| dual default-signature authority | `CLOSED_IN_CANDIDATE`: settings pointers are sole authorities; identity response derives from `default_identity_id`, signature response post-commit from `default_signature_id`, and only Upsert is a locked command | independent exact-SHA contract/spec, security/adversarial and lifecycle/evidence reviews |
+| rule JSON/referential concurrency ambiguity | `CLOSED_IN_CANDIDATE`: flat conjunction and transaction-only cross-row limits are explicit | same three independent exact-SHA reviews |
+| field/conditional storage matrix | `CLOSED_IN_CANDIDATE`: four named signature predicates use exact character/`octet_length` bounds | same three independent exact-SHA reviews |
+
+External/static oracle matrix: inspect the four literal signature CHECK names and predicates;
+assert create/update/delete pointer truth table, same-account/live and stale-If-Match gates;
+assert settings version changes iff pointer changes; assert no second settings PATCH. These are
+static candidate oracles only. No schema, generated output, migration, source, test, launcher
+or runtime result exists or is authorized.
+
+Candidate provenance: `gpt-5.6-terra`/medium, `dispatcher-enforced`; fallback none; telemetry
+`UNKNOWN`. Next step is exactly one atomic eight-document commit after three precommit PASS,
+then the three exact-SHA independent reviews. This is neither closure nor acceptance.
 > **Current Rule acceptance:** the three Terra routes PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed. Rule contract acceptance does not close this review or authorize schemas.

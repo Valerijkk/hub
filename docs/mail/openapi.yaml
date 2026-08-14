@@ -1811,7 +1811,7 @@ components:
           required: true
           schema:
             type: string
-            enum: [IDEMPOTENCY_KEY_REUSED, IDEMPOTENCY_REPLAY_UNAVAILABLE, IDEMPOTENCY_REPLAY_EXPIRED, MAIL_FOLDER_NAME_CONFLICT, MAIL_FOLDER_TREE_CONFLICT, MAIL_FOLDER_RECONCILIATION_REQUIRED]
+            enum: [IDEMPOTENCY_KEY_REUSED, IDEMPOTENCY_REPLAY_UNAVAILABLE, IDEMPOTENCY_REPLAY_EXPIRED, MAIL_FOLDER_NAME_CONFLICT, MAIL_FOLDER_TREE_CONFLICT, MAIL_FOLDER_RECONCILIATION_REQUIRED, MAIL_RECONCILIATION_EXHAUSTED]
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
@@ -1822,7 +1822,7 @@ components:
           required: true
           schema:
             type: string
-            enum: [MAIL_FOLDER_VERSION_CONFLICT, MAIL_FOLDER_SYSTEM_ROLE, MAIL_FOLDER_IN_USE, MAIL_FOLDER_NAME_CONFLICT, MAIL_FOLDER_TREE_CONFLICT, MAIL_FOLDER_RECONCILIATION_REQUIRED]
+            enum: [MAIL_FOLDER_VERSION_CONFLICT, MAIL_FOLDER_SYSTEM_ROLE, MAIL_FOLDER_IN_USE, MAIL_FOLDER_NAME_CONFLICT, MAIL_FOLDER_TREE_CONFLICT, MAIL_FOLDER_RECONCILIATION_REQUIRED, MAIL_RECONCILIATION_EXHAUSTED]
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
@@ -2704,7 +2704,7 @@ components:
         display_name: {type: string, maxLength: 160, x-hub-max-utf8-bytes: 640}
         kind: {type: string, enum: [primary, alias, group]}
         send_allowed: {type: boolean}
-        is_default: {type: boolean}
+        is_default: {type: boolean, description: Derived after commit from MailUserSettings.default_identity_id = MailIdentity.id; never persisted on MailIdentity.}
         status: {type: string, enum: [pending, active, error, deleting]}
     CreateMailAliasRequest:
       type: object
@@ -2756,7 +2756,7 @@ components:
           maxLength: 100000
           x-hub-max-utf8-bytes: 400000
           description: Server-derived normalized plain value
-        is_default: {type: boolean}
+        is_default: {type: boolean, description: Derived after commit from MailUserSettings.default_signature_id = MailSignature.id; never persisted on MailSignature.}
         version: {type: integer, minimum: 1}
     UpsertMailSignatureRequest:
       type: object
@@ -2767,7 +2767,14 @@ components:
         body_format: {type: string, enum: [rich, plain]}
         rich_body: {type: string, maxLength: 100000, x-hub-max-utf8-bytes: 400000}
         plain_body: {type: string, maxLength: 100000, x-hub-max-utf8-bytes: 400000}
-        is_default: {type: boolean}
+        is_default:
+          type: boolean
+          description: >-
+            Transactional command on MailUserSettings.default_signature_id: create false
+            leaves the existing pointer, create true selects this signature; update false
+            clears only when this signature is selected, update true selects it. The locked
+            signature/settings transaction increments settings version iff the pointer changes;
+            stale signature If-Match conflicts.
       oneOf:
         - properties:
             body_format: {const: rich}
@@ -2828,6 +2835,7 @@ components:
           minItems: 1
           maxItems: 20
           items: {$ref: "#/components/schemas/MailRuleCondition"}
+          description: Bounded flat conjunction only; no nesting, any, not, or disjunction.
         actions:
           type: array
           minItems: 1
@@ -2861,6 +2869,7 @@ components:
           minItems: 1
           maxItems: 20
           items: {$ref: "#/components/schemas/MailRuleCondition"}
+          description: Bounded flat conjunction only; no nesting, any, not, or disjunction.
         actions:
           type: array
           minItems: 1

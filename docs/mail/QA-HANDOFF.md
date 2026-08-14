@@ -695,6 +695,20 @@ oracles, not current executable evidence.
 
 ## Current blockers and honesty
 
+### 144-02D/02F correction-candidate external/static oracle matrix
+
+This candidate is `ROOT_CORRECTION_CANDIDATE` / `INDEPENDENT_CLOSURE_PENDING` /
+`IMPLEMENTATION_BLOCKED` / `RUNTIME_NOT_RUN`; the launcher remains `NOT_READY`.
+
+| Oracle | Static/external assertion | Runtime status |
+|---|---|---|
+| Signature pointer | identity derives only from `default_identity_id`; signature derives post-commit from `default_signature_id`; Upsert false/true lock/If-Match/no-second-PATCH truth table | NOT_RUN |
+| Receipt recovery | `prior_attempts p`; `p=9` tenth I/O, live-tenth no-op contention, p=10 expiry terminal 409 and 30-day replay | NOT_RUN |
+| Receipt shapes | digest/pair/status/safe-union/lease/terminal/compaction plus exact operation-target-status-safe-code and folder matrices | NOT_RUN |
+| Bulk rows | index/count/outcome/training checks; parent-transaction-only member aggregate/cardinality | NOT_RUN |
+| Deployment | attempt `0..10`, internal-only exhaustion code, tuple/state/lease, tenth crash/no-11th and late owner CAS token/epoch invariants | NOT_RUN |
+| OpenAPI | only `MailFolderCreateConflict`, `MailFolderMutationConflict`, `MailMutationIdempotencyConflict` as named folder/idempotency 409 components | NOT_RUN |
+
 ### 144-03A Thread accepted-contract future scenarios (not implemented or run)
 
 - Assert the exact exported callable/error grammar including `ThreadKeyVersionV1`, versioned

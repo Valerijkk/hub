@@ -618,8 +618,8 @@ only to a short-lived HTTPS URL minted for the fixed configured mail-storage ori
 
 ### 3.8 MailRule
 
-`id`, `mail_account_id`, `name`, `enabled`, `priority`, a bounded typed condition tree,
-typed actions, `version`, soft-delete state and timestamps. V1 supports safe conjunctions
+`id`, `mail_account_id`, `name`, `enabled`, `priority`, a bounded flat conjunction of typed
+conditions, typed actions, `version`, soft-delete state and timestamps. V1 supports safe conjunctions
 over sender/recipient/subject/has-attachment and actions move/add-label/mark-read. Raw
 user-provided Sieve is never accepted by the public API. An individual row does not own an
 engine script id or claim deployment success.
@@ -760,8 +760,21 @@ version and timestamps. `is_default` is derived by comparing the signature id wi
 canonical nullable `MailUserSettings.default_signature_id`; it is not persisted on the
 signature row. Signatures are user
 configuration rather than message bodies, but are still sanitized on write and render.
+`MailIdentity.is_default` is response-only and derives after commit only from
+`MailUserSettings.default_identity_id = MailIdentity.id`; it never derives from a signature.
 Create/update accepts rich content plus format; the server derives the stored plain value
 and does not trust a client-supplied rich/plain pair.
+
+Signature `is_default` commands exclusively select or clear the canonical settings pointer in
+the transaction that locks the live old/new signature and unique settings row. Create false
+leaves it, create true selects it; update false clears only if selected, update true selects;
+each already-satisfied command is a no-op. Delete clears a selected pointer before soft delete.
+Settings version increments exactly iff that pointer changes; same-account/live validation and
+signature `If-Match` apply, and no second caller settings PATCH participates.
+
+`UpsertMailSignatureRequest.is_default` carries this complete command meaning. The returned
+signature value is post-commit derived from `default_signature_id = MailSignature.id`, never
+from the request command itself.
 
 ### 3.10.3a MailMutationReceipt
 
@@ -783,6 +796,11 @@ an internal terminal row may be deleted after the recovery window. Within
 the window a matching live target is reconstructed, a removed/expired target returns
 `IDEMPOTENCY_REPLAY_UNAVAILABLE`; after compaction any reuse returns
 `IDEMPOTENCY_REPLAY_EXPIRED`. Neither state executes the operation again.
+Receipt reconciliation defines `prior_attempts p`: for `0 <= p < 10` it atomically claims the
+receipt plus account lease/epoch and persists `p+1` before one bounded recovery I/O slot (`p=9`
+is tenth); preclaim/poll/busy do not increment. A live tenth lease is no-op contention; `p=10`
+grants no I/O and post-expiry takeover terminalizes a folder receipt generically as 409
+`MAIL_RECONCILIATION_EXHAUSTED`. The tenth owner may complete, but crash/unknown exhausts it.
 Generic public mail intents require a fresh client-generated UUID v4/v7. Folder update/
 delete instead receive an injected server-generated UUID v4/v7 only after the account lease and
 `If-Match`/state checks succeed; it never crosses the service boundary. The stored key digest is
