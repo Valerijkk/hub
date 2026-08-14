@@ -1,0 +1,331 @@
+schema = "hub.testframework.profiles/v1"
+profile_count = 47
+
+[[profiles]]
+name = "collection-gates"
+image_role = "python-core"
+limit_class = "small"
+target = "selftests/collection"
+deadline_seconds = 300
+
+[[profiles]]
+name = "architecture-selftest"
+image_role = "python-core"
+limit_class = "small"
+target = "selftests/architecture"
+deadline_seconds = 300
+
+[[profiles]]
+name = "health-api"
+image_role = "python-core"
+limit_class = "small"
+target = "tests/api/health"
+deadline_seconds = 600
+
+[[profiles]]
+name = "http-api"
+image_role = "python-core"
+limit_class = "small"
+target = "tests/api/http"
+deadline_seconds = 600
+
+[[profiles]]
+name = "runtime-observability"
+image_role = "python-core"
+limit_class = "small"
+target = "selftests/runtime"
+deadline_seconds = 600
+
+[[profiles]]
+name = "identity-api"
+image_role = "python-core"
+limit_class = "small"
+target = "tests/api/identity"
+deadline_seconds = 600
+
+[[profiles]]
+name = "authz-tenant"
+image_role = "python-core"
+limit_class = "small"
+target = "tests/api/authz"
+deadline_seconds = 900
+
+[[profiles]]
+name = "abuse-platform"
+image_role = "python-core"
+limit_class = "small"
+target = "tests/api/platform"
+deadline_seconds = 900
+
+[[profiles]]
+name = "security-risk"
+image_role = "python-core"
+limit_class = "small"
+target = "tests/contract/security"
+deadline_seconds = 600
+
+[[profiles]]
+name = "postgres-integration"
+image_role = "integration"
+limit_class = "medium"
+target = "tests/integration/postgres"
+deadline_seconds = 1200
+
+[[profiles]]
+name = "redis-nats-integration"
+image_role = "integration"
+limit_class = "medium"
+target = "tests/integration/redis-nats"
+deadline_seconds = 1200
+
+[[profiles]]
+name = "infra-docs"
+image_role = "python-core"
+limit_class = "small"
+target = "docs/infra"
+deadline_seconds = 300
+
+[[profiles]]
+name = "tracker-api"
+image_role = "python-core"
+limit_class = "medium"
+target = "tests/api/tracker"
+deadline_seconds = 900
+
+[[profiles]]
+name = "tms-api"
+image_role = "python-core"
+limit_class = "medium"
+target = "tests/api/tms"
+deadline_seconds = 900
+
+[[profiles]]
+name = "projects-api"
+image_role = "python-core"
+limit_class = "medium"
+target = "tests/api/projects"
+deadline_seconds = 900
+
+[[profiles]]
+name = "calendar-api"
+image_role = "python-core"
+limit_class = "medium"
+target = "tests/api/calendar"
+deadline_seconds = 900
+
+[[profiles]]
+name = "messenger-api"
+image_role = "python-core"
+limit_class = "medium"
+target = "tests/api/messenger"
+deadline_seconds = 900
+
+[[profiles]]
+name = "notifications-nats"
+image_role = "integration"
+limit_class = "medium"
+target = "tests/integration/notifications"
+deadline_seconds = 1200
+
+[[profiles]]
+name = "work-risk"
+image_role = "python-core"
+limit_class = "small"
+target = "tests/contract/work"
+deadline_seconds = 600
+
+[[profiles]]
+name = "work-docs"
+image_role = "python-core"
+limit_class = "small"
+target = "docs/work"
+deadline_seconds = 300
+
+[[profiles]]
+name = "crm-api"
+image_role = "python-core"
+limit_class = "medium"
+target = "tests/api/crm"
+deadline_seconds = 900
+
+[[profiles]]
+name = "hr-api"
+image_role = "python-core"
+limit_class = "medium"
+target = "tests/api/hr"
+deadline_seconds = 900
+
+[[profiles]]
+name = "accounting-api"
+image_role = "python-core"
+limit_class = "medium"
+target = "tests/api/accounting"
+deadline_seconds = 900
+
+[[profiles]]
+name = "bases-api"
+image_role = "python-core"
+limit_class = "medium"
+target = "tests/api/bases"
+deadline_seconds = 900
+
+[[profiles]]
+name = "intranet-api"
+image_role = "python-core"
+limit_class = "medium"
+target = "tests/api/intranet"
+deadline_seconds = 900
+
+[[profiles]]
+name = "files-api"
+image_role = "python-core"
+limit_class = "medium"
+target = "tests/api/files"
+deadline_seconds = 900
+
+[[profiles]]
+name = "automation-api"
+image_role = "python-core"
+limit_class = "medium"
+target = "tests/api/automation"
+deadline_seconds = 900
+
+[[profiles]]
+name = "github-adapter"
+image_role = "python-core"
+limit_class = "medium"
+target = "tests/api/github"
+deadline_seconds = 900
+
+[[profiles]]
+name = "gitlab-adapter"
+image_role = "python-core"
+limit_class = "medium"
+target = "tests/api/gitlab"
+deadline_seconds = 900
+
+[[profiles]]
+name = "mail-adapter"
+image_role = "python-core"
+limit_class = "medium"
+target = "tests/api/mail"
+deadline_seconds = 900
+
+[[profiles]]
+name = "business-risk"
+image_role = "python-core"
+limit_class = "small"
+target = "tests/contract/business"
+deadline_seconds = 600
+
+[[profiles]]
+name = "business-docs"
+image_role = "python-core"
+limit_class = "small"
+target = "docs/business"
+deadline_seconds = 300
+
+[[profiles]]
+name = "openapi-contract"
+image_role = "python-core"
+limit_class = "small"
+target = "tests/contract/openapi"
+deadline_seconds = 600
+
+[[profiles]]
+name = "frontend-contract"
+image_role = "python-core"
+limit_class = "small"
+target = "tests/contract/frontend"
+deadline_seconds = 600
+
+[[profiles]]
+name = "contract-docs"
+image_role = "python-core"
+limit_class = "small"
+target = "docs/contracts"
+deadline_seconds = 300
+
+[[profiles]]
+name = "browser-lifecycle"
+image_role = "browser"
+limit_class = "medium"
+target = "selftests/browser"
+deadline_seconds = 900
+
+[[profiles]]
+name = "e2e-smoke"
+image_role = "browser"
+limit_class = "medium"
+target = "tests/e2e/smoke"
+deadline_seconds = 1200
+
+[[profiles]]
+name = "e2e-docs"
+image_role = "python-core"
+limit_class = "small"
+target = "docs/e2e"
+deadline_seconds = 300
+
+[[profiles]]
+name = "journey-work"
+image_role = "browser"
+limit_class = "medium"
+target = "tests/e2e/work"
+deadline_seconds = 1200
+
+[[profiles]]
+name = "journey-business"
+image_role = "browser"
+limit_class = "medium"
+target = "tests/e2e/business"
+deadline_seconds = 1200
+
+[[profiles]]
+name = "journey-admin"
+image_role = "browser"
+limit_class = "medium"
+target = "tests/e2e/admin"
+deadline_seconds = 1200
+
+[[profiles]]
+name = "journey-recovery"
+image_role = "browser"
+limit_class = "medium"
+target = "tests/e2e/recovery"
+deadline_seconds = 1200
+
+[[profiles]]
+name = "accessibility"
+image_role = "browser"
+limit_class = "medium"
+target = "tests/e2e/accessibility"
+deadline_seconds = 900
+
+[[profiles]]
+name = "privacy-security"
+image_role = "python-core"
+limit_class = "medium"
+target = "tests/contract/privacy"
+deadline_seconds = 900
+
+[[profiles]]
+name = "load-validity"
+image_role = "load"
+limit_class = "large"
+target = "load/validity"
+deadline_seconds = 1200
+
+[[profiles]]
+name = "load-measured"
+image_role = "load"
+limit_class = "large"
+target = "load/measured"
+deadline_seconds = 1800
+
+[[profiles]]
+name = "ci-clean-room"
+image_role = "ci"
+limit_class = "large"
+target = "ci/clean-room"
+deadline_seconds = 1800
