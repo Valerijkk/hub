@@ -1,8 +1,8 @@
 # Phase-145 sealed typed-IR/Sieve-carrier contract
 
-> **Status:** `CORRECTION_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED` / `IMPLEMENTATION_BLOCKED`. Commit `692b99d825c66ac5e7ece6ad1f40d278a18df8aa` is the prior committed parent containing old blob `2e764c58` and the `COMMITTED_UNACCEPTED` / correction-required history; it is not a SHA, status, review verdict, or authority of this current worktree text. This standalone docs-only correction candidate has no commit SHA and is not a Phase-145 status transition, implementation plan, source/test authorization, runtime claim, or acceptance/source authority. The latest historical review trail records Contract/Spec/Oracle `gpt-5.6-terra` high `FAIL` and Lifecycle/Dependency/Boundary `gpt-5.6-terra` high `FAIL`; Security/Adversarial `gpt-5.6-terra` xhigh `PASS` is trace only. The current candidate requires fresh independent Contract/Spec/Oracle, Security/Adversarial, and Lifecycle/Dependency/Boundary precommit reviews; no earlier review is active, an acceptance, or a verdict for it. All prior routing used `provenance_source: dispatcher-enforced`; fallback is forbidden and telemetry is `UNKNOWN` unless exposed.
+> **Status:** committed child `c14c208889e8aa1ce7f005a3d9ce03d1a3bb6dc6` remains `COMMITTED_UNACCEPTED` / `EXACT_SHA_CORRECTION_REQUIRED` / `IMPLEMENTATION_BLOCKED`; it is not accepted and has no source, test, runtime, or release authority. Its exact-SHA Contract/Spec/Oracle and Security/Adversarial reviews are `PASS` C/I/M `0/0/0`; its exact-SHA Lifecycle/Dependency/Boundary review is `FAIL` C/I/M `0/1/0` solely because the required subsequent status synchronization did not bind an exact 28-document boundary. This standalone docs-only working descendant is `CORRECTION_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED` and has no commit SHA. It changes neither Phase-145 status nor implementation-plan, source/test, runtime, acceptance, or release authority. It requires fresh independent Contract/Spec/Oracle, Security/Adversarial, and Lifecycle/Dependency/Boundary precommit reviews; no earlier review is a verdict for this text. All requested routing is `gpt-5.6-terra` medium for authoring and `gpt-5.6-terra` high/xhigh/high for Contract/Security/Lifecycle review, with `provenance_source: dispatcher-enforced`; fallback is forbidden and telemetry is `UNKNOWN` unless exposed.
 
-> **Correction lifecycle:** the current working child is a one-file correction candidate only. It requires the three precommit reviews, one atomic child commit, then three exact-SHA reviews before any status sync. It creates no acceptance, source, implementation, test, runtime, or release authority.
+> **Correction lifecycle:** the current working child is a one-file correction candidate only. It requires the three precommit reviews, one atomic child commit, then three exact-child-SHA reviews before a **separate exact 28-document docs-only status sync** over the frozen manifest below. No status-sync edit may be staged or committed before all three exact-child-SHA reviews pass C/I/M `0/0/0`; that sync must not add, remove, substitute, glob, or implicitly expand a manifest path. It creates no acceptance, source, implementation, test, runtime, or release authority.
 
 > **Prerequisite topology:** this non-marker carrier is prerequisite input to 145-07B; 145-07B cannot bootstrap it. Contract acceptance grants design authority only. Rule Task 1 remains `NOT_AUTHORIZED/BLOCKED` until a separately accepted carrier implementation plan, G145-5B, G145-5C, and launcher readiness exist. Runtime evidence remains `NOT_RUN`; launcher remains `NOT_READY`.
 
@@ -165,4 +165,35 @@ Future **candidate-only** ownership is: `backend/internal/mail/mailbox_types.go`
 
 ## Candidate lifecycle and review routing
 
-Required precommit reviews for the current correction candidate are Contract/Spec/Oracle `gpt-5.6-terra` high, Security/Adversarial `gpt-5.6-terra` xhigh, and Lifecycle/Dependency/Boundary `gpt-5.6-terra` high. After its atomic child commit, the same three reviews must assess that exact child SHA before any status synchronization. This authoring packet requests `gpt-5.6-terra` medium with `provenance_source: dispatcher-enforced`; fallback is forbidden and telemetry is `UNKNOWN` unless exposed. Every review records actual routing or remains `UNKNOWN/BLOCKED`. `CANDIDATE READY` only means ready for these reviews, never accepted, implemented, tested, runtime-ready, or unblocked.
+Required precommit reviews for the current correction candidate are Contract/Spec/Oracle `gpt-5.6-terra` high, Security/Adversarial `gpt-5.6-terra` xhigh, and Lifecycle/Dependency/Boundary `gpt-5.6-terra` high. After its atomic child commit, the same three reviews must assess that exact child SHA before any status synchronization. The only permitted follow-on status transition is a separate docs-only commit whose diff name-set equals this frozen 28-path manifest exactly:
+
+1. `.planning/STATE.md`
+2. `.planning/decisions/specs/MAIL-SPEC.md`
+3. `.planning/phases/143-calendar-rsvp-core/.continue-here.md`
+4. `.planning/phases/143-calendar-rsvp-core/PREIMPLEMENTATION-READINESS.md`
+5. `.planning/phases/144-mailbox-domain/CONTRACT-144-03B-FOLDER.md`
+6. `.planning/phases/144-mailbox-domain/CONTRACT-144-03B-RULE.md`
+7. `.planning/phases/144-mailbox-domain/DISPATCH-INDEX.md`
+8. `.planning/phases/144-mailbox-domain/DISPATCH-REMAINING.md`
+9. `.planning/phases/144-mailbox-domain/IMPLEMENTATION-144-01A.md`
+10. `.planning/phases/144-mailbox-domain/IMPLEMENTATION-144-03A-ADDRESS.md`
+11. `.planning/phases/144-mailbox-domain/IMPLEMENTATION-144-03A-THREAD.md`
+12. `.planning/phases/144-mailbox-domain/IMPLEMENTATION-144-03B-FOLDER.md`
+13. `.planning/phases/144-mailbox-domain/PLAN-144-03B-FOLDER.md`
+14. `.planning/phases/144-mailbox-domain/PLAN.md`
+15. `.planning/phases/144-mailbox-domain/REVIEW-144-02A-SCHEMA-READINESS.md`
+16. `.planning/phases/144-mailbox-domain/REVIEW-144-02D-SCHEMA-READINESS.md`
+17. `.planning/phases/144-mailbox-domain/REVIEW-144-02F-SCHEMA-READINESS.md`
+18. `.planning/phases/145-stalwart-gateway/DISPATCH-INDEX.md`
+19. `.planning/phases/145-stalwart-gateway/DISPATCH-PACKETS.md`
+20. `.planning/phases/145-stalwart-gateway/GATE-PLAN.md`
+21. `.planning/phases/145-stalwart-gateway/PLAN.md`
+22. `.planning/phases/148-mail-release-gate/GATE-MATRIX.md`
+23. `docs/mail/CONTRACT-CHANGELOG.md`
+24. `docs/mail/ENGINE-CONTRACT-0.1.8.md`
+25. `docs/mail/PERSISTENCE-CONTRACT-0.1.8.md`
+26. `docs/mail/QA-HANDOFF.md`
+27. `docs/mail/openapi.yaml`
+28. `docs/superpowers/plans/2026-08-13-mail-control-plane-schemas.md`
+
+The exact review receipt must name both the correction-child SHA and this 28-path set, report each review C/I/M verdict, and preserve all other gates as blocked: separately accepted carrier implementation plan, G145-5B, G145-5C, launcher `NOT_READY`, and executables `NOT_RUN`. This authoring packet requests `gpt-5.6-terra` medium with `provenance_source: dispatcher-enforced`; fallback is forbidden and telemetry is `UNKNOWN` unless exposed. Every review records actual routing or remains `UNKNOWN/BLOCKED`. `CANDIDATE READY` only means ready for these reviews, never accepted, implemented, tested, runtime-ready, or unblocked.
