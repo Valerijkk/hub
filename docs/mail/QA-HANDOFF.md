@@ -1,9 +1,10 @@
 # Hub Mail + Calendar Sync — QA handoff
 
+> **144-02D current:** exact docs boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract, Security and Lifecycle post-transition reviews PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Earlier lifecycle FAIL and contrary 02D/02F-next text below are historical. Sole next action: three exact 02F closure reviews; 02F and runtime remain unaccepted/`NOT_RUN`.
 > **Contract version:** 0.1.8
 > **Prepared:** 2026-08-13
 > **Contract review status:** five-document 0.1.8 entry amendment PASS at `5e314fb080d420696642058ae47397e251c23207`; Thread contract remains accepted at `cbc12577a6444df9c660e43fedfd0c8133c6e461`; implementation+oracle are narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS` (source `c221d547`, oracle `b21bd6fd`, reviews C/I/M `0/0/0`), static only; broader Phase 142/cross-contract review remains pending
-> **Implementation status:** IN_PROGRESS — 143-01/02A/02B static accepted historically; 144-01A is `STATIC_ACCEPTED` at `e3e8c774d734f926f77f8e600b58dc68dabbd993`; 144-02A A1/A2/A3 representation is `STATIC_CONTRACT_READY` / docs-only accepted at reviewed snapshot `b631866b2ba372101fd80eea30951eaa267c1931`, while its source schemas remain unimplemented and 02B/C/D/F remain unaccepted; it authorizes no TDD/generation/migration/launcher/test/build/runtime. Founder migration authority, supported task-owned launcher and sequential source dispatch/review remain required. G145-5C remains open; executable verification `NOT_RUN`
+> **Implementation status:** IN_PROGRESS — 143-01/02A/02B static accepted historically; 144-01A is `STATIC_ACCEPTED` at `e3e8c774d734f926f77f8e600b58dc68dabbd993`; 144-02A A1/A2/A3 representation is `STATIC_CONTRACT_READY` / docs-only accepted at reviewed snapshot `b631866b2ba372101fd80eea30951eaa267c1931`; 144-02D's exact docs/readiness boundary is `STATIC_ACCEPTED` / `EXACT_SHA_PASS`, while its source schemas remain unimplemented and 02B/C/F remain unaccepted. These static acceptances authorize no TDD/generation/migration/launcher/test/build/runtime. Founder migration authority, supported task-owned launcher and sequential source dispatch/review remain required. G145-5C remains open; executable verification `NOT_RUN`
 > **Runtime status:** NOT_RUN
 > **QA owner:** founder-designated Claude test program
 > **Product-code owner:** ChatGPT mail feature branch
@@ -695,17 +696,16 @@ oracles, not current executable evidence.
 
 ## Current blockers and honesty
 
-### 144-02D/02F correction-candidate external/static oracle matrix
+### Accepted-02D / pending-02F external/static oracle matrix
 
-The initial `63e`/`6c` candidate lifecycle is historical. Corrective commit
+The initial `63e`/`6c` candidate lifecycle and earlier Lifecycle FAIL are historical. Corrective commit
 `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` (parent
 `6c424ed2d6703ceccbb269c37d9abc03e75a0410`, tree
 `da3fa6e19316bcf2c7c318a63ec09e1b175f68df`, exact nine
-documents) is `COMMITTED_UNACCEPTED` / `EXACT_SHA_CLOSURE_IN_PROGRESS`, not accepted.
-Contract/Spec/Oracle and Security/Adversarial exact-SHA reviews PASS C/I/M `0/0/0`;
-Lifecycle/Dependency exact-SHA review FAIL C/I/M `0/1/0` solely on stale precommit/commit-next
-wording, while content/object boundary passed. This transition record consumes that instruction.
-All review provenance is dispatcher-enforced, fallback none, telemetry `UNKNOWN`. Launcher remains
+documents) plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is docs-only
+`STATIC_ACCEPTED` / `EXACT_SHA_PASS`; all three post-transition exact reviews PASS C/I/M `0/0/0`.
+All review provenance is dispatcher-enforced, fallback none, telemetry `UNKNOWN`. 02F remains
+unaccepted; its three exact closure reviews are sole next action. Launcher remains
 `NOT_READY`; runtime stays `NOT_RUN`.
 
 | Oracle | Static/external assertion | Runtime status |
@@ -770,10 +770,10 @@ C/I/M `0/0/0`), static only. Folder docs are also static-only accepted at
 `f199546513b758ca7b95328b5ccd7680009b732e`, reviewed against transition commit
 `6735ae746c7acde657359e8a709cd897c4dce61c`; Contract/Spec Terra/high, Security/Adversarial
 Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced with no
-fallback and telemetry `UNKNOWN`. Corrective `7d29d08c` is committed unaccepted. Current next
-action is fresh Lifecycle exact-SHA re-review of `7d` plus this transition record; fresh
-Contract/Security trace-only rechecks are permitted. After all exact reviews PASS, separate
-docs-only 02D `STATIC_ACCEPTED` sync is required, then only 02F; later plan and Phase-145 carrier
+fallback and telemetry `UNKNOWN`. Corrective `7d29d08c` plus transition `e563a3d3` is now docs-only
+`STATIC_ACCEPTED` / `EXACT_SHA_PASS`; the earlier Lifecycle FAIL and pre-acceptance sequence are
+`CONSUMED/HISTORICAL`. The sole next action is 02F's three exact closure reviews against accepted
+02D; later plan and Phase-145 carrier
 remain required. Launcher remains
 `NOT_READY` and runtime `NOT_RUN`.
 
@@ -823,9 +823,9 @@ remain required. Launcher remains
 Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced with no
 fallback and telemetry `UNKNOWN`. Future RED oracle
 must cover ABI/errors, closed union/bounds/Unicode/targets/order/deep-copy/static purity and
-reject noncanonical base32 (decode-to-32 plus identical re-encode). No test before fresh Lifecycle
-exact-SHA re-review plus this transition, all exact reviews PASS, a separate docs-only 02D
-acceptance sync, and only then 02F reviews; later plan and separate Phase-145 carrier remain;
+reject noncanonical base32 (decode-to-32 plus identical re-encode). 144-02D is docs-only accepted;
+no test before accepted 02F following its three exact closure reviews, a later accepted Rule plan
+and separate Phase-145 carrier;
 launcher `NOT_READY`.
 Compiler errors are internal; HTTP uses 04M account-scoped lookup which masks foreign/missing
 targets identically and never makes mismatch/ambiguity an existence oracle.

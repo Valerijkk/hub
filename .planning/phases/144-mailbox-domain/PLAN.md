@@ -1,6 +1,8 @@
 # Phase 144 — Mailbox Domain
 
-> Task: TASK-237 · Status: IN_PROGRESS · 144-02A A1/A2/A3 representation `STATIC_CONTRACT_READY` / docs-only accepted at reviewed snapshot `b631866b2ba372101fd80eea30951eaa267c1931` (three independent Terra reviews PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry UNKNOWN unless exposed) · 144-01A STATIC_ACCEPTED `e3e8c774` / EXACT_SHA_PASS · 144-03A-Address STATIC_ACCEPTED `41564d00` / EXACT_SHA_PASS · 144-03A-Thread STATIC_ACCEPTED `9903f4df` / EXACT_SHA_PASS, contract `cbc12577`, C/I/M `0/0/0`, executable NOT_RUN · 144-02B/02C/02D/02F CONTRACT_AMENDED_NOT_ACCEPTED · 144-01B BLOCKED_ON_APPLICABLE_SUPPORTED_CURRENT_SHA_DOCKER_EVIDENCE_BY_TASK3 · RUNTIME_NOT_RUN · Depends on: Phase 142
+> Task: TASK-237 · Status: IN_PROGRESS · 144-02A A1/A2/A3 representation `STATIC_CONTRACT_READY` / docs-only accepted at reviewed snapshot `b631866b2ba372101fd80eea30951eaa267c1931` (three independent Terra reviews PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry UNKNOWN unless exposed) · 144-01A STATIC_ACCEPTED `e3e8c774` / EXACT_SHA_PASS · 144-03A-Address STATIC_ACCEPTED `41564d00` / EXACT_SHA_PASS · 144-03A-Thread STATIC_ACCEPTED `9903f4df` / EXACT_SHA_PASS, contract `cbc12577`, C/I/M `0/0/0`, executable NOT_RUN · 144-02D docs-only STATIC_ACCEPTED / EXACT_SHA_PASS at `7d29d08c` plus `e563a3d3`; 144-02B/02C/02F remain unaccepted · 144-01B BLOCKED_ON_APPLICABLE_SUPPORTED_CURRENT_SHA_DOCKER_EVIDENCE_BY_TASK3 · RUNTIME_NOT_RUN · Depends on: Phase 142
+
+> **Current 144-02D acceptance:** docs-only exact boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; all three post-transition Terra routes PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Contrary 02D-candidate or combined 02D/02F-next wording below is `CONSUMED/HISTORICAL`. Sole next action is three independent exact 02F closure reviews. 02F, source/Ent/generation/migration/services/runtime, Rule plan/carrier and Phase 145 remain blocked.
 
 ## Goal
 
@@ -13,7 +15,7 @@ its exact 19-path implementation/oracle boundary is `STATIC_ACCEPTED` at `9903f4
 narrowly `STATIC_ACCEPTED` at `f8cb7643986fc591cae16764575337b72ef3a692` (source
 `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b`, oracle `efe0db0071cb22ce4b026c635157f0fb08885d64`,
 C/I/M `0/0/0`), static only; Folder docs acceptance is `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`.
-The distinct Rule contract is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; its acceptance transition/review target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`. Rule docs acceptance authorizes neither source nor TDD. The future implementation boundary remains exactly `rule_compiler.go` plus `rule_compiler_test.go`, but only after 02D/02F closure, a separate accepted Rule plan, and the Phase-145 engine-port carrier.
+The distinct Rule contract is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; its acceptance transition/review target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`. Rule docs acceptance authorizes neither source nor TDD. The future implementation boundary remains exactly `rule_compiler.go` plus `rule_compiler_test.go`, but only after accepted 02D and 02F, a separate accepted Rule plan, and the Phase-145 engine-port carrier.
 
 ## Ordered tasks
 
@@ -49,8 +51,8 @@ separate and green.
 > implementation commit. It does not authorize Ent/product source or TDD, generated output,
 > migrations, launcher execution, tests/validators/build or runtime. Founder migration authority,
 > supported task-owned launcher, sequential explicit source dispatch and source-level review remain
-> required. Before any source work, the next action is a docs-only 02D/02F normative correction
-> candidate; Rule plan/TDD and the Phase-145 carrier remain later.
-> **Current Rule lifecycle (2026-08-14):** `144-03B-Rule-Compiler` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; acceptance transition/review target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`. Contract/Spec Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced provenance, no fallback, telemetry `UNKNOWN` unless exposed. 144-02D/02F remain unclosed; later separate Rule plan and Phase-145 engine-port/carrier remain required. No Rule source/test/TDD/schema/runtime/product/release authority; launcher `NOT_READY`, executable evidence `NOT_RUN`, Phase 148 blocked.
+> required. 144-02D is docs-only accepted; before any source work, the sole next action is 144-02F's
+> three exact closure reviews. Rule plan/TDD and the Phase-145 carrier remain later.
+> **Current Rule lifecycle (2026-08-14):** `144-03B-Rule-Compiler` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; acceptance transition/review target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`. Contract/Spec Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced provenance, no fallback, telemetry `UNKNOWN` unless exposed. 144-02D is docs-only accepted; 144-02F remains unaccepted, and its three exact closure reviews are the sole next action. A later separate Rule plan and Phase-145 engine-port/carrier remain required. No Rule source/test/TDD/schema/runtime/product/release authority; launcher `NOT_READY`, executable evidence `NOT_RUN`, Phase 148 blocked.
 
-> **Current 144-03B rule gate:** Rule docs acceptance authorizes neither source nor TDD. The future implementation boundary remains exactly `rule_compiler.go` plus `rule_compiler_test.go`, but only after 02D/02F closure, a separate accepted Rule plan, and the Phase-145 engine-port carrier. All other blockers remain in force.
+> **Current 144-03B rule gate:** Rule docs acceptance authorizes neither source nor TDD. The future implementation boundary remains exactly `rule_compiler.go` plus `rule_compiler_test.go`, but only after accepted 02D and 02F, a separate accepted Rule plan, and the Phase-145 engine-port carrier. All other blockers remain in force.

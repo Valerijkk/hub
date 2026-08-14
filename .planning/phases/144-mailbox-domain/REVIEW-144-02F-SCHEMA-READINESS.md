@@ -1,5 +1,6 @@
 # Phase 144-02F preimplementation review — receipt/deployment schema readiness
 
+> **Current prerequisite:** 144-02D exact docs boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` after three exact PASS reviews C/I/M `0/0/0`. 02F itself remains unaccepted. Sole next action is three independent exact 02F closure reviews: Contract/Spec Terra/high, Security/Adversarial Terra/xhigh, Lifecycle/Dependency Terra/high. No implementation/runtime authority.
 > **Detected:** 2026-08-13 root deep static audit
 > **Historical status:** ROOT_CORRECTION_CANDIDATE · INDEPENDENT_CLOSURE_PENDING · IMPLEMENTATION_BLOCKED · RUNTIME_NOT_RUN; superseded by the current corrective packet below.
 > **Scope:** `MailMutationReceipt`, receipt target/member rows and `MailRuleDeployment`
@@ -151,13 +152,13 @@ normative facts remain frozen, but it is not a closure or acceptance; its 02D Re
 portion is superseded. Lifecycle transition `6c424ed2d6703ceccbb269c37d9abc03e75a0410` is
 `CONSUMED/HISTORICAL` and its former next-review instruction is superseded.
 
-Corrected 02D commit `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` is
+**CONSUMED/HISTORICAL pre-acceptance record:** corrected 02D commit `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` was
 `COMMITTED_UNACCEPTED` / `EXACT_SHA_CLOSURE_IN_PROGRESS`. Its Contract and Security exact-SHA
 reviews PASS C/I/M `0/0/0`; Lifecycle exact-SHA FAIL C/I/M `0/1/0` solely on stale lifecycle
 wording, with content/object boundary PASS. This transition record consumes the stale instruction;
 all review provenance is dispatcher-enforced, fallback none, telemetry `UNKNOWN`.
 
-**Current exact next step:** fresh Lifecycle exact-SHA re-review of `7d` plus this transition
+**Consumed/historical next step:** fresh Lifecycle exact-SHA re-review of `7d` plus this transition
 record, with fresh Contract/Security trace-only rechecks permitted. After every exact review PASS,
 a separate docs-only 02D `STATIC_ACCEPTED` sync is required. Only then may an independent 02F
 exact-SHA closure review occur. Its routes remain Contract/Spec (`gpt-5.6-terra`/high),

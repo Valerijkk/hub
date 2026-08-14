@@ -2,6 +2,8 @@
 
 > Task: TASK-238 · Status: BLOCKED_BY_144_CONTRACT_AND_EXTERNAL_GATES · Depends on: Phase 144
 
+> **Upstream lifecycle update:** 144-02D docs-only boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; contrary 02D/02F-next text below is historical. Sole Mail next action is three exact 02F closure reviews. Phase 145 remains blocked/not accepted; G145-5B/G145-5C and carrier/runtime gates remain open.
+
 ## Hard entry gates
 
 0. Phase 144 engine projection/content/blob byte boundary and admin hard ceilings are
@@ -83,6 +85,6 @@ transport passes.
 Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M
 `0/0/0`; provenance is dispatcher-enforced, fallback none and telemetry `UNKNOWN` unless
 exposed. It accepts typed IR only, not an engine port or Sieve bytes. Phase 145 still needs
-144-02D/02F adjudication and explicit docs-only closure, then its later separate Rule plan and
+accepted 144-02D plus 144-02F's three exact closure reviews, then its later separate Rule plan and
 a separate accepted engine-port carrier before Sieve work. Engine folder ID is not mailbox name;
 attachment IR needs MIME gate. No Rule TDD/source/schema/runtime/product/release authority follows.

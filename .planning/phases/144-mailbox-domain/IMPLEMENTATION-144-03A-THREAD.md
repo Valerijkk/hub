@@ -7,6 +7,8 @@
 > **External oracle blob:** `b21bd6fd7f260fabbdfa1084af6521f3ea44c771`.
 > **Evidence blob committed in the accepted boundary:** `489905ac4ef4108224984929194d3db726ccfdf2`.
 
+> **Mail lifecycle update:** 144-02D docs-only boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` + transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; contrary combined 02D/02F-next text below is historical. Sole next action: three exact 02F closure reviews; Rule/Phase145/runtime blockers remain.
+
 ## Static evidence
 
 The exact 19-path commit is narrowly `STATIC_ACCEPTED` at
@@ -46,7 +48,7 @@ Folder source+oracle are narrowly `STATIC_ACCEPTED` at `f8cb7643986fc591cae16764
 C/I/M `0/0/0`), static only. Folder docs are also static-only accepted at
 `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`; Rule is separately docs-only `STATIC_ACCEPTED` /
 `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; acceptance transition/review target
-is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`. 144-02D/02F closure, later plan and the separate
+is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`. 144-02D is docs-only accepted; 144-02F's three exact closure reviews, later plan and the separate
 Phase-145 carrier remain. 144-03C/144-03D eligibility is status
 only, not the current action.
 
@@ -70,4 +72,4 @@ only, not the current action.
 18. `backend/internal/mail/threading.go`
 19. `backend/tests/mail/threading_test.go`
 
-> **Current Rule gate:** distinct `144-03B-Rule-Compiler` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; the acceptance transition/review target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`. 144-02D/02F, later plan and the separate engine-port/145 carrier precede Rule TDD/production.
+> **Current Rule gate:** distinct `144-03B-Rule-Compiler` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; the acceptance transition/review target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`. 144-02D is docs-only accepted; accepted 02F, a later plan and the separate engine-port/145 carrier precede Rule TDD/production.

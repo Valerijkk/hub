@@ -5,7 +5,7 @@ milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
 last_updated: "2026-08-14T12:45:44+03:00"
-last_activity: 2026-08-14 · 02D corrective docs are COMMITTED_UNACCEPTED / EXACT_SHA_CLOSURE_IN_PROGRESS at 7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb (parent 6c424ed2d6703ceccbb269c37d9abc03e75a0410, tree da3fa6e19316bcf2c7c318a63ec09e1b175f68df, exact 9 docs). Contract/Spec/Oracle and Security/Adversarial exact-SHA reviews PASS C/I/M 0/0/0; Lifecycle/Dependency exact-SHA review FAIL C/I/M 0/1/0 solely on stale commit-next wording, with content/object boundary PASS. Current transition record consumes that wording. Next is fresh independent Lifecycle/Dependency exact-SHA re-review of 7d plus this transition record; Contract/Security may perform fresh trace-only rechecks. After all exact reviews PASS, a separate docs-only 02D STATIC_ACCEPTED sync is required; only then 02F closure reviews. Broad 63e/6c candidate lifecycle remains historical only. No source, schema, generation, migration, service, launcher or runtime authority; DNS G145-5C remains open; launcher NOT_READY and executable evidence NOT_RUN
+last_activity: 2026-08-14 · 144-02D docs-only representation/readiness boundary 7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb (parent 6c424ed2d6703ceccbb269c37d9abc03e75a0410, tree da3fa6e19316bcf2c7c318a63ec09e1b175f68df, exact 9 docs) plus lifecycle transition e563a3d3be8898371e5c8a9861c58f11b72167bc (parent 7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb, tree b268efdf950609c6d3fa66efe188005d9a39cf40, same 9 docs) is narrowly STATIC_ACCEPTED / EXACT_SHA_PASS after Contract/Spec/Oracle terra/high, Security/Adversarial terra/xhigh and Lifecycle/Dependency terra/high PASS C/I/M 0/0/0; dispatcher-enforced, fallback none, telemetry UNKNOWN. Earlier lifecycle FAIL 0/1/0 and contrary combined 02D/02F-next wording are CONSUMED/HISTORICAL. Sole next action is three independent exact 02F closure reviews against accepted 02D; 02F remains unaccepted. No source, Ent schema, generation, migration, service, runtime, phase/product/release authority; DNS G145-5C open; launcher NOT_READY and executable evidence NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -118,7 +118,7 @@ mail_feature_workstream:
     branch: codex/mail-module-20260813
     phases: "142-148"
     current_phase: 144
-    status: folder_source_oracle_f8cb7643_and_docs_ca4e2854_static_accepted_rule_docs_only_144_02a_representation_snapshot_b631866b2ba372101fd80eea30951eaa267c1931_static_contract_ready_docs_only_02d_02f_normative_correction_next_source_schema_unauthorized_launcher_not_ready_runtime_not_run
+    status: folder_source_oracle_f8cb7643_and_docs_ca4e2854_static_accepted_rule_docs_only_144_02a_representation_snapshot_b631866b2ba372101fd80eea30951eaa267c1931_static_contract_ready_docs_only_02d_docs_static_accepted_7d29d08c_e563a3d3_02f_exact_closure_reviews_next_144_01b_docker_blocked_rule_plan_145_carrier_required_source_schema_unauthorized_launcher_not_ready_runtime_not_run
     product_truth: unfinished_mvp_feature_not_accepted
     contract_version: "0.1.8"
     tasks:
@@ -341,12 +341,10 @@ spec_coverage:
   dispatcher-enforced with no fallback and telemetry `UNKNOWN`. Initial 144-02D/02F candidate
   `63e419897aa0683e1d3dfcd442aca78eea1b0727` and transition
   `6c424ed2d6703ceccbb269c37d9abc03e75a0410` are `CONSUMED/HISTORICAL`; RecentContact is
-  superseded by corrective commit `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb`, which is
-  `COMMITTED_UNACCEPTED` / `EXACT_SHA_CLOSURE_IN_PROGRESS`. Contract and Security exact-SHA
-  reviews PASS C/I/M `0/0/0`; Lifecycle exact-SHA FAIL C/I/M `0/1/0` solely on stale lifecycle
-  wording, with content/object boundary PASS. This transition record consumes it. Fresh Lifecycle
-  exact-SHA re-review of `7d` plus this transition, all-review PASS, then a separate docs-only 02D
-  `STATIC_ACCEPTED` sync and only then 02F precede a later
+  superseded by corrective commit `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition
+  `e563a3d3be8898371e5c8a9861c58f11b72167bc`, now docs-only `STATIC_ACCEPTED` /
+  `EXACT_SHA_PASS` after all three post-transition reviews PASS C/I/M `0/0/0`. The earlier FAIL is
+  historical. Three exact 02F closure reviews are sole next action and precede a later
   Rule plan and Phase-145 carrier; no source/schema/runtime authority. Other packet eligibility
   remains status only. `144-01B` remains `BLOCKED`; broader
   Phase 142/cross-contract acceptance and Phase 148 remain pending. Launcher and all executable
@@ -1425,12 +1423,10 @@ fallback and telemetry `UNKNOWN`. Initial 144-02D/02F candidate
 `63e419897aa0683e1d3dfcd442aca78eea1b0727` and transition
 `6c424ed2d6703ceccbb269c37d9abc03e75a0410` are `CONSUMED/HISTORICAL`; its RecentContact
 portion is superseded while receipt/deployment facts remain frozen. Corrective commit
-`7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` is `COMMITTED_UNACCEPTED` /
-`EXACT_SHA_CLOSURE_IN_PROGRESS`; Contract and Security PASS C/I/M `0/0/0`, Lifecycle FAIL
-C/I/M `0/1/0` solely on stale lifecycle wording while content/object boundary passed. This
-transition record consumes the stale instruction. Next: fresh Lifecycle exact-SHA re-review of
-`7d` plus this transition (optional fresh Contract/Security trace-only rechecks), all exact reviews
-PASS, separate docs-only 02D `STATIC_ACCEPTED` sync, then only 02F reviews. Launcher
+`7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition
+`e563a3d3be8898371e5c8a9861c58f11b72167bc` is docs-only `STATIC_ACCEPTED` /
+`EXACT_SHA_PASS`; all three post-transition exact reviews PASS C/I/M `0/0/0`. Earlier FAIL is
+historical. Three exact 02F closure reviews are sole next action. Launcher
 `NOT_READY`, executable evidence `NOT_RUN`; no source/schema/generation/migration/service/runtime
 authority. Later plan and engine-port/145 carrier precede Rule TDD.
 Its callable/encoding/oracle
@@ -1465,4 +1461,4 @@ new quality gate is requirement/risk traceability plus fail-closed execution.
 - hubtest `./testframework/tms/...` PASS; mutation 001–006 red/green ALL_OK.
 - Коммиты: `1dbf42f4` fix · `9e634ee5` test · статус TASK → На проверке (README не трогали). Handoff: be-ver → code-reviewer.
 
-> **Current Rule status (2026-08-14):** `144-03B-Rule-Compiler` is narrowly docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`, reviewed against transition commit `6735ae746c7acde657359e8a709cd897c4dce61c`. Contract/Spec (`gpt-5.6-terra`/high), Security/Adversarial (`gpt-5.6-terra`/xhigh), and Lifecycle/Dependency (`gpt-5.6-terra`/high) PASS C/I/M `0/0/0`; provenance is dispatcher-enforced with no fallback and telemetry `UNKNOWN`. It authorizes no code, TDD/tests, schemas, migrations, runtime, phase, product or release. Initial `63e`/`6c` lifecycle is historical; corrected 02D commit `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` is `COMMITTED_UNACCEPTED` / `EXACT_SHA_CLOSURE_IN_PROGRESS`. Fresh Lifecycle exact-SHA re-review of `7d` plus this transition, all-review PASS, and a separate 02D acceptance sync are required before 02F. 144-01B, Phase 142/148, launcher `NOT_READY` and executable evidence `NOT_RUN` remain unchanged.
+> **Current Rule status (2026-08-14):** Rule docs remain narrowly `STATIC_ACCEPTED` at `f199546513b758ca7b95328b5ccd7680009b732e`; 02D docs are accepted at `7d29d08c` + `e563a3d3`. 02F remains unaccepted and its three exact closure reviews are sole next action. Rule TDD still requires accepted 02F, a separate accepted plan and Phase-145 carrier/G145-5B/G145-5C. 144-01B, Phase 142/148, launcher `NOT_READY` and executable evidence `NOT_RUN` remain unchanged.

@@ -5,6 +5,8 @@
 > **Atomic boundary:** `e3e8c774d734f926f77f8e600b58dc68dabbd993`; parent
 > `fa0a2f2a542caadd9f5951e6f703b060b4776780`.
 
+> **Mail lifecycle update:** 144-02D docs-only boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` + transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; contrary combined 02D/02F-next text below is historical. Sole next action: three exact 02F closure reviews; 144-01B/Rule/Phase145/runtime blockers remain.
+
 ## Scope and provenance
 
 - Authoring route: exact `gpt-5.6-terra` / `xhigh`, fallback `none`, accepted native
@@ -90,7 +92,7 @@ fallback, but it did not implement the 0.1.8 projection/budget/reference-only am
   C/I/M `0/0/0`), static only. Folder docs are also static-only accepted at
   `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`; Rule is separately docs-only `STATIC_ACCEPTED` /
   `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; acceptance transition/review
-  target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`. 144-02D/02F closure, later plan and
+  target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`. 144-02D is docs-only accepted; 144-02F's three exact closure reviews, later plan and
   Phase-145 carrier remain. No execution.
 
-> **Current Rule gate:** the three Terra review routes PASS C/I/M `0/0/0` with dispatcher-enforced provenance, no fallback, and telemetry `UNKNOWN` unless exposed. 144-02D/02F adjudication/closure remains next; no Rule source/test/TDD/schema/runtime/product/release authority.
+> **Current Rule gate:** the three Terra review routes PASS C/I/M `0/0/0` with dispatcher-enforced provenance, no fallback, and telemetry `UNKNOWN` unless exposed. 144-02D is docs-only accepted; 144-02F's three exact closure reviews are next. No Rule source/test/TDD/schema/runtime/product/release authority.

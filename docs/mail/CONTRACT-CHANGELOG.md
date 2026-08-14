@@ -1,8 +1,26 @@
 # Hub Mail contract changelog
 
-## 144-02D postcommit lifecycle transition candidate — 2026-08-14
+## 144-02D docs-only STATIC_ACCEPTED — 2026-08-14
 
-Corrective commit `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` (parent
+The exact nine-document content boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb`
+(parent `6c424ed2d6703ceccbb269c37d9abc03e75a0410`, tree
+`da3fa6e19316bcf2c7c318a63ec09e1b175f68df`) plus same-nine-document lifecycle transition
+`e563a3d3be8898371e5c8a9861c58f11b72167bc` (parent `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb`,
+tree `b268efdf950609c6d3fa66efe188005d9a39cf40`) is narrowly docs-only `STATIC_ACCEPTED` /
+`EXACT_SHA_PASS`. Post-transition Contract/Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh,
+and Lifecycle/Dependency Terra/high exact reviews PASS C/I/M `0/0/0`; dispatcher-enforced,
+fallback none, telemetry `UNKNOWN`. The earlier Lifecycle FAIL C/I/M `0/1/0` and contrary
+pre-acceptance next-action text below are `CONSUMED/HISTORICAL`.
+
+This is not source, Ent schema, generation, migration, service, runtime, phase, product or release
+acceptance. Launcher remains `NOT_READY`; executable evidence `NOT_RUN`. 02F receipt/deployment
+facts from `63e419897aa0683e1d3dfcd442aca78eea1b0727` remain unaccepted. Sole next action: its three
+independent exact closure reviews against accepted 02D. Rule TDD/source still requires accepted
+02F, separate accepted Rule implementation plan and Phase-145 engine-port/carrier G145-5B/G145-5C.
+
+## 144-02D postcommit lifecycle transition candidate — 2026-08-14 — CONSUMED/HISTORICAL
+
+At that historical point, corrective commit `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` (parent
 `6c424ed2d6703ceccbb269c37d9abc03e75a0410`, tree
 `da3fa6e19316bcf2c7c318a63ec09e1b175f68df`, exact nine documents) exists and is `COMMITTED_UNACCEPTED` /
 `EXACT_SHA_CLOSURE_IN_PROGRESS`, not accepted. Contract/Spec/Oracle Terra/high and
@@ -15,7 +33,7 @@ plus this transition record; fresh Contract/Security trace-only rechecks are per
 exact reviews PASS, a separate docs-only 02D `STATIC_ACCEPTED` sync is required; only then 02F
 closure reviews. All implementation/runtime blockers remain.
 
-## 144-02D RecentContact corrective candidate — 2026-08-14 (committed, unaccepted)
+## 144-02D RecentContact corrective candidate — 2026-08-14 — CONSUMED/HISTORICAL
 
 Narrow docs-only corrective candidate, no version bump. It supersedes only the RecentContact
 portion of initial candidate `63e419897aa0683e1d3dfcd442aca78eea1b0727`: the hard cap applies
@@ -27,10 +45,10 @@ validation, link/name privacy and public max-30 projection. The initial candidat
 `6c424ed2d6703ceccbb269c37d9abc03e75a0410` are `CONSUMED/HISTORICAL`; neither is accepted.
 Receipt/deployment facts from `63e` remain frozen for later 02F closure, which waits on accepted
 corrected 02D. Its precommit status/instruction is consumed by the transition record above.
-Commit `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` remains unaccepted. Launcher `NOT_READY`;
+At that historical point, commit `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` remained unaccepted. Launcher `NOT_READY`;
 no source, schema, generation, migration, service or runtime authority.
 
-## 144-02D/02F normative correction candidate — 2026-08-14
+## 144-02D/02F normative correction candidate — 2026-08-14 — CONSUMED/HISTORICAL
 
 Historical initial narrow docs-only candidate, no version bump: corrects identity/signature derived-response versus
 Upsert command semantics; freezes named 02D checks, receipt attempts/exhaustion and the exhaustive
@@ -52,9 +70,9 @@ schema/generation/migration/product/release authorization.
 > `f199546513b758ca7b95328b5ccd7680009b732e`; it accepts provider-neutral typed IR only,
 > never raw Sieve or engine-port bytes. Its lifecycle transition/review target is
 > `6735ae746c7acde657359e8a709cd897c4dce61c`, not the acceptance commit. The broad 02D/02F
-> candidate/transition is historical. Corrected `7d29d08c` is committed unaccepted; fresh
-> Lifecycle exact-SHA re-review plus transition, all-review PASS and separate 02D acceptance sync
-> precede 02F.
+> candidate/transition and that pre-acceptance sequence are historical. Corrected `7d29d08c` plus
+> transition `e563a3d3` is now docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; 02F's three exact
+> closure reviews are the sole next action.
 > A later separate Rule plan remains required before the separate
 > Phase-145 carrier, with no Rule TDD or production authorization. Runner `NOT_READY`; all
 > executable evidence `NOT_RUN`.
@@ -71,9 +89,9 @@ only frozen persistence representation, not Ent/product source or TDD, generated
 migrations, launcher execution, tests/validators/build/runtime, 02B/C/D/F, services, product,
 module, phase or release. Founder migration authority, supported task-owned launcher,
 sequential explicit source dispatch and source-level review remain required. G145-5C remains
-open. That broad candidate action is historical. Current next action is fresh Lifecycle exact-SHA
-re-review of committed-unaccepted `7d29d08c` plus this transition record, all-review PASS, then a
-separate docs-only 02D acceptance sync and only then 02F, not code.
+open. That broad candidate action and pre-acceptance sequence are historical. 144-02D is now
+docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; the sole next action is 02F's three exact closure
+reviews against accepted 02D, not code.
 
 ## 0.1.8 rule compiler candidate — 2026-08-14
 
@@ -81,9 +99,9 @@ separate docs-only 02D acceptance sync and only then 02F, not code.
 `f199546513b758ca7b95328b5ccd7680009b732e`, not product, module, phase or release acceptance. It freezes
 provider-neutral typed IR, never raw Sieve or hash v1. The keyword is `hubk-` plus canonical
 lower-case unpadded RFC-4648 base32 of exactly 32 random bytes; validation decode-to-32 then
-identical re-encode, not regex alone. Current sequence is fresh Lifecycle exact-SHA re-review of
-`7d29d08c` plus the transition record, all exact reviews PASS, separate 02D acceptance sync, then
-only 02F; Rule TDD/production still await accepted 02D/02F plus a separate Rule plan and
+identical re-encode, not regex alone. 144-02D is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`;
+the sole next action is 02F's three exact closure reviews against accepted 02D. Rule TDD/production
+still await accepted 02F plus a separate Rule plan and
 engine-port/145 carrier; no Rule source, schema, runtime, product or
 release authority follows from this docs-only acceptance.
 

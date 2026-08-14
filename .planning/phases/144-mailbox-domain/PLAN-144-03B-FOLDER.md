@@ -9,9 +9,11 @@
 > evidence documents, plus `IMPLEMENTATION-144-03B-FOLDER.md` as one new evidence file. This
 > yields the historical 20-path candidate and creates no product decision. Folder docs are now
 > static-only accepted at `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`; the separate Rule contract is
-> **Current Rule acceptance:** docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; acceptance transition/review target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`. Three Terra routes PASS C/I/M `0/0/0`; 144-02D/02F remain unclosed and Rule TDD/production are unauthorized.
+> **Current Rule acceptance:** docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; acceptance transition/review target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`. Three Terra routes PASS C/I/M `0/0/0`; 144-02D is docs-only accepted, 144-02F remains unaccepted and Rule TDD/production are unauthorized.
 
 > For agentic workers: REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+> **Mail lifecycle update:** 144-02D docs-only `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` + transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; three reviews PASS C/I/M `0/0/0`. Contrary 02D/02F-next text below is historical. Sole next action: three 02F closure reviews; Rule/Phase145/runtime blockers remain.
 
 ## Goal
 
@@ -28,7 +30,7 @@ Go 1.25; `github.com/google/uuid v1.6.0`; `golang.org/x/text v0.35.0` using `cas
 ## Global Constraints
 
 - Contract commit `a565af2632bc5f76a7d2fe26ebf3065fb3cefba9` (blob `0f9ed0adb0cec6ffa83619cb4c7c4cb4d3f3263c`) is narrowly `STATIC_ACCEPTED` after three independent exact-SHA reviews PASS with C/I/M `0/0/0`.
-- Plan commit `a98c7235521852dee1ebc0d09558c7bcbefc4534` (blob `c79658d61e496489be697bc971d0797ed30fb61f`) is narrowly `EXACT_SHA_PASS` / `STATIC_ACCEPTED` after exact, security and boundary reviews PASS with C/I/M `0/0/0`. Folder source+oracle and docs are accepted static-only at `f8cb7643986fc591cae16764575337b72ef3a692` and `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`; Rule is separately docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`, with acceptance transition/review target recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`; 02D/02F closure, later plan and Phase-145 carrier remain.
+- Plan commit `a98c7235521852dee1ebc0d09558c7bcbefc4534` (blob `c79658d61e496489be697bc971d0797ed30fb61f`) is narrowly `EXACT_SHA_PASS` / `STATIC_ACCEPTED` after exact, security and boundary reviews PASS with C/I/M `0/0/0`. Folder source+oracle and docs are accepted static-only at `f8cb7643986fc591cae16764575337b72ef3a692` and `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`; Rule is separately docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`, with acceptance transition/review target recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`; 144-02D is docs-only accepted, while 144-02F's three exact closure reviews, later plan and Phase-145 carrier remain.
 - The production boundary contains exactly two paths: `backend/tests/mail/folder_tree_test.go` first, then `backend/internal/mail/folder_tree.go`. No dependency, schema, handler, repository, engine, migration, generated, configuration, or additional source change is allowed.
 - Hub identifiers are `uuid.UUID`. Snapshot AccountID, row AccountID/ID, all action IDs, and target IDs reject `uuid.Nil`; only ParentID `uuid.Nil` means root. Engine opaque IDs are mapped to Hub UUID projection rows before either public callable.
 - Snapshot input includes every live non-deleted control row, including system and reserved creating/unknown/error/deleting rows. It is bounded to 100 rows. Deleted tombstones are excluded by caller. The separate engine enumeration bound does not alter this pure policy.
@@ -1014,5 +1016,5 @@ Rule is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at full
 `f199546513b758ca7b95328b5ccd7680009b732e`; its lifecycle transition/review target is
 `6735ae746c7acde657359e8a709cd897c4dce61c`. Contract/Spec Terra/high, Security/Adversarial Terra/xhigh
 and Lifecycle/Dependency Terra/high reviews PASS C/I/M `0/0/0`; provenance is dispatcher-enforced, with
-no fallback and telemetry `UNKNOWN` unless exposed. 144-02D/02F closure, a later Rule plan and the
+no fallback and telemetry `UNKNOWN` unless exposed. 144-02D is docs-only accepted; 144-02F's three exact closure reviews, a later Rule plan and the
 separate Phase-145 carrier precede any Rule TDD or production; no runtime authority follows.

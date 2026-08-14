@@ -4,6 +4,8 @@
 > **No implementation authorization:** this plan does not approve a license, image,
 > network egress, DNS change, secret, deployment or runtime command.
 
+> **Upstream lifecycle update:** 144-02D docs-only boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; sole Mail next action is three exact 02F closure reviews. Phase 145 remains blocked/not accepted; this does not close G145-5B/G145-5C or authorize runtime.
+
 ## Gate order
 
 | Gate | Evidence required | Owner / authority | Current state | Failure action |
@@ -155,4 +157,4 @@ Required cases:
 12. optional external SMTP only after G145-9, reported separately.
 
 **Rule gate:** candidate alone authorizes no Sieve runtime case. `144-03B-Rule-Compiler` is
-docs-only narrowly `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`, reviewed against transition commit `6735ae746c7acde657359e8a709cd897c4dce61c`; Contract/Spec Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced with no fallback and telemetry `UNKNOWN`. It authorizes no Sieve runtime case; 144-02D/02F adjudication, later Rule plan and Phase-145 engine-port/carrier remain required.
+docs-only narrowly `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`, reviewed against transition commit `6735ae746c7acde657359e8a709cd897c4dce61c`; Contract/Spec Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced with no fallback and telemetry `UNKNOWN`. It authorizes no Sieve runtime case; 144-02D is docs-only accepted, while 144-02F's three exact closure reviews, a later Rule plan and Phase-145 engine-port/carrier remain required.

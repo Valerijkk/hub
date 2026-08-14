@@ -7,6 +7,8 @@
 > `gpt-5.6-terra` / `medium`; `provenance_source: dispatcher-enforced`;
 > fallback: none; telemetry: `UNKNOWN`.
 
+> **Mail prerequisite update:** 144-02D docs-only boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS` after three exact PASS routes C/I/M `0/0/0`. Any contrary combined 02D/02F next text below is historical. Sole next action is three exact 02F closure reviews. Rule TDD/source still requires accepted 02F, separate accepted Rule implementation plan and Phase-145 carrier/G145-5B/G145-5C.
+
 ## Lifecycle and exact boundary
 
 Folder source/oracle remains narrowly `STATIC_ACCEPTED` at
@@ -14,8 +16,9 @@ Folder source/oracle remains narrowly `STATIC_ACCEPTED` at
 `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`. Neither accepts this candidate.
 Contract/Spec, Security/Adversarial, and Lifecycle/Dependency exact-SHA reviews PASS C/I/M
 `0/0/0`. **HISTORICAL / SUPERSEDED:** the prior Lifecycle/Dependency review failed solely because
-its target retained precommit lifecycle text. The exact next action is 144-02D/02F adjudication
-and explicit docs-only closure; later, separately, Rule-plan acceptance and the Phase-145
+its target retained precommit lifecycle text. That failed review and its next-action text are
+`CONSUMED/HISTORICAL`; 144-02D is docs-only accepted. The sole next action is 144-02F's three
+exact closure reviews; later, separately, Rule-plan acceptance and the Phase-145
 engine-port/carrier may be considered.
 
 The future pure source/oracle packet is exactly:

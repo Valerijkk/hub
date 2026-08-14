@@ -1,5 +1,6 @@
 # Phase 144-02A preimplementation review — schema contract readiness
 
+> **Downstream lifecycle update:** 144-02D docs-only boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is narrowly `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; three exact routes PASS C/I/M `0/0/0`. Contrary 02D/02F candidate-next wording below is historical. Sole next action is three exact 02F closure reviews; no source/schema/runtime authority follows.
 > **Detected:** 2026-08-13 root deep static audit
 > **Status:** STATIC_CONTRACT_READY · DOCS_ONLY_ACCEPTED_AT_REVIEWED_SNAPSHOT_b631866b2ba372101fd80eea30951eaa267c1931 · IMPLEMENTATION_BLOCKED · RUNTIME_NOT_RUN
 > **Scope:** `MailAccount`, `MailIdentity`, `MailDomain`, `MailboxPolicy` only
@@ -21,9 +22,9 @@ none, telemetry `UNKNOWN` unless exposed.
 This acceptance covers only the frozen A1/A2/A3 persistence representation. Product writes,
 Ent source/TDD, generated output, migration, launcher execution, tests/validators/build and
 runtime remain blocked/not authorized. Founder migration authority, supported task-owned launcher,
-sequential explicit source dispatch and source-level review remain required. The exact next action
-is one docs-only normative correction candidate for 02D/02F (default-signature false semantics,
-exact named predicates, dispatch dependency/crash wording and Rule flat-conjunction wording), not code.
+sequential explicit source dispatch and source-level review remain required. 144-02D's docs/readiness
+boundary is now `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; the sole next action is 144-02F's three exact
+closure reviews against accepted 02D, not code.
 
 ## Historical discovery outcome (preserved)
 

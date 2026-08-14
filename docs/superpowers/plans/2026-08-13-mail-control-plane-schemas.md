@@ -14,8 +14,8 @@ schemas without generating migrations or guessing lifecycle representation.
 > Dispatcher-enforced, fallback none, telemetry `UNKNOWN` unless exposed. It does not authorize
 > this plan's source/TDD execution, generated output, migration, launcher, tests/validators/build
 > or runtime; founder migration authority, supported task-owned launcher, sequential explicit
-> source dispatch and source-level review remain required. The next action is a docs-only 02D/02F
-> normative correction candidate, not code.
+> source dispatch and source-level review remain required. 144-02D is docs-only accepted; the sole
+> next action is 144-02F's three exact closure reviews against accepted 02D, not code.
 
 **Architecture:** Three sequential Terra packets keep every intermediate source coherent.
 The first packet adds a provider-neutral validated DNS JSON value. The second adds domain and
@@ -26,6 +26,8 @@ transaction responsibilities.
 
 **Tech Stack:** Go 1.25, Ent v0.14.1, PostgreSQL CHECK/index annotations, standard library.
 
+> **Lifecycle update:** 144-02D docs-only boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; contrary 02D-candidate/combined 02D/02F next-action instructions above or below are `CONSUMED/HISTORICAL`. Sole next action is three independent exact 02F closure reviews. This plan grants no source/schema/runtime authority; Phase145/Rule gates remain blocked.
+
 ## Global Constraints
 
 - Contract base: `5f31a74f362f3d8f678fd3e3e5d403212dd119a1` plus the later docs-only
@@ -34,7 +36,7 @@ transaction responsibilities.
   historical independent contract-review prerequisite for this docs-only representation.
   Every product source packet remains gated by root-owned explicit source dispatch and
   independent `gpt-5.6-terra` / `high` source-level review with accepted per-dispatch provenance.
-  The next global Mail action is the docs-only 02D/02F normative correction, not 02A review.
+  The next global Mail action is 144-02F's three exact closure reviews against accepted 02D, not 02A review or code.
 - Worker runtime: exact `gpt-5.6-terra` / `xhigh`, no fallback. Reviewer runtime: exact
   `gpt-5.6-terra` / `high`, no fallback. For this branch/Phases 143–148, an explicit native
   dispatcher acceptance without rejection is `provenance_source: dispatcher-enforced`; actual

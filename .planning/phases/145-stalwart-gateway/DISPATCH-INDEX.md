@@ -10,6 +10,8 @@ rather than infer current JMAP/admin wire semantics from memory.
 Executable packet bodies are in `DISPATCH-PACKETS.md`: concatenate its Common envelope
 with exactly one packet after all named gates pass.
 
+> **Upstream lifecycle update:** 144-02D docs-only boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; contrary combined 02D/02F-next text below is historical. Sole Mail next action is three exact 02F closure reviews. Phase 145 and all packets remain blocked/not accepted; G145-5B/G145-5C remain open.
+
 ## Atomic packets
 
 | ID | Single owned behavior | Exact primary files | Acceptance | Gates / dependency |
@@ -115,4 +117,4 @@ with exactly one packet after all named gates pass.
 | Account identity mapping | EXACT `v0.16.17` IDENTITY GET/SET SOURCE FROZEN / ENABLED USE BLOCKED BY G145-5B MAIL AUTH |
 | Exclusive custom-folder writer | NOT_RUN / capability defaults false |
 | Runtime/resources/backup/external mail | NOT_RUN |
-| 144-03B Rule compiler input | docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`; transition/review target `6735ae746c7acde657359e8a709cd897c4dce61c`; Contract/Spec Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry `UNKNOWN`; no accepted IR carrier or Sieve bytes; 144-02D/02F adjudication/closure, later separate Rule plan and Phase-145 carrier remain blockers |
+| 144-03B Rule compiler input | docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`; transition/review target `6735ae746c7acde657359e8a709cd897c4dce61c`; Contract/Spec Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry `UNKNOWN`; no accepted IR carrier or Sieve bytes; 144-02D is docs-only accepted, while 144-02F's three exact closure reviews, a later separate Rule plan and Phase-145 carrier remain blockers |

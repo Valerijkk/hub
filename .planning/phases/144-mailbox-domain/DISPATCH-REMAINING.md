@@ -1,5 +1,6 @@
 # Phase 144 — executable packet contracts not split into standalone files
 
+> **Current dependency truth:** 144-02D exact docs boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` after three review PASS C/I/M `0/0/0`. Contrary candidate/combined-next status below is `CONSUMED/HISTORICAL`. Sole next action is three exact 02F closure reviews; no packet gains source/runtime eligibility.
 > **Assembly rule:** dispatch the Common execution envelope plus exactly one packet or one
 > explicitly named variant below. Combining variants is invalid.
 > **Runtime:** `gpt-5.6-terra` / `xhigh`, fallback none.
@@ -112,10 +113,10 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 ## 144-02D — settings/signature/rule/contact schemas
 
 - Dependency: accepted 02A representation and independently accepted 02D contract review.
-  Corrective docs commit `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` is
-  `COMMITTED_UNACCEPTED` / `EXACT_SHA_CLOSURE_IN_PROGRESS`; Contract and Security exact-SHA
-  PASS, Lifecycle exact-SHA stale-wording-only FAIL. Until fresh Lifecycle re-review, all exact
-  reviews PASS and a separate 02D acceptance sync, this packet is `IMPLEMENTATION_BLOCKED`; no
+  Corrective docs `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition
+  `e563a3d3be8898371e5c8a9861c58f11b72167bc` are docs-only `STATIC_ACCEPTED` /
+  `EXACT_SHA_PASS` after three post-transition exact PASS reviews C/I/M `0/0/0`. This packet
+  remains `IMPLEMENTATION_BLOCKED`; no
   source authorization. Allowed only new schema files
   `mailusersettings.go`, `mailsignature.go`, `mailrule.go`, `recentcontact.go`.
 - Behavior: one settings/account; required same-account default identity for active
@@ -132,9 +133,9 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 ## 144-02F — mutation receipt and rule-deployment schemas
 
 - Dependencies: accepted 02A representation, independently accepted 02D and independently
-  accepted 02F contract reviews. Corrected 02D is committed but unaccepted; until its fresh
-  Lifecycle re-review, all-review PASS and separate acceptance sync, then independent 02F closure,
-  this packet is `IMPLEMENTATION_BLOCKED`; no source authorization. Allowed only new schema files
+  accepted 02F contract reviews. Corrected 02D is docs-only accepted; 02F itself remains
+  unaccepted and its three independent exact closure reviews are the sole next action. Until those
+  PASS, this packet is `IMPLEMENTATION_BLOCKED`; no source authorization. Allowed only new schema files
   `mailmutationreceipt.go`, `mailmutationreceipttarget.go`,
   `mailmutationreceiptmember.go`, `mailruledeployment.go` plus their narrow additive
   inverse edges in new Mail entities/User/Organization.
@@ -182,7 +183,7 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 
 ## 144-03A-Thread — thread identity
 
-> **Accepted exact boundary:** Thread `9903f4df`, Folder `f8cb7643`/docs `ca4e2854`, and Rule docs `f1995465` remain static accepted. Broad 02D/02F candidate is historical. Corrected 02D `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` is committed unaccepted with Contract+Security PASS and Lifecycle stale-wording-only FAIL; this transition record consumes that wording. Fresh Lifecycle re-review, all-review PASS and separate 02D acceptance sync precede 02F; later plan and Phase-145 carrier remain.
+> **Accepted exact boundary:** Thread `9903f4df`, Folder `f8cb7643`/docs `ca4e2854`, Rule docs `f1995465`, and 02D docs `7d29d08c` + transition `e563a3d3` are static accepted. Broad 02D/02F candidate lifecycle and the prior Lifecycle FAIL are historical. Three exact 02F closure reviews are sole next action; later Rule plan and Phase-145 carrier remain.
 
 - Dependency: 03A-Address is `STATIC_ACCEPTED` at
   `41564d003946ddb78df18efca166ca86e4055405`, but dependencies are necessary and not
@@ -213,10 +214,9 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 - Accepted exact two-path source+oracle boundary: `f8cb7643986fc591cae16764575337b72ef3a692` /
   `EXACT_SHA_PASS`, static-only (source `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b`, oracle
   `efe0db0071cb22ce4b026c635157f0fb08885d64`, C/I/M `0/0/0`). Folder docs are accepted
-  static-only at `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`. Current next action is fresh
-  Lifecycle/Dependency exact-SHA re-review of `7d29d08c` plus this transition record; Contract and
-  Security may run fresh trace-only rechecks. After all exact reviews PASS, a separate docs-only
-  02D `STATIC_ACCEPTED` sync is required, then only 02F; later Rule-plan acceptance and the
+  static-only at `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`. 02D is now docs-only
+  `STATIC_ACCEPTED`; the sole next action is three independent exact 02F closure reviews against
+  that accepted predecessor. Later Rule-plan acceptance and the
   Phase-145 engine-port/carrier remain before Rule TDD/production.
 - Static behavior/oracle summary: Hub admission has at most 100 live non-deleted control slots
   including system/reserved states, separate from <=100 engine-backed enumeration; depth ≤2,
@@ -726,6 +726,6 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 
 ## 144-03B-Rule-Compiler — frozen candidate, no dispatch
 
-> **Current Rule acceptance:** Rule docs remain `STATIC_ACCEPTED` at `f199546513b758ca7b95328b5ccd7680009b732e`; broad `63e`/`6c` lifecycle is historical. Corrected 02D `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` is `COMMITTED_UNACCEPTED` / `EXACT_SHA_CLOSURE_IN_PROGRESS`; Contract and Security PASS, Lifecycle FAILs only stale wording consumed by this transition record. Fresh Lifecycle re-review, all-review PASS and a separate 02D acceptance sync precede 02F.
+> **Current Rule acceptance:** Rule docs remain `STATIC_ACCEPTED` at `f199546513b758ca7b95328b5ccd7680009b732e`; 02D docs are accepted at `7d29d08c` + `e563a3d3`; broad `63e`/`6c` lifecycle and earlier FAIL are historical. Three exact 02F closure reviews are sole next action.
 
-`CONTRACT-144-03B-RULE.md` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; no source/oracle dispatch is authorized. Corrected 02D exact-SHA lifecycle re-review and separate acceptance sync, then 02F, later-plan acceptance and a separate engine-port/Phase-145 carrier must close before Rule TDD/production. Launcher remains `NOT_READY`, executable evidence `NOT_RUN`, Phase 148 blocked, and 144-01B remains blocked on applicable supported current-SHA Docker evidence under Task3.
+`CONTRACT-144-03B-RULE.md` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; no source/oracle dispatch is authorized. 02D is docs-only accepted; the exact sole next action is three independent 02F closure reviews. Only after accepted 02F do a separate accepted Rule implementation plan and the Phase-145 engine-port/carrier gates G145-5B/G145-5C precede Rule TDD/production. Launcher remains `NOT_READY`, executable evidence `NOT_RUN`, Phase 148 blocked, and 144-01B remains blocked on applicable supported current-SHA Docker evidence under Task3.

@@ -139,6 +139,29 @@ display-name rejection of invalid UTF-8, CR/LF, Unicode Cc/header injection whil
 permitted whitespace/Cf/content without trim/NFC/casefold. No schema, generated output, migration,
 source, test, launcher or runtime result exists or is authorized.
 
+## Docs-only STATIC_ACCEPTED receipt — 2026-08-14
+
+The exact 144-02D representation/readiness boundary is narrowly docs-only `STATIC_ACCEPTED` /
+`EXACT_SHA_PASS`: content commit `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb`
+(parent `6c424ed2d6703ceccbb269c37d9abc03e75a0410`, tree
+`da3fa6e19316bcf2c7c318a63ec09e1b175f68df`, exact nine documents) and lifecycle transition
+`e563a3d3be8898371e5c8a9861c58f11b72167bc` (parent
+`7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb`, tree
+`b268efdf950609c6d3fa66efe188005d9a39cf40`, exact same nine documents). Post-transition
+Contract/Spec/Oracle (`gpt-5.6-terra`/high), Security/Adversarial (`gpt-5.6-terra`/xhigh), and
+Lifecycle/Dependency (`gpt-5.6-terra`/high) exact reviews all PASS C/I/M `0/0/0`;
+`provenance_source: dispatcher-enforced`, fallback none, telemetry `UNKNOWN` for every route.
+The earlier Lifecycle FAIL C/I/M `0/1/0` is `CONSUMED/HISTORICAL` only.
+
+This accepts only the 144-02D static documentation representation/readiness boundary. It grants
+no source, Ent schema, generation, migration, service, test/build/lint/validator/Docker/runtime,
+phase, product or release authority. Launcher remains `NOT_READY`; executable evidence `NOT_RUN`.
+The exact sole next action is three independent exact 144-02F closure reviews against this accepted
+02D predecessor: Contract/Spec Terra/high, Security/Adversarial Terra/xhigh, and
+Lifecycle/Dependency Terra/high. 02F remains unaccepted. Rule TDD/source additionally requires
+accepted 02F, a separately accepted Rule implementation plan, and Phase-145 engine-port/carrier
+gates G145-5B/G145-5C.
+
 Historical lifecycle: initial eight-document candidate
 `63e419897aa0683e1d3dfcd442aca78eea1b0727` is `CONSUMED/HISTORICAL`; its 02D RecentContact
 portion is superseded, never accepted. Lifecycle transition
@@ -147,7 +170,7 @@ next-review instruction is superseded. Corrective commit
 `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` (parent
 `6c424ed2d6703ceccbb269c37d9abc03e75a0410`, tree
 `da3fa6e19316bcf2c7c318a63ec09e1b175f68df`, exact nine docs) is
-`COMMITTED_UNACCEPTED` / `EXACT_SHA_CLOSURE_IN_PROGRESS`, not accepted. Postcommit
+`COMMITTED_UNACCEPTED` / `EXACT_SHA_CLOSURE_IN_PROGRESS`, not accepted at that historical point. Postcommit
 Contract/Spec/Oracle (`gpt-5.6-terra`/high) and Security/Adversarial
 (`gpt-5.6-terra`/xhigh) exact-SHA reviews PASS C/I/M `0/0/0`. Lifecycle/Dependency
 (`gpt-5.6-terra`/high) exact-SHA review FAIL C/I/M `0/1/0` solely because `7d` still described
@@ -155,7 +178,7 @@ precommit/commit-next work; content/object boundary passed. All routes are dispa
 fallback none, telemetry `UNKNOWN`. This transition record consumes that stale instruction and
 does not claim its own commit SHA.
 
-**Current exact next step:** fresh independent Lifecycle/Dependency exact-SHA re-review of `7d`
+**Consumed/historical next step:** fresh independent Lifecycle/Dependency exact-SHA re-review of `7d`
 plus this transition record; fresh Contract/Security trace-only rechecks are permitted. After all
 exact reviews PASS, a separate docs-only 02D `STATIC_ACCEPTED` sync is required. Only then may 02F
 closure reviews start. No source, schema, generation, migration, service or runtime authority is

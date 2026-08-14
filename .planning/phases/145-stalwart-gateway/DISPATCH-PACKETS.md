@@ -4,6 +4,8 @@
 > **Runtime for code:** `gpt-5.6-terra` / `xhigh`, fallback none.
 > **Authority:** `GATE-PLAN.md`; a table row here never self-satisfies a gate.
 
+> **Upstream lifecycle update:** 144-02D docs-only boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; sole Mail next action is three exact 02F closure reviews. Phase 145 remains blocked/not accepted; no packet is eligible and G145-5B/G145-5C remain open.
+
 ## Common execution envelope
 
 - Root supplies exact clean SHA, selected licensed engine, immutable image digest and the
@@ -218,7 +220,7 @@
   Calls to `x:SieveSystemScript` or `x:SieveUserScript` are test-oracle failures. Do not
   implement message mutations here.
 
-> **Current Rule acceptance:** docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`; lifecycle transition/review target `6735ae746c7acde657359e8a709cd897c4dce61c`, not the acceptance commit; Contract/Spec Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed. 144-02D/02F adjudication/closure, later separate Rule plan and accepted Phase-145 engine-port/carrier remain required; no Rule TDD/source/schema/runtime/product/release authority.
+> **Current Rule acceptance:** docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`; lifecycle transition/review target `6735ae746c7acde657359e8a709cd897c4dce61c`, not the acceptance commit; Contract/Spec Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed. 144-02D is docs-only accepted; 144-02F's three exact closure reviews, a later separate Rule plan and accepted Phase-145 engine-port/carrier remain required; no Rule TDD/source/schema/runtime/product/release authority.
 > 145-07B additionally requires accepted engine-port carrier for typed IR/script bytes;
 > renderer owns escaping, engine folder ID is not mailbox name, and attachment stays MIME-blocked.
 

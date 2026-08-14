@@ -1,5 +1,6 @@
 # Mail workstream pre-implementation readiness
 
+> **Current Mail gate:** 144-02D exact docs boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` after three exact review PASS C/I/M `0/0/0`. Any contrary combined 02D/02F next-action text below is `CONSUMED/HISTORICAL`. Sole next action: three exact 02F closure reviews; 02F and all implementation/runtime gates remain blocked.
 > **Snapshot:** 2026-08-14
 > **Branch:** `codex/mail-module-20260813`
 > **Product truth:** IMPLEMENTATION_IN_PROGRESS · 143-01/02A/02B/03A/03B/03C/03D/03F/04L_STATIC_ACCEPTED · RUNTIME_NOT_RUN · Phase/product/migration/runtime not accepted
@@ -26,7 +27,7 @@
   `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`, transition
   `6735ae746c7acde657359e8a709cd897c4dce61c`. Contract/Spec Terra/high, Security Terra/xhigh and
   Lifecycle Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless
-  exposed. Next action is 144-02D/02F adjudication/closure, then a separate Rule plan and Phase-145 carrier.
+  exposed. 144-02D is docs-only accepted; the sole next action is 144-02F's three exact closure reviews, then a separate Rule plan and Phase-145 carrier.
   No execution.
 - OpenAPI covers mailbox, submission recovery, legacy calendar, canonical calendar and
   separate legacy/new admin resources.
@@ -49,7 +50,7 @@
 |---|---|---|
 | Accepted versioned Docker launcher not implemented | root `AGENTS.md`, `STATE.md` | Ent generation, build/test/validator/runtime evidence |
 | Accepted versioned Docker launcher not implemented; separate founder-approved production migration mechanism/gate still required | root `AGENTS.md`, `STATE.md`, `MIGRATION-PLAN.md`, all-A non-acceptance boundary | 143-03E generation/inspection evidence; all 03A/B/C/D/F schema packets are already static accepted |
-| 144-01B requires applicable supported current-SHA Docker evidence under stricter Task3 authority | Phase 144 `IMPLEMENTATION-144-01A.md`, `REVIEW-144-01A-ENGINE-BOUNDS.md`, `DISPATCH-REMAINING.md` | 144-01B deterministic fake only; Folder source/oracle and docs are static-only accepted; Rule is separately docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`, with 144-02D/02F adjudication/closure, separate Rule plan and Phase-145 carrier still required before TDD |
+| 144-01B requires applicable supported current-SHA Docker evidence under stricter Task3 authority | Phase 144 `IMPLEMENTATION-144-01A.md`, `REVIEW-144-01A-ENGINE-BOUNDS.md`, `DISPATCH-REMAINING.md` | 144-01B deterministic fake only; Folder source/oracle and docs are static-only accepted; Rule is separately docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`; 144-02D is docs-only accepted, while 144-02F's three exact closure reviews, a separate Rule plan and Phase-145 carrier are still required before TDD |
 | 144-02A representation is docs-only accepted at reviewed snapshot `b631866b2ba372101fd80eea30951eaa267c1931`, but source schemas are unimplemented and source review absent; generation remains launcher-gated | Phase 144 `REVIEW-144-02A-SCHEMA-READINESS.md`, `DISPATCH-INDEX.md` | 144-02A source and every dependent mailbox schema/service packet remain BLOCKED pending founder migration authority, launcher and sequential source dispatch/review |
 | Calendar DTO/handler implementation is unimplemented; accepted 0.1.8 OpenAPI page/expansion bounds still lack executable evidence | five-document 144-01A entry amendment PASS `5e314fb080d420696642058ae47397e251c23207`; accepted 0.1.8 OpenAPI page/expansion bounds are a contract fact, Phase 142 `REVIEW-OPENAPI-RESPONSE-BOUNDS.md` | calendar list/legacy aggregate DTO, handler and UI transport packets |
 | Production migration mechanism unresolved | `MIGRATION-PLAN.md`, founder question 12 | schema generation/migration/backfill acceptance |
@@ -105,7 +106,7 @@
     `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`, transition
     `6735ae746c7acde657359e8a709cd897c4dce61c`. Contract/Spec Terra/high, Security Terra/xhigh and
     Lifecycle Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless
-    exposed. Next action is 144-02D/02F adjudication/closure, then a separate Rule plan and Phase-145 carrier.
+    exposed. 144-02D is docs-only accepted; the sole next action is 144-02F's three exact closure reviews, then a separate Rule plan and Phase-145 carrier.
     No execution.
    `144-01B` remains blocked by applicable
    supported current-SHA Docker evidence and executable status `NOT_RUN`.
@@ -131,5 +132,5 @@
 > **Current Rule acceptance:** docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at
 > `f199546513b758ca7b95328b5ccd7680009b732e`, transition `6735ae746c7acde657359e8a709cd897c4dce61c`.
 > Contract/Spec Terra/high, Security Terra/xhigh and Lifecycle Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced,
-> no fallback, telemetry `UNKNOWN` unless exposed. Next action: 144-02D/02F adjudication/closure, then a separate
+> no fallback, telemetry `UNKNOWN` unless exposed. 144-02D is docs-only accepted; sole next action: 144-02F's three exact closure reviews, then a separate
 > Rule plan and Phase-145 carrier. No Rule TDD/production.

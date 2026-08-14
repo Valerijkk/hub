@@ -1,5 +1,6 @@
 # MAIL-SPEC — Hub mailbox and calendar synchronization contract
 
+> **144-02D lifecycle (current):** exact nine-doc content `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus same-nine-doc transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is narrowly docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract/Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced, fallback none, telemetry `UNKNOWN`. Earlier lifecycle FAIL and contrary combined 02D/02F-next wording below are `CONSUMED/HISTORICAL`. Sole next action is three independent exact 02F closure reviews against accepted 02D; 02F is unaccepted. No source/schema/generation/migration/service/runtime authority; launcher `NOT_READY`, executable `NOT_RUN`.
 > **Version:** 0.1.8
 > **Status:** five-document 0.1.8 entry amendment independently PASS at `5e314fb080d420696642058ae47397e251c23207`, authorizing only 144-01A entry; Thread callable/encoding/oracle contract remains accepted at `cbc12577a6444df9c660e43fedfd0c8133c6e461`; its implementation+oracle are narrowly `STATIC_ACCEPTED` at `9903f4df3e5ca8034ea3f043b0386170e83a5101` / `EXACT_SHA_PASS` (source `c221d547`, oracle `b21bd6fd`, exact-SHA reviews PASS C/I/M `0/0/0`); broader Phase 142/cross-contract review and runtime remain pending; 0.1.7 review evidence is historical `STALE`
 > **Date:** 2026-08-13
@@ -1935,17 +1936,12 @@ separately narrowly docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `f19954651
 reviewed against transition commit `6735ae746c7acde657359e8a709cd897c4dce61c`; Contract/Spec Terra/high,
 Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced
 with no fallback and telemetry `UNKNOWN`. Corrective commit
-`7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` (parent
-`6c424ed2d6703ceccbb269c37d9abc03e75a0410`, tree
-`da3fa6e19316bcf2c7c318a63ec09e1b175f68df`, exact nine
-documents) is `COMMITTED_UNACCEPTED` / `EXACT_SHA_CLOSURE_IN_PROGRESS`. Postcommit
-Contract/Spec/Oracle Terra/high and Security/Adversarial Terra/xhigh exact-SHA reviews PASS C/I/M
-`0/0/0`; Lifecycle/Dependency Terra/high exact-SHA review FAIL C/I/M `0/1/0` solely because
-`7d` retained active precommit/commit-next wording, while content/object boundary passed. This
-transition record consumes that stale instruction. Next is fresh Lifecycle exact-SHA re-review of
-`7d` plus this transition (with fresh Contract/Security trace-only rechecks permitted); after all
-exact reviews PASS, a separate docs-only 02D `STATIC_ACCEPTED` sync is required, and only then 02F
-closure reviews. Later plan and Phase-145 carrier remain required. It does not authorize
+`7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition
+`e563a3d3be8898371e5c8a9861c58f11b72167bc` is docs-only `STATIC_ACCEPTED` /
+`EXACT_SHA_PASS`; Contract/Spec/Oracle, Security/Adversarial and Lifecycle/Dependency exact reviews
+all PASS C/I/M `0/0/0`. The earlier Lifecycle FAIL is historical. Three independent exact 02F
+closure reviews against accepted 02D are sole next action. Later Rule plan and Phase-145 carrier
+remain required. It does not authorize
 schemas, generation, migration, runtime or a version bump. 144-01B, Phase 142/148 and 144-02B
 remain pending; launcher is `NOT_READY` and runtime is `NOT_RUN`.
 
@@ -2054,8 +2050,8 @@ octet `01` and their SHA literals remain unchanged.
 Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced with no
 fallback and telemetry `UNKNOWN`. It freezes a
 provider-neutral typed IR, not Sieve: rules are first-match-wins and its compiler neither emits
-scripts nor calculates persistence hash v1. A separate accepted engine-port/Phase-145 carrier,
-closed 144-02D/02F gates and later plan acceptance are all
+scripts nor calculates persistence hash v1. 144-02D is docs-only accepted. Accepted 02F, a
+separate accepted engine-port/Phase-145 carrier and later plan acceptance are all
 required before Rule TDD/production. Folder static acceptance remains `f8cb7643`; Folder docs
 acceptance remains `ca4e2854`; launcher `NOT_READY`, all executable evidence `NOT_RUN`.
 
