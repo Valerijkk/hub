@@ -41,10 +41,10 @@ Docker evidence.
 
 ## Exact next action
 
-Only root freeze/adjudication of the `144-03B-Folder` callable, error, normalization and oracle
-contract may proceed. Do not authorize or dispatch Folder production/test TDD until that root
-contract freeze has its own static acceptance. 144-03C/144-03D eligibility is status only, not
-the current action.
+The accepted `144-03B-Folder` callable, error, normalization and oracle contract is complete.
+This lifecycle sync still requires three exact-SHA reviews; after they PASS, Task 1 only creates
+the external RED oracle. Production source remains forbidden until Task 1 oracle static reviews
+PASS. 144-03C/144-03D eligibility is status only, not the current action.
 
 1. `.planning/STATE.md`
 2. `.planning/decisions/specs/MAIL-SPEC.md`
@@ -65,4 +65,4 @@ the current action.
 17. `.planning/phases/144-mailbox-domain/IMPLEMENTATION-144-03A-THREAD.md`
 18. `backend/internal/mail/threading.go`
 19. `backend/tests/mail/threading_test.go`
-> **144-03B Folder lifecycle sync (2026-08-14):** `FOLDER_TREE_CALLABLE_ERROR_NORMALIZATION_ORACLE_ROOT_FROZEN_CANDIDATE` from base `c2c0573c07f5b2535ac10ed617a14bb5294002bc`; not accepted or TDD-authorized. Thread remains `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`. Exact next action: one 18-doc atomic commit, then three independent exact-SHA reviews; no Folder source/test before acceptance. All executable evidence remains `NOT_RUN`, launcher `NOT_READY`; no product/schema/handler/migration/runtime claim. Author provenance is dispatcher-enforced Terra/medium with no fallback; actual telemetry `UNKNOWN` unless exposed.
+> **144-03B Folder lifecycle sync:** contract `a565af2632bc5f76a7d2fe26ebf3065fb3cefba9` / blob `0f9ed0adb0cec6ffa83619cb4c7c4cb4d3f3263c` and plan `a98c7235521852dee1ebc0d09558c7bcbefc4534` / blob `c79658d61e496489be697bc971d0797ed30fb61f` are narrowly `STATIC_ACCEPTED` after independent PASS reviews C/I/M `0/0/0`. This docs-only sync awaits its own three exact-SHA reviews; only then Task 1 external RED oracle is authorized. Production source remains forbidden until oracle reviews PASS; launcher `NOT_READY`, executable evidence `NOT_RUN`, and 04B/144-01B/Phase 142/148 blockers remain. Dispatcher-enforced, authors Terra/medium, reviews Terra/high + Terra/xhigh + Terra/high, no fallback, telemetry `UNKNOWN`.

@@ -1,6 +1,6 @@
 # Phase 144 — Mailbox Domain
 
-> Task: TASK-237 · Status: IN_PROGRESS · FIVE_DOCUMENT_DEFAULT_VS_HARD_CAP_144_01A_ENTRY_AMENDMENT_PASS `5e314fb0` (authorizes 144-01A entry only; broader Phase 142/cross-contract pending) · 144-01A STATIC_ACCEPTED `e3e8c774` / EXACT_SHA_PASS · 144-03A-Address STATIC_ACCEPTED `41564d00` / EXACT_SHA_PASS · 144-03A-Thread STATIC_ACCEPTED `9903f4df` / EXACT_SHA_PASS, contract `cbc12577`, C/I/M `0/0/0`, executable NOT_RUN · only next action: root freeze/adjudication of 144-03B-Folder callable/error/normalization/oracle contract, no Folder TDD dispatch · 144-01B BLOCKED_ON_APPLICABLE_SUPPORTED_CURRENT_SHA_DOCKER_EVIDENCE_BY_TASK3 · 144-02A1/A2/A3 EXACT_PLAN_BLOCKED_REVIEW · 144-02B/02C/02D/02F CONTRACT_AMENDED_NOT_ACCEPTED · RUNTIME_NOT_RUN · Depends on: Phase 142
+> Task: TASK-237 · Status: IN_PROGRESS · FIVE_DOCUMENT_DEFAULT_VS_HARD_CAP_144_01A_ENTRY_AMENDMENT_PASS `5e314fb0` (authorizes 144-01A entry only; broader Phase 142/cross-contract pending) · 144-01A STATIC_ACCEPTED `e3e8c774` / EXACT_SHA_PASS · 144-03A-Address STATIC_ACCEPTED `41564d00` / EXACT_SHA_PASS · 144-03A-Thread STATIC_ACCEPTED `9903f4df` / EXACT_SHA_PASS, contract `cbc12577`, C/I/M `0/0/0`, executable NOT_RUN · 144-03B contract `a565af26` and plan `a98c7235` narrowly accepted; lifecycle-sync three exact-SHA reviews pending, then Task 1 external RED oracle only; production forbidden until oracle static reviews PASS · 144-01B BLOCKED_ON_APPLICABLE_SUPPORTED_CURRENT_SHA_DOCKER_EVIDENCE_BY_TASK3 · 144-02A1/A2/A3 EXACT_PLAN_BLOCKED_REVIEW · 144-02B/02C/02D/02F CONTRACT_AMENDED_NOT_ACCEPTED · RUNTIME_NOT_RUN · Depends on: Phase 142
 
 ## Goal
 
@@ -9,10 +9,10 @@ Implement the engine-independent domain and HTTP behavior against a deterministi
 `143-04L` and `144-01A` are satisfied for `144-03D`; Address is `STATIC_ACCEPTED` at
 `41564d003946ddb78df18efca166ca86e4055405`. Thread contract remains accepted at `cbc12577` and
 its exact 19-path implementation/oracle boundary is `STATIC_ACCEPTED` at `9903f4df` /
-`EXACT_SHA_PASS`, C/I/M `0/0/0`; this remains static-only evidence. Live next action is only
-root freeze/adjudication of the 144-03B-Folder callable/error/normalization/oracle contract.
-Do not authorize or dispatch Folder production/test TDD until that contract has independent
-static acceptance; other packet eligibility is status only.
+`EXACT_SHA_PASS`, C/I/M `0/0/0`; this remains static-only evidence. The 144-03B contract
+`a565af26` and plan `a98c7235` are narrowly accepted. This lifecycle sync is pending three
+exact-SHA reviews; then Task 1 external RED oracle only is authorized. Production remains
+forbidden until its oracle static reviews PASS; other packet eligibility is status only.
 
 ## Ordered tasks
 
@@ -43,4 +43,4 @@ static acceptance; other packet eligibility is status only.
 Each item is one or more atomic commits split further when generated schema, service,
 handler, or docs cannot be reviewed independently. Existing Resend alert behavior stays
 separate and green.
-> **144-03B Folder lifecycle sync (2026-08-14):** `FOLDER_TREE_CALLABLE_ERROR_NORMALIZATION_ORACLE_ROOT_FROZEN_CANDIDATE` from base `c2c0573c07f5b2535ac10ed617a14bb5294002bc`; not accepted or TDD-authorized. Thread remains `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`. Exact next action: one 18-doc atomic commit, then three independent exact-SHA reviews; no Folder source/test before acceptance. All executable evidence remains `NOT_RUN`, launcher `NOT_READY`; no product/schema/handler/migration/runtime claim. Author provenance is dispatcher-enforced Terra/medium with no fallback; actual telemetry `UNKNOWN` unless exposed.
+> **144-03B Folder lifecycle sync:** contract `a565af2632bc5f76a7d2fe26ebf3065fb3cefba9` / blob `0f9ed0adb0cec6ffa83619cb4c7c4cb4d3f3263c` and plan `a98c7235521852dee1ebc0d09558c7bcbefc4534` / blob `c79658d61e496489be697bc971d0797ed30fb61f` are narrowly `STATIC_ACCEPTED` after independent PASS reviews C/I/M `0/0/0`. This docs-only sync awaits its own three exact-SHA reviews; only then Task 1 external RED oracle is authorized. Production source remains forbidden until oracle reviews PASS; launcher `NOT_READY`, executable evidence `NOT_RUN`, and 04B/144-01B/Phase 142/148 blockers remain. Dispatcher-enforced, authors Terra/medium, reviews Terra/high + Terra/xhigh + Terra/high, no fallback, telemetry `UNKNOWN`.

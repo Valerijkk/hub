@@ -4,7 +4,7 @@
 > `THREAD_CALLABLE_ENCODING_ORACLE_STATIC_ACCEPTED` at
 > `cbc12577a6444df9c660e43fedfd0c8133c6e461` / `EXACT_SHA_PASS` after independent
 > Spec/API/Persistence, Security and Lifecycle/Evidence PASS reviews with C/I/M `0/0/0`;
-> implementation+oracle are narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS` (source `c221d547`, oracle `b21bd6fd`), static only; only Folder root-contract freeze/adjudication is next, without Folder TDD dispatch
+> implementation+oracle are narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS` (source `c221d547`, oracle `b21bd6fd`), static only; Folder contract `a565af26` and plan `a98c7235` are accepted, lifecycle-sync reviews gate Task 1 external RED oracle, and production remains forbidden until oracle static reviews PASS
 > **Runtime:** NOT_RUN
 > **Precedence:** this document replaces the 0.1.7 message/blob/draft portions of
 > `ADR-MAIL-01-mail-engine-calendar-sync.md` and Phase 144-01A. Unmentioned methods and safe
@@ -463,11 +463,11 @@ ancestor lookup outcome. The adapter preflights raw candidate bytes before any
 UTF-8/Message-ID/IDNA work; it does not alter the accepted 144-01A DTO/source or its structural
 acceptance.
 
-## 144-03B Folder candidate clarification
+## 144-03B Folder lifecycle clarification
 
 `MaxEngineOpaqueIDBytes` and every string engine account/folder identifier in this adapter
-contract apply only to opaque engine DTO values. The root-frozen Folder candidate's pure tree
+contract apply only to opaque engine DTO values. The Folder pure tree
 policy receives only projection/persistence-mapped Hub `uuid.UUID` account, folder and parent
-rows; it never validates, sorts or accepts engine IDs. This is candidate-only, does not alter
+rows; it never validates, sorts or accepts engine IDs. This is static-contract-only, does not alter
 the adapter ABI, and remains unimplemented/`NOT_RUN`.
-> **144-03B Folder lifecycle sync (2026-08-14):** `FOLDER_TREE_CALLABLE_ERROR_NORMALIZATION_ORACLE_ROOT_FROZEN_CANDIDATE` from base `c2c0573c07f5b2535ac10ed617a14bb5294002bc`; not accepted or TDD-authorized. Thread remains `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`. Exact next action: one 18-doc atomic commit, then three independent exact-SHA reviews; no Folder source/test before acceptance. All executable evidence remains `NOT_RUN`, launcher `NOT_READY`; no product/schema/handler/migration/runtime claim. Author provenance is dispatcher-enforced Terra/medium with no fallback; actual telemetry `UNKNOWN` unless exposed.
+> **144-03B Folder lifecycle sync:** contract `a565af2632bc5f76a7d2fe26ebf3065fb3cefba9` / blob `0f9ed0adb0cec6ffa83619cb4c7c4cb4d3f3263c` and plan `a98c7235521852dee1ebc0d09558c7bcbefc4534` / blob `c79658d61e496489be697bc971d0797ed30fb61f` are narrowly `STATIC_ACCEPTED` after independent PASS reviews C/I/M `0/0/0`. This docs-only sync awaits its own three exact-SHA reviews; only then Task 1 external RED oracle is authorized. Production source remains forbidden until oracle reviews PASS; launcher `NOT_READY`, executable evidence `NOT_RUN`, and 04B/144-01B/Phase 142/148 blockers remain. Dispatcher-enforced, authors Terra/medium, reviews Terra/high + Terra/xhigh + Terra/high, no fallback, telemetry `UNKNOWN`.

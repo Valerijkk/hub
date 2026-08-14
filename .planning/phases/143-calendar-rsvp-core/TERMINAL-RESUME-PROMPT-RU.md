@@ -1,8 +1,9 @@
 # Terminal Codex: продолжение Hub после Desktop handoff
 
 > **CURRENT BANNER:** This historical terminal text is subordinate to `.continue-here.md`.
-> Thread is narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`; the only live action
-> is root Folder contract freeze/adjudication, without Folder production/test TDD dispatch.
+> Contract `a565af26` and plan `a98c7235` are narrowly accepted. The current lifecycle sync is
+> candidate-only pending three exact-SHA reviews; after PASS, Task 1 external RED oracle only is
+> authorized. Production remains forbidden until oracle static reviews PASS.
 
 > **CONSUMED / HISTORICAL PRE-01A RESUME PROMPT:** не выполняй старое следующее действие из
 > исторического текста ниже. Текущая authority — `.continue-here.md`: `144-03A-Address` уже
@@ -11,7 +12,7 @@
 > `cbc12577a6444df9c660e43fedfd0c8133c6e461` / `EXACT_SHA_PASS` (C/I/M `0/0/0`). Текущее
 > Следующая строка историческая и не является текущей authority: Thread уже narrowly
 > `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`; current action определяет banner выше —
-> только root Folder contract freeze/adjudication без Folder production/test TDD dispatch. Текст
+> historical Folder freeze/adjudication text; current authority is the banner above. Текст
 > ниже исторический и подчинён `.continue-here.md`.
 
 Ты продолжаешь работу как root-orchestrator Hub. Не полагайся на этот чат и не считай любую неуказанную проверку выполненной.
@@ -99,4 +100,4 @@ Founder выбрал Option A для всех 209 вопросов; канони
 - Не перезаписывай и не откатывай чужие изменения; при overlap остановись и сообщи.
 
 Заверши каждый этап честным статусом: отдельно static acceptance и отдельно `NOT_READY`/`NOT_RUN`. При любом mismatch, отсутствующем документе, конфликте границ, неявном fallback или ином blocker сообщи его с точными фактами и не импровизируй.
-> **144-03B Folder lifecycle sync (2026-08-14):** `FOLDER_TREE_CALLABLE_ERROR_NORMALIZATION_ORACLE_ROOT_FROZEN_CANDIDATE` from base `c2c0573c07f5b2535ac10ed617a14bb5294002bc`; not accepted or TDD-authorized. Thread remains `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`. Exact next action: one 18-doc atomic commit, then three independent exact-SHA reviews; no Folder source/test before acceptance. All executable evidence remains `NOT_RUN`, launcher `NOT_READY`; no product/schema/handler/migration/runtime claim. Author provenance is dispatcher-enforced Terra/medium with no fallback; actual telemetry `UNKNOWN` unless exposed.
+> **144-03B Folder lifecycle sync (2026-08-14):** historical subordinate to `.continue-here.md`. Contract `a565af2632bc5f76a7d2fe26ebf3065fb3cefba9` / blob `0f9ed0adb0cec6ffa83619cb4c7c4cb4d3f3263c` and plan `a98c7235521852dee1ebc0d09558c7bcbefc4534` / blob `c79658d61e496489be697bc971d0797ed30fb61f` are narrowly `STATIC_ACCEPTED` after independent PASS reviews C/I/M `0/0/0`. The lifecycle sync awaits its own three exact-SHA reviews; only then Task 1 external RED oracle is authorized. Launcher `NOT_READY`, all executable evidence `NOT_RUN`; 04B reparent, 144-01B, Phase 142 and Phase 148 remain blocked. Dispatcher-enforced Terra/medium authorship, Terra/high + Terra/xhigh + Terra/high reviews, no fallback, telemetry `UNKNOWN`.

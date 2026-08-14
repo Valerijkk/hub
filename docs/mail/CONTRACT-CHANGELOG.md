@@ -1,15 +1,19 @@
 # Hub Mail contract changelog
 
-## 144-03B Folder root-frozen candidate — 2026-08-14
+## 144-03B Folder lifecycle sync candidate — 2026-08-14
 
-`FOLDER_TREE_CALLABLE_ERROR_NORMALIZATION_ORACLE_ROOT_FROZEN_CANDIDATE` is frozen from
-`c2c0573c07f5b2535ac10ed617a14bb5294002bc`, not accepted and not TDD-authorized. It proposes
-the pure bounded Folder tree ABI/error/normalization/oracle contract only; it adds no source,
-test, schema, route handler, migration, engine or runtime acceptance. Thread remains
-`STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`. Next is one exact 18-document atomic
-commit followed by three independent exact-SHA reviews; Folder production/test work remains
-blocked. Runner is `NOT_READY`, executable evidence `NOT_RUN`; author provenance is
-dispatcher-enforced Terra/medium, no fallback, telemetry `UNKNOWN` unless exposed.
+Contract `a565af2632bc5f76a7d2fe26ebf3065fb3cefba9` (blob
+`0f9ed0adb0cec6ffa83619cb4c7c4cb4d3f3263c`) is narrowly `STATIC_ACCEPTED` after three
+independent exact-SHA reviews PASS, C/I/M `0/0/0`. Plan
+`a98c7235521852dee1ebc0d09558c7bcbefc4534` (blob
+`c79658d61e496489be697bc971d0797ed30fb61f`) is narrowly `EXACT_SHA_PASS` / `STATIC_ACCEPTED`
+after exact, security and boundary reviews PASS, C/I/M `0/0/0`. This records the pure bounded
+Folder ABI/error/normalization/oracle contract only; it adds no source, test, schema, route
+handler, migration, engine or runtime acceptance. The docs-only lifecycle sync itself awaits
+three exact-SHA reviews; after them, Task 1 only may create the external RED oracle. Production
+source remains forbidden until Task 1 oracle reviews PASS. Runner is `NOT_READY`; executable
+evidence `NOT_RUN`; provenance dispatcher-enforced Terra/medium author, Terra/high + Terra/xhigh
++ Terra/high reviews, no fallback, telemetry `UNKNOWN`.
 
 > **Current review status (2026-08-14): five-document 0.1.8 entry amendment PASS at `5e314fb080d420696642058ae47397e251c23207`; Thread contract remains accepted at `cbc12577a6444df9c660e43fedfd0c8133c6e461`; implementation+oracle are narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS` (source `c221d547`, oracle `b21bd6fd`, C/I/M `0/0/0`), static only; broader Phase 142/cross-contract review remains pending.**
 
@@ -18,7 +22,7 @@ dispatcher-enforced Terra/medium, no fallback, telemetry `UNKNOWN` unless expose
 The historical preimplementation entry below is preserved. The exact 19-path boundary is now
 narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`; no schemas, routes, migrations,
 services, generation or executable evidence are added. Launcher remains `NOT_READY`, runtime
-`NOT_RUN`, and only Folder root-contract freeze/adjudication is next; Folder TDD is not dispatched.
+`NOT_RUN`; the accepted contract and plan supersede the prior freeze/adjudication next step.
 > The root amendment closes the recorded engine-memory, public-response and Phase 144
 > persistence representation gaps. Its independent PASS authorizes only 144-01A entry, not
 > product code beyond that packet, generated Ent output, migration or runtime claim. Executable evidence remains
@@ -37,8 +41,8 @@ byte-preserved case-sensitive Message-ID literals/equality and same-account live
 provenance, V1 versioned raw key framing and literal SHA oracles, seed-only 1..401 participant
 snapshots, 1 MiB typed JSON bounds, and closed public email-only participants. Any x/text
 change requires separately accepted version/rekey/dual-read planning.
-That packet is now narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`. Next is only
-Folder root-contract freeze/adjudication, not Folder TDD dispatch. No 0.1.8 version bump,
+That packet is now narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`. Its former
+Folder freeze/adjudication next step is historical. No 0.1.8 version bump,
 schema/generation/migration or runtime acceptance exists.
 
 ## 0.1.8 — 2026-08-13

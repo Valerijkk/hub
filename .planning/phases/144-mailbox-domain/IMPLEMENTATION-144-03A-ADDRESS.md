@@ -63,14 +63,16 @@ do not establish executable, phase, product, or runtime acceptance.
 
 - This packet is `STATIC_ACCEPTED`; it is not executable, phase, product, or runtime `PASS`.
 - Thread is narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS` (source `c221d547`, oracle `b21bd6fd`; C/I/M `0/0/0`), static only.
-- The exact next action is root freeze/adjudication of Folder callable/error/normalization/oracle contract. Its dependency on accepted
+- Folder contract `a565` and plan `a98` are accepted. The current 19-document lifecycle sync
+  candidate awaits three exact-SHA reviews; after PASS, Task 1 only may create external
+  `backend/tests/mail/folder_tree_test.go` RED oracle; after Task 1's three static oracle reviews
+  PASS, production `backend/internal/mail/folder_tree.go` may begin. No execution. Its dependency on accepted
   Address is satisfied; its callable/encoding/oracle contract is
   `THREAD_CALLABLE_ENCODING_ORACLE_STATIC_ACCEPTED` at
   `cbc12577a6444df9c660e43fedfd0c8133c6e461` / `EXACT_SHA_PASS` with C/I/M `0/0/0`.
-  Folder production/test TDD is not authorized or dispatched until that root contract obtains
-  separate static acceptance.
+  No Folder production/test work is authorized before the gates stated above.
 - The task-owned launcher is `NOT_READY`; compile, unit, race, build, lint, validators,
   Docker, and runtime are all `NOT_RUN`. No direct host or Docker substitute is valid evidence.
 - `144-01B` remains `BLOCKED`; broader Phase 142/cross-contract acceptance and Phase 148 are
   pending. This evidence does not accept the phase, product, persistence, OpenAPI, or runtime.
-> **144-03B Folder lifecycle sync (2026-08-14):** `FOLDER_TREE_CALLABLE_ERROR_NORMALIZATION_ORACLE_ROOT_FROZEN_CANDIDATE` from base `c2c0573c07f5b2535ac10ed617a14bb5294002bc`; not accepted or TDD-authorized. Thread remains `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`. Exact next action: one 18-doc atomic commit, then three independent exact-SHA reviews; no Folder source/test before acceptance. All executable evidence remains `NOT_RUN`, launcher `NOT_READY`; no product/schema/handler/migration/runtime claim. Author provenance is dispatcher-enforced Terra/medium with no fallback; actual telemetry `UNKNOWN` unless exposed.
+> **144-03B Folder lifecycle sync:** contract `a565af2632bc5f76a7d2fe26ebf3065fb3cefba9` / blob `0f9ed0adb0cec6ffa83619cb4c7c4cb4d3f3263c` and plan `a98c7235521852dee1ebc0d09558c7bcbefc4534` / blob `c79658d61e496489be697bc971d0797ed30fb61f` are narrowly `STATIC_ACCEPTED` after independent PASS reviews C/I/M `0/0/0`. This docs-only sync awaits its own three exact-SHA reviews; only then Task 1 external RED oracle is authorized. Production source remains forbidden until oracle reviews PASS; launcher `NOT_READY`, executable evidence `NOT_RUN`, and 04B/144-01B/Phase 142/148 blockers remain. Dispatcher-enforced, authors Terra/medium, reviews Terra/high + Terra/xhigh + Terra/high, no fallback, telemetry `UNKNOWN`.

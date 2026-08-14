@@ -1,15 +1,15 @@
-# 144-03B-Folder — root-frozen candidate callable, error and oracle contract
+# 144-03B-Folder — static-accepted callable, error and oracle contract
 
-> **Lifecycle:** `FOLDER_TREE_CALLABLE_ERROR_NORMALIZATION_ORACLE_ROOT_FROZEN_CANDIDATE`.
-> **Base HEAD:** `c2c0573c07f5b2535ac10ed617a14bb5294002bc`.
-> **Status:** candidate only; not accepted and not TDD-authorized. Executable evidence is `NOT_RUN`.
+> **Lifecycle:** `FOLDER_TREE_CALLABLE_ERROR_NORMALIZATION_ORACLE_STATIC_ACCEPTED`.
+> **Contract commit:** `a565af2632bc5f76a7d2fe26ebf3065fb3cefba9` · **blob:** `0f9ed0adb0cec6ffa83619cb4c7c4cb4d3f3263c`.
+> **Status:** narrowly `STATIC_ACCEPTED` after three independent exact-SHA reviews PASS, C/I/M `0/0/0`; executable evidence is `NOT_RUN`.
 > **Author provenance:** native dispatcher-enforced `gpt-5.6-terra` / `medium`, no fallback; actual telemetry `UNKNOWN` unless exposed.
 
 ## Scope and next gate
 
-This is a docs-only design for future `backend/internal/mail/folder_tree.go` and external `backend/tests/mail/folder_tree_test.go`. It makes no product, schema, handler, migration, repository, engine, or runtime claim. Thread remains `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS` and is not changed by this candidate.
+This is an accepted docs-only contract for future `backend/internal/mail/folder_tree.go` and external `backend/tests/mail/folder_tree_test.go`. It makes no product, schema, handler, migration, repository, engine, or runtime claim. Thread remains `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS` and is not changed by this acceptance.
 
-The exact next action is one atomic commit containing the 18-document manifest below, then three independent reviews of that exact SHA. Until all three accept it, no Folder source/test packet may be dispatched. The runner is `NOT_READY`; Docker, tests, build, lint and validators remain `NOT_RUN`.
+The accepted plan is `a98c7235521852dee1ebc0d09558c7bcbefc4534` / blob `c79658d61e496489be697bc971d0797ed30fb61f`, narrowly `EXACT_SHA_PASS` / `STATIC_ACCEPTED` after exact, security and boundary reviews PASS, C/I/M `0/0/0`. This docs-only lifecycle sync is still a candidate pending its own three exact-SHA reviews; Task 1 authorization becomes effective only after they PASS. The exact next action then is Task 1 only: create external `backend/tests/mail/folder_tree_test.go` RED oracle through fresh `gpt-5.6-terra` / `xhigh`, no fallback. `backend/internal/mail/folder_tree.go` remains forbidden until Task 1 oracle static reviews PASS. The runner is `NOT_READY`; Docker, tests, build, lint and validators remain `NOT_RUN`.
 
 ## Frozen future Go ABI
 
@@ -144,7 +144,7 @@ OpenAPI remains flat ordered items. `MailFolder` requires nullable `parent_id` a
 
 Future external-package oracle uses reflection for exact UUID fields/types, literals and callables and proves no extra public API or custom role. It covers literal errors/sentinels/nil, zero account/ID/target versus zero-root-parent, raw and post-fold names (whitespace-only, NFC, Straße/STRASSE, sigma, fold expansion, empty-or-over-480-byte postfold key), 0/100/101 slots and delete-not-freeing, Create zero ID at 100 => invalid, nonzero ID at 100 with >480 raw bytes => too_large, nonzero ID at 100 with malformed <=480-byte name => limit_exceeded, mixed account/UUIDs, duplicate ID/role, root depth 0..2/depth 3, self, cycles/subtree reparent, custom collisions/system-name coexistence, all system mutations (system before name/parent/reference/children and delete before in_use), invalid union, same-name rename, exact UUID raw-byte ordering, no mutation/alias/partial, and static source purity. Fixtures use only reserved synthetic UUIDs/names.
 
-## Exact candidate manifest
+## Exact 19-path lifecycle-sync manifest
 
 1. `.planning/STATE.md`
 2. `.planning/decisions/specs/MAIL-SPEC.md`
@@ -164,5 +164,6 @@ Future external-package oracle uses reflection for exact UUID fields/types, lite
 16. `docs/mail/QA-HANDOFF.md`
 17. `docs/mail/openapi.yaml`
 18. `.planning/phases/144-mailbox-domain/CONTRACT-144-03B-FOLDER.md`
+19. `.planning/phases/144-mailbox-domain/PLAN-144-03B-FOLDER.md`
 
-Facts in this file are current lifecycle/base/provenance facts. The ABI, policy, wire and oracle paragraphs are `ROOT INFERENCE` proposals frozen for review; they are not acceptance.
+Facts in this file are current lifecycle/commit/provenance facts. The ABI, policy, wire and oracle paragraphs are narrowly accepted static contract, not product or executable acceptance.

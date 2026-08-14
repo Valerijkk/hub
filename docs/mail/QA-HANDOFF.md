@@ -731,9 +731,9 @@ oracles, not current executable evidence.
 
 These are future required oracles for the statically accepted callable/encoding/oracle contract.
 The exact 19-path candidate is narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`.
-Thread implementation/test are narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`; root Folder contract freeze/adjudication is next, without Folder TDD dispatch. Launcher remains `NOT_READY` and runtime `NOT_RUN`.
+Thread implementation/test are narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`; Folder contract `a565af26` and plan `a98c7235` are accepted, while lifecycle-sync reviews gate Task 1 external RED oracle. Production remains forbidden until its oracle static reviews PASS. Launcher remains `NOT_READY` and runtime `NOT_RUN`.
 
-### 144-03B Folder root-frozen candidate scenarios (not accepted, implemented or run)
+### 144-03B Folder static-contract scenarios (not implemented or run)
 
 - Reflection must prove the exact UUID-only Folder ABI, all 13 error literals/sentinels and
   pointer `FolderPolicyError` methods, no custom role or extra public API. Zero account/ID/
@@ -770,4 +770,4 @@ Thread implementation/test are narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT
 - Therefore this handoff remains a contract deliverable only. The narrow entry amendment and
   static packet acceptance must not be converted into a global or executable PASS claim until
   supported current-SHA executable evidence exists.
-> **144-03B Folder lifecycle sync (2026-08-14):** `FOLDER_TREE_CALLABLE_ERROR_NORMALIZATION_ORACLE_ROOT_FROZEN_CANDIDATE` from base `c2c0573c07f5b2535ac10ed617a14bb5294002bc`; not accepted or TDD-authorized. Thread remains `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`. Exact next action: one 18-doc atomic commit, then three independent exact-SHA reviews; no Folder source/test before acceptance. All executable evidence remains `NOT_RUN`, launcher `NOT_READY`; no product/schema/handler/migration/runtime claim. Author provenance is dispatcher-enforced Terra/medium with no fallback; actual telemetry `UNKNOWN` unless exposed.
+> **144-03B Folder lifecycle sync:** contract `a565af2632bc5f76a7d2fe26ebf3065fb3cefba9` / blob `0f9ed0adb0cec6ffa83619cb4c7c4cb4d3f3263c` and plan `a98c7235521852dee1ebc0d09558c7bcbefc4534` / blob `c79658d61e496489be697bc971d0797ed30fb61f` are narrowly `STATIC_ACCEPTED` after independent PASS reviews C/I/M `0/0/0`. This docs-only sync awaits its own three exact-SHA reviews; only then Task 1 external RED oracle is authorized. Production source remains forbidden until oracle reviews PASS; launcher `NOT_READY`, executable evidence `NOT_RUN`, and 04B/144-01B/Phase 142/148 blockers remain. Dispatcher-enforced, authors Terra/medium, reviews Terra/high + Terra/xhigh + Terra/high, no fallback, telemetry `UNKNOWN`.

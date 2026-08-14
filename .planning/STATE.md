@@ -5,7 +5,7 @@ milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
 last_updated: "2026-08-14T04:00:00+03:00"
-last_activity: 2026-08-14 · Mail 144-03A Thread is narrowly STATIC_ACCEPTED at 9903f4df3e5ca8034ea3f043b0386170e83a5101 / EXACT_SHA_PASS (parent 73060a4b, tree b73f23b, exact 19 paths, source c221d547, oracle b21bd6fd, committed evidence 489905ac); contract acceptance cbc12577 preserved; three independent exact-SHA reviews PASS C/I/M 0/0/0; static only, launcher NOT_READY and executable evidence NOT_RUN; only next action is root freeze/adjudication of 144-03B-Folder contract, without Folder TDD dispatch
+last_activity: 2026-08-14 · Mail 144-03B contract a565af2632bc5f76a7d2fe26ebf3065fb3cefba9 / blob 0f9ed0adb0cec6ffa83619cb4c7c4cb4d3f3263c is narrowly STATIC_ACCEPTED after three exact-SHA PASS reviews C/I/M 0/0/0; plan a98c7235521852dee1ebc0d09558c7bcbefc4534 / blob c79658d61e496489be697bc971d0797ed30fb61f is narrowly EXACT_SHA_PASS/STATIC_ACCEPTED after exact, security and boundary PASS reviews C/I/M 0/0/0; lifecycle sync reviews pending, then Task 1 external RED oracle only; launcher NOT_READY and executable evidence NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -118,7 +118,7 @@ mail_feature_workstream:
     branch: codex/mail-module-20260813
     phases: "142-148"
     current_phase: 144
-    status: thread_static_accepted_9903f4df_exact_sha_pass_c_i_m_0_0_0_contract_cbc12577_runtime_not_run_folder_contract_freeze_only
+    status: folder_contract_a565af26_and_plan_a98c7235_static_accepted_lifecycle_sync_reviews_pending_task1_red_oracle_only_runtime_not_run
     product_truth: unfinished_mvp_feature_not_accepted
     contract_version: "0.1.8"
     tasks:
@@ -330,9 +330,10 @@ spec_coverage:
   `cbc12577a6444df9c660e43fedfd0c8133c6e461` / `EXACT_SHA_PASS` after independent
   Spec/API/Persistence, Security and Lifecycle/Evidence PASS reviews with C/I/M `0/0/0`.
   Thread implementation+oracle are narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`
-  (source `c221d547`, oracle `b21bd6fd`, C/I/M `0/0/0`), static only. Exact next action is only
-  root freeze/adjudication of Folder callable/error/normalization/oracle contract; Folder TDD is
-  not authorized. Other packet eligibility remains status only. `144-01B` remains `BLOCKED`; broader
+  (source `c221d547`, oracle `b21bd6fd`, C/I/M `0/0/0`), static only. Folder contract and plan
+  are accepted; this lifecycle sync needs three exact-SHA PASS reviews before Task 1 external RED
+  oracle. Production source remains forbidden until that oracle's static reviews PASS. Other packet
+  eligibility remains status only. `144-01B` remains `BLOCKED`; broader
   Phase 142/cross-contract acceptance and Phase 148 remain pending. Launcher and all executable
   evidence remain `NOT_READY` / `NOT_RUN`.
   Root-frozen `PERSISTENCE-CONTRACT-0.1.8.md` supplies the exact 144-02A/B/C/D/F fields,
@@ -1391,9 +1392,12 @@ and all executable evidence remains `NOT_RUN`.
 `pro-qa-ai` beta.3 already exists both in protected Hub source
 and as the Desktop portable copy. Legacy remains frozen; destructive move/delete
 has not started.
-**Resume:** Thread is narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`. Only root
-freeze/adjudication of Folder callable/error/normalization/oracle contract is next; do not
-authorize or dispatch Folder production/test TDD. Its callable/encoding/oracle
+**Resume:** Thread is narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`. Folder
+contract `a565af2632bc5f76a7d2fe26ebf3065fb3cefba9` and plan
+`a98c7235521852dee1ebc0d09558c7bcbefc4534` are accepted; the current 19-document lifecycle
+sync candidate awaits three exact-SHA reviews. After all three PASS, Task 1 only may create the
+external `backend/tests/mail/folder_tree_test.go` RED oracle; after Task 1's three static oracle
+reviews PASS, production `backend/internal/mail/folder_tree.go` may begin. No execution. Its callable/encoding/oracle
 contract remains `THREAD_CALLABLE_ENCODING_ORACLE_STATIC_ACCEPTED` at
 `cbc12577a6444df9c660e43fedfd0c8133c6e461` / `EXACT_SHA_PASS` after independent
 Spec/API/Persistence, Security and Lifecycle/Evidence PASS reviews with C/I/M `0/0/0`.
@@ -1424,4 +1428,4 @@ new quality gate is requirement/risk traceability plus fail-closed execution.
 - A3W2-2-001..006 FIXED: AssignTesters membership (400), FileIDs project-scope (404), ImportAllure ExistingRun tx/compensating, mock UpdateTestResult scope, snapshot steps fail-closed, Delete/Link/Unlink AppError.
 - hubtest `./testframework/tms/...` PASS; mutation 001–006 red/green ALL_OK.
 - Коммиты: `1dbf42f4` fix · `9e634ee5` test · статус TASK → На проверке (README не трогали). Handoff: be-ver → code-reviewer.
-> **144-03B Folder lifecycle sync (2026-08-14):** `FOLDER_TREE_CALLABLE_ERROR_NORMALIZATION_ORACLE_ROOT_FROZEN_CANDIDATE` from base `c2c0573c07f5b2535ac10ed617a14bb5294002bc`; not accepted or TDD-authorized. Thread remains `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`. Exact next action: one 18-doc atomic commit, then three independent exact-SHA reviews; no Folder source/test before acceptance. All executable evidence remains `NOT_RUN`, launcher `NOT_READY`; no product/schema/handler/migration/runtime claim. Author provenance is dispatcher-enforced Terra/medium with no fallback; actual telemetry `UNKNOWN` unless exposed.
+> **144-03B Folder lifecycle sync (2026-08-14):** contract `a565af2632bc5f76a7d2fe26ebf3065fb3cefba9` / blob `0f9ed0adb0cec6ffa83619cb4c7c4cb4d3f3263c` is narrowly `STATIC_ACCEPTED`; plan `a98c7235521852dee1ebc0d09558c7bcbefc4534` / blob `c79658d61e496489be697bc971d0797ed30fb61f` is narrowly `EXACT_SHA_PASS` / `STATIC_ACCEPTED`, each after three independent reviews PASS C/I/M `0/0/0`. This docs-only sync is candidate-only pending its own three exact-SHA reviews; then Task 1 only creates external `backend/tests/mail/folder_tree_test.go` RED oracle via fresh Terra/xhigh/no fallback. Production `backend/internal/mail/folder_tree.go` remains forbidden until its oracle static reviews PASS. Launcher `NOT_READY`; all executable evidence `NOT_RUN`; 04B reparent, 144-01B, Phase 142 and Phase 148 remain blocked. Provenance dispatcher-enforced; authors Terra/medium, reviews Terra/high + Terra/xhigh + Terra/high, fallback none, telemetry `UNKNOWN`.

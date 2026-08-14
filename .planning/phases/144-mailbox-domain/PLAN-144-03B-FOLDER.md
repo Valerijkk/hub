@@ -16,8 +16,8 @@ Go 1.25; `github.com/google/uuid v1.6.0`; `golang.org/x/text v0.35.0` using `cas
 
 ## Global Constraints
 
-- Contract commit `a565af2632bc5f76a7d2fe26ebf3065fb3cefba9` has three `EXACT_SHA_PASS` reviews with C/I/M `0/0/0`, but current lifecycle status is still candidate and Folder TDD is forbidden.
-- Before Task 1 dispatch, root must first land a separate lifecycle acceptance-sync commit that records `a565af2632bc5f76a7d2fe26ebf3065fb3cefba9` as `STATIC_ACCEPTED` and obtain three exact-SHA reviews of that sync. Root must also land and accept this plan's own exact commit through three plan reviews. This plan remains a candidate until that happens.
+- Contract commit `a565af2632bc5f76a7d2fe26ebf3065fb3cefba9` (blob `0f9ed0adb0cec6ffa83619cb4c7c4cb4d3f3263c`) is narrowly `STATIC_ACCEPTED` after three independent exact-SHA reviews PASS with C/I/M `0/0/0`.
+- Plan commit `a98c7235521852dee1ebc0d09558c7bcbefc4534` (blob `c79658d61e496489be697bc971d0797ed30fb61f`) is narrowly `EXACT_SHA_PASS` / `STATIC_ACCEPTED` after exact, security and boundary reviews PASS with C/I/M `0/0/0`. This lifecycle sync is candidate-only pending its own three exact-SHA reviews; Task 1 becomes authorized only after those reviews PASS.
 - The production boundary contains exactly two paths: `backend/tests/mail/folder_tree_test.go` first, then `backend/internal/mail/folder_tree.go`. No dependency, schema, handler, repository, engine, migration, generated, configuration, or additional source change is allowed.
 - Hub identifiers are `uuid.UUID`. Snapshot AccountID, row AccountID/ID, all action IDs, and target IDs reject `uuid.Nil`; only ParentID `uuid.Nil` means root. Engine opaque IDs are mapped to Hub UUID projection rows before either public callable.
 - Snapshot input includes every live non-deleted control row, including system and reserved creating/unknown/error/deleting rows. It is bounded to 100 rows. Deleted tombstones are excluded by caller. The separate engine enumeration bound does not alter this pure policy.
@@ -36,8 +36,8 @@ No Task 1 author is dispatched until every row is true.
 
 | Gate | Required evidence | Owner | Current planning status |
 |---|---|---|---|
-| Contract lifecycle acceptance | A docs-only sync commit names `a565af2632bc5f76a7d2fe26ebf3065fb3cefba9`, records `STATIC_ACCEPTED`, and passes Spec, Security, Lifecycle exact-SHA reviews | root | pending |
-| Plan acceptance | This plan's exact commit passes Spec/Plan, Security/Dependency and Boundary/Lifecycle exact-SHA reviews | root | pending |
+| Contract lifecycle acceptance | `a565af2632bc5f76a7d2fe26ebf3065fb3cefba9` / blob `0f9ed0adb0cec6ffa83619cb4c7c4cb4d3f3263c` is narrowly `STATIC_ACCEPTED` after three independent exact-SHA PASS reviews, C/I/M `0/0/0`; this sync still needs its own three exact-SHA PASS reviews | root | contract accepted; sync pending |
+| Plan acceptance | `a98c7235521852dee1ebc0d09558c7bcbefc4534` / blob `c79658d61e496489be697bc971d0797ed30fb61f` is narrowly `EXACT_SHA_PASS` / `STATIC_ACCEPTED` after exact, security and boundary PASS reviews, C/I/M `0/0/0` | root | accepted |
 | Runner truth | Versioned task-owned runner status remains `NOT_READY`; compile/runtime stay `NOT_RUN` | root | fixed blocker |
 | Dispatch provenance | Every later dispatch is native `gpt-5.6-terra`, explicit effort, no fallback, `dispatcher-enforced`; actual telemetry `UNKNOWN` unless exposed | root | required |
 
@@ -894,7 +894,7 @@ git rev-parse HEAD
 git show --stat --oneline HEAD
 git hash-object backend/tests/mail/folder_tree_test.go
 git hash-object backend/internal/mail/folder_tree.go
-rg -l '144-03B|FOLDER_TREE_CALLABLE_ERROR_NORMALIZATION_ORACLE_ROOT_FROZEN_CANDIDATE|STATIC_ACCEPTED' .planning/STATE.md .planning/decisions/specs/MAIL-SPEC.md .planning/phases/143-calendar-rsvp-core/.continue-here.md .planning/phases/143-calendar-rsvp-core/PREIMPLEMENTATION-READINESS.md .planning/phases/143-calendar-rsvp-core/TERMINAL-RESUME-PROMPT-RU.md .planning/phases/144-mailbox-domain/DISPATCH-INDEX.md .planning/phases/144-mailbox-domain/DISPATCH-REMAINING.md .planning/phases/144-mailbox-domain/PLAN.md .planning/phases/148-mail-release-gate/GATE-MATRIX.md docs/mail/CONTRACT-CHANGELOG.md docs/mail/ENGINE-CONTRACT-0.1.8.md docs/mail/PERSISTENCE-CONTRACT-0.1.8.md docs/mail/QA-HANDOFF.md docs/mail/openapi.yaml
+rg -l '144-03B|FOLDER_TREE_CALLABLE_ERROR_NORMALIZATION_ORACLE_STATIC_ACCEPTED|STATIC_ACCEPTED' .planning/STATE.md .planning/decisions/specs/MAIL-SPEC.md .planning/phases/143-calendar-rsvp-core/.continue-here.md .planning/phases/143-calendar-rsvp-core/PREIMPLEMENTATION-READINESS.md .planning/phases/143-calendar-rsvp-core/TERMINAL-RESUME-PROMPT-RU.md .planning/phases/144-mailbox-domain/DISPATCH-INDEX.md .planning/phases/144-mailbox-domain/DISPATCH-REMAINING.md .planning/phases/144-mailbox-domain/PLAN.md .planning/phases/148-mail-release-gate/GATE-MATRIX.md docs/mail/CONTRACT-CHANGELOG.md docs/mail/ENGINE-CONTRACT-0.1.8.md docs/mail/PERSISTENCE-CONTRACT-0.1.8.md docs/mail/QA-HANDOFF.md docs/mail/openapi.yaml .planning/phases/144-mailbox-domain/CONTRACT-144-03B-FOLDER.md .planning/phases/144-mailbox-domain/PLAN-144-03B-FOLDER.md
 git status --short
 ```
 
