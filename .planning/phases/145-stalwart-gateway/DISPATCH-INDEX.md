@@ -1,5 +1,7 @@
 # Phase 145 — exact Terra dispatch index
 
+> **Current upstream lifecycle (2026-08-14):** The exact `55e` 144-02F closure attempt is `CONSUMED/HISTORICAL`: Contract/Spec/Oracle Terra/high FAIL C/I/M `0/1/0` (Rule hash v1 underdetermined), Security/Adversarial Terra/xhigh FAIL C/I/M `0/1/0` (PostgreSQL `NULL` bypass), Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced, fallback none, telemetry `UNKNOWN`. The active exact 28-document correction is `ROOT_CORRECTION_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED` / `INDEPENDENT_CLOSURE_NOT_DISPATCHABLE` / `IMPLEMENTATION_BLOCKED`. Exact next is three precommit reviews, root exact commit, exact-SHA review/transition, then fresh 02F closure reviews. Phase 145 remains blocked; G145-5B/G145-5C stay open.
+
 > **Status:** ALL_CODE_PACKETS_BLOCKED_BY_144_CONTRACT_AND_EXTERNAL_GATES
 > **Required runtime:** `gpt-5.6-terra` / `xhigh`, no fallback
 > **Entry contract:** amended and accepted Phase 144 `MailEngine` byte boundary + `GATE-PLAN.md`
@@ -10,7 +12,7 @@ rather than infer current JMAP/admin wire semantics from memory.
 Executable packet bodies are in `DISPATCH-PACKETS.md`: concatenate its Common envelope
 with exactly one packet after all named gates pass.
 
-> **Upstream lifecycle update:** 144-02D docs-only boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; contrary combined 02D/02F-next text below is historical. Sole Mail next action is three exact 02F closure reviews. Phase 145 and all packets remain blocked/not accepted; G145-5B/G145-5C remain open.
+> **Upstream lifecycle update:** 144-02D docs-only boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` and docs-only acceptance sync `55e36b7a` is narrowly `STATIC_ACCEPTED` / `EXACT_SHA_PASS`. The direct 02F-closure instruction is `CONSUMED/HISTORICAL`; active sole next action is the exact 28-doc correction precommit-review -> root-commit -> exact-SHA -> fresh-closure -> separate-sync sequence. Phase 145 and all packets remain blocked/not accepted; G145-5B/G145-5C remain open.
 
 ## Atomic packets
 
@@ -117,4 +119,4 @@ with exactly one packet after all named gates pass.
 | Account identity mapping | EXACT `v0.16.17` IDENTITY GET/SET SOURCE FROZEN / ENABLED USE BLOCKED BY G145-5B MAIL AUTH |
 | Exclusive custom-folder writer | NOT_RUN / capability defaults false |
 | Runtime/resources/backup/external mail | NOT_RUN |
-| 144-03B Rule compiler input | docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`; transition/review target `6735ae746c7acde657359e8a709cd897c4dce61c`; Contract/Spec Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry `UNKNOWN`; no accepted IR carrier or Sieve bytes; 144-02D is docs-only accepted, while 144-02F's three exact closure reviews, a later separate Rule plan and Phase-145 carrier remain blockers |
+| 144-03B Rule compiler input | docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`; transition/review target `6735ae746c7acde657359e8a709cd897c4dce61c`; Contract/Spec Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry `UNKNOWN`; no accepted IR carrier or Sieve bytes; before a later Rule plan or Phase-145 carrier, the active 28-doc correction requires three precommit reviews, one exact root commit, exact-SHA transition, fresh 02F closure reviews and separate sync |

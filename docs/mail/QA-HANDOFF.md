@@ -1,6 +1,8 @@
 # Hub Mail + Calendar Sync — QA handoff
 
-> **144-02D current:** exact docs boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract, Security and Lifecycle post-transition reviews PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Earlier lifecycle FAIL and contrary 02D/02F-next text below are historical. Sole next action: three exact 02F closure reviews; 02F and runtime remain unaccepted/`NOT_RUN`.
+> **144-02F corrective static oracle:** inspect literal NULL-negative matrices for every receipt/deployment named check and all three full hash-v1 preimage hex/digest vectors in the persistence contract (empty 22 bytes, one 77, two 178). Verify separately folder p10 no-I/O terminal 409/30d replay and `message_bulk p10` manual-only no schedule/reclaim/I/O; same-key replay returns its persisted 202 snapshot, while fresh-key same/different targets repeatedly receive 423/no row/no expansion/no I/O under the account lock, including late-owner contention. Also verify the 16-byte header plus `0x00||0x01`, target uniques `(receipt_id,request_index)`/`(receipt_id,target_type,target_id)`, and account-first CAS/lease fencing. They are independently computed V8 pure-JS/.NET SHA256 future oracles, not test/runtime evidence. The 02F packet is `ROOT_CORRECTION_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED`; launcher `NOT_READY`, executable evidence `NOT_RUN`.
+
+> **144-02D current:** exact docs boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract, Security and Lifecycle post-transition reviews PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Earlier lifecycle FAIL and contrary 02D/02F-next text below are `CONSUMED/HISTORICAL`. The live 02F sequence is corrective candidate → three independent precommit reviews → exact 28-doc root commit → exact-SHA review/transition → fresh closure reviews → separate acceptance sync; 02F and runtime remain unaccepted/`NOT_RUN`.
 > **Contract version:** 0.1.8
 > **Prepared:** 2026-08-13
 > **Contract review status:** five-document 0.1.8 entry amendment PASS at `5e314fb080d420696642058ae47397e251c23207`; Thread contract remains accepted at `cbc12577a6444df9c660e43fedfd0c8133c6e461`; implementation+oracle are narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS` (source `c221d547`, oracle `b21bd6fd`, reviews C/I/M `0/0/0`), static only; broader Phase 142/cross-contract review remains pending
@@ -705,13 +707,15 @@ The initial `63e`/`6c` candidate lifecycle and earlier Lifecycle FAIL are histor
 documents) plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is docs-only
 `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; all three post-transition exact reviews PASS C/I/M `0/0/0`.
 All review provenance is dispatcher-enforced, fallback none, telemetry `UNKNOWN`. 02F remains
-unaccepted; its three exact closure reviews are sole next action. Launcher remains
+unaccepted; the former sole-next closure wording is `CONSUMED/HISTORICAL`. The live sequence is
+corrective candidate → three independent precommit reviews → exact 28-doc root commit →
+exact-SHA review/transition → fresh closure reviews → separate acceptance sync. Launcher remains
 `NOT_READY`; runtime stays `NOT_RUN`.
 
 | Oracle | Static/external assertion | Runtime status |
 |---|---|---|
 | Signature pointer | identity derives only from `default_identity_id`; signature derives post-commit from `default_signature_id`; Upsert false/true lock/If-Match/no-second-PATCH truth table | NOT_RUN |
-| Receipt recovery | `prior_attempts p`; `p=9` tenth I/O, live-tenth no-op contention, p=10 expiry terminal 409 and 30-day replay | NOT_RUN |
+| Receipt recovery | Folder only: `p=9` tenth I/O, live-tenth no-op contention and p=10 expiry no-I/O terminal 409 with 30-day replay. Bulk: for a due unknown `message_bulk` receipt at each prior attempt `p=1..9`, a live receipt or account lease claimant is a no-op with zero I/O; an expired-lease takeover acquires `MailAccount` first, creates fresh account and receipt tokens, captures the mutation epoch, and in one transaction persists exactly `p→p+1` before exactly one bounded engine I/O. Two contenders yield exactly one slot. Completion with a stale receipt token, account token, or mutation epoch updates zero rows, drops the late result, and causes no compensating or repeated I/O. Separately, p10 stays manual-only with no schedule/reclaim/I/O; same-key replay returns persisted 202, then fresh-key account-locked guard returns 423 with no receipt/snapshot/expansion/I/O. | NOT_RUN |
 | Receipt shapes | digest/pair/status/safe-union/lease/terminal/compaction plus exact operation-target-status-safe-code and folder matrices | NOT_RUN |
 | Bulk rows | index/count/outcome/training checks; parent-transaction-only member aggregate/cardinality | NOT_RUN |
 | Deployment | attempt `0..10`, internal-only exhaustion code, tuple/state/lease, tenth crash/no-11th and late owner CAS token/epoch invariants | NOT_RUN |
@@ -772,8 +776,9 @@ C/I/M `0/0/0`), static only. Folder docs are also static-only accepted at
 Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced with no
 fallback and telemetry `UNKNOWN`. Corrective `7d29d08c` plus transition `e563a3d3` is now docs-only
 `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; the earlier Lifecycle FAIL and pre-acceptance sequence are
-`CONSUMED/HISTORICAL`. The sole next action is 02F's three exact closure reviews against accepted
-02D; later plan and Phase-145 carrier
+`CONSUMED/HISTORICAL`. The live sequence is corrective candidate → three independent precommit
+reviews → exact 28-doc root commit → exact-SHA review/transition → fresh closure reviews →
+separate acceptance sync; later accepted Rule plan and Phase-145 carrier/G145-5B/G145-5C
 remain required. Launcher remains
 `NOT_READY` and runtime `NOT_RUN`.
 
@@ -824,8 +829,8 @@ Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`, dispatcher-e
 fallback and telemetry `UNKNOWN`. Future RED oracle
 must cover ABI/errors, closed union/bounds/Unicode/targets/order/deep-copy/static purity and
 reject noncanonical base32 (decode-to-32 plus identical re-encode). 144-02D is docs-only accepted;
-no test before accepted 02F following its three exact closure reviews, a later accepted Rule plan
-and separate Phase-145 carrier;
+no test before accepted 02F following the live corrective/precommit/commit/exact-SHA/closure/sync
+sequence, a later accepted Rule plan and separate Phase-145 carrier/G145-5B/G145-5C;
 launcher `NOT_READY`.
 Compiler errors are internal; HTTP uses 04M account-scoped lookup which masks foreign/missing
 targets identically and never makes mismatch/ambiguity an existence oracle.

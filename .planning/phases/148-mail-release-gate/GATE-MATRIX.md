@@ -1,5 +1,7 @@
 # Phase 148 — merge-readiness gate matrix
 
+> **Current upstream lifecycle (2026-08-14):** The `55e` 144-02F closure attempt is `CONSUMED/HISTORICAL`: Contract/Spec/Oracle Terra/high FAIL C/I/M `0/1/0` for Rule hash v1 underdetermination; Security/Adversarial Terra/xhigh FAIL C/I/M `0/1/0` for PostgreSQL `NULL` bypass; Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced, fallback none, telemetry `UNKNOWN`. The live exact 28-document correction is `ROOT_CORRECTION_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED` / `INDEPENDENT_CLOSURE_NOT_DISPATCHABLE` / `IMPLEMENTATION_BLOCKED`. It must complete three precommit reviews, root exact commit, exact-SHA review/transition and fresh 02F closure reviews before any Phase-148 gate can advance. Launcher `NOT_READY`; executables `NOT_RUN`.
+
 > **Status:** G148_02_BLOCKED_BROADER_CROSS_CONTRACT_CURRENT_SOURCE_EXECUTABLE_GAPS · FIVE_DOCUMENT_144_01A_ENTRY_AMENDMENT_PASS_5E314FB0 · 144_01A_STATIC_ACCEPTED_E3E8C774 · 144_03A_THREAD_STATIC_ACCEPTED_9903F4DF_EXACT_SHA_PASS · IMPLEMENTATION_IN_PROGRESS · RUNTIME_NOT_RUN
 > **Scope:** Mail/Calendar/CRM feature branch only
 > **Evidence rule:** exact current SHA or no PASS
@@ -10,7 +12,7 @@ This matrix separates a reviewable branch from an operating mail service. Passin
 or merge gate never means the unfinished Hub MVP, mail module, or production cutover is
 complete/stable/ready.
 
-> **Upstream lifecycle update:** 144-02D docs-only boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is narrowly `STATIC_ACCEPTED` / `EXACT_SHA_PASS`. 02F is unaccepted; sole next action is its three exact closure reviews. Phase 148 remains pending/blocked; no release or runtime acceptance follows.
+> **Upstream lifecycle update:** 144-02D docs-only boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` and docs-only acceptance sync `55e36b7a` is narrowly `STATIC_ACCEPTED` / `EXACT_SHA_PASS`. 02F is unaccepted; the direct-closure instruction is `CONSUMED/HISTORICAL`. Active sole next action is the exact 28-doc correction precommit-review -> root-commit -> exact-SHA -> fresh-closure -> separate-sync sequence. Phase 148 remains pending/blocked; no release or runtime acceptance follows.
 
 ## 1. Verdict vocabulary
 
@@ -191,13 +193,15 @@ pending applicable supported current-SHA Docker evidence. Thread is narrowly `ST
   release acceptance. Its lifecycle transition/review target is
   `6735ae746c7acde657359e8a709cd897c4dce61c`; Contract/Spec Terra/high,
   Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`,
-  dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed. 144-02D is docs-only accepted;
-  144-02F's three exact closure reviews, a later separate Rule plan and Phase-145 carrier remain required. No execution. The launcher is
+  dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed. Before a later separate Rule plan
+  and Phase-145 carrier, the active 28-doc correction requires three precommit reviews, one exact root commit,
+  exact-SHA transition, fresh 02F closure reviews and separate sync. No execution. The launcher is
 `NOT_READY`, engine/legal/migration/broadcast/rebase decisions are unresolved, and all executable
 evidence is `NOT_RUN`.
 
 `144-03B-Rule-Compiler` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at
-`f199546513b758ca7b95328b5ccd7680009b732e`, not a release PASS. 144-02D is docs-only accepted;
-144-02F's three exact closure reviews, a later separate Rule plan and engine-port/145 carrier remain required
-before Rule TDD/production and Phase 148 acceptance. The launcher remains `NOT_READY` and
+`f199546513b758ca7b95328b5ccd7680009b732e`, not a release PASS. Before a later separate Rule plan
+and engine-port/145 carrier, the active 28-doc correction requires three precommit reviews, one exact root
+commit, exact-SHA transition, fresh 02F closure reviews and separate sync before Rule TDD/production and
+Phase 148 acceptance. The launcher remains `NOT_READY` and
 executable evidence `NOT_RUN`.

@@ -1,8 +1,10 @@
 # Phase 145 — Stalwart Gateway and Docker Mail Profile
 
+> **Current upstream lifecycle (2026-08-14):** The exact `55e` 144-02F closure attempt is `CONSUMED/HISTORICAL`: Contract/Spec/Oracle Terra/high FAIL C/I/M `0/1/0` (underdetermined Rule hash v1), Security/Adversarial Terra/xhigh FAIL C/I/M `0/1/0` (PostgreSQL `NULL` bypass), Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced, fallback none, telemetry `UNKNOWN`. The live 28-document packet is `ROOT_CORRECTION_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED` / `INDEPENDENT_CLOSURE_NOT_DISPATCHABLE` / `IMPLEMENTATION_BLOCKED`. Exact next is precommit review ×3, root exact commit, exact-SHA review/transition, fresh 02F closure ×3. This Phase remains blocked; G145-5B/G145-5C remain open.
+
 > Task: TASK-238 · Status: BLOCKED_BY_144_CONTRACT_AND_EXTERNAL_GATES · Depends on: Phase 144
 
-> **Upstream lifecycle update:** 144-02D docs-only boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; contrary 02D/02F-next text below is historical. Sole Mail next action is three exact 02F closure reviews. Phase 145 remains blocked/not accepted; G145-5B/G145-5C and carrier/runtime gates remain open.
+> **Upstream lifecycle update:** 144-02D docs-only boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` and docs-only acceptance sync `55e36b7a` is narrowly `STATIC_ACCEPTED` / `EXACT_SHA_PASS`. The direct 02F-closure instruction is `CONSUMED/HISTORICAL`; active sole next action is the exact 28-doc correction precommit-review -> root-commit -> exact-SHA -> fresh-closure -> separate-sync sequence. Phase 145 remains blocked/not accepted; G145-5B/G145-5C and carrier/runtime gates remain open.
 
 ## Hard entry gates
 
@@ -85,6 +87,7 @@ transport passes.
 Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M
 `0/0/0`; provenance is dispatcher-enforced, fallback none and telemetry `UNKNOWN` unless
 exposed. It accepts typed IR only, not an engine port or Sieve bytes. Phase 145 still needs
-accepted 144-02D plus 144-02F's three exact closure reviews, then its later separate Rule plan and
-a separate accepted engine-port carrier before Sieve work. Engine folder ID is not mailbox name;
+the active 28-doc correction sequence: three precommit reviews, one exact root commit, exact-SHA
+transition, fresh 02F closure reviews and separate sync; only then its later separate Rule plan and
+a separate accepted engine-port carrier may advance before Sieve work. Engine folder ID is not mailbox name;
 attachment IR needs MIME gate. No Rule TDD/source/schema/runtime/product/release authority follows.

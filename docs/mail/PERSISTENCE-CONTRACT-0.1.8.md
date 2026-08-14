@@ -1,7 +1,7 @@
 # Mail persistence contract 0.1.8
 
 > **Status:** 144-02A frozen A1/A2/A3 representation is `STATIC_CONTRACT_READY` / docs-only accepted at reviewed snapshot `b631866b2ba372101fd80eea30951eaa267c1931`; Contract/Spec Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high independently PASS C/I/M `0/0/0`, dispatcher-enforced, fallback none, telemetry `UNKNOWN` unless exposed. This is not source, TDD, generated output, migration, launcher, test/validator/build/runtime, product/module/phase/release acceptance; 02B/C/F and broader cross-contract review remain pending. Despite the docs-only 02D acceptance below, 02D source, Ent schema, generation, migration, service and runtime remain pending/unauthorized.
-> **144-02D current:** exact nine-doc representation/readiness boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus same-nine-doc transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; all three post-transition exact reviews PASS C/I/M `0/0/0`. Contrary pre-acceptance lifecycle text below is historical. Sole next action is three independent exact 02F closure reviews; 02F and all source/Ent/generation/migration/runtime authority remain blocked.
+> **144-02D current:** exact nine-doc representation/readiness boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus same-nine-doc transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; all three post-transition exact reviews PASS C/I/M `0/0/0`. Contrary pre-acceptance lifecycle text is historical. The live 02F sequence is corrective candidate → three independent precommit reviews → exact 28-doc root commit → exact-SHA review/transition → fresh 02F closure reviews → separate acceptance sync; 02F and all source/Ent/generation/migration/runtime authority remain blocked.
 > **Runtime/generation/migration:** NOT_RUN / NOT_RUN / NOT_AUTHORIZED
 > **Scope:** Phase 144-02A/B/C/D/F Ent schemas only
 > **Precedence:** this document supplies exact storage representation for the corresponding
@@ -916,7 +916,7 @@ The following are row CHECKs; each literal predicate is part of the candidate sc
 | `mail_mutation_receipts_unknown_shape` | `(state <> 'unknown' OR (safe_code IN ('MAIL_FOLDER_RECONCILIATION_REQUIRED','MAIL_ENGINE_OUTCOME_UNKNOWN') AND next_reconcile_at IS NOT NULL AND original_http_status IS NULL AND terminal_at IS NULL AND replay_until IS NULL AND compacted_at IS NULL))` |
 | `mail_mutation_receipts_completed_shape` | `(state <> 'completed' OR (safe_code IS NULL AND original_http_status BETWEEN 200 AND 299 AND terminal_at IS NOT NULL AND replay_until = terminal_at + INTERVAL '30 days' AND next_reconcile_at IS NULL AND reconcile_lease_token IS NULL AND reconcile_lease_until IS NULL))` |
 | `mail_mutation_receipts_failed_shape` | `(state <> 'failed' OR (safe_code IS NOT NULL AND original_http_status BETWEEN 400 AND 599 AND terminal_at IS NOT NULL AND replay_until = terminal_at + INTERVAL '30 days' AND next_reconcile_at IS NULL AND reconcile_lease_token IS NULL AND reconcile_lease_until IS NULL))` |
-| `mail_mutation_receipts_reconciliation_exhausted_terminal` | `(safe_code <> 'MAIL_RECONCILIATION_EXHAUSTED' OR (state = 'failed' AND original_http_status = 409 AND terminal_at IS NOT NULL AND replay_until = terminal_at + INTERVAL '30 days' AND reconcile_attempts = 10 AND next_reconcile_at IS NULL AND reconcile_lease_token IS NULL AND reconcile_lease_until IS NULL))` |
+| `mail_mutation_receipts_reconciliation_exhausted_terminal` | `COALESCE(safe_code IS DISTINCT FROM 'MAIL_RECONCILIATION_EXHAUSTED' OR (state = 'failed' AND original_http_status = 409 AND terminal_at IS NOT NULL AND replay_until = terminal_at + INTERVAL '30 days' AND reconcile_attempts = 10 AND compacted_at IS NULL AND next_reconcile_at IS NULL AND reconcile_lease_token IS NULL AND reconcile_lease_until IS NULL), FALSE)` |
 | `mail_mutation_receipts_operation_bulk_action` | `(operation = 'message_bulk' OR bulk_action IS NULL)` |
 | `mail_mutation_receipts_operation_target_status_safe_code` | `COALESCE(CASE operation WHEN 'folder_create' THEN ((state = 'in_progress' AND safe_code IS NULL AND original_http_status IS NULL AND argument_kind IS NULL AND argument_id IS NULL AND (target_kind IS NULL OR target_kind = 'folder')) OR (state = 'unknown' AND target_kind = 'folder' AND safe_code = 'MAIL_FOLDER_RECONCILIATION_REQUIRED' AND original_http_status IS NULL AND argument_kind IS NULL AND argument_id IS NULL) OR (state = 'completed' AND target_kind = 'folder' AND safe_code IS NULL AND original_http_status = 201 AND argument_kind IS NULL AND argument_id IS NULL) OR (state = 'failed' AND target_kind = 'folder' AND argument_kind IS NULL AND argument_id IS NULL AND ((safe_code IN ('MAIL_FOLDER_NAME_CONFLICT','MAIL_FOLDER_TREE_CONFLICT','MAIL_RECONCILIATION_EXHAUSTED') AND original_http_status = 409) OR (safe_code = 'MAIL_FOLDER_LIMIT_EXCEEDED' AND original_http_status = 422)))) WHEN 'folder_update' THEN (target_kind = 'folder' AND argument_kind IS NULL AND argument_id IS NULL AND ((state = 'in_progress' AND safe_code IS NULL AND original_http_status IS NULL) OR (state = 'unknown' AND safe_code = 'MAIL_FOLDER_RECONCILIATION_REQUIRED' AND original_http_status IS NULL) OR (state = 'completed' AND safe_code IS NULL AND original_http_status = 200) OR (state = 'failed' AND safe_code = 'MAIL_RECONCILIATION_EXHAUSTED' AND original_http_status = 409))) WHEN 'folder_delete' THEN (target_kind = 'folder' AND argument_kind IS NULL AND argument_id IS NULL AND ((state = 'in_progress' AND safe_code IS NULL AND original_http_status IS NULL) OR (state = 'unknown' AND safe_code = 'MAIL_FOLDER_RECONCILIATION_REQUIRED' AND original_http_status IS NULL) OR (state = 'completed' AND safe_code IS NULL AND original_http_status = 204) OR (state = 'failed' AND safe_code = 'MAIL_RECONCILIATION_EXHAUSTED' AND original_http_status = 409))) WHEN 'label_create' THEN ((state = 'in_progress' AND safe_code IS NULL AND original_http_status IS NULL AND target_kind IS NULL AND argument_kind IS NULL AND argument_id IS NULL) OR (state = 'completed' AND target_kind = 'label' AND safe_code IS NULL AND original_http_status = 201 AND argument_kind IS NULL AND argument_id IS NULL) OR (state = 'failed' AND target_kind IS NULL AND argument_kind IS NULL AND argument_id IS NULL AND ((safe_code = 'MAIL_LABEL_NAME_CONFLICT' AND original_http_status = 409) OR (safe_code = 'MAIL_LABEL_LIMIT_EXCEEDED' AND original_http_status = 422)))) WHEN 'signature_create' THEN ((state = 'in_progress' AND safe_code IS NULL AND original_http_status IS NULL AND target_kind IS NULL AND argument_kind IS NULL AND argument_id IS NULL) OR (state = 'completed' AND target_kind = 'signature' AND safe_code IS NULL AND original_http_status = 201 AND argument_kind IS NULL AND argument_id IS NULL) OR (state = 'failed' AND target_kind IS NULL AND safe_code = 'MAIL_SIGNATURE_LIMIT_EXCEEDED' AND original_http_status = 422 AND argument_kind IS NULL AND argument_id IS NULL)) WHEN 'rule_create' THEN ((state = 'in_progress' AND safe_code IS NULL AND original_http_status IS NULL AND target_kind IS NULL AND argument_kind IS NULL AND argument_id IS NULL) OR (state = 'completed' AND target_kind = 'rule' AND safe_code IS NULL AND original_http_status = 201 AND argument_kind IS NULL AND argument_id IS NULL) OR (state = 'failed' AND target_kind IS NULL AND safe_code = 'MAIL_RULE_LIMIT_EXCEEDED' AND original_http_status = 422 AND argument_kind IS NULL AND argument_id IS NULL)) WHEN 'attachment_presign' THEN ((state = 'in_progress' AND safe_code IS NULL AND original_http_status IS NULL AND target_kind IS NULL AND argument_kind IS NULL AND argument_id IS NULL) OR (state = 'completed' AND target_kind = 'attachment' AND safe_code IS NULL AND original_http_status = 201 AND argument_kind IS NULL AND argument_id IS NULL)) WHEN 'domain_create' THEN ((state = 'in_progress' AND safe_code IS NULL AND original_http_status IS NULL AND target_kind IS NULL AND argument_kind IS NULL AND argument_id IS NULL) OR (state = 'completed' AND target_kind = 'domain' AND safe_code IS NULL AND original_http_status = 202 AND argument_kind IS NULL AND argument_id IS NULL) OR (state = 'failed' AND target_kind IS NULL AND argument_kind IS NULL AND argument_id IS NULL AND ((safe_code = 'MAIL_DOMAIN_UNAVAILABLE' AND original_http_status = 409) OR (safe_code = 'MAIL_DOMAIN_LIMIT_EXCEEDED' AND original_http_status = 422)))) WHEN 'alias_create' THEN ((state = 'in_progress' AND safe_code IS NULL AND original_http_status IS NULL AND target_kind IS NULL AND argument_kind IS NULL AND argument_id IS NULL) OR (state = 'completed' AND target_kind = 'identity' AND safe_code IS NULL AND original_http_status = 202 AND argument_kind IS NULL AND argument_id IS NULL) OR (state = 'failed' AND target_kind IS NULL AND argument_kind IS NULL AND argument_id IS NULL AND ((safe_code IN ('MAIL_ALIAS_ADDRESS_UNAVAILABLE','MAIL_ALIAS_ACCOUNT_NOT_ACTIVE') AND original_http_status = 409) OR (safe_code = 'MAIL_IDENTITY_LIMIT_EXCEEDED' AND original_http_status = 422)))) WHEN 'message_bulk' THEN (target_kind IS NULL AND target_id IS NULL AND ((bulk_action = 'move' AND argument_kind = 'folder' AND argument_id IS NOT NULL) OR (bulk_action IN ('add_label','remove_label') AND argument_kind = 'label' AND argument_id IS NOT NULL) OR (bulk_action IN ('mark_read','mark_unread','flag','unflag','archive','junk','not_junk','trash','restore','pin','unpin') AND argument_kind IS NULL AND argument_id IS NULL)) AND ((state = 'in_progress' AND safe_code IS NULL AND original_http_status IS NULL) OR (state = 'unknown' AND safe_code = 'MAIL_ENGINE_OUTCOME_UNKNOWN' AND original_http_status IS NULL) OR (state = 'completed' AND safe_code IS NULL AND original_http_status = 200) OR (state = 'failed' AND safe_code = 'MAIL_BULK_EXPANSION_LIMIT' AND original_http_status = 422))) ELSE FALSE END, FALSE)` |
 | `mail_mutation_receipts_operation_key_source_account` | `((operation IN ('folder_update','folder_delete') AND key_source = 'internal' AND mail_account_id IS NOT NULL) OR (operation = 'domain_create' AND key_source = 'client' AND mail_account_id IS NULL) OR (operation IN ('folder_create','label_create','signature_create','rule_create','attachment_presign','alias_create','message_bulk') AND key_source = 'client' AND mail_account_id IS NOT NULL))` |
@@ -928,6 +928,205 @@ Target CHECKs are: `request_index BETWEEN 0 AND 199`; `affected_count`, `succeed
 Define `prior_attempts p` as the persisted `reconcile_attempts` observed by the recovery claimant. For `0 <= p < 10`, it atomically claims the receipt plus account lease/epoch and persists `p + 1` before exactly one bounded recovery I/O slot; `p = 9` is the tenth slot. Preclaim, poll, busy contention and pre-engine failure do not increment. A live tenth lease is contention/no-op. `p = 10` grants no I/O: after its lease expires, a takeover terminalizes without I/O as `failed`/`MAIL_RECONCILIATION_EXHAUSTED`/HTTP 409, sets `terminal_at` and the exact 30-day replay window, clears receipt and account leases, and advances the account end epoch. The tenth owner may complete normally; its crash or unknown result exhausts and permits no eleventh I/O. Only an authorized matching same-key/same-request replay inside that window receives generic NFR-13 error; after it expires it receives `IDEMPOTENCY_REPLAY_EXPIRED`. No attempt, receipt, lease, engine or provider detail is exposed. A fresh/different key cannot bypass unresolved folder control/error; it never re-expands, retrains or resubmits. This rule excludes drafts, submissions, authorization/not-found, and classifier feedback.
 
 `MailRuleDeployment` emits these row CHECKs: desired/attempted/deployed tuples are each all-or-none; present generation/version are positive and every present hash satisfies `octet_length(hash) = 32`; deployed generation is `<= desired_generation`; lease is paired; `attempt_count BETWEEN 0 AND 10`; and `last_error_code`/`next_retry_at` follow the stated allowlist. State predicates are: `pending` has no attempted tuple or lease; `applying` has attempted tuple and lease; `ready` has no attempted tuple/lease/error/retry and deployed exactly equals desired; `unknown` retains attempted tuple and its unknown code; `error` retains attempted tuple and allowlisted error. In every non-ready state deployed is null or not equal to current desired. Applying/unknown/error retain immutable attempted data; a newer desired never rewrites it. The claim transaction persists attempted before I/O; only confirmed reconciliation copies attempted to deployed, becoming ready only if it equals current desired, otherwise pending. No raw Sieve, script id/body or provider text is persisted.
+
+### 144-02F root correction — NULL-safe receipt/deployment and rule-set hash v1
+
+This correction is normative persistence design only. It replaces every earlier shorthand or
+NULL-vulnerable receipt/deployment predicate in this section; no Ent schema, generated output,
+migration, service, executable test, or runtime authority follows.
+
+The live 28-document packet is `ROOT_CORRECTION_CANDIDATE` /
+`PRECOMMIT_REVIEW_REQUIRED` / `INDEPENDENT_CLOSURE_NOT_DISPATCHABLE` /
+`IMPLEMENTATION_BLOCKED`; 02F remains unaccepted and launcher/executable status remains
+`NOT_READY` / `NOT_RUN`.
+
+The earlier 900–930 named-check table and its recovery/deployment paragraphs are
+`SUPERSEDED/HISTORICAL` wherever they differ from this correction, including their NULL-sensitive
+comparison, `(receipt_id,target_id)` unique, abbreviated state wording, retry/unknown caps and
+old lifecycle. They are retained only as audit history; the following literal predicates and
+state transitions are the sole active 02F contract.
+
+`MailMutationReceipt` digest/version validity is exactly
+`COALESCE(octet_length(idempotency_key_hash) = 32 AND octet_length(request_hash) = 32 AND fingerprint_version >= 1, FALSE)`.
+The paired terminal form is exactly `COALESCE((terminal_at IS NULL AND replay_until IS NULL) OR (terminal_at IS NOT NULL AND replay_until = terminal_at + INTERVAL '30 days'), FALSE)`;
+compaction is exactly `COALESCE(compacted_at IS NULL OR (terminal_at IS NOT NULL AND replay_until IS NOT NULL AND compacted_at >= replay_until), FALSE)`.
+All state shape validation is one exhaustive fail-closed check:
+
+```sql
+mail_mutation_receipts_state_shape:
+COALESCE(CASE state
+  WHEN 'in_progress' THEN safe_code IS NULL AND original_http_status IS NULL
+    AND terminal_at IS NULL AND replay_until IS NULL AND compacted_at IS NULL
+  WHEN 'unknown' THEN original_http_status IS NULL
+    AND terminal_at IS NULL AND replay_until IS NULL AND compacted_at IS NULL
+    AND ((reconcile_lease_token IS NULL AND reconcile_lease_until IS NULL)
+      OR (reconcile_lease_token IS NOT NULL AND reconcile_lease_until IS NOT NULL))
+    AND ((operation IN ('folder_create','folder_update','folder_delete')
+          AND safe_code='MAIL_FOLDER_RECONCILIATION_REQUIRED'
+          AND reconcile_attempts BETWEEN 1 AND 10 AND next_reconcile_at IS NOT NULL)
+      OR (operation='message_bulk' AND safe_code='MAIL_ENGINE_OUTCOME_UNKNOWN'
+          AND reconcile_attempts BETWEEN 1 AND 9 AND next_reconcile_at IS NOT NULL)
+      OR (operation='message_bulk' AND safe_code='MAIL_ENGINE_OUTCOME_UNKNOWN'
+          AND reconcile_attempts=10 AND next_reconcile_at IS NULL
+          AND reconcile_lease_token IS NULL AND reconcile_lease_until IS NULL))
+  WHEN 'completed' THEN safe_code IS NULL AND original_http_status BETWEEN 200 AND 299
+    AND terminal_at IS NOT NULL AND replay_until = terminal_at + INTERVAL '30 days'
+    AND next_reconcile_at IS NULL AND reconcile_lease_token IS NULL AND reconcile_lease_until IS NULL
+  WHEN 'failed' THEN safe_code IS NOT NULL AND original_http_status BETWEEN 400 AND 599
+    AND terminal_at IS NOT NULL AND replay_until = terminal_at + INTERVAL '30 days'
+    AND next_reconcile_at IS NULL AND reconcile_lease_token IS NULL AND reconcile_lease_until IS NULL
+  ELSE FALSE END, FALSE)
+```
+
+`reconcile_attempts` is `0..10`; an unknown recovery row is exactly `1..10`. The earlier
+NULL-sensitive receipt-exhaustion spelling is superseded: it is NULL-vulnerable
+and is not a valid 02F predicate. The only terminal predicate is:
+
+```sql
+mail_mutation_receipts_reconciliation_exhausted_terminal:
+COALESCE(safe_code IS DISTINCT FROM 'MAIL_RECONCILIATION_EXHAUSTED' OR
+  (state='failed' AND original_http_status=409 AND reconcile_attempts=10
+   AND terminal_at IS NOT NULL AND replay_until=terminal_at + INTERVAL '30 days'
+   AND compacted_at IS NULL AND next_reconcile_at IS NULL
+   AND reconcile_lease_token IS NULL AND reconcile_lease_until IS NULL), FALSE)
+```
+
+For a folder receipt, a claimant with `p < 10` atomically claims/fences, stores `p + 1`
+and its lease before one bounded recovery I/O slot; `p=9` is the tenth slot. `p=10` with
+`state=unknown`, `safe_code=MAIL_FOLDER_RECONCILIATION_REQUIRED` and a due/expired claim is
+no-I/O only: it becomes failed/409 `MAIL_RECONCILIATION_EXHAUSTED`, writes the 30-day
+terminal/replay pair, clears both leases and advances the account epoch. A live tenth lease
+is contention/no-op; its owner may finish, but crash/unknown permits no eleventh I/O.
+
+For `message_bulk`, `p=1..9` `MAIL_ENGINE_OUTCOME_UNKNOWN` remains reconcilable with a due
+`next_reconcile_at` and the ordinary paired lease while owned or both-null while waiting.
+`p=10` unknown is never folder exhaustion: it remains manual-repair-only
+`unknown` with `safe_code=MAIL_ENGINE_OUTCOME_UNKNOWN`, `reconcile_attempts=10`, both leases
+NULL and `next_reconcile_at=NULL`; the scheduler neither reclaims it nor performs I/O. Exact
+same-key/same-request replay resolves first and returns the persisted `202` snapshot; same key
+with a different request remains standard `409`. For a fresh key, while `MailAccount` is locked
+and before creating a receipt, expansion, snapshot or I/O, query a live manual-only row exactly
+as `operation='message_bulk'`, `state='unknown'`, `safe_code='MAIL_ENGINE_OUTCOME_UNKNOWN'`,
+`reconcile_attempts=10`, `next_reconcile_at IS NULL`, terminal/replay/compaction all NULL and
+both receipt leases NULL. Its existence returns existing OpenAPI `423 MAIL_ACCOUNT_BUSY` with a
+bounded `Retry-After`, creates no receipt/snapshot and performs no expansion/I/O. The account
+lock makes the race deterministic; the guard persists until manual repair moves that receipt out
+of the exact shape. No lease leak, bypass, or eleventh I/O is permitted.
+
+`operation_bulk_action` is fail-closed:
+`COALESCE((operation='message_bulk' AND bulk_action IN ('move','add_label','remove_label','mark_read','mark_unread','flag','unflag','archive','junk','not_junk','trash','restore','pin','unpin')) OR (operation<>'message_bulk' AND bulk_action IS NULL), FALSE)`.
+`operation_key_source_account` is also fail-closed:
+`COALESCE((operation IN ('folder_update','folder_delete') AND key_source='internal' AND mail_account_id IS NOT NULL) OR (operation='domain_create' AND key_source='client' AND mail_account_id IS NULL) OR (operation IN ('folder_create','label_create','signature_create','rule_create','attachment_presign','alias_create','message_bulk') AND key_source='client' AND mail_account_id IS NOT NULL), FALSE)`.
+`operation_target_status_safe_code` is the complete literal named predicate published in the
+named-check table above, with every operation arm written there; that table is superseded below only where this
+correction expressly changes an arm: folder `p=10` exhaustion and manual-only `message_bulk`
+unknown. Its nonbulk arms require `bulk_action IS NULL`. The only public exhaustion is the
+frozen folder-create/folder-mutation 409 component; generic idempotency excludes it.
+
+`MailMutationReceiptTarget` is a physical row: `id`, `receipt_id`, `request_index`,
+`target_type`, `target_id`, `status`, `affected_count`, `succeeded_count`, `failed_count`,
+`training_status`, `created_at` and `updated_at` are required/not-null; `safe_code` alone is
+optional and maps to public `code`. Its only target uniques are `(receipt_id,request_index)`
+and `(receipt_id,target_type,target_id)`, never `(receipt_id,target_id)`. Its literal
+fail-closed row checks are the bounds and exhaustive status/outcome/training literal matrix
+published above; no abbreviated branch stands as active contract. `MailMutationReceiptMember.id`, `receipt_id`, `target_id`, `message_id`,
+`created_at` and `updated_at` are required/not-null, with unique `(receipt_id,message_id)` and
+`(target_id,message_id)`. Parent/action relation, child equality, ordered contiguity and the
+200-member aggregate are transaction-owned under the receipt lock; no fake composite FK is
+claimed.
+
+`MailRuleDeployment` desired tuple is required/non-null. Attempted and deployed triples are each
+all-null or all-non-null, present hash length is 32, all generations/versions are positive,
+`deployed_generation <= desired_generation`, lease fields are paired, `attempt_count BETWEEN 0 AND 10`,
+and internal terminal code is exactly `MAIL_RULE_DEPLOYMENT_EXHAUSTED` when non-null. Its full
+public retry shape is:
+
+```sql
+mail_rule_deployments_public_error_retry_shape:
+COALESCE(CASE
+ WHEN last_error_code IS NULL THEN TRUE
+ WHEN last_error_code IN ('MAIL_RULE_CAPABILITY_UNAVAILABLE','MAIL_RULE_APPLY_REJECTED') THEN
+   state='error' AND internal_terminal_code IS NULL AND attempt_count BETWEEN 1 AND 10 AND next_retry_at IS NULL
+ WHEN last_error_code IN ('MAIL_RULE_ENGINE_UNAVAILABLE','MAIL_RULE_DRIFT') THEN
+   state='error' AND internal_terminal_code IS NULL AND ((attempt_count BETWEEN 1 AND 9 AND next_retry_at IS NOT NULL) OR (attempt_count=10 AND next_retry_at IS NULL))
+ WHEN last_error_code='MAIL_RULE_OUTCOME_UNKNOWN' THEN
+   state='unknown' AND internal_terminal_code IS NULL AND attempt_count BETWEEN 1 AND 10 AND next_retry_at IS NOT NULL
+ ELSE FALSE END,FALSE)
+```
+
+The sole full literal state predicate is:
+
+```sql
+mail_rule_deployments_state_shape:
+COALESCE(CASE state
+ WHEN 'pending' THEN attempted_generation IS NULL AND lease_token IS NULL
+   AND last_error_code IS NULL AND internal_terminal_code IS NULL AND attempt_count=0
+   AND NOT (deployed_generation IS NOT DISTINCT FROM desired_generation AND deployed_hash_version IS NOT DISTINCT FROM desired_hash_version AND deployed_hash IS NOT DISTINCT FROM desired_hash)
+ WHEN 'applying' THEN attempted_generation IS NOT NULL AND lease_token IS NOT NULL
+   AND last_error_code IS NULL AND internal_terminal_code IS NULL AND next_retry_at IS NULL
+   AND attempt_count BETWEEN 1 AND 10
+   AND NOT (deployed_generation IS NOT DISTINCT FROM desired_generation AND deployed_hash_version IS NOT DISTINCT FROM desired_hash_version AND deployed_hash IS NOT DISTINCT FROM desired_hash)
+ WHEN 'ready' THEN attempted_generation IS NULL AND lease_token IS NULL
+   AND last_error_code IS NULL AND internal_terminal_code IS NULL AND next_retry_at IS NULL
+   AND attempt_count=0 AND deployed_generation IS NOT DISTINCT FROM desired_generation
+   AND deployed_hash_version IS NOT DISTINCT FROM desired_hash_version AND deployed_hash IS NOT DISTINCT FROM desired_hash
+ WHEN 'unknown' THEN attempted_generation IS NOT NULL AND lease_token IS NULL
+   AND last_error_code='MAIL_RULE_OUTCOME_UNKNOWN' AND internal_terminal_code IS NULL
+   AND attempt_count BETWEEN 1 AND 10 AND next_retry_at IS NOT NULL
+   AND NOT (deployed_generation IS NOT DISTINCT FROM desired_generation AND deployed_hash_version IS NOT DISTINCT FROM desired_hash_version AND deployed_hash IS NOT DISTINCT FROM desired_hash)
+ WHEN 'error' THEN attempted_generation IS NOT NULL AND lease_token IS NULL
+   AND ((last_error_code IN ('MAIL_RULE_CAPABILITY_UNAVAILABLE','MAIL_RULE_APPLY_REJECTED') AND internal_terminal_code IS NULL AND attempt_count BETWEEN 1 AND 10 AND next_retry_at IS NULL)
+     OR (last_error_code IN ('MAIL_RULE_ENGINE_UNAVAILABLE','MAIL_RULE_DRIFT') AND internal_terminal_code IS NULL AND ((attempt_count BETWEEN 1 AND 9 AND next_retry_at IS NOT NULL) OR (attempt_count=10 AND next_retry_at IS NULL)))
+     OR (last_error_code IS NULL AND internal_terminal_code='MAIL_RULE_DEPLOYMENT_EXHAUSTED' AND attempt_count=10 AND next_retry_at IS NULL))
+   AND NOT (deployed_generation IS NOT DISTINCT FROM desired_generation AND deployed_hash_version IS NOT DISTINCT FROM desired_hash_version AND deployed_hash IS NOT DISTINCT FROM desired_hash)
+ ELSE FALSE END,FALSE)
+```
+
+Unknown is only `MAIL_RULE_OUTCOME_UNKNOWN`. At `p=10` unknown/crash, the takeover deadline
+permits no I/O: if attempted equals current desired it becomes internal
+`MAIL_RULE_DEPLOYMENT_EXHAUSTED`; if desired advanced it clears the old attempted tuple and
+leaves the newer desired `pending` at attempt zero. A desired update changes only desired;
+it never rewrites live attempted/deployed/lease/budget, so an old completion may store
+deployed-old and leave pending-new at zero. Known capability/apply rejection is terminal public
+error at counts 1..10 without retry; engine unavailable/drift retry at 1..9 and are terminal
+public error at 10. No eleventh read/install cycle exists.
+
+Every claim uses one injected DB time `T`, fresh UUIDs `A` (account), `R` (receipt), `D`
+(deployment), locks `MailAccount` first then one control row (receipt before deployment when
+both) and children ascending `(request_index,raw UUID)`; no engine I/O occurs in the DB
+transaction. Account claim guards id/live/expected `mutation_epoch` and absent-or-expired lease,
+using common `T+60s` for account and control-row deadline. Receipt claim additionally guards
+id/account/state/`p`/terminal+replay+compaction/due/expired lease, persists `p+1,R,T+60s,A` and
+`begin_epoch` before one I/O. Completion guards state/count/R/A/begin_epoch and both unexpired
+leases, atomically stores result, clears leases and increments epoch; zero rows drop a late
+result. Deployment claim/completion analogously guard state/count/attempted tuple/D/A/begin_epoch.
+Pre-I/O compensation uses those exact guards only. Stale token, expired lease and ABA
+epoch/token reuse are explicit no-write/no-I/O oracles.
+
+#### Rule-set canonical hash v1
+
+The header is exactly the 16 ASCII bytes `hub.mail.ruleset` then `0x00 || 0x01 ||
+U32BE(active_count)`. Active means `enabled=true AND deleted_at IS NULL`; sort priority
+ascending then raw UUID16 unsigned lexicographic. Every count, frame length, UTF-8 string byte
+length and priority is U32BE. A rule frame is `UUID16||U32BE(priority)||str(name)||U32BE(condition_count)||condition_frames||U32BE(action_count)||action_frames`, nested under `U32BE(frame_len)`. `condition_frames` is the concatenation in stored array order of `U32BE(condition_frame_len)||condition_frame`; `action_frames` is the same stored-order concatenation of `U32BE(action_frame_len)||action_frame`. Every nested frame consumes exactly its stated length and permits no trailing byte.
+A condition frame is `U8(field)||U8(operator)||U8(value_tag)||value`: fields
+from=1,to=2,subject=3,has_attachment=4; operators equals=1,contains=2,matches_domain=3,is=4;
+tags string=1 (`str`) or bool=2 (`00|01`). Only closed field/operator/value combinations are
+valid. An action frame is `U8(action)||U8(target_present)||target?`: move=1 and add_label=2
+require `01||UUID16(nonzero)`, mark_read=3 requires `00` and no following bytes. Stored arrays
+remain ordered. No JSON, locale, time or provider value participates.
+
+Literal future static-oracle vectors (independently recomputed by V8 pure-JS and .NET SHA256;
+not runtime/test evidence; launcher `NOT_READY`, executable evidence `NOT_RUN`) are:
+
+| fixture | full preimage hex | bytes | SHA-256 |
+|---|---|---:|---|
+| empty | `6875622e6d61696c2e72756c65736574000100000000` | 22 | `04886ba512485ccfa2a66d5769ff8772ade648dec3c216293bc226f5c51b4e68` |
+| one: id `00112233-4455-6677-8899-aabbccddeeff`, priority 2, name A, subject contains x, mark_read | `6875622e6d61696c2e72756c657365740001000000010000003300112233445566778899aabbccddeeff0000000200000001410000000100000008030201000000017800000001000000020300` | 77 | `5d08cfaba9849d4886666cdc3752588426fb96603c82a49ffee483594907c871` |
+| two canonical UUID order: low id `00112233-4455-6677-8899-aabbccddeeff`, priority 7, name B, has_attachment is true + subject contains x, move `aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee` + add_label `11111111-2222-3333-4444-555555555555`; high id `10213243-5465-7687-8899-aabbccddeeff`, priority 7, name C, subject equals z, mark_read | `6875622e6d61696c2e72756c657365740001000000020000006100112233445566778899aabbccddeeff00000007000000014200000002000000040404020100000008030201000000017800000002000000120101aaaaaaaabbbbccccddddeeeeeeeeeeee000000120201111111112222333344445555555555550000003310213243546576878899aabbccddeeff0000000700000001430000000100000008030101000000017a00000001000000020300` | 178 | `80cd4ae7cff1967c8a25853e4786392cfbc562d86bec90fbd046e96877baf49a` |
+
+The final two-rule literal is the authoritative 178-byte preimage supplied above; its semantic
+fixture intentionally presents reverse input order but hashes low UUID then high UUID.
 
 ## Generation gate
 
@@ -944,4 +1143,4 @@ Compiler neither calculates nor returns 04M-owned canonical hash v1; input actio
 hash material. Labels use server-generated immutable unique keywords: `hubk-` plus canonical
 lower-case unpadded RFC-4648 base32 of 32 random bytes, decode-to-32/re-encode exact. This does
 does not authorize schemas, generation, Rule TDD or production. The Rule contract is
-docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`; its lifecycle transition/review target is `6735ae746c7acde657359e8a709cd897c4dce61c`, with review provenance dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Broad `63e419897aa0683e1d3dfcd442aca78eea1b0727` and `6c424ed2d6703ceccbb269c37d9abc03e75a0410` are historical only. Corrective 02D `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` after three exact PASS reviews C/I/M `0/0/0`; earlier Lifecycle FAIL is historical. Three exact 02F closure reviews are sole next action. A later Rule plan and Phase-145 carrier remain required. Launcher `NOT_READY`; executable evidence `NOT_RUN`.
+docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`; its lifecycle transition/review target is `6735ae746c7acde657359e8a709cd897c4dce61c`, with review provenance dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Broad `63e419897aa0683e1d3dfcd442aca78eea1b0727` and `6c424ed2d6703ceccbb269c37d9abc03e75a0410` are historical only. Corrective 02D `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` after three exact PASS reviews C/I/M `0/0/0`; earlier Lifecycle FAIL and the former sole-next closure wording are `CONSUMED/HISTORICAL`. The live sequence is corrective candidate → three independent precommit reviews → exact 28-doc root commit → exact-SHA review/transition → fresh 02F closure reviews → separate acceptance sync. A later accepted Rule plan and Phase-145 carrier/G145-5B/G145-5C remain required. Launcher `NOT_READY`; executable evidence `NOT_RUN`.

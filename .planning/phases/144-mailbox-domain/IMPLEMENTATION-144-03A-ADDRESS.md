@@ -4,7 +4,7 @@
 > **Atomic commit:** `41564d003946ddb78df18efca166ca86e4055405`; parent `d659c67ce657fb33da391819edbdb954454be4b9`; tree `13a97333f08df6946e65766d3223c1ede85e1f50`
 > **Subject and scope:** `feat(mail): add bounded address policy`; exactly five paths.
 
-> **Mail lifecycle update:** 144-02D docs-only boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` + transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; contrary combined 02D/02F-next text below is historical. Sole next action: three exact 02F closure reviews; Rule/Phase145/runtime blockers remain.
+> **Mail lifecycle update:** 144-02D docs-only boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` + transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` plus docs-only acceptance sync `55e36b7a` is narrowly `STATIC_ACCEPTED` / `EXACT_SHA_PASS`. The 55e 02F closure is `CONSUMED/HISTORICAL`: Contract/Spec/Oracle and Security/Adversarial FAIL, Lifecycle PASS. Active sole next action is the 28-doc `ROOT_CORRECTION_CANDIDATE` precommit sequence through exact root commit, independent exact-SHA review/transition, fresh 02F closure and separate docs-only sync; Rule/Phase145/runtime blockers remain.
 
 ## Scope and provenance
 
@@ -70,8 +70,9 @@ do not establish executable, phase, product, or runtime acceptance.
   C/I/M `0/0/0`), static only. Folder docs are also static-only accepted at
   `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`; Rule is separately docs-only `STATIC_ACCEPTED` /
   `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; acceptance transition/review
-  target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`. 144-02D is docs-only accepted; 144-02F's three exact closure reviews, later plan and
-  Phase-145 carrier remain. No execution. Its dependency on accepted
+  target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`. Before any later plan or
+  Phase-145 carrier, the active 28-doc correction requires three precommit reviews, one exact
+  root commit, exact-SHA transition, fresh 02F closure reviews and separate sync. No execution. Its dependency on accepted
   Address is satisfied; its callable/encoding/oracle contract is
   `THREAD_CALLABLE_ENCODING_ORACLE_STATIC_ACCEPTED` at
   `cbc12577a6444df9c660e43fedfd0c8133c6e461` / `EXACT_SHA_PASS` with C/I/M `0/0/0`.
@@ -81,4 +82,4 @@ do not establish executable, phase, product, or runtime acceptance.
 - `144-01B` remains `BLOCKED`; broader Phase 142/cross-contract acceptance and Phase 148 are
   pending. This evidence does not accept the phase, product, persistence, OpenAPI, or runtime.
 
-> **Current Rule gate:** docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; its acceptance transition/review target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`. 144-02D is docs-only accepted; accepted 02F and the later separate Rule plan/Phase-145 carrier remain required before Rule TDD/production.
+> **Current Rule gate:** docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; its acceptance transition/review target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`. 144-02D is docs-only accepted; `55e36b7a` 02F closure is historical and accepted 02F still needs the corrective precommit/commit/exact-SHA/fresh-closure/sync sequence before the later separate Rule plan/Phase-145 carrier and Rule TDD/production.

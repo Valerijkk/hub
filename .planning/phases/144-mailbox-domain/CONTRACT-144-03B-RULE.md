@@ -1,5 +1,7 @@
 # 144-03B-Rule-Compiler — STATIC_ACCEPTED static contract
 
+> **Current upstream lifecycle (2026-08-14):** The exact `55e` 144-02F closure attempt is `CONSUMED/HISTORICAL`: Contract/Spec/Oracle Terra/high failed C/I/M `0/1/0` because Rule hash v1 remained underdetermined, Security/Adversarial Terra/xhigh failed C/I/M `0/1/0` because a PostgreSQL `NULL` bypass remained, and Lifecycle/Dependency Terra/high passed C/I/M `0/0/0`; all are dispatcher-enforced, fallback none, telemetry `UNKNOWN`. The live 28-document corrective packet is `ROOT_CORRECTION_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED` / `INDEPENDENT_CLOSURE_NOT_DISPATCHABLE` / `IMPLEMENTATION_BLOCKED`. Its exact next action is three independent precommit reviews, root exact commit, exact-SHA review/transition, then fresh 02F closure reviews. This contract owns neither persistence hash v1 nor a Rule implementation plan; no Rule source, schema, runtime or Phase-145 carrier/G145-5B/G145-5C authority follows.
+
 > **Status:** narrowly docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; acceptance transition/review target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`. The Contract/Spec (`gpt-5.6-terra`/high), Security/Adversarial (`gpt-5.6-terra`/xhigh), and Lifecycle/Dependency (`gpt-5.6-terra`/high) exact review routes PASS C/I/M `0/0/0`; each has `provenance_source: dispatcher-enforced`, no fallback, and telemetry `UNKNOWN` unless exposed. This is not TDD, source/test, production, schema, migration, runtime, module, phase, product, or release authority.
 > **Packet:** `144-03B-Rule-Compiler`. **Base:**
 > `ca4e2854a319a020f7322ae0a9a98e3fb4a07374` on
@@ -7,9 +9,17 @@
 > `gpt-5.6-terra` / `medium`; `provenance_source: dispatcher-enforced`;
 > fallback: none; telemetry: `UNKNOWN`.
 
-> **Mail prerequisite update:** 144-02D docs-only boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS` after three exact PASS routes C/I/M `0/0/0`. Any contrary combined 02D/02F next text below is historical. Sole next action is three exact 02F closure reviews. Rule TDD/source still requires accepted 02F, separate accepted Rule implementation plan and Phase-145 carrier/G145-5B/G145-5C.
+> **Historical mail prerequisite update:** 144-02D docs-only boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS` after three exact PASS routes C/I/M `0/0/0`. The former sole-next 02F closure-review instruction is `CONSUMED/HISTORICAL`; the current exact action is stated in the lifecycle banner above. Rule TDD/source still requires accepted 02F, separate accepted Rule implementation plan and Phase-145 carrier/G145-5B/G145-5C.
 
 ## Lifecycle and exact boundary
+
+The 02F persistence prerequisite is normative but does not belong to this compiler contract:
+it requires NULL-safe receipt exhaustion, manual-only `message_bulk p=10`, exact target/member
+physical uniqueness and transaction-owned aggregates, desired/attempted/deployed deployment
+fencing, and the v1 binary header `hub.mail.ruleset||0x00||0x01||U32BE(active_count)`. This
+contract neither changes those bytes nor authorizes source/schema/generation/migration/service/
+runtime. Rule TDD remains blocked by accepted 02F, a separate accepted Rule plan and Phase-145
+carrier/G145-5B/G145-5C; launcher `NOT_READY`, executable `NOT_RUN`.
 
 Folder source/oracle remains narrowly `STATIC_ACCEPTED` at
 `f8cb7643986fc591cae16764575337b72ef3a692`; Folder docs acceptance remains
@@ -17,9 +27,10 @@ Folder source/oracle remains narrowly `STATIC_ACCEPTED` at
 Contract/Spec, Security/Adversarial, and Lifecycle/Dependency exact-SHA reviews PASS C/I/M
 `0/0/0`. **HISTORICAL / SUPERSEDED:** the prior Lifecycle/Dependency review failed solely because
 its target retained precommit lifecycle text. That failed review and its next-action text are
-`CONSUMED/HISTORICAL`; 144-02D is docs-only accepted. The sole next action is 144-02F's three
-exact closure reviews; later, separately, Rule-plan acceptance and the Phase-145
-engine-port/carrier may be considered.
+`CONSUMED/HISTORICAL`; 144-02D is docs-only accepted. The live 02F sequence is corrective
+candidate → three independent precommit reviews → exact 28-doc root commit → exact-SHA
+review/transition → fresh closure reviews → separate acceptance sync; later, separately,
+accepted Rule-plan acceptance and the Phase-145 engine-port/carrier/G145-5B/G145-5C may be considered.
 
 The future pure source/oracle packet is exactly:
 

@@ -5,7 +5,7 @@ milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
 last_updated: "2026-08-14T12:45:44+03:00"
-last_activity: 2026-08-14 · 144-02D docs-only representation/readiness boundary 7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb (parent 6c424ed2d6703ceccbb269c37d9abc03e75a0410, tree da3fa6e19316bcf2c7c318a63ec09e1b175f68df, exact 9 docs) plus lifecycle transition e563a3d3be8898371e5c8a9861c58f11b72167bc (parent 7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb, tree b268efdf950609c6d3fa66efe188005d9a39cf40, same 9 docs) is narrowly STATIC_ACCEPTED / EXACT_SHA_PASS after Contract/Spec/Oracle terra/high, Security/Adversarial terra/xhigh and Lifecycle/Dependency terra/high PASS C/I/M 0/0/0; dispatcher-enforced, fallback none, telemetry UNKNOWN. Earlier lifecycle FAIL 0/1/0 and contrary combined 02D/02F-next wording are CONSUMED/HISTORICAL. Sole next action is three independent exact 02F closure reviews against accepted 02D; 02F remains unaccepted. No source, Ent schema, generation, migration, service, runtime, phase/product/release authority; DNS G145-5C open; launcher NOT_READY and executable evidence NOT_RUN
+last_activity: 2026-08-14 · 144-02D docs-only representation/readiness boundary 7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb (parent 6c424ed2d6703ceccbb269c37d9abc03e75a0410, tree da3fa6e19316bcf2c7c318a63ec09e1b175f68df, exact 9 docs) plus lifecycle transition e563a3d3be8898371e5c8a9861c58f11b72167bc (parent 7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb, tree b268efdf950609c6d3fa66efe188005d9a39cf40, same 9 docs) is narrowly STATIC_ACCEPTED / EXACT_SHA_PASS after Contract/Spec/Oracle terra/high, Security/Adversarial terra/xhigh and Lifecycle/Dependency terra/high PASS C/I/M 0/0/0; dispatcher-enforced, fallback none, telemetry UNKNOWN. 55e36b7a is its docs-only acceptance sync. The 55e 02F closure attempt is CONSUMED/HISTORICAL: Contract/Spec/Oracle FAIL 0/1/0 on Rule-hash v1, Security/Adversarial FAIL 0/1/0 on NULL/fencing, Lifecycle PASS 0/0/0. The active exact 28-doc ROOT_CORRECTION_CANDIDATE is PRECOMMIT_REVIEW_REQUIRED: finish it, then Contract/Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency/Boundary Terra/high precommit reviews, one exact root commit, independent exact-SHA review/transition, fresh 02F closure reviews and a separate docs-only STATIC_ACCEPTED sync. 02F remains unaccepted. No source, Ent schema, generation, migration, service, runtime, phase/product/release authority; DNS G145-5C open; launcher NOT_READY and executable evidence NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -344,8 +344,10 @@ spec_coverage:
   superseded by corrective commit `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition
   `e563a3d3be8898371e5c8a9861c58f11b72167bc`, now docs-only `STATIC_ACCEPTED` /
   `EXACT_SHA_PASS` after all three post-transition reviews PASS C/I/M `0/0/0`. The earlier FAIL is
-  historical. Three exact 02F closure reviews are sole next action and precede a later
-  Rule plan and Phase-145 carrier; no source/schema/runtime authority. Other packet eligibility
+  historical. Active next action is the exact 28-document `ROOT_CORRECTION_CANDIDATE`: three
+  independent precommit reviews, one exact root commit, independent exact-SHA transition, fresh
+  02F closure reviews and a separate docs-only sync. Only then may a Rule plan and Phase-145
+  carrier advance; no source/schema/runtime authority. Other packet eligibility
   remains status only. `144-01B` remains `BLOCKED`; broader
   Phase 142/cross-contract acceptance and Phase 148 remain pending. Launcher and all executable
   evidence remain `NOT_READY` / `NOT_RUN`.
@@ -1426,7 +1428,10 @@ portion is superseded while receipt/deployment facts remain frozen. Corrective c
 `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition
 `e563a3d3be8898371e5c8a9861c58f11b72167bc` is docs-only `STATIC_ACCEPTED` /
 `EXACT_SHA_PASS`; all three post-transition exact reviews PASS C/I/M `0/0/0`. Earlier FAIL is
-historical. Three exact 02F closure reviews are sole next action. Launcher
+historical. Active next action is the exact 28-document `ROOT_CORRECTION_CANDIDATE`: three
+independent precommit reviews, one exact root commit, independent exact-SHA transition, fresh
+02F closure reviews and a separate docs-only sync. Only then may a Rule plan and Phase-145 carrier
+advance. Launcher
 `NOT_READY`, executable evidence `NOT_RUN`; no source/schema/generation/migration/service/runtime
 authority. Later plan and engine-port/145 carrier precede Rule TDD.
 Its callable/encoding/oracle
@@ -1461,4 +1466,4 @@ new quality gate is requirement/risk traceability plus fail-closed execution.
 - hubtest `./testframework/tms/...` PASS; mutation 001–006 red/green ALL_OK.
 - Коммиты: `1dbf42f4` fix · `9e634ee5` test · статус TASK → На проверке (README не трогали). Handoff: be-ver → code-reviewer.
 
-> **Current Rule status (2026-08-14):** Rule docs remain narrowly `STATIC_ACCEPTED` at `f199546513b758ca7b95328b5ccd7680009b732e`; 02D docs are accepted at `7d29d08c` + `e563a3d3`. 02F remains unaccepted and its three exact closure reviews are sole next action. Rule TDD still requires accepted 02F, a separate accepted plan and Phase-145 carrier/G145-5B/G145-5C. 144-01B, Phase 142/148, launcher `NOT_READY` and executable evidence `NOT_RUN` remain unchanged.
+> **Current Rule status (2026-08-14):** Rule docs remain narrowly `STATIC_ACCEPTED` at `f199546513b758ca7b95328b5ccd7680009b732e`; 02D docs are accepted at `7d29d08c` + `e563a3d3`. The prior 02F closure attempt at `55e36b7a` is `CONSUMED/HISTORICAL` (content/security C/I/M `0/1/0`, lifecycle `0/0/0`); the live 28-carrier packet is `ROOT_CORRECTION_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED`. Next: three precommit reviews, root commit, exact-SHA review/transition, fresh closure reviews, separate sync. Rule TDD still requires accepted 02F, a separate accepted plan and Phase-145 carrier/G145-5B/G145-5C. 144-01B, Phase 142/148, launcher `NOT_READY` and executable evidence `NOT_RUN` remain unchanged.

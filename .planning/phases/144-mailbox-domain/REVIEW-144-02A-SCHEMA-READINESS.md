@@ -1,6 +1,8 @@
 # Phase 144-02A preimplementation review — schema contract readiness
 
-> **Downstream lifecycle update:** 144-02D docs-only boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is narrowly `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; three exact routes PASS C/I/M `0/0/0`. Contrary 02D/02F candidate-next wording below is historical. Sole next action is three exact 02F closure reviews; no source/schema/runtime authority follows.
+> **Current 02F lifecycle supersession (2026-08-14):** The exact `55e` 02F closure attempt is `CONSUMED/HISTORICAL`: Contract/Spec/Oracle Terra/high FAIL C/I/M `0/1/0` (Rule hash v1 underdetermined), Security/Adversarial Terra/xhigh FAIL C/I/M `0/1/0` (PostgreSQL `NULL` bypass), Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced, fallback none, telemetry `UNKNOWN`. The live exact 28-document correction is `ROOT_CORRECTION_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED` / `INDEPENDENT_CLOSURE_NOT_DISPATCHABLE` / `IMPLEMENTATION_BLOCKED`; all earlier contrary 02F-next wording is historical. Exact next is precommit review ×3, root exact commit, exact-SHA review/transition, then fresh 02F closure ×3. This does not alter 02A's narrow docs-only acceptance or authorize source/schema/runtime.
+
+> **Historical downstream lifecycle update:** 144-02D docs-only boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is narrowly `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; three exact routes PASS C/I/M `0/0/0`. The former sole-next 02F closure-review instruction is `CONSUMED/HISTORICAL`; the current exact action is stated in the lifecycle banner above. No source/schema/runtime authority follows.
 > **Detected:** 2026-08-13 root deep static audit
 > **Status:** STATIC_CONTRACT_READY · DOCS_ONLY_ACCEPTED_AT_REVIEWED_SNAPSHOT_b631866b2ba372101fd80eea30951eaa267c1931 · IMPLEMENTATION_BLOCKED · RUNTIME_NOT_RUN
 > **Scope:** `MailAccount`, `MailIdentity`, `MailDomain`, `MailboxPolicy` only
@@ -23,8 +25,9 @@ This acceptance covers only the frozen A1/A2/A3 persistence representation. Prod
 Ent source/TDD, generated output, migration, launcher execution, tests/validators/build and
 runtime remain blocked/not authorized. Founder migration authority, supported task-owned launcher,
 sequential explicit source dispatch and source-level review remain required. 144-02D's docs/readiness
-boundary is now `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; the sole next action is 144-02F's three exact
-closure reviews against accepted 02D, not code.
+boundary is now `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; the former direct 02F-closure action is
+`CONSUMED/HISTORICAL`. The active next action is the 28-doc correction precommit-review -> root-commit
+-> exact-SHA -> fresh-closure -> separate-sync sequence, not code.
 
 ## Historical discovery outcome (preserved)
 

@@ -1,6 +1,10 @@
 # MAIL-SPEC — Hub mailbox and calendar synchronization contract
 
-> **144-02D lifecycle (current):** exact nine-doc content `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus same-nine-doc transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is narrowly docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract/Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced, fallback none, telemetry `UNKNOWN`. Earlier lifecycle FAIL and contrary combined 02D/02F-next wording below are `CONSUMED/HISTORICAL`. Sole next action is three independent exact 02F closure reviews against accepted 02D; 02F is unaccepted. No source/schema/generation/migration/service/runtime authority; launcher `NOT_READY`, executable `NOT_RUN`.
+> **144-02D lifecycle (current):** exact nine-doc content `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus same-nine-doc transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is narrowly docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract/Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced, fallback none, telemetry `UNKNOWN`. Earlier lifecycle FAIL and contrary combined 02D/02F-next wording below are `CONSUMED/HISTORICAL`. The live 02F sequence is corrective candidate → three independent precommit reviews → exact 28-doc root commit → exact-SHA review/transition → fresh closure reviews → separate acceptance sync; 02F is unaccepted. No source/schema/generation/migration/service/runtime authority; launcher `NOT_READY`, executable `NOT_RUN`.
+>
+> **144-02F corrective lifecycle (current):** the exact `55e36b7a` closure attempt is `CONSUMED/HISTORICAL`: Contract/Spec/Oracle Terra/high and Security/Adversarial Terra/xhigh each FAIL C/I/M `0/1/0` (under-specified rule hash vectors; PostgreSQL NULL bypass); Lifecycle/Dependency Terra/high PASS `0/0/0`. The live 28-carrier packet is `ROOT_CORRECTION_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED` / `INDEPENDENT_CLOSURE_NOT_DISPATCHABLE` / `IMPLEMENTATION_BLOCKED`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Exact next: three precommit reviews, root atomic commit, exact-SHA review/transition, then fresh three 02F closure reviews and separate acceptance sync. Launcher `NOT_READY`; executables `NOT_RUN`.
+>
+> **144-02F normative mirror:** receipt checks are NULL-safe and fail closed; `MAIL_RECONCILIATION_EXHAUSTED` uses `safe_code IS DISTINCT FROM` its literal. Folder `p=10` due unknown is no-I/O failed 409 with a 30-day replay, whereas `message_bulk p=10` remains manual-only `MAIL_ENGINE_OUTCOME_UNKNOWN` with no lease/schedule/reclaim. Same-key/same-request replay returns its existing 202 snapshot first, while a fresh key is stopped under the account lock before any receipt/snapshot/expansion/I/O by the exact live manual-only row and returns `423 MAIL_ACCOUNT_BUSY` plus bounded `Retry-After`; same-key/different-request stays 409. Receipt target uses exactly `(receipt_id,request_index)` and `(receipt_id,target_type,target_id)`, and member aggregate/cross-row proofs are locked transactions, not a composite FK. Deployment is desired/attempted/deployed tuple fencing with one injected DB time, account-first lock order and full literal fail-closed CASE; only outcome-unknown is unknown. Hash v1 is the persistence-owned `hub.mail.ruleset||0x00||0x01||U32BE(active_count)` grammar with length-delimited stored-order condition/action frames and fixed vectors. This is docs-only; no source/schema/generation/migration/service/runtime authority follows.
 > **Version:** 0.1.8
 > **Status:** five-document 0.1.8 entry amendment independently PASS at `5e314fb080d420696642058ae47397e251c23207`, authorizing only 144-01A entry; Thread callable/encoding/oracle contract remains accepted at `cbc12577a6444df9c660e43fedfd0c8133c6e461`; its implementation+oracle are narrowly `STATIC_ACCEPTED` at `9903f4df3e5ca8034ea3f043b0386170e83a5101` / `EXACT_SHA_PASS` (source `c221d547`, oracle `b21bd6fd`, exact-SHA reviews PASS C/I/M `0/0/0`); broader Phase 142/cross-contract review and runtime remain pending; 0.1.7 review evidence is historical `STALE`
 > **Date:** 2026-08-13
@@ -854,6 +858,13 @@ receipt plus account lease/epoch and persists `p+1` before one bounded recovery 
 is tenth); preclaim/poll/busy do not increment. A live tenth lease is no-op contention; `p=10`
 grants no I/O and post-expiry takeover terminalizes a folder receipt generically as 409
 `MAIL_RECONCILIATION_EXHAUSTED`. The tenth owner may complete, but crash/unknown exhausts it.
+For `message_bulk`, only the exact p10 safe unknown is manual-only: it has no schedule or
+receipt lease and is never reclaimed or sent to I/O. Same-key/same-request lookup precedes every
+fresh-key guard and returns its persisted 202 snapshot; same-key/different-request is 409. Under
+the locked account, before a new receipt, snapshot expansion or I/O, a fresh key finds that exact
+live manual-only p10 bulk row and returns `423 MAIL_ACCOUNT_BUSY` with bounded `Retry-After`.
+It creates no row and does no expansion/I/O; the guard remains until manual repair changes the
+row's exact state. This is an account-lock race oracle, not a new field or public code.
 Generic public mail intents require a fresh client-generated UUID v4/v7. Folder update/
 delete instead receive an injected server-generated UUID v4/v7 only after the account lease and
 `If-Match`/state checks succeed; it never crosses the service boundary. The stored key digest is
@@ -1939,8 +1950,10 @@ with no fallback and telemetry `UNKNOWN`. Corrective commit
 `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition
 `e563a3d3be8898371e5c8a9861c58f11b72167bc` is docs-only `STATIC_ACCEPTED` /
 `EXACT_SHA_PASS`; Contract/Spec/Oracle, Security/Adversarial and Lifecycle/Dependency exact reviews
-all PASS C/I/M `0/0/0`. The earlier Lifecycle FAIL is historical. Three independent exact 02F
-closure reviews against accepted 02D are sole next action. Later Rule plan and Phase-145 carrier
+all PASS C/I/M `0/0/0`. The earlier Lifecycle FAIL and the former sole-next closure wording are
+`CONSUMED/HISTORICAL`. The live 02F sequence is corrective candidate → three independent
+precommit reviews → exact 28-doc root commit → exact-SHA review/transition → fresh closure
+reviews → separate acceptance sync. Later accepted Rule plan and Phase-145 carrier/G145-5B/G145-5C
 remain required. It does not authorize
 schemas, generation, migration, runtime or a version bump. 144-01B, Phase 142/148 and 144-02B
 remain pending; launcher is `NOT_READY` and runtime is `NOT_RUN`.

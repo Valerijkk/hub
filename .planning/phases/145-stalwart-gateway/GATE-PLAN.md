@@ -1,10 +1,12 @@
 # Phase 145 — external and runtime gate plan
 
+> **Current upstream lifecycle (2026-08-14):** `55e` 144-02F closure is `CONSUMED/HISTORICAL`: Contract/Spec/Oracle Terra/high FAIL C/I/M `0/1/0` for underdetermined Rule hash v1, Security/Adversarial Terra/xhigh FAIL C/I/M `0/1/0` for PostgreSQL `NULL` bypass, and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced, fallback none, telemetry `UNKNOWN`. Live exact 28-document correction: `ROOT_CORRECTION_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED` / `INDEPENDENT_CLOSURE_NOT_DISPATCHABLE` / `IMPLEMENTATION_BLOCKED`. Before this plan can advance: precommit review ×3, root exact commit, exact-SHA review/transition, fresh 02F closure ×3; G145-5B/G145-5C stay open.
+
 > **Status:** BLOCKED_BY_144_ACCEPTANCE_AND_EXTERNAL_GATES
 > **No implementation authorization:** this plan does not approve a license, image,
 > network egress, DNS change, secret, deployment or runtime command.
 
-> **Upstream lifecycle update:** 144-02D docs-only boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; sole Mail next action is three exact 02F closure reviews. Phase 145 remains blocked/not accepted; this does not close G145-5B/G145-5C or authorize runtime.
+> **Upstream lifecycle update:** 144-02D docs-only boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` and docs-only acceptance sync `55e36b7a` is narrowly `STATIC_ACCEPTED` / `EXACT_SHA_PASS`. The direct 02F-closure instruction is `CONSUMED/HISTORICAL`; active sole next action is the exact 28-doc correction precommit-review -> root-commit -> exact-SHA -> fresh-closure -> separate-sync sequence. Phase 145 remains blocked/not accepted; this does not close G145-5B/G145-5C or authorize runtime.
 
 ## Gate order
 
@@ -157,4 +159,4 @@ Required cases:
 12. optional external SMTP only after G145-9, reported separately.
 
 **Rule gate:** candidate alone authorizes no Sieve runtime case. `144-03B-Rule-Compiler` is
-docs-only narrowly `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`, reviewed against transition commit `6735ae746c7acde657359e8a709cd897c4dce61c`; Contract/Spec Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced with no fallback and telemetry `UNKNOWN`. It authorizes no Sieve runtime case; 144-02D is docs-only accepted, while 144-02F's three exact closure reviews, a later Rule plan and Phase-145 engine-port/carrier remain required.
+docs-only narrowly `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`, reviewed against transition commit `6735ae746c7acde657359e8a709cd897c4dce61c`; Contract/Spec Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced with no fallback and telemetry `UNKNOWN`. It authorizes no Sieve runtime case; before a later Rule plan and Phase-145 engine-port/carrier, the active 28-doc correction requires three precommit reviews, one exact root commit, exact-SHA transition, fresh 02F closure reviews and separate sync.

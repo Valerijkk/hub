@@ -2,6 +2,7 @@
 
 > **Detected:** 2026-08-13 root deep static audit
 > **Historical status:** ROOT_CORRECTION_CANDIDATE · INDEPENDENT_CLOSURE_PENDING · IMPLEMENTATION_BLOCKED · RUNTIME_NOT_RUN; superseded by the current corrective packet below.
+> **Current downstream lifecycle (2026-08-14):** 02D remains narrowly docs-only `STATIC_ACCEPTED` at the `7d`/`e563` chain. The exact `55e` 02F closure attempt is `CONSUMED/HISTORICAL`: Contract/Spec/Oracle Terra/high FAIL C/I/M `0/1/0` for underdetermined Rule hash v1; Security/Adversarial Terra/xhigh FAIL C/I/M `0/1/0` for a PostgreSQL `NULL` bypass; Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced, fallback none, telemetry `UNKNOWN`. The live exact 28-document packet is `ROOT_CORRECTION_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED` / `INDEPENDENT_CLOSURE_NOT_DISPATCHABLE` / `IMPLEMENTATION_BLOCKED`. Exact next: precommit review ×3, root exact commit, exact-SHA review/transition, then fresh 02F closure ×3. No 02D source/schema/runtime authority changes.
 > **Scope:** `MailUserSettings`, `MailSignature`, `MailRule` and `RecentContact`
 
 > `docs/mail/PERSISTENCE-CONTRACT-0.1.8.md` now supplies the root candidate matrix; this
@@ -156,9 +157,11 @@ The earlier Lifecycle FAIL C/I/M `0/1/0` is `CONSUMED/HISTORICAL` only.
 This accepts only the 144-02D static documentation representation/readiness boundary. It grants
 no source, Ent schema, generation, migration, service, test/build/lint/validator/Docker/runtime,
 phase, product or release authority. Launcher remains `NOT_READY`; executable evidence `NOT_RUN`.
-The exact sole next action is three independent exact 144-02F closure reviews against this accepted
-02D predecessor: Contract/Spec Terra/high, Security/Adversarial Terra/xhigh, and
-Lifecycle/Dependency Terra/high. 02F remains unaccepted. Rule TDD/source additionally requires
+The former direct-closure instruction is `CONSUMED/HISTORICAL`. The active sole next action is to
+finish the exact 28-document `ROOT_CORRECTION_CANDIDATE`, then obtain Contract/Spec/Oracle
+Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency/Boundary Terra/high
+precommit reviews, make one exact root commit, complete independent exact-SHA review/transition,
+fresh 02F closure reviews, and a separate docs-only `STATIC_ACCEPTED` sync. 02F remains unaccepted. Rule TDD/source additionally requires
 accepted 02F, a separately accepted Rule implementation plan, and Phase-145 engine-port/carrier
 gates G145-5B/G145-5C.
 

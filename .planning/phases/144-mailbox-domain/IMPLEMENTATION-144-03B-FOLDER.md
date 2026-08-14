@@ -1,6 +1,6 @@
 # 144-03B Folder implementation evidence
 
-> **Mail lifecycle update:** 144-02D docs-only boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` + transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; contrary combined 02D/02F-next text below is historical. Sole next action is three exact 02F closure reviews; implementation/runtime blockers remain.
+> **Mail lifecycle update:** 144-02D docs-only boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` + transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; `55e36b7a` 02F closure is `CONSUMED/HISTORICAL` after Contract hash FAIL and Security NULL FAIL, while Lifecycle PASS. Live exact 28-doc `ROOT_CORRECTION_CANDIDATE` needs three precommit reviews → exact commit → exact-SHA transition/reviews → fresh 02F closure → separate sync; implementation/runtime blockers remain.
 
 ## Accepted source/oracle boundary
 
@@ -83,6 +83,7 @@ Folder docs are accepted static-only at `ca4e2854a319a020f7322ae0a9a98e3fb4a0737
 Rule is separately docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at
 `f199546513b758ca7b95328b5ccd7680009b732e`; the acceptance transition/review target is recorded in
 `6735ae746c7acde657359e8a709cd897c4dce61c`. Contract/Spec Terra/high, Security/Adversarial Terra/xhigh
-and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`; 144-02D is docs-only accepted, while 144-02F's three exact closure reviews, a later Rule plan and the
-separate Phase-145 carrier precede any Rule TDD or production, and `rule_compiler.go` plus its test remain
+and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`; 144-02D is docs-only accepted, while the 02F corrective precommit/commit/exact-SHA/fresh-closure/sync sequence, a later Rule plan and the
+separate Phase-145 carrier precede any Rule TDD or production. The `55e36b7a` 02F closure is historical;
+the 28-carrier corrective candidate requires precommit/exact-SHA/fresh-closure/sync lifecycle, and `rule_compiler.go` plus its test remain
 unauthorized; no runtime authority follows.
