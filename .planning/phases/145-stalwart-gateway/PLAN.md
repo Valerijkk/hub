@@ -1,10 +1,10 @@
 # Phase 145 — Stalwart Gateway and Docker Mail Profile
 
-> **Current upstream lifecycle (2026-08-14):** The exact `55e` 144-02F closure attempt is `CONSUMED/HISTORICAL`: Contract/Spec/Oracle Terra/high FAIL C/I/M `0/1/0` (underdetermined Rule hash v1), Security/Adversarial Terra/xhigh FAIL C/I/M `0/1/0` (PostgreSQL `NULL` bypass), Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced, fallback none, telemetry `UNKNOWN`. The live 28-document packet is `ROOT_CORRECTION_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED` / `INDEPENDENT_CLOSURE_NOT_DISPATCHABLE` / `IMPLEMENTATION_BLOCKED`. Exact next is precommit review ×3, root exact commit, exact-SHA review/transition, fresh 02F closure ×3. This Phase remains blocked; G145-5B/G145-5C remain open.
+> **Current upstream lifecycle (2026-08-14):** correction commit `fcb5b84fed4a417e736ddb4053256e494a0c25f6` (parent `55e36b7a1a3516d07b2baf390a5742a24ec8fbe5`, tree `5a0637f2306ff42295adea5560793e2a8f4a294a`, subject `docs(mail): correct receipt and rule invariants`, exact 28 docs) is `COMMITTED_UNACCEPTED_AT_FCB5B84F` / `EXACT_SHA_TRANSITION_REQUIRED` / `IMPLEMENTATION_BLOCKED`. Contract Terra/high and Security Terra/xhigh PASS `0/0/0`; Lifecycle Terra/high FAIL `0/1/0` solely stale committed precommit lifecycle, while object/boundary PASS; dispatcher-enforced, no fallback, telemetry `UNKNOWN`. Former correction/precommit/root-commit-next instructions are `CONSUMED/HISTORICAL`. Next: transition review, exact 28-doc transition commit without self-SHA, exact-SHA Lifecycle re-review of fcb plus transition and trace Contract/Security, then separate 02F docs-only sync only after all PASS. This Phase remains blocked; G145-5B/G145-5C remain open.
 
 > Task: TASK-238 · Status: BLOCKED_BY_144_CONTRACT_AND_EXTERNAL_GATES · Depends on: Phase 144
 
-> **Upstream lifecycle update:** 144-02D docs-only boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` and docs-only acceptance sync `55e36b7a` is narrowly `STATIC_ACCEPTED` / `EXACT_SHA_PASS`. The direct 02F-closure instruction is `CONSUMED/HISTORICAL`; active sole next action is the exact 28-doc correction precommit-review -> root-commit -> exact-SHA -> fresh-closure -> separate-sync sequence. Phase 145 remains blocked/not accepted; G145-5B/G145-5C and carrier/runtime gates remain open.
+> **Upstream lifecycle update:** 144-02D remains docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; 02F remains unaccepted. The active transition sequence is stated above. Phase 145 remains blocked/not accepted; G145-5B/G145-5C and carrier/runtime gates remain open.
 
 ## Hard entry gates
 
@@ -87,7 +87,6 @@ transport passes.
 Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M
 `0/0/0`; provenance is dispatcher-enforced, fallback none and telemetry `UNKNOWN` unless
 exposed. It accepts typed IR only, not an engine port or Sieve bytes. Phase 145 still needs
-the active 28-doc correction sequence: three precommit reviews, one exact root commit, exact-SHA
-transition, fresh 02F closure reviews and separate sync; only then its later separate Rule plan and
+the active 28-doc correction sequence: transition review, one exact transition commit without self-SHA, fresh Lifecycle exact-SHA review of fcb plus transition with trace Contract/Security as needed, all exact reviews PASS, then separate 02F docs-only acceptance sync; only then its later separate Rule plan and
 a separate accepted engine-port carrier may advance before Sieve work. Engine folder ID is not mailbox name;
 attachment IR needs MIME gate. No Rule TDD/source/schema/runtime/product/release authority follows.

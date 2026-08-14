@@ -2,7 +2,7 @@
 
 > **Detected:** 2026-08-13 root deep static audit
 > **Historical status:** ROOT_CORRECTION_CANDIDATE · INDEPENDENT_CLOSURE_PENDING · IMPLEMENTATION_BLOCKED · RUNTIME_NOT_RUN; superseded by the current corrective packet below.
-> **Current downstream lifecycle (2026-08-14):** 02D remains narrowly docs-only `STATIC_ACCEPTED` at the `7d`/`e563` chain. The exact `55e` 02F closure attempt is `CONSUMED/HISTORICAL`: Contract/Spec/Oracle Terra/high FAIL C/I/M `0/1/0` for underdetermined Rule hash v1; Security/Adversarial Terra/xhigh FAIL C/I/M `0/1/0` for a PostgreSQL `NULL` bypass; Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced, fallback none, telemetry `UNKNOWN`. The live exact 28-document packet is `ROOT_CORRECTION_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED` / `INDEPENDENT_CLOSURE_NOT_DISPATCHABLE` / `IMPLEMENTATION_BLOCKED`. Exact next: precommit review ×3, root exact commit, exact-SHA review/transition, then fresh 02F closure ×3. No 02D source/schema/runtime authority changes.
+> **Current downstream lifecycle (2026-08-14):** 02D remains narrowly docs-only `STATIC_ACCEPTED` at the `7d`/`e563` chain. The 02F corrective commit `fcb5b84fed4a417e736ddb4053256e494a0c25f6` (parent `55e36b7a1a3516d07b2baf390a5742a24ec8fbe5`, tree `5a0637f2306ff42295adea5560793e2a8f4a294a`, exact 28 docs) is `COMMITTED_UNACCEPTED_AT_FCB5B84F` / `EXACT_SHA_TRANSITION_REQUIRED` / `IMPLEMENTATION_BLOCKED`; Contract/Spec/Oracle Terra/high and Security/Adversarial Terra/xhigh PASS C/I/M `0/0/0`; Lifecycle/Dependency/Boundary Terra/high FAIL C/I/M `0/1/0` solely stale wording/object pass; dispatcher-enforced, no fallback, telemetry `UNKNOWN`. Prior precommit flow is `CONSUMED/HISTORICAL`. Next: review transition candidate -> exact 28-doc transition commit without self-SHA -> fresh Lifecycle exact-SHA re-review fcb+transition, Contract/Security trace as needed -> all PASS -> separate docs-only 02F `STATIC_ACCEPTED` sync -> later Rule plan and Phase-145 carrier/G145-5B/G145-5C. No 02D source/schema/runtime authority changes.
 > **Scope:** `MailUserSettings`, `MailSignature`, `MailRule` and `RecentContact`
 
 > `docs/mail/PERSISTENCE-CONTRACT-0.1.8.md` now supplies the root candidate matrix; this
@@ -158,10 +158,10 @@ This accepts only the 144-02D static documentation representation/readiness boun
 no source, Ent schema, generation, migration, service, test/build/lint/validator/Docker/runtime,
 phase, product or release authority. Launcher remains `NOT_READY`; executable evidence `NOT_RUN`.
 The former direct-closure instruction is `CONSUMED/HISTORICAL`. The active sole next action is to
-finish the exact 28-document `ROOT_CORRECTION_CANDIDATE`, then obtain Contract/Spec/Oracle
-Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency/Boundary Terra/high
-precommit reviews, make one exact root commit, complete independent exact-SHA review/transition,
-fresh 02F closure reviews, and a separate docs-only `STATIC_ACCEPTED` sync. 02F remains unaccepted. Rule TDD/source additionally requires
+review transition candidate for `fcb5b84fed4a417e736ddb4053256e494a0c25f6`, make one exact 28-doc
+transition commit without self-SHA, complete a fresh Lifecycle exact-SHA re-review of fcb plus transition
+with Contract/Security trace-only rechecks as needed, then after all PASS make a separate docs-only
+`STATIC_ACCEPTED` sync. 02F remains unaccepted. Rule TDD/source additionally requires
 accepted 02F, a separately accepted Rule implementation plan, and Phase-145 engine-port/carrier
 gates G145-5B/G145-5C.
 

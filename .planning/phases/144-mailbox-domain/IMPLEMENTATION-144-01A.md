@@ -5,7 +5,7 @@
 > **Atomic boundary:** `e3e8c774d734f926f77f8e600b58dc68dabbd993`; parent
 > `fa0a2f2a542caadd9f5951e6f703b060b4776780`.
 
-> **Mail lifecycle update:** 144-02D docs-only boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` + transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` plus docs-only acceptance sync `55e36b7a` is narrowly `STATIC_ACCEPTED` / `EXACT_SHA_PASS`. The 55e 02F closure is `CONSUMED/HISTORICAL`: Contract/Spec/Oracle and Security/Adversarial FAIL, Lifecycle PASS. Active sole next action is the 28-doc `ROOT_CORRECTION_CANDIDATE` precommit sequence through exact root commit, independent exact-SHA review/transition, fresh 02F closure and separate docs-only sync; 144-01B/Rule/Phase145/runtime blockers remain.
+> **Mail lifecycle update:** correction commit `fcb5b84fed4a417e736ddb4053256e494a0c25f6` (parent `55e36b7a1a3516d07b2baf390a5742a24ec8fbe5`, tree `5a0637f2306ff42295adea5560793e2a8f4a294a`, subject `docs(mail): correct receipt and rule invariants`, exact 28 docs) is `COMMITTED_UNACCEPTED_AT_FCB5B84F` / `EXACT_SHA_TRANSITION_REQUIRED` / `IMPLEMENTATION_BLOCKED`. Contract Terra/high and Security Terra/xhigh PASS `0/0/0`; Lifecycle Terra/high FAIL `0/1/0` solely stale committed precommit lifecycle; dispatcher-enforced, no fallback, telemetry `UNKNOWN`. Former correction/precommit/root-commit-next instructions are `CONSUMED/HISTORICAL`. Next: transition review, exact 28-doc transition commit without self-SHA, Lifecycle exact-SHA re-review of fcb plus transition and trace Contract/Security, then separate 02F docs-only sync only after all PASS; 144-01B/Rule/Phase145/runtime blockers remain.
 
 ## Scope and provenance
 
@@ -93,7 +93,7 @@ fallback, but it did not implement the 0.1.8 projection/budget/reference-only am
   `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`; Rule is separately docs-only `STATIC_ACCEPTED` /
   `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; acceptance transition/review
   target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`. Before any later plan or
-  Phase-145 carrier, the active 28-doc correction requires three precommit reviews, one exact
-  root commit, exact-SHA transition, fresh 02F closure reviews and separate sync. No execution.
+  Phase-145 carrier, the active 28-doc correction requires transition review, one exact transition
+  commit without self-SHA, fresh Lifecycle exact-SHA review of fcb plus transition with trace Contract/Security as needed, all exact reviews PASS, then separate 02F docs-only acceptance sync. No execution.
 
-> **Current Rule gate:** the three Terra review routes PASS C/I/M `0/0/0` with dispatcher-enforced provenance, no fallback, and telemetry `UNKNOWN` unless exposed. 144-02D is docs-only accepted; `55e36b7a` 02F closure is historical and the live 28-carrier correction requires precommit/exact-SHA/fresh closure/sync lifecycle. No Rule source/test/TDD/schema/runtime/product/release authority.
+> **Current Rule gate:** the three Terra review routes PASS C/I/M `0/0/0` with dispatcher-enforced provenance, no fallback, and telemetry `UNKNOWN` unless exposed. 144-02D is docs-only accepted; `55e36b7a` 02F closure is historical and the live 28-carrier correction requires transition review, an exact transition commit without self-SHA, fresh Lifecycle exact-SHA review of fcb plus transition with trace Contract/Security as needed, all exact reviews PASS, then separate 02F docs-only acceptance sync. No Rule source/test/TDD/schema/runtime/product/release authority.

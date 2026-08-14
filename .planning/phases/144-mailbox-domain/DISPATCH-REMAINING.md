@@ -1,6 +1,6 @@
 # Phase 144 — executable packet contracts not split into standalone files
 
-> **Current dependency truth:** 144-02D exact docs boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` after three review PASS C/I/M `0/0/0`. `55e36b7a` 02F closure is `CONSUMED/HISTORICAL` after Contract hash FAIL and Security NULL FAIL, while Lifecycle PASS. The live exact 28-doc `ROOT_CORRECTION_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED` needs three precommit reviews → exact commit → exact-SHA transition/reviews → fresh 02F closure → separate sync; no packet gains source/runtime eligibility.
+> **Current dependency truth:** 144-02D remains docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`. Correction commit `fcb5b84fed4a417e736ddb4053256e494a0c25f6` (parent `55e36b7a1a3516d07b2baf390a5742a24ec8fbe5`, tree `5a0637f2306ff42295adea5560793e2a8f4a294a`, subject `docs(mail): correct receipt and rule invariants`, exact 28 docs) is `COMMITTED_UNACCEPTED_AT_FCB5B84F` / `EXACT_SHA_TRANSITION_REQUIRED` / `IMPLEMENTATION_BLOCKED`. Contract Terra/high and Security Terra/xhigh PASS `0/0/0`; Lifecycle Terra/high FAIL `0/1/0` solely stale committed precommit lifecycle; dispatcher-enforced, no fallback, telemetry `UNKNOWN`. Former correction/precommit/root-commit-next instructions are `CONSUMED/HISTORICAL`. Next: transition review, exact 28-doc transition commit without self-SHA, Lifecycle exact-SHA re-review of fcb plus transition and trace Contract/Security, then separate 02F docs-only sync only after all PASS; no packet gains source/runtime eligibility.
 > **Assembly rule:** dispatch the Common execution envelope plus exactly one packet or one
 
 > **02F dispatch invariant:** reviewers must reject NULL-vulnerable receipt/deployment predicates, any target unique other than `(receipt_id,request_index)` plus `(receipt_id,target_type,target_id)`, a fictitious composite FK, a `message_bulk p=10` folder-exhaustion path, incomplete literal state CASEs, or a hash header missing `0x00||0x01`. The receipt oracle separates folder p10 terminal 409/30d from manual-only bulk p10 and requires same-key persisted-202 replay before the account-locked fresh-key `423 MAIL_ACCOUNT_BUSY` guard (no row/snapshot/expansion/I/O); it also requires stored-order length-exact nested hash frames and late-owner contention handling. The persistence contract is the normative byte/state/CAS source; this dispatch authorizes neither source/schema/generation/migration/service/runtime nor any executable while launcher is `NOT_READY` and executable evidence `NOT_RUN`.
@@ -136,7 +136,7 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 
 - Dependencies: accepted 02A representation, independently accepted 02D and independently
   accepted 02F contract reviews. Corrected 02D is docs-only accepted; 02F itself remains
-  unaccepted and its corrective precommit/commit/exact-SHA/fresh-closure/sync lifecycle remains required. Until those
+  unaccepted and it requires transition review, an exact 28-doc transition commit without self-SHA, fresh Lifecycle exact-SHA review of fcb plus transition with trace Contract/Security as needed, all exact reviews PASS, then separate 02F docs-only acceptance sync. Until those
   PASS, this packet is `IMPLEMENTATION_BLOCKED`; no source authorization. Allowed only new schema files
   `mailmutationreceipt.go`, `mailmutationreceipttarget.go`,
   `mailmutationreceiptmember.go`, `mailruledeployment.go` plus their narrow additive
@@ -185,7 +185,7 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 
 ## 144-03A-Thread — thread identity
 
-> **Accepted exact boundary:** Thread `9903f4df`, Folder `f8cb7643`/docs `ca4e2854`, Rule docs `f1995465`, and 02D docs `7d29d08c` + transition `e563a3d3` are static accepted. The `55e36b7a` 02F closure is historical; live exact 28-doc correction requires precommit reviews, commit, exact-SHA transition/reviews, fresh closure and sync; later Rule plan and Phase-145 carrier remain.
+> **Accepted exact boundary:** Thread `9903f4df`, Folder `f8cb7643`/docs `ca4e2854`, Rule docs `f1995465`, and 02D docs `7d29d08c` + transition `e563a3d3` are static accepted. The `55e36b7a` 02F closure is historical; live exact 28-doc correction requires transition review, one exact transition commit without self-SHA, fresh Lifecycle exact-SHA review of fcb plus transition with trace Contract/Security as needed, all exact reviews PASS, then separate 02F docs-only acceptance sync; later Rule plan and Phase-145 carrier remain.
 
 - Dependency: 03A-Address is `STATIC_ACCEPTED` at
   `41564d003946ddb78df18efca166ca86e4055405`, but dependencies are necessary and not
@@ -217,7 +217,7 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   `EXACT_SHA_PASS`, static-only (source `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b`, oracle
   `efe0db0071cb22ce4b026c635157f0fb08885d64`, C/I/M `0/0/0`). Folder docs are accepted
   static-only at `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`. 02D is now docs-only
-  `STATIC_ACCEPTED`; the live correction requires precommit review, commit, exact-SHA review/transition, fresh closure and sync against
+  `STATIC_ACCEPTED`; the live correction requires transition review, one exact transition commit without self-SHA, fresh Lifecycle exact-SHA review of fcb plus transition with trace Contract/Security as needed, all exact reviews PASS, then separate 02F docs-only acceptance sync against
   that accepted predecessor. Later Rule-plan acceptance and the
   Phase-145 engine-port/carrier remain before Rule TDD/production.
 - Static behavior/oracle summary: Hub admission has at most 100 live non-deleted control slots
@@ -728,6 +728,6 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 
 ## 144-03B-Rule-Compiler — frozen candidate, no dispatch
 
-> **Current Rule acceptance:** Rule docs remain `STATIC_ACCEPTED` at `f199546513b758ca7b95328b5ccd7680009b732e`; 02D docs are accepted at `7d29d08c` + `e563a3d3`; `55e36b7a` 02F closure is historical after Contract hash/Security NULL FAIL and Lifecycle PASS. Live 28-doc correction needs precommit review, commit, exact-SHA transition/reviews, fresh closure and sync.
+> **Current Rule acceptance:** Rule docs remain `STATIC_ACCEPTED` at `f199546513b758ca7b95328b5ccd7680009b732e`; 02D docs are accepted at `7d29d08c` + `e563a3d3`; `55e36b7a` 02F closure is historical after Contract hash/Security NULL FAIL and Lifecycle PASS. Live 28-doc correction needs transition review, one exact transition commit without self-SHA, fresh Lifecycle exact-SHA review of fcb plus transition with trace Contract/Security as needed, all exact reviews PASS, then separate 02F docs-only acceptance sync.
 
-`CONTRACT-144-03B-RULE.md` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; no source/oracle dispatch is authorized. 02D is docs-only accepted; `55e36b7a` 02F closure is historical and the new exact 28-carrier candidate needs three precommit reviews, root commit, exact-SHA review/transition, fresh closure reviews and separate sync. Only after accepted 02F do a separate accepted Rule implementation plan and the Phase-145 engine-port/carrier gates G145-5B/G145-5C precede Rule TDD/production. Launcher remains `NOT_READY`, executable evidence `NOT_RUN`, Phase 148 blocked, and 144-01B remains blocked on applicable supported current-SHA Docker evidence under Task3.
+`CONTRACT-144-03B-RULE.md` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; no source/oracle dispatch is authorized. 02D is docs-only accepted; `55e36b7a` 02F closure is historical and the committed exact 28-carrier correction needs transition review, one exact transition commit without self-SHA, fresh Lifecycle exact-SHA review of fcb plus transition with trace Contract/Security as needed, all exact reviews PASS, then separate 02F docs-only acceptance sync. Only after accepted 02F do a separate accepted Rule implementation plan and the Phase-145 engine-port/carrier gates G145-5B/G145-5C precede Rule TDD/production. Launcher remains `NOT_READY`, executable evidence `NOT_RUN`, Phase 148 blocked, and 144-01B remains blocked on applicable supported current-SHA Docker evidence under Task3.

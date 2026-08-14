@@ -1,7 +1,7 @@
 # Mail persistence contract 0.1.8
 
 > **Status:** 144-02A frozen A1/A2/A3 representation is `STATIC_CONTRACT_READY` / docs-only accepted at reviewed snapshot `b631866b2ba372101fd80eea30951eaa267c1931`; Contract/Spec Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high independently PASS C/I/M `0/0/0`, dispatcher-enforced, fallback none, telemetry `UNKNOWN` unless exposed. This is not source, TDD, generated output, migration, launcher, test/validator/build/runtime, product/module/phase/release acceptance; 02B/C/F and broader cross-contract review remain pending. Despite the docs-only 02D acceptance below, 02D source, Ent schema, generation, migration, service and runtime remain pending/unauthorized.
-> **144-02D current:** exact nine-doc representation/readiness boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus same-nine-doc transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; all three post-transition exact reviews PASS C/I/M `0/0/0`. Contrary pre-acceptance lifecycle text is historical. The live 02F sequence is corrective candidate → three independent precommit reviews → exact 28-doc root commit → exact-SHA review/transition → fresh 02F closure reviews → separate acceptance sync; 02F and all source/Ent/generation/migration/runtime authority remain blocked.
+> **144-02D current:** exact nine-doc representation/readiness boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus same-nine-doc transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; all three post-transition exact reviews PASS C/I/M `0/0/0`. Contrary pre-acceptance lifecycle text is historical. The live 02F sequence is transition-review candidate → one exact 28-doc transition commit without self-SHA → fresh Lifecycle exact-SHA re-review of `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus transition with trace Contract/Security rechecks as needed → all exact reviews PASS → separate 02F docs-only acceptance sync; 02F and all source/Ent/generation/migration/runtime authority remain blocked.
 > **Runtime/generation/migration:** NOT_RUN / NOT_RUN / NOT_AUTHORIZED
 > **Scope:** Phase 144-02A/B/C/D/F Ent schemas only
 > **Precedence:** this document supplies exact storage representation for the corresponding
@@ -935,10 +935,11 @@ This correction is normative persistence design only. It replaces every earlier 
 NULL-vulnerable receipt/deployment predicate in this section; no Ent schema, generated output,
 migration, service, executable test, or runtime authority follows.
 
-The live 28-document packet is `ROOT_CORRECTION_CANDIDATE` /
-`PRECOMMIT_REVIEW_REQUIRED` / `INDEPENDENT_CLOSURE_NOT_DISPATCHABLE` /
-`IMPLEMENTATION_BLOCKED`; 02F remains unaccepted and launcher/executable status remains
-`NOT_READY` / `NOT_RUN`.
+Correction commit `fcb5b84fed4a417e736ddb4053256e494a0c25f6` is the exact 28-document
+`COMMITTED_UNACCEPTED_AT_FCB5B84F` / `EXACT_SHA_TRANSITION_REQUIRED` / `IMPLEMENTATION_BLOCKED`
+candidate. Its prior precommit/root-commit-next sequence is `CONSUMED/HISTORICAL`; 02F remains
+unaccepted and launcher/executable status remains `NOT_READY` / `NOT_RUN`. This lifecycle banner
+does not modify any normative predicate, state block, vector, or QA oracle row below.
 
 The earlier 900–930 named-check table and its recovery/deployment paragraphs are
 `SUPERSEDED/HISTORICAL` wherever they differ from this correction, including their NULL-sensitive
@@ -1143,4 +1144,4 @@ Compiler neither calculates nor returns 04M-owned canonical hash v1; input actio
 hash material. Labels use server-generated immutable unique keywords: `hubk-` plus canonical
 lower-case unpadded RFC-4648 base32 of 32 random bytes, decode-to-32/re-encode exact. This does
 does not authorize schemas, generation, Rule TDD or production. The Rule contract is
-docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`; its lifecycle transition/review target is `6735ae746c7acde657359e8a709cd897c4dce61c`, with review provenance dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Broad `63e419897aa0683e1d3dfcd442aca78eea1b0727` and `6c424ed2d6703ceccbb269c37d9abc03e75a0410` are historical only. Corrective 02D `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` after three exact PASS reviews C/I/M `0/0/0`; earlier Lifecycle FAIL and the former sole-next closure wording are `CONSUMED/HISTORICAL`. The live sequence is corrective candidate → three independent precommit reviews → exact 28-doc root commit → exact-SHA review/transition → fresh 02F closure reviews → separate acceptance sync. A later accepted Rule plan and Phase-145 carrier/G145-5B/G145-5C remain required. Launcher `NOT_READY`; executable evidence `NOT_RUN`.
+docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `f199546513b758ca7b95328b5ccd7680009b732e`; its lifecycle transition/review target is `6735ae746c7acde657359e8a709cd897c4dce61c`, with review provenance dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Broad `63e419897aa0683e1d3dfcd442aca78eea1b0727` and `6c424ed2d6703ceccbb269c37d9abc03e75a0410` are historical only. Corrective 02D `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` after three exact PASS reviews C/I/M `0/0/0`; earlier Lifecycle FAIL and the former sole-next closure wording are `CONSUMED/HISTORICAL`. The live sequence is transition-review candidate → one exact 28-doc transition commit without self-SHA → fresh Lifecycle exact-SHA review of fcb plus transition with trace Contract/Security as needed → all exact reviews PASS → separate 02F docs-only acceptance sync. A later accepted Rule plan and Phase-145 carrier/G145-5B/G145-5C remain required. Launcher `NOT_READY`; executable evidence `NOT_RUN`.

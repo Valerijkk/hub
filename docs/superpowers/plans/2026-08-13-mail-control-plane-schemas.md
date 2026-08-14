@@ -1,6 +1,6 @@
 # Mail Control-Plane Schemas Implementation Plan
 
-> **Current upstream lifecycle (2026-08-14):** The exact `55e` 144-02F closure attempt is `CONSUMED/HISTORICAL`: Contract/Spec/Oracle Terra/high FAIL C/I/M `0/1/0` (Rule hash v1 underdetermined), Security/Adversarial Terra/xhigh FAIL C/I/M `0/1/0` (PostgreSQL `NULL` bypass), Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced, fallback none, telemetry `UNKNOWN`. The live exact 28-document correction is `ROOT_CORRECTION_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED` / `INDEPENDENT_CLOSURE_NOT_DISPATCHABLE` / `IMPLEMENTATION_BLOCKED`. Exact next is precommit review ×3, root exact commit, exact-SHA review/transition, fresh 02F closure ×3. This plan remains blocked: no source/Ent/generation/migration/service/runtime authority and no Rule plan or Phase-145 carrier/G145-5B/G145-5C advancement.
+> **Current upstream lifecycle (2026-08-14):** The 144-02F corrective commit `fcb5b84fed4a417e736ddb4053256e494a0c25f6` (parent `55e36b7a1a3516d07b2baf390a5742a24ec8fbe5`, tree `5a0637f2306ff42295adea5560793e2a8f4a294a`, exact 28 docs) is `COMMITTED_UNACCEPTED_AT_FCB5B84F` / `EXACT_SHA_TRANSITION_REQUIRED` / `IMPLEMENTATION_BLOCKED`; Contract/Spec/Oracle Terra/high and Security/Adversarial Terra/xhigh PASS C/I/M `0/0/0`; Lifecycle/Dependency/Boundary Terra/high FAIL C/I/M `0/1/0` solely stale wording/object pass; dispatcher-enforced, no fallback, telemetry `UNKNOWN`; prior precommit flow is `CONSUMED/HISTORICAL`. Next: review transition candidate -> exact 28-doc transition commit without self-SHA -> fresh Lifecycle exact-SHA re-review fcb+transition, Contract/Security trace as needed -> all PASS -> separate docs-only 02F `STATIC_ACCEPTED` sync -> later Rule plan and Phase-145 carrier/G145-5B/G145-5C. This plan remains blocked: no source/Ent/generation/migration/service/runtime authority.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use
 > `superpowers:subagent-driven-development` to implement this plan task-by-task. Steps use
@@ -18,8 +18,8 @@ schemas without generating migrations or guessing lifecycle representation.
 > or runtime; founder migration authority, supported task-owned launcher, sequential explicit
 > source dispatch and source-level review remain required. 144-02D is docs-only accepted; the sole
 > former direct 02F-closure instruction is `CONSUMED/HISTORICAL`; active next action is the
-> 28-doc correction precommit-review -> root-commit -> exact-SHA -> fresh-closure -> separate-sync
-> sequence, not code.
+> fcb transition review -> exact 28-doc transition commit without self-SHA -> fresh Lifecycle exact-SHA
+> re-review fcb+transition with Contract/Security trace as needed -> separate `STATIC_ACCEPTED` sync, not code.
 
 **Architecture:** Three sequential Terra packets keep every intermediate source coherent.
 The first packet adds a provider-neutral validated DNS JSON value. The second adds domain and
@@ -30,7 +30,7 @@ transaction responsibilities.
 
 **Tech Stack:** Go 1.25, Ent v0.14.1, PostgreSQL CHECK/index annotations, standard library.
 
-> **Lifecycle update:** 144-02D docs-only boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` and docs-only acceptance sync `55e36b7a` is narrowly `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; direct 02F-closure instructions are `CONSUMED/HISTORICAL`. Active sole next action is the 28-doc correction precommit-review -> root-commit -> exact-SHA -> fresh-closure -> separate-sync sequence. This plan grants no source/schema/runtime authority; Phase145/Rule gates remain blocked.
+> **Lifecycle update:** 144-02D docs-only boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` and docs-only acceptance sync `55e36b7a` is narrowly `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; direct 02F-closure instructions are `CONSUMED/HISTORICAL`. The fcb corrective commit is `COMMITTED_UNACCEPTED_AT_FCB5B84F` / `EXACT_SHA_TRANSITION_REQUIRED`; transition review, exact 28-doc transition commit without self-SHA, fresh Lifecycle exact-SHA re-review fcb+transition with Contract/Security trace as needed, and separate `STATIC_ACCEPTED` sync remain required. This plan grants no source/schema/runtime authority; Phase145/Rule gates remain blocked.
 
 ## Global Constraints
 
@@ -41,8 +41,9 @@ transaction responsibilities.
   Every product source packet remains gated by root-owned explicit source dispatch and
   independent `gpt-5.6-terra` / `high` source-level review with accepted per-dispatch provenance.
   The former direct-closure action is `CONSUMED/HISTORICAL`; the active global Mail action is the
-  28-doc correction precommit-review -> root-commit -> exact-SHA -> fresh-closure -> separate-sync
-  sequence, not 02A review or code.
+  fcb transition review -> exact 28-doc transition commit without self-SHA -> fresh Lifecycle exact-SHA
+  re-review fcb+transition with Contract/Security trace as needed -> separate `STATIC_ACCEPTED` sync,
+  not 02A review or code.
 - Worker runtime: exact `gpt-5.6-terra` / `xhigh`, no fallback. Reviewer runtime: exact
   `gpt-5.6-terra` / `high`, no fallback. For this branch/Phases 143–148, an explicit native
   dispatcher acceptance without rejection is `provenance_source: dispatcher-enforced`; actual

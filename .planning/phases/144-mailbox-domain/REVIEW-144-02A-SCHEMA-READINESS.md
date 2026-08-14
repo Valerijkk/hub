@@ -1,6 +1,6 @@
 # Phase 144-02A preimplementation review — schema contract readiness
 
-> **Current 02F lifecycle supersession (2026-08-14):** The exact `55e` 02F closure attempt is `CONSUMED/HISTORICAL`: Contract/Spec/Oracle Terra/high FAIL C/I/M `0/1/0` (Rule hash v1 underdetermined), Security/Adversarial Terra/xhigh FAIL C/I/M `0/1/0` (PostgreSQL `NULL` bypass), Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced, fallback none, telemetry `UNKNOWN`. The live exact 28-document correction is `ROOT_CORRECTION_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED` / `INDEPENDENT_CLOSURE_NOT_DISPATCHABLE` / `IMPLEMENTATION_BLOCKED`; all earlier contrary 02F-next wording is historical. Exact next is precommit review ×3, root exact commit, exact-SHA review/transition, then fresh 02F closure ×3. This does not alter 02A's narrow docs-only acceptance or authorize source/schema/runtime.
+> **Current 02F lifecycle supersession (2026-08-14):** The corrective commit `fcb5b84fed4a417e736ddb4053256e494a0c25f6` (parent `55e36b7a1a3516d07b2baf390a5742a24ec8fbe5`, tree `5a0637f2306ff42295adea5560793e2a8f4a294a`, exact 28 docs) is `COMMITTED_UNACCEPTED_AT_FCB5B84F` / `EXACT_SHA_TRANSITION_REQUIRED` / `IMPLEMENTATION_BLOCKED`; Contract/Spec/Oracle Terra/high and Security/Adversarial Terra/xhigh PASS C/I/M `0/0/0`; Lifecycle/Dependency/Boundary Terra/high FAIL C/I/M `0/1/0` solely stale wording/object pass; dispatcher-enforced, no fallback, telemetry `UNKNOWN`. Prior precommit flow is `CONSUMED/HISTORICAL`. Next: review transition candidate -> exact 28-doc transition commit without self-SHA -> fresh Lifecycle exact-SHA re-review fcb+transition, Contract/Security trace as needed -> all PASS -> separate docs-only 02F `STATIC_ACCEPTED` sync -> later Rule plan and Phase-145 carrier/G145-5B/G145-5C. This does not alter 02A's narrow docs-only acceptance or authorize source/schema/runtime.
 
 > **Historical downstream lifecycle update:** 144-02D docs-only boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is narrowly `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; three exact routes PASS C/I/M `0/0/0`. The former sole-next 02F closure-review instruction is `CONSUMED/HISTORICAL`; the current exact action is stated in the lifecycle banner above. No source/schema/runtime authority follows.
 > **Detected:** 2026-08-13 root deep static audit
@@ -26,8 +26,9 @@ Ent source/TDD, generated output, migration, launcher execution, tests/validator
 runtime remain blocked/not authorized. Founder migration authority, supported task-owned launcher,
 sequential explicit source dispatch and source-level review remain required. 144-02D's docs/readiness
 boundary is now `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; the former direct 02F-closure action is
-`CONSUMED/HISTORICAL`. The active next action is the 28-doc correction precommit-review -> root-commit
--> exact-SHA -> fresh-closure -> separate-sync sequence, not code.
+`CONSUMED/HISTORICAL`. The active next action is the fcb transition review -> exact 28-doc transition
+commit without self-SHA -> fresh Lifecycle exact-SHA re-review fcb+transition with Contract/Security trace
+as needed -> all PASS -> separate docs-only `STATIC_ACCEPTED` sync, not code.
 
 ## Historical discovery outcome (preserved)
 
