@@ -127,6 +127,16 @@ static candidate oracles only. No schema, generated output, migration, source, t
 or runtime result exists or is authorized.
 
 Candidate provenance: `gpt-5.6-terra`/medium, `dispatcher-enforced`; fallback none; telemetry
-`UNKNOWN`. Next step is exactly one atomic eight-document commit after three precommit PASS,
-then the three exact-SHA independent reviews. This is neither closure nor acceptance.
+`UNKNOWN`. The required atomic eight-document commit is `CONSUMED` at
+`63e419897aa0683e1d3dfcd442aca78eea1b0727` (parent
+`5df4`): it contains the exact eight candidate documents. It is not a closure or acceptance;
+`63e` establishes only candidate exact content/security PASS and repairs the lifecycle
+transition.
+
+**Current next step:** an independent exact-SHA closure review of 02D against
+`63e419897aa0683e1d3dfcd442aca78eea1b0727`. Its required routes are Contract/Spec
+(`gpt-5.6-terra`/high), Security/Adversarial (`gpt-5.6-terra`/xhigh), and
+Lifecycle/Dependency (`gpt-5.6-terra`/high), each dispatcher-enforced with no fallback;
+telemetry remains `UNKNOWN` unless exposed. 02D remains unclosed/candidate pending those
+reviews; no source, schema, migration or runtime authority is granted.
 > **Current Rule acceptance:** the three Terra routes PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed. Rule contract acceptance does not close this review or authorize schemas.

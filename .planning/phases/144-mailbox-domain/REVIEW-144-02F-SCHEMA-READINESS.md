@@ -146,6 +146,17 @@ state predicates, and the three named OpenAPI folder/idempotency 409 components.
 runtime oracle has run; launcher stays `NOT_READY` and all runtime evidence stays `NOT_RUN`.
 
 Candidate provenance: `gpt-5.6-terra`/medium, `dispatcher-enforced`; fallback none; telemetry
-`UNKNOWN`. Next step is exactly one atomic eight-document commit after three precommit PASS,
-then the three exact-SHA independent reviews. This is neither closure nor acceptance.
+`UNKNOWN`. The required atomic eight-document commit is `CONSUMED` at
+`63e419897aa0683e1d3dfcd442aca78eea1b0727` (parent
+`5df4`): it contains the exact eight candidate documents. It is not a closure or acceptance;
+`63e` establishes only candidate exact content/security PASS and repairs the lifecycle
+transition.
+
+**Current next step:** only after 02D closes, conduct an independent exact-SHA closure review
+of 02F against `63e419897aa0683e1d3dfcd442aca78eea1b0727` with the accepted 02D predecessor.
+Its required routes are Contract/Spec (`gpt-5.6-terra`/high), Security/Adversarial
+(`gpt-5.6-terra`/xhigh), and Lifecycle/Dependency (`gpt-5.6-terra`/high), each
+dispatcher-enforced with no fallback; telemetry remains `UNKNOWN` unless exposed. 02F remains
+unclosed/candidate pending those reviews; no source, schema, migration or runtime authority is
+granted.
 > **Current Rule acceptance:** the three Terra routes PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed. Rule contract acceptance does not close this review or authorize schemas.
