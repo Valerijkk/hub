@@ -1,0 +1,19 @@
+schema = "hub.testframework.environments/v1"
+
+[[environments]]
+id = "docker-local"
+base_urls = ["http://hub-api:8080/"]
+artifact_levels = ["failure", "trace", "debug"]
+allow_dev_endpoints = true
+
+[[environments]]
+id = "docker-ci"
+base_urls = ["http://hub-api:8080/"]
+artifact_levels = ["failure", "trace"]
+allow_dev_endpoints = false
+
+[[environments]]
+id = "docker-integration"
+base_urls = ["http://hub-api:8080/"]
+artifact_levels = ["failure", "trace"]
+allow_dev_endpoints = false
