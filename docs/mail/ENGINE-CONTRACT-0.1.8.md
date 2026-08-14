@@ -46,6 +46,35 @@ them. `MailboxPolicy.max_recipients` is 1..300 and a draft must satisfy both the
 100-item collection limits and `len(to)+len(cc)+len(bcc) <= max_recipients` after normalized
 cross-collection deduplication. `max_attachment_bytes <= max_message_bytes` is mandatory.
 
+## Address policy
+
+`NormalizeAddress` is the only canonicalization rule for an `EngineAddress` at this boundary.
+It validates the email as UTF-8 and rejects a raw email value longer than 320 bytes before
+IDNA conversion. The raw value contains no Unicode whitespace, Unicode control character, or
+header-injection character, and contains exactly one `@`. The local part is 1..64 ASCII bytes
+and uses RFC 5322 `atext` dot-atom syntax only: a dot cannot be leading, trailing, or repeated.
+
+The domain is converted with `idna.Lookup.ToASCII`, then ASCII-lowercased. Its canonical value
+is 1..253 bytes; every label is 1..63 bytes of lowercase `a-z`, `0-9`, or interior hyphens only.
+Empty labels and leading or trailing label hyphens reject. The canonical email lowercases the
+ASCII local part and domain, has the form `local@domain`, and is at most 320 bytes. This policy
+does not perform DNS, network, or deliverability checks: `.test`, `.invalid`, and synthetic
+`u-*` local parts are valid deterministic fixtures when they otherwise satisfy this grammar.
+
+`EngineAddress.Name` is optional valid UTF-8 with no Unicode control character, at most 160
+runes and at most 640 bytes. Normalization preserves its exact input bytes/runes: no trimming,
+NFC, whitespace collapsing, case folding, or other display-name transformation occurs.
+
+`NormalizeAddressSet(addresses, maximum)` accepts only a configured `maximum` in 1..200,
+rejects a collection above that maximum, normalizes each element in input order, and rejects a
+canonical-email duplicate. It neither mutates the caller input nor returns a partial result on
+any failure. A successful empty set is concrete and non-nil.
+
+The only stable public address-error kinds are `invalid`, `too_large`, and `duplicate`.
+Their errors are content-free: they do not expose a supplied address, display name, provider
+detail, or other untrusted value. Address normalization changes neither OpenAPI nor persistence
+in this packet.
+
 ## Port amendment
 
 The following method signatures replace their 0.1.7 equivalents:

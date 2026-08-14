@@ -5,7 +5,7 @@ milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
 last_updated: "2026-08-14T02:31:01+03:00"
-last_activity: 2026-08-14 · Mail 144-01A atomic seven-path boundary is STATIC_ACCEPTED at e3e8c774d734f926f77f8e600b58dc68dabbd993 after exact-commit Terra/high EXACT_SHA_PASS; launcher NOT_READY and executable evidence NOT_RUN
+last_activity: 2026-08-14 · Mail 144-03A-Address candidate is STATIC_CONFORMANT after three independent exact-blob static PASS reviews (C/I/M 0/0/0); exact atomic commit and independent exact-SHA review remain pending, launcher NOT_READY and executable evidence NOT_RUN
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -316,8 +316,18 @@ spec_coverage:
   and C/I/M `0/0/0`. Any exposed mismatch, rejection, omitted model/effort or fallback remains
   blocking. `144-01B` remains `BLOCKED` pending its own applicable supported current-SHA Docker
   evidence under the stricter Task3 authority. Pure static authoring is authorized for
-  `144-03A-Address`, `144-03B-Folder`, `144-03C-Send` and `144-03D`; the exact next action is
-  `144-03A-Address`. Launcher and all executable evidence remain `NOT_READY` / `NOT_RUN`.
+  `144-03A-Address`, `144-03B-Folder`, `144-03C-Send` and `144-03D`. The 144-03A candidate
+  has exact source blob `fe7472d6a5bf9baa140fef95352cbbf206f49612` and oracle blob
+  `67f35c39dfbbfdd92573f52103798e15de922b37` against parent
+  `d659c67ce657fb33da391819edbdb954454be4b9`. Three independent exact-blob static reviews
+  (oracle/spec/security) are PASS, each C/I/M `0/0/0`; exact Terra/xhigh authoring and
+  Terra/high review provenance are dispatcher-enforced, fallback `none`, with actual telemetry
+  `UNKNOWN` unless exposed. It remains `STATIC_CONFORMANT` and
+  `EXACT_ATOMIC_COMMIT_INDEPENDENT_REVIEW_PENDING`: its self SHA is unknowable before commit,
+  and it is neither `STATIC_ACCEPTED` nor task PASS. The exact next action is to commit
+  `144-03A-Address` atomically and independently review that exact SHA. `144-01B` remains
+  `BLOCKED`; broader Phase 142/cross-contract acceptance and Phase 148 remain pending. Launcher
+  and all executable evidence remain `NOT_READY` / `NOT_RUN`.
   Root-frozen `PERSISTENCE-CONTRACT-0.1.8.md` supplies the exact 144-02A/B/C/D/F fields,
   tuple/state checks, normalized indexes, scalar attachment staging, sole default/scan
   authorities, quotas, generic receipt/bulk matrices and canonical rule hash. OpenAPI 0.1.8
@@ -1362,7 +1372,7 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 
 ## Session Continuity
 
-**Last session:** 2026-08-14 (Mail 144-01A exact-SHA acceptance/status sync)
+**Last session:** 2026-08-14 (Mail 144-03A pre-commit static evidence/status sync)
 **Stopped at:** the 0.1.8 144-01A atomic seven-path boundary is `STATIC_ACCEPTED` at
 `e3e8c774d734f926f77f8e600b58dc68dabbd993` against
 `5e314fb080d420696642058ae47397e251c23207` after exact-commit Terra/high `EXACT_SHA_PASS`,
@@ -1371,9 +1381,11 @@ executable evidence remains `NOT_RUN`.
 `pro-qa-ai` beta.3 already exists both in protected Hub source
 and as the Desktop portable copy. Legacy remains frozen; destructive move/delete
 has not started.
-**Resume:** dispatch only pure static/TDD `144-03A-Address`; executable verification remains
-`NOT_RUN`. Do not start `144-01B`: the stricter Task3 authority requires its applicable supported
-current-SHA Docker evidence.
+**Resume:** create the exact atomic commit for `144-03A-Address`, then dispatch its independent
+exact-SHA review. The candidate is `STATIC_CONFORMANT`, not `STATIC_ACCEPTED`; executable
+verification remains `NOT_RUN`. Do not start `144-01B`: the stricter Task3 authority requires
+its applicable supported current-SHA Docker evidence. Broader Phase 142/cross-contract work and
+Phase 148 remain pending.
 
 **Coverage decision:** TASK-203 backend profile **82.0373%** remains historical
 discovery evidence. Founder waived statement-coverage parity as migration gate;
