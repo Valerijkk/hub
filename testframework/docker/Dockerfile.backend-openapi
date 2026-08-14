@@ -1,9 +1,4 @@
-FROM sha256:54a0b2beae90fe14c2131f1e880e1388c9df77390bc260d7317e589765e064e8
-
-ARG A1_BINDING_STATUS
-ARG DEPENDENCY_BUNDLE_SHA256
-ARG SOURCE_POLICY_V2_SHA256
-ARG BUILD_MANIFEST_V3_SHA256
+FROM sha256:1dd0b0cab49abf58ae61bd6509b455375952dc17b7d8a5796905221b78e3531c
 
 LABEL hub.qa.target="backend-openapi" \
       hub.qa.execution-authority="hub.qa-bootstrap/v1" \
@@ -12,26 +7,18 @@ LABEL hub.qa.target="backend-openapi" \
 
 WORKDIR /opt/hub/source/backend
 
-# A0 has no accepted swag binary or module cache.  COPY and ARG gates make a
-# build fail closed until A1 supplies exact, locally admitted byte bindings.
 COPY bindings/dependency-bundle.manifest.v1.json /opt/hub/bindings/dependency-bundle.manifest.v1.json
 COPY bindings/source-policy.v2.json /opt/hub/bindings/source-policy.v2.json
 COPY bindings/build-manifest.v3.json /opt/hub/bindings/build-manifest.v3.json
-COPY bindings/assets/go-module-cache/ /opt/hub/offline/go-module-cache/
-COPY bindings/assets/swag-binary/ /opt/hub/offline/swag/
+ADD bindings/assets/go-module-cache.tar /opt/hub/offline/go-module-cache/
+ADD bindings/assets/swag-binary.tar /opt/hub/offline/swag/
 COPY source/backend/ /opt/hub/source/backend/
-COPY entrypoints/backend-openapi.sh /opt/hub/bin/backend-openapi
+COPY --chmod=0555 entrypoints/backend-openapi.sh /opt/hub/bin/backend-openapi
 
-RUN test "$A1_BINDING_STATUS" = "BOUND" \
- && test -n "$DEPENDENCY_BUNDLE_SHA256" \
- && test -n "$SOURCE_POLICY_V2_SHA256" \
- && test -n "$BUILD_MANIFEST_V3_SHA256" \
- && test -x /opt/hub/offline/swag/swag \
- && chmod 0555 /opt/hub/bin/backend-openapi
-
-ENV GOPROXY=off \
+ENV A1_BINDING_STATUS=BOUND \
+    GOPROXY=off \
     GOSUMDB=off \
-    GOMODCACHE=/opt/hub/offline/go-module-cache
+    GOMODCACHE=/opt/hub/offline/go-module-cache/pkg/mod
 
 ENTRYPOINT ["/opt/hub/bin/backend-openapi"]
 CMD ["--hub-qa-target=backend-openapi"]

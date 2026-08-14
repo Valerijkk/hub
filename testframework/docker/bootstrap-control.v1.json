@@ -45,10 +45,10 @@
       "local_image_lock_field": "targets.frontend-unit.local_image_id",
       "docker_cmd": ["--hub-qa-target=frontend-unit"],
       "target_action": [
-        "/opt/hub/frontend/node_modules/.bin/tsc -b",
-        "/opt/hub/frontend/node_modules/.bin/biome check ./src",
-        "/opt/hub/frontend/node_modules/.bin/vite build --outDir /reports/frontend-unit/vite-dist",
-        "/opt/hub/frontend/node_modules/.bin/vitest run --config /opt/hub/config/vitest.frontend-unit.config.ts --reporter=json"
+        "/usr/local/bin/node /opt/hub/source/frontend/node_modules/typescript/bin/tsc -b",
+        "/usr/local/bin/node /opt/hub/source/frontend/node_modules/@biomejs/biome/bin/biome check ./src",
+        "/usr/local/bin/node /opt/hub/source/frontend/node_modules/vite/bin/vite.js build --outDir /reports/frontend-unit/vite-dist",
+        "/usr/local/bin/node /opt/hub/source/frontend/node_modules/vitest/vitest.mjs run --config /opt/hub/config/vitest.frontend-unit.config.ts --reporter=json"
       ],
       "bootstrap_selectable": false
     },

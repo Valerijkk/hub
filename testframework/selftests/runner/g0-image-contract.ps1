@@ -34,6 +34,15 @@ function Assert-SourceOrder {
     }
 }
 
+function Get-FunctionBody {
+    param([string]$Source, [string]$Name)
+
+    $pattern = '(?ms)^function ' + [regex]::Escape($Name) + ' \{\r?\n(?<body>.*?)(?=^function |\z)'
+    $match = [regex]::Match($Source, $pattern)
+    if (-not $match.Success) { throw "G0 image contract is missing function $Name." }
+    return $match.Groups['body'].Value
+}
+
 function Assert-ExactStringArray {
     param([object]$Actual, [string[]]$Expected, [string]$Identity)
 
@@ -98,10 +107,10 @@ $targets = [ordered]@{
         LocalImageLockField = 'targets.frontend-unit.local_image_id'
         DockerCmd = @('--hub-qa-target=frontend-unit')
         TargetAction = @(
-            '/opt/hub/frontend/node_modules/.bin/tsc -b'
-            '/opt/hub/frontend/node_modules/.bin/biome check ./src'
-            '/opt/hub/frontend/node_modules/.bin/vite build --outDir /reports/frontend-unit/vite-dist'
-            '/opt/hub/frontend/node_modules/.bin/vitest run --config /opt/hub/config/vitest.frontend-unit.config.ts --reporter=json'
+            '/usr/local/bin/node /opt/hub/source/frontend/node_modules/typescript/bin/tsc -b'
+            '/usr/local/bin/node /opt/hub/source/frontend/node_modules/@biomejs/biome/bin/biome check ./src'
+            '/usr/local/bin/node /opt/hub/source/frontend/node_modules/vite/bin/vite.js build --outDir /reports/frontend-unit/vite-dist'
+            '/usr/local/bin/node /opt/hub/source/frontend/node_modules/vitest/vitest.mjs run --config /opt/hub/config/vitest.frontend-unit.config.ts --reporter=json'
         )
         BootstrapSelectable = $false
     }
@@ -142,6 +151,9 @@ foreach ($token in @(
     'Assert-HubQaPrivateBootstrapContext',
     'RunnerInspectionRawBytes',
     'RunnerInspectionSha256',
+    'LocalBaseReceiptRawBytes',
+    'LocalBaseReceiptSha256',
+    'LocalBaseReceiptNonce',
     'OwnerMarkerRawBytes',
     'OwnerMarkerSha256',
     'owner-marker.v1.json',
@@ -170,6 +182,53 @@ foreach ($token in @(
     'source-policy.v2.json',
     'build-manifest.v3.json',
     'local-image-inspect.v1.json',
+    'g0-admission-helper.admission.v1.json',
+    'Read-HubQaHelperAdmissionReceipt',
+    'Read-HubQaLocalBaseReceipt',
+    'Assert-HubQaDependencyBundleContract',
+    'Assert-HubQaAdmissionBaseBinding',
+    'Get-HubQaDependencyBundleProjectionSha256',
+    'ConvertFrom-HubQaStrictCanonicalJson',
+    'CreateFileW',
+    'SafeFileHandle',
+    'GetFileInformationByHandle',
+    'GetFinalPathNameByHandle',
+    'FILE_FLAG_OPEN_REPARSE_POINT',
+    'Get-HubQaSafeStreamedFilePass',
+    'Assert-HubQaSameWin32FileIdentity',
+    'ReadFile',
+    'Get-HubQaStreamedRegularFileDigest',
+    'E_ASSET_ARCHIVE_INVALID',
+    'E_RECEIPT_BINDING_INVALID',
+    'linux-held-nofollow-fd/v1',
+    'source_observations',
+    'staged_targets',
+    'descriptor_contract',
+    "@('schema', 'bundle_id', 'source_commit', 'manifest_sha256', 'assets', 'bases', 'local_base_receipt_sha256', 'receipt_nonce', 'verdict')",
+    "@('schema', 'bundle_id', 'source_commit', 'platform', 'assets', 'bases', 'bundle_sha256')",
+    "@('asset_id', 'targets', 'relative_path', 'sha256', 'bytes', 'archive_format', 'member_count', 'expanded_bytes', 'layout_sha256', 'license_spdx', 'license_evidence_sha256', 'provenance_sha256')",
+    "@('base_id', 'consumers', 'local_image_id', 'manifest_digest')",
+    "@('base_id', 'consumers', 'local_image_id', 'manifest_digest', 'license_spdx', 'license_evidence_sha256', 'provenance_sha256')",
+    "@('os', 'architecture', 'variant')",
+    "'go-module-cache'",
+    "@('backend-unit', 'backend-openapi')",
+    "'go-race-toolchain'",
+    "@('backend-unit')",
+    "'frontend-node-modules'",
+    "@('frontend-unit')",
+    "'swag-binary'",
+    "@('backend-openapi')",
+    "'bootstrap-helper-python'",
+    "@('g0-admission-helper', 'g0-planning-selftest')",
+    "'posix-pax-tar'",
+    "@('Task', 'Run', 'RoleClaim', 'OwnerNonce', 'OwnerMarkerRawBytes', 'OwnerMarkerSha256', 'RunnerInspectionRawBytes', 'RunnerInspectionSha256', 'LocalBaseReceiptRawBytes', 'LocalBaseReceiptSha256', 'LocalBaseReceiptNonce')",
+    "@('asset_id', 'targets', 'relative_path', 'sha256', 'bytes', 'archive_format', 'member_count', 'expanded_bytes', 'layout_sha256', 'descriptor_contract', 'source_observations', 'staged_targets')",
+    "@('opened', 'post_hash', 'post_raw_scan', 'post_tarfile', 'pre_stage', 'post_stage')",
+    "@('target', 'relative_tar_path', 'bytes', 'sha256', 'create_new', 'fsync', 'safe_reopen', 'rehash_sha256')",
+    'post_raw_scan',
+    'post_tarfile',
+    'safe_reopen',
+    'rehash_sha256',
     'FileMode]::CreateNew',
     'Get-JcsArraySha256',
     'READY_FOR_G0_BOOTSTRAP_ONLY',
@@ -187,16 +246,87 @@ foreach ($forbidden in @(
     '& docker',
     'docker image inspect',
     'Assert-BaseBinding',
+    'ConvertFrom-Json',
     '[IO.Directory]::CreateDirectory($Paths.BootstrapRoot)',
     'testframework/docker/images.lock.v3.json'
 )) {
     Assert-SourceExcludes -Source $attestor -Needle $forbidden -Identity 'attestor caller-controlled or retired capability'
 }
+Assert-SourceContains -Source $attestor -Needle '$staged.relative_tar_path -cne (''bootstrap/build-context/'' + $targetName + ''/bindings/'' + [string]$asset.relative_path)' -Identity 'attestor exact bindings staging path'
+Assert-SourceContains -Source $attestor -Needle '$manifestAsset = $manifestAssets[$assetIndex]' -Identity 'receipt asset manifest-order binding'
+Assert-SourceContains -Source $attestor -Needle '$asset.asset_id -isnot [string] -or $asset.asset_id -cne $manifestAsset.asset_id' -Identity 'receipt asset reordered-entry rejection'
+Assert-SourceExcludes -Source $attestor -Needle 'Get-HubQaDependencyAsset -DependencyManifest $Controls.dependency.Value -AssetId ([string]$asset.asset_id)' -Identity 'receipt asset lookup-by-ID acceptance'
+Assert-SourceContains -Source $attestor -Needle "Assert-HubQaExactPropertyNames -Object `$actual[`$index] -Expected @('base_id', 'consumers', 'local_image_id', 'manifest_digest') -Identity 'helper admission base'" -Identity 'receipt base four-field public projection'
+Assert-SourceContains -Source $attestor -Needle "Assert-HubQaExactPropertyNames -Object `$expected[`$index] -Expected @('base_id', 'consumers', 'local_image_id', 'manifest_digest', 'license_spdx', 'license_evidence_sha256', 'provenance_sha256') -Identity 'dependency manifest base'" -Identity 'manifest base seven-field source contract'
+Assert-SourceExcludes -Source $attestor -Needle "Assert-HubQaExactPropertyNames -Object `$actual[`$index] -Expected @('base_id', 'consumers', 'local_image_id', 'manifest_digest', 'license_spdx', 'license_evidence_sha256', 'provenance_sha256') -Identity 'helper admission base'" -Identity 'legacy receipt base seven-field contract'
 Assert-SourceOrder -Source $attestor -Needles @(
     '[void](Assert-HubQaRunnerOwnedBootstrapRoot -Paths $paths -BootstrapPrivateContext $BootstrapPrivateContext)',
+    '[void](Read-HubQaLocalBaseReceipt -Paths $paths -BootstrapPrivateContext $BootstrapPrivateContext -Controls $binding.Controls)',
+    '$admission = Read-HubQaHelperAdmissionReceipt -Paths $paths -BootstrapPrivateContext $BootstrapPrivateContext -Controls $binding.Controls -BootstrapControl $binding.BootstrapControl',
     '$reservation = New-HubQaCandidateReservation -Paths $paths -BootstrapPrivateContext $BootstrapPrivateContext',
     '$inspection = Read-HubQaRunnerInspection -Paths $paths -BootstrapPrivateContext $BootstrapPrivateContext -Controls $binding.Controls'
 ) -Identity 'attestor runner ownership, reservation, inspection order'
+Assert-SourceOrder -Source $attestor -Needles @(
+    '$dependency = $Controls.dependency.Value',
+    'Assert-HubQaDependencyBundleContract -Dependency $dependency',
+    'Assert-HubQaExactPropertyNames -Object $source'
+) -Identity 'attestor dependency contract before source or base bindings'
+Assert-SourceOrder -Source $attestor -Needles @(
+    '$staged.relative_tar_path -cne (''bootstrap/build-context/'' + $targetName + ''/bindings/'' + [string]$asset.relative_path)',
+    '$relativeComponents = ([string]$staged.relative_tar_path).Split(''/'')',
+    '$stagedPath = $Paths.TaskRunRoot'
+) -Identity 'attestor bindings staging path before contained re-root'
+Assert-SourceContains -Source $attestor -Needle 'for ($assetIndex = 0; $assetIndex -lt $manifestAssets.Count; $assetIndex++)' -Identity 'receipt asset loop has dedicated index'
+Assert-SourceContains -Source $attestor -Needle '$asset = $assets[$assetIndex]' -Identity 'receipt asset lookup uses dedicated asset index'
+Assert-SourceContains -Source $attestor -Needle '$manifestAsset = $manifestAssets[$assetIndex]' -Identity 'receipt manifest lookup uses dedicated asset index'
+Assert-SourceContains -Source $attestor -Needle 'for ($targetIndex = 0; $targetIndex -lt $expectedTargets.Count; $targetIndex++)' -Identity 'receipt staged-target loop has distinct index'
+Assert-SourceContains -Source $attestor -Needle '$staged = $stagedTargets[$targetIndex]' -Identity 'receipt staged-target lookup uses target index'
+Assert-SourceContains -Source $attestor -Needle '$targetName = [string]$expectedTargets[$targetIndex]' -Identity 'receipt expected target lookup uses target index'
+Assert-SourceOrder -Source $attestor -Needles @(
+    'for ($assetIndex = 0; $assetIndex -lt $manifestAssets.Count; $assetIndex++)',
+    '$manifestAsset = $manifestAssets[$assetIndex]',
+    'for ($targetIndex = 0; $targetIndex -lt $expectedTargets.Count; $targetIndex++)',
+    '$staged = $stagedTargets[$targetIndex]'
+) -Identity 'receipt asset and staged-target index scopes'
+foreach ($field in @('bytes', 'member_count', 'expanded_bytes')) {
+    Assert-SourceContains -Source $attestor -Needle ('Assert-HubQaPositiveInt64 -Value $asset.' + $field + ' -Identity "helper admission asset $assetIndex ' + $field + '"') -Identity "receipt asset strict Int64 $field guard"
+    Assert-SourceContains -Source $attestor -Needle ('Assert-HubQaPositiveInt64 -Value $manifestAsset.' + $field + ' -Identity "dependency manifest asset $assetIndex ' + $field + '"') -Identity "manifest asset strict Int64 $field guard"
+}
+Assert-SourceContains -Source $attestor -Needle 'Assert-HubQaPositiveInt64 -Value $staged.bytes -Identity "helper admission staged target $assetIndex/$targetIndex bytes"' -Identity 'staged target strict Int64 bytes guard'
+Assert-SourceContains -Source $attestor -Needle 'if ($Value -isnot [Int64] -or [Int64]$Value -le 0)' -Identity 'strict positive Int64 type and range rejection'
+$archiveIdentityFunction = Get-FunctionBody -Source $attestor -Name 'Assert-HubQaArchiveIdentity'
+foreach ($field in @('device', 'inode', 'mode', 'size', 'mtime_ns')) {
+    Assert-SourceContains -Source $archiveIdentityFunction -Needle ('$Identity.' + $field + ' -isnot [Int64]') -Identity "archive identity actual $field strict Int64 rejection"
+}
+Assert-SourceOrder -Source $archiveIdentityFunction -Needles @(
+    '$Identity.device -isnot [Int64]',
+    '($Identity.mode -band 0xf000)',
+    '$Identity.$field -ne $Expected.$field'
+) -Identity 'archive identity types precede range and equality checks'
+Assert-SourceExcludes -Source $archiveIdentityFunction -Needle 'try { [void][Int64]$Identity.$field }' -Identity 'archive identity castability-only acceptance'
+Assert-SourceExcludes -Source $archiveIdentityFunction -Needle '[Int64]$Identity.$field' -Identity 'archive identity post-validation cast acceptance'
+$helperReceiptFunction = Get-FunctionBody -Source $attestor -Name 'Read-HubQaHelperAdmissionReceipt'
+Assert-SourceContains -Source $helperReceiptFunction -Needle 'Assert-HubQaArchiveIdentity -Identity $observation.descriptor -Expected $expectedIdentity -ExpectedBytes $asset.bytes -IdentityName "helper admission $phase descriptor"' -Identity 'receipt descriptor identity receives validated receipt bytes'
+Assert-SourceContains -Source $helperReceiptFunction -Needle 'Assert-HubQaArchiveIdentity -Identity $observation.pathname -Expected $openedDescriptor -ExpectedBytes $asset.bytes -IdentityName "helper admission $phase pathname"' -Identity 'receipt pathname identity receives validated receipt bytes'
+Assert-SourceExcludes -Source $helperReceiptFunction -Needle 'ExpectedBytes ([Int64]$asset.bytes)' -Identity 'receipt observation castability acceptance'
+$strictJsonFunction = Get-FunctionBody -Source $attestor -Name 'ConvertFrom-HubQaStrictCanonicalJson'
+Assert-SourceContains -Source $strictJsonFunction -Needle '$digits.Length -gt 19' -Identity 'strict JSON parser accepts the Int64 19-digit boundary'
+Assert-SourceContains -Source $strictJsonFunction -Needle 'try { $integer = [Int64]::Parse($digits, [Globalization.CultureInfo]::InvariantCulture) } catch { throw "$Identity has an invalid integer." }' -Identity 'strict JSON parser rejects overflowing 19-digit integers through Int64 parsing'
+Assert-SourceExcludes -Source $strictJsonFunction -Needle '$digits.Length -gt 18' -Identity 'strict JSON parser rejects the valid 19-digit Int64 boundary'
+Assert-SourceContains -Source $attestor -Needle 'param([string]$Path, [string]$Root, [string]$Identity, [Int64]$ExpectedBytes, [Int64]$HardCapBytes, [object]$ExpectedProof = $null)' -Identity 'bounded streamed pass declared byte bounds'
+Assert-SourceContains -Source $attestor -Needle 'if ($opened.Proof.Size -ne $ExpectedBytes -or $opened.Proof.Size -gt $HardCapBytes)' -Identity 'streamed pass rejects observed length before reading'
+Assert-SourceContains -Source $attestor -Needle '$maximumReadableBytes = $ExpectedBytes + 1' -Identity 'streamed pass caps read at expected plus one'
+Assert-SourceContains -Source $attestor -Needle 'if ($length -gt $ExpectedBytes)' -Identity 'streamed pass rejects overflow immediately'
+Assert-SourceContains -Source $attestor -Needle 'streamed archive exceeds the expected byte bound.' -Identity 'streamed overflow negative reason'
+Assert-SourceContains -Source $attestor -Needle 'param([string]$Path, [string]$Root, [string]$Identity, [Int64]$ExpectedBytes, [Int64]$HardCapBytes)' -Identity 'two-pass streamed digest declares byte bounds'
+Assert-SourceContains -Source $attestor -Needle 'Get-HubQaSafeStreamedFilePass -Path $Path -Root $Root -Identity $Identity -ExpectedBytes $ExpectedBytes -HardCapBytes $HardCapBytes' -Identity 'first streamed pass receives expected byte cap'
+Assert-SourceContains -Source $attestor -Needle 'Get-HubQaSafeStreamedFilePass -Path $Path -Root $Root -Identity $Identity -ExpectedBytes $ExpectedBytes -HardCapBytes $HardCapBytes -ExpectedProof $first.Proof' -Identity 'second streamed pass receives expected byte cap'
+Assert-SourceContains -Source $attestor -Needle 'Get-HubQaStreamedRegularFileDigest -Path $stagedPath -Root $Paths.TaskRunRoot -Identity ''helper admission staged archive'' -ExpectedBytes ([Int64]$asset.bytes) -HardCapBytes ([Int64]$manifestAsset.bytes)' -Identity 'indexed asset bytes bind staged archive bounded rehash'
+Assert-SourceOrder -Source $attestor -Needles @(
+    '$maximumReadableBytes = $ExpectedBytes + 1',
+    '$readCount = [uint32][Math]::Min([Int64]$buffer.Length, $maximumReadableBytes - $length)',
+    '[HubQaWin32FileNative]::ReadFile'
+) -Identity 'streamed byte cap is applied before ReadFile'
 
 foreach ($targetName in $targets.Keys) {
     $target = $targets[$targetName]
@@ -221,6 +351,59 @@ foreach ($targetName in $targets.Keys) {
         Assert-SourceExcludes -Source $entrypoint -Needle $forbidden -Identity "$targetName forbidden runtime capability"
     }
 }
+
+$backendUnitDockerfile = Read-StrictUtf8File -Path (Join-Path $dockerRoot 'Dockerfile.backend-unit') -Identity 'backend unit Dockerfile'
+foreach ($token in @(
+    'ADD bindings/assets/go-module-cache.tar /opt/hub/offline/go-module-cache/',
+    'ADD bindings/assets/go-race-toolchain.tar /opt/hub/offline/go-race-toolchain/',
+    'COPY --chmod=0555 entrypoints/backend-unit.sh /opt/hub/bin/backend-unit',
+    'ENV CGO_ENABLED=1 CC=/opt/hub/offline/go-race-toolchain/bin/cc',
+    'GOPROXY=off',
+    'GOSUMDB=off',
+    'GOMODCACHE=/opt/hub/offline/go-module-cache/pkg/mod'
+)) {
+    Assert-SourceContains -Source $backendUnitDockerfile -Needle $token -Identity 'backend unit archive and race ABI binding'
+}
+foreach ($forbidden in @('COPY bindings/assets/go-module-cache/', 'COPY bindings/assets/go-race-toolchain/', 'RUN ', ' tar ', 'apt', 'apk', 'yum', 'dnf', 'curl', 'wget', 'go install', 'go get')) {
+    Assert-SourceExcludes -Source $backendUnitDockerfile -Needle $forbidden -Identity 'backend unit forbidden archive extraction or installation'
+}
+
+$frontendDockerfile = Read-StrictUtf8File -Path (Join-Path $dockerRoot 'Dockerfile.frontend-unit') -Identity 'frontend unit Dockerfile'
+foreach ($token in @(
+    'ADD bindings/assets/frontend-node-modules.tar /opt/hub/source/frontend/',
+    'COPY --chmod=0555 entrypoints/frontend-unit.sh /opt/hub/bin/frontend-unit'
+)) {
+    Assert-SourceContains -Source $frontendDockerfile -Needle $token -Identity 'frontend local archive and native Node binding'
+}
+foreach ($forbidden in @('COPY bindings/assets/frontend-node-modules/', 'RUN ', ' tar ', 'apt', 'apk', 'yum', 'dnf', 'curl', 'wget', 'npm install', 'corepack')) {
+    Assert-SourceExcludes -Source $frontendDockerfile -Needle $forbidden -Identity 'frontend forbidden archive extraction or installation'
+}
+
+$frontendEntrypoint = Read-StrictUtf8File -Path (Join-Path $dockerRoot 'entrypoints\frontend-unit.sh') -Identity 'frontend unit entrypoint'
+Assert-SourceContains -Source $frontendEntrypoint -Needle '[ -x /usr/local/bin/node ]' -Identity 'frontend fixed native Node presence gate'
+foreach ($action in $targets['frontend-unit'].TargetAction) {
+    Assert-SourceContains -Source $frontendEntrypoint -Needle $action -Identity 'frontend fixed direct-module action'
+}
+foreach ($forbidden in @('/.bin/', ' node ', 'node_modules/.bin', 'PATH=', 'env node')) {
+    Assert-SourceExcludes -Source $frontendEntrypoint -Needle $forbidden -Identity 'frontend alternate Node dispatch'
+}
+
+$backendOpenapiDockerfile = Read-StrictUtf8File -Path (Join-Path $dockerRoot 'Dockerfile.backend-openapi') -Identity 'backend OpenAPI Dockerfile'
+foreach ($token in @(
+    'ADD bindings/assets/go-module-cache.tar /opt/hub/offline/go-module-cache/',
+    'ADD bindings/assets/swag-binary.tar /opt/hub/offline/swag/',
+    'COPY --chmod=0555 entrypoints/backend-openapi.sh /opt/hub/bin/backend-openapi',
+    'GOPROXY=off',
+    'GOSUMDB=off',
+    'GOMODCACHE=/opt/hub/offline/go-module-cache/pkg/mod'
+)) {
+    Assert-SourceContains -Source $backendOpenapiDockerfile -Needle $token -Identity 'backend OpenAPI archive and swag binding'
+}
+foreach ($forbidden in @('COPY bindings/assets/go-module-cache/', 'COPY bindings/assets/swag-binary/', 'RUN ', ' tar ', 'apt', 'apk', 'yum', 'dnf', 'curl', 'wget', 'go install', 'go get')) {
+    Assert-SourceExcludes -Source $backendOpenapiDockerfile -Needle $forbidden -Identity 'backend OpenAPI forbidden archive extraction or installation'
+}
+$backendOpenapiEntrypoint = Read-StrictUtf8File -Path (Join-Path $dockerRoot 'entrypoints\backend-openapi.sh') -Identity 'backend OpenAPI entrypoint'
+Assert-SourceContains -Source $backendOpenapiEntrypoint -Needle '[ ! -x /opt/hub/offline/swag/swag ]' -Identity 'backend OpenAPI exact swag executable gate'
 
 $planningDockerfile = Read-StrictUtf8File -Path (Join-Path $dockerRoot 'Dockerfile.g0-planning-selftest') -Identity 'planning selftest Dockerfile'
 foreach ($token in @(
@@ -262,12 +445,12 @@ foreach ($token in @(
     'handoff_owner_raw',
     'expected_task_owner_marker_sha256',
     'expected_handoff_owner_marker_sha256',
-    'assert_omitted_binding_rejections',
-    'assert_owner_binding_probes',
-    'binding-null-task-owner',
-    'binding-null-handoff-owner',
-    'binding-equal-owners',
-    'binding-mismatch-task-owner',
+    'assert_owner_binding_rejections',
+    'archive-observation-phase-hooks',
+    'archive-replaced-between-passes',
+    'archive-replaced-before-staging',
+    'archive-pax-invalid-utf8',
+    'archive-pax-prefix-cap',
     'E_RECEIPT_BINDING_INVALID',
     'TypeError',
     'dependency_bundle_manifest_sha256',

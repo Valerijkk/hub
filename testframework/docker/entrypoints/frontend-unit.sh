@@ -22,6 +22,7 @@ fail() {
 
 if [ "$#" -ne 1 ] || [ "$1" != '--hub-qa-target=frontend-unit' ]; then fail 64 'fixed-command-required'; fi
 if [ ! -d /reports ]; then exit 73; fi
+if [ ! -x /usr/local/bin/node ]; then fail 66 'node-unavailable'; fi
 if [ "${A1_BINDING_STATUS:-}" != 'BOUND' ]; then fail 66 'binding-unavailable'; fi
 for binding in /opt/hub/bindings/dependency-bundle.manifest.v1.json /opt/hub/bindings/source-policy.v2.json /opt/hub/bindings/build-manifest.v3.json; do
   if [ ! -s "$binding" ]; then fail 66 'binding-unavailable'; fi
@@ -44,8 +45,8 @@ export HOME='/reports/frontend-unit/home'
 export TMPDIR='/reports/frontend-unit/tmp'
 mkdir -p "$HOME" "$TMPDIR" || exit 73
 
-run_step 'typescript' /opt/hub/frontend/node_modules/.bin/tsc -b
-run_step 'biome' /opt/hub/frontend/node_modules/.bin/biome check ./src
-run_step 'vite' /opt/hub/frontend/node_modules/.bin/vite build --outDir /reports/frontend-unit/vite-dist
-run_step 'vitest' /opt/hub/frontend/node_modules/.bin/vitest run --config /opt/hub/config/vitest.frontend-unit.config.ts --reporter=json
+run_step 'typescript' /usr/local/bin/node /opt/hub/source/frontend/node_modules/typescript/bin/tsc -b
+run_step 'biome' /usr/local/bin/node /opt/hub/source/frontend/node_modules/@biomejs/biome/bin/biome check ./src
+run_step 'vite' /usr/local/bin/node /opt/hub/source/frontend/node_modules/vite/bin/vite.js build --outDir /reports/frontend-unit/vite-dist
+run_step 'vitest' /usr/local/bin/node /opt/hub/source/frontend/node_modules/vitest/vitest.mjs run --config /opt/hub/config/vitest.frontend-unit.config.ts --reporter=json
 write_result 'PASS' 'complete' 0

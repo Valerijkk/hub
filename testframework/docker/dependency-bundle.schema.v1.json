@@ -55,6 +55,10 @@
         "relative_path",
         "sha256",
         "bytes",
+        "archive_format",
+        "member_count",
+        "expanded_bytes",
+        "layout_sha256",
         "license_spdx",
         "license_evidence_sha256",
         "provenance_sha256"
@@ -73,9 +77,20 @@
           "uniqueItems": true,
           "items": { "enum": ["backend-unit", "frontend-unit", "backend-openapi"] }
         },
-        "relative_path": { "type": "string", "pattern": "^assets/[a-z0-9][a-z0-9._/-]*$" },
+        "relative_path": {
+          "enum": [
+            "assets/go-module-cache.tar",
+            "assets/go-race-toolchain.tar",
+            "assets/frontend-node-modules.tar",
+            "assets/swag-binary.tar"
+          ]
+        },
         "sha256": { "$ref": "#/$defs/digest" },
         "bytes": { "type": "integer", "minimum": 1 },
+        "archive_format": { "const": "posix-pax-tar" },
+        "member_count": { "type": "integer", "minimum": 1 },
+        "expanded_bytes": { "type": "integer", "minimum": 1 },
+        "layout_sha256": { "$ref": "#/$defs/digest" },
         "license_spdx": { "$ref": "#/$defs/spdx" },
         "license_evidence_sha256": { "$ref": "#/$defs/digest" },
         "provenance_sha256": { "$ref": "#/$defs/digest" }

@@ -27,6 +27,40 @@ $fixture = [System.IO.File]::ReadAllText($paths.Fixture)
 $dockerfile = [System.IO.File]::ReadAllText($paths.HelperDockerfile)
 $entrypoint = [System.IO.File]::ReadAllText($paths.HelperEntrypoint)
 
+$admissionPrivateContextKeys = @(
+    'Task',
+    'Run',
+    'OwnerMarkerSha256',
+    'PrivateReportRoot',
+    'PrivateIngressRoot',
+    'PrivateIngressCopyReceipt',
+    'PrivateIngressCopyReceiptSha256',
+    'PrivateIngressDigestMap',
+    'PrivateIngressDigestMapSha256',
+    'PrivateIngressOrderedPaths',
+    'PrivateIngressByteCounts',
+    'PrivateIngressSourceRoot',
+    'PrivateIngressDestinationRoot',
+    'PrivateOfflineIngressHandoffId',
+    'PrivateOfflineIngressOwnerMarkerSha256',
+    'PrivateDependencyBundleManifest',
+    'PrivateDependencyBundleManifestSha256',
+    'PrivateSourceCommit',
+    'PrivateLocalBaseReceipt',
+    'PrivateLocalBaseReceiptSha256',
+    'PrivateLocalBaseReceiptNonce',
+    'PrivateDockerClientPath',
+    'PrivateHelperBuildTag',
+    'PrivateHelperImageAttestation',
+    'PrivateHelperImageAttestationSha256',
+    'PrivateHelperLocalImageId',
+    'PrivateBootstrapHelperPythonLocalImageId',
+    'PrivateBootstrapHelperPythonLocalImageIdSha256'
+)
+if ($admissionPrivateContextKeys.Count -ne 28) {
+    throw 'The A0.1 admission private-context fixture must name the exact 28-key closed set.'
+}
+
 foreach ($required in @(
     'Invoke-HubQaG0AdmissionFromBootstrapContext',
     'PrivateIngressCopyReceipt',
@@ -48,25 +82,191 @@ foreach ($required in @(
     'PrivateBootstrapHelperPythonLocalImageIdSha256',
     'Test-HubQaByteArrayEqual',
     'Assert-HubQaIngressCopyReceipt',
-    'Assert-HubQaClosedCopiedIngressTree',
     'Assert-HubQaPrivateHelperImageAttestation',
     'g0-admission-helper.local-image-attestation.v1.json',
     'GetFolderPath([System.Environment+SpecialFolder]::ProgramFiles)',
     'Docker\Docker\resources\bin\docker.exe',
     'HUB_QA_PRIVATE_OWNER_MARKER_SHA256',
     'HUB_QA_PRIVATE_OFFLINE_INGRESS_OWNER_MARKER_SHA256',
-    'OwnerMarkerSha256 -ceq $BootstrapPrivateContext.PrivateOfflineIngressOwnerMarkerSha256',
+    '$BootstrapPrivateContext.Keys.Count -ne $required.Count',
+    'Read-HubQaBoundedControlBytes',
+    '$script:MaxBoundedControlBytes = 1048576',
+    '[ValidateSet(',
+    "'ingress-owner-marker'",
+    "'a1-dependency-manifest'",
+    "'copied-dependency-manifest'",
+    "'ingress-copy-receipt'",
+    "'local-base-receipt'",
+    "'helper-image-attestation'",
+    "'helper-admission-receipt'",
+    'Assert-HubQaIngressOwnerMarker',
+    'Assert-HubQaClosedIngressMetadata',
     "'--pull', 'never'",
     '''--name'', $closed.HelperContainerName',
     '''--label'', $closed.HelperOwnerLabel',
     'hub.qa.owner-marker-sha256=',
     '$BootstrapPrivateContext.PrivateHelperLocalImageId',
     'dst=/work',
+    'g0-admission-helper.admission.v1.json',
     'NOT_READY/NOT_RUN'
 )) {
     if ($launcher.IndexOf($required, [System.StringComparison]::Ordinal) -lt 0) {
         throw "Host launcher does not expose required closed bootstrap token: $required"
     }
+}
+
+foreach ($contextKey in $admissionPrivateContextKeys) {
+    if ($launcher.IndexOf("'$contextKey'", [System.StringComparison]::Ordinal) -lt 0) {
+        throw "Host launcher omits the closed A0.1 admission-context key: $contextKey"
+    }
+}
+
+# host-launcher-forbids-asset-readallbytes: archive bytes remain helper-only.
+# The host can consume only fixed small controls through a held physical handle;
+# Package B owns helper cleanup and the later cleanup receipt.
+foreach ($required in @(
+    'Read-HubQaBoundedControlBytes',
+    'Open-HubQaPhysicalRegularFileHandle',
+    'Assert-HubQaCanonicalContainedControlPath',
+    'Get-HubQaHandleFileObservation',
+    'Read-HubQaHeldBoundedControlBytes',
+    'CreateFileW',
+    'FILE_FLAG_OPEN_REPARSE_POINT',
+    'SafeFileHandle',
+    'GetFileInformationByHandle',
+    'GetFinalPathNameByHandle',
+    'DuplicateHandle',
+    'DUPLICATE_SAME_ACCESS',
+    'New-HubQaOwnedDuplicateFileHandle',
+    'Assert-HubQaBoundedRegularControlObservation',
+    'ConvertFrom-HubQaStrictCanonicalJson',
+    'ConvertFrom-HubQaCanonicalJsonValue',
+    'Assert-HubQaCanonicalJsonString',
+    'Assert-HubQaCanonicalJsonNumber',
+    'Assert-HubQaPrivateDependencyBundleManifest',
+    'Assert-HubQaPrivateLocalBaseReceiptChildren',
+    'Assert-HubQaHelperAdmissionReceiptChildren',
+    'duplicate JSON object key',
+    'Package B owns helper cleanup and the later cleanup receipt'
+)) {
+    if ($launcher.IndexOf($required, [System.StringComparison]::Ordinal) -lt 0) {
+        throw "host-launcher-forbids-asset-readallbytes: host control reader or strict parser omits $required"
+    }
+}
+foreach ($forbiddenAssetRead in @(
+    'Assert-HubQaClosedCopiedIngressTree',
+    'Read-HubQaBoundedControlBytes -Path',
+    'Read-HubQaBoundedControlBytes -Path $candidate',
+    'Read-HubQaRegularFileBytes -Path $candidate',
+    'GetFiles(',
+    'GetDirectories(',
+    'Get-Content',
+    'Copy-Item',
+    'Expand-Archive',
+    '[System.IO.File]::ReadAllBytes(',
+    'ConvertFrom-Json',
+    'Get-FileHash'
+)) {
+    if ($launcher.IndexOf($forbiddenAssetRead, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
+        throw "host-launcher-forbids-asset-readallbytes: forbidden asset-content authority: $forbiddenAssetRead"
+    }
+}
+if ($launcher.IndexOf('$script:MaxBoundedControlBytes = 1048576', [System.StringComparison]::Ordinal) -lt 0 -or
+    $launcher.IndexOf('Read-HubQaHeldBoundedControlBytes', [System.StringComparison]::Ordinal) -lt 0) {
+    throw 'host-launcher-forbids-asset-readallbytes: the held bounded control reader is not closed.'
+}
+$heldReaderStart = $launcher.IndexOf('function Read-HubQaHeldBoundedControlBytes', [System.StringComparison]::Ordinal)
+if ($heldReaderStart -lt 0) {
+    throw 'host-launcher-forbids-asset-readallbytes: held bounded reader is missing.'
+}
+$heldReaderEnd = $launcher.IndexOf('function Read-HubQaBoundedControlBytes', $heldReaderStart, [System.StringComparison]::Ordinal)
+if ($heldReaderEnd -le $heldReaderStart) {
+    throw 'host-launcher-forbids-asset-readallbytes: held bounded reader has no closed source boundary.'
+}
+$preReadObservation = $launcher.IndexOf('$preRead = Get-HubQaHandleFileObservation -Handle $Opened.Handle', $heldReaderStart, [System.StringComparison]::Ordinal)
+$preReadRegularity = $launcher.IndexOf('Assert-HubQaBoundedRegularControlObservation -Observation $preRead', $heldReaderStart, [System.StringComparison]::Ordinal)
+$allocation = $launcher.IndexOf('[byte[]]$bytes = New-Object byte[] ([int]$preRead.Length)', $heldReaderStart, [System.StringComparison]::Ordinal)
+$duplicateOpen = $launcher.IndexOf('New-HubQaOwnedDuplicateFileHandle -Handle $Opened.Handle', $heldReaderStart, [System.StringComparison]::Ordinal)
+$streamOpen = $launcher.IndexOf('$stream = [IO.FileStream]::new($duplicate', $heldReaderStart, [System.StringComparison]::Ordinal)
+$postReadObservation = $launcher.IndexOf('$postRead = Get-HubQaHandleFileObservation -Handle $Opened.Handle', $heldReaderStart, [System.StringComparison]::Ordinal)
+$postReadIdentity = $launcher.IndexOf('Assert-HubQaSameHandleFileObservation -Expected $preRead -Actual $postRead', $heldReaderStart, [System.StringComparison]::Ordinal)
+$streamDispose = $launcher.IndexOf('$stream.Dispose()', $heldReaderStart, [System.StringComparison]::Ordinal)
+if ($preReadObservation -lt $heldReaderStart -or $preReadObservation -ge $heldReaderEnd -or
+    $preReadRegularity -lt $preReadObservation -or $preReadRegularity -ge $heldReaderEnd -or
+    $allocation -lt $preReadRegularity -or $allocation -ge $heldReaderEnd -or
+    $duplicateOpen -lt $allocation -or $duplicateOpen -ge $heldReaderEnd -or
+    $streamOpen -lt $duplicateOpen -or $streamOpen -ge $heldReaderEnd -or
+    $postReadObservation -lt $streamOpen -or $postReadObservation -ge $heldReaderEnd -or
+    $postReadIdentity -lt $postReadObservation -or $postReadIdentity -ge $heldReaderEnd -or
+    $streamDispose -lt $postReadIdentity -or $streamDispose -ge $heldReaderEnd) {
+    throw 'host-launcher-forbids-asset-readallbytes: held reader must revalidate before allocation, read through an owned duplicate, and observe identity before disposal.'
+}
+$openControlStart = $launcher.IndexOf('function Open-HubQaPhysicalRegularFileHandle', [System.StringComparison]::Ordinal)
+if ($openControlStart -lt 0) {
+    throw 'host-launcher-forbids-asset-readallbytes: physical control-handle opener is missing.'
+}
+$openControlEnd = $launcher.IndexOf('function Read-HubQaHeldBoundedControlBytes', $openControlStart, [System.StringComparison]::Ordinal)
+if ($openControlEnd -le $openControlStart) {
+    throw 'host-launcher-forbids-asset-readallbytes: physical control-handle opener has no closed source boundary.'
+}
+$openObservation = $launcher.IndexOf('$observation = Get-HubQaHandleFileObservation -Handle $handle', $openControlStart, [System.StringComparison]::Ordinal)
+$openRegularity = $launcher.IndexOf('Assert-HubQaBoundedRegularControlObservation -Observation $observation', $openControlStart, [System.StringComparison]::Ordinal)
+$openFinalPath = $launcher.IndexOf('Get-HubQaFinalPathNameByHandle -Handle $handle', $openControlStart, [System.StringComparison]::Ordinal)
+$openExactContainment = $launcher.IndexOf('final handle path is not the exact contained fixed control path.', $openControlStart, [System.StringComparison]::Ordinal)
+if ($openObservation -lt $openControlStart -or $openObservation -ge $openControlEnd -or
+    $openRegularity -lt $openObservation -or $openRegularity -ge $openControlEnd -or
+    $openFinalPath -lt $openRegularity -or $openFinalPath -ge $openControlEnd -or
+    $openExactContainment -lt $openFinalPath -or $openExactContainment -ge $openControlEnd) {
+    throw 'host-launcher-forbids-asset-readallbytes: control opener must bind a regular nonreparse handle to its final contained path before return.'
+}
+if ($launcher.IndexOf('public const UInt32 FILE_SHARE_READ = 0x00000001;', [System.StringComparison]::Ordinal) -lt 0 -or
+    $launcher.IndexOf('FILE_SHARE_WRITE', [System.StringComparison]::Ordinal) -ge 0 -or
+    $launcher.IndexOf('FILE_SHARE_DELETE', [System.StringComparison]::Ordinal) -ge 0) {
+    throw 'host-launcher-forbids-asset-readallbytes: control handles must deny write and delete sharing.'
+}
+$canonicalEscapeStart = $launcher.IndexOf('function Assert-HubQaCanonicalJsonString', [System.StringComparison]::Ordinal)
+if ($canonicalEscapeStart -lt 0) {
+    throw 'host-launcher-forbids-asset-readallbytes: canonical JSON string parser is missing.'
+}
+$canonicalEscapeEnd = $launcher.IndexOf('function Assert-HubQaCanonicalJsonNumber', $canonicalEscapeStart, [System.StringComparison]::Ordinal)
+if ($canonicalEscapeEnd -le $canonicalEscapeStart) {
+    throw 'host-launcher-forbids-asset-readallbytes: canonical JSON string parser has no closed source boundary.'
+}
+$uppercaseControlEscape = $launcher.IndexOf("`$UnicodeEscape -cnotmatch '^00[0-9A-F]{2}`$'", $canonicalEscapeStart, [System.StringComparison]::Ordinal)
+$nonControlEscapeRejection = $launcher.IndexOf('$code -gt 0x1f', $canonicalEscapeStart, [System.StringComparison]::Ordinal)
+$shortEscapeRejection = $launcher.IndexOf('0x08, 0x09, 0x0a, 0x0c, 0x0d', $canonicalEscapeStart, [System.StringComparison]::Ordinal)
+$shortEscapeAllowlist = $launcher.IndexOf("`$Escape -cnotin @('`"', '\\', 'b', 'f', 'n', 'r', 't')", $canonicalEscapeStart, [System.StringComparison]::Ordinal)
+$lowercaseControlEscape = $launcher.IndexOf("'^00[0-9a-f]{2}`$'", $canonicalEscapeStart, [System.StringComparison]::Ordinal)
+if ($uppercaseControlEscape -lt $canonicalEscapeStart -or $uppercaseControlEscape -ge $canonicalEscapeEnd -or
+    $nonControlEscapeRejection -lt $uppercaseControlEscape -or $nonControlEscapeRejection -ge $canonicalEscapeEnd -or
+    $shortEscapeRejection -lt $nonControlEscapeRejection -or $shortEscapeRejection -ge $canonicalEscapeEnd -or
+    $shortEscapeAllowlist -lt $canonicalEscapeStart -or $shortEscapeAllowlist -ge $canonicalEscapeEnd -or
+    ($lowercaseControlEscape -ge $canonicalEscapeStart -and $lowercaseControlEscape -lt $canonicalEscapeEnd)) {
+    throw 'host-launcher-forbids-asset-readallbytes: canonical JSON must allow literal Unicode and only uppercase u00 control escapes plus short escapes.'
+}
+$canonicalNumberStart = $launcher.IndexOf('function Assert-HubQaCanonicalJsonNumber', [System.StringComparison]::Ordinal)
+if ($canonicalNumberStart -lt 0) {
+    throw 'host-launcher-forbids-asset-readallbytes: canonical JSON integer parser is missing.'
+}
+$canonicalNumberEnd = $launcher.IndexOf('function ConvertFrom-HubQaCanonicalJsonValue', $canonicalNumberStart, [System.StringComparison]::Ordinal)
+if ($canonicalNumberEnd -le $canonicalNumberStart) {
+    throw 'host-launcher-forbids-asset-readallbytes: canonical JSON integer parser has no closed source boundary.'
+}
+$canonicalIntegerGrammar = $launcher.IndexOf("`$Digits -notmatch '^(0|[1-9][0-9]*)`$'", $canonicalNumberStart, [System.StringComparison]::Ordinal)
+$canonicalNineteenDigitLimit = $launcher.IndexOf('$Digits.Length -gt 19', $canonicalNumberStart, [System.StringComparison]::Ordinal)
+$canonicalLegacyEighteenDigitLimit = $launcher.IndexOf('$Digits.Length -gt 18', $canonicalNumberStart, [System.StringComparison]::Ordinal)
+$canonicalTwentyDigitLimit = $launcher.IndexOf('$Digits.Length -gt 20', $canonicalNumberStart, [System.StringComparison]::Ordinal)
+$canonicalIntegerValidation = $launcher.IndexOf('Assert-HubQaCanonicalJsonNumber -Digits $digits -Identity $Identity', $canonicalNumberEnd, [System.StringComparison]::Ordinal)
+$int64OverflowParse = $launcher.IndexOf('[Int64]::Parse($digits, [Globalization.CultureInfo]::InvariantCulture)', $canonicalNumberEnd, [System.StringComparison]::Ordinal)
+$int64OverflowCatch = $launcher.IndexOf('catch { throw "$Identity has an invalid JSON integer." }', $int64OverflowParse, [System.StringComparison]::Ordinal)
+if ($canonicalIntegerGrammar -lt $canonicalNumberStart -or $canonicalIntegerGrammar -ge $canonicalNumberEnd -or
+    $canonicalNineteenDigitLimit -lt $canonicalIntegerGrammar -or $canonicalNineteenDigitLimit -ge $canonicalNumberEnd -or
+    ($canonicalLegacyEighteenDigitLimit -ge $canonicalNumberStart -and $canonicalLegacyEighteenDigitLimit -lt $canonicalNumberEnd) -or
+    ($canonicalTwentyDigitLimit -ge $canonicalNumberStart -and $canonicalTwentyDigitLimit -lt $canonicalNumberEnd) -or
+    $canonicalIntegerValidation -lt $canonicalNumberEnd -or
+    $int64OverflowParse -lt $canonicalIntegerValidation -or
+    $int64OverflowCatch -lt $int64OverflowParse) {
+    throw 'host-launcher-forbids-asset-readallbytes: canonical JSON integers must allow exactly up to 19 unsigned decimal digits, reject 20 digits, and fail closed on Int64 overflow.'
 }
 
 foreach ($forbidden in @(
@@ -82,7 +282,12 @@ foreach ($forbidden in @(
     'pwsh',
     "'run', '--rm'",
     'C:\Program Files\Docker\Docker\resources\bin\docker.exe',
-    'Get-ChildItem'
+    'Get-ChildItem',
+    'Copy-Item',
+    'Expand-Archive',
+    'tar.exe',
+    'tar ',
+    'Add-Type -AssemblyName System.IO.Compression'
 )) {
     if ($launcher.IndexOf($forbidden, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
         throw "Host launcher contains forbidden public or legacy capability: $forbidden"
@@ -133,7 +338,20 @@ foreach ($required in @(
     '"manifest_sha256": manifest_sha',
     '"assets": assets',
     '"bases": bases',
-    '"reason_code": None'
+    '"reason_code": None',
+    'archive_format',
+    'member_count',
+    'expanded_bytes',
+    'layout_sha256',
+    'O_NOFOLLOW',
+    'os.fstat',
+    'tarfile.open(fileobj=',
+    'mode="r:"',
+    'E_ASSET_ARCHIVE_INVALID',
+    'go-race-toolchain.json',
+    'hub.qa.go-race-toolchain-provenance/v1',
+    'cc_target',
+    'cgo_enabled'
 )) {
     if ($verifier.IndexOf($required, [System.StringComparison]::Ordinal) -lt 0) {
         throw "Shared Python verifier omits required closed contract token: $required"
@@ -142,7 +360,11 @@ foreach ($required in @(
 foreach ($forbidden in @(
     'task_owner_marker_sha256: str | None',
     'handoff_owner_marker_sha256: str | None',
-    'task_owner_marker_sha256 if task_owner_marker_sha256 is not None else actual_handoff_owner_marker_sha'
+    'task_owner_marker_sha256 if task_owner_marker_sha256 is not None else actual_handoff_owner_marker_sha',
+    'Path.read_bytes()',
+    'extractall(',
+    'tarfile.open(name=',
+    'tarfile.open(path='
 )) {
     if ($verifier.IndexOf($forbidden, [System.StringComparison]::Ordinal) -ge 0) {
         throw "Shared Python verifier retains an optional or substituted owner-marker binding: $forbidden"
@@ -157,6 +379,7 @@ $planReasonCodes = @(
     'E_ASSET_MISSING',
     'E_ASSET_BYTES_MISMATCH',
     'E_ASSET_SHA256_MISMATCH',
+    'E_ASSET_ARCHIVE_INVALID',
     'E_BUNDLE_SHA256_MISMATCH',
     'E_LICENSE_SPDX_INVALID',
     'E_LICENSE_EVIDENCE_MISSING',
@@ -202,7 +425,16 @@ foreach ($required in @(
     'dependency-bundle.manifest.v1.json',
     'owner_marker_sha256',
     'E_DUPLICATE_ASSET_ID',
-    'E_MANIFEST_SCHEMA'
+    'E_MANIFEST_SCHEMA',
+    'archive-lstat-regular-only',
+    'archive-safe-handle-required',
+    'archive-replaced-between-passes',
+    'archive-replaced-before-staging',
+    'archive-stream-cap-before-tar',
+    'archive-terminal-eof',
+    'archive-pax-closed',
+    'archive-raw-tarfile-crosscheck',
+    'E_ASSET_ARCHIVE_INVALID'
 )) {
     if ($fixture.IndexOf($required, [System.StringComparison]::Ordinal) -lt 0) {
         throw "Image-baked shared Python fixture omits required contract token: $required"
