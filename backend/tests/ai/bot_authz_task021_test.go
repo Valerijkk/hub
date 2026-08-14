@@ -2,6 +2,10 @@ package ai_test
 
 import (
 	"context"
+	"errors"
+	"io"
+	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -29,6 +33,43 @@ func (s stubAccess) CanViewProject(_ context.Context, _, projectID uuid.UUID) (b
 	return s.allow[projectID], nil
 }
 
+type gitlabReviewRoundTripper struct {
+	paths  []string
+	tokens []string
+}
+
+type failFastRoundTripper struct {
+	calls int
+}
+
+func (r *failFastRoundTripper) RoundTrip(*http.Request) (*http.Response, error) {
+	r.calls++
+	return nil, errors.New("unexpected HTTP request")
+}
+
+func (r *gitlabReviewRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	r.paths = append(r.paths, req.URL.EscapedPath())
+	r.tokens = append(r.tokens, req.Header.Get("PRIVATE-TOKEN"))
+
+	var body string
+	status := http.StatusOK
+	switch req.URL.EscapedPath() {
+	case "/api/v4/projects/group%2Fapp/merge_requests/1":
+		body = `{"web_url":"https://gitlab.example/group/app/-/merge_requests/1","title":"Allowed review","description":"Review body","source_branch":"feature","target_branch":"main","author":{"username":"alice"}}`
+	case "/api/v4/projects/group%2Fapp/merge_requests/1/changes":
+		body = `{"changes":[{"new_path":"main.go","diff":"+package main"}]}`
+	default:
+		status = http.StatusNotFound
+		body = `{"message":"unexpected GitLab API path"}`
+	}
+	return &http.Response{
+		StatusCode: status,
+		Header:     make(http.Header),
+		Body:       io.NopCloser(strings.NewReader(body)),
+		Request:    req,
+	}, nil
+}
+
 func TestUnifiedCodeReviewProvider_DeniesForeignProject(t *testing.T) {
 	projectID := uuid.New()
 	userID := uuid.New()
@@ -44,13 +85,15 @@ func TestUnifiedCodeReviewProvider_DeniesForeignProject(t *testing.T) {
 			},
 		},
 	}
-	ghSvc := githubmod.NewGitHubServiceWithHTTPClient(ghRepo, nil, nil, "")
+	transport := &failFastRoundTripper{}
+	ghSvc := githubmod.NewGitHubServiceWithHTTPClient(ghRepo, nil, &http.Client{Transport: transport}, "")
 	p := ai.NewUnifiedCodeReviewProvider(ghSvc, nil)
 	p.SetAccessChecker(stubAccess{allow: map[uuid.UUID]bool{projectID: false}})
 
 	_, err := p.FetchReview(context.Background(), userID, "https://github.com/acme/app/pull/1")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unavailable")
+	assert.Zero(t, transport.calls)
 }
 
 func TestUnifiedCodeReviewProvider_AllowsProjectMember(t *testing.T) {
@@ -69,15 +112,21 @@ func TestUnifiedCodeReviewProvider_AllowsProjectMember(t *testing.T) {
 			},
 		},
 	}
-	// Without HTTP server FetchMR will fail after authz — check authz alone via deny vs allow path.
-	glSvc := gitlabmod.NewGitLabServiceWithHTTPClient(glRepo, nil, nil)
+	transport := &gitlabReviewRoundTripper{}
+	glSvc := gitlabmod.NewGitLabServiceWithHTTPClient(glRepo, nil, &http.Client{Transport: transport})
 	p := ai.NewUnifiedCodeReviewProvider(nil, glSvc)
 	p.SetAccessChecker(stubAccess{allow: map[uuid.UUID]bool{projectID: true}})
 
-	_, err := p.FetchReview(context.Background(), userID, "https://gitlab.example/group/app/-/merge_requests/1")
-	// Authz passed; fetch fails because no HTTP — not "unavailable".
-	require.Error(t, err)
-	assert.NotContains(t, err.Error(), "unavailable")
+	review, err := p.FetchReview(context.Background(), userID, "https://gitlab.example/group/app/-/merge_requests/1")
+	require.NoError(t, err)
+	require.NotNil(t, review)
+	assert.Equal(t, "Allowed review", review.Title)
+	assert.Equal(t, []string{"main.go"}, review.ChangedFiles)
+	assert.Equal(t, []string{
+		"/api/v4/projects/group%2Fapp/merge_requests/1",
+		"/api/v4/projects/group%2Fapp/merge_requests/1/changes",
+	}, transport.paths)
+	assert.Equal(t, []string{"tok", "tok"}, transport.tokens)
 }
 
 func TestRBACProjectAccess_NilSvcDenies(t *testing.T) {

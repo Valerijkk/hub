@@ -22,6 +22,13 @@ type sampleDTO struct {
 	Email string `json:"email" validate:"required,email"`
 }
 
+func decodeTZError(t *testing.T, resp *http.Response) map[string]any {
+	t.Helper()
+	body := make(map[string]any)
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+	return body
+}
+
 func mountSampleBind(app *fiber.App) {
 	app.Post("/bind", func(c fiber.Ctx) error {
 		var req sampleDTO
