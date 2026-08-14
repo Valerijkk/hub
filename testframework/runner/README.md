@@ -1,170 +1,186 @@
-# Private QA runner boundary
+# Hub QA runner
 
-## Status
+## Current status
 
-This document describes an unexecuted local-only v3 private contract.
-`testframework/docker/images.lock.v3.json` is absent, and the required local
-dependency bytes are absent. The package and launcher are `NOT_READY`;
-PowerShell parsing is `PS5.1_PARSE_NOT_RUN`, private contract execution is
-`PRIVATE_CONTRACT_NOT_RUN`, and runtime is `NOT_RUN`.
-`G0-B_PARITY_NOT_VERIFIED` remains the status for baked-entrypoint parity.
-Static source reviews for C1, P2, and P4 are accepted, but they provide no
-runtime `PASS`, Docker verification, generated-lock validation, or launch
-readiness. P7 Docker-only verification remains blocked pending separately
-approved READY inputs and evidence.
+The versioned public runner contract is `hub.qa-runner/v2`. It is static
+source only: package and launcher are `NOT_READY`, private-contract execution
+is `PRIVATE_CONTRACT_NOT_RUN`, and all runtime evidence is `NOT_RUN`.
 
-## Authority and fixed targets
+The repository image lock, the three A1 dependency/provenance controls, and
+the founder-approved Package-R one-shot authority do not yet exist. A1 remains
+`BLOCKED_EXTERNAL_INGRESS`; Package R and the only permitted bootstrap
+transaction remain `BLOCKED`. The A0.2/B source present in the tree is only a
+static candidate until its independent package gates are recorded. Static
+source review is not Docker, image, cleanup, or target acceptance.
 
-`/qa-gate` is the sole public execution authority. Its private implementation
-detail is `testframework/runner/run-task.ps1`; it is not a supported direct
-command, alternate entrypoint, or fallback route.
+## Sole public request
 
-The private request contract is `hub.qa-runner/v1` and has exactly three fixed
-target identities:
+`/qa-gate` is the sole public route. Its current adapter accepts exactly six raw
+arguments in this order, with no PowerShell parameter-binding fallback:
 
-- `backend-unit`
-- `frontend-unit`
-- `backend-openapi`
+```text
+-Target <target> -Task <task> -Run <run>
+```
 
-Future Python jobs, sentinel, selftest, fixture, unknown, and caller-selected
-target names are outside this candidate and return `NOT_READY` without entering
-the private runner.
+Those arguments form exactly these versioned request values:
 
-The private request contains only `Contract`, `Target`, `Task`, and `Run`.
-It cannot carry an executable, path, argument vector, image or Compose
-override, timeout profile, dependency object, resource inventory, fixture,
-selftest, arbitrary command, or selector. All identities for the project,
-container, report root, Compose definition, image lock, and executable are
-derived internally from the canonical repository, fixed target, and validated
-task/run identifiers.
+- `target`
+- `task`
+- `run`
 
-The internal dependency seam has exactly four semantic operations:
+`task` follows `^[a-z][a-z0-9-]{2,31}$`; `run` follows
+`^[a-z0-9][a-z0-9-]{7,63}$`. The public route injects
+`hub.qa-runner/v2`; callers cannot provide a contract, path, command,
+arguments, image, Compose file, report root, timeout, role claim, owner nonce,
+private context, environment override, or bootstrap authority. Missing,
+malformed, private, unknown, sentinel, test, or extra input fails closed with
+intended exit `64` before a private runner or Docker operation.
 
-1. `InspectLockedImage`
-2. `RunFixedTarget`
-3. `ListOwnedResources`
-4. `CleanupOwnedResources`
+The only fixed G0 target identities are `backend-unit`, `frontend-unit`,
+`backend-openapi`, and `g0-planning-selftest`. The public route never exposes
+`g0-planning-selftest`; it is a bootstrap-private fixture target. Until the
+later accepted C1 authority, all ordinary fixed targets return `NOT_READY`.
 
-No fifth dependency operation, caller-controlled I/O surface, or public
-execution route is permitted.
+The declared Python jobs `python-contract`, `python-api`,
+`python-integration`, `python-e2e-smoke`, `python-e2e-full`, and `python-load`
+remain future `NOT_READY` jobs. They do not enter a private runner or Docker
+and no compatibility runner, legacy test route, or direct command is a
+fallback.
 
-## Local image identity and v3 control provenance
+## Bootstrap is internal only
 
-The proposed image lock schema is exactly `hub.qa.local-images-lock/v3` in
-`testframework/docker/images.lock.v3.json`. It is a local Docker-engine
-contract: every target is selected only by its complete local `image_id`.
-Target `repo_digest` members reject the lock. Observed target tags and
-RepoDigests are ignored for identity and selection. Base `repo_digest` is
-local inventory/admission evidence only and is never a selector, pull trigger,
-or target identity field.
+`hub.qa-bootstrap/v1` is not a public gate target. Its one-time internal
+`g0-planning-selftest` closure receives only a non-serialized private context
+from the founder-released bootstrap transaction. Direct script invocation,
+public planning-selftest dispatch, serialized role transport, continuation,
+or duplicate closure use rejects before Docker with the closed direct-call or
+one-shot error. The private runner library has no executable file parameter
+surface.
 
-The lock has exactly the fixed bases `golang`, `playwright`, and `python`, and
-the three fixed targets above. Its parser is strict and duplicate-aware:
-duplicate, missing, additional, malformed, escaped, or reparsed members fail
-before report creation, owner-marker creation, or dependency calls. Each exact
-Entrypoint array, Cmd array, and complete labels projection is retained as its
-own value. Their hashes are computed over no-BOM UTF-8 RFC 8785 JSON
-Canonicalization Scheme (JCS) bytes; null substitution, array concatenation,
-or partial label projection is forbidden.
+When all future gates are accepted, bootstrap derives the fixed task
+`g0-assets-runner` and one grammar-valid run solely from the committed
+Package-R artifact. It creates one task-owned report root,
+`testframework/reports/g0-assets-runner-<run>`, and may run only the internal
+fixture. It never runs an ordinary backend, frontend, Python, E2E, load, or
+legacy suite during bootstrap.
 
-Private attestation accepts one mandatory literal 40-lowercase-hex
-`ControlCommit`. It reads exactly these six mode-`100644` Git blobs from that
-commit, in this order, and derives both the ordered control-bundle digest and
-the raw Compose-byte digest:
+The separate pre-helper admission context has exactly 28 private fields. Each
+A1 dependency asset has exactly 12 ordered fields: `asset_id`, `targets`,
+`relative_path`, `sha256`, `bytes`, `archive_format`, `member_count`,
+`expanded_bytes`, `layout_sha256`, `license_spdx`,
+`license_evidence_sha256`, and `provenance_sha256`. The post-build
+image-attestation context has exactly 11 distinct private fields and
+binds the owner marker, local-image inspection, and earlier local-base receipt
+as raw bytes/digests/nonce. Neither context is a CLI, JSON, environment,
+Docker label, mount, report, or public input.
 
-1. `testframework/docker/Dockerfile.backend-openapi`
-2. `testframework/docker/Dockerfile.backend-unit`
-3. `testframework/docker/Dockerfile.frontend-unit`
-4. `testframework/docker/build-manifest.v2.json`
-5. `testframework/docker/compose.unit.yaml`
-6. `testframework/docker/source-policy.v1.json`
+The Package-B candidate imports each accepted private source while its exact
+bytes remain held through a read-only/no-write/no-delete Windows handle. After
+all imports and before the first admission or attestor entry point, it replaces
+and verifies the active `Get-HubQaDockerClientPath`,
+`Get-HubQaGitBlobBytes`, `Get-HubQaGitTreeEntry`,
+`Get-HubQaGitObjectSourceTree`, and
+`Invoke-HubQaG0AdmissionFromBootstrapContext` functions with B-owned wrappers.
+Those wrappers reach Git and Docker only through the bounded Job Object process
+runner, which creates each child suspended, assigns it to a kill-on-close Job,
+and only then resumes it. The historical A0.2/A0.1 helper bodies remain
+immutable archive input; their old process snippets are not executable
+authority in the bootstrap.
 
-The control-bundle grammar is exactly
-`path<TAB>100644<TAB>git-blob-sha1<TAB>sha256-of-exact-blob-bytes<LF>` for
-each ordered row. `control.compose_sha256` is the SHA-256 of the exact raw
-Compose blob bytes, not a YAML parse or normalized rendering. Worktree copies
-of control files are non-authoritative. Product source is materialized only
-from mode-`100644` Git blobs at the source policy's `source_commit` (recorded
-in the lock as `source.commit`), never from a source bind, checkout,
-working-tree copy, or Git metadata inference.
+The envelope producer is imported before the snapshot producer; the snapshot
+producer has no dot-source, Git, or process path. Bootstrap captures the exact
+16-field Git/control snapshot evidence through the bounded native runner before
+sealing `command-receipts.v1.json`; captured HEAD must equal the release commit
+both before and after the ordered index/worktree capture. After exact cleanup,
+it constructs the 24-field snapshot private context entirely from those
+captured values and the three retained receipt byte arrays, then calls the pure
+snapshot producer.
 
-The private attestor is excluded from the control bundle and does not
-self-attest. Its integrity is instead an out-of-band review and commit-admission
-gate. Existing lock objects fail closed: the attestor must not overwrite,
-replace, delete, or adopt an existing `images.lock.v3.json` object.
+## Docker-only future execution
 
-Every target uses its exact local `image_id` and binds
-`control_commit` plus `control_bundle_sha256` to the top-level control pair.
-Its v3 identity/provenance binding subset contains exactly these eight labels:
-`hub.qa.target`, `hub.qa.base-image-id`, `hub.qa.control-commit`,
-`hub.qa.control-bundle-sha256`, `hub.qa.source-commit`,
-`hub.qa.source-policy-sha256`, `hub.qa.source-tree-manifest-sha256`, and
-`hub.qa.build-manifest-sha256`. The separate ninth lifecycle/status label is
-`hub.qa.runtime-status`. Attestor and runner equality for the full labels
-projection includes all nine labels; the v3 binding subset remains exactly the
-eight labels above. All required selected images must already exist locally as
-`linux/amd64` image objects. A missing local base, target, platform, identity
-match, or required dependency byte fails closed before staging, execution, or
-publication. There is no registry login, pull, push, manifest lookup, remote
-provenance lookup, remote cache, network download, package installation,
-source bind, or fallback image acquisition.
+All tests, validators, linters, builds, Vite, Playwright, pytest, Locust, and
+target processes run only in the task-owned Docker transaction after the
+required authority is accepted. Host Windows is limited to reading/editing,
+Git, and the approved launcher/Docker CLI boundary; it is not a test or
+runtime fallback.
 
-## Compose boundary
+That later transaction is local-only and network-disabled. It uses admitted
+offline dependency archives at the fixed
+`bootstrap/build-context/<target>/bindings/<relative_path>` topology, then
+runs the Git-object source-tree gate before builds. It produces evidence in
+one direction: snapshot first, envelope second (raw-linking the snapshot), and
+`run.json` third (aggregating the two raw path/digest pairs). There is no hash
+cycle, report replacement, source bind, direct Docker/Compose route, registry
+operation, runtime installation, or network fallback.
 
-The six control blobs above are the authoritative v3 private contract inputs.
-The local Compose definition is an immutable raw-byte-pinned input and is
-rechecked against `control.compose_sha256` before staging, execution, or
-publication; no YAML substring parse or transformed representation substitutes
-for that byte identity.
+Git and inspection waits are bounded by 30 seconds, an individual command by
+180 seconds, the shared cumulative target budget by 780 seconds, cleanup by 30
+seconds, and the sole outer budget by 840 seconds including 30 seconds of
+orchestration slack. Each child timeout is clipped to the remaining applicable
+budgets. Deadline expiry maps to `124`; the first non-zero exit remains
+immutable through termination and cleanup.
 
-After all request, path, v3-lock, and raw Compose byte checks, the candidate
-creates one nonce-bound reservation with create-new semantics. Its staging
-directory may contain only `.owner.json` and `compose.unit.yaml`; both are
-re-snapshotted before one atomic final-directory publication. The owned `raw/`
-directory is created only after publication and verified reservation release,
-before dependency construction. A collision or ambiguity retains every
-reservation, staging, or final-report object and starts no dependency; there is
-no adoption, recursive deletion, wildcard cleanup, or automatic janitor.
+The outer deadline rejects a missing or stopped runtime Stopwatch and compares
+elapsed ticks against the exact 840-second limit. It brackets every final
+stage before and after: snapshot Git evidence, command-receipt sealing, exact
+cleanup, snapshot context and snapshot, envelope, completed-zero `run.json`,
+and the C receipt chain. The intended order remains command receipts first and
+exact cleanup second. A final success-only fence runs in `finally` before the
+outer Stopwatch is stopped. The Stopwatch is then stopped and its elapsed ticks
+are checked once more before runtime authority is cleared; either expiry
+becomes exit `124`.
 
-G0-B remains an inert, no-source-bind template and is `NOT_VERIFIED`; it
-neither consumes the absent lock nor selects or runs an image. Once separately
-accepted, the local Compose contract may use `pull_policy: never`, may bind
-each service only to the exact locked local target `image_id`, and may mount
-only the task-owned report path. It must contain no repository or source bind,
-checkout, working-tree read, Git metadata inference, runtime package download,
-or runtime installation.
+The shared 30-second cleanup Stopwatch accumulates cleanup work only. Helper
+cleanup lazily creates, starts, and stops it in `finally`; later exact cleanup
+restarts the same Stopwatch and stops it in `finally`. Builds and inspections
+between those scopes do not consume the cleanup budget. Helper and exact
+cleanup rethrow `E_B0_TIMEOUT_124` immediately; both the success-cleanup and
+fallback-cleanup catches preserve it as exit `124` rather than general cleanup
+exit `71`. Exact cleanup uses one combined outer-plus-cleanup guard around
+resource enumeration and every iteration, owned file/directory deletion,
+Docker probe/removal, report-tree removal, and cleanup-receipt creation. A
+single unconditional post-delete guard may also close the iteration fence.
+Its `finally` stops the cumulative cleanup clock, rechecks the stopped elapsed
+ticks against 30 seconds, and then rechecks the still-live outer clock.
 
-## Evidence, ownership, and deadlines
+Immediately after Package-R validation and before any per-run report root or
+runtime resource, bootstrap scans the fixed physical ledger root and writes the
+create-new durable receipt
+`testframework/reports/g0-assets-runner-nonce-consumptions/<release_id>.nonce-consumption.v1.json`.
+Its exact nine fields bind release commit, raw release digest, task/run/release
+ID, nonce, consumption time, and `CONSUMED`; cleanup never owns or removes it.
 
-After successful pre-mutation validation, a run has an exclusive task-owned
-report root and owner marker. It can record the owner marker, final receipt,
-fixed-command receipts, fixed-command output, target artifacts, and cleanup
-outcome. Reports must not contain host environment dumps or secret values.
-Raw Compose output is confined to its owned raw artifacts and is not imported
-into structured receipts.
+After positive-green and the bounded snapshot-evidence capture, bootstrap writes canonical
+`commands/command-receipts.v1.json`. Its exact top-level fields are `schema`,
+`producer`, `task`, `run`, `owner_marker_sha256`,
+`release_one_shot_nonce`, `commands`, and `created_at_utc`. Each ordered command
+entry is exactly `name`, `argv`, `exit_code`, `timed_out`, `started_at_utc`,
+`finished_at_utc`, `stdout_sha256`, and `stderr_sha256`. Package C retains the
+exact ordered keys `nonce_consumption`, `owner_marker`, `local_base_inspect`,
+`helper_base_verification`, `helper_image_attestation`, `ingress_copy`,
+`helper_admission`, `helper_cleanup`, `source_tree_verification`,
+`local_image_inspection`, `candidate_lock`,
+`planning_selftest_negative_red`, `planning_selftest_positive_green`,
+`command_receipts`, `run`, and `cleanup`, each as `{path, raw_sha256}`.
+Snapshot, envelope, and the ten-field completed-zero `run.json` remain a
+one-way chain, and activation binds the same nonce receipt plus `a02_commit`
+through C1/D.
 
-The candidate keeps fixed limits: an image-baked command bound of 180 seconds,
-an image-baked target bound of 780 seconds, a private image-inspection bound of
-30 seconds, a private outer fixed-target bound of 810 seconds, and one
-aggregate owned-resource cleanup window of 30 seconds. The first observed
-deadline freezes exit `124` for its layer; there is no retry or post-deadline
-grace period.
+## Authority sequence
 
-Cleanup is a single exact owned-resource route: initial inventory, typed exact
-owned/foreign selection, exact cleanup only when the complete initial inventory
-is clean, then residual zero-owned proof. Foreign records are preserved.
-Recursive deletion, wildcard deletion, pruning, automatic staging janitors,
-and deletion of a final report are forbidden.
+1. A0.1 archive contract is independently accepted and committed.
+2. A0.2 is independently accepted as the exact nine-path unit-runner successor:
+   A0.1 must be in its first-parent history, its actual parent must descend from
+   source baseline `61b38573682d7c01e6d9381babc5085537d7990f`, and current
+   source selection is the exact seven A0.2-overlap plus six remaining A0.1
+   blobs.
+3. A1 binds a founder-provided offline ingress in exactly three data files and
+   remains blocked until those exact local bytes and evidence exist.
+4. Package B is independently accepted as static source only.
+5. A separately accepted Package-R artifact binds ordered `a0_commit`,
+   `a02_commit`, `a1_commit`, and `b_commit` and provides the explicit one-shot
+   founder release.
+6. Only then can Package C perform the Docker-only bootstrap transaction;
+   C1, D, and activation later verify the candidate lock and evidence.
 
-## Acceptance boundary
-
-The local successor is not accepted until an independent review and separately
-authorized Docker-only local-cache verification prove exact three-image local
-identity, v3 ControlCommit and control-bundle equality, raw Compose equality,
-complete nine-label full-projection parity (including `hub.qa.runtime-status`)
-with its exact eight-label v3 binding subset, no registry/network path, no
-repository/source bind, and the bounded ownership/cleanup route. Until then
-the exact status is:
-package and launcher `NOT_READY`; private contract
-`PRIVATE_CONTRACT_NOT_RUN`; runtime `NOT_RUN`; and G0-B parity
-`G0-B_PARITY_NOT_VERIFIED`. No static review promotes those statuses.
+Until all of that exists, report `NOT_READY` / `NOT_RUN` rather than a pass.

@@ -1,219 +1,174 @@
 ---
 name: qa-gate
-description: Sole public QA authority for closed G0 routing; planned Python jobs remain NOT_READY.
+description: Sole public QA authority for the closed v2 target/task/run route; Python jobs remain NOT_READY.
 disable-model-invocation: true
 ---
 
 # /qa-gate — sole public QA authority
 
-`/qa-gate` is Hub's only public QA execution authority. A caller never invokes
-the private runner, Docker/Compose, a legacy runner, or an internal command
-directly. Until every named acceptance gate is complete, a public request
-returns `NOT_READY` without private-runner or Docker execution.
+`/qa-gate` is Hub's only public QA execution authority. Its adapter accepts the
+exact raw argument vector `-Target <target> -Task <task> -Run <run>`, derives
+the request fields `target`, `task`, and `run`, then injects contract
+`hub.qa-runner/v2`. A caller must never invoke a private runner, bootstrap,
+Docker/Compose command, legacy runner, or internal command directly.
 
-## Current admission state
+Current status is `NOT_READY`: package and launcher are `NOT_READY`, private
+contract execution is `PRIVATE_CONTRACT_NOT_RUN`, and runtime evidence is
+`NOT_RUN`. Source review and static contracts are not Docker, image, cleanup,
+or test acceptance.
 
-- `testframework/docker/images.lock.v3.json` and the required local dependency
-  bytes are absent.
-- The candidate image-lock schema is `hub.qa.local-images-lock/v3`.
-- G0-B parity is `G0-B_PARITY_NOT_VERIFIED`.
-- Package and launcher are `NOT_READY`; private contract and runtime are
-  `PRIVATE_CONTRACT_NOT_RUN` / `NOT_RUN`.
-- Static source is accepted only. P7 and every execution acceptance gate remain
-  `BLOCKED`; static review, files, or documentation are not image, Docker,
-  target, runtime, cleanup, or PASS acceptance.
+## Closed public v2 route
 
-Until independent G0-B, G0-C, G0-S, G0-B01, Docker-only authority, and later
-acceptance tasks are accepted, every otherwise valid G0 request returns
-`NOT_READY` before the private runner and Docker.
+The public request contains exactly:
 
-## Founder and planning boundaries
+- `target`
+- `task`, matching `^[a-z][a-z0-9-]{2,31}$`
+- `run`, matching `^[a-z0-9][a-z0-9-]{7,63}$`
 
-- Windows host execution of tests, validators, linters, build/vet, Vite,
-  backend/frontend processes, pytest, Playwright, or Locust is forbidden.
-  The host is only for reading/editing, Git, and Docker CLI.
-- Legacy `backend/testframework/**`, static-contract Vitest, TypeScript
-  Playwright, their configs/linkers/runners, and direct Docker snippets are
-  neither a gate nor a fallback.
-- Historical 82% Go coverage and row parity are not rebase acceptance gates.
-- Zero collection, an unexpected skip, or a leaked task-owned resource is a
-  failure for a future accepted target; it does not authorise a legacy run.
+The caller cannot choose a contract, private context, bootstrap role, owner
+nonce, source/ingress/report path, executable, argument vector, image,
+Compose file, timeout, dependency, environment, resource inventory, or any
+other selector. Missing, extra, unknown, sentinel, test, private, or malformed
+input rejects with intended exit `64` before a private runner or Docker action.
+There is no v1 bridge, compatibility runner, best-effort dispatch, retry, or
+fallback.
 
-The target catalog below describes the founder-greenfield end state only. It
-does not grant execution authority or change the current `NOT_READY` /
-`NOT_RUN` state.
+The fixed G0 target identities are:
 
-| Catalog job | Planned target | Current routing state |
-|---|---|---|
-| `backend-unit` | `backend/tests/{domain}/**` | closed G0 candidate only |
-| `frontend-unit` | `frontend/tests/{domain}/**`, support | closed G0 candidate only |
-| `backend-openapi` | baked deterministic OpenAPI comparison | closed G0 candidate only |
-| `python-contract` | `testframework/tests/contract/**` | future, `NOT_READY` |
-| `python-api` | `testframework/tests/api/**` | future, `NOT_READY` |
-| `python-integration` | `testframework/tests/integration/**` | future, `NOT_READY` |
-| `python-e2e-smoke` | `testframework/tests/e2e/**`, marker `smoke` | future, `NOT_READY` |
-| `python-e2e-full` | `testframework/tests/e2e/**`, launcher profile `full` | future, `NOT_READY` |
-| `python-load` | `testframework/load/**` | future, `NOT_READY` |
-
-## Public request and closed G0 routing
-
-Caller supplies exactly:
-
-- `target` — one closed G0 target;
-- `task` — lowercase `[a-z0-9][a-z0-9-]{0,23}`;
-- `run` — independently validated lowercase `[a-z0-9][a-z0-9-]{0,23}`.
-
-`/qa-gate` injects literal contract `hub.qa-runner/v1`. The caller cannot
-supply or override a contract, executable, script path, arguments, Compose
-file, image, timeout profile, dependency, fixture, resource inventory,
-selector, project name, container name, or raw command.
-
-Fixed derived identities are:
-
-- Compose project: `hubqa-<task>-<run>`;
-- container: `<project>-<target>`;
-- report root: `testframework/reports/<task>-<run>/`.
-
-Exactly these three G0 targets may become executable only after every named
-gate is accepted:
-
-| Public target | Fixed responsibility |
+| Target | Current public result |
 |---|---|
-| `backend-unit` | baked backend build, vet, genuine unit, and race sequence |
-| `frontend-unit` | baked frontend typecheck, lint, build, and genuine unit sequence |
-| `backend-openapi` | baked deterministic two-pass OpenAPI generation and exact three-file comparison |
+| `backend-unit` | `NOT_READY` pending accepted C1 authority |
+| `frontend-unit` | `NOT_READY` pending accepted C1 authority |
+| `backend-openapi` | `NOT_READY` pending accepted C1 authority |
+| `g0-planning-selftest` | reject: bootstrap-private fixture only |
 
-Declared Python catalog jobs are not G0 targets. They return `NOT_READY`
-without invoking G0 or Docker. Missing, unknown, sentinel, test, private,
-malformed, or extra input is rejected before G0 with intended exit `64`; no
-partial or best-effort dispatch exists.
+The future Python targets `python-contract`, `python-api`,
+`python-integration`, `python-e2e-smoke`, `python-e2e-full`, and `python-load`
+return `NOT_READY` without entering a private runner or Docker. They are not
+G0 fallback targets.
 
-Apply validation without side effects in this order:
+## Bootstrap is not a public route
 
-1. Require exactly `target`, `task`, and `run`.
-2. Return `NOT_READY` for a declared future Python job; reject missing, extra,
-   unknown, sentinel, test, and private input with intended exit `64`.
-3. Validate `task` and `run` independently.
-4. Construct the private request with exactly injected `contract`, validated
-   `target`, `Task`, and `Run`.
-5. Confirm the named G0 source/runtime gates. Until then, return `NOT_READY`
-   without starting the private runner or Docker.
-6. Only after those gates, hand the request internally to the canonical private
-   runner through fixed Windows PowerShell 5.1 authority.
+`hub.qa-bootstrap/v1` is only the later founder-released, local-only
+transaction. It derives fixed `g0-assets-runner` task/run values from the
+accepted Package-R artifact and invokes only the internal
+`g0-planning-selftest` closure. A direct script call, a public planning-selftest
+request, serialized role/private-context transport, a continuation, or a
+duplicate closure call rejects before Docker.
 
-That internal handoff is not a public command and must not be printed as a
-copyable runner instruction. Alternate shells, PATH/PATHEXT lookup, naked
-Docker/Compose fallback, host-test fallback, runtime image pull/build/install,
-ad-hoc build, automatic or in-run retry, grace period, and scheduler are
-forbidden.
+The bootstrap-private admission context has the frozen 28-field A0.1 archive
+shape as amended by A0.2. Each A1 asset has exactly the ordered fields
+`asset_id`, `targets`, `relative_path`, `sha256`, `bytes`, `archive_format`,
+`member_count`, `expanded_bytes`, `layout_sha256`, `license_spdx`,
+`license_evidence_sha256`, and `provenance_sha256`.
+Its separate post-build image-attestation context has the frozen 11-field
+shape. Both are in-memory-only internal capability data; neither is public
+input or runtime evidence.
 
-## Local image, control, and Compose boundary
+The Package-B candidate holds every accepted private-source file with
+read-only/no-write/no-delete sharing while importing and rechecking its exact
+bytes. Before any admission or attestor entry point, it installs and verifies
+B-owned replacements for the imported Docker-client resolver, Git
+blob/tree/source-tree primitives, and admission Docker primitive. Their active
+call graph reaches Git/Docker only through the bounded Windows Job Object
+runner, which creates each child suspended, assigns it to a kill-on-close Job,
+and resumes it only afterwards.
+Inert historical process text in the accepted A0.2/A0.1 blobs is not a callable
+fallback.
 
-The local-only `images.lock.v3.json` selects every base and target solely by
-its complete local Docker `image_id`. A target `repo_digest` member rejects the
-lock; observed target tags and RepoDigests are never selectors. A base
-`repo_digest` is local-inventory/admission evidence only, checked only after
-the exact local `image_id`, and never selects an image.
+The envelope producer is imported before the snapshot producer. The snapshot
+producer itself has no dot-source, Git, or process path: bootstrap captures the
+exact 16-field Git/control evidence through the bounded runner before sealing
+command receipts, requiring HEAD to equal the release commit before and after
+the ordered index/worktree capture. It performs exact cleanup, then passes a
+closed 24-field context of captured values and retained receipt bytes to the
+pure producer.
 
-The v3 lock binds a literal reviewed `ControlCommit`, six mode-`100644` control
-Git blobs, their closed control-bundle SHA-256, and the immutable raw
-Compose-byte SHA-256. Product/source Git blobs are worktree-non-authoritative
-provenance inputs, not a self-proof by the attestor. The exact local target
-`image_id` plus its control pair and all eight mandatory provenance labels must
-agree: target, base image ID, control commit, control bundle hash, source
-commit, source-policy hash, source-tree-manifest hash, and build-manifest hash.
-Entrypoint, Cmd, and complete labels projection remain separate values, each
-hashable as no-BOM UTF-8 RFC 8785 JCS bytes.
+## Docker-only execution boundary
 
-The strict duplicate-aware parser rejects duplicate, missing, additional,
-malformed, escaped, or reparsed lock members before report mutation or a
-dependency call. An existing task-owned report path is never overwritten or
-adopted.
+Windows host execution of tests, validators, linters, build/vet, Vite,
+backend/frontend processes, pytest, Playwright, or Locust is forbidden. All
+future execution happens only in task-owned Docker after the required authority
+is accepted. Direct Docker/Compose snippets, registry/network access, source
+binds, runtime installs, legacy launchers, and direct private-runner invocation
+are not fallbacks.
 
-All selected images must already exist locally as exact `linux/amd64` objects.
-Registry login, pull, push, manifest lookup, remote provenance lookup, remote
-cache, network download, package installation, mutable-tag selection, and
-fallback image acquisition are forbidden. Missing local identity, platform, or
-required dependency bytes fails closed before staging, execution, or
-publication.
+The later local-only bootstrap uses the admitted immutable archive topology
+`bootstrap/build-context/<target>/bindings/<relative_path>`, performs the
+Git-object source-tree gate before target-image builds, and retains evidence in
+one direction: snapshot first, envelope second with the only raw link to the
+snapshot, and `run.json` third as the pair aggregator. It preserves the first
+non-zero exit, freezes a deadline as `124`, and cleans only exact owned
+resources while preserving foreign resources and retained reports.
 
-The G0-B Compose asset remains an inert no-source-bind template until separate
-acceptance. A subsequent local contract may use `pull_policy: never`, bind a
-service only to its locked local target `image_id`, and mount only the
-task-owned report path. Repository/source binds, checkout, working-tree reads,
-Git metadata inference, and runtime installation are forbidden. Raw Compose
-bytes are pinned to the reviewed control value and rechecked before staging,
-execution, and publication; YAML substring parsing or transformed bytes cannot
-replace that identity check.
+All process waits are bounded: Git/inspection `30s`, individual command `180s`,
+one cumulative target budget `780s`, cleanup `30s`, and outer budget `840s`
+including `30s` orchestration slack. Every child wait is clipped to the
+remaining applicable budgets; timeout maps to `124` without overriding an
+earlier non-zero exit.
 
-The private candidate reserves report staging with one nonce-bound create-new
-record. Before atomic publication, staging is exactly `.owner.json` plus the
-raw-byte-pinned `compose.unit.yaml`; `raw/` is initialized only after verified
-publication and reservation release, before any dependency construction.
-Collision or ambiguity fails leave-only: no object is adopted or deleted, no
-dependency starts, and no fallback route is permitted.
+The active outer guard fails closed when its runtime Stopwatch is missing or
+stopped and compares elapsed ticks with the exact 840-second limit. It runs
+before and after snapshot Git evidence, command-receipt sealing, exact cleanup,
+snapshot context/snapshot, envelope, `run.json`, and the C chain. Command
+receipts intentionally precede cleanup. A final success fence in `finally`
+runs before the outer Stopwatch stops. The stopped elapsed ticks are checked
+again before runtime authority is cleared; either expiry maps to `124`.
 
-## Fixed deadline, dependency, and cleanup contract
+The 30-second cleanup budget is cumulative active cleanup time: helper cleanup
+starts and stops the shared Stopwatch in `finally`, and exact cleanup later
+restarts and stops that same Stopwatch. Intervening builds and inspections do
+not age the cleanup budget. Both cleanup layers immediately rethrow
+`E_B0_TIMEOUT_124`; success and fallback cleanup catches retain exit `124`
+instead of general cleanup exit `71`. Exact cleanup applies the combined
+outer-plus-cleanup guard around resource enumeration and every iteration,
+owned file/directory deletion, Docker probe/removal, report-tree removal, and
+cleanup-receipt creation. One unconditional post-delete guard may also serve as
+the terminal iteration fence. Exact cleanup finally stops and rechecks the
+cumulative cleanup clock against 30 seconds, then checks the still-live outer
+clock.
 
-`/qa-gate` owns only routing and task/run identity. It never schedules,
-terminates, extends, automatically retries within a run, or reinterprets a
-deadline, and it returns the supervisor's immutable first-cause exit unchanged.
+Immediately after Package-R validation and before report-root/runtime creation,
+bootstrap scans the fixed physical nonce ledger and create-new writes
+`testframework/reports/g0-assets-runner-nonce-consumptions/<release_id>.nonce-consumption.v1.json`.
+The nine-field `CONSUMED` receipt is durable, raw-digest bound to R, and never
+cleanup-owned. After positive-green the bootstrap writes canonical
+`commands/command-receipts.v1.json` with top-level `schema`, `producer`, `task`,
+`run`, `owner_marker_sha256`, `release_one_shot_nonce`, `commands`, and
+`created_at_utc`. Each command is exactly `name`, `argv`, `exit_code`,
+`timed_out`, `started_at_utc`, `finished_at_utc`, `stdout_sha256`, and
+`stderr_sha256`. The exact ordered 16-key C chain is `nonce_consumption`,
+`owner_marker`, `local_base_inspect`, `helper_base_verification`,
+`helper_image_attestation`, `ingress_copy`, `helper_admission`,
+`helper_cleanup`, `source_tree_verification`, `local_image_inspection`,
+`candidate_lock`, `planning_selftest_negative_red`,
+`planning_selftest_positive_green`, `command_receipts`, `run`, and `cleanup`;
+each child is `{path, raw_sha256}`.
+The ten-field completed-zero `run.json` binds that nonce and the raw
+snapshot/envelope path-digest pairs; C1/D/activation bind the same receipt and
+ordered `a0_commit`, `a02_commit`, `a1_commit`, `b_commit` authority.
 
-| Layer | Exclusive owner | Fixed bound and rule |
-|---|---|---|
-| fixed command | image-baked entrypoint | 180 seconds; image-owned |
-| fixed target | image-baked entrypoint | 780 seconds; image-owned |
-| image inspect/attestation | private supervisor | 30 seconds; distinct layer |
-| fixed target outer process | private supervisor | 810 seconds |
-| inventory, exact-ID cleanup, and zero proof | private supervisor | 30 seconds aggregate |
+## Current blockers
 
-The private supervisor has exactly four closed dependency operations:
+- A1 is `BLOCKED_EXTERNAL_INGRESS`: exact offline dependency bytes and their
+  approved provenance/license bindings have not been admitted.
+- Package B remains a static candidate until its independent package acceptance
+  is recorded; static review does not constitute private-contract execution.
+- Package R is `BLOCKED`: it needs accepted A0.1, the exact nine-path A0.2
+  successor, A1, and Package B plus the founder's explicit one-shot local-only
+  approval.
+- Until Package R and the later C/C1/D acceptance chain exist, `/qa-gate`
+  returns `NOT_READY` before private execution or Docker.
 
-1. `InspectLockedImage`
-2. `RunFixedTarget`
-3. `ListOwnedResources`
-4. `CleanupOwnedResources`
-
-There is no fifth dependency operation or general command abstraction. At the
-first observed deadline, exit `124` freezes for that layer; there is no
-additive grace period or retry. Cleanup remains mandatory but cannot overwrite
-that immutable first exit.
-
-Cleanup is a sole exact owned-resource route: initial inventory, typed exact
-owned/foreign selection, exact cleanup only when the complete initial inventory
-is clean, then residual zero-owned proof. Foreign records are preserved.
-Recursive deletion, wildcard deletion, pruning, automatic staging janitors,
-and deletion of a final report are forbidden.
-
-## Evidence and triage
-
-Only the accepted private boundary may report task-owned evidence:
-
-- `.owner.json`;
-- `commands.json`, the actual ordered receipt sequence, which may stop at the
-  first failure or timeout;
-- closed per-command output and result artifacts;
-- `run.json`, with immutable first exit, deadline layer, outcome, and artifact
-  manifest;
-- target artifacts when produced; and
-- `cleanup.json`.
-
-Raw Compose stdout and stderr remain only in owned raw artifacts and are not
-copied into structured receipts. Evidence contains neither a host environment
-dump nor secret values. G0-B filename/baked-entrypoint parity is future
-`NOT_VERIFIED`; it is not G0-B acceptance evidence or C1 approval.
-
-Report only the status and task-owned evidence produced by the accepted private
-boundary. Do not infer runtime or PASS from source, static review, files, image
-declarations, or an absent error. If an authorized future target fails, apply
-`.cursor/skills/test-triage/SKILL.md` before any correction. A fresh explicit
-public `/qa-gate` request is a new run, never a continuation or automatic retry.
+When a future accepted target fails, use
+`.cursor/skills/test-triage/SKILL.md` before deciding whether code or the test
+is at fault. Do not infer a pass from static source, an image declaration, a
+missing error, or zero collection.
 
 ## Planned routing declarations
 
-The following declarations preserve target ownership only. Their referenced
-paths are future and non-executable until the relevant accepted phase creates
-them; they never authorise a direct runner or Docker invocation.
+These declarations preserve future Python ownership only. They do not create
+or authorize a direct runner or Docker route.
 
 <!-- hub.qa-routing-declaration/v1
 {"schema_version":"hub.qa-routing-declaration/v1","scenario_id":"api-health","assigned_skill":".cursor/skills/qa-gate/SKILL.md","declared_routes":["testframework/src/hub_testkit/domains/health/api.py","testframework/tests/api/health/test_health.py"],"expected_routes":["testframework/src/hub_testkit/domains/health/api.py","testframework/tests/api/health/test_health.py"],"prohibited_legacy_tokens":["testframework/api/**","testframework/core/**"]}
@@ -227,10 +182,3 @@ them; they never authorise a direct runner or Docker invocation.
 <!-- hub.qa-routing-declaration/v1
 {"schema_version":"hub.qa-routing-declaration/v1","scenario_id":"load-tracker","assigned_skill":".cursor/skills/qa-gate/SKILL.md","declared_routes":["testframework/load/profiles/steady.toml","testframework/load/users/tracker.py"],"expected_routes":["testframework/load/profiles/steady.toml","testframework/load/users/tracker.py"],"prohibited_legacy_tokens":["testframework/core/**"]}
 -->
-
-## Related authority
-
-- Docker-only and execution authority: `AGENTS.md` and `.cursor/REGULATION.md`.
-- Failure classification: `.cursor/skills/test-triage/SKILL.md`.
-- G0 contract and gates:
-  `.superpowers/sdd/2026-08-09-minimal-qa-launcher/2026-08-09-minimal-qa-launcher.md`.
