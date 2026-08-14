@@ -1,7 +1,6 @@
-# 144-03B-Rule-Compiler — ROOT_FROZEN_CANDIDATE
+# 144-03B-Rule-Compiler — committed ROOT_FROZEN_CANDIDATE
 
-> **Status:** `ROOT_FROZEN_CANDIDATE`; this is a docs-only authoring candidate, not
-> acceptance, TDD authority, production authority, or executable evidence.
+> **Status:** committed docs-only `ROOT_FROZEN_CANDIDATE` at `f199546513b758ca7b95328b5ccd7680009b732e`, with exact path/blob integrity verified; it is not `STATIC_ACCEPTED`, TDD authority, production authority, or executable evidence.
 > **Packet:** `144-03B-Rule-Compiler`. **Base:**
 > `ca4e2854a319a020f7322ae0a9a98e3fb4a07374` on
 > `codex/mail-module-20260813`. **Author routing:** requested/accepted
@@ -13,10 +12,12 @@
 Folder source/oracle remains narrowly `STATIC_ACCEPTED` at
 `f8cb7643986fc591cae16764575337b72ef3a692`; Folder docs acceptance remains
 `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`. Neither accepts this candidate.
-The next action is one root atomic docs-only commit of the exact manifest, followed by
-three independent exact-SHA reviews: contract/spec, security/adversarial, and
-lifecycle/dependency; each must report C/I/M `0/0/0`. Do not mark this candidate
-accepted.
+Contract/Spec and Security/Adversarial exact-SHA reviews PASS C/I/M `0/0/0`. The prior
+Lifecycle/Dependency exact-SHA review FAILed solely because its target retained precommit lifecycle
+text. Once this transition document is committed, the only next action is an independent
+Lifecycle/Dependency exact-SHA re-review against `f1995465` plus transition HEAD; this document
+intentionally cannot name its own future SHA. Only that PASS C/I/M `0/0/0` permits a later,
+separate acceptance-status sync to mark `f1995465` narrowly `STATIC_ACCEPTED`.
 
 The future pure source/oracle packet is exactly:
 

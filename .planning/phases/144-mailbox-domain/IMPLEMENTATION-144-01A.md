@@ -89,9 +89,10 @@ fallback, but it did not implement the 0.1.8 projection/budget/reference-only am
   (source `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b`, oracle `efe0db0071cb22ce4b026c635157f0fb08885d64`,
   C/I/M `0/0/0`), static only. Folder docs are also static-only accepted at
   `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`; Rule is separately an unaccepted docs-only
-  `ROOT_FROZEN_CANDIDATE` pending its own commit/reviews, 02D/02F closure, later plan and
+  `COMMITTED_UNACCEPTED_AT_f1995465` pending Lifecycle/Dependency re-review, 02D/02F closure, later plan and
   Phase-145 carrier. No execution.
 
-> **Current override:** Rule compiler is now docs-only `ROOT_FROZEN_CANDIDATE`, unaccepted:
-> root commit, three exact-SHA reviews, 144-02D/02F closure, later plan and engine-port/145
+> **Current override:** Rule compiler is now docs-only `COMMITTED_UNACCEPTED_AT_f1995465`:
+> Contract/Spec Terra/high and Security Terra/xhigh PASS C/I/M `0/0/0`; Lifecycle Terra/high
+> FAILed C/I/M `0/1/0` solely stale text and is the only re-review after transition commit; 144-02D/02F closure, later plan and engine-port/145
 > carrier precede Rule TDD/production.

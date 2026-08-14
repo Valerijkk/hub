@@ -14,7 +14,7 @@ This is an accepted docs-only ABI contract. Its separately accepted source+oracl
 C/I/M `0/0/0`, static only. It makes no product, schema, handler, migration, repository, engine,
 or runtime claim. Thread remains `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS` and is not changed by this acceptance.
 
-The accepted plan is `a98c7235521852dee1ebc0d09558c7bcbefc4534` / blob `c79658d61e496489be697bc971d0797ed30fb61f`, narrowly `EXACT_SHA_PASS` / `STATIC_ACCEPTED` after exact, security and boundary reviews PASS, C/I/M `0/0/0`. Folder source/oracle and docs are accepted static-only at `f8cb7643986fc591cae16764575337b72ef3a692` and `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`. `144-03B-Rule-Compiler` is separately an unaccepted docs-only `ROOT_FROZEN_CANDIDATE` pending its own atomic commit/reviews, 02D/02F closure, later plan and Phase-145 carrier; no Rule TDD or production authorization follows. The runner is `NOT_READY`; Docker, tests, build, lint and validators remain `NOT_RUN`.
+The accepted plan is `a98c7235521852dee1ebc0d09558c7bcbefc4534` / blob `c79658d61e496489be697bc971d0797ed30fb61f`, narrowly `EXACT_SHA_PASS` / `STATIC_ACCEPTED` after exact, security and boundary reviews PASS, C/I/M `0/0/0`. Folder source/oracle and docs are accepted static-only at `f8cb7643986fc591cae16764575337b72ef3a692` and `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`. `144-03B-Rule-Compiler` is separately `COMMITTED_UNACCEPTED_AT_f1995465`, pending Lifecycle/Dependency re-review, 02D/02F closure, later plan and Phase-145 carrier; no Rule TDD or production authorization follows. The runner is `NOT_READY`; Docker, tests, build, lint and validators remain `NOT_RUN`.
 
 ## Frozen Go ABI
 
@@ -175,5 +175,5 @@ The accepted external-package oracle uses reflection for exact UUID fields/types
 Step 1 literal discovery found 16 existing paths. Adding the three existing stale-gate implementation evidence documents yields the frozen 19 existing paths; adding this one new evidence file yields this exact 20-path candidate. This bounded lifecycle inventory does not create a product decision. Facts in this file are current lifecycle/commit/provenance facts. The ABI, policy, wire and oracle paragraphs are narrowly accepted static contract, not product or executable acceptance.
 
 **Current subordinate gate:** Folder docs acceptance is `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`.
-Rule contract is a separate docs-only `ROOT_FROZEN_CANDIDATE`, unaccepted; root commit/reviews,
+Rule contract is a separate docs-only `COMMITTED_UNACCEPTED_AT_f1995465`; Lifecycle/Dependency re-review,
 144-02D/02F, later plan and engine-port/145 carrier precede Rule TDD/production.

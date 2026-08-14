@@ -76,8 +76,9 @@ applicable supported current-SHA Docker evidence under Task3. Broader Phase 142 
 remain pending or blocked.
 
 Folder docs are accepted static-only at `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`.
-`144-03B-Rule-Compiler` is separately an unaccepted docs-only `ROOT_FROZEN_CANDIDATE`: the
-current next action is its atomic 27-path docs commit, then three Rule exact-SHA reviews.
+`144-03B-Rule-Compiler` is separately docs-only `COMMITTED_UNACCEPTED_AT_f1995465`: Contract/Spec
+Terra/high and Security Terra/xhigh PASS C/I/M `0/0/0`; after this transition commit, the only
+next action is Lifecycle/Dependency exact-SHA re-review against `f1995465` plus transition HEAD.
 144-02D/02F closure, a later plan and a separate Phase-145 engine-port/carrier remain blocked;
 this is not Rule TDD or production authorization, and `rule_compiler.go` plus its test remain
 unauthorized.

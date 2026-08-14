@@ -67,7 +67,7 @@ do not establish executable, phase, product, or runtime acceptance.
   (source `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b`, oracle `efe0db0071cb22ce4b026c635157f0fb08885d64`,
   C/I/M `0/0/0`), static only. Folder docs are also static-only accepted at
   `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`; Rule is separately an unaccepted docs-only
-  `ROOT_FROZEN_CANDIDATE` pending its own commit/reviews, 02D/02F closure, later plan and
+  `COMMITTED_UNACCEPTED_AT_f1995465` pending Lifecycle/Dependency re-review, 02D/02F closure, later plan and
   Phase-145 carrier. No execution. Its dependency on accepted
   Address is satisfied; its callable/encoding/oracle contract is
   `THREAD_CALLABLE_ENCODING_ORACLE_STATIC_ACCEPTED` at
@@ -79,5 +79,5 @@ do not establish executable, phase, product, or runtime acceptance.
   pending. This evidence does not accept the phase, product, persistence, OpenAPI, or runtime.
 
 > **Current rule gate:** `144-03B-Rule-Compiler` is unaccepted docs-only
-> `ROOT_FROZEN_CANDIDATE`; root commit/reviews, 02D/02F, later plan and engine-port carrier
+> `COMMITTED_UNACCEPTED_AT_f1995465`; Lifecycle/Dependency re-review, 02D/02F, later plan and engine-port carrier
 > remain required before Rule TDD/production.

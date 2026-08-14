@@ -123,6 +123,6 @@ In addition to the attempted tuple, the one-row-per-account deployment needs:
 
 ## 144-03B Rule dependency clarification
 
-`144-03B-Rule-Compiler` is only a docs-only `ROOT_FROZEN_CANDIDATE`; this 02F review is not
+`144-03B-Rule-Compiler` is only docs-only `COMMITTED_UNACCEPTED_AT_f1995465`; this 02F review is not
 closed or accepted by it. Rule TDD/production requires explicit 02F closure, candidate and
 later-plan exact-SHA acceptance, and the separate Phase-145 engine-port carrier.

@@ -836,4 +836,5 @@ task-owned launcher and founder migration decision exist.
 Compiler neither calculates nor returns 04M-owned canonical hash v1; input action order remains
 hash material. Labels use server-generated immutable unique keywords: `hubk-` plus canonical
 lower-case unpadded RFC-4648 base32 of 32 random bytes, decode-to-32/re-encode exact. This does
-not close 144-02D/02F or authorize schemas, generation, Rule TDD or production.
+not close 144-02D/02F or authorize schemas, generation, Rule TDD or production. The Rule contract is
+docs-only `COMMITTED_UNACCEPTED_AT_f1995465`; Lifecycle/Dependency exact-SHA re-review remains required.

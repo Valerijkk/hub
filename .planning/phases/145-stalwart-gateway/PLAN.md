@@ -77,6 +77,6 @@ transport passes.
 
 ## Rule compiler boundary blocker
 
-`144-03B-Rule-Compiler` is an unaccepted docs-only `ROOT_FROZEN_CANDIDATE`, typed IR only.
-Phase 145 needs its later accepted plan, 144-02D/02F closure and a separate accepted engine-port
+`144-03B-Rule-Compiler` is an unaccepted docs-only `COMMITTED_UNACCEPTED_AT_f1995465`, typed IR only.
+Phase 145 needs Lifecycle/Dependency re-review, its later accepted plan, 144-02D/02F closure and a separate accepted engine-port
 carrier before Sieve work. Engine folder ID is not mailbox name; attachment IR needs MIME gate.

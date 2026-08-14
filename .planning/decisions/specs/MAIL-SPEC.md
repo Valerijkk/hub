@@ -1861,8 +1861,8 @@ Folder source+oracle are narrowly `STATIC_ACCEPTED` at `f8cb7643986fc591cae16764
 (source blob `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b`, oracle blob
 `efe0db0071cb22ce4b026c635157f0fb08885d64`, C/I/M `0/0/0`), static only. Folder docs are also
 static-only accepted at `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`. `144-03B-Rule-Compiler` is
-separately an unaccepted docs-only `ROOT_FROZEN_CANDIDATE`, pending its own atomic commit and
-three exact-SHA reviews, 144-02D/02F closure, later plan and Phase-145 carrier. Actual telemetry is
+separately a committed docs-only `ROOT_FROZEN_CANDIDATE` at `f199546513b758ca7b95328b5ccd7680009b732e`,
+unaccepted pending only Lifecycle/Dependency exact-SHA re-review, 144-02D/02F closure, later plan and Phase-145 carrier. Actual telemetry is
 `UNKNOWN` unless exposed. It does not authorize
 schemas, generation, migration, runtime or a version bump. 144-01B, Phase 142/148 and 144-02B
 remain pending; launcher is `NOT_READY` and runtime is `NOT_RUN`.

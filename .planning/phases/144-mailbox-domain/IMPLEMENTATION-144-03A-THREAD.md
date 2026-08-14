@@ -45,7 +45,7 @@ Folder source+oracle are narrowly `STATIC_ACCEPTED` at `f8cb7643986fc591cae16764
 (source `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b`, oracle `efe0db0071cb22ce4b026c635157f0fb08885d64`,
 C/I/M `0/0/0`), static only. Folder docs are also static-only accepted at
 `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`; Rule is separately an unaccepted docs-only
-`ROOT_FROZEN_CANDIDATE` pending its own commit/reviews, 02D/02F closure, later plan and
+`COMMITTED_UNACCEPTED_AT_f1995465` pending Lifecycle/Dependency re-review, 02D/02F closure, later plan and
 Phase-145 carrier. 144-03C/144-03D eligibility is status
 only, not the current action.
 
@@ -70,5 +70,5 @@ only, not the current action.
 19. `backend/tests/mail/threading_test.go`
 
 > **Current rule gate:** distinct `144-03B-Rule-Compiler` is docs-only
-> `ROOT_FROZEN_CANDIDATE`, not accepted; it needs root commit/reviews, 02D/02F, later plan and
+> `COMMITTED_UNACCEPTED_AT_f1995465`, not accepted; it needs Lifecycle/Dependency re-review, 02D/02F, later plan and
 > engine-port/145 carrier before Rule TDD/production.

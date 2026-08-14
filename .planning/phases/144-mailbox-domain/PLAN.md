@@ -1,6 +1,6 @@
 # Phase 144 — Mailbox Domain
 
-> Task: TASK-237 · Status: IN_PROGRESS · FIVE_DOCUMENT_DEFAULT_VS_HARD_CAP_144_01A_ENTRY_AMENDMENT_PASS `5e314fb0` (authorizes 144-01A entry only; broader Phase 142/cross-contract pending) · 144-01A STATIC_ACCEPTED `e3e8c774` / EXACT_SHA_PASS · 144-03A-Address STATIC_ACCEPTED `41564d00` / EXACT_SHA_PASS · 144-03A-Thread STATIC_ACCEPTED `9903f4df` / EXACT_SHA_PASS, contract `cbc12577`, C/I/M `0/0/0`, executable NOT_RUN · Folder source+oracle STATIC_ACCEPTED `f8cb7643986fc591cae16764575337b72ef3a692`, Folder docs acceptance `ca4e2854` · 144-03B-Rule-Compiler ROOT_FROZEN_CANDIDATE unaccepted pending root commit/reviews, 02D/02F, later plan and engine-port/145 carrier · 144-01B BLOCKED_ON_APPLICABLE_SUPPORTED_CURRENT_SHA_DOCKER_EVIDENCE_BY_TASK3 · 144-02A1/A2/A3 EXACT_PLAN_BLOCKED_REVIEW · 144-02B/02C/02D/02F CONTRACT_AMENDED_NOT_ACCEPTED · RUNTIME_NOT_RUN · Depends on: Phase 142
+> Task: TASK-237 · Status: IN_PROGRESS · FIVE_DOCUMENT_DEFAULT_VS_HARD_CAP_144_01A_ENTRY_AMENDMENT_PASS `5e314fb0` (authorizes 144-01A entry only; broader Phase 142/cross-contract pending) · 144-01A STATIC_ACCEPTED `e3e8c774` / EXACT_SHA_PASS · 144-03A-Address STATIC_ACCEPTED `41564d00` / EXACT_SHA_PASS · 144-03A-Thread STATIC_ACCEPTED `9903f4df` / EXACT_SHA_PASS, contract `cbc12577`, C/I/M `0/0/0`, executable NOT_RUN · Folder source+oracle STATIC_ACCEPTED `f8cb7643986fc591cae16764575337b72ef3a692`, Folder docs acceptance `ca4e2854` · 144-03B-Rule-Compiler COMMITTED_UNACCEPTED_AT_f1995465 pending Lifecycle/Dependency re-review, 02D/02F, later plan and engine-port/145 carrier · 144-01B BLOCKED_ON_APPLICABLE_SUPPORTED_CURRENT_SHA_DOCKER_EVIDENCE_BY_TASK3 · 144-02A1/A2/A3 EXACT_PLAN_BLOCKED_REVIEW · 144-02B/02C/02D/02F CONTRACT_AMENDED_NOT_ACCEPTED · RUNTIME_NOT_RUN · Depends on: Phase 142
 
 ## Goal
 
@@ -13,7 +13,7 @@ its exact 19-path implementation/oracle boundary is `STATIC_ACCEPTED` at `9903f4
 narrowly `STATIC_ACCEPTED` at `f8cb7643986fc591cae16764575337b72ef3a692` (source
 `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b`, oracle `efe0db0071cb22ce4b026c635157f0fb08885d64`,
 C/I/M `0/0/0`), static only; Folder docs acceptance is `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`.
-The distinct Rule contract is `ROOT_FROZEN_CANDIDATE`, unaccepted; its root commit/reviews,
+The distinct Rule contract is `COMMITTED_UNACCEPTED_AT_f1995465`; its Lifecycle/Dependency re-review,
 02D/02F closure, later plan and engine-port/145 carrier precede TDD/production.
 
 ## Ordered tasks
@@ -45,7 +45,7 @@ The distinct Rule contract is `ROOT_FROZEN_CANDIDATE`, unaccepted; its root comm
 Each item is one or more atomic commits split further when generated schema, service,
 handler, or docs cannot be reviewed independently. Existing Resend alert behavior stays
 separate and green.
-> **Current Rule lifecycle (2026-08-14):** Folder source/oracle `f8cb7643986fc591cae16764575337b72ef3a692` and Folder docs `ca4e2854a319a020f7322ae0a9a98e3fb4a07374` are static-only accepted. `144-03B-Rule-Compiler` is an unaccepted docs-only `ROOT_FROZEN_CANDIDATE`: it awaits its own root atomic 27-path commit and three exact-SHA reviews C/I/M `0/0/0`, explicit 144-02D/02F closure, a later separate plan and a separate Phase-145 engine-port/carrier. Rule TDD/production remain unauthorized; launcher `NOT_READY` and all executable evidence `NOT_RUN`; Phase 148 remains blocked.
+> **Current Rule lifecycle (2026-08-14):** Folder source/oracle `f8cb7643986fc591cae16764575337b72ef3a692` and Folder docs `ca4e2854a319a020f7322ae0a9a98e3fb4a07374` are static-only accepted. `144-03B-Rule-Compiler` is `COMMITTED_UNACCEPTED_AT_f1995465`: exact path/blob integrity verified; Contract/Spec Terra/high and Security Terra/xhigh PASS C/I/M `0/0/0`; Lifecycle Terra/high FAILed C/I/M `0/1/0` solely on precommit lifecycle text. After this transition commit, only independent Lifecycle/Dependency exact-SHA re-review against `f1995465` plus transition HEAD remains. Only that PASS permits later separate `STATIC_ACCEPTED` status sync. 144-02D/02F, later plan and separate Phase-145 engine-port/carrier remain open; Rule TDD/production unauthorized; launcher `NOT_READY`, executable evidence `NOT_RUN`, Phase 148 blocked.
 
 > **Current 144-03B rule gate:** `144-03B-Rule-Compiler` contract is a docs-only
 > `ROOT_FROZEN_CANDIDATE`, not accepted and not a TDD plan. Its exact two-file future boundary

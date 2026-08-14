@@ -218,7 +218,7 @@
   Calls to `x:SieveSystemScript` or `x:SieveUserScript` are test-oracle failures. Do not
   implement message mutations here.
 
-> **Current gate override:** Phase-144 compiler is `ROOT_FROZEN_CANDIDATE`, not accepted.
+> **Current gate override:** Phase-144 compiler is `COMMITTED_UNACCEPTED_AT_f1995465`, not accepted.
 > 145-07B additionally requires accepted engine-port carrier for typed IR/script bytes;
 > renderer owns escaping, engine folder ID is not mailbox name, and attachment stays MIME-blocked.
 

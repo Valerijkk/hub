@@ -155,4 +155,4 @@ Required cases:
 12. optional external SMTP only after G145-9, reported separately.
 
 **Rule gate:** candidate alone authorizes no Sieve runtime case. `144-03B-Rule-Compiler` is
-docs-only `ROOT_FROZEN_CANDIDATE`; later plan, 144-02D/02F and engine-port carrier are open.
+docs-only `COMMITTED_UNACCEPTED_AT_f1995465`; Lifecycle/Dependency re-review, later plan, 144-02D/02F and engine-port carrier are open.

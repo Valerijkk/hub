@@ -736,7 +736,7 @@ These remain non-executable required oracle scenarios. The exact 19-path Thread 
 `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b`, oracle `efe0db0071cb22ce4b026c635157f0fb08885d64`,
 C/I/M `0/0/0`), static only. Folder docs are also static-only accepted at
 `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`; the separate Rule candidate awaits its own
-root commit/reviews, 02D/02F closure, later plan and Phase-145 carrier. Launcher remains
+Lifecycle/Dependency re-review, 02D/02F closure, later plan and Phase-145 carrier. Launcher remains
 `NOT_READY` and runtime `NOT_RUN`.
 
 ### 144-03B Folder static-accepted source/oracle scenarios (executable evidence NOT_RUN)

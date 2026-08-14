@@ -7,7 +7,7 @@
 > with source blob `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b` and oracle blob
 > `efe0db0071cb22ce4b026c635157f0fb08885d64`, after three `EXACT_SHA_PASS` reviews C/I/M
 > `0/0/0`. Folder docs are also static-only accepted at `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`.
-> The separate Rule candidate awaits its own root commit/reviews, 02D/02F closure, later plan and
+> The separate Rule candidate is `COMMITTED_UNACCEPTED_AT_f1995465`, pending Lifecycle/Dependency re-review, 02D/02F closure, later plan and
 > Phase-145 carrier, with no Rule TDD or production authorization. Runner `NOT_READY`; all
 > executable evidence `NOT_RUN`.
 
@@ -16,7 +16,7 @@
 `144-03B-Rule-Compiler` is docs-only `ROOT_FROZEN_CANDIDATE`, not acceptance. It freezes
 provider-neutral typed IR, never raw Sieve or hash v1. The keyword is `hubk-` plus canonical
 lower-case unpadded RFC-4648 base32 of exactly 32 random bytes; validation decode-to-32 then
-identical re-encode, not regex alone. Rule TDD/production await root commit, three exact-SHA
+identical re-encode, not regex alone. Rule TDD/production await Lifecycle/Dependency exact-SHA
 reviews C/I/M `0/0/0`, 144-02D/02F closure, later plan and engine-port/145 carrier.
 
 ## 144-03B Folder lifecycle sync candidate — 2026-08-14
