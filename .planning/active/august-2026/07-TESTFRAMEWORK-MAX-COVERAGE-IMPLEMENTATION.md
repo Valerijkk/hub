@@ -42,6 +42,7 @@ This document supersedes the former missing-predecessor stops only as described 
 | `testframework/pyproject.toml` | sole package metadata, Hatchling build backend, Python range, `src` discovery, pytest strict configuration, and dependency-group authority | F0-01 |
 | `testframework/.python-version` | literal `3.12.13` only | F0-01 |
 | `testframework/uv.lock` | generated exact resolution only after R; intentionally absent before R | F0-02/R |
+| `testframework/PACKAGE-CONTRACT.md` | current source/package/runtime status updated in the same atomic slice that changes package artifacts | F0-01 and F0 closure |
 | `testframework/src/hub_testkit/__init__.py` | sole public namespace boundary | F0-01 |
 | `testframework/src/hub_testkit/py.typed` | PEP 561 marker shipped with typed public surfaces | F0-01 |
 | `testframework/src/hub_testkit/config/{__init__.py,models.py,load.py}` | frozen strict settings and environment admission before SUT I/O | F0-03 |
@@ -147,7 +148,7 @@ One atomic source commit contains its source, cases, and selftests for one row b
 | Order | Atomic commit subject | Literal source ownership | Mandatory independent review before next source commit |
 |---:|---|---|---|
 | 0 | `docs(testframework): activate founder max coverage source plan` | the four planning/contract files named in this document's change set | architecture + security review for scope/status/grammar |
-| 1 | `build(testframework): bootstrap installable hub testkit` | F0-01 paths | package/import-contract review |
+| 1 | `build(testframework): bootstrap installable hub testkit` | F0-01 paths including the factual `PACKAGE-CONTRACT.md` status update | package/import-contract review |
 | 2 | `feat(testframework): add profile and resolver policy boundary` | F0-02 paths, never `uv.lock` before R | profile/launcher-boundary review |
 | 3 | `feat(testframework): add strict config runtime ownership` | F0-03 paths | security/redaction review |
 | 4 | `feat(testframework): add closed test case traceability` | F0-04 paths | traceability/schema review |
