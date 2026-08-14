@@ -1,8 +1,8 @@
 # Hub Mail + Calendar Sync — QA handoff
 
-> **144-02F corrective static oracle:** inspect literal NULL-negative matrices for every receipt/deployment named check and all three full hash-v1 preimage hex/digest vectors in the persistence contract (empty 22 bytes, one 77, two 178). Verify separately folder p10 no-I/O terminal 409/30d replay and `message_bulk p10` manual-only no schedule/reclaim/I/O; same-key replay returns its persisted 202 snapshot, while fresh-key same/different targets repeatedly receive 423/no row/no expansion/no I/O under the account lock, including late-owner contention. Also verify the 16-byte header plus `0x00||0x01`, target uniques `(receipt_id,request_index)`/`(receipt_id,target_type,target_id)`, and account-first CAS/lease fencing. They are independently computed V8 pure-JS/.NET SHA256 future oracles, not test/runtime evidence. Correction commit `fcb5b84fed4a417e736ddb4053256e494a0c25f6` is `COMMITTED_UNACCEPTED_AT_FCB5B84F` / `EXACT_SHA_TRANSITION_REQUIRED` / `IMPLEMENTATION_BLOCKED`; its precommit/root-commit-next sequence is `CONSUMED/HISTORICAL`. Launcher `NOT_READY`, executable evidence `NOT_RUN`.
+> **144-02F corrective static oracle:** inspect literal NULL-negative matrices for every receipt/deployment named check and all three full hash-v1 preimage hex/digest vectors in the persistence contract (empty 22 bytes, one 77, two 178). Verify separately folder p10 no-I/O terminal 409/30d replay and `message_bulk p10` manual-only no schedule/reclaim/I/O; same-key replay returns its persisted 202 snapshot, while fresh-key same/different targets repeatedly receive 423/no row/no expansion/no I/O under the account lock, including late-owner contention. Also verify the 16-byte header plus `0x00||0x01`, target uniques `(receipt_id,request_index)`/`(receipt_id,target_type,target_id)`, and account-first CAS/lease fencing. They are independently computed V8 pure-JS/.NET SHA256 future oracles, not test/runtime evidence. Correction `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus exact-28 transition `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. Former lifecycle is `CONSUMED/HISTORICAL`. Launcher `NOT_READY`, executable evidence `NOT_RUN`.
 
-> **144-02D current:** exact docs boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract, Security and Lifecycle post-transition reviews PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Earlier lifecycle FAIL and contrary 02D/02F-next text below are `CONSUMED/HISTORICAL`. The live 02F sequence is transition-review candidate → one exact 28-doc transition commit without self-SHA → fresh Lifecycle exact-SHA re-review of `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus transition with trace Contract/Security rechecks as needed → all exact reviews PASS → separate 02F docs-only acceptance sync; 02F and runtime remain unaccepted/`NOT_RUN`.
+> **144-02D/02F current:** 02D remains docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus `e563a3d3be8898371e5c8a9861c58f11b72167bc`. 02F `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. Former lifecycle is `CONSUMED/HISTORICAL`. No source/schema/runtime authority follows; root next accepts separate Rule plan only, and Rule TDD/production also awaits Phase-145 carrier/G145-5B/G145-5C. Runtime remains `NOT_RUN`.
 > **Contract version:** 0.1.8
 > **Prepared:** 2026-08-13
 > **Contract review status:** five-document 0.1.8 entry amendment PASS at `5e314fb080d420696642058ae47397e251c23207`; Thread contract remains accepted at `cbc12577a6444df9c660e43fedfd0c8133c6e461`; implementation+oracle are narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS` (source `c221d547`, oracle `b21bd6fd`, reviews C/I/M `0/0/0`), static only; broader Phase 142/cross-contract review remains pending
@@ -698,7 +698,7 @@ oracles, not current executable evidence.
 
 ## Current blockers and honesty
 
-### Accepted-02D / pending-02F external/static oracle matrix
+### Accepted-02D/02F external/static oracle matrix
 
 The initial `63e`/`6c` candidate lifecycle and earlier Lifecycle FAIL are historical. Corrective commit
 `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` (parent
@@ -706,10 +706,9 @@ The initial `63e`/`6c` candidate lifecycle and earlier Lifecycle FAIL are histor
 `da3fa6e19316bcf2c7c318a63ec09e1b175f68df`, exact nine
 documents) plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is docs-only
 `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; all three post-transition exact reviews PASS C/I/M `0/0/0`.
-All review provenance is dispatcher-enforced, fallback none, telemetry `UNKNOWN`. 02F remains
-unaccepted; the former sole-next closure wording is `CONSUMED/HISTORICAL`. The live sequence is
-transition-review candidate → one exact 28-doc transition commit without self-SHA → fresh Lifecycle exact-SHA re-review of fcb plus transition with trace Contract/Security rechecks as needed → all exact reviews PASS → separate 02F docs-only acceptance sync. Launcher remains
-`NOT_READY`; runtime stays `NOT_RUN`.
+All review provenance is dispatcher-enforced, fallback none, telemetry `UNKNOWN`. 02F
+`fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is
+docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` with Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high PASS C/I/M `0/0/0`; former lifecycle is `CONSUMED/HISTORICAL`. Sole next action: separate Rule plan author/adjudication. Launcher remains `NOT_READY`; runtime stays `NOT_RUN`.
 
 | Oracle | Static/external assertion | Runtime status |
 |---|---|---|
@@ -775,7 +774,8 @@ C/I/M `0/0/0`), static only. Folder docs are also static-only accepted at
 Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced with no
 fallback and telemetry `UNKNOWN`. Corrective `7d29d08c` plus transition `e563a3d3` is now docs-only
 `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; the earlier Lifecycle FAIL and pre-acceptance sequence are
-`CONSUMED/HISTORICAL`. The live sequence is transition-review candidate → one exact 28-doc transition
+`CONSUMED/HISTORICAL`. The following former sequence is a complete `CONSUMED/HISTORICAL` record,
+not a current route. The live sequence was transition-review candidate → one exact 28-doc transition
 commit without self-SHA → fresh Lifecycle exact-SHA re-review of fcb plus transition with trace Contract/Security rechecks as needed → all exact reviews PASS → separate 02F docs-only acceptance sync; later accepted Rule plan and Phase-145 carrier/G145-5B/G145-5C
 remain required. Launcher remains
 `NOT_READY` and runtime `NOT_RUN`.
@@ -827,7 +827,8 @@ Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`, dispatcher-e
 fallback and telemetry `UNKNOWN`. Future RED oracle
 must cover ABI/errors, closed union/bounds/Unicode/targets/order/deep-copy/static purity and
 reject noncanonical base32 (decode-to-32 plus identical re-encode). 144-02D is docs-only accepted;
-no test before accepted 02F following transition review, an exact transition commit without self-SHA, fresh Lifecycle exact-SHA review of fcb plus transition with trace Contract/Security as needed, all exact reviews PASS, and separate 02F docs-only acceptance sync, a later accepted Rule plan and separate Phase-145 carrier/G145-5B/G145-5C;
+no test before the separate accepted Rule plan and Phase-145 carrier/G145-5B/G145-5C; 02F `fcb5b84f` plus `2f4381a2` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` after the three PASS `0/0/0` reviews, and its former lifecycle is `CONSUMED/HISTORICAL`;
 launcher `NOT_READY`.
 Compiler errors are internal; HTTP uses 04M account-scoped lookup which masks foreign/missing
 targets identically and never makes mismatch/ambiguity an existence oracle.
+> **144-02F sync:** `fcb5b84f` + `2f4381a2` docs/readiness `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; all three Terra routes PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Former transition text `CONSUMED/HISTORICAL`; no source/schema/runtime/product/release authority. Root next accepts separate Rule plan only; Rule TDD also awaits Phase-145/G145-5B/G145-5C; 144-01B Docker-blocked, Phase 142/148 pending, launcher `NOT_READY`, executables `NOT_RUN`.

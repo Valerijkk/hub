@@ -1,16 +1,16 @@
 # Phase 144-02F preimplementation review — receipt/deployment schema readiness
 
-> **Canonical transition evidence (2026-08-14):** corrective commit `fcb5b84fed4a417e736ddb4053256e494a0c25f6` (parent `55e36b7a1a3516d07b2baf390a5742a24ec8fbe5`, tree `5a0637f2306ff42295adea5560793e2a8f4a294a`, subject `docs(mail): correct receipt and rule invariants`) changed the exact same 28 docs; worktree was clean at review. It is `COMMITTED_UNACCEPTED_AT_FCB5B84F` / `EXACT_SHA_TRANSITION_REQUIRED` / `IMPLEMENTATION_BLOCKED`. Contract/Spec/Oracle Terra/high PASS C/I/M `0/0/0`; Security/Adversarial Terra/xhigh PASS `0/0/0`; Lifecycle/Dependency/Boundary Terra/high FAIL `0/1/0` solely because committed precommit status/instructions became stale after commit, while Git object, boundary, blockers and exclusions PASS. All dispatcher-enforced, fallback none, telemetry `UNKNOWN`. Prior precommit/root-commit-next sequence is `CONSUMED/HISTORICAL`. Next: static review of this transition candidate → one exact 28-doc docs-only transition commit (SHA intentionally not predeclared) → fresh Lifecycle exact-SHA re-review of `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus transition; trace-only Contract/Security rechecks as required → only after all exact reviews PASS, separate 02F docs-only `STATIC_ACCEPTED` sync → separate Rule plan acceptance and Phase-145 carrier/G145-5B/G145-5C. No source/schema/generation/migration/service/runtime authority; launcher `NOT_READY`, executables `NOT_RUN`.
-
-> **Current prerequisite:** 144-02D exact docs boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` after three exact PASS reviews C/I/M `0/0/0`. 02F itself remains unaccepted. The former sole-next closure instruction is `CONSUMED/HISTORICAL`; the live sequence is transition-review candidate → one exact 28-doc transition commit without self-SHA → fresh Lifecycle exact-SHA re-review of `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus transition with trace Contract/Security rechecks as needed → all exact reviews PASS → separate 02F docs-only acceptance sync. No implementation/runtime authority.
+> **144-02F acceptance receipt (2026-08-14):** The docs/readiness boundary is narrowly docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`, based on correction `fcb5b84fed4a417e736ddb4053256e494a0c25f6` and exact 28-document transition `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260`. Contract/Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh, and Lifecycle/Dependency/Boundary Terra/high independently PASS C/I/M `0/0/0`. Provenance is `dispatcher-enforced`, fallback none; telemetry is `UNKNOWN` unless exposed. Former `COMMITTED_UNACCEPTED_AT_FCB5B84F` / `EXACT_SHA_TRANSITION_REQUIRED` status and every transition-review instruction are `CONSUMED/HISTORICAL`.
+>
+> This acceptance authorizes no source, Ent schema, generation, migration, service, runtime, product, phase, or release work. 144-02D remains narrowly accepted; 144-01B remains blocked on applicable supported current-SHA Docker evidence; broader Phase 142/148 work remains pending; launcher `NOT_READY` and executables `NOT_RUN`. The exact next action is only for root to author/adjudicate and independently accept the separate Rule implementation plan. Rule TDD/production remains blocked until that plan and the Phase-145 carrier/G145-5B/G145-5C are accepted.
 > **Detected:** 2026-08-13 root deep static audit
-> **Historical status:** prior `ROOT_CORRECTION_CANDIDATE` / precommit/root-commit-next sequence is `CONSUMED/HISTORICAL`; 02F is not accepted.
+> **Historical status:** prior `ROOT_CORRECTION_CANDIDATE` / precommit/root-commit-next sequence is `CONSUMED/HISTORICAL`; it does not alter the accepted 02F docs/readiness boundary.
 
 > **02F normative mirror:** receipt exhaustion uses NULL-safe `safe_code IS DISTINCT FROM 'MAIL_RECONCILIATION_EXHAUSTED'`; folder `p=10` due unknown is no-I/O failed 409 with 30-day replay, while `message_bulk p=10` is manual-only safe unknown with both leases and schedule null. Same-key/same-request resolves first as persisted 202; a fresh key is account-lock guarded by that exact live manual-only row and returns `423 MAIL_ACCOUNT_BUSY` plus bounded `Retry-After`, with no row/snapshot/expansion/I/O. Target uniques are `(receipt_id,request_index)` and `(receipt_id,target_type,target_id)`; member aggregates are transaction-owned. Deployment uses desired/attempted/deployed tuples, bounded 0..10 budget, exact lease/CAS fencing and a full fail-closed state CASE; only outcome-unknown is `unknown`. Canonical v1 hash header includes `0x00||0x01`; frames are stored-order and length-exact, and fixed vectors are owned by the persistence contract. This review neither authorizes source/schema/generation/migration/service/runtime nor alters launcher `NOT_READY` / executable `NOT_RUN`.
 > **Scope:** `MailMutationReceipt`, receipt target/member rows and `MailRuleDeployment`
 
-> `docs/mail/PERSISTENCE-CONTRACT-0.1.8.md` now supplies the root candidate state/operation/
-> hash matrices; this discovery verdict remains open until independent exact-SHA review.
+> `docs/mail/PERSISTENCE-CONTRACT-0.1.8.md` supplies the root candidate state/operation/
+> hash matrices; this discovery verdict is `CONSUMED/HISTORICAL` and does not reopen 02F acceptance.
 
 ## Outcome
 
@@ -120,7 +120,7 @@ In addition to the attempted tuple, the one-row-per-account deployment needs:
 
 ## Gate impact
 
-- 144-02F is `BLOCKED_CONTRACT`; no receipt/deployment Ent packet should be authored;
+- 144-02F's docs/readiness boundary is `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; no receipt/deployment Ent packet should be authored;
 - 144-02E generation, generic mutation services, rule CRUD/deployment and every dependent
   handler remain blocked on the exact matrices above and the earlier 02A/02D amendments;
 - generation/migration and runtime remain independently blocked by founder/launcher gates;
@@ -129,8 +129,7 @@ In addition to the attempted tuple, the one-row-per-account deployment needs:
 ## 144-03B Rule dependency clarification
 
 Rule contract is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; acceptance transition/review target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`.
-This 02F review is not closed or accepted by Rule-contract acceptance. Rule TDD/production requires explicit 02F closure, candidate and
-later-plan exact-SHA acceptance, and the separate Phase-145 engine-port carrier.
+This 02F review's docs/readiness boundary is separately accepted and is not broadened by Rule-contract acceptance. Rule TDD/production requires a separately accepted Rule implementation plan and the separate Phase-145 engine-port carrier.
 
 ## Correction-candidate adjudication — 2026-08-14
 
@@ -170,4 +169,4 @@ Security/Adversarial (`gpt-5.6-terra`/xhigh), and Lifecycle/Dependency
 (`gpt-5.6-terra`/high), each dispatcher-enforced with no fallback. 02F remains unclosed;
 no source, schema, generation, migration, service or runtime authority is granted. Launcher
 stays `NOT_READY`; executable evidence stays `NOT_RUN`.
-> **Current Rule acceptance:** the three Terra routes PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed. Rule contract acceptance does not close this review or authorize schemas.
+> **Current Rule acceptance:** the three Terra routes PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed. Rule contract acceptance does not broaden this docs/readiness boundary or authorize schemas.

@@ -1,10 +1,10 @@
 # Phase 145 — Stalwart Gateway and Docker Mail Profile
 
-> **Current upstream lifecycle (2026-08-14):** correction commit `fcb5b84fed4a417e736ddb4053256e494a0c25f6` (parent `55e36b7a1a3516d07b2baf390a5742a24ec8fbe5`, tree `5a0637f2306ff42295adea5560793e2a8f4a294a`, subject `docs(mail): correct receipt and rule invariants`, exact 28 docs) is `COMMITTED_UNACCEPTED_AT_FCB5B84F` / `EXACT_SHA_TRANSITION_REQUIRED` / `IMPLEMENTATION_BLOCKED`. Contract Terra/high and Security Terra/xhigh PASS `0/0/0`; Lifecycle Terra/high FAIL `0/1/0` solely stale committed precommit lifecycle, while object/boundary PASS; dispatcher-enforced, no fallback, telemetry `UNKNOWN`. Former correction/precommit/root-commit-next instructions are `CONSUMED/HISTORICAL`. Next: transition review, exact 28-doc transition commit without self-SHA, exact-SHA Lifecycle re-review of fcb plus transition and trace Contract/Security, then separate 02F docs-only sync only after all PASS. This Phase remains blocked; G145-5B/G145-5C remain open.
+> **Current upstream lifecycle (2026-08-14):** correction `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus exact-28 transition `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high PASS `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. Former lifecycle is `CONSUMED/HISTORICAL`. This Phase remains blocked; G145-5B/G145-5C remain open, and root next accepts separate Rule plan only.
 
 > Task: TASK-238 · Status: BLOCKED_BY_144_CONTRACT_AND_EXTERNAL_GATES · Depends on: Phase 144
 
-> **Upstream lifecycle update:** 144-02D remains docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; 02F remains unaccepted. The active transition sequence is stated above. Phase 145 remains blocked/not accepted; G145-5B/G145-5C and carrier/runtime gates remain open.
+> **Upstream lifecycle update:** 144-02D remains docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; 02F `fcb5b84f` plus `2f4381a2` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` after Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high PASS `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Former lifecycle is `CONSUMED/HISTORICAL`. Phase 145 remains blocked/not accepted; G145-5B/G145-5C and carrier/runtime gates remain open.
 
 ## Hard entry gates
 
@@ -87,6 +87,7 @@ transport passes.
 Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M
 `0/0/0`; provenance is dispatcher-enforced, fallback none and telemetry `UNKNOWN` unless
 exposed. It accepts typed IR only, not an engine port or Sieve bytes. Phase 145 still needs
-the active 28-doc correction sequence: transition review, one exact transition commit without self-SHA, fresh Lifecycle exact-SHA review of fcb plus transition with trace Contract/Security as needed, all exact reviews PASS, then separate 02F docs-only acceptance sync; only then its later separate Rule plan and
-a separate accepted engine-port carrier may advance before Sieve work. Engine folder ID is not mailbox name;
+02F `fcb5b84f` plus `2f4381a2` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` with the three PASS `0/0/0` reviews; former lifecycle is `CONSUMED/HISTORICAL`. Sole next action is separate Rule plan author/adjudication. Rule TDD/production also awaits
+a separate accepted engine-port carrier/G145-5B/G145-5C before Sieve work. Engine folder ID is not mailbox name;
 attachment IR needs MIME gate. No Rule TDD/source/schema/runtime/product/release authority follows.
+> **144-02F sync:** `fcb5b84f` + `2f4381a2` docs/readiness `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; all three Terra routes PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Former transition text `CONSUMED/HISTORICAL`; no source/schema/runtime/product/release authority. Root next accepts separate Rule plan only; Rule TDD also awaits Phase-145/G145-5B/G145-5C; 144-01B Docker-blocked, Phase 142/148 pending, launcher `NOT_READY`, executables `NOT_RUN`.

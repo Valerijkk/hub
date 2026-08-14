@@ -1,6 +1,6 @@
 # Phase 144-02A preimplementation review — schema contract readiness
 
-> **Current 02F lifecycle supersession (2026-08-14):** The corrective commit `fcb5b84fed4a417e736ddb4053256e494a0c25f6` (parent `55e36b7a1a3516d07b2baf390a5742a24ec8fbe5`, tree `5a0637f2306ff42295adea5560793e2a8f4a294a`, exact 28 docs) is `COMMITTED_UNACCEPTED_AT_FCB5B84F` / `EXACT_SHA_TRANSITION_REQUIRED` / `IMPLEMENTATION_BLOCKED`; Contract/Spec/Oracle Terra/high and Security/Adversarial Terra/xhigh PASS C/I/M `0/0/0`; Lifecycle/Dependency/Boundary Terra/high FAIL C/I/M `0/1/0` solely stale wording/object pass; dispatcher-enforced, no fallback, telemetry `UNKNOWN`. Prior precommit flow is `CONSUMED/HISTORICAL`. Next: review transition candidate -> exact 28-doc transition commit without self-SHA -> fresh Lifecycle exact-SHA re-review fcb+transition, Contract/Security trace as needed -> all PASS -> separate docs-only 02F `STATIC_ACCEPTED` sync -> later Rule plan and Phase-145 carrier/G145-5B/G145-5C. This does not alter 02A's narrow docs-only acceptance or authorize source/schema/runtime.
+> **Current 02F lifecycle (2026-08-14):** Correction `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus exact 28-doc transition `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is narrowly docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract/Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency/Boundary Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed. Former unaccepted/transition-review lifecycle is `CONSUMED/HISTORICAL`. This changes neither 02A's narrow acceptance nor any source/schema/runtime authority. Root's sole next action is to author/adjudicate and independently accept the separate Rule implementation plan; Rule TDD/production also requires the accepted Phase-145 carrier/G145-5B/G145-5C.
 
 > **Historical downstream lifecycle update:** 144-02D docs-only boundary `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition `e563a3d3be8898371e5c8a9861c58f11b72167bc` is narrowly `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; three exact routes PASS C/I/M `0/0/0`. The former sole-next 02F closure-review instruction is `CONSUMED/HISTORICAL`; the current exact action is stated in the lifecycle banner above. No source/schema/runtime authority follows.
 > **Detected:** 2026-08-13 root deep static audit
@@ -25,10 +25,10 @@ This acceptance covers only the frozen A1/A2/A3 persistence representation. Prod
 Ent source/TDD, generated output, migration, launcher execution, tests/validators/build and
 runtime remain blocked/not authorized. Founder migration authority, supported task-owned launcher,
 sequential explicit source dispatch and source-level review remain required. 144-02D's docs/readiness
-boundary is now `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; the former direct 02F-closure action is
-`CONSUMED/HISTORICAL`. The active next action is the fcb transition review -> exact 28-doc transition
-commit without self-SHA -> fresh Lifecycle exact-SHA re-review fcb+transition with Contract/Security trace
-as needed -> all PASS -> separate docs-only `STATIC_ACCEPTED` sync, not code.
+boundary is now `STATIC_ACCEPTED` / `EXACT_SHA_PASS`. The 144-02F docs/readiness boundary at
+`fcb5b84f` plus `2f4381a2` is likewise `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; the former direct
+02F-closure action is `CONSUMED/HISTORICAL`. The active next action is only root's separate Rule-plan
+authoring/adjudication and independent acceptance, not code.
 
 ## Historical discovery outcome (preserved)
 
@@ -111,3 +111,4 @@ default, but the contract must state that strengthening explicitly.
 
 No production/test source was changed. The review used the routed Mail contract, OpenAPI,
 Phase 144 packet documents and the already accepted engine-port/schema conventions only.
+> **144-02F sync:** `fcb5b84f` + `2f4381a2` docs/readiness `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; three Terra routes PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Former transition text `CONSUMED/HISTORICAL`; no implementation authority. Root next: accept separate Rule plan only; Rule TDD also awaits Phase-145/G145-5B/G145-5C; 144-01B Docker-blocked, Phase 142/148 pending, launcher `NOT_READY`, executables `NOT_RUN`.

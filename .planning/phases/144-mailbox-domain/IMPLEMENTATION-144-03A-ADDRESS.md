@@ -4,7 +4,7 @@
 > **Atomic commit:** `41564d003946ddb78df18efca166ca86e4055405`; parent `d659c67ce657fb33da391819edbdb954454be4b9`; tree `13a97333f08df6946e65766d3223c1ede85e1f50`
 > **Subject and scope:** `feat(mail): add bounded address policy`; exactly five paths.
 
-> **Mail lifecycle update:** correction commit `fcb5b84fed4a417e736ddb4053256e494a0c25f6` (parent `55e36b7a1a3516d07b2baf390a5742a24ec8fbe5`, tree `5a0637f2306ff42295adea5560793e2a8f4a294a`, subject `docs(mail): correct receipt and rule invariants`, exact 28 docs) is `COMMITTED_UNACCEPTED_AT_FCB5B84F` / `EXACT_SHA_TRANSITION_REQUIRED` / `IMPLEMENTATION_BLOCKED`. Contract Terra/high and Security Terra/xhigh PASS `0/0/0`; Lifecycle Terra/high FAIL `0/1/0` solely stale committed precommit lifecycle; dispatcher-enforced, no fallback, telemetry `UNKNOWN`. Former correction/precommit/root-commit-next instructions are `CONSUMED/HISTORICAL`. Next: transition review, exact 28-doc transition commit without self-SHA, Lifecycle exact-SHA re-review of fcb plus transition and trace Contract/Security, then separate 02F docs-only sync only after all PASS; Rule/Phase145/runtime blockers remain.
+> **Mail lifecycle update:** correction `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus exact-28 transition `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract, Security and Lifecycle Terra routes PASS `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. Former lifecycle is `CONSUMED/HISTORICAL`; Rule/Phase145/runtime blockers remain. Root next accepts separate Rule plan only; Rule TDD awaits Phase-145/G145-5B/G145-5C.
 
 ## Scope and provenance
 
@@ -70,9 +70,9 @@ do not establish executable, phase, product, or runtime acceptance.
   C/I/M `0/0/0`), static only. Folder docs are also static-only accepted at
   `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`; Rule is separately docs-only `STATIC_ACCEPTED` /
   `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; acceptance transition/review
-  target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`. Before any later plan or
-  Phase-145 carrier, the active 28-doc correction requires transition review, one exact transition
-  commit without self-SHA, fresh Lifecycle exact-SHA review of fcb plus transition with trace Contract/Security as needed, all exact reviews PASS, then separate 02F docs-only acceptance sync. No execution. Its dependency on accepted
+  target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`. The 144-02F docs/readiness
+  boundary is separately `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `fcb5b84f` plus `2f4381a2`.
+  No execution follows. Its dependency on accepted
   Address is satisfied; its callable/encoding/oracle contract is
   `THREAD_CALLABLE_ENCODING_ORACLE_STATIC_ACCEPTED` at
   `cbc12577a6444df9c660e43fedfd0c8133c6e461` / `EXACT_SHA_PASS` with C/I/M `0/0/0`.
@@ -82,4 +82,5 @@ do not establish executable, phase, product, or runtime acceptance.
 - `144-01B` remains `BLOCKED`; broader Phase 142/cross-contract acceptance and Phase 148 are
   pending. This evidence does not accept the phase, product, persistence, OpenAPI, or runtime.
 
-> **Current Rule gate:** docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; its acceptance transition/review target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`. 144-02D is docs-only accepted; `55e36b7a` 02F closure is historical and accepted 02F still needs transition review, an exact transition commit without self-SHA, fresh Lifecycle exact-SHA review of fcb plus transition with trace Contract/Security as needed, all exact reviews PASS, then separate docs-only acceptance sync before the later separate Rule plan/Phase-145 carrier and Rule TDD/production.
+> **Current Rule gate:** docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; its acceptance transition/review target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`. 144-02D and 144-02F are docs-only accepted; former transition instructions are `CONSUMED/HISTORICAL`. A later separate Rule plan and accepted Phase-145 carrier remain prerequisites for Rule TDD/production.
+> **144-02F sync:** `fcb5b84f` + `2f4381a2` docs/readiness `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; three Terra routes PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Former transition text `CONSUMED/HISTORICAL`; no implementation authority. Root next: accept separate Rule plan only; Rule TDD also awaits Phase-145/G145-5B/G145-5C; 144-01B Docker-blocked, Phase 142/148 pending, launcher `NOT_READY`, executables `NOT_RUN`.

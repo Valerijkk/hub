@@ -1,6 +1,6 @@
 # 144-03B-Rule-Compiler — STATIC_ACCEPTED static contract
 
-> **Current upstream lifecycle (2026-08-14):** correction commit `fcb5b84fed4a417e736ddb4053256e494a0c25f6` (parent `55e36b7a1a3516d07b2baf390a5742a24ec8fbe5`, tree `5a0637f2306ff42295adea5560793e2a8f4a294a`, subject `docs(mail): correct receipt and rule invariants`, exact 28 docs) is `COMMITTED_UNACCEPTED_AT_FCB5B84F` / `EXACT_SHA_TRANSITION_REQUIRED` / `IMPLEMENTATION_BLOCKED`. Contract/Spec/Oracle Terra/high PASS C/I/M `0/0/0`; Security/Adversarial Terra/xhigh PASS `0/0/0`; Lifecycle/Dependency/Boundary Terra/high FAIL `0/1/0` solely stale committed precommit lifecycle, with object/boundary PASS; dispatcher-enforced, no fallback, telemetry `UNKNOWN`. Former correction/precommit/root-commit-next instructions are `CONSUMED/HISTORICAL`. Next: transition review, exact 28-doc transition commit without self-SHA, Lifecycle exact-SHA re-review of fcb plus transition and trace Contract/Security, then separate 02F docs-only sync only after all PASS. This contract owns neither persistence hash v1 nor a Rule implementation plan; no Rule source, schema, runtime or Phase-145 carrier/G145-5B/G145-5C authority follows.
+> **Current upstream lifecycle (2026-08-14):** correction `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus exact-28 transition `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract/Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency/Boundary Terra/high PASS `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. Former lifecycle is `CONSUMED/HISTORICAL`. This contract owns neither persistence hash v1 nor a Rule implementation plan; no Rule source/schema/runtime/Phase-145 authority follows. Root next accepts separate Rule plan only; Rule TDD awaits Phase-145/G145-5B/G145-5C.
 
 > **Status:** narrowly docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; acceptance transition/review target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`. The Contract/Spec (`gpt-5.6-terra`/high), Security/Adversarial (`gpt-5.6-terra`/xhigh), and Lifecycle/Dependency (`gpt-5.6-terra`/high) exact review routes PASS C/I/M `0/0/0`; each has `provenance_source: dispatcher-enforced`, no fallback, and telemetry `UNKNOWN` unless exposed. This is not TDD, source/test, production, schema, migration, runtime, module, phase, product, or release authority.
 > **Packet:** `144-03B-Rule-Compiler`. **Base:**
@@ -26,11 +26,13 @@ Folder source/oracle remains narrowly `STATIC_ACCEPTED` at
 `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`. Neither accepts this candidate.
 Contract/Spec, Security/Adversarial, and Lifecycle/Dependency exact-SHA reviews PASS C/I/M
 `0/0/0`. **HISTORICAL / SUPERSEDED:** the prior Lifecycle/Dependency review failed solely because
-its target retained precommit lifecycle text. That failed review and its next-action text are
-`CONSUMED/HISTORICAL`; 144-02D is docs-only accepted. The live 02F sequence is transition-review
-candidate → one exact 28-doc transition commit without self-SHA → fresh Lifecycle exact-SHA
-re-review of fcb plus transition with trace Contract/Security rechecks as needed → all exact reviews PASS → separate 02F docs-only acceptance sync; later, separately,
-accepted Rule-plan acceptance and the Phase-145 engine-port/carrier/G145-5B/G145-5C may be considered.
+its target retained precommit lifecycle text. That failed review and its entire transition-review →
+commit → re-review → sync sequence are `CONSUMED/HISTORICAL`; 144-02D remains docs-only accepted.
+02F correction `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus exact-28 transition
+`2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is docs/readiness-only `STATIC_ACCEPTED` /
+`EXACT_SHA_PASS` after all three Terra routes PASS C/I/M `0/0/0`. The sole current next action is
+separate Rule-plan author/adjudication; Rule TDD/production remains blocked until that plan and the
+Phase-145 engine-port/carrier/G145-5B/G145-5C are accepted.
 
 The future pure source/oracle packet is exactly:
 
@@ -234,3 +236,4 @@ ordering; first-match, condition and label order; repeatability/deep copy; concr
 output; and zero result on all failures. Static purity rejects raw Sieve/script syntax/types,
 context, ports/repositories, filesystem/network/clock/randomness/goroutines/environment,
 logging, provider/JMAP imports and global mutable state.
+> **144-02F sync:** `fcb5b84f` + `2f4381a2` docs/readiness `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; all three Terra routes PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Former transition text `CONSUMED/HISTORICAL`; no source/schema/runtime/product/release authority. Root next accepts separate Rule plan only; Rule TDD also awaits Phase-145/G145-5B/G145-5C; 144-01B Docker-blocked, Phase 142/148 pending, launcher `NOT_READY`, executables `NOT_RUN`.

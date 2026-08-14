@@ -1,6 +1,6 @@
 # Phase 148 — merge-readiness gate matrix
 
-> **Current upstream lifecycle (2026-08-14):** correction commit `fcb5b84fed4a417e736ddb4053256e494a0c25f6` (parent `55e36b7a1a3516d07b2baf390a5742a24ec8fbe5`, tree `5a0637f2306ff42295adea5560793e2a8f4a294a`, subject `docs(mail): correct receipt and rule invariants`, exact 28 docs) is `COMMITTED_UNACCEPTED_AT_FCB5B84F` / `EXACT_SHA_TRANSITION_REQUIRED` / `IMPLEMENTATION_BLOCKED`. Contract Terra/high and Security Terra/xhigh PASS `0/0/0`; Lifecycle Terra/high FAIL `0/1/0` solely stale committed precommit lifecycle, while object/boundary PASS; dispatcher-enforced, no fallback, telemetry `UNKNOWN`. Former correction/precommit/root-commit-next instructions are `CONSUMED/HISTORICAL`. Next: transition review, exact 28-doc transition commit without self-SHA, exact-SHA Lifecycle re-review of fcb plus transition and trace Contract/Security, then separate 02F docs-only sync only after all PASS. Launcher `NOT_READY`; executables `NOT_RUN`.
+> **Current upstream lifecycle (2026-08-14):** correction `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus exact-28 transition `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high PASS `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. Former lifecycle is `CONSUMED/HISTORICAL`. Launcher `NOT_READY`; executables `NOT_RUN`; root next accepts separate Rule plan only and Rule TDD remains blocked.
 
 > **Status:** G148_02_BLOCKED_BROADER_CROSS_CONTRACT_CURRENT_SOURCE_EXECUTABLE_GAPS · FIVE_DOCUMENT_144_01A_ENTRY_AMENDMENT_PASS_5E314FB0 · 144_01A_STATIC_ACCEPTED_E3E8C774 · 144_03A_THREAD_STATIC_ACCEPTED_9903F4DF_EXACT_SHA_PASS · IMPLEMENTATION_IN_PROGRESS · RUNTIME_NOT_RUN
 > **Scope:** Mail/Calendar/CRM feature branch only
@@ -12,7 +12,7 @@ This matrix separates a reviewable branch from an operating mail service. Passin
 or merge gate never means the unfinished Hub MVP, mail module, or production cutover is
 complete/stable/ready.
 
-> **Upstream lifecycle update:** 144-02D remains docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; 02F is unaccepted. The active transition sequence is stated above. Phase 148 remains pending/blocked; no release or runtime acceptance follows.
+> **Upstream lifecycle update:** 144-02D remains docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; 02F `fcb5b84f` plus `2f4381a2` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` after Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high PASS `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Former lifecycle is `CONSUMED/HISTORICAL`. Phase 148 remains pending/blocked; no release or runtime acceptance follows.
 
 ## 1. Verdict vocabulary
 
@@ -193,15 +193,14 @@ pending applicable supported current-SHA Docker evidence. Thread is narrowly `ST
   release acceptance. Its lifecycle transition/review target is
   `6735ae746c7acde657359e8a709cd897c4dce61c`; Contract/Spec Terra/high,
   Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high PASS C/I/M `0/0/0`,
-  dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed. Before a later separate Rule plan
-  and Phase-145 carrier, the active 28-doc correction requires transition review, one exact transition commit without self-SHA,
-  fresh Lifecycle exact-SHA review of fcb plus transition with trace Contract/Security as needed, all exact reviews PASS, then separate 02F docs-only acceptance sync. No execution. The launcher is
+dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed. 02F `fcb5b84f` plus `2f4381a2` is docs/readiness-only
+`STATIC_ACCEPTED` / `EXACT_SHA_PASS` with the three PASS `0/0/0` reviews; former lifecycle is `CONSUMED/HISTORICAL`. Sole next action is a separate Rule plan author/adjudication; Rule TDD/production also awaits the Phase-145 carrier/G145-5B/G145-5C. No execution. The launcher is
 `NOT_READY`, engine/legal/migration/broadcast/rebase decisions are unresolved, and all executable
 evidence is `NOT_RUN`.
 
 `144-03B-Rule-Compiler` is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at
-`f199546513b758ca7b95328b5ccd7680009b732e`, not a release PASS. Before a later separate Rule plan
-and engine-port/145 carrier, the active 28-doc correction requires transition review, one exact transition
-commit without self-SHA, fresh Lifecycle exact-SHA review of fcb plus transition with trace Contract/Security as needed, all exact reviews PASS, then separate 02F docs-only acceptance sync before Rule TDD/production and
+`f199546513b758ca7b95328b5ccd7680009b732e`, not a release PASS. 02F `fcb5b84f` plus `2f4381a2` is docs/readiness-only
+`STATIC_ACCEPTED` / `EXACT_SHA_PASS`; former lifecycle is `CONSUMED/HISTORICAL`. Sole next action is a separate Rule plan author/adjudication; Rule TDD/production also awaits the engine-port/145 carrier/G145-5B/G145-5C before
 Phase 148 acceptance. The launcher remains `NOT_READY` and
 executable evidence `NOT_RUN`.
+> **144-02F sync:** `fcb5b84f` + `2f4381a2` docs/readiness `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; all three Terra routes PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Former transition text `CONSUMED/HISTORICAL`; no source/schema/runtime/product/release authority. Root next accepts separate Rule plan only; Rule TDD also awaits Phase-145/G145-5B/G145-5C; 144-01B Docker-blocked, Phase 142/148 pending, launcher `NOT_READY`, executables `NOT_RUN`.
