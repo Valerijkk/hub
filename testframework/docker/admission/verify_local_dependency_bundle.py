@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, BinaryIO, Final
 
-SOURCE_COMMIT: Final = "7b5d5501cefab34f9aa5661e4f8c38e71474f9ce"
+SOURCE_COMMIT: Final = "61b38573682d7c01e6d9381babc5085537d7990f"
 SCHEMA: Final = "hub.qa.dependency-bundle/v1"
 BASE_RECEIPT_SCHEMA: Final = "hub.qa.local-base-inspect/v1"
 SHA256_RE: Final = re.compile(r"^sha256:[0-9a-f]{64}$")

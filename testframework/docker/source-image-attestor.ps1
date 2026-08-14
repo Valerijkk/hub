@@ -11,7 +11,7 @@ $ErrorActionPreference = 'Stop'
 # repository lock. Package B supplies the internally validated context.
 
 $script:Utf8 = [Text.UTF8Encoding]::new($false, $true)
-$script:SourceBaseline = '7b5d5501cefab34f9aa5661e4f8c38e71474f9ce'
+$script:SourceBaseline = '61b38573682d7c01e6d9381babc5085537d7990f'
 $script:BindingFiles = [ordered]@{
     dependency = 'testframework/docker/dependency-bundle.manifest.v1.json'
     source = 'testframework/docker/source-policy.v2.json'
@@ -27,8 +27,8 @@ $script:FixedTargets = [ordered]@{
         target_action = @(
             'go build ./...'
             'go vet ./...'
-            'go test -json -count=1 -timeout=150s ./tests/...'
-            'go test -json -race -count=1 -timeout=150s ./tests/...'
+            'go test -tags hubtest -json -count=1 -timeout=150s ./tests/...'
+            'go test -tags hubtest -json -race -count=1 -timeout=150s ./tests/...'
         )
         bootstrap_selectable = $false
     }
@@ -759,7 +759,11 @@ function Assert-HubQaBoundControlContract {
         $target = $build.targets.PSObject.Properties[$targetName].Value
         $controlTarget = Get-HubQaMember -Object $BootstrapControl.Value.targets -Name $targetName -Identity 'fixed bootstrap control target'
         $expected = $script:FixedTargets[$targetName]
-        Assert-HubQaExactPropertyNames -Object $target -Expected @('dockerfile', 'dockerfile_sha256', 'entrypoint_path', 'entrypoint_sha256', 'docker_entrypoint', 'docker_cmd', 'compose_service', 'local_image_lock_field', 'target_action', 'bootstrap_selectable') -Identity "build manifest target $targetName"
+        $expectedBuildTargetKeys = @('dockerfile', 'dockerfile_sha256', 'entrypoint_path', 'entrypoint_sha256', 'docker_entrypoint', 'docker_cmd', 'compose_service', 'local_image_lock_field', 'target_action', 'bootstrap_selectable')
+        if ($targetName -ceq 'frontend-unit') {
+            $expectedBuildTargetKeys += @('vitest_config_path', 'vitest_config_sha256')
+        }
+        Assert-HubQaExactPropertyNames -Object $target -Expected $expectedBuildTargetKeys -Identity "build manifest target $targetName"
         Assert-HubQaDigest -Value ([string]$target.dockerfile_sha256) -Identity "build manifest Dockerfile digest $targetName"
         Assert-HubQaDigest -Value ([string]$target.entrypoint_sha256) -Identity "build manifest entrypoint digest $targetName"
         if ($target.dockerfile -cne $expected.dockerfile -or $target.entrypoint_path -cne $expected.entrypoint_path -or
@@ -776,6 +780,17 @@ function Assert-HubQaBoundControlContract {
         Assert-HubQaExactStringArray -Actual $target.target_action -Expected @($controlTarget.target_action) -Identity "build manifest control target action $targetName"
         Assert-HubQaExactBoolean -Actual $target.bootstrap_selectable -Expected ([bool]$expected.bootstrap_selectable) -Identity "build manifest bootstrap selection $targetName"
         Assert-HubQaExactBoolean -Actual $target.bootstrap_selectable -Expected ([bool]$controlTarget.bootstrap_selectable) -Identity "build manifest control bootstrap selection $targetName"
+        if ($targetName -ceq 'frontend-unit') {
+            $vitestConfigRelative = 'testframework/docker/vitest.frontend-unit.config.ts'
+            if ($target.vitest_config_path -isnot [string] -or $target.vitest_config_path -cne $vitestConfigRelative) {
+                throw 'Build manifest frontend Vitest config path is not closed.'
+            }
+            Assert-HubQaDigest -Value ([string]$target.vitest_config_sha256) -Identity 'build manifest frontend Vitest config digest'
+            $vitestConfig = Read-HubQaRegularUtf8File -Path (Join-Path $Root $vitestConfigRelative) -Root $Root -Identity 'frontend Vitest config'
+            if ($vitestConfig.Sha256 -cne $target.vitest_config_sha256) {
+                throw 'Build manifest frontend Vitest config byte binding mismatch.'
+            }
+        }
     }
 }
 

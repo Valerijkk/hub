@@ -15,7 +15,7 @@
   "properties": {
     "schema": { "const": "hub.qa.dependency-bundle/v1" },
     "bundle_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{7,63}$" },
-    "source_commit": { "const": "7b5d5501cefab34f9aa5661e4f8c38e71474f9ce" },
+    "source_commit": { "const": "61b38573682d7c01e6d9381babc5085537d7990f" },
     "platform": {
       "type": "object",
       "additionalProperties": false,

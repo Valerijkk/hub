@@ -6,7 +6,7 @@ Set-StrictMode -Version Latest
 # only returns the fixed helper admission receipt to that later transaction.
 $script:PreBootstrapStatus = 'NOT_READY/NOT_RUN'
 $script:HelperBuildTag = 'hub-qa-g0-admission-helper:local'
-$script:SourceCommit = '7b5d5501cefab34f9aa5661e4f8c38e71474f9ce'
+$script:SourceCommit = '61b38573682d7c01e6d9381babc5085537d7990f'
 $script:MaxBoundedControlBytes = 1048576
 
 function Get-HubQaDockerClientPath {

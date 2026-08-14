@@ -43,6 +43,96 @@ function Get-FunctionBody {
     return $match.Groups['body'].Value
 }
 
+function Read-PowerShellSyntax {
+    param([string]$Path, [string]$Identity)
+
+    $tokens = $null
+    $errors = $null
+    $ast = [System.Management.Automation.Language.Parser]::ParseFile($Path, [ref]$tokens, [ref]$errors)
+    if (@($errors).Count -ne 0) { throw "$Identity is not parseable PowerShell." }
+    return [pscustomobject]@{ Ast = $ast; Tokens = @($tokens) }
+}
+
+function Get-TopLevelPowerShellAssignment {
+    param([object]$Syntax, [string]$Left, [string]$Identity)
+
+    $matches = @($Syntax.Ast.FindAll({
+        param($node)
+        if ($node -isnot [System.Management.Automation.Language.AssignmentStatementAst] -or $node.Left.Extent.Text -cne $Left) { return $false }
+        $ancestor = $node.Parent
+        while ($null -ne $ancestor) {
+            if ($ancestor -is [System.Management.Automation.Language.FunctionDefinitionAst] -or
+                $ancestor -is [System.Management.Automation.Language.IfStatementAst] -or
+                $ancestor -is [System.Management.Automation.Language.LoopStatementAst] -or
+                $ancestor -is [System.Management.Automation.Language.TryStatementAst] -or
+                $ancestor -is [System.Management.Automation.Language.TrapStatementAst] -or
+                $ancestor -is [System.Management.Automation.Language.ScriptBlockExpressionAst]) { return $false }
+            $ancestor = $ancestor.Parent
+        }
+        return $true
+    }, $true))
+    if ($matches.Count -ne 1) { throw "$Identity must have exactly one active top-level assignment." }
+    return $matches[0]
+}
+
+function Get-PowerShellFunctionAst {
+    param([object]$Syntax, [string]$Name, [string]$Identity)
+
+    $matches = @($Syntax.Ast.FindAll({
+        param($node)
+        $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -ceq $Name
+    }, $true))
+    if ($matches.Count -ne 1) { throw "$Identity must have exactly one function $Name." }
+    return $matches[0]
+}
+
+function Get-AstStringValues {
+    param([System.Management.Automation.Language.Ast]$Ast)
+
+    return @($Ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.StringConstantExpressionAst] }, $true) |
+        ForEach-Object { $_.Value })
+}
+
+function Get-NonCommentPowerShellTokenText {
+    param([object]$Syntax, [System.Management.Automation.Language.Ast]$Ast)
+
+    return @($Syntax.Tokens | Where-Object {
+        $_.Extent.StartOffset -ge $Ast.Extent.StartOffset -and
+        $_.Extent.EndOffset -le $Ast.Extent.EndOffset -and
+        $_.Kind -notin @(
+            [System.Management.Automation.Language.TokenKind]::Comment,
+            [System.Management.Automation.Language.TokenKind]::NewLine,
+            [System.Management.Automation.Language.TokenKind]::EndOfInput
+        )
+    } | ForEach-Object { $_.Text })
+}
+
+function Get-TopLevelShellRunStepCommands {
+    param([string]$Source, [string]$Identity)
+
+    $commands = New-Object System.Collections.Generic.List[string]
+    $functionDepth = 0
+    $controlDepth = 0
+    foreach ($rawLine in ($Source -split "`r?`n")) {
+        $line = $rawLine.Trim()
+        if ($line.Length -eq 0 -or $line.StartsWith('#', [StringComparison]::Ordinal)) { continue }
+        if ($line -match '^[A-Za-z_][A-Za-z0-9_]*\(\)\s*\{$') { $functionDepth++; continue }
+        if ($line -ceq '}') { $functionDepth--; if ($functionDepth -lt 0) { throw "$Identity has unbalanced function braces." }; continue }
+        if ($functionDepth -ne 0) { continue }
+        if ($line -match '^(fi|done|esac)\b') { $controlDepth--; if ($controlDepth -lt 0) { throw "$Identity has unbalanced shell control flow." }; continue }
+        if ($line -match '^(if|for|while|until|case)\b') {
+            if ($line -notmatch ';\s*(fi|done|esac)\s*$') { $controlDepth++ }
+            continue
+        }
+        if ($controlDepth -ne 0 -or $line -notmatch '^run_step\s+') { continue }
+        $parts = @([regex]::Matches($line, "'[^']*'|[^\s]+") | ForEach-Object { $_.Value.Trim("'") })
+        if ($parts.Count -lt 3 -or $parts[0] -cne 'run_step') { throw "$Identity has a malformed top-level run_step invocation." }
+        $commands.Add(($parts[2..($parts.Count - 1)] -join ' '))
+    }
+    if ($functionDepth -ne 0 -or $controlDepth -ne 0) { throw "$Identity has unbalanced function braces or shell control flow." }
+    return @($commands)
+}
+
 function Assert-ExactStringArray {
     param([object]$Actual, [string[]]$Expected, [string]$Identity)
 
@@ -94,8 +184,8 @@ $targets = [ordered]@{
         TargetAction = @(
             'go build ./...'
             'go vet ./...'
-            'go test -json -count=1 -timeout=150s ./tests/...'
-            'go test -json -race -count=1 -timeout=150s ./tests/...'
+            'go test -tags hubtest -json -count=1 -timeout=150s ./tests/...'
+            'go test -tags hubtest -json -race -count=1 -timeout=150s ./tests/...'
         )
         BootstrapSelectable = $false
     }
@@ -143,7 +233,42 @@ $targets = [ordered]@{
     }
 }
 
-$attestor = Read-StrictUtf8File -Path (Join-Path $dockerRoot 'source-image-attestor.ps1') -Identity 'source image attestor'
+$attestorPath = Join-Path $dockerRoot 'source-image-attestor.ps1'
+$attestor = Read-StrictUtf8File -Path $attestorPath -Identity 'source image attestor'
+$attestorSyntax = Read-PowerShellSyntax -Path $attestorPath -Identity 'source image attestor'
+$sourceBaselineAssignment = Get-TopLevelPowerShellAssignment -Syntax $attestorSyntax -Left '$script:SourceBaseline' -Identity 'source baseline authority'
+$sourceBaselineValues = Get-AstStringValues -Ast $sourceBaselineAssignment.Right
+Assert-ExactStringArray -Actual $sourceBaselineValues -Expected @('61b38573682d7c01e6d9381babc5085537d7990f') -Identity 'source baseline authority literal'
+$fixedTargetsAssignment = Get-TopLevelPowerShellAssignment -Syntax $attestorSyntax -Left '$script:FixedTargets' -Identity 'fixed target authority'
+$fixedTargetStrings = Get-AstStringValues -Ast $fixedTargetsAssignment.Right
+foreach ($command in @('go test -tags hubtest -json -count=1 -timeout=150s ./tests/...', 'go test -tags hubtest -json -race -count=1 -timeout=150s ./tests/...')) {
+    if (@($fixedTargetStrings | Where-Object { $_ -ceq $command }).Count -ne 1) { throw "Fixed target AST must contain the exact backend command once: $command" }
+}
+$boundContractAst = Get-PowerShellFunctionAst -Syntax $attestorSyntax -Name 'Assert-HubQaBoundControlContract' -Identity 'bound control contract'
+$boundContractTokens = Get-NonCommentPowerShellTokenText -Syntax $attestorSyntax -Ast $boundContractAst
+foreach ($token in @('Read-HubQaRegularUtf8File', 'vitest_config_path', 'vitest_config_sha256')) {
+    if (@($boundContractTokens | Where-Object { $_ -ceq $token }).Count -lt 1) { throw "Comment-stripped bound-control function omits active token $token." }
+}
+$frontendBranches = @($boundContractAst.FindAll({
+    param($node)
+    $node -is [System.Management.Automation.Language.IfStatementAst] -and
+    $node.Extent.Text -match '(?m)\$targetName\s+-ceq\s+''frontend-unit'''
+}, $true))
+if ($frontendBranches.Count -ne 2) { throw 'Bound control contract must have the two active frontend-only key and digest branches.' }
+$frontendBranchStrings = @($frontendBranches | ForEach-Object { Get-AstStringValues -Ast $_ })
+foreach ($value in @('frontend-unit', 'vitest_config_path', 'vitest_config_sha256', 'testframework/docker/vitest.frontend-unit.config.ts')) {
+    if (@($frontendBranchStrings | Where-Object { $_ -ceq $value }).Count -lt 1) { throw "Frontend-only attestor branch omits $value." }
+}
+$frontendCommands = @($frontendBranches | ForEach-Object {
+    $_.FindAll({ param($node) $node -is [System.Management.Automation.Language.CommandAst] }, $true) |
+        ForEach-Object { $_.GetCommandName() }
+})
+if (@($frontendCommands | Where-Object { $_ -ceq 'Read-HubQaRegularUtf8File' }).Count -ne 1) { throw 'Frontend-only attestor branch must actively read the Vitest config once.' }
+$frontendComparisons = @($frontendBranches | ForEach-Object {
+    $_.FindAll({ param($node) $node -is [System.Management.Automation.Language.BinaryExpressionAst] }, $true) |
+        ForEach-Object { ($_.Extent.Text -replace '\s+', ' ').Trim() }
+})
+if (@($frontendComparisons | Where-Object { $_ -ceq '$vitestConfig.Sha256 -cne $target.vitest_config_sha256' }).Count -ne 1) { throw 'Frontend-only attestor branch must actively compare the raw Vitest config digest.' }
 foreach ($token in @(
     'Get-HubQaBootstrapImageContract',
     'Test-HubQaBootstrapImageBindings',
@@ -177,7 +302,6 @@ foreach ($token in @(
     'E_SOURCE_TREE_INVALID',
     'E_SOURCE_TREE_DIGEST_MISMATCH',
     '$PSScriptRoot',
-    '7b5d5501cefab34f9aa5661e4f8c38e71474f9ce',
     'dependency-bundle.manifest.v1.json',
     'source-policy.v2.json',
     'build-manifest.v3.json',
@@ -367,6 +491,9 @@ foreach ($token in @(
 foreach ($forbidden in @('COPY bindings/assets/go-module-cache/', 'COPY bindings/assets/go-race-toolchain/', 'RUN ', ' tar ', 'apt', 'apk', 'yum', 'dnf', 'curl', 'wget', 'go install', 'go get')) {
     Assert-SourceExcludes -Source $backendUnitDockerfile -Needle $forbidden -Identity 'backend unit forbidden archive extraction or installation'
 }
+$backendUnitEntrypoint = Read-StrictUtf8File -Path (Join-Path $dockerRoot 'entrypoints\backend-unit.sh') -Identity 'backend unit entrypoint'
+$backendRunStepCommands = Get-TopLevelShellRunStepCommands -Source $backendUnitEntrypoint -Identity 'backend unit entrypoint'
+Assert-ExactStringArray -Actual $backendRunStepCommands -Expected @($targets['backend-unit'].TargetAction) -Identity 'backend entrypoint active run_step commands'
 
 $frontendDockerfile = Read-StrictUtf8File -Path (Join-Path $dockerRoot 'Dockerfile.frontend-unit') -Identity 'frontend unit Dockerfile'
 foreach ($token in @(
@@ -468,8 +595,27 @@ foreach ($forbidden in @('subprocess', 'powershell', 'pwsh', '.ps1', 'testframew
 }
 
 $frontendConfig = Read-StrictUtf8File -Path (Join-Path $dockerRoot 'vitest.frontend-unit.config.ts') -Identity 'frontend Vitest configuration'
-Assert-SourceContains -Source $frontendConfig -Needle '/opt/hub/source/frontend/tests/**/*.test.{ts,tsx}' -Identity 'dedicated frontend test include'
-Assert-SourceExcludes -Source $frontendConfig -Needle 'exclude:' -Identity 'frontend test exclusion'
+$expectedFrontendConfig = (@(
+    'import { defineConfig } from "vitest/config";',
+    '',
+    'export default defineConfig({',
+    '  root: "/opt/hub/source/frontend",',
+    '  resolve: {',
+    '    alias: {',
+    '      "@": "/opt/hub/source/frontend/src",',
+    '    },',
+    '  },',
+    '  test: {',
+    '    include: ["/opt/hub/source/frontend/tests/**/*.test.{ts,tsx}"],',
+    '    environment: "jsdom",',
+    '    globals: true,',
+    '    setupFiles: ["/opt/hub/source/frontend/src/test/setup.ts"],',
+    '  },',
+    '});',
+    ''
+) -join "`n")
+$normalizedFrontendConfig = $frontendConfig.Replace("`r`n", "`n")
+if ($normalizedFrontendConfig -cne $expectedFrontendConfig) { throw 'Frontend Vitest config differs from the exact executable TS contract.' }
 
 $compose = Read-StrictUtf8File -Path (Join-Path $dockerRoot 'compose.g0-bootstrap.yaml') -Identity 'bootstrap Compose topology'
 if ([regex]::Matches($compose, '(?m)^  [a-z0-9-]+:$').Count -ne 4) { throw 'Bootstrap Compose must contain exactly four services.' }
