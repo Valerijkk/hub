@@ -77,7 +77,7 @@ every remaining row/variant, assemble the Common envelope plus exactly one secti
 | 144-02F | Mail mutation receipt target/member and rule-deployment state schemas — `CONTRACT_AMENDED_ROOT_REVIEW_PENDING` | receipt/target/member schemas, `mailruledeployment.go`, narrow inverse edges | exact operation/state/code/count matrices; attempted tuple and canonical rule hash; no response/body/raw key | accepted 144-02A/D + independently accepted persistence 02F matrix |
 | 144-02E | Generate and inspect Ent output | generated Ent tree only through repository launcher workflow | clean generation/compile evidence; no manual generated edits; schema drift report | launcher + 144-02A..D + founder #12 |
 | 144-03A | Address normalization is `STATIC_ACCEPTED` at `41564d003946ddb78df18efca166ca86e4055405`; Thread contract is accepted at `cbc12577a6444df9c660e43fedfd0c8133c6e461` | exact 19-path Thread boundary is `STATIC_ACCEPTED` at `9903f4df3e5ca8034ea3f043b0386170e83a5101` / `EXACT_SHA_PASS` (source `c221d547`, oracle `b21bd6fd`, C/I/M `0/0/0`) | exact callable, strict bytewise Message-ID/ref chain, prefix/bounds, raw hash and literal oracle; no I/O | root freeze/adjudication of Folder callable/error/normalization/oracle contract only; no Folder TDD dispatch |
-| 144-03B | Folder tree then typed rule compilation as two sequential variants | `folder_tree.go`/folder unit, then `rule_compiler.go`/rule unit | max 100/depth 2/cycle/system roles; native actions + opaque label marker only; injection impossible | 144-01A |
+| 144-03B | Folder tree root-frozen candidate, then typed rule compilation only after Folder acceptance | no Folder source/test dispatch while candidate | Hub UUID tree: live-slot 100/depth 2/cycle; system rename/reparent/delete protected; create custom; engine IDs mapped before policy | candidate commit + three exact-SHA reviews |
 | 144-03C | Send/rate/loop then attachment policy as two sequential variants | `send_policy.go`/send unit, then `attachment_policy.go`/attachment unit | recipient/byte caps and loop headers; fail-closed scan and filename/type bounds | 144-01A |
 | 144-03D | Deterministic mapping of the three mail payloads into shared full v1 envelopes — static authoring authorized | `mailbox_events.go`, `backend/tests/mail/mailbox_events_test.go` | explicit event/time/org/actor/correlation; exact schema fields; no body/secret; no clock/random/outbox | 143-04L and 144-01A satisfied |
 | 144-04A | Resolve authenticated user to one organization/account and expose repositories | `mailbox_repository.go`, `mailbox_ent_repository.go`, `mailbox_service.go`, focused owner units | owner binding; begin/finish/reclaim mutation lease+epoch fence; sync lease/page interfaces; zero engine on invalid owner | 144-01B + 144-02E |
@@ -112,7 +112,9 @@ every remaining row/variant, assemble the Common envelope plus exactly one secti
 
 ## Frozen service semantics
 
-- Engine ids are opaque and are always paired with the server-resolved account id.
+- Engine ids are opaque and are always paired with the server-resolved account id. The
+  144-03B Folder candidate receives only projection/persistence-mapped Hub UUID rows, never
+  an engine id; its UUID equality/order is raw 16-byte comparison.
 - Raw MIME, recipients, subject and rich/plain draft/message bodies are engine state. Hub
   PostgreSQL stores safe projections, Hub relations, hashes and opaque versions only.
 - `MailMessageFolder` and flag fields are rebuildable snapshots. Mutations call the engine
@@ -187,3 +189,4 @@ every remaining row/variant, assemble the Common envelope plus exactly one secti
 | Ent generation | NOT_RUN |
 | Production migration mechanism | FOUNDER_DECISION_PENDING |
 | Product code/tests/build | NOT_RUN |
+> **144-03B Folder lifecycle sync (2026-08-14):** `FOLDER_TREE_CALLABLE_ERROR_NORMALIZATION_ORACLE_ROOT_FROZEN_CANDIDATE` from base `c2c0573c07f5b2535ac10ed617a14bb5294002bc`; not accepted or TDD-authorized. Thread remains `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`. Exact next action: one 18-doc atomic commit, then three independent exact-SHA reviews; no Folder source/test before acceptance. All executable evidence remains `NOT_RUN`, launcher `NOT_READY`; no product/schema/handler/migration/runtime claim. Author provenance is dispatcher-enforced Terra/medium with no fallback; actual telemetry `UNKNOWN` unless exposed.

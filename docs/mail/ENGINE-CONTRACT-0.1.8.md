@@ -462,3 +462,12 @@ candidates are skipped by Thread, not normalized, and only after a definitive su
 ancestor lookup outcome. The adapter preflights raw candidate bytes before any
 UTF-8/Message-ID/IDNA work; it does not alter the accepted 144-01A DTO/source or its structural
 acceptance.
+
+## 144-03B Folder candidate clarification
+
+`MaxEngineOpaqueIDBytes` and every string engine account/folder identifier in this adapter
+contract apply only to opaque engine DTO values. The root-frozen Folder candidate's pure tree
+policy receives only projection/persistence-mapped Hub `uuid.UUID` account, folder and parent
+rows; it never validates, sorts or accepts engine IDs. This is candidate-only, does not alter
+the adapter ABI, and remains unimplemented/`NOT_RUN`.
+> **144-03B Folder lifecycle sync (2026-08-14):** `FOLDER_TREE_CALLABLE_ERROR_NORMALIZATION_ORACLE_ROOT_FROZEN_CANDIDATE` from base `c2c0573c07f5b2535ac10ed617a14bb5294002bc`; not accepted or TDD-authorized. Thread remains `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`. Exact next action: one 18-doc atomic commit, then three independent exact-SHA reviews; no Folder source/test before acceptance. All executable evidence remains `NOT_RUN`, launcher `NOT_READY`; no product/schema/handler/migration/runtime claim. Author provenance is dispatcher-enforced Terra/medium with no fallback; actual telemetry `UNKNOWN` unless exposed.

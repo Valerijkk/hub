@@ -733,6 +733,28 @@ These are future required oracles for the statically accepted callable/encoding/
 The exact 19-path candidate is narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`.
 Thread implementation/test are narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`; root Folder contract freeze/adjudication is next, without Folder TDD dispatch. Launcher remains `NOT_READY` and runtime `NOT_RUN`.
 
+### 144-03B Folder root-frozen candidate scenarios (not accepted, implemented or run)
+
+- Reflection must prove the exact UUID-only Folder ABI, all 13 error literals/sentinels and
+  pointer `FolderPolicyError` methods, no custom role or extra public API. Zero account/ID/
+  action target is invalid; only zero parent is root; UUID equality and final ID sorting use
+  16 raw bytes. Opaque engine IDs are mapped to Hub UUID projection rows before policy.
+- Cover folder raw and postfold validation: valid UTF-8/no Unicode control/NUL, raw 1..120
+  runes/<=480 bytes, whitespace-only, NFC, Straße/STRASSE, sigma, fold expansion, and an empty
+  or >480-byte final private key. Display remains exact raw input; normalization is collapse/
+  trim Unicode space, NFC, x/text v0.35.0 Fold, final NFC, private/no collation.
+- Prove complete snapshot before action handling; then rename/reparent/delete exact target
+  lookup and system-role outcome before candidate name/parent/reference/children; system
+  delete precedes in_use. Create has no target. Verify overlay only, reparent subtree checks,
+  0/100/101 slots, delete does not free a slot, decision key only create/rename and zero
+  decision/no partial mutation on error.
+- HTTP oracle: after nondisclosing target resolution, missing PATCH/DELETE target is 404 and
+  system target is `MAIL_FOLDER_SYSTEM_ROLE`; only a resolved custom PATCH target with supplied
+  `parent_id` returns temporary 409 `MAIL_FOLDER_TREE_CONFLICT` before receipt/engine I/O.
+  Folder-create terminal receipts enumerate exactly `MAIL_FOLDER_NAME_CONFLICT` or
+  `MAIL_FOLDER_TREE_CONFLICT` at 409 and `MAIL_FOLDER_LIMIT_EXCEEDED` at 422; none creates a
+  row or calls the engine.
+
 - The founder-required test runner/package is `NOT_READY`; no supported execution command
   exists in this branch.
 - Direct Docker/Compose or host tests are prohibited fallback paths.
@@ -748,3 +770,4 @@ Thread implementation/test are narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT
 - Therefore this handoff remains a contract deliverable only. The narrow entry amendment and
   static packet acceptance must not be converted into a global or executable PASS claim until
   supported current-SHA executable evidence exists.
+> **144-03B Folder lifecycle sync (2026-08-14):** `FOLDER_TREE_CALLABLE_ERROR_NORMALIZATION_ORACLE_ROOT_FROZEN_CANDIDATE` from base `c2c0573c07f5b2535ac10ed617a14bb5294002bc`; not accepted or TDD-authorized. Thread remains `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`. Exact next action: one 18-doc atomic commit, then three independent exact-SHA reviews; no Folder source/test before acceptance. All executable evidence remains `NOT_RUN`, launcher `NOT_READY`; no product/schema/handler/migration/runtime claim. Author provenance is dispatcher-enforced Terra/medium with no fallback; actual telemetry `UNKNOWN` unless exposed.

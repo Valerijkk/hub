@@ -185,9 +185,11 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 ## 144-03B-Folder — folder tree policy
 
 - Dependency: 01A. Allowed only `folder_tree.go`, `backend/tests/mail/folder_tree_test.go`.
-- Behavior/oracles: at most 100 non-deleted folders including system roles; depth ≤2, no
-  cycle/self-parent/cross-account parent; system role cannot delete/reparent; normalized
-  sibling collision; deterministic ordering; no engine call.
+- Candidate behavior/oracles only: Hub admission has at most 100 live non-deleted control slots
+  including system/reserved states, separate from <=100 engine-backed enumeration; depth ≤2,
+  no cycle/self-parent/cross-account parent; system role cannot rename/reparent/delete and
+  create is custom; UUID-only policy receives projection-mapped Hub rows, normalized sibling
+  collision and deterministic ordering; no engine call or Folder TDD before acceptance.
 
 ## 144-03B-Rule — typed rule compiler
 
@@ -238,13 +240,17 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   first. Existing client receipt replay is resolved before a new command claim. For an absent
   key, active lease contention returns 423 with no receipt/control mutation; one transaction
   under the acquired lease rechecks/reserves 04O, inserts a unique creating row before I/O
-  and enforces normalized parent/name absence including pending rows. Name/cap failure is a
+  and enforces normalized parent/name absence including pending rows. Name/tree/cap failure is a
   terminal safe receipt without a folder row or engine call;
   projected-count precheck is advisory and adapter/engine atomically enforces the
   100-folder cap with `MAIL_FOLDER_LIMIT_EXCEEDED`; `BeginEngineCommand` commits before the
   first engine call and finish clears the exact lease plus advances the second epoch edge;
-  successful engine mutation reconciles projection/state. PATCH/DELETE require If-Match,
-  then generate an internal injected UUID v4/v7 receipt under the acquired command lease, increment
+  successful engine mutation reconciles projection/state. PATCH/DELETE first resolve the target
+  nondisclosingly: missing is 404, system is `MAIL_FOLDER_SYSTEM_ROLE`, and only a resolved
+  custom PATCH target with supplied `parent_id` is temporarily 409
+  `MAIL_FOLDER_TREE_CONFLICT` before receipt/engine I/O until accepted reparent port work.
+  PATCH/DELETE then require If-Match and generate an internal injected UUID v4/v7 receipt under
+  the acquired command lease, increment
   version when atomically persisting desired state/receipt link, and reject a new mutation
   while that folder is creating/unknown/deleting. Unknown create lists exact-account
   folders only when the injected adapter capability proves Hub-exclusive custom-folder
@@ -673,3 +679,4 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   Resend untouched, bodies/keys absent from persistence, `mail.>` present once and webhook
   list unchanged; record current SHA and all Docker/test/build/generation statuses honestly.
   Must request independent Terra review; cannot mark runtime PASS from static review.
+> **144-03B Folder lifecycle sync (2026-08-14):** `FOLDER_TREE_CALLABLE_ERROR_NORMALIZATION_ORACLE_ROOT_FROZEN_CANDIDATE` from base `c2c0573c07f5b2535ac10ed617a14bb5294002bc`; not accepted or TDD-authorized. Thread remains `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`. Exact next action: one 18-doc atomic commit, then three independent exact-SHA reviews; no Folder source/test before acceptance. All executable evidence remains `NOT_RUN`, launcher `NOT_READY`; no product/schema/handler/migration/runtime claim. Author provenance is dispatcher-enforced Terra/medium with no fallback; actual telemetry `UNKNOWN` unless exposed.

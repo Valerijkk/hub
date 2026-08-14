@@ -412,7 +412,7 @@ group authorization and fan-out are implemented.
 | `engine_folder_id` | string nullable | opaque, unique per account; null only for a reserved create intent |
 | `parent_id` | UUID nullable | same-account folder only; depth at most 2 in v1 |
 | `role` | enum nullable | `inbox`, `sent`, `drafts`, `archive`, `trash`, `junk` |
-| `name` | string | 1..120; custom sibling names unique case-insensitively |
+| `name` | string | raw valid UTF-8/no Unicode control/NUL, 1..120 runes/<=480 bytes; display preserves exact raw bytes/runes; custom sibling names use the private NFC/cases.Fold(v0.35.0)/NFC key and are unique case-insensitively |
 | `color` | string nullable | design-token-safe color value |
 | `sort_order` | int | stable user ordering |
 | `unread_count`, `total_count` | non-negative int | rebuildable projection |
@@ -422,17 +422,29 @@ group authorization and fan-out are implemented.
 | `last_seen_sync_epoch` | non-negative int64 | resumable rebuild mark |
 | `created_at`, `updated_at`, `deleted_at` | timestamp | soft delete for projection |
 
-System-role folders cannot be deleted or reparented. Folder cycles are rejected. An
-account has at most 100 non-deleted engine-backed folders including system roles. Hub
-prechecks the projected count for UX, but the adapter/engine enforces this cap atomically;
-an over-cap enumeration leaves the prior owner projection degraded and never partially
-marks it ready.
+System-role folders are protected exactly from rename, reparent and delete; create is always
+custom. Folder cycles are rejected. Engine enumeration permits at most 100 engine-backed
+folders per account including system roles; an over-cap enumeration leaves the prior owner
+projection degraded and never partially marks it ready. Separately, Hub admission permits at
+most 100 live non-deleted control slots, including system rows and `creating`/unknown/error/
+deleting reservations; the account transaction atomically rechecks and reserves that live-slot
+quota. Hub's projected-count precheck is UX-only and does not replace either boundary. Color
+and sort are outside the 144-03B structural packet.
 For a new folder key, Hub first acquires the account command lease; busy returns 423 without
 a receipt or folder change. While that lease is live, one transaction rechecks/reserves the
-client-keyed mutation receipt, evaluates name/cap policy, and inserts a `creating` folder row
+client-keyed mutation receipt, evaluates name/tree/cap policy, and inserts a `creating` folder row
 with null engine id before I/O, so another key cannot pass the sibling uniqueness guard.
-Name/cap rejection is terminally replayable but creates no folder row or engine call.
-PATCH/DELETE require `If-Match`; after the same pre-mutation lease claim, Hub generates an
+Name/tree/cap rejection is terminally replayable but creates no folder row or engine call. The
+private folder key first collapses/trims every `unicode.IsSpace` run to ASCII space, then NFC,
+`cases.Fold` from `golang.org/x/text v0.35.0`, then final NFC; it must be nonempty and <=480
+bytes and never enters OpenAPI. Any Unicode/x-text change needs an accepted migration/collision
+plan. Projection/persistence maps opaque engine IDs to Hub UUID rows before the pure Folder
+policy; that policy never accepts engine IDs.
+PATCH/DELETE require `If-Match`. Before any receipt or engine I/O, nondisclosing target
+resolution returns 404 for a missing target and a system target returns
+`MAIL_FOLDER_SYSTEM_ROLE`; only a resolved custom PATCH target with supplied `parent_id`
+is temporarily rejected with 409 `MAIL_FOLDER_TREE_CONFLICT` until the engine-port reparent
+packet is accepted. After those guards and the same pre-mutation lease claim, Hub generates an
 internal injected unexposed UUID v4/v7 receipt and atomically stores desired visible fields/state,
 receipt link and the next version before engine I/O. A busy/stale/protected request changes
 nothing, and another accepted mutation of that folder conflicts until recovery. After
@@ -1940,3 +1952,4 @@ rekey and dual-read plan. Fallback returns `ThreadKeyVersionV1`; storage/equalit
 versioned `(thread_key_version, thread_key)` tuple. An accepted ancestor returns its exact V1
 version+key and never hashes it again; the three existing preimages already contain version
 octet `01` and their SHA literals remain unchanged.
+> **144-03B Folder lifecycle sync (2026-08-14):** `FOLDER_TREE_CALLABLE_ERROR_NORMALIZATION_ORACLE_ROOT_FROZEN_CANDIDATE` from base `c2c0573c07f5b2535ac10ed617a14bb5294002bc`; not accepted or TDD-authorized. Thread remains `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`. Exact next action: one 18-doc atomic commit, then three independent exact-SHA reviews; no Folder source/test before acceptance. All executable evidence remains `NOT_RUN`, launcher `NOT_READY`; no product/schema/handler/migration/runtime claim. Author provenance is dispatcher-enforced Terra/medium with no fallback; actual telemetry `UNKNOWN` unless exposed.

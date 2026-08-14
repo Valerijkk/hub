@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Hub Mail and Calendar Sync API
   version: 0.1.8
-  description: The five-document 0.1.8 entry amendment independently PASSed at 5e314fb080d420696642058ae47397e251c23207 and authorizes only 144-01A entry. Thread contract remains accepted at cbc12577a6444df9c660e43fedfd0c8133c6e461; implementation+oracle are narrowly STATIC_ACCEPTED at 9903f4df / EXACT_SHA_PASS (source c221d547, oracle b21bd6fd, reviews C/I/M 0/0/0), static only. Broader cross-contract review and runtime remain pending. Presence in this file does not imply implementation.
+  description: The five-document 0.1.8 entry amendment independently PASSed at 5e314fb080d420696642058ae47397e251c23207 and authorizes only 144-01A entry. Thread contract remains accepted at cbc12577a6444df9c660e43fedfd0c8133c6e461; implementation+oracle are narrowly STATIC_ACCEPTED at 9903f4df / EXACT_SHA_PASS (source c221d547, oracle b21bd6fd, reviews C/I/M 0/0/0), static only. Folder is FOLDER_TREE_CALLABLE_ERROR_NORMALIZATION_ORACLE_ROOT_FROZEN_CANDIDATE from c2c0573c07f5b2535ac10ed617a14bb5294002bc, not accepted or TDD-authorized. Broader cross-contract review and runtime remain pending. Presence in this file does not imply implementation.
 servers:
   - url: /api
 security:
@@ -113,7 +113,7 @@ paths:
       x-hub-authz: mailbox-owner
       responses:
         "200":
-          description: Owner-scoped folder tree and counters
+          description: Owner-scoped flat, parent-linked, deterministically ordered folder items and counters
           content:
             application/json:
               schema:
@@ -162,6 +162,8 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/MailFolder"}
+        "400": {$ref: "#/components/responses/Error"}
+        "404": {$ref: "#/components/responses/NotFound"}
         "409": {$ref: "#/components/responses/MailFolderCreateConflict"}
         "423": {$ref: "#/components/responses/MailAccountBusy"}
         "422": {$ref: "#/components/responses/MailFolderLimitExceeded"}
@@ -191,6 +193,8 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/MailFolder"}
+        "400": {$ref: "#/components/responses/Error"}
+        "404": {$ref: "#/components/responses/NotFound"}
         "409": {$ref: "#/components/responses/MailFolderMutationConflict"}
         "423": {$ref: "#/components/responses/MailAccountBusy"}
         default: {$ref: "#/components/responses/Error"}
@@ -207,6 +211,8 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/MailFolder"}
+        "400": {$ref: "#/components/responses/Error"}
+        "404": {$ref: "#/components/responses/NotFound"}
         "409": {$ref: "#/components/responses/MailFolderMutationConflict"}
         "423": {$ref: "#/components/responses/MailAccountBusy"}
         default: {$ref: "#/components/responses/Error"}
@@ -1790,7 +1796,7 @@ components:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
     MailFolderLimitExceeded:
-      description: The owned mailbox already has the maximum 100 non-deleted engine-backed folders; the reserved receipt terminally replays this failure and no folder or engine operation is created
+      description: The owned mailbox already has the maximum 100 non-deleted live folder slots; the reserved receipt terminally replays this failure and no folder or engine operation is created
       headers:
         X-Hub-Error-Code:
           required: true
@@ -1805,7 +1811,7 @@ components:
           required: true
           schema:
             type: string
-            enum: [IDEMPOTENCY_KEY_REUSED, IDEMPOTENCY_REPLAY_UNAVAILABLE, IDEMPOTENCY_REPLAY_EXPIRED, MAIL_FOLDER_NAME_CONFLICT, MAIL_FOLDER_RECONCILIATION_REQUIRED]
+            enum: [IDEMPOTENCY_KEY_REUSED, IDEMPOTENCY_REPLAY_UNAVAILABLE, IDEMPOTENCY_REPLAY_EXPIRED, MAIL_FOLDER_NAME_CONFLICT, MAIL_FOLDER_TREE_CONFLICT, MAIL_FOLDER_RECONCILIATION_REQUIRED]
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
@@ -1816,7 +1822,7 @@ components:
           required: true
           schema:
             type: string
-            enum: [MAIL_FOLDER_VERSION_CONFLICT, MAIL_FOLDER_SYSTEM_ROLE, MAIL_FOLDER_IN_USE, MAIL_FOLDER_NAME_CONFLICT, MAIL_FOLDER_RECONCILIATION_REQUIRED]
+            enum: [MAIL_FOLDER_VERSION_CONFLICT, MAIL_FOLDER_SYSTEM_ROLE, MAIL_FOLDER_IN_USE, MAIL_FOLDER_NAME_CONFLICT, MAIL_FOLDER_TREE_CONFLICT, MAIL_FOLDER_RECONCILIATION_REQUIRED]
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
@@ -2257,14 +2263,14 @@ components:
     MailFolder:
       type: object
       additionalProperties: false
-      required: [id, name, unread_count, total_count, sort_order, state, version]
+      required: [id, parent_id, role, name, unread_count, total_count, sort_order, state, version]
       properties:
         id: {type: string, format: uuid}
         parent_id: {type: [string, "null"], format: uuid}
         role:
           type: [string, "null"]
           enum: [inbox, sent, drafts, archive, trash, junk, null]
-        name: {type: string, maxLength: 120, x-hub-max-utf8-bytes: 480}
+        name: {type: string, minLength: 1, maxLength: 120, x-hub-max-utf8-bytes: 480}
         color: {type: [string, "null"], maxLength: 32, x-hub-max-utf8-bytes: 128}
         sort_order: {type: integer}
         unread_count: {type: integer, minimum: 0}
@@ -2285,7 +2291,7 @@ components:
       minProperties: 1
       properties:
         name: {type: string, minLength: 1, maxLength: 120, x-hub-max-utf8-bytes: 480}
-        parent_id: {type: [string, "null"], format: uuid}
+        parent_id: {type: [string, "null"], format: uuid, description: After nondisclosing target resolution and system-role guard, only a resolved custom target's supplied parent_id is temporarily rejected before receipt or engine I/O with MAIL_FOLDER_TREE_CONFLICT until a separately accepted engine-port reparent packet; missing target is 404 and system target is MAIL_FOLDER_SYSTEM_ROLE.}
         color: {type: [string, "null"], maxLength: 32, x-hub-max-utf8-bytes: 128}
         sort_order: {type: integer}
     MailLabel:

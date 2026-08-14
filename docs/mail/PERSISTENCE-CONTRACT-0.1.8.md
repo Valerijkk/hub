@@ -29,10 +29,15 @@
 - Soft-delete uniqueness always includes `deleted_at IS NULL`. Hard account/organization
   deletion cascades owned Mail rows. Historical snapshot ids that must survive projection
   deletion are scalar UUIDs, not cascading edges.
-- `normalize_mail_name_v1` trims leading/trailing Unicode White_Space, collapses every
-  internal White_Space run to ASCII space, applies Unicode NFC then full Unicode case-fold
-  with the repository's existing `golang.org/x/text` version, and rejects empty/control/NUL.
-  Display name is retained separately. No database/session collation participates.
+- `normalize_mail_name_v1` is a private key normalizer; no database/session collation
+  participates. For the Folder consumer, validate raw valid UTF-8 with no Unicode control/NUL
+  and raw 1..120 runes/<=480 bytes; display name preserves exact raw bytes/runes. Its key
+  collapses every `unicode.IsSpace` run to one ASCII space and trims, then applies NFC,
+  `cases.Fold` using `golang.org/x/text v0.35.0`, then final NFC; the key is nonempty and
+  <=480 bytes. Folder raw validation precedes its private key normalization; key validation
+  follows it. Label consumers retain their separately documented raw bounds and use this
+  private/no-collation normalization algorithm only after those bounds. Any Unicode/x-text
+  version change requires an accepted migration/collision plan.
 - In every canonical binary encoding below, `U8(n)` is one unsigned octet and `U32BE(n)` is
   one unsigned 32-bit big-endian integer. Every encoded length/count is range-checked before
   conversion; concatenation never uses native integer width, native endianness or signed casts.
@@ -417,7 +422,8 @@ are accepted.
 ### `MailFolder`
 
 Fields: `id`, `mail_account_id`, optional `engine_folder_id` (<=1,024 bytes), optional
-same-account `parent_id`, optional `role`, `name` (1..120 chars/480 bytes), private
+same-account `parent_id`, optional `role`, `name` (raw valid UTF-8/no Unicode control/NUL,
+1..120 runes/<=480 bytes; exact raw display bytes/runes retained), private
 `normalized_name` (1..480 bytes), optional `color` (<=32 chars/128 bytes), required int32
 `sort_order` default 0, required int32 `unread_count`/`total_count` default 0,
 `control_state`, optional `control_receipt_id`, non-negative `last_seen_sync_epoch`,
@@ -445,7 +451,9 @@ have null role. Parent cannot equal id; depth/cycle/same-account is transactiona
 The receipt edge restricts deletion while referenced. A referenced move rule returns
 `MAIL_FOLDER_IN_USE`. Hard account deletion cascades; parent delete is service-ordered and
 restricted until children move/delete. The 100-row live quota counts reserved non-deleted
-control rows, not only rows that already have an engine id.
+control rows, not only rows that already have an engine id. Projection/persistence maps opaque
+engine folder IDs to Hub UUID rows before the pure Folder policy; it never passes engine IDs
+to that policy.
 
 ### `MailThread`
 
@@ -698,7 +706,7 @@ operation grammar is:
 
 | Operation | Target | Action / argument | Terminal success | Terminal failure code/status | Non-terminal unknown |
 |---|---|---|---|---|---|
-| `folder_create` | `folder` required after row reservation | none | 201 | `MAIL_FOLDER_NAME_CONFLICT|MAIL_FOLDER_LIMIT_EXCEEDED` / 409 or 422 | `MAIL_FOLDER_RECONCILIATION_REQUIRED` |
+| `folder_create` | `folder` required after row reservation | none | 201 | `MAIL_FOLDER_NAME_CONFLICT|MAIL_FOLDER_TREE_CONFLICT|MAIL_FOLDER_LIMIT_EXCEEDED` / 409 or 422 as applicable | `MAIL_FOLDER_RECONCILIATION_REQUIRED` |
 | `folder_update` | `folder` always | none; desired fields live on folder | 200 | none (preconditions occur before internal receipt) | `MAIL_FOLDER_RECONCILIATION_REQUIRED` |
 | `folder_delete` | `folder` always | none | 204 | none (preconditions occur before internal receipt) | `MAIL_FOLDER_RECONCILIATION_REQUIRED` |
 | `label_create` | `label` only on success | none | 201 | `MAIL_LABEL_NAME_CONFLICT|MAIL_LABEL_LIMIT_EXCEEDED` / 409 or 422 | forbidden |
@@ -710,7 +718,7 @@ operation grammar is:
 | `message_bulk` | parent target pair null; ordered child targets required | exact `bulk_action`; argument folder only for `move`, label only for add/remove-label, null otherwise | 200 | `MAIL_BULK_EXPANSION_LIMIT` / 422 | `MAIL_ENGINE_OUTCOME_UNKNOWN` only for reconcilable non-classifier engine state |
 
 The persisted parent `safe_code` enum is exactly the union named by that matrix:
-`MAIL_FOLDER_NAME_CONFLICT|MAIL_FOLDER_LIMIT_EXCEEDED|MAIL_FOLDER_RECONCILIATION_REQUIRED|MAIL_LABEL_NAME_CONFLICT|MAIL_LABEL_LIMIT_EXCEEDED|MAIL_SIGNATURE_LIMIT_EXCEEDED|MAIL_RULE_LIMIT_EXCEEDED|MAIL_DOMAIN_UNAVAILABLE|MAIL_DOMAIN_LIMIT_EXCEEDED|MAIL_ALIAS_ADDRESS_UNAVAILABLE|MAIL_ALIAS_ACCOUNT_NOT_ACTIVE|MAIL_IDENTITY_LIMIT_EXCEEDED|MAIL_BULK_EXPANSION_LIMIT|MAIL_ENGINE_OUTCOME_UNKNOWN`.
+`MAIL_FOLDER_NAME_CONFLICT|MAIL_FOLDER_TREE_CONFLICT|MAIL_FOLDER_LIMIT_EXCEEDED|MAIL_FOLDER_RECONCILIATION_REQUIRED|MAIL_LABEL_NAME_CONFLICT|MAIL_LABEL_LIMIT_EXCEEDED|MAIL_SIGNATURE_LIMIT_EXCEEDED|MAIL_RULE_LIMIT_EXCEEDED|MAIL_DOMAIN_UNAVAILABLE|MAIL_DOMAIN_LIMIT_EXCEEDED|MAIL_ALIAS_ADDRESS_UNAVAILABLE|MAIL_ALIAS_ACCOUNT_NOT_ACTIVE|MAIL_IDENTITY_LIMIT_EXCEEDED|MAIL_BULK_EXPANSION_LIMIT|MAIL_ENGINE_OUTCOME_UNKNOWN`.
 No idempotency reuse/expiry code or target-child code is a member of this enum.
 
 `bulk_action` is exactly
@@ -814,3 +822,4 @@ and Phases 143–148, `dispatcher-enforced` is sufficient only for an exact nati
 accepted without rejection; actual telemetry, when exposed, must match. Ent generation,
 schema validation, build/tests and migration artifacts remain `NOT_RUN` until the accepted
 task-owned launcher and founder migration decision exist.
+> **144-03B Folder lifecycle sync (2026-08-14):** `FOLDER_TREE_CALLABLE_ERROR_NORMALIZATION_ORACLE_ROOT_FROZEN_CANDIDATE` from base `c2c0573c07f5b2535ac10ed617a14bb5294002bc`; not accepted or TDD-authorized. Thread remains `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`. Exact next action: one 18-doc atomic commit, then three independent exact-SHA reviews; no Folder source/test before acceptance. All executable evidence remains `NOT_RUN`, launcher `NOT_READY`; no product/schema/handler/migration/runtime claim. Author provenance is dispatcher-enforced Terra/medium with no fallback; actual telemetry `UNKNOWN` unless exposed.

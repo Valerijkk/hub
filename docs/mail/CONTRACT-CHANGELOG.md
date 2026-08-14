@@ -1,5 +1,16 @@
 # Hub Mail contract changelog
 
+## 144-03B Folder root-frozen candidate — 2026-08-14
+
+`FOLDER_TREE_CALLABLE_ERROR_NORMALIZATION_ORACLE_ROOT_FROZEN_CANDIDATE` is frozen from
+`c2c0573c07f5b2535ac10ed617a14bb5294002bc`, not accepted and not TDD-authorized. It proposes
+the pure bounded Folder tree ABI/error/normalization/oracle contract only; it adds no source,
+test, schema, route handler, migration, engine or runtime acceptance. Thread remains
+`STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS`. Next is one exact 18-document atomic
+commit followed by three independent exact-SHA reviews; Folder production/test work remains
+blocked. Runner is `NOT_READY`, executable evidence `NOT_RUN`; author provenance is
+dispatcher-enforced Terra/medium, no fallback, telemetry `UNKNOWN` unless exposed.
+
 > **Current review status (2026-08-14): five-document 0.1.8 entry amendment PASS at `5e314fb080d420696642058ae47397e251c23207`; Thread contract remains accepted at `cbc12577a6444df9c660e43fedfd0c8133c6e461`; implementation+oracle are narrowly `STATIC_ACCEPTED` at `9903f4df` / `EXACT_SHA_PASS` (source `c221d547`, oracle `b21bd6fd`, C/I/M `0/0/0`), static only; broader Phase 142/cross-contract review remains pending.**
 
 ## Candidate lifecycle sync — 2026-08-14
