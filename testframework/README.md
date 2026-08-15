@@ -2,9 +2,11 @@
 
 `testframework/` is the separately extractable Python QA project boundary for
 Hub. F0 package/config/runtime/traceability/public-plugin/profile and health
-sources are authored and independently source-reviewed, alongside a statically
-reviewed private runner source candidate. None is accepted package execution,
-launcher runtime, or runtime authority.
+sources are authored and independently source-reviewed. F1-01 injected-only
+HTTP policy, transport, and redacted diagnostics source is independently
+source-reviewed at `a5f3b728`; it creates no network client or runtime
+evidence. A private runner source candidate also has static review only. None
+is accepted package execution, launcher runtime, or runtime authority.
 
 Package/bootstrap boundaries for the next slice are defined in
 [`PACKAGE-CONTRACT.md`](PACKAGE-CONTRACT.md). That document is architecture,
@@ -34,6 +36,9 @@ progressively only by its first accepted consumer.
     redaction primitives.
   - `traceability/` owns `TC-*` metadata loading and the risk-linked
     `task -> requirement -> TC/case` graph.
+  - `http/` owns injected-only HTTP policy, bounded retry, request identity,
+    and redacted diagnostics; it never creates a default client or network
+    request.
   - `domains/<domain>/` owns that domain's models, facades, builders, and
     oracles. Optional UI abstractions live only under the owning domain in
     `ui/pages/` and `ui/components/`.
@@ -74,9 +79,11 @@ chain.
 Structure-only scaffold: **COMMITTED** as `22035c45`. F0 package/config/runtime/
 traceability/public-plugin/profile and health source: **SOURCE_AUTHORED** and
 **SOURCE_REVIEWED** through `92e9fec7`; the health test is fake-transport source
-contract only, not live evidence. Package bootstrap and target-suite execution:
-**NOT_READY**. F1 and later source remain pending. Private runner source candidate:
-**STATIC_SOURCE_REVIEWED**; launcher: **NOT_READY**; `PS5.1_PARSE_NOT_RUN`;
+contract only, not live evidence. F1-01 HTTP policy and diagnostics source:
+**SOURCE_AUTHORED** and **SOURCE_REVIEWED** at `a5f3b728`; it is injected-only,
+creates no network client or runtime evidence. Package bootstrap and target-suite
+execution: **NOT_READY**. F1-02 and later source remain pending. Private runner
+source candidate: **STATIC_SOURCE_REVIEWED**; launcher: **NOT_READY**; `PS5.1_PARSE_NOT_RUN`;
 `PRIVATE_CONTRACT_NOT_RUN`. Runtime: **NOT_RUN**. `uv.lock`, `images.lock.v3.json`,
 and required local dependency bytes are absent. There is no supported direct runner
 or fallback command. No file/source review promotes installation, execution, or

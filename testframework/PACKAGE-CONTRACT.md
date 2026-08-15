@@ -12,6 +12,7 @@ define a runnable command, or grant runtime authority.
 | Installable `hub_testkit` package bootstrap | `NOT_READY` | package metadata, Python pin, typed marker, and package-contract selftests are source-authored; `uv.lock`, installation, build, and Docker evidence remain absent |
 | Framework selftests | `NOT_READY` | package-contract selftest source exists under the registered architecture profile root; it is not executed evidence |
 | F0 framework/domain source | `SOURCE_AUTHORED` / `SOURCE_REVIEWED` | strict config/runtime/ownership/redaction, traceability, public pytest collection plugin, literal 47-profile policy, and fake-only health source are authored and independently source-reviewed; this is not execution evidence |
+| F1-01 HTTP policy and diagnostics source | `SOURCE_AUTHORED` / `SOURCE_REVIEWED` | commit `a5f3b728`; immutable injected-only HTTP policy, transport, redaction-bound diagnostics, and health adapter source are independently reviewed. They create no client, network request, or runtime evidence |
 | SUT suite layer directories | `NOT_READY` | the first source tracer is `tests/api/health/test_health_api.py` with `TC-HEALTH-0001`; `tests/{contract,integration,e2e}/` remain absent and no suite execution evidence exists |
 | Versioned launcher API | `NOT_READY` | `runner/run-task.ps1` is a private static source candidate only; `PS5.1_PARSE_NOT_RUN`, `PRIVATE_CONTRACT_NOT_RUN`, no accepted public entrypoint |
 | Runtime | `NOT_RUN` | structure and documentation are not execution evidence |
@@ -205,8 +206,10 @@ literal 47-profile registry, strict config/runtime/ownership/redaction and
 traceability modules, the public-hook collection plugin, and
 `TC-HEALTH-0001` with its fake-transport source tracer for `GET /api/live`.
 Those F0 sources are independently source-reviewed. The health tracer is not
-live Hub evidence; F1 and later source remain pending. F0 source closure
-cannot yield a runtime result.
+live Hub evidence. F1-01 HTTP policy and diagnostics source is independently
+reviewed at `a5f3b728`; it remains injected-only, creates no network client or
+request, and cannot yield runtime evidence. F1-02 and all later source remain
+pending. F0/F1 source closure cannot yield a runtime result.
 
 The installable/executable package slice is not accepted until all of the
 following are true on one exact revision:
