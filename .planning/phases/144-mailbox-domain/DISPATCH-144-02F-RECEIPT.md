@@ -1,12 +1,14 @@
 # 144-02F-R — mutation-receipt source authority receipt
 
-> **Status:** `SOURCE_AUTHORITY_ACCEPTED` / `EXACT_SHA_PASS` at
+> **Historical authority status:** `CONSUMED/HISTORICAL` at
 > `a877848ef4d1ce80a30a4389f97ef0f863615159` (parent
 > `25cfb36720f9a35c96268a62f7ee81fd91f83503`, tree
 > `917fed11d1316678008229193aef6186ebaa0abb`; subject
 > `docs(mail): authorize receipt schema packet`).
 
-## Narrow accepted authority
+> **Source acceptance supersession:** `ce542cb5de839a1fb5200295f710b0ae45bcdbe6` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; parent `1792cdc381eeb4db0ab1ede5b512ba1222eb90b2`, tree `2cadf80c9ae0af99b5c8027c1d78c3ec55af7071`, exact eight blobs in `IMPLEMENTATION-144-02F-R.md`. Tests first; Contract/Security/Lifecycle PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Authority-only/root-dispatch/source-unaccepted below `CONSUMED/HISTORICAL`; 02B separate docs authority, 02C waits 02B, 02F-D blocked; launcher `NOT_READY`, executables/generation/migration/runtime `NOT_RUN`.
+
+## Historical consumed authority
 
 This is a docs-only authority acceptance. It does not accept source implementation, tests, Ent
 generation, migration, runtime, service, API, UI, deployment, release, or a version change. The

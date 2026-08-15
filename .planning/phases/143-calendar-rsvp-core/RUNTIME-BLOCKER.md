@@ -5,6 +5,8 @@
 > **Planning/review:** continues
 > **Current status:** ROUTE_AUTHORIZED · DISPATCHER_ENFORCED_PROVENANCE_ACCEPTED · RUNTIME_NOT_RUN
 
+> **143-04B source receipt:** `75dafea889055126f768227a4ae62b28c91b7393` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; source `db34bbbc4b4c8a3ace8f768998060f82deecedbe`, test `79225fb73481ffd34ee1f3b9a72965d255e0b14a`, full receipt in `IMPLEMENTATION-143-04B.md`. Tests first; Contract/Security/Lifecycle PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Former 04B `PRECOMMIT_FAIL`/`NOT_ACCEPTED`/current-next clauses `CONSUMED/HISTORICAL`; no next Calendar code packet selected. Launcher `NOT_READY`, executables/generation/migration/runtime `NOT_RUN`; 03E Ent generation/migration blocked.
+
 ## Current route — task-local founder amendment
 
 On 2026-08-13 the founder explicitly instructed this Mail branch to use Terra instead of
@@ -104,7 +106,7 @@ Consequences:
   and final Terra/high PASS C/I/M `0/0/0`. Implementation is Terra/xhigh; reviews are Terra/high;
   both use dispatcher-enforced provenance and actual telemetry is `UNKNOWN`. Static acceptance
   does not change the launcher `NOT_READY` or executable `NOT_RUN` status.
-- 143-04G calendar EVENTS-stream admission is `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `48a7273d100c07788def88e2f1b8d69c7173580f` (parent `6386f3eeb4025fc0aca55f49aaa8083ff856f8a9`, tree `65c5074a9793d24bac5f9b18aa214fbc942ac922`; `feat(calendar): admit calendar event subjects`): `client.go` blob `e838704e6b4f5ebb9d1bb52d7d36b776c4453738`, tests-first `calendar_subjects_test.go` blob `71f5f68280eeb6b64e590b809c6df6b618695c9b`. Terra/xhigh author and Terra/high static precommit+exact-SHA review PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN`. All executable evidence remains `NOT_RUN`; launcher `NOT_READY`; no Ent/schema migration/runtime/product/phase authority. Former 04G-next/current-route clauses are `CONSUMED/HISTORICAL`. 03E remains `BLOCKED/NOT_RUN` only for Ent generation/migration. The founder-selected current next pure packet is 143-04B: `backend/internal/calendar/event_service_create.go` plus `backend/tests/calendar/event_service_create_test.go`, gated by accepted 04A+04G; unrelated blockers remain.
+- 143-04G and 143-04B are `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; exact receipts are in their implementation records. Former 04G/04B next-route clauses are `CONSUMED/HISTORICAL`. No next Calendar code packet is selected; root must separately dispatch any later packet. All executable evidence remains `NOT_RUN`; launcher `NOT_READY`; 03E remains `BLOCKED/NOT_RUN` only for Ent generation/migration; unrelated blockers remain.
 - 144-01B remains subject to its independent contract/source-review gates, but not to a
   telemetry-only provenance block;
 - an exact Terra/xhigh worker may author atomic production/test code only through an accepted

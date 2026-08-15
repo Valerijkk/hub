@@ -6,6 +6,8 @@
 > **Tree:** `1e305267cf47f98000ce89d76f9204d9cd84df93`
 > **Subject:** `feat(calendar): add event service contract`
 
+> **Downstream receipt:** 04B is `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `75dafea889055126f768227a4ae62b28c91b7393`; see `IMPLEMENTATION-143-04B.md`. Only old 04B precommit/unaccepted/current-next clauses are consumed; 04A remains static-only, launcher `NOT_READY`, executable `NOT_RUN`, and 03E Ent generation/migration block unchanged.
+
 ## Exact accepted boundary
 
 | Path | Blob |
@@ -32,8 +34,6 @@ change.
 
 Clauses claiming 143-03E blocks pure 143-04A or that no further source can proceed are
 `CONSUMED/HISTORICAL`. 143-03E remains `BLOCKED/NOT_RUN` for Ent generation and migration
-only. The former 143-04G-next route is also `CONSUMED/HISTORICAL`: 04G is accepted in
-`IMPLEMENTATION-143-04G.md`. Under the founder remaining-source instruction, the current next
-pure source packet is 143-04B: `backend/internal/calendar/event_service_create.go` plus
-`backend/tests/calendar/event_service_create_test.go`, gated by accepted 04A+04G. All unrelated
-blockers remain unchanged.
+only. The former 143-04G/04B next routes are also `CONSUMED/HISTORICAL`; both packets are
+accepted in their implementation receipts. No next Calendar code packet is selected; root
+must separately dispatch any later packet. All unrelated blockers remain unchanged.

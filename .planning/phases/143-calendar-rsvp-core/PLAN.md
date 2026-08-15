@@ -2,7 +2,9 @@
 
 > Task: TASK-236 · Status: IMPLEMENTATION_IN_PROGRESS_143_01_02A_02B_03A_03B_03C_03D_03F_04L_04A_04G_STATIC_ACCEPTED · Depends on: Phase 142
 
-> **143-04G receipt:** `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `48a7273d100c07788def88e2f1b8d69c7173580f` (parent `6386f3eeb4025fc0aca55f49aaa8083ff856f8a9`, tree `65c5074a9793d24bac5f9b18aa214fbc942ac922`; `feat(calendar): admit calendar event subjects`). Exact blobs: `client.go` `e838704e6b4f5ebb9d1bb52d7d36b776c4453738`, tests-first `calendar_subjects_test.go` `71f5f68280eeb6b64e590b809c6df6b618695c9b`. Terra/xhigh author and Terra/high static precommit+exact-SHA review PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Executables `NOT_RUN`, launcher `NOT_READY`; no Ent/schema migration/runtime/product/phase authority. 03E remains `BLOCKED` only for Ent generation/migration; former 04G-next/current-route clauses are `CONSUMED/HISTORICAL`. Next pure packet: 143-04B, exact two-file boundary `backend/internal/calendar/event_service_create.go` plus `backend/tests/calendar/event_service_create_test.go`, gated by accepted 04A+04G.
+> **143-04G receipt:** `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `48a7273d100c07788def88e2f1b8d69c7173580f`; former 04G/04B next routes are `CONSUMED/HISTORICAL`. 143-04B is accepted at `75dafea889055126f768227a4ae62b28c91b7393`. No next Calendar code packet is selected; root must separately dispatch any later packet. Executables `NOT_RUN`, launcher `NOT_READY`; 03E remains blocked only for Ent generation/migration.
+
+> **143-04B source receipt:** `75dafea889055126f768227a4ae62b28c91b7393` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; exact blobs in `IMPLEMENTATION-143-04B.md`. Tests first; Contract/Security/Lifecycle PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Old 04B `PRECOMMIT_FAIL`/`NOT_ACCEPTED`/next-route clauses `CONSUMED/HISTORICAL`. No next Calendar code packet selected; launcher `NOT_READY`, executables/generation/migration/runtime `NOT_RUN`; 03E Ent generation/migration blocked.
 
 ## Goal
 
@@ -105,7 +107,7 @@ breaking existing export behavior.
 
 ## Task 143-04 — Repository and transactional RSVP service
 
-> **04A/04G status:** both are `STATIC_ACCEPTED` as recorded above. Their sole accepted boundaries neither generate Ent nor authorize migration or runtime. The former 04G-next route is `CONSUMED/HISTORICAL`; 143-04B is the current next pure source packet: `backend/internal/calendar/event_service_create.go` plus `backend/tests/calendar/event_service_create_test.go`, gated by accepted 04A+04G.
+> **04A/04G/04B status:** all are `STATIC_ACCEPTED` as recorded above. Their accepted boundaries neither generate Ent nor authorize migration or runtime. Former next-route clauses are `CONSUMED/HISTORICAL`; no next Calendar code packet is selected and root must separately dispatch any later packet.
 
 **Create:**
 

@@ -1,6 +1,6 @@
 # Phase 144 — executable packet contracts not split into standalone files
 
-> **144-02D source receipt (2026-08-15):** `2242a4e7846944498eb5ed701ab8f47c986bd804` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS` (parent `e9a1764b001e28074e4074a07ca8ac982e5345ba`, tree `8129303399e627ca5cedac3e70648955c74cfed9`) for blobs `55b9ccfb4e19a190fc7c083a61350ce7ba8c7e5b`, `6b8614c651ee70a70bdb46c00456362c8edad796`, `a826916965ab4875a9c61da83fa0a68a8d5d3d4d`, `fba258559fe6a8557b045fa10757330be29b5c08`, `7643892d0af8934892d23713e4d35b07b0bc455c`, `b2216313dfdf492315a377b3567fdc4f71d05a0`, `b595855cbe9cd39f522ef8263eb72ea4db4f9b55`, `74599da63c180942e092a909ee53eb0ca6b7e51f`, `b94c686c35e3a5cca2d7838424f7e255012437d8`. Tests first; Terra/xhigh author and Terra/high precommit+exact-SHA PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN`; launcher `NOT_READY`, executables/generation/migration/runtime `NOT_RUN`. Former 02D-next/unimplemented/source-blocked clauses are `CONSUMED/HISTORICAL`; old docs receipts remain. 02B remains blocked pending accepted 02F-R source; only its exact eight-path source/test manifest is authorized for root dispatch, while all other 02F source including 02F-D remains unauthorized.
+> **144-02D source receipt:** `2242a4e7846944498eb5ed701ab8f47c986bd804` remains `STATIC_ACCEPTED` / `EXACT_SHA_PASS`. 02F-R source is accepted at `ce542cb5`; 02B is eligible only for separate docs source authority, 02C waits accepted 02B, and 02F-D remains blocked. Launcher `NOT_READY`; executables/generation/migration/runtime `NOT_RUN`.
 
 > **Phase-145 carrier-plan acceptance (2026-08-15):** `PLAN-145-07B-SIEVE-CARRIER.md` is docs/implementation-authority-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `949b876d1c5ea07338926aa5fe19e1864a256e93` (parent `375891bb85c0e89f2b6597e0416b82219fffaa74`, tree `f943fb60e8dbda3ae612871d189a57d751dc44cc`, blob `0bbbc91cd3c58fc8daeaab1a434d942f3ef26821`); reviews PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Contract `1daef787`/sync `375891bb` stay accepted. Only obsolete carrier-plan-pending clauses are `CONSUMED/HISTORICAL`; no source/test/runtime authority. Rule Task 1 awaits G145-5B/G145-5C/launcher; carrier source additionally awaits accepted Rule compiler source/ABI. 145-07B blocked; `NOT_READY`/`NOT_RUN` unchanged.
 
@@ -25,6 +25,8 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 144-05B and 144-06A. This file completes every other index row.
 
 > **Current Rule-plan acceptance:** Standalone `PLAN-144-03B-RULE.md` is docs/plan-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `669ef761715ec35a638bc87d8396e6f562b162c4` (parent `77eb4356de06a5304521b60c57af4e73c5740ce1`, tree `1b554d1c5763818ffef4f3c06c2a5bde16046d37`, sole path, blob `b86c0423a307fd2673a3d322435922aa2a398e8f`); Contract/Spec/Oracle Terra/high, Security/Adversarial/Purity Terra/xhigh, Lifecycle/Dependency/Boundary Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. This accepts only the plan: former Rule-plan author/adjudicate/accept instructions are `CONSUMED/HISTORICAL`; no Rule oracle/source/TDD, schema, migration, service, Phase145 carrier, runtime, product, phase or release authority follows. Rule Task 1 RED is `NOT_AUTHORIZED/BLOCKED` until all accepted non-marker Phase145 typed-IR/script carrier, G145-5B, G145-5C and launcher readiness, without implied order; post-task runtime `NOT_RUN`. Task4 docs sync remains separately discovered after future source Task3 acceptance. 02D/02F docs-only acceptance, 144-01B Docker blocker, Phase142/148 and release gates, launcher `NOT_READY`, executable tests/build/lint/validators/Docker/runtime `NOT_RUN` remain unchanged.
+
+> **144-02F-R accepted source receipt:** `ce542cb5de839a1fb5200295f710b0ae45bcdbe6` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; exact eight blobs in `IMPLEMENTATION-144-02F-R.md`. Tests first; Contract/Security/Lifecycle PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Authority-only/source-unaccepted clauses `CONSUMED/HISTORICAL`; 02B separate docs authority, 02C waits 02B, 02F-D blocked; launcher `NOT_READY`, executables/generation/migration/runtime `NOT_RUN`.
 
 ## Common execution envelope
 
@@ -66,7 +68,7 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 
 ## 144-02A1/A2/A3 — typed DNS then domain/policy then account/identity schemas
 
-- `144-02A1` is accepted at `5892a90b7582ff4ac35db218428400ac9608c4e3`; `144-02A2` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `65c91b4824e8a1948fc97c149305aa7f009de061`; `144-02A3` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `e9a1764b001e28074e4074a07ca8ac982e5345ba` (parent `47f8987b269e1625022071e0de95a76da0d2f00a`, tree `c0b59b2ba1168076a4cc787cacb99fe5081cd301`; subject `feat(mail): add account and identity schemas`) for exactly seven blobs: account `30e68ff52171e643e1361f3d6acfd2310289d8e1`, domain `16f5d20600d1359ba737417428d594ac73468360`, identity `1b06e04c9235e5c891a601261a2e400068155065`, organization `df85d2e2f61bcc8b62235f0557f774fb06eca1e3`, user `5594ca1c68b8f3c726ab90a77dcc26b7e7713e0c`, authored-first A3 test `0939618d620c7f9b503df50e4aff04fbf0b3a85d`, and A2 compatibility test `70b0c56f20043aeb8b4b719ca4ae6f3405cb5221`. Tests first; Terra/xhigh author and Terra/high precommit+exact-SHA review PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN`. A2-unimplemented and A3-unimplemented/A3-next clauses are `CONSUMED/HISTORICAL`. Launcher `NOT_READY`, executables/generation/migration/runtime `NOT_RUN`; no receipt authorizes Ent generation, migration or runtime. 02B remains blocked pending accepted 02F-R source. The former founder root-override selected independent 02D exact nine paths; that next-route clause is `CONSUMED/HISTORICAL` because 02D is `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `2242a4e7846944498eb5ed701ab8f47c986bd804`. Only the exact 02F-R eight-path source/test manifest is authorized for root dispatch; all other 02F source including 02F-D and 02E/generation/migration/runtime remain blocked.
+- 144-02A1/A2/A3 remain `STATIC_ACCEPTED` / `EXACT_SHA_PASS`. 02F-R source is accepted at `ce542cb5`. 02B is eligible only for a separate docs source-authority amendment and is not auto-dispatched; 02C waits accepted 02B; 02F-D and 02E remain blocked. Launcher `NOT_READY`; executables/generation/migration/runtime `NOT_RUN`.
 
 - Representation dependency is satisfied narrowly by the docs-only `STATIC_CONTRACT_READY`
   acceptance of reviewed snapshot `b631866b2ba372101fd80eea30951eaa267c1931`: Contract/Spec
@@ -95,7 +97,7 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 
 ## 144-02B — folder/thread/message/membership/label schemas
 
-> Current state: 144-02A3 is source `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; its former A3-next clause is `CONSUMED/HISTORICAL`. 02B remains blocked pending accepted 02F-R source. The former root override selected independent 02D exact nine paths; that current-route clause is `CONSUMED/HISTORICAL` because 02D is `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `2242a4e7846944498eb5ed701ab8f47c986bd804`. Only the exact 02F-R eight-path source/test manifest is authorized for root dispatch; all other 02F source including 02F-D and 02E/generation/migration/runtime remain blocked. The docs-only exact14 representation at `576f19231e37f635d5b7187a1ada121ed14ff8dc` and 02F trace remain authoritative; launcher `NOT_READY`, executables `NOT_RUN`.
+> Current state: 144-02A3 and 02F-R source are `STATIC_ACCEPTED` / `EXACT_SHA_PASS`. Former A3/02F-R dispatch routes are `CONSUMED/HISTORICAL`. 02B is eligible only for a separate docs source-authority amendment; 02C waits accepted 02B; 02F-D and 02E remain blocked. Launcher `NOT_READY`, executables `NOT_RUN`.
 
 - Dependency: reviewed 02A. Allowed only new schema files
   `mailfolder.go`, `mailthread.go`, `mailmessage.go`, `mailmessagefolder.go`, `maillabel.go`,
@@ -152,7 +154,7 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 
 ## 144-02F — mutation receipt and rule-deployment schemas
 
-> **02F-R precedence (2026-08-15):** `DISPATCH-144-02F-RECEIPT.md` is `SOURCE_AUTHORITY_ACCEPTED` / `EXACT_SHA_PASS` at `a877848e`: only its exact eight-path receipt/target/member source/test packet is authorized for root dispatch. Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high exact-SHA reviews PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Former candidate/precommit/commit/review-next clauses are `CONSUMED/HISTORICAL`. This is not source implementation acceptance: the dispatched packet still requires test-first authoring, review, atomic commit and its own exact-SHA acceptance. Rule deployment remains 02F-D, `BLOCKED` / `NOT_AUTHORIZED`, separate/nonblocking. 02B remains blocked until accepted 02F-R source; 02C until 02B; all 02E/generation/migration/runtime/service/API/UI/release and launcher blockers remain current.
+> **02F-R precedence (2026-08-15):** source is `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `ce542cb5de839a1fb5200295f710b0ae45bcdbe6`; authority precursor `a877848e` is `CONSUMED/HISTORICAL`. 02B is eligible only for a separate docs source-authority amendment and is not auto-dispatched; 02C waits accepted 02B; 02F-D remains blocked and nonblocking. 02E/generation/migration/runtime/service/API/UI/release and launcher blockers remain current.
 
 > Current trace: 02F receipt/deployment normative `STATIC_ACCEPTED` / `EXACT_SHA_PASS` facts remain unchanged. Its broad 02D-unchanged/dependent writer-replay clause is dependency-traced by the docs/readiness-only exact14 receipt `576f19231e37f635d5b7187a1ada121ed14ff8dc`; candidate/precommit status is `CONSUMED/HISTORICAL` and it authorizes no source/schema/runtime work.
 
@@ -160,11 +162,10 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   combined receipt/target/member with `mailruledeployment.go` and unspecified narrow inverses is
   not an active source route and authorizes no path. Its normative receipt/deployment facts remain
   only as the accepted docs/readiness contract.
-- **Current routing:** 02F-R is limited to the accepted exact eight-path receipt/target/member
-  authority packet in `DISPATCH-144-02F-RECEIPT.md`, authorized only for root dispatch. Its source
-  implementation still requires test-first authoring, review, atomic commit and exact-SHA
-  acceptance. 02F-D is separately `BLOCKED` / `NOT_AUTHORIZED`, has no source manifest, and is
-  nonblocking for 02B/02C.
+- **Current routing:** 02F-R source is `STATIC_ACCEPTED` at `ce542cb5`; exact blobs are recorded
+  in `IMPLEMENTATION-144-02F-R.md`. 02B is eligible only for a separate docs source-authority
+  amendment and is not auto-dispatched; 02C waits accepted 02B. 02F-D is separately `BLOCKED` /
+  `NOT_AUTHORIZED`, has no source manifest, and is nonblocking.
 - Behavior: receipt organization/actor/nullable account/operation/key source (`client` or
   `internal`)/key hash/request hash/positive fingerprint version/state/target/status/safe
   code; no response body/raw key/content/address. Client full replay metadata expires 30 days
