@@ -29,6 +29,7 @@ var StreamSubjects = []string{
 	"sprint.>",
 	"notification.>",
 	"audit.>", // C-W19-002 / TASK-178: GDPR Mongo erase retry (audit.gdpr.mongo_erase)
+	"calendar.>",
 }
 
 // WebhookFilterSubjects — JetStream filter для durable consumer webhook-dispatcher.
