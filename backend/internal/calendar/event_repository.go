@@ -24,12 +24,62 @@ type EventRepository interface {
 // EventTransactionBackend реализуется адаптером хранения и никогда не передаётся сервису напрямую.
 type EventTransactionBackend interface {
 	ResolveActorOrganization(ctx context.Context, actorID uuid.UUID) (uuid.UUID, error)
+	ResolveCalendarEventCreateAuthorization(ctx context.Context, scope EventMutationScope, request CalendarEventCreateAuthorizationRequest) (CalendarEventCreateAuthorization, error)
 	ReserveMutationReceipt(ctx context.Context, scope EventMutationScope, reservation MutationReceiptReservation) (MutationReceiptReservationResult, error)
 	CompleteMutationReceipt(ctx context.Context, scope EventMutationScope, completion MutationReceiptCompletion) error
 	PersistCalendarEvent(ctx context.Context, scope EventMutationScope, command CalendarEventCommand) (CalendarEventPersistenceResult, error)
 	PersistCalendarEventAttendee(ctx context.Context, scope EventMutationScope, command CalendarEventAttendeeCommand) (CalendarEventAttendeePersistenceResult, error)
 	PersistCalendarEventException(ctx context.Context, scope EventMutationScope, command CalendarEventExceptionCommand) (CalendarEventExceptionPersistenceResult, error)
 	AppendOutbox(ctx context.Context, scope EventMutationScope, descriptor EventOutboxDescriptor) error
+}
+
+// CalendarEventCreateAttendeeCandidate is an untrusted create-time attendee
+// reference. The transaction resolver owns every identity decision.
+type CalendarEventCreateAttendeeCandidate struct {
+	UserID      *uuid.UUID
+	Email       string
+	DisplayName *string
+	Role        CalendarEventAttendeeRole
+}
+
+// CalendarEventCreateAuthorizationRequest is the immutable candidate set that
+// the transaction backend resolves before a new calendar event is persisted.
+type CalendarEventCreateAuthorizationRequest struct {
+	Organizer       CalendarEventCreateAttendeeCandidate
+	Attendees       []CalendarEventCreateAttendeeCandidate
+	Title           string
+	Description     string
+	Location        string
+	Temporal        CalendarEvent
+	RRULE           string
+	Exdates         []string
+	ReminderMinutes *int
+	ScheduledCallID *uuid.UUID
+}
+
+// CalendarEventCreateResolvedOrganizer is the authoritative organizer identity
+// supplied by the in-transaction resolver.
+type CalendarEventCreateResolvedOrganizer struct {
+	UserID      uuid.UUID
+	Email       string
+	DisplayName *string
+}
+
+// CalendarEventCreateResolvedAttendee is an authoritative attendee identity
+// supplied by the in-transaction resolver.
+type CalendarEventCreateResolvedAttendee struct {
+	UserID      *uuid.UUID
+	Email       string
+	DisplayName *string
+	Role        CalendarEventAttendeeRole
+}
+
+// CalendarEventCreateAuthorization contains only resolved identities and the
+// authoritative scheduled-call relation for a fresh create mutation.
+type CalendarEventCreateAuthorization struct {
+	Organizer       CalendarEventCreateResolvedOrganizer
+	Attendees       []CalendarEventCreateResolvedAttendee
+	ScheduledCallID *uuid.UUID
 }
 
 // EventTransaction ограничивает все мутации временем callback и не позволяет захваченному значению работать после него.
@@ -102,6 +152,25 @@ func (transaction *EventTransaction) ResolveMutationScope(ctx context.Context, a
 		operation:      operation,
 		transaction:    transaction,
 	}, nil
+}
+
+// ResolveCalendarEventCreateAuthorization resolves create identities only
+// while the transaction and its scope are still live. Both the input and
+// output are copied so neither callers nor backends can retain mutable aliases.
+func (transaction *EventTransaction) ResolveCalendarEventCreateAuthorization(ctx context.Context, scope EventMutationScope, request CalendarEventCreateAuthorizationRequest) (CalendarEventCreateAuthorization, error) {
+	if transaction == nil {
+		return CalendarEventCreateAuthorization{}, ErrEventTransactionClosed
+	}
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+	if err := transaction.validateScope(scope); err != nil {
+		return CalendarEventCreateAuthorization{}, err
+	}
+	resolved, err := transaction.backend.ResolveCalendarEventCreateAuthorization(ctx, scope, cloneCalendarEventCreateAuthorizationRequest(request))
+	if err != nil {
+		return CalendarEventCreateAuthorization{}, err
+	}
+	return cloneCalendarEventCreateAuthorization(resolved), nil
 }
 
 // ReserveMutationReceipt резервирует или воспроизводит квитанцию только в переданной transaction scope.
@@ -229,6 +298,68 @@ func (transaction *EventTransaction) AppendOutbox(ctx context.Context, scope Eve
 		return ErrEventInvalid
 	}
 	return transaction.backend.AppendOutbox(ctx, scope, descriptor)
+}
+
+func cloneCalendarEventCreateAuthorizationRequest(request CalendarEventCreateAuthorizationRequest) CalendarEventCreateAuthorizationRequest {
+	copyRequest := request
+	copyRequest.Organizer = cloneCalendarEventCreateAttendeeCandidate(request.Organizer)
+	copyRequest.Attendees = make([]CalendarEventCreateAttendeeCandidate, len(request.Attendees))
+	for index, attendee := range request.Attendees {
+		copyRequest.Attendees[index] = cloneCalendarEventCreateAttendeeCandidate(attendee)
+	}
+	copyRequest.Exdates = append([]string(nil), request.Exdates...)
+	copyRequest.ReminderMinutes = cloneCalendarEventCreateInt(request.ReminderMinutes)
+	copyRequest.ScheduledCallID = cloneCalendarEventCreateUUID(request.ScheduledCallID)
+	return copyRequest
+}
+
+func cloneCalendarEventCreateAuthorization(authorization CalendarEventCreateAuthorization) CalendarEventCreateAuthorization {
+	copyAuthorization := authorization
+	copyAuthorization.Organizer.DisplayName = cloneCalendarEventCreateString(authorization.Organizer.DisplayName)
+	copyAuthorization.Attendees = make([]CalendarEventCreateResolvedAttendee, len(authorization.Attendees))
+	for index, attendee := range authorization.Attendees {
+		copyAuthorization.Attendees[index] = CalendarEventCreateResolvedAttendee{
+			UserID:      cloneCalendarEventCreateUUID(attendee.UserID),
+			Email:       attendee.Email,
+			DisplayName: cloneCalendarEventCreateString(attendee.DisplayName),
+			Role:        attendee.Role,
+		}
+	}
+	copyAuthorization.ScheduledCallID = cloneCalendarEventCreateUUID(authorization.ScheduledCallID)
+	return copyAuthorization
+}
+
+func cloneCalendarEventCreateAttendeeCandidate(candidate CalendarEventCreateAttendeeCandidate) CalendarEventCreateAttendeeCandidate {
+	return CalendarEventCreateAttendeeCandidate{
+		UserID:      cloneCalendarEventCreateUUID(candidate.UserID),
+		Email:       candidate.Email,
+		DisplayName: cloneCalendarEventCreateString(candidate.DisplayName),
+		Role:        candidate.Role,
+	}
+}
+
+func cloneCalendarEventCreateUUID(value *uuid.UUID) *uuid.UUID {
+	if value == nil {
+		return nil
+	}
+	copyValue := *value
+	return &copyValue
+}
+
+func cloneCalendarEventCreateString(value *string) *string {
+	if value == nil {
+		return nil
+	}
+	copyValue := *value
+	return &copyValue
+}
+
+func cloneCalendarEventCreateInt(value *int) *int {
+	if value == nil {
+		return nil
+	}
+	copyValue := *value
+	return &copyValue
 }
 
 func (transaction *EventTransaction) validateScope(scope EventMutationScope) error {

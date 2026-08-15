@@ -39,11 +39,15 @@ func (eventRepositoryContractFake) WithEventTransaction(_ context.Context, callb
 }
 
 type eventTransactionBackendFake struct {
-	organizationID uuid.UUID
-	organizations  map[uuid.UUID]uuid.UUID
-	lastScope      calendar.EventMutationScope
-	scopes         []calendar.EventMutationScope
-	appendCalls    int
+	organizationID              uuid.UUID
+	organizations               map[uuid.UUID]uuid.UUID
+	lastScope                   calendar.EventMutationScope
+	scopes                      []calendar.EventMutationScope
+	appendCalls                 int
+	createAuthorization         calendar.CalendarEventCreateAuthorization
+	createAuthorizationError    error
+	createAuthorizationCalls    int
+	lastCreateAuthorizationRequest calendar.CalendarEventCreateAuthorizationRequest
 }
 
 func (fake *eventTransactionBackendFake) recordScope(scope calendar.EventMutationScope) {
@@ -56,6 +60,13 @@ func (fake *eventTransactionBackendFake) ResolveActorOrganization(_ context.Cont
 		return fake.organizations[actorID], nil
 	}
 	return fake.organizationID, nil
+}
+
+func (fake *eventTransactionBackendFake) ResolveCalendarEventCreateAuthorization(_ context.Context, scope calendar.EventMutationScope, request calendar.CalendarEventCreateAuthorizationRequest) (calendar.CalendarEventCreateAuthorization, error) {
+	fake.recordScope(scope)
+	fake.createAuthorizationCalls++
+	fake.lastCreateAuthorizationRequest = request
+	return fake.createAuthorization, fake.createAuthorizationError
 }
 
 func (fake *eventTransactionBackendFake) ReserveMutationReceipt(_ context.Context, scope calendar.EventMutationScope, _ calendar.MutationReceiptReservation) (calendar.MutationReceiptReservationResult, error) {
@@ -205,6 +216,75 @@ func TestEventTransaction_RejectsCapturedUseAfterCallback(t *testing.T) {
 	}
 	if backend.appendCalls != 0 {
 		t.Fatalf("backend AppendOutbox calls after closed callback = %d, want 0", backend.appendCalls)
+	}
+}
+
+func TestEventTransaction_ResolvesCreateAuthorizationOnlyForLiveBoundScopeAndCopiesValues(t *testing.T) {
+	backend := &eventTransactionBackendFake{organizationID: contractOrganizationID}
+	ctx := context.Background()
+	organizerName := "Candidate organizer"
+	attendeeName := "Candidate attendee"
+	resolvedOrganizerName := "Resolved organizer"
+	resolvedAttendeeName := "Resolved attendee"
+	backend.createAuthorization = calendar.CalendarEventCreateAuthorization{
+		Organizer: calendar.CalendarEventCreateResolvedOrganizer{
+			UserID:      contractActorID,
+			Email:       "owner@example.test",
+			DisplayName: &resolvedOrganizerName,
+		},
+		Attendees: []calendar.CalendarEventCreateResolvedAttendee{{
+			Email:       "guest@example.test",
+			DisplayName: &resolvedAttendeeName,
+			Role:        calendar.CalendarEventAttendeeRoleRequired,
+		}},
+	}
+	request := calendar.CalendarEventCreateAuthorizationRequest{
+		Organizer: calendar.CalendarEventCreateAttendeeCandidate{UserID: &contractActorID, DisplayName: &organizerName, Role: calendar.CalendarEventAttendeeRoleRequired},
+		Attendees: []calendar.CalendarEventCreateAttendeeCandidate{{Email: "guest@example.test", DisplayName: &attendeeName, Role: calendar.CalendarEventAttendeeRoleRequired}},
+		Exdates:   []string{"2031-02-10T09:00:00Z"},
+	}
+	var captured *calendar.EventTransaction
+	var scope calendar.EventMutationScope
+	var resolved calendar.CalendarEventCreateAuthorization
+
+	err := calendar.RunEventTransaction(backend, func(tx *calendar.EventTransaction) error {
+		captured = tx
+		var err error
+		scope, err = tx.ResolveMutationScope(ctx, contractActorID, calendar.MutationReceiptEventCreate)
+		if err != nil {
+			return err
+		}
+		resolved, err = tx.ResolveCalendarEventCreateAuthorization(ctx, scope, request)
+		return err
+	})
+	if err != nil {
+		t.Fatalf("RunEventTransaction() error = %v", err)
+	}
+	request.Attendees[0].Email = "changed@example.test"
+	request.Exdates[0] = "changed"
+	*request.Organizer.DisplayName = "changed organizer"
+	*resolved.Organizer.DisplayName = "changed resolved organizer"
+	*resolved.Attendees[0].DisplayName = "changed resolved attendee"
+	if got := backend.lastCreateAuthorizationRequest.Attendees[0].Email; got != "guest@example.test" {
+		t.Fatalf("resolver request aliases caller attendee: %q", got)
+	}
+	if got := backend.lastCreateAuthorizationRequest.Exdates[0]; got != "2031-02-10T09:00:00Z" {
+		t.Fatalf("resolver request aliases caller exdates: %q", got)
+	}
+	if got := *backend.lastCreateAuthorizationRequest.Organizer.DisplayName; got != "Candidate organizer" {
+		t.Fatalf("resolver request aliases caller name: %q", got)
+	}
+	if got := *backend.createAuthorization.Organizer.DisplayName; got != "Resolved organizer" {
+		t.Fatalf("resolver result aliases backend organizer: %q", got)
+	}
+	if got := *backend.createAuthorization.Attendees[0].DisplayName; got != "Resolved attendee" {
+		t.Fatalf("resolver result aliases backend attendee: %q", got)
+	}
+	if _, err := captured.ResolveCalendarEventCreateAuthorization(ctx, scope, request); !errors.Is(err, calendar.ErrEventTransactionClosed) {
+		t.Fatalf("captured ResolveCalendarEventCreateAuthorization() error = %v, want %v", err, calendar.ErrEventTransactionClosed)
+	}
+	if backend.createAuthorizationCalls != 1 {
+		t.Fatalf("backend resolver calls after callback = %d, want 1", backend.createAuthorizationCalls)
 	}
 }
 
