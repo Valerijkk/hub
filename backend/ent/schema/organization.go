@@ -61,6 +61,7 @@ func (Organization) Edges() []ent.Edge {
 		edge.To("mail_domains", MailDomain.Type),
 		edge.To("mailbox_policy", MailboxPolicy.Type).
 			Unique(),
+		edge.To("mail_accounts", MailAccount.Type),
 	}
 }
 

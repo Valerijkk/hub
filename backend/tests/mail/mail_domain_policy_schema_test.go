@@ -251,15 +251,19 @@ func TestMailDomainAndMailboxPolicySchemas_HaveExactIndexesAndOrganizationEdges(
 	assertExactIndexes(t, (entschema.MailboxPolicy{}).Indexes(), []wantedIndex{{fields: []string{"organization_id"}, unique: true}})
 
 	domainEdges := edgeDescriptors((entschema.MailDomain{}).Edges())
-	assertExactNames(t, "MailDomain edges", edgeNames(domainEdges), []string{"organization"})
+	assertExactNames(t, "MailDomain edges", edgeNames(domainEdges), []string{"accounts", "organization"})
 	assertInverseRequiredOrganizationEdge(t, "MailDomain.organization", domainEdges["organization"], "mail_domains")
+	accounts := domainEdges["accounts"]
+	if accounts.Inverse || accounts.Unique || accounts.Required || accounts.RefName != "" {
+		t.Fatalf("MailDomain.accounts = inverse:%t unique:%t required:%t ref:%q, want false/false/false/empty", accounts.Inverse, accounts.Unique, accounts.Required, accounts.RefName)
+	}
 
 	policyEdges := edgeDescriptors((entschema.MailboxPolicy{}).Edges())
 	assertExactNames(t, "MailboxPolicy edges", edgeNames(policyEdges), []string{"organization"})
 	assertInverseRequiredOrganizationEdge(t, "MailboxPolicy.organization", policyEdges["organization"], "mailbox_policy")
 
 	organizationEdges := edgeDescriptors((entschema.Organization{}).Edges())
-	assertExactNames(t, "Organization edges", edgeNames(organizationEdges), []string{"mail_domains", "mailbox_policy", "projects", "users"})
+	assertExactNames(t, "Organization edges", edgeNames(organizationEdges), []string{"mail_accounts", "mail_domains", "mailbox_policy", "projects", "users"})
 	for _, name := range []string{"projects", "users"} {
 		assertOnDelete(t, "Organization."+name, organizationEdges[name].Annotations, entsql.NoAction)
 	}
@@ -270,6 +274,10 @@ func TestMailDomainAndMailboxPolicySchemas_HaveExactIndexesAndOrganizationEdges(
 	mailboxPolicy := organizationEdges["mailbox_policy"]
 	if mailboxPolicy.Inverse || !mailboxPolicy.Unique || mailboxPolicy.Required || mailboxPolicy.RefName != "" {
 		t.Fatalf("Organization.mailbox_policy = inverse:%t unique:%t required:%t ref:%q, want false/true/false/empty", mailboxPolicy.Inverse, mailboxPolicy.Unique, mailboxPolicy.Required, mailboxPolicy.RefName)
+	}
+	mailAccounts := organizationEdges["mail_accounts"]
+	if mailAccounts.Inverse || mailAccounts.Unique || mailAccounts.Required || mailAccounts.RefName != "" {
+		t.Fatalf("Organization.mail_accounts = inverse:%t unique:%t required:%t ref:%q, want false/false/false/empty", mailAccounts.Inverse, mailAccounts.Unique, mailAccounts.Required, mailAccounts.RefName)
 	}
 }
 
