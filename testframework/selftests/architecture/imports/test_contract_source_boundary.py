@@ -82,7 +82,9 @@ from hub_testkit.contracts import ContractSourceBundle as Bundle
 from hub_testkit.contracts import SourceBlob as Blob
 from hub_testkit.contracts import SourceSnapshot
 from hub_testkit.contracts.pytest_source_bundle import ContractSourceBundleFactory as Factory
-from hub_testkit.contracts.pytest_source_bundle import provide_contract_source_bundle_factory as provide
+from hub_testkit.contracts.pytest_source_bundle import """
+        "provide_contract_source_bundle_factory as provide\n"
+        """
 
 if False:
     snapshot = SourceSnapshot("0123456789abcdef0123456789abcdef01234567", ())
@@ -116,6 +118,7 @@ def helper(value):
         "suite-raw-contract-api",
         "suite-raw-selector",
         "suite-raw-introspection",
+        "suite-contract-import-not-allowed",
         "private-facade-access",
     }
 
@@ -123,14 +126,33 @@ def helper(value):
 def test_contract_suite_visitor_allows_only_injected_fixture_and_semantic_helpers() -> None:
     tree = ast.parse(
         """from hub_testkit.contracts import contract_source_bundle, load_f1_04_risk_ledger
+from hub_testkit.contracts.openapi import assert_magic_verify_error_contract
+from hub_testkit.contracts.openapi import assert_openapi_canonical_document
+from hub_testkit.contracts.openapi import assert_tms_webhook_auth_contract
 
 def test_contract(contract_source_bundle):
     ledger = load_f1_04_risk_ledger(contract_source_bundle)
-    return ledger.edge_for_node_id("testframework/tests/contract/openapi/test_openapi_security_contract.py::test_swagger_document_is_valid_with_single_api_prefix")
-"""
+    assert_openapi_canonical_document(contract_source_bundle)
+    assert_magic_verify_error_contract(contract_source_bundle)
+    assert_tms_webhook_auth_contract(contract_source_bundle)
+    return ledger.edge_for_node_id("""
+        '"testframework/tests/contract/openapi/'
+        "test_openapi_security_contract.py::"
+        'test_swagger_document_is_valid_with_single_api_prefix")\n'
     )
 
     assert _violations(tree, contract_suite=True) == set()
+
+
+def test_contract_suite_visitor_rejects_every_nonwhitelisted_contract_import() -> None:
+    tree = ast.parse(
+        """from hub_testkit.contracts import RiskLedgerError
+from hub_testkit.contracts.openapi import OpenApiContractError
+from hub_testkit.contracts.openapi import unexpected_semantic_helper
+"""
+    )
+
+    assert _violations(tree, contract_suite=True) == {"suite-contract-import-not-allowed"}
 
 
 def test_contract_source_modules_have_no_io_environment_private_or_second_loader_escape() -> None:
@@ -142,6 +164,7 @@ def test_contract_source_modules_have_no_io_environment_private_or_second_loader
 
     assert tuple(path.name for path in source_paths) == (
         "__init__.py",
+        "openapi.py",
         "pytest_source_bundle.py",
         "risk_ledger.py",
         "source_bundle.py",
@@ -157,9 +180,22 @@ def test_contract_source_modules_have_no_io_environment_private_or_second_loader
     loads = [
         node.name
         for node in ast.walk(risk_tree)
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.startswith("load")
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.name.startswith("load")
     ]
     assert loads == ["load_f1_04_risk_ledger"]
+    openapi_tree = ast.parse((CONTRACT_ROOT / "openapi.py").read_text(encoding="utf-8"))
+    public_openapi_functions = tuple(
+        node.name
+        for node in openapi_tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and not node.name.startswith("_")
+    )
+    assert public_openapi_functions == (
+        "assert_openapi_canonical_document",
+        "assert_magic_verify_error_contract",
+        "assert_tms_webhook_auth_contract",
+    )
 
 
 class _ContractBoundaryVisitor(ast.NodeVisitor):
@@ -184,6 +220,7 @@ class _ContractBoundaryVisitor(ast.NodeVisitor):
             self._aliases[local] = root
             if self.contract_suite and alias.name.startswith("hub_testkit.contracts"):
                 self._contract_module_aliases.add(local)
+                self.violations.add("suite-contract-import-not-allowed")
             if root in FORBIDDEN_IMPORT_ROOTS:
                 self.violations.add("forbidden-import")
 
@@ -193,6 +230,9 @@ class _ContractBoundaryVisitor(ast.NodeVisitor):
             self.violations.add("forbidden-import")
         for alias in node.names:
             local = alias.asname or alias.name
+            if self.contract_suite and (node.module or "").startswith("hub_testkit.contracts"):
+                if not _suite_contract_import_allowed(node.module or "", alias.name):
+                    self.violations.add("suite-contract-import-not-allowed")
             if self.contract_suite and _is_raw_contract_symbol(node.module, alias.name):
                 self._raw_contract_names.add(local)
                 self.violations.add("suite-raw-contract-api")
@@ -264,7 +304,10 @@ class _ContractBoundaryVisitor(ast.NodeVisitor):
                 self.violations.add("suite-raw-selector")
         if isinstance(node.func, ast.Name) and node.func.id == "open":
             self.violations.add("forbidden-io")
-        if isinstance(node.func, ast.Name) and self._aliases.get(node.func.id) in FORBIDDEN_IMPORT_ROOTS:
+        if (
+            isinstance(node.func, ast.Name)
+            and self._aliases.get(node.func.id) in FORBIDDEN_IMPORT_ROOTS
+        ):
             self.violations.add("forbidden-io")
         if isinstance(node.func, ast.Name) and node.func.id == "__import__":
             self.violations.add("dynamic-import")
@@ -310,6 +353,21 @@ _RAW_CONTRACT_SYMBOLS = frozenset(
         "require_contract_source_bundle_factory",
     }
 )
+_ALLOWED_CONTRACT_SUITE_IMPORTS = {
+    "hub_testkit.contracts": frozenset(
+        {
+            "contract_source_bundle",
+            "load_f1_04_risk_ledger",
+        }
+    ),
+    "hub_testkit.contracts.openapi": frozenset(
+        {
+            "assert_magic_verify_error_contract",
+            "assert_openapi_canonical_document",
+            "assert_tms_webhook_auth_contract",
+        }
+    ),
+}
 _INTROSPECTION_ATTRIBUTES = frozenset(
     {
         "__dataclass_fields__",
@@ -328,6 +386,11 @@ def _is_raw_contract_symbol(module: str | None, name: str) -> bool:
         and module.startswith("hub_testkit.contracts")
         and name in _RAW_CONTRACT_SYMBOLS
     )
+
+
+def _suite_contract_import_allowed(module: str, name: str) -> bool:
+    allowed = _ALLOWED_CONTRACT_SUITE_IMPORTS.get(module)
+    return allowed is not None and name in allowed
 
 
 def _is_raw_contract_attribute(node: ast.Attribute, module_aliases: set[str]) -> bool:

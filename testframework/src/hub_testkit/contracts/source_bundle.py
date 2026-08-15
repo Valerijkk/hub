@@ -12,7 +12,7 @@ _SOURCE_COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _MAX_BLOB_BYTES = 4 * 1024 * 1024
 _MAX_TOTAL_BYTES = 8 * 1024 * 1024
-_BUNDLE_PREFIX = b"hub.qa.contract-source-bundle/v1\0"
+_BUNDLE_PREFIX = b"hub.qa.contract-source-bundle/v3\0"
 _INVALID = object()
 
 
@@ -22,9 +22,13 @@ class ContractSourceError(ValueError):
 
 class ContractSourcePath(str, Enum):
     SERVER_MAIN = "backend/cmd/server/main.go"
+    WIRING_AUTH = "backend/cmd/server/wiring_auth.go"
+    WIRING_MESSENGER = "backend/cmd/server/wiring_messenger.go"
     SWAGGER_JSON = "backend/docs/swagger.json"
+    APIGATEWAY_APIKEY = "backend/internal/apigateway/apikey.go"
     AUTH_EVENTS = "backend/internal/auth/events.go"
     AUTH_HANDLER = "backend/internal/auth/handler.go"
+    AUTH_MIDDLEWARE = "backend/internal/auth/middleware.go"
     AUTH_SERVICE_SESSION = "backend/internal/auth/service_session.go"
     NOTIFICATION_CONSUMER = "backend/internal/notification/consumer.go"
     NOTIFICATION_EVENTS = "backend/internal/notification/events.go"

@@ -66,9 +66,13 @@ def test_bundle_admits_only_literal_manifest_and_publishes_safe_selector() -> No
 
     assert tuple(path.value for path in ContractSourcePath) == (
         "backend/cmd/server/main.go",
+        "backend/cmd/server/wiring_auth.go",
+        "backend/cmd/server/wiring_messenger.go",
         "backend/docs/swagger.json",
+        "backend/internal/apigateway/apikey.go",
         "backend/internal/auth/events.go",
         "backend/internal/auth/handler.go",
+        "backend/internal/auth/middleware.go",
         "backend/internal/auth/service_session.go",
         "backend/internal/notification/consumer.go",
         "backend/internal/notification/events.go",
@@ -78,7 +82,7 @@ def test_bundle_admits_only_literal_manifest_and_publishes_safe_selector() -> No
     )
     assert bundle.source_commit == COMMIT
     expected = hashlib.sha256()
-    expected.update(b"hub.qa.contract-source-bundle/v1\0")
+    expected.update(b"hub.qa.contract-source-bundle/v3\0")
     expected.update(COMMIT.encode("ascii"))
     expected.update(b"\0")
     for path in ContractSourcePath:
@@ -116,11 +120,14 @@ def test_bundle_rejects_manifest_digest_commit_and_size_deviations() -> None:
 
     invalid_snapshots = (
         _snapshot(canonical[:-1]),
-        _snapshot((*canonical, _blob(ContractSourcePath.SERVER_MAIN))),
-        _snapshot((canonical[1], canonical[0], *canonical[2:])),
-        _snapshot((*canonical[:3], canonical[0], *canonical[4:])),
-        _snapshot((*canonical[:3], bad_digest, *canonical[4:])),
-        _snapshot((*canonical[:3], bad_path, *canonical[4:])),
+        _snapshot((*canonical[:1], *canonical[2:])),
+        _snapshot((*canonical[:4], *canonical[5:])),
+        _snapshot((*canonical, _blob(ContractSourcePath.APIGATEWAY_APIKEY))),
+        _snapshot((canonical[0], canonical[2], canonical[1], *canonical[3:])),
+        _snapshot((*canonical[:3], canonical[4], canonical[3], *canonical[5:])),
+        _snapshot((*canonical[:5], canonical[4], *canonical[6:])),
+        _snapshot((*canonical[:6], bad_digest, *canonical[7:])),
+        _snapshot((*canonical[:6], bad_path, *canonical[7:])),
         _snapshot((oversized, *canonical[1:])),
         _snapshot(total),
     )
