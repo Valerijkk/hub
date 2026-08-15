@@ -5,6 +5,36 @@
 # (скопируйте .env.local.example → .env.local для Resend/Telegram)
 # Доступ: http://localhost:8080  ·  API: http://localhost:3000  ·  DEV_MODE=true
 
+x-qa-common: &qa-common
+  profiles: [qa]
+  read_only: true
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: [ALL]
+  init: true
+  pids_limit: 256
+  cpus: 2.0
+  mem_limit: 2g
+  volumes:
+    - ./testframework/reports:/reports
+  networks: [qa-internal]
+  stop_grace_period: 30s
+  tmpfs:
+    - "/tmp:rw,noexec,nosuid,nodev,size=64m"
+
+x-qa-python: &qa-python
+  environment:
+    PYTHONDONTWRITEBYTECODE: "1"
+    PYTEST_ADDOPTS: "-p no:cacheprovider"
+    PYTHONSAFEPATH: "1"
+
+x-qa-infrastructure: &qa-infrastructure
+  profiles: [qa]
+  networks: [qa-internal]
+  pids_limit: 128
+  cpus: 1.0
+  mem_limit: 1g
+  stop_grace_period: 30s
+
 services:
 
   postgres:
@@ -190,9 +220,217 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  backend-unit:
+    <<: *qa-common
+    build:
+      context: .
+      dockerfile: testframework/docker/Dockerfile.qa
+      target: backend-unit
+    command: []
+
+  frontend-unit:
+    <<: *qa-common
+    build:
+      context: .
+      dockerfile: testframework/docker/Dockerfile.qa
+      target: frontend-unit
+    command: []
+
+  python-contract:
+    <<: [*qa-common, *qa-python]
+    build:
+      context: .
+      dockerfile: testframework/docker/Dockerfile.qa
+      target: python-tests
+    command: [contract]
+
+  python-api:
+    <<: [*qa-common, *qa-python]
+    build:
+      context: .
+      dockerfile: testframework/docker/Dockerfile.qa
+      target: python-tests
+    command: [api]
+
+  python-integration:
+    <<: [*qa-common, *qa-python]
+    build:
+      context: .
+      dockerfile: testframework/docker/Dockerfile.qa
+      target: python-tests
+    command: [integration]
+    depends_on:
+      qa-postgres:
+        condition: service_healthy
+      qa-mongo:
+        condition: service_healthy
+      qa-redis:
+        condition: service_healthy
+      qa-nats:
+        condition: service_healthy
+      qa-seaweedfs:
+        condition: service_healthy
+
+  python-e2e-smoke:
+    <<: [*qa-common, *qa-python]
+    build:
+      context: .
+      dockerfile: testframework/docker/Dockerfile.qa
+      target: python-tests
+    command: [e2e-smoke]
+    depends_on:
+      qa-postgres:
+        condition: service_healthy
+      qa-mongo:
+        condition: service_healthy
+      qa-redis:
+        condition: service_healthy
+      qa-nats:
+        condition: service_healthy
+      qa-seaweedfs:
+        condition: service_healthy
+
+  python-e2e-full:
+    <<: [*qa-common, *qa-python]
+    build:
+      context: .
+      dockerfile: testframework/docker/Dockerfile.qa
+      target: python-tests
+    command: [e2e-full]
+    depends_on:
+      qa-postgres:
+        condition: service_healthy
+      qa-mongo:
+        condition: service_healthy
+      qa-redis:
+        condition: service_healthy
+      qa-nats:
+        condition: service_healthy
+      qa-seaweedfs:
+        condition: service_healthy
+
+  python-load:
+    <<: [*qa-common, *qa-python]
+    build:
+      context: .
+      dockerfile: testframework/docker/Dockerfile.qa
+      target: python-tests
+    command: [load]
+
+  qa-postgres:
+    <<: *qa-infrastructure
+    image: postgres:17
+    environment:
+      POSTGRES_USER: hubqa
+      POSTGRES_PASSWORD: hubqa-local-only
+      POSTGRES_DB: hubqa
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hubqa -d hubqa"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+    tmpfs:
+      - "/var/lib/postgresql/data:rw,noexec,nosuid,nodev,size=512m"
+
+  qa-mongo:
+    <<: *qa-infrastructure
+    image: mongo:8.0
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: hubqa
+      MONGO_INITDB_ROOT_PASSWORD: hubqa-local-only
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+    tmpfs:
+      - "/data/db:rw,noexec,nosuid,nodev,size=512m"
+
+  qa-redis:
+    <<: *qa-infrastructure
+    image: redis:7.4-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+    tmpfs:
+      - "/data:rw,noexec,nosuid,nodev,size=256m"
+
+  qa-nats:
+    <<: *qa-infrastructure
+    image: nats:2.11
+    command: ["-js", "--store_dir", "/data", "-m", "8222"]
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          wget -qO-
+          'http://127.0.0.1:8222/healthz?js-enabled-only=true'
+          >/dev/null
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+    tmpfs:
+      - "/data:rw,noexec,nosuid,nodev,size=256m"
+
+  qa-seaweedfs:
+    <<: *qa-infrastructure
+    image: chrislusf/seaweedfs:3.97
+    command:
+      - server
+      - -s3
+      - -dir=/data
+      - -s3.config=/etc/seaweedfs/s3.json
+    configs:
+      - source: qa-seaweedfs-s3
+        target: /etc/seaweedfs/s3.json
+        mode: "0444"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          test -r /etc/seaweedfs/s3.json &&
+          grep -q '"accessKey": "hubqa-access"' /etc/seaweedfs/s3.json &&
+          wget -qO- http://127.0.0.1:9333/cluster/status >/dev/null &&
+          wget -S -O /dev/null http://127.0.0.1:8333/ 2>&1 |
+          grep -q ' 403 '
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+    tmpfs:
+      - "/data:rw,noexec,nosuid,nodev,size=512m"
+
 volumes:
   pgdata:
   mongodata:
   natsdata:
   seaweeddata:
   meilidata:
+
+networks:
+  qa-internal:
+    internal: true
+
+configs:
+  qa-seaweedfs-s3:
+    content: |
+      {
+        "identities": [
+          {
+            "name": "hubqa-s3",
+            "credentials": [
+              {
+                "accessKey": "hubqa-access",
+                "secretKey": "hubqa-secret-local-only"
+              }
+            ],
+            "actions": ["Admin", "Read", "List", "Tagging", "Write"]
+          }
+        ]
+      }

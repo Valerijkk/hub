@@ -12,7 +12,7 @@ from typing import NoReturn
 
 import pytest
 import yaml
-from yaml.nodes import MappingNode
+from yaml.nodes import MappingNode, ScalarNode, SequenceNode
 from yaml.resolver import BaseResolver
 
 
@@ -114,6 +114,61 @@ _FIXED_COMMANDS = MappingProxyType(
         "python-load": ("load",),
     }
 )
+_BUILD_TARGETS = MappingProxyType(
+    {
+        "backend-unit": "backend-unit",
+        "frontend-unit": "frontend-unit",
+        "python-contract": "python-tests",
+        "python-api": "python-tests",
+        "python-integration": "python-tests",
+        "python-e2e-smoke": "python-tests",
+        "python-e2e-full": "python-tests",
+        "python-load": "python-tests",
+    }
+)
+_INFRASTRUCTURE_IMAGES = MappingProxyType(
+    {
+        "qa-postgres": "postgres:17",
+        "qa-mongo": "mongo:8.0",
+        "qa-redis": "redis:7.4-alpine",
+        "qa-nats": "nats:2.11",
+        "qa-seaweedfs": "chrislusf/seaweedfs:3.97",
+    }
+)
+_INFRASTRUCTURE_DEPENDENTS = frozenset(
+    {"python-integration", "python-e2e-smoke", "python-e2e-full"}
+)
+_QA_NETWORK = "qa-internal"
+_SEAWEEDFS_S3_CONFIG = (
+    "{\n"
+    '  "identities": [\n'
+    "    {\n"
+    '      "name": "hubqa-s3",\n'
+    '      "credentials": [\n'
+    "        {\n"
+    '          "accessKey": "hubqa-access",\n'
+    '          "secretKey": "hubqa-secret-local-only"\n'
+    "        }\n"
+    "      ],\n"
+    '      "actions": ["Admin", "Read", "List", "Tagging", "Write"]\n'
+    "    }\n"
+    "  ]\n"
+    "}\n"
+)
+_NATS_READINESS_TEST = (
+    "CMD-SHELL",
+    "wget -qO- "
+    "'http://127.0.0.1:8222/healthz?js-enabled-only=true' >/dev/null",
+)
+_SEAWEEDFS_READINESS_TEST = (
+    "CMD-SHELL",
+    "test -r /etc/seaweedfs/s3.json && "
+    "grep -q '\"accessKey\": \"hubqa-access\"' "
+    "/etc/seaweedfs/s3.json && "
+    "wget -qO- http://127.0.0.1:9333/cluster/status >/dev/null && "
+    "wget -S -O /dev/null http://127.0.0.1:8333/ 2>&1 | "
+    "grep -q ' 403 '",
+)
 _GO_BASE = (
     "golang@sha256:bbb255b0e131db500cf0520adc97441d2260cf629c7fa7e39e025ddf53995a24"
 )
@@ -158,15 +213,29 @@ def test_root_compose_exposes_exact_fixed_qa_services() -> None:
         _PUBLIC_SERVICES
     )
     assert _qa_service_profiles_are_closed(services)
+    assert _qa_extensions_are_closed(compose)
+    assert _qa_network_is_closed(compose)
+    assert _qa_seaweedfs_config_is_closed(compose)
+    assert _qa_merge_provenance_is_closed(
+        _required_asset_text(_REPO_ROOT / "docker-compose.local.yml")
+    )
 
 
 def test_qa_services_have_fixed_commands_and_security_options() -> None:
     services = _compose_services(load_root_compose_contract(_REPO_ROOT))
 
+    assert _qa_public_services_are_closed(services)
     for name in _PUBLIC_SERVICES:
         service = _mapping_value(services, name)
         assert service["profiles"] == ("qa",)
         assert service["command"] == _FIXED_COMMANDS[name]
+        assert service["build"] == MappingProxyType(
+            {
+                "context": ".",
+                "dockerfile": "testframework/docker/Dockerfile.qa",
+                "target": _BUILD_TARGETS[name],
+            }
+        )
         assert service["read_only"] is True
         assert service["security_opt"] == ("no-new-privileges:true",)
         assert service["cap_drop"] == ("ALL",)
@@ -175,19 +244,25 @@ def test_qa_services_have_fixed_commands_and_security_options() -> None:
         assert _has_reports_mount(service)
         assert "ports" not in service
         assert not _contains_token(service, "docker.sock")
+        assert _dependencies_are_closed(name, service)
 
 
 def test_qa_infrastructure_is_unpublished_and_disposable() -> None:
     services = _compose_services(load_root_compose_contract(_REPO_ROOT))
 
+    assert _qa_infrastructure_services_are_closed(services)
     for name in _QA_INFRASTRUCTURE:
         service = _mapping_value(services, name)
         assert service["profiles"] == ("qa",)
+        assert service["image"] == _INFRASTRUCTURE_IMAGES[name]
+        assert service["networks"] == (_QA_NETWORK,)
         assert "ports" not in service
         assert _mapping_value(service, "healthcheck")
         assert _resource_limits_are_bounded(service)
         assert _storage_is_disposable(service)
         assert not _contains_token(service, "docker.sock")
+        assert "privileged" not in service
+        assert "network_mode" not in service
 
 
 def test_docker_directory_contains_only_manifested_assets() -> None:
@@ -311,6 +386,135 @@ def test_duplicate_yaml_keys_are_rejected(tmp_path: Path) -> None:
     assert frontend_source.count("/usr/local/bin/node ") == 4
     assert not _frontend_entrypoint_is_closed(
         frontend_source.replace("/usr/local/bin/node", "node")
+    )
+
+    services = _compose_services(load_root_compose_contract(_REPO_ROOT))
+    assert _qa_public_services_are_closed(services)
+    assert _qa_infrastructure_services_are_closed(services)
+
+    extra_qa = dict(services)
+    extra_qa["qa-hostile"] = MappingProxyType({"profiles": ("qa",)})
+    assert not _qa_service_profiles_are_closed(MappingProxyType(extra_qa))
+
+    assert not _qa_public_services_are_closed(
+        _mutate_service(services, "backend-unit", {"ports": ("3000:3000",)})
+    )
+    assert not _qa_public_services_are_closed(
+        _mutate_service(
+            services,
+            "backend-unit",
+            {"volumes": ("/var/run/docker.sock:/var/run/docker.sock",)},
+        )
+    )
+    assert not _qa_public_services_are_closed(
+        _mutate_nested_mapping(
+            services,
+            "backend-unit",
+            "build",
+            "target",
+            "hostile-target",
+        )
+    )
+    assert not _qa_public_services_are_closed(
+        _mutate_service(services, "python-api", {"command": ("contract",)})
+    )
+    assert not _qa_infrastructure_services_are_closed(
+        _mutate_service(
+            services,
+            "qa-postgres",
+            {"volumes": ("qa-persistent:/var/lib/postgresql/data",)},
+        )
+    )
+    for infrastructure_name in ("qa-nats", "qa-seaweedfs"):
+        assert not _qa_infrastructure_services_are_closed(
+            _mutate_nested_mapping(
+                services,
+                infrastructure_name,
+                "healthcheck",
+                "test",
+                ("CMD-SHELL", "kill -0 1"),
+            )
+        )
+    integration = _mapping_value(services, "python-integration")
+    dependencies = dict(_mapping_value(integration, "depends_on"))
+    dependencies.pop("qa-nats")
+    assert not _qa_public_services_are_closed(
+        _mutate_service(
+            services,
+            "python-integration",
+            {"depends_on": MappingProxyType(dependencies)},
+        )
+    )
+    assert not _qa_public_services_are_closed(
+        _mutate_service(services, "frontend-unit", {"privileged": True})
+    )
+    compose = _mapping_value(load_root_compose_contract(_REPO_ROOT), "compose")
+    hostile_config = dict(compose)
+    hostile_config["configs"] = MappingProxyType(
+        {
+            "qa-seaweedfs-s3": MappingProxyType(
+                {"content": '{"identities":[{"name":"anonymous"}]}\n'}
+            )
+        }
+    )
+    assert not _qa_seaweedfs_config_is_closed(
+        MappingProxyType(hostile_config)
+    )
+
+    compose_text = _required_asset_text(
+        _REPO_ROOT / "docker-compose.local.yml"
+    )
+    copied_common = (
+        "    profiles: [qa]\n"
+        "    read_only: true\n"
+        '    security_opt: ["no-new-privileges:true"]\n'
+        "    cap_drop: [ALL]\n"
+        "    init: true\n"
+        "    pids_limit: 256\n"
+        "    cpus: 2.0\n"
+        "    mem_limit: 2g\n"
+        "    volumes:\n"
+        "      - ./testframework/reports:/reports\n"
+        "    networks: [qa-internal]\n"
+        "    stop_grace_period: 30s\n"
+        "    tmpfs:\n"
+        '      - "/tmp:rw,noexec,nosuid,nodev,size=64m"\n'
+    )
+    copy_expanded = compose_text.replace(
+        "    <<: *qa-common\n",
+        copied_common,
+        1,
+    )
+    assert copy_expanded != compose_text
+    expanded_document = _parse_yaml_safe(copy_expanded)
+    assert isinstance(expanded_document, Mapping)
+    assert _qa_public_services_are_closed(
+        _mapping_value(expanded_document, "services")
+    )
+    assert not _qa_merge_provenance_is_closed(copy_expanded)
+
+    materialized_merge = _parse_yaml_safe(
+        "x-hostile: &hostile\n"
+        "  privileged: true\n"
+        "services:\n"
+        "  frontend-unit:\n"
+        "    <<: *hostile\n"
+        "    profiles: [qa]\n"
+    )
+    assert isinstance(materialized_merge, Mapping)
+    assert not _qa_public_services_are_closed(
+        _mapping_value(materialized_merge, "services")
+    )
+    assert (
+        _parse_yaml_safe(
+            "x-common: &common\n"
+            "  profiles: [qa]\n"
+            "services:\n"
+            "  backend-unit:\n"
+            "    <<: *common\n"
+            "    profiles: [qa, hostile]\n"
+        )
+        is _INVALID
     )
 
     admitted_qa_services = MappingProxyType(
@@ -657,6 +861,7 @@ def _construct_unique_mapping(
 ) -> dict[str, object]:
     if not isinstance(node, MappingNode):
         raise ValueError("invalid compose")
+    loader.flatten_mapping(node)
     result: dict[str, object] = {}
     for key_node, value_node in node.value:
         key = loader.construct_object(key_node, deep=deep)
@@ -762,6 +967,360 @@ def _qa_service_profiles_are_closed(services: object) -> bool:
         return selected == allowed
     except Exception:
         return False
+
+
+def _qa_extensions_are_closed(compose: object) -> bool:
+    try:
+        if not isinstance(compose, Mapping):
+            return False
+        return (
+            compose.get("x-qa-common") == _qa_common_service_fields()
+            and compose.get("x-qa-python")
+            == MappingProxyType({"environment": _qa_python_environment()})
+            and compose.get("x-qa-infrastructure")
+            == _qa_infrastructure_common_fields()
+        )
+    except Exception:
+        return False
+
+
+def _qa_network_is_closed(compose: object) -> bool:
+    try:
+        if not isinstance(compose, Mapping):
+            return False
+        return compose.get("networks") == MappingProxyType(
+            {_QA_NETWORK: MappingProxyType({"internal": True})}
+        )
+    except Exception:
+        return False
+
+
+def _qa_seaweedfs_config_is_closed(compose: object) -> bool:
+    try:
+        if not isinstance(compose, Mapping):
+            return False
+        return compose.get("configs") == MappingProxyType(
+            {
+                "qa-seaweedfs-s3": MappingProxyType(
+                    {"content": _SEAWEEDFS_S3_CONFIG}
+                )
+            }
+        )
+    except Exception:
+        return False
+
+
+def _qa_merge_provenance_is_closed(text: object) -> bool:
+    try:
+        if type(text) is not str:
+            return False
+        root = yaml.compose(text, Loader=_DuplicateRejectingSafeLoader)
+        if not isinstance(root, MappingNode):
+            return False
+        qa_common = _yaml_mapping_child(root, "x-qa-common")
+        qa_python = _yaml_mapping_child(root, "x-qa-python")
+        qa_infrastructure = _yaml_mapping_child(
+            root,
+            "x-qa-infrastructure",
+        )
+        services = _yaml_mapping_child(root, "services")
+        if not all(
+            isinstance(value, MappingNode)
+            for value in (
+                qa_common,
+                qa_python,
+                qa_infrastructure,
+                services,
+            )
+        ):
+            return False
+        for name in _PUBLIC_SERVICES + _QA_INFRASTRUCTURE:
+            service = _yaml_mapping_child(services, name)
+            if not isinstance(service, MappingNode):
+                return False
+            if name in _QA_INFRASTRUCTURE:
+                expected_sources = (qa_infrastructure,)
+            elif name.startswith("python-"):
+                expected_sources = (qa_common, qa_python)
+            else:
+                expected_sources = (qa_common,)
+            if not _yaml_merge_sources_are_exact(service, expected_sources):
+                return False
+        return True
+    except Exception:
+        return False
+
+
+def _yaml_mapping_child(node: object, key: str) -> object:
+    if not isinstance(node, MappingNode):
+        return _INVALID
+    matches = [
+        value_node
+        for key_node, value_node in node.value
+        if isinstance(key_node, ScalarNode) and key_node.value == key
+    ]
+    if len(matches) != 1:
+        return _INVALID
+    return matches[0]
+
+
+def _yaml_merge_sources_are_exact(
+    service: MappingNode,
+    expected_sources: tuple[object, ...],
+) -> bool:
+    merge_values = [
+        value_node
+        for key_node, value_node in service.value
+        if isinstance(key_node, ScalarNode) and key_node.value == "<<"
+    ]
+    if len(merge_values) != 1:
+        return False
+    merge_value = merge_values[0]
+    if len(expected_sources) == 1:
+        return merge_value is expected_sources[0]
+    return (
+        isinstance(merge_value, SequenceNode)
+        and len(merge_value.value) == len(expected_sources)
+        and all(
+            actual is expected
+            for actual, expected in zip(
+                merge_value.value,
+                expected_sources,
+                strict=True,
+            )
+        )
+    )
+
+
+def _qa_public_services_are_closed(services: object) -> bool:
+    try:
+        if not isinstance(services, Mapping):
+            return False
+        return all(
+            services.get(name) == _expected_public_service(name)
+            for name in _PUBLIC_SERVICES
+        )
+    except Exception:
+        return False
+
+
+def _expected_public_service(name: str) -> Mapping[str, object]:
+    expected = dict(_qa_common_service_fields())
+    expected["build"] = MappingProxyType(
+        {
+            "context": ".",
+            "dockerfile": "testframework/docker/Dockerfile.qa",
+            "target": _BUILD_TARGETS[name],
+        }
+    )
+    expected["command"] = _FIXED_COMMANDS[name]
+    if name.startswith("python-"):
+        expected["environment"] = _qa_python_environment()
+    if name in _INFRASTRUCTURE_DEPENDENTS:
+        expected["depends_on"] = _healthy_infrastructure_dependencies()
+    return MappingProxyType(expected)
+
+
+def _qa_common_service_fields() -> Mapping[str, object]:
+    return MappingProxyType(
+        {
+            "profiles": ("qa",),
+            "read_only": True,
+            "security_opt": ("no-new-privileges:true",),
+            "cap_drop": ("ALL",),
+            "init": True,
+            "pids_limit": 256,
+            "cpus": 2.0,
+            "mem_limit": "2g",
+            "volumes": ("./testframework/reports:/reports",),
+            "networks": (_QA_NETWORK,),
+            "stop_grace_period": "30s",
+            "tmpfs": ("/tmp:rw,noexec,nosuid,nodev,size=64m",),
+        }
+    )
+
+
+def _qa_python_environment() -> Mapping[str, object]:
+    return MappingProxyType(
+        {
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "PYTEST_ADDOPTS": "-p no:cacheprovider",
+            "PYTHONSAFEPATH": "1",
+        }
+    )
+
+
+def _healthy_infrastructure_dependencies() -> Mapping[str, object]:
+    return MappingProxyType(
+        {
+            name: MappingProxyType({"condition": "service_healthy"})
+            for name in _QA_INFRASTRUCTURE
+        }
+    )
+
+
+def _dependencies_are_closed(
+    name: str,
+    service: Mapping[str, object],
+) -> bool:
+    if name in _INFRASTRUCTURE_DEPENDENTS:
+        return service.get("depends_on") == _healthy_infrastructure_dependencies()
+    return "depends_on" not in service
+
+
+def _qa_infrastructure_services_are_closed(services: object) -> bool:
+    try:
+        if not isinstance(services, Mapping):
+            return False
+        return all(
+            services.get(name) == _expected_infrastructure_service(name)
+            for name in _QA_INFRASTRUCTURE
+        )
+    except Exception:
+        return False
+
+
+def _expected_infrastructure_service(name: str) -> Mapping[str, object]:
+    expected = dict(_qa_infrastructure_common_fields())
+    expected.update(_infrastructure_specific_fields(name))
+    return MappingProxyType(expected)
+
+
+def _qa_infrastructure_common_fields() -> Mapping[str, object]:
+    return MappingProxyType(
+        {
+            "profiles": ("qa",),
+            "networks": (_QA_NETWORK,),
+            "pids_limit": 128,
+            "cpus": 1.0,
+            "mem_limit": "1g",
+            "stop_grace_period": "30s",
+        }
+    )
+
+
+def _infrastructure_specific_fields(name: str) -> Mapping[str, object]:
+    specifics: dict[str, Mapping[str, object]] = {
+        "qa-postgres": MappingProxyType(
+            {
+                "image": "postgres:17",
+                "environment": MappingProxyType(
+                    {
+                        "POSTGRES_USER": "hubqa",
+                        "POSTGRES_PASSWORD": "hubqa-local-only",
+                        "POSTGRES_DB": "hubqa",
+                    }
+                ),
+                "healthcheck": _healthcheck(
+                    ("CMD-SHELL", "pg_isready -U hubqa -d hubqa")
+                ),
+                "tmpfs": (
+                    "/var/lib/postgresql/data:"
+                    "rw,noexec,nosuid,nodev,size=512m",
+                ),
+            }
+        ),
+        "qa-mongo": MappingProxyType(
+            {
+                "image": "mongo:8.0",
+                "environment": MappingProxyType(
+                    {
+                        "MONGO_INITDB_ROOT_USERNAME": "hubqa",
+                        "MONGO_INITDB_ROOT_PASSWORD": "hubqa-local-only",
+                    }
+                ),
+                "healthcheck": _healthcheck(
+                    (
+                        "CMD",
+                        "mongosh",
+                        "--quiet",
+                        "--eval",
+                        "db.adminCommand('ping').ok",
+                    )
+                ),
+                "tmpfs": ("/data/db:rw,noexec,nosuid,nodev,size=512m",),
+            }
+        ),
+        "qa-redis": MappingProxyType(
+            {
+                "image": "redis:7.4-alpine",
+                "healthcheck": _healthcheck(("CMD", "redis-cli", "ping")),
+                "tmpfs": ("/data:rw,noexec,nosuid,nodev,size=256m",),
+            }
+        ),
+        "qa-nats": MappingProxyType(
+            {
+                "image": "nats:2.11",
+                "command": ("-js", "--store_dir", "/data", "-m", "8222"),
+                "healthcheck": _healthcheck(_NATS_READINESS_TEST),
+                "tmpfs": ("/data:rw,noexec,nosuid,nodev,size=256m",),
+            }
+        ),
+        "qa-seaweedfs": MappingProxyType(
+            {
+                "image": "chrislusf/seaweedfs:3.97",
+                "command": (
+                    "server",
+                    "-s3",
+                    "-dir=/data",
+                    "-s3.config=/etc/seaweedfs/s3.json",
+                ),
+                "configs": (
+                    MappingProxyType(
+                        {
+                            "source": "qa-seaweedfs-s3",
+                            "target": "/etc/seaweedfs/s3.json",
+                            "mode": "0444",
+                        }
+                    ),
+                ),
+                "healthcheck": _healthcheck(_SEAWEEDFS_READINESS_TEST),
+                "tmpfs": ("/data:rw,noexec,nosuid,nodev,size=512m",),
+            }
+        ),
+    }
+    return specifics[name]
+
+
+def _healthcheck(test: tuple[str, ...]) -> Mapping[str, object]:
+    return MappingProxyType(
+        {
+            "test": test,
+            "interval": "5s",
+            "timeout": "3s",
+            "retries": 20,
+            "start_period": "5s",
+        }
+    )
+
+
+def _mutate_service(
+    services: Mapping[str, object],
+    name: str,
+    updates: Mapping[str, object],
+) -> Mapping[str, object]:
+    mutated_services = dict(services)
+    service = dict(_mapping_value(services, name))
+    service.update(updates)
+    mutated_services[name] = MappingProxyType(service)
+    return MappingProxyType(mutated_services)
+
+
+def _mutate_nested_mapping(
+    services: Mapping[str, object],
+    name: str,
+    outer_key: str,
+    inner_key: str,
+    value: object,
+) -> Mapping[str, object]:
+    service = _mapping_value(services, name)
+    nested = dict(_mapping_value(service, outer_key))
+    nested[inner_key] = value
+    return _mutate_service(
+        services,
+        name,
+        {outer_key: MappingProxyType(nested)},
+    )
 
 
 def _resource_limits_are_bounded(service: Mapping[str, object]) -> bool:
