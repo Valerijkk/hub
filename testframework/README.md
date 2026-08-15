@@ -9,6 +9,11 @@ evidence. F1-02 identity/session source is independently static-accepted at
 `2b037dd2`: four active identity cases/nodes require a launcher-injected
 `IdentityHarnessFactory` that produces a fresh harness and ownership ledger per
 test with exact cleanup. No concrete provisioner or harness implementation
+exists. F1-03 authorization and platform-abuse source is independently accepted
+at `f184487a` and `3932ac78`: four TASK-208 and two TASK-209 active nodes/cases
+require launcher-injected opaque fresh factories, per-test nonce-bound ledgers,
+and exact cleanup; the platform contract records only four exact Redis ownership
+entries. No concrete provisioner, A1 admission, or profile-to-launcher binding
 exists. A private runner source candidate also has static review only. None is
 accepted package execution, launcher runtime, or runtime authority.
 
@@ -53,6 +58,17 @@ progressively only by its first accepted consumer.
   target is exactly `tests/api/identity` and requires exactly
   `--hub-case-root cases/identity` when a launcher binding exists. It has no
   concrete provisioner or harness implementation.
+  `tests/api/authz/` contains four active authorization source nodes, linked to
+  `TC-AUTHZ-0001`--`TC-AUTHZ-0004` for TASK-208. Its future profile root is
+  exactly `tests/api/authz` and requires exactly `--hub-case-root cases/authz`;
+  every test requires an opaque fresh launcher-injected `AuthzHarnessFactory`, a
+  nonce-bound ledger, and exact cleanup. `tests/api/platform/` contains two
+  active platform-abuse source nodes, linked to `TC-PLATFORM-0001` and
+  `TC-PLATFORM-0002` for TASK-209. Its future profile root is exactly
+  `tests/api/platform` and requires exactly `--hub-case-root cases/platform`;
+  every test requires an opaque fresh launcher-injected
+  `PlatformAbuseHarnessFactory` and exact cleanup of only four recorded Redis
+  ownership entries. Neither has a concrete provisioner or launcher binding.
   Planned `tests/{integration,contract,e2e}/` will own executable pytest suites
   grouped by layer and domain: API and E2E assert public observable behavior,
   contract covers API/schema/event/source contracts, and integration covers
@@ -97,8 +113,20 @@ creates a fresh harness and ownership ledger per test with exact cleanup. There
 is no concrete provisioner or harness implementation. The `identity-api` target
 is exactly `tests/api/identity` and requires exactly `--hub-case-root
 cases/identity`; accepted A1 admission and profile-to-launcher binding remain
-absent. Package bootstrap and target-suite execution: **NOT_READY**. F1-03 and
-later source remain pending. Private runner source candidate:
+absent. F1-03 authorization source is independently **ACCEPTED** at `f184487a`:
+four active TASK-208 nodes/cases require an opaque fresh launcher-injected
+`AuthzHarnessFactory`, a nonce-bound ownership ledger, and exact cleanup per
+test. F1-03 platform-abuse source is independently **ACCEPTED** at `3932ac78`:
+two active TASK-209 nodes/cases require an opaque fresh launcher-injected
+`PlatformAbuseHarnessFactory`, exact cleanup, and only four exact recorded Redis
+ownership entries per test. Their future profile roots are exactly
+`tests/api/authz` and `tests/api/platform`, with case roots exactly
+`cases/authz` and `cases/platform`; concrete provisioners, A1 admission, and
+profile-to-launcher bindings remain absent. `TC-AUTHZ-0005` is
+project-cross-scope blocked by the current backend middleware order: protected
+handlers terminate before `rbac.RequirePermission` can run. Package bootstrap
+and target-suite execution: **NOT_READY**. F1-04 and later source remain pending.
+Private runner source candidate:
 **STATIC_SOURCE_REVIEWED**; launcher: **NOT_READY**; `PS5.1_PARSE_NOT_RUN`;
 `PRIVATE_CONTRACT_NOT_RUN`. Runtime: **NOT_RUN**. `uv.lock`, `images.lock.v3.json`,
 and required local dependency bytes are absent. There is no supported direct runner

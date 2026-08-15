@@ -14,7 +14,8 @@ define a runnable command, or grant runtime authority.
 | F0 framework/domain source | `SOURCE_AUTHORED` / `SOURCE_REVIEWED` | strict config/runtime/ownership/redaction, traceability, public pytest collection plugin, literal 47-profile policy, and fake-only health source are authored and independently source-reviewed; this is not execution evidence |
 | F1-01 HTTP policy and diagnostics source | `SOURCE_AUTHORED` / `SOURCE_REVIEWED` | commit `a5f3b728`; immutable injected-only HTTP policy, transport, redaction-bound diagnostics, and health adapter source are independently reviewed. They create no client, network request, or runtime evidence |
 | F1-02 identity/session source | `SOURCE_AUTHORED` / `STATIC_ACCEPT` | commit `2b037dd2`; four active `TC-IDENTITY-0001`--`TC-IDENTITY-0004` API nodes are independently static-accepted. They require a launcher-injected `IdentityHarnessFactory` to create a fresh harness and ownership ledger per test with exact cleanup; no concrete provisioner or harness implementation exists |
-| SUT suite layer directories | `NOT_READY` | source tracers exist at `tests/api/health/test_health_api.py` with `TC-HEALTH-0001` and `tests/api/identity/test_identity_api.py` with four active identity nodes; `tests/{contract,integration,e2e}/` remain absent and no suite execution evidence exists |
+| F1-03 authorization and platform-abuse source | `SOURCE_AUTHORED` / `INDEPENDENTLY_ACCEPTED` | commits `f184487a` and `3932ac78`; four active TASK-208 authorization nodes/cases and two active TASK-209 platform-abuse nodes/cases use launcher-injected opaque fresh factories, per-test nonce-bound ownership ledgers, and exact cleanup. The platform contract records only its four exact Redis ownership entries; concrete provisioners, profile bindings, and a launcher remain absent |
+| SUT suite layer directories | `NOT_READY` | source tracers exist at `tests/api/health/test_health_api.py` with `TC-HEALTH-0001`, `tests/api/identity/test_identity_api.py` with four active identity nodes, `tests/api/authz/test_authz_api.py` with four active authorization nodes, and `tests/api/platform/test_platform_abuse.py` with two active platform-abuse nodes; `tests/{contract,integration,e2e}/` remain absent and no suite execution evidence exists |
 | Versioned launcher API | `NOT_READY` | `runner/run-task.ps1` is a private static source candidate only; `PS5.1_PARSE_NOT_RUN`, `PRIVATE_CONTRACT_NOT_RUN`, no accepted public entrypoint |
 | Runtime | `NOT_RUN` | structure and documentation are not execution evidence |
 
@@ -47,6 +48,8 @@ package code and executable suites on different roots:
 | `src/hub_testkit/**` | reusable installable framework modules imported as `hub_testkit.*` |
 | `tests/api/health/**` | first source-authored API tracer: one fake-transport liveness contract linked to `TC-HEALTH-0001`; it is not live, installed, or execution evidence |
 | `tests/api/identity/**` | four source-authored identity/session API nodes linked to `TC-IDENTITY-0001`--`TC-IDENTITY-0004`; the `identity-api` profile target is exactly `tests/api/identity` and requires exactly `--hub-case-root cases/identity` when a launcher binding exists |
+| `tests/api/authz/**` | four source-authored authorization API nodes linked to `TC-AUTHZ-0001`--`TC-AUTHZ-0004` for TASK-208; the future profile root is exactly `tests/api/authz` and its future launcher binding requires exactly `--hub-case-root cases/authz` |
+| `tests/api/platform/**` | two source-authored platform-abuse API nodes linked to `TC-PLATFORM-0001`--`TC-PLATFORM-0002` for TASK-209; the future profile root is exactly `tests/api/platform` and its future launcher binding requires exactly `--hub-case-root cases/platform` |
 | Planned `tests/{contract,integration,e2e}/**` | future executable SUT pytest suites grouped by layer and domain; these layer directories are currently absent |
 | `selftests/**` | contracts of the framework/package itself; never SUT behavior |
 | `cases/**` | repository-owned new-case intent and risk linkage; IDs match `^TC-[A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*-[0-9]{4}$` |
@@ -63,10 +66,22 @@ The suite tree is progressive. API source tracers exist at
 cases. The health tracer uses a fake transport. The identity tracer has no
 concrete provisioner or harness implementation; its future launcher must
 inject a fresh `IdentityHarnessFactory` product for each test and perform exact
-cleanup. Neither tracer proves live Hub behavior. `tests/contract/`,
-`tests/integration/`, and `tests/e2e/` remain absent and are created only by
-their first accepted consumer. This documentation slice must not add empty
-layer directories.
+cleanup. The independently accepted TASK-208 authorization tracer has four
+nodes/cases at `tests/api/authz/test_authz_api.py`; its future launcher must
+inject an opaque fresh `AuthzHarnessFactory` product, own one nonce-bound ledger
+per test, and perform exact cleanup. The independently accepted TASK-209
+platform-abuse tracer has two nodes/cases at
+`tests/api/platform/test_platform_abuse.py`; its future launcher must inject an
+opaque fresh `PlatformAbuseHarnessFactory` product and clean up only its four
+exact recorded Redis ownership entries. The future profile roots are exactly
+`tests/api/authz` and `tests/api/platform`, with exact case roots `cases/authz`
+and `cases/platform`. No concrete authorization or platform-abuse provisioner
+exists. `TC-AUTHZ-0005` remains project-cross-scope blocked: current backend
+middleware order reaches protected handlers before `rbac.RequirePermission`,
+and those handlers terminate the request without `Next`. None of these tracers
+proves live Hub behavior. `tests/contract/`, `tests/integration/`, and
+`tests/e2e/` remain absent and are created only by their first accepted
+consumer. This documentation slice must not add empty layer directories.
 
 Direct root `core/`, `api/`, `integration/`, `contract/`, or `e2e/` package or
 suite trees are not target architecture. A nested `testframework/python/`
@@ -221,8 +236,20 @@ ownership ledger per test with exact cleanup. No concrete provisioner or
 harness implementation exists. The `identity-api` target is exactly
 `tests/api/identity` and its future launcher binding requires exactly
 `--hub-case-root cases/identity`. A1 admission and accepted profile-to-launcher
-binding remain absent; F1-03 and later source remain pending. F0/F1 source
-closure cannot yield a runtime result.
+binding remain absent. F1-03 authorization source is independently accepted at
+`f184487a`: four active TASK-208 nodes/cases require an opaque fresh
+`AuthzHarnessFactory` product per test, a nonce-bound ownership ledger, and
+exact cleanup. F1-03 platform-abuse source is independently accepted at
+`3932ac78`: two active TASK-209 nodes/cases require an opaque fresh
+`PlatformAbuseHarnessFactory` product per test, exact cleanup, and only four
+exact recorded Redis ownership entries. Their future profile roots are exactly
+`tests/api/authz` and `tests/api/platform`, with case roots exactly
+`cases/authz` and `cases/platform`; A1 admission, concrete provisioners, and
+profile-to-launcher binding, `uv.lock`, and `images.lock.v3.json` remain absent.
+`TC-AUTHZ-0005` remains
+project-cross-scope blocked by the current backend middleware order: protected
+handlers terminate before `rbac.RequirePermission` can run. F1-04 and later
+source remain pending. F0/F1 source closure cannot yield a runtime result.
 
 The installable/executable package slice is not accepted until all of the
 following are true on one exact revision:
