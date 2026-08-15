@@ -531,6 +531,162 @@ execution, or runtime evidence. Status remains `NOT_READY` / `NOT_RUN`.
 
 F2 is source-authoring for active, observable implementations only. Each service gets isolated seed/nonce ownership and a source-level cleanup oracle before a SUT test is authored.
 
+**F2 135-F source-authoring receipt (2026-08-15).** The first F2 slice is only
+the implemented storage lifecycle under existing `files-api` and `TASK-214`.
+It grants no other Phase 135 task, no F2-wide authority, no new profile, and no
+runtime activation. The one independently revertible source commit modifies
+exactly these 16 paths, with the architecture selftest authored first:
+
+```text
+testframework/selftests/architecture/imports/test_files_domain_boundary.py
+testframework/src/hub_testkit/domains/files/__init__.py
+testframework/src/hub_testkit/domains/files/models.py
+testframework/src/hub_testkit/domains/files/builders.py
+testframework/src/hub_testkit/domains/files/api.py
+testframework/src/hub_testkit/domains/files/oracles.py
+testframework/src/hub_testkit/harness/files.py
+testframework/src/hub_testkit/harness/pytest_files.py
+testframework/src/hub_testkit/harness/__init__.py
+testframework/tests/api/files/conftest.py
+testframework/tests/api/files/test_files_api.py
+testframework/cases/files/TC-FILES-0001.md
+testframework/cases/files/TC-FILES-0002.md
+testframework/cases/files/TC-FILES-0003.md
+testframework/cases/files/TC-FILES-0004.md
+testframework/cases/files/TC-FILES-0005.md
+```
+
+The architecture selftest scans the files domain, files harness, and
+`tests/api/files` with alias-aware AST checks. `test_files_api.py` may import
+only `pytest` plus these five functions from `hub_testkit.harness.files`;
+`files_runtime` is fixture-injected and is never imported:
+
+```text
+assert_presigned_lifecycle_download_and_soft_delete
+assert_confirm_missing_object_then_retry_succeeds
+assert_confirm_and_delete_are_single_transition
+assert_files_require_authz_and_hide_storage_artifacts
+assert_upload_rejects_bounded_size_and_unsafe_media
+```
+
+Each function has the exact signature
+`def assert_...(runtime: FilesRuntime) -> None` and is defined in
+`hub_testkit.harness.files`. It returns `None` or raises only a constant generic
+error `from None`. `domains/files/oracles.py` owns only closed per-response
+parsing/projection and must not import `hub_testkit.harness` or tests. The AST
+gate has a separate literal allowlist for the minimal `conftest.py` imports
+needed to obtain and cleanup the runtime; it never grants those imports to test
+bodies.
+
+Each of the five literal `test_*` functions contains exactly the matching
+`@pytest.mark.case_id("<TC-FILES-NNNN>")` decorator, the
+`@pytest.mark.api` decorator, and one call to its mapped `assert_*` function
+with the fixture-injected `files_runtime`. Test bodies contain no other call,
+attribute access, assignment, comprehension, pytest API, `raises`, or control
+flow. The architecture AST rejects every `files_runtime` attribute access in a
+test body, any pytest use other than those two marker decorators, and every call
+other than the one mapped semantic assertion. Tests therefore cannot bypass
+the semantic worker, privacy/no-showlocals handling, or traceability binding by
+calling public `FilesRuntime.provision`, `put`, or `fetch` directly.
+
+It rejects `httpx`/`requests`, environment/filesystem discovery, client
+construction, `sleep`/polling, skip/xfail/parametrize, raw `send`, arbitrary
+URL/key access, ticket private fields, default transports, and direct fixture
+cleanup from test bodies. Dead-code, aliases, `getattr`, descriptor/private
+inspection, and dynamic imports are covered. Domain/harness code may use only
+the existing `HttpRequest`/`HttpExchange` policy boundary and the exact injected
+delegate; there is no second generic HTTP layer.
+
+`FilesHarnessFactory` is installed exactly once in `pytest.Config.stash`. A
+function fixture calls it once, obtains one healthy exclusive nonce-bound
+delegate, wraps it in a frozen/slotted opaque `FilesRuntime`, and calls exact
+cleanup once in `finally`. `FilesRuntime` holds a repr-hidden delegate and a
+repr-hidden `FilesApi`; it exposes only safe `provision`, `put`, and `fetch`
+operations plus the five named semantic functions' input surface. The delegate
+protocol is closed to `send(HttpRequest) -> HttpExchange`,
+`provision(FilesSeed) -> ProvisionedFiles`,
+`put(UploadTicket, UploadContent)`, `fetch(DownloadTicket) -> ObjectDigest`, and
+`cleanup()`. Tests never receive or call the delegate or raw sender. Every
+factory/delegate/builder/API/oracle failure uses non-throwing workers, deletes
+raw request/response/URL/key/token/content/canary references, and raises only a
+constant generic error with `from None`; opaque ticket/content/principal
+representations never reveal those values under `--showlocals`.
+
+The future launcher delegate owns one fresh ledger per test with exact owner
+principal/credentials/session, foreign principal/credentials/session, one
+owner project and membership/permissions, exact file metadata IDs, and exact
+task-owned S3 bucket/key objects. Cleanup order is exact object delete, exact
+metadata delete even after API soft-delete, membership/project delete, then
+principal/session artifacts. Prefix scan/delete, bucket/database/namespace
+delete, foreign adoption, environment fallback, cloud/provider egress, and
+cleanup-as-oracle are forbidden. `put` and `fetch` accept only same-runtime
+opaque tickets and may reach only the launcher-created local S3-compatible
+endpoint. Product `DELETE /files/:id` is metadata soft-delete only; the harness
+removes the exact object during cleanup and no test claims product object purge.
+Every `UploadTicket` privately and immutably retains its runtime binding,
+presigned URL, object key, expected content type, and expected byte length.
+`FilesRuntime.put` rejects a cross-runtime ticket or byte-length mismatch before
+I/O; the delegate sends exactly the ticket-bound content type and content
+length. Those fields are never public or repr-visible.
+
+The five active `TASK-214` cases map one-to-one to five literal,
+non-parametrized pytest nodes:
+
+- `TC-FILES-0001` /
+  `test_presigned_lifecycle_download_and_soft_delete`: an owner with exact
+  upload/view/delete permissions submits a bounded valid request; the public
+  response has exactly `fileId`, `uploadUrl`, `s3Key`, but the facade publishes
+  only an opaque same-runtime ticket. Task-owned PUT succeeds, confirm is exact
+  `200 {"status":"confirmed"}`, an opaque download is fetched and verified by
+  exact length/SHA-256, delete is exact `200 {"status":"deleted"}`, and the
+  later public GET is `404`.
+- `TC-FILES-0002` /
+  `test_confirm_missing_object_then_retry_succeeds`: confirming pending metadata
+  without an object is `404`; putting the exact same ticket and confirming
+  again is `200`. This observes the real S3 HEAD before transition and proves
+  the pending metadata remains recoverable without sleep or internal key edits.
+- `TC-FILES-0003` /
+  `test_confirm_and_delete_are_single_transition`: confirming a confirmed file
+  again is `409`; first delete is `200`, second delete is `404`. No idempotency
+  header or retry behavior is invented.
+- `TC-FILES-0004` /
+  `test_files_require_authz_and_hide_storage_artifacts`: anonymous calls are
+  `401`; a foreign authenticated non-member receives `403` for known-file
+  confirm/download/delete. Safe internal oracles verify response bodies,
+  diagnostics, repr, and failure text omit owner filename, project UUID, object
+  key, presigned URL, access/refresh tokens, and nonce. Unknown-file
+  non-enumeration is not claimed because current unknown behavior is `404`.
+- `TC-FILES-0005` /
+  `test_upload_rejects_bounded_size_and_unsafe_media`: `size=0`,
+  `size=25*1024*1024+1`, and `contentType=text/html` each return `400` before
+  presign/object creation. No oversized request body is allocated or sent.
+
+Every owner confirm in `TC-FILES-0001` through `TC-FILES-0003` sends exactly
+`{"entityType":"","entityId":""}`. The foreign call in
+`TC-FILES-0004` may send the same body but must be denied by stored-file project
+ownership before body handling. No issue, channel, avatar, or other attachable
+entity fixture is permitted in this slice.
+
+Models are frozen/closed and reject coercion. `UploadTicket` and
+`DownloadTicket` expose safe file identity only; URL/object key/runtime binding
+remain private, repr-hidden, and non-constructible outside domain factories.
+`UploadContent` keeps bytes private and publishes only bounded length/digest;
+`ObjectDigest` publishes only exact length/digest. `ProvisionedFiles` is opaque
+and repr-hidden. Raw `HttpExchange` and response bodies remain inside
+`FilesApi`/oracles.
+
+Future A1 may bind only `files-api` to
+`testframework/tests/api/files` with exact
+`--hub-case-root testframework/cases/files`. Runtime additionally requires one
+exclusive local backend/PostgreSQL/S3 topology and exact cleanup evidence.
+Presign expiry timing, 24-hour orphan cleanup, retention, multipart uploads,
+malware scanning, provider failover, direct cloud egress, and physical-object
+deletion by the product endpoint are excluded. The obsolete
+`/projects/:projectId/files` text in `docs/TECHNICAL.md` needs a separate docs
+receipt. This slice creates no provisioner implementation, profile binding,
+image, lock, runner, report, Docker execution, or runtime evidence; status is
+`NOT_READY` / `NOT_RUN`.
+
 1. **Data and broker boundaries:** PostgreSQL/Mongo transaction/migration/isolation; Redis/NATS message bleed, duplicate job, timeout, reconnect, and recovery; storage partial failure/idempotency/recovery; WebSocket authorization/order/reconnect. Use only existing profile identities (`postgres-integration`, `redis-nats-integration`, `notifications-nats`, and the relevant API/work profile); do not invent a 48th profile.
 2. **Implemented work domains:** tracker lifecycle, TMS state/run lifecycle, project scope/idempotency, messenger membership/order/privacy, notification delivery/retry, and implemented search/audit/backup/import-export boundaries. Every suite covers allowed behavior plus invalid, denied, boundary, recovery, and cleanup variants that are observable in current handlers.
 3. **Implemented Calendar reads:** under the existing `calendar-api` profile add `cases/calendar/**`, an optional narrow `hub_testkit.domains.calendar` facade, and `tests/api/calendar/**` for authentication; missing/malformed/reversed/>366-day ranges; user/project-scoped call/sprint/deadline/approved-leave aggregation; UTC/order invariants; recurring scheduled-call reads; and `export.ics` content type, disposition, RFC 5545 escaping, and PII-safe leave titles.
