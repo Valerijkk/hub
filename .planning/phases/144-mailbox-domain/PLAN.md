@@ -14,9 +14,11 @@
 
 > **144-02A/B/C/D plus 02F trace acceptance (2026-08-15):** the exact 14 content documents are docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `576f19231e37f635d5b7187a1ada121ed14ff8dc` (parent `0ef3df9eedfb3683fe70a7f8fc502ca76278facb`, tree `b28904b96c084dd88c4cec37c8e1daa62fde4c5d`) after Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high exact-SHA PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback, telemetry `UNKNOWN`. The previous candidate/precommit/root-commit/exact-review/status-sync-next clauses are `CONSUMED/HISTORICAL`. This accepts no source, Ent/schema, generation, migration, service, test or runtime work. Engine deletion-port and physical User deletion-intent contracts remain separately `BLOCKED` / `NOT_DISPATCHABLE`; 02F is unchanged except dependency tracing. Launcher `NOT_READY`, executables `NOT_RUN`; 144-01B, Phase 142/148, carrier/Rule and G145-5B/C unchanged.
 
+> **144-03D static acceptance (2026-08-15):** deterministic event mapping is `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `42c6b9f2bd4383040fc116630727564fcf17dd78` (parent `d60dab6b39a4642f8c7ca29e377cce9a6ba6d704`, tree `d711e0c0c9d56d082a3352c4f4bedafc8ce2c18d`; `mailbox_events.go` blob `792a4f460f756c4541003bf1ddc0391be637052c`, test blob `8947577115f60f4c3b026dcb686014444660f815`). Terra/xhigh authoring plus Contract/Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and ABI/Compile-shape/Lifecycle Terra/high exact reviews PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback, telemetry `UNKNOWN`. Static only: runtime/tests/build/gofmt/lint/validators/Docker/schema runtime `NOT_RUN`, launcher `NOT_READY`; no schema/migration/service/UI/product/phase/release authority. 02A-F/Rule/Sieve/Phase145 blockers remain unchanged. Next mainline permitted packet is `144-03C-Send`; `144-03C-Attachment` follows separately. Calendar RSVP/service remains blocked on 143-03E launcher+migration authority.
+
 ## Goal
 
-Implement the engine-independent domain and HTTP behavior against a deterministic fake.
+Implement the engine-independent domain and HTTP behavior against a deterministic fake. `144-03D` is complete as a static-only accepted packet; the next mainline permitted packet is `144-03C-Send`, then the separate `144-03C-Attachment`.
 
 `143-04L` and `144-01A` are satisfied for `144-03D`; Address is `STATIC_ACCEPTED` at
 `41564d003946ddb78df18efca166ca86e4055405`. Thread contract remains accepted at `cbc12577` and
