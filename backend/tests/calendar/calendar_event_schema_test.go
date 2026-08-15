@@ -28,3 +28,18 @@ func TestCalendarEvent_PayloadHashColumnsArePaired(t *testing.T) {
 
 	t.Fatalf("missing named CHECK %s", checkName)
 }
+
+func TestCalendarEvent_MailMessagesInverseIsPresent(t *testing.T) {
+	for _, schemaEdge := range (entschema.CalendarEvent{}).Edges() {
+		descriptor := schemaEdge.Descriptor()
+		if descriptor.Name != "mail_messages" {
+			continue
+		}
+		if descriptor.Inverse || descriptor.Unique || descriptor.Required || descriptor.RefName != "" {
+			t.Fatalf("CalendarEvent.mail_messages = %#v, want plain to-many inverse target", descriptor)
+		}
+		return
+	}
+
+	t.Fatal("CalendarEvent must expose mail_messages")
+}

@@ -206,6 +206,10 @@ func (MailAccount) Edges() []ent.Edge {
 		edge.To("rules", MailRule.Type),
 		edge.To("recent_contacts", RecentContact.Type),
 		edge.To("mutation_receipts", MailMutationReceipt.Type),
+		edge.To("folders", MailFolder.Type),
+		edge.To("threads", MailThread.Type),
+		edge.To("messages", MailMessage.Type),
+		edge.To("labels", MailLabel.Type),
 	}
 }
 

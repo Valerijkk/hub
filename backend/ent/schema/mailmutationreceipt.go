@@ -74,6 +74,7 @@ func (MailMutationReceipt) Edges() []ent.Edge {
 		edge.From("account", MailAccount.Type).Ref("mutation_receipts").Field("mail_account_id").Unique().Annotations(entsql.OnDelete(entsql.NoAction)),
 		edge.To("targets", MailMutationReceiptTarget.Type),
 		edge.To("members", MailMutationReceiptMember.Type),
+		edge.To("folders", MailFolder.Type),
 	}
 }
 

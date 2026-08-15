@@ -151,11 +151,12 @@ func TestMailMutationReceiptSchemas_HaveExactChecksAndIndexes(t *testing.T) {
 
 func TestMailMutationReceiptSchemas_HaveOnlyAuthorizedRelations(t *testing.T) {
 	receiptEdges := edgeDescriptors((entschema.MailMutationReceipt{}).Edges())
-	assertExactNames(t, "MailMutationReceipt edges", edgeNames(receiptEdges), []string{"account", "members", "organization", "targets"})
+	assertExactNames(t, "MailMutationReceipt edges", edgeNames(receiptEdges), []string{"account", "folders", "members", "organization", "targets"})
 	assertReceiptParentEdge(t, "MailMutationReceipt.organization", receiptEdges["organization"], "organization_id", "mail_mutation_receipts", true, entsql.NoAction)
 	assertReceiptParentEdge(t, "MailMutationReceipt.account", receiptEdges["account"], "mail_account_id", "mutation_receipts", false, entsql.NoAction)
 	assertReceiptChildEdge(t, "MailMutationReceipt.targets", receiptEdges["targets"])
 	assertReceiptChildEdge(t, "MailMutationReceipt.members", receiptEdges["members"])
+	assertReceiptChildEdge(t, "MailMutationReceipt.folders", receiptEdges["folders"])
 
 	targetEdges := edgeDescriptors((entschema.MailMutationReceiptTarget{}).Edges())
 	assertExactNames(t, "MailMutationReceiptTarget edges", edgeNames(targetEdges), []string{"members", "receipt"})

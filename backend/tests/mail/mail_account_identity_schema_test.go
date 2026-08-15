@@ -308,7 +308,7 @@ func TestMailAccountAndIdentitySchemas_HaveExactChecksAndIndexes(t *testing.T) {
 
 func TestMailAccountAndIdentitySchemas_HaveOnlyFrozenEdges(t *testing.T) {
 	accountEdges := (entschema.MailAccount{}).Edges()
-	assertExactOrderedEdgeNames(t, "MailAccount edges", accountEdges, []string{"organization", "user", "domain", "identities", "user_settings", "signatures", "rules", "recent_contacts", "mutation_receipts"})
+	assertExactOrderedEdgeNames(t, "MailAccount edges", accountEdges, []string{"organization", "user", "domain", "identities", "user_settings", "signatures", "rules", "recent_contacts", "mutation_receipts", "folders", "threads", "messages", "labels"})
 	accountEdgeDescriptors := edgeDescriptors(accountEdges)
 	assertRequiredInverseEdge(t, "MailAccount.organization", accountEdgeDescriptors["organization"], "organization_id", "mail_accounts", entsql.NoAction)
 	assertRequiredInverseEdge(t, "MailAccount.user", accountEdgeDescriptors["user"], "user_id", "mail_account", entsql.NoAction)
@@ -317,7 +317,7 @@ func TestMailAccountAndIdentitySchemas_HaveOnlyFrozenEdges(t *testing.T) {
 	if userSettings := accountEdgeDescriptors["user_settings"]; userSettings == nil || userSettings.Inverse || !userSettings.Unique || userSettings.Required || userSettings.RefName != "" {
 		t.Fatalf("MailAccount.user_settings = %#v, want plain unique inverse target", userSettings)
 	}
-	for _, name := range []string{"signatures", "rules", "recent_contacts", "mutation_receipts"} {
+	for _, name := range []string{"signatures", "rules", "recent_contacts", "mutation_receipts", "folders", "threads", "messages", "labels"} {
 		assertPlainToManyEdge(t, "MailAccount."+name, accountEdgeDescriptors[name])
 	}
 
