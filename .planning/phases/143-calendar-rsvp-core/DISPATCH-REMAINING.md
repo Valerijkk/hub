@@ -125,6 +125,37 @@ dispatchable without duplicating the common safety contract.
 - Dependencies: 04A/G. Allowed only:
   `backend/internal/calendar/event_service_create.go`,
   `backend/tests/calendar/event_service_create_test.go`.
+- Status: `PRECOMMIT_FAIL` / `NOT_ACCEPTED`. The existing 04B source candidate is not accepted: it requires this 04A ABI amendment, a 04B corrective source packet and fresh independent review. This document grants no runtime, Ent, migration or schema authority.
+- ABI: the full proposed 04A `CalendarEventCreateAttendeeCandidate`, authorization request,
+  resolved organizer/attendee and authorization field lists plus the exact backend method and
+  guarded transaction wrapper are frozen only in `MAIL-SPEC.md` section 3.14. They are not an
+  accepted code ABI; a separate 04A amendment packet must add and independently review them.
+- Frozen behavior supersedes the candidate's stale create wording: within the same guarded repository transaction, first derive scope, then reserve or replay/conflict the receipt, then call the 04A `ResolveCalendarEventCreateAuthorization`, then atomically write event/attendees/exdates/outbox/completed response. `CalendarEventCreateAuthorizationRequest` carries candidate organizer/attendees plus canonical Temporal, RRULE, EXDATE, reminder and optional `ScheduledCallID` values; `CalendarEventCreateAuthorization` is resolved output only. The resolver alone resolves organizer/internal users; nonnil invalid/inactive/foreign/email-mismatched candidates reject rather than downgrade to guests. Client owner/org is ignored. Organizer is accepted, distinct new attendees are needs_action, UID is deterministic and sequence is 0.
+- ScheduledCall: a nonnil ID is authorized in that same transaction only when its organizer and
+  accessible call owner both equal `scope.ActorID()`, it is active, unlinked and in the same
+  organization/project/channel context, with exact normalized mapping and no external guest.
+  No implicit in-organization impersonation/delegation exists. Nonexistent, not-owned or
+  otherwise inaccessible IDs return content-free `ErrEventNotFound` / 404; only accessible
+  actor-owned inactive/already-linked/context-or-mapping-mismatched/external-guest cases use
+  `ErrEventConflict`. Request nonnil means resolved/persisted/returned ID is exactly equal;
+  request nil means resolved ID is nil; substitution/drop/insertion rejects before writes.
+- EXDATE: timed `YYYY-MM-DDTHH:MM:SSZ` UTC whole seconds; all-day Gregorian `YYYY-MM-DD` in
+  event IANA zone; nil equals empty; max 1000; sort canonical and reject duplicates. Use that
+  vector in request hash, persistence and response. RRULE follows the exact 3.11 grammar and
+  order/valid-invalid vectors; names are <=160 runes and <=640 bytes; timezone is <=64 UTF-8
+  bytes and valid IANA.
+- Non-tautological oracles: byte-equivalent replay produces one event/outbox; changed canonical
+  input conflicts; rollback leaves no completed receipt/event; each invalid nonnil identity
+  class rejects; resolver output, not candidate ids, is persisted; actor A with organizer B
+  returns `ErrEventConflict`, while actor A with ScheduledCall owner B returns
+  `ErrEventNotFound` / 404; each has zero receipt, event, attendee, exception and outbox
+  writes. An accessible actor-owned inactive/already-linked/context-or-mapping-mismatched or
+  external-guest call returns `ErrEventConflict` before writes. A nonnil request must resolve,
+  persist and return exactly its own ID; nil must resolve nil; substitution/drop/insertion
+  rejects before writes. Timed/all-day EXDATE grammar, nil-empty equivalence, sorting,
+  duplicate and 1001st-value rejection are observable; the canonical EXDATE vector changes
+  the request hash and is returned/persisted unchanged; the 3.11 RRULE, name and timezone
+  boundary vectors hold; no raw key or Hub JSON `payload_hash` persists.
 - Behavior: auth-derived owner/org; canonical validation; receipt key hash + request hash;
   event/attendees/outbox/completed response atomically; organizer accepted, new attendees
   needs_action; deterministic UID/sequence 0.

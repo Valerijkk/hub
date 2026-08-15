@@ -1,5 +1,7 @@
 # MAIL-SPEC — Hub mailbox and calendar synchronization contract
 
+> **144-02D source acceptance (2026-08-15):** immutable `2242a4e7846944498eb5ed701ab8f47c986bd804` (parent `e9a1764b001e28074e4074a07ca8ac982e5345ba`, tree `8129303399e627ca5cedac3e70648955c74cfed9`, subject `feat(mail): add user configuration schemas`) is `STATIC_ACCEPTED` / `EXACT_SHA_PASS` for exact blobs account `55b9ccfb4e19a190fc7c083a61350ce7ba8c7e5b`, identity `6b8614c651ee70a70bdb46c00456362c8edad796`, rule `a826916965ab4875a9c61da83fa0a68a8d5d3d4d`, signature `fba258559fe6a8557b045fa10757330be29b5c08`, settings `7643892d0af8934892d23713e4d35b07b0bc455c`, contact `b2216313dfdf492315a377b3567fdc4f71d05a0`, user `b595855cbe9cd39f522ef8263eb72ea4db4f9b55`, A3 compatibility test `74599da63c180942e092a909ee53eb0ca6b7e51f`, and authored-first 02D oracle `b94c686c35e3a5cca2d7838424f7e255012437d8`. Tests first; Terra/xhigh author and Terra/high precommit plus exact-SHA PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Static source only: launcher `NOT_READY`; executables/generation/migration/runtime `NOT_RUN`; no service/API/UI/product/phase/release authority. Only former 02D-next/unimplemented/source-blocked clauses are `CONSUMED/HISTORICAL`; old docs/readiness receipts remain authoritative. 02B remains blocked on its exact 02F bridge; 02F source is not authorized. Root must separately select any next Mail packet.
+
 > **Phase-145 carrier-plan acceptance (2026-08-15):** `PLAN-145-07B-SIEVE-CARRIER.md` is docs/implementation-authority-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `949b876d1c5ea07338926aa5fe19e1864a256e93` (parent `375891bb85c0e89f2b6597e0416b82219fffaa74`, tree `f943fb60e8dbda3ae612871d189a57d751dc44cc`, sole plan blob `0bbbc91cd3c58fc8daeaab1a434d942f3ef26821`); Contract Terra/high, Security/Purity Terra/xhigh and Lifecycle Terra/high exact reviews PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Carrier contract `1daef787` and sync `375891bb` remain accepted. Only obsolete carrier-plan author/adjudicate/accept/pending clauses are `CONSUMED/HISTORICAL`; unrelated gates remain current. No source/test/runtime/adapter/schema/service/worker/product/phase/release authority. Rule Task 1 remains `NOT_AUTHORIZED/BLOCKED` on G145-5B, G145-5C and launcher readiness. Carrier six-path RED/source remains blocked pending accepted Rule compiler source/ABI, G145-5B, G145-5C and launcher readiness; plan gate is satisfied. 145-07B source/runtime, 144-01B, Phase 142/148, G145 gates, launcher `NOT_READY` and executables `NOT_RUN` remain unchanged.
 
 > **Carrier-lifecycle clause precedence:** Only the lower clause or fragment asserting carrier **contract** acceptance is pending, unaccepted, or open is superseded and `CONSUMED/HISTORICAL`; every unrelated/current fact in the same record remains authoritative, including 02F accepted, Phase 145 blocked, implementation-plan/source, G145-5A/B/C/D/6-9, launcher and runtime status. Contract `1daef787` is docs/design accepted.
@@ -1045,6 +1047,8 @@ exactly match the creator-local `scheduled_at`, then normalized by removing them
 is rejected, never allowed to override DTSTART. Historical rows use the separate migration
 oracle rather than this new-write normalization.
 
+For 143-04B create, raw accepted input is normalized to the exact canonical order `FREQ;INTERVAL;BYDAY|BYMONTHDAY;COUNT|UNTIL`: `INTERVAL=2;FREQ=WEEKLY;BYDAY=WE,MO` becomes `FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,WE`, and `FREQ=DAILY;COUNT=2` becomes `FREQ=DAILY;INTERVAL=1;COUNT=2`. Further valid canonical vectors are `FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,WE;UNTIL=20261231T090000Z` for timed data and `FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=31;UNTIL=20261231` for all-day data. Invalid vectors include duplicate weekday `FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,MO`, mixed terminal selectors `FREQ=DAILY;INTERVAL=1;COUNT=2;UNTIL=20261231T090000Z`, time selector `FREQ=DAILY;INTERVAL=1;BYHOUR=9`, and monthly rule without `BYMONTHDAY`. Name boundary oracles accept 160 ASCII runes and 160 four-byte UTF-8 runes (640 bytes), and reject 161 ASCII runes and 161 four-byte UTF-8 runes (644 bytes). Timezone oracles accept `UTC`, reject a non-IANA name such as `Mars/Olympus`, and reject any 65-byte input before IANA lookup.
+
 ### 3.12 CalendarAttendee
 
 | Field | Type | Contract |
@@ -1086,6 +1090,61 @@ atomically; abandoned `in_progress` receipts reconcile by transaction rollback, 
 second mutation. Completed responses are retained for at least 24 hours and replayed byte-
 equivalently. The stored response is calendar metadata only and follows the same access and
 retention policy as its event.
+
+#### 143-04B create receipt and authorization freeze
+
+This is a pre-source ABI amendment, not accepted code ABI: a separately reviewed 04A amendment packet must add this interface and guarded wrapper before a corrected 04B source packet can be reviewed. `event_create` is a Hub JSON create receipt, not inbound iTIP identity: its canonical request hash has no `payload_hash` or `payload_hash_version` field. Inside one repository transaction, the order is scope derivation, receipt reserve/replay/conflict, `ResolveCalendarEventCreateAuthorization`, then event/attendee/exception/outbox writes and completed response. A matching completed receipt replays byte-equivalently; a reused key whose canonical request differs maps to generic `ErrEventConflict`; rollback leaves neither receipt completion nor domain writes.
+
+The exact 04A amendment ABI is:
+
+```go
+type CalendarEventCreateAttendeeCandidate struct {
+    UserID      *uuid.UUID
+    Email       string
+    DisplayName *string
+    Role        CalendarEventAttendeeRole
+}
+type CalendarEventCreateAuthorizationRequest struct {
+    Organizer       CalendarEventCreateAttendeeCandidate
+    Attendees       []CalendarEventCreateAttendeeCandidate
+    Title           string
+    Description     string
+    Location        string
+    Temporal        CalendarEvent
+    RRULE           string
+    Exdates         []string
+    ReminderMinutes *int
+    ScheduledCallID *uuid.UUID
+}
+type CalendarEventCreateResolvedOrganizer struct {
+    UserID      uuid.UUID
+    Email       string
+    DisplayName *string
+}
+type CalendarEventCreateResolvedAttendee struct {
+    UserID      *uuid.UUID
+    Email       string
+    DisplayName *string
+    Role        CalendarEventAttendeeRole
+}
+type CalendarEventCreateAuthorization struct {
+    Organizer       CalendarEventCreateResolvedOrganizer
+    Attendees       []CalendarEventCreateResolvedAttendee
+    ScheduledCallID *uuid.UUID
+}
+// Add exactly this member to the existing EventTransactionBackend interface;
+// do not redeclare, replace, or remove any of its existing members.
+ResolveCalendarEventCreateAuthorization(ctx context.Context, scope EventMutationScope, request CalendarEventCreateAuthorizationRequest) (CalendarEventCreateAuthorization, error)
+func (transaction *EventTransaction) ResolveCalendarEventCreateAuthorization(ctx context.Context, scope EventMutationScope, request CalendarEventCreateAuthorizationRequest) (CalendarEventCreateAuthorization, error)
+```
+
+`CalendarEventCreateAuthorizationRequest` carries the candidates and all canonical create fields; `CalendarEventCreateAuthorization` is the resolved result, never a candidate container. Add exactly the displayed `EventTransactionBackend.ResolveCalendarEventCreateAuthorization(ctx, scope, request)` member to the existing interface and add the displayed `EventTransaction` wrapper. The wrapper is the sole guarded entry and must reject calls after transaction close or with a foreign scope before backend dispatch. The external fake must compile against the extended existing interface and wrapper, prove the backend is unreachable after wrapper lifetime ends, and prove caller/candidate slices or pointers cannot alias result/persistence state.
+
+The resolver is the sole identity source. It must bind `Authorization.Organizer.UserID` exactly to `scope.ActorID()`; Hub JSON create supports no implicit in-organization impersonation or delegation, and delegation is unsupported unless separately frozen. Every resolved internal attendee must be active, in `scope.OrganizationID()`, and email-equal to its candidate; any nonnil invalid, inactive, foreign or email-mismatched candidate maps to content-free generic `ErrEventConflict` and never downgrades to an email-only guest. Persistence and response construction may use only the resolved organizer, resolved attendees and resolved `ScheduledCallID`, never candidate IDs or a client owner/organization claim.
+
+When request `ScheduledCallID` is nonnil, the authorization result must contain exactly the same UUID; when it is nil, the result must be nil. Substitution, drop, or unexpected insertion rejects with `ErrEventConflict` before writes; the resolved value is the one persisted and returned. The resolver must bind an accessible call owner exactly to `scope.ActorID()` and prove it active, unlinked, and in the same organization/project/channel context inside the same transaction. A nonexistent, not-owned, or otherwise inaccessible ID maps content-free to `ErrEventNotFound` / HTTP 404; an accessible actor-owned call that is inactive, already linked, context- or exact-mapping-mismatched, or paired with an external guest maps to `ErrEventConflict`. No lookup or write outside the guarded transaction can establish the link. Existing already-frozen public link errors stay unchanged and this packet introduces no public code.
+
+Canonical create EXDATE is an ordered vector: timed values are whole-second UTC RFC3339 `YYYY-MM-DDTHH:MM:SSZ`; all-day values are exact Gregorian `YYYY-MM-DD` dates interpreted in the event IANA zone. Nil and nonnil-empty are equivalent; at most 1,000 values are accepted, duplicates reject, and canonical sorting is chronological for timed values and lexical for dates. The same canonical vector is used for request hashing, persistence and response. RRULE normalizes only through the exact dedicated grammar in section 3.11, never through the inbound-iTIP section 4.4.1. Display names are at most 160 runes and 640 UTF-8 bytes; timezone is a valid IANA name of at most 64 UTF-8 bytes.
 
 ### 3.15 CalendarInboundReplyReceipt
 

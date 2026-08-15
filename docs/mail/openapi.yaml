@@ -2,12 +2,13 @@ openapi: 3.1.0
 info:
   title: Hub Mail and Calendar Sync API
   version: 0.1.8
-  x-hub-mail-144-02a2-status: STATIC_ACCEPTED / EXACT_SHA_PASS at 65c91b4824e8a1948fc97c149305aa7f009de061; parent 5df6b47678364c438ade579252209c8fd238c43c; tree 08583554939f597443566093f30b6ec7aa9373db; domain 4de2ec0882d94db595aaabf8d4117566118ee472; policy a70e05122ffa126e9754d029ca00493faae2aeef; organization ef6e2e65430a1397b0f563f1f361ecd89660a39c; authored-first test 65de04719a60a38d7fc456553e092bb106456957; Terra/xhigh author, Terra/high precommit plus exact-SHA PASS C/I/M 0/0/0; dispatcher-enforced/no fallback/telemetry UNKNOWN. Static only; A2-unimplemented clauses CONSUMED/HISTORICAL; A3 unimplemented; launcher NOT_READY, executables NOT_RUN; no generation/migration/runtime/service/API/UI/product/phase/release authority; 02E and blockers unchanged.
+  x-hub-mail-144-02a2-status: STATIC_ACCEPTED / EXACT_SHA_PASS at 65c91b4824e8a1948fc97c149305aa7f009de061; parent 5df6b47678364c438ade579252209c8fd238c43c; tree 08583554939f597443566093f30b6ec7aa9373db; domain 4de2ec0882d94db595aaabf8d4117566118ee472; policy a70e05122ffa126e9754d029ca00493faae2aeef; organization ef6e2e65430a1397b0f563f1f361ecd89660a39c; authored-first test 65de04719a60a38d7fc456553e092bb106456957; Terra/xhigh author, Terra/high precommit plus exact-SHA PASS C/I/M 0/0/0; dispatcher-enforced/no fallback/telemetry UNKNOWN. Static only; A2-unimplemented/A3-next clauses CONSUMED/HISTORICAL; A3 STATIC_ACCEPTED / EXACT_SHA_PASS at e9a1764b001e28074e4074a07ca8ac982e5345ba; 02B remains blocked pending its exact 02F source bridge/dispatch; launcher NOT_READY, executables NOT_RUN; no generation/migration/runtime/service/API/UI/product/phase/release authority; 02E and blockers unchanged.
   x-hub-mail-144-01b-status: STATIC_ACCEPTED / EXACT_SHA_PASS at 0c064363b5ccb657a7c444802e94075c4ca743e5; parent 48a7273d100c07788def88e2f1b8d69c7173580f; tree 9c568a0c58c6bf7b8c3171cfd934760b839db623; subject feat(mail): add deterministic engine fake; fake blob 12bcd921668e406f07a98f7f3b0618ad8d44e81d; authored-first test blob b3654103b3a6d96bd887a1e6277aeb0ed6449b3f; Terra/xhigh author, Spec Terra/high, Security Terra/xhigh, ABI Terra/high precommit and exact-SHA Terra/high PASS C/I/M 0/0/0; dispatcher-enforced/no fallback/telemetry UNKNOWN. Former 01B Docker-blocked/do-not-start/dependency clauses CONSUMED/HISTORICAL; launcher NOT_READY, executables NOT_RUN; no 02E/Ent/generation/migration/service/API/UI/product/phase/release authority.
-  description: The five-document 0.1.8 entry amendment independently PASSed at 5e314fb080d420696642058ae47397e251c23207 and authorizes only 144-01A entry. The separate exact14 144-02A/B/C/D correction plus 02F dependency trace is docs/readiness-only STATIC_ACCEPTED / EXACT_SHA_PASS at 576f19231e37f635d5b7187a1ada121ed14ff8dc (parent 0ef3df9eedfb3683fe70a7f8fc502ca76278facb, tree b28904b96c084dd88c4cec37c8e1daa62fde4c5d) after Contract Terra/high, Security Terra/xhigh, and Lifecycle Terra/high exact-SHA PASS C/I/M 0/0/0; provenance dispatcher-enforced/no fallback, telemetry UNKNOWN. Its candidate/precommit/root-commit/exact-review/status-sync-next clauses are CONSUMED/HISTORICAL. No source, Ent schema, generation, migration, service, runtime, product, phase, or release authority follows; engine deletion-port and User deletion-intent remain separate blockers. Thread and Folder retain narrow static acceptances. The Rule implementation plan alone is docs/plan-only STATIC_ACCEPTED / EXACT_SHA_PASS at 669ef761715ec35a638bc87d8396e6f562b162c4 (sole path; blob b86c0423a307fd2673a3d322435922aa2a398e8f) after independent Contract/Spec/Oracle Terra/high, Security/Adversarial/Purity Terra/xhigh, and Lifecycle/Dependency/Boundary Terra/high PASS C/I/M 0/0/0; provenance dispatcher-enforced, fallback none, telemetry UNKNOWN unless exposed. Former Rule-plan author/adjudicate/accept instructions are CONSUMED/HISTORICAL. Rule Task 1 remains NOT_AUTHORIZED/BLOCKED until all accepted non-marker Phase145 typed-IR/script carrier, G145-5B, G145-5C and launcher readiness, without implied order; post-task runtime NOT_RUN. 144-02D/02F retain docs-only acceptance; 144-01B remains Docker-blocked; Phase 142/148 and release remain pending; launcher NOT_READY and executables NOT_RUN.
+  description: The five-document 0.1.8 entry amendment independently PASSed at 5e314fb080d420696642058ae47397e251c23207 and authorizes only 144-01A entry. The separate exact14 144-02A/B/C/D correction plus 02F dependency trace is docs/readiness-only STATIC_ACCEPTED / EXACT_SHA_PASS at 576f19231e37f635d5b7187a1ada121ed14ff8dc (parent 0ef3df9eedfb3683fe70a7f8fc502ca76278facb, tree b28904b96c084dd88c4cec37c8e1daa62fde4c5d) after Contract Terra/high, Security Terra/xhigh, and Lifecycle Terra/high exact-SHA PASS C/I/M 0/0/0; provenance dispatcher-enforced/no fallback, telemetry UNKNOWN. Its candidate/precommit/root-commit/exact-review/status-sync-next clauses are CONSUMED/HISTORICAL. No source, Ent schema, generation, migration, service, runtime, product, phase, or release authority follows; engine deletion-port and User deletion-intent remain separate blockers. Thread and Folder retain narrow static acceptances. The Rule implementation plan alone is docs/plan-only STATIC_ACCEPTED / EXACT_SHA_PASS at 669ef761715ec35a638bc87d8396e6f562b162c4 (sole path; blob b86c0423a307fd2673a3d322435922aa2a398e8f) after independent Contract/Spec/Oracle Terra/high, Security/Adversarial/Purity Terra/xhigh, and Lifecycle/Dependency/Boundary Terra/high PASS C/I/M 0/0/0; provenance dispatcher-enforced, fallback none, telemetry UNKNOWN unless exposed. Former Rule-plan author/adjudicate/accept instructions are CONSUMED/HISTORICAL. Rule Task 1 remains NOT_AUTHORIZED/BLOCKED until all accepted non-marker Phase145 typed-IR/script carrier, G145-5B, G145-5C and launcher readiness, without implied order; post-task runtime NOT_RUN. 144-02D source receipt is STATIC_ACCEPTED / EXACT_SHA_PASS at 2242a4e7846944498eb5ed701ab8f47c986bd804; 02F source remains unauthorized; 144-01B remains Docker-blocked; Phase 142/148 and release remain pending; launcher NOT_READY and executables NOT_RUN.
     Phase-145 carrier lifecycle: non-marker typed-IR/Sieve carrier contract is docs/design/readiness-only STATIC_ACCEPTED / EXACT_SHA_PASS at 1daef78768048d7672c38a65b78ef0f119f3c207 (parent c14c208889e8aa1ce7f005a3d9ce03d1a3bb6dc6, tree 1086a93f2f52423cfdf9dcfc01eadd2e0d434947, sole blob 218a38117ae51d014f40218e0f5c4606ec8d4dfa); exact reviews PASS C/I/M 0/0/0, dispatcher-enforced/no fallback/telemetry UNKNOWN. Base/correction lifecycle CONSUMED/HISTORICAL. No plan/source/test/runtime authority; separate carrier-plan acceptance plus G145-5B/G145-5C/launcher readiness keep Rule Task 1/145-07B blocked. Launcher NOT_READY; executables NOT_RUN.
     Only a lower clause or fragment asserting carrier contract acceptance is pending, unaccepted, or open is superseded and CONSUMED/HISTORICAL; every unrelated/current fact in the same description remains authoritative, including 02F accepted, Phase 145 blocked, implementation plan/source, G145-5A/B/C/D/6-9, launcher and runtime status. Contract 1daef787 is docs/design accepted.
     Phase-145 carrier plan lifecycle: PLAN-145-07B-SIEVE-CARRIER.md is docs/implementation-authority-only STATIC_ACCEPTED / EXACT_SHA_PASS at 949b876d1c5ea07338926aa5fe19e1864a256e93 (parent 375891bb85c0e89f2b6597e0416b82219fffaa74, tree f943fb60e8dbda3ae612871d189a57d751dc44cc, sole blob 0bbbc91cd3c58fc8daeaab1a434d942f3ef26821); three exact reviews PASS C/I/M 0/0/0, dispatcher-enforced/no fallback/telemetry UNKNOWN. Contract 1daef787 and sync 375891bb remain accepted. Only obsolete carrier-plan-pending clauses are CONSUMED/HISTORICAL; unrelated gates remain current. No source/test/runtime/adapter/schema/service/worker/product/phase/release authority. Rule Task 1 awaits G145-5B/G145-5C/launcher; carrier six-path source additionally awaits accepted Rule compiler source/ABI. 145-07B blocked; launcher NOT_READY, executables NOT_RUN.
+    The prior 144-02D/02F docs-only phrase is CONSUMED/HISTORICAL: 144-02D source receipt is STATIC_ACCEPTED / EXACT_SHA_PASS at 2242a4e7846944498eb5ed701ab8f47c986bd804, while 02F source remains unauthorized. Calendar EXDATE and ScheduledCall changes are contract-candidate only, not source accepted.
 servers:
   - url: /api
 security:
@@ -3216,11 +3217,20 @@ components:
           type: [string, "null"]
           maxLength: 1000
           x-hub-max-utf8-bytes: 1000
-          description: Canonical RFC 5545 subset interpreted from DTSTART in the event IANA timezone
+          description: Closed CalendarEvent grammar in MAIL-SPEC section 3.11, normalized from DTSTART in the event IANA timezone
         exdates:
           type: array
           maxItems: 1000
-          items: {type: string, maxLength: 255, x-hub-max-utf8-bytes: 255}
+          description: >-
+            Canonical sorted recurrence exclusions: timed events use whole-second UTC RFC3339
+            YYYY-MM-DDTHH:MM:SSZ; all-day events use Gregorian YYYY-MM-DD in the event IANA
+            zone. Duplicates reject; omitted and [] are equivalent.
+          x-hub-canonical-vector: timed-utc-rfc3339-seconds-or-all-day-gregorian-date
+          x-hub-item-maxLength-contract: >-
+            Closed grammar tightening, not description-only: a timed item is exactly 20 ASCII
+            bytes and an all-day item is exactly 10 ASCII bytes; schema maxLength 20 is the
+            sole union cap and validation rejects every other length or grammar.
+          items: {type: string, maxLength: 20, x-hub-max-utf8-bytes: 20}
         sequence: {type: integer, minimum: 0}
         source: {type: string, enum: [hub, mail_import, ical_feed]}
         status: {type: string, enum: [confirmed, tentative, cancelled]}
@@ -3356,23 +3366,34 @@ components:
           type: [string, "null"]
           maxLength: 1000
           x-hub-max-utf8-bytes: 1000
-          description: Canonical RFC 5545 subset interpreted from DTSTART in the supplied IANA timezone
+          description: Closed CalendarEvent grammar in MAIL-SPEC section 3.11, normalized from DTSTART in the supplied IANA timezone
         exdates:
           type: array
           maxItems: 1000
-          items: {type: string, maxLength: 255, x-hub-max-utf8-bytes: 255}
+          description: >-
+            Canonical sorted recurrence exclusions: timed events use whole-second UTC RFC3339
+            YYYY-MM-DDTHH:MM:SSZ; all-day events use Gregorian YYYY-MM-DD in the supplied
+            event IANA zone. Duplicates reject; omitted and [] are equivalent.
+          x-hub-canonical-vector: timed-utc-rfc3339-seconds-or-all-day-gregorian-date
+          x-hub-item-maxLength-contract: >-
+            Closed grammar tightening, not description-only: a timed item is exactly 20 ASCII
+            bytes and an all-day item is exactly 10 ASCII bytes; schema maxLength 20 is the
+            sole union cap and validation rejects every other length or grammar.
+          items: {type: string, maxLength: 20, x-hub-max-utf8-bytes: 20}
         scheduled_call_id:
           type: [string, "null"]
           format: uuid
           description: >-
             Optional immutable link to an existing active unlinked ScheduledCall owned by the
             authenticated organizer. The server independently verifies organization, project,
-            channel and call authorization; v1 does not create a call from nested input. Under
-            the safe pending founder policy, a request with this link cannot contain an
-            external email-only attendee because no guest join-credential delivery contract
-            exists; unlinked CalendarEvents continue to allow external guests. The normalized
-            mapped event fields and internal participant set must exactly match the locked call
-            or the operation conflicts without mutation.
+            channel and call authorization; a nonexistent, not-owned or otherwise inaccessible
+            ID is content-free 404, while an accessible owned but inactive, already linked,
+            context/mapping-mismatched or external-guest link conflicts without mutation. The
+            resolved ID must exactly equal this nonnull request ID and is the persisted/returned
+            ID; no resolver substitution, drop or insertion is allowed. V1 does not create a
+            call from nested input. Under the safe pending founder policy, a request with this
+            link cannot contain an external email-only attendee because no guest join-credential
+            delivery contract exists; unlinked CalendarEvents continue to allow external guests.
         reminder_minutes:
           type: [integer, "null"]
           minimum: 0
@@ -3478,11 +3499,20 @@ components:
           type: [string, "null"]
           maxLength: 1000
           x-hub-max-utf8-bytes: 1000
-          description: Canonical RFC 5545 subset interpreted from DTSTART in the resulting event IANA timezone
+          description: Closed CalendarEvent grammar in MAIL-SPEC section 3.11, normalized from DTSTART in the resulting event IANA timezone
         exdates:
           type: array
           maxItems: 1000
-          items: {type: string, maxLength: 255, x-hub-max-utf8-bytes: 255}
+          description: >-
+            When present after merge, canonical sorted recurrence exclusions are timed
+            whole-second UTC RFC3339 YYYY-MM-DDTHH:MM:SSZ or all-day Gregorian YYYY-MM-DD in
+            the resulting event IANA zone. Duplicates reject; [] clears exclusions.
+          x-hub-canonical-vector: timed-utc-rfc3339-seconds-or-all-day-gregorian-date
+          x-hub-item-maxLength-contract: >-
+            Closed grammar tightening, not description-only: a timed item is exactly 20 ASCII
+            bytes and an all-day item is exactly 10 ASCII bytes; schema maxLength 20 is the
+            sole union cap and validation rejects every other length or grammar.
+          items: {type: string, maxLength: 20, x-hub-max-utf8-bytes: 20}
         reminder_minutes:
           type: [integer, "null"]
           minimum: 0
