@@ -129,12 +129,14 @@ def test_contract_suite_visitor_allows_only_injected_fixture_and_semantic_helper
 from hub_testkit.contracts.openapi import assert_magic_verify_error_contract
 from hub_testkit.contracts.openapi import assert_openapi_canonical_document
 from hub_testkit.contracts.openapi import assert_tms_webhook_auth_contract
+from hub_testkit.contracts.public_error import assert_public_error_artifact_contract
 
 def test_contract(contract_source_bundle):
     ledger = load_f1_04_risk_ledger(contract_source_bundle)
     assert_openapi_canonical_document(contract_source_bundle)
     assert_magic_verify_error_contract(contract_source_bundle)
     assert_tms_webhook_auth_contract(contract_source_bundle)
+    assert_public_error_artifact_contract(contract_source_bundle)
     return ledger.edge_for_node_id("""
         '"testframework/tests/contract/openapi/'
         "test_openapi_security_contract.py::"
@@ -149,6 +151,7 @@ def test_contract_suite_visitor_rejects_every_nonwhitelisted_contract_import() -
         """from hub_testkit.contracts import RiskLedgerError
 from hub_testkit.contracts.openapi import OpenApiContractError
 from hub_testkit.contracts.openapi import unexpected_semantic_helper
+from hub_testkit.contracts.public_error import PublicErrorContractError
 """
     )
 
@@ -165,6 +168,7 @@ def test_contract_source_modules_have_no_io_environment_private_or_second_loader
     assert tuple(path.name for path in source_paths) == (
         "__init__.py",
         "openapi.py",
+        "public_error.py",
         "pytest_source_bundle.py",
         "risk_ledger.py",
         "source_bundle.py",
@@ -196,6 +200,16 @@ def test_contract_source_modules_have_no_io_environment_private_or_second_loader
         "assert_magic_verify_error_contract",
         "assert_tms_webhook_auth_contract",
     )
+    public_error_tree = ast.parse(
+        (CONTRACT_ROOT / "public_error.py").read_text(encoding="utf-8")
+    )
+    public_error_functions = tuple(
+        node.name
+        for node in public_error_tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and not node.name.startswith("_")
+    )
+    assert public_error_functions == ("assert_public_error_artifact_contract",)
 
 
 class _ContractBoundaryVisitor(ast.NodeVisitor):
@@ -366,6 +380,9 @@ _ALLOWED_CONTRACT_SUITE_IMPORTS = {
             "assert_openapi_canonical_document",
             "assert_tms_webhook_auth_contract",
         }
+    ),
+    "hub_testkit.contracts.public_error": frozenset(
+        {"assert_public_error_artifact_contract"}
     ),
 }
 _INTROSPECTION_ATTRIBUTES = frozenset(
