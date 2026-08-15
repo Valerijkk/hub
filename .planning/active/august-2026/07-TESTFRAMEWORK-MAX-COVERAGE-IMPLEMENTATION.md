@@ -395,6 +395,7 @@ remains `NOT_PROVEN`.
 The second F1-04 commit owns exactly:
 
 ```text
+testframework/selftests/architecture/imports/test_contract_source_boundary.py
 testframework/src/hub_testkit/contracts/openapi.py
 testframework/tests/contract/openapi/conftest.py
 testframework/tests/contract/openapi/test_openapi_security_contract.py
@@ -402,6 +403,16 @@ testframework/cases/openapi/TC-OPENAPI-0001.md
 testframework/cases/openapi/TC-OPENAPI-0002.md
 testframework/cases/openapi/TC-OPENAPI-0003.md
 ```
+
+The architecture selftest is modified first in this commit: it expands the
+exact admitted contract-module set only to include `openapi.py`, admits only
+`assert_openapi_canonical_document`, `assert_magic_verify_error_contract`, and
+`assert_tms_webhook_auth_contract` from `hub_testkit.contracts.openapi` for
+suite use. The complete cumulative suite-import set is exactly
+`contract_source_bundle`, `load_f1_04_risk_ledger`, and those three semantic
+functions; construction/provider/delegate exports remain forbidden. The gate
+preserves every
+raw bundle/factory/selector/private/filesystem/dynamic-import prohibition.
 
 Its three literal, non-parametrized `TASK-227` cases validate narrow generated
 JSON-to-source relations rather than hard-coded Swagger expectations.
@@ -421,11 +432,17 @@ relations; it does not infer unrelated Go routes. Broad route snapshots, YAML,
 The third F1-04 commit owns exactly:
 
 ```text
+testframework/selftests/architecture/imports/test_contract_source_boundary.py
 testframework/src/hub_testkit/contracts/public_error.py
 testframework/tests/contract/privacy/conftest.py
 testframework/tests/contract/privacy/test_public_error_contract.py
 testframework/cases/privacy/TC-PRIVACY-0001.md
 ```
+
+The architecture selftest is modified first to admit only
+`public_error.py` and `assert_public_error_artifact_contract`. The complete
+cumulative suite-import set is the exact 10B set plus only that function; it
+retains every prior suite prohibition and the OpenAPI boundary.
 
 Its one literal `TASK-227` case consumes
 `backend/internal/platform/middleware/middleware.go` plus Swagger JSON and
@@ -437,11 +454,17 @@ write relation and does not scan unrelated middleware.
 The fourth F1-04 commit owns exactly:
 
 ```text
+testframework/selftests/architecture/imports/test_contract_source_boundary.py
 testframework/src/hub_testkit/contracts/auth_events.py
 testframework/tests/contract/security/conftest.py
 testframework/tests/contract/security/test_auth_session_event_contract.py
 testframework/cases/security/TC-SECURITY-0001.md
 ```
+
+The architecture selftest is modified first to admit only `auth_events.py` and
+`assert_auth_session_created_event_contract`. The complete cumulative
+suite-import set is the exact 10B plus 10C set plus only that function, while
+retaining every previous boundary.
 
 Its one literal `TASK-227` case checks a bounded source relation only: the exact
 `SessionCreatedEvent` JSON fields, producer subject `auth.session.created`,
@@ -513,9 +536,9 @@ One atomic source commit contains its source, cases, and selftests for one row b
 | 9A | `test(testframework): add admin account authorization cases` | exact F1-03A 14-path allowlist | security/product review; reject invented tenant semantics |
 | 9B | `test(testframework): add platform abuse replay cases` | exact F1-03B 12-path allowlist | security/privacy review; provisioning and profile remain unbound |
 | 10A | `feat(testframework): add sealed contract source boundary` | exact F1-04 boundary 8-path allowlist | source-provenance/privacy/architecture review |
-| 10B | `test(testframework): add OpenAPI security contracts` | exact F1-04 OpenAPI 6-path allowlist | API/schema/security review; known product-doc RED remains |
-| 10C | `test(testframework): add public error artifact contract` | exact F1-04 privacy 4-path allowlist | privacy/wire-schema review |
-| 10D | `test(testframework): add auth session event contract` | exact F1-04 event 4-path allowlist | producer/consumer source-link review |
+| 10B | `test(testframework): add OpenAPI security contracts` | exact F1-04 OpenAPI 7-path allowlist | architecture selftest first; API/schema/security review; known product-doc RED remains |
+| 10C | `test(testframework): add public error artifact contract` | exact F1-04 privacy 5-path allowlist | architecture selftest first; privacy/wire-schema review |
+| 10D | `test(testframework): add auth session event contract` | exact F1-04 event 5-path allowlist | architecture selftest first; producer/consumer source-link review |
 | 10E | `docs(testframework): record F1 contract source closure` | `testframework/PACKAGE-CONTRACT.md`, `testframework/README.md` | factual docs review; runtime remains `NOT_RUN` |
 | 11 | `test(testframework): add data broker isolation spine` | F2 data/broker paths, one service boundary per commit | integration/cleanup review per service |
 | 12 | `test(testframework): add implemented work domain cases` | exactly one work domain per commit | domain + traceability review |
