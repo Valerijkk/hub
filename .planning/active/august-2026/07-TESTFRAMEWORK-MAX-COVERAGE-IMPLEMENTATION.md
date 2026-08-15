@@ -139,10 +139,17 @@ source-review `ACCEPT`; otherwise stop after commit 1. Each commit has its own
 revert-only rollback boundary.
 
 The identity harness is an explicit launcher-injected protocol, never a fake
-SUT. Missing injection fails before a request. This receipt creates no concrete
-provisioner, environment lookup, dev login, magic-link delivery, report, lock,
-image, runner, Docker execution, or runtime evidence. It grants no F1-03 or
-later slice and preserves `NOT_READY` / `NOT_RUN`.
+SUT. The config stash contains an `IdentityHarnessFactory`, not a reusable
+harness instance: the function-scoped fixture creates one fresh harness and
+owner ledger per test, then calls that harness's exact cleanup in `finally`.
+Missing injection fails before a request. Future A1 admission for the
+`identity-api` profile must bind target `testframework/tests/api/identity` to
+the exact `--hub-case-root testframework/cases/identity` and reject any other
+case root; loading the global case catalog for a profile-local collection is
+forbidden. This receipt creates no concrete provisioner, environment lookup,
+dev login, magic-link delivery, report, lock, image, runner, Docker execution,
+or runtime evidence. It grants no F1-03 or later slice and preserves
+`NOT_READY` / `NOT_RUN`.
 
 1. **F1-01 HTTP policy and diagnostics.** Add immutable actor/client policy, explicit connect/read/write/pool timeout values, bounded retry classification, idempotency protection for unsafe methods, correlation, and redacted diagnostics. The first failures are mutable authorization, timeout/retry leakage, unsafe POST retry, and secret-bearing request evidence.
 2. **F1-02 identity/session/account.** Add only observable current auth/session/account behavior: successful valid flow, invalid credentials/no token, deactivated/blocked account denial where implemented, refresh/session revocation behavior where current routes support it, and exact fixture cleanup. Magic-link transport/code creation is not assumed; a safe provisioning path must be explicit. `/api/dev/login` is development-only and is not a default auth fixture.
