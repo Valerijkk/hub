@@ -32,6 +32,8 @@ change.
 
 Clauses claiming 143-03E blocks pure 143-04A or that no further source can proceed are
 `CONSUMED/HISTORICAL`. 143-03E remains `BLOCKED/NOT_RUN` for Ent generation and migration
-only. Under the founder remaining-source instruction, the next pure source packet is 143-04G:
-`backend/internal/platform/nats/client.go` plus
-`backend/tests/calendar/calendar_subjects_test.go`. All unrelated blockers remain unchanged.
+only. The former 143-04G-next route is also `CONSUMED/HISTORICAL`: 04G is accepted in
+`IMPLEMENTATION-143-04G.md`. Under the founder remaining-source instruction, the current next
+pure source packet is 143-04B: `backend/internal/calendar/event_service_create.go` plus
+`backend/tests/calendar/event_service_create_test.go`, gated by accepted 04A+04G. All unrelated
+blockers remain unchanged.

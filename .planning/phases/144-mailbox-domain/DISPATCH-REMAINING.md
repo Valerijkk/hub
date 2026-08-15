@@ -42,7 +42,9 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 - Bounds: depth/fan-out 0; two retries/root cause; 45m (60 service, 75 handler). Response in
   Russian with files/symbols/oracles/verification/risks/requested+actual model/source SHA.
 
-## 144-01B — deterministic engine fake
+## 144-01B — deterministic engine fake — STATIC_ACCEPTED / EXACT_SHA_PASS
+
+> **Immutable receipt:** `0c064363b5ccb657a7c444802e94075c4ca743e5`; parent `48a7273d100c07788def88e2f1b8d69c7173580f`; tree `9c568a0c58c6bf7b8c3171cfd934760b839db623`; subject `feat(mail): add deterministic engine fake`; fake blob `12bcd921668e406f07a98f7f3b0618ad8d44e81d`; authored-first test blob `b3654103b3a6d96bd887a1e6277aeb0ed6449b3f`. Terra/xhigh author; Spec Terra/high, Security Terra/xhigh, ABI Terra/high precommit and exact-SHA Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Previous Docker-blocked/do-not-start/dependency clauses are `CONSUMED/HISTORICAL`; launcher `NOT_READY`, executables `NOT_RUN`, and no 02E/Ent/generation/migration/service/API/UI/product/phase/release authority follows.
 
 - Dependency: accepted 01A plus, under stricter Task3 authority, applicable supported current-SHA
   Docker evidence. Until both close, `BLOCKED`. Allowed only:
@@ -62,7 +64,7 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 
 ## 144-02A1/A2/A3 — typed DNS then domain/policy then account/identity schemas
 
-- `144-02A1` alone is narrowly `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `5892a90b7582ff4ac35db218428400ac9608c4e3` (parent `29a5c624c0bacc2de3cc4b5a93e3e9176320b5bd`, tree `c78d82ef8ea55a4656d33b82530b2fbb72582201`): source `backend/internal/mail/domain_dns.go` blob `e00586637f209f85c52626c1ec8d96116af934b3`; test `backend/tests/mail/domain_dns_test.go` blob `8a43140964d12cca7cdc09e34675a074ee164d7b`. Tests were authored first. Terra/high static precommit and immutable exact-SHA review PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback, telemetry `UNKNOWN` unless exposed. RED/GREEN/tests/build/gofmt/lint/validators/Docker/runtime are `NOT_RUN`; launcher `NOT_READY`. This grants no Ent/schema generation/migration/service/API/UI/product/phase/release authority. A2/A3 remain unimplemented. Founder directs root to continue remaining Mail+Calendar atomic source packets before final integrated Docker; every exact packet requires its own test-first/static review/commit. This is not A2 acceptance and does not authorize Ent generation, migrations or runtime.
+- `144-02A1` is accepted at `5892a90b7582ff4ac35db218428400ac9608c4e3`; `144-02A2` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `65c91b4824e8a1948fc97c149305aa7f009de061` (parent `5df6b47678364c438ade579252209c8fd238c43c`, tree `08583554939f597443566093f30b6ec7aa9373db`) for `maildomain.go` `4de2ec0882d94db595aaabf8d4117566118ee472`, `mailboxpolicy.go` `a70e05122ffa126e9754d029ca00493faae2aeef`, `organization.go` `ef6e2e65430a1397b0f563f1f361ecd89660a39c`, and authored-first test `mail_domain_policy_schema_test.go` `65de04719a60a38d7fc456553e092bb106456957`. Terra/xhigh author and Terra/high precommit+exact-SHA review PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Former A2-unimplemented clauses are `CONSUMED/HISTORICAL`. Launcher `NOT_READY`, executables `NOT_RUN`; neither receipt authorizes generation/migration/runtime. A3 alone remains the exact founder-sequenced source packet.
 
 - Representation dependency is satisfied narrowly by the docs-only `STATIC_CONTRACT_READY`
   acceptance of reviewed snapshot `b631866b2ba372101fd80eea30951eaa267c1931`: Contract/Spec
@@ -73,9 +75,7 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   sequentially from clean accepted commits:
   - `144-02A1`: only `backend/internal/mail/domain_dns.go` and
     `backend/tests/mail/domain_dns_test.go`;
-  - `144-02A2`: only `backend/ent/schema/maildomain.go`, `mailboxpolicy.go`,
-    `backend/tests/mail/mail_domain_policy_schema_test.go`, and the additive
-    `Organization.mail_domains` / `Organization.mailbox_policy` inverse edges;
+  - `144-02A2` is accepted/historical; do not redispatch its four exact paths;
   - `144-02A3`: only `backend/ent/schema/mailaccount.go`, `mailidentity.go`,
     `backend/tests/mail/mail_account_identity_schema_test.go`, additive
     `MailDomain.accounts`, `Organization.mail_accounts`, and `User.mail_account`.
@@ -750,6 +750,8 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   Resend untouched, bodies/keys absent from persistence, `mail.>` present once and webhook
   list unchanged; record current SHA and all Docker/test/build/generation statuses honestly.
   Must request independent Terra review; cannot mark runtime PASS from static review.
+
+> **Local 01B clause reconciliation:** every older 144-01B Docker-blocked/do-not-start/dependency assertion in this Rule record is `CONSUMED/HISTORICAL` only. Rule, Sieve, Phase145, launcher and every 02E/Ent/generation/migration/service/API/UI blocker remain current.
 
 ## 144-03B-Rule-Compiler — accepted plan, no dispatch
 

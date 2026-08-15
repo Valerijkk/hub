@@ -25,6 +25,10 @@
 
 > **144-02A/B/C/D 2026-08-15 acceptance:** canonical receipt `576f19231e37f635d5b7187a1ada121ed14ff8dc` (parent `0ef3df9eedfb3683fe70a7f8fc502ca76278facb`, tree `b28904b96c084dd88c4cec37c8e1daa62fde4c5d`) accepts the exact 14 content documents as docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high exact-SHA reviews PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback, telemetry `UNKNOWN`. Candidate/precommit/root-commit/exact-review/status-sync-next clauses are `CONSUMED/HISTORICAL`. 02F is unchanged except dependency trace. Launcher `NOT_READY`; executable checks `NOT_RUN`; no source/schema/generation/migration/service/test/runtime authority. Engine deletion-port and User deletion-intent remain separate blockers.
 
+> **144-01B static acceptance (2026-08-15):** immutable `0c064363b5ccb657a7c444802e94075c4ca743e5` (parent `48a7273d100c07788def88e2f1b8d69c7173580f`, tree `9c568a0c58c6bf7b8c3171cfd934760b839db623`, subject `feat(mail): add deterministic engine fake`) is `STATIC_ACCEPTED` / `EXACT_SHA_PASS` for fake `12bcd921668e406f07a98f7f3b0618ad8d44e81d` and authored-first test `b3654103b3a6d96bd887a1e6277aeb0ed6449b3f`. Terra/xhigh author; Spec Terra/high, Security Terra/xhigh, ABI Terra/high precommit and exact-SHA Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Former 01B Docker-blocked/do-not-start/dependency clauses are `CONSUMED/HISTORICAL`. Launcher `NOT_READY`, executables `NOT_RUN`; no 02E/Ent/generation/migration/service/API/UI/product/phase/release authority.
+
+> **144-02A2 static handoff (2026-08-15):** `65c91b4824e8a1948fc97c149305aa7f009de061` (parent `5df6b47678364c438ade579252209c8fd238c43c`, tree `08583554939f597443566093f30b6ec7aa9373db`) accepts blobs `4de2ec0882d94db595aaabf8d4117566118ee472`, `a70e05122ffa126e9754d029ca00493faae2aeef`, `ef6e2e65430a1397b0f563f1f361ecd89660a39c`, authored-first test `65de04719a60a38d7fc456553e092bb106456957` as `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Terra/xhigh author, Terra/high precommit+exact-SHA PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Launcher `NOT_READY`, executable QA `NOT_RUN`; no generation/migration/runtime/service/API/UI/product/phase/release authority. A2-unimplemented clauses `CONSUMED/HISTORICAL`; A3 next, 02E/blockers unchanged.
+
 ## Boundary
 
 This handoff gives the test program stable inputs without modifying its protected zone.
@@ -736,6 +740,8 @@ oracles, not current executable evidence.
 | Named direct blockers | Direct-delete Organization/User/Account with each named account/object blocker surviving, then inspect a fixture without that blocker. | named `NO ACTION`/`RESTRICT` FK blocks exactly when its row survives; tests make no universal claim that arbitrary direct SQL is safe without a named blocker. |
 
 No QA claim may treat every malformed nested JSON form as a DB rejection.
+
+> **Local 01B clause reconciliation:** older 144-01B Docker-blocked/do-not-start/dependency wording in this blocker record is `CONSUMED/HISTORICAL` only; every launcher, 02E/Ent/generation/migration/service/API/UI/product/phase/release, Rule/Sieve and Phase145 blocker remains current.
 
 ## Current blockers and honesty
 

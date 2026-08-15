@@ -16,6 +16,8 @@
 
 > **Current Rule-plan acceptance:** Standalone `PLAN-144-03B-RULE.md` is docs/plan-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `669ef761715ec35a638bc87d8396e6f562b162c4` (parent `77eb4356de06a5304521b60c57af4e73c5740ce1`, tree `1b554d1c5763818ffef4f3c06c2a5bde16046d37`, sole path, blob `b86c0423a307fd2673a3d322435922aa2a398e8f`); Contract/Spec/Oracle Terra/high, Security/Adversarial/Purity Terra/xhigh, Lifecycle/Dependency/Boundary Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. This accepts only the plan: former Rule-plan author/adjudicate/accept/review/commit instructions are `CONSUMED/HISTORICAL`; no Rule oracle/source/TDD, schema, migration, service, Phase145 carrier, runtime, product, phase or release authority follows. Rule Task 1 RED is `NOT_AUTHORIZED/BLOCKED` until all accepted non-marker Phase145 typed-IR/script carrier, G145-5B, G145-5C and launcher readiness, without implied order; post-task runtime `NOT_RUN`. The Rule-plan acceptance receipt is the documentation sync; it is not a future Rule Task 4. 02D/02F docs-only acceptance, 144-01B Docker blocker, Phase142/148 and release gates, launcher `NOT_READY`, executable tests/build/lint/validators/Docker/runtime `NOT_RUN` remain unchanged.
 
+> **144-01B successor receipt (2026-08-15):** `0c064363b5ccb657a7c444802e94075c4ca743e5` (parent `48a7273d100c07788def88e2f1b8d69c7173580f`, tree `9c568a0c58c6bf7b8c3171cfd934760b839db623`, subject `feat(mail): add deterministic engine fake`) is narrowly `STATIC_ACCEPTED` / `EXACT_SHA_PASS`: fake `12bcd921668e406f07a98f7f3b0618ad8d44e81d`, authored-first test `b3654103b3a6d96bd887a1e6277aeb0ed6449b3f`; Terra/xhigh author, Spec Terra/high, Security Terra/xhigh, ABI Terra/high precommit and exact-SHA Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Former 01B Docker-blocked/do-not-start/dependency clauses are `CONSUMED/HISTORICAL`; launcher `NOT_READY`, executables `NOT_RUN`, no 02E/Ent/generation/migration/service/API/UI/product/phase/release authority.
+
 ## Scope and provenance
 
 - Authoring route: exact `gpt-5.6-terra` / `xhigh`, fallback `none`, accepted native
@@ -82,6 +84,8 @@ fallback, but it did not implement the 0.1.8 projection/budget/reference-only am
 | `backend/internal/mail/mailbox_errors.go` | `beb90bba840280522d61a058f7979fe91ba43c90` |
 | `backend/tests/mail/mailbox_engine_contract_test.go` | `a17b00d6613d9aebba878a2f18dabc49e604667f` |
 
+> **Local 01B clause reconciliation:** within this verification record, prior 144-01B Docker-blocked/do-not-start/dependency wording is `CONSUMED/HISTORICAL` only. It does not authorize 02E/Ent/generation/migration/service/API/UI/product/phase/release work.
+
 ## Verification and remaining gates
 
 - Source status: `STATIC_ACCEPTED` at `e3e8c774d734f926f77f8e600b58dc68dabbd993`; owned-path,
@@ -90,8 +94,7 @@ fallback, but it did not implement the 0.1.8 projection/budget/reference-only am
 - Compile, unit, race, build, lint, validators, Docker and runtime: all `NOT_RUN`.
 - Docker Desktop availability does not authorize a direct Docker/Compose substitute.
 - The packet is not runtime-verified, complete, stable or production-ready.
-- `144-01B` remains `BLOCKED` under stricter Task3 authority until its applicable supported
-  current-SHA Docker evidence closes; Phase 145 remains independently gated.
+- The former 144-01B Task3 Docker-evidence clause is `CONSUMED/HISTORICAL`; Phase 145 remains independently gated.
 - `144-03A-Address` is separately `STATIC_ACCEPTED` at
   `41564d003946ddb78df18efca166ca86e4055405`. Thread callable/encoding/oracle contract remains
   accepted at `cbc12577a6444df9c660e43fedfd0c8133c6e461`; its exact 19-path boundary is

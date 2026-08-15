@@ -20,6 +20,10 @@
 
 > **Historical 144-03D receipt remains valid:** deterministic event mapping is `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `42c6b9f2bd4383040fc116630727564fcf17dd78`; its exact source/test blobs and C/I/M `0/0/0` evidence are retained in `IMPLEMENTATION-144-03D.md`.
 
+> **144-01B static acceptance (2026-08-15):** immutable `0c064363b5ccb657a7c444802e94075c4ca743e5` (parent `48a7273d100c07788def88e2f1b8d69c7173580f`, tree `9c568a0c58c6bf7b8c3171cfd934760b839db623`, subject `feat(mail): add deterministic engine fake`) is `STATIC_ACCEPTED` / `EXACT_SHA_PASS` for fake `12bcd921668e406f07a98f7f3b0618ad8d44e81d` and authored-first test `b3654103b3a6d96bd887a1e6277aeb0ed6449b3f`. Terra/xhigh author; Spec Terra/high, Security Terra/xhigh, ABI Terra/high precommit and exact-SHA Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Former 01B Docker-blocked/do-not-start/dependency clauses are `CONSUMED/HISTORICAL`. Launcher `NOT_READY`, executables `NOT_RUN`; no 02E/Ent/generation/migration/service/API/UI/product/phase/release authority.
+
+> **144-02A2 static acceptance (2026-08-15):** `65c91b4824e8a1948fc97c149305aa7f009de061` (parent `5df6b47678364c438ade579252209c8fd238c43c`, tree `08583554939f597443566093f30b6ec7aa9373db`) is `STATIC_ACCEPTED` / `EXACT_SHA_PASS` for blobs `4de2ec0882d94db595aaabf8d4117566118ee472`, `a70e05122ffa126e9754d029ca00493faae2aeef`, `ef6e2e65430a1397b0f563f1f361ecd89660a39c`, authored-first test `65de04719a60a38d7fc456553e092bb106456957`; Terra/xhigh author, Terra/high precommit+exact-SHA PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Static only: launcher `NOT_READY`, executables `NOT_RUN`, no generation/migration/runtime/service/API/UI/product/phase/release authority. A2-unimplemented clauses `CONSUMED/HISTORICAL`; A3 next, 02E/blockers unchanged.
+
 ## Goal
 
 Implement the engine-independent domain and HTTP behavior against a deterministic fake. `144-02A1`, `144-03C-Send`, and `144-03C-Attachment` are static-only accepted packets. The former no-further-source/root-only-selection routing is `CONSUMED/HISTORICAL`. Founder directs root to continue remaining Mail+Calendar atomic source packets before final integrated Docker; every exact packet still requires its own test-first/static review/commit. This does not authorize Ent generation, migrations, or runtime; launcher is `NOT_READY` and executables remain `NOT_RUN`.
@@ -32,6 +36,8 @@ narrowly `STATIC_ACCEPTED` at `f8cb7643986fc591cae16764575337b72ef3a692` (source
 `3044055e1c5f6ff897fc646f4380d5a5a5be1b4b`, oracle `efe0db0071cb22ce4b026c635157f0fb08885d64`,
 C/I/M `0/0/0`), static only; Folder docs acceptance is `ca4e2854a319a020f7322ae0a9a98e3fb4a07374`.
 The distinct Rule contract is docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` accepted at `f199546513b758ca7b95328b5ccd7680009b732e`; its acceptance transition/review target is recorded in `6735ae746c7acde657359e8a709cd897c4dce61c`. The separately accepted Rule plan is at full `669ef761` (parent `77eb`, tree `1b554d`, added plan blob `b86c0423`) and authorizes neither source nor TDD. The future implementation boundary remains exactly `rule_compiler.go` plus `rule_compiler_test.go`, but only after all accepted non-marker Phase-145 engine-port/typed-IR/script carrier, G145-5B, G145-5C and launcher readiness.
+
+> **Local 01B clause reconciliation:** within this ordered-task record, every older assertion that 144-01B is Docker-blocked, must not start, or awaits supported current-SHA Docker evidence is `CONSUMED/HISTORICAL` only. It changes no 02E/Ent/generation/migration/service/API/UI/product/phase/release blocker.
 
 ## Ordered tasks
 

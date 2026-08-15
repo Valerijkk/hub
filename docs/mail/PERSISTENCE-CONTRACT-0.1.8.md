@@ -15,6 +15,10 @@
 
 > **Current Rule-plan acceptance:** Standalone `PLAN-144-03B-RULE.md` is docs/plan-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `669ef761715ec35a638bc87d8396e6f562b162c4` (parent `77eb4356de06a5304521b60c57af4e73c5740ce1`, tree `1b554d1c5763818ffef4f3c06c2a5bde16046d37`, sole path, blob `b86c0423a307fd2673a3d322435922aa2a398e8f`); Contract/Spec/Oracle Terra/high, Security/Adversarial/Purity Terra/xhigh, Lifecycle/Dependency/Boundary Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. This accepts only the plan: former Rule-plan author/adjudicate/accept instructions are `CONSUMED/HISTORICAL`; no Rule oracle/source/TDD, schema, migration, service, Phase145 carrier, runtime, product, phase or release authority follows. Rule Task 1 RED is `NOT_AUTHORIZED/BLOCKED` until all accepted non-marker Phase145 typed-IR/script carrier, G145-5B, G145-5C and launcher readiness, without implied order; post-task runtime `NOT_RUN`. Task4 docs sync remains separately discovered after future source Task3 acceptance. 02D/02F docs-only acceptance, 144-01B Docker blocker, Phase142/148 and release gates, launcher `NOT_READY`, executable tests/build/lint/validators/Docker/runtime `NOT_RUN` remain unchanged.
 
+> **144-01B static acceptance (2026-08-15):** immutable `0c064363b5ccb657a7c444802e94075c4ca743e5` (parent `48a7273d100c07788def88e2f1b8d69c7173580f`, tree `9c568a0c58c6bf7b8c3171cfd934760b839db623`, subject `feat(mail): add deterministic engine fake`) is `STATIC_ACCEPTED` / `EXACT_SHA_PASS` for fake `12bcd921668e406f07a98f7f3b0618ad8d44e81d` and authored-first test `b3654103b3a6d96bd887a1e6277aeb0ed6449b3f`. Terra/xhigh author; Spec Terra/high, Security Terra/xhigh, ABI Terra/high precommit and exact-SHA Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Former 01B Docker-blocked/do-not-start/dependency clauses are `CONSUMED/HISTORICAL`. Launcher `NOT_READY`, executables `NOT_RUN`; no 02E/Ent/generation/migration/service/API/UI/product/phase/release authority.
+
+> **144-02A2 source acceptance (2026-08-15):** `65c91b4824e8a1948fc97c149305aa7f009de061` (parent `5df6b47678364c438ade579252209c8fd238c43c`, tree `08583554939f597443566093f30b6ec7aa9373db`) accepts `maildomain.go` `4de2ec0882d94db595aaabf8d4117566118ee472`, `mailboxpolicy.go` `a70e05122ffa126e9754d029ca00493faae2aeef`, `organization.go` `ef6e2e65430a1397b0f563f1f361ecd89660a39c`, authored-first oracle `65de04719a60a38d7fc456553e092bb106456957`; Terra/xhigh author, Terra/high precommit+exact-SHA PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Static only: launcher `NOT_READY`, executables `NOT_RUN`, no generation/migration/runtime/service/API/UI/product/phase/release authority. A3/02E blockers unchanged.
+
 ## Common representation
 
 - Every primary key is immutable UUID with application default `uuid.New`.
@@ -1358,6 +1362,8 @@ not runtime/test evidence; launcher `NOT_READY`, executable evidence `NOT_RUN`) 
 
 The final two-rule literal is the authoritative 178-byte preimage supplied above; its semantic
 fixture intentionally presents reverse input order but hashes low UUID then high UUID.
+
+> **Local 01B clause reconciliation:** older 144-01B Docker-blocked/do-not-start/dependency wording in this generation-gate record is `CONSUMED/HISTORICAL` only. 02E/Ent/generation/migration/service/API/UI/product/phase/release authority remains blocked.
 
 ## Generation gate
 

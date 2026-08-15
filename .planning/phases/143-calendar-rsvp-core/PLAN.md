@@ -1,8 +1,8 @@
 # Phase 143 — Calendar RSVP Core
 
-> Task: TASK-236 · Status: IMPLEMENTATION_IN_PROGRESS_143_01_02A_02B_03A_03B_03C_03D_03F_04L_04A_STATIC_ACCEPTED · Depends on: Phase 142
+> Task: TASK-236 · Status: IMPLEMENTATION_IN_PROGRESS_143_01_02A_02B_03A_03B_03C_03D_03F_04L_04A_04G_STATIC_ACCEPTED · Depends on: Phase 142
 
-> **143-04A receipt:** `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `aa85f833a806a36f6d6ef2d8e7ae36dca2621574` (parent `ac9ed8e62edb9064f985a0ad7abf3a2ec42d7304`, tree `1e305267cf47f98000ce89d76f9204d9cd84df93`; `feat(calendar): add event service contract`). Exact blobs: errors `660578a29c24fe610d3c97072d922c05e876ae83`, repository `591608e87092ea80308a05923b22d201d4d124a9`, service `585fe73ecdc5b8b45d41c6f16bebc4cd7b69d5e0`, tests-first contract test `713cb9599baeaaf16c1b95e833e93ee69a50cf08`. Terra/xhigh author and Terra/high static precommit+exact-SHA review PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Executables `NOT_RUN`, launcher `NOT_READY`; no Ent/schema migration/runtime/product/phase authority. Separate `6386f3ee` is stale accepted-04L test-import hygiene only, static PASS `0/0/0`, no behavior change. 03E remains `BLOCKED` only for Ent generation/migration; former pure-04A/no-further-source blocking clauses are `CONSUMED/HISTORICAL`. Next pure packet: 143-04G, exact two-file boundary `backend/internal/platform/nats/client.go` plus `backend/tests/calendar/calendar_subjects_test.go`.
+> **143-04G receipt:** `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `48a7273d100c07788def88e2f1b8d69c7173580f` (parent `6386f3eeb4025fc0aca55f49aaa8083ff856f8a9`, tree `65c5074a9793d24bac5f9b18aa214fbc942ac922`; `feat(calendar): admit calendar event subjects`). Exact blobs: `client.go` `e838704e6b4f5ebb9d1bb52d7d36b776c4453738`, tests-first `calendar_subjects_test.go` `71f5f68280eeb6b64e590b809c6df6b618695c9b`. Terra/xhigh author and Terra/high static precommit+exact-SHA review PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Executables `NOT_RUN`, launcher `NOT_READY`; no Ent/schema migration/runtime/product/phase authority. 03E remains `BLOCKED` only for Ent generation/migration; former 04G-next/current-route clauses are `CONSUMED/HISTORICAL`. Next pure packet: 143-04B, exact two-file boundary `backend/internal/calendar/event_service_create.go` plus `backend/tests/calendar/event_service_create_test.go`, gated by accepted 04A+04G.
 
 ## Goal
 
@@ -105,7 +105,7 @@ breaking existing export behavior.
 
 ## Task 143-04 — Repository and transactional RSVP service
 
-> **04A status:** `STATIC_ACCEPTED` as recorded above. Its sole accepted boundary is the three production files and external contract test; it neither generates Ent nor authorizes migration or runtime. 143-04G is the current next pure source packet: `backend/internal/platform/nats/client.go` plus `backend/tests/calendar/calendar_subjects_test.go`.
+> **04A/04G status:** both are `STATIC_ACCEPTED` as recorded above. Their sole accepted boundaries neither generate Ent nor authorize migration or runtime. The former 04G-next route is `CONSUMED/HISTORICAL`; 143-04B is the current next pure source packet: `backend/internal/calendar/event_service_create.go` plus `backend/tests/calendar/event_service_create_test.go`, gated by accepted 04A+04G.
 
 **Create:**
 
