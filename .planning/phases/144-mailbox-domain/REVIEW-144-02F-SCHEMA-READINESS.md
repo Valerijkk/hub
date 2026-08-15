@@ -1,6 +1,6 @@
 # Phase 144-02F preimplementation review — receipt/deployment schema readiness
 
-> **2026-08-15 dependency/status trace precedence:** 02F receipt/deployment normative `STATIC_ACCEPTED` / `EXACT_SHA_PASS` facts remain unchanged. Only lower broad clauses that treat 02D as wholly unchanged, plus dependent replay/account-writer assumptions, are candidate-superseded by the combined exact14 144-02A/B/C/D correction. This trace is `ROOT_CORRECTION_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED` / `IMPLEMENTATION_BLOCKED` / `RUNTIME_NOT_RUN`, not a new 02F acceptance; fresh reviews remain pending. Engine and physical User deletion remain separately `BLOCKED` / `NOT_DISPATCHABLE` and create no receipt/deployment writer authority. Exact route: three fresh named precommit PASS reviews, atomic 14-doc commit, three exact-SHA reviews, then separate docs-only status sync; Terra/medium dispatcher-enforced/no fallback/telemetry `UNKNOWN`. No source/Ent/generation/migration/service/test/runtime authority.
+> **2026-08-15 dependency/status trace acceptance:** 02F receipt/deployment normative `STATIC_ACCEPTED` / `EXACT_SHA_PASS` facts remain unchanged; its dependent 02A/B/C/D trace is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `576f19231e37f635d5b7187a1ada121ed14ff8dc` (parent `0ef3df9eedfb3683fe70a7f8fc502ca76278facb`, tree `b28904b96c084dd88c4cec37c8e1daa62fde4c5d`) after Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high exact-SHA PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback, telemetry `UNKNOWN`. Candidate/precommit/root-commit/exact-review/status-sync-next clauses are `CONSUMED/HISTORICAL`. Engine deletion-port and physical User deletion-intent remain separately `BLOCKED` / `NOT_DISPATCHABLE` and create no receipt/deployment writer authority. No source/Ent/generation/migration/service/test/runtime authority.
 
 > **Phase-145 carrier-plan acceptance (2026-08-15):** `PLAN-145-07B-SIEVE-CARRIER.md` is docs/implementation-authority-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `949b876d1c5ea07338926aa5fe19e1864a256e93` (parent `375891bb85c0e89f2b6597e0416b82219fffaa74`, tree `f943fb60e8dbda3ae612871d189a57d751dc44cc`, blob `0bbbc91cd3c58fc8daeaab1a434d942f3ef26821`); reviews PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Contract `1daef787`/sync `375891bb` remain accepted. Only obsolete carrier-plan-pending clauses are `CONSUMED/HISTORICAL`; no source/test/runtime authority. Rule Task 1 awaits G145-5B/G145-5C/launcher; carrier source additionally awaits accepted Rule compiler source/ABI. 145-07B blocked; `NOT_READY`/`NOT_RUN` unchanged.
 
@@ -145,7 +145,7 @@ separately accepted and is not broadened by Rule-plan acceptance. Rule TDD/produ
 
 ## Correction-candidate adjudication — 2026-08-14
 
-> **Historical status:** prior `ROOT_CORRECTION_CANDIDATE` / precommit/root-commit-next sequence is `CONSUMED/HISTORICAL`; 02F is not accepted.
+> **Historical status:** prior `ROOT_CORRECTION_CANDIDATE` / precommit/root-commit-next sequence is `CONSUMED/HISTORICAL`; this does not alter the separately accepted 02F boundary or the accepted exact14 dependency trace.
 
 | Prior P1 | Candidate adjudication | Remaining gate |
 |---|---|---|

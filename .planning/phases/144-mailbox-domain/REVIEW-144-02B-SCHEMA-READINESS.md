@@ -1,18 +1,21 @@
 # Phase 144-02B preimplementation review — projection schema readiness
 
-> **2026-08-15 lifecycle correction:** every lower Outcome/P1/recommendation/status/gate conclusion that depends on absent or unfrozen representation is `CONSUMED/HISTORICAL`. Only unchanged source/generation/migration/launcher blockers remain current. The combined exact14 144-02A/B/C/D correction with 02F dependency/status trace is `ROOT_CORRECTION_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED` / `IMPLEMENTATION_BLOCKED` / `RUNTIME_NOT_RUN`, not current review PASS. It freezes 02B representation alongside public metadata-only `deleting`, fail-closed `NO ACTION`, blocked-pending account row, immutable `upload_drain_until`, and 02D union/deactivation/email/org-change. Engine/object drain/final physical deletion remain separately `BLOCKED` / `NOT_DISPATCHABLE` until the required accepted engine-port amendment; no source/Ent/service/test/runtime authority. Exact route is three fresh named precommit PASS reviews, atomic 14-doc commit, three exact-SHA reviews, then separate docs-only status sync; Terra/medium dispatcher-enforced/no fallback/telemetry `UNKNOWN`.
+> **2026-08-15 lifecycle correction acceptance:** exact14 is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `576f19231e37f635d5b7187a1ada121ed14ff8dc` (parent `0ef3df9eedfb3683fe70a7f8fc502ca76278facb`, tree `b28904b96c084dd88c4cec37c8e1daa62fde4c5d`) after Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high exact-SHA PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback, telemetry `UNKNOWN`. Candidate/precommit/root-commit/exact-review/status-sync-next clauses are `CONSUMED/HISTORICAL`. Engine deletion-port and User deletion-intent remain separately `BLOCKED` / `NOT_DISPATCHABLE`; unchanged source/generation/migration/launcher blockers remain current.
 
 > **Detected:** 2026-08-13 root deep static audit
-> **Status:** 0.1.8_ROOT_AMENDMENT_AVAILABLE · INDEPENDENT_CLOSURE_PENDING · IMPLEMENTATION_BLOCKED · RUNTIME_NOT_RUN
+> **Status:** exact14 docs/readiness `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `576f19231e37f635d5b7187a1ada121ed14ff8dc` · IMPLEMENTATION/SOURCE/SCHEMA/RUNTIME `BLOCKED` · launcher `NOT_READY` · executables `NOT_RUN`
 > **Scope:** folder, thread, message, folder/message and label/message projection schemas
 
-> `docs/mail/PERSISTENCE-CONTRACT-0.1.8.md` now supplies the root candidate matrix; this
-> discovery verdict remains open until independent exact-SHA review.
+> `docs/mail/PERSISTENCE-CONTRACT-0.1.8.md` supplies the accepted exact14 docs representation.
+> The lower discovery verdict and its former closure/open-until-review framing and all
+> P1/outcome/gate-impact clauses are `CONSUMED/HISTORICAL` as readiness adjudication; they
+> preserve discovery provenance only and grant no implementation, source, schema or runtime authority.
 
 > **2026-08-13 source-only follow-up:** a requested Terra/high review whose actual runtime
 > provenance was unavailable found that `EngineMessageProjection.Version` had no durable
 > `MailMessage` field. The root amendment now requires `engine_version` 1..1,024 bytes and
-> same-projection atomic persistence; this remediation is not independently accepted.
+> same-projection atomic persistence; this lower source-only remediation narrative is
+> `CONSUMED/HISTORICAL`, not a current acceptance or implementation route.
 
 ## Outcome
 

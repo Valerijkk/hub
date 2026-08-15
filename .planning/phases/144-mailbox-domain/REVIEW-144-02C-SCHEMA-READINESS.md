@@ -1,27 +1,30 @@
 # Phase 144-02C preimplementation review — object/draft schema readiness
 
-> **2026-08-15 lifecycle correction:** every lower Outcome/P1/recommendation/status/gate conclusion that depends on absent or unfrozen representation is `CONSUMED/HISTORICAL`. The 5e PASS is historical behavior-only, never schema-readiness acceptance. Only unchanged source/generation/migration/launcher blockers remain current. The combined 144-02A/B/C/D correction with 02F dependency/status trace is `ROOT_CORRECTION_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED`; 02C correction scope is Account->MailObject fail-closed `NO ACTION`, immutable `upload_drain_until` and storage-capability proof before any deletion I/O, plus blocked-pending object/attachment drain and 02B/02C representation. Engine drain/final Account deletion remain separately `BLOCKED` / `NOT_DISPATCHABLE` pending the independent engine deletion-port amendment. No source/Ent/service/test/runtime authority. Exact route is three fresh named precommit PASS reviews, atomic 14-doc commit, three exact-SHA reviews, then separate docs-only status sync; Terra/medium dispatcher-enforced/no fallback/telemetry `UNKNOWN`.
+> **2026-08-15 lifecycle correction acceptance:** exact14 is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `576f19231e37f635d5b7187a1ada121ed14ff8dc` (parent `0ef3df9eedfb3683fe70a7f8fc502ca76278facb`, tree `b28904b96c084dd88c4cec37c8e1daa62fde4c5d`) after Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high exact-SHA PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback, telemetry `UNKNOWN`. Candidate/precommit/root-commit/exact-review/status-sync-next clauses are `CONSUMED/HISTORICAL`. Engine drain/final Account deletion remains separately `BLOCKED` / `NOT_DISPATCHABLE` pending the independent docs-only engine deletion-port contract/adjudication. No source/Ent/service/test/runtime authority.
 
 > **Detected:** 2026-08-13 root deep static audit
-> **Lifecycle:** exact contract `PASS` at `5e314fb0`; implementation remains separately blocked.
-> **Status:** 0.1.8_EXACT_CONTRACT_PASS `5e314fb0` · IMPLEMENTATION_SEPARATELY_BLOCKED · RUNTIME_NOT_RUN
+> **Lifecycle:** exact14 docs/readiness representation is `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `576f19231e37f635d5b7187a1ada121ed14ff8dc`; implementation remains separately blocked.
+> **Status:** `STATIC_ACCEPTED` / `EXACT_SHA_PASS` docs representation · IMPLEMENTATION/SOURCE/SCHEMA/RUNTIME `BLOCKED` · launcher `NOT_READY` · executables `NOT_RUN`
 > **Scope:** `MailObject`, `MailAttachment`, `MailDraft` and `MailSubmission`
 
 > `docs/mail/ENGINE-CONTRACT-0.1.8.md`, OpenAPI 0.1.8 and the 02C persistence matrix supply
-> the independently accepted exact-contract candidate at `5e314fb080d420696642058ae47397e251c23207`;
-> schema implementation remains separately blocked by its packet, generation/migration and launcher gates.
+> the accepted exact14 docs representation at `576f19231e37f635d5b7187a1ada121ed14ff8dc`.
+> The lower re-review-pending/unaccepted candidate narrative and all P1/outcome/gate-impact
+> clauses are `CONSUMED/HISTORICAL` as readiness adjudication; they preserve discovery provenance
+> only and grant no implementation, source, schema or runtime authority.
 
 > **2026-08-13 source-only follow-up:** a requested Terra/high review whose actual runtime
 > provenance was unavailable found two remaining P1s: one field conflated the opaque engine
 > result message id with the public Hub UUID, and the durable draft association lacked the
 > 50-attachment cap. The root candidate now separates both identities, requires projection
-> finalization before `sent`, and enforces the cap under a locked draft. Re-review is pending.
+> finalization before `sent`, and enforces the cap under a locked draft. This lower re-review-pending
+> statement is `CONSUMED/HISTORICAL`, not a current acceptance or implementation route.
 
 > A second source-only pass found that generic unknown reconciliation could still requeue a
 > confirmed result and that hydration lacked exact account/message/origin proof. The root
 > candidate now splits no-pair reconciliation from retained-pair projection-only recovery,
 > validates exact returned identity/version and derives confirmed submission origin in the
-> domain. This follow-up also remains independently unaccepted.
+> domain. This lower follow-up is `CONSUMED/HISTORICAL`, not a current unaccepted route.
 
 ## Outcome
 
