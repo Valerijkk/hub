@@ -418,14 +418,15 @@ raw bundle/factory/selector/private/filesystem/dynamic-import prohibition.
 
 The source-bundle selftest is also modified before production. F1-04 10B
 successor-authority upgrades the sealed manifest and digest tag from v1/ten
-blobs to v2/thirteen blobs by inserting the three exact auth-chain witnesses.
-The complete v2 order is:
+blobs to v3/fourteen blobs by inserting the four exact auth-chain witnesses.
+The complete v3 order is:
 
 ```text
 backend/cmd/server/main.go
 backend/cmd/server/wiring_auth.go
 backend/cmd/server/wiring_messenger.go
 backend/docs/swagger.json
+backend/internal/apigateway/apikey.go
 backend/internal/auth/events.go
 backend/internal/auth/handler.go
 backend/internal/auth/middleware.go
@@ -438,9 +439,9 @@ testframework/policies/f1-security-risk-ledger.toml
 ```
 
 The literal canonical digest prefix becomes
-`b"hub.qa.contract-source-bundle/v2\0"`; all existing per-blob/total/type/path/
+`b"hub.qa.contract-source-bundle/v3\0"`; all existing per-blob/total/type/path/
 order/provenance/error rules remain unchanged. The updated bundle selftests
-cover exact v2 ordering/digest plus missing/extra/reordered new witnesses.
+cover exact v3 ordering/digest plus missing/extra/reordered new witnesses.
 
 Its three literal, non-parametrized `TASK-227` cases validate narrow generated
 JSON-to-source relations rather than hard-coded Swagger expectations.
@@ -453,12 +454,16 @@ magic-verify request/token success plus `400/401/403/429`, with no secret
 examples. Its source witness is only the contiguous `VerifyMagicLink`
 annotation block immediately preceding that method; failures on unrelated auth
 handlers are never counted. `TC-OPENAPI-0003` consumes
+`backend/cmd/server/main.go`,
 `backend/cmd/server/wiring_auth.go`,
 `backend/cmd/server/wiring_messenger.go`,
+`backend/internal/apigateway/apikey.go`,
 `backend/internal/auth/middleware.go`, `backend/internal/tms/handler.go`, and
-Swagger JSON. These witnesses must prove API-key middleware registration,
-TMS receiving that `requireAuth`, the pre-authenticated identity branch, and
-the named RBAC guard. Both generated webhook operations must match the source's
+Swagger JSON. These witnesses must prove `wireAuth(d)` precedes
+`wireMessenger(d)`, API-key middleware registration, `X-API-Key` verification
+writing `Locals("userID", ...)` before `Next()`, TMS receiving that
+`requireAuth`, the matching pre-authenticated identity branch, and the named
+RBAC guard. Both generated webhook operations must match the source's
 exact supported alternatives:
 `[{"BearerAuth": []}, {"APIKeyAuth": []}]` plus the named
 `PermTestRunCreate` route guard. `X-Hub-Token` and query-token authentication
@@ -573,7 +578,7 @@ One atomic source commit contains its source, cases, and selftests for one row b
 | 9A | `test(testframework): add admin account authorization cases` | exact F1-03A 14-path allowlist | security/product review; reject invented tenant semantics |
 | 9B | `test(testframework): add platform abuse replay cases` | exact F1-03B 12-path allowlist | security/privacy review; provisioning and profile remain unbound |
 | 10A | `feat(testframework): add sealed contract source boundary` | exact F1-04 boundary 8-path allowlist | source-provenance/privacy/architecture review |
-| 10B | `test(testframework): add OpenAPI security contracts` | exact F1-04 OpenAPI 9-path allowlist | bundle + architecture selftests first; v2 source witnesses; API/schema/security review; known product-doc RED remains |
+| 10B | `test(testframework): add OpenAPI security contracts` | exact F1-04 OpenAPI 9-path allowlist | bundle + architecture selftests first; v3 source witnesses; API/schema/security review; known product-doc RED remains |
 | 10C | `test(testframework): add public error artifact contract` | exact F1-04 privacy 5-path allowlist | architecture selftest first; privacy/wire-schema review |
 | 10D | `test(testframework): add auth session event contract` | exact F1-04 event 5-path allowlist | architecture selftest first; producer/consumer source-link review |
 | 10E | `docs(testframework): record F1 contract source closure` | `testframework/PACKAGE-CONTRACT.md`, `testframework/README.md` | factual docs review; runtime remains `NOT_RUN` |
