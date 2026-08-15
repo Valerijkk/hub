@@ -1,0 +1,715 @@
+package calendar
+
+import (
+	"context"
+	"crypto/sha256"
+	"encoding/json"
+	"strings"
+	"sync"
+	"unicode/utf8"
+
+	"github.com/google/uuid"
+
+	"github.com/valerii/hub/backend/internal/platform/events"
+)
+
+const maxMutationReceiptResponseBytes = 1 << 20
+
+// EventRepository задаёт чистый доменный порт канонических календарных событий.
+// Авторитетное actor-to-organization разрешение допускается только через callback транзакции.
+type EventRepository interface {
+	WithEventTransaction(ctx context.Context, callback func(*EventTransaction) error) error
+}
+
+// EventTransactionBackend реализуется адаптером хранения и никогда не передаётся сервису напрямую.
+type EventTransactionBackend interface {
+	ResolveActorOrganization(ctx context.Context, actorID uuid.UUID) (uuid.UUID, error)
+	ReserveMutationReceipt(ctx context.Context, scope EventMutationScope, reservation MutationReceiptReservation) (MutationReceiptReservationResult, error)
+	CompleteMutationReceipt(ctx context.Context, scope EventMutationScope, completion MutationReceiptCompletion) error
+	PersistCalendarEvent(ctx context.Context, scope EventMutationScope, command CalendarEventCommand) (CalendarEventPersistenceResult, error)
+	PersistCalendarEventAttendee(ctx context.Context, scope EventMutationScope, command CalendarEventAttendeeCommand) (CalendarEventAttendeePersistenceResult, error)
+	PersistCalendarEventException(ctx context.Context, scope EventMutationScope, command CalendarEventExceptionCommand) (CalendarEventExceptionPersistenceResult, error)
+	AppendOutbox(ctx context.Context, scope EventMutationScope, descriptor EventOutboxDescriptor) error
+}
+
+// EventTransaction ограничивает все мутации временем callback и не позволяет захваченному значению работать после него.
+type EventTransaction struct {
+	mu      sync.Mutex
+	backend EventTransactionBackend
+	active  bool
+}
+
+// RunEventTransaction создаёт lifetime-guarded transaction для реализации репозитория и внешних unit fake.
+func RunEventTransaction(backend EventTransactionBackend, callback func(*EventTransaction) error) error {
+	if backend == nil || callback == nil {
+		return ErrEventInvalid
+	}
+	transaction := &EventTransaction{backend: backend, active: true}
+	defer transaction.close()
+	return callback(transaction)
+}
+
+func (transaction *EventTransaction) close() {
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+	transaction.active = false
+	transaction.backend = nil
+}
+
+// EventMutationScope связывает каждую мутацию с actor, revalidated organization и operation одной транзакции.
+type EventMutationScope struct {
+	actorID        uuid.UUID
+	organizationID uuid.UUID
+	operation      MutationReceiptOperation
+	transaction    *EventTransaction
+}
+
+// ActorID возвращает аутентифицированного автора мутации.
+func (scope EventMutationScope) ActorID() uuid.UUID {
+	return scope.actorID
+}
+
+// OrganizationID возвращает организацию, разрешённую внутри той же транзакции.
+func (scope EventMutationScope) OrganizationID() uuid.UUID {
+	return scope.organizationID
+}
+
+// Operation возвращает разрешённую идемпотентную операцию мутации.
+func (scope EventMutationScope) Operation() MutationReceiptOperation {
+	return scope.operation
+}
+
+// ResolveMutationScope разрешает и повторно проверяет actor-to-organization только внутри активной транзакции.
+func (transaction *EventTransaction) ResolveMutationScope(ctx context.Context, actorID uuid.UUID, operation MutationReceiptOperation) (EventMutationScope, error) {
+	if transaction == nil {
+		return EventMutationScope{}, ErrEventTransactionClosed
+	}
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+	if !transaction.active || transaction.backend == nil {
+		return EventMutationScope{}, ErrEventTransactionClosed
+	}
+	if actorID == uuid.Nil || !validMutationReceiptOperation(operation) {
+		return EventMutationScope{}, ErrEventInvalid
+	}
+	organizationID, err := transaction.backend.ResolveActorOrganization(ctx, actorID)
+	if err != nil || organizationID == uuid.Nil {
+		return EventMutationScope{}, ErrEventForbidden
+	}
+	return EventMutationScope{
+		actorID:        actorID,
+		organizationID: organizationID,
+		operation:      operation,
+		transaction:    transaction,
+	}, nil
+}
+
+// ReserveMutationReceipt резервирует или воспроизводит квитанцию только в переданной transaction scope.
+func (transaction *EventTransaction) ReserveMutationReceipt(ctx context.Context, scope EventMutationScope, reservation MutationReceiptReservation) (MutationReceiptReservationResult, error) {
+	if transaction == nil {
+		return MutationReceiptReservationResult{}, ErrEventTransactionClosed
+	}
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+	if err := transaction.validateScope(scope); err != nil {
+		return MutationReceiptReservationResult{}, err
+	}
+	if !reservation.matches(scope) {
+		return MutationReceiptReservationResult{}, ErrEventForbidden
+	}
+	result, err := transaction.backend.ReserveMutationReceipt(ctx, scope, reservation)
+	if err != nil {
+		return MutationReceiptReservationResult{}, err
+	}
+	if !result.valid() {
+		return MutationReceiptReservationResult{}, ErrEventInvalid
+	}
+	return result, nil
+}
+
+// CompleteMutationReceipt завершает квитанцию только в переданной transaction scope.
+func (transaction *EventTransaction) CompleteMutationReceipt(ctx context.Context, scope EventMutationScope, completion MutationReceiptCompletion) error {
+	if transaction == nil {
+		return ErrEventTransactionClosed
+	}
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+	if err := transaction.validateScope(scope); err != nil {
+		return err
+	}
+	if !completion.valid() {
+		return ErrEventInvalid
+	}
+	return transaction.backend.CompleteMutationReceipt(ctx, scope, completion)
+}
+
+// PersistCalendarEvent сохраняет immutable CalendarEvent command внутри transaction scope.
+func (transaction *EventTransaction) PersistCalendarEvent(ctx context.Context, scope EventMutationScope, command CalendarEventCommand) (CalendarEventPersistenceResult, error) {
+	if transaction == nil {
+		return CalendarEventPersistenceResult{}, ErrEventTransactionClosed
+	}
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+	if err := transaction.validateScope(scope); err != nil {
+		return CalendarEventPersistenceResult{}, err
+	}
+	if command.OrganizationID() != scope.organizationID {
+		return CalendarEventPersistenceResult{}, ErrEventForbidden
+	}
+	if !command.valid() {
+		return CalendarEventPersistenceResult{}, ErrEventInvalid
+	}
+	result, err := transaction.backend.PersistCalendarEvent(ctx, scope, command)
+	if err != nil {
+		return CalendarEventPersistenceResult{}, err
+	}
+	if !result.valid() {
+		return CalendarEventPersistenceResult{}, ErrEventInvalid
+	}
+	return result, nil
+}
+
+// PersistCalendarEventAttendee сохраняет immutable attendee command внутри transaction scope.
+func (transaction *EventTransaction) PersistCalendarEventAttendee(ctx context.Context, scope EventMutationScope, command CalendarEventAttendeeCommand) (CalendarEventAttendeePersistenceResult, error) {
+	if transaction == nil {
+		return CalendarEventAttendeePersistenceResult{}, ErrEventTransactionClosed
+	}
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+	if err := transaction.validateScope(scope); err != nil {
+		return CalendarEventAttendeePersistenceResult{}, err
+	}
+	if !command.valid() {
+		return CalendarEventAttendeePersistenceResult{}, ErrEventInvalid
+	}
+	result, err := transaction.backend.PersistCalendarEventAttendee(ctx, scope, command)
+	if err != nil {
+		return CalendarEventAttendeePersistenceResult{}, err
+	}
+	if !result.valid() {
+		return CalendarEventAttendeePersistenceResult{}, ErrEventInvalid
+	}
+	return result, nil
+}
+
+// PersistCalendarEventException сохраняет immutable exception command внутри transaction scope.
+func (transaction *EventTransaction) PersistCalendarEventException(ctx context.Context, scope EventMutationScope, command CalendarEventExceptionCommand) (CalendarEventExceptionPersistenceResult, error) {
+	if transaction == nil {
+		return CalendarEventExceptionPersistenceResult{}, ErrEventTransactionClosed
+	}
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+	if err := transaction.validateScope(scope); err != nil {
+		return CalendarEventExceptionPersistenceResult{}, err
+	}
+	if !command.valid() {
+		return CalendarEventExceptionPersistenceResult{}, ErrEventInvalid
+	}
+	result, err := transaction.backend.PersistCalendarEventException(ctx, scope, command)
+	if err != nil {
+		return CalendarEventExceptionPersistenceResult{}, err
+	}
+	if !result.valid() {
+		return CalendarEventExceptionPersistenceResult{}, ErrEventInvalid
+	}
+	return result, nil
+}
+
+// AppendOutbox добавляет только полный accepted EnvelopeV1 внутри transaction scope.
+func (transaction *EventTransaction) AppendOutbox(ctx context.Context, scope EventMutationScope, descriptor EventOutboxDescriptor) error {
+	if transaction == nil {
+		return ErrEventTransactionClosed
+	}
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+	if err := transaction.validateScope(scope); err != nil {
+		return err
+	}
+	if !descriptor.valid() {
+		return ErrEventInvalid
+	}
+	return transaction.backend.AppendOutbox(ctx, scope, descriptor)
+}
+
+func (transaction *EventTransaction) validateScope(scope EventMutationScope) error {
+	if !transaction.active || transaction.backend == nil {
+		return ErrEventTransactionClosed
+	}
+	if scope.transaction != transaction || scope.actorID == uuid.Nil || scope.organizationID == uuid.Nil || !validMutationReceiptOperation(scope.operation) {
+		return ErrEventForbidden
+	}
+	return nil
+}
+
+// MutationReceiptOperation определяет разрешённую HTTP-операцию квитанции календарной мутации.
+type MutationReceiptOperation string
+
+const (
+	// MutationReceiptEventCreate соответствует созданию канонического события.
+	MutationReceiptEventCreate MutationReceiptOperation = "event_create"
+	// MutationReceiptLegacyCallCreate соответствует созданию через legacy ScheduledCall bridge.
+	MutationReceiptLegacyCallCreate MutationReceiptOperation = "legacy_call_create"
+	// MutationReceiptRSVPSeries соответствует RSVP всей серии.
+	MutationReceiptRSVPSeries MutationReceiptOperation = "rsvp_series"
+	// MutationReceiptRSVPOccurrence соответствует RSVP одного экземпляра серии.
+	MutationReceiptRSVPOccurrence MutationReceiptOperation = "rsvp_occurrence"
+)
+
+// MutationReceiptHash хранит только SHA-256 производного ключа или канонического запроса.
+type MutationReceiptHash [sha256.Size]byte
+
+// MutationReceiptReservation является неизменяемой командой резервирования квитанции.
+type MutationReceiptReservation struct {
+	scope       EventMutationScope
+	keyHash     MutationReceiptHash
+	requestHash MutationReceiptHash
+}
+
+// NewMutationReceiptReservation создаёт команду без исходного Idempotency-Key и с обязательным transaction scope.
+func NewMutationReceiptReservation(scope EventMutationScope, keyHash MutationReceiptHash, requestHash MutationReceiptHash) (MutationReceiptReservation, error) {
+	if scope.transaction == nil || scope.actorID == uuid.Nil || scope.organizationID == uuid.Nil || !validMutationReceiptOperation(scope.operation) {
+		return MutationReceiptReservation{}, ErrEventInvalid
+	}
+	return MutationReceiptReservation{scope: scope, keyHash: keyHash, requestHash: requestHash}, nil
+}
+
+func (reservation MutationReceiptReservation) matches(scope EventMutationScope) bool {
+	return reservation.scope.transaction == scope.transaction && reservation.scope.actorID == scope.actorID && reservation.scope.organizationID == scope.organizationID && reservation.scope.operation == scope.operation
+}
+
+// KeyHash возвращает копию SHA-256 производного idempotency key.
+func (reservation MutationReceiptReservation) KeyHash() MutationReceiptHash {
+	return reservation.keyHash
+}
+
+// RequestHash возвращает копию SHA-256 канонического запроса.
+func (reservation MutationReceiptReservation) RequestHash() MutationReceiptHash {
+	return reservation.requestHash
+}
+
+// MutationReceiptResponse хранит неизменяемый HTTP-ответ, пригодный для replay.
+type MutationReceiptResponse struct {
+	status       int
+	responseJSON string
+}
+
+// NewMutationReceiptResponse принимает только ограниченный корректный UTF-8 JSON-ответ.
+func NewMutationReceiptResponse(status int, responseJSON []byte) (MutationReceiptResponse, error) {
+	if status < 100 || status > 599 || len(responseJSON) == 0 || len(responseJSON) > maxMutationReceiptResponseBytes || !utf8.Valid(responseJSON) || !json.Valid(responseJSON) {
+		return MutationReceiptResponse{}, ErrEventInvalid
+	}
+	return MutationReceiptResponse{status: status, responseJSON: string(responseJSON)}, nil
+}
+
+func (response MutationReceiptResponse) valid() bool {
+	return response.status >= 100 && response.status <= 599 && len(response.responseJSON) > 0 && len(response.responseJSON) <= maxMutationReceiptResponseBytes && utf8.ValidString(response.responseJSON) && json.Valid([]byte(response.responseJSON))
+}
+
+// Status возвращает сохранённый HTTP-статус replay-ответа.
+func (response MutationReceiptResponse) Status() int {
+	return response.status
+}
+
+// JSON возвращает свежую копию сохранённого JSON-ответа.
+func (response MutationReceiptResponse) JSON() []byte {
+	return []byte(response.responseJSON)
+}
+
+// MutationReceiptReservationState описывает исход резервирования квитанции.
+type MutationReceiptReservationState string
+
+const (
+	// MutationReceiptReserved означает новую квитанцию текущей транзакции.
+	MutationReceiptReserved MutationReceiptReservationState = "reserved"
+	// MutationReceiptReplayed означает завершённую квитанцию с сохранённым ответом.
+	MutationReceiptReplayed MutationReceiptReservationState = "replayed"
+)
+
+// MutationReceiptReservationResult является неизменяемым результатом резервирования.
+type MutationReceiptReservationResult struct {
+	state     MutationReceiptReservationState
+	receiptID uuid.UUID
+	replay    *MutationReceiptResponse
+}
+
+// NewReservedMutationReceiptResult создаёт результат новой резервируемой квитанции.
+func NewReservedMutationReceiptResult(receiptID uuid.UUID) (MutationReceiptReservationResult, error) {
+	if receiptID == uuid.Nil {
+		return MutationReceiptReservationResult{}, ErrEventInvalid
+	}
+	return MutationReceiptReservationResult{state: MutationReceiptReserved, receiptID: receiptID}, nil
+}
+
+// NewReplayedMutationReceiptResult создаёт результат completed receipt для byte-equivalent replay.
+func NewReplayedMutationReceiptResult(receiptID uuid.UUID, response MutationReceiptResponse) (MutationReceiptReservationResult, error) {
+	if receiptID == uuid.Nil || !response.valid() {
+		return MutationReceiptReservationResult{}, ErrEventInvalid
+	}
+	replay := response
+	return MutationReceiptReservationResult{state: MutationReceiptReplayed, receiptID: receiptID, replay: &replay}, nil
+}
+
+// State возвращает исход резервирования квитанции.
+func (result MutationReceiptReservationResult) State() MutationReceiptReservationState {
+	return result.state
+}
+
+// ReceiptID возвращает идентификатор квитанции.
+func (result MutationReceiptReservationResult) ReceiptID() uuid.UUID {
+	return result.receiptID
+}
+
+// ReplayedResponse возвращает сохранённый ответ только для replay.
+func (result MutationReceiptReservationResult) ReplayedResponse() (MutationReceiptResponse, bool) {
+	if result.replay == nil {
+		return MutationReceiptResponse{}, false
+	}
+	return *result.replay, true
+}
+
+func (result MutationReceiptReservationResult) valid() bool {
+	if result.receiptID == uuid.Nil {
+		return false
+	}
+	switch result.state {
+	case MutationReceiptReserved:
+		return result.replay == nil
+	case MutationReceiptReplayed:
+		return result.replay != nil && result.replay.valid()
+	default:
+		return false
+	}
+}
+
+// MutationReceiptCompletion является неизменяемой командой завершения квитанции.
+type MutationReceiptCompletion struct {
+	receiptID uuid.UUID
+	eventID   *uuid.UUID
+	response  MutationReceiptResponse
+}
+
+// NewMutationReceiptCompletion создаёт команду завершения с необязательным событием.
+func NewMutationReceiptCompletion(receiptID uuid.UUID, eventID *uuid.UUID, response MutationReceiptResponse) (MutationReceiptCompletion, error) {
+	if receiptID == uuid.Nil || !response.valid() {
+		return MutationReceiptCompletion{}, ErrEventInvalid
+	}
+	var eventIDCopy *uuid.UUID
+	if eventID != nil {
+		if *eventID == uuid.Nil {
+			return MutationReceiptCompletion{}, ErrEventInvalid
+		}
+		copied := *eventID
+		eventIDCopy = &copied
+	}
+	return MutationReceiptCompletion{receiptID: receiptID, eventID: eventIDCopy, response: response}, nil
+}
+
+// ReceiptID возвращает идентификатор завершаемой квитанции.
+func (completion MutationReceiptCompletion) ReceiptID() uuid.UUID {
+	return completion.receiptID
+}
+
+// EventID возвращает идентификатор события только если он связан с квитанцией.
+func (completion MutationReceiptCompletion) EventID() (uuid.UUID, bool) {
+	if completion.eventID == nil {
+		return uuid.Nil, false
+	}
+	return *completion.eventID, true
+}
+
+// Response возвращает неизменяемый replay-ответ квитанции.
+func (completion MutationReceiptCompletion) Response() MutationReceiptResponse {
+	return completion.response
+}
+
+func (completion MutationReceiptCompletion) valid() bool {
+	return completion.receiptID != uuid.Nil && completion.response.valid() && (completion.eventID == nil || *completion.eventID != uuid.Nil)
+}
+
+// CalendarEventSource определяет происхождение канонического события.
+type CalendarEventSource string
+
+const (
+	// CalendarEventSourceHub обозначает событие, созданное Hub.
+	CalendarEventSourceHub CalendarEventSource = "hub"
+	// CalendarEventSourceMailImport обозначает событие, импортированное из почты.
+	CalendarEventSourceMailImport CalendarEventSource = "mail_import"
+	// CalendarEventSourceICalFeed обозначает событие из iCalendar feed.
+	CalendarEventSourceICalFeed CalendarEventSource = "ical_feed"
+)
+
+// CalendarEventStatus определяет состояние канонического события.
+type CalendarEventStatus string
+
+const (
+	// CalendarEventStatusConfirmed обозначает подтверждённое событие.
+	CalendarEventStatusConfirmed CalendarEventStatus = "confirmed"
+	// CalendarEventStatusTentative обозначает предварительное событие.
+	CalendarEventStatusTentative CalendarEventStatus = "tentative"
+	// CalendarEventStatusCancelled обозначает отменённое событие.
+	CalendarEventStatusCancelled CalendarEventStatus = "cancelled"
+)
+
+// CalendarEventCommandInput содержит изменяемый вход, который конструктор немедленно snapshot-ит.
+type CalendarEventCommandInput struct {
+	EventID         uuid.UUID
+	OrganizationID  uuid.UUID
+	OwnerID         uuid.UUID
+	UID             string
+	Title           string
+	Description     string
+	Location        string
+	Temporal        CalendarEvent
+	RRULE           string
+	Exdates         []string
+	Sequence        uint
+	Version         uint
+	Source          CalendarEventSource
+	Status          CalendarEventStatus
+	OrganizerID     *uuid.UUID
+	OrganizerEmail  string
+	ScheduledCallID *uuid.UUID
+	ReminderMinutes *int
+}
+
+// CalendarEventCommand является неизменяемой persistence-командой CalendarEvent.
+type CalendarEventCommand struct {
+	input CalendarEventCommandInput
+}
+
+// NewCalendarEventCommand проверяет и snapshot-ит полный доменный снимок CalendarEvent.
+func NewCalendarEventCommand(input CalendarEventCommandInput) (CalendarEventCommand, error) {
+	if input.EventID == uuid.Nil || input.OrganizationID == uuid.Nil || input.OwnerID == uuid.Nil || strings.TrimSpace(input.UID) == "" || strings.TrimSpace(input.OrganizerEmail) == "" || input.Version == 0 || !validCalendarEventSource(input.Source) || !validCalendarEventStatus(input.Status) || input.Temporal.Validate() != nil {
+		return CalendarEventCommand{}, ErrEventInvalid
+	}
+	if input.OrganizerID != nil && *input.OrganizerID == uuid.Nil {
+		return CalendarEventCommand{}, ErrEventInvalid
+	}
+	if input.ScheduledCallID != nil && *input.ScheduledCallID == uuid.Nil {
+		return CalendarEventCommand{}, ErrEventInvalid
+	}
+	if input.ReminderMinutes != nil && (*input.ReminderMinutes < 0 || *input.ReminderMinutes > 40320) {
+		return CalendarEventCommand{}, ErrEventInvalid
+	}
+	input.Exdates = append([]string(nil), input.Exdates...)
+	input.OrganizerID = copyUUID(input.OrganizerID)
+	input.ScheduledCallID = copyUUID(input.ScheduledCallID)
+	input.ReminderMinutes = copyInt(input.ReminderMinutes)
+	return CalendarEventCommand{input: input}, nil
+}
+
+// EventID возвращает идентификатор события.
+func (command CalendarEventCommand) EventID() uuid.UUID { return command.input.EventID }
+
+// OrganizationID возвращает организацию persistence-команды.
+func (command CalendarEventCommand) OrganizationID() uuid.UUID { return command.input.OrganizationID }
+
+// Version возвращает optimistic version события.
+func (command CalendarEventCommand) Version() uint { return command.input.Version }
+
+// Exdates возвращает свежую копию исключённых recurrence значений.
+func (command CalendarEventCommand) Exdates() []string { return append([]string(nil), command.input.Exdates...) }
+
+func (command CalendarEventCommand) valid() bool {
+	_, err := NewCalendarEventCommand(command.input)
+	return err == nil
+}
+
+// CalendarEventAttendeeRole определяет роль участника.
+type CalendarEventAttendeeRole string
+
+const (
+	// CalendarEventAttendeeRoleRequired обозначает обязательного участника.
+	CalendarEventAttendeeRoleRequired CalendarEventAttendeeRole = "required"
+	// CalendarEventAttendeeRoleOptional обозначает необязательного участника.
+	CalendarEventAttendeeRoleOptional CalendarEventAttendeeRole = "optional"
+)
+
+// CalendarEventAttendeeCommandInput содержит изменяемый вход attendee persistence-команды.
+type CalendarEventAttendeeCommandInput struct {
+	AttendeeID   uuid.UUID
+	EventID      uuid.UUID
+	UserID       *uuid.UUID
+	Email        string
+	DisplayName  string
+	Role         CalendarEventAttendeeRole
+	Status       RSVPStatus
+	RecurrenceID string
+	Version      uint
+}
+
+// CalendarEventAttendeeCommand является неизменяемой persistence-командой attendee.
+type CalendarEventAttendeeCommand struct {
+	input CalendarEventAttendeeCommandInput
+}
+
+// NewCalendarEventAttendeeCommand проверяет и snapshot-ит attendee-команду.
+func NewCalendarEventAttendeeCommand(input CalendarEventAttendeeCommandInput) (CalendarEventAttendeeCommand, error) {
+	if input.AttendeeID == uuid.Nil || input.EventID == uuid.Nil || strings.TrimSpace(input.Email) == "" || input.Version == 0 || !validCalendarEventAttendeeRole(input.Role) || input.Status.Validate() != nil {
+		return CalendarEventAttendeeCommand{}, ErrEventInvalid
+	}
+	if input.UserID != nil && *input.UserID == uuid.Nil {
+		return CalendarEventAttendeeCommand{}, ErrEventInvalid
+	}
+	input.UserID = copyUUID(input.UserID)
+	return CalendarEventAttendeeCommand{input: input}, nil
+}
+
+// AttendeeID возвращает идентификатор attendee.
+func (command CalendarEventAttendeeCommand) AttendeeID() uuid.UUID { return command.input.AttendeeID }
+
+// EventID возвращает идентификатор родительского события attendee.
+func (command CalendarEventAttendeeCommand) EventID() uuid.UUID { return command.input.EventID }
+
+// Version возвращает optimistic version attendee.
+func (command CalendarEventAttendeeCommand) Version() uint { return command.input.Version }
+
+func (command CalendarEventAttendeeCommand) valid() bool {
+	_, err := NewCalendarEventAttendeeCommand(command.input)
+	return err == nil
+}
+
+// CalendarEventExceptionCommandInput содержит изменяемый вход exception persistence-команды.
+type CalendarEventExceptionCommandInput struct {
+	ExceptionID  uuid.UUID
+	EventID      uuid.UUID
+	RecurrenceID string
+	Temporal     *CalendarEvent
+	Sequence     uint
+	Status       CalendarEventStatus
+	Cancelled    bool
+}
+
+// CalendarEventExceptionCommand является неизменяемой persistence-командой exception.
+type CalendarEventExceptionCommand struct {
+	input CalendarEventExceptionCommandInput
+}
+
+// NewCalendarEventExceptionCommand проверяет и snapshot-ит exception-команду.
+func NewCalendarEventExceptionCommand(input CalendarEventExceptionCommandInput) (CalendarEventExceptionCommand, error) {
+	if input.ExceptionID == uuid.Nil || input.EventID == uuid.Nil || strings.TrimSpace(input.RecurrenceID) == "" || !validCalendarEventStatus(input.Status) || (input.Cancelled && input.Status != CalendarEventStatusCancelled) {
+		return CalendarEventExceptionCommand{}, ErrEventInvalid
+	}
+	if input.Temporal != nil {
+		if input.Temporal.Validate() != nil {
+			return CalendarEventExceptionCommand{}, ErrEventInvalid
+		}
+		copied := *input.Temporal
+		input.Temporal = &copied
+	}
+	return CalendarEventExceptionCommand{input: input}, nil
+}
+
+// ExceptionID возвращает идентификатор exception.
+func (command CalendarEventExceptionCommand) ExceptionID() uuid.UUID { return command.input.ExceptionID }
+
+// EventID возвращает идентификатор родительского события exception.
+func (command CalendarEventExceptionCommand) EventID() uuid.UUID { return command.input.EventID }
+
+// Sequence возвращает sequence exception.
+func (command CalendarEventExceptionCommand) Sequence() uint { return command.input.Sequence }
+
+func (command CalendarEventExceptionCommand) valid() bool {
+	_, err := NewCalendarEventExceptionCommand(command.input)
+	return err == nil
+}
+
+// CalendarEventPersistenceResult является неизменяемым результатом сохранения event.
+type CalendarEventPersistenceResult struct { eventID uuid.UUID; version uint }
+
+// NewCalendarEventPersistenceResult создаёт result event persistence.
+func NewCalendarEventPersistenceResult(eventID uuid.UUID, version uint) (CalendarEventPersistenceResult, error) {
+	if eventID == uuid.Nil || version == 0 { return CalendarEventPersistenceResult{}, ErrEventInvalid }
+	return CalendarEventPersistenceResult{eventID: eventID, version: version}, nil
+}
+
+// EventID returns the immutable event identifier persisted by the adapter.
+func (result CalendarEventPersistenceResult) EventID() uuid.UUID { return result.eventID }
+
+// Version returns the optimistic version persisted by the adapter.
+func (result CalendarEventPersistenceResult) Version() uint { return result.version }
+
+func (result CalendarEventPersistenceResult) valid() bool { return result.eventID != uuid.Nil && result.version > 0 }
+
+// CalendarEventAttendeePersistenceResult является неизменяемым результатом attendee persistence.
+type CalendarEventAttendeePersistenceResult struct { attendeeID uuid.UUID; version uint }
+
+// NewCalendarEventAttendeePersistenceResult создаёт result attendee persistence.
+func NewCalendarEventAttendeePersistenceResult(attendeeID uuid.UUID, version uint) (CalendarEventAttendeePersistenceResult, error) {
+	if attendeeID == uuid.Nil || version == 0 { return CalendarEventAttendeePersistenceResult{}, ErrEventInvalid }
+	return CalendarEventAttendeePersistenceResult{attendeeID: attendeeID, version: version}, nil
+}
+
+// AttendeeID returns the immutable attendee identifier persisted by the adapter.
+func (result CalendarEventAttendeePersistenceResult) AttendeeID() uuid.UUID { return result.attendeeID }
+
+// Version returns the optimistic version persisted by the adapter.
+func (result CalendarEventAttendeePersistenceResult) Version() uint { return result.version }
+
+func (result CalendarEventAttendeePersistenceResult) valid() bool { return result.attendeeID != uuid.Nil && result.version > 0 }
+
+// CalendarEventExceptionPersistenceResult является неизменяемым результатом exception persistence.
+type CalendarEventExceptionPersistenceResult struct { exceptionID uuid.UUID; sequence uint }
+
+// NewCalendarEventExceptionPersistenceResult создаёт result exception persistence.
+func NewCalendarEventExceptionPersistenceResult(exceptionID uuid.UUID, sequence uint) (CalendarEventExceptionPersistenceResult, error) {
+	if exceptionID == uuid.Nil { return CalendarEventExceptionPersistenceResult{}, ErrEventInvalid }
+	return CalendarEventExceptionPersistenceResult{exceptionID: exceptionID, sequence: sequence}, nil
+}
+
+// ExceptionID returns the immutable exception identifier persisted by the adapter.
+func (result CalendarEventExceptionPersistenceResult) ExceptionID() uuid.UUID { return result.exceptionID }
+
+// Sequence returns the exception sequence persisted by the adapter.
+func (result CalendarEventExceptionPersistenceResult) Sequence() uint { return result.sequence }
+
+func (result CalendarEventExceptionPersistenceResult) valid() bool { return result.exceptionID != uuid.Nil }
+
+// EventOutboxDescriptor переносит полный принятый EnvelopeV1 в транзакционный outbox.
+type EventOutboxDescriptor struct { envelope events.EnvelopeV1 }
+
+// NewEventOutboxDescriptor запрещает inner-payload-only описание outbox-события.
+func NewEventOutboxDescriptor(envelope events.EnvelopeV1) (EventOutboxDescriptor, error) {
+	if envelope.Subject() == "" || envelope.EventID() == uuid.Nil { return EventOutboxDescriptor{}, ErrEventInvalid }
+	return EventOutboxDescriptor{envelope: envelope}, nil
+}
+
+// Envelope возвращает полный неизменяемый EnvelopeV1 для PublishInTx seam.
+func (descriptor EventOutboxDescriptor) Envelope() events.EnvelopeV1 { return descriptor.envelope }
+
+func (descriptor EventOutboxDescriptor) valid() bool {
+	return descriptor.envelope.Subject() != "" && descriptor.envelope.EventID() != uuid.Nil
+}
+
+func validMutationReceiptOperation(operation MutationReceiptOperation) bool {
+	switch operation {
+	case MutationReceiptEventCreate, MutationReceiptLegacyCallCreate, MutationReceiptRSVPSeries, MutationReceiptRSVPOccurrence:
+		return true
+	default:
+		return false
+	}
+}
+
+func validCalendarEventSource(source CalendarEventSource) bool {
+	return source == CalendarEventSourceHub || source == CalendarEventSourceMailImport || source == CalendarEventSourceICalFeed
+}
+
+func validCalendarEventStatus(status CalendarEventStatus) bool {
+	return status == CalendarEventStatusConfirmed || status == CalendarEventStatusTentative || status == CalendarEventStatusCancelled
+}
+
+func validCalendarEventAttendeeRole(role CalendarEventAttendeeRole) bool {
+	return role == CalendarEventAttendeeRoleRequired || role == CalendarEventAttendeeRoleOptional
+}
+
+func copyUUID(value *uuid.UUID) *uuid.UUID {
+	if value == nil { return nil }
+	copied := *value
+	return &copied
+}
+
+func copyInt(value *int) *int {
+	if value == nil { return nil }
+	copied := *value
+	return &copied
+}
