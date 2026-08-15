@@ -396,6 +396,8 @@ The second F1-04 commit owns exactly:
 
 ```text
 testframework/selftests/architecture/imports/test_contract_source_boundary.py
+testframework/selftests/collection/contracts/test_source_bundle.py
+testframework/src/hub_testkit/contracts/source_bundle.py
 testframework/src/hub_testkit/contracts/openapi.py
 testframework/tests/contract/openapi/conftest.py
 testframework/tests/contract/openapi/test_openapi_security_contract.py
@@ -414,6 +416,32 @@ functions; construction/provider/delegate exports remain forbidden. The gate
 preserves every
 raw bundle/factory/selector/private/filesystem/dynamic-import prohibition.
 
+The source-bundle selftest is also modified before production. F1-04 10B
+successor-authority upgrades the sealed manifest and digest tag from v1/ten
+blobs to v2/thirteen blobs by inserting the three exact auth-chain witnesses.
+The complete v2 order is:
+
+```text
+backend/cmd/server/main.go
+backend/cmd/server/wiring_auth.go
+backend/cmd/server/wiring_messenger.go
+backend/docs/swagger.json
+backend/internal/auth/events.go
+backend/internal/auth/handler.go
+backend/internal/auth/middleware.go
+backend/internal/auth/service_session.go
+backend/internal/notification/consumer.go
+backend/internal/notification/events.go
+backend/internal/platform/middleware/middleware.go
+backend/internal/tms/handler.go
+testframework/policies/f1-security-risk-ledger.toml
+```
+
+The literal canonical digest prefix becomes
+`b"hub.qa.contract-source-bundle/v2\0"`; all existing per-blob/total/type/path/
+order/provenance/error rules remain unchanged. The updated bundle selftests
+cover exact v2 ordering/digest plus missing/extra/reordered new witnesses.
+
 Its three literal, non-parametrized `TASK-227` cases validate narrow generated
 JSON-to-source relations rather than hard-coded Swagger expectations.
 `TC-OPENAPI-0001` consumes `backend/cmd/server/main.go` plus
@@ -422,10 +450,19 @@ JSON-to-source relations rather than hard-coded Swagger expectations.
 composed `/api` prefix. `TC-OPENAPI-0002` consumes
 `backend/internal/auth/handler.go` plus Swagger JSON and requires the annotated
 magic-verify request/token success plus `400/401/403/429`, with no secret
-examples. `TC-OPENAPI-0003` consumes `backend/internal/tms/handler.go` plus
-Swagger JSON and requires both generated webhook operations to match the
-source's real bearer/RBAC route boundary without `X-Hub-Token` or query-token
-authentication. Each oracle freezes only these named annotations/routes and
+examples. Its source witness is only the contiguous `VerifyMagicLink`
+annotation block immediately preceding that method; failures on unrelated auth
+handlers are never counted. `TC-OPENAPI-0003` consumes
+`backend/cmd/server/wiring_auth.go`,
+`backend/cmd/server/wiring_messenger.go`,
+`backend/internal/auth/middleware.go`, `backend/internal/tms/handler.go`, and
+Swagger JSON. These witnesses must prove API-key middleware registration,
+TMS receiving that `requireAuth`, the pre-authenticated identity branch, and
+the named RBAC guard. Both generated webhook operations must match the source's
+exact supported alternatives:
+`[{"BearerAuth": []}, {"APIKeyAuth": []}]` plus the named
+`PermTestRunCreate` route guard. `X-Hub-Token` and query-token authentication
+remain forbidden. Each oracle freezes only these named annotations/routes and
 relations; it does not infer unrelated Go routes. Broad route snapshots, YAML,
 `docs.go`, live HTTP, and dev-only routes are excluded.
 
@@ -536,7 +573,7 @@ One atomic source commit contains its source, cases, and selftests for one row b
 | 9A | `test(testframework): add admin account authorization cases` | exact F1-03A 14-path allowlist | security/product review; reject invented tenant semantics |
 | 9B | `test(testframework): add platform abuse replay cases` | exact F1-03B 12-path allowlist | security/privacy review; provisioning and profile remain unbound |
 | 10A | `feat(testframework): add sealed contract source boundary` | exact F1-04 boundary 8-path allowlist | source-provenance/privacy/architecture review |
-| 10B | `test(testframework): add OpenAPI security contracts` | exact F1-04 OpenAPI 7-path allowlist | architecture selftest first; API/schema/security review; known product-doc RED remains |
+| 10B | `test(testframework): add OpenAPI security contracts` | exact F1-04 OpenAPI 9-path allowlist | bundle + architecture selftests first; v2 source witnesses; API/schema/security review; known product-doc RED remains |
 | 10C | `test(testframework): add public error artifact contract` | exact F1-04 privacy 5-path allowlist | architecture selftest first; privacy/wire-schema review |
 | 10D | `test(testframework): add auth session event contract` | exact F1-04 event 5-path allowlist | architecture selftest first; producer/consumer source-link review |
 | 10E | `docs(testframework): record F1 contract source closure` | `testframework/PACKAGE-CONTRACT.md`, `testframework/README.md` | factual docs review; runtime remains `NOT_RUN` |
