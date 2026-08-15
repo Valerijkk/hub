@@ -687,6 +687,160 @@ receipt. This slice creates no provisioner implementation, profile binding,
 image, lock, runner, report, Docker execution, or runtime evidence; status is
 `NOT_READY` / `NOT_RUN`.
 
+**F2 133-B project-outbox source-authoring receipt (2026-08-15).** The next F2
+slice is only the implemented `POST /api/projects` transaction and its durable
+`project.created` outbox publication under `TASK-211`. For source authoring
+only and only for this one commit, this receipt supersedes Phase 133-B's
+conflicting authoring predecessor and file-list clauses: the commit need not
+consume a runtime receipt from 133-A and its literal allowlist is the 16 paths
+below rather than the generic redis/nats/Compose/report list. Phase 133-B's
+runtime `consumes`, `verify`, Compose/report authority, and activation
+preconditions are not superseded; no infrastructure is started or claimed
+here. Runtime activation still requires a later founder `G-ACTIVATE-133`, an
+accepted 133-A isolation receipt, A1/profile binding, and a launcher-owned
+delegate. The source commit modifies exactly these 16 paths, with the
+architecture selftest authored first:
+
+```text
+testframework/selftests/architecture/imports/test_project_outbox_boundary.py
+testframework/src/hub_testkit/integration/project_outbox/__init__.py
+testframework/src/hub_testkit/integration/project_outbox/models.py
+testframework/src/hub_testkit/integration/project_outbox/builders.py
+testframework/src/hub_testkit/integration/project_outbox/api.py
+testframework/src/hub_testkit/integration/project_outbox/oracles.py
+testframework/src/hub_testkit/harness/project_outbox.py
+testframework/src/hub_testkit/harness/pytest_project_outbox.py
+testframework/src/hub_testkit/harness/__init__.py
+testframework/tests/integration/redis-nats/project_outbox/conftest.py
+testframework/tests/integration/redis-nats/project_outbox/test_project_outbox.py
+testframework/cases/outbox/TC-OUTBOX-0001.md
+testframework/cases/outbox/TC-OUTBOX-0002.md
+testframework/cases/outbox/TC-OUTBOX-0003.md
+testframework/cases/outbox/TC-OUTBOX-0004.md
+testframework/cases/outbox/TC-OUTBOX-0005.md
+```
+
+The architecture selftest scans the project-outbox integration package,
+harness, and literal suite with alias-aware AST checks. The suite imports only
+`pytest` and these five functions from `hub_testkit.harness.project_outbox`;
+`project_outbox_runtime` is fixture-injected and never imported:
+
+```text
+assert_project_create_commits_and_publishes_project_created
+assert_duplicate_project_key_conflict_has_no_second_project_created
+assert_anonymous_project_create_is_rejected_without_owned_outbox_event
+assert_malformed_project_json_is_rejected_without_owned_outbox_event
+assert_durable_project_created_observer_replays_after_observer_reconnect
+```
+
+Every assertion has the exact signature
+`def assert_...(runtime: ProjectOutboxRuntime) -> None`. Each of the five
+literal `test_*` functions contains exactly its matching
+`@pytest.mark.case_id("<TC-OUTBOX-NNNN>")`, `@pytest.mark.integration`, and one
+mapped assertion call with `project_outbox_runtime`. The AST gate uses a
+literal function-to-TC/function-to-assertion table and negative swapped and
+unknown-ID examples. It rejects any other test-body call, attribute access,
+assignment, comprehension, pytest API, `raises`, or control flow; direct
+runtime methods therefore cannot bypass semantic assertions. `conftest.py` has
+its own minimal import allowlist. `integration/project_outbox/oracles.py` owns
+only closed per-response and per-receipt parsing/projection and imports neither
+harness nor tests.
+
+`ProjectOutboxHarnessFactory` is installed exactly once in
+`pytest.Config.stash`. Its function fixture calls it once, receives one healthy
+exclusive launcher delegate, creates a frozen/slotted opaque
+`ProjectOutboxRuntime`, and invokes exact cleanup once in `finally`. Runtime,
+seed, provisioned-state, event-receipt, and state-projection models reject
+coercion, direct construction, copying, mutation, and secret-bearing repr. They
+publish no private-field or descriptor accessor; every boundary method
+revalidates the opaque instance. Python cannot prevent a determined
+`object.__getattribute__` caller, so the architecture AST gate rejects every
+suite private, descriptor, reflection, and dynamic-access attempt. Internal
+factories alone use `object.__new__`; invalid construction or operation raises
+a constant generic error `from None` with no request, response, DSN, token,
+nonce, project, stream, consumer, payload, or traceback-local canary.
+
+The closed future delegate may only send an existing `HttpRequest`, provision
+one nonce-bound `ProjectOutboxSeed`, return a closed owned-state projection,
+obtain one typed `ProjectCreatedReceipt` through the pre-registered durable
+observer, disconnect and reconnect that exact observer for the recovery case,
+and cleanup. No test or reusable package owns an HTTP, PostgreSQL, Redis,
+MongoDB, NATS, JetStream, process, environment, filesystem, or default client.
+This restriction applies to SUT suite, domain, and harness code; the
+architecture selftest may read only its fixed literal repository source paths
+for AST validation and performs no SUT or infrastructure I/O.
+There is no Python NATS/PostgreSQL dependency and no direct message, ack,
+subject, stream, consumer, SQL, or retry API. Delegate operations are bounded
+by the future launcher deadline; test code contains no sleep, polling, timeout
+loop, retry loop, or eventual-consistency helper.
+
+The future launcher must allocate, record, and exclusively own one server
+process, PostgreSQL database, Redis instance/database, MongoDB database,
+JetStream node with the fixed `EVENTS` stream, and one durable observer before
+the first POST. That full topology is required because current server wiring
+unconditionally connects all four services; this receipt does not claim a
+PG-plus-NATS-only server. Cleanup stops the exact server and removes only the
+recorded resources. It first requests shutdown, boundedly waits for the exact
+owned server process to exit, and confirms that exit; on timeout it fails
+closed, terminates only that exact owned process, and again confirms exit before
+resource deletion. Only after quiescence does cleanup remove, in this fixed
+reverse order, the durable observer, JetStream stream/node, MongoDB database,
+Redis instance/database, and PostgreSQL database containing all owned
+application rows, sessions, principals, and memberships. Prefix
+scan/delete, shared instance/database mutation, foreign adoption,
+namespace-wide cleanup, cloud/provider egress, and cleanup-as-oracle are
+forbidden. The observer exists before publication because the current `EVENTS`
+stream uses `InterestPolicy`.
+
+The five active `TASK-211` cases map one-to-one to five literal,
+non-parametrized nodes:
+
+- `TC-OUTBOX-0001` /
+  `test_project_create_commits_and_publishes_project_created`: an authenticated
+  owner sends one nonce-bound valid project request. The response is `201` and
+  its safe project projection matches the request. Exactly one durable
+  `project.created` receipt has a valid UUID `Hub-Event-Id` and exactly the
+  typed payload fields `project_id`, `name`, `key`, and `created_by_id`, all
+  bound to the created project and owner.
+- `TC-OUTBOX-0002` /
+  `test_duplicate_project_key_conflict_has_no_second_project_created`: the
+  first create succeeds; a second request with the exact same key is `409`.
+  Closed owned-state and durable-receipt projections prove exactly one owned
+  project, owner membership, outbox row, and published event.
+- `TC-OUTBOX-0003` /
+  `test_anonymous_project_create_is_rejected_without_owned_outbox_event`: a
+  request without bearer credentials is `401`; closed state contains no owned
+  project, membership, outbox row, or event receipt.
+- `TC-OUTBOX-0004` /
+  `test_malformed_project_json_is_rejected_without_owned_outbox_event`: an
+  authenticated syntactically malformed JSON body is `400`; closed state again
+  contains no owned project, membership, outbox row, or event receipt.
+- `TC-OUTBOX-0005` /
+  `test_durable_project_created_observer_replays_after_observer_reconnect`: the
+  pre-created durable observer is disconnected, one authenticated project is
+  created, then the exact observer reconnects and receives the same one typed
+  event identity and payload. This proves durable-observer replay only; it does
+  not claim outbox-worker process crash/restart recovery.
+
+The public source facts frozen by these cases are: auth is required; malformed
+JSON is `400`; duplicate project key is `409`; project, owner membership, and
+`project.created` outbox row are committed in one PostgreSQL transaction;
+publication uses a JetStream PubAck before the row is marked published; and
+the event payload contains the four named fields. The source suite does not
+claim invalid name/key validation, workflow/board/TMS/dashboard provisioning
+atomicity, PubAck fault injection, tenth-attempt failure, lease reclaim,
+worker/process recovery, exact latency, or a retained event without a
+pre-existing durable observer. Current post-commit provisioner errors are
+outside this transaction and remain excluded.
+
+The existing future profile identity remains `redis-nats-integration`, target
+`testframework/tests/integration/redis-nats`, deadline 1200 seconds, with exact
+case root `testframework/cases/outbox`; no 48th profile is created. This source
+receipt does not alter `profiles.toml`, Compose, dependencies, `uv.lock`, A1,
+images, runner, reports, or Phase 133 activation state. It grants no other
+133-B cases and produces no runtime evidence: status is `NOT_READY` /
+`NOT_RUN`.
+
 1. **Data and broker boundaries:** PostgreSQL/Mongo transaction/migration/isolation; Redis/NATS message bleed, duplicate job, timeout, reconnect, and recovery; storage partial failure/idempotency/recovery; WebSocket authorization/order/reconnect. Use only existing profile identities (`postgres-integration`, `redis-nats-integration`, `notifications-nats`, and the relevant API/work profile); do not invent a 48th profile.
 2. **Implemented work domains:** tracker lifecycle, TMS state/run lifecycle, project scope/idempotency, messenger membership/order/privacy, notification delivery/retry, and implemented search/audit/backup/import-export boundaries. Every suite covers allowed behavior plus invalid, denied, boundary, recovery, and cleanup variants that are observable in current handlers.
 3. **Implemented Calendar reads:** under the existing `calendar-api` profile add `cases/calendar/**`, an optional narrow `hub_testkit.domains.calendar` facade, and `tests/api/calendar/**` for authentication; missing/malformed/reversed/>366-day ranges; user/project-scoped call/sprint/deadline/approved-leave aggregation; UTC/order invariants; recurring scheduled-call reads; and `export.ics` content type, disposition, RFC 5545 escaping, and PII-safe leave titles.
