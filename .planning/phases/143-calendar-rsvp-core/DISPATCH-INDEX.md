@@ -1,6 +1,7 @@
 # Phase 143 — exact Terra dispatch index
 
-> **Status:** 143_01_02A_02B_03A_03B_03C_03D_03F_04L_STATIC_ACCEPTED · RUNTIME_NOT_RUN
+> **Status:** 143_01_02A_02B_03A_03B_03C_03D_03F_04L_04A_STATIC_ACCEPTED · RUNTIME_NOT_RUN
+> **Current next packet:** 143-04G, exact two-file pure source boundary: `backend/internal/platform/nats/client.go` and `backend/tests/calendar/calendar_subjects_test.go`, under founder remaining-source sequencing; no Ent/schema migration/runtime authority.
 > **Required runtime:** `gpt-5.6-terra` / `xhigh`, no fallback
 > **Execution:** strictly sequential where owned files overlap
 > **Runtime evidence:** `.planning/phases/143-calendar-rsvp-core/RUNTIME-BLOCKER.md`
@@ -22,7 +23,8 @@ assemble the Common envelope plus exactly one matching section from
                   ├── 143-03C
                   └── 143-03D
 contract 0.1.7 ── 143-04L shared versioned envelope
-143-03A/B/C/D (03F satisfied) ── 143-03E + 143-04L ── 143-04A ── 143-04G
+143-04L ── 143-04A ── 143-04G
+143-03A/B/C/D (03F satisfied) ── 143-03E ── Ent generation/migration only
 
 143-04A/G ──────────────── 143-04B create
 143-04A/G ──────────────── 143-04C update/master cancel
@@ -58,8 +60,8 @@ each accepted 143-04B/C/D/E/H/I ── its matching 143-04F-* transaction
 | 143-03F | Durable bounded inbound-REPLY receipt schema and attendee edge — `STATIC_ACCEPTED` on `846cd00ecb243402877e18239c89a62bf07e8d14` after `SPEC PASS`/`QUALITY PASS` and final docs/whole-boundary review C/I/M `0/0/0`; the intermediate C/I/M `0/0/1` docs-sync finding is superseded/closed | `backend/ent/schema/calendarinboundreplyreceipt.go`, `calendarattendee.go`, `backend/tests/calendar/calendar_inbound_reply_receipt_schema_test.go` | external Ent metadata: exact named SHA-256 length CHECK and owned-child Cascade; runtime RED/GREEN `NOT_RUN` | 143-03B |
 | 143-03E | Generate/inspect Ent output in accepted Docker job — 03A/B/C/D/F are accepted; blocked/`NOT_RUN` on the accepted launcher `NOT_READY` and the still-required founder-approved production migration mechanism/gate. The all-A product decision record does not itself establish that technical mechanism or execute/accept a migration. | generated Ent only, never manually edited or committed | clean generation and schema compile evidence | launcher + founder-approved mechanism/gate + 143-03A..D/F |
 | 143-04L | Shared deterministic v1 event envelope over the unchanged outbox payload seam — `STATIC_ACCEPTED` at `4525c559da22729aa8bc51ff5336c29dad4f27e9` after the historical initial C/I/M `0/2/2`, independently accepted immutable/payload amendment, and final Terra/high PASS C/I/M `0/0/0`. Terra/xhigh implementation and Terra/high reviews are dispatcher-enforced; actual telemetry `UNKNOWN`. Evidence: `IMPLEMENTATION-143-04L.md`. Freeze: no exported mutable fields/references; JSON-object snapshot and frozen complete bytes; copy-returning `Subject()`/`EventID()` and `MarshalJSON`; semantic zero-offset UTC normalization; stable content-free `ErrInvalidPayload`. Launcher `NOT_READY`; compile/tests/runtime `NOT_RUN`; no Phase/product/global Mail acceptance. | `backend/internal/platform/events/envelope.go`, `backend/tests/calendar/event_envelope_test.go` | explicit inputs; strict subject/version/id/time/org/correlation/payload validation; complete-envelope immutability oracles; no I/O/random/clock | contract 0.1.7 |
-| 143-04A | Public event repository/outbox/receipt ports and service constructor | `event_repository.go`, `event_service.go`, `event_errors.go` | compile-only consumer fakes in next behavior; no persistence | 143-03E + 143-04L |
-| 143-04G | Admit calendar events to shared EVENTS stream without webhook exposure | `backend/internal/platform/nats/client.go`, focused genuine unit | add `calendar.>` once; exact webhook filter unchanged | 143-04A |
+| 143-04A | Public event repository/outbox/receipt ports and service constructor — `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `aa85f833a806a36f6d6ef2d8e7ae36dca2621574` (parent `ac9ed8e62edb9064f985a0ad7abf3a2ec42d7304`, tree `1e305267cf47f98000ce89d76f9204d9cd84df93`): `event_errors.go` `660578a29c24fe610d3c97072d922c05e876ae83`, `event_repository.go` `591608e87092ea80308a05923b22d201d4d124a9`, `event_service.go` `585fe73ecdc5b8b45d41c6f16bebc4cd7b69d5e0`, tests-first `event_service_contract_test.go` `713cb9599baeaaf16c1b95e833e93ee69a50cf08`; Terra/xhigh author, Terra/high static precommit+exact-SHA PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`; executable evidence `NOT_RUN`, launcher `NOT_READY` | `event_repository.go`, `event_service.go`, `event_errors.go`, `backend/tests/calendar/event_service_contract_test.go` | contract tests authored first; no persistence/runtime acceptance | 143-04L; former 03E/no-further-source block is `CONSUMED/HISTORICAL` |
+| 143-04G | **Current next pure packet.** Admit calendar events to shared EVENTS stream without webhook exposure | `backend/internal/platform/nats/client.go`, `backend/tests/calendar/calendar_subjects_test.go` | add `calendar.>` once; exact webhook filter unchanged | 143-04A |
 | 143-04B | Create event with auth-derived owner and response replay receipt | `event_service_create.go`, `backend/tests/calendar/event_service_create_test.go` | same key/input replays; changed input conflicts; one outbox | 143-04A + 143-04G |
 | 143-04C | Material/silent/reminder update and master cancellation | `event_service_update.go`, `backend/tests/calendar/event_service_update_test.go` | sequence/reset/version table; exact event version/not-mutable conflicts; one master cancel event | 143-04A + 143-04G |
 | 143-04D | Series RSVP optimistic transition | `event_service_rsvp.go`, `backend/tests/calendar/event_service_rsvp_test.go` | one version increment/outbox; NFR-13 recovery metadata | 143-04A + 143-04G |

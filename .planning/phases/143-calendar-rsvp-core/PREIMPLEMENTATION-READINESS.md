@@ -1,6 +1,6 @@
 # Mail workstream pre-implementation readiness
 
-> **Current Mail docs/readiness receipt (2026-08-15):** `576f19231e37f635d5b7187a1ada121ed14ff8dc` is the exact14 docs/readiness `STATIC_ACCEPTED` / `EXACT_SHA_PASS` receipt. Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high reviews PASS C/I/M `0/0/0`; `provenance_source: dispatcher-enforced`, no fallback, telemetry `UNKNOWN` unless exposed. It grants no source/schema/runtime/product/phase/release authority. All lower active 02D/02F-only, candidate, precommit, root-commit, exact-review and status-sync-next routes are `CONSUMED/HISTORICAL` as applicable while retaining unrelated historical facts. 02F accepted and Rule/Sieve plan facts remain accepted, without source/schema/runtime authority. 144-01B, Phase 142/148, G145-5B/G145-5C and all other gates remain unchanged; launcher `NOT_READY`, executables `NOT_RUN`. Engine deletion-port and User deletion-intent contracts remain future blockers; the nearest permitted work is docs-only engine deletion-port adjudication, not code.
+> **Current Calendar 04A receipt (2026-08-15):** public event repository/outbox/receipt ports and service constructor are `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `aa85f833a806a36f6d6ef2d8e7ae36dca2621574` (parent `ac9ed8e62edb9064f985a0ad7abf3a2ec42d7304`, tree `1e305267cf47f98000ce89d76f9204d9cd84df93`; subject `feat(calendar): add event service contract`). Exact blobs: errors `660578a29c24fe610d3c97072d922c05e876ae83`, repository `591608e87092ea80308a05923b22d201d4d124a9`, service `585fe73ecdc5b8b45d41c6f16bebc4cd7b69d5e0`, tests-first contract test `713cb9599baeaaf16c1b95e833e93ee69a50cf08`. Terra/xhigh author and Terra/high static precommit+exact-SHA PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Executables `NOT_RUN`, launcher `NOT_READY`; no Ent/schema migration/runtime/product/phase authority. `6386f3ee` is separate stale-04L-import hygiene only, static PASS `0/0/0`, no behavior change. 03E stays `BLOCKED` only for Ent generation/migration; its former pure-04A/no-further-source clauses are `CONSUMED/HISTORICAL`. Founder selects 143-04G as the next pure exact two-file source packet: `backend/internal/platform/nats/client.go` plus `backend/tests/calendar/calendar_subjects_test.go`; all unrelated gates remain unchanged.
 > **Phase-145 carrier-plan acceptance (2026-08-15):** `PLAN-145-07B-SIEVE-CARRIER.md` is docs/implementation-authority-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `949b876d1c5ea07338926aa5fe19e1864a256e93` (parent `375891bb85c0e89f2b6597e0416b82219fffaa74`, tree `f943fb60e8dbda3ae612871d189a57d751dc44cc`, blob `0bbbc91cd3c58fc8daeaab1a434d942f3ef26821`); three exact reviews PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Contract `1daef787`/sync `375891bb` stay accepted. Only obsolete carrier-plan-pending clauses are `CONSUMED/HISTORICAL`; unrelated gates remain authoritative. No source/test/runtime authority. Rule Task 1 awaits G145-5B/G145-5C/launcher readiness; carrier six-path source additionally awaits accepted Rule compiler source/ABI. 145-07B source/runtime blocked; launcher `NOT_READY`, executables `NOT_RUN`.
 
 > **Carrier-lifecycle clause precedence:** Only the lower clause or fragment asserting carrier **contract** acceptance is pending, unaccepted, or open is superseded and `CONSUMED/HISTORICAL`; every unrelated/current fact in the same record remains authoritative, including 02F accepted, Phase 145 blocked, implementation-plan/source, G145-5A/B/C/D/6-9, launcher and runtime status. Contract `1daef787` is docs/design accepted.
@@ -12,7 +12,7 @@
 > **Current Mail gate:** 144-02D retains its narrow docs-only acceptance. 144-02F correction `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus exact-28 transition `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high PASS `0/0/0`, dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed. Former lifecycle and Rule-plan authoring/review are `CONSUMED/HISTORICAL`. No implementation/runtime authority follows; Rule TDD/production awaits all accepted non-marker Phase-145 carrier/G145-5B/G145-5C and launcher readiness.
 > **Snapshot:** 2026-08-14
 > **Branch:** `codex/mail-module-20260813`
-> **Product truth:** IMPLEMENTATION_IN_PROGRESS · 143-01/02A/02B/03A/03B/03C/03D/03F/04L_STATIC_ACCEPTED · RUNTIME_NOT_RUN · Phase/product/migration/runtime not accepted
+> **Product truth:** IMPLEMENTATION_IN_PROGRESS · 143-01/02A/02B/03A/03B/03C/03D/03F/04L/04A_STATIC_ACCEPTED · RUNTIME_NOT_RUN · Phase/product/migration/runtime not accepted
 > **Execution truth:** launcher `NOT_READY`; generation, migration, tests and runtime `NOT_RUN`.
 
 > **Current Rule-plan acceptance:** Standalone `PLAN-144-03B-RULE.md` is docs/plan-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `669ef761715ec35a638bc87d8396e6f562b162c4` (parent `77eb4356de06a5304521b60c57af4e73c5740ce1`, tree `1b554d1c5763818ffef4f3c06c2a5bde16046d37`, sole path, blob `b86c0423a307fd2673a3d322435922aa2a398e8f`). Contract/Spec/Oracle Terra/high, Security/Adversarial/Purity Terra/xhigh, Lifecycle/Dependency/Boundary Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. This accepts only the plan; former Rule-plan author/adjudicate/accept instructions are `CONSUMED/HISTORICAL`; no Rule oracle/source/TDD, schema, migration, service, Phase145 carrier, runtime, product, phase or release authority follows. Rule Task 1 RED is `NOT_AUTHORIZED/BLOCKED` until all accepted non-marker Phase145 typed-IR/script carrier, G145-5B, G145-5C and launcher readiness, without implied order; post-task runtime `NOT_RUN`. Task4 docs sync remains separately discovered after future source Task3 acceptance.
@@ -95,12 +95,14 @@
    independent Terra/high PASS C/I/M `0/0/0`; requested Terra/xhigh implementation and Terra/high
    review provenance are dispatcher-enforced, actual telemetry `UNKNOWN`. Its static RED only
    does not make the launcher ready.
-6. Resolve the separate migration mechanism/gate and accepted launcher before Ent generation.
-7. Admit `calendar.>` before calendar producers.
-8. Execute Phase 143 service/HTTP plus ScheduledCall bridge packets; retain the legacy
+6. 143-04A is `STATIC_ACCEPTED` at `aa85f833a806a36f6d6ef2d8e7ae36dca2621574`; tests were authored first and its Terra/xhigh author/Terra/high static precommit+exact-SHA reviews PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Its exact four source/test blobs are recorded in `IMPLEMENTATION-143-04A.md`. Separate hygiene `6386f3ee` changed only the stale accepted 04L test import, with static PASS `0/0/0` and no behavior change. Former 03E/no-further-source restrictions on pure 04A are `CONSUMED/HISTORICAL`; 03E remains blocked for Ent generation/migration.
+7. Dispatch 143-04G next under the founder remaining-source instruction: `backend/internal/platform/nats/client.go` plus `backend/tests/calendar/calendar_subjects_test.go`; all executable evidence remains `NOT_RUN`.
+8. Resolve the separate migration mechanism/gate and accepted launcher before Ent generation.
+9. Admit `calendar.>` before calendar producers.
+10. Execute Phase 143 service/HTTP plus ScheduledCall bridge packets; retain the legacy
    calendar envelope and count linked pairs once. Keep linked external guests fail-closed
    until founder question 23 has a separately reviewed join-credential contract.
-9. Phase 144-01A is `STATIC_ACCEPTED` at `e3e8c774d734f926f77f8e600b58dc68dabbd993` after
+11. Phase 144-01A is `STATIC_ACCEPTED` at `e3e8c774d734f926f77f8e600b58dc68dabbd993` after
    exact-commit Terra/high `EXACT_SHA_PASS`, Spec/Quality/Security/Evidence PASS and C/I/M
    `0/0/0`. Exact native dispatch provenance is dispatcher-enforced; actual telemetry `UNKNOWN`
    is not a telemetry-only blocker. `144-03A-Address` is `STATIC_ACCEPTED` at
@@ -121,10 +123,10 @@
     No execution.
    `144-01B` remains blocked by applicable
    supported current-SHA Docker evidence and executable status `NOT_RUN`.
-10. Admit `mail.>` only after calendar admission; keep webhook filter unchanged.
-11. Execute UI transport/routes/core only after backend contracts are accepted and the
+12. Admit `mail.>` only after calendar admission; keep webhook filter unchanged.
+13. Execute UI transport/routes/core only after backend contracts are accepted and the
    feature-test harness is available.
-12. Begin Phase 145 only in the gate order; external SMTP remains separately disabled.
+14. Begin Phase 145 only in the gate order; external SMTP remains separately disabled.
 
 ## Forbidden shortcuts
 
