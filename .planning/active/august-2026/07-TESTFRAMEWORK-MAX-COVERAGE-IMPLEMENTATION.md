@@ -118,6 +118,32 @@ evidence. `TC-HEALTH-0001` and its fake-only API test remain byte-unchanged.
 This receipt grants no later F1 slice and does not change `NOT_READY` /
 `NOT_RUN` runtime truth.
 
+**Founder F1-02 source-authoring receipt (2026-08-15).** The same instruction
+activates the identity/session source slice only after the independently
+reviewed F1-01 boundary. It is split into two revertable commits with these
+literal allowlists:
+
+1. JSON request closure may modify only
+   `testframework/src/hub_testkit/http/transport.py` and
+   `testframework/selftests/http/test_policy.py`. It adds the sole optional
+   `Content-Type: application/json` request contract; arbitrary headers and
+   all existing retry/auth/redaction rules remain closed.
+2. Identity source may create only
+   `testframework/src/hub_testkit/domains/identity/{__init__.py,models.py,builders.py,api.py,oracles.py}`,
+   `testframework/src/hub_testkit/harness/{__init__.py,identity.py,pytest_identity.py}`,
+   `testframework/tests/api/identity/{conftest.py,test_identity_api.py}`, and
+   `testframework/cases/identity/{TC-IDENTITY-0001.md,TC-IDENTITY-0002.md,TC-IDENTITY-0003.md,TC-IDENTITY-0004.md}`.
+
+Commit 2 may be authored only after commit 1 has received an independent
+source-review `ACCEPT`; otherwise stop after commit 1. Each commit has its own
+revert-only rollback boundary.
+
+The identity harness is an explicit launcher-injected protocol, never a fake
+SUT. Missing injection fails before a request. This receipt creates no concrete
+provisioner, environment lookup, dev login, magic-link delivery, report, lock,
+image, runner, Docker execution, or runtime evidence. It grants no F1-03 or
+later slice and preserves `NOT_READY` / `NOT_RUN`.
+
 1. **F1-01 HTTP policy and diagnostics.** Add immutable actor/client policy, explicit connect/read/write/pool timeout values, bounded retry classification, idempotency protection for unsafe methods, correlation, and redacted diagnostics. The first failures are mutable authorization, timeout/retry leakage, unsafe POST retry, and secret-bearing request evidence.
 2. **F1-02 identity/session/account.** Add only observable current auth/session/account behavior: successful valid flow, invalid credentials/no token, deactivated/blocked account denial where implemented, refresh/session revocation behavior where current routes support it, and exact fixture cleanup. Magic-link transport/code creation is not assumed; a safe provisioning path must be explicit. `/api/dev/login` is development-only and is not a default auth fixture.
 3. **F1-03 authorization/platform abuse.** Add object ownership/RBAC denial, privilege escalation, enumeration-safe responses, replay rejection, bounded rate-limit recovery, and artifact redaction. The reserved `authz-tenant` profile name is not evidence of a true multi-tenant product. Do not assert tenant semantics until an implemented multi-tenant boundary is accepted.
