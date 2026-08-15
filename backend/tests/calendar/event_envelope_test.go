@@ -11,7 +11,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/abramov-hub/hub/backend/internal/platform/events"
+	"github.com/valerii/hub/backend/internal/platform/events"
 )
 
 var (
