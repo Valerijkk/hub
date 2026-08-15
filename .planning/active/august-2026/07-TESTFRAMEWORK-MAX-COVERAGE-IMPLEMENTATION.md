@@ -151,9 +151,133 @@ dev login, magic-link delivery, report, lock, image, runner, Docker execution,
 or runtime evidence. It grants no F1-03 or later slice and preserves
 `NOT_READY` / `NOT_RUN`.
 
+**F1-03 source-authoring receipt (2026-08-15).** F1-03 is split into two
+independently revertible source-only commits. `authz-tenant` is only the frozen
+profile identifier; no test, case, model, diagnostic, or documentation may
+claim a tenant boundary in the current single-instance product. Both profiles
+use a launcher-injected factory stored in pytest config. A function-scoped
+fixture calls that factory exactly once per test, owns a fresh nonce-bound
+ledger, and calls that harness's exact cleanup in `finally`. Missing,
+duplicate, invalid, or cleanup-failing injection raises a generic
+`pytest.UsageError` with no secret-bearing preserved cause. There is no
+environment discovery, default HTTP client, fake SUT response, dev login,
+magic-link delivery, host execution, runner authority, or runtime evidence.
+
+F1-03A owns exactly these paths:
+
+```text
+testframework/src/hub_testkit/domains/authz/__init__.py
+testframework/src/hub_testkit/domains/authz/models.py
+testframework/src/hub_testkit/domains/authz/builders.py
+testframework/src/hub_testkit/domains/authz/api.py
+testframework/src/hub_testkit/domains/authz/oracles.py
+testframework/src/hub_testkit/harness/__init__.py
+testframework/src/hub_testkit/harness/authz.py
+testframework/src/hub_testkit/harness/pytest_authz.py
+testframework/tests/api/authz/conftest.py
+testframework/tests/api/authz/test_authz_api.py
+testframework/cases/authz/TC-AUTHZ-0001.md
+testframework/cases/authz/TC-AUTHZ-0002.md
+testframework/cases/authz/TC-AUTHZ-0003.md
+testframework/cases/authz/TC-AUTHZ-0004.md
+```
+
+The future `authz-tenant` A1 profile binds only
+`testframework/tests/api/authz` to exact
+`--hub-case-root testframework/cases/authz`; any global or different case root
+is rejected before collection. The four active `TASK-208` cases map one-to-one
+to four literal, non-parametrized pytest nodes:
+
+- `TC-AUTHZ-0001` / `test_system_admin_read_matrix`: anonymous registration
+  mode is `401`, an active member is `403`, and founder plus system-admin are
+  `200` with the sole `mode` field in `open|invite_only`.
+- `TC-AUTHZ-0002` /
+  `test_pending_approval_and_rejection_are_admin_only`: a member receives
+  `403` for pending-list, approve, and reject; an admin sees both owned pending
+  identities, approves one and rejects the other with the exact current success
+  messages, and neither remains in the later pending list. Setup provisioning
+  is not magic-link behavior and is never used as the oracle.
+- `TC-AUTHZ-0003` /
+  `test_deactivation_revokes_credentials_and_preserves_founder`: an admin
+  deactivates a fresh ordinary active identity with `200` and `success: true`;
+  that identity's access receives `/api/auth/me` `403` and its refresh receives
+  `/api/auth/refresh` `401`. Founder deactivation is `403` and the founder's
+  `/api/auth/me` remains `200`. Localized message text is not an oracle.
+- `TC-AUTHZ-0004` /
+  `test_pending_admin_endpoint_does_not_enumerate_active_users`: approving a
+  known active identity and an unknown UUID both produce `404` with the same
+  generic error shape; neither response nor diagnostic contains owned email,
+  ID, token, or nonce canaries.
+
+`AuthzHarness` exposes only `send`, `provision_principal`, and `cleanup`.
+Principal setup explicitly distinguishes `founder|admin|member` and
+`active|pending`, permits zero credentials for pending identities, redacts all
+credential/PII representations, and never emulates an API response.
+
+F1-03B owns exactly these paths:
+
+```text
+testframework/src/hub_testkit/domains/platform_abuse/__init__.py
+testframework/src/hub_testkit/domains/platform_abuse/models.py
+testframework/src/hub_testkit/domains/platform_abuse/builders.py
+testframework/src/hub_testkit/domains/platform_abuse/api.py
+testframework/src/hub_testkit/domains/platform_abuse/oracles.py
+testframework/src/hub_testkit/harness/__init__.py
+testframework/src/hub_testkit/harness/platform_abuse.py
+testframework/src/hub_testkit/harness/pytest_platform_abuse.py
+testframework/tests/api/platform/conftest.py
+testframework/tests/api/platform/test_platform_abuse.py
+testframework/cases/platform/TC-PLATFORM-0001.md
+testframework/cases/platform/TC-PLATFORM-0002.md
+```
+
+The future `abuse-platform` A1 profile binds only
+`testframework/tests/api/platform` to exact
+`--hub-case-root testframework/cases/platform`. Its two active `TASK-209`
+cases map one-to-one to two literal, non-parametrized pytest nodes:
+
+- `TC-PLATFORM-0001` /
+  `test_magic_verify_has_bounded_production_rate_limit`: with explicit
+  production-like `DevMode=false`, isolated Redis, controlled client identity,
+  and one owned nonce email, four identical valid-shape unknown-code requests
+  yield `401,401,401,429`; the fourth has exact `Retry-After: 600`. Raw
+  response, headers, diagnostics, and failures omit email, code, and nonce.
+- `TC-PLATFORM-0002` /
+  `test_magic_verify_rejects_replay_without_secret_leak`: explicit future
+  launcher authority provisions one owned active identity and one valid
+  one-time code without delivery or dev login; first public verification is
+  `200` with a strict token pair and byte-identical replay is `401`. Tokens,
+  code, email, nonce, and authorization never enter repr, failure text, case
+  markdown, or diagnostics.
+
+The one-time-code provisioner, isolated Redis binding, and production-like
+server remain future launcher/A1 responsibilities. The config stash holds a
+`PlatformAbuseHarnessFactory`; each call must bind a healthy exclusive Redis
+instance or database and one stable server-observed client identity before the
+first request. Its nonce-bound cleanup ledger records and may delete only the
+exact owned `rl:auth:ip:<server-derived-hash>`,
+`rl:auth-verify-email:email:<normalized-owned-email>`,
+`magiclink:fails:<normalized-owned-email>`, and owned one-time-code state.
+Prefix scan/delete is forbidden. Missing, foreign, unhealthy, or non-exclusive
+state fails before a request, and cleanup never removes an unrecorded key.
+Rate-limit expiry/recovery is excluded: no accepted clock-control API exists,
+sleeping ten minutes is forbidden, and cleanup of exact fixture-owned Redis
+keys is not an observed product oracle.
+
+`TC-AUTHZ-0005` is blocked on a separate product repair. The current project
+route registration places protected handlers before `rbac.RequirePermission`,
+and those handlers terminate the request without `Next`, so the RBAC middleware
+is unreachable. F1-03 must not manufacture a passing cross-project denial.
+After a separately reviewed backend fix, a follow-up may assert outsider member
+read `403`, developer owner-escalation `403`, unchanged developer role, owner
+read `200`, and canary-free denials. Organization invite success is also
+excluded because the current response exposes an invite secret. F1-03A and
+F1-03B create no profile binding, provisioner, image, lock, runner, Docker
+execution, report, or runtime evidence and preserve `NOT_READY` / `NOT_RUN`.
+
 1. **F1-01 HTTP policy and diagnostics.** Add immutable actor/client policy, explicit connect/read/write/pool timeout values, bounded retry classification, idempotency protection for unsafe methods, correlation, and redacted diagnostics. The first failures are mutable authorization, timeout/retry leakage, unsafe POST retry, and secret-bearing request evidence.
 2. **F1-02 identity/session/account.** Add only observable current auth/session/account behavior: successful valid flow, invalid credentials/no token, deactivated/blocked account denial where implemented, refresh/session revocation behavior where current routes support it, and exact fixture cleanup. Magic-link transport/code creation is not assumed; a safe provisioning path must be explicit. `/api/dev/login` is development-only and is not a default auth fixture.
-3. **F1-03 authorization/platform abuse.** Add object ownership/RBAC denial, privilege escalation, enumeration-safe responses, replay rejection, bounded rate-limit recovery, and artifact redaction. The reserved `authz-tenant` profile name is not evidence of a true multi-tenant product. Do not assert tenant semantics until an implemented multi-tenant boundary is accepted.
+3. **F1-03 authorization/platform abuse.** Author only the six active cases in the source-authoring receipt above. Add admin/account RBAC denial, privilege preservation, enumeration-safe responses, one-time-code replay rejection, the observable production rate bound, and artifact redaction. Do not claim rate-limit expiry/recovery without clock control, and do not add cross-project denial until the separately reviewed middleware-order product fix exists. The reserved `authz-tenant` profile name is not evidence of a true multi-tenant product.
 4. **F1-04 OpenAPI/security contracts.** Validate implemented public OpenAPI/schema/event compatibility and critical/high security traceability. Bound snapshots; reject incompatible schema/event changes, unredacted public artifacts, and a missing critical/high risk-to-case edge.
 
 ### F2 — implemented integration/API spine
@@ -204,7 +328,8 @@ One atomic source commit contains its source, cases, and selftests for one row b
 | 6 | `test(testframework): add health liveness tracer` | F0-06 paths | API-contract review |
 | 7 | `feat(testframework): add HTTP policy boundary` | F1-01 paths | transport/auth/redaction review |
 | 8 | `test(testframework): add identity session account cases` | F1-02 paths | auth/security/product-behavior review |
-| 9 | `test(testframework): add authorization platform abuse cases` | F1-03 paths | security review; reject invented tenant semantics |
+| 9A | `test(testframework): add admin account authorization cases` | exact F1-03A 14-path allowlist | security/product review; reject invented tenant semantics |
+| 9B | `test(testframework): add platform abuse replay cases` | exact F1-03B 12-path allowlist | security/privacy review; provisioning and profile remain unbound |
 | 10 | `test(testframework): add OpenAPI security contracts` | F1-04 paths | API/schema/security review |
 | 11 | `test(testframework): add data broker isolation spine` | F2 data/broker paths, one service boundary per commit | integration/cleanup review per service |
 | 12 | `test(testframework): add implemented work domain cases` | exactly one work domain per commit | domain + traceability review |
