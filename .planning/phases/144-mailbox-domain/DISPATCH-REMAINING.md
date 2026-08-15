@@ -152,16 +152,18 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 
 ## 144-02F — mutation receipt and rule-deployment schemas
 
+> **02F-R precedence (2026-08-15):** `DISPATCH-144-02F-RECEIPT.md` is a docs-only `ROOT_AUTHORITY_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED`, not source authorization. It freezes only the exact eight-path receipt/target/member packet and its required precommit triple → atomic exact-eight-doc commit → immutable exact-SHA review lifecycle. The broad no-source clause is consumed only for 02F-R after that acceptance; rule deployment remains 02F-D, separate/nonblocking. 02B remains blocked until 02F-R static exact acceptance; 02C until 02B; all 02E/generation/migration/runtime/service/API/UI/release and launcher blockers remain current.
+
 > Current trace: 02F receipt/deployment normative `STATIC_ACCEPTED` / `EXACT_SHA_PASS` facts remain unchanged. Its broad 02D-unchanged/dependent writer-replay clause is dependency-traced by the docs/readiness-only exact14 receipt `576f19231e37f635d5b7187a1ada121ed14ff8dc`; candidate/precommit status is `CONSUMED/HISTORICAL` and it authorizes no source/schema/runtime work.
 
-- Dependencies: accepted 02A representation, independently accepted 02D and docs/readiness-only
-  accepted 02F contract reviews. 02F correction `fcb5b84f` plus exact-28 transition `2f4381a2` is
-  `STATIC_ACCEPTED` / `EXACT_SHA_PASS` after all three Terra routes PASS C/I/M `0/0/0`; it grants no
-  source authorization. This packet remains `IMPLEMENTATION_BLOCKED` by the separate source, launcher
-  and founder gates. Allowed only new schema files
-  `mailmutationreceipt.go`, `mailmutationreceipttarget.go`,
-  `mailmutationreceiptmember.go`, `mailruledeployment.go` plus their narrow additive
-  inverse edges in new Mail entities/User/Organization.
+- **Legacy combined 02F source route — `CONSUMED/HISTORICAL`:** the former broad manifest that
+  combined receipt/target/member with `mailruledeployment.go` and unspecified narrow inverses is
+  not an active source route and authorizes no path. Its normative receipt/deployment facts remain
+  only as the accepted docs/readiness contract.
+- **Current routing:** 02F-R is limited to the candidate exact eight-path receipt/target/member
+  authority packet in `DISPATCH-144-02F-RECEIPT.md`; it remains source-blocked until its own
+  precommit/commit/exact-SHA lifecycle accepts it. 02F-D is separately `BLOCKED` /
+  `NOT_AUTHORIZED`, has no source manifest, and is nonblocking for 02B/02C.
 - Behavior: receipt organization/actor/nullable account/operation/key source (`client` or
   `internal`)/key hash/request hash/positive fingerprint version/state/target/status/safe
   code; no response body/raw key/content/address. Client full replay metadata expires 30 days
@@ -187,6 +189,16 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   Bulk targets preserve unique request index/type/id, bounded safe result counts/training;
   member UUID snapshots total at most 200/receipt, have no engine/content edge and compact
   with full replay metadata.
+
+## 144-02F-D — rule-deployment schema route
+
+> **Status:** `BLOCKED` / `NOT_AUTHORIZED` / `RUNTIME_NOT_RUN`. This is separate from 02F-R,
+> has no current source manifest, and is nonblocking for 02B and 02C.
+
+- The retained deployment tuple/lease/hash/state contract above is normative documentation only.
+  It authorizes no schema, test, generated Ent, migration, service, worker, deployment, or runtime
+  work. A future 02F-D packet requires its own separately accepted authority, exact manifest,
+  test-first/static review, commit, and exact-SHA acceptance.
 
 ## 144-02E — Ent generation inspection
 

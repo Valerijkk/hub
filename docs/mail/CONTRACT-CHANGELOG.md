@@ -41,6 +41,22 @@
 
 ## 144-02F pre-acceptance record — 2026-08-14 — CONSUMED/HISTORICAL
 
+## 144-02F-R authority amendment candidate — 2026-08-15
+
+`DISPATCH-144-02F-RECEIPT.md` is a docs-only `ROOT_AUTHORITY_CANDIDATE` /
+`PRECOMMIT_REVIEW_REQUIRED`. It preserves the accepted 02F normative contract and freezes only a
+prospective exact eight-path, test-first static receipt/target/member schema packet, including the
+required `NO ACTION` organization and nullable account relations, scalar-only actor/message IDs,
+target/member cascades, and only the listed account/organization inverses. It does not amend
+PERSISTENCE or OpenAPI and excludes rule deployment.
+
+No source acceptance or dispatch follows until the independent precommit triple, atomic
+exact-eight-document authority commit, and immutable exact-SHA review are complete. Scope/diff
+check, stale-clause scan, and C/I/M are candidate-only. The broad no-source clause is consumed
+only for 02F-R after acceptance; 02B then becomes eligible, 02C follows 02B, while 02F-D remains
+separate/nonblocking. Generation, migration, runtime, services, API, UI, release, and launcher
+status (`NOT_READY`; executable evidence `NOT_RUN`) are unchanged.
+
 Correction commit `fcb5b84fed4a417e736ddb4053256e494a0c25f6` (parent
 `55e36b7a1a3516d07b2baf390a5742a24ec8fbe5`, tree `5a0637f2306ff42295adea5560793e2a8f4a294a`,
 subject `docs(mail): correct receipt and rule invariants`) changed the exact same 28 docs and
