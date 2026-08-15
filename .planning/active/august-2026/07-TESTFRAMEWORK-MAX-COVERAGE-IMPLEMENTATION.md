@@ -103,6 +103,21 @@ The 47 profile registry remains the literal list in `130-tf-traceability-gates/P
 
 F1 begins only after F0 independent source review records that the package boundary and 47-profile policy are closed.
 
+**Founder source-authoring receipt (2026-08-15).** The instruction to build the
+test framework and maximize tests before any Docker execution activates F1-01
+source authoring on the reviewed F0 closure. For F1-01 only, this receipt
+supersedes the older Phase 131-A literal path list with the following exact
+allowlist:
+
+- `testframework/src/hub_testkit/http/{__init__.py,transport.py,auth.py,policy.py,errors.py,diagnostics.py}`;
+- `testframework/selftests/http/{test_policy.py,test_diagnostics.py}`;
+- `testframework/src/hub_testkit/domains/health/api.py`.
+
+F1-01 creates no case, SUT-suite, report, lock, image, runner, or execution
+evidence. `TC-HEALTH-0001` and its fake-only API test remain byte-unchanged.
+This receipt grants no later F1 slice and does not change `NOT_READY` /
+`NOT_RUN` runtime truth.
+
 1. **F1-01 HTTP policy and diagnostics.** Add immutable actor/client policy, explicit connect/read/write/pool timeout values, bounded retry classification, idempotency protection for unsafe methods, correlation, and redacted diagnostics. The first failures are mutable authorization, timeout/retry leakage, unsafe POST retry, and secret-bearing request evidence.
 2. **F1-02 identity/session/account.** Add only observable current auth/session/account behavior: successful valid flow, invalid credentials/no token, deactivated/blocked account denial where implemented, refresh/session revocation behavior where current routes support it, and exact fixture cleanup. Magic-link transport/code creation is not assumed; a safe provisioning path must be explicit. `/api/dev/login` is development-only and is not a default auth fixture.
 3. **F1-03 authorization/platform abuse.** Add object ownership/RBAC denial, privilege escalation, enumeration-safe responses, replay rejection, bounded rate-limit recovery, and artifact redaction. The reserved `authz-tenant` profile name is not evidence of a true multi-tenant product. Do not assert tenant semantics until an implemented multi-tenant boundary is accepted.
