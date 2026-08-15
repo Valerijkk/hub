@@ -1,13 +1,15 @@
 # Hub Python QA project
 
 `testframework/` is the separately extractable Python QA project boundary for
-Hub. The tree contains a statically reviewed private runner source candidate,
-but no accepted package, target suites, launcher runtime, or runtime authority.
+Hub. F0 package/config/runtime/traceability/public-plugin/profile and health
+sources are authored and independently source-reviewed, alongside a statically
+reviewed private runner source candidate. None is accepted package execution,
+launcher runtime, or runtime authority.
 
 Package/bootstrap boundaries for the next slice are defined in
 [`PACKAGE-CONTRACT.md`](PACKAGE-CONTRACT.md). That document is architecture,
-not evidence that `pyproject.toml`, `uv.lock`, `py.typed`, dependencies, or
-executable suites exist, and does not promote the runner candidate to readiness.
+not evidence that `pyproject.toml`, `uv.lock`, `py.typed`, or dependencies are
+resolved, that a suite has executed, or that the runner candidate is ready.
 
 ## Legacy quarantine
 
@@ -35,11 +37,12 @@ progressively only by its first accepted consumer.
   - `domains/<domain>/` owns that domain's models, facades, builders, and
     oracles. Optional UI abstractions live only under the owning domain in
     `ui/pages/` and `ui/components/`.
-- Planned `tests/{api,integration,contract,e2e}/` will own executable pytest
-  suites grouped by layer and domain: API and E2E assert public observable
-  behavior, contract covers API/schema/event/source contracts, and integration
-  covers DB/broker/storage boundaries. These layer directories are currently
-  absent; `tests/README.md` is the only suite-boundary scaffold artifact.
+- `tests/api/health/` contains the first source-authored tracer, linked to
+  `TC-HEALTH-0001`: a fake-transport liveness contract, not live Hub evidence.
+  Planned `tests/{integration,contract,e2e}/` will own executable pytest suites
+  grouped by layer and domain: API and E2E assert public observable behavior,
+  contract covers API/schema/event/source contracts, and integration covers
+  DB/broker/storage boundaries. Those layer directories remain absent.
 - `selftests/` owns contracts of the framework itself.
 - `load/` owns the separate measured Locust lifecycle.
 - `cases/` owns repository-controlled `TC-*` intent, risk linkage, and
@@ -68,11 +71,13 @@ chain.
 
 ## Current status
 
-Structure-only scaffold: **COMMITTED** as `22035c45`. Package bootstrap:
-**NOT_READY**. Target suites: **NOT_READY**. Private runner source candidate:
+Structure-only scaffold: **COMMITTED** as `22035c45`. F0 package/config/runtime/
+traceability/public-plugin/profile and health source: **SOURCE_AUTHORED** and
+**SOURCE_REVIEWED** through `92e9fec7`; the health test is fake-transport source
+contract only, not live evidence. Package bootstrap and target-suite execution:
+**NOT_READY**. F1 and later source remain pending. Private runner source candidate:
 **STATIC_SOURCE_REVIEWED**; launcher: **NOT_READY**; `PS5.1_PARSE_NOT_RUN`;
-`PRIVATE_CONTRACT_NOT_RUN`. Runtime: **NOT_RUN**. `images.lock.v3.json` and
-required local dependency bytes are absent. There is no supported direct runner or
-fallback command. The next accepted consumer must create the first narrow
-behavioral module test-first under its owning boundary and must not infer
-runtime authority from this directory tree.
+`PRIVATE_CONTRACT_NOT_RUN`. Runtime: **NOT_RUN**. `uv.lock`, `images.lock.v3.json`,
+and required local dependency bytes are absent. There is no supported direct runner
+or fallback command. No file/source review promotes installation, execution, or
+runtime to `PASS`.

@@ -11,7 +11,8 @@ define a runnable command, or grant runtime authority.
 | Structure and ownership boundaries | `COMMITTED` | commit `22035c45` |
 | Installable `hub_testkit` package bootstrap | `NOT_READY` | package metadata, Python pin, typed marker, and package-contract selftests are source-authored; `uv.lock`, installation, build, and Docker evidence remain absent |
 | Framework selftests | `NOT_READY` | package-contract selftest source exists under the registered architecture profile root; it is not executed evidence |
-| SUT suite layer directories | `NOT_READY` | only `tests/README.md` defines the boundary; `tests/{contract,api,integration,e2e}/` are planned and absent |
+| F0 framework/domain source | `SOURCE_AUTHORED` / `SOURCE_REVIEWED` | strict config/runtime/ownership/redaction, traceability, public pytest collection plugin, literal 47-profile policy, and fake-only health source are authored and independently source-reviewed; this is not execution evidence |
+| SUT suite layer directories | `NOT_READY` | the first source tracer is `tests/api/health/test_health_api.py` with `TC-HEALTH-0001`; `tests/{contract,integration,e2e}/` remain absent and no suite execution evidence exists |
 | Versioned launcher API | `NOT_READY` | `runner/run-task.ps1` is a private static source candidate only; `PS5.1_PARSE_NOT_RUN`, `PRIVATE_CONTRACT_NOT_RUN`, no accepted public entrypoint |
 | Runtime | `NOT_RUN` | structure and documentation are not execution evidence |
 
@@ -42,7 +43,8 @@ package code and executable suites on different roots:
 | Path | Sole responsibility |
 |---|---|
 | `src/hub_testkit/**` | reusable installable framework modules imported as `hub_testkit.*` |
-| Planned `tests/{contract,api,integration,e2e}/**` | future executable SUT pytest suites grouped by layer and domain; layer directories are currently absent |
+| `tests/api/health/**` | first source-authored API tracer: one fake-transport liveness contract linked to `TC-HEALTH-0001`; it is not live, installed, or execution evidence |
+| Planned `tests/{contract,integration,e2e}/**` | future executable SUT pytest suites grouped by layer and domain; these layer directories are currently absent |
 | `selftests/**` | contracts of the framework/package itself; never SUT behavior |
 | `cases/**` | repository-owned new-case intent and risk linkage; IDs match `^TC-[A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*-[0-9]{4}$` |
 | `schemas/**` | closed machine-readable case/run/ownership contracts |
@@ -52,10 +54,12 @@ package code and executable suites on different roots:
 | `runner/**` | sole reviewed versioned launcher boundary; current private source candidate is static-only and not runtime authority |
 | `reports/<task-run>/**` | generated owner-marked evidence for exactly one run |
 
-The suite tree is progressive. `tests/README.md` is currently its only
-boundary artifact; `tests/contract/`, `tests/api/`, `tests/integration/`, and
-`tests/e2e/` do not exist yet and are created only by their first accepted
-consumer. This documentation slice must not add empty layer directories.
+The suite tree is progressive. The first API source tracer exists at
+`tests/api/health/test_health_api.py` and is linked to `TC-HEALTH-0001`; it
+uses a fake transport and proves no live Hub behavior. `tests/contract/`,
+`tests/integration/`, and `tests/e2e/` remain absent and are created only by
+their first accepted consumer. This documentation slice must not add empty
+layer directories.
 
 Direct root `core/`, `api/`, `integration/`, `contract/`, or `e2e/` package or
 suite trees are not target architecture. A nested `testframework/python/`
@@ -197,10 +201,12 @@ accepted, launcher status remains `NOT_READY` and runtime remains `NOT_RUN`.
 
 F0 source closure requires the exact Python/build/group contract above,
 `src/hub_testkit/py.typed`, framework selftests, closed schema/policies, the
-literal 47-profile registry, public-hook collection policy, and
-`TC-HEALTH-0001` as a source tracer for implemented `GET /api/live`. It also
-requires independent package, traceability, architecture, API-contract, and
-security review. It cannot yield a runtime result.
+literal 47-profile registry, strict config/runtime/ownership/redaction and
+traceability modules, the public-hook collection plugin, and
+`TC-HEALTH-0001` with its fake-transport source tracer for `GET /api/live`.
+Those F0 sources are independently source-reviewed. The health tracer is not
+live Hub evidence; F1 and later source remain pending. F0 source closure
+cannot yield a runtime result.
 
 The installable/executable package slice is not accepted until all of the
 following are true on one exact revision:
