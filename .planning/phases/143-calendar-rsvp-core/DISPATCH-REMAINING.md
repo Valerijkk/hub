@@ -162,6 +162,13 @@ dispatchable without duplicating the common safety contract.
 - Oracles: same key/input byte-equivalent replay and one event/outbox; changed input 409;
   rollback leaves no receipt/event; client owner ignored; external guest safe; no raw key.
 
+### 04B RRULE occurrence-cap correction candidate
+
+- Status: authoritative founder-free current 04B correction candidate; precommit independent review required. `04B` remains `NOT_ACCEPTED`. This docs-only amendment grants no source, OpenAPI, Ent/schema, migration, launcher, runtime or acceptance authority. It supersedes only the old missing-cap RRULE clause; accepted A3/02D receipts and all other 04B contract content remain unchanged.
+- `GLOBAL_RRULE_OCCURRENCE_CAP=1000`. On create, every RRULE must contain exactly one terminal `COUNT=1..1000` or compatible `UNTIL`: neither and both reject. `COUNT` includes DTSTART; UNTIL is inclusive; `UNTIL < DTSTART` rejects. Apply the cap before EXDATE or exception, so a 1001st nominal occurrence rejects even if it would subsequently be excluded/cancelled.
+- Expand as a stream, never by full series materialization. Reject on the 1001st nominal occurrence. Candidate work is bounded to 1001 nominal attempts and fails closed if the bound cannot be proved, including conservative rejection of sparse rules. DTSTART appears exactly once even when it mismatches a selector. Weekly semantics are `WKST=MO` with selector dates on/after DTSTART; missing monthly BYMONTHDAY dates are skipped. Timed recurrence is in event-timezone wall clock: a New York fold chooses the earlier occurrence. RFC 5545 section 3.3.5 pre-gap UTC-offset interpretation applies to standalone DATE-TIME values, while section 3.3.10 makes a recurrence-generated nonexistent local time ignored and not counted. All-day recurrence is date-based.
+- Required exact oracles: `FREQ=DAILY;INTERVAL=1;COUNT=1000` accepts and `FREQ=DAILY;INTERVAL=1;COUNT=1001` rejects. With `DTSTART=2026-01-01`, daily `UNTIL=20280926` accepts and `UNTIL=20280927` rejects. Weekly interval-two Monday uses `FREQ=WEEKLY;INTERVAL=2;BYDAY=MO` with `WKST=MO`; monthly 31 uses `FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=31` and skips months without day 31. The New York (`America/New_York`) spring-gap oracle is `DTSTART=2026-03-01 02:30` with `FREQ=WEEKLY;INTERVAL=1;BYDAY=SU;COUNT=2`: recurrence-generated `2026-03-08 02:30` is nonexistent, ignored and not counted; `2026-03-15 02:30` is occurrence two. New York fold fixtures choose the earlier occurrence. Neither/both terminal-selector fixtures and `UNTIL < DTSTART` rejection are mandatory.
+
 ## 143-04C — update and whole-master cancel
 
 - Dependencies: 04A/G. Allowed only:
