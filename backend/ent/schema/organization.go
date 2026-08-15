@@ -62,6 +62,7 @@ func (Organization) Edges() []ent.Edge {
 		edge.To("mailbox_policy", MailboxPolicy.Type).
 			Unique(),
 		edge.To("mail_accounts", MailAccount.Type),
+		edge.To("mail_mutation_receipts", MailMutationReceipt.Type),
 	}
 }
 

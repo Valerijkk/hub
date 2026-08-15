@@ -205,6 +205,7 @@ func (MailAccount) Edges() []ent.Edge {
 		edge.To("signatures", MailSignature.Type),
 		edge.To("rules", MailRule.Type),
 		edge.To("recent_contacts", RecentContact.Type),
+		edge.To("mutation_receipts", MailMutationReceipt.Type),
 	}
 }
 

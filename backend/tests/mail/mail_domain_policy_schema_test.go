@@ -263,7 +263,7 @@ func TestMailDomainAndMailboxPolicySchemas_HaveExactIndexesAndOrganizationEdges(
 	assertInverseRequiredOrganizationEdge(t, "MailboxPolicy.organization", policyEdges["organization"], "mailbox_policy")
 
 	organizationEdges := edgeDescriptors((entschema.Organization{}).Edges())
-	assertExactNames(t, "Organization edges", edgeNames(organizationEdges), []string{"mail_accounts", "mail_domains", "mailbox_policy", "projects", "users"})
+	assertExactNames(t, "Organization edges", edgeNames(organizationEdges), []string{"mail_accounts", "mail_domains", "mail_mutation_receipts", "mailbox_policy", "projects", "users"})
 	for _, name := range []string{"projects", "users"} {
 		assertOnDelete(t, "Organization."+name, organizationEdges[name].Annotations, entsql.NoAction)
 	}
@@ -278,6 +278,10 @@ func TestMailDomainAndMailboxPolicySchemas_HaveExactIndexesAndOrganizationEdges(
 	mailAccounts := organizationEdges["mail_accounts"]
 	if mailAccounts.Inverse || mailAccounts.Unique || mailAccounts.Required || mailAccounts.RefName != "" {
 		t.Fatalf("Organization.mail_accounts = inverse:%t unique:%t required:%t ref:%q, want false/false/false/empty", mailAccounts.Inverse, mailAccounts.Unique, mailAccounts.Required, mailAccounts.RefName)
+	}
+	mailMutationReceipts := organizationEdges["mail_mutation_receipts"]
+	if mailMutationReceipts.Inverse || mailMutationReceipts.Unique || mailMutationReceipts.Required || mailMutationReceipts.RefName != "" {
+		t.Fatalf("Organization.mail_mutation_receipts = inverse:%t unique:%t required:%t ref:%q, want false/false/false/empty", mailMutationReceipts.Inverse, mailMutationReceipts.Unique, mailMutationReceipts.Required, mailMutationReceipts.RefName)
 	}
 }
 

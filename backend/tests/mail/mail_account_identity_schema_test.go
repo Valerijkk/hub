@@ -308,7 +308,7 @@ func TestMailAccountAndIdentitySchemas_HaveExactChecksAndIndexes(t *testing.T) {
 
 func TestMailAccountAndIdentitySchemas_HaveOnlyFrozenEdges(t *testing.T) {
 	accountEdges := (entschema.MailAccount{}).Edges()
-	assertExactOrderedEdgeNames(t, "MailAccount edges", accountEdges, []string{"organization", "user", "domain", "identities", "user_settings", "signatures", "rules", "recent_contacts"})
+	assertExactOrderedEdgeNames(t, "MailAccount edges", accountEdges, []string{"organization", "user", "domain", "identities", "user_settings", "signatures", "rules", "recent_contacts", "mutation_receipts"})
 	accountEdgeDescriptors := edgeDescriptors(accountEdges)
 	assertRequiredInverseEdge(t, "MailAccount.organization", accountEdgeDescriptors["organization"], "organization_id", "mail_accounts", entsql.NoAction)
 	assertRequiredInverseEdge(t, "MailAccount.user", accountEdgeDescriptors["user"], "user_id", "mail_account", entsql.NoAction)
@@ -317,7 +317,7 @@ func TestMailAccountAndIdentitySchemas_HaveOnlyFrozenEdges(t *testing.T) {
 	if userSettings := accountEdgeDescriptors["user_settings"]; userSettings == nil || userSettings.Inverse || !userSettings.Unique || userSettings.Required || userSettings.RefName != "" {
 		t.Fatalf("MailAccount.user_settings = %#v, want plain unique inverse target", userSettings)
 	}
-	for _, name := range []string{"signatures", "rules", "recent_contacts"} {
+	for _, name := range []string{"signatures", "rules", "recent_contacts", "mutation_receipts"} {
 		assertPlainToManyEdge(t, "MailAccount."+name, accountEdgeDescriptors[name])
 	}
 
@@ -334,8 +334,9 @@ func TestMailAccountAndIdentitySchemas_HaveOnlyFrozenEdges(t *testing.T) {
 	assertPlainToManyEdge(t, "MailDomain.accounts", edgeDescriptors(domainEdges)["accounts"])
 
 	organizationEdges := (entschema.Organization{}).Edges()
-	assertExactOrderedEdgeNames(t, "Organization edges", organizationEdges, []string{"users", "projects", "mail_domains", "mailbox_policy", "mail_accounts"})
+	assertExactOrderedEdgeNames(t, "Organization edges", organizationEdges, []string{"users", "projects", "mail_domains", "mailbox_policy", "mail_accounts", "mail_mutation_receipts"})
 	assertPlainToManyEdge(t, "Organization.mail_accounts", edgeDescriptors(organizationEdges)["mail_accounts"])
+	assertPlainToManyEdge(t, "Organization.mail_mutation_receipts", edgeDescriptors(organizationEdges)["mail_mutation_receipts"])
 
 	userEdges := (entschema.User{}).Edges()
 	if len(userEdges) < 2 || userEdges[len(userEdges)-2].Descriptor().Name != "mail_account" || userEdges[len(userEdges)-1].Descriptor().Name != "recent_contacts" {
