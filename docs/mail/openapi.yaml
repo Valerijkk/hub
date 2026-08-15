@@ -96,6 +96,22 @@ tags:
   - name: CrmMail
   - name: AdminMail
 paths:
+  x-hub-mail-account-deleting-409-oracle:
+    description: >-
+      For a resolved deleting account these operations return the MailAccountDeleting 409 before
+      receipt create/replay, expansion/snapshot, storage or engine I/O. No mutation response has
+      Retry-After; GET /mail/account is the sole poll endpoint.
+    operations: [listMailFolders, createMailFolder, updateMailFolder, deleteMailFolder,
+      listMailLabels, createMailLabel, updateMailLabel, deleteMailLabel, listMailThreads,
+      getMailThread, getMailMessage, proxyMailRemoteImage, bulkMutateMailMessages,
+      createMailDraft, getMailDraft, updateMailDraft, deleteMailDraft, sendMailDraft,
+      getMailSubmission, presignMailAttachment, confirmMailAttachment, downloadMailAttachment,
+      deleteMailAttachment, searchMail, suggestMailContacts, getMailUserSettings,
+      updateMailUserSettings, listMailIdentities, listMailSignatures, createMailSignature,
+      updateMailSignature, deleteMailSignature, listMailRules, createMailRule, updateMailRule,
+      deleteMailRule, getCrmDealMailComposeContext, listCrmDealMailActivities,
+      linkCrmDealMailActivity, unlinkCrmDealMailActivity, listAdminMailIdentities,
+      createAdminMailAlias, deleteAdminMailAlias]
   /mail/account:
     get:
       tags: [MailSettings]
@@ -142,6 +158,7 @@ paths:
                     then:
                       properties:
                         projection_as_of: {type: string, format: date-time}
+        "409": {$ref: "#/components/responses/MailAccountDeleting"}
         default: {$ref: "#/components/responses/Error"}
     post:
       tags: [MailFolders]
@@ -253,6 +270,7 @@ paths:
                         color: "#d97706"
                         version: 3
                     next_cursor: eyJ2IjoxLCJhZnRlciI6IjExMTExMTExLTExMTEtNDExMS04MTExLTExMTExMTExMTExMSJ9
+        "409": {$ref: "#/components/responses/MailAccountDeleting"}
         default: {$ref: "#/components/responses/Error"}
     post:
       tags: [MailLabels]
@@ -332,6 +350,7 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/MailThreadPage"}
+        "409": {$ref: "#/components/responses/MailAccountDeleting"}
         default: {$ref: "#/components/responses/Error"}
   /mail/threads/{threadId}:
     get:
@@ -348,6 +367,7 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/MailThreadDetail"}
+        "409": {$ref: "#/components/responses/MailAccountDeleting"}
         default: {$ref: "#/components/responses/Error"}
   /mail/messages/{messageId}:
     get:
@@ -362,6 +382,7 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/MailMessageDetail"}
+        "409": {$ref: "#/components/responses/MailAccountDeleting"}
         default: {$ref: "#/components/responses/Error"}
   /mail/messages/{messageId}/remote-images/{imageToken}:
     get:
@@ -400,6 +421,7 @@ paths:
             image/jpeg: {schema: {type: string, format: binary}}
             image/gif: {schema: {type: string, format: binary}}
             image/webp: {schema: {type: string, format: binary}}
+        "409": {$ref: "#/components/responses/MailAccountDeleting"}
         default: {$ref: "#/components/responses/Error"}
   /mail/messages/bulk:
     post:
@@ -446,7 +468,7 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/MailDraft"}
-        "409": {$ref: "#/components/responses/IdempotencyConflict"}
+        "409": {$ref: "#/components/responses/MailDraftIdempotencyConflict"}
         "423": {$ref: "#/components/responses/MailAccountBusy"}
         default: {$ref: "#/components/responses/Error"}
   /mail/drafts/{draftId}:
@@ -462,6 +484,7 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/MailDraft"}
+        "409": {$ref: "#/components/responses/MailAccountDeleting"}
         default: {$ref: "#/components/responses/Error"}
     patch:
       tags: [MailDrafts]
@@ -526,6 +549,7 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/MailSubmission"}
+        "409": {$ref: "#/components/responses/MailAccountDeleting"}
         default: {$ref: "#/components/responses/Error"}
   /mail/attachments/presign:
     post:
@@ -603,6 +627,7 @@ paths:
       x-hub-authz: mailbox-owner
       responses:
         "204": {description: Unsent attachment deleted}
+        "409": {$ref: "#/components/responses/MailAccountDeleting"}
         default: {$ref: "#/components/responses/Error"}
   /mail/search:
     get:
@@ -647,6 +672,7 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/MailThreadPage"}
+        "409": {$ref: "#/components/responses/MailAccountDeleting"}
         default: {$ref: "#/components/responses/Error"}
   /mail/contacts/suggest:
     get:
@@ -676,6 +702,7 @@ paths:
                     type: array
                     maxItems: 30
                     items: {$ref: "#/components/schemas/MailContact"}
+        "409": {$ref: "#/components/responses/MailAccountDeleting"}
         default: {$ref: "#/components/responses/Error"}
   /mail/settings:
     get:
@@ -688,6 +715,7 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/MailUserSettings"}
+        "409": {$ref: "#/components/responses/MailAccountDeleting"}
         default: {$ref: "#/components/responses/Error"}
     patch:
       tags: [MailSettings]
@@ -732,6 +760,7 @@ paths:
                     maxItems: 100
                     items: {$ref: "#/components/schemas/MailIdentity"}
                   next_cursor: {type: [string, "null"], maxLength: 512}
+        "409": {$ref: "#/components/responses/MailAccountDeleting"}
         default: {$ref: "#/components/responses/Error"}
   /mail/signatures:
     get:
@@ -757,6 +786,7 @@ paths:
                     maxItems: 20
                     items: {$ref: "#/components/schemas/MailSignature"}
                   next_cursor: {type: [string, "null"], maxLength: 512}
+        "409": {$ref: "#/components/responses/MailAccountDeleting"}
         default: {$ref: "#/components/responses/Error"}
     post:
       tags: [MailSettings]
@@ -837,6 +867,7 @@ paths:
                     maxItems: 100
                     items: {$ref: "#/components/schemas/MailRule"}
                   next_cursor: {type: [string, "null"], maxLength: 512}
+        "409": {$ref: "#/components/responses/MailAccountDeleting"}
         default: {$ref: "#/components/responses/Error"}
     post:
       tags: [MailSettings]
@@ -1380,6 +1411,7 @@ paths:
                     items: {$ref: "#/components/schemas/CrmMailActivity"}
                   next_cursor: {type: [string, "null"], maxLength: 512}
         "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/MailAccountDeleting"}
         default: {$ref: "#/components/responses/Error"}
   /crm/deals/{dealId}/mail-activities/{messageId}:
     parameters:
@@ -1409,6 +1441,7 @@ paths:
       responses:
         "204": {description: Link removed or already absent}
         "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/MailAccountDeleting"}
         default: {$ref: "#/components/responses/Error"}
   /admin/mail/settings:
     get:
@@ -1634,6 +1667,7 @@ paths:
                     items: {$ref: "#/components/schemas/MailIdentity"}
                   next_cursor: {type: [string, "null"], maxLength: 512}
         "403": {$ref: "#/components/responses/Forbidden"}
+        "409": {$ref: "#/components/responses/MailAccountDeleting"}
         default: {$ref: "#/components/responses/Error"}
     post:
       tags: [AdminMail]
@@ -1808,24 +1842,30 @@ components:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
     MailFolderCreateConflict:
-      description: Generic receipt conflict, sibling name collision or an unresolved folder intent; no new engine command runs
+      description: >-
+        Generic receipt conflict, sibling name collision or an unresolved folder intent; or the
+        resolved MailAccount is deleting. For MAIL_ACCOUNT_DELETING, no receipt/replay,
+        expansion, snapshot, storage or engine I/O ran.
       headers:
         X-Hub-Error-Code:
           required: true
           schema:
             type: string
-            enum: [IDEMPOTENCY_KEY_REUSED, IDEMPOTENCY_REPLAY_UNAVAILABLE, IDEMPOTENCY_REPLAY_EXPIRED, MAIL_FOLDER_NAME_CONFLICT, MAIL_FOLDER_TREE_CONFLICT, MAIL_FOLDER_RECONCILIATION_REQUIRED, MAIL_RECONCILIATION_EXHAUSTED]
+            enum: [IDEMPOTENCY_KEY_REUSED, IDEMPOTENCY_REPLAY_UNAVAILABLE, IDEMPOTENCY_REPLAY_EXPIRED, MAIL_FOLDER_NAME_CONFLICT, MAIL_FOLDER_TREE_CONFLICT, MAIL_FOLDER_RECONCILIATION_REQUIRED, MAIL_RECONCILIATION_EXHAUSTED, MAIL_ACCOUNT_DELETING]
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
     MailFolderMutationConflict:
-      description: Stale folder version, protected system role, active-rule reference, sibling name collision or unresolved prior intent; no engine command runs
+      description: >-
+        Stale folder version, protected system role, active-rule reference, sibling name collision
+        or unresolved prior intent; or the resolved MailAccount is deleting. For
+        MAIL_ACCOUNT_DELETING, no receipt/replay, expansion, snapshot, storage or engine I/O ran.
       headers:
         X-Hub-Error-Code:
           required: true
           schema:
             type: string
-            enum: [MAIL_FOLDER_VERSION_CONFLICT, MAIL_FOLDER_SYSTEM_ROLE, MAIL_FOLDER_IN_USE, MAIL_FOLDER_NAME_CONFLICT, MAIL_FOLDER_TREE_CONFLICT, MAIL_FOLDER_RECONCILIATION_REQUIRED, MAIL_RECONCILIATION_EXHAUSTED]
+            enum: [MAIL_FOLDER_VERSION_CONFLICT, MAIL_FOLDER_SYSTEM_ROLE, MAIL_FOLDER_IN_USE, MAIL_FOLDER_NAME_CONFLICT, MAIL_FOLDER_TREE_CONFLICT, MAIL_FOLDER_RECONCILIATION_REQUIRED, MAIL_RECONCILIATION_EXHAUSTED, MAIL_ACCOUNT_DELETING]
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
@@ -1859,14 +1899,29 @@ components:
               value:
                 error: mailbox mutation is temporarily busy
                 request_id: req_mail_busy_01
+    MailAccountDeleting:
+      description: >-
+        The resolved MailAccount is in the non-interactive deleting state. The caller must poll
+        GET /mail/account; no receipt/replay, expansion, snapshot, storage or engine I/O ran.
+      headers:
+        X-Hub-Error-Code:
+          required: true
+          schema: {const: MAIL_ACCOUNT_DELETING}
+          example: MAIL_ACCOUNT_DELETING
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/ErrorEnvelope"}
     MailAttachmentConfirmConflict:
-      description: Confirmation metadata changed or the owned attachment is no longer in the same confirmable state; no scan transition runs
+      description: >-
+        Confirmation metadata changed or the owned attachment is no longer in the same confirmable
+        state; or the resolved MailAccount is deleting. For MAIL_ACCOUNT_DELETING, no
+        receipt/replay, expansion, snapshot, storage or engine I/O ran.
       headers:
         X-Hub-Error-Code:
           required: true
           schema:
             type: string
-            enum: [MAIL_ATTACHMENT_CONFIRM_MISMATCH, MAIL_ATTACHMENT_STATE_CONFLICT]
+            enum: [MAIL_ATTACHMENT_CONFIRM_MISMATCH, MAIL_ATTACHMENT_STATE_CONFLICT, MAIL_ACCOUNT_DELETING]
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
@@ -1880,55 +1935,71 @@ components:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
     MailAttachmentUnavailable:
-      description: The owned attachment is not confirmed clean and cannot be downloaded
+      description: >-
+        The owned attachment is not confirmed clean and cannot be downloaded; or the resolved
+        MailAccount is deleting. For MAIL_ACCOUNT_DELETING, no receipt/replay, expansion,
+        snapshot, storage or engine I/O ran.
       headers:
         X-Hub-Error-Code:
           required: true
-          schema: {const: MAIL_ATTACHMENT_NOT_CLEAN}
+          schema: {type: string, enum: [MAIL_ATTACHMENT_NOT_CLEAN, MAIL_ACCOUNT_DELETING]}
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
     MailLabelConflict:
-      description: Label version is stale, its normalized name collides, or an active rule still references it; no label, assignment, marker or rule state changes
+      description: >-
+        Label version is stale, its normalized name collides, or an active rule still references
+        it; or the resolved MailAccount is deleting. For MAIL_ACCOUNT_DELETING, no
+        receipt/replay, expansion, snapshot, storage or engine I/O ran.
       headers:
         X-Hub-Error-Code:
           required: true
           schema:
             type: string
-            enum: [MAIL_LABEL_VERSION_CONFLICT, MAIL_LABEL_NAME_CONFLICT, MAIL_LABEL_IN_USE]
+            enum: [MAIL_LABEL_VERSION_CONFLICT, MAIL_LABEL_NAME_CONFLICT, MAIL_LABEL_IN_USE, MAIL_ACCOUNT_DELETING]
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
     MailDraftMutationConflict:
-      description: Draft revision is stale, a prior save requires reconciliation, or its state is not editable/deletable; no draft or engine state changes
+      description: >-
+        Draft revision is stale, a prior save requires reconciliation, or its state is not
+        editable/deletable; or the resolved MailAccount is deleting. For
+        MAIL_ACCOUNT_DELETING, no receipt/replay, expansion, snapshot, storage or engine I/O ran.
       headers:
         X-Hub-Error-Code:
           required: true
           schema:
             type: string
-            enum: [MAIL_DRAFT_VERSION_CONFLICT, MAIL_DRAFT_RECONCILIATION_REQUIRED, MAIL_DRAFT_NOT_EDITABLE]
+            enum: [MAIL_DRAFT_VERSION_CONFLICT, MAIL_DRAFT_RECONCILIATION_REQUIRED, MAIL_DRAFT_NOT_EDITABLE, MAIL_ACCOUNT_DELETING]
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
     MailSubmissionConflict:
-      description: Send key was reused for changed input, the confirmed draft revision is stale, another submission owns the draft, or the draft is not sendable; no second submit runs
+      description: >-
+        Send key was reused for changed input, the confirmed draft revision is stale, another
+        submission owns the draft, or the draft is not sendable; or the resolved MailAccount is
+        deleting. For MAIL_ACCOUNT_DELETING, no receipt/replay, expansion, snapshot, storage or
+        engine I/O ran.
       headers:
         X-Hub-Error-Code:
           required: true
           schema:
             type: string
-            enum: [IDEMPOTENCY_KEY_REUSED, MAIL_DRAFT_VERSION_CONFLICT, MAIL_DRAFT_SUBMISSION_IN_PROGRESS, MAIL_DRAFT_NOT_SENDABLE]
+            enum: [IDEMPOTENCY_KEY_REUSED, MAIL_DRAFT_VERSION_CONFLICT, MAIL_DRAFT_SUBMISSION_IN_PROGRESS, MAIL_DRAFT_NOT_SENDABLE, MAIL_ACCOUNT_DELETING]
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
     MailLabelCreateConflict:
-      description: Generic receipt conflict or same-account normalized label-name collision; no label is created
+      description: >-
+        Generic receipt conflict or same-account normalized label-name collision; or the resolved
+        MailAccount is deleting. For MAIL_ACCOUNT_DELETING, no receipt/replay, expansion,
+        snapshot, storage or engine I/O ran.
       headers:
         X-Hub-Error-Code:
           required: true
           schema:
             type: string
-            enum: [IDEMPOTENCY_KEY_REUSED, IDEMPOTENCY_REPLAY_UNAVAILABLE, IDEMPOTENCY_REPLAY_EXPIRED, MAIL_LABEL_NAME_CONFLICT]
+            enum: [IDEMPOTENCY_KEY_REUSED, IDEMPOTENCY_REPLAY_UNAVAILABLE, IDEMPOTENCY_REPLAY_EXPIRED, MAIL_LABEL_NAME_CONFLICT, MAIL_ACCOUNT_DELETING]
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
@@ -1942,20 +2013,24 @@ components:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
     MailUserSettingsConflict:
-      description: User mailbox settings version is stale; no setting changes
+      description: >-
+        User mailbox settings version is stale; or the resolved MailAccount is deleting. For
+        MAIL_ACCOUNT_DELETING, no receipt/replay, expansion, snapshot, storage or engine I/O ran.
       headers:
         X-Hub-Error-Code:
           required: true
-          schema: {const: MAIL_SETTINGS_VERSION_CONFLICT}
+          schema: {type: string, enum: [MAIL_SETTINGS_VERSION_CONFLICT, MAIL_ACCOUNT_DELETING]}
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
     MailSignatureConflict:
-      description: Signature version is stale; no signature/default-setting changes
+      description: >-
+        Signature version is stale; or the resolved MailAccount is deleting. For
+        MAIL_ACCOUNT_DELETING, no receipt/replay, expansion, snapshot, storage or engine I/O ran.
       headers:
         X-Hub-Error-Code:
           required: true
-          schema: {const: MAIL_SIGNATURE_VERSION_CONFLICT}
+          schema: {type: string, enum: [MAIL_SIGNATURE_VERSION_CONFLICT, MAIL_ACCOUNT_DELETING]}
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
@@ -1969,11 +2044,13 @@ components:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
     MailRuleConflict:
-      description: Rule version is stale; no rule or desired deployment generation changes
+      description: >-
+        Rule version is stale; or the resolved MailAccount is deleting. For
+        MAIL_ACCOUNT_DELETING, no receipt/replay, expansion, snapshot, storage or engine I/O ran.
       headers:
         X-Hub-Error-Code:
           required: true
-          schema: {const: MAIL_RULE_VERSION_CONFLICT}
+          schema: {type: string, enum: [MAIL_RULE_VERSION_CONFLICT, MAIL_ACCOUNT_DELETING]}
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
@@ -2029,13 +2106,16 @@ components:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
     MailAliasCreateConflict:
-      description: Generic receipt conflict, unavailable normalized address, or inactive target mailbox; no cross-tenant owner detail is disclosed
+      description: >-
+        Generic receipt conflict, unavailable normalized address, or inactive target mailbox; or
+        the resolved MailAccount is deleting. For MAIL_ACCOUNT_DELETING, no receipt/replay,
+        expansion, snapshot, storage or engine I/O ran. No cross-tenant owner detail is disclosed.
       headers:
         X-Hub-Error-Code:
           required: true
           schema:
             type: string
-            enum: [IDEMPOTENCY_KEY_REUSED, IDEMPOTENCY_REPLAY_UNAVAILABLE, IDEMPOTENCY_REPLAY_EXPIRED, MAIL_ALIAS_ADDRESS_UNAVAILABLE, MAIL_ALIAS_ACCOUNT_NOT_ACTIVE]
+            enum: [IDEMPOTENCY_KEY_REUSED, IDEMPOTENCY_REPLAY_UNAVAILABLE, IDEMPOTENCY_REPLAY_EXPIRED, MAIL_ALIAS_ADDRESS_UNAVAILABLE, MAIL_ALIAS_ACCOUNT_NOT_ACTIVE, MAIL_ACCOUNT_DELETING]
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
@@ -2049,13 +2129,16 @@ components:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
     MailAliasMutationConflict:
-      description: The identity is primary/group or its mailbox is not active; no identity generation changes
+      description: >-
+        The identity is primary/group or its mailbox is not active; or the resolved MailAccount is
+        deleting. For MAIL_ACCOUNT_DELETING, no receipt/replay, expansion, snapshot, storage or
+        engine I/O ran.
       headers:
         X-Hub-Error-Code:
           required: true
           schema:
             type: string
-            enum: [MAIL_ALIAS_NOT_MUTABLE, MAIL_ALIAS_ACCOUNT_NOT_ACTIVE]
+            enum: [MAIL_ALIAS_NOT_MUTABLE, MAIL_ALIAS_ACCOUNT_NOT_ACTIVE, MAIL_ACCOUNT_DELETING]
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
@@ -2068,14 +2151,28 @@ components:
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
+    MailDraftIdempotencyConflict:
+      description: >-
+        Draft idempotency input changed, or the resolved MailAccount is deleting. For
+        MAIL_ACCOUNT_DELETING, no receipt/replay, expansion, snapshot, storage or engine I/O ran.
+      headers:
+        X-Hub-Error-Code:
+          required: true
+          schema: {type: string, enum: [IDEMPOTENCY_KEY_REUSED, MAIL_ACCOUNT_DELETING]}
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/ErrorEnvelope"}
     MailMutationIdempotencyConflict:
-      description: The generic mail key was reused for changed input, its current target can no longer be reconstructed, or its replay metadata expired; none executes the operation again
+      description: >-
+        The generic mail key was reused for changed input, its current target can no longer be
+        reconstructed, its replay metadata expired, or the resolved MailAccount is deleting. For
+        MAIL_ACCOUNT_DELETING, no receipt/replay, expansion, snapshot, storage or engine I/O ran.
       headers:
         X-Hub-Error-Code:
           required: true
           schema:
             type: string
-            enum: [IDEMPOTENCY_KEY_REUSED, IDEMPOTENCY_REPLAY_UNAVAILABLE, IDEMPOTENCY_REPLAY_EXPIRED]
+            enum: [IDEMPOTENCY_KEY_REUSED, IDEMPOTENCY_REPLAY_UNAVAILABLE, IDEMPOTENCY_REPLAY_EXPIRED, MAIL_ACCOUNT_DELETING]
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
@@ -2196,20 +2293,26 @@ components:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
     CrmMailComposeConflict:
-      description: The owned deal has no linked contact with a valid email recipient
+      description: >-
+        The owned deal has no linked contact with a valid email recipient; or the resolved
+        MailAccount is deleting. For MAIL_ACCOUNT_DELETING, no receipt/replay, expansion,
+        snapshot, storage or engine I/O ran.
       headers:
         X-Hub-Error-Code:
           required: true
-          schema: {const: CRM_MAIL_RECIPIENT_REQUIRED}
+          schema: {type: string, enum: [CRM_MAIL_RECIPIENT_REQUIRED, MAIL_ACCOUNT_DELETING]}
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
     CrmMailActivityLimitConflict:
-      description: The deal already has the maximum 10,000 active mail activity links
+      description: >-
+        The deal already has the maximum 10,000 active mail activity links; or the resolved
+        MailAccount is deleting. For MAIL_ACCOUNT_DELETING, no receipt/replay, expansion,
+        snapshot, storage or engine I/O ran.
       headers:
         X-Hub-Error-Code:
           required: true
-          schema: {const: CRM_MAIL_ACTIVITY_LIMIT}
+          schema: {type: string, enum: [CRM_MAIL_ACTIVITY_LIMIT, MAIL_ACCOUNT_DELETING]}
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
@@ -2238,10 +2341,26 @@ components:
       type: object
       additionalProperties: false
       required: [status, primary_address, retry_after_seconds, error_code, capabilities]
+      allOf:
+        - if:
+            properties: {status: {const: deleting}}
+            required: [status]
+          then:
+            properties:
+              error_code: {const: null}
+              capabilities:
+                type: object
+                additionalProperties: false
+                required: [rich_content, rules, spam_training, remote_images]
+                properties:
+                  rich_content: {const: false}
+                  rules: {const: false}
+                  spam_training: {const: false}
+                  remote_images: {const: false}
       properties:
         status:
           type: string
-          enum: [not_configured, provisioning, active, suspended, error]
+          enum: [not_configured, provisioning, active, suspended, error, deleting]
         primary_address:
           type: [string, "null"]
           format: email
@@ -2274,7 +2393,7 @@ components:
           type: [string, "null"]
           enum: [inbox, sent, drafts, archive, trash, junk, null]
         name: {type: string, minLength: 1, maxLength: 120, x-hub-max-utf8-bytes: 480}
-        color: {type: [string, "null"], maxLength: 32, x-hub-max-utf8-bytes: 128}
+        color: {type: [string, "null"], minLength: 1, maxLength: 32, x-hub-max-utf8-bytes: 128}
         sort_order: {type: integer}
         unread_count: {type: integer, minimum: 0}
         total_count: {type: integer, minimum: 0}
@@ -2287,7 +2406,7 @@ components:
       properties:
         name: {type: string, minLength: 1, maxLength: 120, x-hub-max-utf8-bytes: 480}
         parent_id: {type: [string, "null"], format: uuid}
-        color: {type: [string, "null"], maxLength: 32, x-hub-max-utf8-bytes: 128}
+        color: {type: [string, "null"], minLength: 1, maxLength: 32, x-hub-max-utf8-bytes: 128}
     UpdateMailFolderRequest:
       type: object
       additionalProperties: false
@@ -2295,7 +2414,7 @@ components:
       properties:
         name: {type: string, minLength: 1, maxLength: 120, x-hub-max-utf8-bytes: 480}
         parent_id: {type: [string, "null"], format: uuid, description: After nondisclosing target resolution and system-role guard, only a resolved custom target's supplied parent_id is temporarily rejected before receipt or engine I/O with MAIL_FOLDER_TREE_CONFLICT until a separately accepted engine-port reparent packet; missing target is 404 and system target is MAIL_FOLDER_SYSTEM_ROLE.}
-        color: {type: [string, "null"], maxLength: 32, x-hub-max-utf8-bytes: 128}
+        color: {type: [string, "null"], minLength: 1, maxLength: 32, x-hub-max-utf8-bytes: 128}
         sort_order: {type: integer}
     MailLabel:
       type: object
@@ -2303,8 +2422,8 @@ components:
       required: [id, name, color, version]
       properties:
         id: {type: string, format: uuid}
-        name: {type: string, maxLength: 60, x-hub-max-utf8-bytes: 240}
-        color: {type: string, maxLength: 32, x-hub-max-utf8-bytes: 128}
+        name: {type: string, minLength: 1, maxLength: 60, x-hub-max-utf8-bytes: 240}
+        color: {type: string, minLength: 1, maxLength: 32, x-hub-max-utf8-bytes: 128}
         version: {type: integer, minimum: 1}
     UpsertMailLabelRequest:
       type: object
@@ -2656,7 +2775,7 @@ components:
         media_type: {type: string, minLength: 1, maxLength: 255, x-hub-max-utf8-bytes: 1020}
         size_bytes: {type: integer, format: int64, minimum: 1, maximum: 26214400}
         disposition: {type: string, enum: [attachment, inline]}
-        content_id: {type: [string, "null"], maxLength: 255, x-hub-max-utf8-bytes: 1020}
+        content_id: {type: [string, "null"], minLength: 1, maxLength: 255, x-hub-max-utf8-bytes: 1020}
     PresignAttachmentResponse:
       type: object
       additionalProperties: false
@@ -2668,7 +2787,10 @@ components:
         expires_at:
           type: string
           format: date-time
-          description: Upload URL expiry, never later than the immutable pending object lease expiry
+          description: >-
+            Upload URL expiry, at most 15 minutes after issue and never later than the immutable
+            pending object lease expiry. The selected provider/edge proves a 10-minute hard
+            in-flight PUT maximum and 60-second maximum trusted clock skew; otherwise presign is unavailable.
         required_headers:
           type: object
           maxProperties: 16
@@ -2684,7 +2806,7 @@ components:
         media_type: {type: string, minLength: 1, maxLength: 255, x-hub-max-utf8-bytes: 1020}
         size_bytes: {type: integer, format: int64, minimum: 0, maximum: 26214400}
         disposition: {type: string, enum: [attachment, inline]}
-        content_id: {type: [string, "null"], maxLength: 255, x-hub-max-utf8-bytes: 1020}
+        content_id: {type: [string, "null"], minLength: 1, maxLength: 255, x-hub-max-utf8-bytes: 1020}
         scan_status: {type: string, enum: [pending, clean, rejected, error]}
         sha256: {type: [string, "null"], pattern: "^[a-f0-9]{64}$"}
     MailContact:

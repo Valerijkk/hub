@@ -6,10 +6,10 @@
 
 > **Phase-145 carrier receipt (2026-08-15):** Carrier `1daef78768048d7672c38a65b78ef0f119f3c207` (parent `c14c208889e8aa1ce7f005a3d9ce03d1a3bb6dc6`, tree `1086a93f2f52423cfdf9dcfc01eadd2e0d434947`, blob `218a38117ae51d014f40218e0f5c4606ec8d4dfa`) is docs/design/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; reviews PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Base/correction lifecycle `CONSUMED/HISTORICAL`; no plan/source/test/runtime authority. Separate carrier-plan acceptance + G145-5B/G145-5C/launcher readiness keep Rule Task 1/145-07B blocked; launcher `NOT_READY`, executables `NOT_RUN`.
 
-> **Status:** 144-02A frozen A1/A2/A3 representation is `STATIC_CONTRACT_READY` / docs-only accepted at reviewed snapshot `b631866b2ba372101fd80eea30951eaa267c1931`; Contract/Spec Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency Terra/high independently PASS C/I/M `0/0/0`, dispatcher-enforced, fallback none, telemetry `UNKNOWN` unless exposed. This is not source, TDD, generated output, migration, launcher, test/validator/build/runtime, product/module/phase/release acceptance; 02B/C/F and broader cross-contract review remain pending. Despite the docs-only 02D acceptance below, 02D source, Ent schema, generation, migration, service and runtime remain pending/unauthorized.
-> **144-02D/02F current:** 02D remains docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus `e563a3d3be8898371e5c8a9861c58f11b72167bc`. 02F `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. Former lifecycle and Rule-plan-next instructions are `CONSUMED/HISTORICAL`. All source/Ent/generation/migration/runtime authority remains blocked; accepted Rule plan `669ef761` leaves Rule Task 1 `NOT_AUTHORIZED/BLOCKED` on independent Phase-145 carrier/G145-5B/G145-5C/launcher readiness.
+> **Status:** 144-02A frozen A1/A2/A3 representation is historical docs-only accepted at reviewed snapshot `b631866b2ba372101fd80eea30951eaa267c1931`; the current exact-14 144-02A/B/C/D correction candidate below amends its deletion edges/lifecycle and requires new review. 02F remains docs/readiness-only accepted and is a dependency trace, not part of the correction. This is not source, TDD, generated output, migration, launcher, test/validator/build/runtime, product/module/phase/release acceptance.
+> **144-02D/02F current:** the 02D base remains docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus `e563a3d3be8898371e5c8a9861c58f11b72167bc`, while its affected User/RecentContact lifecycle is amended only by the current unaccepted A/B/C/D candidate. 02F `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` remains docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. Former lifecycle and Rule-plan-next instructions are `CONSUMED/HISTORICAL`. All source/Ent/generation/migration/runtime authority remains blocked; accepted Rule plan `669ef761` leaves Rule Task 1 `NOT_AUTHORIZED/BLOCKED` on independent Phase-145 carrier/G145-5B/G145-5C/launcher readiness.
 > **Runtime/generation/migration:** NOT_RUN / NOT_RUN / NOT_AUTHORIZED
-> **Scope:** Phase 144-02A/B/C/D/F Ent schemas only
+> **Scope:** Phase 144-02A/B/C/D correction candidate plus accepted-02F dependency trace only
 > **Precedence:** this document supplies exact storage representation for the corresponding
 > domain sections in `MAIL-SPEC.md`. It does not authorize generated code or migration SQL.
 
@@ -35,9 +35,11 @@
   update-default-now, and `deleted_at` is nullable. Every UUID primary key is
   required/default-`uuid.New`/immutable; every stable engine or idempotency key is immutable.
 - Versioned public resources use `VersionMixin`; no second hand-written `version` field.
-- Soft-delete uniqueness always includes `deleted_at IS NULL`. Hard account/organization
-  deletion cascades owned Mail rows. Historical snapshot ids that must survive projection
-  deletion are scalar UUIDs, not cascading edges.
+- Soft-delete uniqueness always includes `deleted_at IS NULL`. Hard account deletion, engine
+  removal, object drain and physical Organization completion are BLOCKED pending the separate
+  accepted engine deletion-port amendment and separate accepted source plan; this candidate
+  supplies only the fail-closed representation.
+  Historical snapshot ids that must survive projection deletion are scalar UUIDs, not cascading edges.
 - `normalize_mail_name_v1` is a private key normalizer; no database/session collation
   participates. For the Folder consumer, validate raw valid UTF-8 with no Unicode control/NUL
   and raw 1..120 runes/<=480 bytes; display name preserves exact raw bytes/runes. Its key
@@ -67,7 +69,7 @@ Exact fields (all unlisted defaults are absent):
 | `local_part` | required immutable normalized ASCII string, 1..64 bytes |
 | `engine_account_id` | nullable string, 1..1,024 bytes when present |
 | `desired_enabled` | required bool, default `true`; canonical engine enablement intent |
-| `status` | required enum, default `provisioning` |
+| `status` | required internal enum, default `provisioning`; includes public metadata-only non-interactive `deleting` state |
 | `control_generation`, `control_hash_version`, `control_hash` | required int64 >=1, int32 >=1, bytes(32); generation defaults 1 and hash version defaults 1 |
 | `attempted_control_generation`, `attempted_control_hash_version`, `attempted_control_hash` | nullable int64/int32/bytes(32) tuple |
 | `deployed_generation`, `deployed_hash_version`, `deployed_hash` | nullable int64/int32/bytes(32) tuple |
@@ -84,7 +86,7 @@ Exact fields (all unlisted defaults are absent):
 
 Enums:
 
-- status: `provisioning|active|suspended|error`;
+- status: `provisioning|active|suspended|error|deleting`;
 - projection: `bootstrapping|ready|degraded|rebuilding`;
 - provision error: `MAILBOX_ENGINE_DISABLED|MAILBOX_DOMAIN_REQUIRED|MAILBOX_PROVISIONING_RETRY|MAILBOX_SUSPENDED|MAILBOX_UNAVAILABLE`;
 - sync error: `MAIL_SYNC_ENGINE_UNAVAILABLE|MAIL_SYNC_CURSOR_INVALID|MAIL_SYNC_RESTART_REQUIRED|MAIL_SYNC_PAGE_REJECTED|MAIL_SYNC_PROJECTION_LIMIT|MAIL_SYNC_CONTROL_CONFLICT`.
@@ -101,6 +103,10 @@ Indexes/checks:
   `desired_enabled=false`. Both require an engine id and a deployed tuple, but an active account may
   intentionally have `deployed_generation < control_generation` while an alias/lifecycle
   change is pending; exact equality means converged, not merely active;
+- `deleting` is the blocked-pending-engine-port representation only. Its schema shape requires
+  `desired_enabled=false`, no lease/attempt/confirmed absence and the existing due marker; it does
+  not claim engine absence, authorize a drain, map to `suspended` publicly, or make a worker
+  executable.
 - when no provision lease/attempt is retained and deployed is absent or differs from current,
   `next_provision_at` is non-null. A worker that applies an older captured tuple while current
   has advanced clears the attempt, sets `status=provisioning`, and reschedules; it never marks
@@ -112,13 +118,21 @@ Indexes/checks:
   `sync_cursor` and `last_synced_at`, null rebuild fields and null sync error;
   `projection_state=rebuilding` requires `rebuild_base_cursor` while checkpoint is nullable
   before the first committed page;
-- list/control indexes cover status+next due time and projection state+next sync time.
+- list/control indexes cover status+next due time and projection state+next sync time; exact
+  blocked-observability-only index `mail_accounts_deleting_blocked_idx (next_provision_at,id)
+  WHERE status = 'deleting'` exposes only blocked-pending rows on their existing due field.
+  It is neither a claim/recovery/drain queue nor authority for destructive work.
 
-All control workers persist the captured attempted generation/version/hash on the owner row
+All ordinary control workers persist the captured attempted generation/version/hash on the owner row
 before I/O; a newer current generation cannot rewrite it or be finalized by the older result.
 Successful completion copies exactly attempted to deployed, clears attempted/lease/error,
-and reschedules when deployed is older than current. The account edge cascades from hard
-organization/user deletion; its selected domain edge restricts domain deletion.
+and reschedules when deployed is older than current. Ordinary provisioning, synchronization,
+projection, mutation, configuration and reactivation workers require `status <> 'deleting'`
+both at claim and exact token/generation/epoch completion. A late completion updates zero rows
+and causes no compensating I/O. The deleting representation has no claim path: its exact
+blocked-pending shape has no lease, attempt or confirmed-absence tuple, and no ordinary worker
+may claim or finalize it. `Organization -> MailAccount` and `User -> MailAccount` are `NO ACTION`;
+they do not authorize physical deletion, precleanup, drain, or partial mutation.
 
 Account-control hash v1 is SHA-256 of
 `ASCII("hub.mail.account.control") || 0x00 || 0x01 || bool(desired_enabled) ||
@@ -229,8 +243,9 @@ service supplies the configured initial values explicitly. MailboxPolicy creatio
 product defaults are distinct from the engine adapter hard caps of 52,428,800 message bytes
 and 26,214,400 attachment bytes. Administrators may configure each value only within its
 stated inclusive bound, with attachment <= message. Unique organization; CHECK attachment <=
-message. Organization deletion cascades. Enabling external mail still requires the
-service-level verified-domain/engine gate.
+message. `MailboxPolicy` may cascade only after the Organization mail-deletion gate below
+has proved zero remaining `MailAccount` and `MailObject` rows. Enabling external mail still
+requires the service-level verified-domain/engine gate.
 
 ### 144-02A Ent representation freeze
 
@@ -297,7 +312,8 @@ The exact ordered index definitions are:
 - `MailAccount`: unique `user_id`; unique `engine_provisioning_key`; unique
   `engine_account_id` with predicate `engine_account_id IS NOT NULL`; unique
   `(mail_domain_id,local_part)`; lookup `(status,next_provision_at)`; lookup
-  `(projection_state,next_sync_at)`.
+  `(projection_state,next_sync_at)`; `mail_accounts_deleting_blocked_idx (next_provision_at,id)
+  WHERE status = 'deleting'` (blocked observability only, never a recovery/claim queue).
 - `MailIdentity`: global unique `normalized_address`; unique
   `(mail_account_id,engine_identity_id)` with predicate
   `engine_identity_id IS NOT NULL`; unique `mail_account_id` with predicate
@@ -332,7 +348,9 @@ mail_accounts_mutation_lease_pair:
 mail_accounts_non_negative:
   sync_epoch >= 0 AND mutation_epoch >= 0 AND provision_attempts >= 0 AND sync_attempts >= 0
 mail_accounts_status_state:
-  status = 'provisioning' OR (status = 'error' AND provision_error_code IS NOT NULL) OR (status = 'active' AND desired_enabled = TRUE AND engine_account_id IS NOT NULL AND deployed_generation IS NOT NULL) OR (status = 'suspended' AND desired_enabled = FALSE AND engine_account_id IS NOT NULL AND deployed_generation IS NOT NULL)
+  status = 'provisioning' OR (status = 'error' AND provision_error_code IS NOT NULL) OR (status = 'active' AND desired_enabled = TRUE AND engine_account_id IS NOT NULL AND deployed_generation IS NOT NULL) OR (status = 'suspended' AND desired_enabled = FALSE AND engine_account_id IS NOT NULL AND deployed_generation IS NOT NULL) OR status = 'deleting'
+mail_accounts_deleting_blocked_pending_shape:
+  status <> 'deleting' OR (desired_enabled = FALSE AND sync_lease_token IS NULL AND sync_lease_until IS NULL AND mutation_lease_token IS NULL AND mutation_lease_until IS NULL AND provision_lease_token IS NULL AND provision_lease_until IS NULL AND attempted_control_generation IS NULL AND attempted_control_hash_version IS NULL AND attempted_control_hash IS NULL AND provision_error_code IS NULL AND next_provision_at IS NOT NULL)
 mail_accounts_ready_projection:
   projection_state <> 'ready' OR (sync_cursor IS NOT NULL AND last_synced_at IS NOT NULL AND rebuild_checkpoint IS NULL AND rebuild_base_cursor IS NULL AND sync_error_code IS NULL)
 mail_accounts_rebuilding_projection:
@@ -402,7 +420,8 @@ PostgreSQL. JSON shape/serialized-size validation still runs in the typed Go val
 #### Exact edges and delete behavior
 
 - `MailAccount` has required unique owner edges to `Organization` and `User`, both
-  `ON DELETE CASCADE`; a required unique edge to `MailDomain` with `ON DELETE NO ACTION`;
+  `ON DELETE NO ACTION` under the 144-02A/B/C/D correction below; it has a required unique
+  edge to `MailDomain` with `ON DELETE NO ACTION`;
   and a to-many `identities` inverse.
 - `MailIdentity` has one required unique `account` edge on `mail_account_id` with
   `ON DELETE CASCADE`.
@@ -410,9 +429,9 @@ PostgreSQL. JSON shape/serialized-size validation still runs in the typed Go val
   to-many `accounts` inverse. The account foreign key is the database RESTRICT/NO ACTION
   proof; confirmed engine absence and soft-delete finalization remain service checks.
 - `MailboxPolicy` has one required unique `organization` edge with `ON DELETE CASCADE`.
-- Existing `Organization` edges are preserved byte-semantically and append only
-  `mail_accounts`, `mail_domains`, and unique `mailbox_policy`. Existing `User` edges are
-  preserved byte-semantically and append only unique `mail_account`.
+- Existing `Organization` inverse edge collections append only `mail_accounts`, `mail_domains`,
+  and unique `mailbox_policy`; existing `User` collections append only unique `mail_account`.
+  The correction changes only the two MailAccount owner-FK delete actions to `NO ACTION`.
 
 #### Sequential implementation packets
 
@@ -434,9 +453,10 @@ are accepted.
 Fields: `id`, `mail_account_id`, optional `engine_folder_id` (<=1,024 bytes), optional
 same-account `parent_id`, optional `role`, `name` (raw valid UTF-8/no Unicode control/NUL,
 1..120 runes/<=480 bytes; exact raw display bytes/runes retained), private
-`normalized_name` (1..480 bytes), optional `color` (<=32 chars/128 bytes), required int32
+`normalized_name` (1..480 bytes), optional `color` (1..32 chars/<=128 bytes), required int32
 `sort_order` default 0, required int32 `unread_count`/`total_count` default 0,
-`control_state`, optional `control_receipt_id`, non-negative `last_seen_sync_epoch`,
+`control_state`, optional `control_receipt_id`, required int64 `last_seen_sync_epoch` default 0
+(0..2,147,483,647),
 timestamps, optional `deleted_at`, and `VersionMixin`.
 
 Unique indexes:
@@ -459,8 +479,10 @@ zero counters. Only that deleted tombstone may be deleting without a receipt. A 
 is a root (`parent_id` null); custom rows
 have null role. Parent cannot equal id; depth/cycle/same-account is transactionally validated.
 The receipt edge restricts deletion while referenced. A referenced move rule returns
-`MAIL_FOLDER_IN_USE`. Hard account deletion cascades; parent delete is service-ordered and
-restricted until children move/delete. The 100-row live quota counts reserved non-deleted
+`MAIL_FOLDER_IN_USE`. Any final service-owned account deletion is a future prerequisite-only
+description, BLOCKED until an accepted engine deletion-port amendment and separate source plan;
+it authorizes no current cascade or drain. Parent delete is service-ordered and restricted until
+children move/delete. The 100-row live quota counts reserved non-deleted
 control rows, not only rows that already have an engine id. Projection/persistence maps opaque
 engine folder IDs to Hub UUID rows before the pure Folder policy; it never passes engine IDs
 to that policy.
@@ -469,15 +491,16 @@ to that policy.
 
 Fields: `id`, `mail_account_id`, required immutable int32 `thread_key_version` default 1,
 exact 32-byte `thread_key`, `normalized_subject`
-(<=998 UTF-8 bytes), required concrete `participant_addresses` typed JSON array default empty
+(<=998 UTF-8 bytes), required concrete `participant_addresses` typed JSON array with no default
 (exact `[]string` seed snapshot of unique canonical normalized addresses, live 1..401 items,
 <=1,048,576 serialized UTF-8 bytes under default HTML-escaping JSON; no truncation/preview),
 `last_message_at`, required int32 `message_count`/`unread_count`, required booleans
 `is_pinned`/`has_attachments`, snippet
 (<=1,200 chars, <=400 graphemes, <=4,096 bytes), required non-negative
-`last_seen_sync_epoch` default 0, timestamps and optional `deleted_at`. Unique
+`last_seen_sync_epoch` int64 default 0 (0..2,147,483,647), timestamps and optional `deleted_at`. Unique
 `(mail_account_id,thread_key_version,thread_key)`; read index
-`(mail_account_id,is_pinned,last_message_at,id)` on live rows. Account deletion cascades.
+`(mail_account_id,is_pinned,last_message_at,id)` on live rows. Any final service-owned account
+deletion is future/BLOCKED and does not authorize a current cascade.
 Every live thread has `message_count >= 1` and `0 <= unread_count <= message_count`; cleanup
 soft-deletes a thread in the same transaction that would otherwise make the count zero.
 Only V1 is valid in this packet; version/key is immutable as one identity tuple. This is
@@ -496,8 +519,8 @@ subject <=998 UTF-8 bytes, snippet limits above, optional `sent_at`/`received_at
 `size_bytes` 0..52,428,800, priority, `has_attachments`, `is_draft`, `is_seen`, `is_answered`,
 `is_flagged`, `is_junk`, optional auxiliary `engine_state` <=4,096 bytes,
 `projection_origin`, optional
-`flags_synced_at`, optional `calendar_method`, optional `calendar_event_id`, required
-non-negative `last_seen_sync_epoch`, optional immutable `received_event_id`, timestamps and
+`flags_synced_at`, optional `calendar_method`, optional `calendar_event_id`, required int64
+`last_seen_sync_epoch` default 0 (0..2,147,483,647), optional immutable `received_event_id`, timestamps and
 optional `deleted_at`.
 
 Indexes: unique `(mail_account_id,engine_message_id)`; non-unique live same-account resolver
@@ -523,8 +546,8 @@ same-account is checked before insert.
 
 ### `MailLabel`
 
-Fields: UUID id/account, display name 1..60 chars/240 bytes, private normalized name <=240
-bytes, color 1..32, immutable server-generated non-public `engine_keyword`: exactly 57 ASCII
+Fields: UUID id/account, display name 1..60 chars/240 bytes, private normalized name 1..240
+bytes, color 1..32 chars/<=128 bytes, immutable server-generated non-public `engine_keyword`: exactly 57 ASCII
 bytes, `hubk-` plus canonical lower-case unpadded RFC-4648 base32 of exactly 32 cryptographically
 random bytes. Validation must decode the suffix to exactly 32 bytes then re-encode it to the
 identical lower-case suffix; `[a-z2-7]{52}` alone is insufficient. The value is immutable and
@@ -550,15 +573,35 @@ checked transactionally.
 Fields: UUID id/org/account/uploader, immutable server `object_key` <=512 bytes, immutable
 bucket 1..63 bytes, immutable expected size 1..26,214,400, optional actual size in same range,
 filename/media type 1..255 chars/1,020 bytes, optional exact SHA-256, immutable
-UUID `draft_client_id`, upload state default `pending`, immutable expiry, timestamps. Exact owner
-fields are `organization_id`, `mail_account_id`, `uploader_user_id`; size fields are
-`expected_size_bytes` and nullable `actual_size_bytes`; hash is nullable `sha256` bytes(32).
+UUID `draft_client_id`, upload state default `pending`, immutable expiry and immutable
+`upload_drain_until`, nullable paired
+`delete_lease_token` UUID/`delete_lease_until` timestamp, nullable `next_delete_at`, and common
+timestamps. Exact owner fields are `organization_id`, `mail_account_id`, `uploader_user_id`;
+size fields are `expected_size_bytes` and nullable `actual_size_bytes`; hash is nullable `sha256` bytes(32).
 
 Unique `(bucket,object_key)` and one object per id-derived key. State is
 `pending|confirmed|orphaned|deleted`. Actual size/hash is a nullable pair; pending requires
-both null; confirmed requires both present and actual=expected; orphaned/deleted retain any
-known pair but cannot become pending. Expiry never changes. Account/org/uploader/staging
-scope equality is transactionally validated. No scan field or project/file edge exists.
+both null; confirmed requires both present and actual=expected. Pending/confirmed require all
+ delete schedule/lease fields null. Orphaned/deleted require `next_delete_at` and may carry the
+paired lease; `upload_drain_until = expires_at + INTERVAL '11 minutes'` and every scheduled
+delete is no earlier than that immutable boundary. URLs expire within 15 minutes; the selected
+provider/edge capability must prove a hard 10-minute maximum in-flight PUT lifetime and 60-second
+maximum trusted clock skew or is unavailable. `deleted` is durable delete intent, not evidence that
+provider bytes are absent; orphaned/deleted preserve immutable bucket/key/org/account/uploader/
+metadata and every known size/hash. Account/org/uploader/staging scope equality is transactionally
+validated. No scan field or project/file edge exists.
+
+This is schema-ready representation only. It authorizes no current object transition, worker
+claim, provider `DeleteObject(bucket,key)` I/O, or row hard-delete. A FUTURE/NON-DISPATCHABLE
+protocol, only after an accepted engine deletion-port amendment and a separate accepted source
+plan, must move an object to `orphaned|deleted` only after every Attachment reference is removed
+or terminalized; those states reject confirm, download, new association and presign replay with
+no storage I/O. That future protocol must claim a fresh token/deadline after the immutable drain
+boundary, call idempotent `DeleteObject(bucket,key)` outside locks, accept only success or
+authoritative NotFound, then reacquire User -> Account -> Object and hard-delete only by exact
+token/state/scope CAS. Its future failure, crash-reclaim and stale-completion rules are respectively
+exact-lease clear plus bounded retry, expired-lease reclaim only, and zero-row/no-compensating-I/O.
+Account-owned object drain remains blocked, not an active Account-to-Object exception.
 
 ### `MailAttachment`
 
@@ -604,8 +647,9 @@ draft owns at most 50 selected storage-backed attachments. Create/save replaceme
 draft, validates the complete distinct attachment-id set and resulting row count, and rejects
 a 51st association before any engine I/O. The repository enforces the same transactional
 invariant even when called outside HTTP; a corrupted over-limit draft is never submitted.
-Reply/forward links set null on projected-message hard delete. Account deletion cascades;
-individual draft deletion is the terminal status transition, not row deletion.
+Reply/forward links set null on projected-message hard delete. Any final service-owned account
+deletion is future/BLOCKED and does not authorize a current cascade; individual draft deletion is
+the terminal status transition, not row deletion.
 
 ### `MailSubmission`
 
@@ -643,6 +687,175 @@ reconciliation-required. Until finalization the receipt remains `unknown`: a nul
 pair calls `ReconcileSubmission`, while a complete pair skips it and retries only bounded
 message read/projection/finalization. The complete-pair branch cannot requeue or call Submit.
 
+### 144-02A/B/C/D root correction candidate — 2026-08-15
+
+**Status:** `ROOT_CORRECTION_CANDIDATE` · `PRECOMMIT_REVIEW_REQUIRED` · `IMPLEMENTATION_BLOCKED` · `RUNTIME_NOT_RUN`. This is the one authoritative 144-02A/B/C/D correction proposal with accepted-02F dependency trace and expected exact-14 manifest; it grants no Ent, source, generation, migration, service, test, Docker, or runtime authority. The `5e314fb0` result is historical behavior-only evidence, never schema-readiness acceptance.
+
+**Cross-packet correction scope.** This candidate supersedes the accepted 02A Organization/User
+account cascades, the 02C Organization/Account object cascade, and the affected 02D User/
+RecentContact lifecycle clauses. `Organization -> MailAccount`, `User -> MailAccount`, and
+`Organization|User|MailAccount -> MailObject` are `ON DELETE NO ACTION`; Attachment-to-Object
+remains `RESTRICT`. The 02A and 02D lifecycle review artifacts therefore join the exact-14
+candidate manifest. Accepted 02F receipt/lease semantics remain current dependencies rather
+than correction scope; until exact review/acceptance, none of this is schema/source authority.
+
+**Representation boundary.** Ingress normalizes; persistence validators reject and never transform. `MailThreadParticipants []string` is stored exactly as `field.JSON("participant_addresses", MailThreadParticipants{}).SchemaType(map[string]string{dialect.Postgres:"jsonb"})`, `NOT NULL`, no default. `MailStoredAddress{Email string json:"email"; Name string json:"name"}`, `MailStoredAddresses []MailStoredAddress`, and `MailMessageReferences []string` are the Message JSON types: `from` is a required object with no default; `references`, `to`, `cc`, `bcc`, and `reply_to` are concrete empty arrays by default. Default `encoding/json` HTML escaping precedes serialized-byte caps. DB JSON checks only outer type/cardinality/member base shape; application validators own unknown keys, canonical grammar, duplicates, per-member and serialized-byte bounds.
+
+**Common fields.** All ten entities have immutable `id uuid NOT NULL DEFAULT uuid.New`, immutable `created_at timestamptz NOT NULL DEFAULT now()`, and update-now `updated_at timestamptz NOT NULL DEFAULT now()`. Only Folder, Thread, Message, and Label have `deleted_at`. “set-once” is a service rule, not `Ent.Immutable`.
+
+**Scope rules and canonical User lifecycle lock set.** Same-account joins, folder cycle/depth/quota, received-marker set-once, and the 50 selected-attachment locked-draft cap remain service invariants. Object is upload-only; Attachment is the only scan authority. Every nonphysical User deactivation/organization/email mutation, `RecentContact` link/unlink, and any future-authorized `MailObject` uploader-linked lifecycle path uses one canonical affected-account union: (a) every owned or otherwise lifecycle-affected `MailAccount`, including the operation's target account; (b) every account containing a `RecentContact.user_id` link to the User; and (c) every account of every physically present `MailObject` whose `uploader_user_id` is the User, regardless of `upload_state`. The future protocol locks that union exactly once in ascending raw UUID order, then re-reads all three dependency families and proves the union complete. It revalidates User state, organization, account, permission, exact contact links, and uploader/object ownership before any row mutation. Object paths would then lock object/receipt/control rows; `attachment_presign` preserves User before its existing `MailAccount -> receipt` claim order without changing the accepted-02F relative account-before-control-row rule. A race loser performs no row mutation, receipt creation/mutation, or engine/storage I/O, and no engine/storage I/O occurs while locks are held. Physical User deletion and account-owned object drain have no current exception or execution path.
+
+**MailAccount deleting boundary.** The exact blocked-pending-engine-port shape is schema-ready only: `desired_enabled=false`, `status='deleting'`, no lease, no attempted tuple, no confirmed-absence tuple, and the existing due marker. The current candidate may describe/fence that blocked representation only; it starts no admission worker, precleanup, drain, partial mutation, engine I/O, or finalization. Ordinary workers require `status <> 'deleting'`. Until a separately pre-reviewed and accepted engine-port amendment freezes stable request identity/idempotency, a desired-absence primitive, authoritative absent reconciliation, lost-response/crash behavior, token/generation fencing, exact errors, selected adapter capability and 04J/04K ownership, destructive account drain, engine removal, attachment/object drain and final Account hard-delete are NOT DISPATCHED/BLOCKED. This exact14 candidate does not amend `ENGINE-CONTRACT` and grants no source/runtime authority.
+
+**Physical User and Organization boundary.** No exact14 field authorizes physical User deletion. Physical User deletion and every cross-domain GDPR mutation are NOT_DISPATCHABLE/BLOCKED until a separately accepted durable User-deletion-intent/job/route contract and an accepted engine deletion-port amendment freeze intent persistence, authorization/reassignment snapshot, reactivation fencing, preflight before any GDPR mutation, recovery and final full purge. No mail precleanup, drain, partial mutation, User wait, or User deletion starts before both contracts and a separate accepted source plan. Deactivation and email change retain the canonical three-family union; organization change still requires zero accounts and uploader objects. Physical Organization completion is likewise BLOCKED by the missing engine-port amendment; `NO ACTION` remains the fail-closed edge and no eventual completion is claimed.
+
+**02B field/type/null/default/immutable table (authoritative).**
+
+| Entity | Field | PostgreSQL type | Null/default | Immutable |
+|---|---|---|---|---|
+| Folder | id/mail_account_id/parent_id/control_receipt_id | uuid | id/account required; parent/receipt nullable; `uuid.New` id | id/account yes |
+| Folder | `VersionMixin.version` | integer/int32 | required/default `1`; Ent `field.Int`; PostgreSQL `integer NOT NULL DEFAULT 1`; Positive | mutable optimistic counter; no hand-written duplicate field |
+| Folder | engine_folder_id | text | nullable/no default | service set-once after null, not Ent immutable |
+| Folder | role/name/normalized_name/color | text | role/color nullable; name/normalized required; no defaults | role yes; name/normalized no |
+| Folder | control_state/sort_order/unread_count/total_count/last_seen_sync_epoch | text/int32/int32/int32/int64 | state required/no default; others `0`, epoch required `0` | no |
+| Thread | id/mail_account_id | uuid | required, `uuid.New` id | yes |
+| Thread | thread_key_version/thread_key/participant_addresses | int32/bytea/jsonb | required, version `1`; participant required/no default | key/version yes |
+| Thread | normalized_subject/last_message_at/message_count/unread_count/is_pinned/has_attachments/snippet | text/timestamptz/int32/int32/bool/bool/text | required/no DB defaults | no |
+| Thread | last_seen_sync_epoch | int64 | required/default `0` | no |
+| Message | id/mail_account_id | uuid | required, `uuid.New` id | id/account yes |
+| Message | mail_thread_id | uuid | required/no default | no |
+| Message | engine_message_id/engine_version/internet_message_id/in_reply_to/engine_state | text/text/text/text/text | first two required/no default; remainder nullable | engine_message_id yes; engine_version no |
+| Message | references/to/cc/bcc/reply_to | jsonb | required/default `[]` | no |
+| Message | from | jsonb | required/no default | no |
+| Message | subject/snippet | text | required/no defaults | no |
+| Message | sent_at/received_at/flags_synced_at/calendar_method/calendar_event_id | timestamptz/timestamptz/timestamptz/text/uuid | nullable/no defaults | no |
+| Message | size_bytes/priority/projection_origin/is_draft/is_seen/is_answered/is_flagged/is_junk/has_attachments | int64/text/text/bool/bool/bool/bool/bool/bool | required/no DB defaults | no |
+| Message | last_seen_sync_epoch | int64 | required/default `0` | no |
+| Message | received_event_id | uuid | nullable/no default | service set-once then never rewritten, not Ent immutable |
+| MessageFolder | id/mail_message_id/mail_folder_id | uuid | required, `uuid.New` id | ids yes |
+| MessageFolder | engine_state/last_seen_sync_epoch/projected_at | text/int64/timestamptz | state nullable; epoch `0`; projected required | no |
+| Label | id/mail_account_id | uuid | required, `uuid.New` id | yes |
+| Label | `VersionMixin.version` | integer/int32 | required/default `1`; Ent `field.Int`; PostgreSQL `integer NOT NULL DEFAULT 1`; Positive | mutable optimistic counter; no hand-written duplicate field |
+| Label | name/normalized_name/color/engine_keyword | text/text/text/text | name/normalized/color/keyword required, no defaults | keyword yes |
+| MessageLabel | id/mail_message_id/mail_label_id | uuid | required, `uuid.New` id | ids yes |
+| MessageLabel | manual/engine_rule | boolean | required/no DB defaults | no |
+
+**02B exact edge/delete/index table.**
+
+| Entity | FK / delete behavior | Exact indexes |
+|---|---|---|
+| Folder | account `CASCADE`; receipt `RESTRICT`; parent is service-ordered/restricted until child move/delete; soft delete only | `UNIQUE mail_folders_account_engine_folder_uidx (mail_account_id,engine_folder_id) WHERE engine_folder_id IS NOT NULL`; `UNIQUE mail_folders_live_role_uidx (mail_account_id,role) WHERE deleted_at IS NULL AND role IS NOT NULL`; `UNIQUE mail_folders_live_custom_root_uidx (mail_account_id,normalized_name) WHERE deleted_at IS NULL AND role IS NULL AND parent_id IS NULL`; `UNIQUE mail_folders_live_custom_child_uidx (mail_account_id,parent_id,normalized_name) WHERE deleted_at IS NULL AND role IS NULL AND parent_id IS NOT NULL` |
+| Thread | account `CASCADE`; soft delete accompanies final message cleanup | `UNIQUE mail_threads_account_version_key_uidx (mail_account_id,thread_key_version,thread_key)`; non-unique `mail_threads_live_pinned_idx (mail_account_id,is_pinned,last_message_at,id) WHERE deleted_at IS NULL` |
+| Message | account/thread `CASCADE`; calendar link `SET NULL`; soft delete only | `UNIQUE mail_messages_account_engine_uidx (mail_account_id,engine_message_id)`; non-unique `mail_messages_live_internet_message_id_idx (mail_account_id,internet_message_id COLLATE "C") WHERE deleted_at IS NULL`; `UNIQUE mail_messages_received_event_uidx (received_event_id)` (standard PostgreSQL NULL semantics); non-unique `mail_messages_live_account_date_idx (mail_account_id,received_at,sent_at,id) WHERE deleted_at IS NULL`; non-unique `mail_messages_live_thread_date_idx (mail_thread_id,received_at,sent_at,id) WHERE deleted_at IS NULL` |
+| MessageFolder | message/folder `CASCADE`; same-account is locked service | `UNIQUE mail_message_folders_message_folder_uidx (mail_message_id,mail_folder_id)` |
+| Label | account `CASCADE`; active rule reference `RESTRICT`; soft delete only | `UNIQUE mail_labels_live_normalized_name_uidx (mail_account_id,normalized_name) WHERE deleted_at IS NULL`; `UNIQUE mail_labels_account_keyword_uidx (mail_account_id,engine_keyword)` |
+| MessageLabel | message/label `CASCADE`; same-account is locked service | `UNIQUE mail_message_labels_message_label_uidx (mail_message_id,mail_label_id)` |
+
+**02C field/type/null/default/immutable table (authoritative).**
+
+| Entity | Field | PostgreSQL type | Null/default | Immutable |
+|---|---|---|---|---|
+| Object | id/organization_id/mail_account_id/uploader_user_id/draft_client_id | uuid | required; id `uuid.New`; no other defaults | all yes |
+| Object | bucket/object_key/filename/media_type | text | required/no defaults | yes |
+| Object | expected_size_bytes/upload_state/expires_at/upload_drain_until | int64/text/timestamptz/timestamptz | required; state `pending` | expected/expiry/drain yes; state no |
+| Object | actual_size_bytes/sha256 | int64/bytea | nullable/no defaults | no |
+| Object | delete_lease_token/delete_lease_until/next_delete_at | uuid/timestamptz/timestamptz | nullable/no defaults; token/until paired | no |
+| Attachment | id/draft_client_id/storage_object_id/engine_blob_id | uuid/uuid/uuid/text | id required `uuid.New`; others nullable | id/client and selected backing identity yes |
+| Attachment | mail_message_id/mail_draft_id | uuid/uuid | nullable/no defaults | no |
+| Attachment | content_id/filename/media_type/size_bytes/disposition | text/text/text/int64/text | content nullable; others required/no defaults | yes |
+| Attachment | scan_status/sha256 | text/bytea | status required/no default; hash nullable | no |
+| Draft | id/mail_account_id/draft_client_id/reply_to_message_id/forward_message_id | uuid | first three required (`uuid.New` id); reply/forward nullable | id/account/client yes |
+| Draft | engine_draft_key/create_idempotency_key_hash/create_request_hash | text/bytea/bytea | required/no defaults | yes |
+| Draft | engine_message_id/engine_version/revision/status/last_mutation_id | text/text/int64/text/uuid | pair/mutation nullable; revision `1`; status required/no default | no |
+| Submission | id/mail_account_id/idempotency_key_hash/request_hash/engine_submission_key | uuid/uuid/bytea/bytea/text | required (`uuid.New` id); no defaults except attempts below | id/account/hashes/key yes |
+| Submission | mail_draft_id/engine_submission_id/engine_result_message_id/result_mail_message_id | uuid/text/text/uuid | nullable; draft may become null via FK | service set-once opaque/result, not Ent immutable |
+| Submission | last_error_code/attempt_count/status | text/int32/text | error nullable; attempts `0`; status required/no default | no |
+
+**02C exact edge/delete/index table.**
+
+All 02C `id` fields are `uuid NOT NULL DEFAULT uuid.New` immutable; `created_at` is `timestamptz NOT NULL DEFAULT now()` immutable and `updated_at` is `timestamptz NOT NULL DEFAULT now()` with update-now. `MailObject.upload_state` is `text NOT NULL DEFAULT 'pending'` and mutable. Object `actual_size_bytes`/`sha256` and Attachment `sha256` are service write-once `NULL -> validated value`; they are not generic mutable fields. Object account/org/uploader/draft-client/bucket/key/expected-size/filename/media/expiry are immutable; object deletion lease/schedule fields are mutable lifecycle controls. Submission opaque ids/result snapshot are service set-once, never Ent-immutable.
+
+| Entity | FK / delete behavior | Exact indexes |
+|---|---|---|
+| MailObject | Organization/account/uploader User all `NO ACTION`; draft-client is scalar; User lifecycle uses the canonical three-family union; account/User/Organization finalization requires zero objects | `UNIQUE mail_objects_bucket_object_key_uidx (bucket,object_key)`; non-unique `mail_objects_delete_due_idx (next_delete_at,id) WHERE upload_state IN ('orphaned','deleted')` |
+| MailAttachment | storage object/message/draft FKs `RESTRICT`; no cross-account row check | `UNIQUE mail_attachments_storage_object_uidx (storage_object_id) WHERE storage_object_id IS NOT NULL`; non-unique `mail_attachments_message_idx (mail_message_id)`; non-unique `mail_attachments_draft_idx (mail_draft_id)`; no unique index on `engine_blob_id` |
+| MailDraft | account `CASCADE`; reply/forward projected-message snapshots `SET NULL`; individual delete status-only | `UNIQUE mail_drafts_account_engine_key_uidx (mail_account_id,engine_draft_key)`; `UNIQUE mail_drafts_account_client_uidx (mail_account_id,draft_client_id)`; `UNIQUE mail_drafts_account_create_key_uidx (mail_account_id,create_idempotency_key_hash)`; `UNIQUE mail_drafts_account_engine_message_uidx (mail_account_id,engine_message_id) WHERE engine_message_id IS NOT NULL` |
+| MailSubmission | account `CASCADE`; draft FK `SET NULL` only after terminal sent/failed, while queued/submitting/unknown require non-null draft; normal draft delete status-only, exceptional locked purge only terminal sent/failed; result Hub UUID has no FK; CalendarReplyDelivery absent/deferred | `UNIQUE mail_submissions_account_key_hash_uidx (mail_account_id,idempotency_key_hash)`; `UNIQUE mail_submissions_account_engine_key_uidx (mail_account_id,engine_submission_key)`; `UNIQUE mail_submissions_account_engine_submission_uidx (mail_account_id,engine_submission_id) WHERE engine_submission_id IS NOT NULL`; `UNIQUE mail_submissions_account_engine_result_uidx (mail_account_id,engine_result_message_id) WHERE engine_result_message_id IS NOT NULL`; `UNIQUE mail_submissions_account_result_snapshot_uidx (mail_account_id,result_mail_message_id) WHERE result_mail_message_id IS NOT NULL` |
+
+**Literal SQL predicate forms.** Every line below is an intended named PostgreSQL `CHECK (...)` predicate. State/pair predicates are NULL-safe with `COALESCE(..., FALSE)`. JSON checks deliberately enforce only DB-representable outer types, cardinality, primitive/object fields, and member primitive types; unknown keys, canonical values/grammar, duplicate detection, per-member semantic bounds, and serialized-byte caps are reject-not-transform application-validator obligations.
+
+```sql
+CONSTRAINT mail_folders_engine_folder_id CHECK (COALESCE(engine_folder_id IS NULL OR octet_length(engine_folder_id) BETWEEN 1 AND 1024, FALSE))
+CONSTRAINT mail_folders_text CHECK (COALESCE(char_length(name) BETWEEN 1 AND 120 AND octet_length(name) BETWEEN 1 AND 480 AND octet_length(normalized_name) BETWEEN 1 AND 480 AND (color IS NULL OR (char_length(color) BETWEEN 1 AND 32 AND octet_length(color) BETWEEN 1 AND 128)), FALSE))
+CONSTRAINT mail_folders_role CHECK (COALESCE(role IS NULL OR role IN ('inbox','sent','drafts','archive','trash','junk'), FALSE))
+CONSTRAINT mail_folders_control_shape CHECK (COALESCE((control_state = 'active' AND engine_folder_id IS NOT NULL AND control_receipt_id IS NULL AND deleted_at IS NULL) OR (control_state = 'creating' AND engine_folder_id IS NULL AND control_receipt_id IS NOT NULL AND deleted_at IS NULL) OR (control_state IN ('unknown','error') AND control_receipt_id IS NOT NULL AND deleted_at IS NULL) OR (control_state = 'deleting' AND engine_folder_id IS NOT NULL AND ((deleted_at IS NULL AND control_receipt_id IS NOT NULL) OR (deleted_at IS NOT NULL AND control_receipt_id IS NULL))), FALSE))
+CONSTRAINT mail_folders_counters CHECK (COALESCE(unread_count >= 0 AND total_count >= 0 AND unread_count <= total_count, FALSE))
+CONSTRAINT mail_folders_non_active_counts CHECK (COALESCE(control_state = 'active' OR (unread_count = 0 AND total_count = 0), FALSE))
+CONSTRAINT mail_folders_role_parent CHECK (COALESCE(role IS NULL OR parent_id IS NULL, FALSE))
+CONSTRAINT mail_folders_not_self_parent CHECK (COALESCE(parent_id IS NULL OR parent_id <> id, FALSE))
+CONSTRAINT mail_folders_epoch CHECK (COALESCE(last_seen_sync_epoch BETWEEN 0 AND 2147483647, FALSE))
+CONSTRAINT mail_folders_version CHECK (COALESCE(version >= 1, FALSE))
+
+CONSTRAINT mail_threads_key CHECK (COALESCE(thread_key_version = 1 AND octet_length(thread_key) = 32, FALSE))
+CONSTRAINT mail_threads_subject CHECK (COALESCE(octet_length(normalized_subject) <= 998, FALSE))
+CONSTRAINT mail_threads_participants CHECK (CASE WHEN jsonb_typeof(participant_addresses) = 'array' THEN COALESCE(jsonb_array_length(participant_addresses) BETWEEN 1 AND 401 AND NOT jsonb_path_exists(participant_addresses, '$[*] ? (@.type() != "string")'), FALSE) ELSE FALSE END)
+CONSTRAINT mail_threads_counts CHECK (COALESCE(message_count >= 1 AND unread_count BETWEEN 0 AND message_count, FALSE))
+CONSTRAINT mail_threads_snippet CHECK (COALESCE(char_length(snippet) <= 1200 AND octet_length(snippet) <= 4096, FALSE))
+CONSTRAINT mail_threads_epoch CHECK (COALESCE(last_seen_sync_epoch BETWEEN 0 AND 2147483647, FALSE))
+
+CONSTRAINT mail_messages_engine_ids CHECK (COALESCE(octet_length(engine_message_id) BETWEEN 1 AND 1024 AND octet_length(engine_version) BETWEEN 1 AND 1024, FALSE))
+CONSTRAINT mail_messages_message_ids CHECK (COALESCE((internet_message_id IS NULL OR octet_length(internet_message_id) BETWEEN 1 AND 998) AND (in_reply_to IS NULL OR octet_length(in_reply_to) BETWEEN 1 AND 998), FALSE))
+CONSTRAINT mail_messages_references CHECK (CASE WHEN jsonb_typeof(references) = 'array' THEN COALESCE(jsonb_array_length(references) <= 100 AND NOT jsonb_path_exists(references, '$[*] ? (@.type() != "string")'), FALSE) ELSE FALSE END)
+CONSTRAINT mail_messages_from_shape CHECK (COALESCE(jsonb_typeof("from") = 'object' AND jsonb_typeof("from"->'email') = 'string' AND jsonb_typeof("from"->'name') = 'string', FALSE))
+CONSTRAINT mail_messages_address_arrays CHECK (CASE WHEN jsonb_typeof("to") = 'array' AND jsonb_typeof(cc) = 'array' AND jsonb_typeof(bcc) = 'array' AND jsonb_typeof(reply_to) = 'array' THEN COALESCE(jsonb_array_length("to") <= 200 AND jsonb_array_length(cc) <= 200 AND jsonb_array_length(bcc) <= 200 AND jsonb_array_length(reply_to) <= 200 AND NOT jsonb_path_exists("to", '$[*] ? (@.type() != "object" || !exists(@.email) || !exists(@.name) || @.email.type() != "string" || @.name.type() != "string")') AND NOT jsonb_path_exists(cc, '$[*] ? (@.type() != "object" || !exists(@.email) || !exists(@.name) || @.email.type() != "string" || @.name.type() != "string")') AND NOT jsonb_path_exists(bcc, '$[*] ? (@.type() != "object" || !exists(@.email) || !exists(@.name) || @.email.type() != "string" || @.name.type() != "string")') AND NOT jsonb_path_exists(reply_to, '$[*] ? (@.type() != "object" || !exists(@.email) || !exists(@.name) || @.email.type() != "string" || @.name.type() != "string")'), FALSE) ELSE FALSE END)
+CONSTRAINT mail_messages_text CHECK (COALESCE(octet_length(subject) <= 998 AND char_length(snippet) <= 1200 AND octet_length(snippet) <= 4096 AND (engine_state IS NULL OR octet_length(engine_state) <= 4096), FALSE))
+CONSTRAINT mail_messages_size CHECK (COALESCE(size_bytes BETWEEN 0 AND 52428800, FALSE))
+CONSTRAINT mail_messages_epoch CHECK (COALESCE(last_seen_sync_epoch BETWEEN 0 AND 2147483647, FALSE))
+CONSTRAINT mail_messages_priority CHECK (COALESCE(priority IN ('low','normal','high'), FALSE))
+CONSTRAINT mail_messages_projection_origin CHECK (COALESCE(projection_origin IN ('inbound_or_unknown','confirmed_owner_submission','confirmed_owner_draft'), FALSE))
+CONSTRAINT mail_messages_calendar_method CHECK (COALESCE(calendar_method IS NULL OR calendar_method IN ('request','cancel','reply'), FALSE))
+CONSTRAINT mail_messages_bcc_origin CHECK (CASE WHEN jsonb_typeof(bcc) = 'array' THEN COALESCE(projection_origin IN ('confirmed_owner_submission','confirmed_owner_draft') OR jsonb_array_length(bcc) = 0, FALSE) ELSE FALSE END)
+CONSTRAINT mail_message_folders_engine_state CHECK (COALESCE(engine_state IS NULL OR octet_length(engine_state) <= 4096, FALSE))
+CONSTRAINT mail_message_folders_epoch CHECK (COALESCE(last_seen_sync_epoch BETWEEN 0 AND 2147483647, FALSE))
+CONSTRAINT mail_labels_text CHECK (COALESCE(char_length(name) BETWEEN 1 AND 60 AND octet_length(name) BETWEEN 1 AND 240 AND octet_length(normalized_name) BETWEEN 1 AND 240 AND char_length(color) BETWEEN 1 AND 32 AND octet_length(color) BETWEEN 1 AND 128 AND octet_length(engine_keyword) = 57 AND engine_keyword ~ '^hubk-[a-z2-7]{52}$', FALSE))
+CONSTRAINT mail_labels_version CHECK (COALESCE(version >= 1, FALSE))
+CONSTRAINT mail_message_labels_manual_or_engine_rule CHECK (COALESCE(manual OR engine_rule, FALSE))
+
+CONSTRAINT mail_objects_text CHECK (COALESCE(char_length(bucket) BETWEEN 1 AND 63 AND octet_length(bucket) BETWEEN 1 AND 63 AND char_length(object_key) BETWEEN 1 AND 512 AND octet_length(object_key) BETWEEN 1 AND 512 AND char_length(filename) BETWEEN 1 AND 255 AND octet_length(filename) BETWEEN 1 AND 1020 AND char_length(media_type) BETWEEN 1 AND 255 AND octet_length(media_type) BETWEEN 1 AND 1020, FALSE))
+CONSTRAINT mail_objects_sizes CHECK (COALESCE(expected_size_bytes BETWEEN 1 AND 26214400 AND (actual_size_bytes IS NULL OR actual_size_bytes BETWEEN 1 AND 26214400), FALSE))
+CONSTRAINT mail_objects_actual_sha_pair CHECK (COALESCE((actual_size_bytes IS NULL) = (sha256 IS NULL) AND (sha256 IS NULL OR octet_length(sha256) = 32), FALSE))
+CONSTRAINT mail_objects_upload_enum CHECK (COALESCE(upload_state IN ('pending','confirmed','orphaned','deleted'), FALSE))
+CONSTRAINT mail_objects_delete_lease_pair CHECK (COALESCE((delete_lease_token IS NULL) = (delete_lease_until IS NULL), FALSE))
+CONSTRAINT mail_objects_upload_state CHECK (COALESCE((upload_state = 'pending' AND actual_size_bytes IS NULL AND sha256 IS NULL AND next_delete_at IS NULL AND delete_lease_token IS NULL AND delete_lease_until IS NULL) OR (upload_state = 'confirmed' AND actual_size_bytes = expected_size_bytes AND sha256 IS NOT NULL AND next_delete_at IS NULL AND delete_lease_token IS NULL AND delete_lease_until IS NULL) OR (upload_state IN ('orphaned','deleted') AND next_delete_at IS NOT NULL), FALSE))
+CONSTRAINT mail_objects_upload_drain_boundary CHECK (COALESCE(upload_drain_until = expires_at + INTERVAL '11 minutes' AND (next_delete_at IS NULL OR next_delete_at >= upload_drain_until), FALSE))
+
+CONSTRAINT mail_attachments_text CHECK (COALESCE((engine_blob_id IS NULL OR octet_length(engine_blob_id) BETWEEN 1 AND 1024) AND (content_id IS NULL OR (char_length(content_id) BETWEEN 1 AND 255 AND octet_length(content_id) BETWEEN 1 AND 1020)) AND char_length(filename) BETWEEN 1 AND 255 AND octet_length(filename) BETWEEN 1 AND 1020 AND char_length(media_type) BETWEEN 1 AND 255 AND octet_length(media_type) BETWEEN 1 AND 1020 AND size_bytes BETWEEN 0 AND 26214400 AND (sha256 IS NULL OR octet_length(sha256) = 32), FALSE))
+CONSTRAINT mail_attachments_backing_xor CHECK (COALESCE((storage_object_id IS NOT NULL) <> (engine_blob_id IS NOT NULL), FALSE))
+CONSTRAINT mail_attachments_owner_exclusive CHECK (COALESCE(NOT (mail_message_id IS NOT NULL AND mail_draft_id IS NOT NULL), FALSE))
+CONSTRAINT mail_attachments_storage_shape CHECK (COALESCE(storage_object_id IS NULL OR (draft_client_id IS NOT NULL AND size_bytes >= 1), FALSE))
+CONSTRAINT mail_attachments_engine_shape CHECK (COALESCE(engine_blob_id IS NULL OR (mail_message_id IS NOT NULL AND mail_draft_id IS NULL AND draft_client_id IS NULL), FALSE))
+CONSTRAINT mail_attachments_inline_content CHECK (COALESCE(disposition <> 'inline' OR content_id IS NOT NULL, FALSE))
+CONSTRAINT mail_attachments_disposition CHECK (COALESCE(disposition IN ('attachment','inline'), FALSE))
+CONSTRAINT mail_attachments_scan_enum CHECK (COALESCE(scan_status IN ('pending','clean','rejected','error'), FALSE))
+CONSTRAINT mail_attachments_hash_scan CHECK (COALESCE(scan_status NOT IN ('clean','rejected') OR sha256 IS NOT NULL, FALSE))
+
+CONSTRAINT mail_drafts_key CHECK (COALESCE(octet_length(engine_draft_key) BETWEEN 1 AND 1024, FALSE))
+CONSTRAINT mail_drafts_engine_pair CHECK (COALESCE((engine_message_id IS NULL AND engine_version IS NULL) OR (octet_length(engine_message_id) BETWEEN 1 AND 1024 AND octet_length(engine_version) BETWEEN 1 AND 1024), FALSE))
+CONSTRAINT mail_drafts_revision CHECK (COALESCE(revision >= 1, FALSE))
+CONSTRAINT mail_drafts_hashes CHECK (COALESCE(octet_length(create_idempotency_key_hash) = 32 AND octet_length(create_request_hash) = 32, FALSE))
+CONSTRAINT mail_drafts_status_enum CHECK (COALESCE(status IN ('active','saving','submitting','submitted','unknown','deleted'), FALSE))
+CONSTRAINT mail_drafts_state CHECK (COALESCE((status IN ('active','submitting','submitted') AND engine_message_id IS NOT NULL AND last_mutation_id IS NULL) OR (status IN ('saving','unknown') AND last_mutation_id IS NOT NULL) OR (status = 'deleted' AND last_mutation_id IS NULL), FALSE))
+
+CONSTRAINT mail_submissions_key CHECK (COALESCE(octet_length(engine_submission_key) BETWEEN 1 AND 1024, FALSE))
+CONSTRAINT mail_submissions_hashes CHECK (COALESCE(octet_length(idempotency_key_hash) = 32 AND octet_length(request_hash) = 32, FALSE))
+CONSTRAINT mail_submissions_opaque_pair CHECK (COALESCE((engine_submission_id IS NULL AND engine_result_message_id IS NULL) OR (octet_length(engine_submission_id) BETWEEN 1 AND 1024 AND octet_length(engine_result_message_id) BETWEEN 1 AND 1024), FALSE))
+CONSTRAINT mail_submissions_attempts CHECK (COALESCE(attempt_count >= 0, FALSE))
+CONSTRAINT mail_submissions_status_enum CHECK (COALESCE(status IN ('queued','submitting','sent','unknown','failed'), FALSE))
+CONSTRAINT mail_submissions_state CHECK (COALESCE((status IN ('queued','submitting') AND mail_draft_id IS NOT NULL AND engine_submission_id IS NULL AND engine_result_message_id IS NULL AND result_mail_message_id IS NULL AND last_error_code IS NULL) OR (status = 'sent' AND engine_submission_id IS NOT NULL AND engine_result_message_id IS NOT NULL AND result_mail_message_id IS NOT NULL AND last_error_code IS NULL) OR (status = 'unknown' AND mail_draft_id IS NOT NULL AND result_mail_message_id IS NULL AND last_error_code IN ('MAIL_SUBMISSION_OUTCOME_UNKNOWN','MAIL_SUBMISSION_RECONCILIATION_REQUIRED','MAILBOX_UNAVAILABLE') AND NOT (engine_submission_id IS NOT NULL AND last_error_code = 'MAIL_SUBMISSION_OUTCOME_UNKNOWN')) OR (status = 'failed' AND engine_submission_id IS NULL AND engine_result_message_id IS NULL AND result_mail_message_id IS NULL AND last_error_code IN ('MAIL_SUBMISSION_REJECTED','MAIL_SUBMISSION_POLICY','MAIL_SUBMISSION_ATTACHMENT_NOT_CLEAN','MAIL_SUBMISSION_IDENTITY_UNAVAILABLE','MAIL_SUBMISSION_RECIPIENT_LIMIT','MAIL_SUBMISSION_SIZE_LIMIT','MAILBOX_UNAVAILABLE')), FALSE))
+```
+
+Every `*_uidx` in the index inventory is a `CREATE UNIQUE INDEX`; every `*_idx` is non-unique. In particular, `mail_attachments_storage_object_uidx` is a unique partial index on `(storage_object_id) WHERE storage_object_id IS NOT NULL`; there is no uniqueness constraint or index on `engine_blob_id`. `Organization -> MailObject`, `User -> MailObject`, and `MailAccount -> MailObject` are `ON DELETE NO ACTION`; `MailAttachment -> MailObject` is `ON DELETE RESTRICT`. A direct delete is guaranteed to fail only while its named blocker survives; no universal arbitrary-direct-SQL safety is claimed.
+
 ## 144-02D — user configuration
 
 ### `MailUserSettings`
@@ -654,8 +867,9 @@ One UUID/account row with required `default_identity_id`, optional
 `is_default` is derived. Same-account, active/send-allowed identity and same-account live
 signature are checked under a locked settings row. Selected identity deletion is restricted;
 selected signature deletion clears the pointer and increments settings version atomically.
-Account deletion cascades; identity/signature edges otherwise restrict until those ordered
-service transitions complete.
+Any final service-owned account deletion is future/BLOCKED until the accepted engine deletion-port
+amendment and separate source plan; it authorizes no current cascade. Identity/signature edges
+otherwise restrict until their ordered service transitions complete.
 
 ### `MailSignature`
 
@@ -665,8 +879,8 @@ required derived plain body, each <=100,000 chars/400,000 bytes, timestamps, opt
 rich and null for plain. Exact fields are `id`, `mail_account_id`, `name`, `body_format`,
 `rich_body`, `plain_body`, `created_at`, `updated_at`, `deleted_at` plus `VersionMixin`.
 No default boolean exists. At most 20 live rows/account; the quota failure is terminally
-stored in its receipt. Account deletion cascades; the settings pointer is cleared before a
-selected signature is soft-deleted.
+stored in its receipt. Any final service-owned account deletion is future/BLOCKED and authorizes
+no current cascade; the settings pointer is cleared before a selected signature is soft-deleted.
 
 ### `MailRule`
 
@@ -678,8 +892,9 @@ ordering is `(priority,id)`. At most 100 live rows/account. Rule writes and refe
 label deletes lock the account before validating JSON target UUIDs. Exact JSON fields are
 stored as `conditions` and `actions`; each `move` owns one folder UUID, each `add_label` one
 label UUID, and `mark_read` owns neither. A live index on
-`(mail_account_id,enabled,priority,id)` drives hashing/deployment. Account deletion cascades;
-soft-deleted targets are invalid and remain protected by the shared lock. Quota failure is
+`(mail_account_id,enabled,priority,id)` drives hashing/deployment. Any final service-owned account
+deletion is future/BLOCKED and authorizes no current cascade; soft-deleted targets are invalid and
+remain protected by the shared lock. Quota failure is
 terminally stored in its receipt before a rule or desired deployment generation is written.
 
 ### `RecentContact`
@@ -693,38 +908,42 @@ The database enforces unique `(mail_account_id, normalized_email)` and partial e
 rows per account where `user_id IS NULL`; linked rows are exempt.
 
 Only an active same-organization user with exactly equal canonical normalized email may link;
-linked rows have `display_name NULL`, linking clears it, and unlink/user deletion never restores
-a stale external name. Cap restoration is transaction/service logic, not a row CHECK.
+linked rows have `display_name NULL`, linking clears it, and unlink/nonphysical User lifecycle
+changes never restore a stale external name. Cap restoration is transaction/service logic, not a
+row CHECK.
 
 External-only admission/upsert locks the account row first and revalidates live ownership. Same-email
 upsert refreshes injected UTC `last_used_at` and saturates `use_count` at `INT32_MAX`; distinct
 admission at 999 inserts without eviction, while at 1,000 it evicts the exact per-account minimum
 `(last_used_at ASC,id ASC raw UUID)` before insert. Every operation that creates, changes or
-consumes `RecentContact.user_id`, including link/manual unlink and user delete/deactivate/
-organization/email mutation, locks the user row first, then enumerates/revalidates affected
-accounts and locks them ascending raw UUID. The user lock prevents new link or invalidating user
-mutation races. After account locks, link/unlink re-reads exact rows and revalidates account/user
+consumes `RecentContact.user_id`, including link/manual unlink and nonphysical User
+deactivate/organization/email mutation, uses the canonical User-lifecycle three-family union above: User
+first, one ascending raw-UUID account-lock pass, then a re-read of owned/lifecycle accounts,
+exact contact links, and every persisted uploader object. The user lock prevents new link or
+invalidating user mutation races. After account locks, link/unlink re-reads exact rows and revalidates account/user
 organization, status and exact canonical email. Explicit unlink clears `user_id`+`display_name`,
 then repeatedly deletes the global minimum within that locked account among all its current
 null-user rows until <=1,000. The just-unlinked row participates and may be
 evicted; unlink is never rejected or truncated to preserve it.
 
-User delete/deactivate/organization/email mutation holds the user lock, then defines the affected
-account set before account locking as the deduplicated union of (a) every account containing a
-`RecentContact.user_id` link to that user and (b) every MailAccount owned by that user that will
-be cascade-deleted or whose ownership/lifecycle is affected. It locks the complete union ascending
-raw UUID and re-reads/revalidates that the union remains complete; while the user is locked, no
-link or owned-account lifecycle may change outside this protocol. It clears all invalid
-`user_id`+`display_name`, restores the cap within each `mail_account_id` by repeatedly deleting
-that account's global minimum among all current null-user rows, then completes the user mutation;
-it never rejects/truncates the user mutation or prefers only newly external rows. Final
-`User -> MailAccount` FK cascade must not acquire an omitted account lock because every owned
-account due for cascade is already in the sorted union. Standalone account deletion locks account
-only and never later requests a user lock; it serializes with the account-scoped phase without a
-cycle. Delete-first makes later link/mutation revalidation fail without a row;
-mutation-first is followed by cascade. Both outcomes leave no orphan or cap breach. Direct deletion outside the
-lifecycle service is unsupported. `ON DELETE SET NULL` is referential fallback only, never cap
-restoration.
+Nonphysical User deactivation/organization/email mutation holds the User lock and uses that
+canonical union; this section never defines a narrower complete set. While the User is locked, no
+link, owned-account lifecycle, or uploader-object lifecycle may change outside this protocol.
+Physical User deletion and every cross-domain GDPR route are NOT_DISPATCHABLE/BLOCKED: they do not
+adjudicate blockers, commit accounts to `deleting`, wait, clean contacts, drain objects, or delete
+the User unless the separate accepted durable User intent/job/route contract, accepted engine
+deletion-port amendment, and separate accepted source plan exist. Organization change requires
+zero owned accounts and zero physically present uploader objects and otherwise aborts before
+contact mutation. Deactivation and email change do not reject solely because objects exist; after
+the canonical re-read they clear invalid `user_id`+`display_name` and restore each cap. This
+RecentContact cleanup itself never rejects/truncates a permitted mutation or prefers only newly
+external rows.
+
+The blocked account representation is account-scoped and never requests a User lock, but it does
+not commit a runnable deletion workflow. `User -> MailAccount NO ACTION` and `User -> MailObject
+NO ACTION` fail closed only while those named blockers survive. `RecentContact.user_id ON DELETE
+SET NULL` is referential fallback only, never cap restoration, so arbitrary direct User deletion
+without a named account/object blocker is not claimed safe.
 
 External `display_name` ingestion reuses safe address-name validation: valid UTF-8, no Unicode
 `Cc` or header-injection controls, <=160 runes/640 bytes. Permitted whitespace, `Cf`, rune and
@@ -796,9 +1015,10 @@ The first terminal transition makes status/code/times immutable. Client rows at 
 replay time behave expired independent of cleanup; compaction deletes all target/member rows
 atomically and sets `compacted_at >= replay_until` while retaining the parent hashes and
 route metadata as the lifetime tombstone. Internal terminal rows may hard-delete after
-replay time and never accept an HTTP key. Lease pair is both-null or both-present. Account/
-organization deletion cascades. Actor deletion never removes or blocks an organization
-receipt because `actor_user_id` is a historical scalar snapshot rather than a user edge.
+replay time and never accept an HTTP key. Lease pair is both-null or both-present. Any final
+service-owned account or organization deletion is future/BLOCKED and authorizes no current receipt
+cascade. Actor deletion never removes or blocks an organization receipt because `actor_user_id` is
+a historical scalar snapshot rather than a user edge.
 
 ### `MailMutationReceiptTarget`
 
@@ -888,7 +1108,8 @@ from=1/to=2/subject=3/has_attachment=4, operator codes equals=1/contains=2/
 matches_domain=3/is=4, followed by value tag string=1 or boolean=2 and its canonical value.
 Action codes are move=1/add_label=2/mark_read=3 followed by the 16 target UUID bytes only
 for the first two. Stored array order is preserved; JSON encoding, map order, locale and
-timestamps never participate. Account deletion cascades; no engine script id/body is stored.
+timestamps never participate. Any final service-owned account deletion is future/BLOCKED and
+authorizes no current cascade; no engine script id/body is stored.
 For equal priority, id order is unsigned lexicographic order of the 16 RFC-4122 UUID bytes;
 database text/locale collation never determines the hash order.
 

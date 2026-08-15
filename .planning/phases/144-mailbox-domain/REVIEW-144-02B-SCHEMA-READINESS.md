@@ -1,5 +1,7 @@
 # Phase 144-02B preimplementation review — projection schema readiness
 
+> **2026-08-15 lifecycle correction:** every lower Outcome/P1/recommendation/status/gate conclusion that depends on absent or unfrozen representation is `CONSUMED/HISTORICAL`. Only unchanged source/generation/migration/launcher blockers remain current. The combined exact14 144-02A/B/C/D correction with 02F dependency/status trace is `ROOT_CORRECTION_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED` / `IMPLEMENTATION_BLOCKED` / `RUNTIME_NOT_RUN`, not current review PASS. It freezes 02B representation alongside public metadata-only `deleting`, fail-closed `NO ACTION`, blocked-pending account row, immutable `upload_drain_until`, and 02D union/deactivation/email/org-change. Engine/object drain/final physical deletion remain separately `BLOCKED` / `NOT_DISPATCHABLE` until the required accepted engine-port amendment; no source/Ent/service/test/runtime authority. Exact route is three fresh named precommit PASS reviews, atomic 14-doc commit, three exact-SHA reviews, then separate docs-only status sync; Terra/medium dispatcher-enforced/no fallback/telemetry `UNKNOWN`.
+
 > **Detected:** 2026-08-13 root deep static audit
 > **Status:** 0.1.8_ROOT_AMENDMENT_AVAILABLE · INDEPENDENT_CLOSURE_PENDING · IMPLEMENTATION_BLOCKED · RUNTIME_NOT_RUN
 > **Scope:** folder, thread, message, folder/message and label/message projection schemas

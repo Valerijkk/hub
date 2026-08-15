@@ -7,6 +7,7 @@
 > **Phase-145 carrier receipt (2026-08-15):** Carrier `1daef78768048d7672c38a65b78ef0f119f3c207` (parent `c14c208889e8aa1ce7f005a3d9ce03d1a3bb6dc6`, tree `1086a93f2f52423cfdf9dcfc01eadd2e0d434947`, blob `218a38117ae51d014f40218e0f5c4606ec8d4dfa`) is docs/design/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; exact reviews PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`; base/correction lifecycle `CONSUMED/HISTORICAL`. No plan/source/test/runtime authority. Separate carrier-plan acceptance + G145-5B/G145-5C/launcher readiness block Rule Task 1/145-07B; launcher `NOT_READY`, executables `NOT_RUN`.
 
 > **Current dependency truth:** 144-02D retains docs-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`. 144-02F correction `fcb5b84fed4a417e736ddb4053256e494a0c25f6` plus exact-28 transition `2f4381a2cf12a1a2b07bdee5ce6e8309d2f10260` is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high PASS `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN` unless exposed. Former lifecycle and Rule-plan authoring/review are `CONSUMED/HISTORICAL`; no packet gains source/runtime eligibility. Rule TDD/production awaits all accepted non-marker Phase-145 carrier/G145-5B/G145-5C and launcher readiness.
+> **Current exact14 lifecycle precedence:** only correction-scoped lower claims are superseded. Current state is `ROOT_CORRECTION_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED` / `IMPLEMENTATION_BLOCKED` / `RUNTIME_NOT_RUN`; prior Contract `FAIL 1/2/0` and Security `FAIL 2/3/0` are historical findings under correction, not current PASS. It freezes metadata-only GET `deleting`, 409-before-receipt/I/O content/mutation guard, `NO ACTION`, blocked-pending account row, immutable `upload_drain_until` plus storage proof, 02B/02C representation and 02D union/deactivation/email/org-change. Engine removal/drain/final Account deletion/physical Organization completion require a separate accepted deletion-port amendment; physical User/GDPR deletion requires a separate accepted durable User-intent/job/route contract. Both remain `BLOCKED` / `NOT_DISPATCHABLE`; `423` is transient busy only. 02F remains unchanged except traced replay/account-writer dependency. Exact route: three fresh PASS, one exact 14-doc commit, three exact-SHA reviews, separate docs-only sync; Terra/medium dispatcher-enforced/no fallback, telemetry `UNKNOWN`.
 > **Assembly rule:** dispatch the Common execution envelope plus exactly one packet or one
 
 > **02F dispatch invariant:** reviewers must reject NULL-vulnerable receipt/deployment predicates, any target unique other than `(receipt_id,request_index)` plus `(receipt_id,target_type,target_id)`, a fictitious composite FK, a `message_bulk p=10` folder-exhaustion path, incomplete literal state CASEs, or a hash header missing `0x00||0x01`. The receipt oracle separates folder p10 terminal 409/30d from manual-only bulk p10 and requires same-key persisted-202 replay before the account-locked fresh-key `423 MAIL_ACCOUNT_BUSY` guard (no row/snapshot/expansion/I/O); it also requires stored-order length-exact nested hash frames and late-owner contention handling. The persistence contract is the normative byte/state/CAS source; this dispatch authorizes neither source/schema/generation/migration/service/runtime nor any executable while launcher is `NOT_READY` and executable evidence `NOT_RUN`.
@@ -92,6 +93,8 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 
 ## 144-02B — folder/thread/message/membership/label schemas
 
+> Current state: combined 144-02A/B/C/D correction with 02F dependency/status trace is `ROOT_CORRECTION_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED`; this dispatch is not authorized. Relevant scope includes 02A Organization->Account and User->Account `NO ACTION` plus internal MailAccount `deleting`; unrelated accepted facts remain authoritative.
+
 - Dependency: reviewed 02A. Allowed only new schema files
   `mailfolder.go`, `mailthread.go`, `mailmessage.go`, `mailmessagefolder.go`, `maillabel.go`,
   `mailmessagelabel.go`.
@@ -109,9 +112,11 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 
 ## 144-02C — object/attachment/draft/submission schemas
 
+> Current state: combined 144-02A/B/C/D correction with 02F dependency/status trace is `ROOT_CORRECTION_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED`; this dispatch is not authorized. Relevant scope includes 02C Account->MailObject `NO ACTION` plus durable deleted-object lease/schedule lifecycle. Object authority is owner/account/object-key/upload-state/hash/expiry; attachment is sole scan authority.
+
 - Dependency: reviewed 02A. Allowed only new schema files
   `mailobject.go`, `mailattachment.go`, `maildraft.go`, `mailsubmission.go`.
-- Behavior: mail object owner/account/lease/key/hash/scan; attachment backing metadata;
+- Behavior: mail object owner/account/object-key/upload-state/hash/expiry; attachment is the sole scan authority and owns backing metadata;
   draft opaque engine id/version/revision/states/hashes, no content and at most 50 locked
   scalar attachment associations; submission hashed key, request hash, stable engine
   key/states, separate opaque engine result ids and scalar Hub result UUID. Express XOR/check through selected
@@ -121,6 +126,8 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   state; no project/FileMetadata edge; expiry/audit; no generated/migration edits.
 
 ## 144-02D — settings/signature/rule/contact schemas
+
+> Current state: the 02D RecentContact/User lifecycle slice participates in the combined `ROOT_CORRECTION_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED`; no dispatch is authorized. The canonical complete lock set is the deduplicated union of (a) owned or otherwise lifecycle-affected accounts including the operation target, (b) accounts containing an exact `RecentContact.user_id` link, and (c) accounts containing any physically persisted `MailObject` uploaded by the User. Physical User deletion and every cross-domain GDPR mutation are blocked until their separate accepted durable intent/job/route contract; this is not async owned-account-deletion authority. Target-organization mismatch remains a blocker. Unrelated accepted 02D facts remain authoritative.
 
 - Dependency: accepted 02A representation and independently accepted 02D contract review.
   Corrective docs `7d29d08c827cf857fc6fc8cc6a0f8201e42d4ecb` plus transition
@@ -133,7 +140,8 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   account, nullable signature; one default signature; bounded sanitized config; typed rule
   JSON/version/soft delete but no raw Sieve or engine script id; RecentContact has canonical
   account/email uniqueness, <=1,000 null-user external rows/account, linked-row exemption,
-  user-first then ascending raw-UUID lock of the complete deduplicated owned+linked account union
+  User-first then one ascending raw-UUID lock/re-read of the complete deduplicated three-family
+  owned/lifecycle-account + exact contact-link + physically persisted uploader-object union
   for user mutation, user-first link/manual-unlink, account-only external admission and standalone
   account deletion, exact per-account LRU cap restoration, safe exact-content display-name validation,
   and no public persistence-history route.
@@ -141,6 +149,8 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   not encoded as persistence; no message body authority or secret.
 
 ## 144-02F — mutation receipt and rule-deployment schemas
+
+> Current trace: 02F receipt/deployment normative `STATIC_ACCEPTED` / `EXACT_SHA_PASS` facts remain unchanged. Only the broad clause that treated 02D as wholly unchanged and its dependent writer/replay assumptions is candidate-superseded by the current 02D lifecycle correction. This trace is `ROOT_CORRECTION_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED` and authorizes no source/schema/runtime work.
 
 - Dependencies: accepted 02A representation, independently accepted 02D and docs/readiness-only
   accepted 02F contract reviews. 02F correction `fcb5b84f` plus exact-28 transition `2f4381a2` is
@@ -413,8 +423,9 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 - Behavior: owner-scoped typed CRUD/soft delete. Each transaction validates all targets,
   applies optimistic version, deterministically orders the complete active set, increments
   desired generation and stores its hash/deployment pending. Create uses 04O receipt.
-  Response includes honest deployment state. It performs no engine call, account mutation
-  lease or 423 mapping.
+  The account-deleting guard returns stable 409 before receipt, transaction or I/O. Otherwise,
+  it performs no handler engine call and no transient lease/423 mapping. Response includes
+  honest deployment state.
 - Oracles: concurrent generation monotonic; same key replay; changed key conflict; stale
   If-Match zero change; delete leaves deployable tombstone until newer generation ready;
   no raw Sieve/script id/provider text.
@@ -720,8 +731,10 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 - Behavior/oracles: admin/current org selects the user account server-side; list plus
   idempotent normalized alias create and non-primary delete change canonical identity state,
   increment account desired generation and return pending/deleting; verified enabled domain
-  and global address uniqueness; no handler engine call/423. Account worker performs exact
-  Ensure reconciliation. Group/primary mutation forbidden; cross-org/non-admin zero
+  and global address uniqueness; the account-deleting guard returns stable 409 before receipt
+  or I/O; otherwise no handler engine call. Transient live-lease 423 remains only where
+  already contracted and is not mixed with deleting. Account worker performs exact Ensure
+  reconciliation. Group/primary mutation forbidden; cross-org/non-admin zero
   disclosure; collision/reserved address is only `MAIL_ALIAS_ADDRESS_UNAVAILABLE`, while
   inactive account and non-mutable identity have distinct safe codes; no engine identity id/
   provider error/raw key. Exact OpenAPI 0.1.8/NFR-13.

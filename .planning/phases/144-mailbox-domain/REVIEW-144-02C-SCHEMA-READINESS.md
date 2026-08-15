@@ -1,5 +1,7 @@
 # Phase 144-02C preimplementation review — object/draft schema readiness
 
+> **2026-08-15 lifecycle correction:** every lower Outcome/P1/recommendation/status/gate conclusion that depends on absent or unfrozen representation is `CONSUMED/HISTORICAL`. The 5e PASS is historical behavior-only, never schema-readiness acceptance. Only unchanged source/generation/migration/launcher blockers remain current. The combined 144-02A/B/C/D correction with 02F dependency/status trace is `ROOT_CORRECTION_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED`; 02C correction scope is Account->MailObject fail-closed `NO ACTION`, immutable `upload_drain_until` and storage-capability proof before any deletion I/O, plus blocked-pending object/attachment drain and 02B/02C representation. Engine drain/final Account deletion remain separately `BLOCKED` / `NOT_DISPATCHABLE` pending the independent engine deletion-port amendment. No source/Ent/service/test/runtime authority. Exact route is three fresh named precommit PASS reviews, atomic 14-doc commit, three exact-SHA reviews, then separate docs-only status sync; Terra/medium dispatcher-enforced/no fallback/telemetry `UNKNOWN`.
+
 > **Detected:** 2026-08-13 root deep static audit
 > **Lifecycle:** exact contract `PASS` at `5e314fb0`; implementation remains separately blocked.
 > **Status:** 0.1.8_EXACT_CONTRACT_PASS `5e314fb0` · IMPLEMENTATION_SEPARATELY_BLOCKED · RUNTIME_NOT_RUN
