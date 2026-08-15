@@ -1,5 +1,7 @@
 # 144-02F-R — mutation-receipt source authority receipt
 
+> **144-02B boundary:** This accepted 02F-R receipt permits only `MailMutationReceipt.folders` inverse solely for `MailFolder.control_receipt_id -> receipt RESTRICT`; actor/message receipt edges remain scalar-only and every other receipt edge/check is unchanged. It grants no 02B source authority. 02B is `ROOT_SOURCE_AUTHORITY_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED` / `IMPLEMENTATION_BLOCKED` / `RUNTIME_NOT_RUN`, with no source dispatch/acceptance; 02C waits accepted 02B and 02F-D/02E/Ent/generation/migration/runtime/services/API/UI/release remain blocked.
+
 > **Historical authority status:** `CONSUMED/HISTORICAL` at
 > `a877848ef4d1ce80a30a4389f97ef0f863615159` (parent
 > `25cfb36720f9a35c96268a62f7ee81fd91f83503`, tree

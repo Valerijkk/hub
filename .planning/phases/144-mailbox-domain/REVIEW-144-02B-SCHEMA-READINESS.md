@@ -1,5 +1,9 @@
 # Phase 144-02B preimplementation review — projection schema readiness
 
+> **Candidate review gate:** `ROOT_SOURCE_AUTHORITY_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED` / `IMPLEMENTATION_BLOCKED` / `RUNTIME_NOT_RUN`, no source dispatch/acceptance. Review frozen test-first exact13: new `mailfolder.go`, `mailthread.go`, `mailmessage.go`, `mailmessagefolder.go`, `maillabel.go`, `mailmessagelabel.go`, `backend/tests/mail/mail_projection_schema_test.go`; edits `mailaccount.go`, `calendarevent.go`, `mailmutationreceipt.go`, `mail_account_identity_schema_test.go`, `mail_mutation_receipt_schema_test.go`, `backend/tests/calendar/calendar_event_schema_test.go`.
+>
+> Require PERSISTENCE 02B tables/checks/indexes/JSON; sole 02F-R exception is `MailMutationReceipt.folders` inverse for `MailFolder.control_receipt_id -> receipt RESTRICT`. Actor/message scalar-only and all other receipt edges/checks unchanged; `MailAccount` folders/threads/messages/labels; `CalendarEvent.mail_messages` inverse with Message FK `SET NULL`; rule targets service-only, no DB FK/normalized target; compatibility tests mandatory. Contract/high, Security/xhigh and Lifecycle/high each PASS C/I/M `0/0/0`, then exact-nine-doc commit, three fresh exact-SHA reviews and separate docs-only acceptance precede root dispatch. 02C waits accepted 02B; 02F-D/02E/Ent/generation/migration/runtime/services/API/UI/release BLOCKED; launcher `NOT_READY`, executables `NOT_RUN`.
+
 > **2026-08-15 lifecycle correction acceptance:** exact14 is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `576f19231e37f635d5b7187a1ada121ed14ff8dc` (parent `0ef3df9eedfb3683fe70a7f8fc502ca76278facb`, tree `b28904b96c084dd88c4cec37c8e1daa62fde4c5d`) after Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high exact-SHA PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback, telemetry `UNKNOWN`. Candidate/precommit/root-commit/exact-review/status-sync-next clauses are `CONSUMED/HISTORICAL`. Engine deletion-port and User deletion-intent remain separately `BLOCKED` / `NOT_DISPATCHABLE`; unchanged source/generation/migration/launcher blockers remain current.
 
 > **Detected:** 2026-08-13 root deep static audit
@@ -98,7 +102,7 @@ Those are not duplicated as new findings here.
 
 ## Gate impact
 
-- 144-02B is `BLOCKED_CONTRACT`; no six-file schema packet should be authored;
+- 144-02B `BLOCKED_CONTRACT` is a `CONSUMED/HISTORICAL` discovery verdict, superseded by the current exact13 gated authority candidate; no current source dispatch is authorized until its required lifecycle completes;
 - message/folder/label repositories, sync apply, bulk mutation and public DTO packets remain
   blocked on the reviewed field/index/check matrix;
 - generation/migration and runtime remain independently blocked by founder/launcher gates;
