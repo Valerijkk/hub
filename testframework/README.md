@@ -13,9 +13,14 @@ exists. F1-03 authorization and platform-abuse source is independently accepted
 at `f184487a` and `3932ac78`: four TASK-208 and two TASK-209 active nodes/cases
 require launcher-injected opaque fresh factories, per-test nonce-bound ledgers,
 and exact cleanup; the platform contract records only four exact Redis ownership
-entries. No concrete provisioner, A1 admission, or profile-to-launcher binding
-exists. A private runner source candidate also has static review only. None is
-accepted package execution, launcher runtime, or runtime authority.
+entries. F1-04 source is independently static-accepted across `bc5feef8`,
+`630bda9b`, `8ff13097`, and `1868cf71`: its sealed v3 manifest contains 14
+bounded source blobs and its closed ledger contains five ordered critical/high
+risk edges for three OpenAPI, one privacy, and one auth-session-event active
+source contract. No concrete provisioner, A1 admission, accepted profile
+binding, or executable launcher exists. A private runner source candidate also
+has static review only. None is accepted package execution, launcher runtime,
+or runtime authority; all global critical/high outcomes remain `NOT_PROVEN`.
 
 Package/bootstrap boundaries for the next slice are defined in
 [`PACKAGE-CONTRACT.md`](PACKAGE-CONTRACT.md). That document is architecture,
@@ -69,10 +74,20 @@ progressively only by its first accepted consumer.
   every test requires an opaque fresh launcher-injected
   `PlatformAbuseHarnessFactory` and exact cleanup of only four recorded Redis
   ownership entries. Neither has a concrete provisioner or launcher binding.
-  Planned `tests/{integration,contract,e2e}/` will own executable pytest suites
-  grouped by layer and domain: API and E2E assert public observable behavior,
-  contract covers API/schema/event/source contracts, and integration covers
-  DB/broker/storage boundaries. Those layer directories remain absent.
+- `tests/contract/openapi/` contains three active TASK-227 source contracts,
+  linked to `TC-OPENAPI-0001`--`TC-OPENAPI-0003`; source profile
+  `openapi-contract` targets exactly `tests/contract/openapi`, with future
+  launcher case root exactly `cases/openapi`.
+  `tests/contract/privacy/` contains the active `TC-PRIVACY-0001` source
+  contract; source profile `privacy-security` targets exactly
+  `tests/contract/privacy`, with future launcher case root exactly
+  `cases/privacy`. `tests/contract/security/` contains the active
+  `TC-SECURITY-0001` auth-session-event source contract; source profile
+  `security-risk` targets exactly `tests/contract/security`, with future
+  launcher case root exactly `cases/security`. The closed ledger stores the
+  corresponding repo-relative case roots below
+  `testframework/cases/{openapi,privacy,security}`. These are source contracts,
+  not executed evidence. Planned `tests/{integration,e2e}/` remain absent.
 - `selftests/` owns contracts of the framework itself.
 - `load/` owns the separate measured Locust lifecycle.
 - `cases/` owns repository-controlled `TC-*` intent, risk linkage, and
@@ -125,7 +140,22 @@ ownership entries per test. Their future profile roots are exactly
 profile-to-launcher bindings remain absent. `TC-AUTHZ-0005` is
 project-cross-scope blocked by the current backend middleware order: protected
 handlers terminate before `rbac.RequirePermission` can run. Package bootstrap
-and target-suite execution: **NOT_READY**. F1-04 and later source remain pending.
+and target-suite execution: **NOT_READY**. F1-04 is independently **STATIC
+ACCEPT** across `bc5feef8`, `630bda9b`, `8ff13097`, and `1868cf71`: sealed
+source-bundle manifest v3 has exactly 14 bounded blobs, and the closed risk
+ledger has five ordered edges for three active OpenAPI, one active privacy, and
+one active auth-session-event source contract. Every global critical/high
+outcome remains **NOT_PROVEN**.
+
+The current generated Swagger is known RED: security-definition `in` values
+are malformed, paths retain a second `/api` below `basePath`, magic verification
+omits implemented 403/429 responses, TMS webhook docs still expose legacy
+`X-Hub-Token`/query-token auth instead of BearerAuth-or-APIKeyAuth alternatives,
+and public error responses reference internal `AppError` artifacts. Backend
+repair and Swagger regeneration are pending. External OpenAPI-validator
+admission/execution, A1, accepted profile-to-launcher bindings, `uv.lock`, image
+evidence, and an executable launcher remain absent. The three source profile
+records do not grant execution authority. F2 and later source remain pending.
 Private runner source candidate:
 **STATIC_SOURCE_REVIEWED**; launcher: **NOT_READY**; `PS5.1_PARSE_NOT_RUN`;
 `PRIVATE_CONTRACT_NOT_RUN`. Runtime: **NOT_RUN**. `uv.lock`, `images.lock.v3.json`,

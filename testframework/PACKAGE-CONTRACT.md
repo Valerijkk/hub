@@ -15,7 +15,8 @@ define a runnable command, or grant runtime authority.
 | F1-01 HTTP policy and diagnostics source | `SOURCE_AUTHORED` / `SOURCE_REVIEWED` | commit `a5f3b728`; immutable injected-only HTTP policy, transport, redaction-bound diagnostics, and health adapter source are independently reviewed. They create no client, network request, or runtime evidence |
 | F1-02 identity/session source | `SOURCE_AUTHORED` / `STATIC_ACCEPT` | commit `2b037dd2`; four active `TC-IDENTITY-0001`--`TC-IDENTITY-0004` API nodes are independently static-accepted. They require a launcher-injected `IdentityHarnessFactory` to create a fresh harness and ownership ledger per test with exact cleanup; no concrete provisioner or harness implementation exists |
 | F1-03 authorization and platform-abuse source | `SOURCE_AUTHORED` / `INDEPENDENTLY_ACCEPTED` | commits `f184487a` and `3932ac78`; four active TASK-208 authorization nodes/cases and two active TASK-209 platform-abuse nodes/cases use launcher-injected opaque fresh factories, per-test nonce-bound ownership ledgers, and exact cleanup. The platform contract records only its four exact Redis ownership entries; concrete provisioners, profile bindings, and a launcher remain absent |
-| SUT suite layer directories | `NOT_READY` | source tracers exist at `tests/api/health/test_health_api.py` with `TC-HEALTH-0001`, `tests/api/identity/test_identity_api.py` with four active identity nodes, `tests/api/authz/test_authz_api.py` with four active authorization nodes, and `tests/api/platform/test_platform_abuse.py` with two active platform-abuse nodes; `tests/{contract,integration,e2e}/` remain absent and no suite execution evidence exists |
+| F1-04 sealed source-contract boundary | `SOURCE_AUTHORED` / `INDEPENDENT STATIC ACCEPT` | commits `bc5feef8`, `630bda9b`, `8ff13097`, and `1868cf71`; the sealed v3 manifest contains exactly 14 bounded source blobs and the closed ledger contains five ordered risk edges. Three active OpenAPI cases, one privacy case, and one auth-event case are source-authored; all critical/high outcomes remain `NOT_PROVEN` |
+| SUT suite layer directories | `NOT_READY` | API source tracers exist for health, identity, authorization, and platform abuse. Contract source tracers now exist under `tests/contract/{openapi,privacy,security}/` with five active TASK-227 cases; `tests/{integration,e2e}/` remain absent and no suite execution evidence exists |
 | Versioned launcher API | `NOT_READY` | `runner/run-task.ps1` is a private static source candidate only; `PS5.1_PARSE_NOT_RUN`, `PRIVATE_CONTRACT_NOT_RUN`, no accepted public entrypoint |
 | Runtime | `NOT_RUN` | structure and documentation are not execution evidence |
 
@@ -50,7 +51,10 @@ package code and executable suites on different roots:
 | `tests/api/identity/**` | four source-authored identity/session API nodes linked to `TC-IDENTITY-0001`--`TC-IDENTITY-0004`; the `identity-api` profile target is exactly `tests/api/identity` and requires exactly `--hub-case-root cases/identity` when a launcher binding exists |
 | `tests/api/authz/**` | four source-authored authorization API nodes linked to `TC-AUTHZ-0001`--`TC-AUTHZ-0004` for TASK-208; the future profile root is exactly `tests/api/authz` and its future launcher binding requires exactly `--hub-case-root cases/authz` |
 | `tests/api/platform/**` | two source-authored platform-abuse API nodes linked to `TC-PLATFORM-0001`--`TC-PLATFORM-0002` for TASK-209; the future profile root is exactly `tests/api/platform` and its future launcher binding requires exactly `--hub-case-root cases/platform` |
-| Planned `tests/{contract,integration,e2e}/**` | future executable SUT pytest suites grouped by layer and domain; these layer directories are currently absent |
+| `tests/contract/openapi/**` | three active TASK-227 source contracts linked to `TC-OPENAPI-0001`--`TC-OPENAPI-0003`; source profile `openapi-contract` targets exactly `tests/contract/openapi`, with future launcher case root exactly `cases/openapi` |
+| `tests/contract/privacy/**` | one active TASK-227 source contract linked to `TC-PRIVACY-0001`; source profile `privacy-security` targets exactly `tests/contract/privacy`, with future launcher case root exactly `cases/privacy` |
+| `tests/contract/security/**` | one active TASK-227 auth-event source contract linked to `TC-SECURITY-0001`; source profile `security-risk` targets exactly `tests/contract/security`, with future launcher case root exactly `cases/security` |
+| Planned `tests/{integration,e2e}/**` | future executable SUT pytest suites grouped by layer and domain; these layer directories are currently absent |
 | `selftests/**` | contracts of the framework/package itself; never SUT behavior |
 | `cases/**` | repository-owned new-case intent and risk linkage; IDs match `^TC-[A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*-[0-9]{4}$` |
 | `schemas/**` | closed machine-readable case/run/ownership contracts |
@@ -79,9 +83,14 @@ and `cases/platform`. No concrete authorization or platform-abuse provisioner
 exists. `TC-AUTHZ-0005` remains project-cross-scope blocked: current backend
 middleware order reaches protected handlers before `rbac.RequirePermission`,
 and those handlers terminate the request without `Next`. None of these tracers
-proves live Hub behavior. `tests/contract/`, `tests/integration/`, and
-`tests/e2e/` remain absent and are created only by their first accepted
-consumer. This documentation slice must not add empty layer directories.
+proves live Hub behavior. F1-04 adds source-only contract tracers at the exact
+future profile targets `tests/contract/openapi`, `tests/contract/privacy`, and
+`tests/contract/security`, with exact case roots `cases/openapi`,
+`cases/privacy`, and `cases/security`. The closed risk ledger records their
+repo-relative case roots as `testframework/cases/{openapi,privacy,security}`.
+`tests/integration/` and `tests/e2e/` remain absent and are created only by
+their first accepted consumer. This documentation slice must not add empty
+layer directories.
 
 Direct root `core/`, `api/`, `integration/`, `contract/`, or `e2e/` package or
 suite trees are not target architecture. A nested `testframework/python/`
@@ -248,8 +257,28 @@ exact recorded Redis ownership entries. Their future profile roots are exactly
 profile-to-launcher binding, `uv.lock`, and `images.lock.v3.json` remain absent.
 `TC-AUTHZ-0005` remains
 project-cross-scope blocked by the current backend middleware order: protected
-handlers terminate before `rbac.RequirePermission` can run. F1-04 and later
-source remain pending. F0/F1 source closure cannot yield a runtime result.
+handlers terminate before `rbac.RequirePermission` can run. F1-04 is
+independently static-accepted across `bc5feef8`, `630bda9b`, `8ff13097`, and
+`1868cf71`: the sealed source-bundle manifest is v3 with exactly 14 bounded
+source blobs, and `f1-security-risk-ledger.toml` is closed to five ordered
+critical/high edges. It binds three active OpenAPI nodes/cases, one active
+privacy node/case, and one active auth-session-event node/case to the exact
+future profile targets and case roots listed above. This is source-contract
+coverage only; every global critical/high outcome remains `NOT_PROVEN`.
+
+The current generated Swagger is known RED against those contracts: its
+security-definition `in` values are malformed, generated paths retain a second
+`/api` below `basePath`, magic verification omits the implemented 403 and 429
+responses, TMS webhooks still advertise legacy `X-Hub-Token`/query-token auth
+instead of the BearerAuth-or-APIKeyAuth alternatives, and public error responses
+still reference internal `AppError` artifacts rather than the redacted wire
+shape. Backend annotation/schema repair and Swagger regeneration remain
+pending. No external OpenAPI-validator admission or execution exists. A1,
+accepted profile-to-launcher bindings, concrete launcher execution, `uv.lock`,
+and image evidence remain absent; the three source profile records do not grant
+execution authority. Package and launcher stay `NOT_READY`, runtime stays
+`NOT_RUN`, and F2 and later source remain pending. F0/F1 source closure cannot
+yield a runtime result.
 
 The installable/executable package slice is not accepted until all of the
 following are true on one exact revision:
