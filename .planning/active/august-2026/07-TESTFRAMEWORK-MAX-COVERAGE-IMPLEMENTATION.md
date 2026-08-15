@@ -275,10 +275,192 @@ excluded because the current response exposes an invite secret. F1-03A and
 F1-03B create no profile binding, provisioner, image, lock, runner, Docker
 execution, report, or runtime evidence and preserve `NOT_READY` / `NOT_RUN`.
 
+**F1-04 source-authoring receipt (2026-08-15).** The current generated Swagger
+artifacts contain known RED contract defects: malformed security-definition
+`in`, a double `/api` client prefix, missing magic-verify `403`/`429`, an
+internal `AppError` schema instead of the public error wire, and legacy TMS
+webhook token authentication. These are product-documentation defects, not
+testframework acceptance. Their source annotation repair plus regeneration of
+all generated Swagger artifacts requires a separate reviewed backend manifest;
+F1-04 neither edits nor declares those artifacts repaired.
+
+F1-04 is five independently revertible source-only commits. The first commit is
+selftests-first and owns exactly:
+
+```text
+testframework/src/hub_testkit/contracts/__init__.py
+testframework/src/hub_testkit/contracts/source_bundle.py
+testframework/src/hub_testkit/contracts/pytest_source_bundle.py
+testframework/src/hub_testkit/contracts/risk_ledger.py
+testframework/policies/f1-security-risk-ledger.toml
+testframework/selftests/collection/contracts/test_source_bundle.py
+testframework/selftests/collection/contracts/test_risk_ledger.py
+testframework/selftests/architecture/imports/test_contract_source_boundary.py
+```
+
+`ContractSourceBundleFactory` is a future launcher-injected callable installed
+exactly once in `pytest.Config.stash`. A function fixture invokes it exactly
+once per test and returns an opaque, non-revealing facade. The delegate exposes
+only `materialize() -> SourceSnapshot`; the snapshot contains lower-case
+40-hex `source_commit` and an ordered `tuple[SourceBlob, ...]` for this exact
+manifest v1:
+
+```text
+backend/cmd/server/main.go
+backend/docs/swagger.json
+backend/internal/auth/events.go
+backend/internal/auth/handler.go
+backend/internal/auth/service_session.go
+backend/internal/notification/consumer.go
+backend/internal/notification/events.go
+backend/internal/platform/middleware/middleware.go
+backend/internal/tms/handler.go
+testframework/policies/f1-security-risk-ledger.toml
+```
+
+The facade accepts exactly ten blobs in that literal tuple order; only this
+single snapshot input can be admitted, so missing, duplicate, extra, or
+reordered records are observable and rejected. Each
+`SourceBlob` is bound to its exact `ContractSourcePath`, lower-case raw SHA-256,
+strict UTF-8 without BOM/NUL/CR, at most 4 MiB per blob and 8 MiB total; missing,
+duplicate, extra, reordered, replaced, oversized, or digest-mismatched input is
+rejected. The immutable facade publishes only safe `source_commit`, canonical
+bundle digest, and a closed enum-based blob selector; there is no arbitrary
+path API. The canonical bundle digest is exactly SHA-256 over
+`b"hub.qa.contract-source-bundle/v1\0"`, the ASCII source commit, `b"\0"`, then
+for every ordered blob its ASCII logical path, `b"\0"`, ASCII raw SHA-256, and
+`b"\0"`. `load_f1_04_risk_ledger(bundle)` obtains the policy only through the
+closed facade selector; neither it nor any test accepts a path or byte-loader
+callable. Delegate/raw blob/raw exception references are deleted before a
+constant generic `pytest.UsageError` or `ContractSourceError`, and no secret or
+hostile input survives in repr or traceback locals. This transports claimed
+Git authority only: future R/A1 must independently prove every blob equals
+`git show <source_commit>:<logical_path>`.
+
+The contract package and F1-04 tests are forbidden from importing or using
+`pathlib`, `os`, `open`, `read_text`, `read_bytes`, cwd, environment variables,
+subprocess/Git, HTTP clients, private facade fields, or a second source loader.
+Architecture selftests enforce the active import/call boundary. The current
+declared `openapi-spec-validator` is not executable authority because `uv.lock`,
+resolved version/hash, and admitted dependency bytes are absent. F1-04 uses
+one stdlib duplicate-aware bounded JSON parser plus narrow structural
+predicates only. It calls `json.loads` with the duplicate-rejecting
+`object_pairs_hook`, `parse_constant` rejecting non-finite constants,
+`parse_int=_parse_bounded_int_lexeme`, and
+`parse_float=_parse_bounded_finite_decimal_lexeme`. The integer parser rejects
+lexemes over 20 characters before calling `int`; the float parser rejects
+lexemes over 64 before producing a finite `Decimal`; both delete raw values and
+suppress causes on failure. A recursive post-parse walk limits depth to 32,
+each mapping and list
+to 4,096 entries/items, and every string to 65,536 characters. Every decode,
+type, duplicate, numeric, depth, cardinality, or string-bound failure becomes a
+constant generic error with raw input deleted and `from None`; no separate JSON
+parser is permitted. External Swagger validation needs a separate R/A1
+amendment.
+
+`f1-security-risk-ledger.toml` has exactly ordered root keys `schema`, then five
+ordered `edge` records. Every record has exactly `risk_id`, `severity`,
+`case_id`, `pytest_node_id`, `profile`, `case_root`. Its closed values are:
+
+| Risk | Severity | Case | Profile | Case root |
+|---|---|---|---|---|
+| `RISK-OPENAPI-CANONICAL-DOCUMENT` | `critical` | `TC-OPENAPI-0001` | `openapi-contract` | `testframework/cases/openapi` |
+| `RISK-MAGIC-VERIFY-ERROR-CONTRACT` | `high` | `TC-OPENAPI-0002` | `openapi-contract` | `testframework/cases/openapi` |
+| `RISK-TMS-WEBHOOK-AUTH-DRIFT` | `critical` | `TC-OPENAPI-0003` | `openapi-contract` | `testframework/cases/openapi` |
+| `RISK-PUBLIC-ERROR-ARTIFACT` | `high` | `TC-PRIVACY-0001` | `privacy-security` | `testframework/cases/privacy` |
+| `RISK-AUTH-SESSION-EVENT-LINK` | `high` | `TC-SECURITY-0001` | `security-risk` | `testframework/cases/security` |
+
+The exact node IDs are respectively:
+
+```text
+testframework/tests/contract/openapi/test_openapi_security_contract.py::test_swagger_document_is_valid_with_single_api_prefix
+testframework/tests/contract/openapi/test_openapi_security_contract.py::test_magic_verify_operation_lists_implemented_error_contract
+testframework/tests/contract/openapi/test_openapi_security_contract.py::test_tms_webhooks_document_real_auth_not_legacy_token
+testframework/tests/contract/privacy/test_public_error_contract.py::test_public_error_artifact_is_redacted_to_wire_schema
+testframework/tests/contract/security/test_auth_session_event_contract.py::test_auth_session_created_event_has_exact_producer_consumer_link
+```
+
+The stdlib `tomllib` loader rejects every key/order/count/ID/severity/profile/
+root/node deviation. Each domain conftest verifies its actual public
+`item.user_properties` `hub.case_id` and `hub.risk` plus public `item.nodeid`
+against the ledger, without private plugin stash or direct case-file reads.
+Each of the three local conftests owns exactly one `autouse=True`,
+function-scoped fixture that performs this verification once for every item.
+It reads only `request.node.nodeid` and `request.node.user_properties`; missing,
+unknown, duplicate, reordered, or non-exact `hub.case_id`/`hub.risk` properties
+raise a constant generic failure. No test can bypass the edge check.
+This proves only these five explicit F1-04 edges; global critical/high closure
+remains `NOT_PROVEN`.
+
+The second F1-04 commit owns exactly:
+
+```text
+testframework/src/hub_testkit/contracts/openapi.py
+testframework/tests/contract/openapi/conftest.py
+testframework/tests/contract/openapi/test_openapi_security_contract.py
+testframework/cases/openapi/TC-OPENAPI-0001.md
+testframework/cases/openapi/TC-OPENAPI-0002.md
+testframework/cases/openapi/TC-OPENAPI-0003.md
+```
+
+Its three literal, non-parametrized `TASK-227` cases validate narrow generated
+JSON-to-source relations rather than hard-coded Swagger expectations.
+`TC-OPENAPI-0001` consumes `backend/cmd/server/main.go` plus
+`backend/docs/swagger.json` and requires matching valid header-only
+`BearerAuth`/`APIKeyAuth` definitions, no conflicting base path, and exactly one
+composed `/api` prefix. `TC-OPENAPI-0002` consumes
+`backend/internal/auth/handler.go` plus Swagger JSON and requires the annotated
+magic-verify request/token success plus `400/401/403/429`, with no secret
+examples. `TC-OPENAPI-0003` consumes `backend/internal/tms/handler.go` plus
+Swagger JSON and requires both generated webhook operations to match the
+source's real bearer/RBAC route boundary without `X-Hub-Token` or query-token
+authentication. Each oracle freezes only these named annotations/routes and
+relations; it does not infer unrelated Go routes. Broad route snapshots, YAML,
+`docs.go`, live HTTP, and dev-only routes are excluded.
+
+The third F1-04 commit owns exactly:
+
+```text
+testframework/src/hub_testkit/contracts/public_error.py
+testframework/tests/contract/privacy/conftest.py
+testframework/tests/contract/privacy/test_public_error_contract.py
+testframework/cases/privacy/TC-PRIVACY-0001.md
+```
+
+Its one literal `TASK-227` case consumes
+`backend/internal/platform/middleware/middleware.go` plus Swagger JSON and
+requires the generated public error definition to equal the implemented wire
+fields `error` and `request_id`, excluding `code`, `details`, `message`, secret
+examples, and extra fields. The oracle freezes only the named public error
+write relation and does not scan unrelated middleware.
+
+The fourth F1-04 commit owns exactly:
+
+```text
+testframework/src/hub_testkit/contracts/auth_events.py
+testframework/tests/contract/security/conftest.py
+testframework/tests/contract/security/test_auth_session_event_contract.py
+testframework/cases/security/TC-SECURITY-0001.md
+```
+
+Its one literal `TASK-227` case checks a bounded source relation only: the exact
+`SessionCreatedEvent` JSON fields, producer subject `auth.session.created`,
+notification subject mapping, and typed consumer remain aligned. It does not
+execute a broker or infer other unversioned event families.
+
+The fifth commit changes only `testframework/PACKAGE-CONTRACT.md` and
+`testframework/README.md`. Future A1 profiles bind only
+`openapi-contract` to `tests/contract/openapi` plus exact `cases/openapi`,
+`privacy-security` to `tests/contract/privacy` plus exact `cases/privacy`, and
+`security-risk` to `tests/contract/security` plus exact `cases/security`.
+There is no 48th profile, profile-registry edit, filesystem source discovery,
+dependency resolution, provisioner, image, lock, runner, report, Docker
+execution, or runtime evidence. Status remains `NOT_READY` / `NOT_RUN`.
+
 1. **F1-01 HTTP policy and diagnostics.** Add immutable actor/client policy, explicit connect/read/write/pool timeout values, bounded retry classification, idempotency protection for unsafe methods, correlation, and redacted diagnostics. The first failures are mutable authorization, timeout/retry leakage, unsafe POST retry, and secret-bearing request evidence.
 2. **F1-02 identity/session/account.** Add only observable current auth/session/account behavior: successful valid flow, invalid credentials/no token, deactivated/blocked account denial where implemented, refresh/session revocation behavior where current routes support it, and exact fixture cleanup. Magic-link transport/code creation is not assumed; a safe provisioning path must be explicit. `/api/dev/login` is development-only and is not a default auth fixture.
 3. **F1-03 authorization/platform abuse.** Author only the six active cases in the source-authoring receipt above. Add admin/account RBAC denial, privilege preservation, enumeration-safe responses, one-time-code replay rejection, the observable production rate bound, and artifact redaction. Do not claim rate-limit expiry/recovery without clock control, and do not add cross-project denial until the separately reviewed middleware-order product fix exists. The reserved `authz-tenant` profile name is not evidence of a true multi-tenant product.
-4. **F1-04 OpenAPI/security contracts.** Validate implemented public OpenAPI/schema/event compatibility and critical/high security traceability. Bound snapshots; reject incompatible schema/event changes, unredacted public artifacts, and a missing critical/high risk-to-case edge.
+4. **F1-04 OpenAPI/security contracts.** Author only the sealed-bundle, five-edge ledger, three Swagger, one public-error, and one auth-session-event source contracts above. Preserve the known RED documentation defects until a separate backend annotation/regeneration repair is accepted. No broad snapshot or global critical/high closure claim is allowed.
 
 ### F2 — implemented integration/API spine
 
@@ -330,7 +512,11 @@ One atomic source commit contains its source, cases, and selftests for one row b
 | 8 | `test(testframework): add identity session account cases` | F1-02 paths | auth/security/product-behavior review |
 | 9A | `test(testframework): add admin account authorization cases` | exact F1-03A 14-path allowlist | security/product review; reject invented tenant semantics |
 | 9B | `test(testframework): add platform abuse replay cases` | exact F1-03B 12-path allowlist | security/privacy review; provisioning and profile remain unbound |
-| 10 | `test(testframework): add OpenAPI security contracts` | F1-04 paths | API/schema/security review |
+| 10A | `feat(testframework): add sealed contract source boundary` | exact F1-04 boundary 8-path allowlist | source-provenance/privacy/architecture review |
+| 10B | `test(testframework): add OpenAPI security contracts` | exact F1-04 OpenAPI 6-path allowlist | API/schema/security review; known product-doc RED remains |
+| 10C | `test(testframework): add public error artifact contract` | exact F1-04 privacy 4-path allowlist | privacy/wire-schema review |
+| 10D | `test(testframework): add auth session event contract` | exact F1-04 event 4-path allowlist | producer/consumer source-link review |
+| 10E | `docs(testframework): record F1 contract source closure` | `testframework/PACKAGE-CONTRACT.md`, `testframework/README.md` | factual docs review; runtime remains `NOT_RUN` |
 | 11 | `test(testframework): add data broker isolation spine` | F2 data/broker paths, one service boundary per commit | integration/cleanup review per service |
 | 12 | `test(testframework): add implemented work domain cases` | exactly one work domain per commit | domain + traceability review |
 | 13 | `test(testframework): add current calendar read contracts` | `cases/calendar/**`, optional `src/hub_testkit/domains/calendar/**`, `tests/api/calendar/**` | calendar API/privacy/RFC 5545 review |
