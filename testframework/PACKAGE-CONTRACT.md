@@ -13,7 +13,8 @@ define a runnable command, or grant runtime authority.
 | Framework selftests | `NOT_READY` | package-contract selftest source exists under the registered architecture profile root; it is not executed evidence |
 | F0 framework/domain source | `SOURCE_AUTHORED` / `SOURCE_REVIEWED` | strict config/runtime/ownership/redaction, traceability, public pytest collection plugin, literal 47-profile policy, and fake-only health source are authored and independently source-reviewed; this is not execution evidence |
 | F1-01 HTTP policy and diagnostics source | `SOURCE_AUTHORED` / `SOURCE_REVIEWED` | commit `a5f3b728`; immutable injected-only HTTP policy, transport, redaction-bound diagnostics, and health adapter source are independently reviewed. They create no client, network request, or runtime evidence |
-| SUT suite layer directories | `NOT_READY` | the first source tracer is `tests/api/health/test_health_api.py` with `TC-HEALTH-0001`; `tests/{contract,integration,e2e}/` remain absent and no suite execution evidence exists |
+| F1-02 identity/session source | `SOURCE_AUTHORED` / `STATIC_ACCEPT` | commit `2b037dd2`; four active `TC-IDENTITY-0001`--`TC-IDENTITY-0004` API nodes are independently static-accepted. They require a launcher-injected `IdentityHarnessFactory` to create a fresh harness and ownership ledger per test with exact cleanup; no concrete provisioner or harness implementation exists |
+| SUT suite layer directories | `NOT_READY` | source tracers exist at `tests/api/health/test_health_api.py` with `TC-HEALTH-0001` and `tests/api/identity/test_identity_api.py` with four active identity nodes; `tests/{contract,integration,e2e}/` remain absent and no suite execution evidence exists |
 | Versioned launcher API | `NOT_READY` | `runner/run-task.ps1` is a private static source candidate only; `PS5.1_PARSE_NOT_RUN`, `PRIVATE_CONTRACT_NOT_RUN`, no accepted public entrypoint |
 | Runtime | `NOT_RUN` | structure and documentation are not execution evidence |
 
@@ -45,6 +46,7 @@ package code and executable suites on different roots:
 |---|---|
 | `src/hub_testkit/**` | reusable installable framework modules imported as `hub_testkit.*` |
 | `tests/api/health/**` | first source-authored API tracer: one fake-transport liveness contract linked to `TC-HEALTH-0001`; it is not live, installed, or execution evidence |
+| `tests/api/identity/**` | four source-authored identity/session API nodes linked to `TC-IDENTITY-0001`--`TC-IDENTITY-0004`; the `identity-api` profile target is exactly `tests/api/identity` and requires exactly `--hub-case-root cases/identity` when a launcher binding exists |
 | Planned `tests/{contract,integration,e2e}/**` | future executable SUT pytest suites grouped by layer and domain; these layer directories are currently absent |
 | `selftests/**` | contracts of the framework/package itself; never SUT behavior |
 | `cases/**` | repository-owned new-case intent and risk linkage; IDs match `^TC-[A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*-[0-9]{4}$` |
@@ -55,9 +57,13 @@ package code and executable suites on different roots:
 | `runner/**` | sole reviewed versioned launcher boundary; current private source candidate is static-only and not runtime authority |
 | `reports/<task-run>/**` | generated owner-marked evidence for exactly one run |
 
-The suite tree is progressive. The first API source tracer exists at
-`tests/api/health/test_health_api.py` and is linked to `TC-HEALTH-0001`; it
-uses a fake transport and proves no live Hub behavior. `tests/contract/`,
+The suite tree is progressive. API source tracers exist at
+`tests/api/health/test_health_api.py`, linked to `TC-HEALTH-0001`, and at
+`tests/api/identity/test_identity_api.py`, linked to four active identity
+cases. The health tracer uses a fake transport. The identity tracer has no
+concrete provisioner or harness implementation; its future launcher must
+inject a fresh `IdentityHarnessFactory` product for each test and perform exact
+cleanup. Neither tracer proves live Hub behavior. `tests/contract/`,
 `tests/integration/`, and `tests/e2e/` remain absent and are created only by
 their first accepted consumer. This documentation slice must not add empty
 layer directories.
@@ -208,8 +214,15 @@ traceability modules, the public-hook collection plugin, and
 Those F0 sources are independently source-reviewed. The health tracer is not
 live Hub evidence. F1-01 HTTP policy and diagnostics source is independently
 reviewed at `a5f3b728`; it remains injected-only, creates no network client or
-request, and cannot yield runtime evidence. F1-02 and all later source remain
-pending. F0/F1 source closure cannot yield a runtime result.
+request, and cannot yield runtime evidence. F1-02 identity/session source is
+independently static-accepted at `2b037dd2`: four active cases/nodes require a
+launcher-injected `IdentityHarnessFactory` that produces a fresh harness and
+ownership ledger per test with exact cleanup. No concrete provisioner or
+harness implementation exists. The `identity-api` target is exactly
+`tests/api/identity` and its future launcher binding requires exactly
+`--hub-case-root cases/identity`. A1 admission and accepted profile-to-launcher
+binding remain absent; F1-03 and later source remain pending. F0/F1 source
+closure cannot yield a runtime result.
 
 The installable/executable package slice is not accepted until all of the
 following are true on one exact revision:

@@ -5,8 +5,12 @@ Hub. F0 package/config/runtime/traceability/public-plugin/profile and health
 sources are authored and independently source-reviewed. F1-01 injected-only
 HTTP policy, transport, and redacted diagnostics source is independently
 source-reviewed at `a5f3b728`; it creates no network client or runtime
-evidence. A private runner source candidate also has static review only. None
-is accepted package execution, launcher runtime, or runtime authority.
+evidence. F1-02 identity/session source is independently static-accepted at
+`2b037dd2`: four active identity cases/nodes require a launcher-injected
+`IdentityHarnessFactory` that produces a fresh harness and ownership ledger per
+test with exact cleanup. No concrete provisioner or harness implementation
+exists. A private runner source candidate also has static review only. None is
+accepted package execution, launcher runtime, or runtime authority.
 
 Package/bootstrap boundaries for the next slice are defined in
 [`PACKAGE-CONTRACT.md`](PACKAGE-CONTRACT.md). That document is architecture,
@@ -44,6 +48,11 @@ progressively only by its first accepted consumer.
     `ui/pages/` and `ui/components/`.
 - `tests/api/health/` contains the first source-authored tracer, linked to
   `TC-HEALTH-0001`: a fake-transport liveness contract, not live Hub evidence.
+  `tests/api/identity/` contains four active identity/session source nodes,
+  linked to `TC-IDENTITY-0001`--`TC-IDENTITY-0004`; its `identity-api` profile
+  target is exactly `tests/api/identity` and requires exactly
+  `--hub-case-root cases/identity` when a launcher binding exists. It has no
+  concrete provisioner or harness implementation.
   Planned `tests/{integration,contract,e2e}/` will own executable pytest suites
   grouped by layer and domain: API and E2E assert public observable behavior,
   contract covers API/schema/event/source contracts, and integration covers
@@ -81,9 +90,16 @@ traceability/public-plugin/profile and health source: **SOURCE_AUTHORED** and
 **SOURCE_REVIEWED** through `92e9fec7`; the health test is fake-transport source
 contract only, not live evidence. F1-01 HTTP policy and diagnostics source:
 **SOURCE_AUTHORED** and **SOURCE_REVIEWED** at `a5f3b728`; it is injected-only,
-creates no network client or runtime evidence. Package bootstrap and target-suite
-execution: **NOT_READY**. F1-02 and later source remain pending. Private runner
-source candidate: **STATIC_SOURCE_REVIEWED**; launcher: **NOT_READY**; `PS5.1_PARSE_NOT_RUN`;
+creates no network client or runtime evidence. F1-02 identity/session source:
+**SOURCE_AUTHORED** and independently **STATIC_ACCEPT** at `2b037dd2`, with four
+active cases/nodes and a future launcher-injected `IdentityHarnessFactory` that
+creates a fresh harness and ownership ledger per test with exact cleanup. There
+is no concrete provisioner or harness implementation. The `identity-api` target
+is exactly `tests/api/identity` and requires exactly `--hub-case-root
+cases/identity`; accepted A1 admission and profile-to-launcher binding remain
+absent. Package bootstrap and target-suite execution: **NOT_READY**. F1-03 and
+later source remain pending. Private runner source candidate:
+**STATIC_SOURCE_REVIEWED**; launcher: **NOT_READY**; `PS5.1_PARSE_NOT_RUN`;
 `PRIVATE_CONTRACT_NOT_RUN`. Runtime: **NOT_RUN**. `uv.lock`, `images.lock.v3.json`,
 and required local dependency bytes are absent. There is no supported direct runner
 or fallback command. No file/source review promotes installation, execution, or
