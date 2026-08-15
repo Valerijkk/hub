@@ -16,7 +16,8 @@ define a runnable command, or grant runtime authority.
 | F1-02 identity/session source | `SOURCE_AUTHORED` / `STATIC_ACCEPT` | commit `2b037dd2`; four active `TC-IDENTITY-0001`--`TC-IDENTITY-0004` API nodes are independently static-accepted. They require a launcher-injected `IdentityHarnessFactory` to create a fresh harness and ownership ledger per test with exact cleanup; no concrete provisioner or harness implementation exists |
 | F1-03 authorization and platform-abuse source | `SOURCE_AUTHORED` / `INDEPENDENTLY_ACCEPTED` | commits `f184487a` and `3932ac78`; four active TASK-208 authorization nodes/cases and two active TASK-209 platform-abuse nodes/cases use launcher-injected opaque fresh factories, per-test nonce-bound ownership ledgers, and exact cleanup. The platform contract records only its four exact Redis ownership entries; concrete provisioners, profile bindings, and a launcher remain absent |
 | F1-04 sealed source-contract boundary | `SOURCE_AUTHORED` / `INDEPENDENT STATIC ACCEPT` | commits `bc5feef8`, `630bda9b`, `8ff13097`, and `1868cf71`; the sealed v3 manifest contains exactly 14 bounded source blobs and the closed ledger contains five ordered risk edges. Three active OpenAPI cases, one privacy case, and one auth-event case are source-authored; all critical/high outcomes remain `NOT_PROVEN` |
-| SUT suite layer directories | `NOT_READY` | API source tracers exist for health, identity, authorization, and platform abuse. Contract source tracers now exist under `tests/contract/{openapi,privacy,security}/` with five active TASK-227 cases; `tests/{integration,e2e}/` remain absent and no suite execution evidence exists |
+| F2 135-F files lifecycle source | `SOURCE_AUTHORED` / `INDEPENDENT STATIC ACCEPT` | commit `af077c18`; five active TASK-214 cases/nodes use a launcher-injected `FilesHarnessFactory` to create a fresh opaque `FilesRuntime` per test and require exact cleanup. The existing `files-api` source profile targets `tests/api/files`; its future launcher case root is `cases/files`. No concrete delegate, A1 admission, launcher binding, or runtime evidence exists |
+| SUT suite layer directories | `NOT_READY` | API source tracers exist for health, identity, authorization, platform abuse, and files lifecycle. Contract source tracers now exist under `tests/contract/{openapi,privacy,security}/` with five active TASK-227 cases; `tests/{integration,e2e}/` remain absent and no suite execution evidence exists |
 | Versioned launcher API | `NOT_READY` | `runner/run-task.ps1` is a private static source candidate only; `PS5.1_PARSE_NOT_RUN`, `PRIVATE_CONTRACT_NOT_RUN`, no accepted public entrypoint |
 | Runtime | `NOT_RUN` | structure and documentation are not execution evidence |
 
@@ -51,6 +52,7 @@ package code and executable suites on different roots:
 | `tests/api/identity/**` | four source-authored identity/session API nodes linked to `TC-IDENTITY-0001`--`TC-IDENTITY-0004`; the `identity-api` profile target is exactly `tests/api/identity` and requires exactly `--hub-case-root cases/identity` when a launcher binding exists |
 | `tests/api/authz/**` | four source-authored authorization API nodes linked to `TC-AUTHZ-0001`--`TC-AUTHZ-0004` for TASK-208; the future profile root is exactly `tests/api/authz` and its future launcher binding requires exactly `--hub-case-root cases/authz` |
 | `tests/api/platform/**` | two source-authored platform-abuse API nodes linked to `TC-PLATFORM-0001`--`TC-PLATFORM-0002` for TASK-209; the future profile root is exactly `tests/api/platform` and its future launcher binding requires exactly `--hub-case-root cases/platform` |
+| `tests/api/files/**` | five active TASK-214 files-lifecycle source nodes linked to `TC-FILES-0001`--`TC-FILES-0005`; the existing `files-api` source profile targets exactly `tests/api/files`, with future launcher case root exactly `cases/files` |
 | `tests/contract/openapi/**` | three active TASK-227 source contracts linked to `TC-OPENAPI-0001`--`TC-OPENAPI-0003`; source profile `openapi-contract` targets exactly `tests/contract/openapi`, with future launcher case root exactly `cases/openapi` |
 | `tests/contract/privacy/**` | one active TASK-227 source contract linked to `TC-PRIVACY-0001`; source profile `privacy-security` targets exactly `tests/contract/privacy`, with future launcher case root exactly `cases/privacy` |
 | `tests/contract/security/**` | one active TASK-227 auth-event source contract linked to `TC-SECURITY-0001`; source profile `security-risk` targets exactly `tests/contract/security`, with future launcher case root exactly `cases/security` |
@@ -88,6 +90,14 @@ future profile targets `tests/contract/openapi`, `tests/contract/privacy`, and
 `tests/contract/security`, with exact case roots `cases/openapi`,
 `cases/privacy`, and `cases/security`. The closed risk ledger records their
 repo-relative case roots as `testframework/cases/{openapi,privacy,security}`.
+F2 135-F adds five active TASK-214 files-lifecycle nodes/cases at
+`tests/api/files/test_files_api.py` and `cases/files/TC-FILES-0001.md` through
+`TC-FILES-0005.md`. Its future launcher must invoke the injected
+`FilesHarnessFactory` once per test, expose only a fresh opaque `FilesRuntime`,
+and perform exact delegate cleanup in the fixture `finally` path. The existing
+`files-api` source profile targets exactly `tests/api/files`, with future case
+root exactly `cases/files`. No concrete files delegate, A1 admission, or
+profile-to-launcher binding exists.
 `tests/integration/` and `tests/e2e/` remain absent and are created only by
 their first accepted consumer. This documentation slice must not add empty
 layer directories.
@@ -265,6 +275,13 @@ critical/high edges. It binds three active OpenAPI nodes/cases, one active
 privacy node/case, and one active auth-session-event node/case to the exact
 future profile targets and case roots listed above. This is source-contract
 coverage only; every global critical/high outcome remains `NOT_PROVEN`.
+F2 135-F files-lifecycle source is independently static-accepted at
+`af077c18`: five active TASK-214 nodes/cases require a launcher-injected
+`FilesHarnessFactory`, one fresh opaque `FilesRuntime` per test, and exact
+cleanup through that runtime. The existing `files-api` source profile targets
+exactly `tests/api/files`, with future launcher case root exactly `cases/files`.
+The concrete delegate, A1 admission, and profile-to-launcher binding remain
+absent.
 
 The current generated Swagger is known RED against those contracts: its
 security-definition `in` values are malformed, generated paths retain a second
@@ -276,9 +293,10 @@ shape. Backend annotation/schema repair and Swagger regeneration remain
 pending. No external OpenAPI-validator admission or execution exists. A1,
 accepted profile-to-launcher bindings, concrete launcher execution, `uv.lock`,
 and image evidence remain absent; the three source profile records do not grant
-execution authority. Package and launcher stay `NOT_READY`, runtime stays
-`NOT_RUN`, and F2 and later source remain pending. F0/F1 source closure cannot
-yield a runtime result.
+execution authority. Package and launcher stay `NOT_READY`, the concrete files
+delegate and A1 admission remain absent, and runtime stays `NOT_RUN`. Remaining
+F2 and later source is pending. F0/F1/F2 source closure cannot yield a runtime
+result.
 
 The installable/executable package slice is not accepted until all of the
 following are true on one exact revision:

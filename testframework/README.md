@@ -17,10 +17,15 @@ entries. F1-04 source is independently static-accepted across `bc5feef8`,
 `630bda9b`, `8ff13097`, and `1868cf71`: its sealed v3 manifest contains 14
 bounded source blobs and its closed ledger contains five ordered critical/high
 risk edges for three OpenAPI, one privacy, and one auth-session-event active
-source contract. No concrete provisioner, A1 admission, accepted profile
-binding, or executable launcher exists. A private runner source candidate also
-has static review only. None is accepted package execution, launcher runtime,
-or runtime authority; all global critical/high outcomes remain `NOT_PROVEN`.
+source contract. F2 135-F files-lifecycle source is independently static-
+accepted at `af077c18`: five active TASK-214 cases/nodes require a
+launcher-injected `FilesHarnessFactory`, a fresh opaque `FilesRuntime` per test,
+and exact cleanup. The existing `files-api` source profile targets exactly
+`tests/api/files`, with future launcher case root exactly `cases/files`. No
+concrete files delegate, A1 admission, accepted profile binding, or executable
+launcher exists. A private runner source candidate also has static review only.
+None is accepted package execution, launcher runtime, or runtime authority; all
+global critical/high outcomes remain `NOT_PROVEN`.
 
 Package/bootstrap boundaries for the next slice are defined in
 [`PACKAGE-CONTRACT.md`](PACKAGE-CONTRACT.md). That document is architecture,
@@ -74,6 +79,12 @@ progressively only by its first accepted consumer.
   every test requires an opaque fresh launcher-injected
   `PlatformAbuseHarnessFactory` and exact cleanup of only four recorded Redis
   ownership entries. Neither has a concrete provisioner or launcher binding.
+- `tests/api/files/` contains five active TASK-214 files-lifecycle source nodes,
+  linked to `TC-FILES-0001`--`TC-FILES-0005`. Each future execution requires a
+  launcher-injected `FilesHarnessFactory`, one fresh opaque `FilesRuntime`, and
+  exact cleanup in the fixture `finally` path. The existing `files-api` source
+  profile targets exactly `tests/api/files`, with future launcher case root
+  exactly `cases/files`; no concrete delegate or launcher binding exists.
 - `tests/contract/openapi/` contains three active TASK-227 source contracts,
   linked to `TC-OPENAPI-0001`--`TC-OPENAPI-0003`; source profile
   `openapi-contract` targets exactly `tests/contract/openapi`, with future
@@ -147,6 +158,14 @@ ledger has five ordered edges for three active OpenAPI, one active privacy, and
 one active auth-session-event source contract. Every global critical/high
 outcome remains **NOT_PROVEN**.
 
+F2 135-F files-lifecycle source is independently **STATIC ACCEPT** at
+`af077c18`: five active TASK-214 cases/nodes require a launcher-injected
+`FilesHarnessFactory`, one fresh opaque `FilesRuntime` per test, and exact
+cleanup through the fixture `finally` path. The existing `files-api` source
+profile targets exactly `tests/api/files`, with future launcher case root
+exactly `cases/files`. The concrete delegate, A1 admission, and accepted
+profile-to-launcher binding remain absent.
+
 The current generated Swagger is known RED: security-definition `in` values
 are malformed, paths retain a second `/api` below `basePath`, magic verification
 omits implemented 403/429 responses, TMS webhook docs still expose legacy
@@ -154,8 +173,8 @@ omits implemented 403/429 responses, TMS webhook docs still expose legacy
 and public error responses reference internal `AppError` artifacts. Backend
 repair and Swagger regeneration are pending. External OpenAPI-validator
 admission/execution, A1, accepted profile-to-launcher bindings, `uv.lock`, image
-evidence, and an executable launcher remain absent. The three source profile
-records do not grant execution authority. F2 and later source remain pending.
+evidence, and an executable launcher remain absent. Source profile records do
+not grant execution authority. Remaining F2 and later source is pending.
 Private runner source candidate:
 **STATIC_SOURCE_REVIEWED**; launcher: **NOT_READY**; `PS5.1_PARSE_NOT_RUN`;
 `PRIVATE_CONTRACT_NOT_RUN`. Runtime: **NOT_RUN**. `uv.lock`, `images.lock.v3.json`,
