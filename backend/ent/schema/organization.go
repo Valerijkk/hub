@@ -58,6 +58,9 @@ func (Organization) Edges() []ent.Edge {
 			Annotations(entsql.OnDelete(entsql.NoAction)),
 		edge.To("projects", Project.Type).
 			Annotations(entsql.OnDelete(entsql.NoAction)),
+		edge.To("mail_domains", MailDomain.Type),
+		edge.To("mailbox_policy", MailboxPolicy.Type).
+			Unique(),
 	}
 }
 
