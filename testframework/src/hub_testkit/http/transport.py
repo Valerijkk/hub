@@ -41,6 +41,7 @@ class HttpRequest:
     correlation_id: str
     idempotency_key: str | None = field(repr=False)
     body: bytes | None = field(repr=False)
+    content_type: Literal["application/json"] | None = None
 
     def __post_init__(self) -> None:
         try:
@@ -57,6 +58,12 @@ class HttpRequest:
             _require_correlation_id(self.correlation_id)
             _require_idempotency_key(self.method, self.idempotency_key)
             if self.body is not None and type(self.body) is not bytes:
+                raise HttpRequestError("HTTP request is invalid")
+            if self.content_type is not None and (
+                type(self.content_type) is not str
+                or self.content_type != "application/json"
+                or type(self.body) is not bytes
+            ):
                 raise HttpRequestError("HTTP request is invalid")
         except Exception:
             raise HttpRequestError("HTTP request is invalid") from None
@@ -201,6 +208,7 @@ class HttpxTransport:
                 correlation_id=request.correlation_id,
                 idempotency_key=request.idempotency_key,
                 body=request.body,
+                content_type=request.content_type,
             )
             headers = _headers_for(request)
             may_retry = _may_retry(request)
@@ -276,6 +284,8 @@ def _headers_for(request: HttpRequest) -> dict[str, str]:
         headers.update(request.actor.headers())
     if request.idempotency_key is not None:
         headers["Idempotency-Key"] = request.idempotency_key
+    if request.content_type is not None:
+        headers["Content-Type"] = request.content_type
     return headers
 
 

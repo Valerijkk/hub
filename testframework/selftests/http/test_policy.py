@@ -75,6 +75,7 @@ def _request(
     actor: Actor | None = None,
     idempotency_key: str | None = None,
     body: bytes | None = None,
+    content_type: str | None = None,
 ) -> HttpRequest:
     return HttpRequest(
         method=method,
@@ -83,6 +84,7 @@ def _request(
         correlation_id="trace-001",
         idempotency_key=idempotency_key,
         body=body,
+        content_type=content_type,
     )
 
 
@@ -193,6 +195,7 @@ def test_actor_policy_and_request_models_are_frozen_and_strict() -> None:
         "correlation_id",
         "idempotency_key",
         "body",
+        "content_type",
     )
     assert request.body == b"payload"
     for invalid in (
@@ -219,6 +222,17 @@ def test_actor_policy_and_request_models_are_frozen_and_strict() -> None:
             _request(method=method, idempotency_key="idempotency-001")
     with pytest.raises(HttpRequestError):
         _request(method="POST", idempotency_key="key\nCANARY")
+    for content_type, body in (
+        (True, b"{}"),
+        ("text/plain", b"{}"),
+        ("application/json", None),
+    ):
+        with pytest.raises(HttpRequestError):
+            _request(
+                method="POST",
+                body=body,
+                content_type=content_type,
+            )
     with pytest.raises(TypeError):
         HttpRequest(
             method="GET",
@@ -270,13 +284,34 @@ def test_actor_policy_and_request_models_are_frozen_and_strict() -> None:
         "BYPASS-RESPONSE-CANARY",
         "HTTP exchange is invalid",
     )
+    content_bypass = object.__new__(HttpRequest)
+    object.__setattr__(content_bypass, "method", "POST")
+    object.__setattr__(content_bypass, "path", "/api/resource")
+    object.__setattr__(content_bypass, "actor", None)
+    object.__setattr__(content_bypass, "correlation_id", "trace-001")
+    object.__setattr__(content_bypass, "idempotency_key", None)
+    object.__setattr__(content_bypass, "body", b"{}")
+    object.__setattr__(content_bypass, "content_type", "BYPASS-CONTENT-CANARY")
+    with pytest.raises(HttpTransportError) as content_bypass_error:
+        _transport(_RecordingClient([_response(200)]), HttpPolicy()).send(content_bypass)
+    _assert_generic_without_canary(
+        content_bypass_error.value,
+        "BYPASS-CONTENT-CANARY",
+        "HTTP transport failed",
+    )
 
 
 def test_transport_emits_exact_headers_and_retry_matrix() -> None:
     actor = Actor(subject="qa-user", token="actor-token")
     client = _RecordingClient([_response(200, b"first")])
     exchange = _transport(client, HttpPolicy()).send(
-        _request(method="POST", actor=actor, idempotency_key="post-001", body=b"payload")
+        _request(
+            method="POST",
+            actor=actor,
+            idempotency_key="post-001",
+            body=b"payload",
+            content_type="application/json",
+        )
     )
     assert exchange.response == HttpResponse(status_code=200, body=b"first")
     assert exchange.diagnostic.attempts == 1
@@ -288,10 +323,16 @@ def test_transport_emits_exact_headers_and_retry_matrix() -> None:
             "X-Request-ID": "trace-001",
             "Authorization": "Bearer actor-token",
             "Idempotency-Key": "post-001",
+            "Content-Type": "application/json",
         },
         b"payload",
     )
+    assert tuple(client.calls[0][2]).count("Content-Type") == 1
     assert (client.calls[0][4].connect, client.calls[0][4].read) == (2.0, 5.0)
+
+    raw_client = _RecordingClient([_response(200)])
+    _transport(raw_client, HttpPolicy()).send(_request("POST", body=b"raw"))
+    assert raw_client.calls[0][2] == {"X-Request-ID": "trace-001"}
 
     for status_code in (502, 503, 504):
         retry_client = _RecordingClient([_response(status_code), _response(200, b"final")])
@@ -412,6 +453,7 @@ def test_transport_hides_body_token_idempotency_and_exception_canaries() -> None
     object.__setattr__(bypass, "correlation_id", f"trace\n{bypass_canary}")
     object.__setattr__(bypass, "idempotency_key", None)
     object.__setattr__(bypass, "body", None)
+    object.__setattr__(bypass, "content_type", None)
     with pytest.raises(HttpTransportError) as bypass_error:
         _transport(_RecordingClient([_response(200)]), HttpPolicy()).send(bypass)
     _assert_generic_without_canary(bypass_error.value, bypass_canary, "HTTP transport failed")
