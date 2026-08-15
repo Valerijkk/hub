@@ -200,6 +200,11 @@ func (MailAccount) Edges() []ent.Edge {
 			Required().
 			Annotations(entsql.OnDelete(entsql.NoAction)),
 		edge.To("identities", MailIdentity.Type),
+		edge.To("user_settings", MailUserSettings.Type).
+			Unique(),
+		edge.To("signatures", MailSignature.Type),
+		edge.To("rules", MailRule.Type),
+		edge.To("recent_contacts", RecentContact.Type),
 	}
 }
 

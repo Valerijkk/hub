@@ -75,6 +75,8 @@ func (MailIdentity) Edges() []ent.Edge {
 			Unique().
 			Required().
 			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("default_for_settings", MailUserSettings.Type).
+			Unique(),
 	}
 }
 
