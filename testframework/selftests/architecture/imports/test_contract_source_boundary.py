@@ -3,6 +3,15 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
+from hub_testkit.contracts.auth_events import (
+    _event_shape_valid,
+    _extract_top_level_function,
+    _function_lines,
+    _notification_mapping_valid,
+    _producer_link_valid,
+    _typed_consumer_link_valid,
+)
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 CONTRACT_ROOT = PROJECT_ROOT / "src" / "hub_testkit" / "contracts"
@@ -126,6 +135,7 @@ def helper(value):
 def test_contract_suite_visitor_allows_only_injected_fixture_and_semantic_helpers() -> None:
     tree = ast.parse(
         """from hub_testkit.contracts import contract_source_bundle, load_f1_04_risk_ledger
+from hub_testkit.contracts.auth_events import assert_auth_session_created_event_contract
 from hub_testkit.contracts.openapi import assert_magic_verify_error_contract
 from hub_testkit.contracts.openapi import assert_openapi_canonical_document
 from hub_testkit.contracts.openapi import assert_tms_webhook_auth_contract
@@ -133,6 +143,7 @@ from hub_testkit.contracts.public_error import assert_public_error_artifact_cont
 
 def test_contract(contract_source_bundle):
     ledger = load_f1_04_risk_ledger(contract_source_bundle)
+    assert_auth_session_created_event_contract(contract_source_bundle)
     assert_openapi_canonical_document(contract_source_bundle)
     assert_magic_verify_error_contract(contract_source_bundle)
     assert_tms_webhook_auth_contract(contract_source_bundle)
@@ -149,6 +160,7 @@ def test_contract(contract_source_bundle):
 def test_contract_suite_visitor_rejects_every_nonwhitelisted_contract_import() -> None:
     tree = ast.parse(
         """from hub_testkit.contracts import RiskLedgerError
+from hub_testkit.contracts.auth_events import AuthEventContractError
 from hub_testkit.contracts.openapi import OpenApiContractError
 from hub_testkit.contracts.openapi import unexpected_semantic_helper
 from hub_testkit.contracts.public_error import PublicErrorContractError
@@ -156,6 +168,156 @@ from hub_testkit.contracts.public_error import PublicErrorContractError
     )
 
     assert _violations(tree, contract_suite=True) == {"suite-contract-import-not-allowed"}
+
+
+def test_auth_event_extractor_rejects_comment_and_raw_string_function_fakes() -> None:
+    signature = "func target() {"
+    real_function = "func target() {\n\trealCall()\n}"
+    fake_sources = (
+        "/*\nfunc target() {\n\tdeadCall()\n}\n*/\n",
+        "var decoy = `ignored\nfunc target() {\n\tdeadCall()\n}\n`\n",
+    )
+
+    for source in fake_sources:
+        assert not isinstance(_extract_top_level_function(source, signature), str)
+        assert _extract_top_level_function(source + real_function, signature) == real_function
+
+
+def test_auth_event_extractor_ignores_raw_string_braces_inside_real_body() -> None:
+    signature = "func target() {"
+    source = (
+        "func target() {\n"
+        "\tpayload := `}`\n"
+        "\trealCall()\n"
+        "}\n"
+    )
+
+    assert _extract_top_level_function(source, signature) == source.rstrip("\n")
+
+
+def test_auth_event_function_lines_ignore_comment_and_raw_literal_fakes() -> None:
+    source = (
+        "func target() {\n"
+        "\t/*\n"
+        "\texpectedCall()\n"
+        "\t*/\n"
+        "\tdecoy := `ignored\n"
+        "\texpectedCall()\n"
+        "\t}`\n"
+        "\t_ = decoy\n"
+        "\trealCall()\n"
+        "}\n"
+    )
+
+    lines = _function_lines(source, "func target() {")
+
+    assert isinstance(lines, tuple)
+    assert "realCall()" in lines
+    assert "expectedCall()" not in lines
+
+
+def test_auth_event_shape_ignores_comment_and_raw_literal_struct_fakes() -> None:
+    event_shape = (
+        "type SessionCreatedEvent struct {\n"
+        "\tUserID    string `json:\"user_id\"`\n"
+        "\tSessionID string `json:\"session_id\"`\n"
+        "\tDevice    string `json:\"device\"`\n"
+        "\tIPAddress string `json:\"ip_address\"`\n"
+        "}\n"
+    )
+    fake_sources = (
+        "/*\n" + event_shape + "*/\n",
+        "var decoy = `ignored\ntype SessionCreatedEvent struct {\n"
+        "\tUserID string\n}\n`\n",
+    )
+
+    for source in fake_sources:
+        assert not _event_shape_valid(source)
+        assert _event_shape_valid(source + event_shape)
+
+
+def test_auth_event_mapping_ignores_comment_and_raw_literal_fakes() -> None:
+    real_mapping = (
+        "func SubjectToType(subject string) string {\n"
+        "\tif subject == \"auth.session.created\" {\n"
+        "\t\treturn TypeNewLogin\n"
+        "\t}\n"
+        "\treturn \"\"\n"
+        "}\n"
+    )
+    fake_constants = (
+        "/*\nconst (\n\tTypeNewLogin = \"new_login\"\n)\n*/\n",
+        "var decoy = `ignored\nconst (\n\tTypeNewLogin = \"new_login\"\n)\n`\n",
+    )
+    for source in fake_constants:
+        assert not _notification_mapping_valid(source + real_mapping)
+
+    real_constant = "const (\n\tTypeNewLogin = \"new_login\"\n)\n"
+    fake_mappings = (
+        "\t/*\n\tif subject == \"auth.session.created\" {\n"
+        "\t\treturn TypeNewLogin\n\t}\n\t*/\n",
+        "\t_ = `ignored\n\tif subject == \"auth.session.created\" {\n"
+        "\t\treturn TypeNewLogin\n\t}\n\t`\n",
+    )
+    for fake_mapping in fake_mappings:
+        function = (
+            "func SubjectToType(subject string) string {\n"
+            + fake_mapping
+            + "\treturn \"\"\n}\n"
+        )
+        assert not _notification_mapping_valid(real_constant + function)
+
+
+def test_auth_event_producer_ignores_expected_lines_in_comments_and_raw_literals() -> None:
+    source = (
+        "func (s *SessionService) CreateSession(ctx context.Context, "
+        "userID uuid.UUID, device, ip string) (*TokenPairResponse, error) {\n"
+        "\t/*\n"
+        "\ts.publishSessionCreated(userID.String(), sessionID.String(), device, ip)\n"
+        "\treturn &TokenPairResponse{AccessToken: accessToken, "
+        "RefreshToken: refreshToken, ExpiresIn: int64(s.accessTTL.Seconds())}, nil\n"
+        "\t*/\n"
+        "}\n"
+        "func (s *SessionService) publishSessionCreated("
+        "userID, sessionID, device, ip string) {\n"
+        "\t_ = `ignored\n"
+        "\tdata, err := json.Marshal(SessionCreatedEvent{UserID: userID, "
+        "SessionID: sessionID, Device: device, IPAddress: ip})\n"
+        "\tif err := s.nats.Publish(\"auth.session.created\", data); err != nil {\n"
+        "\t}\n"
+        "\t`\n"
+        "}\n"
+    )
+
+    assert not _producer_link_valid(source)
+
+
+def test_auth_event_consumer_ignores_expected_lines_in_comments_and_raw_literals() -> None:
+    source = (
+        "func (c *Consumer) processEvent(ctx context.Context, msg jetstream.Msg) {\n"
+        "\t_ = `ignored\n"
+        "\tsubject := msg.Subject()\n"
+        "\tnotifType := SubjectToType(subject)\n"
+        "\tcase TypeNewLogin:\n"
+        "\tprocessErr = c.handleNewLogin(ctx, msg.Data())\n"
+        "\t`\n"
+        "}\n"
+        "func (c *Consumer) handleNewLogin(ctx context.Context, data []byte) error {\n"
+        "\t/*\n"
+        "\tvar evt auth.SessionCreatedEvent\n"
+        "\tif err := json.Unmarshal(data, &evt); err != nil {\n"
+        "\t}\n"
+        "\tif err := c.service.Dispatch(ctx, DispatchEvent{\n"
+        "\tType:       TypeNewLogin,\n"
+        "\tEntityID:   evt.SessionID,\n"
+        "\t}); err != nil {\n"
+        "\t}\n"
+        "\t*/\n"
+        "\treturn nil\n"
+        "}\n"
+    )
+
+    assert not _typed_consumer_link_valid(source)
 
 
 def test_contract_source_modules_have_no_io_environment_private_or_second_loader_escape() -> None:
@@ -167,6 +329,7 @@ def test_contract_source_modules_have_no_io_environment_private_or_second_loader
 
     assert tuple(path.name for path in source_paths) == (
         "__init__.py",
+        "auth_events.py",
         "openapi.py",
         "public_error.py",
         "pytest_source_bundle.py",
@@ -210,6 +373,16 @@ def test_contract_source_modules_have_no_io_environment_private_or_second_loader
         and not node.name.startswith("_")
     )
     assert public_error_functions == ("assert_public_error_artifact_contract",)
+    auth_events_tree = ast.parse(
+        (CONTRACT_ROOT / "auth_events.py").read_text(encoding="utf-8")
+    )
+    auth_events_functions = tuple(
+        node.name
+        for node in auth_events_tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and not node.name.startswith("_")
+    )
+    assert auth_events_functions == ("assert_auth_session_created_event_contract",)
 
 
 class _ContractBoundaryVisitor(ast.NodeVisitor):
@@ -373,6 +546,9 @@ _ALLOWED_CONTRACT_SUITE_IMPORTS = {
             "contract_source_bundle",
             "load_f1_04_risk_ledger",
         }
+    ),
+    "hub_testkit.contracts.auth_events": frozenset(
+        {"assert_auth_session_created_event_contract"}
     ),
     "hub_testkit.contracts.openapi": frozenset(
         {
