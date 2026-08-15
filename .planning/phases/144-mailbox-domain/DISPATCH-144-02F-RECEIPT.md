@@ -1,6 +1,6 @@
 # 144-02F-R — mutation-receipt source authority receipt
 
-> **144-02B boundary:** This accepted 02F-R receipt permits only `MailMutationReceipt.folders` inverse solely for `MailFolder.control_receipt_id -> receipt RESTRICT`; actor/message receipt edges remain scalar-only and every other receipt edge/check is unchanged. It grants no 02B source authority. 02B is `ROOT_SOURCE_AUTHORITY_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED` / `IMPLEMENTATION_BLOCKED` / `RUNTIME_NOT_RUN`, with no source dispatch/acceptance; 02C waits accepted 02B and 02F-D/02E/Ent/generation/migration/runtime/services/API/UI/release remain blocked.
+> **144-02B boundary:** This accepted 02F-R receipt permits only `MailMutationReceipt.folders` inverse solely for `MailFolder.control_receipt_id -> receipt RESTRICT`; actor/message receipt edges remain scalar-only and every other receipt edge/check is unchanged. Combined `45fd3369` + `4f3713590fee455fae1c94f2464d7de548e73e76` is now 02B `SOURCE_AUTHORITY_ACCEPTED` / `EXACT_SHA_PASS` after Contract/Security/Lifecycle corrected-child exact reviews PASS C/I/M `0/0/0`; it authorizes root dispatch only of the separately frozen exact13 projection manifest, not source implementation acceptance. Candidate/precommit/correction/failure-next and lower 02B eligibility/no-dispatch clauses are `CONSUMED/HISTORICAL`, while the immutable `45fd3369` failure remains history. 02C waits accepted 02B source; 02F-D/02E/Ent/generation/migration/runtime/services/API/UI/release remain blocked.
 
 > **Historical authority status:** `CONSUMED/HISTORICAL` at
 > `a877848ef4d1ce80a30a4389f97ef0f863615159` (parent
@@ -8,7 +8,7 @@
 > `917fed11d1316678008229193aef6186ebaa0abb`; subject
 > `docs(mail): authorize receipt schema packet`).
 
-> **Source acceptance supersession:** `ce542cb5de839a1fb5200295f710b0ae45bcdbe6` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; parent `1792cdc381eeb4db0ab1ede5b512ba1222eb90b2`, tree `2cadf80c9ae0af99b5c8027c1d78c3ec55af7071`, exact eight blobs in `IMPLEMENTATION-144-02F-R.md`. Tests first; Contract/Security/Lifecycle PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Authority-only/root-dispatch/source-unaccepted below `CONSUMED/HISTORICAL`; 02B separate docs authority, 02C waits 02B, 02F-D blocked; launcher `NOT_READY`, executables/generation/migration/runtime `NOT_RUN`.
+> **Source acceptance supersession:** `ce542cb5de839a1fb5200295f710b0ae45bcdbe6` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; parent `1792cdc381eeb4db0ab1ede5b512ba1222eb90b2`, tree `2cadf80c9ae0af99b5c8027c1d78c3ec55af7071`, exact eight blobs in `IMPLEMENTATION-144-02F-R.md`. Tests first; Contract/Security/Lifecycle PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Authority-only/root-dispatch/source-unaccepted and 02B-separate-authority/02C-predecessor route below `CONSUMED/HISTORICAL`; 02B `SOURCE_AUTHORITY_ACCEPTED` for root exact13 dispatch only, implementation unaccepted, 02C waits accepted 02B source, 02F-D blocked; launcher `NOT_READY`, executables/generation/migration/runtime `NOT_RUN`.
 
 ## Historical consumed authority
 
@@ -66,7 +66,7 @@ reviewed, atomically committed, and separately accepted by immutable exact-SHA r
 
 ## Dependency and blocker preservation
 
-02B becomes eligible only after accepted 02F-R source; 02C becomes eligible only after 02B.
+This 02B-eligibility/02C-predecessor route is `CONSUMED/HISTORICAL`: 02B is `SOURCE_AUTHORITY_ACCEPTED` for root exact13 dispatch only, implementation remains unaccepted, and 02C waits accepted 02B source.
 02F-D (rule deployment) is `BLOCKED` / `NOT_AUTHORIZED`, separate, and nonblocking. 02E, Ent
 generation, migration, runtime, services, APIs, UI, release, Phase 142/148, launcher `NOT_READY`,
 and executable evidence `NOT_RUN` remain unchanged.
