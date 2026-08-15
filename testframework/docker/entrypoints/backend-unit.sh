@@ -1,49 +1,67 @@
 #!/bin/sh
-set -u
+set -eu
 
-target='backend-unit'
-report_dir='/reports/backend-unit'
+[ "$#" -eq 0 ] || exit 64
+
+report_dir="/reports/backend-unit"
 result_path="$report_dir/result.json"
 first_exit=0
 
-write_result() {
-  status="$1"
-  step="$2"
-  code="$3"
-  mkdir -p "$report_dir" || exit 73
-  printf '{"target":"%s","status":"%s","step":"%s","first_exit":%s}\n' "$target" "$status" "$step" "$code" > "$result_path"
-}
-
-fail() {
-  first_exit="$1"
-  write_result 'FAIL' "$2" "$first_exit"
-  exit "$first_exit"
-}
-
-if [ "$#" -ne 1 ] || [ "$1" != '--hub-qa-target=backend-unit' ]; then fail 64 'fixed-command-required'; fi
-if [ ! -d /reports ]; then exit 73; fi
-if [ "${A1_BINDING_STATUS:-}" != 'BOUND' ]; then fail 66 'binding-unavailable'; fi
-for binding in /opt/hub/bindings/dependency-bundle.manifest.v1.json /opt/hub/bindings/source-policy.v2.json /opt/hub/bindings/build-manifest.v3.json; do
-  if [ ! -s "$binding" ]; then fail 66 'binding-unavailable'; fi
-done
-
-run_step() {
-  step="$1"
-  shift
-  if "$@" > "$report_dir/$step.stdout.log" 2> "$report_dir/$step.stderr.log"; then
-    return 0
-  else
-    first_exit=$?
-    fail "$first_exit" "$step"
+record_failure() {
+  code="$1"
+  if [ "$first_exit" -eq 0 ]; then
+    first_exit="$code"
   fi
 }
 
-mkdir -p "$report_dir" || exit 73
-cd /opt/hub/source/backend || fail 72 'backend-source-unavailable'
-export GOCACHE='/reports/backend-unit/go-cache'
+write_step() {
+  step="$1"
+  status="$2"
+  code="$3"
+  printf '{"step":"%s","status":"%s","exit":%s}\n' \
+    "$step" "$status" "$code" > "$report_dir/$step.result.json"
+}
 
-run_step 'build' go build ./...
-run_step 'vet' go vet ./...
-run_step 'unit' go test -tags hubtest -json -count=1 -timeout=150s ./tests/...
-run_step 'race' go test -tags hubtest -json -race -count=1 -timeout=150s ./tests/...
-write_result 'PASS' 'complete' 0
+mkdir -p "$report_dir" "$report_dir/go-cache"
+cd /opt/hub/source/backend
+
+if go build ./...; then
+  write_step build PASS 0
+else
+  code=$?
+  record_failure "$code"
+  write_step build FAIL "$code"
+fi > "$report_dir/build.stdout.log" 2> "$report_dir/build.stderr.log"
+
+if go vet -tags hubtest ./...; then
+  write_step vet PASS 0
+else
+  code=$?
+  record_failure "$code"
+  write_step vet FAIL "$code"
+fi > "$report_dir/vet.stdout.log" 2> "$report_dir/vet.stderr.log"
+
+if go test -tags hubtest -json -count=1 -timeout=150s ./tests/...; then
+  write_step unit PASS 0
+else
+  code=$?
+  record_failure "$code"
+  write_step unit FAIL "$code"
+fi > "$report_dir/unit.stdout.log" 2> "$report_dir/unit.stderr.log"
+
+if go test -tags hubtest -json -race -count=1 -timeout=150s ./tests/...; then
+  write_step race PASS 0
+else
+  code=$?
+  record_failure "$code"
+  write_step race FAIL "$code"
+fi > "$report_dir/race.stdout.log" 2> "$report_dir/race.stderr.log"
+
+if [ "$first_exit" -eq 0 ]; then
+  status=PASS
+else
+  status=FAIL
+fi
+printf '{"target":"backend-unit","status":"%s","first_exit":%s}\n' \
+  "$status" "$first_exit" > "$result_path"
+exit "$first_exit"

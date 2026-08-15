@@ -104,39 +104,29 @@ _FORBIDDEN_TOKENS = (
 )
 _FIXED_COMMANDS = MappingProxyType(
     {
-        "backend-unit": (
-            "/opt/hub/testframework/docker/entrypoints/backend-unit.sh",
-            "--hub-qa-target=backend-unit",
-        ),
-        "frontend-unit": (
-            "/opt/hub/testframework/docker/entrypoints/frontend-unit.sh",
-            "--hub-qa-target=frontend-unit",
-        ),
-        "python-contract": (
-            "/opt/hub/testframework/docker/entrypoints/python-qa.sh",
-            "--hub-qa-target=python-contract",
-        ),
-        "python-api": (
-            "/opt/hub/testframework/docker/entrypoints/python-qa.sh",
-            "--hub-qa-target=python-api",
-        ),
-        "python-integration": (
-            "/opt/hub/testframework/docker/entrypoints/python-qa.sh",
-            "--hub-qa-target=python-integration",
-        ),
-        "python-e2e-smoke": (
-            "/opt/hub/testframework/docker/entrypoints/python-qa.sh",
-            "--hub-qa-target=python-e2e-smoke",
-        ),
-        "python-e2e-full": (
-            "/opt/hub/testframework/docker/entrypoints/python-qa.sh",
-            "--hub-qa-target=python-e2e-full",
-        ),
-        "python-load": (
-            "/opt/hub/testframework/docker/entrypoints/python-qa.sh",
-            "--hub-qa-target=python-load",
-        ),
+        "backend-unit": (),
+        "frontend-unit": (),
+        "python-contract": ("contract",),
+        "python-api": ("api",),
+        "python-integration": ("integration",),
+        "python-e2e-smoke": ("e2e-smoke",),
+        "python-e2e-full": ("e2e-full",),
+        "python-load": ("load",),
     }
+)
+_GO_BASE = (
+    "golang@sha256:bbb255b0e131db500cf0520adc97441d2260cf629c7fa7e39e025ddf53995a24"
+)
+_FRONTEND_BASE = (
+    "mcr.microsoft.com/playwright@sha256:"
+    "57b65fdc9ceabe0ef613124c7bbe2babcf9362c4d85e382fe3b03604e84b428a"
+)
+_PYTHON_BASE = (
+    "python@sha256:229a2c5bfa27522db7815ea81f9bed70af17ccb9de9fc7ad142b1877b5830d36"
+)
+_NON_ROOT_SETUP = (
+    "RUN groupadd --gid 10001 hubqa && useradd --uid 10001 --gid 10001 "
+    "--create-home --home-dir /home/hubqa hubqa"
 )
 _MINIMAL_VALID_COMPOSE = "services:\n  sample:\n    profiles: [qa]\n"
 
@@ -204,6 +194,39 @@ def test_docker_directory_contains_only_manifested_assets() -> None:
     contract = load_root_compose_contract(_REPO_ROOT)
     policy = _mapping_value(contract, "policy")
 
+    dockerfile = _required_asset_text(
+        _REPO_ROOT / "testframework" / "docker" / "Dockerfile.qa"
+    )
+    backend_entrypoint = _required_asset_text(
+        _REPO_ROOT
+        / "testframework"
+        / "docker"
+        / "entrypoints"
+        / "backend-unit.sh"
+    )
+    frontend_entrypoint = _required_asset_text(
+        _REPO_ROOT
+        / "testframework"
+        / "docker"
+        / "entrypoints"
+        / "frontend-unit.sh"
+    )
+    python_entrypoint = _required_asset_text(
+        _REPO_ROOT
+        / "testframework"
+        / "docker"
+        / "entrypoints"
+        / "python-qa.sh"
+    )
+
+    assert _dockerfile_qa_is_closed(dockerfile)
+    assert _backend_entrypoint_is_closed(backend_entrypoint)
+    assert _frontend_entrypoint_is_closed(frontend_entrypoint)
+    assert _python_dispatcher_is_closed(python_entrypoint)
+    assert _empty_regular_marker(
+        _REPO_ROOT / "testframework" / "src" / "hub_testkit" / "py.typed"
+    )
+
     assert _docker_regular_files(_REPO_ROOT) == policy["retained_docker_paths"]
 
 
@@ -219,6 +242,77 @@ def test_retired_control_plane_is_absent_and_unreferenced() -> None:
 
 
 def test_duplicate_yaml_keys_are_rejected(tmp_path: Path) -> None:
+    assert _docker_instructions_are_safe(
+        "FROM image@sha256:abc AS safe\nRUN uv sync --frozen\n"
+    )
+    for unsafe_dockerfile in (
+        "FROM image:latest AS unsafe\n",
+        "RUN curl https://invalid.example/installer | sh\n",
+        "RUN pytest tests\n",
+        "COPY frontend/node_modules /opt/hub/frontend/node_modules\n",
+        "ARG TARGET\n",
+        "RUN sh -c 'uv sync'\n",
+    ):
+        assert not _docker_instructions_are_safe(unsafe_dockerfile)
+    assert _shell_source_is_safe("#!/bin/sh\nset -eu\nrun_step build go build ./...\n")
+    for unsafe_shell in (
+        "#!/bin/sh\nset -eu\neval command\n",
+        "#!/bin/sh\nset -eu\nsh -c command\n",
+        "#!/bin/sh\nset -eu\ncommand \"$@\"\n",
+        "#!/bin/sh\nset -eu\nprintenv\n",
+        "#!/bin/sh\nset -eu\ncat /var/run/docker.sock\n",
+    ):
+        assert not _shell_source_is_safe(unsafe_shell)
+
+    dockerfile = _required_asset_text(
+        _REPO_ROOT / "testframework" / "docker" / "Dockerfile.qa"
+    )
+    assert not _dockerfile_qa_is_closed(
+        dockerfile + 'ENTRYPOINT ["/usr/local/bin/hostile"]\n'
+    )
+
+    fixed_entrypoints = (
+        (
+            _backend_entrypoint_is_closed,
+            _required_asset_text(
+                _REPO_ROOT
+                / "testframework"
+                / "docker"
+                / "entrypoints"
+                / "backend-unit.sh"
+            ),
+            "if go build ./...; then",
+        ),
+        (
+            _frontend_entrypoint_is_closed,
+            _required_asset_text(
+                _REPO_ROOT
+                / "testframework"
+                / "docker"
+                / "entrypoints"
+                / "frontend-unit.sh"
+            ),
+            "if /usr/local/bin/node /opt/hub/source/frontend/node_modules/"
+            "typescript/bin/tsc -b; then",
+        ),
+    )
+    for validator, source, first_command in fixed_entrypoints:
+        assert not validator(
+            source.replace(first_command, f"exit 0\n{first_command}", 1)
+        )
+        assert not validator(
+            source.replace(
+                first_command,
+                f'command "$HUB_QA_COMMAND"\n{first_command}',
+                1,
+            )
+        )
+    frontend_source = fixed_entrypoints[1][1]
+    assert frontend_source.count("/usr/local/bin/node ") == 4
+    assert not _frontend_entrypoint_is_closed(
+        frontend_source.replace("/usr/local/bin/node", "node")
+    )
+
     admitted_qa_services = MappingProxyType(
         {
             "backend-unit": MappingProxyType({"profiles": ("qa",)}),
@@ -731,6 +825,457 @@ def _contains_token(value: object, token: str) -> bool:
     if type(value) is tuple:
         return any(_contains_token(child, token) for child in value)
     return False
+
+
+def _required_asset_text(path: Path) -> str:
+    result = _read_bounded_regular(path)
+    assert type(result) is str
+    return result
+
+
+def _dockerfile_qa_is_closed(text: object) -> bool:
+    try:
+        if type(text) is not str or not _docker_instructions_are_safe(text):
+            return False
+        stages = _docker_stages_safe(text)
+        if not isinstance(stages, Mapping):
+            return False
+        expected_stages = (
+            (
+                "backend-unit",
+                (
+                    _GO_BASE,
+                    (
+                        _NON_ROOT_SETUP,
+                        "WORKDIR /opt/hub/source/backend",
+                        "COPY backend/go.mod backend/go.sum ./",
+                        "RUN go mod download",
+                        "COPY backend/ ./",
+                        "COPY testframework/docker/entrypoints/backend-unit.sh "
+                        "/usr/local/bin/backend-unit",
+                        "RUN chmod 0555 /usr/local/bin/backend-unit",
+                        "ENV GOCACHE=/reports/backend-unit/go-cache",
+                        "ENV HOME=/tmp",
+                        "USER 10001:10001",
+                        'ENTRYPOINT ["/usr/local/bin/backend-unit"]',
+                    ),
+                ),
+            ),
+            (
+                "frontend-unit",
+                (
+                    _FRONTEND_BASE,
+                    (
+                        _NON_ROOT_SETUP,
+                        "WORKDIR /opt/hub/source/frontend",
+                        "COPY frontend/package.json frontend/package-lock.json ./",
+                        "RUN npm ci",
+                        "COPY frontend/src/ ./src/",
+                        "COPY frontend/tests/ ./tests/",
+                        "COPY frontend/public/ ./public/",
+                        "COPY frontend/index.html frontend/biome.json "
+                        "frontend/components.json frontend/tsconfig.json "
+                        "frontend/vite.config.ts ./",
+                        "COPY testframework/docker/vitest.frontend-unit.config.ts "
+                        "/opt/hub/testframework/docker/"
+                        "vitest.frontend-unit.config.ts",
+                        "COPY testframework/docker/entrypoints/frontend-unit.sh "
+                        "/usr/local/bin/frontend-unit",
+                        "RUN chmod 0555 /usr/local/bin/frontend-unit",
+                        "ENV HOME=/reports/frontend-unit/home",
+                        "ENV TMPDIR=/reports/frontend-unit/tmp",
+                        "USER 10001:10001",
+                        'ENTRYPOINT ["/usr/local/bin/frontend-unit"]',
+                    ),
+                ),
+            ),
+            (
+                "python-base",
+                (
+                    _PYTHON_BASE,
+                    (
+                        _NON_ROOT_SETUP,
+                        "RUN python -m pip install --no-cache-dir uv==0.12.0",
+                        "RUN mkdir -p /opt/hub/testframework /opt/hub/.venv && "
+                        "chown -R 10001:10001 /opt/hub/testframework "
+                        "/opt/hub/.venv",
+                    ),
+                ),
+            ),
+            (
+                "python-tests",
+                (
+                    "python-base",
+                    (
+                        "WORKDIR /opt/hub/testframework",
+                        "COPY testframework/pyproject.toml "
+                        "testframework/uv.lock ./",
+                        "RUN UV_PROJECT_ENVIRONMENT=/opt/hub/.venv "
+                        "uv sync --frozen --all-groups --no-install-project",
+                        "COPY testframework/src/ ./src/",
+                        "COPY testframework/selftests/ ./selftests/",
+                        "COPY testframework/tests/ ./tests/",
+                        "COPY testframework/cases/ ./cases/",
+                        "COPY testframework/policies/ ./policies/",
+                        "COPY testframework/schemas/ ./schemas/",
+                        "COPY testframework/load/ ./load/",
+                        "COPY testframework/docker/entrypoints/python-qa.sh "
+                        "/usr/local/bin/python-qa",
+                        "RUN chmod 0555 /usr/local/bin/python-qa && "
+                        "chown -R 10001:10001 /opt/hub/testframework "
+                        "/opt/hub/.venv",
+                        "ENV PATH=/opt/hub/.venv/bin:$PATH",
+                        "ENV PYTHONPATH=/opt/hub/testframework/src",
+                        "ENV PYTHONSAFEPATH=1",
+                        "USER 10001:10001",
+                        'ENTRYPOINT ["/usr/local/bin/python-qa"]',
+                    ),
+                ),
+            ),
+            (
+                "python-lock",
+                (
+                    "python-base",
+                    (
+                        "WORKDIR /opt/hub/testframework",
+                        "COPY --chown=10001:10001 "
+                        "testframework/pyproject.toml ./pyproject.toml",
+                        "USER 10001:10001",
+                        'ENTRYPOINT ["/usr/local/bin/uv", "lock"]',
+                    ),
+                ),
+            ),
+        )
+        return tuple(stages.items()) == expected_stages
+    except Exception:
+        return False
+
+
+def _docker_stages_safe(text: str) -> Mapping[str, object] | object:
+    try:
+        stages: dict[str, tuple[str, tuple[str, ...]]] = {}
+        current_name: str | None = None
+        current_base = ""
+        current_instructions: list[str] = []
+        for raw_line in text.splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if line.endswith("\\"):
+                return _INVALID
+            if line.upper().startswith("FROM "):
+                if current_name is not None:
+                    stages[current_name] = (
+                        current_base,
+                        tuple(current_instructions),
+                    )
+                parts = line.split()
+                if len(parts) != 4 or parts[2].upper() != "AS":
+                    return _INVALID
+                current_base = parts[1]
+                current_name = parts[3]
+                if current_name in stages:
+                    return _INVALID
+                current_instructions = []
+            elif current_name is None:
+                return _INVALID
+            else:
+                current_instructions.append(line)
+        if current_name is None:
+            return _INVALID
+        stages[current_name] = (current_base, tuple(current_instructions))
+        return MappingProxyType(stages)
+    except Exception:
+        return _INVALID
+
+
+def _docker_instructions_are_safe(text: object) -> bool:
+    try:
+        if type(text) is not str:
+            return False
+        lowered = text.casefold()
+        if (
+            "latest" in lowered
+            or "docker.sock" in lowered
+            or "curl" in lowered and "| sh" in lowered
+            or "eval" in lowered
+            or "sh -c" in lowered
+        ):
+            return False
+        run_bans = (
+            " go build ",
+            " go test ",
+            " go vet ",
+            " npm test ",
+            " npm run ",
+            " pytest ",
+            " vitest ",
+            " vite ",
+            " locust ",
+            " biome ",
+            " tsc ",
+            " ruff ",
+            " mypy ",
+        )
+        for raw_line in text.splitlines():
+            line = " ".join(raw_line.casefold().split())
+            if line.startswith("arg "):
+                return False
+            if line.startswith("copy "):
+                parts = line.split()
+                source_index = 1
+                while source_index < len(parts) and parts[source_index].startswith("--"):
+                    source_index += 1
+                sources = parts[source_index:-1]
+                if not sources or any(
+                    source.startswith("/")
+                    or ".." in Path(source).parts
+                    or source.startswith(("http://", "https://"))
+                    or "node_modules" in source
+                    or ".venv" in source
+                    or source.startswith("vendor")
+                    for source in sources
+                ):
+                    return False
+            if line.startswith("run ") and any(
+                fragment in f" {line[4:]} " for fragment in run_bans
+            ):
+                return False
+        return True
+    except Exception:
+        return False
+
+
+def _backend_entrypoint_is_closed(text: object) -> bool:
+    try:
+        if type(text) is not str or not _shell_source_is_safe(text):
+            return False
+        return text == _canonical_fixed_unit_entrypoint(
+            target="backend-unit",
+            report_setup='mkdir -p "$report_dir" "$report_dir/go-cache"',
+            workdir="/opt/hub/source/backend",
+            steps=(
+                ("build", "go build ./..."),
+                ("vet", "go vet -tags hubtest ./..."),
+                (
+                    "unit",
+                    "go test -tags hubtest -json -count=1 -timeout=150s "
+                    "./tests/...",
+                ),
+                (
+                    "race",
+                    "go test -tags hubtest -json -race -count=1 "
+                    "-timeout=150s ./tests/...",
+                ),
+            ),
+        )
+    except Exception:
+        return False
+
+
+def _frontend_entrypoint_is_closed(text: object) -> bool:
+    try:
+        if type(text) is not str or not _shell_source_is_safe(text):
+            return False
+        return text == _canonical_fixed_unit_entrypoint(
+            target="frontend-unit",
+            report_setup=(
+                'mkdir -p "$report_dir" "$report_dir/home" "$report_dir/tmp"'
+            ),
+            workdir="/opt/hub/source/frontend",
+            steps=(
+                (
+                    "typescript",
+                    "/usr/local/bin/node /opt/hub/source/frontend/node_modules/"
+                    "typescript/bin/tsc -b",
+                ),
+                (
+                    "biome",
+                    "/usr/local/bin/node /opt/hub/source/frontend/node_modules/"
+                    "@biomejs/biome/bin/biome check ./src",
+                ),
+                (
+                    "vite",
+                    "/usr/local/bin/node /opt/hub/source/frontend/node_modules/"
+                    "vite/bin/"
+                    "vite.js build --outDir /reports/frontend-unit/vite-dist",
+                ),
+                (
+                    "vitest",
+                    "/usr/local/bin/node /opt/hub/source/frontend/node_modules/"
+                    "vitest/"
+                    "vitest.mjs run --config /opt/hub/testframework/docker/"
+                    "vitest.frontend-unit.config.ts --reporter=json",
+                ),
+            ),
+        )
+    except Exception:
+        return False
+
+
+def _canonical_fixed_unit_entrypoint(
+    *,
+    target: str,
+    report_setup: str,
+    workdir: str,
+    steps: tuple[tuple[str, str], ...],
+) -> str:
+    lines = [
+        "#!/bin/sh",
+        "set -eu",
+        "",
+        '[ "$#" -eq 0 ] || exit 64',
+        "",
+        f'report_dir="/reports/{target}"',
+        'result_path="$report_dir/result.json"',
+        "first_exit=0",
+        "",
+        "record_failure() {",
+        '  code="$1"',
+        '  if [ "$first_exit" -eq 0 ]; then',
+        '    first_exit="$code"',
+        "  fi",
+        "}",
+        "",
+        "write_step() {",
+        '  step="$1"',
+        '  status="$2"',
+        '  code="$3"',
+        "  printf '{\"step\":\"%s\",\"status\":\"%s\",\"exit\":%s}\\n' \\",
+        '    "$step" "$status" "$code" > "$report_dir/$step.result.json"',
+        "}",
+        "",
+        report_setup,
+        f"cd {workdir}",
+        "",
+    ]
+    for step, command in steps:
+        lines.extend(
+            (
+                f"if {command}; then",
+                f"  write_step {step} PASS 0",
+                "else",
+                "  code=$?",
+                '  record_failure "$code"',
+                f'  write_step {step} FAIL "$code"',
+                f'fi > "$report_dir/{step}.stdout.log" '
+                f'2> "$report_dir/{step}.stderr.log"',
+                "",
+            )
+        )
+    lines.extend(
+        (
+            'if [ "$first_exit" -eq 0 ]; then',
+            "  status=PASS",
+            "else",
+            "  status=FAIL",
+            "fi",
+            f"printf '{{\"target\":\"{target}\",\"status\":\"%s\","
+            "\"first_exit\":%s}\\n' \\",
+            '  "$status" "$first_exit" > "$result_path"',
+            'exit "$first_exit"',
+        )
+    )
+    return "\n".join(lines) + "\n"
+
+
+def _shell_source_is_safe(text: object) -> bool:
+    try:
+        if type(text) is not str:
+            return False
+        lowered = text.casefold()
+        return not any(
+            forbidden in lowered
+            for forbidden in (
+                "eval",
+                "sh -c",
+                "$@",
+                "printenv",
+                "docker.sock",
+            )
+        )
+    except Exception:
+        return False
+
+
+def _python_dispatcher_is_closed(text: object) -> bool:
+    try:
+        if type(text) is not str or not _shell_source_is_safe(text):
+            return False
+        return tuple(line.strip() for line in text.splitlines() if line.strip()) == (
+            "#!/bin/sh",
+            "set -eu",
+            '[ "$#" -eq 1 ] || exit 64',
+            "cd /opt/hub/testframework",
+            "export PYTHONSAFEPATH=1",
+            'case "$1" in',
+            "contract)",
+            "exec /opt/hub/.venv/bin/pytest selftests tests/contract "
+            "--hub-case-root cases --strict-markers",
+            ";;",
+            "api)",
+            "exec /opt/hub/.venv/bin/pytest tests/api --hub-case-root cases "
+            "--strict-markers",
+            ";;",
+            "integration)",
+            "exec /opt/hub/.venv/bin/pytest tests/integration --hub-case-root "
+            "cases --strict-markers",
+            ";;",
+            "e2e-smoke)",
+            "exec /opt/hub/.venv/bin/pytest tests/e2e -m smoke --hub-case-root "
+            "cases --strict-markers",
+            ";;",
+            "e2e-full)",
+            "exec /opt/hub/.venv/bin/pytest tests/e2e --hub-case-root cases "
+            "--strict-markers",
+            ";;",
+            "load)",
+            "exec /opt/hub/.venv/bin/locust -f load/locustfile.py --headless",
+            ";;",
+            "*)",
+            "exit 64",
+            ";;",
+            "esac",
+        )
+    except Exception:
+        return False
+
+
+def _empty_regular_marker(path: Path) -> bool:
+    descriptor = -1
+    try:
+        before = path.lstat()
+        reparse_flag = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+        attributes = getattr(before, "st_file_attributes", 0)
+        if (
+            not stat.S_ISREG(before.st_mode)
+            or attributes & reparse_flag
+            or before.st_size != 0
+        ):
+            return False
+        flags = os.O_RDONLY | getattr(os, "O_BINARY", 0)
+        flags |= getattr(os, "O_NOFOLLOW", 0)
+        descriptor = os.open(path, flags)
+        opened = os.fstat(descriptor)
+        if not _descriptor_metadata_is_stable(
+            _descriptor_metadata(before),
+            _descriptor_metadata(opened),
+        ):
+            return False
+        if os.read(descriptor, 1) != b"":
+            return False
+        return _descriptor_metadata_is_stable(
+            _descriptor_metadata(opened),
+            _descriptor_metadata(os.fstat(descriptor)),
+        )
+    except Exception:
+        return False
+    finally:
+        if descriptor >= 0:
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
 
 
 def _docker_regular_files(repo_root: Path) -> tuple[str, ...] | object:
