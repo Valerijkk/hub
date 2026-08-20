@@ -21,11 +21,12 @@ import (
 // архитектуру handler → service → repository (db) и упрощает unit-тесты.
 type Handler struct {
 	service *AuthService
+	devMode bool
 }
 
 // NewHandler создаёт новый обработчик аутентификации.
-func NewHandler(service *AuthService) *Handler {
-	return &Handler{service: service}
+func NewHandler(service *AuthService, devMode bool) *Handler {
+	return &Handler{service: service, devMode: devMode}
 }
 
 // RegisterRoutes регистрирует все маршруты аутентификации на указанном Fiber-роутере.
@@ -100,7 +101,7 @@ func (h *Handler) SendMagicLink(c fiber.Ctx) error {
 	}
 
 	resp := fiber.Map{"message": "Magic link sent"}
-	if h.service.magicLink.IsDevMode() {
+	if h.devMode {
 		resp["code"] = code
 	}
 	return c.JSON(resp)

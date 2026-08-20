@@ -23,7 +23,8 @@ const (
 	magicLinkFailsPrefix = "magiclink:fails:"
 )
 
-// ResendClient — интерфейс отправки email; в prod — Resend API, в dev (пустой ключ) — код в HTTP-ответе handler'а.
+// ResendClient is the email delivery interface. A nil client disables delivery;
+// public code disclosure is controlled only by the Handler's explicit dev mode.
 type ResendClient interface {
 	SendMagicLinkEmail(ctx context.Context, to, code string) error
 }
@@ -51,11 +52,6 @@ func generateCode() (string, error) {
 		return "", fmt.Errorf("generate magic link code: %w", err)
 	}
 	return fmt.Sprintf("%06d", n.Int64()), nil
-}
-
-// IsDevMode возвращает true, когда Resend не настроен — код возвращается handler'у, не в email.
-func (s *MagicLinkService) IsDevMode() bool {
-	return s.resend == nil
 }
 
 // maskEmailMinimized — A14-006: не писать полный email в stdout/Loki.
@@ -109,8 +105,8 @@ func (s *MagicLinkService) SendMagicLink(ctx context.Context, email string) (str
 			return "", fmt.Errorf("send magic link email: %w", err)
 		}
 	} else {
-		// A14-006: OTP никогда в лог — даже в dev (код возвращается handler'у для DX).
-		slog.Info("magic link issued (dev mode)", "email", masked)
+		// A14-006: OTP is never written to logs, including when delivery is disabled.
+		slog.Info("magic link issued without delivery", "email", masked)
 	}
 
 	return code, nil
