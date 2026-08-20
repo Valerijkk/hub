@@ -2266,7 +2266,7 @@ telemetry `UNKNOWN`. Candidate/precommit/commit-review/separate-acceptance-next 
 `backend/tests/mail/mailbox_events_test.go`, `backend/tests/mail/mailbox_sync_policy_test.go`,
 `backend/internal/mail/mailbox_events.go`, then `backend/internal/mail/mailbox_sync_policy.go`, with
 no substitution or extra path. The implementation files themselves remain `UNIMPLEMENTED/UNACCEPTED`
-and executable evidence is `NOT_RUN`; this uncommitted docs sync is not a new acceptance claim.
+and executable evidence is `NOT_RUN`; the previously committed 144-04F authority acceptance sync is not a new acceptance claim.
 The event-builder portion is exactly the existing received/changed folder-id and changed label-id
 caps `50 -> 100` (100 pass/101 reject), without field, subject or version change. Every new policy
 type lives only in `mailbox_sync_policy.go`; `mailbox_types.go` is excluded.

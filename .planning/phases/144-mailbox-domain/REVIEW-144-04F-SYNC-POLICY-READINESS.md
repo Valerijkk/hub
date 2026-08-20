@@ -8,7 +8,7 @@ Candidate `4e608e890ec12aeed8de965f9649ae503260b94e` (parent
 is `SOURCE_AUTHORITY_ACCEPTED` / `EXACT_SHA_PASS` for its immutable exact9 tree blobs. Contract,
 Security and Lifecycle exact-SHA reviews PASS C/I/M `0/0/0`; provenance is dispatcher-enforced, no
 fallback, telemetry `UNKNOWN`. Candidate/precommit/commit-review/separate-acceptance-next clauses
-are `CONSUMED/HISTORICAL`. This uncommitted documentation sync records that existing receipt; it is
+are `CONSUMED/HISTORICAL`. The previously committed 144-04F authority acceptance sync records that existing receipt; it is
 not a new acceptance claim. The four implementation files remain `UNIMPLEMENTED/UNACCEPTED` and
 executables/runtime `NOT_RUN`.
 
@@ -168,7 +168,7 @@ and receipt `c53a5fe6`; this receipt selects only the exact4 manifest above. 02E
 services/API/UI/product/phase/release, 02F-D, engine deletion/User-GDPR remain outside scope.
 Launcher is `NOT_READY`; executables/runtime are `NOT_RUN`.
 
-Author self-review of this uncommitted sync is C/I/M only and is not an acceptance claim. Record
+Author self-review of the previously committed 144-04F authority acceptance sync is C/I/M only and is not a new acceptance claim. Record
 exact-nine-path scope, `staged=0`, `git diff --check`, stale/authority review and an exact blob map.
 The stale/authority review confirms candidate/precommit/no-dispatch/acceptance-sync-next wording is
 historical, while unrelated historical 144-03B and Thread exact-two records remain preserved and do

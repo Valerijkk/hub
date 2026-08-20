@@ -571,7 +571,7 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   or draft, never both): same-account, byte-equal projection EngineMessageID and exact Origin;
   nonempty BCC needs that matching confirmed proof/origin, inbound/unknown BCC is empty.
   The four implementation files remain `UNIMPLEMENTED/UNACCEPTED`; executables/runtime stay
-  `NOT_RUN`. This uncommitted docs sync records existing authority, not a new acceptance claim.
+  `NOT_RUN`. The previously committed 144-04F authority acceptance sync records existing authority, not a new acceptance claim.
   OpenAPI, persistence,
   02E, Ent generation/migration, services/API/UI/product/phase/release, 02F-D, engine deletion
   and User/GDPR remain outside scope; launcher `NOT_READY`, executables/runtime `NOT_RUN`.

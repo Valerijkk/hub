@@ -949,6 +949,6 @@ proof/origin and otherwise empty. Events use only existing constructors; cursors
 Advance. Add proof dual/missing/engine-ID/cross-account/origin/BCC and bounds/nil-slice/byte-budget
 rows to the listed oracle.
 
-The four implementation files remain `UNIMPLEMENTED/UNACCEPTED`; this uncommitted docs sync is not
+The four implementation files remain `UNIMPLEMENTED/UNACCEPTED`; the previously committed 144-04F authority acceptance sync is not
 a new acceptance claim. No runtime claim: launcher `NOT_READY`, executables/runtime `NOT_RUN`; no 02E/Ent/generation/
 migration/service/API/UI/product/phase/release, 02F-D, engine deletion or User/GDPR authority.

@@ -594,7 +594,7 @@ and mirrored in `MAIL-SPEC.md`. The now-consumed lifecycle required three indepe
 reviews and one atomic exact-nine candidate commit. The accepted receipt permits root dispatch only
 of the frozen exact-four test-first manifest; implementation remains `UNIMPLEMENTED/UNACCEPTED`.
 Executables/runtime are
-`NOT_RUN`, and this uncommitted docs sync is not a new acceptance claim. OpenAPI/persistence and 02E/Ent/generation/
+`NOT_RUN`, and the previously committed 144-04F authority acceptance sync is not a new acceptance claim. OpenAPI/persistence and 02E/Ent/generation/
 migration/services/API/UI/product/phase/release remain out of scope, as do 02F-D, engine
 deletion/User-GDPR. Launcher remains `NOT_READY`; executables/runtime `NOT_RUN`.
 

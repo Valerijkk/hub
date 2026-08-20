@@ -114,7 +114,7 @@ telemetry `UNKNOWN`. Candidate/precommit/commit-review/separate-acceptance-next 
 `backend/internal/mail/mailbox_sync_policy.go`; no substitute or extra path. `mailbox_events.go` changes only the
 three existing folder/label caps from 50 to 100 (100 pass/101 reject; no field, subject or version
 change); all new ABI types are only in `mailbox_sync_policy.go`. The four implementation files are
-`UNIMPLEMENTED/UNACCEPTED`; this uncommitted docs sync is not a new acceptance claim. No other
+`UNIMPLEMENTED/UNACCEPTED`; the previously committed 144-04F authority acceptance sync is not a new acceptance claim. No other
 source packet is selected. 02E, Ent generation/migration, services/API/UI/product/
 phase/release, 02F-D, engine deletion and physical User/GDPR remain blocked/out of scope;
 launcher `NOT_READY`, executables/runtime `NOT_RUN`.

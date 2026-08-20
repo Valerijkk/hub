@@ -1521,7 +1521,7 @@ new quality gate is requirement/risk traceability plus fail-closed execution.
 > Event-builder scope is only the three existing folder/label caps `50 -> 100` with 100 pass
 > and 101 reject; no field/subject/version change. Author provenance: Terra/medium, `dispatcher-enforced`, no fallback; telemetry
 > `UNKNOWN`. The four implementation files remain `UNIMPLEMENTED/UNACCEPTED`; executable evidence
-> is `NOT_RUN`. This uncommitted docs sync records the existing receipt and is not itself an
+> is `NOT_RUN`. The previously committed 144-04F authority acceptance sync records the existing receipt and is not itself an
 > acceptance claim. Preserve 02C source
 > `STATIC_ACCEPTED` at `e565523f589fbd7536f6f8e4df7effd39469c1af` and docs receipt
 > `c53a5fe6`; this receipt selects only the exact4 manifest above. 02E/Ent/generation/migration/services/API/UI/
