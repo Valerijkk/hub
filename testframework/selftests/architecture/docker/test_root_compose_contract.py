@@ -139,6 +139,11 @@ _INFRASTRUCTURE_DEPENDENTS = frozenset(
     {"python-integration", "python-e2e-smoke", "python-e2e-full"}
 )
 _QA_NETWORK = "qa-internal"
+_MAINTENANCE_SERVICE = "qa-lock"
+_MAINTENANCE_PROFILE = "qa-maintenance"
+_QA_LOCK_USER = "1000:1000"
+_QA_LOCK_UID_OPTION = "uid=1000"
+_QA_LOCK_GID_OPTION = "gid=1000"
 _SEAWEEDFS_S3_CONFIG = (
     "{\n"
     '  "identities": [\n'
@@ -213,6 +218,8 @@ def test_root_compose_exposes_exact_fixed_qa_services() -> None:
         _PUBLIC_SERVICES
     )
     assert _qa_service_profiles_are_closed(services)
+    assert _maintenance_service_profiles_are_closed(services)
+    assert _qa_lock_service_is_closed(services)
     assert _qa_extensions_are_closed(compose)
     assert _qa_network_is_closed(compose)
     assert _qa_seaweedfs_config_is_closed(compose)
@@ -225,6 +232,7 @@ def test_qa_services_have_fixed_commands_and_security_options() -> None:
     services = _compose_services(load_root_compose_contract(_REPO_ROOT))
 
     assert _qa_public_services_are_closed(services)
+    assert _qa_lock_service_is_closed(services)
     for name in _PUBLIC_SERVICES:
         service = _mapping_value(services, name)
         assert service["profiles"] == ("qa",)
@@ -345,6 +353,15 @@ def test_duplicate_yaml_keys_are_rejected(tmp_path: Path) -> None:
     assert not _dockerfile_qa_is_closed(
         dockerfile + 'ENTRYPOINT ["/usr/local/bin/hostile"]\n'
     )
+    assert not _dockerfile_qa_is_closed(
+        dockerfile.replace(
+            'ENTRYPOINT ["/usr/local/bin/uv", "lock"]',
+            "RUN uv lock\n"
+            "COPY testframework/uv.lock ./uv.lock\n"
+            'ENTRYPOINT ["/usr/local/bin/uv", "lock"]',
+            1,
+        )
+    )
 
     fixed_entrypoints = (
         (
@@ -391,6 +408,160 @@ def test_duplicate_yaml_keys_are_rejected(tmp_path: Path) -> None:
     services = _compose_services(load_root_compose_contract(_REPO_ROOT))
     assert _qa_public_services_are_closed(services)
     assert _qa_infrastructure_services_are_closed(services)
+    assert _maintenance_service_profiles_are_closed(services)
+    assert _qa_lock_service_is_closed(services)
+
+    assert not _maintenance_service_profiles_are_closed(
+        _mutate_service(
+            services,
+            _MAINTENANCE_SERVICE,
+            {"profiles": ("qa",)},
+        )
+    )
+    assert not _qa_lock_service_is_closed(
+        _mutate_nested_mapping(
+            services,
+            _MAINTENANCE_SERVICE,
+            "build",
+            "target",
+            "python-tests",
+        )
+    )
+    assert not _qa_lock_service_is_closed(
+        _mutate_service(
+            services,
+            _MAINTENANCE_SERVICE,
+            {"command": ("--project", "/workspace/hostile")},
+        )
+    )
+    assert not _qa_lock_service_is_closed(
+        _mutate_service(
+            services,
+            _MAINTENANCE_SERVICE,
+            {
+                "command": (
+                    "--project",
+                    "/workspace/testframework",
+                    "--upgrade",
+                )
+            },
+        )
+    )
+    qa_lock = _mapping_value(services, _MAINTENANCE_SERVICE)
+    project_binds = qa_lock["volumes"]
+    assert type(project_binds) is tuple and len(project_binds) == 1
+    project_bind = project_binds[0]
+    assert isinstance(project_bind, Mapping)
+    assert not _qa_lock_service_is_closed(
+        _mutate_service(
+            services,
+            _MAINTENANCE_SERVICE,
+            {
+                "volumes": project_binds
+                + (
+                    MappingProxyType(
+                        {
+                            "type": "bind",
+                            "source": "./testframework/.cache",
+                            "target": "/cache",
+                            "read_only": False,
+                        }
+                    ),
+                )
+            },
+        )
+    )
+    read_only_bind = dict(project_bind)
+    read_only_bind["read_only"] = True
+    assert not _qa_lock_service_is_closed(
+        _mutate_service(
+            services,
+            _MAINTENANCE_SERVICE,
+            {"volumes": (MappingProxyType(read_only_bind),)},
+        )
+    )
+    socket_bind = dict(project_bind)
+    socket_bind["source"] = "/var/run/docker.sock"
+    socket_bind["target"] = "/var/run/docker.sock"
+    assert not _qa_lock_service_is_closed(
+        _mutate_service(
+            services,
+            _MAINTENANCE_SERVICE,
+            {"volumes": (MappingProxyType(socket_bind),)},
+        )
+    )
+    assert not _qa_lock_service_is_closed(
+        _remove_service_field(
+            services,
+            _MAINTENANCE_SERVICE,
+            "security_opt",
+        )
+    )
+    assert not _qa_lock_service_is_closed(
+        _remove_service_field(
+            services,
+            _MAINTENANCE_SERVICE,
+            "user",
+        )
+    )
+    assert not _qa_lock_service_is_closed(
+        _mutate_service(
+            services,
+            _MAINTENANCE_SERVICE,
+            {"user": "${QA_HOST_UID:-1000}:1000"},
+        )
+    )
+    assert not _qa_lock_service_is_closed(
+        _mutate_service(
+            services,
+            _MAINTENANCE_SERVICE,
+            {"user": "0:0"},
+        )
+    )
+    assert not _qa_lock_service_is_closed(
+        _mutate_service(
+            services,
+            _MAINTENANCE_SERVICE,
+            {"user": "1001:1001"},
+        )
+    )
+    assert not _qa_lock_service_is_closed(
+        _mutate_service(
+            services,
+            _MAINTENANCE_SERVICE,
+            {"user": "1000:1000:extra"},
+        )
+    )
+    assert not _qa_lock_service_is_closed(
+        _mutate_service(
+            services,
+            _MAINTENANCE_SERVICE,
+            {"group_add": ("1000",)},
+        )
+    )
+    qa_lock_tmpfs = qa_lock["tmpfs"]
+    assert type(qa_lock_tmpfs) is tuple and len(qa_lock_tmpfs) == 3
+    first_tmpfs = qa_lock_tmpfs[0]
+    assert type(first_tmpfs) is str
+    mismatched_tmpfs = (
+        first_tmpfs.replace(_QA_LOCK_UID_OPTION, "uid=1001", 1),
+        qa_lock_tmpfs[1],
+        qa_lock_tmpfs[2],
+    )
+    assert not _qa_lock_service_is_closed(
+        _mutate_service(
+            services,
+            _MAINTENANCE_SERVICE,
+            {"tmpfs": mismatched_tmpfs},
+        )
+    )
+    second_maintenance = dict(services)
+    second_maintenance["qa-lock-second"] = MappingProxyType(
+        {"profiles": (_MAINTENANCE_PROFILE,)}
+    )
+    assert not _maintenance_service_profiles_are_closed(
+        MappingProxyType(second_maintenance)
+    )
 
     extra_qa = dict(services)
     extra_qa["qa-hostile"] = MappingProxyType({"profiles": ("qa",)})
@@ -969,6 +1140,90 @@ def _qa_service_profiles_are_closed(services: object) -> bool:
         return False
 
 
+def _maintenance_service_profiles_are_closed(services: object) -> bool:
+    try:
+        if not isinstance(services, Mapping):
+            return False
+        selected: set[str] = set()
+        for name, value in services.items():
+            if type(name) is not str or not isinstance(value, Mapping):
+                return False
+            profiles = value.get("profiles")
+            includes_maintenance = profiles == _MAINTENANCE_PROFILE or (
+                type(profiles) is tuple
+                and _MAINTENANCE_PROFILE in profiles
+            )
+            if includes_maintenance:
+                if (
+                    name != _MAINTENANCE_SERVICE
+                    or profiles != (_MAINTENANCE_PROFILE,)
+                ):
+                    return False
+                selected.add(name)
+        maintenance = services.get(_MAINTENANCE_SERVICE)
+        return (
+            selected == {_MAINTENANCE_SERVICE}
+            and isinstance(maintenance, Mapping)
+            and maintenance.get("profiles") == (_MAINTENANCE_PROFILE,)
+        )
+    except Exception:
+        return False
+
+
+def _qa_lock_service_is_closed(services: object) -> bool:
+    try:
+        if not isinstance(services, Mapping):
+            return False
+        return services.get(_MAINTENANCE_SERVICE) == MappingProxyType(
+            {
+                "profiles": (_MAINTENANCE_PROFILE,),
+                "build": MappingProxyType(
+                    {
+                        "context": ".",
+                        "dockerfile": "testframework/docker/Dockerfile.qa",
+                        "target": "python-lock",
+                    }
+                ),
+                "command": ("--project", "/workspace/testframework"),
+                "volumes": (
+                    MappingProxyType(
+                        {
+                            "type": "bind",
+                            "source": "./testframework",
+                            "target": "/workspace/testframework",
+                            "read_only": False,
+                        }
+                    ),
+                ),
+                "read_only": True,
+                "user": _QA_LOCK_USER,
+                "tmpfs": (
+                    "/tmp:rw,noexec,nosuid,nodev,size=64m,"
+                    f"{_QA_LOCK_UID_OPTION},{_QA_LOCK_GID_OPTION},mode=1770",
+                    "/home/hubqa:rw,noexec,nosuid,nodev,size=32m,"
+                    f"{_QA_LOCK_UID_OPTION},{_QA_LOCK_GID_OPTION},mode=0700",
+                    "/opt/hub/uv-cache:rw,noexec,nosuid,nodev,size=512m,"
+                    f"{_QA_LOCK_UID_OPTION},{_QA_LOCK_GID_OPTION},mode=0700",
+                ),
+                "environment": MappingProxyType(
+                    {
+                        "HOME": "/home/hubqa",
+                        "UV_CACHE_DIR": "/opt/hub/uv-cache",
+                    }
+                ),
+                "security_opt": ("no-new-privileges:true",),
+                "cap_drop": ("ALL",),
+                "init": True,
+                "pids_limit": 128,
+                "cpus": 1.0,
+                "mem_limit": "1g",
+                "stop_grace_period": "30s",
+            }
+        )
+    except Exception:
+        return False
+
+
 def _qa_extensions_are_closed(compose: object) -> bool:
     try:
         if not isinstance(compose, Mapping):
@@ -1323,6 +1578,18 @@ def _mutate_nested_mapping(
     )
 
 
+def _remove_service_field(
+    services: Mapping[str, object],
+    name: str,
+    key: str,
+) -> Mapping[str, object]:
+    mutated_services = dict(services)
+    service = dict(_mapping_value(services, name))
+    service.pop(key, None)
+    mutated_services[name] = MappingProxyType(service)
+    return MappingProxyType(mutated_services)
+
+
 def _resource_limits_are_bounded(service: Mapping[str, object]) -> bool:
     pids_limit = service.get("pids_limit")
     cpus = service.get("cpus")
@@ -1496,9 +1763,17 @@ def _dockerfile_qa_is_closed(text: object) -> bool:
                 (
                     "python-base",
                     (
-                        "WORKDIR /opt/hub/testframework",
+                        "RUN mkdir -p /workspace/testframework "
+                        "/opt/hub/uv-cache /opt/hub/lock-input "
+                        "/home/hubqa && chown -R 10001:10001 "
+                        "/workspace/testframework /opt/hub/uv-cache "
+                        "/opt/hub/lock-input /home/hubqa",
+                        "WORKDIR /workspace/testframework",
                         "COPY --chown=10001:10001 "
-                        "testframework/pyproject.toml ./pyproject.toml",
+                        "testframework/pyproject.toml "
+                        "/opt/hub/lock-input/pyproject.toml",
+                        "ENV HOME=/home/hubqa",
+                        "ENV UV_CACHE_DIR=/opt/hub/uv-cache",
                         "USER 10001:10001",
                         'ENTRYPOINT ["/usr/local/bin/uv", "lock"]',
                     ),

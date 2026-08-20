@@ -317,6 +317,35 @@ services:
       target: python-tests
     command: [load]
 
+  qa-lock:
+    profiles: [qa-maintenance]
+    build:
+      context: .
+      dockerfile: testframework/docker/Dockerfile.qa
+      target: python-lock
+    command: ["--project", "/workspace/testframework"]
+    volumes:
+      - type: bind
+        source: ./testframework
+        target: /workspace/testframework
+        read_only: false
+    read_only: true
+    user: "1000:1000"
+    tmpfs:
+      - "/tmp:rw,noexec,nosuid,nodev,size=64m,uid=1000,gid=1000,mode=1770"
+      - "/home/hubqa:rw,noexec,nosuid,nodev,size=32m,uid=1000,gid=1000,mode=0700"
+      - "/opt/hub/uv-cache:rw,noexec,nosuid,nodev,size=512m,uid=1000,gid=1000,mode=0700"
+    environment:
+      HOME: /home/hubqa
+      UV_CACHE_DIR: /opt/hub/uv-cache
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    init: true
+    pids_limit: 128
+    cpus: 1.0
+    mem_limit: 1g
+    stop_grace_period: 30s
+
   qa-postgres:
     <<: *qa-infrastructure
     image: postgres:17
