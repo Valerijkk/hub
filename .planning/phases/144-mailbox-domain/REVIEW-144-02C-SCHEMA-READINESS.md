@@ -1,12 +1,12 @@
 # Phase 144-02C preimplementation review — object/draft schema readiness
 
-> **144-02C source-authority acceptance (2026-08-20):** immutable candidate `e28603513f29f814fbcdd851e7b2c4816dd6c8af` (parent `b93c77ae771c6509be54fca8817fbca7617d6853`, tree `38139b504958eb1408b91a76a4201a0382fbee87`, subject `docs(mail): propose delivery schema authority`) is `SOURCE_AUTHORITY_ACCEPTED` / `EXACT_SHA_PASS`; Contract/Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency/Boundary Terra/high immutable exact-SHA reviews PASS C/I/M `0/0/0`. The lower candidate/precommit/authority-commit/exact-review/acceptance-sync-next clauses are `CONSUMED/HISTORICAL`; immutable candidate facts and the frozen exact13 manifest below remain unchanged. Root may dispatch only that test-first exact13 source/test packet. Source implementation remains unaccepted pending its own test-first authoring, precommit triple review, atomic commit, immutable exact-SHA triple review and later receipt sync. No Ent generation, migration, services, API/UI, runtime, product, phase or release authority follows; 02F-D/02E, deletion-port, physical User/GDPR-intent, launcher `NOT_READY` and executable/runtime `NOT_RUN` blockers remain current. Acceptance-sync provenance: Terra/medium, dispatcher-enforced/no fallback, telemetry `UNKNOWN` unless exposed.
+> **144-02C source receipt (2026-08-20):** `STATIC_ACCEPTED / EXACT_SHA_PASS` applies only to immutable `e565523f589fbd7536f6f8e4df7effd39469c1af` (parent `df2dcbc2151c4b2df5c57774c3114b066b183d24`, tree `9fabe45429dfdda49625fe53cd6645e08ed63d52`) and the exact 13 blobs in `IMPLEMENTATION-144-02C.md`. Tests/oracles first; stated review routes PASS C/I/M `0/0/0`. The lower 02C authority-candidate, source-unaccepted, lifecycle-next and implied-next-packet entries are `CONSUMED/HISTORICAL`. No next Mail code packet is selected or authorized; root must select it separately. Ent generation, migration, direct SQL, services, API/UI, runtime, product, phase and release remain outside this receipt; 02F-D/02E, deletion-port, physical User/GDPR intent, launcher `NOT_READY` and executable evidence `NOT_RUN` remain current. Provenance Terra/medium, dispatcher-enforced/no fallback, telemetry `UNKNOWN`.
 
 > **2026-08-15 lifecycle correction acceptance:** exact14 is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `576f19231e37f635d5b7187a1ada121ed14ff8dc` (parent `0ef3df9eedfb3683fe70a7f8fc502ca76278facb`, tree `b28904b96c084dd88c4cec37c8e1daa62fde4c5d`) after Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high exact-SHA PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback, telemetry `UNKNOWN`. Candidate/precommit/root-commit/exact-review/status-sync-next clauses are `CONSUMED/HISTORICAL`. Engine drain/final Account deletion remains separately `BLOCKED` / `NOT_DISPATCHABLE` pending the independent docs-only engine deletion-port contract/adjudication. No source/Ent/service/test/runtime authority.
 
-> **144-02C authority bridge candidate (2026-08-20):** 02B source `947e2a27650ff1c6db60af9ce13bb33b6bf19cb0` is accepted and its receipt is `b93c77ae771c6509be54fca8817fbca7617d6853`; only the former clause that `02C waits accepted 02B source` is `CONSUMED/HISTORICAL`. `144-02C` is now `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED` only. It requires three independent precommit reviews (Contract/Spec/Oracle Terra/high; Security/Adversarial Terra/xhigh; Lifecycle/Dependency/Boundary Terra/high), one exact eight-document authority commit, the same three immutable exact-child-SHA reviews, and a separate docs-only source-authority acceptance sync before root may dispatch the frozen test-first exact13 source packet below. No source, source acceptance, Ent generation, migration, service, API/UI, runtime, product, phase or release authority exists now; 02F-D/02E, engine deletion-port, physical User/GDPR deletion intent, launcher `NOT_READY` and executables/runtime `NOT_RUN` remain unchanged. Requested author provenance: Terra/medium, dispatcher-enforced/no fallback, telemetry `UNKNOWN` unless exposed. **02C route status: `CONSUMED/HISTORICAL`; superseded by `e28603513f29f814fbcdd851e7b2c4816dd6c8af` `SOURCE_AUTHORITY_ACCEPTED` / `EXACT_SHA_PASS`. Root may dispatch only the frozen exact13 packet; source remains unaccepted.**
+> **144-02C historical authority-bridge candidate:** `CONSUMED/HISTORICAL`; it is superseded by the immutable source receipt `e565523f589fbd7536f6f8e4df7effd39469c1af` and its 13-blob manifest. It confers no current or next-packet authority.
 
-## Frozen future test-first exact13 source manifest — not yet dispatched
+## Immutable accepted test-first exact13 source manifest — receipt only
 
 1. `backend/tests/mail/mail_delivery_schema_test.go`
 2. `backend/ent/schema/mailobject.go`
@@ -26,7 +26,7 @@ The test oracle is authored first. The final two compatibility tests are mandato
 
 > **Detected:** 2026-08-13 root deep static audit
 > **Lifecycle:** exact14 docs/readiness representation is `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `576f19231e37f635d5b7187a1ada121ed14ff8dc`; implementation remains separately blocked.
-> **Status:** `STATIC_ACCEPTED` / `EXACT_SHA_PASS` docs representation · IMPLEMENTATION/SOURCE/SCHEMA/RUNTIME `BLOCKED` · launcher `NOT_READY` · executables `NOT_RUN`
+> **Status:** `STATIC_ACCEPTED` / `EXACT_SHA_PASS` docs representation · former implementation/source/schema route CONSUMED/HISTORICAL; runtime `NOT_RUN` · launcher `NOT_READY` · executables `NOT_RUN`
 > **Scope:** `MailObject`, `MailAttachment`, `MailDraft` and `MailSubmission`
 
 > `docs/mail/ENGINE-CONTRACT-0.1.8.md`, OpenAPI 0.1.8 and the 02C persistence matrix supply
@@ -167,9 +167,8 @@ Minimum amendment:
 
 ## Gate impact
 
-- 144-02C contract amendment is independently accepted, but schema implementation remains
-  separately blocked; no four-file Ent packet should be authored until its packet and
-  generation/migration/launcher gates are accepted;
+- 144-02C contract amendment is independently accepted, but former schema-authoring block is CONSUMED/HISTORICAL; the accepted source receipt selects no next packet and
+  generation/migration gates remain unaccepted/blocked and launcher remains `NOT_READY`;
 - 144-04D/04E and attachment/storage packets remain blocked on the stable draft key, staging
   cardinality, state matrix and hard byte ceilings;
 - 144-01A also requires the narrow draft-create reconciliation amendment in addition to its
