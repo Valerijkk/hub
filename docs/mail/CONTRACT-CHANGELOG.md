@@ -1,5 +1,35 @@
 # Hub Mail contract changelog
 
+## 2026-08-20 — 144-04G source-authority acceptance-sync candidate
+
+- Status: `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT9_COMMIT_REQUIRED /
+  SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This dirty exact9 working tree grants no
+  authority. The `6ba3aed3d9a69a76f98978faf4a9e3362c4bc29b` metadata and the three immutable
+  exact-SHA PASS results below are proposed receipt facts only; they activate only after one atomic
+  commit of this exact9 acceptance sync. Until activation, the lower candidate/precommit/root-commit/
+  exact-SHA-next lifecycle remains current and root cannot dispatch source; the separately false
+  accepted-repository premise remains `CONSUMED/HISTORICAL`.
+
+- After that atomic exact9 sync commit, docs authority is
+  `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS` only at immutable
+  `6ba3aed3d9a69a76f98978faf4a9e3362c4bc29b` (parent
+  `2b6837926c91d652ff7bf30447bd482740261bd0`, tree
+  `bdd59cfcb31376c95f5128370a75333cad78bc14`, subject
+  `docs(mail): propose sync service authority`); exact9 blobs are recorded in the readiness review.
+- Contract, Security and Lifecycle immutable exact-SHA reviews PASS C/I/M `0/0/0`;
+  dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed. Only after that atomic
+  exact9 sync commit is the former candidate/precommit/root-commit/exact-SHA-next lifecycle
+  `CONSUMED/HISTORICAL`.
+- Only then may root dispatch only the frozen ordered exact3:
+  `backend/tests/mail/mailbox_sync_service_test.go`, new interface/types-only
+  `backend/internal/mail/mailbox_repository.go`, then new
+  `backend/internal/mail/mailbox_sync_service.go`. Source remains
+  `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED` until its own TDD, reviews, atomic commit and
+  immutable exact-SHA acceptance.
+- 04F remains accepted. 04H/02E, Ent/SQL/concrete adapter, generation, migration, OpenAPI and
+  runtime remain blocked or outside authority; launcher `NOT_READY`, executables/runtime
+  `NOT_RUN`. This acceptance sync is docs-only and changes no Calendar state.
+
 ## 2026-08-20 — 144-04G sync-service authority candidate
 
 - Status is only `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /

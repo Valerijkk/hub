@@ -1,5 +1,46 @@
 # 144-04G sync-service source-authority readiness
 
+## Source-authority acceptance-sync candidate (2026-08-20)
+
+Status: `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT9_COMMIT_REQUIRED /
+SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This dirty exact9 working tree grants no
+authority. The `6ba3aed3d9a69a76f98978faf4a9e3362c4bc29b` metadata and the three immutable
+exact-SHA PASS results below are proposed receipt facts only; they activate only after one atomic
+commit of this exact9 acceptance sync. Until activation, the lower candidate/precommit/root-commit/
+exact-SHA-next lifecycle remains current and root cannot dispatch source; the separately false
+accepted-repository premise remains `CONSUMED/HISTORICAL`.
+
+After that atomic exact9 sync commit, this docs authority is
+`SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS` only at immutable commit
+`6ba3aed3d9a69a76f98978faf4a9e3362c4bc29b` (parent
+`2b6837926c91d652ff7bf30447bd482740261bd0`, tree
+`bdd59cfcb31376c95f5128370a75333cad78bc14`, subject
+`docs(mail): propose sync service authority`). Its exact9 blobs are:
+
+- `.planning/STATE.md` `af3d1fe0e7f60501dc05964f227eebf6a12b7acf`;
+- `.planning/decisions/specs/MAIL-SPEC.md` `0a64630a4080872395ab29de9adac4cbf566bbba`;
+- `.planning/phases/144-mailbox-domain/DISPATCH-INDEX.md`
+  `35d9b0c21e641d695c23dbac3970684cd1c7f1e6`;
+- `.planning/phases/144-mailbox-domain/DISPATCH-REMAINING.md`
+  `da673fe1a669ae09a81d063e79e7b03d26b351cf`;
+- `.planning/phases/144-mailbox-domain/PLAN.md`
+  `d12820f246e9f6a44b321e3e4e399c2757b3726c`;
+- `.planning/phases/144-mailbox-domain/REVIEW-144-04G-SYNC-SERVICE-READINESS.md`
+  `a886f6f01365194888dfc41e4b98a3be452d372c`;
+- `docs/mail/CONTRACT-CHANGELOG.md` `40c9ffe5eeb8396f336187015fd86eb26ab0f8da`;
+- `docs/mail/PERSISTENCE-CONTRACT-0.1.8.md` `4fa416ea3e2888b4ed34fb544c0be33aedb60e5b`;
+- `docs/mail/QA-HANDOFF.md` `837c060cdb156a657ccbff15cf46f1a09289649c`.
+
+Contract, Security and Lifecycle immutable exact-SHA reviews PASS C/I/M `0/0/0`;
+dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed. Only after that atomic
+exact9 sync commit is every candidate, precommit, root-commit and exact-SHA-next clause below
+`CONSUMED/HISTORICAL` only for that completed docs-authority lifecycle. Only then may root
+dispatch only the frozen ordered exact3 named below.
+Its source remains `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED` until its own authored-first
+review, atomic commit and immutable exact-SHA acceptance. 04F remains accepted; 04H/02E,
+Ent/SQL/concrete adapter, generation, migration, OpenAPI and runtime remain blocked or outside
+authority. Launcher `NOT_READY`; executables/runtime `NOT_RUN`.
+
 Status: `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`
 
 Date: 2026-08-20
