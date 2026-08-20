@@ -1,5 +1,18 @@
 # MAIL-SPEC — Hub mailbox and calendar synchronization contract
 
+> **143-04C acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE /
+> ATOMIC_EXACT12_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty exact12 working tree grants no
+> authority. The `7fd061b5...` receipt and scoped route transitions below activate only after one
+> atomic commit of exactly these 12 acceptance-sync documents. Until then the prior 04C lifecycle
+> remains current. Activation selects no next Calendar packet and lifts no generation, migration,
+> adapter, API/UI, raw-iTIP, launcher, or runtime blocker.
+
+## 143-04C immutable source acceptance (2026-08-20)
+
+Calendar 143-04C is `STATIC_ACCEPTED / EXACT_SHA_PASS` only at immutable commit `7fd061b5099b4608e0c33a6d99edbe1a66587d34` (parent `bb84a47e12516c19682ff08783a5844306fc5766`, tree `0fb65fc72705bb145a1f2950c6efbe16607e6a04`, subject `feat(calendar): add update and cancel service`) for its exact3 test-first blobs: `backend/tests/calendar/event_service_update_test.go` `4421204141719fa1af586b3d6272aa130f185af2`, `backend/internal/calendar/event_repository.go` `737207280cc23adb873ae8d36952a3e62a0a3a4d`, then `backend/internal/calendar/event_service_update.go` `094b68dd8369bdc9345d9348016b3bdc377aa7a9`. Receipt: `IMPLEMENTATION-143-04C.md`. Contract/Spec/Oracle, Security and Lifecycle precommit plus immutable exact-SHA reviews PASS C/I/M `0/0/0`; author Terra/xhigh, dispatcher-enforced/no fallback, telemetry `UNKNOWN` unless exposed.
+
+Every lower 143-04C candidate, `ROOT_SOURCE_AUTHORITY_CANDIDATE`, precommit/source-unaccepted/uncommitted/current-next, or blocked-pending-source-acceptance clause is `CONSUMED/HISTORICAL` only for 04C. No next Calendar code packet is selected or authorized; root must separately select any later packet. 03E/Ent generation/migration, adapter/API/UI, raw iTIP, launcher `NOT_READY`, and all executable/runtime evidence `NOT_RUN` remain authoritative.
+
 ## 144-04G source-authority acceptance-sync candidate (2026-08-20)
 
 Status: `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT9_COMMIT_REQUIRED /
@@ -243,7 +256,7 @@ Lifecycle is three independent precommit PASS C/I/M `0/0/0`, one atomic exact9 c
 three immutable exact-SHA PASS, then a separate docs-only acceptance sync. Until then no exact3
 dispatch, source acceptance, executable evidence or runtime claim exists; launcher is `NOT_READY`.
 
-## 143-03B-T immutable source acceptance and conditional 143-04C gate (2026-08-20)
+## 143-03B-T immutable source acceptance and former conditional 143-04C gate (CONSUMED/HISTORICAL as to 04C; 2026-08-20)
 
 Calendar 143-03B-T is `STATIC_ACCEPTED / EXACT_SHA_PASS` only at immutable commit `68cbf7cb227799304ce679937b519b66cb6abf9b` (parent `4715f939f24e5b5c2d3f80a38d204babe68bdd34`, tree `1537ba1d2d0fa804545fd8667ffe1dce9e8eaf1e`, subject `feat(calendar): add attendee tombstones`). The exact2 test-first blobs recorded in `IMPLEMENTATION-143-03B-T.md` are schema test `8bc4d44573e5a86e2c78df8c844fe3f1f2fae4cc` then `calendarattendee.go` `3c38799f3e56089e2e264b000ee0951a144b0257`. Author Terra/xhigh; Contract/high, Security/xhigh and ABI/Lifecycle high precommit plus immutable exact-SHA reviews PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed.
 
@@ -259,7 +272,7 @@ Every other clause in this file asserting that Mail exact4 is dirty, `UNCOMMITTE
 
 The Calendar half of the combined exact17 route is unchanged: 143-03B-T exact2 remains source-authorized but is not `STATIC_ACCEPTED`; any dirty candidate remains uncommitted/unaccepted. 143-04C exact3 stays `BLOCKED / NOT_AUTHORIZED` until 143-03B-T source itself is `STATIC_ACCEPTED`; 143-04A/B/G receipts remain accepted. Launcher `NOT_READY`; tests/build/gofmt/lint/validators/Docker/runtime `NOT_RUN`. 143-03E, 144-02E, Ent generation and migration stay blocked. No raw iTIP or service/API/UI/product/phase/release authority follows.
 
-## Combined exact17 conditional acceptance sync (2026-08-20)
+## Combined exact17 conditional acceptance sync (CONSUMED/HISTORICAL; 2026-08-20)
 
 Status: `COMBINED_EXACT17_ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_COMMIT_REQUIRED / IMMUTABLE_EXACT_SHA_REVIEW_REQUIRED`. This working tree is not authority. Calendar exact12 `e60ff29934b8e53c34549cebae2e10657bae1540` (parent `e21a98a7459cd68690912c33ff031e286ba92ef1`, tree `5df5e079bdfe9685957e065e534c352cede25d2a`) and Mail correction exact9 `4f92ee6b9057efccd10c0b7ac7cf7dfd0f220c71` (parent `e60ff29934b8e53c34549cebae2e10657bae1540`, tree `2c65309e71c3501cd55516bc84c88c1c605df5a3`) each have Contract/Security/Lifecycle precommit and immutable exact-SHA PASS C/I/M `0/0/0`. This receipt becomes effective only after root creates one atomic commit changing exactly the 17 named acceptance-sync documents and Contract/Security/Lifecycle independently return immutable exact-SHA PASS for that exact commit. Until then all other Calendar candidate and Mail correction/suspension clauses in this file remain current; only after those conditions they automatically become `CONSUMED/HISTORICAL`, and the accepted routes below activate without another docs sync.
 
@@ -1382,9 +1395,12 @@ second mutation. Completed responses are retained for at least 24 hours and repl
 equivalently. The stored response is calendar metadata only and follows the same access and
 retention policy as its event.
 
-#### 143-04C update/master-cancel source authority candidate
+#### 143-04C update/master-cancel source authority candidate (CONSUMED/HISTORICAL)
 
-This docs-only candidate adds a distinct internal `EventMutationOperation` with the four existing
+The former docs-only candidate is `CONSUMED/HISTORICAL`: source is `STATIC_ACCEPTED` /
+`EXACT_SHA_PASS` at `7fd061b5099b4608e0c33a6d99edbe1a66587d34`, with immutable receipt and
+exact blobs in `IMPLEMENTATION-143-04C.md`; it does not select a later Calendar packet. The
+accepted source adds a distinct internal `EventMutationOperation` with the four existing
 receipt values plus `event_update`; it does **not** extend persisted
 `CalendarMutationReceipt.operation`. `EventMutationScope` retains its receipt operation (empty
 only for update) and adds an event operation. `ResolveMutationScope` remains compatible;
