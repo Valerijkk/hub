@@ -210,6 +210,9 @@ func (MailAccount) Edges() []ent.Edge {
 		edge.To("threads", MailThread.Type),
 		edge.To("messages", MailMessage.Type),
 		edge.To("labels", MailLabel.Type),
+		edge.To("objects", MailObject.Type),
+		edge.To("drafts", MailDraft.Type),
+		edge.To("submissions", MailSubmission.Type),
 	}
 }
 

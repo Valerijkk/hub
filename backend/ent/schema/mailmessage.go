@@ -89,6 +89,9 @@ func (MailMessage) Edges() []ent.Edge {
 		edge.From("calendar_event", CalendarEvent.Type).Ref("mail_messages").Field("calendar_event_id").Unique().Annotations(entsql.OnDelete(entsql.SetNull)),
 		edge.To("folders", MailMessageFolder.Type),
 		edge.To("labels", MailMessageLabel.Type),
+		edge.To("attachments", MailAttachment.Type),
+		edge.To("reply_drafts", MailDraft.Type),
+		edge.To("forward_drafts", MailDraft.Type),
 	}
 }
 

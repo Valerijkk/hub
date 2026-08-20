@@ -152,7 +152,7 @@ func TestUserAndScheduledCall_PreserveExistingEdgesAndAddOnlyCalendarInverses(t 
 		"kudos_sent", "leave_requests", "leave_reviews", "marketplace_listings", "marketplace_reviews", "news_poll_votes",
 		"news_posts", "notification_preferences", "notifications", "organization", "organized_calendar_events", "poll_votes",
 		"polls", "project_members", "project_templates", "push_subscriptions", "reactions", "recordings", "saved_filters",
-		"scheduled_calls", "sessions", "team_members", "test_case_versions", "time_logs",
+		"scheduled_calls", "sessions", "team_members", "test_case_versions", "time_logs", "mail_objects",
 	})
 	assertExactNames(t, "ScheduledCall edges", edgeNames((entschema.ScheduledCall{}).Edges()), []string{"calendar_event", "channel", "creator", "participants", "project"})
 

@@ -308,7 +308,7 @@ func TestMailAccountAndIdentitySchemas_HaveExactChecksAndIndexes(t *testing.T) {
 
 func TestMailAccountAndIdentitySchemas_HaveOnlyFrozenEdges(t *testing.T) {
 	accountEdges := (entschema.MailAccount{}).Edges()
-	assertExactOrderedEdgeNames(t, "MailAccount edges", accountEdges, []string{"organization", "user", "domain", "identities", "user_settings", "signatures", "rules", "recent_contacts", "mutation_receipts", "folders", "threads", "messages", "labels"})
+	assertExactOrderedEdgeNames(t, "MailAccount edges", accountEdges, []string{"organization", "user", "domain", "identities", "user_settings", "signatures", "rules", "recent_contacts", "mutation_receipts", "folders", "threads", "messages", "labels", "objects", "drafts", "submissions"})
 	accountEdgeDescriptors := edgeDescriptors(accountEdges)
 	assertRequiredInverseEdge(t, "MailAccount.organization", accountEdgeDescriptors["organization"], "organization_id", "mail_accounts", entsql.NoAction)
 	assertRequiredInverseEdge(t, "MailAccount.user", accountEdgeDescriptors["user"], "user_id", "mail_account", entsql.NoAction)
@@ -317,7 +317,7 @@ func TestMailAccountAndIdentitySchemas_HaveOnlyFrozenEdges(t *testing.T) {
 	if userSettings := accountEdgeDescriptors["user_settings"]; userSettings == nil || userSettings.Inverse || !userSettings.Unique || userSettings.Required || userSettings.RefName != "" {
 		t.Fatalf("MailAccount.user_settings = %#v, want plain unique inverse target", userSettings)
 	}
-	for _, name := range []string{"signatures", "rules", "recent_contacts", "mutation_receipts", "folders", "threads", "messages", "labels"} {
+	for _, name := range []string{"signatures", "rules", "recent_contacts", "mutation_receipts", "folders", "threads", "messages", "labels", "objects", "drafts", "submissions"} {
 		assertPlainToManyEdge(t, "MailAccount."+name, accountEdgeDescriptors[name])
 	}
 
@@ -334,19 +334,21 @@ func TestMailAccountAndIdentitySchemas_HaveOnlyFrozenEdges(t *testing.T) {
 	assertPlainToManyEdge(t, "MailDomain.accounts", edgeDescriptors(domainEdges)["accounts"])
 
 	organizationEdges := (entschema.Organization{}).Edges()
-	assertExactOrderedEdgeNames(t, "Organization edges", organizationEdges, []string{"users", "projects", "mail_domains", "mailbox_policy", "mail_accounts", "mail_mutation_receipts"})
+	assertExactOrderedEdgeNames(t, "Organization edges", organizationEdges, []string{"users", "projects", "mail_domains", "mailbox_policy", "mail_accounts", "mail_mutation_receipts", "mail_objects"})
 	assertPlainToManyEdge(t, "Organization.mail_accounts", edgeDescriptors(organizationEdges)["mail_accounts"])
 	assertPlainToManyEdge(t, "Organization.mail_mutation_receipts", edgeDescriptors(organizationEdges)["mail_mutation_receipts"])
+	assertPlainToManyEdge(t, "Organization.mail_objects", edgeDescriptors(organizationEdges)["mail_objects"])
 
 	userEdges := (entschema.User{}).Edges()
-	if len(userEdges) < 2 || userEdges[len(userEdges)-2].Descriptor().Name != "mail_account" || userEdges[len(userEdges)-1].Descriptor().Name != "recent_contacts" {
-		t.Fatalf("User must append mail_account then recent_contacts as the A3/02D inverse edges; trailing edges = %#v", userEdges)
+	if len(userEdges) < 3 || userEdges[len(userEdges)-3].Descriptor().Name != "mail_account" || userEdges[len(userEdges)-2].Descriptor().Name != "recent_contacts" || userEdges[len(userEdges)-1].Descriptor().Name != "mail_objects" {
+		t.Fatalf("User must append mail_account, recent_contacts, then mail_objects as the A3/02D/02C inverse edges; trailing edges = %#v", userEdges)
 	}
 	mailAccount := edgeDescriptors(userEdges)["mail_account"]
 	if mailAccount == nil || mailAccount.Inverse || !mailAccount.Unique || mailAccount.Required || mailAccount.RefName != "" {
 		t.Fatalf("User.mail_account = %#v, want plain unique inverse target", mailAccount)
 	}
 	assertPlainToManyEdge(t, "User.recent_contacts", edgeDescriptors(userEdges)["recent_contacts"])
+	assertPlainToManyEdge(t, "User.mail_objects", edgeDescriptors(userEdges)["mail_objects"])
 }
 
 func assertNoMixins(t *testing.T, mixins []ent.Mixin) {

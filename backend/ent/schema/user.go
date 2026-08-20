@@ -157,6 +157,7 @@ func (User) Edges() []ent.Edge {
 		edge.To("invoices_created", Invoice.Type),
 		edge.To("mail_account", MailAccount.Type).Unique(),
 		edge.To("recent_contacts", RecentContact.Type),
+		edge.To("mail_objects", MailObject.Type),
 	}
 }
 

@@ -63,6 +63,7 @@ func (Organization) Edges() []ent.Edge {
 			Unique(),
 		edge.To("mail_accounts", MailAccount.Type),
 		edge.To("mail_mutation_receipts", MailMutationReceipt.Type),
+		edge.To("mail_objects", MailObject.Type),
 	}
 }
 
