@@ -520,11 +520,12 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 
 ## 144-04F — pure mailbox sync-page policy
 
-- Dependencies: 01B/03A-Address/03A-Thread/03D. Allowed only
-  `backend/internal/mail/mailbox_sync_policy.go` and
-  `backend/tests/mail/mailbox_sync_policy_test.go`.
-- Accept only bounded normalized engine pages: at most 100 total folder snapshots, 100 message
-  snapshots and 100 destroyed ids, unique per account, exact incremental from/next cursor
+- Dependencies: 01B/03A-Address/03A-Thread/03D. Future source is frozen test-first as
+  `backend/tests/mail/mailbox_events_test.go`, `backend/tests/mail/mailbox_sync_policy_test.go`,
+  `backend/internal/mail/mailbox_events.go`, then `backend/internal/mail/mailbox_sync_policy.go`.
+- Accept only bounded normalized engine pages: at most 100 total folder snapshots; change pages
+  require disjoint `CreatedOrUpdated + DestroyedIDs <=100` and exact `Bounds.Returned`; enumeration
+  requires messages <=100 and exact `Returned`, unique per account, exact incremental from/next cursor
   or enumeration base/checkpoint metadata plus caller-supplied current sync epoch and
   immutable event cutoff. Produce deterministic upsert/tombstone/thread/count and
   complete-envelope intents without I/O, clock or ids of its own.
@@ -543,6 +544,30 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   unknown provenance fails toward inbound; replay marker; no-op;
   changed field/flag enum; destroy; size/count/address bounds; no raw body/MIME/cursor/
   provider error in command/event/error.
+- **144-04F authority candidate (2026-08-20):** `ROOT_SOURCE_AUTHORITY_CANDIDATE` /
+  `PRECOMMIT_REVIEW_REQUIRED`, docs-only and not a source dispatch. The frozen test-first source
+  manifest is exactly `backend/tests/mail/mailbox_events_test.go`,
+  `backend/tests/mail/mailbox_sync_policy_test.go`, `backend/internal/mail/mailbox_events.go`, then
+  `backend/internal/mail/mailbox_sync_policy.go`; no substitution, expansion or reordering is
+  allowed. `mailbox_events.go` changes only three folder/label caps from 50 to 100 (100 pass/101
+  reject; no field/subject/version change); all new policy types remain in `mailbox_sync_policy.go`.
+  Lifecycle is three independent precommit PASS reviews, one atomic exact-nine-doc
+  authority commit, three PASS reviews of its immutable exact child SHA, then a separate
+  exact-nine-doc authority-acceptance sync. Only after that lifecycle may root dispatch those
+  exact four source paths. Page bounds are change combined `CreatedOrUpdated + DestroyedIDs <=100`
+  with exact `Bounds.Returned`, enumeration messages <=100 with exact `Returned`, and folders <=100.
+  Every normalized page additionally requires `Bounds.Requested` 1..100, `Bounds.Maximum==100`,
+  concrete nonnil engine slices even empty and accepted `ENGINE-CONTRACT` aggregate byte budgets;
+  overflow is `too_large`. Exact error ABI is `MailboxSyncPolicyErrorKind` constants
+  `invalid|too_large|duplicate|account_mismatch`, matching content-free `ErrMailboxSyncPolicy*`
+  sentinels and `MailboxSyncPolicyError{Kind}` whose nil/unknown Error is `mailbox sync policy
+  error` and Unwrap is matching sentinel/nil. Provenance has zero-or-one total
+  `MailboxSyncPolicyProvenanceProof{Relation MailboxEventID; EngineMessageID string}` (submission
+  or draft, never both): same-account, byte-equal projection EngineMessageID and exact Origin;
+  nonempty BCC needs that matching confirmed proof/origin, inbound/unknown BCC is empty.
+  Until then implementation is `NOT_AUTHORIZED`; OpenAPI, persistence,
+  02E, Ent generation/migration, services/API/UI/product/phase/release, 02F-D, engine deletion
+  and User/GDPR remain outside scope; launcher `NOT_READY`, executables/runtime `NOT_RUN`.
 
 ## 144-04G — mailbox sync orchestration
 

@@ -2253,3 +2253,79 @@ are not in compiled output; compiled output retains only Hub rule ID, never targ
 > **Rule-plan acceptance receipt:** `PLAN-144-03B-RULE.md` is docs/plan-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at full `669ef761715ec35a638bc87d8396e6f562b162c4` (parent `77eb4356de06a5304521b60c57af4e73c5740ce1`, tree `1b554d1c5763818ffef4f3c06c2a5bde16046d37`, sole added plan blob `b86c0423a307fd2673a3d322435922aa2a398e8f`). Contract/Spec/Oracle Terra/high, Security/Adversarial/Purity Terra/xhigh and Lifecycle/Dependency/Boundary Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Former Rule-plan authoring/review/acceptance is `CONSUMED/HISTORICAL`; no source/schema/runtime/product/release authority. Task 1 RED remains blocked on all accepted non-marker Phase-145 carrier/G145-5B/G145-5C and launcher readiness, unordered; 144-01B Docker-blocked, Phase 142/148 pending, launcher `NOT_READY`, executables `NOT_RUN`.
 
 > **02B precedence (2026-08-15):** `947e2a27650ff1c6db60af9ce13bb33b6bf19cb0` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; see `IMPLEMENTATION-144-02B.md` for exact13 blobs. Tests first; all three precommit and exact-SHA reviews PASS C/I/M `0/0/0`. Earlier 02B `SOURCE_AUTHORITY_ACCEPTED`, source-unaccepted and 02C-predecessor clauses are `CONSUMED/HISTORICAL`. A narrow 02C docs/source-authority bridge needs separate root authoring/adjudication; 02C source is not automatically authorized. Other blockers remain unchanged. **02C source acceptance: preceding 02C route clauses are CONSUMED/HISTORICAL; e565523f589fbd7536f6f8e4df7effd39469c1af is STATIC_ACCEPTED / EXACT_SHA_PASS; exact13 blobs IMPLEMENTATION-144-02C.md; no next Mail packet selected; named blockers remain.**
+
+## 144-04F sync-page policy authority candidate
+
+This is a docs-only `ROOT_SOURCE_AUTHORITY_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED`, not an
+implementation or acceptance. The sole future test-first manifest is
+`backend/tests/mail/mailbox_events_test.go`, `backend/tests/mail/mailbox_sync_policy_test.go`,
+`backend/internal/mail/mailbox_events.go`, then `backend/internal/mail/mailbox_sync_policy.go`.
+The event-builder portion is exactly the existing received/changed folder-id and changed label-id
+caps `50 -> 100` (100 pass/101 reject), without field, subject or version change. Every new policy
+type lives only in `mailbox_sync_policy.go`; `mailbox_types.go` is excluded.
+
+The exact entrypoint is
+`ClassifyMailboxSyncPage(MailboxSyncPolicyInput) (MailboxSyncPolicyResult, error)`. `Input` is
+exactly `Page MailboxSyncPolicyPage; Folders []MailboxSyncPolicyFolder; Messages
+[]MailboxSyncPolicyMessage; Destroyed []MailboxSyncPolicyDestroyed; Labels
+[]MailboxSyncPolicyLabelDefinition; SyncEpoch int64; EventCutoff time.Time; Event
+MailboxSyncPolicyEventContext`. `Page` is exact-one `Change *EngineChangePage` or `Enumeration
+*EngineEnumerationPage`. Folder is `Snapshot EngineFolder; Folder MailboxEventID`; Message is
+`EngineMessageID string; Message MailboxEventID; Thread MailboxSyncPolicyThreadResolution;
+Previous *MailboxSyncPolicyPreviousMessage; Provenance MailboxSyncPolicyProvenance; ReceivedEventID
+uuid.UUID; ChangedEvent MailboxSyncPolicyEventReservation; CalendarMethod *MailCalendarMethod`;
+Destroyed is `EngineMessageID string; Message,Thread MailboxEventID; Labels
+[]MailboxSyncPolicyLabelState; ChangedEvent MailboxSyncPolicyEventReservation`. Thread resolution
+is `Thread MailboxEventID; KeyVersion ThreadKeyVersion; Key ThreadKey; Ancestors []ThreadAncestor;
+AncestorLookupComplete bool`; Previous is `Thread MailboxEventID; FolderIDs []MailboxEventID; Flags
+EngineMessageFlags; Labels []MailboxSyncPolicyLabelState; ReceivedEventID *uuid.UUID`; provenance is
+`ConfirmedSubmission,ConfirmedDraft *MailboxSyncPolicyProvenanceProof`; proof is `Relation
+MailboxEventID; EngineMessageID string`; reservation is `ID uuid.UUID; Committed bool`; label
+definition is `Label MailboxEventID; EngineKeyword EngineKeywordMarker`; label state is `Label
+MailboxEventID; Manual,EngineRule bool`; event context is `Mailbox MailboxEventID; OrganizationID
+uuid.UUID; ActorID *uuid.UUID; OccurredAt time.Time; CorrelationID string`.
+
+`Result` is exactly `Advance MailboxSyncPolicyAdvance; Folders []MailboxSyncPolicyFolderIntent;
+Upserts []MailboxSyncPolicyMessageIntent; Tombstones []MailboxSyncPolicyTombstoneIntent; Counts
+MailboxSyncPolicyCountIntent; Events []events.EnvelopeV1`. Advance is exact-one change/enumeration
+with `SyncEpoch int64`; change advance is `FromCursor,NextCursor string`; enumeration advance is
+`BaseCursor,Checkpoint,NextCheckpoint string; Complete bool`; folder intent is `Folder
+MailboxEventID; Snapshot EngineFolder`; message intent is `Message,Thread MailboxEventID;
+ThreadIdentity ThreadIdentity; Projection EngineMessageProjection; FolderIDs []MailboxEventID;
+Labels []MailboxSyncPolicyLabelState; ReceivedEventID *uuid.UUID`; tombstone is `EngineMessageID
+string; Message MailboxEventID; Labels []MailboxSyncPolicyLabelState`; counts are affected
+recomputation IDs `Folders,Threads []MailboxEventID`, never numeric counts. Error ABI is exactly
+`type MailboxSyncPolicyErrorKind string`; constants `MailboxSyncPolicyErrorInvalid="invalid"`,
+`MailboxSyncPolicyErrorTooLarge="too_large"`, `MailboxSyncPolicyErrorDuplicate="duplicate"`,
+`MailboxSyncPolicyErrorAccountMismatch="account_mismatch"`; sentinels
+`ErrMailboxSyncPolicyInvalid=errors.New("mailbox sync policy invalid")`,
+`ErrMailboxSyncPolicyTooLarge=errors.New("mailbox sync policy exceeds bounds")`,
+`ErrMailboxSyncPolicyDuplicate=errors.New("mailbox sync policy duplicate")`,
+`ErrMailboxSyncPolicyAccountMismatch=errors.New("mailbox sync policy account mismatch")`; and
+`type MailboxSyncPolicyError struct{Kind MailboxSyncPolicyErrorKind}`. Content-free nil-safe
+`Error()` returns the matching sentinel text, or `mailbox sync policy error` for unknown/nil;
+`Unwrap()` returns the matching sentinel or nil so `errors.Is` works.
+
+The policy is caller-fed, pure and deterministic: all-and-only message/destroy state, IDs, prior
+state, proofs, ancestors and reservations come from the caller; no query/callback. Accounts must
+match exactly. Normalized pages require `Bounds.Requested` in `1..100`, `Bounds.Maximum==100`,
+exact `Bounds.Returned`, concrete nonnil engine slices even when empty, and all accepted aggregate
+`ENGINE-CONTRACT` byte budgets (overflow `too_large`). Change combined `CreatedOrUpdated +
+DestroyedIDs` is disjoint and <=100 with exact `Bounds.Returned`; enumeration `Messages <=100` with exact `Returned`; folders, labels,
+previous/desired sets and reservations <=100. Duplicates fail; ordering is raw folder UUID, raw
+engine message ID and raw UUID bytes; output deep-copies. Supplied thread/key/version is verified
+by `DeriveThreadIdentity`, address handling uses `NormalizeAddress`. Exact keyword mapping preserves
+manual labels, replaces engine-rule labels from known current same-account markers and ignores/clears
+unknown/raw values. Provenance has zero-or-one proof total (submission or draft, never both),
+same-account, with EngineMessageID byte-equal to the current projection ID and exact Origin
+agreement (submission/draft; inbound none). Nonempty BCC
+needs matching confirmed proof/origin; inbound/unknown BCC is empty; proof dual/missing/engine-ID/
+cross-account/origin/BCC mismatch is invalid or account_mismatch. Only existing received/changed
+constructors build events. This preserves the strict cutoff/provenance/replay/changed-field/flag/
+deletion/no-leak rules in the accepted contract.
+
+It is dispatchable only after three independent precommit PASS reviews, an atomic exact-nine-doc
+commit, three exact-child-SHA PASS reviews and a separate exact-nine-doc authority-acceptance sync.
+No OpenAPI or persistence change is in scope; all 02E/Ent/generation/migration/service/API/UI/
+product/phase/release, 02F-D, engine deletion/User-GDPR, launcher `NOT_READY` and runtime `NOT_RUN`
+boundaries remain unchanged.

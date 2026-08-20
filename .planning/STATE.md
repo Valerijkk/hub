@@ -1505,3 +1505,18 @@ new quality gate is requirement/risk traceability plus fail-closed execution.
 - Коммиты: `1dbf42f4` fix · `9e634ee5` test · статус TASK → На проверке (README не трогали). Handoff: be-ver → code-reviewer.
 
 > **Current Rule status (2026-08-14):** `PLAN-144-03B-RULE.md` is docs/plan-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `669ef761715ec35a638bc87d8396e6f562b162c4` (parent `77eb4356de06a5304521b60c57af4e73c5740ce1`, tree `1b554d1c5763818ffef4f3c06c2a5bde16046d37`, sole added plan blob `b86c0423a307fd2673a3d322435922aa2a398e8f`); Contract/Spec/Oracle Terra/high, Security/Adversarial/Purity Terra/xhigh and Lifecycle/Dependency/Boundary Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Rule-plan authoring/review/acceptance is `CONSUMED/HISTORICAL`; no Rule source/TDD/schema/migration/service/Phase145/runtime authority. Task 1 RED remains `NOT_AUTHORIZED/BLOCKED` pending ALL accepted non-marker Phase145 typed-IR/script carrier + G145-5B + G145-5C + launcher readiness, without implied order; post-task runtime `NOT_RUN`. 144-01B, Phase 142/148 and launcher `NOT_READY` remain unchanged.
+
+> **144-04F current route (2026-08-20):** docs-only `ROOT_SOURCE_AUTHORITY_CANDIDATE` /
+> `PRECOMMIT_REVIEW_REQUIRED`; implementation is `NOT_AUTHORIZED`. Frozen future test-first
+> source manifest: `backend/tests/mail/mailbox_events_test.go`,
+> `backend/tests/mail/mailbox_sync_policy_test.go`, `backend/internal/mail/mailbox_events.go`,
+> then `backend/internal/mail/mailbox_sync_policy.go`. The required lifecycle is three independent
+> precommit PASS reviews -> atomic exact9-doc authority commit -> three exact-child-SHA PASS
+> reviews -> separate exact9 authority-acceptance sync -> root dispatch of those exact four paths
+> only. Event-builder scope is only the three existing folder/label caps `50 -> 100` with 100 pass
+> and 101 reject; no field/subject/version change. Author provenance: Terra/medium, `dispatcher-enforced`, no fallback; telemetry
+> `UNKNOWN`. No acceptance, source, OpenAPI or persistence authority now. Preserve 02C source
+> `STATIC_ACCEPTED` at `e565523f589fbd7536f6f8e4df7effd39469c1af` and docs receipt
+> `c53a5fe6`; no next source packet is selected. 02E/Ent/generation/migration/services/API/UI/
+> product/phase/release, 02F-D, engine deletion/User-GDPR remain blocked/out of scope; launcher
+> `NOT_READY`, executables/runtime `NOT_RUN`.

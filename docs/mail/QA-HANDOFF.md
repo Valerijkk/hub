@@ -897,3 +897,54 @@ targets identically and never makes mismatch/ambiguity an existence oracle.
 > **144-02F sync:** `fcb5b84f` + `2f4381a2` docs/readiness `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; all three Terra routes PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Former transition and Rule-plan-next text is `CONSUMED/HISTORICAL`; no source/schema/runtime/product/release authority. Accepted Rule plan `669ef761` does not authorize Task 1, which awaits independent carrier/G145-5B/G145-5C/launcher readiness; Task4 is post-future-Task3 source acceptance only. 144-01B remains Docker-blocked, Phase 142/148 and release pending, launcher `NOT_READY`, executables `NOT_RUN`.
 
 > **02B precedence (2026-08-15):** source `947e2a27650ff1c6db60af9ce13bb33b6bf19cb0` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; `IMPLEMENTATION-144-02B.md` records exact13 blobs. Tests first; Contract/high, Security/xhigh and Lifecycle/high precommit and exact-SHA PASS C/I/M `0/0/0`. All prior 02B `SOURCE_AUTHORITY_ACCEPTED`, source-unaccepted and 02C-waits-02B-source clauses are `CONSUMED/HISTORICAL`. Root needs a separately authored/adjudicated narrow 02C docs/source-authority bridge; 02C source is not automatically authorized. Other blockers remain unchanged. **02C source acceptance: every preceding 02C bridge/candidate/source-unaccepted/dispatch-next clause in this same paragraph is CONSUMED/HISTORICAL; e565523f589fbd7536f6f8e4df7effd39469c1af is STATIC_ACCEPTED / EXACT_SHA_PASS with exact13 blobs in IMPLEMENTATION-144-02C.md; no next Mail code packet is selected or authorized; named blockers/NOT_READY/NOT_RUN remain.**
+
+## 144-04F sync-page policy QA handoff candidate
+
+Status: docs-only `ROOT_SOURCE_AUTHORITY_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED`; implementation
+is `NOT_AUTHORIZED`. Freeze the exact test-first manifest, in this order only:
+`backend/tests/mail/mailbox_events_test.go`; `backend/tests/mail/mailbox_sync_policy_test.go`;
+`backend/internal/mail/mailbox_events.go`; `backend/internal/mail/mailbox_sync_policy.go`.
+`mailbox_events.go` changes only received folder IDs, changed folder IDs and changed label IDs from
+50 to 100 (100 pass/101 reject), without changing field, subject or version; all new policy types
+are confined to `mailbox_sync_policy.go`.
+
+The exact callable is `ClassifyMailboxSyncPage(MailboxSyncPolicyInput) (MailboxSyncPolicyResult,
+error)`. Input has `Page`, `Folders`, `Messages`, `Destroyed`, `Labels`, `SyncEpoch`,
+`EventCutoff`, and `Event`; Page is exact-one Change/Enumeration. Message has the exact engine
+message ID, Message, Thread resolution, Previous, Provenance, ReceivedEventID, ChangedEvent and
+CalendarMethod; Destroyed has exact engine ID, Message, Thread, Labels and ChangedEvent. Thread
+resolution has Thread, KeyVersion, Key, Ancestors and AncestorLookupComplete; previous has Thread,
+FolderIDs, Flags, Labels and optional ReceivedEventID; provenance has optional confirmed
+submission/draft `*MailboxSyncPolicyProvenanceProof`, where proof is Relation/EngineMessageID;
+reservation is ID/Committed; label definition is Label/EngineKeyword; label state
+is Label/Manual/EngineRule; event context is Mailbox/OrganizationID/ActorID/OccurredAt/CorrelationID.
+Result has `Advance`, `Folders`, `Upserts`, `Tombstones`, `Counts`, `Events`; Advance is exact-one
+Change/Enumeration plus SyncEpoch, with the frozen cursor/checkpoint fields; intents and count IDs
+are exactly as in `REVIEW-144-04F-SYNC-POLICY-READINESS.md`. Exact error ABI is `type
+MailboxSyncPolicyErrorKind string`, constants Invalid=`invalid`, TooLarge=`too_large`,
+Duplicate=`duplicate`, AccountMismatch=`account_mismatch`, and `type MailboxSyncPolicyError
+struct{Kind MailboxSyncPolicyErrorKind}`. Sentinels are respectively `errors.New("mailbox sync
+policy invalid")`, `errors.New("mailbox sync policy exceeds bounds")`, `errors.New("mailbox sync
+policy duplicate")`, and `errors.New("mailbox sync policy account mismatch")`. Content-free
+nil-safe Error returns the matching sentinel text or `mailbox sync policy error` for unknown/nil;
+Unwrap returns matching sentinel/nil, so errors.Is works.
+
+The future external oracle must cover malformed/duplicate/mixed-account/union and missing/extra
+state; change 99+1/100+0 pass, 100+1/overlap/Returned mismatch fail; enumeration/folder/label/event
+100 pass/101 fail; deterministic raw-byte order; References threading and BCC; cutoff equality/
+after; confirmed submission versus spoofed From/alias/mutable Sent; unknown provenance, replay and
+no-op; changed fields/flag enum and destroy; counts; sizes/addresses; no secret leakage; deep copy;
+and no panic. All state/proof/ancestor/reservation inputs are caller-provided; no query/generation
+or callback. Normalized engine pages require Bounds.Requested 1..100, Bounds.Maximum==100, exact
+Bounds.Returned, concrete nonnil slices even empty, and accepted ENGINE-CONTRACT aggregate byte
+budgets (overflow too_large). Provenance has zero-or-one proof total (submission or draft, never
+both), same-account, byte-equal to current projection EngineMessageID and exact Origin agreement;
+BCC is nonempty only for matching confirmed
+proof/origin and otherwise empty. Events use only existing constructors; cursors remain only in
+Advance. Add proof dual/missing/engine-ID/cross-account/origin/BCC and bounds/nil-slice/byte-budget
+rows to the listed oracle.
+
+Lifecycle is 3 independent precommit PASS -> atomic exact9 docs commit -> 3 exact-child-SHA PASS
+-> separate exact9 authority-acceptance sync -> root dispatch of the exact four paths only. No
+runtime claim: launcher `NOT_READY`, executables/runtime `NOT_RUN`; no 02E/Ent/generation/
+migration/service/API/UI/product/phase/release, 02F-D, engine deletion or User/GDPR authority.

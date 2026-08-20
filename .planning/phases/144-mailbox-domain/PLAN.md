@@ -99,3 +99,18 @@ separate and green.
 ## 144-02C historical authority-bridge candidate lifecycle
 
 This is a `CONSUMED/HISTORICAL` candidate record only. The authoritative state is the accepted `e565523f589fbd7536f6f8e4df7effd39469c1af` source receipt in `IMPLEMENTATION-144-02C.md`; it selects no subsequent packet. All non-02C blockers remain unchanged.
+
+## 144-04F sync-page policy authority candidate
+
+`ROOT_SOURCE_AUTHORITY_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED` only. The future test-first
+manifest is immutable and canonical: `backend/tests/mail/mailbox_events_test.go`,
+`backend/tests/mail/mailbox_sync_policy_test.go`, `backend/internal/mail/mailbox_events.go`, then
+`backend/internal/mail/mailbox_sync_policy.go`. Three independent precommit PASS reviews must
+precede one atomic exact-nine-document authority commit; the same three review routes must PASS
+against its exact child SHA; a separate exact-nine-doc authority-acceptance sync then precedes
+the only permitted root dispatch of those exact four paths. `mailbox_events.go` changes only the
+three existing folder/label caps from 50 to 100 (100 pass/101 reject; no field, subject or version
+change); all new ABI types are only in `mailbox_sync_policy.go`. This plan neither authorizes source
+nor selects any other source packet. 02E, Ent generation/migration, services/API/UI/product/
+phase/release, 02F-D, engine deletion and physical User/GDPR remain blocked/out of scope;
+launcher `NOT_READY`, executables/runtime `NOT_RUN`.
