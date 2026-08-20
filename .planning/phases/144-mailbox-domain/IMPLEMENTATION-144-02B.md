@@ -32,7 +32,7 @@ all PASS C/I/M `0/0/0`. Authoring was `gpt-5.6-terra`/`xhigh`, dispatcher-enforc
 fallback; actual telemetry is `UNKNOWN` unless exposed. This is static source acceptance only:
 launcher is `NOT_READY`; tests, build, generation, migrations and runtime are `NOT_RUN`.
 
-All preceding 02B `SOURCE_AUTHORITY_ACCEPTED`, source-unaccepted and 02C-waits-02B-source
+All preceding 02B `SOURCE_AUTHORITY_ACCEPTED`, source-unaccepted and 02C-waits-02B-source **02C route status: `CONSUMED/HISTORICAL`; superseded by `e28603513f29f814fbcdd851e7b2c4816dd6c8af` `SOURCE_AUTHORITY_ACCEPTED` / `EXACT_SHA_PASS`. Root may dispatch only the frozen exact13 packet; source remains unaccepted.**
 instructions are `CONSUMED/HISTORICAL`. Root may separately author and adjudicate a narrow
-02C docs/source-authority bridge; 02C source is not automatically authorized. 02F-D/02E,
+02C docs/source-authority bridge; 02C source is not automatically authorized. 02F-D/02E, **02C route status: `CONSUMED/HISTORICAL`; superseded by `e28603513f29f814fbcdd851e7b2c4816dd6c8af` `SOURCE_AUTHORITY_ACCEPTED` / `EXACT_SHA_PASS`. Root may dispatch only the frozen exact13 packet; source remains unaccepted.**
 Ent generation, migrations, services, API, UI, product, phase and release work remain blocked.
