@@ -33,6 +33,22 @@ type EventTransactionBackend interface {
 	AppendOutbox(ctx context.Context, scope EventMutationScope, descriptor EventOutboxDescriptor) error
 }
 
+// CalendarEventUpdateAuthorizationRequest carries only the event identity and,
+// when supplied, the untrusted attendee replacement candidates. The transaction
+// backend is the sole authority for every current event and attendee value.
+type CalendarEventUpdateAuthorizationRequest struct {
+	EventID   uuid.UUID
+	Attendees []CalendarEventCreateAttendeeCandidate
+}
+
+// CalendarEventUpdateTransactionBackend is an opt-in update port. Keeping it
+// separate preserves the existing create/RSVP backend ABI until an adapter owns
+// the update persistence implementation.
+type CalendarEventUpdateTransactionBackend interface {
+	ResolveCalendarEventUpdate(context.Context, EventMutationScope, CalendarEventUpdateAuthorizationRequest) (CalendarEventUpdateAuthorization, error)
+	PersistCalendarEventUpdate(context.Context, EventMutationScope, CalendarEventUpdatePersistenceCommand) (CalendarEventUpdatePersistenceResult, error)
+}
+
 // CalendarEventCreateAttendeeCandidate is an untrusted create-time attendee
 // reference. The transaction resolver owns every identity decision.
 type CalendarEventCreateAttendeeCandidate struct {
@@ -108,10 +124,11 @@ func (transaction *EventTransaction) close() {
 
 // EventMutationScope связывает каждую мутацию с actor, revalidated organization и operation одной транзакции.
 type EventMutationScope struct {
-	actorID        uuid.UUID
-	organizationID uuid.UUID
-	operation      MutationReceiptOperation
-	transaction    *EventTransaction
+	actorID          uuid.UUID
+	organizationID   uuid.UUID
+	receiptOperation MutationReceiptOperation
+	eventOperation   EventMutationOperation
+	transaction      *EventTransaction
 }
 
 // ActorID возвращает аутентифицированного автора мутации.
@@ -126,7 +143,13 @@ func (scope EventMutationScope) OrganizationID() uuid.UUID {
 
 // Operation возвращает разрешённую идемпотентную операцию мутации.
 func (scope EventMutationScope) Operation() MutationReceiptOperation {
-	return scope.operation
+	return scope.receiptOperation
+}
+
+// EventOperation returns the canonical calendar mutation operation, including
+// operations that intentionally do not use a mutation receipt.
+func (scope EventMutationScope) EventOperation() EventMutationOperation {
+	return scope.eventOperation
 }
 
 // ResolveMutationScope разрешает и повторно проверяет actor-to-organization только внутри активной транзакции.
@@ -139,7 +162,8 @@ func (transaction *EventTransaction) ResolveMutationScope(ctx context.Context, a
 	if !transaction.active || transaction.backend == nil {
 		return EventMutationScope{}, ErrEventTransactionClosed
 	}
-	if actorID == uuid.Nil || !validMutationReceiptOperation(operation) {
+	eventOperation, found := eventMutationOperationForReceipt(operation)
+	if actorID == uuid.Nil || !found {
 		return EventMutationScope{}, ErrEventInvalid
 	}
 	organizationID, err := transaction.backend.ResolveActorOrganization(ctx, actorID)
@@ -147,10 +171,41 @@ func (transaction *EventTransaction) ResolveMutationScope(ctx context.Context, a
 		return EventMutationScope{}, ErrEventForbidden
 	}
 	return EventMutationScope{
-		actorID:        actorID,
-		organizationID: organizationID,
-		operation:      operation,
-		transaction:    transaction,
+		actorID:          actorID,
+		organizationID:   organizationID,
+		receiptOperation: operation,
+		eventOperation:   eventOperation,
+		transaction:      transaction,
+	}, nil
+}
+
+// ResolveCalendarEventUpdateScope resolves an update scope only for backends
+// that explicitly support the optional update transaction port. The capability
+// check precedes every backend call to avoid an observable fallback path.
+func (transaction *EventTransaction) ResolveCalendarEventUpdateScope(ctx context.Context, actorID uuid.UUID) (EventMutationScope, error) {
+	if transaction == nil {
+		return EventMutationScope{}, ErrEventTransactionClosed
+	}
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+	if !transaction.active || transaction.backend == nil {
+		return EventMutationScope{}, ErrEventTransactionClosed
+	}
+	if _, supported := transaction.backend.(CalendarEventUpdateTransactionBackend); !supported {
+		return EventMutationScope{}, ErrEventInvalid
+	}
+	if actorID == uuid.Nil {
+		return EventMutationScope{}, ErrEventInvalid
+	}
+	organizationID, err := transaction.backend.ResolveActorOrganization(ctx, actorID)
+	if err != nil || organizationID == uuid.Nil {
+		return EventMutationScope{}, ErrEventForbidden
+	}
+	return EventMutationScope{
+		actorID:          actorID,
+		organizationID:   organizationID,
+		eventOperation:   EventMutationCalendarUpdate,
+		transaction:      transaction,
 	}, nil
 }
 
@@ -173,6 +228,34 @@ func (transaction *EventTransaction) ResolveCalendarEventCreateAuthorization(ctx
 	return cloneCalendarEventCreateAuthorization(resolved), nil
 }
 
+// ResolveCalendarEventUpdate resolves the authoritative update snapshot only
+// inside an active update scope. Both sides of the optional port are copied.
+func (transaction *EventTransaction) ResolveCalendarEventUpdate(ctx context.Context, scope EventMutationScope, request CalendarEventUpdateAuthorizationRequest) (CalendarEventUpdateAuthorization, error) {
+	if transaction == nil {
+		return CalendarEventUpdateAuthorization{}, ErrEventTransactionClosed
+	}
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+	if !transaction.active || transaction.backend == nil {
+		return CalendarEventUpdateAuthorization{}, ErrEventTransactionClosed
+	}
+	backend, supported := transaction.backend.(CalendarEventUpdateTransactionBackend)
+	if !supported {
+		return CalendarEventUpdateAuthorization{}, ErrEventInvalid
+	}
+	if err := transaction.validateScope(scope); err != nil {
+		return CalendarEventUpdateAuthorization{}, err
+	}
+	if scope.eventOperation != EventMutationCalendarUpdate || request.EventID == uuid.Nil {
+		return CalendarEventUpdateAuthorization{}, ErrEventInvalid
+	}
+	resolved, err := backend.ResolveCalendarEventUpdate(ctx, scope, cloneCalendarEventUpdateAuthorizationRequest(request))
+	if err != nil {
+		return CalendarEventUpdateAuthorization{}, err
+	}
+	return cloneCalendarEventUpdateAuthorization(resolved), nil
+}
+
 // ReserveMutationReceipt резервирует или воспроизводит квитанцию только в переданной transaction scope.
 func (transaction *EventTransaction) ReserveMutationReceipt(ctx context.Context, scope EventMutationScope, reservation MutationReceiptReservation) (MutationReceiptReservationResult, error) {
 	if transaction == nil {
@@ -182,6 +265,9 @@ func (transaction *EventTransaction) ReserveMutationReceipt(ctx context.Context,
 	defer transaction.mu.Unlock()
 	if err := transaction.validateScope(scope); err != nil {
 		return MutationReceiptReservationResult{}, err
+	}
+	if !validMutationReceiptOperation(scope.receiptOperation) {
+		return MutationReceiptReservationResult{}, ErrEventInvalid
 	}
 	if !reservation.matches(scope) {
 		return MutationReceiptReservationResult{}, ErrEventForbidden
@@ -205,6 +291,9 @@ func (transaction *EventTransaction) CompleteMutationReceipt(ctx context.Context
 	defer transaction.mu.Unlock()
 	if err := transaction.validateScope(scope); err != nil {
 		return err
+	}
+	if !validMutationReceiptOperation(scope.receiptOperation) {
+		return ErrEventInvalid
 	}
 	if !completion.valid() {
 		return ErrEventInvalid
@@ -282,6 +371,37 @@ func (transaction *EventTransaction) PersistCalendarEventException(ctx context.C
 		return CalendarEventExceptionPersistenceResult{}, ErrEventInvalid
 	}
 	return result, nil
+}
+
+// PersistCalendarEventUpdate delegates one already-composed atomic update
+// command to the optional update port and verifies its immutable result shape.
+func (transaction *EventTransaction) PersistCalendarEventUpdate(ctx context.Context, scope EventMutationScope, command CalendarEventUpdatePersistenceCommand) (CalendarEventUpdatePersistenceResult, error) {
+	if transaction == nil {
+		return CalendarEventUpdatePersistenceResult{}, ErrEventTransactionClosed
+	}
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+	if !transaction.active || transaction.backend == nil {
+		return CalendarEventUpdatePersistenceResult{}, ErrEventTransactionClosed
+	}
+	backend, supported := transaction.backend.(CalendarEventUpdateTransactionBackend)
+	if !supported {
+		return CalendarEventUpdatePersistenceResult{}, ErrEventInvalid
+	}
+	if err := transaction.validateScope(scope); err != nil {
+		return CalendarEventUpdatePersistenceResult{}, err
+	}
+	if scope.eventOperation != EventMutationCalendarUpdate || !command.valid() || command.Event().OrganizationID() != scope.organizationID {
+		return CalendarEventUpdatePersistenceResult{}, ErrEventInvalid
+	}
+	result, err := backend.PersistCalendarEventUpdate(ctx, scope, cloneCalendarEventUpdatePersistenceCommand(command))
+	if err != nil {
+		return CalendarEventUpdatePersistenceResult{}, err
+	}
+	if !result.valid() {
+		return CalendarEventUpdatePersistenceResult{}, ErrEventInvalid
+	}
+	return cloneCalendarEventUpdatePersistenceResult(result), nil
 }
 
 // AppendOutbox добавляет только полный accepted EnvelopeV1 внутри transaction scope.
@@ -366,7 +486,7 @@ func (transaction *EventTransaction) validateScope(scope EventMutationScope) err
 	if !transaction.active || transaction.backend == nil {
 		return ErrEventTransactionClosed
 	}
-	if scope.transaction != transaction || scope.actorID == uuid.Nil || scope.organizationID == uuid.Nil || !validMutationReceiptOperation(scope.operation) {
+	if scope.transaction != transaction || scope.actorID == uuid.Nil || scope.organizationID == uuid.Nil || !validEventMutationScope(scope) {
 		return ErrEventForbidden
 	}
 	return nil
@@ -386,6 +506,18 @@ const (
 	MutationReceiptRSVPOccurrence MutationReceiptOperation = "rsvp_occurrence"
 )
 
+// EventMutationOperation identifies all canonical calendar mutations. Receipt
+// operations map one-to-one to their historic values; update is receipt-free.
+type EventMutationOperation string
+
+const (
+	EventMutationEventCreate      EventMutationOperation = "event_create"
+	EventMutationLegacyCallCreate EventMutationOperation = "legacy_call_create"
+	EventMutationRSVPSeries       EventMutationOperation = "rsvp_series"
+	EventMutationRSVPOccurrence   EventMutationOperation = "rsvp_occurrence"
+	EventMutationCalendarUpdate   EventMutationOperation = "event_update"
+)
+
 // MutationReceiptHash хранит только SHA-256 производного ключа или канонического запроса.
 type MutationReceiptHash [sha256.Size]byte
 
@@ -398,14 +530,14 @@ type MutationReceiptReservation struct {
 
 // NewMutationReceiptReservation создаёт команду без исходного Idempotency-Key и с обязательным transaction scope.
 func NewMutationReceiptReservation(scope EventMutationScope, keyHash MutationReceiptHash, requestHash MutationReceiptHash) (MutationReceiptReservation, error) {
-	if scope.transaction == nil || scope.actorID == uuid.Nil || scope.organizationID == uuid.Nil || !validMutationReceiptOperation(scope.operation) {
+	if scope.transaction == nil || scope.actorID == uuid.Nil || scope.organizationID == uuid.Nil || !validMutationReceiptOperation(scope.receiptOperation) {
 		return MutationReceiptReservation{}, ErrEventInvalid
 	}
 	return MutationReceiptReservation{scope: scope, keyHash: keyHash, requestHash: requestHash}, nil
 }
 
 func (reservation MutationReceiptReservation) matches(scope EventMutationScope) bool {
-	return reservation.scope.transaction == scope.transaction && reservation.scope.actorID == scope.actorID && reservation.scope.organizationID == scope.organizationID && reservation.scope.operation == scope.operation
+	return reservation.scope.transaction == scope.transaction && reservation.scope.actorID == scope.actorID && reservation.scope.organizationID == scope.organizationID && reservation.scope.receiptOperation == scope.receiptOperation
 }
 
 // KeyHash возвращает копию SHA-256 производного idempotency key.
@@ -819,6 +951,28 @@ func validMutationReceiptOperation(operation MutationReceiptOperation) bool {
 	default:
 		return false
 	}
+}
+
+func eventMutationOperationForReceipt(operation MutationReceiptOperation) (EventMutationOperation, bool) {
+	switch operation {
+	case MutationReceiptEventCreate:
+		return EventMutationEventCreate, true
+	case MutationReceiptLegacyCallCreate:
+		return EventMutationLegacyCallCreate, true
+	case MutationReceiptRSVPSeries:
+		return EventMutationRSVPSeries, true
+	case MutationReceiptRSVPOccurrence:
+		return EventMutationRSVPOccurrence, true
+	default:
+		return "", false
+	}
+}
+
+func validEventMutationScope(scope EventMutationScope) bool {
+	if operation, found := eventMutationOperationForReceipt(scope.receiptOperation); found {
+		return scope.eventOperation == operation
+	}
+	return scope.receiptOperation == "" && scope.eventOperation == EventMutationCalendarUpdate
 }
 
 func validCalendarEventSource(source CalendarEventSource) bool {
