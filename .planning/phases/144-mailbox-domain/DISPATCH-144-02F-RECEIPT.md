@@ -70,3 +70,5 @@ This 02B-eligibility/02C-predecessor route is `CONSUMED/HISTORICAL`: 02B is `SOU
 02F-D (rule deployment) is `BLOCKED` / `NOT_AUTHORIZED`, separate, and nonblocking. 02E, Ent
 generation, migration, runtime, services, APIs, UI, release, Phase 142/148, launcher `NOT_READY`,
 and executable evidence `NOT_RUN` remain unchanged.
+
+> **02B precedence (2026-08-15):** `947e2a27650ff1c6db60af9ce13bb33b6bf19cb0` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; exact13 blobs are in `IMPLEMENTATION-144-02B.md`. Tests first; Contract/high, Security/xhigh and Lifecycle/high precommit and exact-SHA PASS C/I/M `0/0/0`. Earlier `SOURCE_AUTHORITY_ACCEPTED`, source-unaccepted and 02C-waits-02B-source clauses are `CONSUMED/HISTORICAL`. A separate narrow root-authored/adjudicated 02C docs/source-authority bridge is required; 02C source is not automatically authorized. Other blockers remain unchanged.

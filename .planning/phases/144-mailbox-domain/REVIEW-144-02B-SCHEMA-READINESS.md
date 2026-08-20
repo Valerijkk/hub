@@ -110,3 +110,16 @@ Those are not duplicated as new findings here.
 - generation/migration and runtime remain independently blocked by founder/launcher gates;
 - no production/test source, dependency, generator, validator, migration or Docker command
   was changed or run.
+
+## Acceptance supersession — 2026-08-15
+
+`947e2a27650ff1c6db60af9ce13bb33b6bf19cb0` (parent
+`856edb25cf40ad436b114cc928923203c195d15c`, tree
+`10c0dcac9953ec53fd1631a095a44052e8cec9c9`) is `STATIC_ACCEPTED` /
+`EXACT_SHA_PASS`; the exact13 blob receipt is `IMPLEMENTATION-144-02B.md`.
+Tests first; Contract/high, Security/xhigh and Lifecycle/high precommit and exact-SHA reviews
+PASS C/I/M `0/0/0`; Terra/xhigh author, dispatcher-enforced/no fallback, telemetry `UNKNOWN`.
+All preceding 02B source-authority, source-unaccepted and 02C-predecessor routing is
+`CONSUMED/HISTORICAL`. Root may separately author/adjudicate a narrow 02C docs/source-authority
+bridge; 02C source is not automatically authorized. No generation/migration/runtime or service/
+API/UI/product/phase/release authority follows; launcher `NOT_READY`, executables `NOT_RUN`.
