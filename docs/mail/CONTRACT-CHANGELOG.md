@@ -575,20 +575,26 @@ Resend/broadcast boundaries.
 
 The accepted 02B source (`947e2a27650ff1c6db60af9ce13bb33b6bf19cb0`) and docs receipt (`b93c77ae771c6509be54fca8817fbca7617d6853`) consume/historicize only the former clause that 02C waits for accepted 02B source. This changelog now records `CONSUMED/HISTORICAL candidate lifecycle`, not source authority: independent Contract/Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency/Boundary Terra/high precommit reviews; one exact eight-document authority commit; the same three immutable exact-child-SHA reviews; then a separate docs-only source-authority acceptance sync. Only then may root dispatch the frozen test-first exact13 source manifest. No source dispatch or acceptance, Ent generation, migration, service, API/UI, runtime, product, phase or release authority is granted. 02F-D/02E, engine deletion-port, physical User/GDPR deletion intent, launcher `NOT_READY` and executable/runtime `NOT_RUN` remain unchanged. **02C source acceptance: preceding 02C route clauses are CONSUMED/HISTORICAL; e565523f589fbd7536f6f8e4df7effd39469c1af is STATIC_ACCEPTED / EXACT_SHA_PASS; exact13 blobs IMPLEMENTATION-144-02C.md; no next Mail packet selected; named blockers remain.**
 
-## 144-04F sync-page policy authority candidate — 2026-08-20
+## 144-04F sync-page policy source-authority receipt — 2026-08-20
 
-Recorded a docs-only `ROOT_SOURCE_AUTHORITY_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED` for the
-existing pure mailbox sync-page policy. The immutable future test-first source manifest is
+Candidate `4e608e890ec12aeed8de965f9649ae503260b94e` (parent
+`c53a5fe60e1283cab58be5efaec7ffa131145b31`, tree
+`ed7e2bdab6a44254a7c677603ad0afc298aafed8`, subject `docs(mail): propose sync policy authority`)
+is `SOURCE_AUTHORITY_ACCEPTED` / `EXACT_SHA_PASS` for immutable exact9 tree blobs; Contract,
+Security and Lifecycle exact-SHA reviews PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/
+telemetry `UNKNOWN`. The candidate/precommit/commit-review/separate-acceptance-next lifecycle is
+`CONSUMED/HISTORICAL`. Root may dispatch only the immutable test-first source manifest:
 `backend/tests/mail/mailbox_events_test.go`, `backend/tests/mail/mailbox_sync_policy_test.go`,
 `backend/internal/mail/mailbox_events.go`, then `backend/internal/mail/mailbox_sync_policy.go`.
 The only event-builder change is the three existing received/changed folder-id and changed label-id
 caps `50 -> 100` (100 pass/101 reject), with no field, subject or version change; all new policy
 types stay in `mailbox_sync_policy.go`. The exact callable/field ABI, error sentinels/unions and
 pure state-only classification contract are frozen in `REVIEW-144-04F-SYNC-POLICY-READINESS.md`
-and mirrored in `MAIL-SPEC.md`. It requires three independent precommit PASS reviews, one atomic
-exact-nine-doc authority commit, three immutable exact-child-SHA PASS reviews and a separate
-exact-nine-doc authority-acceptance sync before root may dispatch exactly those four files. This
-records neither implementation nor acceptance; OpenAPI/persistence and 02E/Ent/generation/
+and mirrored in `MAIL-SPEC.md`. The now-consumed lifecycle required three independent precommit PASS
+reviews and one atomic exact-nine candidate commit. The accepted receipt permits root dispatch only
+of the frozen exact-four test-first manifest; implementation remains `UNIMPLEMENTED/UNACCEPTED`.
+Executables/runtime are
+`NOT_RUN`, and this uncommitted docs sync is not a new acceptance claim. OpenAPI/persistence and 02E/Ent/generation/
 migration/services/API/UI/product/phase/release remain out of scope, as do 02F-D, engine
 deletion/User-GDPR. Launcher remains `NOT_READY`; executables/runtime `NOT_RUN`.
 

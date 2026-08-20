@@ -2,6 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://hub.example.test/schemas/mail/events-v1.schema.json",
   "title": "Hub mail, calendar and linked-call event envelope v1",
+  "$comment": "144-04F SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS: candidate 4e608e890ec12aeed8de965f9649ae503260b94e (parent c53a5fe60e1283cab58be5efaec7ffa131145b31, tree ed7e2bdab6a44254a7c677603ad0afc298aafed8); Contract/Security/Lifecycle PASS C/I/M 0/0/0; dispatcher-enforced/no fallback/telemetry UNKNOWN; candidate/precommit/commit-review/acceptance-next CONSUMED/HISTORICAL; exact4 root dispatch only; implementation UNIMPLEMENTED/UNACCEPTED, runtime NOT_RUN.",
   "oneOf": [
     { "$ref": "#/$defs/mailReceived" },
     { "$ref": "#/$defs/mailSent" },

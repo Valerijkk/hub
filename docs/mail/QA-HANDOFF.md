@@ -898,10 +898,15 @@ targets identically and never makes mismatch/ambiguity an existence oracle.
 
 > **02B precedence (2026-08-15):** source `947e2a27650ff1c6db60af9ce13bb33b6bf19cb0` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; `IMPLEMENTATION-144-02B.md` records exact13 blobs. Tests first; Contract/high, Security/xhigh and Lifecycle/high precommit and exact-SHA PASS C/I/M `0/0/0`. All prior 02B `SOURCE_AUTHORITY_ACCEPTED`, source-unaccepted and 02C-waits-02B-source clauses are `CONSUMED/HISTORICAL`. Root needs a separately authored/adjudicated narrow 02C docs/source-authority bridge; 02C source is not automatically authorized. Other blockers remain unchanged. **02C source acceptance: every preceding 02C bridge/candidate/source-unaccepted/dispatch-next clause in this same paragraph is CONSUMED/HISTORICAL; e565523f589fbd7536f6f8e4df7effd39469c1af is STATIC_ACCEPTED / EXACT_SHA_PASS with exact13 blobs in IMPLEMENTATION-144-02C.md; no next Mail code packet is selected or authorized; named blockers/NOT_READY/NOT_RUN remain.**
 
-## 144-04F sync-page policy QA handoff candidate
+## 144-04F sync-page policy source-authority receipt
 
-Status: docs-only `ROOT_SOURCE_AUTHORITY_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED`; implementation
-is `NOT_AUTHORIZED`. Freeze the exact test-first manifest, in this order only:
+Candidate `4e608e890ec12aeed8de965f9649ae503260b94e` (parent
+`c53a5fe60e1283cab58be5efaec7ffa131145b31`, tree
+`ed7e2bdab6a44254a7c677603ad0afc298aafed8`, subject `docs(mail): propose sync policy authority`)
+is `SOURCE_AUTHORITY_ACCEPTED` / `EXACT_SHA_PASS` for immutable exact9 tree blobs. Contract,
+Security and Lifecycle exact-SHA reviews PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/
+telemetry `UNKNOWN`. Candidate/precommit/commit-review/separate-acceptance-next clauses are
+`CONSUMED/HISTORICAL`. Root may dispatch only this exact test-first manifest:
 `backend/tests/mail/mailbox_events_test.go`; `backend/tests/mail/mailbox_sync_policy_test.go`;
 `backend/internal/mail/mailbox_events.go`; `backend/internal/mail/mailbox_sync_policy.go`.
 `mailbox_events.go` changes only received folder IDs, changed folder IDs and changed label IDs from
@@ -944,7 +949,6 @@ proof/origin and otherwise empty. Events use only existing constructors; cursors
 Advance. Add proof dual/missing/engine-ID/cross-account/origin/BCC and bounds/nil-slice/byte-budget
 rows to the listed oracle.
 
-Lifecycle is 3 independent precommit PASS -> atomic exact9 docs commit -> 3 exact-child-SHA PASS
--> separate exact9 authority-acceptance sync -> root dispatch of the exact four paths only. No
-runtime claim: launcher `NOT_READY`, executables/runtime `NOT_RUN`; no 02E/Ent/generation/
+The four implementation files remain `UNIMPLEMENTED/UNACCEPTED`; this uncommitted docs sync is not
+a new acceptance claim. No runtime claim: launcher `NOT_READY`, executables/runtime `NOT_RUN`; no 02E/Ent/generation/
 migration/service/API/UI/product/phase/release, 02F-D, engine deletion or User/GDPR authority.

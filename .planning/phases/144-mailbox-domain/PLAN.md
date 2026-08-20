@@ -100,17 +100,21 @@ separate and green.
 
 This is a `CONSUMED/HISTORICAL` candidate record only. The authoritative state is the accepted `e565523f589fbd7536f6f8e4df7effd39469c1af` source receipt in `IMPLEMENTATION-144-02C.md`; it selects no subsequent packet. All non-02C blockers remain unchanged.
 
-## 144-04F sync-page policy authority candidate
+## 144-04F sync-page policy source-authority receipt
 
-`ROOT_SOURCE_AUTHORITY_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED` only. The future test-first
-manifest is immutable and canonical: `backend/tests/mail/mailbox_events_test.go`,
+The candidate `4e608e890ec12aeed8de965f9649ae503260b94e` (parent
+`c53a5fe60e1283cab58be5efaec7ffa131145b31`, tree
+`ed7e2bdab6a44254a7c677603ad0afc298aafed8`, subject `docs(mail): propose sync policy authority`)
+is `SOURCE_AUTHORITY_ACCEPTED` / `EXACT_SHA_PASS` for its exact9 tree blobs after immutable
+Contract, Security and Lifecycle reviews PASS C/I/M `0/0/0`; `dispatcher-enforced`, no fallback,
+telemetry `UNKNOWN`. Candidate/precommit/commit-review/separate-acceptance-next clauses are
+`CONSUMED/HISTORICAL`. Root may dispatch only this immutable canonical test-first manifest:
+`backend/tests/mail/mailbox_events_test.go`,
 `backend/tests/mail/mailbox_sync_policy_test.go`, `backend/internal/mail/mailbox_events.go`, then
-`backend/internal/mail/mailbox_sync_policy.go`. Three independent precommit PASS reviews must
-precede one atomic exact-nine-document authority commit; the same three review routes must PASS
-against its exact child SHA; a separate exact-nine-doc authority-acceptance sync then precedes
-the only permitted root dispatch of those exact four paths. `mailbox_events.go` changes only the
+`backend/internal/mail/mailbox_sync_policy.go`; no substitute or extra path. `mailbox_events.go` changes only the
 three existing folder/label caps from 50 to 100 (100 pass/101 reject; no field, subject or version
-change); all new ABI types are only in `mailbox_sync_policy.go`. This plan neither authorizes source
-nor selects any other source packet. 02E, Ent generation/migration, services/API/UI/product/
+change); all new ABI types are only in `mailbox_sync_policy.go`. The four implementation files are
+`UNIMPLEMENTED/UNACCEPTED`; this uncommitted docs sync is not a new acceptance claim. No other
+source packet is selected. 02E, Ent generation/migration, services/API/UI/product/
 phase/release, 02F-D, engine deletion and physical User/GDPR remain blocked/out of scope;
 launcher `NOT_READY`, executables/runtime `NOT_RUN`.

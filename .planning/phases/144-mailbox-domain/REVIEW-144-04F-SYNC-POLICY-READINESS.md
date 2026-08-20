@@ -1,11 +1,16 @@
-# 144-04F sync-page policy readiness review
+# 144-04F sync-page policy source-authority receipt
 
 ## Status and authority
 
-This is a docs-only `ROOT_SOURCE_AUTHORITY_CANDIDATE` and
-`PRECOMMIT_REVIEW_REQUIRED`, not `STATIC_ACCEPTED`, not source authority and not an instruction
-to implement. Author provenance is Terra/medium, `dispatcher-enforced`, no fallback; telemetry is
-`UNKNOWN` unless exposed.
+Candidate `4e608e890ec12aeed8de965f9649ae503260b94e` (parent
+`c53a5fe60e1283cab58be5efaec7ffa131145b31`, tree
+`ed7e2bdab6a44254a7c677603ad0afc298aafed8`, subject `docs(mail): propose sync policy authority`)
+is `SOURCE_AUTHORITY_ACCEPTED` / `EXACT_SHA_PASS` for its immutable exact9 tree blobs. Contract,
+Security and Lifecycle exact-SHA reviews PASS C/I/M `0/0/0`; provenance is dispatcher-enforced, no
+fallback, telemetry `UNKNOWN`. Candidate/precommit/commit-review/separate-acceptance-next clauses
+are `CONSUMED/HISTORICAL`. This uncommitted documentation sync records that existing receipt; it is
+not a new acceptance claim. The four implementation files remain `UNIMPLEMENTED/UNACCEPTED` and
+executables/runtime `NOT_RUN`.
 
 The sole future source manifest is canonical and test-first:
 
@@ -14,11 +19,8 @@ The sole future source manifest is canonical and test-first:
 3. `backend/internal/mail/mailbox_events.go`
 4. `backend/internal/mail/mailbox_sync_policy.go`
 
-No substitute, extra file or reordered path is permitted. Implementation stays
-`NOT_AUTHORIZED` until: three independent precommit reviews PASS; one atomic commit changes these
-exact nine documentation paths; the same three routes PASS against that immutable exact child
-SHA; and a separate exact-nine-doc authority-acceptance sync completes. Only then may root
-dispatch exactly the four listed paths.
+No substitute, extra file or reordered path is permitted. Root may now dispatch exactly these four
+paths and no others under the accepted authority receipt.
 
 The narrow event-builder edit changes only `mail.received.v1.folder_ids`,
 `mail.message.changed.v1.folder_ids`, and `mail.message.changed.v1.label_ids` from max 50 to
@@ -156,17 +158,18 @@ dual/missing/engine-ID/cross-account/origin/BCC rows.
 
 ## Boundaries and self-review
 
-This candidate changes exactly nine documentation paths: `.planning/STATE.md`,
+The accepted candidate changed exactly nine documentation paths: `.planning/STATE.md`,
 `.planning/decisions/specs/MAIL-SPEC.md`, `.planning/phases/144-mailbox-domain/PLAN.md`,
 `.planning/phases/144-mailbox-domain/DISPATCH-INDEX.md`,
 `.planning/phases/144-mailbox-domain/DISPATCH-REMAINING.md`, this review,
 `docs/mail/CONTRACT-CHANGELOG.md`, `docs/mail/QA-HANDOFF.md`, and
 `docs/mail/events-v1.schema.json`. It does not alter source, OpenAPI or persistence. Preserve accepted 02C source `e565523f589fbd7536f6f8e4df7effd39469c1af`
-and receipt `c53a5fe6`; select no next source packet. 02E, Ent generation/migration,
+and receipt `c53a5fe6`; this receipt selects only the exact4 manifest above. 02E, Ent generation/migration,
 services/API/UI/product/phase/release, 02F-D, engine deletion/User-GDPR remain outside scope.
 Launcher is `NOT_READY`; executables/runtime are `NOT_RUN`.
 
-Author self-review is C/I/M only and is not an acceptance claim. Before handoff, record exact
-nine-path scope, `staged=0`, `git diff --check`, stale/authority review and an exact blob map.
-The author stale/authority review found no 144-04F `exact8`/`exact-two-source` residue; unrelated
-historical 144-03B and Thread exact-two records remain preserved and do not grant 144-04F authority.
+Author self-review of this uncommitted sync is C/I/M only and is not an acceptance claim. Record
+exact-nine-path scope, `staged=0`, `git diff --check`, stale/authority review and an exact blob map.
+The stale/authority review confirms candidate/precommit/no-dispatch/acceptance-sync-next wording is
+historical, while unrelated historical 144-03B and Thread exact-two records remain preserved and do
+not grant 144-04F authority.
