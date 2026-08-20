@@ -876,6 +876,10 @@ remain required. Launcher remains
   not become a global, product or executable PASS claim until supported current-SHA evidence and
   the remaining gates close.
 
+## 144-02C source-authority handoff candidate
+
+Status is `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED` only. The accepted 02B source `947e2a27650ff1c6db60af9ce13bb33b6bf19cb0` and receipt `b93c77ae771c6509be54fca8817fbca7617d6853` consume/historicize only the former predecessor-wait wording. The mandatory freeze is: independent Contract/Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency/Boundary Terra/high precommit reviews; one exact eight-document authority commit; the same three immutable exact-child-SHA reviews; a separate docs-only source-authority acceptance sync; only then root may dispatch the test-first exact13 schema packet. Until that later sync, QA must treat source, acceptance, Ent generation, migrations, services, API/UI, runtime, product, phase and release as not authorized. Preserve 02F-D/02E, engine deletion-port, physical User/GDPR deletion-intent, launcher `NOT_READY` and executable/runtime `NOT_RUN` blockers.
+
 ## 144-03B Rule static-contract test handoff
 
 The prior `f199546513b758ca7b95328b5ccd7680009b732e` / `6735ae746c7acde657359e8a709cd897c4dce61c`

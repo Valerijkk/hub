@@ -2,6 +2,26 @@
 
 > **2026-08-15 lifecycle correction acceptance:** exact14 is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `576f19231e37f635d5b7187a1ada121ed14ff8dc` (parent `0ef3df9eedfb3683fe70a7f8fc502ca76278facb`, tree `b28904b96c084dd88c4cec37c8e1daa62fde4c5d`) after Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high exact-SHA PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback, telemetry `UNKNOWN`. Candidate/precommit/root-commit/exact-review/status-sync-next clauses are `CONSUMED/HISTORICAL`. Engine drain/final Account deletion remains separately `BLOCKED` / `NOT_DISPATCHABLE` pending the independent docs-only engine deletion-port contract/adjudication. No source/Ent/service/test/runtime authority.
 
+> **144-02C authority bridge candidate (2026-08-20):** 02B source `947e2a27650ff1c6db60af9ce13bb33b6bf19cb0` is accepted and its receipt is `b93c77ae771c6509be54fca8817fbca7617d6853`; only the former clause that `02C waits accepted 02B source` is `CONSUMED/HISTORICAL`. `144-02C` is now `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED` only. It requires three independent precommit reviews (Contract/Spec/Oracle Terra/high; Security/Adversarial Terra/xhigh; Lifecycle/Dependency/Boundary Terra/high), one exact eight-document authority commit, the same three immutable exact-child-SHA reviews, and a separate docs-only source-authority acceptance sync before root may dispatch the frozen test-first exact13 source packet below. No source, source acceptance, Ent generation, migration, service, API/UI, runtime, product, phase or release authority exists now; 02F-D/02E, engine deletion-port, physical User/GDPR deletion intent, launcher `NOT_READY` and executables/runtime `NOT_RUN` remain unchanged. Requested author provenance: Terra/medium, dispatcher-enforced/no fallback, telemetry `UNKNOWN` unless exposed.
+
+## Frozen future test-first exact13 source manifest — not yet dispatched
+
+1. `backend/tests/mail/mail_delivery_schema_test.go`
+2. `backend/ent/schema/mailobject.go`
+3. `backend/ent/schema/mailattachment.go`
+4. `backend/ent/schema/maildraft.go`
+5. `backend/ent/schema/mailsubmission.go`
+6. `backend/ent/schema/mailaccount.go`
+7. `backend/ent/schema/organization.go`
+8. `backend/ent/schema/user.go`
+9. `backend/ent/schema/mailmessage.go`
+10. `backend/tests/mail/mail_account_identity_schema_test.go`
+11. `backend/tests/mail/mail_projection_schema_test.go`
+12. `backend/tests/mail/mail_domain_policy_schema_test.go`
+13. `backend/tests/calendar/calendar_mutation_receipt_schema_test.go`
+
+The test oracle is authored first. The final two compatibility tests are mandatory because they mechanically assert the precise appended Organization and User inverses and delete metadata. The source packet must preserve the accepted `docs/mail/PERSISTENCE-CONTRACT-0.1.8.md` 02C fields/defaults/immutability, named checks and index names; Organization/User/Account -> Object `NO ACTION`; Attachment -> Object/Message/Draft `RESTRICT`; Draft account `CASCADE`, reply/forward Message `SET NULL`; Submission account `CASCADE`, terminal-only Draft `SET NULL`. It also freezes paired actual-size/SHA, delete-lease fields, immutable 11-minute drain boundary and partial due index; Attachment backing XOR/owner exclusion/scan-hash rules/unique nullable storage object/no FileMetadata or project edge; Draft stable key/client scope, nullable engine id/version pair, status/mutation matrix and scalar one-draft attachment ownership (the 50-item cap is repository/service-only); Submission 32-byte hashes, opaque result pair versus scalar Hub snapshot, exact status/error/nullability and no FK from `result_mail_message_id`. This is a future review oracle, not authorization.
+
 > **Detected:** 2026-08-13 root deep static audit
 > **Lifecycle:** exact14 docs/readiness representation is `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `576f19231e37f635d5b7187a1ada121ed14ff8dc`; implementation remains separately blocked.
 > **Status:** `STATIC_ACCEPTED` / `EXACT_SHA_PASS` docs representation · IMPLEMENTATION/SOURCE/SCHEMA/RUNTIME `BLOCKED` · launcher `NOT_READY` · executables `NOT_RUN`

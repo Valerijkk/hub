@@ -569,6 +569,10 @@ canonical v2 calendar paths, timed/all-day validation, same-origin RSVP recovery
 persisted calendar idempotency receipts, admin RBAC/audit metadata and explicit legacy
 Resend/broadcast boundaries.
 
+## 144-02C authority-bridge candidate — 2026-08-20
+
+The accepted 02B source (`947e2a27650ff1c6db60af9ce13bb33b6bf19cb0`) and docs receipt (`b93c77ae771c6509be54fca8817fbca7617d6853`) consume/historicize only the former clause that 02C waits for accepted 02B source. This changelog now records `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED`, not source authority: independent Contract/Spec/Oracle Terra/high, Security/Adversarial Terra/xhigh and Lifecycle/Dependency/Boundary Terra/high precommit reviews; one exact eight-document authority commit; the same three immutable exact-child-SHA reviews; then a separate docs-only source-authority acceptance sync. Only then may root dispatch the frozen test-first exact13 source manifest. No source dispatch or acceptance, Ent generation, migration, service, API/UI, runtime, product, phase or release authority is granted. 02F-D/02E, engine deletion-port, physical User/GDPR deletion intent, launcher `NOT_READY` and executable/runtime `NOT_RUN` remain unchanged.
+
 ## 0.1.0 — 2026-08-13
 
 Initial mail engine, calendar synchronization, OpenAPI, event schema, UI and QA contract.
