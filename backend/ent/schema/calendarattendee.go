@@ -44,6 +44,9 @@ func (CalendarAttendee) Fields() []ent.Field {
 		field.Time("responded_at").
 			Optional().
 			Nillable(),
+		field.Time("removed_at").
+			Optional().
+			Nillable(),
 		field.Enum("reply_delivery_status").
 			Values("not_required", "pending", "sent", "failed").
 			Default("not_required"),
@@ -85,9 +88,9 @@ func (CalendarAttendee) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("calendar_event_id", "normalized_email").
 			Unique().
-			Annotations(entsql.IndexWhere("recurrence_id IS NULL")),
+			Annotations(entsql.IndexWhere("recurrence_id IS NULL AND removed_at IS NULL")),
 		index.Fields("calendar_event_id", "normalized_email", "recurrence_id").
 			Unique().
-			Annotations(entsql.IndexWhere("recurrence_id IS NOT NULL")),
+			Annotations(entsql.IndexWhere("recurrence_id IS NOT NULL AND removed_at IS NULL")),
 	}
 }
