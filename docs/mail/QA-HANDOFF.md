@@ -1,5 +1,105 @@
 # Hub Mail + Calendar Sync — QA handoff
 
+## 144-04G sync-service candidate static oracle (2026-08-20)
+
+Status is only `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
+IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`; no test/source dispatch or acceptance follows. Future
+test-first exact3 is NEW `backend/tests/mail/mailbox_sync_service_test.go`, NEW interface/types-
+only `backend/internal/mail/mailbox_repository.go`, then NEW
+`backend/internal/mail/mailbox_sync_service.go`. The old claim that repository signatures extend
+an accepted `mailbox_repository.go` is `CONSUMED/HISTORICAL` only for that false premise. No Ent,
+SQL, concrete adapter, 04H or 02E is authorized. 04F stays static accepted; Calendar 04C keeps its
+current exact3 dispatch state.
+
+The authored-first unit must reflection-freeze all exact ABI from
+`REVIEW-144-04G-SYNC-SERVICE-READINESS.md` and `MAIL-SPEC.md`: numeric constants
+`MailboxSyncPhaseIncremental/MailboxSyncPhaseEnumeration/MailboxSyncPhaseCatchUp`; numeric
+failure constants `MailboxSyncFailureInvalidCursor/MailboxSyncFailureRestartRequired/
+MailboxSyncFailureTransient/MailboxSyncFailureRejected`; fence fields `AccountID`, `LeaseID`,
+`LeaseEpoch`, `SyncEpoch`, `MutationEpoch`, `Phase`, `Cursor`, `BaseCursor`, `Checkpoint`; exact
+Claim/Prepare/Apply/Resolve request/result fields, including `MailboxSyncPreparedPage` exact
+`Prepared,Input`; exact four `MailboxSyncRepository` methods;
+config fields `Now`, `NewLeaseID`, `NewEventID`, `Jitter`, `LeaseDuration`, `PollInterval`,
+`RetryInterval`, `PageSize`; outcomes `MailboxSyncStepIdle/MailboxSyncStepApplied/
+MailboxSyncStepRebuildScheduled/MailboxSyncStepRetryScheduled/MailboxSyncStepLeaseLost`;
+and typed error/sentinel kinds `invalid/too_large/unavailable`. Constructor and Step signatures
+must be exact, including `Error` plus `Unwrap` and no `Is` method. Zero enum values, extra fields/
+methods, wrapped causes and public/API codes fail.
+
+The deterministic fake-port matrix must prove:
+
+1. Constructor rejects nil engine/repository/callbacks, zero/negative/overflow durations,
+   PageSize outside `1..MaxEnginePageItems`; no default/global clock/randomness. `Error()` exposes
+   only matching sentinel text, nil/unknown is `mailbox sync service error`, Unwrap returns only
+   the matching sentinel, and `errors.Is` matches it, even when dependencies return a
+   hostile raw message containing provider/cursor/secret/body text.
+2. Step samples Now and one nonzero lease ID once before claim. Not due/disabled/live mutation
+   lease returns Idle with safe next time and zero ListFolders/Changes/Enumerate/prepare/apply.
+   Expired mutation lease reclamation increments mutation epoch; old lease ID, lease epoch, sync
+   epoch or mutation epoch can apply/resolve zero effects.
+3. A claimed success calls ListFolders exactly once and then exactly one page operation:
+   Changes for Incremental/CatchUp or EnumerateProjection for Enumeration. Failure of ListFolders
+   makes zero page calls. No Step loops, calls both page methods or starts next-step rebuild in the
+   same invocation.
+   Incremental Changes, CatchUp Changes, initial EnumerateProjection and resumed
+   EnumerateProjection each spy-assert exact `Page: EnginePageRequest{Limit: config.PageSize}`;
+   invalid PageSize is constructor-invalid and causes zero port/engine calls.
+4. Cap-before-copy/allocation: 101 folders, change combined 101, or enumeration 101 returns
+   too-large with zero event-ID, prepare/classifier/apply work. Exact 100 reaches accepted 04F,
+   which separately rejects nil/empty invalid shapes, bad bounds/bytes/account/cursor/checkpoint,
+   duplicate IDs and unused/missing reservations. Hostile post-call mutation cannot change a
+   prepared input or applied command.
+5. Event candidate order is bytewise live engine message ID with Received then Changed, followed
+   by bytewise destroyed ID with Changed only. Every generated UUID is nonzero/unique; zero or
+   duplicate returns invalid before prepare. Candidates are volatile, not reservations. Prepare
+   selects all-and-only IDs and 04F rechecks: first inbound/unknown strictly after cutoff gets one
+   received event/marker; before/equal accepts zero reservation and no event/marker; historical
+   supplied reservation is invalid; confirmed draft/submission provenance never emits received.
+   Prepare must echo the claimed account/cutoff, use StepNow.UTC, canonical LeaseID.String
+   correlation, fenced mailbox/organization and nil actor; any mismatch is invalid.
+6. Claim, Prepare, Apply and Resolve each mark one short repository transaction. Engine calls,
+   object/storage/network I/O, Now/ID/jitter callbacks, ClassifyMailboxSyncPage and logging are
+   asserted absent inside every marker. Port request types expose no callback/engine/storage
+   handle that could bypass this oracle.
+7. Incremental requires nonempty cursor. Result From must equal the fence cursor. Nonempty Next
+   becomes committed cursor. Terminal empty Next retains returned From, never stores empty and
+   never synthesizes a cursor. Apply atomically commits all 04F commands/outbox/counts plus the
+   one advance; guard loss commits none; identical fence+advance replay duplicates none.
+8. Enumeration initial request has empty base/checkpoint; first response captures nonempty base.
+   Resume echoes exact base and immediately prior checkpoint. Incomplete stores next checkpoint;
+   complete requires empty next and moves to CatchUp at base. The later Step, not the same Step,
+   performs one Changes from that base. Good rows remain throughout enumeration.
+9. CatchUp nonterminal advances to exact Next and stays catch-up. Terminal empty Next finalizes
+   current sync epoch atomically and enters Incremental at returned From. Only this terminal
+   transition requests stale-epoch finalization; restart/rebuild never clears good rows.
+10. Engine invalid cursor from Changes and restart-required from Enumeration call Resolve under
+    the complete fence, bump sync epoch and schedule next-step enumeration with empty base/
+    checkpoint while preserving good projection/cutoff/freshness. Transient retains exact
+    position and uses RetryInterval+jitter. Rejected records only a typed reason and does not
+    manufacture empty success. Resolve guard loss changes nothing.
+    Exact error mapping covers invalid-cursor, restart-required, unavailable/indeterminate,
+    too-large, rejected-policy/unauthorized, every 04F kind, raw dependency/resolve error,
+    context cancellation and ambiguous Apply; raw detail never escapes, ambiguous Apply is not
+    resolved over, and Replayed implies Applied.
+    A transaction-clock spy advances authoritative DB time past persisted sync_lease_until while
+    the engine call is in flight and performs no takeover: Prepare returns Prepared false/zero
+    Input; direct Apply and direct Resolve return false; each has zero effects and maps to
+    LeaseLost. Equality also expires. Caller request.Now and unchanged epochs cannot pass, and the
+    service makes no DB-clock call outside the marked repository transaction.
+11. Jitter is called outside repository work with exactly PollInterval after apply or
+    RetryInterval for retry; it must be `0 <= j < interval`. Checked next-time arithmetic and
+    invalid jitter are covered. Poll/retry outcomes expose no account, cursor or provider detail.
+12. Crash before apply, cancellation after claim, ambiguous apply, lease expiry/takeover and
+    retry are enumerated. A committed apply is discovered/replayed idempotently; an uncommitted
+    page may be fetched again but cannot duplicate durable projection/count/outbox effects; a
+    late former owner always loses the full fence.
+
+These are static future oracles using in-memory spies only: no DB, broker, filesystem, network,
+storage, Ent, worker/goroutine scheduler, Docker or runtime. Required lifecycle remains Contract/
+Security/Lifecycle precommit PASS C/I/M `0/0/0` -> atomic exact9 candidate -> triple immutable
+exact-SHA PASS -> separate docs-only acceptance sync. Launcher is `NOT_READY`; tests/build/gofmt/
+lint/validators/Docker/runtime are `NOT_RUN` and must not be reported as PASS.
+
 ## 143-03B-T immutable source acceptance and conditional 143-04C gate (2026-08-20)
 
 Calendar 143-03B-T is `STATIC_ACCEPTED / EXACT_SHA_PASS` only at immutable commit `68cbf7cb227799304ce679937b519b66cb6abf9b` (parent `4715f939f24e5b5c2d3f80a38d204babe68bdd34`, tree `1537ba1d2d0fa804545fd8667ffe1dce9e8eaf1e`, subject `feat(calendar): add attendee tombstones`). The exact2 test-first blobs recorded in `IMPLEMENTATION-143-03B-T.md` are schema test `8bc4d44573e5a86e2c78df8c844fe3f1f2fae4cc` then `calendarattendee.go` `3c38799f3e56089e2e264b000ee0951a144b0257`. Author Terra/xhigh; Contract/high, Security/xhigh and ABI/Lifecycle high precommit plus immutable exact-SHA reviews PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed.

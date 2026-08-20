@@ -1,5 +1,22 @@
 # Phase 144 — Mailbox Domain
 
+## 144-04G sync-service authority candidate (2026-08-20)
+
+`ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / IMPLEMENTATION_BLOCKED /
+RUNTIME_NOT_RUN`: future exact3 is test-first NEW `backend/tests/mail/mailbox_sync_service_test.go`,
+NEW interface/types-only `backend/internal/mail/mailbox_repository.go`, then NEW
+`backend/internal/mail/mailbox_sync_service.go`. The stale claim that the new signatures extend
+an accepted repository file is `CONSUMED/HISTORICAL` only for that premise; no such file exists.
+The self-contained abstract-port ABI and deterministic claim/prepare/apply/resolve state machine
+are frozen in `REVIEW-144-04G-SYNC-SERVICE-READINESS.md`. There is no source authority until
+triple precommit PASS, atomic exact9 candidate commit, triple immutable exact-SHA PASS and a
+separate docs acceptance sync. 04F stays static accepted; 04H/02E, Ent/adapter, generation,
+migration and runtime stay blocked/`NOT_RUN`; Calendar 04C exact3 state is unchanged.
+
+Fix1: Prepare/Apply/Resolve compare persisted sync lease expiry to stable authoritative DB
+transaction time, not request.Now, and expiry returns LeaseLost/zero effects without requiring a
+takeover. All Changes and initial/resumed Enumerate requests use exact configured PageSize.
+
 ## 143-03B-T immutable source acceptance and conditional 143-04C gate (2026-08-20)
 
 Calendar 143-03B-T is `STATIC_ACCEPTED / EXACT_SHA_PASS` only at immutable commit `68cbf7cb227799304ce679937b519b66cb6abf9b` (parent `4715f939f24e5b5c2d3f80a38d204babe68bdd34`, tree `1537ba1d2d0fa804545fd8667ffe1dce9e8eaf1e`, subject `feat(calendar): add attendee tombstones`). The exact2 test-first blobs recorded in `IMPLEMENTATION-143-03B-T.md` are schema test `8bc4d44573e5a86e2c78df8c844fe3f1f2fae4cc` then `calendarattendee.go` `3c38799f3e56089e2e264b000ee0951a144b0257`. Author Terra/xhigh; Contract/high, Security/xhigh and ABI/Lifecycle high precommit plus immutable exact-SHA reviews PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed.

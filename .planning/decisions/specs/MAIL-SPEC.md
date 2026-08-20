@@ -1,5 +1,218 @@
 # MAIL-SPEC — Hub mailbox and calendar synchronization contract
 
+## 144-04G exact sync-service candidate contract (2026-08-20)
+
+Status: `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
+IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This contract is not accepted source authority. The
+only future test-first manifest is NEW `backend/tests/mail/mailbox_sync_service_test.go`, NEW
+interface/types-only `backend/internal/mail/mailbox_repository.go`, then NEW
+`backend/internal/mail/mailbox_sync_service.go`. The old phrase that 04G extends signatures in an
+accepted repository file is `CONSUMED/HISTORICAL` only for that false premise; the abstract port
+is created by exact3. Ent/SQL/concrete adapter, 04H and 02E remain blocked. Mail 04F remains
+`STATIC_ACCEPTED / EXACT_SHA_PASS`; Calendar 04C exact3 dispatch state is unchanged.
+
+The repository ABI is exact. `MailboxSyncPhase uint8` has, from `iota+1`, `Incremental`,
+`Enumeration`, `CatchUp`. `MailboxSyncFailureKind uint8` has, from `iota+1`, `InvalidCursor`,
+`RestartRequired`, `Transient`, `Rejected`. The value shapes and method signatures are exactly:
+
+```go
+type MailboxSyncPhase uint8
+const (
+    MailboxSyncPhaseIncremental MailboxSyncPhase = iota + 1
+    MailboxSyncPhaseEnumeration
+    MailboxSyncPhaseCatchUp
+)
+type MailboxSyncFailureKind uint8
+const (
+    MailboxSyncFailureInvalidCursor MailboxSyncFailureKind = iota + 1
+    MailboxSyncFailureRestartRequired
+    MailboxSyncFailureTransient
+    MailboxSyncFailureRejected
+)
+type MailboxSyncFence struct {
+    AccountID uuid.UUID
+    LeaseID uuid.UUID
+    LeaseEpoch int64
+    SyncEpoch int64
+    MutationEpoch int64
+    Phase MailboxSyncPhase
+    Cursor string
+    BaseCursor string
+    Checkpoint string
+}
+type MailboxSyncClaimRequest struct {
+    AccountID uuid.UUID
+    LeaseID uuid.UUID
+    Now time.Time
+    LeaseUntil time.Time
+}
+type MailboxSyncClaimResult struct {
+    Claimed bool
+    Fence MailboxSyncFence
+    EngineAccountID string
+    EventCutoff time.Time
+    NextAttemptAt time.Time
+}
+type MailboxSyncEventCandidate struct {
+    EngineMessageID string
+    ReceivedEventID uuid.UUID
+    ChangedEventID uuid.UUID
+    Destroyed bool
+}
+type MailboxSyncPrepareRequest struct {
+    Fence MailboxSyncFence
+    EngineAccountID string
+    Folders []EngineFolder
+    Page MailboxSyncPolicyPage
+    EventCandidates []MailboxSyncEventCandidate
+    OccurredAt time.Time
+    CorrelationID string
+}
+type MailboxSyncPreparedPage struct {
+    Prepared bool
+    Input MailboxSyncPolicyInput
+}
+type MailboxSyncApplyRequest struct {
+    Fence MailboxSyncFence
+    Result MailboxSyncPolicyResult
+    Now time.Time
+    NextAttemptAt time.Time
+}
+type MailboxSyncApplyResult struct {
+    Applied bool
+    Replayed bool
+    Phase MailboxSyncPhase
+    NextAttemptAt time.Time
+}
+type MailboxSyncResolveRequest struct {
+    Fence MailboxSyncFence
+    Failure MailboxSyncFailureKind
+    Now time.Time
+    NextAttemptAt time.Time
+}
+type MailboxSyncResolveResult struct {
+    Resolved bool
+    Phase MailboxSyncPhase
+    NextAttemptAt time.Time
+}
+type MailboxSyncRepository interface {
+    ClaimMailboxSyncStep(context.Context, MailboxSyncClaimRequest) (MailboxSyncClaimResult, error)
+    PrepareMailboxSyncPage(context.Context, MailboxSyncPrepareRequest) (MailboxSyncPreparedPage, error)
+    ApplyMailboxSyncPage(context.Context, MailboxSyncApplyRequest) (MailboxSyncApplyResult, error)
+    ResolveMailboxSyncStep(context.Context, MailboxSyncResolveRequest) (MailboxSyncResolveResult, error)
+}
+```
+
+The service ABI is exact. `MailboxSyncStepOutcome uint8` has, from `iota+1`, `Idle`, `Applied`,
+`RebuildScheduled`, `RetryScheduled`, `LeaseLost`. Error kinds are the literal internal strings
+`invalid`, `too_large`, `unavailable` with matching content-free sentinels; `Error()` exposes only
+matching sentinel text and `Unwrap()` only that sentinel. There is no wrapped cause/detail.
+
+```go
+type MailboxSyncStepOutcome uint8
+const (
+    MailboxSyncStepIdle MailboxSyncStepOutcome = iota + 1
+    MailboxSyncStepApplied
+    MailboxSyncStepRebuildScheduled
+    MailboxSyncStepRetryScheduled
+    MailboxSyncStepLeaseLost
+)
+type MailboxSyncServiceConfig struct {
+    Now func() time.Time
+    NewLeaseID func() uuid.UUID
+    NewEventID func() uuid.UUID
+    Jitter func(time.Duration) time.Duration
+    LeaseDuration time.Duration
+    PollInterval time.Duration
+    RetryInterval time.Duration
+    PageSize int
+}
+type MailboxSyncStepResult struct {
+    Outcome MailboxSyncStepOutcome
+    NextAttemptAt time.Time
+}
+type MailboxSyncServiceErrorKind string
+const (
+    MailboxSyncServiceErrorInvalid MailboxSyncServiceErrorKind = "invalid"
+    MailboxSyncServiceErrorTooLarge MailboxSyncServiceErrorKind = "too_large"
+    MailboxSyncServiceErrorUnavailable MailboxSyncServiceErrorKind = "unavailable"
+)
+type MailboxSyncServiceError struct { Kind MailboxSyncServiceErrorKind }
+var ErrMailboxSyncServiceInvalid = errors.New("mailbox sync service invalid")
+var ErrMailboxSyncServiceTooLarge = errors.New("mailbox sync service exceeds bounds")
+var ErrMailboxSyncServiceUnavailable = errors.New("mailbox sync service unavailable")
+type MailboxSyncService struct { /* engine, repository, config only; all unexported */ }
+func NewMailboxSyncService(MailEngine, MailboxSyncRepository, MailboxSyncServiceConfig) (*MailboxSyncService, error)
+func (*MailboxSyncService) Step(context.Context, uuid.UUID) (MailboxSyncStepResult, error)
+func (*MailboxSyncServiceError) Error() string
+func (*MailboxSyncServiceError) Unwrap() error
+```
+
+Nil/unknown service error has exact text `mailbox sync service error` and unwraps nil.
+
+Constructor inputs are mandatory: no nil port/callback, no global clock/randomness, positive
+lease/poll/retry durations, `PageSize` in `1..MaxEnginePageItems`, checked time arithmetic. A Step
+samples `Now` and a nonzero lease ID once before claim. Jitter is sampled outside repository
+calls, accepts exactly the selected poll/retry interval and must return `0 <= j < interval`.
+
+Claim is one short DB transaction: account active/due, immutable nonzero cutoff, sync lease and
+absence of a live mutation lease are proved together. Reclaiming an expired mutation lease bumps
+`MutationEpoch`; the returned position is protected by account ID, lease ID, lease epoch, sync
+epoch and mutation epoch. Not-claimed is idle and makes zero engine calls. A claimed Step calls
+`ListFolders` once, then exactly one `Changes` for incremental/catch-up or one
+`EnumerateProjection` for enumeration. It never loops or calls both.
+Every Incremental/CatchUp Changes request and initial/resumed enumeration request carries exactly
+`Page: EnginePageRequest{Limit: config.PageSize}`; no fixed or returned bound replaces it.
+
+Before copy/allocation it caps folders and change/enumeration collections at accepted engine
+maxima. Volatile event candidates are allocated outside repository calls in bytewise engine-ID
+order: live received then live changed, followed by destroyed changed. IDs are nonzero and unique;
+candidates are not reservations. Prepare is one short transaction that resolves previous state,
+provenance and event state and selects all-and-only candidates into an exact
+`MailboxSyncPolicyInput`. `ClassifyMailboxSyncPage` runs outside the transaction. Apply is one
+short transaction that rechecks the complete fence and atomically commits all 04F projection,
+count, outbox and advance effects; mismatch applies nothing, and exact replay duplicates nothing.
+Prepare receives `OccurredAt=StepNow.UTC()` and canonical lowercase
+`CorrelationID=LeaseID.String()`, loads mailbox/organization from the fenced account and sets
+ActorID nil. The service rejects unless prepared account/cutoff equals Claim and all event-context
+values match exactly.
+
+Prepare, Apply and Resolve each compare persisted `sync_lease_until` to authoritative stable DB
+transaction time (`CURRENT_TIMESTAMP` or dialect-equivalent) inside the same transaction. They
+never use caller request.Now as expiry authority and never rely on takeover/epoch movement alone.
+At `lease_until <= DB transaction time`, Prepare returns Prepared false/zero Input, Apply returns
+Applied false and Resolve returns Resolved false, each with zero effects and Step outcome
+LeaseLost even when no takeover occurred. The service never reads DB time outside repository
+transactions.
+
+Incremental requires nonempty cursor and calls Changes from it. Enumeration starts with empty
+base/checkpoint, then resumes only with both nonempty and exact. A complete enumeration page moves
+to catch-up at its base; catch-up calls Changes from that base. A nonempty change next becomes the
+committed cursor. A terminal empty next never becomes stored state: incremental retains the
+returned from; catch-up atomically finalizes the epoch and enters incremental at the returned
+from. Invalid change cursor or enumeration restart uses the resolve transaction to bump sync
+epoch and schedule enumeration on the next Step without clearing good rows/cutoff/freshness.
+Transient failure retains position and schedules retry. Fence loss, cancellation, crash and
+ambiguous apply are idempotent and cannot permit a late owner to commit.
+
+Typed mapping is exact: engine invalid-cursor -> resolve InvalidCursor; restart-required ->
+Resolve RestartRequired; unavailable/indeterminate -> Resolve Transient; engine or 04F too-large
+-> Resolve Rejected then service too-large; engine rejected-policy/unauthorized and 04F invalid/
+duplicate/account-mismatch -> Resolve Rejected then service invalid. Unknown raw dependency or
+Resolve errors become service unavailable. Ambiguous Apply is not overwritten by Resolve and
+returns unavailable; context cancellation returns only its context sentinel. `Replayed` implies
+Applied, while false Prepared/Applied/Resolved is lease loss.
+
+All port values are deep-copied and bounded. No engine call, storage/object I/O, callback,
+classifier, or log occurs inside a repository method/DB transaction/lock. No raw provider text,
+cursor, secret, token, address, subject or body appears in service errors/results/logs. Full
+oracles and the identical ABI are in `REVIEW-144-04G-SYNC-SERVICE-READINESS.md` and
+`docs/mail/QA-HANDOFF.md`.
+
+Lifecycle is three independent precommit PASS C/I/M `0/0/0`, one atomic exact9 candidate commit,
+three immutable exact-SHA PASS, then a separate docs-only acceptance sync. Until then no exact3
+dispatch, source acceptance, executable evidence or runtime claim exists; launcher is `NOT_READY`.
+
 ## 143-03B-T immutable source acceptance and conditional 143-04C gate (2026-08-20)
 
 Calendar 143-03B-T is `STATIC_ACCEPTED / EXACT_SHA_PASS` only at immutable commit `68cbf7cb227799304ce679937b519b66cb6abf9b` (parent `4715f939f24e5b5c2d3f80a38d204babe68bdd34`, tree `1537ba1d2d0fa804545fd8667ffe1dce9e8eaf1e`, subject `feat(calendar): add attendee tombstones`). The exact2 test-first blobs recorded in `IMPLEMENTATION-143-03B-T.md` are schema test `8bc4d44573e5a86e2c78df8c844fe3f1f2fae4cc` then `calendarattendee.go` `3c38799f3e56089e2e264b000ee0951a144b0257`. Author Terra/xhigh; Contract/high, Security/xhigh and ABI/Lifecycle high precommit plus immutable exact-SHA reviews PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed.

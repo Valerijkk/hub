@@ -1,5 +1,26 @@
 # Hub Mail contract changelog
 
+## 2026-08-20 — 144-04G sync-service authority candidate
+
+- Status is only `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
+  IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`; this is not source authority or acceptance.
+- Frozen future test-first exact3: NEW sync-service test, NEW interface/types-only
+  `mailbox_repository.go`, NEW sync service. The prior statement that 04G extends an accepted
+  repository file is `CONSUMED/HISTORICAL` only for that false premise; the abstract port is part
+  of exact3 and no concrete adapter/Ent/SQL is authorized.
+- `REVIEW-144-04G-SYNC-SERVICE-READINESS.md` freezes the exact Go ABI and deterministic
+  claim/prepare/apply/resolve state machine, including complete fences, bounded one-page engine
+  work, base enumeration/catch-up/rebuild, 04F event-ID candidates, deep copy, typed non-leaking
+  failures and no external I/O/callbacks under repository locks.
+- Required lifecycle is triple precommit PASS -> atomic exact9 candidate -> triple immutable
+  exact-SHA PASS -> separate acceptance sync. 04F stays static accepted; 04H/02E, generation,
+  migration, launcher and runtime remain blocked/`NOT_READY`/`NOT_RUN`; Calendar 04C state and
+  all other receipts are unchanged.
+- Fix1 closes lease expiry and pagination authority: Prepare/Apply/Resolve use stable DB
+  transaction time, never request.Now, and expired/equal lease means LeaseLost/zero effects even
+  without takeover; every Changes and initial/resumed Enumerate request carries exact configured
+  PageSize. `MailboxSyncPreparedPage` now has exact `Prepared,Input` to represent Prepare loss.
+
 ## 143-03B-T immutable source acceptance and conditional 143-04C gate (2026-08-20)
 
 Calendar 143-03B-T is `STATIC_ACCEPTED / EXACT_SHA_PASS` only at immutable commit `68cbf7cb227799304ce679937b519b66cb6abf9b` (parent `4715f939f24e5b5c2d3f80a38d204babe68bdd34`, tree `1537ba1d2d0fa804545fd8667ffe1dce9e8eaf1e`, subject `feat(calendar): add attendee tombstones`). The exact2 test-first blobs recorded in `IMPLEMENTATION-143-03B-T.md` are schema test `8bc4d44573e5a86e2c78df8c844fe3f1f2fae4cc` then `calendarattendee.go` `3c38799f3e56089e2e264b000ee0951a144b0257`. Author Terra/xhigh; Contract/high, Security/xhigh and ABI/Lifecycle high precommit plus immutable exact-SHA reviews PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed.

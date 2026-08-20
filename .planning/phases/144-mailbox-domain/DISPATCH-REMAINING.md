@@ -1,5 +1,22 @@
 # Phase 144 — executable packet contracts not split into standalone files
 
+## 144-04G candidate precedence (2026-08-20)
+
+`ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / IMPLEMENTATION_BLOCKED /
+RUNTIME_NOT_RUN`. The only future packet is exact3/test-first: NEW
+`backend/tests/mail/mailbox_sync_service_test.go`, NEW interface/types-only
+`backend/internal/mail/mailbox_repository.go`, NEW
+`backend/internal/mail/mailbox_sync_service.go`. Full ABI and state-machine authority is the new
+`REVIEW-144-04G-SYNC-SERVICE-READINESS.md`. No dispatch occurs before triple precommit PASS,
+atomic exact9 candidate, triple immutable exact-SHA PASS and separate acceptance sync. 04F
+remains accepted; 04H/02E/concrete adapter/generation/migration/runtime remain blocked; Calendar
+04C current exact3 dispatch state is preserved.
+
+Fix1 precedence: Prepare/Apply/Resolve compare persisted sync lease expiry against authoritative
+stable DB transaction time and return LeaseLost/zero effects at equality or expiry even without
+takeover; request.Now is not mutation authority. Every Changes and initial/resumed Enumerate
+request uses exact `EnginePageRequest{Limit: config.PageSize}`.
+
 ## 143-03B-T immutable source acceptance and conditional 143-04C gate (2026-08-20)
 
 Calendar 143-03B-T is `STATIC_ACCEPTED / EXACT_SHA_PASS` only at immutable commit `68cbf7cb227799304ce679937b519b66cb6abf9b` (parent `4715f939f24e5b5c2d3f80a38d204babe68bdd34`, tree `1537ba1d2d0fa804545fd8667ffe1dce9e8eaf1e`, subject `feat(calendar): add attendee tombstones`). The exact2 test-first blobs recorded in `IMPLEMENTATION-143-03B-T.md` are schema test `8bc4d44573e5a86e2c78df8c844fe3f1f2fae4cc` then `calendarattendee.go` `3c38799f3e56089e2e264b000ee0951a144b0257`. Author Terra/xhigh; Contract/high, Security/xhigh and ABI/Lifecycle high precommit plus immutable exact-SHA reviews PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed.
@@ -612,8 +629,11 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 
 - Dependencies: 04A/F and deterministic fake. Allowed only
   `backend/internal/mail/mailbox_sync_service.go`,
-  `backend/tests/mail/mailbox_sync_service_test.go`, and the minimal new sync repository
-  signatures in accepted `mailbox_repository.go`.
+  `backend/tests/mail/mailbox_sync_service_test.go`, and NEW interface/types-only
+  `backend/internal/mail/mailbox_repository.go`. The former wording that those signatures extend
+  accepted `mailbox_repository.go` is `CONSUMED/HISTORICAL` only for that false premise; no such
+  accepted file exists. This exact3 remains future-only and implementation-blocked under the
+  higher-precedence 144-04G candidate lifecycle.
 - One `Step(account)` claims/renews a bounded lease and captures exact cursor, sync epoch and
   mutation epoch and proves no mutation lease is present; engine I/O occurs outside the
   repository transaction. Incremental page
@@ -621,6 +641,10 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   Guard or new mutation-lease mismatch discards the entire page and retries the unchanged
   committed cursor. An expired mutation lease is atomically reclaimed with an epoch bump
   before capture; a late former command owner cannot finalize from its stale result.
+- Prepare/apply/resolve additionally require persisted `sync_lease_until` strictly after stable
+  authoritative DB transaction time; expiry/equality loses the lease with zero effects even if
+  no takeover changed an epoch. Each Changes and initial/resumed Enumerate request uses the exact
+  validated configured PageSize.
 - Typed invalid cursor enters degraded then resumable rebuilding without clearing rows:
   increment epoch, retain cutoff/old freshness, apply base-anchored enumeration pages/checkpoints,
   catch up through Changes from the base cursor, then request one atomic finalization.

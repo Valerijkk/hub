@@ -234,6 +234,36 @@ calendar_143_04c_authority: "ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_
 
 # Состояние проекта Hub
 
+## 144-04G sync-service authority candidate (2026-08-20)
+
+Status is only `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
+IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. The proposed future test-first exact3 is NEW
+`backend/tests/mail/mailbox_sync_service_test.go`, NEW interface/types-only
+`backend/internal/mail/mailbox_repository.go`, then NEW
+`backend/internal/mail/mailbox_sync_service.go`; no source authority or acceptance exists yet.
+The false lower premise that repository signatures extend an accepted `mailbox_repository.go`
+is `CONSUMED/HISTORICAL` only for that sentence: the file does not exist and exact3 creates the
+abstract port. 04F remains `STATIC_ACCEPTED / EXACT_SHA_PASS`; 04H/02E, Ent/concrete adapter,
+generation, migration, wiring and runtime remain blocked or `NOT_RUN`.
+
+The exact ABI/state machine/oracles are frozen in
+`REVIEW-144-04G-SYNC-SERVICE-READINESS.md`: four short repository transaction boundaries
+(claim/prepare/apply/resolve); complete account+lease+lease-epoch+sync-epoch+mutation-epoch
+fencing; injected clock/lease IDs/event IDs/jitter/poll and retry intervals; one claimed Step
+does one ListFolders plus exactly one Changes or Enumerate; resumable base enumeration then
+catch-up; invalid cursor/restart schedules next-step rebuild without clearing good state;
+deterministic candidate IDs feed accepted 04F; no engine/storage/callback/classifier under a DB
+lock; bounded deep copies and content-free typed errors. Contract/Security/Lifecycle precommit
+PASS -> atomic exact9 candidate commit -> triple immutable exact-SHA PASS -> separate docs-only
+acceptance sync is mandatory. Calendar 143-04C keeps its current exact3 dispatch state and all
+existing blockers; this candidate changes no Calendar path.
+
+Fix1 freezes two additional non-negotiable guards: Prepare/Apply/Resolve treat persisted
+`sync_lease_until <=` authoritative stable DB transaction time as LeaseLost with zero effects,
+even without takeover; request.Now never authorizes mutation and service never queries DB time.
+Every Incremental/CatchUp Changes and initial/resumed Enumerate request carries exact
+`EnginePageRequest{Limit: config.PageSize}`.
+
 ## 143-03B-T immutable source acceptance and conditional 143-04C gate (2026-08-20)
 
 Calendar 143-03B-T is `STATIC_ACCEPTED / EXACT_SHA_PASS` only at immutable commit `68cbf7cb227799304ce679937b519b66cb6abf9b` (parent `4715f939f24e5b5c2d3f80a38d204babe68bdd34`, tree `1537ba1d2d0fa804545fd8667ffe1dce9e8eaf1e`, subject `feat(calendar): add attendee tombstones`). The exact2 test-first blobs recorded in `IMPLEMENTATION-143-03B-T.md` are schema test `8bc4d44573e5a86e2c78df8c844fe3f1f2fae4cc` then `calendarattendee.go` `3c38799f3e56089e2e264b000ee0951a144b0257`. Author Terra/xhigh; Contract/high, Security/xhigh and ABI/Lifecycle high precommit plus immutable exact-SHA reviews PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed.

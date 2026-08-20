@@ -1,5 +1,19 @@
 # Phase 144 — exact Terra dispatch index
 
+## 144-04G candidate precedence (2026-08-20)
+
+Status: `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
+IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. Exact3 future manifest, test first: NEW sync-service
+test, NEW abstract `mailbox_repository.go` interface/types, NEW sync service. The old accepted-
+repository premise is `CONSUMED/HISTORICAL` only for that phrase. Exact ABI, fences, bounded
+one-page Step, enumeration/catch-up/rebuild, deterministic 04F event candidates, no-I/O-under-
+lock and static oracles are frozen by `REVIEW-144-04G-SYNC-SERVICE-READINESS.md`. Source dispatch
+requires triple precommit PASS -> atomic exact9 -> triple exact-SHA PASS -> separate acceptance
+sync. 04F receipt, Calendar 04C state and all 04H/02E/launcher/runtime blockers are unchanged.
+Fix1 requires DB-transaction-time lease expiry on Prepare/Apply/Resolve (expired means LeaseLost/
+zero effects even without takeover) and exact configured PageSize in every Changes/enumeration
+request; request.Now is never mutation-expiry authority.
+
 ## 143-03B-T immutable source acceptance and conditional 143-04C gate (2026-08-20)
 
 Calendar 143-03B-T is `STATIC_ACCEPTED / EXACT_SHA_PASS` only at immutable commit `68cbf7cb227799304ce679937b519b66cb6abf9b` (parent `4715f939f24e5b5c2d3f80a38d204babe68bdd34`, tree `1537ba1d2d0fa804545fd8667ffe1dce9e8eaf1e`, subject `feat(calendar): add attendee tombstones`). The exact2 test-first blobs recorded in `IMPLEMENTATION-143-03B-T.md` are schema test `8bc4d44573e5a86e2c78df8c844fe3f1f2fae4cc` then `calendarattendee.go` `3c38799f3e56089e2e264b000ee0951a144b0257`. Author Terra/xhigh; Contract/high, Security/xhigh and ABI/Lifecycle high precommit plus immutable exact-SHA reviews PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed.
@@ -151,7 +165,7 @@ every remaining row/variant, assemble the Common envelope plus exactly one secti
 | 144-04P | Canonical domain desired-state/reconciliation service | `mailbox_domain_service.go`, focused unit, narrow repository signatures | create/delete intent; stable key/generation/hash; verified/default guards; no DNS mutation | 144-01B + 144-02A/E + 144-04O |
 | 144-04Q | Bounded multi-replica domain-control worker | `mailbox_domain_worker.go`, focused unit | Ensure/Get-before-retry; public DNS projection; captured generation; deleting/absence; context shutdown | 144-04P |
 | 144-04F | Pure incremental/enumeration page classification and projection commands | Original `SOURCE_AUTHORITY_ACCEPTED` / `EXACT_SHA_PASS` receipt `4e608e890ec12aeed8de965f9649ae503260b94e`; its immediate exact4 root-dispatch clause is `SUSPENDED / CONSUMED/HISTORICAL`. `ROOT_CORRECTION_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`: existing exact4 remains only the future test-first manifest (`mailbox_events_test.go`, `mailbox_sync_policy_test.go`, `mailbox_events.go`, `mailbox_sync_policy.go`). Uncommitted candidates are `UNACCEPTED` and MUST NOT be committed until Contract/Security/Lifecycle precommit PASS, atomic exact9 correction-candidate commit, all three immutable exact-SHA PASS and separate docs-only acceptance sync; no correction acceptance | exact page union/bounds (Requested 1..100, Maximum=100, Returned exact, nonnil slices, ENGINE-CONTRACT byte budget; change combined 100; enumeration/folders 100); content-free typed error/sentinel ABI; exact cutoff: nonnil ReceivedAt, after requires marker+one received, before/equal zero reservation+nil marker+no received, confirmed owner never received; changed/deleted event set; event folder/label caps 50->100 only; no I/O/clock | 144-01B + 144-03A/D |
-| 144-04G | Lease/epoch-aware mailbox sync orchestration against fake ports | `mailbox_sync_service.go`, `backend/tests/mail/mailbox_sync_service_test.go`, narrow repository signatures | claim/fetch/apply; invalid cursor to rebuild; checkpoint/catch-up/finalize; stale epoch discards whole page | 144-04A/F |
+| 144-04G | Lease/epoch-aware mailbox sync orchestration against fake ports | `ROOT_SOURCE_AUTHORITY_CANDIDATE` only; future exact3: NEW `backend/tests/mail/mailbox_sync_service_test.go`, NEW interface/types-only `backend/internal/mail/mailbox_repository.go`, NEW `backend/internal/mail/mailbox_sync_service.go`; implementation blocked | exact claim/prepare/apply/resolve ABI; DB-transaction-time lease expiry on every mutation guard; full lease/sync/mutation fence; one ListFolders + one Changes/Enumerate with exact configured PageSize; base enumeration, catch-up/finalize; invalid cursor next-step rebuild; deterministic 04F IDs; no external I/O/callback under lock | 144-04A/F; triple precommit + exact9 + triple exact-SHA + separate acceptance sync |
 | 144-04H | Atomic Ent incremental/rebuild projection adapter | `mailbox_ent_repository_sync.go`; no Go DB/component test | account-lock lease/cursor/epoch proof; projection/events/cursor atomic; no-clear rebuild/final cleanup | 144-02E + 144-04G |
 | 144-04I | Bounded context-owned multi-replica sync worker | `mailbox_sync_worker.go`, `backend/tests/mail/mailbox_sync_worker_test.go` | max concurrency; due-account claims; lease renewal/expiry; backoff; shutdown; disabled no start | 144-04G/H |
 | 144-04R | Generic mutation recovery step in the existing sync worker | `mailbox_mutation_recovery.go`, narrow worker edit, focused unit | oldest-due work; receipt+mutation leases; folder recovery only under proven exclusive-writer capability; captured bulk only; unknown training no repeat; no fifth worker | 144-04B/C/I/O |

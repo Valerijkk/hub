@@ -1,5 +1,231 @@
 # Mail persistence contract 0.1.8
 
+## 144-04G abstract persistence port candidate (2026-08-20)
+
+Status is only `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
+IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. The future exact3/test-first manifest is NEW
+`backend/tests/mail/mailbox_sync_service_test.go`, NEW interface/types-only
+`backend/internal/mail/mailbox_repository.go`, then NEW
+`backend/internal/mail/mailbox_sync_service.go`. The lower phrase that those interfaces extend
+an accepted repository file is `CONSUMED/HISTORICAL` only for that false premise: the abstract
+port does not exist yet and is created by exact3. This contract authorizes no Ent/SQL/concrete
+adapter; 04H/02E remain blocked. 04F stays static accepted, and Calendar 04C state is unchanged.
+
+The exact interface/types-only persistence ABI is:
+
+```go
+type MailboxSyncPhase uint8
+const (
+    MailboxSyncPhaseIncremental MailboxSyncPhase = iota + 1
+    MailboxSyncPhaseEnumeration
+    MailboxSyncPhaseCatchUp
+)
+type MailboxSyncFailureKind uint8
+const (
+    MailboxSyncFailureInvalidCursor MailboxSyncFailureKind = iota + 1
+    MailboxSyncFailureRestartRequired
+    MailboxSyncFailureTransient
+    MailboxSyncFailureRejected
+)
+type MailboxSyncFence struct {
+    AccountID uuid.UUID
+    LeaseID uuid.UUID
+    LeaseEpoch int64
+    SyncEpoch int64
+    MutationEpoch int64
+    Phase MailboxSyncPhase
+    Cursor string
+    BaseCursor string
+    Checkpoint string
+}
+type MailboxSyncClaimRequest struct {
+    AccountID uuid.UUID
+    LeaseID uuid.UUID
+    Now time.Time
+    LeaseUntil time.Time
+}
+type MailboxSyncClaimResult struct {
+    Claimed bool
+    Fence MailboxSyncFence
+    EngineAccountID string
+    EventCutoff time.Time
+    NextAttemptAt time.Time
+}
+type MailboxSyncEventCandidate struct {
+    EngineMessageID string
+    ReceivedEventID uuid.UUID
+    ChangedEventID uuid.UUID
+    Destroyed bool
+}
+type MailboxSyncPrepareRequest struct {
+    Fence MailboxSyncFence
+    EngineAccountID string
+    Folders []EngineFolder
+    Page MailboxSyncPolicyPage
+    EventCandidates []MailboxSyncEventCandidate
+    OccurredAt time.Time
+    CorrelationID string
+}
+type MailboxSyncPreparedPage struct {
+    Prepared bool
+    Input MailboxSyncPolicyInput
+}
+type MailboxSyncApplyRequest struct {
+    Fence MailboxSyncFence
+    Result MailboxSyncPolicyResult
+    Now time.Time
+    NextAttemptAt time.Time
+}
+type MailboxSyncApplyResult struct {
+    Applied bool
+    Replayed bool
+    Phase MailboxSyncPhase
+    NextAttemptAt time.Time
+}
+type MailboxSyncResolveRequest struct {
+    Fence MailboxSyncFence
+    Failure MailboxSyncFailureKind
+    Now time.Time
+    NextAttemptAt time.Time
+}
+type MailboxSyncResolveResult struct {
+    Resolved bool
+    Phase MailboxSyncPhase
+    NextAttemptAt time.Time
+}
+type MailboxSyncRepository interface {
+    ClaimMailboxSyncStep(context.Context, MailboxSyncClaimRequest) (MailboxSyncClaimResult, error)
+    PrepareMailboxSyncPage(context.Context, MailboxSyncPrepareRequest) (MailboxSyncPreparedPage, error)
+    ApplyMailboxSyncPage(context.Context, MailboxSyncApplyRequest) (MailboxSyncApplyResult, error)
+    ResolveMailboxSyncStep(context.Context, MailboxSyncResolveRequest) (MailboxSyncResolveResult, error)
+}
+```
+
+There are exactly four repository transaction/lock boundaries:
+
+1. `ClaimMailboxSyncStep` locks the account, proves active/due state and a committed nonzero
+   immutable `event_cutoff_at`, rejects a live mutation lease, reclaims an expired one only with
+   a mutation-epoch increment, and acquires/renews the exact sync lease. It returns one coherent
+   account/lease/lease-epoch/sync-epoch/mutation-epoch/phase/position fence. A nonclaim exposes no
+   engine account, cutoff or fence and causes zero engine work.
+2. `PrepareMailboxSyncPage` rechecks the complete fence and reads/resolves Hub IDs, prior
+   projection, owner provenance and committed event reservations. It accepts bounded deep-copied
+   engine folders/page plus volatile candidate IDs and returns one deep-copied exact 04F input.
+   It persists no candidate merely because it was generated: only all-and-only needed IDs enter
+   the policy input, where accepted 04F verifies them again. Success has `Prepared=true`; failed
+   fence/expiry has `Prepared=false` and zero Input.
+3. `ApplyMailboxSyncPage` rechecks the same complete fence and atomically commits every 04F
+   upsert/tombstone/folder/count/outbox effect plus exactly one position/phase transition. Any
+   guard mismatch applies zero effects. The identical fence+advance is replay-safe and returns
+   `Replayed=true` without duplicate projection, counts or outbox rows.
+4. `ResolveMailboxSyncStep` rechecks the fence and atomically records only a typed failure
+   transition. Invalid change cursor and enumeration restart bump sync epoch and set next-step
+   enumeration with empty base/checkpoint while retaining all last-good rows, cutoff, previous
+   freshness and the old good cursor. Transient retains position and schedules bounded retry;
+   rejected never manufactures success. Guard loss mutates nothing.
+
+Prepare receives exact `OccurredAt=StepNow.UTC()` and canonical lowercase
+`CorrelationID=LeaseID.String()`. It loads mailbox and organization IDs from the fenced account,
+sets ActorID nil and returns the exact claimed account/cutoff; the service rejects any mismatch.
+
+Prepare, Apply and Resolve each compare persisted `sync_lease_until` against the database's
+authoritative stable transaction time (`CURRENT_TIMESTAMP` or dialect-equivalent) inside that
+same transaction. Caller `request.Now` is never expiry authority, and token/epoch equality
+without takeover is insufficient. The mutation predicate always includes
+`sync_lease_until > authoritative_tx_time`. Equal/earlier returns Prepared/Applied/Resolved false,
+respectively, with zero row/outbox/count/position effects and maps to LeaseLost even without a
+takeover. The service makes no DB-clock query outside repository/transaction scope.
+
+Position predicates are exact. Incremental has nonempty cursor and empty base/checkpoint.
+Enumeration has empty cursor and either both base/checkpoint empty (initial) or both nonempty
+(resume). Catch-up has nonempty cursor and empty base/checkpoint. First enumeration persists the
+returned nonempty base; an incomplete page persists its nonempty next checkpoint; a complete
+page requires empty next checkpoint and changes phase to catch-up at the base. A change result
+must echo `FromCursor == Fence.Cursor`. Nonempty `NextCursor` becomes the next cursor; terminal
+empty next retains returned from. Terminal catch-up also atomically finalizes the current sync
+epoch and changes phase to incremental at returned from. No empty or synthetic provider cursor
+is stored. Good projection is not cleared during enumeration/restart; future 04H owns epoch-tag
+stale cleanup only at catch-up finalization.
+
+The service-side ABI paired to this port is also closed:
+
+```go
+type MailboxSyncServiceConfig struct {
+    Now func() time.Time
+    NewLeaseID func() uuid.UUID
+    NewEventID func() uuid.UUID
+    Jitter func(time.Duration) time.Duration
+    LeaseDuration time.Duration
+    PollInterval time.Duration
+    RetryInterval time.Duration
+    PageSize int
+}
+type MailboxSyncStepOutcome uint8
+const (
+    MailboxSyncStepIdle MailboxSyncStepOutcome = iota + 1
+    MailboxSyncStepApplied
+    MailboxSyncStepRebuildScheduled
+    MailboxSyncStepRetryScheduled
+    MailboxSyncStepLeaseLost
+)
+type MailboxSyncStepResult struct {
+    Outcome MailboxSyncStepOutcome
+    NextAttemptAt time.Time
+}
+type MailboxSyncServiceErrorKind string
+const (
+    MailboxSyncServiceErrorInvalid MailboxSyncServiceErrorKind = "invalid"
+    MailboxSyncServiceErrorTooLarge MailboxSyncServiceErrorKind = "too_large"
+    MailboxSyncServiceErrorUnavailable MailboxSyncServiceErrorKind = "unavailable"
+)
+type MailboxSyncServiceError struct { Kind MailboxSyncServiceErrorKind }
+var ErrMailboxSyncServiceInvalid = errors.New("mailbox sync service invalid")
+var ErrMailboxSyncServiceTooLarge = errors.New("mailbox sync service exceeds bounds")
+var ErrMailboxSyncServiceUnavailable = errors.New("mailbox sync service unavailable")
+type MailboxSyncService struct { /* engine, repository, config only; all unexported */ }
+func NewMailboxSyncService(MailEngine, MailboxSyncRepository, MailboxSyncServiceConfig) (*MailboxSyncService, error)
+func (*MailboxSyncService) Step(context.Context, uuid.UUID) (MailboxSyncStepResult, error)
+func (*MailboxSyncServiceError) Error() string
+func (*MailboxSyncServiceError) Unwrap() error
+```
+
+`Error()` returns only matching sentinel text; nil/unknown returns exact
+`mailbox sync service error`. `Unwrap()` returns only the matching sentinel, otherwise nil; no
+cause/detail field exists.
+
+Mapping is closed: engine invalid-cursor -> Resolve InvalidCursor; engine restart-required ->
+Resolve RestartRequired; unavailable/indeterminate -> Resolve Transient; engine/policy too-large
+-> Resolve Rejected then service too-large; rejected-policy/unauthorized and 04F invalid/
+duplicate/account-mismatch -> Resolve Rejected then service invalid. Unknown/raw dependency or
+Resolve error returns service unavailable. Ambiguous Apply is not followed by Resolve because its
+commit may exist; it returns unavailable and the next claim recovers. Context cancellation
+returns only its context sentinel. `Replayed` implies Applied; false Applied or false Resolved is
+lease loss; false Prepared is the same lease-loss outcome.
+
+A claimed successful Step performs one ListFolders plus exactly one Changes or Enumerate outside
+all four transactions. `Now`, lease/event ID generators, jitter and 04F classification also run
+only outside them; the request value types contain no callback/engine/storage handle. No engine,
+object/storage/network I/O, callback, classifier or logging is permitted while DB locks are held.
+Candidate allocation is bounded before copy/allocation, deterministic by bytewise engine ID
+(live received then changed; destroyed changed), nonzero/unique, volatile until Prepare selects
+it. Every slice/byte value is deep-copied; raw provider errors/text, cursors, secrets, tokens,
+addresses, subjects and bodies are absent from error/result/log persistence.
+
+Every Incremental/CatchUp Changes request and every initial/resumed EnumerateProjection request
+carries exactly `Page: EnginePageRequest{Limit: config.PageSize}`. The validated PageSize is never
+replaced by a constant, maximum, engine-returned bound or repository state.
+
+Crash before apply changes no projection/cursor/event state. Ambiguous apply is recovered by the
+next fenced claim; a late owner cannot commit after lease, lease epoch, sync epoch or mutation
+epoch changes. Cancellation leaves the short committed lease to expire and performs no hidden
+cleanup I/O. Full ABI and state oracles are duplicated in `MAIL-SPEC.md` and
+`REVIEW-144-04G-SYNC-SERVICE-READINESS.md`.
+
+Required lifecycle: independent Contract/Security/Lifecycle precommit PASS C/I/M `0/0/0`, one
+atomic exact9 candidate commit, three immutable exact-SHA PASS, then a separate docs-only
+acceptance sync. No source authority, generation/migration or executable/runtime PASS exists;
+launcher is `NOT_READY`, all such evidence `NOT_RUN`.
+
 > **144-02C source receipt (2026-08-20):** `STATIC_ACCEPTED / EXACT_SHA_PASS` applies only to `e565523f589fbd7536f6f8e4df7effd39469c1af` (parent `df2dcbc2151c4b2df5c57774c3114b066b183d24`, tree `9fabe45429dfdda49625fe53cd6645e08ed63d52`) and the exact 13 blobs in `IMPLEMENTATION-144-02C.md`. All prior 02C candidate/source-unaccepted/lifecycle-next/implied-next entries are `CONSUMED/HISTORICAL`. No next Mail code packet is selected or authorized; root must select any later one separately. Ent generation, migration, direct SQL and runtime remain `NOT_RUN`; launcher `NOT_READY`.
 
 > **Phase-145 carrier-plan acceptance (2026-08-15):** `PLAN-145-07B-SIEVE-CARRIER.md` is docs/implementation-authority-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `949b876d1c5ea07338926aa5fe19e1864a256e93` (parent `375891bb85c0e89f2b6597e0416b82219fffaa74`, tree `f943fb60e8dbda3ae612871d189a57d751dc44cc`, blob `0bbbc91cd3c58fc8daeaab1a434d942f3ef26821`); reviews PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Contract `1daef787`/sync `375891bb` remain accepted. Only obsolete carrier-plan-pending clauses are `CONSUMED/HISTORICAL`; unrelated gates remain current. No schema/source/test/runtime authority. Rule Task 1 awaits G145-5B/G145-5C/launcher; carrier source additionally awaits accepted Rule compiler source/ABI. 145-07B blocked; launcher `NOT_READY`, executables `NOT_RUN`.
