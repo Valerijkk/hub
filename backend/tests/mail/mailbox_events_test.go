@@ -302,7 +302,7 @@ func TestMailEventMappers_AcceptExactPayloadMaxima(t *testing.T) {
 			mapIt: func() (events.EnvelopeV1, error) {
 				payload := receivedPayload(&calendarMethod)
 				payload.EngineMessage.ID = strings.Repeat("e", 512)
-				payload.FolderIDs = eventIDs(50)
+				payload.FolderIDs = eventIDs(100)
 				return mail.NewMailReceivedEnvelopeV1(eventID, occurredAt, organizationID, &actorID, "corr-mail-03d", payload)
 			},
 			verify: func(t *testing.T, payload map[string]json.RawMessage) {
@@ -314,8 +314,8 @@ func TestMailEventMappers_AcceptExactPayloadMaxima(t *testing.T) {
 				if err := json.Unmarshal(payload["folder_ids"], &folderIDs); err != nil {
 					t.Fatalf("decode exact received folder max = %v", err)
 				}
-				if len(engineMessageID) != 512 || len(folderIDs) != 50 {
-					t.Fatalf("received maxima = engine:%d folders:%d, want engine:512 folders:50", len(engineMessageID), len(folderIDs))
+				if len(engineMessageID) != 512 || len(folderIDs) != 100 {
+					t.Fatalf("received maxima = engine:%d folders:%d, want engine:512 folders:100", len(engineMessageID), len(folderIDs))
 				}
 			},
 		},
@@ -323,8 +323,8 @@ func TestMailEventMappers_AcceptExactPayloadMaxima(t *testing.T) {
 			name: "changed folders and labels",
 			mapIt: func() (events.EnvelopeV1, error) {
 				payload := changedPayload()
-				payload.FolderIDs = eventIDs(50)
-				payload.LabelIDs = eventIDs(50)
+				payload.FolderIDs = eventIDs(100)
+				payload.LabelIDs = eventIDs(100)
 				return mail.NewMailMessageChangedEnvelopeV1(eventID, occurredAt, organizationID, &actorID, "corr-mail-03d", payload)
 			},
 			verify: func(t *testing.T, payload map[string]json.RawMessage) {
@@ -335,8 +335,8 @@ func TestMailEventMappers_AcceptExactPayloadMaxima(t *testing.T) {
 				if err := json.Unmarshal(payload["label_ids"], &labelIDs); err != nil {
 					t.Fatalf("decode exact changed label max = %v", err)
 				}
-				if len(folderIDs) != 50 || len(labelIDs) != 50 {
-					t.Fatalf("changed maxima = folders:%d labels:%d, want folders:50 labels:50", len(folderIDs), len(labelIDs))
+				if len(folderIDs) != 100 || len(labelIDs) != 100 {
+					t.Fatalf("changed maxima = folders:%d labels:%d, want folders:100 labels:100", len(folderIDs), len(labelIDs))
 				}
 			},
 		},
@@ -394,7 +394,7 @@ func TestMailReceivedEnvelopeV1_RejectsRequiredBoundsAndUnsafeInputs(t *testing.
 		{"zero folder", func(payload *mail.MailReceivedEventPayload) { payload.FolderIDs[0].ID = uuid.Nil }, mail.MailEventErrorInvalid, ""},
 		{"zero folder account", func(payload *mail.MailReceivedEventPayload) { payload.FolderIDs[0].AccountID = uuid.Nil }, mail.MailEventErrorInvalid, ""},
 		{"cross-account folder", func(payload *mail.MailReceivedEventPayload) { payload.FolderIDs[0].AccountID = foreignAccountID }, mail.MailEventErrorAccountMismatch, ""},
-		{"too many folders", func(payload *mail.MailReceivedEventPayload) { payload.FolderIDs = eventIDs(51) }, mail.MailEventErrorTooLarge, ""},
+		{"too many folders", func(payload *mail.MailReceivedEventPayload) { payload.FolderIDs = eventIDs(101) }, mail.MailEventErrorTooLarge, ""},
 		{"invalid calendar method", func(payload *mail.MailReceivedEventPayload) { value := mail.MailCalendarMethod("unknown"); payload.CalendarMethod = &value }, mail.MailEventErrorInvalid, ""},
 		{"zero received at", func(payload *mail.MailReceivedEventPayload) { payload.ReceivedAt = time.Time{} }, mail.MailEventErrorInvalid, ""},
 	} {
@@ -550,7 +550,7 @@ func TestMailMessageChangedEnvelopeV1_RejectsInvalidAndDeletedLiveState(t *testi
 		{"zero folder account", func(payload *mail.MailMessageChangedEventPayload) { payload.FolderIDs[0].AccountID = uuid.Nil }, mail.MailEventErrorInvalid},
 		{"cross-account folder", func(payload *mail.MailMessageChangedEventPayload) { payload.FolderIDs[0].AccountID = foreignAccountID }, mail.MailEventErrorAccountMismatch},
 		{"duplicate folder", func(payload *mail.MailMessageChangedEventPayload) { payload.FolderIDs = append(payload.FolderIDs, payload.FolderIDs[0]) }, mail.MailEventErrorDuplicate},
-		{"too many folders", func(payload *mail.MailMessageChangedEventPayload) { payload.FolderIDs = eventIDs(51) }, mail.MailEventErrorTooLarge},
+		{"too many folders", func(payload *mail.MailMessageChangedEventPayload) { payload.FolderIDs = eventIDs(101) }, mail.MailEventErrorTooLarge},
 		{"cross-account label", func(payload *mail.MailMessageChangedEventPayload) { payload.LabelIDs[0].AccountID = foreignAccountID }, mail.MailEventErrorAccountMismatch},
 		{"zero label", func(payload *mail.MailMessageChangedEventPayload) { payload.LabelIDs[0].ID = uuid.Nil }, mail.MailEventErrorInvalid},
 		{"zero label account", func(payload *mail.MailMessageChangedEventPayload) { payload.LabelIDs[0].AccountID = uuid.Nil }, mail.MailEventErrorInvalid},
@@ -562,7 +562,7 @@ func TestMailMessageChangedEnvelopeV1_RejectsInvalidAndDeletedLiveState(t *testi
 		{"duplicate flag", func(payload *mail.MailMessageChangedEventPayload) { payload.Flags = []mail.MailMessageFlag{mail.MailMessageFlagSeen, mail.MailMessageFlagSeen} }, mail.MailEventErrorDuplicate},
 		{"too many flags", func(payload *mail.MailMessageChangedEventPayload) { payload.Flags = repeatedFlags(31) }, mail.MailEventErrorTooLarge},
 		{"duplicate labels", func(payload *mail.MailMessageChangedEventPayload) { payload.LabelIDs = append(payload.LabelIDs, payload.LabelIDs[0]) }, mail.MailEventErrorDuplicate},
-		{"too many labels", func(payload *mail.MailMessageChangedEventPayload) { payload.LabelIDs = eventIDs(51) }, mail.MailEventErrorTooLarge},
+		{"too many labels", func(payload *mail.MailMessageChangedEventPayload) { payload.LabelIDs = eventIDs(101) }, mail.MailEventErrorTooLarge},
 		{"deleted with folder state", func(payload *mail.MailMessageChangedEventPayload) { payload.ChangedFields = []mail.MailChangedField{mail.MailChangedFieldDeleted}; payload.FolderIDs = eventIDs(1) }, mail.MailEventErrorInvalid},
 		{"deleted with flag state", func(payload *mail.MailMessageChangedEventPayload) { payload.ChangedFields = []mail.MailChangedField{mail.MailChangedFieldDeleted}; payload.Flags = []mail.MailMessageFlag{mail.MailMessageFlagSeen} }, mail.MailEventErrorInvalid},
 		{"deleted mixed with live change", func(payload *mail.MailMessageChangedEventPayload) { payload.ChangedFields = []mail.MailChangedField{mail.MailChangedFieldDeleted, mail.MailChangedFieldSeen} }, mail.MailEventErrorInvalid},

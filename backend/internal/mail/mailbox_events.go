@@ -13,10 +13,10 @@ import (
 const (
 	maxMailEventEngineMessageIDBytes = 512
 	maxMailEventRecipientItems       = 200
-	maxMailEventFolderItems          = 50
+	maxMailEventFolderItems          = 100
 	maxMailEventChangedFieldItems    = 30
 	maxMailEventFlagItems            = 30
-	maxMailEventLabelItems           = 50
+	maxMailEventLabelItems           = 100
 )
 
 // MailEventErrorKind classifies a content-free Mail event mapping failure.
