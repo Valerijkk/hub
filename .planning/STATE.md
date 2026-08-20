@@ -1514,15 +1514,20 @@ new quality gate is requirement/risk traceability plus fail-closed execution.
 > `docs(mail): propose sync policy authority`) is `SOURCE_AUTHORITY_ACCEPTED` /
 > `EXACT_SHA_PASS` for the exact9 blob map recorded in its tree. Contract, Security and Lifecycle
 > immutable exact-SHA reviews PASS C/I/M `0/0/0`; provenance `dispatcher-enforced`, no fallback,
-> telemetry `UNKNOWN`. All candidate/precommit/commit-review/separate-acceptance-next clauses are
-> `CONSUMED/HISTORICAL`. Root may now dispatch only this frozen test-first source manifest:
+> telemetry `UNKNOWN`. The original candidate/precommit/commit-review/separate-acceptance-next
+> clauses are `CONSUMED/HISTORICAL` for that accepted receipt. Its former immediate exact4
+> root-dispatch clause is now `SUSPENDED / CONSUMED/HISTORICAL` for the cutoff correction route.
+> **ROOT_CORRECTION_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN:** the following exact4 remains only the future test-first manifest:
 > `backend/tests/mail/mailbox_events_test.go`,
 > `backend/tests/mail/mailbox_sync_policy_test.go`, `backend/internal/mail/mailbox_events.go`,
 > then `backend/internal/mail/mailbox_sync_policy.go`, with no substitution or extra path.
 > Event-builder scope is only the three existing folder/label caps `50 -> 100` with 100 pass
-> and 101 reject; no field/subject/version change. Author provenance: Terra/medium, `dispatcher-enforced`, no fallback; telemetry
-> `UNKNOWN`. The four implementation files remain `UNIMPLEMENTED/UNACCEPTED`; executable evidence
-> is `NOT_RUN`. The previously committed 144-04F authority acceptance sync records the existing receipt and is not itself an
+> and 101 reject; no field/subject/version change. Existing uncommitted exact4 source/test candidates
+> remain `UNACCEPTED` and MUST NOT be committed until Contract/Security/Lifecycle precommit PASS,
+> one atomic exact9 correction-candidate commit, all three immutable exact-SHA PASS, and a separate
+> docs-only acceptance sync. This correction is not accepted. Author provenance: Terra/medium,
+> `dispatcher-enforced`, no fallback, telemetry `UNKNOWN`; executable/runtime evidence is `NOT_RUN`.
+> The previously committed 144-04F authority acceptance sync records the existing receipt and is not itself an
 > acceptance claim. Preserve 02C source
 > `STATIC_ACCEPTED` at `e565523f589fbd7536f6f8e4df7effd39469c1af` and docs receipt
 > `c53a5fe6`; this receipt selects only the exact4 manifest above. 02E/Ent/generation/migration/services/API/UI/

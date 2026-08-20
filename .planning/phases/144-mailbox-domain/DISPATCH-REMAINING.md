@@ -529,9 +529,11 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   or enumeration base/checkpoint metadata plus caller-supplied current sync epoch and
   immutable event cutoff. Produce deterministic upsert/tombstone/thread/count and
   complete-envelope intents without I/O, clock or ids of its own.
-- A first-seen inbound-or-unknown message with engine arrival strictly after cutoff requests
-  one `mail.received.v1`; enumeration history at/before cutoff and confirmed owner submission/
-  Draft copies do not. Suppression requires a stable engine-submission/message mapping or
+- A first-seen inbound-or-unknown message requires nonnil `ReceivedAt`. Strictly after
+  `EventCutoff` it requires a nonzero `ReceivedEventID`, writes that marker and emits exactly one
+  `mail.received.v1`. At/before cutoff it accepts only a zero reservation, upserts with a nil marker
+  and emits no received event; a supplied historical/equal reservation is invalid. Confirmed owner
+  submission/draft copies never emit received. Suppression requires a stable engine-submission/message mapping or
   accepted Hub submission relation; From/alias equality or mutable Sent membership alone
   is never proof. Existing messages emit `mail.message.changed.v1` only for the exact
   allowlisted projection delta; destroyed emits `changed_fields=[deleted]` with empty
@@ -551,14 +553,20 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   `docs(mail): propose sync policy authority`) is `SOURCE_AUTHORITY_ACCEPTED` /
   `EXACT_SHA_PASS` for its exact9 tree blobs. Contract, Security and Lifecycle immutable
   exact-SHA reviews PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN`.
-  Candidate/precommit/commit-review/separate-acceptance-next clauses are `CONSUMED/HISTORICAL`.
-  Root may dispatch only the frozen test-first source manifest:
+  The original candidate/precommit/commit-review/separate-acceptance-next clauses are
+  `CONSUMED/HISTORICAL` for that receipt. Its former immediate exact4 root-dispatch clause is now
+  `SUSPENDED / CONSUMED/HISTORICAL` for the correction route.
+  **ROOT_CORRECTION_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN:** the following remains only the future frozen test-first source manifest:
   `backend/tests/mail/mailbox_events_test.go`,
   `backend/tests/mail/mailbox_sync_policy_test.go`, `backend/internal/mail/mailbox_events.go`, then
   `backend/internal/mail/mailbox_sync_policy.go`; no substitution, expansion or reordering is
   allowed. `mailbox_events.go` changes only three folder/label caps from 50 to 100 (100 pass/101
   reject; no field/subject/version change); all new policy types remain in `mailbox_sync_policy.go`.
-  That lifecycle is `CONSUMED/HISTORICAL`; root may dispatch those exact four source paths now.
+  The former statement allowing root to dispatch those four source paths now is
+  `SUSPENDED / CONSUMED/HISTORICAL`. Existing uncommitted exact4 source/test candidates remain
+  `UNACCEPTED` and MUST NOT be committed until Contract/Security/Lifecycle precommit PASS, one
+  atomic exact9 correction-candidate commit, triple immutable exact-SHA PASS, and a separate
+  docs-only acceptance sync. This correction is not accepted.
   Page bounds are change combined `CreatedOrUpdated + DestroyedIDs <=100`
   with exact `Bounds.Returned`, enumeration messages <=100 with exact `Returned`, and folders <=100.
   Every normalized page additionally requires `Bounds.Requested` 1..100, `Bounds.Maximum==100`,
@@ -570,8 +578,8 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   `MailboxSyncPolicyProvenanceProof{Relation MailboxEventID; EngineMessageID string}` (submission
   or draft, never both): same-account, byte-equal projection EngineMessageID and exact Origin;
   nonempty BCC needs that matching confirmed proof/origin, inbound/unknown BCC is empty.
-  The four implementation files remain `UNIMPLEMENTED/UNACCEPTED`; executables/runtime stay
-  `NOT_RUN`. The previously committed 144-04F authority acceptance sync records existing authority, not a new acceptance claim.
+  Existing exact4 candidates remain `UNACCEPTED`; executables/runtime stay `NOT_RUN`. The
+  previously committed 144-04F authority acceptance sync records existing authority, not a new acceptance claim.
   OpenAPI, persistence,
   02E, Ent generation/migration, services/API/UI/product/phase/release, 02F-D, engine deletion
   and User/GDPR remain outside scope; launcher `NOT_READY`, executables/runtime `NOT_RUN`.

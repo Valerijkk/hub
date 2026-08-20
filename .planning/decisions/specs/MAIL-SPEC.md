@@ -2330,11 +2330,16 @@ are not in compiled output; compiled output retains only Hub rule ID, never targ
 is `SOURCE_AUTHORITY_ACCEPTED` / `EXACT_SHA_PASS` for its immutable exact9 tree blobs. Contract,
 Security and Lifecycle exact-SHA reviews PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/
 telemetry `UNKNOWN`. Candidate/precommit/commit-review/separate-acceptance-next clauses are
-`CONSUMED/HISTORICAL`. Root may now dispatch only the canonical test-first manifest:
+`CONSUMED/HISTORICAL` for that receipt. Its former immediate exact4 root-dispatch clause is now
+`SUSPENDED / CONSUMED/HISTORICAL` for the cutoff correction route.
+**ROOT_CORRECTION_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN:** the following remains only the future canonical test-first manifest:
 `backend/tests/mail/mailbox_events_test.go`, `backend/tests/mail/mailbox_sync_policy_test.go`,
 `backend/internal/mail/mailbox_events.go`, then `backend/internal/mail/mailbox_sync_policy.go`, with
-no substitution or extra path. The implementation files themselves remain `UNIMPLEMENTED/UNACCEPTED`
-and executable evidence is `NOT_RUN`; the previously committed 144-04F authority acceptance sync is not a new acceptance claim.
+no substitution or extra path. Existing uncommitted source/test candidates remain `UNACCEPTED` and
+MUST NOT be committed until Contract/Security/Lifecycle precommit PASS, one atomic exact9
+correction-candidate commit, all three immutable exact-SHA PASS, and a separate docs-only
+acceptance sync. This correction is not accepted; executable/runtime evidence is `NOT_RUN`. The
+previously committed 144-04F authority acceptance sync is not a new acceptance claim.
 The event-builder portion is exactly the existing received/changed folder-id and changed label-id
 caps `50 -> 100` (100 pass/101 reject), without field, subject or version change. Every new policy
 type lives only in `mailbox_sync_policy.go`; `mailbox_types.go` is excluded.
@@ -2396,10 +2401,14 @@ same-account, with EngineMessageID byte-equal to the current projection ID and e
 agreement (submission/draft; inbound none). Nonempty BCC
 needs matching confirmed proof/origin; inbound/unknown BCC is empty; proof dual/missing/engine-ID/
 cross-account/origin/BCC mismatch is invalid or account_mismatch. Only existing received/changed
-constructors build events. This preserves the strict cutoff/provenance/replay/changed-field/flag/
-deletion/no-leak rules in the accepted contract.
+constructors build events. A first-seen inbound/unknown projection requires nonnil `ReceivedAt`.
+When it is strictly after `EventCutoff`, a nonzero `ReceivedEventID` is required, that marker is
+written and exactly one `mail.received.v1` is emitted. At or before `EventCutoff`, only a zero
+reservation is accepted, the projection is upserted with a nil marker and no received event; a
+supplied historical/equal reservation is invalid. Stable confirmed submission/draft never emits
+received. These are the only cutoff sentences changed by the correction candidate.
 
-The former candidate lifecycle is `CONSUMED/HISTORICAL`; only root's exact four-path dispatch is
-now authorized. No OpenAPI or persistence change is in scope; all 02E/Ent/generation/migration/service/API/UI/
+The former immediate exact four-path dispatch is `SUSPENDED / CONSUMED/HISTORICAL`; no source
+dispatch or commit is currently authorized. No OpenAPI or persistence change is in scope; all 02E/Ent/generation/migration/service/API/UI/
 product/phase/release, 02F-D, engine deletion/User-GDPR, launcher `NOT_READY` and runtime `NOT_RUN`
 boundaries remain unchanged.

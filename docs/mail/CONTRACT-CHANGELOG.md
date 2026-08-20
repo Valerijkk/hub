@@ -583,7 +583,9 @@ Candidate `4e608e890ec12aeed8de965f9649ae503260b94e` (parent
 is `SOURCE_AUTHORITY_ACCEPTED` / `EXACT_SHA_PASS` for immutable exact9 tree blobs; Contract,
 Security and Lifecycle exact-SHA reviews PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/
 telemetry `UNKNOWN`. The candidate/precommit/commit-review/separate-acceptance-next lifecycle is
-`CONSUMED/HISTORICAL`. Root may dispatch only the immutable test-first source manifest:
+`CONSUMED/HISTORICAL` for that receipt. Its former immediate exact4 root-dispatch clause is now
+`SUSPENDED / CONSUMED/HISTORICAL` for the cutoff correction route.
+**ROOT_CORRECTION_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN:** the following remains only the future immutable test-first source manifest:
 `backend/tests/mail/mailbox_events_test.go`, `backend/tests/mail/mailbox_sync_policy_test.go`,
 `backend/internal/mail/mailbox_events.go`, then `backend/internal/mail/mailbox_sync_policy.go`.
 The only event-builder change is the three existing received/changed folder-id and changed label-id
@@ -591,8 +593,15 @@ caps `50 -> 100` (100 pass/101 reject), with no field, subject or version change
 types stay in `mailbox_sync_policy.go`. The exact callable/field ABI, error sentinels/unions and
 pure state-only classification contract are frozen in `REVIEW-144-04F-SYNC-POLICY-READINESS.md`
 and mirrored in `MAIL-SPEC.md`. The now-consumed lifecycle required three independent precommit PASS
-reviews and one atomic exact-nine candidate commit. The accepted receipt permits root dispatch only
-of the frozen exact-four test-first manifest; implementation remains `UNIMPLEMENTED/UNACCEPTED`.
+reviews and one atomic exact-nine candidate commit. The former permission for immediate root
+dispatch is `SUSPENDED / CONSUMED/HISTORICAL`. Existing uncommitted exact4 source/test candidates
+remain `UNACCEPTED` and MUST NOT be committed until new Contract/Security/Lifecycle precommit PASS,
+one atomic exact9 correction-candidate commit, all three immutable exact-SHA PASS, and a separate
+docs-only acceptance sync. A first-seen inbound/unknown projection requires nonnil `ReceivedAt`;
+strictly after `EventCutoff` it requires nonzero `ReceivedEventID`, sets that marker and emits
+exactly one `mail.received.v1`, while before/equal accepts only a zero reservation, upserts a nil
+marker and emits none; historical/equal with a reservation is invalid. Stable confirmed
+submission/draft never emits received. This correction is not accepted.
 Executables/runtime are
 `NOT_RUN`, and the previously committed 144-04F authority acceptance sync is not a new acceptance claim. OpenAPI/persistence and 02E/Ent/generation/
 migration/services/API/UI/product/phase/release remain out of scope, as do 02F-D, engine

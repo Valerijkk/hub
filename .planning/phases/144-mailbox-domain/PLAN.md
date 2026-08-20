@@ -108,13 +108,18 @@ The candidate `4e608e890ec12aeed8de965f9649ae503260b94e` (parent
 is `SOURCE_AUTHORITY_ACCEPTED` / `EXACT_SHA_PASS` for its exact9 tree blobs after immutable
 Contract, Security and Lifecycle reviews PASS C/I/M `0/0/0`; `dispatcher-enforced`, no fallback,
 telemetry `UNKNOWN`. Candidate/precommit/commit-review/separate-acceptance-next clauses are
-`CONSUMED/HISTORICAL`. Root may dispatch only this immutable canonical test-first manifest:
+`CONSUMED/HISTORICAL` for that receipt. Its former immediate exact4 root-dispatch clause is now
+`SUSPENDED / CONSUMED/HISTORICAL` for this correction route.
+**ROOT_CORRECTION_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN:** the following remains only the future immutable canonical test-first manifest:
 `backend/tests/mail/mailbox_events_test.go`,
 `backend/tests/mail/mailbox_sync_policy_test.go`, `backend/internal/mail/mailbox_events.go`, then
 `backend/internal/mail/mailbox_sync_policy.go`; no substitute or extra path. `mailbox_events.go` changes only the
 three existing folder/label caps from 50 to 100 (100 pass/101 reject; no field, subject or version
-change); all new ABI types are only in `mailbox_sync_policy.go`. The four implementation files are
-`UNIMPLEMENTED/UNACCEPTED`; the previously committed 144-04F authority acceptance sync is not a new acceptance claim. No other
+change); all new ABI types are only in `mailbox_sync_policy.go`. Existing uncommitted exact4
+source/test candidates remain `UNACCEPTED` and MUST NOT be committed until triple independent
+precommit PASS, one atomic exact9 correction-candidate commit, triple immutable exact-SHA PASS,
+and a separate docs-only acceptance sync. This correction is not accepted. The previously committed
+144-04F authority acceptance sync is not a new acceptance claim. No other
 source packet is selected. 02E, Ent generation/migration, services/API/UI/product/
 phase/release, 02F-D, engine deletion and physical User/GDPR remain blocked/out of scope;
 launcher `NOT_READY`, executables/runtime `NOT_RUN`.

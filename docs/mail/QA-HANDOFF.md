@@ -932,7 +932,9 @@ Candidate `4e608e890ec12aeed8de965f9649ae503260b94e` (parent
 is `SOURCE_AUTHORITY_ACCEPTED` / `EXACT_SHA_PASS` for immutable exact9 tree blobs. Contract,
 Security and Lifecycle exact-SHA reviews PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/
 telemetry `UNKNOWN`. Candidate/precommit/commit-review/separate-acceptance-next clauses are
-`CONSUMED/HISTORICAL`. Root may dispatch only this exact test-first manifest:
+`CONSUMED/HISTORICAL` for that receipt. Its former immediate exact4 root-dispatch clause is now
+`SUSPENDED / CONSUMED/HISTORICAL` for the cutoff correction route. The following remains only the
+future exact test-first manifest:
 `backend/tests/mail/mailbox_events_test.go`; `backend/tests/mail/mailbox_sync_policy_test.go`;
 `backend/internal/mail/mailbox_events.go`; `backend/internal/mail/mailbox_sync_policy.go`.
 `mailbox_events.go` changes only received folder IDs, changed folder IDs and changed label IDs from
@@ -962,11 +964,12 @@ Unwrap returns matching sentinel/nil, so errors.Is works.
 
 The future external oracle must cover malformed/duplicate/mixed-account/union and missing/extra
 state; change 99+1/100+0 pass, 100+1/overlap/Returned mismatch fail; enumeration/folder/label/event
-100 pass/101 fail; deterministic raw-byte order; References threading and BCC; cutoff equality/
-after; confirmed submission versus spoofed From/alias/mutable Sent; unknown provenance, replay and
-no-op; changed fields/flag enum and destroy; counts; sizes/addresses; no secret leakage; deep copy;
-and no panic. All state/proof/ancestor/reservation inputs are caller-provided; no query/generation
-or callback. Normalized engine pages require Bounds.Requested 1..100, Bounds.Maximum==100, exact
+100 pass/101 fail; deterministic raw-byte order; References threading and BCC; before/equal/after
+cutoff, nil ReceivedAt, required post-cutoff reservation, and unused historical/equal reservation;
+confirmed submission versus spoofed From/alias/mutable Sent; unknown provenance, replay and no-op;
+changed fields/flag enum and destroy; counts; sizes/addresses; no secret leakage; deep copy; and no
+panic. All state/proof/ancestor/reservation inputs are caller-provided; no query/generation or
+callback. Normalized engine pages require Bounds.Requested 1..100, Bounds.Maximum==100, exact
 Bounds.Returned, concrete nonnil slices even empty, and accepted ENGINE-CONTRACT aggregate byte
 budgets (overflow too_large). Provenance has zero-or-one proof total (submission or draft, never
 both), same-account, byte-equal to current projection EngineMessageID and exact Origin agreement;
@@ -975,6 +978,8 @@ proof/origin and otherwise empty. Events use only existing constructors; cursors
 Advance. Add proof dual/missing/engine-ID/cross-account/origin/BCC and bounds/nil-slice/byte-budget
 rows to the listed oracle.
 
-The four implementation files remain `UNIMPLEMENTED/UNACCEPTED`; the previously committed 144-04F authority acceptance sync is not
+**ROOT_CORRECTION_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN — cutoff sentences only:** the proposed 144-04F cutoff rule is exact but not accepted authority. A first-seen inbound/unknown projection requires nonnil `ReceivedAt`; if it is strictly after `EventCutoff`, it requires nonzero `ReceivedEventID`, writes that marker and emits exactly one `mail.received.v1`. If it is before or equal to `EventCutoff`, it accepts only a zero reservation, writes a nil marker and emits no received event; a supplied historical/equal reservation is `invalid`. Stable confirmed submission/draft never emits received. This candidate changes no other 144-04F behavior or manifest path. Existing uncommitted exact4 source/test candidates remain `UNACCEPTED` and MUST NOT be committed until Contract/Security/Lifecycle precommit PASS, one atomic exact9 correction-candidate commit, all three immutable exact-SHA PASS, and a separate docs-only acceptance sync. This is not correction acceptance.
+
+The four source/test candidates remain `UNACCEPTED`; the previously committed 144-04F authority acceptance sync is not
 a new acceptance claim. No runtime claim: launcher `NOT_READY`, executables/runtime `NOT_RUN`; no 02E/Ent/generation/
 migration/service/API/UI/product/phase/release, 02F-D, engine deletion or User/GDPR authority.

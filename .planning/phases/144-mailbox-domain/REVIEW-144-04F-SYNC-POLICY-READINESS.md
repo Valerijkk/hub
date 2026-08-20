@@ -8,9 +8,11 @@ Candidate `4e608e890ec12aeed8de965f9649ae503260b94e` (parent
 is `SOURCE_AUTHORITY_ACCEPTED` / `EXACT_SHA_PASS` for its immutable exact9 tree blobs. Contract,
 Security and Lifecycle exact-SHA reviews PASS C/I/M `0/0/0`; provenance is dispatcher-enforced, no
 fallback, telemetry `UNKNOWN`. Candidate/precommit/commit-review/separate-acceptance-next clauses
-are `CONSUMED/HISTORICAL`. The previously committed 144-04F authority acceptance sync records that existing receipt; it is
-not a new acceptance claim. The four implementation files remain `UNIMPLEMENTED/UNACCEPTED` and
-executables/runtime `NOT_RUN`.
+are `CONSUMED/HISTORICAL` for that receipt. The previously committed 144-04F authority acceptance
+sync records that existing receipt; it is not a new acceptance claim. Existing uncommitted exact4
+source/test candidates remain `UNACCEPTED`; executables/runtime are `NOT_RUN`.
+
+**ROOT_CORRECTION_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN — cutoff sentences only:** this candidate corrects only the first-seen inbound/unknown receipt-cutoff rule below. The former immediate exact4 root-dispatch clause is `SUSPENDED / CONSUMED/HISTORICAL` for this route. The existing exact4 remains only the future manifest, and its uncommitted source/test candidates MUST NOT be committed until Contract/Security/Lifecycle precommit PASS, one atomic exact9 correction-candidate commit, all three immutable exact-SHA PASS, and a separate docs-only acceptance sync. This is not correction acceptance and changes no other 144-04F behavior.
 
 The sole future source manifest is canonical and test-first:
 
@@ -19,8 +21,9 @@ The sole future source manifest is canonical and test-first:
 3. `backend/internal/mail/mailbox_events.go`
 4. `backend/internal/mail/mailbox_sync_policy.go`
 
-No substitute, extra file or reordered path is permitted. Root may now dispatch exactly these four
-paths and no others under the accepted authority receipt.
+No substitute, extra file or reordered path is permitted. The former statement permitting root to
+dispatch these four immediately is `SUSPENDED / CONSUMED/HISTORICAL`; this list is only the future
+manifest pending the correction lifecycle above.
 
 The narrow event-builder edit changes only `mail.received.v1.folder_ids`,
 `mail.message.changed.v1.folder_ids`, and `mail.message.changed.v1.label_ids` from max 50 to
@@ -136,8 +139,12 @@ draft; inbound has neither). A nonempty BCC is
 allowed only with matching confirmed proof/origin; inbound/unknown BCC is empty. Missing, dual,
 engine-ID, cross-account, origin or BCC mismatches are `invalid` or `account_mismatch` as
 appropriate. Existing markers/committed reservations suppress replay. An inbound-or-unknown
-first-seen message needs nonnil `ReceivedAt` strictly after cutoff and nonzero `ReceivedEventID`;
-stable matching confirmed submission/draft suppresses, spoofed From/alias/mutable Sent never does.
+first-seen message needs nonnil `ReceivedAt`. If it is strictly after `EventCutoff`, it needs a
+nonzero `ReceivedEventID`, persists that marker and emits exactly one `mail.received.v1`. If it is
+before or equal to `EventCutoff`, it accepts only a zero reservation, upserts with a nil marker and
+emits no received event; a supplied historical/equal reservation is `invalid`. Stable matching
+confirmed submission/draft never emits received; spoofed From/alias/mutable Sent never proves that
+state.
 Changed field order is
 `folder_ids,seen,answered,flagged,junk,labels`; flag order is `seen,answered,flagged,junk,draft`;
 only an exact allowlisted projection delta emits changed; deleted is sole. Destroy uses empty live
@@ -168,8 +175,9 @@ and receipt `c53a5fe6`; this receipt selects only the exact4 manifest above. 02E
 services/API/UI/product/phase/release, 02F-D, engine deletion/User-GDPR remain outside scope.
 Launcher is `NOT_READY`; executables/runtime are `NOT_RUN`.
 
-Author self-review of the previously committed 144-04F authority acceptance sync is C/I/M only and is not a new acceptance claim. Record
-exact-nine-path scope, `staged=0`, `git diff --check`, stale/authority review and an exact blob map.
-The stale/authority review confirms candidate/precommit/no-dispatch/acceptance-sync-next wording is
-historical, while unrelated historical 144-03B and Thread exact-two records remain preserved and do
-not grant 144-04F authority.
+Author self-review of this exact9 cutoff-correction candidate is C/I/M only and is not an acceptance
+claim. Record exact-nine-path scope, `staged=0`, `git diff --check`, stale/authority review and an
+exact blob map. The stale/authority review confirms only the original accepted receipt's
+candidate/precommit/immediate-dispatch lifecycle is `CONSUMED/HISTORICAL`; the correction route
+above is current and remains precommit-blocked. Unrelated historical 144-03B and Thread exact-two
+records remain preserved and do not grant 144-04F authority.
