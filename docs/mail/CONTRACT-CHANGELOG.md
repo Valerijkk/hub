@@ -598,6 +598,23 @@ Executables/runtime are
 migration/services/API/UI/product/phase/release remain out of scope, as do 02F-D, engine
 deletion/User-GDPR. Launcher remains `NOT_READY`; executables/runtime `NOT_RUN`.
 
+## 143-04C calendar update authority candidate — 2026-08-20
+
+This docs-only `ROOT_SOURCE_AUTHORITY_CANDIDATE` records the sequential post-04B Calendar
+bridge, not implementation acceptance: exact two-file 143-03B-T test-first attendee tombstone
+correction, then only after its `STATIC_ACCEPTED` source receipt exact three-file 143-04C
+test-first update/master-cancel packet. The old no-next-Calendar-packet clause is
+`CONSUMED/HISTORICAL` only for that route. It freezes an internal `event_update` mutation scope
+whose capability guard runs before organization resolution, without changing `CalendarMutationReceipt.operation`, presence-preserving organizer-authorized
+patch semantics, and fail-closed materialized-exception recurrence conflict
+`CALENDAR_EVENT_RECURRENCE_CONFLICT`; 03B-T owns only tombstone schema/index metadata while
+04C owns inactive/re-invite/replacement service behavior and opaque result-echo rollback. Its
+former durable/raw/typed iTIP request-descriptor clause is `CONSUMED/HISTORICAL`: 04C exact-three
+may persist only safe updated/cancelled EnvelopeV1 notification intent, with no raw iTIP/body or
+queued/delivered transport claim. A future separate Mail/iTIP hydration-delivery packet may consume
+the safe event and reconstruct transport. No source/adapter/runtime claim; launcher remains
+`NOT_READY`, executables `NOT_RUN`.
+
 ## 0.1.0 — 2026-08-13
 
 Initial mail engine, calendar synchronization, OpenAPI, event schema, UI and QA contract.

@@ -114,3 +114,11 @@ Consequences:
 - Docker availability does not make the separately missing launcher ready (`NOT_READY`), and
   generation, migration, tests and all executable runtime evidence remain `NOT_RUN`. Actual
   model/effort telemetry for the current accepted dispatcher records remains `UNKNOWN`.
+
+> **143-04C docs candidate:** clause-scoped precedence consumes only the earlier no-next
+> Calendar packet route for a separately reviewed sequential 143-03B-T then 143-04C candidate.
+> It is `ROOT_SOURCE_AUTHORITY_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED`, never runtime/source
+> acceptance. Launcher `NOT_READY`, generation/migration and all executable evidence `NOT_RUN`
+> remain unchanged. 03B-T scope is schema/index metadata only; later 04C alone carries
+> inactive/re-invite/replacement service behavior, zero-call capability guarding and opaque
+> all-and-only result echo rollback.

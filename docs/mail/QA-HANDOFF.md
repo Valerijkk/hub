@@ -279,6 +279,10 @@ or more `FR-MAIL-*` / `FR-CALSYNC-*` rows and named `TC-*` scenarios in `MAIL-SP
 
 ### Calendar synchronization
 
+> **143-04C candidate precedence:** the earlier no-next Calendar packet wording is
+> `CONSUMED/HISTORICAL` only for the separately reviewed 143-03B-T → 143-04C sequence; this
+> remains docs-only `ROOT_SOURCE_AUTHORITY_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED`.
+
 1. Legacy `GET /api/calendar/events` keeps `{events,from,to}` and all existing kinds;
    canonical CRUD/RSVP lives under `/api/calendar/v2/**`.
 2. REQUEST create/update, CANCEL, and REPLY round-trip UID/SEQUENCE/METHOD correctly.
@@ -290,6 +294,25 @@ or more `FR-MAIL-*` / `FR-CALSYNC-*` rows and named `TC-*` scenarios in `MAIL-SP
    canonical event `Location`; the client refetches and reconciles before retry.
 6. Duplicate equal UID/sequence/payload for REQUEST/CANCEL is idempotent; conflicting
    equal sequence is quarantined; lower sequence cannot revert state.
+7. For an existing master with a materialized exception, PATCH RRULE, EXDATE, DTSTART/start-date,
+   timezone or all-day fails with NFR-13 body and
+   `X-Hub-Error-Code: CALENDAR_EVENT_RECURRENCE_CONFLICT`, typed server conflict and zero writes;
+   end/duration-only patch remains eligible. Verify only the safe update/cancel EnvelopeV1
+   notification-intent descriptor, never raw iTIP/body, queued/delivered transport, or a delivery
+   claim; a separately accepted Mail/iTIP hydration-delivery packet may later reconstruct transport.
+8. Update tests must prove resolver non-disclosure precedes terminal/source/If-Match checks;
+   missing optional update backend causes `ErrEventInvalid` with no backend/receipt call; escaped
+   transaction and caller/backend alias mutation fail to affect state; every event/version/sequence
+   or missing/extra/duplicate/ID/version/removed attendee-result echo mismatch and any write failure
+   rolls the entire event/attendee/outbox unit back. Test inactive reader
+   exclusion, fresh re-invite ID, and rejected same normalized-email role/resolved-identity change
+   through the 04C update service, not 03B-T schema metadata. The absent optional backend oracle
+   proves `ErrEventInvalid` and zero backend calls including `ResolveActorOrganization`.
+9. Constructor oracles cover deep-copy, zero absent wrapper rejection and present-null versus
+   absent for temporal/RRULE/reminder; test timed/all-day transitions and merged final temporal
+   validation. Cover 200 attendees accepted/201 rejected, exact update/cancel envelope JSON,
+   canonical changed_fields order/duplicate rejection, persistence-result mismatch rollback and
+   no-op zero persistence/outbox calls.
    The duplicate key is CVE-v1, not serialized/folded wire bytes: property order, folding,
    parameter case/quoting, attendee/EXDATE order and RRULE component order normalize to
    equal hashes. Mutating each included semantic field changes the hash. Stored event,
@@ -408,7 +431,10 @@ or more `FR-MAIL-*` / `FR-CALSYNC-*` rows and named `TC-*` scenarios in `MAIL-SP
     stale `If-Match` returns canonical `{error,request_id}`, `409` +
     `CALENDAR_EVENT_VERSION_CONFLICT`, the current quoted event-version `ETag` and a
     same-origin canonical event `Location`, with zero mutation. A terminal event update or
-    cancellation returns `CALENDAR_EVENT_NOT_MUTABLE`. Occurrence DELETE returns
+    cancellation returns `CALENDAR_EVENT_NOT_MUTABLE`. Master PATCH with a materialized-exception
+    recurrence conflict returns `CALENDAR_EVENT_RECURRENCE_CONFLICT` with neither recovery header.
+    Master DELETE remains only `CALENDAR_EVENT_VERSION_CONFLICT|CALENDAR_EVENT_NOT_MUTABLE`.
+    Occurrence DELETE returns
     `CALENDAR_EVENT_VERSION_CONFLICT` with the same recovery headers when the master version
     is stale, or `CALENDAR_OCCURRENCE_NOT_MUTABLE` when the instance cannot be cancelled.
     Clients never parse localized `error` text. Legacy PUT still serializes against the

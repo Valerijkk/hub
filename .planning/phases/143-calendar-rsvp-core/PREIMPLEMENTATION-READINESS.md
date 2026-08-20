@@ -152,3 +152,11 @@
 > is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` with all three Terra routes PASS C/I/M
 > `0/0/0`. Rule-plan authoring/review is `CONSUMED/HISTORICAL`; Rule TDD/production awaits all
 > accepted non-marker Phase-145 carrier/G145-5B/G145-5C and launcher readiness.
+
+> **143-04C candidate precedence:** the prior no-next-Calendar-packet statement is
+> `CONSUMED/HISTORICAL` only for the narrow 143-03B-T → 143-04C sequence. This is
+> `ROOT_SOURCE_AUTHORITY_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED`: triple review, atomic
+> exact-12 docs commit, immutable exact-SHA triple review and a separate acceptance sync remain
+> required. 03B-T is schema/index metadata only; later 04C alone owns inactive/re-invite/
+> replacement service behavior, capability-before-organization zero-call guarding and opaque
+> all-and-only result echo rollback. No executable or source acceptance follows.

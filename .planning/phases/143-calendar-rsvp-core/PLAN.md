@@ -6,6 +6,8 @@
 
 > **143-04B source receipt:** `75dafea889055126f768227a4ae62b28c91b7393` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; exact blobs in `IMPLEMENTATION-143-04B.md`. Tests first; Contract/Security/Lifecycle PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Old 04B `PRECOMMIT_FAIL`/`NOT_ACCEPTED`/next-route clauses `CONSUMED/HISTORICAL`. No next Calendar code packet selected; launcher `NOT_READY`, executables/generation/migration/runtime `NOT_RUN`; 03E Ent generation/migration blocked.
 
+> **143-04C authority candidate:** Clause-scoped precedence consumes only the preceding no-next-Calendar-packet clause for a separately reviewed 143-03B-T then 143-04C sequence. This is `ROOT_SOURCE_AUTHORITY_CANDIDATE` / `PRECOMMIT_REVIEW_REQUIRED`, not source acceptance; 03B-T owns only `removed_at`, two live partial-index predicates and schema metadata, while 04C owns later inactive/re-invite/replacement service behavior plus zero-call capability guarding and opaque all-and-only result echo rollback. All 04A/B/G receipts, 03E, launcher and `NOT_RUN` facts remain authoritative.
+
 ## Goal
 
 Add the canonical calendar event/attendee model and deterministic iTIP/RSVP domain, then

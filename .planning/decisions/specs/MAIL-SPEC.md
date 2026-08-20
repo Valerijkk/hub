@@ -1082,14 +1082,17 @@ Required exact vectors: `FREQ=DAILY;INTERVAL=1;COUNT=1000` accepts and `FREQ=DAI
 | `recurrence_id` | string nullable | normalized occurrence key; null means series |
 | `responded_at` | timestamp nullable | set outside `needs_action` |
 | `version` | positive int | optimistic lock |
+| `removed_at` | timestamp nullable | removal audit tombstone; live rows alone participate in attendee uniqueness |
 | `reply_delivery_status` | enum | `not_required`, `pending`, `sent`, `failed` |
 | timestamps | timestamp | required |
 
 Database enforcement uses two partial unique indexes because PostgreSQL does not consider
-null values equal: `(event_id, normalized_email) WHERE recurrence_id IS NULL` and
-`(event_id, normalized_email, recurrence_id) WHERE recurrence_id IS NOT NULL`. An
-occurrence-specific attendee row inherits the series row until a response or override
-materializes it.
+null values equal: `(event_id, normalized_email) WHERE recurrence_id IS NULL AND removed_at IS NULL`
+and `(event_id, normalized_email, recurrence_id) WHERE recurrence_id IS NOT NULL AND removed_at IS NULL`.
+Removed readers treat a tombstone as inactive; a later invite creates a new attendee row/id.
+Within v1, the same normalized email cannot change role or resolved identity: reject instead
+of silently replacing it. An occurrence-specific attendee row inherits the series row until a
+response or override materializes it.
 
 ### 3.13 CalendarEventException
 
@@ -1111,6 +1114,66 @@ atomically; abandoned `in_progress` receipts reconcile by transaction rollback, 
 second mutation. Completed responses are retained for at least 24 hours and replayed byte-
 equivalently. The stored response is calendar metadata only and follows the same access and
 retention policy as its event.
+
+#### 143-04C update/master-cancel source authority candidate
+
+This docs-only candidate adds a distinct internal `EventMutationOperation` with the four existing
+receipt values plus `event_update`; it does **not** extend persisted
+`CalendarMutationReceipt.operation`. `EventMutationScope` retains its receipt operation (empty
+only for update) and adds an event operation. `ResolveMutationScope` remains compatible;
+`ResolveCalendarEventUpdateScope` checks the active backend's
+`CalendarEventUpdateTransactionBackend` capability before `ResolveActorOrganization` or any
+backend call; absence returns `ErrEventInvalid` with zero backend calls. Receipt
+reservation/completion rejects an update scope. Its guarded resolve/persist wrappers repeat that
+capability assertion under their transaction guard and consume/return only copied opaque-record
+constructor/getter values; 143-04F-C alone owns Ent adaptation. The resolver locks/filter org, live master
+and organizer, resolves attendees, and returns `ErrEventNotFound` for missing/foreign/nonorganizer
+before terminal/source/If-Match comparison. Request contains only EventID and presence-gated,
+deep-copied attendee candidates; authorization returns authoritative current command, active
+attendees, desired attendees and materialized-exception state. Patch presence is preserved
+(omitted differs from explicit null/empty), with no client owner/organizer/source/version truth.
+
+For an existing mutable master, a material change increments sequence then event version,
+resets applicable non-organizer RSVP, and records canonical `changed_fields`; a silent
+description change preserves sequence/RSVP, and reminder-only changes version without sequence
+or delivery. A no-op performs zero writes. Master cancel has normal terminal semantics.
+Before any writes, if a materialized exception exists, changing RRULE, EXDATE, DTSTART/start-date,
+timezone or all-day rejects fail-closed as typed content-free
+`recurrence_exception_conflict`, with `errors.Is(err, ErrEventConflict)` and stable public code
+`CALENDAR_EVENT_RECURRENCE_CONFLICT`; end/duration-only updates may proceed. 04C persists only
+safe `calendar.invite.updated.v1` / `calendar.invite.cancelled.v1` EnvelopeV1 outbox descriptors:
+they express notification intent, not queued or delivered iTIP transport. No raw iTIP/body,
+delivery claim, recurrence rebase or exception retention is permitted. A future separately
+accepted Mail/iTIP hydration-delivery packet may consume the safe event and reconstruct transport
+content without changing this packet's storage contract.
+
+The service order is scope, resolver, terminal/source and version checks, merge/validate, no-op
+return without persistence, or one atomic persistence command; it never reserves a receipt.
+Opaque `CalendarEventUpdatePersistenceCommand` constructor/getter record contains event, expected
+version, copied add/reset/remove attendee mutations and immutable copied outbox descriptors. Its
+persistence-result and service-result counterparts are likewise private-field constructor/getter
+records. A reset preserves identity/role and resets
+RSVP; removal tombstones with UTC clock time; add receives a fresh service ID. Result must echo
+event ID/version/sequence and one all-and-only sorted attendee result per mutation (same ID,
+expected version, and removed flag) exactly or rollback with `ErrEventInvalid`. Typed conflicts are content-free:
+`version_conflict` yields `CALENDAR_EVENT_VERSION_CONFLICT` plus ETag/Location;
+`not_mutable` and `recurrence_exception_conflict` yield their respective codes without either
+header. Existing immutable event builders/schema define changed-fields vocabulary/order and
+update/cancel envelope payloads.
+
+The exact presence ABI is eight wrappers (`String`, `Bool`, `Time`, `Date`, `RRULE`, `Int`,
+`Exdates`, `Attendees`) of `{Present bool; Value ...}`. `CalendarEventUpdateInput` has EventID,
+ExpectedVersion, NotifyAttendees and precisely the 13 named patches; constructor/service snapshot
+all pointers/slices, reject nonzero absent wrappers, require a nonzero EventID/positive version/
+one patch, and run create-equivalent bounds plus final merged temporal validation. Authorization
+contains full attendee snapshots and all-and-only desired resolution. `add|reset|remove`
+mutations and persistence results are bytewise attendee-ID sorted: add fresh ID/version1, reset
+existing version+1 to needs_action/nil response, remove existing version+1 with preserved
+identity/role/RSVP and UTC removal. The 13 unique canonical changed fields are title,
+description, location, starts_at, ends_at, start_date, end_date_exclusive, all_day, timezone,
+rrule, exdates, reminder_minutes, attendees. The only update/cancel envelopes are the exact
+schema-shaped builders in `event_service_update.go`, with 200 attendee cap, UID/correlation
+validation and `events.NewEnvelopeV1` only.
 
 #### 143-04B create receipt and authorization freeze
 
@@ -1371,8 +1434,12 @@ participant ids. External guests never become ScheduledCall participants.
   invalid; ordinary unlinked CalendarEvents continue to support email-only guests.
 - Calendar-v2 and legacy edits serialize on event → call. V2 master PATCH/DELETE uses
   `If-Match`: a stale version returns `CALENDAR_EVENT_VERSION_CONFLICT` with the current
-  quoted event-version `ETag` and same-origin canonical event `Location`, while terminal
-  state returns `CALENDAR_EVENT_NOT_MUTABLE`; both change nothing. Occurrence DELETE compares
+  quoted event-version `ETag` and same-origin canonical event `Location`. PATCH terminal
+  state returns `CALENDAR_EVENT_NOT_MUTABLE`, and PATCH of RRULE, EXDATE, DTSTART/start-date,
+  timezone or all-day when a materialized exception exists returns
+  `CALENDAR_EVENT_RECURRENCE_CONFLICT`; neither non-version PATCH conflict carries those
+  recovery headers. DELETE terminal state returns only `CALENDAR_EVENT_NOT_MUTABLE`; all
+  these cases change nothing. Occurrence DELETE compares
   the expected master version and returns the same version-conflict recovery headers when
   stale, or `CALENDAR_OCCURRENCE_NOT_MUTABLE` when the selected instance cannot be cancelled.
   Legacy PUT/DELETE has no version input and therefore uses the locked current event version
@@ -1655,8 +1722,9 @@ The machine-readable contract is `docs/mail/openapi.yaml`. General rules:
   for explicit conflict responses.
 - Errors retain mandatory Hub NFR-13 wire JSON `{error,request_id}`. Machine-readable
   calendar conflict codes use `X-Hub-Error-Code`: RSVP uses
-  `ATTENDEE_VERSION_CONFLICT|IDEMPOTENCY_KEY_REUSED`; event PATCH/DELETE uses
-  `CALENDAR_EVENT_VERSION_CONFLICT|CALENDAR_EVENT_NOT_MUTABLE`; occurrence DELETE uses
+  `ATTENDEE_VERSION_CONFLICT|IDEMPOTENCY_KEY_REUSED`; event PATCH uses
+  `CALENDAR_EVENT_VERSION_CONFLICT|CALENDAR_EVENT_NOT_MUTABLE|CALENDAR_EVENT_RECURRENCE_CONFLICT`,
+  while event DELETE uses `CALENDAR_EVENT_VERSION_CONFLICT|CALENDAR_EVENT_NOT_MUTABLE`; occurrence DELETE uses
   `CALENDAR_EVENT_VERSION_CONFLICT|CALENDAR_OCCURRENCE_NOT_MUTABLE`; legacy ScheduledCall
   PUT/DELETE uses `SCHEDULED_CALL_NOT_MUTABLE`. Stale RSVP additionally returns the current
   attendee-version `ETag`; stale event/occurrence mutation returns the current event-version

@@ -173,12 +173,18 @@ dispatchable without duplicating the common safety contract.
 
 ## 143-04C — update and whole-master cancel
 
-- Dependencies: 04A/G. Allowed only:
-  `backend/internal/calendar/event_service_update.go`,
-  `backend/tests/calendar/event_service_update_test.go`.
+- Status: the former 04A/G-only/two-file clause is `CONSUMED/HISTORICAL` only for the later
+  reviewed 143-03B-T → 143-04C bridge. The candidate authority at the end of this file is the
+  sole current route: 143-03B-T exact two paths, then after its acceptance test-first exact three
+  paths `event_service_update_test.go`, `event_repository.go`, `event_service_update.go`.
 - Behavior: If-Match master version; complete merged temporal validation; exact §4.2
-  sequence/RSVP/notification table; whole cancel preserves historical RSVP and emits one
-  master-scoped cancel event/iTIP request descriptor. A stale master returns typed
+  sequence/RSVP/notification table; whole cancel preserves historical RSVP and emits one safe
+  master-scoped `calendar.invite.cancelled.v1` EnvelopeV1 outbox descriptor. The former
+  durable/raw/typed iTIP request-descriptor requirement is `CONSUMED/HISTORICAL` for this 04C
+  exact-three source packet because no accepted transport port exists. It records notification
+  intent only: no iTIP is queued or delivered, and no raw iTIP/body is stored. A future separate
+  Mail/iTIP hydration-delivery packet may consume this safe event and reconstruct transport
+  content. A stale master returns typed
   `CALENDAR_EVENT_VERSION_CONFLICT` recovery metadata; terminal state returns typed
   `CALENDAR_EVENT_NOT_MUTABLE`. Reminder-only change advances event version without iTIP
   sequence/RSVP/invitation mutation.
@@ -513,3 +519,45 @@ dispatchable without duplicating the common safety contract.
   coherence, founder recurrence policy, 100% non-deleted-call linkage, direct-writer inventory,
   rollback/forward procedure and current SHA artifact. Until authority exists: `BLOCKED`,
   plan only.
+
+## 143-04C source-authority candidate
+
+Clause-scoped precedence: prior no-next-Calendar-packet wording is `CONSUMED/HISTORICAL` only
+for the sequential 143-03B-T → 143-04C bridge. This is `ROOT_SOURCE_AUTHORITY_CANDIDATE` /
+`PRECOMMIT_REVIEW_REQUIRED`, not source acceptance. After separate acceptance, root dispatches
+143-03B-T tests first exactly `backend/tests/calendar/calendar_attendee_schema_test.go`, then
+`backend/ent/schema/calendarattendee.go`: add nullable `removed_at`, its two live-only partial
+unique-index predicates, and the schema-metadata oracle only. Inactive-reader filtering, fresh
+re-invite/new ID, and same-normalized-email role/resolved-identity rejection belong exclusively to
+the later 143-04C service/source/test packet. Only after its `STATIC_ACCEPTED`, root
+dispatches 143-04C tests first exactly `backend/tests/calendar/event_service_update_test.go`,
+then `backend/internal/calendar/event_repository.go`, then new
+`backend/internal/calendar/event_service_update.go`.
+
+143-04C freezes internal `EventMutationOperation` (the four receipt values plus `event_update`),
+not a receipt enum change. Scope retains a nonempty receipt operation except `event_update`;
+`ResolveCalendarEventUpdateScope` is separate and update scope cannot reserve/complete a receipt.
+Before `ResolveActorOrganization`, it asserts active backend capability; absent capability is
+`ErrEventInvalid` with zero backend calls. Guarded resolve/persist wrappers repeat that assertion;
+no `event_ent` adapter exists.
+Presence-preserving patch and locked organizer resolver are authoritative and non-disclosing:
+missing/foreign/nonorganizer is `ErrEventNotFound` before terminal/source/ExpectedVersion.
+The request has EventID plus only presence-gated copied attendee candidates; authorization returns
+authoritative current, active/resolved attendees and exception state. Existing masters only:
+no-op zero writes; otherwise one command does event/version plus add/reset/tombstone and immutable
+outbox. Material changes order sequence, version, applicable non-organizer RSVP reset, then
+canonical changed fields. A materialized exception makes RRULE,
+EXDATE, DTSTART/start-date, timezone and all-day changes reject before writes with typed
+content-free `recurrence_exception_conflict`, `errors.Is(..., ErrEventConflict)` and public
+`CALENDAR_EVENT_RECURRENCE_CONFLICT`; end/duration-only remains possible. 04C persists only safe
+`calendar.invite.updated.v1` / `calendar.invite.cancelled.v1` EnvelopeV1 outbox descriptors;
+they express notification intent, never queued or delivered iTIP transport. No raw iTIP/body,
+delivery claim, recurrence rebase or exception retention behavior. A future separate Mail/iTIP
+hydration-delivery packet may consume a safe event and reconstruct transport content.
+
+The authoritative review freezes the exact eight presence wrappers, full update input/command/
+service/cancel signatures, full authorization attendee snapshot, `add|reset|remove` mutation and
+persistence constructor/getter record declarations, 13 ordered changed fields, and two `events.NewEnvelopeV1`
+update/cancel builders. Required tests include constructor/deep-copy/absent-null, transition
+validation, 200/201 attendee cap, exact payload, changed-field order/duplicate, every
+event/version/sequence/all-and-only attendee-result mismatch rollback and no-op zero persistence/outbox.

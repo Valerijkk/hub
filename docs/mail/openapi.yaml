@@ -1236,7 +1236,7 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/CalendarEvent"}
-        "409": {$ref: "#/components/responses/CalendarEventMutationConflict"}
+        "409": {$ref: "#/components/responses/CalendarEventPatchConflict"}
         default: {$ref: "#/components/responses/Error"}
     delete:
       tags: [CalendarEvents]
@@ -1250,7 +1250,7 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/CalendarEvent"}
-        "409": {$ref: "#/components/responses/CalendarEventMutationConflict"}
+        "409": {$ref: "#/components/responses/CalendarEventDeleteConflict"}
         default: {$ref: "#/components/responses/Error"}
   /calendar/v2/events/{eventId}/rsvp:
     post:
@@ -2213,8 +2213,38 @@ components:
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ErrorEnvelope"}
-    CalendarEventMutationConflict:
-      description: The event version is stale or its current terminal state forbids update/cancellation; no mutation occurs
+    CalendarEventPatchConflict:
+      description: The event version is stale (and only this variant carries ETag and Location), its current terminal state forbids update, or PATCH attempts a recurrence-shape change after a materialized exception; no mutation occurs. Missing/foreign/nonorganizer events are 404 before version comparison.
+      headers:
+        X-Hub-Error-Code:
+          required: true
+          schema:
+            type: string
+            enum: [CALENDAR_EVENT_VERSION_CONFLICT, CALENDAR_EVENT_NOT_MUTABLE, CALENDAR_EVENT_RECURRENCE_CONFLICT]
+          example: CALENDAR_EVENT_VERSION_CONFLICT
+        ETag:
+          required: false
+          description: Present only for CALENDAR_EVENT_VERSION_CONFLICT; current event version in quoted-integer form
+          schema: {type: string, pattern: '^"[1-9][0-9]*"$'}
+          example: '"7"'
+        Location:
+          required: false
+          description: Present only for CALENDAR_EVENT_VERSION_CONFLICT; same-origin canonical event path, never an absolute URL
+          schema:
+            type: string
+            format: uri-reference
+            pattern: '^/api/calendar/v2/events/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+          example: /api/calendar/v2/events/22222222-2222-4222-8222-222222222222
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/ErrorEnvelope"}
+          examples:
+            stale_event_version:
+              value:
+                error: calendar event version is stale
+                request_id: req_calendar_conflict_01
+    CalendarEventDeleteConflict:
+      description: The event version is stale (and only this variant carries ETag and Location) or its current terminal state forbids cancellation; no mutation occurs. Missing/foreign/nonorganizer events are 404 before version comparison.
       headers:
         X-Hub-Error-Code:
           required: true
@@ -2224,12 +2254,12 @@ components:
           example: CALENDAR_EVENT_VERSION_CONFLICT
         ETag:
           required: false
-          description: Present for CALENDAR_EVENT_VERSION_CONFLICT; current event version in quoted-integer form
+          description: Present only for CALENDAR_EVENT_VERSION_CONFLICT; current event version in quoted-integer form
           schema: {type: string, pattern: '^"[1-9][0-9]*"$'}
           example: '"7"'
         Location:
           required: false
-          description: Present for CALENDAR_EVENT_VERSION_CONFLICT; same-origin canonical event path, never an absolute URL
+          description: Present only for CALENDAR_EVENT_VERSION_CONFLICT; same-origin canonical event path, never an absolute URL
           schema:
             type: string
             format: uri-reference
@@ -3421,44 +3451,13 @@ components:
       type: object
       additionalProperties: false
       minProperties: 1
-      description: Partial update; the server merges it with the current event and validates the complete timed/all-day invariant before mutation
+      description: Partial update with exactly 13 patch properties: title, description, location, starts_at, ends_at, start_date, end_date_exclusive, all_day, timezone, rrule, exdates, reminder_minutes, attendees. When all_day is present, its conditional requires all four temporal fields in the exact null/string family. When all_day is absent, any provided complete dependent pair is merged with the authoritative current row; final domain validation rejects mixed or invalid timed/all-day state before mutation.
       x-hub-temporal-invariant: temporal fields are paired and the resulting relevant end must be strictly after start
       dependentRequired:
         starts_at: [ends_at]
         ends_at: [starts_at]
         start_date: [end_date_exclusive]
         end_date_exclusive: [start_date]
-      oneOf:
-        - not:
-            anyOf:
-              - required: [starts_at]
-              - required: [ends_at]
-              - required: [start_date]
-              - required: [end_date_exclusive]
-        - required: [starts_at, ends_at]
-          properties:
-            starts_at: {type: string, format: date-time}
-            ends_at: {type: string, format: date-time}
-          not:
-            anyOf:
-              - required: [start_date]
-                properties:
-                  start_date: {type: string}
-              - required: [end_date_exclusive]
-                properties:
-                  end_date_exclusive: {type: string}
-        - required: [start_date, end_date_exclusive]
-          properties:
-            start_date: {type: string, format: date}
-            end_date_exclusive: {type: string, format: date}
-          not:
-            anyOf:
-              - required: [starts_at]
-                properties:
-                  starts_at: {type: string}
-              - required: [ends_at]
-                properties:
-                  ends_at: {type: string}
       allOf:
         - if:
             properties:
