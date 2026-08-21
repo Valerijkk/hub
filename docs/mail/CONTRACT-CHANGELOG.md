@@ -1,5 +1,16 @@
 # Hub Mail contract changelog
 
+## 2026-08-21 — 144-04I-A acceptance-sync candidate
+
+`ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT9_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED /
+RUNTIME_NOT_RUN`. This dirty exact9 sync is non-authoritative. Atomic exact-manifest commit plus
+immutable review alone activate `b49131cab56b49ae511827f5d2a1ccc58f938ae3` (parent `54a88de8`,
+tree `add02c599`, subject `docs(mail): propose bounded sync worker authority`, REVIEW
+`5be0cfb3d23c19a84e76428ef17f5a1042de05e6`) as `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS` after
+Contract/Security/Lifecycle precommit and immutable PASS C/I/M `0/0/0`; Terra/xhigh,
+dispatcher-enforced/no fallback, telemetry `UNKNOWN`. Then only test-first exact2 is authorized,
+still unimplemented/uncommitted/unaccepted; no schema/API/event/blocker change follows.
+
 ## 2026-08-21 — 144-04I-A bounded sync-worker source-authority candidate
 
 `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / IMPLEMENTATION_BLOCKED /

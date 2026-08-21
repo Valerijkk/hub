@@ -1,16 +1,23 @@
 # 144-04I-A — bounded mailbox-sync worker source authority
 
-> **Status:** `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
-> IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This documentation candidate grants no source,
-> persistence, adapter, schema, OpenAPI or runtime authority. It becomes effective only after:
-> Contract/Spec/Oracle, Security/Adversarial and Lifecycle/Dependency/Boundary precommit PASS;
-> one atomic exact9 candidate commit; the same three immutable exact-SHA PASS reviews; and a
-> separate docs-only acceptance sync. Only then may root dispatch the ordered exact2 below.
+> **Status:** `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT9_COMMIT_REQUIRED /
+> IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This dirty exact9 documentation sync grants no
+> authority. Only one atomic commit with a diff exactly equal to the manifest below, followed by its
+> immutable review, activates candidate `b49131cab56b49ae511827f5d2a1ccc58f938ae3` (parent
+> `54a88de8555d372daa50818b0ce3b1ecd60875b7`, tree
+> `add02c599a96f6fadc47307b8cc612152fa427dc`, subject
+> `docs(mail): propose bounded sync worker authority`, candidate REVIEW blob
+> `5be0cfb3d23c19a84e76428ef17f5a1042de05e6`) as `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS`.
+> Contract/Spec/Oracle, Security/Adversarial and Lifecycle/Dependency/Boundary precommit plus
+> immutable reviews PASS C/I/M `0/0/0`; Terra/xhigh, dispatcher-enforced/no fallback, telemetry
+> `UNKNOWN`. Only then are lower 04I-A candidate/precommit/current-next clauses
+> `CONSUMED/HISTORICAL`, and only the ordered exact2 below becomes authorized; source remains
+> `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED`.
 
-## Ordered exact9 authority manifest
+## Ordered exact9 acceptance-sync manifest
 
-The atomic candidate commit must change exactly these paths, in this order, with no substitution or
-extra path:
+The atomic acceptance-sync commit must change exactly these paths, in this order, with no
+substitution or extra path; its diff must equal this manifest exactly:
 
 1. `.planning/STATE.md`
 2. `.planning/decisions/specs/MAIL-SPEC.md`
@@ -22,7 +29,7 @@ extra path:
 8. `docs/mail/PERSISTENCE-CONTRACT-0.1.8.md`
 9. `docs/mail/QA-HANDOFF.md`
 
-Only after the full lifecycle may root dispatch, in order:
+Only after this acceptance activation may root dispatch, in order:
 
 1. NEW `backend/tests/mail/mailbox_sync_worker_test.go`;
 2. NEW `backend/internal/mail/mailbox_sync_worker.go`.

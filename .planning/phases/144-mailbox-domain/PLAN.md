@@ -1,5 +1,16 @@
 # Phase 144 — Mailbox Domain
 
+## 144-04I-A acceptance-sync candidate
+
+`ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT9_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED /
+RUNTIME_NOT_RUN`: this dirty exact9 sync grants no authority. Only its exact-manifest atomic commit
+and immutable review activate `b49131cab56b49ae511827f5d2a1ccc58f938ae3` (parent `54a88de8`, tree
+`add02c599`, subject `docs(mail): propose bounded sync worker authority`, REVIEW
+`5be0cfb3d23c19a84e76428ef17f5a1042de05e6`) as `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS`.
+Three precommit plus immutable reviews PASS C/I/M `0/0/0`; Terra/xhigh, dispatcher-enforced/no
+fallback, telemetry `UNKNOWN`. Only then does ordered exact2 become authorized, still source
+`UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED`; no next packet or blocker lift follows.
+
 ## 144-04I-A bounded sync-worker source-authority candidate
 
 `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / IMPLEMENTATION_BLOCKED /

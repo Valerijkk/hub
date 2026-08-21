@@ -1,5 +1,16 @@
 # Hub Mail + Calendar Sync — QA handoff
 
+## 144-04I-A acceptance-sync candidate — static only
+
+`ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT9_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED /
+RUNTIME_NOT_RUN`. This dirty exact9 sync is not test/source evidence. Only atomic exact-manifest
+commit plus immutable review activates `b49131cab56b49ae511827f5d2a1ccc58f938ae3` (parent
+`54a88de8`, tree `add02c599`, subject `docs(mail): propose bounded sync worker authority`, REVIEW
+`5be0cfb3d23c19a84e76428ef17f5a1042de05e6`) as `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS` after
+triple precommit/immutable PASS C/I/M `0/0/0`; Terra/xhigh, dispatcher-enforced/no fallback,
+telemetry `UNKNOWN`. Only then is test-first exact2 authorized, still unimplemented/uncommitted/
+unaccepted. Runtime and every listed downstream blocker remain `NOT_RUN`/blocked.
+
 ## 144-04I-A bounded sync-worker candidate oracle — not executable evidence
 
 > **Controlling corrections:** DueAccount includes positive `LeaseEpoch`; every fault CAS uses the

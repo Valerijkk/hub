@@ -1,5 +1,16 @@
 # Mail persistence contract 0.1.8
 
+## 144-04I-A acceptance-sync candidate — no persistence activation
+
+`ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT9_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED /
+RUNTIME_NOT_RUN`. The dirty exact9 sync grants no persistence authority. Only atomic exact-manifest
+commit plus immutable review activates `b49131cab56b49ae511827f5d2a1ccc58f938ae3` (parent
+`54a88de8`, tree `add02c599`, subject `docs(mail): propose bounded sync worker authority`, REVIEW
+`5be0cfb3d23c19a84e76428ef17f5a1042de05e6`) as `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS`;
+triple precommit/immutable PASS C/I/M `0/0/0`, Terra/xhigh, dispatcher-enforced/no fallback,
+telemetry `UNKNOWN`. Then only unimplemented exact2 source is authorized; no SQL/Ent/schema or
+other persistence change occurs.
+
 ## 144-04I-A bounded sync-worker authority candidate — no persistence implementation
 
 `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / IMPLEMENTATION_BLOCKED /

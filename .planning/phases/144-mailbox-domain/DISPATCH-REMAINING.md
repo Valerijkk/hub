@@ -719,6 +719,17 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 
 ## 144-04I-A — bounded sync worker source-authority candidate
 
+- **Acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT9_COMMIT_REQUIRED /
+  IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This dirty exact9 sync grants no authority. Only an
+  atomic commit whose diff equals the REVIEW manifest, plus its immutable review, activates
+  `b49131cab56b49ae511827f5d2a1ccc58f938ae3` (parent `54a88de8`, tree `add02c599`, subject
+  `docs(mail): propose bounded sync worker authority`, REVIEW
+  `5be0cfb3d23c19a84e76428ef17f5a1042de05e6`) as `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS`.
+  Contract/Spec/Oracle, Security/Adversarial and Lifecycle/Dependency/Boundary precommit plus
+  immutable reviews PASS C/I/M `0/0/0`; Terra/xhigh, dispatcher-enforced/no fallback, telemetry
+  `UNKNOWN`. Then lower candidate/precommit/current-next clauses are `CONSUMED/HISTORICAL`; only
+  ordered exact2 is authorized and remains `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED`.
+
 - Controlling corrections: DueAccount carries positive `LeaseEpoch`; full fault CAS includes it and
   exact persisted fractional timestamps. A true result is DB-time checked against `SelectedAt` and
   retry arithmetic; false is zero. Backoff is O(1) `min(RetryMax, RetryMin*2^SyncAttempts)`;
