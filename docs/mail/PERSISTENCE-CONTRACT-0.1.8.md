@@ -100,11 +100,13 @@ remain blocked; no schema/event/outbox/lease-clear authority is created.
 > lower 04J candidate routes become `CONSUMED/HISTORICAL`. The accepted boundary is still pure and
 > caller-owned: it grants no persistence/Ent/adapter/generation/migration/runtime authority.
 
-## 144-04G source acceptance-sync candidate (2026-08-21)
+## 144-04G receipt-coherence sync candidate (2026-08-22)
 
-> **Gate:** `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT12_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty exact12 working tree grants no authority. The immutable `3031c53d399accc84fe10cd0c5421a85c089ac7c` source receipt and its Contract/Security/Lifecycle precommit plus immutable `EXACT_SHA_PASS C/I/M 0/0/0` facts are proposed only; they activate only after one atomic commit of the exact12 manifest in `IMPLEMENTATION-144-04G.md`. Only after that commit is 144-04G `STATIC_ACCEPTED / EXACT_SHA_PASS`; then, and only then, lower 04G source-authority/source-unimplemented/current-next routes are `CONSUMED/HISTORICAL`. No next Mail packet is selected. 04F remains accepted; 04H/02E, Ent/SQL/concrete adapter, generation, migration, OpenAPI and runtime remain blocked or outside authority; launcher `NOT_READY`, executables/runtime `NOT_RUN`.
+> **Coherence gate:** `COHERENCE_SYNC_CANDIDATE / ATOMIC_EXACT12_COMMIT_REQUIRED / IMMUTABLE_REVIEW_REQUIRED / RUNTIME_NOT_RUN`. This non-self-activating dirty exact12 docs-only coherence candidate records immutable source `3031c53d399accc84fe10cd0c5421a85c089ac7c` and prior acceptance receipt `2a2975056c3fb8001d88863a041310271282989d`; their full metadata, blobs and ordered manifests are in `IMPLEMENTATION-144-04G.md`. Source Contract/Security/Lifecycle precommit and immutable `EXACT_SHA_PASS` are C/I/M `0/0/0`; Contract Terra/high, Security Terra/xhigh, Lifecycle Terra/high, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Only after an atomic manifest-equal exact12 coherence commit and immutable coherence C/S/L triple PASS is 144-04G `STATIC_ACCEPTED / EXACT_SHA_PASS`; former 04G authority/acceptance/source-unimplemented/current-next routes then become `CONSUMED/HISTORICAL`. Historical coherence selects no next Mail packet and grants no runtime/downstream authority. 04F remains accepted; 04H/02E, Ent/SQL/concrete adapter, generation/migration, API/UI, launcher/testframework and runtime remain blocked `NOT_READY`/`NOT_RUN`.
 
 ## 144-04G source-authority acceptance-sync candidate (2026-08-20; predecessor route)
+
+> **Historical predecessor boundary:** This exact9 route is historical receipt evidence only. Before the manifest-equal 144-04G exact12 coherence commit and immutable C/S/L triple PASS, it confers no current static, source or downstream authority.
 
 Status: `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT9_COMMIT_REQUIRED /
 SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This dirty exact9 working tree grants no
@@ -114,7 +116,7 @@ commit of this exact9 acceptance sync. Until activation, the lower candidate/pre
 exact-SHA-next lifecycle remains current and root cannot dispatch source; the separately false
 accepted-repository premise remains `CONSUMED/HISTORICAL`.
 
-After that atomic exact9 sync commit, Mail 144-04G docs authority is
+Historical receipt fact only: after that atomic exact9 sync commit, Mail 144-04G docs authority was recorded as
 `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS` only at immutable
 `6ba3aed3d9a69a76f98978faf4a9e3362c4bc29b` (parent
 `2b6837926c91d652ff7bf30447bd482740261bd0`, tree
@@ -125,7 +127,7 @@ dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed.
 
 Only after that atomic exact9 sync commit are all lower 144-04G
 candidate/precommit/root-commit/exact-SHA-next clauses `CONSUMED/HISTORICAL`.
-Only then may root dispatch only the frozen ordered exact3:
+Historical record only: the exact9 route identified the frozen ordered exact3:
 `backend/tests/mail/mailbox_sync_service_test.go`, new interface/types-only
 `backend/internal/mail/mailbox_repository.go`, then new
 `backend/internal/mail/mailbox_sync_service.go`. Source is still
@@ -135,6 +137,8 @@ accepted; 04H/02E, Ent/SQL/concrete adapter, generation, migration, OpenAPI and 
 blocked or outside authority. Launcher `NOT_READY`; executables/runtime `NOT_RUN`.
 
 ## 144-04G abstract persistence port candidate (2026-08-20; predecessor route)
+
+> **Historical predecessor boundary:** This route is historical receipt evidence only. Before the manifest-equal 144-04G exact12 coherence commit and immutable C/S/L triple PASS, it confers no current static, source or downstream authority.
 
 Status is only `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
 IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. The future exact3/test-first manifest is NEW

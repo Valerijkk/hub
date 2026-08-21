@@ -8,13 +8,15 @@ This receipt consumes only lower claims that abstract `mailbox_repository.go`, t
 
 This dirty exact6 documentation packet is `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT6_COMMIT_REQUIRED / IMMUTABLE_REVIEW_REQUIRED / RUNTIME_NOT_RUN`; it cannot self-activate. No HTTP/API/UI/wiring, runtime, product, phase or release authority follows. Launcher remains `NOT_READY`; all executables, generation, migration and runtime remain `NOT_RUN`; the external-framework handoff remains a gate.
 
-## 144-04G source acceptance-sync candidate (2026-08-21)
+## 144-04G receipt-coherence sync candidate (2026-08-22)
 
 > **144-04I-A current source receipt:** `STATIC_ACCEPTED / EXACT_SHA_PASS` at `091f2ef286a71f506e1b048f5386fd37cefa06bc`; exact10 receipt `03674eace728642fc2c9b39d2e8e2c81bf016033` is ancestral to HEAD. Any 04I-A conditional receipt/candidate/source-unaccepted/current-next route in this document is `CONSUMED/HISTORICAL` only for 04I-A. PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback, telemetry `UNKNOWN`; no next packet or runtime authority follows.
 
-> **Gate:** `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT12_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty exact12 working tree grants no authority. The immutable `3031c53d399accc84fe10cd0c5421a85c089ac7c` source receipt and its Contract/Security/Lifecycle precommit plus immutable `EXACT_SHA_PASS C/I/M 0/0/0` facts are proposed only; they activate only after one atomic commit of the exact12 manifest in `IMPLEMENTATION-144-04G.md`. Only after that commit is 144-04G `STATIC_ACCEPTED / EXACT_SHA_PASS`; then, and only then, lower 04G source-authority/source-unimplemented/current-next routes are `CONSUMED/HISTORICAL`. No next Mail packet is selected. 04F remains accepted; 04H/02E, Ent/SQL/concrete adapter, generation, migration, OpenAPI and runtime remain blocked or outside authority; launcher `NOT_READY`, executables/runtime `NOT_RUN`.
+> **Coherence gate:** `COHERENCE_SYNC_CANDIDATE / ATOMIC_EXACT12_COMMIT_REQUIRED / IMMUTABLE_REVIEW_REQUIRED / RUNTIME_NOT_RUN`. This non-self-activating dirty exact12 docs-only coherence candidate records immutable source `3031c53d399accc84fe10cd0c5421a85c089ac7c` and prior acceptance receipt `2a2975056c3fb8001d88863a041310271282989d`; their full metadata, blobs and ordered manifests are in `IMPLEMENTATION-144-04G.md`. Source Contract/Security/Lifecycle precommit and immutable `EXACT_SHA_PASS` are C/I/M `0/0/0`; Contract Terra/high, Security Terra/xhigh, Lifecycle Terra/high, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Only after an atomic manifest-equal exact12 coherence commit and immutable coherence C/S/L triple PASS is 144-04G `STATIC_ACCEPTED / EXACT_SHA_PASS`; former 04G authority/acceptance/source-unimplemented/current-next routes then become `CONSUMED/HISTORICAL`. Historical coherence selects no next Mail packet and grants no runtime/downstream authority. 04F remains accepted; 04H/02E, Ent/SQL/concrete adapter, generation/migration, API/UI, launcher/testframework and runtime remain blocked `NOT_READY`/`NOT_RUN`.
 
 ## 144-04G source-authority acceptance-sync candidate (2026-08-20; predecessor route)
+
+> **Historical predecessor boundary:** This exact9 route is historical receipt evidence only. Before the manifest-equal 144-04G exact12 coherence commit and immutable C/S/L triple PASS, it confers no current static, source or downstream authority.
 
 Status: `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT9_COMMIT_REQUIRED /
 SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This dirty exact9 working tree grants no
@@ -24,7 +26,7 @@ commit of this exact9 acceptance sync. Until activation, the lower candidate/pre
 exact-SHA-next lifecycle remains current and root cannot dispatch source; the separately false
 accepted-repository premise remains `CONSUMED/HISTORICAL`.
 
-After that atomic exact9 sync commit, Mail 144-04G docs authority is
+Historical receipt fact only: after that atomic exact9 sync commit, Mail 144-04G docs authority was recorded as
 `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS` only at immutable
 `6ba3aed3d9a69a76f98978faf4a9e3362c4bc29b` (parent
 `2b6837926c91d652ff7bf30447bd482740261bd0`, tree
@@ -34,7 +36,7 @@ Contract, Security and Lifecycle immutable exact-SHA reviews PASS C/I/M `0/0/0`;
 dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed.
 
 Only after that atomic exact9 sync commit is candidate/precommit/root-commit/exact-SHA-next
-wording below `CONSUMED/HISTORICAL`. Only then may root dispatch only the ordered exact3:
+wording below `CONSUMED/HISTORICAL`. Historical record only: the exact9 route identified the ordered exact3:
 `backend/tests/mail/mailbox_sync_service_test.go`, new
 interface/types-only `backend/internal/mail/mailbox_repository.go`, then new
 `backend/internal/mail/mailbox_sync_service.go`. It remains
@@ -44,6 +46,8 @@ accepted; 04H/02E, Ent/SQL/concrete adapter, generation, migration, OpenAPI and 
 blocked or outside authority. Launcher `NOT_READY`; executables/runtime `NOT_RUN`.
 
 ## 144-04G candidate precedence (2026-08-20; predecessor route)
+
+> **Historical predecessor boundary:** This route is historical receipt evidence only. Before the manifest-equal 144-04G exact12 coherence commit and immutable C/S/L triple PASS, it confers no current static, source or downstream authority.
 
 `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / IMPLEMENTATION_BLOCKED /
 RUNTIME_NOT_RUN`. The only future packet is exact3/test-first: NEW
@@ -66,13 +70,13 @@ Calendar 143-03B-T is `STATIC_ACCEPTED / EXACT_SHA_PASS` only at immutable commi
 
 Every other clause in this file saying 143-03B-T is only source-authorized, not accepted, dirty, uncommitted or unaccepted, or that 143-04C is blocked pending 03B-T source acceptance, is `CONSUMED/HISTORICAL` as to that dependency. Status: `COMBINED_EXACT19_SOURCE_ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_COMMIT_REQUIRED / IMMUTABLE_EXACT_SHA_REVIEW_REQUIRED`. Only after one atomic exact19 docs commit and independent Contract/Security/Lifecycle immutable exact-SHA PASS for that commit may root dispatch the frozen 143-04C exact3, test first and in order: `backend/tests/calendar/event_service_update_test.go`, `backend/internal/calendar/event_repository.go`, new `backend/internal/calendar/event_service_update.go`. Until then exact3 remains `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED` and dispatch is not effective.
 
-Mail 144-04F remains `STATIC_ACCEPTED / EXACT_SHA_PASS` at `4715f939f24e5b5c2d3f80a38d204babe68bdd34`; 144-04G still requires separate docs authority because its repository port is absent. No adapter, Ent generation, migration, raw iTIP, service/API/UI/product/phase/release or runtime authority follows. Launcher `NOT_READY`; generation/migration/tests/build/gofmt/lint/validators/Docker/runtime `NOT_RUN`; existing 143-04A/B/G receipts and other blockers remain unchanged.
+Mail 144-04F remains `STATIC_ACCEPTED / EXACT_SHA_PASS` at `4715f939f24e5b5c2d3f80a38d204babe68bdd34`; before the manifest-equal 144-04G exact12 coherence commit and immutable C/S/L triple PASS, 144-04G has no current static, source or downstream authority. No adapter, Ent generation, migration, raw iTIP, service/API/UI/product/phase/release or runtime authority follows. Launcher `NOT_READY`; generation/migration/tests/build/gofmt/lint/validators/Docker/runtime `NOT_RUN`; existing 143-04A/B/G receipts and other blockers remain unchanged.
 
 ## 144-04F immutable source acceptance (2026-08-20)
 
 Mail 144-04F is `STATIC_ACCEPTED / EXACT_SHA_PASS` only at immutable commit `4715f939f24e5b5c2d3f80a38d204babe68bdd34` (parent `7ac8714e99db2935ce290ad67836e1309cc05c78`, tree `6461894a90c4340bf96118ed1a242516c02b48c7`, subject `feat(mail): add sync page policy`). Its exact4 ordered test-first blobs are recorded in `IMPLEMENTATION-144-04F.md`: events test `50a41cefb539d9b840a43da9e1ff34cce6c8653f`, sync-policy test `b6410709e4fb8166c28a5c502cfba535eef08d06`, events source `a3017b0a6064d8fc1017e37e2d4f675ee8732945`, sync-policy source `acd642fcdb6290af79b7fa8e5aa36a5036576f47`. Author Terra/xhigh; Contract/high, Security/xhigh and ABI/Lifecycle high precommit plus immutable exact-SHA reviews PASS C/I/M `0/0/0`; dispatcher-enforced, no fallback, telemetry `UNKNOWN` unless exposed.
 
-Every other clause in this file asserting that Mail exact4 is dirty, `UNCOMMITTED`, `UNACCEPTED`, future-only, source-blocked, awaiting source review/commit, or root-dispatch-next is `CONSUMED/HISTORICAL`; the immutable source receipt above is current. No automatic Mail next source follows: 144-04G remains `NOT_AUTHORIZED / BLOCKED` pending separate docs authority because its required repository port is absent.
+Every other clause in this file asserting that Mail exact4 is dirty, `UNCOMMITTED`, `UNACCEPTED`, future-only, source-blocked, awaiting source review/commit, or root-dispatch-next is `CONSUMED/HISTORICAL`; the immutable source receipt above is current. No automatic Mail next source follows: before the manifest-equal 144-04G exact12 coherence commit and immutable C/S/L triple PASS, 144-04G has no current static, source or downstream authority.
 
 The Calendar half of the combined exact17 route is unchanged: 143-03B-T exact2 remains source-authorized but is not `STATIC_ACCEPTED`; any dirty candidate remains uncommitted/unaccepted. 143-04C exact3 stays `BLOCKED / NOT_AUTHORIZED` until 143-03B-T source itself is `STATIC_ACCEPTED`; 143-04A/B/G receipts remain accepted. Launcher `NOT_READY`; tests/build/gofmt/lint/validators/Docker/runtime `NOT_RUN`. 143-03E, 144-02E, Ent generation and migration stay blocked. No raw iTIP or service/API/UI/product/phase/release authority follows.
 
@@ -705,7 +709,9 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 
 ## 144-04H — atomic Ent sync adapter
 
-- Dependency: accepted 02E/04G. Allowed only
+- Dependency: 02E remains accepted; before the manifest-equal 144-04G exact12 coherence commit
+  and immutable C/S/L triple PASS, 04G has no current static, source or downstream authority.
+  This route remains blocked; no implementation is allowed.
   `backend/internal/mail/mailbox_ent_repository_sync.go`; no Go DB/component test.
 - Claim/renew/release uses one expiring account lease. Incremental/rebuild page transaction
   locks MailAccount, verifies token/until/prior cursor/sync epoch/mutation epoch and absent
@@ -749,7 +755,9 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   `IMPLEMENTATION-144-04I-A.md`'s manifest, followed by immutable receipt review, may mark source
   `STATIC_ACCEPTED / EXACT_SHA_PASS`. The dirty tree grants no such status and selects no next
   source.
-- **Boundary:** accepted 04F/04G remain the only dependencies recorded here. 04H/02E,
+- **Boundary:** 04F remains accepted. Before the manifest-equal 144-04G exact12 coherence commit
+  and immutable C/S/L triple PASS, 04G has no current static, source or downstream authority;
+  it cannot be a dependency here. 04H/02E,
   Ent/concrete adapter, generation/migration, SQL/two-replica, API/OpenAPI/UI, launcher and runtime
   remain blocked or `NOT_RUN`; no source/schema/event/delivery change follows.
 
