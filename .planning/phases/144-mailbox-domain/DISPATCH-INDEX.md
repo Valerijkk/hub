@@ -1,5 +1,15 @@
 # Phase 144 — exact Terra dispatch index
 
+## 144-04I-A source-authority candidate — non-authoritative
+
+`ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / IMPLEMENTATION_BLOCKED /
+RUNTIME_NOT_RUN`. The exact9 manifest and frozen ABI/state/safety/oracles are only in
+`REVIEW-144-04I-A-SYNC-WORKER-READINESS.md`. Triple precommit PASS, one atomic exact9 commit,
+triple immutable exact-SHA PASS and separate acceptance sync must precede only test-first NEW
+`backend/tests/mail/mailbox_sync_worker_test.go`, then NEW
+`backend/internal/mail/mailbox_sync_worker.go`. 04F/04G stay accepted; 04H/02E/Ent/generation/
+migration/adapters/API/OpenAPI/UI and runtime remain blocked. No schema/event change and no auto-next.
+
 ## 144-04G source acceptance-sync candidate (2026-08-21)
 
 > **Gate:** `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT12_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty exact12 working tree grants no authority. The immutable `3031c53d399accc84fe10cd0c5421a85c089ac7c` source receipt and its Contract/Security/Lifecycle precommit plus immutable `EXACT_SHA_PASS C/I/M 0/0/0` facts are proposed only; they activate only after one atomic commit of the exact12 manifest in `IMPLEMENTATION-144-04G.md`. Only after that commit is 144-04G `STATIC_ACCEPTED / EXACT_SHA_PASS`; then, and only then, lower 04G source-authority/source-unimplemented/current-next routes are `CONSUMED/HISTORICAL`. No next Mail packet is selected. 04F remains accepted; 04H/02E, Ent/SQL/concrete adapter, generation, migration, OpenAPI and runtime remain blocked or outside authority; launcher `NOT_READY`, executables/runtime `NOT_RUN`.
@@ -145,9 +155,8 @@ every remaining row/variant, assemble the Common envelope plus exactly one secti
    └── 144-04O mail mutation receipt service
 
 144-01B + 144-02E + 144-03A/D + 144-04A
-   └── 144-04F sync-page policy ── 144-04G sync service
-                                      └── 144-04H Ent page/rebuild transaction
-                                               └── 144-04I bounded worker lifecycle
+   └── 144-04F sync-page policy ── 144-04G sync service ── 144-04I-A bounded worker candidate
+                                      └── 144-04H Ent page/rebuild transaction (blocked separately)
 
 144-04* + 144-03*
    ├── 144-05A mail-owned storage port
@@ -200,7 +209,7 @@ every remaining row/variant, assemble the Common envelope plus exactly one secti
 | 144-04F | Pure incremental/enumeration page classification and projection commands | Original `SOURCE_AUTHORITY_ACCEPTED` / `EXACT_SHA_PASS` receipt `4e608e890ec12aeed8de965f9649ae503260b94e`; its immediate exact4 root-dispatch clause is `SUSPENDED / CONSUMED/HISTORICAL`. `ROOT_CORRECTION_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`: existing exact4 remains only the future test-first manifest (`mailbox_events_test.go`, `mailbox_sync_policy_test.go`, `mailbox_events.go`, `mailbox_sync_policy.go`). Uncommitted candidates are `UNACCEPTED` and MUST NOT be committed until Contract/Security/Lifecycle precommit PASS, atomic exact9 correction-candidate commit, all three immutable exact-SHA PASS and separate docs-only acceptance sync; no correction acceptance | exact page union/bounds (Requested 1..100, Maximum=100, Returned exact, nonnil slices, ENGINE-CONTRACT byte budget; change combined 100; enumeration/folders 100); content-free typed error/sentinel ABI; exact cutoff: nonnil ReceivedAt, after requires marker+one received, before/equal zero reservation+nil marker+no received, confirmed owner never received; changed/deleted event set; event folder/label caps 50->100 only; no I/O/clock | 144-01B + 144-03A/D |
 | 144-04G | Lease/epoch-aware mailbox sync orchestration against fake ports | `ROOT_SOURCE_AUTHORITY_CANDIDATE` only; future exact3: NEW `backend/tests/mail/mailbox_sync_service_test.go`, NEW interface/types-only `backend/internal/mail/mailbox_repository.go`, NEW `backend/internal/mail/mailbox_sync_service.go`; implementation blocked | exact claim/prepare/apply/resolve ABI; DB-transaction-time lease expiry on every mutation guard; full lease/sync/mutation fence; one ListFolders + one Changes/Enumerate with exact configured PageSize; base enumeration, catch-up/finalize; invalid cursor next-step rebuild; deterministic 04F IDs; no external I/O/callback under lock | 144-04A/F; triple precommit + exact9 + triple exact-SHA + separate acceptance sync |
 | 144-04H | Atomic Ent incremental/rebuild projection adapter | `mailbox_ent_repository_sync.go`; no Go DB/component test | account-lock lease/cursor/epoch proof; projection/events/cursor atomic; no-clear rebuild/final cleanup | 144-02E + 144-04G |
-| 144-04I | Bounded context-owned multi-replica sync worker | `mailbox_sync_worker.go`, `backend/tests/mail/mailbox_sync_worker_test.go` | max concurrency; due-account claims; lease renewal/expiry; backoff; shutdown; disabled no start | 144-04G/H |
+| 144-04I-A | Bounded context-owned worker | `ROOT_SOURCE_AUTHORITY_CANDIDATE` only; exact2 is NEW `backend/tests/mail/mailbox_sync_worker_test.go`, then NEW `backend/internal/mail/mailbox_sync_worker.go` | DB-time ordered scan <=50 preserving fractional timestamps; fixed pool <=4/FIFO; total timed 04G step; LeaseEpoch full fault-CAS/checked result/O(1) retry; disabled zero calls; no I/O under local lock | accepted 144-04F/G; triple precommit -> exact9 -> triple exact-SHA -> separate acceptance sync; 04H remains blocked |
 | 144-04R | Generic mutation recovery step in the existing sync worker | `mailbox_mutation_recovery.go`, narrow worker edit, focused unit | oldest-due work; receipt+mutation leases; folder recovery only under proven exclusive-writer capability; captured bulk only; unknown training no repeat; no fifth worker | 144-04B/C/I/O |
 | 144-05A | Mail-owned object storage authorization and lifecycle | `mailbox_storage.go`, `mailbox_storage_adapter.go`, `backend/tests/mail/mailbox_storage_test.go` | `mail/<org>/<account>/<uuid>` server key; receipt-safe same-object presign replay; confirm/read/delete reauthorize; no project metadata | 144-02C/E + 144-03C + 144-04A/O |
 | 144-05B | Versioned projection consumption and mail subject admission | `mailbox_projection.go`, `backend/internal/platform/nats/client.go`, focused units | subject/envelope match; application-event dedupe; unknown/malformed dead-letter; add `mail.>` once; webhook filter byte-equivalent | 144-03D + 144-04C/E + 143-04G |

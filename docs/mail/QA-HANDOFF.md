@@ -1,5 +1,27 @@
 # Hub Mail + Calendar Sync — QA handoff
 
+## 144-04I-A bounded sync-worker candidate oracle — not executable evidence
+
+> **Controlling corrections:** DueAccount includes positive `LeaseEpoch`; every fault CAS uses the
+> full captured snapshot. Scan/fault timestamps are valid semantic UTC with fractional persisted
+> precision preserved, not rounded to seconds. A true fault requires `RecordedAt >= SelectedAt`,
+> checked `NextAttemptAt == RecordedAt + RetryDelay` and attempts `captured+1`; false is exact zero.
+> Backoff is O(1) `min(RetryMax, RetryMin*2^SyncAttempts)`. The external unit must cover advanced
+> LeaseEpoch false-zero, MaxInt32 zero-write too-large, concrete-empty/raw-error/panic scan paths,
+> fractional semantic-UTC scan timestamps accepted/preserved exactly while nil/zero/non-UTC/future
+> are rejected, total `WithTimeout` nil/panic/cancel paths, Wait panic, fault-port panic/continue,
+> and parent-cancel priority before any fault.
+
+Status: `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
+IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. The complete external-unit ABI/state/safety oracle is
+frozen only in `REVIEW-144-04I-A-SYNC-WORKER-READINESS.md`; it is not source or runtime evidence.
+Only triple precommit PASS, atomic exact9, triple immutable exact-SHA PASS and separate acceptance
+sync may dispatch NEW `backend/tests/mail/mailbox_sync_worker_test.go`, then NEW
+`backend/internal/mail/mailbox_sync_worker.go`. Required coverage includes disabled/typed-nil/
+concurrent/bounds, DB-time scan validation, fixed pool/FIFO/drain, all 04G outcomes, timeout/cancel/
+panic/fault CAS/backoff and no leak/raw-error behavior. 04H/02E/Ent/adapter/generation/migration,
+API/OpenAPI/UI, launcher and runtime remain blocked or `NOT_RUN`.
+
 > **143-04J source receipt:** `SOURCE_ACCEPTANCE_SYNC_CANDIDATE /
 > ATOMIC_EXACT14_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. These proposed facts activate only after one
 > atomic exact14 docs commit. Then immutable exact2 `e74efa827b52...` is

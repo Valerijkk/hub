@@ -1,5 +1,18 @@
 # Hub Mail contract changelog
 
+## 2026-08-21 — 144-04I-A bounded sync-worker source-authority candidate
+
+`ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / IMPLEMENTATION_BLOCKED /
+RUNTIME_NOT_RUN`. The non-self-activating exact9 carrier and paste-ready ABI/state/safety/oracles
+are `REVIEW-144-04I-A-SYNC-WORKER-READINESS.md`. Only triple precommit PASS, atomic exact9,
+triple immutable exact-SHA PASS and separate docs-only acceptance sync may authorize the ordered
+exact2 test first `backend/tests/mail/mailbox_sync_worker_test.go`, then
+`backend/internal/mail/mailbox_sync_worker.go`. Its frozen scanner preserves raw persisted UTC
+timestamp precision; fault CAS includes LeaseEpoch, checked true-result arithmetic and O(1) capped
+backoff, with total timeout/cancel paths. The worker does not amend schema/event/delivery or admit
+an API/OpenAPI route. 04F/04G remain accepted; 04H/02E, Ent/adapters/generation/migration,
+API/UI, launcher and runtime remain blocked or `NOT_RUN`; no next packet is selected.
+
 > **143-04K due-policy source receipt-sync (2026-08-21):**
 > `SOURCE_ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT15_COMMIT_REQUIRED / RUNTIME_NOT_RUN`.
 > This dirty exact15 documentation candidate grants no authority. Only after one atomic receipt-sync

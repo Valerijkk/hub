@@ -1,5 +1,19 @@
 # MAIL-SPEC — Hub mailbox and calendar synchronization contract
 
+## 144-04I-A bounded sync-worker source-authority candidate
+
+> `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / IMPLEMENTATION_BLOCKED /
+> RUNTIME_NOT_RUN`. The exact9 documentation candidate in
+> `REVIEW-144-04I-A-SYNC-WORKER-READINESS.md` is non-self-activating. Triple precommit PASS,
+> atomic exact9, triple immutable exact-SHA PASS and separate docs-only acceptance sync are all
+> required before only NEW test-first `mailbox_sync_worker_test.go`, then NEW
+> `mailbox_sync_worker.go`. It freezes the bounded worker ABI: fractional timestamp-preserving
+> DB-time ordered scanner, fixed pool/FIFO, total per-step and Wait/fault-port panic/cancel handling
+> and a full LeaseEpoch fault CAS with checked true-result arithmetic and O(1) saturating retry; no
+> direct engine/Ent/NATS/HTTP/clock.
+> 04F/04G remain accepted; 04H/02E, concrete adapter/Ent/generation/migration, API/OpenAPI/UI,
+> launcher and runtime remain blocked or `NOT_RUN`. No schema/event/delivery change or next packet.
+
 > **143-04J source-receipt sync:** `SOURCE_ACCEPTANCE_SYNC_CANDIDATE /
 > ATOMIC_EXACT14_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. These proposed receipt facts grant no
 > authority before one atomic exact14 docs commit. After it, immutable exact2

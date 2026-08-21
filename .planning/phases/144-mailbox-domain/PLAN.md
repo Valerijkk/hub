@@ -1,5 +1,17 @@
 # Phase 144 — Mailbox Domain
 
+## 144-04I-A bounded sync-worker source-authority candidate
+
+`ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / IMPLEMENTATION_BLOCKED /
+RUNTIME_NOT_RUN`: `REVIEW-144-04I-A-SYNC-WORKER-READINESS.md` is the sole exact9 authority
+candidate. Only triple precommit PASS -> atomic exact9 -> triple immutable exact-SHA PASS ->
+separate docs-only acceptance sync may authorize the ordered exact2: NEW
+`backend/tests/mail/mailbox_sync_worker_test.go`, then NEW
+`backend/internal/mail/mailbox_sync_worker.go`. It is a bounded context-owned worker over accepted
+04G only, with exact persisted-time/LeaseEpoch fault fencing and total timeout/cancel handling; it
+grants no 04H/02E/Ent/generation/migration/adapter/API/OpenAPI/UI/runtime authority.
+No source is implemented or accepted; launcher `NOT_READY`, executable evidence `NOT_RUN`.
+
 ## 144-04G source acceptance-sync candidate (2026-08-21)
 
 > **Gate:** `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT12_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty exact12 working tree grants no authority. The immutable `3031c53d399accc84fe10cd0c5421a85c089ac7c` source receipt and its Contract/Security/Lifecycle precommit plus immutable `EXACT_SHA_PASS C/I/M 0/0/0` facts are proposed only; they activate only after one atomic commit of the exact12 manifest in `IMPLEMENTATION-144-04G.md`. Only after that commit is 144-04G `STATIC_ACCEPTED / EXACT_SHA_PASS`; then, and only then, lower 04G source-authority/source-unimplemented/current-next routes are `CONSUMED/HISTORICAL`. No next Mail packet is selected. 04F remains accepted; 04H/02E, Ent/SQL/concrete adapter, generation, migration, OpenAPI and runtime remain blocked or outside authority; launcher `NOT_READY`, executables/runtime `NOT_RUN`.

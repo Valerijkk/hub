@@ -717,23 +717,36 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   or ambiguous folder receipt keeps the account degraded; only exact receipt recovery may
   activate/delete its row and permit `ready` finalization.
 
-## 144-04I — bounded sync worker lifecycle
+## 144-04I-A — bounded sync worker source-authority candidate
 
-- Dependencies: 04G/H. Allowed only `backend/internal/mail/mailbox_sync_worker.go` and
-  `backend/tests/mail/mailbox_sync_worker_test.go`.
-- One context-owned scheduler scans at most 50 due active accounts per second and runs at
-  most four account steps concurrently; one step handles at most one bounded engine page.
-  Default I/O timeout 30 seconds, lease 60 seconds and capped retry backoff 1 second to
-  5 minutes are injected/config-bounded. No goroutine per mailbox, unbounded queue or
-  overlapping local step. Multiple replicas rely on repository lease guards.
-- Disabled/unavailable engine starts no worker or probe. Cancellation stops claims, cancels
-  in-flight I/O, waits boundedly and leaves leases recoverable. Panic is isolated to the
-  account step, recorded only as safe code and rescheduled; no cursor/provider/message data
-  enters logs.
-- Oracles: due ordering/batch/concurrency caps; two-worker lease race; active command blocks
-  capture; expired command reclaim invalidates late work; sync renewal/expiry;
-  transient backoff/reset; context cancel before/during page; panic isolation; no leaked
-  goroutine/timer; disabled path zero calls. Wiring belongs to gated Phase 145 composition.
+- Controlling corrections: DueAccount carries positive `LeaseEpoch`; full fault CAS includes it and
+  exact persisted fractional timestamps. A true result is DB-time checked against `SelectedAt` and
+  retry arithmetic; false is zero. Backoff is O(1) `min(RetryMax, RetryMin*2^SyncAttempts)`;
+  MaxInt32 needed fault is zero-write too-large. Concrete empty/raw-error/panic scan behavior and
+  nil/panic `WithTimeout` paths are fail-closed, with parent cancellation taking priority.
+
+- Status: `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
+  IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. The exact9 manifest and complete frozen ABI are in
+  `REVIEW-144-04I-A-SYNC-WORKER-READINESS.md`; candidate text grants no authority. Triple
+  precommit PASS -> atomic exact9 -> triple immutable exact-SHA PASS -> separate acceptance sync
+  may authorize only NEW test first `backend/tests/mail/mailbox_sync_worker_test.go`, then NEW
+  `backend/internal/mail/mailbox_sync_worker.go`.
+- Dependencies: accepted 04F/04G. 04H/02E, Ent/concrete adapter, generation/migration, API/
+  OpenAPI/UI, launcher and runtime remain blocked; no source/schema/event/delivery change follows.
+- Enabled worker scans immediately and then only after full-batch drain: at most 50 DB-time due
+  active accounts per scan, fixed concurrency `1..4`, FIFO, exactly one timed 04G step per account,
+  no local overlap and no next scan early. Boundaries are scan `1s..5m`, step `1s..30s`, and
+  deterministic saturating retry `1s..5m`; no per-mailbox goroutine or unbounded queue.
+- Disabled accepts only the zero no-port configuration and performs zero calls. Root cancellation
+  writes no fault; deadline, panic, unavailable and invalid-result paths map to one contained full-
+  snapshot DB-time CAS including LeaseEpoch and exact fractional persisted timestamps, never a
+  cursor/epoch/projection/event/outbox/lease clear. True fault time/attempt arithmetic is checked;
+  MaxInt32 fault is zero-write too-large. Fault write failures do not abort the remaining batch and
+  never leak raw provider/panic values.
+- Oracles: exact ABI/errors/config; DB SelectedAt/order/UTC/nil/duplicate/oversize preflight;
+  fixed 50/four FIFO/drain/no-overlap; all five 04G result shapes; timeout/cancel/panic isolation;
+  saturating overflow; CAS false/two-replica/ambiguous-apply guards; deep-copy/no callback or timer
+  leak. 04H SQL/Ent/two-replica runtime evidence and composition stay separately blocked.
 
 ## 144-04R — bounded generic mutation recovery in the sync worker
 

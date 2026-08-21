@@ -1,5 +1,18 @@
 # Mail persistence contract 0.1.8
 
+## 144-04I-A bounded sync-worker authority candidate — no persistence implementation
+
+`ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / IMPLEMENTATION_BLOCKED /
+RUNTIME_NOT_RUN`. The exact9 candidate freezes only the abstract scanner and fault-CAS boundary in
+`REVIEW-144-04I-A-SYNC-WORKER-READINESS.md`. The sole future exact2 is NEW test first
+`mailbox_sync_worker_test.go`, then NEW `mailbox_sync_worker.go`, after triple precommit PASS,
+atomic exact9, triple immutable exact-SHA PASS and separate acceptance sync. Repository DB-time and
+full `(AccountID, DueAt, UpdatedAt, SyncEpoch, MutationEpoch, LeaseEpoch, SyncAttempts)` snapshot
+CAS, exact persisted timestamp precision and checked true-result arithmetic are required eventual
+adapter semantics, not a current SQL/Ent/migration change.
+04H/02E, concrete adapter, generation/migration, API/OpenAPI/UI, launcher and runtime remain
+blocked; no schema/event/outbox/lease-clear authority is created.
+
 > **143-04J source receipt:** `SOURCE_ACCEPTANCE_SYNC_CANDIDATE /
 > ATOMIC_EXACT14_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. These proposed facts activate only after one
 > atomic exact14 docs commit. Then immutable exact2 `e74efa827b52...` is
