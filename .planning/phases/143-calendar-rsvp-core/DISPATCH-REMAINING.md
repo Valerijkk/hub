@@ -277,15 +277,32 @@ makes the remaining rows independently dispatchable without duplicating the comm
 
 ## 143-04D — series RSVP
 
-- Dependencies: 04A/G. Allowed only:
-  `backend/internal/calendar/event_service_rsvp.go`,
-  `backend/tests/calendar/event_service_rsvp_test.go`.
-- Behavior: actor resolves exactly one series attendee; persisted idempotency receipt;
-  attendee-version compare; one status/version/responded_at change + outbox; external
-  organizer yields pending REPLY transport descriptor.
-- Oracles: all transitions; stale returns canonical recovery metadata for handler; same-key
-  replay; changed-key input conflict; cancelled event blocked; another attendee unchanged;
-  one outbox/version increment.
+- `STATIC_ACCEPTED` / `EXACT_SHA_PASS` only after the conditional exact2 docs receipt and
+  immutable review. The accepted linear source chain is repository seam
+  `c1932c261f29ca4ae313d39cf299e0ade313837c` (parent
+  `7531565879e0d7aa72a246407fd0e1d609a82c49`, tree
+  `7d36d49f0edfbd03434526cc1974d9c83ef685a6`, subject
+  `feat(calendar): add series RSVP repository seam`; repository blob
+  `079f68d9a1a9432b65ee88010cbc92befce23d0d`, test blob
+  `83154ef604ca725414aef3a5340e2d5c427dddf8`), amendment
+  `9332516550f8a04fc9530a9b89dd55b93d30bf54` (parent `c1932c261f29ca4ae313d39cf299e0ade313837c`,
+  tree `105f4fad3313d8db512d2bf502fdb05434c3304e`, subject
+  `fix(calendar): allow initial RSVP sequence`; final repository blob
+  `83d8b382415472b02b032dd024d34a134a6ad265`, test blob
+  `5b001e7ea9ef5968e735a56d0b69610677f08a77`), then service
+  `e9781ff6885d482b23b53455e6c8f3c07c3b8177` (parent
+  `9332516550f8a04fc9530a9b89dd55b93d30bf54`, tree
+  `e53b8f00e1c22f2ff16d7183fcf851a4e50ad1bf`, subject
+  `feat(calendar): add series RSVP service`; source blob
+  `9d27ef48aa68b7472cf4b22e427793428ab255ec`, test blob
+  `0d5f156d9d7fa90c4a30d5dae3a5032120426d79`). Contract/Security/Lifecycle
+  precommit and immutable reviews PASS C/I/M `0/0/0`; provenance
+  `dispatcher-enforced`, no fallback, telemetry `UNKNOWN`. Dirty docs cannot self-activate.
+  No next Calendar packet is selected or authorized: 143-04E is future/unselected;
+  143-04F-D is blocked behind 143-04F-Base/143-03E; Ent persistence/generation/migration,
+  HTTP/API/OpenAPI/UI, launcher and runtime remain blocked `NOT_READY`/`NOT_RUN`. Former
+  04D absent, unimplemented, and future-dispatch claims are `CONSUMED/HISTORICAL` only for
+  implementation of 143-04D itself.
 
 ## 143-04E — HTTP occurrence RSVP
 
