@@ -981,14 +981,26 @@ func TestEventTransactionOccurrenceRSVP_ResolvesCanonicalBoundSnapshots(t *testi
 		{name: "foreign organization", mutate: func(backend *occurrenceRSVPRepositoryBackend) { backend.authorization.Current.OrganizationID = rsvpRepositoryOtherID }},
 		{name: "foreign series actor", mutate: func(backend *occurrenceRSVPRepositoryBackend) { backend.authorization.SeriesAttendee.UserID = rsvpRepositoryUUIDRef(rsvpRepositoryOtherID) }},
 		{name: "foreign occurrence actor", mutate: func(backend *occurrenceRSVPRepositoryBackend) { backend.authorization.OccurrenceAttendee.UserID = rsvpRepositoryUUIDRef(rsvpRepositoryOtherID) }},
+		{name: "foreign occurrence recurrence", mutate: func(backend *occurrenceRSVPRepositoryBackend) { backend.authorization.OccurrenceAttendee.RecurrenceID = "2032-02-05" }},
+		{name: "foreign exception event", mutate: func(backend *occurrenceRSVPRepositoryBackend) { backend.authorization.Exception.EventID = rsvpRepositoryOtherID }},
+		{name: "foreign exception recurrence", mutate: func(backend *occurrenceRSVPRepositoryBackend) { backend.authorization.Exception.RecurrenceID = "2032-02-05" }},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			backend := newOccurrenceRSVPRepositoryBackend()
 			testCase.mutate(backend)
-			backend.authorization.Current.Title = "attacker-controlled-title"
-			backend.authorization.SeriesAttendee.Email = "attacker@example.test"
-			backend.authorization.OccurrenceAttendee.Email = "attacker@example.test"
-			backend.authorization.Exception.RecurrenceID = strings.Repeat("x", 255)
+			hostile := strings.Repeat("x", 255)
+			backend.authorization.Current.Title = hostile
+			backend.authorization.Current.Description = hostile
+			backend.authorization.Current.Exdates = []string{hostile}
+			backend.authorization.SeriesAttendee.Email = hostile
+			backend.authorization.SeriesAttendee.DisplayName = hostile
+			backend.authorization.OccurrenceAttendee.Email = hostile
+			backend.authorization.OccurrenceAttendee.DisplayName = hostile
+			backend.authorization.Exception.Temporal = &calendar.CalendarEvent{
+				StartsAt: time.Date(2040, time.February, 4, 4, 5, 6, 0, time.UTC),
+				EndsAt:   time.Date(2040, time.February, 4, 5, 5, 6, 0, time.UTC),
+				Timezone: hostile,
+			}
 			authorization := calendar.CalendarEventOccurrenceRSVPAuthorization{}
 			err := calendar.RunEventTransaction(backend, func(transaction *calendar.EventTransaction) error {
 				scope, err := transaction.ResolveCalendarEventOccurrenceRSVPScope(context.Background(), rsvpRepositoryActorID)
@@ -1001,8 +1013,8 @@ func TestEventTransactionOccurrenceRSVP_ResolvesCanonicalBoundSnapshots(t *testi
 			if err != nil {
 				t.Fatalf("RunEventTransaction() error = %v", err)
 			}
-			if authorization.Current.Title != "" || authorization.Current.Description != "" || authorization.SeriesAttendee.Email != "" || authorization.SeriesAttendee.DisplayName != "" || authorization.SeriesAttendee.RespondedAt != nil || authorization.OccurrenceAttendee != nil && (authorization.OccurrenceAttendee.Email != "" || authorization.OccurrenceAttendee.DisplayName != "" || authorization.OccurrenceAttendee.RecurrenceID != "" || authorization.OccurrenceAttendee.RespondedAt != nil) || authorization.Exception != nil && (authorization.Exception.RecurrenceID != "" || authorization.Exception.Temporal != nil) {
-				t.Fatalf("foreign mask retained variable material: %#v", authorization)
+			if !reflect.DeepEqual(authorization, calendar.CalendarEventOccurrenceRSVPAuthorization{}) {
+				t.Fatalf("foreign authorization mask = %#v, want exact zero mask", authorization)
 			}
 		})
 	}
@@ -1012,8 +1024,8 @@ func TestEventTransactionOccurrenceRSVP_ResolvesCanonicalBoundSnapshots(t *testi
 		mutate func(*occurrenceRSVPRepositoryBackend)
 	}{
 		{name: "malformed series", mutate: func(backend *occurrenceRSVPRepositoryBackend) { backend.authorization.SeriesAttendee.Email = " malformed@example.test " }},
-		{name: "malformed occurrence key", mutate: func(backend *occurrenceRSVPRepositoryBackend) { backend.authorization.OccurrenceAttendee.RecurrenceID = "2032-02-05" }},
-		{name: "malformed exception", mutate: func(backend *occurrenceRSVPRepositoryBackend) { backend.authorization.Exception.RecurrenceID = "2032-02-05" }},
+		{name: "malformed occurrence", mutate: func(backend *occurrenceRSVPRepositoryBackend) { backend.authorization.OccurrenceAttendee.Email = " malformed@example.test " }},
+		{name: "malformed exception", mutate: func(backend *occurrenceRSVPRepositoryBackend) { backend.authorization.Exception.Temporal = &calendar.CalendarEvent{} }},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			backend := newOccurrenceRSVPRepositoryBackend()

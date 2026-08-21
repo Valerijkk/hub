@@ -795,8 +795,8 @@ func (transaction *EventTransaction) ResolveCalendarEventSeriesRSVP(ctx context.
 
 // ResolveCalendarEventOccurrenceRSVP resolves one authoritative series
 // attendee plus an optional materialized occurrence attendee. Foreign
-// identity is reduced to fixed-size values before any variable-size event,
-// attendee or exception data is cloned.
+// identity is reduced to a deterministic zero mask before any backend data is
+// cloned.
 func (transaction *EventTransaction) ResolveCalendarEventOccurrenceRSVP(ctx context.Context, scope EventMutationScope, request CalendarEventOccurrenceRSVPAuthorizationRequest) (CalendarEventOccurrenceRSVPAuthorization, error) {
 	if transaction == nil {
 		return CalendarEventOccurrenceRSVPAuthorization{}, ErrEventTransactionClosed
@@ -820,8 +820,8 @@ func (transaction *EventTransaction) ResolveCalendarEventOccurrenceRSVP(ctx cont
 	if err != nil {
 		return CalendarEventOccurrenceRSVPAuthorization{}, err
 	}
-	if !calendarEventOccurrenceRSVPAuthorizationIdentityMatches(resolved, scope, request.EventID) {
-		return calendarEventOccurrenceRSVPAuthorizationIdentityMask(resolved), nil
+	if !calendarEventOccurrenceRSVPAuthorizationIdentityMatches(resolved, scope, request) {
+		return calendarEventOccurrenceRSVPAuthorizationIdentityMask(), nil
 	}
 	if _, err := NewCalendarEventCommand(resolved.Current); err != nil || !validCalendarEventSeriesRSVPAttendee(resolved.SeriesAttendee) {
 		return CalendarEventOccurrenceRSVPAuthorization{}, ErrEventInvalid
@@ -1888,34 +1888,18 @@ func validCalendarEventOccurrenceRSVPException(exception CalendarEventExceptionC
 	return err == nil
 }
 
-func calendarEventOccurrenceRSVPAuthorizationIdentityMatches(authorization CalendarEventOccurrenceRSVPAuthorization, scope EventMutationScope, eventID uuid.UUID) bool {
-	if authorization.Current.EventID != eventID || authorization.Current.OrganizationID != scope.organizationID || authorization.SeriesAttendee.EventID != eventID || authorization.SeriesAttendee.UserID == nil || *authorization.SeriesAttendee.UserID != scope.actorID {
+func calendarEventOccurrenceRSVPAuthorizationIdentityMatches(authorization CalendarEventOccurrenceRSVPAuthorization, scope EventMutationScope, request CalendarEventOccurrenceRSVPAuthorizationRequest) bool {
+	if authorization.Current.EventID != request.EventID || authorization.Current.OrganizationID != scope.organizationID || authorization.SeriesAttendee.EventID != request.EventID || authorization.SeriesAttendee.UserID == nil || *authorization.SeriesAttendee.UserID != scope.actorID {
 		return false
 	}
-	if authorization.OccurrenceAttendee != nil && (authorization.OccurrenceAttendee.EventID != eventID || authorization.OccurrenceAttendee.UserID == nil || *authorization.OccurrenceAttendee.UserID != scope.actorID) {
+	if authorization.OccurrenceAttendee != nil && (authorization.OccurrenceAttendee.EventID != request.EventID || authorization.OccurrenceAttendee.UserID == nil || *authorization.OccurrenceAttendee.UserID != scope.actorID || authorization.OccurrenceAttendee.RecurrenceID != request.RecurrenceID) {
 		return false
 	}
-	return authorization.Exception == nil || authorization.Exception.EventID == eventID
+	return authorization.Exception == nil || (authorization.Exception.EventID == request.EventID && authorization.Exception.RecurrenceID == request.RecurrenceID)
 }
 
-func calendarEventOccurrenceRSVPAuthorizationIdentityMask(authorization CalendarEventOccurrenceRSVPAuthorization) CalendarEventOccurrenceRSVPAuthorization {
-	masked := CalendarEventOccurrenceRSVPAuthorization{
-		Current: CalendarEventCommandInput{
-			EventID: authorization.Current.EventID, OrganizationID: authorization.Current.OrganizationID,
-		},
-		SeriesAttendee: CalendarEventSeriesRSVPAttendeeSnapshot{
-			AttendeeID: authorization.SeriesAttendee.AttendeeID, EventID: authorization.SeriesAttendee.EventID, UserID: copyUUID(authorization.SeriesAttendee.UserID),
-		},
-	}
-	if authorization.OccurrenceAttendee != nil {
-		masked.OccurrenceAttendee = &CalendarEventOccurrenceRSVPAttendeeSnapshot{
-			AttendeeID: authorization.OccurrenceAttendee.AttendeeID, EventID: authorization.OccurrenceAttendee.EventID, UserID: copyUUID(authorization.OccurrenceAttendee.UserID),
-		}
-	}
-	if authorization.Exception != nil {
-		masked.Exception = &CalendarEventExceptionCommandInput{ExceptionID: authorization.Exception.ExceptionID, EventID: authorization.Exception.EventID}
-	}
-	return masked
+func calendarEventOccurrenceRSVPAuthorizationIdentityMask() CalendarEventOccurrenceRSVPAuthorization {
+	return CalendarEventOccurrenceRSVPAuthorization{}
 }
 
 func cloneCalendarEventOccurrenceRSVPPersistenceCommand(command CalendarEventOccurrenceRSVPPersistenceCommand) CalendarEventOccurrenceRSVPPersistenceCommand {
