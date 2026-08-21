@@ -1,5 +1,17 @@
 # Calendar 143-04H occurrence-cancel source dispatch
 
+> **Source receipt-sync precedence:** `SOURCE_RECEIPT_SYNC_CANDIDATE /
+> ATOMIC_EXACT16_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty exact16 is not acceptance. It
+> records committed source `73940810046bb3186f2746705a83565ab29368c5` (parent `9a638f75745aa0fb516a1177a33cbd1c657432fe`,
+> tree `9f994a8805b43a84c00ed50b8e5544739425edaa`, subject `feat(calendar): add occurrence cancellation
+> service`), ordered test-first blobs `80e19d3b918ae9ddbe3b3ea8803c6062c2f8a713`,
+> `e0da66bf95d4b8193eb5d4034053a353bd154b66`, `2b500e5cdda34d7d80d0ccc0ba9c94427167716f`.
+> Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high precommit and immutable reviews
+> PASS C/I/M `0/0/0`; author Terra/xhigh; dispatcher-enforced/no fallback; telemetry `UNKNOWN`.
+> Only one atomic exact16 commit equal to `IMPLEMENTATION-143-04H.md` and immutable triple PASS
+> make source `STATIC_ACCEPTED / EXACT_SHA_PASS`; then lower authority/precommit/source-unaccepted/
+> current-next routes are `CONSUMED/HISTORICAL`. No next source is authorized or selected.
+
 > **Authority acceptance-sync precedence:** `AUTHORITY_ACCEPTANCE_SYNC_CANDIDATE /
 > ATOMIC_EXACT15_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This dirty exact15
 > sync is non-authoritative. Candidate `f2966bdd` has immutable Contract Terra/high, Security

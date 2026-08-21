@@ -1,5 +1,23 @@
 # Hub Mail contract changelog
 
+## 2026-08-21 - Calendar 143-04H source receipt-sync candidate
+
+`SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT16_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty
+exact16 documentation receipt grants no acceptance and makes no contract or OpenAPI semantic change.
+It records source `73940810046bb3186f2746705a83565ab29368c5` (parent
+`9a638f75745aa0fb516a1177a33cbd1c657432fe`, tree
+`9f994a8805b43a84c00ed50b8e5544739425edaa`, subject
+`feat(calendar): add occurrence cancellation service`) with authored-first test blob
+`80e19d3b918ae9ddbe3b3ea8803c6062c2f8a713`, repository
+`e0da66bf95d4b8193eb5d4034053a353bd154b66`, service
+`2b500e5cdda34d7d80d0ccc0ba9c94427167716f`. Contract Terra/high, Security Terra/xhigh and
+Lifecycle Terra/high precommit plus immutable exact-SHA reviews PASS C/I/M `0/0/0`; author
+Terra/xhigh; dispatcher-enforced/no fallback; telemetry `UNKNOWN`. Only an atomic exact16 commit
+equal to `IMPLEMENTATION-143-04H.md` plus immutable triple PASS makes it
+`STATIC_ACCEPTED / EXACT_SHA_PASS`; lower 04H authority/precommit/source-unaccepted/current-next
+clauses then are `CONSUMED/HISTORICAL`. No next packet; 04J/04K, 04F-H, Ent/adapters/handlers/API/
+UI/generation/migration/raw iTIP/launcher/runtime blocks remain unchanged.
+
 ## 2026-08-21 - Calendar 143-04H authority acceptance-sync candidate
 
 `AUTHORITY_ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT15_COMMIT_REQUIRED /

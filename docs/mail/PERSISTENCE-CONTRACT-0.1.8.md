@@ -1,5 +1,20 @@
 # Mail persistence contract 0.1.8
 
+## Calendar 143-04H source receipt-sync - no persistence activation
+
+`SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT16_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. Dirty exact16
+grants no source or persistence acceptance. Source `73940810046bb3186f2746705a83565ab29368c5`
+(parent `9a638f75745aa0fb516a1177a33cbd1c657432fe`, tree
+`9f994a8805b43a84c00ed50b8e5544739425edaa`, subject
+`feat(calendar): add occurrence cancellation service`) has authored-first test
+`80e19d3b918ae9ddbe3b3ea8803c6062c2f8a713`, repository
+`e0da66bf95d4b8193eb5d4034053a353bd154b66`, service
+`2b500e5cdda34d7d80d0ccc0ba9c94427167716f`; its static reviews PASS C/I/M `0/0/0`.
+Only atomic exact16 manifest commit plus immutable triple PASS yields `STATIC_ACCEPTED /
+EXACT_SHA_PASS`. It still authorizes no Ent/SQL/concrete adapter, lock/CAS implementation,
+generation, migration, handler/wiring or runtime. 04F-H remains sole future persistence owner;
+04J/04K are independent; launcher `NOT_READY` and executables/runtime `NOT_RUN` persist.
+
 ## Calendar 143-04H authority acceptance-sync - no persistence activation
 
 `AUTHORITY_ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT15_COMMIT_REQUIRED /

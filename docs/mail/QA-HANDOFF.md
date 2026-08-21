@@ -1,5 +1,23 @@
 # Hub Mail + Calendar Sync — QA handoff
 
+## Calendar 143-04H source receipt-sync - static only
+
+`SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT16_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. Dirty exact16
+is neither executable evidence nor acceptance. It records source
+`73940810046bb3186f2746705a83565ab29368c5` (parent
+`9a638f75745aa0fb516a1177a33cbd1c657432fe`, tree
+`9f994a8805b43a84c00ed50b8e5544739425edaa`, subject
+`feat(calendar): add occurrence cancellation service`) for authored-first test
+`80e19d3b918ae9ddbe3b3ea8803c6062c2f8a713`, repository
+`e0da66bf95d4b8193eb5d4034053a353bd154b66`, service
+`2b500e5cdda34d7d80d0ccc0ba9c94427167716f`. Contract Terra/high, Security Terra/xhigh and
+Lifecycle Terra/high precommit plus immutable exact-SHA PASS C/I/M `0/0/0`; author Terra/xhigh;
+dispatcher-enforced/no fallback; telemetry `UNKNOWN`. Only atomic exact16 manifest commit and
+immutable triple PASS yield `STATIC_ACCEPTED / EXACT_SHA_PASS`; prior 04H lower lifecycle routes
+then become `CONSUMED/HISTORICAL`. Launcher is `NOT_READY`, all executable/runtime evidence
+`NOT_RUN`; no next packet, 04F-H persistence, 04J/04K independence and all downstream blockers
+remain current.
+
 ## Calendar 143-04H authority acceptance-sync - static only
 
 `AUTHORITY_ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT15_COMMIT_REQUIRED /

@@ -5,6 +5,22 @@ milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
 last_updated: "2026-08-20T17:33:04+03:00"
+calendar_143_04h_source_receipt_sync: >-
+  Status: SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT16_COMMIT_REQUIRED /
+  RUNTIME_NOT_RUN. This dirty exact16 documentation candidate grants no source acceptance.
+  It records immutable source 73940810046bb3186f2746705a83565ab29368c5 (parent
+  9a638f75745aa0fb516a1177a33cbd1c657432fe, tree
+  9f994a8805b43a84c00ed50b8e5544739425edaa, subject feat(calendar): add occurrence
+  cancellation service): authored-first test 80e19d3b918ae9ddbe3b3ea8803c6062c2f8a713,
+  repository e0da66bf95d4b8193eb5d4034053a353bd154b66, then service
+  2b500e5cdda34d7d80d0ccc0ba9c94427167716f. Contract Terra/high, Security Terra/xhigh
+  and Lifecycle Terra/high precommit plus immutable exact-SHA reviews PASS C/I/M 0/0/0;
+  author Terra/xhigh; dispatcher-enforced/no fallback; telemetry UNKNOWN. Only after one atomic
+  exact16 commit equal to IMPLEMENTATION-143-04H.md's manifest and immutable triple PASS does
+  this source become STATIC_ACCEPTED / EXACT_SHA_PASS. Then lower 04H authority, precommit,
+  source-unaccepted and current-next clauses are CONSUMED/HISTORICAL. No next packet is selected;
+  04J/04K remain independent, 04F-H owns future persistence, and Ent/adapters/handlers/API/UI/
+  generation/migration/raw iTIP/launcher/runtime blockers remain NOT_READY or NOT_RUN.
 calendar_143_04h_authority_acceptance_sync: >-
   Status: AUTHORITY_ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT15_COMMIT_REQUIRED /
   IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN. This dirty exact15 acceptance sync grants

@@ -1,5 +1,18 @@
 # Phase 143 — Calendar RSVP Core
 
+> **143-04H source receipt-sync:** `SOURCE_RECEIPT_SYNC_CANDIDATE /
+> ATOMIC_EXACT16_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty exact16 receipt has no
+> self-activation. It records source `73940810046bb3186f2746705a83565ab29368c5` (parent
+> `9a638f75745aa0fb516a1177a33cbd1c657432fe`, tree `9f994a8805b43a84c00ed50b8e5544739425edaa`,
+> subject `feat(calendar): add occurrence cancellation service`) and ordered test-first blobs
+> `80e19d3b918ae9ddbe3b3ea8803c6062c2f8a713`, `e0da66bf95d4b8193eb5d4034053a353bd154b66`,
+> `2b500e5cdda34d7d80d0ccc0ba9c94427167716f`. Contract Terra/high, Security Terra/xhigh and
+> Lifecycle Terra/high precommit plus immutable exact-SHA PASS C/I/M `0/0/0`; author Terra/xhigh;
+> dispatcher-enforced/no fallback; telemetry `UNKNOWN`. Atomic exact16 manifest commit plus immutable
+> triple PASS is required for `STATIC_ACCEPTED / EXACT_SHA_PASS`; then lower 04H routes are
+> `CONSUMED/HISTORICAL`. No next packet; all 04F-H/Ent/adapter/handler/API/UI/generation/migration/
+> raw-iTIP/launcher/runtime blockers remain unchanged.
+
 > **143-04H authority acceptance-sync:** `AUTHORITY_ACCEPTANCE_SYNC_CANDIDATE /
 > ATOMIC_EXACT15_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. The frozen semantic
 > contract is unchanged. Dirty exact15 grants no authority; candidate `f2966bdd` has Contract

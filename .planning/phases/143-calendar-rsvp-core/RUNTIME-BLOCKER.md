@@ -1,5 +1,16 @@
 # Phase 143 code-runtime routing record
 
+> **143-04H source receipt-sync:** `SOURCE_RECEIPT_SYNC_CANDIDATE /
+> ATOMIC_EXACT16_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. Dirty exact16 receipt sync is no runtime
+> authority. Source `73940810046bb3186f2746705a83565ab29368c5` (parent
+> `9a638f75745aa0fb516a1177a33cbd1c657432fe`, tree
+> `9f994a8805b43a84c00ed50b8e5544739425edaa`, subject `feat(calendar): add occurrence cancellation
+> service`) has ordered test-first blobs `80e19d3b918ae9ddbe3b3ea8803c6062c2f8a713`,
+> `e0da66bf95d4b8193eb5d4034053a353bd154b66`, `2b500e5cdda34d7d80d0ccc0ba9c94427167716f` and
+> source reviews PASS C/I/M `0/0/0`. Only atomic exact16 manifest commit plus immutable triple PASS
+> can mark it `STATIC_ACCEPTED / EXACT_SHA_PASS`; launcher stays `NOT_READY`, all executables and
+> runtime `NOT_RUN`. It lifts no 04F-H/Ent/adapter/handler/API/UI/generation/migration/raw-iTIP gate.
+
 > **143-04H authority acceptance-sync:** `AUTHORITY_ACCEPTANCE_SYNC_CANDIDATE /
 > ATOMIC_EXACT15_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. Dirty sync bytes do
 > not lift any runtime gate. Candidate `f2966bdd` has Contract Terra/high, Security Terra/xhigh and

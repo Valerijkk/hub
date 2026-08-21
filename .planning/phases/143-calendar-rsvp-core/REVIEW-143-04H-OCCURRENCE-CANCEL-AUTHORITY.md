@@ -1,5 +1,33 @@
 # Calendar 143-04H occurrence cancellation authority candidate
 
+> **Source receipt-sync status:** `SOURCE_RECEIPT_SYNC_CANDIDATE /
+> ATOMIC_EXACT16_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty exact16 receipt grants no
+> acceptance. It records immutable source `73940810046bb3186f2746705a83565ab29368c5` (parent
+> `9a638f75745aa0fb516a1177a33cbd1c657432fe`, tree
+> `9f994a8805b43a84c00ed50b8e5544739425edaa`, subject
+> `feat(calendar): add occurrence cancellation service`), ordered authored-first test
+> `80e19d3b918ae9ddbe3b3ea8803c6062c2f8a713`, repository
+> `e0da66bf95d4b8193eb5d4034053a353bd154b66`, service
+> `2b500e5cdda34d7d80d0ccc0ba9c94427167716f`. Contract Terra/high, Security Terra/xhigh and
+> Lifecycle Terra/high precommit plus immutable exact-SHA reviews PASS C/I/M `0/0/0`; author
+> Terra/xhigh; dispatcher-enforced/no fallback; telemetry `UNKNOWN`. Only atomic exact16 commit
+> equal to `IMPLEMENTATION-143-04H.md` plus immutable triple PASS makes this source
+> `STATIC_ACCEPTED / EXACT_SHA_PASS`; only then are lower authority/precommit/source-unaccepted/
+> current-next clauses `CONSUMED/HISTORICAL`. No next packet is selected and no runtime gate lifts.
+
+## Receipt-sync manifest
+
+The acceptance-sync commit must modify exactly the following ordered 16 paths: `.planning/STATE.md`;
+`.planning/decisions/specs/MAIL-SPEC.md`; `.planning/phases/143-calendar-rsvp-core/.continue-here.md`;
+`DISPATCH-143-04H.md`; `DISPATCH-INDEX.md`; `DISPATCH-REMAINING.md`; new
+`IMPLEMENTATION-143-04H.md`; `PLAN.md`; `PREIMPLEMENTATION-READINESS.md`; this review;
+`RUNTIME-BLOCKER.md`; `docs/mail/CONTRACT-CHANGELOG.md`; `docs/mail/PERSISTENCE-CONTRACT-0.1.8.md`;
+`docs/mail/QA-HANDOFF.md`; `docs/mail/events-v1.schema.json`; and `docs/mail/openapi.yaml`.
+Its diff must equal that manifest exactly. The schema and OpenAPI entries are status metadata only;
+their semantic operation/event contracts are unchanged. 04J/04K remain independent, 04F-H retains
+future persistence ownership, and Ent/adapters/handlers/API/UI/generation/migration/raw iTIP/
+launcher/runtime remain blocked.
+
 > **Authority acceptance-sync status:** `AUTHORITY_ACCEPTANCE_SYNC_CANDIDATE /
 > ATOMIC_EXACT15_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`.
 > This dirty exact15 sync cannot self-activate and grants no authority before one atomic exact15
