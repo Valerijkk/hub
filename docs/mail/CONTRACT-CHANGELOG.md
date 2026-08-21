@@ -1,5 +1,13 @@
 # Hub Mail contract changelog
 
+## 2026-08-21 - Mail 144-04A owner-resolution seam immutable source receipt
+
+> **Narrow receipt / precedence:** `STATIC_ACCEPTED / EXACT_SHA_PASS` applies only to immutable source `7531565879e0d7aa72a246407fd0e1d609a82c49` (parent `2932748df0d6efdcff4f51a3b0eae2b4b3dd3d7b`, tree `448a6db855ba1b3a6873253967c789def305cda4`, subject `feat(mail): add owner resolution seam`): ordered blobs repository `4520db07c57e80faf6318a1444eb5e2aaf51355b`, service `d33a5911fd8a9ec5d14bf2ecddaaa321c5c6b50a`, test `2b414cbd1edece218976699d2777a80f51bd057b`. Contract, Security and Lifecycle precommit plus immutable reviews PASS C/I/M `0/0/0`; provenance `dispatcher-enforced`, Terra high/xhigh/high as applicable, no fallback, telemetry `UNKNOWN`.
+
+This receipt consumes only lower claims that abstract `mailbox_repository.go`, the owner port or the owner seam is absent or unimplemented. It does not consume current claims that concrete sync primitives, `mailbox_ent_repository.go`, an Ent adapter, SQL, 144-04H, 144-02E, generation or migration remain absent, unimplemented, blocked or separately gated.
+
+This dirty exact6 documentation packet is `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT6_COMMIT_REQUIRED / IMMUTABLE_REVIEW_REQUIRED / RUNTIME_NOT_RUN`; it cannot self-activate. No HTTP/API/UI/wiring, runtime, product, phase or release authority follows. Launcher remains `NOT_READY`; all executables, generation, migration and runtime remain `NOT_RUN`; the external-framework handoff remains a gate.
+
 ## 2026-08-21 - Calendar 143-04H source receipt-sync candidate
 
 > **Current receipt precedence:** Calendar 143-04H source `73940810046bb3186f2746705a83565ab29368c5` is `STATIC_ACCEPTED / EXACT_SHA_PASS` because exact16 receipt `f9f5d436c08737eeb5a3e965137f329f3ae7f627` is ancestral to HEAD. Mail 144-04I-A source `091f2ef286a71f506e1b048f5386fd37cefa06bc` is `STATIC_ACCEPTED / EXACT_SHA_PASS` because exact10 receipt `03674eace728642fc2c9b39d2e8e2c81bf016033` is ancestral to HEAD. The two named conditional receipt blocks below are `CONSUMED/HISTORICAL` only for their packets. Both preserve PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback and telemetry `UNKNOWN`; no next packet, generation, migration, adapter, API/UI, launcher or runtime authority follows.
