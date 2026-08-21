@@ -974,6 +974,48 @@ func TestEventTransactionOccurrenceRSVP_ResolvesCanonicalBoundSnapshots(t *testi
 	}
 
 	for _, testCase := range []struct {
+		name      string
+		mutate    func(*occurrenceRSVPRepositoryBackend)
+		wantError error
+	}{
+		{name: "different valid occurrence recurrence", mutate: func(backend *occurrenceRSVPRepositoryBackend) { backend.authorization.OccurrenceAttendee.RecurrenceID = "2032-02-05" }},
+		{name: "different valid exception recurrence", mutate: func(backend *occurrenceRSVPRepositoryBackend) { backend.authorization.Exception.RecurrenceID = "2032-02-05" }},
+		{name: "malformed occurrence recurrence", mutate: func(backend *occurrenceRSVPRepositoryBackend) { backend.authorization.OccurrenceAttendee.RecurrenceID = "2032-02-04T04:05:06+00:00" }, wantError: calendar.ErrEventInvalid},
+		{name: "oversized occurrence recurrence", mutate: func(backend *occurrenceRSVPRepositoryBackend) { backend.authorization.OccurrenceAttendee.RecurrenceID = strings.Repeat("x", 256) }, wantError: calendar.ErrEventInvalid},
+		{name: "malformed exception recurrence", mutate: func(backend *occurrenceRSVPRepositoryBackend) { backend.authorization.Exception.RecurrenceID = "2032-02-04T04:05:06+00:00" }, wantError: calendar.ErrEventInvalid},
+		{name: "oversized exception recurrence", mutate: func(backend *occurrenceRSVPRepositoryBackend) { backend.authorization.Exception.RecurrenceID = strings.Repeat("x", 256) }, wantError: calendar.ErrEventInvalid},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			backend := newOccurrenceRSVPRepositoryBackend()
+			testCase.mutate(backend)
+			authorization := calendar.CalendarEventOccurrenceRSVPAuthorization{}
+			err := calendar.RunEventTransaction(backend, func(transaction *calendar.EventTransaction) error {
+				scope, err := transaction.ResolveCalendarEventOccurrenceRSVPScope(context.Background(), rsvpRepositoryActorID)
+				if err != nil {
+					return err
+				}
+				authorization, err = transaction.ResolveCalendarEventOccurrenceRSVP(context.Background(), scope, calendar.CalendarEventOccurrenceRSVPAuthorizationRequest{EventID: rsvpRepositoryEventID, RecurrenceID: "2032-02-04"})
+				return err
+			})
+			if testCase.wantError != nil {
+				if !errors.Is(err, testCase.wantError) {
+					t.Fatalf("ResolveCalendarEventOccurrenceRSVP() error = %v, want %v", err, testCase.wantError)
+				}
+				if !reflect.DeepEqual(authorization, calendar.CalendarEventOccurrenceRSVPAuthorization{}) {
+					t.Fatalf("invalid recurrence authorization = %#v, want zero", authorization)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("ResolveCalendarEventOccurrenceRSVP() error = %v", err)
+			}
+			if !reflect.DeepEqual(authorization, calendar.CalendarEventOccurrenceRSVPAuthorization{}) {
+				t.Fatalf("different recurrence authorization = %#v, want exact zero mask", authorization)
+			}
+		})
+	}
+
+	for _, testCase := range []struct {
 		name   string
 		mutate func(*occurrenceRSVPRepositoryBackend)
 	}{
@@ -981,9 +1023,7 @@ func TestEventTransactionOccurrenceRSVP_ResolvesCanonicalBoundSnapshots(t *testi
 		{name: "foreign organization", mutate: func(backend *occurrenceRSVPRepositoryBackend) { backend.authorization.Current.OrganizationID = rsvpRepositoryOtherID }},
 		{name: "foreign series actor", mutate: func(backend *occurrenceRSVPRepositoryBackend) { backend.authorization.SeriesAttendee.UserID = rsvpRepositoryUUIDRef(rsvpRepositoryOtherID) }},
 		{name: "foreign occurrence actor", mutate: func(backend *occurrenceRSVPRepositoryBackend) { backend.authorization.OccurrenceAttendee.UserID = rsvpRepositoryUUIDRef(rsvpRepositoryOtherID) }},
-		{name: "foreign occurrence recurrence", mutate: func(backend *occurrenceRSVPRepositoryBackend) { backend.authorization.OccurrenceAttendee.RecurrenceID = "2032-02-05" }},
 		{name: "foreign exception event", mutate: func(backend *occurrenceRSVPRepositoryBackend) { backend.authorization.Exception.EventID = rsvpRepositoryOtherID }},
-		{name: "foreign exception recurrence", mutate: func(backend *occurrenceRSVPRepositoryBackend) { backend.authorization.Exception.RecurrenceID = "2032-02-05" }},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			backend := newOccurrenceRSVPRepositoryBackend()
@@ -1043,6 +1083,167 @@ func TestEventTransactionOccurrenceRSVP_ResolvesCanonicalBoundSnapshots(t *testi
 			})
 			if err != nil {
 				t.Fatalf("RunEventTransaction() error = %v", err)
+			}
+		})
+	}
+}
+
+func TestEventTransactionOccurrenceRSVP_ResolvesCancellationAndBoundedPrecedence(t *testing.T) {
+	request := calendar.CalendarEventOccurrenceRSVPAuthorizationRequest{EventID: rsvpRepositoryEventID, RecurrenceID: "2032-02-04"}
+	resolve := func(t *testing.T, backend *occurrenceRSVPRepositoryBackend) (calendar.CalendarEventOccurrenceRSVPAuthorization, error) {
+		t.Helper()
+		var authorization calendar.CalendarEventOccurrenceRSVPAuthorization
+		err := calendar.RunEventTransaction(backend, func(transaction *calendar.EventTransaction) error {
+			scope, err := transaction.ResolveCalendarEventOccurrenceRSVPScope(context.Background(), rsvpRepositoryActorID)
+			if err != nil {
+				return err
+			}
+			authorization, err = transaction.ResolveCalendarEventOccurrenceRSVP(context.Background(), scope, request)
+			return err
+		})
+		return authorization, err
+	}
+
+	t.Run("cancelled master returns fixed sanitized authorization before variable validation", func(t *testing.T) {
+		backend := newOccurrenceRSVPRepositoryBackend()
+		hostile := strings.Repeat("x", 255)
+		hostileRecurrence := strings.Repeat("x", 256)
+		backend.authorization.Current.Status = calendar.CalendarEventStatusCancelled
+		backend.authorization.Current.Title = hostile
+		backend.authorization.Current.Description = hostile
+		backend.authorization.Current.Temporal = calendar.CalendarEvent{}
+		backend.authorization.Current.Exdates = make([]string, 1001)
+		for index := range backend.authorization.Current.Exdates {
+			backend.authorization.Current.Exdates[index] = hostile
+		}
+		backend.authorization.SeriesAttendee.Email = hostile
+		backend.authorization.SeriesAttendee.DisplayName = hostile
+		backend.authorization.OccurrenceAttendee.Email = hostile
+		backend.authorization.OccurrenceAttendee.DisplayName = hostile
+		backend.authorization.OccurrenceAttendee.RecurrenceID = hostileRecurrence
+		backend.authorization.Exception.RecurrenceID = hostileRecurrence
+		backend.authorization.Exception.Temporal = &calendar.CalendarEvent{}
+
+		authorization, err := resolve(t, backend)
+		if err != nil {
+			t.Fatalf("ResolveCalendarEventOccurrenceRSVP() error = %v", err)
+		}
+		expected := calendar.CalendarEventOccurrenceRSVPAuthorization{
+			Current: calendar.CalendarEventCommandInput{
+				EventID: rsvpRepositoryEventID, OrganizationID: rsvpRepositoryOrganizationID, Status: calendar.CalendarEventStatusCancelled,
+			},
+			SeriesAttendee: calendar.CalendarEventSeriesRSVPAttendeeSnapshot{
+				AttendeeID: rsvpRepositoryAttendeeID, EventID: rsvpRepositoryEventID, UserID: rsvpRepositoryUUIDRef(rsvpRepositoryActorID),
+			},
+		}
+		if !reflect.DeepEqual(authorization, expected) {
+			t.Fatalf("cancelled master authorization = %#v, want %#v", authorization, expected)
+		}
+		*authorization.SeriesAttendee.UserID = rsvpRepositoryOtherID
+		if backend.authorization.SeriesAttendee.UserID == nil || *backend.authorization.SeriesAttendee.UserID != rsvpRepositoryActorID {
+			t.Fatalf("sanitized authorization retained backend attendee alias: %#v", backend.authorization.SeriesAttendee)
+		}
+	})
+
+	t.Run("live master rejects oversized exdates before clone", func(t *testing.T) {
+		backend := newOccurrenceRSVPRepositoryBackend()
+		backend.authorization.Current.Exdates = make([]string, 1001)
+		for index := range backend.authorization.Current.Exdates {
+			backend.authorization.Current.Exdates[index] = "2032-02-04T04:05:06Z"
+		}
+		authorization, err := resolve(t, backend)
+		if !errors.Is(err, calendar.ErrEventInvalid) {
+			t.Fatalf("ResolveCalendarEventOccurrenceRSVP() error = %v, want invalid", err)
+		}
+		if !reflect.DeepEqual(authorization, calendar.CalendarEventOccurrenceRSVPAuthorization{}) {
+			t.Fatalf("oversized exdates authorization = %#v, want zero", authorization)
+		}
+	})
+
+	t.Run("live master accepts maximum exdate bound", func(t *testing.T) {
+		backend := newOccurrenceRSVPRepositoryBackend()
+		backend.authorization.Current.Exdates = make([]string, 1000)
+		for index := range backend.authorization.Current.Exdates {
+			backend.authorization.Current.Exdates[index] = "2032-02-04T04:05:06Z"
+		}
+		authorization, err := resolve(t, backend)
+		if err != nil {
+			t.Fatalf("ResolveCalendarEventOccurrenceRSVP() error = %v", err)
+		}
+		if len(authorization.Current.Exdates) != 1000 {
+			t.Fatalf("maximum exdates = %d, want 1000", len(authorization.Current.Exdates))
+		}
+	})
+
+	t.Run("cancelled exception sanitizes hostile temporal", func(t *testing.T) {
+		backend := newOccurrenceRSVPRepositoryBackend()
+		backend.authorization.Exception.Cancelled = true
+		backend.authorization.Exception.Status = calendar.CalendarEventStatusCancelled
+		backend.authorization.Exception.Temporal = &calendar.CalendarEvent{}
+
+		authorization, err := resolve(t, backend)
+		if err != nil {
+			t.Fatalf("ResolveCalendarEventOccurrenceRSVP() error = %v", err)
+		}
+		if authorization.Exception == nil {
+			t.Fatal("cancelled exception was not returned")
+		}
+		expected := calendar.CalendarEventExceptionCommandInput{
+			ExceptionID: rsvpRepositoryEnvelopeID, EventID: rsvpRepositoryEventID, RecurrenceID: "2032-02-04", Sequence: 6,
+			Status: calendar.CalendarEventStatusCancelled, Cancelled: true,
+		}
+		if !reflect.DeepEqual(*authorization.Exception, expected) {
+			t.Fatalf("cancelled exception = %#v, want %#v", *authorization.Exception, expected)
+		}
+		if backend.authorization.Exception.Temporal == nil {
+			t.Fatal("cancelled exception unexpectedly changed backend temporal")
+		}
+	})
+
+	for _, testCase := range []struct {
+		name      string
+		status    calendar.CalendarEventStatus
+		temporal  *calendar.CalendarEvent
+		wantNil   bool
+	}{
+		{name: "confirmed nil temporal", status: calendar.CalendarEventStatusConfirmed, wantNil: true},
+		{name: "tentative nil temporal", status: calendar.CalendarEventStatusTentative, wantNil: true},
+		{name: "tentative valid temporal", status: calendar.CalendarEventStatusTentative, temporal: &calendar.CalendarEvent{StartsAt: time.Date(2032, time.February, 4, 4, 5, 6, 0, time.UTC), EndsAt: time.Date(2032, time.February, 4, 5, 5, 6, 0, time.UTC), Timezone: "UTC"}},
+	} {
+		t.Run("live exception "+testCase.name, func(t *testing.T) {
+			backend := newOccurrenceRSVPRepositoryBackend()
+			backend.authorization.Exception.Cancelled = false
+			backend.authorization.Exception.Status = testCase.status
+			backend.authorization.Exception.Temporal = testCase.temporal
+			authorization, err := resolve(t, backend)
+			if err != nil {
+				t.Fatalf("ResolveCalendarEventOccurrenceRSVP() error = %v", err)
+			}
+			if authorization.Exception == nil || authorization.Exception.Status != testCase.status || authorization.Exception.Cancelled || (testCase.wantNil && authorization.Exception.Temporal != nil) || (!testCase.wantNil && (authorization.Exception.Temporal == nil || authorization.Exception.Temporal.Validate() != nil)) {
+				t.Fatalf("live exception = %#v", authorization.Exception)
+			}
+		})
+	}
+
+	for _, testCase := range []struct {
+		name   string
+		mutate func(*calendar.CalendarEventExceptionCommandInput)
+	}{
+		{name: "zero exception id", mutate: func(exception *calendar.CalendarEventExceptionCommandInput) { exception.ExceptionID = uuid.Nil }},
+		{name: "future exception sequence", mutate: func(exception *calendar.CalendarEventExceptionCommandInput) { exception.Sequence = 7 }},
+		{name: "live cancelled status", mutate: func(exception *calendar.CalendarEventExceptionCommandInput) { exception.Status = calendar.CalendarEventStatusCancelled }},
+		{name: "cancelled confirmed status", mutate: func(exception *calendar.CalendarEventExceptionCommandInput) { exception.Cancelled = true }},
+		{name: "malformed live temporal", mutate: func(exception *calendar.CalendarEventExceptionCommandInput) { exception.Temporal = &calendar.CalendarEvent{} }},
+	} {
+		t.Run("malformed exception "+testCase.name, func(t *testing.T) {
+			backend := newOccurrenceRSVPRepositoryBackend()
+			testCase.mutate(backend.authorization.Exception)
+			authorization, err := resolve(t, backend)
+			if !errors.Is(err, calendar.ErrEventInvalid) {
+				t.Fatalf("ResolveCalendarEventOccurrenceRSVP() error = %v, want invalid", err)
+			}
+			if !reflect.DeepEqual(authorization, calendar.CalendarEventOccurrenceRSVPAuthorization{}) {
+				t.Fatalf("malformed exception authorization = %#v, want zero", authorization)
 			}
 		})
 	}
