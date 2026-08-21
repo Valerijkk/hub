@@ -4,8 +4,10 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/json"
+	"reflect"
 	"strings"
 	"sync"
+	"time"
 	"unicode/utf8"
 
 	"github.com/google/uuid"
@@ -47,6 +49,41 @@ type CalendarEventUpdateAuthorizationRequest struct {
 type CalendarEventUpdateTransactionBackend interface {
 	ResolveCalendarEventUpdate(context.Context, EventMutationScope, CalendarEventUpdateAuthorizationRequest) (CalendarEventUpdateAuthorization, error)
 	PersistCalendarEventUpdate(context.Context, EventMutationScope, CalendarEventUpdatePersistenceCommand) (CalendarEventUpdatePersistenceResult, error)
+}
+
+// CalendarEventOccurrenceCancelAuthorizationRequest carries only the master
+// identity and canonical occurrence key. The optional backend owns every
+// current master, attendee and existing-exception value.
+type CalendarEventOccurrenceCancelAuthorizationRequest struct {
+	EventID      uuid.UUID
+	RecurrenceID string
+}
+
+// CalendarEventOccurrenceCancelAttendeeSnapshot is the minimal authoritative
+// attendee state required to form the content-free cancellation recipient set.
+type CalendarEventOccurrenceCancelAttendeeSnapshot struct {
+	AttendeeID uuid.UUID
+	EventID    uuid.UUID
+	UserID     *uuid.UUID
+	Status     RSVPStatus
+	Version    uint
+	RemovedAt  *time.Time
+}
+
+// CalendarEventOccurrenceCancelAuthorization is resolved in the same scoped
+// transaction as the eventual compare-and-swap persistence boundary.
+type CalendarEventOccurrenceCancelAuthorization struct {
+	Current    CalendarEventCommandInput
+	Attendees  []CalendarEventOccurrenceCancelAttendeeSnapshot
+	Exception  *CalendarEventExceptionCommandInput
+}
+
+// CalendarEventOccurrenceCancelTransactionBackend is deliberately optional:
+// it preserves every existing repository adapter ABI until its one atomic
+// occurrence-cancellation implementation is available.
+type CalendarEventOccurrenceCancelTransactionBackend interface {
+	ResolveCalendarEventOccurrenceCancel(context.Context, EventMutationScope, CalendarEventOccurrenceCancelAuthorizationRequest) (CalendarEventOccurrenceCancelAuthorization, error)
+	PersistCalendarEventOccurrenceCancel(context.Context, EventMutationScope, CalendarEventOccurrenceCancelPersistenceCommand) (CalendarEventOccurrenceCancelPersistenceResult, error)
 }
 
 // CalendarEventCreateAttendeeCandidate is an untrusted create-time attendee
@@ -209,6 +246,37 @@ func (transaction *EventTransaction) ResolveCalendarEventUpdateScope(ctx context
 	}, nil
 }
 
+// ResolveCalendarEventOccurrenceCancelScope first proves support for the
+// optional port. In particular it makes no actor-organization backend call
+// when a legacy backend lacks the occurrence-cancel capability.
+func (transaction *EventTransaction) ResolveCalendarEventOccurrenceCancelScope(ctx context.Context, actorID uuid.UUID) (EventMutationScope, error) {
+	if transaction == nil {
+		return EventMutationScope{}, ErrEventTransactionClosed
+	}
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+	if !transaction.active || transaction.backend == nil {
+		return EventMutationScope{}, ErrEventTransactionClosed
+	}
+	backend, supported := transaction.backend.(CalendarEventOccurrenceCancelTransactionBackend)
+	if !supported || nilCalendarEventOccurrenceCancelTransactionBackend(backend) {
+		return EventMutationScope{}, ErrEventInvalid
+	}
+	if actorID == uuid.Nil {
+		return EventMutationScope{}, ErrEventInvalid
+	}
+	organizationID, err := transaction.backend.ResolveActorOrganization(ctx, actorID)
+	if err != nil || organizationID == uuid.Nil {
+		return EventMutationScope{}, ErrEventForbidden
+	}
+	return EventMutationScope{
+		actorID:        actorID,
+		organizationID: organizationID,
+		eventOperation: EventMutationCalendarOccurrenceCancel,
+		transaction:    transaction,
+	}, nil
+}
+
 // ResolveCalendarEventCreateAuthorization resolves create identities only
 // while the transaction and its scope are still live. Both the input and
 // output are copied so neither callers nor backends can retain mutable aliases.
@@ -254,6 +322,53 @@ func (transaction *EventTransaction) ResolveCalendarEventUpdate(ctx context.Cont
 		return CalendarEventUpdateAuthorization{}, err
 	}
 	return cloneCalendarEventUpdateAuthorization(resolved), nil
+}
+
+// ResolveCalendarEventOccurrenceCancel resolves a frozen authoritative
+// snapshot only during an active receipt-free occurrence-cancel scope.
+func (transaction *EventTransaction) ResolveCalendarEventOccurrenceCancel(ctx context.Context, scope EventMutationScope, request CalendarEventOccurrenceCancelAuthorizationRequest) (CalendarEventOccurrenceCancelAuthorization, error) {
+	if transaction == nil {
+		return CalendarEventOccurrenceCancelAuthorization{}, ErrEventTransactionClosed
+	}
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+	if !transaction.active || transaction.backend == nil {
+		return CalendarEventOccurrenceCancelAuthorization{}, ErrEventTransactionClosed
+	}
+	backend, supported := transaction.backend.(CalendarEventOccurrenceCancelTransactionBackend)
+	if !supported || nilCalendarEventOccurrenceCancelTransactionBackend(backend) {
+		return CalendarEventOccurrenceCancelAuthorization{}, ErrEventInvalid
+	}
+	if err := transaction.validateScope(scope); err != nil {
+		return CalendarEventOccurrenceCancelAuthorization{}, err
+	}
+	// This seam may reject only fixed-shape identity and hostile byte ingress
+	// before the owner/org-scoped resolve. Temporal canonicalization and nominal
+	// membership deliberately wait for the authoritative master so a foreign
+	// event cannot distinguish a malformed-but-ingress-valid recurrence key.
+	if scope.eventOperation != EventMutationCalendarOccurrenceCancel || request.EventID == uuid.Nil || !validCalendarEventOccurrenceCancelIngress(request.RecurrenceID) {
+		return CalendarEventOccurrenceCancelAuthorization{}, ErrEventInvalid
+	}
+	resolved, err := backend.ResolveCalendarEventOccurrenceCancel(ctx, scope, cloneCalendarEventOccurrenceCancelAuthorizationRequest(request))
+	if err != nil {
+		return CalendarEventOccurrenceCancelAuthorization{}, err
+	}
+	// Identity is intentionally sampled before cloning variable-size backend
+	// material. This preserves the service's nondisclosing mask for forged or
+	// hostile foreign snapshots without allocating their attacker-controlled
+	// recurrence, attendee or exception values.
+	if resolved.Current.EventID != request.EventID || resolved.Current.OrganizationID != scope.organizationID || resolved.Current.OwnerID != scope.actorID || resolved.Current.OrganizerID == nil || *resolved.Current.OrganizerID != scope.actorID {
+		return CalendarEventOccurrenceCancelAuthorization{Current: CalendarEventCommandInput{
+			EventID: resolved.Current.EventID, OrganizationID: resolved.Current.OrganizationID, OwnerID: resolved.Current.OwnerID, OrganizerID: copyUUID(resolved.Current.OrganizerID),
+		}}, nil
+	}
+	// Only an identity-bound snapshot is allowed to consume variable-size
+	// cloning work. The caps are adapter ingress guards; the service repeats the
+	// checks before any policy traversal for defense in depth.
+	if len(resolved.Current.Exdates) > calendarCreateMaxExdates || len(resolved.Attendees) > calendarCreateMaxAttendees {
+		return CalendarEventOccurrenceCancelAuthorization{}, ErrEventInvalid
+	}
+	return cloneCalendarEventOccurrenceCancelAuthorization(resolved), nil
 }
 
 // ReserveMutationReceipt резервирует или воспроизводит квитанцию только в переданной transaction scope.
@@ -404,6 +519,39 @@ func (transaction *EventTransaction) PersistCalendarEventUpdate(ctx context.Cont
 	return cloneCalendarEventUpdatePersistenceResult(result), nil
 }
 
+// PersistCalendarEventOccurrenceCancel is the sole occurrence-cancel write
+// boundary. It accepts and returns immutable snapshots so aliases cannot cross
+// the transaction seam.
+func (transaction *EventTransaction) PersistCalendarEventOccurrenceCancel(ctx context.Context, scope EventMutationScope, command CalendarEventOccurrenceCancelPersistenceCommand) (CalendarEventOccurrenceCancelPersistenceResult, error) {
+	if transaction == nil {
+		return CalendarEventOccurrenceCancelPersistenceResult{}, ErrEventTransactionClosed
+	}
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+	if !transaction.active || transaction.backend == nil {
+		return CalendarEventOccurrenceCancelPersistenceResult{}, ErrEventTransactionClosed
+	}
+	backend, supported := transaction.backend.(CalendarEventOccurrenceCancelTransactionBackend)
+	if !supported || nilCalendarEventOccurrenceCancelTransactionBackend(backend) {
+		return CalendarEventOccurrenceCancelPersistenceResult{}, ErrEventInvalid
+	}
+	if err := transaction.validateScope(scope); err != nil {
+		return CalendarEventOccurrenceCancelPersistenceResult{}, err
+	}
+	event := command.Event().Snapshot()
+	if scope.eventOperation != EventMutationCalendarOccurrenceCancel || !command.valid() || event.OrganizationID != scope.organizationID || event.OwnerID != scope.actorID || event.OrganizerID == nil || *event.OrganizerID != scope.actorID {
+		return CalendarEventOccurrenceCancelPersistenceResult{}, ErrEventInvalid
+	}
+	result, err := backend.PersistCalendarEventOccurrenceCancel(ctx, scope, cloneCalendarEventOccurrenceCancelPersistenceCommand(command))
+	if err != nil {
+		return CalendarEventOccurrenceCancelPersistenceResult{}, err
+	}
+	if !result.valid() {
+		return CalendarEventOccurrenceCancelPersistenceResult{}, ErrEventInvalid
+	}
+	return cloneCalendarEventOccurrenceCancelPersistenceResult(result), nil
+}
+
 // AppendOutbox добавляет только полный accepted EnvelopeV1 внутри transaction scope.
 func (transaction *EventTransaction) AppendOutbox(ctx context.Context, scope EventMutationScope, descriptor EventOutboxDescriptor) error {
 	if transaction == nil {
@@ -516,6 +664,7 @@ const (
 	EventMutationRSVPSeries       EventMutationOperation = "rsvp_series"
 	EventMutationRSVPOccurrence   EventMutationOperation = "rsvp_occurrence"
 	EventMutationCalendarUpdate   EventMutationOperation = "event_update"
+	EventMutationCalendarOccurrenceCancel EventMutationOperation = "event_occurrence_cancel"
 )
 
 // MutationReceiptHash хранит только SHA-256 производного ключа или канонического запроса.
@@ -773,6 +922,11 @@ func (command CalendarEventCommand) Version() uint { return command.input.Versio
 // Exdates возвращает свежую копию исключённых recurrence значений.
 func (command CalendarEventCommand) Exdates() []string { return append([]string(nil), command.input.Exdates...) }
 
+// Snapshot returns an isolated full event input for a follow-on atomic command.
+func (command CalendarEventCommand) Snapshot() CalendarEventCommandInput {
+	return cloneCalendarEventCommandInput(command.input)
+}
+
 func (command CalendarEventCommand) valid() bool {
 	_, err := NewCalendarEventCommand(command.input)
 	return err == nil
@@ -871,6 +1025,11 @@ func (command CalendarEventExceptionCommand) EventID() uuid.UUID { return comman
 
 // Sequence возвращает sequence exception.
 func (command CalendarEventExceptionCommand) Sequence() uint { return command.input.Sequence }
+
+// Snapshot returns an isolated exception input, including any temporal value.
+func (command CalendarEventExceptionCommand) Snapshot() CalendarEventExceptionCommandInput {
+	return cloneCalendarEventExceptionCommandInput(command.input)
+}
 
 func (command CalendarEventExceptionCommand) valid() bool {
 	_, err := NewCalendarEventExceptionCommand(command.input)
@@ -972,7 +1131,10 @@ func validEventMutationScope(scope EventMutationScope) bool {
 	if operation, found := eventMutationOperationForReceipt(scope.receiptOperation); found {
 		return scope.eventOperation == operation
 	}
-	return scope.receiptOperation == "" && scope.eventOperation == EventMutationCalendarUpdate
+	if scope.receiptOperation != "" {
+		return false
+	}
+	return scope.eventOperation == EventMutationCalendarUpdate || scope.eventOperation == EventMutationCalendarOccurrenceCancel
 }
 
 func validCalendarEventSource(source CalendarEventSource) bool {
@@ -997,4 +1159,57 @@ func copyInt(value *int) *int {
 	if value == nil { return nil }
 	copied := *value
 	return &copied
+}
+
+func cloneCalendarEventOccurrenceCancelAuthorizationRequest(request CalendarEventOccurrenceCancelAuthorizationRequest) CalendarEventOccurrenceCancelAuthorizationRequest {
+	return CalendarEventOccurrenceCancelAuthorizationRequest{EventID: request.EventID, RecurrenceID: request.RecurrenceID}
+}
+
+func cloneCalendarEventOccurrenceCancelAuthorization(authorization CalendarEventOccurrenceCancelAuthorization) CalendarEventOccurrenceCancelAuthorization {
+	cloned := authorization
+	cloned.Current = cloneCalendarEventCommandInput(authorization.Current)
+	if authorization.Attendees == nil {
+		cloned.Attendees = nil
+	} else {
+		cloned.Attendees = make([]CalendarEventOccurrenceCancelAttendeeSnapshot, len(authorization.Attendees))
+		for index, attendee := range authorization.Attendees {
+			cloned.Attendees[index] = cloneCalendarEventOccurrenceCancelAttendeeSnapshot(attendee)
+		}
+	}
+	if authorization.Exception == nil {
+		cloned.Exception = nil
+	} else {
+		value := cloneCalendarEventExceptionCommandInput(*authorization.Exception)
+		cloned.Exception = &value
+	}
+	return cloned
+}
+
+func cloneCalendarEventOccurrenceCancelAttendeeSnapshot(attendee CalendarEventOccurrenceCancelAttendeeSnapshot) CalendarEventOccurrenceCancelAttendeeSnapshot {
+	attendee.UserID = copyUUID(attendee.UserID)
+	if attendee.RemovedAt != nil {
+		value := *attendee.RemovedAt
+		attendee.RemovedAt = &value
+	}
+	return attendee
+}
+
+func cloneCalendarEventExceptionCommandInput(input CalendarEventExceptionCommandInput) CalendarEventExceptionCommandInput {
+	cloned := input
+	if input.Temporal != nil {
+		value := *input.Temporal
+		cloned.Temporal = &value
+	}
+	return cloned
+}
+
+func nilCalendarEventOccurrenceCancelTransactionBackend(backend CalendarEventOccurrenceCancelTransactionBackend) bool {
+	if backend == nil { return true }
+	value := reflect.ValueOf(backend)
+	switch value.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
+		return value.IsNil()
+	default:
+		return false
+	}
 }
