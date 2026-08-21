@@ -1,5 +1,17 @@
 # Hub Mail contract changelog
 
+## 2026-08-21 - Calendar 143-04H authority acceptance-sync candidate
+
+`AUTHORITY_ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT15_COMMIT_REQUIRED /
+IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This dirty exact15 sync cannot self-activate and grants
+no authority. Candidate `f2966bdd50631feaa210a42a232880b21ade7e3a` preserves the frozen
+ABI/schema/OpenAPI semantics; Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high
+immutable reviews PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback, telemetry `UNKNOWN`. Only
+after atomic exact15 sync commit and immutable acceptance-commit PASS does
+the candidate become `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS`; only then are lower routes
+`CONSUMED/HISTORICAL` and root may dispatch the ordered exact3. No source/runtime acceptance follows.
+
+
 ## 2026-08-21 - Calendar 143-04H occurrence-cancel root authority candidate
 
 `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /

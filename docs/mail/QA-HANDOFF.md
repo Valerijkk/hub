@@ -1,5 +1,15 @@
 # Hub Mail + Calendar Sync — QA handoff
 
+## Calendar 143-04H authority acceptance-sync - static only
+
+`AUTHORITY_ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT15_COMMIT_REQUIRED /
+IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. Dirty exact15 is not executable evidence or authority.
+Candidate `f2966bdd` has immutable Contract Terra/high, Security Terra/xhigh and Lifecycle
+Terra/high PASS C/I/M `0/0/0`; atomic sync commit and immutable
+acceptance-commit PASS are still required before exact3 dispatch. Source remains unimplemented;
+launcher `NOT_READY`, all executable/runtime evidence `NOT_RUN`.
+
+
 ## Calendar 143-04H occurrence-cancel authority candidate - static oracle only
 
 `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /

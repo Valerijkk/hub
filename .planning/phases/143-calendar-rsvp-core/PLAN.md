@@ -1,5 +1,13 @@
 # Phase 143 — Calendar RSVP Core
 
+> **143-04H authority acceptance-sync:** `AUTHORITY_ACCEPTANCE_SYNC_CANDIDATE /
+> ATOMIC_EXACT15_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. The frozen semantic
+> contract is unchanged. Dirty exact15 grants no authority; candidate `f2966bdd` has Contract
+> Terra/high, Security Terra/xhigh and Lifecycle Terra/high immutable exact-SHA PASS C/I/M `0/0/0`,
+> while an atomic sync commit plus immutable acceptance review remain required. Only
+> activation authorizes root to dispatch the ordered exact3; no source/runtime acceptance follows.
+
+
 > **143-04H occurrence-cancel authority candidate:** `ROOT_SOURCE_AUTHORITY_CANDIDATE /
 > PRECOMMIT_REVIEW_REQUIRED / ATOMIC_EXACT15_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED /
 > RUNTIME_NOT_RUN`. Dirty exact15 does not change accepted source state. It freezes a receipt-free,

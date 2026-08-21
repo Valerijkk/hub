@@ -1,6 +1,16 @@
 # Calendar 143-04H occurrence-cancel source dispatch
 
-> **Status:** `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
+> **Authority acceptance-sync precedence:** `AUTHORITY_ACCEPTANCE_SYNC_CANDIDATE /
+> ATOMIC_EXACT15_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This dirty exact15
+> sync is non-authoritative. Candidate `f2966bdd` has immutable Contract Terra/high, Security
+> Terra/xhigh and Lifecycle Terra/high exact-SHA PASS C/I/M `0/0/0`, but may become
+> `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS` only after one atomic exact15 sync commit is created
+> and that acceptance commit receives immutable PASS.
+> Only then are the lower candidate/precommit/exact-review-next routes `CONSUMED/HISTORICAL` and
+> root may dispatch the ordered exact3. Until then this dispatch remains blocked.
+
+
+> **Predecessor candidate status:** `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
 > ATOMIC_EXACT15_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`.
 > This dirty exact15 carrier is non-authoritative. Source dispatch is forbidden until the
 > full candidate -> exact-SHA review -> separate acceptance-sync lifecycle in

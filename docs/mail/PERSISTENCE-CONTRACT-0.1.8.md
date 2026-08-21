@@ -1,5 +1,15 @@
 # Mail persistence contract 0.1.8
 
+## Calendar 143-04H authority acceptance-sync - no persistence activation
+
+`AUTHORITY_ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT15_COMMIT_REQUIRED /
+IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. Dirty exact15 grants no persistence or source authority.
+Candidate `f2966bdd` has Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high
+immutable exact-SHA PASS C/I/M `0/0/0`; atomic sync commit plus immutable acceptance-commit review
+remain required. Future activation authorizes only exact3 source
+dispatch; 04F-H still solely owns future Ent/adapter persistence and remains blocked.
+
+
 ## Calendar 143-04H occurrence-cancel candidate - no adapter activation
 
 `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /

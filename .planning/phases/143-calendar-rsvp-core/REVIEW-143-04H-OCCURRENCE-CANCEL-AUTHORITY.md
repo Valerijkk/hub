@@ -1,8 +1,49 @@
 # Calendar 143-04H occurrence cancellation authority candidate
 
-> **Dominant status:** `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
+> **Authority acceptance-sync status:** `AUTHORITY_ACCEPTANCE_SYNC_CANDIDATE /
 > ATOMIC_EXACT15_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`.
-> These dirty bytes are non-authoritative. This document freezes a future source contract only;
+> This dirty exact15 sync cannot self-activate and grants no authority before one atomic exact15
+> commit plus immutable acceptance review. The candidate below is immutable
+> `f2966bdd50631feaa210a42a232880b21ade7e3a` (parent
+> `03674eace728642fc2c9b39d2e8e2c81bf016033`, tree
+> `45411b0692c79677b34af485df0ae2f23f4957d9`, subject
+> `docs(calendar): propose occurrence cancel authority`). Immutable Contract Terra/high, Security
+> Terra/xhigh and Lifecycle Terra/high reviews are `EXACT_SHA_PASS C/I/M 0/0/0`;
+> dispatcher-enforced/no fallback, telemetry `UNKNOWN`. Only after the atomic sync commit and its
+> immutable acceptance-commit review PASS does the candidate become
+> `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS`; only then are its lower candidate/precommit/
+> exact-review-next routes `CONSUMED/HISTORICAL` and root may dispatch the ordered exact3.
+
+Candidate exact15 blobs reviewed at `f2966bdd50631feaa210a42a232880b21ade7e3a`:
+
+```text
+3da40f87415ca4558e38a6647a302222dc57851d  .planning/STATE.md
+b191260174868cd807480167c157a6304f12c80e  .planning/decisions/specs/MAIL-SPEC.md
+20362241aed9337355a12cecc1c4390977f6661c  .planning/phases/143-calendar-rsvp-core/.continue-here.md
+7ca4ad7511312884c9c1718585be5bcd7d9aa5b0  .planning/phases/143-calendar-rsvp-core/DISPATCH-143-04H.md
+bcb5c5a24af6812cef91a93979f3efb1db397a14  .planning/phases/143-calendar-rsvp-core/DISPATCH-INDEX.md
+d26d01fd34ada0aea8f1f8bb22b069d06ccaf12e  .planning/phases/143-calendar-rsvp-core/DISPATCH-REMAINING.md
+e5bfe182a5838c7d4f7302a37fdf0bfa43740396  .planning/phases/143-calendar-rsvp-core/PLAN.md
+00e7460b4c4aeccc590c130351d2d0cc80e35cd4  .planning/phases/143-calendar-rsvp-core/PREIMPLEMENTATION-READINESS.md
+3452a1443245b9d6baf2f21e7aef1cd91a0916ad  .planning/phases/143-calendar-rsvp-core/REVIEW-143-04H-OCCURRENCE-CANCEL-AUTHORITY.md
+6a65653666023b2ba3f1c59c8f8b55867e74c368  .planning/phases/143-calendar-rsvp-core/RUNTIME-BLOCKER.md
+1387ac7c06ca85e54ec2104ca3337c748131d44b  docs/mail/CONTRACT-CHANGELOG.md
+f0f18c8beaf0ed6e71c71b85f5fa7c3698166bd0  docs/mail/PERSISTENCE-CONTRACT-0.1.8.md
+e8f60069b40d4118f3abb082c97328cce92fcf69  docs/mail/QA-HANDOFF.md
+beaa45987d03bf99d3c3ca0a173b139febc9b2f5  docs/mail/events-v1.schema.json
+07e5ddb25ba8021405104408909dbe70b6c6a858  docs/mail/openapi.yaml
+```
+
+Acceptance-sync author provenance is `gpt-5.6-terra` / `xhigh`, dispatcher-enforced, no fallback,
+telemetry `UNKNOWN`. Source remains `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED` pending its own
+test-first reviews/commit/immutable receipt. 04F-H, Ent, adapter, handler/wiring, generation,
+migration, API/UI, raw iTIP/transport, AQ blockers, launcher `NOT_READY` and runtime `NOT_RUN`
+remain unchanged.
+
+> **Predecessor candidate status:** `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
+> ATOMIC_EXACT15_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`.
+> The frozen candidate bytes below are immutable provenance and become `CONSUMED/HISTORICAL` only
+> after acceptance-sync activation. This document freezes a future source contract only;
 > it does not accept source, schema implementation, persistence adapter, handler, wiring,
 > generation, migration, API implementation or runtime behavior.
 

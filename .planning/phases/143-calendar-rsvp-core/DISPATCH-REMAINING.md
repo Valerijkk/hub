@@ -1,5 +1,13 @@
 # Phase 143 — executable packet contracts not split into standalone files
 
+> **143-04H authority acceptance-sync:** `AUTHORITY_ACCEPTANCE_SYNC_CANDIDATE /
+> ATOMIC_EXACT15_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. Dirty exact15 grants
+> no dispatch. Candidate `f2966bdd` has Contract Terra/high, Security Terra/xhigh and Lifecycle
+> Terra/high immutable exact-SHA PASS C/I/M `0/0/0`; atomic sync commit plus immutable
+> acceptance-commit review remain required. On activation only the frozen
+> exact3 becomes dispatchable; source and downstream work remain unaccepted/blocked.
+
+
 > **143-04H root authority candidate:** `ROOT_SOURCE_AUTHORITY_CANDIDATE /
 > PRECOMMIT_REVIEW_REQUIRED / ATOMIC_EXACT15_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED /
 > RUNTIME_NOT_RUN`. This dirty exact15 carrier grants no dispatch. Its only future source is the

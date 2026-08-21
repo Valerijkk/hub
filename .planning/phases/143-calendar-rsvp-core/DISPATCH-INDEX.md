@@ -1,5 +1,13 @@
 # Phase 143 — exact Terra dispatch index
 
+> **143-04H authority acceptance-sync:** `AUTHORITY_ACCEPTANCE_SYNC_CANDIDATE /
+> ATOMIC_EXACT15_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. Dirty exact15 is not
+> a dispatch grant. Candidate `f2966bdd` has Contract Terra/high, Security Terra/xhigh and Lifecycle
+> Terra/high immutable exact-SHA PASS C/I/M `0/0/0`; atomic sync commit plus immutable
+> acceptance-commit review remain required. Only activation consumes lower
+> routes and permits root to dispatch the already frozen ordered exact3; no other path is selected.
+
+
 > **143-04H root authority candidate:** `ROOT_SOURCE_AUTHORITY_CANDIDATE /
 > PRECOMMIT_REVIEW_REQUIRED / ATOMIC_EXACT15_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED /
 > RUNTIME_NOT_RUN`. Dirty exact15 is non-authoritative. The only frozen future source order is

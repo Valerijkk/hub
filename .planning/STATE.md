@@ -5,6 +5,24 @@ milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
 last_updated: "2026-08-20T17:33:04+03:00"
+calendar_143_04h_authority_acceptance_sync: >-
+  Status: AUTHORITY_ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT15_COMMIT_REQUIRED /
+  IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN. This dirty exact15 acceptance sync grants
+  no authority before one atomic exact15 commit plus immutable acceptance review.
+  Immutable candidate f2966bdd50631feaa210a42a232880b21ade7e3a (parent
+  03674eace728642fc2c9b39d2e8e2c81bf016033, tree
+  45411b0692c79677b34af485df0ae2f23f4957d9, subject docs(calendar): propose
+  occurrence cancel authority) has immutable Contract Terra/high, Security Terra/xhigh
+  and Lifecycle Terra/high EXACT_SHA_PASS C/I/M 0/0/0; dispatcher-enforced/no fallback,
+  telemetry UNKNOWN. Only after the atomic sync commit and its immutable acceptance-commit
+  review PASS does f296 become SOURCE_AUTHORITY_ACCEPTED /
+  EXACT_SHA_PASS and its lower candidate/precommit/exact-review-next routes become
+  CONSUMED/HISTORICAL. Root may then dispatch only the frozen ordered exact3 test,
+  event_repository.go, new occurrence service; source remains UNIMPLEMENTED /
+  UNCOMMITTED / UNACCEPTED pending its own lifecycle. 04F-H, Ent, adapter, handler,
+  wiring, generation, migration, API/UI, raw iTIP/transport, AQ, launcher NOT_READY
+  and executables/runtime NOT_RUN remain blocked. Acceptance-sync author Terra/xhigh;
+  dispatcher-enforced/no fallback, telemetry UNKNOWN.
 calendar_143_04h_authority_candidate: >-
   Status: ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
   ATOMIC_EXACT15_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN.

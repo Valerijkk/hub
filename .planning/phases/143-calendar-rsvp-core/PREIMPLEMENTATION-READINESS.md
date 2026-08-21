@@ -1,5 +1,13 @@
 # Mail workstream pre-implementation readiness
 
+> **143-04H authority acceptance-sync readiness:** `AUTHORITY_ACCEPTANCE_SYNC_CANDIDATE /
+> ATOMIC_EXACT15_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. Candidate
+> `f2966bdd` has Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high immutable
+> exact-SHA PASS C/I/M `0/0/0`, but remains non-authoritative pending one atomic exact15 sync commit
+> and immutable acceptance-commit PASS. Only activation permits exact3 source
+> dispatch; source, Ent/adapter/handler/wiring/generation/migration/runtime remain blocked.
+
+
 > **143-04H occurrence-cancel readiness:** `ROOT_SOURCE_AUTHORITY_CANDIDATE /
 > PRECOMMIT_REVIEW_REQUIRED / ATOMIC_EXACT15_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED /
 > RUNTIME_NOT_RUN`. This dirty exact15 is readiness-only and non-authoritative. Source exact3 stays

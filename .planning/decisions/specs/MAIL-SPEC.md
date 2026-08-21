@@ -1,5 +1,19 @@
 # MAIL-SPEC — Hub mailbox and calendar synchronization contract
 
+## 143-04H authority acceptance-sync candidate
+
+> `AUTHORITY_ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT15_COMMIT_REQUIRED /
+> IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This dirty exact15 sync grants no authority before an
+> atomic exact15 commit plus immutable review of that acceptance commit. Immutable authority
+> candidate `f2966bdd50631feaa210a42a232880b21ade7e3a` preserves the frozen ABI/schema/OpenAPI
+> semantics below. Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high immutable
+> exact-SHA reviews PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback, telemetry `UNKNOWN`. Only
+> after atomic exact15 sync activation plus immutable acceptance-commit PASS does `f2966bdd` become
+> `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS`; lower 04H candidate/precommit/exact-review-next
+> routes then become `CONSUMED/HISTORICAL`. Root may then dispatch only the ordered exact3;
+> source remains `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED`. All downstream/runtime blockers stay.
+
+
 ## 143-04H occurrence-cancel root authority candidate
 
 > `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
