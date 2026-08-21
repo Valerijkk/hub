@@ -1,6 +1,10 @@
 # Mail persistence contract 0.1.8
 
-## 144-04G source-authority acceptance-sync candidate (2026-08-20)
+## 144-04G source acceptance-sync candidate (2026-08-21)
+
+> **Gate:** `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT12_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty exact12 working tree grants no authority. The immutable `3031c53d399accc84fe10cd0c5421a85c089ac7c` source receipt and its Contract/Security/Lifecycle precommit plus immutable `EXACT_SHA_PASS C/I/M 0/0/0` facts are proposed only; they activate only after one atomic commit of the exact12 manifest in `IMPLEMENTATION-144-04G.md`. Only after that commit is 144-04G `STATIC_ACCEPTED / EXACT_SHA_PASS`; then, and only then, lower 04G source-authority/source-unimplemented/current-next routes are `CONSUMED/HISTORICAL`. No next Mail packet is selected. 04F remains accepted; 04H/02E, Ent/SQL/concrete adapter, generation, migration, OpenAPI and runtime remain blocked or outside authority; launcher `NOT_READY`, executables/runtime `NOT_RUN`.
+
+## 144-04G source-authority acceptance-sync candidate (2026-08-20; predecessor route)
 
 Status: `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT9_COMMIT_REQUIRED /
 SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This dirty exact9 working tree grants no
@@ -30,7 +34,7 @@ immutable acceptance. 04F remains
 accepted; 04H/02E, Ent/SQL/concrete adapter, generation, migration, OpenAPI and runtime remain
 blocked or outside authority. Launcher `NOT_READY`; executables/runtime `NOT_RUN`.
 
-## 144-04G abstract persistence port candidate (2026-08-20)
+## 144-04G abstract persistence port candidate (2026-08-20; predecessor route)
 
 Status is only `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
 IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. The future exact3/test-first manifest is NEW

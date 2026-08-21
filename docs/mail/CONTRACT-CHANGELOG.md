@@ -6,7 +6,11 @@
 > atomic commit of exactly these 12 documents. Until then the prior 04C lifecycle remains current;
 > activation selects no next Calendar packet and lifts no downstream blocker.
 
-## 2026-08-20 — 144-04G source-authority acceptance-sync candidate
+## 2026-08-21 — 144-04G source acceptance-sync candidate
+
+> **Gate:** `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT12_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty exact12 working tree grants no authority. The immutable `3031c53d399accc84fe10cd0c5421a85c089ac7c` source receipt and its Contract/Security/Lifecycle precommit plus immutable `EXACT_SHA_PASS C/I/M 0/0/0` facts are proposed only; they activate only after one atomic commit of the exact12 manifest in `IMPLEMENTATION-144-04G.md`. Only after that commit is 144-04G `STATIC_ACCEPTED / EXACT_SHA_PASS`; then, and only then, lower 04G source-authority/source-unimplemented/current-next routes are `CONSUMED/HISTORICAL`. No next Mail packet is selected. 04F remains accepted; 04H/02E, Ent/SQL/concrete adapter, generation, migration, OpenAPI and runtime remain blocked or outside authority; launcher `NOT_READY`, executables/runtime `NOT_RUN`.
+
+## 2026-08-20 — 144-04G source-authority acceptance-sync candidate (predecessor route)
 
 - Status: `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT9_COMMIT_REQUIRED /
   SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This dirty exact9 working tree grants no
@@ -36,7 +40,7 @@
   runtime remain blocked or outside authority; launcher `NOT_READY`, executables/runtime
   `NOT_RUN`. This acceptance sync is docs-only and changes no Calendar state.
 
-## 2026-08-20 — 144-04G sync-service authority candidate
+## 2026-08-20 — 144-04G sync-service authority candidate (predecessor route)
 
 - Status is only `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
   IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`; this is not source authority or acceptance.
