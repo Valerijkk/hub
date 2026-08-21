@@ -1,5 +1,19 @@
 # 143-04J — ScheduledCall projection source-authority freeze
 
+> **Source-receipt sync:** `SOURCE_ACCEPTANCE_SYNC_CANDIDATE /
+> ATOMIC_EXACT14_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. These proposed receipt facts grant no
+> authority before one atomic commit of the exact14 docs manifest. After it, immutable source
+> `e74efa827b52f35e3d3fbe8346adf0c0121ba48d` (parent
+> `06a0d6e506a31fb5546ef168a5dba72d8956a984`, tree
+> `073e887a957bb65c6c06a9759e239323ab882aa7`, subject
+> `feat(calendar): add call projection policy`) is `STATIC_ACCEPTED / EXACT_SHA_PASS` only for
+> test blob `28273191ddd1babec2cbe61c217cd561322a7ac0` then source blob
+> `cc0218bddce25936cbfb8e987a0bb6681f979d5c`. Tests were authored first. Contract/Spec/Oracle,
+> Security/Adversarial and Lifecycle/Dependency/Boundary precommit plus immutable exact-SHA
+> reviews PASS C/I/M `0/0/0`; author Terra/xhigh, dispatcher-enforced/no fallback, telemetry
+> `UNKNOWN`. Lower 04J candidate/authority/source-unaccepted routes then become
+> `CONSUMED/HISTORICAL`; the ABI below remains current. No next packet is selected.
+
 > **Acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT13_COMMIT_REQUIRED /
 > SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. These proposed receipt facts have no authority
 > before one atomic commit of the same exact13 docs manifest. After that commit, immutable

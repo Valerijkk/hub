@@ -1,5 +1,11 @@
 # Hub Mail contract changelog
 
+> **143-04J source receipt (2026-08-21):** `SOURCE_ACCEPTANCE_SYNC_CANDIDATE /
+> ATOMIC_EXACT14_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. These proposed facts activate only after one
+> atomic exact14 docs commit. Then `e74efa827b52f35e3d3fbe8346adf0c0121ba48d` is
+> `STATIC_ACCEPTED / EXACT_SHA_PASS` for the frozen exact2, and lower 04J source-unaccepted routes
+> are `CONSUMED/HISTORICAL`. No 04K, persistence, adapter, API/UI or runtime authority follows.
+
 > **143-04J acceptance-sync gate (2026-08-21):** `ACCEPTANCE_SYNC_CANDIDATE /
 > ATOMIC_EXACT13_COMMIT_REQUIRED / SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`.
 > These proposed receipt facts have no authority before one atomic exact13 docs commit. After it,

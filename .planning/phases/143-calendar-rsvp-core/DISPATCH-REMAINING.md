@@ -1,5 +1,11 @@
 # Phase 143 — executable packet contracts not split into standalone files
 
+> **143-04J source-receipt sync:** `SOURCE_ACCEPTANCE_SYNC_CANDIDATE /
+> ATOMIC_EXACT14_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. These proposed receipt facts grant no
+> authority before one atomic exact14 docs commit. After it, immutable exact2 `e74efa827b52...`
+> is `STATIC_ACCEPTED / EXACT_SHA_PASS`, and lower 04J authority/source-unaccepted routes become
+> `CONSUMED/HISTORICAL`. 04K still needs its own docs authority and root dispatch.
+
 > **143-04J acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE /
 > ATOMIC_EXACT13_COMMIT_REQUIRED / SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`.
 > These proposed receipt facts have no authority before one atomic exact13 docs commit. After it,

@@ -1,5 +1,13 @@
 # Autonomous Mail + Calendar questions — 2026-08-21
 
+> **143-04J source-receipt sync:** `SOURCE_ACCEPTANCE_SYNC_CANDIDATE /
+> ATOMIC_EXACT14_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. These proposed receipt facts grant no
+> authority before one atomic commit of the exact14 documentation manifest. After that commit,
+> immutable exact2 `e74efa827b52f35e3d3fbe8346adf0c0121ba48d` is
+> `STATIC_ACCEPTED / EXACT_SHA_PASS`; lower 04J authority/source-unaccepted routes become
+> `CONSUMED/HISTORICAL`. No next Calendar packet is selected. AQ-02 remains only a legacy
+> migration/backfill question and does not alter the pure accepted source boundary.
+
 > **143-04J acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE /
 > ATOMIC_EXACT13_COMMIT_REQUIRED / SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`.
 > These proposed receipt facts have no authority before one atomic commit of the same exact13

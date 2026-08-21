@@ -1,5 +1,11 @@
 # Mail persistence contract 0.1.8
 
+> **143-04J source receipt:** `SOURCE_ACCEPTANCE_SYNC_CANDIDATE /
+> ATOMIC_EXACT14_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. These proposed facts activate only after one
+> atomic exact14 docs commit. Then immutable exact2 `e74efa827b52...` is
+> `STATIC_ACCEPTED / EXACT_SHA_PASS`, but remains pure and caller-owned: no repository, lock,
+> transaction, outbox, Ent, adapter, generation, migration or runtime authority is added.
+
 > **143-04J acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE /
 > ATOMIC_EXACT13_COMMIT_REQUIRED / SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`.
 > These proposed receipt facts have no authority before one atomic exact13 docs commit. After it,

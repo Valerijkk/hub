@@ -1,5 +1,12 @@
 # MAIL-SPEC — Hub mailbox and calendar synchronization contract
 
+> **143-04J source-receipt sync:** `SOURCE_ACCEPTANCE_SYNC_CANDIDATE /
+> ATOMIC_EXACT14_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. These proposed receipt facts grant no
+> authority before one atomic exact14 docs commit. After it, immutable exact2
+> `e74efa827b52f35e3d3fbe8346adf0c0121ba48d` is `STATIC_ACCEPTED / EXACT_SHA_PASS`, and lower
+> 04J authority/source-unaccepted routes are `CONSUMED/HISTORICAL`. The accepted ABI remains
+> unchanged. No next packet, 04K, persistence, adapter, Ent, migration or runtime authority follows.
+
 > **143-04J acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE /
 > ATOMIC_EXACT13_COMMIT_REQUIRED / SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`.
 > These proposed receipt facts have no authority before one atomic commit of the same exact13
