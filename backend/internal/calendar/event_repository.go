@@ -138,7 +138,7 @@ type CalendarEventSeriesRSVPPersistenceCommand struct {
 // NewCalendarEventSeriesRSVPPersistenceCommand snapshots a single valid RSVP
 // compare-and-swap mutation and its optional exact reply descriptor.
 func NewCalendarEventSeriesRSVPPersistenceCommand(attendee CalendarEventSeriesRSVPAttendeeSnapshot, expectedVersion uint, eventSequence uint, outbox EventOutboxDescriptor, reply *CalendarEventSeriesRSVPReplyDeliveryDescriptor) (CalendarEventSeriesRSVPPersistenceCommand, error) {
-	if expectedVersion == 0 || expectedVersion == ^uint(0) || eventSequence == 0 || !validCalendarEventSeriesRSVPAttendee(attendee) || attendee.Version != expectedVersion+1 || !outbox.valid() || !validCalendarEventSeriesRSVPReply(reply, attendee, eventSequence) {
+	if expectedVersion == 0 || expectedVersion == ^uint(0) || !validCalendarEventSeriesRSVPAttendee(attendee) || attendee.Version != expectedVersion+1 || !outbox.valid() || !validCalendarEventSeriesRSVPReply(reply, attendee, eventSequence) {
 		return CalendarEventSeriesRSVPPersistenceCommand{}, ErrEventInvalid
 	}
 	return CalendarEventSeriesRSVPPersistenceCommand{attendee: cloneCalendarEventSeriesRSVPAttendeeSnapshot(attendee), expectedVersion: expectedVersion, eventSequence: eventSequence, outbox: outbox, reply: cloneCalendarEventSeriesRSVPReplyDeliveryDescriptor(reply)}, nil
@@ -183,7 +183,7 @@ type CalendarEventSeriesRSVPPersistenceResult struct {
 // NewCalendarEventSeriesRSVPPersistenceResult snapshots a valid durable RSVP
 // persistence echo. The transaction rejects an echo that differs from its command.
 func NewCalendarEventSeriesRSVPPersistenceResult(attendee CalendarEventSeriesRSVPAttendeeSnapshot, eventSequence uint, outbox EventOutboxDescriptor, reply *CalendarEventSeriesRSVPReplyDeliveryDescriptor) (CalendarEventSeriesRSVPPersistenceResult, error) {
-	if eventSequence == 0 || !validCalendarEventSeriesRSVPAttendee(attendee) || !outbox.valid() || !validCalendarEventSeriesRSVPReply(reply, attendee, eventSequence) {
+	if !validCalendarEventSeriesRSVPAttendee(attendee) || !outbox.valid() || !validCalendarEventSeriesRSVPReply(reply, attendee, eventSequence) {
 		return CalendarEventSeriesRSVPPersistenceResult{}, ErrEventInvalid
 	}
 	return CalendarEventSeriesRSVPPersistenceResult{attendee: cloneCalendarEventSeriesRSVPAttendeeSnapshot(attendee), eventSequence: eventSequence, outbox: outbox, reply: cloneCalendarEventSeriesRSVPReplyDeliveryDescriptor(reply)}, nil

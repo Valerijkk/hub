@@ -86,7 +86,7 @@ func TestCalendarEventSeriesRSVPPersistenceValues_ValidateAndIsolateAliases(t *t
 		resultInvalid  bool
 	}{
 		{name: "zero expected version", attendee: rsvpRepositoryAttendee(calendar.RSVPAccepted), expected: 0, sequence: 7, reply: rsvpRepositoryReplyPointer(rsvpRepositoryAttendee(calendar.RSVPAccepted), 7), commandInvalid: true},
-		{name: "zero sequence", attendee: rsvpRepositoryAttendee(calendar.RSVPAccepted), expected: 2, sequence: 0, reply: rsvpRepositoryReplyPointer(rsvpRepositoryAttendee(calendar.RSVPAccepted), 7), commandInvalid: true, resultInvalid: true},
+		{name: "zero sequence reply mismatch", attendee: rsvpRepositoryAttendee(calendar.RSVPAccepted), expected: 2, sequence: 0, reply: rsvpRepositoryReplyPointer(rsvpRepositoryAttendee(calendar.RSVPAccepted), 7), commandInvalid: true, resultInvalid: true},
 		{name: "overflow expected version", attendee: rsvpRepositoryAttendee(calendar.RSVPAccepted), expected: ^uint(0), sequence: 7, reply: rsvpRepositoryReplyPointer(rsvpRepositoryAttendee(calendar.RSVPAccepted), 7), commandInvalid: true},
 		{name: "optimistic version mismatch", attendee: rsvpRepositoryAttendeeWithVersion(calendar.RSVPAccepted, 2), expected: 2, sequence: 7, reply: rsvpRepositoryReplyPointer(rsvpRepositoryAttendeeWithVersion(calendar.RSVPAccepted, 2), 7), commandInvalid: true},
 		{name: "needs action responded", attendee: rsvpRepositoryAttendeeWithResponse(calendar.RSVPNeedsAction, time.Date(2032, time.February, 3, 4, 5, 6, 0, time.UTC)), expected: 2, sequence: 7, commandInvalid: true, resultInvalid: true},
@@ -104,6 +104,51 @@ func TestCalendarEventSeriesRSVPPersistenceValues_ValidateAndIsolateAliases(t *t
 			_, resultErr := calendar.NewCalendarEventSeriesRSVPPersistenceResult(testCase.attendee, testCase.sequence, outbox, testCase.reply)
 			if testCase.resultInvalid != errors.Is(resultErr, calendar.ErrEventInvalid) {
 				t.Fatalf("result error = %v, want invalid:%t", resultErr, testCase.resultInvalid)
+			}
+		})
+	}
+}
+
+func TestCalendarEventSeriesRSVPPersistenceValues_AcceptsInitialEventSequence(t *testing.T) {
+	attendee := rsvpRepositoryAttendee(calendar.RSVPAccepted)
+	outbox := rsvpRepositoryOutbox(t)
+	reply := rsvpRepositoryReply(attendee, 0)
+
+	for _, testCase := range []struct {
+		name      string
+		reply     *calendar.CalendarEventSeriesRSVPReplyDeliveryDescriptor
+		hasReply  bool
+	} {
+		{name: "internal no reply"},
+		{name: "external reply", reply: &reply, hasReply: true},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			command, err := calendar.NewCalendarEventSeriesRSVPPersistenceCommand(attendee, 2, 0, outbox, testCase.reply)
+			if err != nil {
+				t.Fatalf("NewCalendarEventSeriesRSVPPersistenceCommand() error = %v", err)
+			}
+			result, err := calendar.NewCalendarEventSeriesRSVPPersistenceResult(attendee, 0, outbox, testCase.reply)
+			if err != nil {
+				t.Fatalf("NewCalendarEventSeriesRSVPPersistenceResult() error = %v", err)
+			}
+			commandReply, commandHasReply := command.Reply()
+			resultReply, resultHasReply := result.Reply()
+
+			for _, value := range []struct {
+				name     string
+				sequence uint
+				reply    calendar.CalendarEventSeriesRSVPReplyDeliveryDescriptor
+				hasReply bool
+			}{
+				{name: "command", sequence: command.EventSequence(), reply: commandReply, hasReply: commandHasReply},
+				{name: "result", sequence: result.EventSequence(), reply: resultReply, hasReply: resultHasReply},
+			} {
+				if value.sequence != 0 || value.hasReply != testCase.hasReply {
+					t.Fatalf("%s sequence:%d has reply:%t", value.name, value.sequence, value.hasReply)
+				}
+				if value.hasReply && (value.reply.AttendeeID != attendee.AttendeeID || value.reply.EventID != attendee.EventID || value.reply.EventSequence != 0 || value.reply.AttendeeVersion != attendee.Version || value.reply.Status != attendee.Status) {
+					t.Fatalf("%s reply = %#v", value.name, value.reply)
+				}
 			}
 		})
 	}
