@@ -20,7 +20,7 @@ import (
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/boards [get]
+// @Router /projects/{projectId}/boards [get]
 func (h *Handler) ListBoards(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -47,7 +47,7 @@ func (h *Handler) ListBoards(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/boards [post]
+// @Router /projects/{projectId}/boards [post]
 func (h *Handler) CreateBoard(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -79,7 +79,7 @@ func (h *Handler) CreateBoard(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/boards/{boardId} [get]
+// @Router /projects/{projectId}/boards/{boardId} [get]
 func (h *Handler) GetBoardData(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {

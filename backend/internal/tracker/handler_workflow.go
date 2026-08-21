@@ -20,7 +20,7 @@ import (
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/workflow/statuses [get]
+// @Router /projects/{projectId}/workflow/statuses [get]
 func (h *Handler) ListWorkflowStatuses(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -48,7 +48,7 @@ func (h *Handler) ListWorkflowStatuses(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/workflow/statuses [post]
+// @Router /projects/{projectId}/workflow/statuses [post]
 func (h *Handler) CreateWorkflowStatus(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -82,7 +82,7 @@ func (h *Handler) CreateWorkflowStatus(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/workflow/statuses/{statusId} [put]
+// @Router /projects/{projectId}/workflow/statuses/{statusId} [put]
 func (h *Handler) UpdateWorkflowStatus(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -117,7 +117,7 @@ func (h *Handler) UpdateWorkflowStatus(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/workflow/statuses/{statusId} [delete]
+// @Router /projects/{projectId}/workflow/statuses/{statusId} [delete]
 func (h *Handler) DeleteWorkflowStatus(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -145,7 +145,7 @@ func (h *Handler) DeleteWorkflowStatus(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/workflow/transitions [get]
+// @Router /projects/{projectId}/workflow/transitions [get]
 func (h *Handler) ListWorkflowTransitions(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -173,7 +173,7 @@ func (h *Handler) ListWorkflowTransitions(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/workflow/transitions [post]
+// @Router /projects/{projectId}/workflow/transitions [post]
 func (h *Handler) CreateWorkflowTransition(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -204,7 +204,7 @@ func (h *Handler) CreateWorkflowTransition(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/workflow/transitions/{transitionId} [delete]
+// @Router /projects/{projectId}/workflow/transitions/{transitionId} [delete]
 func (h *Handler) DeleteWorkflowTransition(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {

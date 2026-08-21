@@ -67,7 +67,7 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/sprints [post]
+// @Router /projects/{projectId}/sprints [post]
 func (h *Handler) CreateSprint(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -97,7 +97,7 @@ func (h *Handler) CreateSprint(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/sprints [get]
+// @Router /projects/{projectId}/sprints [get]
 func (h *Handler) ListSprints(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -123,7 +123,7 @@ func (h *Handler) ListSprints(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/sprints/{sprintId} [get]
+// @Router /projects/{projectId}/sprints/{sprintId} [get]
 func (h *Handler) GetSprint(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -156,7 +156,7 @@ func (h *Handler) GetSprint(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/sprints/{sprintId} [put]
+// @Router /projects/{projectId}/sprints/{sprintId} [put]
 func (h *Handler) UpdateSprint(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -192,7 +192,7 @@ func (h *Handler) UpdateSprint(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/sprints/{sprintId}/start [post]
+// @Router /projects/{projectId}/sprints/{sprintId}/start [post]
 func (h *Handler) StartSprint(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -223,7 +223,7 @@ func (h *Handler) StartSprint(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/sprints/{sprintId}/complete [post]
+// @Router /projects/{projectId}/sprints/{sprintId}/complete [post]
 func (h *Handler) CompleteSprint(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -257,7 +257,7 @@ func (h *Handler) CompleteSprint(c fiber.Ctx) error {
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Failure 409 {object} fiber.Error "version mismatch (optimistic lock)"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/sprints/{sprintId}/retro [put]
+// @Router /projects/{projectId}/sprints/{sprintId}/retro [put]
 func (h *Handler) UpdateRetroNotes(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -292,7 +292,7 @@ func (h *Handler) UpdateRetroNotes(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/sprints/{sprintId}/burndown [get]
+// @Router /projects/{projectId}/sprints/{sprintId}/burndown [get]
 func (h *Handler) GetBurndown(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -321,7 +321,7 @@ func (h *Handler) GetBurndown(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/velocity [get]
+// @Router /projects/{projectId}/velocity [get]
 func (h *Handler) GetVelocity(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -349,7 +349,7 @@ func (h *Handler) GetVelocity(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/sprints/{sprintId}/issues [post]
+// @Router /projects/{projectId}/sprints/{sprintId}/issues [post]
 func (h *Handler) AddIssuesToSprint(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -398,7 +398,7 @@ func (h *Handler) AddIssuesToSprint(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/sprints/{sprintId}/poker [post]
+// @Router /projects/{projectId}/sprints/{sprintId}/poker [post]
 func (h *Handler) StartPokerSession(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -478,7 +478,7 @@ func (h *Handler) authorizePokerSession(c fiber.Ctx, sessionID string) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/sprints/poker/{sessionId}/vote [post]
+// @Router /sprints/poker/{sessionId}/vote [post]
 func (h *Handler) CastVote(c fiber.Ctx) error {
 	sessionID := utils.CopyString(c.Params("sessionId"))
 	if sessionID == "" {
@@ -516,7 +516,7 @@ func (h *Handler) CastVote(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/sprints/poker/{sessionId}/reveal [post]
+// @Router /sprints/poker/{sessionId}/reveal [post]
 func (h *Handler) RevealVotes(c fiber.Ctx) error {
 	sessionID := utils.CopyString(c.Params("sessionId"))
 	if sessionID == "" {
@@ -545,7 +545,7 @@ func (h *Handler) RevealVotes(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/sprints/poker/{sessionId} [get]
+// @Router /sprints/poker/{sessionId} [get]
 func (h *Handler) GetPokerSession(c fiber.Ctx) error {
 	sessionID := utils.CopyString(c.Params("sessionId"))
 	if sessionID == "" {

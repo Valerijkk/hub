@@ -53,7 +53,7 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/search [get]
+// @Router /search [get]
 func (h *Handler) search(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -108,7 +108,7 @@ func (h *Handler) search(c fiber.Ctx) error {
 // @Failure 403 {object} fiber.Error "Нет членства в проекте"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/filters [post]
+// @Router /filters [post]
 func (h *Handler) createFilter(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -149,7 +149,7 @@ func (h *Handler) createFilter(c fiber.Ctx) error {
 // @Failure 403 {object} fiber.Error "Нет членства в проекте"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/filters [get]
+// @Router /filters [get]
 func (h *Handler) listFilters(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -191,7 +191,7 @@ func (h *Handler) listFilters(c fiber.Ctx) error {
 // @Failure 404 {object} fiber.Error "Фильтр не найден"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/filters/{id} [delete]
+// @Router /filters/{id} [delete]
 func (h *Handler) deleteFilter(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -233,7 +233,7 @@ func (h *Handler) deleteFilter(c fiber.Ctx) error {
 // @Failure 404 {object} fiber.Error "Фильтр не найден"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/filters/{id}/share [patch]
+// @Router /filters/{id}/share [patch]
 func (h *Handler) shareFilter(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {

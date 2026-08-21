@@ -107,7 +107,7 @@ func (h *Handler) authorizeEndpoint(c fiber.Ctx, userID, endpointID uuid.UUID, p
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/user/api-keys [post]
+// @Router /user/api-keys [post]
 func (h *Handler) CreateAPIKey(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -142,7 +142,7 @@ func (h *Handler) CreateAPIKey(c fiber.Ctx) error {
 // @Success 200 {array} APIKeyResponse "Список ключей"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/user/api-keys [get]
+// @Router /user/api-keys [get]
 func (h *Handler) ListAPIKeys(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -166,7 +166,7 @@ func (h *Handler) ListAPIKeys(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/user/api-keys/{id} [delete]
+// @Router /user/api-keys/{id} [delete]
 func (h *Handler) RevokeAPIKey(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -199,7 +199,7 @@ func (h *Handler) RevokeAPIKey(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/webhooks [post]
+// @Router /projects/{projectId}/webhooks [post]
 func (h *Handler) CreateEndpoint(c fiber.Ctx) error {
 	projectID, err := parseID(c, "projectId")
 	if err != nil {
@@ -238,7 +238,7 @@ func (h *Handler) CreateEndpoint(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/webhooks [get]
+// @Router /projects/{projectId}/webhooks [get]
 func (h *Handler) ListEndpoints(c fiber.Ctx) error {
 	projectID, err := parseID(c, "projectId")
 	if err != nil {
@@ -274,7 +274,7 @@ func (h *Handler) ListEndpoints(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/webhooks/{id} [put]
+// @Router /webhooks/{id} [put]
 func (h *Handler) UpdateEndpoint(c fiber.Ctx) error {
 	epID, err := parseID(c, "id")
 	if err != nil {
@@ -312,7 +312,7 @@ func (h *Handler) UpdateEndpoint(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/webhooks/{id} [delete]
+// @Router /webhooks/{id} [delete]
 func (h *Handler) DeleteEndpoint(c fiber.Ctx) error {
 	epID, err := parseID(c, "id")
 	if err != nil {
@@ -345,7 +345,7 @@ func (h *Handler) DeleteEndpoint(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/webhooks/{id}/deliveries [get]
+// @Router /webhooks/{id}/deliveries [get]
 func (h *Handler) ListDeliveries(c fiber.Ctx) error {
 	epID, err := parseID(c, "id")
 	if err != nil {

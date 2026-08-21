@@ -10,10 +10,10 @@ import (
 // @host localhost:3000
 // @BasePath /api
 // @securityDefinitions.apikey BearerAuth
-// @in header — Swagger annotation, не переводим.
+// @in header
 // @name Authorization
 // @securityDefinitions.apikey APIKeyAuth
-// @in header — Swagger annotation, не переводим.
+// @in header
 // @name X-API-Key
 func main() {
 	d := &serverDeps{}

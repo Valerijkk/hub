@@ -28,7 +28,7 @@ import (
 // @Failure 403 {object} fiber.Error "Нет членства в канале"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/calls [post]
+// @Router /calls [post]
 func (h *Handler) CreateCall(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -69,7 +69,7 @@ func (h *Handler) CreateCall(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/calls/instant [post]
+// @Router /calls/instant [post]
 func (h *Handler) CreateInstantCall(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -104,7 +104,7 @@ func (h *Handler) CreateInstantCall(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Код не указан"
 // @Failure 404 {object} fiber.Error "Звонок не найден"
 // @Security BearerAuth
-// @Router /api/calls/invite/{code} [get]
+// @Router /calls/invite/{code} [get]
 func (h *Handler) JoinByInviteCode(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -140,7 +140,7 @@ func (h *Handler) JoinByInviteCode(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/calls/channel/{channelId} [get]
+// @Router /calls/channel/{channelId} [get]
 func (h *Handler) GetActiveCall(c fiber.Ctx) error {
 	idStr := utils.CopyString(c.Params("channelId"))
 	channelID, err := uuid.Parse(idStr)
@@ -179,7 +179,7 @@ func (h *Handler) GetActiveCall(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/calls/{callId}/join [post]
+// @Router /calls/{callId}/join [post]
 func (h *Handler) JoinCall(c fiber.Ctx) error {
 	callID, err := parseCallID(c)
 	if err != nil {
@@ -214,7 +214,7 @@ func (h *Handler) JoinCall(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/calls/{callId}/leave [post]
+// @Router /calls/{callId}/leave [post]
 func (h *Handler) LeaveCall(c fiber.Ctx) error {
 	callID, err := parseCallID(c)
 	if err != nil {
@@ -242,7 +242,7 @@ func (h *Handler) LeaveCall(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/calls/{callId}/end [post]
+// @Router /calls/{callId}/end [post]
 func (h *Handler) EndCall(c fiber.Ctx) error {
 	callID, err := parseCallID(c)
 	if err != nil {
@@ -279,7 +279,7 @@ func (h *Handler) EndCall(c fiber.Ctx) error {
 // @Failure 403 {object} fiber.Error "Не участник звонка"
 // @Failure 404 {object} fiber.Error "Звонок не найден"
 // @Security BearerAuth
-// @Router /api/calls/{callId}/raise-hand [post]
+// @Router /calls/{callId}/raise-hand [post]
 func (h *Handler) RaiseHand(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -325,7 +325,7 @@ func (h *Handler) RaiseHand(c fiber.Ctx) error {
 // @Failure 403 {object} fiber.Error "Нет доступа к чату звонка"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/calls/{callId}/chat [post]
+// @Router /calls/{callId}/chat [post]
 func (h *Handler) SendChatMessage(c fiber.Ctx) error {
 	callID, err := parseCallID(c)
 	if err != nil {
@@ -373,7 +373,7 @@ func (h *Handler) SendChatMessage(c fiber.Ctx) error {
 // @Failure 403 {object} fiber.Error "Нет доступа к чату звонка"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/calls/{callId}/chat [get]
+// @Router /calls/{callId}/chat [get]
 func (h *Handler) ListChatMessages(c fiber.Ctx) error {
 	callID, err := parseCallID(c)
 	if err != nil {
@@ -417,7 +417,7 @@ func (h *Handler) ListChatMessages(c fiber.Ctx) error {
 // @Success 200 {object} GuestJoinResponse "Данные звонка с токеном"
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 404 {object} fiber.Error "Звонок не найден"
-// @Router /api/calls/guest-join [post]
+// @Router /calls/guest-join [post]
 func (h *Handler) GuestJoinCall(c fiber.Ctx) error {
 	var req GuestJoinRequest
 	if err := c.Bind().JSON(&req); err != nil {

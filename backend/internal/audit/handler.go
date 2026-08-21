@@ -50,7 +50,7 @@ func (h *Handler) RegisterRoutesSimple(api fiber.Router, authMw fiber.Handler) {
 // @Failure 403 {object} fiber.Error "Только для администратора"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/admin/users [get]
+// @Router /admin/users [get]
 func (h *Handler) ListAdminUsers(c fiber.Ctx) error {
 	users, err := h.service.ListAdminUsers(c.Context())
 	if err != nil {
@@ -111,7 +111,7 @@ func (h *Handler) requireAdmin() fiber.Handler {
 // @Failure 403 {object} fiber.Error "Только для админа"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/admin/audit [get]
+// @Router /admin/audit [get]
 func (h *Handler) ListAuditLogs(c fiber.Ctx) error {
 	filters := AuditLogFilters{
 		Action:     utils.CopyString(c.Query("action")),
@@ -174,7 +174,7 @@ func (h *Handler) ListAuditLogs(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Только для админа"
 // @Security BearerAuth
-// @Router /api/admin/limits [get]
+// @Router /admin/limits [get]
 func (h *Handler) GetLimits(c fiber.Ctx) error {
 	limits, err := h.service.GetResourceLimits(c.Context())
 	if err != nil {
@@ -197,7 +197,7 @@ func (h *Handler) GetLimits(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Только для админа"
 // @Security BearerAuth
-// @Router /api/admin/limits/{key} [put]
+// @Router /admin/limits/{key} [put]
 func (h *Handler) UpdateLimit(c fiber.Ctx) error {
 	key := utils.CopyString(c.Params("key"))
 	if key == "" {
@@ -236,7 +236,7 @@ func (h *Handler) UpdateLimit(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Только для админа"
 // @Security BearerAuth
-// @Router /api/admin/trash [get]
+// @Router /admin/trash [get]
 func (h *Handler) ListTrash(c fiber.Ctx) error {
 	entityType := utils.CopyString(c.Query("type", "issue"))
 
@@ -272,7 +272,7 @@ func (h *Handler) ListTrash(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Только для админа"
 // @Security BearerAuth
-// @Router /api/admin/trash/{type}/{id}/restore [post]
+// @Router /admin/trash/{type}/{id}/restore [post]
 func (h *Handler) RestoreItem(c fiber.Ctx) error {
 	entityType := utils.CopyString(c.Params("type"))
 	idStr := utils.CopyString(c.Params("id"))
@@ -301,7 +301,7 @@ func (h *Handler) RestoreItem(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Только для админа"
 // @Security BearerAuth
-// @Router /api/admin/users/{id}/deactivate [post]
+// @Router /admin/users/{id}/deactivate [post]
 func (h *Handler) DeactivateUser(c fiber.Ctx) error {
 	idStr := utils.CopyString(c.Params("id"))
 	userID, err := uuid.Parse(idStr)
@@ -333,7 +333,7 @@ func (h *Handler) DeactivateUser(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Только для админа"
 // @Security BearerAuth
-// @Router /api/admin/users/{id}/ban [post]
+// @Router /admin/users/{id}/ban [post]
 func (h *Handler) BanUser(c fiber.Ctx) error {
 	idStr := utils.CopyString(c.Params("id"))
 	targetID, err := uuid.Parse(idStr)
@@ -383,7 +383,7 @@ func (h *Handler) BanUser(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Только для админа"
 // @Security BearerAuth
-// @Router /api/admin/users/{id}/reassign [post]
+// @Router /admin/users/{id}/reassign [post]
 func (h *Handler) ReassignTasks(c fiber.Ctx) error {
 	fromIDStr := utils.CopyString(c.Params("id"))
 	fromUserID, err := uuid.Parse(fromIDStr)
@@ -422,7 +422,7 @@ func (h *Handler) ReassignTasks(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Только для админа"
 // @Security BearerAuth
-// @Router /api/admin/users/{id}/gdpr [delete]
+// @Router /admin/users/{id}/gdpr [delete]
 func (h *Handler) DeleteUserGDPR(c fiber.Ctx) error {
 	idStr := utils.CopyString(c.Params("id"))
 	userID, err := uuid.Parse(idStr)
@@ -467,7 +467,7 @@ func (h *Handler) DeleteUserGDPR(c fiber.Ctx) error {
 // @Success 200 {array} observability.OperationMetric
 // @Failure 403 {object} fiber.Error "Только для админа"
 // @Security BearerAuth
-// @Router /api/admin/observability/ops [get]
+// @Router /admin/observability/ops [get]
 func (h *Handler) ListOperationMetrics(c fiber.Ctx) error {
 	return c.JSON(observability.Snapshot())
 }

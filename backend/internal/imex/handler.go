@@ -50,7 +50,7 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 // @Failure 400 {object} fiber.Error "Ошибка файла или данных"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/import/issues [post]
+// @Router /projects/{projectId}/import/issues [post]
 func (h *Handler) ImportIssues(c fiber.Ctx) error {
 	projectID, err := parseProjectID(c)
 	if err != nil {
@@ -102,7 +102,7 @@ func (h *Handler) ImportIssues(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/export/issues [get]
+// @Router /projects/{projectId}/export/issues [get]
 func (h *Handler) ExportIssues(c fiber.Ctx) error {
 	projectID, err := parseProjectID(c)
 	if err != nil {
@@ -145,7 +145,7 @@ func (h *Handler) ExportIssues(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/export/full [get]
+// @Router /projects/{projectId}/export/full [get]
 func (h *Handler) ExportProjectZIP(c fiber.Ctx) error {
 	projectID, err := parseProjectID(c)
 	if err != nil {
@@ -174,7 +174,7 @@ func (h *Handler) ExportProjectZIP(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/test-runs/{runId}/export/pdf [get]
+// @Router /projects/{projectId}/test-runs/{runId}/export/pdf [get]
 func (h *Handler) ExportRunPDF(c fiber.Ctx) error {
 	projectID, err := parseProjectID(c)
 	if err != nil {
@@ -209,7 +209,7 @@ func (h *Handler) ExportRunPDF(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/sprints/{sprintId}/export/pdf [get]
+// @Router /projects/{projectId}/sprints/{sprintId}/export/pdf [get]
 func (h *Handler) ExportSprintPDF(c fiber.Ctx) error {
 	projectID, err := parseProjectID(c)
 	if err != nil {

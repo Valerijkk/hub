@@ -58,7 +58,7 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 // @Param body body object true "Payload от GitHub"
 // @Success 200 "Событие обработано"
 // @Failure 403 {object} fiber.Error "Невалидная подпись"
-// @Router /api/github/webhook [post]
+// @Router /github/webhook [post]
 func (h *Handler) HandleWebhook(c fiber.Ctx) error {
 	eventType := utils.CopyString(c.Get("X-GitHub-Event"))
 	signature := utils.CopyString(c.Get("X-Hub-Signature-256"))
@@ -102,7 +102,7 @@ func (h *Handler) HandleWebhook(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/github/integrations [post]
+// @Router /projects/{projectId}/github/integrations [post]
 func (h *Handler) CreateIntegration(c fiber.Ctx) error {
 	projectID, err := parseProjectID(c)
 	if err != nil {
@@ -132,7 +132,7 @@ func (h *Handler) CreateIntegration(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/github/integrations [get]
+// @Router /projects/{projectId}/github/integrations [get]
 func (h *Handler) ListIntegrations(c fiber.Ctx) error {
 	projectID, err := parseProjectID(c)
 	if err != nil {
@@ -158,7 +158,7 @@ func (h *Handler) ListIntegrations(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/github/integrations/{integrationId} [delete]
+// @Router /projects/{projectId}/github/integrations/{integrationId} [delete]
 func (h *Handler) DeleteIntegration(c fiber.Ctx) error {
 	projectID, err := parseProjectID(c)
 	if err != nil {
@@ -188,7 +188,7 @@ func (h *Handler) DeleteIntegration(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ключ"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/issues/{issueKey}/github-links [get]
+// @Router /issues/{issueKey}/github-links [get]
 func (h *Handler) ListGitHubLinks(c fiber.Ctx) error {
 	issueKey := utils.CopyString(c.Params("issueKey"))
 	if issueKey == "" {
@@ -226,7 +226,7 @@ func (h *Handler) ListGitHubLinks(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Недостаточно прав"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/issues/{issueKey}/github/create-branch [post]
+// @Router /projects/{projectId}/issues/{issueKey}/github/create-branch [post]
 func (h *Handler) CreateBranch(c fiber.Ctx) error {
 	projectID, err := parseProjectID(c)
 	if err != nil {
@@ -261,7 +261,7 @@ func (h *Handler) CreateBranch(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/github/workflows [get]
+// @Router /projects/{projectId}/github/workflows [get]
 func (h *Handler) ListWorkflowRuns(c fiber.Ctx) error {
 	projectID, err := parseProjectID(c)
 	if err != nil {
@@ -287,7 +287,7 @@ func (h *Handler) ListWorkflowRuns(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/github/workflows/{runId} [get]
+// @Router /projects/{projectId}/github/workflows/{runId} [get]
 func (h *Handler) GetWorkflowRunDetail(c fiber.Ctx) error {
 	projectID, err := parseProjectID(c)
 	if err != nil {
@@ -318,7 +318,7 @@ func (h *Handler) GetWorkflowRunDetail(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "URL не указан"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/link-preview [get]
+// @Router /link-preview [get]
 func (h *Handler) GetLinkPreview(c fiber.Ctx) error {
 	rawURL := utils.CopyString(c.Query("url"))
 	if rawURL == "" {

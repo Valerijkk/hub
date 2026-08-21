@@ -80,7 +80,7 @@ func constantTimeDigestCompare(a, b string) (equal bool, operandLen int) {
 // @Param Authorization header string true "Bearer {ALERT_WEBHOOK_SECRET}"
 // @Success 204 "Alerts recorded"
 // @Failure 401 {object} fiber.Error
-// @Router /api/webhooks/alertmanager [post]
+// @Router /webhooks/alertmanager [post]
 func (h *Handler) ReceiveAlertmanagerWebhook(c fiber.Ctx) error {
 	var payload AlertmanagerWebhookPayload
 	if err := json.Unmarshal(c.Body(), &payload); err != nil {

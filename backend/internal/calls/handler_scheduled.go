@@ -31,7 +31,7 @@ import (
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/scheduled-calls [post]
+// @Router /projects/{projectId}/scheduled-calls [post]
 func (h *Handler) CreateScheduledCall(c fiber.Ctx) error {
 	idStr := utils.CopyString(c.Params("projectId"))
 	projectID, err := uuid.Parse(idStr)
@@ -70,7 +70,7 @@ func (h *Handler) CreateScheduledCall(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/channels/{channelId}/scheduled-calls [get]
+// @Router /channels/{channelId}/scheduled-calls [get]
 func (h *Handler) ListScheduledCalls(c fiber.Ctx) error {
 	idStr := utils.CopyString(c.Params("channelId"))
 	channelID, err := uuid.Parse(idStr)
@@ -106,7 +106,7 @@ func (h *Handler) ListScheduledCalls(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/scheduled-calls/{id} [put]
+// @Router /scheduled-calls/{id} [put]
 func (h *Handler) UpdateScheduledCall(c fiber.Ctx) error {
 	idStr := utils.CopyString(c.Params("id"))
 	id, err := uuid.Parse(idStr)
@@ -147,7 +147,7 @@ func (h *Handler) UpdateScheduledCall(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/scheduled-calls/{id} [delete]
+// @Router /scheduled-calls/{id} [delete]
 func (h *Handler) DeleteScheduledCall(c fiber.Ctx) error {
 	idStr := utils.CopyString(c.Params("id"))
 	id, err := uuid.Parse(idStr)
@@ -185,7 +185,7 @@ func (h *Handler) DeleteScheduledCall(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверные параметры"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/calls/conflicts [get]
+// @Router /calls/conflicts [get]
 func (h *Handler) CheckConflicts(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {

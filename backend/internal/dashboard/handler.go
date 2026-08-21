@@ -42,7 +42,7 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/dashboard/personal [get]
+// @Router /dashboard/personal [get]
 func (h *Handler) Personal(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -69,7 +69,7 @@ func (h *Handler) Personal(c fiber.Ctx) error {
 // @Failure 403 {object} fiber.Error "Нет членства в проекте"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/dashboard/project/{projectId} [get]
+// @Router /dashboard/project/{projectId} [get]
 func (h *Handler) Project(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -103,7 +103,7 @@ func (h *Handler) Project(c fiber.Ctx) error {
 // @Failure 403 {object} fiber.Error "Требуются права администратора"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/dashboard/admin [get]
+// @Router /dashboard/admin [get]
 func (h *Handler) Admin(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -138,7 +138,7 @@ func (h *Handler) Admin(c fiber.Ctx) error {
 // @Failure 403 {object} fiber.Error "Нет членства в проекте"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/dashboard/layout [get]
+// @Router /dashboard/layout [get]
 func (h *Handler) GetLayout(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -186,7 +186,7 @@ func (h *Handler) GetLayout(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
-// @Router /api/dashboard/layout [put]
+// @Router /dashboard/layout [put]
 func (h *Handler) SaveLayout(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -219,7 +219,7 @@ func (h *Handler) SaveLayout(c fiber.Ctx) error {
 // @Produce json
 // @Success 200 {object} map[string][]LayoutItem "Шаблоны"
 // @Security BearerAuth
-// @Router /api/dashboard/templates [get]
+// @Router /dashboard/templates [get]
 func (h *Handler) ListTemplates(c fiber.Ctx) error {
 	return c.JSON(h.service.GetTemplates())
 }
@@ -240,7 +240,7 @@ type applyTemplateRequest struct {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/dashboard/templates/apply [post]
+// @Router /dashboard/templates/apply [post]
 func (h *Handler) ApplyTemplate(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {

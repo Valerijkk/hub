@@ -24,7 +24,7 @@ import (
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/issues/{issueKey}/time [post]
+// @Router /projects/{projectId}/issues/{issueKey}/time [post]
 func (h *Handler) LogTime(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -64,7 +64,7 @@ func (h *Handler) LogTime(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/issues/{issueKey}/timer/start [post]
+// @Router /projects/{projectId}/issues/{issueKey}/timer/start [post]
 func (h *Handler) StartTimer(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -99,7 +99,7 @@ func (h *Handler) StartTimer(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/issues/{issueKey}/timer/stop [post]
+// @Router /projects/{projectId}/issues/{issueKey}/timer/stop [post]
 func (h *Handler) StopTimer(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -133,7 +133,7 @@ func (h *Handler) StopTimer(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/issues/{issueKey}/time-logs [get]
+// @Router /projects/{projectId}/issues/{issueKey}/time-logs [get]
 func (h *Handler) ListTimeLogs(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {

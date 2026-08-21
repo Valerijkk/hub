@@ -37,11 +37,13 @@ def _public_error_artifact_valid_safe(bundle: object) -> bool:
         definitions = document.get("definitions")
         if type(definitions) is not dict:
             return False
+        public_error_name = (
+            "github_com_valerii_hub_backend_internal_platform_errors.PublicErrorBody"
+        )
         public_names = tuple(
             name
             for name in definitions
-            if type(name) is str
-            and (name == "tzErrorBody" or name.endswith(".tzErrorBody"))
+            if type(name) is str and name == public_error_name
         )
         if len(public_names) != 1:
             return False
@@ -72,37 +74,29 @@ def _public_error_artifact_valid_safe(bundle: object) -> bool:
 
 def _source_wire_relation_valid(source: str) -> bool:
     lines = tuple(line.strip() for line in source.splitlines())
-    struct = (
-        "type tzErrorBody struct {",
-        'Error     string `json:"error"`',
-        'RequestID string `json:"request_id"`',
-        "}",
-    )
     writers = (
         (
-            "return c.Status(appErr.Code).JSON(tzErrorBody{",
+            "return c.Status(appErr.Code).JSON(apperrors.PublicErrorBody{",
             "Error:     appErr.Message,",
             "RequestID: requestID,",
             "})",
         ),
         (
-            "return c.Status(fiberErr.Code).JSON(tzErrorBody{",
+            "return c.Status(fiberErr.Code).JSON(apperrors.PublicErrorBody{",
             "Error:     fiberErr.Message,",
             "RequestID: requestID,",
             "})",
         ),
         (
-            "return c.Status(fiber.StatusInternalServerError).JSON(tzErrorBody{",
+            "return c.Status(fiber.StatusInternalServerError).JSON(apperrors.PublicErrorBody{",
             'Error:     "internal server error",',
             "RequestID: requestID,",
             "})",
         ),
     )
-    if _contiguous_count(lines, struct) != 1:
-        return False
     if any(_contiguous_count(lines, writer) != 1 for writer in writers):
         return False
-    return sum(".JSON(tzErrorBody{" in line for line in lines) == len(writers)
+    return sum(".JSON(apperrors.PublicErrorBody{" in line for line in lines) == len(writers)
 
 
 def _contiguous_count(lines: tuple[str, ...], expected: tuple[str, ...]) -> int:

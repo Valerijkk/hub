@@ -313,7 +313,7 @@ func parseJiraJSON(data []byte) ([]JiraIssue, error) {
 // @Failure 400 {object} fiber.Error "Ошибка файла или данных"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/import/jira [post]
+// @Router /projects/{projectId}/import/jira [post]
 func (h *Handler) ImportJira(c fiber.Ctx) error {
 	projectID, err := parseProjectID(c)
 	if err != nil {

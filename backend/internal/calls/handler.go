@@ -159,7 +159,7 @@ type webhookFileResult struct {
 // @Success 200 "Событие обработано"
 // @Failure 400 {object} fiber.Error "Неверное тело"
 // @Failure 401 {object} fiber.Error "Невалидный webhook"
-// @Router /api/calls/webhook [post]
+// @Router /calls/webhook [post]
 func (h *Handler) HandleWebhook(c fiber.Ctx) error {
 	// Копируем тело запроса (Fiber/fasthttp переиспользует контекст)
 	body := make([]byte, len(c.Body()))

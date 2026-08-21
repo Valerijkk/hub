@@ -50,7 +50,7 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 // @Param body body object true "Payload от GitLab"
 // @Success 200 "Событие обработано"
 // @Failure 403 {object} fiber.Error "Невалидный токен"
-// @Router /api/gitlab/webhook [post]
+// @Router /gitlab/webhook [post]
 func (h *Handler) HandleWebhook(c fiber.Ctx) error {
 	eventType := utils.CopyString(c.Get("X-Gitlab-Event"))
 	webhookToken := utils.CopyString(c.Get("X-Gitlab-Token"))
@@ -95,7 +95,7 @@ func (h *Handler) HandleWebhook(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/gitlab/integrations [post]
+// @Router /projects/{projectId}/gitlab/integrations [post]
 func (h *Handler) CreateIntegration(c fiber.Ctx) error {
 	projectID, err := parseProjectID(c)
 	if err != nil {
@@ -132,7 +132,7 @@ func (h *Handler) CreateIntegration(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/gitlab/integrations [get]
+// @Router /projects/{projectId}/gitlab/integrations [get]
 func (h *Handler) ListIntegrations(c fiber.Ctx) error {
 	projectID, err := parseProjectID(c)
 	if err != nil {
@@ -158,7 +158,7 @@ func (h *Handler) ListIntegrations(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/gitlab/integrations/{integrationId} [delete]
+// @Router /projects/{projectId}/gitlab/integrations/{integrationId} [delete]
 func (h *Handler) DeleteIntegration(c fiber.Ctx) error {
 	projectID, err := parseProjectID(c)
 	if err != nil {
@@ -188,7 +188,7 @@ func (h *Handler) DeleteIntegration(c fiber.Ctx) error {
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/gitlab/pipelines [get]
+// @Router /projects/{projectId}/gitlab/pipelines [get]
 func (h *Handler) ListPipelines(c fiber.Ctx) error {
 	projectID, err := parseProjectID(c)
 	if err != nil {
@@ -216,7 +216,7 @@ func (h *Handler) ListPipelines(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/gitlab/pipelines/trigger [post]
+// @Router /projects/{projectId}/gitlab/pipelines/trigger [post]
 func (h *Handler) TriggerPipeline(c fiber.Ctx) error {
 	projectID, err := parseProjectID(c)
 	if err != nil {
@@ -254,7 +254,7 @@ func (h *Handler) TriggerPipeline(c fiber.Ctx) error {
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Недостаточно прав"
 // @Security BearerAuth
-// @Router /api/projects/{projectId}/issues/{issueKey}/gitlab/create-branch [post]
+// @Router /projects/{projectId}/issues/{issueKey}/gitlab/create-branch [post]
 func (h *Handler) CreateBranch(c fiber.Ctx) error {
 	projectID, err := parseProjectID(c)
 	if err != nil {

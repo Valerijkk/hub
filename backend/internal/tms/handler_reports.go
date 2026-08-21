@@ -9,8 +9,7 @@ import (
 	httputil "github.com/valerii/hub/backend/internal/platform/http"
 )
 
-// apperr используется в swag @Failure аннотациях.
-var _ *apperr.AppError
+var _ apperr.PublicErrorBody
 // ---------------------------------------------------------------------------
 // Обработчики отчётов TMS
 // ---------------------------------------------------------------------------
@@ -22,7 +21,7 @@ var _ *apperr.AppError
 // @Param projectId path string true "Project ID"
 // @Param limit query int false "Limit (default 20)"
 // @Success 200 {array} TestRunSummary
-// @Router /api/projects/{projectId}/tms/reports/history [get]
+// @Router /projects/{projectId}/tms/reports/history [get]
 func (h *Handler) GetTestRunHistory(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -50,7 +49,7 @@ func (h *Handler) GetTestRunHistory(c fiber.Ctx) error {
 // @Produce json
 // @Param projectId path string true "Project ID"
 // @Success 200 {object} FlakyTestReport
-// @Router /api/projects/{projectId}/tms/reports/flaky [get]
+// @Router /projects/{projectId}/tms/reports/flaky [get]
 func (h *Handler) GetFlakyTests(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -71,7 +70,7 @@ func (h *Handler) GetFlakyTests(c fiber.Ctx) error {
 // @Produce json
 // @Param projectId path string true "Project ID"
 // @Success 200 {object} CoverageReport
-// @Router /api/projects/{projectId}/tms/reports/coverage [get]
+// @Router /projects/{projectId}/tms/reports/coverage [get]
 func (h *Handler) GetCoverageReport(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -93,7 +92,7 @@ func (h *Handler) GetCoverageReport(c fiber.Ctx) error {
 // @Param projectId path string true "Project ID"
 // @Param limit query int false "Number of recent runs (default 20)"
 // @Success 200 {array} TrendPoint
-// @Router /api/projects/{projectId}/tms/reports/trends [get]
+// @Router /projects/{projectId}/tms/reports/trends [get]
 func (h *Handler) GetTestTrends(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -123,8 +122,8 @@ func (h *Handler) GetTestTrends(c fiber.Ctx) error {
 // @Param run1 query string true "First run ID"
 // @Param run2 query string true "Second run ID"
 // @Success 200 {object} RunComparison
-// @Failure 400 {object} apperr.AppError
-// @Router /api/projects/{projectId}/tms/reports/comparison [get]
+// @Failure 400 {object} apperr.PublicErrorBody
+// @Router /projects/{projectId}/tms/reports/comparison [get]
 func (h *Handler) GetRunComparison(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -159,7 +158,7 @@ func (h *Handler) GetRunComparison(c fiber.Ctx) error {
 // @Produce json
 // @Param projectId path string true "Project ID"
 // @Success 200 {object} TraceabilityMatrix
-// @Router /api/projects/{projectId}/tms/reports/traceability [get]
+// @Router /projects/{projectId}/tms/reports/traceability [get]
 func (h *Handler) GetTraceabilityMatrix(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -182,8 +181,8 @@ func (h *Handler) GetTraceabilityMatrix(c fiber.Ctx) error {
 // @Param env1 query string true "First environment ID"
 // @Param env2 query string true "Second environment ID"
 // @Success 200 {object} EnvironmentComparisonResponse
-// @Failure 400 {object} apperr.AppError
-// @Router /api/projects/{projectId}/tms/reports/env-comparison [get]
+// @Failure 400 {object} apperr.PublicErrorBody
+// @Router /projects/{projectId}/tms/reports/env-comparison [get]
 func (h *Handler) CompareEnvironments(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -219,7 +218,7 @@ func (h *Handler) CompareEnvironments(c fiber.Ctx) error {
 // @Produce json
 // @Param projectId path string true "Project ID"
 // @Success 200 {array} DefectCategory
-// @Router /api/projects/{projectId}/tms/reports/defect-categories [get]
+// @Router /projects/{projectId}/tms/reports/defect-categories [get]
 func (h *Handler) GetDefectCategories(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
