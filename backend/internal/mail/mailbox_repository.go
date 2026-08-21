@@ -7,6 +7,43 @@ import (
 	"github.com/google/uuid"
 )
 
+type MailboxOwnerState string
+
+const (
+	MailboxOwnerNotConfigured MailboxOwnerState = "not_configured"
+	MailboxOwnerProvisioning  MailboxOwnerState = "provisioning"
+	MailboxOwnerActive        MailboxOwnerState = "active"
+	MailboxOwnerSuspended     MailboxOwnerState = "suspended"
+	MailboxOwnerError         MailboxOwnerState = "error"
+	MailboxOwnerDeleting      MailboxOwnerState = "deleting"
+)
+
+type MailboxProjectionState string
+
+const (
+	MailboxProjectionBootstrapping MailboxProjectionState = "bootstrapping"
+	MailboxProjectionReady         MailboxProjectionState = "ready"
+	MailboxProjectionDegraded      MailboxProjectionState = "degraded"
+	MailboxProjectionRebuilding    MailboxProjectionState = "rebuilding"
+)
+
+type MailboxOwnerRecoveryCode string
+
+type MailboxOwnerRecord struct {
+	ActorID         uuid.UUID
+	OrganizationID  uuid.UUID
+	AccountID       uuid.UUID
+	EngineAccountID *string
+	State           MailboxOwnerState
+	ProjectionState MailboxProjectionState
+	PrimaryAddress  *string
+	RecoveryCode    *MailboxOwnerRecoveryCode
+}
+
+type MailboxOwnerRepository interface {
+	ResolveMailboxOwner(context.Context, uuid.UUID) (MailboxOwnerRecord, error)
+}
+
 type MailboxSyncPhase uint8
 
 const (
