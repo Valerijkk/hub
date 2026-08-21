@@ -1,76 +1,89 @@
-[РОЛЬ И TASK CONTRACT]
+# Calendar 143-04H occurrence-cancel source dispatch
 
-Ты — `codex-micro`, атомарный Go-исполнитель Hub. Реализуй только отмену одного
-recurrence instance canonical calendar event.
+> **Status:** `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
+> ATOMIC_EXACT15_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`.
+> This dirty exact15 carrier is non-authoritative. Source dispatch is forbidden until the
+> full candidate -> exact-SHA review -> separate acceptance-sync lifecycle in
+> `REVIEW-143-04H-OCCURRENCE-CANCEL-AUTHORITY.md` is complete.
 
-- User outcome: организатор отменяет одну встречу серии, не отменяя остальные; участники
-  получают occurrence-scoped CANCEL ровно один раз.
-- Completion: failing external-package units precede minimal service behavior; canonical
-  exception, master version/sequence, iTIP and outbox are one accepted command.
-- Non-goals: whole-series cancellation/update, RSVP, parser, HTTP handler/DTO, schema/
-  generation, migration, mail transport, frontend, legacy calendar aggregate.
+## Outcome and exact ownership
 
-[OWNERSHIP]
+An authenticated Hub organizer may cancel exactly one canonical occurrence of an active
+recurring event. The command creates or reuses one cancelled exception, increments the master
+version and sequence once, and atomically persists one safe content-free
+`calendar.invite.cancelled.v1` `EnvelopeV1`. It does not create raw iTIP or transport work.
 
-- Entry: accepted 143-02A, 143-04A/C/G and matching repository interfaces on clean HEAD.
-- Allowed mutations only:
-  - `backend/internal/calendar/event_service_occurrence_cancel.go`
-  - `backend/tests/calendar/event_service_occurrence_cancel_test.go`
-  - narrow method signature additions to accepted `event_repository.go` only if the
-    frozen command cannot be expressed; no implementation in that file
-- Do not modify master update/RSVP/iTIP serializer logic, Ent adapter, handlers/wiring,
-  NATS list or legacy `calendar` Service/Repository.
-- `package calendar_test`; in-memory deterministic fakes; no DB/network/broker/clock.
+Future source ownership is exactly this ordered test-first manifest:
 
-[FROZEN COMMAND]
+1. NEW `backend/tests/calendar/event_service_occurrence_cancel_test.go`
+2. MODIFY `backend/internal/calendar/event_repository.go`
+3. NEW `backend/internal/calendar/event_service_occurrence_cancel.go`
 
-Input is authenticated actor, event id, decoded canonical recurrence id and expected
-master event version. The service:
+No source currently exists or is authorized. Do not modify `event_service_update.go`,
+`event_call_policy.go`, `event_call_due_service.go`, Ent, adapters, handlers, wiring, generated
+code, migrations, OpenAPI implementation, frontend or the legacy calendar aggregate.
 
-1. resolves organization/organizer authority before exposing event existence;
-2. loads active recurring master and validates recurrence id belongs to its temporal kind;
-3. compares expected master version;
-4. writes/updates one `CalendarEventException(status=cancelled)` for event + recurrence;
-5. increments master `sequence` and `version` exactly once;
-6. serializes one `METHOD:CANCEL` with same UID, new sequence and `RECURRENCE-ID`;
-7. persists one `calendar.invite.cancelled.v1` through outbox in the same transaction;
-8. returns event id, canonical recurrence id, cancelled status, sequence and event version.
+## Frozen boundary
 
-It never mutates RRULE, other exceptions, attendee historical RSVP or master status.
-Already-cancelled same occurrence with current post-command state is an idempotent read.
-A stale pre-command `If-Match` returns typed `CALENDAR_EVENT_VERSION_CONFLICT` carrying the
-current event version and canonical event location before any second outbox/notification;
-an invalid/non-cancellable instance returns typed `CALENDAR_OCCURRENCE_NOT_MUTABLE`.
+- Add receipt-free `EventMutationCalendarOccurrenceCancel = "event_occurrence_cancel"`; never add
+  a `MutationReceiptOperation` value.
+- Command ingress checks recurrence byte length 1..255 before UTF-8/control/canonical scans and
+  before every repository/clock/ID call; invalid UTF-8/control is rejected, accepted bytes are
+  preserved, and temporal canonicalization waits for the authoritative master.
+- The optional `CalendarEventOccurrenceCancelTransactionBackend` capability is checked before
+  `ResolveActorOrganization` or any other backend call. `WithEventTransaction` is the only outer
+  seam allowed before the capability check.
+- After the owner/org-scoped resolve, bind only fixed-shape EventID/org/OwnerID/OrganizerID first.
+  Any mismatch is the same non-disclosing `ErrEventNotFound` before validating, capping, allocating
+  or traversing untrusted current strings/slices/attendees/exception. Only an identity-bound
+  snapshot receives full validation; master mutability and recurrence membership precede version.
+- Only active confirmed/tentative Hub masters with a valid normalized 04B recurrence are mutable.
+  Non-recurring, external, cancelled, malformed, non-member and EXDATE instances fail closed as
+  `not_mutable`.
+- Membership is canonical and bounded independently of EXDATE: all-day recurrence ids are
+  `YYYY-MM-DD`, timed ids are UTC-second `YYYY-MM-DDTHH:MM:SSZ`, and expansion/work is capped at
+  1000 occurrences. Existing accepted 04B DAILY/WEEKLY/MONTHLY, INTERVAL,
+  BYDAY/BYMONTHDAY, COUNT xor UNTIL and DST semantics are reused without broadening.
+- Matching already-cancelled exception plus current expected version is an idempotent read with
+  zero clock/ID/persist/outbox calls. A stale version still conflicts.
+- New mutation changes only master `Version` and `Sequence` by checked `+1`; writes one cancelled
+  exception with nil temporal override and the same new sequence; leaves master status, recurrence,
+  EXDATE, content, links, reminders and attendee state unchanged.
+- The occurrence payload contains only event id, stable `hub-<event-id>` UID, new sequence,
+  canonical non-null recurrence id and sorted unique active attendee ids. The organizer's UserID
+  is excluded; external attendees remain. The JSON array is non-null and capped at 200.
+- Persistence is one expected-version CAS and must echo the complete master, exception and exact
+  frozen envelope. Any mismatch or raw/unknown error becomes content-free `ErrEventInvalid` and
+  rolls the transaction back.
+- `EventSerializer` must receive zero calls. No `METHOD:CANCEL`, MIME, provider, delivery or raw
+  iTIP data belongs to this packet.
 
-[REQUIRED ORACLES]
+## Required non-tautological oracles
 
-1. One occurrence cancellation leaves master confirmed and RRULE/other occurrences intact.
-2. Exception uniqueness is event + recurrence; one row only.
-3. Master sequence/version each increment exactly one; attendee status unchanged.
-4. Serialized iTIP is `METHOD:CANCEL`, stable UID, new sequence, exact recurrence id and
-   cancelled status; no unrelated occurrence.
-5. Outbox stores exactly one complete 04L envelope in the same fake transaction: subject is
-   `calendar.invite.cancelled.v1`, inner payload contains recurrence id, and event type,
-   envelope subject and descriptor subject match.
-6. Retrying stale expected version returns `CALENDAR_EVENT_VERSION_CONFLICT` plus current
-   event-version/location metadata with zero mutation/iTIP/outbox.
-7. Already-cancelled canonical state with matching current observation returns the same
-   cancellation view without duplicate side effects.
-8. Non-recurring event, invalid/out-of-policy recurrence id, cancelled master or unknown
-   occurrence returns `CALENDAR_OCCURRENCE_NOT_MUTABLE` before mutation.
-9. Non-organizer/cross-organization actor receives non-disclosing error and zero lookup
-   hydrate/mutation beyond owner-scoped query.
-10. Transaction failure rolls back exception, master counters and outbox together.
+The authored-first external-package unit must reflection/compile-freeze the complete ABI in the
+review and prove: optional capability zero-backend-call; scope operation and forged/escaped/closed
+rejection; nondisclosing identity masking before version; full recurrence/DST/boundary/cap matrix;
+EXDATE not used as membership proof; stale versus idempotent cancelled behavior; checked overflow;
+exact ID/clock call order; attendee projection and empty-array JSON; authorization/getter alias
+resistance; every master/exception/envelope echo field tamper; exact EnvelopeV1 JSON and subject
+bindings; foreign malformed/oversized identity masking; 1/255/256-byte and 1 MiB recurrence
+preflight; raw-error masking; behavioral serializer zero-call; and rollback at every failure point.
+Static Security/Lifecycle review owns source-token and no-I/O scans.
 
-[EXECUTION / PROVENANCE]
+## Dependencies and blockers
 
-- TDD first; no dependency/generated code/global state.
-- Host verification/direct Docker forbidden; accepted launcher absent => `NOT_RUN`.
-- No commit/push/PR/network. max_depth 0; fan_out 0; retries 2; wall clock 45m.
-- requested_model `gpt-5.6-terra`; reasoning `xhigh`; fallback none; mismatch => `BLOCKED`
-  before mutation. Orchestrator records exact clean source-contract SHA.
+Hard static dependencies: accepted 143-04A, 143-04B, 143-04C, 143-04G and 143-04L.
+Accepted 143-04J/04K remain independent and are not invoked. Legacy 143-02A serializer dependency,
+raw `METHOD:CANCEL`, `EventSerializer` and source-first wording are `CONSUMED/HISTORICAL`.
+143-04F-H owns the eventual Ent transaction only and remains blocked. Launcher is `NOT_READY`;
+tests/build/lint/validators/Docker/runtime are `NOT_RUN`; AQ migration/backfill blockers remain.
 
-[ОТВЕТ]
+## Provenance and lifecycle
 
-На русском: transition; files/symbols; oracle matrix; atomicity/iTIP evidence;
-verification; model provenance; risks.
+Authoring provenance is `gpt-5.6-terra` / `xhigh`, dispatcher-enforced, no fallback, telemetry
+`UNKNOWN`. Required independent reviews are Contract/Spec/Oracle Terra/high,
+Security/Adversarial Terra/xhigh and Lifecycle/Dependency/Boundary Terra/high.
+
+No downstream action is authorized until, in order: triple precommit PASS; one atomic exact15
+candidate commit; triple immutable exact-SHA PASS; a separate exact15 docs-only acceptance sync;
+and immutable review of that acceptance commit. Only then may root dispatch the ordered exact3.

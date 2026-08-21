@@ -1,5 +1,29 @@
 # Hub Mail + Calendar Sync — QA handoff
 
+## Calendar 143-04H occurrence-cancel authority candidate - static oracle only
+
+`ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
+ATOMIC_EXACT15_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. No executable result is
+claimed. The future authored-first external-package unit must freeze the exact ABI and prove:
+capability before backend; nondisclosing owner/org/organizer masking before version; canonical
+bounded all-day/timed recurrence and DST/EXDATE behavior; stale versus idempotent-cancelled paths;
+checked counters and exact ID/clock ordering; active attendee projection with empty `[]`; hostile
+alias resistance; every master/exception/envelope echo mismatch; exact safe EnvelopeV1 JSON;
+content-free raw-error handling; serializer zero-call; and rollback at every failure point.
+
+Masking must precede validation/caps/traversal of all foreign variable-shape snapshot content; a
+wrong identity carrying malformed/oversized strings, slices, aliases, attendees or exception still
+returns identical not-found. Command ingress tests exact 1/255-byte acceptance, zero/256-byte,
+invalid UTF-8/control rejection and a 1 MiB recurrence with zero repository/backend/clock/ID calls
+and no panic. The unit behaviorally asserts serializer zero-call and exact safe envelope only;
+static Security/Lifecycle review owns source-token and no-I/O scans.
+
+Source exact3 remains `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED` and cannot be dispatched before
+triple precommit PASS, atomic exact15 candidate commit, triple immutable exact-SHA PASS and a
+separate accepted exact15 sync. Launcher is `NOT_READY`; tests/build/lint/validators/Docker/runtime
+are `NOT_RUN`. No iTIP, delivery, Ent, adapter, handler, migration or runtime authority follows.
+
+
 ## 144-04I-A source receipt-sync candidate - static only
 
 `SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT10_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty
@@ -573,7 +597,8 @@ or more `FR-MAIL-*` / `FR-CALSYNC-*` rows and named `TC-*` scenarios in `MAIL-SP
     Approved leave stays viewer/shared-project scoped, expands in the employee timezone,
     and invalid legacy timezone returns `422` + `AVAILABILITY_SOURCE_INVALID`.
 13. Cancelling one recurrence instance increments master sequence/version, materializes a
-    cancelled exception and emits only occurrence-scoped iTIP/outbox; the series remains.
+    cancelled exception and records one safe occurrence-scoped cancellation-intent EnvelopeV1;
+    no raw iTIP is produced and the series remains.
 14. For both series and occurrence attendees, deliver `declined(hash A)`, then
     `accepted(hash B)`, then redeliver A at the same event sequence: the final RSVP remains
     accepted and the redelivery creates no attendee/outbox mutation. Repeat with a

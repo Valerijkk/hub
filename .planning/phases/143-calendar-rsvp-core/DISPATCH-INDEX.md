@@ -1,5 +1,17 @@
 # Phase 143 — exact Terra dispatch index
 
+> **143-04H root authority candidate:** `ROOT_SOURCE_AUTHORITY_CANDIDATE /
+> PRECOMMIT_REVIEW_REQUIRED / ATOMIC_EXACT15_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED /
+> RUNTIME_NOT_RUN`. Dirty exact15 is non-authoritative. The only frozen future source order is
+> NEW `backend/tests/calendar/event_service_occurrence_cancel_test.go`, MODIFY
+> `backend/internal/calendar/event_repository.go`, NEW
+> `backend/internal/calendar/event_service_occurrence_cancel.go`. Root dispatch remains forbidden
+> until triple precommit PASS -> atomic exact15 candidate commit -> triple immutable exact-SHA PASS
+> -> separate atomic exact15 acceptance sync and immutable review. Legacy raw iTIP/serializer/
+> 143-02A/source-first routes are `CONSUMED/HISTORICAL`; 04F-H and every downstream/runtime blocker
+> remain. Full controlling contract: `REVIEW-143-04H-OCCURRENCE-CANCEL-AUTHORITY.md`.
+
+
 > **143-04J source-receipt sync:** `SOURCE_ACCEPTANCE_SYNC_CANDIDATE /
 > ATOMIC_EXACT14_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. These proposed receipt facts grant no
 > authority before one atomic exact14 docs commit. After it, source `e74efa827b52...` is
@@ -61,7 +73,8 @@ must include the full Hub prompt contract, exact clean HEAD, current allowed fil
 package tests first, no commit, and `BLOCKED` on scope or runtime mismatch. Root reviews
 each result before the next overlapping task.
 
-Complete standalone prompts exist for 143-01, 02A, 02B, 04G, 04H and 04L. For every other row,
+Complete standalone prompts exist for 143-01, 02A, 02B, 04G, 04H and 04L. The 04H prompt is a
+non-authoritative exact15 candidate and is not dispatchable before its separate acceptance sync. For every other row,
 assemble the Common envelope plus exactly one matching section from
 `DISPATCH-REMAINING.md`; combining sections is invalid.
 
@@ -81,7 +94,7 @@ contract 0.1.7 ── 143-04L shared versioned envelope
 143-04A/G ──────────────── 143-04B create
 143-04A/G ──────────────── 143-04C update/master cancel
 143-04A/G ──────────────── 143-04D series RSVP ── 143-04E occurrence RSVP
-143-02A + 143-04C/G ────── 143-04H occurrence cancel
+143-04A/B/C/G/L ─────────── 143-04H safe occurrence cancel (candidate; no 02A serializer)
 143-02B + 143-04A/G ────── 143-04I inbound REPLY
 143-01/02A + 143-04A/B/G ─── 143-04J call-projection policy ── 143-04K due policy
 
@@ -118,7 +131,7 @@ each accepted 143-04B/C/D/E/H/I ── its matching 143-04F-* transaction
 | 143-04C | material/silent/reminder update and master cancellation — `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `7fd061b5099b4608e0c33a6d99edbe1a66587d34`; former candidate/current-next route `CONSUMED/HISTORICAL` | test first `event_service_update_test.go`, then `event_repository.go`, then new `event_service_update.go`; exact blobs in `IMPLEMENTATION-143-04C.md` | presence patch; authoritative locked organizer resolver; inactive-reader filtering/fresh re-invite/new ID/normalized-email role-resolved-identity rejection; opaque result echo/all-and-only rollback; typed recurrence-exception conflict | accepted 143-03B-T + 143-04A/G; no next Calendar packet selected |
 | 143-04D | Series RSVP optimistic transition | `event_service_rsvp.go`, `backend/tests/calendar/event_service_rsvp_test.go` | one version increment/outbox; NFR-13 recovery metadata | 143-04A + 143-04G |
 | 143-04E | HTTP occurrence RSVP with persisted mutation receipt | `event_service_occurrence.go`, `backend/tests/calendar/event_service_occurrence_test.go` | materialized override; replay/conflict; one receipt/outbox | 143-04D + 143-04G |
-| 143-04H | Cancel one recurrence instance | `event_service_occurrence_cancel.go`, `backend/tests/calendar/event_service_occurrence_cancel_test.go` | exact event-version/occurrence-not-mutable conflicts; cancelled exception; sequence/event version +1; occurrence iTIP CANCEL and one outbox | 143-02A + 143-04C + 143-04G |
+| 143-04H | Safe receipt-free cancellation of one recurrence instance — `ROOT_SOURCE_AUTHORITY_CANDIDATE / IMPLEMENTATION_BLOCKED` | test first `backend/tests/calendar/event_service_occurrence_cancel_test.go`, then `backend/internal/calendar/event_repository.go`, then new `backend/internal/calendar/event_service_occurrence_cancel.go` | capability before backend; nondisclosing masking; bounded 04B membership; idempotent cancelled exception; sequence/version +1; one safe occurrence-cancel EnvelopeV1; exact echo/rollback; zero serializer/iTIP | accepted 143-04A/B/C/G/L; separate exact15 acceptance required |
 | 143-04I | Sender-bound inbound iTIP REPLY apply/quarantine | `event_service_inbound_reply.go`, `backend/tests/calendar/event_service_inbound_reply_test.go` | A→B→A no rollback; same-status receipt; stale/future/spoof/cap quarantine | 143-02B + 143-04A + 143-04G |
 | 143-04J | Pure canonical ScheduledCall mapping, recurrence and next-effective-occurrence policy | `event_call_policy.go`, `backend/tests/calendar/event_call_policy_test.go` | exact-channel/project/org membership; linked-guest rejection; series participant projection; DTSTART/RRULE/EXDATE; pause/resume; no I/O | 143-01 + 143-02A + 143-04A/B/G |
 | 143-04K | Pure due-call source receipt — `SOURCE_ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT15_COMMIT_REQUIRED / RUNTIME_NOT_RUN` only | authored-first `event_call_due_service_test.go` blob `437db3af`, then `event_call_due_service.go` blob `376f46c1` in immutable source `572f9112`; no dirty-tree authority | frozen pure 04J-derived due decision, opaque descriptor; no I/O/clock/CAS/outbox append/NATS | accepted 143-04J + 143-04A + 143-04L |

@@ -1,5 +1,20 @@
 # Mail persistence contract 0.1.8
 
+## Calendar 143-04H occurrence-cancel candidate - no adapter activation
+
+`ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
+ATOMIC_EXACT15_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This dirty exact15
+freezes an optional receipt-free transaction port only. Capability is checked before every backend
+call. Recurrence ingress byte-preflights 1..255 before all repository work. After scoped resolve,
+fixed EventID/org/OwnerID/OrganizerID identity is bound before validating/capping/traversing any
+foreign strings, slices, attendees or exception; malformed/oversized foreign content stays
+nondisclosing not-found. Eventual persistence is one expected-version CAS that must atomically echo the complete
+master, cancelled exception and exact safe EnvelopeV1 or roll back. It neither adds nor authorizes
+Ent/SQL/adapter locks, generated schema, migration, handler/wiring or runtime. 143-04F-H remains the
+sole future owner of those persistence details and stays blocked. Source exact3 is unimplemented and
+cannot be dispatched before the full candidate/exact-SHA/separate-acceptance lifecycle.
+
+
 ## 144-04I-A source receipt-sync candidate - no persistence activation
 
 `SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT10_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty

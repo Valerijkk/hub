@@ -1,5 +1,14 @@
 # Phase 143 — executable packet contracts not split into standalone files
 
+> **143-04H root authority candidate:** `ROOT_SOURCE_AUTHORITY_CANDIDATE /
+> PRECOMMIT_REVIEW_REQUIRED / ATOMIC_EXACT15_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED /
+> RUNTIME_NOT_RUN`. This dirty exact15 carrier grants no dispatch. Its only future source is the
+> frozen test-first exact3 in `REVIEW-143-04H-OCCURRENCE-CANCEL-AUTHORITY.md`, and it activates only
+> after triple precommit PASS, atomic exact15 candidate commit, triple immutable exact-SHA PASS and
+> a separate accepted exact15 sync. Legacy `METHOD:CANCEL`, `EventSerializer`, 143-02A and
+> source-first clauses are `CONSUMED/HISTORICAL`; source/runtime/downstream blocks remain current.
+
+
 > **143-04J source-receipt sync:** `SOURCE_ACCEPTANCE_SYNC_CANDIDATE /
 > ATOMIC_EXACT14_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. These proposed receipt facts grant no
 > authority before one atomic exact14 docs commit. After it, immutable exact2 `e74efa827b52...`
@@ -58,8 +67,9 @@ The 143-04A/B/G receipts remain accepted. 143-03E, 144-02E, Ent generation, migr
 > the accepted Docker launcher.
 
 Standalone complete prompts already exist for 143-01, 143-02A, 143-02B, 143-04G and
-143-04H. This file makes every remaining row in `DISPATCH-INDEX.md` independently
-dispatchable without duplicating the common safety contract.
+143-04H. The 143-04H prompt is frozen but remains non-dispatchable until its exact15 candidate and
+separate acceptance lifecycle completes. Subject to each row's current authority gate, this file
+makes the remaining rows independently dispatchable without duplicating the common safety contract.
 
 > **143-04B accepted source receipt:** `75dafea889055126f768227a4ae62b28c91b7393` is `STATIC_ACCEPTED` / `EXACT_SHA_PASS`; exact blobs in `IMPLEMENTATION-143-04B.md`. Tests first; Contract/Security/Lifecycle PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Old 04B `PRECOMMIT_FAIL`/`NOT_ACCEPTED`/next-route clauses `CONSUMED/HISTORICAL`. No next Calendar code packet selected; launcher `NOT_READY`, executables/generation/migration/runtime `NOT_RUN`; 03E Ent generation/migration blocked.
 

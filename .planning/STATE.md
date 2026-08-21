@@ -5,6 +5,26 @@ milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
 last_updated: "2026-08-20T17:33:04+03:00"
+calendar_143_04h_authority_candidate: >-
+  Status: ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
+  ATOMIC_EXACT15_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN.
+  This dirty exact15 documentation and schema-contract candidate grants no source,
+  adapter, handler, API implementation, migration, generation or runtime authority.
+  The candidate freezes only Calendar 143-04H occurrence-cancel ABI, deterministic
+  state rules, safe calendar.invite.cancelled.v1 occurrence payload and the ordered
+  future exact3: backend/tests/calendar/event_service_occurrence_cancel_test.go,
+  backend/internal/calendar/event_repository.go, then new
+  backend/internal/calendar/event_service_occurrence_cancel.go. Source remains
+  UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED. Root may dispatch that exact3 only after
+  Contract/Spec/Oracle, Security/Adversarial and Lifecycle/Dependency/Boundary
+  precommit PASS; one atomic exact15 candidate commit; three immutable exact-SHA PASS
+  reviews; and a separate atomic exact15 acceptance sync with its own immutable review.
+  Legacy 143-04H METHOD:CANCEL, EventSerializer, 143-02A and source-first clauses are
+  CONSUMED/HISTORICAL for this candidate. 04A/04B/04C/04G/04L are static dependencies;
+  04J/04K remain untouched and are not invoked. 04F-H, Ent, adapter, handler/wiring,
+  generation, migration, AQ blockers, raw iTIP/transport, launcher NOT_READY and
+  executables/runtime NOT_RUN remain blocked. Author Terra/xhigh,
+  dispatcher-enforced/no fallback, telemetry UNKNOWN.
 mail_144_04i_a_source_receipt: "Status: SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT10_COMMIT_REQUIRED / RUNTIME_NOT_RUN. This dirty exact10 documentation candidate grants no acceptance. Only after one atomic commit equal to IMPLEMENTATION-144-04I-A.md's manifest and immutable receipt review is 091f2ef286a71f506e1b048f5386fd37cefa06bc (parent 6b27643fcde3b702fa13c5fcc9b4bfefcb9fc87a, tree b01be92acf01033935b85446454eaee16b84e01b, subject feat(mail): add bounded sync worker) STATIC_ACCEPTED / EXACT_SHA_PASS for authored-first test blob 79c2691971287e3a62c830a5d12c78699414bb86 then source blob 6c20fadf563d4d146b2fc1cbacdddea485266eb7. Contract/Security/Lifecycle precommit and immutable exact-SHA reviews PASS C/I/M 0/0/0; author Terra/xhigh; Contract Terra/high; Security/Lifecycle Terra/xhigh; dispatcher-enforced/no fallback; telemetry UNKNOWN. Then lower 04I-A candidate/source-unaccepted/current-next clauses are CONSUMED/HISTORICAL. No next source is selected. 04H/02E, Ent/concrete adapter, generation/migration, SQL/two-replica proof, API/OpenAPI/UI, launcher NOT_READY and runtime NOT_RUN remain blocked."
 calendar_143_04j_source_acceptance_sync: "Status: SOURCE_ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT14_COMMIT_REQUIRED / RUNTIME_NOT_RUN. These proposed receipt facts grant no authority before one atomic commit of the exact14 documentation manifest. After that commit, immutable source e74efa827b52f35e3d3fbe8346adf0c0121ba48d (parent 06a0d6e506a31fb5546ef168a5dba72d8956a984, tree 073e887a957bb65c6c06a9759e239323ab882aa7, subject feat(calendar): add call projection policy) is STATIC_ACCEPTED / EXACT_SHA_PASS for test blob 28273191ddd1babec2cbe61c217cd561322a7ac0 then source blob cc0218bddce25936cbfb8e987a0bb6681f979d5c. Tests were authored first; Contract/Spec/Oracle, Security/Adversarial and Lifecycle/Dependency/Boundary precommit plus immutable exact-SHA reviews PASS C/I/M 0/0/0; author Terra/xhigh, dispatcher-enforced/no fallback, telemetry UNKNOWN. Lower 04J authority/source-unaccepted/exact2-next clauses then become CONSUMED/HISTORICAL. No next Calendar packet is selected; 04K requires separate docs authority. AQ-02 remains migration/backfill-only; 04F-J/K, Ent/generation/migration, adapters/API/UI/raw iTIP, launcher NOT_READY and executables/runtime NOT_RUN remain unchanged."
 calendar_143_04k_source_receipt_sync: "Status: SOURCE_ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT15_COMMIT_REQUIRED / RUNTIME_NOT_RUN. This dirty exact15 documentation candidate grants no authority. Only after one atomic exact15 commit and the recorded immutable acceptance reviews does source 572f911227b9d50e21aa73b87c530ddcaf0f8934 (parent 26b377eb288ac8e363cf6d53c744b60f097e9804, tree ac96e2f5c03256b1e00a391600325a524a840673, subject feat(calendar): add call due policy), with authored-first test blob 437db3af0263cedb10dcf217cd53fbbcac03cf23 and source blob 376f46c1cc79956fab3479efc38750fd88161b16, become STATIC_ACCEPTED / EXACT_SHA_PASS. Contract/Spec/Oracle, Security/Adversarial and Lifecycle/Dependency/Boundary precommit plus immutable reviews are PASS C/I/M 0/0/0; author Terra/xhigh, dispatcher-enforced/no fallback, telemetry UNKNOWN. Only then are lower 04K authority-candidate/precommit/current-next clauses CONSUMED/HISTORICAL. No next Calendar packet is selected. 04F-K/AQ-02, Ent/generation/migration, adapters/API/UI/raw iTIP/legacy cutover, launcher NOT_READY and executables/runtime NOT_RUN remain unchanged."

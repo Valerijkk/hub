@@ -1,5 +1,40 @@
 # MAIL-SPEC — Hub mailbox and calendar synchronization contract
 
+## 143-04H occurrence-cancel root authority candidate
+
+> `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
+> ATOMIC_EXACT15_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`.
+> This dirty exact15 candidate is non-authoritative. It freezes only the exact ABI, state order,
+> safe occurrence-cancel EnvelopeV1 variant and mandatory oracles in
+> `REVIEW-143-04H-OCCURRENCE-CANCEL-AUTHORITY.md`. Source remains
+> `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED`; only after triple precommit PASS, an atomic exact15
+> candidate commit, triple immutable exact-SHA PASS, and a separate accepted exact15 docs sync may
+> root dispatch the ordered exact3 test -> `event_repository.go` -> new occurrence service.
+
+The optional occurrence-cancel transaction capability is checked before any backend call; the
+operation is receipt-free and distinct from `MutationReceiptOperation`. Command ingress checks
+recurrence byte length 1..255 before UTF-8/control/canonical scans or any repository/clock/ID call,
+rejects invalid UTF-8/control, and preserves accepted bytes. After the owner/org-scoped resolve,
+only fixed EventID/org/OwnerID/OrganizerID identity is bound first; mismatch returns nondisclosing
+not-found before any validation, cap, allocation or traversal of foreign snapshot content. Only an
+identity-bound snapshot is fully validated. An active Hub recurring master and canonical nominal
+04B member not excluded by EXDATE is mutable. A matching cancelled
+exception is idempotent at the current version; otherwise one CAS changes only master sequence and
+version by one, persists one cancelled exception and one exact safe envelope. Persistence must echo
+the full master/exception/envelope or roll back. The occurrence payload requires a non-null
+canonical recurrence id and sorted active attendee ids; it contains no raw iTIP, MIME, provider,
+delivery or transport data and never calls `EventSerializer`.
+
+Legacy 04H `METHOD:CANCEL`, `EventSerializer`, 143-02A and source-first clauses are
+`CONSUMED/HISTORICAL`. Accepted 04A/04B/04C/04G/04L are static dependencies; 04J/04K are not
+invoked. 04F-H, Ent/adapters/handlers/wiring, generation/migration, AQ blockers, launcher
+`NOT_READY` and executables/runtime `NOT_RUN` remain unchanged. Author Terra/xhigh,
+dispatcher-enforced/no fallback, telemetry `UNKNOWN`; required independent reviews are Contract
+Terra/high, Security Terra/xhigh and Lifecycle Terra/high.
+
+The external unit owns behavioral serializer-zero and exact safe-envelope assertions. Static
+Security/Lifecycle review owns source-token and no-I/O scanning; unit tests must not scan source.
+
 ## 144-04I-A bounded sync-worker source receipt
 
 > `SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT10_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty
@@ -1720,8 +1755,10 @@ Cancelling one occurrence writes or updates a `CalendarEventException` with cano
 `recurrence_id` and `cancelled` status; it never rewrites the master RRULE or cancels the
 series. `DELETE /calendar/v2/events/{eventId}/instances/{recurrenceId}` compares the master
 event version from `If-Match`, increments master sequence and version once, returns the
-cancelled occurrence metadata, writes one `calendar.invite.cancelled.v1` outbox event and
-queues one iTIP `CANCEL` carrying `RECURRENCE-ID`. A retry after an ambiguous response
+cancelled occurrence metadata and writes exactly one safe occurrence-cancel
+`calendar.invite.cancelled.v1` EnvelopeV1 notification intent with canonical non-null
+`recurrence_id`. It creates no raw iTIP, calls no `EventSerializer`, and claims no transport or
+delivery; later Mail hydration/delivery is a separate boundary. A retry after an ambiguous response
 refetches the event/occurrence; a stale version conflicts before any second mutation.
 Changing only `reminder_minutes` is local scheduling metadata: it advances optimistic event
 version but not iTIP `SEQUENCE`, attendee RSVP or invitation delivery. Existing reminder
@@ -2335,8 +2372,9 @@ P2 is explicitly deferred. Risk uses Critical/High/Medium.
 - `TC-CALSYNC-010`: organizer/attendee zones cross a DST boundary without instant drift.
 - `TC-CALSYNC-011`: all-day event round-trips exclusive end date.
 - `TC-CALSYNC-012`: spoofed REPLY cannot change another attendee or organizer.
-- `TC-CALSYNC-013`: cancelling one recurrence instance creates a cancelled exception and
-  occurrence-scoped iTIP/outbox without changing or cancelling the remaining series.
+- `TC-CALSYNC-013`: cancelling one recurrence instance creates a cancelled exception, increments
+  the master sequence/version once and records one safe occurrence-scoped
+  `calendar.invite.cancelled.v1` EnvelopeV1 without raw iTIP or changing/cancelling the remainder.
 - `TC-CALSYNC-014`: for series and occurrence, accepted REPLY hashes A then B followed by
   delayed A cannot roll RSVP backward; same-status hashes are durably observed and a ninth
   distinct current-sequence hash quarantines without attendee/outbox mutation.

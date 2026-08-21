@@ -1,5 +1,14 @@
 # Phase 143 code-runtime routing record
 
+> **143-04H occurrence-cancel candidate:** `ROOT_SOURCE_AUTHORITY_CANDIDATE /
+> PRECOMMIT_REVIEW_REQUIRED / ATOMIC_EXACT15_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED /
+> RUNTIME_NOT_RUN`. This docs/schema candidate authorizes no executable action. Future source is
+> exact3/test-first only after the full candidate commit, triple immutable review and separate
+> exact15 acceptance sync. Ent/adapter/handler/wiring, generation/migration, Docker/runtime and AQ
+> work remain blocked; launcher is `NOT_READY`, all executable evidence is `NOT_RUN`. Author
+> Terra/xhigh, dispatcher-enforced/no fallback, telemetry `UNKNOWN`.
+
+
 > **143-04J source-receipt sync:** `SOURCE_ACCEPTANCE_SYNC_CANDIDATE /
 > ATOMIC_EXACT14_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. These proposed receipt facts grant no
 > authority before one atomic exact14 docs commit. After it, immutable exact2 `e74efa827b52...`

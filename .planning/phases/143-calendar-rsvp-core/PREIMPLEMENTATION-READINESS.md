@@ -1,5 +1,14 @@
 # Mail workstream pre-implementation readiness
 
+> **143-04H occurrence-cancel readiness:** `ROOT_SOURCE_AUTHORITY_CANDIDATE /
+> PRECOMMIT_REVIEW_REQUIRED / ATOMIC_EXACT15_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED /
+> RUNTIME_NOT_RUN`. This dirty exact15 is readiness-only and non-authoritative. Source exact3 stays
+> `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED` until three precommit reviews, one atomic candidate
+> commit, three immutable exact-SHA reviews and a separate atomic acceptance sync plus immutable
+> review all pass. No source/Ent/adapter/handler/wiring/generation/migration/runtime work may start.
+> Launcher remains `NOT_READY`; AQ blockers and executable evidence `NOT_RUN` remain unchanged.
+
+
 > **143-04J source-receipt sync:** `SOURCE_ACCEPTANCE_SYNC_CANDIDATE /
 > ATOMIC_EXACT14_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. These proposed receipt facts grant no
 > authority before one atomic exact14 docs commit. After it, immutable exact2 `e74efa827b52...`

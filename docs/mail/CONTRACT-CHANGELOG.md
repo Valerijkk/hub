@@ -1,5 +1,18 @@
 # Hub Mail contract changelog
 
+## 2026-08-21 - Calendar 143-04H occurrence-cancel root authority candidate
+
+`ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
+ATOMIC_EXACT15_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. The dirty exact15
+carrier is non-authoritative. It freezes the full ABI/state/oracle contract in
+`REVIEW-143-04H-OCCURRENCE-CANCEL-AUTHORITY.md`, adds a disjoint schema variant requiring canonical
+non-null `recurrence_id` for occurrence cancellation while preserving master-cancel compatibility,
+and removes the legacy raw iTIP/serializer premise from the current 04H route. Only after triple
+precommit PASS, atomic candidate commit, triple immutable exact-SHA PASS and separate accepted
+exact15 sync may root dispatch the ordered test-first exact3. No source, adapter, handler, Ent,
+migration, runtime or transport authority follows from these dirty bytes.
+
+
 ## 2026-08-21 - 144-04I-A bounded sync-worker source receipt-sync candidate
 
 `SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT10_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty
@@ -704,8 +717,8 @@ Implementation-readiness addendum. No runtime or product-code claim.
 - Removed the raw idempotency key from `MailSubmission` API responses.
 - Added `GET /api/mail/submissions/{submissionId}` and explicit 409 idempotency responses
   for draft create/send.
-- Added canonical deletion of one recurrence instance with a cancelled exception and
-  occurrence-scoped iTIP/outbox behavior.
+- Added canonical deletion of one recurrence instance with a cancelled exception and a safe
+  occurrence-scoped cancellation-intent envelope; raw iTIP/transport is outside this boundary.
 - Split HTTP occurrence RSVP from inbound iTIP REPLY. Inbound replies now use a
   bounded durable per-attendee/sequence/canonical-payload-hash ledger and never an HTTP
   receipt; this prevents delayed `A -> B -> A` redelivery from rolling RSVP backward.

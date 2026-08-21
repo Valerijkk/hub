@@ -1,5 +1,16 @@
 # Phase 143 — Calendar RSVP Core
 
+> **143-04H occurrence-cancel authority candidate:** `ROOT_SOURCE_AUTHORITY_CANDIDATE /
+> PRECOMMIT_REVIEW_REQUIRED / ATOMIC_EXACT15_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED /
+> RUNTIME_NOT_RUN`. Dirty exact15 does not change accepted source state. It freezes a receipt-free,
+> capability-gated occurrence cancellation with nondisclosing authorization, canonical bounded
+> recurrence membership, idempotent cancelled exception, checked master counters, one safe
+> occurrence-cancel EnvelopeV1 and exact persistence echo/rollback. Only the ordered exact3 in the
+> review may be dispatched after the full candidate/exact-SHA/separate-acceptance lifecycle.
+> Raw iTIP/serializer/143-02A/source-first 04H clauses are `CONSUMED/HISTORICAL`; 04F-H, Ent,
+> adapters, handlers, generation/migration, AQ and runtime remain blocked.
+
+
 > **143-04J source-receipt sync:** `SOURCE_ACCEPTANCE_SYNC_CANDIDATE /
 > ATOMIC_EXACT14_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. These proposed receipt facts grant no
 > authority before one atomic exact14 docs commit. After it, immutable exact2 `e74efa827b52...`
