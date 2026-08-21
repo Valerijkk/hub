@@ -398,6 +398,146 @@ type CalendarEventOccurrenceRSVPTransactionBackend interface {
 	PersistCalendarEventOccurrenceRSVP(context.Context, EventMutationScope, CalendarEventOccurrenceRSVPPersistenceCommand) (CalendarEventOccurrenceRSVPPersistenceResult, error)
 }
 
+// CalendarInboundReplyAuthorizationRequest is the complete canonical identity
+// of one already-parsed inbound iTIP REPLY. It deliberately contains no raw
+// MIME/iTIP bytes and no authenticated Hub actor identity.
+type CalendarInboundReplyAuthorizationRequest struct {
+	UID             string
+	HasRecurrenceID bool
+	RecurrenceID    string
+	Sender          string
+	EventSequence   uint
+	Receipt         CalendarInboundReplyReceiptKey
+}
+
+// CalendarInboundReplyAttendeeSnapshot is the bounded durable state of the
+// exact attendee selected by an inbound REPLY resolver.
+type CalendarInboundReplyAttendeeSnapshot struct {
+	AttendeeID   uuid.UUID
+	EventID      uuid.UUID
+	Email        string
+	Status       RSVPStatus
+	RecurrenceID *string
+	RespondedAt  *time.Time
+	Version      uint
+	RemovedAt    *time.Time
+}
+
+// CalendarInboundReplyAuthorization is the single owner-bound result from
+// the optional inbound capability. A miss is represented by Matched=false and
+// a complete zero-valued remainder.
+type CalendarInboundReplyAuthorization struct {
+	Matched              bool
+	Current              CalendarEventCommandInput
+	Target               CalendarInboundReplyAttendeeSnapshot
+	Exception            *CalendarEventExceptionCommandInput
+	ExistingReceipt      bool
+	DistinctReceiptCount uint8
+}
+
+// CalendarInboundReplyPersistenceCommand is an immutable one-write request:
+// it either records an observed receipt without changing the attendee or
+// atomically records an applied receipt, target CAS and one outbox descriptor.
+type CalendarInboundReplyPersistenceCommand struct {
+	prior         CalendarInboundReplyAttendeeSnapshot
+	updated       *CalendarInboundReplyAttendeeSnapshot
+	eventSequence uint
+	receipt       CalendarInboundReplyReceiptKey
+	outcome       CalendarInboundReplyReceiptOutcome
+	outbox        *EventOutboxDescriptor
+}
+
+func NewCalendarInboundReplyPersistenceCommand(prior CalendarInboundReplyAttendeeSnapshot, updated *CalendarInboundReplyAttendeeSnapshot, eventSequence uint, receipt CalendarInboundReplyReceiptKey, outcome CalendarInboundReplyReceiptOutcome, outbox *EventOutboxDescriptor) (CalendarInboundReplyPersistenceCommand, error) {
+	if !validCalendarInboundReplyPersistence(prior, updated, eventSequence, receipt, outcome, outbox) {
+		return CalendarInboundReplyPersistenceCommand{}, ErrEventInvalid
+	}
+	return CalendarInboundReplyPersistenceCommand{
+		prior:         cloneCalendarInboundReplyAttendeeSnapshot(prior),
+		updated:       cloneCalendarInboundReplyAttendeeSnapshotPointer(updated),
+		eventSequence: eventSequence,
+		receipt:       receipt,
+		outcome:       outcome,
+		outbox:        cloneCalendarInboundReplyOutboxDescriptor(outbox),
+	}, nil
+}
+
+func (command CalendarInboundReplyPersistenceCommand) Prior() CalendarInboundReplyAttendeeSnapshot {
+	return cloneCalendarInboundReplyAttendeeSnapshot(command.prior)
+}
+
+func (command CalendarInboundReplyPersistenceCommand) Updated() (CalendarInboundReplyAttendeeSnapshot, bool) {
+	if command.updated == nil {
+		return CalendarInboundReplyAttendeeSnapshot{}, false
+	}
+	return cloneCalendarInboundReplyAttendeeSnapshot(*command.updated), true
+}
+
+func (command CalendarInboundReplyPersistenceCommand) ExpectedVersion() uint { return command.prior.Version }
+func (command CalendarInboundReplyPersistenceCommand) EventSequence() uint { return command.eventSequence }
+func (command CalendarInboundReplyPersistenceCommand) Receipt() CalendarInboundReplyReceiptKey { return command.receipt }
+func (command CalendarInboundReplyPersistenceCommand) ReceiptOutcome() CalendarInboundReplyReceiptOutcome { return command.outcome }
+
+func (command CalendarInboundReplyPersistenceCommand) Outbox() (EventOutboxDescriptor, bool) {
+	if command.outbox == nil {
+		return EventOutboxDescriptor{}, false
+	}
+	return *command.outbox, true
+}
+
+func (command CalendarInboundReplyPersistenceCommand) valid() bool {
+	return validCalendarInboundReplyPersistence(command.prior, command.updated, command.eventSequence, command.receipt, command.outcome, command.outbox)
+}
+
+// CalendarInboundReplyPersistenceResult is the exact immutable echo returned
+// by the optional inbound persistence capability.
+type CalendarInboundReplyPersistenceResult struct {
+	attendee      CalendarInboundReplyAttendeeSnapshot
+	eventSequence uint
+	receipt       CalendarInboundReplyReceiptKey
+	outcome       CalendarInboundReplyReceiptOutcome
+	outbox        *EventOutboxDescriptor
+}
+
+func NewCalendarInboundReplyPersistenceResult(attendee CalendarInboundReplyAttendeeSnapshot, eventSequence uint, receipt CalendarInboundReplyReceiptKey, outcome CalendarInboundReplyReceiptOutcome, outbox *EventOutboxDescriptor) (CalendarInboundReplyPersistenceResult, error) {
+	if !validCalendarInboundReplyPersistenceResult(attendee, eventSequence, receipt, outcome, outbox) {
+		return CalendarInboundReplyPersistenceResult{}, ErrEventInvalid
+	}
+	return CalendarInboundReplyPersistenceResult{
+		attendee:      cloneCalendarInboundReplyAttendeeSnapshot(attendee),
+		eventSequence: eventSequence,
+		receipt:       receipt,
+		outcome:       outcome,
+		outbox:        cloneCalendarInboundReplyOutboxDescriptor(outbox),
+	}, nil
+}
+
+func (result CalendarInboundReplyPersistenceResult) Attendee() CalendarInboundReplyAttendeeSnapshot {
+	return cloneCalendarInboundReplyAttendeeSnapshot(result.attendee)
+}
+
+func (result CalendarInboundReplyPersistenceResult) EventSequence() uint { return result.eventSequence }
+func (result CalendarInboundReplyPersistenceResult) Receipt() CalendarInboundReplyReceiptKey { return result.receipt }
+func (result CalendarInboundReplyPersistenceResult) ReceiptOutcome() CalendarInboundReplyReceiptOutcome { return result.outcome }
+
+func (result CalendarInboundReplyPersistenceResult) Outbox() (EventOutboxDescriptor, bool) {
+	if result.outbox == nil {
+		return EventOutboxDescriptor{}, false
+	}
+	return *result.outbox, true
+}
+
+func (result CalendarInboundReplyPersistenceResult) valid() bool {
+	return validCalendarInboundReplyPersistenceResult(result.attendee, result.eventSequence, result.receipt, result.outcome, result.outbox)
+}
+
+// CalendarInboundReplyTransactionBackend is optional so existing event
+// adapters retain their ABI until they explicitly own inbound receipt storage.
+type CalendarInboundReplyTransactionBackend interface {
+	ResolveCalendarInboundReplyOwner(context.Context, uuid.UUID) (uuid.UUID, bool, error)
+	ResolveCalendarInboundReply(context.Context, CalendarInboundReplyScope, CalendarInboundReplyAuthorizationRequest) (CalendarInboundReplyAuthorization, error)
+	PersistCalendarInboundReply(context.Context, CalendarInboundReplyScope, CalendarInboundReplyPersistenceCommand) (CalendarInboundReplyPersistenceResult, error)
+}
+
 // CalendarEventCreateAttendeeCandidate is an untrusted create-time attendee
 // reference. The transaction resolver owns every identity decision.
 type CalendarEventCreateAttendeeCandidate struct {
@@ -499,6 +639,59 @@ func (scope EventMutationScope) Operation() MutationReceiptOperation {
 // operations that intentionally do not use a mutation receipt.
 func (scope EventMutationScope) EventOperation() EventMutationOperation {
 	return scope.eventOperation
+}
+
+// CalendarInboundReplyScope binds an unauthenticated inbound message to the
+// owner and organization resolved by the optional inbound capability inside
+// exactly one live transaction. It intentionally cannot be used as a normal
+// actor mutation scope.
+type CalendarInboundReplyScope struct {
+	ownerID        uuid.UUID
+	organizationID uuid.UUID
+	organizerEmail string
+	transaction    *EventTransaction
+}
+
+func (scope CalendarInboundReplyScope) OwnerID() uuid.UUID { return scope.ownerID }
+func (scope CalendarInboundReplyScope) OrganizationID() uuid.UUID { return scope.organizationID }
+func (scope CalendarInboundReplyScope) EventOperation() EventMutationOperation { return EventMutationInboundReply }
+
+func (scope CalendarInboundReplyScope) withOrganizerEmail(email string) CalendarInboundReplyScope {
+	scope.organizerEmail = email
+	return scope
+}
+
+// ResolveCalendarInboundReplyScope proves the optional capability and its
+// concrete non-nil value before making the owner-to-organization backend call.
+// A clean owner miss is deliberately non-error so service policy can
+// quarantine it without leaking owner existence.
+func (transaction *EventTransaction) ResolveCalendarInboundReplyScope(ctx context.Context, ownerID uuid.UUID) (CalendarInboundReplyScope, bool, error) {
+	if transaction == nil {
+		return CalendarInboundReplyScope{}, false, ErrEventTransactionClosed
+	}
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+	if !transaction.active || transaction.backend == nil {
+		return CalendarInboundReplyScope{}, false, ErrEventTransactionClosed
+	}
+	backend, supported := transaction.backend.(CalendarInboundReplyTransactionBackend)
+	if !supported || nilCalendarInboundReplyTransactionBackend(backend) || ownerID == uuid.Nil {
+		return CalendarInboundReplyScope{}, false, ErrEventInvalid
+	}
+	organizationID, found, err := backend.ResolveCalendarInboundReplyOwner(ctx, ownerID)
+	if err != nil {
+		return CalendarInboundReplyScope{}, false, err
+	}
+	if !found {
+		if organizationID != uuid.Nil {
+			return CalendarInboundReplyScope{}, false, ErrEventInvalid
+		}
+		return CalendarInboundReplyScope{}, false, nil
+	}
+	if organizationID == uuid.Nil {
+		return CalendarInboundReplyScope{}, false, ErrEventInvalid
+	}
+	return CalendarInboundReplyScope{ownerID: ownerID, organizationID: organizationID, transaction: transaction}, true, nil
 }
 
 // ResolveMutationScope разрешает и повторно проверяет actor-to-organization только внутри активной транзакции.
@@ -858,6 +1051,47 @@ func (transaction *EventTransaction) ResolveCalendarEventOccurrenceRSVP(ctx cont
 	return cloneCalendarEventOccurrenceRSVPAuthorization(resolved), nil
 }
 
+// ResolveCalendarInboundReply returns only an owner/org/UID/recurrence/sender
+// bound snapshot. Fixed-size identity is checked before copying any variable
+// sized event material, preserving the quarantined mask for foreign replies.
+func (transaction *EventTransaction) ResolveCalendarInboundReply(ctx context.Context, scope CalendarInboundReplyScope, request CalendarInboundReplyAuthorizationRequest) (CalendarInboundReplyAuthorization, error) {
+	if transaction == nil {
+		return CalendarInboundReplyAuthorization{}, ErrEventTransactionClosed
+	}
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+	if !transaction.active || transaction.backend == nil {
+		return CalendarInboundReplyAuthorization{}, ErrEventTransactionClosed
+	}
+	backend, supported := transaction.backend.(CalendarInboundReplyTransactionBackend)
+	if !supported || nilCalendarInboundReplyTransactionBackend(backend) {
+		return CalendarInboundReplyAuthorization{}, ErrEventInvalid
+	}
+	if err := transaction.validateCalendarInboundReplyScope(scope); err != nil {
+		return CalendarInboundReplyAuthorization{}, err
+	}
+	if !validCalendarInboundReplyAuthorizationRequest(request) {
+		return CalendarInboundReplyAuthorization{}, ErrEventInvalid
+	}
+	resolved, err := backend.ResolveCalendarInboundReply(ctx, scope, request)
+	if err != nil {
+		return CalendarInboundReplyAuthorization{}, err
+	}
+	if !resolved.Matched {
+		if !calendarInboundReplyAuthorizationMiss(resolved) {
+			return CalendarInboundReplyAuthorization{}, ErrEventInvalid
+		}
+		return CalendarInboundReplyAuthorization{}, nil
+	}
+	if !calendarInboundReplyAuthorizationFixedIdentityMatches(resolved, scope, request) {
+		return CalendarInboundReplyAuthorization{}, nil
+	}
+	if len(resolved.Current.Exdates) > calendarInboundReplyMaxExdates || resolved.DistinctReceiptCount > calendarInboundReplyMaxDistinctReceipts {
+		return CalendarInboundReplyAuthorization{}, ErrEventInvalid
+	}
+	return cloneCalendarInboundReplyAuthorization(resolved), nil
+}
+
 // ReserveMutationReceipt reserves or replays a receipt only inside its scope.
 func (transaction *EventTransaction) ReserveMutationReceipt(ctx context.Context, scope EventMutationScope, reservation MutationReceiptReservation) (MutationReceiptReservationResult, error) {
 	if transaction == nil {
@@ -1107,6 +1341,38 @@ func (transaction *EventTransaction) PersistCalendarEventOccurrenceRSVP(ctx cont
 	return cloneCalendarEventOccurrenceRSVPPersistenceResult(result), nil
 }
 
+// PersistCalendarInboundReply is the sole inbound receipt write boundary. It
+// never routes through generic mutation receipts or AppendOutbox and rejects
+// any backend echo that is not exact.
+func (transaction *EventTransaction) PersistCalendarInboundReply(ctx context.Context, scope CalendarInboundReplyScope, command CalendarInboundReplyPersistenceCommand) (CalendarInboundReplyPersistenceResult, error) {
+	if transaction == nil {
+		return CalendarInboundReplyPersistenceResult{}, ErrEventTransactionClosed
+	}
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+	if !transaction.active || transaction.backend == nil {
+		return CalendarInboundReplyPersistenceResult{}, ErrEventTransactionClosed
+	}
+	backend, supported := transaction.backend.(CalendarInboundReplyTransactionBackend)
+	if !supported || nilCalendarInboundReplyTransactionBackend(backend) {
+		return CalendarInboundReplyPersistenceResult{}, ErrEventInvalid
+	}
+	if err := transaction.validateCalendarInboundReplyScope(scope); err != nil {
+		return CalendarInboundReplyPersistenceResult{}, err
+	}
+	if !command.valid() {
+		return CalendarInboundReplyPersistenceResult{}, ErrEventInvalid
+	}
+	result, err := backend.PersistCalendarInboundReply(ctx, scope, cloneCalendarInboundReplyPersistenceCommand(command))
+	if err != nil {
+		return CalendarInboundReplyPersistenceResult{}, err
+	}
+	if !result.valid() || !calendarInboundReplyPersistenceMatches(command, result) {
+		return CalendarInboundReplyPersistenceResult{}, ErrEventInvalid
+	}
+	return cloneCalendarInboundReplyPersistenceResult(result), nil
+}
+
 // AppendOutbox appends only a valid immutable envelope inside its scope.
 func (transaction *EventTransaction) AppendOutbox(ctx context.Context, scope EventMutationScope, descriptor EventOutboxDescriptor) error {
 	if transaction == nil {
@@ -1220,6 +1486,7 @@ const (
 	EventMutationRSVPOccurrence   EventMutationOperation = "rsvp_occurrence"
 	EventMutationCalendarUpdate   EventMutationOperation = "event_update"
 	EventMutationCalendarOccurrenceCancel EventMutationOperation = "event_occurrence_cancel"
+	EventMutationInboundReply EventMutationOperation = "inbound_reply"
 )
 
 // MutationReceiptHash хранит только SHA-256 производного ключа или канонического запроса.
@@ -2006,6 +2273,208 @@ func nilCalendarEventOccurrenceRSVPTransactionBackend(backend CalendarEventOccur
 
 func nilCalendarEventSeriesRSVPTransactionBackend(backend CalendarEventSeriesRSVPTransactionBackend) bool {
 	if backend == nil { return true }
+	value := reflect.ValueOf(backend)
+	switch value.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
+		return value.IsNil()
+	default:
+		return false
+	}
+}
+
+const (
+	calendarInboundReplyMaxExdates          = 1000
+	calendarInboundReplyMaxDistinctReceipts = uint8(8)
+)
+
+func (transaction *EventTransaction) validateCalendarInboundReplyScope(scope CalendarInboundReplyScope) error {
+	if !transaction.active || transaction.backend == nil {
+		return ErrEventTransactionClosed
+	}
+	if scope.transaction != transaction || scope.ownerID == uuid.Nil || scope.organizationID == uuid.Nil || scope.EventOperation() != EventMutationInboundReply {
+		return ErrEventForbidden
+	}
+	return nil
+}
+
+func validCalendarInboundReplyAuthorizationRequest(request CalendarInboundReplyAuthorizationRequest) bool {
+	if validateITIPUID(request.UID) != nil || !request.Receipt.valid() || request.EventSequence > uint(^uint32(0)) {
+		return false
+	}
+	sender, err := normalizeSafeITIPEmail(request.Sender)
+	if err != nil || sender != request.Sender {
+		return false
+	}
+	if request.HasRecurrenceID {
+		return validCalendarEventOccurrenceCancelCanonicalKey(request.RecurrenceID)
+	}
+	return request.RecurrenceID == ""
+}
+
+func calendarInboundReplyAuthorizationMiss(authorization CalendarInboundReplyAuthorization) bool {
+	if authorization.Matched || authorization.Exception != nil || authorization.ExistingReceipt || authorization.DistinctReceiptCount != 0 {
+		return false
+	}
+	current := authorization.Current
+	if current.EventID != uuid.Nil || current.OrganizationID != uuid.Nil || current.OwnerID != uuid.Nil || current.UID != "" || current.Title != "" || current.Description != "" || current.Location != "" || current.Temporal != (CalendarEvent{}) || current.RRULE != "" || len(current.Exdates) != 0 || current.Sequence != 0 || current.Version != 0 || current.Source != "" || current.Status != "" || current.OrganizerID != nil || current.OrganizerEmail != "" || current.ScheduledCallID != nil || current.ReminderMinutes != nil {
+		return false
+	}
+	target := authorization.Target
+	return target.AttendeeID == uuid.Nil && target.EventID == uuid.Nil && target.Email == "" && target.Status == "" && target.RecurrenceID == nil && target.RespondedAt == nil && target.Version == 0 && target.RemovedAt == nil
+}
+
+func calendarInboundReplyAuthorizationFixedIdentityMatches(authorization CalendarInboundReplyAuthorization, scope CalendarInboundReplyScope, request CalendarInboundReplyAuthorizationRequest) bool {
+	current := authorization.Current
+	target := authorization.Target
+	if scope.organizerEmail == "" || current.EventID == uuid.Nil || current.OrganizationID != scope.organizationID || current.OwnerID != scope.ownerID || current.UID != request.UID || current.OrganizerID == nil || *current.OrganizerID != scope.ownerID || current.OrganizerEmail != scope.organizerEmail || target.AttendeeID == uuid.Nil || target.EventID != current.EventID || target.Email != request.Sender {
+		return false
+	}
+	if request.HasRecurrenceID {
+		if target.RecurrenceID == nil || *target.RecurrenceID != request.RecurrenceID {
+			return false
+		}
+	} else if target.RecurrenceID != nil {
+		return false
+	}
+	return authorization.Exception == nil || (request.HasRecurrenceID && authorization.Exception.EventID == current.EventID && authorization.Exception.RecurrenceID == request.RecurrenceID)
+}
+
+func cloneCalendarInboundReplyAuthorization(authorization CalendarInboundReplyAuthorization) CalendarInboundReplyAuthorization {
+	authorization.Current = cloneCalendarEventCommandInput(authorization.Current)
+	authorization.Target = cloneCalendarInboundReplyAttendeeSnapshot(authorization.Target)
+	if authorization.Exception != nil {
+		cloned := cloneCalendarEventExceptionCommandInput(*authorization.Exception)
+		authorization.Exception = &cloned
+	}
+	return authorization
+}
+
+func cloneCalendarInboundReplyAttendeeSnapshot(attendee CalendarInboundReplyAttendeeSnapshot) CalendarInboundReplyAttendeeSnapshot {
+	if attendee.RecurrenceID != nil {
+		value := *attendee.RecurrenceID
+		attendee.RecurrenceID = &value
+	}
+	if attendee.RespondedAt != nil {
+		value := *attendee.RespondedAt
+		attendee.RespondedAt = &value
+	}
+	if attendee.RemovedAt != nil {
+		value := *attendee.RemovedAt
+		attendee.RemovedAt = &value
+	}
+	return attendee
+}
+
+func cloneCalendarInboundReplyAttendeeSnapshotPointer(attendee *CalendarInboundReplyAttendeeSnapshot) *CalendarInboundReplyAttendeeSnapshot {
+	if attendee == nil {
+		return nil
+	}
+	cloned := cloneCalendarInboundReplyAttendeeSnapshot(*attendee)
+	return &cloned
+}
+
+func cloneCalendarInboundReplyOutboxDescriptor(outbox *EventOutboxDescriptor) *EventOutboxDescriptor {
+	if outbox == nil {
+		return nil
+	}
+	cloned := *outbox
+	return &cloned
+}
+
+func validCalendarInboundReplyAttendee(attendee CalendarInboundReplyAttendeeSnapshot) bool {
+	if attendee.AttendeeID == uuid.Nil || attendee.EventID == uuid.Nil || attendee.Version == 0 || attendee.Version == ^uint(0) || attendee.RemovedAt != nil || !validCalendarCreateEmail(attendee.Email) || attendee.Email != normalizeCalendarCreateEmail(attendee.Email) || attendee.Status.Validate() != nil {
+		return false
+	}
+	if attendee.RecurrenceID != nil && !validCalendarEventOccurrenceCancelCanonicalKey(*attendee.RecurrenceID) {
+		return false
+	}
+	if attendee.Status == RSVPNeedsAction {
+		return attendee.RespondedAt == nil
+	}
+	return attendee.RespondedAt != nil && validCalendarInboundReplyUTC(*attendee.RespondedAt)
+}
+
+func validCalendarInboundReplyUTC(value time.Time) bool {
+	return !value.IsZero() && value.Location() == time.UTC && value.Nanosecond() == 0
+}
+
+func calendarInboundReplyImmutableIdentityMatches(prior, updated CalendarInboundReplyAttendeeSnapshot) bool {
+	if prior.AttendeeID != updated.AttendeeID || prior.EventID != updated.EventID || prior.Email != updated.Email {
+		return false
+	}
+	if (prior.RecurrenceID == nil) != (updated.RecurrenceID == nil) {
+		return false
+	}
+	return prior.RecurrenceID == nil || *prior.RecurrenceID == *updated.RecurrenceID
+}
+
+func validCalendarInboundReplyPersistence(prior CalendarInboundReplyAttendeeSnapshot, updated *CalendarInboundReplyAttendeeSnapshot, eventSequence uint, receipt CalendarInboundReplyReceiptKey, outcome CalendarInboundReplyReceiptOutcome, outbox *EventOutboxDescriptor) bool {
+	if !validCalendarInboundReplyAttendee(prior) || !receipt.valid() {
+		return false
+	}
+	switch outcome {
+	case CalendarInboundReplyReceiptObservedNoChange:
+		return updated == nil && outbox == nil
+	case CalendarInboundReplyReceiptApplied:
+		if updated == nil || outbox == nil || !outbox.valid() || !validCalendarInboundReplyAttendee(*updated) || !calendarInboundReplyImmutableIdentityMatches(prior, *updated) {
+			return false
+		}
+		return prior.Status != updated.Status && validCalendarInboundReplyTargetStatus(updated.Status) && prior.Version < ^uint(0) && updated.Version == prior.Version+1 && validCalendarInboundReplyUTC(*updated.RespondedAt)
+	default:
+		return false
+	}
+}
+
+func validCalendarInboundReplyPersistenceResult(attendee CalendarInboundReplyAttendeeSnapshot, eventSequence uint, receipt CalendarInboundReplyReceiptKey, outcome CalendarInboundReplyReceiptOutcome, outbox *EventOutboxDescriptor) bool {
+	if !validCalendarInboundReplyAttendee(attendee) || !receipt.valid() {
+		return false
+	}
+	switch outcome {
+	case CalendarInboundReplyReceiptObservedNoChange:
+		return outbox == nil
+	case CalendarInboundReplyReceiptApplied:
+		return outbox != nil && outbox.valid() && validCalendarInboundReplyTargetStatus(attendee.Status) && attendee.RespondedAt != nil && validCalendarInboundReplyUTC(*attendee.RespondedAt)
+	default:
+		return false
+	}
+}
+
+func cloneCalendarInboundReplyPersistenceCommand(command CalendarInboundReplyPersistenceCommand) CalendarInboundReplyPersistenceCommand {
+	cloned, err := NewCalendarInboundReplyPersistenceCommand(command.prior, command.updated, command.eventSequence, command.receipt, command.outcome, command.outbox)
+	if err != nil {
+		return CalendarInboundReplyPersistenceCommand{}
+	}
+	return cloned
+}
+
+func cloneCalendarInboundReplyPersistenceResult(result CalendarInboundReplyPersistenceResult) CalendarInboundReplyPersistenceResult {
+	cloned, err := NewCalendarInboundReplyPersistenceResult(result.attendee, result.eventSequence, result.receipt, result.outcome, result.outbox)
+	if err != nil {
+		return CalendarInboundReplyPersistenceResult{}
+	}
+	return cloned
+}
+
+func calendarInboundReplyPersistenceMatches(command CalendarInboundReplyPersistenceCommand, result CalendarInboundReplyPersistenceResult) bool {
+	if command.EventSequence() != result.EventSequence() || command.Receipt() != result.Receipt() || command.ReceiptOutcome() != result.ReceiptOutcome() {
+		return false
+	}
+	commandOutbox, commandHasOutbox := command.Outbox()
+	resultOutbox, resultHasOutbox := result.Outbox()
+	if commandHasOutbox != resultHasOutbox || commandHasOutbox && !reflect.DeepEqual(commandOutbox, resultOutbox) {
+		return false
+	}
+	if command.ReceiptOutcome() == CalendarInboundReplyReceiptObservedNoChange {
+		return reflect.DeepEqual(command.Prior(), result.Attendee())
+	}
+	updated, found := command.Updated()
+	return found && reflect.DeepEqual(updated, result.Attendee())
+}
+
+func nilCalendarInboundReplyTransactionBackend(backend CalendarInboundReplyTransactionBackend) bool {
+	if backend == nil {
+		return true
+	}
 	value := reflect.ValueOf(backend)
 	switch value.Kind() {
 	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
