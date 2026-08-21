@@ -2,9 +2,23 @@
 
 ## Status and lifecycle
 
-`ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / ATOMIC_EXACT9_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`.
+`ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT9_COMMIT_REQUIRED / IMMUTABLE_REVIEW_REQUIRED / RUNTIME_NOT_RUN`.
 
-This tracked candidate is non-self-activating and authorizes no source, executable action, runtime, adapter, generation, migration, transport, HTTP/API/OpenAPI/UI, Ent/generated source, Mail, NATS or outbound REPLY work. It consumes only generic no-next and old 04I exact2 clauses for this selected packet. Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high precommit PASS -> one atomic exact9 commit -> immutable exact-SHA triple PASS -> separate docs-only acceptance sync -> only then root may dispatch source. Provenance: root Sol/max adjudication; dispatcher-enforced, no fallback, telemetry UNKNOWN. No next packet follows source acceptance.
+This non-self-activating dirty exact9 docs-only acceptance sync records immutable candidate `fa69484cde0fff77b5947a204a42f8566808ed73`, sole parent `6e54eb8c1764946826115036b90646b412db4792`, tree `d0a0971258dc34b09c8aa51c2ea71c2c231cb64b`, subject `docs(calendar): propose inbound reply authority`, with its final candidate manifest:
+
+| Path | Blob |
+|---|---|
+| `.planning/STATE.md` | `23f91983b60bc62406970cb2c8a8f865d85f9665` |
+| `.planning/phases/143-calendar-rsvp-core/.continue-here.md` | `9842a154446e246122673ff57f712f1f7b220218` |
+| `.planning/phases/143-calendar-rsvp-core/DISPATCH-INDEX.md` | `9fc89babdd2808e40f704cd4103ae52c697d8410` |
+| `.planning/phases/143-calendar-rsvp-core/DISPATCH-REMAINING.md` | `da8768d78e9e97eaebd601a6efaa0fcc69d5468e` |
+| `.planning/phases/143-calendar-rsvp-core/PLAN.md` | `d4ae19a417b55ccd6a2d75be93921ee25d904ce1` |
+| `.planning/phases/143-calendar-rsvp-core/PREIMPLEMENTATION-READINESS.md` | `989c0c487c143cc6b0aea3022f4620596dfaad46` |
+| `.planning/phases/143-calendar-rsvp-core/REVIEW-143-04I-INBOUND-REPLY-AUTHORITY.md` | `ab79f89474d6a2f36411eb8bb2da5d83cb2a7f6e` |
+| `.planning/phases/143-calendar-rsvp-core/RUNTIME-BLOCKER.md` | `044bb0c9ef3e587f2dc7e3612387dbe4a035a6e2` |
+| `docs/mail/CONTRACT-CHANGELOG.md` | `7bd3bc13b56ef9677502f742821d06c4b3f84159` |
+
+Contract/Security/Lifecycle precommit and immutable `EXACT_SHA_PASS` are C/I/M `0/0/0`; Contract Terra/high, Security Terra/xhigh, Lifecycle Terra/high; provenance `dispatcher-enforced`, no fallback, telemetry `UNKNOWN`. This dirty sync itself grants no source, executable, runtime, adapter, generation, migration, transport, HTTP/API/OpenAPI/UI, Ent/generated source, Mail, NATS or outbound REPLY work. Until one atomic manifest-equal exact9 acceptance commit and immutable acceptance-commit triple PASS, fa694 remains the current `ROOT_SOURCE_AUTHORITY_CANDIDATE` and source is blocked. Only after that activation is the ordered exact3 — test, `event_repository.go`, new service — source-authorized; it remains `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED` pending its own lifecycle. Only after that atomic manifest-equal exact9 acceptance commit and immutable Contract/Security/Lifecycle PASS do lower 04I candidate/precommit/root-commit/exact-SHA-next routes become `CONSUMED/HISTORICAL`. 04F-I, Ent/generated source, 03E, generation/migration, HTTP/API/OpenAPI/UI, NATS/iTIP transport, testframework and runtime remain blocked/not-ready/not-run; no next packet follows.
 
 ## Exact source manifest
 
