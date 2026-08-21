@@ -5,7 +5,7 @@
   "lock_binding_authority": "private-g0-c-l-runner-only",
   "platform": "linux/amd64",
   "source_policy": "source-policy.v1.json",
-  "source_commit": "ae1b5e58239ddf82b2c9a8133b244957ddd76237",
+  "source_commit": "cc0f3fcbf4e9a0adc70e946e739b81d21ac7da6c",
   "control_provenance": {
     "authority": "private-control-commit-only",
     "paths": [

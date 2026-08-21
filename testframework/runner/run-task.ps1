@@ -82,7 +82,7 @@ function Invoke-HubQaSupervisor {
 
     $contractLiteral = 'hub.qa-runner/v1'
     $fixedTargets = @('backend-unit', 'frontend-unit', 'backend-openapi')
-    $idPattern = '^[a-z0-9][a-z0-9-]{0,23}$'
+    $idPattern = '^[a-z0-9][a-z0-9-]{0,23}\z'
     $sha256Pattern = '^sha256:[a-f0-9]{64}$'
     $commitPattern = '^[a-f0-9]{40}$'
     $baseRepoDigestPattern = '^[^@ \t\r\n]+@sha256:[a-f0-9]{64}$'
@@ -1928,8 +1928,79 @@ function Invoke-HubQaSupervisor {
         $container = ($project + '-' + $Request.Target)
         $dependencyContext.Project = $project
         $dependencyContext.Container = $container
-        $runnerRoot = [System.IO.Path]::GetFullPath($PSScriptRoot)
-        $testframeworkRoot = [System.IO.Path]::GetFullPath([System.IO.Directory]::GetParent($runnerRoot).FullName)
+        if ([string]::IsNullOrWhiteSpace($PSCommandPath) -or $PSCommandPath -match '^(\\\\|//)' -or $PSCommandPath -match '(^|[\\/])\.\.([\\/]|$)' -or -not [System.IO.Path]::IsPathRooted($PSCommandPath)) {
+            throw 'The private runner script path is not canonical.'
+        }
+        $privateScriptPath = [System.IO.Path]::GetFullPath($PSCommandPath)
+        if ($privateScriptPath -match '^(\\\\|//)' -or -not $privateScriptPath.EndsWith('\run-task.ps1', [System.StringComparison]::OrdinalIgnoreCase)) {
+            throw 'The private runner script path is invalid.'
+        }
+        $runnerDirectory = [System.IO.Directory]::GetParent($privateScriptPath)
+        if ($null -eq $runnerDirectory -or $runnerDirectory.Name -cne 'runner') {
+            throw 'The private runner root is invalid.'
+        }
+        $testframeworkDirectory = [System.IO.Directory]::GetParent($runnerDirectory.FullName)
+        if ($null -eq $testframeworkDirectory -or $testframeworkDirectory.Name -cne 'testframework') {
+            throw 'The private runner testframework root is invalid.'
+        }
+        $repositoryDirectory = [System.IO.Directory]::GetParent($testframeworkDirectory.FullName)
+        if ($null -eq $repositoryDirectory) {
+            throw 'The private runner repository root is absent.'
+        }
+        $assertRegularDirectory = {
+            param([string]$Path)
+            if (-not [System.IO.Directory]::Exists($Path)) {
+                throw 'A required private runner directory is absent.'
+            }
+            if (([System.IO.File]::GetAttributes($Path) -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+                throw 'A private runner directory is a reparse point.'
+            }
+        }.GetNewClosure()
+        $assertRegularFile = {
+            param([string]$Path)
+            if (-not [System.IO.File]::Exists($Path)) {
+                throw 'A required private runner file is absent.'
+            }
+            if (([System.IO.File]::GetAttributes($Path) -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+                throw 'A private runner file is a reparse point.'
+            }
+        }.GetNewClosure()
+        $assertExistingAncestry = {
+            param([string]$LeafPath)
+
+            $componentPath = $LeafPath
+            while ($true) {
+                if (-not [System.IO.File]::Exists($componentPath) -and -not [System.IO.Directory]::Exists($componentPath)) {
+                    throw 'A private runner ancestry component is absent.'
+                }
+                if (([System.IO.File]::GetAttributes($componentPath) -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+                    throw 'A private runner ancestry component is a reparse point.'
+                }
+                $parentDirectory = [System.IO.Directory]::GetParent($componentPath)
+                if ($null -eq $parentDirectory) {
+                    break
+                }
+                $componentPath = $parentDirectory.FullName
+            }
+        }.GetNewClosure()
+        $repositoryRoot = [System.IO.Path]::GetFullPath($repositoryDirectory.FullName).TrimEnd('\\')
+        $runnerRoot = [System.IO.Path]::GetFullPath($runnerDirectory.FullName).TrimEnd('\\')
+        $testframeworkRoot = [System.IO.Path]::GetFullPath($testframeworkDirectory.FullName).TrimEnd('\\')
+        & $assertExistingAncestry $privateScriptPath
+        & $assertRegularDirectory $repositoryRoot
+        & $assertRegularDirectory $testframeworkRoot
+        & $assertRegularDirectory $runnerRoot
+        & $assertRegularFile $privateScriptPath
+        $gitMarker = Join-Path $repositoryRoot '.git'
+        if ([System.IO.Directory]::Exists($gitMarker)) {
+            & $assertRegularDirectory $gitMarker
+        }
+        elseif ([System.IO.File]::Exists($gitMarker)) {
+            & $assertRegularFile $gitMarker
+        }
+        else {
+            throw 'The private runner repository marker is absent.'
+        }
         $testframeworkRoot = & $ResolveCanonicalContainedPath $testframeworkRoot '.' $true $true
         $runnerRoot = & $ResolveCanonicalContainedPath $testframeworkRoot 'runner' $true $false
         $dockerRoot = & $ResolveCanonicalContainedPath $testframeworkRoot 'docker' $true $false

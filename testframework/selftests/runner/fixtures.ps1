@@ -564,3 +564,77 @@ function Get-HubQaInertChildDefinition {
         'bounded-wait' = [ordered]@{ Name = 'bounded-wait'; Kind = 'inert-child-descriptor'; StartTick = 0; ObservedTick = 811; Scope = 'outer-deadline-contract-only' }
     }
 }
+
+function Get-HubQaPublicLauncherFixtureCatalog {
+    [CmdletBinding()]
+    param()
+
+    return [pscustomobject][ordered]@{
+        SourceCommit = 'cc0f3fcbf4e9a0adc70e946e739b81d21ac7da6c'
+        ValidTargets = @(
+            'backend-unit',
+            'frontend-unit',
+            'backend-openapi',
+            'python-contract',
+            'python-api',
+            'python-integration',
+            'python-e2e-smoke',
+            'python-e2e-full',
+            'python-load'
+        )
+        ValidRequest = @('-Target', 'backend-unit', '-Task', 'task-2a', '-Run', 'run-2a')
+        InvalidArgumentVectors = [ordered]@{
+            Missing      = @('-Target', 'backend-unit', '-Task', 'task-2a')
+            Duplicate    = @('-Target', 'backend-unit', '-Target', 'frontend-unit', '-Task', 'task-2a', '-Run', 'run-2a')
+            Reordered    = @('-Task', 'task-2a', '-Target', 'backend-unit', '-Run', 'run-2a')
+            Extra        = @('-Target', 'backend-unit', '-Task', 'task-2a', '-Run', 'run-2a', '-Extra', 'value')
+            Unknown      = @('-Target', 'unknown', '-Task', 'task-2a', '-Run', 'run-2a')
+            Private      = @('-Contract', 'hub.qa-runner/v1', '-Task', 'task-2a', '-Run', 'run-2a')
+            Contract     = @('-Target', 'backend-unit', '-Task', 'hub.qa-runner/v1', '-Run', 'run-2a')
+            Path         = @('-Target', 'backend-unit', '-Task', '..', '-Run', 'run-2a')
+            Image        = @('-Target', 'backend-unit', '-Task', 'task-2a', '-Run', 'run-2a', '-Image', 'sha256-deadbeef')
+            Compose      = @('-Target', 'backend-unit', '-Task', 'task-2a', '-Run', 'run-2a', '-Compose', 'compose.unit.yaml')
+            Environment  = @('-Target', 'backend-unit', '-Task', 'task-2a', '-Run', 'run-2a', '-Environment', 'X=1')
+            Timeout      = @('-Target', 'backend-unit', '-Task', 'task-2a', '-Run', 'run-2a', '-Timeout', '1')
+            Terminator   = @('--', 'backend-unit', '-Task', 'task-2a', '-Run', 'run-2a')
+            TerminalLf   = @('-Target', 'backend-unit', '-Task', ('task-2a' + [char]10), '-Run', 'run-2a')
+            TerminalCrLf = @('-Target', 'backend-unit', '-Task', 'task-2a', '-Run', ('run-2a' + [char]13 + [char]10))
+        }
+        TestCopyLayout = @(
+            'repo/.git',
+            'repo/testframework/runner/invoke-qa-gate.ps1',
+            'repo/testframework/runner/run-task.ps1',
+            'repo/testframework/docker',
+            'repo/testframework/reports'
+        )
+        GitMarkers = [ordered]@{
+            Directory = [ordered]@{ Kind = 'directory'; Contents = @() }
+            Linked    = [ordered]@{ Kind = 'file'; Contents = 'gitdir: C:/outside/not-dereferenced' }
+        }
+        ReparseLocations = @('script', 'root', 'runner', 'docker', 'reports', 'report-child')
+        EscapingPaths    = @('..', '\\server\share', 'C:relative')
+        ReparseCases = [ordered]@{
+            Script      = [ordered]@{ Location = 'script'; Invocation = 'public'; ExpectedExitCode = 64 }
+            Root        = [ordered]@{ Location = 'root'; Invocation = 'public-and-private-boundary'; ExpectedExitCode = 64 }
+            Runner      = [ordered]@{ Location = 'runner'; Invocation = 'public-and-private-boundary'; ExpectedExitCode = 64 }
+            Docker      = [ordered]@{ Location = 'docker'; Invocation = 'public'; ExpectedExitCode = 64 }
+            Reports     = [ordered]@{ Location = 'reports'; Invocation = 'public'; ExpectedExitCode = 64 }
+            ReportChild = [ordered]@{ Location = 'report-child'; Invocation = 'public'; ExpectedExitCode = 64 }
+        }
+        AncestorReparse = [ordered]@{ Location = 'ancestor-above-repository'; Invocation = 'public'; ExpectedExitCode = 64 }
+        ScriptLaunchCases = [ordered]@{
+            DotDot        = [ordered]@{ RelativePath = 'runner\..\runner\invoke-qa-gate.ps1'; ExpectedExitCode = 64 }
+            RootEscape    = [ordered]@{ RelativePath = 'runner\..\..\outside\invoke-qa-gate.ps1'; ExpectedExitCode = 64 }
+            Unc           = [ordered]@{ RelativePath = '\\server\share\invoke-qa-gate.ps1'; ExpectedExitCode = 64 }
+            DriveRelative = [ordered]@{ RelativePath = 'C:invoke-qa-gate.ps1'; ExpectedExitCode = 64 }
+        }
+        PrivateExitCodes = @(0, 23, 124, 65, 70, 71)
+        NotReadyRecord   = [ordered]@{
+            schema = 'hub.qa-gate/v1'
+            target = 'backend-unit'
+            task   = 'task-2a'
+            run    = 'run-2a'
+            status = 'NOT_READY'
+        }
+    }
+}

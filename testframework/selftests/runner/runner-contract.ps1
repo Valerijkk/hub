@@ -465,3 +465,77 @@ function Remove-HubQaContractFixtureWorkspace {
         Observation           = 'static declaration only; no workspace is removed'
     }
 }
+
+function Get-HubQaPublicLauncherStaticCaseDefinitions {
+    [CmdletBinding()]
+    param()
+
+    return @(
+        [pscustomobject][ordered]@{
+            Id       = 'TC-G0-B-001'
+            Intent   = 'the public launcher accepts only the exact six raw CLI tokens before any root read or side effect'
+            Expected = [pscustomobject][ordered]@{
+                ExitCode          = 64
+                RejectedVariants  = @('missing', 'duplicate', 'reordered', 'extra', 'unknown', 'private', 'contract', 'path', 'image', 'Compose', 'environment', 'timeout', '--', 'terminal-LF', 'terminal-CRLF')
+                IdentifierPattern = '^[a-z0-9][a-z0-9-]{0,23}\z'
+                PrivateCalls      = 0
+                DockerCalls       = 0
+                ReportsMutations  = 0
+            }
+        }
+        [pscustomobject][ordered]@{
+            Id       = 'TC-G0-B-002'
+            Intent   = 'every closed current and declared-future target reports literal NOT_READY without delegating work'
+            Expected = [pscustomobject][ordered]@{
+                Targets           = @('backend-unit', 'frontend-unit', 'backend-openapi', 'python-contract', 'python-api', 'python-integration', 'python-e2e-smoke', 'python-e2e-full', 'python-load')
+                ExitCode          = 69
+                JsonSchema        = 'hub.qa-gate/v1'
+                JsonFields        = @('schema', 'target', 'task', 'run', 'status')
+                Status            = 'NOT_READY'
+                PrivateCalls      = 0
+                DockerCalls       = 0
+                ReportsMutations  = 0
+            }
+        }
+        [pscustomobject][ordered]@{
+            Id       = 'TC-G0-B-003'
+            Intent   = 'the exact repository layout accepts a regular .git directory and a linked-worktree .git file without parsing the gitdir content'
+            Expected = [pscustomobject][ordered]@{
+                GitMarkers = @('directory', 'linked-worktree-file')
+                ExitCode   = 69
+            }
+        }
+        [pscustomobject][ordered]@{
+            Id       = 'TC-G0-B-004'
+            Intent   = 'every root-chain reparse, root escape, UNC, drive-relative, and dot-dot path is rejected before private work'
+            Expected = [pscustomobject][ordered]@{
+                RejectedLocations = @('script', 'root', 'runner', 'docker', 'reports', 'report-child')
+                RejectedPaths     = @('root-escape', 'UNC', 'drive-relative', '..')
+                ExitCode          = 64
+                Oracle            = 'isolated-copy process invocation; no static-only substitute or skip'
+                AncestryRule      = 'inspect every existing component from volume or share root through PSCommandPath'
+            }
+        }
+        [pscustomobject][ordered]@{
+            Id       = 'TC-G0-B-005'
+            Intent   = 'the single core delegates a ready target only through its fixed private invoker and preserves that exit result'
+            Expected = [pscustomobject][ordered]@{
+                Contract          = 'hub.qa-runner/v1'
+                PrivateArguments  = @('Contract', 'Target', 'Task', 'Run')
+                PreservedExits    = @(0, 23, 124, 65, 70, 71)
+                CollisionExit     = 64
+                ProcessResolution = 'exact contained sibling run-task.ps1; no PSScriptRoot, PATH, PATHEXT, env, Get-Command, or alternate process resolution'
+            }
+        }
+        [pscustomobject][ordered]@{
+            Id       = 'TC-G0-B-006'
+            Intent   = 'the public source has no Docker, Compose, process, cleanup, or report implementation and both manifests keep the immutable source commit'
+            Expected = [pscustomobject][ordered]@{
+                SourceCommit        = 'cc0f3fcbf4e9a0adc70e946e739b81d21ac7da6c'
+                ManifestPaths        = @('testframework/docker/build-manifest.v2.json', 'testframework/docker/source-policy.v1.json')
+                ForbiddenPublicAreas = @('Docker', 'Compose', 'process', 'cleanup', 'report')
+                FutureCommitField    = 'absent'
+            }
+        }
+    )
+}

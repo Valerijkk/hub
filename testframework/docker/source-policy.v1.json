@@ -1,7 +1,7 @@
 {
   "schema": "hub.qa.local-source-policy/v1",
   "status": "NOT_READY",
-  "source_commit": "ae1b5e58239ddf82b2c9a8133b244957ddd76237",
+  "source_commit": "cc0f3fcbf4e9a0adc70e946e739b81d21ac7da6c",
   "materialization": {
     "authority": "exact-commit-tree-only",
     "forbid_worktree_copy": true,
