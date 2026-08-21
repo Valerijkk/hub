@@ -155,16 +155,29 @@ calendar_143_04k_source_receipt_sync: "Status: SOURCE_ACCEPTANCE_SYNC_CANDIDATE 
 calendar_143_04j_authority_acceptance_sync: "Status: ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT13_COMMIT_REQUIRED / SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN. These proposed receipt facts have no authority before one atomic commit of the same exact13 documentation manifest. After that commit, immutable candidate 5841621720cc03682b3d1f1e2af9cba2953797cf (parent 2a2975056c3fb8001d88863a041310271282989d, tree c4cad5a344ae4972b99410c851f20ab8c73104e7, subject docs(calendar): propose call projection authority) is SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS after Contract/Spec/Oracle, Security and Lifecycle immutable reviews PASS C/I/M 0/0/0. Lower 04J candidate/precommit/exact-review-next clauses then become CONSUMED/HISTORICAL. Root may dispatch only ordered exact2: backend/tests/calendar/event_call_policy_test.go then backend/internal/calendar/event_call_policy.go; source remains UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED. AQ-02 stays migration/backfill-only; 04K/04F, Ent/generation/migration, adapters/API/UI/raw iTIP, launcher NOT_READY and executables/runtime NOT_RUN remain unchanged."
 calendar_143_04c_acceptance: "Status: ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT12_COMMIT_REQUIRED / RUNTIME_NOT_RUN. This dirty exact12 working tree grants no authority. The 7fd061b5099b4608e0c33a6d99edbe1a66587d34 receipt facts and route transitions activate only after one atomic commit of exactly the 12 Calendar 143-04C acceptance-sync documents. Until that commit, the prior 04C candidate/current-next lifecycle remains authoritative. Only after activation is 143-04C STATIC_ACCEPTED / EXACT_SHA_PASS, its scoped predecessor routes become CONSUMED/HISTORICAL, and no next Calendar code packet is selected. Ent generation/migration, adapters, API/UI, raw iTIP, launcher and runtime remain blocked/NOT_READY/NOT_RUN."
 mail_144_04g_receipt_coherence: "Status: COHERENCE_SYNC_CANDIDATE / ATOMIC_EXACT12_COMMIT_REQUIRED / IMMUTABLE_REVIEW_REQUIRED / RUNTIME_NOT_RUN. This dirty exact12 docs-only coherence candidate is non-self-activating and records immutable source 3031c53d399accc84fe10cd0c5421a85c089ac7c (parent 085a81aed317be364811af9507912002a7dae457, tree b146acb45bf60f2f468a926caa3546c0b8f79893, subject feat(mail): add mailbox sync coordinator) and prior acceptance receipt 2a2975056c3fb8001d88863a041310271282989d (parent 6c92046b374a7be0b6964fea335016ed6021e91a, tree 3445df1500adda42d43aa557c370c24308857512, subject docs(mail): record sync coordinator acceptance); full immutable manifests/blobs are in IMPLEMENTATION-144-04G.md. Source Contract/Security/Lifecycle precommit and immutable EXACT_SHA_PASS are C/I/M 0/0/0; Contract Terra/high, Security Terra/xhigh, Lifecycle Terra/high, dispatcher-enforced/no fallback/telemetry UNKNOWN. Only after an atomic manifest-equal exact12 coherence commit and immutable coherence C/S/L triple PASS is 144-04G STATIC_ACCEPTED / EXACT_SHA_PASS; former 04G authority, acceptance, source-unimplemented and current-next routes then become CONSUMED/HISTORICAL. Historical coherence selects no next Mail packet and grants no runtime/downstream authority. 04F remains accepted; 04H/02E, Ent/SQL/concrete adapter, generation/migration, API/UI, launcher/testframework and runtime remain BLOCKED/NOT_READY/NOT_RUN."
-mail_144_05d_content_authority_candidate: >-
-  ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / ATOMIC_EXACT8_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN. This dirty exact8
-  plain-only documentation candidate is non-self-activating and grants no source, test, schema,
-  persistence, go.mod, Ent, API/UI, testframework, proxy, sanitizer dependency or runtime
-  authority. Its exact8 manifest is STATE, MAIL-SPEC, Phase-144 PLAN, DISPATCH-INDEX,
-  DISPATCH-REMAINING, new REVIEW-144-05D-CONTENT-READINESS, CONTRACT-CHANGELOG and QA-HANDOFF;
-  a candidate commit diff must set-equal it. Only Contract/Security/Lifecycle precommit PASS,
-  atomic exact8 commit, immutable exact-SHA triple PASS, then separate exact8 acceptance sync and
-  immutable triple PASS may let root dispatch only authored-first exact2:
-  backend/tests/mail/mailbox_content_test.go then backend/internal/mail/mailbox_content.go.
+mail_144_05d_content_authority_acceptance_sync: >-
+  ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT8_COMMIT_REQUIRED / IMMUTABLE_REVIEW_REQUIRED /
+  RUNTIME_NOT_RUN. This dirty exact8 plain-only acceptance-sync documentation packet is
+  non-self-activating: before one atomic manifest-equal exact8 acceptance commit and its immutable
+  Contract/Security/Lifecycle triple PASS, candidate d77fbf90b1b3a93dec488fa70094a5713c9e1e85
+  (sole parent 00dabf6beb77ab5e37fe156d1b50de9f45e2c75f, tree
+  51964d4e81d713f527bd717c49e14d0a14ed18a7, subject `docs(mail): propose plain content authority`)
+  has no current source authority and every lower 05D authority/precommit/current-next route remains
+  current. Its immutable candidate blobs are STATE 24f7de6ac4a138bf6d97df429433a499460c1e25,
+  MAIL-SPEC ea5b04397ab112939fc559f2be7b210cb6090cb8, PLAN 5dec55604aee67d19561bb58083a191325569491,
+  INDEX 621a058bc12b3f1f089c41f4dc5cd2d8089ddc45, REMAINING 28a457bfb7885473dfc544a3fd6da9cc9f4d4d41,
+  REVIEW 6f38851f206d37ad1e3d5e7c64ca0521cc36aa3f, CHANGELOG
+  1d14fba90d39960c08e3bbb950f78e2fc0dfd908 and QA a6b6bce55375cd894a6c1c818a9ec275b6eadf7f.
+  The acceptance commit diff MUST set-equal the ordered exact8 manifest: STATE, MAIL-SPEC,
+  Phase-144 PLAN, DISPATCH-INDEX, DISPATCH-REMAINING, REVIEW-144-05D-CONTENT-READINESS,
+  CONTRACT-CHANGELOG and QA-HANDOFF. Candidate Contract/Security/Lifecycle precommit and immutable
+  reviews PASS C/I/M 0/0/0; Contract Terra/high, Security Terra/xhigh, Lifecycle Terra/high,
+  dispatcher-enforced/no fallback/telemetry UNKNOWN. Only after activation is d77 SOURCE_AUTHORITY_ACCEPTED /
+  EXACT_SHA_PASS, lower 05D authority routes are CONSUMED/HISTORICAL, and root may dispatch only
+  authored-first exact2 backend/tests/mail/mailbox_content_test.go then
+  backend/internal/mail/mailbox_content.go; that source remains UNIMPLEMENTED / UNCOMMITTED /
+  UNACCEPTED pending its own lifecycle. No next packet, source, test, schema, persistence, go.mod,
+  Ent, API/UI, testframework, proxy, sanitizer dependency or runtime authority follows.
   The frozen pure ABI is NormalizeMailboxContent over plain/rich Input{SourceFormat,Body} and
   plain Result{Format,PlainBody,RemoteImagesBlocked}; caps are 8_388_608 input/plain bytes,
   2_000_000 runes, 100_000 tokens and depth 64. Literal error ABI is MailboxContentErrorKind

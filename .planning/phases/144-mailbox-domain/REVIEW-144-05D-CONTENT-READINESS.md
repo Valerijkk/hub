@@ -1,10 +1,10 @@
 # 144-05D Content — plain-only source-authority readiness
 
-> **Lifecycle:** `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / ATOMIC_EXACT8_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This is a non-self-activating docs-only candidate. It grants no source, test, schema, persistence, `go.mod`, Ent, API/UI, testframework, proxy, sanitizer dependency, or runtime authority.
+> **Acceptance lifecycle:** `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT8_COMMIT_REQUIRED / IMMUTABLE_REVIEW_REQUIRED / RUNTIME_NOT_RUN`. This dirty docs-only exact8 acceptance sync is non-self-activating and grants no current source, test, schema, persistence, `go.mod`, Ent, API/UI, testframework, proxy, sanitizer dependency, or runtime authority. Before its activation the lower 05D authority/precommit/current-next routes remain current.
 
-## Exact8 authority manifest
+## Exact8 acceptance-sync manifest
 
-The only candidate documentation manifest is ordered as follows; the candidate commit diff MUST
+The only acceptance-sync documentation manifest is ordered as follows; the acceptance commit diff MUST
 be set-equal to these eight paths, with no additions, omissions, renames, source, schema,
 OpenAPI, persistence, `go.mod`, testframework, Ent, API/UI, or runtime files.
 
@@ -17,17 +17,31 @@ OpenAPI, persistence, `go.mod`, testframework, Ent, API/UI, or runtime files.
 7. `docs/mail/CONTRACT-CHANGELOG.md`
 8. `docs/mail/QA-HANDOFF.md`
 
-The mandatory lifecycle is: independent Contract, Security, and Lifecycle precommit PASS;
-one atomic manifest-equal exact8 documentation commit; independent immutable exact-SHA triple
-PASS for that commit; then a separate manifest-equal exact8 acceptance sync with its own immutable
-triple PASS. Only after all of those gates may root dispatch exactly the following authored-first
-source packet, and nothing else:
+This receipt records immutable candidate `d77fbf90b1b3a93dec488fa70094a5713c9e1e85` (sole parent
+`00dabf6beb77ab5e37fe156d1b50de9f45e2c75f`, tree `51964d4e81d713f527bd717c49e14d0a14ed18a7`,
+subject `docs(mail): propose plain content authority`) with ordered blobs: STATE
+`24f7de6ac4a138bf6d97df429433a499460c1e25`; MAIL-SPEC
+`ea5b04397ab112939fc559f2be7b210cb6090cb8`; PLAN
+`5dec55604aee67d19561bb58083a191325569491`; INDEX
+`621a058bc12b3f1f089c41f4dc5cd2d8089ddc45`; REMAINING
+`28a457bfb7885473dfc544a3fd6da9cc9f4d4d41`; REVIEW
+`6f38851f206d37ad1e3d5e7c64ca0521cc36aa3f`; CHANGELOG
+`1d14fba90d39960c08e3bbb950f78e2fc0dfd908`; QA
+`a6b6bce55375cd894a6c1c818a9ec275b6eadf7f`.
+
+Candidate Contract, Security, and Lifecycle precommit plus immutable exact-SHA reviews PASS
+C/I/M `0/0/0`; provenance is Contract Terra/high, Security Terra/xhigh, Lifecycle Terra/high,
+dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Only after one atomic manifest-equal exact8
+acceptance commit and its immutable acceptance Contract/Security/Lifecycle triple PASS is the
+candidate `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS`. Then, and only then, lower 05D
+authority/precommit/current-next routes are `CONSUMED/HISTORICAL` and root may dispatch exactly
+the following authored-first source packet, and nothing else:
 
 1. NEW `backend/tests/mail/mailbox_content_test.go`
 2. NEW `backend/internal/mail/mailbox_content.go`
 
 That exact2 source remains `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED` until its own tests,
-review, atomic source commit, immutable exact-SHA review, and status receipt. This candidate
+review, atomic source commit, immutable exact-SHA review, and status receipt. This acceptance sync
 selects no next Mail packet.
 
 ## Frozen public-in-package ABI
