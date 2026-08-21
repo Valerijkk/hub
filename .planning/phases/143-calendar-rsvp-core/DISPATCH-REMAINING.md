@@ -317,22 +317,21 @@ dispatchable without duplicating the common safety contract.
 
 ## 143-04K — pure call-due service
 
-- **Acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT14_COMMIT_REQUIRED /
-  SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This dirty exact14 sync grants no authority.
-  Only after one atomic sync commit is immutable `7b079f334eb8705552b1139c3dcfa4dc1ad032aa`
-  (parent `d7926a27`, tree `3f6b86ef`, exact14 REVIEW map) `SOURCE_AUTHORITY_ACCEPTED /
-  EXACT_SHA_PASS`, after precommit and immutable Contract/Security/Lifecycle PASS C/I/M `0/0/0`.
-  Lower 04K candidate routes then consume; ordered test-first exact2 alone may be dispatched and is
-  still `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED` pending its own lifecycle.
+- **Source receipt-sync gate:** `SOURCE_ACCEPTANCE_SYNC_CANDIDATE /
+  ATOMIC_EXACT15_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty exact15 documentation candidate
+  grants no authority. Only after one atomic exact15 receipt-sync commit and immutable acceptance is
+  `572f911227b9d50e21aa73b87c530ddcaf0f8934` (parent `26b377eb`, tree `ac96e2f5`, subject
+  `feat(calendar): add call due policy`) `STATIC_ACCEPTED / EXACT_SHA_PASS` for test blob
+  `437db3af0263cedb10dcf217cd53fbbcac03cf23` then source blob
+  `376f46c1cc79956fab3479efc38750fd88161b16`. Precommit plus immutable Contract/Spec/Oracle,
+  Security/Adversarial and Lifecycle/Dependency/Boundary reviews PASS C/I/M `0/0/0`; Terra/xhigh,
+  dispatcher-enforced/no fallback, telemetry `UNKNOWN`. The dirty candidate selects no next packet.
 
 - Prerequisites: accepted 04J `d7926a27`/`e74efa827`, 04A `EventOutboxDescriptor` and 04L
   `EnvelopeV1`. It explicitly does **not** derive Calendar-subject admission from 04G.
-- Status: `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
-  IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. The exact14 candidate grants no source authority;
-  atomic exact14 docs commit, three independent immutable exact-SHA PASS reviews and separate
-  acceptance are mandatory before root may dispatch only NEW external test
-  `backend/tests/calendar/event_call_due_service_test.go`, then NEW
-  `backend/internal/calendar/event_call_due_service.go`.
+- Status: the authority-candidate/precommit/test-first-dispatch clauses are `CONSUMED/HISTORICAL`
+  only after this source receipt activates. The immutable exact2 is recorded in
+  `IMPLEMENTATION-143-04K.md`; it authorizes no next packet.
 - Frozen behavior: pure explicit `Call`, UTC whole-second `Now`, raw 04J projection plus explicit
   envelope input; opaque `not_due|reschedule|advance|deactivate|noop` result and optional complete
   descriptor. An active call deep-clones projection then invokes exactly two fixed 04J reconcile

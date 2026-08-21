@@ -2737,18 +2737,21 @@ dispatch or commit is currently authorized. No OpenAPI or persistence change is 
 product/phase/release, 02F-D, engine deletion/User-GDPR, launcher `NOT_READY` and runtime `NOT_RUN`
 boundaries remain unchanged.
 
-### 143-04K pure call-due candidate — not accepted
+### 143-04K pure call-due source receipt-sync — conditional
 
-> **Acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT14_COMMIT_REQUIRED /
-> SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This dirty exact14 sync grants no authority.
-> After its one atomic commit only, immutable `7b079f334eb8705552b1139c3dcfa4dc1ad032aa`
-> (parent `d7926a27`, tree `3f6b86ef`, exact14 receipt map in the REVIEW) is
-> `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS` after precommit and immutable Contract/Security/
-> Lifecycle PASS C/I/M `0/0/0`; lower 04K candidate/precommit/current-next clauses then become
-> `CONSUMED/HISTORICAL`. Ordered exact2 alone becomes dispatchable and remains
-> `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED` pending its own lifecycle.
+> **Source receipt-sync gate:** `SOURCE_ACCEPTANCE_SYNC_CANDIDATE /
+> ATOMIC_EXACT15_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty exact15 documentation candidate
+> grants no authority. Only one atomic receipt-sync commit and the recorded immutable acceptance
+> activate source `572f911227b9d50e21aa73b87c530ddcaf0f8934` (parent `26b377eb`, tree
+> `ac96e2f5`, subject `feat(calendar): add call due policy`) as `STATIC_ACCEPTED / EXACT_SHA_PASS`
+> for test blob `437db3af0263cedb10dcf217cd53fbbcac03cf23` then source blob
+> `376f46c1cc79956fab3479efc38750fd88161b16`. Contract/Spec/Oracle, Security/Adversarial and
+> Lifecycle/Dependency/Boundary precommit plus immutable reviews are PASS C/I/M `0/0/0`;
+> Terra/xhigh, dispatcher-enforced/no fallback, telemetry `UNKNOWN`. On activation the former 04K
+> authority-candidate/precommit/current-next clauses become `CONSUMED/HISTORICAL`; no next packet
+> is selected.
 
-The exact14 candidate `REVIEW-143-04K-CALL-DUE-AUTHORITY.md` consumes accepted 04J
+The accepted authority review `REVIEW-143-04K-CALL-DUE-AUTHORITY.md` and frozen ABI consume accepted 04J
 (`d7926a27` receipt for `e74efa827`), 04A's descriptor value and 04L `EnvelopeV1`. It freezes only
 a pure input of the call plus explicit UTC whole-second `Now`, raw 04J projection and explicit
 envelope values, and an opaque result with optional descriptor and

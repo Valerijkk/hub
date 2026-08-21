@@ -1,12 +1,17 @@
 # Hub Mail contract changelog
 
-> **143-04K due-policy authority candidate (2026-08-21):**
-> `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / IMPLEMENTATION_BLOCKED /
-> RUNTIME_NOT_RUN`. This exact14 docs candidate consumes accepted 04J `d7926a27`/`e74efa827`,
-> 04A descriptor and 04L envelope contracts, but claims no Calendar-subject admission from 04G.
-> Atomic exact14 commit, Contract/Spec/Oracle + Security + Lifecycle immutable exact-SHA PASS and
-> separate acceptance are required before only test-first `event_call_due_service_test.go`, then
-> `event_call_due_service.go`. It freezes a pure explicit-`Now` call/raw-projection/envelope
+> **143-04K due-policy source receipt-sync (2026-08-21):**
+> `SOURCE_ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT15_COMMIT_REQUIRED / RUNTIME_NOT_RUN`.
+> This dirty exact15 documentation candidate grants no authority. Only after one atomic receipt-sync
+> commit and immutable acceptance is source `572f911227b9d50e21aa73b87c530ddcaf0f8934` (parent
+> `26b377eb`, tree `ac96e2f5`, subject `feat(calendar): add call due policy`)
+> `STATIC_ACCEPTED / EXACT_SHA_PASS` for authored-first test blob
+> `437db3af0263cedb10dcf217cd53fbbcac03cf23` then source blob
+> `376f46c1cc79956fab3479efc38750fd88161b16`. Contract/Spec/Oracle, Security/Adversarial and
+> Lifecycle/Dependency/Boundary precommit plus immutable reviews PASS C/I/M `0/0/0`; Terra/xhigh,
+> dispatcher-enforced/no fallback, telemetry `UNKNOWN`. It consumes accepted 04J `d7926a27`/
+> `e74efa827`, 04A descriptor and 04L envelope contracts, but claims no Calendar-subject admission
+> from 04G. It freezes a pure explicit-`Now` call/raw-projection/envelope
 > decision: active projection is deep-cloned then reconciled twice with fixed 04J boundaries, while
 > inactive/deleted nil-projection/zero-envelope input immediately noops. Existing plural nine-field
 > due payload remains; 04F-K alone later owns CAS/locks/rollback/outbox append.
@@ -15,14 +20,11 @@
 > 04K locally rechecks all envelope/payload/subject bindings and owns no reservation storage.
 > No schema semantic change, legacy subject cutover or runtime authority follows.
 
-> **143-04K acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE /
-> ATOMIC_EXACT14_COMMIT_REQUIRED / SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This dirty
-> exact14 sync grants no authority. Only its atomic sync commit activates immutable
-> `7b079f334eb8705552b1139c3dcfa4dc1ad032aa` (parent `d7926a27`, tree `3f6b86ef`, exact14 REVIEW
-> map) as `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS` after precommit and immutable
-> Contract/Security/Lifecycle PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry
-> `UNKNOWN`. Then lower 04K candidate clauses are historical and ordered exact2 alone is
-> dispatchable, still unimplemented/uncommitted/unaccepted pending its own lifecycle.
+> **143-04K receipt lifecycle:** the former authority-candidate, precommit and test-first-dispatch
+> clauses become `CONSUMED/HISTORICAL` only after this source receipt activates. The dirty sync
+> selects no next packet; `IMPLEMENTATION-143-04K.md` records the immutable exact2. 04F-K alone
+> later owns CAS/locks/rollback/outbox append; AQ-02 backfill-only, Ent/generation/migration,
+> adapters/API/UI/raw iTIP/legacy cutover, launcher and runtime blockers remain unchanged.
 
 > **143-04J source receipt (2026-08-21):** `SOURCE_ACCEPTANCE_SYNC_CANDIDATE /
 > ATOMIC_EXACT14_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. These proposed facts activate only after one

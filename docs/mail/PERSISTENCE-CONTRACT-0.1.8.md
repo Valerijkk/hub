@@ -1655,21 +1655,22 @@ separate docs-only acceptance are required before exact2 source dispatch. AQ-02 
 legacy backfill blocker; Ent/generation/migration, adapters, API/UI, launcher and runtime remain
 unchanged.
 
-## 143-04K pure due candidate — no persistence authority
+## 143-04K pure due source receipt — no persistence authority
 
-> **Acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT14_COMMIT_REQUIRED /
-> SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This dirty exact14 sync grants no authority.
-> Its atomic sync commit alone activates immutable `7b079f334eb8705552b1139c3dcfa4dc1ad032aa`
-> (parent `d7926a27`, tree `3f6b86ef`, REVIEW map) as `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS`
-> after precommit and immutable Contract/Security/Lifecycle PASS C/I/M `0/0/0`; only then do lower
-> 04K candidate clauses consume and ordered exact2 become dispatchable, still unimplemented.
+> **Source receipt-sync gate:** `SOURCE_ACCEPTANCE_SYNC_CANDIDATE /
+> ATOMIC_EXACT15_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty exact15 documentation candidate
+> grants no authority. Only after one atomic receipt-sync commit and immutable acceptance is source
+> `572f911227b9d50e21aa73b87c530ddcaf0f8934` (parent `26b377eb`, tree `ac96e2f5`, subject
+> `feat(calendar): add call due policy`) `STATIC_ACCEPTED / EXACT_SHA_PASS` for test blob
+> `437db3af0263cedb10dcf217cd53fbbcac03cf23` then source blob
+> `376f46c1cc79956fab3479efc38750fd88161b16`. Contract/Spec/Oracle, Security/Adversarial and
+> Lifecycle/Dependency/Boundary precommit plus immutable reviews PASS C/I/M `0/0/0`; Terra/xhigh,
+> dispatcher-enforced/no fallback, telemetry `UNKNOWN`. No next packet is selected.
 
-The exact14 `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
-IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN` consumes accepted 04J `d7926a27`/`e74efa827`, accepted
-04A `EventOutboxDescriptor` and 04L `EnvelopeV1`, but does not open a repository, transaction,
-lock, CAS, retry or outbox append path. Its sole future exact2 is test first
-`event_call_due_service_test.go`, then `event_call_due_service.go`, after atomic exact14 commit,
-three immutable exact-SHA PASS reviews and separate acceptance.
+The accepted authority predecessor consumes 04J `d7926a27`/`e74efa827`, accepted 04A
+`EventOutboxDescriptor` and 04L `EnvelopeV1`, but source `572f9112` opens no repository,
+transaction, lock, CAS, retry or outbox append path. Its former authority-candidate/precommit/
+test-first dispatch clauses are `CONSUMED/HISTORICAL` only after this receipt activates.
 
 The future pure decision receives an explicit UTC whole-second `Now` equal to envelope
 `OccurredAt`, a call and raw 04J projection. An active call deep-clones projection and invokes

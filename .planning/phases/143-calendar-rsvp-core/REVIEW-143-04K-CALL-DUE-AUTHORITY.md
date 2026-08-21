@@ -1,18 +1,21 @@
 # 143-04K — ScheduledCall due-policy source-authority freeze
 
-> **Acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT14_COMMIT_REQUIRED /
-> SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This dirty exact14 sync tree grants no
-> authority. Its receipt facts activate only after one atomic commit of precisely this manifest.
-> Only then is immutable `7b079f334eb8705552b1139c3dcfa4dc1ad032aa`
-> (parent `d7926a27c5f7e4b612cb6ac5c2fd3fc778a512cc`, tree
-> `3f6b86efdfa668fd5e5547a4d029600ca19f859f`, subject
-> `docs(calendar): propose call due authority`) `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS`, after
-> precommit and immutable Contract/Spec/Oracle, Security and Lifecycle PASS C/I/M `0/0/0`;
-> dispatcher-enforced/no fallback/telemetry `UNKNOWN`. The lower 04K candidate/precommit/current-
-> next clauses become `CONSUMED/HISTORICAL` only then. Root may then dispatch only test-first
-> exact2; source stays `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED` pending its own lifecycle.
+> **Source receipt-sync gate:** `SOURCE_ACCEPTANCE_SYNC_CANDIDATE /
+> ATOMIC_EXACT15_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty exact15 documentation candidate
+> grants no authority. Its source receipt facts activate only after one atomic commit of precisely
+> the exact15 manifest and immutable acceptance. Only then is source
+> `572f911227b9d50e21aa73b87c530ddcaf0f8934` (parent
+> `26b377eb288ac8e363cf6d53c744b60f097e9804`, tree
+> `ac96e2f5c03256b1e00a391600325a524a840673`, subject
+> `feat(calendar): add call due policy`) `STATIC_ACCEPTED / EXACT_SHA_PASS`, for authored-first
+> test blob `437db3af0263cedb10dcf217cd53fbbcac03cf23` then source blob
+> `376f46c1cc79956fab3479efc38750fd88161b16`. Contract/Spec/Oracle, Security/Adversarial and
+> Lifecycle/Dependency/Boundary precommit plus immutable reviews PASS C/I/M `0/0/0`;
+> Terra/xhigh, dispatcher-enforced/no fallback, telemetry `UNKNOWN`. Only then do lower 04K
+> authority-candidate/precommit/current-next clauses become `CONSUMED/HISTORICAL`; no next packet
+> is selected.
 
-## Immutable exact14 candidate receipt
+## Historical exact14 authority candidate receipt
 
 ```text
 5a3012b7722ad42171a79bc0fb31577a0d48d539  .planning/STATE.md
@@ -33,7 +36,8 @@ f5845d4e2180fe2d4c265b1f2b7b74e3b7625f0c  docs/mail/PERSISTENCE-CONTRACT-0.1.8.m
 
 ## Exact source packet and boundary
 
-Only after that lifecycle, root may dispatch this ordered test-first exact2, and nothing else:
+The following ordered test-first exact2 is the immutable source packet recorded above; this dirty
+receipt candidate does not dispatch any further packet:
 
 1. NEW `backend/tests/calendar/event_call_due_service_test.go`;
 2. NEW `backend/internal/calendar/event_call_due_service.go`.

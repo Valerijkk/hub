@@ -121,7 +121,7 @@ each accepted 143-04B/C/D/E/H/I ── its matching 143-04F-* transaction
 | 143-04H | Cancel one recurrence instance | `event_service_occurrence_cancel.go`, `backend/tests/calendar/event_service_occurrence_cancel_test.go` | exact event-version/occurrence-not-mutable conflicts; cancelled exception; sequence/event version +1; occurrence iTIP CANCEL and one outbox | 143-02A + 143-04C + 143-04G |
 | 143-04I | Sender-bound inbound iTIP REPLY apply/quarantine | `event_service_inbound_reply.go`, `backend/tests/calendar/event_service_inbound_reply_test.go` | A→B→A no rollback; same-status receipt; stale/future/spoof/cap quarantine | 143-02B + 143-04A + 143-04G |
 | 143-04J | Pure canonical ScheduledCall mapping, recurrence and next-effective-occurrence policy | `event_call_policy.go`, `backend/tests/calendar/event_call_policy_test.go` | exact-channel/project/org membership; linked-guest rejection; series participant projection; DTSTART/RRULE/EXDATE; pause/resume; no I/O | 143-01 + 143-02A + 143-04A/B/G |
-| 143-04K | Pure due-call policy and deterministic occurrence key — `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED` only | NEW `backend/tests/calendar/event_call_due_service_test.go`, then NEW `backend/internal/calendar/event_call_due_service.go` | explicit UTC `Now`, call/raw projection/envelope; active deep-clone + exactly two fixed 04J reconciles, inactive/deleted nil-projection zero-envelope noop; opaque `not_due|reschedule|advance|deactivate|noop`; private complete descriptor; no I/O/clock/CAS/outbox append/NATS | accepted 143-04J + 143-04A + 143-04L |
+| 143-04K | Pure due-call source receipt — `SOURCE_ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT15_COMMIT_REQUIRED / RUNTIME_NOT_RUN` only | authored-first `event_call_due_service_test.go` blob `437db3af`, then `event_call_due_service.go` blob `376f46c1` in immutable source `572f9112`; no dirty-tree authority | frozen pure 04J-derived due decision, opaque descriptor; no I/O/clock/CAS/outbox append/NATS | accepted 143-04J + 143-04A + 143-04L |
 | 143-04F-Base | Ent adapter shell and shared transaction primitive | `event_ent_repository.go`, `backend/tests/calendar/event_ent_repository_contract_test.go` | interface assertion; injected DB/outbox; no network/post-commit publish | 143-03E + 143-04A/G |
 | 143-04F-B | Create-event Ent transaction | `event_ent_repository_create.go` | receipt/event/attendees/outbox/completion in one transaction | 143-04F-Base + 143-04B |
 | 143-04F-C | Update/cancel-master Ent transaction | `event_ent_repository_update.go` | event-first lock/version/update/reset/outbox atomic | 143-04F-Base + 143-04C |
@@ -186,21 +186,21 @@ migration, adapter/API/UI, raw iTIP or runtime route follows. At scoped acceptan
 consumes only the generic 04J row's ABI/behavior/oracle wording; every other route and blocker
 remains current.
 
-## 143-04K source-authority candidate — not active
+## 143-04K source receipt-sync — conditional
 
-> **Acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT14_COMMIT_REQUIRED /
-> SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. The dirty exact14 sync has no authority.
-> After one atomic sync commit, immutable `7b079f334eb8705552b1139c3dcfa4dc1ad032aa`
-> (parent `d7926a27`, tree `3f6b86ef`, REVIEW map) is `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS`
-> after precommit and immutable Contract/Security/Lifecycle PASS C/I/M `0/0/0`,
-> dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Only then do lower 04K candidate clauses
-> consume and only the table's test-first exact2 becomes dispatchable; it remains unimplemented.
+> **Source receipt-sync gate:** `SOURCE_ACCEPTANCE_SYNC_CANDIDATE /
+> ATOMIC_EXACT15_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. The dirty exact15 documentation candidate has
+> no authority. After one atomic receipt-sync commit and immutable acceptance, source `572f9112`
+> (parent `26b377eb`, tree `ac96e2f5`, subject `feat(calendar): add call due policy`) is
+> `STATIC_ACCEPTED / EXACT_SHA_PASS` for test blob `437db3af0263cedb10dcf217cd53fbbcac03cf23`
+> then source blob `376f46c1cc79956fab3479efc38750fd88161b16`. Contract/Spec/Oracle, Security/Adversarial
+> and Lifecycle/Dependency/Boundary precommit plus immutable reviews PASS C/I/M `0/0/0`;
+> Terra/xhigh, dispatcher-enforced/no fallback, telemetry `UNKNOWN`. No next packet is selected.
 
-`REVIEW-143-04K-CALL-DUE-AUTHORITY.md` freezes the only proposed 04K exact14 route. It consumes
-accepted 04J `d7926a27`/`e74efa827`, 04A descriptor and 04L envelope values, but claims no
-Calendar-subject admission from 04G. Atomic exact14 docs commit, independent Contract/Spec/Oracle,
-Security and Lifecycle immutable exact-SHA PASS and separate acceptance are required before exactly
-the table's ordered test-first exact2. The policy is pure: it deep-clones raw projection and calls
+`REVIEW-143-04K-CALL-DUE-AUTHORITY.md` is the accepted authority predecessor. Its lower
+authority-candidate/precommit/current-next clauses become `CONSUMED/HISTORICAL` only upon this
+receipt's activation. Source consumes accepted 04J `d7926a27`/`e74efa827`, 04A descriptor and 04L
+envelope values, but claims no Calendar-subject admission from 04G. The policy is pure: it deep-clones raw projection and calls
 accepted 04J only through two fixed reconcile inputs, then validates the existing plural nine-field
 due envelope including every payload/envelope/subject binding. 04F-K separately candidate-calls,
 reserves/reloads EventID/OccurredAt/CorrelationID only after due (non-due candidates discard),

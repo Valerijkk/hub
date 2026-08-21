@@ -23,24 +23,24 @@ These questions require founder authority and are intentionally deferred while a
 continues on unblocked pure-domain packets. They do not authorize source, migration, launcher, or
 runtime work by themselves.
 
-## 143-04K pure call-due authority candidate — not active
+## 143-04K pure call-due source receipt-sync — conditional
 
-> **Acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT14_COMMIT_REQUIRED /
-> SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This dirty exact14 sync grants no authority.
-> Only an atomic sync commit activates immutable `7b079f334eb8705552b1139c3dcfa4dc1ad032aa`
-> (parent `d7926a27`, tree `3f6b86ef`, exact blobs in the REVIEW) as
-> `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS` after precommit and immutable Contract/Security/
-> Lifecycle PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Lower 04K
-> candidate routes are consumed only then; ordered exact2 remains unimplemented until its own
-> lifecycle.
+> **Source receipt-sync gate:** `SOURCE_ACCEPTANCE_SYNC_CANDIDATE /
+> ATOMIC_EXACT15_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty exact15 documentation candidate
+> grants no authority. Only after one atomic exact15 receipt-sync commit and immutable acceptance is
+> source `572f911227b9d50e21aa73b87c530ddcaf0f8934` (parent `26b377eb`, tree `ac96e2f5`, subject
+> `feat(calendar): add call due policy`) `STATIC_ACCEPTED / EXACT_SHA_PASS` for authored-first test
+> blob `437db3af0263cedb10dcf217cd53fbbcac03cf23` then source blob
+> `376f46c1cc79956fab3479efc38750fd88161b16`. Contract/Spec/Oracle, Security/Adversarial and
+> Lifecycle/Dependency/Boundary precommit plus immutable reviews are PASS C/I/M `0/0/0`;
+> Terra/xhigh, dispatcher-enforced/no fallback, telemetry `UNKNOWN`. The dirty candidate is not an
+> acceptance and selects no next packet.
 
-`REVIEW-143-04K-CALL-DUE-AUTHORITY.md` is only a `ROOT_SOURCE_AUTHORITY_CANDIDATE /
-PRECOMMIT_REVIEW_REQUIRED / IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN` exact14 documentation
-candidate. It consumes accepted 04J (`d7926a27` receipt for `e74efa827`), 04A's
-`EventOutboxDescriptor` and 04L's `EnvelopeV1`; it authorizes neither a Calendar-subject admission
-from 04G nor persistence. One atomic exact14 commit, Contract/Spec/Oracle + Security + Lifecycle
-immutable exact-SHA PASS, and separate acceptance are mandatory before root may dispatch only NEW
-`event_call_due_service_test.go`, then NEW `event_call_due_service.go`.
+`REVIEW-143-04K-CALL-DUE-AUTHORITY.md` is the accepted source-authority predecessor. Its lower
+authority-candidate/precommit/test-first dispatch text is `CONSUMED/HISTORICAL` only after this
+source receipt activates. Source `572f9112` consumes accepted 04J (`d7926a27` receipt for
+`e74efa827`), 04A's `EventOutboxDescriptor` and 04L's `EnvelopeV1`; it authorizes neither a
+Calendar-subject admission from 04G nor persistence.
 
 The future policy takes explicit UTC whole-second `Now`, call, raw 04J projection and envelope
 values, returns an optional descriptor, derives a domain-separated occurrence key and validates the

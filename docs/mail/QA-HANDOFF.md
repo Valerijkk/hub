@@ -992,22 +992,23 @@ Contract/Spec/Oracle, Security and Lifecycle immutable exact-SHA PASS, then sepa
 acceptance before source may be dispatched. No Docker/job was run; launcher `NOT_READY`, runtime
 `NOT_RUN`; 04K/04F, Ent/generation/migration, adapter/API/UI and raw iTIP remain outside scope.
 
-## 143-04K candidate unit oracle — not executable evidence
+## 143-04K source receipt unit oracle — not executable evidence
 
-> **Acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT14_COMMIT_REQUIRED /
-> SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This dirty exact14 sync is not a test or
-> source authority. Only an atomic sync commit activates immutable
-> `7b079f334eb8705552b1139c3dcfa4dc1ad032aa` (parent `d7926a27`, tree `3f6b86ef`, REVIEW map) as
-> `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS` after precommit and immutable Contract/Security/
-> Lifecycle PASS C/I/M `0/0/0`; lower candidate clauses then consume and ordered exact2 alone is
-> dispatchable, still `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED` pending its own lifecycle.
+> **Source receipt-sync gate:** `SOURCE_ACCEPTANCE_SYNC_CANDIDATE /
+> ATOMIC_EXACT15_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty exact15 documentation candidate is
+> not a test or source authority. Only after one atomic receipt-sync commit and immutable acceptance
+> is source `572f911227b9d50e21aa73b87c530ddcaf0f8934` (parent `26b377eb`, tree `ac96e2f5`, subject
+> `feat(calendar): add call due policy`) `STATIC_ACCEPTED / EXACT_SHA_PASS` for test blob
+> `437db3af0263cedb10dcf217cd53fbbcac03cf23` then source blob
+> `376f46c1cc79956fab3479efc38750fd88161b16`. Contract/Spec/Oracle, Security/Adversarial and
+> Lifecycle/Dependency/Boundary precommit plus immutable reviews PASS C/I/M `0/0/0`; Terra/xhigh,
+> dispatcher-enforced/no fallback, telemetry `UNKNOWN`. No next packet is selected.
 
-The proposed exact14 candidate in `REVIEW-143-04K-CALL-DUE-AUTHORITY.md` is
-`ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / IMPLEMENTATION_BLOCKED /
-RUNTIME_NOT_RUN`, not a test result. Only atomic exact14 commit, Contract/Spec/Oracle, Security
-and Lifecycle immutable exact-SHA PASS and separate acceptance may dispatch NEW external
-`event_call_due_service_test.go`, then `event_call_due_service.go`. It consumes accepted 04J
-`d7926a27`/`e74efa827`, 04A and 04L; it claims no 04G Calendar-subject admission.
+The accepted authority review in `REVIEW-143-04K-CALL-DUE-AUTHORITY.md` is not a test result.
+The immutable source test is `437db3af0263cedb10dcf217cd53fbbcac03cf23`; source blob is
+`376f46c1cc79956fab3479efc38750fd88161b16`. Former authority-candidate/precommit/test-first
+dispatch clauses become `CONSUMED/HISTORICAL` only when this receipt activates. It consumes
+accepted 04J `d7926a27`/`e74efa827`, 04A and 04L; it claims no 04G Calendar-subject admission.
 
 The future genuine unit freezes fields/types/tags, `Outbox()` rather than a public envelope getter,
 five dispositions and typed errors. It proves raw projection deep-copy/input nonmutation, active

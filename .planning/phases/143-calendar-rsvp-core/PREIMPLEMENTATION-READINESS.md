@@ -210,27 +210,27 @@ The 143-04A/B/G receipts remain accepted. 143-03E, 144-02E, Ent generation, migr
 > acceptance are mandatory before dispatch. AQ-02/backfill, 04K/04F, Ent/generation/migration,
 > adapter/API/UI, raw iTIP, launcher and executable/runtime boundaries remain unchanged.
 
-> **143-04K docs-only candidate:** `REVIEW-143-04K-CALL-DUE-AUTHORITY.md` is
-> `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / IMPLEMENTATION_BLOCKED /
-> RUNTIME_NOT_RUN`, not a source, persistence or admission decision. It consumes accepted 04J
+> **143-04K source receipt candidate:** the immutable exact2 is recorded in
+> `IMPLEMENTATION-143-04K.md`; this dirty exact15 documentation candidate is not a source,
+> persistence or admission decision. It consumes accepted 04J
 > `d7926a27`/`e74efa827`, 04A and 04L, freezes a pure explicit UTC whole-second `Now`/raw-
 > projection/envelope due decision with optional descriptor and the existing plural nine-field due
 > payload. Active projection is deep-cloned and reconciled by exactly two fixed 04J calls;
 > inactive/deleted requires nil projection/zero envelope and noops. It claims no 04G
-> Calendar-subject admission. Atomic
-> exact14 docs commit, Contract/Spec/Oracle + Security + Lifecycle immutable exact-SHA PASS and
-> separate acceptance are mandatory before only NEW `event_call_due_service_test.go`, then NEW
-> `event_call_due_service.go`. 04F-K alone later owns CAS/locks/rollback/same-tx outbox; AQ-02,
+> Calendar-subject admission. The former authority-candidate/precommit/test-first-dispatch route is
+> `CONSUMED/HISTORICAL` only after this receipt activates. 04F-K alone later owns CAS/locks/rollback/same-tx outbox; AQ-02,
 > Ent/generation/migration, adapter/API/UI, raw iTIP, legacy cutover, launcher and runtime remain
 > blocked or `NOT_RUN`.
 
-> **143-04K acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE /
-> ATOMIC_EXACT14_COMMIT_REQUIRED / SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This dirty
-> exact14 sync grants no authority. Only after one atomic sync commit is immutable
-> `7b079f334eb8705552b1139c3dcfa4dc1ad032aa` (parent `d7926a27`, tree `3f6b86ef`, REVIEW map)
-> `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS` after precommit plus immutable Contract/Security/
-> Lifecycle PASS C/I/M `0/0/0`; then lower 04K candidate clauses consume and ordered exact2 alone
-> becomes dispatchable, still `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED` pending own lifecycle.
+> **143-04K source receipt-sync gate:** `SOURCE_ACCEPTANCE_SYNC_CANDIDATE /
+> ATOMIC_EXACT15_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty exact15 documentation candidate
+> grants no authority. Only after one atomic receipt-sync commit and immutable acceptance is source
+> `572f911227b9d50e21aa73b87c530ddcaf0f8934` (parent `26b377eb`, tree `ac96e2f5`, subject
+> `feat(calendar): add call due policy`) `STATIC_ACCEPTED / EXACT_SHA_PASS` for test blob
+> `437db3af0263cedb10dcf217cd53fbbcac03cf23` then source blob
+> `376f46c1cc79956fab3479efc38750fd88161b16`. Contract/Spec/Oracle, Security/Adversarial and
+> Lifecycle/Dependency/Boundary precommit plus immutable reviews PASS C/I/M `0/0/0`; Terra/xhigh,
+> dispatcher-enforced/no fallback, telemetry `UNKNOWN`. No next code packet is selected.
 
 > EventID/OccurredAt/CorrelationID are fresh candidates, not 04K allocation: non-due outcomes
 > discard them; only after due may 04F-K reserve or reload them, then rerun 04K byte-identically on

@@ -171,25 +171,27 @@ Consequences:
 > migration, adapter/API/UI, raw iTIP or any executable route. Launcher `NOT_READY`; tests/build/
 > gofmt/lint/validators/Docker/runtime `NOT_RUN`.
 
-> **143-04K candidate is not runtime evidence:** its exact14 docs-only candidate consumes accepted
-> 04J `d7926a27`/`e74efa827` plus 04A and 04L but grants no source authority. It freezes only a
+> **143-04K source receipt is not runtime evidence:** this exact15 documentation candidate records
+> immutable source `572f9112` (parent `26b377eb`, tree `ac96e2f5`) after accepted 04J
+> `d7926a27`/`e74efa827` plus 04A and 04L, but grants no dirty-tree authority. It freezes only a
 > pure, caller-supplied UTC whole-second `Now`/call/raw-projection/envelope policy and opaque
 > optional-descriptor due result. Active input is deep-cloned then sent to exactly two fixed pure
 > 04J reconciles; inactive/deleted requires nil projection/zero envelope and noops without 04J. It has no
-> clock, I/O, transaction, CAS, outbox append or NATS publish. Atomic exact14 commit, three
-> immutable exact-SHA PASS reviews and separate acceptance are required before exactly test-first
-> `event_call_due_service_test.go`, then `event_call_due_service.go`. It claims no Calendar-subject
+> clock, I/O, transaction, CAS, outbox append or NATS publish. The source's authored-first test
+> blob is `437db3af0263cedb10dcf217cd53fbbcac03cf23`; source blob is
+> `376f46c1cc79956fab3479efc38750fd88161b16`. It claims no Calendar-subject
 > admission from 04G. 04F-K alone owns durable locking/CAS/rollback/outbox. AQ-02 remains
 > backfill-only; Ent/generation/migration, adapter/API/UI, raw iTIP, legacy cutover, launcher and
 > tests/build/gofmt/lint/validators/Docker/runtime remain `NOT_READY` or `NOT_RUN`.
 
-> **143-04K acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE /
-> ATOMIC_EXACT14_COMMIT_REQUIRED / SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This dirty
-> exact14 sync grants no authority or runtime evidence. One atomic sync commit activates immutable
-> `7b079f334eb8705552b1139c3dcfa4dc1ad032aa` (parent `d7926a27`, tree `3f6b86ef`, REVIEW map) as
-> `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS` only after precommit and immutable Contract/Security/
-> Lifecycle PASS C/I/M `0/0/0`; lower candidate clauses then consume and exact2 alone is
-> dispatchable but `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED`. All runtime blockers persist.
+> **143-04K source receipt-sync gate:** `SOURCE_ACCEPTANCE_SYNC_CANDIDATE /
+> ATOMIC_EXACT15_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty exact15 documentation candidate
+> grants no authority or runtime evidence. Only after one atomic receipt-sync commit and immutable
+> acceptance is `572f911227b9d50e21aa73b87c530ddcaf0f8934` `STATIC_ACCEPTED / EXACT_SHA_PASS`.
+> Contract/Spec/Oracle, Security/Adversarial and Lifecycle/Dependency/Boundary precommit plus
+> immutable reviews PASS C/I/M `0/0/0`; Terra/xhigh, dispatcher-enforced/no fallback, telemetry
+> `UNKNOWN`. The former authority-candidate/precommit/current-next clauses then become
+> `CONSUMED/HISTORICAL`; no next packet is selected. All runtime blockers persist.
 
 > **143-04K replay boundary:** EventID/OccurredAt/CorrelationID are fresh candidate values, not
 > pure-policy generated or persisted. Non-due outcomes discard them; future 04F-K may candidate-
