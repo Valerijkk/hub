@@ -2,6 +2,8 @@
 
 ## 143-04H source receipt-sync candidate
 
+> **Current receipt precedence:** Calendar 143-04H source `73940810046bb3186f2746705a83565ab29368c5` is `STATIC_ACCEPTED / EXACT_SHA_PASS` through ancestral exact16 receipt `f9f5d436c08737eeb5a3e965137f329f3ae7f627`; Mail 144-04I-A source `091f2ef286a71f506e1b048f5386fd37cefa06bc` is `STATIC_ACCEPTED / EXACT_SHA_PASS` through ancestral exact10 receipt `03674eace728642fc2c9b39d2e8e2c81bf016033`. The corresponding candidate clauses below are `CONSUMED/HISTORICAL` only. PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback, telemetry `UNKNOWN`; no next packet or downstream/runtime authority follows.
+>
 > `SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT16_COMMIT_REQUIRED / RUNTIME_NOT_RUN`.
 > This dirty exact16 carrier grants no acceptance and changes no ABI, schema or OpenAPI semantics.
 > It records source `73940810046bb3186f2746705a83565ab29368c5` (parent

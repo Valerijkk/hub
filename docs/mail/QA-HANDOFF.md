@@ -2,6 +2,8 @@
 
 ## Calendar 143-04H source receipt-sync - static only
 
+> **Current receipt precedence:** Calendar 143-04H source `73940810046bb3186f2746705a83565ab29368c5` and Mail 144-04I-A source `091f2ef286a71f506e1b048f5386fd37cefa06bc` are `STATIC_ACCEPTED / EXACT_SHA_PASS`, via ancestral receipts `f9f5d436c08737eeb5a3e965137f329f3ae7f627` and `03674eace728642fc2c9b39d2e8e2c81bf016033`. The two named conditional receipt blocks below are `CONSUMED/HISTORICAL` only. PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback and telemetry `UNKNOWN` remain; no executable/QA result, next packet, launcher readiness or runtime acceptance follows.
+>
 `SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT16_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. Dirty exact16
 is neither executable evidence nor acceptance. It records source
 `73940810046bb3186f2746705a83565ab29368c5` (parent

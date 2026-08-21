@@ -1,5 +1,7 @@
 # Calendar 143-04H occurrence cancellation authority candidate
 
+> **Current source receipt:** `STATIC_ACCEPTED / EXACT_SHA_PASS` at `73940810046bb3186f2746705a83565ab29368c5`; receipt `f9f5d436c08737eeb5a3e965137f329f3ae7f627` is ancestral to HEAD. The source receipt-sync status below is `CONSUMED/HISTORICAL` only for the accepted 04H source; it does not alter later authority or runtime gates. PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback, telemetry `UNKNOWN`.
+
 > **Source receipt-sync status:** `SOURCE_RECEIPT_SYNC_CANDIDATE /
 > ATOMIC_EXACT16_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty exact16 receipt grants no
 > acceptance. It records immutable source `73940810046bb3186f2746705a83565ab29368c5` (parent

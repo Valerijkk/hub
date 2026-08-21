@@ -1,5 +1,7 @@
 # Phase 143 — exact Terra dispatch index
 
+> **143-04H current source receipt:** `STATIC_ACCEPTED / EXACT_SHA_PASS` at `73940810046bb3186f2746705a83565ab29368c5`; exact16 receipt `f9f5d436c08737eeb5a3e965137f329f3ae7f627` is an ancestor of HEAD. The former conditional 04H receipt route below is `CONSUMED/HISTORICAL`. PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback, telemetry `UNKNOWN`; no next packet or runtime authority follows.
+
 > **143-04H source receipt-sync:** `SOURCE_RECEIPT_SYNC_CANDIDATE /
 > ATOMIC_EXACT16_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty exact16 documentation receipt is
 > non-authoritative. Source `73940810046bb3186f2746705a83565ab29368c5` (parent `9a638f75745aa0fb516a1177a33cbd1c657432fe`,

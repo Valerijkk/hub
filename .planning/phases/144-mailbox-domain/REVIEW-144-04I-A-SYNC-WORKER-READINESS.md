@@ -1,6 +1,7 @@
 # 144-04I-A - bounded mailbox-sync worker source receipt
 
 > **Status:** `SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT10_COMMIT_REQUIRED / RUNTIME_NOT_RUN`.
+> **Current status:** `STATIC_ACCEPTED / EXACT_SHA_PASS` at source `091f2ef286a71f506e1b048f5386fd37cefa06bc`; exact10 receipt `03674eace728642fc2c9b39d2e8e2c81bf016033` is ancestral to HEAD. The conditional receipt status above is `CONSUMED/HISTORICAL` only for 04I-A. PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback, telemetry `UNKNOWN`; no next source or runtime acceptance follows.
 > This dirty exact10 documentation candidate grants no acceptance. It records authored-first source
 > commit `091f2ef286a71f506e1b048f5386fd37cefa06bc` (parent
 > `6b27643fcde3b702fa13c5fcc9b4bfefcb9fc87a`, tree

@@ -1,5 +1,7 @@
 # Phase 143 — executable packet contracts not split into standalone files
 
+> **143-04H current source receipt:** `STATIC_ACCEPTED / EXACT_SHA_PASS` at `73940810046bb3186f2746705a83565ab29368c5`; its exact16 receipt `f9f5d436c08737eeb5a3e965137f329f3ae7f627` is ancestral to HEAD. The former conditional route below is `CONSUMED/HISTORICAL` only for 04H. PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback, telemetry `UNKNOWN`; no next packet is selected and all generation/migration/adapter/API/UI/launcher/runtime blockers remain.
+
 > **143-04H source receipt-sync:** `SOURCE_RECEIPT_SYNC_CANDIDATE /
 > ATOMIC_EXACT16_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. Dirty exact16 grants no acceptance. Immutable
 > source `73940810046bb3186f2746705a83565ab29368c5` (parent `9a638f75745aa0fb516a1177a33cbd1c657432fe`,

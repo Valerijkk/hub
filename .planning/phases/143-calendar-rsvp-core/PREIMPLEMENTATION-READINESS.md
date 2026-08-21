@@ -1,5 +1,7 @@
 # Mail workstream pre-implementation readiness
 
+> **143-04H current source receipt:** `STATIC_ACCEPTED / EXACT_SHA_PASS` at `73940810046bb3186f2746705a83565ab29368c5`; receipt `f9f5d436c08737eeb5a3e965137f329f3ae7f627` is ancestral to HEAD. The conditional readiness block below is `CONSUMED/HISTORICAL` only for 04H. PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback, telemetry `UNKNOWN`; all launcher/runtime and downstream blockers remain.
+
 > **143-04H source receipt-sync readiness:** `SOURCE_RECEIPT_SYNC_CANDIDATE /
 > ATOMIC_EXACT16_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. Dirty exact16 records but does not accept
 > source `73940810046bb3186f2746705a83565ab29368c5` (parent `9a638f75745aa0fb516a1177a33cbd1c657432fe`,

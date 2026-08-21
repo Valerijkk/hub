@@ -1,5 +1,7 @@
 # Calendar 143-04H occurrence-cancel source dispatch
 
+> **143-04H current source receipt:** `STATIC_ACCEPTED / EXACT_SHA_PASS` at `73940810046bb3186f2746705a83565ab29368c5`; receipt commit `f9f5d436c08737eeb5a3e965137f329f3ae7f627` is ancestral to HEAD. The conditional route below is `CONSUMED/HISTORICAL` only for 04H. Contract/Security/Lifecycle PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback; telemetry `UNKNOWN`. No next packet is selected; all generation, migration, adapter, API/UI, launcher and runtime gates remain unchanged.
+
 > **Source receipt-sync precedence:** `SOURCE_RECEIPT_SYNC_CANDIDATE /
 > ATOMIC_EXACT16_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty exact16 is not acceptance. It
 > records committed source `73940810046bb3186f2746705a83565ab29368c5` (parent `9a638f75745aa0fb516a1177a33cbd1c657432fe`,

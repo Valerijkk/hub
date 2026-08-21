@@ -1,5 +1,7 @@
 # 144-04I-A — bounded mailbox-sync worker source receipt
 
+> **Current status:** `STATIC_ACCEPTED / EXACT_SHA_PASS` for only immutable source `091f2ef286a71f506e1b048f5386fd37cefa06bc`; exact10 receipt `03674eace728642fc2c9b39d2e8e2c81bf016033` is ancestral to HEAD. The conditional receipt status below is `CONSUMED/HISTORICAL` only for 04I-A. Contract/Security/Lifecycle PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback, telemetry `UNKNOWN`. No next packet is selected; Ent/concrete adapter, generation/migration, API/UI, launcher and runtime remain blocked or `NOT_RUN`.
+>
 > **Status:** `SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT10_COMMIT_REQUIRED /
 > RUNTIME_NOT_RUN`. This dirty exact10 documentation candidate grants no acceptance. Only one atomic
 > commit whose diff equals this manifest, followed by immutable receipt review, may mark the immutable

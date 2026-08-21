@@ -1,5 +1,7 @@
 # Phase 143 — Calendar RSVP Core
 
+> **143-04H current source receipt:** `STATIC_ACCEPTED / EXACT_SHA_PASS` at `73940810046bb3186f2746705a83565ab29368c5`; exact16 receipt `f9f5d436c08737eeb5a3e965137f329f3ae7f627` is ancestral to HEAD. The former conditional block below is `CONSUMED/HISTORICAL` only for 04H. PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback; telemetry `UNKNOWN`. No next packet, runtime, or broader authority follows.
+
 > **143-04H source receipt-sync:** `SOURCE_RECEIPT_SYNC_CANDIDATE /
 > ATOMIC_EXACT16_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty exact16 receipt has no
 > self-activation. It records source `73940810046bb3186f2746705a83565ab29368c5` (parent

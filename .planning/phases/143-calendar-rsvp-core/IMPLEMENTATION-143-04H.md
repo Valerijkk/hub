@@ -2,6 +2,8 @@
 
 ## Conditional receipt status
 
+**Current receipt status:** `STATIC_ACCEPTED / EXACT_SHA_PASS` for only immutable source `73940810046bb3186f2746705a83565ab29368c5`. Exact16 receipt `f9f5d436c08737eeb5a3e965137f329f3ae7f627` is ancestral to HEAD; Contract/Security/Lifecycle reviews are PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback, telemetry `UNKNOWN`. The conditional status block below is `CONSUMED/HISTORICAL` only for 04H. No next packet is selected; generation, migration, adapter, handler, API/UI, launcher and runtime remain blocked or `NOT_RUN`.
+
 `SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT16_COMMIT_REQUIRED / RUNTIME_NOT_RUN`.
 These dirty documentation bytes grant no source acceptance. Only one atomic commit whose diff equals
 the ordered manifest below, followed by immutable Contract, Security and Lifecycle PASS for that

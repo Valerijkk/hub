@@ -2,6 +2,8 @@
 
 ## Calendar 143-04H source receipt-sync - no persistence activation
 
+> **Current receipt precedence:** Calendar 143-04H `73940810046bb3186f2746705a83565ab29368c5` and Mail 144-04I-A `091f2ef286a71f506e1b048f5386fd37cefa06bc` are each `STATIC_ACCEPTED / EXACT_SHA_PASS`, respectively recorded by ancestral receipt commits `f9f5d436c08737eeb5a3e965137f329f3ae7f627` and `03674eace728642fc2c9b39d2e8e2c81bf016033`. The two conditional receipt blocks below are `CONSUMED/HISTORICAL` only for those packets. Their PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback and telemetry `UNKNOWN` provenance is preserved; no persistence, generation, migration, adapter or runtime authority is created.
+>
 `SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT16_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. Dirty exact16
 grants no source or persistence acceptance. Source `73940810046bb3186f2746705a83565ab29368c5`
 (parent `9a638f75745aa0fb516a1177a33cbd1c657432fe`, tree

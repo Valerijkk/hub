@@ -2,6 +2,8 @@
 
 ## 144-04I-A source receipt-sync candidate
 
+> **Current source receipt:** `STATIC_ACCEPTED / EXACT_SHA_PASS` at immutable source `091f2ef286a71f506e1b048f5386fd37cefa06bc`; exact10 receipt `03674eace728642fc2c9b39d2e8e2c81bf016033` is ancestral to HEAD. The conditional 04I-A route below is `CONSUMED/HISTORICAL` only for 04I-A. Contract/Security/Lifecycle PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback, telemetry `UNKNOWN`; no next packet is selected and all adapter/generation/migration/API/UI/launcher/runtime blockers remain.
+
 `SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT10_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty
 exact10 documentation candidate grants no acceptance. It proposes the authored-first exact2 source
 receipt `091f2ef286a71f506e1b048f5386fd37cefa06bc` (parent

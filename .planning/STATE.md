@@ -1,4 +1,29 @@
 ---
+calendar_143_04h_current_source_receipt: >-
+  STATIC_ACCEPTED / EXACT_SHA_PASS only for immutable source
+  73940810046bb3186f2746705a83565ab29368c5 (parent
+  9a638f75745aa0fb516a1177a33cbd1c657432fe, tree
+  9f994a8805b43a84c00ed50b8e5544739425edaa) and its ordered blobs
+  80e19d3b918ae9ddbe3b3ea8803c6062c2f8a713,
+  e0da66bf95d4b8193eb5d4034053a353bd154b66, and
+  2b500e5cdda34d7d80d0ccc0ba9c94427167716f. Exact16 receipt
+  f9f5d436c08737eeb5a3e965137f329f3ae7f627 is ancestral to HEAD. Contract,
+  Security and Lifecycle reviews PASS C/I/M 0/0/0; author Terra/xhigh;
+  dispatcher-enforced/no fallback; telemetry UNKNOWN. No next packet is selected.
+  Generation, migration, adapters, handlers, API/UI, launcher and runtime remain
+  NOT_READY or NOT_RUN.
+mail_144_04i_a_current_source_receipt: >-
+  STATIC_ACCEPTED / EXACT_SHA_PASS only for immutable source
+  091f2ef286a71f506e1b048f5386fd37cefa06bc (parent
+  6b27643fcde3b702fa13c5fcc9b4bfefcb9fc87a, tree
+  b01be92acf01033935b85446454eaee16b84e01b) and ordered blobs
+  79c2691971287e3a62c830a5d12c78699414bb86 and
+  6c20fadf563d4d146b2fc1cbacdddea485266eb7. Exact10 receipt
+  03674eace728642fc2c9b39d2e8e2c81bf016033 is ancestral to HEAD. Contract,
+  Security and Lifecycle reviews PASS C/I/M 0/0/0; author Terra/xhigh;
+  dispatcher-enforced/no fallback; telemetry UNKNOWN. No next packet is selected.
+  Ent/concrete adapter, generation/migration, API/UI, launcher and runtime remain
+  NOT_READY or NOT_RUN.
 gsd_state_version: 1.0
 milestone: v4
 milestone_name: Hub One Super-app
@@ -17,7 +42,7 @@ mail_calendar_docker_readiness: >-
   execution plan: docs/superpowers/specs/2026-08-21-mail-calendar-docker-readiness-design.md and
   docs/superpowers/plans/2026-08-21-mail-calendar-docker-readiness.md. No merge, push, deploy or
   shared/production migration is authorized; runtime remains NOT_RUN until launcher acceptance.
-calendar_143_04h_source_receipt_sync: >-
+calendar_143_04h_source_receipt_sync_historical: >-
   Status: SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT16_COMMIT_REQUIRED /
   RUNTIME_NOT_RUN. This dirty exact16 documentation candidate grants no source acceptance.
   It records immutable source 73940810046bb3186f2746705a83565ab29368c5 (parent
@@ -33,8 +58,12 @@ calendar_143_04h_source_receipt_sync: >-
   source-unaccepted and current-next clauses are CONSUMED/HISTORICAL. No next packet is selected;
   04J/04K remain independent, 04F-H owns future persistence, and Ent/adapters/handlers/API/UI/
   generation/migration/raw iTIP/launcher/runtime blockers remain NOT_READY or NOT_RUN.
-calendar_143_04h_authority_acceptance_sync: >-
-  Status: AUTHORITY_ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT15_COMMIT_REQUIRED /
+calendar_143_04h_authority_acceptance_sync_historical: >-
+  CONSUMED/HISTORICAL only for accepted 143-04H source receipt
+  73940810046bb3186f2746705a83565ab29368c5. The former authority-acceptance route below
+  is preserved as immutable provenance; it creates no future exact15 requirement, exact3
+  dispatch, or source-unimplemented lifecycle. Status: AUTHORITY_ACCEPTANCE_SYNC_CANDIDATE /
+  ATOMIC_EXACT15_COMMIT_REQUIRED /
   IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN. This dirty exact15 acceptance sync grants
   no authority before one atomic exact15 commit plus immutable acceptance review.
   Immutable candidate f2966bdd50631feaa210a42a232880b21ade7e3a (parent
@@ -51,8 +80,12 @@ calendar_143_04h_authority_acceptance_sync: >-
   wiring, generation, migration, API/UI, raw iTIP/transport, AQ, launcher NOT_READY
   and executables/runtime NOT_RUN remain blocked. Acceptance-sync author Terra/xhigh;
   dispatcher-enforced/no fallback, telemetry UNKNOWN.
-calendar_143_04h_authority_candidate: >-
-  Status: ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
+calendar_143_04h_authority_candidate_historical: >-
+  CONSUMED/HISTORICAL only for accepted 143-04H source receipt
+  73940810046bb3186f2746705a83565ab29368c5. The former authority candidate below is
+  preserved as immutable provenance; it creates no future exact15 requirement, exact3
+  dispatch, or source-unimplemented lifecycle. Status: ROOT_SOURCE_AUTHORITY_CANDIDATE /
+  PRECOMMIT_REVIEW_REQUIRED /
   ATOMIC_EXACT15_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN.
   This dirty exact15 documentation and schema-contract candidate grants no source,
   adapter, handler, API implementation, migration, generation or runtime authority.
@@ -71,7 +104,7 @@ calendar_143_04h_authority_candidate: >-
   generation, migration, AQ blockers, raw iTIP/transport, launcher NOT_READY and
   executables/runtime NOT_RUN remain blocked. Author Terra/xhigh,
   dispatcher-enforced/no fallback, telemetry UNKNOWN.
-mail_144_04i_a_source_receipt: "Status: SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT10_COMMIT_REQUIRED / RUNTIME_NOT_RUN. This dirty exact10 documentation candidate grants no acceptance. Only after one atomic commit equal to IMPLEMENTATION-144-04I-A.md's manifest and immutable receipt review is 091f2ef286a71f506e1b048f5386fd37cefa06bc (parent 6b27643fcde3b702fa13c5fcc9b4bfefcb9fc87a, tree b01be92acf01033935b85446454eaee16b84e01b, subject feat(mail): add bounded sync worker) STATIC_ACCEPTED / EXACT_SHA_PASS for authored-first test blob 79c2691971287e3a62c830a5d12c78699414bb86 then source blob 6c20fadf563d4d146b2fc1cbacdddea485266eb7. Contract/Security/Lifecycle precommit and immutable exact-SHA reviews PASS C/I/M 0/0/0; author Terra/xhigh; Contract Terra/high; Security/Lifecycle Terra/xhigh; dispatcher-enforced/no fallback; telemetry UNKNOWN. Then lower 04I-A candidate/source-unaccepted/current-next clauses are CONSUMED/HISTORICAL. No next source is selected. 04H/02E, Ent/concrete adapter, generation/migration, SQL/two-replica proof, API/OpenAPI/UI, launcher NOT_READY and runtime NOT_RUN remain blocked."
+mail_144_04i_a_source_receipt_historical: "Status: SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT10_COMMIT_REQUIRED / RUNTIME_NOT_RUN. This dirty exact10 documentation candidate grants no acceptance. Only after one atomic commit equal to IMPLEMENTATION-144-04I-A.md's manifest and immutable receipt review is 091f2ef286a71f506e1b048f5386fd37cefa06bc (parent 6b27643fcde3b702fa13c5fcc9b4bfefcb9fc87a, tree b01be92acf01033935b85446454eaee16b84e01b, subject feat(mail): add bounded sync worker) STATIC_ACCEPTED / EXACT_SHA_PASS for authored-first test blob 79c2691971287e3a62c830a5d12c78699414bb86 then source blob 6c20fadf563d4d146b2fc1cbacdddea485266eb7. Contract/Security/Lifecycle precommit and immutable exact-SHA reviews PASS C/I/M 0/0/0; author Terra/xhigh; Contract Terra/high; Security/Lifecycle Terra/xhigh; dispatcher-enforced/no fallback; telemetry UNKNOWN. Then lower 04I-A candidate/source-unaccepted/current-next clauses are CONSUMED/HISTORICAL. No next source is selected. 04H/02E, Ent/concrete adapter, generation/migration, SQL/two-replica proof, API/OpenAPI/UI, launcher NOT_READY and runtime NOT_RUN remain blocked."
 calendar_143_04j_source_acceptance_sync: "Status: SOURCE_ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT14_COMMIT_REQUIRED / RUNTIME_NOT_RUN. These proposed receipt facts grant no authority before one atomic commit of the exact14 documentation manifest. After that commit, immutable source e74efa827b52f35e3d3fbe8346adf0c0121ba48d (parent 06a0d6e506a31fb5546ef168a5dba72d8956a984, tree 073e887a957bb65c6c06a9759e239323ab882aa7, subject feat(calendar): add call projection policy) is STATIC_ACCEPTED / EXACT_SHA_PASS for test blob 28273191ddd1babec2cbe61c217cd561322a7ac0 then source blob cc0218bddce25936cbfb8e987a0bb6681f979d5c. Tests were authored first; Contract/Spec/Oracle, Security/Adversarial and Lifecycle/Dependency/Boundary precommit plus immutable exact-SHA reviews PASS C/I/M 0/0/0; author Terra/xhigh, dispatcher-enforced/no fallback, telemetry UNKNOWN. Lower 04J authority/source-unaccepted/exact2-next clauses then become CONSUMED/HISTORICAL. No next Calendar packet is selected; 04K requires separate docs authority. AQ-02 remains migration/backfill-only; 04F-J/K, Ent/generation/migration, adapters/API/UI/raw iTIP, launcher NOT_READY and executables/runtime NOT_RUN remain unchanged."
 calendar_143_04k_source_receipt_sync: "Status: SOURCE_ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT15_COMMIT_REQUIRED / RUNTIME_NOT_RUN. This dirty exact15 documentation candidate grants no authority. Only after one atomic exact15 commit and the recorded immutable acceptance reviews does source 572f911227b9d50e21aa73b87c530ddcaf0f8934 (parent 26b377eb288ac8e363cf6d53c744b60f097e9804, tree ac96e2f5c03256b1e00a391600325a524a840673, subject feat(calendar): add call due policy), with authored-first test blob 437db3af0263cedb10dcf217cd53fbbcac03cf23 and source blob 376f46c1cc79956fab3479efc38750fd88161b16, become STATIC_ACCEPTED / EXACT_SHA_PASS. Contract/Spec/Oracle, Security/Adversarial and Lifecycle/Dependency/Boundary precommit plus immutable reviews are PASS C/I/M 0/0/0; author Terra/xhigh, dispatcher-enforced/no fallback, telemetry UNKNOWN. Only then are lower 04K authority-candidate/precommit/current-next clauses CONSUMED/HISTORICAL. No next Calendar packet is selected. 04F-K/AQ-02, Ent/generation/migration, adapters/API/UI/raw iTIP/legacy cutover, launcher NOT_READY and executables/runtime NOT_RUN remain unchanged."
 calendar_143_04j_authority_acceptance_sync: "Status: ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT13_COMMIT_REQUIRED / SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN. These proposed receipt facts have no authority before one atomic commit of the same exact13 documentation manifest. After that commit, immutable candidate 5841621720cc03682b3d1f1e2af9cba2953797cf (parent 2a2975056c3fb8001d88863a041310271282989d, tree c4cad5a344ae4972b99410c851f20ab8c73104e7, subject docs(calendar): propose call projection authority) is SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS after Contract/Spec/Oracle, Security and Lifecycle immutable reviews PASS C/I/M 0/0/0. Lower 04J candidate/precommit/exact-review-next clauses then become CONSUMED/HISTORICAL. Root may dispatch only ordered exact2: backend/tests/calendar/event_call_policy_test.go then backend/internal/calendar/event_call_policy.go; source remains UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED. AQ-02 stays migration/backfill-only; 04K/04F, Ent/generation/migration, adapters/API/UI/raw iTIP, launcher NOT_READY and executables/runtime NOT_RUN remain unchanged."
