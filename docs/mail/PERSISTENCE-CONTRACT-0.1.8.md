@@ -1627,6 +1627,20 @@ fixture intentionally presents reverse input order but hashes low UUID then high
 
 > **Local 01B clause reconciliation:** older 144-01B Docker-blocked/do-not-start/dependency wording in this generation-gate record is `CONSUMED/HISTORICAL` only. 02E/Ent/generation/migration/service/API/UI/product/phase/release authority remains blocked.
 
+## 143-04J pure projection candidate — no persistence authority
+
+The exact13 authority candidate is deliberately caller-owned and has no persistence port,
+transaction, lock, query, adapter or outbox call. `ProjectEventCall` returns an opaque copied
+snapshot only; later 04F-J/04F-K own every event-before-call lock and durable mutation. The
+candidate's event/target/creator identity binding, series-only participant rule, UTC boundary and
+terminal dispositions are frozen in `REVIEW-143-04J-CALL-PROJECTION-AUTHORITY.md`.
+
+This is `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED`, not schema or source
+acceptance. Atomic exact13 docs commit, three independent immutable exact-SHA PASS reviews and a
+separate docs-only acceptance are required before exact2 source dispatch. AQ-02 remains only a
+legacy backfill blocker; Ent/generation/migration, adapters, API/UI, launcher and runtime remain
+unchanged.
+
 ## Generation gate
 
 The schema packet is eligible for implementation only after this document and OpenAPI 0.1.8

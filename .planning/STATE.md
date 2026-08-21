@@ -236,6 +236,17 @@ calendar_143_04c_authority: "143-04C is STATIC_ACCEPTED / EXACT_SHA_PASS only at
 
 # Состояние проекта Hub
 
+## 143-04J call-projection authority candidate (2026-08-21)
+
+`REVIEW-143-04J-CALL-PROJECTION-AUTHORITY.md` freezes only the exact13 documentation candidate:
+pure caller-owned Hub ScheduledCall projection, not source acceptance. It authorizes no dispatch
+until one atomic exact13 docs commit, independent Contract/Spec/Oracle, Security and Lifecycle
+immutable exact-SHA PASS, and separate docs-only acceptance. Only then may root dispatch test-first
+`backend/tests/calendar/event_call_policy_test.go`, then
+`backend/internal/calendar/event_call_policy.go`. AQ-02 remains backfill-only; 04K/04F,
+Ent/generation/migration, adapter/API/UI, raw iTIP, launcher `NOT_READY` and all executables/runtime
+`NOT_RUN` remain unchanged.
+
 ## 144-04G sync-service authority candidate (2026-08-20)
 
 Status is only `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /

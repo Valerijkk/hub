@@ -2695,6 +2695,26 @@ reservation is accepted, the projection is upserted with a nil marker and no rec
 supplied historical/equal reservation is invalid. Stable confirmed submission/draft never emits
 received. These are the only cutoff sentences changed by the correction candidate.
 
+### 143-04J pure call-projection candidate — not accepted
+
+The exact13 documentation candidate freezes only a pure caller-owned policy for linked Hub timed events:
+event/target/creator IDs bind organization, project, channel and organizer; exactly one series
+organizer attendee matches the creator; only active same-project/same-organization non-organizer
+series rows with `needs_action|accepted|tentative` project. Occurrence RSVP rows never affect
+participants. `reconcile|pause|resume|delete` return an opaque copied snapshot. The boundary uses
+whole-second UTC `YYYY-MM-DDTHH:MM:SSZ` plus `Inclusive` for at-or-after versus strict-after; no
+repository, persistence, outbox, NATS, iTIP or event mutation exists in the pure policy.
+Master and moved-exception instants are themselves UTC whole-second values and are rejected rather
+than normalized by 04J. Emails are canonical strict addresses capped at 320 bytes and timezone is
+preflight-capped at 64 bytes before IANA loading. Every occurrence-attendee recurrence id belongs
+to the nominal series; one-time events reject occurrence attendee rows.
+
+The full ABI is `REVIEW-143-04J-CALL-PROJECTION-AUTHORITY.md`. This remains
+`ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED`: only atomic exact13 commit, all
+three independent immutable exact-SHA PASS reviews and separate docs-only acceptance may authorize
+test-first `event_call_policy_test.go` then `event_call_policy.go`. 04K/04F, Ent/generation/
+migration, API/UI, launcher and runtime remain outside scope.
+
 The former immediate exact four-path dispatch is `SUSPENDED / CONSUMED/HISTORICAL`; no source
 dispatch or commit is currently authorized. No OpenAPI or persistence change is in scope; all 02E/Ent/generation/migration/service/API/UI/
 product/phase/release, 02F-D, engine deletion/User-GDPR, launcher `NOT_READY` and runtime `NOT_RUN`

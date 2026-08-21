@@ -958,6 +958,25 @@ No QA claim may treat every malformed nested JSON form as a DB rejection.
 
 > **Local 01B clause reconciliation:** older 144-01B Docker-blocked/do-not-start/dependency wording in this blocker record is `CONSUMED/HISTORICAL` only; every launcher, 02E/Ent/generation/migration/service/API/UI/product/phase/release, Rule/Sieve and Phase145 blocker remains current.
 
+## 143-04J candidate unit oracle — not executable evidence
+
+The future external-package `event_call_policy_test.go` must freeze the exact public ABI from
+`REVIEW-143-04J-CALL-PROJECTION-AUTHORITY.md`: string actions, separate event/target/creator/
+attendee/exception/boundary structs, opaque snapshot, `ProjectEventCall`, dispositions and three
+typed errors. It must prove full event-target-creator identity, exactly one matching series
+organizer row, series-only participant projection, active source/status/delete state, all bounds
+including 1/1440 duration, inclusive and strict-after boundary, canonical UTC recurrence key,
+empty-RRULE master-only, EXDATE/exception/cancelled/nil/moved rows, copy/no-mutation and no-I/O.
+Negative oracles reject master and moved-exception offset/fractional instants instead of
+truncating, reject email byte 321 and timezone byte 65 before normalization/IANA work, reject a
+foreign occurrence-attendee recurrence id, and reject every occurrence attendee on a one-time
+event.
+
+This is an exact13 source-authority candidate only. It needs atomic exact13 docs commit,
+Contract/Spec/Oracle, Security and Lifecycle immutable exact-SHA PASS, then separate docs
+acceptance before source may be dispatched. No Docker/job was run; launcher `NOT_READY`, runtime
+`NOT_RUN`; 04K/04F, Ent/generation/migration, adapter/API/UI and raw iTIP remain outside scope.
+
 ## Current blockers and honesty
 
 ### Accepted-02D/02F external/static oracle matrix

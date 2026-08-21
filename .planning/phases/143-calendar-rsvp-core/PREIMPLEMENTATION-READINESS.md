@@ -188,6 +188,14 @@ The 143-04A/B/G receipts remain accepted. 143-03E, 144-02E, Ent generation, migr
 > `0/0/0`. Rule-plan authoring/review is `CONSUMED/HISTORICAL`; Rule TDD/production awaits all
 > accepted non-marker Phase-145 carrier/G145-5B/G145-5C and launcher readiness.
 
+> **143-04J docs-only candidate:** the exact13 documentation packet is
+> `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED` only. Its full pure-policy ABI,
+> two-file test-first manifest and non-I/O boundary are in
+> `REVIEW-143-04J-CALL-PROJECTION-AUTHORITY.md`. Atomic exact13 commit, independent
+> Contract/Spec/Oracle, Security and Lifecycle immutable exact-SHA PASS, then separate docs-only
+> acceptance are mandatory before dispatch. AQ-02/backfill, 04K/04F, Ent/generation/migration,
+> adapter/API/UI, raw iTIP, launcher and executable/runtime boundaries remain unchanged.
+
 > **143-04C immutable source receipt:** `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at
 > `7fd061b5099b4608e0c33a6d99edbe1a66587d34`; the candidate/precommit/current-next lifecycle is
 > `CONSUMED/HISTORICAL` only for 04C. `IMPLEMENTATION-143-04C.md` records the test-first exact

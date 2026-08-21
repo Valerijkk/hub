@@ -692,6 +692,17 @@ Executables/runtime are
 migration/services/API/UI/product/phase/release remain out of scope, as do 02F-D, engine
 deletion/User-GDPR. Launcher remains `NOT_READY`; executables/runtime `NOT_RUN`.
 
+## 143-04J call-projection authority candidate — 2026-08-21
+
+Exact13 docs candidate only: `REVIEW-143-04J-CALL-PROJECTION-AUTHORITY.md` freezes the
+future pure `ProjectEventCall` ABI and test-first exact2. It binds canonical Hub event, target,
+creator and series attendee identities; exposes only an opaque copied snapshot; defines UTC
+whole-second inclusive/strict-after recurrence boundary and safe no-I/O behavior. It changes no
+event schema, persistence, OpenAPI, outbox, NATS, adapter, migration, API/UI or runtime contract.
+The candidate is not source authority until one atomic exact13 docs commit, the three independent
+immutable exact-SHA PASS reviews and a separate docs-only acceptance. AQ-02 remains backfill-only;
+launcher/executable evidence remains `NOT_READY` / `NOT_RUN`.
+
 ## 143-04C calendar update/master-cancel immutable source receipt — 2026-08-20
 
 Calendar 143-04C is `STATIC_ACCEPTED / EXACT_SHA_PASS` only at immutable commit `7fd061b5099b4608e0c33a6d99edbe1a66587d34` (parent `bb84a47e12516c19682ff08783a5844306fc5766`, tree `0fb65fc72705bb145a1f2950c6efbe16607e6a04`, subject `feat(calendar): add update and cancel service`) for its test-first exact3 blobs: `event_service_update_test.go` `4421204141719fa1af586b3d6272aa130f185af2`, `event_repository.go` `737207280cc23adb873ae8d36952a3e62a0a3a4d`, then `event_service_update.go` `094b68dd8369bdc9345d9348016b3bdc377aa7a9`; `IMPLEMENTATION-143-04C.md` is the complete receipt. Contract/Spec/Oracle, Security and Lifecycle precommit plus immutable exact-SHA reviews PASS C/I/M `0/0/0`; author Terra/xhigh, dispatcher-enforced/no fallback, telemetry `UNKNOWN` unless exposed.

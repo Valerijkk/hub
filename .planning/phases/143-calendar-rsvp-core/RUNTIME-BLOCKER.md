@@ -150,6 +150,13 @@ Consequences:
   generation, migration, tests and all executable runtime evidence remain `NOT_RUN`. Actual
   model/effort telemetry for the current accepted dispatcher records remains `UNKNOWN`.
 
+> **143-04J candidate is not runtime evidence:** its exact13 docs packet freezes a pure
+> caller-owned source ABI only. It needs atomic exact13 commit, Contract/Spec/Oracle, Security and
+> Lifecycle immutable exact-SHA PASS and separate docs acceptance before test-first exact2 source
+> dispatch. It neither changes AQ-02's backfill-only status nor selects 04K/04F, Ent/generation/
+> migration, adapter/API/UI, raw iTIP or any executable route. Launcher `NOT_READY`; tests/build/
+> gofmt/lint/validators/Docker/runtime `NOT_RUN`.
+
 > **143-04C immutable source receipt:** the former candidate/precommit/current-next lifecycle is
 > `CONSUMED/HISTORICAL` only for 04C after `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at
 > `7fd061b5099b4608e0c33a6d99edbe1a66587d34`; exact blobs and static review facts are in

@@ -68,7 +68,7 @@ contract 0.1.7 ── 143-04L shared versioned envelope
 143-04A/G ──────────────── 143-04D series RSVP ── 143-04E occurrence RSVP
 143-02A + 143-04C/G ────── 143-04H occurrence cancel
 143-02B + 143-04A/G ────── 143-04I inbound REPLY
-143-01/02A + 143-04A/G ─── 143-04J call-projection policy ── 143-04K due policy
+143-01/02A + 143-04A/B/G ─── 143-04J call-projection policy ── 143-04K due policy
 
 143-03E + 143-04A/G ───── 143-04F-Base
 each accepted 143-04B/C/D/E/H/I ── its matching 143-04F-* transaction
@@ -105,7 +105,7 @@ each accepted 143-04B/C/D/E/H/I ── its matching 143-04F-* transaction
 | 143-04E | HTTP occurrence RSVP with persisted mutation receipt | `event_service_occurrence.go`, `backend/tests/calendar/event_service_occurrence_test.go` | materialized override; replay/conflict; one receipt/outbox | 143-04D + 143-04G |
 | 143-04H | Cancel one recurrence instance | `event_service_occurrence_cancel.go`, `backend/tests/calendar/event_service_occurrence_cancel_test.go` | exact event-version/occurrence-not-mutable conflicts; cancelled exception; sequence/event version +1; occurrence iTIP CANCEL and one outbox | 143-02A + 143-04C + 143-04G |
 | 143-04I | Sender-bound inbound iTIP REPLY apply/quarantine | `event_service_inbound_reply.go`, `backend/tests/calendar/event_service_inbound_reply_test.go` | A→B→A no rollback; same-status receipt; stale/future/spoof/cap quarantine | 143-02B + 143-04A + 143-04G |
-| 143-04J | Pure canonical ScheduledCall mapping, recurrence and next-effective-occurrence policy | `event_call_policy.go`, `backend/tests/calendar/event_call_policy_test.go` | exact-channel/project/org membership; linked-guest rejection; series participant projection; DTSTART/RRULE/EXDATE; pause/resume; no I/O | 143-01 + 143-02A + 143-04A/G |
+| 143-04J | Pure canonical ScheduledCall mapping, recurrence and next-effective-occurrence policy | `event_call_policy.go`, `backend/tests/calendar/event_call_policy_test.go` | exact-channel/project/org membership; linked-guest rejection; series participant projection; DTSTART/RRULE/EXDATE; pause/resume; no I/O | 143-01 + 143-02A + 143-04A/B/G |
 | 143-04K | Pure due-call orchestration and deterministic occurrence key | `event_call_due_service.go`, `backend/tests/calendar/event_call_due_service_test.go` | due/late/retry; one outbox descriptor; advance/deactivate; no event/reminder mutation | 143-04J/G |
 | 143-04F-Base | Ent adapter shell and shared transaction primitive | `event_ent_repository.go`, `backend/tests/calendar/event_ent_repository_contract_test.go` | interface assertion; injected DB/outbox; no network/post-commit publish | 143-03E + 143-04A/G |
 | 143-04F-B | Create-event Ent transaction | `event_ent_repository_create.go` | receipt/event/attendees/outbox/completion in one transaction | 143-04F-Base + 143-04B |
@@ -157,6 +157,19 @@ each accepted 143-04B/C/D/E/H/I ── its matching 143-04F-* transaction
 - No generated Ent file is manually edited or committed. No schema migration is invented.
 - No host test/build/lint/generate/validator command and no direct Docker/Compose fallback.
 - No change enters protected QA/test-rebase paths.
+
+## 143-04J source-authority candidate — not active
+
+The exact13 documentation candidate has one future ordered manifest: external test first
+`backend/tests/calendar/event_call_policy_test.go`, then
+`backend/internal/calendar/event_call_policy.go`. Its frozen ABI is in
+`REVIEW-143-04J-CALL-PROJECTION-AUTHORITY.md`: no I/O, an opaque snapshot result, canonical
+timed recurrence boundary and series-only participant projection. It is not current source
+authority. Only atomic exact13 docs commit, Contract/Spec/Oracle, Security and Lifecycle immutable
+exact-SHA PASS, and separate docs acceptance may authorize exact2. No 04K/04F, Ent/generation/
+migration, adapter/API/UI, raw iTIP or runtime route follows. At scoped acceptance this review
+consumes only the generic 04J row's ABI/behavior/oracle wording; every other route and blocker
+remains current.
 
 ## Gate status
 

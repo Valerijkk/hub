@@ -283,7 +283,7 @@ dispatchable without duplicating the common safety contract.
 
 ## 143-04J — pure ScheduledCall projection policy
 
-- Dependencies: 01/02A/04A/G. Allowed only
+- Dependencies: 01/02A/04A/B/G. Allowed only
   `backend/internal/calendar/event_call_policy.go` and
   `backend/tests/calendar/event_call_policy_test.go`.
 - Behavior: pure bounded validation/mapping between canonical timed Hub meetings and a
@@ -320,6 +320,21 @@ dispatchable without duplicating the common safety contract.
   version/sequence, RSVP, reminder receipt or publish NATS directly.
 
 ## 143-04F-Base — Ent adapter shell
+
+### 143-04J controlling candidate clarification — not active
+
+The exact13 documentation candidate freezes the future ABI only in
+`REVIEW-143-04J-CALL-PROJECTION-AUTHORITY.md`: string actions and `ProjectEventCall`; separate
+event/target/creator/attendee/exception/boundary input; opaque copied snapshot; series-only
+participants; exact whole-second UTC key and inclusive/strict-after boundary. It requires Hub
+source, event-target-creator identity equality, active project/channel creator and active
+same-project/same-organization attendees. 1..1440 exact-minute duration, title 255,
+description 2000, attendee 200 and RRULE/EXDATE/exception 1000 limits apply. The candidate is
+not dispatch authority until atomic exact13 commit, three immutable exact-SHA PASS reviews and
+separate docs acceptance. It leaves 04K/04F, Ent, adapter, migration, API/UI, raw iTIP and
+runtime outside scope; AQ-02 remains backfill-only. At that later scoped acceptance, this exact
+freeze consumes only the preceding generic 04J ABI/behavior/oracle wording; no other packet or
+blocker clause is consumed.
 
 - Dependencies: 03E/04A/G. Allowed only
   `backend/internal/calendar/event_ent_repository.go` and

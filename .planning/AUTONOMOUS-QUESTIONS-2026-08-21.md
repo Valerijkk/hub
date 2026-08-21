@@ -22,8 +22,12 @@ pure `143-04J` ScheduledCall projection policy, which will receive normalized ca
 
 ## Root decisions made autonomously
 
-- Proceed with a separate docs-only ABI/readiness freeze for `143-04J`, then a test-first exact2
-  pure policy packet if independent reviews pass.
+- The exact13 `143-04J` docs-only candidate freezes a pure caller-owned projection ABI,
+  including event/target/creator identity, series-only participant projection, canonical timed
+  recurrence boundary and opaque snapshot result. It is not authority: only its atomic exact13
+  commit, Contract/Spec/Oracle + Security + Lifecycle immutable exact-SHA PASS, and separate
+  docs-only acceptance can authorize test-first exact2 `event_call_policy_test.go` then
+  `event_call_policy.go`. AQ-02 remains migration/backfill-only.
 - Do not implement Calendar `143-04D` in its current two-file form: a separate optional RSVP
   transaction-backend ABI and expanded exact manifest are required to preserve authorization,
   receipt replay, atomic attendee mutation, and outbox boundaries.

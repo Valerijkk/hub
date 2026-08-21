@@ -146,6 +146,16 @@ breaking existing export behavior.
 
 > **04A/04G/04B status:** all are `STATIC_ACCEPTED` as recorded above. Their accepted boundaries neither generate Ent nor authorize migration or runtime. Former next-route clauses are `CONSUMED/HISTORICAL`; no next Calendar code packet is selected and root must separately dispatch any later packet.
 
+### 143-04J docs-only source-authority candidate
+
+The candidate `REVIEW-143-04J-CALL-PROJECTION-AUTHORITY.md` freezes only the pure
+caller-owned 04J mapping: it validates canonical Hub event/target/creator/attendee/exception
+snapshots and returns an opaque copied projection. Its future exact2 is external test first
+`event_call_policy_test.go`, then `event_call_policy.go`; it neither bridges nor writes a call.
+An atomic exact13 docs commit, three immutable exact-SHA PASS reviews and separate acceptance are
+mandatory before root may dispatch it. AQ-02 remains confined to legacy backfill; 04K/04F,
+Ent/generation/migration, adapter/API/UI, raw iTIP, launcher and runtime remain outside authority.
+
 **Create:**
 
 - `backend/internal/calendar/event_repository.go`
