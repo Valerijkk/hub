@@ -121,7 +121,7 @@ each accepted 143-04B/C/D/E/H/I ── its matching 143-04F-* transaction
 | 143-04H | Cancel one recurrence instance | `event_service_occurrence_cancel.go`, `backend/tests/calendar/event_service_occurrence_cancel_test.go` | exact event-version/occurrence-not-mutable conflicts; cancelled exception; sequence/event version +1; occurrence iTIP CANCEL and one outbox | 143-02A + 143-04C + 143-04G |
 | 143-04I | Sender-bound inbound iTIP REPLY apply/quarantine | `event_service_inbound_reply.go`, `backend/tests/calendar/event_service_inbound_reply_test.go` | A→B→A no rollback; same-status receipt; stale/future/spoof/cap quarantine | 143-02B + 143-04A + 143-04G |
 | 143-04J | Pure canonical ScheduledCall mapping, recurrence and next-effective-occurrence policy | `event_call_policy.go`, `backend/tests/calendar/event_call_policy_test.go` | exact-channel/project/org membership; linked-guest rejection; series participant projection; DTSTART/RRULE/EXDATE; pause/resume; no I/O | 143-01 + 143-02A + 143-04A/B/G |
-| 143-04K | Pure due-call orchestration and deterministic occurrence key | `event_call_due_service.go`, `backend/tests/calendar/event_call_due_service_test.go` | due/late/retry; one outbox descriptor; advance/deactivate; no event/reminder mutation | 143-04J/G |
+| 143-04K | Pure due-call policy and deterministic occurrence key — `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED` only | NEW `backend/tests/calendar/event_call_due_service_test.go`, then NEW `backend/internal/calendar/event_call_due_service.go` | explicit UTC `Now`, call/raw projection/envelope; active deep-clone + exactly two fixed 04J reconciles, inactive/deleted nil-projection zero-envelope noop; opaque `not_due|reschedule|advance|deactivate|noop`; private complete descriptor; no I/O/clock/CAS/outbox append/NATS | accepted 143-04J + 143-04A + 143-04L |
 | 143-04F-Base | Ent adapter shell and shared transaction primitive | `event_ent_repository.go`, `backend/tests/calendar/event_ent_repository_contract_test.go` | interface assertion; injected DB/outbox; no network/post-commit publish | 143-03E + 143-04A/G |
 | 143-04F-B | Create-event Ent transaction | `event_ent_repository_create.go` | receipt/event/attendees/outbox/completion in one transaction | 143-04F-Base + 143-04B |
 | 143-04F-C | Update/cancel-master Ent transaction | `event_ent_repository_update.go` | event-first lock/version/update/reset/outbox atomic | 143-04F-Base + 143-04C |
@@ -185,6 +185,20 @@ exact-SHA PASS, and separate docs acceptance may authorize exact2. No 04K/04F, E
 migration, adapter/API/UI, raw iTIP or runtime route follows. At scoped acceptance this review
 consumes only the generic 04J row's ABI/behavior/oracle wording; every other route and blocker
 remains current.
+
+## 143-04K source-authority candidate — not active
+
+`REVIEW-143-04K-CALL-DUE-AUTHORITY.md` freezes the only proposed 04K exact14 route. It consumes
+accepted 04J `d7926a27`/`e74efa827`, 04A descriptor and 04L envelope values, but claims no
+Calendar-subject admission from 04G. Atomic exact14 docs commit, independent Contract/Spec/Oracle,
+Security and Lifecycle immutable exact-SHA PASS and separate acceptance are required before exactly
+the table's ordered test-first exact2. The policy is pure: it deep-clones raw projection and calls
+accepted 04J only through two fixed reconcile inputs, then validates the existing plural nine-field
+due envelope including every payload/envelope/subject binding. 04F-K separately candidate-calls,
+reserves/reloads EventID/OccurredAt/CorrelationID only after due (non-due candidates discard),
+reruns byte-identically, and owns event→call CAS/locks/rollback and transactional
+descriptor append. AQ-02 is backfill-only; Ent/generation/migration, adapter/API/UI, raw iTIP,
+legacy cutover, launcher and runtime remain blocked or `NOT_RUN`.
 
 ## Gate status
 

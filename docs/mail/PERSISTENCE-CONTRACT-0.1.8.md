@@ -1655,6 +1655,31 @@ separate docs-only acceptance are required before exact2 source dispatch. AQ-02 
 legacy backfill blocker; Ent/generation/migration, adapters, API/UI, launcher and runtime remain
 unchanged.
 
+## 143-04K pure due candidate — no persistence authority
+
+The exact14 `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
+IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN` consumes accepted 04J `d7926a27`/`e74efa827`, accepted
+04A `EventOutboxDescriptor` and 04L `EnvelopeV1`, but does not open a repository, transaction,
+lock, CAS, retry or outbox append path. Its sole future exact2 is test first
+`event_call_due_service_test.go`, then `event_call_due_service.go`, after atomic exact14 commit,
+three immutable exact-SHA PASS reviews and separate acceptance.
+
+The future pure decision receives an explicit UTC whole-second `Now` equal to envelope
+`OccurredAt`, a call and raw 04J projection. An active call deep-clones projection and invokes
+`ProjectEventCall` exactly twice with fixed reconcile boundaries; inactive/deleted requires nil
+projection/zero envelope and immediately noops without 04J/envelope construction. It returns an
+opaque result with an optional complete descriptor only for a due occurrence, constructs it through
+`NewEnvelopeV1` then `NewEventOutboxDescriptor`, and locally validates the existing plural
+nine-field payload/subject channel binding. 04J typed failures map to 04K typed content-free
+errors. It validates every scheduled-call/calendar-event/project/channel payload binding and
+organization/event-id/occurred-at/correlation envelope binding. EventID/OccurredAt/CorrelationID
+are fresh active candidates: non-due results discard them. Only after due may 04F-K candidate-call
+then atomically reserve or reload the exact input and rerun 04K byte-identically on retry/
+redelivery. 04K stores no reservation and requires no UUID-derived correlation. 04F-K, not 04K,
+later owns event→call CAS, lock, rollback
+and same-transaction append. It makes no 04G Calendar-subject claim. AQ-02/backfill, Ent/generation/migration,
+adapters/API/UI/raw iTIP, legacy cutover, launcher and runtime remain unchanged or `NOT_RUN`.
+
 ## Generation gate
 
 The schema packet is eligible for implementation only after this document and OpenAPI 0.1.8

@@ -1,5 +1,20 @@
 # Hub Mail contract changelog
 
+> **143-04K due-policy authority candidate (2026-08-21):**
+> `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / IMPLEMENTATION_BLOCKED /
+> RUNTIME_NOT_RUN`. This exact14 docs candidate consumes accepted 04J `d7926a27`/`e74efa827`,
+> 04A descriptor and 04L envelope contracts, but claims no Calendar-subject admission from 04G.
+> Atomic exact14 commit, Contract/Spec/Oracle + Security + Lifecycle immutable exact-SHA PASS and
+> separate acceptance are required before only test-first `event_call_due_service_test.go`, then
+> `event_call_due_service.go`. It freezes a pure explicit-`Now` call/raw-projection/envelope
+> decision: active projection is deep-cloned then reconciled twice with fixed 04J boundaries, while
+> inactive/deleted nil-projection/zero-envelope input immediately noops. Existing plural nine-field
+> due payload remains; 04F-K alone later owns CAS/locks/rollback/outbox append.
+> EventID/OccurredAt/CorrelationID are fresh active candidates: non-due outcomes discard them;
+> 04F-K may candidate-call, then reserve/reload only a due outcome and rerun 04K byte-identically.
+> 04K locally rechecks all envelope/payload/subject bindings and owns no reservation storage.
+> No schema semantic change, legacy subject cutover or runtime authority follows.
+
 > **143-04J source receipt (2026-08-21):** `SOURCE_ACCEPTANCE_SYNC_CANDIDATE /
 > ATOMIC_EXACT14_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. These proposed facts activate only after one
 > atomic exact14 docs commit. Then `e74efa827b52f35e3d3fbe8346adf0c0121ba48d` is

@@ -170,6 +170,28 @@ An atomic exact13 docs commit, three immutable exact-SHA PASS reviews and separa
 mandatory before root may dispatch it. AQ-02 remains confined to legacy backfill; 04K/04F,
 Ent/generation/migration, adapter/API/UI, raw iTIP, launcher and runtime remain outside authority.
 
+### 143-04K docs-only source-authority candidate
+
+`REVIEW-143-04K-CALL-DUE-AUTHORITY.md` is the only proposed 04K route. It consumes accepted 04J
+`d7926a27`/`e74efa827`, 04A `EventOutboxDescriptor` and 04L `EnvelopeV1`, but is only
+`ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / IMPLEMENTATION_BLOCKED /
+RUNTIME_NOT_RUN`. After atomic exact14 docs commit, all three immutable exact-SHA PASS reviews and
+separate acceptance, root may dispatch only external test first
+`backend/tests/calendar/event_call_due_service_test.go`, then
+`backend/internal/calendar/event_call_due_service.go`.
+
+That future pure policy receives explicit UTC whole-second `Now`, call/raw 04J projection plus
+envelope input, deep-clones active projection and invokes exactly two fixed reconcile requests,
+then returns an opaque optional-descriptor `not_due|reschedule|advance|deactivate|noop` decision;
+inactive/deleted requires nil projection/zero envelope and immediately noops. It validates the existing
+plural exact-nine-field `callsScheduledDue` payload and derives the domain-separated occurrence key.
+It has no clock, I/O, CAS, transaction, descriptor append or NATS; it claims no 04G
+Calendar-subject admission. It accepts fresh candidate EventID/OccurredAt/CorrelationID and
+rechecks all payload/envelope/subject bindings; non-due outcomes discard them. 04F-K later
+candidate-calls, reserves/reloads exact values only after due and separately owns event→call
+CAS/locks/rollback and same-transaction outbox. AQ-02 is backfill-only; Ent/generation/migration, adapters/API/UI, raw
+iTIP, legacy subject cutover, launcher and runtime remain blocked or `NOT_RUN`.
+
 **Create:**
 
 - `backend/internal/calendar/event_repository.go`

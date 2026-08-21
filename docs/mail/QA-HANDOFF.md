@@ -992,6 +992,39 @@ Contract/Spec/Oracle, Security and Lifecycle immutable exact-SHA PASS, then sepa
 acceptance before source may be dispatched. No Docker/job was run; launcher `NOT_READY`, runtime
 `NOT_RUN`; 04K/04F, Ent/generation/migration, adapter/API/UI and raw iTIP remain outside scope.
 
+## 143-04K candidate unit oracle — not executable evidence
+
+The proposed exact14 candidate in `REVIEW-143-04K-CALL-DUE-AUTHORITY.md` is
+`ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / IMPLEMENTATION_BLOCKED /
+RUNTIME_NOT_RUN`, not a test result. Only atomic exact14 commit, Contract/Spec/Oracle, Security
+and Lifecycle immutable exact-SHA PASS and separate acceptance may dispatch NEW external
+`event_call_due_service_test.go`, then `event_call_due_service.go`. It consumes accepted 04J
+`d7926a27`/`e74efa827`, 04A and 04L; it claims no 04G Calendar-subject admission.
+
+The future genuine unit freezes fields/types/tags, `Outbox()` rather than a public envelope getter,
+five dispositions and typed errors. It proves raw projection deep-copy/input nonmutation, active
+Target exists/active/non-deleted plus Event/Target/Creator identity preflight, no caller
+action/boundary seam, 04J-to-04K kind mapping, and inactive/deleted nil-projection/zero-envelope
+immediate noop. It proves disjoint early strict-after precedence (moved-earlier/moved-later/
+EXDATE-skip) and due stored-inclusive precedence by boundary outputs, not concrete internal calls.
+It proves every output
+state (identity retained; noop inactive/nil/empty; not-due copied call time; reschedule current
+time; advance next time+descriptor; both inactive deactivation cases), `Now == OccurredAt`,
+observable determinism/no dependency interface or callback, and the exact plural nine-field JSON
+with one-time `recurrence_id:null`. Import/global/I-O absence is a Security/Lifecycle static review
+assertion, not a unit claim. Its non-tautological fixed key
+oracle uses CalendarEventID `00112233-4455-6677-8899-aabbccddeeff`, ScheduledCallID
+`10213243-5465-7687-8899-aabbccddeeff`, nominal key `2026-08-21T09:00:00Z` and expected hash
+`02ccb08c267ddd7eb7049ea6ab52d72bbe3cdecfac0b61758119aaa81316d0ab`; distinct Envelope.EventID
+`20314253-6475-8697-a8b9-cadbecfd0e1f` is not in the preimage. Changing only it keeps the key but
+changes envelope bytes/event_id; changing CalendarEventID changes key and payload value. It also
+covers moved nominal keys and DST. The external replay oracle candidate-calls with a fresh safe
+EnvelopeInput, discards it for non-due, and in future 04F-K reserves/reloads only due exact values,
+reruns pure 04K and requires byte-identical descriptor plus all payload/envelope/subject bindings.
+04K itself persists/reserves nothing and correlation is not UUID-derived. 04F-K alone later tests CAS/lock/rollback/same-tx append. No
+Docker/job was run; AQ-02/backfill, Ent/generation/migration, adapters/API/UI/raw iTIP, legacy
+cutover, launcher and runtime remain blocked or `NOT_RUN`.
+
 ## Current blockers and honesty
 
 ### Accepted-02D/02F external/static oracle matrix

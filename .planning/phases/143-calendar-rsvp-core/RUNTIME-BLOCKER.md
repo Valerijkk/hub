@@ -171,6 +171,24 @@ Consequences:
 > migration, adapter/API/UI, raw iTIP or any executable route. Launcher `NOT_READY`; tests/build/
 > gofmt/lint/validators/Docker/runtime `NOT_RUN`.
 
+> **143-04K candidate is not runtime evidence:** its exact14 docs-only candidate consumes accepted
+> 04J `d7926a27`/`e74efa827` plus 04A and 04L but grants no source authority. It freezes only a
+> pure, caller-supplied UTC whole-second `Now`/call/raw-projection/envelope policy and opaque
+> optional-descriptor due result. Active input is deep-cloned then sent to exactly two fixed pure
+> 04J reconciles; inactive/deleted requires nil projection/zero envelope and noops without 04J. It has no
+> clock, I/O, transaction, CAS, outbox append or NATS publish. Atomic exact14 commit, three
+> immutable exact-SHA PASS reviews and separate acceptance are required before exactly test-first
+> `event_call_due_service_test.go`, then `event_call_due_service.go`. It claims no Calendar-subject
+> admission from 04G. 04F-K alone owns durable locking/CAS/rollback/outbox. AQ-02 remains
+> backfill-only; Ent/generation/migration, adapter/API/UI, raw iTIP, legacy cutover, launcher and
+> tests/build/gofmt/lint/validators/Docker/runtime remain `NOT_READY` or `NOT_RUN`.
+
+> **143-04K replay boundary:** EventID/OccurredAt/CorrelationID are fresh candidate values, not
+> pure-policy generated or persisted. Non-due outcomes discard them; future 04F-K may candidate-
+> call 04K, reserve/reload them only after due and rerun byte-identically for CAS retry/redelivery.
+> 04K has no reservation storage and locally rechecks every envelope/payload/subject binding. This
+> is static boundary only, not runtime proof.
+
 > **143-04C immutable source receipt:** the former candidate/precommit/current-next lifecycle is
 > `CONSUMED/HISTORICAL` only for 04C after `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at
 > `7fd061b5099b4608e0c33a6d99edbe1a66587d34`; exact blobs and static review facts are in

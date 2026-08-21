@@ -317,21 +317,32 @@ dispatchable without duplicating the common safety contract.
 
 ## 143-04K — pure call-due service
 
-- Dependencies: 04J/G. Allowed only
-  `backend/internal/calendar/event_call_due_service.go` and
-  `backend/tests/calendar/event_call_due_service_test.go`.
-- Behavior: accept injected clock plus locked canonical event/call snapshot, validate that
-  stored `scheduled_at` is the current non-cancelled effective occurrence, derive a stable
-  key from event id + call id + canonical recurrence id/one-time start, return exactly one
-  complete 04L `calls.channel.{channelId}.scheduled_due.v1` envelope/outbox descriptor and
-  next-projection command. Its application event id/correlation/time are explicit stable
-  inputs; the occurrence key remains the business dedupe key inside payload.
-  Preserve current late
-  behavior from founder question 21: one stored overdue occurrence, then first future
-  effective occurrence; no catch-up burst.
-- Oracles: early/not-due, exact due, overdue, cancelled/deleted/paused, EXDATE/exception,
-  duplicate command, finite exhaustion and one-time completion. Never mutate event
-  version/sequence, RSVP, reminder receipt or publish NATS directly.
+- Prerequisites: accepted 04J `d7926a27`/`e74efa827`, 04A `EventOutboxDescriptor` and 04L
+  `EnvelopeV1`. It explicitly does **not** derive Calendar-subject admission from 04G.
+- Status: `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
+  IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. The exact14 candidate grants no source authority;
+  atomic exact14 docs commit, three independent immutable exact-SHA PASS reviews and separate
+  acceptance are mandatory before root may dispatch only NEW external test
+  `backend/tests/calendar/event_call_due_service_test.go`, then NEW
+  `backend/internal/calendar/event_call_due_service.go`.
+- Frozen behavior: pure explicit `Call`, UTC whole-second `Now`, raw 04J projection plus explicit
+  envelope input; opaque `not_due|reschedule|advance|deactivate|noop` result and optional complete
+  descriptor. An active call deep-clones projection then invokes exactly two fixed 04J reconcile
+  inputs (`Call.ScheduledAt` inclusive and `Now` strict-after); inactive/deleted requires nil
+  projection/zero envelope and immediately noops without 04J. It derives
+  the domain-separated key from raw calendar-event/call UUID bytes plus nominal 20-byte key, builds
+  the plural existing nine-field due envelope, and locally validates subject/payload/channel.
+  Exact/overdue yields at most one descriptor; no catch-up burst. It has no clock lookup, I/O,
+  CAS, transaction, outbox append or NATS publish and never mutates event version/sequence, RSVP
+  or reminder state.
+- Oracles: full state/output table; exact/overdue/early and `Now==OccurredAt`; fixed two-call
+  projection boundary/no-caller-skip and 04J typed-error mapping; fixed key vector/different IDs/
+  moved nominal/DST; payload null/subject invariant; deep-copy/repeated-call/observable purity.
+  Repeat full input returns a byte-identical descriptor; payload/envelope/subject bindings reject.
+  04F-K later candidate-calls then reserves/reloads EventID/OccurredAt/CorrelationID only after a
+  due outcome (discarding non-due candidates) and separately owns event→call
+  CAS/locking/rollback/same-tx append. AQ-02 is backfill-only; Ent/generation/migration,
+  adapters/API/UI/raw iTIP, legacy `calls.scheduled.due` cutover and runtime remain blocked.
 
 ## 143-04F-Base — Ent adapter shell
 

@@ -210,6 +210,25 @@ The 143-04A/B/G receipts remain accepted. 143-03E, 144-02E, Ent generation, migr
 > acceptance are mandatory before dispatch. AQ-02/backfill, 04K/04F, Ent/generation/migration,
 > adapter/API/UI, raw iTIP, launcher and executable/runtime boundaries remain unchanged.
 
+> **143-04K docs-only candidate:** `REVIEW-143-04K-CALL-DUE-AUTHORITY.md` is
+> `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / IMPLEMENTATION_BLOCKED /
+> RUNTIME_NOT_RUN`, not a source, persistence or admission decision. It consumes accepted 04J
+> `d7926a27`/`e74efa827`, 04A and 04L, freezes a pure explicit UTC whole-second `Now`/raw-
+> projection/envelope due decision with optional descriptor and the existing plural nine-field due
+> payload. Active projection is deep-cloned and reconciled by exactly two fixed 04J calls;
+> inactive/deleted requires nil projection/zero envelope and noops. It claims no 04G
+> Calendar-subject admission. Atomic
+> exact14 docs commit, Contract/Spec/Oracle + Security + Lifecycle immutable exact-SHA PASS and
+> separate acceptance are mandatory before only NEW `event_call_due_service_test.go`, then NEW
+> `event_call_due_service.go`. 04F-K alone later owns CAS/locks/rollback/same-tx outbox; AQ-02,
+> Ent/generation/migration, adapter/API/UI, raw iTIP, legacy cutover, launcher and runtime remain
+> blocked or `NOT_RUN`.
+
+> EventID/OccurredAt/CorrelationID are fresh candidates, not 04K allocation: non-due outcomes
+> discard them; only after due may 04F-K reserve or reload them, then rerun 04K byte-identically on
+> CAS retry/redelivery. 04K rechecks every payload/envelope/subject binding while retaining no
+> reservation storage.
+
 > **143-04C immutable source receipt:** `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at
 > `7fd061b5099b4608e0c33a6d99edbe1a66587d34`; the candidate/precommit/current-next lifecycle is
 > `CONSUMED/HISTORICAL` only for 04C. `IMPLEMENTATION-143-04C.md` records the test-first exact

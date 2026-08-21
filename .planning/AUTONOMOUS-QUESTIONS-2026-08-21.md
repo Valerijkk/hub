@@ -23,6 +23,28 @@ These questions require founder authority and are intentionally deferred while a
 continues on unblocked pure-domain packets. They do not authorize source, migration, launcher, or
 runtime work by themselves.
 
+## 143-04K pure call-due authority candidate — not active
+
+`REVIEW-143-04K-CALL-DUE-AUTHORITY.md` is only a `ROOT_SOURCE_AUTHORITY_CANDIDATE /
+PRECOMMIT_REVIEW_REQUIRED / IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN` exact14 documentation
+candidate. It consumes accepted 04J (`d7926a27` receipt for `e74efa827`), 04A's
+`EventOutboxDescriptor` and 04L's `EnvelopeV1`; it authorizes neither a Calendar-subject admission
+from 04G nor persistence. One atomic exact14 commit, Contract/Spec/Oracle + Security + Lifecycle
+immutable exact-SHA PASS, and separate acceptance are mandatory before root may dispatch only NEW
+`event_call_due_service_test.go`, then NEW `event_call_due_service.go`.
+
+The future policy takes explicit UTC whole-second `Now`, call, raw 04J projection and envelope
+values, returns an optional descriptor, derives a domain-separated occurrence key and validates the
+existing plural nine-field due envelope. Active input is deep-cloned and produces exactly two fixed
+04J reconcile calls; inactive/deleted input requires nil projection/zero envelope and immediately
+noops. It has
+no I/O or clock. AQ-02 remains legacy recurring-row backfill-only. CAS, event→call locking,
+rollback and same-transaction descriptor append remain only for future 04F-K. EventID/OccurredAt/
+CorrelationID are fresh active candidates and non-due outcomes discard them; only a due outcome may
+be reserved/reloaded by 04F-K and rerun byte-identically on retry/redelivery. Ent/generation/
+migration, adapters/API/UI/raw iTIP, legacy subject cutover, launcher and runtime remain blocked or
+`NOT_RUN`.
+
 ## Pending founder questions
 
 ### AQ-01 — Ent migration and launcher authority

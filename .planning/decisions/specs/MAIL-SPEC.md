@@ -2736,3 +2736,29 @@ The former immediate exact four-path dispatch is `SUSPENDED / CONSUMED/HISTORICA
 dispatch or commit is currently authorized. No OpenAPI or persistence change is in scope; all 02E/Ent/generation/migration/service/API/UI/
 product/phase/release, 02F-D, engine deletion/User-GDPR, launcher `NOT_READY` and runtime `NOT_RUN`
 boundaries remain unchanged.
+
+### 143-04K pure call-due candidate — not accepted
+
+The exact14 candidate `REVIEW-143-04K-CALL-DUE-AUTHORITY.md` consumes accepted 04J
+(`d7926a27` receipt for `e74efa827`), 04A's descriptor value and 04L `EnvelopeV1`. It freezes only
+a pure input of the call plus explicit UTC whole-second `Now`, raw 04J projection and explicit
+envelope values, and an opaque result with optional descriptor and
+`not_due|reschedule|advance|deactivate|noop`. An active call deep-clones raw projection and invokes
+04J exactly twice with fixed reconcile boundaries; inactive/deleted requires nil projection/zero
+envelope and noops without 04J. It validates the existing
+plural `calls.channel.{canonical uuid}.scheduled_due.v1` schema payload (exactly nine fields,
+`recurrence_id:null` for one-time) and derives the nominal-key SHA-256 occurrence key. It neither
+claims 04G Calendar-subject admission nor writes/publishes anything.
+
+`EventID`, `OccurredAt` and `CorrelationID` are fresh active-evaluation candidates; non-due,
+reschedule and no-outbox deactivation discard them. Only after a due outcome may 04F-K atomically
+reserve the due tuple plus exact values, or reload them and rerun 04K for CAS retry/redelivery. 04K
+stores nothing, requires no UUID-derived correlation, returns byte-identical descriptors for the
+same full input, and revalidates every payload/envelope/subject binding before returning one.
+
+This is `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
+IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`: atomic exact14 commit, three immutable exact-SHA PASS
+reviews and separate acceptance must precede only test-first `event_call_due_service_test.go`, then
+`event_call_due_service.go`. 04F-K alone later owns event→call CAS/lock/rollback and same-tx
+outbox descriptor append. AQ-02 remains backfill-only; Ent/generation/migration, adapters/API/UI,
+raw iTIP, legacy `calls.scheduled.due` cutover, launcher and runtime stay outside scope.
