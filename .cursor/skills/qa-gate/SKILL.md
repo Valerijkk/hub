@@ -11,6 +11,34 @@ the private runner, Docker/Compose, a legacy runner, or an internal command
 directly. Until every named acceptance gate is complete, a public request
 returns `NOT_READY` without private-runner or Docker execution.
 
+## Task 2A static receipt (pending documentation activation)
+
+The current source contains a static public-entrypoint candidate at
+`testframework/runner/invoke-qa-gate.ps1`, introduced by immutable commit
+`e357e71ae445c797c686787e8cde2d643566bb68` (sole parent/source revision
+`cc0f3fcbf4e9a0adc70e946e739b81d21ac7da6c`, tree
+`b16311222d3093ae4d2bb462a2e4d2835a3f38cf`, subject
+`feat(qa): добавить закрытый public launcher`). Its raw ABI is exactly
+`-Target <target> -Task <task> -Run <run>`. Malformed, extra, or unknown input
+returns `64` before root derivation or effects. Every known target currently
+returns one safe `hub.qa-gate/v1` JSON line and exit `69`, with no private-runner,
+Docker, or report effect.
+
+The entrypoint derives portable roots from its own path, rejects reparse-point
+ancestry, accepts either a normal `.git` directory or a linked-worktree `.git`
+file without parsing the pointer, and has a fixed-sibling private-runner handoff
+only for a future ready state. It never uses PATH/PATHEXT resolution. This is
+static evidence only: `PS5.1_PARSE_NOT_RUN`, `PRIVATE_CONTRACT_NOT_RUN`,
+`G0-B_PARITY_NOT_VERIFIED`, and `NOT_RUN` remain authoritative; image lock,
+dependency bytes, and READY targets are absent.
+
+The facts in this section become governing only after one atomic commit of the
+seven Task 2B documentation paths and immutable exact-SHA review. Until then,
+the previously committed documentation remains governing; neither this dirty
+documentation candidate nor the source commit activates a target, image,
+Compose contract, Dockerfile, admission route, or runtime authority. Task 3 is
+a separate future packet.
+
 ## Current admission state
 
 - `testframework/docker/images.lock.v3.json` and the required local dependency

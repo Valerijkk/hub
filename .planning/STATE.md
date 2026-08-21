@@ -42,6 +42,36 @@ mail_calendar_docker_readiness: >-
   execution plan: docs/superpowers/specs/2026-08-21-mail-calendar-docker-readiness-design.md and
   docs/superpowers/plans/2026-08-21-mail-calendar-docker-readiness.md. No merge, push, deploy or
   shared/production migration is authorized; runtime remains NOT_RUN until launcher acceptance.
+qa_launcher_task_2b_sync: >-
+  Status: DOCUMENTATION_SYNC_CANDIDATE / ATOMIC_EXACT7_COMMIT_REQUIRED /
+  RUNTIME_NOT_RUN. This dirty exact7 documentation candidate grants no authority;
+  current docs remain governing until one atomic exact7 documentation commit and
+  immutable exact-SHA review. It records static launcher commit
+  e357e71ae445c797c686787e8cde2d643566bb68 (sole parent/source
+  cc0f3fcbf4e9a0adc70e946e739b81d21ac7da6c, tree
+  b16311222d3093ae4d2bb462a2e4d2835a3f38cf, subject feat(qa): добавить закрытый
+  public launcher): runner-contract 31084540fc841476d80b9b37f09e151011aa6ecc,
+  fixtures 8a47518dfcdf35352db905dc575a557e689d196b, public-launcher-contract
+  0a4872e9ab4646203c687eae060c455cc00137e2, invoke-qa-gate
+  46e9dacfe87d7b2841bb11929a7d8a2dff61429a, run-task
+  f3dbe32f8c1565adf27742d8829860e0d37ead9b, build-manifest
+  da1524cca5f68a4962680b4b0c8272fd22359df9, source-policy
+  04148a8a0d6ddb0836437bbf7b9c91d07b996fd2. Contract Terra/high, Security
+  Terra/xhigh and Lifecycle Terra/high precommit plus immutable exact-SHA
+  reviews PASS C/I/M 0/0/0; provenance dispatcher-enforced, no fallback,
+  telemetry UNKNOWN. Public
+  path testframework/runner/invoke-qa-gate.ps1 has raw ABI -Target <target>
+  -Task <task> -Run <run>; malformed/extra/unknown returns 64 before roots or
+  effects, while every known target is literal NOT_READY and returns one safe
+  hub.qa-gate/v1 JSON line with exit 69 and zero private/Docker/report effect.
+  Portable script-derived roots reject reparse ancestry, accept normal and
+  linked-worktree .git forms without parsing a pointer, and a fixed sibling
+  private runner is reserved only for a future ready path. PS5.1_PARSE_NOT_RUN,
+  PRIVATE_CONTRACT_NOT_RUN, G0-B_PARITY_NOT_VERIFIED and NOT_RUN remain exact;
+  images.lock, dependency bytes, source image, accepted/ready Compose-admission
+  or Dockerfile authority and READY targets are absent. Physically present
+  Compose/Dockerfile assets remain inert and non-authoritative. No lifecycle
+  self-activation, runtime PASS, or Task 3 authority follows.
 calendar_143_04h_source_receipt_sync_historical: >-
   Status: SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT16_COMMIT_REQUIRED /
   RUNTIME_NOT_RUN. This dirty exact16 documentation candidate grants no source acceptance.

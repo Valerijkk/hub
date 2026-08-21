@@ -13,6 +13,42 @@ runtime `PASS`, Docker verification, generated-lock validation, or launch
 readiness. P7 Docker-only verification remains blocked pending separately
 approved READY inputs and evidence.
 
+## Task 2A committed static launcher receipt
+
+`e357e71ae445c797c686787e8cde2d643566bb68` (`feat(qa): добавить закрытый
+public launcher`) is an immutable static-source receipt with sole parent/source
+revision `cc0f3fcbf4e9a0adc70e946e739b81d21ac7da6c` and tree
+`b16311222d3093ae4d2bb462a2e4d2835a3f38cf`. Its exact closed bundle is:
+
+| Path role | Blob |
+|---|---|
+| runner contract | `31084540fc841476d80b9b37f09e151011aa6ecc` |
+| runner fixtures | `8a47518dfcdf35352db905dc575a557e689d196b` |
+| public launcher contract | `0a4872e9ab4646203c687eae060c455cc00137e2` |
+| public `invoke-qa-gate.ps1` | `46e9dacfe87d7b2841bb11929a7d8a2dff61429a` |
+| private `run-task.ps1` | `f3dbe32f8c1565adf27742d8829860e0d37ead9b` |
+| build manifest | `da1524cca5f68a4962680b4b0c8272fd22359df9` |
+| source policy | `04148a8a0d6ddb0836437bbf7b9c91d07b996fd2` |
+
+Contract (Terra/high), Security (Terra/xhigh), and Lifecycle (Terra/high)
+precommit and immutable exact-SHA reviews are all PASS C/I/M `0/0/0`;
+provenance is dispatcher-enforced, with no fallback and telemetry `UNKNOWN`.
+This record does not change readiness: static review is not PowerShell parsing,
+private-contract, Docker, image, target, cleanup, or runtime evidence.
+
+The public entrypoint raw ABI is exactly `-Target <target> -Task <task> -Run
+<run>`; malformed, extra, and unknown input exit `64` before roots or effects.
+Known targets emit one safe `hub.qa-gate/v1` JSON line and exit `69` while all
+are literal `NOT_READY`, so no private runner, Docker, or report effect occurs.
+Its roots are portable from the script location, reject reparse ancestry, accept
+normal and linked-worktree `.git` forms without parsing a pointer, and use only
+the fixed sibling `run-task.ps1` for a future ready handoff.
+
+This documentation receipt is conditional: it becomes current only after the
+one atomic seven-path Task 2B documentation commit and immutable exact-SHA
+review. Until then earlier committed documentation governs. It does not
+self-activate a lifecycle or select Task 3.
+
 ## Authority and fixed targets
 
 `/qa-gate` is the sole public execution authority. Its private implementation

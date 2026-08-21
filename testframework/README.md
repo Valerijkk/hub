@@ -76,3 +76,25 @@ required local dependency bytes are absent. There is no supported direct runner 
 fallback command. The next accepted consumer must create the first narrow
 behavioral module test-first under its owning boundary and must not infer
 runtime authority from this directory tree.
+
+### Task 2A launcher receipt
+
+Static launcher source was committed as
+`e357e71ae445c797c686787e8cde2d643566bb68` (source
+`cc0f3fcbf4e9a0adc70e946e739b81d21ac7da6c`, tree
+`b16311222d3093ae4d2bb462a2e4d2835a3f38cf`, subject
+`feat(qa): добавить закрытый public launcher`). The exact seven control blobs
+are recorded in `runner/README.md`; Contract (Terra/high), Security
+(Terra/xhigh), and Lifecycle (Terra/high) precommit and immutable reviews are
+PASS C/I/M `0/0/0`, dispatcher-enforced, no fallback, telemetry `UNKNOWN`.
+
+`runner/invoke-qa-gate.ps1` accepts only raw `-Target <target> -Task <task>
+-Run <run>`. Invalid, extra, or unknown input exits `64` before effects. Every
+known target remains literal `NOT_READY`, yielding one safe `hub.qa-gate/v1`
+JSON line and exit `69`, with zero private runner, Docker, or report effect.
+Portable roots, reparse rejection, linked-worktree support, and fixed-sibling
+private handoff are static-only controls. `PS5.1_PARSE_NOT_RUN`,
+`PRIVATE_CONTRACT_NOT_RUN`, `G0-B_PARITY_NOT_VERIFIED`, and `NOT_RUN` remain.
+This receipt becomes current only after atomic Task 2B exact7 docs commit and
+immutable review; it grants no image, dependency, Compose, Dockerfile, target,
+runtime, or Task 3 authority.

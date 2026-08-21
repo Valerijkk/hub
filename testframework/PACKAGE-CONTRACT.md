@@ -12,11 +12,33 @@ define a runnable command, or grant runtime authority.
 | Installable `hub_testkit` package bootstrap | `NOT_READY` | `pyproject.toml`, `uv.lock` and `py.typed` are intentionally absent |
 | Framework selftests | NOT_READY | only selftests boundary documentation is accepted; no accepted framework-selftest suite or package-bootstrap evidence exists. Untracked or other-task artifacts are outside this docs-only contract and cannot promote package, launcher, or runtime status |
 | SUT suite layer directories | `NOT_READY` | only `tests/README.md` defines the boundary; `tests/{contract,api,integration,e2e}/` are planned and absent |
-| Versioned launcher API | `NOT_READY` | `runner/run-task.ps1` is a private static source candidate only; `PS5.1_PARSE_NOT_RUN`, `PRIVATE_CONTRACT_NOT_RUN`, no accepted public entrypoint |
+| Versioned launcher API | `NOT_READY` | static public `runner/invoke-qa-gate.ps1` and private `runner/run-task.ps1` source exist; `PS5.1_PARSE_NOT_RUN`, `PRIVATE_CONTRACT_NOT_RUN`, `G0-B_PARITY_NOT_VERIFIED`, no ready target or runtime acceptance |
 | Runtime | `NOT_RUN` | structure and documentation are not execution evidence |
 
 The status values above are independent. A committed directory tree does not
 make the package, launcher, suites, or runtime ready.
+
+### Task 2A static receipt, not activation
+
+The immutable launcher control commit is
+`e357e71ae445c797c686787e8cde2d643566bb68` (parent/source
+`cc0f3fcbf4e9a0adc70e946e739b81d21ac7da6c`, tree
+`b16311222d3093ae4d2bb462a2e4d2835a3f38cf`, subject
+`feat(qa): добавить закрытый public launcher`). Its exact seven blobs are
+recorded in `runner/README.md`. Contract (Terra/high), Security (Terra/xhigh),
+and Lifecycle (Terra/high) precommit and immutable exact-SHA reviews each
+report PASS C/I/M `0/0/0`; provenance is dispatcher-enforced, no fallback,
+telemetry `UNKNOWN`.
+
+The raw public ABI is exactly `-Target <target> -Task <task> -Run <run>`.
+Malformed, extra, and unknown input returns `64` before roots/effects; all
+known targets are literal `NOT_READY` and return a single safe
+`hub.qa-gate/v1` JSON line with exit `69` and zero private/Docker/report effect.
+Portable script-derived roots reject reparse ancestry, accept normal and linked
+worktree `.git` markers without parsing them, and future private dispatch is a
+fixed sibling only. The status table remains authoritative until an atomic
+Task 2B exact7 documentation commit and immutable exact-SHA review; this
+candidate cannot make package, images, dependencies, targets, or runtime ready.
 
 ## Physical ownership
 

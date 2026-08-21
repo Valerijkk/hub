@@ -220,6 +220,32 @@ launcher с task-owned report, ограничениями ресурсов и un
 
 ---
 
+Task 2A has committed a static public launcher control bundle:
+`e357e71ae445c797c686787e8cde2d643566bb68` (source
+`cc0f3fcbf4e9a0adc70e946e739b81d21ac7da6c`, tree
+`b16311222d3093ae4d2bb462a2e4d2835a3f38cf`, subject
+`feat(qa): добавить закрытый public launcher`). Its public path is
+`testframework/runner/invoke-qa-gate.ps1`; raw ABI is exactly `-Target <target>
+-Task <task> -Run <run>`. Invalid/extra/unknown input is exit `64` before
+effects. All known targets are literal `NOT_READY`, giving one safe
+`hub.qa-gate/v1` JSON record and exit `69`, with no private runner, Docker, or
+report effect. Script-derived portable roots reject reparse ancestry, accept a
+linked-worktree `.git` file without parsing it, and use a fixed sibling private
+runner only for a future ready state.
+
+The exact seven blobs and C/I/M evidence live in
+`testframework/runner/README.md`: Contract (Terra/high), Security
+(Terra/xhigh), and Lifecycle (Terra/high) precommit and immutable exact-SHA
+reviews are PASS `0/0/0`, dispatcher-enforced, no fallback, telemetry
+`UNKNOWN`. This is static only:
+`PS5.1_PARSE_NOT_RUN`, `PRIVATE_CONTRACT_NOT_RUN`,
+`G0-B_PARITY_NOT_VERIFIED`, and `NOT_RUN` remain; no image lock, dependency
+bytes, source image, accepted/ready Compose-admission or Dockerfile authority,
+or READY target exists. The physically present Compose/Dockerfile assets remain
+inert and non-authoritative.
+These docs become current only after the atomic Task 2B exact7 docs commit and
+immutable review; they do not self-activate any lifecycle or Task 3.
+
 ## CLI
 
 | Утилита | Путь | Назначение |
