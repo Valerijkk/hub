@@ -1,5 +1,7 @@
 # Mail workstream pre-implementation readiness
 
+> **143-04I readiness:** `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / ATOMIC_EXACT9_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. The exact9 tracked-docs candidate freezes a distinct optional inbound-reply transaction capability, scope and test-first exact3 only; it is not source authority. Require Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high precommit PASS, atomic exact9 commit, immutable exact-SHA triple PASS, then separate docs-only acceptance sync. Occurrence REPLY without an already materialized active exact-recurrence attendee is quarantine/zero-write. Ent/generated source, generation/migration, concrete adapter, HTTP/API/OpenAPI/UI, NATS/outbound REPLY transport, launcher and runtime remain BLOCKED/NOT_READY/NOT_RUN. Provenance dispatcher-enforced/no fallback, telemetry UNKNOWN.
+
 > **143-04H current source receipt:** `STATIC_ACCEPTED / EXACT_SHA_PASS` at `73940810046bb3186f2746705a83565ab29368c5`; receipt `f9f5d436c08737eeb5a3e965137f329f3ae7f627` is ancestral to HEAD. The conditional readiness block below is `CONSUMED/HISTORICAL` only for 04H. PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback, telemetry `UNKNOWN`; all launcher/runtime and downstream blockers remain.
 
 > **143-04H source receipt-sync readiness:** `SOURCE_RECEIPT_SYNC_CANDIDATE /

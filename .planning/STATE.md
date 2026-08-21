@@ -1,4 +1,17 @@
 ---
+calendar_143_04i_inbound_reply_authority_candidate: >-
+  ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
+  ATOMIC_EXACT9_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN.
+  This non-self-activating tracked exact9 candidate freezes only the ordered
+  future source exact3: authored-first backend/tests/calendar/event_service_inbound_reply_test.go,
+  then backend/internal/calendar/event_repository.go, then new
+  backend/internal/calendar/event_service_inbound_reply.go. It requires Contract Terra/high,
+  Security Terra/xhigh and Lifecycle Terra/high precommit PASS, one atomic exact9 commit,
+  immutable exact-SHA triple PASS, and separate docs-only acceptance sync before root may
+  dispatch source. Provenance dispatcher-enforced/no fallback; telemetry UNKNOWN. It consumes
+  only generic no-next and old 04I exact2 clauses for this packet. Ent/generated source,
+  generation/migration, HTTP/API/OpenAPI/UI, NATS/outbound REPLY transport, launcher and runtime
+  remain BLOCKED/NOT_READY/NOT_RUN; no next packet follows source acceptance.
 calendar_143_04h_current_source_receipt: >-
   STATIC_ACCEPTED / EXACT_SHA_PASS only for immutable source
   73940810046bb3186f2746705a83565ab29368c5 (parent

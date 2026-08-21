@@ -1,5 +1,7 @@
 # Phase 143 code-runtime routing record
 
+> **143-04I inbound iTIP REPLY authority candidate:** `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / ATOMIC_EXACT9_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This docs-only candidate grants no executable or runtime authority. It freezes only the ordered test-first exact3 recorded in `REVIEW-143-04I-INBOUND-REPLY-AUTHORITY.md`; triple precommit PASS, atomic exact9 commit, immutable triple PASS and separate docs-only acceptance sync are required before source dispatch. The launcher remains `NOT_READY`; all tests/build/gofmt/lint/validators/Docker/runtime remain `NOT_RUN`. 04F-I, Ent/generated source, generation/migration, adapter, HTTP/API/OpenAPI/UI, NATS/outbound REPLY transport remain blocked. 04F-I depends on 143-03F + 143-04F-Base + accepted 143-04I; 143-03D is a forbidden and insufficient HTTP-receipt dependency. No next packet follows source acceptance.
+
 > **143-04H current source receipt:** `STATIC_ACCEPTED / EXACT_SHA_PASS` at `73940810046bb3186f2746705a83565ab29368c5`; receipt `f9f5d436c08737eeb5a3e965137f329f3ae7f627` is ancestral to HEAD. The conditional receipt below is `CONSUMED/HISTORICAL` only for 04H. It grants no runtime authority: launcher remains `NOT_READY` and all executable/runtime evidence remains `NOT_RUN`.
 
 > **143-04H source receipt-sync:** `SOURCE_RECEIPT_SYNC_CANDIDATE /
