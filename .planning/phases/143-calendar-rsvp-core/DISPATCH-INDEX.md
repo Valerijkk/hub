@@ -1,5 +1,14 @@
 # Phase 143 — exact Terra dispatch index
 
+> **143-04J acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE /
+> ATOMIC_EXACT13_COMMIT_REQUIRED / SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`.
+> These proposed receipt facts have no authority before one atomic exact13 docs commit. After it,
+> `5841621720cc03682b3d1f1e2af9cba2953797cf` is `SOURCE_AUTHORITY_ACCEPTED /
+> EXACT_SHA_PASS`, the three immutable reviews are PASS C/I/M `0/0/0`, and lower 04J candidate
+> routes are `CONSUMED/HISTORICAL`. Root may then dispatch only test
+> `backend/tests/calendar/event_call_policy_test.go`, followed by source
+> `backend/internal/calendar/event_call_policy.go`; neither source file is accepted yet.
+
 > **143-04C acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE /
 > ATOMIC_EXACT12_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty exact12 working tree grants no
 > authority. The receipt below activates only after one atomic commit of exactly these 12 documents;

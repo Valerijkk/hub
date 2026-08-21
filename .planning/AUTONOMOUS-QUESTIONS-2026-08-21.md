@@ -1,5 +1,16 @@
 # Autonomous Mail + Calendar questions — 2026-08-21
 
+> **143-04J acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE /
+> ATOMIC_EXACT13_COMMIT_REQUIRED / SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`.
+> These proposed receipt facts have no authority before one atomic commit of the same exact13
+> documentation manifest. After that commit, immutable candidate
+> `5841621720cc03682b3d1f1e2af9cba2953797cf` is `SOURCE_AUTHORITY_ACCEPTED /
+> EXACT_SHA_PASS`; its Contract/Spec/Oracle, Security and Lifecycle immutable reviews are PASS
+> C/I/M `0/0/0`, and lower 04J candidate/precommit/exact-review-next clauses become
+> `CONSUMED/HISTORICAL`. Only the ordered test-first exact2 may then be dispatched; its source is
+> still unimplemented and unaccepted. AQ-02 remains migration/backfill-only, and every 04K/04F,
+> Ent, adapter, API/UI, launcher and runtime boundary remains unchanged.
+
 These questions require founder authority and are intentionally deferred while autonomous work
 continues on unblocked pure-domain packets. They do not authorize source, migration, launcher, or
 runtime work by themselves.

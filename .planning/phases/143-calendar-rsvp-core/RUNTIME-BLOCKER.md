@@ -1,5 +1,13 @@
 # Phase 143 code-runtime routing record
 
+> **143-04J acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE /
+> ATOMIC_EXACT13_COMMIT_REQUIRED / SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`.
+> These proposed receipt facts have no authority before one atomic exact13 docs commit. After it,
+> immutable candidate `5841621720cc03682b3d1f1e2af9cba2953797cf` is
+> `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS`, its three immutable reviews PASS C/I/M `0/0/0`,
+> and lower 04J candidate routes are `CONSUMED/HISTORICAL`. This changes no launcher state:
+> `NOT_READY`; tests/build/gofmt/lint/validators/Docker/runtime remain `NOT_RUN`.
+
 > **143-04C acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE /
 > ATOMIC_EXACT12_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty exact12 working tree grants no
 > authority. The receipt below activates only after one atomic commit of exactly these 12 documents;

@@ -1,5 +1,14 @@
 # Hub Mail + Calendar Sync — QA handoff
 
+> **143-04J acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE /
+> ATOMIC_EXACT13_COMMIT_REQUIRED / SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`.
+> These proposed receipt facts have no authority before one atomic exact13 docs commit. After it,
+> immutable candidate `5841621720cc03682b3d1f1e2af9cba2953797cf` is
+> `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS`; Contract/Spec/Oracle, Security and Lifecycle
+> immutable reviews PASS C/I/M `0/0/0`, and lower 04J candidate routes become
+> `CONSUMED/HISTORICAL`. The exact2 unit remains unimplemented and every executable result remains
+> `NOT_RUN` until the final task-owned Docker verification.
+
 > **143-04C acceptance-sync gate (2026-08-20):** `ACCEPTANCE_SYNC_CANDIDATE /
 > ATOMIC_EXACT12_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty exact12 working tree grants no
 > authority. The `7fd061b5...` receipt and scoped route transitions below activate only after one

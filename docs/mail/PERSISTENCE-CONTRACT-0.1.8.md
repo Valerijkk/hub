@@ -1,5 +1,13 @@
 # Mail persistence contract 0.1.8
 
+> **143-04J acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE /
+> ATOMIC_EXACT13_COMMIT_REQUIRED / SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`.
+> These proposed receipt facts have no authority before one atomic exact13 docs commit. After it,
+> immutable candidate `5841621720cc03682b3d1f1e2af9cba2953797cf` is
+> `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS`; three immutable reviews PASS C/I/M `0/0/0`, and
+> lower 04J candidate routes become `CONSUMED/HISTORICAL`. The accepted boundary is still pure and
+> caller-owned: it grants no persistence/Ent/adapter/generation/migration/runtime authority.
+
 ## 144-04G source acceptance-sync candidate (2026-08-21)
 
 > **Gate:** `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT12_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty exact12 working tree grants no authority. The immutable `3031c53d399accc84fe10cd0c5421a85c089ac7c` source receipt and its Contract/Security/Lifecycle precommit plus immutable `EXACT_SHA_PASS C/I/M 0/0/0` facts are proposed only; they activate only after one atomic commit of the exact12 manifest in `IMPLEMENTATION-144-04G.md`. Only after that commit is 144-04G `STATIC_ACCEPTED / EXACT_SHA_PASS`; then, and only then, lower 04G source-authority/source-unimplemented/current-next routes are `CONSUMED/HISTORICAL`. No next Mail packet is selected. 04F remains accepted; 04H/02E, Ent/SQL/concrete adapter, generation, migration, OpenAPI and runtime remain blocked or outside authority; launcher `NOT_READY`, executables/runtime `NOT_RUN`.

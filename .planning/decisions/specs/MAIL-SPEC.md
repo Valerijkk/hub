@@ -1,5 +1,15 @@
 # MAIL-SPEC — Hub mailbox and calendar synchronization contract
 
+> **143-04J acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE /
+> ATOMIC_EXACT13_COMMIT_REQUIRED / SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`.
+> These proposed receipt facts have no authority before one atomic commit of the same exact13
+> documentation manifest. After that commit, immutable candidate `5841621720cc03682b3d1f1e2af9cba2953797cf`
+> is `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS` after Contract/Spec/Oracle, Security and
+> Lifecycle immutable reviews PASS C/I/M `0/0/0`; lower 04J candidate/precommit/exact-review-next
+> clauses become `CONSUMED/HISTORICAL`. Only the ordered test-first exact2 may then be dispatched;
+> source remains `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED`. AQ-02 and every downstream/runtime
+> boundary remain unchanged.
+
 > **143-04C acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE /
 > ATOMIC_EXACT12_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty exact12 working tree grants no
 > authority. The `7fd061b5...` receipt and scoped route transitions below activate only after one

@@ -1,5 +1,18 @@
 # 143-04J — ScheduledCall projection source-authority freeze
 
+> **Acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT13_COMMIT_REQUIRED /
+> SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. These proposed receipt facts have no authority
+> before one atomic commit of the same exact13 docs manifest. After that commit, immutable
+> candidate `5841621720cc03682b3d1f1e2af9cba2953797cf` (parent
+> `2a2975056c3fb8001d88863a041310271282989d`, tree
+> `c4cad5a344ae4972b99410c851f20ab8c73104e7`, subject
+> `docs(calendar): propose call projection authority`) is `SOURCE_AUTHORITY_ACCEPTED /
+> EXACT_SHA_PASS`. Contract/Spec/Oracle, Security and Lifecycle immutable reviews PASS C/I/M
+> `0/0/0`; provenance is dispatcher-enforced, no fallback, telemetry `UNKNOWN`. Only then do the
+> lower candidate/precommit/exact-review-next clauses become `CONSUMED/HISTORICAL`, and root may
+> dispatch only the ordered test-first exact2. Source remains
+> `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED` and needs its own TDD/review/commit/receipt lifecycle.
+
 > **Status:** `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
 > IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This exact13 documentation candidate is
 > neither source nor acceptance authority. Only one atomic commit of these exact thirteen docs,
