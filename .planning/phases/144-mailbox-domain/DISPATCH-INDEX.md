@@ -199,7 +199,8 @@ every remaining row/variant, assemble the Common envelope plus exactly one secti
    ├── 144-05A mail-owned storage port
    ├── 144-05B outbox/projection + EVENTS subject admission
    ├── 144-05C search -> contact -> realtime -> audit variants
-   ├── 144-05D safe content/image proxy
+   ├── 144-05D plain-only content normalization
+   │    └── independently blocked 144-05D-Remote rich token/proxy route
    └── 144-05E search projection hydration consumer
         └── 144-06A public handlers/routes
              └── 144-06B mailbox admin service
@@ -258,7 +259,7 @@ every remaining row/variant, assemble the Common envelope plus exactly one secti
 | 144-05A | Mail-owned object storage authorization and lifecycle | `mailbox_storage.go`, `mailbox_storage_adapter.go`, `backend/tests/mail/mailbox_storage_test.go` | `mail/<org>/<account>/<uuid>` server key; receipt-safe same-object presign replay; confirm/read/delete reauthorize; no project metadata | 144-02C/E + 144-03C + 144-04A/O |
 | 144-05B | Versioned projection consumption and mail subject admission | `mailbox_projection.go`, `backend/internal/platform/nats/client.go`, focused units | subject/envelope match; application-event dedupe; unknown/malformed dead-letter; add `mail.>` once; webhook filter byte-equivalent | 144-03D + 144-04C/E + 143-04G |
 | 144-05C | Search, contacts, realtime and named audit as four sequential variants | one of `mailbox_search.go`, `mailbox_contacts.go`, `mailbox_realtime.go`, `mailbox_audit.go` plus its unit | owner filters before snippets; ranking; bounded invalidation; exact named audit | 144-04A..I as applicable |
-| 144-05D | Safe body sanitization then remote-image proxy as sequential variants | `mailbox_content.go`/unit, then `mailbox_remote_image.go`/unit | reviewed allowlist or plain-only; token rewrite; every redirect/connect safe; no origin URL/browser leak | 144-04A + 144-04L |
+| 144-05D | Plain-only mailbox content normalization | `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / ATOMIC_EXACT8_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`; after exact8 lifecycle only test-first `backend/tests/mail/mailbox_content_test.go`, then `backend/internal/mail/mailbox_content.go`; rich sanitizer/token/proxy and `mailbox_remote_image.go` are not part of this packet | explicit plain/rich input; output always canonical plain with remote images blocked; literal `MailboxContentErrorKind` Invalid/TooLarge and sentinel-backed pointer Error/Unwrap, zero Result on failure; byte preflight before UTF-8/rune/allocation; exact allowed/rejected controls, NFC/newline/horizontal/trim/LF-collapse ordering; 8_388_608 input/plain bytes, 2_000_000 runes, 100_000 tokens, depth 64, exported `MaxMailboxContentHTMLTokenBytes=65_536` maximum accepted raw token bytes including delimiters/attributes/text; pinned x/net `rawLen >= maxBuf`, so `SetMaxBuf(MaxMailboxContentHTMLTokenBytes + 1)` before first `Next`, raw 65_536 pass / 65_537 `ErrBufferExceeded` too_large/zero Result and static-only other-non-EOF invalid branch; exact `"<!--" + strings.Repeat("x", MaxMailboxContentHTMLTokenBytes-7) + "-->"` empty-plain success and `MaxMailboxContentHTMLTokenBytes-6` payload too_large boundary, separate quoted-attribute overflow + small success, strict lowercase void/self-close/match/EOF stack, exact suppression-before-block sets (`<span>a</span><form><p>x</p></form><span>b</span>` -> `ab`), entity recheck and pre-append cap; no I/O/raw rich/URL/token | accepted 144-03C-Attachment + accepted 144-04A; not 04L; 05D-Remote and 05E blocked separately |
 | 144-05E | Owner search document hydration/consumer | `mailbox_search_projection.go`, focused unit | bounded sanitized body + filenames; no raw/BCC/URL; delete/update idempotent; checkpoint freshness | 144-05B/D + 144-05C-Search |
 | 144-06A | Public mailbox DTO/error mapping and routes | `mailbox_dto.go`, `mailbox_handler.go`, `backend/cmd/server/wiring_mailbox.go`, focused handler units | exact OpenAPI 0.1.8; bounded pages/details/calendar; NFR-13; no client account/org; Resend unchanged | 144-04* + 144-05* |
 | 144-06B | Mailbox policy/domain/health admin service | `mailbox_admin_service.go`, focused service unit | owner organization, policy/domain constraints, redacted engine + projection state/lag and exact audit | 144-04I + 144-05C-Audit + 144-06A |
@@ -300,8 +301,8 @@ every remaining row/variant, assemble the Common envelope plus exactly one secti
   a newer desired generation deployed from an older result.
 - `junk`/`not_junk` invoke explicit spam/ham classifier feedback. A move/flag result alone is
   neither trained nor audited as trained.
-- Safe server content either passes the approved sanitizer and remote-image token rewrite or
-  falls back to plain text. Search hydration indexes only bounded sanitized plain body and
+- The 05D plain-only candidate emits only bounded canonical plain text and blocks remote images;
+  any rich sanitizer or remote-image token/proxy route remains independently blocked. Search hydration indexes only bounded sanitized plain body and
   normalized filenames, then reauthorizes every hit before snippets.
 - Mail create/bulk endpoints reserve a client-keyed hashed `MailMutationReceipt`; exact replay
   is 30 days and its compact key/request tombstone survives for the account/organization

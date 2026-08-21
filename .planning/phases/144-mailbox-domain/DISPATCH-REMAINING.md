@@ -516,7 +516,9 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 
 ## 144-04L-Signatures — signature service
 
-- Dependencies: accepted 04L-Settings + 05D-Content sanitizer port. Allowed only
+- Dependencies: accepted 04L-Settings plus a separately accepted future content-normalization
+  port; the current 05D plain-only candidate is not that acceptance and grants no signature source
+  authority. Allowed only
   `mailbox_signature_service.go`, `backend/tests/mail/mailbox_signature_service_test.go`.
 - Behavior/oracles: bounded CRUD/default and optimistic version; create uses 04O receipt;
   sanitizer accepts rich or plain format and derives canonical plain server-side; hostile
@@ -799,22 +801,58 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   state is the conservative composition of mailbox projection and owner search-consumer
   checkpoint; ready requires both and freshness is their older complete instant.
 
-## 144-05D-Content — server body sanitizer
+## 144-05D-Content — plain-only source-authority candidate
 
-- Dependencies: 03C-Attachment/04A. Allowed only `mailbox_content.go`,
-  `backend/tests/mail/mailbox_content_test.go`.
-- Pure port/policy accepts explicit rich/plain format. Approved implementation removes
-  script/event/form/meta/base/frame/object/embed/active SVG, unsafe URL schemes, CSS fetches
-  and all remote fetches; derives bounded canonical plain text; remote images become opaque
-  token intents bound to org/account/message/normalized URL/expiry. Without the founder-
-  approved dependency it returns plain-only capability and never passes raw HTML through.
-- Oracles: hostile HTML matrix, Unicode/size/depth/count bounds, deterministic plain,
-  rewritten/removed images, no origin URL in safe errors/loggable DTO.
+> **Lifecycle:** `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / ATOMIC_EXACT8_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This dirty docs-only candidate is non-self-activating. Its ordered exact8 manifest is STATE, MAIL-SPEC, PLAN, DISPATCH-INDEX, this file, new `REVIEW-144-05D-CONTENT-READINESS.md`, CONTRACT-CHANGELOG and QA-HANDOFF; the atomic candidate diff must set-equal it. Contract/Security/Lifecycle precommit PASS -> atomic exact8 -> immutable triple PASS -> separate exact8 acceptance sync plus immutable triple PASS is required before root may dispatch only NEW `backend/tests/mail/mailbox_content_test.go`, then NEW `backend/internal/mail/mailbox_content.go`.
+
+- **Dependencies:** accepted 144-03C-Attachment and accepted 144-04A only. 144-04L is not a
+  dependency. This exact2 authorizes no source beyond its two named files.
+- **Frozen ABI:** `MailboxContentFormat` has plain/rich; Input is `{SourceFormat, Body}`;
+  Result is `{Format, PlainBody, RemoteImagesBlocked}`; `NormalizeMailboxContent` returns only
+  canonical plain text plus safe typed `invalid`/`too_large` errors. Limits are `8_388_608`
+  input/plain bytes, `2_000_000` runes, `100_000` tokens and depth `64`.
+- **Behavior:** plain accepts empty valid UTF-8, normalizes NFC/newlines/whitespace and rejects
+  NUL/C0/C1/bidi. Rich uses only the existing `x/net/html` tokenizer, bounded extraction and the
+  same canonicalizer; it suppresses script/style/template/noscript/iframe/frame/object/embed/
+  applet/svg/math/form/media/image content, discards attrs/comments/declarations/PIs/URLs/alt,
+  preserves anchor labels and block breaks, fails fast at every cap, performs no I/O and never
+  returns or logs raw rich content. Output is always plain and remote images are blocked.
+- **Literal C1/I2 semantics:** `MailboxContentErrorKind string` has `Invalid="invalid"` and
+  `TooLarge="too_large"`; exact sentinels are `mailbox content invalid` and `mailbox content
+  exceeds bounds`; `MailboxContentError{Kind}` pointer Error/Unwrap maps only known kinds and
+  nil/unknown is `mailbox content error`/nil, with zero Result on all failures. Both formats
+  byte-preflight before UTF-8/rune/allocation, allow C0 only HT/LF/CR, reject the exact DEL/C1 and
+  bidi ranges, and canonicalize NFC -> CRLF/CR/LF/U+2028/U+2029 -> exact horizontal set -> line
+  edge ASCII trim -> >=3 LF to 2 -> outer LF trim before output limits. Rich counts each
+  non-Error tokenizer token before processing, enforces exact 100000/100001 and 64/65 strict
+  lowercase stack/void/self-close/end/EOF boundaries, rechecks decoded entity controls, and uses
+  the readiness review's exact suppression/block sets with pre-append extracted-buffer cap.
+- **Literal C1/C2 tokenizer and suppression precedence:** exported
+  `MaxMailboxContentHTMLTokenBytes=65_536` is maximum accepted raw tokenizer-token bytes,
+  including delimiters/attributes/text. Pinned `x/net` fails at `rawLen >= maxBuf`, so
+  `tokenizer.SetMaxBuf(MaxMailboxContentHTMLTokenBytes + 1)` is before first `Next`: raw 65_536
+  passes and raw 65_537 is `html.ErrBufferExceeded`, returning only typed `too_large` and zero
+  Result; static source review owns every other non-EOF tokenizer-error-to-`invalid` branch. The
+  external unit owns exact discarded-comment boundaries: `"<!--" +
+  strings.Repeat("x", MaxMailboxContentHTMLTokenBytes-7) + "-->"` is raw 65_536 and
+  succeeds/returns empty plain; payload `MaxMailboxContentHTMLTokenBytes-6` is raw 65_537 and is
+  `too_large`/zero Result. The separate unterminated quoted-attribute `"<a data-x=\"" +
+  strings.Repeat("x", MaxMailboxContentHTMLTokenBytes)` remains below body cap/no panic/no leak/
+  `too_large`, and an ordinary small quoted attribute succeeds. Suppression precedes every block
+  break: root/descendant/self-closing/void suppression tokens emit neither text nor LF, only
+  non-suppressed blocks may emit LF, and `<span>a</span><form><p>x</p></form><span>b</span>` is
+  `ab`.
+- **Oracle:** the authored-first unit must freeze reflection shape, exact caps, plain/rich hostile
+  and edge inputs, typed error/unwrap safety, plus-one limits, deterministic/idempotent output,
+  suppressed active content and strict purity; see the complete matrix in the readiness review.
+- **Dependency bytes:** `x/net` `v0.51.0` is direct and `x/text` `v0.35.0` already present;
+  exact2 MUST NOT edit `backend/go.mod` or add a sanitizer dependency.
 
 ## 144-05D-Remote — remote-image proxy
 
-- Dependency: accepted 05D-Content + existing `safehttp` primitives. Allowed only
-  `mailbox_remote_image.go`, `backend/tests/mail/mailbox_remote_image_test.go`.
+- **Status:** `BLOCKED / NOT_AUTHORIZED`. This candidate does not inherit 05D-Content authority:
+  plain-only normalization creates no remote token, proxy request or URL route. A later rich
+  sanitizer/token/proxy contract and separate lifecycle are required before any remote source.
 - Behavior/oracles: reject any path token outside exact unpadded base64url 32..1024 before
   decode/repository/network, then verify signed/encrypted token and owner/message/expiry before network;
   validate http(s) URL and resolved IP before every redirect/connect with injected safe
@@ -826,7 +864,8 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
 
 ## 144-05E — owner search projection hydration consumer
 
-- Dependencies: 05B + accepted 05D-Content/05C-Search. Allowed only
+- **Status:** `BLOCKED / NOT_AUTHORIZED`; it cannot consume this 05D candidate. Dependencies are
+  only future accepted 05B, a separately accepted content route, and 05C-Search. Allowed only
   `mailbox_search_projection.go`, `backend/tests/mail/mailbox_search_projection_test.go`.
 - Behavior/oracles: admitted mail event resolves current owner/account then bounded engine
   hydrate; indexes normalized From/To/subject, at most 256 KiB sanitized UTF-8 plain body,
