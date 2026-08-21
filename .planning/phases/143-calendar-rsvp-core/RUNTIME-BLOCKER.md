@@ -183,6 +183,14 @@ Consequences:
 > backfill-only; Ent/generation/migration, adapter/API/UI, raw iTIP, legacy cutover, launcher and
 > tests/build/gofmt/lint/validators/Docker/runtime remain `NOT_READY` or `NOT_RUN`.
 
+> **143-04K acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE /
+> ATOMIC_EXACT14_COMMIT_REQUIRED / SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This dirty
+> exact14 sync grants no authority or runtime evidence. One atomic sync commit activates immutable
+> `7b079f334eb8705552b1139c3dcfa4dc1ad032aa` (parent `d7926a27`, tree `3f6b86ef`, REVIEW map) as
+> `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS` only after precommit and immutable Contract/Security/
+> Lifecycle PASS C/I/M `0/0/0`; lower candidate clauses then consume and exact2 alone is
+> dispatchable but `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED`. All runtime blockers persist.
+
 > **143-04K replay boundary:** EventID/OccurredAt/CorrelationID are fresh candidate values, not
 > pure-policy generated or persisted. Non-due outcomes discard them; future 04F-K may candidate-
 > call 04K, reserve/reload them only after due and rerun byte-identically for CAS retry/redelivery.

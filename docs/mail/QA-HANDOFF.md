@@ -994,6 +994,14 @@ acceptance before source may be dispatched. No Docker/job was run; launcher `NOT
 
 ## 143-04K candidate unit oracle — not executable evidence
 
+> **Acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT14_COMMIT_REQUIRED /
+> SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This dirty exact14 sync is not a test or
+> source authority. Only an atomic sync commit activates immutable
+> `7b079f334eb8705552b1139c3dcfa4dc1ad032aa` (parent `d7926a27`, tree `3f6b86ef`, REVIEW map) as
+> `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS` after precommit and immutable Contract/Security/
+> Lifecycle PASS C/I/M `0/0/0`; lower candidate clauses then consume and ordered exact2 alone is
+> dispatchable, still `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED` pending its own lifecycle.
+
 The proposed exact14 candidate in `REVIEW-143-04K-CALL-DUE-AUTHORITY.md` is
 `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / IMPLEMENTATION_BLOCKED /
 RUNTIME_NOT_RUN`, not a test result. Only atomic exact14 commit, Contract/Spec/Oracle, Security

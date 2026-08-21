@@ -172,6 +172,14 @@ Ent/generation/migration, adapter/API/UI, raw iTIP, launcher and runtime remain 
 
 ### 143-04K docs-only source-authority candidate
 
+> **Acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT14_COMMIT_REQUIRED /
+> SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This dirty exact14 sync grants no authority.
+> One atomic sync commit, then precommit and immutable Contract/Security/Lifecycle PASS C/I/M
+> `0/0/0`, activates immutable `7b079f334eb8705552b1139c3dcfa4dc1ad032aa` (parent `d7926a27`,
+> tree `3f6b86ef`, exact14 REVIEW map) as `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS`. Only then
+> do lower 04K candidate routes consume and ordered test-first exact2 become dispatchable; source
+> remains `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED` until its separate lifecycle.
+
 `REVIEW-143-04K-CALL-DUE-AUTHORITY.md` is the only proposed 04K route. It consumes accepted 04J
 `d7926a27`/`e74efa827`, 04A `EventOutboxDescriptor` and 04L `EnvelopeV1`, but is only
 `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / IMPLEMENTATION_BLOCKED /

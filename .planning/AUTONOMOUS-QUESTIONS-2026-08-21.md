@@ -25,6 +25,15 @@ runtime work by themselves.
 
 ## 143-04K pure call-due authority candidate — not active
 
+> **Acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT14_COMMIT_REQUIRED /
+> SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This dirty exact14 sync grants no authority.
+> Only an atomic sync commit activates immutable `7b079f334eb8705552b1139c3dcfa4dc1ad032aa`
+> (parent `d7926a27`, tree `3f6b86ef`, exact blobs in the REVIEW) as
+> `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS` after precommit and immutable Contract/Security/
+> Lifecycle PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Lower 04K
+> candidate routes are consumed only then; ordered exact2 remains unimplemented until its own
+> lifecycle.
+
 `REVIEW-143-04K-CALL-DUE-AUTHORITY.md` is only a `ROOT_SOURCE_AUTHORITY_CANDIDATE /
 PRECOMMIT_REVIEW_REQUIRED / IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN` exact14 documentation
 candidate. It consumes accepted 04J (`d7926a27` receipt for `e74efa827`), 04A's

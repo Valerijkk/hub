@@ -2739,6 +2739,15 @@ boundaries remain unchanged.
 
 ### 143-04K pure call-due candidate — not accepted
 
+> **Acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT14_COMMIT_REQUIRED /
+> SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This dirty exact14 sync grants no authority.
+> After its one atomic commit only, immutable `7b079f334eb8705552b1139c3dcfa4dc1ad032aa`
+> (parent `d7926a27`, tree `3f6b86ef`, exact14 receipt map in the REVIEW) is
+> `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS` after precommit and immutable Contract/Security/
+> Lifecycle PASS C/I/M `0/0/0`; lower 04K candidate/precommit/current-next clauses then become
+> `CONSUMED/HISTORICAL`. Ordered exact2 alone becomes dispatchable and remains
+> `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED` pending its own lifecycle.
+
 The exact14 candidate `REVIEW-143-04K-CALL-DUE-AUTHORITY.md` consumes accepted 04J
 (`d7926a27` receipt for `e74efa827`), 04A's descriptor value and 04L `EnvelopeV1`. It freezes only
 a pure input of the call plus explicit UTC whole-second `Now`, raw 04J projection and explicit

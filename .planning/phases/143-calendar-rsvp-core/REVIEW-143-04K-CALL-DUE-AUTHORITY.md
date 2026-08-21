@@ -1,11 +1,35 @@
 # 143-04K — ScheduledCall due-policy source-authority freeze
 
-> **Status:** `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
-> IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This exact14 documentation candidate grants no
-> source or acceptance authority. Only an atomic commit of precisely its fourteen documented
-> paths, three independent immutable exact-SHA reviews (Contract/Spec/Oracle, Security/
-> Adversarial, Lifecycle/Dependency/Boundary), and a separate acceptance sync can authorize the
-> future source packet.
+> **Acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT14_COMMIT_REQUIRED /
+> SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This dirty exact14 sync tree grants no
+> authority. Its receipt facts activate only after one atomic commit of precisely this manifest.
+> Only then is immutable `7b079f334eb8705552b1139c3dcfa4dc1ad032aa`
+> (parent `d7926a27c5f7e4b612cb6ac5c2fd3fc778a512cc`, tree
+> `3f6b86efdfa668fd5e5547a4d029600ca19f859f`, subject
+> `docs(calendar): propose call due authority`) `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS`, after
+> precommit and immutable Contract/Spec/Oracle, Security and Lifecycle PASS C/I/M `0/0/0`;
+> dispatcher-enforced/no fallback/telemetry `UNKNOWN`. The lower 04K candidate/precommit/current-
+> next clauses become `CONSUMED/HISTORICAL` only then. Root may then dispatch only test-first
+> exact2; source stays `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED` pending its own lifecycle.
+
+## Immutable exact14 candidate receipt
+
+```text
+5a3012b7722ad42171a79bc0fb31577a0d48d539  .planning/STATE.md
+eb3e67dc73151120d72e3b4c022327f44a194b89  .planning/AUTONOMOUS-QUESTIONS-2026-08-21.md
+9edd44a3bd9f89426eab4ae30f04f750df4bc35d  .planning/decisions/specs/MAIL-SPEC.md
+8c343e1c37f77ec37f65ba7e3e46f88da8fe249c  .planning/phases/143-calendar-rsvp-core/.continue-here.md
+b74f51b0987f64c339158f674920ee8f71f6287c  .planning/phases/143-calendar-rsvp-core/DISPATCH-INDEX.md
+94008ca56d931cbae08760a0fae3e6b167bbad32  .planning/phases/143-calendar-rsvp-core/DISPATCH-REMAINING.md
+a842b8ff93278bf7248d02bb02a3517a081d3bbb  .planning/phases/143-calendar-rsvp-core/PLAN.md
+da1b51175f63c9410ab7b8d5bd0a93cb814cdaaa  .planning/phases/143-calendar-rsvp-core/PREIMPLEMENTATION-READINESS.md
+23e2a33f6a8eb74f94d5dc11961c14bc6e088ac5  .planning/phases/143-calendar-rsvp-core/RUNTIME-BLOCKER.md
+a2487f59580a4e2f2c4086b4c652f41e1ce03ecd  .planning/phases/143-calendar-rsvp-core/REVIEW-143-04K-CALL-DUE-AUTHORITY.md
+70b1cf73d04a8d2956fba3dc9a5129a9e678a888  docs/mail/CONTRACT-CHANGELOG.md
+f5845d4e2180fe2d4c265b1f2b7b74e3b7625f0c  docs/mail/PERSISTENCE-CONTRACT-0.1.8.md
+84d58beb20479f0764844ec0d73fa25ad4b84db2  docs/mail/QA-HANDOFF.md
+618ea2ed805296f5da53eafeb494177dd2ffaa30  docs/mail/events-v1.schema.json
+```
 
 ## Exact source packet and boundary
 

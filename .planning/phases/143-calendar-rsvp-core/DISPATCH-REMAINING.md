@@ -317,6 +317,14 @@ dispatchable without duplicating the common safety contract.
 
 ## 143-04K — pure call-due service
 
+- **Acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT14_COMMIT_REQUIRED /
+  SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This dirty exact14 sync grants no authority.
+  Only after one atomic sync commit is immutable `7b079f334eb8705552b1139c3dcfa4dc1ad032aa`
+  (parent `d7926a27`, tree `3f6b86ef`, exact14 REVIEW map) `SOURCE_AUTHORITY_ACCEPTED /
+  EXACT_SHA_PASS`, after precommit and immutable Contract/Security/Lifecycle PASS C/I/M `0/0/0`.
+  Lower 04K candidate routes then consume; ordered test-first exact2 alone may be dispatched and is
+  still `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED` pending its own lifecycle.
+
 - Prerequisites: accepted 04J `d7926a27`/`e74efa827`, 04A `EventOutboxDescriptor` and 04L
   `EnvelopeV1`. It explicitly does **not** derive Calendar-subject admission from 04G.
 - Status: `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /

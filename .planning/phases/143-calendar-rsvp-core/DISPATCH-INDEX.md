@@ -188,6 +188,14 @@ remains current.
 
 ## 143-04K source-authority candidate — not active
 
+> **Acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT14_COMMIT_REQUIRED /
+> SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. The dirty exact14 sync has no authority.
+> After one atomic sync commit, immutable `7b079f334eb8705552b1139c3dcfa4dc1ad032aa`
+> (parent `d7926a27`, tree `3f6b86ef`, REVIEW map) is `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS`
+> after precommit and immutable Contract/Security/Lifecycle PASS C/I/M `0/0/0`,
+> dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Only then do lower 04K candidate clauses
+> consume and only the table's test-first exact2 becomes dispatchable; it remains unimplemented.
+
 `REVIEW-143-04K-CALL-DUE-AUTHORITY.md` freezes the only proposed 04K exact14 route. It consumes
 accepted 04J `d7926a27`/`e74efa827`, 04A descriptor and 04L envelope values, but claims no
 Calendar-subject admission from 04G. Atomic exact14 docs commit, independent Contract/Spec/Oracle,

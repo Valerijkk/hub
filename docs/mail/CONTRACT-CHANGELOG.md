@@ -15,6 +15,15 @@
 > 04K locally rechecks all envelope/payload/subject bindings and owns no reservation storage.
 > No schema semantic change, legacy subject cutover or runtime authority follows.
 
+> **143-04K acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE /
+> ATOMIC_EXACT14_COMMIT_REQUIRED / SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This dirty
+> exact14 sync grants no authority. Only its atomic sync commit activates immutable
+> `7b079f334eb8705552b1139c3dcfa4dc1ad032aa` (parent `d7926a27`, tree `3f6b86ef`, exact14 REVIEW
+> map) as `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS` after precommit and immutable
+> Contract/Security/Lifecycle PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry
+> `UNKNOWN`. Then lower 04K candidate clauses are historical and ordered exact2 alone is
+> dispatchable, still unimplemented/uncommitted/unaccepted pending its own lifecycle.
+
 > **143-04J source receipt (2026-08-21):** `SOURCE_ACCEPTANCE_SYNC_CANDIDATE /
 > ATOMIC_EXACT14_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. These proposed facts activate only after one
 > atomic exact14 docs commit. Then `e74efa827b52f35e3d3fbe8346adf0c0121ba48d` is

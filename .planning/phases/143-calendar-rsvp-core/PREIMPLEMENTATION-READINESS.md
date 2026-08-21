@@ -224,6 +224,14 @@ The 143-04A/B/G receipts remain accepted. 143-03E, 144-02E, Ent generation, migr
 > Ent/generation/migration, adapter/API/UI, raw iTIP, legacy cutover, launcher and runtime remain
 > blocked or `NOT_RUN`.
 
+> **143-04K acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE /
+> ATOMIC_EXACT14_COMMIT_REQUIRED / SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This dirty
+> exact14 sync grants no authority. Only after one atomic sync commit is immutable
+> `7b079f334eb8705552b1139c3dcfa4dc1ad032aa` (parent `d7926a27`, tree `3f6b86ef`, REVIEW map)
+> `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS` after precommit plus immutable Contract/Security/
+> Lifecycle PASS C/I/M `0/0/0`; then lower 04K candidate clauses consume and ordered exact2 alone
+> becomes dispatchable, still `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED` pending own lifecycle.
+
 > EventID/OccurredAt/CorrelationID are fresh candidates, not 04K allocation: non-due outcomes
 > discard them; only after due may 04F-K reserve or reload them, then rerun 04K byte-identically on
 > CAS retry/redelivery. 04K rechecks every payload/envelope/subject binding while retaining no

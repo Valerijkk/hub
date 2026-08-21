@@ -1657,6 +1657,13 @@ unchanged.
 
 ## 143-04K pure due candidate — no persistence authority
 
+> **Acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT14_COMMIT_REQUIRED /
+> SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This dirty exact14 sync grants no authority.
+> Its atomic sync commit alone activates immutable `7b079f334eb8705552b1139c3dcfa4dc1ad032aa`
+> (parent `d7926a27`, tree `3f6b86ef`, REVIEW map) as `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS`
+> after precommit and immutable Contract/Security/Lifecycle PASS C/I/M `0/0/0`; only then do lower
+> 04K candidate clauses consume and ordered exact2 become dispatchable, still unimplemented.
+
 The exact14 `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
 IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN` consumes accepted 04J `d7926a27`/`e74efa827`, accepted
 04A `EventOutboxDescriptor` and 04L `EnvelopeV1`, but does not open a repository, transaction,
