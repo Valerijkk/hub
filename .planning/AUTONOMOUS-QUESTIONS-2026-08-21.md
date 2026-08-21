@@ -83,3 +83,35 @@ pure `143-04J` ScheduledCall projection policy, which will receive normalized ca
   receipt replay, atomic attendee mutation, and outbox boundaries.
 - Do not start Mail `144-04H` or Calendar `143-04F-*` before the accepted `02E` / `03E` generation
   gates; no handwritten generated Ent or migration fallback is allowed.
+
+## Founder resolution — 2026-08-21
+
+The founder instructed root to choose the most maintainable architecture and continue autonomously
+to Docker readiness without merging. This resolves AQ-01 and AQ-02 for branch implementation;
+shared/production migration apply and final merge retain their normal personal review gates.
+
+### AQ-01 resolved
+
+Use one closed public `qa-gate` entrypoint backed by the existing private supervisor. The caller
+supplies only `target`, `task`, and `run`; committed internal authority selects contract/catalog
+versions. It derives worktree-local canonical roots, materializes an exact commit into offline
+image builds, and exposes only fixed versioned targets. Ent generation is image-local. An admitted,
+attested exact Atlas CLI owns a bounded feature migration lineage: a versioned full pre-feature
+baseline fixture followed by immutable Mail/Calendar SQL and an allowlisted Ent parity comparison.
+Python framework/closed vertical targets are accepted before persistence/API packets need them.
+No direct Docker/Compose fallback exists.
+
+### AQ-02 resolved
+
+Do not guess an original timezone or `DTSTART`. Non-recurring coherent rows may be migrated. Any
+non-deleted recurring legacy row aborts automatic backfill with a read-only report and zero
+mutation; an operator must recreate or explicitly map it through a later per-row reviewed artifact.
+Docker migration fixtures must prove both the successful non-recurring path and this fail-closed
+recurring path. Pure `143-04J` remains unchanged.
+
+Controlling design and execution plan:
+
+- `docs/superpowers/specs/2026-08-21-mail-calendar-docker-readiness-design.md`
+- `docs/superpowers/plans/2026-08-21-mail-calendar-docker-readiness.md`
+
+These documents authorize neither merge/push/deploy nor shared/production migration.

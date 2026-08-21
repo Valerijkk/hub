@@ -4,7 +4,19 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: test-rebase-founder-greenfield-cutover
 stopped_at: founder cutover locked · exact keep/delete manifests and contract rebasing in progress
-last_updated: "2026-08-20T17:33:04+03:00"
+last_updated: "2026-08-21T12:00:00+03:00"
+mail_calendar_docker_readiness: >-
+  Founder direction on 2026-08-21: continue autonomously on
+  codex/mail-module-20260813, do not merge, and stop only after Mail and Calendar work through the
+  canonical Docker path. Root selected a maintainable vertical order: accepted public qa-gate and
+  offline images; early Python framework and closed vertical targets; image-local Ent generation;
+  an attested Atlas CLI with a versioned pre-feature baseline and bounded Mail/Calendar lineage;
+  Calendar persistence, RSVP/v2 and call bridges; Mail persistence, engine, worker and owner API;
+  Phase 146 UI and Phase 147 reliability closure; final combined Docker evidence. Legacy recurring ScheduledCall rows
+  fail closed during automatic backfill and require later explicit per-row handling. Design and
+  execution plan: docs/superpowers/specs/2026-08-21-mail-calendar-docker-readiness-design.md and
+  docs/superpowers/plans/2026-08-21-mail-calendar-docker-readiness.md. No merge, push, deploy or
+  shared/production migration is authorized; runtime remains NOT_RUN until launcher acceptance.
 calendar_143_04h_source_receipt_sync: >-
   Status: SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT16_COMMIT_REQUIRED /
   RUNTIME_NOT_RUN. This dirty exact16 documentation candidate grants no source acceptance.
