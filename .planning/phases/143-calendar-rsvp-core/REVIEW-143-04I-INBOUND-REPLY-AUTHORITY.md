@@ -2,23 +2,19 @@
 
 ## Status and lifecycle
 
-`ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT9_COMMIT_REQUIRED / IMMUTABLE_REVIEW_REQUIRED / RUNTIME_NOT_RUN`.
+`SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT10_COMMIT_REQUIRED / IMMUTABLE_REVIEW_REQUIRED / RUNTIME_NOT_RUN`.
 
-This non-self-activating dirty exact9 docs-only acceptance sync records immutable candidate `fa69484cde0fff77b5947a204a42f8566808ed73`, sole parent `6e54eb8c1764946826115036b90646b412db4792`, tree `d0a0971258dc34b09c8aa51c2ea71c2c231cb64b`, subject `docs(calendar): propose inbound reply authority`, with its final candidate manifest:
+This non-authoritative dirty exact10 docs receipt records immutable source `46f4d6024e6c5475cdd943af9979c4ffadc5474a`, sole parent `04dbde1a14e9499462dbc1ea8784583f83f0b40f`, tree `e3ce6097822f360a04717d0dce61597810ca2046`, subject `feat(calendar): add inbound reply service`. Source Contract/Security/Lifecycle precommit and immutable `EXACT_SHA_PASS` are C/I/M `0/0/0`; provenance is Contract Terra/high, Security Terra/xhigh, Lifecycle Terra/high, dispatcher-enforced/no fallback/telemetry `UNKNOWN`.
 
-| Path | Blob |
-|---|---|
-| `.planning/STATE.md` | `23f91983b60bc62406970cb2c8a8f865d85f9665` |
-| `.planning/phases/143-calendar-rsvp-core/.continue-here.md` | `9842a154446e246122673ff57f712f1f7b220218` |
-| `.planning/phases/143-calendar-rsvp-core/DISPATCH-INDEX.md` | `9fc89babdd2808e40f704cd4103ae52c697d8410` |
-| `.planning/phases/143-calendar-rsvp-core/DISPATCH-REMAINING.md` | `da8768d78e9e97eaebd601a6efaa0fcc69d5468e` |
-| `.planning/phases/143-calendar-rsvp-core/PLAN.md` | `d4ae19a417b55ccd6a2d75be93921ee25d904ce1` |
-| `.planning/phases/143-calendar-rsvp-core/PREIMPLEMENTATION-READINESS.md` | `989c0c487c143cc6b0aea3022f4620596dfaad46` |
-| `.planning/phases/143-calendar-rsvp-core/REVIEW-143-04I-INBOUND-REPLY-AUTHORITY.md` | `ab79f89474d6a2f36411eb8bb2da5d83cb2a7f6e` |
-| `.planning/phases/143-calendar-rsvp-core/RUNTIME-BLOCKER.md` | `044bb0c9ef3e587f2dc7e3612387dbe4a035a6e2` |
-| `docs/mail/CONTRACT-CHANGELOG.md` | `7bd3bc13b56ef9677502f742821d06c4b3f84159` |
+The immutable source exact3, in required authored-first receipt order, is:
 
-Contract/Security/Lifecycle precommit and immutable `EXACT_SHA_PASS` are C/I/M `0/0/0`; Contract Terra/high, Security Terra/xhigh, Lifecycle Terra/high; provenance `dispatcher-enforced`, no fallback, telemetry `UNKNOWN`. This dirty sync itself grants no source, executable, runtime, adapter, generation, migration, transport, HTTP/API/OpenAPI/UI, Ent/generated source, Mail, NATS or outbound REPLY work. Until one atomic manifest-equal exact9 acceptance commit and immutable acceptance-commit triple PASS, fa694 remains the current `ROOT_SOURCE_AUTHORITY_CANDIDATE` and source is blocked. Only after that activation is the ordered exact3 — test, `event_repository.go`, new service — source-authorized; it remains `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED` pending its own lifecycle. Only after that atomic manifest-equal exact9 acceptance commit and immutable Contract/Security/Lifecycle PASS do lower 04I candidate/precommit/root-commit/exact-SHA-next routes become `CONSUMED/HISTORICAL`. 04F-I, Ent/generated source, 03E, generation/migration, HTTP/API/OpenAPI/UI, NATS/iTIP transport, testframework and runtime remain blocked/not-ready/not-run; no next packet follows.
+| Order | Path | Blob |
+|---:|---|---|
+| 1 | `backend/tests/calendar/event_service_inbound_reply_test.go` | `e0c4e64d9d704ebde24c87d9569590cde69d9115` |
+| 2 | `backend/internal/calendar/event_repository.go` | `c5fc1df5bf0a690db199b9df922c5463d27ab2a1` |
+| 3 | `backend/internal/calendar/event_service_inbound_reply.go` | `81814a334c17df9dbd24da58a6fb95a776924670` |
+
+`IMPLEMENTATION-143-04I.md` is the canonical explicit ordered exact10 docs-receipt manifest. This dirty receipt grants no current `STATIC_ACCEPTED` status, executable or runtime authority. Only one atomic commit whose diff is set-equal to that exact10 manifest, followed by immutable receipt Contract/Security/Lifecycle triple PASS, can activate it. Only then source is `STATIC_ACCEPTED / EXACT_SHA_PASS` and lower 04I authority/source-unimplemented routes become `CONSUMED/HISTORICAL`. Runtime remains `NOT_RUN`; launcher/testframework external handoff, 04F-I, 03E, 04F-Base, Ent/generated source, generation/migration, HTTP/API/OpenAPI/UI and NATS/iTIP transport remain blocked/not-ready; no next Calendar packet is selected or authorized.
 
 ## Exact source manifest
 

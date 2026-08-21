@@ -1,24 +1,19 @@
 ---
-calendar_143_04i_inbound_reply_acceptance_sync_candidate: >-
-  ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT9_COMMIT_REQUIRED /
-  IMMUTABLE_REVIEW_REQUIRED / RUNTIME_NOT_RUN. This non-self-activating dirty exact9 docs-only
-  sync records immutable candidate fa69484cde0fff77b5947a204a42f8566808ed73 (sole parent
-  6e54eb8c1764946826115036b90646b412db4792, tree d0a0971258dc34b09c8aa51c2ea71c2c231cb64b,
-  subject docs(calendar): propose inbound reply authority) and the final manifest in
-  REVIEW-143-04I-INBOUND-REPLY-AUTHORITY.md. Contract/Security/Lifecycle precommit and immutable
+calendar_143_04i_inbound_reply_source_receipt_sync: >-
+  SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT10_COMMIT_REQUIRED /
+  IMMUTABLE_REVIEW_REQUIRED / RUNTIME_NOT_RUN. This non-authoritative dirty exact10 docs receipt
+  records immutable source 46f4d6024e6c5475cdd943af9979c4ffadc5474a (sole parent
+  04dbde1a14e9499462dbc1ea8784583f83f0b40f, tree e3ce6097822f360a04717d0dce61597810ca2046,
+  subject feat(calendar): add inbound reply service) and its ordered test/repository/service
+  blobs in IMPLEMENTATION-143-04I.md. Contract/Security/Lifecycle source precommit and immutable
   EXACT_SHA_PASS are C/I/M 0/0/0; Contract Terra/high, Security Terra/xhigh, Lifecycle
   Terra/high; dispatcher-enforced/no fallback/telemetry UNKNOWN. Until one atomic manifest-equal
-  exact9 acceptance commit and immutable acceptance-commit triple PASS, fa694 remains current
-  ROOT_SOURCE_AUTHORITY_CANDIDATE and source is blocked. After activation only ordered exact3
-  test -> event_repository.go -> new service is source-authorized and remains UNIMPLEMENTED /
-  UNCOMMITTED / UNACCEPTED pending its own lifecycle. Only after one atomic manifest-equal
-  exact9 acceptance commit and immutable acceptance-commit Contract/Security/Lifecycle PASS do
-  lower 04I candidate/precommit/root-commit/exact-SHA-next routes become CONSUMED/HISTORICAL.
-  04F-I, Ent/generated source, 03E, generation/migration, HTTP/API/OpenAPI/UI,
-  NATS/iTIP transport, testframework and runtime remain BLOCKED/NOT_READY/NOT_RUN; no next
-  packet follows.
-  generation/migration, HTTP/API/OpenAPI/UI, NATS/outbound REPLY transport, launcher and runtime
-  remain BLOCKED/NOT_READY/NOT_RUN; no next packet follows source acceptance.
+  exact10 receipt commit and immutable receipt triple PASS, this source is not STATIC_ACCEPTED.
+  Only after activation do source status become STATIC_ACCEPTED / EXACT_SHA_PASS and lower 04I
+  authority/source-unimplemented routes become CONSUMED/HISTORICAL. Runtime remains NOT_RUN;
+  launcher/testframework external handoff, 04F-I, 03E, 04F-Base, Ent/generated source,
+  generation/migration, HTTP/API/OpenAPI/UI and NATS/iTIP transport remain BLOCKED/NOT_READY;
+  no next Calendar packet is selected or authorized.
 calendar_143_04h_current_source_receipt: >-
   STATIC_ACCEPTED / EXACT_SHA_PASS only for immutable source
   73940810046bb3186f2746705a83565ab29368c5 (parent
