@@ -3,6 +3,8 @@ package calendar_test
 import (
 	"context"
 	"errors"
+	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -19,9 +21,33 @@ var (
 	rsvpRepositoryAttendeeID     = uuid.MustParse("b4444444-4444-4444-8444-444444444444")
 	rsvpRepositoryEnvelopeID     = uuid.MustParse("b5555555-5555-4555-8555-555555555555")
 	rsvpRepositoryOtherID        = uuid.MustParse("b6666666-6666-4666-8666-666666666666")
+	rsvpRepositoryOccurrenceID   = uuid.MustParse("b7777777-7777-4777-8777-777777777777")
 )
 
 var _ calendar.CalendarEventSeriesRSVPTransactionBackend = (*rsvpRepositoryBackend)(nil)
+var _ calendar.CalendarEventOccurrenceRSVPTransactionBackend = (*occurrenceRSVPRepositoryBackend)(nil)
+
+var (
+	_ func(*calendar.EventTransaction, context.Context, uuid.UUID) (calendar.EventMutationScope, error) = (*calendar.EventTransaction).ResolveCalendarEventOccurrenceRSVPScope
+	_ func(*calendar.EventTransaction, context.Context, calendar.EventMutationScope, calendar.CalendarEventOccurrenceRSVPAuthorizationRequest) (calendar.CalendarEventOccurrenceRSVPAuthorization, error) = (*calendar.EventTransaction).ResolveCalendarEventOccurrenceRSVP
+	_ func(*calendar.EventTransaction, context.Context, calendar.EventMutationScope, calendar.CalendarEventOccurrenceRSVPPersistenceCommand) (calendar.CalendarEventOccurrenceRSVPPersistenceResult, error) = (*calendar.EventTransaction).PersistCalendarEventOccurrenceRSVP
+
+	_ func(calendar.CalendarEventOccurrenceRSVPPersistenceCommand) calendar.CalendarEventSeriesRSVPAttendeeSnapshot = calendar.CalendarEventOccurrenceRSVPPersistenceCommand.SeriesAttendee
+	_ func(calendar.CalendarEventOccurrenceRSVPPersistenceCommand) (calendar.CalendarEventOccurrenceRSVPAttendeeSnapshot, bool) = calendar.CalendarEventOccurrenceRSVPPersistenceCommand.Prior
+	_ func(calendar.CalendarEventOccurrenceRSVPPersistenceCommand) calendar.CalendarEventOccurrenceRSVPAttendeeSnapshot = calendar.CalendarEventOccurrenceRSVPPersistenceCommand.Attendee
+	_ func(calendar.CalendarEventOccurrenceRSVPPersistenceCommand) uint = calendar.CalendarEventOccurrenceRSVPPersistenceCommand.ExpectedVersion
+	_ func(calendar.CalendarEventOccurrenceRSVPPersistenceCommand) uint = calendar.CalendarEventOccurrenceRSVPPersistenceCommand.EventSequence
+	_ func(calendar.CalendarEventOccurrenceRSVPPersistenceCommand) calendar.EventOutboxDescriptor = calendar.CalendarEventOccurrenceRSVPPersistenceCommand.Outbox
+	_ func(calendar.CalendarEventOccurrenceRSVPPersistenceCommand) (calendar.CalendarEventOccurrenceRSVPReplyDeliveryDescriptor, bool) = calendar.CalendarEventOccurrenceRSVPPersistenceCommand.Reply
+
+	_ func(calendar.CalendarEventOccurrenceRSVPPersistenceResult) calendar.CalendarEventOccurrenceRSVPAttendeeSnapshot = calendar.CalendarEventOccurrenceRSVPPersistenceResult.Attendee
+	_ func(calendar.CalendarEventOccurrenceRSVPPersistenceResult) uint = calendar.CalendarEventOccurrenceRSVPPersistenceResult.EventSequence
+	_ func(calendar.CalendarEventOccurrenceRSVPPersistenceResult) calendar.EventOutboxDescriptor = calendar.CalendarEventOccurrenceRSVPPersistenceResult.Outbox
+	_ func(calendar.CalendarEventOccurrenceRSVPPersistenceResult) (calendar.CalendarEventOccurrenceRSVPReplyDeliveryDescriptor, bool) = calendar.CalendarEventOccurrenceRSVPPersistenceResult.Reply
+
+	_ func(calendar.CalendarEventSeriesRSVPAttendeeSnapshot, *calendar.CalendarEventOccurrenceRSVPAttendeeSnapshot, calendar.CalendarEventOccurrenceRSVPAttendeeSnapshot, uint, uint, calendar.EventOutboxDescriptor, *calendar.CalendarEventOccurrenceRSVPReplyDeliveryDescriptor) (calendar.CalendarEventOccurrenceRSVPPersistenceCommand, error) = calendar.NewCalendarEventOccurrenceRSVPPersistenceCommand
+	_ func(calendar.CalendarEventOccurrenceRSVPAttendeeSnapshot, uint, calendar.EventOutboxDescriptor, *calendar.CalendarEventOccurrenceRSVPReplyDeliveryDescriptor) (calendar.CalendarEventOccurrenceRSVPPersistenceResult, error) = calendar.NewCalendarEventOccurrenceRSVPPersistenceResult
+)
 
 func TestCalendarEventSeriesRSVPPersistenceValues_ValidateAndIsolateAliases(t *testing.T) {
 	attendee := rsvpRepositoryAttendee(calendar.RSVPAccepted)
@@ -548,6 +574,690 @@ func (backend *rsvpRepositoryBackend) PersistCalendarEventSeriesRSVP(_ context.C
 }
 
 func mustRSVPRepositoryReplyPointer(command calendar.CalendarEventSeriesRSVPPersistenceCommand) *calendar.CalendarEventSeriesRSVPReplyDeliveryDescriptor {
+	reply, found := command.Reply()
+	if !found {
+		return nil
+	}
+	return &reply
+}
+
+func TestCalendarEventOccurrenceRSVPRepositoryABI(t *testing.T) {
+	transactionType := reflect.TypeOf((*calendar.EventTransaction)(nil))
+	for name, expected := range map[string]reflect.Type{
+		"ResolveCalendarEventOccurrenceRSVPScope": reflect.TypeOf(func(*calendar.EventTransaction, context.Context, uuid.UUID) (calendar.EventMutationScope, error) { return calendar.EventMutationScope{}, nil }),
+		"ResolveCalendarEventOccurrenceRSVP":      reflect.TypeOf(func(*calendar.EventTransaction, context.Context, calendar.EventMutationScope, calendar.CalendarEventOccurrenceRSVPAuthorizationRequest) (calendar.CalendarEventOccurrenceRSVPAuthorization, error) { return calendar.CalendarEventOccurrenceRSVPAuthorization{}, nil }),
+		"PersistCalendarEventOccurrenceRSVP":      reflect.TypeOf(func(*calendar.EventTransaction, context.Context, calendar.EventMutationScope, calendar.CalendarEventOccurrenceRSVPPersistenceCommand) (calendar.CalendarEventOccurrenceRSVPPersistenceResult, error) { return calendar.CalendarEventOccurrenceRSVPPersistenceResult{}, nil }),
+	} {
+		method, found := transactionType.MethodByName(name)
+		if !found || method.Type != expected {
+			t.Fatalf("%s ABI = %#v", name, method.Type)
+		}
+	}
+
+	backendType := reflect.TypeOf((*calendar.CalendarEventOccurrenceRSVPTransactionBackend)(nil)).Elem()
+	for name, expected := range map[string]reflect.Type{
+		"ResolveCalendarEventOccurrenceRSVP": reflect.TypeOf(func(context.Context, calendar.EventMutationScope, calendar.CalendarEventOccurrenceRSVPAuthorizationRequest) (calendar.CalendarEventOccurrenceRSVPAuthorization, error) { return calendar.CalendarEventOccurrenceRSVPAuthorization{}, nil }),
+		"PersistCalendarEventOccurrenceRSVP": reflect.TypeOf(func(context.Context, calendar.EventMutationScope, calendar.CalendarEventOccurrenceRSVPPersistenceCommand) (calendar.CalendarEventOccurrenceRSVPPersistenceResult, error) { return calendar.CalendarEventOccurrenceRSVPPersistenceResult{}, nil }),
+	} {
+		method, found := backendType.MethodByName(name)
+		if !found || method.Type != expected {
+			t.Fatalf("backend %s ABI = %#v", name, method.Type)
+		}
+	}
+
+	for _, record := range []struct {
+		name   string
+		typeOf reflect.Type
+		fields []struct {
+			name   string
+			typeOf reflect.Type
+		}
+	}{
+		{
+			name: "authorization request", typeOf: reflect.TypeOf(calendar.CalendarEventOccurrenceRSVPAuthorizationRequest{}),
+			fields: []struct {
+				name   string
+				typeOf reflect.Type
+			}{
+				{name: "EventID", typeOf: reflect.TypeOf(uuid.UUID{})},
+				{name: "RecurrenceID", typeOf: reflect.TypeOf("")},
+			},
+		},
+		{
+			name: "occurrence attendee", typeOf: reflect.TypeOf(calendar.CalendarEventOccurrenceRSVPAttendeeSnapshot{}),
+			fields: []struct {
+				name   string
+				typeOf reflect.Type
+			}{
+				{name: "AttendeeID", typeOf: reflect.TypeOf(uuid.UUID{})},
+				{name: "EventID", typeOf: reflect.TypeOf(uuid.UUID{})},
+				{name: "UserID", typeOf: reflect.TypeOf((*uuid.UUID)(nil))},
+				{name: "Email", typeOf: reflect.TypeOf("")},
+				{name: "DisplayName", typeOf: reflect.TypeOf("")},
+				{name: "Role", typeOf: reflect.TypeOf(calendar.CalendarEventAttendeeRole(""))},
+				{name: "Status", typeOf: reflect.TypeOf(calendar.RSVPStatus(""))},
+				{name: "RecurrenceID", typeOf: reflect.TypeOf("")},
+				{name: "RespondedAt", typeOf: reflect.TypeOf((*time.Time)(nil))},
+				{name: "Version", typeOf: reflect.TypeOf(uint(0))},
+				{name: "RemovedAt", typeOf: reflect.TypeOf((*time.Time)(nil))},
+			},
+		},
+		{
+			name: "authorization", typeOf: reflect.TypeOf(calendar.CalendarEventOccurrenceRSVPAuthorization{}),
+			fields: []struct {
+				name   string
+				typeOf reflect.Type
+			}{
+				{name: "Current", typeOf: reflect.TypeOf(calendar.CalendarEventCommandInput{})},
+				{name: "SeriesAttendee", typeOf: reflect.TypeOf(calendar.CalendarEventSeriesRSVPAttendeeSnapshot{})},
+				{name: "OccurrenceAttendee", typeOf: reflect.TypeOf((*calendar.CalendarEventOccurrenceRSVPAttendeeSnapshot)(nil))},
+				{name: "Exception", typeOf: reflect.TypeOf((*calendar.CalendarEventExceptionCommandInput)(nil))},
+			},
+		},
+		{
+			name: "reply descriptor", typeOf: reflect.TypeOf(calendar.CalendarEventOccurrenceRSVPReplyDeliveryDescriptor{}),
+			fields: []struct {
+				name   string
+				typeOf reflect.Type
+			}{
+				{name: "AttendeeID", typeOf: reflect.TypeOf(uuid.UUID{})},
+				{name: "EventID", typeOf: reflect.TypeOf(uuid.UUID{})},
+				{name: "EventSequence", typeOf: reflect.TypeOf(uint(0))},
+				{name: "AttendeeVersion", typeOf: reflect.TypeOf(uint(0))},
+				{name: "RecurrenceID", typeOf: reflect.TypeOf("")},
+				{name: "Status", typeOf: reflect.TypeOf(calendar.RSVPStatus(""))},
+			},
+		},
+	} {
+		if record.typeOf.NumField() != len(record.fields) {
+			t.Fatalf("%s field count = %d, want %d", record.name, record.typeOf.NumField(), len(record.fields))
+		}
+		for index, expected := range record.fields {
+			field := record.typeOf.Field(index)
+			if field.Name != expected.name || field.Type != expected.typeOf || field.Anonymous {
+				t.Fatalf("%s field[%d] ABI = %#v, want %s %v", record.name, index, field, expected.name, expected.typeOf)
+			}
+		}
+	}
+}
+
+func TestCalendarEventOccurrenceRSVPPersistenceValues_ValidateAndIsolateAliases(t *testing.T) {
+	series := occurrenceRSVPRepositorySeries(calendar.RSVPAccepted)
+	attendee := occurrenceRSVPRepositoryAttendee(series, rsvpRepositoryOccurrenceID, "2032-02-04", calendar.RSVPAccepted, 3)
+	reply := occurrenceRSVPRepositoryReply(attendee, 0)
+	outbox := rsvpRepositoryOutbox(t)
+
+	command, err := calendar.NewCalendarEventOccurrenceRSVPPersistenceCommand(series, nil, attendee, 2, 0, outbox, &reply)
+	if err != nil {
+		t.Fatalf("NewCalendarEventOccurrenceRSVPPersistenceCommand() error = %v", err)
+	}
+	result, err := calendar.NewCalendarEventOccurrenceRSVPPersistenceResult(attendee, 0, outbox, &reply)
+	if err != nil {
+		t.Fatalf("NewCalendarEventOccurrenceRSVPPersistenceResult() error = %v", err)
+	}
+	noReplyCommand, err := calendar.NewCalendarEventOccurrenceRSVPPersistenceCommand(series, nil, attendee, 2, 0, outbox, nil)
+	if err != nil {
+		t.Fatalf("NewCalendarEventOccurrenceRSVPPersistenceCommand(no reply) error = %v", err)
+	}
+	noReplyResult, err := calendar.NewCalendarEventOccurrenceRSVPPersistenceResult(attendee, 0, outbox, nil)
+	if err != nil {
+		t.Fatalf("NewCalendarEventOccurrenceRSVPPersistenceResult(no reply) error = %v", err)
+	}
+	if noReply, found := noReplyCommand.Reply(); found || noReply != (calendar.CalendarEventOccurrenceRSVPReplyDeliveryDescriptor{}) {
+		t.Fatalf("command no-reply = %#v found:%t", noReply, found)
+	}
+	if noReply, found := noReplyResult.Reply(); found || noReply != (calendar.CalendarEventOccurrenceRSVPReplyDeliveryDescriptor{}) {
+		t.Fatalf("result no-reply = %#v found:%t", noReply, found)
+	}
+
+	*series.UserID = rsvpRepositoryOtherID
+	*series.RespondedAt = series.RespondedAt.Add(time.Hour)
+	*attendee.UserID = rsvpRepositoryOtherID
+	*attendee.RespondedAt = attendee.RespondedAt.Add(time.Hour)
+	reply.Status = calendar.RSVPDeclined
+
+	for _, value := range []struct {
+		name           string
+		series         calendar.CalendarEventSeriesRSVPAttendeeSnapshot
+		attendee       calendar.CalendarEventOccurrenceRSVPAttendeeSnapshot
+		expected       uint
+		sequence       uint
+		hasPrior       bool
+		reply          calendar.CalendarEventOccurrenceRSVPReplyDeliveryDescriptor
+		hasReply       bool
+	}{
+		{name: "command", series: command.SeriesAttendee(), attendee: command.Attendee(), expected: command.ExpectedVersion(), sequence: command.EventSequence(), hasPrior: func() bool { _, found := command.Prior(); return found }(), reply: occurrenceRSVPRepositoryMustReply(t, command.Reply()), hasReply: func() bool { _, found := command.Reply(); return found }()},
+		{name: "result", attendee: result.Attendee(), sequence: result.EventSequence(), reply: occurrenceRSVPRepositoryMustReply(t, result.Reply()), hasReply: func() bool { _, found := result.Reply(); return found }()},
+	} {
+		t.Run(value.name, func(t *testing.T) {
+			if value.attendee.AttendeeID != rsvpRepositoryOccurrenceID || value.attendee.UserID == nil || *value.attendee.UserID != rsvpRepositoryActorID || value.attendee.RespondedAt == nil || !value.attendee.RespondedAt.Equal(time.Date(2032, time.February, 3, 4, 5, 6, 0, time.UTC)) || value.attendee.RecurrenceID != "2032-02-04" || value.sequence != 0 || !value.hasReply || value.reply.RecurrenceID != "2032-02-04" || value.reply.Status != calendar.RSVPAccepted {
+				t.Fatalf("%s immutable values = %#v", value.name, value)
+			}
+			if value.name == "command" && (value.series.Version != 2 || value.series.AttendeeID == value.attendee.AttendeeID || value.expected != 2 || value.hasPrior) {
+				t.Fatalf("command materialization = %#v", value)
+			}
+			if value.attendee.UserID != nil {
+				*value.attendee.UserID = rsvpRepositoryOtherID
+			}
+			if value.attendee.RespondedAt != nil {
+				*value.attendee.RespondedAt = value.attendee.RespondedAt.Add(time.Hour)
+			}
+		})
+	}
+	if got := command.SeriesAttendee(); got.UserID == nil || *got.UserID != rsvpRepositoryActorID || got.RespondedAt == nil || !got.RespondedAt.Equal(time.Date(2032, time.February, 3, 4, 5, 6, 0, time.UTC)) {
+		t.Fatalf("series getter leaked alias: %#v", got)
+	}
+	if got := command.Attendee(); got.UserID == nil || *got.UserID != rsvpRepositoryActorID || got.RespondedAt == nil || !got.RespondedAt.Equal(time.Date(2032, time.February, 3, 4, 5, 6, 0, time.UTC)) {
+		t.Fatalf("command attendee getter leaked alias: %#v", got)
+	}
+	if got := result.Attendee(); got.UserID == nil || *got.UserID != rsvpRepositoryActorID || got.RespondedAt == nil || !got.RespondedAt.Equal(time.Date(2032, time.February, 3, 4, 5, 6, 0, time.UTC)) {
+		t.Fatalf("result attendee getter leaked alias: %#v", got)
+	}
+
+	series = occurrenceRSVPRepositorySeries(calendar.RSVPAccepted)
+	prior := occurrenceRSVPRepositoryAttendee(series, rsvpRepositoryOccurrenceID, "2032-02-04", calendar.RSVPAccepted, 3)
+	updated := occurrenceRSVPRepositoryAttendee(series, rsvpRepositoryOccurrenceID, "2032-02-04", calendar.RSVPDeclined, 4)
+	override, err := calendar.NewCalendarEventOccurrenceRSVPPersistenceCommand(series, &prior, updated, 3, 0, outbox, nil)
+	if err != nil {
+		t.Fatalf("NewCalendarEventOccurrenceRSVPPersistenceCommand(existing override) error = %v", err)
+	}
+	returnedPrior, foundPrior := override.Prior()
+	if !foundPrior || returnedPrior.AttendeeID != rsvpRepositoryOccurrenceID || returnedPrior.Version != 3 || override.Attendee().Version != 4 || override.ExpectedVersion() != 3 {
+		t.Fatalf("existing override CAS = prior:%#v command:%#v", returnedPrior, override)
+	}
+	*prior.UserID = rsvpRepositoryOtherID
+	if got, found := override.Prior(); !found || got.UserID == nil || *got.UserID != rsvpRepositoryActorID {
+		t.Fatalf("prior getter leaked alias: %#v found:%t", got, found)
+	}
+
+	validSeries := occurrenceRSVPRepositorySeries(calendar.RSVPAccepted)
+	validAttendee := occurrenceRSVPRepositoryAttendee(validSeries, rsvpRepositoryOccurrenceID, "2032-02-04", calendar.RSVPAccepted, 3)
+	validReply := occurrenceRSVPRepositoryReply(validAttendee, 0)
+	invalidSeries := validSeries
+	removedAt := time.Date(2032, time.February, 3, 5, 5, 6, 0, time.UTC)
+	invalidSeries.RemovedAt = &removedAt
+	sameID := validAttendee
+	sameID.AttendeeID = validSeries.AttendeeID
+	badVersion := validAttendee
+	badVersion.Version = 4
+	badKey := validAttendee
+	badKey.RecurrenceID = "2032-02-04T04:05:06+00:00"
+	tombstone := validAttendee
+	tombstone.RemovedAt = &removedAt
+	wrongEmail := validAttendee
+	wrongEmail.Email = "other@example.test"
+	wrongName := validAttendee
+	wrongName.DisplayName = "Other attendee"
+	wrongRole := validAttendee
+	wrongRole.Role = calendar.CalendarEventAttendeeRoleOptional
+	wrongEvent := validAttendee
+	wrongEvent.EventID = rsvpRepositoryOtherID
+	wrongUser := validAttendee
+	wrongUser.UserID = rsvpRepositoryUUIDRef(rsvpRepositoryOtherID)
+	badResponse := validAttendee
+	badResponse.Status = calendar.RSVPNeedsAction
+	priorWrongID := validAttendee
+	priorWrongID.AttendeeID = rsvpRepositoryOtherID
+	priorWrongKey := validAttendee
+	priorWrongKey.RecurrenceID = "2032-02-05"
+	badReply := validReply
+	badReply.RecurrenceID = "2032-02-05"
+	zeroOutbox := calendar.EventOutboxDescriptor{}
+
+	for _, testCase := range []struct {
+		name     string
+		series   calendar.CalendarEventSeriesRSVPAttendeeSnapshot
+		prior    *calendar.CalendarEventOccurrenceRSVPAttendeeSnapshot
+		attendee calendar.CalendarEventOccurrenceRSVPAttendeeSnapshot
+		expected uint
+		outbox   calendar.EventOutboxDescriptor
+		reply    *calendar.CalendarEventOccurrenceRSVPReplyDeliveryDescriptor
+	}{
+		{name: "zero expected version", series: validSeries, attendee: validAttendee, expected: 0, outbox: outbox, reply: &validReply},
+		{name: "overflow expected version", series: validSeries, attendee: validAttendee, expected: ^uint(0), outbox: outbox, reply: &validReply},
+		{name: "invalid series", series: invalidSeries, attendee: validAttendee, expected: 2, outbox: outbox, reply: &validReply},
+		{name: "inherited expected version is series version", series: validSeries, attendee: validAttendee, expected: 3, outbox: outbox, reply: &validReply},
+		{name: "inherited attendee must be distinct", series: validSeries, attendee: sameID, expected: 2, outbox: outbox, reply: &validReply},
+		{name: "inherited version increments", series: validSeries, attendee: badVersion, expected: 2, outbox: outbox, reply: &validReply},
+		{name: "occurrence key canonical", series: validSeries, attendee: badKey, expected: 2, outbox: outbox, reply: &validReply},
+		{name: "occurrence tombstone", series: validSeries, attendee: tombstone, expected: 2, outbox: outbox, reply: &validReply},
+		{name: "occurrence response semantics", series: validSeries, attendee: badResponse, expected: 2, outbox: outbox, reply: &validReply},
+		{name: "outbox invalid", series: validSeries, attendee: validAttendee, expected: 2, outbox: zeroOutbox, reply: &validReply},
+		{name: "reply key mismatch", series: validSeries, attendee: validAttendee, expected: 2, outbox: outbox, reply: &badReply},
+		{name: "existing override ID immutable", series: validSeries, prior: &priorWrongID, attendee: occurrenceRSVPRepositoryAttendee(validSeries, rsvpRepositoryOccurrenceID, "2032-02-04", calendar.RSVPDeclined, 4), expected: 3, outbox: outbox},
+		{name: "existing override key immutable", series: validSeries, prior: &priorWrongKey, attendee: occurrenceRSVPRepositoryAttendee(validSeries, rsvpRepositoryOccurrenceID, "2032-02-04", calendar.RSVPDeclined, 4), expected: 3, outbox: outbox},
+		{name: "existing override email immutable", series: validSeries, prior: &validAttendee, attendee: occurrenceRSVPRepositoryAttendeeFrom(validAttendee, calendar.RSVPDeclined, 4, func(value *calendar.CalendarEventOccurrenceRSVPAttendeeSnapshot) { value.Email = wrongEmail.Email }), expected: 3, outbox: outbox},
+		{name: "existing override display name immutable", series: validSeries, prior: &validAttendee, attendee: occurrenceRSVPRepositoryAttendeeFrom(validAttendee, calendar.RSVPDeclined, 4, func(value *calendar.CalendarEventOccurrenceRSVPAttendeeSnapshot) { value.DisplayName = wrongName.DisplayName }), expected: 3, outbox: outbox},
+		{name: "existing override role immutable", series: validSeries, prior: &validAttendee, attendee: occurrenceRSVPRepositoryAttendeeFrom(validAttendee, calendar.RSVPDeclined, 4, func(value *calendar.CalendarEventOccurrenceRSVPAttendeeSnapshot) { value.Role = wrongRole.Role }), expected: 3, outbox: outbox},
+		{name: "occurrence event identity", series: validSeries, attendee: wrongEvent, expected: 2, outbox: outbox},
+		{name: "occurrence user identity", series: validSeries, attendee: wrongUser, expected: 2, outbox: outbox},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			if _, err := calendar.NewCalendarEventOccurrenceRSVPPersistenceCommand(testCase.series, testCase.prior, testCase.attendee, testCase.expected, 0, testCase.outbox, testCase.reply); !errors.Is(err, calendar.ErrEventInvalid) {
+				t.Fatalf("NewCalendarEventOccurrenceRSVPPersistenceCommand() error = %v, want invalid", err)
+			}
+		})
+	}
+
+	for _, testCase := range []struct {
+		name     string
+		attendee calendar.CalendarEventOccurrenceRSVPAttendeeSnapshot
+		outbox   calendar.EventOutboxDescriptor
+		reply    *calendar.CalendarEventOccurrenceRSVPReplyDeliveryDescriptor
+	}{
+		{name: "invalid attendee", attendee: tombstone, outbox: outbox},
+		{name: "invalid outbox", attendee: validAttendee, outbox: zeroOutbox},
+		{name: "invalid reply", attendee: validAttendee, outbox: outbox, reply: &badReply},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			if _, err := calendar.NewCalendarEventOccurrenceRSVPPersistenceResult(testCase.attendee, 0, testCase.outbox, testCase.reply); !errors.Is(err, calendar.ErrEventInvalid) {
+				t.Fatalf("NewCalendarEventOccurrenceRSVPPersistenceResult() error = %v, want invalid", err)
+			}
+		})
+	}
+}
+
+func TestEventTransactionOccurrenceRSVP_RequiresCapabilityAndClosesScope(t *testing.T) {
+	base := &rsvpBaseOnlyBackend{organizationID: rsvpRepositoryOrganizationID}
+	err := calendar.RunEventTransaction(base, func(transaction *calendar.EventTransaction) error {
+		_, err := transaction.ResolveCalendarEventOccurrenceRSVPScope(context.Background(), rsvpRepositoryActorID)
+		if !errors.Is(err, calendar.ErrEventInvalid) {
+			t.Fatalf("unsupported scope error = %v, want invalid", err)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("RunEventTransaction() error = %v", err)
+	}
+	if base.organizationCalls != 0 || base.otherCalls != 0 {
+		t.Fatalf("unsupported capability made backend calls org:%d other:%d", base.organizationCalls, base.otherCalls)
+	}
+
+	var typedNil *occurrenceRSVPRepositoryBackend
+	err = calendar.RunEventTransaction(typedNil, func(transaction *calendar.EventTransaction) error {
+		_, err := transaction.ResolveCalendarEventOccurrenceRSVPScope(context.Background(), rsvpRepositoryActorID)
+		if !errors.Is(err, calendar.ErrEventInvalid) {
+			t.Fatalf("typed-nil scope error = %v, want invalid", err)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("RunEventTransaction(typed nil) error = %v", err)
+	}
+
+	backend := newOccurrenceRSVPRepositoryBackend()
+	var retained *calendar.EventTransaction
+	var scope calendar.EventMutationScope
+	err = calendar.RunEventTransaction(backend, func(transaction *calendar.EventTransaction) error {
+		retained = transaction
+		var err error
+		scope, err = transaction.ResolveCalendarEventOccurrenceRSVPScope(context.Background(), rsvpRepositoryActorID)
+		if err != nil {
+			return err
+		}
+		if scope.ActorID() != rsvpRepositoryActorID || scope.OrganizationID() != rsvpRepositoryOrganizationID || scope.Operation() != calendar.MutationReceiptRSVPOccurrence || scope.EventOperation() != calendar.EventMutationRSVPOccurrence {
+			t.Fatalf("occurrence RSVP scope = %#v", scope)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("RunEventTransaction() supported capability error = %v", err)
+	}
+	if backend.organizationCalls != 1 {
+		t.Fatalf("organization calls = %d, want 1", backend.organizationCalls)
+	}
+	if _, err := retained.ResolveCalendarEventOccurrenceRSVPScope(context.Background(), rsvpRepositoryActorID); !errors.Is(err, calendar.ErrEventTransactionClosed) {
+		t.Fatalf("escaped scope error = %v, want transaction closed", err)
+	}
+	if _, err := retained.ResolveCalendarEventOccurrenceRSVP(context.Background(), scope, calendar.CalendarEventOccurrenceRSVPAuthorizationRequest{EventID: rsvpRepositoryEventID, RecurrenceID: "2032-02-04"}); !errors.Is(err, calendar.ErrEventTransactionClosed) {
+		t.Fatalf("escaped resolve error = %v, want transaction closed", err)
+	}
+	series := occurrenceRSVPRepositorySeries(calendar.RSVPAccepted)
+	attendee := occurrenceRSVPRepositoryAttendee(series, rsvpRepositoryOccurrenceID, "2032-02-04", calendar.RSVPAccepted, 3)
+	command := occurrenceRSVPRepositoryCommand(t, series, nil, attendee, 2, 0, false)
+	if _, err := retained.PersistCalendarEventOccurrenceRSVP(context.Background(), scope, command); !errors.Is(err, calendar.ErrEventTransactionClosed) {
+		t.Fatalf("escaped persist error = %v, want transaction closed", err)
+	}
+}
+
+func TestEventTransactionOccurrenceRSVP_ResolvesCanonicalBoundSnapshots(t *testing.T) {
+	backend := newOccurrenceRSVPRepositoryBackend()
+	err := calendar.RunEventTransaction(backend, func(transaction *calendar.EventTransaction) error {
+		scope, err := transaction.ResolveCalendarEventOccurrenceRSVPScope(context.Background(), rsvpRepositoryActorID)
+		if err != nil {
+			return err
+		}
+		for _, request := range []calendar.CalendarEventOccurrenceRSVPAuthorizationRequest{
+			{},
+			{EventID: rsvpRepositoryEventID},
+			{EventID: rsvpRepositoryEventID, RecurrenceID: "2032-02-04T04:05:06+00:00"},
+			{EventID: rsvpRepositoryEventID, RecurrenceID: "2032-02-04\x00"},
+			{EventID: rsvpRepositoryEventID, RecurrenceID: strings.Repeat("a", 256)},
+		} {
+			if _, err := transaction.ResolveCalendarEventOccurrenceRSVP(context.Background(), scope, request); !errors.Is(err, calendar.ErrEventInvalid) {
+				t.Fatalf("ResolveCalendarEventOccurrenceRSVP(%#v) error = %v, want invalid", request, err)
+			}
+		}
+		if backend.resolveCalls != 0 {
+			t.Fatalf("invalid request reached resolver: %d", backend.resolveCalls)
+		}
+
+		authorization, err := transaction.ResolveCalendarEventOccurrenceRSVP(context.Background(), scope, calendar.CalendarEventOccurrenceRSVPAuthorizationRequest{EventID: rsvpRepositoryEventID, RecurrenceID: "2032-02-04"})
+		if err != nil {
+			return err
+		}
+		if backend.resolveCalls != 1 || backend.lastRequest.EventID != rsvpRepositoryEventID || backend.lastRequest.RecurrenceID != "2032-02-04" || authorization.OccurrenceAttendee == nil || authorization.Exception == nil {
+			t.Fatalf("authorization = %#v resolver:%d request:%#v", authorization, backend.resolveCalls, backend.lastRequest)
+		}
+		if authorization.SeriesAttendee.AttendeeID == authorization.OccurrenceAttendee.AttendeeID || authorization.SeriesAttendee.Version != 2 || authorization.OccurrenceAttendee.Version != 3 || authorization.OccurrenceAttendee.RecurrenceID != "2032-02-04" {
+			t.Fatalf("inherited materialization = %#v", authorization)
+		}
+		*authorization.Current.OrganizerID = rsvpRepositoryOtherID
+		authorization.Current.Exdates[0] = "2032-02-05T04:05:06Z"
+		*authorization.SeriesAttendee.UserID = rsvpRepositoryOtherID
+		*authorization.OccurrenceAttendee.UserID = rsvpRepositoryOtherID
+		*authorization.OccurrenceAttendee.RespondedAt = authorization.OccurrenceAttendee.RespondedAt.Add(time.Hour)
+		authorization.Exception.RecurrenceID = "2032-02-05"
+		authorization.Exception.Temporal.StartsAt = authorization.Exception.Temporal.StartsAt.Add(time.Hour)
+		if backend.authorization.Current.OrganizerID == nil || *backend.authorization.Current.OrganizerID != rsvpRepositoryActorID || backend.authorization.Current.Exdates[0] != "2032-02-04T04:05:06Z" || backend.authorization.SeriesAttendee.UserID == nil || *backend.authorization.SeriesAttendee.UserID != rsvpRepositoryActorID || backend.authorization.OccurrenceAttendee == nil || backend.authorization.OccurrenceAttendee.UserID == nil || *backend.authorization.OccurrenceAttendee.UserID != rsvpRepositoryActorID || backend.authorization.OccurrenceAttendee.RespondedAt == nil || !backend.authorization.OccurrenceAttendee.RespondedAt.Equal(time.Date(2032, time.February, 3, 4, 5, 6, 0, time.UTC)) || backend.authorization.Exception == nil || backend.authorization.Exception.RecurrenceID != "2032-02-04" || backend.authorization.Exception.Temporal == nil || !backend.authorization.Exception.Temporal.StartsAt.Equal(time.Date(2032, time.February, 4, 4, 5, 6, 0, time.UTC)) {
+			t.Fatalf("authorization output retained backend aliases: %#v", backend.authorization)
+		}
+		backend.authorization.OccurrenceAttendee.RecurrenceID = "2032-02-04T04:05:06Z"
+		backend.authorization.Exception.RecurrenceID = "2032-02-04T04:05:06Z"
+		if _, err := transaction.ResolveCalendarEventOccurrenceRSVP(context.Background(), scope, calendar.CalendarEventOccurrenceRSVPAuthorizationRequest{EventID: rsvpRepositoryEventID, RecurrenceID: "2032-02-04T04:05:06Z"}); err != nil {
+			t.Fatalf("timed canonical recurrence error = %v", err)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("RunEventTransaction() error = %v", err)
+	}
+
+	for _, testCase := range []struct {
+		name   string
+		mutate func(*occurrenceRSVPRepositoryBackend)
+	}{
+		{name: "foreign event", mutate: func(backend *occurrenceRSVPRepositoryBackend) { backend.authorization.Current.EventID = rsvpRepositoryOtherID }},
+		{name: "foreign organization", mutate: func(backend *occurrenceRSVPRepositoryBackend) { backend.authorization.Current.OrganizationID = rsvpRepositoryOtherID }},
+		{name: "foreign series actor", mutate: func(backend *occurrenceRSVPRepositoryBackend) { backend.authorization.SeriesAttendee.UserID = rsvpRepositoryUUIDRef(rsvpRepositoryOtherID) }},
+		{name: "foreign occurrence actor", mutate: func(backend *occurrenceRSVPRepositoryBackend) { backend.authorization.OccurrenceAttendee.UserID = rsvpRepositoryUUIDRef(rsvpRepositoryOtherID) }},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			backend := newOccurrenceRSVPRepositoryBackend()
+			testCase.mutate(backend)
+			backend.authorization.Current.Title = "attacker-controlled-title"
+			backend.authorization.SeriesAttendee.Email = "attacker@example.test"
+			backend.authorization.OccurrenceAttendee.Email = "attacker@example.test"
+			backend.authorization.Exception.RecurrenceID = strings.Repeat("x", 255)
+			authorization := calendar.CalendarEventOccurrenceRSVPAuthorization{}
+			err := calendar.RunEventTransaction(backend, func(transaction *calendar.EventTransaction) error {
+				scope, err := transaction.ResolveCalendarEventOccurrenceRSVPScope(context.Background(), rsvpRepositoryActorID)
+				if err != nil {
+					return err
+				}
+				authorization, err = transaction.ResolveCalendarEventOccurrenceRSVP(context.Background(), scope, calendar.CalendarEventOccurrenceRSVPAuthorizationRequest{EventID: rsvpRepositoryEventID, RecurrenceID: "2032-02-04"})
+				return err
+			})
+			if err != nil {
+				t.Fatalf("RunEventTransaction() error = %v", err)
+			}
+			if authorization.Current.Title != "" || authorization.Current.Description != "" || authorization.SeriesAttendee.Email != "" || authorization.SeriesAttendee.DisplayName != "" || authorization.SeriesAttendee.RespondedAt != nil || authorization.OccurrenceAttendee != nil && (authorization.OccurrenceAttendee.Email != "" || authorization.OccurrenceAttendee.DisplayName != "" || authorization.OccurrenceAttendee.RecurrenceID != "" || authorization.OccurrenceAttendee.RespondedAt != nil) || authorization.Exception != nil && (authorization.Exception.RecurrenceID != "" || authorization.Exception.Temporal != nil) {
+				t.Fatalf("foreign mask retained variable material: %#v", authorization)
+			}
+		})
+	}
+
+	for _, testCase := range []struct {
+		name   string
+		mutate func(*occurrenceRSVPRepositoryBackend)
+	}{
+		{name: "malformed series", mutate: func(backend *occurrenceRSVPRepositoryBackend) { backend.authorization.SeriesAttendee.Email = " malformed@example.test " }},
+		{name: "malformed occurrence key", mutate: func(backend *occurrenceRSVPRepositoryBackend) { backend.authorization.OccurrenceAttendee.RecurrenceID = "2032-02-05" }},
+		{name: "malformed exception", mutate: func(backend *occurrenceRSVPRepositoryBackend) { backend.authorization.Exception.RecurrenceID = "2032-02-05" }},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			backend := newOccurrenceRSVPRepositoryBackend()
+			testCase.mutate(backend)
+			err := calendar.RunEventTransaction(backend, func(transaction *calendar.EventTransaction) error {
+				scope, err := transaction.ResolveCalendarEventOccurrenceRSVPScope(context.Background(), rsvpRepositoryActorID)
+				if err != nil {
+					return err
+				}
+				_, err = transaction.ResolveCalendarEventOccurrenceRSVP(context.Background(), scope, calendar.CalendarEventOccurrenceRSVPAuthorizationRequest{EventID: rsvpRepositoryEventID, RecurrenceID: "2032-02-04"})
+				if !errors.Is(err, calendar.ErrEventInvalid) {
+					t.Fatalf("ResolveCalendarEventOccurrenceRSVP() error = %v, want invalid", err)
+				}
+				return nil
+			})
+			if err != nil {
+				t.Fatalf("RunEventTransaction() error = %v", err)
+			}
+		})
+	}
+}
+
+func TestEventTransactionOccurrenceRSVP_PersistsOnlyExactActorBoundEcho(t *testing.T) {
+	series := occurrenceRSVPRepositorySeries(calendar.RSVPAccepted)
+	attendee := occurrenceRSVPRepositoryAttendee(series, rsvpRepositoryOccurrenceID, "2032-02-04", calendar.RSVPAccepted, 3)
+	command := occurrenceRSVPRepositoryCommand(t, series, nil, attendee, 2, 0, true)
+	backend := newOccurrenceRSVPRepositoryBackend()
+	err := calendar.RunEventTransaction(backend, func(transaction *calendar.EventTransaction) error {
+		scope, err := transaction.ResolveCalendarEventOccurrenceRSVPScope(context.Background(), rsvpRepositoryActorID)
+		if err != nil {
+			return err
+		}
+		result, err := transaction.PersistCalendarEventOccurrenceRSVP(context.Background(), scope, command)
+		if err != nil {
+			return err
+		}
+		if result.Attendee().AttendeeID != rsvpRepositoryOccurrenceID || result.EventSequence() != 0 || backend.persistCalls != 1 || len(backend.persisted) != 1 {
+			t.Fatalf("result:%#v persist calls:%d commands:%d", result, backend.persistCalls, len(backend.persisted))
+		}
+		persisted := backend.persisted[0]
+		if persisted.SeriesAttendee().AttendeeID != series.AttendeeID || persisted.SeriesAttendee().Version != 2 || prior, found := persisted.Prior(); found || prior.AttendeeID != uuid.Nil {
+			t.Fatalf("persistence changed series or invented prior: %#v", persisted)
+		}
+		reply, found := persisted.Reply()
+		if !found || reply.AttendeeID != rsvpRepositoryOccurrenceID || reply.EventSequence != 0 || reply.AttendeeVersion != 3 || reply.RecurrenceID != "2032-02-04" || reply.Status != calendar.RSVPAccepted {
+			t.Fatalf("persisted reply = %#v found:%t", reply, found)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("RunEventTransaction() error = %v", err)
+	}
+
+	noReplyCommand := occurrenceRSVPRepositoryCommand(t, series, nil, attendee, 2, 0, false)
+	if noReply, found := noReplyCommand.Reply(); found || noReply != (calendar.CalendarEventOccurrenceRSVPReplyDeliveryDescriptor{}) {
+		t.Fatalf("command no-reply = %#v found:%t", noReply, found)
+	}
+	backend = newOccurrenceRSVPRepositoryBackend()
+	err = calendar.RunEventTransaction(backend, func(transaction *calendar.EventTransaction) error {
+		scope, err := transaction.ResolveCalendarEventOccurrenceRSVPScope(context.Background(), rsvpRepositoryActorID)
+		if err != nil {
+			return err
+		}
+		result, err := transaction.PersistCalendarEventOccurrenceRSVP(context.Background(), scope, noReplyCommand)
+		if err != nil {
+			return err
+		}
+		if noReply, found := result.Reply(); found || noReply != (calendar.CalendarEventOccurrenceRSVPReplyDeliveryDescriptor{}) {
+			t.Fatalf("result no-reply = %#v found:%t", noReply, found)
+		}
+		if len(backend.persisted) != 1 {
+			t.Fatalf("no-reply persisted commands = %d, want 1", len(backend.persisted))
+		}
+		if noReply, found := backend.persisted[0].Reply(); found || noReply != (calendar.CalendarEventOccurrenceRSVPReplyDeliveryDescriptor{}) {
+			t.Fatalf("persistence no-reply echo = %#v found:%t", noReply, found)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("RunEventTransaction(no reply) error = %v", err)
+	}
+
+	for _, testCase := range []struct {
+		name   string
+		mutate func(*occurrenceRSVPRepositoryBackend)
+	}{
+		{name: "zero backend result", mutate: func(backend *occurrenceRSVPRepositoryBackend) { backend.returnZeroResult = true }},
+		{name: "spoofed result echo", mutate: func(backend *occurrenceRSVPRepositoryBackend) {
+			backend.resultOverride = func(command calendar.CalendarEventOccurrenceRSVPPersistenceCommand) (calendar.CalendarEventOccurrenceRSVPPersistenceResult, error) {
+				spoofed := command.Attendee()
+				spoofed.Status = calendar.RSVPDeclined
+				return calendar.NewCalendarEventOccurrenceRSVPPersistenceResult(spoofed, command.EventSequence(), command.Outbox(), nil)
+			}
+		}},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			backend := newOccurrenceRSVPRepositoryBackend()
+			testCase.mutate(backend)
+			err := calendar.RunEventTransaction(backend, func(transaction *calendar.EventTransaction) error {
+				scope, err := transaction.ResolveCalendarEventOccurrenceRSVPScope(context.Background(), rsvpRepositoryActorID)
+				if err != nil {
+					return err
+				}
+				_, err = transaction.PersistCalendarEventOccurrenceRSVP(context.Background(), scope, command)
+				if !errors.Is(err, calendar.ErrEventInvalid) {
+					t.Fatalf("PersistCalendarEventOccurrenceRSVP() error = %v, want invalid", err)
+				}
+				return nil
+			})
+			if err != nil {
+				t.Fatalf("RunEventTransaction() error = %v", err)
+			}
+			if backend.persistCalls != 1 {
+				t.Fatalf("persist calls = %d, want 1", backend.persistCalls)
+			}
+		})
+	}
+
+	foreignSeries := occurrenceRSVPRepositorySeries(calendar.RSVPAccepted)
+	foreignSeries.UserID = rsvpRepositoryUUIDRef(rsvpRepositoryOtherID)
+	foreignAttendee := occurrenceRSVPRepositoryAttendee(foreignSeries, rsvpRepositoryOccurrenceID, "2032-02-04", calendar.RSVPAccepted, 3)
+	foreignCommand := occurrenceRSVPRepositoryCommand(t, foreignSeries, nil, foreignAttendee, 2, 0, false)
+	backend = newOccurrenceRSVPRepositoryBackend()
+	err = calendar.RunEventTransaction(backend, func(transaction *calendar.EventTransaction) error {
+		scope, err := transaction.ResolveCalendarEventOccurrenceRSVPScope(context.Background(), rsvpRepositoryActorID)
+		if err != nil {
+			return err
+		}
+		_, err = transaction.PersistCalendarEventOccurrenceRSVP(context.Background(), scope, foreignCommand)
+		if !errors.Is(err, calendar.ErrEventInvalid) {
+			t.Fatalf("foreign actor persistence error = %v, want invalid", err)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("RunEventTransaction() error = %v", err)
+	}
+	if backend.persistCalls != 0 {
+		t.Fatalf("foreign actor reached persistence: %d", backend.persistCalls)
+	}
+}
+
+func occurrenceRSVPRepositorySeries(status calendar.RSVPStatus) calendar.CalendarEventSeriesRSVPAttendeeSnapshot {
+	series := rsvpRepositoryAttendee(status)
+	series.Version = 2
+	return series
+}
+
+func occurrenceRSVPRepositoryAttendee(series calendar.CalendarEventSeriesRSVPAttendeeSnapshot, attendeeID uuid.UUID, recurrenceID string, status calendar.RSVPStatus, version uint) calendar.CalendarEventOccurrenceRSVPAttendeeSnapshot {
+	attendee := calendar.CalendarEventOccurrenceRSVPAttendeeSnapshot{
+		AttendeeID: attendeeID, EventID: series.EventID, UserID: rsvpRepositoryUUIDRef(*series.UserID), Email: series.Email, DisplayName: series.DisplayName,
+		Role: series.Role, Status: status, RecurrenceID: recurrenceID, Version: version,
+	}
+	if status != calendar.RSVPNeedsAction {
+		respondedAt := time.Date(2032, time.February, 3, 4, 5, 6, 0, time.UTC)
+		attendee.RespondedAt = &respondedAt
+	}
+	return attendee
+}
+
+func occurrenceRSVPRepositoryAttendeeFrom(prior calendar.CalendarEventOccurrenceRSVPAttendeeSnapshot, status calendar.RSVPStatus, version uint, mutate func(*calendar.CalendarEventOccurrenceRSVPAttendeeSnapshot)) calendar.CalendarEventOccurrenceRSVPAttendeeSnapshot {
+	updated := prior
+	updated.UserID = rsvpRepositoryUUIDRef(*prior.UserID)
+	updated.Status = status
+	updated.Version = version
+	if status == calendar.RSVPNeedsAction {
+		updated.RespondedAt = nil
+	} else {
+		respondedAt := time.Date(2032, time.February, 3, 4, 5, 6, 0, time.UTC)
+		updated.RespondedAt = &respondedAt
+	}
+	mutate(&updated)
+	return updated
+}
+
+func occurrenceRSVPRepositoryReply(attendee calendar.CalendarEventOccurrenceRSVPAttendeeSnapshot, sequence uint) calendar.CalendarEventOccurrenceRSVPReplyDeliveryDescriptor {
+	return calendar.CalendarEventOccurrenceRSVPReplyDeliveryDescriptor{AttendeeID: attendee.AttendeeID, EventID: attendee.EventID, EventSequence: sequence, AttendeeVersion: attendee.Version, RecurrenceID: attendee.RecurrenceID, Status: attendee.Status}
+}
+
+func occurrenceRSVPRepositoryMustReply(t *testing.T, reply calendar.CalendarEventOccurrenceRSVPReplyDeliveryDescriptor, found bool) calendar.CalendarEventOccurrenceRSVPReplyDeliveryDescriptor {
+	t.Helper()
+	if !found {
+		t.Fatal("Reply() found = false, want true")
+	}
+	return reply
+}
+
+func occurrenceRSVPRepositoryCommand(t *testing.T, series calendar.CalendarEventSeriesRSVPAttendeeSnapshot, prior *calendar.CalendarEventOccurrenceRSVPAttendeeSnapshot, attendee calendar.CalendarEventOccurrenceRSVPAttendeeSnapshot, expectedVersion, sequence uint, withReply bool) calendar.CalendarEventOccurrenceRSVPPersistenceCommand {
+	t.Helper()
+	var reply *calendar.CalendarEventOccurrenceRSVPReplyDeliveryDescriptor
+	if withReply {
+		value := occurrenceRSVPRepositoryReply(attendee, sequence)
+		reply = &value
+	}
+	command, err := calendar.NewCalendarEventOccurrenceRSVPPersistenceCommand(series, prior, attendee, expectedVersion, sequence, rsvpRepositoryOutbox(t), reply)
+	if err != nil {
+		t.Fatalf("NewCalendarEventOccurrenceRSVPPersistenceCommand() error = %v", err)
+	}
+	return command
+}
+
+type occurrenceRSVPRepositoryBackend struct {
+	rsvpBaseOnlyBackend
+	authorization    calendar.CalendarEventOccurrenceRSVPAuthorization
+	lastRequest      calendar.CalendarEventOccurrenceRSVPAuthorizationRequest
+	persisted        []calendar.CalendarEventOccurrenceRSVPPersistenceCommand
+	resolveCalls     int
+	persistCalls     int
+	returnZeroResult bool
+	resultOverride   func(calendar.CalendarEventOccurrenceRSVPPersistenceCommand) (calendar.CalendarEventOccurrenceRSVPPersistenceResult, error)
+}
+
+func newOccurrenceRSVPRepositoryBackend() *occurrenceRSVPRepositoryBackend {
+	series := occurrenceRSVPRepositorySeries(calendar.RSVPAccepted)
+	occurrence := occurrenceRSVPRepositoryAttendee(series, rsvpRepositoryOccurrenceID, "2032-02-04", calendar.RSVPAccepted, 3)
+	temporal := rsvpRepositoryCurrent().Temporal
+	return &occurrenceRSVPRepositoryBackend{
+		rsvpBaseOnlyBackend: rsvpBaseOnlyBackend{organizationID: rsvpRepositoryOrganizationID},
+		authorization: calendar.CalendarEventOccurrenceRSVPAuthorization{
+			Current: rsvpRepositoryCurrent(), SeriesAttendee: series, OccurrenceAttendee: &occurrence,
+			Exception: &calendar.CalendarEventExceptionCommandInput{ExceptionID: rsvpRepositoryEnvelopeID, EventID: rsvpRepositoryEventID, RecurrenceID: "2032-02-04", Temporal: &temporal, Sequence: 6, Status: calendar.CalendarEventStatusConfirmed},
+		},
+	}
+}
+
+func (backend *occurrenceRSVPRepositoryBackend) ResolveCalendarEventOccurrenceRSVP(_ context.Context, _ calendar.EventMutationScope, request calendar.CalendarEventOccurrenceRSVPAuthorizationRequest) (calendar.CalendarEventOccurrenceRSVPAuthorization, error) {
+	backend.resolveCalls++
+	backend.lastRequest = request
+	return backend.authorization, nil
+}
+
+func (backend *occurrenceRSVPRepositoryBackend) PersistCalendarEventOccurrenceRSVP(_ context.Context, _ calendar.EventMutationScope, command calendar.CalendarEventOccurrenceRSVPPersistenceCommand) (calendar.CalendarEventOccurrenceRSVPPersistenceResult, error) {
+	backend.persistCalls++
+	if backend.returnZeroResult {
+		return calendar.CalendarEventOccurrenceRSVPPersistenceResult{}, nil
+	}
+	if backend.resultOverride != nil {
+		return backend.resultOverride(command)
+	}
+	backend.persisted = append(backend.persisted, command)
+	return calendar.NewCalendarEventOccurrenceRSVPPersistenceResult(command.Attendee(), command.EventSequence(), command.Outbox(), occurrenceRSVPRepositoryReplyPointer(command))
+}
+
+func occurrenceRSVPRepositoryReplyPointer(command calendar.CalendarEventOccurrenceRSVPPersistenceCommand) *calendar.CalendarEventOccurrenceRSVPReplyDeliveryDescriptor {
 	reply, found := command.Reply()
 	if !found {
 		return nil

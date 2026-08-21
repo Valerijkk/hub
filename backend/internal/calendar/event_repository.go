@@ -220,6 +220,184 @@ type CalendarEventSeriesRSVPTransactionBackend interface {
 	PersistCalendarEventSeriesRSVP(context.Context, EventMutationScope, CalendarEventSeriesRSVPPersistenceCommand) (CalendarEventSeriesRSVPPersistenceResult, error)
 }
 
+// CalendarEventOccurrenceRSVPAuthorizationRequest carries only the master
+// event identity and canonical recurrence key. The optional backend resolves
+// every durable series, occurrence and exception value in its transaction.
+type CalendarEventOccurrenceRSVPAuthorizationRequest struct {
+	EventID      uuid.UUID
+	RecurrenceID string
+}
+
+// CalendarEventOccurrenceRSVPAttendeeSnapshot is the active RSVP state for
+// one materialized occurrence. It deliberately keeps the immutable series
+// identity alongside the occurrence-local recurrence key and version.
+type CalendarEventOccurrenceRSVPAttendeeSnapshot struct {
+	AttendeeID   uuid.UUID
+	EventID      uuid.UUID
+	UserID       *uuid.UUID
+	Email        string
+	DisplayName  string
+	Role         CalendarEventAttendeeRole
+	Status       RSVPStatus
+	RecurrenceID string
+	RespondedAt  *time.Time
+	Version      uint
+	RemovedAt    *time.Time
+}
+
+// CalendarEventOccurrenceRSVPAuthorization is the authoritative snapshot
+// resolved before one occurrence-local RSVP compare-and-swap write.
+type CalendarEventOccurrenceRSVPAuthorization struct {
+	Current            CalendarEventCommandInput
+	SeriesAttendee     CalendarEventSeriesRSVPAttendeeSnapshot
+	OccurrenceAttendee *CalendarEventOccurrenceRSVPAttendeeSnapshot
+	Exception          *CalendarEventExceptionCommandInput
+}
+
+// CalendarEventOccurrenceRSVPReplyDeliveryDescriptor is a content-free
+// durable REPLY delivery descriptor for exactly one occurrence attendee.
+type CalendarEventOccurrenceRSVPReplyDeliveryDescriptor struct {
+	AttendeeID      uuid.UUID
+	EventID         uuid.UUID
+	EventSequence   uint
+	AttendeeVersion uint
+	RecurrenceID    string
+	Status          RSVPStatus
+}
+
+// CalendarEventOccurrenceRSVPPersistenceCommand is an immutable atomic
+// occurrence RSVP write. Its fields remain opaque outside this package.
+type CalendarEventOccurrenceRSVPPersistenceCommand struct {
+	seriesAttendee  CalendarEventSeriesRSVPAttendeeSnapshot
+	prior           *CalendarEventOccurrenceRSVPAttendeeSnapshot
+	attendee        CalendarEventOccurrenceRSVPAttendeeSnapshot
+	expectedVersion uint
+	eventSequence   uint
+	outbox          EventOutboxDescriptor
+	reply           *CalendarEventOccurrenceRSVPReplyDeliveryDescriptor
+}
+
+// NewCalendarEventOccurrenceRSVPPersistenceCommand snapshots either a fresh
+// inherited materialization or an existing occurrence override CAS mutation.
+func NewCalendarEventOccurrenceRSVPPersistenceCommand(series CalendarEventSeriesRSVPAttendeeSnapshot, prior *CalendarEventOccurrenceRSVPAttendeeSnapshot, attendee CalendarEventOccurrenceRSVPAttendeeSnapshot, expectedVersion uint, eventSequence uint, outbox EventOutboxDescriptor, reply *CalendarEventOccurrenceRSVPReplyDeliveryDescriptor) (CalendarEventOccurrenceRSVPPersistenceCommand, error) {
+	if !validCalendarEventOccurrenceRSVPPersistence(series, prior, attendee, expectedVersion, eventSequence, outbox, reply) {
+		return CalendarEventOccurrenceRSVPPersistenceCommand{}, ErrEventInvalid
+	}
+	return CalendarEventOccurrenceRSVPPersistenceCommand{
+		seriesAttendee:  cloneCalendarEventSeriesRSVPAttendeeSnapshot(series),
+		prior:           cloneCalendarEventOccurrenceRSVPAttendeeSnapshotPointer(prior),
+		attendee:        cloneCalendarEventOccurrenceRSVPAttendeeSnapshot(attendee),
+		expectedVersion: expectedVersion,
+		eventSequence:   eventSequence,
+		outbox:          outbox,
+		reply:           cloneCalendarEventOccurrenceRSVPReplyDeliveryDescriptor(reply),
+	}, nil
+}
+
+// SeriesAttendee returns an isolated immutable series attendee snapshot.
+func (command CalendarEventOccurrenceRSVPPersistenceCommand) SeriesAttendee() CalendarEventSeriesRSVPAttendeeSnapshot {
+	return cloneCalendarEventSeriesRSVPAttendeeSnapshot(command.seriesAttendee)
+}
+
+// Prior returns the isolated materialized occurrence snapshot when an
+// occurrence override already existed before this compare-and-swap write.
+func (command CalendarEventOccurrenceRSVPPersistenceCommand) Prior() (CalendarEventOccurrenceRSVPAttendeeSnapshot, bool) {
+	if command.prior == nil {
+		return CalendarEventOccurrenceRSVPAttendeeSnapshot{}, false
+	}
+	return cloneCalendarEventOccurrenceRSVPAttendeeSnapshot(*command.prior), true
+}
+
+// Attendee returns the isolated updated occurrence attendee snapshot.
+func (command CalendarEventOccurrenceRSVPPersistenceCommand) Attendee() CalendarEventOccurrenceRSVPAttendeeSnapshot {
+	return cloneCalendarEventOccurrenceRSVPAttendeeSnapshot(command.attendee)
+}
+
+// ExpectedVersion returns the version required by the inherited or override CAS.
+func (command CalendarEventOccurrenceRSVPPersistenceCommand) ExpectedVersion() uint {
+	return command.expectedVersion
+}
+
+// EventSequence returns the authoritative event sequence, including zero.
+func (command CalendarEventOccurrenceRSVPPersistenceCommand) EventSequence() uint {
+	return command.eventSequence
+}
+
+// Outbox returns the complete immutable outbox descriptor for this mutation.
+func (command CalendarEventOccurrenceRSVPPersistenceCommand) Outbox() EventOutboxDescriptor {
+	return command.outbox
+}
+
+// Reply returns a value copy of the optional durable occurrence REPLY descriptor.
+func (command CalendarEventOccurrenceRSVPPersistenceCommand) Reply() (CalendarEventOccurrenceRSVPReplyDeliveryDescriptor, bool) {
+	if command.reply == nil {
+		return CalendarEventOccurrenceRSVPReplyDeliveryDescriptor{}, false
+	}
+	return *command.reply, true
+}
+
+func (command CalendarEventOccurrenceRSVPPersistenceCommand) valid() bool {
+	return validCalendarEventOccurrenceRSVPPersistence(command.seriesAttendee, command.prior, command.attendee, command.expectedVersion, command.eventSequence, command.outbox, command.reply)
+}
+
+// CalendarEventOccurrenceRSVPPersistenceResult is an opaque exact durable
+// echo returned by an occurrence RSVP backend.
+type CalendarEventOccurrenceRSVPPersistenceResult struct {
+	attendee      CalendarEventOccurrenceRSVPAttendeeSnapshot
+	eventSequence uint
+	outbox        EventOutboxDescriptor
+	reply         *CalendarEventOccurrenceRSVPReplyDeliveryDescriptor
+}
+
+// NewCalendarEventOccurrenceRSVPPersistenceResult snapshots a valid durable
+// occurrence RSVP echo. Transaction code additionally verifies exact command equality.
+func NewCalendarEventOccurrenceRSVPPersistenceResult(attendee CalendarEventOccurrenceRSVPAttendeeSnapshot, eventSequence uint, outbox EventOutboxDescriptor, reply *CalendarEventOccurrenceRSVPReplyDeliveryDescriptor) (CalendarEventOccurrenceRSVPPersistenceResult, error) {
+	if !validCalendarEventOccurrenceRSVPAttendee(attendee) || !outbox.valid() || !validCalendarEventOccurrenceRSVPReply(reply, attendee, eventSequence) {
+		return CalendarEventOccurrenceRSVPPersistenceResult{}, ErrEventInvalid
+	}
+	return CalendarEventOccurrenceRSVPPersistenceResult{
+		attendee:      cloneCalendarEventOccurrenceRSVPAttendeeSnapshot(attendee),
+		eventSequence: eventSequence,
+		outbox:        outbox,
+		reply:         cloneCalendarEventOccurrenceRSVPReplyDeliveryDescriptor(reply),
+	}, nil
+}
+
+// Attendee returns the isolated durable occurrence attendee snapshot.
+func (result CalendarEventOccurrenceRSVPPersistenceResult) Attendee() CalendarEventOccurrenceRSVPAttendeeSnapshot {
+	return cloneCalendarEventOccurrenceRSVPAttendeeSnapshot(result.attendee)
+}
+
+// EventSequence returns the durable authoritative event sequence, including zero.
+func (result CalendarEventOccurrenceRSVPPersistenceResult) EventSequence() uint {
+	return result.eventSequence
+}
+
+// Outbox returns the complete immutable durable outbox descriptor.
+func (result CalendarEventOccurrenceRSVPPersistenceResult) Outbox() EventOutboxDescriptor {
+	return result.outbox
+}
+
+// Reply returns a value copy of the optional durable occurrence REPLY descriptor.
+func (result CalendarEventOccurrenceRSVPPersistenceResult) Reply() (CalendarEventOccurrenceRSVPReplyDeliveryDescriptor, bool) {
+	if result.reply == nil {
+		return CalendarEventOccurrenceRSVPReplyDeliveryDescriptor{}, false
+	}
+	return *result.reply, true
+}
+
+func (result CalendarEventOccurrenceRSVPPersistenceResult) valid() bool {
+	_, err := NewCalendarEventOccurrenceRSVPPersistenceResult(result.attendee, result.eventSequence, result.outbox, result.reply)
+	return err == nil
+}
+
+// CalendarEventOccurrenceRSVPTransactionBackend is deliberately optional so
+// existing repository adapters and the accepted series RSVP ABI stay intact.
+type CalendarEventOccurrenceRSVPTransactionBackend interface {
+	ResolveCalendarEventOccurrenceRSVP(context.Context, EventMutationScope, CalendarEventOccurrenceRSVPAuthorizationRequest) (CalendarEventOccurrenceRSVPAuthorization, error)
+	PersistCalendarEventOccurrenceRSVP(context.Context, EventMutationScope, CalendarEventOccurrenceRSVPPersistenceCommand) (CalendarEventOccurrenceRSVPPersistenceResult, error)
+}
+
 // CalendarEventCreateAttendeeCandidate is an untrusted create-time attendee
 // reference. The transaction resolver owns every identity decision.
 type CalendarEventCreateAttendeeCandidate struct {
@@ -442,6 +620,38 @@ func (transaction *EventTransaction) ResolveCalendarEventSeriesRSVPScope(ctx con
 	}, nil
 }
 
+// ResolveCalendarEventOccurrenceRSVPScope proves support for the optional
+// occurrence RSVP port before actor organization resolution. This prevents an
+// observable legacy fallback and binds both receipt and event operations.
+func (transaction *EventTransaction) ResolveCalendarEventOccurrenceRSVPScope(ctx context.Context, actorID uuid.UUID) (EventMutationScope, error) {
+	if transaction == nil {
+		return EventMutationScope{}, ErrEventTransactionClosed
+	}
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+	if !transaction.active || transaction.backend == nil {
+		return EventMutationScope{}, ErrEventTransactionClosed
+	}
+	backend, supported := transaction.backend.(CalendarEventOccurrenceRSVPTransactionBackend)
+	if !supported || nilCalendarEventOccurrenceRSVPTransactionBackend(backend) {
+		return EventMutationScope{}, ErrEventInvalid
+	}
+	if actorID == uuid.Nil {
+		return EventMutationScope{}, ErrEventInvalid
+	}
+	organizationID, err := transaction.backend.ResolveActorOrganization(ctx, actorID)
+	if err != nil || organizationID == uuid.Nil {
+		return EventMutationScope{}, ErrEventForbidden
+	}
+	return EventMutationScope{
+		actorID:          actorID,
+		organizationID:   organizationID,
+		receiptOperation: MutationReceiptRSVPOccurrence,
+		eventOperation:   EventMutationRSVPOccurrence,
+		transaction:      transaction,
+	}, nil
+}
+
 // ResolveCalendarEventCreateAuthorization resolves create identities only
 // while the transaction and its scope are still live. Both the input and
 // output are copied so neither callers nor backends can retain mutable aliases.
@@ -582,6 +792,50 @@ func (transaction *EventTransaction) ResolveCalendarEventSeriesRSVP(ctx context.
 }
 
 // ReserveMutationReceipt резервирует или воспроизводит квитанцию только в переданной transaction scope.
+
+// ResolveCalendarEventOccurrenceRSVP resolves one authoritative series
+// attendee plus an optional materialized occurrence attendee. Foreign
+// identity is reduced to fixed-size values before any variable-size event,
+// attendee or exception data is cloned.
+func (transaction *EventTransaction) ResolveCalendarEventOccurrenceRSVP(ctx context.Context, scope EventMutationScope, request CalendarEventOccurrenceRSVPAuthorizationRequest) (CalendarEventOccurrenceRSVPAuthorization, error) {
+	if transaction == nil {
+		return CalendarEventOccurrenceRSVPAuthorization{}, ErrEventTransactionClosed
+	}
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+	if !transaction.active || transaction.backend == nil {
+		return CalendarEventOccurrenceRSVPAuthorization{}, ErrEventTransactionClosed
+	}
+	backend, supported := transaction.backend.(CalendarEventOccurrenceRSVPTransactionBackend)
+	if !supported || nilCalendarEventOccurrenceRSVPTransactionBackend(backend) {
+		return CalendarEventOccurrenceRSVPAuthorization{}, ErrEventInvalid
+	}
+	if err := transaction.validateScope(scope); err != nil {
+		return CalendarEventOccurrenceRSVPAuthorization{}, err
+	}
+	if scope.receiptOperation != MutationReceiptRSVPOccurrence || scope.eventOperation != EventMutationRSVPOccurrence || request.EventID == uuid.Nil || !validCalendarEventOccurrenceCancelCanonicalKey(request.RecurrenceID) {
+		return CalendarEventOccurrenceRSVPAuthorization{}, ErrEventInvalid
+	}
+	resolved, err := backend.ResolveCalendarEventOccurrenceRSVP(ctx, scope, cloneCalendarEventOccurrenceRSVPAuthorizationRequest(request))
+	if err != nil {
+		return CalendarEventOccurrenceRSVPAuthorization{}, err
+	}
+	if !calendarEventOccurrenceRSVPAuthorizationIdentityMatches(resolved, scope, request.EventID) {
+		return calendarEventOccurrenceRSVPAuthorizationIdentityMask(resolved), nil
+	}
+	if _, err := NewCalendarEventCommand(resolved.Current); err != nil || !validCalendarEventSeriesRSVPAttendee(resolved.SeriesAttendee) {
+		return CalendarEventOccurrenceRSVPAuthorization{}, ErrEventInvalid
+	}
+	if resolved.OccurrenceAttendee != nil && (resolved.OccurrenceAttendee.RecurrenceID != request.RecurrenceID || !validCalendarEventOccurrenceRSVPAttendeeForSeries(resolved.SeriesAttendee, *resolved.OccurrenceAttendee)) {
+		return CalendarEventOccurrenceRSVPAuthorization{}, ErrEventInvalid
+	}
+	if resolved.Exception != nil && !validCalendarEventOccurrenceRSVPException(*resolved.Exception, request) {
+		return CalendarEventOccurrenceRSVPAuthorization{}, ErrEventInvalid
+	}
+	return cloneCalendarEventOccurrenceRSVPAuthorization(resolved), nil
+}
+
+// ReserveMutationReceipt reserves or replays a receipt only inside its scope.
 func (transaction *EventTransaction) ReserveMutationReceipt(ctx context.Context, scope EventMutationScope, reservation MutationReceiptReservation) (MutationReceiptReservationResult, error) {
 	if transaction == nil {
 		return MutationReceiptReservationResult{}, ErrEventTransactionClosed
@@ -795,6 +1049,42 @@ func (transaction *EventTransaction) PersistCalendarEventSeriesRSVP(ctx context.
 }
 
 // AppendOutbox добавляет только полный accepted EnvelopeV1 внутри transaction scope.
+
+// PersistCalendarEventOccurrenceRSVP delegates one immutable actor-bound
+// occurrence RSVP compare-and-swap mutation and accepts only its exact echo.
+// The series attendee is a snapshot for validation only and is never written.
+func (transaction *EventTransaction) PersistCalendarEventOccurrenceRSVP(ctx context.Context, scope EventMutationScope, command CalendarEventOccurrenceRSVPPersistenceCommand) (CalendarEventOccurrenceRSVPPersistenceResult, error) {
+	if transaction == nil {
+		return CalendarEventOccurrenceRSVPPersistenceResult{}, ErrEventTransactionClosed
+	}
+	transaction.mu.Lock()
+	defer transaction.mu.Unlock()
+	if !transaction.active || transaction.backend == nil {
+		return CalendarEventOccurrenceRSVPPersistenceResult{}, ErrEventTransactionClosed
+	}
+	backend, supported := transaction.backend.(CalendarEventOccurrenceRSVPTransactionBackend)
+	if !supported || nilCalendarEventOccurrenceRSVPTransactionBackend(backend) {
+		return CalendarEventOccurrenceRSVPPersistenceResult{}, ErrEventInvalid
+	}
+	if err := transaction.validateScope(scope); err != nil {
+		return CalendarEventOccurrenceRSVPPersistenceResult{}, err
+	}
+	series := command.SeriesAttendee()
+	attendee := command.Attendee()
+	if scope.receiptOperation != MutationReceiptRSVPOccurrence || scope.eventOperation != EventMutationRSVPOccurrence || !command.valid() || series.UserID == nil || *series.UserID != scope.actorID || attendee.UserID == nil || *attendee.UserID != scope.actorID {
+		return CalendarEventOccurrenceRSVPPersistenceResult{}, ErrEventInvalid
+	}
+	result, err := backend.PersistCalendarEventOccurrenceRSVP(ctx, scope, cloneCalendarEventOccurrenceRSVPPersistenceCommand(command))
+	if err != nil {
+		return CalendarEventOccurrenceRSVPPersistenceResult{}, err
+	}
+	if !result.valid() || !calendarEventOccurrenceRSVPPersistenceMatches(command, result) {
+		return CalendarEventOccurrenceRSVPPersistenceResult{}, ErrEventInvalid
+	}
+	return cloneCalendarEventOccurrenceRSVPPersistenceResult(result), nil
+}
+
+// AppendOutbox appends only a valid immutable envelope inside its scope.
 func (transaction *EventTransaction) AppendOutbox(ctx context.Context, scope EventMutationScope, descriptor EventOutboxDescriptor) error {
 	if transaction == nil {
 		return ErrEventTransactionClosed
@@ -1511,6 +1801,148 @@ func calendarEventSeriesRSVPPersistenceMatches(command CalendarEventSeriesRSVPPe
 	return commandHasReply == resultHasReply && (!commandHasReply || commandReply == resultReply)
 }
 
+func cloneCalendarEventOccurrenceRSVPAuthorizationRequest(request CalendarEventOccurrenceRSVPAuthorizationRequest) CalendarEventOccurrenceRSVPAuthorizationRequest {
+	return CalendarEventOccurrenceRSVPAuthorizationRequest{EventID: request.EventID, RecurrenceID: request.RecurrenceID}
+}
+
+func cloneCalendarEventOccurrenceRSVPAuthorization(authorization CalendarEventOccurrenceRSVPAuthorization) CalendarEventOccurrenceRSVPAuthorization {
+	cloned := authorization
+	cloned.Current = cloneCalendarEventCommandInput(authorization.Current)
+	cloned.SeriesAttendee = cloneCalendarEventSeriesRSVPAttendeeSnapshot(authorization.SeriesAttendee)
+	cloned.OccurrenceAttendee = cloneCalendarEventOccurrenceRSVPAttendeeSnapshotPointer(authorization.OccurrenceAttendee)
+	if authorization.Exception == nil {
+		cloned.Exception = nil
+	} else {
+		value := cloneCalendarEventExceptionCommandInput(*authorization.Exception)
+		cloned.Exception = &value
+	}
+	return cloned
+}
+
+func cloneCalendarEventOccurrenceRSVPAttendeeSnapshot(attendee CalendarEventOccurrenceRSVPAttendeeSnapshot) CalendarEventOccurrenceRSVPAttendeeSnapshot {
+	attendee.UserID = copyUUID(attendee.UserID)
+	attendee.RespondedAt = cloneCalendarEventSeriesRSVPTime(attendee.RespondedAt)
+	attendee.RemovedAt = cloneCalendarEventSeriesRSVPTime(attendee.RemovedAt)
+	return attendee
+}
+
+func cloneCalendarEventOccurrenceRSVPAttendeeSnapshotPointer(attendee *CalendarEventOccurrenceRSVPAttendeeSnapshot) *CalendarEventOccurrenceRSVPAttendeeSnapshot {
+	if attendee == nil {
+		return nil
+	}
+	cloned := cloneCalendarEventOccurrenceRSVPAttendeeSnapshot(*attendee)
+	return &cloned
+}
+
+func cloneCalendarEventOccurrenceRSVPReplyDeliveryDescriptor(reply *CalendarEventOccurrenceRSVPReplyDeliveryDescriptor) *CalendarEventOccurrenceRSVPReplyDeliveryDescriptor {
+	if reply == nil {
+		return nil
+	}
+	cloned := *reply
+	return &cloned
+}
+
+func validCalendarEventOccurrenceRSVPPersistence(series CalendarEventSeriesRSVPAttendeeSnapshot, prior *CalendarEventOccurrenceRSVPAttendeeSnapshot, attendee CalendarEventOccurrenceRSVPAttendeeSnapshot, expectedVersion uint, eventSequence uint, outbox EventOutboxDescriptor, reply *CalendarEventOccurrenceRSVPReplyDeliveryDescriptor) bool {
+	if expectedVersion == 0 || expectedVersion == ^uint(0) || !validCalendarEventSeriesRSVPAttendee(series) || !validCalendarEventOccurrenceRSVPAttendeeForSeries(series, attendee) || !outbox.valid() || !validCalendarEventOccurrenceRSVPReply(reply, attendee, eventSequence) {
+		return false
+	}
+	if prior == nil {
+		return expectedVersion == series.Version && attendee.AttendeeID != series.AttendeeID && attendee.Version == expectedVersion+1
+	}
+	if !validCalendarEventOccurrenceRSVPAttendeeForSeries(series, *prior) || !calendarEventOccurrenceRSVPImmutableIdentityMatches(*prior, attendee) {
+		return false
+	}
+	return expectedVersion == prior.Version && attendee.Version == expectedVersion+1
+}
+
+func validCalendarEventOccurrenceRSVPAttendeeForSeries(series CalendarEventSeriesRSVPAttendeeSnapshot, attendee CalendarEventOccurrenceRSVPAttendeeSnapshot) bool {
+	return validCalendarEventOccurrenceRSVPAttendee(attendee) && attendee.AttendeeID != series.AttendeeID && attendee.EventID == series.EventID && attendee.UserID != nil && series.UserID != nil && *attendee.UserID == *series.UserID && attendee.Email == series.Email && attendee.DisplayName == series.DisplayName && attendee.Role == series.Role
+}
+
+func validCalendarEventOccurrenceRSVPAttendee(attendee CalendarEventOccurrenceRSVPAttendeeSnapshot) bool {
+	if attendee.AttendeeID == uuid.Nil || attendee.EventID == uuid.Nil || attendee.UserID == nil || *attendee.UserID == uuid.Nil || attendee.Version == 0 || attendee.RemovedAt != nil || !validCalendarEventOccurrenceCancelCanonicalKey(attendee.RecurrenceID) || attendee.Email != normalizeCalendarCreateEmail(attendee.Email) || !validCalendarCreateEmail(attendee.Email) || !validCalendarCreateDisplayName(&attendee.DisplayName) || !validCalendarEventAttendeeRole(attendee.Role) || attendee.Status.Validate() != nil {
+		return false
+	}
+	if attendee.Status == RSVPNeedsAction {
+		return attendee.RespondedAt == nil
+	}
+	return attendee.RespondedAt != nil && validCalendarEventSeriesRSVPUTC(*attendee.RespondedAt)
+}
+
+func calendarEventOccurrenceRSVPImmutableIdentityMatches(prior, attendee CalendarEventOccurrenceRSVPAttendeeSnapshot) bool {
+	return prior.AttendeeID == attendee.AttendeeID && prior.EventID == attendee.EventID && prior.UserID != nil && attendee.UserID != nil && *prior.UserID == *attendee.UserID && prior.Email == attendee.Email && prior.DisplayName == attendee.DisplayName && prior.Role == attendee.Role && prior.RecurrenceID == attendee.RecurrenceID
+}
+
+func validCalendarEventOccurrenceRSVPReply(reply *CalendarEventOccurrenceRSVPReplyDeliveryDescriptor, attendee CalendarEventOccurrenceRSVPAttendeeSnapshot, eventSequence uint) bool {
+	if reply == nil {
+		return true
+	}
+	return reply.AttendeeID == attendee.AttendeeID && reply.EventID == attendee.EventID && reply.EventSequence == eventSequence && reply.AttendeeVersion == attendee.Version && reply.RecurrenceID == attendee.RecurrenceID && reply.Status == attendee.Status && reply.Status.Validate() == nil
+}
+
+func validCalendarEventOccurrenceRSVPException(exception CalendarEventExceptionCommandInput, request CalendarEventOccurrenceRSVPAuthorizationRequest) bool {
+	if exception.EventID != request.EventID || exception.RecurrenceID != request.RecurrenceID {
+		return false
+	}
+	_, err := NewCalendarEventExceptionCommand(exception)
+	return err == nil
+}
+
+func calendarEventOccurrenceRSVPAuthorizationIdentityMatches(authorization CalendarEventOccurrenceRSVPAuthorization, scope EventMutationScope, eventID uuid.UUID) bool {
+	if authorization.Current.EventID != eventID || authorization.Current.OrganizationID != scope.organizationID || authorization.SeriesAttendee.EventID != eventID || authorization.SeriesAttendee.UserID == nil || *authorization.SeriesAttendee.UserID != scope.actorID {
+		return false
+	}
+	if authorization.OccurrenceAttendee != nil && (authorization.OccurrenceAttendee.EventID != eventID || authorization.OccurrenceAttendee.UserID == nil || *authorization.OccurrenceAttendee.UserID != scope.actorID) {
+		return false
+	}
+	return authorization.Exception == nil || authorization.Exception.EventID == eventID
+}
+
+func calendarEventOccurrenceRSVPAuthorizationIdentityMask(authorization CalendarEventOccurrenceRSVPAuthorization) CalendarEventOccurrenceRSVPAuthorization {
+	masked := CalendarEventOccurrenceRSVPAuthorization{
+		Current: CalendarEventCommandInput{
+			EventID: authorization.Current.EventID, OrganizationID: authorization.Current.OrganizationID,
+		},
+		SeriesAttendee: CalendarEventSeriesRSVPAttendeeSnapshot{
+			AttendeeID: authorization.SeriesAttendee.AttendeeID, EventID: authorization.SeriesAttendee.EventID, UserID: copyUUID(authorization.SeriesAttendee.UserID),
+		},
+	}
+	if authorization.OccurrenceAttendee != nil {
+		masked.OccurrenceAttendee = &CalendarEventOccurrenceRSVPAttendeeSnapshot{
+			AttendeeID: authorization.OccurrenceAttendee.AttendeeID, EventID: authorization.OccurrenceAttendee.EventID, UserID: copyUUID(authorization.OccurrenceAttendee.UserID),
+		}
+	}
+	if authorization.Exception != nil {
+		masked.Exception = &CalendarEventExceptionCommandInput{ExceptionID: authorization.Exception.ExceptionID, EventID: authorization.Exception.EventID}
+	}
+	return masked
+}
+
+func cloneCalendarEventOccurrenceRSVPPersistenceCommand(command CalendarEventOccurrenceRSVPPersistenceCommand) CalendarEventOccurrenceRSVPPersistenceCommand {
+	cloned, err := NewCalendarEventOccurrenceRSVPPersistenceCommand(command.seriesAttendee, command.prior, command.attendee, command.expectedVersion, command.eventSequence, command.outbox, command.reply)
+	if err != nil {
+		return CalendarEventOccurrenceRSVPPersistenceCommand{}
+	}
+	return cloned
+}
+
+func cloneCalendarEventOccurrenceRSVPPersistenceResult(result CalendarEventOccurrenceRSVPPersistenceResult) CalendarEventOccurrenceRSVPPersistenceResult {
+	cloned, err := NewCalendarEventOccurrenceRSVPPersistenceResult(result.attendee, result.eventSequence, result.outbox, result.reply)
+	if err != nil {
+		return CalendarEventOccurrenceRSVPPersistenceResult{}
+	}
+	return cloned
+}
+
+func calendarEventOccurrenceRSVPPersistenceMatches(command CalendarEventOccurrenceRSVPPersistenceCommand, result CalendarEventOccurrenceRSVPPersistenceResult) bool {
+	if !reflect.DeepEqual(command.Attendee(), result.Attendee()) || command.EventSequence() != result.EventSequence() || !reflect.DeepEqual(command.Outbox(), result.Outbox()) {
+		return false
+	}
+	commandReply, commandHasReply := command.Reply()
+	resultReply, resultHasReply := result.Reply()
+	return commandHasReply == resultHasReply && (!commandHasReply || commandReply == resultReply)
+}
+
 func cloneCalendarEventExceptionCommandInput(input CalendarEventExceptionCommandInput) CalendarEventExceptionCommandInput {
 	cloned := input
 	if input.Temporal != nil {
@@ -1521,6 +1953,17 @@ func cloneCalendarEventExceptionCommandInput(input CalendarEventExceptionCommand
 }
 
 func nilCalendarEventOccurrenceCancelTransactionBackend(backend CalendarEventOccurrenceCancelTransactionBackend) bool {
+	if backend == nil { return true }
+	value := reflect.ValueOf(backend)
+	switch value.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
+		return value.IsNil()
+	default:
+		return false
+	}
+}
+
+func nilCalendarEventOccurrenceRSVPTransactionBackend(backend CalendarEventOccurrenceRSVPTransactionBackend) bool {
 	if backend == nil { return true }
 	value := reflect.ValueOf(backend)
 	switch value.Kind() {
