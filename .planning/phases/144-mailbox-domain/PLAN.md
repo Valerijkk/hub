@@ -1,27 +1,23 @@
 # Phase 144 — Mailbox Domain
 
-## 144-04I-A acceptance-sync candidate
+## 144-04I-A bounded sync-worker source receipt
 
-`ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT9_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED /
-RUNTIME_NOT_RUN`: this dirty exact9 sync grants no authority. Only its exact-manifest atomic commit
-and immutable review activate `b49131cab56b49ae511827f5d2a1ccc58f938ae3` (parent `54a88de8`, tree
-`add02c599`, subject `docs(mail): propose bounded sync worker authority`, REVIEW
-`5be0cfb3d23c19a84e76428ef17f5a1042de05e6`) as `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS`.
-Three precommit plus immutable reviews PASS C/I/M `0/0/0`; Terra/xhigh, dispatcher-enforced/no
-fallback, telemetry `UNKNOWN`. Only then does ordered exact2 become authorized, still source
-`UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED`; no next packet or blocker lift follows.
+`SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT10_COMMIT_REQUIRED / RUNTIME_NOT_RUN`: this dirty
+exact10 docs candidate grants no acceptance. Only its exact-manifest atomic commit and immutable
+receipt review may accept `091f2ef286a71f506e1b048f5386fd37cefa06bc` (parent
+`6b27643fcde3b702fa13c5fcc9b4bfefcb9fc87a`, tree `b01be92acf01033935b85446454eaee16b84e01b`,
+subject `feat(mail): add bounded sync worker`) as `STATIC_ACCEPTED / EXACT_SHA_PASS` for
+authored-first test `79c2691971287e3a62c830a5d12c78699414bb86`, then source
+`6c20fadf563d4d146b2fc1cbacdddea485266eb7`. See the ordered exact10 manifest in
+`IMPLEMENTATION-144-04I-A.md`. Precommit plus immutable Contract/Security/Lifecycle reviews PASS
+C/I/M `0/0/0`; author Terra/xhigh; Contract Terra/high; Security/Lifecycle Terra/xhigh;
+dispatcher-enforced/no fallback;
+telemetry `UNKNOWN`. The former 04I-A candidate/source-unaccepted/current-next clauses then become
+`CONSUMED/HISTORICAL`; no next packet or blocker lift follows.
 
-## 144-04I-A bounded sync-worker source-authority candidate
-
-`ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / IMPLEMENTATION_BLOCKED /
-RUNTIME_NOT_RUN`: `REVIEW-144-04I-A-SYNC-WORKER-READINESS.md` is the sole exact9 authority
-candidate. Only triple precommit PASS -> atomic exact9 -> triple immutable exact-SHA PASS ->
-separate docs-only acceptance sync may authorize the ordered exact2: NEW
-`backend/tests/mail/mailbox_sync_worker_test.go`, then NEW
-`backend/internal/mail/mailbox_sync_worker.go`. It is a bounded context-owned worker over accepted
-04G only, with exact persisted-time/LeaseEpoch fault fencing and total timeout/cancel handling; it
-grants no 04H/02E/Ent/generation/migration/adapter/API/OpenAPI/UI/runtime authority.
-No source is implemented or accepted; launcher `NOT_READY`, executable evidence `NOT_RUN`.
+04F/04G remain accepted; 04H/02E, concrete adapter/Ent, generation/migration, SQL/two-replica
+proof, API/OpenAPI/UI, launcher `NOT_READY` and executable/runtime evidence `NOT_RUN` remain
+blocked.
 
 ## 144-04G source acceptance-sync candidate (2026-08-21)
 

@@ -1,29 +1,23 @@
 # MAIL-SPEC — Hub mailbox and calendar synchronization contract
 
-## 144-04I-A acceptance-sync candidate
+## 144-04I-A bounded sync-worker source receipt
 
-> `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT9_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED /
-> RUNTIME_NOT_RUN`. This dirty exact9 sync grants no authority. Only after its atomic exact9 commit
-> with an exactly matching manifest and immutable review is `b49131cab56b49ae511827f5d2a1ccc58f938ae3`
-> (parent `54a88de8`, tree `add02c599`, subject `docs(mail): propose bounded sync worker authority`,
-> REVIEW blob `5be0cfb3d23c19a84e76428ef17f5a1042de05e6`) `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS`.
-> The three precommit and immutable reviews PASS C/I/M `0/0/0`; Terra/xhigh,
-> dispatcher-enforced/no fallback, telemetry `UNKNOWN`. Then predecessor candidate routes consume and
-> only ordered exact2 is authorized, still unimplemented/uncommitted/unaccepted. Blockers persist.
-
-## 144-04I-A bounded sync-worker source-authority candidate
-
-> `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / IMPLEMENTATION_BLOCKED /
-> RUNTIME_NOT_RUN`. The exact9 documentation candidate in
-> `REVIEW-144-04I-A-SYNC-WORKER-READINESS.md` is non-self-activating. Triple precommit PASS,
-> atomic exact9, triple immutable exact-SHA PASS and separate docs-only acceptance sync are all
-> required before only NEW test-first `mailbox_sync_worker_test.go`, then NEW
-> `mailbox_sync_worker.go`. It freezes the bounded worker ABI: fractional timestamp-preserving
-> DB-time ordered scanner, fixed pool/FIFO, total per-step and Wait/fault-port panic/cancel handling
-> and a full LeaseEpoch fault CAS with checked true-result arithmetic and O(1) saturating retry; no
-> direct engine/Ent/NATS/HTTP/clock.
-> 04F/04G remain accepted; 04H/02E, concrete adapter/Ent/generation/migration, API/OpenAPI/UI,
-> launcher and runtime remain blocked or `NOT_RUN`. No schema/event/delivery change or next packet.
+> `SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT10_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty
+> exact10 documentation candidate grants no acceptance. The receipt is immutable source
+> `091f2ef286a71f506e1b048f5386fd37cefa06bc` (parent `6b27643fcde3b702fa13c5fcc9b4bfefcb9fc87a`,
+> tree `b01be92acf01033935b85446454eaee16b84e01b`, subject `feat(mail): add bounded sync worker`),
+> with authored-first test blob `79c2691971287e3a62c830a5d12c78699414bb86` then source blob
+> `6c20fadf563d4d146b2fc1cbacdddea485266eb7`. Only an atomic exact10 commit matching
+> `IMPLEMENTATION-144-04I-A.md` plus immutable receipt review makes it `STATIC_ACCEPTED /
+> EXACT_SHA_PASS`. Contract/Security/Lifecycle precommit and immutable exact-SHA reviews PASS C/I/M
+> `0/0/0`; author Terra/xhigh; Contract Terra/high; Security/Lifecycle Terra/xhigh;
+> dispatcher-enforced/no fallback; telemetry
+> `UNKNOWN`. Former 04I-A candidate, source-unaccepted and current-next routes then become
+> `CONSUMED/HISTORICAL`; no next source packet is selected.
+>
+> 04F/04G remain accepted. 04H/02E, concrete adapter/Ent, generation/migration, SQL/two-replica
+> DB-time proof, API/OpenAPI/UI, launcher `NOT_READY` and runtime `NOT_RUN` remain blocked. No
+> schema, event, delivery, direct engine, adapter or runtime authority follows.
 
 > **143-04J source-receipt sync:** `SOURCE_ACCEPTANCE_SYNC_CANDIDATE /
 > ATOMIC_EXACT14_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. These proposed receipt facts grant no

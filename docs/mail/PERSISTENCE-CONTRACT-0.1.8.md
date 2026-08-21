@@ -1,28 +1,40 @@
 # Mail persistence contract 0.1.8
 
-## 144-04I-A acceptance-sync candidate — no persistence activation
+## 144-04I-A source receipt-sync candidate - no persistence activation
 
-`ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT9_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED /
-RUNTIME_NOT_RUN`. The dirty exact9 sync grants no persistence authority. Only atomic exact-manifest
-commit plus immutable review activates `b49131cab56b49ae511827f5d2a1ccc58f938ae3` (parent
-`54a88de8`, tree `add02c599`, subject `docs(mail): propose bounded sync worker authority`, REVIEW
-`5be0cfb3d23c19a84e76428ef17f5a1042de05e6`) as `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS`;
-triple precommit/immutable PASS C/I/M `0/0/0`, Terra/xhigh, dispatcher-enforced/no fallback,
-telemetry `UNKNOWN`. Then only unimplemented exact2 source is authorized; no SQL/Ent/schema or
-other persistence change occurs.
+`SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT10_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty
+exact10 documentation candidate grants no acceptance. It records the authored-first exact2 at
+`091f2ef286a71f506e1b048f5386fd37cefa06bc` (parent
+`6b27643fcde3b702fa13c5fcc9b4bfefcb9fc87a`, tree
+`b01be92acf01033935b85446454eaee16b84e01b`, subject
+`feat(mail): add bounded sync worker`): test blob
+`79c2691971287e3a62c830a5d12c78699414bb86`, source blob
+`6c20fadf563d4d146b2fc1cbacdddea485266eb7`. Contract, Security and Lifecycle precommit plus
+immutable Contract and Security/Lifecycle exact-SHA reviews PASS C/I/M `0/0/0`; author
+Terra/xhigh; Contract Terra/high; Security/Lifecycle Terra/xhigh; dispatcher-enforced/no fallback;
+telemetry `UNKNOWN`.
 
-## 144-04I-A bounded sync-worker authority candidate — no persistence implementation
+Only an atomic exact10 receipt-sync commit equal to `IMPLEMENTATION-144-04I-A.md`'s manifest and
+immutable receipt review may mark the source `STATIC_ACCEPTED / EXACT_SHA_PASS`. Its former
+candidate/source-unaccepted/current-next clauses then are `CONSUMED/HISTORICAL`; no next source is
+selected. The pure worker creates no current SQL/Ent/schema/persistence activation: 04H/02E,
+concrete adapter, generation/migration, SQL/two-replica, API/OpenAPI/UI, launcher and runtime stay
+blocked or `NOT_RUN`.
 
-`ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / IMPLEMENTATION_BLOCKED /
-RUNTIME_NOT_RUN`. The exact9 candidate freezes only the abstract scanner and fault-CAS boundary in
-`REVIEW-144-04I-A-SYNC-WORKER-READINESS.md`. The sole future exact2 is NEW test first
-`mailbox_sync_worker_test.go`, then NEW `mailbox_sync_worker.go`, after triple precommit PASS,
-atomic exact9, triple immutable exact-SHA PASS and separate acceptance sync. Repository DB-time and
-full `(AccountID, DueAt, UpdatedAt, SyncEpoch, MutationEpoch, LeaseEpoch, SyncAttempts)` snapshot
-CAS, exact persisted timestamp precision and checked true-result arithmetic are required eventual
-adapter semantics, not a current SQL/Ent/migration change.
-04H/02E, concrete adapter, generation/migration, API/OpenAPI/UI, launcher and runtime remain
-blocked; no schema/event/outbox/lease-clear authority is created.
+## 144-04I-A predecessor authority route - CONSUMED/HISTORICAL
+
+`CONSUMED/HISTORICAL`. The former exact9 route grants no persistence authority and is superseded
+by the conditional exact10 source receipt above.
+
+## 144-04I-A bounded sync-worker authority predecessor - CONSUMED/HISTORICAL
+
+`CONSUMED/HISTORICAL`. The former exact9 candidate freezes the abstract scanner and fault-CAS
+boundary only as historical provenance in `REVIEW-144-04I-A-SYNC-WORKER-READINESS.md`. The source
+receipt does not create a current SQL/Ent/migration change: eventual repository DB-time and full
+`(AccountID, DueAt, UpdatedAt, SyncEpoch, MutationEpoch, LeaseEpoch, SyncAttempts)` snapshot CAS,
+exact persisted timestamp precision and checked true-result arithmetic remain future adapter
+semantics. 04H/02E, concrete adapter, generation/migration, API/OpenAPI/UI, launcher and runtime
+remain blocked; no schema/event/outbox/lease-clear authority is created.
 
 > **143-04J source receipt:** `SOURCE_ACCEPTANCE_SYNC_CANDIDATE /
 > ATOMIC_EXACT14_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. These proposed facts activate only after one

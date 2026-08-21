@@ -1,22 +1,32 @@
 # Phase 144 — exact Terra dispatch index
 
-## 144-04I-A acceptance-sync candidate
+## 144-04I-A source receipt-sync candidate
 
-`ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT9_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED /
-RUNTIME_NOT_RUN`. This dirty exact9 sync grants no authority. Only exact-manifest atomic commit plus
-immutable review activates candidate `b49131cab56b49ae511827f5d2a1ccc58f938ae3` (parent
-`54a88de8`, tree `add02c599`, subject `docs(mail): propose bounded sync worker authority`, REVIEW
-`5be0cfb3d23c19a84e76428ef17f5a1042de05e6`) as `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS`.
-Precommit/immutable Contract, Security and Lifecycle PASS C/I/M `0/0/0`; Terra/xhigh,
-dispatcher-enforced/no fallback, telemetry `UNKNOWN`. Then only exact2 is authorized, still
-unimplemented/uncommitted/unaccepted; 04H/02E and all listed blockers remain.
+`SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT10_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty
+exact10 documentation candidate grants no acceptance. It proposes the authored-first exact2 source
+receipt `091f2ef286a71f506e1b048f5386fd37cefa06bc` (parent
+`6b27643fcde3b702fa13c5fcc9b4bfefcb9fc87a`, tree
+`b01be92acf01033935b85446454eaee16b84e01b`, subject
+`feat(mail): add bounded sync worker`): test blob
+`79c2691971287e3a62c830a5d12c78699414bb86`, then source blob
+`6c20fadf563d4d146b2fc1cbacdddea485266eb7`. Contract, Security and Lifecycle precommit reviews
+and immutable Contract plus Security/Lifecycle exact-SHA reviews PASS C/I/M `0/0/0`; author
+Terra/xhigh; Contract Terra/high; Security/Lifecycle Terra/xhigh; dispatcher-enforced/no fallback;
+telemetry `UNKNOWN`.
 
-## 144-04I-A source-authority candidate — non-authoritative
+Only one atomic exact10 receipt-sync commit equal to
+`IMPLEMENTATION-144-04I-A.md`'s manifest and its immutable receipt review may mark that source
+`STATIC_ACCEPTED / EXACT_SHA_PASS`. Then the former 04I-A candidate/source-unaccepted/current-next
+routes are `CONSUMED/HISTORICAL`; no next source is selected. 04F/04G remain accepted;
+04H/02E, Ent, adapters, generation, migration, SQL/two-replica work, API/UI, launcher and runtime
+remain blocked or `NOT_RUN`.
 
-`ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / IMPLEMENTATION_BLOCKED /
-RUNTIME_NOT_RUN`. The exact9 manifest and frozen ABI/state/safety/oracles are only in
-`REVIEW-144-04I-A-SYNC-WORKER-READINESS.md`. Triple precommit PASS, one atomic exact9 commit,
-triple immutable exact-SHA PASS and separate acceptance sync must precede only test-first NEW
+## 144-04I-A source-authority predecessor - CONSUMED/HISTORICAL
+
+`CONSUMED/HISTORICAL`. This predecessor route has no active dispatch authority; its former exact9
+manifest and frozen ABI/state/safety/oracles remain in
+`REVIEW-144-04I-A-SYNC-WORKER-READINESS.md`. Its historical triple-precommit, atomic-exact9 and
+immutable-review sequence preceded the authored-first exact2 NEW
 `backend/tests/mail/mailbox_sync_worker_test.go`, then NEW
 `backend/internal/mail/mailbox_sync_worker.go`. 04F/04G stay accepted; 04H/02E/Ent/generation/
 migration/adapters/API/OpenAPI/UI and runtime remain blocked. No schema/event change and no auto-next.
@@ -181,6 +191,13 @@ every remaining row/variant, assemble the Common envelope plus exactly one secti
                        └── 144-07 docs sync + independent review
 ```
 
+> **04I-A graph label correction:** the compact graph's `bounded worker candidate` text is a
+> historical navigation label only. Its current lifecycle is the exact10
+> `SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT10_COMMIT_REQUIRED / RUNTIME_NOT_RUN` receipt at
+> `091f2ef286a71f506e1b048f5386fd37cefa06bc`; it grants no acceptance until manifest-equal atomic
+> commit and immutable receipt review, then only `STATIC_ACCEPTED / EXACT_SHA_PASS` with no next
+> source selected.
+
 > **Local 01B clause reconciliation:** within this atomic-packet record, older 144-01B Docker-blocked/do-not-start/dependency assertions are `CONSUMED/HISTORICAL` only. The accepted exact boundary is `0c064363b5ccb657a7c444802e94075c4ca743e5`; 02E/Ent/generation/migration/service/API/UI/product/phase/release blockers stay current.
 
 ## Atomic packets
@@ -220,7 +237,7 @@ every remaining row/variant, assemble the Common envelope plus exactly one secti
 | 144-04F | Pure incremental/enumeration page classification and projection commands | Original `SOURCE_AUTHORITY_ACCEPTED` / `EXACT_SHA_PASS` receipt `4e608e890ec12aeed8de965f9649ae503260b94e`; its immediate exact4 root-dispatch clause is `SUSPENDED / CONSUMED/HISTORICAL`. `ROOT_CORRECTION_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / SOURCE_IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`: existing exact4 remains only the future test-first manifest (`mailbox_events_test.go`, `mailbox_sync_policy_test.go`, `mailbox_events.go`, `mailbox_sync_policy.go`). Uncommitted candidates are `UNACCEPTED` and MUST NOT be committed until Contract/Security/Lifecycle precommit PASS, atomic exact9 correction-candidate commit, all three immutable exact-SHA PASS and separate docs-only acceptance sync; no correction acceptance | exact page union/bounds (Requested 1..100, Maximum=100, Returned exact, nonnil slices, ENGINE-CONTRACT byte budget; change combined 100; enumeration/folders 100); content-free typed error/sentinel ABI; exact cutoff: nonnil ReceivedAt, after requires marker+one received, before/equal zero reservation+nil marker+no received, confirmed owner never received; changed/deleted event set; event folder/label caps 50->100 only; no I/O/clock | 144-01B + 144-03A/D |
 | 144-04G | Lease/epoch-aware mailbox sync orchestration against fake ports | `ROOT_SOURCE_AUTHORITY_CANDIDATE` only; future exact3: NEW `backend/tests/mail/mailbox_sync_service_test.go`, NEW interface/types-only `backend/internal/mail/mailbox_repository.go`, NEW `backend/internal/mail/mailbox_sync_service.go`; implementation blocked | exact claim/prepare/apply/resolve ABI; DB-transaction-time lease expiry on every mutation guard; full lease/sync/mutation fence; one ListFolders + one Changes/Enumerate with exact configured PageSize; base enumeration, catch-up/finalize; invalid cursor next-step rebuild; deterministic 04F IDs; no external I/O/callback under lock | 144-04A/F; triple precommit + exact9 + triple exact-SHA + separate acceptance sync |
 | 144-04H | Atomic Ent incremental/rebuild projection adapter | `mailbox_ent_repository_sync.go`; no Go DB/component test | account-lock lease/cursor/epoch proof; projection/events/cursor atomic; no-clear rebuild/final cleanup | 144-02E + 144-04G |
-| 144-04I-A | Bounded context-owned worker | `ROOT_SOURCE_AUTHORITY_CANDIDATE` only; exact2 is NEW `backend/tests/mail/mailbox_sync_worker_test.go`, then NEW `backend/internal/mail/mailbox_sync_worker.go` | DB-time ordered scan <=50 preserving fractional timestamps; fixed pool <=4/FIFO; total timed 04G step; LeaseEpoch full fault-CAS/checked result/O(1) retry; disabled zero calls; no I/O under local lock | accepted 144-04F/G; triple precommit -> exact9 -> triple exact-SHA -> separate acceptance sync; 04H remains blocked |
+| 144-04I-A | Bounded context-owned worker source receipt | `SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT10_COMMIT_REQUIRED / RUNTIME_NOT_RUN`; dirty docs grant no acceptance. Source `091f2ef286a71f506e1b048f5386fd37cefa06bc` (authored-first test `79c2691971287e3a62c830a5d12c78699414bb86`, source `6c20fadf563d4d146b2fc1cbacdddea485266eb7`) may become only `STATIC_ACCEPTED / EXACT_SHA_PASS` after atomic exact10 manifest equality and immutable receipt review; no auto-next | DB-time ordered scan <=50 preserving fractional timestamps; fixed pool <=4/FIFO; total timed 04G step; LeaseEpoch full fault-CAS/checked result/O(1) retry; disabled zero calls; no I/O under local lock | accepted 144-04F/G; precommit and immutable reviews PASS C/I/M `0/0/0`; former candidate/source-unaccepted route `CONSUMED/HISTORICAL` on activation; 04H/02E, Ent, adapters, generation/migration, SQL/two-replica, API/UI, launcher/runtime remain blocked |
 | 144-04R | Generic mutation recovery step in the existing sync worker | `mailbox_mutation_recovery.go`, narrow worker edit, focused unit | oldest-due work; receipt+mutation leases; folder recovery only under proven exclusive-writer capability; captured bulk only; unknown training no repeat; no fifth worker | 144-04B/C/I/O |
 | 144-05A | Mail-owned object storage authorization and lifecycle | `mailbox_storage.go`, `mailbox_storage_adapter.go`, `backend/tests/mail/mailbox_storage_test.go` | `mail/<org>/<account>/<uuid>` server key; receipt-safe same-object presign replay; confirm/read/delete reauthorize; no project metadata | 144-02C/E + 144-03C + 144-04A/O |
 | 144-05B | Versioned projection consumption and mail subject admission | `mailbox_projection.go`, `backend/internal/platform/nats/client.go`, focused units | subject/envelope match; application-event dedupe; unknown/malformed dead-letter; add `mail.>` once; webhook filter byte-equivalent | 144-03D + 144-04C/E + 143-04G |

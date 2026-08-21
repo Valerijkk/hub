@@ -1,22 +1,24 @@
-# 144-04I-A — bounded mailbox-sync worker source authority
+# 144-04I-A - bounded mailbox-sync worker source receipt
 
-> **Status:** `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT9_COMMIT_REQUIRED /
-> IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This dirty exact9 documentation sync grants no
-> authority. Only one atomic commit with a diff exactly equal to the manifest below, followed by its
-> immutable review, activates candidate `b49131cab56b49ae511827f5d2a1ccc58f938ae3` (parent
-> `54a88de8555d372daa50818b0ce3b1ecd60875b7`, tree
-> `add02c599a96f6fadc47307b8cc612152fa427dc`, subject
-> `docs(mail): propose bounded sync worker authority`, candidate REVIEW blob
-> `5be0cfb3d23c19a84e76428ef17f5a1042de05e6`) as `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS`.
-> Contract/Spec/Oracle, Security/Adversarial and Lifecycle/Dependency/Boundary precommit plus
-> immutable reviews PASS C/I/M `0/0/0`; Terra/xhigh, dispatcher-enforced/no fallback, telemetry
-> `UNKNOWN`. Only then are lower 04I-A candidate/precommit/current-next clauses
-> `CONSUMED/HISTORICAL`, and only the ordered exact2 below becomes authorized; source remains
-> `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED`.
+> **Status:** `SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT10_COMMIT_REQUIRED / RUNTIME_NOT_RUN`.
+> This dirty exact10 documentation candidate grants no acceptance. It records authored-first source
+> commit `091f2ef286a71f506e1b048f5386fd37cefa06bc` (parent
+> `6b27643fcde3b702fa13c5fcc9b4bfefcb9fc87a`, tree
+> `b01be92acf01033935b85446454eaee16b84e01b`, subject
+> `feat(mail): add bounded sync worker`): test blob
+> `79c2691971287e3a62c830a5d12c78699414bb86`, then source blob
+> `6c20fadf563d4d146b2fc1cbacdddea485266eb7`. Contract, Security and Lifecycle precommit PASS
+> C/I/M `0/0/0`; immutable Contract plus Security/Lifecycle exact-SHA PASS C/I/M `0/0/0`.
+> Author Terra/xhigh; Contract Terra/high; Security/Lifecycle Terra/xhigh;
+> dispatcher-enforced/no fallback; telemetry `UNKNOWN`.
+> Only one atomic exact10 receipt-sync commit equal to the manifest below and its immutable receipt
+> review may mark source `STATIC_ACCEPTED / EXACT_SHA_PASS`. Then lower 04I-A
+> candidate/source-unaccepted/current-next clauses are `CONSUMED/HISTORICAL`; no next source is
+> selected. Source/runtime acceptance is not granted by this dirty documentation tree.
 
-## Ordered exact9 acceptance-sync manifest
+## Ordered exact10 source receipt-sync manifest
 
-The atomic acceptance-sync commit must change exactly these paths, in this order, with no
+The atomic receipt-sync commit must change exactly these paths, in this order, with no
 substitution or extra path; its diff must equal this manifest exactly:
 
 1. `.planning/STATE.md`
@@ -24,17 +26,15 @@ substitution or extra path; its diff must equal this manifest exactly:
 3. `.planning/phases/144-mailbox-domain/PLAN.md`
 4. `.planning/phases/144-mailbox-domain/DISPATCH-INDEX.md`
 5. `.planning/phases/144-mailbox-domain/DISPATCH-REMAINING.md`
-6. `.planning/phases/144-mailbox-domain/REVIEW-144-04I-A-SYNC-WORKER-READINESS.md`
-7. `docs/mail/CONTRACT-CHANGELOG.md`
-8. `docs/mail/PERSISTENCE-CONTRACT-0.1.8.md`
-9. `docs/mail/QA-HANDOFF.md`
+6. `.planning/phases/144-mailbox-domain/IMPLEMENTATION-144-04I-A.md`
+7. `.planning/phases/144-mailbox-domain/REVIEW-144-04I-A-SYNC-WORKER-READINESS.md`
+8. `docs/mail/CONTRACT-CHANGELOG.md`
+9. `docs/mail/PERSISTENCE-CONTRACT-0.1.8.md`
+10. `docs/mail/QA-HANDOFF.md`
 
-Only after this acceptance activation may root dispatch, in order:
-
-1. NEW `backend/tests/mail/mailbox_sync_worker_test.go`;
-2. NEW `backend/internal/mail/mailbox_sync_worker.go`.
-
-No other path, source packet or composition/wiring change is implied.
+This receipt authorizes no automatic next source. It recognizes only the immutable exact2 above as
+`STATIC_ACCEPTED / EXACT_SHA_PASS` after the atomic exact10 commit and its immutable review; no
+other path, composition/wiring change, executable result or runtime acceptance is implied.
 
 ## Frozen Go ABI
 

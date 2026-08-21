@@ -1,17 +1,24 @@
 # Hub Mail + Calendar Sync — QA handoff
 
-## 144-04I-A acceptance-sync candidate — static only
+## 144-04I-A source receipt-sync candidate - static only
 
-`ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT9_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED /
-RUNTIME_NOT_RUN`. This dirty exact9 sync is not test/source evidence. Only atomic exact-manifest
-commit plus immutable review activates `b49131cab56b49ae511827f5d2a1ccc58f938ae3` (parent
-`54a88de8`, tree `add02c599`, subject `docs(mail): propose bounded sync worker authority`, REVIEW
-`5be0cfb3d23c19a84e76428ef17f5a1042de05e6`) as `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS` after
-triple precommit/immutable PASS C/I/M `0/0/0`; Terra/xhigh, dispatcher-enforced/no fallback,
-telemetry `UNKNOWN`. Only then is test-first exact2 authorized, still unimplemented/uncommitted/
-unaccepted. Runtime and every listed downstream blocker remain `NOT_RUN`/blocked.
+`SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT10_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty
+exact10 documentation candidate grants no acceptance or executable evidence. It records the
+authored-first exact2 source receipt `091f2ef286a71f506e1b048f5386fd37cefa06bc` (parent
+`6b27643fcde3b702fa13c5fcc9b4bfefcb9fc87a`, tree
+`b01be92acf01033935b85446454eaee16b84e01b`, subject
+`feat(mail): add bounded sync worker`): test blob
+`79c2691971287e3a62c830a5d12c78699414bb86`, then source blob
+`6c20fadf563d4d146b2fc1cbacdddea485266eb7`. Precommit Contract/Security/Lifecycle PASS C/I/M
+`0/0/0` and immutable Contract plus Security/Lifecycle exact-SHA PASS C/I/M `0/0/0` are static
+facts. Author Terra/xhigh; Contract Terra/high; Security/Lifecycle Terra/xhigh;
+dispatcher-enforced/no fallback; telemetry `UNKNOWN`. Only an atomic exact10 receipt-sync commit equal to
+`IMPLEMENTATION-144-04I-A.md`'s manifest and immutable receipt review may mark source
+`STATIC_ACCEPTED / EXACT_SHA_PASS`; prior candidate/source-unaccepted/current-next routes then are
+`CONSUMED/HISTORICAL`. No next source is selected; all runtime/downstream blockers remain
+`NOT_RUN`/blocked.
 
-## 144-04I-A bounded sync-worker candidate oracle — not executable evidence
+## 144-04I-A bounded sync-worker oracle - static, not executable evidence
 
 > **Controlling corrections:** DueAccount includes positive `LeaseEpoch`; every fault CAS uses the
 > full captured snapshot. Scan/fault timestamps are valid semantic UTC with fractional persisted
@@ -23,15 +30,12 @@ unaccepted. Runtime and every listed downstream blocker remain `NOT_RUN`/blocked
 > are rejected, total `WithTimeout` nil/panic/cancel paths, Wait panic, fault-port panic/continue,
 > and parent-cancel priority before any fault.
 
-Status: `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
-IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. The complete external-unit ABI/state/safety oracle is
-frozen only in `REVIEW-144-04I-A-SYNC-WORKER-READINESS.md`; it is not source or runtime evidence.
-Only triple precommit PASS, atomic exact9, triple immutable exact-SHA PASS and separate acceptance
-sync may dispatch NEW `backend/tests/mail/mailbox_sync_worker_test.go`, then NEW
-`backend/internal/mail/mailbox_sync_worker.go`. Required coverage includes disabled/typed-nil/
-concurrent/bounds, DB-time scan validation, fixed pool/FIFO/drain, all 04G outcomes, timeout/cancel/
-panic/fault CAS/backoff and no leak/raw-error behavior. 04H/02E/Ent/adapter/generation/migration,
-API/OpenAPI/UI, launcher and runtime remain blocked or `NOT_RUN`.
+Status: `CONSUMED/HISTORICAL`. The complete external-unit ABI/state/safety oracle remains frozen
+in `REVIEW-144-04I-A-SYNC-WORKER-READINESS.md`; the exact2 source receipt above is not executable
+evidence. Required static coverage includes disabled/typed-nil/concurrent/bounds, DB-time scan
+validation, fixed pool/FIFO/drain, all 04G outcomes, timeout/cancel/panic/fault CAS/backoff and no
+leak/raw-error behavior. 04H/02E/Ent/adapter/generation/migration, SQL/two-replica, API/OpenAPI/
+UI, launcher and runtime remain blocked or `NOT_RUN`.
 
 > **143-04J source receipt:** `SOURCE_ACCEPTANCE_SYNC_CANDIDATE /
 > ATOMIC_EXACT14_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. These proposed facts activate only after one

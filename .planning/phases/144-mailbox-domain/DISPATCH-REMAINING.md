@@ -717,47 +717,31 @@ Standalone complete prompts exist for 144-01A, 144-03D, 144-04D, 144-04E, 144-05
   or ambiguous folder receipt keeps the account degraded; only exact receipt recovery may
   activate/delete its row and permit `ready` finalization.
 
-## 144-04I-A — bounded sync worker source-authority candidate
+## 144-04I-A - bounded sync worker source receipt
 
-- **Acceptance-sync gate:** `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT9_COMMIT_REQUIRED /
-  IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. This dirty exact9 sync grants no authority. Only an
-  atomic commit whose diff equals the REVIEW manifest, plus its immutable review, activates
-  `b49131cab56b49ae511827f5d2a1ccc58f938ae3` (parent `54a88de8`, tree `add02c599`, subject
-  `docs(mail): propose bounded sync worker authority`, REVIEW
-  `5be0cfb3d23c19a84e76428ef17f5a1042de05e6`) as `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS`.
-  Contract/Spec/Oracle, Security/Adversarial and Lifecycle/Dependency/Boundary precommit plus
-  immutable reviews PASS C/I/M `0/0/0`; Terra/xhigh, dispatcher-enforced/no fallback, telemetry
-  `UNKNOWN`. Then lower candidate/precommit/current-next clauses are `CONSUMED/HISTORICAL`; only
-  ordered exact2 is authorized and remains `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED`.
+> **Current lifecycle:** `SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT10_COMMIT_REQUIRED /
+> RUNTIME_NOT_RUN`. This dirty exact10 documentation candidate grants no acceptance. Its title is a
+> predecessor navigation label only: the former candidate/source-unaccepted/current-next route is
+> `CONSUMED/HISTORICAL` once this receipt activates.
 
-- Controlling corrections: DueAccount carries positive `LeaseEpoch`; full fault CAS includes it and
-  exact persisted fractional timestamps. A true result is DB-time checked against `SelectedAt` and
-  retry arithmetic; false is zero. Backoff is O(1) `min(RetryMax, RetryMin*2^SyncAttempts)`;
-  MaxInt32 needed fault is zero-write too-large. Concrete empty/raw-error/panic scan behavior and
-  nil/panic `WithTimeout` paths are fail-closed, with parent cancellation taking priority.
-
-- Status: `ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED /
-  IMPLEMENTATION_BLOCKED / RUNTIME_NOT_RUN`. The exact9 manifest and complete frozen ABI are in
-  `REVIEW-144-04I-A-SYNC-WORKER-READINESS.md`; candidate text grants no authority. Triple
-  precommit PASS -> atomic exact9 -> triple immutable exact-SHA PASS -> separate acceptance sync
-  may authorize only NEW test first `backend/tests/mail/mailbox_sync_worker_test.go`, then NEW
-  `backend/internal/mail/mailbox_sync_worker.go`.
-- Dependencies: accepted 04F/04G. 04H/02E, Ent/concrete adapter, generation/migration, API/
-  OpenAPI/UI, launcher and runtime remain blocked; no source/schema/event/delivery change follows.
-- Enabled worker scans immediately and then only after full-batch drain: at most 50 DB-time due
-  active accounts per scan, fixed concurrency `1..4`, FIFO, exactly one timed 04G step per account,
-  no local overlap and no next scan early. Boundaries are scan `1s..5m`, step `1s..30s`, and
-  deterministic saturating retry `1s..5m`; no per-mailbox goroutine or unbounded queue.
-- Disabled accepts only the zero no-port configuration and performs zero calls. Root cancellation
-  writes no fault; deadline, panic, unavailable and invalid-result paths map to one contained full-
-  snapshot DB-time CAS including LeaseEpoch and exact fractional persisted timestamps, never a
-  cursor/epoch/projection/event/outbox/lease clear. True fault time/attempt arithmetic is checked;
-  MaxInt32 fault is zero-write too-large. Fault write failures do not abort the remaining batch and
-  never leak raw provider/panic values.
-- Oracles: exact ABI/errors/config; DB SelectedAt/order/UTC/nil/duplicate/oversize preflight;
-  fixed 50/four FIFO/drain/no-overlap; all five 04G result shapes; timeout/cancel/panic isolation;
-  saturating overflow; CAS false/two-replica/ambiguous-apply guards; deep-copy/no callback or timer
-  leak. 04H SQL/Ent/two-replica runtime evidence and composition stay separately blocked.
+- **Proposed immutable source receipt:** authored-first test
+  `backend/tests/mail/mailbox_sync_worker_test.go` blob
+  `79c2691971287e3a62c830a5d12c78699414bb86`, then source
+  `backend/internal/mail/mailbox_sync_worker.go` blob
+  `6c20fadf563d4d146b2fc1cbacdddea485266eb7`, at
+  `091f2ef286a71f506e1b048f5386fd37cefa06bc` (parent
+  `6b27643fcde3b702fa13c5fcc9b4bfefcb9fc87a`, tree
+  `b01be92acf01033935b85446454eaee16b84e01b`, subject
+  `feat(mail): add bounded sync worker`).
+- **Review/provenance:** Contract, Security and Lifecycle precommit PASS C/I/M `0/0/0`; immutable
+  Contract and Security/Lifecycle exact-SHA PASS C/I/M `0/0/0`. Author Terra/xhigh; Contract Terra/high; Security/Lifecycle Terra/xhigh; dispatcher-enforced/no fallback; telemetry `UNKNOWN`.
+- **Activation:** only an atomic exact10 receipt-sync commit whose diff equals
+  `IMPLEMENTATION-144-04I-A.md`'s manifest, followed by immutable receipt review, may mark source
+  `STATIC_ACCEPTED / EXACT_SHA_PASS`. The dirty tree grants no such status and selects no next
+  source.
+- **Boundary:** accepted 04F/04G remain the only dependencies recorded here. 04H/02E,
+  Ent/concrete adapter, generation/migration, SQL/two-replica, API/OpenAPI/UI, launcher and runtime
+  remain blocked or `NOT_RUN`; no source/schema/event/delivery change follows.
 
 ## 144-04R — bounded generic mutation recovery in the sync worker
 

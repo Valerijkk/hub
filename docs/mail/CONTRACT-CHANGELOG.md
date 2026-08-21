@@ -1,28 +1,37 @@
 # Hub Mail contract changelog
 
-## 2026-08-21 — 144-04I-A acceptance-sync candidate
+## 2026-08-21 - 144-04I-A bounded sync-worker source receipt-sync candidate
 
-`ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT9_COMMIT_REQUIRED / IMPLEMENTATION_BLOCKED /
-RUNTIME_NOT_RUN`. This dirty exact9 sync is non-authoritative. Atomic exact-manifest commit plus
-immutable review alone activate `b49131cab56b49ae511827f5d2a1ccc58f938ae3` (parent `54a88de8`,
-tree `add02c599`, subject `docs(mail): propose bounded sync worker authority`, REVIEW
-`5be0cfb3d23c19a84e76428ef17f5a1042de05e6`) as `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS` after
-Contract/Security/Lifecycle precommit and immutable PASS C/I/M `0/0/0`; Terra/xhigh,
-dispatcher-enforced/no fallback, telemetry `UNKNOWN`. Then only test-first exact2 is authorized,
-still unimplemented/uncommitted/unaccepted; no schema/API/event/blocker change follows.
+`SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT10_COMMIT_REQUIRED / RUNTIME_NOT_RUN`. This dirty
+exact10 documentation candidate grants no acceptance. It proposes authored-first source commit
+`091f2ef286a71f506e1b048f5386fd37cefa06bc` (parent
+`6b27643fcde3b702fa13c5fcc9b4bfefcb9fc87a`, tree
+`b01be92acf01033935b85446454eaee16b84e01b`, subject
+`feat(mail): add bounded sync worker`): test blob
+`79c2691971287e3a62c830a5d12c78699414bb86`, then source blob
+`6c20fadf563d4d146b2fc1cbacdddea485266eb7`.
 
-## 2026-08-21 — 144-04I-A bounded sync-worker source-authority candidate
+Contract, Security and Lifecycle precommit PASS C/I/M `0/0/0`; immutable Contract plus
+Security/Lifecycle exact-SHA PASS C/I/M `0/0/0`. Author Terra/xhigh; Contract Terra/high; Security/Lifecycle Terra/xhigh; dispatcher-enforced/no fallback; telemetry `UNKNOWN`. Only one atomic exact10 receipt-sync commit
+equal to `IMPLEMENTATION-144-04I-A.md`'s manifest and its immutable receipt review may mark source
+`STATIC_ACCEPTED / EXACT_SHA_PASS`. The former candidate/source-unaccepted/current-next routes are
+then `CONSUMED/HISTORICAL`; no automatic source follows. This worker still amends neither
+schema/event/delivery nor API/OpenAPI. 04F/04G remain accepted; 04H/02E, Ent/adapters/generation/
+migration, SQL/two-replica work, API/UI, launcher and runtime remain blocked or `NOT_RUN`.
 
-`ROOT_SOURCE_AUTHORITY_CANDIDATE / PRECOMMIT_REVIEW_REQUIRED / IMPLEMENTATION_BLOCKED /
-RUNTIME_NOT_RUN`. The non-self-activating exact9 carrier and paste-ready ABI/state/safety/oracles
-are `REVIEW-144-04I-A-SYNC-WORKER-READINESS.md`. Only triple precommit PASS, atomic exact9,
-triple immutable exact-SHA PASS and separate docs-only acceptance sync may authorize the ordered
-exact2 test first `backend/tests/mail/mailbox_sync_worker_test.go`, then
-`backend/internal/mail/mailbox_sync_worker.go`. Its frozen scanner preserves raw persisted UTC
-timestamp precision; fault CAS includes LeaseEpoch, checked true-result arithmetic and O(1) capped
-backoff, with total timeout/cancel paths. The worker does not amend schema/event/delivery or admit
-an API/OpenAPI route. 04F/04G remain accepted; 04H/02E, Ent/adapters/generation/migration,
-API/UI, launcher and runtime remain blocked or `NOT_RUN`; no next packet is selected.
+## 2026-08-21 - 144-04I-A predecessor authority route - CONSUMED/HISTORICAL
+
+`CONSUMED/HISTORICAL`. This former exact9 acceptance route is superseded by the exact10 source
+receipt above; it grants no current authority and records no current unimplemented source.
+
+## 2026-08-21 - 144-04I-A source-authority predecessor - CONSUMED/HISTORICAL
+
+`CONSUMED/HISTORICAL`. The non-self-activating exact9 carrier and frozen ABI/state/safety/oracles
+remain in `REVIEW-144-04I-A-SYNC-WORKER-READINESS.md` as provenance only. The implemented worker
+preserves raw persisted UTC precision, LeaseEpoch full fault CAS, checked true-result arithmetic
+and O(1) capped backoff, without a schema/event/delivery or API/OpenAPI route. All downstream
+04H/02E, Ent/adapters/generation/migration, SQL/two-replica, API/UI, launcher and runtime blockers
+remain; no next packet is selected.
 
 > **143-04K due-policy source receipt-sync (2026-08-21):**
 > `SOURCE_ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT15_COMMIT_REQUIRED / RUNTIME_NOT_RUN`.
