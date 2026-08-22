@@ -11,7 +11,7 @@ atlas_migration_control_plane: >-
   Launcher NOT_READY; Ent generation, Atlas diff, lint, checksum, apply, database replay, and
   runtime validation are all NOT_RUN. No production migration is authorized.
 mail_144_task_5_owner_ent_repository: >-
-  SOURCE_COMMITTED / STATIC_REVIEW_PENDING / RUNTIME_NOT_RUN. Task 5 adds only the
+  STATIC_ACCEPTED / RUNTIME_NOT_RUN at head ea0808a7. Task 5 adds only the
   test-first `backend/tests/mail/mailbox_ent_owner_contract_test.go` and private Mail Ent
   repository root/owner resolver. The public constructor has the frozen signature
   NewMailboxEntRepository(*ent.Client, MailboxRepositoryClock) (*MailboxEntRepository, error),
@@ -21,10 +21,25 @@ mail_144_task_5_owner_ent_repository: >-
   with no account, and otherwise fails closed with content-free typed errors on foreign, inactive,
   deleting, ambiguous, cross-linked, or inconsistent durable rows. Returned engine account,
   address, recovery and projection values are copied scalars; provider/network I/O is absent.
-  The clock permits only non-zero exact-second UTC values before durable use. This is not static
-  acceptance: generated Ent Go remains absent until Task 9 and launcher NOT_READY; RED/GREEN,
+  The clock permits only non-zero exact-second UTC values before durable use. Independent review
+  accepted this narrow manifest after the cross-organization and provisioning fixes; global
+  unique mail_accounts.user_id prevents ambiguous owners and corrupted multiplicity fails closed.
+  Generated Ent Go remains absent until Task 9 and launcher NOT_READY; RED/GREEN,
   compile, Ent generation, database, Docker, lint, formatting, migration and runtime evidence are
   NOT_RUN. No API/UI/wiring, product, phase, release or migration authority follows.
+mail_144_task_6s_sync_lease_schema: >-
+  SOURCE_CANDIDATE / STATIC_REVIEW_PENDING / RUNTIME_NOT_RUN. Task 6S owns only the
+  test-first MailAccount schema contract/source prerequisite: required Int64 sync_lease_epoch
+  immediately after sync_epoch with default 1 and minimum 1; the existing non-negative CHECK
+  retains every prior clause and adds sync_lease_epoch >= 1; and appended
+  mail_accounts_sync_due_idx over (next_sync_at, id) has exact predicate
+  status = 'active' AND next_sync_at IS NOT NULL. The generation will be carried by future
+  MailboxSyncFence and MailboxSyncWorkerDueAccount; the first lease remains 1 and only distinct
+  durable ownership replacement increments it. Task 6 depends on this prerequisite. This packet
+  creates no sync-page receipt; that design is separately required before the apply adapter.
+  Source candidate/static review pending only: launcher NOT_READY; Ent generation, Atlas
+  diff/migration, compile, SQL/DB, Docker, formatting/lint, and runtime are all NOT_RUN. No
+  migration or cutover authority follows.
 calendar_143_04i_inbound_reply_source_receipt_sync: >-
   SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT10_COMMIT_REQUIRED /
   IMMUTABLE_REVIEW_REQUIRED / RUNTIME_NOT_RUN. This non-authoritative dirty exact10 docs receipt

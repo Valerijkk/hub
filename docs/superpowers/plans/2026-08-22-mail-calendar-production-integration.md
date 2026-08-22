@@ -269,6 +269,31 @@ Resolve actor to one active owner-bound account/identity inside durable state. F
 feat(mail): add Ent mailbox owner repository
 ```
 
+### Task 6S: Persist Mail sync lease generation and due-scan schema prerequisite
+
+**Files:**
+- Modify: `backend/ent/schema/mailaccount.go`
+- Test: `backend/tests/mail/mail_account_identity_schema_test.go`
+- Modify: `.planning/phases/144-mailbox-domain/PLAN.md`
+- Modify: `.planning/STATE.md`
+
+**Status:** `SOURCE_CANDIDATE / STATIC_REVIEW_PENDING / RUNTIME_NOT_RUN`.
+
+This prerequisite persists `sync_lease_epoch` immediately after `sync_epoch` as required
+`Int64`, default `1`, minimum `1`, and appends
+`mail_accounts_sync_due_idx` over `(next_sync_at, id)` where exactly
+`status = 'active' AND next_sync_at IS NOT NULL`. `MailboxSyncFence` and
+`MailboxSyncWorkerDueAccount` will carry the generation: a never-claimed due account starts at
+`1`, and a later adapter increments it only when distinct durable lease ownership replaces the
+prior lease. The existing non-negative CHECK retains every prior clause and additionally requires
+`sync_lease_epoch >= 1`.
+
+Task 6 depends on this prerequisite. This packet does not create a sync-page receipt; that
+separate design must be frozen before the apply adapter. It is source candidate only and static
+review remains pending. Launcher `NOT_READY`; Ent generation, Atlas diff/migration, compile,
+SQL/DB, Docker, formatting/lint, and runtime are all `NOT_RUN`. No migration or cutover authority
+follows.
+
 ### Task 6: Mail sync and worker Ent adapters
 
 **Files:**
@@ -281,6 +306,9 @@ feat(mail): add Ent mailbox owner repository
 **Interfaces:**
 - Consumes: `MailboxSyncRepository`, `MailboxSyncWorkerRepository`, accepted sync fence/page policy, and worker caps.
 - Produces: the same `MailboxEntRepository` satisfying both interfaces.
+
+**Dependency:** Task 6 starts only after Task 6S persists and statically reviews the durable
+sync-lease generation and active due-scan index.
 
 - [ ] **Step 1: Implement claim/prepare/apply/resolve**
 

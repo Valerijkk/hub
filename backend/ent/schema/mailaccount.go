@@ -103,6 +103,9 @@ func (MailAccount) Fields() []ent.Field {
 		field.Int64("sync_epoch").
 			Default(0).
 			NonNegative(),
+		field.Int64("sync_lease_epoch").
+			Default(1).
+			Min(1),
 		field.Int64("mutation_epoch").
 			Default(0).
 			NonNegative(),
@@ -167,7 +170,7 @@ func (MailAccount) Annotations() []schema.Annotation {
 			"mail_accounts_provision_lease_pair":           "(provision_lease_token IS NULL) = (provision_lease_until IS NULL)",
 			"mail_accounts_sync_lease_pair":                "(sync_lease_token IS NULL) = (sync_lease_until IS NULL)",
 			"mail_accounts_mutation_lease_pair":            "(mutation_lease_token IS NULL) = (mutation_lease_until IS NULL)",
-			"mail_accounts_non_negative":                   "sync_epoch >= 0 AND mutation_epoch >= 0 AND provision_attempts >= 0 AND sync_attempts >= 0",
+			"mail_accounts_non_negative":                   "sync_epoch >= 0 AND sync_lease_epoch >= 1 AND mutation_epoch >= 0 AND provision_attempts >= 0 AND sync_attempts >= 0",
 			"mail_accounts_status_state":                   "status = 'provisioning' OR (status = 'error' AND provision_error_code IS NOT NULL) OR (status = 'active' AND desired_enabled = TRUE AND engine_account_id IS NOT NULL AND deployed_generation IS NOT NULL) OR (status = 'suspended' AND desired_enabled = FALSE AND engine_account_id IS NOT NULL AND deployed_generation IS NOT NULL) OR status = 'deleting'",
 			"mail_accounts_deleting_blocked_pending_shape": "status <> 'deleting' OR (desired_enabled = FALSE AND sync_lease_token IS NULL AND sync_lease_until IS NULL AND mutation_lease_token IS NULL AND mutation_lease_until IS NULL AND provision_lease_token IS NULL AND provision_lease_until IS NULL AND attempted_control_generation IS NULL AND attempted_control_hash_version IS NULL AND attempted_control_hash IS NULL AND provision_error_code IS NULL AND next_provision_at IS NOT NULL)",
 			"mail_accounts_ready_projection":               "projection_state <> 'ready' OR (sync_cursor IS NOT NULL AND last_synced_at IS NOT NULL AND rebuild_checkpoint IS NULL AND rebuild_base_cursor IS NULL AND sync_error_code IS NULL)",
@@ -232,6 +235,9 @@ func (MailAccount) Indexes() []ent.Index {
 		index.Fields("next_provision_at", "id").
 			StorageKey("mail_accounts_deleting_blocked_idx").
 			Annotations(entsql.IndexWhere("status = 'deleting'")),
+		index.Fields("next_sync_at", "id").
+			StorageKey("mail_accounts_sync_due_idx").
+			Annotations(entsql.IndexWhere("status = 'active' AND next_sync_at IS NOT NULL")),
 	}
 }
 

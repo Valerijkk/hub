@@ -22,7 +22,7 @@ func TestMailAccountSchema_HasExactFieldsDefaultsAndValidators(t *testing.T) {
 		"control_hash", "attempted_control_generation", "attempted_control_hash_version",
 		"attempted_control_hash", "deployed_generation", "deployed_hash_version", "deployed_hash",
 		"projection_state", "sync_cursor", "rebuild_checkpoint", "rebuild_base_cursor", "sync_epoch",
-		"mutation_epoch", "provision_attempts", "sync_attempts", "provision_lease_token",
+		"sync_lease_epoch", "mutation_epoch", "provision_attempts", "sync_attempts", "provision_lease_token",
 		"sync_lease_token", "mutation_lease_token", "provision_lease_until", "sync_lease_until",
 		"mutation_lease_until", "next_provision_at", "next_sync_at", "last_synced_at",
 		"provision_error_code", "sync_error_code", "event_cutoff_at", "created_at", "updated_at",
@@ -41,7 +41,7 @@ func TestMailAccountSchema_HasExactFieldsDefaultsAndValidators(t *testing.T) {
 			t.Fatalf("%s must be immutable", name)
 		}
 	}
-	for _, name := range []string{"id", "organization_id", "user_id", "mail_domain_id", "engine_provisioning_key", "local_part", "desired_enabled", "status", "control_generation", "control_hash_version", "control_hash", "projection_state", "sync_epoch", "mutation_epoch", "provision_attempts", "sync_attempts", "event_cutoff_at", "created_at", "updated_at"} {
+	for _, name := range []string{"id", "organization_id", "user_id", "mail_domain_id", "engine_provisioning_key", "local_part", "desired_enabled", "status", "control_generation", "control_hash_version", "control_hash", "projection_state", "sync_epoch", "sync_lease_epoch", "mutation_epoch", "provision_attempts", "sync_attempts", "event_cutoff_at", "created_at", "updated_at"} {
 		assertRequired(t, name, fields[name])
 	}
 	if fields["id"].Default == nil {
@@ -101,6 +101,7 @@ func TestMailAccountSchema_HasExactFieldsDefaultsAndValidators(t *testing.T) {
 		"control_hash_version": int32(1),
 		"projection_state":     "bootstrapping",
 		"sync_epoch":           int64(0),
+		"sync_lease_epoch":     int64(1),
 		"mutation_epoch":       int64(0),
 		"provision_attempts":   int32(0),
 		"sync_attempts":        int32(0),
@@ -108,6 +109,7 @@ func TestMailAccountSchema_HasExactFieldsDefaultsAndValidators(t *testing.T) {
 	assertOnlyDefaults(t, fields, map[string]bool{
 		"id": true, "desired_enabled": true, "status": true, "control_generation": true,
 		"control_hash_version": true, "projection_state": true, "sync_epoch": true,
+		"sync_lease_epoch": true,
 		"mutation_epoch": true, "provision_attempts": true, "sync_attempts": true,
 		"created_at": true, "updated_at": true,
 	})
@@ -123,13 +125,13 @@ func TestMailAccountSchema_HasExactFieldsDefaultsAndValidators(t *testing.T) {
 		assertOptionalNillable(t, name, fields[name])
 	}
 
-	for _, name := range []string{"control_generation", "attempted_control_generation", "deployed_generation", "sync_epoch", "mutation_epoch"} {
+	for _, name := range []string{"control_generation", "attempted_control_generation", "deployed_generation", "sync_epoch", "sync_lease_epoch", "mutation_epoch"} {
 		assertFieldType(t, name, fields[name], field.TypeInt64)
 	}
 	for _, name := range []string{"control_hash_version", "attempted_control_hash_version", "deployed_hash_version", "provision_attempts", "sync_attempts"} {
 		assertFieldType(t, name, fields[name], field.TypeInt32)
 	}
-	for _, name := range []string{"control_generation", "attempted_control_generation", "deployed_generation"} {
+	for _, name := range []string{"control_generation", "attempted_control_generation", "deployed_generation", "sync_lease_epoch"} {
 		assertInt64Validators(t, name, fields[name], []struct {
 			value int64
 			want  bool
@@ -270,7 +272,7 @@ func TestMailAccountAndIdentitySchemas_HaveExactChecksAndIndexes(t *testing.T) {
 		"mail_accounts_provision_lease_pair":           "(provision_lease_token IS NULL) = (provision_lease_until IS NULL)",
 		"mail_accounts_sync_lease_pair":                "(sync_lease_token IS NULL) = (sync_lease_until IS NULL)",
 		"mail_accounts_mutation_lease_pair":            "(mutation_lease_token IS NULL) = (mutation_lease_until IS NULL)",
-		"mail_accounts_non_negative":                   "sync_epoch >= 0 AND mutation_epoch >= 0 AND provision_attempts >= 0 AND sync_attempts >= 0",
+		"mail_accounts_non_negative":                   "sync_epoch >= 0 AND sync_lease_epoch >= 1 AND mutation_epoch >= 0 AND provision_attempts >= 0 AND sync_attempts >= 0",
 		"mail_accounts_status_state":                   "status = 'provisioning' OR (status = 'error' AND provision_error_code IS NOT NULL) OR (status = 'active' AND desired_enabled = TRUE AND engine_account_id IS NOT NULL AND deployed_generation IS NOT NULL) OR (status = 'suspended' AND desired_enabled = FALSE AND engine_account_id IS NOT NULL AND deployed_generation IS NOT NULL) OR status = 'deleting'",
 		"mail_accounts_deleting_blocked_pending_shape": "status <> 'deleting' OR (desired_enabled = FALSE AND sync_lease_token IS NULL AND sync_lease_until IS NULL AND mutation_lease_token IS NULL AND mutation_lease_until IS NULL AND provision_lease_token IS NULL AND provision_lease_until IS NULL AND attempted_control_generation IS NULL AND attempted_control_hash_version IS NULL AND attempted_control_hash IS NULL AND provision_error_code IS NULL AND next_provision_at IS NOT NULL)",
 		"mail_accounts_ready_projection":               "projection_state <> 'ready' OR (sync_cursor IS NOT NULL AND last_synced_at IS NOT NULL AND rebuild_checkpoint IS NULL AND rebuild_base_cursor IS NULL AND sync_error_code IS NULL)",
@@ -294,9 +296,13 @@ func TestMailAccountAndIdentitySchemas_HaveExactChecksAndIndexes(t *testing.T) {
 		{fields: []string{"status", "next_provision_at"}},
 		{fields: []string{"projection_state", "next_sync_at"}},
 		{fields: []string{"next_provision_at", "id"}, where: "status = 'deleting'"},
+		{fields: []string{"next_sync_at", "id"}, where: "status = 'active' AND next_sync_at IS NOT NULL"},
 	})
 	if got := accountIndexes[6].Descriptor().StorageKey; got != "mail_accounts_deleting_blocked_idx" {
 		t.Fatalf("MailAccount index[6] storage key = %q, want mail_accounts_deleting_blocked_idx", got)
+	}
+	if got := accountIndexes[7].Descriptor().StorageKey; got != "mail_accounts_sync_due_idx" {
+		t.Fatalf("MailAccount index[7] storage key = %q, want mail_accounts_sync_due_idx", got)
 	}
 	assertExactIndexes(t, (entschema.MailIdentity{}).Indexes(), []wantedIndex{
 		{fields: []string{"normalized_address"}, unique: true},

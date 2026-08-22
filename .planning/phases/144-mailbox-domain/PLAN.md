@@ -1,11 +1,33 @@
 # Phase 144 — Mailbox Domain
 
+## Task 6S — Mail sync lease generation and due-scan schema prerequisite (2026-08-22)
+
+> **Narrow source status:** `SOURCE_CANDIDATE / STATIC_REVIEW_PENDING / RUNTIME_NOT_RUN`.
+> This prerequisite owns only the test-first `MailAccount` schema contract and source changes for
+> durable `sync_lease_epoch` plus the bounded active due-scan index; it does not claim static
+> acceptance, adapter implementation, sync-page receipt design, or any product/runtime authority.
+
+`sync_lease_epoch` is required `Int64`, default `1`, minimum `1`, immediately after `sync_epoch`.
+It is the monotonic generation carried later by `MailboxSyncFence` and
+`MailboxSyncWorkerDueAccount`: a never-claimed due account is valid at `1`, and a future adapter
+keeps `1` for its first lease then increments only when distinct durable lease ownership replaces
+the prior lease. `mail_accounts_non_negative` preserves every existing clause and additionally
+requires `sync_lease_epoch >= 1`. The appended
+`mail_accounts_sync_due_idx` has fields `(next_sync_at, id)`, storage key
+`mail_accounts_sync_due_idx`, and exactly
+`status = 'active' AND next_sync_at IS NOT NULL`.
+
+Task 6 depends on this prerequisite. No sync-page receipt is invented here; that design remains a
+separate prerequisite before its apply adapter. Source is a candidate and static review is pending.
+The launcher is `NOT_READY`; RED/GREEN, Ent generation, Atlas diff/migration, compile, SQL/DB,
+Docker, formatting/lint, and runtime are all `NOT_RUN`. No migration or cutover authority follows.
+
 ## Task 5 — Mail Ent repository root and owner-resolution candidate (2026-08-22)
 
-> **Narrow source status:** `SOURCE_COMMITTED / STATIC_REVIEW_PENDING / RUNTIME_NOT_RUN`.
-> This packet contains only the test-first owner-repository contract,
+> **Narrow source status:** `STATIC_ACCEPTED / RUNTIME_NOT_RUN` at head `ea0808a7`.
+> Independent review accepted only the test-first owner-repository contract,
 > `mailbox_ent_repository.go`, and `mailbox_ent_owner.go`; it does not claim static
-> acceptance, Ent generation, migration, SQL/DB proof, provider connectivity, HTTP/API/UI
+> acceptance outside this manifest, Ent generation, migration, SQL/DB proof, provider connectivity, HTTP/API/UI
 > wiring, launcher readiness, runtime, product, phase, or release acceptance.
 
 `NewMailboxEntRepository(*ent.Client, MailboxRepositoryClock)` keeps both dependencies private,
@@ -16,6 +38,9 @@ owner-bound MailAccount, then primary MailIdentity. An active actor without an a
 only the valid `not_configured` record; foreign, inactive, deleting, ambiguous, cross-linked, or
 state-inconsistent rows fail closed. The returned record contains copied scalar account/address/
 recovery/projection state only and performs no provider or network I/O in its transaction.
+The fix review confirmed that actor-owned cross-organization state fails closed before the sole
+valid no-account result, provisioning accepts its already validated optional recovery code, and
+the global unique `mail_accounts.user_id` invariant prevents ambiguous multi-organization owners.
 
 The author-first contract source is deliberately `NOT_RUN`: generated Ent Go is absent until Task
 9, and the canonical launcher is `NOT_READY`. Therefore RED/GREEN, compile, Ent generation,
