@@ -2,7 +2,7 @@
 
 ## Task 6S — Mail sync lease generation and due-scan schema prerequisite (2026-08-22)
 
-> **Narrow source status:** `SOURCE_CANDIDATE / STATIC_REVIEW_PENDING / RUNTIME_NOT_RUN`.
+> **Narrow source status:** `STATIC_ACCEPTED / RUNTIME_NOT_RUN` at source commit `c8274bd2`.
 > This prerequisite owns only the test-first `MailAccount` schema contract and source changes for
 > durable `sync_lease_epoch` plus the bounded active due-scan index; it does not claim static
 > acceptance, adapter implementation, sync-page receipt design, or any product/runtime authority.
@@ -18,8 +18,8 @@ requires `sync_lease_epoch >= 1`. The appended
 `status = 'active' AND next_sync_at IS NOT NULL`.
 
 Task 6 depends on this prerequisite. No sync-page receipt is invented here; that design remains a
-separate prerequisite before its apply adapter. Source is a candidate and static review is pending.
-The launcher is `NOT_READY`; RED/GREEN, Ent generation, Atlas diff/migration, compile, SQL/DB,
+separate prerequisite before its apply adapter. Independent static review found no issues in this
+narrow manifest. The launcher is `NOT_READY`; RED/GREEN, Ent generation, Atlas diff/migration, compile, SQL/DB,
 Docker, formatting/lint, and runtime are all `NOT_RUN`. No migration or cutover authority follows.
 
 ## Task 5 — Mail Ent repository root and owner-resolution candidate (2026-08-22)

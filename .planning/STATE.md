@@ -28,7 +28,7 @@ mail_144_task_5_owner_ent_repository: >-
   compile, Ent generation, database, Docker, lint, formatting, migration and runtime evidence are
   NOT_RUN. No API/UI/wiring, product, phase, release or migration authority follows.
 mail_144_task_6s_sync_lease_schema: >-
-  SOURCE_CANDIDATE / STATIC_REVIEW_PENDING / RUNTIME_NOT_RUN. Task 6S owns only the
+  STATIC_ACCEPTED / RUNTIME_NOT_RUN at source commit c8274bd2. Task 6S owns only the
   test-first MailAccount schema contract/source prerequisite: required Int64 sync_lease_epoch
   immediately after sync_epoch with default 1 and minimum 1; the existing non-negative CHECK
   retains every prior clause and adds sync_lease_epoch >= 1; and appended
@@ -37,7 +37,7 @@ mail_144_task_6s_sync_lease_schema: >-
   MailboxSyncFence and MailboxSyncWorkerDueAccount; the first lease remains 1 and only distinct
   durable ownership replacement increments it. Task 6 depends on this prerequisite. This packet
   creates no sync-page receipt; that design is separately required before the apply adapter.
-  Source candidate/static review pending only: launcher NOT_READY; Ent generation, Atlas
+  Independent static review found no issues in this narrow manifest. Launcher NOT_READY; Ent generation, Atlas
   diff/migration, compile, SQL/DB, Docker, formatting/lint, and runtime are all NOT_RUN. No
   migration or cutover authority follows.
 calendar_143_04i_inbound_reply_source_receipt_sync: >-

@@ -277,7 +277,7 @@ feat(mail): add Ent mailbox owner repository
 - Modify: `.planning/phases/144-mailbox-domain/PLAN.md`
 - Modify: `.planning/STATE.md`
 
-**Status:** `SOURCE_CANDIDATE / STATIC_REVIEW_PENDING / RUNTIME_NOT_RUN`.
+**Status:** `STATIC_ACCEPTED / RUNTIME_NOT_RUN` at source commit `c8274bd2`.
 
 This prerequisite persists `sync_lease_epoch` immediately after `sync_epoch` as required
 `Int64`, default `1`, minimum `1`, and appends
@@ -289,8 +289,8 @@ prior lease. The existing non-negative CHECK retains every prior clause and addi
 `sync_lease_epoch >= 1`.
 
 Task 6 depends on this prerequisite. This packet does not create a sync-page receipt; that
-separate design must be frozen before the apply adapter. It is source candidate only and static
-review remains pending. Launcher `NOT_READY`; Ent generation, Atlas diff/migration, compile,
+separate design must be frozen before the apply adapter. Independent static review found no
+issues in this narrow manifest. Launcher `NOT_READY`; Ent generation, Atlas diff/migration, compile,
 SQL/DB, Docker, formatting/lint, and runtime are all `NOT_RUN`. No migration or cutover authority
 follows.
 
