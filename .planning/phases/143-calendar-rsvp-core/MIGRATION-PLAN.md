@@ -1,23 +1,25 @@
 # Phase 143 — Calendar schema, ScheduledCall backfill and cutover plan
 
-> **Status:** CALENDAR_0_1_7_SEMANTICS_PASS_B3FB6F48 · PRODUCTION_ARTIFACT_BLOCKED_BY_FOUNDER_REVIEW
+> **Status:** MIGRATION_MECHANISM_SELECTED · EXECUTABLE_ARTIFACT_NOT_RUN
 > **Runtime:** NOT_RUN
-> **Owner decision:** `docs/mail/FOUNDER-QUESTIONS.md` #12
+> **Owner decision:** founder instruction 2026-08-22; design:
+> `docs/superpowers/specs/2026-08-22-mail-calendar-production-integration-design.md`
 
 ## Current repository truth
 
 - Ent schemas are the checked-in model source. Generated Ent files are ignored and must be
   regenerated only inside the accepted Docker launcher.
 - Development may call `client.Schema.Create(ctx)` only with `DEV_MODE=true`.
-- Production code comments require `Atlas migrate apply`, but the repository has no
-  executable `atlas.hcl`, migration-directory owner, or CI/deploy apply command.
-- `backend/migrations/*.sql` contains reviewed historical SQL, but this does not establish
-  the future production migration authority.
-- Database migrations and this ADR require founder review before integration.
-
-No SQL file or apply command is authorized until the owner resolves that mismatch. Ent
-schema work may proceed independently under the exact founder-authorized Terra route, but it is
-not production-migration evidence.
+- `backend/migrations` is the single versioned production migration directory. Atlas is the
+  selected deterministic diff, lint, checksum and apply tool; checked-in SQL remains the
+  reviewed production artifact and Ent schema remains the model source.
+- The previous migration-mechanism/owner mismatch is resolved by the founder instruction dated
+  2026-08-22. It is historical and no longer blocks authoring the Atlas configuration or a
+  reviewed migration packet.
+- No generation, SQL diff, lint, apply command or database evidence has run yet. Those executable
+  steps still require the accepted task-owned Docker launcher and remain `NOT_RUN`.
+- `DEV_MODE=true` may continue to call `client.Schema.Create(ctx)` for development only;
+  production uses the versioned migration directory.
 
 ## Target schema invariants
 
