@@ -23,7 +23,10 @@ func TestMailAccountSchema_HasExactFieldsDefaultsAndValidators(t *testing.T) {
 		"attempted_control_hash", "deployed_generation", "deployed_hash_version", "deployed_hash",
 		"projection_state", "sync_cursor", "rebuild_checkpoint", "rebuild_base_cursor", "sync_epoch",
 		"sync_lease_epoch", "mutation_epoch", "provision_attempts", "sync_attempts", "provision_lease_token",
-		"sync_lease_token", "mutation_lease_token", "provision_lease_until", "sync_lease_until",
+		"sync_lease_token", "sync_lease_sync_epoch", "sync_lease_mutation_epoch", "sync_lease_phase",
+		"sync_lease_cursor", "sync_lease_base_cursor", "sync_lease_checkpoint", "sync_lease_result_hash_version",
+		"sync_lease_result_hash", "sync_lease_applied_phase", "sync_lease_applied_next_at", "sync_lease_applied_at",
+		"mutation_lease_token", "provision_lease_until", "sync_lease_until",
 		"mutation_lease_until", "next_provision_at", "next_sync_at", "last_synced_at",
 		"provision_error_code", "sync_error_code", "event_cutoff_at", "created_at", "updated_at",
 	})
@@ -33,7 +36,7 @@ func TestMailAccountSchema_HasExactFieldsDefaultsAndValidators(t *testing.T) {
 		assertFieldType(t, name, fields[name], field.TypeUUID)
 	}
 	assertFieldType(t, "desired_enabled", fields["desired_enabled"], field.TypeBool)
-	for _, name := range []string{"status", "projection_state", "provision_error_code", "sync_error_code"} {
+	for _, name := range []string{"status", "projection_state", "sync_lease_phase", "sync_lease_applied_phase", "provision_error_code", "sync_error_code"} {
 		assertFieldType(t, name, fields[name], field.TypeEnum)
 	}
 	for _, name := range []string{"id", "organization_id", "user_id", "mail_domain_id", "engine_provisioning_key", "local_part", "event_cutoff_at"} {
@@ -48,7 +51,7 @@ func TestMailAccountSchema_HasExactFieldsDefaultsAndValidators(t *testing.T) {
 		t.Fatal("id must have a UUID default")
 	}
 
-	for _, name := range []string{"engine_provisioning_key", "local_part", "engine_account_id", "sync_cursor", "rebuild_checkpoint", "rebuild_base_cursor"} {
+	for _, name := range []string{"engine_provisioning_key", "local_part", "engine_account_id", "sync_cursor", "rebuild_checkpoint", "rebuild_base_cursor", "sync_lease_cursor", "sync_lease_base_cursor", "sync_lease_checkpoint"} {
 		assertFieldType(t, name, fields[name], field.TypeString)
 	}
 	assertStringValidators(t, "engine_provisioning_key", fields["engine_provisioning_key"], []struct {
@@ -86,6 +89,18 @@ func TestMailAccountSchema_HasExactFieldsDefaultsAndValidators(t *testing.T) {
 			{strings.Repeat("x", 4097), false},
 		})
 	}
+	for _, name := range []string{"sync_lease_cursor", "sync_lease_base_cursor", "sync_lease_checkpoint"} {
+		assertOptionalNillable(t, name, fields[name])
+		assertStringValidators(t, name, fields[name], []struct {
+			value string
+			want  bool
+		}{
+			{"", false},
+			{"x", true},
+			{strings.Repeat("x", 4096), true},
+			{strings.Repeat("x", 4097), false},
+		})
+	}
 	assertStringValidators(t, "engine_account_id", fields["engine_account_id"], []struct {
 		value string
 		want  bool
@@ -115,6 +130,8 @@ func TestMailAccountSchema_HasExactFieldsDefaultsAndValidators(t *testing.T) {
 	})
 	assertExactEnumValues(t, "status", fields["status"], []string{"provisioning", "active", "suspended", "error", "deleting"})
 	assertExactEnumValues(t, "projection_state", fields["projection_state"], []string{"bootstrapping", "ready", "degraded", "rebuilding"})
+	assertExactEnumValues(t, "sync_lease_phase", fields["sync_lease_phase"], []string{"incremental", "enumeration", "catch_up"})
+	assertExactEnumValues(t, "sync_lease_applied_phase", fields["sync_lease_applied_phase"], []string{"incremental", "enumeration", "catch_up"})
 	assertExactEnumValues(t, "provision_error_code", fields["provision_error_code"], []string{
 		"MAILBOX_ENGINE_DISABLED", "MAILBOX_DOMAIN_REQUIRED", "MAILBOX_PROVISIONING_RETRY", "MAILBOX_SUSPENDED", "MAILBOX_UNAVAILABLE",
 	})
@@ -125,10 +142,10 @@ func TestMailAccountSchema_HasExactFieldsDefaultsAndValidators(t *testing.T) {
 		assertOptionalNillable(t, name, fields[name])
 	}
 
-	for _, name := range []string{"control_generation", "attempted_control_generation", "deployed_generation", "sync_epoch", "sync_lease_epoch", "mutation_epoch"} {
+	for _, name := range []string{"control_generation", "attempted_control_generation", "deployed_generation", "sync_epoch", "sync_lease_epoch", "sync_lease_sync_epoch", "sync_lease_mutation_epoch", "mutation_epoch"} {
 		assertFieldType(t, name, fields[name], field.TypeInt64)
 	}
-	for _, name := range []string{"control_hash_version", "attempted_control_hash_version", "deployed_hash_version", "provision_attempts", "sync_attempts"} {
+	for _, name := range []string{"control_hash_version", "attempted_control_hash_version", "deployed_hash_version", "sync_lease_result_hash_version", "provision_attempts", "sync_attempts"} {
 		assertFieldType(t, name, fields[name], field.TypeInt32)
 	}
 	for _, name := range []string{"control_generation", "attempted_control_generation", "deployed_generation", "sync_lease_epoch"} {
@@ -137,13 +154,13 @@ func TestMailAccountSchema_HasExactFieldsDefaultsAndValidators(t *testing.T) {
 			want  bool
 		}{{0, false}, {1, true}})
 	}
-	for _, name := range []string{"control_hash_version", "attempted_control_hash_version", "deployed_hash_version"} {
+	for _, name := range []string{"control_hash_version", "attempted_control_hash_version", "deployed_hash_version", "sync_lease_result_hash_version"} {
 		assertInt32Validators(t, name, fields[name], []struct {
 			value int32
 			want  bool
 		}{{0, false}, {1, true}})
 	}
-	for _, name := range []string{"sync_epoch", "mutation_epoch"} {
+	for _, name := range []string{"sync_epoch", "sync_lease_sync_epoch", "sync_lease_mutation_epoch", "mutation_epoch"} {
 		assertInt64Validators(t, name, fields[name], []struct {
 			value int64
 			want  bool
@@ -155,7 +172,7 @@ func TestMailAccountSchema_HasExactFieldsDefaultsAndValidators(t *testing.T) {
 			want  bool
 		}{{-1, false}, {0, true}})
 	}
-	for _, name := range []string{"control_hash", "attempted_control_hash", "deployed_hash"} {
+	for _, name := range []string{"control_hash", "attempted_control_hash", "deployed_hash", "sync_lease_result_hash"} {
 		assertFieldType(t, name, fields[name], field.TypeBytes)
 		assertBytesValidators(t, name, fields[name], []struct {
 			value []byte
@@ -169,13 +186,16 @@ func TestMailAccountSchema_HasExactFieldsDefaultsAndValidators(t *testing.T) {
 	for _, name := range []string{
 		"attempted_control_generation", "attempted_control_hash_version", "attempted_control_hash",
 		"deployed_generation", "deployed_hash_version", "deployed_hash", "provision_lease_token",
-		"sync_lease_token", "mutation_lease_token", "provision_lease_until", "sync_lease_until",
+		"sync_lease_token", "sync_lease_sync_epoch", "sync_lease_mutation_epoch", "sync_lease_phase",
+		"sync_lease_cursor", "sync_lease_base_cursor", "sync_lease_checkpoint", "sync_lease_result_hash_version",
+		"sync_lease_result_hash", "sync_lease_applied_phase", "sync_lease_applied_next_at", "sync_lease_applied_at",
+		"mutation_lease_token", "provision_lease_until", "sync_lease_until",
 		"mutation_lease_until", "next_provision_at", "next_sync_at", "last_synced_at",
 		"provision_error_code", "sync_error_code",
 	} {
 		assertOptionalNillable(t, name, fields[name])
 	}
-	for _, name := range []string{"event_cutoff_at", "created_at", "updated_at", "provision_lease_until", "sync_lease_until", "mutation_lease_until", "next_provision_at", "next_sync_at", "last_synced_at"} {
+	for _, name := range []string{"event_cutoff_at", "created_at", "updated_at", "provision_lease_until", "sync_lease_until", "sync_lease_applied_next_at", "sync_lease_applied_at", "mutation_lease_until", "next_provision_at", "next_sync_at", "last_synced_at"} {
 		assertFieldType(t, name, fields[name], field.TypeTime)
 	}
 	assertTimestampsWithoutMixin(t, fields)
@@ -271,6 +291,8 @@ func TestMailAccountAndIdentitySchemas_HaveExactChecksAndIndexes(t *testing.T) {
 		"mail_accounts_deployed_control_tuple":         "((deployed_generation IS NULL) = (deployed_hash_version IS NULL)) AND ((deployed_generation IS NULL) = (deployed_hash IS NULL)) AND (deployed_generation IS NULL OR (deployed_generation >= 1 AND deployed_hash_version >= 1 AND length(deployed_hash) = 32 AND deployed_generation <= control_generation))",
 		"mail_accounts_provision_lease_pair":           "(provision_lease_token IS NULL) = (provision_lease_until IS NULL)",
 		"mail_accounts_sync_lease_pair":                "(sync_lease_token IS NULL) = (sync_lease_until IS NULL)",
+		"mail_accounts_sync_lease_snapshot":            "COALESCE((sync_lease_token IS NULL AND sync_lease_sync_epoch IS NULL AND sync_lease_mutation_epoch IS NULL AND sync_lease_phase IS NULL AND sync_lease_cursor IS NULL AND sync_lease_base_cursor IS NULL AND sync_lease_checkpoint IS NULL) OR (sync_lease_token IS NOT NULL AND sync_lease_until IS NOT NULL AND sync_lease_sync_epoch >= 0 AND sync_lease_mutation_epoch >= 0 AND ((sync_lease_phase IN ('incremental', 'catch_up') AND sync_lease_cursor IS NOT NULL AND sync_lease_base_cursor IS NULL AND sync_lease_checkpoint IS NULL) OR (sync_lease_phase = 'enumeration' AND sync_lease_cursor IS NULL AND ((sync_lease_base_cursor IS NULL AND sync_lease_checkpoint IS NULL) OR (sync_lease_base_cursor IS NOT NULL AND sync_lease_checkpoint IS NOT NULL))))), FALSE)",
+		"mail_accounts_sync_lease_apply_proof":         "COALESCE((sync_lease_result_hash_version IS NULL AND sync_lease_result_hash IS NULL AND sync_lease_applied_phase IS NULL AND sync_lease_applied_next_at IS NULL AND sync_lease_applied_at IS NULL) OR (sync_lease_token IS NOT NULL AND sync_lease_until IS NOT NULL AND sync_lease_result_hash_version IS NOT NULL AND sync_lease_result_hash IS NOT NULL AND sync_lease_applied_phase IS NOT NULL AND sync_lease_applied_next_at IS NOT NULL AND sync_lease_applied_at IS NOT NULL AND sync_lease_result_hash_version >= 1 AND length(sync_lease_result_hash) = 32 AND sync_lease_applied_at < sync_lease_until AND sync_lease_applied_next_at >= sync_lease_applied_at AND ((sync_lease_phase = 'incremental' AND sync_lease_applied_phase = 'incremental') OR (sync_lease_phase = 'catch_up' AND sync_lease_applied_phase IN ('catch_up', 'incremental')) OR (sync_lease_phase = 'enumeration' AND sync_lease_applied_phase IN ('enumeration', 'catch_up')))), FALSE)",
 		"mail_accounts_mutation_lease_pair":            "(mutation_lease_token IS NULL) = (mutation_lease_until IS NULL)",
 		"mail_accounts_non_negative":                   "sync_epoch >= 0 AND sync_lease_epoch >= 1 AND mutation_epoch >= 0 AND provision_attempts >= 0 AND sync_attempts >= 0",
 		"mail_accounts_status_state":                   "status = 'provisioning' OR (status = 'error' AND provision_error_code IS NOT NULL) OR (status = 'active' AND desired_enabled = TRUE AND engine_account_id IS NOT NULL AND deployed_generation IS NOT NULL) OR (status = 'suspended' AND desired_enabled = FALSE AND engine_account_id IS NOT NULL AND deployed_generation IS NOT NULL) OR status = 'deleting'",

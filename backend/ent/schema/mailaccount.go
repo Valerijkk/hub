@@ -121,6 +121,52 @@ func (MailAccount) Fields() []ent.Field {
 		field.UUID("sync_lease_token", uuid.UUID{}).
 			Optional().
 			Nillable(),
+		field.Int64("sync_lease_sync_epoch").
+			Optional().
+			Nillable().
+			NonNegative(),
+		field.Int64("sync_lease_mutation_epoch").
+			Optional().
+			Nillable().
+			NonNegative(),
+		field.Enum("sync_lease_phase").
+			Values("incremental", "enumeration", "catch_up").
+			Optional().
+			Nillable(),
+		field.String("sync_lease_cursor").
+			Optional().
+			Nillable().
+			MinLen(1).
+			MaxLen(4096),
+		field.String("sync_lease_base_cursor").
+			Optional().
+			Nillable().
+			MinLen(1).
+			MaxLen(4096),
+		field.String("sync_lease_checkpoint").
+			Optional().
+			Nillable().
+			MinLen(1).
+			MaxLen(4096),
+		field.Int32("sync_lease_result_hash_version").
+			Optional().
+			Nillable().
+			Min(1),
+		field.Bytes("sync_lease_result_hash").
+			Optional().
+			Nillable().
+			MinLen(sha256.Size).
+			MaxLen(sha256.Size),
+		field.Enum("sync_lease_applied_phase").
+			Values("incremental", "enumeration", "catch_up").
+			Optional().
+			Nillable(),
+		field.Time("sync_lease_applied_next_at").
+			Optional().
+			Nillable(),
+		field.Time("sync_lease_applied_at").
+			Optional().
+			Nillable(),
 		field.UUID("mutation_lease_token", uuid.UUID{}).
 			Optional().
 			Nillable(),
@@ -169,6 +215,8 @@ func (MailAccount) Annotations() []schema.Annotation {
 			"mail_accounts_deployed_control_tuple":         "((deployed_generation IS NULL) = (deployed_hash_version IS NULL)) AND ((deployed_generation IS NULL) = (deployed_hash IS NULL)) AND (deployed_generation IS NULL OR (deployed_generation >= 1 AND deployed_hash_version >= 1 AND length(deployed_hash) = 32 AND deployed_generation <= control_generation))",
 			"mail_accounts_provision_lease_pair":           "(provision_lease_token IS NULL) = (provision_lease_until IS NULL)",
 			"mail_accounts_sync_lease_pair":                "(sync_lease_token IS NULL) = (sync_lease_until IS NULL)",
+			"mail_accounts_sync_lease_snapshot":            "COALESCE((sync_lease_token IS NULL AND sync_lease_sync_epoch IS NULL AND sync_lease_mutation_epoch IS NULL AND sync_lease_phase IS NULL AND sync_lease_cursor IS NULL AND sync_lease_base_cursor IS NULL AND sync_lease_checkpoint IS NULL) OR (sync_lease_token IS NOT NULL AND sync_lease_until IS NOT NULL AND sync_lease_sync_epoch >= 0 AND sync_lease_mutation_epoch >= 0 AND ((sync_lease_phase IN ('incremental', 'catch_up') AND sync_lease_cursor IS NOT NULL AND sync_lease_base_cursor IS NULL AND sync_lease_checkpoint IS NULL) OR (sync_lease_phase = 'enumeration' AND sync_lease_cursor IS NULL AND ((sync_lease_base_cursor IS NULL AND sync_lease_checkpoint IS NULL) OR (sync_lease_base_cursor IS NOT NULL AND sync_lease_checkpoint IS NOT NULL))))), FALSE)",
+			"mail_accounts_sync_lease_apply_proof":         "COALESCE((sync_lease_result_hash_version IS NULL AND sync_lease_result_hash IS NULL AND sync_lease_applied_phase IS NULL AND sync_lease_applied_next_at IS NULL AND sync_lease_applied_at IS NULL) OR (sync_lease_token IS NOT NULL AND sync_lease_until IS NOT NULL AND sync_lease_result_hash_version IS NOT NULL AND sync_lease_result_hash IS NOT NULL AND sync_lease_applied_phase IS NOT NULL AND sync_lease_applied_next_at IS NOT NULL AND sync_lease_applied_at IS NOT NULL AND sync_lease_result_hash_version >= 1 AND length(sync_lease_result_hash) = 32 AND sync_lease_applied_at < sync_lease_until AND sync_lease_applied_next_at >= sync_lease_applied_at AND ((sync_lease_phase = 'incremental' AND sync_lease_applied_phase = 'incremental') OR (sync_lease_phase = 'catch_up' AND sync_lease_applied_phase IN ('catch_up', 'incremental')) OR (sync_lease_phase = 'enumeration' AND sync_lease_applied_phase IN ('enumeration', 'catch_up')))), FALSE)",
 			"mail_accounts_mutation_lease_pair":            "(mutation_lease_token IS NULL) = (mutation_lease_until IS NULL)",
 			"mail_accounts_non_negative":                   "sync_epoch >= 0 AND sync_lease_epoch >= 1 AND mutation_epoch >= 0 AND provision_attempts >= 0 AND sync_attempts >= 0",
 			"mail_accounts_status_state":                   "status = 'provisioning' OR (status = 'error' AND provision_error_code IS NOT NULL) OR (status = 'active' AND desired_enabled = TRUE AND engine_account_id IS NOT NULL AND deployed_generation IS NOT NULL) OR (status = 'suspended' AND desired_enabled = FALSE AND engine_account_id IS NOT NULL AND deployed_generation IS NOT NULL) OR status = 'deleting'",

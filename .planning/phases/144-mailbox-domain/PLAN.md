@@ -17,10 +17,39 @@ requires `sync_lease_epoch >= 1`. The appended
 `mail_accounts_sync_due_idx`, and exactly
 `status = 'active' AND next_sync_at IS NOT NULL`.
 
-Task 6 depends on this prerequisite. No sync-page receipt is invented here; that design remains a
-separate prerequisite before its apply adapter. Independent static review found no issues in this
-narrow manifest. The launcher is `NOT_READY`; RED/GREEN, Ent generation, Atlas diff/migration, compile, SQL/DB,
-Docker, formatting/lint, and runtime are all `NOT_RUN`. No migration or cutover authority follows.
+Task 6 depends on Task 6S and Task 6P. No sync-page receipt is invented here; the bounded
+inline active-lease proof is frozen as the separate Task 6P prerequisite before its apply adapter.
+Independent static review found no issues in this narrow manifest. The launcher is `NOT_READY`;
+RED/GREEN, Ent generation, Atlas diff/migration, compile, SQL/DB, Docker, formatting/lint, and
+runtime are all `NOT_RUN`. No migration or cutover authority follows.
+
+## Task 6P — Mail sync-lease snapshot and apply-proof schema prerequisite (2026-08-22)
+
+> **Narrow source candidate:** `NARROW_SOURCE_CANDIDATE / PENDING_INDEPENDENT_REVIEW / RUNTIME_NOT_RUN`.
+> This packet owns only the test-first `MailAccount` schema contract for one bounded inline active
+> sync-lease snapshot and its apply proof. It does not add an unbounded receipt table, retention
+> work, Ent generation, adapter implementation, migration, cutover, or product/runtime authority.
+
+Immediately after `sync_lease_token` and before `mutation_lease_token`, nullable snapshot fields
+carry the claimed sync/mutation epochs, `incremental|enumeration|catch_up` phase, and bounded
+opaque cursor/base/checkpoint state; nullable proof fields carry only a positive versioned
+32-byte result hash, applied phase, next attempt and application time. No field has a default.
+No message/calendar/provider body, raw error, or JSON payload is persisted.
+
+The portable fail-closed `mail_accounts_sync_lease_snapshot` CHECK requires absent-token snapshots
+to be entirely null; a present token and expiry require non-negative fences and the exact
+incremental/catch-up cursor or initial/resumed enumeration shapes. The separate portable
+fail-closed `mail_accounts_sync_lease_apply_proof` CHECK requires an all-null proof or a complete
+active-lease proof with a 32-byte hash, `applied_at < sync_lease_until`,
+`applied_next_at >= applied_at`, and only incremental→incremental,
+catch_up→catch_up|incremental, or enumeration→enumeration|catch_up. Keeping this proof inline
+preserves same-lease claim/replay even after the account cursor advances, without receipt
+retention cleanup.
+
+Task 6 cannot start before both Task 6S and Task 6P receive independent static review. The
+launcher is `NOT_READY`; executable RED/GREEN, tests, Ent generation, Atlas diff/migration,
+compile, SQL/DB, Docker, gofmt, lint, and runtime are all `NOT_RUN`. No migration or cutover
+authority follows.
 
 ## Task 5 — Mail Ent repository root and owner-resolution candidate (2026-08-22)
 

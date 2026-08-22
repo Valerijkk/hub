@@ -288,11 +288,46 @@ This prerequisite persists `sync_lease_epoch` immediately after `sync_epoch` as 
 prior lease. The existing non-negative CHECK retains every prior clause and additionally requires
 `sync_lease_epoch >= 1`.
 
-Task 6 depends on this prerequisite. This packet does not create a sync-page receipt; that
-separate design must be frozen before the apply adapter. Independent static review found no
-issues in this narrow manifest. Launcher `NOT_READY`; Ent generation, Atlas diff/migration, compile,
-SQL/DB, Docker, formatting/lint, and runtime are all `NOT_RUN`. No migration or cutover authority
-follows.
+Task 6 also depends on Task 6P. This packet does not create a sync-page receipt; that
+separate inline-proof prerequisite is frozen below. Independent static review found no issues in
+this narrow manifest. Launcher `NOT_READY`; Ent generation, Atlas diff/migration, compile, SQL/DB,
+Docker, formatting/lint, and runtime are all `NOT_RUN`. No migration or cutover authority follows.
+
+### Task 6P: Persist bounded Mail sync-lease snapshot and apply-proof prerequisite
+
+**Files:**
+- Modify: `backend/ent/schema/mailaccount.go`
+- Test: `backend/tests/mail/mail_account_identity_schema_test.go`
+- Modify: `.planning/phases/144-mailbox-domain/PLAN.md`
+- Modify: `.planning/STATE.md`
+
+**Status:** `NARROW_SOURCE_CANDIDATE / PENDING_INDEPENDENT_REVIEW / RUNTIME_NOT_RUN`.
+
+This prerequisite adds one bounded inline proof to the active `MailAccount` sync lease rather
+than an unbounded sync receipt table. It has no retention-cleanup dependency, stores no
+message/calendar/provider body, raw error, or JSON payload, and keeps the original claimed
+snapshot after the account cursor advances so the same lease can safely claim/replay its apply
+result.
+
+Immediately after `sync_lease_token` and before `mutation_lease_token`, persist nullable
+non-negative snapshot `sync_lease_sync_epoch` and `sync_lease_mutation_epoch`, nullable phase
+`incremental|enumeration|catch_up`, nullable bounded opaque cursor/base/checkpoint strings
+(`1..4096`), and nullable proof hash-version/32-byte SHA-256 hash/applied phase/applied-next-at/
+applied-at fields. All fields have no defaults.
+
+`mail_accounts_sync_lease_snapshot` is a portable fail-closed `COALESCE` CHECK: no lease token
+requires every snapshot value to be null; an active token plus expiry requires both epoch fences
+and the exact `validMailboxSyncFence` shapes. Incremental and catch-up require only a cursor;
+enumeration permits either initial no-base/no-checkpoint or resumed paired base/checkpoint.
+`mail_accounts_sync_lease_apply_proof` is a separate portable fail-closed `COALESCE` CHECK:
+all proof fields are null, or an active token plus expiry carries every proof field, positive hash
+version, 32-byte hash, `applied_at < sync_lease_until`, `applied_next_at >= applied_at`, and only
+the transitions incremental→incremental, catch_up→catch_up|incremental, and
+enumeration→enumeration|catch_up.
+
+Task 6 starts only after Task 6S and Task 6P. The launcher is `NOT_READY`; executable RED/GREEN,
+Ent generation, Atlas diff/migration, compile, SQL/DB, Docker, gofmt, lint, and runtime are all
+`NOT_RUN`. This source candidate provides no migration or cutover authority.
 
 ### Task 6: Mail sync and worker Ent adapters
 
@@ -307,8 +342,8 @@ follows.
 - Consumes: `MailboxSyncRepository`, `MailboxSyncWorkerRepository`, accepted sync fence/page policy, and worker caps.
 - Produces: the same `MailboxEntRepository` satisfying both interfaces.
 
-**Dependency:** Task 6 starts only after Task 6S persists and statically reviews the durable
-sync-lease generation and active due-scan index.
+**Dependency:** Task 6 starts only after Task 6S and Task 6P persist and independently
+statically review the durable sync-lease generation, active due-scan index, and inline apply proof.
 
 - [ ] **Step 1: Implement claim/prepare/apply/resolve**
 
