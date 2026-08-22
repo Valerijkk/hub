@@ -28,16 +28,12 @@ func (backend *eventEntTransactionBackend) ResolveActorOrganization(ctx context.
 		return uuid.Nil, ErrEventInvalid
 	}
 
-	actor, err := backend.activeUserForUpdate(ctx, actorID)
+	organization, err := backend.activeOrganizationForActorForUpdate(ctx, actorID)
 	if err != nil {
 		return uuid.Nil, err
 	}
-	organization, err := backend.tx.Organization.Query().
-		Where(organization.HasUsersWith(user.IDEQ(actor.ID))).
-		ForUpdate().
-		Only(ctx)
-	if err != nil {
-		return uuid.Nil, calendarEntAuthorizationError(err)
+	if _, err := backend.activeUserForUpdate(ctx, actorID); err != nil {
+		return uuid.Nil, err
 	}
 	return organization.ID, nil
 }
@@ -86,21 +82,45 @@ func (backend *eventEntTransactionBackend) activeOrganizationMemberForUpdate(ctx
 	if memberID == uuid.Nil || organizationID == uuid.Nil {
 		return nil, ErrEventForbidden
 	}
+	if _, err := backend.activeOrganizationForMemberForUpdate(ctx, memberID, organizationID); err != nil {
+		return nil, err
+	}
 	member, err := backend.activeUserForUpdate(ctx, memberID)
 	if err != nil {
 		return nil, err
 	}
-	_, err = backend.tx.Organization.Query().
+	return member, nil
+}
+
+func (backend *eventEntTransactionBackend) activeOrganizationForActorForUpdate(ctx context.Context, actorID uuid.UUID) (*ent.Organization, error) {
+	organization, err := backend.tx.Organization.Query().
+		Where(organization.HasUsersWith(
+			user.IDEQ(actorID),
+			user.StatusEQ(user.StatusActive),
+		)).
+		ForUpdate().
+		Only(ctx)
+	if err != nil {
+		return nil, calendarEntAuthorizationError(err)
+	}
+	return organization, nil
+}
+
+func (backend *eventEntTransactionBackend) activeOrganizationForMemberForUpdate(ctx context.Context, memberID, organizationID uuid.UUID) (*ent.Organization, error) {
+	organization, err := backend.tx.Organization.Query().
 		Where(
 			organization.IDEQ(organizationID),
-			organization.HasUsersWith(user.IDEQ(member.ID)),
+			organization.HasUsersWith(
+				user.IDEQ(memberID),
+				user.StatusEQ(user.StatusActive),
+			),
 		).
 		ForUpdate().
 		Only(ctx)
 	if err != nil {
 		return nil, calendarEntAuthorizationError(err)
 	}
-	return member, nil
+	return organization, nil
 }
 
 func (backend *eventEntTransactionBackend) activeUserForUpdate(ctx context.Context, memberID uuid.UUID) (*ent.User, error) {

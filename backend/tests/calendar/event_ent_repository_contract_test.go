@@ -4,9 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"reflect"
+	"strings"
 	"testing"
+	"time"
 
 	"entgo.io/ent/dialect"
+	entsql "entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
 
 	"github.com/valerii/hub/backend/ent"
@@ -75,6 +80,39 @@ func TestEventEntRepositoryWithEventTransactionOwnsOneClosedTransactionPerCallba
 	}
 }
 
+func TestEventEntRepositoryWithEventTransactionLocksOrganizationBeforeUser(t *testing.T) {
+	actorID := eventEntRepositoryActorID
+	attendeeID := eventEntRepositoryAttendeeID
+	driver := &eventEntRepositoryDriver{
+		organizationID:     eventEntRepositoryOrganizationID,
+		queryRows:          true,
+		expectedQueryOrder: []string{"organization", "user", "organization", "user", "organization", "user"},
+		userIDs:            []uuid.UUID{actorID, actorID, attendeeID},
+	}
+	repository := eventEntRepository(driver)
+
+	err := repository.WithEventTransaction(context.Background(), func(transaction *calendar.EventTransaction) error {
+		scope, err := transaction.ResolveMutationScope(context.Background(), actorID, calendar.MutationReceiptEventCreate)
+		if err != nil {
+			return err
+		}
+		if scope.OrganizationID() != eventEntRepositoryOrganizationID {
+			t.Fatalf("organization ID = %s, want %s", scope.OrganizationID(), eventEntRepositoryOrganizationID)
+		}
+		_, err = transaction.ResolveCalendarEventCreateAuthorization(context.Background(), scope, calendar.CalendarEventCreateAuthorizationRequest{
+			Organizer: calendar.CalendarEventCreateAttendeeCandidate{UserID: &actorID},
+			Attendees: []calendar.CalendarEventCreateAttendeeCandidate{
+				{UserID: &attendeeID},
+			},
+		})
+		return err
+	})
+	if err != nil {
+		t.Fatalf("authorization transaction error = %v", err)
+	}
+	driver.assertQueryOrder(t)
+}
+
 func TestEventEntRepositoryWithEventTransactionRollsBackCallbackFailures(t *testing.T) {
 	callbackErr := errors.New("callback failure")
 	driver := &eventEntRepositoryDriver{}
@@ -141,18 +179,50 @@ func eventEntRepository(driver *eventEntRepositoryDriver) *calendar.EventEntRepo
 }
 
 type eventEntRepositoryDriver struct {
-	beginCalls      int
-	beginErr        error
-	transactions    []*eventEntRepositoryTx
-	nextTransaction func() *eventEntRepositoryTx
+	beginCalls         int
+	beginErr           error
+	transactions       []*eventEntRepositoryTx
+	nextTransaction    func() *eventEntRepositoryTx
+	organizationID     uuid.UUID
+	queryOrder         []string
+	expectedQueryOrder []string
+	queryRows          bool
+	userIDs            []uuid.UUID
+	userQueryIndex     int
 }
 
 func (driver *eventEntRepositoryDriver) Exec(context.Context, string, any, any) error {
 	return errors.New("unexpected query execution")
 }
 
-func (driver *eventEntRepositoryDriver) Query(context.Context, string, any, any) error {
-	return errors.New("unexpected query execution")
+func (driver *eventEntRepositoryDriver) Query(_ context.Context, query string, value any, destination any) error {
+	if !driver.queryRows {
+		return errors.New("unexpected query execution")
+	}
+	queryKind := eventEntRepositoryQueryKind(query)
+	if queryKind == "" {
+		return errors.New("unexpected authorization query")
+	}
+	driver.queryOrder = append(driver.queryOrder, queryKind)
+	queryIndex := len(driver.queryOrder) - 1
+	if queryIndex >= len(driver.expectedQueryOrder) || driver.expectedQueryOrder[queryIndex] != queryKind {
+		return fmt.Errorf("authorization lock query %d = %s", queryIndex, queryKind)
+	}
+	rows, ok := destination.(*entsql.Rows)
+	if !ok {
+		return fmt.Errorf("authorization query destination = %T", destination)
+	}
+	rowID := driver.organizationID
+	if queryKind == "user" {
+		if driver.userQueryIndex >= len(driver.userIDs) {
+			return errors.New("unexpected user query")
+		}
+		rowID = driver.userIDs[driver.userQueryIndex]
+		driver.userQueryIndex++
+	}
+	_ = value
+	*rows = entsql.Rows{ColumnScanner: &eventEntRepositoryRows{id: rowID}}
+	return nil
 }
 
 func (driver *eventEntRepositoryDriver) Tx(context.Context) (dialect.Tx, error) {
@@ -164,6 +234,7 @@ func (driver *eventEntRepositoryDriver) Tx(context.Context) (dialect.Tx, error) 
 	if driver.nextTransaction != nil {
 		transaction = driver.nextTransaction()
 	}
+	transaction.driver = driver
 	driver.transactions = append(driver.transactions, transaction)
 	return transaction, nil
 }
@@ -177,6 +248,7 @@ func (*eventEntRepositoryDriver) Close() error { return nil }
 func (*eventEntRepositoryDriver) Dialect() string { return dialect.Postgres }
 
 type eventEntRepositoryTx struct {
+	driver    *eventEntRepositoryDriver
 	commitErr error
 	commits   int
 	rollbacks int
@@ -186,8 +258,11 @@ func (transaction *eventEntRepositoryTx) Exec(context.Context, string, any, any)
 	return errors.New("unexpected transaction execution")
 }
 
-func (transaction *eventEntRepositoryTx) Query(context.Context, string, any, any) error {
-	return errors.New("unexpected transaction query")
+func (transaction *eventEntRepositoryTx) Query(ctx context.Context, query string, value any, destination any) error {
+	if transaction.driver == nil {
+		return errors.New("unexpected transaction query")
+	}
+	return transaction.driver.Query(ctx, query, value, destination)
 }
 
 func (transaction *eventEntRepositoryTx) Commit() error {
@@ -200,4 +275,81 @@ func (transaction *eventEntRepositoryTx) Rollback() error {
 	return nil
 }
 
+func (driver *eventEntRepositoryDriver) assertQueryOrder(t *testing.T) {
+	t.Helper()
+	if len(driver.queryOrder) != len(driver.expectedQueryOrder) {
+		t.Fatalf("authorization query count = %d, want %d", len(driver.queryOrder), len(driver.expectedQueryOrder))
+	}
+	if got, want := strings.Join(driver.queryOrder, ","), strings.Join(driver.expectedQueryOrder, ","); got != want {
+		t.Fatalf("authorization lock query order = %s, want %s", got, want)
+	}
+}
+
+func eventEntRepositoryQueryKind(query string) string {
+	switch {
+	case strings.Contains(query, "organizations"):
+		return "organization"
+	case strings.Contains(query, "users"):
+		return "user"
+	default:
+		return ""
+	}
+}
+
+type eventEntRepositoryRows struct {
+	id      uuid.UUID
+	visited bool
+}
+
+func (*eventEntRepositoryRows) Close() error { return nil }
+
+func (*eventEntRepositoryRows) ColumnTypes() ([]*sql.ColumnType, error) { return nil, nil }
+
+func (*eventEntRepositoryRows) Columns() ([]string, error) { return nil, nil }
+
+func (*eventEntRepositoryRows) Err() error { return nil }
+
+func (rows *eventEntRepositoryRows) Next() bool {
+	if rows.visited {
+		return false
+	}
+	rows.visited = true
+	return true
+}
+
+func (*eventEntRepositoryRows) NextResultSet() bool { return false }
+
+func (rows *eventEntRepositoryRows) Scan(destinations ...any) error {
+	for _, destination := range destinations {
+		eventEntRepositorySetScanValue(destination, rows.id)
+	}
+	return nil
+}
+
+func eventEntRepositorySetScanValue(destination any, id uuid.UUID) {
+	value := reflect.ValueOf(destination)
+	if value.Kind() != reflect.Pointer || value.IsNil() {
+		return
+	}
+	target := value.Elem()
+	switch {
+	case target.Type() == reflect.TypeOf(uuid.UUID{}):
+		target.Set(reflect.ValueOf(id))
+	case target.Type() == reflect.TypeOf(time.Time{}):
+		target.Set(reflect.ValueOf(time.Unix(0, 0).UTC()))
+	case target.Kind() == reflect.String:
+		target.SetString("active")
+	case target.Kind() == reflect.Bool:
+		target.SetBool(false)
+	case target.Kind() >= reflect.Int && target.Kind() <= reflect.Int64:
+		target.SetInt(1)
+	case target.Kind() >= reflect.Uint && target.Kind() <= reflect.Uint64:
+		target.SetUint(1)
+	case target.Kind() == reflect.Slice:
+		target.Set(reflect.MakeSlice(target.Type(), 0, 0))
+	}
+}
+
 var eventEntRepositoryActorID = uuid.UUID{1}
+var eventEntRepositoryOrganizationID = uuid.UUID{2}
+var eventEntRepositoryAttendeeID = uuid.UUID{3}
