@@ -1821,3 +1821,13 @@ new quality gate is requirement/risk traceability plus fail-closed execution.
 > enum allowlists. The accepted Docker launcher is `NOT_READY`; executable RED/GREEN, Go
 > test/build/gofmt/lint, Ent generation, Atlas migration, Docker, and runtime evidence are all
 > `NOT_RUN`. This packet is not `STATIC_ACCEPTED`; independent review remains required.
+
+> **Phase 143 Task 3 Calendar Ent transaction adapter (2026-08-22):**
+> `SOURCE_CONTRACT_AUTHORED / PENDING_INDEPENDENT_REVIEW / RUNTIME_NOT_RUN`.
+> The isolated transaction contract test was authored first. The adapter's private UTC clock
+> computes a new mutation receipt expiry once per transaction as
+> `now().UTC().Truncate(time.Second).Add(24 * time.Hour)`; a matching non-expired completed
+> receipt replays, while expired-row cleanup/reuse remains a separate retention-cleanup
+> dependency. The accepted Docker launcher and generated Ent artifacts are unavailable:
+> executable RED/GREEN, compile, database, Ent generation, Atlas migration, Docker, and runtime
+> evidence remain `NOT_RUN` until Task 9. Independent review is still required.

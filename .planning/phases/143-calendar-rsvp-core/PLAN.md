@@ -1,5 +1,17 @@
 # Phase 143 — Calendar RSVP Core
 
+> **Phase 143 Task 3 base Ent event repository (2026-08-22):**
+> `SOURCE_CONTRACT_AUTHORED / PENDING_INDEPENDENT_REVIEW / RUNTIME_NOT_RUN`.
+> The isolated external repository contract test was authored before the adapter. The adapter
+> owns exactly one private Ent transaction per callback and implements only the mandatory
+> create backend surface: locked actor/organization/member resolution, mutation receipt,
+> event/attendee/exception persistence, and transactional outbox append. Its private UTC clock
+> sets a 24-hour mutation-receipt retention expiry exactly once per new reservation, truncated
+> to seconds. A matching non-expired completed receipt replays; expired-row cleanup/reuse is a
+> separate retention-cleanup dependency and is not introduced here. The accepted Docker
+> launcher and generated Ent artifacts remain unavailable, so executable RED, compile,
+> database, generation, Docker, and runtime evidence remain `NOT_RUN` until Task 9.
+
 > **143-04I inbound iTIP REPLY source receipt sync:** `SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT10_COMMIT_REQUIRED / IMMUTABLE_REVIEW_REQUIRED / RUNTIME_NOT_RUN`. This non-authoritative dirty exact10 docs receipt records immutable source `46f4d6024e6c5475cdd943af9979c4ffadc5474a` (sole parent `04dbde1a14e9499462dbc1ea8784583f83f0b40f`, tree `e3ce6097822f360a04717d0dce61597810ca2046`, subject `feat(calendar): add inbound reply service`) and ordered exact3 test `e0c4e64d9d704ebde24c87d9569590cde69d9115`, repository `c5fc1df5bf0a690db199b9df922c5463d27ab2a1`, service `81814a334c17df9dbd24da58a6fb95a776924670`; full exact10 receipt manifest is `IMPLEMENTATION-143-04I.md`. Source Contract/Security/Lifecycle precommit and immutable `EXACT_SHA_PASS` are C/I/M `0/0/0`; Contract Terra/high, Security Terra/xhigh, Lifecycle Terra/high, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Until one atomic manifest-equal exact10 receipt commit and immutable receipt triple PASS, source is not accepted. Only after activation it is `STATIC_ACCEPTED / EXACT_SHA_PASS` and lower 04I authority/source-unimplemented routes are `CONSUMED/HISTORICAL`. 04F-I requires `143-03F + 143-04F-Base + accepted 143-04I`; 143-03D is forbidden and insufficient. Runtime remains `NOT_RUN`; launcher/testframework external handoff, Ent/generated source, 03E, generation/migration, HTTP/API/OpenAPI/UI and NATS/iTIP transport remain BLOCKED/NOT_READY; no next Calendar packet follows.
 
 > **143-04H current source receipt:** `STATIC_ACCEPTED / EXACT_SHA_PASS` at `73940810046bb3186f2746705a83565ab29368c5`; exact16 receipt `f9f5d436c08737eeb5a3e965137f329f3ae7f627` is ancestral to HEAD. The former conditional block below is `CONSUMED/HISTORICAL` only for 04H. PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback; telemetry `UNKNOWN`. No next packet, runtime, or broader authority follows.
