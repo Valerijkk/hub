@@ -10,6 +10,21 @@ atlas_migration_control_plane: >-
   backfill is a separate reviewed forward-only artifact, and direct host commands are forbidden.
   Launcher NOT_READY; Ent generation, Atlas diff, lint, checksum, apply, database replay, and
   runtime validation are all NOT_RUN. No production migration is authorized.
+mail_144_task_5_owner_ent_repository: >-
+  SOURCE_COMMITTED / STATIC_REVIEW_PENDING / RUNTIME_NOT_RUN. Task 5 adds only the
+  test-first `backend/tests/mail/mailbox_ent_owner_contract_test.go` and private Mail Ent
+  repository root/owner resolver. The public constructor has the frozen signature
+  NewMailboxEntRepository(*ent.Client, MailboxRepositoryClock) (*MailboxEntRepository, error),
+  rejects nil and typed-nil dependencies, and keeps the client/clock private. Owner resolution
+  obtains deterministic locks in Organization -> active User -> owner-bound MailAccount -> primary
+  MailIdentity order, returns the existing valid not_configured record only for an active actor
+  with no account, and otherwise fails closed with content-free typed errors on foreign, inactive,
+  deleting, ambiguous, cross-linked, or inconsistent durable rows. Returned engine account,
+  address, recovery and projection values are copied scalars; provider/network I/O is absent.
+  The clock permits only non-zero exact-second UTC values before durable use. This is not static
+  acceptance: generated Ent Go remains absent until Task 9 and launcher NOT_READY; RED/GREEN,
+  compile, Ent generation, database, Docker, lint, formatting, migration and runtime evidence are
+  NOT_RUN. No API/UI/wiring, product, phase, release or migration authority follows.
 calendar_143_04i_inbound_reply_source_receipt_sync: >-
   SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT10_COMMIT_REQUIRED /
   IMMUTABLE_REVIEW_REQUIRED / RUNTIME_NOT_RUN. This non-authoritative dirty exact10 docs receipt

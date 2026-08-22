@@ -1,5 +1,26 @@
 # Phase 144 — Mailbox Domain
 
+## Task 5 — Mail Ent repository root and owner-resolution candidate (2026-08-22)
+
+> **Narrow source status:** `SOURCE_COMMITTED / STATIC_REVIEW_PENDING / RUNTIME_NOT_RUN`.
+> This packet contains only the test-first owner-repository contract,
+> `mailbox_ent_repository.go`, and `mailbox_ent_owner.go`; it does not claim static
+> acceptance, Ent generation, migration, SQL/DB proof, provider connectivity, HTTP/API/UI
+> wiring, launcher readiness, runtime, product, phase, or release acceptance.
+
+`NewMailboxEntRepository(*ent.Client, MailboxRepositoryClock)` keeps both dependencies private,
+rejects nil and typed-nil dependencies, owns one rollback-safe Ent transaction, maps Ent failures
+to existing content-free mailbox errors, and validates the private clock as non-zero UTC at exact
+second precision before any durable use. Owner resolution locks Organization, active User,
+owner-bound MailAccount, then primary MailIdentity. An active actor without an account receives
+only the valid `not_configured` record; foreign, inactive, deleting, ambiguous, cross-linked, or
+state-inconsistent rows fail closed. The returned record contains copied scalar account/address/
+recovery/projection state only and performs no provider or network I/O in its transaction.
+
+The author-first contract source is deliberately `NOT_RUN`: generated Ent Go is absent until Task
+9, and the canonical launcher is `NOT_READY`. Therefore RED/GREEN, compile, Ent generation,
+database, Docker, lint, formatting, migration, and runtime evidence all remain `NOT_RUN`.
+
 ## 144-04A owner-resolution seam immutable source receipt
 
 > **Narrow receipt / precedence:** `STATIC_ACCEPTED / EXACT_SHA_PASS` applies only to immutable source `7531565879e0d7aa72a246407fd0e1d609a82c49` (parent `2932748df0d6efdcff4f51a3b0eae2b4b3dd3d7b`, tree `448a6db855ba1b3a6873253967c789def305cda4`, subject `feat(mail): add owner resolution seam`): ordered blobs repository `4520db07c57e80faf6318a1444eb5e2aaf51355b`, service `d33a5911fd8a9ec5d14bf2ecddaaa321c5c6b50a`, test `2b414cbd1edece218976699d2777a80f51bd057b`. Contract, Security and Lifecycle precommit plus immutable reviews PASS C/I/M `0/0/0`; provenance `dispatcher-enforced`, Terra high/xhigh/high as applicable, no fallback, telemetry `UNKNOWN`.
