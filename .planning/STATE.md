@@ -1831,3 +1831,15 @@ new quality gate is requirement/risk traceability plus fail-closed execution.
 > dependency. The accepted Docker launcher and generated Ent artifacts are unavailable:
 > executable RED/GREEN, compile, database, Ent generation, Atlas migration, Docker, and runtime
 > evidence remain `NOT_RUN` until Task 9. Independent review is still required.
+
+> **Phase 143 Task 4 Calendar Ent optional capabilities (2026-08-22):**
+> `SOURCE_CONTRACT_AUTHORED / PENDING_INDEPENDENT_REVIEW / RUNTIME_NOT_RUN`.
+> A source-contract test preceded private Task 3 Ent backend implementations of the existing
+> update, occurrence-cancel, series/occurrence RSVP and inbound-REPLY optional ports; the base
+> `EventRepository` ABI was not expanded. The packet locks authoritative parent rows before
+> ordered children, applies exact CAS/sequence fences, writes bounded receipts/outbox/reply
+> delivery atomically, and preserves the frozen inbound lower/equal/newer/quarantine semantics
+> without raw provider, iTIP or message-body persistence. Task 4B, cutover, NATS, MailEngine,
+> HTTP and external I/O are excluded. The accepted Docker launcher and generated Ent artifacts
+> remain unavailable, therefore executable RED/GREEN, Go compile/test/build/gofmt/lint, Ent
+> generation, Atlas migration, Docker and runtime evidence are all `NOT_RUN` until Task 9.

@@ -1,5 +1,18 @@
 # Phase 143 — Calendar RSVP Core
 
+> **Phase 143 Task 4 Calendar Ent optional capabilities (2026-08-22):**
+> `SOURCE_CONTRACT_AUTHORED / PENDING_INDEPENDENT_REVIEW / RUNTIME_NOT_RUN`.
+> The isolated source-contract test was authored before the private Task 3 Ent backend gained
+> the already-declared optional update, occurrence-cancel, series/occurrence RSVP and inbound
+> REPLY interfaces; `EventRepository` remains unchanged. Each resolver locks organization,
+> owner/actor and master event before ordered attendee/exception/receipt/delivery children, and
+> every write re-resolves durable state, applies its exact version or sequence fence, and commits
+> its receipt/outbox/reply-delivery intent atomically. Inbound REPLY stores only canonical
+> receipt/outbox state and uses the frozen lower/equal/newer/quarantine service policy. There is
+> no Task 4B bridge, cutover, external I/O, NATS, MailEngine or HTTP work. The accepted Docker
+> launcher and generated Ent artifacts remain unavailable, so executable RED/GREEN, compile,
+> database, generation, migration, Docker and runtime evidence remain `NOT_RUN` until Task 9.
+
 > **Phase 143 Task 3 base Ent event repository (2026-08-22):**
 > `SOURCE_CONTRACT_AUTHORED / PENDING_INDEPENDENT_REVIEW / RUNTIME_NOT_RUN`.
 > The isolated external repository contract test was authored before the adapter. The adapter
