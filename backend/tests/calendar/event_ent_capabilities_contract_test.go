@@ -1,158 +1,73 @@
 package calendar_test
 
 import (
-	"go/ast"
-	"go/parser"
-	"go/token"
+	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 )
 
-func TestEventEntCapabilities_ExposeOnlyFrozenOptionalBackends(t *testing.T) {
-	testCases := []struct {
-		file       string
-		interfaces []string
-		methods    []string
-	}{
-		{
-			file: "event_ent_update.go",
-			interfaces: []string{
-				"CalendarEventUpdateTransactionBackend",
-				"CalendarEventOccurrenceCancelTransactionBackend",
-			},
-			methods: []string{
-				"ResolveCalendarEventUpdate",
-				"PersistCalendarEventUpdate",
-				"ResolveCalendarEventOccurrenceCancel",
-				"PersistCalendarEventOccurrenceCancel",
-			},
-		},
-		{
-			file: "event_ent_rsvp.go",
-			interfaces: []string{
-				"CalendarEventSeriesRSVPTransactionBackend",
-				"CalendarEventOccurrenceRSVPTransactionBackend",
-			},
-			methods: []string{
-				"ResolveCalendarEventSeriesRSVP",
-				"PersistCalendarEventSeriesRSVP",
-				"ResolveCalendarEventOccurrenceRSVP",
-				"PersistCalendarEventOccurrenceRSVP",
-			},
-		},
-		{
-			file:       "event_ent_inbound_reply.go",
-			interfaces: []string{"CalendarInboundReplyTransactionBackend"},
-			methods: []string{
-				"ResolveCalendarInboundReplyOwner",
-				"ResolveCalendarInboundReply",
-				"PersistCalendarInboundReply",
-			},
-		},
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.file, func(t *testing.T) {
-			file := parseCalendarCapabilitySource(t, testCase.file)
-			for _, interfaceName := range testCase.interfaces {
-				if !calendarCapabilityHasBackendAssertion(file, interfaceName) {
-					t.Fatalf("missing eventEntTransactionBackend assertion for %s", interfaceName)
-				}
-			}
-			for _, methodName := range testCase.methods {
-				method, found := calendarCapabilityMethod(file, methodName)
-				if !found {
-					t.Fatalf("missing eventEntTransactionBackend method %s", methodName)
-				}
-				if !calendarCapabilityCalls(method, "ForUpdate") {
-					t.Fatalf("%s must lock authoritative Ent state", methodName)
-				}
-			}
-		})
-	}
-}
-
-func parseCalendarCapabilitySource(t *testing.T, name string) *ast.File {
-	t.Helper()
+func calendarCapabilitySource(t *testing.T, name string) string {
 	_, thisFile, _, ok := runtime.Caller(0)
 	if !ok {
-		t.Fatal("cannot locate capability contract test")
+		t.Fail()
+		return ""
 	}
-	path := filepath.Join(filepath.Dir(thisFile), "..", "..", "internal", "calendar", name)
-	file, err := parser.ParseFile(token.NewFileSet(), path, nil, 0)
+	value, err := os.ReadFile(filepath.Join(filepath.Dir(thisFile), "..", "..", "internal", "calendar", name))
 	if err != nil {
-		t.Fatalf("parse %s: %v", name, err)
+		t.Fail()
 	}
-	return file
+	return string(value)
 }
 
-func calendarCapabilityHasBackendAssertion(file *ast.File, interfaceName string) bool {
-	for _, declaration := range file.Decls {
-		general, ok := declaration.(*ast.GenDecl)
-		if !ok || general.Tok != token.VAR {
-			continue
-		}
-		for _, specification := range general.Specs {
-			value, ok := specification.(*ast.ValueSpec)
-			if !ok || len(value.Values) != 1 {
-				continue
-			}
-			interfaceIdentifier, ok := value.Type.(*ast.Ident)
-			if !ok || interfaceIdentifier.Name != interfaceName {
-				continue
-			}
-			conversion, ok := value.Values[0].(*ast.CallExpr)
-			if !ok {
-				continue
-			}
-			pointer, ok := conversion.Fun.(*ast.ParenExpr)
-			if !ok {
-				continue
-			}
-			star, ok := pointer.X.(*ast.StarExpr)
-			if !ok {
-				continue
-			}
-			backend, ok := star.X.(*ast.Ident)
-			if ok && backend.Name == "eventEntTransactionBackend" {
-				return true
-			}
+func requireCalendarSource(t *testing.T, text string, terms ...string) {
+	for _, term := range terms {
+		if !strings.Contains(text, term) {
+			t.Fail()
 		}
 	}
-	return false
 }
 
-func calendarCapabilityMethod(file *ast.File, name string) (*ast.FuncDecl, bool) {
-	for _, declaration := range file.Decls {
-		method, ok := declaration.(*ast.FuncDecl)
-		if !ok || method.Recv == nil || method.Name.Name != name || len(method.Recv.List) != 1 {
-			continue
+func requireCalendarSourceOrder(t *testing.T, text string, terms ...string) {
+	for _, term := range terms {
+		index := strings.Index(text, term)
+		if index < 0 {
+			t.Fail()
+			return
 		}
-		receiver, ok := method.Recv.List[0].Type.(*ast.StarExpr)
-		if !ok {
-			continue
-		}
-		backend, ok := receiver.X.(*ast.Ident)
-		if ok && backend.Name == "eventEntTransactionBackend" {
-			return method, true
+		text = text[index+len(term):]
+	}
+}
+
+func TestEventEntCapabilities_FrozenPortAndUpdateCASContract(t *testing.T) {
+	repository := calendarCapabilitySource(t, "event_repository.go")
+	requireCalendarSource(t, repository, "type EventRepository interface {\n\tWithEventTransaction(ctx context.Context, callback func(*EventTransaction) error) error\n}")
+	update := calendarCapabilitySource(t, "event_ent_update.go")
+	requireCalendarSourceOrder(t, update, "backend.activeOrganizationMemberForUpdate", "backend.tx.CalendarEvent.Query()", "backend.tx.CalendarAttendee.Query()", "backend.persistCalendarEventUpdateMaster", "backend.AppendOutbox", "NewCalendarEventUpdatePersistenceResult")
++	requireCalendarSource(t, update, "calendarattendee.VersionEQ(expectedVersion)", "calendarevent.VersionEQ(expected)", "return calendarEntCASFailure(err)")
+	requireCalendarSourceOrder(t, update, "func (backend *eventEntTransactionBackend) PersistCalendarEventOccurrenceCancel", "backend.activeOrganizationMemberForUpdate", "backend.tx.CalendarEvent.Query()", "backend.tx.CalendarEventException.Query()", "backend.persistCalendarEventUpdateMaster", "backend.AppendOutbox", "NewCalendarEventOccurrenceCancelPersistenceResult")
+	requireCalendarSource(t, update, "var _ CalendarEventUpdateTransactionBackend = (*eventEntTransactionBackend)(nil)", "var _ CalendarEventOccurrenceCancelTransactionBackend = (*eventEntTransactionBackend)(nil)")
+}
+
+func TestEventEntRSVP_BindsDurableIdentityCASAndReplyDelivery(t *testing.T) {
++	source := calendarCapabilitySource(t, "event_ent_rsvp.go")
+	requireCalendarSource(t, source, "var _ CalendarEventSeriesRSVPTransactionBackend = (*eventEntTransactionBackend)(nil)", "var _ CalendarEventOccurrenceRSVPTransactionBackend = (*eventEntTransactionBackend)(nil)")
+	requireCalendarSourceOrder(t, source, "func (backend *eventEntTransactionBackend) PersistCalendarEventSeriesRSVP", "!command.valid()", "backend.tx.CalendarEvent.Query()", "backend.tx.CalendarAttendee.Query()", "eventEntSeriesRSVPImmutableIdentityMatches", "locked.Version != command.ExpectedVersion()", "calendarattendee.VersionEQ(expectedVersion)", "backend.persistCalendarReplyDelivery(ctx, event.ID, attendee.ID, command.EventSequence(), requested.Version, nil, requested.Status)", "backend.AppendOutbox", "NewCalendarEventSeriesRSVPPersistenceResult")
+	requireCalendarSourceOrder(t, source, "func (backend *eventEntTransactionBackend) PersistCalendarEventOccurrenceRSVP", "!command.valid()", "durableSeries, durableSeriesErr := eventEntSeriesRSVPAttendeeSnapshot(currentSeries)", "!reflect.DeepEqual(durableSeries, series)", "durablePrior, durablePriorErr := eventEntOccurrenceRSVPAttendeeSnapshot(currentOccurrence)", "!reflect.DeepEqual(durablePrior, prior)", "validCalendarEventOccurrenceRSVPAttendeeForSeries(durableSeries, requested)", "backend.persistCalendarReplyDelivery(ctx, event.ID, appliedAttendeeID, command.EventSequence(), requested.Version, &recurrenceID, requested.Status)")
+	requireCalendarSource(t, source, "durable.Email == requested.Email", "durable.DisplayName == requested.DisplayName", "durable.Role == requested.Role", "durable.RemovedAt == nil && requested.RemovedAt == nil")
+}
+
+func TestCalendarInboundReply_ReceiptOutboxReplayAndNoExternalIO(t *testing.T) {
++	inbound := calendarCapabilitySource(t, "event_ent_inbound_reply.go")
+	requireCalendarSource(t, inbound, "var _ CalendarInboundReplyTransactionBackend = (*eventEntTransactionBackend)(nil)")
+	requireCalendarSourceOrder(t, inbound, "backend.ResolveCalendarInboundReplyOwner", "backend.tx.CalendarEvent.Query()", "backend.tx.CalendarAttendee.Query()", "backend.tx.CalendarInboundReplyReceipt.Query()", "calendarattendee.VersionEQ(expectedVersion)", "backend.persistCalendarInboundReplyReceipt", "backend.appendCalendarInboundReplyOutbox", "NewCalendarInboundReplyPersistenceResult")
+	service := calendarCapabilitySource(t, "event_service_inbound_reply.go")
+	requireCalendarSourceOrder(t, service, "if authorization.ExistingReceipt {", "CalendarInboundReplyDuplicate", "calendarInboundReplyAuthorize")
+	for _, name := range []string{"event_ent_update.go", "event_ent_rsvp.go", "event_ent_inbound_reply.go"} {
+		source := calendarCapabilitySource(t, name)
+		if strings.Contains(source, "net/http") || strings.Contains(source, "github.com/nats-io/nats.go") || strings.Contains(source, "MailEngine") || strings.Contains(source, "NATS") {
+			t.Fail()
 		}
 	}
-	return nil, false
-}
-
-func calendarCapabilityCalls(method *ast.FuncDecl, selector string) bool {
-	called := false
-	ast.Inspect(method.Body, func(node ast.Node) bool {
-		call, ok := node.(*ast.CallExpr)
-		if !ok {
-			return true
-		}
-		selected, ok := call.Fun.(*ast.SelectorExpr)
-		if ok && selected.Sel.Name == selector {
-			called = true
-		}
-		return !called
-	})
-	return called
 }

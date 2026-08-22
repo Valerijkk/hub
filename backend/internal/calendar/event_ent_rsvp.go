@@ -2,6 +2,7 @@ package calendar
 
 import (
 	"context"
+	"reflect"
 
 	"github.com/google/uuid"
 
@@ -57,7 +58,7 @@ func (backend *eventEntTransactionBackend) ResolveCalendarEventSeriesRSVP(ctx co
 }
 
 func (backend *eventEntTransactionBackend) PersistCalendarEventSeriesRSVP(ctx context.Context, scope EventMutationScope, command CalendarEventSeriesRSVPPersistenceCommand) (CalendarEventSeriesRSVPPersistenceResult, error) {
-	if backend == nil || backend.tx == nil {
+	if backend == nil || backend.tx == nil || !command.valid() {
 		return CalendarEventSeriesRSVPPersistenceResult{}, ErrEventInvalid
 	}
 	requested := command.Attendee()
@@ -94,6 +95,10 @@ func (backend *eventEntTransactionBackend) PersistCalendarEventSeriesRSVP(ctx co
 	if !found || attendee.ID != requested.AttendeeID {
 		return CalendarEventSeriesRSVPPersistenceResult{}, ErrEventConflict
 	}
+	locked, lockedErr := eventEntSeriesRSVPAttendeeSnapshot(attendee)
+	if lockedErr != nil || !eventEntSeriesRSVPImmutableIdentityMatches(locked, requested) || locked.Version != command.ExpectedVersion() {
+		return CalendarEventSeriesRSVPPersistenceResult{}, ErrEventConflict
+	}
 	expectedVersion, expectedOK := eventEntInt(command.ExpectedVersion())
 	version, versionOK := eventEntInt(requested.Version)
 	if !expectedOK || !versionOK || requested.RespondedAt == nil {
@@ -120,7 +125,7 @@ func (backend *eventEntTransactionBackend) PersistCalendarEventSeriesRSVP(ctx co
 		return CalendarEventSeriesRSVPPersistenceResult{}, calendarEntCASFailure(err)
 	}
 	if hasReply {
-		if err := backend.persistCalendarReplyDelivery(ctx, reply.EventID, reply.AttendeeID, reply.EventSequence, reply.AttendeeVersion, nil, reply.Status); err != nil {
+		if err := backend.persistCalendarReplyDelivery(ctx, event.ID, attendee.ID, command.EventSequence(), requested.Version, nil, requested.Status); err != nil {
 			return CalendarEventSeriesRSVPPersistenceResult{}, err
 		}
 	}
@@ -201,7 +206,7 @@ func (backend *eventEntTransactionBackend) ResolveCalendarEventOccurrenceRSVP(ct
 }
 
 func (backend *eventEntTransactionBackend) PersistCalendarEventOccurrenceRSVP(ctx context.Context, scope EventMutationScope, command CalendarEventOccurrenceRSVPPersistenceCommand) (CalendarEventOccurrenceRSVPPersistenceResult, error) {
-	if backend == nil || backend.tx == nil {
+	if backend == nil || backend.tx == nil || !command.valid() {
 		return CalendarEventOccurrenceRSVPPersistenceResult{}, ErrEventInvalid
 	}
 	series := command.SeriesAttendee()
@@ -260,23 +265,33 @@ func (backend *eventEntTransactionBackend) PersistCalendarEventOccurrenceRSVP(ct
 		return CalendarEventOccurrenceRSVPPersistenceResult{}, ErrEventConflict
 	}
 	currentSeries, currentOccurrence, attendeeErr := eventEntOccurrenceAttendeesForActor(attendees, scope.ActorID(), requested.RecurrenceID)
-	if attendeeErr != nil || currentSeries.ID != series.AttendeeID {
+	if attendeeErr != nil {
+		return CalendarEventOccurrenceRSVPPersistenceResult{}, ErrEventConflict
+	}
+	durableSeries, durableSeriesErr := eventEntSeriesRSVPAttendeeSnapshot(currentSeries)
+	if durableSeriesErr != nil || !reflect.DeepEqual(durableSeries, series) {
 		return CalendarEventOccurrenceRSVPPersistenceResult{}, ErrEventConflict
 	}
 	prior, hadPrior := command.Prior()
-	if !hadPrior {
-		currentVersion, currentOK := eventEntUint(currentSeries.Version)
-		if !currentOK || currentVersion != command.ExpectedVersion() {
+	if hadPrior {
+		durablePrior, durablePriorErr := eventEntOccurrenceRSVPAttendeeSnapshot(currentOccurrence)
+		if durablePriorErr != nil || !reflect.DeepEqual(durablePrior, prior) {
 			return CalendarEventOccurrenceRSVPPersistenceResult{}, ErrEventConflict
 		}
+	} else if !validCalendarEventOccurrenceRSVPAttendeeForSeries(durableSeries, requested) {
+		return CalendarEventOccurrenceRSVPPersistenceResult{}, ErrEventConflict
+	}
+	appliedAttendeeID := requested.AttendeeID
+	if hadPrior {
+		appliedAttendeeID = currentOccurrence.ID
 	}
 	if err := backend.persistCalendarOccurrenceRSVPAttendee(ctx, event.ID, currentOccurrence, prior, hadPrior, requested, command.ExpectedVersion(), command.Reply()); err != nil {
 		return CalendarEventOccurrenceRSVPPersistenceResult{}, err
 	}
 	reply, hasReply := command.Reply()
 	if hasReply {
-		recurrenceID := reply.RecurrenceID
-		if err := backend.persistCalendarReplyDelivery(ctx, reply.EventID, reply.AttendeeID, reply.EventSequence, reply.AttendeeVersion, &recurrenceID, reply.Status); err != nil {
+		recurrenceID := requested.RecurrenceID
+		if err := backend.persistCalendarReplyDelivery(ctx, event.ID, appliedAttendeeID, command.EventSequence(), requested.Version, &recurrenceID, requested.Status); err != nil {
 			return CalendarEventOccurrenceRSVPPersistenceResult{}, err
 		}
 	}
@@ -338,6 +353,16 @@ func eventEntSeriesRSVPAttendeeSnapshot(attendee *ent.CalendarAttendee) (Calenda
 		Version:     version,
 		RemovedAt:   eventEntTimePointer(attendee.RemovedAt),
 	}, nil
+}
+
+func eventEntSeriesRSVPImmutableIdentityMatches(durable, requested CalendarEventSeriesRSVPAttendeeSnapshot) bool {
+	return durable.AttendeeID == requested.AttendeeID &&
+		durable.EventID == requested.EventID &&
+		durable.UserID != nil && requested.UserID != nil && *durable.UserID == *requested.UserID &&
+		durable.Email == requested.Email &&
+		durable.DisplayName == requested.DisplayName &&
+		durable.Role == requested.Role &&
+		durable.RemovedAt == nil && requested.RemovedAt == nil
 }
 
 func eventEntOccurrenceRSVPAttendeeSnapshot(attendee *ent.CalendarAttendee) (CalendarEventOccurrenceRSVPAttendeeSnapshot, error) {
