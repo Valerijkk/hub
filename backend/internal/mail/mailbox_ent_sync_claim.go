@@ -201,9 +201,14 @@ func (repository *MailboxEntRepository) ResolveMailboxSyncStep(ctx context.Conte
 		if !leaseValid || !hasLease || persistedFence != request.Fence || !account.SyncLeaseUntil.After(transactionTime) {
 			return nil
 		}
+		if account.SyncAttempts < 0 || account.SyncAttempts >= mailboxEntMaxSyncAttempts {
+			return mailboxServiceError(MailboxServiceErrorInvalid)
+		}
 
 		phase := request.Fence.Phase
 		update := account.Update().
+			SetProjectionState(mailaccount.ProjectionState("degraded")).
+			SetSyncAttempts(account.SyncAttempts + 1).
 			SetNextSyncAt(request.NextAttemptAt).
 			SetSyncScheduleUpdatedAt(transactionTime).
 			ClearSyncLeaseToken().
