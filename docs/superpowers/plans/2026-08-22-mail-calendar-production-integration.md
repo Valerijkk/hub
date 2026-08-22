@@ -401,10 +401,11 @@ independently statically review the durable sync-lease generation, active due-sc
 apply proof including its strict retention predicate, and exact-second schedule CAS marker.
 
 **Atomic decomposition:** Task 6A owns claim/resolve plus due-scan/fault coordination; Task 6B owns
-prepare-only projection reads and policy-input construction. Before apply work, Task 6W strengthens
-proof retention, Task 6Q corrects transaction-authoritative lease time, and Task 6V corrects Resolve
-projection-state/attempt ownership. Task 6C is then split into 6C0 pure canonical validation/hash,
-6C1 bounded projection/aggregate helpers, and 6C2 transaction/outbox/same-lease proof. Each 6C
+prepare-only projection reads and policy-input construction. The required correction order is
+6W -> 6Q -> 6V before 6C2: 6W strengthens proof retention, 6Q corrects transaction-authoritative
+lease time, and 6V corrects Resolve projection-state/attempt ownership. Task 6C0 pure canonical
+validation/hash is independent of that correction chain; Task 6C1 bounded projection/aggregate
+helpers and 6C2 transaction/outbox/same-lease proof follow their frozen dependencies. Each 6C
 packet has a separate implementer and independent task review. No packet spans provider I/O and a
 repository transaction.
 
@@ -482,21 +483,54 @@ apply remains pending; this accepts neither Task 6, Phase 144, the Mail module, 
 
 - [ ] **Step 5: Implement Task 6Q transaction-authoritative lease-time correction**
 
-Before Task 6C2, add one private transaction-bound PostgreSQL helper that obtains
-`date_trunc('second', CURRENT_TIMESTAMP)` (or a dialect-equivalent exact-second value) once for
-the transaction. Correct the existing Prepare and Resolve paths to use this value for every
-lease-expiry decision; Apply must use the same authority in 6C2. Caller/request time and the
-injected process/repository clock cannot decide lease expiry. This correction does not rewrite the
-immutable acceptance status of Tasks 6A or 6B; it is a required forward prerequisite before 6C2.
+**Files:**
+- Modify: `backend/internal/mail/mailbox_ent_repository.go`
+- Modify: `backend/internal/mail/mailbox_ent_sync_prepare.go`
+- Modify: `backend/internal/mail/mailbox_ent_sync_claim.go`
+- Test: `backend/tests/mail/mailbox_ent_sync_prepare_contract_test.go`
+- Test: `backend/tests/mail/mailbox_ent_sync_coordination_contract_test.go`
+
+Freeze this private helper in `mailbox_ent_repository.go`:
+
+```go
+func mailboxEntTransactionTime(ctx context.Context, transaction *ent.Tx) (time.Time, error)
+```
+
+It uses the transaction-bound Ent dialect driver only: `transaction.Driver().Query` executes exactly
+`SELECT date_trunc('second', CURRENT_TIMESTAMP)`, reads and scans exactly one row, normalizes the
+result to UTC, and admits it only through `mailboxEntValidTime`. Query, row-count, scan, UTC, and
+validation failures map through the existing content-free `mailboxEntSafeError` path. It never uses
+`repository.client`, opens a new transaction, samples the injected clock, or accepts request/caller
+time as the lease-expiry authority.
+
+Prepare and Resolve each call the helper exactly once per transaction they own. Prepare feeds the
+value into the otherwise unchanged `mailboxEntPrepareInput`; Resolve uses the same value for both
+`SyncLeaseUntil.After(transactionTime)` and its schedule timestamp. Claim is unchanged. Apply uses
+the same authority only in its separately frozen 6C2 work. The two listed source-contract tests
+assert the exact query/one-time owned-transaction behavior, unchanged Prepare input semantics, and
+Resolve expiry/schedule use; generated Ent, runtime, compile, SQL/DB, Docker, formatting/lint, and
+all executable evidence remain `NOT_RUN`. This forward correction preserves the recorded immutable
+acceptance of Tasks 6A and 6B.
 
 - [ ] **Step 6: Implement Task 6V Resolve projection-state and retry-attempt correction**
 
-Before Task 6C2, correct Resolve so every handled failure transitions the account to `degraded`,
-preserves a valid cursor position for transient/rejected failures, increments `sync_attempts`
-exactly once with overflow rejection, and releases the lease. A `ready` account cannot retain
-`sync_error_code`. Successful Apply alone resets `sync_attempts` to zero; worker fault reschedule
-increments its failure counter only outside this handled Resolve path. This is a required forward
-ownership correction for Task 6A, not a change to its recorded static acceptance.
+**Files:**
+- Modify: `backend/internal/mail/mailbox_ent_sync_claim.go`
+- Test: `backend/tests/mail/mailbox_ent_sync_coordination_contract_test.go`
+
+After 6Q, freeze Resolve handled-failure ownership without changing its public ABI. Each of the four
+handled kinds transition the account to `degraded`: `transient`, `rejected`, `invalid_cursor`, and
+`restart_required`. `transient` and `rejected` preserve the valid current cursor/phase position;
+`invalid_cursor` and `restart_required` retain the existing enumeration reset. Under the complete
+fence, Resolve increments `sync_attempts` exactly once, rejects the existing maximum-overflow case
+through the content-free invalid error with zero partial writes, and atomically updates schedule,
+safe error, projection state, releases the lease, and clears the applied proof. A second Resolve has
+no lease and therefore performs no second increment. A `ready` account cannot retain
+`sync_error_code`; only successful Apply may reset attempts to zero, while worker fault reschedule
+owns its separate failure increment outside this path. The source-contract test asserts all four
+transitions, cursor/reset preservation, one increment, overflow/no-partial-write, lease/proof clear,
+and idempotent second Resolve. Generated Ent, runtime, compile, SQL/DB, Docker, formatting/lint,
+and all executable evidence remain `NOT_RUN`.
 
 - [ ] **Step 7: Implement Task 6C0 pure canonical validation and result hash**
 

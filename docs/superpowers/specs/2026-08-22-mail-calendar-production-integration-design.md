@@ -55,16 +55,21 @@ repository root:
 
 The split keeps files small while reusing the same account lock order, lease/fence
 validation, transaction helper, error mapping, and clock policy. Lease expiry is
-decided only by one transaction-bound PostgreSQL exact-second value
-(`date_trunc('second', CURRENT_TIMESTAMP)` or dialect equivalent), never caller or
-process time. Repository code never performs provider I/O. A sync step claims
-durable state, releases the transaction, performs one bounded `MailEngine` call,
-then opens a new transaction that verifies the exact fence before applying results.
-Handled Resolve failures become `degraded`, preserve a valid cursor for
-transient/rejected outcomes, increment `sync_attempts` once with overflow rejection,
-and release the lease; successful Apply resets it to zero. Worker fault rescheduling
-owns only its separate failure increment. A forward schema prerequisite requires the
-complete proof CHECK to include `sync_lease_applied_next_at < sync_lease_until`.
+decided only by `mailboxEntTransactionTime` in the owned Ent transaction: its dialect
+`Query` runs `SELECT date_trunc('second', CURRENT_TIMESTAMP)`, scans exactly one row,
+normalizes UTC, and validates through `mailboxEntValidTime`; caller/process time, a new
+transaction, and the repository client are not expiry authorities. Prepare and Resolve each call it
+once per owned transaction; Prepare retains the existing `mailboxEntPrepareInput`, while Resolve
+uses that one value for both lease expiry and schedule time. Repository code never performs provider
+I/O. A sync step claims durable state, releases the transaction, performs one bounded `MailEngine`
+call, then opens a new transaction that verifies the exact fence before applying results.
+Handled `transient`, `rejected`, `invalid_cursor`, and `restart_required` Resolve failures all become
+`degraded`. The first two preserve valid cursor/phase position, the latter two retain enumeration
+reset, and one fenced transition increments `sync_attempts` exactly once or rejects overflow with
+zero partial writes while atomically scheduling, recording a safe error, releasing the lease, and
+clearing applied proof. A second Resolve cannot increment again; only successful Apply resets
+attempts. Worker fault rescheduling owns only its separate failure increment. A forward schema
+prerequisite requires the complete proof CHECK to include `sync_lease_applied_next_at < sync_lease_until`.
 Apply writes `sync_lease_applied_next_at = NextAttemptAt` and checked exact-second
 `sync_lease_until = NextAttemptAt + 1s`; this is the minimum same-lease replay grace,
 and a new claim is permitted after lease expiry. A matching same-lease proof replays
@@ -188,10 +193,9 @@ envelopes cross the boundary; state ownership does not.
 1. Migration mechanism and schema diff authority.
 2. Calendar base Ent transaction adapter, followed by RSVP/update/cancel/inbound
    reply capability files.
-3. Mail owner and sync/worker Ent adapters: first the strict proof-retention schema
-   correction, then transaction-time and Resolve ownership corrections, pure canonical
-   validation/hash, bounded projection/aggregate helpers, and transactional
-   apply/outbox/proof.
+3. Mail owner and sync/worker Ent adapters: required correction chain 6W -> 6Q -> 6V before
+   transactional apply/outbox/proof; pure canonical validation/hash (6C0) remains independent,
+   followed by its bounded projection/aggregate helper dependency.
 4. Main-server composition and authenticated HTTP surfaces.
 5. Outbox-backed Mail-to-Calendar consumer and Calendar-to-Mail delivery consumer.
 6. Compatibility cutover and ScheduledCall backfill only after migration evidence.
