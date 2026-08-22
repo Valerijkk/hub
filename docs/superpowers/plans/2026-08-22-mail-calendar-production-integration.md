@@ -126,17 +126,21 @@ chore(db): define Atlas migration control plane
 - Modify: `backend/ent/schema/calendarattendee.go`
 - Modify: `backend/ent/schema/organization.go`
 - Modify: `backend/ent/schema/user.go`
-- Test: `backend/tests/calendar/calendar_mail_bridge_schema_test.go`
+- Historical pre-lock evidence only; no current test ownership; executable NOT_RUN: `backend/tests/calendar/calendar_mail_bridge_schema_test.go`
 - Modify: `.planning/phases/147-mail-calendar-reliability/CONTRACT.md`
 - Modify: `.planning/STATE.md`
+
+**Status:** `HISTORICAL_PRE_LOCK_STATIC_ACCEPTED / RUNTIME_NOT_RUN` at
+commits `55b2f2f4..f9e070a7`. All numbered steps below are historical static
+record only, not active implementation or test-authoring work.
 
 **Interfaces:**
 - Consumes: exact field/state/retention rules in Phase 147 sections 2.1, 2.2, and 3.1.
 - Produces: durable ordering state, leased inbound receipt, and immutable outward reply intent.
 
-- [ ] **Step 1: Author the isolated schema test**
+- [x] **Historical pre-lock static schema-contract evidence only (non-actionable)**
 
-The test imports `backend/ent/schema` only and asserts exact fields, enum values, immutable identities, checks, edges, and indexes. It must include the two partial unique indexes for nullable/non-null `recurrence_id`, unique message plus locator hash, and unique attendee plus event sequence plus attendee version.
+The historical evidence imports `backend/ent/schema` only and records exact fields, enum values, immutable identities, checks, edges, and indexes, including the two partial unique indexes for nullable/non-null `recurrence_id`, unique message plus locator hash, and unique attendee plus event sequence plus attendee version. It establishes no current test ownership or executable coverage.
 
 - [ ] **Step 2: Add `CalendarInboundObjectState`**
 
@@ -168,17 +172,21 @@ feat(calendar): add mail bridge persistence schemas
 - Create: `backend/internal/calendar/event_ent_repository.go`
 - Create: `backend/internal/calendar/event_ent_transaction.go`
 - Create: `backend/internal/calendar/event_ent_create.go`
-- Test: `backend/tests/calendar/event_ent_repository_contract_test.go`
+- Historical pre-lock evidence only; no current test ownership; executable NOT_RUN: `backend/tests/calendar/event_ent_repository_contract_test.go`
 - Modify: `.planning/phases/143-calendar-rsvp-core/PLAN.md`
 - Modify: `.planning/STATE.md`
+
+**Status:** `HISTORICAL_PRE_LOCK_STATIC_ACCEPTED / RUNTIME_NOT_RUN` at
+commits `d03bfee9..dafd86b4`. All numbered steps below are historical static
+record only, not active implementation or test-authoring work.
 
 **Interfaces:**
 - Consumes: `EventRepository`, mandatory `EventTransactionBackend`, and `RunEventTransaction`.
 - Produces: `NewEventEntRepository(*ent.Client) *EventEntRepository` and compile-time `var _ EventRepository = (*EventEntRepository)(nil)`.
 
-- [ ] **Step 1: Freeze the transaction contract in an isolated test**
+- [x] **Historical pre-lock static transaction-contract evidence only (non-actionable)**
 
-Cover nil client/callback, begin failure, callback error rollback, commit failure, transaction lifetime closure, one transaction per call, and no callback reuse.
+The historical evidence records nil client/callback, begin failure, callback-error rollback, commit failure, transaction-lifetime closure, one transaction per call, and no callback reuse. It establishes no current test ownership or executable coverage.
 
 - [ ] **Step 2: Implement transaction ownership**
 
@@ -202,9 +210,13 @@ Executable compile and database evidence remain `NOT_RUN` until Task 9.
 - Create: `backend/internal/calendar/event_ent_update.go`
 - Create: `backend/internal/calendar/event_ent_rsvp.go`
 - Create: `backend/internal/calendar/event_ent_inbound_reply.go`
-- Test: `backend/tests/calendar/event_ent_capabilities_contract_test.go`
+- Historical pre-lock evidence only; no current test ownership; executable NOT_RUN: `backend/tests/calendar/event_ent_capabilities_contract_test.go`
 - Modify: `.planning/phases/143-calendar-rsvp-core/PLAN.md`
 - Modify: `.planning/STATE.md`
+
+**Status:** `HISTORICAL_PRE_LOCK_STATIC_ACCEPTED / RUNTIME_NOT_RUN` at
+commits `64c20b11..92cf944c`. All numbered steps below are historical static
+record only, not active implementation or test-authoring work.
 
 **Interfaces:**
 - Consumes: optional transaction backend interfaces already declared in `event_repository.go`.
@@ -234,11 +246,15 @@ feat(calendar): implement Ent event capabilities
 - Create: `backend/internal/calendar/event_call_repository.go`
 - Create: `backend/internal/calendar/event_ent_call.go`
 - Modify: `backend/internal/calendar/event_call_policy.go`
-- Test: `backend/tests/calendar/event_call_repository_contract_test.go`
-- Modify: `backend/tests/calendar/event_call_policy_test.go`
+- Historical pre-lock evidence only; no current test ownership; executable NOT_RUN: `backend/tests/calendar/event_call_repository_contract_test.go`
+- Historical pre-lock evidence only; no current test ownership; executable NOT_RUN: `backend/tests/calendar/event_call_policy_test.go`
 - Modify: `docs/superpowers/plans/2026-08-22-mail-calendar-production-integration.md`
 - Modify: `.planning/phases/143-calendar-rsvp-core/PLAN.md`
 - Modify: `.planning/STATE.md`
+
+**Status:** `HISTORICAL_PRE_LOCK_STATIC_ACCEPTED / RUNTIME_NOT_RUN` at
+commit `7fb25100`. All numbered steps below are historical static record only,
+not active implementation or test-authoring work.
 
 **Interfaces:**
 - Consumes: `EventCallProjectionInput`, `EventCallProjection`, `EventCallDueInput`, and `EventCallDueDecision`.
@@ -282,9 +298,13 @@ feat(calendar): add event call Ent bridge
 **Files:**
 - Create: `backend/internal/mail/mailbox_ent_repository.go`
 - Create: `backend/internal/mail/mailbox_ent_owner.go`
-- Test: `backend/tests/mail/mailbox_ent_owner_contract_test.go`
+- Historical pre-lock evidence only; no current test ownership; executable NOT_RUN: `backend/tests/mail/mailbox_ent_owner_contract_test.go`
 - Modify: `.planning/phases/144-mailbox-domain/PLAN.md`
 - Modify: `.planning/STATE.md`
+
+**Status:** `HISTORICAL_PRE_LOCK_STATIC_ACCEPTED / RUNTIME_NOT_RUN` at
+commits `8a8e3221..ea0808a7`. All numbered steps below are historical static
+record only, not active implementation or test-authoring work.
 
 **Interfaces:**
 - Consumes: `MailboxOwnerRepository` and accepted MailAccount/MailIdentity schema.
@@ -407,8 +427,11 @@ write, does not establish test review, and is never executable coverage.
 This is a forward correction to the bounded proof constraint in accepted Task 6P; it does not
 alter Task 6P's recorded static acceptance. Extend
 `mail_accounts_sync_lease_apply_proof` so a complete proof also requires
-`sync_lease_applied_next_at < sync_lease_until`. The schema-contract test must freeze that exact
-strict predicate and reject equality/reversal. Task 6C2 writes
+`sync_lease_applied_next_at < sync_lease_until`. The pre-lock schema-contract
+line was restored net-unchanged at `4c757048`; it records that strict predicate
+and equality/reversal rejection only, establishes no current test ownership or
+executable coverage, and any future coverage is deferred to the LOCKED
+deferred-test ledger. Task 6C2 writes
 `sync_lease_applied_next_at = NextAttemptAt` and a checked exact-second
 `sync_lease_until = NextAttemptAt + 1s`; the one-second interval is the minimum grace for durable
 same-lease replay, and a new claim remains permitted after lease expiry. Overflow, non-exact-second
