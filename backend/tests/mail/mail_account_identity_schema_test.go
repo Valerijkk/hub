@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/entsql"
@@ -27,7 +28,7 @@ func TestMailAccountSchema_HasExactFieldsDefaultsAndValidators(t *testing.T) {
 		"sync_lease_cursor", "sync_lease_base_cursor", "sync_lease_checkpoint", "sync_lease_result_hash_version",
 		"sync_lease_result_hash", "sync_lease_applied_phase", "sync_lease_applied_next_at", "sync_lease_applied_at",
 		"mutation_lease_token", "provision_lease_until", "sync_lease_until",
-		"mutation_lease_until", "next_provision_at", "next_sync_at", "last_synced_at",
+		"mutation_lease_until", "next_provision_at", "next_sync_at", "sync_schedule_updated_at", "last_synced_at",
 		"provision_error_code", "sync_error_code", "event_cutoff_at", "created_at", "updated_at",
 	})
 	fields := fieldDescriptors(account.Fields())
@@ -44,7 +45,7 @@ func TestMailAccountSchema_HasExactFieldsDefaultsAndValidators(t *testing.T) {
 			t.Fatalf("%s must be immutable", name)
 		}
 	}
-	for _, name := range []string{"id", "organization_id", "user_id", "mail_domain_id", "engine_provisioning_key", "local_part", "desired_enabled", "status", "control_generation", "control_hash_version", "control_hash", "projection_state", "sync_epoch", "sync_lease_epoch", "mutation_epoch", "provision_attempts", "sync_attempts", "event_cutoff_at", "created_at", "updated_at"} {
+	for _, name := range []string{"id", "organization_id", "user_id", "mail_domain_id", "engine_provisioning_key", "local_part", "desired_enabled", "status", "control_generation", "control_hash_version", "control_hash", "projection_state", "sync_epoch", "sync_lease_epoch", "mutation_epoch", "provision_attempts", "sync_attempts", "sync_schedule_updated_at", "event_cutoff_at", "created_at", "updated_at"} {
 		assertRequired(t, name, fields[name])
 	}
 	if fields["id"].Default == nil {
@@ -125,9 +126,30 @@ func TestMailAccountSchema_HasExactFieldsDefaultsAndValidators(t *testing.T) {
 		"id": true, "desired_enabled": true, "status": true, "control_generation": true,
 		"control_hash_version": true, "projection_state": true, "sync_epoch": true,
 		"sync_lease_epoch": true,
-		"mutation_epoch": true, "provision_attempts": true, "sync_attempts": true,
+		"mutation_epoch": true, "provision_attempts": true, "sync_attempts": true, "sync_schedule_updated_at": true,
 		"created_at": true, "updated_at": true,
 	})
+	descriptor := fields["sync_schedule_updated_at"]
+	if descriptor == nil {
+		t.Fatal("sync_schedule_updated_at descriptor is nil")
+	}
+	defaultNow, ok := descriptor.Default.(func() time.Time)
+	if !ok {
+		t.Fatalf("sync_schedule_updated_at default = %T, want func() time.Time", descriptor.Default)
+	}
+	scheduledAt := defaultNow()
+	if scheduledAt.IsZero() {
+		t.Fatal("sync_schedule_updated_at default returned zero time")
+	}
+	if scheduledAt.Location() != time.UTC {
+		t.Fatalf("sync_schedule_updated_at location = %v, want UTC", scheduledAt.Location())
+	}
+	if scheduledAt.Nanosecond() != 0 {
+		t.Fatalf("sync_schedule_updated_at nanosecond = %d, want 0", scheduledAt.Nanosecond())
+	}
+	if descriptor.UpdateDefault != nil {
+		t.Fatalf("sync_schedule_updated_at update default = %#v, want nil", descriptor.UpdateDefault)
+	}
 	assertExactEnumValues(t, "status", fields["status"], []string{"provisioning", "active", "suspended", "error", "deleting"})
 	assertExactEnumValues(t, "projection_state", fields["projection_state"], []string{"bootstrapping", "ready", "degraded", "rebuilding"})
 	assertExactEnumValues(t, "sync_lease_phase", fields["sync_lease_phase"], []string{"incremental", "enumeration", "catch_up"})
@@ -195,7 +217,7 @@ func TestMailAccountSchema_HasExactFieldsDefaultsAndValidators(t *testing.T) {
 	} {
 		assertOptionalNillable(t, name, fields[name])
 	}
-	for _, name := range []string{"event_cutoff_at", "created_at", "updated_at", "provision_lease_until", "sync_lease_until", "sync_lease_applied_next_at", "sync_lease_applied_at", "mutation_lease_until", "next_provision_at", "next_sync_at", "last_synced_at"} {
+	for _, name := range []string{"event_cutoff_at", "created_at", "updated_at", "provision_lease_until", "sync_lease_until", "sync_lease_applied_next_at", "sync_lease_applied_at", "mutation_lease_until", "next_provision_at", "next_sync_at", "sync_schedule_updated_at", "last_synced_at"} {
 		assertFieldType(t, name, fields[name], field.TypeTime)
 	}
 	assertTimestampsWithoutMixin(t, fields)
@@ -294,6 +316,7 @@ func TestMailAccountAndIdentitySchemas_HaveExactChecksAndIndexes(t *testing.T) {
 		"mail_accounts_sync_lease_snapshot":            "COALESCE((sync_lease_token IS NULL AND sync_lease_sync_epoch IS NULL AND sync_lease_mutation_epoch IS NULL AND sync_lease_phase IS NULL AND sync_lease_cursor IS NULL AND sync_lease_base_cursor IS NULL AND sync_lease_checkpoint IS NULL) OR (sync_lease_token IS NOT NULL AND sync_lease_until IS NOT NULL AND sync_lease_sync_epoch >= 0 AND sync_lease_mutation_epoch >= 0 AND ((sync_lease_phase IN ('incremental', 'catch_up') AND sync_lease_cursor IS NOT NULL AND sync_lease_base_cursor IS NULL AND sync_lease_checkpoint IS NULL) OR (sync_lease_phase = 'enumeration' AND sync_lease_cursor IS NULL AND ((sync_lease_base_cursor IS NULL AND sync_lease_checkpoint IS NULL) OR (sync_lease_base_cursor IS NOT NULL AND sync_lease_checkpoint IS NOT NULL))))), FALSE)",
 		"mail_accounts_sync_lease_apply_proof":         "COALESCE((sync_lease_result_hash_version IS NULL AND sync_lease_result_hash IS NULL AND sync_lease_applied_phase IS NULL AND sync_lease_applied_next_at IS NULL AND sync_lease_applied_at IS NULL) OR (sync_lease_token IS NOT NULL AND sync_lease_until IS NOT NULL AND sync_lease_result_hash_version IS NOT NULL AND sync_lease_result_hash IS NOT NULL AND sync_lease_applied_phase IS NOT NULL AND sync_lease_applied_next_at IS NOT NULL AND sync_lease_applied_at IS NOT NULL AND sync_lease_result_hash_version >= 1 AND length(sync_lease_result_hash) = 32 AND sync_lease_applied_at < sync_lease_until AND sync_lease_applied_next_at >= sync_lease_applied_at AND ((sync_lease_phase = 'incremental' AND sync_lease_applied_phase = 'incremental') OR (sync_lease_phase = 'catch_up' AND sync_lease_applied_phase IN ('catch_up', 'incremental')) OR (sync_lease_phase = 'enumeration' AND sync_lease_applied_phase IN ('enumeration', 'catch_up')))), FALSE)",
 		"mail_accounts_mutation_lease_pair":            "(mutation_lease_token IS NULL) = (mutation_lease_until IS NULL)",
+		"mail_accounts_sync_schedule_updated_at_second_precision": "COALESCE(date_trunc('second', sync_schedule_updated_at) = sync_schedule_updated_at, FALSE)",
 		"mail_accounts_non_negative":                   "sync_epoch >= 0 AND sync_lease_epoch >= 1 AND mutation_epoch >= 0 AND provision_attempts >= 0 AND sync_attempts >= 0",
 		"mail_accounts_status_state":                   "status = 'provisioning' OR (status = 'error' AND provision_error_code IS NOT NULL) OR (status = 'active' AND desired_enabled = TRUE AND engine_account_id IS NOT NULL AND deployed_generation IS NOT NULL) OR (status = 'suspended' AND desired_enabled = FALSE AND engine_account_id IS NOT NULL AND deployed_generation IS NOT NULL) OR status = 'deleting'",
 		"mail_accounts_deleting_blocked_pending_shape": "status <> 'deleting' OR (desired_enabled = FALSE AND sync_lease_token IS NULL AND sync_lease_until IS NULL AND mutation_lease_token IS NULL AND mutation_lease_until IS NULL AND provision_lease_token IS NULL AND provision_lease_until IS NULL AND attempted_control_generation IS NULL AND attempted_control_hash_version IS NULL AND attempted_control_hash IS NULL AND provision_error_code IS NULL AND next_provision_at IS NOT NULL)",

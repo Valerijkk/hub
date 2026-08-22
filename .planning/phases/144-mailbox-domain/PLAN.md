@@ -17,8 +17,8 @@ requires `sync_lease_epoch >= 1`. The appended
 `mail_accounts_sync_due_idx`, and exactly
 `status = 'active' AND next_sync_at IS NOT NULL`.
 
-Task 6 depends on Task 6S and Task 6P. No sync-page receipt is invented here; the bounded
-inline active-lease proof is frozen as the separate Task 6P prerequisite before its apply adapter.
+Task 6 depends on Task 6S, Task 6P, and Task 6T. No sync-page receipt is invented here; the bounded
+inline active-lease proof and exact schedule clock are separate prerequisites before the adapters.
 Independent static review found no issues in this narrow manifest. The launcher is `NOT_READY`;
 RED/GREEN, Ent generation, Atlas diff/migration, compile, SQL/DB, Docker, formatting/lint, and
 runtime are all `NOT_RUN`. No migration or cutover authority follows.
@@ -47,10 +47,29 @@ preserves same-lease claim/replay even after the account cursor advances, withou
 retention cleanup.
 
 Independent static review found no issues in the bounded snapshot/proof checks. Task 6 cannot
-start before both Task 6S and Task 6P are present. The
+start before Task 6S, Task 6P, and Task 6T are present. The
 launcher is `NOT_READY`; executable RED/GREEN, tests, Ent generation, Atlas diff/migration,
 compile, SQL/DB, Docker, gofmt, lint, and runtime are all `NOT_RUN`. No migration or cutover
 authority follows.
+
+## Task 6T — Exact-second Mail sync schedule clock prerequisite (2026-08-22)
+
+> **Narrow source status:** `SOURCE_CONTRACT_AUTHORED / PENDING_INDEPENDENT_REVIEW / RUNTIME_NOT_RUN`.
+> This packet owns only the test-first `MailAccount` schema contract for a dedicated sync schedule
+> CAS timestamp. It does not implement adapters, generate Ent code, migrate rows, or authorize
+> cutover/runtime behavior.
+
+Required `sync_schedule_updated_at` follows `next_sync_at`. Its creation default uses a private
+UTC clock truncated to an exact second and has no `UpdateDefault`; the portable fail-closed
+`mail_accounts_sync_schedule_updated_at_second_precision` CHECK enforces that precision.
+`MailboxSyncWorkerDueAccount.UpdatedAt` must map from this field rather than generic Ent
+`updated_at`. Every adapter transaction that changes sync eligibility, schedule, epochs, lease
+snapshot/proof, attempts, claim, apply, resolve, or fault rescheduling must set the marker from
+the same repository exact-second clock read.
+
+Task 9 owns reviewed existing-row backfill plus the final `NOT NULL` migration. The launcher is
+`NOT_READY`; executable RED/GREEN/tests, Ent generation, Atlas diff/migration, compile, SQL/DB,
+Docker, gofmt, lint, and runtime are all `NOT_RUN`. No migration or cutover authority follows.
 
 ## Task 5 — Mail Ent repository root and owner-resolution candidate (2026-08-22)
 

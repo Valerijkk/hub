@@ -288,8 +288,8 @@ This prerequisite persists `sync_lease_epoch` immediately after `sync_epoch` as 
 prior lease. The existing non-negative CHECK retains every prior clause and additionally requires
 `sync_lease_epoch >= 1`.
 
-Task 6 also depends on Task 6P. This packet does not create a sync-page receipt; that
-separate inline-proof prerequisite is frozen below. Independent static review found no issues in
+Task 6 also depends on Task 6P and Task 6T. This packet does not create a sync-page receipt; the
+inline-proof and exact schedule-clock prerequisites are frozen below. Independent static review found no issues in
 this narrow manifest. Launcher `NOT_READY`; Ent generation, Atlas diff/migration, compile, SQL/DB,
 Docker, formatting/lint, and runtime are all `NOT_RUN`. No migration or cutover authority follows.
 
@@ -326,9 +326,34 @@ the transitions incremental→incremental, catch_up→catch_up|incremental, and
 enumeration→enumeration|catch_up.
 
 Independent static review found no issues in the bounded snapshot/proof checks. Task 6 starts only
-after Task 6S and Task 6P. The launcher is `NOT_READY`; executable RED/GREEN,
+after Task 6S, Task 6P, and Task 6T. The launcher is `NOT_READY`; executable RED/GREEN,
 Ent generation, Atlas diff/migration, compile, SQL/DB, Docker, gofmt, lint, and runtime are all
 `NOT_RUN`. This source candidate provides no migration or cutover authority.
+
+### Task 6T: Persist exact-second Mail sync schedule clock prerequisite
+
+**Files:**
+- Modify: `backend/ent/schema/mailaccount.go`
+- Test: `backend/tests/mail/mail_account_identity_schema_test.go`
+- Modify: `.planning/phases/144-mailbox-domain/PLAN.md`
+- Modify: `.planning/STATE.md`
+
+**Status:** `SOURCE_CONTRACT_AUTHORED / PENDING_INDEPENDENT_REVIEW / RUNTIME_NOT_RUN`.
+
+This prerequisite adds required `sync_schedule_updated_at` immediately after `next_sync_at`.
+Its creation default is a private UTC clock truncated to an exact second; it deliberately has no
+`UpdateDefault`. The fail-closed
+`mail_accounts_sync_schedule_updated_at_second_precision` CHECK requires exact PostgreSQL
+second precision. `MailboxSyncWorkerDueAccount.UpdatedAt` maps from this dedicated marker rather
+than generic Ent `updated_at`, whose default retains sub-second precision.
+
+Every Task 6 adapter mutation that changes sync eligibility, `next_sync_at`, sync/lease/mutation
+epochs, lease snapshot/proof, attempts, claim, apply, resolve, or fault scheduling must set
+`sync_schedule_updated_at` in the same transaction from the repository's exact-second UTC clock.
+Existing-row backfill and the final `NOT NULL` migration are owned by Task 9 and require separate
+review. The launcher is `NOT_READY`; executable RED/GREEN/tests, Ent generation, Atlas
+diff/migration, compile, SQL/DB, Docker, gofmt, lint, and runtime are all `NOT_RUN`. This source
+candidate grants no migration or cutover authority.
 
 ### Task 6: Mail sync and worker Ent adapters
 
@@ -343,8 +368,9 @@ Ent generation, Atlas diff/migration, compile, SQL/DB, Docker, gofmt, lint, and 
 - Consumes: `MailboxSyncRepository`, `MailboxSyncWorkerRepository`, accepted sync fence/page policy, and worker caps.
 - Produces: the same `MailboxEntRepository` satisfying both interfaces.
 
-**Dependency:** Task 6 starts only after Task 6S and Task 6P persist and independently
-statically review the durable sync-lease generation, active due-scan index, and inline apply proof.
+**Dependency:** Task 6 starts only after Task 6S, Task 6P, and Task 6T persist and independently
+statically review the durable sync-lease generation, active due-scan index, inline apply proof,
+and exact-second schedule CAS marker.
 
 - [ ] **Step 1: Implement claim/prepare/apply/resolve**
 
@@ -357,6 +383,8 @@ Repository methods only persist state. `MailboxSyncService.Step` remains the sol
 - [ ] **Step 3: Implement worker selection and fault reschedule**
 
 Select due rows by `due_at, account_id` with bounded batch and skip-locked semantics. Fault reschedule verifies the selected snapshot, advances attempts once, caps delay, and loses safely on a changed lease/fence.
+The worker maps `MailboxSyncWorkerDueAccount.UpdatedAt` from `sync_schedule_updated_at`, and every
+schedule-affecting mutation advances that marker from the same repository clock read.
 
 - [ ] **Step 4: Static review and commit**
 
