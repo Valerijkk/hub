@@ -1,6 +1,6 @@
 # Phase 143 — Calendar schema, ScheduledCall backfill and cutover plan
 
-> **Status:** MIGRATION_MECHANISM_SELECTED · EXECUTABLE_ARTIFACT_NOT_RUN
+> **Status:** MIGRATION_CONTROL_PLANE_STATIC · EXECUTABLE_ARTIFACT_NOT_RUN
 > **Runtime:** NOT_RUN
 > **Owner decision:** founder instruction 2026-08-22; design:
 > `docs/superpowers/specs/2026-08-22-mail-calendar-production-integration-design.md`
@@ -20,6 +20,19 @@
   steps still require the accepted task-owned Docker launcher and remain `NOT_RUN`.
 - `DEV_MODE=true` may continue to call `client.Schema.Create(ctx)` for development only;
   production uses the versioned migration directory.
+
+## Static control-plane artifact
+
+`backend/atlas.hcl` defines one `local` environment. Its `DATABASE_URL` and
+task-owned `ATLAS_DEV_URL` inputs fail closed when absent in the accepted
+launcher; no credential or host Docker URL is embedded. It reads the Ent source
+at `ent://ent/schema` and names only `file://migrations` as the versioned
+production directory. Atlas remains the deterministic diff, lint, checksum and
+apply tool, never a second model authority. Production applies reviewed,
+checked-in SQL plus `atlas.sum`; backfill is a separate reviewed forward-only
+artifact. Direct host commands are forbidden. The launcher is `NOT_READY`, and
+Ent generation, Atlas diff, lint, checksum, apply, database replay, and runtime
+validation remain `NOT_RUN`.
 
 ## Target schema invariants
 

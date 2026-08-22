@@ -22,7 +22,18 @@
 |------------|-----------------|------------|
 | Fiber | **v3.0.0-beta.3** | HTTP, WebSocket (fasthttp) |
 | Ent | **v0.14.1** | ORM, кодогенерация схем (**87 schemas**, `backend/ent/schema/`, measured 2026-08-07) |
-| Atlas | indirect (Ent) | SQL-миграции |
+| Atlas | indirect (Ent) | Versioned migration control plane; `MIGRATION_CONTROL_PLANE_STATIC` |
+
+**Atlas migration control plane (static):** Ent schemas remain the desired-state
+authority. `backend/atlas.hcl` has one `local` environment which reads
+`DATABASE_URL` and task-owned `ATLAS_DEV_URL`, derives from `ent://ent/schema`,
+and uses only `backend/migrations/` as the versioned directory. Atlas is limited
+to deterministic diff, lint, checksum, and apply work; production applies only
+reviewed checked-in SQL and `atlas.sum`. `Schema.Create` is development-only
+with `DEV_MODE=true`; Ent Go is uncommitted and generated only through the
+accepted Docker launcher. The launcher is `NOT_READY`; generation, Atlas diff,
+lint, checksum, apply, replay, and runtime validation are `NOT_RUN`. Direct host
+commands are forbidden, and backfills remain separate forward-only artifacts.
 | testify | **v1.11.1** | Unit/integration assertions |
 | aws-sdk-go-v2 / s3 | **v1.32.7** / **v1.71.1** | SeaweedFS S3 API |
 | nats.go | **v1.48.0** | NATS JetStream client |

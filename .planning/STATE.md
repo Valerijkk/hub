@@ -1,4 +1,15 @@
 ---
+atlas_migration_control_plane: >-
+  MIGRATION_CONTROL_PLANE_STATIC / EXECUTABLE_ARTIFACT_NOT_RUN / RUNTIME_NOT_RUN.
+  Ent schemas are the desired-state authority; backend/atlas.hcl declares only one local Atlas
+  environment with launcher-supplied DATABASE_URL and task-owned ATLAS_DEV_URL, ent://ent/schema,
+  and file://migrations. backend/migrations is the sole versioned production directory; Atlas is
+  limited to deterministic diff/lint/checksum/apply and never becomes a second schema authority.
+  Production applies only reviewed checked-in SQL plus atlas.sum; DEV_MODE=true may retain
+  Schema.Create for development only. Generated Ent Go remains uncommitted and launcher-produced;
+  backfill is a separate reviewed forward-only artifact, and direct host commands are forbidden.
+  Launcher NOT_READY; Ent generation, Atlas diff, lint, checksum, apply, database replay, and
+  runtime validation are all NOT_RUN. No production migration is authorized.
 calendar_143_04i_inbound_reply_source_receipt_sync: >-
   SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT10_COMMIT_REQUIRED /
   IMMUTABLE_REVIEW_REQUIRED / RUNTIME_NOT_RUN. This non-authoritative dirty exact10 docs receipt
