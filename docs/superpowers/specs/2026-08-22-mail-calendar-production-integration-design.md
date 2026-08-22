@@ -73,12 +73,25 @@ uses that one value for both lease expiry and schedule time. Repository code nev
 I/O. A sync step claims durable state, releases the transaction, performs one bounded `MailEngine`
 call, then opens a new transaction that verifies the exact fence before applying results.
 Handled `transient`, `rejected`, `invalid_cursor`, and `restart_required` Resolve failures all become
-`degraded`. The first two preserve valid cursor/phase position, the latter two retain enumeration
-reset, and one fenced transition increments `sync_attempts` exactly once or rejects overflow with
-zero partial writes while atomically scheduling, recording a safe error, releasing the lease, and
-clearing applied proof. A second Resolve cannot increment again; only successful Apply resets
-attempts. Worker fault rescheduling owns only its separate failure increment. A forward schema
-prerequisite requires the complete proof CHECK to include `sync_lease_applied_next_at < sync_lease_until`.
+`degraded`. Source `e122197b` is pending the narrow 6V Claim-decoder correction and is not static
+accepted until review. The only 6V source manifest remains
+`backend/internal/mail/mailbox_ent_sync_claim.go`: despite 6Q otherwise leaving Claim unchanged,
+only `mailboxEntSyncClaimSnapshot` changes; there is no schema, public API, or migration change.
+`CURSOR_INVALID` and `RESTART_REQUIRED` require nil rebuild fields (`sync_base_cursor` and
+`sync_checkpoint`) and reconstruct empty bootstrap `Enumeration`. For `transient`/`rejected`, no
+base/no checkpoint plus valid `sync_cursor` reconstructs `Incremental` with that cursor; the same
+shape with nil cursor reconstructs empty bootstrap `Enumeration`; valid base/no checkpoint
+reconstructs `CatchUp` with `Cursor=base`; valid base plus valid checkpoint reconstructs
+`Enumeration` with that pair. Checkpoint without base or any invalid opaque cursor is the existing
+content-free invalid error; other degraded codes retain the prior incremental-only guard.
+
+One fenced transition increments `sync_attempts` exactly once or rejects overflow with zero partial
+writes while atomically scheduling, recording a safe error, releasing the lease, and clearing
+applied proof. A second Resolve cannot increment again; only successful Apply resets attempts.
+Worker fault rescheduling owns only its separate failure increment. The production-only test lock
+remains in force; exact-scope static source review is the present gate and executable evidence is
+`NOT_RUN`. A forward schema prerequisite requires the complete proof CHECK to include
+`sync_lease_applied_next_at < sync_lease_until`.
 Apply writes `sync_lease_applied_next_at = NextAttemptAt` and checked exact-second
 `sync_lease_until = NextAttemptAt + 1s`; this is the minimum same-lease replay grace,
 and a new claim is permitted after lease expiry. A matching same-lease proof replays

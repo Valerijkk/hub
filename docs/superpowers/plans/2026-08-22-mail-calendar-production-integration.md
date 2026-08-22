@@ -574,20 +574,32 @@ acceptance of Tasks 6A and 6B.
 **Files:**
 - Modify: `backend/internal/mail/mailbox_ent_sync_claim.go`
 
-After 6Q, freeze Resolve handled-failure ownership without changing its public ABI. Each of the four
-handled kinds transition the account to `degraded`: `transient`, `rejected`, `invalid_cursor`, and
-`restart_required`. `transient` and `rejected` preserve the valid current cursor/phase position;
-`invalid_cursor` and `restart_required` retain the existing enumeration reset. Under the complete
-fence, Resolve increments `sync_attempts` exactly once, rejects the existing maximum-overflow case
-through the content-free invalid error with zero partial writes, and atomically updates schedule,
-safe error, projection state, releases the lease, and clears the applied proof. A second Resolve has
-no lease and therefore performs no second increment. A `ready` account cannot retain
-`sync_error_code`; only successful Apply may reset attempts to zero, while worker fault reschedule
-owns its separate failure increment outside this path. Exact-scope static source review asserts all
-four transitions, cursor/reset preservation, one increment, overflow/no-partial-write, lease/proof
-clear, and idempotent second Resolve. The deferred-test ledger reserves executable coverage for the
-dedicated post-sync test plan; generated Ent, runtime, compile, SQL/DB, Docker, formatting/lint,
-and all executable evidence remain `NOT_RUN`.
+Source commit `e122197b` is `PENDING_CORRECTION / RUNTIME_NOT_RUN`, not static accepted, until
+independent review accepts this narrow decoder correction. Despite 6Q otherwise leaving Claim
+unchanged, 6V modifies only `mailboxEntSyncClaimSnapshot`; no schema, public API, or migration
+changes. The locked production-only test rule remains in force.
+
+After a handled failure, `mailboxEntSyncClaimSnapshot` reconstructs the degraded policy snapshot
+exactly as follows. `CURSOR_INVALID` and `RESTART_REQUIRED` require nil rebuild fields
+(`sync_base_cursor` and `sync_checkpoint`) and yield an empty bootstrap `Enumeration`. For
+`transient` or `rejected`: no base/no checkpoint plus a valid `sync_cursor` yields `Incremental`
+with that same cursor; no base/no checkpoint plus nil `sync_cursor` yields empty bootstrap
+`Enumeration`; valid base/no checkpoint yields `CatchUp` with `Cursor=base`; and valid base plus
+valid checkpoint yields `Enumeration` with that pair. A checkpoint without a base, or any invalid
+opaque cursor, returns the existing content-free invalid error. Other degraded codes retain the
+prior incremental-only guard.
+
+Each of the four handled kinds remains `degraded`: `transient`, `rejected`, `invalid_cursor`, and
+`restart_required`. Under the complete fence, Resolve increments `sync_attempts` exactly once,
+rejects the existing maximum-overflow case through the content-free invalid error with zero partial
+writes, and atomically updates schedule, safe error, projection state, releases the lease, and
+clears the applied proof. A second Resolve has no lease and therefore performs no second increment.
+A `ready` account cannot retain `sync_error_code`; only successful Apply may reset attempts to zero,
+while worker fault reschedule owns its separate failure increment outside this path. Exact-scope
+static source review asserts the degraded snapshot shapes plus the existing transition, attempt,
+lease/proof-clear, and idempotent-second-Resolve rules. The deferred-test ledger reserves
+executable coverage for the dedicated post-sync test plan; generated Ent, runtime, compile, SQL/DB,
+Docker, formatting/lint, and all executable evidence remain `NOT_RUN`.
 
 - [ ] **Step 7: Implement Task 6C0 pure canonical validation and result hash**
 
