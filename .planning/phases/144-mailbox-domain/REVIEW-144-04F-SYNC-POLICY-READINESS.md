@@ -87,7 +87,7 @@ type MailboxSyncPolicyProvenance struct {
 type MailboxSyncPolicyProvenanceProof struct { Relation MailboxEventID; EngineMessageID string }
 type MailboxSyncPolicyEventReservation struct { ID uuid.UUID; Committed bool }
 type MailboxSyncPolicyDestroyed struct {
-    EngineMessageID string; Message MailboxEventID; Thread MailboxEventID
+    EngineMessageID string; Projected bool; Message MailboxEventID; Thread MailboxEventID
     Labels []MailboxSyncPolicyLabelState; ChangedEvent MailboxSyncPolicyEventReservation
 }
 type MailboxSyncPolicyLabelDefinition struct { Label MailboxEventID; EngineKeyword EngineKeywordMarker }
@@ -171,8 +171,11 @@ confirmed submission/draft never emits received; spoofed From/alias/mutable Sent
 state.
 Changed field order is
 `folder_ids,seen,answered,flagged,junk,labels`; flag order is `seen,answered,flagged,junk,draft`;
-only an exact allowlisted projection delta emits changed; deleted is sole. Destroy uses empty live
-folders/flags and preserves labels. Event-required records
+only an exact allowlisted projection delta emits changed; deleted is sole. A destroyed state record
+with `Projected=true` uses empty live folders/flags and preserves labels. A JMAP destroyed ID that
+was never projected in Hub is represented by `Projected=false` with zero Message/Thread identities,
+empty Labels and a zero ChangedEvent reservation; it remains exact input state but emits no
+tombstone, count or event. Any hybrid unknown-destroy shape is invalid. Event-required records
 need nonzero reservations; illegal zero/unused combinations are invalid. Only existing
 `NewMailReceivedEnvelopeV1`/`NewMailMessageChangedEnvelopeV1` build events; cursors/checkpoints
 live only in Advance, never events/errors; no BCC/raw body/MIME/provider text.
@@ -205,3 +208,15 @@ exact blob map. The stale/authority review confirms only the original accepted r
 candidate/precommit/immediate-dispatch lifecycle is `CONSUMED/HISTORICAL`; the correction route
 above is current and remains precommit-blocked. Unrelated historical 144-03B and Thread exact-two
 records remain preserved and do not grant 144-04F authority.
+
+## Task 6U unknown destroyed-message correction (2026-08-22)
+
+Status: `SOURCE_CANDIDATE / INDEPENDENT_REVIEW_REQUIRED / RUNTIME_NOT_RUN`. This narrow source
+correction adds the exported `Projected` discriminator to `MailboxSyncPolicyDestroyed`. It retains
+all projected-delete validation and effects, but admits the exact all-zero unprojected state for a
+JMAP ID that was created and destroyed between client states. The policy still requires all-and-only
+page state and rejects duplicate EngineMessageID values; unprojected state neither collides with live
+Hub Message IDs nor produces tombstone, count or outbox effects. The focused oracle covers ABI
+field order, exact Advance with a no-op unknown destroy, every hybrid shape and retained projected
+delete behavior. Launcher remains `NOT_READY`; tests, build, formatting, lint, Docker and runtime
+are `NOT_RUN`. This section is not a runtime or acceptance claim.

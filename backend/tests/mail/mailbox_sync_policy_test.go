@@ -18,6 +18,7 @@ func TestMailboxSyncPolicy_ExportsFrozenABIAndSafeErrors(t *testing.T) {
 	policyInputType := reflect.TypeOf(mail.MailboxSyncPolicyInput{})
 	requireMailboxSyncFields(t, policyInputType, []string{"Page", "Folders", "Messages", "Destroyed", "Labels", "SyncEpoch", "EventCutoff", "Event"})
 	requireMailboxSyncFields(t, reflect.TypeOf(mail.MailboxSyncPolicyPage{}), []string{"Change", "Enumeration"})
+	requireMailboxSyncFields(t, reflect.TypeOf(mail.MailboxSyncPolicyDestroyed{}), []string{"EngineMessageID", "Projected", "Message", "Thread", "Labels", "ChangedEvent"})
 	requireMailboxSyncFields(t, reflect.TypeOf(mail.MailboxSyncPolicyResult{}), []string{"Advance", "Folders", "Upserts", "Tombstones", "Counts", "Events"})
 	requireMailboxSyncFields(t, reflect.TypeOf(mail.MailboxSyncPolicyError{}), []string{"Kind"})
 	for _, testCase := range []struct {
@@ -186,6 +187,7 @@ func TestClassifyMailboxSyncPage_UsesAllowlistedDeltaAndDestroyEvent(t *testing.
 	destroyed.Messages = []mail.MailboxSyncPolicyMessage{}
 	destroyed.Destroyed = []mail.MailboxSyncPolicyDestroyed{{
 		EngineMessageID: "message-04f",
+		Projected:       true,
 		Message: destroyedMessageID(),
 		Thread: destroyedThreadID(),
 		Labels: []mail.MailboxSyncPolicyLabelState{},
@@ -197,6 +199,45 @@ func TestClassifyMailboxSyncPage_UsesAllowlistedDeltaAndDestroyEvent(t *testing.
 	}
 	if len(result.Tombstones) != 1 || len(result.Events) != 1 || result.Events[0].Subject() != "mail.message.changed.v1" {
 		t.Fatalf("destroyed result = %#v", result)
+	}
+}
+
+func TestClassifyMailboxSyncPage_IgnoresUnknownDestroyedMessageAndAdvancesExactly(t *testing.T) {
+	input := unknownDestroyedMailboxSyncInput(t)
+	result, err := mail.ClassifyMailboxSyncPage(input)
+	if err != nil {
+		t.Fatalf("unknown destroyed message error = %v", err)
+	}
+	if result.Advance.Change == nil || result.Advance.Enumeration != nil || result.Advance.SyncEpoch != input.SyncEpoch || result.Advance.Change.FromCursor != input.Page.Change.FromCursor || result.Advance.Change.NextCursor != input.Page.Change.NextCursor {
+		t.Fatalf("unknown destroyed advance = %#v, want exact change advance", result.Advance)
+	}
+	if len(result.Folders) != 0 || len(result.Upserts) != 0 || len(result.Tombstones) != 0 || len(result.Counts.Folders) != 0 || len(result.Counts.Threads) != 0 || len(result.Events) != 0 {
+		t.Fatalf("unknown destroyed message must be a no-op: %#v", result)
+	}
+}
+
+func TestClassifyMailboxSyncPage_RejectsHybridUnknownDestroyedState(t *testing.T) {
+	for _, testCase := range []struct {
+		name   string
+		mutate func(*mail.MailboxSyncPolicyDestroyed, mail.MailboxSyncPolicyInput)
+	}{
+		{"message identity", func(destroyed *mail.MailboxSyncPolicyDestroyed, input mail.MailboxSyncPolicyInput) { destroyed.Message = mailboxSyncID(input.Event.Mailbox.AccountID, "unknown-message") }},
+		{"thread identity", func(destroyed *mail.MailboxSyncPolicyDestroyed, input mail.MailboxSyncPolicyInput) { destroyed.Thread = mailboxSyncID(input.Event.Mailbox.AccountID, "unknown-thread") }},
+		{"labels", func(destroyed *mail.MailboxSyncPolicyDestroyed, input mail.MailboxSyncPolicyInput) { destroyed.Labels = []mail.MailboxSyncPolicyLabelState{{Label: mailboxSyncID(input.Event.Mailbox.AccountID, "unknown-label")}} }},
+		{"reservation", func(destroyed *mail.MailboxSyncPolicyDestroyed, _ mail.MailboxSyncPolicyInput) { destroyed.ChangedEvent = mail.MailboxSyncPolicyEventReservation{ID: mailboxSyncUUID("unknown-destroyed-reservation")} }},
+		{"committed reservation", func(destroyed *mail.MailboxSyncPolicyDestroyed, _ mail.MailboxSyncPolicyInput) { destroyed.ChangedEvent = mail.MailboxSyncPolicyEventReservation{Committed: true} }},
+		{"projected without message", func(destroyed *mail.MailboxSyncPolicyDestroyed, _ mail.MailboxSyncPolicyInput) { destroyed.Projected = true }},
+		{"projected without thread", func(destroyed *mail.MailboxSyncPolicyDestroyed, input mail.MailboxSyncPolicyInput) { destroyed.Projected = true; destroyed.Message = mailboxSyncID(input.Event.Mailbox.AccountID, "projected-message") }},
+		{"projected without reservation", func(destroyed *mail.MailboxSyncPolicyDestroyed, input mail.MailboxSyncPolicyInput) { destroyed.Projected = true; destroyed.Message = mailboxSyncID(input.Event.Mailbox.AccountID, "projected-message"); destroyed.Thread = mailboxSyncID(input.Event.Mailbox.AccountID, "projected-thread") }},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			input := unknownDestroyedMailboxSyncInput(t)
+			testCase.mutate(&input.Destroyed[0], input)
+			result, err := mail.ClassifyMailboxSyncPage(input)
+			if !errors.Is(err, mail.ErrMailboxSyncPolicyInvalid) || !reflect.DeepEqual(result, mail.MailboxSyncPolicyResult{}) {
+				t.Fatalf("hybrid destroyed input = %#v, %v; want invalid without output", result, err)
+			}
+		})
 	}
 }
 
@@ -520,6 +561,7 @@ func TestClassifyMailboxSyncPage_RejectsPageWideReservationDuplicates(t *testing
 			input.Page.Change.Bounds.Returned = 2
 			input.Destroyed = []mail.MailboxSyncPolicyDestroyed{{
 				EngineMessageID: "destroyed-04f",
+				Projected:       true,
 				Message:         mailboxSyncID(input.Event.Mailbox.AccountID, "destroyed-message"),
 				Thread:          input.Messages[0].Thread.Thread,
 				Labels:          []mail.MailboxSyncPolicyLabelState{},
@@ -976,11 +1018,24 @@ func mailboxSyncAppendDestroyed(input *mail.MailboxSyncPolicyInput, name string)
 	input.Page.Change.Bounds.Returned = len(input.Page.Change.CreatedOrUpdated) + len(input.Page.Change.DestroyedIDs)
 	input.Destroyed = append(input.Destroyed, mail.MailboxSyncPolicyDestroyed{
 		EngineMessageID: engineMessageID,
+		Projected:       true,
 		Message:         mailboxSyncID(input.Event.Mailbox.AccountID, engineMessageID+"-message"),
 		Thread:          mailboxSyncID(input.Event.Mailbox.AccountID, engineMessageID+"-thread"),
 		Labels:          []mail.MailboxSyncPolicyLabelState{},
 		ChangedEvent:    mail.MailboxSyncPolicyEventReservation{ID: mailboxSyncUUID(engineMessageID + "-event")},
 	})
+}
+
+func unknownDestroyedMailboxSyncInput(t *testing.T) mail.MailboxSyncPolicyInput {
+	t.Helper()
+	input := validMailboxSyncInput(t)
+	input.Page.Change.CreatedOrUpdated = []mail.EngineMessageProjection{}
+	input.Page.Change.DestroyedIDs = []string{"unknown-destroyed-04f"}
+	input.Page.Change.Bounds.Returned = 1
+	input.Folders = []mail.MailboxSyncPolicyFolder{}
+	input.Messages = []mail.MailboxSyncPolicyMessage{}
+	input.Destroyed = []mail.MailboxSyncPolicyDestroyed{{EngineMessageID: "unknown-destroyed-04f"}}
+	return input
 }
 
 func mailboxSyncInputWithEnumeration(t *testing.T, count int) mail.MailboxSyncPolicyInput {

@@ -255,7 +255,11 @@ There are exactly four repository transaction/lock boundaries:
    for proof relation/account/engine-ID/BCC validity.
    It persists no candidate merely because it was generated: only all-and-only needed IDs enter
    the policy input, where accepted 04F verifies them again. Success has `Prepared=true`; failed
-   fence/expiry has `Prepared=false` and zero Input.
+   fence/expiry has `Prepared=false` and zero Input. For a destroyed engine ID, Prepare returns
+   `Projected=true` only when a durable Hub projection exists; a create-then-destroy ID absent from
+   Hub is represented by `Projected=false` with zero Message/Thread identities, empty labels and a
+   zero ChangedEvent reservation. That exact unknown-destroy state advances normally but creates no
+   tombstone, count or outbox effect; every hybrid shape fails closed.
 3. `ApplyMailboxSyncPage` rechecks the same complete fence and atomically commits every 04F
    upsert/tombstone/folder/count/outbox effect plus exactly one position/phase transition. Any
    guard mismatch applies zero effects. The identical fence+advance is replay-safe and returns

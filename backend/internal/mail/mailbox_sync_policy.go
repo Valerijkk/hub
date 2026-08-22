@@ -89,6 +89,7 @@ type MailboxSyncPolicyEventReservation struct {
 // MailboxSyncPolicyDestroyed is caller-resolved state for one destroyed engine message.
 type MailboxSyncPolicyDestroyed struct {
 	EngineMessageID string
+	Projected       bool
 	Message         MailboxEventID
 	Thread          MailboxEventID
 	Labels          []MailboxSyncPolicyLabelState
@@ -269,6 +270,9 @@ func ClassifyMailboxSyncPage(input MailboxSyncPolicyInput) (MailboxSyncPolicyRes
 	}
 	for _, message := range messageByEngineID {
 		for _, destroyed := range destroyedByEngineID {
+			if !destroyed.Projected {
+				continue
+			}
 			if message.Message.ID == destroyed.Message.ID {
 				return MailboxSyncPolicyResult{}, syncPolicyError(MailboxSyncPolicyErrorDuplicate)
 			}
@@ -322,6 +326,9 @@ func ClassifyMailboxSyncPage(input MailboxSyncPolicyInput) (MailboxSyncPolicyRes
 	}
 	for _, engineMessageID := range page.destroyedIDs {
 		destroyed := destroyedByEngineID[engineMessageID]
+		if !destroyed.Projected {
+			continue
+		}
 		intent, eventRecord, err := syncClassifyDestroyed(input, accountID, destroyed)
 		if err != nil {
 			return MailboxSyncPolicyResult{}, err
@@ -532,13 +539,20 @@ func syncIndexDestroyed(accountID uuid.UUID, values []MailboxSyncPolicyDestroyed
 		if !syncValidOpaque(value.EngineMessageID, MaxEngineOpaqueIDBytes) {
 			return nil, syncPolicyError(MailboxSyncPolicyErrorInvalid)
 		}
+		if _, duplicate := indexed[value.EngineMessageID]; duplicate {
+			return nil, syncPolicyError(MailboxSyncPolicyErrorDuplicate)
+		}
+		if !value.Projected {
+			if value.Message != (MailboxEventID{}) || value.Thread != (MailboxEventID{}) || len(value.Labels) != 0 || value.ChangedEvent != (MailboxSyncPolicyEventReservation{}) {
+				return nil, syncPolicyError(MailboxSyncPolicyErrorInvalid)
+			}
+			indexed[value.EngineMessageID] = value
+			continue
+		}
 		for _, id := range []MailboxEventID{value.Message, value.Thread} {
 			if _, err := syncValidateMailboxID(id, accountID); err != nil {
 				return nil, err
 			}
-		}
-		if _, duplicate := indexed[value.EngineMessageID]; duplicate {
-			return nil, syncPolicyError(MailboxSyncPolicyErrorDuplicate)
 		}
 		if _, duplicate := seenMessages[value.Message.ID]; duplicate {
 			return nil, syncPolicyError(MailboxSyncPolicyErrorDuplicate)
@@ -689,6 +703,9 @@ func syncClassifyMessage(input MailboxSyncPolicyInput, accountID uuid.UUID, engi
 }
 
 func syncClassifyDestroyed(input MailboxSyncPolicyInput, accountID uuid.UUID, destroyed MailboxSyncPolicyDestroyed) (MailboxSyncPolicyTombstoneIntent, syncEventRecord, error) {
+	if !destroyed.Projected {
+		return MailboxSyncPolicyTombstoneIntent{}, syncEventRecord{}, syncPolicyError(MailboxSyncPolicyErrorInvalid)
+	}
 	labels, err := syncValidateLabelStates(accountID, destroyed.Labels)
 	if err != nil {
 		return MailboxSyncPolicyTombstoneIntent{}, syncEventRecord{}, err

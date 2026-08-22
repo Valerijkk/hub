@@ -1310,7 +1310,10 @@ The exact callable is `ClassifyMailboxSyncPage(MailboxSyncPolicyInput) (MailboxS
 error)`. Input has `Page`, `Folders`, `Messages`, `Destroyed`, `Labels`, `SyncEpoch`,
 `EventCutoff`, and `Event`; Page is exact-one Change/Enumeration. Message has the exact engine
 message ID, Message, Thread resolution, Previous, Provenance, ReceivedEventID, ChangedEvent and
-CalendarMethod; Destroyed has exact engine ID, Message, Thread, Labels and ChangedEvent. Thread
+CalendarMethod; Destroyed has exact engine ID, Projected, Message, Thread, Labels and ChangedEvent.
+For a destroyed ID never projected in Hub, Projected is false and every remaining field is zero or
+empty; the record remains exact page state but emits no tombstone, count or event. Any hybrid is
+invalid, while Projected=true retains the strict delete path. Thread
 resolution has Thread, KeyVersion, Key, Ancestors and AncestorLookupComplete; previous has Thread,
 FolderIDs, Flags, Labels and optional ReceivedEventID; provenance has optional confirmed
 submission/draft `*MailboxSyncPolicyProvenanceProof`, where proof is Relation/EngineMessageID;
