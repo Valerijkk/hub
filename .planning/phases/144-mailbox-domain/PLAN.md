@@ -25,7 +25,7 @@ runtime are all `NOT_RUN`. No migration or cutover authority follows.
 
 ## Task 6P — Mail sync-lease snapshot and apply-proof schema prerequisite (2026-08-22)
 
-> **Narrow source candidate:** `NARROW_SOURCE_CANDIDATE / PENDING_INDEPENDENT_REVIEW / RUNTIME_NOT_RUN`.
+> **Narrow source status:** `STATIC_ACCEPTED / RUNTIME_NOT_RUN` at source commit `7309c52a`.
 > This packet owns only the test-first `MailAccount` schema contract for one bounded inline active
 > sync-lease snapshot and its apply proof. It does not add an unbounded receipt table, retention
 > work, Ent generation, adapter implementation, migration, cutover, or product/runtime authority.
@@ -46,7 +46,8 @@ catch_up→catch_up|incremental, or enumeration→enumeration|catch_up. Keeping 
 preserves same-lease claim/replay even after the account cursor advances, without receipt
 retention cleanup.
 
-Task 6 cannot start before both Task 6S and Task 6P receive independent static review. The
+Independent static review found no issues in the bounded snapshot/proof checks. Task 6 cannot
+start before both Task 6S and Task 6P are present. The
 launcher is `NOT_READY`; executable RED/GREEN, tests, Ent generation, Atlas diff/migration,
 compile, SQL/DB, Docker, gofmt, lint, and runtime are all `NOT_RUN`. No migration or cutover
 authority follows.

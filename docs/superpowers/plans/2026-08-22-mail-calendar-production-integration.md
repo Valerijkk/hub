@@ -301,7 +301,7 @@ Docker, formatting/lint, and runtime are all `NOT_RUN`. No migration or cutover 
 - Modify: `.planning/phases/144-mailbox-domain/PLAN.md`
 - Modify: `.planning/STATE.md`
 
-**Status:** `NARROW_SOURCE_CANDIDATE / PENDING_INDEPENDENT_REVIEW / RUNTIME_NOT_RUN`.
+**Status:** `STATIC_ACCEPTED / RUNTIME_NOT_RUN` at source commit `7309c52a`.
 
 This prerequisite adds one bounded inline proof to the active `MailAccount` sync lease rather
 than an unbounded sync receipt table. It has no retention-cleanup dependency, stores no
@@ -325,7 +325,8 @@ version, 32-byte hash, `applied_at < sync_lease_until`, `applied_next_at >= appl
 the transitions incremental→incremental, catch_up→catch_up|incremental, and
 enumeration→enumeration|catch_up.
 
-Task 6 starts only after Task 6S and Task 6P. The launcher is `NOT_READY`; executable RED/GREEN,
+Independent static review found no issues in the bounded snapshot/proof checks. Task 6 starts only
+after Task 6S and Task 6P. The launcher is `NOT_READY`; executable RED/GREEN,
 Ent generation, Atlas diff/migration, compile, SQL/DB, Docker, gofmt, lint, and runtime are all
 `NOT_RUN`. This source candidate provides no migration or cutover authority.
 

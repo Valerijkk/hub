@@ -1843,7 +1843,7 @@ new quality gate is requirement/risk traceability plus fail-closed execution.
 > `NOT_READY`, executables/runtime `NOT_RUN`.
 
 > **Phase 144 Task 6P sync-lease apply-proof schema (2026-08-22):**
-> `NARROW_SOURCE_CANDIDATE / PENDING_INDEPENDENT_REVIEW / RUNTIME_NOT_RUN`.
+> `STATIC_ACCEPTED / RUNTIME_NOT_RUN` at source commit `7309c52a`.
 > The authored-first MailAccount schema-contract test freezes one bounded inline active-lease
 > snapshot and one inline apply proof per account; it deliberately does not introduce an
 > unbounded sync receipt table or retention cleanup. Snapshot state contains only non-negative
@@ -1854,8 +1854,8 @@ new quality gate is requirement/risk traceability plus fail-closed execution.
 > the original snapshot available for same-lease replay after the account cursor advances. No
 > message/calendar/provider body, raw error, or JSON payload is stored. The launcher remains
 > `NOT_READY`; executable RED/GREEN/tests, Ent generation, Atlas diff/migration, compile, SQL/DB,
-> Docker, gofmt, lint, and runtime are all `NOT_RUN`. This is not static acceptance and grants no
-> migration or cutover authority; independent review remains required.
+> Docker, gofmt, lint, and runtime are all `NOT_RUN`. Independent static review found no issues in
+> this narrow manifest; no migration or cutover authority follows.
 
 > **Phase 147 Task 2 mail-bridge schemas (2026-08-22):** `SOURCE_CONTRACT_AUTHORED` /
 > `PENDING_INDEPENDENT_REVIEW` / `RUNTIME_NOT_RUN`. An isolated Calendar schema source-contract
