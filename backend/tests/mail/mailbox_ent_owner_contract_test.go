@@ -61,6 +61,55 @@ func TestMailboxEntRepositoryHasFrozenPublicContract(t *testing.T) {
 	}
 }
 
+func mailboxEntSourceSlice(t *testing.T, source, start, end string) string {
+	t.Helper()
+
+	startIndex := strings.Index(source, start)
+	if startIndex == -1 {
+		t.Fatalf("source is missing start marker %q", start)
+	}
+
+	endOffset := strings.Index(source[startIndex+len(start):], end)
+	if endOffset == -1 {
+		t.Fatalf("source is missing end marker %q after %q", end, start)
+	}
+
+	return source[startIndex : startIndex+len(start)+endOffset]
+}
+
+func TestMailboxEntOwnerSourceDefersOrganizationValidationAndAcceptsRecoveryDuringProvisioning(t *testing.T) {
+	sourceBytes, err := os.ReadFile("../../internal/mail/mailbox_ent_owner.go")
+	if err != nil {
+		t.Fatalf("read mailbox owner source: %v", err)
+	}
+	source := string(sourceBytes)
+
+	accountQuery := mailboxEntSourceSlice(
+		t,
+		source,
+		"accounts, err := transaction.MailAccount.Query()",
+		"account.OrganizationID != organizationRow.ID",
+	)
+	if strings.Contains(accountQuery, "mailaccount.OrganizationIDEQ") {
+		t.Fatal("MailAccount selection must defer organization validation until after the actor-owned account is locked and selected")
+	}
+
+	provisioningCase := mailboxEntSourceSlice(
+		t,
+		source,
+		"case MailboxOwnerProvisioning:",
+		"case MailboxOwnerActive:",
+	)
+	if got, want := strings.Fields(provisioningCase), []string{
+		"case",
+		"MailboxOwnerProvisioning:",
+		"return",
+		"true",
+	}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("provisioning must accept both absent and validated recovery codes: got %q", provisioningCase)
+	}
+}
+
 func TestMailboxEntRepositoryOwnerResolutionStaysLockedAndProviderFree(t *testing.T) {
 	source, err := os.ReadFile("../../internal/mail/mailbox_ent_owner.go")
 	if err != nil {

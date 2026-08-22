@@ -61,7 +61,6 @@ func mailboxEntResolveOwnerForUpdate(ctx context.Context, transaction *ent.Tx, a
 	accounts, err := transaction.MailAccount.Query().
 		Where(
 			mailaccount.UserIDEQ(actor.ID),
-			mailaccount.OrganizationIDEQ(organizationRow.ID),
 		).
 		Order(ent.Asc(mailaccount.FieldID)).
 		ForUpdate().
@@ -185,7 +184,7 @@ func mailboxEntAccountStateValid(state MailboxOwnerState, desiredEnabled bool, e
 
 	switch state {
 	case MailboxOwnerProvisioning:
-		return recoveryCode == nil
+		return true
 	case MailboxOwnerActive:
 		return desiredEnabled && engineAccountID != nil && recoveryCode == nil && identity.Status == mailidentity.StatusActive && identity.EngineIdentityID != nil
 	case MailboxOwnerSuspended:
