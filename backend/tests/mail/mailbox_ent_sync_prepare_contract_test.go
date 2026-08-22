@@ -213,3 +213,24 @@ func TestMailboxEntSyncPrepareResolutionSourceContract(t *testing.T) {
 		}
 	}
 }
+
+func TestMailboxEntSyncPrepareThreadsLiveOnlySourceContract(t *testing.T) {
+	sourceBytes, err := os.ReadFile("../../internal/mail/mailbox_ent_sync_prepare.go")
+	if err != nil {
+		t.Fatalf("read prepare source: %v", err)
+	}
+	threads := mailboxEntPrepareSourceSlice(t, string(sourceBytes),
+		"func mailboxEntPrepareThreads",
+		"func mailboxEntPrepareAncestors",
+	)
+
+	requireMailboxEntPrepareOrderedFragments(t, threads,
+		"mailthread.MailAccountIDEQ(account.ID)",
+		"mailthread.Or(threadPredicates...)",
+		"mailthread.DeletedAtIsNil()",
+		".All(ctx)",
+	)
+	if !strings.Contains(threads, "row.DeletedAt != nil") {
+		t.Fatal("live thread resolution must reject soft-deleted rows")
+	}
+}

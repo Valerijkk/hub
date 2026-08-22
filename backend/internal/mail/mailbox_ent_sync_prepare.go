@@ -567,12 +567,12 @@ func mailboxEntPrepareThreads(ctx context.Context, transaction *ent.Tx, account 
 		identity := ThreadIdentity{KeyVersion: threadKey.version, Key: threadKey.key}
 		threadPredicates = append(threadPredicates, mailthread.And(mailthread.ThreadKeyVersionEQ(int32(identity.KeyVersion)), mailthread.ThreadKeyEQ(identity.Key[:])))
 	}
-	rows, err := transaction.MailThread.Query().Where(mailthread.MailAccountIDEQ(account.ID), mailthread.Or(threadPredicates...)).All(ctx)
+	rows, err := transaction.MailThread.Query().Where(mailthread.MailAccountIDEQ(account.ID), mailthread.Or(threadPredicates...), mailthread.DeletedAtIsNil()).All(ctx)
 	if err != nil { return nil, mailboxEntSafeError(err) }
 	existing := make(map[mailboxEntPrepareThreadKey]*ent.MailThread, len(rows))
 	for _, row := range rows {
 		key, ok := mailboxEntPrepareThreadKeyFromRow(row)
-		if !ok || row.MailAccountID != account.ID || row.ID == uuid.Nil { return nil, mailboxServiceError(MailboxServiceErrorInvalid) }
+		if !ok || row.MailAccountID != account.ID || row.ID == uuid.Nil || row.DeletedAt != nil { return nil, mailboxServiceError(MailboxServiceErrorInvalid) }
 		if _, duplicate := existing[key]; duplicate { return nil, mailboxServiceError(MailboxServiceErrorInvalid) }
 		existing[key] = row
 	}
