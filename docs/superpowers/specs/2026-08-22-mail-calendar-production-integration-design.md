@@ -63,10 +63,14 @@ then opens a new transaction that verifies the exact fence before applying resul
 Handled Resolve failures become `degraded`, preserve a valid cursor for
 transient/rejected outcomes, increment `sync_attempts` once with overflow rejection,
 and release the lease; successful Apply resets it to zero. Worker fault rescheduling
-owns only its separate failure increment. Apply retains its exact lease snapshot and
-versioned proof through `NextAttemptAt`, which is strictly after the authoritative
-transaction time; an identical same-lease proof replays without writes, while a
-claim at lease expiry replaces it.
+owns only its separate failure increment. A forward schema prerequisite requires the
+complete proof CHECK to include `sync_lease_applied_next_at < sync_lease_until`.
+Apply writes `sync_lease_applied_next_at = NextAttemptAt` and checked exact-second
+`sync_lease_until = NextAttemptAt + 1s`; this is the minimum same-lease replay grace,
+and a new claim is permitted after lease expiry. A matching same-lease proof replays
+without writes. A same-lease mismatch of hash, hash version, phase, next attempt, or
+position returns the existing content-free invalid repository error with zero writes;
+it is never overwritten or re-applied.
 
 ### Migration ownership
 
@@ -176,9 +180,10 @@ envelopes cross the boundary; state ownership does not.
 1. Migration mechanism and schema diff authority.
 2. Calendar base Ent transaction adapter, followed by RSVP/update/cancel/inbound
    reply capability files.
-3. Mail owner and sync/worker Ent adapters: first the transaction-time and Resolve
-   ownership corrections, then pure canonical validation/hash, bounded
-   projection/aggregate helpers, and finally transactional apply/outbox/proof.
+3. Mail owner and sync/worker Ent adapters: first the strict proof-retention schema
+   correction, then transaction-time and Resolve ownership corrections, pure canonical
+   validation/hash, bounded projection/aggregate helpers, and transactional
+   apply/outbox/proof.
 4. Main-server composition and authenticated HTTP surfaces.
 5. Outbox-backed Mail-to-Calendar consumer and Calendar-to-Mail delivery consumer.
 6. Compatibility cutover and ScheduledCall backfill only after migration evidence.

@@ -356,15 +356,38 @@ diff/migration, compile, SQL/DB, Docker, gofmt, lint, and runtime are all `NOT_R
 prerequisite grants no migration or cutover authority. Independent static review approved the
 exact five-file source boundary with C/I/M `0/0/0`.
 
+### Task 6W: Correct bounded sync-lease proof retention prerequisite
+
+**Files:**
+- Modify: `backend/ent/schema/mailaccount.go`
+- Test: `backend/tests/mail/mail_account_identity_schema_test.go`
+
+**Status:** `PENDING_SOURCE_CONTRACT / RUNTIME_NOT_RUN`.
+
+This is a forward correction to the bounded proof constraint in accepted Task 6P; it does not
+alter Task 6P's recorded static acceptance. Extend
+`mail_accounts_sync_lease_apply_proof` so a complete proof also requires
+`sync_lease_applied_next_at < sync_lease_until`. The schema-contract test must freeze that exact
+strict predicate and reject equality/reversal. Task 6C2 writes
+`sync_lease_applied_next_at = NextAttemptAt` and a checked exact-second
+`sync_lease_until = NextAttemptAt + 1s`; the one-second interval is the minimum grace for durable
+same-lease replay, and a new claim remains permitted after lease expiry. Overflow, non-exact-second
+values, and any incomplete proof fail closed. No retention table, migration, or cutover authority is
+added; launcher and all executable evidence remain `NOT_READY` / `NOT_RUN`.
+
 ### Task 6: Mail sync and worker Ent adapters
 
 **Files:**
 - Create: `backend/internal/mail/mailbox_ent_sync_claim.go`
 - Create: `backend/internal/mail/mailbox_ent_sync_prepare.go`
+- Create: `backend/internal/mail/mailbox_sync_apply_canonical.go`
+- Create: `backend/internal/mail/mailbox_ent_sync_apply_projection.go`
 - Create: `backend/internal/mail/mailbox_ent_sync_apply.go`
 - Create: `backend/internal/mail/mailbox_ent_worker.go`
 - Test: `backend/tests/mail/mailbox_ent_sync_coordination_contract_test.go`
 - Test: `backend/tests/mail/mailbox_ent_sync_prepare_contract_test.go`
+- Test: `backend/tests/mail/mailbox_sync_apply_canonical_test.go`
+- Test: `backend/tests/mail/mailbox_ent_sync_apply_projection_contract_test.go`
 - Test: `backend/tests/mail/mailbox_ent_sync_apply_contract_test.go`
 - Modify: `.planning/phases/144-mailbox-domain/PLAN.md`
 - Modify: `.planning/STATE.md`
@@ -373,16 +396,17 @@ exact five-file source boundary with C/I/M `0/0/0`.
 - Consumes: `MailboxSyncRepository`, `MailboxSyncWorkerRepository`, accepted sync fence/page policy, and worker caps.
 - Produces: the same `MailboxEntRepository` satisfying both interfaces.
 
-**Dependency:** Task 6 starts only after Task 6S, Task 6P, and Task 6T persist and independently
-statically review the durable sync-lease generation, active due-scan index, inline apply proof,
-and exact-second schedule CAS marker.
+**Dependency:** Task 6 starts only after Task 6S, Task 6P, Task 6T, and Task 6W persist and
+independently statically review the durable sync-lease generation, active due-scan index, bounded
+apply proof including its strict retention predicate, and exact-second schedule CAS marker.
 
 **Atomic decomposition:** Task 6A owns claim/resolve plus due-scan/fault coordination; Task 6B owns
-prepare-only projection reads and policy-input construction. Before apply work, Task 6Q corrects
-transaction-authoritative lease time and Task 6V corrects Resolve projection-state/attempt ownership.
-Task 6C is then split into 6C0 pure canonical validation/hash, 6C1 bounded projection/aggregate
-helpers, and 6C2 transaction/outbox/same-lease proof. Each 6C packet has a separate implementer
-and independent task review. No packet spans provider I/O and a repository transaction.
+prepare-only projection reads and policy-input construction. Before apply work, Task 6W strengthens
+proof retention, Task 6Q corrects transaction-authoritative lease time, and Task 6V corrects Resolve
+projection-state/attempt ownership. Task 6C is then split into 6C0 pure canonical validation/hash,
+6C1 bounded projection/aggregate helpers, and 6C2 transaction/outbox/same-lease proof. Each 6C
+packet has a separate implementer and independent task review. No packet spans provider I/O and a
+repository transaction.
 
 - [x] **Step 1: Implement Task 6A claim/resolve and worker coordination**
 
@@ -476,30 +500,84 @@ ownership correction for Task 6A, not a change to its recorded static acceptance
 
 - [ ] **Step 7: Implement Task 6C0 pure canonical validation and result hash**
 
-Land only deterministic, side-effect-free canonical request validation and the versioned result
-hash over the frozen fence-plus-advance representation. It performs no Ent query, transaction,
-projection mutation, outbox append, clock read, network I/O, or random operation. Its focused
-source-contract test lands in the same atomic packet and independently reviews the exact bytes and
-rejection shapes before 6C1 or 6C2 consume it.
+**Files:**
+- Create: `backend/internal/mail/mailbox_sync_apply_canonical.go`
+- Test: `backend/tests/mail/mailbox_sync_apply_canonical_test.go`
+
+Freeze the exported-for-internal-package implementation handoff:
+
+```go
+type MailboxSyncCanonicalApply struct {
+    Fence         MailboxSyncFence
+    Result        MailboxSyncPolicyResult
+    ExpectedPhase MailboxSyncPhase
+    NextAttemptAt time.Time
+    ResultHash    [sha256.Size]byte
+}
+
+func CanonicalizeMailboxSyncApplyRequest(MailboxSyncApplyRequest) (MailboxSyncCanonicalApply, error)
+```
+
+This is an implementation API inside `backend/internal/mail` for the genuine unit and Task 6C2,
+not a new repository, service, or HTTP port. Its package-fixed proof hash version is `int32(1)`;
+no caller supplies an alternative. It returns a deep-copied canonical result and is deterministic and
+side-effect-free: no Ent query, transaction, projection mutation, outbox append,
+clock read, network I/O, or random operation. The result hash is SHA-256 with domain
+`hub.mail.sync.apply.result.v1`; each value is encoded exactly as `u16 tag|u64 length|payload`,
+collections carry a `u32` count, UUIDs are raw 16 bytes, UTC times are `i64` seconds plus `u32`
+nanoseconds, and every optional value has an explicit marker. Canonical collections sort by stable
+UUID, engine ID, or event ID as applicable, while semantic address/reference order is preserved.
+The exact payload includes the full fence, `NextAttemptAt`, full projection, counts, and envelope
+bytes; it excludes request `Now` and `appliedAt`. Its behavioral unit test freezes byte vectors,
+deep-copy isolation, canonical ordering, and rejection shapes before 6C1/6C2 consume it; it is not
+a source-text test and does not accept uvarint or RFC3339 encoding alternatives.
 
 - [ ] **Step 8: Implement Task 6C1 bounded projection and aggregate helpers**
 
-Land only bounded projection/count/thread aggregate helpers and their focused source-contract
-test. The effective latest time for a thread is the later non-nil `SentAt`/`ReceivedAt`; if both
-are nil it is the persisted message `updated_at`. A newly inserted or changed message with no
-provider time uses the single transaction time, and UUID is the final deterministic tie-break.
-No valid draft is rejected solely because both provider timestamps are nil. This packet performs
-no repository transaction, outbox append, or provider I/O.
+**Files:**
+- Create: `backend/internal/mail/mailbox_ent_sync_apply_projection.go`
+- Test: `backend/tests/mail/mailbox_ent_sync_apply_projection_contract_test.go`
+
+Freeze the private transaction handoff (a repository receiver is permitted only if required by the
+existing private helpers):
+
+```go
+func (r *MailboxEntRepository) mailboxEntApplySyncProjection(
+    ctx context.Context,
+    tx *ent.Tx,
+    canonical MailboxSyncCanonicalApply,
+    transactionTime time.Time,
+) error
+```
+
+It receives a checked exact-second `transactionTime` explicitly and does not read a clock, open or
+commit a transaction, or append an outbox row. It owns only bounded projection/count/thread
+aggregate persistence. Thread effective latest time is the later non-nil `SentAt`/`ReceivedAt`; if
+both are nil, an unchanged persisted message uses its persisted `updated_at`, while a changed or
+new message persists and uses this single `transactionTime` as `updated_at`. UUID is the final
+deterministic tie-break, so valid drafts with both provider timestamps nil remain admissible. Its
+focused source-contract test freezes those time and tie-break cases; it does no provider I/O.
 
 - [ ] **Step 9: Implement Task 6C2 transaction, outbox, and same-lease proof**
 
-After 6Q, 6V, 6C0, and 6C1, re-lock and compare account, lease, sync, mutation, phase, cursor,
-base cursor, and checkpoint before any projection write. In one transaction, use the authoritative
-transaction time, persist the bounded projection/count/position and outbox result, and retain the
-exact lease snapshot plus versioned proof until `NextAttemptAt`, which must be strictly greater
-than that transaction time. An identical same-lease hash replays without writes or re-applying
-projection/event candidates; a new claim at lease expiry replaces that proof. Expose only the
-existing `MailboxSyncRepository.ApplyMailboxSyncPage` ABI and perform no network I/O.
+**Files:**
+- Create: `backend/internal/mail/mailbox_ent_sync_apply.go`
+- Test: `backend/tests/mail/mailbox_ent_sync_apply_contract_test.go`
+
+After 6Q, 6V, 6W, 6C0, and 6C1, this is the sole consumer of both implementation handoffs and the sole
+owner of the repository transaction, outbox append, and same-lease proof. It re-locks and compares
+account, lease, sync, mutation, phase, cursor, base cursor, and checkpoint before any projection
+write. In one transaction, it obtains the authoritative transaction time, invokes the bounded
+projection handoff, persists position/counts/outbox result, and writes
+`sync_lease_applied_next_at = NextAttemptAt` plus checked exact-second
+`sync_lease_until = NextAttemptAt + 1s`. The latter is the minimum grace required by Task 6W;
+a new claim is permitted after lease expiry.
+
+A matching same-lease proof replays without writes or re-applying projection/event candidates. A
+pre-existing same-lease proof whose hash, hash version, phase, next attempt, or position differs
+from this canonical request returns the existing content-free invalid repository error with zero
+writes; it is never overwritten or re-applied. Expose only the existing
+`MailboxSyncRepository.ApplyMailboxSyncPage` ABI and perform no network I/O.
 
 - [ ] **Step 10: Keep provider I/O outside transactions**
 
