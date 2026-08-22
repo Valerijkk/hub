@@ -378,9 +378,11 @@ statically review the durable sync-lease generation, active due-scan index, inli
 and exact-second schedule CAS marker.
 
 **Atomic decomposition:** Task 6A owns claim/resolve plus due-scan/fault coordination; Task 6B owns
-prepare-only projection reads and policy-input construction; Task 6C owns deterministic atomic
-projection/count/outbox apply and bounded same-lease result-hash replay. No packet spans provider
-I/O and a repository transaction.
+prepare-only projection reads and policy-input construction. Before apply work, Task 6Q corrects
+transaction-authoritative lease time and Task 6V corrects Resolve projection-state/attempt ownership.
+Task 6C is then split into 6C0 pure canonical validation/hash, 6C1 bounded projection/aggregate
+helpers, and 6C2 transaction/outbox/same-lease proof. Each 6C packet has a separate implementer
+and independent task review. No packet spans provider I/O and a repository transaction.
 
 - [x] **Step 1: Implement Task 6A claim/resolve and worker coordination**
 
@@ -454,24 +456,62 @@ Generated Ent client/predicates are absent and the launcher remains `NOT_READY`;
 compile, tests, formatting/lint, Atlas/migration, SQL/DB, Docker, and runtime are `NOT_RUN`. Task 6C
 apply remains pending; this accepts neither Task 6, Phase 144, the Mail module, nor product.
 
-- [ ] **Step 5: Implement Task 6C apply**
+- [ ] **Step 5: Implement Task 6Q transaction-authoritative lease-time correction**
 
-Apply re-locks and compares account, lease, sync, mutation, phase, cursor, base cursor, and
-checkpoint before any projection write, then persists projection/count/outbox/position and its
-versioned fence-plus-advance hash in one transaction. Matching same-lease proof replays without
-effects; projection/event candidates are never re-applied during that proof short-circuit.
+Before Task 6C2, add one private transaction-bound PostgreSQL helper that obtains
+`date_trunc('second', CURRENT_TIMESTAMP)` (or a dialect-equivalent exact-second value) once for
+the transaction. Correct the existing Prepare and Resolve paths to use this value for every
+lease-expiry decision; Apply must use the same authority in 6C2. Caller/request time and the
+injected process/repository clock cannot decide lease expiry. This correction does not rewrite the
+immutable acceptance status of Tasks 6A or 6B; it is a required forward prerequisite before 6C2.
 
-- [ ] **Step 6: Keep provider I/O outside transactions**
+- [ ] **Step 6: Implement Task 6V Resolve projection-state and retry-attempt correction**
+
+Before Task 6C2, correct Resolve so every handled failure transitions the account to `degraded`,
+preserves a valid cursor position for transient/rejected failures, increments `sync_attempts`
+exactly once with overflow rejection, and releases the lease. A `ready` account cannot retain
+`sync_error_code`. Successful Apply alone resets `sync_attempts` to zero; worker fault reschedule
+increments its failure counter only outside this handled Resolve path. This is a required forward
+ownership correction for Task 6A, not a change to its recorded static acceptance.
+
+- [ ] **Step 7: Implement Task 6C0 pure canonical validation and result hash**
+
+Land only deterministic, side-effect-free canonical request validation and the versioned result
+hash over the frozen fence-plus-advance representation. It performs no Ent query, transaction,
+projection mutation, outbox append, clock read, network I/O, or random operation. Its focused
+source-contract test lands in the same atomic packet and independently reviews the exact bytes and
+rejection shapes before 6C1 or 6C2 consume it.
+
+- [ ] **Step 8: Implement Task 6C1 bounded projection and aggregate helpers**
+
+Land only bounded projection/count/thread aggregate helpers and their focused source-contract
+test. The effective latest time for a thread is the later non-nil `SentAt`/`ReceivedAt`; if both
+are nil it is the persisted message `updated_at`. A newly inserted or changed message with no
+provider time uses the single transaction time, and UUID is the final deterministic tie-break.
+No valid draft is rejected solely because both provider timestamps are nil. This packet performs
+no repository transaction, outbox append, or provider I/O.
+
+- [ ] **Step 9: Implement Task 6C2 transaction, outbox, and same-lease proof**
+
+After 6Q, 6V, 6C0, and 6C1, re-lock and compare account, lease, sync, mutation, phase, cursor,
+base cursor, and checkpoint before any projection write. In one transaction, use the authoritative
+transaction time, persist the bounded projection/count/position and outbox result, and retain the
+exact lease snapshot plus versioned proof until `NextAttemptAt`, which must be strictly greater
+than that transaction time. An identical same-lease hash replays without writes or re-applying
+projection/event candidates; a new claim at lease expiry replaces that proof. Expose only the
+existing `MailboxSyncRepository.ApplyMailboxSyncPage` ABI and perform no network I/O.
+
+- [ ] **Step 10: Keep provider I/O outside transactions**
 
 Repository methods only persist state. `MailboxSyncService.Step` remains the sole orchestration point around one bounded `MailEngine` call.
 
-- [ ] **Step 7: Confirm worker selection and fault reschedule**
+- [ ] **Step 11: Confirm worker selection and fault reschedule**
 
 Select due rows by `due_at, account_id` with bounded batch and skip-locked semantics. Fault reschedule verifies the selected snapshot, advances attempts once, caps delay, and loses safely on a changed lease/fence.
 The worker maps `MailboxSyncWorkerDueAccount.UpdatedAt` from `sync_schedule_updated_at`, and every
 schedule-affecting mutation advances that marker from the same repository clock read.
 
-- [ ] **Step 8: Static review and commit each atomic packet**
+- [ ] **Step 12: Static review and commit each atomic packet**
 
 ```text
 feat(mail): persist mailbox sync and worker state

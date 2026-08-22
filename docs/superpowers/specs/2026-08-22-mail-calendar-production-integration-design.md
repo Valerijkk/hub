@@ -54,10 +54,19 @@ repository root:
 - later receipt-backed mailbox mutations.
 
 The split keeps files small while reusing the same account lock order, lease/fence
-validation, transaction helper, error mapping, and clock policy. Repository code
-never performs provider I/O. A sync step claims durable state, releases the
-transaction, performs one bounded `MailEngine` call, then opens a new transaction
-that verifies the exact fence before applying results.
+validation, transaction helper, error mapping, and clock policy. Lease expiry is
+decided only by one transaction-bound PostgreSQL exact-second value
+(`date_trunc('second', CURRENT_TIMESTAMP)` or dialect equivalent), never caller or
+process time. Repository code never performs provider I/O. A sync step claims
+durable state, releases the transaction, performs one bounded `MailEngine` call,
+then opens a new transaction that verifies the exact fence before applying results.
+Handled Resolve failures become `degraded`, preserve a valid cursor for
+transient/rejected outcomes, increment `sync_attempts` once with overflow rejection,
+and release the lease; successful Apply resets it to zero. Worker fault rescheduling
+owns only its separate failure increment. Apply retains its exact lease snapshot and
+versioned proof through `NextAttemptAt`, which is strictly after the authoritative
+transaction time; an identical same-lease proof replays without writes, while a
+claim at lease expiry replaces it.
 
 ### Migration ownership
 
@@ -167,7 +176,9 @@ envelopes cross the boundary; state ownership does not.
 1. Migration mechanism and schema diff authority.
 2. Calendar base Ent transaction adapter, followed by RSVP/update/cancel/inbound
    reply capability files.
-3. Mail owner, sync, and worker Ent adapters.
+3. Mail owner and sync/worker Ent adapters: first the transaction-time and Resolve
+   ownership corrections, then pure canonical validation/hash, bounded
+   projection/aggregate helpers, and finally transactional apply/outbox/proof.
 4. Main-server composition and authenticated HTTP surfaces.
 5. Outbox-backed Mail-to-Calendar consumer and Calendar-to-Mail delivery consumer.
 6. Compatibility cutover and ScheduledCall backfill only after migration evidence.
