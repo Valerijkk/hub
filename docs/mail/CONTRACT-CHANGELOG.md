@@ -1,5 +1,27 @@
 # Hub Mail contract changelog
 
+## 2026-08-22 - Task 6B Ent sync prepare immutable source receipt
+
+`STATIC_ACCEPTED / EXACT_SHA_PASS / RUNTIME_NOT_RUN` at effective HEAD `431022ed`, after source
+`6e788cc7` and live-thread correction `431022ed`, for
+`backend/internal/mail/mailbox_ent_sync_prepare.go` and authored contract
+`backend/tests/mail/mailbox_ent_sync_prepare_contract_test.go`. The bounded read-only Ent
+transaction uses one repository clock read and account `FOR UPDATE` under the complete
+current+persistent fence/current epochs and unexpired lease; provider/NATS/HTTP/random/write are
+absent. It supports exact initial/resumed enumeration, incremental/catch-up and valid empty pages;
+uses stable length-delimited SHA-256 UUIDv8 identities with live-ID reuse/collision guards; resolves
+live-only provenance, ancestors and threads; rejects duplicate labels within a projection while
+deduplicating them across the page; and selects all-and-only unused event candidates before pure
+classification.
+
+A live soft-deleted message reappearance retains the message UUID, tombstone previous state and
+`ReceivedEventID`, preventing duplicate `mail.received.v1`; previous folders/flags are zero and only
+still-live labels remain. Already-deleted/unknown destroyed remains `Projected=false` outside
+state/provenance work. Independent immutable Terra/high review of `431022ed` passed C/I/M `0/0/0`,
+`dispatcher-enforced`, telemetry `UNKNOWN`. Generated Ent client/predicates are absent; launcher
+`NOT_READY`; generation, compile, tests, formatting/lint, Atlas/migration, SQL/DB, Docker and runtime
+`NOT_RUN`. Task 6C remains next; no wider acceptance or merge authority follows.
+
 ## 2026-08-22 - Mail 144-05D Content plain-only source receipt sync
 
 `SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT9_COMMIT_REQUIRED / IMMUTABLE_REVIEW_REQUIRED / RUNTIME_NOT_RUN`. This non-self-activating dirty docs-only exact9 receipt records immutable source `acc593fe4f20669a21a6f5ba70a8a20293111017` (sole parent `98ebedc9dd0b6ad90dbe06e1faf5810376dce392`, tree `7de89d1237bc0c8f640729f607a2dbfd9189f3c4`, subject `feat(mail): add plain content normalization`) with exact2 test `37c29c421d21e7c173142647d894de0d890894de`, then source `b064a2f6f944d5ffb10651ccb068a77634a9267b`. Source Contract/Security/Lifecycle precommit and immutable `EXACT_SHA_PASS` reviews PASS C/I/M `0/0/0`; Contract Terra/high, Security Terra/xhigh, Lifecycle Terra/high, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. The sole ordered exact9 receipt manifest is STATE, MAIL-SPEC, Phase-144 PLAN, DISPATCH-INDEX, DISPATCH-REMAINING, `IMPLEMENTATION-144-05D.md`, that review, this changelog and QA-HANDOFF; the receipt commit diff must set-equal it. Before atomic receipt plus immutable receipt C/S/L PASS, acc has no static acceptance and former 05D authority/acceptance/source-unimplemented/current-next routes remain current. Only after activation is acc `STATIC_ACCEPTED / EXACT_SHA_PASS`; those routes become `CONSUMED/HISTORICAL`. No next packet follows.

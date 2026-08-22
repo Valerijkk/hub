@@ -1,5 +1,30 @@
 # 144-04G sync-service source-authority readiness
 
+## Task 6B Ent sync prepare immutable source receipt (2026-08-22)
+
+`STATIC_ACCEPTED / EXACT_SHA_PASS / RUNTIME_NOT_RUN` at effective HEAD `431022ed`, after source
+`6e788cc7` and live-thread correction `431022ed`. The exact effective manifest is
+`backend/internal/mail/mailbox_ent_sync_prepare.go` and authored contract
+`backend/tests/mail/mailbox_ent_sync_prepare_contract_test.go`. One short read-only Ent transaction
+takes one repository clock read and locks the active desired account `FOR UPDATE`; the complete
+current+persistent fence/current epochs and unexpired lease are required, while
+provider/NATS/HTTP/random/write are absent. Initial/resumed enumeration, incremental/catch-up and a
+valid empty page are supported. Stable length-delimited SHA-256 UUIDv8 folder/message/thread IDs
+reuse existing live identities and guard collisions; live-only confirmed sent submission/stable
+draft provenance normalizes untrusted origin; live ancestor/thread resolution, per-projection
+duplicate label rejection with page-wide dedupe, all-and-only unused event candidates, pure
+classification, deep copies and content-free errors hold.
+
+Live soft-deleted reappearance reuses message UUID and tombstone previous state/`ReceivedEventID` to
+prevent duplicate `mail.received.v1`; tombstone folders/flags are zero and only still-live labels
+remain. Already-deleted/unknown destroyed stays `Projected=false` outside state/provenance work.
+Precommit findings for current epochs and retained folder links were corrected; the failed first
+immutable review's deleted-thread finding was corrected by `431022ed`. Independent immutable
+Terra/high rereview of `431022ed` passed C/I/M `0/0/0`; `dispatcher-enforced`, telemetry `UNKNOWN`.
+Generated Ent client/predicates are absent, launcher `NOT_READY`; generation, compile, tests,
+formatting/lint, Atlas/migration, SQL/DB, Docker and runtime `NOT_RUN`. Task 6C remains pending; no
+Task 6/Phase 144/module/product/migration/cutover/merge authority follows.
+
 ## 144-04G receipt-coherence sync candidate (2026-08-22)
 
 > **Coherence gate:** `COHERENCE_SYNC_CANDIDATE / ATOMIC_EXACT12_COMMIT_REQUIRED / IMMUTABLE_REVIEW_REQUIRED / RUNTIME_NOT_RUN`. This non-self-activating dirty exact12 docs-only coherence candidate records immutable source `3031c53d399accc84fe10cd0c5421a85c089ac7c` and prior acceptance receipt `2a2975056c3fb8001d88863a041310271282989d`; their full metadata, blobs and ordered manifests are in `IMPLEMENTATION-144-04G.md`. Source Contract/Security/Lifecycle precommit and immutable `EXACT_SHA_PASS` are C/I/M `0/0/0`; Contract Terra/high, Security Terra/xhigh, Lifecycle Terra/high, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Only after an atomic manifest-equal exact12 coherence commit and immutable coherence C/S/L triple PASS is 144-04G `STATIC_ACCEPTED / EXACT_SHA_PASS`; former 04G authority/acceptance/source-unimplemented/current-next routes then become `CONSUMED/HISTORICAL`. Historical coherence selects no next Mail packet and grants no runtime/downstream authority. 04F remains accepted; 04H/02E, Ent/SQL/concrete adapter, generation/migration, API/UI, launcher/testframework and runtime remain blocked `NOT_READY`/`NOT_RUN`.

@@ -93,6 +93,31 @@ executable RED/GREEN/tests, Ent generation, Atlas migration, compile, SQL/DB, Do
 and runtime remain `NOT_RUN`. Independent immutable static review approved the exact six-file
 source boundary with C/I/M `0/0/0`.
 
+## Task 6B - Mail sync prepare Ent adapter (2026-08-22)
+
+> **Effective source status:** `STATIC_ACCEPTED / EXACT_SHA_PASS / RUNTIME_NOT_RUN` at effective
+> HEAD `431022ed`, after source `6e788cc7` and live-thread correction `431022ed`. The exact effective
+> manifest is `backend/internal/mail/mailbox_ent_sync_prepare.go` plus authored contract
+> `backend/tests/mail/mailbox_ent_sync_prepare_contract_test.go`.
+
+Prepare is one short read-only Ent transaction with one repository clock sample and an active
+desired account locked `FOR UPDATE` under the complete current+persistent fence and unexpired
+lease. It supports exact initial/resumed enumeration, incremental/catch-up, and a valid empty page;
+stable length-delimited SHA-256 UUIDv8 folder/message/thread IDs preserve existing live UUIDs and
+fail closed on collisions. Only live sent-submission/stable-draft proof normalizes untrusted origin;
+live ancestors/threads, projection-local duplicate rejection with page-wide label dedupe,
+all-and-only unused event candidates, pure classification, deep copies, and content-free errors are
+required.
+
+A live soft-deleted reappearance reuses its message UUID and tombstone previous
+state/`ReceivedEventID`, preventing duplicate `mail.received.v1`; its previous folders/flags are
+zero and only still-live labels remain. Already-deleted or unknown destroyed records are
+`Projected=false` and excluded from state/provenance work. Independent immutable Terra/high review
+of `431022ed` passed C/I/M `0/0/0`; provenance `dispatcher-enforced`, telemetry `UNKNOWN`. Generated
+Ent client/predicates are absent; launcher `NOT_READY`; generation, compile, tests,
+formatting/lint, Atlas/migration, SQL/DB, Docker and runtime are `NOT_RUN`. Task 6C remains pending;
+no Task 6, Phase 144, module, product, migration, cutover or merge acceptance follows.
+
 ## Task 5 — Mail Ent repository root and owner-resolution candidate (2026-08-22)
 
 > **Narrow source status:** `STATIC_ACCEPTED / RUNTIME_NOT_RUN` at head `ea0808a7`.

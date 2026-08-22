@@ -418,7 +418,7 @@ Task 6U is `STATIC_ACCEPTED / RUNTIME_NOT_RUN` at immutable commit `de1e5723` af
 Terra/high review C/I/M `0/0/0`; launcher and all executable evidence remain
 `NOT_READY` / `NOT_RUN`.
 
-- [ ] **Step 4: Implement Task 6B prepare**
+- [x] **Step 4: Implement Task 6B prepare** — `STATIC_ACCEPTED / EXACT_SHA_PASS / RUNTIME_NOT_RUN`
 
 Prepare re-locks the account under the complete unexpired fence, resolves only bounded committed
 projection and reservation state, and returns a deep-copied `MailboxSyncPolicyInput`. Existing
@@ -428,6 +428,31 @@ account UUID and exact engine identity/thread-key bytes; this introduces no cloc
 under the repository lock and remains stable across Prepare retries. Existing identity collisions
 or cross-account matches fail closed. Labels are resolved only from existing live Hub labels;
 unknown engine markers remain ignored by 04F.
+
+Task 6B is statically accepted at effective immutable HEAD `431022ed` after source introduction
+`6e788cc7` (`feat(mail): add Ent sync prepare adapter`) and correction
+`431022ed` (`fix(mail): exclude deleted sync threads`). Its exact effective manifest is
+`backend/internal/mail/mailbox_ent_sync_prepare.go` plus authored source-contract
+`backend/tests/mail/mailbox_ent_sync_prepare_contract_test.go`. The one short read-only Ent
+transaction takes one repository clock read, locks the active desired account `FOR UPDATE`, and
+requires the complete current+persistent fence and unexpired lease. It has no provider/NATS/HTTP,
+randomness, or writes. Initial/resumed enumeration and incremental/catch-up require exact matching;
+an empty valid page is accepted. It deterministically derives stable length-delimited SHA-256 UUIDv8
+folder/message/thread IDs, reuses existing live UUIDs with collision guards, normalizes untrusted
+origin from live-only confirmed sent submission/stable draft provenance, resolves live
+ancestors/threads, rejects duplicate labels within one projection and deduplicates them across the
+page, and returns all-and-only unused event candidates plus a deep-copied policy input.
+
+A live soft-deleted reappearance reuses its message UUID and tombstone previous
+state/`ReceivedEventID`, so it cannot duplicate `mail.received.v1`; tombstone folders/flags are zero
+and only still-live labels remain. Already-deleted or unknown destroyed rows remain
+`Projected=false` and are excluded from state/provenance work. Precommit review findings for current
+epoch fencing and retained folder links were corrected; the first immutable review then found the
+deleted-thread resolver gap, corrected by `431022ed`. Independent immutable Terra/high rereview of
+effective HEAD passed C/I/M `0/0/0`; provenance is `dispatcher-enforced`, telemetry `UNKNOWN`.
+Generated Ent client/predicates are absent and the launcher remains `NOT_READY`; generation,
+compile, tests, formatting/lint, Atlas/migration, SQL/DB, Docker, and runtime are `NOT_RUN`. Task 6C
+apply remains pending; this accepts neither Task 6, Phase 144, the Mail module, nor product.
 
 - [ ] **Step 5: Implement Task 6C apply**
 

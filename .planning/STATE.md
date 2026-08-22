@@ -1,4 +1,24 @@
 ---
+mail_144_task_6b_ent_sync_prepare: >-
+  STATIC_ACCEPTED / EXACT_SHA_PASS / RUNTIME_NOT_RUN at effective HEAD 431022ed after source
+  6e788cc7 and live-thread correction 431022ed. The exact effective manifest is
+  backend/internal/mail/mailbox_ent_sync_prepare.go and authored contract
+  backend/tests/mail/mailbox_ent_sync_prepare_contract_test.go. One short read-only Ent transaction
+  takes one repository clock read and account ForUpdate under the complete current+persistent fence,
+  current epochs and unexpired lease, with no provider/NATS/HTTP/random/write. Exact
+  initial/resumed enumeration, incremental/catchup and valid empty pages are supported; stable
+  length-delimited SHA-256 UUIDv8 folder/message/thread IDs reuse existing live identities with
+  collision guards. Live-only confirmed sent submission/stable draft provenance normalizes
+  untrusted origin; live ancestors/threads, per-projection duplicate label rejection with page-wide
+  dedupe, all-and-only unused event candidates, pure classification, deep copies and content-free
+  errors are enforced. Live soft-deleted reappearance reuses message UUID and tombstone previous
+  state/ReceivedEventID, avoiding duplicate mail.received.v1; tombstone folders/flags are zero and
+  labels still-live only. Already-deleted/unknown destroyed remains Projected=false and skips
+  state/provenance work. Independent immutable Terra/high review of 431022ed passed C/I/M 0/0/0;
+  provenance dispatcher-enforced, telemetry UNKNOWN. Generated Ent client/predicates are absent and
+  launcher NOT_READY; generation, compile, tests, formatting/lint, Atlas/migration, SQL/DB, Docker
+  and runtime NOT_RUN. Task 6C is pending; no Task 6/Phase 144/module/product/migration/cutover/merge
+  acceptance follows.
 atlas_migration_control_plane: >-
   MIGRATION_CONTROL_PLANE_STATIC / EXECUTABLE_ARTIFACT_NOT_RUN / RUNTIME_NOT_RUN.
   Ent schemas are the desired-state authority; backend/atlas.hcl declares only one local Atlas

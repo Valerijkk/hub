@@ -1,5 +1,29 @@
 # Hub Mail + Calendar Sync — QA handoff
 
+## Task 6B Ent sync prepare immutable source receipt (2026-08-22)
+
+`STATIC_ACCEPTED / EXACT_SHA_PASS / RUNTIME_NOT_RUN` at effective HEAD `431022ed`, after source
+`6e788cc7` and live-thread correction `431022ed`. Exact effective paths are
+`backend/internal/mail/mailbox_ent_sync_prepare.go` and authored source-contract
+`backend/tests/mail/mailbox_ent_sync_prepare_contract_test.go`. Prepare is one short read-only Ent
+transaction: one repository clock read, active desired account `FOR UPDATE`, complete
+current+persistent fence/current epochs and unexpired lease, with no provider/NATS/HTTP/random/write.
+Exact initial/resumed enumeration and incremental/catch-up accept a valid empty page. Stable
+length-delimited SHA-256 UUIDv8 folder/message/thread IDs reuse existing live identities and guard
+collisions; live-only confirmed sent submission/stable draft provenance normalizes untrusted origin;
+live ancestor/thread resolution, per-projection duplicate label rejection with page-wide dedupe,
+all-and-only unused event candidates, pure policy classification, deep copies and content-free errors
+are preserved.
+
+Live soft-deleted reappearance reuses its message UUID and tombstone previous
+state/`ReceivedEventID`, preventing duplicate `mail.received.v1`; tombstone folders/flags are zero
+and only still-live labels remain. Already-deleted/unknown destroyed records stay `Projected=false`
+and skip state/provenance work. Independent immutable Terra/high review of `431022ed` passed C/I/M
+`0/0/0`; provenance `dispatcher-enforced`, telemetry `UNKNOWN`. Generated Ent client/predicates are
+absent, launcher `NOT_READY`, and generation, compile, tests, formatting/lint, Atlas/migration,
+SQL/DB, Docker and runtime are `NOT_RUN`. Task 6C remains pending; no Task 6, Phase 144, module,
+product, migration, cutover or merge acceptance follows.
+
 ## 144-05D Content plain-only source receipt sync
 
 > **Static-only source-receipt lifecycle:** `SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT9_COMMIT_REQUIRED / IMMUTABLE_REVIEW_REQUIRED / RUNTIME_NOT_RUN`. No executable evidence is claimed. This dirty exact9 sync records source `acc593fe4f20669a21a6f5ba70a8a20293111017` (sole parent `98ebedc9dd0b6ad90dbe06e1faf5810376dce392`, tree `7de89d1237bc0c8f640729f607a2dbfd9189f3c4`, test `37c29c421d21e7c173142647d894de0d890894de`, source `b064a2f6f944d5ffb10651ccb068a77634a9267b`); source Contract/Security/Lifecycle precommit and immutable `EXACT_SHA_PASS` reviews PASS C/I/M `0/0/0`, Contract Terra/high, Security Terra/xhigh, Lifecycle Terra/high, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Its receipt commit must set-equal the ordered exact9 manifest in `IMPLEMENTATION-144-05D.md`. Before atomic receipt plus immutable receipt C/S/L PASS, acc has no static acceptance and former 05D authority/acceptance/source-unimplemented/current-next routes remain current. Only after activation is acc `STATIC_ACCEPTED / EXACT_SHA_PASS`; lower routes are `CONSUMED/HISTORICAL`. No next packet follows.
