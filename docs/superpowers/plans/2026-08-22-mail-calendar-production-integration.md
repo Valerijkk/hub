@@ -382,13 +382,16 @@ prepare-only projection reads and policy-input construction; Task 6C owns determ
 projection/count/outbox apply and bounded same-lease result-hash replay. No packet spans provider
 I/O and a repository transaction.
 
-- [ ] **Step 1: Implement Task 6A claim/resolve and worker coordination**
+- [x] **Step 1: Implement Task 6A claim/resolve and worker coordination**
 
 Claim/resolve use one repository clock sample inside each transaction, enforce the complete
 lease/sync/mutation/phase/position fence, and update the exact schedule CAS marker with every
 schedule mutation. Due scan is bounded, ordered `(next_sync_at, id)`, active/eligible and
 `FOR UPDATE SKIP LOCKED`; fault reschedule uses the full captured schedule/epoch/attempt CAS and
 never clears leases or changes projection state.
+
+Task 6A is `STATIC_ACCEPTED / RUNTIME_NOT_RUN` at source commit `24d2873d` after independent
+immutable review C/I/M `0/0/0`.
 
 - [ ] **Step 2: Implement Task 6B prepare**
 
