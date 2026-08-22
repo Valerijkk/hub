@@ -13,6 +13,14 @@ the approved Mail/Calendar production-integration design.
 route checks, and Docker validation are **NOT_RUN**; the accepted launcher is
 currently **NOT_READY**.
 
+> **LOCKED — 2026-08-23 testframework cutover.** Until the new
+> `testframework` skeleton is merged into `master` **and this branch is updated
+> from that master**, Mail work writes or modifies no backend, frontend, or
+> Python tests. Frontend implementation packets own production source only and
+> do not edit existing tests; every executable claim remains **NOT_RUN**. The
+> current gate is exact-scope static source review. A separate dedicated
+> post-sync test plan backfills coverage against its then-current contracts.
+
 ## Product outcome and limits
 
 Mail is a useful, compact workspace comparable in everyday flow to Apple Mail,
@@ -210,14 +218,15 @@ mutations, and all receipt/outbox authority remains server-side.
 ## Acceptance and explicit exclusions
 
 Static acceptance for the implementation plan is met when it maps every item
-above to exact route/module/API/test ownership, retains the key factory as the
-only query-key source, and includes safe/unknown-result/offline scenarios.
-Executable acceptance requires the accepted task-owned Docker launcher only:
-bounded route and interaction coverage for folder/thread pagination, reader
-representation rejection, attachment download authorization failure, draft
+above to exact production route/module/API ownership, retains the key factory
+as the only query-key source, and includes safe/unknown-result/offline
+scenarios. Test-file ownership and bounded route/interaction coverage are
+deferred to the dedicated post-sync test plan: folder/thread pagination, reader
+representation rejection, attachment-download authorization failure, draft
 autosave/version conflict, unknown send/action reconciliation, batch partial
 outcomes, keyboard/mobile behavior, and Calendar RSVP/deep-link round trips.
-Until that launcher is ready, all executable claims remain **NOT_RUN**.
+Until the locked framework cutover and that plan, exact-scope static source
+review is the only gate and all executable claims remain **NOT_RUN**.
 
 Excluded from this MVP: provider onboarding/credential UI, IMAP/SMTP engine
 implementation, mailbox sync-worker changes, raw MIME/source view, offline
@@ -229,9 +238,11 @@ unrelated Hub navigation or visual redesign.
 ## Delivery and workstation constraint
 
 Frontend work starts only after this design is reviewed and an implementation
-plan freezes API DTOs, ownership, and test cases. The Mail frontend may proceed
-independently of backend production composition only against an accepted
-contract; it must not invent a mock protocol as production truth.
+plan freezes API DTOs and production-source ownership. Test cases and test-file
+ownership stay in the deferred ledger until the framework cutover, then move to
+a dedicated post-sync test plan. The Mail frontend may proceed independently of
+backend production composition only against an accepted contract; it must not
+invent a mock protocol as production truth.
 
 At most three disk-light subagents plus the root may work concurrently when
 their ownership is independent. Do not overlap high-I/O repository scans, diff

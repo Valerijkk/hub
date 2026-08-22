@@ -7,6 +7,14 @@ HTTP/NATS/worker composition, and the Mail-to-Calendar iTIP path. Frontend work,
 the protected `pro-qa-ai/**` zone, and the separately owned `testframework/**`
 implementation are outside this design.
 
+> **LOCKED — 2026-08-23 testframework cutover.** Until the new
+> `testframework` skeleton is merged into `master` **and this branch is updated
+> from that master**, Mail work writes or modifies no backend, frontend, or
+> Python tests. Implementation packets own production source only; existing
+> tests are not edited; every executable claim is `NOT_RUN`; and exact-scope
+> static source review is the current gate. A separate dedicated post-sync test
+> plan backfills coverage against its then-current contracts.
+
 ## Goals
 
 - Make the accepted Mail and Calendar domain services usable from production
@@ -16,8 +24,9 @@ implementation are outside this design.
   ports.
 - Establish one production migration mechanism instead of relying on development
   auto-migration.
-- Preserve Docker-only executable verification. Until the accepted launcher is
-  available, all build, generation, migration, and runtime evidence remains
+- Preserve Docker-only executable verification after the locked framework
+  cutover. Until then, exact-scope static source review is the only gate and
+  all build, generation, migration, test, and runtime evidence remains
   `NOT_RUN`.
 
 ## Selected architecture
@@ -209,7 +218,8 @@ envelopes cross the boundary; state ownership does not.
 - No database transaction spans a `MailEngine` or NATS network call.
 - Domain writes and their outbox/receipt rows are atomic.
 - Legacy Calendar remains read-compatible until explicit cutover.
-- Versioned migrations replay from empty state and from the accepted pre-feature
-  snapshot in Docker.
-- Docker build and applicable regression jobs pass before merge; until then the
-  branch is not merge-ready.
+- After the locked framework cutover, versioned migrations replay from empty
+  state and from the accepted pre-feature snapshot in Docker.
+- After that cutover, Docker build and applicable regression jobs pass before
+  merge; until then this design has static-source-review evidence only and is
+  not merge-ready.

@@ -23,6 +23,41 @@
 
 ---
 
+## Deferred test ledger — LOCKED pending framework cutover (2026-08-23)
+
+> **LOCKED — 2026-08-23.** Until the new `testframework` skeleton is merged
+> into `master` **and this branch is updated from that master**, Mail work
+> writes or modifies **no tests at all**: backend, frontend, and Python test
+> files are out of scope. Implementation packets contain production source
+> only; existing tests are not edited; every executable claim remains
+> `NOT_RUN`. The current gate is exact-scope static source review. After that
+> sync, a separate dedicated test plan backfills coverage against the
+> then-current contracts.
+
+The following current test ownership is deferred rather than removed from the
+behavior contracts. No row below is executable evidence before the cutover and
+the dedicated test plan.
+
+| Packet | Deferred test paths / coverage |
+|---|---|
+| 6Q / 6V | `backend/tests/mail/mailbox_ent_sync_prepare_contract_test.go`; `backend/tests/mail/mailbox_ent_sync_coordination_contract_test.go` |
+| 6C0 | `backend/tests/mail/mailbox_sync_apply_canonical_test.go` |
+| 6C1 | `backend/tests/mail/mailbox_ent_sync_apply_projection_contract_test.go` |
+| 6C2 | `backend/tests/mail/mailbox_ent_sync_apply_contract_test.go` |
+| 7A | `backend/tests/mail/stalwart_engine_contract_test.go` |
+| 7B | `backend/tests/mail/mailbox_handler_test.go` |
+| 7C | `backend/tests/calendar/event_handler_test.go` |
+| 10 | `backend/tests/calendar/mail_inbound_service_test.go` |
+| 11 | `backend/tests/mail/calendar_delivery_service_test.go` |
+| 11B | `backend/tests/calendar/scheduled_call_backfill_test.go` |
+| Mail frontend | Route, accessibility, RSVP, card-invalidation, and delivery-verification coverage; no frontend test file is newly owned before the cutover. |
+
+Task 6W is historical: production schema source completed at `e0c2762b`;
+its test line was restored but net-unchanged at `4c757048`. That history is
+not a test write, not a test review, and not executable coverage.
+
+---
+
 ### Task 1: Atlas versioned-migration control plane
 
 **Files:**
@@ -360,9 +395,14 @@ exact five-file source boundary with C/I/M `0/0/0`.
 
 **Files:**
 - Modify: `backend/ent/schema/mailaccount.go`
-- Test: `backend/tests/mail/mail_account_identity_schema_test.go`
+- Historical test line (restored/net-unchanged; no current ownership): `backend/tests/mail/mail_account_identity_schema_test.go`
 
-**Status:** `PENDING_SOURCE_CONTRACT / RUNTIME_NOT_RUN`.
+**Status:** `SOURCE_COMPLETE_STATIC / RUNTIME_NOT_RUN` at source commit
+`e0c2762b`.
+
+The production schema source completed at `e0c2762b`. Its test line was
+restored but net-unchanged at `4c757048`; that historical line is not a test
+write, does not establish test review, and is never executable coverage.
 
 This is a forward correction to the bounded proof constraint in accepted Task 6P; it does not
 alter Task 6P's recorded static acceptance. Extend
@@ -384,11 +424,6 @@ added; launcher and all executable evidence remain `NOT_READY` / `NOT_RUN`.
 - Create: `backend/internal/mail/mailbox_ent_sync_apply_projection.go`
 - Create: `backend/internal/mail/mailbox_ent_sync_apply.go`
 - Create: `backend/internal/mail/mailbox_ent_worker.go`
-- Test: `backend/tests/mail/mailbox_ent_sync_coordination_contract_test.go`
-- Test: `backend/tests/mail/mailbox_ent_sync_prepare_contract_test.go`
-- Test: `backend/tests/mail/mailbox_sync_apply_canonical_test.go`
-- Test: `backend/tests/mail/mailbox_ent_sync_apply_projection_contract_test.go`
-- Test: `backend/tests/mail/mailbox_ent_sync_apply_contract_test.go`
 - Modify: `.planning/phases/144-mailbox-domain/PLAN.md`
 - Modify: `.planning/STATE.md`
 
@@ -487,8 +522,6 @@ apply remains pending; this accepts neither Task 6, Phase 144, the Mail module, 
 - Modify: `backend/internal/mail/mailbox_ent_repository.go`
 - Modify: `backend/internal/mail/mailbox_ent_sync_prepare.go`
 - Modify: `backend/internal/mail/mailbox_ent_sync_claim.go`
-- Test: `backend/tests/mail/mailbox_ent_sync_prepare_contract_test.go`
-- Test: `backend/tests/mail/mailbox_ent_sync_coordination_contract_test.go`
 
 Freeze this private helper in `mailbox_ent_repository.go`:
 
@@ -506,17 +539,17 @@ time as the lease-expiry authority.
 Prepare and Resolve each call the helper exactly once per transaction they own. Prepare feeds the
 value into the otherwise unchanged `mailboxEntPrepareInput`; Resolve uses the same value for both
 `SyncLeaseUntil.After(transactionTime)` and its schedule timestamp. Claim is unchanged. Apply uses
-the same authority only in its separately frozen 6C2 work. The two listed source-contract tests
-assert the exact query/one-time owned-transaction behavior, unchanged Prepare input semantics, and
-Resolve expiry/schedule use; generated Ent, runtime, compile, SQL/DB, Docker, formatting/lint, and
-all executable evidence remain `NOT_RUN`. This forward correction preserves the recorded immutable
+the same authority only in its separately frozen 6C2 work. Exact-scope static source review
+asserts the exact query/one-time owned-transaction behavior, unchanged Prepare input semantics, and
+Resolve expiry/schedule use. The deferred-test ledger reserves executable coverage for the dedicated
+post-sync test plan; generated Ent, runtime, compile, SQL/DB, Docker, formatting/lint, and all
+executable evidence remain `NOT_RUN`. This forward correction preserves the recorded immutable
 acceptance of Tasks 6A and 6B.
 
 - [ ] **Step 6: Implement Task 6V Resolve projection-state and retry-attempt correction**
 
 **Files:**
 - Modify: `backend/internal/mail/mailbox_ent_sync_claim.go`
-- Test: `backend/tests/mail/mailbox_ent_sync_coordination_contract_test.go`
 
 After 6Q, freeze Resolve handled-failure ownership without changing its public ABI. Each of the four
 handled kinds transition the account to `degraded`: `transient`, `rejected`, `invalid_cursor`, and
@@ -527,16 +560,16 @@ through the content-free invalid error with zero partial writes, and atomically 
 safe error, projection state, releases the lease, and clears the applied proof. A second Resolve has
 no lease and therefore performs no second increment. A `ready` account cannot retain
 `sync_error_code`; only successful Apply may reset attempts to zero, while worker fault reschedule
-owns its separate failure increment outside this path. The source-contract test asserts all four
-transitions, cursor/reset preservation, one increment, overflow/no-partial-write, lease/proof clear,
-and idempotent second Resolve. Generated Ent, runtime, compile, SQL/DB, Docker, formatting/lint,
+owns its separate failure increment outside this path. Exact-scope static source review asserts all
+four transitions, cursor/reset preservation, one increment, overflow/no-partial-write, lease/proof
+clear, and idempotent second Resolve. The deferred-test ledger reserves executable coverage for the
+dedicated post-sync test plan; generated Ent, runtime, compile, SQL/DB, Docker, formatting/lint,
 and all executable evidence remain `NOT_RUN`.
 
 - [ ] **Step 7: Implement Task 6C0 pure canonical validation and result hash**
 
 **Files:**
 - Create: `backend/internal/mail/mailbox_sync_apply_canonical.go`
-- Test: `backend/tests/mail/mailbox_sync_apply_canonical_test.go`
 
 Freeze the exported-for-internal-package implementation handoff:
 
@@ -622,16 +655,15 @@ that cannot yield its complete frozen JSON. `ExpectedPhase` is derived and retur
 full `Fence` and `Advance` validation; it is not an unregistered sixth outer field. The only excluded
 inputs are request `Now` and database `appliedAt`.
 
-Its behavioral unit test freezes this prefix, complete byte vectors and hashes spanning every
-registry branch, deep-copy isolation, canonical sorting, semantic order preservation, and rejection
-of malformed/missing/duplicate/out-of-order/unknown fields before 6C1/6C2 consume it. It is not a
-source-text test.
+The dedicated post-sync test plan must freeze this prefix, complete byte vectors and hashes spanning
+every registry branch, deep-copy isolation, canonical sorting, semantic order preservation, and
+rejection of malformed/missing/duplicate/out-of-order/unknown fields before 6C1/6C2 consume it.
+Until then, exact-scope static source review is the only gate and executable evidence is `NOT_RUN`.
 
 - [ ] **Step 8: Implement Task 6C1 bounded projection and aggregate helpers**
 
 **Files:**
 - Create: `backend/internal/mail/mailbox_ent_sync_apply_projection.go`
-- Test: `backend/tests/mail/mailbox_ent_sync_apply_projection_contract_test.go`
 
 Freeze the private transaction handoff (a repository receiver is permitted only if required by the
 existing private helpers):
@@ -650,14 +682,14 @@ commit a transaction, or append an outbox row. It owns only bounded projection/c
 aggregate persistence. Thread effective latest time is the later non-nil `SentAt`/`ReceivedAt`; if
 both are nil, an unchanged persisted message uses its persisted `updated_at`, while a changed or
 new message persists and uses this single `transactionTime` as `updated_at`. UUID is the final
-deterministic tie-break, so valid drafts with both provider timestamps nil remain admissible. Its
-focused source-contract test freezes those time and tie-break cases; it does no provider I/O.
+deterministic tie-break, so valid drafts with both provider timestamps nil remain admissible. The
+dedicated post-sync test plan owns the time and tie-break coverage; until then, exact-scope static
+source review is the only gate and executable evidence is `NOT_RUN`.
 
 - [ ] **Step 9: Implement Task 6C2 transaction, outbox, and same-lease proof**
 
 **Files:**
 - Create: `backend/internal/mail/mailbox_ent_sync_apply.go`
-- Test: `backend/tests/mail/mailbox_ent_sync_apply_contract_test.go`
 
 After 6Q, 6V, 6W, 6C0, and 6C1, this is the sole consumer of both implementation handoffs and the sole
 owner of the repository transaction, outbox append, and same-lease proof. It re-locks and compares
@@ -695,7 +727,6 @@ feat(mail): persist mailbox sync and worker state
 **Files:**
 - Create: `backend/internal/mail/stalwart/engine.go`
 - Create: `backend/internal/mail/stalwart/client.go`
-- Test: `backend/tests/mail/stalwart_engine_contract_test.go`
 - Modify: `backend/internal/mail/config.go`
 - Modify: `docs/mail/QA-HANDOFF.md`
 
@@ -709,11 +740,11 @@ Use separate management and JMAP base URLs/credentials, bounded request/response
 
 - [ ] **Step 2: Implement the full engine surface**
 
-Implement and test every current method, grouped exactly as follows: control (`Capabilities`, `GetDomain`, `EnsureDomain`, `EnsureAccount`); folders (`ListFolders`, `CreateFolder`, `RenameFolder`, `DeleteFolder`); projection/read (`ListMessages`, `GetMessage`, `GetBlob`, `Changes`, `EnumerateProjection`); drafts/submission (`SaveDraft`, `ReconcileDraft`, `Submit`, `ReconcileSubmission`); mutations (`MoveMessages`, `SetFlags`, `SetKeywords`, `DeleteMessages`); rules/training/health (`GetSieve`, `UpsertSieve`, `ClassifyMessages`, `Health`). Unsupported provider capability returns the existing typed unavailable/capability error and never silently succeeds.
+Implement every current method, grouped exactly as follows: control (`Capabilities`, `GetDomain`, `EnsureDomain`, `EnsureAccount`); folders (`ListFolders`, `CreateFolder`, `RenameFolder`, `DeleteFolder`); projection/read (`ListMessages`, `GetMessage`, `GetBlob`, `Changes`, `EnumerateProjection`); drafts/submission (`SaveDraft`, `ReconcileDraft`, `Submit`, `ReconcileSubmission`); mutations (`MoveMessages`, `SetFlags`, `SetKeywords`, `DeleteMessages`); rules/training/health (`GetSieve`, `UpsertSieve`, `ClassifyMessages`, `Health`). Unsupported provider capability returns the existing typed unavailable/capability error and never silently succeeds.
 
-- [ ] **Step 3: Test the HTTP boundary**
+- [ ] **Step 3: Record deferred HTTP-boundary coverage**
 
-Use an isolated `httptest.Server` to cover request encoding, response bounds, cancellation/deadline, non-2xx safe mapping, malformed/oversized JSON, separate credentials, and redacted errors. No database or real network is used.
+The dedicated post-sync test plan owns isolated HTTP-boundary coverage for request encoding, response bounds, cancellation/deadline, non-2xx safe mapping, malformed/oversized JSON, separate credentials, and redacted errors. Until then this packet writes no test and exact-scope static source review is the only gate; executable evidence is `NOT_RUN`.
 
 - [ ] **Step 4: Static review and commit**
 
@@ -725,7 +756,6 @@ feat(mail): add Stalwart engine adapter
 
 **Files:**
 - Create: `backend/internal/mail/mailbox_handler.go`
-- Test: `backend/tests/mail/mailbox_handler_test.go`
 - Modify: `docs/mail/openapi.yaml`
 - Modify: `docs/mail/QA-HANDOFF.md`
 
@@ -737,9 +767,9 @@ feat(mail): add Stalwart engine adapter
 
 Resolve actor exclusively from auth context, call `ResolveOwner`, and return the existing bounded owner/account/projection/recovery representation. Map invalid auth, not configured, not found, suspended, deleting, and unavailable states to the frozen status and safe-code contract.
 
-- [ ] **Step 2: Add isolated handler tests**
+- [ ] **Step 2: Record deferred handler coverage**
 
-Use a fake `MailboxOwnerRepository`; cover missing/invalid actor, each owner state, typed service errors, no secret/provider identifiers, and exact route registration.
+The dedicated post-sync test plan owns fake-owner coverage for missing/invalid actor, each owner state, typed service errors, no secret/provider identifiers, and exact route registration. Until then this packet writes no test and exact-scope static source review is the only gate; executable evidence is `NOT_RUN`.
 
 - [ ] **Step 3: Static review and commit**
 
@@ -753,7 +783,6 @@ All other `/api/mail` OpenAPI operations remain unregistered until their own acc
 
 **Files:**
 - Create: `backend/internal/calendar/event_handler.go`
-- Test: `backend/tests/calendar/event_handler_test.go`
 - Modify: `docs/mail/openapi.yaml`
 - Modify: `docs/mail/QA-HANDOFF.md`
 
@@ -765,9 +794,9 @@ All other `/api/mail` OpenAPI operations remain unregistered until their own acc
 
 Map routes respectively to `CreateCalendarEvent`, `UpdateCalendarEvent`, `CancelCalendarEvent`, `RespondToCalendarSeries`, `RespondToCalendarOccurrence`, and `CancelCalendarEventOccurrence`. Both RSVP POST routes return the canonical `CalendarAttendee`, never a full event or link state; their caller invalidates and refetches the event/card. Actor comes only from auth context; current owner/state is never accepted from the client.
 
-- [ ] **Step 2: Add isolated handler tests**
+- [ ] **Step 2: Record deferred handler coverage**
 
-Cover bounded DTO parsing, UUID/recurrence/version validation, typed safe status mapping, foreign-resource masking, result encoding, and exact route registration. Keep legacy GET routes in the existing handler.
+The dedicated post-sync test plan owns coverage for bounded DTO parsing, UUID/recurrence/version validation, typed safe status mapping, foreign-resource masking, canonical `CalendarAttendee` RSVP result encoding, caller invalidation/refetch, and exact POST route registration. Until then this packet writes no test and exact-scope static source review is the only gate; executable evidence is `NOT_RUN`. Keep legacy GET routes in the existing handler.
 
 - [ ] **Step 3: Static review and commit**
 
@@ -849,7 +878,6 @@ feat(db): add mail calendar production migration
 - Create: `backend/internal/calendar/mail_inbound_consumer.go`
 - Create: `backend/internal/calendar/mail_inbound_repository.go`
 - Create: `backend/internal/calendar/mail_inbound_service.go`
-- Test: `backend/tests/calendar/mail_inbound_service_test.go`
 - Modify: `backend/cmd/server/wiring_calendar_mail.go`
 - Modify: `.planning/phases/147-mail-calendar-reliability/CONTRACT.md`
 - Modify: `.planning/STATE.md`
@@ -874,7 +902,9 @@ Enforce organizer immutability, per-series/per-occurrence sequence and hash-vers
 
 Pass only canonical parsed identity. Never persist raw MIME/iTIP; duplicate and stale results replay stored outcomes.
 
-- [ ] **Step 5: Review, Docker verification, and commit**
+- [ ] **Step 5: Exact-scope static review and commit**
+
+Docker verification and all test coverage are deferred to the dedicated post-sync test plan. Until that framework cutover, this production-source packet has only exact-scope static source review and all executable evidence is `NOT_RUN`.
 
 ```text
 feat(calendar): consume inbound mail invitations
@@ -886,7 +916,6 @@ feat(calendar): consume inbound mail invitations
 - Create: `backend/internal/mail/calendar_delivery_consumer.go`
 - Create: `backend/internal/mail/calendar_reply_worker.go`
 - Create: `backend/internal/mail/mailbox_delivery_repository.go`
-- Test: `backend/tests/mail/calendar_delivery_service_test.go`
 - Modify: `backend/cmd/server/wiring_calendar_mail.go`
 - Modify: `.planning/phases/147-mail-calendar-reliability/CONTRACT.md`
 - Modify: `.planning/STATE.md`
@@ -907,7 +936,9 @@ Derive hidden draft and submission idempotency keys from delivery UUID. `unknown
 
 Update delivery state and attendee public reply status atomically where required. Provider error text, MIME, serializer output, and credentials remain request-lifetime only.
 
-- [ ] **Step 4: Review, Docker verification, and commit**
+- [ ] **Step 4: Exact-scope static review and commit**
+
+Docker verification and all test coverage are deferred to the dedicated post-sync test plan. Until that framework cutover, this production-source packet has only exact-scope static source review and all executable evidence is `NOT_RUN`.
 
 ```text
 feat(mail): deliver calendar invitations and replies
@@ -918,7 +949,6 @@ feat(mail): deliver calendar invitations and replies
 **Files:**
 - Create: `backend/internal/calendar/scheduled_call_backfill.go`
 - Create: `backend/cmd/calendar-backfill/main.go`
-- Test: `backend/tests/calendar/scheduled_call_backfill_test.go`
 - Modify: `.planning/phases/143-calendar-rsvp-core/MIGRATION-PLAN.md`
 - Modify: `.planning/STATE.md`
 
@@ -942,9 +972,9 @@ Require a byte-equivalent successful dry-run report identity. Process bounded tr
 
 Before apply require backup identity and legacy-writer/due-worker guard. After apply verify counts, hashes, 100% non-deleted linkage, and event/call coherence. Failure disables cutover and preserves rows for forward-only correction; there is no automatic delete rollback.
 
-- [ ] **Step 5: Docker verification and commit**
+- [ ] **Step 5: Exact-scope static review and commit**
 
-Run dry-run, apply, idempotent rerun, postconditions, and failure fixtures only through `/qa-gate`.
+The dedicated post-sync test plan owns dry-run, apply, idempotent-rerun, postcondition, and failure coverage through the then-current accepted launcher. Until that framework cutover, this production-source packet writes no test, uses exact-scope static source review only, and every executable claim is `NOT_RUN`.
 
 ```text
 feat(calendar): add ScheduledCall backfill
