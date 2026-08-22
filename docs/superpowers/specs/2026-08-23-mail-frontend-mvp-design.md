@@ -28,20 +28,21 @@ The route is `/mail`. Canonical deep links are `/mail?folder=<folder-id>` and
 link may omit `thread`; the server response resolves its authoritative thread.
 The active selection and search criteria live in validated route search params
 so refresh, browser navigation, and Calendar return links preserve context.
-Transient compose content, multi-select state, expanded quote state, and list
-scroll restoration are component-local state, not a new global store.
+The unique mailbox owner is derived from the authenticated server context;
+there is no client account picker or account route parameter. Transient compose
+content, multi-select state, expanded quote state, and list scroll restoration
+are component-local state, not a new global store.
 
 ## Information architecture
 
 `MailPage` is a file route at `/_authenticated/mail.tsx`, wrapped in the same
 `RouteErrorBoundary` pattern as Calendar. It composes a `MailWorkspace` module:
 
-1. `MailAccountGate` obtains the account snapshot. It renders provisioning,
+1. `MailAccountGate` obtains the mailbox snapshot. It renders provisioning,
    unavailable, or reconnect guidance before any folder/thread request.
-2. `MailSidebar` renders the account selector only when multiple accounts are
-   returned, system/custom folders, stable unread counts, and the compose
-   action. `sidebar-nav.tsx` gets one normal Hub navigation entry to `/mail`;
-   it does not reimplement a second navigation shell.
+2. `MailSidebar` renders system/custom folders, stable unread counts, and the
+   compose action. `sidebar-nav.tsx` gets one normal Hub navigation entry to
+   `/mail`; it does not reimplement a second navigation shell.
 3. `MailToolbar` owns folder title, debounced search, refresh, list actions,
    pagination controls, and the selected-item action menu.
 4. `ThreadListPane` is a bounded, virtualized list. Each `ThreadRow` shows
@@ -67,9 +68,9 @@ the narrowly scoped attachment download helper, or translate business rules.
 
 `frontend/src/modules/mail/` owns view models and UI composition:
 
-- `mail-route-search.ts`: Zod-backed route-search parsing/defaults for account,
-  folder, thread, message, query, cursor, and sort. Invalid or unauthorized
-  values are discarded to safe defaults, never sent as trusted identifiers.
+- `mail-route-search.ts`: Zod-backed route-search parsing/defaults for folder,
+  thread, message, query, cursor, and sort. Invalid values are discarded to
+  safe defaults, never sent as trusted identifiers.
 - `mail-query-keys.ts`: the sole query-key factory; components never handwrite
   `['mail', ...]` arrays.
 - `mail-workspace.tsx`, `mail-sidebar.tsx`, `thread-list-pane.tsx`,
@@ -87,12 +88,12 @@ viewer, new state framework, or unrelated layout redesign is introduced.
 The immutable key factory is:
 
 ```ts
-mailKeys.account()                         // ["mail", "account"]
-mailKeys.folders(accountId)                // ["mail", "folders", accountId]
-mailKeys.threads(accountId, folderId, q, cursor, pageSize, sort)
-mailKeys.thread(accountId, threadId)       // message metadata only
-mailKeys.message(accountId, messageId)     // sanitized display payload
-mailKeys.draft(accountId, draftId)
+mailKeys.mailbox()                         // ["mail", "mailbox"]
+mailKeys.folders()                         // ["mail", "folders"]
+mailKeys.threads(folderId, q, cursor, pageSize, sort)
+mailKeys.thread(threadId)                  // message metadata only
+mailKeys.message(messageId)                // sanitized display payload
+mailKeys.draft(draftId)
 ```
 
 `threads` is cursor/page-size bounded (default and maximum limits are enforced
@@ -107,19 +108,21 @@ invalidate authoritative lists rather than fabricating destination state.
 
 The current `GET` account capability is insufficient for this user-facing
 workspace. The backend must expose authenticated, organization/account-scoped
-surfaces below, with server-derived actor and ownership; no request accepts
-provider credentials or client-supplied authorization fields. Names are the
-proposed stable frontend contract and must be confirmed by the backend plan.
+surfaces below. The unique mailbox owner and actor are derived from the
+authenticated server context; no request accepts an `account_id`, provider
+credentials, or client-supplied authorization fields. Resource IDs are only
+locators and the server verifies their ownership. Names are the proposed stable
+frontend contract and must be confirmed by the backend plan.
 
 | Capability | Required endpoint and response boundary |
 |---|---|
-| Gate and folders | `GET /api/mail/account` returns provisioning/status/error-safe account snapshot. `GET /api/mail/folders?account_id=` returns IDs, system kind/custom name, ordering, selectable state, and bounded counts. |
-| Bounded triage | `GET /api/mail/threads?account_id=&folder_id=&q=&cursor=&limit=&sort=` returns a bounded ordered page of row-safe summaries, `next_cursor`, and no MIME/body. |
-| Reader | `GET /api/mail/threads/:thread_id?account_id=` returns bounded message metadata. `GET /api/mail/messages/:message_id?account_id=` returns one display-safe body representation, headers allowed for UI, attachments, and optional calendar-card metadata. |
+| Gate and folders | `GET /api/mail/account` returns provisioning/status/error-safe mailbox snapshot. `GET /api/mail/folders` returns IDs, system kind/custom name, ordering, selectable state, and bounded counts. |
+| Bounded triage | `GET /api/mail/threads?folder_id=&q=&cursor=&limit=&sort=` returns a bounded ordered page of row-safe summaries, `next_cursor`, and no MIME/body. |
+| Reader | `GET /api/mail/threads/:thread_id` returns bounded message metadata. `GET /api/mail/messages/:message_id` returns one display-safe body representation, headers allowed for UI, attachments, and optional calendar-card metadata. |
 | Write/compose | `POST /api/mail/drafts`, `PATCH /api/mail/drafts/:id`, `POST /api/mail/drafts/:id/send`; reply/reply-all/forward are typed compose modes with server-resolved recipients/thread references. Draft save returns revision/version and canonical draft ID. |
 | Message state | `POST /api/mail/messages/:id/actions` and `POST /api/mail/threads/actions` accept an allowlisted action plus server-validated IDs: `mark_read`, `mark_unread`, `flag`, `unflag`, `move`, `archive`, `delete`, `junk`, `not_junk`. Batch returns per-item accepted/rejected/unknown outcome; a transport success is not assumed to mean every item succeeded. |
 | Attachments | `GET /api/mail/messages/:id/attachments/:attachment_id/download` authenticates and authorizes on every request and streams bytes with safe disposition/type headers. A list payload contains only display metadata and download URL/id, never provider URLs or raw MIME. |
-| Calendar RSVP | `POST /api/calendar/events/:event_id/rsvp` accepts an allowlisted RSVP and returns canonical event/link state. Mail never interprets an iTIP body into a write request. |
+| Calendar RSVP | `PUT /api/calendar/v2/events/:event_id/rsvp` accepts an allowlisted RSVP for a series event. When structured card metadata identifies an occurrence, `PUT /api/calendar/v2/events/:event_id/instances/:recurrence_id/rsvp` is required instead. Both return canonical event/link state. Mail never interprets an iTIP body into a write request. |
 
 Every mutation carries an idempotency key and expected revision where the
 backend contract requires it. `409`/revision conflict, `401/403`, `404`,
@@ -174,16 +177,19 @@ RSVP if available, and one authoritative link to `/calendar` with the canonical
 event ID/search selection. It does not parse body text, MIME, or untrusted
 calendar attachment client-side.
 
-For an eligible invitation, RSVP buttons call the Calendar RSVP endpoint and
-invalidate the Mail message/thread and relevant Calendar event queries. A
+For an eligible invitation, RSVP buttons use the series `PUT
+/api/calendar/v2/events/:event_id/rsvp` endpoint, or the occurrence `PUT
+/api/calendar/v2/events/:event_id/instances/:recurrence_id/rsvp` endpoint when
+the structured card includes `recurrence_id`. They invalidate the Mail
+message/thread and the matching Calendar v2 series or occurrence query. A
 successful response updates only returned authoritative card state. Cancel and
 reply cards are informational unless the Calendar service explicitly returns a
-permitted action. The Calendar event detail supplies the reverse deep link to
-the exact Mail message; if it is deleted, inaccessible, or no longer projected,
-Mail displays a safe unavailable state and Calendar remains usable. The flow
-preserves the approved backend rule: only trusted internal or DMARC-aligned
-mail can result in Calendar mutations, and all receipt/outbox authority remains
-server-side.
+permitted action. The Calendar event or occurrence detail supplies the reverse
+deep link to the exact Mail message; if it is deleted, inaccessible, or no
+longer projected, Mail displays a safe unavailable state and Calendar remains
+usable. The flow preserves the approved backend rule: only trusted internal or
+DMARC-aligned mail can result in Calendar mutations, and all receipt/outbox
+authority remains server-side.
 
 ## Accessibility and responsive acceptance
 
