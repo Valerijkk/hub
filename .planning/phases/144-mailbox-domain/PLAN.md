@@ -72,6 +72,26 @@ Task 9 owns reviewed existing-row backfill plus the final `NOT NULL` migration. 
 Docker, gofmt, lint, and runtime are all `NOT_RUN`. Independent static review approved the exact
 five-file source boundary with C/I/M `0/0/0`; no migration or cutover authority follows.
 
+## Task 6A — Mail sync claim/resolve and worker coordination (2026-08-22)
+
+> **Narrow source status:** `SOURCE_CONTRACT_AUTHORED / PENDING_INDEPENDENT_REVIEW / RUNTIME_NOT_RUN`.
+> The exact production manifest is `mailbox_ent_sync_claim.go`, `mailbox_ent_worker.go`, and the
+> authored-first `mailbox_ent_sync_coordination_contract_test.go`; this packet does not own
+> prepare projection reads, apply projection/outbox writes, provider I/O, composition or migration.
+
+Each method samples the repository exact-second clock once inside its transaction. Claim locks
+one active due account, handles expired mutation/sync ownership with monotonic epochs, persists a
+complete immutable lease snapshot, and keeps same-live-lease replay bound to the stored snapshot.
+Resolve requires the complete live fence and clears only the lease snapshot/proof while scheduling
+the typed failure outcome. Due scan is bounded and ordered by `(next_sync_at,id)` with
+`FOR UPDATE SKIP LOCKED`; fault reschedule uses the captured schedule timestamp plus every epoch
+and attempt as CAS, changes only attempts/schedule/safe error, and never clears a lease.
+
+`MailboxSyncWorkerDueAccount.UpdatedAt` maps only from `sync_schedule_updated_at`; every Task 6A
+schedule write advances that marker from the same transaction clock. The launcher is `NOT_READY`;
+executable RED/GREEN/tests, Ent generation, Atlas migration, compile, SQL/DB, Docker, gofmt, lint,
+and runtime remain `NOT_RUN`.
+
 ## Task 5 — Mail Ent repository root and owner-resolution candidate (2026-08-22)
 
 > **Narrow source status:** `STATIC_ACCEPTED / RUNTIME_NOT_RUN` at head `ea0808a7`.

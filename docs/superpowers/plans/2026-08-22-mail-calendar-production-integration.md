@@ -359,9 +359,13 @@ exact five-file source boundary with C/I/M `0/0/0`.
 ### Task 6: Mail sync and worker Ent adapters
 
 **Files:**
-- Create: `backend/internal/mail/mailbox_ent_sync.go`
+- Create: `backend/internal/mail/mailbox_ent_sync_claim.go`
+- Create: `backend/internal/mail/mailbox_ent_sync_prepare.go`
+- Create: `backend/internal/mail/mailbox_ent_sync_apply.go`
 - Create: `backend/internal/mail/mailbox_ent_worker.go`
-- Test: `backend/tests/mail/mailbox_ent_sync_contract_test.go`
+- Test: `backend/tests/mail/mailbox_ent_sync_coordination_contract_test.go`
+- Test: `backend/tests/mail/mailbox_ent_sync_prepare_contract_test.go`
+- Test: `backend/tests/mail/mailbox_ent_sync_apply_contract_test.go`
 - Modify: `.planning/phases/144-mailbox-domain/PLAN.md`
 - Modify: `.planning/STATE.md`
 
@@ -373,21 +377,41 @@ exact five-file source boundary with C/I/M `0/0/0`.
 statically review the durable sync-lease generation, active due-scan index, inline apply proof,
 and exact-second schedule CAS marker.
 
-- [ ] **Step 1: Implement claim/prepare/apply/resolve**
+**Atomic decomposition:** Task 6A owns claim/resolve plus due-scan/fault coordination; Task 6B owns
+prepare-only projection reads and policy-input construction; Task 6C owns deterministic atomic
+projection/count/outbox apply and bounded same-lease result-hash replay. No packet spans provider
+I/O and a repository transaction.
 
-Claim locks one account and persists the lease/fence before returning. Prepare and apply enforce the exact page cap and deterministic item order. Apply re-locks and compares account, lease, sync, mutation, phase, cursor, base cursor, and checkpoint before any projection write.
+- [ ] **Step 1: Implement Task 6A claim/resolve and worker coordination**
 
-- [ ] **Step 2: Keep provider I/O outside transactions**
+Claim/resolve use one repository clock sample inside each transaction, enforce the complete
+lease/sync/mutation/phase/position fence, and update the exact schedule CAS marker with every
+schedule mutation. Due scan is bounded, ordered `(next_sync_at, id)`, active/eligible and
+`FOR UPDATE SKIP LOCKED`; fault reschedule uses the full captured schedule/epoch/attempt CAS and
+never clears leases or changes projection state.
+
+- [ ] **Step 2: Implement Task 6B prepare**
+
+Prepare re-locks the account under the complete unexpired fence, resolves only bounded committed
+projection and reservation state, and returns a deep-copied `MailboxSyncPolicyInput`.
+
+- [ ] **Step 3: Implement Task 6C apply**
+
+Apply re-locks and compares account, lease, sync, mutation, phase, cursor, base cursor, and
+checkpoint before any projection write, then persists projection/count/outbox/position and its
+versioned result hash in one transaction. Matching same-lease proof replays without effects.
+
+- [ ] **Step 4: Keep provider I/O outside transactions**
 
 Repository methods only persist state. `MailboxSyncService.Step` remains the sole orchestration point around one bounded `MailEngine` call.
 
-- [ ] **Step 3: Implement worker selection and fault reschedule**
+- [ ] **Step 5: Confirm worker selection and fault reschedule**
 
 Select due rows by `due_at, account_id` with bounded batch and skip-locked semantics. Fault reschedule verifies the selected snapshot, advances attempts once, caps delay, and loses safely on a changed lease/fence.
 The worker maps `MailboxSyncWorkerDueAccount.UpdatedAt` from `sync_schedule_updated_at`, and every
 schedule-affecting mutation advances that marker from the same repository clock read.
 
-- [ ] **Step 4: Static review and commit**
+- [ ] **Step 6: Static review and commit each atomic packet**
 
 ```text
 feat(mail): persist mailbox sync and worker state

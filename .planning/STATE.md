@@ -1842,6 +1842,14 @@ new quality gate is requirement/risk traceability plus fail-closed execution.
 > product/phase/release, 02F-D, engine deletion/User-GDPR remain blocked/out of scope; launcher
 > `NOT_READY`, executables/runtime `NOT_RUN`.
 
+> **Phase 144 Task 6A sync coordination (2026-08-22):**
+> `SOURCE_CONTRACT_AUTHORED / PENDING_INDEPENDENT_REVIEW / RUNTIME_NOT_RUN`. The exact packet owns
+> claim/resolve plus bounded due-scan/fault Ent coordination only. It consumes accepted Task
+> 6S/6P/6T, maps worker CAS time from `sync_schedule_updated_at`, uses one repository clock sample
+> per transaction and never spans provider/network I/O. Prepare/apply projection work remains
+> separate Task 6B/6C. Launcher `NOT_READY`; generation, migration, compile, SQL/DB, Docker,
+> formatting/lint, tests, and runtime remain `NOT_RUN`.
+
 > **Phase 144 Task 6T exact sync schedule clock (2026-08-22):**
 > `STATIC_ACCEPTED / RUNTIME_NOT_RUN` at source commit `12f59cc8`.
 > The authored-first `MailAccount` schema contract adds required
