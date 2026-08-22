@@ -211,12 +211,14 @@ records remain preserved and do not grant 144-04F authority.
 
 ## Task 6U unknown destroyed-message correction (2026-08-22)
 
-Status: `SOURCE_CANDIDATE / INDEPENDENT_REVIEW_REQUIRED / RUNTIME_NOT_RUN`. This narrow source
-correction adds the exported `Projected` discriminator to `MailboxSyncPolicyDestroyed`. It retains
+Status: `STATIC_ACCEPTED / EXACT_COMMIT_PASS / RUNTIME_NOT_RUN` at immutable commit
+`de1e5723` after independent Terra/high review C/I/M `0/0/0`. Its exact six-path manifest has
+no protected or unrelated files and no AI attribution. This narrow source correction adds the
+exported `Projected` discriminator to `MailboxSyncPolicyDestroyed`. It retains
 all projected-delete validation and effects, but admits the exact all-zero unprojected state for a
 JMAP ID that was created and destroyed between client states. The policy still requires all-and-only
 page state and rejects duplicate EngineMessageID values; unprojected state neither collides with live
 Hub Message IDs nor produces tombstone, count or outbox effects. The focused oracle covers ABI
 field order, exact Advance with a no-op unknown destroy, every hybrid shape and retained projected
 delete behavior. Launcher remains `NOT_READY`; tests, build, formatting, lint, Docker and runtime
-are `NOT_RUN`. This section is not a runtime or acceptance claim.
+are `NOT_RUN`. Static acceptance is not runtime acceptance.

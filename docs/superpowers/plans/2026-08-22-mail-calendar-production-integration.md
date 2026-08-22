@@ -414,9 +414,9 @@ projection from an unknown destroy. `Projected=false` requires zero message/thre
 empty labels and zero reservation, and produces no tombstone, count or event. Every hybrid shape
 fails closed. A projected destroy retains the existing exact delete-event behavior.
 
-Task 6U is source-implemented and independently precommit-approved C/I/M `0/0/0`; launcher and
-all executable evidence remain `NOT_READY` / `NOT_RUN`. Immutable commit review remains the
-acceptance gate.
+Task 6U is `STATIC_ACCEPTED / RUNTIME_NOT_RUN` at immutable commit `de1e5723` after independent
+Terra/high review C/I/M `0/0/0`; launcher and all executable evidence remain
+`NOT_READY` / `NOT_RUN`.
 
 - [ ] **Step 4: Implement Task 6B prepare**
 
