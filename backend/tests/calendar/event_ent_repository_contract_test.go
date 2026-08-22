@@ -8,7 +8,6 @@ import (
 	"reflect"
 	"strings"
 	"testing"
-	"time"
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
@@ -221,7 +220,7 @@ func (driver *eventEntRepositoryDriver) Query(_ context.Context, query string, v
 		driver.userQueryIndex++
 	}
 	_ = value
-	*rows = entsql.Rows{ColumnScanner: &eventEntRepositoryRows{id: rowID}}
+	*rows = entsql.Rows{ColumnScanner: &eventEntRepositoryRows{id: rowID, queryKind: queryKind}}
 	return nil
 }
 
@@ -297,15 +296,25 @@ func eventEntRepositoryQueryKind(query string) string {
 }
 
 type eventEntRepositoryRows struct {
-	id      uuid.UUID
-	visited bool
+	id        uuid.UUID
+	queryKind string
+	visited   bool
 }
 
 func (*eventEntRepositoryRows) Close() error { return nil }
 
 func (*eventEntRepositoryRows) ColumnTypes() ([]*sql.ColumnType, error) { return nil, nil }
 
-func (*eventEntRepositoryRows) Columns() ([]string, error) { return nil, nil }
+func (rows *eventEntRepositoryRows) Columns() ([]string, error) {
+	switch rows.queryKind {
+	case "organization":
+		return []string{"id"}, nil
+	case "user":
+		return []string{"id", "email", "display_name", "status"}, nil
+	default:
+		return nil, fmt.Errorf("unexpected row query kind %q", rows.queryKind)
+	}
+}
 
 func (*eventEntRepositoryRows) Err() error { return nil }
 
@@ -320,34 +329,57 @@ func (rows *eventEntRepositoryRows) Next() bool {
 func (*eventEntRepositoryRows) NextResultSet() bool { return false }
 
 func (rows *eventEntRepositoryRows) Scan(destinations ...any) error {
-	for _, destination := range destinations {
-		eventEntRepositorySetScanValue(destination, rows.id)
+	columns, err := rows.Columns()
+	if err != nil {
+		return err
+	}
+	if len(destinations) != len(columns) {
+		return fmt.Errorf("scan destinations = %d, want %d", len(destinations), len(columns))
+	}
+	for index, column := range columns {
+		var value any
+		switch column {
+		case "id":
+			value = rows.id
+		case "email":
+			value = "lock-order@example.test"
+		case "display_name":
+			value = "Lock Order"
+		case "status":
+			value = "active"
+		default:
+			return fmt.Errorf("unexpected scan column %q", column)
+		}
+		if err := eventEntRepositorySetScanValue(destinations[index], value); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-func eventEntRepositorySetScanValue(destination any, id uuid.UUID) {
-	value := reflect.ValueOf(destination)
-	if value.Kind() != reflect.Pointer || value.IsNil() {
-		return
+func eventEntRepositorySetScanValue(destination, value any) error {
+	target := reflect.ValueOf(destination)
+	if target.Kind() != reflect.Pointer || target.IsNil() {
+		return fmt.Errorf("scan destination = %T", destination)
 	}
-	target := value.Elem()
+	target = target.Elem()
 	switch {
 	case target.Type() == reflect.TypeOf(uuid.UUID{}):
+		id, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("scan UUID value = %T", value)
+		}
 		target.Set(reflect.ValueOf(id))
-	case target.Type() == reflect.TypeOf(time.Time{}):
-		target.Set(reflect.ValueOf(time.Unix(0, 0).UTC()))
 	case target.Kind() == reflect.String:
-		target.SetString("active")
-	case target.Kind() == reflect.Bool:
-		target.SetBool(false)
-	case target.Kind() >= reflect.Int && target.Kind() <= reflect.Int64:
-		target.SetInt(1)
-	case target.Kind() >= reflect.Uint && target.Kind() <= reflect.Uint64:
-		target.SetUint(1)
-	case target.Kind() == reflect.Slice:
-		target.Set(reflect.MakeSlice(target.Type(), 0, 0))
+		text, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("scan string value = %T", value)
+		}
+		target.SetString(text)
+	default:
+		return fmt.Errorf("scan destination type = %s", target.Type())
 	}
+	return nil
 }
 
 var eventEntRepositoryActorID = uuid.UUID{1}
