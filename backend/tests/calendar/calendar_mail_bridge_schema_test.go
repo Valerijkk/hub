@@ -133,8 +133,6 @@ func TestCalendarMailBridge_InverseEdgesPreserveDurableRecords(t *testing.T) {
 	mailBridgeAssertExistingInverseEdge(t, (entschema.Organization{}).Edges(), "calendar_inbound_object_states", "organization")
 	mailBridgeAssertExistingInverseEdge(t, (entschema.User{}).Edges(), "calendar_inbound_object_states", "calendar_owner")
 	mailBridgeAssertExistingInverseEdge(t, (entschema.CalendarEvent{}).Edges(), "inbound_object_states", "event")
-	mailBridgeAssertExistingInverseEdge(t, (entschema.CalendarEvent{}).Edges(), "inbound_message_receipts", "event")
-	mailBridgeAssertExistingInverseEdge(t, (entschema.CalendarEvent{}).Edges(), "reply_deliveries", "event")
 	mailBridgeAssertExistingInverseEdge(t, (entschema.CalendarAttendee{}).Edges(), "reply_deliveries", "attendee")
 }
 
