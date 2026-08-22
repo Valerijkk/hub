@@ -122,7 +122,7 @@ frontend contract and must be confirmed by the backend plan.
 | Write/compose | `POST /api/mail/drafts`, `PATCH /api/mail/drafts/:id`, `POST /api/mail/drafts/:id/send`; reply/reply-all/forward are typed compose modes with server-resolved recipients/thread references. Draft save returns revision/version and canonical draft ID. |
 | Message state | `POST /api/mail/messages/:id/actions` and `POST /api/mail/threads/actions` accept an allowlisted action plus server-validated IDs: `mark_read`, `mark_unread`, `flag`, `unflag`, `move`, `archive`, `delete`, `junk`, `not_junk`. Batch returns per-item accepted/rejected/unknown outcome; a transport success is not assumed to mean every item succeeded. |
 | Attachments | `GET /api/mail/messages/:id/attachments/:attachment_id/download` authenticates and authorizes on every request and streams bytes with safe disposition/type headers. A list payload contains only display metadata and download URL/id, never provider URLs or raw MIME. |
-| Calendar RSVP | `PUT /api/calendar/v2/events/:event_id/rsvp` accepts an allowlisted RSVP for a series event. When structured card metadata identifies an occurrence, `PUT /api/calendar/v2/events/:event_id/instances/:recurrence_id/rsvp` is required instead. Both return canonical event/link state. Mail never interprets an iTIP body into a write request. |
+| Calendar RSVP | `POST /api/calendar/v2/events/:event_id/rsvp` accepts an allowlisted RSVP for a series event. When structured card metadata identifies an occurrence, `POST /api/calendar/v2/events/:event_id/instances/:recurrence_id/rsvp` is required instead. Both return canonical `CalendarAttendee` RSVP state. Mail never interprets an iTIP body into a write request. |
 
 Every mutation carries an idempotency key and expected revision where the
 backend contract requires it. `409`/revision conflict, `401/403`, `404`,
@@ -177,19 +177,20 @@ RSVP if available, and one authoritative link to `/calendar` with the canonical
 event ID/search selection. It does not parse body text, MIME, or untrusted
 calendar attachment client-side.
 
-For an eligible invitation, RSVP buttons use the series `PUT
-/api/calendar/v2/events/:event_id/rsvp` endpoint, or the occurrence `PUT
+For an eligible invitation, RSVP buttons use the series `POST
+/api/calendar/v2/events/:event_id/rsvp` endpoint, or the occurrence `POST
 /api/calendar/v2/events/:event_id/instances/:recurrence_id/rsvp` endpoint when
-the structured card includes `recurrence_id`. They invalidate the Mail
-message/thread and the matching Calendar v2 series or occurrence query. A
-successful response updates only returned authoritative card state. Cancel and
-reply cards are informational unless the Calendar service explicitly returns a
-permitted action. The Calendar event or occurrence detail supplies the reverse
-deep link to the exact Mail message; if it is deleted, inaccessible, or no
-longer projected, Mail displays a safe unavailable state and Calendar remains
-usable. The flow preserves the approved backend rule: only trusted internal or
-DMARC-aligned mail can result in Calendar mutations, and all receipt/outbox
-authority remains server-side.
+the structured card includes `recurrence_id`. The response is authoritative
+only for `CalendarAttendee` RSVP state; the UI does not manufacture event or
+deep-link state from it. It invalidates and refetches the Mail message/thread,
+matching Calendar v2 event or occurrence, and Calendar card to obtain current
+event/link state. Cancel and reply cards are informational unless the Calendar
+service explicitly returns a permitted action. The Calendar event or occurrence
+detail supplies the reverse deep link to the exact Mail message; if it is
+deleted, inaccessible, or no longer projected, Mail displays a safe unavailable
+state and Calendar remains usable. The flow preserves the approved backend
+rule: only trusted internal or DMARC-aligned mail can result in Calendar
+mutations, and all receipt/outbox authority remains server-side.
 
 ## Accessibility and responsive acceptance
 
