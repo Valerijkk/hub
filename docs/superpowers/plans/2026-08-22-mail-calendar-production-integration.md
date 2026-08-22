@@ -521,16 +521,77 @@ func CanonicalizeMailboxSyncApplyRequest(MailboxSyncApplyRequest) (MailboxSyncCa
 This is an implementation API inside `backend/internal/mail` for the genuine unit and Task 6C2,
 not a new repository, service, or HTTP port. Its package-fixed proof hash version is `int32(1)`;
 no caller supplies an alternative. It returns a deep-copied canonical result and is deterministic and
-side-effect-free: no Ent query, transaction, projection mutation, outbox append,
-clock read, network I/O, or random operation. The result hash is SHA-256 with domain
-`hub.mail.sync.apply.result.v1`; each value is encoded exactly as `u16 tag|u64 length|payload`,
-collections carry a `u32` count, UUIDs are raw 16 bytes, UTC times are `i64` seconds plus `u32`
-nanoseconds, and every optional value has an explicit marker. Canonical collections sort by stable
-UUID, engine ID, or event ID as applicable, while semantic address/reference order is preserved.
-The exact payload includes the full fence, `NextAttemptAt`, full projection, counts, and envelope
-bytes; it excludes request `Now` and `appliedAt`. Its behavioral unit test freezes byte vectors,
-deep-copy isolation, canonical ordering, and rejection shapes before 6C1/6C2 consume it; it is not
-a source-text test and does not accept uvarint or RFC3339 encoding alternatives.
+side-effect-free: no Ent query, transaction, projection mutation, outbox append, clock read,
+network I/O, or random operation. The result hash is SHA-256 over the normative v1 stream below.
+
+**Normative v1 TLV stream.** All multibyte unsigned and signed integers are fixed-width
+big-endian; signed `i64` uses two's-complement. A TLV field is exactly `u16 tag BE || u64
+payload_len BE || payload`, with no padding or trailer. The outer stream contains these fields once,
+in this strictly ascending order:
+
+| Tag | Payload |
+|---:|---|
+| 1 | the literal raw UTF-8 bytes `hub.mail.sync.apply.result.v1`, with no NUL, prefix, or suffix beyond its TLV |
+| 2 | `u16 BE(1)` format version |
+| 3 | complete `Fence` record |
+| 4 | `NextAttemptAt` canonical UTC time |
+| 5 | complete `Result` record, including canonical full event envelopes |
+
+For a concrete normative prefix, tags 1 and 2 are exactly:
+
+```text
+0001000000000000001d6875622e6d61696c2e73796e632e6170706c792e726573756c742e7631
+000200000000000000020001
+```
+
+Every nested record is concatenated TLVs in strictly ascending registered-tag order. Every registered
+tag occurs exactly once; optional and union values retain their tag and use the optional payload
+below. Missing, duplicate, or out-of-order registered fields are invalid; unknown fields are
+unsupported under v1. Strings are their validated raw UTF-8 bytes, byte arrays are raw bytes,
+booleans are exactly one byte `00` or `01`, UUIDs are raw 16 bytes, and UTC time is `i64 BE`
+seconds followed by `u32 BE` nanos. An optional payload is one byte `00` when absent, or byte `01`
+followed by the canonical value when present. A collection is `u32 BE count`, then for each element
+`u64 BE element_len || canonical element bytes`. Enums use their canonical validated wire string
+unless a row explicitly freezes a numeric code. No uvarint, RFC3339, implementation-order, or
+JSON substitute is permitted for a record; the sole exception is `EventEnvelope` tag 3's immutable
+frozen envelope bytes as registered below.
+
+**Complete nested-record registry.** A `record` value below is the registered nested TLV stream;
+`collection<T>` uses the collection framing above. All set-like collections use the stated stable
+sort and canonical bytes as the final tie-break; semantic address and reference collections retain
+input order.
+
+| Record | Ordered tags and canonical payloads |
+|---|---|
+| `Fence` | `1 AccountID: uuid`; `2 LeaseID: uuid`; `3 LeaseEpoch: i64`; `4 SyncEpoch: i64`; `5 MutationEpoch: i64`; `6 Phase: u8` (`1=incremental`, `2=enumeration`, `3=catch_up`); `7 Cursor: string`; `8 BaseCursor: string`; `9 Checkpoint: string`. |
+| `Result` | `1 Advance: record`; `2 Folders: collection<FolderIntent>` sorted by `Folder.ID`, then `Snapshot.FolderID`; `3 Upserts: collection<Upsert>` sorted by `Message.ID`, then `Projection.MessageID`; `4 Tombstones: collection<Tombstone>` sorted by `Message.ID`, then `EngineMessageID`; `5 Counts: record`; `6 Events: collection<EventEnvelope>` sorted by `EventID`, then full canonical event bytes. |
+| `Advance` | `1 SyncEpoch: i64`; `2 Change: optional<ChangeAdvance>`; `3 Enumeration: optional<EnumerationAdvance>`. Exactly one of tags 2 and 3 is present (`01`); both absent or both present is invalid. |
+| `ChangeAdvance` | `1 FromCursor: string`; `2 NextCursor: string`. |
+| `EnumerationAdvance` | `1 BaseCursor: string`; `2 Checkpoint: string`; `3 NextCheckpoint: string`; `4 Complete: bool`. |
+| `FolderIntent` | `1 Folder: MailboxEventID`; `2 Snapshot: EngineFolder`. |
+| `EngineFolder` | `1 AccountID: string`; `2 FolderID: string`; `3 ParentID: string`; `4 Name: string`; `5 Role: enum string`. |
+| `Upsert` | `1 Message: MailboxEventID`; `2 Thread: MailboxEventID`; `3 ThreadIdentity: record`; `4 Projection: record`; `5 FolderIDs: collection<MailboxEventID>` sorted by `ID`; `6 Labels: collection<LabelState>` sorted by `Label.ID`; `7 ReceivedEventID: optional<uuid>`. |
+| `ThreadIdentity` | `1 KeyVersion: u8` (currently `1`); `2 Key: raw 32 bytes`; `3 Source: enum string`; `4 NormalizedSubject: string`; `5 CanonicalParticipants: collection<string>` sorted bytewise. |
+| `Projection` | `1 AccountID: string`; `2 MessageID: string`; `3 Version: string`; `4 InternetMessageID: string`; `5 InReplyTo: string`; `6 References: collection<string>` in semantic reference order; `7 From: EngineAddress`; `8 To: collection<EngineAddress>` in semantic address order; `9 CC: collection<EngineAddress>` in semantic address order; `10 BCC: collection<EngineAddress>` in semantic address order; `11 ReplyTo: collection<EngineAddress>` in semantic address order; `12 Subject: string`; `13 Snippet: string`; `14 SentAt: optional<time>`; `15 ReceivedAt: optional<time>`; `16 SizeBytes: i64`; `17 Priority: enum string`; `18 FolderIDs: collection<string>` sorted bytewise; `19 Flags: Flags`; `20 ReservedKeywords: collection<string>` sorted bytewise; `21 Attachments: collection<Attachment>` sorted by `BlobID`, then `ContentID`; `22 Origin: enum string`. |
+| `EngineAddress` | `1 Email: string`; `2 Name: string`. |
+| `Flags` | `1 Seen: bool`; `2 Answered: bool`; `3 Draft: bool`; `4 Flagged: bool`; `5 Junk: bool`. |
+| `Attachment` | `1 BlobID: string`; `2 ContentID: string`; `3 Filename: string`; `4 MediaType: string`; `5 SizeBytes: i64`; `6 Disposition: enum string`; `7 SHA256: raw bytes`. |
+| `LabelState` | `1 Label: MailboxEventID`; `2 Manual: bool`; `3 EngineRule: bool`. |
+| `Tombstone` | `1 EngineMessageID: string`; `2 Message: MailboxEventID`; `3 Labels: collection<LabelState>` sorted by `Label.ID`. |
+| `Counts` | `1 Folders: collection<MailboxEventID>` sorted by `ID`; `2 Threads: collection<MailboxEventID>` sorted by `ID`. |
+| `MailboxEventID` | `1 AccountID: uuid`; `2 ID: uuid`. |
+| `EventEnvelope` | `1 Subject: string` from `events.EnvelopeV1.Subject()`; `2 EventID: uuid` from `EventID()`; `3 FrozenJSON: raw bytes` from `MarshalJSON()`. `FrozenJSON` is the complete validated envelope, not a partial payload or re-marshaled substitute. |
+
+The canonicalizer validates every value before encoding, requires all result collections and nested
+records above (including empty collections), and rejects a malformed/unknown enum or an envelope
+that cannot yield its complete frozen JSON. `ExpectedPhase` is derived and returned only after this
+full `Fence` and `Advance` validation; it is not an unregistered sixth outer field. The only excluded
+inputs are request `Now` and database `appliedAt`.
+
+Its behavioral unit test freezes this prefix, complete byte vectors and hashes spanning every
+registry branch, deep-copy isolation, canonical sorting, semantic order preservation, and rejection
+of malformed/missing/duplicate/out-of-order/unknown fields before 6C1/6C2 consume it. It is not a
+source-text test.
 
 - [ ] **Step 8: Implement Task 6C1 bounded projection and aggregate helpers**
 
@@ -664,11 +725,11 @@ All other `/api/mail` OpenAPI operations remain unregistered until their own acc
 
 **Interfaces:**
 - Consumes: the six accepted actor-facing `EventService` methods.
-- Produces: authenticated `POST /api/calendar/v2/events`, `PATCH|DELETE /api/calendar/v2/events/{eventId}`, `PUT /api/calendar/v2/events/{eventId}/rsvp`, `PUT /api/calendar/v2/events/{eventId}/instances/{recurrenceId}/rsvp`, and `DELETE /api/calendar/v2/events/{eventId}/instances/{recurrenceId}`.
+- Produces: authenticated `POST /api/calendar/v2/events`, `PATCH|DELETE /api/calendar/v2/events/{eventId}`, `POST /api/calendar/v2/events/{eventId}/rsvp`, `POST /api/calendar/v2/events/{eventId}/instances/{recurrenceId}/rsvp`, and `DELETE /api/calendar/v2/events/{eventId}/instances/{recurrenceId}`.
 
 - [ ] **Step 1: Implement exact route-to-service mapping**
 
-Map routes respectively to `CreateCalendarEvent`, `UpdateCalendarEvent`, `CancelCalendarEvent`, `RespondToCalendarSeries`, `RespondToCalendarOccurrence`, and `CancelCalendarEventOccurrence`. Actor comes only from auth context; current owner/state is never accepted from the client.
+Map routes respectively to `CreateCalendarEvent`, `UpdateCalendarEvent`, `CancelCalendarEvent`, `RespondToCalendarSeries`, `RespondToCalendarOccurrence`, and `CancelCalendarEventOccurrence`. Both RSVP POST routes return the canonical `CalendarAttendee`, never a full event or link state; their caller invalidates and refetches the event/card. Actor comes only from auth context; current owner/state is never accepted from the client.
 
 - [ ] **Step 2: Add isolated handler tests**
 

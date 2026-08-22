@@ -70,7 +70,11 @@ Apply writes `sync_lease_applied_next_at = NextAttemptAt` and checked exact-seco
 and a new claim is permitted after lease expiry. A matching same-lease proof replays
 without writes. A same-lease mismatch of hash, hash version, phase, next attempt, or
 position returns the existing content-free invalid repository error with zero writes;
-it is never overwritten or re-applied.
+it is never overwritten or re-applied. Task 6C0 in the implementation plan is the single normative
+v1 SHA-256 wire registry: fixed-width big-endian TLV framing, exact outer tags, the complete
+nested-record tag layout, canonical collection ordering, and the lone explicit exclusions (`Now` and
+DB `appliedAt`) are reproduced there and admit no alternate uvarint, RFC3339, JSON, or
+implementation-order encoding, except the registered immutable `EventEnvelope.FrozenJSON` bytes.
 
 ### Migration ownership
 
@@ -102,6 +106,10 @@ is forward-only and preserves user data.
 New mailbox and canonical-calendar handlers are registered under the authenticated
 main `/api` group. Handlers translate transport DTOs and stable safe errors only;
 they do not contain SQL, Ent queries, provider calls, or cross-domain branching.
+Both canonical RSVP mutations are `POST /api/calendar/v2/events/{eventId}/rsvp` and
+`POST /api/calendar/v2/events/{eventId}/instances/{recurrenceId}/rsvp`. Each returns only the
+canonical `CalendarAttendee`; the caller invalidates and refetches its event/card rather than
+receiving a full event or link state.
 Legacy Calendar read endpoints remain available until the migration postconditions
 authorize cutover. The current legacy Calendar handler registers only
 `GET /api/calendar/events` and `GET /api/calendar/export.ics`; those reads remain
