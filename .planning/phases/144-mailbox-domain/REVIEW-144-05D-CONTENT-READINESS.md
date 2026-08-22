@@ -1,11 +1,11 @@
 # 144-05D Content — plain-only source-authority readiness
 
-> **Acceptance lifecycle:** `ACCEPTANCE_SYNC_CANDIDATE / ATOMIC_EXACT8_COMMIT_REQUIRED / IMMUTABLE_REVIEW_REQUIRED / RUNTIME_NOT_RUN`. This dirty docs-only exact8 acceptance sync is non-self-activating and grants no current source, test, schema, persistence, `go.mod`, Ent, API/UI, testframework, proxy, sanitizer dependency, or runtime authority. Before its activation the lower 05D authority/precommit/current-next routes remain current.
+> **Source-receipt lifecycle:** `SOURCE_RECEIPT_SYNC_CANDIDATE / ATOMIC_EXACT9_COMMIT_REQUIRED / IMMUTABLE_REVIEW_REQUIRED / RUNTIME_NOT_RUN`. This dirty docs-only exact9 receipt is non-self-activating and grants no current static-source, schema, persistence, `go.mod`, Ent, API/UI, testframework, proxy, sanitizer dependency, launcher, or runtime authority. Before activation the prior 05D authority/acceptance/source-unimplemented/current-next routes remain current.
 
-## Exact8 acceptance-sync manifest
+## Exact9 source-receipt manifest
 
-The only acceptance-sync documentation manifest is ordered as follows; the acceptance commit diff MUST
-be set-equal to these eight paths, with no additions, omissions, renames, source, schema,
+The only source-receipt documentation manifest is ordered as follows; the receipt commit diff MUST
+be set-equal to these nine paths, with no additions, omissions, renames, source, schema,
 OpenAPI, persistence, `go.mod`, testframework, Ent, API/UI, or runtime files.
 
 1. `.planning/STATE.md`
@@ -13,36 +13,23 @@ OpenAPI, persistence, `go.mod`, testframework, Ent, API/UI, or runtime files.
 3. `.planning/phases/144-mailbox-domain/PLAN.md`
 4. `.planning/phases/144-mailbox-domain/DISPATCH-INDEX.md`
 5. `.planning/phases/144-mailbox-domain/DISPATCH-REMAINING.md`
-6. `.planning/phases/144-mailbox-domain/REVIEW-144-05D-CONTENT-READINESS.md`
-7. `docs/mail/CONTRACT-CHANGELOG.md`
-8. `docs/mail/QA-HANDOFF.md`
+6. `.planning/phases/144-mailbox-domain/IMPLEMENTATION-144-05D.md`
+7. `.planning/phases/144-mailbox-domain/REVIEW-144-05D-CONTENT-READINESS.md`
+8. `docs/mail/CONTRACT-CHANGELOG.md`
+9. `docs/mail/QA-HANDOFF.md`
 
-This receipt records immutable candidate `d77fbf90b1b3a93dec488fa70094a5713c9e1e85` (sole parent
-`00dabf6beb77ab5e37fe156d1b50de9f45e2c75f`, tree `51964d4e81d713f527bd717c49e14d0a14ed18a7`,
-subject `docs(mail): propose plain content authority`) with ordered blobs: STATE
-`24f7de6ac4a138bf6d97df429433a499460c1e25`; MAIL-SPEC
-`ea5b04397ab112939fc559f2be7b210cb6090cb8`; PLAN
-`5dec55604aee67d19561bb58083a191325569491`; INDEX
-`621a058bc12b3f1f089c41f4dc5cd2d8089ddc45`; REMAINING
-`28a457bfb7885473dfc544a3fd6da9cc9f4d4d41`; REVIEW
-`6f38851f206d37ad1e3d5e7c64ca0521cc36aa3f`; CHANGELOG
-`1d14fba90d39960c08e3bbb950f78e2fc0dfd908`; QA
-`a6b6bce55375cd894a6c1c818a9ec275b6eadf7f`.
-
-Candidate Contract, Security, and Lifecycle precommit plus immutable exact-SHA reviews PASS
-C/I/M `0/0/0`; provenance is Contract Terra/high, Security Terra/xhigh, Lifecycle Terra/high,
-dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Only after one atomic manifest-equal exact8
-acceptance commit and its immutable acceptance Contract/Security/Lifecycle triple PASS is the
-candidate `SOURCE_AUTHORITY_ACCEPTED / EXACT_SHA_PASS`. Then, and only then, lower 05D
-authority/precommit/current-next routes are `CONSUMED/HISTORICAL` and root may dispatch exactly
-the following authored-first source packet, and nothing else:
-
-1. NEW `backend/tests/mail/mailbox_content_test.go`
-2. NEW `backend/internal/mail/mailbox_content.go`
-
-That exact2 source remains `UNIMPLEMENTED / UNCOMMITTED / UNACCEPTED` until its own tests,
-review, atomic source commit, immutable exact-SHA review, and status receipt. This acceptance sync
-selects no next Mail packet.
+This receipt records immutable source `acc593fe4f20669a21a6f5ba70a8a20293111017` (sole parent
+`98ebedc9dd0b6ad90dbe06e1faf5810376dce392`, tree `7de89d1237bc0c8f640729f607a2dbfd9189f3c4`,
+subject `feat(mail): add plain content normalization`) with authored-first test
+`backend/tests/mail/mailbox_content_test.go` blob `37c29c421d21e7c173142647d894de0d890894de`, then
+source `backend/internal/mail/mailbox_content.go` blob `b064a2f6f944d5ffb10651ccb068a77634a9267b`.
+Source Contract/Security/Lifecycle precommit and immutable `EXACT_SHA_PASS` reviews PASS C/I/M
+`0/0/0`; provenance is Contract Terra/high, Security Terra/xhigh, Lifecycle Terra/high,
+dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Only after one atomic manifest-equal exact9
+receipt commit and its immutable receipt Contract/Security/Lifecycle triple PASS is that source
+`STATIC_ACCEPTED / EXACT_SHA_PASS`. Then, and only then, former 05D authority, acceptance,
+source-unimplemented and current-next routes are `CONSUMED/HISTORICAL`. This receipt selects no
+next Mail packet.
 
 ## Frozen public-in-package ABI
 
