@@ -121,6 +121,8 @@ func (User) Edges() []ent.Edge {
 		edge.To("scheduled_calls", ScheduledCall.Type),
 		edge.From("calendar_events_owned", CalendarEvent.Type).
 			Ref("calendar_owner"),
+		edge.From("calendar_inbound_object_states", CalendarInboundObjectState.Type).
+			Ref("calendar_owner"),
 		edge.From("organized_calendar_events", CalendarEvent.Type).
 			Ref("organizer"),
 		edge.From("calendar_attendances", CalendarAttendee.Type).

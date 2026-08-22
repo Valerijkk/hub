@@ -1811,3 +1811,13 @@ new quality gate is requirement/risk traceability plus fail-closed execution.
 > `c53a5fe6`; this receipt selects only the exact4 manifest above. 02E/Ent/generation/migration/services/API/UI/
 > product/phase/release, 02F-D, engine deletion/User-GDPR remain blocked/out of scope; launcher
 > `NOT_READY`, executables/runtime `NOT_RUN`.
+
+> **Phase 147 Task 2 mail-bridge schemas (2026-08-22):** `SOURCE_CONTRACT_AUTHORED` /
+> `PENDING_INDEPENDENT_REVIEW` / `RUNTIME_NOT_RUN`. An isolated Calendar schema source-contract
+> test was authored first, followed by durable inbound ordering state, leased inbound message
+> receipt, immutable reply-delivery intent, and only the required Calendar ownership inverse edges.
+> Cross-domain Mail identities remain scalar UUID/hash values; no Mail Ent edge or
+> provider/body/raw-part storage was added. CONTRACT §§2.2/3.1 now freeze the nullable error-code
+> enum allowlists. The accepted Docker launcher is `NOT_READY`; executable RED/GREEN, Go
+> test/build/gofmt/lint, Ent generation, Atlas migration, Docker, and runtime evidence are all
+> `NOT_RUN`. This packet is not `STATIC_ACCEPTED`; independent review remains required.

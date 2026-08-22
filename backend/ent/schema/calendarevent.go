@@ -159,6 +159,12 @@ func (CalendarEvent) Edges() []ent.Edge {
 		edge.To("attendees", CalendarAttendee.Type),
 		edge.To("exceptions", CalendarEventException.Type),
 		edge.To("mutation_receipts", CalendarMutationReceipt.Type),
+		edge.From("inbound_object_states", CalendarInboundObjectState.Type).
+			Ref("event"),
+		edge.From("inbound_message_receipts", CalendarInboundMessageReceipt.Type).
+			Ref("event"),
+		edge.From("reply_deliveries", CalendarReplyDelivery.Type).
+			Ref("event"),
 		edge.To("mail_messages", MailMessage.Type),
 	}
 }

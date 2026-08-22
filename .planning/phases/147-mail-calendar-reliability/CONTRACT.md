@@ -101,6 +101,14 @@ One receipt exists for a projected message plus hashed stable calendar-part loca
 | `calendar_event_id` | nullable resolved event |
 | timestamps | required |
 
+`error_code` is a nullable enum; null means no current error. Its exact allowlist is
+`message_unavailable`, `part_unavailable`, `malformed_itip`, `unsupported_method`,
+`unsupported_version`, `untrusted_sender`, `organizer_mismatch`,
+`equal_sequence_conflict`, `missing_master_expired`, `resource_limit`,
+`retry_exhausted`, `engine_unavailable`, `database_unavailable`, and `internal_error`.
+It never stores raw SQL, provider, body, or free-form error text. Expanding this set requires
+an explicit reviewed contract amendment.
+
 The worker claims with a lease. A transient engine/DB failure schedules bounded retry;
 permanent malformed, untrusted, equal-conflict, unsupported-version, or exhausted input is
 finalized without mutation. `deferred_missing_master` is rehydrated by the recovery job;
@@ -177,6 +185,12 @@ Every RSVP that requires external transport creates one delivery in the same tra
 | `mail_submission_id` | nullable link after mailbox reservation |
 | `attempts`, `next_attempt_at`, `last_error_code` | bounded safe recovery metadata |
 | timestamps | required |
+
+`last_error_code` is a nullable enum; null means no current error. Its exact allowlist is
+`mailbox_unavailable`, `engine_unavailable`, `submission_rejected`,
+`submission_outcome_unknown`, `invalid_recipient`, `policy_denied`, `retry_exhausted`, and
+`internal_error`. It never stores raw SQL, provider, body, or free-form error text. Expanding
+this set requires an explicit reviewed contract amendment.
 
 Unique `(calendar_attendee_id, event_sequence, attendee_version)` makes one immutable
 delivery intent. The attendee's public `reply_delivery_status` reflects its latest delivery

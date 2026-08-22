@@ -80,6 +80,8 @@ func (CalendarAttendee) Edges() []ent.Edge {
 			Annotations(entsql.OnDelete(entsql.SetNull)),
 		edge.To("inbound_reply_receipts", CalendarInboundReplyReceipt.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.From("reply_deliveries", CalendarReplyDelivery.Type).
+			Ref("attendee"),
 	}
 }
 

@@ -64,6 +64,8 @@ func (Organization) Edges() []ent.Edge {
 		edge.To("mail_accounts", MailAccount.Type),
 		edge.To("mail_mutation_receipts", MailMutationReceipt.Type),
 		edge.To("mail_objects", MailObject.Type),
+		edge.From("calendar_inbound_object_states", CalendarInboundObjectState.Type).
+			Ref("organization"),
 	}
 }
 
