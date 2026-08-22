@@ -33,11 +33,6 @@ func (repository *MailboxEntRepository) PrepareMailboxSyncPage(ctx context.Conte
 
 	var result MailboxSyncPreparedPage
 	err := repository.withMailboxEntTransaction(ctx, func(transaction *ent.Tx) error {
-		now, err := repository.mailboxEntNow()
-		if err != nil {
-			return err
-		}
-
 		account, err := transaction.MailAccount.Query().
 			Where(mailaccount.IDEQ(request.Fence.AccountID)).
 			ForUpdate().
@@ -48,7 +43,11 @@ func (repository *MailboxEntRepository) PrepareMailboxSyncPage(ctx context.Conte
 			}
 			return mailboxEntSafeError(err)
 		}
-		input, prepared, err := mailboxEntPrepareInput(ctx, transaction, account, request, now)
+		transactionTime, err := mailboxEntTransactionTime(ctx, transaction)
+		if err != nil {
+			return err
+		}
+		input, prepared, err := mailboxEntPrepareInput(ctx, transaction, account, request, transactionTime)
 		if err != nil {
 			return err
 		}

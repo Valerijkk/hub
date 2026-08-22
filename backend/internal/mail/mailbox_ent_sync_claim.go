@@ -180,11 +180,6 @@ func (repository *MailboxEntRepository) ResolveMailboxSyncStep(ctx context.Conte
 
 	var result MailboxSyncResolveResult
 	err := repository.withMailboxEntTransaction(ctx, func(transaction *ent.Tx) error {
-		now, err := repository.mailboxEntNow()
-		if err != nil {
-			return err
-		}
-
 		account, err := transaction.MailAccount.Query().
 			Where(mailaccount.IDEQ(request.Fence.AccountID)).
 			ForUpdate().
@@ -195,18 +190,22 @@ func (repository *MailboxEntRepository) ResolveMailboxSyncStep(ctx context.Conte
 			}
 			return mailboxEntSafeError(err)
 		}
+		transactionTime, err := mailboxEntTransactionTime(ctx, transaction)
+		if err != nil {
+			return err
+		}
 		if account.Status != mailaccount.StatusActive || !account.DesiredEnabled || account.EngineAccountID == nil || !syncValidOpaque(*account.EngineAccountID, MaxEngineOpaqueIDBytes) {
 			return nil
 		}
 		persistedFence, hasLease, leaseValid := mailboxEntSyncLeaseFence(account)
-		if !leaseValid || !hasLease || persistedFence != request.Fence || !account.SyncLeaseUntil.After(now) {
+		if !leaseValid || !hasLease || persistedFence != request.Fence || !account.SyncLeaseUntil.After(transactionTime) {
 			return nil
 		}
 
 		phase := request.Fence.Phase
 		update := account.Update().
 			SetNextSyncAt(request.NextAttemptAt).
-			SetSyncScheduleUpdatedAt(now).
+			SetSyncScheduleUpdatedAt(transactionTime).
 			ClearSyncLeaseToken().
 			ClearSyncLeaseUntil().
 			ClearSyncLeaseSyncEpoch().

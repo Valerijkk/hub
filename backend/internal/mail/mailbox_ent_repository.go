@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"time"
 
+	entsql "entgo.io/ent/dialect/sql"
+
 	"github.com/valerii/hub/backend/ent"
 )
 
@@ -74,6 +76,32 @@ func (repository *MailboxEntRepository) mailboxEntNow() (time.Time, error) {
 		return time.Time{}, mailboxServiceError(MailboxServiceErrorInvalid)
 	}
 	return now, nil
+}
+
+func mailboxEntTransactionTime(ctx context.Context, transaction *ent.Tx) (time.Time, error) {
+	if ctx == nil || transaction == nil {
+		return time.Time{}, mailboxServiceError(MailboxServiceErrorInvalid)
+	}
+
+	var rows entsql.Rows
+	if err := transaction.Driver().Query(ctx, "SELECT date_trunc('second', CURRENT_TIMESTAMP)", []any{}, &rows); err != nil {
+		return time.Time{}, mailboxEntSafeError(err)
+	}
+
+	var transactionTime time.Time
+	if err := entsql.ScanOne(&rows, &transactionTime); err != nil {
+		_ = rows.Close()
+		return time.Time{}, mailboxEntSafeError(err)
+	}
+	if err := rows.Close(); err != nil {
+		return time.Time{}, mailboxEntSafeError(err)
+	}
+
+	transactionTime = transactionTime.UTC()
+	if !mailboxEntValidTime(transactionTime) {
+		return time.Time{}, mailboxServiceError(MailboxServiceErrorInvalid)
+	}
+	return transactionTime, nil
 }
 
 func mailboxEntCheckedTimeAdd(now time.Time, duration time.Duration) (time.Time, bool) {
