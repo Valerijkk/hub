@@ -6,10 +6,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"sort"
-	"strings"
 	"time"
-	"unicode"
-	"unicode/utf8"
 
 	"github.com/google/uuid"
 
@@ -189,7 +186,9 @@ func canonicalizeMailboxSyncResult(accountID uuid.UUID, value MailboxSyncPolicyR
 		engineMessageIDs[upsert.Projection.MessageID] = struct{}{}
 		upsert.FolderIDs = folders
 		upsert.Labels = labels
-		canonicalizeProjectionSets(&upsert.Projection)
+		if err := canonicalizeProjectionSets(&upsert.Projection); err != nil {
+			return MailboxSyncPolicyResult{}, err
+		}
 	}
 	sort.Slice(result.Upserts, func(left, right int) bool {
 		comparison := bytes.Compare(result.Upserts[left].Message.ID[:], result.Upserts[right].Message.ID[:])
@@ -258,7 +257,7 @@ func canonicalizeMailboxSyncResult(accountID uuid.UUID, value MailboxSyncPolicyR
 		}
 	}
 
-	events, err := canonicalizeEvents(result.Events)
+	events, err := canonicalizeEvents(accountID, result.Upserts, result.Tombstones, result.Events)
 	if err != nil {
 		return MailboxSyncPolicyResult{}, err
 	}
@@ -365,15 +364,24 @@ func canonicalizeCountIntent(accountID uuid.UUID, value MailboxSyncPolicyCountIn
 	return MailboxSyncPolicyCountIntent{Folders: folders, Threads: threads}, nil
 }
 
-func canonicalizeProjectionSets(value *EngineMessageProjection) {
+func canonicalizeProjectionSets(value *EngineMessageProjection) error {
 	sort.Strings(value.FolderIDs)
 	sort.Slice(value.ReservedKeywords, func(left, right int) bool { return value.ReservedKeywords[left] < value.ReservedKeywords[right] })
 	sort.Slice(value.Attachments, func(left, right int) bool {
 		if value.Attachments[left].BlobID != value.Attachments[right].BlobID {
 			return value.Attachments[left].BlobID < value.Attachments[right].BlobID
 		}
-		return value.Attachments[left].ContentID < value.Attachments[right].ContentID
+		if value.Attachments[left].ContentID != value.Attachments[right].ContentID {
+			return value.Attachments[left].ContentID < value.Attachments[right].ContentID
+		}
+		return bytes.Compare(canonicalAttachmentRecord(value.Attachments[left]), canonicalAttachmentRecord(value.Attachments[right])) < 0
 	})
+	for index := 1; index < len(value.Attachments); index++ {
+		if bytes.Equal(canonicalAttachmentRecord(value.Attachments[index-1]), canonicalAttachmentRecord(value.Attachments[index])) {
+			return syncPolicyError(MailboxSyncPolicyErrorDuplicate)
+		}
+	}
+	return nil
 }
 
 func canonicalRestoreProjectionCollections(destination *EngineMessageProjection, source EngineMessageProjection) {
@@ -409,22 +417,47 @@ type canonicalEventRecord struct {
 	index         int
 }
 
-func canonicalizeEvents(values []events.EnvelopeV1) ([]events.EnvelopeV1, error) {
+type canonicalDecodedEvent struct {
+	envelopeBytes []byte
+	eventID       uuid.UUID
+	subject       string
+	received      *mailReceivedEventJSON
+	changed       *mailMessageChangedEventJSON
+}
+
+func canonicalizeEvents(accountID uuid.UUID, upserts []MailboxSyncPolicyMessageIntent, tombstones []MailboxSyncPolicyTombstoneIntent, values []events.EnvelopeV1) ([]events.EnvelopeV1, error) {
 	result := make([]events.EnvelopeV1, len(values))
 	copy(result, values)
 	records := make([]canonicalEventRecord, len(result))
 	seen := make(map[uuid.UUID]struct{}, len(result))
+	emittedMessages := make(map[uuid.UUID]struct{}, len(result))
 	for index, value := range result {
-		envelopeBytes, err := canonicalEventEnvelope(value)
+		decoded, err := canonicalDecodeEventEnvelope(accountID, value)
 		if err != nil {
 			return nil, err
 		}
-		eventID := value.EventID()
-		if _, duplicate := seen[eventID]; duplicate {
+		if _, duplicate := seen[decoded.eventID]; duplicate {
 			return nil, syncPolicyError(MailboxSyncPolicyErrorDuplicate)
 		}
-		seen[eventID] = struct{}{}
-		records[index] = canonicalEventRecord{envelopeBytes: envelopeBytes, eventID: eventID, index: index}
+		seen[decoded.eventID] = struct{}{}
+
+		var messageID uuid.UUID
+		switch decoded.subject {
+		case "mail.received.v1":
+			messageID, err = canonicalAssociateReceivedEvent(decoded.eventID, *decoded.received, upserts)
+		case "mail.message.changed.v1":
+			messageID, err = canonicalAssociateChangedEvent(*decoded.changed, upserts, tombstones)
+		default:
+			err = syncPolicyError(MailboxSyncPolicyErrorInvalid)
+		}
+		if err != nil {
+			return nil, err
+		}
+		if _, duplicate := emittedMessages[messageID]; duplicate {
+			return nil, syncPolicyError(MailboxSyncPolicyErrorDuplicate)
+		}
+		emittedMessages[messageID] = struct{}{}
+		records[index] = canonicalEventRecord{envelopeBytes: decoded.envelopeBytes, eventID: decoded.eventID, index: index}
 	}
 	sort.Slice(records, func(left, right int) bool {
 		comparison := bytes.Compare(records[left].eventID[:], records[right].eventID[:])
@@ -450,56 +483,252 @@ type canonicalEnvelopeJSON struct {
 	Payload        json.RawMessage `json:"payload"`
 }
 
-func canonicalEventEnvelope(value events.EnvelopeV1) ([]byte, error) {
+func canonicalEventEnvelope(accountID uuid.UUID, value events.EnvelopeV1) ([]byte, error) {
+	decoded, err := canonicalDecodeEventEnvelope(accountID, value)
+	if err != nil {
+		return nil, err
+	}
+	return decoded.envelopeBytes, nil
+}
+
+func canonicalDecodeEventEnvelope(accountID uuid.UUID, value events.EnvelopeV1) (canonicalDecodedEvent, error) {
 	subject := value.Subject()
 	eventID := value.EventID()
-	if !canonicalValidEventSubject(subject) || eventID == uuid.Nil {
-		return nil, syncPolicyError(MailboxSyncPolicyErrorInvalid)
+	if (subject != "mail.received.v1" && subject != "mail.message.changed.v1") || eventID == uuid.Nil {
+		return canonicalDecodedEvent{}, syncPolicyError(MailboxSyncPolicyErrorInvalid)
 	}
 	frozen, err := value.MarshalJSON()
 	if err != nil {
-		return nil, syncPolicyError(MailboxSyncPolicyErrorInvalid)
+		return canonicalDecodedEvent{}, syncPolicyError(MailboxSyncPolicyErrorInvalid)
 	}
 	if len(frozen) == 0 || len(frozen) > MaxEngineProjectionItemBytes || !json.Valid(frozen) {
 		if len(frozen) > MaxEngineProjectionItemBytes {
-			return nil, syncPolicyError(MailboxSyncPolicyErrorTooLarge)
+			return canonicalDecodedEvent{}, syncPolicyError(MailboxSyncPolicyErrorTooLarge)
 		}
-		return nil, syncPolicyError(MailboxSyncPolicyErrorInvalid)
+		return canonicalDecodedEvent{}, syncPolicyError(MailboxSyncPolicyErrorInvalid)
 	}
 	var decoded canonicalEnvelopeJSON
 	if err := json.Unmarshal(frozen, &decoded); err != nil || decoded.Subject == nil || decoded.SchemaVersion == nil || decoded.EventID == nil || decoded.OccurredAt == nil || decoded.OrganizationID == nil || decoded.CorrelationID == nil || decoded.ActorID == nil || decoded.Payload == nil || *decoded.Subject != subject || *decoded.SchemaVersion != 1 || *decoded.EventID != eventID || *decoded.OrganizationID == uuid.Nil || !syncValidEventOccurredAt(*decoded.OccurredAt) || !syncValidCorrelationID(*decoded.CorrelationID) {
-		return nil, syncPolicyError(MailboxSyncPolicyErrorInvalid)
+		return canonicalDecodedEvent{}, syncPolicyError(MailboxSyncPolicyErrorInvalid)
 	}
-	if bytes.Equal(decoded.ActorID, []byte("null")) {
-		// The event envelope permits an absent actor.
-	} else {
-		var actorID uuid.UUID
-		if err := json.Unmarshal(decoded.ActorID, &actorID); err != nil || actorID == uuid.Nil {
-			return nil, syncPolicyError(MailboxSyncPolicyErrorInvalid)
+	actorJSON := bytes.TrimSpace(decoded.ActorID)
+	var actorID *uuid.UUID
+	if !bytes.Equal(actorJSON, []byte("null")) {
+		var parsedActorID uuid.UUID
+		if err := json.Unmarshal(actorJSON, &parsedActorID); err != nil || parsedActorID == uuid.Nil {
+			return canonicalDecodedEvent{}, syncPolicyError(MailboxSyncPolicyErrorInvalid)
 		}
+		actorID = &parsedActorID
 	}
 	payload := bytes.TrimSpace(decoded.Payload)
 	if len(payload) < 2 || payload[0] != '{' || payload[len(payload)-1] != '}' || !json.Valid(payload) {
-		return nil, syncPolicyError(MailboxSyncPolicyErrorInvalid)
+		return canonicalDecodedEvent{}, syncPolicyError(MailboxSyncPolicyErrorInvalid)
 	}
-	return canonicalRecord(
-		canonicalTLV(1, []byte(subject)),
-		canonicalTLV(2, canonicalUUID(eventID)),
-		canonicalTLV(3, append([]byte(nil), frozen...)),
-	), nil
+
+	result := canonicalDecodedEvent{
+		eventID: eventID,
+		subject: subject,
+		envelopeBytes: canonicalRecord(
+			canonicalTLV(1, []byte(subject)),
+			canonicalTLV(2, canonicalUUID(eventID)),
+			canonicalTLV(3, append([]byte(nil), frozen...)),
+		),
+	}
+	switch subject {
+	case "mail.received.v1":
+		var received mailReceivedEventJSON
+		if err := json.Unmarshal(payload, &received); err != nil {
+			return canonicalDecodedEvent{}, syncPolicyError(MailboxSyncPolicyErrorInvalid)
+		}
+		rebuilt, err := NewMailReceivedEnvelopeV1(eventID, *decoded.OccurredAt, *decoded.OrganizationID, actorID, *decoded.CorrelationID, canonicalReceivedPayload(accountID, received))
+		if err != nil {
+			return canonicalDecodedEvent{}, syncMapMailEventError(err)
+		}
+		if !canonicalFrozenEnvelopeEqual(frozen, rebuilt) {
+			return canonicalDecodedEvent{}, syncPolicyError(MailboxSyncPolicyErrorInvalid)
+		}
+		result.received = &received
+	case "mail.message.changed.v1":
+		var changed mailMessageChangedEventJSON
+		if err := json.Unmarshal(payload, &changed); err != nil {
+			return canonicalDecodedEvent{}, syncPolicyError(MailboxSyncPolicyErrorInvalid)
+		}
+		rebuilt, err := NewMailMessageChangedEnvelopeV1(eventID, *decoded.OccurredAt, *decoded.OrganizationID, actorID, *decoded.CorrelationID, canonicalChangedPayload(accountID, changed))
+		if err != nil {
+			return canonicalDecodedEvent{}, syncMapMailEventError(err)
+		}
+		if !canonicalFrozenEnvelopeEqual(frozen, rebuilt) {
+			return canonicalDecodedEvent{}, syncPolicyError(MailboxSyncPolicyErrorInvalid)
+		}
+		result.changed = &changed
+	default:
+		return canonicalDecodedEvent{}, syncPolicyError(MailboxSyncPolicyErrorInvalid)
+	}
+	return result, nil
 }
 
-func canonicalValidEventSubject(value string) bool {
-	if !utf8.ValidString(value) || len(value) == 0 || len(value) > 255 || !strings.HasSuffix(value, ".v1") {
+func canonicalFrozenEnvelopeEqual(frozen []byte, value events.EnvelopeV1) bool {
+	rebuilt, err := value.MarshalJSON()
+	return err == nil && bytes.Equal(frozen, rebuilt)
+}
+
+func canonicalReceivedPayload(accountID uuid.UUID, value mailReceivedEventJSON) MailReceivedEventPayload {
+	return MailReceivedEventPayload{
+		Mailbox:        MailboxEventID{AccountID: accountID, ID: value.MailboxID},
+		Message:        MailboxEventID{AccountID: accountID, ID: value.MessageID},
+		EngineMessage:  MailboxEventOpaqueID{AccountID: accountID, ID: value.EngineMessageID},
+		Thread:         MailboxEventID{AccountID: accountID, ID: value.ThreadID},
+		From:           canonicalMailEventAddress(value.From),
+		To:             canonicalMailEventAddresses(value.To),
+		ReceivedAt:     value.ReceivedAt,
+		FolderIDs:      canonicalMailboxEventIDs(accountID, value.FolderIDs),
+		HasAttachments: value.HasAttachments,
+		CalendarMethod:  copyMailCalendarMethod(value.CalendarMethod),
+	}
+}
+
+func canonicalChangedPayload(accountID uuid.UUID, value mailMessageChangedEventJSON) MailMessageChangedEventPayload {
+	return MailMessageChangedEventPayload{
+		Mailbox:       MailboxEventID{AccountID: accountID, ID: value.MailboxID},
+		Message:       MailboxEventID{AccountID: accountID, ID: value.MessageID},
+		ChangedFields: append([]MailChangedField(nil), value.ChangedFields...),
+		FolderIDs:     canonicalMailboxEventIDs(accountID, value.FolderIDs),
+		Flags:         append([]MailMessageFlag(nil), value.Flags...),
+		LabelIDs:      canonicalMailboxEventIDs(accountID, value.LabelIDs),
+	}
+}
+
+func canonicalMailEventAddress(value mailEventAddressJSON) MailEventAddress {
+	return MailEventAddress{Email: value.Email, Name: copyMailEventName(value.Name)}
+}
+
+func canonicalMailEventAddresses(values []mailEventAddressJSON) []MailEventAddress {
+	result := make([]MailEventAddress, len(values))
+	for index, value := range values {
+		result[index] = canonicalMailEventAddress(value)
+	}
+	return result
+}
+
+func canonicalMailboxEventIDs(accountID uuid.UUID, values []uuid.UUID) []MailboxEventID {
+	result := make([]MailboxEventID, len(values))
+	for index, value := range values {
+		result[index] = MailboxEventID{AccountID: accountID, ID: value}
+	}
+	return result
+}
+
+func canonicalAssociateReceivedEvent(eventID uuid.UUID, value mailReceivedEventJSON, upserts []MailboxSyncPolicyMessageIntent) (uuid.UUID, error) {
+	match := -1
+	for index := range upserts {
+		if upserts[index].ReceivedEventID == nil || *upserts[index].ReceivedEventID != eventID {
+			continue
+		}
+		if match != -1 {
+			return uuid.Nil, syncPolicyError(MailboxSyncPolicyErrorDuplicate)
+		}
+		match = index
+	}
+	if match == -1 {
+		return uuid.Nil, syncPolicyError(MailboxSyncPolicyErrorInvalid)
+	}
+	upsert := upserts[match]
+	if value.MessageID != upsert.Message.ID || value.ThreadID != upsert.Thread.ID || value.EngineMessageID != upsert.Projection.MessageID || upsert.Projection.ReceivedAt == nil || !value.ReceivedAt.Equal(*upsert.Projection.ReceivedAt) || !canonicalEqualUUIDs(value.FolderIDs, canonicalMailboxIDs(upsert.FolderIDs)) || !canonicalEventAddressMatches(value.From, upsert.Projection.From) || !canonicalEventAddressesMatch(value.To, upsert.Projection.To) || value.HasAttachments != (len(upsert.Projection.Attachments) != 0) {
+		return uuid.Nil, syncPolicyError(MailboxSyncPolicyErrorInvalid)
+	}
+	return upsert.Message.ID, nil
+}
+
+func canonicalAssociateChangedEvent(value mailMessageChangedEventJSON, upserts []MailboxSyncPolicyMessageIntent, tombstones []MailboxSyncPolicyTombstoneIntent) (uuid.UUID, error) {
+	if hasMailChangedField(value.ChangedFields, MailChangedFieldDeleted) {
+		match := -1
+		for index := range tombstones {
+			if tombstones[index].Message.ID != value.MessageID {
+				continue
+			}
+			if match != -1 {
+				return uuid.Nil, syncPolicyError(MailboxSyncPolicyErrorDuplicate)
+			}
+			match = index
+		}
+		if match == -1 || !canonicalEqualUUIDs(value.LabelIDs, canonicalLabelIDs(tombstones[match].Labels)) {
+			return uuid.Nil, syncPolicyError(MailboxSyncPolicyErrorInvalid)
+		}
+		return tombstones[match].Message.ID, nil
+	}
+
+	match := -1
+	for index := range upserts {
+		if upserts[index].Message.ID != value.MessageID {
+			continue
+		}
+		if match != -1 {
+			return uuid.Nil, syncPolicyError(MailboxSyncPolicyErrorDuplicate)
+		}
+		match = index
+	}
+	if match == -1 || !canonicalEqualUUIDs(value.FolderIDs, canonicalMailboxIDs(upserts[match].FolderIDs)) || !canonicalEqualFlags(value.Flags, syncEventFlags(upserts[match].Projection.Flags)) || !canonicalEqualUUIDs(value.LabelIDs, canonicalLabelIDs(upserts[match].Labels)) {
+		return uuid.Nil, syncPolicyError(MailboxSyncPolicyErrorInvalid)
+	}
+	return upserts[match].Message.ID, nil
+}
+
+func canonicalMailboxIDs(values []MailboxEventID) []uuid.UUID {
+	result := make([]uuid.UUID, len(values))
+	for index, value := range values {
+		result[index] = value.ID
+	}
+	return result
+}
+
+func canonicalLabelIDs(values []MailboxSyncPolicyLabelState) []uuid.UUID {
+	result := make([]uuid.UUID, len(values))
+	for index, value := range values {
+		result[index] = value.Label.ID
+	}
+	return result
+}
+
+func canonicalEqualUUIDs(left, right []uuid.UUID) bool {
+	if len(left) != len(right) {
 		return false
 	}
-	for _, token := range strings.Split(value, ".") {
-		if token == "" {
+	for index := range left {
+		if left[index] != right[index] {
 			return false
 		}
 	}
-	for _, character := range value {
-		if character == '*' || character == '>' || unicode.IsSpace(character) || unicode.IsControl(character) {
+	return true
+}
+
+func canonicalEqualFlags(left, right []MailMessageFlag) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	for index := range left {
+		if left[index] != right[index] {
+			return false
+		}
+	}
+	return true
+}
+
+func canonicalEventAddressMatches(value mailEventAddressJSON, projection EngineAddress) bool {
+	if value.Email != projection.Email {
+		return false
+	}
+	if projection.Name == "" {
+		return value.Name == nil
+	}
+	return value.Name != nil && *value.Name == projection.Name
+}
+
+func canonicalEventAddressesMatch(values []mailEventAddressJSON, projections []EngineAddress) bool {
+	if len(values) != len(projections) {
+		return false
+	}
+	for index := range values {
+		if !canonicalEventAddressMatches(values[index], projections[index]) {
 			return false
 		}
 	}
@@ -507,7 +736,7 @@ func canonicalValidEventSubject(value string) bool {
 }
 
 func canonicalMailboxSyncApplyStream(fence MailboxSyncFence, nextAttemptAt time.Time, result MailboxSyncPolicyResult) ([]byte, error) {
-	encodedResult, err := canonicalResultRecord(result)
+	encodedResult, err := canonicalResultRecord(fence.AccountID, result)
 	if err != nil {
 		return nil, err
 	}
@@ -534,7 +763,7 @@ func canonicalFenceRecord(value MailboxSyncFence) []byte {
 	)
 }
 
-func canonicalResultRecord(value MailboxSyncPolicyResult) ([]byte, error) {
+func canonicalResultRecord(accountID uuid.UUID, value MailboxSyncPolicyResult) ([]byte, error) {
 	folders := make([][]byte, len(value.Folders))
 	for index, folder := range value.Folders {
 		folders[index] = canonicalFolderIntentRecord(folder)
@@ -549,7 +778,7 @@ func canonicalResultRecord(value MailboxSyncPolicyResult) ([]byte, error) {
 	}
 	events := make([][]byte, len(value.Events))
 	for index, event := range value.Events {
-		encoded, err := canonicalEventEnvelope(event)
+		encoded, err := canonicalEventEnvelope(accountID, event)
 		if err != nil {
 			return nil, err
 		}
