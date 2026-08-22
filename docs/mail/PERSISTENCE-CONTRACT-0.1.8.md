@@ -249,6 +249,10 @@ There are exactly four repository transaction/lock boundaries:
 2. `PrepareMailboxSyncPage` rechecks the complete fence and reads/resolves Hub IDs, prior
    projection, owner provenance and committed event reservations. It accepts bounded deep-copied
    engine folders/page plus volatile candidate IDs and returns one deep-copied exact 04F input.
+   Its Page is engine byte-identical except that each live projection Origin is derived only from
+   the matching durable submission/draft proof; no proof yields `inbound_or_unknown`, dual proof
+   fails closed, and every other repository page rewrite is invalid. 04F remains the authority
+   for proof relation/account/engine-ID/BCC validity.
    It persists no candidate merely because it was generated: only all-and-only needed IDs enter
    the policy input, where accepted 04F verifies them again. Success has `Prepared=true`; failed
    fence/expiry has `Prepared=false` and zero Input.

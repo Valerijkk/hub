@@ -393,28 +393,45 @@ never clears leases or changes projection state.
 Task 6A is `STATIC_ACCEPTED / RUNTIME_NOT_RUN` at source commit `24d2873d` after independent
 immutable review C/I/M `0/0/0`.
 
-- [ ] **Step 2: Implement Task 6B prepare**
+- [ ] **Step 2: Correct trusted projection-origin normalization before 6B**
+
+`EngineMessageProjection.Origin` is an untrusted adapter hint, not ownership proof. Prepare is
+the only repository boundary that can resolve durable submission/draft provenance, so it returns
+the engine page byte-identically except that each live projection origin is normalized from the
+matching proof: submission, draft, or `inbound_or_unknown` when neither proof exists. Dual proof
+is invalid. The service must compare against exactly that proof-derived normalized page and reject
+any other repository rewrite. This keeps BCC and received-event admission under the accepted 04F
+policy instead of trusting Sent-folder/address/provider metadata.
+
+- [ ] **Step 3: Implement Task 6B prepare**
 
 Prepare re-locks the account under the complete unexpired fence, resolves only bounded committed
-projection and reservation state, and returns a deep-copied `MailboxSyncPolicyInput`.
+projection and reservation state, and returns a deep-copied `MailboxSyncPolicyInput`. Existing
+rows retain their immutable UUIDs. IDs for not-yet-persisted folders, messages and threads are
+pure UUIDv8 values derived from SHA-256 over a versioned domain tag plus length-delimited raw
+account UUID and exact engine identity/thread-key bytes; this introduces no clock/random callback
+under the repository lock and remains stable across Prepare retries. Existing identity collisions
+or cross-account matches fail closed. Labels are resolved only from existing live Hub labels;
+unknown engine markers remain ignored by 04F.
 
-- [ ] **Step 3: Implement Task 6C apply**
+- [ ] **Step 4: Implement Task 6C apply**
 
 Apply re-locks and compares account, lease, sync, mutation, phase, cursor, base cursor, and
 checkpoint before any projection write, then persists projection/count/outbox/position and its
-versioned result hash in one transaction. Matching same-lease proof replays without effects.
+versioned fence-plus-advance hash in one transaction. Matching same-lease proof replays without
+effects; projection/event candidates are never re-applied during that proof short-circuit.
 
-- [ ] **Step 4: Keep provider I/O outside transactions**
+- [ ] **Step 5: Keep provider I/O outside transactions**
 
 Repository methods only persist state. `MailboxSyncService.Step` remains the sole orchestration point around one bounded `MailEngine` call.
 
-- [ ] **Step 5: Confirm worker selection and fault reschedule**
+- [ ] **Step 6: Confirm worker selection and fault reschedule**
 
 Select due rows by `due_at, account_id` with bounded batch and skip-locked semantics. Fault reschedule verifies the selected snapshot, advances attempts once, caps delay, and loses safely on a changed lease/fence.
 The worker maps `MailboxSyncWorkerDueAccount.UpdatedAt` from `sync_schedule_updated_at`, and every
 schedule-affecting mutation advances that marker from the same repository clock read.
 
-- [ ] **Step 6: Static review and commit each atomic packet**
+- [ ] **Step 7: Static review and commit each atomic packet**
 
 ```text
 feat(mail): persist mailbox sync and worker state

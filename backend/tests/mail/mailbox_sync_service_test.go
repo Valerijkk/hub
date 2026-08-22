@@ -450,6 +450,155 @@ func TestMailboxSyncServiceStep_RejectsPrepareCandidateSubstitutionBeforeClassif
 	}
 }
 
+func TestMailboxSyncServiceStep_NormalizesPreparedOriginsFromDurableProvenance(t *testing.T) {
+	for _, testCase := range []struct {
+		name       string
+		phase      mail.MailboxSyncPhase
+		wantPhase  mail.MailboxSyncPhase
+		input      func(*testing.T) mail.MailboxSyncPolicyInput
+		rawOrigin  mail.EngineProjectionOrigin
+		wantOrigin mail.EngineProjectionOrigin
+		wantEvents int
+	}{
+		{
+			name: "incremental inbound proof absent normalizes adapter confirmed spoof", phase: mail.MailboxSyncPhaseIncremental, wantPhase: mail.MailboxSyncPhaseIncremental,
+			input: validMailboxSyncInput, rawOrigin: mail.EngineProjectionOriginConfirmedOwnerSubmission, wantOrigin: mail.EngineProjectionOriginInboundOrUnknown, wantEvents: 1,
+		},
+		{
+			name: "enumeration inbound proof absent normalizes adapter confirmed spoof", phase: mail.MailboxSyncPhaseEnumeration, wantPhase: mail.MailboxSyncPhaseCatchUp,
+			input: func(t *testing.T) mail.MailboxSyncPolicyInput { return mailboxSyncInputWithEnumeration(t, 1) }, rawOrigin: mail.EngineProjectionOriginConfirmedOwnerDraft, wantOrigin: mail.EngineProjectionOriginInboundOrUnknown, wantEvents: 1,
+		},
+		{
+			name: "submission proof overrides adapter inbound hint", phase: mail.MailboxSyncPhaseIncremental, wantPhase: mail.MailboxSyncPhaseIncremental,
+			input: confirmedOwnerSyncPolicyInput, rawOrigin: mail.EngineProjectionOriginInboundOrUnknown, wantOrigin: mail.EngineProjectionOriginConfirmedOwnerSubmission,
+		},
+		{
+			name: "draft proof overrides adapter inbound hint", phase: mail.MailboxSyncPhaseIncremental, wantPhase: mail.MailboxSyncPhaseIncremental,
+			input: func(t *testing.T) mail.MailboxSyncPolicyInput {
+				input := confirmedOwnerSyncPolicyInput(t)
+				input.Messages[0].Provenance.ConfirmedDraft = input.Messages[0].Provenance.ConfirmedSubmission
+				input.Messages[0].Provenance.ConfirmedSubmission = nil
+				return input
+			}, rawOrigin: mail.EngineProjectionOriginInboundOrUnknown, wantOrigin: mail.EngineProjectionOriginConfirmedOwnerDraft,
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			input := testCase.input(t)
+			fence := syncServiceFence(testCase.phase)
+			engine := &syncServiceEngineFake{folders: []mail.EngineFolder{{AccountID: "engine-account", FolderID: "inbox", Name: "Inbox", Role: mail.EngineFolderRoleInbox}}}
+			if testCase.phase == mail.MailboxSyncPhaseEnumeration {
+				fence.Cursor = ""
+				fence.BaseCursor = input.Page.Enumeration.BaseCursor
+				fence.Checkpoint = input.Page.Enumeration.Checkpoint
+				input.Page.Enumeration.Bounds.Requested = 17
+				input.Page.Enumeration.Messages[0].Origin = testCase.rawOrigin
+				engine.enumeration = *input.Page.Enumeration
+			} else {
+				input.Page.Change.Bounds.Requested = 17
+				input.Page.Change.CreatedOrUpdated[0].Origin = testCase.rawOrigin
+				engine.change = *input.Page.Change
+			}
+			trace := &syncServiceCallbackTrace{leaseIDs: []uuid.UUID{syncServiceLeaseID}, eventIDs: []uuid.UUID{syncServiceUUID(testCase.name + "-received"), syncServiceUUID(testCase.name + "-changed")}}
+			repository := &syncServiceRepositoryFake{claim: syncServiceClaim(fence, input.EventCutoff)}
+			repository.prepare = func(request mail.MailboxSyncPrepareRequest) (mail.MailboxSyncPreparedPage, error) {
+				prepared := syncServicePreparedInputFromCandidates(t, input, request)
+				if testCase.phase == mail.MailboxSyncPhaseEnumeration {
+					page := *prepared.Page.Enumeration
+					page.Messages = append([]mail.EngineMessageProjection(nil), page.Messages...)
+					page.Messages[0].Origin = testCase.wantOrigin
+					prepared.Page.Enumeration = &page
+				} else {
+					page := *prepared.Page.Change
+					page.CreatedOrUpdated = append([]mail.EngineMessageProjection(nil), page.CreatedOrUpdated...)
+					page.CreatedOrUpdated[0].Origin = testCase.wantOrigin
+					prepared.Page.Change = &page
+				}
+				if testCase.wantEvents == 0 {
+					prepared.Messages[0].ReceivedEventID = uuid.Nil
+				}
+				return mail.MailboxSyncPreparedPage{Prepared: true, Input: prepared}, nil
+			}
+			repository.apply = func(request mail.MailboxSyncApplyRequest) (mail.MailboxSyncApplyResult, error) {
+				if len(request.Result.Upserts) != 1 || request.Result.Upserts[0].Projection.Origin != testCase.wantOrigin || len(request.Result.Events) != testCase.wantEvents {
+					t.Fatalf("normalized origin/result = %#v; want origin=%q events=%d", request.Result, testCase.wantOrigin, testCase.wantEvents)
+				}
+				return mail.MailboxSyncApplyResult{Applied: true, Phase: testCase.wantPhase, NextAttemptAt: request.NextAttemptAt}, nil
+			}
+
+			service, err := mail.NewMailboxSyncService(engine, repository, trace.config())
+			if err != nil {
+				t.Fatalf("NewMailboxSyncService() error = %v", err)
+			}
+			result, err := service.Step(context.Background(), syncServiceAccountID)
+			if err != nil || result.Outcome != mail.MailboxSyncStepApplied || repository.applyCalls != 1 {
+				t.Fatalf("Step() = %#v, %v; want normalized page applied", result, err)
+			}
+			if testCase.phase == mail.MailboxSyncPhaseEnumeration {
+				if input.Page.Enumeration.Messages[0].Origin != testCase.rawOrigin || engine.enumeration.Messages[0].Origin != testCase.rawOrigin || repository.prepareRequest.Page.Enumeration.Messages[0].Origin != testCase.rawOrigin {
+					t.Fatal("normalization mutated caller-owned enumeration page")
+				}
+			} else if input.Page.Change.CreatedOrUpdated[0].Origin != testCase.rawOrigin || engine.change.CreatedOrUpdated[0].Origin != testCase.rawOrigin || repository.prepareRequest.Page.Change.CreatedOrUpdated[0].Origin != testCase.rawOrigin {
+				t.Fatal("normalization mutated caller-owned change page")
+			}
+		})
+	}
+}
+
+func TestMailboxSyncServiceStep_RejectsDualOrOtherPreparedPageRewrites(t *testing.T) {
+	for _, testCase := range []struct {
+		name   string
+		input  func(*testing.T) mail.MailboxSyncPolicyInput
+		mutate func(*mail.MailboxSyncPolicyInput)
+	}{
+		{
+			name: "adapter confirmed origin retained without proof", input: func(t *testing.T) mail.MailboxSyncPolicyInput {
+				input := validMailboxSyncInput(t)
+				input.Page.Change.CreatedOrUpdated[0].Origin = mail.EngineProjectionOriginConfirmedOwnerSubmission
+				return input
+			},
+			mutate: func(*mail.MailboxSyncPolicyInput) {},
+		},
+		{
+			name: "dual durable provenance", input: func(t *testing.T) mail.MailboxSyncPolicyInput {
+				input := confirmedOwnerSyncPolicyInput(t)
+				input.Messages[0].Provenance.ConfirmedDraft = input.Messages[0].Provenance.ConfirmedSubmission
+				return input
+			},
+			mutate: func(*mail.MailboxSyncPolicyInput) {},
+		},
+		{
+			name: "change cursor rewrite", input: validMailboxSyncInput,
+			mutate: func(input *mail.MailboxSyncPolicyInput) { input.Page.Change.NextCursor = "hostile-cursor" },
+		},
+		{
+			name: "live projection identity rewrite", input: validMailboxSyncInput,
+			mutate: func(input *mail.MailboxSyncPolicyInput) { input.Page.Change.CreatedOrUpdated[0].MessageID = "hostile-message" },
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			input := testCase.input(t)
+			input.Page.Change.Bounds.Requested = 17
+			engine := &syncServiceEngineFake{folders: []mail.EngineFolder{{AccountID: "engine-account", FolderID: "inbox", Name: "Inbox", Role: mail.EngineFolderRoleInbox}}, change: *input.Page.Change}
+			trace := &syncServiceCallbackTrace{leaseIDs: []uuid.UUID{syncServiceLeaseID}, eventIDs: []uuid.UUID{syncServiceUUID(testCase.name + "-received"), syncServiceUUID(testCase.name + "-changed")}}
+			repository := &syncServiceRepositoryFake{claim: syncServiceClaim(syncServiceFence(mail.MailboxSyncPhaseIncremental), input.EventCutoff), resolveResult: mail.MailboxSyncResolveResult{Resolved: true, Phase: mail.MailboxSyncPhaseIncremental}}
+			repository.prepare = func(request mail.MailboxSyncPrepareRequest) (mail.MailboxSyncPreparedPage, error) {
+				prepared := syncServicePreparedInputFromCandidates(t, input, request)
+				testCase.mutate(&prepared)
+				return mail.MailboxSyncPreparedPage{Prepared: true, Input: prepared}, nil
+			}
+
+			service, err := mail.NewMailboxSyncService(engine, repository, trace.config())
+			if err != nil {
+				t.Fatalf("NewMailboxSyncService() error = %v", err)
+			}
+			result, err := service.Step(context.Background(), syncServiceAccountID)
+			if result != (mail.MailboxSyncStepResult{}) || !errors.Is(err, mail.ErrMailboxSyncServiceInvalid) || repository.applyCalls != 0 || repository.resolveCalls != 1 || repository.resolveRequest.Failure != mail.MailboxSyncFailureRejected {
+				t.Fatalf("prepared rewrite escaped normalization guard: result=%#v err=%v apply/resolve=%d/%d", result, err, repository.applyCalls, repository.resolveCalls)
+			}
+		})
+	}
+}
+
 func TestMailboxSyncServiceStep_UsesImmutablePrepareExpectationAfterRepositoryAliasMutation(t *testing.T) {
 	input := validMailboxSyncInput(t)
 	input.Page.Change.Bounds.Requested = 17

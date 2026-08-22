@@ -471,7 +471,55 @@ func validMailboxSyncPhase(phase MailboxSyncPhase) bool {
 }
 
 func validMailboxSyncPreparedInput(input MailboxSyncPolicyInput, claim MailboxSyncClaimResult, request MailboxSyncPrepareRequest) bool {
-	return input.SyncEpoch == claim.Fence.SyncEpoch && input.EventCutoff.Equal(claim.EventCutoff) && input.Event.Mailbox.AccountID == claim.Fence.AccountID && input.Event.Mailbox.ID != uuid.Nil && input.Event.OrganizationID != uuid.Nil && input.Event.ActorID == nil && input.Event.OccurredAt.Equal(request.OccurredAt) && input.Event.CorrelationID == request.CorrelationID && reflect.DeepEqual(input.Page, request.Page) && validMailboxSyncPrepareSelection(input, request.EventCandidates)
+	if input.SyncEpoch != claim.Fence.SyncEpoch || !input.EventCutoff.Equal(claim.EventCutoff) || input.Event.Mailbox.AccountID != claim.Fence.AccountID || input.Event.Mailbox.ID == uuid.Nil || input.Event.OrganizationID == uuid.Nil || input.Event.ActorID != nil || !input.Event.OccurredAt.Equal(request.OccurredAt) || input.Event.CorrelationID != request.CorrelationID {
+		return false
+	}
+	if !validMailboxSyncPrepareSelection(input, request.EventCandidates) {
+		return false
+	}
+	expectedPage, ok := mailboxSyncNormalizedPreparedPage(request.Page, input.Messages)
+	return ok && reflect.DeepEqual(input.Page, expectedPage)
+}
+
+func mailboxSyncNormalizedPreparedPage(page MailboxSyncPolicyPage, messages []MailboxSyncPolicyMessage) (MailboxSyncPolicyPage, bool) {
+	messageIndexByEngineID := make(map[string]int, len(messages))
+	for index := range messages {
+		if _, duplicate := messageIndexByEngineID[messages[index].EngineMessageID]; duplicate {
+			return MailboxSyncPolicyPage{}, false
+		}
+		messageIndexByEngineID[messages[index].EngineMessageID] = index
+	}
+
+	result := cloneMailboxSyncPolicyPage(page)
+	normalize := func(projections []EngineMessageProjection) bool {
+		for index := range projections {
+			messageIndex, found := messageIndexByEngineID[projections[index].MessageID]
+			if !found {
+				return false
+			}
+			provenance := messages[messageIndex].Provenance
+			if provenance.ConfirmedSubmission != nil && provenance.ConfirmedDraft != nil {
+				return false
+			}
+			switch {
+			case provenance.ConfirmedSubmission != nil:
+				projections[index].Origin = EngineProjectionOriginConfirmedOwnerSubmission
+			case provenance.ConfirmedDraft != nil:
+				projections[index].Origin = EngineProjectionOriginConfirmedOwnerDraft
+			default:
+				projections[index].Origin = EngineProjectionOriginInboundOrUnknown
+			}
+		}
+		return true
+	}
+
+	if result.Change != nil && result.Enumeration == nil {
+		return result, normalize(result.Change.CreatedOrUpdated)
+	}
+	if result.Enumeration != nil && result.Change == nil {
+		return result, normalize(result.Enumeration.Messages)
+	}
+	return MailboxSyncPolicyPage{}, false
 }
 
 func validMailboxSyncPrepareSelection(input MailboxSyncPolicyInput, candidates []MailboxSyncEventCandidate) bool {

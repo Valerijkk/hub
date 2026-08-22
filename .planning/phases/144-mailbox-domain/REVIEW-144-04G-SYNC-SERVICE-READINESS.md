@@ -322,6 +322,14 @@ count command plus the position transition. A guard mismatch applies nothing and
 only for the same previously committed full fence+advance and must not duplicate projection,
 count or outbox effects.
 
+Task 6R narrows the Prepare page comparison: `EngineMessageProjection.Origin` is an untrusted
+adapter hint. The only permitted page delta is each live projection's proof-derived origin:
+`confirmed_owner_submission`, `confirmed_owner_draft`, or `inbound_or_unknown` when neither
+durable proof exists. Dual proof fails closed; every other page rewrite is rejected. The
+accepted 04F policy remains the sole authority for proof relation/account/engine-ID/BCC
+validity. This source correction is pending independent static review; launcher and executable
+evidence remain `NOT_READY` / `NOT_RUN`.
+
 Prepare, Apply and Resolve each read persisted `sync_lease_until` and compare it inside the same
 transaction against the database's authoritative stable transaction clock (`CURRENT_TIMESTAMP`
 or dialect-equivalent). Caller `request.Now` is never expiry authority, and matching epochs
