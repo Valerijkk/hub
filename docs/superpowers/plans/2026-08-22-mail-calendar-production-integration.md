@@ -338,7 +338,7 @@ Ent generation, Atlas diff/migration, compile, SQL/DB, Docker, gofmt, lint, and 
 - Modify: `.planning/phases/144-mailbox-domain/PLAN.md`
 - Modify: `.planning/STATE.md`
 
-**Status:** `SOURCE_CONTRACT_AUTHORED / PENDING_INDEPENDENT_REVIEW / RUNTIME_NOT_RUN`.
+**Status:** `STATIC_ACCEPTED / RUNTIME_NOT_RUN` at source commit `12f59cc8`.
 
 This prerequisite adds required `sync_schedule_updated_at` immediately after `next_sync_at`.
 Its creation default is a private UTC clock truncated to an exact second; it deliberately has no
@@ -353,7 +353,8 @@ epochs, lease snapshot/proof, attempts, claim, apply, resolve, or fault scheduli
 Existing-row backfill and the final `NOT NULL` migration are owned by Task 9 and require separate
 review. The launcher is `NOT_READY`; executable RED/GREEN/tests, Ent generation, Atlas
 diff/migration, compile, SQL/DB, Docker, gofmt, lint, and runtime are all `NOT_RUN`. This source
-candidate grants no migration or cutover authority.
+prerequisite grants no migration or cutover authority. Independent static review approved the
+exact five-file source boundary with C/I/M `0/0/0`.
 
 ### Task 6: Mail sync and worker Ent adapters
 

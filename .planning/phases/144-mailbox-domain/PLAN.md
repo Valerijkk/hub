@@ -54,7 +54,7 @@ authority follows.
 
 ## Task 6T — Exact-second Mail sync schedule clock prerequisite (2026-08-22)
 
-> **Narrow source status:** `SOURCE_CONTRACT_AUTHORED / PENDING_INDEPENDENT_REVIEW / RUNTIME_NOT_RUN`.
+> **Narrow source status:** `STATIC_ACCEPTED / RUNTIME_NOT_RUN` at source commit `12f59cc8`.
 > This packet owns only the test-first `MailAccount` schema contract for a dedicated sync schedule
 > CAS timestamp. It does not implement adapters, generate Ent code, migrate rows, or authorize
 > cutover/runtime behavior.
@@ -69,7 +69,8 @@ the same repository exact-second clock read.
 
 Task 9 owns reviewed existing-row backfill plus the final `NOT NULL` migration. The launcher is
 `NOT_READY`; executable RED/GREEN/tests, Ent generation, Atlas diff/migration, compile, SQL/DB,
-Docker, gofmt, lint, and runtime are all `NOT_RUN`. No migration or cutover authority follows.
+Docker, gofmt, lint, and runtime are all `NOT_RUN`. Independent static review approved the exact
+five-file source boundary with C/I/M `0/0/0`; no migration or cutover authority follows.
 
 ## Task 5 — Mail Ent repository root and owner-resolution candidate (2026-08-22)
 

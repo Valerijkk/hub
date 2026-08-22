@@ -1843,7 +1843,7 @@ new quality gate is requirement/risk traceability plus fail-closed execution.
 > `NOT_READY`, executables/runtime `NOT_RUN`.
 
 > **Phase 144 Task 6T exact sync schedule clock (2026-08-22):**
-> `SOURCE_CONTRACT_AUTHORED / PENDING_INDEPENDENT_REVIEW / RUNTIME_NOT_RUN`.
+> `STATIC_ACCEPTED / RUNTIME_NOT_RUN` at source commit `12f59cc8`.
 > The authored-first `MailAccount` schema contract adds required
 > `sync_schedule_updated_at` with a private exact-second UTC creation default, no
 > `UpdateDefault`, and a fail-closed PostgreSQL second-precision CHECK. Task 6 worker due rows map
@@ -1851,7 +1851,8 @@ new quality gate is requirement/risk traceability plus fail-closed execution.
 > adapter mutation updates it in the same transaction from the repository clock. Task 9 owns
 > reviewed existing-row backfill and the final `NOT NULL` migration. The launcher remains
 > `NOT_READY`; executable RED/GREEN/tests, Ent generation, Atlas diff/migration, compile, SQL/DB,
-> Docker, gofmt, lint, and runtime are all `NOT_RUN`; no migration or cutover authority follows.
+> Docker, gofmt, lint, and runtime are all `NOT_RUN`. Independent static review approved the exact
+> five-file source boundary with C/I/M `0/0/0`; no migration or cutover authority follows.
 
 > **Phase 144 Task 6P sync-lease apply-proof schema (2026-08-22):**
 > `STATIC_ACCEPTED / RUNTIME_NOT_RUN` at source commit `7309c52a`.
