@@ -198,7 +198,10 @@ feat(calendar): implement Ent event capabilities
 **Files:**
 - Create: `backend/internal/calendar/event_call_repository.go`
 - Create: `backend/internal/calendar/event_ent_call.go`
+- Modify: `backend/internal/calendar/event_call_policy.go`
 - Test: `backend/tests/calendar/event_call_repository_contract_test.go`
+- Modify: `backend/tests/calendar/event_call_policy_test.go`
+- Modify: `docs/superpowers/plans/2026-08-22-mail-calendar-production-integration.md`
 - Modify: `.planning/phases/143-calendar-rsvp-core/PLAN.md`
 - Modify: `.planning/STATE.md`
 
@@ -222,6 +225,8 @@ type EventCallTransactionBackend interface {
 ```
 
 `EventCallProjectionRequest` contains only scheduled-call ID, action, boundary, expected event version, and expected call version. `EventCallDueRequest` contains only scheduled-call ID, exact UTC `Now`, envelope input, expected event version, and expected call version. Constructors validate non-nil IDs, positive versions, exact-second UTC, and action/boundary combinations.
+
+`EventCallProjectionSnapshot.DeletedAt` is nullable and policy-owned: only `delete` receives an isolated exact-second UTC copy of the validated boundary instant. All other dispositions retain `nil`; the Ent delete writes that timestamp with `is_active=false` and never calls a clock.
 
 - [ ] **Step 2: Implement transaction lifetime**
 

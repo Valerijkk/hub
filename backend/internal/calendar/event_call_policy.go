@@ -140,6 +140,7 @@ type EventCallProjectionOccurrence struct {
 // EventCallProjectionSnapshot is the deep-copying read model of a projection.
 type EventCallProjectionSnapshot struct {
 	Disposition     EventCallProjectionDisposition
+	DeletedAt       *time.Time
 	ScheduledCallID uuid.UUID
 	EventID         uuid.UUID
 	OrganizationID  uuid.UUID
@@ -282,6 +283,8 @@ func ProjectEventCall(input EventCallProjectionInput) (EventCallProjection, erro
 		return EventCallProjection{snapshot: identity}, nil
 	case EventCallProjectionDelete:
 		identity.Disposition = EventCallProjectionDeleted
+		deletedAt := input.Boundary.At
+		identity.DeletedAt = &deletedAt
 		return EventCallProjection{snapshot: identity}, nil
 	case EventCallProjectionReconcile, EventCallProjectionResume:
 		occurrence, found := eventCallProjectionSelectOccurrence(effective, input.Boundary)
@@ -896,6 +899,7 @@ func eventCallProjectionKey(value time.Time) string {
 }
 
 func cloneEventCallProjectionSnapshot(snapshot EventCallProjectionSnapshot) EventCallProjectionSnapshot {
+	snapshot.DeletedAt = cloneEventCallProjectionTime(snapshot.DeletedAt)
 	snapshot.ReminderMinutes = cloneEventCallProjectionInt(snapshot.ReminderMinutes)
 	if snapshot.Occurrence != nil {
 		occurrence := *snapshot.Occurrence
@@ -906,6 +910,14 @@ func cloneEventCallProjectionSnapshot(snapshot EventCallProjectionSnapshot) Even
 }
 
 func cloneEventCallProjectionInt(value *int) *int {
+	if value == nil {
+		return nil
+	}
+	clone := *value
+	return &clone
+}
+
+func cloneEventCallProjectionTime(value *time.Time) *time.Time {
 	if value == nil {
 		return nil
 	}

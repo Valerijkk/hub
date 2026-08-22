@@ -119,6 +119,7 @@ func TestEventCallProjectionABI(t *testing.T) {
 	})
 	assertFields(calendar.EventCallProjectionSnapshot{}, fields{
 		{"Disposition", reflect.TypeOf(calendar.EventCallProjectionDisposition(""))},
+		{"DeletedAt", reflect.TypeOf((*time.Time)(nil))},
 		{"ScheduledCallID", reflect.TypeOf(uuid.UUID{})},
 		{"EventID", reflect.TypeOf(uuid.UUID{})},
 		{"OrganizationID", reflect.TypeOf(uuid.UUID{})},
@@ -272,9 +273,20 @@ func TestProjectEventCall_BoundaryAndTerminalActions(t *testing.T) {
 		input.Target.Exists, input.Target.Active = true, false
 		input.Event.Status = calendar.CalendarEventStatusCancelled
 		projection, err := calendar.ProjectEventCall(input)
-		callPolicyRequireIdentityOnly(t, projection.Snapshot(), calendar.EventCallProjectionDeleted)
 		if err != nil {
 			t.Fatalf("ProjectEventCall() error = %v", err)
+		}
+		snapshot := projection.Snapshot()
+		if snapshot.Disposition != calendar.EventCallProjectionDeleted || snapshot.DeletedAt == nil || !snapshot.DeletedAt.Equal(input.Boundary.At) {
+			t.Fatalf("delete snapshot = %#v, want exact Boundary.At soft delete", snapshot)
+		}
+		if snapshot.DeletedAt == &input.Boundary.At {
+			t.Fatal("delete snapshot aliases caller boundary")
+		}
+		*snapshot.DeletedAt = snapshot.DeletedAt.Add(time.Second)
+		fresh := projection.Snapshot()
+		if fresh.DeletedAt == nil || !fresh.DeletedAt.Equal(input.Boundary.At) {
+			t.Fatalf("Snapshot() must deep-copy DeletedAt, got %#v", fresh.DeletedAt)
 		}
 	})
 }

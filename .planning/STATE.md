@@ -1832,6 +1832,20 @@ new quality gate is requirement/risk traceability plus fail-closed execution.
 > executable RED/GREEN, compile, database, Ent generation, Atlas migration, Docker, and runtime
 > evidence remain `NOT_RUN` until Task 9. Independent review is still required.
 
+> **Phase 143 Task 4B event-to-call Ent bridge (2026-08-22):**
+> `SOURCE_CONTRACT_AUTHORED / PENDING_INDEPENDENT_REVIEW / RUNTIME_NOT_RUN`.
+> A separate `EventCallRepository`, private guarded wrapper and one Ent transaction per call
+> preserve the base `EventRepository` ABI. Resolver and persistence paths lock CalendarEvent
+> before ScheduledCall, compare exact event/call version fences, reject linked-row/caller-state
+> divergence, and use only the returned pure policy snapshot/decision. The nullable
+> `EventCallProjectionSnapshot.DeletedAt` is policy-owned: only `delete` carries an isolated
+> validated exact-second UTC boundary instant; Ent writes it with `is_active=false` and no clock.
+> Scheduled-due outbox append is atomic under `calls.channel.{channelId}.scheduled_due.v1`;
+> NATS, HTTP, MailEngine, cutover/compatibility writer, backfill and worker remain out of scope.
+> The launcher and generated Ent artifacts are unavailable, so executable RED/GREEN, Go
+> compile/test/build/gofmt/lint, Ent generation, Atlas migration, Docker and runtime evidence
+> remain `NOT_RUN` until Task 9.
+
 > **Phase 143 Task 4 Calendar Ent optional capabilities (2026-08-22):**
 > `SOURCE_CONTRACT_AUTHORED / PENDING_INDEPENDENT_REVIEW / RUNTIME_NOT_RUN`.
 > A source-contract test preceded private Task 3 Ent backend implementations of the existing

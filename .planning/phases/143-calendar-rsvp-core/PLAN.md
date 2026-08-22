@@ -1,5 +1,18 @@
 # Phase 143 — Calendar RSVP Core
 
+> **Phase 143 Task 4B event-to-call Ent bridge (2026-08-22):**
+> `SOURCE_CONTRACT_AUTHORED / PENDING_INDEPENDENT_REVIEW / RUNTIME_NOT_RUN`.
+> The separate `EventCallRepository` and private bridge wrapper preserve the `EventRepository`
+> ABI. Each resolver and persistence path locks CalendarEvent before ScheduledCall, compares
+> both expected versions, rejects linked-row/caller-state divergence, and persists only the
+> policy result. `EventCallProjectionSnapshot.DeletedAt` is a nullable policy-owned soft-delete
+> instant: only `delete` receives an isolated exact-second UTC boundary copy; Ent writes it with
+> `is_active=false` and no adapter clock. Scheduled-due outbox append stays atomic in that Ent
+> transaction under `calls.channel.{channelId}.scheduled_due.v1`; no NATS, HTTP, MailEngine,
+> writer cutover, compatibility flag, backfill or worker is introduced. The accepted Docker
+> launcher and generated Ent artifacts remain unavailable, so executable RED/GREEN, compile,
+> database, generation, migration, Docker and runtime evidence remain `NOT_RUN` until Task 9.
+
 > **Phase 143 Task 4 Calendar Ent optional capabilities (2026-08-22):**
 > `SOURCE_CONTRACT_AUTHORED / PENDING_INDEPENDENT_REVIEW / RUNTIME_NOT_RUN`.
 > The isolated source-contract test was authored before the private Task 3 Ent backend gained
