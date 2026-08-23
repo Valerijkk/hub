@@ -24,6 +24,7 @@ const NAMESPACES = [
 	"settings",
 	"help",
 	"onboarding",
+	"mail",
 ] as const;
 
 type HubNamespace = (typeof NAMESPACES)[number];
@@ -42,6 +43,7 @@ const localeLoaders: Record<
 		dashboard: () => import("./locales/ru/dashboard.json"),
 		settings: () => import("./locales/ru/settings.json"),
 		onboarding: () => import("./locales/ru/onboarding.json"),
+		mail: () => import("./locales/ru/mail.json"),
 	},
 	en: {
 		tracker: () => import("./locales/en/tracker.json"),
@@ -51,6 +53,7 @@ const localeLoaders: Record<
 		dashboard: () => import("./locales/en/dashboard.json"),
 		settings: () => import("./locales/en/settings.json"),
 		onboarding: () => import("./locales/en/onboarding.json"),
+		mail: () => import("./locales/en/mail.json"),
 	},
 };
 

@@ -1,0 +1,34 @@
+{
+	"title": "Mail",
+	"loading": "Checking mailbox status?",
+	"retry": "Refresh status",
+	"unavailable": {
+		"title": "Mailbox status is unavailable",
+		"description": "We could not check your mailbox right now. Try again when you are ready."
+	},
+	"notConfigured": {
+		"title": "Mailbox is not configured",
+		"description": "Ask your administrator to set up mailbox access for your account."
+	},
+	"provisioning": {
+		"title": "Mailbox setup is in progress",
+		"description": "Your mailbox is being prepared. Refresh this status to check again."
+	},
+	"suspended": {
+		"title": "Mailbox is suspended",
+		"description": "Mailbox access is temporarily unavailable. Contact your administrator if this continues."
+	},
+	"error": {
+		"title": "Mailbox needs attention",
+		"description": "Mailbox access is unavailable right now. Refresh the status or contact your administrator."
+	},
+	"deleting": {
+		"title": "Mailbox is being removed",
+		"description": "Mailbox access is unavailable while this account is being removed."
+	},
+	"active": {
+		"title": "Mailbox is ready",
+		"description": "Your mailbox is available.",
+		"workspace": "Your Mail workspace will appear here as more mailbox features become available."
+	}
+}
