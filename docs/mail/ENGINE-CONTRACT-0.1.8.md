@@ -95,17 +95,30 @@ func NewMailObjectDeletionError(kind MailObjectDeletionErrorKind) (*MailObjectDe
 }
 
 func (*MailObjectDeletionError) Error() string { return "mail object deletion failed" }
-func (e *MailObjectDeletionError) Kind() MailObjectDeletionErrorKind { return e.kind }
+func (e *MailObjectDeletionError) Kind() MailObjectDeletionErrorKind {
+	if e == nil {
+		return ""
+	}
+	switch e.kind {
+	case MailObjectDeletionErrorUnavailable, MailObjectDeletionErrorIndeterminate, MailObjectDeletionErrorConflict, MailObjectDeletionErrorRejectedPolicy, MailObjectDeletionErrorUnauthorizedScope:
+		return e.kind
+	default:
+		return ""
+	}
+}
 func MailObjectDeletionErrorKindOf(err error) (MailObjectDeletionErrorKind, bool) {
 	var target *MailObjectDeletionError
 	if errors.As(err, &target) {
-		return target.Kind(), true
+		kind := target.Kind()
+		if kind != "" {
+			return kind, true
+		}
 	}
 	return "", false
 }
 ```
 
-Zero/unknown result or observation states are invalid. The adapter boundary rejects them and preserves durable intent as indeterminate; it never finalizes. `MailObjectDeletionErrorKindOf` uses `errors.As`; an invalid constructor kind returns a generic safe error. `MailObjectDeletionError` exposes no `Unwrap`, cause, or detail.
+Zero/unknown result or observation states are invalid. The adapter boundary rejects them and preserves durable intent as indeterminate; it never finalizes. `MailObjectDeletionError.Kind` is nil-safe and validates the closed kind set, returning `""` for a nil receiver or zero/unknown stored value. `MailObjectDeletionErrorKindOf` uses `errors.As` but returns `("", false)` when its target is typed-nil or has a zero/unknown kind; an invalid constructor kind returns a generic safe error. `MailObjectDeletionError` exposes no `Unwrap`, cause, or detail.
 > **P3-D0 static acceptance (2026-08-23):** immutable source `47faf3a705e5641f4ceb7ee365c3dfeeeace725d` is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` for exactly `backend/ent/schema/calendarinboundmessagereceipt.go`. It adds required immutable `organization_id`/`mailbox_id` UUID scalars and database nonzero checks, with no Ent edges or raw data; existing uniqueness, state-shape, and due behavior are unchanged. Independent Contract/high and Security/xhigh review is APPROVED C/I/M `0/0/0`. The D0-next route is `CONSUMED/HISTORICAL`. P3-C remains blocked on Mail Ent generation; 147-02B/147-02C and D1/D2 remain blocked on active Calendar generation/dependencies; P3-E is conjunction-blocked. No next unblocked P3 source is selected. Generation, migration, SQL, build, tests, Docker, and runtime are `NOT_RUN`; no readiness, merge, or product claim.
 
 > **Phase-147 P3-B static acceptance (2026-08-23):** `43a6c42af88524be2951966bdbfc83b422ecb7f9` is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` for exactly `backend/internal/calendar/event_repository.go`, `backend/internal/calendar/event_service_inbound_reply.go`, and `backend/internal/calendar/event_service_inbound_message.go`. It accepts the Calendar transaction ABI only: receipt-first single `EventTransaction`, opaque claim/scope/completion, and closed observed/error-code constructor ABI, preserving REPLY receipt/outbox behavior without nested transactions or duplicate logic. Independent Contract/high and Security/xhigh review is APPROVED C/I/M `0/0/0`. CONSUMED/HISTORICAL: P3-C was the sole next pending atom, blocked on Mail Ent generation, for exactly `backend/internal/mail/mailbox_ent_calendar_part.go` and `backend/internal/mail/mailbox_ent_repository.go`; P3-D/E remain pending/blocked. Generation, migration, SQL, build, tests, lint/gofmt, parser/validator, Docker, and runtime are `NOT_RUN`; no merge, product, or Docker-readiness claim follows. Earlier P3-B-next clauses are `CONSUMED/HISTORICAL`.
