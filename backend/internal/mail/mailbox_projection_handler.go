@@ -19,9 +19,14 @@ type mailboxThreadProjectionReader interface {
 	ListMailboxThreads(context.Context, uuid.UUID, MailboxThreadProjectionQuery) (MailboxThreadProjection, error)
 }
 
+type mailboxThreadDetailProjectionReader interface {
+	GetMailboxThreadDetail(context.Context, uuid.UUID, MailboxThreadDetailProjectionQuery) (MailboxThreadDetailProjection, error)
+}
+
 type mailboxProjectionReader interface {
 	mailboxFolderProjectionReader
 	mailboxThreadProjectionReader
+	mailboxThreadDetailProjectionReader
 }
 
 // MailboxFolderProjectionHandler exposes the authenticated durable folder projection.
@@ -42,6 +47,21 @@ type mailboxThreadProjectionResponse struct {
 	ProjectionAsOf  *time.Time                    `json:"projection_as_of"`
 }
 
+type mailboxThreadDetailProjectionResponse struct {
+	ID             uuid.UUID                            `json:"id"`
+	Subject        string                               `json:"subject"`
+	Participants   []MailboxThreadProjectionParticipant `json:"participants"`
+	MessageCount   int32                                `json:"message_count"`
+	UnreadCount    int32                                `json:"unread_count"`
+	LastMessageAt  time.Time                            `json:"last_message_at"`
+	Snippet        string                               `json:"snippet"`
+	IsPinned       bool                                 `json:"is_pinned"`
+	HasAttachments bool                                 `json:"has_attachments"`
+	Labels         []MailboxThreadProjectionLabel       `json:"labels"`
+	Messages       []MailboxThreadDetailProjectionMessage `json:"messages"`
+	NextCursor     *string                              `json:"next_cursor"`
+}
+
 // NewMailboxFolderProjectionHandler creates the authenticated folder projection handler.
 func NewMailboxFolderProjectionHandler(service mailboxProjectionReader) (*MailboxFolderProjectionHandler, error) {
 	if mailboxFolderProjectionDependencyNil(service) {
@@ -59,6 +79,7 @@ func (handler *MailboxFolderProjectionHandler) RegisterRoutes(api fiber.Router, 
 	mail := api.Group("/mail", authMiddleware)
 	mail.Get("/folders", handler.listFolders)
 	mail.Get("/threads", handler.listThreads)
+	mail.Get("/threads/:threadId", handler.getThreadDetail)
 	return nil
 }
 
@@ -94,6 +115,30 @@ func (handler *MailboxFolderProjectionHandler) listThreads(ctx fiber.Ctx) error 
 		return mailboxThreadProjectionHTTPError(ctx, err)
 	}
 	response, err := mailboxThreadProjectionResponseFromProjection(projection, query)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "mailbox thread projection unavailable")
+	}
+	return ctx.JSON(response)
+}
+
+func (handler *MailboxFolderProjectionHandler) getThreadDetail(ctx fiber.Ctx) error {
+	actorID, err := mailboxActorID(ctx)
+	if err != nil {
+		return err
+	}
+	threadID, err := mailboxThreadDetailProjectionThreadIDFromRequest(ctx)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid mailbox thread id")
+	}
+	query, err := mailboxThreadDetailProjectionQueryFromRequest(ctx, threadID)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid mailbox thread query")
+	}
+	projection, err := handler.service.GetMailboxThreadDetail(ctx.Context(), actorID, query)
+	if err != nil {
+		return mailboxThreadProjectionHTTPError(ctx, err)
+	}
+	response, err := mailboxThreadDetailProjectionResponseFromProjection(projection, query)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "mailbox thread projection unavailable")
 	}
@@ -175,6 +220,57 @@ func mailboxThreadProjectionQueryFromRequest(ctx fiber.Ctx) (MailboxThreadProjec
 	return query, nil
 }
 
+func mailboxThreadDetailProjectionThreadIDFromRequest(ctx fiber.Ctx) (uuid.UUID, error) {
+	if ctx == nil {
+		return uuid.Nil, errMailboxThreadProjectionRequestInvalid
+	}
+	value := ctx.Params("threadId")
+	threadID, err := uuid.Parse(value)
+	if err != nil || threadID == uuid.Nil || value != threadID.String() {
+		return uuid.Nil, errMailboxThreadProjectionRequestInvalid
+	}
+	return threadID, nil
+}
+
+func mailboxThreadDetailProjectionQueryFromRequest(ctx fiber.Ctx, threadID uuid.UUID) (MailboxThreadDetailProjectionQuery, error) {
+	if ctx == nil || threadID == uuid.Nil {
+		return MailboxThreadDetailProjectionQuery{}, errMailboxThreadProjectionRequestInvalid
+	}
+	values, err := url.ParseQuery(string(ctx.Request().URI().QueryString()))
+	if err != nil {
+		return MailboxThreadDetailProjectionQuery{}, errMailboxThreadProjectionRequestInvalid
+	}
+	for name, valuesForName := range values {
+		switch name {
+		case "cursor", "limit":
+			if len(valuesForName) != 1 {
+				return MailboxThreadDetailProjectionQuery{}, errMailboxThreadProjectionRequestInvalid
+			}
+		default:
+			return MailboxThreadDetailProjectionQuery{}, errMailboxThreadProjectionRequestInvalid
+		}
+	}
+	query := MailboxThreadDetailProjectionQuery{ThreadID: threadID, Limit: defaultMailboxThreadProjectionLimit}
+	if values.Has("limit") {
+		limit, err := strconv.Atoi(values.Get("limit"))
+		if err != nil || limit < 1 || limit > maxMailboxThreadProjectionLimit {
+			return MailboxThreadDetailProjectionQuery{}, errMailboxThreadProjectionRequestInvalid
+		}
+		query.Limit = limit
+	}
+	if values.Has("cursor") {
+		cursor, err := mailboxThreadDetailProjectionDecodeCursor(values.Get("cursor"))
+		if err != nil {
+			return MailboxThreadDetailProjectionQuery{}, errMailboxThreadProjectionRequestInvalid
+		}
+		query.Cursor = cursor
+	}
+	if !mailboxThreadDetailProjectionQueryValid(query) {
+		return MailboxThreadDetailProjectionQuery{}, errMailboxThreadProjectionRequestInvalid
+	}
+	return query, nil
+}
+
 func mailboxThreadProjectionOptionalBool(values url.Values, name string) (*bool, error) {
 	if !values.Has(name) {
 		return nil, nil
@@ -230,6 +326,56 @@ func mailboxThreadProjectionResponseFromProjection(projection MailboxThreadProje
 		NextCursor:      mailboxFolderProjectionStringPointer(copy.NextCursor),
 		ProjectionState: copy.ProjectionState,
 		ProjectionAsOf:  mailboxFolderProjectionTimePointer(copy.ProjectionAsOf),
+	}, nil
+}
+
+func mailboxThreadDetailProjectionResponseFromProjection(projection MailboxThreadDetailProjection, query MailboxThreadDetailProjectionQuery) (mailboxThreadDetailProjectionResponse, error) {
+	if !mailboxThreadDetailProjectionQueryValid(query) || projection.Thread.ID != query.ThreadID || len(projection.Messages) > query.Limit || !validMailboxProjectionState(projection.ProjectionState) || !validMailboxThreadProjectionItem(projection.Thread) {
+		return mailboxThreadDetailProjectionResponse{}, mailboxServiceError(MailboxServiceErrorInvalid)
+	}
+	if projection.ProjectionState == MailboxProjectionReady && projection.ProjectionAsOf == nil {
+		return mailboxThreadDetailProjectionResponse{}, mailboxServiceError(MailboxServiceErrorInvalid)
+	}
+	if projection.ProjectionAsOf != nil && !mailboxEntValidTime(*projection.ProjectionAsOf) {
+		return mailboxThreadDetailProjectionResponse{}, mailboxServiceError(MailboxServiceErrorInvalid)
+	}
+	seen := make(map[uuid.UUID]struct{}, len(projection.Messages))
+	for index, message := range projection.Messages {
+		if !validMailboxThreadDetailProjectionMessage(message, query.ThreadID) || index > 0 && !mailboxThreadDetailProjectionMessageBefore(projection.Messages[index-1], message) {
+			return mailboxThreadDetailProjectionResponse{}, mailboxServiceError(MailboxServiceErrorInvalid)
+		}
+		if _, duplicate := seen[message.ID]; duplicate {
+			return mailboxThreadDetailProjectionResponse{}, mailboxServiceError(MailboxServiceErrorInvalid)
+		}
+		seen[message.ID] = struct{}{}
+	}
+	if projection.NextCursor != nil {
+		if len(projection.Messages) != query.Limit {
+			return mailboxThreadDetailProjectionResponse{}, mailboxServiceError(MailboxServiceErrorInvalid)
+		}
+		cursor, err := mailboxThreadDetailProjectionDecodeCursor(*projection.NextCursor)
+		if err != nil || cursor.threadID != query.ThreadID || cursor.filterSignature != mailboxThreadDetailProjectionQuerySignature() {
+			return mailboxThreadDetailProjectionResponse{}, mailboxServiceError(MailboxServiceErrorInvalid)
+		}
+		last := projection.Messages[len(projection.Messages)-1]
+		if !cursor.createdAt.Equal(last.createdAt) || cursor.id != last.ID {
+			return mailboxThreadDetailProjectionResponse{}, mailboxServiceError(MailboxServiceErrorInvalid)
+		}
+	}
+	copy := mailboxThreadDetailProjectionCopy(projection)
+	return mailboxThreadDetailProjectionResponse{
+		ID:              copy.Thread.ID,
+		Subject:         copy.Thread.Subject,
+		Participants:    copy.Thread.Participants,
+		MessageCount:    copy.Thread.MessageCount,
+		UnreadCount:     copy.Thread.UnreadCount,
+		LastMessageAt:   copy.Thread.LastMessageAt,
+		Snippet:         copy.Thread.Snippet,
+		IsPinned:        copy.Thread.IsPinned,
+		HasAttachments:  copy.Thread.HasAttachments,
+		Labels:          copy.Thread.Labels,
+		Messages:        copy.Messages,
+		NextCursor:      mailboxFolderProjectionStringPointer(copy.NextCursor),
 	}, nil
 }
 

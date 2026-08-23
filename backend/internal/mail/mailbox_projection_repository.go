@@ -25,6 +25,7 @@ const (
 	maxMailboxThreadProjectionSearch    = 128
 	mailboxThreadProjectionCursorV1     = 1
 	mailboxThreadProjectionSort         = "pinned_desc,last_message_at_desc,id_desc"
+	mailboxThreadDetailProjectionSort   = "created_at_asc,id_asc"
 )
 
 var errMailboxThreadProjectionRequestInvalid = errors.New("mailbox thread projection request invalid")
@@ -162,6 +163,11 @@ type MailboxThreadProjectionRepository interface {
 	ListMailboxThreadProjection(context.Context, MailboxFolderProjectionScope, MailboxThreadProjectionQuery) (MailboxThreadProjection, error)
 }
 
+// MailboxThreadDetailProjectionRepository reads one owner-scoped thread with a bounded message-summary page.
+type MailboxThreadDetailProjectionRepository interface {
+	GetMailboxThreadDetailProjection(context.Context, MailboxFolderProjectionScope, MailboxThreadDetailProjectionQuery) (MailboxThreadDetailProjection, error)
+}
+
 // MailboxThreadProjectionQuery contains only validated, owner-scoped thread-list filters.
 type MailboxThreadProjectionQuery struct {
 	Cursor         *MailboxThreadProjectionCursor
@@ -205,6 +211,63 @@ type MailboxThreadProjectionItem struct {
 	Labels         []MailboxThreadProjectionLabel       `json:"labels"`
 }
 
+// MailboxThreadDetailProjectionQuery contains the owner-scoped path identity and message-page continuation.
+type MailboxThreadDetailProjectionQuery struct {
+	ThreadID uuid.UUID
+	Cursor   *MailboxThreadDetailProjectionCursor
+	Limit    int
+}
+
+// MailboxThreadDetailProjectionCursor is an opaque continuation position bound to one account and thread.
+type MailboxThreadDetailProjectionCursor struct {
+	accountID       uuid.UUID
+	threadID        uuid.UUID
+	createdAt       time.Time
+	id              uuid.UUID
+	filterSignature string
+}
+
+// MailboxThreadDetailProjection is the safe, owner-scoped MailThreadDetail read model.
+type MailboxThreadDetailProjection struct {
+	Thread          MailboxThreadProjectionItem
+	Messages        []MailboxThreadDetailProjectionMessage
+	NextCursor      *string
+	ProjectionState MailboxProjectionState
+	ProjectionAsOf  *time.Time
+}
+
+// MailboxThreadDetailProjectionMessage is the closed MailMessageSummary projection for one thread page.
+type MailboxThreadDetailProjectionMessage struct {
+	ID              uuid.UUID                              `json:"id"`
+	ThreadID        uuid.UUID                              `json:"thread_id"`
+	From            MailboxThreadDetailProjectionAddress   `json:"from"`
+	To              []MailboxThreadDetailProjectionAddress `json:"to"`
+	CC              []MailboxThreadDetailProjectionAddress `json:"cc"`
+	Subject         string                                 `json:"subject"`
+	Snippet         string                                 `json:"snippet"`
+	SentAt          *time.Time                             `json:"sent_at"`
+	ReceivedAt      *time.Time                             `json:"received_at"`
+	Priority        string                                 `json:"priority"`
+	SizeBytes       int64                                  `json:"size_bytes"`
+	HasAttachments  bool                                   `json:"has_attachments"`
+	IsDraft         bool                                   `json:"is_draft"`
+	FolderIDs       []uuid.UUID                            `json:"folder_ids"`
+	Seen            bool                                   `json:"seen"`
+	Flagged         bool                                   `json:"flagged"`
+	Answered        bool                                   `json:"answered"`
+	Junk            bool                                   `json:"junk"`
+	CalendarMethod  *MailCalendarMethod                    `json:"calendar_method"`
+	CalendarEventID *uuid.UUID                             `json:"calendar_event_id"`
+
+	createdAt time.Time
+}
+
+// MailboxThreadDetailProjectionAddress is the public Address subset backed by a stored mail address.
+type MailboxThreadDetailProjectionAddress struct {
+	Email string  `json:"email"`
+	Name  *string `json:"name"`
+}
+
 // MailboxThreadProjectionParticipant is the public participant address projection.
 type MailboxThreadProjectionParticipant struct {
 	Email string `json:"email"`
@@ -227,6 +290,15 @@ type mailboxThreadProjectionCursorWire struct {
 	FilterSignature string `json:"f"`
 }
 
+type mailboxThreadDetailProjectionCursorWire struct {
+	Version         int    `json:"v"`
+	AccountID       string `json:"a"`
+	ThreadID        string `json:"t"`
+	CreatedAt       string `json:"c"`
+	ID              string `json:"i"`
+	FilterSignature string `json:"f"`
+}
+
 type mailboxThreadProjectionFilterWire struct {
 	Version        int    `json:"v"`
 	Sort           string `json:"s"`
@@ -236,6 +308,11 @@ type mailboxThreadProjectionFilterWire struct {
 	HasAttachments string `json:"a"`
 	Starred        string `json:"r"`
 	Search         string `json:"q"`
+}
+
+type mailboxThreadDetailProjectionFilterWire struct {
+	Version int    `json:"v"`
+	Sort    string `json:"s"`
 }
 
 func mailboxThreadProjectionQueryCopy(query MailboxThreadProjectionQuery) MailboxThreadProjectionQuery {
@@ -526,4 +603,240 @@ func mailboxThreadProjectionItemBefore(left, right MailboxThreadProjectionItem) 
 		return left.LastMessageAt.After(right.LastMessageAt)
 	}
 	return syncLessUUID(right.ID, left.ID)
+}
+
+func mailboxThreadDetailProjectionQueryCopy(query MailboxThreadDetailProjectionQuery) MailboxThreadDetailProjectionQuery {
+	result := MailboxThreadDetailProjectionQuery{ThreadID: query.ThreadID, Limit: query.Limit}
+	if query.Cursor != nil {
+		cursor := *query.Cursor
+		cursor.createdAt = cursor.createdAt.UTC()
+		result.Cursor = &cursor
+	}
+	return result
+}
+
+func mailboxThreadDetailProjectionCopy(projection MailboxThreadDetailProjection) MailboxThreadDetailProjection {
+	result := MailboxThreadDetailProjection{
+		Thread:          mailboxThreadProjectionItemCopy(projection.Thread),
+		Messages:        make([]MailboxThreadDetailProjectionMessage, len(projection.Messages)),
+		NextCursor:      mailboxFolderProjectionStringPointer(projection.NextCursor),
+		ProjectionState: projection.ProjectionState,
+		ProjectionAsOf:  mailboxFolderProjectionTimePointer(projection.ProjectionAsOf),
+	}
+	for index, message := range projection.Messages {
+		result.Messages[index] = mailboxThreadDetailProjectionMessageCopy(message)
+	}
+	return result
+}
+
+func mailboxThreadDetailProjectionMessageCopy(message MailboxThreadDetailProjectionMessage) MailboxThreadDetailProjectionMessage {
+	result := MailboxThreadDetailProjectionMessage{
+		ID:              message.ID,
+		ThreadID:        message.ThreadID,
+		From:            mailboxThreadDetailProjectionAddressCopy(message.From),
+		To:              mailboxThreadDetailProjectionAddressesCopy(message.To),
+		CC:              mailboxThreadDetailProjectionAddressesCopy(message.CC),
+		Subject:         message.Subject,
+		Snippet:         message.Snippet,
+		SentAt:          mailboxFolderProjectionTimePointer(message.SentAt),
+		ReceivedAt:      mailboxFolderProjectionTimePointer(message.ReceivedAt),
+		Priority:        message.Priority,
+		SizeBytes:       message.SizeBytes,
+		HasAttachments:  message.HasAttachments,
+		IsDraft:         message.IsDraft,
+		FolderIDs:       append([]uuid.UUID{}, message.FolderIDs...),
+		Seen:            message.Seen,
+		Flagged:         message.Flagged,
+		Answered:        message.Answered,
+		Junk:            message.Junk,
+		CalendarMethod:  copyMailCalendarMethod(message.CalendarMethod),
+		CalendarEventID: mailboxFolderProjectionUUIDPointer(message.CalendarEventID),
+		createdAt:       message.createdAt.UTC(),
+	}
+	return result
+}
+
+func mailboxThreadDetailProjectionAddressCopy(address MailboxThreadDetailProjectionAddress) MailboxThreadDetailProjectionAddress {
+	return MailboxThreadDetailProjectionAddress{Email: address.Email, Name: mailboxFolderProjectionStringPointer(address.Name)}
+}
+
+func mailboxThreadDetailProjectionAddressesCopy(addresses []MailboxThreadDetailProjectionAddress) []MailboxThreadDetailProjectionAddress {
+	result := make([]MailboxThreadDetailProjectionAddress, len(addresses))
+	for index, address := range addresses {
+		result[index] = mailboxThreadDetailProjectionAddressCopy(address)
+	}
+	return result
+}
+
+func mailboxThreadDetailProjectionQueryValid(query MailboxThreadDetailProjectionQuery) bool {
+	return query.ThreadID != uuid.Nil && query.Limit >= 1 && query.Limit <= maxMailboxThreadProjectionLimit && (query.Cursor == nil || mailboxThreadDetailProjectionCursorValid(*query.Cursor))
+}
+
+func mailboxThreadDetailProjectionQueryForScope(query MailboxThreadDetailProjectionQuery, scope MailboxFolderProjectionScope) (MailboxThreadDetailProjectionQuery, error) {
+	if scope.ActorID == uuid.Nil || scope.OrganizationID == uuid.Nil || scope.AccountID == uuid.Nil || !mailboxThreadDetailProjectionQueryValid(query) {
+		return MailboxThreadDetailProjectionQuery{}, errMailboxThreadProjectionRequestInvalid
+	}
+	result := mailboxThreadDetailProjectionQueryCopy(query)
+	if result.Cursor != nil && (result.Cursor.accountID != scope.AccountID || result.Cursor.threadID != result.ThreadID || result.Cursor.filterSignature != mailboxThreadDetailProjectionQuerySignature()) {
+		return MailboxThreadDetailProjectionQuery{}, errMailboxThreadProjectionRequestInvalid
+	}
+	return result, nil
+}
+
+func mailboxThreadDetailProjectionCursorValid(cursor MailboxThreadDetailProjectionCursor) bool {
+	return cursor.accountID != uuid.Nil && cursor.threadID != uuid.Nil && cursor.id != uuid.Nil && syncValidTime(cursor.createdAt) && mailboxThreadProjectionFilterSignatureValid(cursor.filterSignature)
+}
+
+func mailboxThreadDetailProjectionQuerySignature() string {
+	encoded, err := json.Marshal(mailboxThreadDetailProjectionFilterWire{Version: mailboxThreadProjectionCursorV1, Sort: mailboxThreadDetailProjectionSort})
+	if err != nil {
+		return ""
+	}
+	digest := sha256.Sum256(encoded)
+	return base64.RawURLEncoding.EncodeToString(digest[:])
+}
+
+func mailboxThreadDetailProjectionDecodeCursor(value string) (*MailboxThreadDetailProjectionCursor, error) {
+	if value == "" || len(value) > maxMailboxThreadProjectionCursor {
+		return nil, errMailboxThreadProjectionRequestInvalid
+	}
+	decoded, err := base64.RawURLEncoding.DecodeString(value)
+	if err != nil || len(decoded) == 0 || len(decoded) > maxMailboxThreadProjectionCursor {
+		return nil, errMailboxThreadProjectionRequestInvalid
+	}
+
+	var wire mailboxThreadDetailProjectionCursorWire
+	if err := json.Unmarshal(decoded, &wire); err != nil || wire.Version != mailboxThreadProjectionCursorV1 {
+		return nil, errMailboxThreadProjectionRequestInvalid
+	}
+	accountID, err := uuid.Parse(wire.AccountID)
+	if err != nil || accountID == uuid.Nil {
+		return nil, errMailboxThreadProjectionRequestInvalid
+	}
+	threadID, err := uuid.Parse(wire.ThreadID)
+	if err != nil || threadID == uuid.Nil {
+		return nil, errMailboxThreadProjectionRequestInvalid
+	}
+	id, err := uuid.Parse(wire.ID)
+	if err != nil || id == uuid.Nil {
+		return nil, errMailboxThreadProjectionRequestInvalid
+	}
+	createdAt, err := time.Parse(time.RFC3339Nano, wire.CreatedAt)
+	if err != nil || createdAt.Location() != time.UTC || wire.CreatedAt != createdAt.UTC().Format(time.RFC3339Nano) || !strings.HasSuffix(wire.CreatedAt, "Z") {
+		return nil, errMailboxThreadProjectionRequestInvalid
+	}
+	cursor := &MailboxThreadDetailProjectionCursor{accountID: accountID, threadID: threadID, createdAt: createdAt.UTC(), id: id, filterSignature: wire.FilterSignature}
+	if !mailboxThreadDetailProjectionCursorValid(*cursor) {
+		return nil, errMailboxThreadProjectionRequestInvalid
+	}
+	canonical, err := mailboxThreadDetailProjectionEncodeCursor(*cursor)
+	if err != nil || canonical != value {
+		return nil, errMailboxThreadProjectionRequestInvalid
+	}
+	return cursor, nil
+}
+
+func mailboxThreadDetailProjectionEncodeCursor(cursor MailboxThreadDetailProjectionCursor) (string, error) {
+	if !mailboxThreadDetailProjectionCursorValid(cursor) {
+		return "", errMailboxThreadProjectionRequestInvalid
+	}
+	wire := mailboxThreadDetailProjectionCursorWire{
+		Version:         mailboxThreadProjectionCursorV1,
+		AccountID:       cursor.accountID.String(),
+		ThreadID:        cursor.threadID.String(),
+		CreatedAt:       cursor.createdAt.UTC().Format(time.RFC3339Nano),
+		ID:              cursor.id.String(),
+		FilterSignature: cursor.filterSignature,
+	}
+	encoded, err := json.Marshal(wire)
+	if err != nil || len(encoded) == 0 || len(encoded) > maxMailboxThreadProjectionCursor {
+		return "", errMailboxThreadProjectionRequestInvalid
+	}
+	result := base64.RawURLEncoding.EncodeToString(encoded)
+	if len(result) == 0 || len(result) > maxMailboxThreadProjectionCursor {
+		return "", errMailboxThreadProjectionRequestInvalid
+	}
+	return result, nil
+}
+
+func validateMailboxThreadDetailProjection(projection MailboxThreadDetailProjection, query MailboxThreadDetailProjectionQuery, accountID uuid.UUID) error {
+	if accountID == uuid.Nil || !mailboxThreadDetailProjectionQueryValid(query) || projection.Thread.ID != query.ThreadID || len(projection.Messages) > query.Limit || !validMailboxProjectionState(projection.ProjectionState) || !validMailboxThreadProjectionItem(projection.Thread) {
+		return mailboxServiceError(MailboxServiceErrorInvalid)
+	}
+	if projection.ProjectionState == MailboxProjectionReady && projection.ProjectionAsOf == nil {
+		return mailboxServiceError(MailboxServiceErrorInvalid)
+	}
+	if projection.ProjectionAsOf != nil && !mailboxEntValidTime(*projection.ProjectionAsOf) {
+		return mailboxServiceError(MailboxServiceErrorInvalid)
+	}
+
+	seen := make(map[uuid.UUID]struct{}, len(projection.Messages))
+	for index, message := range projection.Messages {
+		if !validMailboxThreadDetailProjectionMessage(message, query.ThreadID) {
+			return mailboxServiceError(MailboxServiceErrorInvalid)
+		}
+		if _, duplicate := seen[message.ID]; duplicate {
+			return mailboxServiceError(MailboxServiceErrorInvalid)
+		}
+		seen[message.ID] = struct{}{}
+		if index > 0 && !mailboxThreadDetailProjectionMessageBefore(projection.Messages[index-1], message) {
+			return mailboxServiceError(MailboxServiceErrorInvalid)
+		}
+	}
+	if projection.NextCursor == nil {
+		return nil
+	}
+	if len(projection.Messages) != query.Limit {
+		return mailboxServiceError(MailboxServiceErrorInvalid)
+	}
+	cursor, err := mailboxThreadDetailProjectionDecodeCursor(*projection.NextCursor)
+	if err != nil || cursor.accountID != accountID || cursor.threadID != query.ThreadID || cursor.filterSignature != mailboxThreadDetailProjectionQuerySignature() {
+		return mailboxServiceError(MailboxServiceErrorInvalid)
+	}
+	last := projection.Messages[len(projection.Messages)-1]
+	if !cursor.createdAt.Equal(last.createdAt) || cursor.id != last.ID {
+		return mailboxServiceError(MailboxServiceErrorInvalid)
+	}
+	return nil
+}
+
+func validMailboxThreadDetailProjectionMessage(message MailboxThreadDetailProjectionMessage, threadID uuid.UUID) bool {
+	if message.ID == uuid.Nil || message.ThreadID != threadID || !validMailboxThreadDetailProjectionAddress(message.From) || len(message.To) > 200 || len(message.CC) > 200 || !syncValidSafeText(message.Subject, 998, true) || !syncValidSafeText(message.Snippet, MaxEngineSnippetBytes, true) || !syncValidTime(message.createdAt) || message.SizeBytes < 0 || message.SizeBytes > MaxEngineMessageBytes || len(message.FolderIDs) > maxMailboxThreadProjectionLimit {
+		return false
+	}
+	if message.SentAt != nil && !syncValidTime(*message.SentAt) || message.ReceivedAt != nil && !syncValidTime(*message.ReceivedAt) || message.CalendarEventID != nil && *message.CalendarEventID == uuid.Nil || !validMailCalendarMethod(message.CalendarMethod) {
+		return false
+	}
+	switch message.Priority {
+	case string(EnginePriorityLow), string(EnginePriorityNormal), string(EnginePriorityHigh):
+	default:
+		return false
+	}
+	for _, addresses := range [][]MailboxThreadDetailProjectionAddress{message.To, message.CC} {
+		for _, address := range addresses {
+			if !validMailboxThreadDetailProjectionAddress(address) {
+				return false
+			}
+		}
+	}
+	for index, folderID := range message.FolderIDs {
+		if folderID == uuid.Nil || index > 0 && !syncLessUUID(message.FolderIDs[index-1], folderID) {
+			return false
+		}
+	}
+	return true
+}
+
+func validMailboxThreadDetailProjectionAddress(address MailboxThreadDetailProjectionAddress) bool {
+	if !syncValidSafeText(address.Email, 320, false) || strings.Count(address.Email, "@") != 1 {
+		return false
+	}
+	return address.Name == nil || syncValidSafeText(*address.Name, 640, true) && utf8.RuneCountInString(*address.Name) <= 160
+}
+
+func mailboxThreadDetailProjectionMessageBefore(left, right MailboxThreadDetailProjectionMessage) bool {
+	if !left.createdAt.Equal(right.createdAt) {
+		return left.createdAt.Before(right.createdAt)
+	}
+	return syncLessUUID(left.ID, right.ID)
 }

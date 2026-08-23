@@ -11,9 +11,10 @@ import (
 
 // MailboxFolderProjectionService resolves the authenticated owner before reading its durable folder projection.
 type MailboxFolderProjectionService struct {
-	owners           mailboxOwnerResolver
-	repository       MailboxFolderProjectionRepository
-	threadRepository MailboxThreadProjectionRepository
+	owners                 mailboxOwnerResolver
+	repository             MailboxFolderProjectionRepository
+	threadRepository       MailboxThreadProjectionRepository
+	threadDetailRepository MailboxThreadDetailProjectionRepository
 }
 
 // NewMailboxFolderProjectionService creates the owner-gated folder projection read service.
@@ -25,7 +26,11 @@ func NewMailboxFolderProjectionService(owners mailboxOwnerResolver, repository M
 	if !ok || mailboxFolderProjectionDependencyNil(threadRepository) {
 		return nil, mailboxServiceError(MailboxServiceErrorInvalid)
 	}
-	return &MailboxFolderProjectionService{owners: owners, repository: repository, threadRepository: threadRepository}, nil
+	threadDetailRepository, ok := repository.(MailboxThreadDetailProjectionRepository)
+	if !ok || mailboxFolderProjectionDependencyNil(threadDetailRepository) {
+		return nil, mailboxServiceError(MailboxServiceErrorInvalid)
+	}
+	return &MailboxFolderProjectionService{owners: owners, repository: repository, threadRepository: threadRepository, threadDetailRepository: threadDetailRepository}, nil
 }
 
 // ListMailboxFolders returns the persisted folder projection for one authenticated owner.
@@ -86,6 +91,39 @@ func (service *MailboxFolderProjectionService) ListMailboxThreads(ctx context.Co
 		return MailboxThreadProjection{}, err
 	}
 	return mailboxThreadProjectionCopy(projection), nil
+}
+
+// GetMailboxThreadDetail returns one owner-scoped thread summary with a bounded page of safe message summaries.
+func (service *MailboxFolderProjectionService) GetMailboxThreadDetail(ctx context.Context, actorID uuid.UUID, query MailboxThreadDetailProjectionQuery) (MailboxThreadDetailProjection, error) {
+	if service == nil || mailboxFolderProjectionDependencyNil(service.owners) || mailboxFolderProjectionDependencyNil(service.threadDetailRepository) || ctx == nil || actorID == uuid.Nil {
+		return MailboxThreadDetailProjection{}, mailboxServiceError(MailboxServiceErrorInvalid)
+	}
+	if !mailboxThreadDetailProjectionQueryValid(query) {
+		return MailboxThreadDetailProjection{}, errMailboxThreadProjectionRequestInvalid
+	}
+	query = mailboxThreadDetailProjectionQueryCopy(query)
+
+	owner, err := service.owners.ResolveOwner(ctx, actorID)
+	if err != nil {
+		return MailboxThreadDetailProjection{}, mailboxFolderProjectionOwnerError(err)
+	}
+	scope, err := mailboxFolderProjectionScopeFromOwner(actorID, owner)
+	if err != nil {
+		return MailboxThreadDetailProjection{}, err
+	}
+	query, err = mailboxThreadDetailProjectionQueryForScope(query, scope)
+	if err != nil {
+		return MailboxThreadDetailProjection{}, errMailboxThreadProjectionRequestInvalid
+	}
+
+	projection, err := service.threadDetailRepository.GetMailboxThreadDetailProjection(ctx, scope, query)
+	if err != nil {
+		return MailboxThreadDetailProjection{}, mailboxFolderProjectionRepositoryError(err)
+	}
+	if err := validateMailboxThreadDetailProjection(projection, query, scope.AccountID); err != nil {
+		return MailboxThreadDetailProjection{}, err
+	}
+	return mailboxThreadDetailProjectionCopy(projection), nil
 }
 
 func mailboxFolderProjectionScopeFromOwner(actorID uuid.UUID, owner MailboxOwner) (MailboxFolderProjectionScope, error) {
