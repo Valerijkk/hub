@@ -396,6 +396,27 @@ function safeErrorKey(error: unknown, fallback: string): string {
 	return fallback;
 }
 
+function isAuthoritativeSendFailure(error: unknown): boolean {
+	const apiError = error as Partial<ApiError> | null;
+	const code =
+		apiError && typeof apiError.error_code === "string"
+			? apiError.error_code
+			: "";
+	return (
+		apiError?.code === 400 ||
+		apiError?.code === 409 ||
+		apiError?.code === 413 ||
+		apiError?.code === 422 ||
+		code === "MAIL_SUBMISSION_ATTACHMENT_NOT_CLEAN" ||
+		code === "MAIL_SUBMISSION_POLICY" ||
+		code === "MAIL_SUBMISSION_RECIPIENT_LIMIT" ||
+		code === "MAIL_SUBMISSION_SIZE_LIMIT" ||
+		code === "MAIL_SUBMISSION_IDENTITY_UNAVAILABLE" ||
+		code === "MAIL_DRAFT_VERSION_CONFLICT" ||
+		code === "MAIL_DRAFT_RECONCILIATION_REQUIRED"
+	);
+}
+
 function draftRequestFromServer(draft: MailDraft): SaveMailDraftRequest {
 	if (
 		draft.status !== "active" ||
@@ -467,29 +488,31 @@ export function MailComposer({ open, onOpenChange }: MailComposerProps) {
 		enabled: open,
 		retry: false,
 	});
-	const senderIdentity = useMemo(() => {
-		const candidates =
-			identitiesQuery.data?.items.filter(
-				(identity) =>
-					identity.status === "active" && identity.send_allowed,
-			) ?? [];
-		return candidates.find((identity) => identity.id === selectedIdentityId) ?? null;
-	}, [identitiesQuery.data, selectedIdentityId]);
-
-	useEffect(() => {
-		const candidates =
+	const sendableIdentities = useMemo(
+		() =>
 			identitiesQuery.data?.items.filter(
 				(identity) => identity.status === "active" && identity.send_allowed,
-			) ?? [];
+			) ?? [],
+		[identitiesQuery.data],
+	);
+
+	const senderIdentity = useMemo(
+		() =>
+			sendableIdentities.find((identity) => identity.id === selectedIdentityId) ??
+			null,
+		[sendableIdentities, selectedIdentityId],
+	);
+
+	useEffect(() => {
 		const next =
-			candidates.find((identity) => identity.id === selectedIdentityId) ??
-			candidates.find((identity) => identity.is_default) ??
-			candidates[0] ??
+			sendableIdentities.find((identity) => identity.id === selectedIdentityId) ??
+			sendableIdentities.find((identity) => identity.is_default) ??
+			sendableIdentities[0] ??
 			null;
 		if (next?.id === identityIdRef.current) return;
 		identityIdRef.current = next?.id ?? null;
 		setSelectedIdentityId(next?.id ?? null);
-	}, [identitiesQuery.data, selectedIdentityId]);
+	}, [sendableIdentities, selectedIdentityId]);
 
 	const replaceForm = useCallback((next: ComposerForm) => {
 		formRef.current = next;
@@ -1028,6 +1051,46 @@ export function MailComposer({ open, onOpenChange }: MailComposerProps) {
 		enqueueUpload(item);
 	};
 
+	const reconcileFailedSubmission = useCallback(
+		async (
+			session: ComposerSession,
+			intent: SubmissionIntent,
+		): Promise<boolean> => {
+			const authoritative = await getMailDraft(intent.draftId, {
+				signal: session.controller.signal,
+			});
+			if (session !== sessionRef.current || session.controller.signal.aborted) {
+				return false;
+			}
+			if (authoritative.draft_client_id !== session.draftClientId) {
+				throw new ComposerValidationError("compose.errors.conflict");
+			}
+			const serverSnapshot = draftRequestFromServer(authoritative);
+			applyDraft(authoritative);
+			serverSnapshotRef.current = serverSnapshot;
+			const localSnapshot = buildDraftRequest(
+				session,
+				formRef.current,
+				attachmentsRef.current,
+				identityIdRef.current,
+			);
+			if (draftFingerprint(localSnapshot) !== draftFingerprint(serverSnapshot)) {
+				saveRecoveryBlockedRef.current = true;
+				setRecoveryRequired(true);
+				setSaveState("error");
+				setErrorKey("compose.errors.conflict");
+			} else {
+				lastSavedFingerprintRef.current = draftFingerprint(serverSnapshot);
+				setRecoveryRequired(false);
+				setSaveState("saved");
+			}
+			session.sendKey = createUUID();
+			replaceSubmissionIntent(null);
+			return true;
+		},
+		[applyDraft, replaceSubmissionIntent],
+	);
+
 	const completeSentSubmission = useCallback(
 		async (session: ComposerSession): Promise<void> => {
 			await Promise.all([
@@ -1062,10 +1125,10 @@ export function MailComposer({ open, onOpenChange }: MailComposerProps) {
 		}
 		const session = sessionRef.current;
 		if (session.controller.signal.aborted) return;
+		let intent: SubmissionIntent | null = submissionIntentRef.current;
 		setIsSending(true);
 		setErrorKey(null);
 		try {
-			let intent = submissionIntentRef.current;
 			if (intent === null) {
 				const recipients = normalizeRecipients(formRef.current);
 				if (recipients.to.length === 0) {
@@ -1075,35 +1138,51 @@ export function MailComposer({ open, onOpenChange }: MailComposerProps) {
 				if (session !== sessionRef.current || session.controller.signal.aborted) return;
 				const currentDraft = draftRef.current;
 				if (currentDraft === null) throw new Error("Draft unavailable");
-				const snapshot = buildDraftRequest(
-					session,
-					formRef.current,
-					attachmentsRef.current,
-					identityIdRef.current,
-				);
 				intent = {
 					draftId: currentDraft.id,
 					revision: currentDraft.revision,
 					idempotencyKey: session.sendKey,
-					snapshot,
+					snapshot: buildDraftRequest(
+						session,
+						formRef.current,
+						attachmentsRef.current,
+						identityIdRef.current,
+					),
 					submissionId: null,
 					status: "unknown",
 				};
 				replaceSubmissionIntent(intent);
 			}
+			if (intent === null) throw new Error("Submission intent unavailable");
 
-			let submission: MailSubmission;
-			if (intent.submissionId === null) {
-				submission = await sendMailDraft(intent.draftId, {
-					idempotencyKey: intent.idempotencyKey,
-					ifMatch: intent.revision,
-					signal: session.controller.signal,
-				});
-			} else {
-				submission = await getMailSubmission(intent.submissionId, {
-					signal: session.controller.signal,
-				});
-			}
+			const obtainSubmission = async (): Promise<MailSubmission> => {
+				let lastError: unknown;
+				for (const delay of [0, ...SUBMISSION_POLL_DELAYS_MS]) {
+					if (delay > 0) {
+						await sleepWithSignal(delay, session.controller.signal);
+					}
+					try {
+						return await sendMailDraft(intent.draftId, {
+							idempotencyKey: intent.idempotencyKey,
+							ifMatch: intent.revision,
+							signal: session.controller.signal,
+						});
+					} catch (error) {
+						if (isAbortError(error) || isAuthoritativeSendFailure(error)) {
+							throw error;
+						}
+						lastError = error;
+					}
+				}
+				throw lastError ?? new Error("Mail submission outcome unavailable");
+			};
+
+			let submission =
+				intent.submissionId === null
+					? await obtainSubmission()
+					: await getMailSubmission(intent.submissionId, {
+							signal: session.controller.signal,
+						});
 			if (session !== sessionRef.current || session.controller.signal.aborted) return;
 
 			const recordSubmission = (candidate: MailSubmission) => {
@@ -1117,7 +1196,7 @@ export function MailComposer({ open, onOpenChange }: MailComposerProps) {
 			};
 			recordSubmission(submission);
 			for (const delay of SUBMISSION_POLL_DELAYS_MS) {
-				if (submission.status !== "queued" && submission.status !== "submitting") {
+				if (submission.status === "sent" || submission.status === "failed") {
 					break;
 				}
 				await sleepWithSignal(delay, session.controller.signal);
@@ -1131,12 +1210,16 @@ export function MailComposer({ open, onOpenChange }: MailComposerProps) {
 				await completeSentSubmission(session);
 				return;
 			}
-			if (submission.status === "failed" || submission.status === "unknown") {
-				setErrorKey(
-					submission.error_code === "MAIL_SUBMISSION_ATTACHMENT_NOT_CLEAN"
-						? "compose.errors.attachmentNotReady"
-						: "compose.errors.sendFailed",
-				);
+			if (submission.status === "failed") {
+				if (await reconcileFailedSubmission(session, intent)) {
+					setErrorKey(
+						submission.error_code === "MAIL_SUBMISSION_ATTACHMENT_NOT_CLEAN"
+							? "compose.errors.attachmentNotReady"
+							: "compose.errors.sendFailed",
+					);
+				} else {
+					setErrorKey("compose.errors.conflict");
+				}
 				return;
 			}
 			setErrorKey("compose.errors.sendFailed");
@@ -1146,6 +1229,25 @@ export function MailComposer({ open, onOpenChange }: MailComposerProps) {
 				session !== sessionRef.current ||
 				session.controller.signal.aborted
 			) {
+				return;
+			}
+			if (intent !== null && isAuthoritativeSendFailure(error)) {
+				try {
+					if (await reconcileFailedSubmission(session, intent)) {
+						setErrorKey(safeErrorKey(error, "compose.errors.sendFailed"));
+					} else {
+						setErrorKey("compose.errors.conflict");
+					}
+				} catch (reconcileError) {
+					if (
+						isAbortError(reconcileError) ||
+						session !== sessionRef.current ||
+						session.controller.signal.aborted
+					) {
+						return;
+					}
+					setErrorKey("compose.errors.conflict");
+				}
 				return;
 			}
 			const key =
