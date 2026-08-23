@@ -256,7 +256,7 @@ class enum string, and tag 11 optional raw 32-byte locator hash using the regist
 encoding. v1 remains fail-closed; a v2 proof is neither overwritten nor reinterpreted as v3.
 Canonical validation proves projection/carrier equality and method/locator pairing.
 
-P3 remains future: no Calendar consumer, repository, service, server wiring, NATS subscription,
+P3 remains future: no P3 Mail consumer, sanitized Calendar sink/service, repository, or NATS subscription,
 or worker is accepted. Generated Ent artifacts are absent/uncommitted; migration, SQL,
 compile/build, test, lint/gofmt, parser/validator, Docker, and runtime remain `NOT_RUN`.
 

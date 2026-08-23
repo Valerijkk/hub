@@ -1195,7 +1195,7 @@ event/durable/V2/V3 proof are respectively approved C/I/M `0/0/0` at
 `fc5dfe195b89963601e3f365e593469f73bed94f`, `1ebbb129d62aeca695a2b028822101af9c77687f`, and
 `a61edbb086df8535349429438155fad015b29615`.
 
-- [ ] **P3: Later Calendar consumer/repository/service/wiring packet**
+- [ ] **P3: Later Mail inbound delivery and Calendar sink/service/repository packet**
 
 **Contract frozen only — `UNIMPLEMENTED / PENDING / RUNTIME_NOT_RUN`.** P3 owns no source in this
 task and remains the explicit Task 10 dependency. Historical 147-02D/02E `GetMessage`, full-body/MIME,
