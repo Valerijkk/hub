@@ -787,8 +787,10 @@ func cloneMailboxSyncPolicyResult(value MailboxSyncPolicyResult) MailboxSyncPoli
 		result.Upserts[index].FolderIDs = append([]MailboxEventID(nil), upsert.FolderIDs...)
 		result.Upserts[index].Labels = append([]MailboxSyncPolicyLabelState(nil), upsert.Labels...)
 		result.Upserts[index].CalendarMethod = copyMailCalendarMethod(upsert.CalendarMethod)
-		result.Upserts[index].ChangedFields = make([]MailChangedField, len(upsert.ChangedFields))
-		copy(result.Upserts[index].ChangedFields, upsert.ChangedFields)
+		if upsert.ChangedFields != nil {
+			result.Upserts[index].ChangedFields = make([]MailChangedField, len(upsert.ChangedFields))
+			copy(result.Upserts[index].ChangedFields, upsert.ChangedFields)
+		}
 		if upsert.ReceivedEventID != nil { eventID := *upsert.ReceivedEventID; result.Upserts[index].ReceivedEventID = &eventID }
 	}
 	result.Tombstones = make([]MailboxSyncPolicyTombstoneIntent, len(value.Tombstones))
