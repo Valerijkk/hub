@@ -282,8 +282,10 @@ envelopes cross the boundary; state ownership does not.
    `805ac226`. Prior v1 `8935..52190` is superseded by v2 and not runtime accepted. 6Q2 and 6C0V2
    share Prepare but are complete; the 6C1 persistence contract is frozen and independently
    reviewed PASS in the implementation plan. Its source is split into folder, membership,
-   attachment, message/thread/tombstone, aggregate, and orchestrator atoms; 6C1F is statically
-   accepted through `da78cf0b`, and the next active order remains the rest of 6C1, then 6C2.
+   attachment, message/thread/tombstone, aggregate, and orchestrator atoms; folder persistence is
+   statically accepted through `749bfad8`, message-link persistence through `559dade8`, and
+   attachment persistence through `bfa07ae7`. The next active order remains 6C1M, 6C1A, 6C1O,
+   then 6C2.
 4. Main-server composition and authenticated HTTP surfaces.
 5. Outbox-backed Mail-to-Calendar consumer and Calendar-to-Mail delivery consumer.
 6. Compatibility cutover and ScheduledCall backfill only after migration evidence.
