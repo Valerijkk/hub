@@ -1,10 +1,116 @@
 # Mail engine boundary 0.1.8
 > **Engine deletion-port adjudication (2026-08-23):** `STATIC_ACCEPTED / DOCS_DESIGN_ONLY`; all former deletion-port-next clauses are `CONSUMED/HISTORICAL`, never source authority. Freeze separate future Go ports without widening normal `MailEngine` or combining account removal with object drain: `type EngineAccountDeletionPort interface { DeleteAccount(ctx context.Context, request EngineAccountDeleteRequest) (EngineAccountDeleteResult, error); ReconcileAccountAbsence(ctx context.Context, request EngineAccountAbsenceRequest) (EngineAccountAbsenceResult, error) }` and `type MailObjectDeletionPort interface { DeleteObject(ctx context.Context, request MailObjectDeleteRequest) (MailObjectDeleteResult, error); ReconcileObjectAbsence(ctx context.Context, request MailObjectAbsenceRequest) (MailObjectAbsenceResult, error) }`. `EngineAccountDeleteRequest` has exactly exported `ProvisioningKey string`, `EngineAccountID string`, and `DeletionID uuid.UUID`; `MailObjectDeleteRequest` has exactly exported `Bucket string`, `ObjectKey string`, and `DeletionID uuid.UUID`. The aliases are explicit: `type EngineAccountAbsenceRequest = EngineAccountDeleteRequest` and `type MailObjectAbsenceRequest = MailObjectDeleteRequest`, so an absence request carries the identical corresponding scope and nonzero `DeletionID`. Account and object delete results are distinct structs with the closed state `deleted|authoritatively_absent`; account and object absence results are distinct structs with the closed observation `present|authoritatively_absent`. Account failures use the existing `*EngineError`, constrained here to `not_found|conflict|unavailable|indeterminate|rejected_policy|unauthorized_account`; bare `not_found` never finalizes intent. Object failures use the dedicated content-free `MailObjectDeletionErrorKind` / `MailObjectDeletionError` surface only: exact kinds `unavailable|indeterminate|conflict|rejected_policy|unauthorized_scope`, `NewMailObjectDeletionError`, `Kind`, `KindOf`, and an `Error()` method with a constant result; it exposes no `Unwrap`, cause, detail, provider/raw identifier, or loggable content. `ProvisioningKey` and `EngineAccountID` are UTF-8 1..`MaxEngineOpaqueIDBytes` bytes; `Bucket` is UTF-8 1..63 bytes; `ObjectKey` is UTF-8 1..512 bytes; every `DeletionID` is nonzero. Private intent/control is not owner projection; short transactions keep I/O outside locks, reclaim only expired leases, and every retry/finalization uses exact token+generation+captured-scope CAS so stale token or zero rows perform no I/O/compensation. Object drain starts only after `upload_drain_until` and attachment/reference terminality; account removal is last after the exact child/object/receipt/control/activity manifest; hard delete follows only closed evidence. No provider, Stalwart route, OAuth, DNS, OpenAPI, source, schema, migration, SQL, test, Docker, runtime, or physical User/GDPR authority follows; future source remains separately planned and `BLOCKED` / `NOT_RUN`.
+
+```go
+type EngineAccountDeletionPort interface {
+	DeleteAccount(ctx context.Context, request EngineAccountDeleteRequest) (EngineAccountDeleteResult, error)
+	ReconcileAccountAbsence(ctx context.Context, request EngineAccountAbsenceRequest) (EngineAccountAbsenceResult, error)
+}
+
+type MailObjectDeletionPort interface {
+	DeleteObject(ctx context.Context, request MailObjectDeleteRequest) (MailObjectDeleteResult, error)
+	ReconcileObjectAbsence(ctx context.Context, request MailObjectAbsenceRequest) (MailObjectAbsenceResult, error)
+}
+
+type EngineAccountDeleteRequest struct {
+	ProvisioningKey string
+	EngineAccountID string
+	DeletionID      uuid.UUID
+}
+
+type MailObjectDeleteRequest struct {
+	Bucket     string
+	ObjectKey  string
+	DeletionID uuid.UUID
+}
+
+type EngineAccountAbsenceRequest = EngineAccountDeleteRequest
+type MailObjectAbsenceRequest = MailObjectDeleteRequest
+
+type EngineAccountDeletionState string
+
+const (
+	EngineAccountDeletionStateDeleted               EngineAccountDeletionState = "deleted"
+	EngineAccountDeletionStateAuthoritativelyAbsent EngineAccountDeletionState = "authoritatively_absent"
+)
+
+type EngineAccountAbsenceState string
+
+const (
+	EngineAccountAbsenceStatePresent                EngineAccountAbsenceState = "present"
+	EngineAccountAbsenceStateAuthoritativelyAbsent  EngineAccountAbsenceState = "authoritatively_absent"
+)
+
+type MailObjectDeletionState string
+
+const (
+	MailObjectDeletionStateDeleted                  MailObjectDeletionState = "deleted"
+	MailObjectDeletionStateAuthoritativelyAbsent    MailObjectDeletionState = "authoritatively_absent"
+)
+
+type MailObjectAbsenceState string
+
+const (
+	MailObjectAbsenceStatePresent                   MailObjectAbsenceState = "present"
+	MailObjectAbsenceStateAuthoritativelyAbsent     MailObjectAbsenceState = "authoritatively_absent"
+)
+
+type EngineAccountDeleteResult struct {
+	State EngineAccountDeletionState
+}
+
+type EngineAccountAbsenceResult struct {
+	State EngineAccountAbsenceState
+}
+
+type MailObjectDeleteResult struct {
+	State MailObjectDeletionState
+}
+
+type MailObjectAbsenceResult struct {
+	State MailObjectAbsenceState
+}
+
+type MailObjectDeletionErrorKind string
+
+const (
+	MailObjectDeletionErrorUnavailable       MailObjectDeletionErrorKind = "unavailable"
+	MailObjectDeletionErrorIndeterminate     MailObjectDeletionErrorKind = "indeterminate"
+	MailObjectDeletionErrorConflict          MailObjectDeletionErrorKind = "conflict"
+	MailObjectDeletionErrorRejectedPolicy    MailObjectDeletionErrorKind = "rejected_policy"
+	MailObjectDeletionErrorUnauthorizedScope MailObjectDeletionErrorKind = "unauthorized_scope"
+)
+
+type MailObjectDeletionError struct {
+	kind MailObjectDeletionErrorKind
+}
+
+func NewMailObjectDeletionError(kind MailObjectDeletionErrorKind) (*MailObjectDeletionError, error) {
+	switch kind {
+	case MailObjectDeletionErrorUnavailable, MailObjectDeletionErrorIndeterminate, MailObjectDeletionErrorConflict, MailObjectDeletionErrorRejectedPolicy, MailObjectDeletionErrorUnauthorizedScope:
+		return &MailObjectDeletionError{kind: kind}, nil
+	default:
+		return nil, errors.New("invalid mail object deletion error kind")
+	}
+}
+
+func (*MailObjectDeletionError) Error() string { return "mail object deletion failed" }
+func (e *MailObjectDeletionError) Kind() MailObjectDeletionErrorKind { return e.kind }
+func MailObjectDeletionErrorKindOf(err error) (MailObjectDeletionErrorKind, bool) {
+	var target *MailObjectDeletionError
+	if errors.As(err, &target) {
+		return target.Kind(), true
+	}
+	return "", false
+}
+```
+
+Zero/unknown result or observation states are invalid. The adapter boundary rejects them and preserves durable intent as indeterminate; it never finalizes. `MailObjectDeletionErrorKindOf` uses `errors.As`; an invalid constructor kind returns a generic safe error. `MailObjectDeletionError` exposes no `Unwrap`, cause, or detail.
 > **P3-D0 static acceptance (2026-08-23):** immutable source `47faf3a705e5641f4ceb7ee365c3dfeeeace725d` is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` for exactly `backend/ent/schema/calendarinboundmessagereceipt.go`. It adds required immutable `organization_id`/`mailbox_id` UUID scalars and database nonzero checks, with no Ent edges or raw data; existing uniqueness, state-shape, and due behavior are unchanged. Independent Contract/high and Security/xhigh review is APPROVED C/I/M `0/0/0`. The D0-next route is `CONSUMED/HISTORICAL`. P3-C remains blocked on Mail Ent generation; 147-02B/147-02C and D1/D2 remain blocked on active Calendar generation/dependencies; P3-E is conjunction-blocked. No next unblocked P3 source is selected. Generation, migration, SQL, build, tests, Docker, and runtime are `NOT_RUN`; no readiness, merge, or product claim.
 
 > **Phase-147 P3-B static acceptance (2026-08-23):** `43a6c42af88524be2951966bdbfc83b422ecb7f9` is `STATIC_ACCEPTED / STATIC_SOURCE_ONLY` for exactly `backend/internal/calendar/event_repository.go`, `backend/internal/calendar/event_service_inbound_reply.go`, and `backend/internal/calendar/event_service_inbound_message.go`. It accepts the Calendar transaction ABI only: receipt-first single `EventTransaction`, opaque claim/scope/completion, and closed observed/error-code constructor ABI, preserving REPLY receipt/outbox behavior without nested transactions or duplicate logic. Independent Contract/high and Security/xhigh review is APPROVED C/I/M `0/0/0`. CONSUMED/HISTORICAL: P3-C was the sole next pending atom, blocked on Mail Ent generation, for exactly `backend/internal/mail/mailbox_ent_calendar_part.go` and `backend/internal/mail/mailbox_ent_repository.go`; P3-D/E remain pending/blocked. Generation, migration, SQL, build, tests, lint/gofmt, parser/validator, Docker, and runtime are `NOT_RUN`; no merge, product, or Docker-readiness claim follows. Earlier P3-B-next clauses are `CONSUMED/HISTORICAL`.
 
-> **144-02A/B/C/D status sync (2026-08-15):** receipt `576f19231e37f635d5b7187a1ada121ed14ff8dc` (parent `0ef3df9eedfb3683fe70a7f8fc502ca76278facb`, tree `b28904b96c084dd88c4cec37c8e1daa62fde4c5d`) is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` for the separate exact 14 content documents after Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback, telemetry `UNKNOWN`. It does not accept this engine boundary or engine deletion work. The nearest allowed work remains the separate docs-only engine deletion-port contract/adjudication; engine removal/drain/final deletion remain `BLOCKED` / `NOT_DISPATCHABLE`. User deletion-intent remains separate; launcher `NOT_READY`, executables/runtime `NOT_RUN`.
+> **144-02A/B/C/D status sync (2026-08-15):** receipt `576f19231e37f635d5b7187a1ada121ed14ff8dc` (parent `0ef3df9eedfb3683fe70a7f8fc502ca76278facb`, tree `b28904b96c084dd88c4cec37c8e1daa62fde4c5d`) is docs/readiness-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` for the separate exact 14 content documents after Contract Terra/high, Security Terra/xhigh and Lifecycle Terra/high PASS C/I/M `0/0/0`; dispatcher-enforced/no fallback, telemetry `UNKNOWN`. Engine deletion-port docs adjudication is accepted by the docs chain including this correction, following `16ff90b0` and `950b22ca`; the former nearest-work selection is `CONSUMED/HISTORICAL`, never source authority. Deletion source/adapter/persistence/worker and User deletion intent remain `BLOCKED` / `NOT_DISPATCHABLE` / `NOT_RUN`; launcher `NOT_READY`, executables/runtime `NOT_RUN`.
 
 > **Phase-145 carrier-plan acceptance (2026-08-15):** `PLAN-145-07B-SIEVE-CARRIER.md` is docs/implementation-authority-only `STATIC_ACCEPTED` / `EXACT_SHA_PASS` at `949b876d1c5ea07338926aa5fe19e1864a256e93` (parent `375891bb85c0e89f2b6597e0416b82219fffaa74`, tree `f943fb60e8dbda3ae612871d189a57d751dc44cc`, blob `0bbbc91cd3c58fc8daeaab1a434d942f3ef26821`); reviews PASS C/I/M `0/0/0`, dispatcher-enforced/no fallback/telemetry `UNKNOWN`. Contract `1daef787`/sync `375891bb` remain accepted. Only obsolete carrier-plan-pending clauses are `CONSUMED/HISTORICAL`; unrelated gates remain current. No source/test/runtime authority. Rule Task 1 awaits G145-5B/G145-5C/launcher; carrier source additionally awaits accepted Rule compiler source/ABI. 145-07B blocked; launcher `NOT_READY`, executables `NOT_RUN`.
 
