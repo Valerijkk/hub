@@ -1,10 +1,16 @@
 name: Build & Deploy
 
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
-    branches: [master]
+  workflow_dispatch:
+    inputs:
+      confirm_production:
+        description: "FA-06/PG-03 completed and CTO production sign-off received"
+        required: true
+        type: boolean
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
 
 env:
   REGISTRY: ghcr.io
@@ -13,7 +19,7 @@ env:
 
 jobs:
   build:
-    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    if: github.ref == 'refs/heads/master' && inputs.confirm_production
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -22,7 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.sha }}
 
       - name: Log in to GHCR
         uses: docker/login-action@v4
@@ -36,21 +42,19 @@ jobs:
         with:
           context: ./backend
           push: true
-          tags: ${{ env.BACKEND_IMAGE }}:latest,${{ env.BACKEND_IMAGE }}:${{ github.event.workflow_run.head_sha }}
+          tags: ${{ env.BACKEND_IMAGE }}:latest,${{ env.BACKEND_IMAGE }}:${{ github.sha }}
 
       - name: Build & push frontend
         uses: docker/build-push-action@v7
         with:
           context: ./frontend
           push: true
-          tags: ${{ env.FRONTEND_IMAGE }}:latest,${{ env.FRONTEND_IMAGE }}:${{ github.event.workflow_run.head_sha }}
+          tags: ${{ env.FRONTEND_IMAGE }}:latest,${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
 
   deploy:
     needs: build
-    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    if: github.ref == 'refs/heads/master' && inputs.confirm_production
     runs-on: ubuntu-latest
-    # Images are already in GHCR; SSH deploy is best-effort until server/secrets are ready.
-    continue-on-error: true
 
     steps:
       - name: Deploy to server
@@ -63,7 +67,7 @@ jobs:
           command_timeout: 15m
           script: |
             set -euo pipefail
-            SHA="${{ github.event.workflow_run.head_sha }}"
+            SHA="${{ github.sha }}"
             BACKEND_IMAGE="ghcr.io/valerijkk/hub/backend:${SHA}"
             FRONTEND_IMAGE="ghcr.io/valerijkk/hub/frontend:${SHA}"
 
@@ -71,7 +75,12 @@ jobs:
             docker pull "${FRONTEND_IMAGE}"
 
             cd /opt/hub
-            git fetch origin master
+            git fetch --no-tags origin refs/heads/master:refs/remotes/origin/master
+            MASTER_SHA="$(git rev-parse refs/remotes/origin/master)"
+            if [ "${MASTER_SHA}" != "${SHA}" ]; then
+              echo "Refusing deployment: master advanced since dispatch"
+              exit 1
+            fi
             git reset --hard "${SHA}"
 
             cd deployments
