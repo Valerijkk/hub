@@ -15,7 +15,6 @@ import (
 const (
 	stalwartCursorList              = "list"
 	stalwartCursorChanges           = "changes"
-	stalwartCursorEnumerationBase   = "enumeration-base"
 	stalwartCursorEnumerationPage   = "enumeration-page"
 	stalwartMaximumQueryPosition    = 1_000_000_000
 	stalwartMaximumBodyStructureNodes = 200
@@ -35,7 +34,6 @@ var stalwartEmailProjectionProperties = []string{
 	"from",
 	"to",
 	"cc",
-	"bcc",
 	"replyTo",
 	"subject",
 	"preview",
@@ -46,6 +44,7 @@ var stalwartEmailDetailProperties = append(append([]string(nil), stalwartEmailPr
 
 type stalwartMessageCursor struct {
 	AccountID string `json:"a"`
+	BaseState string `json:"b,omitempty"`
 	FolderID  string `json:"f,omitempty"`
 	Kind      string `json:"k"`
 	Position  int    `json:"p"`
@@ -104,7 +103,7 @@ type stalwartEmailChangesResponse struct {
 	AccountID       string   `json:"accountId"`
 	Created         []string `json:"created"`
 	Destroyed       []string `json:"destroyed"`
-	HasMoreChanges  bool     `json:"hasMoreChanges"`
+	HasMoreChanges  *bool    `json:"hasMoreChanges"`
 	NewState        string   `json:"newState"`
 	OldState        string   `json:"oldState"`
 	Updated         []string `json:"updated"`
@@ -112,7 +111,6 @@ type stalwartEmailChangesResponse struct {
 
 type stalwartEmailRecord struct {
 	Attachments   []stalwartEmailBodyPart            `json:"attachments"`
-	BCC           []stalwartEmailAddress             `json:"bcc"`
 	BodyStructure *stalwartEmailBodyPart              `json:"bodyStructure"`
 	BodyValues    map[string]stalwartEmailBodyValue   `json:"bodyValues"`
 	CC            []stalwartEmailAddress             `json:"cc"`
@@ -200,9 +198,11 @@ func stalwartValidCursor(cursor stalwartMessageCursor) bool {
 	}
 	switch cursor.Kind {
 	case stalwartCursorList:
-		return validOpaqueID(cursor.FolderID)
-	case stalwartCursorChanges, stalwartCursorEnumerationBase, stalwartCursorEnumerationPage:
-		return cursor.FolderID == ""
+		return validOpaqueID(cursor.FolderID) && cursor.BaseState == ""
+	case stalwartCursorChanges:
+		return cursor.FolderID == "" && cursor.BaseState == ""
+	case stalwartCursorEnumerationPage:
+		return cursor.FolderID == "" && validOpaqueID(cursor.BaseState)
 	default:
 		return false
 	}
@@ -270,7 +270,7 @@ func stalwartParseEmailChanges(response stalwart.JMAPResponse, callID, accountID
 	if result.AccountID != accountID {
 		return stalwartEmailChangesResponse{}, stalwartEngineError(EngineErrorUnauthorizedAccount)
 	}
-	if !validOpaqueID(result.OldState) || !validOpaqueID(result.NewState) || len(result.Created) > MaxEnginePageItems || len(result.Updated) > MaxEnginePageItems || len(result.Destroyed) > MaxEnginePageItems || !validOpaqueIDs(result.Created) || !validOpaqueIDs(result.Updated) || !validOpaqueIDs(result.Destroyed) {
+	if result.HasMoreChanges == nil || !validOpaqueID(result.OldState) || !validOpaqueID(result.NewState) || len(result.Created) > MaxEnginePageItems || len(result.Updated) > MaxEnginePageItems || len(result.Destroyed) > MaxEnginePageItems || !validOpaqueIDs(result.Created) || !validOpaqueIDs(result.Updated) || !validOpaqueIDs(result.Destroyed) {
 		return stalwartEmailChangesResponse{}, stalwartEngineError(EngineErrorPayloadTooLarge)
 	}
 	return result, nil
@@ -303,15 +303,11 @@ func stalwartMapEmailProjection(accountID, version string, record stalwartEmailR
 	if err != nil {
 		return EngineMessageProjection{}, stalwartMappingResponseError(err)
 	}
-	bcc, err := stalwartMapAddresses(record.BCC, MaxEngineAddressItems)
-	if err != nil {
-		return EngineMessageProjection{}, stalwartMappingResponseError(err)
-	}
 	replyTo, err := stalwartMapAddresses(record.ReplyTo, MaxEngineAddressItems)
 	if err != nil {
 		return EngineMessageProjection{}, stalwartMappingResponseError(err)
 	}
-	to, cc, bcc = stalwartDeduplicateRecipients(to, cc, bcc)
+	to, cc = stalwartDeduplicateRecipients(to, cc)
 	internetMessageID, err := stalwartSingleMessageID(record.MessageID)
 	if err != nil {
 		return EngineMessageProjection{}, err
@@ -354,7 +350,7 @@ func stalwartMapEmailProjection(accountID, version string, record stalwartEmailR
 		From:                from[0],
 		To:                  to,
 		CC:                  cc,
-		BCC:                 bcc,
+		BCC:                 []EngineAddress{},
 		ReplyTo:             replyTo,
 		Subject:             record.Subject,
 		Snippet:             record.Preview,
@@ -495,8 +491,8 @@ func stalwartMapAddresses(values []stalwartEmailAddress, maximum int) ([]EngineA
 	return result, nil
 }
 
-func stalwartDeduplicateRecipients(to, cc, bcc []EngineAddress) ([]EngineAddress, []EngineAddress, []EngineAddress) {
-	seen := make(map[string]struct{}, len(to)+len(cc)+len(bcc))
+func stalwartDeduplicateRecipients(to, cc []EngineAddress) ([]EngineAddress, []EngineAddress) {
+	seen := make(map[string]struct{}, len(to)+len(cc))
 	filter := func(values []EngineAddress) []EngineAddress {
 		result := make([]EngineAddress, 0, len(values))
 		for _, value := range values {
@@ -508,7 +504,7 @@ func stalwartDeduplicateRecipients(to, cc, bcc []EngineAddress) ([]EngineAddress
 		}
 		return result
 	}
-	return filter(to), filter(cc), filter(bcc)
+	return filter(to), filter(cc)
 }
 
 func stalwartSingleMessageID(values []string) (string, error) {

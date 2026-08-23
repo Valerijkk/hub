@@ -53,6 +53,14 @@ func (engine *StalwartEngine) Changes(ctx context.Context, request EngineChangeR
 	if len(updatedIDs)+len(destroyedIDs) > request.Page.Limit {
 		return EngineChangePage{}, stalwartEngineError(EngineErrorPayloadTooLarge)
 	}
+	changed := len(updatedIDs)+len(destroyedIDs) != 0
+	if !changed {
+		if *changes.HasMoreChanges || changes.NewState != changes.OldState {
+			return EngineChangePage{}, stalwartEngineError(EngineErrorUnavailable)
+		}
+	} else if changes.NewState == changes.OldState {
+		return EngineChangePage{}, stalwartEngineError(EngineErrorUnavailable)
+	}
 	projections, getState, notFound, err := engine.stalwartFetchProjections(ctx, request.AccountID, updatedIDs)
 	if err != nil {
 		return EngineChangePage{}, err
@@ -60,9 +68,12 @@ func (engine *StalwartEngine) Changes(ctx context.Context, request EngineChangeR
 	if len(notFound) != 0 || getState != "" && getState != changes.NewState {
 		return EngineChangePage{}, stalwartEngineError(EngineErrorRestartRequired)
 	}
-	nextCursor, err := stalwartPackCursor(stalwartMessageCursor{AccountID: request.AccountID, Kind: stalwartCursorChanges, State: changes.NewState})
-	if err != nil {
-		return EngineChangePage{}, err
+	nextCursor := ""
+	if changed {
+		nextCursor, err = stalwartPackCursor(stalwartMessageCursor{AccountID: request.AccountID, Kind: stalwartCursorChanges, State: changes.NewState})
+		if err != nil {
+			return EngineChangePage{}, err
+		}
 	}
 	page := EngineChangePage{AccountID: request.AccountID, FromCursor: request.FromCursor, NextCursor: nextCursor, Bounds: EnginePageBounds{Requested: request.Page.Limit, Maximum: MaxEnginePageItems, Returned: len(projections) + len(destroyedIDs)}, CreatedOrUpdated: projections, DestroyedIDs: destroyedIDs}
 	if err := validateChangePage(page, request); err != nil {
@@ -82,12 +93,18 @@ func (engine *StalwartEngine) EnumerateProjection(ctx context.Context, request E
 		return EngineEnumerationPage{}, stalwartEngineError(EngineErrorRejectedPolicy)
 	}
 	baseState := ""
+	queryState := ""
 	if request.BaseCursor == "" {
 		if request.Checkpoint != "" {
 			return EngineEnumerationPage{}, stalwartEngineError(EngineErrorInvalidCursor)
 		}
+		state, stateErr := engine.stalwartReadEmailState(ctx, request.AccountID)
+		if stateErr != nil {
+			return EngineEnumerationPage{}, stateErr
+		}
+		baseState = state
 	} else {
-		base, err := stalwartParseCursor(request.BaseCursor, request.AccountID, stalwartCursorEnumerationBase, "")
+		base, err := stalwartParseCursor(request.BaseCursor, request.AccountID, stalwartCursorChanges, "")
 		if err != nil {
 			return EngineEnumerationPage{}, err
 		}
@@ -99,10 +116,11 @@ func (engine *StalwartEngine) EnumerateProjection(ctx context.Context, request E
 		if err != nil {
 			return EngineEnumerationPage{}, err
 		}
-		if baseState == "" || checkpoint.State != baseState {
+		if baseState == "" || checkpoint.BaseState != baseState {
 			return EngineEnumerationPage{}, stalwartEngineError(EngineErrorInvalidCursor)
 		}
 		position = checkpoint.Position
+		queryState = checkpoint.State
 	}
 	arguments, err := json.Marshal(stalwartEmailQueryArguments{
 		AccountID:      request.AccountID,
@@ -111,7 +129,6 @@ func (engine *StalwartEngine) EnumerateProjection(ctx context.Context, request E
 		Position:       position,
 		Sort: []stalwartEmailComparator{
 			{Property: "receivedAt", IsAscending: false},
-			{Property: "id", IsAscending: false},
 		},
 	})
 	if err != nil {
@@ -132,13 +149,13 @@ func (engine *StalwartEngine) EnumerateProjection(ctx context.Context, request E
 	if err != nil {
 		return EngineEnumerationPage{}, err
 	}
-	if query.Position != position || len(query.IDs) > request.Page.Limit || baseState != "" && query.QueryState != baseState {
+	if query.Position != position || len(query.IDs) > request.Page.Limit || queryState != "" && query.QueryState != queryState {
 		return EngineEnumerationPage{}, stalwartEngineError(EngineErrorRestartRequired)
 	}
-	if baseState == "" {
-		baseState = query.QueryState
+	if len(query.IDs) > *query.Total-query.Position || len(query.IDs) == 0 && query.Position < *query.Total {
+		return EngineEnumerationPage{}, stalwartEngineError(EngineErrorUnavailable)
 	}
-	baseCursor, err := stalwartPackCursor(stalwartMessageCursor{AccountID: request.AccountID, Kind: stalwartCursorEnumerationBase, State: baseState})
+	baseCursor, err := stalwartPackCursor(stalwartMessageCursor{AccountID: request.AccountID, Kind: stalwartCursorChanges, State: baseState})
 	if err != nil {
 		return EngineEnumerationPage{}, err
 	}
@@ -153,7 +170,7 @@ func (engine *StalwartEngine) EnumerateProjection(ctx context.Context, request E
 	complete := nextPosition >= *query.Total
 	nextCheckpoint := ""
 	if !complete {
-		nextCheckpoint, err = stalwartPackCursor(stalwartMessageCursor{AccountID: request.AccountID, Kind: stalwartCursorEnumerationPage, Position: nextPosition, State: baseState})
+		nextCheckpoint, err = stalwartPackCursor(stalwartMessageCursor{AccountID: request.AccountID, BaseState: baseState, Kind: stalwartCursorEnumerationPage, Position: nextPosition, State: query.QueryState})
 		if err != nil {
 			return EngineEnumerationPage{}, err
 		}

@@ -40,7 +40,6 @@ func (engine *StalwartEngine) ListMessages(ctx context.Context, query EngineMess
 		Position:       position,
 		Sort: []stalwartEmailComparator{
 			{Property: "receivedAt", IsAscending: false},
-			{Property: "id", IsAscending: false},
 		},
 	})
 	if err != nil {
@@ -63,6 +62,9 @@ func (engine *StalwartEngine) ListMessages(ctx context.Context, query EngineMess
 	}
 	if pageResult.Position != position || len(pageResult.IDs) > query.Page.Limit || previousState != "" && pageResult.QueryState != previousState {
 		return EngineProjectionPage{}, stalwartEngineError(EngineErrorRestartRequired)
+	}
+	if len(pageResult.IDs) > *pageResult.Total-pageResult.Position || len(pageResult.IDs) == 0 && pageResult.Position < *pageResult.Total {
+		return EngineProjectionPage{}, stalwartEngineError(EngineErrorUnavailable)
 	}
 	currentCursor, err := stalwartPackCursor(stalwartMessageCursor{AccountID: query.AccountID, FolderID: query.FolderID, Kind: stalwartCursorList, Position: position, State: pageResult.QueryState})
 	if err != nil {
@@ -237,4 +239,33 @@ func (engine *StalwartEngine) stalwartFetchProjections(ctx context.Context, acco
 		projections = append(projections, projection)
 	}
 	return projections, getResult.State, notFound, nil
+}
+
+func (engine *StalwartEngine) stalwartReadEmailState(ctx context.Context, accountID string) (string, error) {
+	if ctx == nil || !validAccountID(accountID) {
+		return "", stalwartEngineError(EngineErrorRejectedPolicy)
+	}
+	arguments, err := json.Marshal(stalwartEmailGetArguments{AccountID: accountID, IDs: []string{}, Properties: []string{"id"}})
+	if err != nil {
+		return "", stalwartEngineError(EngineErrorRejectedPolicy)
+	}
+	response, err := engine.callMailbox(ctx, accountID, stalwart.JMAPRequest{
+		Using: stalwartMailboxCapabilities,
+		MethodCalls: []stalwart.JMAPMethodCall{{
+			Name:      "Email/get",
+			Arguments: arguments,
+			CallID:    stalwartEmailGetCallID,
+		}},
+	}, false)
+	if err != nil {
+		return "", err
+	}
+	getResult, err := stalwartParseEmailGet(response, stalwartEmailGetCallID, accountID)
+	if err != nil {
+		return "", err
+	}
+	if len(getResult.List) != 0 || len(getResult.NotFound) != 0 {
+		return "", stalwartEngineError(EngineErrorUnavailable)
+	}
+	return getResult.State, nil
 }
