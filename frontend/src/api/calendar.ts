@@ -1,4 +1,4 @@
-import { api } from "./client";
+import { api, type ApiRequestOptions } from "./client";
 
 export type CalendarEventKind = "call" | "sprint" | "deadline" | "leave";
 
@@ -44,4 +44,287 @@ export async function downloadCalendarExport(
 	a.download = "hub-calendar.ics";
 	a.click();
 	URL.revokeObjectURL(url);
+}
+
+export type CalendarEventAttendeeRole = "required" | "optional";
+export type CalendarEventRSVPStatus =
+	| "needs_action"
+	| "accepted"
+	| "declined"
+	| "tentative";
+export type CalendarEventRSVPChoice = Exclude<
+	CalendarEventRSVPStatus,
+	"needs_action"
+>;
+export type CalendarEventReplyDeliveryStatus =
+	| "not_required"
+	| "pending"
+	| "sent"
+	| "failed";
+
+export interface CalendarEventAttendeeRequest {
+	user_id?: string | null;
+	email: string;
+	display_name?: string | null;
+	role: CalendarEventAttendeeRole;
+}
+
+export interface CalendarEventAttendeeResponse {
+	id: string;
+	user_id: string | null;
+	email: string;
+	display_name: string | null;
+	role: CalendarEventAttendeeRole;
+	rsvp_status: CalendarEventRSVPStatus;
+	recurrence_id: string | null;
+	responded_at: string | null;
+	version: number;
+	reply_delivery_status: CalendarEventReplyDeliveryStatus;
+}
+
+interface CalendarEventCreateRequestBase {
+	title: string;
+	description?: string;
+	location?: string;
+	timezone: string;
+	rrule?: string | null;
+	exdates?: string[];
+	scheduled_call_id?: string | null;
+	reminder_minutes?: number | null;
+	attendees: CalendarEventAttendeeRequest[];
+}
+
+export type CalendarEventCreateRequest =
+	| (CalendarEventCreateRequestBase & {
+			all_day: false;
+			starts_at: string;
+			ends_at: string;
+			start_date: null;
+			end_date_exclusive: null;
+		})
+	| (CalendarEventCreateRequestBase & {
+			all_day: true;
+			starts_at: null;
+			ends_at: null;
+			start_date: string;
+			end_date_exclusive: string;
+		});
+
+interface CalendarEventCreateResponseBase {
+	id: string;
+	uid: string;
+	title: string;
+	description?: string;
+	location?: string;
+	timezone: string;
+	rrule?: string;
+	exdates?: string[];
+	sequence: number;
+	source: "hub";
+	status: "confirmed";
+	organizer_id: string;
+	organizer_email: string;
+	scheduled_call_id: string | null;
+	reminder_minutes: number | null;
+	attendees: CalendarEventAttendeeResponse[];
+	version: number;
+}
+
+export type CalendarEventCreateResponse =
+	| (CalendarEventCreateResponseBase & {
+			all_day: false;
+			starts_at: string;
+			ends_at: string;
+			start_date: null;
+			end_date_exclusive: null;
+		})
+	| (CalendarEventCreateResponseBase & {
+			all_day: true;
+			starts_at: null;
+			ends_at: null;
+			start_date: string;
+			end_date_exclusive: string;
+		});
+
+interface CalendarEventUpdateRequestBase {
+	title?: string;
+	description?: string;
+	location?: string;
+	timezone?: string;
+	rrule?: string | null;
+	exdates?: string[];
+	reminder_minutes?: number | null;
+	attendees?: CalendarEventAttendeeRequest[];
+}
+
+type CalendarEventUpdateTemporalFields =
+	| {
+			all_day?: never;
+			starts_at?: never;
+			ends_at?: never;
+			start_date?: never;
+			end_date_exclusive?: never;
+		}
+	| {
+			all_day?: never;
+			starts_at: string | null;
+			ends_at: string | null;
+			start_date?: never;
+			end_date_exclusive?: never;
+		}
+	| {
+			all_day?: never;
+			starts_at?: never;
+			ends_at?: never;
+			start_date: string | null;
+			end_date_exclusive: string | null;
+		}
+	| {
+			all_day?: never;
+			starts_at: string | null;
+			ends_at: string | null;
+			start_date: string | null;
+			end_date_exclusive: string | null;
+		}
+	| {
+			all_day: false;
+			starts_at: string;
+			ends_at: string;
+			start_date: null;
+			end_date_exclusive: null;
+		}
+	| {
+			all_day: true;
+			starts_at: null;
+			ends_at: null;
+			start_date: string;
+			end_date_exclusive: string;
+		};
+
+export type CalendarEventUpdateRequest = CalendarEventUpdateRequestBase &
+	CalendarEventUpdateTemporalFields;
+
+export type CalendarEventChangedField =
+	| "title"
+	| "description"
+	| "location"
+	| "starts_at"
+	| "ends_at"
+	| "start_date"
+	| "end_date_exclusive"
+	| "all_day"
+	| "timezone"
+	| "rrule"
+	| "exdates"
+	| "reminder_minutes"
+	| "attendees";
+export type CalendarEventStatus = "confirmed" | "tentative" | "cancelled";
+
+export interface CalendarEventMutationResult {
+	event_id: string;
+	version: number;
+	sequence: number;
+	status: CalendarEventStatus;
+	changed_fields: CalendarEventChangedField[];
+}
+
+export interface CalendarOccurrenceCancellation {
+	event_id: string;
+	recurrence_id: string;
+	status: "cancelled";
+	sequence: number;
+	event_version: number;
+}
+
+export interface CalendarEventRSVPRequest {
+	status: CalendarEventRSVPChoice;
+	attendee_version: number;
+}
+
+export type CalendarIdempotencyRequestOptions = Omit<
+	ApiRequestOptions,
+	"idempotencyKey" | "ifMatch"
+> & { idempotencyKey: string };
+
+export type CalendarVersionRequestOptions = Omit<
+	ApiRequestOptions,
+	"idempotencyKey" | "ifMatch"
+> & { ifMatch: number };
+
+export type CalendarEventUpdateOptions = CalendarVersionRequestOptions & {
+	notifyAttendees?: boolean;
+};
+
+function calendarEventPath(eventId: string): string {
+	return `/calendar/v2/events/${encodeURIComponent(eventId)}`;
+}
+
+export function createCalendarEvent(
+	request: CalendarEventCreateRequest,
+	options: CalendarIdempotencyRequestOptions,
+): Promise<CalendarEventCreateResponse> {
+	return api.post<CalendarEventCreateResponse>(
+		"/calendar/v2/events",
+		request,
+		options,
+	);
+}
+
+export function updateCalendarEvent(
+	eventId: string,
+	request: CalendarEventUpdateRequest,
+	options: CalendarEventUpdateOptions,
+): Promise<CalendarEventMutationResult> {
+	const notifyAttendees =
+		options.notifyAttendees === undefined
+			? ""
+			: `?notify_attendees=${options.notifyAttendees ? "true" : "false"}`;
+	return api.patch<CalendarEventMutationResult>(
+		`${calendarEventPath(eventId)}${notifyAttendees}`,
+		request,
+		options,
+	);
+}
+
+export function cancelCalendarEvent(
+	eventId: string,
+	options: CalendarVersionRequestOptions,
+): Promise<CalendarEventMutationResult> {
+	return api.delete<CalendarEventMutationResult>(calendarEventPath(eventId), options);
+}
+
+export function respondToCalendarSeries(
+	eventId: string,
+	request: CalendarEventRSVPRequest,
+	options: CalendarIdempotencyRequestOptions,
+): Promise<CalendarEventAttendeeResponse> {
+	return api.post<CalendarEventAttendeeResponse>(
+		`${calendarEventPath(eventId)}/rsvp`,
+		request,
+		options,
+	);
+}
+
+export function respondToCalendarOccurrence(
+	eventId: string,
+	recurrenceId: string,
+	request: CalendarEventRSVPRequest,
+	options: CalendarIdempotencyRequestOptions,
+): Promise<CalendarEventAttendeeResponse> {
+	return api.post<CalendarEventAttendeeResponse>(
+		`${calendarEventPath(eventId)}/instances/${encodeURIComponent(recurrenceId)}/rsvp`,
+		request,
+		options,
+	);
+}
+
+export function cancelCalendarOccurrence(
+	eventId: string,
+	recurrenceId: string,
+	options: CalendarVersionRequestOptions,
+): Promise<CalendarOccurrenceCancellation> {
+	return api.delete<CalendarOccurrenceCancellation>(
+		`${calendarEventPath(eventId)}/instances/${encodeURIComponent(recurrenceId)}`,
+		options,
+	);
 }
