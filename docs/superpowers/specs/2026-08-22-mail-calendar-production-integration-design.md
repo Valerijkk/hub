@@ -71,16 +71,24 @@ normalizes UTC, and validates through `mailboxEntValidTime`; caller/process time
 and the repository client are not expiry authorities. `CURRENT_TIMESTAMP` is rejected because it is
 fixed at PostgreSQL transaction start and can be stale by the time the account lock is acquired.
 Claim uses the fresh value for due, live-lease, schedule-marker, and returned non-claim authority,
-and rejects a lease end not strictly later than it; `request.Now` is structural only. Prepare passes
-the value to the unchanged `mailboxEntPrepareInput`; Resolve uses it for all lease gates and its
-schedule marker. Repository code never performs provider I/O. A sync step claims durable state,
-releases the transaction, performs one bounded `MailEngine` call, then opens a new transaction that
-verifies the exact fence before applying results.
+and rejects a lease end not strictly later than it. After the lock and fresh clock but before any
+lease mutation, Claim rejects `SyncAttempts < 0 || SyncAttempts >= mailboxEntMaxSyncAttempts` through
+the existing content-free invalid error with zero writes and no engine I/O. `request.Now` is
+structural only. No-active Claim retains `sync_lease_epoch` (pristine first claim is `1`; a released
+lease is already advanced), live same-token renewal retains it, and expired retained lease increments
+it as before. Prepare passes the value to the unchanged `mailboxEntPrepareInput`; Resolve uses it for
+all lease gates and `SyncScheduleUpdatedAt`, but persists and returns exact `request.NextAttemptAt`
+without clamp or rebase. A next attempt at or before the DB clock is intentional immediate due; the
+DB clock owns only lease/due decisions and the schedule marker. Repository code never performs
+provider I/O. A sync step claims durable state, releases the transaction, performs one bounded
+`MailEngine` call, then opens a new transaction that verifies the exact fence before applying results.
 Handled `transient`, `rejected`, `invalid_cursor`, and `restart_required` Resolve failures all become
-`degraded`. Source `43a` is state-machine-correct but `FINAL_QUALITY_PENDING_6Q2 / RUNTIME_NOT_RUN`;
-it cannot be statically accepted until the fresh database-clock prerequisite has independent review.
-The only 6V source manifest remains `backend/internal/mail/mailbox_ent_sync_claim.go` and only
-`mailboxEntSyncClaimSnapshot` changes; there is no schema, public API, or migration change.
+`degraded`. Sources `57b` and `43a` are `PENDING_RETRY_CAP_AND_FENCE_GENERATION / RUNTIME_NOT_RUN`;
+`43a` remains state-machine-correct for decoder reconstruction, but neither can be statically
+accepted until this one-file Claim/6Q2 quality correction has independent review. The only source
+manifest remains `backend/internal/mail/mailbox_ent_sync_claim.go`; it changes the decoder plus
+Claim/Resolve retry-cap and lease-generation behavior only, with no schema, public API, or migration
+change.
 `CURSOR_INVALID` and `RESTART_REQUIRED` require nil rebuild fields (`sync_base_cursor` and
 `sync_checkpoint`) and reconstruct empty bootstrap `Enumeration`. For `transient`/`rejected`, no
 base/no checkpoint plus valid `sync_cursor` reconstructs `Incremental` with that cursor; the same
@@ -89,12 +97,14 @@ reconstructs `CatchUp` with `Cursor=base`; valid base plus valid checkpoint reco
 `Enumeration` with that pair. Checkpoint without base or any invalid opaque cursor is the existing
 content-free invalid error; other degraded codes retain the prior incremental-only guard.
 
-One fenced transition increments `sync_attempts` exactly once or rejects overflow with zero partial
-writes while atomically scheduling, recording a safe error, releasing the lease, and clearing
-applied proof. A second Resolve cannot increment again; only successful Apply resets attempts.
-Worker fault rescheduling owns only its separate failure increment. The production-only test lock
-remains in force; exact-scope static source review is the present gate and executable evidence is
-`NOT_RUN`. A forward schema prerequisite requires the complete proof CHECK to include
+After the complete live fence, Resolve computes `mailboxEntNextEpoch(account.SyncLeaseEpoch)` and
+rejects overflow through the existing content-free invalid error with zero writes. Its one atomic
+update calls `SetSyncLeaseEpoch(next)` together with exactly one `sync_attempts` increment, exact
+`request.NextAttemptAt` scheduling without clamp/rebase, safe error, lease release, and applied-proof
+clear; this prevents same-`LeaseID` ABA. A second Resolve cannot increment again; only successful
+Apply resets attempts. Worker fault rescheduling owns only its separate failure increment. The
+production-only test lock remains in force; exact-scope static source review is the present gate and
+executable evidence is `NOT_RUN`. A forward schema prerequisite requires the complete proof CHECK to include
 `sync_lease_applied_next_at < sync_lease_until`.
 Apply writes `sync_lease_applied_next_at = NextAttemptAt` and checked exact-second
 `sync_lease_until = NextAttemptAt + 1s`; this is the minimum same-lease replay grace,
