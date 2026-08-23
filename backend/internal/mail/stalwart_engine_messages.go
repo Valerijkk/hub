@@ -165,14 +165,45 @@ func (engine *StalwartEngine) GetMessage(ctx context.Context, request EngineMess
 	return message, nil
 }
 
-// GetBlob is intentionally closed until the accepted account-bound client
-// exposes the validated Stalwart download-session boundary. Calling raw URLs
-// or rediscovering a session here would bypass the frozen credential scope.
+// GetBlob reads one bounded attachment through the already account-bound
+// client. Session discovery and provider download URL construction stay behind
+// that boundary so this adapter never receives credentials or source URLs.
 func (engine *StalwartEngine) GetBlob(ctx context.Context, request EngineBlobReadRequest) (EngineBlob, error) {
 	if ctx == nil || !validAccountID(request.AccountID) || !validOpaqueID(request.BlobID) || request.MaxBytes < 1 || request.MaxBytes > MaxEngineAttachmentBytes {
 		return EngineBlob{}, stalwartEngineError(EngineErrorRejectedPolicy)
 	}
-	return EngineBlob{}, stalwartEngineError(EngineErrorRejectedPolicy)
+	client, err := engine.mailboxClient(ctx, request.AccountID)
+	if err != nil {
+		return EngineBlob{}, err
+	}
+	result, err := client.DownloadBlob(ctx, request.BlobID, request.MaxBytes)
+	if err != nil {
+		return EngineBlob{}, mapStalwartEngineError(err, false)
+	}
+	if result.AccountID != request.AccountID {
+		return EngineBlob{}, stalwartEngineError(EngineErrorUnauthorizedAccount)
+	}
+	if result.BlobID != request.BlobID || result.SizeBytes < 0 {
+		return EngineBlob{}, stalwartEngineError(EngineErrorUnavailable)
+	}
+	byteLength := int64(len(result.Bytes))
+	if result.SizeBytes > request.MaxBytes || result.SizeBytes > MaxEngineAttachmentBytes || byteLength > request.MaxBytes || byteLength > MaxEngineAttachmentBytes {
+		return EngineBlob{}, stalwartEngineError(EngineErrorPayloadTooLarge)
+	}
+	if result.SizeBytes != byteLength {
+		return EngineBlob{}, stalwartEngineError(EngineErrorUnavailable)
+	}
+	mediaType, err := normalizeAttachmentMediaType(result.MediaType)
+	if err != nil {
+		return EngineBlob{}, stalwartEngineError(EngineErrorUnavailable)
+	}
+	return EngineBlob{
+		AccountID: request.AccountID,
+		BlobID:    request.BlobID,
+		MediaType: mediaType,
+		SizeBytes: result.SizeBytes,
+		Bytes:     append([]byte(nil), result.Bytes...),
+	}, nil
 }
 
 func (engine *StalwartEngine) stalwartFetchProjections(ctx context.Context, accountID string, ids []string) ([]EngineMessageProjection, string, []string, error) {

@@ -17,6 +17,19 @@ import (
 type StalwartMailboxClient interface {
 	AccountID() string
 	CallMailbox(context.Context, stalwart.JMAPRequest) (stalwart.JMAPResponse, error)
+	DownloadBlob(context.Context, string, int64) (StalwartMailboxBlob, error)
+}
+
+// StalwartMailboxBlob is the provider-neutral result of one bounded download.
+// Implementations must use their already validated account/session binding,
+// return no provider URL or authorization material, and perform no retry. They
+// own any fixed safe download name/type required by the provider transport.
+type StalwartMailboxBlob struct {
+	AccountID string
+	BlobID    string
+	MediaType string
+	SizeBytes int64
+	Bytes     []byte
 }
 
 // StalwartMailboxClientFactory validates one bounded mailbox account ID and
