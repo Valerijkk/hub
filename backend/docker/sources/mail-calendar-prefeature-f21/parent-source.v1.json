@@ -14,7 +14,7 @@
   "tool_lock": {
     "path": "backend/docker/schema-tool.lock.json",
     "git_blob": "3305519d28a238f03e58461bfe071d52da6ce107",
-    "sha256": "f887c63c4d39a7d85a4fbe4c7302b6dde1c8bf83a19282d16eb55c4d9c6b17eb",
+    "git_blob_lf_bytes_sha256": "8ff38566c38c3ac777bbc77364c955a78b6c630cdd3f631d589ffd252578f44a",
     "images": {
       "go": "golang@sha256:bbb255b0e131db500cf0520adc97441d2260cf629c7fa7e39e025ddf53995a24",
       "postgres": "postgres@sha256:e38411452a464af89e5adadb8d223bf53b898d47d6ef918b2d58c08707350449"
