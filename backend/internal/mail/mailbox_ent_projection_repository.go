@@ -411,6 +411,9 @@ func (repository *MailboxEntRepository) GetMailboxThreadDetailProjection(ctx con
 	if err != nil {
 		return MailboxThreadDetailProjection{}, mailboxEntSafeError(err)
 	}
+	if !mailboxThreadDetailProjectionResponseWithinBudget(projection) {
+		return MailboxThreadDetailProjection{}, errMailboxThreadDetailProjectionResponseLimit
+	}
 	return mailboxThreadDetailProjectionCopy(projection), nil
 }
 
