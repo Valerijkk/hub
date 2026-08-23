@@ -25,6 +25,7 @@ const (
 	stalwartMarkerQueryLimit           = 2
 	stalwartDraftTextPartID            = "text"
 	stalwartDraftHTMLPartID            = "html"
+	stalwartSubmissionBindingVersion   = "v1"
 )
 
 var stalwartDraftDetailProperties = append(append([]string(nil), stalwartEmailDetailProperties...), "bcc", "header:Importance")
@@ -158,6 +159,52 @@ type stalwartSubmissionQueryResponse struct {
 	Total      *int     `json:"total"`
 }
 
+// stalwartSubmissionBinding is the versioned, canonical preimage for the
+// opaque binding marker. It excludes mutable provider state such as the
+// Email/set version and folder transition, while retaining the exact request
+// identity, immutable content, and send-relevant metadata.
+type stalwartSubmissionBinding struct {
+	Version         string                                `json:"version"`
+	AccountID       string                                `json:"account_id"`
+	DraftKey        string                                `json:"draft_key"`
+	SubmissionKey   string                                `json:"submission_key"`
+	MessageID       string                                `json:"message_id"`
+	ExpectedVersion string                                `json:"expected_version"`
+	InternetMessageID string                              `json:"internet_message_id"`
+	From            stalwartSubmissionBindingAddress     `json:"from"`
+	To              []stalwartSubmissionBindingAddress   `json:"to"`
+	CC              []stalwartSubmissionBindingAddress   `json:"cc"`
+	BCC             []stalwartSubmissionBindingAddress   `json:"bcc"`
+	ReplyTo         []stalwartSubmissionBindingAddress   `json:"reply_to"`
+	Subject         string                                `json:"subject"`
+	InReplyTo       string                                `json:"in_reply_to"`
+	References      []string                              `json:"references"`
+	Priority        EngineMessagePriority                 `json:"priority"`
+	Body            stalwartSubmissionBindingBody        `json:"body"`
+	Attachments     []stalwartSubmissionBindingAttachment `json:"attachments"`
+}
+
+type stalwartSubmissionBindingAddress struct {
+	Email string `json:"email"`
+	Name  string `json:"name"`
+}
+
+type stalwartSubmissionBindingBody struct {
+	Format    EngineBodyFormat `json:"format"`
+	PlainBody string           `json:"plain_body"`
+	RichBody  string           `json:"rich_body"`
+}
+
+type stalwartSubmissionBindingAttachment struct {
+	BlobID      string                      `json:"blob_id"`
+	ContentID   string                      `json:"content_id"`
+	Filename    string                      `json:"filename"`
+	MediaType   string                      `json:"media_type"`
+	SizeBytes   int64                       `json:"size_bytes"`
+	Disposition EngineAttachmentDisposition `json:"disposition"`
+	SHA256      string                      `json:"sha256"`
+}
+
 // SaveDraft creates an RFC 8621 draft or atomically replaces the previous
 // immutable Email with a new draft and destroys the old Email in one set call.
 func (engine *StalwartEngine) SaveDraft(ctx context.Context, draft EngineDraft) (EngineMessage, error) {
@@ -202,6 +249,12 @@ func (engine *StalwartEngine) SaveDraft(ctx context.Context, draft EngineDraft) 
 	}
 	if found && stalwartExactDraftOperation(existing, draftsID, draftMarker, mutationMarker) {
 		return existing, nil
+	}
+	// A prepared or fenced submission adds reserved markers to the immutable
+	// draft. Do not let a concurrent SaveDraft replace that Email between the
+	// content binding check and dispatch.
+	if found && len(existing.Projection.ReservedKeywords) != 3 {
+		return EngineMessage{}, stalwartEngineError(EngineErrorConflict)
 	}
 	if draft.MessageID == "" {
 		if found {
@@ -330,10 +383,6 @@ func (engine *StalwartEngine) Submit(ctx context.Context, submission EngineSubmi
 	if err != nil {
 		return nil, err
 	}
-	bindingMarker, err := stalwartOpaqueMarker("submission-binding", submission.AccountID, submission.SubmissionKey, submission.DraftKey, submission.MessageID, submission.ExpectedVersion)
-	if err != nil {
-		return nil, err
-	}
 	dispatchMarker, err := stalwartOpaqueMarker("submission-dispatch", submission.AccountID, submission.SubmissionKey)
 	if err != nil {
 		return nil, err
@@ -372,32 +421,14 @@ func (engine *StalwartEngine) Submit(ctx context.Context, submission EngineSubmi
 	var message EngineMessage
 	preparedState := ""
 	needsPrepare := false
+	alreadyFenced := false
 	if len(locatorIDs) == 1 {
-		if len(dispatchIDs) == 1 {
-			projections, _, notFound, projectionErr := engine.stalwartFetchProjections(ctx, submission.AccountID, locatorIDs)
-			if projectionErr != nil || len(notFound) != 0 || len(projections) != 1 ||
-				!stalwartProjectionHasKeyword(projections[0], submissionMarker) ||
-				!stalwartProjectionHasKeyword(projections[0], bindingMarker) ||
-				!stalwartProjectionHasKeyword(projections[0], dispatchMarker) {
-				return nil, stalwartEngineError(EngineErrorIndeterminate)
-			}
-			reconciled, reconcileErr := engine.ReconcileSubmission(ctx, submission.AccountID, submission.SubmissionKey)
-			if reconcileErr != nil {
-				return nil, reconcileErr
-			}
-			if sent, ok := reconciled.(EngineSubmissionSent); ok {
-				return sent, nil
-			}
-			return nil, stalwartEngineError(EngineErrorIndeterminate)
-		}
 		message, err = engine.stalwartReadDraftMessage(ctx, submission.AccountID, locatorIDs[0], submission.MaxMessageBytes)
 		if err != nil {
 			return nil, err
 		}
-		if !stalwartExactPreparedSubmission(message, submission, draftsID, draftMarker, submissionMarker, bindingMarker, dispatchMarker) {
-			return nil, stalwartEngineError(EngineErrorIndeterminate)
-		}
 		preparedState = message.Projection.Version
+		alreadyFenced = len(dispatchIDs) == 1
 	} else {
 		if len(dispatchIDs) != 0 {
 			return nil, stalwartEngineError(EngineErrorIndeterminate)
@@ -416,21 +447,66 @@ func (engine *StalwartEngine) Submit(ctx context.Context, submission EngineSubmi
 		if message.Projection.Version != submission.ExpectedVersion {
 			return nil, stalwartEngineError(EngineErrorConflict)
 		}
-		if stalwartProjectionHasKeyword(message.Projection, submissionMarker) ||
-			stalwartProjectionHasKeyword(message.Projection, bindingMarker) ||
-			stalwartProjectionHasKeyword(message.Projection, dispatchMarker) {
-			return nil, stalwartEngineError(EngineErrorIndeterminate)
-		}
 		needsPrepare = true
 	}
 	if err := stalwartValidateSubmissionMessage(message, submission); err != nil {
 		return nil, err
+	}
+	bindingMarker, err := stalwartSubmissionBindingMarker(submission, message)
+	if err != nil {
+		return nil, err
+	}
+	if alreadyFenced {
+		reconciled, reconcileErr := engine.stalwartReconcileBoundSubmission(ctx, submission, message, draftsID, sentID, draftMarker, submissionMarker, bindingMarker, dispatchMarker)
+		if reconcileErr != nil {
+			return nil, reconcileErr
+		}
+		if sent, ok := reconciled.(EngineSubmissionSent); ok {
+			return sent, nil
+		}
+		return nil, stalwartEngineError(EngineErrorIndeterminate)
+	}
+	if needsPrepare {
+		if len(message.Projection.ReservedKeywords) != 3 ||
+			stalwartProjectionHasKeyword(message.Projection, submissionMarker) ||
+			stalwartProjectionHasKeyword(message.Projection, bindingMarker) ||
+			stalwartProjectionHasKeyword(message.Projection, dispatchMarker) {
+			return nil, stalwartEngineError(EngineErrorIndeterminate)
+		}
+	} else if !stalwartExactPreparedSubmission(message, submission, draftsID, draftMarker, submissionMarker, bindingMarker, dispatchMarker) {
+		return nil, stalwartEngineError(EngineErrorIndeterminate)
 	}
 
 	identityID, submissionState, err := engine.stalwartResolveSubmissionContext(ctx, submission.AccountID, message.Projection.From.Email)
 	if err != nil {
 		return nil, err
 	}
+	envelope := stalwartSubmissionEnvelope{
+		MailFrom: stalwartSubmissionAddress{Email: message.Projection.From.Email},
+		RcptTo:   stalwartSubmissionRecipients(message.Projection),
+	}
+	arguments := stalwartSubmissionSetArguments{
+		AccountID: submission.AccountID,
+		IfInState: submissionState,
+		Create: map[string]stalwartSubmissionCreate{
+			stalwartSubmissionCreationID: {IdentityID: identityID, EmailID: submission.MessageID, Envelope: &envelope},
+		},
+		OnSuccessUpdateEmail: map[string]map[string]any{
+			"#" + stalwartSubmissionCreationID: {
+				"mailboxIds/" + draftsID: nil,
+				"mailboxIds/" + sentID:   true,
+				"keywords/$draft":        nil,
+			},
+		},
+	}
+	request, err := stalwartSubmissionSetRequest(arguments)
+	if err != nil {
+		return nil, err
+	}
+	if err := stalwartEnsureRequestFitsTransport(request); err != nil {
+		return nil, err
+	}
+
 	if needsPrepare {
 		prepareResponse, prepareErr := engine.stalwartBoundedEmailSet(ctx, submission.AccountID, stalwartEmailSetArguments{
 			AccountID: submission.AccountID,
@@ -471,25 +547,7 @@ func (engine *StalwartEngine) Submit(ctx context.Context, submission EngineSubmi
 	if err := stalwartSubmissionMarkerUpdateSucceeded(fenceSet, submission.MessageID); err != nil {
 		return nil, err
 	}
-	envelope := stalwartSubmissionEnvelope{
-		MailFrom: stalwartSubmissionAddress{Email: message.Projection.From.Email},
-		RcptTo:   stalwartSubmissionRecipients(message.Projection),
-	}
-	arguments := stalwartSubmissionSetArguments{
-		AccountID: submission.AccountID,
-		IfInState: submissionState,
-		Create: map[string]stalwartSubmissionCreate{
-			stalwartSubmissionCreationID: {IdentityID: identityID, EmailID: submission.MessageID, Envelope: &envelope},
-		},
-		OnSuccessUpdateEmail: map[string]map[string]any{
-			"#" + stalwartSubmissionCreationID: {
-				"mailboxIds/" + draftsID: nil,
-				"mailboxIds/" + sentID:   true,
-				"keywords/$draft":        nil,
-			},
-		},
-	}
-	response, err := engine.stalwartSubmitSet(ctx, submission.AccountID, arguments)
+	response, err := engine.stalwartSubmitSet(ctx, submission.AccountID, request)
 	if err != nil {
 		return nil, err
 	}
@@ -497,20 +555,22 @@ func (engine *StalwartEngine) Submit(ctx context.Context, submission EngineSubmi
 	if err != nil {
 		return nil, err
 	}
-	projections, _, notFound, err := engine.stalwartFetchProjections(ctx, submission.AccountID, []string{submission.MessageID})
-	if err != nil || len(notFound) != 0 || len(projections) != 1 || projections[0].Flags.Draft ||
-		!stalwartExactFolder(projections[0], sentID) ||
-		!stalwartProjectionHasKeyword(projections[0], submissionMarker) ||
-		!stalwartProjectionHasKeyword(projections[0], bindingMarker) ||
-		!stalwartProjectionHasKeyword(projections[0], dispatchMarker) {
+	verified, verificationErr := engine.stalwartReadDraftMessage(ctx, submission.AccountID, submission.MessageID, submission.MaxMessageBytes)
+	if verificationErr != nil {
+		return nil, stalwartEngineError(EngineErrorIndeterminate)
+	}
+	verifiedBinding, verificationErr := stalwartSubmissionBindingMarker(submission, verified)
+	if verificationErr != nil || verifiedBinding != bindingMarker ||
+		!stalwartExactDispatchedSubmission(verified, submission, draftsID, sentID, draftMarker, submissionMarker, bindingMarker, dispatchMarker) {
 		return nil, stalwartEngineError(EngineErrorIndeterminate)
 	}
 	return EngineSubmissionSent{SubmissionID: submissionID, MessageID: submission.MessageID}, nil
 }
 
-// ReconcileSubmission joins the opaque Email marker to a bounded
-// EmailSubmission/query. It proves both provider objects and the sent-folder
-// transition before reporting Sent.
+// ReconcileSubmission can prove absence of its opaque locator, but its public
+// signature lacks the DraftKey, MessageID, ExpectedVersion, and canonical
+// content needed to derive the binding marker. It therefore never reports Sent
+// from locator and dispatch markers alone.
 func (engine *StalwartEngine) ReconcileSubmission(ctx context.Context, accountID, submissionKey string) (EngineSubmissionResult, error) {
 	if ctx == nil || !validAccountID(accountID) || !validSafeText(submissionKey, MaxEngineOpaqueIDBytes, true) {
 		return nil, stalwartEngineError(EngineErrorRejectedPolicy)
@@ -519,59 +579,11 @@ func (engine *StalwartEngine) ReconcileSubmission(ctx context.Context, accountID
 	if err != nil {
 		return nil, err
 	}
-	dispatchMarker, err := stalwartOpaqueMarker("submission-dispatch", accountID, submissionKey)
-	if err != nil {
-		return nil, err
-	}
-	folders, _, err := engine.listFolderSnapshot(ctx, accountID)
-	if err != nil {
-		return stalwartSubmissionReconciliationError(err)
-	}
-	draftsID, err := stalwartExactFolderRole(folders, EngineFolderRoleDrafts)
-	if err != nil {
-		return stalwartSubmissionReconciliationError(err)
-	}
-	sentID, err := stalwartExactFolderRole(folders, EngineFolderRoleSent)
-	if err != nil {
-		return stalwartSubmissionReconciliationError(err)
-	}
 	ids, ambiguous, err := engine.stalwartQueryEmailsByMarker(ctx, accountID, marker)
 	if err != nil {
 		return stalwartSubmissionReconciliationError(err)
 	}
-	if len(ids) == 0 {
-		return EngineSubmissionAbsent{}, nil
-	}
-	if ambiguous || len(ids) != 1 {
-		return EngineSubmissionIndeterminate{Code: EngineIndeterminateUnavailable}, nil
-	}
-	projections, _, notFound, err := engine.stalwartFetchProjections(ctx, accountID, ids)
-	if err != nil || len(notFound) != 0 || len(projections) != 1 || !stalwartProjectionHasKeyword(projections[0], marker) {
-		if err != nil {
-			return stalwartSubmissionReconciliationError(err)
-		}
-		return EngineSubmissionIndeterminate{Code: EngineIndeterminateUnavailable}, nil
-	}
-	dispatchIDs, dispatchAmbiguous, err := engine.stalwartQueryEmailsByMarker(ctx, accountID, dispatchMarker)
-	if err != nil {
-		return stalwartSubmissionReconciliationError(err)
-	}
-	if dispatchAmbiguous || len(dispatchIDs) > 1 || len(dispatchIDs) == 1 && dispatchIDs[0] != ids[0] {
-		return EngineSubmissionIndeterminate{Code: EngineIndeterminateUnavailable}, nil
-	}
-	submissionIDs, submissionAmbiguous, err := engine.stalwartQuerySubmissionsByEmail(ctx, accountID, ids[0])
-	if err != nil {
-		return stalwartSubmissionReconciliationError(err)
-	}
-	projection := projections[0]
-	if !submissionAmbiguous && len(submissionIDs) == 1 && len(dispatchIDs) == 1 &&
-		!projection.Flags.Draft && stalwartExactFolder(projection, sentID) && !projectionHasFolder(projection, draftsID) {
-		return EngineSubmissionSent{SubmissionID: submissionIDs[0], MessageID: ids[0]}, nil
-	}
-	if len(dispatchIDs) != 0 {
-		return EngineSubmissionIndeterminate{Code: EngineIndeterminateUnavailable}, nil
-	}
-	if len(submissionIDs) == 0 && projection.Flags.Draft && stalwartExactFolder(projection, draftsID) {
+	if len(ids) == 0 && !ambiguous {
 		return EngineSubmissionAbsent{}, nil
 	}
 	return EngineSubmissionIndeterminate{Code: EngineIndeterminateUnavailable}, nil
@@ -601,10 +613,120 @@ func stalwartExactPreparedSubmission(message EngineMessage, submission EngineSub
 		projection.MessageID == submission.MessageID &&
 		projection.Flags.Draft &&
 		stalwartExactFolder(projection, draftsID) &&
+		len(projection.ReservedKeywords) == 5 &&
+		stalwartProjectionHasKeyword(projection, "$draft") &&
 		stalwartProjectionHasKeyword(projection, draftMarker) &&
 		stalwartProjectionHasKeyword(projection, locatorMarker) &&
 		stalwartProjectionHasKeyword(projection, bindingMarker) &&
 		!stalwartProjectionHasKeyword(projection, dispatchMarker)
+}
+
+func stalwartExactDispatchedSubmission(message EngineMessage, submission EngineSubmission, draftsID, sentID, draftMarker, locatorMarker, bindingMarker, dispatchMarker string) bool {
+	projection := message.Projection
+	return projection.AccountID == submission.AccountID &&
+		projection.MessageID == submission.MessageID &&
+		!projection.Flags.Draft &&
+		stalwartExactFolder(projection, sentID) &&
+		!projectionHasFolder(projection, draftsID) &&
+		len(projection.ReservedKeywords) == 5 &&
+		stalwartProjectionHasKeyword(projection, draftMarker) &&
+		stalwartProjectionHasKeyword(projection, locatorMarker) &&
+		stalwartProjectionHasKeyword(projection, bindingMarker) &&
+		stalwartProjectionHasKeyword(projection, dispatchMarker)
+}
+
+func (engine *StalwartEngine) stalwartReconcileBoundSubmission(ctx context.Context, submission EngineSubmission, message EngineMessage, draftsID, sentID, draftMarker, locatorMarker, bindingMarker, dispatchMarker string) (EngineSubmissionResult, error) {
+	if !stalwartExactDispatchedSubmission(message, submission, draftsID, sentID, draftMarker, locatorMarker, bindingMarker, dispatchMarker) {
+		return EngineSubmissionIndeterminate{Code: EngineIndeterminateUnavailable}, nil
+	}
+	submissionIDs, submissionAmbiguous, err := engine.stalwartQuerySubmissionsByEmail(ctx, submission.AccountID, submission.MessageID)
+	if err != nil {
+		return stalwartSubmissionReconciliationError(err)
+	}
+	if submissionAmbiguous || len(submissionIDs) != 1 {
+		return EngineSubmissionIndeterminate{Code: EngineIndeterminateUnavailable}, nil
+	}
+	return EngineSubmissionSent{SubmissionID: submissionIDs[0], MessageID: submission.MessageID}, nil
+}
+
+func stalwartSubmissionBindingMarker(submission EngineSubmission, message EngineMessage) (string, error) {
+	projection := message.Projection
+	binding := stalwartSubmissionBinding{
+		Version:           stalwartSubmissionBindingVersion,
+		AccountID:         submission.AccountID,
+		DraftKey:          submission.DraftKey,
+		SubmissionKey:     submission.SubmissionKey,
+		MessageID:         submission.MessageID,
+		ExpectedVersion:   submission.ExpectedVersion,
+		InternetMessageID: projection.InternetMessageID,
+		From:              stalwartSubmissionBindingAddress{Email: projection.From.Email, Name: projection.From.Name},
+		To:                stalwartSubmissionBindingAddresses(projection.To),
+		CC:                stalwartSubmissionBindingAddresses(projection.CC),
+		BCC:               stalwartSubmissionBindingAddresses(projection.BCC),
+		ReplyTo:           stalwartSubmissionBindingAddresses(projection.ReplyTo),
+		Subject:           projection.Subject,
+		InReplyTo:         projection.InReplyTo,
+		References:        append([]string(nil), projection.References...),
+		Priority:          projection.Priority,
+		Body: stalwartSubmissionBindingBody{
+			Format: message.Body.Format, PlainBody: message.Body.PlainBody, RichBody: message.Body.RichBody,
+		},
+		Attachments: stalwartSubmissionBindingAttachments(projection.Attachments),
+	}
+	payload, err := json.Marshal(binding)
+	if err != nil {
+		return "", stalwartEngineError(EngineErrorRejectedPolicy)
+	}
+	digest := sha256.Sum256(payload)
+	return stalwartOpaqueMarker("submission-binding", string(digest[:]))
+}
+
+func stalwartSubmissionBindingAddresses(addresses []EngineAddress) []stalwartSubmissionBindingAddress {
+	result := make([]stalwartSubmissionBindingAddress, len(addresses))
+	for index, address := range addresses {
+		result[index] = stalwartSubmissionBindingAddress{Email: address.Email, Name: address.Name}
+	}
+	return result
+}
+
+func stalwartSubmissionBindingAttachments(attachments []EngineProjectionAttachment) []stalwartSubmissionBindingAttachment {
+	result := make([]stalwartSubmissionBindingAttachment, len(attachments))
+	for index, attachment := range attachments {
+		sha256Value := ""
+		if len(attachment.SHA256) != 0 {
+			sha256Value = base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(attachment.SHA256)
+		}
+		result[index] = stalwartSubmissionBindingAttachment{
+			BlobID: attachment.BlobID, ContentID: attachment.ContentID, Filename: attachment.Filename,
+			MediaType: attachment.MediaType, SizeBytes: attachment.SizeBytes, Disposition: attachment.Disposition,
+			SHA256: sha256Value,
+		}
+	}
+	return result
+}
+
+func stalwartSubmissionSetRequest(arguments stalwartSubmissionSetArguments) (stalwart.JMAPRequest, error) {
+	payload, err := json.Marshal(arguments)
+	if err != nil {
+		return stalwart.JMAPRequest{}, stalwartEngineError(EngineErrorRejectedPolicy)
+	}
+	return stalwart.JMAPRequest{
+		Using: stalwartMailboxCapabilities,
+		MethodCalls: []stalwart.JMAPMethodCall{{
+			Name: "EmailSubmission/set", Arguments: payload, CallID: stalwartSubmissionSetCallID,
+		}},
+	}, nil
+}
+
+func stalwartEnsureRequestFitsTransport(request stalwart.JMAPRequest) error {
+	fits, err := stalwart.RequestFitsTransport(request)
+	if err != nil {
+		return stalwartEngineError(EngineErrorRejectedPolicy)
+	}
+	if !fits {
+		return stalwartEngineError(EngineErrorPayloadTooLarge)
+	}
+	return nil
 }
 
 func (engine *StalwartEngine) stalwartSaveDraftSet(ctx context.Context, accountID string, arguments stalwartDraftEmailSetArguments) (stalwart.JMAPResponse, error) {
@@ -618,15 +740,8 @@ func (engine *StalwartEngine) stalwartSaveDraftSet(ctx context.Context, accountI
 	})
 }
 
-func (engine *StalwartEngine) stalwartSubmitSet(ctx context.Context, accountID string, arguments stalwartSubmissionSetArguments) (stalwart.JMAPResponse, error) {
-	payload, err := json.Marshal(arguments)
-	if err != nil {
-		return stalwart.JMAPResponse{}, stalwartEngineError(EngineErrorRejectedPolicy)
-	}
-	return engine.stalwartCallBoundedMutation(ctx, accountID, stalwart.JMAPRequest{
-		Using: stalwartMailboxCapabilities,
-		MethodCalls: []stalwart.JMAPMethodCall{{Name: "EmailSubmission/set", Arguments: payload, CallID: stalwartSubmissionSetCallID}},
-	})
+func (engine *StalwartEngine) stalwartSubmitSet(ctx context.Context, accountID string, request stalwart.JMAPRequest) (stalwart.JMAPResponse, error) {
+	return engine.stalwartCallBoundedMutation(ctx, accountID, request)
 }
 
 func (engine *StalwartEngine) stalwartBoundedEmailSet(ctx context.Context, accountID string, arguments stalwartEmailSetArguments) (stalwart.JMAPResponse, error) {
@@ -641,12 +756,8 @@ func (engine *StalwartEngine) stalwartBoundedEmailSet(ctx context.Context, accou
 }
 
 func (engine *StalwartEngine) stalwartCallBoundedMutation(ctx context.Context, accountID string, request stalwart.JMAPRequest) (stalwart.JMAPResponse, error) {
-	fits, err := stalwart.RequestFitsTransport(request)
-	if err != nil {
-		return stalwart.JMAPResponse{}, stalwartEngineError(EngineErrorRejectedPolicy)
-	}
-	if !fits {
-		return stalwart.JMAPResponse{}, stalwartEngineError(EngineErrorPayloadTooLarge)
+	if err := stalwartEnsureRequestFitsTransport(request); err != nil {
+		return stalwart.JMAPResponse{}, err
 	}
 	return engine.callMailbox(ctx, accountID, request, true)
 }
