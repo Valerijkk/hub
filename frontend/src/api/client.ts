@@ -4,6 +4,9 @@ import { useAuthStore } from "@/stores/auth-store";
 const API_BASE = "/api";
 
 const MAX_HEADER_VALUE_LENGTH = 256;
+const MAX_IDEMPOTENCY_KEY_LENGTH = 128;
+const SAFE_LOCATION_ORIGIN = "https://hub.invalid";
+const ENCODED_UNSAFE_LOCATION_MATERIAL = /%(?:0[0-9A-F]|1[0-9A-F]|2E|2F|5C|7F)/i;
 const MAX_LOCATION_LENGTH = 2048;
 const CONTROL_CHARACTERS = /[\u0000-\u001F\u007F]/;
 const RECOVERY_ERROR_CODES = new Set([
@@ -12,7 +15,8 @@ const RECOVERY_ERROR_CODES = new Set([
 	"CALENDAR_EVENT_VERSION_CONFLICT",
 	"CALENDAR_EVENT_NOT_MUTABLE",
 	"CALENDAR_OCCURRENCE_NOT_MUTABLE",
-	"SCHEDULED_CALL_NOT_MUTABLE",
+	"SCHEDULED_CALL_NOT_ATTACHABLE",
+	"CALENDAR_EVENT_RECURRENCE_CONFLICT",
 ]);
 
 export interface ApiRequestOptions {
@@ -78,15 +82,27 @@ class ApiClient {
 		if (token) {
 			headers.Authorization = `Bearer ${token}`;
 		}
-		if (options?.idempotencyKey && options.idempotencyKey.trim().length > 0) {
-			headers["Idempotency-Key"] = options.idempotencyKey;
+		if (options?.idempotencyKey !== undefined) {
+			const { idempotencyKey } = options;
+			if (
+				typeof idempotencyKey !== "string" ||
+				idempotencyKey.length === 0 ||
+				idempotencyKey.trim() !== idempotencyKey ||
+				idempotencyKey.length > MAX_IDEMPOTENCY_KEY_LENGTH ||
+				new TextEncoder().encode(idempotencyKey).length >
+					MAX_IDEMPOTENCY_KEY_LENGTH ||
+				CONTROL_CHARACTERS.test(idempotencyKey)
+			) {
+				throw new Error("Invalid Idempotency-Key");
+			}
+			headers["Idempotency-Key"] = idempotencyKey;
 		}
-		if (
-			typeof options?.ifMatch === "number" &&
-			Number.isSafeInteger(options.ifMatch) &&
-			options.ifMatch > 0
-		) {
-			headers["If-Match"] = `"${options.ifMatch}"`;
+		if (options?.ifMatch !== undefined) {
+			const { ifMatch } = options;
+			if (!Number.isSafeInteger(ifMatch) || ifMatch <= 0) {
+				throw new Error("Invalid If-Match");
+			}
+			headers["If-Match"] = `"${ifMatch}"`;
 		}
 		return headers;
 	}
@@ -144,6 +160,38 @@ class ApiClient {
 		) {
 			return undefined;
 		}
+		if (ENCODED_UNSAFE_LOCATION_MATERIAL.test(value)) {
+			return undefined;
+		}
+
+		let decoded: string;
+		try {
+			decoded = decodeURIComponent(value);
+		} catch {
+			return undefined;
+		}
+
+		if (
+			!decoded.startsWith("/api/") ||
+			decoded.includes(String.fromCharCode(92)) ||
+			CONTROL_CHARACTERS.test(decoded) ||
+			/\/(?:\.{1,2})(?:\/|$)/.test(decoded)
+		) {
+			return undefined;
+		}
+
+		try {
+			const location = new URL(value, SAFE_LOCATION_ORIGIN);
+			if (
+				location.origin !== SAFE_LOCATION_ORIGIN ||
+				!location.pathname.startsWith("/api/")
+			) {
+				return undefined;
+			}
+		} catch {
+			return undefined;
+		}
+
 		return value;
 	}
 
@@ -303,8 +351,8 @@ class ApiClient {
 	}
 
 	/** GET-запрос. */
-	get<T>(path: string) {
-		return this.request<T>("GET", path);
+	get<T>(path: string, options?: ApiRequestOptions) {
+		return this.request<T>("GET", path, undefined, options);
 	}
 
 	/**
@@ -349,8 +397,8 @@ class ApiClient {
 		return this.request<T>("PATCH", path, body, options);
 	}
 	/** DELETE-запрос. */
-	delete<T>(path: string) {
-		return this.request<T>("DELETE", path);
+	delete<T>(path: string, options?: ApiRequestOptions) {
+		return this.request<T>("DELETE", path, undefined, options);
 	}
 }
 
