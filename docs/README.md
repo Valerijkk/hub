@@ -106,8 +106,10 @@ Fresh sequential Docker evidence for the minimal slice: `backend-unit` PASS
 SUT contract tests and five associated case records were explicitly deleted.
 API/integration/e2e/load are `NOT_RUN` and are not merge gates for this slice.
 Hosted GitHub CI/PR automation is manual-only and GitLab pipelines are off.
-Accepted receipts cover the 14 and 241 non-protected legacy deletion batches;
-protected Mail/Calendar paths stay outside the merge. Evidence:
+Accepted receipts cover the 14-path target-unit curation and 241
+hook-dependent deletion batch. Full legacy-root reconciliation is 349
+relocations + 232 net component deletions + 241 hook-dependent deletions = 822
+removed source paths; protected Mail/Calendar paths stay outside the merge. Evidence:
 `.planning/audits/test-rebase/FINAL-MERGE-EVIDENCE-2026-08-23.md`.
 
 ---

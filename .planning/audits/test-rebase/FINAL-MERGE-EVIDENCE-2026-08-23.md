@@ -1,4 +1,4 @@
-# Test rebase final merge evidence ? 2026-08-23
+# Test rebase final merge evidence — 2026-08-23
 
 ## Accepted scope
 
@@ -16,7 +16,7 @@ containers and Docker cache retained.
 |---|---|---|
 | `backend-unit` | `PASS` | build, vet, unit and race receipts under `testframework/reports/backend-unit/`; target exit `0` |
 | `frontend-unit` | `PASS` | TypeScript `PASS`; Vitest `338/338` suites and `419/419` tests; receipts under `testframework/reports/frontend-unit/` |
-| `python-contract` | `PASS` | framework selftests only: `181/181` passed in 4.26s |
+| `python-contract` | `PASS` | framework selftests only: `181/181` passed in 4.51s |
 
 The owner-bound Calendar WIP test
 `frontend/tests/calls/call-calendar-a11y.test.tsx` is deliberately excluded
@@ -43,6 +43,23 @@ was not executed.
   `.planning/audits/test-rebase/backend-unit-delete-supersession-2026-08-22.json`
   and
   `.planning/audits/test-rebase/backend-hook-dependent-delete-supersession.json`.
+
+Whole-branch source-root reconciliation relative to `master`: the original
+831 `backend/testframework/**/*_test.go` paths were handled by 349 source
+relocations in `794ae3cc`, 241 Phase-129 component deletions, and 241
+hook-dependent deletions in `e85feac5`. Nine protected Mail/Calendar paths
+were restored by `5566677f`, leaving exactly 822 legacy-source removals in the
+net diff. The 14-path receipt above concerns later curation of retained target
+units and is not presented as the full legacy-root deletion inventory.
+
+## Standalone production corrections carried by the branch
+
+The branch also contains three bounded, separately committed corrections that
+are disclosed rather than attributed to the framework skeleton: OpenAPI source
+synchronization `4e9a0dad`, DEV_MODE-only magic-link code disclosure
+`43c2514c`, and empty AI provider normalization in `8c68cbc9`. Independent
+static review found no high-severity defect; the fresh `backend-unit` PASS is
+the executable regression evidence for the final tree.
 
 ## Publication rule
 

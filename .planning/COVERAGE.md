@@ -10,13 +10,11 @@
 > zero-failure, overall **82.0373%**)
 > Previous valid gate: 2026-07-27 Docker **81.9%** (see ## Historical baselines)
 > Contaminated 2026-07-29 local attempt **80.2%** is historical, not baseline.
-> **Current launcher status: `NOT_READY`; runtime: `NOT_RUN`.** No command
-> below is current authority. The future versioned launcher API belongs only to
-> `testframework/runner/**`; `testframework/docker/**` contains only immutable
-> execution assets, including the future image lock. Runtime evidence must wait
-> for separate implementation and independent acceptance, and must resolve
-> TASK/requirement/TC/risk. Direct Docker/Compose, host test/validator,
-> mutable-image and ad-hoc cleanup fallbacks are forbidden.
+> **Current minimal gate (2026-08-23):** root Compose exact services are the QA
+> authority. `backend-unit`, `frontend-unit` and framework-only
+> `python-contract` have Docker PASS evidence; Python API/integration/e2e/load
+> are `NOT_RUN` and outside this merge gate. Host test/validator commands and
+> removed legacy entrypoints are forbidden.
 > Historical package table: 2026-06-22 (see ## Historical baselines)  
 > **Источники:** `.planning/PROJECT.md`, `docs/vision_and_scope.md`, `.planning/audits/code-review-final/SUMMARY.md`
 
@@ -345,7 +343,7 @@ observations, not native-unit taxonomy or acceptance of the future runner.
 
 | # | Item | Status |
 |---|------|--------|
-| 1 | Greenfield test architecture cutover (Phases 128–141) | 🚧 Phase 128; launcher `NOT_READY`, runtime `NOT_RUN` until independent future `testframework/runner/**` acceptance; `testframework/docker/**` remains immutable-assets-only |
+| 1 | Greenfield test architecture cutover (Phases 128–141) | Minimal package/framework slice Docker PASS; API/integration/e2e/load `NOT_RUN` and tracked separately |
 | 2 | Historical FA-11 tms/project legacy floor | archived/non-gating |
 | 3 | NFR-16 full WCAG AA sign-off | ⚠️ partial |
 | 4 | NFR-17 Lighthouse ≥90 in CI | ⚠️ artifact job (non-blocking) |

@@ -197,8 +197,8 @@ contract отменяет его как migration gate; destructive batches ра
 |------:|--------|------------|-----------------|
 | 126 | IMPLEMENTED 2026-07-28 | — | Intranet NewsPost trash · TASK-001 |
 | 127 | IMPLEMENTED 2026-07-28 | 126 | Calendar series trash · TASK-002 |
-| 128 | Historical evidence retained; current live-cutover claims superseded by 2026-08-14 recovery packet | — | TASK-202/203/224/204 remain dated evidence only; they do not accept the current Phase 129 bulk changes. See `audits/test-rebase/RECOVERY-OPTION-A-2026-08-14.md`. |
-| 129 | `RECOVERY_BLOCKED` | successor authority | Independent Option A recovery re-review accepted the observation packet only. `STATIC_PATH_MAPPING=PASS`; `CUTOVER_ACCEPTANCE=FAIL/BLOCKED`. Preserve `794ae3cc` and `7b5d5501`, but no batch is applied/verified; the staged deletion set remains uncommitted/unaccepted. |
+| 128 | Historical evidence retained; 2026-08-14 recovery packet superseded by final 2026-08-23 evidence | — | Minimal Docker gate PASS: backend/frontend units plus 181 framework selftests; see `audits/test-rebase/FINAL-MERGE-EVIDENCE-2026-08-23.md`. |
+| 129 | `PUBLICATION_PENDING` | final remote fast-forward | Root-Compose minimal gate PASS; full legacy source disposition reconciled; hosted CI off; API/integration/e2e/load remain `NOT_RUN` and non-gating. |
 | 130 | PLANNED | 129 | task/requirement/risk → TC traceability and fail-closed quality gates · TASK-206/218 |
 | 131 | PLANNED | 130 | Python core + health/auth/account API foundation · TASK-205/207 |
 | 132 | PLANNED | 131 | authz, tenant isolation, admin/platform and abuse cases · TASK-208/209/227 |

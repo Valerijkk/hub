@@ -110,11 +110,10 @@ QA services profile-explicit/disposable; integration/e2e infrastructure isolated
 
 ### 2.4. Текущие legacy-паттерны и будущие task-named targets
 
-Текущий committed scaffold содержит `hub_testkit/__init__.py`, boundary
-README под `config/`, `runtime/`, `traceability/` и `domains/README.md`.
-Эти артефакты фиксируют ownership, но не реализуют installable package,
-browser/UI helpers или executable suites. Package и target suites — `NOT_READY`,
-runtime — `NOT_RUN`.
+Current minimal slice contains the installable `hub_testkit` package and
+framework selftests. Docker `python-contract` is PASS at 181/181 and contains
+no SUT product tests. Browser/UI helpers and SUT API/integration/e2e/load suites
+remain separate future work with runtime `NOT_RUN`.
 
 | Паттерн | Где | Статус |
 |---------|-----|--------|
@@ -329,16 +328,16 @@ API/integration/e2e/load services `NOT_READY`, runtime `NOT_RUN`; framework self
 
 | Триггер | Что гоняем |
 |---------|-----------|
-| PR | future `python-e2e-smoke` target: task-named risk-based critical path + affected domains |
-| Push/merge в master | future `python-e2e-full` target: accepted greenfield journeys without historical spec-count preservation |
+| Manual future smoke profile | `python-e2e-smoke`: task-named risk-based critical path + affected domains |
+| Manual future full profile | `python-e2e-full`: accepted greenfield journeys without historical spec-count preservation |
 | Nightly / pre-release | future `full` launcher profile + separately accepted Locust profile |
 
 ### 6.5. CI-бюджет
 
 Лимит ~3000 мин/мес (студенческий пакет GitHub Actions). Меры экономии:
 
-- **path-filtered CI** (dorny/paths-filter, план M0-05): PR в один домен запускает только его jobs;
-- smoke на каждом PR, full — на master/по необходимости;
+- **Future only:** path-filtered hosted CI may be reconsidered after explicit founder activation;
+- hosted PR/push automation is currently off; local root Compose evidence is canonical;
 - Playwright: шардинг + blob/merge-reports, `storageState` (логин один раз);
 - pytest-xdist для параллелизма Python-слоя;
 - нагрузочные и бенчмарки — вне основного CI;
@@ -385,7 +384,7 @@ clean-room CI verification и handoff, а не отложенный cleanup.
 - **Wall-time** каждого значимого прогона (полная регрессия, coverage-прогон, e2e-full, Locust) — в `.planning/COVERAGE.md` рядом с процентами.
 - **Топ медленных тестов** — future service adapters после separate
   implementation и independent acceptance должны публиковать единый
-  sanitized timing report для Go/Vitest/pytest/Playwright; до того launcher
+  sanitized timing report для Go/Vitest/pytest/Playwright; до того service/profile
   `NOT_READY`, runtime `NOT_RUN`.
 - **Деградация >20%** — заметка в `.planning/STATE.md` + задача на оптимизацию.
 

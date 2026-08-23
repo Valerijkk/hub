@@ -4,9 +4,11 @@
 > **Edge/Corner backlog:** [`.planning/archive/july-2026/EDGE-CORNER-CATALOG.md`](../.planning/archive/july-2026/EDGE-CORNER-CATALOG.md) — Happy/Neg/Edge/Corner по доменам (источник будущих TC; CAL-SYNC C1–C15)
 >
 > **Current QA authority:** legacy commands and paths below are inventory, not executable canon.
-> **Minimal slice status (2026-08-23):** 14 legacy units and 241 non-protected
-> hook-dependent legacy tests were deleted under accepted receipts. Four
-> protected Mail/Calendar paths remain outside this merge. Runnable genuine
+> **Minimal slice status (2026-08-23):** the 14-path target-unit curation and
+> 241 hook-dependent deletion batches have accepted receipts. Full legacy-root
+> reconciliation is 349 relocations + 232 net component deletions + 241
+> hook-dependent deletions = 822 removed source paths. Protected Mail/Calendar
+> paths remain outside this merge. Runnable genuine
 > units live under `backend/tests/**` and `frontend/tests/**`; historical
 > legacy paths/counts below are inventory only and never an execution fallback.
 > Единственная публичная точка — `docker compose -f docker-compose.local.yml run --rm <exact-service>`.

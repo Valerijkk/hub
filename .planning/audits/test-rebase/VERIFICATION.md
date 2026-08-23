@@ -9,14 +9,10 @@ verified_at: null
 
 # Phase 128 test-rebase guard verification
 
-> **Current recovery truth (2026-08-14):** this file retains historical
-> TASK-204 evidence below. It does not accept the present Phase 129 cutover.
-> `STATIC_PATH_MAPPING=PASS`; `CUTOVER_ACCEPTANCE=FAIL/BLOCKED`;
-> `PHASE_129=RECOVERY_BLOCKED`; `LAUNCHER=NOT_READY`; and
-> `POST_CUTOVER_RUNTIME=NOT_RUN`. The immutable v1 manifest remains all
-> `planned` with no receipts or independent batch verdicts. Read the
-> forward-only Option A record before relying on any historical statement:
-> `RECOVERY-OPTION-A-2026-08-14.md`.
+> **Historical verification record (superseded 2026-08-23):** frontmatter and
+> recovery statuses below describe the old TASK-204 gate only. They are not the
+> current Phase 129 verdict. Use `FINAL-MERGE-EVIDENCE-2026-08-23.md` for the
+> accepted minimal Docker slice, deletion reconciliation and publication rule.
 
 ## Independent Option A recovery re-review — ACCEPT (2026-08-14)
 

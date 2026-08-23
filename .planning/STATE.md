@@ -141,14 +141,18 @@ plus Vitest 338/338 suites and 419/419 tests), and `python-contract` PASS
 case records were explicitly removed; Python API, integration, e2e and load
 are `NOT_RUN` and are not merge gates for this slice. Hosted CI/PR automation
 is disabled and GitLab pipelines are off. Production deploy remains manual
-and separately gated by FA-06/PG-03 plus CTO sign-off. The 14 and 241 legacy
-deletion batches have accepted receipts; protected Mail/Calendar paths are
-outside this merge. This is framework/unit evidence, not product readiness.
+and separately gated by FA-06/PG-03 plus CTO sign-off. The 14-path target-unit curation and 241 hook-dependent deletion batches have
+accepted receipts. Full legacy-root reconciliation is 349 relocations + 232
+net component deletions + 241 hook-dependent deletions = 822 removed source
+paths; protected Mail/Calendar paths are outside this merge. This is framework/unit evidence, not product readiness.
 
 
 # Состояние проекта Hub
 
-## Current recovery truth — 2026-08-14 (supersedes conflicting live-cutover claims above)
+## Historical recovery truth — 2026-08-14 (superseded by the 2026-08-23 override above)
+
+The status table in this historical section is retained only as recovery
+provenance and must not override the current minimal-merge status above.
 
 Founder selected **Option A**: preserve commits `794ae3cc` and `7b5d5501` and
 reconcile forward only. This is a recovery record, not retroactive acceptance.

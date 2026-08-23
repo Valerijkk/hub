@@ -1,11 +1,9 @@
 # TASK-202 — reproducible test inventory
 
-> **Historical/quarantine notice (2026-08-14):** this directory contains
-> historical inventory and TASK-204 evidence. It is not authority to accept
-> the current Phase 129 bulk moves or staged deletions. Founder chose
-> forward-only Option A; see `RECOVERY-OPTION-A-2026-08-14.md` for the current
-> status and gates. Do not infer a manifest transition, batch receipt,
-> verification, deletion, or runtime result from the records below.
+> **Historical inventory notice (superseded 2026-08-23):** records below retain
+> TASK-202/TASK-204 discovery provenance and are not the current verdict.
+> Current minimal-slice scope, Docker evidence, deletion reconciliation and
+> publication rule are in `FINAL-MERGE-EVIDENCE-2026-08-23.md`.
 
 This directory is the evidence boundary for the test-architecture rebase.  The
 inventory is descriptive only: no legacy source is deleted or moved by this
