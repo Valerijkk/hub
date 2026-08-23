@@ -1,15 +1,15 @@
 package mail
 
 import (
-	context
-	sort
+	"context"
+	"sort"
 
-	github.com/google/uuid
+	"github.com/google/uuid"
 
-	github.com/valerii/hub/backend/ent
-	github.com/valerii/hub/backend/ent/mailaccount
-	github.com/valerii/hub/backend/ent/mailattachment
-	github.com/valerii/hub/backend/ent/maildraft
+	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/mailaccount"
+	"github.com/valerii/hub/backend/ent/mailattachment"
+	"github.com/valerii/hub/backend/ent/maildraft"
 )
 
 // GetMailboxDraft reads one account-scoped durable draft before any engine I/O.
@@ -180,7 +180,7 @@ func mailboxEntDraftReadAttachmentIDs(ctx context.Context, draft *ent.MailDraft)
 }
 
 func mailboxEntDraftReadAttachmentValid(attachment *ent.MailAttachment, draftID, draftClientID uuid.UUID) bool {
-	if attachment == nil || attachment.ID == uuid.Nil || attachment.MailDraftID == nil || *attachment.MailDraftID != draftID || attachment.MailMessageID != nil || attachment.DraftClientID == nil || *attachment.DraftClientID != draftClientID || attachment.StorageObjectID == nil || *attachment.StorageObjectID == uuid.Nil || attachment.EngineBlobID != nil || attachment.CreatedAt.IsZero() || attachment.UpdatedAt.IsZero() || !mailboxEntApplyAttachmentOptionalTextValid(attachment.ContentID) || !mailboxEntApplyAttachmentTextValid(attachment.Filename, false) || !mailboxEntApplyAttachmentTextValid(attachment.MediaType, false) || attachment.SizeBytes < 1 || attachment.SizeBytes > MaxEngineAttachmentBytes || !mailboxEntApplyAttachmentDispositionValid(attachment.Disposition) || !mailboxEntApplyAttachmentScanStatusValid(attachment.ScanStatus) || (len(attachment.SHA256) != 0 && len(attachment.SHA256) != AttachmentSHA256Bytes) || ((attachment.ScanStatus == mailattachment.ScanStatus(clean) || attachment.ScanStatus == mailattachment.ScanStatus(rejected)) && len(attachment.SHA256) != AttachmentSHA256Bytes) {
+	if attachment == nil || attachment.ID == uuid.Nil || attachment.MailDraftID == nil || *attachment.MailDraftID != draftID || attachment.MailMessageID != nil || attachment.DraftClientID == nil || *attachment.DraftClientID != draftClientID || attachment.StorageObjectID == nil || *attachment.StorageObjectID == uuid.Nil || attachment.EngineBlobID != nil || attachment.CreatedAt.IsZero() || attachment.UpdatedAt.IsZero() || !mailboxEntApplyAttachmentOptionalTextValid(attachment.ContentID) || !mailboxEntApplyAttachmentTextValid(attachment.Filename, false) || !mailboxEntApplyAttachmentTextValid(attachment.MediaType, false) || attachment.SizeBytes < 1 || attachment.SizeBytes > MaxEngineAttachmentBytes || !mailboxEntApplyAttachmentDispositionValid(attachment.Disposition) || !mailboxEntApplyAttachmentScanStatusValid(attachment.ScanStatus) || (len(attachment.SHA256) != 0 && len(attachment.SHA256) != AttachmentSHA256Bytes) || ((attachment.ScanStatus == mailattachment.ScanStatus("clean") || attachment.ScanStatus == mailattachment.ScanStatus("rejected")) && len(attachment.SHA256) != AttachmentSHA256Bytes) {
 		return false
 	}
 	return attachment.Disposition != mailattachment.Disposition(EngineAttachmentDispositionInline) || attachment.ContentID != nil
