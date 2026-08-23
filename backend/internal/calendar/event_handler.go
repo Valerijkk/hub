@@ -586,8 +586,94 @@ func calendarHTTPDecode(c fiber.Ctx, target any) error {
 	if err := calendarHTTPValidateJSON(body); err != nil {
 		return calendarHTTPBadRequest()
 	}
+	if err := calendarHTTPValidateExactKeys(body, target); err != nil {
+		return calendarHTTPBadRequest()
+	}
 	if err := calendarHTTPDecodeValue(body, target); err != nil {
 		return calendarHTTPBadRequest()
+	}
+	return nil
+}
+
+func calendarHTTPValidateExactKeys(data []byte, target any) error {
+	var object map[string]json.RawMessage
+	if err := json.Unmarshal(data, &object); err != nil || object == nil {
+		return errors.New("invalid calendar JSON object")
+	}
+	var allowed func(string) bool
+	validateAttendees := false
+	switch target.(type) {
+	case *calendarHTTPCreateRequest:
+		allowed = calendarHTTPCreateKeyAllowed
+		validateAttendees = true
+	case *calendarHTTPUpdateRequest:
+		allowed = calendarHTTPUpdateKeyAllowed
+		validateAttendees = true
+	case *calendarHTTPRSVPRequest:
+		allowed = calendarHTTPRSVPKeyAllowed
+	default:
+		return errors.New("unsupported calendar request type")
+	}
+	for key := range object {
+		if !allowed(key) {
+			return errors.New("unknown calendar JSON key")
+		}
+	}
+	if validateAttendees {
+		if raw, present := object["attendees"]; present {
+			return calendarHTTPValidateAttendeeKeys(raw)
+		}
+	}
+	return nil
+}
+
+func calendarHTTPCreateKeyAllowed(key string) bool {
+	switch key {
+	case "title", "description", "location", "starts_at", "ends_at",
+		"start_date", "end_date_exclusive", "all_day", "timezone", "rrule",
+		"exdates", "scheduled_call_id", "reminder_minutes", "attendees":
+		return true
+	default:
+		return false
+	}
+}
+
+func calendarHTTPUpdateKeyAllowed(key string) bool {
+	if key == "scheduled_call_id" {
+		return false
+	}
+	return calendarHTTPCreateKeyAllowed(key)
+}
+
+func calendarHTTPRSVPKeyAllowed(key string) bool {
+	return key == "status" || key == "attendee_version"
+}
+
+func calendarHTTPValidateAttendeeKeys(data []byte) error {
+	trimmed := bytes.TrimSpace(data)
+	if len(trimmed) == 0 || trimmed[0] != '[' {
+		return nil
+	}
+	var attendees []json.RawMessage
+	if err := json.Unmarshal(trimmed, &attendees); err != nil {
+		return err
+	}
+	for _, raw := range attendees {
+		element := bytes.TrimSpace(raw)
+		if len(element) == 0 || element[0] != '{' {
+			return errors.New("invalid calendar attendee object")
+		}
+		var object map[string]json.RawMessage
+		if err := json.Unmarshal(element, &object); err != nil || object == nil {
+			return errors.New("invalid calendar attendee object")
+		}
+		for key := range object {
+			switch key {
+			case "user_id", "email", "display_name", "role":
+			default:
+				return errors.New("unknown calendar attendee JSON key")
+			}
+		}
 	}
 	return nil
 }
