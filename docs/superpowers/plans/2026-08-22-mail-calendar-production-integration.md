@@ -459,13 +459,13 @@ independently statically review the durable sync-lease generation, active due-sc
 apply proof including its strict retention predicate, and exact-second schedule CAS marker.
 
 **Atomic decomposition:** Task 6A owns claim/resolve plus due-scan/fault coordination; Task 6B owns
-prepare-only projection reads and policy-input construction. The required correction order is
-6W -> 6Q -> 6V before 6C2: 6W strengthens proof retention, 6Q corrects transaction-authoritative
-lease time, and 6V corrects Resolve projection-state/attempt ownership. Task 6C0 pure canonical
-validation/hash is independent of that correction chain; Task 6C1 bounded projection/aggregate
-helpers and 6C2 transaction/outbox/same-lease proof follow their frozen dependencies. Each 6C
-packet has a separate implementer and independent task review. No packet spans provider I/O and a
-repository transaction.
+prepare-only projection reads and policy-input construction. The active prerequisite order is
+6W -> 6Q2 -> 6C0V2 -> 6C1 -> 6C2. 6Q2 replaces the superseded lease-clock source, and 6C0V2
+replaces the pending v1 canonical handoff; both modify `mailbox_ent_sync_prepare.go`, so they are
+strictly sequential. Task 6V's retry decoder remains documented separately: source `43a` is
+state-machine-correct, but its final quality decision waits for 6Q2. Each 6C packet has a separate
+implementer and independent exact-scope static review. No packet spans provider I/O and a repository
+transaction.
 
 - [x] **Step 1: Implement Task 6A claim/resolve and worker coordination**
 
@@ -539,14 +539,18 @@ Generated Ent client/predicates are absent and the launcher remains `NOT_READY`;
 compile, tests, formatting/lint, Atlas/migration, SQL/DB, Docker, and runtime are `NOT_RUN`. Task 6C
 apply remains pending; this accepts neither Task 6, Phase 144, the Mail module, nor product.
 
-- [ ] **Step 5: Implement Task 6Q transaction-authoritative lease-time correction**
+- [ ] **Step 5: Historical Task 6Q lease-time source -- superseded/pending correction**
 
 **Files:**
 - Modify: `backend/internal/mail/mailbox_ent_repository.go`
 - Modify: `backend/internal/mail/mailbox_ent_sync_prepare.go`
 - Modify: `backend/internal/mail/mailbox_ent_sync_claim.go`
 
-Freeze this private helper in `mailbox_ent_repository.go`:
+Source `6477` is `SUPERSEDED / PENDING_CORRECTION / RUNTIME_NOT_RUN`. It is retained only to
+explain the defect and must not be accepted, reimplemented, or used to discharge a later dependency.
+Its `CURRENT_TIMESTAMP` helper is superseded by Task 6Q2 below.
+
+The historical source froze this private helper in `mailbox_ent_repository.go`:
 
 ```go
 func mailboxEntTransactionTime(ctx context.Context, transaction *ent.Tx) (time.Time, error)
@@ -569,15 +573,56 @@ post-sync test plan; generated Ent, runtime, compile, SQL/DB, Docker, formatting
 executable evidence remain `NOT_RUN`. This forward correction preserves the recorded immutable
 acceptance of Tasks 6A and 6B.
 
+- [ ] **Step 5Q2: Implement fresh database-wall-clock prerequisite**
+
+**Files:**
+- Modify: `backend/internal/mail/mailbox_ent_repository.go`
+- Modify: `backend/internal/mail/mailbox_ent_sync_claim.go`
+- Modify: `backend/internal/mail/mailbox_ent_sync_prepare.go`
+
+Freeze the replacement private helper exactly as:
+
+```go
+func mailboxEntDatabaseWallClock(ctx context.Context, transaction *ent.Tx) (time.Time, error)
+```
+
+It uses only the supplied transaction dialect driver to execute exactly
+`SELECT date_trunc('second', clock_timestamp())`, reads and scans exactly one row, converts the
+returned instant to UTC, and accepts it only as an exact-second `mailboxEntValidTime` instant.
+Nil context/transaction, query, row-count, scan, close, UTC conversion, and validation failures map
+through the existing content-free safe mapping; it never starts another transaction, reaches the
+repository client, or samples the injected process clock. `CURRENT_TIMESTAMP` is not acceptable:
+PostgreSQL fixes it at transaction start, so a value obtained after a lock can already be stale and
+cannot prove the current lease boundary.
+
+Claim, Prepare, and Resolve lock the requested account with `FOR UPDATE` first, then call
+`mailboxEntDatabaseWallClock` exactly once in the successful owned transaction. Claim uses that one
+fresh DB value as the only due, lease, schedule-marker, and returned non-claim authority, and rejects
+`request.LeaseUntil` unless it is strictly after that value. `request.Now` remains structural input
+validation only; it is never compared as the authority for due, lease expiry, schedule, or a returned
+time. Prepare passes its one post-lock value to the unchanged `mailboxEntPrepareInput`. Resolve uses
+its one post-lock value for every lease gate and for the schedule marker in the same update.
+
+Future 6C2 follows the same post-lock rule and uses its one fresh DB value for every live-lease gate,
+`appliedAt`, projection timestamp, and schedule marker. Before a proof write it requires
+`NextAttemptAt` to be strictly after that fresh wall clock and checks that
+`NextAttemptAt + 1s` is still a valid exact-second instant strictly later than it. This is not an
+authorization to implement 6C2 early.
+
+**Static-review gate only:** independently inspect the exact three-file source manifest for the
+literal query, one-row safe mapping, account-lock-before-single-call order, Claim authority split,
+and Prepare/Resolve use. No test, build, generation, format, lint, SQL/DB, Docker, or runtime action
+is authorized; all executable evidence remains `NOT_RUN`.
+
 - [ ] **Step 6: Implement Task 6V Resolve projection-state and retry-attempt correction**
 
 **Files:**
 - Modify: `backend/internal/mail/mailbox_ent_sync_claim.go`
 
-Source commit `e122197b` is `PENDING_CORRECTION / RUNTIME_NOT_RUN`, not static accepted, until
-independent review accepts this narrow decoder correction. Despite 6Q otherwise leaving Claim
-unchanged, 6V modifies only `mailboxEntSyncClaimSnapshot`; no schema, public API, or migration
-changes. The locked production-only test rule remains in force.
+Source `43a` is `STATE_MACHINE_CORRECT / FINAL_QUALITY_PENDING_6Q2 / RUNTIME_NOT_RUN`, not static
+accepted. Its final quality review cannot close until the 6Q2 clock prerequisite is independently
+reviewed. 6V modifies only `mailboxEntSyncClaimSnapshot`; no schema, public API, or migration changes.
+The locked production-only test rule remains in force.
 
 After a handled failure, `mailboxEntSyncClaimSnapshot` reconstructs the degraded policy snapshot
 exactly as follows. `CURSOR_INVALID` and `RESTART_REQUIRED` require nil rebuild fields
@@ -601,12 +646,16 @@ lease/proof-clear, and idempotent-second-Resolve rules. The deferred-test ledger
 executable coverage for the dedicated post-sync test plan; generated Ent, runtime, compile, SQL/DB,
 Docker, formatting/lint, and all executable evidence remain `NOT_RUN`.
 
-- [ ] **Step 7: Implement Task 6C0 pure canonical validation and result hash**
+- [ ] **Step 7: Historical Task 6C0 canonical v1 handoff -- pending provenance v2**
 
 **Files:**
 - Create: `backend/internal/mail/mailbox_sync_apply_canonical.go`
 
-Freeze the exported-for-internal-package implementation handoff:
+Current 6C0 through source `52190` is `PENDING_PROVENANCE_V2 / RUNTIME_NOT_RUN`; it is not static
+accepted and cannot satisfy 6C1 or 6C2. The following v1 registry is preserved as historical context
+only and is superseded by 6C0V2.
+
+The historical handoff froze the exported-for-internal-package implementation API:
 
 ```go
 type MailboxSyncCanonicalApply struct {
@@ -695,6 +744,50 @@ every registry branch, deep-copy isolation, canonical sorting, semantic order pr
 rejection of malformed/missing/duplicate/out-of-order/unknown fields before 6C1/6C2 consume it.
 Until then, exact-scope static source review is the only gate and executable evidence is `NOT_RUN`.
 
+- [ ] **Step 7C0V2: Implement source-provenance canonicalization prerequisite**
+
+**Files:**
+- Modify: `backend/internal/mail/mailbox_types.go`
+- Modify: `backend/internal/mail/mailbox_sync_policy.go`
+- Modify: `backend/internal/mail/mailbox_ent_sync_prepare.go`
+- Modify: `backend/internal/mail/mailbox_sync_service.go`
+- Modify: `backend/internal/mail/mailbox_fake.go`
+- Modify: `backend/internal/mail/mailbox_sync_apply_canonical.go`
+
+`EngineMessageProjection` gains source-authoritative `CalendarMethod *MailCalendarMethod`. Only the
+future provider adapter may derive it, from bounded server-side MIME/calendar parsing; it validates,
+copies, and budgets that parsed result before exposing a projection. Provider event JSON, caller data,
+and persisted rows are never a semantic authority for it. Prepare removes persisted-row
+`CalendarMethod` as a policy source and preserves the projection value through its bounded deep-copy
+boundary.
+
+`MailboxSyncPolicyMessageIntent` gains `CalendarMethod *MailCalendarMethod` and a concrete non-nil
+`ChangedFields []MailChangedField`. `syncClassifyMessage` copies `CalendarMethod` from the current
+projection and fills `ChangedFields` from the policy delta; first-seen and no-delta upserts carry an
+empty concrete slice, not `nil`. Service and fake clone paths copy both fields safely, including the
+method pointer and changed-field slice. Future 6C1 and 6C2 persist the intent's `CalendarMethod` to
+the existing column; this packet adds no schema migration.
+
+The canonicalizer validates that every received event's `CalendarMethod` equals both the projection
+and intent source, and that each live changed event carries exactly the intent's ordered
+`ChangedFields`. A deletion remains the tombstone event with `[deleted]`. An upsert changed-field
+sequence may contain only, in this exact canonical order, `folder_ids`, `seen`, `answered`, `flagged`,
+`junk`, and `labels`; it has at most six entries, contains no duplicate, and forbids `deleted`.
+
+Canonical format and proof hash version become `2`; the outer domain is exactly
+`hub.mail.sync.apply.result.v2`. `Upsert` appends tag `8` as optional `CalendarMethod` enum string
+and tag `9` as a `ChangedFields` collection of enum strings. A stored same-lease proof must have
+hash version `2`; a v1 stored proof is a mismatch and fails closed, with no migration, overwrite,
+projection write, event append, or alternate JSON/event authority.
+
+Task 7A is the only future provider boundary allowed to add the bounded MIME/calendar derivation;
+it may not synthesize or infer the method from folders, message state, event JSON, or a prior row.
+
+**Static-review gate only:** independently inspect the exact six-file manifest for provenance source,
+validation/budget/deep-copy boundaries, concrete delta semantics, v2 TLV tags/domain/version, and
+fail-closed v1 proof handling. No test, build, generation, format, lint, migration, SQL/DB, Docker,
+or runtime action is authorized; all executable evidence remains `NOT_RUN`.
+
 - [ ] **Step 8: Implement Task 6C1 bounded projection and aggregate helpers**
 
 **Files:**
@@ -712,7 +805,8 @@ func (r *MailboxEntRepository) mailboxEntApplySyncProjection(
 ) error
 ```
 
-It receives a checked exact-second `transactionTime` explicitly and does not read a clock, open or
+It starts only after independently reviewed 6Q2 and 6C0V2. It receives a checked exact-second
+`transactionTime` explicitly and does not read a clock, open or
 commit a transaction, or append an outbox row. It owns only bounded projection/count/thread
 aggregate persistence. Thread effective latest time is the later non-nil `SentAt`/`ReceivedAt`; if
 both are nil, an unchanged persisted message uses its persisted `updated_at`, while a changed or
@@ -726,14 +820,17 @@ source review is the only gate and executable evidence is `NOT_RUN`.
 **Files:**
 - Create: `backend/internal/mail/mailbox_ent_sync_apply.go`
 
-After 6Q, 6V, 6W, 6C0, and 6C1, this is the sole consumer of both implementation handoffs and the sole
+After 6W, 6Q2, 6C0V2, and 6C1, this is the sole consumer of both implementation handoffs and the sole
 owner of the repository transaction, outbox append, and same-lease proof. It re-locks and compares
 account, lease, sync, mutation, phase, cursor, base cursor, and checkpoint before any projection
 write. In one transaction, it obtains the authoritative transaction time, invokes the bounded
 projection handoff, persists position/counts/outbox result, and writes
 `sync_lease_applied_next_at = NextAttemptAt` plus checked exact-second
-`sync_lease_until = NextAttemptAt + 1s`. The latter is the minimum grace required by Task 6W;
-a new claim is permitted after lease expiry.
+`sync_lease_until = NextAttemptAt + 1s`. It obtains the 6Q2 database wall clock only after the
+successful account lock, once, and uses it for every live-lease/applied-at/projection/schedule value;
+before proof write `NextAttemptAt` is strictly after that clock and its checked `+1s` value remains
+strictly later. The latter is the minimum grace required by Task 6W; a new claim is permitted after
+lease expiry.
 
 A matching same-lease proof replays without writes or re-applying projection/event candidates. A
 pre-existing same-lease proof whose hash, hash version, phase, next attempt, or position differs
@@ -775,7 +872,7 @@ Use separate management and JMAP base URLs/credentials, bounded request/response
 
 - [ ] **Step 2: Implement the full engine surface**
 
-Implement every current method, grouped exactly as follows: control (`Capabilities`, `GetDomain`, `EnsureDomain`, `EnsureAccount`); folders (`ListFolders`, `CreateFolder`, `RenameFolder`, `DeleteFolder`); projection/read (`ListMessages`, `GetMessage`, `GetBlob`, `Changes`, `EnumerateProjection`); drafts/submission (`SaveDraft`, `ReconcileDraft`, `Submit`, `ReconcileSubmission`); mutations (`MoveMessages`, `SetFlags`, `SetKeywords`, `DeleteMessages`); rules/training/health (`GetSieve`, `UpsertSieve`, `ClassifyMessages`, `Health`). Unsupported provider capability returns the existing typed unavailable/capability error and never silently succeeds.
+Implement every current method, grouped exactly as follows: control (`Capabilities`, `GetDomain`, `EnsureDomain`, `EnsureAccount`); folders (`ListFolders`, `CreateFolder`, `RenameFolder`, `DeleteFolder`); projection/read (`ListMessages`, `GetMessage`, `GetBlob`, `Changes`, `EnumerateProjection`); drafts/submission (`SaveDraft`, `ReconcileDraft`, `Submit`, `ReconcileSubmission`); mutations (`MoveMessages`, `SetFlags`, `SetKeywords`, `DeleteMessages`); rules/training/health (`GetSieve`, `UpsertSieve`, `ClassifyMessages`, `Health`). On projection/read only, this future adapter is the sole source allowed to derive `EngineMessageProjection.CalendarMethod` through bounded server-side MIME/calendar parsing, then validate, copy, and budget it. It never takes the method from provider event JSON, folders, persisted rows, or caller input. Unsupported provider capability returns the existing typed unavailable/capability error and never silently succeeds.
 
 - [ ] **Step 3: Record deferred HTTP-boundary coverage**
 

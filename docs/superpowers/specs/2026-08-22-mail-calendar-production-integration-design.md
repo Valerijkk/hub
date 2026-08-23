@@ -63,20 +63,24 @@ repository root:
 - later receipt-backed mailbox mutations.
 
 The split keeps files small while reusing the same account lock order, lease/fence
-validation, transaction helper, error mapping, and clock policy. Lease expiry is
-decided only by `mailboxEntTransactionTime` in the owned Ent transaction: its dialect
-`Query` runs `SELECT date_trunc('second', CURRENT_TIMESTAMP)`, scans exactly one row,
-normalizes UTC, and validates through `mailboxEntValidTime`; caller/process time, a new
-transaction, and the repository client are not expiry authorities. Prepare and Resolve each call it
-once per owned transaction; Prepare retains the existing `mailboxEntPrepareInput`, while Resolve
-uses that one value for both lease expiry and schedule time. Repository code never performs provider
-I/O. A sync step claims durable state, releases the transaction, performs one bounded `MailEngine`
-call, then opens a new transaction that verifies the exact fence before applying results.
+validation, transaction helper, error mapping, and clock policy. Lease expiry is decided only by
+`mailboxEntDatabaseWallClock(ctx, *ent.Tx)` in the owned Ent transaction. After a successful account
+`FOR UPDATE`, Claim, Prepare, and Resolve each call it exactly once. Its transaction dialect `Query`
+runs exactly `SELECT date_trunc('second', clock_timestamp())`, reads/scans exactly one row,
+normalizes UTC, and validates through `mailboxEntValidTime`; caller/process time, a new transaction,
+and the repository client are not expiry authorities. `CURRENT_TIMESTAMP` is rejected because it is
+fixed at PostgreSQL transaction start and can be stale by the time the account lock is acquired.
+Claim uses the fresh value for due, live-lease, schedule-marker, and returned non-claim authority,
+and rejects a lease end not strictly later than it; `request.Now` is structural only. Prepare passes
+the value to the unchanged `mailboxEntPrepareInput`; Resolve uses it for all lease gates and its
+schedule marker. Repository code never performs provider I/O. A sync step claims durable state,
+releases the transaction, performs one bounded `MailEngine` call, then opens a new transaction that
+verifies the exact fence before applying results.
 Handled `transient`, `rejected`, `invalid_cursor`, and `restart_required` Resolve failures all become
-`degraded`. Source `e122197b` is pending the narrow 6V Claim-decoder correction and is not static
-accepted until review. The only 6V source manifest remains
-`backend/internal/mail/mailbox_ent_sync_claim.go`: despite 6Q otherwise leaving Claim unchanged,
-only `mailboxEntSyncClaimSnapshot` changes; there is no schema, public API, or migration change.
+`degraded`. Source `43a` is state-machine-correct but `FINAL_QUALITY_PENDING_6Q2 / RUNTIME_NOT_RUN`;
+it cannot be statically accepted until the fresh database-clock prerequisite has independent review.
+The only 6V source manifest remains `backend/internal/mail/mailbox_ent_sync_claim.go` and only
+`mailboxEntSyncClaimSnapshot` changes; there is no schema, public API, or migration change.
 `CURSOR_INVALID` and `RESTART_REQUIRED` require nil rebuild fields (`sync_base_cursor` and
 `sync_checkpoint`) and reconstruct empty bootstrap `Enumeration`. For `transient`/`rejected`, no
 base/no checkpoint plus valid `sync_cursor` reconstructs `Incremental` with that cursor; the same
@@ -97,11 +101,26 @@ Apply writes `sync_lease_applied_next_at = NextAttemptAt` and checked exact-seco
 and a new claim is permitted after lease expiry. A matching same-lease proof replays
 without writes. A same-lease mismatch of hash, hash version, phase, next attempt, or
 position returns the existing content-free invalid repository error with zero writes;
-it is never overwritten or re-applied. Task 6C0 in the implementation plan is the single normative
-v1 SHA-256 wire registry: fixed-width big-endian TLV framing, exact outer tags, the complete
-nested-record tag layout, canonical collection ordering, and the lone explicit exclusions (`Now` and
-DB `appliedAt`) are reproduced there and admit no alternate uvarint, RFC3339, JSON, or
-implementation-order encoding, except the registered immutable `EventEnvelope.FrozenJSON` bytes.
+it is never overwritten or re-applied. Task 6C0 through source `52190` is
+`PENDING_PROVENANCE_V2 / RUNTIME_NOT_RUN` and cannot be consumed. 6C0V2 in the implementation plan
+is the single normative v2 SHA-256 wire registry: fixed-width big-endian TLV framing, outer domain
+`hub.mail.sync.apply.result.v2`, format/proof version `2`, exact nested-record tag layout and
+canonical collection ordering. `Upsert` tag `8` is optional source-authoritative `CalendarMethod` enum
+string and tag `9` is the ordered `ChangedFields` enum-string collection. No alternate uvarint,
+RFC3339, JSON, or implementation-order encoding is admissible, except the registered immutable
+`EventEnvelope.FrozenJSON` bytes. A stored v1 proof is a mismatch and fails closed; no migration,
+proof overwrite, or event-JSON authority is introduced.
+
+`EngineMessageProjection.CalendarMethod` is source-authoritative only when a future provider adapter
+derives it from bounded server-side MIME/calendar parsing, validates, copies, and budgets it. It is
+never inferred from folders, provider event JSON, caller input, or a persisted row. Prepare must not
+use the persisted `MailMessage.CalendarMethod` as policy input. Classification carries the current
+projection method to `MailboxSyncPolicyMessageIntent`, and carries a concrete non-nil ordered policy
+delta `ChangedFields` (empty for first-seen/no-delta). Canonical received events require exact
+projection=intent=event method equality; live changed events require the exact ordered intent delta.
+Deletion remains `[deleted]`; upserts permit only ordered `folder_ids`, `seen`, `answered`,
+`flagged`, `junk`, `labels`, at most once each and never `deleted`. 6C1/6C2 later persist the intent
+method to the existing column.
 
 ### Migration ownership
 
@@ -215,9 +234,10 @@ envelopes cross the boundary; state ownership does not.
 1. Migration mechanism and schema diff authority.
 2. Calendar base Ent transaction adapter, followed by RSVP/update/cancel/inbound
    reply capability files.
-3. Mail owner and sync/worker Ent adapters: required correction chain 6W -> 6Q -> 6V before
-   transactional apply/outbox/proof; pure canonical validation/hash (6C0) remains independent,
-   followed by its bounded projection/aggregate helper dependency.
+3. Mail owner and sync/worker Ent adapters: required prerequisite chain 6W -> 6Q2 -> 6C0V2 ->
+   6C1 -> 6C2. 6Q source `6477` is superseded/pending correction; 6V source `43a` remains
+   state-machine-correct but its final quality waits for 6Q2. 6C0 through `52190` remains pending
+   provenance v2. 6Q2 and 6C0V2 share Prepare and are strictly sequential.
 4. Main-server composition and authenticated HTTP surfaces.
 5. Outbox-backed Mail-to-Calendar consumer and Calendar-to-Mail delivery consumer.
 6. Compatibility cutover and ScheduledCall backfill only after migration evidence.
@@ -228,6 +248,9 @@ envelopes cross the boundary; state ownership does not.
 
 - Concrete adapters satisfy their existing domain interfaces without expanding the
   public ABI.
+- 6Q2 and 6C0V2 receive independent exact-scope static source review only; until
+  the locked framework cutover every test, build, generation, format, lint,
+  migration, SQL/DB, Docker, and runtime claim remains `NOT_RUN`.
 - No database transaction spans a `MailEngine` or NATS network call.
 - Domain writes and their outbox/receipt rows are atomic.
 - Legacy Calendar remains read-compatible until explicit cutover.
