@@ -45,11 +45,12 @@ source contract. F2 135-F files-lifecycle source is independently static-
 accepted at `af077c18`: five active TASK-214 cases/nodes require a
 launcher-injected `FilesHarnessFactory`, a fresh opaque `FilesRuntime` per test,
 and exact cleanup. The existing `files-api` source profile targets exactly
-`tests/api/files`, with future launcher case root exactly `cases/files`. No
-concrete files delegate, A1 admission, accepted profile binding, or executable
-launcher exists. A private runner source candidate also has static review only.
-None is accepted package execution, launcher runtime, or runtime authority; all
-global critical/high outcomes remain `NOT_PROVEN`.
+`tests/api/files`, with future launcher case root exactly `cases/files`. The
+references in this historical receipt to a missing delegate, A1 admission,
+profile binding, executable launcher, or private runner candidate describe the
+pre-merge state only. They do not alter the committed package/root-Compose
+boundary or promote any SUT runtime beyond `NOT_RUN`; all global critical/high
+outcomes remain `NOT_PROVEN`.
 
 Package/bootstrap boundaries are defined in
 [`PACKAGE-CONTRACT.md`](PACKAGE-CONTRACT.md). The current 181/181 receipt is
@@ -198,12 +199,11 @@ omits implemented 403/429 responses, TMS webhook docs still expose legacy
 `X-Hub-Token`/query-token auth instead of BearerAuth-or-APIKeyAuth alternatives,
 and public error responses reference internal `AppError` artifacts. Backend
 repair and Swagger regeneration are pending. External OpenAPI-validator
-admission/execution, A1, accepted profile-to-launcher bindings, `uv.lock`, image
-evidence, and an executable launcher remain absent. Source profile records do
-not grant execution authority. Remaining F2 and later source is pending.
-Private runner source candidate:
-**STATIC_SOURCE_REVIEWED**; launcher: **NOT_READY**; `PS5.1_PARSE_NOT_RUN`;
-`PRIVATE_CONTRACT_NOT_RUN`. Runtime: **NOT_RUN**. `uv.lock`, `images.lock.v3.json`,
-and required local dependency bytes are absent. There is no supported direct runner
-or fallback command. No file/source review promotes installation, execution, or
-runtime to `PASS`.
+admission/execution and accepted SUT profile bindings remain pending. The
+references in this historical record to absent `uv.lock`, image evidence,
+dependency bytes, or an executable/private runner describe the pre-merge state
+only: `uv.lock` and the framework Docker assets are now committed, and root
+Compose is the sole QA API. Source profile records do not grant SUT execution
+authority. Remaining F2 and later source is pending; SUT runtime remains
+`NOT_RUN`. No file/source review promotes SUT execution or product runtime to
+`PASS`.

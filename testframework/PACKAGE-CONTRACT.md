@@ -55,19 +55,19 @@ absent or `NOT_READY`, they are historical and are superseded by the current
 truth table above. They do not override the still-current `NOT_RUN` status of
 SUT API/integration/e2e/load or Mail/Calendar runtime.
 
-The founder has authorized the F0--F3 source waves in
+The founder authorized the F0--F3 source waves in
 `.planning/active/august-2026/07-TESTFRAMEWORK-MAX-COVERAGE-IMPLEMENTATION.md`.
-That authority replaces the former `G129-C`/`G130-H`/per-feature activation
-stops for authoring and independent source review only. It does **not** change
-the table above: package execution, launcher execution, and runtime remain
-`NOT_READY` / `NOT_RUN` until one exact revision has separately accepted A1
-versioned-runner admission, R Docker resolver admission, immutable image
-evidence, generated `uv.lock`, and Docker-only evidence.
+That pre-merge authority replaced the former `G129-C`/`G130-H`/per-feature
+activation stops for source authoring and independent source review. Its
+references to a future versioned runner, Docker resolver admission, immutable
+image evidence, and generated `uv.lock` describe that earlier state only. The
+committed package and root Compose boundary are governed by the current truth
+table; SUT API/integration/e2e/load and Mail/Calendar runtime remain `NOT_RUN`.
 
-Therefore source review may say that a bootstrap artifact is authored or
-closed; it must never call it installed, resolved, runnable, PASS, or green.
-The current task must not produce a lock, image, report, test execution, or
-runtime claim.
+Therefore pre-merge source-review wording that calls a bootstrap artifact
+authored or closed must not be read as a claim about current SUT execution or
+product runtime. The current package/framework receipt remains limited to the
+181/181 Docker framework selftests stated above.
 
 ## Physical ownership
 
