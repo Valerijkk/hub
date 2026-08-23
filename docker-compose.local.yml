@@ -35,6 +35,32 @@ x-qa-infrastructure: &qa-infrastructure
   mem_limit: 1g
   stop_grace_period: 30s
 
+x-schema-maintenance-tool: &schema-maintenance-tool
+  profiles: [schema-maintenance]
+  build:
+    context: ./backend
+    dockerfile: docker/Dockerfile.schema-maintenance
+    target: schema-maintenance
+  user: "10001:10001"
+  read_only: true
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: [ALL]
+  init: true
+  pids_limit: 128
+  cpus: 1.0
+  mem_limit: 1g
+  restart: "no"
+  stop_grace_period: 30s
+  tmpfs:
+    - "/work:rw,noexec,nosuid,nodev,size=512m,uid=10001,gid=10001,mode=0700"
+    - "/tmp:rw,noexec,nosuid,nodev,size=64m,uid=10001,gid=10001,mode=1770"
+  environment:
+    DATABASE_URL: "postgres://schema@schema-maintenance-postgres:5432/hub_schema?sslmode=disable&search_path=public"
+    ATLAS_DEV_URL: "postgres://schema@schema-maintenance-postgres:5432/hub_schema?sslmode=disable&search_path=atlas_dev"
+  depends_on:
+    schema-maintenance-postgres:
+      condition: service_healthy
+  networks: [schema-maintenance-internal]
 services:
 
   postgres:
@@ -220,6 +246,46 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  schema-maintenance-baseline:
+    <<: *schema-maintenance-tool
+    command: ["baseline"]
+
+  schema-maintenance-diff:
+    <<: *schema-maintenance-tool
+    command: ["diff"]
+
+  schema-maintenance-verify:
+    <<: *schema-maintenance-tool
+    command: ["verify"]
+
+  schema-maintenance-postgres:
+    profiles: [schema-maintenance]
+    image: postgres@sha256:e38411452a464af89e5adadb8d223bf53b898d47d6ef918b2d58c08707350449
+    user: "999:999"
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    init: true
+    pids_limit: 128
+    cpus: 1.0
+    mem_limit: 1g
+    restart: "no"
+    stop_grace_period: 30s
+    environment:
+      POSTGRES_USER: schema
+      POSTGRES_DB: hub_schema
+      POSTGRES_HOST_AUTH_METHOD: trust
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U schema -d hub_schema"]
+      interval: 5s
+      timeout: 3s
+      retries: 1
+      start_period: 5s
+    tmpfs:
+      - "/var/lib/postgresql/data:rw,noexec,nosuid,nodev,size=512m,uid=999,gid=999,mode=0700"
+      - "/var/run/postgresql:rw,noexec,nosuid,nodev,size=8m,uid=999,gid=999,mode=0775"
+      - "/tmp:rw,noexec,nosuid,nodev,size=64m,uid=999,gid=999,mode=1770"
+    networks: [schema-maintenance-internal]
   backend-unit:
     <<: *qa-common
     build:
@@ -446,6 +512,8 @@ networks:
   qa-internal:
     internal: true
 
+  schema-maintenance-internal:
+    internal: true
 configs:
   qa-seaweedfs-s3:
     content: |

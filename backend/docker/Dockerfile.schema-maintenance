@@ -1,0 +1,33 @@
+FROM golang@sha256:bbb255b0e131db500cf0520adc97441d2260cf629c7fa7e39e025ddf53995a24 AS atlas-builder
+
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+RUN test "$(go list -m -f '{{.Version}}' ariga.io/atlas)" = 'v0.19.1-0.20240203083654-5948b60a8e43' && \
+    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=readonly -trimpath -o /out/atlas ariga.io/atlas/cmd/atlas
+
+FROM golang@sha256:bbb255b0e131db500cf0520adc97441d2260cf629c7fa7e39e025ddf53995a24 AS schema-maintenance
+
+RUN groupadd --gid 10001 hubschema && useradd --uid 10001 --gid 10001 --create-home --home-dir /home/hubschema hubschema
+
+WORKDIR /opt/hub/backend
+COPY --from=atlas-builder /out/atlas /usr/local/bin/atlas
+COPY --chown=10001:10001 go.mod go.sum atlas.hcl ./
+COPY --chown=10001:10001 ent/schema/ ./ent/schema/
+COPY --chown=10001:10001 migrations/ ./migrations/
+COPY --chown=10001:10001 docker/schema-tool.lock.json ./docker/schema-tool.lock.json
+COPY --chown=10001:10001 docker/entrypoints/mail-calendar-schema.sh /usr/local/bin/mail-calendar-schema
+RUN chmod 0555 /usr/local/bin/atlas /usr/local/bin/mail-calendar-schema && \
+    mkdir -p /opt/hub/backend/migrations/atlas/mail-calendar-v1 && \
+    chown -R 10001:10001 /opt/hub/backend
+
+ENV GOTOOLCHAIN=local \
+    GOPROXY=off \
+    GOSUMDB=off \
+    GOFLAGS=-mod=readonly \
+    GOCACHE=/work/go-build \
+    GOTMPDIR=/tmp \
+    HOME=/tmp
+
+USER 10001:10001
+ENTRYPOINT ["/usr/local/bin/mail-calendar-schema"]

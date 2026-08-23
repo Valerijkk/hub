@@ -15,6 +15,6 @@ env local {
     src = ent://ent/schema
   }
   migration {
-    dir = file://migrations
+    dir = file://migrations/atlas/mail-calendar-v1
   }
 }

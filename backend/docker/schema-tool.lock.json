@@ -1,0 +1,41 @@
+{
+  "lock_version": 1,
+  "purpose": "mail-calendar schema-maintenance static tool identity",
+  "platform": "linux/amd64",
+  "images": {
+    "go": {
+      "reference": "golang@sha256:bbb255b0e131db500cf0520adc97441d2260cf629c7fa7e39e025ddf53995a24",
+      "required_go_version": "1.25.0"
+    },
+    "postgres": {
+      "reference": "postgres@sha256:e38411452a464af89e5adadb8d223bf53b898d47d6ef918b2d58c08707350449",
+      "required_major": "17"
+    }
+  },
+  "atlas": {
+    "module": "ariga.io/atlas",
+    "version": "v0.19.1-0.20240203083654-5948b60a8e43",
+    "module_sum": "h1:GwdJbXydHCYPedeeLt4x/lrlIISQ4JTH1mRWuE5ZZ14=",
+    "module_go_mod_sum": "h1:uj3pm+hUTVN/X5yfdBexHlZv+1Xu5u5ZbZx7+CDavNU=",
+    "image_local_build": "test $(go list -m -f '{{.Version}}' ariga.io/atlas) = v0.19.1-0.20240203083654-5948b60a8e43 && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=readonly -trimpath -o /out/atlas ariga.io/atlas/cmd/atlas",
+    "runtime_evidence": {
+      "atlas_version_output": "NOT_RUN",
+      "binary_sha256": "NOT_RUN",
+      "containing_image_id": "NOT_RUN"
+    }
+  },
+  "source_boundary": {
+    "schema_source": "ent://ent/schema",
+    "lineage": "file://migrations/atlas/mail-calendar-v1",
+    "baseline_parent": "f21e3f7748eac55a4b16746b078e88801f11829c",
+    "baseline_parent_bridge": "BLOCKED: separate reviewed immutable parent-source bridge required; no host git archive, bind mount, or .git capability is admitted",
+    "runtime_source_mounts": [],
+    "runtime_output": "bounded SHA-256-labelled review output on stdout only"
+  },
+  "operation_contract": {
+    "public_entrypoints": ["baseline", "diff", "verify"],
+    "wall_clock_seconds": 900,
+    "automatic_retries": false,
+    "generated_sql_or_checksum_authoring": "separate exact-path reviewed packet required"
+  }
+}
