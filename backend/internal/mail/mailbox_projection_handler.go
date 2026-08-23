@@ -2,6 +2,7 @@ package mail
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/url"
 	"strconv"
@@ -140,9 +141,20 @@ func (handler *MailboxFolderProjectionHandler) getThreadDetail(ctx fiber.Ctx) er
 	}
 	response, err := mailboxThreadDetailProjectionResponseFromProjection(projection, query)
 	if err != nil {
+		if errors.Is(err, errMailboxThreadDetailProjectionResponseLimit) {
+			return mailboxThreadDetailProjectionResponseLimitHTTPError(ctx)
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, "mailbox thread projection unavailable")
 	}
-	return ctx.JSON(response)
+	encoded, err := json.Marshal(response)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "mailbox thread projection unavailable")
+	}
+	if len(encoded) > int(maxMailboxThreadDetailProjectionResponseBytes) {
+		return mailboxThreadDetailProjectionResponseLimitHTTPError(ctx)
+	}
+	ctx.Set(fiber.HeaderContentType, "application/json; charset=utf-8")
+	return ctx.Send(encoded)
 }
 
 func mailboxThreadProjectionQueryFromRequest(ctx fiber.Ctx) (MailboxThreadProjectionQuery, error) {
@@ -362,6 +374,9 @@ func mailboxThreadDetailProjectionResponseFromProjection(projection MailboxThrea
 			return mailboxThreadDetailProjectionResponse{}, mailboxServiceError(MailboxServiceErrorInvalid)
 		}
 	}
+	if !mailboxThreadDetailProjectionResponseWithinBudget(projection) {
+		return mailboxThreadDetailProjectionResponse{}, errMailboxThreadDetailProjectionResponseLimit
+	}
 	copy := mailboxThreadDetailProjectionCopy(projection)
 	return mailboxThreadDetailProjectionResponse{
 		ID:              copy.Thread.ID,
@@ -414,6 +429,9 @@ func mailboxFolderProjectionHTTPError(ctx fiber.Ctx, err error) error {
 }
 
 func mailboxThreadProjectionHTTPError(ctx fiber.Ctx, err error) error {
+	if errors.Is(err, errMailboxThreadDetailProjectionResponseLimit) {
+		return mailboxThreadDetailProjectionResponseLimitHTTPError(ctx)
+	}
 	if errors.Is(err, errMailboxThreadProjectionRequestInvalid) {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid mailbox thread query")
 	}
@@ -434,4 +452,9 @@ func mailboxThreadProjectionHTTPError(ctx fiber.Ctx, err error) error {
 	default:
 		return fiber.NewError(fiber.StatusInternalServerError, "mailbox thread projection unavailable")
 	}
+}
+
+func mailboxThreadDetailProjectionResponseLimitHTTPError(ctx fiber.Ctx) error {
+	ctx.Set("X-Hub-Error-Code", "MAIL_THREAD_DETAIL_RESPONSE_LIMIT")
+	return fiber.NewError(fiber.StatusUnprocessableEntity, "mailbox thread detail exceeds safe response limit")
 }

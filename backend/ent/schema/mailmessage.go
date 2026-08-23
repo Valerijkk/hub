@@ -105,6 +105,7 @@ func (MailMessage) Indexes() []ent.Index {
 		index.Fields("received_event_id").Unique().StorageKey("mail_messages_received_event_uidx"),
 		index.Fields("mail_account_id", "received_at", "sent_at", "id").StorageKey("mail_messages_live_account_date_idx").Annotations(entsql.IndexWhere("deleted_at IS NULL")),
 		index.Fields("mail_thread_id", "received_at", "sent_at", "id").StorageKey("mail_messages_live_thread_date_idx").Annotations(entsql.IndexWhere("deleted_at IS NULL")),
+		index.Fields("mail_thread_id", "created_at", "id").StorageKey("mail_messages_live_thread_created_at_id_idx").Annotations(entsql.IndexWhere("deleted_at IS NULL")),
 	}
 }
 

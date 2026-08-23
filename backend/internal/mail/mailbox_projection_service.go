@@ -123,6 +123,9 @@ func (service *MailboxFolderProjectionService) GetMailboxThreadDetail(ctx contex
 	if err := validateMailboxThreadDetailProjection(projection, query, scope.AccountID); err != nil {
 		return MailboxThreadDetailProjection{}, err
 	}
+	if !mailboxThreadDetailProjectionResponseWithinBudget(projection) {
+		return MailboxThreadDetailProjection{}, errMailboxThreadDetailProjectionResponseLimit
+	}
 	return mailboxThreadDetailProjectionCopy(projection), nil
 }
 
@@ -177,6 +180,9 @@ func mailboxFolderProjectionOwnerError(err error) error {
 }
 
 func mailboxFolderProjectionRepositoryError(err error) error {
+	if errors.Is(err, errMailboxThreadDetailProjectionResponseLimit) {
+		return errMailboxThreadDetailProjectionResponseLimit
+	}
 	var serviceError *MailboxServiceError
 	if !errors.As(err, &serviceError) || serviceError == nil {
 		return mailboxServiceError(MailboxServiceErrorUnavailable)

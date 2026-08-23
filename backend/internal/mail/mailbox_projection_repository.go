@@ -23,12 +23,16 @@ const (
 	maxMailboxThreadProjectionLimit     = 100
 	maxMailboxThreadProjectionCursor    = 512
 	maxMailboxThreadProjectionSearch    = 128
+	maxMailboxThreadDetailProjectionResponseBytes int64 = 8 << 20
 	mailboxThreadProjectionCursorV1     = 1
 	mailboxThreadProjectionSort         = "pinned_desc,last_message_at_desc,id_desc"
 	mailboxThreadDetailProjectionSort   = "created_at_asc,id_asc"
 )
 
-var errMailboxThreadProjectionRequestInvalid = errors.New("mailbox thread projection request invalid")
+var (
+	errMailboxThreadProjectionRequestInvalid         = errors.New("mailbox thread projection request invalid")
+	errMailboxThreadDetailProjectionResponseLimit = errors.New("mailbox thread detail projection response limit exceeded")
+)
 
 // MailboxFolderProjectionScope is the complete authenticated ownership scope for one folder projection read.
 type MailboxFolderProjectionScope struct {
@@ -798,6 +802,69 @@ func validateMailboxThreadDetailProjection(projection MailboxThreadDetailProject
 		return mailboxServiceError(MailboxServiceErrorInvalid)
 	}
 	return nil
+}
+
+// mailboxThreadDetailProjectionResponseWithinBudget reserves the complete JSON response shape
+// before a copy or serializer allocation. Variable text is budgeted at six bytes per source byte,
+// covering JSON quotes, HTML-safe escaping, and all structural delimiters are budgeted per DTO.
+func mailboxThreadDetailProjectionResponseWithinBudget(projection MailboxThreadDetailProjection) bool {
+	used := int64(2_048)
+	if used > maxMailboxThreadDetailProjectionResponseBytes || !mailboxThreadDetailProjectionResponseStringWithinBudget(&used, projection.Thread.Subject) || !mailboxThreadDetailProjectionResponseStringWithinBudget(&used, projection.Thread.Snippet) {
+		return false
+	}
+	for _, participant := range projection.Thread.Participants {
+		if !mailboxThreadDetailProjectionResponseBudgetAdd(&used, 64) || !mailboxThreadDetailProjectionResponseStringWithinBudget(&used, participant.Email) {
+			return false
+		}
+	}
+	for _, label := range projection.Thread.Labels {
+		if !mailboxThreadDetailProjectionResponseBudgetAdd(&used, 192) || !mailboxThreadDetailProjectionResponseStringWithinBudget(&used, label.Name) || !mailboxThreadDetailProjectionResponseStringWithinBudget(&used, label.Color) {
+			return false
+		}
+	}
+	for _, message := range projection.Messages {
+		if !mailboxThreadDetailProjectionResponseBudgetAdd(&used, 1_024) || !mailboxThreadDetailProjectionResponseStringWithinBudget(&used, message.Subject) || !mailboxThreadDetailProjectionResponseStringWithinBudget(&used, message.Snippet) || !mailboxThreadDetailProjectionResponseStringWithinBudget(&used, message.Priority) || !mailboxThreadDetailProjectionResponseAddressWithinBudget(&used, message.From) {
+			return false
+		}
+		for _, addresses := range [][]MailboxThreadDetailProjectionAddress{message.To, message.CC} {
+			for _, address := range addresses {
+				if !mailboxThreadDetailProjectionResponseAddressWithinBudget(&used, address) {
+					return false
+				}
+			}
+		}
+		for range message.FolderIDs {
+			if !mailboxThreadDetailProjectionResponseBudgetAdd(&used, 64) {
+				return false
+			}
+		}
+		if message.CalendarMethod != nil && !mailboxThreadDetailProjectionResponseStringWithinBudget(&used, string(*message.CalendarMethod)) {
+			return false
+		}
+	}
+	return projection.NextCursor == nil || mailboxThreadDetailProjectionResponseStringWithinBudget(&used, *projection.NextCursor)
+}
+
+func mailboxThreadDetailProjectionResponseAddressWithinBudget(used *int64, address MailboxThreadDetailProjectionAddress) bool {
+	if !mailboxThreadDetailProjectionResponseBudgetAdd(used, 64) || !mailboxThreadDetailProjectionResponseStringWithinBudget(used, address.Email) {
+		return false
+	}
+	return address.Name == nil || mailboxThreadDetailProjectionResponseStringWithinBudget(used, *address.Name)
+}
+
+func mailboxThreadDetailProjectionResponseStringWithinBudget(used *int64, value string) bool {
+	if used == nil || len(value) > int((maxMailboxThreadDetailProjectionResponseBytes-2)/6) {
+		return false
+	}
+	return mailboxThreadDetailProjectionResponseBudgetAdd(used, 2+int64(len(value))*6)
+}
+
+func mailboxThreadDetailProjectionResponseBudgetAdd(used *int64, value int64) bool {
+	if used == nil || value < 0 || *used < 0 || *used > maxMailboxThreadDetailProjectionResponseBytes-value {
+		return false
+	}
+	*used += value
+	return true
 }
 
 func validMailboxThreadDetailProjectionMessage(message MailboxThreadDetailProjectionMessage, threadID uuid.UUID) bool {
