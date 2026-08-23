@@ -3,6 +3,8 @@ import { api, type ApiRequestOptions } from "./client";
 const MAIL_THREAD_MAX_LIMIT = 100;
 const MAIL_THREAD_MAX_CURSOR_LENGTH = 512;
 const MAIL_THREAD_MAX_SEARCH_BYTES = 128;
+const MAIL_IDENTITY_MAX_LIMIT = 100;
+const MAIL_IDENTITY_MAX_TOTAL = 200;
 const MAIL_UUID_PATTERN =
 	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAIL_NIL_UUID = "00000000-0000-0000-0000-000000000000";
@@ -289,6 +291,11 @@ export interface MailIdentityPage {
 	next_cursor: string | null;
 }
 
+export interface MailIdentityListParams {
+	limit?: number;
+	cursor?: string;
+}
+
 export interface MailThreadListParams {
 	folder_id?: string;
 	label_id?: string;
@@ -352,6 +359,32 @@ function normalizeMailThreadCursor(value: string | undefined): string | null {
 	}
 	return value;
 }
+function normalizeMailIdentityLimit(value: number | undefined): number {
+	if (value === undefined) return MAIL_IDENTITY_MAX_LIMIT;
+	if (
+		typeof value !== "number" ||
+		!Number.isSafeInteger(value) ||
+		value < 1 ||
+		value > MAIL_IDENTITY_MAX_LIMIT
+	) {
+		throw new Error("Invalid mail identity limit");
+	}
+	return value;
+}
+
+function normalizeMailIdentityCursor(value: string | undefined): string | null {
+	if (value === undefined) return null;
+	if (
+		typeof value !== "string" ||
+		value.length === 0 ||
+		value.length > MAIL_THREAD_MAX_CURSOR_LENGTH ||
+		!MAIL_THREAD_CURSOR_PATTERN.test(value)
+	) {
+		throw new Error("Invalid mail identity cursor");
+	}
+	return value;
+}
+
 
 function normalizeMailThreadSearch(value: string | undefined): string | null {
 	if (typeof value !== "string" || MAIL_QUERY_CONTROL_CHARACTERS.test(value)) {
@@ -504,8 +537,54 @@ function normalizeMailAttachmentID(attachmentId: string): string {
 	return normalized;
 }
 
-export function getMailIdentities(): Promise<MailIdentityPage> {
-	return api.get<MailIdentityPage>("/mail/identities?limit=100");
+export function getMailIdentities(
+	params: MailIdentityListParams = {},
+	options?: ApiRequestOptions,
+): Promise<MailIdentityPage> {
+	const query = new URLSearchParams({
+		limit: String(normalizeMailIdentityLimit(params.limit)),
+	});
+	const cursor = normalizeMailIdentityCursor(params.cursor);
+	if (cursor !== null) query.set("cursor", cursor);
+	return api.get<MailIdentityPage>(`/mail/identities?${query.toString()}`, options);
+}
+
+export async function getAllMailIdentities(
+	options?: ApiRequestOptions,
+): Promise<MailIdentityPage> {
+	const items: MailIdentity[] = [];
+	let cursor: string | undefined;
+	const seenCursors = new Set<string>();
+	const maximumPages = Math.ceil(MAIL_IDENTITY_MAX_TOTAL / MAIL_IDENTITY_MAX_LIMIT);
+
+	for (
+		let page = 0;
+		page < maximumPages && items.length < MAIL_IDENTITY_MAX_TOTAL;
+		page += 1
+	) {
+		const response = await getMailIdentities(
+			{
+				limit: Math.min(
+					MAIL_IDENTITY_MAX_LIMIT,
+					MAIL_IDENTITY_MAX_TOTAL - items.length,
+				),
+				cursor,
+			},
+			options,
+		);
+		items.push(...response.items);
+		if (response.next_cursor === null) {
+			return { items, next_cursor: null };
+		}
+		const nextCursor = normalizeMailIdentityCursor(response.next_cursor);
+		if (nextCursor === null || seenCursors.has(nextCursor)) {
+			throw new Error("Invalid mail identity pagination");
+		}
+		seenCursors.add(nextCursor);
+		cursor = nextCursor;
+	}
+
+	throw new Error("Mail identity pagination exceeded bounds");
 }
 
 export function createMailDraft(
@@ -515,9 +594,13 @@ export function createMailDraft(
 	return api.post<MailDraft>("/mail/drafts", request, options);
 }
 
-export function getMailDraft(draftId: string): Promise<MailDraft> {
+export function getMailDraft(
+	draftId: string,
+	options?: ApiRequestOptions,
+): Promise<MailDraft> {
 	return api.get<MailDraft>(
 		`/mail/drafts/${encodeURIComponent(normalizeMailDraftID(draftId))}`,
+		options,
 	);
 }
 
@@ -553,6 +636,20 @@ export function sendMailDraft(
 		options,
 	);
 }
+export function getMailSubmission(
+	submissionId: string,
+	options?: ApiRequestOptions,
+): Promise<MailSubmission> {
+	const normalizedSubmissionID = normalizeMailUUID(submissionId);
+	if (normalizedSubmissionID === null) {
+		throw new Error("Invalid mail submission ID");
+	}
+	return api.get<MailSubmission>(
+		`/mail/submissions/${encodeURIComponent(normalizedSubmissionID)}`,
+		options,
+	);
+}
+
 
 export function presignMailAttachment(
 	request: PresignMailAttachmentRequest,
@@ -568,6 +665,7 @@ export function presignMailAttachment(
 export async function putPresignedMailAttachment(
 	contract: PresignMailAttachmentResponse,
 	body: ArrayBuffer,
+	options?: Pick<ApiRequestOptions, "signal">,
 ): Promise<void> {
 	const response = await fetch(contract.upload_url, {
 		method: "PUT",
@@ -575,6 +673,7 @@ export async function putPresignedMailAttachment(
 		body,
 		credentials: "omit",
 		redirect: "error",
+		signal: options?.signal,
 		referrerPolicy: "no-referrer",
 	});
 	if (!response.ok) {
@@ -585,19 +684,25 @@ export async function putPresignedMailAttachment(
 export function confirmMailAttachment(
 	attachmentId: string,
 	request: ConfirmMailAttachmentRequest,
+	options?: ApiRequestOptions,
 ): Promise<MailAttachment> {
 	return api.post<MailAttachment>(
 		`/mail/attachments/${encodeURIComponent(
 			normalizeMailAttachmentID(attachmentId),
 		)}/confirm`,
 		request,
+		options,
 	);
 }
 
-export function deleteMailAttachment(attachmentId: string): Promise<void> {
+export function deleteMailAttachment(
+	attachmentId: string,
+	options?: ApiRequestOptions,
+): Promise<void> {
 	return api.delete<void>(
 		`/mail/attachments/${encodeURIComponent(
 			normalizeMailAttachmentID(attachmentId),
 		)}`,
+		options,
 	);
 }
