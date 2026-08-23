@@ -143,7 +143,27 @@
                   "type": ["string", "null"],
                   "pattern": "^[0-9a-f]{64}$"
                 }
-              }
+              },
+              "oneOf": [
+                {
+                  "properties": {
+                    "calendar_method": { "type": "null" },
+                    "calendar_part_locator_sha256": { "type": "null" }
+                  }
+                },
+                {
+                  "properties": {
+                    "calendar_method": {
+                      "type": "string",
+                      "enum": ["request", "cancel", "reply"]
+                    },
+                    "calendar_part_locator_sha256": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    }
+                  }
+                }
+              ]
             }
           }
         }
