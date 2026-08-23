@@ -39,7 +39,7 @@ type EventTransactionBackend interface {
 // legacy EventTransaction implementations keep their existing ABI. A meeting
 // service must fail closed when its transaction backend lacks this capability.
 type AvailabilityReservationTransactionBackend interface {
-	ReconcileCalendarAvailabilityReservations(context.Context, CalendarAvailabilityReservationSet) error
+	ReconcileCalendarAvailabilityReservations(context.Context, EventMutationScope, CalendarAvailabilityReservationSet) error
 }
 
 // CalendarEventUpdateAuthorizationRequest carries only the event identity and,
@@ -628,20 +628,23 @@ func (transaction *EventTransaction) close() {
 // ReconcileCalendarAvailabilityReservations applies one complete desired
 // reservation set while the enclosing EventTransaction remains active. It is
 // the only public seam for the race-safe reservation reconciliation core.
-func (transaction *EventTransaction) ReconcileCalendarAvailabilityReservations(ctx context.Context, set CalendarAvailabilityReservationSet) error {
+func (transaction *EventTransaction) ReconcileCalendarAvailabilityReservations(ctx context.Context, scope EventMutationScope, set CalendarAvailabilityReservationSet) error {
 	if transaction == nil {
 		return ErrEventTransactionClosed
 	}
 	transaction.mu.Lock()
 	defer transaction.mu.Unlock()
-	if !transaction.active || transaction.backend == nil {
-		return ErrEventTransactionClosed
+	if err := transaction.validateScope(scope); err != nil {
+		return err
+	}
+	if scope.ActorID() != set.OrganizerID() || scope.OrganizationID() != set.OrganizationID() {
+		return ErrEventForbidden
 	}
 	backend, supported := transaction.backend.(AvailabilityReservationTransactionBackend)
 	if !supported || nilAvailabilityReservationTransactionBackend(backend) || !set.valid() {
 		return ErrAvailabilitySourceInvalid
 	}
-	return backend.ReconcileCalendarAvailabilityReservations(ctx, cloneCalendarAvailabilityReservationSet(set))
+	return backend.ReconcileCalendarAvailabilityReservations(ctx, scope, cloneCalendarAvailabilityReservationSet(set))
 }
 
 // EventMutationScope связывает каждую мутацию с actor, revalidated organization и operation одной транзакции.
