@@ -15,6 +15,7 @@ const RECOVERY_ERROR_CODES = new Set([
 	"CALENDAR_EVENT_VERSION_CONFLICT",
 	"CALENDAR_EVENT_NOT_MUTABLE",
 	"CALENDAR_OCCURRENCE_NOT_MUTABLE",
+	"SCHEDULED_CALL_NOT_MUTABLE",
 	"SCHEDULED_CALL_NOT_ATTACHABLE",
 	"CALENDAR_EVENT_RECURRENCE_CONFLICT",
 ]);
@@ -173,6 +174,7 @@ class ApiClient {
 
 		if (
 			!decoded.startsWith("/api/") ||
+			decoded.includes("%") ||
 			decoded.includes(String.fromCharCode(92)) ||
 			CONTROL_CHARACTERS.test(decoded) ||
 			/\/(?:\.{1,2})(?:\/|$)/.test(decoded)
