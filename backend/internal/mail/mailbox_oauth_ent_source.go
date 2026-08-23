@@ -26,7 +26,6 @@ func (repository *MailboxEntRepository) LoadMailboxOAuthBearerSnapshot(ctx conte
 				mailaccount.DesiredEnabledEQ(true),
 			).
 			Order(ent.Asc(mailaccount.FieldID)).
-			ForUpdate().
 			All(ctx)
 		if err != nil {
 			return mailboxEntOAuthSafeError(err)
@@ -47,7 +46,10 @@ func (repository *MailboxEntRepository) LoadMailboxOAuthBearerSnapshot(ctx conte
 		if err != nil {
 			return err
 		}
-		if account == nil || account.ID != candidate.ID || account.OrganizationID != candidate.OrganizationID || account.UserID != candidate.UserID || account.EngineAccountID == nil || *account.EngineAccountID != engineAccountID {
+		if account == nil || account.ID != candidate.ID || account.OrganizationID != candidate.OrganizationID || account.UserID != candidate.UserID ||
+			account.EngineAccountID == nil || *account.EngineAccountID != engineAccountID ||
+			account.Status != mailaccount.StatusActive || !account.DesiredEnabled ||
+			account.DeployedGeneration == nil || *account.DeployedGeneration < 1 {
 			return mailboxOAuthError(MailboxOAuthErrorUnavailable)
 		}
 

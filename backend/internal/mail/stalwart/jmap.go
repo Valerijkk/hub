@@ -422,7 +422,7 @@ func parseMailboxSession(client *Client, data []byte) (*MailboxSession, error) {
 	}
 	accountIDs := make(map[string]struct{}, len(payload.Accounts))
 	for accountID, detail := range payload.Accounts {
-		if !validOpaque(accountID) || int64(len(detail)) > maxSessionBytes || validateJSON(detail) != nil {
+		if !validOpaque(accountID) || int64(len(detail)) > maxSessionBytes || !validJSONObject(detail) {
 			return nil, newError(ErrorProtocol)
 		}
 		accountIDs[accountID] = struct{}{}

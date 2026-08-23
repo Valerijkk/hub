@@ -196,6 +196,9 @@ func (proof *stalwartMailboxOAuthAccountProof) VerifyMailboxOAuthAccount(ctx con
 	if session == nil {
 		return "", mailboxOAuthError(MailboxOAuthErrorUnavailable)
 	}
+	if err := stalwartMailboxOAuthContextError(ctx); err != nil {
+		return "", mailboxOAuthError(MailboxOAuthErrorUnavailable)
+	}
 	if !session.HasAccount(request.ExpectedEngineAccountID) {
 		return MailboxOAuthAccountMismatch, nil
 	}

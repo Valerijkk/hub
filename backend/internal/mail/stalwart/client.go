@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"mime"
 	"net/http"
@@ -76,7 +77,10 @@ func (c *Client) DiscoverMailboxSession(ctx context.Context) (*MailboxSession, e
 		return nil, err
 	}
 	if status != http.StatusTemporaryRedirect {
-		return nil, errorFromStatus(status)
+		if status == http.StatusRequestTimeout || status == http.StatusTooManyRequests || status >= http.StatusInternalServerError {
+			return nil, newError(ErrorUnavailable)
+		}
+		return nil, newError(ErrorProtocol)
 	}
 	if !c.validSessionRedirect(headers.Get("Location")) {
 		return nil, newError(ErrorProtocol)
@@ -210,7 +214,16 @@ func (c *Client) authorizeMailbox(ctx context.Context, request *http.Request) er
 		return newError(ErrorUnauthorized)
 	}
 	if err := c.mailboxAuthorizer.AuthorizeMailbox(ctx, request); err != nil {
-		return newError(ErrorUnauthorized)
+		switch {
+		case errors.Is(err, ErrCancelled), errors.Is(err, context.Canceled):
+			return newError(ErrorCancelled)
+		case errors.Is(err, ErrUnauthorized):
+			return newError(ErrorUnauthorized)
+		case errors.Is(err, ErrUnavailable):
+			return newError(ErrorUnavailable)
+		default:
+			return newError(ErrorUnavailable)
+		}
 	}
 	return nil
 }
