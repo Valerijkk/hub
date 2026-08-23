@@ -3,10 +3,28 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { getMailThreads, type MailThreadSummary } from "@/api/mail";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { mailKeys } from "./mail-query-keys";
 import { MailThreadRow } from "./mail-thread-row";
 
 const MAIL_THREAD_PAGE_SIZE = 40;
+const MAIL_UUID_PATTERN =
+	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const MAIL_NIL_UUID = "00000000-0000-0000-0000-000000000000";
+
+interface MailThreadListProps {
+	folderKey: string;
+	selectedThreadId?: string;
+	className?: string;
+}
+
+export function isValidMailEntityID(value: string): boolean {
+	return MAIL_UUID_PATTERN.test(value) && value.toLowerCase() !== MAIL_NIL_UUID;
+}
+
+export function isValidMailFolderKey(value: string): boolean {
+	return value === "all" || isValidMailEntityID(value);
+}
 
 function uniqueThreads(pages: { items: MailThreadSummary[] }[] | undefined) {
 	const known = new Set<string>();
@@ -45,17 +63,36 @@ function ThreadListSkeleton() {
 	);
 }
 
-export function MailThreadList() {
+export function MailThreadList({
+	folderKey,
+	selectedThreadId,
+	className,
+}: MailThreadListProps) {
 	const { t } = useTranslation("mail");
+	const folderID = folderKey === "all" ? undefined : folderKey.toLowerCase();
 	const threadsQuery = useInfiniteQuery({
-		queryKey: mailKeys.threads({ limit: MAIL_THREAD_PAGE_SIZE }),
+		queryKey: mailKeys.threads({
+			folder_id: folderID,
+			limit: MAIL_THREAD_PAGE_SIZE,
+		}),
 		queryFn: ({ pageParam }) =>
 			getMailThreads({
+				folder_id: folderID,
 				limit: MAIL_THREAD_PAGE_SIZE,
 				cursor: pageParam,
 			}),
 		initialPageParam: undefined as string | undefined,
-		getNextPageParam: (lastPage) => lastPage.next_cursor ?? undefined,
+		getNextPageParam: (
+			lastPage,
+			_allPages,
+			_lastPageParam,
+			allPageParams,
+		) => {
+			const nextCursor = lastPage.next_cursor ?? undefined;
+			return nextCursor && !allPageParams.includes(nextCursor)
+				? nextCursor
+				: undefined;
+		},
 		retry: false,
 		refetchOnWindowFocus: false,
 	});
@@ -126,7 +163,12 @@ export function MailThreadList() {
 				) : null}
 				<ul aria-label={t("threadList.listLabel")} className="divide-y divide-b1">
 					{threads.map((thread) => (
-						<MailThreadRow key={thread.id} thread={thread} />
+						<MailThreadRow
+							key={thread.id}
+							thread={thread}
+							folderKey={folderKey}
+							selected={selectedThreadId?.toLowerCase() === thread.id.toLowerCase()}
+						/>
 					))}
 				</ul>
 				<div className="border-t border-b1 px-3 py-3 text-center">
@@ -152,12 +194,15 @@ export function MailThreadList() {
 	return (
 		<section
 			aria-labelledby="mail-thread-list-heading"
-			className="min-w-0 flex-1 bg-card md:max-w-[23rem] md:flex-none md:border-r md:border-b1"
+			className={cn(
+				"min-w-0 flex-1 bg-card md:max-w-[23rem] md:flex-none md:border-r md:border-b1",
+				className,
+			)}
 		>
 			<header className="flex min-h-14 items-center justify-between gap-3 border-b border-b1 px-4">
 				<div>
 					<h2 id="mail-thread-list-heading" className="text-sm font-semibold text-t1">
-						{t("threadList.title")}
+						{t(folderKey === "all" ? "threadList.title" : "threadList.folderTitle")}
 					</h2>
 					{projectionState ? (
 						<p className="mt-0.5 text-xs text-t3">

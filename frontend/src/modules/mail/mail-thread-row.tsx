@@ -1,10 +1,13 @@
 import { Paperclip, Star } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import type { MailThreadSummary } from "@/api/mail";
 import { cn } from "@/lib/utils";
 
 interface MailThreadRowProps {
 	thread: MailThreadSummary;
+	folderKey: string;
+	selected?: boolean;
 }
 
 function participantsLabel(participants: MailThreadSummary["participants"]): string {
@@ -37,7 +40,11 @@ function formatThreadTime(value: string, language: string): string {
 	);
 }
 
-export function MailThreadRow({ thread }: MailThreadRowProps) {
+export function MailThreadRow({
+	thread,
+	folderKey,
+	selected = false,
+}: MailThreadRowProps) {
 	const { i18n, t } = useTranslation("mail");
 	const participants = participantsLabel(thread.participants);
 	const time = formatThreadTime(thread.last_message_at, i18n.language);
@@ -56,10 +63,17 @@ export function MailThreadRow({ thread }: MailThreadRowProps) {
 		.join(", ");
 
 	return (
-		<li
-			aria-label={accessibleParts}
-			className="relative min-h-[84px] border-b border-b1 px-3 py-3"
-		>
+		<li className="border-b border-b1">
+			<Link
+				to="/mail/$folderKey/thread/$threadId"
+				params={{ folderKey, threadId: thread.id }}
+				aria-current={selected ? "page" : undefined}
+				aria-label={accessibleParts}
+				className={cn(
+					"relative block min-h-[84px] px-3 py-3 outline-none transition-colors hover:bg-raised/70 focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-[var(--blue)] focus-visible:ring-inset",
+					selected && "bg-[var(--blue)]/10 hover:bg-[var(--blue)]/15",
+				)}
+			>
 			<div className="flex min-w-0 items-baseline gap-2">
 				<span
 					aria-hidden="true"
@@ -146,6 +160,7 @@ export function MailThreadRow({ thread }: MailThreadRowProps) {
 					))}
 				</div>
 			) : null}
+			</Link>
 		</li>
 	);
 }

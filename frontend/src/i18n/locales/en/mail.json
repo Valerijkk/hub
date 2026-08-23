@@ -35,6 +35,7 @@
 	"sidebar": {
 		"title": "Folders",
 		"navigation": "Mailbox folders",
+		"allMail": "All Mail",
 		"loading": "Loading folders…",
 		"unavailable": "Folders are unavailable right now.",
 		"empty": "No folders are available yet.",
@@ -46,6 +47,7 @@
 	},
 	"threadList": {
 		"title": "All Mail",
+		"folderTitle": "Folder",
 		"listLabel": "Mail conversations",
 		"count": "{{count}} conversations",
 		"unknownSender": "Unknown sender",
@@ -68,8 +70,48 @@
 		"rebuilding": "Refreshing conversations. Current rows may be out of date.",
 		"degraded": "Conversation data may be out of date."
 	},
+	"folder": {
+		"invalidTitle": "This folder is unavailable",
+		"invalidDescription": "The folder address is invalid or no longer available.",
+		"backToAll": "Back to All Mail"
+	},
 	"reader": {
+		"title": "Conversation",
 		"emptyTitle": "Select a conversation",
-		"emptyDescription": "Choose a conversation to read it here."
+		"emptyDescription": "Choose a conversation to read it here.",
+		"back": "Back to folder",
+		"loading": "Loading conversation metadata…",
+		"unavailable": "This conversation is unavailable right now.",
+		"partialUnavailable": "Some conversation metadata may be out of date. Loaded messages remain visible.",
+		"noMessagesTitle": "No message metadata is available",
+		"noMessagesDescription": "Messages will appear here after mailbox synchronization finishes.",
+		"loadMore": "Load earlier messages",
+		"loadingMore": "Loading earlier messages…",
+		"end": "You have reached the beginning of this conversation.",
+		"invalidTitle": "This conversation is unavailable",
+		"invalidDescription": "The conversation address is invalid or no longer available.",
+		"from": "From",
+		"to": "To",
+		"cc": "Cc",
+		"messageStatus": "Message status",
+		"noPreview": "No message preview is available.",
+		"metadataOnly": "Message preview only; full content is not loaded in this view.",
+		"messageSize": "Message size: {{size}}",
+		"badges": {
+			"draft": "Draft",
+			"unread": "Unread",
+			"flagged": "Flagged",
+			"answered": "Answered",
+			"junk": "Junk",
+			"priority": {
+				"low": "Low priority",
+				"high": "High priority"
+			}
+		},
+		"calendar": {
+			"request": "Calendar invitation",
+			"cancel": "Calendar cancellation",
+			"reply": "Calendar response"
+		}
 	}
 }

@@ -7,7 +7,7 @@ function MailIndex() {
 
 	return (
 		<div className="flex min-h-[32rem] min-w-0 overflow-hidden rounded-[var(--r3)] border border-b1 bg-card">
-			<MailThreadList />
+			<MailThreadList folderKey="all" />
 			<section
 				aria-labelledby="mail-reader-empty-heading"
 				className="hidden min-w-0 flex-1 items-center justify-center bg-base/30 p-8 md:flex"
