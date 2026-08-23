@@ -195,7 +195,22 @@ func meetingCreateEventCommands(scope EventMutationScope, eventID uuid.UUID, inp
 	if err != nil {
 		return CalendarEventCommand{}, nil, nil, ErrEventInternal
 	}
-	attendees := make([]CalendarEventAttendeeCommand, len(authorization.Attendees))
+	organizerRecordID := calendarCreateUUID("hub.calendar.attendee.id.v1", eventID[:], []byte("organizer"))
+	organizer, err := newCalendarEventOrganizerAttendeeCommand(CalendarEventAttendeeCommandInput{
+		AttendeeID:  organizerRecordID,
+		EventID:     eventID,
+		UserID:      &organizerID,
+		Email:       normalizeCalendarCreateEmail(authorization.Organizer.Email),
+		DisplayName: calendarCreateDisplayName(authorization.Organizer.DisplayName),
+		Role:        CalendarEventAttendeeRoleOrganizer,
+		Status:      RSVPAccepted,
+		Version:     1,
+	})
+	if err != nil {
+		return CalendarEventCommand{}, nil, nil, ErrEventInternal
+	}
+	attendees := make([]CalendarEventAttendeeCommand, 0, len(authorization.Attendees)+1)
+	attendees = append(attendees, organizer)
 	attendeeRecordIDs := make([]uuid.UUID, len(authorization.Attendees))
 	for index, resolved := range authorization.Attendees {
 		attendeeID := resolved.UserID
@@ -213,7 +228,7 @@ func meetingCreateEventCommands(scope EventMutationScope, eventID uuid.UUID, inp
 		if err != nil {
 			return CalendarEventCommand{}, nil, nil, ErrEventInternal
 		}
-		attendees[index] = attendee
+		attendees = append(attendees, attendee)
 		attendeeRecordIDs[index] = recordID
 	}
 	return event, attendees, attendeeRecordIDs, nil

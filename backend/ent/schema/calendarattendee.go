@@ -3,6 +3,7 @@ package schema
 import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/entsql"
+	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -32,7 +33,7 @@ func (CalendarAttendee) Fields() []ent.Field {
 			Nillable().
 			MaxLen(160),
 		field.Enum("role").
-			Values("required", "optional").
+			Values("organizer", "required", "optional").
 			Default("required"),
 		field.Enum("rsvp_status").
 			Values("needs_action", "accepted", "declined", "tentative").
@@ -56,6 +57,16 @@ func (CalendarAttendee) Fields() []ent.Field {
 		field.Time("updated_at").
 			Default(nowUTC).
 			UpdateDefault(nowUTC),
+	}
+}
+
+// Annotations keeps the internal organizer row canonical. Invitee roles retain
+// their existing required/optional shapes and are unaffected by this check.
+func (CalendarAttendee) Annotations() []schema.Annotation {
+	return []schema.Annotation{
+		entsql.Checks(map[string]string{
+			"calendar_attendees_organizer_shape": "role <> 'organizer' OR (user_id IS NOT NULL AND rsvp_status = 'accepted' AND recurrence_id IS NULL AND removed_at IS NULL)",
+		}),
 	}
 }
 
@@ -91,6 +102,9 @@ func (CalendarAttendee) Indexes() []ent.Index {
 		index.Fields("calendar_event_id", "normalized_email").
 			Unique().
 			Annotations(entsql.IndexWhere("recurrence_id IS NULL AND removed_at IS NULL")),
+		index.Fields("calendar_event_id", "role").
+			Unique().
+			Annotations(entsql.IndexWhere("role = 'organizer' AND recurrence_id IS NULL AND removed_at IS NULL")),
 		index.Fields("calendar_event_id", "normalized_email", "recurrence_id").
 			Unique().
 			Annotations(entsql.IndexWhere("recurrence_id IS NOT NULL AND removed_at IS NULL")),

@@ -191,7 +191,7 @@ func (backend *eventEntTransactionBackend) lockCalendarAvailabilityReservationEv
 		).
 		Order(ent.Asc(calendarattendee.FieldID)).
 		ForUpdate().
-		Limit(calendarAvailabilityReservationMaxAttendees + 1).
+		Limit(calendarAvailabilityReservationMaxAttendees + 2).
 		All(ctx)
 	if err != nil {
 		return calendarEntSafeError(err)
@@ -219,7 +219,7 @@ func (backend *eventEntTransactionBackend) lockCalendarAvailabilityReservationEv
 }
 
 func calendarAvailabilityReservationAttendeesMatch(set CalendarAvailabilityReservationSet, rows []*ent.CalendarAttendee) bool {
-	if len(rows) > calendarAvailabilityReservationMaxAttendees {
+	if len(rows) > calendarAvailabilityReservationMaxAttendees+1 {
 		return false
 	}
 	expected := make(map[uuid.UUID]struct{}, len(set.participants)-1)
@@ -229,6 +229,7 @@ func calendarAvailabilityReservationAttendeesMatch(set CalendarAvailabilityReser
 		}
 	}
 	actual := make(map[uuid.UUID]struct{}, len(rows))
+	organizerRows := 0
 	for _, attendee := range rows {
 		if attendee == nil || attendee.ID == uuid.Nil || attendee.RemovedAt != nil || attendee.RecurrenceID != nil {
 			return false
@@ -239,12 +240,22 @@ func calendarAvailabilityReservationAttendeesMatch(set CalendarAvailabilityReser
 		if *attendee.UserID == uuid.Nil {
 			return false
 		}
+		if attendee.Role == calendarattendee.RoleOrganizer {
+			if *attendee.UserID != set.OrganizerID() || attendee.RsvpStatus != calendarattendee.RsvpStatusAccepted || organizerRows != 0 {
+				return false
+			}
+			organizerRows++
+			continue
+		}
+		if *attendee.UserID == set.OrganizerID() {
+			return false
+		}
 		if _, duplicate := actual[*attendee.UserID]; duplicate {
 			return false
 		}
 		actual[*attendee.UserID] = struct{}{}
 	}
-	if len(actual) != len(expected) {
+	if organizerRows != 1 || len(actual) != len(expected) {
 		return false
 	}
 	for participantID := range expected {

@@ -92,6 +92,9 @@ func (backend *eventEntTransactionBackend) ResolveMeetingCreateAuthorization(ctx
 		scope.EventOperation() != EventMutationMeetingCreate || !request.valid() {
 		return MeetingCreateAuthorization{}, ErrEventForbidden
 	}
+	participantIDs := make([]uuid.UUID, 0, len(request.AttendeeUserIDs)+1)
+	participantIDs = append(participantIDs, scope.ActorID())
+	participantIDs = append(participantIDs, request.AttendeeUserIDs...)
 	if _, err := backend.tx.Project.Query().
 		Where(
 			project.IDEQ(request.ProjectID),
@@ -126,45 +129,75 @@ func (backend *eventEntTransactionBackend) ResolveMeetingCreateAuthorization(ctx
 		return MeetingCreateAuthorization{}, calendarEntAuthorizationError(err)
 	}
 
-	participantIDs := make([]uuid.UUID, 0, len(request.AttendeeUserIDs)+1)
-	participantIDs = append(participantIDs, scope.ActorID())
-	participantIDs = append(participantIDs, request.AttendeeUserIDs...)
 	memberships, err := backend.tx.ChannelMember.Query().
 		Where(
 			channelmember.ChannelIDEQ(request.ChannelID),
-			channelmember.UserIDIn(participantIDs...),
+			channelmember.UserIDEQ(scope.ActorID()),
 			channelmember.HasChannelWith(
 				channel.IDEQ(request.ChannelID),
 				channel.ProjectIDEQ(request.ProjectID),
 				channel.DeletedAtIsNil(),
+				channel.HasProjectWith(
+					project.IDEQ(request.ProjectID),
+					project.StatusEQ(project.StatusActive),
+					project.DeletedAtIsNil(),
+					project.HasOrganizationWith(organization.IDEQ(scope.OrganizationID())),
+				),
 			),
 			channelmember.HasUserWith(
 				user.StatusEQ(user.StatusActive),
 				user.HasOrganizationWith(organization.IDEQ(scope.OrganizationID())),
 			),
 		).
-		Order(ent.Asc(channelmember.FieldUserID), ent.Asc(channelmember.FieldID)).
+		Order(ent.Asc(channelmember.FieldID)).
+		ForUpdate().
+		Limit(2).
+		All(ctx)
+	if err != nil {
+		return MeetingCreateAuthorization{}, calendarEntSafeError(err)
+	}
+	if len(memberships) != 1 || memberships[0] == nil || memberships[0].ChannelID != request.ChannelID || memberships[0].UserID != scope.ActorID() {
+		return MeetingCreateAuthorization{}, ErrEventForbidden
+	}
+
+	projectMemberships, err := backend.tx.ProjectMember.Query().
+		Where(
+			projectmember.HasProjectWith(
+				project.IDEQ(request.ProjectID),
+				project.StatusEQ(project.StatusActive),
+				project.DeletedAtIsNil(),
+				project.HasOrganizationWith(organization.IDEQ(scope.OrganizationID())),
+			),
+			projectmember.HasUserWith(
+				user.IDIn(participantIDs...),
+				user.StatusEQ(user.StatusActive),
+				user.HasOrganizationWith(organization.IDEQ(scope.OrganizationID())),
+			),
+		).
+		WithUser().
+		Order(ent.Asc(projectmember.FieldID)).
 		ForUpdate().
 		Limit(meetingCreateMaxAttendees + 2).
 		All(ctx)
 	if err != nil {
 		return MeetingCreateAuthorization{}, calendarEntSafeError(err)
 	}
-	if len(memberships) != len(participantIDs) {
+	if len(projectMemberships) != len(participantIDs) {
 		return MeetingCreateAuthorization{}, ErrEventForbidden
 	}
-	seenMemberships := make(map[uuid.UUID]struct{}, len(memberships))
-	for _, membership := range memberships {
-		if membership == nil || membership.ChannelID != request.ChannelID || membership.UserID == uuid.Nil {
+	seenProjectMembers := make(map[uuid.UUID]struct{}, len(projectMemberships))
+	for _, membership := range projectMemberships {
+		if membership == nil || membership.ID == uuid.Nil || membership.Edges.User == nil || membership.Edges.User.ID == uuid.Nil {
 			return MeetingCreateAuthorization{}, ErrEventForbidden
 		}
-		if _, duplicate := seenMemberships[membership.UserID]; duplicate {
+		memberID := membership.Edges.User.ID
+		if _, duplicate := seenProjectMembers[memberID]; duplicate {
 			return MeetingCreateAuthorization{}, ErrEventForbidden
 		}
-		seenMemberships[membership.UserID] = struct{}{}
+		seenProjectMembers[memberID] = struct{}{}
 	}
 	for _, participantID := range participantIDs {
-		if _, found := seenMemberships[participantID]; !found {
+		if _, found := seenProjectMembers[participantID]; !found {
 			return MeetingCreateAuthorization{}, ErrEventForbidden
 		}
 	}

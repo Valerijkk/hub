@@ -1945,6 +1945,9 @@ func (command CalendarEventCommand) valid() bool {
 type CalendarEventAttendeeRole string
 
 const (
+	// CalendarEventAttendeeRoleOrganizer identifies the single canonical
+	// organizer row. Public invitee inputs remain required or optional only.
+	CalendarEventAttendeeRoleOrganizer CalendarEventAttendeeRole = "organizer"
 	// CalendarEventAttendeeRoleRequired обозначает обязательного участника.
 	CalendarEventAttendeeRoleRequired CalendarEventAttendeeRole = "required"
 	// CalendarEventAttendeeRoleOptional обозначает необязательного участника.
@@ -1981,6 +1984,16 @@ func NewCalendarEventAttendeeCommand(input CalendarEventAttendeeCommandInput) (C
 	return CalendarEventAttendeeCommand{input: input}, nil
 }
 
+func newCalendarEventOrganizerAttendeeCommand(input CalendarEventAttendeeCommandInput) (CalendarEventAttendeeCommand, error) {
+	if input.AttendeeID == uuid.Nil || input.EventID == uuid.Nil || input.UserID == nil || *input.UserID == uuid.Nil ||
+		strings.TrimSpace(input.Email) == "" || input.Role != CalendarEventAttendeeRoleOrganizer || input.Status != RSVPAccepted ||
+		input.RecurrenceID != "" || input.Version == 0 {
+		return CalendarEventAttendeeCommand{}, ErrEventInvalid
+	}
+	input.UserID = copyUUID(input.UserID)
+	return CalendarEventAttendeeCommand{input: input}, nil
+}
+
 // AttendeeID возвращает идентификатор attendee.
 func (command CalendarEventAttendeeCommand) AttendeeID() uuid.UUID { return command.input.AttendeeID }
 
@@ -1991,6 +2004,10 @@ func (command CalendarEventAttendeeCommand) EventID() uuid.UUID { return command
 func (command CalendarEventAttendeeCommand) Version() uint { return command.input.Version }
 
 func (command CalendarEventAttendeeCommand) valid() bool {
+	if command.input.Role == CalendarEventAttendeeRoleOrganizer {
+		_, err := newCalendarEventOrganizerAttendeeCommand(command.input)
+		return err == nil
+	}
 	_, err := NewCalendarEventAttendeeCommand(command.input)
 	return err == nil
 }
