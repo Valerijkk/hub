@@ -568,6 +568,9 @@ func parseStalwartMailboxSetResponse(response stalwart.JMAPResponse, callID, acc
 
 func stalwartMailboxOnlyCreateSucceeded(payload stalwartMailboxSetResponse) error {
 	if len(payload.NotCreated) != 0 {
+		if len(payload.Created) != 0 || len(payload.Updated) != 0 || len(payload.NotUpdated) != 0 || len(payload.Destroyed) != 0 || len(payload.NotDestroyed) != 0 {
+			return stalwartEngineError(EngineErrorIndeterminate)
+		}
 		return stalwartMailboxSetFailureFor(payload.NotCreated, stalwartMailboxCreateID)
 	}
 	if len(payload.Created) != 1 || len(payload.Updated) != 0 || len(payload.NotUpdated) != 0 || len(payload.Destroyed) != 0 || len(payload.NotDestroyed) != 0 {
@@ -578,6 +581,9 @@ func stalwartMailboxOnlyCreateSucceeded(payload stalwartMailboxSetResponse) erro
 
 func stalwartMailboxOnlyUpdateSucceeded(payload stalwartMailboxSetResponse, folderID string) error {
 	if len(payload.NotUpdated) != 0 {
+		if len(payload.Created) != 0 || len(payload.NotCreated) != 0 || len(payload.Updated) != 0 || len(payload.Destroyed) != 0 || len(payload.NotDestroyed) != 0 {
+			return stalwartEngineError(EngineErrorIndeterminate)
+		}
 		return stalwartMailboxSetFailureFor(payload.NotUpdated, folderID)
 	}
 	if len(payload.Updated) != 1 || !stalwartMailboxUpdateContains(payload.Updated, folderID) || len(payload.Created) != 0 || len(payload.NotCreated) != 0 || len(payload.Destroyed) != 0 || len(payload.NotDestroyed) != 0 {
@@ -588,6 +594,9 @@ func stalwartMailboxOnlyUpdateSucceeded(payload stalwartMailboxSetResponse, fold
 
 func stalwartMailboxOnlyDestroySucceeded(payload stalwartMailboxSetResponse, folderID string) error {
 	if len(payload.NotDestroyed) != 0 {
+		if len(payload.Created) != 0 || len(payload.NotCreated) != 0 || len(payload.Updated) != 0 || len(payload.NotUpdated) != 0 || len(payload.Destroyed) != 0 {
+			return stalwartEngineError(EngineErrorIndeterminate)
+		}
 		return stalwartMailboxSetFailureFor(payload.NotDestroyed, folderID)
 	}
 	if len(payload.Destroyed) != 1 || payload.Destroyed[0] != folderID || len(payload.Created) != 0 || len(payload.NotCreated) != 0 || len(payload.Updated) != 0 || len(payload.NotUpdated) != 0 {
