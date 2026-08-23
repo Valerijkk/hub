@@ -35,7 +35,7 @@ func (repository *MailboxEntRepository) BeginEngineCommand(ctx context.Context, 
 
 		databaseWallClock, err := mailboxEntDatabaseWallClock(ctx, transaction)
 		if err != nil {
-			return mailboxEntEngineCommandRepositoryError(err)
+			return mailboxEntDraftRepositoryError(err)
 		}
 		leaseUntil, ok := mailboxEntCheckedTimeAdd(databaseWallClock, MailboxEngineCommandLeaseDuration)
 		if !ok {
@@ -97,7 +97,7 @@ func (repository *MailboxEntRepository) BeginEngineCommand(ctx context.Context, 
 			SetMutationEpoch(nextMutationEpoch).
 			SetSyncScheduleUpdatedAt(databaseWallClock).
 			Exec(ctx); err != nil {
-			return mailboxEntEngineCommandRepositoryError(mailboxEntSafeError(err))
+			return mailboxEntDraftRepositoryError(mailboxEntSafeError(err))
 		}
 
 		result = MailboxEngineCommandBeginResult{
@@ -108,7 +108,7 @@ func (repository *MailboxEntRepository) BeginEngineCommand(ctx context.Context, 
 		return nil
 	})
 	if err != nil {
-		return MailboxEngineCommandBeginResult{}, mailboxEntEngineCommandRepositoryError(err)
+		return MailboxEngineCommandBeginResult{}, mailboxEntDraftRepositoryError(err)
 	}
 	return result, nil
 }
@@ -117,7 +117,7 @@ func mailboxEntEngineCommandFenceValid(fence MailboxEngineCommandFence) bool {
 	return fence.AccountID != uuid.Nil && fence.LeaseID != uuid.Nil && fence.MutationEpoch > 0 && mailboxEntValidTime(fence.LeaseUntil)
 }
 
-func mailboxEntEngineCommandRepositoryError(err error) error {
+func mailboxEntDraftRepositoryError(err error) error {
 	var repositoryError *MailboxDraftRepositoryError
 	if errors.As(err, &repositoryError) && repositoryError != nil {
 		return NewMailboxDraftRepositoryError(repositoryError.Kind())
