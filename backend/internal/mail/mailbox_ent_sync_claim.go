@@ -289,18 +289,50 @@ func mailboxEntSyncClaimSnapshot(account *ent.MailAccount) (MailboxSyncFence, er
 		fence.Phase = MailboxSyncPhaseIncremental
 		fence.Cursor = *account.SyncCursor
 	case "degraded":
-		if account.RebuildBaseCursor != nil || account.RebuildCheckpoint != nil {
+		syncErrorCode := ""
+		if account.SyncErrorCode != nil {
+			syncErrorCode = string(*account.SyncErrorCode)
+		}
+		if (account.SyncCursor != nil && !syncValidCursor(*account.SyncCursor, false)) ||
+			(account.RebuildBaseCursor != nil && !syncValidCursor(*account.RebuildBaseCursor, false)) ||
+			(account.RebuildCheckpoint != nil && !syncValidCursor(*account.RebuildCheckpoint, false)) {
 			return MailboxSyncFence{}, mailboxServiceError(MailboxServiceErrorInvalid)
 		}
-		if account.SyncErrorCode != nil && (string(*account.SyncErrorCode) == "MAIL_SYNC_CURSOR_INVALID" || string(*account.SyncErrorCode) == "MAIL_SYNC_RESTART_REQUIRED") {
+		if syncErrorCode == "MAIL_SYNC_CURSOR_INVALID" || syncErrorCode == "MAIL_SYNC_RESTART_REQUIRED" {
+			if account.RebuildBaseCursor != nil || account.RebuildCheckpoint != nil {
+				return MailboxSyncFence{}, mailboxServiceError(MailboxServiceErrorInvalid)
+			}
 			fence.Phase = MailboxSyncPhaseEnumeration
 			return fence, nil
 		}
-		if account.SyncCursor == nil || !syncValidCursor(*account.SyncCursor, false) {
-			return MailboxSyncFence{}, mailboxServiceError(MailboxServiceErrorInvalid)
+		if syncErrorCode != "MAIL_SYNC_ENGINE_UNAVAILABLE" && syncErrorCode != "MAIL_SYNC_PAGE_REJECTED" {
+			if account.SyncCursor == nil || account.RebuildBaseCursor != nil || account.RebuildCheckpoint != nil {
+				return MailboxSyncFence{}, mailboxServiceError(MailboxServiceErrorInvalid)
+			}
+			fence.Phase = MailboxSyncPhaseIncremental
+			fence.Cursor = *account.SyncCursor
+			return fence, nil
 		}
-		fence.Phase = MailboxSyncPhaseIncremental
-		fence.Cursor = *account.SyncCursor
+		if account.RebuildBaseCursor == nil {
+			if account.RebuildCheckpoint != nil {
+				return MailboxSyncFence{}, mailboxServiceError(MailboxServiceErrorInvalid)
+			}
+			if account.SyncCursor == nil {
+				fence.Phase = MailboxSyncPhaseEnumeration
+				return fence, nil
+			}
+			fence.Phase = MailboxSyncPhaseIncremental
+			fence.Cursor = *account.SyncCursor
+			return fence, nil
+		}
+		if account.RebuildCheckpoint == nil {
+			fence.Phase = MailboxSyncPhaseCatchUp
+			fence.Cursor = *account.RebuildBaseCursor
+			return fence, nil
+		}
+		fence.Phase = MailboxSyncPhaseEnumeration
+		fence.BaseCursor = *account.RebuildBaseCursor
+		fence.Checkpoint = *account.RebuildCheckpoint
 	case "rebuilding":
 		if account.RebuildBaseCursor == nil || !syncValidCursor(*account.RebuildBaseCursor, false) {
 			return MailboxSyncFence{}, mailboxServiceError(MailboxServiceErrorInvalid)
