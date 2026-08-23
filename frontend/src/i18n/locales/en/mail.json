@@ -29,6 +29,19 @@
 	"active": {
 		"title": "Mailbox is ready",
 		"description": "Your mailbox is available.",
-		"workspace": "Your Mail workspace will appear here as more mailbox features become available."
+		"workspaceTitle": "Choose a folder",
+		"workspace": "Select a mailbox folder to view its conversations."
+	},
+	"sidebar": {
+		"title": "Folders",
+		"navigation": "Mailbox folders",
+		"loading": "Loading folders…",
+		"unavailable": "Folders are unavailable right now.",
+		"empty": "No folders are available yet.",
+		"emptyDescription": "Mailbox folders will appear here after synchronization finishes.",
+		"unreadCount": "{{count}} unread",
+		"bootstrapping": "Mailbox setup is in progress.",
+		"rebuilding": "Refreshing folders. Current folders may be out of date.",
+		"degraded": "Folder data may be out of date."
 	}
 }

@@ -14,6 +14,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { MailSidebar } from "./mail-sidebar";
 import { mailKeys } from "./mail-query-keys";
 
 type MailShellProps = PropsWithChildren;
@@ -156,7 +157,10 @@ export function MailShell({ children }: MailShellProps) {
 					title={t(state.title)}
 					description={t(state.description)}
 				/>
-				<div className="mt-4">{children}</div>
+				<div className="mt-4 overflow-hidden rounded-[var(--r4)] border border-b1 bg-card md:flex">
+					<MailSidebar />
+					<section className="min-w-0 flex-1 p-4 sm:p-6">{children}</section>
+				</div>
 			</>
 		);
 	} else {
@@ -173,7 +177,7 @@ export function MailShell({ children }: MailShellProps) {
 
 	return (
 		<main className="min-h-full bg-base px-4 py-6 sm:px-6 sm:py-8">
-			<div className="mx-auto w-full max-w-xl">
+			<div className="mx-auto w-full max-w-7xl">
 				<h1 className="mb-6 text-2xl font-bold tracking-tight text-t1">
 					{t("title")}
 				</h1>
