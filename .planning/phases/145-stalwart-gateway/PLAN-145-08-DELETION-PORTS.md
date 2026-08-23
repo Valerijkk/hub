@@ -1,12 +1,12 @@
 # Phase 145-08 — Mail deletion-port implementation plan
 
-> **Plan status:** `DOCS_ONLY / READY_FOR_ATOMIC_SOURCE_PACKET`; this file freezes a narrow future source packet but grants no accepted source authority. A future packet may be explicitly dispatched under this manifest, but its source remains an unaccepted candidate until its atomic commit and immutable Contract, Security, and Lifecycle reviews all pass. All executable evidence remains `NOT_RUN`.
+> **Plan status:** `DOCS_ONLY / PLAN_CANDIDATE / SOURCE_BLOCKED`; this file freezes a narrow future source manifest but grants no source authority or implementation dispatch. After plan-review acceptance, a separate exact governing-document authority transition must explicitly authorize the narrow ABI/fake exception before any source dispatch. Adapter-capability evidence remains required before a concrete provider adapter may be designed. All executable evidence remains `NOT_RUN`.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: use `superpowers:subagent-driven-development` or `superpowers:executing-plans` when this plan is explicitly authorized. Track the two tasks below with the checkbox syntax; do not broaden the manifest.
 
 **Goal:** Add standalone, provider-neutral Mail account and object deletion-port ABIs plus deterministic in-memory fakes, without turning deletion intent into a provider, persistence, worker, or HTTP implementation.
 
-**Architecture:** `mailbox_deletion.go` owns the closed public ABI, safe typed error surface, and production-local request/state validation. `mailbox_deletion_fake.go` owns a separately constructed mutex-protected fake that implements both new ports; it must not be attached to `MailEngine` or `FakeMailEngine`. The fake derives every result only from its own seeded maps and the production validators; no provider, Ent, storage, clock, random source, callback, goroutine, or I/O is introduced.
+**Architecture:** `mailbox_deletion.go` owns the closed public ABI, safe typed error surface, and production-local request/state validation. `mailbox_deletion_fake.go` owns two separately constructed mutex-protected fakes: `FakeEngineAccountDeletionPort` and `FakeMailObjectDeletionPort`. Each fake implements only its matching port and owns separate configuration, seeds, maps, and constructor; neither may be attached to `MailEngine` or `FakeMailEngine`. Each derives every result only from its own seeded maps and the production validators; no provider, Ent, storage, clock, random source, callback, goroutine, or I/O is introduced.
 
 **Tech Stack:** Go, `context`, `errors`, `unicode/utf8`, `sync`, `github.com/google/uuid`; existing `EngineError`, `EngineErrorKind`, and `MaxEngineOpaqueIDBytes` in `backend/internal/mail`.
 
@@ -33,7 +33,7 @@
 | File | Responsibility | Must not own |
 |---|---|---|
 | `backend/internal/mail/mailbox_deletion.go` | The two standalone port interfaces; requests, aliases, closed states/results, content-free object error surface, and local request/state validation | Provider calls, storage calls, fake state, Ent, deletion queue/control, transaction, retry, worker, HTTP/NATS, schema, migration, logging payload |
-| `backend/internal/mail/mailbox_deletion_fake.go` | One deterministic mutex-protected, explicitly seeded fake that implements both ports and exposes only seed/configuration helpers required to establish local state | `MailEngine`/`FakeMailEngine` widening, global fake mutation, time, random values, provider simulation, persistence authority, asynchronous work |
+| `backend/internal/mail/mailbox_deletion_fake.go` | Two separately constructed deterministic mutex-protected fakes, each explicitly seeded and implementing only its matching port; exposes only the seed/configuration helpers required to establish its own local state | `MailEngine`/`FakeMailEngine` widening, shared fake state, global fake mutation, time, random values, provider simulation, persistence authority, asynchronous work |
 
 ## Frozen ABI and error surface
 
@@ -129,7 +129,7 @@ Account methods use the existing `*EngineError` surface only. Their allowed emit
 | `DeleteObject` | remove only the exact `(Bucket, ObjectKey)` and return `MailObjectDeletionStateDeleted` | return a safe object error of kind `indeterminate`; it never returns `authoritatively_absent` | return a safe object error of kind `conflict`; no mutation | return a safe object error of kind `rejected_policy`; no lookup/mutation |
 | `ReconcileObjectAbsence` | return `MailObjectAbsenceStatePresent`; no mutation | return `MailObjectAbsenceStateAuthoritativelyAbsent`; the fake's complete local map is the only proof | return a safe object error of kind `conflict`; never call it absent | return a safe object error of kind `rejected_policy`; no lookup |
 
-For account scope, a mismatch is present when exactly one of the two lookup indexes has a record but its paired `ProvisioningKey`/`EngineAccountID` differs from the request. For object scope, the fake must retain an `ObjectKey` secondary index in addition to the exact `(Bucket, ObjectKey)` map. A requested object key that exists only under another bucket is a mismatch; an object key absent from the secondary index is absent. No result permits a caller to infer a provider-side deletion or physical object state.
+For account scope, an exact pair is present only when both lookup indexes resolve to that same pair. A request is `authoritatively_absent` only when neither the provisioning-key index nor the engine-account-ID index has a record. Any one or both nonmatching index hits, including a cross-pair such as requested `P1/E2`, return `EngineErrorConflict` with no mutation. For object scope, the fake must retain an `ObjectKey` secondary index in addition to the exact `(Bucket, ObjectKey)` map. A requested object key that exists only under another bucket is a mismatch; an object key absent from the secondary index is absent. No result permits a caller to infer a provider-side deletion or physical object state.
 
 ## Atomic execution order
 
@@ -147,7 +147,7 @@ For account scope, a mismatch is present when exactly one of the two lookup inde
 - [ ] Declare the exact public interfaces, request structs, aliases, named state types/constants, and four distinct result structs from the frozen ABI. Do not add these methods to `MailEngine` or a type assertion to it.
 - [ ] Implement `MailObjectDeletionError`, its constructor, `Error`, `Kind`, and `MailObjectDeletionErrorKindOf` exactly as frozen. Import `errors` only for `errors.As`; do not add a cause field or `Unwrap`.
 - [ ] Add package-local pure helpers that validate account requests, object requests, the five object error kinds, and every named result/observation state. Validation must use UTF-8 byte length, reject `uuid.Nil`, have no I/O, and return/construct only the safe errors stated above.
-- [ ] Keep validation entirely local to this production file. It must not import, instantiate, or refer to `FakeMailboxDeletionPorts`, test types, a provider, Ent, storage, or worker state.
+- [ ] Keep validation entirely local to this production file. It must not import, instantiate, or refer to either fake type, test types, a provider, Ent, storage, or worker state.
 
 **Static acceptance:** Inspect the staged diff for the one intended file and confirm all exported types match the frozen ABI. Do not run any executable command. Commit only after Task 2 is complete, because the approved atomic manifest is exactly two source files.
 
@@ -164,14 +164,13 @@ For account scope, a mismatch is present when exactly one of the two lookup inde
 **Frozen fake shape:**
 
 ```go
-type FakeMailboxDeletionPortsConfig struct {
-	Accounts []FakeEngineAccountDeletionSeed
-	Objects  []FakeMailObjectDeletionSeed
-}
-
 type FakeEngineAccountDeletionSeed struct {
 	ProvisioningKey string
 	EngineAccountID string
+}
+
+type FakeEngineAccountDeletionPortConfig struct {
+	Accounts []FakeEngineAccountDeletionSeed
 }
 
 type FakeMailObjectDeletionSeed struct {
@@ -179,24 +178,33 @@ type FakeMailObjectDeletionSeed struct {
 	ObjectKey string
 }
 
-type FakeMailboxDeletionPorts struct {
-	// private sync.Mutex and private account/object indexes only
+type FakeMailObjectDeletionPortConfig struct {
+	Objects []FakeMailObjectDeletionSeed
 }
 
-func NewFakeMailboxDeletionPorts(FakeMailboxDeletionPortsConfig) (*FakeMailboxDeletionPorts, error)
+type FakeEngineAccountDeletionPort struct {
+	// private sync.Mutex and private account indexes only
+}
+
+type FakeMailObjectDeletionPort struct {
+	// private sync.Mutex and private object indexes only
+}
+
+func NewFakeEngineAccountDeletionPort(FakeEngineAccountDeletionPortConfig) (*FakeEngineAccountDeletionPort, error)
+func NewFakeMailObjectDeletionPort(FakeMailObjectDeletionPortConfig) (*FakeMailObjectDeletionPort, error)
 ```
 
-The constructor is deterministic and returns `EngineErrorRejectedPolicy` for an invalid or duplicate account seed, and a `MailObjectDeletionErrorRejectedPolicy` for an invalid or duplicate object seed. It creates no global state. The fake has no exported mutation, fault scripting, time, random, callback, provider, or goroutine API. Its constructor config is the sole seeding mechanism; its only operations are the four frozen port methods.
+Each constructor is deterministic and creates no global state. `NewFakeEngineAccountDeletionPort` returns `EngineErrorRejectedPolicy` for an invalid or duplicate account seed; `NewFakeMailObjectDeletionPort` returns `MailObjectDeletionErrorRejectedPolicy` for an invalid or duplicate object seed. The fakes have no exported mutation, fault scripting, time, random, callback, provider, or goroutine API. Each constructor config is that fake's sole seeding mechanism; the account fake's only operations are its two account-port methods, and the object fake's only operations are its two object-port methods.
 
 **Implementation steps:**
 
-- [ ] Use one private `sync.Mutex` guarding all fake maps. Retain two account indexes — provisioning key → engine account ID and engine account ID → provisioning key — plus an exact object map and an object-key secondary index. All reads that determine a result and all deletes occur while that mutex is held.
-- [ ] Validate every constructor seed with the production-local validators and reject duplicate exact account pairs, duplicate provisioning keys, duplicate engine account IDs, duplicate exact object tuples, and duplicate object keys. This makes mismatch versus absence deterministic rather than dependent on map iteration.
-- [ ] Implement the account delete/reconcile rows of the behavioral matrix exactly. Deleting a present account removes both indexes atomically. A missing delete returns `EngineErrorNotFound`; only reconcile may emit `authoritatively_absent`.
+- [ ] Give each fake its own private `sync.Mutex` guarding only that fake's maps. The account fake retains two account indexes — provisioning key → engine account ID and engine account ID → provisioning key. The object fake retains an exact object map and an object-key secondary index. All reads that determine a result and all deletes occur while the owning fake's mutex is held; no state, map, constructor, or error path is shared between fakes.
+- [ ] Validate each constructor's seeds with the production-local validators. The account constructor rejects duplicate exact account pairs, duplicate provisioning keys, and duplicate engine account IDs. The object constructor rejects duplicate exact object tuples and duplicate object keys. This makes mismatch versus absence deterministic rather than dependent on map iteration.
+- [ ] Implement the account delete/reconcile rows of the behavioral matrix exactly. Deleting a present account removes both account indexes atomically. A missing delete returns `EngineErrorNotFound`; reconcile returns `authoritatively_absent` only when both indexes miss. Any one or both nonmatching index hits, including cross-pair `P1/E2`, returns `EngineErrorConflict` with no mutation.
 - [ ] Implement the object delete/reconcile rows of the behavioral matrix exactly. Deleting a present object removes the tuple and secondary index atomically. A missing delete returns the safe `indeterminate` error; only reconcile may emit `authoritatively_absent`.
-- [ ] Add compile-time local assertions in the fake file only: `var _ EngineAccountDeletionPort = (*FakeMailboxDeletionPorts)(nil)` and `var _ MailObjectDeletionPort = (*FakeMailboxDeletionPorts)(nil)`. Do not add an assertion involving `MailEngine` or `FakeMailEngine`.
+- [ ] Add compile-time local assertions in the fake file only: `var _ EngineAccountDeletionPort = (*FakeEngineAccountDeletionPort)(nil)` and `var _ MailObjectDeletionPort = (*FakeMailObjectDeletionPort)(nil)`. Do not add an assertion involving `MailEngine` or `FakeMailEngine`.
 
-**Static acceptance and commit:** Inspect `git diff --check` only if that operation is explicitly allowed by the active verification policy; otherwise inspect the textual staged diff. Stage exactly the two new files by path and create one atomic commit without AI attribution. Record source SHA, parent SHA, tree SHA, both blobs, exact two-path manifest, dispatcher-enforced Terra/xhigh provenance, and `NOT_RUN` executable status for review.
+**Static acceptance and commit:** This plan grants no source dispatch. Only after plan-review acceptance and a separate exact governing-document authority transition explicitly authorizes this narrow ABI/fake exception may an authorized implementer inspect the textual staged diff, stage exactly the two new files by path, and create one atomic commit without AI attribution. That future receipt records source SHA, parent SHA, tree SHA, both blobs, exact two-path manifest, dispatcher-enforced Terra/xhigh provenance, and `NOT_RUN` executable status for review.
 
 ## Mandatory review and receipt sequence
 
@@ -221,4 +229,4 @@ The constructor is deterministic and returns `EngineErrorRejectedPolicy` for an 
 - **Spec coverage:** the two-port split, exact ABI, safe object errors, nonzero/byte-bounded request identity, no `MailEngine` widening, missing/mismatch/reconcile semantics, deterministic fake, static review gates, and deferred lifecycle dependencies each map to an explicit section above.
 - **Manifest check:** exactly two future source files are named; no current carrier/document is modified by this plan.
 - **No-test check:** no test path, test command, or coverage claim is introduced; the founder prohibition is explicit.
-- **Authority check:** this document is a plan only. Source authority starts only with an explicit atomic implementation dispatch and ends if any immutable review reports a finding.
+- **Authority check:** this document is `DOCS_ONLY / PLAN_CANDIDATE / SOURCE_BLOCKED`. Plan-review acceptance alone grants no source dispatch. A separate exact governing-document authority transition must explicitly authorize this narrow ABI/fake exception before an atomic implementation dispatch; adapter-capability evidence remains mandatory for any concrete provider adapter. That authority ends if any immutable review reports a finding.
