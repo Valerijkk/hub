@@ -33,3 +33,32 @@ export interface MailAccountStatus {
 export function getMailAccountStatus(): Promise<MailAccountStatus> {
 	return api.get<MailAccountStatus>("/mail/account");
 }
+
+export type MailFolderProjectionState =
+	| "bootstrapping"
+	| "ready"
+	| "degraded"
+	| "rebuilding";
+
+export interface MailFolder {
+	id: string;
+	parent_id: string | null;
+	role: string | null;
+	name: string;
+	color: string | null;
+	sort_order: number;
+	unread_count: number;
+	total_count: number;
+	state: string;
+	version: number;
+}
+
+export interface MailFolderProjection {
+	items: MailFolder[];
+	projection_state: MailFolderProjectionState;
+	projection_as_of: string | null;
+}
+
+export function getMailFolders(): Promise<MailFolderProjection> {
+	return api.get<MailFolderProjection>("/mail/folders");
+}

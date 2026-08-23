@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import {
 	getMailAccountStatus,
 	type MailAccountStatus,
-} from "@/api/mail-account";
+} from "@/api/mail";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -14,7 +14,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { mailQueryKeys } from "./mail-query-keys";
+import { mailKeys } from "./mail-query-keys";
 
 type MailShellProps = PropsWithChildren;
 
@@ -96,7 +96,7 @@ function accountStateCopy(status: MailAccountStatus["status"]): {
 export function MailShell({ children }: MailShellProps) {
 	const { t } = useTranslation("mail");
 	const accountQuery = useQuery({
-		queryKey: mailQueryKeys.account(),
+		queryKey: mailKeys.mailbox(),
 		queryFn: getMailAccountStatus,
 		retry: false,
 	});
