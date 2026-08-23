@@ -332,6 +332,18 @@ type EngineProjectionAttachment struct {
 	SHA256      []byte
 }
 
+// MailAuthenticationClass — безопасный класс аутентификации календарного сообщения.
+type MailAuthenticationClass string
+
+const (
+	// MailAuthenticationClassTrustedInternal обозначает доверенное внутреннее сообщение.
+	MailAuthenticationClassTrustedInternal MailAuthenticationClass = "trusted_internal"
+	// MailAuthenticationClassDMARCAligned обозначает внешнее DMARC-выровненное сообщение.
+	MailAuthenticationClassDMARCAligned MailAuthenticationClass = "dmarc_aligned"
+	// MailAuthenticationClassUntrusted обозначает неподтверждённое сообщение.
+	MailAuthenticationClassUntrusted MailAuthenticationClass = "untrusted"
+)
+
 // EngineMessageProjection — ограниченные метаданные одного сообщения без его тела.
 type EngineMessageProjection struct {
 	AccountID         string
@@ -349,7 +361,9 @@ type EngineMessageProjection struct {
 	Snippet           string
 	SentAt            *time.Time
 	ReceivedAt        *time.Time
-	CalendarMethod    *MailCalendarMethod
+	CalendarMethod          *MailCalendarMethod
+	AuthenticationClass     MailAuthenticationClass
+	CalendarPartLocatorHash []byte
 	SizeBytes         int64
 	Priority          EngineMessagePriority
 	FolderIDs         []string

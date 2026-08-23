@@ -1171,7 +1171,7 @@ func messageFromDraft(draft EngineDraft, messageID, version string, now time.Tim
 		attachments = append(attachments, EngineProjectionAttachment{BlobID: blobID, ContentID: attachment.ContentID, Filename: attachment.Filename, MediaType: attachment.MediaType, SizeBytes: int64(len(attachment.Bytes)), Disposition: attachment.Disposition, SHA256: append([]byte(nil), attachment.SHA256[:]...)})
 	}
 	now = now.UTC()
-	return EngineMessage{Projection: EngineMessageProjection{AccountID: draft.AccountID, MessageID: messageID, Version: version, From: draft.Message.From, To: cloneAddresses(draft.Message.To), CC: cloneAddresses(draft.Message.CC), BCC: cloneAddresses(draft.Message.BCC), ReplyTo: cloneAddresses(draft.Message.ReplyTo), Subject: draft.Message.Subject, InReplyTo: draft.Message.InReplyTo, References: cloneStrings(draft.Message.References), ReceivedAt: &now, SizeBytes: int64(len(draft.Message.PlainBody) + len(draft.Message.RichBody)), Priority: draft.Message.Priority, FolderIDs: []string{"drafts"}, Flags: EngineMessageFlags{Draft: true}, Attachments: attachments, Origin: EngineProjectionOriginConfirmedOwnerDraft}, Body: EngineMessageBody{Format: draft.Message.Format, PlainBody: draft.Message.PlainBody, RichBody: draft.Message.RichBody}}
+	return EngineMessage{Projection: EngineMessageProjection{AccountID: draft.AccountID, MessageID: messageID, Version: version, From: draft.Message.From, To: cloneAddresses(draft.Message.To), CC: cloneAddresses(draft.Message.CC), BCC: cloneAddresses(draft.Message.BCC), ReplyTo: cloneAddresses(draft.Message.ReplyTo), Subject: draft.Message.Subject, InReplyTo: draft.Message.InReplyTo, References: cloneStrings(draft.Message.References), ReceivedAt: &now, AuthenticationClass: MailAuthenticationClassUntrusted, SizeBytes: int64(len(draft.Message.PlainBody) + len(draft.Message.RichBody)), Priority: draft.Message.Priority, FolderIDs: []string{"drafts"}, Flags: EngineMessageFlags{Draft: true}, Attachments: attachments, Origin: EngineProjectionOriginConfirmedOwnerDraft}, Body: EngineMessageBody{Format: draft.Message.Format, PlainBody: draft.Message.PlainBody, RichBody: draft.Message.RichBody}}
 }
 
 func (f *FakeMailEngine) retainDraftBlobsLocked(draft EngineDraft) {
@@ -1636,6 +1636,9 @@ func cloneProjection(projection EngineMessageProjection) EngineMessageProjection
 		projection.ReceivedAt = &instant
 	}
 	projection.CalendarMethod = copyMailCalendarMethod(projection.CalendarMethod)
+	if projection.CalendarPartLocatorHash != nil {
+		projection.CalendarPartLocatorHash = append([]byte{}, projection.CalendarPartLocatorHash...)
+	}
 	return projection
 }
 

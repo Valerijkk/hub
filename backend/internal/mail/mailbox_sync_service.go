@@ -734,6 +734,9 @@ func cloneMailboxSyncProjection(value EngineMessageProjection) EngineMessageProj
 	if value.SentAt != nil { copied := *value.SentAt; result.SentAt = &copied }
 	if value.ReceivedAt != nil { copied := *value.ReceivedAt; result.ReceivedAt = &copied }
 	result.CalendarMethod = copyMailCalendarMethod(value.CalendarMethod)
+	if value.CalendarPartLocatorHash != nil {
+		result.CalendarPartLocatorHash = append([]byte{}, value.CalendarPartLocatorHash...)
+	}
 	return result
 }
 

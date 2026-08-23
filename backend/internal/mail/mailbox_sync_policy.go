@@ -2,6 +2,7 @@ package mail
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"errors"
 	"sort"
 	"strings"
@@ -978,6 +979,12 @@ func syncValidateProjection(value EngineMessageProjection) error {
 	if !syncValidOpaque(value.AccountID, MaxEngineOpaqueIDBytes) || !syncValidOpaque(value.MessageID, MaxEngineOpaqueIDBytes) || !syncValidOpaque(value.Version, MaxEngineOpaqueIDBytes) || (value.InternetMessageID != "" && !validThreadMessageID(value.InternetMessageID)) || (value.InReplyTo != "" && !validThreadMessageID(value.InReplyTo)) || !syncValidSafeText(value.Subject, MaxEngineHeaderValueBytes, true) || !syncValidSafeText(value.Snippet, MaxEngineSnippetBytes, true) || !validMailCalendarMethod(value.CalendarMethod) || value.SizeBytes < 0 || value.SizeBytes > MaxEngineMessageBytes || !syncValidPriority(value.Priority) || !syncValidOrigin(value.Origin) {
 		return syncPolicyError(MailboxSyncPolicyErrorInvalid)
 	}
+	if value.AuthenticationClass != MailAuthenticationClassTrustedInternal && value.AuthenticationClass != MailAuthenticationClassDMARCAligned && value.AuthenticationClass != MailAuthenticationClassUntrusted {
+		return syncPolicyError(MailboxSyncPolicyErrorInvalid)
+	}
+	if (value.CalendarMethod == nil) != (value.CalendarPartLocatorHash == nil) || (value.CalendarPartLocatorHash != nil && len(value.CalendarPartLocatorHash) != sha256.Size) {
+		return syncPolicyError(MailboxSyncPolicyErrorInvalid)
+	}
 	if value.ReceivedAt != nil && !syncValidTime(*value.ReceivedAt) {
 		return syncPolicyError(MailboxSyncPolicyErrorInvalid)
 	}
@@ -1223,7 +1230,7 @@ func syncPageBytes(projections []EngineMessageProjection, accountID string, firs
 }
 
 func syncProjectionBytes(value EngineMessageProjection) int {
-	total := len(value.AccountID) + len(value.MessageID) + len(value.Version) + len(value.InternetMessageID) + len(value.InReplyTo) + len(value.Subject) + len(value.Snippet) + len(value.From.Email) + len(value.From.Name) + syncAddressBytes(value.To) + syncAddressBytes(value.CC) + syncAddressBytes(value.BCC) + syncAddressBytes(value.ReplyTo) + syncStringBytes(value.References) + syncStringBytes(value.FolderIDs)
+	total := len(value.AccountID) + len(value.MessageID) + len(value.Version) + len(value.InternetMessageID) + len(value.InReplyTo) + len(value.Subject) + len(value.Snippet) + len(value.From.Email) + len(value.From.Name) + syncAddressBytes(value.To) + syncAddressBytes(value.CC) + syncAddressBytes(value.BCC) + syncAddressBytes(value.ReplyTo) + syncStringBytes(value.References) + syncStringBytes(value.FolderIDs) + len(value.AuthenticationClass) + len(value.CalendarPartLocatorHash)
 	if value.CalendarMethod != nil {
 		total += len(*value.CalendarMethod)
 	}
@@ -1275,6 +1282,9 @@ func syncCloneSafeProjection(value EngineMessageProjection) EngineMessageProject
 		result.ReceivedAt = &timestamp
 	}
 	result.CalendarMethod = copyMailCalendarMethod(value.CalendarMethod)
+	if value.CalendarPartLocatorHash != nil {
+		result.CalendarPartLocatorHash = append([]byte{}, value.CalendarPartLocatorHash...)
+	}
 	return result
 }
 
