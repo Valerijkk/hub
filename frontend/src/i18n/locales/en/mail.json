@@ -43,5 +43,32 @@
 		"bootstrapping": "Mailbox setup is in progress.",
 		"rebuilding": "Refreshing folders. Current folders may be out of date.",
 		"degraded": "Folder data may be out of date."
+	},
+	"threadList": {
+		"title": "All Mail",
+		"listLabel": "Mail conversations",
+		"count": "{{count}} conversations",
+		"unknownSender": "Unknown sender",
+		"noSubject": "(No subject)",
+		"unreadCount": "{{count}} unread messages",
+		"messageCount": "{{count}} messages",
+		"starred": "Starred conversation",
+		"hasAttachments": "Has attachments",
+		"labels": "Labels",
+		"loading": "Loading conversations…",
+		"unavailable": "Conversations are unavailable right now.",
+		"partialUnavailable": "Some conversations may not be current. Your loaded conversations are still shown.",
+		"empty": "No conversations yet",
+		"emptyDescription": "New mail will appear here after it has been synchronized.",
+		"loadMore": "Load more",
+		"loadingMore": "Loading more…",
+		"end": "You have reached the end of this mailbox.",
+		"bootstrapping": "Mailbox setup is in progress.",
+		"rebuilding": "Refreshing conversations. Current rows may be out of date.",
+		"degraded": "Conversation data may be out of date."
+	},
+	"reader": {
+		"emptyTitle": "Select a conversation",
+		"emptyDescription": "Choose a conversation to read it here."
 	}
 }
